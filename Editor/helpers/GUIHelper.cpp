@@ -293,3 +293,21 @@ void GUIHelper::prepareFileDialog(QFileDialog& dialog)
 
 	skinManager->styleFileDialog(&dialog);
 }
+
+void GUIHelper::enableVst3BundleSelection(QFileDialog& dialog)
+{
+	// directoryEntered only fires reliably from the widget-based dialog, so
+	// the native dialog is opted out here even where prepareFileDialog kept
+	// it - see the header comment.
+	dialog.setOption(QFileDialog::DontUseNativeDialog);
+	QObject::connect(&dialog, &QFileDialog::directoryEntered, &dialog,
+		[&dialog](const QString& path)
+		{
+			if (!path.endsWith(QStringLiteral(".vst3"), Qt::CaseInsensitive))
+				return;
+			dialog.selectFile(path);
+			// Queued: accepting synchronously would tear the dialog down in
+			// the middle of its own navigation signal.
+			QMetaObject::invokeMethod(&dialog, "accept", Qt::QueuedConnection);
+		});
+}

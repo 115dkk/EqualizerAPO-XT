@@ -116,6 +116,7 @@ SOURCES += main.cpp\
 	guis/IncludeFilterGUI.cpp \
 	guis/IncludeFilterGUIFactory.cpp \
 	helpers/GUIHelper.cpp \
+	helpers/PanelPreviewFeeder.cpp \
 	helpers/QtAppBootstrap.cpp \
 	helpers/VstChunkScan.cpp \
 	widgets/ResizingLineEdit.cpp \
@@ -364,6 +365,7 @@ HEADERS  += \
 	FilterGUIFactoryRegistry.h \
 	helpers/EditorSettings.h \
 	helpers/GUIHelper.h \
+	helpers/PanelPreviewFeeder.h \
 	helpers/WindowFrameHitTest.h \
 	helpers/QtAppBootstrap.h \
 	helpers/VstChunkScan.h \

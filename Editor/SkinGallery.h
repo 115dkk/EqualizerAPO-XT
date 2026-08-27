@@ -82,4 +82,13 @@ int runScrollBench();
 // exits the event loop with the verdict. Returns false when the required
 // dock is missing, in which case the caller exits 1 immediately.
 bool armAnalysisLayoutProbe(MainWindow& window, const QString& screenshotPath);
+
+// Entry point behind --vst-panel-feed-test: embeds the first VST card's
+// panel in the live MainWindow, then samples the card's composited screen
+// pixels for the given duration and reports whether they animate
+// (verdict=LIVE) or hold still (verdict=STATIC). With
+// EAPO_DISABLE_PANEL_FEED=1 this reproduces the pre-feed behaviour, so the
+// LIVE/STATIC pair is the discriminating proof that the panel preview feed
+// is what brings plugin meters to life. Diagnostic, not a CI gate.
+bool armVstPanelFeedProbe(MainWindow& window, const QString& durationValue);
 }

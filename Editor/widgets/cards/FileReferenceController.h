@@ -20,10 +20,13 @@ public:
 	void resolveAgainstConfig(const QString& configPath);
 	void resolveAgainstDirectory(const QString& directoryPath);
 
+	// selectVst3Bundles additionally lets the dialog pick *.vst3 bundle
+	// directories as if they were files (GUIHelper::enableVst3BundleSelection).
 	QString chooseExistingFile(QWidget* parent, const QString& title,
 		const QString& initialPath, const QString& nameFilter,
 		const QString& referenceBaseDirectory,
-		const QString& selectedFile = QString());
+		const QString& selectedFile = QString(),
+		bool selectVst3Bundles = false);
 	ReferenceCardState describe(const QString& emptyName) const;
 	static bool isReadableByAudioService(const QString& absolutePath);
 	bool importIntoConfig(QWidget* parent, const QString& configPath);

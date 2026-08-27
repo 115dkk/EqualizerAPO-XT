@@ -18,12 +18,14 @@
 QString FileReferenceController::chooseExistingFile(QWidget* parent,
 	const QString& title, const QString& initialPath,
 	const QString& nameFilter, const QString& referenceBaseDirectory,
-	const QString& selectedFile)
+	const QString& selectedFile, bool selectVst3Bundles)
 {
 	QFileDialog dialog(parent, title, initialPath, nameFilter);
 	dialog.setFileMode(QFileDialog::ExistingFile);
 	dialog.setNameFilter(nameFilter);
 	GUIHelper::prepareFileDialog(dialog);
+	if (selectVst3Bundles)
+		GUIHelper::enableVst3BundleSelection(dialog);
 	if (!selectedFile.isEmpty())
 		dialog.selectFile(selectedFile);
 	if (dialog.exec() != QDialog::Accepted)

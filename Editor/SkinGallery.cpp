@@ -12,6 +12,7 @@
 #include "filters/VSTPluginFilter.h"
 #include "filters/VSTPluginFilterFactory.h"
 #include "guis/VSTPluginFilterGUI.h"
+#include "widgets/cards/VSTCardEditor.h"
 #include "widgets/cards/VSTSlotFillRail.h"
 #include "MainWindow.h"
 #include "diagnostics/ToolbarPixelProbe.h"
@@ -3048,6 +3049,136 @@ bool SkinGallery::armAnalysisLayoutProbe(MainWindow& window, const QString& scre
 					else
 						QCoreApplication::exit(exitCode);
 				});
+		});
+	});
+	return true;
+}
+
+bool SkinGallery::armVstPanelFeedProbe(MainWindow& window, const QString& durationValue)
+{
+	bool durationOk = false;
+	int durationMs = durationValue.toInt(&durationOk);
+	if (!durationOk || durationMs <= 0)
+		durationMs = 8000;
+
+	window.showNormal();
+	// Pin the window to the primary screen: a restored geometry on another
+	// monitor would divorce the screen grab below from the widget rects.
+	QScreen* primary = QGuiApplication::primaryScreen();
+	window.setGeometry(QRect(primary->availableGeometry().topLeft() + QPoint(60, 60),
+		QSize(1280, 900)));
+	window.raise();
+	window.activateWindow();
+
+	// Let the configuration finish loading before the embed request.
+	QTimer::singleShot(1500, &window, [&window, durationMs]() {
+		// The session may have restored other configuration tabs; only the
+		// active tab's widgets are visible, and the probe file was loaded
+		// last, so the visible VST card is the probe's card.
+		VSTCardEditor* card = nullptr;
+		const QList<VSTCardEditor*> cards = window.findChildren<VSTCardEditor*>();
+		for (VSTCardEditor* candidate : cards)
+			if (candidate->isVisible())
+				card = candidate;
+		if (card == nullptr)
+		{
+			fprintf(stderr, "VstPanelFeedProbe: no visible VST card (%d total)\n",
+				int(cards.size()));
+			std::fflush(nullptr);
+			std::_Exit(1);
+		}
+		if (!QMetaObject::invokeMethod(card, "embedToggled", Qt::DirectConnection, Q_ARG(bool, true)))
+		{
+			fprintf(stderr, "VstPanelFeedProbe: embed request failed\n");
+			std::fflush(nullptr);
+			std::_Exit(1);
+		}
+
+		// A settle pause for the plug-in view to attach and paint its first
+		// frame, then the sampling run.
+		QTimer::singleShot(2000, card, [card, durationMs]() {
+			struct SampleState
+			{
+				QImage previous;
+				QVector<double> diffs;
+			};
+			auto state = std::make_shared<SampleState>();
+			const int intervalMs = 250;
+			const int totalSamples = qMax(4, durationMs / intervalMs);
+			QTimer* sampler = new QTimer(card);
+			sampler->setInterval(intervalMs);
+			QObject::connect(sampler, &QTimer::timeout, card, [card, state, totalSamples, sampler]() {
+				// Composited screen pixels, because the plug-in renders into
+				// native child windows QWidget::grab cannot see. grabWindow
+				// offsets are relative to the screen, not the virtual desktop,
+				// and the screen is the one actually containing the card.
+				const QPoint globalTopLeft = card->mapToGlobal(QPoint(0, 0));
+				QScreen* screen = QGuiApplication::screenAt(
+					globalTopLeft + QPoint(card->width() / 2, card->height() / 2));
+				if (screen == nullptr)
+					screen = QGuiApplication::primaryScreen();
+				const QPoint topLeft = globalTopLeft - screen->geometry().topLeft();
+				const QPixmap shot = screen->grabWindow(0, topLeft.x(), topLeft.y(),
+					card->width(), card->height());
+				QImage image = shot.toImage().convertToFormat(QImage::Format_RGB32);
+				if (state->previous.isNull())
+					fprintf(stderr, "VstPanelFeedProbe: card=%dx%d at %d,%d image=%dx%d screen=%s\n",
+						card->width(), card->height(), topLeft.x(), topLeft.y(),
+						image.width(), image.height(), qPrintable(screen->name()));
+				if (!state->previous.isNull() && state->previous.size() == image.size())
+				{
+					qint64 total = 0;
+					qint64 sampled = 0;
+					for (int y = 0; y < image.height(); y += 2)
+					{
+						const QRgb* current = reinterpret_cast<const QRgb*>(image.constScanLine(y));
+						const QRgb* previous = reinterpret_cast<const QRgb*>(state->previous.constScanLine(y));
+						for (int x = 0; x < image.width(); x += 2)
+						{
+							total += qAbs(qRed(current[x]) - qRed(previous[x]))
+								+ qAbs(qGreen(current[x]) - qGreen(previous[x]))
+								+ qAbs(qBlue(current[x]) - qBlue(previous[x]));
+							sampled++;
+						}
+					}
+					state->diffs.append(sampled > 0 ? double(total) / double(sampled) : 0.0);
+				}
+				state->previous = image;
+				if (state->diffs.size() < totalSamples)
+					return;
+
+				sampler->stop();
+				int activeFrames = 0;
+				double maxDiff = 0.0;
+				double sum = 0.0;
+				QString series;
+				for (double diff : state->diffs)
+				{
+					// A meter strip moving inside a mostly static card keeps
+					// the per-sampled-pixel mean small; 0.05 sits well above
+					// the measured no-feed noise floor (0.02) and well below
+					// the measured feed signal (0.06-0.37).
+					if (diff > 0.05)
+						activeFrames++;
+					maxDiff = qMax(maxDiff, diff);
+					sum += diff;
+					series += QString::number(diff, 'f', 2) + QLatin1Char(' ');
+				}
+				const double meanDiff = sum / state->diffs.size();
+				// LIVE when a solid share of the sampled intervals moved: a
+				// one-off repaint cannot fake a meter, while meter ballistics
+				// legitimately hold still between peaks even on a modulated
+				// signal.
+				const bool live = activeFrames * 4 >= state->diffs.size();
+				fprintf(stderr,
+					"VstPanelFeedProbe: feedDisabled=%d frames=%d activeFrames=%d meanDiff=%.2f maxDiff=%.2f verdict=%s\n",
+					qEnvironmentVariableIsSet("EAPO_DISABLE_PANEL_FEED") ? 1 : 0,
+					int(state->diffs.size()), activeFrames, meanDiff, maxDiff, live ? "LIVE" : "STATIC");
+				fprintf(stderr, "VstPanelFeedProbe: series=%s\n", qPrintable(series.trimmed()));
+				std::fflush(nullptr);
+				std::_Exit(0);
+			});
+			sampler->start();
 		});
 	});
 	return true;

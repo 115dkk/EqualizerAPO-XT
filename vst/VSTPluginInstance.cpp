@@ -424,6 +424,12 @@ void VSTPluginInstance::endVST3EditorSession()
 	flushVST3ParameterChanges();
 }
 
+bool VSTPluginInstance::vst3EditorSessionActive()
+{
+	lock_guard<mutex> lifecycleLock(vst3LifecycleMutex);
+	return vst3EditorSession;
+}
+
 bool VSTPluginInstance::initialize()
 {
 	if (library->isVST3())
@@ -489,6 +495,11 @@ bool VSTPluginInstance::canReplacing() const
 		return true;
 
 	return (effect->flags & VST_EFFECT_FLAG_SUPPORTS_FLOAT) != 0;
+}
+
+bool VSTPluginInstance::isVST3() const
+{
+	return library->isVST3();
 }
 
 int VSTPluginInstance::uniqueID() const

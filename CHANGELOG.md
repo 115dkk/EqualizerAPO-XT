@@ -14,6 +14,24 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Plugin panels now show live audio.** Level meters, analyzers, and other
+  audio-reactive displays inside VST plugin panels sat dead because the
+  Editor never fed audio into the preview instance behind the panel. While
+  a panel is open, the Editor now taps the system output via WASAPI
+  loopback and runs it through that instance (the processed copy is
+  discarded - the audible path stays in the audio service, unchanged).
+  Diagnosed and first patched by Mephistos (DCinside) - see the new
+  Special Thanks section in the README. Setting the
+  `EAPO_DISABLE_PANEL_FEED` environment variable turns the feed off again
+  ([#306](https://github.com/115dkk/EqualizerAPO-XT/pull/306)).
+- **VST3 bundles can be picked directly.** The plugin file dialogs treat
+  entering a `*.vst3` bundle directory as picking it, instead of only
+  browsing into it ([#306](https://github.com/115dkk/EqualizerAPO-XT/pull/306)).
+- **Panel auto-apply now defaults to on.** Moving a control in a plugin
+  panel applies it to the engine immediately unless auto-apply was
+  explicitly turned off before
+  ([#306](https://github.com/115dkk/EqualizerAPO-XT/pull/306)).
+
 ## v2.42.2 — 2026-08-24
 
 - **Scrolling a maximized window is smooth in the Rack skin again.** The

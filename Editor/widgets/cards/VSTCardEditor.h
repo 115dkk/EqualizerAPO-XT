@@ -26,6 +26,7 @@
 #include <QElapsedTimer>
 
 #include "Editor/IFilterGUI.h"
+#include "Editor/helpers/PanelPreviewFeeder.h"
 #include "Editor/widgets/cards/ReferenceCardView.h"
 #include "Editor/widgets/cards/VSTBusModel.h"
 #include "Editor/widgets/cards/VSTSlotFillModel.h"
@@ -55,7 +56,7 @@ public:
 		QWidget* parent = nullptr,
 		std::vector<std::wstring> inputChannels = {},
 		std::vector<std::wstring> outputChannels = {});
-	~VSTCardEditor();
+	~VSTCardEditor() override;
 
 	void store(QString& command, QString& parameters) override;
 	void configureSelectedChannels(std::vector<std::wstring>& selectedChannels) override;
@@ -93,7 +94,7 @@ private:
 	std::wstring chunkData;
 	std::unordered_map<std::wstring, float> paramMap;
 	bool embedded = false;
-	bool autoApplyDialog = false;
+	bool autoApplyDialog = true;
 	VSTBusModel busModel;
 	// Per-slot channel fill for the forced layouts. The card has no editor
 	// for these yet; it preserves them losslessly and only drops a side's
@@ -140,4 +141,7 @@ private:
 	VSTSlotFillRail* outputRail = nullptr;
 	QFrame* frame = nullptr;
 	QPlainTextEdit* warningTextEdit = nullptr;
+	// Declared after effect on purpose: reverse member destruction stops the
+	// pump before the instance it feeds goes away.
+	PanelPreviewFeeder previewFeeder;
 };

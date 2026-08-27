@@ -345,7 +345,7 @@ void VSTCardEditor::updateFillRails()
 
 void VSTCardEditor::loadPreferences(const QVariantMap& prefs)
 {
-	autoApplyDialog = prefs.value("autoApplyDialog").toBool();
+	autoApplyDialog = prefs.value("autoApplyDialog", true).toBool();
 
 	if (prefs.contains("slotFillCollapsed"))
 	{
@@ -388,6 +388,11 @@ void VSTCardEditor::openPanel()
 	{
 		effect->writeToEffect(chunkData, paramMap);
 
+		// Before the dialog's startEditing: the feed prepares the instance
+		// for the loopback mix format, which must happen while the processor
+		// is still deactivated.
+		previewFeeder.start(effect.get());
+
 		VSTPluginFilterGUIDialog dialog(this, effect.get(), autoApplyDialog);
 		connect(dialog.getApplyButton(), SIGNAL(pressed()), SLOT(applyDialog()));
 		connect(dialog.getAutoApplyCheckBox(), SIGNAL(toggled(bool)), SLOT(autoApplyToggled(bool)));
@@ -400,6 +405,7 @@ void VSTCardEditor::openPanel()
 			updatePermissionWarning();
 		}
 		disconnect(QAbstractEventDispatcher::instance(), SIGNAL(aboutToBlock()), this, SLOT(onIdle()));
+		previewFeeder.stop();
 	}
 }
 
@@ -723,7 +729,8 @@ void VSTCardEditor::selectFile()
 	const QString absolutePath = reference->chooseExistingFile(
 		this, tr("Select VST plugin"), fileInfo.absoluteFilePath(),
 		tr("VST plugins (*.dll *.vst3)"), pluginsDir.absolutePath(),
-		reference->writtenPath().isEmpty() ? QString() : fileInfo.fileName());
+		reference->writtenPath().isEmpty() ? QString() : fileInfo.fileName(),
+		/*selectVst3Bundles=*/ true);
 	if (!absolutePath.isEmpty())
 	{
 		settings.setValue("vst/lastDir", QDir::toNativeSeparators(QFileInfo(absolutePath).absolutePath()));
@@ -774,6 +781,10 @@ void VSTCardEditor::embedToggled(bool checked)
 
 		if (enable)
 		{
+			// Before embedPlugin()'s startEditing, for the same deactivation
+			// contract as the dialog path.
+			previewFeeder.start(effect.get());
+
 			if (embedPlugin())
 			{
 				effect->setSizeWindowFunc([this](int w, int h) { onSizeWindow(w, h); });
@@ -781,6 +792,7 @@ void VSTCardEditor::embedToggled(bool checked)
 			}
 			else
 			{
+				previewFeeder.stop();
 				embedded = false;
 				frame->setVisible(false);
 
@@ -790,6 +802,7 @@ void VSTCardEditor::embedToggled(bool checked)
 		}
 		else
 		{
+			previewFeeder.stop();
 			if (effect != nullptr)
 			{
 				effect->stopEditing();
@@ -866,9 +879,13 @@ bool VSTCardEditor::embedPlugin()
 		effect->writeToEffect(chunkData, paramMap);
 
 		HWND hwnd = (HWND)frame->winId();
-		short width, height;
-		effect->startEditing(hwnd, &width, &height, frame->devicePixelRatioF());
-		frame->setFixedSize(width, height);
+		short width = 0, height = 0;
+		// startEditing also fails without an exception (no view, attach
+		// refused); unchecked, that embedded its 400x300 placeholder size as
+		// an empty frame and reported the panel as open.
+		result = effect->startEditing(hwnd, &width, &height, frame->devicePixelRatioF());
+		if (result)
+			frame->setFixedSize(width, height);
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{

@@ -1,0 +1,326 @@
+# =============================================================================
+# VST3 panel-preview probe (disposable, test-only, NO artifacts)
+# =============================================================================
+#
+# WHY THIS EXISTS
+#   The Editor's plugin panels never fed audio into their preview instance, so
+#   any plugin UI that visualizes audio (level meters, analyzers, the Open-XTC
+#   channel-separation display) sat dead while the sliders worked - reported by
+#   Mephistos on DCinside (gall.dcinside.com/mgallery/board/view/?id=speakers
+#   &no=522148). The fix is Editor/helpers/PanelPreviewFeeder: WASAPI loopback
+#   into the preview instance, processed output discarded.
+#
+#   The feeder itself is Qt GUI code; what CAN be validated headless are its
+#   two premises, and that is what Tests/VstPreviewProbe does:
+#     1. --loopback: the default render endpoint's shared-mode mix format is
+#        float32 and loopback capture delivers non-silent frames while a tone
+#        renders. On a runner that endpoint is the Scream virtual driver
+#        (recipe proven in audio-live-repro.yml).
+#     2. --plugin: the real third-party Open-XTC VST3 binary loads,
+#        negotiates, and processes audio through the exact VSTPluginInstance
+#        choreography the preview uses (prepare -> activate -> width-matched
+#        process -> state save), without crashing or emitting non-finite
+#        samples.
+#
+# THE FIXTURE
+#   The Open-XTC distribution zip is fetched at runtime from the author's
+#   public Google Drive link and verified against a pinned SHA-256. It is
+#   used ONLY as a test input on the disposable runner: nothing from it is
+#   uploaded as an artifact, cached, or redistributed in any form, so no
+#   distribution obligations attach to this use. If the link dies, this
+#   probe fails cleanly - it gates nothing.
+#
+# SCOPE
+#   Manual workflow_dispatch, plus pushes to probe/vst3-preview** branches so
+#   the probe can run before the fix ever lands on the default branch. Not
+#   part of the PR gate; safe to delete once the preview feed has soaked.
+#
+#   These are PREMISE probes: they exercise host capabilities that existed
+#   before the fix and would pass on a pre-fix tree by design. The
+#   discriminating check - the one a pre-fix Editor FAILS - is the
+#   real-window A/B behind "Editor.exe --vst-panel-feed-test" (see
+#   SkinGallery::armVstPanelFeedProbe): with EAPO_DISABLE_PANEL_FEED=1 the
+#   panel pixels hold still while audio plays (verdict=STATIC, the old
+#   behaviour), without it the plugin meters animate (verdict=LIVE).
+#   Measured on real hardware with the real Open-XTC panel:
+#   feed off 2/32 active frames (noise), feed on 20/32 with mean pixel
+#   delta ~40x higher. It needs a desktop, a render endpoint, and the
+#   plugin's UI, so it stays a documented manual procedure instead of a
+#   hosted-runner step.
+#
+# =============================================================================
+
+name: vst3-preview-probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: "Runner image"
+        required: false
+        type: choice
+        options:
+          - windows-2025-vs2026
+          - windows-2022
+        default: windows-2025-vs2026
+  push:
+    branches:
+      - "probe/vst3-preview**"
+
+permissions:
+  contents: read
+
+env:
+  # Scream release pin (the self-signed recipe is verified against 4.0 in
+  # audio-live-repro.yml).
+  SCREAM_VERSION: "4.0"
+  SCREAM_URL: "https://github.com/duncanthrax/scream/releases/download/4.0/Scream4.0.zip"
+  # The Open-XTC 1.51 windows-x64 distribution shared by its author
+  # (PRG-XTC-1.51-windows-x64.zip). The hash pins the exact bytes this probe
+  # was written against; a silent content swap on the link fails loudly here.
+  XTC_DRIVE_ID: "1TTzpj6S0Cp9UI6IV4sa-CAS7_b2-aXgb"
+  XTC_SHA256: "BCE895561641ACC0551BB1B2A5938CA4A5CE64D5D3DD01892A1ADCA991A145E4"
+
+jobs:
+  probe:
+    runs-on: ${{ inputs.runner || 'windows-2025-vs2026' }}
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v3
+        with:
+          msbuild-architecture: x64
+
+      # Same pinned-tag resolution as build.yml: the manifest is the single
+      # authority for dependency versions.
+      - name: Resolve pinned dependency tags
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
+          "VST3_TAG=$($manifest.Shared.Vst3Tag)" >> $env:GITHUB_ENV
+          "TCLAP_TAG=$($manifest.Shared.TclapTag)" >> $env:GITHUB_ENV
+          "HIGHWAY_TAG=$($manifest.Shared.HighwayTag)" >> $env:GITHUB_ENV
+
+      - name: Download dependency release assets
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
+          $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
+          $downloads = Get-DependencyDownloadSpec -Manifest $manifest `
+            -DepsRoot "${{ github.workspace }}\deps" `
+            -Platform "x64" `
+            -Simd "avx2"
+          Invoke-DependencyDownload -Downloads $downloads `
+            -DownloadRoot "${{ github.workspace }}\deps\_downloads"
+
+      - name: Download TCLAP
+        uses: actions/checkout@v6
+        with:
+          repository: 115dkk/tclap
+          ref: ${{ env.TCLAP_TAG }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: deps/tclap
+
+      - name: Download VST3 pluginterfaces
+        uses: actions/checkout@v6
+        with:
+          repository: steinbergmedia/vst3_pluginterfaces
+          ref: ${{ env.VST3_TAG }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: deps/vst3sdk/pluginterfaces
+
+      - name: Download Highway
+        uses: actions/checkout@v6
+        with:
+          repository: google/highway
+          ref: ${{ env.HIGHWAY_TAG }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: deps/highway
+
+      - name: Setup dependency structures
+        shell: pwsh
+        run: |
+          .\.github\scripts\Initialize-DepsEnvironment.ps1 -DepsPath "${{ github.workspace }}\deps"
+
+      # Only the engine libraries and the probe - no Qt, no APO DLL, no
+      # installer. The probe project itself is CPU-baseline (no
+      # EapoVariantArch), so it executes on any hosted runner.
+      - name: Build the probe
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $toolset = if ("${{ inputs.runner }}" -eq "windows-2022") { "v143" } else { "v145" }
+          $buildParams = @(
+            "/m", "/p:Configuration=Release", "/p:Platform=x64", "/t:rebuild",
+            "/p:LIBSNDFILE_INCLUDE=$env:LIBSNDFILE_INCLUDE", "/p:LIBSNDFILE_LIB=$env:LIBSNDFILE_LIB",
+            "/p:FFTW_INCLUDE=$env:FFTW_INCLUDE", "/p:FFTW_LIB=$env:FFTW_LIB",
+            "/p:MUPARSERX_INCLUDE=$env:MUPARSERX_INCLUDE", "/p:MUPARSERX_LIB=$env:MUPARSERX_LIB",
+            "/p:TCLAP_ROOT=$env:TCLAP_ROOT", "/p:VST3_SDK=$env:VST3_SDK",
+            "/p:HIGHWAY_INCLUDE=$env:HIGHWAY_INCLUDE", "/p:PlatformToolset=$toolset",
+            "/p:PreferredToolArchitecture=x64"
+          )
+          foreach ($project in @(
+              "SubwooferRoutingCore\SubwooferRoutingCore.vcxproj",
+              "Common.vcxproj",
+              "Tests\VstPreviewProbe\VstPreviewProbe.vcxproj")) {
+            msbuild $project @buildParams
+            if ($LASTEXITCODE -ne 0) { throw "Build failed for $project" }
+          }
+
+      - name: Load shared APO endpoint contract
+        shell: pwsh
+        run: |
+          Import-Module "$env:GITHUB_WORKSPACE\.github\scripts\ApoEndpointHarness.psm1" -Force
+          Export-ApoEndpointContract -GitHubEnvironmentPath $env:GITHUB_ENV
+
+      # signtool for the Scream catalog re-sign; resolved from the Windows SDK
+      # directly (no Node-based action), same as audio-live-repro.yml.
+      - name: Add signtool (Windows SDK) to PATH
+        shell: pwsh
+        run: |
+          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue |
+            Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $signtool) { throw "signtool.exe not found in the Windows SDK" }
+          Add-Content -Path $env:GITHUB_PATH -Value (Split-Path $signtool.FullName)
+
+      # The proven audio-live-repro.yml recipe: hosted runners have Secure
+      # Boot OFF, so a self-signed kernel driver installs with no test-signing
+      # mode and no reboot. This gives the runner a REAL active render
+      # endpoint for the loopback premise.
+      - name: Install Scream virtual audio driver
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $work = Join-Path $env:RUNNER_TEMP "scream"
+          New-Item -ItemType Directory -Force -Path $work | Out-Null
+
+          $zip = Join-Path $work "Scream.zip"
+          Invoke-WebRequest -Uri $env:SCREAM_URL -OutFile $zip
+          Expand-Archive -Path $zip -DestinationPath $work -Force
+
+          $driverDir = Join-Path $work "Install\driver\x64"
+          $inf = Join-Path $driverDir "Scream.inf"
+          $cat = Join-Path $driverDir "scream.cat"
+          $devcon = Join-Path $work "Install\helpers\devcon-x64.exe"
+          foreach ($f in @($inf, $cat, $devcon)) {
+              if (-not (Test-Path $f)) { throw "Scream layout unexpected: $f not found" }
+          }
+
+          $cert = New-SelfSignedCertificate -Type CodeSigningCert `
+              -Subject "CN=EqualizerAPO-XT Scream Test Signing" `
+              -CertStoreLocation Cert:\CurrentUser\My `
+              -KeyUsage DigitalSignature -KeyExportPolicy Exportable
+          $cer = Join-Path $work "ScreamTestSigning.cer"
+          Export-Certificate -Cert $cert -FilePath $cer | Out-Null
+
+          & signtool sign /v /fd SHA256 /sha1 $cert.Thumbprint $cat
+          if ($LASTEXITCODE -ne 0) { throw "signtool sign failed ($LASTEXITCODE)" }
+
+          Import-Certificate -FilePath $cer -CertStoreLocation Cert:\LocalMachine\Root | Out-Null
+          Import-Certificate -FilePath $cer -CertStoreLocation Cert:\LocalMachine\TrustedPublisher | Out-Null
+
+          Push-Location $driverDir
+          try {
+              & $devcon install "Scream.inf" "*Scream"
+              $devconRc = $LASTEXITCODE
+          } finally {
+              Pop-Location
+          }
+          # devcon: 0 = ok, 1 = ok-but-reboot-suggested; never let the native
+          # code leak into the pwsh wrapper's appended "exit $LASTEXITCODE".
+          if ($devconRc -ne 0 -and $devconRc -ne 1) {
+              Write-Error "devcon install failed (rc=$devconRc)"; exit 1
+          }
+
+          try { Start-Service AudioEndpointBuilder -ErrorAction Stop } catch { Write-Host "Start AudioEndpointBuilder: $($_.Exception.Message)" }
+          try { Start-Service AudioSrv -ErrorAction Stop } catch { Write-Host "Start AudioSrv: $($_.Exception.Message)" }
+          try { Restart-Service -Force AudioEndpointBuilder -ErrorAction Stop } catch { Write-Host "Restart AudioEndpointBuilder: $($_.Exception.Message)" }
+          try { Start-Service AudioSrv -ErrorAction Stop } catch { Write-Host "Start AudioSrv: $($_.Exception.Message)" }
+
+          $deadline = (Get-Date).AddSeconds(30)
+          $screamSeen = $false
+          do {
+              Start-Sleep -Milliseconds 1500
+              $render = @()
+              if (Test-Path "Registry::$env:MMDEVICES_ROOT\Render") {
+                  $render = Get-ChildItem "Registry::$env:MMDEVICES_ROOT\Render" -ErrorAction SilentlyContinue
+              }
+              foreach ($k in $render) {
+                  $propPath = "$($k.PSPath)\Properties"
+                  if (Test-Path $propPath) {
+                      $name = (Get-ItemProperty -Path $propPath -Name $env:DEVICE_FRIENDLY_VALUE -ErrorAction SilentlyContinue)."$($env:DEVICE_FRIENDLY_VALUE)"
+                      if ($name -and $name -match 'Scream') { $screamSeen = $true; break }
+                  }
+              }
+          } while (-not $screamSeen -and (Get-Date) -lt $deadline)
+          if (-not $screamSeen) { throw "Scream endpoint did not appear in MMDevices" }
+          Write-Host "Scream endpoint is visible"
+
+      # Runtime fetch of the fixture: the >100 MB file sits behind Google
+      # Drive's virus-scan interstitial, so a first HTML response is answered
+      # by replaying the download with the confirm token the form carries.
+      # SHA-256 is asserted before anything from the zip is touched.
+      - name: Fetch the Open-XTC fixture
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $zip = Join-Path $env:RUNNER_TEMP "prg-xtc.zip"
+          $url = "https://drive.usercontent.google.com/download?id=$env:XTC_DRIVE_ID&export=download&authuser=0"
+          Invoke-WebRequest -Uri $url -OutFile $zip
+
+          $bytes = [System.IO.File]::ReadAllBytes($zip)
+          $isZip = ($bytes.Length -ge 2 -and $bytes[0] -eq 0x50 -and $bytes[1] -eq 0x4B)
+          if (-not $isZip) {
+              $html = [System.Text.Encoding]::UTF8.GetString($bytes)
+              $uuid = [regex]::Match($html, 'name="uuid" value="([^"]+)"').Groups[1].Value
+              if (-not $uuid) { throw "Drive interstitial did not carry a confirm uuid" }
+              Invoke-WebRequest -Uri "$url&confirm=t&uuid=$uuid" -OutFile $zip
+          }
+
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash
+          if ($hash -ne $env:XTC_SHA256) {
+              throw "Fixture hash mismatch: got $hash, expected $env:XTC_SHA256"
+          }
+
+          $dest = Join-Path $env:RUNNER_TEMP "prg-xtc"
+          Expand-Archive -Path $zip -DestinationPath $dest -Force
+
+          # The plugin looks for its profile grid and HRTF banks under
+          # %APPDATA%\PRG-XTC (see the distribution's install_windows.ps1);
+          # without them it runs but stays silent.
+          $appDataRoot = Join-Path $env:APPDATA "PRG-XTC"
+          New-Item -ItemType Directory -Force -Path $appDataRoot | Out-Null
+          foreach ($payload in @("profiles", "ambient_hrtf", "front_stage_hrtf")) {
+              $source = Join-Path $dest $payload
+              if (Test-Path $source) {
+                  Copy-Item -LiteralPath $source -Destination (Join-Path $appDataRoot $payload) -Recurse -Force
+              }
+          }
+
+          $bundle = Get-ChildItem -Path (Join-Path $dest "VST3") -Filter "*.vst3" -Directory | Select-Object -First 1
+          if (-not $bundle) { throw "No .vst3 bundle in the fixture" }
+          "XTC_BUNDLE=$($bundle.FullName)" >> $env:GITHUB_ENV
+          Write-Host "Fixture bundle: $($bundle.FullName)"
+
+      - name: Run the loopback probe
+        shell: pwsh
+        run: |
+          $probe = "${{ github.workspace }}\Tests\VstPreviewProbe\x64\Release\VstPreviewProbe.exe"
+          & $probe --loopback --seconds 3
+          if ($LASTEXITCODE -ne 0) { Write-Error "loopback probe failed ($LASTEXITCODE)"; exit 1 }
+
+      - name: Run the plugin probe
+        shell: pwsh
+        run: |
+          $probe = "${{ github.workspace }}\Tests\VstPreviewProbe\x64\Release\VstPreviewProbe.exe"
+          & $probe --plugin "$env:XTC_BUNDLE" --seconds 2 --rate 48000
+          if ($LASTEXITCODE -ne 0) { Write-Error "plugin probe failed ($LASTEXITCODE)"; exit 1 }
+
+      # Deliberately NO upload-artifact step anywhere in this workflow: the
+      # fixture and everything derived from it stays on the disposable runner.

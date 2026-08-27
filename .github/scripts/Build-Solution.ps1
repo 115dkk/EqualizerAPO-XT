@@ -20,7 +20,10 @@ $projects = @(
     "Tests\AudioRegressionTests\AudioRegressionTests.vcxproj",
     "EqualizerAPO\EqualizerAPO.vcxproj",
     "Benchmark\Benchmark.vcxproj",
-    "VoicemeeterClient\VoicemeeterClient.vcxproj"
+    "VoicemeeterClient\VoicemeeterClient.vcxproj",
+    # Built (not run) on every leg so the probe cannot rot; the
+    # vst3-preview-probe workflow is what actually executes it.
+    "Tests\VstPreviewProbe\VstPreviewProbe.vcxproj"
 )
 $platformToolset = if ($Platform -eq "ARM64") { "v143" } else { "v145" }
 $toolArchitecture = if ($Platform -eq "ARM64") { "ARM64" } else { "x64" }

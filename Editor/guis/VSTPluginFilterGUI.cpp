@@ -321,7 +321,7 @@ void VSTPluginFilterGUI::updateBusControls()
 
 void VSTPluginFilterGUI::loadPreferences(const QVariantMap& prefs)
 {
-	autoApplyDialog = prefs.value("autoApplyDialog").toBool();
+	autoApplyDialog = prefs.value("autoApplyDialog", true).toBool();
 
 	if (prefs.contains("slotFillCollapsed"))
 	{
@@ -361,6 +361,11 @@ void VSTPluginFilterGUI::on_openPanelButton_clicked()
 	{
 		effect->writeToEffect(chunkData, paramMap);
 
+		// Before the dialog's startEditing: the feed prepares the instance
+		// for the loopback mix format, which must happen while the processor
+		// is still deactivated.
+		previewFeeder.start(effect.get());
+
 		VSTPluginFilterGUIDialog dialog(this, effect.get(), autoApplyDialog);
 		connect(dialog.getApplyButton(), SIGNAL(pressed()), SLOT(applyDialog()));
 		connect(dialog.getAutoApplyCheckBox(), SIGNAL(toggled(bool)), SLOT(autoApplyToggled(bool)));
@@ -373,6 +378,7 @@ void VSTPluginFilterGUI::on_openPanelButton_clicked()
 			updatePermissionWarning();
 		}
 		disconnect(QAbstractEventDispatcher::instance(), SIGNAL(aboutToBlock()), this, SLOT(on_idle()));
+		previewFeeder.stop();
 	}
 }
 
@@ -508,6 +514,7 @@ void VSTPluginFilterGUI::on_selectButton_clicked()
 	QFileDialog dialog(this, tr("Select VST plugin"), fileInfo.absoluteFilePath(), "*.dll *.vst3");
 	dialog.setFileMode(QFileDialog::ExistingFile);
 	dialog.setNameFilter(tr("VST plugins (*.dll *.vst3)"));
+	GUIHelper::enableVst3BundleSelection(dialog);
 	if (path.length() > 0)
 		dialog.selectFile(fileInfo.fileName());
 	if (dialog.exec() == QDialog::Accepted)
@@ -538,6 +545,10 @@ void VSTPluginFilterGUI::on_embedAction_toggled(bool checked)
 
 		if (enable)
 		{
+			// Before embedPlugin()'s startEditing, for the same deactivation
+			// contract as the dialog path.
+			previewFeeder.start(effect.get());
+
 			if (embedPlugin())
 			{
 				effect->setSizeWindowFunc(bind(&VSTPluginFilterGUI::onSizeWindow, this, _1, _2));
@@ -545,6 +556,7 @@ void VSTPluginFilterGUI::on_embedAction_toggled(bool checked)
 			}
 			else
 			{
+				previewFeeder.stop();
 				embedded = false;
 				ui->frame->setVisible(false);
 				ui->statusLabel->setVisible(true);
@@ -558,6 +570,7 @@ void VSTPluginFilterGUI::on_embedAction_toggled(bool checked)
 		}
 		else
 		{
+			previewFeeder.stop();
 			if (effect != nullptr)
 			{
 				effect->stopEditing();
@@ -632,11 +645,15 @@ bool VSTPluginFilterGUI::embedPlugin()
 		effect->writeToEffect(chunkData, paramMap);
 
 		HWND hwnd = (HWND)ui->frame->winId();
-		short width, height;
+		short width = 0, height = 0;
 
-		effect->startEditing(hwnd, &width, &height, ui->frame->devicePixelRatioF());
+		// startEditing also fails without an exception (no view, attach
+		// refused); unchecked, that embedded its 400x300 placeholder size as
+		// an empty frame and reported the panel as open.
+		result = effect->startEditing(hwnd, &width, &height, ui->frame->devicePixelRatioF());
 
-		ui->frame->setFixedSize(width, height);
+		if (result)
+			ui->frame->setFixedSize(width, height);
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
