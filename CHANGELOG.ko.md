@@ -14,7 +14,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   있는 동안 WASAPI 루프백으로 시스템 출력을 받아 그 인스턴스에 흘립니다
   (처리된 사본은 버려지며, 실제 소리 경로는 오디오 서비스에 그대로 남습니다).
   Mephistos(DCinside)님이 진단하고 첫 패치를 만들어 주셨습니다. README의
-  Special Thanks 절을 참고하세요
+  Special Thanks 절을 참고하세요. 환경 변수 `EAPO_DISABLE_PANEL_FEED`를
+  설정하면 피드를 다시 끌 수 있습니다
   ([#306](https://github.com/115dkk/EqualizerAPO-XT/pull/306)).
 - **VST3 번들을 바로 선택할 수 있습니다.** 플러그인 파일 대화상자에서
   `*.vst3` 번들 디렉터리에 들어가면 안을 탐색하는 대신 그 번들을 선택한

@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "platform/windows/ComPtr.h"
+#include "services/logging/Logging.h"
 #include "vst/VSTPluginInstance.h"
 
 using winutil::ComPtr;
@@ -169,6 +170,12 @@ void PanelPreviewFeeder::start(VSTPluginInstance* effect)
 {
 	stop();
 
+	// Field kill switch, doubling as the control arm of the A/B proof
+	// behind --vst-panel-feed-test: with the feed disabled the panel
+	// behaves exactly as it did before this feature existed.
+	if (qEnvironmentVariableIsSet("EAPO_DISABLE_PANEL_FEED"))
+		return;
+
 	if (effect == nullptr)
 		return;
 
@@ -192,37 +199,59 @@ void PanelPreviewFeeder::start(VSTPluginInstance* effect)
 		CLSCTX_INPROC_SERVER, __uuidof(IMMDeviceEnumerator),
 		reinterpret_cast<void**>(enumerator.put()));
 	if (FAILED(hr) || !enumerator)
+	{
+		LogF(L"Panel preview feed: device enumerator failed (0x%08lx)", hr);
 		return;
+	}
 
 	ComPtr<IMMDevice> device;
 	hr = enumerator->GetDefaultAudioEndpoint(eRender, eConsole, device.put());
 	if (FAILED(hr) || !device)
+	{
+		LogF(L"Panel preview feed: no default render endpoint (0x%08lx)", hr);
 		return;
+	}
 
 	hr = device->Activate(__uuidof(IAudioClient), CLSCTX_INPROC_SERVER, nullptr,
 		reinterpret_cast<void**>(state->audioClient.put()));
 	if (FAILED(hr) || !state->audioClient)
+	{
+		LogF(L"Panel preview feed: IAudioClient activation failed (0x%08lx)", hr);
 		return;
+	}
 
 	hr = state->audioClient->GetMixFormat(state->mixFormat.put());
 	if (FAILED(hr) || !state->mixFormat)
+	{
+		LogF(L"Panel preview feed: GetMixFormat failed (0x%08lx)", hr);
 		return;
+	}
 
 	// The pump reads the capture buffer as float32 frames. The shared-mode
 	// mix format is float32 on every stock Windows configuration, but a
 	// format this code did not verify must not be reinterpret_cast away.
 	if (!isFloat32Format(state->mixFormat.get()))
+	{
+		LogF(L"Panel preview feed: mix format is not float32 (tag %u, %u bits), not feeding",
+			state->mixFormat->wFormatTag, state->mixFormat->wBitsPerSample);
 		return;
+	}
 
 	hr = state->audioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_LOOPBACK,
 		captureBufferDuration, 0, state->mixFormat.get(), nullptr);
 	if (FAILED(hr))
+	{
+		LogF(L"Panel preview feed: loopback Initialize failed (0x%08lx)", hr);
 		return;
+	}
 
 	hr = state->audioClient->GetService(__uuidof(IAudioCaptureClient),
 		reinterpret_cast<void**>(state->captureClient.put()));
 	if (FAILED(hr) || !state->captureClient)
+	{
+		LogF(L"Panel preview feed: IAudioCaptureClient failed (0x%08lx)", hr);
 		return;
+	}
 
 	// VST3 setupProcessing is only legal while the processor is deactivated,
 	// which is why start() must precede startEditing() - see the header.
@@ -235,7 +264,16 @@ void PanelPreviewFeeder::start(VSTPluginInstance* effect)
 
 	hr = state->audioClient->Start();
 	if (FAILED(hr))
+	{
+		LogF(L"Panel preview feed: capture Start failed (0x%08lx)", hr);
 		return;
+	}
+
+	TraceF(L"Panel preview feed: capturing %lu Hz, %u channels into %d/%d plugin channels (%hs)",
+		state->mixFormat->nSamplesPerSec, state->mixFormat->nChannels,
+		inputChannelCount, outputChannelCount,
+		state->width == ProcessWidth::Double64 ? "double64"
+		: state->width == ProcessWidth::Float32 ? "float32" : "float32-accumulate");
 
 	// A VST3 instance processes inside the editor session the caller is
 	// about to open (startEditing -> beginVST3EditorSession). A VST2 effect

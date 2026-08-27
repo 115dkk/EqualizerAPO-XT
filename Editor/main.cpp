@@ -515,6 +515,13 @@ int main(int argc, char* argv[])
 		analysisLayoutOption.setValueName(QStringLiteral("screenshot"));
 		analysisLayoutOption.setFlags(QCommandLineOption::HiddenFromHelp);
 		parser.addOption(analysisLayoutOption);
+		// Real-window A/B probe for the panel preview feed (SkinGallery::
+		// armVstPanelFeedProbe); pair it with EAPO_DISABLE_PANEL_FEED=1 for
+		// the control run.
+		QCommandLineOption vstPanelFeedOption(QStringLiteral("vst-panel-feed-test"));
+		vstPanelFeedOption.setValueName(QStringLiteral("durationMs"));
+		vstPanelFeedOption.setFlags(QCommandLineOption::HiddenFromHelp);
+		parser.addOption(vstPanelFeedOption);
 		parser.process(application);
 		QStringList args = parser.positionalArguments();
 		if (!analysisLayoutTestRequested && args.isEmpty() && w.isEmpty())
@@ -530,6 +537,13 @@ int main(int argc, char* argv[])
 			// SkinGallery.cpp (audit #275 B7); it arms the timers and later
 			// exits the event loop with the verdict.
 			if (!SkinGallery::armAnalysisLayoutProbe(w, parser.value(analysisLayoutOption)))
+				return 1;
+		}
+		else if (parser.isSet(vstPanelFeedOption))
+		{
+			// Skips doChecks like the storm: a modal warning would stall the
+			// probe timers.
+			if (!SkinGallery::armVstPanelFeedProbe(w, parser.value(vstPanelFeedOption)))
 				return 1;
 		}
 		else if (parser.isSet(stormOption))

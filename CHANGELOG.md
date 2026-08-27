@@ -21,7 +21,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   loopback and runs it through that instance (the processed copy is
   discarded - the audible path stays in the audio service, unchanged).
   Diagnosed and first patched by Mephistos (DCinside) - see the new
-  Special Thanks section in the README
+  Special Thanks section in the README. Setting the
+  `EAPO_DISABLE_PANEL_FEED` environment variable turns the feed off again
   ([#306](https://github.com/115dkk/EqualizerAPO-XT/pull/306)).
 - **VST3 bundles can be picked directly.** The plugin file dialogs treat
   entering a `*.vst3` bundle directory as picking it, instead of only

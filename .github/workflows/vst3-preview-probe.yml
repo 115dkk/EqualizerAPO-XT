@@ -35,6 +35,19 @@
 #   the probe can run before the fix ever lands on the default branch. Not
 #   part of the PR gate; safe to delete once the preview feed has soaked.
 #
+#   These are PREMISE probes: they exercise host capabilities that existed
+#   before the fix and would pass on a pre-fix tree by design. The
+#   discriminating check - the one a pre-fix Editor FAILS - is the
+#   real-window A/B behind "Editor.exe --vst-panel-feed-test" (see
+#   SkinGallery::armVstPanelFeedProbe): with EAPO_DISABLE_PANEL_FEED=1 the
+#   panel pixels hold still while audio plays (verdict=STATIC, the old
+#   behaviour), without it the plugin meters animate (verdict=LIVE).
+#   Measured on real hardware with the real Open-XTC panel:
+#   feed off 2/32 active frames (noise), feed on 20/32 with mean pixel
+#   delta ~40x higher. It needs a desktop, a render endpoint, and the
+#   plugin's UI, so it stays a documented manual procedure instead of a
+#   hosted-runner step.
+#
 # =============================================================================
 
 name: vst3-preview-probe

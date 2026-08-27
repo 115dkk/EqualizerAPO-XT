@@ -332,8 +332,13 @@ int runLoopbackProbe(double seconds)
 					float* samples = reinterpret_cast<float*>(renderData);
 					for (UINT32 i = 0; i < writable; i++)
 					{
-						const float value = static_cast<float>(sineAmplitude
-							* std::sin(2.0 * 3.14159265358979323846 * sineFrequency * (renderedFrames + i) / sampleRate));
+						// Amplitude-modulated at 1.5 Hz: a steady tone lets
+						// level meters settle into a motionless reading, and
+						// the panel-feed A/B keys on meter movement.
+						const double t = (renderedFrames + i) / sampleRate;
+						const double envelope = std::pow(std::sin(2.0 * 3.14159265358979323846 * 1.5 * t / 2.0), 2.0);
+						const float value = static_cast<float>(sineAmplitude * envelope
+							* std::sin(2.0 * 3.14159265358979323846 * sineFrequency * t));
 						for (UINT32 channel = 0; channel < channelCount; channel++)
 							samples[i * channelCount + channel] = value;
 					}
