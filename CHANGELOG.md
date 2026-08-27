@@ -14,12 +14,15 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.46.1 — 2026-08-27
+
 - **Card titles are translated in German, French and Chinese too.** The
   filter card titles (peaking, low-pass, notch, ...) and the remaining
   untranslated card heads (Hilbert transform, Velvet decorrelator, IIR
   filter, Subwoofer routing, If / Else if / Else / End if / Eval) now follow
   each catalog's own terms instead of showing English
   ([#307](https://github.com/115dkk/EqualizerAPO-XT/pull/307)).
+
 ## v2.46.0 — 2026-08-27
 
 - **The minimal skin drops its resting blue.** The selected and focused rows,

@@ -8,11 +8,14 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.46.1 — 2026-08-27
+
 - **독일어·프랑스어·중국어에서도 카드 제목이 번역됩니다.** 필터 카드 제목(피킹,
   로우패스, 노치 등)과 남아 있던 미번역 카드 머리(Hilbert 변환, Velvet
   디코릴레이터, IIR 필터, 서브우퍼 라우팅, If/Else if/Else/End if/Eval)가 영문
   대신 각 카탈로그의 용어를 따릅니다
   ([#307](https://github.com/115dkk/EqualizerAPO-XT/pull/307)).
+
 ## v2.46.0 — 2026-08-27
 
 - **미니멀 스킨이 평상시의 파란색을 버립니다.** 선택·포커스된 행, 체크된
