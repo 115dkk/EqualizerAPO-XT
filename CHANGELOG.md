@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.44.0 — 2026-08-27
+
 - **Larger, heavier type in every skin.** Every text size in the editor is up
   one step (body 10pt to 11pt, the smallest labels 7pt to 8pt) and body text
   renders in the Medium weight instead of Regular, after a report that the
