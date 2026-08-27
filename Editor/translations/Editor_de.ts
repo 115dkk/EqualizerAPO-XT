@@ -798,57 +798,57 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="172"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="175"/>
         <source>Unknown</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="178"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="181"/>
         <source>Preserved at %1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="180"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="183"/>
         <source>Not preserved</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="185"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="188"/>
         <source>Auto, %1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="187"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="190"/>
         <source>Auto, trim unavailable</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="192"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="195"/>
         <source>Manual, %1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="200"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="203"/>
         <source>Linked profile</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="203"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="206"/>
         <source> (missing)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="208"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="211"/>
         <source>Embedded state</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="215"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="218"/>
         <source>Error: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="217"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="220"/>
         <source>Warning: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1202,18 +1202,18 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
 <context>
     <name>FileReferenceController</name>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="59"/>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="72"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="61"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="74"/>
         <source>Import</source>
         <translation type="unfinished">Importieren</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="60"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="62"/>
         <source>Nothing to import: %1</source>
         <translation type="unfinished">Nichts zu importieren: %1</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="73"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="75"/>
         <source>Some files could not be copied:
 %1</source>
         <translation type="unfinished">Einige Dateien konnten nicht kopiert werden:
@@ -1228,7 +1228,7 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
         <translation>Kommentar</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="238"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="237"/>
         <source>Text</source>
         <translation>Text</translation>
     </message>
@@ -1245,22 +1245,63 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
     <message>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="33"/>
         <source>Hilbert transform</source>
-        <translation type="unfinished"></translation>
+        <translation>Hilbert-Transformation</translation>
     </message>
     <message>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="36"/>
         <source>Velvet decorrelator</source>
-        <translation type="unfinished"></translation>
+        <translation>Velvet-Dekorrelator</translation>
     </message>
     <message>
+        <location filename="../widgets/FilterCardModel.cpp" line="38"/>
+        <source>Peaking</source>
+        <translation>Peaking-Filter</translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCardModel.cpp" line="40"/>
+        <source>Low-pass</source>
+        <translation>Tiefpassfilter</translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCardModel.cpp" line="42"/>
+        <source>High-pass</source>
+        <translation>Hochpassfilter</translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCardModel.cpp" line="44"/>
+        <source>Band-pass</source>
+        <translation>Bandpassfilter</translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCardModel.cpp" line="46"/>
+        <source>Low-shelf</source>
+        <translation>Low Shelf-Filter</translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCardModel.cpp" line="48"/>
+        <source>High-shelf</source>
+        <translation>High Shelf-Filter</translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCardModel.cpp" line="50"/>
+        <source>Notch</source>
+        <translation>Notchfilter</translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCardModel.cpp" line="52"/>
+        <source>All-pass</source>
+        <translation>Allpassfilter</translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCardModel.cpp" line="53"/>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="39"/>
         <source>Biquad</source>
         <translation>Biquad</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="279"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="278"/>
         <source>IIR filter</source>
-        <translation type="unfinished"></translation>
+        <translation>IIR-Filter</translation>
     </message>
     <message>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="42"/>
@@ -1315,32 +1356,32 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
     <message>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="72"/>
         <source>Subwoofer routing</source>
-        <translation type="unfinished"></translation>
+        <translation>Subwoofer-Routing</translation>
     </message>
     <message>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="75"/>
         <source>If</source>
-        <translation type="unfinished"></translation>
+        <translation>Wenn</translation>
     </message>
     <message>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="78"/>
         <source>Else if</source>
-        <translation type="unfinished"></translation>
+        <translation>Sonst wenn</translation>
     </message>
     <message>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="81"/>
         <source>Else</source>
-        <translation type="unfinished"></translation>
+        <translation>Sonst</translation>
     </message>
     <message>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="84"/>
         <source>End if</source>
-        <translation type="unfinished"></translation>
+        <translation>Ende wenn</translation>
     </message>
     <message>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="87"/>
         <source>Eval</source>
-        <translation type="unfinished"></translation>
+        <translation>Auswerten</translation>
     </message>
 </context>
 <context>
@@ -1351,27 +1392,27 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
         <translation>Filterkarte aufklappen</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="151"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="121"/>
         <source>Enable or comment out this command</source>
         <translation>Diesen Befehl aktivieren oder auskommentieren</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="160"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="130"/>
         <source>Add filter above this card</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="167"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="137"/>
         <source>Remove filter</source>
         <translation>Filter entfernen</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="181"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="151"/>
         <source>Edit raw command</source>
         <translation>Rohbefehl bearbeiten</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="803"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="826"/>
         <source>This line was not applied: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1542,7 +1583,7 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
 <context>
     <name>FilterTable</name>
     <message>
-        <location filename="../FilterTable.cpp" line="262"/>
+        <location filename="../FilterTable.cpp" line="276"/>
         <source>Add filter</source>
         <translation>Filter hinzufügen</translation>
     </message>
@@ -1626,69 +1667,69 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="83"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="81"/>
         <source>Import</source>
         <translation type="unfinished">Importieren</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="84"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="82"/>
         <source>Export</source>
         <translation type="unfinished">Exportieren</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="85"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="83"/>
         <source>Invert response</source>
         <translation type="unfinished">Frequenzgang invertieren</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="86"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="84"/>
         <source>Normalize response</source>
         <translation type="unfinished">Frequenzgang normalisieren</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="87"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="85"/>
         <source>Reset response</source>
         <translation type="unfinished">Frequenzgang zurücksetzen</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="127"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="129"/>
         <source>Freq.</source>
         <translation type="unfinished">Freq.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="139"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="141"/>
         <source>Gain</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="249"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="251"/>
         <source>Band %0 / %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="255"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="257"/>
         <source>No bands</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="307"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="309"/>
         <source>Import frequency response</source>
         <translation type="unfinished">Frequenzgang importieren</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="310"/>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="367"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="312"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="369"/>
         <source>Frequency response (*.csv)</source>
         <translation type="unfinished">Frequenzgang (*.csv)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="311"/>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="368"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="313"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="370"/>
         <source>All files (*.*)</source>
         <translation type="unfinished">Alle Dateien (*.*)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="363"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="365"/>
         <source>Export frequency response</source>
         <translation type="unfinished">Frequenzgang exportieren</translation>
     </message>
@@ -2801,68 +2842,68 @@ Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/matrix/cards/MatrixSubwooferRoutingCardView.cpp" line="125"/>
+        <location filename="../skins/matrix/cards/MatrixSubwooferRoutingCardView.cpp" line="126"/>
         <source>Bass-management status</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/matrix/cards/MatrixSubwooferRoutingCardView.cpp" line="173"/>
+        <location filename="../skins/matrix/cards/MatrixSubwooferRoutingCardView.cpp" line="174"/>
         <source>FAULT</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/matrix/cards/MatrixSubwooferRoutingCardView.cpp" line="178"/>
+        <location filename="../skins/matrix/cards/MatrixSubwooferRoutingCardView.cpp" line="179"/>
         <source>CHECK</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/matrix/cards/MatrixSubwooferRoutingCardView.cpp" line="183"/>
+        <location filename="../skins/matrix/cards/MatrixSubwooferRoutingCardView.cpp" line="184"/>
         <source>OK</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/matrix/cards/MatrixSubwooferRoutingCardView.cpp" line="198"/>
-        <location filename="../skins/matrix/cards/MatrixSubwooferRoutingCardView.cpp" line="207"/>
+        <location filename="../skins/matrix/cards/MatrixSubwooferRoutingCardView.cpp" line="199"/>
+        <location filename="../skins/matrix/cards/MatrixSubwooferRoutingCardView.cpp" line="208"/>
         <source>%1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/matrix/cards/MatrixSubwooferRoutingCardView.cpp" line="200"/>
+        <location filename="../skins/matrix/cards/MatrixSubwooferRoutingCardView.cpp" line="201"/>
         <source>OFF</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/matrix/cards/MatrixSubwooferRoutingCardView.cpp" line="205"/>
+        <location filename="../skins/matrix/cards/MatrixSubwooferRoutingCardView.cpp" line="206"/>
         <source>AUTO %1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/matrix/cards/MatrixSubwooferRoutingCardView.cpp" line="213"/>
+        <location filename="../skins/matrix/cards/MatrixSubwooferRoutingCardView.cpp" line="214"/>
         <source>AUTO</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/matrix/cards/MatrixSubwooferRoutingCardView.cpp" line="221"/>
+        <location filename="../skins/matrix/cards/MatrixSubwooferRoutingCardView.cpp" line="222"/>
         <source>LINKED</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/matrix/cards/MatrixSubwooferRoutingCardView.cpp" line="227"/>
+        <location filename="../skins/matrix/cards/MatrixSubwooferRoutingCardView.cpp" line="228"/>
         <source>EMBEDDED</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/matrix/cards/MatrixSubwooferRoutingCardView.cpp" line="237"/>
+        <location filename="../skins/matrix/cards/MatrixSubwooferRoutingCardView.cpp" line="238"/>
         <source>! FAULT: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/matrix/cards/MatrixSubwooferRoutingCardView.cpp" line="238"/>
+        <location filename="../skins/matrix/cards/MatrixSubwooferRoutingCardView.cpp" line="239"/>
         <source>State is invalid</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/matrix/cards/MatrixSubwooferRoutingCardView.cpp" line="244"/>
+        <location filename="../skins/matrix/cards/MatrixSubwooferRoutingCardView.cpp" line="245"/>
         <source>! CHECK: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2988,133 +3029,133 @@ Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="285"/>
+        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="286"/>
         <source>!! INVALID</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="288"/>
+        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="289"/>
         <source>The subwoofer-routing state is invalid</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="289"/>
+        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="290"/>
         <source>Invalid subwoofer-routing state: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="294"/>
+        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="295"/>
         <source>! VALID / WARNING</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="297"/>
+        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="298"/>
         <source>The subwoofer-routing state is valid but has a warning: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="302"/>
+        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="303"/>
         <source>+ VALID</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="305"/>
+        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="306"/>
         <source>The subwoofer-routing state is valid</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="321"/>
+        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="322"/>
         <source>UNNAMED</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="329"/>
+        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="330"/>
         <source>PROFILE  %1  [LINKED]</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="334"/>
+        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="335"/>
         <source>Linked profile &quot;%1&quot; is missing</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="341"/>
+        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="342"/>
         <source>Linked subwoofer-routing profile &quot;%1&quot;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="347"/>
+        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="348"/>
         <source>PROFILE  EMBEDDED</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="349"/>
+        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="350"/>
         <source>Bass-management state is embedded</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="354"/>
+        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="355"/>
         <source>PROFILE  %1  [EMBEDDED]</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="357"/>
+        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="358"/>
         <source>Embedded subwoofer-routing profile &quot;%1&quot;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="366"/>
+        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="367"/>
         <source>%1
 %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="370"/>
+        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="371"/>
         <source>UNKNOWN</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="377"/>
+        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="378"/>
         <source>NONE</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="391"/>
+        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="392"/>
         <source>+%1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="392"/>
+        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="393"/>
         <source>%1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="398"/>
+        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="399"/>
         <source>NOT PRESERVED</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="403"/>
+        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="404"/>
         <source>PRESERVED / %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="409"/>
+        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="410"/>
         <source>AUTO / %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="411"/>
+        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="412"/>
         <source>MANUAL / %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="422"/>
+        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="423"/>
         <source>!! %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="429"/>
+        <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="430"/>
         <source>! %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3132,7 +3173,7 @@ Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</
         <translation>Kanalzuordnung</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="109"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="108"/>
         <source>Add an output channel (a new name creates a virtual channel)</source>
         <translation>Ausgabekanal hinzufügen (ein neuer Name erzeugt einen virtuellen Kanal)</translation>
     </message>
@@ -3862,72 +3903,72 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>SoftSubwooferRoutingCardView</name>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="66"/>
+        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="72"/>
         <source>Bass-management summary</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="81"/>
+        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="88"/>
         <source>Bass-management details</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="134"/>
+        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="141"/>
         <source>This bass setup needs attention.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="140"/>
+        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="147"/>
         <source>All speakers play the full range.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="141"/>
+        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="148"/>
         <source>No crossover is set, so nothing is redirected to a subwoofer.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="149"/>
+        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="156"/>
         <source>Bass plays on the subwoofer.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="157"/>
+        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="164"/>
         <source>The movie LFE track is kept and played at %1 dB.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="162"/>
+        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="169"/>
         <source>The source LFE channel is left out.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="174"/>
+        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="181"/>
         <source>Unknown layout</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="175"/>
+        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="182"/>
         <source>%1 speakers</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="178"/>
+        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="185"/>
         <source>LFE %1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="185"/>
+        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="192"/>
         <source>Auto trim %1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="187"/>
+        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="194"/>
         <source>Trim %1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="200"/>
+        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="207"/>
         <source>Linked profile</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4145,67 +4186,67 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/studio/cards/StudioSubwooferRoutingCardView.cpp" line="123"/>
+        <location filename="../skins/studio/cards/StudioSubwooferRoutingCardView.cpp" line="124"/>
         <source>Bass-management status</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/studio/cards/StudioSubwooferRoutingCardView.cpp" line="180"/>
+        <location filename="../skins/studio/cards/StudioSubwooferRoutingCardView.cpp" line="181"/>
         <source>ERROR</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/studio/cards/StudioSubwooferRoutingCardView.cpp" line="186"/>
+        <location filename="../skins/studio/cards/StudioSubwooferRoutingCardView.cpp" line="187"/>
         <source>WARNING</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/studio/cards/StudioSubwooferRoutingCardView.cpp" line="192"/>
+        <location filename="../skins/studio/cards/StudioSubwooferRoutingCardView.cpp" line="193"/>
         <source>VALID</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/studio/cards/StudioSubwooferRoutingCardView.cpp" line="199"/>
+        <location filename="../skins/studio/cards/StudioSubwooferRoutingCardView.cpp" line="200"/>
         <source>Layout unknown</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/studio/cards/StudioSubwooferRoutingCardView.cpp" line="200"/>
+        <location filename="../skins/studio/cards/StudioSubwooferRoutingCardView.cpp" line="201"/>
         <source>Layout %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/studio/cards/StudioSubwooferRoutingCardView.cpp" line="206"/>
+        <location filename="../skins/studio/cards/StudioSubwooferRoutingCardView.cpp" line="207"/>
         <source>Linked profile</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/studio/cards/StudioSubwooferRoutingCardView.cpp" line="219"/>
+        <location filename="../skins/studio/cards/StudioSubwooferRoutingCardView.cpp" line="220"/>
         <source>%1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/studio/cards/StudioSubwooferRoutingCardView.cpp" line="221"/>
+        <location filename="../skins/studio/cards/StudioSubwooferRoutingCardView.cpp" line="222"/>
         <source>Off</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/studio/cards/StudioSubwooferRoutingCardView.cpp" line="226"/>
+        <location filename="../skins/studio/cards/StudioSubwooferRoutingCardView.cpp" line="227"/>
         <source>Auto %1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/studio/cards/StudioSubwooferRoutingCardView.cpp" line="228"/>
+        <location filename="../skins/studio/cards/StudioSubwooferRoutingCardView.cpp" line="229"/>
         <source>Manual %1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/studio/cards/StudioSubwooferRoutingCardView.cpp" line="234"/>
+        <location filename="../skins/studio/cards/StudioSubwooferRoutingCardView.cpp" line="235"/>
         <source>Auto</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/studio/cards/StudioSubwooferRoutingCardView.cpp" line="235"/>
+        <location filename="../skins/studio/cards/StudioSubwooferRoutingCardView.cpp" line="236"/>
         <source>Manual</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4567,14 +4608,14 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>VSTCardEditor</name>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="541"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="724"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="547"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="730"/>
         <source>Select VST plugin</source>
         <translation>VST-Plugin auswählen</translation>
     </message>
     <message>
         <location filename="../widgets/cards/VSTCardEditor.cpp" line="117"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="812"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="825"/>
         <source>Open panel</source>
         <translation>Bedienfeld öffnen</translation>
     </message>
@@ -4609,98 +4650,98 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="441"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="447"/>
         <source>Library could not be loaded.</source>
         <translation>Bibliothek konnte nicht geladen werden.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="444"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="450"/>
         <source>Library does not contain needed functions.</source>
         <translation>Bibliothek enthält nicht die benötigten Funktionen.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="452"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="458"/>
         <source>Library has the wrong architecture. Only %1-bit libraries are supported.</source>
         <translation>Bibliothek hat die falsche Architektur. Es werden nur %1-Bit-Bibliotheken unterstützt.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="467"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="473"/>
         <source>Plugin crashed during initialization.</source>
         <translation>Plugin ist während der Initialisierung abgestürzt.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="479"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="485"/>
         <source>No plugin selected</source>
         <translation>Kein Plugin ausgewählt</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="524"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="530"/>
         <source>Not readable by the audio service</source>
         <translation>Für den Audiodienst nicht lesbar</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="540"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="546"/>
         <source>Locate...</source>
         <translation>Suchen...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="541"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="547"/>
         <source>Locate the missing plugin library</source>
         <translation>Fehlende Plugin-Bibliothek suchen</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="585"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="591"/>
         <source>The bus layout can be changed after the plugin loads.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="593"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="599"/>
         <source>Input and Output layouts are only supported for VST3 plugins.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="597"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="603"/>
         <source>This module loaded as VST2 and ignores the saved Input/Output layouts. Remove them via Options.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="611"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="617"/>
         <source>Close the plugin panel to change the bus layout.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="641"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="647"/>
         <source>The plugin rejected %1 in / %2 out. Audio passes through unchanged.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="659"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="661"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="665"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="667"/>
         <source>%1 ch</source>
         <translation type="unfinished">%1 Kan.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="670"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="676"/>
         <source>The legacy Stereo input option now reads as Input Stereo, Output Auto and will be saved that way.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="725"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="731"/>
         <source>VST plugins (*.dll *.vst3)</source>
         <translation>VST-Plugins (*.dll *.vst3)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="787"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="799"/>
         <source>Plugin crashed when opening panel.</source>
         <translation>Plugin ist beim Öffnen des Bedienfelds abgestürzt.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="812"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="825"/>
         <source>Close panel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="898"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="915"/>
         <source>The plugin seemingly accesses these files not readable by the audio service:
 %0
 Change the file permissions or copy the files to the config directory.</source>
@@ -4734,7 +4775,7 @@ Change the file permissions or copy the files to the config directory.</source>
     </message>
     <message>
         <location filename="../guis/VSTPluginFilterGUI.ui" line="44"/>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="581"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="594"/>
         <source>Open panel</source>
         <translation>Panel öffnen</translation>
     </message>
@@ -4794,64 +4835,64 @@ Change the file permissions or copy the files to the config directory.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="400"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="406"/>
         <source>No file selected.</source>
         <translation>Keine Datei gewählt.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="413"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="419"/>
         <source>File not found.</source>
         <translation>Datei nicht gefunden.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="416"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="422"/>
         <source>Library could not be loaded.</source>
         <translation>Bibliothek konnte nicht geladen werden.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="419"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="425"/>
         <source>Library does not contain needed functions.</source>
         <translation>Bibliothek enthält benötigte Funktionen nicht.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="427"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="433"/>
         <source>Library has the wrong architecture. Only %1-bit libraries are supported.</source>
         <translation>Bibliothek hat die falsche Architektur. Nur %1-bit-Bibliotheken werden unterstützt.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="447"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="453"/>
         <source>Plugin crashed during initialization.</source>
         <translation>Plugin ist bei der Initialisierung abgestürzt.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="508"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="514"/>
         <source>Select VST plugin</source>
         <translation>VST-Plugin wählen</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="510"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="516"/>
         <source>VST plugins (*.dll *.vst3)</source>
         <translation>VST-Plugins (*.dll *.vst3)</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="556"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="568"/>
         <source>Plugin crashed when opening panel.</source>
         <translation>Plugin ist beim Öffnen des Panels abgestürzt.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="581"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="594"/>
         <source>Close panel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="664"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="681"/>
         <source>The library is not readable by the audio service.
 Change the file permissions or copy the file to the VSTPlugins directory.</source>
         <translation>Die Bibliothek ist für den Audiodienst nicht lesbar.
 Ändern Sie die Dateiberechtigungen oder kopieren Sie die Datei in das VSTPlugins-Verzeichnis.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="682"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="699"/>
         <source>The plugin seemingly accesses these files not readable by the audio service:
 %0
 Change the file permissions or copy the files to the config directory.</source>
@@ -4886,22 +4927,22 @@ Change the file permissions or copy the files to the config directory.</source>
 <context>
     <name>VSTSlotFillCell</name>
     <message>
-        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="75"/>
+        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="77"/>
         <source>Output slot channel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="75"/>
+        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="77"/>
         <source>Input slot channel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="205"/>
+        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="214"/>
         <source>Discard (-)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="205"/>
+        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="214"/>
         <source>Silence (-)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4909,7 +4950,7 @@ Change the file permissions or copy the files to the config directory.</source>
 <context>
     <name>VSTSlotFillRail</name>
     <message>
-        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="245"/>
+        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="254"/>
         <source>Channel fill</source>
         <translation type="unfinished"></translation>
     </message>
