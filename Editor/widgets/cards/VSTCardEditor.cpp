@@ -879,9 +879,13 @@ bool VSTCardEditor::embedPlugin()
 		effect->writeToEffect(chunkData, paramMap);
 
 		HWND hwnd = (HWND)frame->winId();
-		short width, height;
-		effect->startEditing(hwnd, &width, &height, frame->devicePixelRatioF());
-		frame->setFixedSize(width, height);
+		short width = 0, height = 0;
+		// startEditing also fails without an exception (no view, attach
+		// refused); unchecked, that embedded its 400x300 placeholder size as
+		// an empty frame and reported the panel as open.
+		result = effect->startEditing(hwnd, &width, &height, frame->devicePixelRatioF());
+		if (result)
+			frame->setFixedSize(width, height);
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
