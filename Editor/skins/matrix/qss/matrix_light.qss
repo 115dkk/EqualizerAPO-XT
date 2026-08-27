@@ -9,7 +9,7 @@
 * {
     outline: 0;
     selection-background-color: @ACCENT@;
-    selection-color: #FFFFFF;
+    selection-color: #EBEBEB;
 }
 
 QWidget {
@@ -321,8 +321,8 @@ QPushButton:default {
 }
 QPushButton:disabled {
     color: #9DB4BD;
-    background: #EDF2F4;
-    border: 1px dashed #D4E2E8;
+    background: #DDE7EA;
+    border: 1px dashed #D0E0E6;
 }
 
 /* ===== Inputs (numeric values in monospace) ===== */
@@ -330,13 +330,13 @@ QLineEdit,
 QPlainTextEdit,
 QTextEdit,
 QAbstractSpinBox {
-    background: #FFFFFF;
+    background: #EBEBEB;
     color: @TEXT@;
     border: 1px solid @BORDER@;
     border-radius: 0;
     padding: 4px 8px;
     selection-background-color: @ACCENT@;
-    selection-color: #FFFFFF;
+    selection-color: #EBEBEB;
 }
 QAbstractSpinBox {
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
@@ -346,13 +346,13 @@ QPlainTextEdit:focus,
 QTextEdit:focus,
 QAbstractSpinBox:focus {
     border: 1px solid @ACCENT@;
-    background: #FFFFFF;
+    background: #EBEBEB;
 }
 QLineEdit:disabled,
 QAbstractSpinBox:disabled {
     color: #9DB4BD;
-    background: #EDF2F4;
-    border: 1px dashed #D4E2E8;
+    background: #DDE7EA;
+    border: 1px dashed #D0E0E6;
 }
 
 QAbstractSpinBox::up-button,
@@ -415,13 +415,13 @@ QSpinBox[valueScrub="true"]:hover {
 QDoubleSpinBox[valueScrub="true"]:focus,
 QSpinBox[valueScrub="true"]:focus {
     border: 1px solid @ACCENT@;
-    background: #FFFFFF;
+    background: #EBEBEB;
 }
 QDoubleSpinBox[valueScrub="true"]:disabled,
 QSpinBox[valueScrub="true"]:disabled {
     color: #9DB4BD;
-    background: #EDF2F4;
-    border: 1px dashed #D4E2E8;
+    background: #DDE7EA;
+    border: 1px dashed #D0E0E6;
 }
 
 /* ===== Combo Box ===== */
@@ -538,7 +538,7 @@ QCheckBox::indicator,
 QRadioButton::indicator {
     width: 16px;
     height: 16px;
-    background: #FFFFFF;
+    background: #EBEBEB;
     border: 1px solid #B8CBD3;
 }
 QCheckBox::indicator { border-radius: 0; }
@@ -860,7 +860,7 @@ QStatusBar::item { border: 0; }
 
 /* ===== Progress Bar ===== */
 QProgressBar {
-    background: #FFFFFF;
+    background: #EBEBEB;
     color: @TEXT@;
     border: 1px solid @BORDER@;
     border-radius: 0;
@@ -925,7 +925,7 @@ QAbstractSpinBox#AnalysisFormSpin {
     padding-bottom: 1px;
 }
 QFrame#AnalysisStatChip {
-    background: #FFFFFF;
+    background: #EBEBEB;
     border: 1px solid @BORDER@;
     border-radius: 0;
 }
@@ -1022,7 +1022,7 @@ QLabel#FilterCardRawText {
    the row is engaged. */
 QLabel#FilterCardNumber {
     color: @MUTED@;
-    background: #FFFFFF;
+    background: #EBEBEB;
     border: 1px solid @BORDER@;
     border-radius: 0;
     padding: 1px 4px;
@@ -1052,7 +1052,7 @@ QToolButton#FilterCardIconButton:checked {
     border-color: @ACCENT@;
 }
 QLineEdit#FilterCardRawEditor {
-    background: #FFFFFF;
+    background: #EBEBEB;
     border: 1px solid @ACCENT@;
     border-radius: 0;
     padding: 6px 10px;
@@ -1085,7 +1085,7 @@ QLabel#PreampCardCaption {
     font-size: 10pt;
 }
 QLabel#EditableValue {
-    background: #FFFFFF;
+    background: #EBEBEB;
     color: @TEXT@;
     border: 1px solid @BORDER@;
     border-radius: 0;
@@ -1106,7 +1106,7 @@ QLabel#AllPassCardMagnitudeValue {
 }
 
 QLineEdit#EditableValueEditor {
-    background: #FFFFFF;
+    background: #EBEBEB;
     border: 1px solid @ACCENT@;
     border-radius: 0;
     padding: 6px 10px;
@@ -1134,7 +1134,7 @@ QToolButton#GraphicEQActionButton:pressed {
     border: 1px solid @ACCENT@;
 }
 QToolButton#GraphicEQActionButton:disabled {
-    border: 1px dashed #D4E2E8;
+    border: 1px dashed #D0E0E6;
 }
 /* Selected-band readout strip: transparent board surface; the value cells
    are dressed by the shared [valueScrub="true"] grammar. */
@@ -1183,7 +1183,7 @@ QToolButton#UpdateToastClose:hover {
     border: 1px solid @DANGER@;
 }
 QToolButton#UpdateToastClose:pressed {
-    color: #FFFFFF;
+    color: #EBEBEB;
     background: @DANGER@;
     border: 1px solid @DANGER@;
 }
@@ -1367,10 +1367,10 @@ QLineEdit#RefPathEdit {
 }
 QLineEdit#RefPathEdit:focus {
     border-color: @ACCENT@;
-    background: #FFFFFF;
+    background: #EBEBEB;
 }
 QLineEdit#CrosspointEditor {
-    background: #FFFFFF;
+    background: #EBEBEB;
     border: 1px solid @ACCENT@;
     border-radius: 0;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
@@ -1433,10 +1433,10 @@ QLabel#MultiConvolutionMappingCaption {
    Config cards (Phase 2): Device / Channel / Stage / Comment
    Four registers of one board language - see the dark sheet for the
    full doctrine. Light-board notes: graph == card here, so sunken
-   cells ride the brightest surface (#FFFFFF) and read through their
+   cells ride the brightest surface (#EBEBEB) and read through their
    1px rule, the FilterCardNumber construction; engage washes use the
    light accent (0,142,170) at the light sheet's alphas; the cancelled
-   grammar uses the light disabled inks (#9DB4BD / #EDF2F4 / #D4E2E8).
+   grammar uses the light disabled inks (#9DB4BD / #DDE7EA / #D0E0E6).
    ==================================================================== */
 
 /* The four bodies sit directly on the row panel like every other card
@@ -1452,7 +1452,7 @@ QWidget#CommentCardEditor {
 
 /* ----- Device: endpoints as destination cells ----- */
 QToolButton#DeviceChip {
-    background: #FFFFFF;
+    background: #EBEBEB;
     color: @TEXT@;
     border: 1px solid @BORDER@;
     border-radius: 0;
@@ -1462,7 +1462,7 @@ QToolButton#DeviceChip {
 }
 /* Capture endpoint: identical cell by law (colour rationing). */
 QToolButton#DeviceChip[deviceInput="true"] {
-    background: #FFFFFF;
+    background: #EBEBEB;
     color: @TEXT@;
     border: 1px solid @BORDER@;
 }
@@ -1489,7 +1489,7 @@ QToolButton#DeviceChip:checked:hover {
 /* APO-not-installed endpoint = cancelled departure. */
 QToolButton#DeviceChip[deviceInstalled="false"] {
     color: @MUTED@;
-    background: #FFFFFF;
+    background: #EBEBEB;
     border: 1px dashed @BORDER@;
 }
 QToolButton#DeviceChip[deviceInstalled="false"]:hover {
@@ -1518,8 +1518,8 @@ QToolButton#DeviceChip[deviceInput="true"]:checked:disabled,
 QToolButton#DeviceChip[deviceInstalled="false"]:disabled,
 QToolButton#DeviceChip[deviceInstalled="false"]:checked:disabled {
     color: #9DB4BD;
-    background: #EDF2F4;
-    border: 1px dashed #D4E2E8;
+    background: #DDE7EA;
+    border: 1px dashed #D0E0E6;
 }
 /* The reveal toggle: a transparent mono caption cell, not an
    endpoint. */
@@ -1548,12 +1548,12 @@ QToolButton#DeviceChipMore:disabled,
 QToolButton#DeviceChipMore:checked:disabled {
     color: #9DB4BD;
     background: transparent;
-    border: 1px dashed #D4E2E8;
+    border: 1px dashed #D0E0E6;
 }
 
 /* ----- Channel: seats on the bus as coordinate cells ----- */
 QToolButton#ChannelChip {
-    background: #FFFFFF;
+    background: #EBEBEB;
     color: @TEXT@;
     border: 1px solid @BORDER@;
     border-radius: 0;
@@ -1587,7 +1587,7 @@ QToolButton#ChannelChip:checked:hover {
 /* Custom/virtual channel: the Copy grid's dashed virtual grammar. */
 QToolButton#ChannelChip[customChannel="true"] {
     color: @MUTED@;
-    background: #FFFFFF;
+    background: #EBEBEB;
     border: 1px dashed @BORDER@;
 }
 QToolButton#ChannelChip[customChannel="true"]:hover {
@@ -1608,8 +1608,8 @@ QToolButton#ChannelChip[allChannels="true"]:checked:disabled,
 QToolButton#ChannelChip[customChannel="true"]:disabled,
 QToolButton#ChannelChip[customChannel="true"]:checked:disabled {
     color: #9DB4BD;
-    background: #EDF2F4;
-    border: 1px dashed #D4E2E8;
+    background: #DDE7EA;
+    border: 1px dashed #D0E0E6;
 }
 /* The add-a-channel entry: a coordinate not yet posted; typing
    engages the scan grammar. */
@@ -1628,12 +1628,12 @@ QLineEdit#ChannelChipAdd:hover {
 }
 QLineEdit#ChannelChipAdd:focus {
     border: 1px solid @ACCENT@;
-    background: #FFFFFF;
+    background: #EBEBEB;
 }
 QLineEdit#ChannelChipAdd:disabled {
     color: #9DB4BD;
     background: transparent;
-    border: 1px dashed #D4E2E8;
+    border: 1px dashed #D0E0E6;
 }
 
 /* ----- Stage: path sections as function cells ----- */
@@ -1663,7 +1663,7 @@ QToolButton#StageChip:disabled,
 QToolButton#StageChip:checked:disabled {
     color: #9DB4BD;
     background: transparent;
-    border: 1px dashed #D4E2E8;
+    border: 1px dashed #D0E0E6;
 }
 /* Unknown selector tokens: hollow amber caution (ABS-cell grammar),
    dashed because inert; verbatim mono, no uppercase transform. */
@@ -1716,11 +1716,11 @@ QLineEdit#CommentCardText:disabled {
     font-size: 10pt;
 }
 QLineEdit#CommentCardText:hover {
-    background: #FFFFFF;
+    background: #EBEBEB;
 }
 QLineEdit#CommentCardText:focus {
     border: 1px solid @ACCENT@;
-    background: #FFFFFF;
+    background: #EBEBEB;
 }
 /* Un-strike the comment header: a remark is not a cancelled command.
    Ties the [filterEnabled="false"] rules on specificity, so appended

@@ -37,31 +37,31 @@ SkinTokens studioTokens(bool dark)
 	t.badgeStyle = SkinTokens::ColorPill;
 	if (dark)
 	{
-		t.background = QStringLiteral("#070A12");
-		t.surface = QStringLiteral("#0D1322");
-		t.card = QStringLiteral("#121A2C");
-		t.cardHover = QStringLiteral("#182238");
-		t.cardSelected = QStringLiteral("#1E3158");
+		t.background = QStringLiteral("#05060C");
+		t.surface = QStringLiteral("#080C16");
+		t.card = QStringLiteral("#0C111D");
+		t.cardHover = QStringLiteral("#101624");
+		t.cardSelected = QStringLiteral("#142039");
 		t.text = QStringLiteral("#E8EEFB");
 		t.mutedText = QStringLiteral("#91A0BA");
-		t.border = QStringLiteral("#26324A");
-		t.graph = QStringLiteral("#060914");
-		t.graphGridMinor = QStringLiteral("#26324A");
+		t.border = QStringLiteral("#192030");
+		t.graph = QStringLiteral("#04060D");
+		t.graphGridMinor = QStringLiteral("#192030");
 		t.accent = QStringLiteral("#5B8CFF");
 		t.accent2 = QStringLiteral("#A66CFF");
 	}
 	else
 	{
-		t.background = QStringLiteral("#EEF2F8");
-		t.surface = QStringLiteral("#F8FAFE");
-		t.card = QStringLiteral("#FFFFFF");
-		t.cardHover = QStringLiteral("#F3F6FC");
-		t.cardSelected = QStringLiteral("#DDE8FF");
+		t.background = QStringLiteral("#D0DBEC");
+		t.surface = QStringLiteral("#C8D8F7");
+		t.card = QStringLiteral("#E0E0E0");
+		t.cardHover = QStringLiteral("#CCD8F2");
+		t.cardSelected = QStringLiteral("#BBD1FF");
 		t.text = QStringLiteral("#182033");
 		t.mutedText = QStringLiteral("#5D6A84");
 		t.border = QStringLiteral("#BCC8DE");
-		t.graph = QStringLiteral("#F6F7FB");
-		t.graphGridMinor = QStringLiteral("#D8E0EF");
+		t.graph = QStringLiteral("#D3D8EB");
+		t.graphGridMinor = QStringLiteral("#CCD6EA");
 		t.accent = QStringLiteral("#2F6BFF");
 		t.accent2 = QStringLiteral("#8A4DFF");
 	}
@@ -99,17 +99,17 @@ SkinTokens minimalTokens(bool dark)
 	}
 	else
 	{
-		t.background = QStringLiteral("#F6F6F3");
-		t.surface = QStringLiteral("#FFFFFF");
-		t.card = QStringLiteral("#FFFFFF");
-		t.cardHover = QStringLiteral("#F0F0EC");
-		t.cardSelected = QStringLiteral("#E8F1FF");
+		t.background = QStringLiteral("#E3E3DA");
+		t.surface = QStringLiteral("#E0E0E0");
+		t.card = QStringLiteral("#E0E0E0");
+		t.cardHover = QStringLiteral("#E1E1D9");
+		t.cardSelected = QStringLiteral("#BDD7FF");
 		t.text = QStringLiteral("#202020");
 		t.mutedText = QStringLiteral("#666660");
 		t.border = QStringLiteral("#D2D2CC");
-		t.graph = QStringLiteral("#FFFFFF");
+		t.graph = QStringLiteral("#E0E0E0");
 		t.graphGridMajor = QStringLiteral("#D2D2CC");
-		t.graphGridMinor = QStringLiteral("#E6E6E0");
+		t.graphGridMinor = QStringLiteral("#DFDFD7");
 	}
 	finishTokens(t);
 	return t;
@@ -154,15 +154,15 @@ SkinTokens softTokens(bool dark)
 	}
 	else
 	{
-		t.background = QStringLiteral("#F7F4EF");
-		t.surface = QStringLiteral("#FFFDF9");
-		t.card = QStringLiteral("#FFFFFF");
-		t.cardHover = QStringLiteral("#FFF7EC");
-		t.cardSelected = QStringLiteral("#EEF2FF");
+		t.background = QStringLiteral("#F2EEE6");
+		t.surface = QStringLiteral("#FFF7E6");
+		t.card = QStringLiteral("#F5F5F5");
+		t.cardHover = QStringLiteral("#FFF1DD");
+		t.cardSelected = QStringLiteral("#DEE6FF");
 		t.text = QStringLiteral("#28231F");
 		t.mutedText = QStringLiteral("#786F67");
-		t.border = QStringLiteral("#E9DED1");
-		t.graph = QStringLiteral("#FFFAF3");
+		t.border = QStringLiteral("#E8DDCF");
+		t.graph = QStringLiteral("#FFF3E2");
 		t.accent = QStringLiteral("#6190D1");
 		t.accent2 = QStringLiteral("#8361D1");
 		t.success = QStringLiteral("#61D18A");
@@ -202,15 +202,15 @@ SkinTokens rackTokens(bool dark)
 	}
 	else
 	{
-		t.background = QStringLiteral("#E7E2D8");
-		t.surface = QStringLiteral("#F4EFE5");
-		t.card = QStringLiteral("#FFFAEF");
-		t.cardHover = QStringLiteral("#F7EEDC");
-		t.cardSelected = QStringLiteral("#FCE8BD");
+		t.background = QStringLiteral("#E2DDD3");
+		t.surface = QStringLiteral("#E4DFD5");
+		t.card = QStringLiteral("#E7E2D7");
+		t.cardHover = QStringLiteral("#EAE1CF");
+		t.cardSelected = QStringLiteral("#F9E5BA");
 		t.text = QStringLiteral("#2B2721");
 		t.mutedText = QStringLiteral("#746A5D");
 		t.border = QStringLiteral("#C9BFAE");
-		t.graph = QStringLiteral("#FFF7E6");
+		t.graph = QStringLiteral("#EAE2D1");
 		t.graphGridMinor = QStringLiteral("#D6C4A6");
 	}
 	finishTokens(t);
@@ -247,16 +247,16 @@ SkinTokens matrixTokens(bool dark)
 	}
 	else
 	{
-		t.background = QStringLiteral("#F0F6F8");
-		t.surface = QStringLiteral("#FFFFFF");
-		t.card = QStringLiteral("#F9FCFD");
-		t.cardHover = QStringLiteral("#EDF7FA");
-		t.cardSelected = QStringLiteral("#D7F8FF");
+		t.background = QStringLiteral("#DCEAEF");
+		t.surface = QStringLiteral("#EBEBEB");
+		t.card = QStringLiteral("#DEEEF4");
+		t.cardHover = QStringLiteral("#D7EDF4");
+		t.cardSelected = QStringLiteral("#C4F5FF");
 		t.text = QStringLiteral("#10242F");
 		t.mutedText = QStringLiteral("#5F7782");
-		t.border = QStringLiteral("#D4E2E8");
-		t.graph = QStringLiteral("#F9FCFD");
-		t.graphGridMinor = QStringLiteral("#D4E2E8");
+		t.border = QStringLiteral("#D0E0E6");
+		t.graph = QStringLiteral("#DEEEF4");
+		t.graphGridMinor = QStringLiteral("#D0E0E6");
 		// Traffic-light status colours tuned for contrast on light surfaces.
 		t.success = QStringLiteral("#15803D");
 		t.warning = QStringLiteral("#B45309");

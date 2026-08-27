@@ -208,7 +208,7 @@ QCheckBox#InstantModeCheckBox::indicator, QCheckBox#AnalysisFormCheck::indicator
     width: 14px;
     height: 14px;
     border-radius: 7px;
-    background: #08080f;
+    background: #05050A;
     border: 1px solid @BORDER@;
 }
 QCheckBox#InstantModeCheckBox::indicator:hover, QCheckBox#AnalysisFormCheck::indicator:hover {
@@ -230,7 +230,7 @@ QLabel#DirtyStatusBadge {
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
     font-size: 10pt;
     color: @MUTED@;
-    background: #08080f;
+    background: #05050A;
     border: 1px solid @BORDER@;
     border-top-color: rgba(0, 0, 0, 0.55);
     border-radius: 8px;
@@ -248,7 +248,7 @@ QLabel#DeviceFormatBadge {
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
     font-size: 10pt;
     color: @MUTED@;
-    background: #08080f;
+    background: #05050A;
     border: 1px solid @BORDER@;
     border-top-color: rgba(0, 0, 0, 0.55);
     border-radius: 8px;
@@ -284,8 +284,8 @@ QPushButton:default {
 }
 QPushButton:disabled {
     color: #5a5a72;
-    background: #14141f;
-    border-color: #1f1f2c;
+    background: #0D0D14;
+    border-color: #14141D;
 }
 
 /* ===== Inputs ===== */
@@ -295,7 +295,7 @@ QLineEdit,
 QPlainTextEdit,
 QTextEdit,
 QAbstractSpinBox {
-    background: #08080f;
+    background: #05050A;
     color: @TEXT@;
     border: 1px solid @BORDER@;
     border-top-color: rgba(0, 0, 0, 0.55);
@@ -313,12 +313,12 @@ QPlainTextEdit:focus,
 QTextEdit:focus,
 QAbstractSpinBox:focus {
     border: 1px solid @ACCENT@;
-    background: #0e0e18;
+    background: #090910;
 }
 QLineEdit:disabled,
 QAbstractSpinBox:disabled {
     color: #5a5a72;
-    background: #0a0a14;
+    background: #07070D;
 }
 
 QAbstractSpinBox::up-button,
@@ -372,7 +372,7 @@ QAbstractSpinBox[valueScrub="true"] {
 }
 QAbstractSpinBox[valueScrub="true"]:hover {
     border-color: rgba(91, 140, 255, 0.45);
-    background: #0e0e18;
+    background: #090910;
 }
 
 /* ===== Combo Box ===== */
@@ -492,7 +492,7 @@ QCheckBox::indicator,
 QRadioButton::indicator {
     width: 16px;
     height: 16px;
-    background: #08080f;
+    background: #05050A;
     border: 1px solid @BORDER@;
 }
 QCheckBox::indicator { border-radius: 4px; }
@@ -804,7 +804,7 @@ QStatusBar::item {
 
 /* ===== Progress Bar ===== */
 QProgressBar {
-    background: #08080f;
+    background: #05050A;
     color: @TEXT@;
     border: 1px solid @BORDER@;
     border-radius: 8px;
@@ -890,7 +890,7 @@ QLabel#AnalysisStatValue[severity="warning"] { color: @WARNING@; }
 QLabel#AnalysisStatValue[severity="critical"] { color: @DANGER@; }
 
 QWidget#ModernAnalysisGraph {
-    background: #08080f;
+    background: #05050A;
     border: 1px solid @BORDER@;
     border-top-color: rgba(0, 0, 0, 0.55);
     border-radius: 8px;
@@ -976,7 +976,7 @@ QToolButton#FilterCardIconButton:checked {
     border-color: @ACCENT@;
 }
 QLineEdit#FilterCardRawEditor {
-    background: #08080f;
+    background: #05050A;
     border: 1px solid @ACCENT@;
     border-radius: 6px;
     padding: 6px 10px;
@@ -1035,7 +1035,7 @@ QLabel#AllPassCardMagnitudeValue {
 }
 
 QLineEdit#EditableValueEditor {
-    background: #08080f;
+    background: #05050A;
     border: 1px solid @ACCENT@;
     border-radius: 6px;
     padding: 6px 10px;
@@ -1128,7 +1128,7 @@ QLabel#StudioRefStatus {
 }
 /* The shared inline path editor: sunken glass under an accent edge. */
 QLineEdit#RefPathEdit {
-    background: #08080f;
+    background: #05050A;
     color: @TEXT@;
     border: 1px solid @ACCENT@;
     border-radius: 8px;
@@ -1183,7 +1183,7 @@ QPushButton#VSTCardPanelButton:disabled {
     border: 1px solid rgba(38, 50, 74, 0.55);
 }
 QFrame#VSTCardEmbedFrame {
-    background: #08080f;
+    background: #05050A;
     border: 1px solid @BORDER@;
     border-radius: 8px;
 }
@@ -1591,7 +1591,7 @@ QLineEdit#ChannelChipAdd:hover:enabled {
     border-color: rgba(91, 140, 255, 0.40);
 }
 QLineEdit#ChannelChipAdd:focus:enabled {
-    background: #08080f;
+    background: #05050A;
     color: @TEXT@;
     border: 1px solid @ACCENT@;
 }
@@ -1715,7 +1715,7 @@ QLineEdit#CommentCardText:hover:enabled {
     border-top-color: rgba(0, 0, 0, 0.40);
 }
 QLineEdit#CommentCardText:focus:enabled {
-    background: #08080f;
+    background: #05050A;
     color: @TEXT@;
     border: 1px solid @ACCENT@;
 }

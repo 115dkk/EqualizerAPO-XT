@@ -199,7 +199,7 @@ QCheckBox#InstantModeCheckBox::indicator:hover, QCheckBox#AnalysisFormCheck::ind
 }
 QCheckBox#InstantModeCheckBox::indicator:checked, QCheckBox#AnalysisFormCheck::indicator:checked {
     background: qradialgradient(cx: 0.5, cy: 0.42, radius: 0.75, fx: 0.5, fy: 0.36,
-        stop: 0 #FFFFFF, stop: 0.35 @ACCENT@, stop: 1 rgba(47, 107, 255, 0.18));
+        stop: 0 #E0E0E0, stop: 0.35 @ACCENT@, stop: 1 rgba(47, 107, 255, 0.18));
     border: 1px solid rgba(47, 107, 255, 0.8);
 }
 QCheckBox#InstantModeCheckBox::indicator:checked:disabled, QCheckBox#AnalysisFormCheck::indicator:checked:disabled {
@@ -250,10 +250,10 @@ QPushButton {
     padding: 6px 14px;
     min-height: 22px;
 }
-QPushButton:hover { background: @CARD_HOVER@; border-color: rgba(47, 107, 255, 0.5); border-top-color: #FFFFFF; }
+QPushButton:hover { background: @CARD_HOVER@; border-color: rgba(47, 107, 255, 0.5); border-top-color: #E0E0E0; }
 QPushButton:pressed { background: rgba(47, 107, 255, 0.16); border-color: @ACCENT@; }
 QPushButton:default { border: 1px solid @ACCENT@; }
-QPushButton:disabled { color: #a0a0b4; background: @CARD_HOVER@; border-color: #e6e8ee; }
+QPushButton:disabled { color: #a0a0b4; background: @CARD_HOVER@; border-color: #D6D9E3; }
 
 /* Inputs are sunken glass: the darker top edge reads as an inner shadow,
    the inverse of the raised panels' white top edge. */
@@ -282,7 +282,7 @@ QAbstractSpinBox:focus {
     background: @CARD@;
 }
 QLineEdit:disabled,
-QAbstractSpinBox:disabled { color: #a0a0b4; background: #ececf2; }
+QAbstractSpinBox:disabled { color: #a0a0b4; background: #D7D7E4; }
 
 QAbstractSpinBox::up-button,
 QAbstractSpinBox::down-button {
@@ -328,7 +328,7 @@ QComboBox {
     padding: 4px 28px 4px 10px;
     min-height: 28px;
 }
-QComboBox:hover { border-color: rgba(47, 107, 255, 0.5); border-top-color: #FFFFFF; background: @CARD_HOVER@; }
+QComboBox:hover { border-color: rgba(47, 107, 255, 0.5); border-top-color: #E0E0E0; background: @CARD_HOVER@; }
 QComboBox:focus, QComboBox:on { border: 1px solid @ACCENT@; }
 QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: top right; width: 22px; border: 0; background: transparent; }
 QComboBox::down-arrow {

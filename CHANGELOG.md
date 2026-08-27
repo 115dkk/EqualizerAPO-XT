@@ -14,6 +14,18 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Every skin's light mode is less bright.** After a report that the light
+  backgrounds glare, every near-white surface steps down - deepest in Studio
+  and Minimal, mid-step in Signal Matrix, a mild step in Soft, and the
+  deepest step in Rack with its chroma held so the warm cream stays a cream
+  instead of turning yellow (the maintainer's picks from the judged mockups)
+  ([#302](https://github.com/115dkk/EqualizerAPO-XT/pull/302)).
+- **Rack dark's selected frame is a warm neutral, Studio dark is darker.**
+  The amber frame around the selected Rack unit both popped and glared; it
+  is now a warm grey while lamps and buttons keep their amber. Studio's dark
+  surfaces (background, cards, borders) step down a third; the inks are
+  untouched ([#302](https://github.com/115dkk/EqualizerAPO-XT/pull/302)).
+
 ## v2.44.0 — 2026-08-27
 
 - **Larger, heavier type in every skin.** Every text size in the editor is up

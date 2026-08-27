@@ -5,6 +5,7 @@
 #pragma once
 
 #include <QtGlobal>
+#include <QString>
 
 class QColor;
 class QPainter;
@@ -14,6 +15,14 @@ class QString;
 
 namespace RackSkinDetail
 {
+// The dark-mode engaged (selected / focused) unit frame: a warm neutral
+// instead of the amber accent (brightness round 2, issue #301: the amber
+// frame both popped and glared). Used by the QSS border and the bezel.
+inline QString darkEngagedFrame()
+{
+	return QStringLiteral("#8C8578");
+}
+
 inline constexpr int EarWidth = 20;
 inline constexpr qreal NameplateWidth = 78.0;
 inline constexpr qreal NameplateHeight = 22.0;

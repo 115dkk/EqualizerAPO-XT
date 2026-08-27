@@ -9,7 +9,7 @@
 * {
     outline: 0;
     selection-background-color: @ACCENT@;
-    selection-color: #ffffff;
+    selection-color: #E0E0E0;
 }
 
 QWidget {
@@ -69,7 +69,7 @@ QToolBar { background: @SURFACE@; border: 0; border-bottom: 1px solid @BORDER@; 
 QToolBar::separator { background: @BORDER@; width: 1px; margin: 4px 6px; }
 QToolButton { background: transparent; color: @TEXT@; border: 1px solid transparent; border-radius: 0; padding: 3px 8px; min-height: 22px; }
 QToolButton:hover { background: #d8d8d8; border: 1px solid @BORDER@; }
-QToolButton:pressed, QToolButton:checked { background: #c4d4f0; border: 1px solid @ACCENT@; }
+QToolButton:pressed, QToolButton:checked { background: #C2D3F0; border: 1px solid @ACCENT@; }
 QToolButton::menu-indicator { image: none; width: 0; height: 0; }
 
 QLabel#ToolBarLabel { color: @MUTED@; background: transparent; padding: 0 4px 0 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
@@ -124,18 +124,18 @@ QPushButton {
     text-transform: uppercase; letter-spacing: 1px; font-weight: 700;
 }
 QPushButton:hover { background: @BG@; border-color: @ACCENT@; }
-QPushButton:pressed { background: #c4d4f0; border-color: @ACCENT@; }
+QPushButton:pressed { background: #C2D3F0; border-color: @ACCENT@; }
 QPushButton:default { border: 1px solid @ACCENT@; }
-QPushButton:disabled { color: #999999; background: #ececec; border-color: #d8d8d8; }
+QPushButton:disabled { color: #999999; background: #DDDDDD; border-color: #d8d8d8; }
 
 QLineEdit, QPlainTextEdit, QTextEdit, QAbstractSpinBox {
-    background: #ffffff; color: @TEXT@;
+    background: #E0E0E0; color: @TEXT@;
     border: 1px solid @BORDER@; border-radius: 0;
     padding: 4px 8px;
-    selection-background-color: @ACCENT@; selection-color: #ffffff;
+    selection-background-color: @ACCENT@; selection-color: #E0E0E0;
 }
 QLineEdit:focus, QPlainTextEdit:focus, QTextEdit:focus, QAbstractSpinBox:focus { border: 1px solid @ACCENT@; }
-QLineEdit:disabled, QAbstractSpinBox:disabled { color: #999999; background: #ececec; }
+QLineEdit:disabled, QAbstractSpinBox:disabled { color: #999999; background: #DDDDDD; }
 
 QAbstractSpinBox::up-button, QAbstractSpinBox::down-button {
     subcontrol-origin: border; background: @SURFACE@;
@@ -165,7 +165,7 @@ QAbstractSpinBox[valueScrub="true"] {
     padding: 4px 2px; font-weight: 700;
 }
 QAbstractSpinBox[valueScrub="true"]:hover { background: @CARD_HOVER@; border-color: @BORDER@; }
-QAbstractSpinBox[valueScrub="true"]:focus { background: #ffffff; border-color: @ACCENT@; }
+QAbstractSpinBox[valueScrub="true"]:focus { background: #E0E0E0; border-color: @ACCENT@; }
 QAbstractSpinBox[valueScrub="true"]:disabled { background: transparent; color: @MUTED@; }
 
 QComboBox {
@@ -186,7 +186,7 @@ QComboBox QAbstractItemView {
     background: @CARD@; color: @TEXT@;
     border: 1px solid @BORDER@; border-radius: 0;
     padding: 2px; outline: 0;
-    selection-background-color: #e0e0e0; selection-color: #000000;
+    selection-background-color: #DADADA; selection-color: #000000;
 }
 QComboBox QAbstractItemView::item { padding: 4px 10px; border-radius: 0; min-height: 24px; }
 
@@ -225,7 +225,7 @@ QComboBox[paramSelector="true"]::down-arrow:on, QComboBox[filterSelector="true"]
 QCheckBox, QRadioButton { color: @TEXT@; background: transparent; spacing: 8px; padding: 2px; }
 QCheckBox:disabled, QRadioButton:disabled { color: #999999; }
 QCheckBox::indicator, QRadioButton::indicator {
-    width: 14px; height: 14px; background: #ffffff; border: 1px solid @BORDER@;
+    width: 14px; height: 14px; background: #E0E0E0; border: 1px solid @BORDER@;
 }
 QCheckBox::indicator { border-radius: 0; }
 QRadioButton::indicator { border-radius: 7px; }
@@ -293,12 +293,12 @@ QTreeView, QListView, QTableView {
     background: @CARD@; color: @TEXT@;
     border: 1px solid @BORDER@; border-radius: 0;
     alternate-background-color: @BG@;
-    selection-background-color: #e0e0e0; selection-color: #000000;
+    selection-background-color: #DADADA; selection-color: #000000;
     gridline-color: @BORDER@;
 }
 QTreeView::item, QListView::item, QTableView::item { padding: 4px 6px; border-radius: 0; }
-QTreeView::item:hover, QListView::item:hover, QTableView::item:hover { background: #ebebeb; }
-QTreeView::item:selected, QListView::item:selected, QTableView::item:selected { background: #e0e0e0; color: #000000; }
+QTreeView::item:hover, QListView::item:hover, QTableView::item:hover { background: #DCDCDC; }
+QTreeView::item:selected, QListView::item:selected, QTableView::item:selected { background: #DADADA; color: #000000; }
 QTreeView::branch { background: transparent; }
 
 QSlider::groove:horizontal { background: @BORDER@; height: 2px; border-radius: 0; margin: 0 6px; }
@@ -317,7 +317,7 @@ QSplitter::handle:hover { background: @ACCENT@; }
 QStatusBar { background: @SURFACE@; color: @MUTED@; border: 0; border-top: 1px solid @BORDER@; }
 QStatusBar::item { border: 0; }
 
-QProgressBar { background: #ffffff; color: @TEXT@; border: 1px solid @BORDER@; border-radius: 0; text-align: center; }
+QProgressBar { background: #E0E0E0; color: @TEXT@; border: 1px solid @BORDER@; border-radius: 0; text-align: center; }
 QProgressBar::chunk { background: @ACCENT@; border-radius: 0; }
 
 QFrame[frameShape="4"], QFrame[frameShape="5"] { background: @BORDER@; border: 0; }
@@ -360,7 +360,7 @@ QLabel#AnalysisStatValue { color: @TEXT@; background: transparent; font-weight: 
 QLabel#AnalysisStatValue[severity="warning"] { color: #d97706; }
 QLabel#AnalysisStatValue[severity="critical"] { color: #dc2626; }
 
-QWidget#ModernAnalysisGraph { background: #ffffff; border: 1px solid @BORDER@; border-radius: 0; }
+QWidget#ModernAnalysisGraph { background: #E0E0E0; border: 1px solid @BORDER@; border-radius: 0; }
 
 QFrame#FilterCardRow { background: @CARD@; border: 1px solid #d0d0d0; border-radius: 0; }
 /* No separate header plate: a row is one flat text line on one background. */
@@ -420,9 +420,9 @@ QToolButton#FilterCardIconButton {
     border: 1px solid @BORDER@; border-radius: 0;
     min-width: 24px; min-height: 24px; padding: 2px 4px; font-weight: 700;
 }
-QToolButton#FilterCardIconButton:hover { background: #e0e0e0; border-color: @ACCENT@; }
-QToolButton#FilterCardIconButton:checked { background: #c4d4f0; border-color: @ACCENT@; }
-QLineEdit#FilterCardRawEditor { background: #ffffff; border: 1px solid @ACCENT@; border-radius: 0; padding: 4px 8px; }
+QToolButton#FilterCardIconButton:hover { background: #DADADA; border-color: @ACCENT@; }
+QToolButton#FilterCardIconButton:checked { background: #C2D3F0; border-color: @ACCENT@; }
+QLineEdit#FilterCardRawEditor { background: #E0E0E0; border: 1px solid @ACCENT@; border-radius: 0; padding: 4px 8px; }
 QCheckBox#FilterCardEnabled { background: transparent; }
 
 QWidget#PreampCardEditor, QWidget#DelayCardEditor, QWidget#IncludeCardEditor,
@@ -494,7 +494,7 @@ QLabel#PreampCardCaption {
     text-transform: uppercase; letter-spacing: 2px; font-size: 10pt;
 }
 QLabel#EditableValue {
-    background: #ffffff; color: @TEXT@;
+    background: #E0E0E0; color: @TEXT@;
     border: 1px solid @BORDER@; border-radius: 0;
     padding: 4px 8px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700;
@@ -512,7 +512,7 @@ QLabel#AllPassCardMagnitudeValue {
 }
 
 QLineEdit#EditableValueEditor {
-    background: #ffffff; border: 1px solid @ACCENT@;
+    background: #E0E0E0; border: 1px solid @ACCENT@;
     border-radius: 0; padding: 4px 8px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700;
 }
@@ -618,7 +618,7 @@ QComboBox[minimalRefSelector="true"] QLineEdit:disabled { background: transparen
    plus the accent hairline - legitimate because edit mode IS the active
    interaction. */
 QLineEdit#RefPathEdit {
-    background: #ffffff; color: @TEXT@;
+    background: #E0E0E0; color: @TEXT@;
     border: 1px solid @ACCENT@; border-radius: 0; padding: 3px 8px;
 }
 
@@ -691,12 +691,12 @@ QLabel#MultiConvolutionMappingCaption {
    Scope and note cards (Device / Channel / Stage / Comment),
    printed. Identical grammar to the dark console: boxed mono tokens on
    the paper, SELECTION as the accent-family value step cardSelected
-   #E8F1FF (tokens.cardSelected, MinimalSkin.cpp) plus the accent
+   #BDD7FF (tokens.cardSelected, MinimalSkin.cpp) plus the accent
    hairline - the selected row's own treatment - and a dashed hairline
    for "no verified substance". Registers stay inside the typography
    law (uppercase + tracking, weight, brightness; no italic - the
    bundled DM Mono has no italic face). One palette divergence: this
-   sheet has surface == card == #FFFFFF, so "inert = one step below
+   sheet has surface == card == #E0E0E0, so "inert = one step below
    rest" lands on @BG@, the strip's own paper. Accent only while
    active (focus, the press instant, insert mode); the only inversion
    is DeviceChipMore's transient :pressed cursor.
@@ -756,12 +756,12 @@ QToolButton#StageChip:hover {
     background: @CARD_HOVER@;
 }
 /* Selection (Channel/Stage): the accent-family value step (rule 3,
-   cardSelected #E8F1FF = tokens.cardSelected) + the accent hairline;
+   cardSelected #BDD7FF = tokens.cardSelected) + the accent hairline;
    the press instant previews it (the sheet's QToolButton:pressed/
    :checked pairing). A solid edge always sits under the cursor. */
 QToolButton#ChannelChip:pressed, QToolButton#StageChip:pressed,
 QToolButton#ChannelChip:checked, QToolButton#StageChip:checked {
-    background: #E8F1FF; color: @TEXT@; border: 1px solid @ACCENT@;
+    background: #BDD7FF; color: @TEXT@; border: 1px solid @ACCENT@;
 }
 /* Selection (Device): a routed endpoint is the console's current
    selection, so it takes the printed reverse video - the
@@ -792,7 +792,7 @@ QToolButton#ChannelChip[customChannel="true"]:disabled {
    ink and border retire with the activity. Last on purpose (wins the
    121-tie against the dashed inert-kind rule). */
 QToolButton#ChannelChip:checked:disabled, QToolButton#StageChip:checked:disabled {
-    background: #E8F1FF; color: @MUTED@; border: 1px solid @BORDER@;
+    background: #BDD7FF; color: @MUTED@; border: 1px solid @BORDER@;
 }
 /* Device stored selection while inert: the reverse video dims to a
    muted block - still inverted, no longer the live cursor. */
@@ -841,7 +841,7 @@ QLineEdit#ChannelChipAdd {
     border-radius: 0; padding: 2px 6px; min-height: 20px;
 }
 QLineEdit#ChannelChipAdd:hover { background: @CARD_HOVER@; }
-QLineEdit#ChannelChipAdd:focus { background: #ffffff; border: 1px solid @ACCENT@; }
+QLineEdit#ChannelChipAdd:focus { background: #E0E0E0; border: 1px solid @ACCENT@; }
 QLineEdit#ChannelChipAdd:disabled {
     background: transparent; color: @MUTED@; border-bottom-color: #d8d8d8;
 }

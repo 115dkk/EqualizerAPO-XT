@@ -48,7 +48,14 @@ QString RackSkin::cardFrameStyle(const CommandRowInfo& info, const SkinTokens& t
 		// colours.
 		const bool dark = skinIsDark(tokens);
 		const QString seam = dark ? QStringLiteral("#060809") : QStringLiteral("#8F8268");
-		const QString borderColor = info.focused ? tokens.focusRing : (info.selected ? tokens.accent : seam);
+		// The engaged frame (selected or focused unit). In dark mode the full
+		// amber both popped and glared (maintainer, brightness round 2:
+		// "the border colour is the problem"); the judged replacement is a
+		// warm neutral - lamps, checked buttons and knob markers keep the
+		// accent. Light mode was not judged and keeps its accent frame.
+		const QString engaged = dark ? RackSkinDetail::darkEngagedFrame()
+			: (info.focused ? tokens.focusRing : tokens.accent);
+		const QString borderColor = info.focused || info.selected ? engaged : seam;
 		const QString background = info.selected ? tokens.cardSelected : tokens.card;
 		return QStringLiteral(
 			"QFrame#FilterCardRow { background: %1; border: 1px solid %2; border-radius: %3px; }"
@@ -294,7 +301,9 @@ void RackSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Comma
 	// kept as small as a hardware unit's rail light).
 	if (info.focused)
 	{
-		painter.setPen(QPen(withAlpha(QColor(tokens.focusRing), 190), 1));
+		// The bezel is the second half of the engaged frame (see
+		// cardFrameStyle): the same warm neutral in dark mode.
+		painter.setPen(QPen(withAlpha(QColor(dark ? RackSkinDetail::darkEngagedFrame() : tokens.focusRing), 190), 1));
 		painter.setBrush(Qt::NoBrush);
 		painter.drawRoundedRect(r.adjusted(1.5, 1.5, -1.5, -1.5), radius - 1, radius - 1);
 	}
