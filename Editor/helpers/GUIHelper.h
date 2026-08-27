@@ -57,4 +57,10 @@ public:
 	// the platform-native dialog is part of the unmodernized original. Call
 	// it right after constructing the dialog, before exec().
 	static void prepareFileDialog(QFileDialog& dialog);
+	// A VST3 bundle is a directory named *.vst3, which a file-mode dialog can
+	// only enter, never pick. This makes entering the bundle count as picking
+	// it. directoryEntered needs the widget-based dialog, so the native
+	// dialog is opted out even where prepareFileDialog kept it (heritage
+	// skin, legacy rows) - working selection beats frozen chrome there.
+	static void enableVst3BundleSelection(QFileDialog& dialog);
 };

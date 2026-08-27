@@ -90,6 +90,7 @@ public:
 	const std::vector<int>& getVST3InputChannelMapping() const;
 	const std::vector<int>& getVST3OutputChannelMapping() const;
 	bool canReplacing() const;
+	bool isVST3() const;
 	int uniqueID() const;
 	std::wstring getName() const;
 	int getUsedChannelCount() const;
@@ -120,6 +121,12 @@ public:
 	bool startEditing(HWND hWnd, short* width, short* height, double scaleFactor = 1.0);
 	void doIdle();
 	void stopEditing();
+	// Whether an open editor view currently holds the processor in the VST3
+	// Processing state (beginVST3EditorSession). The panel preview feeder
+	// keys its process() calls on this: outside the session the processor is
+	// deactivated and must not receive audio. Editor GUI-thread callers only,
+	// like the session transitions themselves.
+	bool vst3EditorSessionActive();
 
 	void setAutomateFunc(std::function<void()> func);
 	void onAutomate();

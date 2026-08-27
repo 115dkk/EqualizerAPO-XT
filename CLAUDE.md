@@ -23,7 +23,7 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 Equalizer APO 
 
 ## 저장소 구조
 
-- `EqualizerAPO.sln`: Visual Studio 솔루션입니다. `Common`, `EqualizerAPO`, `SubwooferRoutingCore`, `SubwooferRoutingVst3`, `Benchmark`, `VoicemeeterClient`, `DeviceSelector`, `UpdateChecker`, `Installer`, `TestVst2Plugin`, `TestVst3Plugin`, `HybridConvTests`, `EditorLogicTests`, `EngineOrchestrationTests`, `AudioRegressionTests` 프로젝트를 묶습니다.
+- `EqualizerAPO.sln`: Visual Studio 솔루션입니다. `Common`, `EqualizerAPO`, `SubwooferRoutingCore`, `SubwooferRoutingVst3`, `Benchmark`, `VoicemeeterClient`, `DeviceSelector`, `UpdateChecker`, `Installer`, `TestVst2Plugin`, `TestVst3Plugin`, `HybridConvTests`, `EditorLogicTests`, `EngineOrchestrationTests`, `AudioRegressionTests`, `VstPreviewProbe` 프로젝트를 묶습니다.
 - `Common.vcxproj`: 필터 엔진, 필터 구현, 파서 확장, 헬퍼 코드를 포함하는 정적 라이브러리입니다.
 - `EqualizerAPO/`: Windows Audio Processing Object DLL 프로젝트입니다. ATL 기반이므로 `atls.lib`가 필요합니다.
 - `Editor/`: Qt 기반 설정 편집기입니다. `.pro`, `.ui`, 리소스, 번역 파일, 필터별 GUI가 있습니다.

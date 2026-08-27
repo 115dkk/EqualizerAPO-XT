@@ -23,6 +23,7 @@
 #include <optional>
 #include <QElapsedTimer>
 #include "Editor/IFilterGUI.h"
+#include "Editor/helpers/PanelPreviewFeeder.h"
 #include "Editor/widgets/cards/VSTSlotFillModel.h"
 #include "vst/VSTPluginInstance.h"
 #include "vst/VSTPluginLibrary.h"
@@ -76,7 +77,7 @@ private:
 	std::wstring chunkData;
 	std::unordered_map<std::wstring, float> paramMap;
 	bool embedded = false;
-	bool autoApplyDialog = false;
+	bool autoApplyDialog = true;
 	bool stereoInput = false;
 	std::optional<VST3BusContract> busContract;
 	// Per-slot channel fill for the forced layouts, edited by the two plain
@@ -92,4 +93,7 @@ private:
 	QCheckBox* fillToggle = nullptr;
 	QAction* stereoInputAction = nullptr;
 	QElapsedTimer lastReadTimer;
+	// Declared after effect on purpose: reverse member destruction stops the
+	// pump before the instance it feeds goes away.
+	PanelPreviewFeeder previewFeeder;
 };
