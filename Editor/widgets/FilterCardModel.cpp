@@ -26,32 +26,31 @@ void applyCommandIdentity(FilterCardDescriptor& descriptor,
 
 QString biquadTypeTitle(const QString& code)
 {
-	// Map the (already upper-cased) config keyword to a BiQuad type, then defer to
-	// the engine-side title table (filters/BiQuadCommand.h) so the type -> title
-	// strings live in exactly one place. The keyword vocabulary here mirrors
-	// the typeExpression regex in describeLine; an unknown keyword falls back to
-	// "Biquad", matching biquadTypeTitle(BiQuad::Type)'s own default.
+	// Map the (already upper-cased) config keyword to a card title. The
+	// English titles mirror the engine's table (filters/BiQuadCommand.h,
+	// which the log lines use) but go through tr(): the card header is
+	// user-facing, and the untranslated "Peaking" between Korean titles was
+	// a field complaint (type-scale round). The keyword vocabulary here
+	// mirrors the typeExpression regex in describeLine; an unknown keyword
+	// falls back to "Biquad", matching the engine's own default.
 	const QString normalized = code.toUpper();
-	BiQuad::Type type;
 	if (normalized == QStringLiteral("PK") || normalized == QStringLiteral("PEQ") || normalized == QStringLiteral("MODAL"))
-		type = BiQuad::PEAKING;
-	else if (normalized == QStringLiteral("LP") || normalized == QStringLiteral("LPQ"))
-		type = BiQuad::LOW_PASS;
-	else if (normalized == QStringLiteral("HP") || normalized == QStringLiteral("HPQ"))
-		type = BiQuad::HIGH_PASS;
-	else if (normalized == QStringLiteral("BP"))
-		type = BiQuad::BAND_PASS;
-	else if (normalized == QStringLiteral("LS") || normalized == QStringLiteral("LSC"))
-		type = BiQuad::LOW_SHELF;
-	else if (normalized == QStringLiteral("HS") || normalized == QStringLiteral("HSC"))
-		type = BiQuad::HIGH_SHELF;
-	else if (normalized == QStringLiteral("NO"))
-		type = BiQuad::NOTCH;
-	else if (normalized == QStringLiteral("AP"))
-		type = BiQuad::ALL_PASS;
-	else
-		return QStringLiteral("Biquad");
-	return QString::fromWCharArray(::biquadTypeTitle(type));
+		return FilterCardModel::tr("Peaking");
+	if (normalized == QStringLiteral("LP") || normalized == QStringLiteral("LPQ"))
+		return FilterCardModel::tr("Low-pass");
+	if (normalized == QStringLiteral("HP") || normalized == QStringLiteral("HPQ"))
+		return FilterCardModel::tr("High-pass");
+	if (normalized == QStringLiteral("BP"))
+		return FilterCardModel::tr("Band-pass");
+	if (normalized == QStringLiteral("LS") || normalized == QStringLiteral("LSC"))
+		return FilterCardModel::tr("Low-shelf");
+	if (normalized == QStringLiteral("HS") || normalized == QStringLiteral("HSC"))
+		return FilterCardModel::tr("High-shelf");
+	if (normalized == QStringLiteral("NO"))
+		return FilterCardModel::tr("Notch");
+	if (normalized == QStringLiteral("AP"))
+		return FilterCardModel::tr("All-pass");
+	return FilterCardModel::tr("Biquad");
 }
 
 // keyword is the engine's canonical command (FilterCardModel::canonicalCommand),
