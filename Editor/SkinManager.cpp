@@ -163,6 +163,12 @@ bool SkinManager::paintScopeGutter(QPainter& painter, const QSize& size, const C
 	return activeSkin->paintScopeGutter(painter, size, info, currentTokens);
 }
 
+bool SkinManager::paintChannelBadge(QPainter& painter, const QRect& rect, const QString& channel,
+	bool virtualChannel) const
+{
+	return activeSkin->paintChannelBadge(painter, rect, channel, virtualChannel, currentTokens);
+}
+
 bool SkinManager::logicSiblingsIndentAsMembers() const
 {
 	return activeSkin->logicSiblingsIndentAsMembers();

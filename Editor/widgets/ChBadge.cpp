@@ -68,6 +68,9 @@ void ChBadge::paintEvent(QPaintEvent*)
 	QPainter painter(this);
 	painter.setRenderHint(QPainter::Antialiasing);
 
+	if (SkinManager::instance()->paintChannelBadge(painter, rect(), currentChannel, isVirtualChannel()))
+		return;
+
 	const SkinTokens& tokens = SkinManager::instance()->tokens();
 	QColor color = channelColor();
 	QRectF badgeRect = rect().adjusted(1, 2, -1, -2);
