@@ -75,7 +75,10 @@ quarter of the buffer period).
   affected beyond that.
 - 32-bit applications: the 32-bit wrapper is installed alongside on x64
   builds and talks to the same 64-bit host. The ARM64 build has no 32-bit
-  wrapper.
+  wrapper, and its wrapper is ARM64-native: an x64 application running under
+  emulation on an ARM64 machine cannot load it (the 64-bit registry view is
+  shared, so one entry cannot serve both architectures without an ARM64X
+  binary, which this build does not produce).
 - DSD streams are not supported; the device refuses to open in a DSD mode.
 
 ## What is not covered
