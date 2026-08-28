@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.47.1 — 2026-08-28
+
 - **Minimal 스킨의 Copy·MultiConvolution 스텝 리스트를 다시 편집할 수 있습니다.**
   소스를 더블클릭하면 소스 칩 크기만 한 입력창이 열려 스킨의 필드 여백 때문에
   "L" 한 글자도 잘렸고, 그 입력창은 배율만 읽어서 포트("1")나 채널("R")을

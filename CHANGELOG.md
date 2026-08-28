@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.47.1 — 2026-08-28
+
 - **Minimal skin: the Copy and MultiConvolution step list is editable
   again.** Double-clicking a source opened a field the size of the source
   chip, so with the skin's field padding even "L" was cut off, and the field
