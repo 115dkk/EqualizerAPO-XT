@@ -372,7 +372,7 @@ namespace eapo::asio
 		format_.channels[outputSlot] = options_.processOutput ? static_cast<uint32_t>(outputCount_) : 0;
 		format_.channels[inputSlot] = options_.processInput ? static_cast<uint32_t>(inputCount_) : 0;
 		format_.mode = options_.mode;
-		format_.deadlineUs = options_.deadlineUs;
+		format_.deadlineUs = syncDeadlineUs(format_, options_);
 
 		char targetName[32] = {};
 		target_->getDriverName(targetName);

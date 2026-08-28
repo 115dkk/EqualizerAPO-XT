@@ -744,6 +744,24 @@ namespace
 
 	// ---- registry record ----
 
+	void testSyncDeadline()
+	{
+		StreamFormat format;
+		format.sampleRate = 48000.0;
+		format.frames = 480;   // a 10 ms period
+		StreamOptions options;
+		harness.expectEqual(eapo::asio::syncDeadlineUs(format, options), 2500u, "the default deadline is a quarter of the period");
+		options.deadlinePercent = 50;
+		harness.expectEqual(eapo::asio::syncDeadlineUs(format, options), 5000u, "50 percent is half the period");
+		options.deadlinePercent = 75;
+		harness.expectEqual(eapo::asio::syncDeadlineUs(format, options), 7500u, "75 percent is three quarters");
+		options.deadlineUs = 333;
+		harness.expectEqual(eapo::asio::syncDeadlineUs(format, options), 333u, "an explicit budget wins over the share");
+		options.deadlineUs = 0;
+		format.sampleRate = 0.0;
+		harness.expectEqual(eapo::asio::syncDeadlineUs(format, options), 0u, "no rate: no deadline");
+	}
+
 	void testWrapperRecordRoundTrip()
 	{
 		test::FakeRegistry registry;
@@ -756,6 +774,9 @@ namespace
 		record.options.deadlineUs = 333;
 		record.options.readyTimeoutMs = 4444;
 		record.options.lingerMs = 5555;
+		record.options.deadlinePercent = 50;
+		record.autoStart = true;
+		record.register32 = true;
 
 		eapo::asio::WrapperRecord missing;
 		harness.expectFalse(eapo::asio::WrapperRecords::read(registry, record.wrapperClsid, missing), "no record before write");
@@ -777,6 +798,9 @@ namespace
 		harness.expectEqual(back.options.deadlineUs, 333u, "DeadlineUs round-trips");
 		harness.expectEqual(back.options.readyTimeoutMs, 4444u, "ReadyTimeoutMs round-trips");
 		harness.expectEqual(back.options.lingerMs, 5555u, "LingerMs round-trips");
+		harness.expectEqual(back.options.deadlinePercent, 50u, "DeadlinePercent round-trips");
+		harness.expectTrue(back.autoStart, "AutoStart round-trips");
+		harness.expectTrue(back.register32, "Register32 round-trips");
 
 		// A record written by an older build without the optional values still reads.
 		const std::wstring sparseKey = eapo::asio::WrapperRecords::recordKey(L"{99999999-2222-3333-4444-555555555555}");
@@ -787,6 +811,9 @@ namespace
 		harness.expectTrue(sparse.options.processInput, "missing values take the defaults");
 		harness.expect(sparse.options.mode == Mode::Pipelined, "a record without Mode runs pipelined, the default");
 		harness.expectEqual(sparse.options.readyTimeoutMs, StreamOptions().readyTimeoutMs, "including the ready timeout");
+		harness.expectEqual(sparse.options.deadlinePercent, 0u, "DeadlinePercent 0 = the quarter default");
+		harness.expectFalse(sparse.autoStart, "a record without AutoStart does not start the host at boot");
+		harness.expectFalse(sparse.register32, "a record without Register32 serves 64-bit hosts only");
 
 		eapo::asio::WrapperRecords::remove(registry, record.wrapperClsid);
 		harness.expectFalse(registry.keyExists(key), "remove deletes the record");
@@ -864,6 +891,7 @@ namespace
 		testRejectedFormatsAndOpenFailures();
 		testLatenciesAddTheProcessorsShare();
 		testHostWithoutTimeInfo();
+		testSyncDeadline();
 		testWrapperRecordRoundTrip();
 		testInProcProcessorRunsTheEngine();
 		harness.expectEqual(AsioWrapper::instanceCount(), 0L, "every wrapper was released");

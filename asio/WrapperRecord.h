@@ -23,6 +23,8 @@ namespace eapo::asio
 		std::wstring targetClsid;    // {...}
 		std::wstring targetName;     // the target's HKLM\SOFTWARE\ASIO subkey name
 		StreamOptions options;
+		bool autoStart = false;      // start the engine host at boot (one Run value); off by default
+		bool register32 = false;     // also register the entry for 32-bit hosts; off by default
 	};
 
 	namespace WrapperRecords

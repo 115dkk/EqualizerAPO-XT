@@ -16,6 +16,8 @@ namespace eapo::asio
 		const wchar_t* const clsidValue = L"CLSID";
 		const wchar_t* const descriptionValue = L"Description";
 		const wchar_t* const className = L"EQ APO XT driver wrapper";
+		const wchar_t* const runKey = L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
+		const wchar_t* const runValueName = L"EqualizerAPOHost";
 
 		void deleteKeyIfPresent(IRegistry& registry, const std::wstring& key)
 		{
@@ -127,6 +129,35 @@ namespace eapo::asio
 				const std::wstring classKey = classesClsidRoot(wow) + L"\\" + wrapperClsid;
 				deleteKeyIfPresent(registry, classKey + L"\\InprocServer32");
 				deleteKeyIfPresent(registry, classKey);
+			}
+		}
+
+		std::wstring autoStartKey()
+		{
+			return runKey;
+		}
+
+		std::wstring autoStartValueName()
+		{
+			return runValueName;
+		}
+
+		bool autoStartRegistered(const IRegistry& registry)
+		{
+			return registry.keyExists(runKey) && registry.valueExists(runKey, runValueName);
+		}
+
+		void setAutoStart(IRegistry& registry, const std::wstring& hostExePath, bool wanted)
+		{
+			if (wanted)
+			{
+				if (!registry.keyExists(runKey))
+					registry.createKey(runKey);
+				registry.writeValue(runKey, runValueName, L"\"" + hostExePath + L"\" --resident");
+			}
+			else if (autoStartRegistered(registry))
+			{
+				registry.deleteValue(runKey, runValueName);
 			}
 		}
 	}

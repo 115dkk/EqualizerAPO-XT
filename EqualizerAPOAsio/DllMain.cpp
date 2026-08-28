@@ -182,6 +182,8 @@ namespace
 				options.mode = value == L"pipelined" ? Mode::Pipelined : Mode::Sync;
 			else if (key == L"deadline")
 				options.deadlineUs = static_cast<uint32_t>(std::wcstoul(value.c_str(), nullptr, 10));
+			else if (key == L"deadlinepercent")
+				options.deadlinePercent = static_cast<uint32_t>(std::wcstoul(value.c_str(), nullptr, 10));
 			else if (key == L"ready")
 				options.readyTimeoutMs = static_cast<uint32_t>(std::wcstoul(value.c_str(), nullptr, 10));
 			else if (key == L"linger")

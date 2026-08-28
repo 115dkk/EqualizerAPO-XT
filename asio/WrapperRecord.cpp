@@ -19,6 +19,9 @@ namespace eapo::asio
 		const wchar_t* const deadlineValue = L"DeadlineUs";
 		const wchar_t* const readyTimeoutValue = L"ReadyTimeoutMs";
 		const wchar_t* const lingerValue = L"LingerMs";
+		const wchar_t* const deadlinePercentValue = L"DeadlinePercent";
+		const wchar_t* const autoStartValue = L"AutoStart";
+		const wchar_t* const register32Value = L"Register32";
 
 		unsigned long readDwordOr(const IRegistry& registry, const std::wstring& key, const wchar_t* name, unsigned long fallback)
 		{
@@ -58,6 +61,9 @@ namespace eapo::asio
 			record.options.deadlineUs = readDwordOr(registry, key, deadlineValue, defaults.deadlineUs);
 			record.options.readyTimeoutMs = readDwordOr(registry, key, readyTimeoutValue, defaults.readyTimeoutMs);
 			record.options.lingerMs = readDwordOr(registry, key, lingerValue, defaults.lingerMs);
+			record.options.deadlinePercent = readDwordOr(registry, key, deadlinePercentValue, defaults.deadlinePercent);
+			record.autoStart = readDwordOr(registry, key, autoStartValue, 0) != 0;
+			record.register32 = readDwordOr(registry, key, register32Value, 0) != 0;
 			return true;
 		}
 
@@ -73,6 +79,9 @@ namespace eapo::asio
 			registry.writeDWORDValue(key, deadlineValue, record.options.deadlineUs);
 			registry.writeDWORDValue(key, readyTimeoutValue, record.options.readyTimeoutMs);
 			registry.writeDWORDValue(key, lingerValue, record.options.lingerMs);
+			registry.writeDWORDValue(key, deadlinePercentValue, record.options.deadlinePercent);
+			registry.writeDWORDValue(key, autoStartValue, record.autoStart ? 1 : 0);
+			registry.writeDWORDValue(key, register32Value, record.register32 ? 1 : 0);
 		}
 
 		void remove(IRegistry& registry, const std::wstring& wrapperClsid)
