@@ -36,8 +36,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   buffer of latency, reported to the host), which on a Topping USB Audio
   Device at 64 frames processed every one of 450,005 buffers in ten minutes,
   all but three round trips under 100 us and the worst 2.5 ms outlier
-  absorbed by that buffer; a synchronous mode without the extra buffer is a
-  checkbox in the Device Selector's troubleshooting panel, with how long a
+  absorbed by that buffer; a synchronous mode without the extra buffer is the
+  **Remove the buffer** checkbox in the Device Selector's troubleshooting panel, with how long a
   buffer waits for the host (a quarter of the buffer, half, three quarters).
   The same panel has two options that are off by default: start the engine
   host at boot, and 32-bit host support (the entry for 32-bit applications,

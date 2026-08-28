@@ -209,16 +209,16 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>무음 버퍼 수정 허용</translation>
     </message>
     <message>
-        <source>Process inside the buffer callback (no extra buffer of latency; a buffer the engine host answers too late passes through unprocessed)</source>
-        <translation>버퍼 콜백 안에서 처리 (지연 버퍼 없음, 엔진 호스트의 답이 늦은 버퍼는 처리 없이 통과)</translation>
+        <source>Remove the buffer</source>
+        <translation>버퍼 제거</translation>
     </message>
     <message>
-        <source>Unchecked, the previous buffer is played: one buffer of latency, every buffer processed. Applies to both directions of this driver.</source>
-        <translation>끄면 직전 버퍼를 재생합니다. 버퍼 하나만큼의 지연이 붙고 모든 버퍼가 처리됩니다. 이 드라이버의 입력과 출력에 함께 적용됩니다.</translation>
+        <source>Removing the buffer reduces latency. But when processing occasionally does not finish in time, sound without the EQ applied may come out for a moment. Applies to both input and output.</source>
+        <translation>버퍼를 제거하면 지연이 줄어듭니다. 그러나 때때로 처리가 제때 끝나지 못하면, 순간적으로 EQ가 미적용된 소리가 출력될 수 있습니다. 입출력에 모두 적용됩니다.</translation>
     </message>
     <message>
-        <source>How long a buffer waits for the engine host in the synchronous mode. A buffer that waits longer passes through unprocessed.</source>
-        <translation>동기 모드에서 엔진 호스트의 처리를 기다리는 시간입니다. 이 시간을 넘긴 버퍼는 처리 없이 통과합니다.</translation>
+        <source>How long a buffer waits for the engine host once the buffer is removed. A buffer that waits longer comes out without the EQ applied.</source>
+        <translation>버퍼를 제거했을 때 엔진 호스트의 처리를 기다리는 시간입니다. 이 시간을 넘긴 버퍼는 EQ가 미적용된 채 출력됩니다.</translation>
     </message>
     <message>
         <source>Wait a quarter of the buffer for the host (default)</source>

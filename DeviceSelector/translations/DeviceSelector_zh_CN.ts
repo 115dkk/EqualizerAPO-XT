@@ -216,6 +216,46 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>允许静默缓冲区修改</translation>
     </message>
     <message>
+        <source>Remove the buffer</source>
+        <translation>移除缓冲区</translation>
+    </message>
+    <message>
+        <source>Removing the buffer reduces latency. But when processing occasionally does not finish in time, sound without the EQ applied may come out for a moment. Applies to both input and output.</source>
+        <translation>移除缓冲区可降低延迟。但如果处理偶尔未能及时完成，可能会瞬间输出未应用 EQ 的声音。对输入和输出都生效。</translation>
+    </message>
+    <message>
+        <source>How long a buffer waits for the engine host once the buffer is removed. A buffer that waits longer comes out without the EQ applied.</source>
+        <translation>移除缓冲区后，每个缓冲区等待引擎主机的时长。超过此时长的缓冲区将不经 EQ 直接输出。</translation>
+    </message>
+    <message>
+        <source>Wait a quarter of the buffer for the host (default)</source>
+        <translation>等待主机至缓冲区的四分之一（默认）</translation>
+    </message>
+    <message>
+        <source>Wait half of the buffer for the host</source>
+        <translation>等待主机至缓冲区的一半</translation>
+    </message>
+    <message>
+        <source>Wait three quarters of the buffer for the host</source>
+        <translation>等待主机至缓冲区的四分之三</translation>
+    </message>
+    <message>
+        <source>Start the engine host automatically at boot</source>
+        <translation>开机时自动启动引擎主机</translation>
+    </message>
+    <message>
+        <source>Unchecked, the first application that opens the driver starts the host, and it leaves a minute after the last one closes it.</source>
+        <translation>关闭时，由第一个打开驱动的应用程序启动主机；最后一个应用程序关闭驱动一分钟后主机退出。</translation>
+    </message>
+    <message>
+        <source>32-bit host support</source>
+        <translation>32 位主机支持</translation>
+    </message>
+    <message>
+        <source>Also registers the driver entry where 32-bit applications look for it. Unavailable when this build ships no 32-bit wrapper.</source>
+        <translation>同时在 32 位应用程序查找的位置注册驱动条目。此版本不附带 32 位包装器时不可用。</translation>
+    </message>
+    <message>
         <location line="+47"/>
         <source>Copy Device command to clipboard</source>
         <translation>复制设备命令到剪贴板</translation>

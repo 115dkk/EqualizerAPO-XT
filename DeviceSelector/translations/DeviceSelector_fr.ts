@@ -209,6 +209,46 @@ ATTENTION: Certains pilotes de carte son peuvent produire des sons indésirables
         <translation>Autoriser la modification silencieuse du tampon</translation>
     </message>
     <message>
+        <source>Remove the buffer</source>
+        <translation>Supprimer le tampon</translation>
+    </message>
+    <message>
+        <source>Removing the buffer reduces latency. But when processing occasionally does not finish in time, sound without the EQ applied may come out for a moment. Applies to both input and output.</source>
+        <translation>Supprimer le tampon réduit la latence. Mais si le traitement ne se termine parfois pas à temps, un son sans EQ peut être émis un instant. S'applique à l'entrée et à la sortie.</translation>
+    </message>
+    <message>
+        <source>How long a buffer waits for the engine host once the buffer is removed. A buffer that waits longer comes out without the EQ applied.</source>
+        <translation>Durée pendant laquelle un tampon attend l'hôte du moteur une fois le tampon supprimé. Un tampon qui attend plus longtemps est émis sans EQ.</translation>
+    </message>
+    <message>
+        <source>Wait a quarter of the buffer for the host (default)</source>
+        <translation>Attendre l'hôte un quart du tampon (par défaut)</translation>
+    </message>
+    <message>
+        <source>Wait half of the buffer for the host</source>
+        <translation>Attendre l'hôte la moitié du tampon</translation>
+    </message>
+    <message>
+        <source>Wait three quarters of the buffer for the host</source>
+        <translation>Attendre l'hôte les trois quarts du tampon</translation>
+    </message>
+    <message>
+        <source>Start the engine host automatically at boot</source>
+        <translation>Démarrer automatiquement l'hôte du moteur au démarrage du système</translation>
+    </message>
+    <message>
+        <source>Unchecked, the first application that opens the driver starts the host, and it leaves a minute after the last one closes it.</source>
+        <translation>Désactivé, la première application qui ouvre le pilote lance l'hôte, qui se ferme une minute après que la dernière l'a refermé.</translation>
+    </message>
+    <message>
+        <source>32-bit host support</source>
+        <translation>Prise en charge des hôtes 32 bits</translation>
+    </message>
+    <message>
+        <source>Also registers the driver entry where 32-bit applications look for it. Unavailable when this build ships no 32-bit wrapper.</source>
+        <translation>Enregistre aussi l'entrée du pilote là où les applications 32 bits la cherchent. Indisponible quand cette version ne fournit pas de wrapper 32 bits.</translation>
+    </message>
+    <message>
         <source>Connector</source>
         <translation type="vanished">Connecteur</translation>
     </message>

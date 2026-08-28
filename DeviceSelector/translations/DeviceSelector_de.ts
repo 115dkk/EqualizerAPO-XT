@@ -216,6 +216,46 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <translation>Erlaube Modifikation stiller Puffer</translation>
     </message>
     <message>
+        <source>Remove the buffer</source>
+        <translation>Puffer entfernen</translation>
+    </message>
+    <message>
+        <source>Removing the buffer reduces latency. But when processing occasionally does not finish in time, sound without the EQ applied may come out for a moment. Applies to both input and output.</source>
+        <translation>Ohne den Puffer sinkt die Latenz. Wird die Verarbeitung aber gelegentlich nicht rechtzeitig fertig, kann kurzzeitig Ton ohne EQ ausgegeben werden. Gilt für Eingang und Ausgang.</translation>
+    </message>
+    <message>
+        <source>How long a buffer waits for the engine host once the buffer is removed. A buffer that waits longer comes out without the EQ applied.</source>
+        <translation>Wie lange ein Puffer nach dem Entfernen des Puffers auf den Engine-Host wartet. Ein Puffer, der länger wartet, wird ohne EQ ausgegeben.</translation>
+    </message>
+    <message>
+        <source>Wait a quarter of the buffer for the host (default)</source>
+        <translation>Ein Viertel des Puffers auf den Host warten (Standard)</translation>
+    </message>
+    <message>
+        <source>Wait half of the buffer for the host</source>
+        <translation>Die Hälfte des Puffers auf den Host warten</translation>
+    </message>
+    <message>
+        <source>Wait three quarters of the buffer for the host</source>
+        <translation>Drei Viertel des Puffers auf den Host warten</translation>
+    </message>
+    <message>
+        <source>Start the engine host automatically at boot</source>
+        <translation>Engine-Host beim Systemstart automatisch starten</translation>
+    </message>
+    <message>
+        <source>Unchecked, the first application that opens the driver starts the host, and it leaves a minute after the last one closes it.</source>
+        <translation>Deaktiviert startet die erste Anwendung, die den Treiber öffnet, den Host; eine Minute nachdem die letzte ihn geschlossen hat, beendet er sich.</translation>
+    </message>
+    <message>
+        <source>32-bit host support</source>
+        <translation>Unterstützung für 32-Bit-Hosts</translation>
+    </message>
+    <message>
+        <source>Also registers the driver entry where 32-bit applications look for it. Unavailable when this build ships no 32-bit wrapper.</source>
+        <translation>Registriert den Treibereintrag auch dort, wo 32-Bit-Anwendungen ihn suchen. Nicht verfügbar, wenn dieser Build keinen 32-Bit-Wrapper enthält.</translation>
+    </message>
+    <message>
         <location line="+47"/>
         <source>Copy Device command to clipboard</source>
         <translation>Kopiere Device-Befehl in die Zwischenablage</translation>
