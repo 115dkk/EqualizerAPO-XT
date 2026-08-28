@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.47.0 — 2026-08-28
+
 - **Plugin panels can now be heard, not just seen.** A VST plugin that
   generates its own signal while its panel is open - the Open XTC RACE
   calibration noise, a test sweep - used to stay mute in the Editor: the
