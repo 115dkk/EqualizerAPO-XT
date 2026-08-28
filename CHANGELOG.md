@@ -14,6 +14,10 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The Device Selector opens at a readable size.** It used to open at the
+  smallest size its list allowed, which on a fresh install (nothing resized
+  yet) left the device names cramped. It now opens at 760 by 640 or the
+  screen's room, whichever is smaller, and can still be resized.
 - **The license texts are installed with the program.** `License.txt`
   (GPL version 2 or later, the program's license) and `License-gpl-3.0.txt`
   (GPL version 3, which the ASIO wrapper built on the Steinberg ASIO SDK is

@@ -43,8 +43,10 @@ public:
 	void previewSelectDevice(int sectionRow, int deviceRow);
 	void previewCheckDevice(int sectionRow, int deviceRow);
 	void previewOpenTroubleshooting();
+	void previewRemoveBuffer();
 
 private:
+	void showAsioWaitTime(bool shown);
 	void setupChrome();
 	void finishSetup();
 	void onDeviceSelectionChanged();

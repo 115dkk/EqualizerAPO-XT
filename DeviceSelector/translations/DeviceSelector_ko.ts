@@ -213,24 +213,28 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>버퍼 제거</translation>
     </message>
     <message>
+        <source>Wait time:</source>
+        <translation>대기 시간:</translation>
+    </message>
+    <message>
+        <source>Sets how long to wait for processing once the buffer is removed. The longer the wait, the less sound without the EQ, but the more latency.</source>
+        <translation>버퍼를 제거했을 때, 처리를 얼마나 기다릴지 정합니다. 길게 기다릴수록 EQ 없는 소리가 줄어들지만, 그만큼 지연이 늘어납니다.</translation>
+    </message>
+    <message>
+        <source>Up to a quarter of the buffer</source>
+        <translation>버퍼의 1/4까지</translation>
+    </message>
+    <message>
+        <source>Up to half of the buffer</source>
+        <translation>버퍼의 절반까지</translation>
+    </message>
+    <message>
+        <source>Up to three quarters of the buffer</source>
+        <translation>버퍼의 3/4까지</translation>
+    </message>
+    <message>
         <source>Removing the buffer reduces latency. But when processing occasionally does not finish in time, sound without the EQ applied may come out for a moment. Applies to both input and output.</source>
         <translation>버퍼를 제거하면 지연이 줄어듭니다. 그러나 때때로 처리가 제때 끝나지 못하면, 순간적으로 EQ가 미적용된 소리가 출력될 수 있습니다. 입출력에 모두 적용됩니다.</translation>
-    </message>
-    <message>
-        <source>How long a buffer waits for the engine host once the buffer is removed. A buffer that waits longer comes out without the EQ applied.</source>
-        <translation>버퍼를 제거했을 때 엔진 호스트의 처리를 기다리는 시간입니다. 이 시간을 넘긴 버퍼는 EQ가 미적용된 채 출력됩니다.</translation>
-    </message>
-    <message>
-        <source>Wait a quarter of the buffer for the host (default)</source>
-        <translation>호스트를 버퍼 길이의 1/4까지 기다림 (기본)</translation>
-    </message>
-    <message>
-        <source>Wait half of the buffer for the host</source>
-        <translation>호스트를 버퍼 길이의 절반까지 기다림</translation>
-    </message>
-    <message>
-        <source>Wait three quarters of the buffer for the host</source>
-        <translation>호스트를 버퍼 길이의 3/4까지 기다림</translation>
     </message>
     <message>
         <source>Start the engine host automatically at boot</source>
