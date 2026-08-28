@@ -483,7 +483,7 @@ void DeviceSelector::onTroubleShootingOptionChanged()
 		AsioAPOInfo* asioInfo = dynamic_cast<AsioAPOInfo*>(info.get());
 		if (asioInfo != nullptr)
 		{
-			QObject* const source = QObject::sender();
+			const QObject* const source = QObject::sender();
 			if (source == ui.asioSyncCheckBox)
 				asioInfo->setSynchronous(ui.asioSyncCheckBox->isChecked());
 			else if (source == ui.asioDeadlineComboBox)
@@ -495,7 +495,6 @@ void DeviceSelector::onTroubleShootingOptionChanged()
 		}
 		// The wait time only means something in the synchronous mode.
 		const bool waitApplies = ui.asioSyncCheckBox->isEnabled() && ui.asioSyncCheckBox->isChecked();
-		ui.asioDeadlineLabel->setEnabled(waitApplies);
 		ui.asioDeadlineComboBox->setEnabled(waitApplies);
 
 		updateList(item);
@@ -594,7 +593,6 @@ void DeviceSelector::updateButtons()
 	ui.asioSyncCheckBox->setEnabled(asioEnabled);
 	ui.asioSyncCheckBox->setChecked(asioSynchronous);
 	ui.asioDeadlineComboBox->setCurrentIndex(deadlineIndexForPercent(asioDeadlinePercent));
-	ui.asioDeadlineLabel->setEnabled(asioEnabled && asioSynchronous);
 	ui.asioDeadlineComboBox->setEnabled(asioEnabled && asioSynchronous);
 	ui.asioAutoStartCheckBox->setEnabled(asioEnabled);
 	ui.asioAutoStartCheckBox->setChecked(asioAutoStart);
