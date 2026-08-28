@@ -105,6 +105,9 @@
     <ClCompile Include="..\asio\CallbackTrampolines.cpp" />
     <ClCompile Include="..\asio\SampleCodec.cpp" />
     <ClCompile Include="..\asio\WrapperRecord.cpp" />
+    <ClCompile Include="..\asio\DaemonProcessor.cpp" />
+    <ClCompile Include="..\asio\Win32HostLink.cpp" />
+    <ClCompile Include="..\runtime\ipc\StreamRing.cpp" />
     <!-- The registry port's live adapter and its helpers, compiled in rather
          than taken from Common.lib so the DLL stays free of the engine. -->
     <ClCompile Include="..\services\registry\WindowsRegistry.cpp" />
@@ -120,6 +123,11 @@
     <ClInclude Include="..\asio\SampleCodec.h" />
     <ClInclude Include="..\asio\StreamProcessor.h" />
     <ClInclude Include="..\asio\WrapperRecord.h" />
+    <ClInclude Include="..\asio\DaemonProcessor.h" />
+    <ClInclude Include="..\asio\HostLink.h" />
+    <ClInclude Include="..\asio\HostProtocol.h" />
+    <ClInclude Include="..\asio\Win32HostLink.h" />
+    <ClInclude Include="..\runtime\ipc\StreamRing.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="EqualizerAPOAsio.def" />

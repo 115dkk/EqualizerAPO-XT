@@ -14,7 +14,10 @@
 	           the driver's own clock runs for --seconds)
 	Wrappers:  static (AsioWrapper linked in, processor chosen by --processor),
 	           dll:<path> (EqualizerAPOAsio.dll through EapoAsioCreateWrapper)
-	Processors: inproc (two FilterEngines in this process), passthrough
+	Processors: inproc (two FilterEngines in this process), passthrough,
+	           daemon-thread (the daemon adapter over the engine host running
+	           on a thread in this process), daemon (the daemon adapter over
+	           EqualizerAPOHost.exe, reached or started on --endpoint)
 
 	Exit codes: 0 ok, 1 usage, 2 the stream could not be opened or started,
 	3 a hash mismatch, 4 more late blocks than --max-late allows.
@@ -29,7 +32,10 @@
 
 #include "asio/AsioSdk.h"
 #include "asio/AsioWrapper.h"
+#include "asio/DaemonProcessor.h"
 #include "asio/InProcProcessor.h"
+#include "asio/ThreadHostLink.h"
+#include "asio/Win32HostLink.h"
 #include "asio/SampleCodec.h"
 #include "engine/FilterEngine.h"
 #include "services/logging/Logging.h"
@@ -75,6 +81,9 @@ namespace
 		std::string expectInputSha;
 		long maxLate = 0;
 		bool reference = true;
+		std::wstring daemonExe;
+		std::wstring endpoint = L"EAPO.ASIO.probe";
+		uint32_t deadlineUs = 0;
 	};
 
 	std::string narrow(const std::wstring& text)
@@ -90,7 +99,8 @@ namespace
 	{
 		std::fputs(
 			"AsioProbe --target fake|dll:<FakeAsioDriver.dll>|clsid:{...} --wrapper static|dll:<EqualizerAPOAsio.dll>\n"
-			"          --processor inproc|passthrough --config <config.txt> [--mode sync|pipelined]\n"
+			"          --processor inproc|passthrough|daemon-thread|daemon --config <config.txt> [--mode sync|pipelined]\n"
+			"          [--daemon <EqualizerAPOHost.exe>] [--endpoint <name>] [--deadline-us N]\n"
 			"          [--frames 64] [--rate 48000] [--periods 200] [--channels in,out] [--sample-type int16|int24|int32|float32]\n"
 			"          [--seed N] [--host-seed N] [--no-input] [--no-output] [--output-ready]\n"
 			"          [--expect-sha256 hex] [--expect-first-sha256 hex] [--expect-input-sha256 hex] [--max-late N] [--no-reference]\n"
@@ -121,6 +131,9 @@ namespace
 			else if (key == L"--seed" && value(v)) a.seed = static_cast<unsigned>(std::wcstoul(v.c_str(), nullptr, 10));
 			else if (key == L"--host-seed" && value(v)) a.hostSeed = static_cast<unsigned>(std::wcstoul(v.c_str(), nullptr, 10));
 			else if (key == L"--max-late" && value(v)) a.maxLate = std::wcstol(v.c_str(), nullptr, 10);
+			else if (key == L"--daemon" && value(v)) a.daemonExe = v;
+			else if (key == L"--endpoint" && value(v)) a.endpoint = v;
+			else if (key == L"--deadline-us" && value(v)) a.deadlineUs = static_cast<uint32_t>(std::wcstoul(v.c_str(), nullptr, 10));
 			else if (key == L"--channels" && value(v))
 			{
 				const size_t comma = v.find(L',');
@@ -228,7 +241,8 @@ namespace
 		}
 		std::wstring options = L"output=" + std::wstring(a.processOutput ? L"1" : L"0")
 			+ L";input=" + std::wstring(a.processInput ? L"1" : L"0")
-			+ L";mode=" + a.mode + L";config=" + a.config;
+			+ L";mode=" + a.mode + L";deadline=" + std::to_wstring(a.deadlineUs)
+			+ L";endpoint=" + a.endpoint + L";daemon=" + a.daemonExe + L";config=" + a.config;
 		IASIO* wrapper = nullptr;
 		const HRESULT hr = create(target, targetClsid.c_str(), options.c_str(), a.processor.c_str(), &wrapper);
 		if (FAILED(hr) || wrapper == nullptr)
@@ -252,7 +266,18 @@ namespace
 			return true;
 
 		std::unique_ptr<FilterEngine> engine;
-		const bool filtering = a.processor == L"inproc" && (capture ? a.processInput : a.processOutput);
+		const bool filtering = a.processor != L"passthrough" && (capture ? a.processInput : a.processOutput);
+		// The pipelined adapter hands out one block of silence first and the
+		// processed stream one period late; the last period never leaves.
+		const bool pipelined = filtering && a.mode == L"pipelined";
+		if (pipelined)
+		{
+			std::vector<unsigned char> silence(static_cast<size_t>(codec.bytesPerSample) * a.frames, 0);
+			std::vector<float> zeros(static_cast<size_t>(a.frames), 0.0f);
+			codec.fromFloat(zeros.data(), silence.data(), static_cast<unsigned>(a.frames));
+			for (long c = 0; c < channels; c++)
+				records[static_cast<size_t>(c)].insert(records[static_cast<size_t>(c)].end(), silence.begin(), silence.end());
+		}
 		if (filtering)
 		{
 			engine = std::make_unique<FilterEngine>();
@@ -276,7 +301,8 @@ namespace
 		for (long c = 0; c < channels; c++)
 			planes[static_cast<size_t>(c)] = storage.data() + static_cast<size_t>(c) * a.frames;
 		std::vector<unsigned char> bytes(static_cast<size_t>(codec.bytesPerSample) * a.frames);
-		for (long p = 0; p < a.periods; p++)
+		const long referencePeriods = pipelined ? a.periods - 1 : a.periods;
+		for (long p = 0; p < referencePeriods; p++)
 		{
 			for (long c = 0; c < channels; c++)
 			{
@@ -310,6 +336,21 @@ namespace
 		for (const std::vector<unsigned char>& record : records)
 			all.insert(all.end(), record.begin(), record.end());
 		return asiotest::sha256Hex(all);
+	}
+
+	void printProfile(const AsioWrapper* staticWrapper)
+	{
+		const eapo::asio::DaemonProcessor* daemon = staticWrapper != nullptr
+			? dynamic_cast<const eapo::asio::DaemonProcessor*>(staticWrapper->processor()) : nullptr;
+		if (daemon == nullptr)
+			return;
+		const eapo::asio::DaemonProcessor::HandoffProfile& p = daemon->profile();
+		std::printf("handoff deadline=%u us; max dispatch=%u service=%u return=%u us over %llu completed\n",
+			daemon->deadlineUs(), p.maxDispatchUs, p.maxServiceUs, p.maxReturnUs, static_cast<unsigned long long>(p.completed));
+		std::printf("round-trip <100us=%llu <200=%llu <500=%llu <1000=%llu <2000=%llu >=2000=%llu\n",
+			static_cast<unsigned long long>(p.roundTripBuckets[0]), static_cast<unsigned long long>(p.roundTripBuckets[1]),
+			static_cast<unsigned long long>(p.roundTripBuckets[2]), static_cast<unsigned long long>(p.roundTripBuckets[3]),
+			static_cast<unsigned long long>(p.roundTripBuckets[4]), static_cast<unsigned long long>(p.roundTripBuckets[5]));
 	}
 
 	int runFakeStream(const Arguments& a, IASIO* wrapper, IFakeAsioControl* control, AsioWrapper* staticWrapper)
@@ -354,6 +395,7 @@ namespace
 		StreamStats stats;
 		if (staticWrapper != nullptr)
 			stats = staticWrapper->stats();
+		printProfile(staticWrapper);
 		wrapper->disposeBuffers();
 
 		std::vector<std::vector<unsigned char>> outputs(static_cast<size_t>(a.outputs));
@@ -365,8 +407,9 @@ namespace
 			control->capturedOutput(c, &data, &bytes);
 			outputs[static_cast<size_t>(c)].assign(data, data + bytes);
 			const size_t periodBytes = static_cast<size_t>(codec.bytesPerSample) * a.frames;
-			if (bytes >= periodBytes)
-				firstPeriod.insert(firstPeriod.end(), data, data + periodBytes);
+			const size_t skip = a.mode == L"pipelined" && a.processor != L"passthrough" ? periodBytes : 0;
+			if (bytes >= skip + periodBytes)
+				firstPeriod.insert(firstPeriod.end(), data + skip, data + skip + periodBytes);
 		}
 		std::vector<std::vector<unsigned char>> inputs(static_cast<size_t>(a.inputs));
 		for (long c = 0; c < a.inputs; c++)
@@ -445,6 +488,7 @@ namespace
 		hostOptions.outputSeed = a.tone ? a.hostSeed : 0;
 		hostOptions.outputScale = 0.05f;
 		hostOptions.callOutputReady = a.callOutputReady;
+		hostOptions.proAudioCallback = true;
 		if (wrapper->init(nullptr) == ASIOFalse)
 		{
 			char message[124] = {};
@@ -492,6 +536,7 @@ namespace
 		StreamStats stats;
 		if (staticWrapper != nullptr)
 			stats = staticWrapper->stats();
+		printProfile(staticWrapper);
 		wrapper->disposeBuffers();
 
 		std::printf("switches %lu (time-info %lu) reset-requests %lu\n", host.switches(), host.timeInfoSwitches(), host.resetRequests());
@@ -571,6 +616,10 @@ int wmain(int argc, wchar_t** argv)
 	options.processOutput = a.processOutput;
 	options.mode = a.mode == L"pipelined" ? Mode::Pipelined : Mode::Sync;
 	options.configPath = a.config;
+	options.deadlineUs = a.deadlineUs;
+	options.daemonEndpoint = a.endpoint;
+	options.daemonExePath = a.daemonExe;
+	options.lingerMs = 2000;
 
 	IASIO* wrapper = nullptr;
 	AsioWrapper* staticWrapper = nullptr;
@@ -581,6 +630,10 @@ int wmain(int argc, wchar_t** argv)
 			processor = std::make_unique<eapo::asio::InProcProcessor>();
 		else if (a.processor == L"passthrough")
 			processor = std::make_unique<eapo::asio::PassthroughProcessor>();
+		else if (a.processor == L"daemon-thread")
+			processor = std::make_unique<eapo::asio::DaemonProcessor>(std::make_unique<eapo::asio::ThreadHostLink>(realDriver));
+		else if (a.processor == L"daemon")
+			processor = std::make_unique<eapo::asio::DaemonProcessor>(std::make_unique<eapo::asio::Win32HostLink>());
 		else
 		{
 			usage();

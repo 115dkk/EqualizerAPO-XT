@@ -93,7 +93,18 @@ namespace eapo::ipc
 		LONG state;                        // RingState
 		LONG faultCode;                    // RingFault
 		RingLane lanes[eapo::asio::directionCount];
-		uint8_t reserved[ringHeaderBytes - (16 + sizeof(eapo::asio::StreamFormat) + 16 + 2 * sizeof(RingLane))];
+		// QueryPerformanceCounter stamps, one clock for both processes:
+		// when the producer published, when the consumer picked the block
+		// up, when it finished. The producer reads them after Done to tell a
+		// slow wake-up from slow processing from a slow return.
+		LONGLONG publishTick[eapo::asio::directionCount];
+		LONGLONG acquireTick[eapo::asio::directionCount];
+		LONGLONG completeTick[eapo::asio::directionCount];
+		// The processor the producer last published from. Two real-time
+		// threads spinning on one core serialize on the scheduler quantum,
+		// so the consumer keeps its thread off this one.
+		LONG producerCpu;
+		uint8_t reserved[ringHeaderBytes - (16 + sizeof(eapo::asio::StreamFormat) + 16 + 2 * sizeof(RingLane) + 48 + 4)];
 	};
 
 	static_assert(sizeof(RingLane) == 20, "RingLane must stay fixed-width");
@@ -153,6 +164,18 @@ namespace eapo::ipc
 		void close() noexcept;
 		RingState state() const noexcept;
 
+		// The last completed handoff on a lane, in microseconds: how long the
+		// consumer took to pick the block up after publish (dispatch), how
+		// long it held it (service), and how long its completion took to be
+		// seen here (return, measured against now).
+		struct HandoffTiming
+		{
+			uint32_t dispatchUs = 0;
+			uint32_t serviceUs = 0;
+			uint32_t returnUs = 0;
+		};
+		HandoffTiming lastHandoff(eapo::asio::Direction direction) const noexcept;
+
 	private:
 		RingHeader* header_;
 		RingSync sync_;
@@ -185,10 +208,15 @@ namespace eapo::ipc
 		// Waits for work on either lane, the peer, or the timeout. Lanes are
 		// served in order, output first when both are pending. False means
 		// nothing to do: timeout, Closing, or the peer went away (check
-		// state() and peerGone()).
-		bool acquire(Acquired& out, uint32_t timeoutMs) noexcept;
+		// state() and peerGone()). spinUs is how long to poll before the
+		// kernel wait: a woken thread pays scheduler and C-state latency
+		// that a spinning one does not, and inside one buffer period that
+		// latency is most of a sync deadline.
+		bool acquire(Acquired& out, uint32_t timeoutMs, uint32_t spinUs = 0) noexcept;
 		void release(const Acquired& acquired) noexcept;
 		bool peerGone() const noexcept {return peerGone_;}
+		// The processor the producer last published from, or -1.
+		long producerCpu() const noexcept;
 
 	private:
 		bool pending(eapo::asio::Direction direction, Acquired& out) noexcept;
@@ -197,5 +225,6 @@ namespace eapo::ipc
 		RingSync sync_;
 		bool valid_ = false;
 		bool peerGone_ = false;
+		double ticksPerMicro_ = 0.0;
 	};
 }

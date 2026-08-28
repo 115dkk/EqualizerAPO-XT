@@ -752,7 +752,7 @@ namespace
 		record.targetClsid = L"{AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE}";
 		record.targetName = L"Some USB ASIO";
 		record.options.processInput = false;
-		record.options.mode = Mode::Pipelined;
+		record.options.mode = Mode::Sync;
 		record.options.deadlineUs = 333;
 		record.options.readyTimeoutMs = 4444;
 		record.options.lingerMs = 5555;
@@ -765,7 +765,7 @@ namespace
 		harness.expect(key == L"HKEY_LOCAL_MACHINE\\SOFTWARE\\EqualizerAPO\\ASIO\\{11111111-2222-3333-4444-555555555555}", "the record key spelling");
 		harness.expect(registry.readValue(key, L"TargetClsid") == record.targetClsid, "TargetClsid is written");
 		harness.expectEqual(registry.readDWORDValue(key, L"ProcessInput"), 0ul, "ProcessInput is written as a DWORD");
-		harness.expectEqual(registry.readDWORDValue(key, L"Mode"), 1ul, "Pipelined is Mode 1");
+		harness.expectEqual(registry.readDWORDValue(key, L"Mode"), 0ul, "Sync is Mode 0 (Pipelined, the default, is 1)");
 
 		eapo::asio::WrapperRecord back;
 		harness.require(eapo::asio::WrapperRecords::read(registry, record.wrapperClsid, back), "the record reads back");
@@ -773,7 +773,7 @@ namespace
 		harness.expect(back.targetName == record.targetName, "TargetName round-trips");
 		harness.expectFalse(back.options.processInput, "ProcessInput round-trips");
 		harness.expectTrue(back.options.processOutput, "ProcessOutput round-trips");
-		harness.expect(back.options.mode == Mode::Pipelined, "Mode round-trips");
+		harness.expect(back.options.mode == Mode::Sync, "Mode round-trips");
 		harness.expectEqual(back.options.deadlineUs, 333u, "DeadlineUs round-trips");
 		harness.expectEqual(back.options.readyTimeoutMs, 4444u, "ReadyTimeoutMs round-trips");
 		harness.expectEqual(back.options.lingerMs, 5555u, "LingerMs round-trips");
@@ -785,6 +785,7 @@ namespace
 		eapo::asio::WrapperRecord sparse;
 		harness.require(eapo::asio::WrapperRecords::read(registry, L"{99999999-2222-3333-4444-555555555555}", sparse), "a sparse record reads");
 		harness.expectTrue(sparse.options.processInput, "missing values take the defaults");
+		harness.expect(sparse.options.mode == Mode::Pipelined, "a record without Mode runs pipelined, the default");
 		harness.expectEqual(sparse.options.readyTimeoutMs, StreamOptions().readyTimeoutMs, "including the ready timeout");
 
 		eapo::asio::WrapperRecords::remove(registry, record.wrapperClsid);
@@ -873,6 +874,7 @@ namespace
 }
 
 int runStreamRingTests();
+int runDaemonTests();
 
 int main()
 {
@@ -880,6 +882,8 @@ int main()
 	try
 	{
 		if (runStreamRingTests() != 0)
+			return 1;
+		if (runDaemonTests() != 0)
 			return 1;
 		return runAsioTests();
 	}
