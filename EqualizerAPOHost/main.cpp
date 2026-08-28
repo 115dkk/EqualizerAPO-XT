@@ -6,7 +6,8 @@
 	endpoint, started on demand by the first wrapper that needs it, serving
 	one FilterEngine pair per stream on its own Pro Audio thread, and leaving
 	`--linger` milliseconds after the last stream ends so a DAW's buffer-size
-	change does not respawn it.
+	change does not respawn it. With `--resident` (the Device Selector's
+	start-at-boot option writes a Run value with it) it never leaves on idle.
 
 	Control: a message-mode named pipe. A wrapper writes one HostOpenRequest
 	naming the ring it mapped; the host opens the ring and its events by
@@ -40,6 +41,7 @@ namespace
 	{
 		std::wstring endpoint;
 		uint32_t lingerMs = 60000;
+		bool resident = false;
 	};
 
 	Arguments parseArguments(int argc, wchar_t** argv)
@@ -52,6 +54,8 @@ namespace
 				a.endpoint = argv[++i];
 			else if (key == L"--linger" && i + 1 < argc)
 				a.lingerMs = static_cast<uint32_t>(std::wcstoul(argv[++i], nullptr, 10));
+			else if (key == L"--resident")
+				a.resident = true;
 		}
 		if (a.endpoint.empty())
 			a.endpoint = eapo::asio::HostNames::defaultEndpoint();
@@ -163,7 +167,8 @@ namespace
 		{
 			const std::wstring pipeName = eapo::asio::HostNames::pipe(arguments.endpoint);
 			idleSince = GetTickCount64();
-			LogFStatic(L"ASIO host: listening on %s, linger %u ms", pipeName.c_str(), arguments.lingerMs);
+			LogFStatic(L"ASIO host: listening on %s, linger %u ms%s", pipeName.c_str(), arguments.lingerMs,
+				arguments.resident ? L", resident" : L"");
 			for (;;)
 			{
 				HANDLE pipe = CreateNamedPipeW(pipeName.c_str(), PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
@@ -187,7 +192,7 @@ namespace
 						connected = true;
 						break;
 					}
-					if (activeStreams.load() == 0 && GetTickCount64() - idleSince.load() >= arguments.lingerMs)
+					if (!arguments.resident && activeStreams.load() == 0 && GetTickCount64() - idleSince.load() >= arguments.lingerMs)
 					{
 						stopping = true;
 						CancelIo(pipe);

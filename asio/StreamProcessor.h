@@ -112,13 +112,27 @@ namespace eapo::asio
 		bool processOutput = true;
 		bool processInput = true;
 		Mode mode = Mode::Pipelined;
-		uint32_t deadlineUs = 0;          // 0 = automatic
+		uint32_t deadlineUs = 0;          // 0 = automatic: deadlinePercent of the period
+		uint32_t deadlinePercent = 0;     // Sync only; 0 = 25. The Device Selector offers 25, 50 and 75
 		uint32_t readyTimeoutMs = 20000;  // a cold start loads config.txt, which may hold convolution IRs
 		uint32_t lingerMs = 60000;        // how long the daemon outlives its last stream
 		std::wstring configPath;          // empty = registry ConfigPath + watcher (production)
 		std::wstring daemonExePath;       // empty = EqualizerAPOHost.exe beside the wrapper DLL
 		std::wstring daemonEndpoint;      // empty = per-session default; the probe pins a name
 	};
+
+	// The synchronous deadline for a format: an explicit microsecond budget
+	// wins; otherwise the share of the buffer period the options name.
+	inline uint32_t syncDeadlineUs(const StreamFormat& format, const StreamOptions& options) noexcept
+	{
+		if (options.deadlineUs != 0)
+			return options.deadlineUs;
+		if (format.sampleRate <= 0.0)
+			return 0;
+		const double periodUs = static_cast<double>(format.frames) * 1000000.0 / format.sampleRate;
+		const uint32_t percent = options.deadlinePercent != 0 ? options.deadlinePercent : 25;
+		return static_cast<uint32_t>(periodUs * static_cast<double>(percent) / 100.0);
+	}
 
 	class IStreamProcessor
 	{

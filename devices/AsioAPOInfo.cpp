@@ -50,14 +50,24 @@ void AsioAPOInfo::loadState()
 {
 	installed = false;
 	currentSynchronous = false;
+	currentDeadlinePercent = 25;
+	currentAutoStart = false;
+	currentHost32 = false;
 	WrapperRecord record;
 	if (eapo::asio::AsioRegistration::wrapperRegistered(registry, target)
 		&& WrapperRecords::read(registry, wrapperClsidFor(target.clsid), record))
 	{
 		installed = input ? record.options.processInput : record.options.processOutput;
 		currentSynchronous = record.options.mode == eapo::asio::Mode::Sync;
+		if (record.options.deadlinePercent != 0)
+			currentDeadlinePercent = record.options.deadlinePercent;
+		currentAutoStart = record.autoStart;
+		currentHost32 = record.register32;
 	}
 	selectedSynchronous = currentSynchronous;
+	selectedDeadlinePercent = currentDeadlinePercent;
+	selectedAutoStart = currentAutoStart;
+	selectedHost32 = currentHost32;
 
 	channelCount = 0;
 	sampleRate = 0;
@@ -131,7 +141,10 @@ bool AsioAPOInfo::canBeUpgraded() const
 
 bool AsioAPOInfo::hasChanges() const
 {
-	return installed && selectedSynchronous != currentSynchronous;
+	return installed && (selectedSynchronous != currentSynchronous
+		|| selectedDeadlinePercent != currentDeadlinePercent
+		|| selectedAutoStart != currentAutoStart
+		|| selectedHost32 != currentHost32);
 }
 
 bool AsioAPOInfo::isExperimental() const
@@ -170,11 +183,43 @@ std::wstring AsioAPOInfo::installDirectory() const
 	return registry.readValue(APP_REGPATH, L"InstallPath");
 }
 
+std::wstring AsioAPOInfo::wrapper32Path() const
+{
+	// The 32-bit wrapper ships beside the 64-bit one under x86\; a build
+	// without it (ARM64) cannot serve 32-bit hosts.
+	return installDirectory() + L"\\x86\\EqualizerAPOAsio.dll";
+}
+
+bool AsioAPOInfo::canHost32() const
+{
+	return fileExists(wrapper32Path());
+}
+
+void AsioAPOInfo::refreshAutoStart()
+{
+	// One Run value for the machine: present while any installed target
+	// asks for it, gone with the last one.
+	bool wanted = false;
+	const std::wstring root = WrapperRecords::rootKey();
+	if (registry.keyExists(root))
+	{
+		for (const std::wstring& clsid : registry.enumSubKeys(root))
+		{
+			WrapperRecord other;
+			if (WrapperRecords::read(registry, clsid, other) && other.autoStart
+				&& (other.options.processOutput || other.options.processInput))
+				wanted = true;
+		}
+	}
+	eapo::asio::AsioRegistration::setAutoStart(registry, installDirectory() + L"\\EqualizerAPOHost.exe", wanted);
+}
+
 void AsioAPOInfo::install()
 {
 	const std::wstring wrapperClsid = wrapperClsidFor(target.clsid);
 	WrapperRecord record;
-	if (!WrapperRecords::read(registry, wrapperClsid, record))
+	const bool fresh = !WrapperRecords::read(registry, wrapperClsid, record);
+	if (fresh)
 	{
 		record.wrapperClsid = wrapperClsid;
 		record.targetClsid = target.clsid;
@@ -186,15 +231,25 @@ void AsioAPOInfo::install()
 		record.options.processInput = true;
 	else
 		record.options.processOutput = true;
-	record.options.mode = selectedSynchronous ? eapo::asio::Mode::Sync : eapo::asio::Mode::Pipelined;
+	// Options this row changed win; the other direction's row, installed in
+	// the same pass with an untouched selection, must not put them back.
+	if (fresh || selectedSynchronous != currentSynchronous)
+		record.options.mode = selectedSynchronous ? eapo::asio::Mode::Sync : eapo::asio::Mode::Pipelined;
+	if (fresh || selectedDeadlinePercent != currentDeadlinePercent)
+		record.options.deadlinePercent = selectedDeadlinePercent;
+	if (fresh || selectedAutoStart != currentAutoStart)
+		record.autoStart = selectedAutoStart;
+	if (fresh || selectedHost32 != currentHost32)
+		record.register32 = selectedHost32;
 	WrapperRecords::write(registry, record);
 
-	const std::wstring directory = installDirectory();
-	const std::wstring dll64 = directory + L"\\EqualizerAPOAsio.dll";
-	// The 32-bit wrapper ships beside the 64-bit one under x86\; a build
-	// without it registers the 64-bit view only.
-	const std::wstring dll32 = directory + L"\\x86\\EqualizerAPOAsio.dll";
-	eapo::asio::AsioRegistration::registerWrapper(registry, target, dll64, fileExists(dll32) ? dll32 : std::wstring());
+	const std::wstring dll64 = installDirectory() + L"\\EqualizerAPOAsio.dll";
+	// The 32-bit view only when asked for, and only when the x86 wrapper
+	// is there to point at.
+	const std::wstring dll32 = wrapper32Path();
+	eapo::asio::AsioRegistration::registerWrapper(registry, target, dll64,
+		record.register32 && fileExists(dll32) ? dll32 : std::wstring());
+	refreshAutoStart();
 	loadState();
 }
 
@@ -211,19 +266,27 @@ void AsioAPOInfo::uninstall()
 		if (record.options.processInput || record.options.processOutput)
 		{
 			WrapperRecords::write(registry, record);
+			refreshAutoStart();
 			loadState();
 			return;
 		}
 		WrapperRecords::remove(registry, wrapperClsid);
 	}
 	eapo::asio::AsioRegistration::unregisterWrapper(registry, target);
+	refreshAutoStart();
 	loadState();
 }
 
 void AsioAPOInfo::reinstall()
 {
 	const bool synchronous = selectedSynchronous;
+	const unsigned deadlinePercent = selectedDeadlinePercent;
+	const bool autoStart = selectedAutoStart;
+	const bool host32 = selectedHost32;
 	uninstall();
 	selectedSynchronous = synchronous;
+	selectedDeadlinePercent = deadlinePercent;
+	selectedAutoStart = autoStart;
+	selectedHost32 = host32;
 	install();
 }

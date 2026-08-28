@@ -57,9 +57,30 @@ through unprocessed. On the same interface a few buffers per minute missed,
 from the operating system preempting one of the two threads, so it is not the
 default. It can be selected per driver in the Device Selector: select the
 driver's entry and open the troubleshooting options; the checkbox applies to
-both directions. The budget is `DeadlineUs` under
-`HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO\ASIO\<wrapper CLSID>` (0 = a
-quarter of the buffer period).
+both directions. Under it, how long a buffer waits for the host before it
+passes through: a quarter of the buffer (the default), half, or three
+quarters. A longer wait misses fewer buffers and leaves the application less
+of the buffer for its own work.
+
+## Options in the Device Selector
+
+Besides the synchronous mode and its wait time, an ASIO entry's
+troubleshooting panel has two options, both off by default:
+
+- **Start the engine host automatically at boot** writes one `Run` value for
+  the machine so the host is up before any application opens the driver.
+  Otherwise the first application starts it and it leaves a minute after the
+  last one closes the driver. The value stays while any driver asks for it;
+  after the option is turned off, a host already running stays until
+  sign-out.
+- **32-bit host support** also registers the driver entry where 32-bit
+  applications look for it (`WOW6432Node`). Unavailable on the ARM64 build,
+  which ships no 32-bit wrapper.
+
+The record behind an entry lives under
+`HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO\ASIO\<wrapper CLSID>`: `Mode`,
+`DeadlinePercent`, `DeadlineUs` (an explicit microsecond budget, normally 0),
+`AutoStart`, `Register32`.
 
 ## When something is off
 
@@ -73,8 +94,9 @@ quarter of the buffer period).
 - The host crashes mid-stream: buffers pass through unprocessed for the rest
   of that session; reopening the device starts a fresh host. The DAW is not
   affected beyond that.
-- 32-bit applications: the 32-bit wrapper is installed alongside on x64
-  builds and talks to the same 64-bit host. The ARM64 build has no 32-bit
+- 32-bit applications see the entry only with **32-bit host support** ticked
+  for the driver; x64 builds ship the 32-bit wrapper, which talks to the
+  same 64-bit host. The ARM64 build has no 32-bit
   wrapper, and its wrapper is ARM64-native: an x64 application running under
   emulation on an ARM64 machine cannot load it (the 64-bit registry view is
   shared, so one entry cannot serve both architectures without an ARM64X
