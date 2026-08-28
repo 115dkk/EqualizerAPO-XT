@@ -14,6 +14,8 @@
 #include <cstring>
 #include <vector>
 
+#include <avrt.h>
+
 #include "asio/AsioSdk.h"
 #include "asio/SampleCodec.h"
 
@@ -27,6 +29,7 @@ namespace asiotest
 			bool supportsTimeInfo = true;
 			bool supportsResetRequest = true;
 			bool callOutputReady = false;
+			bool proAudioCallback = false;   // MMCSS Pro Audio on the driver's callback thread, as a DAW does
 			unsigned outputSeed = 7;      // 0 = silence
 			float outputScale = 1.0f;
 			long sampleType = ASIOSTInt32LSB;
@@ -204,6 +207,13 @@ namespace asiotest
 			switches_++;
 			if (timeInfo)
 				timeInfoSwitches_++;
+			if (options_.proAudioCallback && switches_ == 1)
+			{
+				DWORD taskIndex = 0;
+				HANDLE task = AvSetMmThreadCharacteristicsW(L"Pro Audio", &taskIndex);
+				if (task != nullptr)
+					AvSetMmThreadPriority(task, AVRT_PRIORITY_CRITICAL);
+			}
 			if (frames_ <= 0)
 				return;
 			std::vector<float> samples(static_cast<size_t>(frames_));

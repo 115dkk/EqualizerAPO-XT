@@ -53,7 +53,7 @@ namespace eapo::asio
 			record.options = defaults;
 			record.options.processOutput = readDwordOr(registry, key, processOutputValue, defaults.processOutput ? 1 : 0) != 0;
 			record.options.processInput = readDwordOr(registry, key, processInputValue, defaults.processInput ? 1 : 0) != 0;
-			record.options.mode = readDwordOr(registry, key, modeValue, 0) == 1 ? Mode::Pipelined : Mode::Sync;
+			record.options.mode = readDwordOr(registry, key, modeValue, defaults.mode == Mode::Pipelined ? 1 : 0) == 1 ? Mode::Pipelined : Mode::Sync;
 			record.options.deadlineUs = readDwordOr(registry, key, deadlineValue, defaults.deadlineUs);
 			record.options.readyTimeoutMs = readDwordOr(registry, key, readyTimeoutValue, defaults.readyTimeoutMs);
 			record.options.lingerMs = readDwordOr(registry, key, lingerValue, defaults.lingerMs);

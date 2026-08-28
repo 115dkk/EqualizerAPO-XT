@@ -30,6 +30,7 @@ $projects = @(
     # output. The probe is executed by build.yml's "ASIO probe" step on the
     # legs that can run the variant.
     "EqualizerAPOAsio\EqualizerAPOAsio.vcxproj",
+    "EqualizerAPOHost\EqualizerAPOHost.vcxproj",
     "Tests\FakeAsioDriver\FakeAsioDriver.vcxproj",
     "Tests\AsioTests\AsioTests.vcxproj",
     "Tests\AsioProbe\AsioProbe.vcxproj"

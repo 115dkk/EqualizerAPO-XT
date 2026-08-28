@@ -20,6 +20,8 @@
 #include <string>
 
 #include "asio/AsioWrapper.h"
+#include "asio/DaemonProcessor.h"
+#include "asio/Win32HostLink.h"
 #include "asio/WrapperRecord.h"
 #include "platform/windows/GuidText.h"
 #include "services/logging/Logging.h"
@@ -47,12 +49,13 @@ namespace
 		Logging::useUserFile(L"EqualizerAPOAsio.log", false, false, false);
 	}
 
-	// The processor a registered wrapper runs. The daemon adapter arrives
-	// with the engine host; until then a registered wrapper passes audio
-	// through untouched and says so in its log.
-	std::unique_ptr<IStreamProcessor> makeProcessor(const StreamOptions&)
+	// The processor a registered wrapper runs: the engine host over the
+	// ring, or a plain passthrough when neither direction is processed.
+	std::unique_ptr<IStreamProcessor> makeProcessor(const StreamOptions& options)
 	{
-		return std::make_unique<PassthroughProcessor>();
+		if (!options.processOutput && !options.processInput)
+			return std::make_unique<PassthroughProcessor>();
+		return std::make_unique<eapo::asio::DaemonProcessor>(std::make_unique<eapo::asio::Win32HostLink>());
 	}
 
 	class WrapperClassFactory final : public IClassFactory
@@ -256,7 +259,8 @@ STDAPI DllGetClassObject(const CLSID& clsid, const IID& iid, void** object)
 
 // Probe entry: no registry, no COM activation. The target is the caller's;
 // it is AddRef'd by the wrapper. `processorKind` selects among the adapters
-// the DLL carries ("passthrough" today; "daemon" once the host ships).
+// the DLL carries: "passthrough" or "daemon" (the engine host over the ring,
+// reached or started as the options say).
 extern "C" HRESULT __stdcall EapoAsioCreateWrapper(IASIO* target, const wchar_t* targetClsid,
 	const wchar_t* optionsText, const wchar_t* processorKind, IASIO** wrapper)
 {
@@ -270,6 +274,8 @@ extern "C" HRESULT __stdcall EapoAsioCreateWrapper(IASIO* target, const wchar_t*
 		std::unique_ptr<IStreamProcessor> processor;
 		if (processorKind == nullptr || std::wcscmp(processorKind, L"passthrough") == 0)
 			processor = std::make_unique<PassthroughProcessor>();
+		else if (std::wcscmp(processorKind, L"daemon") == 0)
+			processor = std::make_unique<eapo::asio::DaemonProcessor>(std::make_unique<eapo::asio::Win32HostLink>());
 		else
 			return E_INVALIDARG;
 		AsioWrapper* created = new AsioWrapper(target, probeWrapperClsid,

@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <!--
-    Unit tests for the ASIO wrapper core over the statically linked fake
-    driver, plus the in-process engine adapter (which is why Common.lib is
-    linked and the suite follows the variant /arch like the other engine
-    suites). Runs on every leg the runner can execute, through
-    Build-Solution.ps1's runtime test list.
+    EqualizerAPOHost.exe: the engine host for ASIO streams
+    (docs/architecture/asio-host-study.md). A windowless x64/ARM64 process
+    that links the engine whole-archive like Benchmark and VoicemeeterClient
+    and follows the variant /arch; the 32-bit wrapper talks to this 64-bit
+    host through the ring, so there is no Win32 build.
   -->
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM64">
@@ -26,9 +26,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{4D6E8F0A-2B3C-4D5E-9F60-1A2B3C4D5E6F}</ProjectGuid>
+    <ProjectGuid>{8C1D2E3F-4A5B-4C6D-8E7F-9A0B1C2D3E4F}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>AsioTests</RootNamespace>
+    <RootNamespace>EqualizerAPOHost</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <PropertyGroup>
@@ -48,7 +48,7 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-  <Import Project="..\Tests.props" />
+  <Import Project="..\Tests\Tests.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Label="PropertySheets">
@@ -56,14 +56,16 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(ASIO_SDK)\common;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(IncludePath)</IncludePath>
+    <IncludePath>$(MSBuildThisFileDirectory)..;$(ASIO_SDK)\common;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;_CONSOLE;UNICODE;_UNICODE;MUP_USE_WIDE_STRING;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;UNICODE;_UNICODE;MUP_USE_WIDE_STRING;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>ole32.lib;uuid.lib;avrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <!-- Tests.props says Console; the host has no console. -->
+      <SubSystem>Windows</SubSystem>
+      <AdditionalDependencies>ole32.lib;uuid.lib;avrt.lib;shell32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>if exist "$(FFTW_LIB)\*.dll" copy /Y "$(FFTW_LIB)\*.dll" "$(OutDir)"
@@ -83,42 +85,15 @@ if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"</
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="AsioTests.cpp" />
-    <ClCompile Include="StreamRingTests.cpp" />
-    <ClCompile Include="DaemonTests.cpp" />
-    <ClCompile Include="..\..\runtime\ipc\StreamRing.cpp" />
-    <ClCompile Include="..\..\asio\AsioWrapper.cpp" />
-    <ClCompile Include="..\..\asio\CallbackTrampolines.cpp" />
-    <ClCompile Include="..\..\asio\InProcProcessor.cpp" />
-    <ClCompile Include="..\..\asio\SampleCodec.cpp" />
-    <ClCompile Include="..\..\asio\DaemonProcessor.cpp" />
-    <ClCompile Include="..\..\asio\EngineHostCore.cpp" />
-    <ClCompile Include="..\..\asio\ThreadHostLink.cpp" />
-    <ClCompile Include="..\..\asio\Win32HostLink.cpp" />
-    <ClCompile Include="..\..\asio\WrapperRecord.cpp" />
-    <ClCompile Include="..\FakeAsioDriver\FakeAsio.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="..\asio\EngineHostCore.cpp" />
+    <ClCompile Include="..\runtime\ipc\StreamRing.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\asio\AsioSdk.h" />
-    <ClInclude Include="..\..\asio\AsioWrapper.h" />
-    <ClInclude Include="..\..\asio\CallbackTrampolines.h" />
-    <ClInclude Include="..\..\asio\InProcProcessor.h" />
-    <ClInclude Include="..\..\asio\SampleCodec.h" />
-    <ClInclude Include="..\..\asio\StreamProcessor.h" />
-    <ClInclude Include="..\..\asio\DaemonProcessor.h" />
-    <ClInclude Include="..\..\asio\EngineHostCore.h" />
-    <ClInclude Include="..\..\asio\HostLink.h" />
-    <ClInclude Include="..\..\asio\HostProtocol.h" />
-    <ClInclude Include="..\..\asio\ThreadHostLink.h" />
-    <ClInclude Include="..\..\asio\Win32HostLink.h" />
-    <ClInclude Include="..\..\asio\WrapperRecord.h" />
-    <ClInclude Include="..\..\runtime\ipc\StreamRing.h" />
-    <ClInclude Include="..\AsioSupport\HostStub.h" />
-    <ClInclude Include="..\EngineOrchestrationTests\FakeRegistry.h" />
-    <ClInclude Include="..\FakeAsioDriver\FakeAsio.h" />
-    <ClInclude Include="..\FakeAsioDriver\FakeAsioControl.h" />
-    <ClInclude Include="..\TestHarness.h" />
-    <ClInclude Include="..\TestDirectory.h" />
+    <ClInclude Include="..\asio\EngineHostCore.h" />
+    <ClInclude Include="..\asio\HostProtocol.h" />
+    <ClInclude Include="..\asio\StreamProcessor.h" />
+    <ClInclude Include="..\runtime\ipc\StreamRing.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

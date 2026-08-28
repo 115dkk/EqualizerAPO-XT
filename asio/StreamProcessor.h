@@ -101,11 +101,17 @@ namespace eapo::asio
 	};
 
 	// The value both the registry record and the probe's command line fill.
+	// Pipelined is the default: on real hardware at 64 frames the sync
+	// handoff completes under 100 us 99.96 percent of the time, and the rest
+	// is the OS preempting one of the two threads for up to two
+	// milliseconds, which sync mode can only pass through. One buffer of
+	// latency buys immunity to that; sync stays available for those who
+	// would rather hear an occasional unprocessed block than add it.
 	struct StreamOptions
 	{
 		bool processOutput = true;
 		bool processInput = true;
-		Mode mode = Mode::Sync;
+		Mode mode = Mode::Pipelined;
 		uint32_t deadlineUs = 0;          // 0 = automatic
 		uint32_t readyTimeoutMs = 20000;  // a cold start loads config.txt, which may hold convolution IRs
 		uint32_t lingerMs = 60000;        // how long the daemon outlives its last stream

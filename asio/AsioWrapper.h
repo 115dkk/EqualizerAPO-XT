@@ -97,6 +97,7 @@ namespace eapo::asio
 		State state() const noexcept {return state_.load(std::memory_order_acquire);}
 		const StreamStats& stats() const noexcept {return stats_;}
 		const StreamFormat& format() const noexcept {return format_;}
+		const IStreamProcessor* processor() const noexcept {return processor_.get();}
 
 		static long instanceCount() noexcept;
 
