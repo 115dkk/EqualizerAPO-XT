@@ -120,9 +120,10 @@ namespace
 		{
 			fake = new FakeAsioDriver();
 			fake->configure(&config);
-			std::unique_ptr<ScriptedProcessor> owned(scripted != nullptr ? scripted : new ScriptedProcessor());
-			processor = owned.get();
-			wrapper = new AsioWrapper(fake, testWrapperClsid, testTargetClsid, std::move(options), std::move(owned));
+			// The wrapper owns the processor from here on; the raw pointer is
+			// how the test scripts and inspects it.
+			processor = scripted != nullptr ? scripted : new ScriptedProcessor();
+			wrapper = new AsioWrapper(fake, testWrapperClsid, testTargetClsid, std::move(options), std::unique_ptr<IStreamProcessor>(processor));
 			fake->Release();       // the wrapper holds the reference now
 			hostOptions.sampleType = config.sampleType;
 			host = std::make_unique<asiotest::HostStub>(hostOptions);
