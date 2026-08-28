@@ -73,6 +73,10 @@ $downloadDir = Join-Path $depsDir "_downloads"
 # deleted so the next run redownloads it.
 $downloads = Get-DependencyDownloadSpec -Manifest $simdManifest -DepsRoot $depsDir -Platform $Platform -Simd $variant
 Invoke-DependencyDownload -Downloads $downloads -DownloadRoot $downloadDir -ReuseCachedDownloads
+# The Steinberg ASIO SDK (source-only zip, same for every variant), pinned by
+# SHA-256 like the binaries. Extracts to deps\asiosdk\ASIOSDK.
+$sdkDownloads = Get-SdkDownloadSpec -Manifest $simdManifest -DepsRoot $depsDir
+Invoke-DependencyDownload -Downloads $sdkDownloads -DownloadRoot $downloadDir -ReuseCachedDownloads
 
 # For SSE2/AVX variants, build FFTW and libsndfile from vcpkg
 if ($usesVcpkg) {
@@ -184,7 +188,8 @@ $checks = @(
     @{ Name = "libsndfile lib";  Path = "$depsDir\libsndfile\build\Release\sndfile.lib" },
     @{ Name = "TCLAP header";    Path = "$depsDir\tclap\include\tclap\CmdLine.h" },
     @{ Name = "VST3 pluginterfaces"; Path = "$depsDir\vst3sdk\pluginterfaces\base\funknown.h" },
-    @{ Name = "Highway header";  Path = "$depsDir\highway\hwy\highway.h" }
+    @{ Name = "Highway header";  Path = "$depsDir\highway\hwy\highway.h" },
+    @{ Name = "ASIO SDK header"; Path = "$depsDir\asiosdk\ASIOSDK\common\iasiodrv.h" }
 )
 
 # velopack_libc ships per-arch import libs/DLLs in a single zip; check the one we link.
@@ -254,6 +259,7 @@ To build the project, open a VS Developer Command Prompt and run:
   `$env:VELOPACK_LIB     = "$depsDir\velopack_libc\lib"
   `$env:TCLAP_ROOT       = "$depsDir\tclap"
   `$env:HIGHWAY_INCLUDE  = "$depsDir\highway"
+  `$env:ASIO_SDK         = "$depsDir\asiosdk\ASIOSDK"
   `$env:QT_ROOT          = "$qtRoot"
 
   # Build core projects with MSBuild

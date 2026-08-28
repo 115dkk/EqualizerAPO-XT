@@ -48,7 +48,8 @@ $buildParams = @(
     "/p:FFTW_INCLUDE=$env:FFTW_INCLUDE", "/p:FFTW_LIB=$env:FFTW_LIB",
     "/p:MUPARSERX_INCLUDE=$env:MUPARSERX_INCLUDE", "/p:MUPARSERX_LIB=$env:MUPARSERX_LIB",
     "/p:TCLAP_ROOT=$env:TCLAP_ROOT", "/p:VST3_SDK=$env:VST3_SDK",
-    "/p:HIGHWAY_INCLUDE=$env:HIGHWAY_INCLUDE", "/p:QT_ROOT=$env:QT_ROOT"
+    "/p:HIGHWAY_INCLUDE=$env:HIGHWAY_INCLUDE", "/p:ASIO_SDK=$env:ASIO_SDK",
+    "/p:QT_ROOT=$env:QT_ROOT"
 )
 
 # The suite exes plus everything they load: the companion VST modules must be
@@ -60,7 +61,8 @@ $projects = @(
     "VST3\SubwooferRouting\SubwooferRoutingVst3.vcxproj",
     "Tests\HybridConvTests\HybridConvTests.vcxproj",
     "Tests\EngineOrchestrationTests\EngineOrchestrationTests.vcxproj",
-    "Tests\EditorLogicTests\EditorLogicTests.vcxproj"
+    "Tests\EditorLogicTests\EditorLogicTests.vcxproj",
+    "Tests\AsioTests\AsioTests.vcxproj"
 )
 foreach ($project in $projects) {
     msbuild $project @buildParams

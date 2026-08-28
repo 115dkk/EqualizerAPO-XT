@@ -75,6 +75,10 @@
 #     HighwayTag           google/highway git tag/ref.
 #     TclapTag             115dkk/tclap git tag/ref.
 #     VcpkgCommit          microsoft/vcpkg commit for the sse2/avx vcpkg builds.
+#     AsioSdkAsset         file name of the Steinberg ASIO SDK zip (GPLv3 dual-licensed
+#                          since 2.3.4; fetched at build time, never vendored).
+#     AsioSdkUrl           where that zip is downloaded from (no authentication).
+#     AsioSdkSha256        SHA-256 of the zip; bumped together with the asset.
 #
 #   DependencyReleases = supply-chain pins for the prebuilt binary dependencies.
 #     Keyed by GitHub repository. CI and setup-build.ps1 download from
@@ -217,6 +221,13 @@
         # libsndfile) check out. Pinned so a moving vcpkg HEAD cannot silently
         # change the portfiles those builds compile from; bump deliberately.
         VcpkgCommit         = 'd87340acc46bdeda386037b38aca30136e667e47'
+        # Steinberg ASIO SDK 2.3.4 (2025-10-15), the first dual-licensed
+        # (proprietary or GPLv3) release. www.steinberg.net/asiosdk redirects
+        # here without authentication. Consumed by the ASIO wrapper, the fake
+        # driver and the probe (docs/architecture/asio-host-study.md).
+        AsioSdkAsset        = 'ASIO-SDK_2.3.4_2025-10-15.zip'
+        AsioSdkUrl          = 'https://download.steinberg.net/sdk_downloads/ASIO-SDK_2.3.4_2025-10-15.zip'
+        AsioSdkSha256       = 'd5ebf0c20dd2c5f43771fd0c1418f4b361bf52434ee670097cfa6b3a335e2eca'
     }
 
     # The prebuilt binaries are served from 115dkk-owned forks (audit #146

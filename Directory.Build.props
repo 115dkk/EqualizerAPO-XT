@@ -28,6 +28,8 @@
     <TCLAP_ROOT Condition="'$(TCLAP_ROOT)'==''">$(MSBuildThisFileDirectory)deps\tclap</TCLAP_ROOT>
     <VST3_SDK Condition="'$(VST3_SDK)'==''">$(MSBuildThisFileDirectory)deps\vst3sdk</VST3_SDK>
     <HIGHWAY_INCLUDE Condition="'$(HIGHWAY_INCLUDE)'==''">$(MSBuildThisFileDirectory)deps\highway</HIGHWAY_INCLUDE>
+    <!-- Steinberg ASIO SDK root (contains common/ and host/), fetched by setup-build.ps1 / CI. -->
+    <ASIO_SDK Condition="'$(ASIO_SDK)'==''">$(MSBuildThisFileDirectory)deps\asiosdk\ASIOSDK</ASIO_SDK>
   </PropertyGroup>
   <!--
     Audit #250 F064: the platform toolset default, once. Every project used to
