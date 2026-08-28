@@ -358,10 +358,12 @@ jobs:
           -WorkspaceRoot "${{ github.workspace }}" `
           -Platform "${{ matrix.platform }}"
 
-    # 32-bit DAWs load a 32-bit driver DLL, so the wrapper and the fake driver
-    # must keep building for Win32. One leg is enough; the DLLs carry no SIMD.
+    # 32-bit DAWs load a 32-bit driver DLL: every x64 artifact ships the Win32
+    # wrapper under x86 (Package-Artifacts.ps1), so every x64 leg builds it.
+    # The DLL carries no SIMD; the ARM64 leg has no x86 cross toolchain and
+    # ships without it.
     - name: Build 32-bit ASIO wrapper
-      if: matrix.simd_variant == 'avx2'
+      if: matrix.platform == 'x64'
       shell: pwsh
       run: |
         & .\.github\scripts\Build-AsioWin32.ps1 -WorkspaceRoot "${{ github.workspace }}"

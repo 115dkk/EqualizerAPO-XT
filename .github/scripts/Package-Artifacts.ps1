@@ -11,8 +11,18 @@ $artifactName = "EqualizerAPO-$Platform-$SimdVariant"
 $requiredFiles = @(
     "EqualizerAPO\$Platform\Release\EqualizerAPO.dll",
     "Benchmark\$Platform\Release\Benchmark.exe",
-    "VoicemeeterClient\$Platform\Release\VoicemeeterClient.exe"
+    "VoicemeeterClient\$Platform\Release\VoicemeeterClient.exe",
+    # ASIO (docs/architecture/asio-host-study.md): the wrapper driver a DAW
+    # loads and the engine host it starts on demand.
+    "EqualizerAPOAsio\$Platform\Release\EqualizerAPOAsio.dll",
+    "EqualizerAPOHost\$Platform\Release\EqualizerAPOHost.exe"
 )
+# 32-bit DAWs load a 32-bit driver: the Win32 wrapper ships under the x86
+# folder on the x64 legs (Build-AsioWin32.ps1 builds it there). The ARM64 leg
+# has no x86 cross-build and ships without it; AsioAPOInfo registers the
+# 64-bit view only when the file is absent.
+$win32Wrapper = if ($Platform -eq "x64") { "EqualizerAPOAsio\Release\EqualizerAPOAsio.dll" } else { $null }
+$extraDllFolders = @("x86")
 # The standalone MIT Subwoofer Routing VST3 ships inside the same artifact as an
 # optional extra: a standard bundle layout under VST3\ plus its own license.
 $vst3PluginModule = "VST3\SubwooferRouting\$Platform\Release\EapoXtSubwooferRouting.vst3"
@@ -27,6 +37,7 @@ $qtPluginFolders = @((Import-PowerShellDataFile $ManifestPath).Shared.QtPluginFo
 $plan = [pscustomobject]@{
     ArtifactName = $artifactName
     RequiredFiles = $requiredFiles
+    Win32Wrapper = $win32Wrapper
     ExcludedExtensions = $excludeExtensions
     QtPluginFolders = $qtPluginFolders
 }
@@ -39,6 +50,12 @@ foreach ($relative in $requiredFiles) {
     $source = Join-Path $WorkspaceRoot $relative
     if (-not (Test-Path $source)) { throw "Required file not found: $relative" }
     Copy-Item $source -Destination $artifactPath
+}
+if ($win32Wrapper) {
+    $win32Source = Join-Path $WorkspaceRoot $win32Wrapper
+    if (-not (Test-Path $win32Source)) { throw "Required file not found: $win32Wrapper" }
+    New-Item -ItemType Directory -Force -Path (Join-Path $artifactPath "x86") | Out-Null
+    Copy-Item $win32Source -Destination (Join-Path $artifactPath "x86") -Force
 }
 Copy-Item (Join-Path $WorkspaceRoot "deps\fftw\Release\*.dll") -Destination $artifactPath -Force
 Copy-Item (Join-Path $WorkspaceRoot "deps\libsndfile\build\Release\*.dll") -Destination $artifactPath -Force
@@ -77,7 +94,7 @@ foreach ($app in @("Editor", "DeviceSelector", "UpdateChecker")) {
 # a folder this manifest list does not know, fail here - the alternative is a
 # release where that plugin family is silently absent on user machines.
 $unknownDllFolders = @(Get-ChildItem -Path $artifactPath -Directory | Where-Object {
-    $qtPluginFolders -notcontains $_.Name -and
+    $qtPluginFolders -notcontains $_.Name -and $extraDllFolders -notcontains $_.Name -and
     @(Get-ChildItem -Path $_.FullName -Recurse -File -Filter "*.dll").Count -gt 0
 } | ForEach-Object { $_.Name })
 if ($unknownDllFolders.Count -gt 0) {

@@ -47,6 +47,15 @@ public:
 	virtual void uninstall() = 0;
 	virtual void reinstall() = 0;
 
+	// A short word the device lists append to the state text when the
+	// device is reached through something other than a Windows endpoint
+	// ("ASIO"). Empty for endpoints. The one marker such devices get: they
+	// sit in the same playback/capture groups as everything else.
+	virtual std::wstring getTransportLabel() const
+	{
+		return std::wstring();
+	}
+
 	// What the last install, uninstall or reinstall on this object did. The
 	// caller needs this whether the operation succeeded or threw, so it is a
 	// value on the object rather than a return type: the three functions are

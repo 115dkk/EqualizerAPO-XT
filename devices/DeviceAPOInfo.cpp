@@ -27,6 +27,7 @@
 #include <comdef.h>
 
 #include "DeviceAPOInfo.h"
+#include "AsioAPOInfo.h"
 #include "VoicemeeterAPOInfo.h"
 #include "DeviceAPOInfoKeys.h"
 
@@ -70,6 +71,9 @@ vector<shared_ptr<AbstractAPOInfo>> DeviceAPOInfo::loadAllInfos(bool input, IReg
 
 	if (!input)
 		VoicemeeterAPOInfo::prependInfos(result, registry);
+	// One playback and one capture record per ASIO target driver, appended
+	// so endpoints keep their order (and the default device stays first).
+	AsioAPOInfo::appendInfos(result, input, registry);
 
 	return result;
 }
