@@ -65,7 +65,7 @@ namespace
 		std::atomic<ULONGLONG> idleSince{0};
 		std::atomic<bool> stopping{false};
 
-		bool overlappedIo(HANDLE pipe, bool write, void* buffer, DWORD bytes)
+		static bool overlappedIo(HANDLE pipe, bool write, void* buffer, DWORD bytes)
 		{
 			OVERLAPPED overlapped = {};
 			overlapped.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
