@@ -217,6 +217,38 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>끄면 직전 버퍼를 재생합니다. 버퍼 하나만큼의 지연이 붙고 모든 버퍼가 처리됩니다. 이 드라이버의 입력과 출력에 함께 적용됩니다.</translation>
     </message>
     <message>
+        <source>How long a buffer waits for the engine host before it passes through unprocessed (synchronous mode only):</source>
+        <translation>엔진 호스트의 처리를 기다리는 시간 (이 시간을 넘긴 버퍼는 처리 없이 통과합니다. 동기 모드에서만):</translation>
+    </message>
+    <message>
+        <source>A quarter of the buffer (default)</source>
+        <translation>버퍼 길이의 1/4 (기본)</translation>
+    </message>
+    <message>
+        <source>Half of the buffer</source>
+        <translation>버퍼 길이의 절반</translation>
+    </message>
+    <message>
+        <source>Three quarters of the buffer</source>
+        <translation>버퍼 길이의 3/4</translation>
+    </message>
+    <message>
+        <source>Start the engine host automatically at boot</source>
+        <translation>부팅 시 자동 시작</translation>
+    </message>
+    <message>
+        <source>Unchecked, the first application that opens the driver starts the host, and it leaves a minute after the last one closes it.</source>
+        <translation>끄면 드라이버를 처음 여는 애플리케이션이 엔진 호스트를 띄우고, 마지막 애플리케이션이 드라이버를 닫은 뒤 1분이 지나면 호스트가 종료됩니다.</translation>
+    </message>
+    <message>
+        <source>32-bit host support</source>
+        <translation>32비트 호스트 지원</translation>
+    </message>
+    <message>
+        <source>Also registers the driver entry where 32-bit applications look for it. Unavailable when this build ships no 32-bit wrapper.</source>
+        <translation>32비트 애플리케이션이 찾는 자리에도 드라이버 항목을 등록합니다. 32비트 래퍼가 없는 빌드에서는 쓸 수 없습니다.</translation>
+    </message>
+    <message>
         <source>Connector</source>
         <translation type="vanished">커넥터</translation>
     </message>
