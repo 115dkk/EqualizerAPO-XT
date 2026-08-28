@@ -56,8 +56,8 @@ and adds no latency, but a buffer whose answer misses the deadline passes
 through unprocessed. On the same interface a few buffers per minute missed,
 from the operating system preempting one of the two threads, so it is not the
 default. It can be selected per driver in the Device Selector: select the
-driver's entry and open the troubleshooting options; the checkbox applies to
-both directions. Under it, how long a buffer waits for the host before it
+driver's entry, open the troubleshooting options and tick **Remove the
+buffer**; it applies to both directions. Under it, how long a buffer waits for the host before it
 passes through: a quarter of the buffer (the default), half, or three
 quarters. A longer wait misses fewer buffers and leaves the application less
 of the buffer for its own work.
