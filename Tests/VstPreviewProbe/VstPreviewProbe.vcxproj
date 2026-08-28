@@ -82,8 +82,14 @@ if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"</
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="VstPreviewProbe.cpp" />
+    <!-- The Qt-free core of the Editor's panel preview feed, compiled in
+         directly so the monitor probe exercises the exact engine the Editor
+         runs, not a re-implementation. -->
+    <ClCompile Include="..\..\Editor\helpers\PanelFeedEngine.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Editor\helpers\PanelFeedEngine.h" />
+    <ClInclude Include="..\..\Editor\helpers\PanelMonitorGate.h" />
     <ClInclude Include="..\..\vst\VSTPluginInstance.h" />
     <ClInclude Include="..\..\vst\VSTPluginLibrary.h" />
     <ClInclude Include="..\..\platform\windows\ComPtr.h" />

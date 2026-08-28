@@ -162,6 +162,10 @@ int main(int argc, char** argv)
 		testReferenceCardDerivesSharedPresentationState();
 		testVSTBusModelMigratesAndEdits();
 		testVSTSlotFillModel();
+		testPanelMonitorGateOpensOnlyForSelfGeneratedAudio();
+		testPanelMonitorGateArmDelayOutlivesReverbTails();
+		testPanelMonitorGateClosesAndRearms();
+		testPanelMonitorGateInterruptedArmStartsOver();
 		testFilterListModel();
 		testFilterListUndo();
 		testFilterCommandCatalogRoster();

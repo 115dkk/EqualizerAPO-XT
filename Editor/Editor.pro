@@ -116,6 +116,7 @@ SOURCES += main.cpp\
 	guis/IncludeFilterGUI.cpp \
 	guis/IncludeFilterGUIFactory.cpp \
 	helpers/GUIHelper.cpp \
+	helpers/PanelFeedEngine.cpp \
 	helpers/PanelPreviewFeeder.cpp \
 	helpers/QtAppBootstrap.cpp \
 	helpers/VstChunkScan.cpp \
@@ -365,6 +366,8 @@ HEADERS  += \
 	FilterGUIFactoryRegistry.h \
 	helpers/EditorSettings.h \
 	helpers/GUIHelper.h \
+	helpers/PanelFeedEngine.h \
+	helpers/PanelMonitorGate.h \
 	helpers/PanelPreviewFeeder.h \
 	helpers/WindowFrameHitTest.h \
 	helpers/QtAppBootstrap.h \
