@@ -37,8 +37,9 @@ the interface, so `Channel:` names do not move when the application opens
 only some of them. `Stage: capture` blocks apply to the input direction,
 everything else to the output direction.
 
-The Editor lists an installed ASIO device in its device menu once a stream
-has run (the host records the interface's channel count and rate then).
+The Editor lists an installed ASIO device in its device menu; its toolbar
+badge shows the rate and channel count of the last stream once one has run
+(the host records them then), and says so when none has.
 
 ## Latency and the two modes
 
@@ -54,9 +55,11 @@ The synchronous mode waits for the host inside the buffer callback instead
 and adds no latency, but a buffer whose answer misses the deadline passes
 through unprocessed. On the same interface a few buffers per minute missed,
 from the operating system preempting one of the two threads, so it is not the
-default. It can be selected per device with the `Mode` value (0) under
-`HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO\ASIO\<wrapper CLSID>`, with
-`DeadlineUs` for the budget (0 = a quarter of the buffer period).
+default. It can be selected per driver in the Device Selector: select the
+driver's entry and open the troubleshooting options; the checkbox applies to
+both directions. The budget is `DeadlineUs` under
+`HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO\ASIO\<wrapper CLSID>` (0 = a
+quarter of the buffer period).
 
 ## When something is off
 

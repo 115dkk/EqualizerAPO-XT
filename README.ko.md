@@ -35,8 +35,7 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
 8. ASIO([#310](https://github.com/115dkk/EqualizerAPO-XT/issues/310)) — 래퍼
    드라이버, 엔진 호스트 프로세스, 둘 사이의 링, 장치 기록, CI 게이트가 들어갔고
    CI의 가짜 드라이버와 로컬의 Topping USB Audio Device로 검증했습니다. 남은 것은
-   Editor의 ASIO 스트림 배지, 동기 모드의 장치 선택기 컨트롤(지금은 레지스트리
-   값), 더 많은 DAW에서의 구동입니다.
+   더 많은 DAW에서의 구동입니다.
 
 ## 주요 기능
 

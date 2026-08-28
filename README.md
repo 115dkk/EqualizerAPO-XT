@@ -41,9 +41,7 @@ Current work areas:
 8. ASIO ([#310](https://github.com/115dkk/EqualizerAPO-XT/issues/310)) — the
    wrapper driver, the engine host process, the ring between them, the device
    records and the CI gate are in, verified with a fake driver on CI and a
-   Topping USB Audio Device locally. Remaining: an Editor badge for the live
-   ASIO stream, a Device Selector control for the synchronous mode (today a
-   registry value), and runs under more DAWs.
+   Topping USB Audio Device locally. Remaining: runs under more DAWs.
 
 ## Features
 
