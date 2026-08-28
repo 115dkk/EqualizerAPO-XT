@@ -113,7 +113,8 @@ $testProjects = @(
   (Join-Path $RepoRoot "Tests" "AsioTests" "AsioTests.vcxproj"),
   (Join-Path $RepoRoot "Tests" "AsioProbe" "AsioProbe.vcxproj"),
   (Join-Path $RepoRoot "Tests" "FakeAsioDriver" "FakeAsioDriver.vcxproj"),
-  (Join-Path $RepoRoot "EqualizerAPOAsio" "EqualizerAPOAsio.vcxproj")
+  (Join-Path $RepoRoot "EqualizerAPOAsio" "EqualizerAPOAsio.vcxproj"),
+  (Join-Path $RepoRoot "EqualizerAPOHost" "EqualizerAPOHost.vcxproj")
 )
 
 $missingTestSources = @()

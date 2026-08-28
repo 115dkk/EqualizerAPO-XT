@@ -88,6 +88,7 @@ namespace eapo::ipc
 				offset += entry.slotBytes;
 			}
 		}
+		header_->producerCpu = -1;
 		WriteRelease(&header_->faultCode, static_cast<LONG>(RingFault::None));
 		WriteRelease(&header_->state, static_cast<LONG>(RingState::Announced));
 	}
@@ -142,6 +143,8 @@ namespace eapo::ipc
 	void RingProducer::publish(Direction direction, uint32_t seq) noexcept
 	{
 		RingLane& lane = header_->lanes[laneOf(direction)];
+		header_->publishTick[laneOf(direction)] = static_cast<LONGLONG>(tickNow());
+		header_->producerCpu = static_cast<LONG>(GetCurrentProcessorNumber());
 		WriteRelease(&lane.sequence, static_cast<LONG>(seq));
 		if (sync_.work[laneOf(direction)] != nullptr)
 			SetEvent(sync_.work[laneOf(direction)]);
@@ -171,7 +174,11 @@ namespace eapo::ipc
 			if (now >= deadline)
 				return RingWait::Late;
 			// Sub-millisecond budgets spin: the kernel wait rounds up to a
-			// millisecond, which at 64 frames is most of the period.
+			// millisecond, which at 64 frames is most of the period. The spin
+			// pauses, it does not yield: yielding handed this (the DAW's)
+			// thread's core away for milliseconds at a time, which is an
+			// overrun in the DAW, not a late block. The consumer keeps off
+			// this core instead (producerCpu in the header).
 			const uint64_t remainingTicks = deadline - now;
 			const double remainingUs = static_cast<double>(remainingTicks) / ticksPerMicro_;
 			if (remainingUs < 1000.0)
@@ -185,6 +192,22 @@ namespace eapo::ipc
 			if (result == WAIT_FAILED)
 				return RingWait::Gone;
 		}
+	}
+
+	RingProducer::HandoffTiming RingProducer::lastHandoff(Direction direction) const noexcept
+	{
+		HandoffTiming timing;
+		const unsigned index = laneOf(direction);
+		const LONGLONG published = header_->publishTick[index];
+		const LONGLONG acquired = header_->acquireTick[index];
+		const LONGLONG completed = header_->completeTick[index];
+		const LONGLONG now = static_cast<LONGLONG>(tickNow());
+		if (ticksPerMicro_ <= 0.0 || acquired < published || completed < acquired)
+			return timing;
+		timing.dispatchUs = static_cast<uint32_t>(static_cast<double>(acquired - published) / ticksPerMicro_);
+		timing.serviceUs = static_cast<uint32_t>(static_cast<double>(completed - acquired) / ticksPerMicro_);
+		timing.returnUs = now > completed ? static_cast<uint32_t>(static_cast<double>(now - completed) / ticksPerMicro_) : 0;
+		return timing;
 	}
 
 	void RingProducer::close() noexcept
@@ -207,6 +230,9 @@ namespace eapo::ipc
 	RingConsumer::RingConsumer(void* base, size_t bytes, const RingSync& sync) noexcept
 		: header_(static_cast<RingHeader*>(base)), sync_(sync)
 	{
+		LARGE_INTEGER frequency;
+		QueryPerformanceFrequency(&frequency);
+		ticksPerMicro_ = frequency.QuadPart > 0 ? static_cast<double>(frequency.QuadPart) / 1000000.0 : 0.0;
 		if (header_ == nullptr || bytes < ringHeaderBytes)
 			return;
 		if (header_->magic != ringMagic || header_->layoutVersion != ringLayoutVersion)
@@ -262,10 +288,11 @@ namespace eapo::ipc
 		out.direction = direction;
 		out.sequence = next;
 		out.slot = reinterpret_cast<float*>(reinterpret_cast<unsigned char*>(header_) + lane.slotOffset[next & 1]);
+		header_->acquireTick[laneOf(direction)] = static_cast<LONGLONG>(tickNow());
 		return true;
 	}
 
-	bool RingConsumer::acquire(Acquired& out, uint32_t timeoutMs) noexcept
+	bool RingConsumer::acquire(Acquired& out, uint32_t timeoutMs, uint32_t spinUs) noexcept
 	{
 		HANDLE handles[3] = {sync_.work[0], sync_.work[1], sync_.peer};
 		const DWORD count = sync_.peer != nullptr ? 3 : 2;
@@ -277,6 +304,20 @@ namespace eapo::ipc
 				return true;
 			if (peerGone_)
 				return false;
+			if (spinUs != 0)
+			{
+				const uint64_t deadline = tickNow() + static_cast<uint64_t>(spinUs * ticksPerMicro_);
+				while (tickNow() < deadline)
+				{
+					if (pending(Direction::Output, out) || pending(Direction::Input, out))
+						return true;
+					if (readState(header_) == static_cast<uint32_t>(RingState::Closing))
+						return false;
+					YieldProcessor();
+				}
+				// Events set while spinning stay set (auto-reset, unconsumed),
+				// so the kernel wait below returns at once in that case.
+			}
 			const DWORD result = WaitForMultipleObjects(count, handles, FALSE, timeoutMs);
 			if (result == WAIT_OBJECT_0 + 2)
 			{
@@ -291,9 +332,15 @@ namespace eapo::ipc
 		}
 	}
 
+	long RingConsumer::producerCpu() const noexcept
+	{
+		return static_cast<long>(ReadAcquire(&header_->producerCpu));
+	}
+
 	void RingConsumer::release(const Acquired& acquired) noexcept
 	{
 		RingLane& lane = header_->lanes[laneOf(acquired.direction)];
+		header_->completeTick[laneOf(acquired.direction)] = static_cast<LONGLONG>(tickNow());
 		WriteRelease(&lane.completed, static_cast<LONG>(acquired.sequence));
 		if (sync_.done[laneOf(acquired.direction)] != nullptr)
 			SetEvent(sync_.done[laneOf(acquired.direction)]);
