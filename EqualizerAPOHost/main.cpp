@@ -109,6 +109,7 @@ namespace
 				options.configPath = request.configPath;
 				options.proAudio = true;
 				options.spinPeriods = 1.0;
+				options.publishFacts = true;
 				eapo::asio::EngineHostCore::serveStream(consumer, options, GetCurrentProcessId());
 			}
 			else

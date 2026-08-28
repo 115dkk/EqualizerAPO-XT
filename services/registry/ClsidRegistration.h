@@ -31,4 +31,10 @@ void registerClsidTree(IRegistry& registry, const std::wstring& clsidString,
 
 // Deletes the InprocServer32 subkey, then the class key.
 void unregisterClsidTree(IRegistry& registry, const std::wstring& clsidString);
+
+// The same tree under an explicit CLSID root (no trailing backslash), for
+// the WOW6432Node view a 32-bit host reads: the registry port always opens
+// the 64-bit view, where that view is an ordinary key.
+void registerClsidTreeAt(IRegistry& registry, const std::wstring& clsidRootPath, const std::wstring& clsidString,
+	const std::wstring& className, const std::wstring& dllPath);
 }

@@ -31,6 +31,9 @@ namespace eapo::asio
 		// a wake-up; zero means it always blocks. The host uses one, the
 		// tests zero.
 		double spinPeriods = 0.0;
+		// Publish the stream's shape under HKCU for the device record. The
+		// host does; the tests and the probe leave the user's registry alone.
+		bool publishFacts = false;
 		// Test hook: when set and true, the loop leaves at once without
 		// releasing the block it holds, the way a crashed host would.
 		const std::atomic<bool>* abandon = nullptr;

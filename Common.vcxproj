@@ -290,6 +290,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="devices\AbstractAPOInfo.h" />
+    <ClInclude Include="devices\AsioAPOInfo.h" />
+    <ClInclude Include="asio\AsioRegistration.h" />
+    <ClInclude Include="asio\WrapperRecord.h" />
+    <ClInclude Include="asio\StreamProcessor.h" />
     <ClInclude Include="engine\ConfigLoadTrace.h" />
     <ClInclude Include="engine\ConfigurationFileReader.h" />
     <ClInclude Include="devices\DeviceAPOInfo.h" />
@@ -417,6 +421,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="devices\AbstractAPOInfo.cpp" />
+    <ClCompile Include="devices\AsioAPOInfo.cpp" />
+    <ClCompile Include="asio\AsioRegistration.cpp" />
+    <ClCompile Include="asio\WrapperRecord.cpp" />
     <ClCompile Include="engine\ConfigurationFileReader.cpp" />
     <ClCompile Include="devices\DeviceAPOInfo.cpp" />
     <ClCompile Include="devices\DeviceAPOInfo.Install.cpp" />

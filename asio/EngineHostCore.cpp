@@ -12,6 +12,9 @@
 
 #include "engine/FilterEngine.h"
 #include "services/logging/Logging.h"
+#include "services/registry/RegistryError.h"
+#include "services/registry/RegistryPaths.h"
+#include "services/registry/WindowsRegistry.h"
 
 namespace eapo::asio
 {
@@ -81,6 +84,30 @@ namespace eapo::asio
 			}
 		};
 
+		// What the device record reads back for channel counts and rate
+		// (AsioAPOInfo::factsKey): the last stream's shape, under HKCU so it
+		// needs no elevation. Best effort; a stream does not depend on it.
+		void publishFacts(const StreamFormat& format) noexcept
+		{
+			try
+			{
+				IRegistry& registry = systemRegistry();
+				const std::wstring key = std::wstring(USER_REGPATH) + L"\\ASIO\\" + format.deviceGuid;
+				registry.createKey(key);
+				registry.writeDWORDValue(key, L"SampleRate", static_cast<unsigned long>(format.sampleRate));
+				registry.writeDWORDValue(key, L"OutputChannels", format.channels[0]);
+				registry.writeDWORDValue(key, L"InputChannels", format.channels[1]);
+				registry.writeDWORDValue(key, L"Frames", format.frames);
+				registry.writeValue(key, L"DeviceName", format.deviceName);
+			}
+			catch (const RegistryError&)
+			{
+			}
+			catch (...)
+			{
+			}
+		}
+
 		bool buildLane(Lane& lane, const StreamFormat& format, Direction direction, const ServeOptions& options)
 		{
 			const uint32_t channels = format.channelCount(direction);
@@ -142,6 +169,8 @@ namespace eapo::asio
 			}
 
 			consumer.setState(RingState::Ready);
+			if (options.publishFacts)
+				publishFacts(format);
 			LogFStatic(L"ASIO host: serving %s at %.0f Hz, %u frames, out %u in %u",
 				format.deviceName, format.sampleRate, format.frames, format.channels[0], format.channels[1]);
 

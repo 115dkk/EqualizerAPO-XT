@@ -225,6 +225,10 @@ SOURCES += main.cpp\
 	FilterTableMimeData.cpp \
 	CustomStyle.cpp \
 	../devices/AbstractAPOInfo.cpp \
+	../devices/AsioAPOInfo.cpp \
+	../asio/AsioRegistration.cpp \
+	../services/registry/ClsidRegistration.cpp \
+	../asio/WrapperRecord.cpp \
 	../devices/VoicemeeterAPOInfo.cpp \
 	../vst/AbstractLibrary.cpp \
 	../vst/VST3PluginIIDs.cpp \
@@ -507,6 +511,10 @@ HEADERS  += \
 	FilterTableMimeData.h \
 	CustomStyle.h \
 	../devices/AbstractAPOInfo.h \
+	../devices/AsioAPOInfo.h \
+	../asio/AsioRegistration.h \
+	../asio/WrapperRecord.h \
+	../asio/StreamProcessor.h \
 	../devices/VoicemeeterAPOInfo.h \
 	../vst/AbstractLibrary.h \
 	../vst/VSTPluginLibrary.h \
