@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 
@@ -53,6 +54,7 @@ bool upmixerMode = false;
 bool surround41Mode = false;
 bool surround41CineOnlyMode = false;
 bool busInfoMismatchMode = false;
+bool toneGeneratorMode = false;
 std::atomic<int> upmixerComponentCount{0};
 std::atomic<int> upmixerProcessCount{0};
 std::atomic<unsigned long long> surround41AcceptedOutputArrangement{
@@ -510,6 +512,29 @@ public:
 		}
 		if (data.numInputs != 1 || data.numOutputs != 1 || data.inputs == nullptr || data.outputs == nullptr)
 			return kResultFalse;
+		if (toneGeneratorMode)
+		{
+			// ToneGenerator.vst3 mode: ignore the input and synthesize a tone
+			// whose amplitude follows the gain parameter - the deterministic
+			// stand-in for a plugin that plays its own calibration signal
+			// (the panel monitor's fixture). -26 dBFS: comfortably above the
+			// probe's audibility bar, gentle on a developer's speakers.
+			for (int32 sample = 0; sample < data.numSamples; ++sample)
+			{
+				const double value = state.gain * 0.05 * std::sin(
+					2.0 * 3.14159265358979323846 * 440.0
+					* static_cast<double>(tonePosition + sample) / setup.sampleRate);
+				for (int32 channel = 0; channel < 2; ++channel)
+				{
+					if (data.symbolicSampleSize == kSample64)
+						data.outputs[0].channelBuffers64[channel][sample] = value;
+					else
+						data.outputs[0].channelBuffers32[channel][sample] = static_cast<float>(value);
+				}
+			}
+			tonePosition += data.numSamples;
+			return kResultOk;
+		}
 		for (int32 channel = 0; channel < 2; ++channel)
 		{
 			if (data.symbolicSampleSize == kSample64)
@@ -575,6 +600,7 @@ private:
 	std::atomic<bool> processing{false};
 	ProcessSetup setup{};
 	PluginState state{};
+	long long tonePosition = 0;
 };
 
 /*
@@ -1196,6 +1222,7 @@ extern "C" __declspec(dllexport) bool InitDll()
 	upmixerMode = wcsstr(modulePath, L"Upmixer.vst3") != nullptr || busInfoMismatchMode;
 	surround41CineOnlyMode = wcsstr(modulePath, L"Surround41CineOnly.vst3") != nullptr;
 	surround41Mode = wcsstr(modulePath, L"Surround41.vst3") != nullptr || surround41CineOnlyMode;
+	toneGeneratorMode = wcsstr(modulePath, L"ToneGenerator.vst3") != nullptr;
 	upmixerProcessCount.store(0);
 	surround41AcceptedOutputArrangement.store(
 		static_cast<unsigned long long>(SpeakerArr::kStereo));
@@ -1221,6 +1248,7 @@ extern "C" __declspec(dllexport) bool ExitDll()
 	surround41Mode = false;
 	surround41CineOnlyMode = false;
 	busInfoMismatchMode = false;
+	toneGeneratorMode = false;
 	return true;
 }
 

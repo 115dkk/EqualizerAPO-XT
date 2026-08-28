@@ -48,6 +48,28 @@
 #   plugin's UI, so it stays a documented manual procedure instead of a
 #   hosted-runner step.
 #
+# THE PANEL MONITOR LAYER
+#   Round two, reported on the Open XTC RACE 1.1 release thread
+#   (gall.dcinside.com/mgallery/board/view/?id=speakers&no=522492): that
+#   plugin's calibration view generates pink noise inside its processor, and
+#   the Editor discarded every processed sample, so calibration was mute.
+#   The feed now has a monitor half (Editor/helpers/PanelFeedEngine +
+#   PanelMonitorGate): when the system mix has been silent long enough and
+#   the plugin still produces output - a self-generated signal by definition
+#   - the engine plays that output through the default render endpoint, and
+#   stops as soon as the plugin goes quiet.
+#
+#   Unlike the premise probes above, the two --monitor runs below are real
+#   discriminators for this layer, and they run end to end on the runner:
+#     3. --monitor ToneGenerator.vst3 --expect-live: the in-repo
+#        TestVst3Plugin in its tone-generator filename mode must open the
+#        gate, and a sidecar loopback capture must actually HEAR the tone on
+#        the Scream endpoint.
+#     4. --monitor Passthrough.vst3 --expect-static: the same binary in
+#        pass-through mode, fed silence, must never open the gate. The RACE
+#        bundle gets the same static check - a real XTC filter with its
+#        calibration UI untouched must stay mute.
+#
 # =============================================================================
 
 name: vst3-preview-probe
@@ -80,6 +102,11 @@ env:
   # was written against; a silent content swap on the link fails loudly here.
   XTC_DRIVE_ID: "1TTzpj6S0Cp9UI6IV4sa-CAS7_b2-aXgb"
   XTC_SHA256: "BCE895561641ACC0551BB1B2A5938CA4A5CE64D5D3DD01892A1ADCA991A145E4"
+  # The Open XTC RACE 1.1.0 windows installer from the same author
+  # (OpenXTC-RACE-1.1.0-Setup.exe, Inno Setup). Same rules: runtime fetch,
+  # pinned hash, test input only, never redistributed.
+  RACE_DRIVE_ID: "1UihsOv-92iIMOS9nsOzisf3JtB3aH9cA"
+  RACE_SHA256: "BE174F1E5133365DA4684741B21213138EAB8B037089E43253DA000D71C07AD3"
 
 jobs:
   probe:
@@ -148,9 +175,10 @@ jobs:
         run: |
           .\.github\scripts\Initialize-DepsEnvironment.ps1 -DepsPath "${{ github.workspace }}\deps"
 
-      # Only the engine libraries and the probe - no Qt, no APO DLL, no
-      # installer. The probe project itself is CPU-baseline (no
-      # EapoVariantArch), so it executes on any hosted runner.
+      # Only the engine libraries, the probe, and the in-repo fixture plugin -
+      # no Qt, no APO DLL, no installer. The probe project itself is
+      # CPU-baseline (no EapoVariantArch), so it executes on any hosted
+      # runner.
       - name: Build the probe
         shell: pwsh
         run: |
@@ -168,10 +196,24 @@ jobs:
           foreach ($project in @(
               "SubwooferRoutingCore\SubwooferRoutingCore.vcxproj",
               "Common.vcxproj",
+              "Tests\TestVst3Plugin\TestVst3Plugin.vcxproj",
               "Tests\VstPreviewProbe\VstPreviewProbe.vcxproj")) {
             msbuild $project @buildParams
             if ($LASTEXITCODE -ne 0) { throw "Build failed for $project" }
           }
+
+      # TestVst3Plugin selects its scenario by module filename; the two copies
+      # are the monitor discriminator's fixtures.
+      - name: Stage the monitor fixtures
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $built = "${{ github.workspace }}\Tests\TestVst3Plugin\x64\Release\TestVst3Plugin.vst3"
+          $fixtures = Join-Path $env:RUNNER_TEMP "monitor-fixtures"
+          New-Item -ItemType Directory -Force -Path $fixtures | Out-Null
+          Copy-Item $built (Join-Path $fixtures "ToneGenerator.vst3") -Force
+          Copy-Item $built (Join-Path $fixtures "Passthrough.vst3") -Force
+          "MONITOR_FIXTURES=$fixtures" >> $env:GITHUB_ENV
 
       - name: Load shared APO endpoint contract
         shell: pwsh
@@ -321,6 +363,68 @@ jobs:
           $probe = "${{ github.workspace }}\Tests\VstPreviewProbe\x64\Release\VstPreviewProbe.exe"
           & $probe --plugin "$env:XTC_BUNDLE" --seconds 2 --rate 48000
           if ($LASTEXITCODE -ne 0) { Write-Error "plugin probe failed ($LASTEXITCODE)"; exit 1 }
+
+      # The monitor discriminators: a self-generating plugin must become
+      # audible on the endpoint, a pass-through plugin must not. The live run
+      # needs the arm delay (4 s of endpoint silence) plus a stretch of
+      # rendering inside its window.
+      - name: Run the monitor probe (live)
+        shell: pwsh
+        run: |
+          $probe = "${{ github.workspace }}\Tests\VstPreviewProbe\x64\Release\VstPreviewProbe.exe"
+          & $probe --monitor "$env:MONITOR_FIXTURES\ToneGenerator.vst3" --expect-live --seconds 8
+          if ($LASTEXITCODE -ne 0) { Write-Error "monitor live probe failed ($LASTEXITCODE)"; exit 1 }
+
+      - name: Run the monitor probe (static)
+        shell: pwsh
+        run: |
+          $probe = "${{ github.workspace }}\Tests\VstPreviewProbe\x64\Release\VstPreviewProbe.exe"
+          & $probe --monitor "$env:MONITOR_FIXTURES\Passthrough.vst3" --expect-static --seconds 6
+          if ($LASTEXITCODE -ne 0) { Write-Error "monitor static probe failed ($LASTEXITCODE)"; exit 1 }
+
+      # The Open XTC RACE fixture: pinned download, silent install on the
+      # disposable runner (the payload lands in the standard VST3 directory,
+      # exactly the layout users get), then two checks against the real
+      # binary - the host-choreography premise, and the monitor's specificity
+      # (an XTC filter whose calibration UI nobody pressed must never open
+      # the gate).
+      - name: Fetch and install the Open XTC RACE fixture
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $setup = Join-Path $env:RUNNER_TEMP "OpenXTC-RACE-Setup.exe"
+          $url = "https://drive.usercontent.google.com/download?id=$env:RACE_DRIVE_ID&export=download&authuser=0"
+          Invoke-WebRequest -Uri $url -OutFile $setup
+
+          $bytes = [System.IO.File]::ReadAllBytes($setup)
+          $isExe = ($bytes.Length -ge 2 -and $bytes[0] -eq 0x4D -and $bytes[1] -eq 0x5A)
+          if (-not $isExe) {
+              $html = [System.Text.Encoding]::UTF8.GetString($bytes)
+              $uuid = [regex]::Match($html, 'name="uuid" value="([^"]+)"').Groups[1].Value
+              if (-not $uuid) { throw "Drive interstitial did not carry a confirm uuid" }
+              Invoke-WebRequest -Uri "$url&confirm=t&uuid=$uuid" -OutFile $setup
+          }
+
+          $hash = (Get-FileHash $setup -Algorithm SHA256).Hash
+          if ($hash -ne $env:RACE_SHA256) {
+              throw "RACE fixture hash mismatch: got $hash, expected $env:RACE_SHA256"
+          }
+
+          $process = Start-Process -FilePath $setup -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "RACE installer exited with $($process.ExitCode)" }
+
+          $bundle = Join-Path $env:CommonProgramFiles "VST3\Open XTC RACE.vst3"
+          if (-not (Test-Path $bundle)) { throw "RACE bundle not found at $bundle" }
+          "RACE_BUNDLE=$bundle" >> $env:GITHUB_ENV
+
+      - name: Run the RACE probes
+        shell: pwsh
+        run: |
+          $probe = "${{ github.workspace }}\Tests\VstPreviewProbe\x64\Release\VstPreviewProbe.exe"
+          & $probe --plugin "$env:RACE_BUNDLE" --seconds 2 --rate 48000
+          if ($LASTEXITCODE -ne 0) { Write-Error "RACE plugin probe failed ($LASTEXITCODE)"; exit 1 }
+          & $probe --monitor "$env:RACE_BUNDLE" --expect-static --seconds 6
+          if ($LASTEXITCODE -ne 0) { Write-Error "RACE monitor static probe failed ($LASTEXITCODE)"; exit 1 }
 
       # Deliberately NO upload-artifact step anywhere in this workflow: the
       # fixture and everything derived from it stays on the disposable runner.
