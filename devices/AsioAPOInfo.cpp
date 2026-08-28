@@ -49,12 +49,15 @@ std::wstring AsioAPOInfo::factsKey(const std::wstring& targetClsid)
 void AsioAPOInfo::loadState()
 {
 	installed = false;
+	currentSynchronous = false;
 	WrapperRecord record;
 	if (eapo::asio::AsioRegistration::wrapperRegistered(registry, target)
 		&& WrapperRecords::read(registry, wrapperClsidFor(target.clsid), record))
 	{
 		installed = input ? record.options.processInput : record.options.processOutput;
+		currentSynchronous = record.options.mode == eapo::asio::Mode::Sync;
 	}
+	selectedSynchronous = currentSynchronous;
 
 	channelCount = 0;
 	sampleRate = 0;
@@ -128,7 +131,7 @@ bool AsioAPOInfo::canBeUpgraded() const
 
 bool AsioAPOInfo::hasChanges() const
 {
-	return false;
+	return installed && selectedSynchronous != currentSynchronous;
 }
 
 bool AsioAPOInfo::isExperimental() const
@@ -183,6 +186,7 @@ void AsioAPOInfo::install()
 		record.options.processInput = true;
 	else
 		record.options.processOutput = true;
+	record.options.mode = selectedSynchronous ? eapo::asio::Mode::Sync : eapo::asio::Mode::Pipelined;
 	WrapperRecords::write(registry, record);
 
 	const std::wstring directory = installDirectory();
@@ -218,6 +222,8 @@ void AsioAPOInfo::uninstall()
 
 void AsioAPOInfo::reinstall()
 {
+	const bool synchronous = selectedSynchronous;
 	uninstall();
+	selectedSynchronous = synchronous;
 	install();
 }

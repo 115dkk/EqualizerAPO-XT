@@ -176,11 +176,38 @@ void MainWindow::updateDeviceFormatBadge(const shared_ptr<AbstractAPOInfo>& apoI
 		return;
 	}
 
-	AudioFormatProbe::Result r = AudioFormatProbe::probe(apoInfo->getDeviceGuid());
-
 	QString label;
 	QString severity = QStringLiteral("normal");
 	QString tooltip;
+
+	// An ASIO target is not an endpoint: the format probe cannot reach it.
+	// What is known is what the engine host published after the last stream.
+	if (apoInfo->getTransportLabel() == L"ASIO")
+	{
+		if (apoInfo->getSampleRate() > 0 && apoInfo->getChannelCount() > 0)
+		{
+			label = tr("ASIO · %0 Hz · %1 ch").arg(apoInfo->getSampleRate()).arg(apoInfo->getChannelCount());
+			tooltip = tr("The last ASIO stream on this interface ran at %0 Hz with %1 channels in this direction; "
+				"the engine host processes it in a separate process.")
+				.arg(apoInfo->getSampleRate()).arg(apoInfo->getChannelCount());
+		}
+		else
+		{
+			label = tr("ASIO · no stream yet");
+			tooltip = tr("No ASIO application has opened this interface through EqualizerAPO yet. "
+				"Pick \"%0 (EQ APO XT)\" as the ASIO driver in the application.")
+				.arg(QString::fromStdWString(apoInfo->getDeviceName()));
+		}
+		deviceFormatBadge->setText(label);
+		deviceFormatBadge->setToolTip(tooltip);
+		deviceFormatBadge->setProperty("severity", severity);
+		deviceFormatBadge->style()->unpolish(deviceFormatBadge);
+		deviceFormatBadge->style()->polish(deviceFormatBadge);
+		deviceFormatBadge->setVisible(true);
+		return;
+	}
+
+	AudioFormatProbe::Result r = AudioFormatProbe::probe(apoInfo->getDeviceGuid());
 	switch (r.status)
 	{
 	case AudioFormatProbe::Status::ActiveFloat32:
