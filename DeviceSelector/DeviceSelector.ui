@@ -169,6 +169,27 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
          </item>
         </layout>
        </widget>
+       <widget class="QWidget" name="asioPage">
+        <layout class="QVBoxLayout" name="asioLayout">
+         <item>
+          <widget class="QCheckBox" name="asioSyncCheckBox">
+           <property name="text">
+            <string>Process inside the buffer callback (no extra buffer of latency; a buffer the engine host answers too late passes through unprocessed)</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="asioModeLabel">
+           <property name="text">
+            <string>Unchecked, the previous buffer is played: one buffer of latency, every buffer processed. Applies to both directions of this driver.</string>
+           </property>
+           <property name="wordWrap">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
       </widget>
      </item>
     </layout>

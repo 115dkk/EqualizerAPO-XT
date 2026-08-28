@@ -2692,6 +2692,22 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <translation>EQ 활성 · 32비트 부동소수점</translation>
     </message>
     <message>
+        <source>ASIO · %0 Hz · %1 ch</source>
+        <translation>ASIO · %0 Hz · %1채널</translation>
+    </message>
+    <message>
+        <source>The last ASIO stream on this interface ran at %0 Hz with %1 channels in this direction; the engine host processes it in a separate process.</source>
+        <translation>이 인터페이스의 마지막 ASIO 스트림은 이 방향에서 %0 Hz, %1채널로 돌았습니다. 엔진 호스트가 별도 프로세스에서 처리합니다.</translation>
+    </message>
+    <message>
+        <source>ASIO · no stream yet</source>
+        <translation>ASIO · 아직 스트림 없음</translation>
+    </message>
+    <message>
+        <source>No ASIO application has opened this interface through EqualizerAPO yet. Pick &quot;%0 (EQ APO XT)&quot; as the ASIO driver in the application.</source>
+        <translation>아직 어떤 ASIO 애플리케이션도 EqualizerAPO를 거쳐 이 인터페이스를 열지 않았습니다. 애플리케이션에서 ASIO 드라이버로 &quot;%0 (EQ APO XT)&quot;을 고르세요.</translation>
+    </message>
+    <message>
         <location filename="../MainWindowParts/MainWindow.Device.cpp" line="189"/>
         <source>EqualizerAPO is processing this stream natively (IEEE_FLOAT 32-bit, %0 Hz, %1 ch).</source>
         <translation>EqualizerAPO가 이 스트림을 직접 처리하고 있습니다 (IEEE_FLOAT 32비트, %0 Hz, %1 ch).</translation>
