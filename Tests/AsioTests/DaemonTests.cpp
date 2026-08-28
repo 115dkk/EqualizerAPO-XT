@@ -123,6 +123,10 @@ namespace
 		options.configPath = configPath;
 		options.readyTimeoutMs = 20000;
 		options.mode = Mode::Sync;
+		// This test compares bytes, not timing: the automatic deadline (a
+		// quarter period) is what the probe gate measures, and a loaded box
+		// misses it through the plain thread host.
+		options.deadlineUs = 20000000;
 
 		Capture inproc = runStream(std::make_unique<eapo::asio::InProcProcessor>(), options, 64, 40, 2, 2);
 		Capture daemon = runStream(std::make_unique<DaemonProcessor>(std::make_unique<ThreadHostLink>()), options, 64, 40, 2, 2);
@@ -143,6 +147,7 @@ namespace
 		options.configPath = configPath;
 		options.processInput = false;
 		options.mode = Mode::Sync;
+		options.deadlineUs = 20000000;   // shape, not timing (see above)
 
 		Capture sync = runStream(std::make_unique<DaemonProcessor>(std::make_unique<ThreadHostLink>()), options, 32, 10, 0, 1);
 		options.mode = Mode::Pipelined;
