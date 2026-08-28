@@ -26,6 +26,7 @@
 #include <platform/windows/Win32Resource.h>
 #include <QDir>
 #include <QPropertyAnimation>
+#include <QScreen>
 #include <devices/AsioAPOInfo.h>
 #include <devices/VoicemeeterAPOInfo.h>
 #include "DeviceTestDialog.h"
@@ -182,6 +183,15 @@ void DeviceSelector::finishSetup()
 	ui.stackedWidget->setVisible(false);
 	adjustSize();
 
+	// adjustSize() settles on the tree's minimum, which opens the dialog too
+	// narrow to read the device names at a glance (reported after a clean
+	// install, where nothing has been resized yet). Open at a size the list
+	// reads comfortably at, as far as the screen allows.
+	QSize wanted = size().expandedTo(QSize(760, 640));
+	if (const QScreen* onScreen = screen())
+		wanted = wanted.boundedTo(onScreen->availableGeometry().size() - QSize(40, 80));
+	resize(wanted);
+
 	// workaround for Qt 6 to not initially have scrollbars despite correct dialog size
 	ui.deviceTreeWidget->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	QTimer::singleShot(0, [&] {ui.deviceTreeWidget->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded); });
@@ -240,6 +250,21 @@ void DeviceSelector::previewCheckDevice(int sectionRow, int deviceRow)
 	if (section == nullptr || deviceRow >= section->childCount())
 		return;
 	section->child(deviceRow)->setCheckState(0, Qt::Checked);
+}
+
+void DeviceSelector::previewRemoveBuffer()
+{
+	// The preview roster has no wrapper record behind its ASIO rows, so a
+	// click would be undone by the selection refresh that follows it. Pin
+	// the view state the way a real record's click leaves it.
+	ui.asioSyncCheckBox->setChecked(true);
+	showAsioWaitTime(true);
+}
+
+void DeviceSelector::showAsioWaitTime(bool shown)
+{
+	ui.asioWaitLabel->setVisible(shown);
+	ui.asioDeadlineComboBox->setVisible(shown);
 }
 
 void DeviceSelector::previewOpenTroubleshooting()
@@ -493,9 +518,9 @@ void DeviceSelector::onTroubleShootingOptionChanged()
 			else if (source == ui.asioHost32CheckBox)
 				asioInfo->setHost32(ui.asioHost32CheckBox->isChecked());
 		}
-		// The wait time only means something in the synchronous mode.
-		const bool waitApplies = ui.asioSyncCheckBox->isEnabled() && ui.asioSyncCheckBox->isChecked();
-		ui.asioDeadlineComboBox->setEnabled(waitApplies);
+		// The wait time is the buffer removal's own detail: it unfolds beside
+		// the checkbox while the buffer is removed and is gone otherwise.
+		showAsioWaitTime(ui.asioSyncCheckBox->isEnabled() && ui.asioSyncCheckBox->isChecked());
 
 		updateList(item);
 	}
@@ -593,7 +618,7 @@ void DeviceSelector::updateButtons()
 	ui.asioSyncCheckBox->setEnabled(asioEnabled);
 	ui.asioSyncCheckBox->setChecked(asioSynchronous);
 	ui.asioDeadlineComboBox->setCurrentIndex(deadlineIndexForPercent(asioDeadlinePercent));
-	ui.asioDeadlineComboBox->setEnabled(asioEnabled && asioSynchronous);
+	showAsioWaitTime(asioEnabled && asioSynchronous);
 	ui.asioAutoStartCheckBox->setEnabled(asioEnabled);
 	ui.asioAutoStartCheckBox->setChecked(asioAutoStart);
 	ui.asioHost32CheckBox->setEnabled(asioEnabled && asioCanHost32);

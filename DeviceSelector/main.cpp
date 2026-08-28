@@ -102,6 +102,10 @@ int runSkinShots(QApplication& app)
 			DeviceSkinPainter::setActiveTheme(skinId, dark);
 
 			DeviceSelector dialog(PreviewDevices::playback(), PreviewDevices::capture());
+			// The size the dialog would open at, before the harness pins its
+			// own: the one number the "opens too narrow" report is about.
+			if (skinId == skins.first() && !dark)
+				fprintf(stderr, "DeviceSelector shots: initial size %dx%d\n", dialog.width(), dialog.height());
 			dialog.resize(760, 700);
 			dialog.show();
 			QApplication::processEvents();
@@ -133,6 +137,10 @@ int runSkinShots(QApplication& app)
 			dialog.previewSelectDevice(0, 4);
 			QApplication::processEvents();
 			save(QStringLiteral("asio"));
+			// Buffer removal ticked: the wait time unfolds beside it.
+			dialog.previewRemoveBuffer();
+			QApplication::processEvents();
+			save(QStringLiteral("asiowait"));
 		}
 	}
 

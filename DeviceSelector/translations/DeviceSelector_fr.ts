@@ -213,24 +213,28 @@ ATTENTION: Certains pilotes de carte son peuvent produire des sons indésirables
         <translation>Supprimer le tampon</translation>
     </message>
     <message>
+        <source>Wait time:</source>
+        <translation>Temps d'attente :</translation>
+    </message>
+    <message>
+        <source>Sets how long to wait for processing once the buffer is removed. The longer the wait, the less sound without the EQ, but the more latency.</source>
+        <translation>Définit combien de temps attendre le traitement une fois le tampon supprimé. Plus l'attente est longue, moins il y a de son sans EQ, mais plus la latence augmente.</translation>
+    </message>
+    <message>
+        <source>Up to a quarter of the buffer</source>
+        <translation>Jusqu'à un quart du tampon</translation>
+    </message>
+    <message>
+        <source>Up to half of the buffer</source>
+        <translation>Jusqu'à la moitié du tampon</translation>
+    </message>
+    <message>
+        <source>Up to three quarters of the buffer</source>
+        <translation>Jusqu'aux trois quarts du tampon</translation>
+    </message>
+    <message>
         <source>Removing the buffer reduces latency. But when processing occasionally does not finish in time, sound without the EQ applied may come out for a moment. Applies to both input and output.</source>
         <translation>Supprimer le tampon réduit la latence. Mais si le traitement ne se termine parfois pas à temps, un son sans EQ peut être émis un instant. S'applique à l'entrée et à la sortie.</translation>
-    </message>
-    <message>
-        <source>How long a buffer waits for the engine host once the buffer is removed. A buffer that waits longer comes out without the EQ applied.</source>
-        <translation>Durée pendant laquelle un tampon attend l'hôte du moteur une fois le tampon supprimé. Un tampon qui attend plus longtemps est émis sans EQ.</translation>
-    </message>
-    <message>
-        <source>Wait a quarter of the buffer for the host (default)</source>
-        <translation>Attendre l'hôte un quart du tampon (par défaut)</translation>
-    </message>
-    <message>
-        <source>Wait half of the buffer for the host</source>
-        <translation>Attendre l'hôte la moitié du tampon</translation>
-    </message>
-    <message>
-        <source>Wait three quarters of the buffer for the host</source>
-        <translation>Attendre l'hôte les trois quarts du tampon</translation>
     </message>
     <message>
         <source>Start the engine host automatically at boot</source>
