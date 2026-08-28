@@ -24,7 +24,6 @@ BeforeAll {
     # list itself as stale - which is the behaviour two of the cases below check.
     $script:KnownOmissions = @(
         'stdafx.cpp'
-        'services/registry/ClsidRegistration.cpp'
     )
 
     function New-FixtureRepo {
