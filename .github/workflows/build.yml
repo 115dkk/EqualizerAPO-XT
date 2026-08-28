@@ -840,14 +840,50 @@ jobs:
     - name: Install Pester 5
       shell: pwsh
       run: |
-        # Some runner images come up without PSGallery registered (seen
-        # 2026-07-09: "No repository with the name 'PSGallery' was found");
-        # re-register the defaults before trusting it.
-        if ($null -eq (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
-          Register-PSRepository -Default
+        # Fetching the pinned Pester from the PowerShell Gallery has failed on
+        # the runner twice for reasons on the runner's side, never the same
+        # one: an image without PSGallery registered (2026-07-09, "No
+        # repository with the name 'PSGallery' was found") and PowerShellGet's
+        # nuget.exe call breaking (2026-08-29, "Missing option value for:
+        # '-source'", then "Unable to resolve package source"). So: prefer
+        # PSResourceGet, which talks to the gallery without nuget.exe, fall
+        # back to PowerShellGet with the repository re-registered, and give
+        # the pair three rounds before failing the gate.
+        $ErrorActionPreference = "Stop"
+        $version = "5.6.1"
+        $installers = @(
+          @{ Name = "PSResourceGet"; Run = {
+            Install-PSResource Pester -Version $version -Repository PSGallery -TrustRepository -Scope CurrentUser -Reinstall -Quiet -ErrorAction Stop
+          } },
+          @{ Name = "PowerShellGet"; Run = {
+            if ($null -eq (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
+              Register-PSRepository -Default
+            }
+            Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+            Install-Module Pester -RequiredVersion $version -Force -SkipPublisherCheck -Scope CurrentUser -ErrorAction Stop
+          } }
+        )
+        $installed = $false
+        for ($round = 1; $round -le 3 -and -not $installed; $round++) {
+          foreach ($installer in $installers) {
+            if ($installer.Name -eq "PSResourceGet" -and -not (Get-Command Install-PSResource -ErrorAction SilentlyContinue)) {
+              continue
+            }
+            try {
+              & $installer.Run
+              if (Get-Module -ListAvailable Pester | Where-Object { $_.Version -eq [version]$version }) {
+                Write-Host "Pester $version installed via $($installer.Name) (round $round)"
+                $installed = $true
+                break
+              }
+              Write-Host "$($installer.Name) returned without installing Pester $version"
+            } catch {
+              Write-Host "$($installer.Name) failed (round $round): $($_.Exception.Message)"
+            }
+          }
+          if (-not $installed -and $round -lt 3) { Start-Sleep -Seconds 30 }
         }
-        Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
-        Install-Module Pester -RequiredVersion 5.6.1 -Force -SkipPublisherCheck -Scope CurrentUser
+        if (-not $installed) { throw "Pester $version could not be installed from the PowerShell Gallery" }
 
     - name: Run Bump-Version tests
       shell: pwsh
