@@ -122,6 +122,41 @@ function Get-DependencyDownloadSpec {
     return $downloads
 }
 
+function Get-SdkDownloadSpec {
+    <#
+    .SYNOPSIS
+        The source SDK zips that are downloaded (not cloned) and are the same
+        for every variant: today the Steinberg ASIO SDK.
+
+    .DESCRIPTION
+        Kept apart from Get-DependencyDownloadSpec because that list is
+        per-variant and its drift guard requires GitHub release URLs; the ASIO
+        SDK comes from Steinberg's own download host. The entries have the
+        same shape, so Invoke-DependencyDownload takes both lists. The zip
+        carries a top-level ASIOSDK\ folder, which is why the ASIO_SDK
+        property points one level below the destination.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [hashtable]$Manifest,
+        [Parameter(Mandatory)] [string]$DepsRoot
+    )
+
+    $shared = $Manifest.Shared
+    foreach ($field in 'AsioSdkAsset', 'AsioSdkUrl', 'AsioSdkSha256') {
+        if (-not $shared[$field]) { throw "simd-variants.psd1 Shared.$field is missing" }
+    }
+    return @(
+        @{
+            Repo        = 'steinberg/asiosdk'
+            Asset       = $shared.AsioSdkAsset
+            Url         = $shared.AsioSdkUrl
+            Sha256      = $shared.AsioSdkSha256
+            Destination = Join-Path $DepsRoot 'asiosdk'
+        }
+    )
+}
+
 function Invoke-DependencyFetch {
     # Internal: single network fetch, kept separate so tests can mock the
     # network away. Same curl invocation both consumers used inline.
@@ -415,4 +450,4 @@ function Install-QtSdk {
     return $qtRoot
 }
 
-Export-ModuleMember -Function Get-SimdVariantEntry, Get-DependencyDownloadSpec, Invoke-DependencyDownload, Build-VcpkgDependencies, Install-QtSdk
+Export-ModuleMember -Function Get-SimdVariantEntry, Get-DependencyDownloadSpec, Get-SdkDownloadSpec, Invoke-DependencyDownload, Build-VcpkgDependencies, Install-QtSdk

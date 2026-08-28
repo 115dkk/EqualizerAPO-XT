@@ -130,6 +130,7 @@ Describe "Provisioning.psm1" {
             $exported | Should -Be @(
                 'Build-VcpkgDependencies',
                 'Get-DependencyDownloadSpec',
+                'Get-SdkDownloadSpec',
                 'Get-SimdVariantEntry',
                 'Install-QtSdk',
                 'Invoke-DependencyDownload'
@@ -146,6 +147,25 @@ Describe "Provisioning.psm1" {
         It "throws the historical message for an unknown variant" {
             { Get-SimdVariantEntry -Manifest $script:RepoManifest -Platform 'x64' -Simd 'mmx' } |
                 Should -Throw "No asset mapping for Platform=x64, Variant=mmx"
+        }
+    }
+
+    Context "Get-SdkDownloadSpec against the repo manifest" {
+        It "pins the ASIO SDK zip by URL and SHA-256 under deps/asiosdk" {
+            $deps = Join-Path (New-TempDir) 'deps'
+            $sdks = @(Get-SdkDownloadSpec -Manifest $script:RepoManifest -DepsRoot $deps)
+            $sdks.Count | Should -Be 1
+            $sdks[0].Repo | Should -Be 'steinberg/asiosdk'
+            $sdks[0].Asset | Should -Be $script:RepoManifest.Shared.AsioSdkAsset
+            $sdks[0].Url | Should -Be $script:RepoManifest.Shared.AsioSdkUrl
+            $sdks[0].Url | Should -Match '^https://download\.steinberg\.net/sdk_downloads/.+\.zip$'
+            $sdks[0].Sha256 | Should -Match '^[0-9a-fA-F]{64}$'
+            $sdks[0].Destination | Should -Be (Join-Path $deps 'asiosdk')
+        }
+
+        It "refuses a manifest without the ASIO pin" {
+            $manifest = @{ Shared = @{ AsioSdkAsset = 'x.zip'; AsioSdkUrl = 'https://example/x.zip' } }
+            { Get-SdkDownloadSpec -Manifest $manifest -DepsRoot 'C:\deps' } | Should -Throw "*Shared.AsioSdkSha256*"
         }
     }
 

@@ -35,6 +35,35 @@ Describe "extracted build script decisions" {
             Should -Be "arm64-neon"
     }
 
+    It "runs the ASIO suite where the variant executes and lists the ASIO projects" {
+        $avx2 = & (Join-Path $PSScriptRoot "..\Build-Solution.ps1") `
+            -WorkspaceRoot $root -Platform x64 -SimdVariant avx2 -ArchFlag AdvancedVectorExtensions2 -PlanOnly
+        $avx2.RuntimeTests | Should -Contain "AsioTests"
+        $avx2.Projects | Should -Contain "EqualizerAPOAsio\EqualizerAPOAsio.vcxproj"
+        $avx2.Projects | Should -Contain "Tests\FakeAsioDriver\FakeAsioDriver.vcxproj"
+        $avx2.Projects | Should -Contain "Tests\AsioProbe\AsioProbe.vcxproj"
+    }
+
+    It "plans the ASIO probe gate over the fake driver with an in-process and a DLL shape" {
+        $plan = & (Join-Path $PSScriptRoot "..\Invoke-AsioProbeGate.ps1") -WorkspaceRoot $root -Platform x64 -PlanOnly
+        $plan.Probe | Should -Be (Join-Path $root "Tests\AsioProbe\x64\Release\AsioProbe.exe")
+        $plan.Config | Should -Be (Join-Path $root "Tests\AsioProbe\probe-config.txt")
+        @($plan.Runs | Where-Object { $_.Arguments -contains "inproc" }).Count | Should -BeGreaterThan 0
+        @($plan.Runs | Where-Object { $_.Arguments -contains "passthrough" }).Count | Should -BeGreaterThan 0
+        foreach ($run in $plan.Runs) {
+            if ($run.Arguments -contains "inproc") {
+                $run.Arguments | Should -Contain "--max-late" -Because "$($run.Name) must refuse late blocks"
+            }
+        }
+    }
+
+    It "builds only the two 32-bit ASIO DLLs for Win32" {
+        $plan = & (Join-Path $PSScriptRoot "..\Build-AsioWin32.ps1") -WorkspaceRoot $root -PlanOnly
+        $plan.Projects | Should -Be @("EqualizerAPOAsio\EqualizerAPOAsio.vcxproj", "Tests\FakeAsioDriver\FakeAsioDriver.vcxproj")
+        $plan.BuildParams | Should -Contain "/p:Platform=Win32"
+        $plan.Outputs | Should -Contain (Join-Path $root "EqualizerAPOAsio\Release\EqualizerAPOAsio.dll")
+    }
+
     It "keeps symbols and object files out of user artifacts" {
         $plan = & (Join-Path $PSScriptRoot "..\Package-Artifacts.ps1") `
             -WorkspaceRoot $root -Platform x64 -SimdVariant avx2 -PlanOnly
