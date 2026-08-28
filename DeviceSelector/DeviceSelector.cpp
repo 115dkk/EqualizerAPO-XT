@@ -529,12 +529,12 @@ void DeviceSelector::updateButtons()
 			hasOriginalAPOPostMix = deviceApoInfo->getOriginalAPOPostMix() != L"";
 			installState = deviceApoInfo->getSelectedInstallState();
 		}
+		// Keyed on the transport label, not the class, so the preview roster
+		// (plain preview records marked ASIO) shows the page in the gallery.
+		asioSelected = apoInfo->getTransportLabel() == L"ASIO";
 		const AsioAPOInfo* asioInfo = dynamic_cast<const AsioAPOInfo*>(apoInfo.get());
 		if (asioInfo != nullptr)
-		{
-			asioSelected = true;
 			asioSynchronous = asioInfo->isSynchronous();
-		}
 	}
 
 	ui.preMixLabel->setEnabled(enable);
