@@ -29,8 +29,12 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   buffer of latency, reported to the host), which on a Topping USB Audio
   Device at 64 frames processed every one of 450,005 buffers in ten minutes,
   all but three round trips under 100 us and the worst 2.5 ms outlier
-  absorbed by that buffer; a synchronous mode without the extra buffer is
-  available per device in the registry. Verified on CI by a fake ASIO driver and a probe
+  absorbed by that buffer; a synchronous mode without the extra buffer is a
+  checkbox in the Device Selector's troubleshooting panel, with how long a
+  buffer waits for the host (a quarter of the buffer, half, three quarters).
+  The same panel has two options that are off by default: start the engine
+  host at boot, and 32-bit host support (the entry for 32-bit applications,
+  no longer registered unasked). Verified on CI by a fake ASIO driver and a probe
   that hashes what reached the "hardware" against the engine's direct output,
   through the real host process and the real DLLs, plus 500 unit checks on
   the wrapper, the ring and the device records ([#310](https://github.com/115dkk/EqualizerAPO-XT/issues/310),

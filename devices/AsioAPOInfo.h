@@ -68,12 +68,30 @@ public:
 	bool isSynchronous() const {return selectedSynchronous;}
 	void setSynchronous(bool synchronous) {selectedSynchronous = synchronous;}
 
+	// How much of the buffer period a synchronous buffer waits for the host
+	// before it passes through: 25 (the default), 50 or 75.
+	unsigned getDeadlinePercent() const {return selectedDeadlinePercent;}
+	void setDeadlinePercent(unsigned percent) {selectedDeadlinePercent = percent;}
+
+	// Start the engine host at boot: one Run value shared by every target,
+	// kept while any installed target asks for it. Off by default.
+	bool isAutoStart() const {return selectedAutoStart;}
+	void setAutoStart(bool autoStart) {selectedAutoStart = autoStart;}
+
+	// Register the entry for 32-bit hosts too. Off by default, and not
+	// possible without the x86 wrapper beside the 64-bit one.
+	bool isHost32() const {return selectedHost32;}
+	void setHost32(bool host32) {selectedHost32 = host32;}
+	bool canHost32() const;
+
 	// Where the engine host publishes what it saw for a target.
 	static std::wstring factsKey(const std::wstring& targetClsid);
 
 private:
 	void loadState();
+	void refreshAutoStart();
 	std::wstring installDirectory() const;
+	std::wstring wrapper32Path() const;
 
 	eapo::asio::AsioTarget target;
 	bool input;
@@ -81,6 +99,12 @@ private:
 	bool installed = false;
 	bool currentSynchronous = false;
 	bool selectedSynchronous = false;
+	unsigned currentDeadlinePercent = 25;
+	unsigned selectedDeadlinePercent = 25;
+	bool currentAutoStart = false;
+	bool selectedAutoStart = false;
+	bool currentHost32 = false;
+	bool selectedHost32 = false;
 	unsigned channelCount = 0;
 	unsigned sampleRate = 0;
 };

@@ -195,6 +195,62 @@ namespace
 		out->uninstall();
 	}
 
+	void testBootAndHost32Options()
+	{
+		test::FakeRegistry registry;
+		seedTargets(registry);
+		std::vector<std::shared_ptr<AbstractAPOInfo>> playback;
+		AsioAPOInfo::appendInfos(playback, false, registry);
+		AsioAPOInfo* topping = nullptr;
+		AsioAPOInfo* minidsp = nullptr;
+		for (const std::shared_ptr<AbstractAPOInfo>& info : playback)
+		{
+			AsioAPOInfo* record = static_cast<AsioAPOInfo*>(info.get());
+			if (record->getDeviceGuid() == toppingClsid)
+				topping = record;
+			else if (record->getDeviceGuid() == minidspClsid)
+				minidsp = record;
+		}
+		harness.require(topping != nullptr && minidsp != nullptr, "both playback records exist");
+		harness.expectFalse(topping->isAutoStart(), "start at boot is off by default");
+		harness.expectFalse(topping->isHost32(), "32-bit host support is off by default");
+		harness.expectEqual(topping->getDeadlinePercent(), 25u, "the wait defaults to a quarter of the buffer");
+		harness.expectFalse(topping->canHost32(), "no x86 wrapper file beside this test: 32-bit support unavailable");
+
+		topping->install();
+		harness.expectFalse(AsioRegistration::autoStartRegistered(registry), "installing without the option writes no Run value");
+		topping->setAutoStart(true);
+		harness.expectTrue(topping->hasChanges(), "turning the option on is a change on an installed record");
+		topping->reinstall();
+		harness.expectTrue(AsioRegistration::autoStartRegistered(registry), "the Run value appears");
+		harness.expect(registry.readValue(AsioRegistration::autoStartKey(), AsioRegistration::autoStartValueName())
+			== L"\"C:\\Program Files\\EqualizerAPO\\EqualizerAPOHost.exe\" --resident", "the Run value starts the host resident");
+		harness.expect(topping->isAutoStart() && !topping->hasChanges(), "applied: the option reads back, no change pending");
+
+		minidsp->setAutoStart(true);
+		minidsp->install();
+		topping->setAutoStart(false);
+		topping->reinstall();
+		harness.expectTrue(AsioRegistration::autoStartRegistered(registry), "the value stays while another target asks for it");
+		minidsp->uninstall();
+		harness.expectFalse(AsioRegistration::autoStartRegistered(registry), "the last target's uninstall removes it");
+
+		topping->setDeadlinePercent(75);
+		topping->setHost32(true);
+		harness.expectTrue(topping->hasChanges(), "the wait share and 32-bit support are changes too");
+		topping->reinstall();
+		eapo::asio::WrapperRecord record;
+		harness.require(eapo::asio::WrapperRecords::read(registry, topping->getWrapperClsid(), record), "the record exists");
+		harness.expectEqual(record.options.deadlinePercent, 75u, "the wait share is in the record");
+		harness.expectTrue(record.register32, "32-bit support is in the record");
+		harness.expectFalse(registry.keyExists(AsioRegistration::classesClsidRoot(true) + L"\\" + topping->getWrapperClsid()),
+			"without the x86 file the 32-bit view still stays empty");
+		harness.expectEqual(topping->getDeadlinePercent(), 75u, "the wait share reads back");
+		harness.expectFalse(topping->hasChanges(), "applied");
+		topping->uninstall();
+		harness.expectFalse(eapo::asio::WrapperRecords::read(registry, topping->getWrapperClsid(), record), "the record goes with the last direction");
+	}
+
 	void testFactsFeedTheRecord()
 	{
 		test::FakeRegistry registry;
@@ -231,6 +287,7 @@ int runDeviceRecordTests()
 	testEnumerationAndDerivedIds();
 	testRegisterAndUnregisterBothViews();
 	testRecordsShareOneWrapperRecord();
+	testBootAndHost32Options();
 	testFactsFeedTheRecord();
 	harness.report();
 	return 0;

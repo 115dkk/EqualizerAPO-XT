@@ -61,7 +61,7 @@ namespace eapo::asio
 		format_ = format;
 		mode_ = options.mode;
 		const double periodUs = format.sampleRate > 0.0 ? static_cast<double>(format.frames) * 1000000.0 / format.sampleRate : 0.0;
-		deadlineUs_ = options.deadlineUs != 0 ? options.deadlineUs : static_cast<uint32_t>(periodUs / 4.0);
+		deadlineUs_ = syncDeadlineUs(format, options);
 		hangBoundUs_ = static_cast<uint32_t>(periodUs * 8.0);
 		if (hangBoundUs_ < 20000)
 			hangBoundUs_ = 20000;

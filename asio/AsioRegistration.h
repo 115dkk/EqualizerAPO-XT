@@ -58,5 +58,13 @@ namespace eapo::asio
 		// Removes what registerWrapper wrote, in both views, ignoring what is
 		// already absent.
 		void unregisterWrapper(IRegistry& registry, const AsioTarget& target);
+
+		// The engine host at boot: one Run value for the machine, present
+		// while any target asks for it. The host is one per session, so one
+		// value serves every target; it starts the host resident.
+		std::wstring autoStartKey();
+		std::wstring autoStartValueName();
+		bool autoStartRegistered(const IRegistry& registry);
+		void setAutoStart(IRegistry& registry, const std::wstring& hostExePath, bool wanted);
 	}
 }

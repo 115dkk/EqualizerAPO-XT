@@ -35,6 +35,21 @@
 #include "SkinButton.h"
 #include "DeviceSelector.h"
 
+namespace
+{
+	// The wait-time combo's rows against the share of the buffer period
+	// the record stores (25, 50, 75).
+	unsigned deadlinePercentForIndex(int index)
+	{
+		return index == 1 ? 50u : (index == 2 ? 75u : 25u);
+	}
+
+	int deadlineIndexForPercent(unsigned percent)
+	{
+		return percent == 50 ? 1 : (percent == 75 ? 2 : 0);
+	}
+}
+
 DeviceSelector::DeviceSelector(QWidget* parent)
 	: QDialog(parent)
 {
@@ -156,6 +171,9 @@ void DeviceSelector::finishSetup()
 	connect(ui.allowSilentBufferCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
 	connect(ui.autoCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
 	connect(ui.asioSyncCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
+	connect(ui.asioDeadlineComboBox, QOverload<int>::of(&QComboBox::activated), this, &DeviceSelector::onTroubleShootingOptionChanged);
+	connect(ui.asioAutoStartCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
+	connect(ui.asioHost32CheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
 
 	updateButtons();
 
@@ -463,8 +481,22 @@ void DeviceSelector::onTroubleShootingOptionChanged()
 				deviceInfo->getSelectedInstallState().autoAdjust = ui.autoCheckBox->isChecked();
 		}
 		AsioAPOInfo* asioInfo = dynamic_cast<AsioAPOInfo*>(info.get());
-		if (asioInfo != nullptr && QObject::sender() == ui.asioSyncCheckBox)
-			asioInfo->setSynchronous(ui.asioSyncCheckBox->isChecked());
+		if (asioInfo != nullptr)
+		{
+			QObject* const source = QObject::sender();
+			if (source == ui.asioSyncCheckBox)
+				asioInfo->setSynchronous(ui.asioSyncCheckBox->isChecked());
+			else if (source == ui.asioDeadlineComboBox)
+				asioInfo->setDeadlinePercent(deadlinePercentForIndex(ui.asioDeadlineComboBox->currentIndex()));
+			else if (source == ui.asioAutoStartCheckBox)
+				asioInfo->setAutoStart(ui.asioAutoStartCheckBox->isChecked());
+			else if (source == ui.asioHost32CheckBox)
+				asioInfo->setHost32(ui.asioHost32CheckBox->isChecked());
+		}
+		// The wait time only means something in the synchronous mode.
+		const bool waitApplies = ui.asioSyncCheckBox->isEnabled() && ui.asioSyncCheckBox->isChecked();
+		ui.asioDeadlineLabel->setEnabled(waitApplies);
+		ui.asioDeadlineComboBox->setEnabled(waitApplies);
 
 		updateList(item);
 	}
@@ -514,6 +546,10 @@ void DeviceSelector::updateButtons()
 	bool hasOriginalAPOPostMix = true;
 	bool asioSelected = false;
 	bool asioSynchronous = false;
+	unsigned asioDeadlinePercent = 25;
+	bool asioAutoStart = false;
+	bool asioHost32 = false;
+	bool asioCanHost32 = true;   // the preview roster has the 32-bit wrapper
 	DeviceAPOInfo::InstallState installState;
 	if (noGroupsSelected && list.size() == 1)
 	{
@@ -534,7 +570,13 @@ void DeviceSelector::updateButtons()
 		asioSelected = apoInfo->getTransportLabel() == L"ASIO";
 		const AsioAPOInfo* asioInfo = dynamic_cast<const AsioAPOInfo*>(apoInfo.get());
 		if (asioInfo != nullptr)
+		{
 			asioSynchronous = asioInfo->isSynchronous();
+			asioDeadlinePercent = asioInfo->getDeadlinePercent();
+			asioAutoStart = asioInfo->isAutoStart();
+			asioHost32 = asioInfo->isHost32();
+			asioCanHost32 = asioInfo->canHost32();
+		}
 	}
 
 	ui.preMixLabel->setEnabled(enable);
@@ -546,10 +588,18 @@ void DeviceSelector::updateButtons()
 	ui.installModeComboBox->setEnabled(enable);
 	ui.allowSilentBufferCheckBox->setEnabled(enable);
 	// Page 0: nothing to say. Page 1: an endpoint's APO chain. Page 2: an
-	// ASIO target's one option.
+	// ASIO target's options.
 	ui.stackedWidget->setCurrentIndex(!enable ? 0 : (asioSelected ? 2 : 1));
-	ui.asioSyncCheckBox->setEnabled(enable && asioSelected);
+	const bool asioEnabled = enable && asioSelected;
+	ui.asioSyncCheckBox->setEnabled(asioEnabled);
 	ui.asioSyncCheckBox->setChecked(asioSynchronous);
+	ui.asioDeadlineComboBox->setCurrentIndex(deadlineIndexForPercent(asioDeadlinePercent));
+	ui.asioDeadlineLabel->setEnabled(asioEnabled && asioSynchronous);
+	ui.asioDeadlineComboBox->setEnabled(asioEnabled && asioSynchronous);
+	ui.asioAutoStartCheckBox->setEnabled(asioEnabled);
+	ui.asioAutoStartCheckBox->setChecked(asioAutoStart);
+	ui.asioHost32CheckBox->setEnabled(asioEnabled && asioCanHost32);
+	ui.asioHost32CheckBox->setChecked(asioHost32 && asioCanHost32);
 
 	ui.installPreMixCheckBox->setChecked(installState.installPreMix);
 	ui.installPostMixCheckBox->setChecked(installState.installPostMix);
