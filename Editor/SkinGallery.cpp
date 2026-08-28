@@ -2824,7 +2824,7 @@ int SkinGallery::runRoutingEditTest()
 		return ok;
 	};
 	const auto lineText = [](QScrollArea& scrollArea, int row) {
-		FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
+		const FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
 		return table != nullptr && row < table->documentItems().size()
 			? table->documentItems().at(row)->text.trimmed() : QString();
 	};
