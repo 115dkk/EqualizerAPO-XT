@@ -1,5 +1,5 @@
 /*
-	This file is part of EqualizerAPO-XT.
+	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
 	A minimal, self-contained VST 2.4 plugin built only against the project's
 	vendored VST2 ABI header (vst/aeffectx.h). It exists so VstHostTests
