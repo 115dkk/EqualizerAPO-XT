@@ -2,6 +2,7 @@
 	This file is part of EqualizerAPO-XT.
 */
 
+#include "stdafx.h"
 #include "asio/WrapperRecord.h"
 
 #include "services/registry/RegistryPaths.h"

@@ -10,9 +10,10 @@ class PreviewAPOInfo : public AbstractAPOInfo
 {
 public:
 	PreviewAPOInfo(const std::wstring& connection, const std::wstring& device,
-		bool input, bool installed, bool experimental, bool defaultDev, bool unplugged)
+		bool input, bool installed, bool experimental, bool defaultDev, bool unplugged,
+		const std::wstring& transport = std::wstring())
 		: connection(connection), device(device), input(input), installed(installed),
-		experimental(experimental), defaultDev(defaultDev), unplugged(unplugged)
+		experimental(experimental), defaultDev(defaultDev), unplugged(unplugged), transport(transport)
 	{
 	}
 
@@ -32,6 +33,7 @@ public:
 	bool isDefaultDevice() const override { return defaultDev; }
 	bool isDisabled() const override { return false; }
 	bool isUnplugged() const override { return unplugged; }
+	std::wstring getTransportLabel() const override { return transport; }
 	void install() override {}
 	void uninstall() override {}
 	void reinstall() override {}
@@ -44,12 +46,14 @@ private:
 	bool experimental;
 	bool defaultDev;
 	bool unplugged;
+	std::wstring transport;
 };
 
 std::shared_ptr<AbstractAPOInfo> make(const std::wstring& connection, const std::wstring& device,
-	bool input, bool installed, bool experimental, bool defaultDev, bool unplugged)
+	bool input, bool installed, bool experimental, bool defaultDev, bool unplugged,
+	const std::wstring& transport = std::wstring())
 {
-	return std::make_shared<PreviewAPOInfo>(connection, device, input, installed, experimental, defaultDev, unplugged);
+	return std::make_shared<PreviewAPOInfo>(connection, device, input, installed, experimental, defaultDev, unplugged, transport);
 }
 }
 
@@ -62,6 +66,10 @@ std::vector<std::shared_ptr<AbstractAPOInfo>> playback()
 		make(L"CABLE Input", L"VB-Audio Virtual Cable", false, false, false, false, false),
 		make(L"Headphones", L"Realtek(R) Audio", false, false, false, false, false),
 		make(L"Digital Output", L"NVIDIA High Definition Audio", false, false, false, false, true),
+		// ASIO targets sit in the same group as the endpoints, with the one
+		// word that tells them apart (docs/architecture/asio-host-study.md, 9).
+		make(L"ASIO", L"Topping USB Audio Device", false, true, false, false, false, L"ASIO"),
+		make(L"ASIO", L"miniDSP ASIO Driver", false, false, false, false, false, L"ASIO"),
 	};
 }
 
@@ -70,6 +78,7 @@ std::vector<std::shared_ptr<AbstractAPOInfo>> capture()
 	return {
 		make(L"Microphone", L"USB Audio Device", true, false, true, true, false),
 		make(L"CABLE Output", L"VB-Audio Virtual Cable", true, false, true, false, false),
+		make(L"ASIO", L"miniDSP ASIO Driver", true, false, false, false, false, L"ASIO"),
 	};
 }
 }

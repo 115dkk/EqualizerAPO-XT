@@ -640,6 +640,10 @@ QString DeviceSelector::getStateText(const std::shared_ptr<AbstractAPOInfo>& apo
 	else if (apoInfo->isDefaultDevice())
 		state += ", " + tr("Default device");
 
+	const std::wstring transport = apoInfo->getTransportLabel();
+	if (!transport.empty())
+		state += ", " + QString::fromStdWString(transport);
+
 	if (apoInfo->isDisabled())
 		state += ", " + tr("Disabled");
 	if (apoInfo->isUnplugged())

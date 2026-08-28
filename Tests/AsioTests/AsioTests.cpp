@@ -875,6 +875,7 @@ namespace
 
 int runStreamRingTests();
 int runDaemonTests();
+int runDeviceRecordTests();
 
 int main()
 {
@@ -884,6 +885,8 @@ int main()
 		if (runStreamRingTests() != 0)
 			return 1;
 		if (runDaemonTests() != 0)
+			return 1;
+		if (runDeviceRecordTests() != 0)
 			return 1;
 		return runAsioTests();
 	}
