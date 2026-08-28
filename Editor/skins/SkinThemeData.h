@@ -1,4 +1,10 @@
 /*
+	This file is part of EqualizerAPO-XT.
+	Copyright (C) 2026 EqualizerAPO-XT contributors
+	SPDX-License-Identifier: GPL-2.0-or-later
+*/
+
+/*
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
 	The data half of the skin system: id aliases, per-skin colour/metric token

@@ -14,6 +14,13 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The license texts are installed with the program.** `License.txt`
+  (GPL version 2 or later, the program's license) and `License-gpl-3.0.txt`
+  (GPL version 3, which the ASIO wrapper built on the Steinberg ASIO SDK is
+  distributed under) now sit in the installation folder; before this the
+  installer shipped neither. Fork-authored source files carry an
+  `SPDX-License-Identifier: GPL-2.0-or-later` notice, and the README states
+  which license covers what.
 - **ASIO applications get the same config.txt.** Every ASIO driver on the
   machine now appears in the Device Selector's playback and capture lists,
   marked `ASIO`; ticking it registers a `<driver> (EQ APO XT)` entry that a

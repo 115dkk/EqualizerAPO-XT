@@ -1,5 +1,7 @@
 /*
 	This file is part of EqualizerAPO-XT.
+	Copyright (C) 2026 EqualizerAPO-XT contributors
+	SPDX-License-Identifier: GPL-2.0-or-later
 
 	The install hook's registry role and the APO DLL's COM class tree, under
 	the fake registry (audit #250 A3/F002). These were the last

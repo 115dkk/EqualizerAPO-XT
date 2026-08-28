@@ -1,5 +1,7 @@
 /*
 	This file is part of EqualizerAPO-XT.
+	Copyright (C) 2026 EqualizerAPO-XT contributors
+	SPDX-License-Identifier: GPL-2.0-or-later
 
 	Round-trip and matching tests for the shared "Device:" config-line codec
 	(filters/DeviceCommand.{h,cpp}), which the engine factory and the

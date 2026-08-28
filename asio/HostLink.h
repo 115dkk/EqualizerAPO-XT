@@ -1,5 +1,7 @@
 /*
 	This file is part of EqualizerAPO-XT.
+	Copyright (C) 2026 EqualizerAPO-XT contributors
+	SPDX-License-Identifier: GPL-2.0-or-later
 
 	The port between the daemon adapter and whatever runs the engine host:
 	a real process reached through the control pipe (Win32HostLink), or a

@@ -1,5 +1,7 @@
 /*
 	This file is part of EqualizerAPO-XT.
+	Copyright (C) 2026 EqualizerAPO-XT contributors
+	SPDX-License-Identifier: GPL-2.0-or-later
 
 	The test-side host link: the same ring and the same serving loop as the
 	real host, over a heap region and unnamed events, with the engine host

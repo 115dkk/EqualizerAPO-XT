@@ -1,5 +1,7 @@
 /*
 	This file is part of EqualizerAPO-XT.
+	Copyright (C) 2026 EqualizerAPO-XT contributors
+	SPDX-License-Identifier: GPL-2.0-or-later
 
 	StreamRing: the realtime handoff between the ASIO wrapper (in a DAW) and
 	the engine host (docs/architecture/asio-host-study.md, section 10.2). One

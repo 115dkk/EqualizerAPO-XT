@@ -1,5 +1,7 @@
 /*
 	This file is part of EqualizerAPO-XT.
+	Copyright (C) 2026 EqualizerAPO-XT contributors
+	SPDX-License-Identifier: GPL-2.0-or-later
 
 	An in-memory IRegistry for the device tests. It exists so install(),
 	load() and uninstall() can be exercised without touching HKLM: those three

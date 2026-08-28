@@ -1,5 +1,7 @@
 /*
 	This file is part of EqualizerAPO-XT.
+	Copyright (C) 2026 EqualizerAPO-XT contributors
+	SPDX-License-Identifier: GPL-2.0-or-later
 
 	Direct2D implementation of the installer window declared in
 	InstallerWindow.h. One render function draws the InstallerUi::Model for
