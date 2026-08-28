@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main, SIMD_CI ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, feat/asio ]
   workflow_dispatch:
     inputs:
       regenerate_references:
@@ -243,6 +243,10 @@ jobs:
           -Simd "${{ matrix.simd_variant }}"
         Invoke-DependencyDownload -Downloads $downloads `
           -DownloadRoot "${{ github.workspace }}\deps\_downloads"
+        # The Steinberg ASIO SDK (source zip, GPLv3 dual-licensed), same pin
+        # for every variant; extracts to deps\asiosdk\ASIOSDK.
+        Invoke-DependencyDownload -Downloads (Get-SdkDownloadSpec -Manifest $manifest -DepsRoot "${{ github.workspace }}\deps") `
+          -DownloadRoot "${{ github.workspace }}\deps\_downloads"
 
     # The vcpkg FFTW/libsndfile build and the muparserx /arch rebuild live in
     # .github/scripts/Provisioning.psm1, shared with setup-build.ps1 (TD015).
@@ -338,7 +342,29 @@ jobs:
           -SimdVariant "${{ matrix.simd_variant }}" `
           -CanExecute:("${{ matrix.can_execute }}" -eq "true")
 
+    # ASIO probe gate (docs/architecture/asio-host-study.md, section 10.3):
+    # the DAW stand-in runs the wrapper over the fake driver and the output
+    # that reached the "hardware" must hash exactly like the engine's direct
+    # output, first period included (the readiness barrier). Two shapes:
+    # the in-process engine adapter with the wrapper linked in, and the
+    # shipped wrapper DLL over the fake driver DLL in passthrough (which
+    # must be an identity). Blocking wherever the variant can execute.
+    - name: Run ASIO probe
+      if: matrix.can_execute == true
+      timeout-minutes: 5
+      shell: pwsh
+      run: |
+        & .\.github\scripts\Invoke-AsioProbeGate.ps1 `
+          -WorkspaceRoot "${{ github.workspace }}" `
+          -Platform "${{ matrix.platform }}"
 
+    # 32-bit DAWs load a 32-bit driver DLL, so the wrapper and the fake driver
+    # must keep building for Win32. One leg is enough; the DLLs carry no SIMD.
+    - name: Build 32-bit ASIO wrapper
+      if: matrix.simd_variant == 'avx2'
+      shell: pwsh
+      run: |
+        & .\.github\scripts\Build-AsioWin32.ps1 -WorkspaceRoot "${{ github.workspace }}"
 
     - name: Run audio regression tests
       # AVX-512 and AVX10.1 binaries cannot be executed on GitHub-hosted
@@ -735,6 +761,8 @@ jobs:
           -Platform "x64" `
           -Simd "avx2"
         Invoke-DependencyDownload -Downloads $downloads `
+          -DownloadRoot "${{ github.workspace }}\deps\_downloads"
+        Invoke-DependencyDownload -Downloads (Get-SdkDownloadSpec -Manifest $manifest -DepsRoot "${{ github.workspace }}\deps") `
           -DownloadRoot "${{ github.workspace }}\deps\_downloads"
 
     - name: Download TCLAP

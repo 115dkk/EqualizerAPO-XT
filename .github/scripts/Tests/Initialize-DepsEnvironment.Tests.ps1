@@ -33,6 +33,7 @@ Describe "Initialize-DepsEnvironment.ps1 planning" {
         $plan.TCLAP_ROOT | Should -Be "$deps\tclap"
         $plan.VST3_SDK | Should -Be "$deps\vst3sdk"
         $plan.HIGHWAY_INCLUDE | Should -Be "$deps\highway"
+        $plan.ASIO_SDK | Should -Be "$deps\asiosdk\ASIOSDK"
         $plan.VELOPACK_INCLUDE | Should -Be "$deps\velopack_libc\include"
         $plan.VELOPACK_LIB | Should -Be "$deps\velopack_libc\lib"
     }

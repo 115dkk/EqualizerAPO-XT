@@ -45,6 +45,8 @@ $environment = [ordered]@{
     VST3_SDK           = "$DepsPath\vst3sdk"
     # Highway header root (contains hwy/) for the portable SIMD kernels.
     HIGHWAY_INCLUDE    = "$DepsPath\highway"
+    # Steinberg ASIO SDK root (contains common/ and host/) for the ASIO wrapper.
+    ASIO_SDK           = "$DepsPath\asiosdk\ASIOSDK"
     # Velopack runtime paths for the Editor's auto-update link.
     VELOPACK_INCLUDE   = "$DepsPath\velopack_libc\include"
     VELOPACK_LIB       = "$DepsPath\velopack_libc\lib"
