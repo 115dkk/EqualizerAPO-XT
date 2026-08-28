@@ -66,8 +66,9 @@ std::vector<std::shared_ptr<AbstractAPOInfo>> playback()
 		make(L"CABLE Input", L"VB-Audio Virtual Cable", false, false, false, false, false),
 		make(L"Headphones", L"Realtek(R) Audio", false, false, false, false, false),
 		make(L"Digital Output", L"NVIDIA High Definition Audio", false, false, false, false, true),
-		// ASIO targets sit in the same group as the endpoints, with the one
-		// word that tells them apart (docs/architecture/asio-host-study.md, 9).
+		// ASIO targets sit in the same group as the endpoints; the leading
+		// word is the one thing that tells them apart
+		// (docs/architecture/asio-host-study.md, 9).
 		make(L"ASIO", L"Topping USB Audio Device", false, true, false, false, false, L"ASIO"),
 		make(L"ASIO", L"miniDSP ASIO Driver", false, false, false, false, false, L"ASIO"),
 	};
