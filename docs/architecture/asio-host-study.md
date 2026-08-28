@@ -455,9 +455,11 @@ struct alignas(64) RingHeader
 
 **4단계는 `DeviceCatalog`를 새로 만들지 않았다.** `DeviceAPOInfo::loadAllInfos`가 이미 종류를 모으는 자리라 `AsioAPOInfo::appendInfos` 훅 하나로 충분했고, 삭제 검사로 보면 카탈로그 클래스는 이 함수의 이름을 바꾸는 것에 지나지 않았다. 재생 기록과 캡처 기록은 래퍼 기록 하나를 공유하며 방향 플래그로 설치 상태를 나눈다. 표식은 `AbstractAPOInfo::getTransportLabel()`의 한 단어다.
 
-**StreamFacts(C5)는 최소 형태로 들어갔다.** 호스트가 `Ready` 직후 `HKCU\SOFTWARE\EqualizerAPO\ASIO\{대상 CLSID}`에 샘플레이트·채널 수·프레임을 적고, 장치 기록이 그것을 읽는다. Editor 배지는 남은 일이다.
+**StreamFacts(C5)는 최소 형태로 들어갔다.** 호스트가 `Ready` 직후 `HKCU\SOFTWARE\EqualizerAPO\ASIO\{대상 CLSID}`에 샘플레이트·채널 수·프레임을 적고, 장치 기록과 Editor 배지가 그것을 읽는다.
 
-**남은 일:** Editor의 ASIO 스트림 배지, DeviceSelector의 동기 모드 컨트롤(지금은 레지스트리 값 `Mode`), 실제 DAW 여러 종에서의 구동, ARM64 기기에서 x64 DAW가 읽을 x64 래퍼 항목.
+**Editor 배지와 DeviceSelector의 동기 모드 컨트롤**은 같은 브랜치에 들어갔다. 배지는 호스트가 게시한 사실(레이트·채널 수)을 읽고, 컨트롤은 문제 해결 패널의 세 번째 페이지에 체크박스 하나로 있으며 설치된 기록에서 값을 바꾸면 재설치로 적용된다.
+
+**남은 일:** 실제 DAW 여러 종에서의 구동, ARM64 기기에서 x64 DAW가 읽을 x64 래퍼 항목.
 
 ## 11. 구현 순서
 

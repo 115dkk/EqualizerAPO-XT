@@ -128,6 +128,11 @@ int runSkinShots(QApplication& app)
 			dialog.previewOpenTroubleshooting();
 			QApplication::processEvents();
 			save(QStringLiteral("options"));
+			// The ASIO target's own options page (the installed ASIO row of
+			// the preview roster), for the judging material.
+			dialog.previewSelectDevice(0, 4);
+			QApplication::processEvents();
+			save(QStringLiteral("asio"));
 		}
 	}
 
