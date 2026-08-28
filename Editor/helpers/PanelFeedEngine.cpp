@@ -427,7 +427,7 @@ bool PanelFeedEngine::ensureRenderStarted(EngineState& s)
 			reinterpret_cast<void**>(s.renderClient.put()));
 		if (FAILED(hr) || !s.renderClient)
 		{
-			LogF(L"Panel monitor: render IAudioClient activation failed (0x%08lx)", hr);
+			LogFStatic(L"Panel monitor: render IAudioClient activation failed (0x%08lx)", hr);
 			s.renderClient.reset();
 			return false;
 		}
@@ -435,7 +435,7 @@ bool PanelFeedEngine::ensureRenderStarted(EngineState& s)
 			renderBufferDuration, 0, s.mixFormat.get(), nullptr);
 		if (FAILED(hr))
 		{
-			LogF(L"Panel monitor: render Initialize failed (0x%08lx)", hr);
+			LogFStatic(L"Panel monitor: render Initialize failed (0x%08lx)", hr);
 			s.renderClient.reset();
 			return false;
 		}
@@ -443,7 +443,7 @@ bool PanelFeedEngine::ensureRenderStarted(EngineState& s)
 			reinterpret_cast<void**>(s.renderService.put()));
 		if (FAILED(hr) || !s.renderService)
 		{
-			LogF(L"Panel monitor: IAudioRenderClient failed (0x%08lx)", hr);
+			LogFStatic(L"Panel monitor: IAudioRenderClient failed (0x%08lx)", hr);
 			s.renderService.reset();
 			s.renderClient.reset();
 			return false;
@@ -451,7 +451,7 @@ bool PanelFeedEngine::ensureRenderStarted(EngineState& s)
 		hr = s.renderClient->GetBufferSize(&s.renderBufferFrames);
 		if (FAILED(hr) || s.renderBufferFrames == 0)
 		{
-			LogF(L"Panel monitor: render GetBufferSize failed (0x%08lx)", hr);
+			LogFStatic(L"Panel monitor: render GetBufferSize failed (0x%08lx)", hr);
 			s.renderService.reset();
 			s.renderClient.reset();
 			return false;
@@ -461,13 +461,13 @@ bool PanelFeedEngine::ensureRenderStarted(EngineState& s)
 	hr = s.renderClient->Start();
 	if (FAILED(hr))
 	{
-		LogF(L"Panel monitor: render Start failed (0x%08lx)", hr);
+		LogFStatic(L"Panel monitor: render Start failed (0x%08lx)", hr);
 		return false;
 	}
 	s.renderStarted = true;
 	s.fadeFramesTotal = s.mixFormat->nSamplesPerSec * renderFadeMs / 1000;
 	s.fadeFramesRemaining = s.fadeFramesTotal;
-	TraceF(L"Panel monitor: playing self-generated plugin audio");
+	TraceFStatic(L"Panel monitor: playing self-generated plugin audio");
 	return true;
 }
 

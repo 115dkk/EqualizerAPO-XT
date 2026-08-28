@@ -77,9 +77,11 @@ public:
 private:
 	struct EngineState;
 
-	bool ensureRenderStarted(EngineState& s);
-	void stopRender(EngineState& s);
-	void abandonMonitor(EngineState& s);
+	// Static on purpose: they act on the passed state only, never on the
+	// engine object itself.
+	static bool ensureRenderStarted(EngineState& s);
+	static void stopRender(EngineState& s);
+	static void abandonMonitor(EngineState& s);
 	bool listenTick(EngineState& s, bool processReady);
 	bool renderTick(EngineState& s, bool processReady);
 
