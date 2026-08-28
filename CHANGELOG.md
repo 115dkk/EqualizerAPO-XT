@@ -14,6 +14,19 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Plugin panels can now be heard, not just seen.** A VST plugin that
+  generates its own signal while its panel is open - the Open XTC RACE
+  calibration noise, a test sweep - used to stay mute in the Editor: the
+  preview feed ran the audio through the plugin but discarded every
+  processed sample. The Editor now plays such self-generated audio through
+  the default output device, starting a few seconds after the system has
+  gone quiet and stopping as soon as the plugin does. Audio that merely
+  passes through the plugin is never played (the audio service already
+  plays it), so nothing doubles and nothing feeds back. Setting the
+  `EAPO_DISABLE_PANEL_MONITOR` environment variable turns this playback
+  off while keeping the panel meters alive
+  ([#308](https://github.com/115dkk/EqualizerAPO-XT/pull/308)).
+
 ## v2.46.1 — 2026-08-27
 
 - **Card titles are translated in German, French and Chinese too.** The
