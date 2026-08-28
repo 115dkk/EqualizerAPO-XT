@@ -173,81 +173,53 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <layout class="QVBoxLayout" name="asioLayout">
          <item>
           <widget class="QCheckBox" name="asioSyncCheckBox">
+           <property name="toolTip">
+            <string>Unchecked, the previous buffer is played: one buffer of latency, every buffer processed. Applies to both directions of this driver.</string>
+           </property>
            <property name="text">
             <string>Process inside the buffer callback (no extra buffer of latency; a buffer the engine host answers too late passes through unprocessed)</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QLabel" name="asioModeLabel">
-           <property name="text">
-            <string>Unchecked, the previous buffer is played: one buffer of latency, every buffer processed. Applies to both directions of this driver.</string>
-           </property>
-           <property name="wordWrap">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="asioDeadlineLabel">
-           <property name="text">
-            <string>How long a buffer waits for the engine host before it passes through unprocessed (synchronous mode only):</string>
-           </property>
-           <property name="wordWrap">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
           <widget class="QComboBox" name="asioDeadlineComboBox">
+           <property name="toolTip">
+            <string>How long a buffer waits for the engine host in the synchronous mode. A buffer that waits longer passes through unprocessed.</string>
+           </property>
            <item>
             <property name="text">
-             <string>A quarter of the buffer (default)</string>
+             <string>Wait a quarter of the buffer for the host (default)</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>Half of the buffer</string>
+             <string>Wait half of the buffer for the host</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>Three quarters of the buffer</string>
+             <string>Wait three quarters of the buffer for the host</string>
             </property>
            </item>
           </widget>
          </item>
          <item>
           <widget class="QCheckBox" name="asioAutoStartCheckBox">
+           <property name="toolTip">
+            <string>Unchecked, the first application that opens the driver starts the host, and it leaves a minute after the last one closes it.</string>
+           </property>
            <property name="text">
             <string>Start the engine host automatically at boot</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QLabel" name="asioAutoStartLabel">
-           <property name="text">
-            <string>Unchecked, the first application that opens the driver starts the host, and it leaves a minute after the last one closes it.</string>
-           </property>
-           <property name="wordWrap">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
           <widget class="QCheckBox" name="asioHost32CheckBox">
-           <property name="text">
-            <string>32-bit host support</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="asioHost32Label">
-           <property name="text">
+           <property name="toolTip">
             <string>Also registers the driver entry where 32-bit applications look for it. Unavailable when this build ships no 32-bit wrapper.</string>
            </property>
-           <property name="wordWrap">
-            <bool>true</bool>
+           <property name="text">
+            <string>32-bit host support</string>
            </property>
           </widget>
          </item>
