@@ -1,5 +1,7 @@
 /*
 	This file is part of EqualizerAPO-XT.
+	Copyright (C) 2026 EqualizerAPO-XT contributors
+	SPDX-License-Identifier: GPL-2.0-or-later
 
 	Per-process temporary test directory with tracked cleanup - the safest of
 	the seven hand-rolled temp-directory fixtures the suites used to carry

@@ -1,5 +1,7 @@
 /*
 	This file is part of EqualizerAPO-XT.
+	Copyright (C) 2026 EqualizerAPO-XT contributors
+	SPDX-License-Identifier: GPL-2.0-or-later
 
 	A deterministic ASIO driver with no hardware behind it. The tests link
 	this class directly; the FakeAsioDriver DLL wraps it in a class factory so

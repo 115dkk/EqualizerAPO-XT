@@ -150,6 +150,19 @@ Qt tools are built through qmake in CI and in the documented local setup. A full
 
 `Tests/` holds seven projects: `EditorLogicTests` and `HybridConvTests` (unit tests), `EngineOrchestrationTests` (engine routing and config-swap behavior), `AudioRegressionTests` (engine output compared against committed references, also run across SIMD variants in CI), `TestVst2Plugin` / `TestVst3Plugin` (self-built plug-ins used to test the VST2 and VST3 hosts at runtime), and `VstPreviewProbe` (a manual console harness behind the `vst3-preview-probe` workflow that validates the plugin panel's live-audio preview premises on a real endpoint). Test policy per variant is part of [docs/SimdBuildMatrix.md](docs/SimdBuildMatrix.md).
 
+## License
+
+Equalizer APO and EqualizerAPO-XT's own code are licensed under the GNU
+General Public License, version 2 or (at your option) any later version
+([License.txt](License.txt)). The ASIO wrapper is built against the Steinberg
+ASIO SDK under the SDK's GPL version 3 option, so the binaries that include it
+(`EqualizerAPOAsio.dll` and the installers that ship it) are distributed under
+GPL version 3 ([License-gpl-3.0.txt](License-gpl-3.0.txt)). Both texts are
+installed next to the program. The Subwoofer Routing DSP core and its VST3
+plugin are MIT-licensed ([SubwooferRoutingCore/LICENSE](SubwooferRoutingCore/LICENSE)).
+
+ASIO is a trademark and software of Steinberg Media Technologies GmbH.
+
 ## Special Thanks
 
 - **Mephistos (DCinside)** - diagnosed why VST3 plugin panels showed no live meters or graphs in the Editor, built and shared a working WASAPI-loopback patch under the GPL, and provided the Open-XTC plugin used to verify the fix. The panel preview feed (`Editor/helpers/PanelPreviewFeeder`) is derived from that contribution.

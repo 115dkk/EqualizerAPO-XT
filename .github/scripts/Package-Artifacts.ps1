@@ -51,6 +51,12 @@ foreach ($relative in $requiredFiles) {
     if (-not (Test-Path $source)) { throw "Required file not found: $relative" }
     Copy-Item $source -Destination $artifactPath
 }
+# The license texts the binaries are conveyed under: GPLv2-or-later for the
+# program, GPLv3 for the ASIO wrapper built on the Steinberg SDK. GPLv2
+# section 1 and GPLv3 section 4 want a copy with every distribution.
+foreach ($license in @("License.txt", "License-gpl-3.0.txt")) {
+    Copy-Item (Join-Path $WorkspaceRoot $license) -Destination $artifactPath -Force
+}
 if ($win32Wrapper) {
     $win32Source = Join-Path $WorkspaceRoot $win32Wrapper
     if (-not (Test-Path $win32Source)) { throw "Required file not found: $win32Wrapper" }

@@ -1,5 +1,7 @@
 /*
 	This file is part of EqualizerAPO-XT.
+	Copyright (C) 2026 EqualizerAPO-XT contributors
+	SPDX-License-Identifier: GPL-2.0-or-later
 
 	Card selection models: Channel, Device and Stage. Each model must write
 	the same bytes the legacy dialogs produced for an equivalent selection,

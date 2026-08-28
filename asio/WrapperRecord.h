@@ -1,5 +1,7 @@
 /*
 	This file is part of EqualizerAPO-XT.
+	Copyright (C) 2026 EqualizerAPO-XT contributors
+	SPDX-License-Identifier: GPL-2.0-or-later
 
 	The registry record behind one wrapper entry. Every target driver the
 	user enables gets its own wrapper CLSID; the record under

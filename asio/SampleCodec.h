@@ -1,5 +1,7 @@
 /*
 	This file is part of EqualizerAPO-XT.
+	Copyright (C) 2026 EqualizerAPO-XT contributors
+	SPDX-License-Identifier: GPL-2.0-or-later
 
 	Conversion between the ASIO sample types a target driver exposes and the
 	float32 planes the processor seam works in. The wrapper converts at its

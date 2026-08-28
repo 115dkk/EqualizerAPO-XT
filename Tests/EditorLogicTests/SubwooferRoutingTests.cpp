@@ -1,5 +1,7 @@
 /*
 	This file is part of EqualizerAPO-XT.
+	Copyright (C) 2026 EqualizerAPO-XT contributors
+	SPDX-License-Identifier: GPL-2.0-or-later
 
 	Subwoofer routing: the SubwooferRouting card descriptors over the
 	state JSON the engine and the VST3 plugin exchange, and the crossover

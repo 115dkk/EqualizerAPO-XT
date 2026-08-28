@@ -8,6 +8,12 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **라이선스 전문이 프로그램과 함께 설치됩니다.** `License.txt`(GPL 버전 2
+  이상, 프로그램의 라이선스)와 `License-gpl-3.0.txt`(GPL 버전 3, Steinberg
+  ASIO SDK로 빌드한 ASIO 래퍼의 배포 조건)가 설치 폴더에 들어갑니다. 이전
+  설치기는 둘 다 싣지 않았습니다. 포크가 쓴 소스 파일에는
+  `SPDX-License-Identifier: GPL-2.0-or-later` 문구가 붙고, README에 어느
+  라이선스가 무엇을 덮는지 적었습니다.
 - **ASIO 애플리케이션도 같은 config.txt를 씁니다.** 기기의 모든 ASIO
   드라이버가 장치 선택기의 재생·녹음 목록에 `ASIO` 표식과 함께 나타나고,
   체크하면 DAW·foobar2000 같은 ASIO 호스트가 드라이버 대신 고를 수 있는

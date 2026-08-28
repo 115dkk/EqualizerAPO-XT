@@ -1,5 +1,7 @@
 /*
 	This file is part of EqualizerAPO-XT.
+	Copyright (C) 2026 EqualizerAPO-XT contributors
+	SPDX-License-Identifier: GPL-2.0-or-later
 
 	Shared WAV fixture writer for the test suites (audit #275 D5/TD-23): the
 	libsndfile boilerplate for writing a double-precision test WAV existed

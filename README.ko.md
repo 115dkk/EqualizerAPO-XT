@@ -137,6 +137,18 @@ Qt 도구는 CI에서도, 문서화된 로컬 설정에서도 qmake로 빌드합
 
 `Tests/`에는 프로젝트 일곱 개가 있습니다. `EditorLogicTests`와 `HybridConvTests`(단위 테스트), `EngineOrchestrationTests`(엔진 라우팅과 설정 교체 동작), `AudioRegressionTests`(엔진 출력을 커밋된 참조 데이터와 비교하며, CI에서는 SIMD 변형별로도 실행), `TestVst2Plugin`/`TestVst3Plugin`(VST2·VST3 호스트를 런타임에 시험하기 위한 자체 빌드 플러그인), 그리고 `VstPreviewProbe`(플러그인 패널의 라이브 오디오 프리뷰 전제를 실제 엔드포인트에서 검증하는 `vst3-preview-probe` 워크플로우용 수동 콘솔 하니스)입니다. 변형별 테스트 정책은 [docs/SimdBuildMatrix.md](docs/SimdBuildMatrix.md)에 함께 있습니다.
 
+## 라이선스
+
+Equalizer APO와 EqualizerAPO-XT 자체 코드는 GNU General Public License
+버전 2 또는 (선택에 따라) 그 이후 버전입니다([License.txt](License.txt)).
+ASIO 래퍼는 Steinberg ASIO SDK를 SDK의 GPL 버전 3 선택지로 빌드하므로, 그것을
+포함한 바이너리(`EqualizerAPOAsio.dll`과 이를 담은 설치 파일)는 GPL 버전 3으로
+배포합니다([License-gpl-3.0.txt](License-gpl-3.0.txt)). 두 전문은 프로그램
+옆에 함께 설치됩니다. 서브우퍼 라우팅 DSP 코어와 VST3 플러그인은 MIT
+라이선스입니다([SubwooferRoutingCore/LICENSE](SubwooferRoutingCore/LICENSE)).
+
+ASIO is a trademark and software of Steinberg Media Technologies GmbH.
+
 ## Special Thanks
 
 - **Mephistos (DCinside)** - Editor의 VST3 플러그인 패널에서 레벨 미터와 그래프가 살아나지 않는 원인을 진단하고, 동작하는 WASAPI 루프백 패치를 GPL로 공개했으며, 수정 검증에 쓰인 Open-XTC 플러그인을 제공해 주셨습니다. 패널 프리뷰 피드(`Editor/helpers/PanelPreviewFeeder`)는 이 기여에서 파생되었습니다.

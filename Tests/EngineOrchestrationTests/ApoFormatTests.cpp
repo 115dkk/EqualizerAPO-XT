@@ -1,5 +1,7 @@
 /*
 	This file is part of EqualizerAPO-XT.
+	Copyright (C) 2026 EqualizerAPO-XT contributors
+	SPDX-License-Identifier: GPL-2.0-or-later
 
 	Pins the APO DLL's pure decisions (EqualizerAPO/ApoFormat.h) - format
 	detection, the container-size rule, the silence verdict and the

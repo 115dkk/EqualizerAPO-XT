@@ -103,6 +103,14 @@ The record behind an entry lives under
   binary, which this build does not produce).
 - DSD streams are not supported; the device refuses to open in a DSD mode.
 
+## License
+
+The wrapper is built against the Steinberg ASIO SDK 2.3.4 under the SDK's
+GPL version 3 option, so `EqualizerAPOAsio.dll` and the installers that ship
+it are distributed under GPL version 3; the text is installed as
+`License-gpl-3.0.txt` next to the program. ASIO is a trademark and software
+of Steinberg Media Technologies GmbH.
+
 ## What is not covered
 
 The wrapper has been exercised with the fake driver on CI and with a Topping

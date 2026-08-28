@@ -1,5 +1,7 @@
 ﻿/*
 	This file is part of EqualizerAPO-XT.
+	Copyright (C) 2026 EqualizerAPO-XT contributors
+	SPDX-License-Identifier: GPL-2.0-or-later
 
 	Simple regression tests for the libHybridConv bridge. These tests are
 	kept framework-free so they can run wherever the Visual Studio build runs.
