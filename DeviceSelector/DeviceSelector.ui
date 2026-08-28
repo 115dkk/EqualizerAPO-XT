@@ -172,56 +172,138 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
        <widget class="QWidget" name="asioPage">
         <layout class="QVBoxLayout" name="asioLayout">
          <item>
-          <widget class="QCheckBox" name="asioSyncCheckBox">
-           <property name="toolTip">
-            <string>Removing the buffer reduces latency. But when processing occasionally does not finish in time, sound without the EQ applied may come out for a moment. Applies to both input and output.</string>
-           </property>
-           <property name="text">
-            <string>Remove the buffer</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QComboBox" name="asioDeadlineComboBox">
-           <property name="toolTip">
-            <string>How long a buffer waits for the engine host once the buffer is removed. A buffer that waits longer comes out without the EQ applied.</string>
-           </property>
+          <layout class="QHBoxLayout" name="asioBufferRow">
+           <item>
+            <widget class="QCheckBox" name="asioSyncCheckBox">
+             <property name="toolTip">
+              <string>Removing the buffer reduces latency. But when processing occasionally does not finish in time, sound without the EQ applied may come out for a moment. Applies to both input and output.</string>
+             </property>
+             <property name="text">
+              <string>Remove the buffer</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="asioWaitGap">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeType">
+              <enum>QSizePolicy::Fixed</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>12</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item>
+            <widget class="QLabel" name="asioWaitLabel">
+             <property name="toolTip">
+              <string>Sets how long to wait for processing once the buffer is removed. The longer the wait, the less sound without the EQ, but the more latency.</string>
+             </property>
+             <property name="text">
+              <string>Wait time:</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QComboBox" name="asioDeadlineComboBox">
+             <property name="toolTip">
+              <string>Sets how long to wait for processing once the buffer is removed. The longer the wait, the less sound without the EQ, but the more latency.</string>
+             </property>
            <item>
             <property name="text">
-             <string>Wait a quarter of the buffer for the host (default)</string>
+             <string>Up to a quarter of the buffer</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>Wait half of the buffer for the host</string>
+             <string>Up to half of the buffer</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>Wait three quarters of the buffer for the host</string>
+             <string>Up to three quarters of the buffer</string>
             </property>
            </item>
-          </widget>
+            </widget>
+           </item>
+           <item>
+            <spacer name="asioBufferSpacer">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeType">
+              <enum>QSizePolicy::Expanding</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
          </item>
          <item>
-          <widget class="QCheckBox" name="asioAutoStartCheckBox">
-           <property name="toolTip">
-            <string>Unchecked, the first application that opens the driver starts the host, and it leaves a minute after the last one closes it.</string>
-           </property>
-           <property name="text">
-            <string>Start the engine host automatically at boot</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="asioHost32CheckBox">
-           <property name="toolTip">
-            <string>Also registers the driver entry where 32-bit applications look for it. Unavailable when this build ships no 32-bit wrapper.</string>
-           </property>
-           <property name="text">
-            <string>32-bit host support</string>
-           </property>
-          </widget>
+          <layout class="QHBoxLayout" name="asioHostRow">
+           <item>
+            <widget class="QCheckBox" name="asioAutoStartCheckBox">
+             <property name="toolTip">
+              <string>Unchecked, the first application that opens the driver starts the host, and it leaves a minute after the last one closes it.</string>
+             </property>
+             <property name="text">
+              <string>Start the engine host automatically at boot</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="asioHostGap">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeType">
+              <enum>QSizePolicy::Fixed</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>16</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="asioHost32CheckBox">
+             <property name="toolTip">
+              <string>Also registers the driver entry where 32-bit applications look for it. Unavailable when this build ships no 32-bit wrapper.</string>
+             </property>
+             <property name="text">
+              <string>32-bit host support</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="asioHostSpacer">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeType">
+              <enum>QSizePolicy::Expanding</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
          </item>
         </layout>
        </widget>
