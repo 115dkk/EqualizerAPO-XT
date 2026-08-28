@@ -84,6 +84,8 @@ if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"</
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AsioTests.cpp" />
+    <ClCompile Include="StreamRingTests.cpp" />
+    <ClCompile Include="..\..\runtime\ipc\StreamRing.cpp" />
     <ClCompile Include="..\..\asio\AsioWrapper.cpp" />
     <ClCompile Include="..\..\asio\CallbackTrampolines.cpp" />
     <ClCompile Include="..\..\asio\InProcProcessor.cpp" />
@@ -99,6 +101,7 @@ if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"</
     <ClInclude Include="..\..\asio\SampleCodec.h" />
     <ClInclude Include="..\..\asio\StreamProcessor.h" />
     <ClInclude Include="..\..\asio\WrapperRecord.h" />
+    <ClInclude Include="..\..\runtime\ipc\StreamRing.h" />
     <ClInclude Include="..\AsioSupport\HostStub.h" />
     <ClInclude Include="..\EngineOrchestrationTests\FakeRegistry.h" />
     <ClInclude Include="..\FakeAsioDriver\FakeAsio.h" />

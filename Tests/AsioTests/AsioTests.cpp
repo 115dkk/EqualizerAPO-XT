@@ -872,11 +872,15 @@ namespace
 	}
 }
 
+int runStreamRingTests();
+
 int main()
 {
 	Logging::set(stderr, false, false, false);
 	try
 	{
+		if (runStreamRingTests() != 0)
+			return 1;
 		return runAsioTests();
 	}
 	catch (const std::exception& error)
