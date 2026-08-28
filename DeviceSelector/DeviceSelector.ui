@@ -174,17 +174,17 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
          <item>
           <widget class="QCheckBox" name="asioSyncCheckBox">
            <property name="toolTip">
-            <string>Unchecked, the previous buffer is played: one buffer of latency, every buffer processed. Applies to both directions of this driver.</string>
+            <string>Removing the buffer reduces latency. But when processing occasionally does not finish in time, sound without the EQ applied may come out for a moment. Applies to both input and output.</string>
            </property>
            <property name="text">
-            <string>Process inside the buffer callback (no extra buffer of latency; a buffer the engine host answers too late passes through unprocessed)</string>
+            <string>Remove the buffer</string>
            </property>
           </widget>
          </item>
          <item>
           <widget class="QComboBox" name="asioDeadlineComboBox">
            <property name="toolTip">
-            <string>How long a buffer waits for the engine host in the synchronous mode. A buffer that waits longer passes through unprocessed.</string>
+            <string>How long a buffer waits for the engine host once the buffer is removed. A buffer that waits longer comes out without the EQ applied.</string>
            </property>
            <item>
             <property name="text">
