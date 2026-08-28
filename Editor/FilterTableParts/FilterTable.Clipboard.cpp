@@ -1,7 +1,7 @@
 /*
 	This file is part of EqualizerAPO-XT, a fork of Equalizer APO.
 	Copyright (C) 2014 Jonas Thedering (Equalizer APO)
-	Copyright (C) 2026 EqualizerAPO-XT contributors
+	Copyright (C) 2026 115dkk
 	SPDX-License-Identifier: GPL-2.0-or-later
 */
 
