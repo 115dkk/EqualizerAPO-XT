@@ -1,6 +1,6 @@
 /*
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-	Copyright (C) 2026  EqualizerAPO-XT contributors
+	Copyright (C) 2026  115dkk
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
