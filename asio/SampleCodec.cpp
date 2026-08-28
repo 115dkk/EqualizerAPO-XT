@@ -220,7 +220,7 @@ namespace eapo::asio
 
 		struct Entry
 		{
-			long type;
+			long type = -1;
 			SampleCodec codec;
 		};
 
