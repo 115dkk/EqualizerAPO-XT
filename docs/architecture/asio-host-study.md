@@ -262,3 +262,186 @@ SDK는 저장소에 넣지 않고 `vst3_pluginterfaces`처럼 빌드 시점에 �
 **C1 + C6를 먼저 합니다.** 래퍼 드라이버와 가짜 드라이버·프로브를 같이 지으면, 데몬이 생기기 전에 ASIO 프로토콜 전체(버퍼 스위치, 리셋, 샘플레이트 변경, 지연 보고)가 PR마다 검증되는 상태가 됩니다. 처리기 시임에 in-proc 어댑터를 먼저 꽂으면 그 시점에 이미 실제 기기에서 소리를 들을 수 있고, 그다음 C3(StreamRing)를 스레드 테스트로 굳힌 뒤 C2(데몬)를 얹어 두 어댑터의 왕복 지연을 같은 프로브로 비교합니다. C4(DeviceCatalog)는 C2와 독립이라 병렬로 진행할 수 있으며, C5는 C2가 사실을 게시하기 시작한 뒤에 붙입니다.
 
 순서를 이렇게 잡는 이유는 위험이 한 곳에 있기 때문입니다. 나머지는 이미 있는 시임에 어댑터를 꽂는 일이고, 프로세스 간 왕복만이 측정 전에는 아무도 답할 수 없는 항목입니다. 그것을 재는 도구를 먼저 만드는 것이 가장 짧은 길입니다.
+
+---
+
+## 9. 결정 (2026-08-28)
+
+메인테이너의 답을 그대로 적고, 설계에 미치는 결과를 붙입니다.
+
+| 질문 | 결정 | 설계 결과 |
+|---|---|---|
+| 데몬 수명 | 온디맨드는 "EQ APO를 쓸 때처럼 음질 드리프트를 느끼지 못할 것이 확실할 때만". 아니면 로그온 자동 실행 | 아래 판정 참조. 온디맨드 + 준비 장벽 + 유휴 유예로 확정하되, "첫 버퍼부터 필터됨"을 게이트가 증명한다 |
+| 32비트 DAW | 지원 | 래퍼 DLL은 Win32/x64/ARM64 빌드, 데몬은 x64/ARM64. 프로토콜은 비트 폭 고정·포인터 없음. CI에 Win32 래퍼+가짜 드라이버+프로브 레그 추가 |
+| 장치 목록 | 기존 재생/캡처 분류만 유지한 채 나열. ASIO는 2등 시민이 아니며 별도 그룹(그러면 default가 생김) 없이 혼동 방지용 최소 표식만 | ASIO 드라이버는 재생 기록 하나, 캡처 기록 하나로 각 그룹에 들어간다(USB 인터페이스가 MMDevice에 렌더/캡처 엔드포인트로 따로 보이는 것과 같은 모양). 표식은 상태 문구의 "ASIO" 한 단어뿐. `isDefaultDevice()`는 항상 거짓 |
+| 첫 릴리스 범위 | 쪼개지 않고 전부 개발한 뒤 엄격한 테스트를 통과해야 릴리스. 입출력 전체 | 기능 브랜치 `feat/asio`에 단계별 PR을 쌓고, 릴리스는 마지막에 한 번. 재생 기록의 설치=출력 방향 처리, 캡처 기록의 설치=입력 방향 처리 |
+| 동기 마감 초과 | 그 버퍼를 통과시킨다. 너무 많으면 테스트 실패("작동 안 하는 쓰레기") | 늦은 버퍼는 세고 게시한다. 실기기 게이트: 기준 설정·기본 버퍼 크기·10분 구동에서 늦은 버퍼 0. CI 결정적 모드: 늦은 버퍼 0 + SHA-256 일치가 차단 게이트 |
+
+**데몬 수명 판정.** APO에서 소리가 처음부터 필터되는 이유는 `LockForProcess` 안에서 `initialize()`가 설정을 동기적으로 읽고, 첫 로드는 크로스페이드를 건너뛰기 때문입니다(`FilterEngine.cpp:193-208`). 온디맨드 데몬도 같은 자리에서 같은 일을 하면 됩니다. 래퍼가 `createBuffers()` 안에서 데몬을 띄우고 설정 로드가 끝나 "준비됨"을 받을 때까지 돌아오지 않으면, DAW가 `start()`를 부르는 순간 첫 버퍼는 이미 필터된 상태입니다. 데몬에 닿지 못하면 조용히 통과시키지 않고 `ASE_HWMalfunction`으로 DAW에 크게 알립니다. 유일한 차이는 DAW의 오디오 시작이 설정 로드 시간(큰 IR이면 수 초)만큼 늦어지는 것인데, 이는 APO가 `LockForProcess`에서 치르는 비용과 같은 것입니다. 마지막 스트림이 떠난 뒤 데몬은 잠시(60초) 남아 DAW의 버퍼 크기 변경 같은 재시작을 흡수합니다. 그래서 온디맨드로 갑니다. 이 조건은 프로브가 "첫 버퍼 하나만의 SHA-256"으로 매 PR 증명합니다. 증명이 깨지면 로그온 자동 실행으로 바꿉니다.
+
+**32비트 뷰.** `IRegistry`는 항상 64비트 뷰로 열지만(`KEY_WOW64_64KEY`), 32비트 호스트가 읽는 `HKLM\SOFTWARE\WOW6432Node\ASIO`와 `HKLM\SOFTWARE\Classes\WOW6432Node\CLSID`는 64비트 뷰에서 실제 키로 보입니다. 경로를 그대로 적으면 되므로 포트 계약을 바꾸지 않습니다.
+
+---
+
+## 10. 1단계 인터페이스 설계: C1 래퍼 + 처리기 시임
+
+같은 문제를 서로 다른 제약으로 네 번 설계했습니다(최소 인터페이스, 유연성 극대화, 공통 호출자 우선, 포트·어댑터). 넷이 합의한 것과 갈린 것을 먼저 적습니다.
+
+**넷이 합의한 것.** 처리기 시임은 ASIO도 COM도 Qt도 모르는 순수 인터페이스이고, 어댑터는 데몬·in-proc·통과 셋이다. 엔진은 대상 드라이버의 **물리 채널 전체**를 본다(DAW가 일부 채널만 열어도 `Channel:` 이름이 움직이지 않도록). 시임의 샘플 형식은 float32 하나이며 변환은 래퍼 가장자리의 일이다. 샘플레이트 변경은 래퍼가 DAW에 `kAsioResetRequest`를 보내 표준 재시작 경로로 몰아넣는다(엔진을 잘못된 레이트로 돌리느니 재시작이 낫다). `outputReady()`를 부르는 호스트는 그 시점에, 안 부르는 호스트는 콜백 복귀 시점에 출력을 처리한다. 콜백에 컨텍스트 포인터가 없어서 트램폴린 표가 필요하다.
+
+**갈린 것과 채택.**
+
+| 쟁점 | 안들 | 채택 |
+|---|---|---|
+| 시임 크기 | 3개(open/process/close) 대 6개(+hot-swap 슬롯, 통계, 이름) 대 submit/collect 분리 | **3개.** 핫스왑과 채널 마스크는 지금 어댑터가 둘 이상 없으니 가설 시임이다. 통계는 close에 넘긴다 |
+| 재구성 | `reconfigure(sampleRate)` 제공 대 "없음: 모든 변경은 close+open" | **없음.** 첫 open과 이후 open이 같은 코드 경로라 순서 버그 한 종류가 통째로 사라진다 |
+| 블록 배치 | 인터리브 대 평면(planar) | **평면.** ASIO 원형이 평면이고 엔진에 `process(float**, float**)`가 있다(VoicemeeterClient가 쓰는 오버로드). 제자리 처리는 읽기가 먼저 끝나므로 안전(`FilterEngine.Process.cpp:235-259`) |
+| DAW에 보이는 샘플 형식 | 항상 Float32LSB(DAW 버퍼가 곧 스테이징) 대 대상 드라이버 값 그대로 | **그대로.** 변환 한 번 더가 붙지만 DAW가 보는 장치가 바뀌지 않는다("세상 조용하게") |
+| 대상 드라이버 포트 | `IAsioTarget`(COM 없는 사본) 대 `IASIO` 자체 | **`IASIO` 자체.** SDK vtable이 이미 인터페이스이고, 가짜 드라이버 클래스를 정적으로 링크하면 COM 없이도 코어를 단위 테스트할 수 있다 |
+| in-proc 어댑터 위치 | 래퍼 DLL 안(x64) 대 사이드카 DLL 대 프로브 안에만 | **프로브 안에만.** 배포 DLL은 데몬·통과 둘만 품어 얇게 유지. 프로브는 `--target-clsid`로 실제 드라이버도 열 수 있어 실기기에서 두 어댑터의 왕복을 같은 도구로 잰다 |
+| 설정 전달 | 값 하나(`StreamOptions`) 대 흩어진 인자 | **값 하나.** 레지스트리와 argv가 같은 구조체를 채운다 |
+| 레지스트리 뷰 | `RegistryView` 포트 확장 대 경로 명시 | **경로 명시**(9절) |
+
+### 10.1 채택 인터페이스
+
+```cpp
+// asio/StreamProcessor.h  (Windows 헤더 없음, Common.lib 없음)
+namespace eapo::asio {
+
+enum class Direction : uint32_t { Output = 0, Input = 1 };
+enum class Mode : uint32_t { Sync = 0, Pipelined = 1 };
+
+// 고정 폭, 포인터 없음: 데몬 프로토콜의 세션 헤더에 그대로 복사된다.
+struct StreamFormat
+{
+    double   sampleRate;
+    uint32_t frames;            // ASIO 버퍼 크기. 모든 process()는 정확히 이만큼
+    uint32_t channels[2];       // 방향별 물리 채널 수. 0 = 그 방향 비활성
+    Mode     mode;
+    uint32_t deadlineUs;        // Sync: 핸드오프 하나의 마감. 0 = 자동(주기의 25%)
+    char16_t deviceName[64];    // 대상 getDriverName() -> EngineSetup.deviceName
+    char16_t deviceGuid[40];    // {대상 CLSID}          -> EngineSetup.deviceGuid
+    // connectionName은 상수 u"ASIO". Device: 줄은 "ASIO <name> {clsid}"와 매칭
+};
+
+enum class Outcome : uint32_t { Processed, Late, Gone, Off };
+
+struct StreamStats            // 콜백 스레드만 쓴다. close()로 넘겨 게시
+{
+    uint64_t blocks[2], late[2], gone[2];
+    uint32_t maxWaitUs[2], lastWaitUs[2];
+    uint32_t staleBlocks;     // sampleRateDidChange 뒤 재시작 전까지 통과시킨 블록
+};
+
+struct OpenReport
+{
+    enum class Status : uint32_t { Ok, Unavailable, Rejected } status;
+    float**  planes[2];       // 방향별 채널 포인터 배열, frames 길이 float32. open~close 사이 유효
+    uint32_t extraLatencyFrames;   // Sync 0, Pipelined frames. getLatencies에 방향별로 더한다
+    char     message[124];    // Ok가 아닐 때 getErrorMessage로 나간다
+};
+
+class IStreamProcessor
+{
+public:
+    virtual ~IStreamProcessor() = default;
+    // DAW 제어 스레드. 첫 process()를 설정이 로드된 엔진으로 처리할 수 있을 때까지
+    // (준비 장벽) 또는 포기할 때까지 막는다. init() 단계에서는 절대 부르지 않는다
+    // (DAW는 목록만 보려고 모든 드라이버를 init한다).
+    virtual OpenReport open(const StreamFormat& format, const StreamOptions& options) = 0;
+    // 대상 드라이버의 bufferSwitch 스레드. 방향당 한 번. planes[d]를 제자리에서 바꾼다.
+    //   Processed -> planes[d]에 쓸 소리가 있다(Pipelined: 직전 블록의 결과)
+    //   Late/Gone/Off -> 내용 미정. 호출자는 원본을 그대로 쓴다(=통과)
+    // 할당, C++ 락, 예외 금지. 커널 객체 대기는 마감 안에서 허용.
+    virtual Outcome process(Direction d) noexcept = 0;
+    // 제어 스레드. 대상의 disposeBuffers()가 돌아온 뒤(콜백이 더 올 수 없음). 멱등.
+    virtual void close(const StreamStats& stats) noexcept = 0;
+};
+
+struct StreamOptions          // 레지스트리(HKLM\SOFTWARE\EqualizerAPO\ASIO\{ourClsid})와 argv가 같은 값을 채운다
+{
+    bool     processOutput = true, processInput = true;
+    Mode     mode = Mode::Sync;
+    uint32_t deadlineUs = 0;             // 0 = 자동
+    uint32_t readyTimeoutMs = 20000;     // 설정 로드에 IR이 들어갈 수 있다
+    uint32_t lingerMs = 60000;           // 마지막 스트림 뒤 데몬 잔류
+    std::wstring configPath;             // 비면 레지스트리 ConfigPath + 감시(운영)
+    std::wstring daemonExePath;          // 비면 <래퍼 DLL 폴더>\EqualizerAPOHost.exe
+    std::wstring daemonEndpoint;         // 비면 세션별 자동. 프로브는 고정 이름을 준다
+};
+}
+```
+
+```cpp
+// asio/AsioWrapper.h  - 래퍼 모듈. 공개 표면은 생성자 하나 + IASIO
+class AsioWrapper final : public IASIO
+{
+public:
+    AsioWrapper(IASIO& target, StreamOptions options, std::unique_ptr<eapo::asio::IStreamProcessor> processor);
+    // IASIO 21개: init, createBuffers, disposeBuffers, start, getLatencies, outputReady,
+    // getErrorMessage, getDriverName만 우리가 처리하고 나머지는 대상에 그대로 전달
+};
+// DLL: DllGetClassObject(rclsid) -> HKLM\SOFTWARE\EqualizerAPO\ASIO\{rclsid}에서 TargetClsid/옵션을 읽고
+//      CoCreateInstance(target, NULL, CLSCTX_INPROC_SERVER, target /*IID==CLSID*/, &p),
+//      processor = (processOutput || processInput) ? DaemonProcessor : PassthroughProcessor
+// 프로브: C export EapoAsioCreate(IASIO* target, const StreamOptions*, IStreamProcessor*, IASIO**)
+```
+
+**상태 기계(제어 스레드).** `Loaded → init → Initialized → createBuffers → Prepared → start → Running → stop → Prepared → disposeBuffers → Initialized`. 순서 밖의 호출은 `ASE_InvalidMode`이고 대상에 전달하지 않는다. `createBuffers`는 대상의 `createBuffers`를 먼저 성공시켜 채널 수, 레이트, 버퍼 크기를 확정한 뒤 `open()`을 부르고, 실패하면 대상 버퍼를 해제하고 `ASE_HWMalfunction`을 돌려준다. `start()`는 `open` 뒤 데몬이 죽었는지 다시 확인한다.
+
+**주기당 순서(콜백 스레드, Sync).** 대상 입력 버퍼[i] → float 평면 → `process(Input)` → DAW 입력 버퍼[i] → DAW `bufferSwitch(i)` → DAW 출력 버퍼[i] → 평면 → `process(Output)` → 대상 출력 버퍼[i] → (DAW가 우리 `outputReady`를 불렀으면) 대상 `outputReady()`. 양방향이면 왕복 둘, 출력만이면 하나. Pipelined는 직전 블록의 결과를 먼저 회수해(대기 0) 이번 블록을 넘기며 방향당 정확히 `frames`의 지연이 붙고 `getLatencies`가 그렇게 보고한다.
+
+**실패 모드.** `Late`/`Gone`이면 평면을 버리고 원본을 그대로 옮긴다(=통과). `Gone`은 다음 `createBuffers`까지 고정이며 콜백 스레드는 재접속을 시도하지 않는다. `sampleRateDidChange`는 전달한 뒤 래퍼가 `kAsioResetRequest`를 보내고, DAW가 재시작할 때까지의 블록은 `staleBlocks`로 세며 통과시킨다. `kAsioResetRequest`/`kAsioLatenciesChanged`/`kAsioResyncRequest`/`kAsioOverload`는 그대로 전달, `kAsioSupportsTimeInfo`는 DAW의 답을 그대로 돌려주어 `bufferSwitch`/`bufferSwitchTimeInfo` 선택이 DAW를 따른다. DSD 샘플 형식은 `createBuffers`에서 `ASE_InvalidMode`.
+
+**스레드 규칙.**
+
+| 호출자 | 호출 | 막힘 |
+|---|---|---|
+| DAW 제어 스레드 | IASIO 전부, `open`/`close`, 데몬 기동 | `readyTimeoutMs`까지 |
+| 대상의 bufferSwitch 스레드 | 변환, `process`, DAW 콜백, `outputReady` | `process` 안의 마감까지만 |
+| 대상의 알림 스레드 | `sampleRateDidChange`, `asioMessage` 전달 | 없음(플래그만) |
+| 데몬 서빙 스레드(MMCSS Pro Audio) | `acquire` → 엔진 ×2 → `release` | work 이벤트 |
+
+### 10.2 데몬 쪽: StreamRing과 EngineHostCore
+
+`DaemonProcessor::open()`은 `IHostLink`(어댑터 둘: `Win32HostLink`=실제 exe 찾기/띄우기 + 이름 있는 매핑과 이벤트, `ThreadHostLink`=같은 프로세스의 스레드에서 `EngineHostCore` 구동)로 링을 만들고 헤더에 `StreamFormat`을 적은 뒤 `Ready`를 기다린다.
+
+```cpp
+// runtime/ipc/StreamRing.h  - 양쪽이 같은 소스로 컴파일. Win32/x64/ARM64 바이트 동일
+struct alignas(64) RingHeader
+{
+    uint32_t magic, layoutVersion, totalBytes, slotStride;
+    eapo::asio::StreamFormat format;         // 고정 폭이라 그대로 들어간다
+    uint32_t wrapperPid, daemonPid;
+    uint32_t state;                          // Announced, Ready, Running, Closing, Fault (release/acquire)
+    uint32_t sequence;                       // 생산자: 마지막 게시(1부터)
+    uint32_t completed;                      // 소비자: 마지막 완료
+    uint32_t directionMask;                  // 마지막 게시의 방향
+    uint8_t  reserved[...];                  // sizeof == 512, static_assert로 오프셋 고정
+};
+// 배치: [RingHeader][슬롯0: out 평면들 | in 평면들][슬롯1: ...]  각 블록 64바이트 정렬
+```
+
+생산자 `publish(seq)`는 `sequence`를 release 저장하고 work 이벤트를 켠다. `wait(seq, budget)`은 `{done, peerProcess}`를 함께 기다려 `completed == seq`면 `Done`, 시간 초과면 `Late`, 상대 프로세스 핸들이 신호되거나 `state`가 `Fault/Closing`이면 `Gone`이다. 슬롯은 둘이고 생산자는 `completed >= seq-1`일 때만 게시하므로 늦은 블록이 다음 블록과 충돌하지 않는다. 소비자는 게시된 순서를 전부 처리해(생산자가 이미 포기했더라도) IIR 상태를 끊지 않는다.
+
+`EngineHostCore::serve(RingConsumer&)`는 헤더를 한 번 읽어 `EngineSetup` 둘(출력: `capture=false`, 입력: `capture=true`; `channelMask=0`, `maxFrameCount=frames`, `connectionName=L"ASIO"`, `customPath` 비움)을 만들고 `initialize` 뒤 `Ready`를 쓴다. `EqualizerAPOHost.exe`는 `Win32HostLink` + `EngineHostCore` + VoicemeeterClient식 메시지 루프이고, 프로브는 같은 코어를 스레드에서 돌린다. 마지막 스트림이 떠나면 `lingerMs` 뒤 종료.
+
+### 10.3 검증 게이트 정의
+
+| 게이트 | 내용 | 시점 |
+|---|---|---|
+| 코어 단위 | FakeAsio 클래스를 정적 링크해 상태 기계, 리셋, `outputReady` 두 경로, DSD 거부, `Late`/`Gone` 통과를 스레드 없이 검사 | 모든 PR |
+| 링 단위 | `ThreadHostLink`로 `Done`/`Late`/`Gone`/슬롯 재사용을 스레드 둘로 검사 | 모든 PR |
+| 프로브 결정적 | in-proc, daemon-pipelined, daemon-sync(마감 1초)의 세 모드가 같은 설정에서 같은 SHA-256, 늦은 블록 0, **첫 블록만의 SHA-256**도 일치(준비 장벽 증명) | 모든 PR (x64), Win32 래퍼는 daemon 두 모드 |
+| 프로브 타이밍 | daemon-sync 자동 마감으로 64/128/256프레임 N초, 늦은 블록 수와 대기 분포 기록 | dispatch, 정보성 |
+| 실기기 | 프로브 `--target-clsid`로 메인테이너의 인터페이스에서 기본 버퍼 크기 10분, 늦은 블록 0 | 릴리스 전 필수 |
+
+---
+
+## 11. 구현 순서
+
+1. SDK 핀(`simd-variants.psd1` + `setup-build.ps1` + CI), `asio/` 코어와 래퍼 DLL 프로젝트(x64/Win32/ARM64), `Tests/FakeAsioDriver`, `Tests/AsioProbe`(in-proc 어댑터 포함), 코어 단위 테스트. 이 시점에 실기기에서 in-proc 모드로 소리를 들을 수 있다.
+2. `runtime/ipc/StreamRing` + 링 단위 테스트.
+3. `EngineHostCore` + `EqualizerAPOHost.exe` + `DaemonProcessor`, 프로브 결정적 게이트 3모드, CI 레그(x64, Win32).
+4. `DeviceCatalog` + `AsioAPOInfo`(재생/캡처 기록 둘) + 등록(양쪽 뷰) + DeviceSelector 상태 문구 + 설치기 배치. 갤러리 샷.
+5. `StreamFacts` 게시와 Editor 배지, 문서(README/CHANGELOG 4파일, docs), 실기기 게이트, 릴리스.
