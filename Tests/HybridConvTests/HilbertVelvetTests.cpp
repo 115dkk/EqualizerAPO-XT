@@ -1,5 +1,7 @@
 /*
 	This file is part of EqualizerAPO-XT.
+	Copyright (C) 2026 EqualizerAPO-XT contributors
+	SPDX-License-Identifier: GPL-2.0-or-later
 
 	Regression coverage for the built-in Hilbert transform and sparse
 	velvet-noise decorrelator. The command tests pin the user-facing syntax;

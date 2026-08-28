@@ -1,5 +1,7 @@
 /*
 	This file is part of EqualizerAPO-XT.
+	Copyright (C) 2026 EqualizerAPO-XT contributors
+	SPDX-License-Identifier: GPL-2.0-or-later
 
 	StreamRing over one process: a heap region, unnamed events, and a
 	consumer thread that plays the engine host. What the wrapper-daemon

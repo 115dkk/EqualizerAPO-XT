@@ -1,4 +1,10 @@
 /*
+	This file is part of EqualizerAPO-XT.
+	Copyright (C) 2026 EqualizerAPO-XT contributors
+	SPDX-License-Identifier: GPL-2.0-or-later
+*/
+
+/*
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
 	Document-side state of the per-slot channel fill on a VST card: the two

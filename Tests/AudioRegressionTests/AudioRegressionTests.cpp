@@ -1,5 +1,7 @@
 /*
 	This file is part of EqualizerAPO-XT.
+	Copyright (C) 2026 EqualizerAPO-XT contributors
+	SPDX-License-Identifier: GPL-2.0-or-later
 
 	Audio regression test harness. Drives FilterEngine through a fixed set
 	of small DSP scenarios and either records the float interleaved output
