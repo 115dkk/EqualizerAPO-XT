@@ -39,8 +39,31 @@ public:
 	// Offscreen gallery hook (SkinGallery): drive a state the renderer cannot
 	// reach without a real pointer. Supported states: "expanded" reveals the
 	// folded channels, "addChannel" opens the add-channel editor with a sample
-	// name typed in. Default no-op for renderers without those affordances.
+	// name typed in, "editSource:<target>" opens a view's inline source
+	// editor on that target's first summand. Default no-op for renderers
+	// without those affordances.
 	virtual void galleryShowcase(const QString& state) { Q_UNUSED(state); }
+
+	// The sources a view offers to add to target's sum, in the order its
+	// menu or hint lists them; empty for views that have no per-target menu
+	// (the matrix-shaped views expose every column at once). Lets the
+	// routing-edit gate hold the hint list without driving a modal menu.
+	virtual QStringList sourceCandidates(const QString& target) const
+	{
+		Q_UNUSED(target);
+		return QStringList();
+	}
+
+	// Add source at unity to target's sum: the commit behind a per-target
+	// add menu. False when target is not a row of this view, the source is
+	// already in the sum, or the view has no such operation; on success the
+	// view emits routingChanged.
+	virtual bool connectSource(const QString& target, const QString& source)
+	{
+		Q_UNUSED(target);
+		Q_UNUSED(source);
+		return false;
+	}
 
 protected:
 	// The Copy card hosts this view in a height-pinning scroll wrapper that

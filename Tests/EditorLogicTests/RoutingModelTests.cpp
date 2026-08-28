@@ -342,3 +342,68 @@ void testRoutingFold()
 		"folding away a pure seed row is not a serialized change");
 	expectEqual((int)seedOnly.size(), (int)emptySeeded.size() - 1, "the seed row itself is still removed");
 }
+
+void testSourceTokenGrammar()
+{
+	// RoutingFold::parseSourceToken: the step list's inline source editor
+	// reads the summand as the line writes it. Field report (minimal,
+	// MultiConvolution): "R=0, retype 1, still 0" - the editor was a
+	// gain-only field, so a port typed into it changed nothing.
+	auto summand = [](const wchar_t* channel, double factor, bool isDecibel) {
+		Assignment::Summand s;
+		s.channel = channel;
+		s.factor = factor;
+		s.isDecibel = isDecibel;
+		return s;
+	};
+	auto channelOf = [](const Assignment::Summand& s) {
+		return QString::fromStdWString(s.channel);
+	};
+
+	// The pre-filled token is the serializer's spelling.
+	expectEqual(RoutingFold::sourceToken(summand(L"L", 1.0, false)), "L", "unity prints the bare channel");
+	expectEqual(RoutingFold::sourceToken(summand(L"L", 0.5, false)), "0.5*L", "a factor prints as factor*channel");
+	expectEqual(RoutingFold::sourceToken(summand(L"L", -1.0, false)), "-1.0*L", "an integer factor gains .0 like the line");
+	expectEqual(RoutingFold::sourceToken(summand(L"L", -6.0, true)), "-6.0dB*L", "a dB factor keeps its suffix");
+	expectEqual(RoutingFold::sourceToken(summand(L"0", 1.0, false)), "0", "a port prints bare at unity");
+
+	// Fixed-port mode (MultiConvolution): a bare integer is a port.
+	Assignment::Summand s = summand(L"0", 1.0, false);
+	expectTrue(RoutingFold::parseSourceToken("1", true, s), "a bare integer is read as a port");
+	expectEqual(channelOf(s), "1", "the port changes to the typed index");
+	expectTrue(s.factor == 1.0 && !s.isDecibel, "a bare port is unity");
+	expectTrue(RoutingFold::parseSourceToken("0.5*2", true, s), "factor*port is read");
+	expectEqual(channelOf(s), "2", "factor*port sets the port");
+	expectTrue(s.factor == 0.5, "factor*port sets the factor");
+	expectTrue(RoutingFold::parseSourceToken("-6dB", true, s), "a bare dB gain is a factor");
+	expectEqual(channelOf(s), "2", "a bare factor keeps the port");
+	expectTrue(s.factor == -6.0 && s.isDecibel, "the dB factor is stored as decibel");
+	expectFalse(RoutingFold::parseSourceToken("L", true, s), "a channel name is not a port");
+	expectFalse(RoutingFold::parseSourceToken("12345", true, s), "five digits exceed the index the adapter reads");
+	expectEqual(channelOf(s), "2", "a rejected token leaves the summand untouched");
+
+	// Copy mode: the Copy grammar's reading of a bare token.
+	s = summand(L"L", 1.0, false);
+	expectTrue(RoutingFold::parseSourceToken("R", false, s), "a bare channel is read");
+	expectEqual(channelOf(s), "R", "the channel changes");
+	expectTrue(RoutingFold::parseSourceToken("0.5*VL", false, s), "factor*channel is read");
+	expectEqual(channelOf(s), "VL", "factor*channel sets the channel");
+	expectTrue(s.factor == 0.5, "factor*channel sets the factor");
+	expectTrue(RoutingFold::parseSourceToken("INV", false, s), "INV is a factor");
+	expectTrue(s.factor == -1.0 && !s.isDecibel, "INV inverts");
+	expectEqual(channelOf(s), "VL", "a bare factor keeps the channel");
+	expectTrue(RoutingFold::parseSourceToken("0", false, s), "a bare 0 is a factor, as in the Copy grammar");
+	expectTrue(s.factor == 0.0, "the zero factor is stored");
+	expectTrue(RoutingFold::parseSourceToken("0,25", false, s), "a decimal comma is accepted like the engine accepts it");
+	expectTrue(s.factor == 0.25, "the comma factor is read");
+	expectTrue(RoutingFold::parseSourceToken("SL", false, s), "a bare channel after a factor resets to unity");
+	expectTrue(s.factor == 1.0 && channelOf(s) == "SL", "the bare channel is unity, as the line reads it");
+	expectTrue(RoutingFold::parseSourceToken("2", false, s), "a bare integer other than 0 is a channel position in Copy");
+	expectEqual(channelOf(s), "2", "the position is the channel token");
+	expectFalse(RoutingFold::parseSourceToken("L+R", false, s), "an operator is not a summand");
+	expectFalse(RoutingFold::parseSourceToken("0.5*", false, s), "a factor without a channel is rejected");
+	expectFalse(RoutingFold::parseSourceToken("abc*L", false, s), "a non-numeric factor is rejected");
+	expectFalse(RoutingFold::parseSourceToken("inf*L", false, s), "a non-finite factor is rejected");
+	expectFalse(RoutingFold::parseSourceToken("", false, s), "an empty token is not a summand");
+	expectEqual(channelOf(s), "2", "rejected tokens leave the summand untouched");
+}

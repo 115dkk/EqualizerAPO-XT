@@ -469,6 +469,20 @@ jobs:
         & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
           -WorkspaceRoot "${{ github.workspace }}" -Gate power-toggle
 
+    # The routing views' inline edits and the ALL chips: the minimal step
+    # list must keep its source hint after a source is added, open a source
+    # editor that shows its token and read a retyped port or channel (the
+    # v2.46 report: a gain-only field the size of the chip it covered), and
+    # a Channel / Device card written as ALL must take the next chip click
+    # as the new selection in every skin.
+    - name: Run routing edit test (offscreen)
+      if: matrix.simd_variant == 'avx2'
+      timeout-minutes: 5
+      shell: pwsh
+      run: |
+        & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
+          -WorkspaceRoot "${{ github.workspace }}" -Gate routing-edit
+
     # A hard step timeout on every gate: if the Editor ever blocks on a
     # fatal-error dialog again, the job must fail in minutes, not hang for
     # hours.

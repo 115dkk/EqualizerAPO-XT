@@ -14,6 +14,27 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Minimal skin: the Copy and MultiConvolution step list is editable
+  again.** Double-clicking a source opened a field the size of the source
+  chip, so with the skin's field padding even "L" was cut off, and the field
+  only ever read a gain: typing a port ("1") or a channel ("R") into it
+  changed nothing, which forced every simple MultiConvolution mapping through
+  the raw line editor. The field is now a full-width source editor that shows
+  the source exactly as the line writes it ("0.5*L") and reads the same
+  grammar back - retype the channel or port, the factor, or both; a bare
+  factor keeps the channel, an empty field removes the source - and completes
+  channel names from the step's own hint list. The add-channel prompt is
+  sized to its line as well. A new offscreen gate (`--routing-edit-test`)
+  holds the hint list, the editor width and the retyped-port case, together
+  with the ALL behaviour below
+  ([#309](https://github.com/115dkk/EqualizerAPO-XT/pull/309)).
+- **Channel and Device cards: picking a chip while ALL is on now narrows to
+  that chip.** Every skin held the individual chips inert while ALL / All
+  devices was checked, so ALL had to be unchecked by hand before any seat
+  would take a click. The chips stay live: the first pick releases ALL and
+  becomes the selection, later picks accumulate as before
+  ([#309](https://github.com/115dkk/EqualizerAPO-XT/pull/309)).
+
 ## v2.47.0 — 2026-08-28
 
 - **Plugin panels can now be heard, not just seen.** A VST plugin that

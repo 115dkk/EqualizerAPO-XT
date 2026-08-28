@@ -3,6 +3,7 @@
 */
 
 #include "CopyRoutingAdapter.h"
+#include "RoutingFold.h"
 
 #include <QSet>
 
@@ -27,28 +28,9 @@ QString CopyRoutingAdapter::serialize(const std::vector<Assignment>& assignments
 
 bool CopyRoutingAdapter::parseFactorToken(const QString& token, Assignment::Summand& summand)
 {
-	const QString raw = token.trimmed();
-	if (raw.compare(QLatin1String("INV"), Qt::CaseInsensitive) == 0)
-	{
-		summand.factor = -1.0;
-		summand.isDecibel = false;
-		return true;
-	}
-	bool isDecibel = false;
-	QString number = raw;
-	if (number.endsWith(QLatin1String("db"), Qt::CaseInsensitive))
-	{
-		isDecibel = true;
-		number.chop(2);
-		number = number.trimmed();
-	}
-	bool ok = false;
-	const double factor = number.toDouble(&ok);
-	if (!ok)
-		return false;
-	summand.factor = factor;
-	summand.isDecibel = isDecibel;
-	return true;
+	// One factor grammar for every renderer's gain editor; it lives in
+	// RoutingFold (Qt Core only) so EditorLogicTests can pin it.
+	return RoutingFold::parseFactor(token, summand);
 }
 
 void CopyRoutingAdapter::pinChannel(QStringList& pinnedChannels, const QString& channel)

@@ -52,6 +52,9 @@ public:
 	bool allSelected() const;
 
 	void setAllSelected(bool on);
+	// Flip one chip. While "all" is on, picking a chip narrows the selection
+	// to that device: "all" releases and every other chip clears (the legacy
+	// dialog made the user leave the all-devices state first).
 	void toggle(const QString& deviceString);
 
 	// Canonical parameter string for the current selection ("all" wins, like

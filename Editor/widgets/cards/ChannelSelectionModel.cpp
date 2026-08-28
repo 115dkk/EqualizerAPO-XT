@@ -100,11 +100,27 @@ void ChannelSelectionModel::setAllSelected(bool on)
 	all = on;
 }
 
+void ChannelSelectionModel::narrowFromAll()
+{
+	if (!all)
+		return;
+	all = false;
+	for (ChannelChip& chip : chipList)
+		chip.selected = false;
+}
+
 void ChannelSelectionModel::toggle(const QString& name)
 {
 	int index = chipIndex(name);
-	if (index >= 0)
-		chipList[index].selected = !chipList[index].selected;
+	if (index < 0)
+		return;
+	if (all)
+	{
+		narrowFromAll();
+		chipList[index].selected = true;
+		return;
+	}
+	chipList[index].selected = !chipList[index].selected;
 }
 
 bool ChannelSelectionModel::addCustom(const QString& name)
@@ -118,6 +134,7 @@ bool ChannelSelectionModel::addCustom(const QString& name)
 		if (c.isSpace() || c == QLatin1Char(','))
 			return false;
 
+	narrowFromAll();
 	int index = resolveDeviceChip(token);
 	if (index < 0)
 		index = chipIndex(token);

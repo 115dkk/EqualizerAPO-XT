@@ -36,6 +36,9 @@ private slots:
 
 private:
 	void reloadChips();
+	// Re-apply the model's states to the existing chips (no rebuild, so it
+	// is safe inside a chip's own toggled signal).
+	void syncChipStates();
 
 	DeviceSelectionModel model;
 	FlowLayout* flow = nullptr;
