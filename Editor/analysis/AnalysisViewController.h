@@ -1,6 +1,6 @@
 /*
 	This file is part of EqualizerAPO-XT.
-	Copyright (C) 2026 EqualizerAPO-XT contributors
+	Copyright (C) 2026 115dkk
 	SPDX-License-Identifier: GPL-2.0-or-later
 
 	The one place a filter card can ask the analysis graph to show something.
