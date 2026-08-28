@@ -245,10 +245,10 @@ FakeAsioDriver::Channel* FakeAsioDriver::findChannel(bool input, long index)
 
 FakeAsioDriver::Record& FakeAsioDriver::record(bool input, long index)
 {
-	for (Record& entry : records_)
+	for (size_t i = 0; i < records_.size(); i++)
 	{
-		if (entry.input == input && entry.index == index)
-			return entry;
+		if (records_[i].input == input && records_[i].index == index)
+			return records_[i];
 	}
 	Record entry;
 	entry.input = input;
