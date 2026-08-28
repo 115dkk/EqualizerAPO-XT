@@ -62,6 +62,12 @@ public:
 	const eapo::asio::AsioTarget& getTarget() const {return target;}
 	std::wstring getWrapperClsid() const;
 
+	// The synchronous mode (no extra buffer; a missed deadline passes the
+	// buffer through) as the Device Selector's option for this target. Both
+	// directions share the setting, since they share the wrapper record.
+	bool isSynchronous() const {return selectedSynchronous;}
+	void setSynchronous(bool synchronous) {selectedSynchronous = synchronous;}
+
 	// Where the engine host publishes what it saw for a target.
 	static std::wstring factsKey(const std::wstring& targetClsid);
 
@@ -73,6 +79,8 @@ private:
 	bool input;
 	IRegistry& registry;
 	bool installed = false;
+	bool currentSynchronous = false;
+	bool selectedSynchronous = false;
 	unsigned channelCount = 0;
 	unsigned sampleRate = 0;
 };

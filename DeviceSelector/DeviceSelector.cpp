@@ -26,6 +26,7 @@
 #include <platform/windows/Win32Resource.h>
 #include <QDir>
 #include <QPropertyAnimation>
+#include <devices/AsioAPOInfo.h>
 #include <devices/VoicemeeterAPOInfo.h>
 #include "DeviceTestDialog.h"
 #include "../version.h"
@@ -154,6 +155,7 @@ void DeviceSelector::finishSetup()
 	connect(ui.installModeComboBox, QOverload<int>::of(&QComboBox::activated), this, &DeviceSelector::onTroubleShootingOptionChanged);
 	connect(ui.allowSilentBufferCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
 	connect(ui.autoCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
+	connect(ui.asioSyncCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
 
 	updateButtons();
 
@@ -460,6 +462,9 @@ void DeviceSelector::onTroubleShootingOptionChanged()
 			else if (sender == ui.autoCheckBox)
 				deviceInfo->getSelectedInstallState().autoAdjust = ui.autoCheckBox->isChecked();
 		}
+		AsioAPOInfo* asioInfo = dynamic_cast<AsioAPOInfo*>(info.get());
+		if (asioInfo != nullptr && QObject::sender() == ui.asioSyncCheckBox)
+			asioInfo->setSynchronous(ui.asioSyncCheckBox->isChecked());
 
 		updateList(item);
 	}
@@ -507,6 +512,8 @@ void DeviceSelector::updateButtons()
 	bool isInput = false;
 	bool hasOriginalAPOPreMix = true;
 	bool hasOriginalAPOPostMix = true;
+	bool asioSelected = false;
+	bool asioSynchronous = false;
 	DeviceAPOInfo::InstallState installState;
 	if (noGroupsSelected && list.size() == 1)
 	{
@@ -522,6 +529,12 @@ void DeviceSelector::updateButtons()
 			hasOriginalAPOPostMix = deviceApoInfo->getOriginalAPOPostMix() != L"";
 			installState = deviceApoInfo->getSelectedInstallState();
 		}
+		const AsioAPOInfo* asioInfo = dynamic_cast<const AsioAPOInfo*>(apoInfo.get());
+		if (asioInfo != nullptr)
+		{
+			asioSelected = true;
+			asioSynchronous = asioInfo->isSynchronous();
+		}
 	}
 
 	ui.preMixLabel->setEnabled(enable);
@@ -532,7 +545,11 @@ void DeviceSelector::updateButtons()
 	ui.useOriginalAPOPostMixCheckBox->setEnabled(enable && !isInput && hasOriginalAPOPostMix && installState.installPostMix);
 	ui.installModeComboBox->setEnabled(enable);
 	ui.allowSilentBufferCheckBox->setEnabled(enable);
-	ui.stackedWidget->setCurrentIndex(enable ? 1 : 0);
+	// Page 0: nothing to say. Page 1: an endpoint's APO chain. Page 2: an
+	// ASIO target's one option.
+	ui.stackedWidget->setCurrentIndex(!enable ? 0 : (asioSelected ? 2 : 1));
+	ui.asioSyncCheckBox->setEnabled(enable && asioSelected);
+	ui.asioSyncCheckBox->setChecked(asioSynchronous);
 
 	ui.installPreMixCheckBox->setChecked(installState.installPreMix);
 	ui.installPostMixCheckBox->setChecked(installState.installPostMix);

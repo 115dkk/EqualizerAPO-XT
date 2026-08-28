@@ -180,6 +180,18 @@ namespace
 
 		out->reinstall();
 		harness.expectTrue(out->isInstalled(), "reinstall installs");
+
+		// The synchronous mode is the record's one option, shared by both directions.
+		AsioAPOInfo* asioOut = static_cast<AsioAPOInfo*>(out.get());
+		harness.expectFalse(asioOut->isSynchronous(), "pipelined by default");
+		harness.expectFalse(asioOut->hasChanges(), "no change before the option is touched");
+		asioOut->setSynchronous(true);
+		harness.expectTrue(asioOut->hasChanges(), "selecting the option is a change on an installed record");
+		asioOut->reinstall();
+		harness.require(eapo::asio::WrapperRecords::read(registry, wrapper, record), "the record survives the reinstall");
+		harness.expect(record.options.mode == eapo::asio::Mode::Sync, "the record now runs synchronous");
+		harness.expectFalse(asioOut->hasChanges(), "applied: no change pending");
+		harness.expectTrue(asioOut->isSynchronous(), "the option reads back");
 		out->uninstall();
 	}
 

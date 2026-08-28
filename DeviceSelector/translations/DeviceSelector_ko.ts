@@ -209,6 +209,14 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>무음 버퍼 수정 허용</translation>
     </message>
     <message>
+        <source>Process inside the buffer callback (no extra buffer of latency; a buffer the engine host answers too late passes through unprocessed)</source>
+        <translation>버퍼 콜백 안에서 처리 (지연 버퍼 없음, 엔진 호스트의 답이 늦은 버퍼는 처리 없이 통과)</translation>
+    </message>
+    <message>
+        <source>Unchecked, the previous buffer is played: one buffer of latency, every buffer processed. Applies to both directions of this driver.</source>
+        <translation>끄면 직전 버퍼를 재생합니다. 버퍼 하나만큼의 지연이 붙고 모든 버퍼가 처리됩니다. 이 드라이버의 입력과 출력에 함께 적용됩니다.</translation>
+    </message>
+    <message>
         <source>Connector</source>
         <translation type="vanished">커넥터</translation>
     </message>
