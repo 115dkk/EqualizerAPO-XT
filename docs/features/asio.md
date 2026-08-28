@@ -13,7 +13,7 @@ configures it. The design and its measurements are in
 
 1. Open the Device Selector. Every ASIO driver on the machine appears in the
    playback list and in the capture list, in the same groups as the Windows
-   endpoints, marked with the word `ASIO` in its state text.
+   endpoints, as `ASIO <driver name>`; the leading word is the only marker.
 2. Tick the playback entry to process what the application sends to the
    interface, the capture entry to process what the interface records, or
    both. Confirm.

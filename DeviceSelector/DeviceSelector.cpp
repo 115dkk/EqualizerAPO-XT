@@ -657,9 +657,8 @@ QString DeviceSelector::getStateText(const std::shared_ptr<AbstractAPOInfo>& apo
 	else if (apoInfo->isDefaultDevice())
 		state += ", " + tr("Default device");
 
-	const std::wstring transport = apoInfo->getTransportLabel();
-	if (!transport.empty())
-		state += ", " + QString::fromStdWString(transport);
+	// The transport (ASIO) is the row's leading word already, the way an
+	// endpoint's connection is; the state line does not say it again.
 
 	if (apoInfo->isDisabled())
 		state += ", " + tr("Disabled");
