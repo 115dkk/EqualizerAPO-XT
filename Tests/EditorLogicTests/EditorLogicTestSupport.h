@@ -37,6 +37,7 @@ void testMultiConvolutionRoutingAdapter();
 void testStageSelectionModel();
 void testStudioRoutingModel();
 void testRoutingFold();
+void testSourceTokenGrammar();
 void testAnalysisResponseBinArithmetic();
 void testAnalysisResponseEmptyAndLatency();
 void testResponseCurveMatchesTheLegacyMagnitudePath();

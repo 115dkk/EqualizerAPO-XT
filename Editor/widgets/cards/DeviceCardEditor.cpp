@@ -1,5 +1,7 @@
 #include "DeviceCardEditor.h"
 
+#include <QAbstractButton>
+
 #include <QToolButton>
 
 #include "Editor/FilterTable.h"
@@ -83,17 +85,35 @@ void DeviceCardEditor::allToggled(bool checked)
 		return;
 
 	model.setAllSelected(checked);
-	// "All devices" wins over individual selections, like the legacy dialog;
-	// the device chips stay visible but inert while it is checked. Only enabled
-	// states change here - rebuilding the chip row inside a chip's own toggled
-	// signal would delete the emitting button.
+	// "All devices" wins over individual selections when written, like the
+	// legacy dialog; the device chips stay live so the next pick narrows
+	// from all to that device (DeviceSelectionModel::toggle). Chips only
+	// re-sync here - a rebuild inside a chip's own toggled signal would
+	// delete the emitting button.
+	syncChipStates();
+	emit updateModel();
+}
+
+void DeviceCardEditor::syncChipStates()
+{
+	updating = true;
+	const bool all = model.allSelected();
+	allChip->setChecked(all);
 	for (int i = 2; i < flow->count(); i++)
 	{
-		if (QWidget* chip = flow->itemAt(i)->widget())
-			chip->setEnabled(!checked);
+		QAbstractButton* button = qobject_cast<QAbstractButton*>(flow->itemAt(i)->widget());
+		if (button == nullptr)
+			continue;
+		const QString deviceString = button->property("deviceString").toString();
+		bool selected = false;
+		for (const DeviceChipInfo& chip : model.chips())
+			if (chip.deviceString == deviceString)
+				selected = chip.selected;
+		// While "all" is written no single device is: the chips read as the
+		// line does.
+		button->setChecked(selected && !all);
 	}
-	showAllButton->setEnabled(!checked);
-	emit updateModel();
+	updating = false;
 }
 
 void DeviceCardEditor::showAllToggled(bool checked)
@@ -138,11 +158,11 @@ void DeviceCardEditor::reloadChips()
 		button->setObjectName(QStringLiteral("DeviceChip"));
 		button->setText(chip.connection.isEmpty() ? chip.name : chip.connection);
 		button->setCheckable(true);
-		button->setChecked(chip.selected);
-		button->setEnabled(!all);
+		button->setChecked(chip.selected && !all);
 		// Skins may dim not-installed chips or distinguish capture devices.
 		button->setProperty("deviceInstalled", chip.installed);
 		button->setProperty("deviceInput", chip.isInput);
+		button->setProperty("deviceString", chip.deviceString);
 		QString tip = chip.connection.isEmpty() ? chip.name : chip.connection + " - " + chip.name;
 		tip += "\n" + (chip.isInput ? tr("Capture") : tr("Playback"));
 		tip += "\n" + (chip.installed ? tr("APO installed") : tr("APO not installed"));
@@ -151,7 +171,12 @@ void DeviceCardEditor::reloadChips()
 		connect(button, &QToolButton::toggled, this, [this, deviceString](bool) {
 			if (updating)
 				return;
+			const bool narrowed = model.allSelected();
 			model.toggle(deviceString);
+			// Narrowing from all changed more than this chip: all released
+			// and the other devices cleared.
+			if (narrowed)
+				syncChipStates();
 			emit updateModel();
 		});
 		flow->addWidget(button);
@@ -160,7 +185,6 @@ void DeviceCardEditor::reloadChips()
 	// The reveal toggle only matters when some devices are hidden, or while it
 	// is already revealing them (so the user can collapse again).
 	showAllButton->setVisible(hiddenUninstalled > 0 || showAll);
-	showAllButton->setEnabled(!all);
 	showAllButton->blockSignals(true);
 	showAllButton->setChecked(showAll);
 	showAllButton->setText(showAll ? tr("Show fewer") : tr("Show all (+%1)").arg(hiddenUninstalled));

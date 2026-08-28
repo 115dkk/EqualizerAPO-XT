@@ -1,5 +1,6 @@
 #include "ChannelCardEditor.h"
 
+#include <QAbstractButton>
 #include <QHBoxLayout>
 #include <QLineEdit>
 #include <QToolButton>
@@ -79,17 +80,30 @@ void ChannelCardEditor::allToggled(bool checked)
 		return;
 
 	model.setAllSelected(checked);
-	// ALL wins over individual selections, exactly like the legacy dialog;
-	// individual chips stay visible but inert while it is checked. Only the
-	// enabled states change here - rebuilding the chip row inside a chip's
-	// own toggled signal would delete the emitting button.
-	for (int i = 0; i < chipLayout->count(); i++)
-	{
-		if (QWidget* chip = chipLayout->itemAt(i)->widget())
-			chip->setEnabled(!checked);
-	}
-	customEdit->setEnabled(!checked);
+	// ALL wins over individual selections when written, like the legacy
+	// dialog; the chips stay live so the next pick narrows from ALL to that
+	// seat (ChannelSelectionModel::toggle). Chips only re-sync here - a
+	// rebuild inside a chip's own toggled signal would delete the emitting
+	// button.
+	syncChipStates();
 	commitSelection();
+}
+
+void ChannelCardEditor::syncChipStates()
+{
+	updating = true;
+	const bool all = model.allSelected();
+	allChip->setChecked(all);
+	const QList<ChannelChip>& chips = model.chips();
+	for (int i = 0; i < chipLayout->count() && i < chips.size(); i++)
+	{
+		QAbstractButton* button = qobject_cast<QAbstractButton*>(chipLayout->itemAt(i)->widget());
+		if (button != nullptr)
+			// While ALL is written no single seat is: the chips read as the
+			// line does.
+			button->setChecked(chips[i].selected && !all);
+	}
+	updating = false;
 }
 
 void ChannelCardEditor::customEntered()
@@ -122,22 +136,24 @@ void ChannelCardEditor::reloadChips()
 		button->setObjectName(QStringLiteral("ChannelChip"));
 		button->setText(chip.name);
 		button->setCheckable(true);
-		button->setChecked(chip.selected);
 		// Custom/virtual channels are stylable separately (the channel badges
 		// use a dashed outline for them; skins may do the same here).
 		button->setProperty("customChannel", !chip.fromDevice);
-		button->setEnabled(!all);
+		button->setChecked(chip.selected && !all);
 		const QString name = chip.name;
 		connect(button, &QToolButton::toggled, this, [this, name](bool) {
 			if (updating)
 				return;
+			const bool narrowed = model.allSelected();
 			model.toggle(name);
+			// Narrowing from ALL changed more than this chip: ALL released
+			// and the other seats cleared.
+			if (narrowed)
+				syncChipStates();
 			commitSelection();
 		});
 		chipLayout->addWidget(button);
 	}
-
-	customEdit->setEnabled(!all);
 
 	updating = false;
 }

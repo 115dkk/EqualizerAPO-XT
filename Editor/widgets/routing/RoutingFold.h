@@ -71,4 +71,27 @@ bool isValidChannelName(const QString& name);
 // was dropped - i.e. the serialized line changes; folding away a pure seed
 // row returns false.
 bool removeChannel(std::vector<Assignment>& assignments, const QString& channel);
+
+// The factor grammar of every renderer's inline gain editor: "INV" (phase
+// inversion, -1), a decimal number, or a decimal number with a dB suffix.
+// A decimal comma is accepted like the engine accepts it. Only the factor
+// fields of summand change; false leaves it untouched.
+bool parseFactor(const QString& token, Assignment::Summand& summand);
+
+// The source-token grammar of the step list's inline source editor: the
+// summand exactly as the line writes it, so what the editor shows is what
+// the config line will say. "0.5*L" and "-6dB*L" set factor and channel;
+// a bare factor ("0.5", "-6dB", "INV") changes only the factor and keeps
+// the channel; a bare channel token sets the channel at unity, which is
+// what the line grammar reads a bare token as. In fixed-port mode
+// (MultiConvolution, ports "0".."N-1") a bare integer is a port index, the
+// one thing a bare integer cannot be there is a factor; in Copy mode "0"
+// and decimals are factors (the Copy grammar) and every other token is a
+// channel name or a 1-based position. False when the token is not a
+// summand at all; summand is untouched then.
+bool parseSourceToken(const QString& token, bool fixedPorts, Assignment::Summand& summand);
+
+// The token the source editor pre-fills: the summand as the line writes it
+// ("L", "0.5*L", "-6dB*L", "-1.0*L"), formatted like the Copy serializer.
+QString sourceToken(const Assignment::Summand& summand);
 }

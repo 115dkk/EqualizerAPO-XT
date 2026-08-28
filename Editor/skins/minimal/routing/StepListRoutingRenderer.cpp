@@ -5,10 +5,12 @@
 #include "StepListRoutingRenderer.h"
 #include "Editor/skins/shared/SkinPaint.h"
 
+#include <QCompleter>
 #include <QMenu>
 #include <QPainter>
 #include <QMouseEvent>
 #include <QFontMetrics>
+#include <QStringListModel>
 
 #include "Editor/SkinManager.h"
 #include "Editor/widgets/routing/CopyRoutingAdapter.h"
@@ -63,6 +65,33 @@ void StepListView::galleryShowcase(const QString& state)
 		if (channelEditor != nullptr)
 			channelEditor->setText(QStringLiteral("VS"));
 	}
+	else if (state.startsWith(QLatin1String("editSource:")))
+	{
+		// The gate's stand-in for a double-click: the named target's first
+		// summand. paintEvent lays out the hit-rects the editor sits on, so
+		// the view must have painted once (the caller shows it first).
+		const int row = rowIndexOf(state.mid(11));
+		if (row >= 0 && !workingAssignments[row].sourceSum.empty())
+			openSourceEditor(row, 0);
+	}
+}
+
+int StepListView::rowIndexOf(const QString& target) const
+{
+	for (int i = 0; i < (int)workingAssignments.size(); i++)
+		if (QString::fromStdWString(workingAssignments[i].targetChannel).compare(target, Qt::CaseInsensitive) == 0)
+			return i;
+	return -1;
+}
+
+QStringList StepListView::sourceCandidates(const QString& target) const
+{
+	return sourceCandidatesForRow(rowIndexOf(target));
+}
+
+bool StepListView::connectSource(const QString& target, const QString& source)
+{
+	return addSourceToRow(rowIndexOf(target), source);
 }
 
 static QFont monoFont(const SkinTokens& tokens)
@@ -236,6 +265,12 @@ void StepListView::paintEvent(QPaintEvent*)
 			{
 				x += 10;
 			}
+
+			// An open source editor is wider than the summand it replaces:
+			// the rest of the step flows around it instead of vanishing
+			// underneath.
+			if (sourceEditor != nullptr && sourceEditor->isVisible() && editRow == r && editSummand == si)
+				x = qMax(x, sourceEditor->geometry().right() + 8);
 		}
 
 		// Bracketed [+] target per step: adds a source channel to this sum. This
@@ -364,10 +399,11 @@ void StepListView::leaveEvent(QEvent* event)
 	RoutingView::leaveEvent(event);
 }
 
-void StepListView::showAddMenu(int row, const QPoint& globalPos)
+QStringList StepListView::sourceCandidatesForRow(int row) const
 {
+	QStringList candidates;
 	if (row < 0 || row >= (int)workingAssignments.size())
-		return;
+		return candidates;
 
 	auto inSum = [this, row](const QString& channel) {
 		for (const Assignment::Summand& s : workingAssignments[row].sourceSum)
@@ -375,8 +411,6 @@ void StepListView::showAddMenu(int row, const QPoint& globalPos)
 				return true;
 		return false;
 	};
-
-	QStringList candidates;
 	auto addCandidate = [&](const QString& channel) {
 		if (channel.isEmpty() || channel == QLatin1String(" ")
 			|| inSum(channel) || candidates.contains(channel, Qt::CaseInsensitive))
@@ -402,6 +436,30 @@ void StepListView::showAddMenu(int row, const QPoint& globalPos)
 				addCandidate(QString::fromStdWString(s.channel));
 		}
 	}
+	return candidates;
+}
+
+bool StepListView::addSourceToRow(int row, const QString& channel)
+{
+	if (row < 0 || row >= (int)workingAssignments.size() || channel.isEmpty())
+		return false;
+	for (const Assignment::Summand& s : workingAssignments[row].sourceSum)
+		if (QString::fromStdWString(s.channel).compare(channel, Qt::CaseInsensitive) == 0)
+			return false;
+
+	Assignment::Summand s;
+	s.factor = 1.0;
+	s.isDecibel = false;
+	s.channel = channel.toStdWString();
+	workingAssignments[row].sourceSum.push_back(s);
+	refold();
+	emit routingChanged();
+	return true;
+}
+
+void StepListView::showAddMenu(int row, const QPoint& globalPos)
+{
+	const QStringList candidates = sourceCandidatesForRow(row);
 	if (candidates.isEmpty())
 		return;
 
@@ -411,14 +469,7 @@ void StepListView::showAddMenu(int row, const QPoint& globalPos)
 	const QAction* chosen = menu.exec(globalPos);
 	if (chosen == nullptr)
 		return;
-
-	Assignment::Summand s;
-	s.factor = 1.0;
-	s.isDecibel = false;
-	s.channel = chosen->text().toStdWString();
-	workingAssignments[row].sourceSum.push_back(s);
-	refold();
-	emit routingChanged();
+	addSourceToRow(row, chosen->text());
 }
 
 void StepListView::mouseDoubleClickEvent(QMouseEvent* event)
@@ -435,59 +486,85 @@ void StepListView::mouseDoubleClickEvent(QMouseEvent* event)
 	}
 	if (row < 0)
 		return;
+	openSourceEditor(row, summand);
+}
 
-	if (!portModel.allowFactors)
-	{
-		// Without factors the only source edit is removal.
-		Assignment& a = workingAssignments[row];
-		if (summand >= 0 && summand < (int)a.sourceSum.size())
-		{
-			a.sourceSum.erase(a.sourceSum.begin() + summand);
-			refold();
-			emit routingChanged();
-		}
+void StepListView::openSourceEditor(int row, int summand)
+{
+	if (row < 0 || row >= (int)workingAssignments.size()
+		|| summand < 0 || summand >= (int)workingAssignments[row].sourceSum.size())
 		return;
-	}
 
-	commitEditor();
+	commitSourceEditor();
 	editRow = row;
 	editSummand = summand;
 
-	const Assignment::Summand& s = workingAssignments[row].sourceSum[summand];
-	const QString textValue = s.isDecibel ? QStringLiteral("%1dB").arg(s.factor) : QString::number(s.factor);
-
-	if (editor == nullptr)
+	if (sourceEditor == nullptr)
 	{
-		editor = new QLineEdit(this);
-		editor->setObjectName(QStringLiteral("StepFactorEditor"));
-		editor->setAlignment(Qt::AlignCenter);
-		connect(editor, &QLineEdit::editingFinished, this, &StepListView::commitEditor);
+		sourceEditor = new QLineEdit(this);
+		sourceEditor->setObjectName(QStringLiteral("StepSourceEditor"));
+		// Channel-name completion from the step's own candidate list: the
+		// terminal's tab-completion, so the hint the [+] menu carries is at
+		// hand while typing too.
+		sourceCompletions = new QStringListModel(sourceEditor);
+		sourceCompleter = new QCompleter(sourceCompletions, sourceEditor);
+		sourceCompleter->setCaseSensitivity(Qt::CaseInsensitive);
+		sourceCompleter->setCompletionMode(QCompleter::PopupCompletion);
+		sourceEditor->setCompleter(sourceCompleter);
+		connect(sourceEditor, &QLineEdit::editingFinished, this, &StepListView::commitSourceEditor);
 	}
+
+	// The editor spans the summand's token and gain label, and never less
+	// than a full "-0.000dB*LFE": the field must show what it holds. It
+	// stays inside the view's width, sliding left when the step is long.
+	QRect span;
 	for (const Hit& h : hits)
 		if (h.row == row && h.summand == summand)
-			editor->setGeometry(h.rect.adjusted(-2, -2, 2, 2));
-	editor->setText(textValue);
-	editor->show();
-	editor->setFocus();
-	editor->selectAll();
+			span |= h.rect;
+	// The editor's own face (the sheet pins the listing's mono face on it),
+	// polished first so a fresh widget does not measure with the default.
+	sourceEditor->ensurePolished();
+	const QFontMetrics fm = sourceEditor->fontMetrics();
+	const int minimumWidth = fm.horizontalAdvance(QStringLiteral("-0.000dB*LFE")) + 24;
+	const int w = qMax(span.width() + 12, minimumWidth);
+	int x = span.isNull() ? 40 : span.left() - 6;
+	if (x + w > width())
+		x = qMax(0, width() - w);
+	const int y = span.isNull() ? headerH + 2 : span.center().y() - (rowH - 4) / 2;
+	sourceEditor->setGeometry(x, y, w, rowH - 4);
+
+	QStringList completions = sourceCandidatesForRow(row);
+	const Assignment::Summand& s = workingAssignments[row].sourceSum[summand];
+	completions.prepend(QString::fromStdWString(s.channel));
+	sourceCompletions->setStringList(completions);
+
+	sourceEditor->setText(RoutingFold::sourceToken(s));
+	sourceEditor->show();
+	sourceEditor->setFocus();
+	sourceEditor->selectAll();
+	// Reflow the step around the editor (paintEvent).
+	update();
 }
 
-void StepListView::commitEditor()
+void StepListView::commitSourceEditor()
 {
-	if (editor == nullptr || !editor->isVisible() || editRow < 0)
+	if (sourceEditor == nullptr || !sourceEditor->isVisible() || editRow < 0)
 		return;
 
 	const int row = editRow, si = editSummand;
 	editRow = editSummand = -1;
-	QString raw = editor->text().trimmed();
-	editor->hide();
+	const QString raw = sourceEditor->text().trimmed();
+	sourceEditor->hide();
+	// The step flowed around the editor; flow it back even when nothing
+	// changes below.
+	update();
 
 	if (row >= (int)workingAssignments.size() || si >= (int)workingAssignments[row].sourceSum.size())
 		return;
 
 	if (raw.isEmpty())
 	{
-		// Clearing the factor removes the source from the sum, mirroring the
+		// Clearing the token removes the source from the sum, mirroring the
 		// crosspoint / patch-bay grids.
 		Assignment& a = workingAssignments[row];
 		a.sourceSum.erase(a.sourceSum.begin() + si);
@@ -497,7 +574,16 @@ void StepListView::commitEditor()
 	}
 
 	Assignment::Summand& s = workingAssignments[row].sourceSum[si];
-	CopyRoutingAdapter::parseFactorToken(raw, s);
+	Assignment::Summand edited = s;
+	// A token the grammar cannot read leaves the step as it was; so does a
+	// gain where the port model allows none.
+	if (!RoutingFold::parseSourceToken(raw, portModel.fixedSourceMode(), edited))
+		return;
+	if (!portModel.allowFactors && (edited.factor != 1.0 || edited.isDecibel))
+		return;
+	if (edited.channel == s.channel && edited.factor == s.factor && edited.isDecibel == s.isDecibel)
+		return;
+	s = edited;
 	refold();
 	emit routingChanged();
 }
@@ -513,7 +599,7 @@ void StepListView::openChannelEditor()
 	const int py = promptRect.isNull()
 		? headerH + fold.visibleRows.size() * rowH
 		: promptRect.top();
-	channelEditor->setGeometry(QRect(44, py + 3, 140, rowH - 6));
+	channelEditor->setGeometry(QRect(44, py + 2, 160, rowH - 4));
 	channelEditor->setText(QString());
 	channelEditor->show();
 	channelEditor->setFocus();

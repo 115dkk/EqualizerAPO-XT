@@ -116,6 +116,7 @@ int main(int argc, char** argv)
 		testStageSelectionModel();
 		testStudioRoutingModel();
 		testRoutingFold();
+		testSourceTokenGrammar();
 		testAnalysisResponseBinArithmetic();
 		testAnalysisResponseEmptyAndLatency();
 		testResponseCurveMatchesTheLegacyMagnitudePath();

@@ -40,10 +40,14 @@ public:
 	bool allSelected() const;
 
 	void setAllSelected(bool on);
+	// Flip one chip. While ALL is on, picking a chip narrows the selection
+	// to that chip: ALL releases and every other chip clears (the legacy
+	// dialog made the user uncheck ALL first before any seat would take a
+	// click).
 	void toggle(const QString& name);
 	// Select an existing chip matching the token (names, aliases or position
 	// numbers) or append a new custom chip. Returns false when the token is
-	// empty or not a single selector.
+	// empty or not a single selector. Narrows from ALL like toggle().
 	bool addCustom(const QString& name);
 
 	// Canonical parameter string for the current selection ("ALL" wins, like
@@ -53,6 +57,9 @@ public:
 private:
 	int chipIndex(const QString& name) const;
 	int resolveDeviceChip(const QString& token) const;
+	// ALL -> one explicit seat: release ALL and clear every chip so the
+	// caller's pick becomes the whole selection.
+	void narrowFromAll();
 
 	QList<ChannelChip> chipList;
 	QList<QString> deviceNames;

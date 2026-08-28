@@ -43,11 +43,18 @@ void DeviceSelectionModel::setAllSelected(bool on)
 
 void DeviceSelectionModel::toggle(const QString& deviceString)
 {
+	const bool narrowing = all;
+	if (narrowing)
+	{
+		all = false;
+		for (DeviceChipInfo& chip : chipList)
+			chip.selected = false;
+	}
 	for (DeviceChipInfo& chip : chipList)
 	{
 		if (chip.deviceString == deviceString)
 		{
-			chip.selected = !chip.selected;
+			chip.selected = narrowing || !chip.selected;
 			return;
 		}
 	}

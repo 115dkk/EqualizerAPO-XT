@@ -57,6 +57,20 @@ void testChannelSelectionModel()
 	expectTrue(model.allSelected(), "ALL token sets the all-channels state");
 	expectEqual(model.serialize(), "ALL", "ALL serializes alone");
 
+	// Picking a seat while ALL is on narrows to that seat: ALL releases and
+	// the stale individual selection (the L above) clears with it. The
+	// legacy dialog, and the chip row until v2.46, made the user uncheck ALL
+	// before any seat would take a click.
+	model.toggle("R");
+	expectFalse(model.allSelected(), "a chip pick releases ALL");
+	expectEqual(model.serialize(), "R", "the pick is the whole selection after ALL");
+	model.toggle("C");
+	expectEqual(model.serialize(), "C R", "later picks accumulate as before");
+	model.load("ALL", stereo);
+	expectTrue(model.addCustom("vsl"), "a custom name is accepted while ALL is on");
+	expectFalse(model.allSelected(), "a custom name releases ALL too");
+	expectEqual(model.serialize(), "VSL", "the custom name is the whole selection after ALL");
+
 	// Custom/virtual channels keep their written order after the device
 	// chips, matching the dialog's list section.
 	model.load("VSL L VSR", stereo);
@@ -147,6 +161,14 @@ void testDeviceSelectionModel()
 	model.load(devSpeakers, devices);
 	model.setAllSelected(true);
 	expectEqual(model.serialize(), "all", "All overrides individual selections");
+
+	// Picking a device while "all" is on narrows to that device: all
+	// releases and the stale individual selection (Speakers) clears.
+	model.toggle(devHeadphones);
+	expectFalse(model.allSelected(), "a chip pick releases all");
+	expectEqual(model.serialize(), devHeadphones, "the pick is the whole selection after all");
+	model.toggle(devSpeakers);
+	expectEqual(model.serialize(), devSpeakers + "; " + devHeadphones, "later picks accumulate as before");
 }
 
 void testStageSelectionModel()

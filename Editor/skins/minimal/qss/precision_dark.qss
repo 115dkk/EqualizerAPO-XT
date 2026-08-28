@@ -478,6 +478,18 @@ QToolButton#FilterCardIconButton:hover { background: @CARD_HOVER@; border-color:
    step and the body-ink border, no accent (accent only while active;
    maintainer re-ruling 2026-08-24). */
 QToolButton#FilterCardIconButton:checked { background: @CARD_HOVER@; border-color: @TEXT@; }
+/* Step list (Copy / MultiConvolution) inline editors: the source token
+   and the add-channel prompt in insert mode. The generic field padding
+   (4px 8px) left a token-sized field with no room for even "L"; these
+   sit inside a 26px listing line, so the padding is the line's own. The
+   accent hairline marks edit mode, as on RefPathEdit. */
+QLineEdit#StepSourceEditor, QLineEdit#StepChannelEditor {
+    background: #0e0e0e; color: @TEXT@;
+    border: 1px solid @ACCENT@; border-radius: 0;
+    padding: 0px 6px; min-height: 0px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-size: 12px; font-weight: 500;
+}
+
 QLineEdit#FilterCardRawEditor {
     background: #0e0e0e; border: 1px solid @ACCENT@;
     border-radius: 0; padding: 4px 8px;

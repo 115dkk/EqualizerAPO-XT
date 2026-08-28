@@ -4,6 +4,8 @@
 
 #include "RoutingFold.h"
 
+#include <cmath>
+
 #include <QSet>
 
 using std::vector;
@@ -139,6 +141,134 @@ bool isValidChannelName(const QString& name)
 	// Purely numeric tokens read as factors or 1-based channel positions in
 	// the Copy grammar; a letter keeps the name unambiguous.
 	return hasLetter;
+}
+
+bool parseFactor(const QString& token, Assignment::Summand& summand)
+{
+	const QString raw = token.trimmed();
+	if (raw.compare(QLatin1String("INV"), Qt::CaseInsensitive) == 0)
+	{
+		summand.factor = -1.0;
+		summand.isDecibel = false;
+		return true;
+	}
+	bool isDecibel = false;
+	QString number = raw;
+	if (number.endsWith(QLatin1String("db"), Qt::CaseInsensitive))
+	{
+		isDecibel = true;
+		number.chop(2);
+		number = number.trimmed();
+	}
+	// The engine normalizes the decimal comma (audit #250 F015); the editor
+	// grammar accepts what the line accepts.
+	number.replace(QLatin1Char(','), QLatin1Char('.'));
+	bool ok = false;
+	const double factor = number.toDouble(&ok);
+	if (!ok || !std::isfinite(factor))
+		return false;
+	summand.factor = factor;
+	summand.isDecibel = isDecibel;
+	return true;
+}
+
+namespace
+{
+// A channel token the line grammar can carry as a summand: the name
+// alphabet of isValidChannelName, plus pure digits (a 1-based position in
+// Copy, the only spelling of a port in fixed-port mode).
+bool isSourceChannelToken(const QString& token, bool fixedPorts)
+{
+	if (token.isEmpty() || token.size() > 16)
+		return false;
+	for (const QChar& c : token)
+	{
+		const bool digit = c.isDigit() && c.unicode() < 128;
+		const bool letter = c.isLetter() && c.unicode() < 128;
+		if (fixedPorts ? !digit
+			: !(digit || letter || c == QLatin1Char('_') || c == QLatin1Char('-')))
+			return false;
+	}
+	// MultiConvolutionRoutingAdapter reads at most four digits as an index.
+	return !fixedPorts || token.size() <= 4;
+}
+}
+
+bool parseSourceToken(const QString& token, bool fixedPorts, Assignment::Summand& summand)
+{
+	const QString raw = token.trimmed();
+	if (raw.isEmpty())
+		return false;
+
+	const int star = raw.indexOf(QLatin1Char('*'));
+	if (star >= 0)
+	{
+		if (raw.indexOf(QLatin1Char('*'), star + 1) >= 0)
+			return false;
+		const QString factorText = raw.left(star).trimmed();
+		const QString channel = raw.mid(star + 1).trimmed();
+		Assignment::Summand edited = summand;
+		if (!parseFactor(factorText, edited) || !isSourceChannelToken(channel, fixedPorts))
+			return false;
+		edited.channel = channel.toStdWString();
+		summand = edited;
+		return true;
+	}
+
+	bool bareFactor;
+	if (fixedPorts)
+	{
+		// Ports are decimal: a digit string is a port (or an index too long
+		// to be one), anything else can only be a factor.
+		bool digits = true;
+		for (const QChar& c : raw)
+			digits = digits && c.isDigit() && c.unicode() < 128;
+		if (digits && !isSourceChannelToken(raw, true))
+			return false;
+		bareFactor = !digits;
+	}
+	else
+	{
+		// The Copy grammar reads "0" and decimals as factors and everything
+		// else as a channel; the editor also reads the gain label's own
+		// spellings (INV, dB, a sign) as factors.
+		bareFactor = raw == QLatin1String("0")
+			|| raw.contains(QLatin1Char('.')) || raw.contains(QLatin1Char(','))
+			|| raw.endsWith(QLatin1String("db"), Qt::CaseInsensitive)
+			|| raw.compare(QLatin1String("INV"), Qt::CaseInsensitive) == 0
+			|| raw.startsWith(QLatin1Char('-')) || raw.startsWith(QLatin1Char('+'));
+	}
+	if (bareFactor)
+	{
+		Assignment::Summand edited = summand;
+		if (!parseFactor(raw, edited))
+			return false;
+		summand = edited;
+		return true;
+	}
+
+	if (!isSourceChannelToken(raw, fixedPorts))
+		return false;
+	summand.channel = raw.toStdWString();
+	summand.factor = 1.0;
+	summand.isDecibel = false;
+	return true;
+}
+
+QString sourceToken(const Assignment::Summand& summand)
+{
+	const QString channel = QString::fromStdWString(summand.channel);
+	if (summand.factor == 1.0 && !summand.isDecibel)
+		return channel;
+	// QString::number(double) is the C "%g" default, the serializer's format;
+	// a bare integer factor gains ".0" so the line reads it as a factor.
+	QString factor = QString::number(summand.factor);
+	if (factor != QLatin1String("0") && !factor.contains(QLatin1Char('.'))
+		&& !factor.contains(QLatin1Char('e')))
+		factor += QLatin1String(".0");
+	if (summand.isDecibel)
+		factor += QLatin1String("dB");
+	return channel.isEmpty() ? factor : factor + QLatin1Char('*') + channel;
 }
 
 bool removeChannel(vector<Assignment>& assignments, const QString& channel)

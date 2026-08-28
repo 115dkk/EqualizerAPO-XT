@@ -8,6 +8,15 @@
 	steps the command involves are listed, the rest of the device layout sits
 	behind a fold line ("[+N CH]"), and the closing prompt is the add-channel
 	entry - clicking it lets a new virtual channel be typed at the prompt.
+
+	Editing a source (double-click on its token or gain) opens one inline
+	editor holding the summand as the line writes it ("0.5*L"); retyping the
+	token changes channel and factor at once, a bare factor keeps the channel
+	(RoutingFold::parseSourceToken). The editor completes channel names from
+	the same list the per-step [+] menu offers. The editor used to be a
+	gain-only field sized to the token it covered, which clipped even "L"
+	under the skin's padding and silently ignored a channel or port typed
+	into it (field report: "R=0, retype 1, still 0").
 */
 
 #pragma once
@@ -15,6 +24,9 @@
 #include <QLineEdit>
 #include <QStringList>
 #include <QVector>
+
+class QCompleter;
+class QStringListModel;
 
 #include "Editor/widgets/routing/IRoutingRenderer.h"
 #include "Editor/widgets/routing/RoutingFold.h"
@@ -32,6 +44,8 @@ public:
 
 	std::vector<Assignment> assignments() const override;
 	void galleryShowcase(const QString& state) override;
+	QStringList sourceCandidates(const QString& target) const override;
+	bool connectSource(const QString& target, const QString& source) override;
 	QSize sizeHint() const override;
 	QSize minimumSizeHint() const override;
 
@@ -48,8 +62,12 @@ private:
 	struct AddHit { int row = 0; QRect rect; };
 
 	void refold();
-	void commitEditor();
+	int rowIndexOf(const QString& target) const;
+	QStringList sourceCandidatesForRow(int row) const;
+	bool addSourceToRow(int row, const QString& channel);
 	void showAddMenu(int row, const QPoint& globalPos);
+	void openSourceEditor(int row, int summand);
+	void commitSourceEditor();
 	void openChannelEditor();
 	void commitChannelEditor();
 
@@ -57,9 +75,9 @@ private:
 	// Device channel layout, offered by the per-row [+] source menu.
 	std::vector<std::wstring> deviceChannels;
 	// Fixed-source mode (MultiConvolution): the [+] menu offers only
-	// portModel.fixedSources and factors are locked to unity (a double-click
-	// removes the source instead of editing a gain). The fixed sources stay
-	// available while the target steps use the shared channel fold.
+	// portModel.fixedSources and the source editor reads a bare integer as
+	// a port. The fixed sources stay available while the target steps use
+	// the shared channel fold.
 	RoutingPortModel portModel;
 
 	// Channel fold: the listing shows fold.visibleRows only; pinned channels
@@ -76,7 +94,11 @@ private:
 	int hoveredControl = 0;  // 0 none, 1 fold bracket, 2 prompt
 	int hoveredRow = -1;     // display row under the pointer (assignment index)
 
-	QLineEdit* editor = nullptr;
+	// The inline source editor (one summand as a line token) and its
+	// channel-name completer, fed per opening from the step's candidates.
+	QLineEdit* sourceEditor = nullptr;
+	QCompleter* sourceCompleter = nullptr;
+	QStringListModel* sourceCompletions = nullptr;
 	int editRow = -1;
 	int editSummand = -1;
 	QLineEdit* channelEditor = nullptr;

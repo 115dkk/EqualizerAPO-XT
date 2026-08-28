@@ -72,6 +72,17 @@ int runVstFillSelfTest();
 // biquad on left the card collapsed and its body a raw fragment.
 int runPowerToggleTest();
 
+// Entry point behind --routing-edit-test: the routing views' inline edits
+// and the ALL chips. The minimal step list must keep its per-step source
+// hint after a source is added, open a source editor wide enough for the
+// token it holds, and read a retyped port or channel token (field report,
+// minimal Copy / MultiConvolution: "R=0, retype 1, still 0"; the editor
+// was a gain-only field the size of the chip it covered). In every skin a
+// Channel or Device card written as ALL must take the next chip click as
+// the new selection instead of holding the chips inert until ALL is
+// unchecked by hand.
+int runRoutingEditTest();
+
 // Entry point behind --scroll-bench: per-skin wall time of wheel-sized
 // scroll steps on a maximized-width viewport, for the "rack lags when
 // maximized" report. Diagnostic, not a CI gate.

@@ -520,7 +520,7 @@ QString buildFileDialogFixture(const QDir& outDir)
 // kStatesPerRow states (normal + hover from renderStates(commented=false), and
 // disabled from renderStates(commented=true)), plus the registered fixed
 // chrome shots (picker x3, toolbar, titlebar, menubar, menu, analysis,
-// addrow x2, seam, toast, controls, filedialog, graph x2, copyfold x4,
+// addrow x2, seam, toast, controls, filedialog, graph x2, copyfold x5,
 // multiconvfold x2, logic, channelscope). run() multiplies these by skins x 2
 // modes to self-check the
 // output count, so adding a gallery row needs no external count to be
@@ -557,7 +557,7 @@ const QList<GalleryScenario>& galleryScenarios()
 		{ QStringLiteral("segment"), { QStringLiteral("normal"), QStringLiteral("selected"),
 			QStringLiteral("hover") } },
 		{ QStringLiteral("copyfold"), { QStringLiteral("normal"), QStringLiteral("empty"),
-			QStringLiteral("expanded"), QStringLiteral("editor") } },
+			QStringLiteral("expanded"), QStringLiteral("editor"), QStringLiteral("sourceeditor") } },
 		{ QStringLiteral("multiconvfold"), { QStringLiteral("normal"),
 			QStringLiteral("expanded") } },
 		{ QStringLiteral("logic"), { QStringLiteral("normal") } },
@@ -1406,6 +1406,13 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 				view->galleryShowcase(QStringLiteral("addChannel"));
 				settle();
 				failures += saveGrab(rows[0], outDir, skinId, mode, QStringLiteral("copyfold"), QStringLiteral("editor")) ? 0 : 1;
+				// The inline source editor on the routed line's first summand,
+				// next to the open prompt. Only the minimal step list has one;
+				// the other renderers edit in place and record the same view
+				// again here, which keeps the shot-count contract uniform.
+				view->galleryShowcase(QStringLiteral("editSource:VC"));
+				settle();
+				failures += saveGrab(rows[0], outDir, skinId, mode, QStringLiteral("copyfold"), QStringLiteral("sourceeditor")) ? 0 : 1;
 			}
 		}
 	}
@@ -2783,6 +2790,273 @@ int SkinGallery::runVstFillSelfTest()
 	}
 	fprintf(stderr, "[VST fill selftest] %s (%d failure(s))\n", failures == 0 ? "PASS" : "FAIL", failures);
 	return failures == 0 ? 0 : 1;
+}
+
+int SkinGallery::runRoutingEditTest()
+{
+	qWarning("RoutingEditTest: starting");
+	QTemporaryDir scratch;
+	if (!scratch.isValid())
+	{
+		qWarning("RoutingEditTest: cannot create a scratch directory");
+		return 2;
+	}
+	qputenv("EAPO_SKIN_GALLERY", "1");
+	const QString configPath = buildReferenceFiles(QDir(scratch.path()));
+	if (configPath.isEmpty())
+	{
+		qWarning("RoutingEditTest: cannot write reference target files");
+		return 2;
+	}
+
+	int failures = 0;
+	const auto settle = []() {
+		QApplication::processEvents();
+		QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+		QApplication::processEvents();
+	};
+	const auto check = [&failures](bool ok, const QString& what) {
+		if (!ok)
+		{
+			qWarning("RoutingEditTest: %s", qPrintable(what));
+			failures++;
+		}
+		return ok;
+	};
+	const auto lineText = [](QScrollArea& scrollArea, int row) {
+		FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
+		return table != nullptr && row < table->documentItems().size()
+			? table->documentItems().at(row)->text.trimmed() : QString();
+	};
+	const auto liveView = [](FilterCardRow* row) -> RoutingView* {
+		// MultiConvolution rebuilds its view after file metadata arrives and
+		// hides the superseded one until deleteLater lands.
+		RoutingView* view = nullptr;
+		for (RoutingView* candidate : row->findChildren<RoutingView*>())
+			if (candidate->isVisible())
+				view = candidate;
+		return view;
+	};
+	const auto pressEnter = [](QWidget* editor) {
+		QKeyEvent enterPress(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
+		QApplication::sendEvent(editor, &enterPress);
+	};
+	// The source editor's own accounting: text plus the sheet's padding and
+	// hairline must fit the field, or the token is unreadable.
+	const auto editorFits = [](QLineEdit* editor) {
+		return editor->fontMetrics().horizontalAdvance(editor->text()) + 14 <= editor->width()
+			&& editor->height() >= editor->fontMetrics().height() + 4;
+	};
+	// Retype the open source editor's token and commit it with Enter; the
+	// editor must be the focus widget the view just opened.
+	const auto retype = [&](RoutingView* view, const QString& target, const QString& token) -> QLineEdit* {
+		view->grab();
+		view->galleryShowcase(QStringLiteral("editSource:") + target);
+		QApplication::processEvents();
+		QLineEdit* editor = view->findChild<QLineEdit*>(QStringLiteral("StepSourceEditor"));
+		if (editor == nullptr || !editor->isVisible())
+			return nullptr;
+		editor->setText(token);
+		pressEnter(editor);
+		settle();
+		return editor;
+	};
+
+	auto stereo = std::make_shared<GalleryAPOInfo>(
+		L"Speakers", L"Example Audio", false, true, 2, 0x3);
+
+	// Part 1: the minimal step list over an empty Copy on a stereo endpoint.
+	{
+		SkinManager::instance()->applySkin(QStringLiteral("minimal"), true);
+		QScrollArea scrollArea;
+		scrollArea.resize(960, 720);
+		QList<FilterCardRow*> rows = buildRows(scrollArea, configPath,
+			{ QStringLiteral("Copy:") }, stereo, 0x3);
+		RoutingView* view = rows.size() == 1 ? rows[0]->findChild<RoutingView*>() : nullptr;
+		if (!check(view != nullptr, QStringLiteral("minimal Copy row has no routing view")))
+		{
+			failures += 10;
+		}
+		else
+		{
+			// Two virtual channels typed at the prompt, the way an upmix is
+			// started: they must be offered as sources from then on.
+			for (const QString& name : { QStringLiteral("VL"), QStringLiteral("VR") })
+			{
+				view->galleryShowcase(QStringLiteral("addChannel"));
+				QApplication::processEvents();
+				QLineEdit* prompt = qobject_cast<QLineEdit*>(QApplication::focusWidget());
+				if (!check(prompt != nullptr, QStringLiteral("the add-channel prompt did not take focus")))
+					break;
+				check(editorFits(prompt) || prompt->text().isEmpty(),
+					QStringLiteral("the add-channel prompt clips its text"));
+				prompt->setText(name);
+				check(editorFits(prompt), QStringLiteral("the add-channel prompt clips '%1'").arg(name));
+				pressEnter(prompt);
+				settle();
+			}
+			const QStringList before = view->sourceCandidates(QStringLiteral("L"));
+			check(before == QStringList({ QStringLiteral("L"), QStringLiteral("R"), QStringLiteral("VL"), QStringLiteral("VR") }),
+				QStringLiteral("first source hint for L is '%1' (expected L R VL VR)").arg(before.join(' ')));
+
+			check(view->connectSource(QStringLiteral("L"), QStringLiteral("L")),
+				QStringLiteral("connecting L to L was refused"));
+			settle();
+			check(lineText(scrollArea, 0) == QStringLiteral("Copy: L=L"),
+				QStringLiteral("after L=L the line is '%1'").arg(lineText(scrollArea, 0)));
+			check(rows[0]->findChild<RoutingView*>() == view,
+				QStringLiteral("the Copy row rebuilt its routing view on an edit"));
+			// The report: from the second source on, the hint shrank to R.
+			const QStringList after = view->sourceCandidates(QStringLiteral("L"));
+			check(after == QStringList({ QStringLiteral("R"), QStringLiteral("VL"), QStringLiteral("VR") }),
+				QStringLiteral("second source hint for L is '%1' (expected R VL VR)").arg(after.join(' ')));
+
+			// The source editor: readable, and the token grammar of the line.
+			view->grab();
+			view->galleryShowcase(QStringLiteral("editSource:L"));
+			QApplication::processEvents();
+			QLineEdit* editor = view->findChild<QLineEdit*>(QStringLiteral("StepSourceEditor"));
+			if (check(editor != nullptr && editor->isVisible(), QStringLiteral("the source editor did not open")))
+			{
+				check(editor->text() == QStringLiteral("L"),
+					QStringLiteral("the source editor holds '%1' (expected L)").arg(editor->text()));
+				check(editorFits(editor),
+					QStringLiteral("the source editor (%1x%2) clips '%3'")
+					.arg(editor->width()).arg(editor->height()).arg(editor->text()));
+				editor->setText(QStringLiteral("-0.000dB*LFE"));
+				check(editorFits(editor),
+					QStringLiteral("the source editor (%1 px) clips a full token").arg(editor->width()));
+				editor->setText(QStringLiteral("0.5*R"));
+				pressEnter(editor);
+				settle();
+				check(lineText(scrollArea, 0) == QStringLiteral("Copy: L=0.5*R"),
+					QStringLiteral("after retyping 0.5*R the line is '%1'").arg(lineText(scrollArea, 0)));
+			}
+			if (retype(view, QStringLiteral("L"), QStringLiteral("INV")) != nullptr)
+				check(lineText(scrollArea, 0) == QStringLiteral("Copy: L=-1.0*R"),
+					QStringLiteral("a bare INV keeps the channel: line is '%1'").arg(lineText(scrollArea, 0)));
+			else
+				check(false, QStringLiteral("the source editor did not reopen for INV"));
+			if (retype(view, QStringLiteral("L"), QStringLiteral("VL")) != nullptr)
+				check(lineText(scrollArea, 0) == QStringLiteral("Copy: L=VL"),
+					QStringLiteral("a bare channel is unity: line is '%1'").arg(lineText(scrollArea, 0)));
+			else
+				check(false, QStringLiteral("the source editor did not reopen for VL"));
+			if (retype(view, QStringLiteral("L"), QStringLiteral("L+R")) != nullptr)
+				check(lineText(scrollArea, 0) == QStringLiteral("Copy: L=VL"),
+					QStringLiteral("an unreadable token must leave the line: it is '%1'").arg(lineText(scrollArea, 0)));
+			else
+				check(false, QStringLiteral("the source editor did not reopen for L+R"));
+			if (retype(view, QStringLiteral("L"), QString()) != nullptr)
+				check(lineText(scrollArea, 0) == QStringLiteral("Copy:"),
+					QStringLiteral("an emptied token removes the source: line is '%1'").arg(lineText(scrollArea, 0)));
+			else
+				check(false, QStringLiteral("the source editor did not reopen for removal"));
+		}
+	}
+
+	// Part 2: MultiConvolution over the 4-channel BRIR - a port retyped in
+	// the same editor is the port, not a gain.
+	{
+		SkinManager::instance()->applySkin(QStringLiteral("minimal"), true);
+		QScrollArea scrollArea;
+		scrollArea.resize(960, 720);
+		QList<FilterCardRow*> rows = buildRows(scrollArea, configPath,
+			{ QStringLiteral("MultiConvolution: L=0 R=0 brir.wav") }, stereo, 0x3);
+		RoutingView* view = rows.size() == 1 ? liveView(rows[0]) : nullptr;
+		if (!check(view != nullptr, QStringLiteral("minimal MultiConvolution row has no routing view")))
+		{
+			failures += 4;
+		}
+		else
+		{
+			const QStringList hint = view->sourceCandidates(QStringLiteral("R"));
+			check(hint == QStringList({ QStringLiteral("1"), QStringLiteral("2"), QStringLiteral("3") }),
+				QStringLiteral("MultiConvolution source hint for R is '%1' (expected 1 2 3)").arg(hint.join(' ')));
+			view->grab();
+			view->galleryShowcase(QStringLiteral("editSource:R"));
+			QApplication::processEvents();
+			QLineEdit* editor = view->findChild<QLineEdit*>(QStringLiteral("StepSourceEditor"));
+			if (check(editor != nullptr && editor->isVisible(), QStringLiteral("the MultiConvolution source editor did not open")))
+			{
+				check(editor->text() == QStringLiteral("0"),
+					QStringLiteral("the MultiConvolution source editor holds '%1' (expected 0)").arg(editor->text()));
+				check(editorFits(editor),
+					QStringLiteral("the MultiConvolution source editor (%1x%2) clips '%3'")
+					.arg(editor->width()).arg(editor->height()).arg(editor->text()));
+				editor->setText(QStringLiteral("1"));
+				pressEnter(editor);
+				settle();
+				check(lineText(scrollArea, 0) == QStringLiteral("MultiConvolution: L=0 R=1 brir.wav"),
+					QStringLiteral("after retyping port 1 the line is '%1'").arg(lineText(scrollArea, 0)));
+			}
+		}
+	}
+
+	// Part 3: ALL releases on the next pick, in every skin, on both cards.
+	for (ISkin* skin : Skins::all())
+	{
+		const QString name = skin->id();
+		SkinManager::instance()->applySkin(skin->id(), true);
+		QScrollArea scrollArea;
+		scrollArea.resize(960, 720);
+		QList<FilterCardRow*> rows = buildRows(scrollArea, configPath,
+			{ QStringLiteral("Channel: ALL"), QStringLiteral("Device: all") }, stereo, 0x3);
+		if (!check(rows.size() == 2, QStringLiteral("%1: expected 2 rows").arg(name)))
+			continue;
+
+		QToolButton* seat = nullptr;
+		const QToolButton* allChannels = nullptr;
+		for (QToolButton* button : rows[0]->findChildren<QToolButton*>())
+		{
+			if (button->objectName() != QStringLiteral("ChannelChip"))
+				continue;
+			if (button->property("allChannels").toBool())
+				allChannels = button;
+			else if (button->text() == QStringLiteral("R"))
+				seat = button;
+		}
+		if (check(seat != nullptr && allChannels != nullptr, QStringLiteral("%1: Channel card chips not found").arg(name)))
+		{
+			check(allChannels->isChecked(), QStringLiteral("%1: ALL is not checked for 'Channel: ALL'").arg(name));
+			check(seat->isEnabled(), QStringLiteral("%1: the R chip is inert while ALL is on").arg(name));
+			seat->click();
+			settle();
+			check(lineText(scrollArea, 0) == QStringLiteral("Channel: R"),
+				QStringLiteral("%1: after picking R the line is '%2'").arg(name, lineText(scrollArea, 0)));
+			check(!allChannels->isChecked(), QStringLiteral("%1: ALL stayed checked after the pick").arg(name));
+			check(seat->isChecked(), QStringLiteral("%1: the picked R chip is not checked").arg(name));
+		}
+
+		QToolButton* device = nullptr;
+		const QToolButton* allDevices = nullptr;
+		for (QToolButton* button : rows[1]->findChildren<QToolButton*>())
+		{
+			if (button->objectName() != QStringLiteral("DeviceChip"))
+				continue;
+			if (button->property("allDevices").toBool())
+				allDevices = button;
+			else if (device == nullptr && button->isVisible())
+				device = button;
+		}
+		if (check(device != nullptr && allDevices != nullptr, QStringLiteral("%1: Device card chips not found").arg(name)))
+		{
+			check(allDevices->isChecked(), QStringLiteral("%1: All devices is not checked for 'Device: all'").arg(name));
+			check(device->isEnabled(), QStringLiteral("%1: the device chip is inert while all is on").arg(name));
+			device->click();
+			settle();
+			const QString line = lineText(scrollArea, 1);
+			check(line.startsWith(QStringLiteral("Device: ")) && line != QStringLiteral("Device: all") && line.size() > 8,
+				QStringLiteral("%1: after picking a device the line is '%2'").arg(name, line));
+			check(!allDevices->isChecked(), QStringLiteral("%1: All devices stayed checked after the pick").arg(name));
+			check(device->isChecked(), QStringLiteral("%1: the picked device chip is not checked").arg(name));
+		}
+	}
+
+	qWarning("RoutingEditTest: %s (%d failure(s))", failures == 0 ? "PASS" : "FAIL", failures);
+	const int status = failures == 0 ? 0 : 1;
+	std::fflush(nullptr);
+	std::_Exit(status);
 }
 
 int SkinGallery::runScrollBench()

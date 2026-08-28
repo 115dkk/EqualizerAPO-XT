@@ -21,7 +21,7 @@
 param(
     [Parameter(Mandatory)] [string] $WorkspaceRoot,
     [Parameter(Mandatory)]
-    [ValidateSet("selftest-vst", "skin-gallery", "skin-switch", "analysis-layout", "card-move", "card-selection", "power-toggle")]
+    [ValidateSet("selftest-vst", "skin-gallery", "skin-switch", "analysis-layout", "card-move", "card-selection", "power-toggle", "routing-edit")]
     [string] $Gate,
     [string] $Platform = "x64",
     [switch] $PlanOnly
@@ -98,6 +98,12 @@ $gates = @{
         Arguments  = @("--power-toggle-test")
         ExtraEnv   = @{ QT_FORCE_STDERR_LOGGING = "1" }
         LogPath    = Join-Path $WorkspaceRoot "power-toggle-test.log"
+        PostChecks = @()
+    }
+    "routing-edit" = [pscustomobject]@{
+        Arguments  = @("--routing-edit-test")
+        ExtraEnv   = @{ QT_FORCE_STDERR_LOGGING = "1" }
+        LogPath    = Join-Path $WorkspaceRoot "routing-edit-test.log"
         PostChecks = @()
     }
 }
