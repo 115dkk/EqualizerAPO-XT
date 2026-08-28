@@ -349,6 +349,10 @@ namespace
 			}
 		}
 		harness.expect(allDone, "every previous block was complete and processed by the time the next was published");
+		// The adapter never waits for the block published last; the consumer
+		// drops it when Closing arrives first. Wait for it here so the count
+		// below does not depend on the consumer thread's scheduling.
+		harness.expect(producer.wait(Direction::Output, 50, 1000000) == RingWait::Done, "the last block completes when asked for");
 		producer.close();
 		consumer.join();
 		harness.expectEqual(consumer.served.load(), 50u, "all 50 blocks served");
