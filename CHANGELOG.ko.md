@@ -8,6 +8,28 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **ASIO 애플리케이션도 같은 config.txt를 씁니다.** 기기의 모든 ASIO
+  드라이버가 장치 선택기의 재생·녹음 목록에 `ASIO` 표식과 함께 나타나고,
+  체크하면 DAW·foobar2000 같은 ASIO 호스트가 드라이버 대신 고를 수 있는
+  `<드라이버> (EQ APO XT)` 항목이 등록됩니다. 래퍼는 애플리케이션 안에서
+  얇게 남고, 버퍼마다 별도 프로세스인 `EqualizerAPOHost.exe`에 넘겨
+  엔진을 돌립니다(FFTW·VST 호스팅이 DAW에 들어가지 않고, 32비트 호스트도
+  64비트 엔진을 씁니다). 호스트는 필요할 때 뜨고, 장치가 열리기 전에 설정을
+  읽어 첫 버퍼부터 처리되며, 마지막 스트림 뒤 1분이면 종료합니다.
+  `Device: ASIO <이름> {CLSID}`로 스트림을 고르고, `Device:` 줄이 없는
+  필터는 ASIO와 엔드포인트에 똑같이 적용되며, `Stage: capture`가 입력
+  방향입니다. 기본 동작은 직전 버퍼를 내놓는 방식(버퍼 하나의 지연, 호스트에
+  보고)으로, Topping USB Audio Device 64프레임에서 10분 동안 450,005개 버퍼를
+  하나도 빠뜨리지 않고 처리했습니다(왕복은 세 번을 빼고 모두 100 µs 미만,
+  최악 2.5 ms는 그 버퍼 하나가 흡수). 지연을 더하지 않는 동기 모드는 장치별로
+  레지스트리에서 켤 수 있습니다. CI에서는 가짜 ASIO 드라이버와, 하드웨어에
+  닿은 바이트를 엔진 직접 출력과 SHA-256으로 비교하는 프로브가 실제 호스트
+  프로세스와 실제 DLL을 거쳐 검증하고, 래퍼·링·장치 기록의 단위 검사 500건이
+  더해집니다([#310](https://github.com/115dkk/EqualizerAPO-XT/issues/310),
+  [#311](https://github.com/115dkk/EqualizerAPO-XT/pull/311), [#312](https://github.com/115dkk/EqualizerAPO-XT/pull/312),
+  [docs/features/asio.md](docs/features/asio.md)). Steinberg ASIO SDK
+  2.3.4의 GPLv3 조건으로 빌드하며 결합물은 GPLv3입니다.
+
 ## v2.47.1 — 2026-08-28
 
 - **Minimal 스킨의 Copy·MultiConvolution 스텝 리스트를 다시 편집할 수 있습니다.**

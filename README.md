@@ -38,11 +38,22 @@ Current work areas:
 5. Editors for the programmatic config commands (`If:`/`ElseIf:`/`Else:`/`EndIf:`/`Eval:`) — complete. Each skin presents blocks with its own instrument driven by the analysis run, the picker inserts the vocabulary, custom-coefficient IIR lines have their own card, and lines with inline `` `expression` `` parameters keep their card in a dynamic mode ([#178](https://github.com/115dkk/EqualizerAPO-XT/pull/178), [#182](https://github.com/115dkk/EqualizerAPO-XT/pull/182), [#183](https://github.com/115dkk/EqualizerAPO-XT/pull/183), [#184](https://github.com/115dkk/EqualizerAPO-XT/pull/184)).
 6. Subwoofer routing ([#246](https://github.com/115dkk/EqualizerAPO-XT/issues/246)) — the core feature set is complete: the `SubwooferRouting:` command, the MIT SubwooferRoutingCore DSP library, the standalone VST3 plugin, the 4.1 host-negotiation fix, the Editor card with a per-skin instrument in every skin, and the full editor dialog with both routing matrices and a response view. Remaining follow-ups: writing changes back to a linked profile file (the dialog currently converts the row to inline state), audition/solo overrides, Korean translations for the new strings, and a custom VST3 editor view (hosts show their generic parameter panel).
 7. Explicit VST3 bus layouts ([#216](https://github.com/115dkk/EqualizerAPO-XT/issues/216)) — the backend `VSTPlugin:` `Input`/`Output` syntax and deterministic host tests are complete, including asymmetric layouts, 4.1, strict failure passthrough, and quiet VST2 ignore semantics. The Qt Editor now carries Input/Output selectors beside the plugin name in every skin's own visual language, with a verdict lamp for the actually negotiated bus, VST2 lock/repair handling, and the legacy `StereoInput` migration ([#265](https://github.com/115dkk/EqualizerAPO-XT/pull/265)). The current round adds per-slot channel fill (`InputChannels`/`OutputChannels` place arbitrary config channels into the negotiated slots, untouched channels pass through) and plain Input/Output dropdowns in the legacy row ([#290](https://github.com/115dkk/EqualizerAPO-XT/pull/290)). The fill lists now have their editor in every skin: two rails inside the card with per-slot channel dropdowns that follow the line's `Channel:`/`Copy:` flow, a fold switch when both rails exist, and combo rows in the legacy presentation ([#292](https://github.com/115dkk/EqualizerAPO-XT/pull/292)).
+8. ASIO ([#310](https://github.com/115dkk/EqualizerAPO-XT/issues/310)) — the
+   wrapper driver, the engine host process, the ring between them, the device
+   records and the CI gate are in, verified with a fake driver on CI and a
+   Topping USB Audio Device locally. Remaining: an Editor badge for the live
+   ASIO stream, a Device Selector control for the synchronous mode (today a
+   registry value), and runs under more DAWs.
 
 ## Features
 
 - Double-precision internal audio processing for complex filter chains.
 - Convolution, GraphicEQ, parametric EQ, VST2/VST3, and standard Equalizer APO filter support.
+- ASIO: every ASIO driver appears in the Device Selector's playback and
+  capture lists; ticking one registers a `<driver> (EQ APO XT)` entry that
+  DAWs and other ASIO hosts pick, and the same `config.txt` applies. The
+  engine runs in a separate host process started on demand, so nothing but a
+  thin wrapper enters the application ([docs/features/asio.md](docs/features/asio.md)).
 - MultiConvolution filter for true-stereo and BRIR (Binaural Room Impulse Response) playback: `MultiConvolution: L=0+1 R=2+3 brir.wav` convolves each channel's own signal with its mapped channels of one multichannel impulse response and sums them back, independent of the Channel command - the fan-out/sum pattern the in-place Convolution filter cannot express, in one line. Each mapped channel takes an optional factor with Copy's grammar (`L=0.5*0+1`; `-1` inverts the phase, `-6dB` works too). The Editor edits the mapping in every skin's routing view.
 - A built-in 1025-tap linear-phase Hilbert transform with explicit phase-shift
   and latency-alignment roles. For example,
