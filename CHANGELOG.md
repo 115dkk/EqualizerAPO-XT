@@ -14,6 +14,30 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **ASIO applications get the same config.txt.** Every ASIO driver on the
+  machine now appears in the Device Selector's playback and capture lists,
+  marked `ASIO`; ticking it registers a `<driver> (EQ APO XT)` entry that a
+  DAW, foobar2000 or any ASIO host can pick instead of the driver itself. The
+  wrapper stays thin inside the application: it hands each buffer to
+  `EqualizerAPOHost.exe`, a separate process that runs the engine (so FFTW,
+  VST hosting and the rest never enter the DAW, and 32-bit hosts get the
+  64-bit engine), starts on demand, loads the configuration before the device
+  opens so the first buffer is already processed, and leaves a minute after
+  the last stream. `Device: ASIO <name> {CLSID}` selects a stream; without a
+  `Device:` line filters apply to ASIO and endpoints alike; `Stage: capture`
+  covers the input direction. The default hands out the previous buffer (one
+  buffer of latency, reported to the host), which on a Topping USB Audio
+  Device at 64 frames processed every one of 450,005 buffers in ten minutes,
+  all but three round trips under 100 us and the worst 2.5 ms outlier
+  absorbed by that buffer; a synchronous mode without the extra buffer is
+  available per device in the registry. Verified on CI by a fake ASIO driver and a probe
+  that hashes what reached the "hardware" against the engine's direct output,
+  through the real host process and the real DLLs, plus 500 unit checks on
+  the wrapper, the ring and the device records ([#310](https://github.com/115dkk/EqualizerAPO-XT/issues/310),
+  [#311](https://github.com/115dkk/EqualizerAPO-XT/pull/311), [#312](https://github.com/115dkk/EqualizerAPO-XT/pull/312),
+  [docs/features/asio.md](docs/features/asio.md)). Built against the Steinberg
+  ASIO SDK 2.3.4 under its GPLv3 option; the combined work is GPLv3.
+
 ## v2.47.1 — 2026-08-28
 
 - **Minimal skin: the Copy and MultiConvolution step list is editable
