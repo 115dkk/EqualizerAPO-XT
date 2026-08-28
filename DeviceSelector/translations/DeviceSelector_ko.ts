@@ -217,20 +217,20 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>끄면 직전 버퍼를 재생합니다. 버퍼 하나만큼의 지연이 붙고 모든 버퍼가 처리됩니다. 이 드라이버의 입력과 출력에 함께 적용됩니다.</translation>
     </message>
     <message>
-        <source>How long a buffer waits for the engine host before it passes through unprocessed (synchronous mode only):</source>
-        <translation>엔진 호스트의 처리를 기다리는 시간 (이 시간을 넘긴 버퍼는 처리 없이 통과합니다. 동기 모드에서만):</translation>
+        <source>How long a buffer waits for the engine host in the synchronous mode. A buffer that waits longer passes through unprocessed.</source>
+        <translation>동기 모드에서 엔진 호스트의 처리를 기다리는 시간입니다. 이 시간을 넘긴 버퍼는 처리 없이 통과합니다.</translation>
     </message>
     <message>
-        <source>A quarter of the buffer (default)</source>
-        <translation>버퍼 길이의 1/4 (기본)</translation>
+        <source>Wait a quarter of the buffer for the host (default)</source>
+        <translation>호스트를 버퍼 길이의 1/4까지 기다림 (기본)</translation>
     </message>
     <message>
-        <source>Half of the buffer</source>
-        <translation>버퍼 길이의 절반</translation>
+        <source>Wait half of the buffer for the host</source>
+        <translation>호스트를 버퍼 길이의 절반까지 기다림</translation>
     </message>
     <message>
-        <source>Three quarters of the buffer</source>
-        <translation>버퍼 길이의 3/4</translation>
+        <source>Wait three quarters of the buffer for the host</source>
+        <translation>호스트를 버퍼 길이의 3/4까지 기다림</translation>
     </message>
     <message>
         <source>Start the engine host automatically at boot</source>
