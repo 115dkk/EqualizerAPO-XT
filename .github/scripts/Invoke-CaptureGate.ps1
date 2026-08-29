@@ -83,6 +83,21 @@ $installModes = @(
     [pscustomobject]@{ Name = "sfx-mfx"; Arguments = @("--install-mode", "sfx-mfx"); Required = $false }
     [pscustomobject]@{ Name = "lfx-gfx"; Arguments = @("--install-mode", "lfx-gfx"); Required = $false }
 )
+# The low-latency round (docs/architecture/wasapi-exclusive-study.md, section
+# 3): the APO on the cable's playback endpoint, a convolution in the config (a
+# unit impulse, so unity, but the one filter that notices the block length),
+# and the tone stream opened through IAudioClient3 at the engine's smallest
+# period, once fresh and once after a default-period stream already runs on
+# the endpoint, so the engine has to switch a running graph. A convolution
+# that goes silent there means the engine hands the post-mix APO blocks
+# shorter than the count it locked with. Skipped, and said so, when the
+# runner's cable declares no period below the default.
+$lowLatencyMeasurements = @(
+    [pscustomobject]@{ Name = "ll-default";         Category = "default"; Raw = $false; Period = "default"; HoldDefault = $false; ExpectGainDb = $PreampDb; ToleranceDb = $ToleranceDb; Required = $true; Note = "the convolution config at the default period" }
+    [pscustomobject]@{ Name = "ll-min";             Category = "default"; Raw = $false; Period = "min";     HoldDefault = $false; ExpectGainDb = $PreampDb; ToleranceDb = 3.0;          Required = $true; Note = "a fresh small-period stream reaches the convolution" }
+    [pscustomobject]@{ Name = "ll-min-switch";      Category = "default"; Raw = $false; Period = "min";     HoldDefault = $true;  ExpectGainDb = $PreampDb; ToleranceDb = 3.0;          Required = $true; Note = "the engine switches a running default-period graph to the small period" }
+    [pscustomobject]@{ Name = "ll-after-uninstall"; Category = "default"; Raw = $false; Period = "";        HoldDefault = $false; ExpectGainDb = 0.0;       ToleranceDb = 1.5;          Required = $true; Note = "the cable at unity after the playback-side uninstall" }
+)
 
 $plan = [pscustomobject]@{
     VbCableUrl = $VbCableUrl
@@ -92,6 +107,7 @@ $plan = [pscustomobject]@{
     PreampDb = $PreampDb
     Measurements = $measurements
     InstallModes = $installModes
+    LowLatency = $lowLatencyMeasurements
     StageRoot = $StageRoot
 }
 if ($PlanOnly) { return $plan }
@@ -114,6 +130,7 @@ $summary = [ordered]@{
     stage = $null
     apoHost = $null
     rounds = @()
+    lowLatency = $null
     measurements = @()
     failures = @()
 }
@@ -194,9 +211,9 @@ function Wait-CableEndpoints([int] $timeoutSeconds) {
     return $null
 }
 
-function Save-EndpointSnapshot([string] $captureGuid, [string] $phase) {
-    $keyPath = "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Capture\$captureGuid"
-    & reg export $keyPath (Join-Path $SnapshotDirectory "$phase-capture-endpoint.reg") /y | Out-Null
+function Save-EndpointSnapshot([string] $endpointGuid, [string] $phase, [string] $flow = "Capture") {
+    $keyPath = "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\$flow\$endpointGuid"
+    & reg export $keyPath (Join-Path $SnapshotDirectory "$phase-$($flow.ToLower())-endpoint.reg") /y | Out-Null
     & reg export "HKLM\SOFTWARE\EqualizerAPO" (Join-Path $SnapshotDirectory "$phase-equalizerapo.reg") /y 2>$null | Out-Null
     $global:LASTEXITCODE = 0
     $fx = Get-ItemProperty -Path "Registry::$keyPath\FxProperties" -ErrorAction SilentlyContinue
@@ -204,6 +221,53 @@ function Save-EndpointSnapshot([string] $captureGuid, [string] $phase) {
         $fx | Select-Object -Property * -ExcludeProperty PS* | ConvertTo-Json -Depth 3 |
             Out-File -FilePath (Join-Path $SnapshotDirectory "$phase-fxproperties.json") -Encoding utf8
     }
+}
+
+# 16-bit mono PCM, the first sample at full scale and the rest zero: the
+# identity for a convolution (-0.0003 dB), in a container libsndfile reads
+# without a codec.
+function Write-ImpulseWav([string] $path, [int] $rate, [int] $frames) {
+    $dataBytes = $frames * 2
+    $stream = [System.IO.File]::Create($path)
+    try {
+        $writer = New-Object System.IO.BinaryWriter($stream)
+        $writer.Write([byte[]][char[]]"RIFF"); $writer.Write([int32](36 + $dataBytes)); $writer.Write([byte[]][char[]]"WAVE")
+        $writer.Write([byte[]][char[]]"fmt "); $writer.Write([int32]16); $writer.Write([int16]1); $writer.Write([int16]1)
+        $writer.Write([int32]$rate); $writer.Write([int32]($rate * 2)); $writer.Write([int16]2); $writer.Write([int16]16)
+        $writer.Write([byte[]][char[]]"data"); $writer.Write([int32]$dataBytes)
+        $writer.Write([int16]32767)
+        for ($i = 1; $i -lt $frames; $i++) { $writer.Write([int16]0) }
+        $writer.Flush()
+    } finally {
+        $stream.Dispose()
+    }
+}
+
+# The effect chain an endpoint's FxProperties names, as "LFX=... GFX=...".
+function Get-EffectChain([string] $flow, [string] $endpointGuid) {
+    $fx = Get-ItemProperty -Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\$flow\$endpointGuid\FxProperties" -ErrorAction SilentlyContinue
+    if (-not $fx) { return $null }
+    $slots = @()
+    foreach ($slot in @(@("LFX", "1"), @("GFX", "2"), @("SFX", "5"), @("MFX", "6"), @("EFX", "7"))) {
+        $property = $fx.PSObject.Properties["{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},$($slot[1])"]
+        if ($property -and $property.Value) { $slots += "$($slot[0])=$($property.Value)" }
+    }
+    return ($slots -join " ")
+}
+
+function Test-EqClsidLeft([string] $flow, [string] $endpointGuid) {
+    $fx = Get-ItemProperty -Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\$flow\$endpointGuid\FxProperties" -ErrorAction SilentlyContinue
+    if (-not $fx) { return $false }
+    foreach ($property in $fx.PSObject.Properties) {
+        if ("$($property.Value)" -match "EACD2258-FCAC-4FF4-B36D-419E924A6D79|EC1CC9CE-FAED-4822-828A-82A81A6F018F") { return $true }
+    }
+    return $false
+}
+
+function Get-JsonField($json, [string] $name) {
+    if ($null -eq $json) { return $null }
+    $property = $json.PSObject.Properties[$name]
+    if ($property) { return $property.Value } else { return $null }
 }
 
 function Copy-Logs([string] $phase) {
@@ -225,6 +289,9 @@ function Measure-Cable($measurement, [string] $round = "") {
         "--tolerance-db", $measurement.ToleranceDb.ToString([cultureinfo]::InvariantCulture))
     if ($measurement.Category -ne "default") { $arguments += @("--category", $measurement.Category) }
     if ($measurement.Raw) { $arguments += "--raw" }
+    $period = if ($measurement.PSObject.Properties["Period"]) { [string]$measurement.Period } else { "" }
+    if ($period) { $arguments += @("--period", $period) }
+    if ($measurement.PSObject.Properties["HoldDefault"] -and $measurement.HoldDefault) { $arguments += "--hold-default" }
     $run = Invoke-Program $captureProbe $arguments 60
     $json = $null
     if ($run.StdOut) {
@@ -245,13 +312,32 @@ function Measure-Cable($measurement, [string] $round = "") {
         toneDb = if ($json) { $json.toneDb } else { $null }
         rmsDb = if ($json) { $json.rmsDb } else { $null }
         silentPackets = if ($json) { $json.silentPackets } else { $null }
+        rate = if ($json) { $json.rate } else { $null }
+        period = $period
+        renderPeriodFrames = Get-JsonField $json "renderPeriodFrames"
+        engineDefaultPeriodFrames = Get-JsonField $json "engineDefaultPeriodFrames"
+        engineMinPeriodFrames = Get-JsonField $json "engineMinPeriodFrames"
+        enginePeriodFrames = Get-JsonField $json "enginePeriodFrames"
+        holdEnginePeriodFrames = Get-JsonField $json "holdEnginePeriodFrames"
+        smallPeriodAvailable = $null
         passed = ($run.ExitCode -eq 0)
         note = $measurement.Note
     }
+    # A "min" request that came back at the default period says the driver
+    # declares no smaller one: nothing to judge, and the summary says so.
+    $noSmallPeriod = $false
+    if ($period -eq "min" -and $null -ne $record.engineMinPeriodFrames -and $null -ne $record.engineDefaultPeriodFrames) {
+        $record.smallPeriodAvailable = ([int]$record.engineMinPeriodFrames -lt [int]$record.engineDefaultPeriodFrames)
+        $noSmallPeriod = -not $record.smallPeriodAvailable
+        if ($noSmallPeriod) { $record.note = "$($measurement.Note); the driver declares no period below the default ($($record.engineDefaultPeriodFrames) frames), nothing to judge" }
+    }
     $summary.measurements += [pscustomobject]$record
-    $verdict = if ($record.passed) { "ok" } elseif ($measurement.Required) { "FAILED" } else { "noted" }
+    $verdict = if ($noSmallPeriod) { "skipped (no small period)" } elseif ($record.passed) { "ok" } elseif ($measurement.Required) { "FAILED" } else { "noted" }
     Write-Host ("measurement {0}: gain {1} dB (expected {2} +- {3}) -> {4}" -f $label, $record.gainDb, $measurement.ExpectGainDb, $measurement.ToleranceDb, $verdict)
-    if (-not $record.passed -and $measurement.Required -and $roundRequired) {
+    if ($period) {
+        Write-Host ("  playback period {0} frames (engine default {1}, min {2}); engine ran at {3}, held stream at {4}" -f $record.renderPeriodFrames, $record.engineDefaultPeriodFrames, $record.engineMinPeriodFrames, $record.enginePeriodFrames, $record.holdEnginePeriodFrames)
+    }
+    if (-not $record.passed -and $measurement.Required -and $roundRequired -and -not $noSmallPeriod) {
         Add-Failure ("{0}: the tone arrived at {1} dB, expected {2} +- {3} dB ({4})" -f $label, $record.gainDb, $measurement.ExpectGainDb, $measurement.ToleranceDb, $measurement.Note)
     }
     return $record
@@ -449,11 +535,66 @@ foreach ($mode in $installModes) {
 $roundRequired = $true
 
 # ---------------------------------------------------------------------------
+Write-Phase "low-latency: the playback endpoint, a convolution, the engine's smallest period"
+$baseline = $summary.measurements | Where-Object { $_.name -eq "baseline" } | Select-Object -First 1
+$impulseRate = if ($baseline -and $baseline.rate) { [int]$baseline.rate } else { 48000 }
+$impulse = Join-Path $configDir "gate-impulse.wav"
+Write-ImpulseWav $impulse $impulseRate 4096
+$lowLatencyConfig = "Preamp: $($PreampDb.ToString([cultureinfo]::InvariantCulture)) dB`r`nConvolution: gate-impulse.wav`r`n"
+[System.IO.File]::WriteAllText($configFile, $lowLatencyConfig, (New-Object System.Text.UTF8Encoding($false)))
+$lowLatency = [ordered]@{
+    config = $lowLatencyConfig.Trim()
+    impulseRate = $impulseRate
+    install = $null
+    installMode = $null
+    uninstall = $null
+    lockFrameCounts = @()
+    smallPeriodAvailable = $null
+}
+Write-Host "config now: $($lowLatencyConfig.Trim() -replace "`r`n", ' | ') (impulse at $impulseRate Hz)"
+
+$install = Invoke-Program (Join-Path $current "DeviceSelector.exe") @("--install-endpoint", $endpoints.Render) 300 $current
+$lowLatency.install = [ordered]@{ exitCode = $install.ExitCode; timedOut = $install.TimedOut }
+Save-EndpointSnapshot $endpoints.Render "60-low-latency-installed" "Render"
+$lowLatency.installMode = Get-EffectChain "Render" $endpoints.Render
+Write-Host "effect chain now (playback): $($lowLatency.installMode)"
+if ($install.ExitCode -ne 0) {
+    Add-Failure "low-latency/install: DeviceSelector --install-endpoint on the playback endpoint exited with $($install.ExitCode)"
+}
+Copy-Logs "60-low-latency-installed"
+
+Measure-Cable $lowLatencyMeasurements[0] "low-latency" | Out-Null
+Measure-Cable $lowLatencyMeasurements[1] "low-latency" | Out-Null
+Measure-Cable $lowLatencyMeasurements[2] "low-latency" | Out-Null
+Copy-Logs "70-low-latency-measured"
+# Every frame count the audio engine locked the DLL with, in order: the last
+# field of the trace line LockForProcess writes for its input connection.
+$apoLog = "C:\Windows\ServiceProfiles\LocalService\AppData\Local\Temp\EqualizerAPO.log"
+if (Test-Path -LiteralPath $apoLog) {
+    $lowLatency.lockFrameCounts = @(Select-String -LiteralPath $apoLog -Pattern "Input format in LockForProcess = \{.*, (\d+) \}" |
+        ForEach-Object { [int]$_.Matches[0].Groups[1].Value })
+}
+Write-Host "LockForProcess max frame counts, whole run: $($lowLatency.lockFrameCounts -join ' ')"
+$minRecord = $summary.measurements | Where-Object { $_.name -eq "low-latency/ll-min" } | Select-Object -First 1
+if ($minRecord) { $lowLatency.smallPeriodAvailable = $minRecord.smallPeriodAvailable }
+
+$uninstall = Invoke-Program (Join-Path $current "DeviceSelector.exe") @("--uninstall-endpoint", $endpoints.Render) 180 $current
+$eqLeftRender = Test-EqClsidLeft "Render" $endpoints.Render
+$lowLatency.uninstall = [ordered]@{ exitCode = $uninstall.ExitCode; eqClsidLeft = $eqLeftRender }
+Save-EndpointSnapshot $endpoints.Render "80-low-latency-uninstalled" "Render"
+if ($uninstall.ExitCode -ne 0) { Add-Failure "low-latency/uninstall: DeviceSelector --uninstall-endpoint on the playback endpoint exited with $($uninstall.ExitCode)" }
+if ($eqLeftRender) { Add-Failure "low-latency/uninstall: the playback endpoint's FxProperties still names an EQ APO CLSID" }
+Measure-Cable $lowLatencyMeasurements[3] "low-latency" | Out-Null
+Copy-Logs "80-low-latency-uninstalled"
+[System.IO.File]::WriteAllText($configFile, $config, (New-Object System.Text.UTF8Encoding($false)))
+$summary.lowLatency = [pscustomobject]$lowLatency
+
+# ---------------------------------------------------------------------------
 Write-Phase "summary"
 $summaryPath = Join-Path $SnapshotDirectory "capture-gate.json"
 [pscustomobject]$summary | ConvertTo-Json -Depth 6 | Out-File -FilePath $summaryPath -Encoding utf8
 $summary.rounds | Format-Table -AutoSize mode, installMode | Out-String | Write-Host
-$summary.measurements | Format-Table -AutoSize name, category, raw, expectGainDb, gainDb, passed, required | Out-String | Write-Host
+$summary.measurements | Format-Table -AutoSize name, category, raw, period, enginePeriodFrames, expectGainDb, gainDb, passed, required | Out-String | Write-Host
 if ($summary.failures.Count -gt 0) {
     Write-Host "capture gate FAILED:"
     $summary.failures | ForEach-Object { Write-Host "  - $_" }
