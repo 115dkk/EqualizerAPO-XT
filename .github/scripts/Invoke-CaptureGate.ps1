@@ -300,7 +300,7 @@ function Measure-Cable($measurement, [string] $round = "") {
         "--tolerance-db", $measurement.ToleranceDb.ToString([cultureinfo]::InvariantCulture))
     # Something else plays into the cable (the ASIO probe): listen only, and
     # give it a moment to be up before the window opens.
-    if ($noRender) { $arguments += @("--no-render", "--settle", "2.5", "--seconds", "2") } else { $arguments += @("--render", $renderConnection) }
+    if ($noRender) { $arguments += @("--no-render", "--settle", "3.5", "--seconds", "2") } else { $arguments += @("--render", $renderConnection) }
     if ($measurement.Category -ne "default") { $arguments += @("--category", $measurement.Category) }
     if ($measurement.Raw) { $arguments += "--raw" }
     $period = if ($measurement.PSObject.Properties["Period"]) { [string]$measurement.Period } else { "" }
@@ -636,8 +636,10 @@ if (-not (Test-Path -LiteralPath $asioProbe)) {
         $env:PATH = "$current;$env:PATH"
         $probeOut = [System.IO.Path]::GetTempFileName()
         $probeErr = [System.IO.Path]::GetTempFileName()
-        $probeProcess = Start-Process -FilePath $asioProbe -ArgumentList @("--target", "clsid:$($asioEntry.wrapperClsid)", "--wrapper", "static", "--processor", "passthrough", "--seconds", "8", "--sine", "1000") -PassThru -NoNewWindow -RedirectStandardOutput $probeOut -RedirectStandardError $probeErr -WorkingDirectory $current
-        Start-Sleep -Seconds 1
+        $probeProcess = Start-Process -FilePath $asioProbe -ArgumentList @("--target", "clsid:$($asioEntry.wrapperClsid)", "--wrapper", "static", "--processor", "passthrough", "--seconds", "14", "--sine", "1000") -PassThru -NoNewWindow -RedirectStandardOutput $probeOut -RedirectStandardError $probeErr -WorkingDirectory $current
+        # The entry starts the engine host cold (config load included) before
+        # the device opens; the window must not straddle that start.
+        Start-Sleep -Seconds 4
         $record = Measure-Cable ([pscustomobject]@{ Name = $asioEntryMeasurement.Name; Category = "default"; Raw = $false; ExpectGainDb = $asioEntryMeasurement.ExpectGainDb; ToleranceDb = $asioEntryMeasurement.ToleranceDb; Required = $asioEntryMeasurement.Required; Note = $asioEntryMeasurement.Note; NoRender = $true }) "asio-entry"
         $probeProcess.WaitForExit(30000) | Out-Null
         if (-not $probeProcess.HasExited) { try { $probeProcess.Kill() } catch {} }
