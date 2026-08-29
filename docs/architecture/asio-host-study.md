@@ -463,6 +463,8 @@ struct alignas(64) RingHeader
 
 **폐기한 제안: 시스템 사운드를 ASIO로 유도.** AudioSrv/audiodg는 엔드포인트를 커널 드라이버로만 알고 ASIO 드라이버는 응용 프로그램이 로드하는 사용자 모드 COM 객체라, 서비스 쪽 설정으로는 렌더 스트림을 ASIO로 보낼 길이 없다. 가능한 구조는 가상 재생 장치(커널 드라이버, attestation 서명 필수) + 호스트의 브리지뿐이며 Voicemeeter가 그 구조다. 얻는 것(비트 퍼펙트 아님, 지연은 가상 장치 주기만큼 증가)에 비해 무거워 메인테이너가 폐기했다(2026-08-29). 다시 제안하지 않는다.
 
+**실기기 등록 검증(2026-08-29 21:23).** 장치 선택기(UAC)로 Topping USB Audio Device의 재생 행을 기본값으로 체크해 등록했다. 남은 것은 HKLM의 래퍼 기록(`ProcessOutput=1`, `Mode=1`, `DeadlinePercent=25`, `AutoStart=0`, `Register32=0`), `SOFTWARE\ASIO\Topping USB Audio Device (EQ APO XT)` 항목, 64비트 CLSID `{35614A11-8E23-4043-A85F-EF11D467090D}`(32비트 뷰는 옵션이 꺼져 있어 없음)이다. 이어서 프로브를 DAW 대역으로 삼아 `--target clsid:{래퍼 CLSID} --wrapper static --processor passthrough --seconds 10 --tone`으로 등록된 래퍼를 COM으로 열었다. 설치 폴더의 `EqualizerAPOHost.exe`가 자동으로 떠서 `\\.\pipe\EAPO.ASIO.1`, linger 60 s로 응답했고, 48 kHz·64프레임으로 10초 동안 7501 스위치를 전부 처리했으며(호스트 로그 `out 7501 in 0 blocks`), 보고 지연은 입력 112·출력 232프레임, HKCU facts(48000 Hz, 출력 2채널, 64프레임)가 게시됐다. 실제 DAW로 연 것은 아니며, 이 검증은 DAW가 거치는 것과 같은 COM 경로를 프로브가 대신 밟은 것이다.
+
 **남은 일:** 실제 DAW 여러 종에서의 구동, ARM64 기기에서 x64 DAW가 읽을 x64 래퍼 항목.
 
 ## 11. 구현 순서
