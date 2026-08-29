@@ -113,6 +113,48 @@ namespace
 		AsioRegistration::unregisterWrapper(registry, target);
 	}
 
+	// The second kind of record: a WASAPI endpoint as the target. The kind
+	// and both endpoint GUIDs survive the registry, an old record without
+	// the values reads as a driver record, and the endpoint target names its
+	// entry after the device without characters a key cannot carry.
+	void testWasapiRecordAndEndpointTarget()
+	{
+		test::FakeRegistry registry;
+		const std::wstring endpoint = L"{A6974EEF-CBB1-4E81-B9CA-34B91FFF5279}";
+		const AsioTarget target = AsioRegistration::endpointTarget(endpoint, L"Speakers", L"TOPPING USB DAC");
+		harness.expect(target.name == L"TOPPING USB DAC - Speakers", "the entry base name is device - connection");
+		harness.expect(target.clsid == endpoint, "the target CLSID is the endpoint GUID");
+		harness.expect(AsioRegistration::endpointTarget(endpoint, L"Line\\Out", L"").name == L"Line/Out", "a backslash cannot name a key and becomes a slash");
+		harness.expect(AsioRegistration::endpointTarget(endpoint, L"", L"Only device").name == L"Only device", "a missing connection name leaves the device name alone");
+		harness.expect(AsioRegistration::entryNameFor(target.name) == L"TOPPING USB DAC - Speakers (EQ APO XT)", "the entry carries the suffix");
+		harness.expect(!AsioRegistration::wrapperClsidFor(endpoint).empty() && AsioRegistration::wrapperClsidFor(endpoint) != endpoint, "the wrapper CLSID derives from the endpoint GUID");
+
+		eapo::asio::WrapperRecord record;
+		record.wrapperClsid = AsioRegistration::wrapperClsidFor(endpoint);
+		record.targetKind = eapo::asio::TargetKind::WasapiExclusive;
+		record.targetClsid = endpoint;
+		record.targetName = target.name;
+		record.renderEndpoint = endpoint;
+		record.options.processOutput = true;
+		record.options.processInput = false;
+		eapo::asio::WrapperRecords::write(registry, record);
+		eapo::asio::WrapperRecord back;
+		harness.require(eapo::asio::WrapperRecords::read(registry, record.wrapperClsid, back), "the record reads back");
+		harness.expect(back.targetKind == eapo::asio::TargetKind::WasapiExclusive, "the kind survives");
+		harness.expect(back.renderEndpoint == endpoint, "the playback endpoint survives");
+		harness.expect(back.captureEndpoint.empty(), "no recording endpoint was recorded");
+		harness.expect(back.targetClsid == endpoint && back.targetName == target.name, "CLSID and name survive");
+		harness.expectEqual(registry.readDWORDValue(eapo::asio::WrapperRecords::recordKey(record.wrapperClsid), L"TargetKind"), 1ul, "TargetKind 1 is the WASAPI kind");
+
+		// A record written before the kind existed.
+		const std::wstring oldKey = eapo::asio::WrapperRecords::recordKey(L"{0BAD0BAD-0000-4000-8000-000000000001}");
+		registry.seedString(oldKey, L"TargetClsid", L"{6D241B5E-CF73-4043-A85F-EF11D4670955}");
+		eapo::asio::WrapperRecord old;
+		harness.require(eapo::asio::WrapperRecords::read(registry, L"{0BAD0BAD-0000-4000-8000-000000000001}", old), "an old record reads");
+		harness.expect(old.targetKind == eapo::asio::TargetKind::AsioDriver, "and is a driver record");
+		harness.expect(old.renderEndpoint.empty() && old.captureEndpoint.empty(), "with no endpoints");
+	}
+
 	void testRecordsShareOneWrapperRecord()
 	{
 		test::FakeRegistry registry;
@@ -288,6 +330,7 @@ int runDeviceRecordTests()
 {
 	testEnumerationAndDerivedIds();
 	testRegisterAndUnregisterBothViews();
+	testWasapiRecordAndEndpointTarget();
 	testRecordsShareOneWrapperRecord();
 	testBootAndHost32Options();
 	testFactsFeedTheRecord();

@@ -24,6 +24,9 @@ namespace eapo::asio
 		const wchar_t* const deadlinePercentValue = L"DeadlinePercent";
 		const wchar_t* const autoStartValue = L"AutoStart";
 		const wchar_t* const register32Value = L"Register32";
+		const wchar_t* const targetKindValue = L"TargetKind";
+		const wchar_t* const renderEndpointValue = L"RenderEndpoint";
+		const wchar_t* const captureEndpointValue = L"CaptureEndpoint";
 
 		unsigned long readDwordOr(const IRegistry& registry, const std::wstring& key, const wchar_t* name, unsigned long fallback)
 		{
@@ -66,6 +69,9 @@ namespace eapo::asio
 			record.options.deadlinePercent = readDwordOr(registry, key, deadlinePercentValue, defaults.deadlinePercent);
 			record.autoStart = readDwordOr(registry, key, autoStartValue, 0) != 0;
 			record.register32 = readDwordOr(registry, key, register32Value, 0) != 0;
+			record.targetKind = readDwordOr(registry, key, targetKindValue, 0) == 1 ? TargetKind::WasapiExclusive : TargetKind::AsioDriver;
+			record.renderEndpoint = registry.valueExists(key, renderEndpointValue) ? registry.readValue(key, renderEndpointValue) : L"";
+			record.captureEndpoint = registry.valueExists(key, captureEndpointValue) ? registry.readValue(key, captureEndpointValue) : L"";
 			return true;
 		}
 
@@ -84,6 +90,9 @@ namespace eapo::asio
 			registry.writeDWORDValue(key, deadlinePercentValue, record.options.deadlinePercent);
 			registry.writeDWORDValue(key, autoStartValue, record.autoStart ? 1 : 0);
 			registry.writeDWORDValue(key, register32Value, record.register32 ? 1 : 0);
+			registry.writeDWORDValue(key, targetKindValue, record.targetKind == TargetKind::WasapiExclusive ? 1 : 0);
+			registry.writeValue(key, renderEndpointValue, record.renderEndpoint);
+			registry.writeValue(key, captureEndpointValue, record.captureEndpoint);
 		}
 
 		void remove(IRegistry& registry, const std::wstring& wrapperClsid)

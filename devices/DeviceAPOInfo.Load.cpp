@@ -20,6 +20,8 @@
 
 #include "services/registry/WindowsRegistry.h"
 #include "platform/windows/WindowsVersion.h"
+#include "asio/AsioRegistration.h"
+#include "asio/WrapperRecord.h"
 
 using std::make_shared;
 using std::move;
@@ -98,6 +100,7 @@ bool DeviceAPOInfo::load(const wstring& deviceGuid, wstring defaultDeviceGuid)
 	currentInstallState.useOriginalAPOPostMix = !input;
 	currentInstallState.allowSilentBufferModification = false;
 	currentInstallState.autoAdjust = true;
+	currentInstallState.offerAsio = false;
 
 	if (!registry.keyExists(keyPath + L"\\FxProperties"))
 	{
@@ -255,6 +258,15 @@ bool DeviceAPOInfo::load(const wstring& deviceGuid, wstring defaultDeviceGuid)
 					currentInstallState.installMode = INSTALL_SFX_EFX;
 			}
 		}
+	}
+
+	// The ASIO entry is the endpoint's own wrapper record, keyed by the
+	// CLSID derived from the endpoint GUID; a driver record could never
+	// carry that CLSID, so the kind check is belt and braces.
+	{
+		eapo::asio::WrapperRecord record;
+		currentInstallState.offerAsio = eapo::asio::WrapperRecords::read(registry, eapo::asio::AsioRegistration::wrapperClsidFor(deviceGuid), record)
+			&& record.targetKind == eapo::asio::TargetKind::WasapiExclusive;
 	}
 
 	return true;

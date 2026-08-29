@@ -133,6 +133,14 @@
 <context>
     <name>DeviceSelectorClass</name>
     <message>
+        <source>Offer this device to ASIO applications</source>
+        <translation>Dieses Gerät ASIO-Anwendungen anbieten</translation>
+    </message>
+    <message>
+        <source>Adds an entry named after this device to the ASIO driver list. An application that picks it opens the device in WASAPI exclusive mode, and the EQ runs on the way, as it does for a real ASIO driver.</source>
+        <translation>Fügt der ASIO-Treiberliste einen Eintrag mit dem Namen dieses Geräts hinzu. Eine Anwendung, die ihn wählt, öffnet das Gerät im exklusiven WASAPI-Modus, und der EQ läuft dazwischen wie bei einem echten ASIO-Treiber.</translation>
+    </message>
+    <message>
         <source>Connector</source>
         <translation type="vanished">Anschluss</translation>
     </message>

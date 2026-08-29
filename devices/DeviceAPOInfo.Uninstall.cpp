@@ -29,6 +29,7 @@ void DeviceAPOInfo::uninstall()
 {
 	runReported(DeviceInstallReport::Operation::Uninstall, [this](RegistryTransaction& plan) {
 		uninstallWithin(plan);
+		removeAsioEntry(plan);
 	});
 }
 
@@ -99,6 +100,7 @@ void DeviceAPOInfo::reinstall()
 		uninstallWithin(plan);
 		load(deviceGuid);
 		installWithin(plan);
+		applyAsioEntry(plan);
 	});
 }
 

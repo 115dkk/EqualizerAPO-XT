@@ -50,6 +50,10 @@ public:
 		bool autoAdjust;
 		InstallMode installMode;
 		bool allowSilentBufferModification;
+		// An entry for this endpoint in the ASIO driver list, served by the
+		// wrapper over a WASAPI exclusive target (asio/WasapiExclusiveTarget.h).
+		// Part of the installation: it goes with the APO and leaves with it.
+		bool offerAsio;
 
 		InstallState()
 		{
@@ -60,6 +64,7 @@ public:
 			autoAdjust = true;
 			installMode = INSTALL_LFX_GFX;
 			allowSilentBufferModification = false;
+			offerAsio = false;
 		}
 
 		bool operator!=(const InstallState& other) const
@@ -70,7 +75,8 @@ public:
 				|| useOriginalAPOPostMix != other.useOriginalAPOPostMix
 				|| autoAdjust != other.autoAdjust
 				|| installMode != other.installMode
-				|| allowSilentBufferModification != other.allowSilentBufferModification;
+				|| allowSilentBufferModification != other.allowSilentBufferModification
+				|| offerAsio != other.offerAsio;
 		}
 	};
 
@@ -155,6 +161,12 @@ private:
 	// are split out.
 	void installWithin(RegistryTransaction& plan);
 	void uninstallWithin(RegistryTransaction& plan);
+	// The ASIO entry: applyAsioEntry writes the wrapper record and the
+	// registration when the selection asks for one (after removing any
+	// earlier one), removeAsioEntry takes both away. Both run inside the
+	// operation's transaction.
+	void applyAsioEntry(RegistryTransaction& plan);
+	void removeAsioEntry(RegistryTransaction& plan);
 
 	// The one place the three public operations share: it opens the transaction,
 	// records what the device looked like beforehand, runs the steps, and fills in

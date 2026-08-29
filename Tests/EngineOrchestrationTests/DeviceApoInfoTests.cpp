@@ -45,6 +45,8 @@
 #include <mmdeviceapi.h>
 #include <mmreg.h>
 
+#include "asio/AsioRegistration.h"
+#include "asio/WrapperRecord.h"
 #include "devices/DeviceAPOInfo.h"
 #include "devices/DeviceAPOInfoKeys.h"
 #include "services/registry/WindowsRegistry.h"
@@ -439,6 +441,58 @@ void testInstallOnACaptureDeviceFillsTheStreamSlotForTheCaptureModes(test::Harne
 		"the key the install created goes away with the uninstall, the microphone is as the driver left it");
 }
 
+// The ASIO entry is part of the installation: install with it ticked writes
+// the wrapper record and the driver-list entry for the endpoint, a reload
+// sees the tick, and the uninstall takes both away with the APO.
+void testInstallWithTheAsioEntryRegistersTheWrapperAndUninstallRemovesIt(test::Harness& harness)
+{
+	FakeRegistry registry;
+	registry.seedString(APP_REGPATH, L"InstallPath", L"C:\\eapo");
+	seedRenderDevice(registry);
+
+	DeviceAPOInfo info(registry);
+	harness.require(info.load(testDeviceGuid, otherDeviceGuid), "the device loads");
+	harness.expectFalse(info.getCurrentInstallState().offerAsio, "no entry before install");
+	DeviceAPOInfo::InstallState& selected = info.getSelectedInstallState();
+	selected.installPreMix = true;
+	selected.installPostMix = true;
+	selected.offerAsio = true;
+	info.install();
+
+	const std::wstring wrapperClsid = eapo::asio::AsioRegistration::wrapperClsidFor(testDeviceGuid);
+	const std::wstring recordKey = eapo::asio::WrapperRecords::recordKey(wrapperClsid);
+	harness.require(registry.keyExists(recordKey), "the wrapper record exists for the endpoint");
+	harness.expectEqual(registry.readDWORDValue(recordKey, L"TargetKind"), 1ul, "and is of the WASAPI kind");
+	harness.expect(registry.readValue(recordKey, L"RenderEndpoint") == testDeviceGuid, "naming the playback endpoint");
+	harness.expectEqual(registry.readDWORDValue(recordKey, L"ProcessOutput"), 1ul, "processing the output");
+	harness.expectEqual(registry.readDWORDValue(recordKey, L"ProcessInput"), 0ul, "and not an input it does not have");
+	const std::wstring entryBase = eapo::asio::AsioRegistration::endpointTarget(testDeviceGuid, connectionName, deviceName).name;
+	const std::wstring entryKey = eapo::asio::AsioRegistration::asioRoot(false) + L"\\" + eapo::asio::AsioRegistration::entryNameFor(entryBase);
+	harness.require(registry.keyExists(entryKey), "the driver-list entry exists, named after the device and the endpoint");
+	harness.expect(registry.readValue(entryKey, L"CLSID") == wrapperClsid, "and names the wrapper CLSID");
+	harness.expect(registry.readValue(eapo::asio::AsioRegistration::classesClsidRoot(false) + L"\\" + wrapperClsid + L"\\InprocServer32", L"") == L"C:\\eapo\\EqualizerAPOAsio.dll",
+		"whose class tree points at the wrapper DLL beside the product");
+	harness.expect(info.getLastOperationReport().asioEntry == eapo::asio::AsioRegistration::entryNameFor(entryBase), "the report names the entry");
+
+	DeviceAPOInfo reloaded(registry);
+	harness.require(reloaded.load(testDeviceGuid, otherDeviceGuid), "the device reloads");
+	harness.expectTrue(reloaded.getCurrentInstallState().offerAsio, "a fresh load sees the entry");
+
+	reloaded.uninstall();
+	harness.expectFalse(registry.keyExists(recordKey), "the uninstall removes the record");
+	harness.expectFalse(registry.keyExists(entryKey), "and the driver-list entry");
+	harness.expect(reloaded.getLastOperationReport().asioEntry.empty(), "and the report names no entry");
+
+	// The tick without the APO means nothing: the entry belongs to the installation.
+	DeviceAPOInfo again(registry);
+	harness.require(again.load(testDeviceGuid, otherDeviceGuid), "the device loads once more");
+	again.getSelectedInstallState().installPreMix = false;
+	again.getSelectedInstallState().installPostMix = false;
+	again.getSelectedInstallState().offerAsio = true;
+	again.install();
+	harness.expectFalse(registry.keyExists(recordKey), "no APO, no entry");
+}
+
 void testUninstallRemovesTheFxPropertiesKeyItCreated(test::Harness& harness)
 {
 	FakeRegistry registry;
@@ -740,6 +794,7 @@ void runDeviceApoInfoTests(test::Harness& harness)
 	testInstallThenLoadRoundTripsTheInstallState(harness);
 	testInstallRegistersEveryModeOfTheDirection(harness);
 	testInstallOnACaptureDeviceFillsTheStreamSlotForTheCaptureModes(harness);
+	testInstallWithTheAsioEntryRegistersTheWrapperAndUninstallRemovesIt(harness);
 	testUninstallRemovesTheFxPropertiesKeyItCreated(harness);
 	testUninstallKeepsFxPropertiesWhenWindowsPutItsOwnSubkeysThere(harness);
 	testInstallExportsTheDriverValuesBeforeOverwritingThem(harness);
