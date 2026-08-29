@@ -621,7 +621,7 @@ if (-not (Test-Path -LiteralPath $asioProbe)) {
     & reg export "HKLM\SOFTWARE\ASIO" (Join-Path $SnapshotDirectory "90-asio-entry-installed-asio.reg") /y 2>$null | Out-Null
     & reg export "HKLM\SOFTWARE\EqualizerAPO\ASIO" (Join-Path $SnapshotDirectory "90-asio-entry-installed-records.reg") /y 2>$null | Out-Null
     $global:LASTEXITCODE = 0
-    $entries = Get-EqApoAsioEntries
+    $entries = @(Get-EqApoAsioEntries)
     if ($entries.Count -ne 1) {
         Add-Failure "asio-entry/install: expected one '(EQ APO XT)' entry under HKLM\SOFTWARE\ASIO, found $($entries.Count)"
     } else {
@@ -652,7 +652,7 @@ if (-not (Test-Path -LiteralPath $asioProbe)) {
     $uninstall = Invoke-Program (Join-Path $current "DeviceSelector.exe") @("--uninstall-endpoint", $endpoints.Render) 180 $current
     $asioEntry.uninstall = [ordered]@{ exitCode = $uninstall.ExitCode }
     if ($uninstall.ExitCode -ne 0) { Add-Failure "asio-entry/uninstall: DeviceSelector --uninstall-endpoint exited with $($uninstall.ExitCode)" }
-    $asioEntry.entryLeft = (Get-EqApoAsioEntries).Count
+    $asioEntry.entryLeft = @(Get-EqApoAsioEntries).Count
     $recordRoot = "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO\ASIO"
     $asioEntry.recordLeft = if (Test-Path $recordRoot) { @(Get-ChildItem $recordRoot -ErrorAction SilentlyContinue).Count } else { 0 }
     if ($asioEntry.entryLeft -ne 0) { Add-Failure "asio-entry/uninstall: $($asioEntry.entryLeft) '(EQ APO XT)' entries remain under HKLM\SOFTWARE\ASIO" }
