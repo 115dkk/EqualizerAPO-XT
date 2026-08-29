@@ -199,9 +199,11 @@ public:
 		if (!AttachConsole(ATTACH_PARENT_PROCESS))
 			return;
 		attached = true;
+		// A reopen that fails leaves that stream where it was; the log still
+		// gets every line, so the failure is recorded and nothing more.
 		FILE* stream = nullptr;
-		freopen_s(&stream, "CONOUT$", "w", stdout);
-		freopen_s(&stream, "CONOUT$", "w", stderr);
+		if (freopen_s(&stream, "CONOUT$", "w", stdout) != 0 || freopen_s(&stream, "CONOUT$", "w", stderr) != 0)
+			LogFStatic(L"Could not route the console output to the attached console; see this log instead");
 	}
 
 	~ConsoleAttachment()
