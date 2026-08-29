@@ -96,3 +96,31 @@ does. On such a machine, `ApoHostProbe` against the microphone's GUID
 tells whether the DLL processes for it, and `CaptureProbe --capture
 "<microphone>"` with a tone played into the room tells whether the audio
 engine runs it.
+
+## The low-latency round
+
+The same gate has a round for the playback side and the engine's small
+buffers (`docs/architecture/wasapi-exclusive-study.md`, section 3). A
+low-latency application (a game, a DAW, a voice-chat app) asks for a small
+period through `IAudioClient3`, and every stream on that endpoint and mode
+moves to it; the APO stays in the path and simply gets shorter blocks. The
+one filter that notices is the convolution, which processes at the block
+length it was locked with and goes silent on any other. So the round puts a
+unit impulse (`gate-impulse.wav`, unity) behind the preamp, installs the APO
+on `CABLE Input`, and measures three ways with `CaptureProbe --period`:
+
+- `ll-default`: the convolution config at the default period, the reference.
+- `ll-min`: a fresh tone stream at the smallest period the driver declares.
+- `ll-min-switch`: a silent default-period stream is held open first
+  (`--hold-default`), then the small-period stream starts, so the engine has
+  to switch a running graph with a post-mix APO already locked at the
+  default count.
+
+Each is expected at the preamp. Silence in either small-period measurement
+means the engine hands the post-mix APO blocks shorter than the count it
+locked with, and the convolution needs to be made independent of the block
+length. The probe's JSON carries the engine's default and minimum periods
+and the period it actually ran at; the summary lists every `LockForProcess`
+frame count the DLL traced during the run. On a driver that declares no
+period below the default the two small-period measurements are recorded as
+skipped, not failed.

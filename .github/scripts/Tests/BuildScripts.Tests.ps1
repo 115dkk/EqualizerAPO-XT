@@ -104,6 +104,21 @@ Describe "extracted build script decisions" {
         foreach ($named in @("sfx-efx", "sfx-mfx", "lfx-gfx")) {
             ($plan.InstallModes | Where-Object { $_.Name -eq $named }).Required | Should -BeFalse
         }
+        # The low-latency round: the playback side with a convolution in the
+        # config, the small period fresh and after a switch, both at the
+        # preamp and both gated (the script itself skips them, and says so,
+        # on a driver that declares no small period).
+        @($plan.LowLatency | ForEach-Object { $_.Name }) | Should -Be @("ll-default", "ll-min", "ll-min-switch", "ll-after-uninstall")
+        foreach ($name in @("ll-min", "ll-min-switch")) {
+            $m = $plan.LowLatency | Where-Object { $_.Name -eq $name }
+            $m.Period | Should -Be "min"
+            $m.ExpectGainDb | Should -Be $plan.PreampDb
+            $m.Required | Should -BeTrue
+        }
+        ($plan.LowLatency | Where-Object { $_.Name -eq "ll-min" }).HoldDefault | Should -BeFalse
+        ($plan.LowLatency | Where-Object { $_.Name -eq "ll-min-switch" }).HoldDefault | Should -BeTrue
+        ($plan.LowLatency | Where-Object { $_.Name -eq "ll-default" }).Period | Should -Be "default"
+        ($plan.LowLatency | Where-Object { $_.Name -eq "ll-after-uninstall" }).ExpectGainDb | Should -Be 0
     }
 
     It "builds only the two 32-bit ASIO DLLs for Win32" {
