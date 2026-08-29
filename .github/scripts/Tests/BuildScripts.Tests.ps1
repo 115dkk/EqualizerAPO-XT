@@ -119,6 +119,11 @@ Describe "extracted build script decisions" {
         ($plan.LowLatency | Where-Object { $_.Name -eq "ll-min-switch" }).HoldDefault | Should -BeTrue
         ($plan.LowLatency | Where-Object { $_.Name -eq "ll-default" }).Period | Should -Be "default"
         ($plan.LowLatency | Where-Object { $_.Name -eq "ll-after-uninstall" }).ExpectGainDb | Should -Be 0
+        # The ASIO entry round: the endpoint's entry opened through COM the way
+        # a DAW does, the preamp expected on the far side, gated.
+        $plan.AsioEntry.Name | Should -Be "asio-entry"
+        $plan.AsioEntry.ExpectGainDb | Should -Be $plan.PreampDb
+        $plan.AsioEntry.Required | Should -BeTrue
     }
 
     It "builds only the two 32-bit ASIO DLLs for Win32" {

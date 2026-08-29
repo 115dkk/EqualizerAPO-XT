@@ -98,6 +98,14 @@ $lowLatencyMeasurements = @(
     [pscustomobject]@{ Name = "ll-min-switch";      Category = "default"; Raw = $false; Period = "min";     HoldDefault = $true;  ExpectGainDb = $PreampDb; ToleranceDb = 3.0;          Required = $true; Note = "the engine switches a running default-period graph to the small period" }
     [pscustomobject]@{ Name = "ll-after-uninstall"; Category = "default"; Raw = $false; Period = "";        HoldDefault = $false; ExpectGainDb = 0.0;       ToleranceDb = 1.5;          Required = $true; Note = "the cable at unity after the playback-side uninstall" }
 )
+# The ASIO entry round: the playback endpoint installed with its entry in
+# the ASIO driver list (DeviceSelector --offer-asio), then that entry opened
+# the way a DAW opens it (COM activation of the registered wrapper CLSID,
+# AsioProbe as the host) while a recording app listens on the cable's far
+# side. The wrapper runs a WASAPI exclusive target and the engine host; the
+# preamp arriving on the far side is the whole path working. The uninstall
+# must take the entry and its record away again.
+$asioEntryMeasurement = [pscustomobject]@{ Name = "asio-entry"; ExpectGainDb = $PreampDb; ToleranceDb = $ToleranceDb; Required = $true; Note = "a DAW opening the endpoint's ASIO entry hears the preamp on the far side" }
 
 $plan = [pscustomobject]@{
     VbCableUrl = $VbCableUrl
@@ -108,6 +116,7 @@ $plan = [pscustomobject]@{
     Measurements = $measurements
     InstallModes = $installModes
     LowLatency = $lowLatencyMeasurements
+    AsioEntry = $asioEntryMeasurement
     StageRoot = $StageRoot
 }
 if ($PlanOnly) { return $plan }
@@ -131,6 +140,7 @@ $summary = [ordered]@{
     apoHost = $null
     rounds = @()
     lowLatency = $null
+    asioEntry = $null
     measurements = @()
     failures = @()
 }
@@ -284,9 +294,13 @@ function Copy-Logs([string] $phase) {
 }
 
 function Measure-Cable($measurement, [string] $round = "") {
-    $arguments = @("--render", $renderConnection, "--capture", $captureConnection, "--json",
+    $noRender = $measurement.PSObject.Properties["NoRender"] -and $measurement.NoRender
+    $arguments = @("--capture", $captureConnection, "--json",
         "--expect-gain-db", $measurement.ExpectGainDb.ToString([cultureinfo]::InvariantCulture),
         "--tolerance-db", $measurement.ToleranceDb.ToString([cultureinfo]::InvariantCulture))
+    # Something else plays into the cable (the ASIO probe): listen only, and
+    # give it a moment to be up before the window opens.
+    if ($noRender) { $arguments += @("--no-render", "--settle", "2.5", "--seconds", "2") } else { $arguments += @("--render", $renderConnection) }
     if ($measurement.Category -ne "default") { $arguments += @("--category", $measurement.Category) }
     if ($measurement.Raw) { $arguments += "--raw" }
     $period = if ($measurement.PSObject.Properties["Period"]) { [string]$measurement.Period } else { "" }
@@ -588,6 +602,64 @@ Measure-Cable $lowLatencyMeasurements[3] "low-latency" | Out-Null
 Copy-Logs "80-low-latency-uninstalled"
 [System.IO.File]::WriteAllText($configFile, $config, (New-Object System.Text.UTF8Encoding($false)))
 $summary.lowLatency = [pscustomobject]$lowLatency
+
+# ---------------------------------------------------------------------------
+Write-Phase "asio-entry: the playback endpoint offered to ASIO applications"
+$asioProbe = Join-Path $ProbeDirectory "AsioProbe.exe"
+$asioRoot = "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\ASIO"
+$asioEntry = [ordered]@{ install = $null; entryName = $null; wrapperClsid = $null; probe = $null; uninstall = $null; entryLeft = $null; recordLeft = $null }
+function Get-EqApoAsioEntries {
+    if (-not (Test-Path $asioRoot)) { return @() }
+    return @(Get-ChildItem $asioRoot -ErrorAction SilentlyContinue | Where-Object { $_.PSChildName -like "* (EQ APO XT)" })
+}
+if (-not (Test-Path -LiteralPath $asioProbe)) {
+    Add-Failure "asio-entry: AsioProbe.exe is not in the probe directory"
+} else {
+    $install = Invoke-Program (Join-Path $current "DeviceSelector.exe") @("--install-endpoint", $endpoints.Render, "--offer-asio") 300 $current
+    $asioEntry.install = [ordered]@{ exitCode = $install.ExitCode; timedOut = $install.TimedOut }
+    if ($install.ExitCode -ne 0) { Add-Failure "asio-entry/install: DeviceSelector --install-endpoint --offer-asio exited with $($install.ExitCode)" }
+    & reg export "HKLM\SOFTWARE\ASIO" (Join-Path $SnapshotDirectory "90-asio-entry-installed-asio.reg") /y 2>$null | Out-Null
+    & reg export "HKLM\SOFTWARE\EqualizerAPO\ASIO" (Join-Path $SnapshotDirectory "90-asio-entry-installed-records.reg") /y 2>$null | Out-Null
+    $global:LASTEXITCODE = 0
+    $entries = Get-EqApoAsioEntries
+    if ($entries.Count -ne 1) {
+        Add-Failure "asio-entry/install: expected one '(EQ APO XT)' entry under HKLM\SOFTWARE\ASIO, found $($entries.Count)"
+    } else {
+        $asioEntry.entryName = $entries[0].PSChildName
+        $asioEntry.wrapperClsid = (Get-ItemProperty -Path $entries[0].PSPath).CLSID
+        Write-Host "ASIO entry: $($asioEntry.entryName) -> $($asioEntry.wrapperClsid)"
+        # The probe stands in for the DAW: it activates the registered CLSID
+        # through COM, which loads the wrapper DLL from the class tree, which
+        # reads its record, opens the cable in exclusive mode and starts the
+        # engine host. A sine at -6 dBFS for six seconds; the far side is
+        # measured in the middle of that.
+        $env:PATH = "$current;$env:PATH"
+        $probeOut = [System.IO.Path]::GetTempFileName()
+        $probeErr = [System.IO.Path]::GetTempFileName()
+        $probeProcess = Start-Process -FilePath $asioProbe -ArgumentList @("--target", "clsid:$($asioEntry.wrapperClsid)", "--wrapper", "static", "--processor", "passthrough", "--seconds", "8", "--sine", "1000") -PassThru -NoNewWindow -RedirectStandardOutput $probeOut -RedirectStandardError $probeErr -WorkingDirectory $current
+        Start-Sleep -Seconds 1
+        $record = Measure-Cable ([pscustomobject]@{ Name = $asioEntryMeasurement.Name; Category = "default"; Raw = $false; ExpectGainDb = $asioEntryMeasurement.ExpectGainDb; ToleranceDb = $asioEntryMeasurement.ToleranceDb; Required = $asioEntryMeasurement.Required; Note = $asioEntryMeasurement.Note; NoRender = $true }) "asio-entry"
+        $probeProcess.WaitForExit(30000) | Out-Null
+        if (-not $probeProcess.HasExited) { try { $probeProcess.Kill() } catch {} }
+        $probeText = (Get-Content -LiteralPath $probeOut -Raw -ErrorAction SilentlyContinue) + (Get-Content -LiteralPath $probeErr -Raw -ErrorAction SilentlyContinue)
+        Remove-Item -LiteralPath $probeOut, $probeErr -Force -ErrorAction SilentlyContinue
+        if ($probeText) { Write-Host ($probeText.TrimEnd()) }
+        $asioEntry.probe = [ordered]@{ exitCode = $probeProcess.ExitCode; output = $probeText }
+        if ($probeProcess.ExitCode -ne 0) { Add-Failure "asio-entry/probe: AsioProbe over the registered entry exited with $($probeProcess.ExitCode)" }
+    }
+    Copy-Logs "90-asio-entry-measured"
+
+    $uninstall = Invoke-Program (Join-Path $current "DeviceSelector.exe") @("--uninstall-endpoint", $endpoints.Render) 180 $current
+    $asioEntry.uninstall = [ordered]@{ exitCode = $uninstall.ExitCode }
+    if ($uninstall.ExitCode -ne 0) { Add-Failure "asio-entry/uninstall: DeviceSelector --uninstall-endpoint exited with $($uninstall.ExitCode)" }
+    $asioEntry.entryLeft = (Get-EqApoAsioEntries).Count
+    $recordRoot = "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO\ASIO"
+    $asioEntry.recordLeft = if (Test-Path $recordRoot) { @(Get-ChildItem $recordRoot -ErrorAction SilentlyContinue).Count } else { 0 }
+    if ($asioEntry.entryLeft -ne 0) { Add-Failure "asio-entry/uninstall: $($asioEntry.entryLeft) '(EQ APO XT)' entries remain under HKLM\SOFTWARE\ASIO" }
+    if ($asioEntry.recordLeft -ne 0) { Add-Failure "asio-entry/uninstall: $($asioEntry.recordLeft) wrapper records remain" }
+    Copy-Logs "95-asio-entry-uninstalled"
+}
+$summary.asioEntry = [pscustomobject]$asioEntry
 
 # ---------------------------------------------------------------------------
 Write-Phase "summary"
