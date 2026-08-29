@@ -133,12 +133,12 @@
 <context>
     <name>DeviceSelectorClass</name>
     <message>
-        <source>Enable the EQ in WASAPI exclusive mode</source>
-        <translation>EQ im exklusiven WASAPI-Modus aktivieren</translation>
+        <source>Create an ASIO entry</source>
+        <translation>ASIO-Eintrag erstellen</translation>
     </message>
     <message>
-        <source>An application that opens this device in exclusive mode bypasses the EQ. This adds `&lt;device&gt; - &lt;endpoint&gt; (EQ APO XT)` to the ASIO driver list; choose it in the application instead of its WASAPI exclusive output, and the EQ runs on that stream.</source>
-        <translation>Eine Anwendung, die dieses Gerät im exklusiven Modus öffnet, umgeht den EQ. Diese Option fügt der ASIO-Treiberliste den Eintrag `&lt;Gerät&gt; - &lt;Endpunkt&gt; (EQ APO XT)` hinzu; wählen Sie ihn in der Anwendung statt der exklusiven WASAPI-Ausgabe, und der EQ läuft auf diesem Stream.</translation>
+        <source>Adds `&lt;device&gt; - &lt;endpoint&gt; (EQ APO XT)` to the ASIO driver list. An application that picks it opens this device in WASAPI exclusive mode with the EQ applied: what exclusive mode gives, plus the EQ that exclusive mode alone bypasses.</source>
+        <translation>Fügt der ASIO-Treiberliste `&lt;Gerät&gt; - &lt;Endpunkt&gt; (EQ APO XT)` hinzu. Eine Anwendung, die ihn wählt, öffnet dieses Gerät im exklusiven WASAPI-Modus mit angewendetem EQ: die Wirkung des exklusiven Modus plus der EQ, den der exklusive Modus allein umgeht.</translation>
     </message>
     <message>
         <source>Connector</source>

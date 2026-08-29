@@ -133,12 +133,12 @@
 <context>
     <name>DeviceSelectorClass</name>
     <message>
-        <source>Enable the EQ in WASAPI exclusive mode</source>
-        <translation>WASAPI 독점 모드에서 EQ 활성화</translation>
+        <source>Create an ASIO entry</source>
+        <translation>ASIO 모드 생성</translation>
     </message>
     <message>
-        <source>An application that opens this device in exclusive mode bypasses the EQ. This adds `&lt;device&gt; - &lt;endpoint&gt; (EQ APO XT)` to the ASIO driver list; choose it in the application instead of its WASAPI exclusive output, and the EQ runs on that stream.</source>
-        <translation>장치를 독점 모드로 여는 응용 프로그램은 EQ를 건너뜁니다. 이 옵션은 ASIO 드라이버 목록에 `&lt;장치&gt; - &lt;엔드포인트&gt; (EQ APO XT)` 항목을 추가하며, 응용 프로그램에서 WASAPI 독점 출력 대신 그 항목을 고르면 그 스트림에 EQ가 걸립니다.</translation>
+        <source>Adds `&lt;device&gt; - &lt;endpoint&gt; (EQ APO XT)` to the ASIO driver list. An application that picks it opens this device in WASAPI exclusive mode with the EQ applied: what exclusive mode gives, plus the EQ that exclusive mode alone bypasses.</source>
+        <translation>ASIO 드라이버 목록에 `&lt;장치&gt; - &lt;엔드포인트&gt; (EQ APO XT)` 항목을 만듭니다. ASIO를 지원하는 앱에서 그 항목을 고르면 이 장치를 WASAPI 독점 모드로 열면서 EQ까지 적용합니다. 독점 모드의 효과에, 독점 모드만으로는 건너뛰는 EQ를 더한 것입니다.</translation>
     </message>
     <message>
         <location filename="../DeviceSelector.cpp" line="124"/>

@@ -133,12 +133,12 @@
 <context>
     <name>DeviceSelectorClass</name>
     <message>
-        <source>Enable the EQ in WASAPI exclusive mode</source>
-        <translation>在 WASAPI 独占模式下启用均衡器</translation>
+        <source>Create an ASIO entry</source>
+        <translation>创建 ASIO 模式</translation>
     </message>
     <message>
-        <source>An application that opens this device in exclusive mode bypasses the EQ. This adds `&lt;device&gt; - &lt;endpoint&gt; (EQ APO XT)` to the ASIO driver list; choose it in the application instead of its WASAPI exclusive output, and the EQ runs on that stream.</source>
-        <translation>以独占模式打开此设备的应用程序会绕过均衡器。此选项会在 ASIO 驱动列表中添加“&lt;设备&gt; - &lt;端点&gt; (EQ APO XT)”条目；在应用程序中选择它而不是其 WASAPI 独占输出，均衡器即可作用于该音频流。</translation>
+        <source>Adds `&lt;device&gt; - &lt;endpoint&gt; (EQ APO XT)` to the ASIO driver list. An application that picks it opens this device in WASAPI exclusive mode with the EQ applied: what exclusive mode gives, plus the EQ that exclusive mode alone bypasses.</source>
+        <translation>在 ASIO 驱动列表中添加“&lt;设备&gt; - &lt;端点&gt; (EQ APO XT)”。选择该条目的应用程序会以 WASAPI 独占模式打开此设备并应用均衡器：独占模式的效果，加上独占模式本身会绕过的均衡器。</translation>
     </message>
     <message>
         <source>Connector</source>
