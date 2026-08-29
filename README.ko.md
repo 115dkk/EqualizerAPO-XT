@@ -47,6 +47,14 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
    EQ가 닿습니다. "(실험적)" 표기는 없앴습니다. 남은 것은 제보자의 환경을 모른다는
    점이며, 그 환경에서 돌려 볼 프로브는
    [docs/features/capture.md](docs/features/capture.md)에 있습니다.
+10. WASAPI 독점 모드([#325](https://github.com/115dkk/EqualizerAPO-XT/pull/325)) —
+   독점 모드 스트림은 APO에 닿지 않으므로, ASIO 래퍼에 두 번째 종류의 대상을
+   붙였습니다. 어떤 Windows 엔드포인트든 WASAPI 독점 모드로 열어 ASIO 응용
+   프로그램에 제공하며, 장치 선택기의 그 엔드포인트 행에서 켭니다. 가상
+   케이블로 로컬과 CI에서 측정했고, 저지연 모드의 답까지 담은 조사는
+   [docs/architecture/wasapi-exclusive-study.md](docs/architecture/wasapi-exclusive-study.md)에
+   있습니다. 남은 것은 케이블 밖의 실제 하드웨어와, 한 장치의 재생·녹음
+   엔드포인트를 하나의 항목으로 묶는 일입니다.
 
 ## 주요 기능
 

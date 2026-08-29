@@ -56,6 +56,15 @@ Current work areas:
    is gone. Remaining: the report's own environment is unknown; the probes
    in [docs/features/capture.md](docs/features/capture.md) are what to run
    on it.
+10. WASAPI exclusive mode ([#325](https://github.com/115dkk/EqualizerAPO-XT/pull/325)) -
+   an exclusive-mode stream never reaches an APO, so the ASIO wrapper
+   learned a second kind of target: any Windows endpoint, opened in WASAPI
+   exclusive mode, offered to ASIO applications from the endpoint's own row
+   in the Device Selector. Measured on a virtual cable locally and on CI;
+   the study, with the low-latency answer, is in
+   [docs/architecture/wasapi-exclusive-study.md](docs/architecture/wasapi-exclusive-study.md).
+   Remaining: hardware beyond the cable, and one entry that pairs a device's
+   playback and recording endpoints.
 
 ## Features
 
