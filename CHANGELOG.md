@@ -17,7 +17,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 - **Any playback or recording endpoint can be offered to ASIO applications.**
   An application in WASAPI exclusive mode never passes the audio engine, so
   no APO can reach it. The ASIO wrapper now has a second kind of target:
-  tick **Offer this device to ASIO applications** on an endpoint's options
+  tick **Enable the EQ in WASAPI exclusive mode** on an endpoint's options
   page in the Device Selector, and `<device> - <endpoint> (EQ APO XT)`
   appears in the ASIO driver list. An application that picks it opens the
   endpoint in exclusive mode - no mixing, no resampling, the device's

@@ -133,12 +133,12 @@
 <context>
     <name>DeviceSelectorClass</name>
     <message>
-        <source>Offer this device to ASIO applications</source>
-        <translation>이 장치를 ASIO 응용 프로그램에 제공</translation>
+        <source>Enable the EQ in WASAPI exclusive mode</source>
+        <translation>WASAPI 독점 모드에서 EQ 활성화</translation>
     </message>
     <message>
-        <source>Adds an entry named after this device to the ASIO driver list. An application that picks it opens the device in WASAPI exclusive mode, and the EQ runs on the way, as it does for a real ASIO driver.</source>
-        <translation>이 장치 이름의 항목을 ASIO 드라이버 목록에 추가합니다. 그 항목을 고른 응용 프로그램은 장치를 WASAPI 독점 모드로 열고, EQ는 실제 ASIO 드라이버에서처럼 그 사이에서 처리됩니다.</translation>
+        <source>An application that opens this device in exclusive mode bypasses the EQ. This adds `&lt;device&gt; - &lt;endpoint&gt; (EQ APO XT)` to the ASIO driver list; choose it in the application instead of its WASAPI exclusive output, and the EQ runs on that stream.</source>
+        <translation>장치를 독점 모드로 여는 응용 프로그램은 EQ를 건너뜁니다. 이 옵션은 ASIO 드라이버 목록에 `&lt;장치&gt; - &lt;엔드포인트&gt; (EQ APO XT)` 항목을 추가하며, 응용 프로그램에서 WASAPI 독점 출력 대신 그 항목을 고르면 그 스트림에 EQ가 걸립니다.</translation>
     </message>
     <message>
         <location filename="../DeviceSelector.cpp" line="124"/>

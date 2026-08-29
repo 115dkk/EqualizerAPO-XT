@@ -50,10 +50,12 @@ public:
 		bool autoAdjust;
 		InstallMode installMode;
 		bool allowSilentBufferModification;
-		// An entry for this endpoint in the ASIO driver list, served by the
-		// wrapper over a WASAPI exclusive target (asio/WasapiExclusiveTarget.h).
-		// Part of the installation: it goes with the APO and leaves with it.
-		bool offerAsio;
+		// "Enable the EQ in WASAPI exclusive mode": an entry for this endpoint
+		// in the ASIO driver list, served by the wrapper over a WASAPI
+		// exclusive target (asio/WasapiExclusiveTarget.h), for applications
+		// whose exclusive-mode stream no APO can reach. Part of the
+		// installation: it goes with the APO and leaves with it.
+		bool exclusiveModeEq;
 
 		InstallState()
 		{
@@ -64,7 +66,7 @@ public:
 			autoAdjust = true;
 			installMode = INSTALL_LFX_GFX;
 			allowSilentBufferModification = false;
-			offerAsio = false;
+			exclusiveModeEq = false;
 		}
 
 		bool operator!=(const InstallState& other) const
@@ -76,7 +78,7 @@ public:
 				|| autoAdjust != other.autoAdjust
 				|| installMode != other.installMode
 				|| allowSilentBufferModification != other.allowSilentBufferModification
-				|| offerAsio != other.offerAsio;
+				|| exclusiveModeEq != other.exclusiveModeEq;
 		}
 	};
 

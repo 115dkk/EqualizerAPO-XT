@@ -452,11 +452,11 @@ void testInstallWithTheAsioEntryRegistersTheWrapperAndUninstallRemovesIt(test::H
 
 	DeviceAPOInfo info(registry);
 	harness.require(info.load(testDeviceGuid, otherDeviceGuid), "the device loads");
-	harness.expectFalse(info.getCurrentInstallState().offerAsio, "no entry before install");
+	harness.expectFalse(info.getCurrentInstallState().exclusiveModeEq, "no entry before install");
 	DeviceAPOInfo::InstallState& selected = info.getSelectedInstallState();
 	selected.installPreMix = true;
 	selected.installPostMix = true;
-	selected.offerAsio = true;
+	selected.exclusiveModeEq = true;
 	info.install();
 
 	const std::wstring wrapperClsid = eapo::asio::AsioRegistration::wrapperClsidFor(testDeviceGuid);
@@ -476,7 +476,7 @@ void testInstallWithTheAsioEntryRegistersTheWrapperAndUninstallRemovesIt(test::H
 
 	DeviceAPOInfo reloaded(registry);
 	harness.require(reloaded.load(testDeviceGuid, otherDeviceGuid), "the device reloads");
-	harness.expectTrue(reloaded.getCurrentInstallState().offerAsio, "a fresh load sees the entry");
+	harness.expectTrue(reloaded.getCurrentInstallState().exclusiveModeEq, "a fresh load sees the entry");
 
 	reloaded.uninstall();
 	harness.expectFalse(registry.keyExists(recordKey), "the uninstall removes the record");
@@ -488,7 +488,7 @@ void testInstallWithTheAsioEntryRegistersTheWrapperAndUninstallRemovesIt(test::H
 	harness.require(again.load(testDeviceGuid, otherDeviceGuid), "the device loads once more");
 	again.getSelectedInstallState().installPreMix = false;
 	again.getSelectedInstallState().installPostMix = false;
-	again.getSelectedInstallState().offerAsio = true;
+	again.getSelectedInstallState().exclusiveModeEq = true;
 	again.install();
 	harness.expectFalse(registry.keyExists(recordKey), "no APO, no entry");
 }

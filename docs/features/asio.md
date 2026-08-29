@@ -30,8 +30,8 @@ minute after the last stream ends.
 Any Windows playback or recording endpoint can appear in the ASIO driver
 list too: onboard audio, HDMI, a USB DAC or headset that came without an
 ASIO driver, a virtual cable. Select the endpoint in the Device Selector,
-open the troubleshooting options and tick **Offer this device to ASIO
-applications**; the entry is `<device> - <endpoint> (EQ APO XT)`. An
+open the troubleshooting options and tick **Enable the EQ in WASAPI
+exclusive mode**; the entry is `<device> - <endpoint> (EQ APO XT)`. An
 application that picks it opens the endpoint in WASAPI exclusive mode: no
 audio engine, no mixing or resampling, the device's own smallest period,
 the sample rate the application asks for. The engine host processes the
@@ -46,7 +46,7 @@ but a player with an ASIO output can be pointed at the entry instead. A
 playback endpoint gives an output-only device, a recording endpoint an
 input-only one. The entry belongs to the endpoint's installation: it is
 written with the APO and removed with it, and the install report names it.
-`DeviceSelector --install-endpoint {guid} --offer-asio` does the same from
+`DeviceSelector --install-endpoint {guid} --exclusive-mode-eq` does the same from
 a terminal.
 
 What the entry offers: buffer sizes in powers of two from the smallest

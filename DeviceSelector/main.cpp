@@ -243,7 +243,7 @@ void say(const wchar_t* format, ...)
 }
 
 // --install-endpoint {guid} [--install-mode lfx-gfx|sfx-mfx|sfx-efx]
-//                           [--no-original-apo] [--offer-asio] [--no-test]
+//                           [--no-original-apo] [--exclusive-mode-eq] [--no-test]
 // --uninstall-endpoint {guid}
 //
 // The dialog's OK for one endpoint, without the dialog: the same
@@ -262,7 +262,7 @@ int runEndpointCommand(QApplication& app, bool install)
 	const int flagIndex = args.indexOf(flag);
 	if (flagIndex < 0 || flagIndex + 1 >= args.size())
 	{
-		say(L"usage: DeviceSelector %hs {endpoint-guid} [--install-mode lfx-gfx|sfx-mfx|sfx-efx] [--no-original-apo] [--offer-asio] [--no-test]\n", qPrintable(flag));
+		say(L"usage: DeviceSelector %hs {endpoint-guid} [--install-mode lfx-gfx|sfx-mfx|sfx-efx] [--no-original-apo] [--exclusive-mode-eq] [--no-test]\n", qPrintable(flag));
 		return 2;
 	}
 	const std::wstring guid = args[flagIndex + 1].toStdWString();
@@ -309,9 +309,10 @@ int runEndpointCommand(QApplication& app, bool install)
 		state.useOriginalAPOPreMix = false;
 		state.useOriginalAPOPostMix = false;
 	}
-	// The endpoint's entry in the ASIO driver list, the dialog's checkbox.
-	if (args.contains(QStringLiteral("--offer-asio")))
-		state.offerAsio = true;
+	// "Enable the EQ in WASAPI exclusive mode": the endpoint's entry in the
+	// ASIO driver list, the dialog's checkbox.
+	if (args.contains(QStringLiteral("--exclusive-mode-eq")))
+		state.exclusiveModeEq = true;
 
 	try
 	{
