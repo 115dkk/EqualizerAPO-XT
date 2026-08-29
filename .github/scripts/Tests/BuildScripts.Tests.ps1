@@ -57,6 +57,38 @@ Describe "extracted build script decisions" {
         }
     }
 
+    It "lists the capture probes so every leg builds them" {
+        $avx2 = & (Join-Path $PSScriptRoot "..\Build-Solution.ps1") `
+            -WorkspaceRoot $root -Platform x64 -SimdVariant avx2 -ArchFlag AdvancedVectorExtensions2 -PlanOnly
+        $avx2.Projects | Should -Contain "Tests\ApoHostProbe\ApoHostProbe.vcxproj"
+        $avx2.Projects | Should -Contain "Tests\CaptureProbe\CaptureProbe.vcxproj"
+    }
+
+    It "plans the capture gate over a pinned virtual cable with the preamp measured three ways" {
+        $plan = & (Join-Path $PSScriptRoot "..\Invoke-CaptureGate.ps1") -WorkspaceRoot $root -PlanOnly
+        $plan.VbCableSha256 | Should -Match "^[0-9A-F]{64}$"
+        $plan.VbCableUrl | Should -Match "^https://download\.vb-audio\.com/"
+        $plan.RenderConnection | Should -Be "CABLE Input"
+        $plan.CaptureConnection | Should -Be "CABLE Output"
+        $plan.PreampDb | Should -BeLessThan 0
+        $names = @($plan.Measurements | ForEach-Object { $_.Name })
+        $names | Should -Be @("baseline", "apo-default", "apo-comms", "apo-raw", "after-uninstall")
+        # The two that say "the APO processes a recording endpoint": a plain
+        # recorder and a voice-chat stream, both expected at the preamp.
+        foreach ($name in @("apo-default", "apo-comms")) {
+            $m = $plan.Measurements | Where-Object { $_.Name -eq $name }
+            $m.ExpectGainDb | Should -Be $plan.PreampDb
+            $m.Required | Should -BeTrue
+        }
+        # Raw mode bypasses stream effects by design, so it is noted, not gated.
+        ($plan.Measurements | Where-Object { $_.Name -eq "apo-raw" }).Required | Should -BeFalse
+        ($plan.Measurements | Where-Object { $_.Name -eq "after-uninstall" }).ExpectGainDb | Should -Be 0
+        # One install/measure/uninstall round per install mode: the one the
+        # product picks on its own first, then each slot pair by name.
+        @($plan.InstallModes | ForEach-Object { $_.Name }) | Should -Be @("default", "sfx-efx", "sfx-mfx", "lfx-gfx")
+        ($plan.InstallModes | Where-Object { $_.Name -eq "default" }).Arguments.Count | Should -Be 0
+    }
+
     It "builds only the two 32-bit ASIO DLLs for Win32" {
         $plan = & (Join-Path $PSScriptRoot "..\Build-AsioWin32.ps1") -WorkspaceRoot $root -PlanOnly
         $plan.Projects | Should -Be @("EqualizerAPOAsio\EqualizerAPOAsio.vcxproj", "Tests\FakeAsioDriver\FakeAsioDriver.vcxproj")
