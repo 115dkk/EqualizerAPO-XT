@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <vector>
@@ -35,6 +36,8 @@ namespace asiotest
 			unsigned outputSeed = 7;      // 0 = silence
 			float outputScale = 1.0f;
 			long sampleType = ASIOSTInt32LSB;
+			double sineHz = 0.0;          // > 0: a sine at outputScale on every output instead of the noise
+			double sampleRate = 48000.0;  // the sine's clock
 		};
 
 		explicit HostStub(Options options)
@@ -115,6 +118,8 @@ namespace asiotest
 		// first switch, before the codec.
 		float outputSample(long channel, uint64_t sampleIndex) const noexcept
 		{
+			if (options_.sineHz > 0.0)
+				return static_cast<float>(std::sin(6.283185307179586 * options_.sineHz * static_cast<double>(sampleIndex) / options_.sampleRate)) * options_.outputScale;
 			if (options_.outputSeed == 0)
 				return 0.0f;
 			uint32_t state = (options_.outputSeed + 3u) * 2246822519u + static_cast<uint32_t>(channel + 1) * 2654435761u;

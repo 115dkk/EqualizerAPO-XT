@@ -39,6 +39,7 @@
 #include "asio/ThreadHostLink.h"
 #include "asio/Win32HostLink.h"
 #include "asio/SampleCodec.h"
+#include "asio/WasapiExclusiveTarget.h"
 #include "engine/FilterEngine.h"
 #include "services/logging/Logging.h"
 #include "Tests/AsioSupport/HostStub.h"
@@ -78,6 +79,7 @@ namespace
 		bool callOutputReady = false;
 		double seconds = 10.0;
 		bool tone = false;
+		double sineHz = 0.0;
 		std::string expectSha;
 		std::string expectFirstSha;
 		std::string expectInputSha;
@@ -100,13 +102,13 @@ namespace
 	void usage()
 	{
 		std::fputs(
-			"AsioProbe --target fake|dll:<FakeAsioDriver.dll>|clsid:{...} --wrapper static|dll:<EqualizerAPOAsio.dll>\n"
+			"AsioProbe --target fake|dll:<FakeAsioDriver.dll>|clsid:{...}|wasapi:{...}[,{...}] --wrapper static|dll:<EqualizerAPOAsio.dll>\n"
 			"          --processor inproc|passthrough|daemon-thread|daemon --config <config.txt> [--mode sync|pipelined]\n"
 			"          [--daemon <EqualizerAPOHost.exe>] [--endpoint <name>] [--deadline-us N]\n"
 			"          [--frames 64] [--rate 48000] [--periods 200] [--channels in,out] [--sample-type int16|int24|int32|float32]\n"
 			"          [--seed N] [--host-seed N] [--no-input] [--no-output] [--output-ready]\n"
 			"          [--expect-sha256 hex] [--expect-first-sha256 hex] [--expect-input-sha256 hex] [--max-late N] [--no-reference]\n"
-			"          [--seconds 10] [--tone]   (real driver only)\n", stderr);
+			"          [--seconds 10] [--tone] [--sine Hz]   (real driver / wasapi:{playback guid}[,{recording guid}] only)\n", stderr);
 	}
 
 	bool parse(int argc, wchar_t** argv, Arguments& a)
@@ -160,6 +162,7 @@ namespace
 			else if (key == L"--output-ready") a.callOutputReady = true;
 			else if (key == L"--no-reference") a.reference = false;
 			else if (key == L"--tone") a.tone = true;
+			else if (key == L"--sine" && value(v)) a.sineHz = std::wcstod(v.c_str(), nullptr);
 			else return false;
 		}
 		return a.frames > 0 && a.periods > 0 && a.rate > 0.0;
@@ -487,8 +490,9 @@ namespace
 	{
 		long inputs = 0, outputs = 0;
 		asiotest::HostStub::Options hostOptions;
-		hostOptions.outputSeed = a.tone ? a.hostSeed : 0;
-		hostOptions.outputScale = 0.05f;
+		hostOptions.outputSeed = a.tone || a.sineHz > 0.0 ? a.hostSeed : 0;
+		hostOptions.outputScale = a.sineHz > 0.0 ? 0.5f : 0.05f;
+		hostOptions.sineHz = a.sineHz;
 		hostOptions.callOutputReady = a.callOutputReady;
 		hostOptions.proAudioCallback = true;
 		if (wrapper->init(nullptr) == ASIOFalse)
@@ -511,6 +515,7 @@ namespace
 		wrapper->getSampleRate(&rate);
 		std::printf("target channels in=%ld out=%ld buffer=%ld (min %ld max %ld preferred %ld) rate=%.0f type=%ld\n",
 			inputs, outputs, frames, minSize, maxSize, preferred, rate, info.type);
+		hostOptions.sampleRate = rate > 0.0 ? rate : 48000.0;
 
 		asiotest::HostStub host(hostOptions);
 		host.openChannels(inputs, outputs);
@@ -573,6 +578,10 @@ int wmain(int argc, wchar_t** argv)
 	IFakeAsioControl* control = nullptr;
 	std::wstring targetClsid = L"{B7E3A9F4-52C1-4D0B-8A6E-1F9C3D5E7B21}";
 	const bool realDriver = a.target.rfind(L"clsid:", 0) == 0;
+	const bool wasapiTarget = a.target.rfind(L"wasapi:", 0) == 0;
+	// A target with a device behind it: no fake control, no pump, timed run.
+	const bool liveTarget = realDriver || wasapiTarget;
+	eapo::asio::WasapiExclusiveTarget* wasapi = nullptr;
 	if (a.target == L"fake")
 	{
 		target = new FakeAsioDriver();
@@ -586,6 +595,19 @@ int wmain(int argc, wchar_t** argv)
 		targetClsid = a.target.substr(6);
 		target = loadRealDriver(targetClsid);
 	}
+	else if (wasapiTarget)
+	{
+		// wasapi:{playback guid}[,{recording guid}]; either side may be
+		// left empty. The Device: line sees the playback GUID (or the
+		// recording one when there is no playback side).
+		const std::wstring spec = a.target.substr(7);
+		const size_t comma = spec.find(L',');
+		const std::wstring renderGuid = comma == std::wstring::npos ? spec : spec.substr(0, comma);
+		const std::wstring captureGuid = comma == std::wstring::npos ? std::wstring() : spec.substr(comma + 1);
+		targetClsid = renderGuid.empty() ? captureGuid : renderGuid;
+		wasapi = new eapo::asio::WasapiExclusiveTarget(renderGuid, captureGuid);
+		target = wasapi;
+	}
 	else
 	{
 		usage();
@@ -594,7 +616,7 @@ int wmain(int argc, wchar_t** argv)
 	if (target == nullptr)
 		return 2;
 
-	if (!realDriver)
+	if (!liveTarget)
 	{
 		if (FAILED(target->QueryInterface(IID_IFakeAsioControl, reinterpret_cast<void**>(&control))))
 		{
@@ -633,7 +655,7 @@ int wmain(int argc, wchar_t** argv)
 		else if (a.processor == L"passthrough")
 			processor = std::make_unique<eapo::asio::PassthroughProcessor>();
 		else if (a.processor == L"daemon-thread")
-			processor = std::make_unique<eapo::asio::DaemonProcessor>(std::make_unique<eapo::asio::ThreadHostLink>(realDriver));
+			processor = std::make_unique<eapo::asio::DaemonProcessor>(std::make_unique<eapo::asio::ThreadHostLink>(liveTarget));
 		else if (a.processor == L"daemon")
 			processor = std::make_unique<eapo::asio::DaemonProcessor>(std::make_unique<eapo::asio::Win32HostLink>());
 		else
@@ -658,10 +680,17 @@ int wmain(int argc, wchar_t** argv)
 		return 2;
 
 	int result;
-	if (realDriver)
+	if (liveTarget)
 		result = runRealStream(a, wrapper, staticWrapper);
 	else
 		result = runFakeStream(a, wrapper, control, staticWrapper);
+	if (wasapi != nullptr)
+	{
+		const eapo::asio::WasapiExclusiveTarget::Counters counters = wasapi->counters();
+		std::printf("wasapi periods %llu input-underruns %llu output-misses %llu\n",
+			static_cast<unsigned long long>(counters.periods), static_cast<unsigned long long>(counters.inputUnderruns),
+			static_cast<unsigned long long>(counters.outputMisses));
+	}
 
 	if (control != nullptr)
 		control->Release();

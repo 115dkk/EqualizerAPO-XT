@@ -97,6 +97,7 @@ if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"</
     <ClCompile Include="..\..\asio\ThreadHostLink.cpp" />
     <ClCompile Include="..\..\asio\Win32HostLink.cpp" />
     <ClCompile Include="..\FakeAsioDriver\FakeAsio.cpp" />
+    <ClCompile Include="..\..\asio\WasapiExclusiveTarget.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\asio\AsioSdk.h" />

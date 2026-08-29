@@ -76,7 +76,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>EqualizerAPOAsio.def</ModuleDefinitionFile>
-      <AdditionalDependencies>kernel32.lib;user32.lib;advapi32.lib;ole32.lib;oleaut32.lib;uuid.lib;authz.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;advapi32.lib;ole32.lib;oleaut32.lib;uuid.lib;authz.lib;shlwapi.lib;avrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
@@ -105,6 +105,7 @@
     <ClCompile Include="..\asio\CallbackTrampolines.cpp" />
     <ClCompile Include="..\asio\SampleCodec.cpp" />
     <ClCompile Include="..\asio\WrapperRecord.cpp" />
+    <ClCompile Include="..\asio\WasapiExclusiveTarget.cpp" />
     <ClCompile Include="..\asio\DaemonProcessor.cpp" />
     <ClCompile Include="..\asio\Win32HostLink.cpp" />
     <ClCompile Include="..\runtime\ipc\StreamRing.cpp" />
