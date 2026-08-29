@@ -30,8 +30,8 @@ minute after the last stream ends.
 Any Windows playback or recording endpoint can appear in the ASIO driver
 list too: onboard audio, HDMI, a USB DAC or headset that came without an
 ASIO driver, a virtual cable. Select the endpoint in the Device Selector,
-open the troubleshooting options and tick **Create an ASIO entry**; the
-entry is `<device> - <endpoint> (EQ APO XT)`. An
+open the troubleshooting options and tick **Use in ASIO apps**; the entry
+is `<device> - <endpoint> (EQ APO XT)`. An
 application that picks it opens the endpoint in WASAPI exclusive mode: no
 audio engine, no mixing or resampling, the device's own smallest period,
 the sample rate the application asks for. The engine host processes the
