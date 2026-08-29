@@ -35,8 +35,14 @@
     The install/measure/uninstall round runs once per install mode: first
     the mode the product picks on its own for this endpoint (a virtual
     cable publishes no effect chain, so that is the interesting one), then
-    each of the three modes by name. Which slots Windows actually feeds a
-    capture stream through is the question a field report cannot answer.
+    each of the three modes by name. Only the product's own choice is
+    gated. The named rounds are the evidence behind that choice, measured
+    on the third run: on this cable the legacy LFX slot carries the stream
+    (-20 dB) and a stream-slot (SFX) registration is never loaded by the
+    audio engine at all (unity, no Initialize in its log, device test
+    fails). VB-CABLE is a legacy, mode-unaware driver, and the engine feeds
+    those through the legacy slots; the product's LFX/GFX default for a
+    device without a driver chain is what keeps such microphones working.
 
     Snapshots (registry, the audio engine's APO log, DeviceSelector.log, the
     probe outputs) land in -SnapshotDirectory for the job to upload.
@@ -73,9 +79,9 @@ $measurements = @(
 
 $installModes = @(
     [pscustomobject]@{ Name = "default"; Arguments = @();                              Required = $true }
-    [pscustomobject]@{ Name = "sfx-efx"; Arguments = @("--install-mode", "sfx-efx"); Required = $true }
-    [pscustomobject]@{ Name = "sfx-mfx"; Arguments = @("--install-mode", "sfx-mfx"); Required = $true }
-    [pscustomobject]@{ Name = "lfx-gfx"; Arguments = @("--install-mode", "lfx-gfx"); Required = $true }
+    [pscustomobject]@{ Name = "sfx-efx"; Arguments = @("--install-mode", "sfx-efx"); Required = $false }
+    [pscustomobject]@{ Name = "sfx-mfx"; Arguments = @("--install-mode", "sfx-mfx"); Required = $false }
+    [pscustomobject]@{ Name = "lfx-gfx"; Arguments = @("--install-mode", "lfx-gfx"); Required = $false }
 )
 
 $plan = [pscustomobject]@{

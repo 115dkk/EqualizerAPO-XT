@@ -87,6 +87,13 @@ Describe "extracted build script decisions" {
         # product picks on its own first, then each slot pair by name.
         @($plan.InstallModes | ForEach-Object { $_.Name }) | Should -Be @("default", "sfx-efx", "sfx-mfx", "lfx-gfx")
         ($plan.InstallModes | Where-Object { $_.Name -eq "default" }).Arguments.Count | Should -Be 0
+        # The product's own choice is the gate; the named slots are the
+        # evidence (a legacy driver is fed through LFX only, so a named SFX
+        # round legitimately reads unity).
+        ($plan.InstallModes | Where-Object { $_.Name -eq "default" }).Required | Should -BeTrue
+        foreach ($named in @("sfx-efx", "sfx-mfx", "lfx-gfx")) {
+            ($plan.InstallModes | Where-Object { $_.Name -eq $named }).Required | Should -BeFalse
+        }
     }
 
     It "builds only the two 32-bit ASIO DLLs for Win32" {

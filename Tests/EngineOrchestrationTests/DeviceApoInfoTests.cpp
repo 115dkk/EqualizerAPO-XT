@@ -148,7 +148,7 @@ void testLoadWithoutFxPropertiesReportsNoDriverEffectChain(test::Harness& harnes
 		"an extensible format carries the channel mask, so the separate mask value is not consulted");
 	harness.expectEqual(static_cast<int>(info.getCurrentInstallState().installMode),
 		static_cast<int>(DeviceAPOInfo::INSTALL_LFX_GFX),
-		"with no FxProperties key the mode inference never runs, so the LFX/GFX default is what survives");
+		"a device with no FxProperties key keeps LFX/GFX: the audio engine feeds a mode-unaware driver through the legacy slots only (the capture gate measured an SFX registration on such a device as never loaded)");
 }
 
 void testLoadSkipsDevicesTheDriverReportsAsNotPresent(test::Harness& harness)

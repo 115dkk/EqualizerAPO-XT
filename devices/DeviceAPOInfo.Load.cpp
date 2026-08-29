@@ -103,6 +103,17 @@ bool DeviceAPOInfo::load(const wstring& deviceGuid, wstring defaultDeviceGuid)
 	{
 		for (int i = 0; i < allGuidValueNameCount; i++)
 			originalApoGuids[i] = APOGUID_NOKEY;
+
+		// The install mode stays at LFX/GFX on purpose. A driver that
+		// publishes no effect chain is, as a rule, a legacy driver that
+		// declares no signal processing modes, and the audio engine feeds
+		// such a driver's streams through the legacy slots only: measured
+		// on VB-CABLE's recording endpoint by the capture gate
+		// (Invoke-CaptureGate.ps1), an APO in the LFX slot takes the stream
+		// and the same APO registered in the SFX slot is never created for
+		// it. Choosing the modern slots here, as the branch below does for a
+		// chain without legacy entries, would silence the EQ on most
+		// microphones and every virtual cable.
 	}
 	else
 	{
