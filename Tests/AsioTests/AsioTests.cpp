@@ -24,6 +24,7 @@
 #include "asio/InProcProcessor.h"
 #include "asio/SampleCodec.h"
 #include "asio/StreamProcessor.h"
+#include "asio/WasapiExclusiveTarget.h"
 #include "asio/WrapperRecord.h"
 #include "services/logging/Logging.h"
 #include "Tests/AlignedMemoryGate.h"
@@ -228,6 +229,122 @@ namespace
 		SampleCodec dsd;
 		harness.expectFalse(eapo::asio::findSampleCodec(ASIOSTDSDInt8LSB1, dsd), "DSD has no codec");
 		harness.expectFalse(eapo::asio::findSampleCodec(12345, dsd), "an unknown type has no codec");
+	}
+
+	// The WASAPI target's pure parts: which containers are tried in which
+	// order, what buffer sizes it offers, and the byte shuffles between the
+	// ASIO planes and the device's interleaved block.
+	void testWasapiTargetPolicy()
+	{
+		namespace wasapi = eapo::asio::wasapi;
+
+		// The endpoint's own format leads; the fixed list follows without repeats.
+		WAVEFORMATEXTENSIBLE sixteen = wasapi::makeFormat(wasapi::Container{ASIOSTInt16LSB, 16, 16, false}, 2, 48000, 3);
+		std::vector<wasapi::Container> order = wasapi::containerCandidates(&sixteen.Format);
+		harness.require(order.size() == 5, "five containers are tried for a 16-bit device format");
+		harness.expectEqual(order[0].asioType, static_cast<long>(ASIOSTInt16LSB), "the device's own container comes first");
+		harness.expectEqual(order[1].asioType, static_cast<long>(ASIOSTFloat32LSB), "float follows");
+		harness.expectEqual(order[2].asioType, static_cast<long>(ASIOSTInt32LSB), "then 32 bit");
+		harness.expectEqual(order[3].asioType, static_cast<long>(ASIOSTInt32LSB24), "then 24 in 32");
+		harness.expectEqual(order[4].asioType, static_cast<long>(ASIOSTInt24LSB), "then packed 24; 16 bit is not repeated");
+
+		WAVEFORMATEXTENSIBLE twentyFour = wasapi::makeFormat(wasapi::Container{ASIOSTInt32LSB24, 32, 24, false}, 2, 96000, 3);
+		order = wasapi::containerCandidates(&twentyFour.Format);
+		harness.require(order.size() == 5, "five containers for a 24-in-32 device format");
+		harness.expectEqual(order[0].asioType, static_cast<long>(ASIOSTInt32LSB24), "24 valid bits in 32 is recognised from the extensible header");
+		harness.expectEqual(order[4].asioType, static_cast<long>(ASIOSTInt16LSB), "16 bit closes the list");
+
+		order = wasapi::containerCandidates(nullptr);
+		harness.expectEqual(order.size(), static_cast<size_t>(5), "no device format: the fixed list alone");
+		harness.expectEqual(order[0].asioType, static_cast<long>(ASIOSTFloat32LSB), "which starts with float");
+
+		WAVEFORMATEX plain = {};
+		plain.wFormatTag = WAVE_FORMAT_PCM;
+		plain.nChannels = 2;
+		plain.nSamplesPerSec = 44100;
+		plain.wBitsPerSample = 24;
+		order = wasapi::containerCandidates(&plain);
+		harness.expectEqual(order[0].asioType, static_cast<long>(ASIOSTInt24LSB), "a plain 24-bit PCM header is packed 24");
+
+		// The extensible format a container becomes.
+		harness.expectEqual(static_cast<int>(twentyFour.Format.nBlockAlign), 8, "24 in 32 on two channels is 8 bytes a frame");
+		harness.expectEqual(static_cast<int>(twentyFour.Samples.wValidBitsPerSample), 24, "valid bits carried into the header");
+		harness.expectTrue(twentyFour.SubFormat == KSDATAFORMAT_SUBTYPE_PCM, "integer containers are PCM");
+		WAVEFORMATEXTENSIBLE floating = wasapi::makeFormat(wasapi::Container{ASIOSTFloat32LSB, 32, 32, true}, 8, 48000, 0x63f);
+		harness.expectTrue(floating.SubFormat == KSDATAFORMAT_SUBTYPE_IEEE_FLOAT, "float is IEEE float");
+		harness.expectEqual(static_cast<unsigned long>(floating.dwChannelMask), 0x63ful, "the channel mask is passed through");
+		harness.expectEqual(floating.Format.nAvgBytesPerSec, 48000u * 32u, "bytes per second follow the layout");
+
+		// Buffer sizes: powers of two from the smallest at or above the device minimum.
+		wasapi::BufferPolicy policy = wasapi::bufferPolicy(144);       // 3 ms at 48 kHz
+		harness.expectEqual(policy.minSize, 256L, "3 ms at 48 kHz offers 256 frames as the smallest");
+		harness.expectEqual(policy.preferredSize, 256L, "and prefers it");
+		harness.expectEqual(policy.maxSize, 2048L, "up to 2048");
+		harness.expectEqual(policy.granularity, -1L, "in powers of two");
+		policy = wasapi::bufferPolicy(96);
+		harness.expectEqual(policy.minSize, 128L, "2 ms at 48 kHz offers 128");
+		policy = wasapi::bufferPolicy(0);
+		harness.expectEqual(policy.minSize, 32L, "never below 32");
+		policy = wasapi::bufferPolicy(4000);
+		harness.expectEqual(policy.minSize, 4096L, "a huge minimum is honoured");
+		harness.expectEqual(policy.maxSize, 4096L, "and the maximum follows it up");
+
+		// Frames and 100 ns units.
+		harness.expectEqual(wasapi::framesFromHns(30000, 48000), 144u, "3 ms at 48 kHz is 144 frames");
+		harness.expectEqual(wasapi::framesFromHns(100000, 44100), 441u, "10 ms at 44.1 kHz is 441 frames");
+		harness.expectEqual(wasapi::framesFromHns(26667, 96000), 256u, "26667 hns at 96 kHz is 256 frames, to nearest");
+		harness.expectEqual(wasapi::framesFromHns(30000, 44100), 132u, "3 ms at 44.1 kHz is 132 frames, to nearest");
+		harness.expectEqual(wasapi::hnsFromFrames(144, 48000), 30000LL, "144 frames at 48 kHz is 3 ms");
+		harness.expectEqual(wasapi::hnsFromFrames(441, 44100), 100000LL, "441 frames at 44.1 kHz is 10 ms");
+		harness.expectEqual(wasapi::framesFromHns(wasapi::hnsFromFrames(256, 96000), 96000), 256u, "frames survive the round trip");
+
+		// Interleaving, every container width.
+		for (unsigned bytes : {2u, 3u, 4u})
+		{
+			const unsigned channels = 3, frames = 5;
+			std::vector<std::vector<unsigned char>> planes(channels, std::vector<unsigned char>(static_cast<size_t>(frames) * bytes));
+			for (unsigned c = 0; c < channels; c++)
+				for (size_t i = 0; i < planes[c].size(); i++)
+					planes[c][i] = static_cast<unsigned char>(c * 64 + i);
+			std::vector<const void*> in(channels);
+			for (unsigned c = 0; c < channels; c++)
+				in[c] = planes[c].data();
+			std::vector<unsigned char> block(static_cast<size_t>(frames) * channels * bytes);
+			wasapi::interleave(in.data(), channels, bytes, frames, block.data());
+			bool laidOut = true;
+			for (unsigned f = 0; f < frames; f++)
+				for (unsigned c = 0; c < channels; c++)
+					for (unsigned b = 0; b < bytes; b++)
+						laidOut = laidOut && block[(static_cast<size_t>(f) * channels + c) * bytes + b] == static_cast<unsigned char>(c * 64 + f * bytes + b);
+			harness.expectTrue(laidOut, "interleave lays frames out channel by channel at " + std::to_string(bytes) + " bytes");
+			std::vector<std::vector<unsigned char>> back(channels, std::vector<unsigned char>(static_cast<size_t>(frames) * bytes));
+			std::vector<void*> out(channels);
+			for (unsigned c = 0; c < channels; c++)
+				out[c] = back[c].data();
+			wasapi::deinterleave(block.data(), channels, bytes, frames, out.data());
+			harness.expectTrue(back == planes, "deinterleave restores the planes at " + std::to_string(bytes) + " bytes");
+		}
+
+		harness.expectTrue(wasapi::endpointId(false, L"{abc}") == L"{0.0.0.00000000}.{abc}", "a playback endpoint id");
+		harness.expectTrue(wasapi::endpointId(true, L"{abc}") == L"{0.0.1.00000000}.{abc}", "a recording endpoint id");
+
+		// A target with no endpoint refuses init with a message, and answers
+		// nothing else, without touching the device stack.
+		eapo::asio::WasapiExclusiveTarget empty(L"", L"");
+		harness.expectEqual(static_cast<int>(empty.init(nullptr)), static_cast<int>(ASIOFalse), "no endpoint: init fails");
+		char message[124] = {};
+		empty.getErrorMessage(message);
+		harness.expectTrue(std::strlen(message) > 0, "and says why");
+		long ins = 1, outs = 1;
+		harness.expectEqual(empty.getChannels(&ins, &outs), static_cast<ASIOError>(ASE_NotPresent), "channels are not present before init");
+		const HRESULT com = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+		eapo::asio::WasapiExclusiveTarget missing(L"{00000000-0000-0000-0000-000000000000}", L"");
+		harness.expectEqual(static_cast<int>(missing.init(nullptr)), static_cast<int>(ASIOFalse), "an endpoint that does not exist: init fails");
+		missing.getErrorMessage(message);
+		harness.expectTrue(std::strstr(message, "not present") != nullptr || std::strstr(message, "enumerator") != nullptr,
+			std::string("naming the missing endpoint: ") + message);
+		if (SUCCEEDED(com))
+			CoUninitialize();
 	}
 
 	void testCodecBytePatterns()
@@ -880,6 +997,7 @@ namespace
 	int runAsioTests()
 	{
 		testCodecRoundTrips();
+		testWasapiTargetPolicy();
 		testCodecBytePatterns();
 		testTrampolines();
 		testStateMachineOrdering();
