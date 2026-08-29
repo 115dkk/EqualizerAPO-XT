@@ -33,7 +33,14 @@ $projects = @(
     "EqualizerAPOHost\EqualizerAPOHost.vcxproj",
     "Tests\FakeAsioDriver\FakeAsioDriver.vcxproj",
     "Tests\AsioTests\AsioTests.vcxproj",
-    "Tests\AsioProbe\AsioProbe.vcxproj"
+    "Tests\AsioProbe\AsioProbe.vcxproj",
+    # Capture (docs/features/capture.md): the probe that hosts the APO DLL
+    # for one endpoint without the audio service, and the WASAPI probe that
+    # measures a capture endpoint the way a recording app hears it. Built
+    # on every leg; the capture gate job executes them on a runner with a
+    # virtual cable.
+    "Tests\ApoHostProbe\ApoHostProbe.vcxproj",
+    "Tests\CaptureProbe\CaptureProbe.vcxproj"
 )
 $platformToolset = if ($Platform -eq "ARM64") { "v143" } else { "v145" }
 $toolArchitecture = if ($Platform -eq "ARM64") { "ARM64" } else { "x64" }
