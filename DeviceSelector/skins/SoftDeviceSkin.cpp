@@ -15,8 +15,7 @@
 	install, amber = needs attention). Hover is a painted lift (one-step-
 	darker plinth below + one-step-brighter face, never a blur).
 	Unavailable devices sleep (dashed edge, sunk to the window ground,
-	muted ink); experimental wells wear the dashed stitch; the selected
-	card keeps a calm pastel ring. Buttons are plump stadium pills on the
+	muted ink); the selected card keeps a calm pastel ring. Buttons are plump stadium pills on the
 	ON-pastel ladder; the troubleshooting disclosure is a rounded tab
 	borrowing the add-row grammar (a sunken chevron disc that flips ON
 	when the panel opens).
@@ -64,7 +63,7 @@ QColor softDeeper(const QColor& pastel, double amount)
 
 // The state dot's semantics (semantic colours as semantics only): green =
 // already fine, blue = something will be installed, amber = needs a second
-// look (an uninstall, or installing to an experimental device), muted =
+// look (an uninstall), muted =
 // resting or asleep. All through the Soft pastel shelf so no dot is an
 // alarm.
 QColor stateDotColor(const DeviceRowState& s, const SkinTokens& t)
@@ -73,7 +72,7 @@ QColor stateDotColor(const DeviceRowState& s, const SkinTokens& t)
 	if (s.unavailable)
 		return QColor(t.mutedText);
 	if (s.checked && !s.installed)
-		return softPastelize(QColor(s.experimental ? t.warning : t.accent), dark);
+		return softPastelize(QColor(t.accent), dark);
 	if (!s.checked && s.installed)
 		return softPastelize(QColor(t.warning), dark);
 	if (s.checked && s.installed)
@@ -459,12 +458,6 @@ private:
 			else if (hover > 0.0)
 				wellFill = softBrighter(wellFill, t, 0.10 * hover);
 			wellPen = QPen(withAlpha(softDeeper(checkedFill, 0.25), 200), 1.0);
-			if (s.experimental)
-			{
-				// The dashed stitch: filled, but nothing vouches for it yet.
-				wellPen = QPen(withAlpha(warmInk, 190), 1.0, Qt::DashLine);
-				wellPen.setCapStyle(Qt::RoundCap);
-			}
 		}
 		else
 		{
@@ -474,11 +467,6 @@ private:
 			const QColor restingWell = mixColor(QColor(t.surfaceSunken), QColor(t.border), dark ? 0.0 : 0.18);
 			wellFill = s.pressed ? mixColor(restingWell, checkedFill, 0.35) : restingWell;
 			wellPen = QPen(withAlpha(mixColor(QColor(t.border), accent, 0.40 * hover), dark ? 210 : 255), 1.0);
-			if (s.experimental)
-			{
-				wellPen.setStyle(Qt::DashLine);
-				wellPen.setCapStyle(Qt::RoundCap);
-			}
 		}
 		painter.setPen(wellPen);
 		painter.setBrush(wellFill);

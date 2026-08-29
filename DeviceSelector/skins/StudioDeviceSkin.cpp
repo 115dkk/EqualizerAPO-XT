@@ -400,23 +400,6 @@ public:
 			Qt::AlignRight | Qt::AlignVCenter, unit);
 		rightEdge -= unitW + 12;
 
-		// Experimental endpoints carry a switched-off warning-ink chip -
-		// the ABS-chip grammar: ink and outline only, no lit fill.
-		if (s.experimental)
-		{
-			const QString expText = QStringLiteral("EXP");
-			const int chipW = fmMicro.horizontalAdvance(expText) + 12;
-			const int chipH = fmMicro.height() + 4;
-			const QRectF chip(rightEdge - chipW + 0.5, nameTop + (fmName.height() - chipH) / 2.0 + 0.5,
-				chipW - 1, chipH - 1);
-			painter.setBrush(Qt::NoBrush);
-			painter.setPen(QPen(withAlpha(t.warning, live ? 120 : 70), 1.0));
-			painter.drawRoundedRect(chip, 8.0, 8.0);
-			painter.setPen(withAlpha(t.warning, live ? 190 : 110));
-			painter.drawText(chip, Qt::AlignCenter, expText);
-			rightEdge -= chipW + 8;
-		}
-
 		const int defaultMarkerW = s.defaultDevice ? 16 : 0;
 		const int nameAvail = rightEdge - textLeft - defaultMarkerW;
 		const QString connText = fmName.elidedText(s.connection, Qt::ElideRight, nameAvail);

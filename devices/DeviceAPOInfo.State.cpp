@@ -35,9 +35,9 @@ bool DeviceAPOInfo::hasChanges() const
 	return installed && selectedInstallState != currentInstallState;
 }
 
-bool DeviceAPOInfo::isExperimental() const
+bool DeviceAPOInfo::hasDriverEffectChain() const
 {
-	return !installed && originalApoGuids[0] == APOGUID_NOKEY;
+	return originalApoGuids[0] != APOGUID_NOKEY;
 }
 
 wstring DeviceAPOInfo::getOriginalAPOPreMix()

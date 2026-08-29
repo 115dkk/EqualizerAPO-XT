@@ -40,7 +40,6 @@ struct DeviceRowState
 	bool input = false;    // capture side (sections and their devices)
 	bool checked = false;  // APO selected for install
 	bool installed = false;
-	bool experimental = false;
 	bool defaultDevice = false;
 	bool unavailable = false; // disabled or unplugged endpoint
 	bool selected = false;    // list selection (troubleshooting target)

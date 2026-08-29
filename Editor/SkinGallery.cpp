@@ -345,11 +345,6 @@ public:
 		return false;
 	}
 
-	bool isExperimental() const override
-	{
-		return false;
-	}
-
 	bool isEnhancementsDisabled() const override
 	{
 		return false;

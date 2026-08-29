@@ -149,11 +149,6 @@ bool AsioAPOInfo::hasChanges() const
 		|| selectedHost32 != currentHost32);
 }
 
-bool AsioAPOInfo::isExperimental() const
-{
-	return false;
-}
-
 bool AsioAPOInfo::isEnhancementsDisabled() const
 {
 	return false;

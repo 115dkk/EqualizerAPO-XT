@@ -47,7 +47,6 @@ public:
 	bool isInstalled() const override;
 	bool canBeUpgraded() const override;
 	bool hasChanges() const override;
-	bool isExperimental() const override;
 	bool isEnhancementsDisabled() const override;
 	bool isDefaultDevice() const override;
 	bool isDisabled() const override;

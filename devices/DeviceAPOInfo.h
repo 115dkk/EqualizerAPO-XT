@@ -90,7 +90,13 @@ public:
 	bool load(const std::wstring& deviceGuid, std::wstring defaultDeviceGuid = L"");
 	bool canBeUpgraded() const override;
 	bool hasChanges() const override;
-	bool isExperimental() const override;
+	// True when the audio driver published an effect chain (an FxProperties
+	// key) of its own. Installing on a device without one creates the key,
+	// which is the common case for microphones and virtual cables. The
+	// install report and the tests read it; the Device Selector used to label
+	// such devices "experimental" and no longer does - the path is the same
+	// one the capture gate in CI exercises.
+	bool hasDriverEffectChain() const;
 	std::wstring getOriginalAPOPreMix();
 	std::wstring getOriginalAPOPostMix();
 

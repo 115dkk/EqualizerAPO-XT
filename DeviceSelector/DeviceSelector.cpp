@@ -218,7 +218,6 @@ void DeviceSelector::addDevices(const std::vector<std::shared_ptr<AbstractAPOInf
 		item->setData(0, DeviceListDelegate::DeviceNameRole, QString::fromStdWString(apoInfo->getDeviceName()));
 		item->setData(0, DeviceListDelegate::StateTextRole, getStateText(apoInfo, checked));
 		item->setData(0, DeviceListDelegate::InstalledRole, apoInfo->isInstalled());
-		item->setData(0, DeviceListDelegate::ExperimentalRole, apoInfo->isExperimental());
 		item->setData(0, DeviceListDelegate::DefaultDeviceRole, apoInfo->isDefaultDevice());
 		item->setData(0, DeviceListDelegate::UnavailableRole, apoInfo->isDisabled() || apoInfo->isUnplugged());
 		item->setData(0, DeviceListDelegate::InputSideRole, apoInfo->isInput());
@@ -719,8 +718,6 @@ QString DeviceSelector::getStateText(const std::shared_ptr<AbstractAPOInfo>& apo
 		state = tr("Audio enhancements will be enabled");
 	else if (apoInfo->isInstalled())
 		state = tr("APO is already installed");
-	else if (apoInfo->isExperimental())
-		state = tr("APO can be installed (experimental)");
 	else
 		state = tr("APO can be installed");
 

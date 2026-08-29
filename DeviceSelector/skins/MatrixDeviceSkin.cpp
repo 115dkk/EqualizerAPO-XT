@@ -495,11 +495,6 @@ private:
 			tagRight = paintTagCell(painter, tagRight, namesMidY, QStringLiteral("OFFLINE"),
 				withAlpha(mutedInk, 190), withAlpha(mutedInk, 150), Qt::NoBrush, Qt::DashLine, tokens.monoFontFamily);
 		}
-		if (state.experimental)
-		{
-			tagRight = paintTagCell(painter, tagRight, namesMidY, QStringLiteral("EXP"),
-				QColor(tokens.warning), QColor(tokens.warning), Qt::NoBrush, Qt::SolidLine, tokens.monoFontFamily);
-		}
 		if (state.defaultDevice)
 		{
 			tagRight = paintTagCell(painter, tagRight, namesMidY, QStringLiteral("DEFAULT"),

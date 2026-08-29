@@ -68,7 +68,7 @@ vector<wstring> DeviceInstallReport::toLines() const
 		return lines;
 
 	lines.push_back(wstring(L"  direction: ") + (input ? L"capture" : L"render"));
-	lines.push_back(wstring(L"  driver published FxProperties: ") + (fxPropertiesExisted ? L"yes" : L"no (this device is experimental)"));
+	lines.push_back(wstring(L"  driver published FxProperties: ") + (fxPropertiesExisted ? L"yes" : L"no (Equalizer APO creates the effect chain)"));
 
 	if (driverSlots.empty())
 	{
