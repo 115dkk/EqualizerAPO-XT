@@ -66,3 +66,33 @@ recording side before and after `--install-endpoint`, in the default,
 communications and raw modes, once per install mode. Every measurement and
 the audio engine's own APO log land in the `capture-gate-snapshots`
 artifact.
+
+## What the gate measured
+
+Third run, Windows Server 2022, VB-CABLE Driver Pack 4.3, 44.1 kHz stereo,
+a 1 kHz tone at -9 dBFS, `Preamp: -20 dB`:
+
+| round | slot written | default mode | communications | after uninstall |
+|---|---|---|---|---|
+| product's own choice | LFX | -20.01 dB | -20.01 dB | -0.01 dB |
+| `--install-mode lfx-gfx` | LFX | -20.01 dB | -20.01 dB | -0.01 dB |
+| `--install-mode sfx-efx` | SFX | -0.01 dB | -0.01 dB | -0.01 dB |
+| `--install-mode sfx-mfx` | SFX | -0.01 dB | -0.01 dB | -0.01 dB |
+
+In the SFX rounds the audio engine's own log shows no `Initialize` for the
+endpoint and the device test never hears from the APO: an SFX registration
+on a driver that declares no signal processing modes is not loaded at all.
+That is why a device without a driver effect chain keeps the legacy
+LFX/GFX slot pair (`DeviceAPOInfo::load`), and why the candidate that
+moved such devices to the stream slot was dropped. The cable's driver
+declares no raw mode either (`AUDCLNT_E_RAW_MODE_UNSUPPORTED`), so the
+raw measurement is only informational.
+
+Two things the gate cannot tell: how a mode-aware driver (Realtek, Intel
+SST) behaves - there, the stream slot is the documented one and the
+processing-mode list decides which streams reach the APO, which is what
+the mode-list change is for - and what the field report's own machine
+does. On such a machine, `ApoHostProbe` against the microphone's GUID
+tells whether the DLL processes for it, and `CaptureProbe --capture
+"<microphone>"` with a tone played into the room tells whether the audio
+engine runs it.

@@ -45,6 +45,17 @@ Current work areas:
    driver on CI and, on a Topping USB Audio Device, by registering the entry
    through the Device Selector and opening it the way a DAW does. Remaining:
    runs under more DAWs, and the x64 entry for x64 DAWs on ARM64 machines.
+9. Recording devices ([#321](https://github.com/115dkk/EqualizerAPO-XT/pull/321)) -
+   a field report of a microphone with neither the EQ nor a VST applied.
+   The path is now measured on every build: a CI gate installs a virtual
+   cable driver, registers the APO on its recording side through the
+   Device Selector and checks that a recording app hears the configured
+   preamp. Fixed along the way: a slot the Device Selector fills is
+   registered for every processing mode of its direction, so voice-chat
+   streams on mode-aware drivers get the EQ too. The "(experimental)" label
+   is gone. Remaining: the report's own environment is unknown; the probes
+   in [docs/features/capture.md](docs/features/capture.md) are what to run
+   on it.
 
 ## Features
 

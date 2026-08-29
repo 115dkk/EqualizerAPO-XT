@@ -14,6 +14,38 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The EQ reaches voice-chat microphone streams on drivers that declare
+  processing modes.** A device the Device Selector registered in the stream
+  slot was listed for the Default processing mode only. On drivers that
+  declare modes (Realtek, Intel SST and the like) a microphone stream tagged
+  Communications - Discord, Teams, every voice-chat app - or Speech went past
+  the APO untouched while a plain recorder heard the EQ, and the same held
+  for playback streams in the Media, Movie and Communications modes. A slot
+  Equalizer APO populates is now listed for every mode of its direction
+  (Default, Communications, Speech for recording; Default, Media, Movie,
+  Communications, Notification for playback; a list the driver wrote stays).
+  An existing installation takes the new list after an uninstall and
+  reinstall from the Device Selector (untick, OK, tick, OK).
+- **Recording devices are no longer marked "(experimental)".** The label
+  marked devices whose driver publishes no effect chain - most microphones
+  and every virtual cable - because installing has to create the registry
+  key the driver never made. That path is now proven on every build: a CI
+  gate installs a real virtual cable driver, registers the APO on its
+  recording side through the product's own Device Selector, and measures
+  that a recording app hears the configured preamp, in the default and the
+  communications mode, and unity again after the uninstall. The gate also
+  showed why such devices are registered in the legacy pre-mix slot: a
+  driver that declares no modes is fed through the legacy slots only, and
+  the same APO in the stream slot is never loaded
+  ([docs/features/capture.md](docs/features/capture.md)).
+- **Device Selector from the command line.** `DeviceSelector
+  --install-endpoint {endpoint-guid}` and `--uninstall-endpoint` do what the
+  dialog's OK does for one endpoint, run the same device test, and exit 0
+  when the APO reported itself alive from inside the audio engine;
+  `--install-mode lfx-gfx|sfx-mfx|sfx-efx` pins a slot pair. For support
+  sessions over a terminal and for the CI gate. Elevation is required, as
+  for the dialog; every line also goes to `DeviceSelector.log`.
+
 ## v2.48.1 — 2026-08-29
 
 - **Installers are back to about a quarter of their size.** From v2.38.0 to

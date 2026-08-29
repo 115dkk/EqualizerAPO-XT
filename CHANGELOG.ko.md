@@ -8,6 +8,34 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **처리 모드를 선언하는 드라이버에서 음성 채팅 마이크 스트림에도 EQ가
+  닿습니다.** 장치 선택기가 스트림 슬롯에 등록한 장치는 Default 처리 모드
+  하나에만 올라 있었습니다. 모드를 선언하는 드라이버(Realtek, Intel SST 등)에서는
+  Communications(Discord, Teams 등 모든 음성 채팅 앱)나 Speech로 태그된 마이크
+  스트림이 APO를 그냥 지나쳤고, 일반 녹음기만 EQ를 들었습니다. 재생 쪽의
+  Media·Movie·Communications 모드 스트림도 같았습니다. 이제 Equalizer APO가 채우는
+  슬롯은 그 방향의 모든 모드에 올라갑니다(녹음은 Default·Communications·Speech,
+  재생은 Default·Media·Movie·Communications·Notification, 드라이버가 써 둔
+  목록은 그대로). 이미 설치된 장치는 장치 선택기에서 한 번 해제했다가(체크 해제,
+  확인, 체크, 확인) 다시 설치하면 새 목록을 받습니다.
+- **녹음 장치에 붙던 "(실험적)" 표기가 사라집니다.** 이 표기는 드라이버가 효과
+  체인을 발행하지 않은 장치(대부분의 마이크와 모든 가상 케이블)에 붙었습니다.
+  설치가 드라이버가 만든 적 없는 레지스트리 키를 만들어야 하기 때문입니다. 그
+  경로는 이제 빌드마다 증명됩니다. CI 게이트가 실제 가상 케이블 드라이버를
+  설치하고, 제품의 장치 선택기로 녹음 쪽에 APO를 등록한 뒤, 녹음 앱이 설정한
+  프리앰프를 기본 모드와 communications 모드에서 듣는지, 제거 뒤 다시 유니티로
+  돌아오는지 잽니다. 그 장치들이 왜 레거시 pre-mix 슬롯에 등록되는지도 게이트가
+  보여 줬습니다. 모드를 선언하지 않는 드라이버는 레거시 슬롯으로만 처리되며, 같은
+  APO를 스트림 슬롯에 넣으면 아예 로드되지 않습니다
+  ([docs/features/capture.md](docs/features/capture.md)).
+- **명령줄에서 쓰는 장치 선택기.** `DeviceSelector --install-endpoint
+  {엔드포인트 GUID}`와 `--uninstall-endpoint`는 대화상자의 확인 버튼이 엔드포인트
+  하나에 하는 일을 그대로 하고, 같은 장치 테스트를 돌린 뒤, APO가 오디오 엔진
+  안에서 살아 있다고 보고했을 때 0으로 끝납니다. `--install-mode
+  lfx-gfx|sfx-mfx|sfx-efx`는 슬롯 쌍을 고정합니다. 터미널로 지원할 때와 CI
+  게이트용입니다. 대화상자처럼 관리자 권한이 필요하고, 모든 줄이
+  `DeviceSelector.log`에도 남습니다.
+
 ## v2.48.1 — 2026-08-29
 
 - **설치 파일 크기가 4분의 1 수준으로 돌아옵니다.** v2.38.0부터 v2.48.0까지
