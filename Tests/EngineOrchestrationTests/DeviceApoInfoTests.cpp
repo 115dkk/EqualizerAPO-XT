@@ -24,6 +24,7 @@
 	or newer.
 */
 
+#include <algorithm>
 #include <cstring>
 #include "platform/windows/GuidText.h"
 #include "services/registry/RegistryPaths.h"
@@ -106,7 +107,7 @@ std::wstring ourPostMixGuid()
 	return winutil::guidToString(EQUALIZERAPO_POST_MIX_GUID);
 }
 
-void testLoadWithoutFxPropertiesMarksTheDeviceExperimental(test::Harness& harness)
+void testLoadWithoutFxPropertiesReportsNoDriverEffectChain(test::Harness& harness)
 {
 	FakeRegistry registry;
 	seedRenderDevice(registry);
@@ -131,8 +132,8 @@ void testLoadWithoutFxPropertiesMarksTheDeviceExperimental(test::Harness& harnes
 
 	harness.expectFalse(info.isInstalled(),
 		"nothing of ours can be registered when the key our GUIDs would live in does not exist");
-	harness.expect(info.isExperimental(),
-		"a missing FxProperties key is what marks a device experimental: installing means creating a key the audio driver never made");
+	harness.expectFalse(info.hasDriverEffectChain(),
+		"a missing FxProperties key means the driver published no effect chain, so installing has to create the key");
 	harness.expectFalse(info.isInput(),
 		"the device was seeded below Render, so load has to classify it as an output");
 	harness.expectEqual(narrow(info.getDeviceName()), narrow(deviceName),
@@ -189,8 +190,8 @@ void testLoadWithForeignApoGuidsReportsNotInstalled(test::Harness& harness)
 
 	harness.expectFalse(info.isInstalled(),
 		"the driver's own APO GUIDs are not ours, so nothing is installed");
-	harness.expectFalse(info.isExperimental(),
-		"the FxProperties key exists, so installing will not have to create it and the device is not experimental");
+	harness.expect(info.hasDriverEffectChain(),
+		"the FxProperties key exists, so installing will not have to create it");
 	// getOriginalAPO* answers for the mode the GUI has selected rather than the
 	// one load inferred, and a bare load leaves the selection at its default,
 	// so select the mode these slots belong to before asking.
@@ -257,8 +258,6 @@ void testLoadDetectsOurApoAndRecoversTheInstallState(test::Harness& harness)
 
 	harness.expect(info.isInstalled(),
 		"finding our own pre-mix GUID in an FxProperties slot is what installed means");
-	harness.expectFalse(info.isExperimental(),
-		"an installed device is never reported as experimental, whatever its original FxProperties state was");
 	harness.expectFalse(info.canBeUpgraded(),
 		"the recorded version matches the one this build installs, so there is nothing to upgrade");
 
@@ -350,7 +349,7 @@ void testInstallThenLoadRoundTripsTheInstallState(test::Harness& harness)
 	const DeviceAPOInfo::InstallState requested = installOnBareDevice(harness, registry);
 
 	harness.require(registry.keyExists(fxPropertiesKey),
-		"install creates the FxProperties key the driver never made, which is the whole point of the experimental path");
+		"install creates the FxProperties key the driver never made, which is what installing on a bare device means");
 	harness.expect(registry.readValue(fxPropertiesKey, sfxGuidValueName) == ourPreMixGuid(),
 		"the pre-mix APO goes into the SFX slot for the SFX/MFX mode");
 	harness.expect(registry.readValue(fxPropertiesKey, mfxGuidValueName) == ourPostMixGuid(),
@@ -369,6 +368,75 @@ void testInstallThenLoadRoundTripsTheInstallState(test::Harness& harness)
 		"a freshly loaded object has performed no operation, so its report says so instead of describing somebody else's");
 	harness.expect(!(reloaded.getCurrentInstallState() != requested),
 		"every field of the install state survives the round trip through the registry; a field that is written but never read back would silently reset itself on the next start");
+}
+
+// The list a slot we create is registered for: every mode a stream can end
+// up in for the direction, not Default alone. A recorder runs in Default; a
+// voice-chat app tags its stream Communications and, on a driver that
+// declares that mode, would otherwise stream past an SFX listed for Default
+// only - the "EQ works in Audacity but not in Discord" shape.
+void testInstallRegistersEveryModeOfTheDirection(test::Harness& harness)
+{
+	FakeRegistry registry;
+	installOnBareDevice(harness, registry);
+
+	const std::vector<std::wstring> sfxModes = registry.readMultiValue(fxPropertiesKey, sfxProcessingModesValueName);
+	const std::vector<std::wstring> mfxModes = registry.readMultiValue(fxPropertiesKey, mfxProcessingModesValueName);
+	harness.expectEqual(sfxModes.size(), size_t(5),
+		"a playback stream slot lists Default, Media, Movie, Communications and Notification");
+	harness.expectEqual(mfxModes.size(), size_t(5),
+		"the mode slot gets the same five: a mode the list omits is a mode the engine never instantiates the APO for");
+	harness.expect(!sfxModes.empty() && sfxModes.front() == defaultProcessingModeValue,
+		"Default stays first, the mode every driver has");
+	for (const std::wstring& mode : sfxModes)
+		harness.expect(mode != L"{9E90EA20-B493-4FD1-A1A8-7E1361A956CF}", "Raw is never listed: raw streams bypass stream effects by design");
+}
+
+// A recording endpoint carries the pre-mix APO alone, in the stream slot,
+// registered for the capture modes (Default, Communications, Speech).
+void testInstallOnACaptureDeviceFillsTheStreamSlotForTheCaptureModes(test::Harness& harness)
+{
+	FakeRegistry registry;
+	const std::wstring captureDeviceKey = captureKeyPath L"\\" + testDeviceGuid;
+	const std::wstring captureProperties = captureDeviceKey + L"\\Properties";
+	const std::wstring captureFx = captureDeviceKey + L"\\FxProperties";
+	registry.seedDword(captureDeviceKey, L"DeviceState", DEVICE_STATE_ACTIVE);
+	registry.seedString(captureProperties, connectionValueName, L"Microphone");
+	registry.seedString(captureProperties, deviceValueName, L"USB Audio Device");
+
+	DeviceAPOInfo info(registry);
+	harness.require(info.load(testDeviceGuid, otherDeviceGuid), "a capture device with no FxProperties loads");
+	harness.expect(info.isInput(), "the device sits below Capture, so it is an input");
+	harness.expectFalse(info.hasDriverEffectChain(), "a bare microphone publishes no effect chain");
+	harness.expectFalse(info.getCurrentInstallState().installPostMix,
+		"a capture endpoint has no post-mix stage to install into");
+
+	DeviceAPOInfo::InstallState& selected = info.getSelectedInstallState();
+	selected = info.getCurrentInstallState();
+	selected.installMode = DeviceAPOInfo::INSTALL_SFX_EFX;
+	info.install();
+
+	harness.expect(registry.readValue(captureFx, sfxGuidValueName) == ourPreMixGuid(),
+		"the pre-mix APO goes into the stream slot of the recording endpoint");
+	harness.expectFalse(registry.valueExists(captureFx, efxGuidValueName),
+		"no post-mix APO on a recording endpoint, whatever the mode pair says");
+	harness.expectFalse(registry.valueExists(captureFx, mfxGuidValueName),
+		"and none in the mode slot either");
+	const std::vector<std::wstring> modes = registry.readMultiValue(captureFx, sfxProcessingModesValueName);
+	harness.expectEqual(modes.size(), size_t(3),
+		"a capture stream slot lists Default, Communications and Speech");
+	harness.expect(std::find(modes.begin(), modes.end(), std::wstring(L"{98951333-B9CD-48B1-A0A3-FF40682D73F7}")) != modes.end(),
+		"Communications is listed: voice-chat apps tag their microphone stream with it");
+	harness.expect(std::find(modes.begin(), modes.end(), std::wstring(L"{FC1CFC9B-B9D6-4CFA-B5E0-4BB2166878B2}")) != modes.end(),
+		"Speech is listed for assistants and dictation");
+
+	DeviceAPOInfo reloaded(registry);
+	harness.require(reloaded.load(testDeviceGuid, otherDeviceGuid), "the installed capture device loads");
+	harness.expect(reloaded.isInstalled(), "the stream slot names our APO, so the device reads as installed");
+	harness.expect(reloaded.isInput(), "still an input after the install");
+	reloaded.uninstall();
+	harness.expectFalse(registry.keyExists(captureFx),
+		"the key the install created goes away with the uninstall, the microphone is as the driver left it");
 }
 
 void testUninstallRemovesTheFxPropertiesKeyItCreated(test::Harness& harness)
@@ -660,7 +728,7 @@ void testCheckProtectedAudioDGReportsAndFixesTheDisabledFlag(test::Harness& harn
 
 void runDeviceApoInfoTests(test::Harness& harness)
 {
-	testLoadWithoutFxPropertiesMarksTheDeviceExperimental(harness);
+	testLoadWithoutFxPropertiesReportsNoDriverEffectChain(harness);
 	testLoadSkipsDevicesTheDriverReportsAsNotPresent(harness);
 	testLoadTreatsTheUndocumentedDisabledFlagAsDisabled(harness);
 	testLoadWithForeignApoGuidsReportsNotInstalled(harness);
@@ -670,6 +738,8 @@ void runDeviceApoInfoTests(test::Harness& harness)
 	testLoadRejectsAnInstallationFromANewerBuild(harness);
 	testLoadTreatsAVersionlessInstallationAsUpgradable(harness);
 	testInstallThenLoadRoundTripsTheInstallState(harness);
+	testInstallRegistersEveryModeOfTheDirection(harness);
+	testInstallOnACaptureDeviceFillsTheStreamSlotForTheCaptureModes(harness);
 	testUninstallRemovesTheFxPropertiesKeyItCreated(harness);
 	testUninstallKeepsFxPropertiesWhenWindowsPutItsOwnSubkeysThere(harness);
 	testInstallExportsTheDriverValuesBeforeOverwritingThem(harness);

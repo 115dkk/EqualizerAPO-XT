@@ -148,10 +148,25 @@ void DeviceAPOInfo::failReport(RegistryTransaction& plan, const wstring& failure
 		LogF(L"%s", line.c_str());
 }
 
+namespace
+{
+std::vector<wstring> processingModesFor(bool input)
+{
+	if (input)
+		return std::vector<wstring>(std::begin(captureProcessingModeValues), std::end(captureProcessingModeValues));
+	return std::vector<wstring>(std::begin(renderProcessingModeValues), std::end(renderProcessingModeValues));
+}
+}
+
 void DeviceAPOInfo::installWithin(RegistryTransaction& plan)
 {
 	if (!selectedInstallState.installPreMix && !selectedInstallState.installPostMix)
 		return;
+
+	// The mode list a slot we populate gets when the driver left none: every
+	// mode an app can end up in for this direction (DeviceAPOInfoKeys.h). A
+	// list the driver wrote is the driver's decision and stays.
+	const std::vector<wstring> processingModes = processingModesFor(input);
 
 	plan.createKey(childApoPath);
 	plan.createKey(childApoPath L"\\" + deviceGuid);
@@ -264,13 +279,13 @@ void DeviceAPOInfo::installWithin(RegistryTransaction& plan)
 		{
 			plan.writeValue(keyPath + L"\\FxProperties", sfxGuidValueName, winutil::guidToString(EQUALIZERAPO_PRE_MIX_GUID));
 			if (!plan.valueExists(keyPath + L"\\FxProperties", sfxProcessingModesValueName))
-				plan.writeMultiValue(keyPath + L"\\FxProperties", sfxProcessingModesValueName, defaultProcessingModeValue);
+				plan.writeMultiValue(keyPath + L"\\FxProperties", sfxProcessingModesValueName, processingModes);
 		}
 		if (selectedInstallState.installPostMix && !input)
 		{
 			plan.writeValue(keyPath + L"\\FxProperties", mfxGuidValueName, winutil::guidToString(EQUALIZERAPO_POST_MIX_GUID));
 			if (!plan.valueExists(keyPath + L"\\FxProperties", mfxProcessingModesValueName))
-				plan.writeMultiValue(keyPath + L"\\FxProperties", mfxProcessingModesValueName, defaultProcessingModeValue);
+				plan.writeMultiValue(keyPath + L"\\FxProperties", mfxProcessingModesValueName, processingModes);
 		}
 		// don't change efx
 	}
@@ -284,14 +299,14 @@ void DeviceAPOInfo::installWithin(RegistryTransaction& plan)
 		{
 			plan.writeValue(keyPath + L"\\FxProperties", sfxGuidValueName, winutil::guidToString(EQUALIZERAPO_PRE_MIX_GUID));
 			if (!plan.valueExists(keyPath + L"\\FxProperties", sfxProcessingModesValueName))
-				plan.writeMultiValue(keyPath + L"\\FxProperties", sfxProcessingModesValueName, defaultProcessingModeValue);
+				plan.writeMultiValue(keyPath + L"\\FxProperties", sfxProcessingModesValueName, processingModes);
 		}
 		// don't change mfx
 		if (selectedInstallState.installPostMix && !input)
 		{
 			plan.writeValue(keyPath + L"\\FxProperties", efxGuidValueName, winutil::guidToString(EQUALIZERAPO_POST_MIX_GUID));
 			if (!plan.valueExists(keyPath + L"\\FxProperties", efxProcessingModesValueName))
-				plan.writeMultiValue(keyPath + L"\\FxProperties", efxProcessingModesValueName, defaultProcessingModeValue);
+				plan.writeMultiValue(keyPath + L"\\FxProperties", efxProcessingModesValueName, processingModes);
 		}
 	}
 

@@ -99,5 +99,26 @@ inline constexpr const wchar_t* ownedFxValueNames[] = {
 	fxTitleValueName
 };
 inline constexpr wchar_t defaultProcessingModeValue[] = L"{C18E2F7E-933D-4965-B7D1-1EEF228D2AF3}";
+// AUDIO_SIGNALPROCESSINGMODE_* (ksmedia.h) as the registry spells them. The
+// audio engine only instantiates a stream or mode effect for the modes its
+// PKEY_*_ProcessingModes_Supported_For_Streaming list names, and an app
+// picks the mode through its stream category: voice chat runs in
+// Communications, a personal assistant in Speech, music in Media, video in
+// Movie, alerts in Notification. A list holding Default alone left every
+// such stream without the EQ on drivers that declare those modes. Written
+// only when the driver left no list of its own; Raw is never listed, raw
+// streams bypass stream effects by design.
+inline constexpr const wchar_t* captureProcessingModeValues[] = {
+	L"{C18E2F7E-933D-4965-B7D1-1EEF228D2AF3}", // Default
+	L"{98951333-B9CD-48B1-A0A3-FF40682D73F7}", // Communications
+	L"{FC1CFC9B-B9D6-4CFA-B5E0-4BB2166878B2}"  // Speech
+};
+inline constexpr const wchar_t* renderProcessingModeValues[] = {
+	L"{C18E2F7E-933D-4965-B7D1-1EEF228D2AF3}", // Default
+	L"{4780004E-7133-41D8-8C74-660DADD2C0EE}", // Media
+	L"{B26FEB0D-EC94-477C-9494-D1AB8E753F6E}", // Movie
+	L"{98951333-B9CD-48B1-A0A3-FF40682D73F7}", // Communications
+	L"{9CF2A70B-F377-403B-BD6B-360863E0355C}"  // Notification
+};
 inline constexpr wchar_t disableEnhancementsValueName[] = L"{1da5d803-d492-4edd-8c23-e0c0ffee7f0e},5";
 inline constexpr wchar_t installVersion[] = L"2";
