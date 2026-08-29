@@ -766,15 +766,12 @@ private:
 		engrave(painter, QRectF(textLeft, blockTop, textWidth, nfm.height()),
 			Qt::AlignLeft | Qt::AlignVCenter, elidedNames, nameInk, dark);
 
-		// Wireframe stamps after the name: printed outlines, not colour
-		// pills (DEFAULT for the default endpoint).
-		qreal stampX = textLeft + nfm.horizontalAdvance(elidedNames) + 10;
+		// The wireframe stamp after the name: a printed outline, not a colour
+		// pill (DEFAULT for the default endpoint).
+		const qreal stampX = textLeft + nfm.horizontalAdvance(elidedNames) + 10;
 		const qreal stampY = blockTop + (nfm.height() - 11) / 2.0;
 		if (s.defaultDevice && stampX + 52 < textRight)
-		{
 			paintStamp(painter, QPointF(stampX, stampY), QStringLiteral("DEFAULT"), QColor(t.mutedText), dark);
-			stampX += QFontMetricsF(painter.font()).horizontalAdvance(QStringLiteral("DEFAULT")) + 20;
-		}
 
 		QColor statusInk = s.unavailable ? withAlpha(QColor(t.mutedText), 150) : QColor(t.mutedText);
 		if (pending && !s.unavailable)
