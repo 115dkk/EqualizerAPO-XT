@@ -28,7 +28,13 @@ $extraDllFolders = @("x86")
 $vst3PluginModule = "VST3\SubwooferRouting\$Platform\Release\EapoXtSubwooferRouting.vst3"
 $vst3PluginLicense = "VST3\SubwooferRouting\LICENSE"
 $vst3BundleArch = if ($Platform -eq "ARM64") { "arm64-win" } else { "x86_64-win" }
-$excludeExtensions = @(".obj", ".res", ".log", ".tlog", ".iobj", ".ipdb", ".ilk", ".pdb")
+# Everything the Qt build leaves in release\ that is not part of the program:
+# object files and symbols, and the precompiled headers, moc/rcc sources and
+# their headers that qmake writes next to the executable. From v2.38.0 to
+# v2.48.0 the recursive copy below shipped those (three .pch files alone were
+# 887 MB unpacked), which made every installer ~250 MB instead of ~65.
+$excludeExtensions = @(".obj", ".res", ".log", ".tlog", ".iobj", ".ipdb", ".ilk", ".pdb",
+    ".pch", ".cpp", ".h", ".c", ".hpp", ".moc", ".exp", ".lib")
 # The Qt plugin folder list lives in the manifest (Shared.QtPluginFolders) so
 # the packaging assertion below and New-VelopackRelease.ps1's qt\ relocation
 # cannot drift apart (audit #275 TD-11: generic/ and networkinformation/ were
@@ -93,6 +99,18 @@ foreach ($app in @("Editor", "DeviceSelector", "UpdateChecker")) {
         New-Item -ItemType Directory -Force -Path (Split-Path $target -Parent) | Out-Null
         Copy-Item -LiteralPath $_.FullName -Destination $target -Force
     }
+}
+
+# Belt and braces for the filter above: no build intermediate may be in the
+# artifact whatever extension a future qmake layout gives it. Named by the
+# patterns qmake uses, so a new kind shows up here as a failed release job
+# rather than as a 250 MB installer.
+$intermediates = @(Get-ChildItem -Path $artifactPath -Recurse -File | Where-Object {
+    $_.Name -like "moc_*" -or $_.Name -like "qrc_*" -or $_.Name -like "*_pch.*" -or $_.Name -like "*.pch"
+})
+if ($intermediates.Count -gt 0) {
+    throw ("Build intermediates in the artifact: " + (($intermediates | Select-Object -First 5 | ForEach-Object { $_.Name }) -join ", ") +
+        ". Extend the exclusion list in Package-Artifacts.ps1.")
 }
 
 # Every DLL-carrying folder in the artifact must be a known Qt plugin folder
