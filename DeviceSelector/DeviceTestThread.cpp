@@ -275,6 +275,7 @@ void DeviceTestThread::run()
 		}
 	}
 
+	nonWorking.store(nonWorkingDevices);
 	if (nonWorkingDevices == 0)
 		emit log("<b>" + tr("Checks done. No problems were detected.") + "</b>");
 	else

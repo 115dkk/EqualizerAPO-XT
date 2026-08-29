@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <atomic>
 #include <devices/DeviceAPOInfo.h>
 #include <QHash>
 #include <QThread>
@@ -40,6 +41,11 @@ class DeviceTestThread : public QThread
 
 public:
 	DeviceTestThread(QObject* parent, const QVector<std::shared_ptr<DeviceAPOInfo>>& devices);
+
+	// How many devices no install mode worked for, once finished() fired.
+	// The dialog reads the verdict off the log; the headless command
+	// (DeviceSelector --install-endpoint) needs it as a number.
+	int nonWorkingDeviceCount() const {return nonWorking.load();}
 
 signals:
 	void log(const QString& message);
@@ -94,4 +100,5 @@ private:
 	};
 
 	QHash<QString, DeviceTestInfo> infoMap;
+	std::atomic<int> nonWorking{0};
 };

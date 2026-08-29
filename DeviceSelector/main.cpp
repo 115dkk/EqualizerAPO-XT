@@ -23,8 +23,12 @@
 #include <services/registry/WindowsRegistry.h>
 #include <ObjBase.h>
 #include <QDir>
+#include <QEventLoop>
 #include <QFile>
 #include <QMessageBox>
+#include <QRegularExpression>
+#include <cstdarg>
+#include <cstring>
 #include <QFontDatabase>
 #include <QSettings>
 #include <QStyleFactory>
@@ -33,6 +37,9 @@
 #include <winsock2.h>
 #include "ReceiveThread.h"
 #include "DeviceSelector.h"
+#include "DeviceTestThread.h"
+#include <devices/DeviceAPOInfoKeys.h>
+#include <services/windows/WindowsService.h>
 #include "PreviewDevices.h"
 #include "skins/DeviceSkinPainter.h"
 #include "Editor/helpers/QtAppBootstrap.h"
@@ -180,6 +187,205 @@ int runDiagnose(QApplication& app)
 			.arg(QDir::toNativeSeparators(QString::fromStdWString(reportPath))));
 	return 0;
 }
+
+// Console output for the headless commands. DeviceSelector is a GUI-subsystem
+// executable, so nothing it prints reaches the shell that launched it until
+// the parent console is attached - the same step runDiagnose's report takes.
+class ConsoleAttachment
+{
+public:
+	ConsoleAttachment()
+	{
+		if (!AttachConsole(ATTACH_PARENT_PROCESS))
+			return;
+		attached = true;
+		FILE* stream = nullptr;
+		freopen_s(&stream, "CONOUT$", "w", stdout);
+		freopen_s(&stream, "CONOUT$", "w", stderr);
+	}
+
+	~ConsoleAttachment()
+	{
+		fflush(stdout);
+		fflush(stderr);
+		if (attached)
+			FreeConsole();
+	}
+
+private:
+	bool attached = false;
+};
+
+QString plainText(const QString& html)
+{
+	QString text = html;
+	text.remove(QRegularExpression(QStringLiteral("<[^>]*>")));
+	return text;
+}
+
+// The headless commands' output goes to the attached console and to
+// DeviceSelector.log both: a CI runner has no console to attach to, and the
+// log is what its job uploads.
+void say(const wchar_t* format, ...)
+{
+	wchar_t line[2048];
+	va_list args;
+	va_start(args, format);
+	_vsnwprintf_s(line, _TRUNCATE, format, args);
+	va_end(args);
+	fputws(line, stderr);
+	size_t length = wcslen(line);
+	while (length > 0 && (line[length - 1] == L'\n' || line[length - 1] == L'\r'))
+		line[--length] = L'\0';
+	LogFStatic(L"%s", line);
+}
+
+// --install-endpoint {guid} [--install-mode lfx-gfx|sfx-mfx|sfx-efx]
+//                           [--no-original-apo] [--no-test]
+// --uninstall-endpoint {guid}
+//
+// The dialog's OK for one endpoint, without the dialog: the same
+// DeviceAPOInfo::install / uninstall, and after an install the same device
+// test the dialog runs (DeviceTestThread: restart the audio service, open a
+// stream on the endpoint, wait for the APO to report Initialize through the
+// test pipe, fall back through the install modes when it does not). Exit 0
+// means the APO was seen alive on the endpoint. For the capture gate in CI,
+// which needs the product's own install path on a real endpoint, and for a
+// support session over a terminal. Elevation is required, as for the dialog.
+int runEndpointCommand(QApplication& app, bool install)
+{
+	ConsoleAttachment console;
+	const QStringList args = app.arguments();
+	const QString flag = install ? QStringLiteral("--install-endpoint") : QStringLiteral("--uninstall-endpoint");
+	const int flagIndex = args.indexOf(flag);
+	if (flagIndex < 0 || flagIndex + 1 >= args.size())
+	{
+		say(L"usage: DeviceSelector %hs {endpoint-guid} [--install-mode lfx-gfx|sfx-mfx|sfx-efx] [--no-original-apo] [--no-test]\n", qPrintable(flag));
+		return 2;
+	}
+	const std::wstring guid = args[flagIndex + 1].toStdWString();
+
+	std::shared_ptr<DeviceAPOInfo> info = std::make_shared<DeviceAPOInfo>();
+	try
+	{
+		if (!info->load(guid))
+		{
+			say(L"endpoint %s is not present\n", guid.c_str());
+			return 2;
+		}
+	}
+	catch (const RegistryError& e)
+	{
+		say(L"could not read endpoint %s: %s\n", guid.c_str(), e.getMessage().c_str());
+		return 1;
+	}
+	say(L"%s %s: %hs, %hs\n", info->getConnectionName().c_str(), info->getDeviceName().c_str(),
+		info->isInput() ? "capture" : "playback", info->isInstalled() ? "installed" : "not installed");
+
+	DeviceAPOInfo::InstallState& state = info->getSelectedInstallState();
+	state = info->getCurrentInstallState();
+	const int modeIndex = args.indexOf(QStringLiteral("--install-mode"));
+	if (modeIndex >= 0 && modeIndex + 1 < args.size())
+	{
+		const QString mode = args[modeIndex + 1].toLower();
+		if (mode == QLatin1String("lfx-gfx"))
+			state.installMode = DeviceAPOInfo::INSTALL_LFX_GFX;
+		else if (mode == QLatin1String("sfx-mfx"))
+			state.installMode = DeviceAPOInfo::INSTALL_SFX_MFX;
+		else if (mode == QLatin1String("sfx-efx"))
+			state.installMode = DeviceAPOInfo::INSTALL_SFX_EFX;
+		else
+		{
+			say(L"unknown install mode %hs\n", qPrintable(mode));
+			return 2;
+		}
+		// A named mode is a decision; the test must not wander off it.
+		state.autoAdjust = false;
+	}
+	if (args.contains(QStringLiteral("--no-original-apo")))
+	{
+		state.useOriginalAPOPreMix = false;
+		state.useOriginalAPOPostMix = false;
+	}
+
+	try
+	{
+		if (install)
+		{
+			if (info->isInstalled())
+				info->reinstall();
+			else
+				info->install();
+		}
+		else
+		{
+			if (!info->isInstalled())
+			{
+				say(L"nothing to uninstall\n");
+				return 0;
+			}
+			info->uninstall();
+		}
+	}
+	catch (const RegistryError& e)
+	{
+		say(L"%s\n", e.getMessage().c_str());
+		return 1;
+	}
+	catch (const DeviceException& e)
+	{
+		say(L"%s\n", e.getMessage().c_str());
+		return 1;
+	}
+	say(L"%s\n", info->getLastOperationReport().toSummaryLine().c_str());
+
+	if (!install || args.contains(QStringLiteral("--no-test")))
+	{
+		// The change takes effect when the audio service rebuilds its
+		// graph, which the device test would otherwise do.
+		try
+		{
+			WindowsServiceControl::restart(audioServiceName);
+		}
+		catch (const WindowsServiceError& e)
+		{
+			say(L"audio service restart failed: %s\n", e.getMessage().c_str());
+			return 1;
+		}
+		return 0;
+	}
+
+	QVector<std::shared_ptr<DeviceAPOInfo>> devices;
+	devices.append(info);
+	DeviceTestThread thread(nullptr, devices);
+	bool aborted = false;
+	QObject::connect(&thread, &DeviceTestThread::log, [](const QString& message) {
+		say(L"test: %hs\n", qPrintable(plainText(message)));
+	});
+	QObject::connect(&thread, &DeviceTestThread::logError, [](const QString& message) {
+		say(L"test error: %hs\n", qPrintable(plainText(message)));
+	});
+	QObject::connect(&thread, &DeviceTestThread::showErrorDialog, [](const QString& message) {
+		say(L"test error: %hs\n", qPrintable(plainText(message)));
+	});
+	QObject::connect(&thread, &DeviceTestThread::abort, [&aborted](const QString& message, int) {
+		aborted = true;
+		say(L"test aborted: %hs\n", qPrintable(plainText(message)));
+	});
+	QObject::connect(&thread, &DeviceTestThread::setItemStatus, [](const QString& deviceGuid, bool postMix, ItemStatusType status) {
+		static const char* const names[] = {"waiting", "success", "warning", "error"};
+		say(L"test status: %hs %hs %hs\n", qPrintable(deviceGuid), postMix ? "post-mix" : "pre-mix", names[static_cast<int>(status)]);
+	});
+	QEventLoop loop;
+	QObject::connect(&thread, &DeviceTestThread::finished, &loop, &QEventLoop::quit);
+	thread.start();
+	loop.exec();
+	thread.wait();
+
+	const bool ok = !aborted && thread.nonWorkingDeviceCount() == 0;
+	say(L"device test: %hs\n", ok ? "the APO is alive on the endpoint" : "the APO did not come up on the endpoint");
+	return ok ? 0 : 1;
+}
 }
 
 int main(int argc, char* argv[])
@@ -214,6 +420,12 @@ int main(int argc, char* argv[])
 
 	if (app.arguments().contains(QStringLiteral("--diagnose")))
 		return runDiagnose(app);
+
+	if (app.arguments().contains(QStringLiteral("--install-endpoint")))
+		return runEndpointCommand(app, true);
+
+	if (app.arguments().contains(QStringLiteral("--uninstall-endpoint")))
+		return runEndpointCommand(app, false);
 
 	applyEditorTheme(app);
 
