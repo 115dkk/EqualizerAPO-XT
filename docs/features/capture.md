@@ -124,3 +124,15 @@ and the period it actually ran at; the summary lists every `LockForProcess`
 frame count the DLL traced during the run. On a driver that declares no
 period below the default the two small-period measurements are recorded as
 skipped, not failed.
+
+That is what the hosted runner's cable does: VB-CABLE Driver Pack 4.3
+declares no period below the default, so the gate records the convolution
+config at -20.01 dB at the default period and skips the two small-period
+measurements, with the `LockForProcess` frame counts of the run (485, 480,
+528) in the summary. The judgement itself was made on the maintainer's
+VB-CABLE 3.3.1.7, which declares 96 frames: with the same preamp and
+convolution behind the endpoint's post-mix APO, the far side read -20.00 dB
+at the default period, at 96 frames fresh, at 96 and at 128 frames after a
+running default-period stream was switched, and at the default period
+again, with no silent packets in any of them. The engine locks the APO
+again for the new period; a convolution follows it.

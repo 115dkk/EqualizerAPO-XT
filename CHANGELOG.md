@@ -14,6 +14,30 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Any playback or recording endpoint can be offered to ASIO applications.**
+  An application in WASAPI exclusive mode never passes the audio engine, so
+  no APO can reach it. The ASIO wrapper now has a second kind of target:
+  tick **Offer this device to ASIO applications** on an endpoint's options
+  page in the Device Selector, and `<device> - <endpoint> (EQ APO XT)`
+  appears in the ASIO driver list. An application that picks it opens the
+  endpoint in exclusive mode - no mixing, no resampling, the device's
+  smallest period, the rate the application asks for - and the EQ runs on
+  the way, as it does for a real ASIO driver. For onboard audio, HDMI, USB
+  DACs and headsets that came without an ASIO driver, and virtual cables.
+  A playback endpoint gives an output device, a recording endpoint an input
+  device; the entry goes with the APO installation
+  ([docs/features/asio.md](docs/features/asio.md)). CI opens the entry the
+  way a DAW does on a virtual cable and hears the preamp on the far side.
+- **Which streams reach the EQ, written down and gated.** Shared streams
+  and low-latency shared streams (an application asking the engine for a
+  small buffer) pass through; raw streams pass the post-mix stage only;
+  exclusive-mode and ASIO streams pass nothing, which the entry above and
+  the wrapper are for. The wiki's troubleshooting section says so. The
+  capture gate now also measures the playback side at the engine's smallest
+  period, fresh and after a running graph switches, with a convolution in
+  the configuration; the maintainer's cable answered -20 dB in every case
+  at 96 and 128 frames.
+
 ## v2.49.0 — 2026-08-29
 
 - **The EQ reaches voice-chat microphone streams on drivers that declare
