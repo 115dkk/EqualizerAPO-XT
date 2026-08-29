@@ -71,4 +71,14 @@ Describe "extracted build script decisions" {
         $plan.ExcludedExtensions | Should -Contain ".pdb"
         $plan.ExcludedExtensions | Should -Contain ".obj"
     }
+
+    It "keeps the Qt build's precompiled headers and generated sources out of user artifacts" {
+        # v2.38.0 to v2.48.0 shipped them: 887 MB of .pch and 119 MB of
+        # moc_/qrc_ sources unpacked, a ~250 MB installer instead of ~65 MB.
+        $plan = & (Join-Path $PSScriptRoot "..\Package-Artifacts.ps1") `
+            -WorkspaceRoot $root -Platform x64 -SimdVariant avx2 -PlanOnly
+        foreach ($extension in @(".pch", ".cpp", ".h")) {
+            $plan.ExcludedExtensions | Should -Contain $extension
+        }
+    }
 }

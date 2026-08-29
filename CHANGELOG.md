@@ -14,6 +14,12 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Installers are back to about a quarter of their size.** From v2.38.0 to
+  v2.48.0 every installer was about 250 MB because the release packaging
+  copied the Qt build's precompiled headers and generated sources (about
+  1 GB unpacked) next to the program; nothing used them. They are excluded
+  again, the packaging step now fails if any such file gets in, and the
+  installation folder shrinks accordingly on the next update.
 ## v2.48.0 — 2026-08-29
 
 - **The Device Selector opens at a readable size.** It used to open at the
