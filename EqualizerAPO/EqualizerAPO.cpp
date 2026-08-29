@@ -501,7 +501,12 @@ HRESULT EqualizerAPO::LockForProcess(UINT32 u32NumInputConnections,
 	else
 		realChannelCount = inFormat.dwSamplesPerFrame;
 
-	const unsigned channelMask = apo::resolveChannelMask(engine.isCapture(),
+	// engineSetup.capture, not engine.isCapture(): the engine only learns the
+	// direction from initialize() below, so on the first lock of a capture
+	// stream the engine still answered "render" and the mask came from the
+	// output side. Harmless while both sides agree, wrong the moment an app
+	// takes fewer channels than the microphone has.
+	const unsigned channelMask = apo::resolveChannelMask(engineSetup.capture,
 		inFormat.dwChannelMask, inFormat.dwSamplesPerFrame,
 		outFormat.dwChannelMask, outFormat.dwSamplesPerFrame);
 
