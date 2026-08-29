@@ -133,6 +133,14 @@
 <context>
     <name>DeviceSelectorClass</name>
     <message>
+        <source>Offer this device to ASIO applications</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Adds an entry named after this device to the ASIO driver list. An application that picks it opens the device in WASAPI exclusive mode, and the EQ runs on the way, as it does for a real ASIO driver.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <location filename="../DeviceSelector.ui" line="+42"/>
         <source>Please select exactly one activated device by clicking on its name</source>
         <translation type="unfinished"></translation>

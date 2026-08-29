@@ -46,6 +46,12 @@ namespace eapo::asio
 		// the same target always maps to the same wrapper.
 		std::wstring wrapperClsidFor(const std::wstring& targetClsid);
 
+		// A Windows audio endpoint as a target: the entry is named after the
+		// device and the endpoint ("TOPPING USB DAC - Speakers"), its CLSID
+		// is the endpoint GUID, so the wrapper CLSID derives from it the same
+		// way it does for a driver. Backslashes cannot name a registry key
+		// and become slashes.
+		AsioTarget endpointTarget(const std::wstring& endpointGuid, const std::wstring& connectionName, const std::wstring& deviceName);
 		// Every target driver registered in the 64-bit view, without the
 		// wrapper's own entries. A subkey without a CLSID is skipped.
 		std::vector<AsioTarget> enumerateTargets(const IRegistry& registry);

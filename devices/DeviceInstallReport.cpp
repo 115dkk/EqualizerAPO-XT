@@ -95,6 +95,9 @@ vector<wstring> DeviceInstallReport::toLines() const
 		lines.push_back(requested);
 	}
 
+	if (!asioEntry.empty())
+		lines.push_back(L"  ASIO entry: " + asioEntry);
+
 	if (!backupPath.empty())
 		lines.push_back(L"  driver chain exported to: " + backupPath);
 

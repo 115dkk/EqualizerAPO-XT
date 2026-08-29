@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <string>
 
 #include "asio/StreamProcessor.h"
@@ -19,11 +20,25 @@
 
 namespace eapo::asio
 {
+	// What sits behind the wrapper: a hardware ASIO driver loaded by CLSID,
+	// or Windows audio endpoints opened in WASAPI exclusive mode
+	// (asio/WasapiExclusiveTarget.h). For the second kind targetClsid holds
+	// the endpoint GUID the entry was made for (what the Device: line sees)
+	// and the endpoint fields say which sides the target opens.
+	enum class TargetKind : uint32_t
+	{
+		AsioDriver = 0,
+		WasapiExclusive = 1
+	};
+
 	struct WrapperRecord
 	{
 		std::wstring wrapperClsid;   // {...}
 		std::wstring targetClsid;    // {...}
-		std::wstring targetName;     // the target's HKLM\SOFTWARE\ASIO subkey name
+		std::wstring targetName;     // the target's HKLM\SOFTWARE\ASIO subkey name, or the entry's base name
+		TargetKind targetKind = TargetKind::AsioDriver;
+		std::wstring renderEndpoint;    // WasapiExclusive: playback endpoint GUID, or empty
+		std::wstring captureEndpoint;   // WasapiExclusive: recording endpoint GUID, or empty
 		StreamOptions options;
 		bool autoStart = false;      // start the engine host at boot (one Run value); off by default
 		bool register32 = false;     // also register the entry for 32-bit hosts; off by default

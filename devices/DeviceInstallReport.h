@@ -93,6 +93,9 @@ struct DeviceInstallReport
 	std::wstring requestedMode;
 	bool installPreMix = false;
 	bool installPostMix = false;
+	// The ASIO entry written for the endpoint ("... (EQ APO XT)"); empty
+	// when none was asked for, or after an uninstall.
+	std::wstring asioEntry;
 
 	// --- What was written, in order.
 

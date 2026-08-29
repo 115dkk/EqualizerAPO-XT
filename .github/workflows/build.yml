@@ -369,6 +369,7 @@ jobs:
         path: |
           Tests/ApoHostProbe/${{ matrix.platform }}/Release/ApoHostProbe.exe
           Tests/CaptureProbe/${{ matrix.platform }}/Release/CaptureProbe.exe
+          Tests/AsioProbe/${{ matrix.platform }}/Release/AsioProbe.exe
         if-no-files-found: error
         retention-days: 14
 

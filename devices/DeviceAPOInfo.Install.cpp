@@ -21,6 +21,8 @@
 
 #include "services/logging/Logging.h"
 #include "services/registry/WindowsRegistry.h"
+#include "asio/AsioRegistration.h"
+#include "asio/WrapperRecord.h"
 
 using std::make_shared;
 using std::move;
@@ -32,6 +34,7 @@ void DeviceAPOInfo::install()
 {
 	runReported(DeviceInstallReport::Operation::Install, [this](RegistryTransaction& plan) {
 		installWithin(plan);
+		applyAsioEntry(plan);
 	});
 }
 
@@ -156,6 +159,41 @@ std::vector<wstring> processingModesFor(bool input)
 		return std::vector<wstring>(std::begin(captureProcessingModeValues), std::end(captureProcessingModeValues));
 	return std::vector<wstring>(std::begin(renderProcessingModeValues), std::end(renderProcessingModeValues));
 }
+}
+
+void DeviceAPOInfo::applyAsioEntry(RegistryTransaction& plan)
+{
+	removeAsioEntry(plan);
+	if (!selectedInstallState.offerAsio || (!selectedInstallState.installPreMix && !selectedInstallState.installPostMix))
+		return;
+
+	// The wrapper DLL beside the product; the value the install hook writes.
+	const wstring installPath = plan.valueExists(APP_REGPATH, L"InstallPath") ? plan.readValue(APP_REGPATH, L"InstallPath") : L"";
+	if (installPath.empty())
+		throw DeviceException(L"The ASIO entry needs the InstallPath value under HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO");
+
+	const eapo::asio::AsioTarget target = eapo::asio::AsioRegistration::endpointTarget(deviceGuid, connectionName, deviceName);
+	eapo::asio::WrapperRecord record;
+	record.wrapperClsid = eapo::asio::AsioRegistration::wrapperClsidFor(deviceGuid);
+	record.targetKind = eapo::asio::TargetKind::WasapiExclusive;
+	record.targetClsid = deviceGuid;
+	record.targetName = target.name;
+	if (input)
+		record.captureEndpoint = deviceGuid;
+	else
+		record.renderEndpoint = deviceGuid;
+	record.options.processOutput = !input;
+	record.options.processInput = input;
+	eapo::asio::WrapperRecords::write(plan, record);
+	eapo::asio::AsioRegistration::registerWrapper(plan, target, installPath + L"\EqualizerAPOAsio.dll", L"");
+	lastOperationReport.asioEntry = eapo::asio::AsioRegistration::entryNameFor(target.name);
+}
+
+void DeviceAPOInfo::removeAsioEntry(RegistryTransaction& plan)
+{
+	const eapo::asio::AsioTarget target = eapo::asio::AsioRegistration::endpointTarget(deviceGuid, connectionName, deviceName);
+	eapo::asio::AsioRegistration::unregisterWrapper(plan, target);
+	eapo::asio::WrapperRecords::remove(plan, eapo::asio::AsioRegistration::wrapperClsidFor(deviceGuid));
 }
 
 void DeviceAPOInfo::installWithin(RegistryTransaction& plan)

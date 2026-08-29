@@ -133,6 +133,14 @@
 <context>
     <name>DeviceSelectorClass</name>
     <message>
+        <source>Offer this device to ASIO applications</source>
+        <translation>이 장치를 ASIO 응용 프로그램에 제공</translation>
+    </message>
+    <message>
+        <source>Adds an entry named after this device to the ASIO driver list. An application that picks it opens the device in WASAPI exclusive mode, and the EQ runs on the way, as it does for a real ASIO driver.</source>
+        <translation>이 장치 이름의 항목을 ASIO 드라이버 목록에 추가합니다. 그 항목을 고른 응용 프로그램은 장치를 WASAPI 독점 모드로 열고, EQ는 실제 ASIO 드라이버에서처럼 그 사이에서 처리됩니다.</translation>
+    </message>
+    <message>
         <location filename="../DeviceSelector.cpp" line="124"/>
         <source>Troubleshooting options (only use in case of problems)</source>
         <translation>문제 해결 옵션 (문제가 있을 때만 사용)</translation>

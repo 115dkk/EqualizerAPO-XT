@@ -133,6 +133,14 @@
 <context>
     <name>DeviceSelectorClass</name>
     <message>
+        <source>Offer this device to ASIO applications</source>
+        <translation>Proposer ce périphérique aux applications ASIO</translation>
+    </message>
+    <message>
+        <source>Adds an entry named after this device to the ASIO driver list. An application that picks it opens the device in WASAPI exclusive mode, and the EQ runs on the way, as it does for a real ASIO driver.</source>
+        <translation>Ajoute à la liste des pilotes ASIO une entrée au nom de ce périphérique. Une application qui la choisit ouvre le périphérique en mode exclusif WASAPI, et l’égaliseur s’applique en chemin, comme avec un vrai pilote ASIO.</translation>
+    </message>
+    <message>
         <location line="-496"/>
         <source>Troubleshooting options (only use in case of problems)</source>
         <translation>Options de dépannage (à utiliser uniquement en cas de problèmes)</translation>

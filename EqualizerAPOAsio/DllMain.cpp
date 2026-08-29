@@ -23,6 +23,8 @@
 
 #include "asio/AsioWrapper.h"
 #include "asio/DaemonProcessor.h"
+#include "asio/WasapiExclusiveTarget.h"
+#include "asio/WasapiExclusiveTarget.h"
 #include "asio/Win32HostLink.h"
 #include "asio/WrapperRecord.h"
 #include "platform/windows/GuidText.h"
@@ -106,22 +108,40 @@ namespace
 			if (outer != nullptr)
 				return CLASS_E_NOAGGREGATION;
 
-			CLSID targetClsid;
-			if (FAILED(CLSIDFromString(record_.targetClsid.c_str(), &targetClsid)))
-			{
-				LogFStatic(L"ASIO wrapper %s: target CLSID %s is not a GUID", record_.wrapperClsid.c_str(), record_.targetClsid.c_str());
-				return E_FAIL;
-			}
-
-			// ASIO's activation quirk: the requested interface id is the
-			// driver's own CLSID.
 			IASIO* target = nullptr;
-			HRESULT hr = CoCreateInstance(targetClsid, nullptr, CLSCTX_INPROC_SERVER, targetClsid, reinterpret_cast<void**>(&target));
-			if (FAILED(hr) || target == nullptr)
+			HRESULT hr = S_OK;
+			if (record_.targetKind == eapo::asio::TargetKind::WasapiExclusive)
 			{
-				LogFStatic(L"ASIO wrapper %s: loading target %s (%s) failed with 0x%08x",
-					record_.wrapperClsid.c_str(), record_.targetName.c_str(), record_.targetClsid.c_str(), static_cast<unsigned>(hr));
-				return FAILED(hr) ? hr : E_FAIL;
+				// The endpoints are opened in init(), when the host asks; a
+				// GUID that names nothing surfaces there as the driver's
+				// error message, not as a failed activation.
+				try
+				{
+					target = new eapo::asio::WasapiExclusiveTarget(record_.renderEndpoint, record_.captureEndpoint);
+				}
+				catch (const std::bad_alloc&)
+				{
+					return E_OUTOFMEMORY;
+				}
+			}
+			else
+			{
+				CLSID targetClsid;
+				if (FAILED(CLSIDFromString(record_.targetClsid.c_str(), &targetClsid)))
+				{
+					LogFStatic(L"ASIO wrapper %s: target CLSID %s is not a GUID", record_.wrapperClsid.c_str(), record_.targetClsid.c_str());
+					return E_FAIL;
+				}
+
+				// ASIO's activation quirk: the requested interface id is the
+				// driver's own CLSID.
+				hr = CoCreateInstance(targetClsid, nullptr, CLSCTX_INPROC_SERVER, targetClsid, reinterpret_cast<void**>(&target));
+				if (FAILED(hr) || target == nullptr)
+				{
+					LogFStatic(L"ASIO wrapper %s: loading target %s (%s) failed with 0x%08x",
+						record_.wrapperClsid.c_str(), record_.targetName.c_str(), record_.targetClsid.c_str(), static_cast<unsigned>(hr));
+					return FAILED(hr) ? hr : E_FAIL;
+				}
 			}
 
 			try

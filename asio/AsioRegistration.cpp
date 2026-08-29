@@ -73,6 +73,19 @@ namespace eapo::asio
 			return winutil::guidToString(guid);
 		}
 
+		AsioTarget endpointTarget(const std::wstring& endpointGuid, const std::wstring& connectionName, const std::wstring& deviceName)
+		{
+			AsioTarget target;
+			std::wstring name = deviceName.empty() ? connectionName : (connectionName.empty() ? deviceName : deviceName + L" - " + connectionName);
+			for (wchar_t& c : name)
+				if (c == L'\\')
+					c = L'/';
+			target.name = name;
+			target.clsid = endpointGuid;
+			target.description = name;
+			return target;
+		}
+
 		std::vector<AsioTarget> enumerateTargets(const IRegistry& registry)
 		{
 			std::vector<AsioTarget> targets;
