@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.48.0 — 2026-08-29
+
 - **The Device Selector opens at a readable size.** It used to open at the
   smallest size its list allowed, which on a fresh install (nothing resized
   yet) left the device names cramped. It now opens at 760 by 640 or the
