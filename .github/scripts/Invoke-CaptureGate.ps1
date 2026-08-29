@@ -260,6 +260,28 @@ foreach ($service in @("AudioEndpointBuilder", "AudioSrv")) {
 Get-Service AudioEndpointBuilder, AudioSrv | Format-Table -AutoSize Name, Status | Out-String | Write-Host
 
 # ---------------------------------------------------------------------------
+Write-Phase "microphone access"
+# Second run on the runner: every capture stream, the probe's and the device
+# test's alike, failed with E_ACCESSDENIED. Windows gates microphone access
+# per app through the privacy settings, and a server image denies it by
+# default. The consent store is what the Settings toggle writes; the machine
+# and the user hive both, and the NonPackaged branch that desktop programs
+# fall under.
+$consentRoots = @(
+    "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone",
+    "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone"
+)
+foreach ($root in $consentRoots) {
+    foreach ($key in @($root, "$root\NonPackaged")) {
+        New-Item -Path $key -Force | Out-Null
+        Set-ItemProperty -Path $key -Name Value -Value "Allow" -Type String
+    }
+}
+New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy" -Force | Out-Null
+Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy" -Name LetAppsAccessMicrophone -Value 1 -Type DWord
+Write-Host "microphone consent: Allow (machine and user, packaged and desktop)"
+
+# ---------------------------------------------------------------------------
 Write-Phase "virtual cable"
 $endpoints = Wait-CableEndpoints 1
 if ($endpoints) {
