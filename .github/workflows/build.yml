@@ -358,6 +358,20 @@ jobs:
           -WorkspaceRoot "${{ github.workspace }}" `
           -Platform "${{ matrix.platform }}"
 
+    # The capture gate (job capture-gate below) runs the two capture probes
+    # against this leg's product on a runner with a virtual cable; they are
+    # test tools, not product, so they travel as their own artifact.
+    - name: Upload capture probes (primary variant)
+      if: matrix.primary == true
+      uses: actions/upload-artifact@v7
+      with:
+        name: capture-probes
+        path: |
+          Tests/ApoHostProbe/${{ matrix.platform }}/Release/ApoHostProbe.exe
+          Tests/CaptureProbe/${{ matrix.platform }}/Release/CaptureProbe.exe
+        if-no-files-found: error
+        retention-days: 14
+
     # 32-bit DAWs load a 32-bit driver DLL: every x64 artifact ships the Win32
     # wrapper under x86 (Package-Artifacts.ps1), so every x64 leg builds it.
     # The DLL carries no SIMD; the ARM64 leg has no x86 cross toolchain and
@@ -937,6 +951,58 @@ jobs:
         # (with a warning) only when this variable is absent.
         RUNNER_EXECUTABLE_VARIANTS: ${{ needs.prepare-matrix.outputs.runner_executable_variants }}
       run: python3 Tests/AudioRegressionTests/scripts/cross_variant_compare.py
+
+  # The capture gate (docs/features/capture.md): the EQ APO must process a
+  # recording endpoint the way a recording app hears it. A hosted runner has
+  # no audio hardware, so the gate installs VB-CABLE (a signed virtual cable
+  # driver) and measures its recording side with Tests/CaptureProbe before
+  # and after the product's own install path puts the APO on it, with a
+  # config that says Preamp: -20 dB. Blocking: a field report of "neither
+  # the EQ nor a VST reaches my microphone" is exactly what this catches.
+  # windows-2022 deliberately, like audio-live-repro.yml: the virtual driver
+  # recipe is verified there.
+  capture-gate:
+    needs: [build]
+    runs-on: windows-2022
+    if: always() && needs.build.result == 'success'
+    timeout-minutes: 30
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v6
+
+    - name: Download the primary build artifact
+      uses: actions/download-artifact@v7
+      with:
+        name: EqualizerAPO-x64-avx2
+        path: artifacts/EqualizerAPO-x64-avx2
+
+    - name: Download the capture probes
+      uses: actions/download-artifact@v7
+      with:
+        name: capture-probes
+        path: artifacts/capture-probes
+
+    - name: Run the capture gate
+      shell: pwsh
+      run: |
+        $probes = Get-ChildItem -Path "${{ github.workspace }}\artifacts\capture-probes" -Recurse -Filter "*.exe"
+        $probeDir = Join-Path "${{ github.workspace }}" "artifacts\capture-probes-flat"
+        New-Item -ItemType Directory -Force -Path $probeDir | Out-Null
+        foreach ($probe in $probes) { Copy-Item -LiteralPath $probe.FullName -Destination $probeDir -Force }
+        & "${{ github.workspace }}\.github\scripts\Invoke-CaptureGate.ps1" `
+          -WorkspaceRoot "${{ github.workspace }}" `
+          -ArtifactPath "${{ github.workspace }}\artifacts\EqualizerAPO-x64-avx2" `
+          -ProbeDirectory $probeDir `
+          -SnapshotDirectory "${{ runner.temp }}\capture-gate"
+
+    - name: Upload capture gate snapshots
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: capture-gate-snapshots
+        path: ${{ runner.temp }}\capture-gate
+        retention-days: 30
+        if-no-files-found: warn
 
   create-release:
     needs: [build, version-bump]
