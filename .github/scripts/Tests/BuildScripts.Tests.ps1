@@ -55,6 +55,16 @@ Describe "extracted build script decisions" {
                 $run.Arguments | Should -Contain "--max-late" -Because "$($run.Name) must refuse late blocks"
             }
         }
+        # The pipelined run over the real host process is timing-bound on a
+        # shared runner and gets more than one attempt; the deterministic
+        # runs get exactly one, so a regression in them cannot hide.
+        $pipelinedDll = $plan.Runs | Where-Object { $_.Name -eq "dll-daemon-exe-pipelined-float32-32" }
+        $pipelinedDll.Attempts | Should -BeGreaterThan 1
+        foreach ($run in $plan.Runs) {
+            if ($run.Arguments -contains "--max-late") {
+                ($run.PSObject.Properties["Attempts"]) | Should -BeNullOrEmpty -Because "$($run.Name) is deterministic"
+            }
+        }
     }
 
     It "lists the capture probes so every leg builds them" {
