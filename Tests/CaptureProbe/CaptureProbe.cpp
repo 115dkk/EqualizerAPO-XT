@@ -472,7 +472,13 @@ int wmain(int argc, wchar_t** argv)
 			hr = client2.p->SetClientProperties(&props);
 			if (FAILED(hr))
 			{
-				fwprintf(stderr, L"SetClientProperties failed: 0x%08X\n", hr);
+				// AUDCLNT_E_RAW_MODE_UNSUPPORTED: the driver declares no raw mode
+				// (legacy drivers declare no modes at all), which is a fact about
+				// the endpoint, not a failure of the probe.
+				if (hr == AUDCLNT_E_RAW_MODE_UNSUPPORTED)
+					fwprintf(stderr, L"the endpoint's driver supports no raw mode (AUDCLNT_E_RAW_MODE_UNSUPPORTED)\n");
+				else
+					fwprintf(stderr, L"SetClientProperties failed: 0x%08X\n", hr);
 				CoUninitialize();
 				return 1;
 			}
