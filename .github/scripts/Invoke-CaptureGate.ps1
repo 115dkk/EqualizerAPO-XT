@@ -131,9 +131,12 @@ function Add-Failure([string] $what) {
 function Invoke-Program([string] $file, [string[]] $arguments, [int] $timeoutSeconds, [string] $workingDirectory) {
     $stdout = [System.IO.Path]::GetTempFileName()
     $stderr = [System.IO.Path]::GetTempFileName()
+    $quoted = @($arguments | ForEach-Object {
+        if ($_ -match '[\s"]') { '"' + ($_ -replace '"', '\"') + '"' } else { $_ }
+    })
     $startArgs = @{
         FilePath = $file
-        ArgumentList = $arguments
+        ArgumentList = $quoted
         PassThru = $true
         NoNewWindow = $true
         RedirectStandardOutput = $stdout
@@ -381,8 +384,8 @@ foreach ($mode in $installModes) {
     if ($fxNow) {
         $slots = @()
         foreach ($slot in @(@("LFX", "1"), @("GFX", "2"), @("SFX", "5"), @("MFX", "6"), @("EFX", "7"))) {
-            $value = $fxNow."{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},$($slot[1])"
-            if ($value) { $slots += "$($slot[0])=$value" }
+            $property = $fxNow.PSObject.Properties["{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},$($slot[1])"]
+            if ($property -and $property.Value) { $slots += "$($slot[0])=$($property.Value)" }
         }
         $roundRecord.installMode = ($slots -join " ")
         Write-Host "effect chain now: $($roundRecord.installMode)"
