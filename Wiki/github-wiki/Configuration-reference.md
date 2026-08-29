@@ -7,7 +7,7 @@ Configuration files are read line by line. Each meaningful line has the form:
 Command: Parameters
 ```
 
-Lines that do not name a supported command are inert text. That is how comments work — a line starting with `#` is simply not a recognised command — and unknown command names are ignored too. Command names are case-sensitive: `Preamp` is active, while `preamp` is not. Strictly validated commands — including `Copy`, both convolution commands, `VSTPlugin`, `Hilbert`, `Velvet`, `SubwooferRouting` and `LoudnessCorrection` — report the file, line and reason for malformed input in `EqualizerAPO.log` and in the Editor's analysis/card error. Later lines still load. Some older command parsers only leave their own log message.
+Lines that do not name a supported command are inert text. That is how comments work — a line starting with `#` is simply not a recognised command — and unknown command names are ignored too. Command names are case-sensitive: `Preamp` is active, while `preamp` is not. Every filtering command — `Preamp`, `Filter`, `IIR`, `Delay`, `Copy`, `GraphicEQ`, both convolution commands, `VSTPlugin`, `Hilbert`, `Velvet`, `SubwooferRouting` and `LoudnessCorrection` — reports the file, line and reason for malformed input in `EqualizerAPO.log` and on the line itself in the Editor. Later lines still load. Only the control commands (`Include`, `Device`, `Stage`, `If`, `Eval`) report through their own messages.
 
 Example:
 
@@ -125,6 +125,15 @@ Two 1st-order sections at the same frequency are exactly a 2nd-order section at
 `Order 1` takes no width; a `Q` or `BW Oct` on such a line is ignored. `Order 2`
 requires one. An order that is neither 1 nor 2 is an error.
 
+The Editor creates a new all-pass at `Q 0.707` and leaves an existing one at
+whatever it was written with. The width form the line was written in (`Q` or
+`BW Oct`) is the form it is saved in. Switching the card between the two forms
+converts the number exactly, but the engine's bandwidth branch carries a factor
+the conversion does not, so the filter itself is not preserved exactly: the
+difference is negligible at low Fc and grows with it (about 0.3 % at 1 kHz,
+35 % at 10 kHz), the same as peaking filters have always behaved. The all-pass
+opens its own card and offers to switch the analysis graph to Phase or GD.
+
 
 ### Filter with custom coefficients
 **Syntax:** `Filter <n>: ON IIR Order <m> Coefficients <b0> <b1> ... <bm> <a0> <a1> ... <am>`
@@ -192,7 +201,7 @@ GraphicEQ: 25 6; 40 4.5; 63 3; 100 1.5; 160 0; 250 0; 400 0; 630 0; 1000 0; 1600
 ### Convolution
 **Syntax:** `Convolution: <File name>`
 
-Adds a convolver that processes the signal with the impulse response in the named file. The file must be one of the formats supported by [libsndfile](https://libsndfile.github.io/libsndfile/) (WAV, FLAC, OGG and others). If it has several channels, they are mapped round-robin onto the selected channels (a stereo file across four channels maps L→1, R→2, L→3, R→4). **The file's sample rate must match the device's sample rate** or the convolver cannot be created. Latency and CPU cost depend on the length and phase of the impulse response (linear-phase costs half the file length in latency; minimum-phase is lower but inconsistent). The file name is relative to the configuration file, may be quoted, and may contain environment variables such as `%USERPROFILE%`. Impulse responses kept inside the config folder (or a subfolder) trigger an automatic reload when changed, so edits apply immediately. EqualizerAPO-XT removes the original length cap on impulse responses.
+Adds a convolver that processes the signal with the impulse response in the named file. The file must be one of the formats supported by [libsndfile](https://libsndfile.github.io/libsndfile/) (WAV, FLAC, OGG and others). If it has several channels, they are mapped round-robin onto the selected channels (a stereo file across four channels maps L→1, R→2, L→3, R→4). **The file's sample rate must match the device's sample rate** or the convolver cannot be created. Latency and CPU cost depend on the length and phase of the impulse response (linear-phase costs half the file length in latency; minimum-phase is lower but inconsistent). The file name is relative to the configuration file, may be quoted, and may contain environment variables such as `%USERPROFILE%`. Impulse responses kept inside the config folder (or a subfolder) trigger an automatic reload when changed, so edits apply immediately. EqualizerAPO-XT removes the original length cap on impulse responses. A convolver is built for the block length the audio engine locked the APO with; if a block of another length arrives it mutes rather than re-initialize on the audio thread, and says so in the log (the same diagnostic serves `MultiConvolution` and `Hilbert`). When an application switches an endpoint to a small period, the engine locks the APO again and the convolver follows.
 
 ```
 # Convolve with a recorded impulse response for a reverberation effect
@@ -228,7 +237,7 @@ Copy: L=L+XL R=R+XR
 **With explicit VST3 buses:** `VSTPlugin: Library "<plug-in path>" Input <layout> Output <layout> [ChunkData "<state>" | <parameter name or ID> <value> ...]`
 **With per-slot channel fill:** `VSTPlugin: Library "<plug-in path>" Input <layout> [InputChannels <ch,ch,...>] Output <layout> [OutputChannels <ch,ch,...>] ...`
 
-Loads a 64-bit VST2 (`.dll`) or VST3 (`.vst3`) plug-in and processes the currently selected channels. A relative library path is resolved under EqualizerAPO-XT's `VSTPlugins` folder; an absolute path may point elsewhere. The Editor can choose the module, open or embed its panel, and save its state. State is written either as quoted `ChunkData` or as numeric parameter key/value pairs, not both in one canonical line.
+Loads a 64-bit VST2 (`.dll`) or VST3 (`.vst3`) plug-in and processes the currently selected channels. A relative library path is resolved under EqualizerAPO-XT's `VSTPlugins` folder; an absolute path may point elsewhere. The audio service reads the plug-in with the LOCAL SERVICE account's rights, so a library under a user profile (Desktop, Downloads) never loads during playback even though the Editor can open it; the VST card says so from the path alone and offers **Import**, which copies the library into the config directory, a location the audio service can always read and one that survives updates. The Editor can choose the module (a `.vst3` bundle directory can be picked directly), open or embed its panel, and save its state; while a panel is embedded the host keeps the plug-in in its processing state for the whole session and the button reads **Close panel**, and moving a control applies it to the engine at once unless auto-apply was turned off. State is written either as quoted `ChunkData` or as numeric parameter key/value pairs, not both in one canonical line.
 
 `Input` and `Output` add an explicit main-bus contract to the existing `VSTPlugin` command. Use them for VST3 upmixers, downmixers, height expanders, and other plug-ins whose input and output layouts differ. If either key is present, both are mandatory; write `Auto` explicitly when one direction should use the normal host negotiation.
 
@@ -302,9 +311,9 @@ The state is a JSON document with schema `equalizerapo.xt.subwoofer-routing`. `S
 SubwooferRouting: Profile "SubwooferRouting\Issue 246 Front Rear 4.1.swxt.json"
 ```
 
-The built-in preset `Issue #246 - Front/Rear 4.1` reproduces the front/rear 4.1 configuration from issue #246: front mains high-passed at 80 Hz with a 4th-order 80 Hz front bass path, rear mains at 100 Hz with a 60 Hz rear bass path, the LFE input preserved at +10 dB, and a summing matrix with -14 dB feeds into the LFE output. Its output matches the original low-level filter chain sample for sample.
+The built-in preset `Issue #246 - Front/Rear 4.1` reproduces the front/rear 4.1 configuration from issue #246: front mains high-passed at 80 Hz with a 4th-order 80 Hz front bass path (delayed 2.5 ms), rear mains at 100 Hz with a 60 Hz rear bass path (delayed 2.0 ms), the LFE input preserved as a source-LFE path at +10 dB, and a summing matrix with -14 dB feeds from the front-bass and source-LFE paths into the LFE output. Its output matches the original low-level filter chain sample for sample. The per-path EQ slots are empty; `Filter:` lines can be imported into them and become the state's biquad list (a profile never executes an `Include:`).
 
-An invalid or unreadable state never mutes audio: the line reports its error in the log and the analysis panel, and the rest of the configuration keeps running. The Editor edits the same state as a card; the standalone `EAPO XT Subwoofer Routing` VST3 plugin runs the identical DSP core and exchanges the same JSON via its plugin state, so presets move between the two unchanged.
+An invalid or unreadable state never mutes audio: the line reports its error in the log and the analysis panel, and the rest of the configuration keeps running. The Editor edits the same state as a card; writing changes back into a linked `Profile` file is not implemented yet, so editing such a row from the card turns it into an inline `State`. The standalone `EAPO XT Subwoofer Routing` VST3 plug-in ships in the installation's `VST3\` folder as `EapoXtSubwooferRouting.vst3` with its MIT `LICENSE`, runs the identical DSP core, exchanges the same JSON via its plug-in state (so presets move between the two unchanged), negotiates stereo through 7.1 layouts including 4.1, exposes bypass, source-LFE gain, polarity and delay, and the headroom trim as host-automatable parameters, and has no custom editor: hosts show their generic parameter view.
 
 ## Control commands
 These do not change the audio directly; they control which commands run and how they apply.
@@ -312,7 +321,7 @@ These do not change the audio directly; they control which commands run and how 
 ### Include
 **Syntax:** `Include: <File name>`
 
-Loads the named file as a configuration file. Splitting the actual filter definitions into a separate file (rather than editing `config.txt` directly) lets you, for example, set a preamp before pulling them in.
+Loads the named file as a configuration file. Splitting the actual filter definitions into a separate file (rather than editing `config.txt` directly) lets you, for example, set a preamp before pulling them in. A relative path is resolved against the including file and is no longer cut at 260 characters.
 
 ```
 Include: example.txt
@@ -321,7 +330,7 @@ Include: example.txt
 ### Device
 **Syntax:** `Device: <Device pattern 1>; <Device pattern 2>; ...`
 
-Matches the pattern against the connection name, device name and GUID of the current output device. If it does not match, every following command except another `Device` is ignored. A pattern is a set of space-separated words that must all appear in the string "*Device_name Connection_name GUID*". Separate alternative patterns with `;`, of which one must match. The special pattern `all` always matches. The benchmark application reports device name "Benchmark" and connection "File output". The easiest way to produce a correct `Device` line is the button in the Device Selector.
+Matches the pattern against the connection name, device name and GUID of the current device: a playback endpoint, a recording endpoint, or an ASIO stream, whose string is `ASIO <driver name> {driver CLSID}` (so `Device: ASIO` selects every ASIO stream and `Device: Topping` one interface; an endpoint offered in exclusive mode keeps the endpoint's own name and GUID, so `Device: {endpoint GUID}` matches its APO and its ASIO entry alike). Without a `Device:` line a filter applies to endpoints and ASIO streams alike. If it does not match, every following command except another `Device` is ignored. A pattern is a set of space-separated words that must all appear in the string "*Device_name Connection_name GUID*". Separate alternative patterns with `;`, of which one must match. The special pattern `all` always matches. The benchmark application reports device name "Benchmark" and connection "File output". The easiest way to produce a correct `Device` line is the button in the Device Selector.
 
 ```
 # Matches "High Definition Audio Device" with connection "Speakers",
@@ -332,7 +341,7 @@ Device: High Definition Audio Device Speakers; Benchmark
 ### Channel
 **Syntax:** `Channel: <Channel position 1> <Channel position 2> ...`
 
-Selects the channels that subsequent ordinary filtering commands apply to, including `Preamp`, `Filter`, `Delay`, `GraphicEQ`, `Convolution`, `VSTPlugin`, `Velvet` and `LoudnessCorrection`. Commands that name their own channels — `Copy`, `MultiConvolution`, `Hilbert` and `SubwooferRouting` — follow their own rules instead. Positions may be given by identifier (a 1–3 letter acronym) or by number (counted from 1). The supported configurations are listed below; for an unsupported configuration, channels can only be selected by number. Separate several channels with spaces. The special position `all` selects every channel.
+Selects the channels that subsequent ordinary filtering commands apply to, including `Preamp`, `Filter`, `Delay`, `GraphicEQ`, `Convolution`, `VSTPlugin`, `Velvet` and `LoudnessCorrection`. Commands that name their own channels — `Copy`, `MultiConvolution`, `Hilbert` and `SubwooferRouting` — follow their own rules instead. Positions may be given by identifier (a 1–3 letter acronym) or by number (counted from 1). The supported configurations are listed below; for an unsupported configuration, channels can only be selected by number. Separate several channels with spaces. The special position `all` selects every channel. An ASIO stream names its channels from the channel count the same way (2 → `L R`, 6 → 5.1, 8 → 7.1, otherwise numbers), and the engine sees every physical channel of the interface, so the names do not move when the application opens only some of them.
 
 | Configuration | L | R | C | LFE | RL | RR | RC | SL | SR |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -357,7 +366,7 @@ Channel: 1 2 C
 ### Stage
 **Syntax:** `Stage: <stage 1> <stage 2>`
 
-Chooses which stage(s) the following filtering commands run on. Output devices have two stages, **pre-mix** and **post-mix**; input devices have only **capture**.
+Chooses which stage(s) the following filtering commands run on. Output devices have two stages, **pre-mix** and **post-mix**; input devices have only **capture**. An ASIO stream has no mix: `Stage: capture` blocks apply to its input direction and everything else to its output direction.
 
 <img src="Stages.png" width="500"><br><em>Pre-mix and post-mix stages of an output device</em>
 
