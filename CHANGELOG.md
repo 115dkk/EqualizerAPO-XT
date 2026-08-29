@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.49.0 — 2026-08-29
+
 - **The EQ reaches voice-chat microphone streams on drivers that declare
   processing modes.** A device the Device Selector registered in the stream
   slot was listed for the Default processing mode only. On drivers that
