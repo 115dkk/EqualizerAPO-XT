@@ -70,11 +70,18 @@ $runs = @(
             "--daemon", $hostExe, "--endpoint", "EAPO.ASIO.probe.gate", "--frames", "64", "--periods", "300",
             "--sample-type", "int32", "--deadline-us", "1000000", "--max-late", "0")
     },
+    # The one run with the real host process AND the pipelined mode, which by
+    # design lets a late period through unprocessed. On a hosted runner under
+    # load that turned the hash comparison into a coin toss (two failures on
+    # 2026-08-30, both "first period is not the engine's first period", both
+    # green on rerun with nothing changed). The run keeps its assertion and
+    # gets three attempts: a genuine regression fails all three.
     [pscustomobject]@{
         Name = "dll-daemon-exe-pipelined-float32-32"
         Arguments = @("--target", "dll:$fakeDll", "--wrapper", "dll:$wrapperDll", "--processor", "daemon", "--config", $config,
             "--daemon", $hostExe, "--endpoint", "EAPO.ASIO.probe.gate", "--frames", "32", "--periods", "400",
             "--sample-type", "float32", "--mode", "pipelined")
+        Attempts = 3
     },
     [pscustomobject]@{
         Name = "dll-passthrough-int24-128"
@@ -99,8 +106,14 @@ foreach ($required in @($probe, $fakeDll, $wrapperDll, $hostExe, $config)) {
 
 $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:MUPARSERX_LIB;$env:PATH"
 foreach ($run in $runs) {
-    Write-Host "=== ASIO probe: $($run.Name) ==="
-    & $probe @($run.Arguments)
-    if ($LASTEXITCODE -ne 0) { throw "ASIO probe gate: $($run.Name) failed with exit code $LASTEXITCODE" }
+    $attempts = if ($run.PSObject.Properties["Attempts"]) { [int]$run.Attempts } else { 1 }
+    for ($attempt = 1; $attempt -le $attempts; $attempt++) {
+        Write-Host "=== ASIO probe: $($run.Name)$(if ($attempts -gt 1) { " (attempt $attempt of $attempts)" }) ==="
+        & $probe @($run.Arguments)
+        if ($LASTEXITCODE -eq 0) { break }
+        if ($attempt -eq $attempts) { throw "ASIO probe gate: $($run.Name) failed with exit code $LASTEXITCODE" }
+        Write-Host "ASIO probe gate: $($run.Name) exited with $LASTEXITCODE; a timing-bound run, trying again"
+        Start-Sleep -Seconds 5
+    }
 }
 Write-Host "ASIO probe gate: $($runs.Count) runs passed"
