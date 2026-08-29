@@ -133,12 +133,12 @@
 <context>
     <name>DeviceSelectorClass</name>
     <message>
-        <source>Offer this device to ASIO applications</source>
-        <translation>向 ASIO 应用程序提供此设备</translation>
+        <source>Enable the EQ in WASAPI exclusive mode</source>
+        <translation>在 WASAPI 独占模式下启用均衡器</translation>
     </message>
     <message>
-        <source>Adds an entry named after this device to the ASIO driver list. An application that picks it opens the device in WASAPI exclusive mode, and the EQ runs on the way, as it does for a real ASIO driver.</source>
-        <translation>在 ASIO 驱动列表中添加一个以此设备命名的条目。选择该条目的应用程序会以 WASAPI 独占模式打开设备，均衡器在途中处理，与真正的 ASIO 驱动相同。</translation>
+        <source>An application that opens this device in exclusive mode bypasses the EQ. This adds `&lt;device&gt; - &lt;endpoint&gt; (EQ APO XT)` to the ASIO driver list; choose it in the application instead of its WASAPI exclusive output, and the EQ runs on that stream.</source>
+        <translation>以独占模式打开此设备的应用程序会绕过均衡器。此选项会在 ASIO 驱动列表中添加“&lt;设备&gt; - &lt;端点&gt; (EQ APO XT)”条目；在应用程序中选择它而不是其 WASAPI 独占输出，均衡器即可作用于该音频流。</translation>
     </message>
     <message>
         <source>Connector</source>

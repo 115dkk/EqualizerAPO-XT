@@ -99,7 +99,7 @@ $lowLatencyMeasurements = @(
     [pscustomobject]@{ Name = "ll-after-uninstall"; Category = "default"; Raw = $false; Period = "";        HoldDefault = $false; ExpectGainDb = 0.0;       ToleranceDb = 1.5;          Required = $true; Note = "the cable at unity after the playback-side uninstall" }
 )
 # The ASIO entry round: the playback endpoint installed with its entry in
-# the ASIO driver list (DeviceSelector --offer-asio), then that entry opened
+# the ASIO driver list (DeviceSelector --exclusive-mode-eq), then that entry opened
 # the way a DAW opens it (COM activation of the registered wrapper CLSID,
 # AsioProbe as the host) while a recording app listens on the cable's far
 # side. The wrapper runs a WASAPI exclusive target and the engine host; the
@@ -615,9 +615,9 @@ function Get-EqApoAsioEntries {
 if (-not (Test-Path -LiteralPath $asioProbe)) {
     Add-Failure "asio-entry: AsioProbe.exe is not in the probe directory"
 } else {
-    $install = Invoke-Program (Join-Path $current "DeviceSelector.exe") @("--install-endpoint", $endpoints.Render, "--offer-asio") 300 $current
+    $install = Invoke-Program (Join-Path $current "DeviceSelector.exe") @("--install-endpoint", $endpoints.Render, "--exclusive-mode-eq") 300 $current
     $asioEntry.install = [ordered]@{ exitCode = $install.ExitCode; timedOut = $install.TimedOut }
-    if ($install.ExitCode -ne 0) { Add-Failure "asio-entry/install: DeviceSelector --install-endpoint --offer-asio exited with $($install.ExitCode)" }
+    if ($install.ExitCode -ne 0) { Add-Failure "asio-entry/install: DeviceSelector --install-endpoint --exclusive-mode-eq exited with $($install.ExitCode)" }
     & reg export "HKLM\SOFTWARE\ASIO" (Join-Path $SnapshotDirectory "90-asio-entry-installed-asio.reg") /y 2>$null | Out-Null
     & reg export "HKLM\SOFTWARE\EqualizerAPO\ASIO" (Join-Path $SnapshotDirectory "90-asio-entry-installed-records.reg") /y 2>$null | Out-Null
     $global:LASTEXITCODE = 0

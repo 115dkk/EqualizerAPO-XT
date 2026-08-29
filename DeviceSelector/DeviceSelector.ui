@@ -168,12 +168,12 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
           </widget>
          </item>
          <item row="2" column="1" colspan="4">
-          <widget class="QCheckBox" name="offerAsioCheckBox">
+          <widget class="QCheckBox" name="exclusiveModeEqCheckBox">
            <property name="toolTip">
-            <string>Adds an entry named after this device to the ASIO driver list. An application that picks it opens the device in WASAPI exclusive mode, and the EQ runs on the way, as it does for a real ASIO driver.</string>
+            <string>An application that opens this device in exclusive mode bypasses the EQ. This adds `&lt;device&gt; - &lt;endpoint&gt; (EQ APO XT)` to the ASIO driver list; choose it in the application instead of its WASAPI exclusive output, and the EQ runs on that stream.</string>
            </property>
            <property name="text">
-            <string>Offer this device to ASIO applications</string>
+            <string>Enable the EQ in WASAPI exclusive mode</string>
            </property>
           </widget>
          </item>

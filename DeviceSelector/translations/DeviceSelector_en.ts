@@ -133,11 +133,11 @@
 <context>
     <name>DeviceSelectorClass</name>
     <message>
-        <source>Offer this device to ASIO applications</source>
+        <source>Enable the EQ in WASAPI exclusive mode</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Adds an entry named after this device to the ASIO driver list. An application that picks it opens the device in WASAPI exclusive mode, and the EQ runs on the way, as it does for a real ASIO driver.</source>
+        <source>An application that opens this device in exclusive mode bypasses the EQ. This adds `&lt;device&gt; - &lt;endpoint&gt; (EQ APO XT)` to the ASIO driver list; choose it in the application instead of its WASAPI exclusive output, and the EQ runs on that stream.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

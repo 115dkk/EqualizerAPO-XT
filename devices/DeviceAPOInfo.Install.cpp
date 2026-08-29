@@ -164,13 +164,13 @@ std::vector<wstring> processingModesFor(bool input)
 void DeviceAPOInfo::applyAsioEntry(RegistryTransaction& plan)
 {
 	removeAsioEntry(plan);
-	if (!selectedInstallState.offerAsio || (!selectedInstallState.installPreMix && !selectedInstallState.installPostMix))
+	if (!selectedInstallState.exclusiveModeEq || (!selectedInstallState.installPreMix && !selectedInstallState.installPostMix))
 		return;
 
 	// The wrapper DLL beside the product; the value the install hook writes.
 	const wstring installPath = plan.valueExists(APP_REGPATH, L"InstallPath") ? plan.readValue(APP_REGPATH, L"InstallPath") : L"";
 	if (installPath.empty())
-		throw DeviceException(L"The ASIO entry needs the InstallPath value under HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO");
+		throw DeviceException(L"The ASIO entry needs the InstallPath value under HKEY_LOCAL_MACHINE\\SOFTWARE\\EqualizerAPO");
 
 	const eapo::asio::AsioTarget target = eapo::asio::AsioRegistration::endpointTarget(deviceGuid, connectionName, deviceName);
 	eapo::asio::WrapperRecord record;
@@ -185,7 +185,7 @@ void DeviceAPOInfo::applyAsioEntry(RegistryTransaction& plan)
 	record.options.processOutput = !input;
 	record.options.processInput = input;
 	eapo::asio::WrapperRecords::write(plan, record);
-	eapo::asio::AsioRegistration::registerWrapper(plan, target, installPath + L"\EqualizerAPOAsio.dll", L"");
+	eapo::asio::AsioRegistration::registerWrapper(plan, target, installPath + L"\\EqualizerAPOAsio.dll", L"");
 	lastOperationReport.asioEntry = eapo::asio::AsioRegistration::entryNameFor(target.name);
 }
 
