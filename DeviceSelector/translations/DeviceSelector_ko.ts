@@ -105,11 +105,6 @@
         <translation>APO가 이미 설치되어 있습니다</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="607"/>
-        <source>APO can be installed (experimental)</source>
-        <translation>APO를 설치할 수 있습니다 (실험적)</translation>
-    </message>
-    <message>
         <location filename="../DeviceSelector.cpp" line="609"/>
         <source>APO can be installed</source>
         <translation>APO를 설치할 수 있습니다</translation>

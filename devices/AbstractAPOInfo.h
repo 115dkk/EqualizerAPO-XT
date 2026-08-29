@@ -38,7 +38,6 @@ public:
 	virtual bool isInstalled() const = 0;
 	virtual bool canBeUpgraded() const = 0;
 	virtual bool hasChanges() const = 0;
-	virtual bool isExperimental() const = 0;
 	virtual bool isEnhancementsDisabled() const = 0;
 	virtual bool isDefaultDevice() const = 0;
 	virtual bool isDisabled() const = 0;

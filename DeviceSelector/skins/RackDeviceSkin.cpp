@@ -767,7 +767,7 @@ private:
 			Qt::AlignLeft | Qt::AlignVCenter, elidedNames, nameInk, dark);
 
 		// Wireframe stamps after the name: printed outlines, not colour
-		// pills (DEFAULT for the default endpoint, EXP for experimental).
+		// pills (DEFAULT for the default endpoint).
 		qreal stampX = textLeft + nfm.horizontalAdvance(elidedNames) + 10;
 		const qreal stampY = blockTop + (nfm.height() - 11) / 2.0;
 		if (s.defaultDevice && stampX + 52 < textRight)
@@ -775,8 +775,6 @@ private:
 			paintStamp(painter, QPointF(stampX, stampY), QStringLiteral("DEFAULT"), QColor(t.mutedText), dark);
 			stampX += QFontMetricsF(painter.font()).horizontalAdvance(QStringLiteral("DEFAULT")) + 20;
 		}
-		if (s.experimental && stampX + 30 < textRight)
-			paintStamp(painter, QPointF(stampX, stampY), QStringLiteral("EXP"), QColor(t.mutedText), dark);
 
 		QColor statusInk = s.unavailable ? withAlpha(QColor(t.mutedText), 150) : QColor(t.mutedText);
 		if (pending && !s.unavailable)

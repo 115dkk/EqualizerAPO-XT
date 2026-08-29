@@ -106,11 +106,6 @@
     </message>
     <message>
         <location line="+2"/>
-        <source>APO can be installed (experimental)</source>
-        <translation>APO peut être installé (expérimental)</translation>
-    </message>
-    <message>
-        <location line="+2"/>
         <source>APO can be installed</source>
         <translation>APO peut être installé</translation>
     </message>

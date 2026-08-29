@@ -209,11 +209,6 @@ bool VoicemeeterAPOInfo::hasChanges() const
 	return changes;
 }
 
-bool VoicemeeterAPOInfo::isExperimental() const
-{
-	return false;
-}
-
 bool VoicemeeterAPOInfo::isEnhancementsDisabled() const
 {
 	return false;

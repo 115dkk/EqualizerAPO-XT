@@ -35,7 +35,6 @@ public:
 		DeviceNameRole = Qt::UserRole + 1,
 		StateTextRole,
 		InstalledRole,
-		ExperimentalRole,
 		DefaultDeviceRole,
 		UnavailableRole,
 		InputSideRole

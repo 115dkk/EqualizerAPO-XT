@@ -213,8 +213,6 @@ public:
 		QStringList tags;
 		if (state.defaultDevice)
 			tags << QStringLiteral("DEF");
-		if (state.experimental)
-			tags << QStringLiteral("EXP");
 		if (state.input)
 			tags << QStringLiteral("REC");
 
