@@ -547,6 +547,9 @@ namespace
 		long inputLatency = 0, outputLatency = 0;
 		wrapper->getLatencies(&inputLatency, &outputLatency);
 		std::printf("latency input=%ld output=%ld frames\n", inputLatency, outputLatency);
+		// The gate waits for this line before it measures; with stdout in a
+		// file the CRT would otherwise hold it until exit.
+		std::fflush(stdout);
 		error = wrapper->start();
 		if (error != ASE_OK)
 		{

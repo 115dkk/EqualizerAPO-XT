@@ -654,10 +654,24 @@ if (-not (Test-Path -LiteralPath $asioProbe)) {
             Write-Host "-- $frames frames"
             $probeOut = [System.IO.Path]::GetTempFileName()
             $probeErr = [System.IO.Path]::GetTempFileName()
-            $probeProcess = Start-Process -FilePath $asioProbe -ArgumentList @("--target", "clsid:$($asioEntry.wrapperClsid)", "--wrapper", "static", "--processor", "passthrough", "--seconds", "14", "--sine", "1000", "--rate", "$impulseRate", "--frames", "$frames") -PassThru -NoNewWindow -RedirectStandardOutput $probeOut -RedirectStandardError $probeErr -WorkingDirectory $current
-            Start-Sleep -Seconds 4
+            $probeProcess = Start-Process -FilePath $asioProbe -ArgumentList @("--target", "clsid:$($asioEntry.wrapperClsid)", "--wrapper", "static", "--processor", "passthrough", "--seconds", "25", "--sine", "1000", "--rate", "$impulseRate", "--frames", "$frames") -PassThru -NoNewWindow -RedirectStandardOutput $probeOut -RedirectStandardError $probeErr -WorkingDirectory $current
+            # Measure only once the stream runs: the probe prints its latency
+            # line after createBuffers and start succeeded. The first probe
+            # starts the engine host cold, which on a busy runner took long
+            # enough for a fixed wait to open the window before the tone
+            # (-23.6 dB read once for that reason, 2405 switches all the same).
+            $deadline = (Get-Date).AddSeconds(40)
+            $streaming = $false
+            while ((Get-Date) -lt $deadline -and -not $probeProcess.HasExited) {
+                $soFar = Get-Content -LiteralPath $probeOut -Raw -ErrorAction SilentlyContinue
+                if ($soFar -and $soFar -match "latency input=") { $streaming = $true; break }
+                Start-Sleep -Milliseconds 250
+            }
+            if (-not $streaming) { Write-Host "the probe did not report a running stream within 40 s" }
+            # The bridge calibration (a dozen events) and its reopen, then settle.
+            Start-Sleep -Seconds 2
             $record = Measure-Cable ([pscustomobject]@{ Name = $name; Category = "default"; Raw = $false; ExpectGainDb = $asioEntryMeasurement.ExpectGainDb; ToleranceDb = $asioEntryMeasurement.ToleranceDb; Required = $required; Note = "$($asioEntryMeasurement.Note) ($frames frames)"; NoRender = $true }) "asio-entry"
-            $probeProcess.WaitForExit(30000) | Out-Null
+            $probeProcess.WaitForExit(45000) | Out-Null
             if (-not $probeProcess.HasExited) { try { $probeProcess.Kill() } catch {} }
             $probeText = (Get-Content -LiteralPath $probeOut -Raw -ErrorAction SilentlyContinue) + (Get-Content -LiteralPath $probeErr -Raw -ErrorAction SilentlyContinue)
             Remove-Item -LiteralPath $probeOut, $probeErr -Force -ErrorAction SilentlyContinue
