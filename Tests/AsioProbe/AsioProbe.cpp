@@ -68,6 +68,7 @@ namespace
 		std::wstring mode = L"sync";
 		long frames = 64;
 		double rate = 48000.0;
+		bool rateGiven = false;       // a real target is asked for --rate only when it was given
 		long periods = 200;
 		long inputs = 2;
 		long outputs = 2;
@@ -129,7 +130,11 @@ namespace
 			else if (key == L"--config" && value(v)) a.config = v;
 			else if (key == L"--mode" && value(v)) a.mode = v;
 			else if (key == L"--frames" && value(v)) a.frames = std::wcstol(v.c_str(), nullptr, 10);
-			else if (key == L"--rate" && value(v)) a.rate = std::wcstod(v.c_str(), nullptr);
+			else if (key == L"--rate" && value(v))
+			{
+				a.rate = std::wcstod(v.c_str(), nullptr);
+				a.rateGiven = true;
+			}
 			else if (key == L"--periods" && value(v)) a.periods = std::wcstol(v.c_str(), nullptr, 10);
 			else if (key == L"--seconds" && value(v)) a.seconds = std::wcstod(v.c_str(), nullptr);
 			else if (key == L"--seed" && value(v)) a.seed = static_cast<unsigned>(std::wcstoul(v.c_str(), nullptr, 10));
@@ -503,6 +508,18 @@ namespace
 			return 2;
 		}
 		wrapper->getChannels(&inputs, &outputs);
+		// A DAW sets the rate before it asks for channel types or buffers; so
+		// does the probe when --rate was given (the sample type may follow).
+		if (a.rateGiven)
+		{
+			double current = 0.0;
+			wrapper->getSampleRate(&current);
+			if (current != a.rate)
+			{
+				if (wrapper->canSampleRate(a.rate) != ASE_OK || wrapper->setSampleRate(a.rate) != ASE_OK)
+					std::fprintf(stderr, "AsioProbe: the target refused %.0f Hz; staying at %.0f\n", a.rate, current);
+			}
+		}
 		ASIOChannelInfo info = {};
 		info.channel = 0;
 		info.isInput = outputs > 0 ? ASIOFalse : ASIOTrue;
