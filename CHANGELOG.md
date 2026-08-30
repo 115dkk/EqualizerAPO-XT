@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.50.0 — 2026-08-30
+
 - **Any playback or recording endpoint can be offered to ASIO applications.**
   An application in WASAPI exclusive mode never passes the audio engine, so
   no APO can reach it. The ASIO wrapper now has a second kind of target:
