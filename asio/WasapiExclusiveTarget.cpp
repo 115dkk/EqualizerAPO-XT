@@ -296,17 +296,26 @@ namespace eapo::asio
 		releaseAndNull(client);
 		if (device != nullptr)
 			device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, reinterpret_cast<void**>(&client));
-		planes[0].clear();
-		planes[1].clear();
 		block.clear();
 		pending.clear();
 		pendingFrames = 0;
+		staged = 0;
 		latencyFrames = 0;
+	}
+
+	// The ASIO buffers outlive a stream: the host holds their pointers from
+	// createBuffers to disposeBuffers, across a rebridge that reopens the
+	// device with another period.
+	void WasapiExclusiveTarget::Port::releasePlanes() noexcept
+	{
+		planes[0].clear();
+		planes[1].clear();
 	}
 
 	void WasapiExclusiveTarget::Port::closeDevice() noexcept
 	{
 		closeStream();
+		releasePlanes();
 		releaseAndNull(client);
 		releaseAndNull(device);
 	}
@@ -552,13 +561,14 @@ namespace eapo::asio
 	{
 		if (!initialized_)
 			return ASE_NotPresent;
-		// Output: the period the host fills, the one the device holds while
-		// it plays the previous, and what the driver reports. Input: the
-		// period being captured and the driver's share.
+		// Output: the period the host fills, the device period it is queued
+		// behind (bridge ASIO periods), and what the driver reports. Input:
+		// the device period being captured and the driver's share.
+		const long bridge = static_cast<long>(bridge_.load(std::memory_order_acquire));
 		if (inputLatency != nullptr)
-			*inputLatency = ports_[1].device != nullptr ? frames_ + ports_[1].latencyFrames : 0;
+			*inputLatency = ports_[1].device != nullptr ? bridge * frames_ + ports_[1].latencyFrames : 0;
 		if (outputLatency != nullptr)
-			*outputLatency = ports_[0].device != nullptr ? 2 * frames_ + ports_[0].latencyFrames : 0;
+			*outputLatency = ports_[0].device != nullptr ? (bridge + 1) * frames_ + ports_[0].latencyFrames : 0;
 		return ASE_OK;
 	}
 
@@ -671,10 +681,11 @@ namespace eapo::asio
 
 	// ---- buffers ----
 
-	HRESULT WasapiExclusiveTarget::initializeStream(Port& port, long frames)
+	HRESULT WasapiExclusiveTarget::initializeStream(Port& port, long frames, unsigned bridge)
 	{
 		WAVEFORMATEXTENSIBLE fmt = wasapi::makeFormat(port.container, port.channels, rate_, port.channelMask);
-		const REFERENCE_TIME period = wasapi::hnsFromFrames(static_cast<unsigned>(frames), rate_);
+		const long deviceFrames = frames * static_cast<long>(bridge);
+		const REFERENCE_TIME period = wasapi::hnsFromFrames(static_cast<unsigned>(deviceFrames), rate_);
 		HRESULT hr = port.client->Initialize(AUDCLNT_SHAREMODE_EXCLUSIVE, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, period, period, &fmt.Format, nullptr);
 		if (FAILED(hr))
 		{
@@ -691,9 +702,9 @@ namespace eapo::asio
 		}
 		UINT32 bufferFrames = 0;
 		port.client->GetBufferSize(&bufferFrames);
-		if (bufferFrames != static_cast<UINT32>(frames))
+		if (bufferFrames != static_cast<UINT32>(deviceFrames))
 		{
-			std::snprintf(errorMessage_, sizeof(errorMessage_), "The %s endpoint opened with %u frames, not %ld", port.capture ? "recording" : "playback", static_cast<unsigned>(bufferFrames), frames);
+			std::snprintf(errorMessage_, sizeof(errorMessage_), "The %s endpoint opened with %u frames, not %ld", port.capture ? "recording" : "playback", static_cast<unsigned>(bufferFrames), deviceFrames);
 			port.closeStream();
 			return E_FAIL;
 		}
@@ -718,31 +729,26 @@ namespace eapo::asio
 		if (SUCCEEDED(port.client->GetStreamLatency(&latency)))
 			port.latencyFrames = static_cast<long>(wasapi::framesFromHns(latency, rate_));
 
-		const size_t bytesPerSample = port.container.bytes();
-		const size_t planeBytes = static_cast<size_t>(frames) * bytesPerSample;
-		for (int half = 0; half < 2; half++)
-		{
-			port.planes[half].assign(port.channels, std::vector<unsigned char>());
-			for (unsigned c = 0; c < port.channels; c++)
-				port.planes[half][c].assign(planeBytes, 0);
-		}
-		port.block.assign(planeBytes * port.channels, 0);
+		const size_t frameBytes = static_cast<size_t>(port.channels) * port.container.bytes();
+		port.block.assign(static_cast<size_t>(deviceFrames) * frameBytes, 0);
 		if (port.capture)
 		{
-			port.pending.assign(planeBytes * port.channels * 2, 0);
+			port.pending.assign(static_cast<size_t>(deviceFrames) * frameBytes * 2, 0);
 			port.pendingFrames = 0;
 		}
+		port.bridge = bridge;
+		port.staged = 0;
 		return S_OK;
 	}
 
-	bool WasapiExclusiveTarget::prepareStreams(long frames, char* message)
+	bool WasapiExclusiveTarget::prepareStreams(long frames, unsigned bridge, char* message)
 	{
 		for (size_t i = 0; i < 2; i++)
 		{
 			Port& port = ports_[i];
 			if (port.device == nullptr)
 				continue;
-			if (FAILED(initializeStream(port, frames)))
+			if (FAILED(initializeStream(port, frames, bridge)))
 			{
 				std::memcpy(message, errorMessage_, sizeof(errorMessage_));
 				for (size_t j = 0; j < i; j++)
@@ -780,11 +786,24 @@ namespace eapo::asio
 		}
 
 		char message[124] = {};
-		if (!prepareStreams(bufferSize, message))
+		if (!prepareStreams(bufferSize, 1, message))
 		{
 			setError(message);
 			return ASE_HWMalfunction;
 		}
+		for (Port& port : ports_)
+		{
+			if (port.device == nullptr)
+				continue;
+			const size_t planeBytes = static_cast<size_t>(bufferSize) * port.container.bytes();
+			for (int half = 0; half < 2; half++)
+			{
+				port.planes[half].assign(port.channels, std::vector<unsigned char>());
+				for (unsigned c = 0; c < port.channels; c++)
+					port.planes[half][c].assign(planeBytes, 0);
+			}
+		}
+		bridge_.store(1, std::memory_order_release);
 		callbacks_ = *callbacks;
 		hostSupportsTimeInfo_ = callbacks_.bufferSwitchTimeInfo != nullptr && callbacks_.asioMessage != nullptr
 			&& callbacks_.asioMessage(kAsioSelectorSupported, kAsioSupportsTimeInfo, nullptr, nullptr) == 1
@@ -809,8 +828,12 @@ namespace eapo::asio
 			return ASE_InvalidMode;
 		stop();
 		for (Port& port : ports_)
-			if (port.device != nullptr)
-				port.closeStream();
+		{
+			if (port.device == nullptr)
+				continue;
+			port.closeStream();
+			port.releasePlanes();
+		}
 		prepared_ = false;
 		frames_ = 0;
 		return ASE_OK;
@@ -927,19 +950,29 @@ namespace eapo::asio
 			committed_.store(true, std::memory_order_release);
 			return;
 		}
-		BYTE* data = nullptr;
-		if (FAILED(port.render->GetBuffer(static_cast<UINT32>(frames_), &data)))
-		{
-			counters_.outputMisses++;
-			committed_.store(true, std::memory_order_release);
-			return;
-		}
+		// The ASIO period goes into the device block at its slot; the block
+		// is handed to the device once every ASIO period of the device
+		// period is in it (one write per event with bridge 1).
+		const size_t frameBytes = static_cast<size_t>(port.channels) * port.container.bytes();
 		std::vector<const void*> planes(port.channels);
 		for (unsigned c = 0; c < port.channels; c++)
 			planes[c] = port.planes[half][c].data();
-		wasapi::interleave(planes.data(), port.channels, port.container.bytes(), static_cast<unsigned>(frames_), data);
-		port.render->ReleaseBuffer(static_cast<UINT32>(frames_), 0);
+		wasapi::interleave(planes.data(), port.channels, port.container.bytes(), static_cast<unsigned>(frames_),
+			port.block.data() + static_cast<size_t>(port.staged) * static_cast<size_t>(frames_) * frameBytes);
+		port.staged++;
 		committed_.store(true, std::memory_order_release);
+		if (port.staged < port.bridge)
+			return;
+		port.staged = 0;
+		const UINT32 deviceFrames = static_cast<UINT32>(frames_) * port.bridge;
+		BYTE* data = nullptr;
+		if (FAILED(port.render->GetBuffer(deviceFrames, &data)))
+		{
+			counters_.outputMisses++;
+			return;
+		}
+		std::memcpy(data, port.block.data(), static_cast<size_t>(deviceFrames) * frameBytes);
+		port.render->ReleaseBuffer(deviceFrames, 0);
 	}
 
 	void WasapiExclusiveTarget::servePeriod(long half) noexcept
@@ -985,6 +1018,53 @@ namespace eapo::asio
 		counters_.periods++;
 	}
 
+	// One silent device period ahead of the host's first real one, so the
+	// device has something to play from the first event.
+	void WasapiExclusiveTarget::primeOutput() noexcept
+	{
+		Port& out = ports_[0];
+		if (out.render == nullptr)
+			return;
+		const UINT32 deviceFrames = static_cast<UINT32>(frames_) * out.bridge;
+		BYTE* data = nullptr;
+		if (SUCCEEDED(out.render->GetBuffer(deviceFrames, &data)))
+			out.render->ReleaseBuffer(deviceFrames, AUDCLNT_BUFFERFLAGS_SILENT);
+	}
+
+	// Reopens both streams with a device period of `factor` ASIO periods.
+	// Stream thread only, between events. The ASIO buffers stay where they
+	// are; only the device side changes, and the host hears about the new
+	// latency through kAsioLatenciesChanged when it supports the message.
+	bool WasapiExclusiveTarget::rebridge(unsigned factor) noexcept
+	{
+		Port& out = ports_[0];
+		Port& in = ports_[1];
+		if (out.client != nullptr)
+			out.client->Stop();
+		if (in.client != nullptr)
+			in.client->Stop();
+		for (Port& port : ports_)
+			if (port.device != nullptr)
+				port.closeStream();
+		char message[124] = {};
+		if (!prepareStreams(frames_, factor, message))
+		{
+			setError(message);
+			return false;
+		}
+		primeOutput();
+		if (in.client != nullptr && in.captureClient != nullptr && FAILED(in.client->Start()))
+			return false;
+		if (out.client != nullptr && out.render != nullptr && FAILED(out.client->Start()))
+			return false;
+		bridge_.store(factor, std::memory_order_release);
+		counters_.bridge = factor;
+		if (callbacks_.asioMessage != nullptr
+			&& callbacks_.asioMessage(kAsioSelectorSupported, kAsioLatenciesChanged, nullptr, nullptr) == 1)
+			callbacks_.asioMessage(kAsioLatenciesChanged, 0, nullptr, nullptr);
+		return true;
+	}
+
 	void WasapiExclusiveTarget::streamThread() noexcept
 	{
 		const HRESULT com = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
@@ -1000,23 +1080,46 @@ namespace eapo::asio
 
 		Port& out = ports_[0];
 		Port& in = ports_[1];
-		// The first period is silence so the device has something to play
-		// while the host fills the first real one.
-		if (out.render != nullptr)
-		{
-			BYTE* data = nullptr;
-			if (SUCCEEDED(out.render->GetBuffer(static_cast<UINT32>(frames_), &data)))
-				out.render->ReleaseBuffer(static_cast<UINT32>(frames_), AUDCLNT_BUFFERFLAGS_SILENT);
-		}
+		primeOutput();
 		bool started = true;
 		if (in.client != nullptr && in.captureClient != nullptr && FAILED(in.client->Start()))
 			started = false;
 		if (started && out.client != nullptr && out.render != nullptr && FAILED(out.client->Start()))
 			started = false;
 
+		// Some drivers accept a small period and then signal at their own
+		// coarser cycle (a virtual cable: every 10 ms against a 5.8 ms
+		// period), consuming a whole cycle's worth per event; one ASIO
+		// period per event then leaves the rest unplayed. The first events
+		// tell: when their typical spacing is well over the period, the
+		// device side is reopened at the smallest multiple of the ASIO
+		// period that covers the cycle, and every event serves that many
+		// ASIO periods back to back. The host keeps its buffer size; the
+		// stream keeps its audio; only the latency grows, and is reported.
+		// EAPO_WASAPI_FORCE_BRIDGE=<n> takes that decision up front, for
+		// exercising the path on a driver that does not need it.
+		constexpr unsigned calibrationEvents = 12;
+		constexpr unsigned bridgeCap = 8;
+		unsigned forcedBridge = 0;
+		{
+			wchar_t value[8] = {};
+			if (GetEnvironmentVariableW(L"EAPO_WASAPI_FORCE_BRIDGE", value, 8) > 0)
+			{
+				const int parsed = _wtoi(value);
+				if (parsed >= 2 && parsed <= static_cast<int>(bridgeCap))
+					forcedBridge = static_cast<unsigned>(parsed);
+			}
+		}
+		if (started && forcedBridge != 0 && !rebridge(forcedBridge))
+			started = false;
+		bool calibrated = forcedBridge != 0;
+		uint64_t calibration[calibrationEvents] = {};
+		unsigned calibrationCount = 0;
+
 		HANDLE clock = out.event != nullptr ? out.event : in.event;
 		long half = 0;
-		const uint64_t periodNanos = rate_ != 0 ? static_cast<uint64_t>(static_cast<double>(frames_) * 1e9 / static_cast<double>(rate_)) : 0;
+		uint64_t periodNanos = rate_ != 0 ? static_cast<uint64_t>(static_cast<double>(frames_) * 1e9 / static_cast<double>(rate_)) : 0;
+		uint64_t devicePeriodNanos = periodNanos * bridge_.load(std::memory_order_acquire);
 		uint64_t previousEvent = 0;
 		uint64_t intervalSum = 0, intervalCount = 0, intervalMax = 0, serviceMax = 0;
 		while (started && !stopRequested_.load(std::memory_order_acquire))
@@ -1030,23 +1133,57 @@ namespace eapo::asio
 			if (previousEvent != 0)
 			{
 				const uint64_t interval = now - previousEvent;
-				if (periodNanos != 0 && interval > periodNanos + periodNanos * 3 / 4)
+				if (devicePeriodNanos != 0 && interval > devicePeriodNanos + devicePeriodNanos * 3 / 4)
 					counters_.slowEvents++;
 				intervalSum += interval;
 				intervalCount++;
 				if (interval > intervalMax)
 					intervalMax = interval;
+				if (!calibrated && calibrationCount < calibrationEvents)
+					calibration[calibrationCount++] = interval;
 			}
 			previousEvent = now;
-			servePeriod(half);
+			const unsigned bridge = bridge_.load(std::memory_order_acquire);
+			for (unsigned k = 0; k < bridge; k++)
+			{
+				servePeriod(half);
+				half ^= 1;
+			}
 			const uint64_t served = nowNanoseconds() - now;
 			if (served > serviceMax)
 				serviceMax = served;
-			half ^= 1;
+
+			if (!calibrated && calibrationCount == calibrationEvents && periodNanos != 0)
+			{
+				calibrated = true;
+				// The median spacing, so a stray stall does not decide.
+				uint64_t sorted[calibrationEvents];
+				std::memcpy(sorted, calibration, sizeof(sorted));
+				std::sort(sorted, sorted + calibrationEvents);
+				const uint64_t typical = sorted[calibrationEvents / 2];
+				if (typical > periodNanos + periodNanos / 2)
+				{
+					unsigned factor = static_cast<unsigned>((typical + periodNanos - 1) / periodNanos);
+					if (factor > bridgeCap)
+						factor = bridgeCap;
+					if (factor >= 2)
+					{
+						if (!rebridge(factor))
+						{
+							started = false;
+							break;
+						}
+						clock = out.event != nullptr ? out.event : in.event;
+						devicePeriodNanos = periodNanos * factor;
+						previousEvent = 0;
+					}
+				}
+			}
 		}
 		counters_.eventIntervalAvgUs = intervalCount != 0 ? intervalSum / intervalCount / 1000 : 0;
 		counters_.eventIntervalMaxUs = intervalMax / 1000;
 		counters_.serviceMaxUs = serviceMax / 1000;
+		counters_.bridge = bridge_.load(std::memory_order_acquire);
 
 		if (out.client != nullptr)
 			out.client->Stop();
