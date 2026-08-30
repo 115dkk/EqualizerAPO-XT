@@ -636,7 +636,10 @@ if (-not (Test-Path -LiteralPath $asioProbe)) {
         $env:PATH = "$current;$env:PATH"
         $probeOut = [System.IO.Path]::GetTempFileName()
         $probeErr = [System.IO.Path]::GetTempFileName()
-        $probeProcess = Start-Process -FilePath $asioProbe -ArgumentList @("--target", "clsid:$($asioEntry.wrapperClsid)", "--wrapper", "static", "--processor", "passthrough", "--seconds", "14", "--sine", "1000") -PassThru -NoNewWindow -RedirectStandardOutput $probeOut -RedirectStandardError $probeErr -WorkingDirectory $current
+        $probeProcess = Start-Process -FilePath $asioProbe -ArgumentList @("--target", "clsid:$($asioEntry.wrapperClsid)", "--wrapper", "static", "--processor", "passthrough", "--seconds", "14", "--sine", "1000", "--rate", "$impulseRate") -PassThru -NoNewWindow -RedirectStandardOutput $probeOut -RedirectStandardError $probeErr -WorkingDirectory $current
+        # The probe asks for the cable's own rate (the one the recording side
+        # runs at): the entry's default is the endpoint's device format, and a
+        # cable fed exclusively at another rate than its engine's drops samples.
         # The entry starts the engine host cold (config load included) before
         # the device opens; the window must not straddle that start.
         Start-Sleep -Seconds 4
