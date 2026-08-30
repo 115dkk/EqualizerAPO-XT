@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.50.2 — 2026-08-30
+
 - **꺼 둔 행의 "위치 찾기..." 버튼이 더는 살아 있는 것처럼 보이지 않습니다.**
   파일이 없는 Include, Convolution, VST 행을 끄면 본문 전체가 비활성인데도 위치
   찾기 버튼만 켜진 행의 모양(rack, studio, matrix)을 그대로 유지해, 눌러도 아무

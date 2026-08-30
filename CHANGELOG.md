@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.50.2 — 2026-08-30
+
 - **A switched-off row no longer shows a live "Locate..." button.** When an
   Include, Convolution or VST row whose file is missing was switched off,
   its Locate button kept the lit look of the running row (rack, studio and
