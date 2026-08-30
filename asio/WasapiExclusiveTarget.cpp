@@ -8,6 +8,9 @@
 
 #include <functiondiscoverykeys_devpkey.h>
 #include <avrt.h>
+#include <timeapi.h>
+
+#pragma comment(lib, "winmm.lib")
 
 #include <algorithm>
 #include <cstdio>
@@ -986,6 +989,12 @@ namespace eapo::asio
 	{
 		const HRESULT com = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 		threadId_.store(GetCurrentThreadId(), std::memory_order_release);
+		// A driver's period is only as fine as the system timer it runs on.
+		// With the default 15.6 ms resolution a virtual cable accepted a
+		// 5.8 ms period and signalled every 15.9 ms, leaving two thirds of
+		// every period unplayed. DAWs and ASIO drivers ask for 1 ms while
+		// they stream; so does this target, for the life of the stream.
+		const MMRESULT timerRequest = timeBeginPeriod(1);
 		DWORD taskIndex = 0;
 		HANDLE task = AvSetMmThreadCharacteristicsW(L"Pro Audio", &taskIndex);
 
@@ -1045,6 +1054,8 @@ namespace eapo::asio
 			in.client->Stop();
 		if (task != nullptr)
 			AvRevertMmThreadCharacteristics(task);
+		if (timerRequest == TIMERR_NOERROR)
+			timeEndPeriod(1);
 		threadId_.store(0, std::memory_order_release);
 		if (SUCCEEDED(com))
 			CoUninitialize();

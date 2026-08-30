@@ -106,8 +106,9 @@ $lowLatencyMeasurements = @(
 # preamp arriving on the far side is the whole path working. The uninstall
 # must take the entry and its record away again.
 $asioEntryMeasurement = [pscustomobject]@{ Name = "asio-entry"; ExpectGainDb = $PreampDb; ToleranceDb = $ToleranceDb; Required = $true; Note = "a DAW opening the endpoint's ASIO entry hears the preamp on the far side" }
-# The first size is the gated one; the rest are recorded.
-$asioEntryFrames = @(2048, 1024, 256)
+# The first size is the gated one; the rest are recorded. Small first: the
+# entry has to hold a small buffer, the point of exclusive mode.
+$asioEntryFrames = @(256, 1024, 2048)
 
 $plan = [pscustomobject]@{
     VbCableUrl = $VbCableUrl
@@ -638,13 +639,11 @@ if (-not (Test-Path -LiteralPath $asioProbe)) {
         # measured once the stream has been running (the engine host starts
         # cold, config load included, before the device opens).
         #
-        # Three buffer sizes. The gated one is 2048 frames, clear of the slowest
-        # driver cycle seen (the runner's cable: 16 ms at 256 frames, 25 ms with
-        # 78 ms spikes at 1024, whatever period it accepted): some
-        # drivers signal at their own engine period whatever period they
-        # accepted (the runner's cable signals about every 12 ms), and a
-        # buffer shorter than that leaves the gap unplayed. The 256-frame run
-        # is recorded as evidence of how this driver behaves at a small buffer.
+        # Three buffer sizes, the small one gated. The runner's cable used to
+        # signal every 15.9 ms against a 5.8 ms period: the system timer's
+        # default 15.6 ms resolution, which nothing on a hosted runner raises.
+        # The target asks for 1 ms while it streams, as DAWs do; the larger
+        # sizes are recorded as evidence of how this driver behaves.
         # The probe asks for the cable's own rate, the one the recording side
         # runs at; the entry's default is the endpoint's device format.
         $env:PATH = "$current;$env:PATH"

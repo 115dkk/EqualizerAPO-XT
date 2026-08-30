@@ -61,12 +61,16 @@ wasapi:{playback guid}[,{recording guid}]` opens the same target without
 any registration, for support sessions and for CI.
 
 The buffer size an application picks is the period the endpoint is asked
-for, and some drivers do not honour a small one: they accept it, then signal
-at their own engine period (a virtual cable driver on the CI runner signals
-about every 12 ms whatever it accepted), which leaves part of every period
-unplayed at a buffer shorter than that. If the entry sounds gapped or thin
-at a small buffer, choose a larger one in the application; `AsioProbe`
-reports such a driver as `slow-events`.
+for, and a driver can only keep a small period if the system timer is
+fine enough: at the default 15.6 ms resolution a virtual cable accepted a
+5.8 ms period and signalled every 15.9 ms, leaving most of each period
+unplayed. The entry therefore asks Windows for a 1 ms timer while it
+streams, as DAWs and ASIO drivers do, and releases it when the stream
+stops. If an entry still sounds gapped or thin at a small buffer,
+`AsioProbe --target wasapi:{guid} --frames <n>` reports the driver's real
+event interval as `event-interval` and the late ones as `slow-events`; a
+larger buffer in the application is the workaround for a driver that
+cannot do better.
 
 Measured on the maintainer's VB-CABLE: 128 frames at 48 kHz, 2,256 buffers
 in six seconds, none late or missed, and a recording app on the far side
