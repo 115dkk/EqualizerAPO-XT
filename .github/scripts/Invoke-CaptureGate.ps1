@@ -107,7 +107,7 @@ $lowLatencyMeasurements = @(
 # must take the entry and its record away again.
 $asioEntryMeasurement = [pscustomobject]@{ Name = "asio-entry"; ExpectGainDb = $PreampDb; ToleranceDb = $ToleranceDb; Required = $true; Note = "a DAW opening the endpoint's ASIO entry hears the preamp on the far side" }
 # The first size is the gated one; the rest are recorded.
-$asioEntryFrames = @(1024, 256)
+$asioEntryFrames = @(2048, 1024, 256)
 
 $plan = [pscustomobject]@{
     VbCableUrl = $VbCableUrl
@@ -638,7 +638,9 @@ if (-not (Test-Path -LiteralPath $asioProbe)) {
         # measured once the stream has been running (the engine host starts
         # cold, config load included, before the device opens).
         #
-        # Two buffer sizes. The gated one is a generous 1024 frames: some
+        # Three buffer sizes. The gated one is 2048 frames, clear of the slowest
+        # driver cycle seen (the runner's cable: 16 ms at 256 frames, 25 ms with
+        # 78 ms spikes at 1024, whatever period it accepted): some
         # drivers signal at their own engine period whatever period they
         # accepted (the runner's cable signals about every 12 ms), and a
         # buffer shorter than that leaves the gap unplayed. The 256-frame run
