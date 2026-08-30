@@ -1051,6 +1051,14 @@ QToolButton#FilterCardIconButton:checked {
     background: rgba(0, 142, 170, 0.16);
     border-color: @ACCENT@;
 }
+/* Cancelled: the action cell keeps its place on the board with a dashed
+   rule and dead ink, and no pre-light (after :hover on purpose - Qt still
+   reports hover on disabled widgets). The LOCATE token inherits this. */
+QToolButton#FilterCardIconButton:disabled {
+    background: transparent;
+    color: #9DB4BD;
+    border: 1px dashed #D0E0E6;
+}
 QLineEdit#FilterCardRawEditor {
     background: #EBEBEB;
     border: 1px solid @ACCENT@;

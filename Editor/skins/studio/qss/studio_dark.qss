@@ -975,6 +975,15 @@ QToolButton#FilterCardIconButton:checked {
     background: rgba(91, 140, 255, 0.30);
     border-color: @ACCENT@;
 }
+/* Lights off (rule 4): the glass loses its top reflection and its ink dims
+   to the disabled name's level. After :hover, so a pointer resting on dead
+   glass cannot relight it (Qt still reports hover on disabled widgets). */
+QToolButton#FilterCardIconButton:disabled {
+    background: rgba(255, 255, 255, 0.02);
+    color: rgba(145, 160, 186, 0.60);
+    border-color: rgba(255, 255, 255, 0.05);
+    border-top-color: rgba(255, 255, 255, 0.05);
+}
 QLineEdit#FilterCardRawEditor {
     background: #05050A;
     border: 1px solid @ACCENT@;
@@ -1146,6 +1155,14 @@ QToolButton#FilterCardIconButton[studioLocate="true"] {
 QToolButton#FilterCardIconButton[studioLocate="true"]:hover {
     background: rgba(91, 140, 255, 0.24);
     border-color: rgba(91, 140, 255, 0.85);
+}
+/* A dead module's Locate is unlit glass: the accent fill and border go out
+   with the row (ties the lit rules on specificity; order decides). */
+QToolButton#FilterCardIconButton[studioLocate="true"]:disabled {
+    background: rgba(255, 255, 255, 0.02);
+    color: rgba(145, 160, 186, 0.60);
+    border-color: rgba(38, 50, 74, 0.55);
+    border-top-color: rgba(38, 50, 74, 0.55);
 }
 /* MultiConvolution's channel-mapping strip: the caption is quiet mono ink
    over the glass, the hint reads as an instruction, and the routing graph

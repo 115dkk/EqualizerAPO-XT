@@ -14,6 +14,15 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **A switched-off row no longer shows a live "Locate..." button.** When an
+  Include, Convolution or VST row whose file is missing was switched off,
+  its Locate button kept the lit look of the running row (rack, studio and
+  matrix) even though the whole body was disabled, so it invited a click
+  that did nothing. Every skin now draws the card's action buttons in its
+  own disabled grammar (rack: powered-down cap, studio: unlit glass,
+  matrix: dashed cancelled cell, soft: dashed sleeping pill, minimal: the
+  sheet's button sleep), and a pointer resting on one cannot relight it.
+
 ## v2.50.1 — 2026-08-30
 
 - **The ASIO entry keeps a small buffer on drivers that cannot.** Some

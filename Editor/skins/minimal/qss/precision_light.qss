@@ -429,6 +429,9 @@ QToolButton#FilterCardIconButton:hover { background: #DADADA; border-color: @ACC
    step and the body-ink border, no accent (accent only while active;
    maintainer re-ruling 2026-08-24). */
 QToolButton#FilterCardIconButton:checked { background: @CARD_HOVER@; border-color: @TEXT@; }
+/* Disabled: the sheet's button sleep (one ground step down, secondary ink),
+   after :hover so a resting pointer cannot lift a dead control. */
+QToolButton#FilterCardIconButton:disabled { background: #DDDDDD; color: #999999; border-color: #d8d8d8; }
 /* Step list (Copy / MultiConvolution) inline editors: the source token
    and the add-channel prompt in insert mode. The generic field padding
    (4px 8px) left a token-sized field with no room for even "L"; these
