@@ -144,6 +144,10 @@ namespace eapo::asio
 			uint64_t periods = 0;
 			uint64_t inputUnderruns = 0;
 			uint64_t outputMisses = 0;
+			// Events that came more than 1.75 periods after the previous one:
+			// a driver that signals at its own period rather than the one it
+			// accepted, which leaves the gap unplayed at this buffer size.
+			uint64_t slowEvents = 0;
 		};
 		Counters counters() const noexcept;
 

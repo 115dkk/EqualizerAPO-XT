@@ -106,6 +106,8 @@ $lowLatencyMeasurements = @(
 # preamp arriving on the far side is the whole path working. The uninstall
 # must take the entry and its record away again.
 $asioEntryMeasurement = [pscustomobject]@{ Name = "asio-entry"; ExpectGainDb = $PreampDb; ToleranceDb = $ToleranceDb; Required = $true; Note = "a DAW opening the endpoint's ASIO entry hears the preamp on the far side" }
+# The first size is the gated one; the rest are recorded.
+$asioEntryFrames = @(1024, 256)
 
 $plan = [pscustomobject]@{
     VbCableUrl = $VbCableUrl
@@ -117,6 +119,7 @@ $plan = [pscustomobject]@{
     InstallModes = $installModes
     LowLatency = $lowLatencyMeasurements
     AsioEntry = $asioEntryMeasurement
+    AsioEntryFrames = $asioEntryFrames
     StageRoot = $StageRoot
 }
 if ($PlanOnly) { return $plan }
@@ -607,7 +610,7 @@ $summary.lowLatency = [pscustomobject]$lowLatency
 Write-Phase "asio-entry: the playback endpoint offered to ASIO applications"
 $asioProbe = Join-Path $ProbeDirectory "AsioProbe.exe"
 $asioRoot = "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\ASIO"
-$asioEntry = [ordered]@{ install = $null; entryName = $null; wrapperClsid = $null; probe = $null; uninstall = $null; entryLeft = $null; recordLeft = $null }
+$asioEntry = [ordered]@{ install = $null; entryName = $null; wrapperClsid = $null; probes = @(); uninstall = $null; entryLeft = $null; recordLeft = $null }
 function Get-EqApoAsioEntries {
     if (-not (Test-Path $asioRoot)) { return @() }
     return @(Get-ChildItem $asioRoot -ErrorAction SilentlyContinue | Where-Object { $_.PSChildName -like "* (EQ APO XT)" })
@@ -631,26 +634,36 @@ if (-not (Test-Path -LiteralPath $asioProbe)) {
         # The probe stands in for the DAW: it activates the registered CLSID
         # through COM, which loads the wrapper DLL from the class tree, which
         # reads its record, opens the cable in exclusive mode and starts the
-        # engine host. A sine at -6 dBFS for six seconds; the far side is
-        # measured in the middle of that.
+        # engine host. A sine at -6 dBFS for fourteen seconds; the far side is
+        # measured once the stream has been running (the engine host starts
+        # cold, config load included, before the device opens).
+        #
+        # Two buffer sizes. The gated one is a generous 1024 frames: some
+        # drivers signal at their own engine period whatever period they
+        # accepted (the runner's cable signals about every 12 ms), and a
+        # buffer shorter than that leaves the gap unplayed. The 256-frame run
+        # is recorded as evidence of how this driver behaves at a small buffer.
+        # The probe asks for the cable's own rate, the one the recording side
+        # runs at; the entry's default is the endpoint's device format.
         $env:PATH = "$current;$env:PATH"
-        $probeOut = [System.IO.Path]::GetTempFileName()
-        $probeErr = [System.IO.Path]::GetTempFileName()
-        $probeProcess = Start-Process -FilePath $asioProbe -ArgumentList @("--target", "clsid:$($asioEntry.wrapperClsid)", "--wrapper", "static", "--processor", "passthrough", "--seconds", "14", "--sine", "1000", "--rate", "$impulseRate") -PassThru -NoNewWindow -RedirectStandardOutput $probeOut -RedirectStandardError $probeErr -WorkingDirectory $current
-        # The probe asks for the cable's own rate (the one the recording side
-        # runs at): the entry's default is the endpoint's device format, and a
-        # cable fed exclusively at another rate than its engine's drops samples.
-        # The entry starts the engine host cold (config load included) before
-        # the device opens; the window must not straddle that start.
-        Start-Sleep -Seconds 4
-        $record = Measure-Cable ([pscustomobject]@{ Name = $asioEntryMeasurement.Name; Category = "default"; Raw = $false; ExpectGainDb = $asioEntryMeasurement.ExpectGainDb; ToleranceDb = $asioEntryMeasurement.ToleranceDb; Required = $asioEntryMeasurement.Required; Note = $asioEntryMeasurement.Note; NoRender = $true }) "asio-entry"
-        $probeProcess.WaitForExit(30000) | Out-Null
-        if (-not $probeProcess.HasExited) { try { $probeProcess.Kill() } catch {} }
-        $probeText = (Get-Content -LiteralPath $probeOut -Raw -ErrorAction SilentlyContinue) + (Get-Content -LiteralPath $probeErr -Raw -ErrorAction SilentlyContinue)
-        Remove-Item -LiteralPath $probeOut, $probeErr -Force -ErrorAction SilentlyContinue
-        if ($probeText) { Write-Host ($probeText.TrimEnd()) }
-        $asioEntry.probe = [ordered]@{ exitCode = $probeProcess.ExitCode; output = $probeText }
-        if ($probeProcess.ExitCode -ne 0) { Add-Failure "asio-entry/probe: AsioProbe over the registered entry exited with $($probeProcess.ExitCode)" }
+        $asioEntry.probes = @()
+        foreach ($frames in $asioEntryFrames) {
+            $required = $frames -eq $asioEntryFrames[0]
+            $name = if ($required) { $asioEntryMeasurement.Name } else { "$($asioEntryMeasurement.Name)-$frames" }
+            Write-Host "-- $frames frames"
+            $probeOut = [System.IO.Path]::GetTempFileName()
+            $probeErr = [System.IO.Path]::GetTempFileName()
+            $probeProcess = Start-Process -FilePath $asioProbe -ArgumentList @("--target", "clsid:$($asioEntry.wrapperClsid)", "--wrapper", "static", "--processor", "passthrough", "--seconds", "14", "--sine", "1000", "--rate", "$impulseRate", "--frames", "$frames") -PassThru -NoNewWindow -RedirectStandardOutput $probeOut -RedirectStandardError $probeErr -WorkingDirectory $current
+            Start-Sleep -Seconds 4
+            $record = Measure-Cable ([pscustomobject]@{ Name = $name; Category = "default"; Raw = $false; ExpectGainDb = $asioEntryMeasurement.ExpectGainDb; ToleranceDb = $asioEntryMeasurement.ToleranceDb; Required = $required; Note = "$($asioEntryMeasurement.Note) ($frames frames)"; NoRender = $true }) "asio-entry"
+            $probeProcess.WaitForExit(30000) | Out-Null
+            if (-not $probeProcess.HasExited) { try { $probeProcess.Kill() } catch {} }
+            $probeText = (Get-Content -LiteralPath $probeOut -Raw -ErrorAction SilentlyContinue) + (Get-Content -LiteralPath $probeErr -Raw -ErrorAction SilentlyContinue)
+            Remove-Item -LiteralPath $probeOut, $probeErr -Force -ErrorAction SilentlyContinue
+            if ($probeText) { Write-Host ($probeText.TrimEnd()) }
+            $asioEntry.probes += [pscustomobject]@{ frames = $frames; exitCode = $probeProcess.ExitCode; output = $probeText }
+            if ($probeProcess.ExitCode -ne 0 -and $required) { Add-Failure "asio-entry/probe: AsioProbe over the registered entry exited with $($probeProcess.ExitCode) at $frames frames" }
+        }
     }
     Copy-Logs "90-asio-entry-measured"
 

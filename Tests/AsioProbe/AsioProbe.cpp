@@ -704,9 +704,9 @@ int wmain(int argc, wchar_t** argv)
 	if (wasapi != nullptr)
 	{
 		const eapo::asio::WasapiExclusiveTarget::Counters counters = wasapi->counters();
-		std::printf("wasapi periods %llu input-underruns %llu output-misses %llu\n",
+		std::printf("wasapi periods %llu input-underruns %llu output-misses %llu slow-events %llu\n",
 			static_cast<unsigned long long>(counters.periods), static_cast<unsigned long long>(counters.inputUnderruns),
-			static_cast<unsigned long long>(counters.outputMisses));
+			static_cast<unsigned long long>(counters.outputMisses), static_cast<unsigned long long>(counters.slowEvents));
 	}
 
 	if (control != nullptr)

@@ -1007,6 +1007,8 @@ namespace eapo::asio
 
 		HANDLE clock = out.event != nullptr ? out.event : in.event;
 		long half = 0;
+		const uint64_t periodNanos = rate_ != 0 ? static_cast<uint64_t>(static_cast<double>(frames_) * 1e9 / static_cast<double>(rate_)) : 0;
+		uint64_t previousEvent = 0;
 		while (started && !stopRequested_.load(std::memory_order_acquire))
 		{
 			const DWORD waited = WaitForSingleObject(clock, 500);
@@ -1014,6 +1016,10 @@ namespace eapo::asio
 				continue;
 			if (waited != WAIT_OBJECT_0)
 				break;
+			const uint64_t now = nowNanoseconds();
+			if (previousEvent != 0 && periodNanos != 0 && now - previousEvent > periodNanos + periodNanos * 3 / 4)
+				counters_.slowEvents++;
+			previousEvent = now;
 			servePeriod(half);
 			half ^= 1;
 		}
