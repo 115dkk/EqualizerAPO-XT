@@ -154,6 +154,8 @@ namespace eapo::asio
 			uint64_t eventIntervalMaxUs = 0;
 			// How long servePeriod (the whole callback chain) took, at its worst.
 			uint64_t serviceMaxUs = 0;
+			// The device period in ASIO periods the stream settled on.
+			uint64_t bridge = 1;
 		};
 		Counters counters() const noexcept;
 
@@ -176,20 +178,29 @@ namespace eapo::asio
 			unsigned minPeriodFrames = 0;               // from GetDevicePeriod at the device rate
 			wasapi::Container container;                // negotiated for the current rate
 			bool haveContainer = false;
-			std::vector<std::vector<unsigned char>> planes[2];   // [half][channel]
-			std::vector<unsigned char> block;           // one interleaved period
+			std::vector<std::vector<unsigned char>> planes[2];   // [half][channel], the ASIO buffers; live from createBuffers to disposeBuffers
+			std::vector<unsigned char> block;           // one interleaved device period (bridge ASIO periods)
 			std::vector<unsigned char> pending;         // capture: packets not yet handed out
 			size_t pendingFrames = 0;
 			long latencyFrames = 0;
+			// The device period in ASIO periods. 1 on a driver that honours
+			// the period it accepted; a driver that signals at its own coarser
+			// cycle gets a device period of `bridge` ASIO periods and the host
+			// is called that many times per event, gap-free (see streamThread).
+			unsigned bridge = 1;
+			unsigned staged = 0;                        // output: ASIO periods interleaved into block so far
 
 			void closeStream() noexcept;
+			void releasePlanes() noexcept;
 			void closeDevice() noexcept;
 		};
 
 		bool openPort(Port& port, IMMDeviceEnumerator* enumerator, char* message);
 		bool negotiate(Port& port, unsigned rate, wasapi::Container* found) const;
-		HRESULT initializeStream(Port& port, long frames);
-		bool prepareStreams(long frames, char* message);
+		HRESULT initializeStream(Port& port, long frames, unsigned bridge);
+		bool prepareStreams(long frames, unsigned bridge, char* message);
+		bool rebridge(unsigned factor) noexcept;
+		void primeOutput() noexcept;
 		void streamThread() noexcept;
 		void servePeriod(long half) noexcept;
 		void commitOutput(long half) noexcept;
@@ -204,6 +215,7 @@ namespace eapo::asio
 		std::atomic<bool> running_{false};
 		std::atomic<bool> stopRequested_{false};
 		std::atomic<unsigned long> threadId_{0};
+		std::atomic<unsigned> bridge_{1};
 		std::thread thread_;
 		ASIOCallbacks callbacks_ = {};
 		bool hostSupportsTimeInfo_ = false;

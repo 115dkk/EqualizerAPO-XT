@@ -61,16 +61,23 @@ wasapi:{playback guid}[,{recording guid}]` opens the same target without
 any registration, for support sessions and for CI.
 
 The buffer size an application picks is the period the endpoint is asked
-for, and a driver can only keep a small period if the system timer is
-fine enough: at the default 15.6 ms resolution a virtual cable accepted a
-5.8 ms period and signalled every 15.9 ms, leaving most of each period
-unplayed. The entry therefore asks Windows for a 1 ms timer while it
-streams, as DAWs and ASIO drivers do, and releases it when the stream
-stops. If an entry still sounds gapped or thin at a small buffer,
-`AsioProbe --target wasapi:{guid} --frames <n>` reports the driver's real
-event interval as `event-interval` and the late ones as `slow-events`; a
-larger buffer in the application is the workaround for a driver that
-cannot do better.
+for. Two things stand between a small period and a driver keeping it.
+The system timer: at its default 15.6 ms resolution a virtual cable
+accepted a 5.8 ms period and signalled every 15.9 ms, so the entry asks
+Windows for a 1 ms timer while it streams, as DAWs and ASIO drivers do,
+and releases it when the stream stops. And the driver's own cycle: some
+drivers accept a small period and then signal at their own coarser one
+(the same cable: every 10 ms), consuming a whole cycle's worth per
+signal, which would leave the rest of each cycle unplayed. The entry
+watches the first dozen signals of a stream; when they come well over
+the period, it reopens the device side at the smallest multiple of the
+application's buffer that covers the cycle and serves that many buffers
+per signal, back to back. The application keeps its buffer size, the
+audio keeps every sample, and the added latency is reported through
+`kAsioLatenciesChanged`. `AsioProbe --target wasapi:{guid} --frames <n>`
+shows what a driver did: `event-interval` is its real signal spacing,
+`slow-events` how many came late, `bridge` how many buffers each signal
+ended up serving (1 on a driver that honours its period).
 
 Measured on the maintainer's VB-CABLE: 128 frames at 48 kHz, 2,256 buffers
 in six seconds, none late or missed, and a recording app on the far side

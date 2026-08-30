@@ -14,6 +14,19 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The ASIO entry keeps a small buffer on drivers that cannot.** Some
+  drivers accept a small exclusive-mode period and then signal at their own
+  coarser cycle (a virtual cable: every 10 ms against a 5.8 ms period), so
+  most of each cycle went unplayed and the stream sounded gapped and thin at
+  small buffers. The entry now asks Windows for a 1 ms timer while it
+  streams, as DAWs do, and watches a stream's first signals: a driver that
+  signals slower than the period gets its device buffer widened to the
+  smallest multiple of the application's buffer that covers its cycle, with
+  that many buffers served per signal, so the application keeps its buffer
+  size and every sample plays; the added latency is reported to the
+  application. `AsioProbe` prints the driver's signal spacing and the bridge
+  it settled on.
+
 ## v2.50.0 — 2026-08-30
 
 - **Any playback or recording endpoint can be offered to ASIO applications.**
