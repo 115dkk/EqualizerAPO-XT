@@ -260,8 +260,9 @@ SoftReferenceCardView::SoftReferenceCardView(const QString& kind, const SkinToke
 			cssColor(withAlpha(accent, dark ? 90 : 76)), cssColor(withAlpha(accent, dark ? 66 : 52)))
 		+ QStringLiteral(
 		"QToolButton:pressed { background: %1; }"
-		"QToolButton:disabled { background: %2; color: %3; border-color: %4; }")
-		.arg(cssColor(withAlpha(accent, dark ? 84 : 66)), t.surface, t.mutedText, t.border);
+		"QToolButton:disabled { background: %2; color: %3; border: 1px dashed %4; }")
+		.arg(cssColor(withAlpha(accent, dark ? 84 : 66)), t.surface,
+			cssColor(withAlpha(QColor(t.mutedText), 140)), t.border);
 }
 
 void SoftReferenceCardView::placeActionButton(ActionRole role, QAbstractButton* button)

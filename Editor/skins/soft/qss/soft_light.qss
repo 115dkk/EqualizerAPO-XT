@@ -297,6 +297,9 @@ QToolButton#FilterCardIconButton {
 }
 QToolButton#FilterCardIconButton:hover { background: @CARD_HOVER@; border-color: rgba(97, 144, 209, 0.60); }
 QToolButton#FilterCardIconButton:checked { background: @ACCENT@; color: #2B251D; border-color: @ACCENT@; }
+/* Asleep (rule 7): dashed outline, sunk to the tray, muted ink. After
+   :hover so a pointer on a sleeping pill cannot wake its look. */
+QToolButton#FilterCardIconButton:disabled { background: @SURFACE@; color: rgba(120, 111, 103, 0.55); border: 1px dashed @BORDER@; }
 QLineEdit#FilterCardRawEditor { background: @CARD@; border: 1px solid @ACCENT@; border-radius: 10px; padding: 8px 12px; }
 QCheckBox#FilterCardEnabled { background: transparent; }
 

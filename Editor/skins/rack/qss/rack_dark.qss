@@ -545,6 +545,13 @@ QToolButton#FilterCardIconButton:checked {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2B2210, stop:1 #3A2F18);
     border-color: @ACCENT@;
 }
+/* Power down (rule 5): the cap sits under the dark film - no lit border,
+   lettering at service density. Sits after :hover so a pointer resting on a
+   dead cap cannot relight it (Qt still reports hover on disabled widgets). */
+QToolButton#FilterCardIconButton:disabled {
+    background: #171B1F; color: #4E4A40;
+    border-color: #22282D; border-top-color: #22282D;
+}
 QLineEdit#FilterCardRawEditor { background: #0A0D0F; border: 1px solid @ACCENT@; border-radius: 2px; padding: 4px 8px; font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; }
 QCheckBox#FilterCardEnabled { background: transparent; }
 
@@ -612,6 +619,12 @@ QLineEdit#RefPathEdit:focus { border: 1px solid @ACCENT@; }
 QToolButton#FilterCardIconButton[rackLocate="true"] {
     color: @TEXT@; border-color: @ACCENT@; border-top-color: #3E474F;
     font-size: 8pt; letter-spacing: 2px; padding: 2px 8px;
+}
+/* A powered-down unit keeps the LOCATE engraving but the service border and
+   its lettering go dark with the rest of the cap (the lit rule above ties
+   this one on specificity; order decides, so it must follow). */
+QToolButton#FilterCardIconButton[rackLocate="true"]:disabled {
+    color: #4E4A40; border-color: #22282D; border-top-color: #22282D;
 }
 /* MultiConvolution's channel-mapping strip: the caption is engraved plate
    printing (uppercase tracking like the other rack captions), the hint is
