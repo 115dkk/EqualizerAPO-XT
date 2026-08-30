@@ -1168,11 +1168,10 @@ namespace eapo::asio
 						factor = bridgeCap;
 					if (factor >= 2)
 					{
+						// A device that will not reopen ends the stream, as a
+						// device that vanished would; the host sees no more switches.
 						if (!rebridge(factor))
-						{
-							started = false;
 							break;
-						}
 						clock = out.event != nullptr ? out.event : in.event;
 						devicePeriodNanos = periodNanos * factor;
 						previousEvent = 0;
