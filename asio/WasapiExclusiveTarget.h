@@ -148,6 +148,12 @@ namespace eapo::asio
 			// a driver that signals at its own period rather than the one it
 			// accepted, which leaves the gap unplayed at this buffer size.
 			uint64_t slowEvents = 0;
+			// The interval between consecutive events, averaged and at its
+			// worst, in microseconds; what a driver's period really is.
+			uint64_t eventIntervalAvgUs = 0;
+			uint64_t eventIntervalMaxUs = 0;
+			// How long servePeriod (the whole callback chain) took, at its worst.
+			uint64_t serviceMaxUs = 0;
 		};
 		Counters counters() const noexcept;
 

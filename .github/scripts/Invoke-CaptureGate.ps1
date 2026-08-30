@@ -664,6 +664,14 @@ if (-not (Test-Path -LiteralPath $asioProbe)) {
             $asioEntry.probes += [pscustomobject]@{ frames = $frames; exitCode = $probeProcess.ExitCode; output = $probeText }
             if ($probeProcess.ExitCode -ne 0 -and $required) { Add-Failure "asio-entry/probe: AsioProbe over the registered entry exited with $($probeProcess.ExitCode) at $frames frames" }
         }
+        # Diagnosis: the same target opened directly (no registration, no
+        # engine), which prints the driver's real event interval and how
+        # long each period took to serve. Recorded, never gated.
+        foreach ($frames in $asioEntryFrames) {
+            Write-Host "-- direct target, $frames frames (diagnosis)"
+            $diag = Invoke-Program $asioProbe @("--target", "wasapi:$($endpoints.Render)", "--wrapper", "static", "--processor", "passthrough", "--seconds", "6", "--sine", "1000", "--rate", "$impulseRate", "--frames", "$frames") 40 $current
+            $asioEntry.probes += [pscustomobject]@{ frames = $frames; direct = $true; exitCode = $diag.ExitCode; output = ($diag.StdOut + $diag.StdErr) }
+        }
     }
     Copy-Logs "90-asio-entry-measured"
 

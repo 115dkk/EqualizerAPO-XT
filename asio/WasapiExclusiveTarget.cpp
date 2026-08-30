@@ -1009,6 +1009,7 @@ namespace eapo::asio
 		long half = 0;
 		const uint64_t periodNanos = rate_ != 0 ? static_cast<uint64_t>(static_cast<double>(frames_) * 1e9 / static_cast<double>(rate_)) : 0;
 		uint64_t previousEvent = 0;
+		uint64_t intervalSum = 0, intervalCount = 0, intervalMax = 0, serviceMax = 0;
 		while (started && !stopRequested_.load(std::memory_order_acquire))
 		{
 			const DWORD waited = WaitForSingleObject(clock, 500);
@@ -1017,12 +1018,26 @@ namespace eapo::asio
 			if (waited != WAIT_OBJECT_0)
 				break;
 			const uint64_t now = nowNanoseconds();
-			if (previousEvent != 0 && periodNanos != 0 && now - previousEvent > periodNanos + periodNanos * 3 / 4)
-				counters_.slowEvents++;
+			if (previousEvent != 0)
+			{
+				const uint64_t interval = now - previousEvent;
+				if (periodNanos != 0 && interval > periodNanos + periodNanos * 3 / 4)
+					counters_.slowEvents++;
+				intervalSum += interval;
+				intervalCount++;
+				if (interval > intervalMax)
+					intervalMax = interval;
+			}
 			previousEvent = now;
 			servePeriod(half);
+			const uint64_t served = nowNanoseconds() - now;
+			if (served > serviceMax)
+				serviceMax = served;
 			half ^= 1;
 		}
+		counters_.eventIntervalAvgUs = intervalCount != 0 ? intervalSum / intervalCount / 1000 : 0;
+		counters_.eventIntervalMaxUs = intervalMax / 1000;
+		counters_.serviceMaxUs = serviceMax / 1000;
 
 		if (out.client != nullptr)
 			out.client->Stop();
