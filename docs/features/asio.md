@@ -60,6 +60,14 @@ output and one buffer plus the driver's on input. `AsioProbe --target
 wasapi:{playback guid}[,{recording guid}]` opens the same target without
 any registration, for support sessions and for CI.
 
+The buffer size an application picks is the period the endpoint is asked
+for, and some drivers do not honour a small one: they accept it, then signal
+at their own engine period (a virtual cable driver on the CI runner signals
+about every 12 ms whatever it accepted), which leaves part of every period
+unplayed at a buffer shorter than that. If the entry sounds gapped or thin
+at a small buffer, choose a larger one in the application; `AsioProbe`
+reports such a driver as `slow-events`.
+
 Measured on the maintainer's VB-CABLE: 128 frames at 48 kHz, 2,256 buffers
 in six seconds, none late or missed, and a recording app on the far side
 heard the preamp and the peak filter of the test configuration; duplex
