@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.50.1 — 2026-08-30
+
 - **The ASIO entry keeps a small buffer on drivers that cannot.** Some
   drivers accept a small exclusive-mode period and then signal at their own
   coarser cycle (a virtual cable: every 10 ms against a 5.8 ms period), so
