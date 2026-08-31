@@ -191,6 +191,7 @@ namespace
 	void testGeometry()
 	{
 		StreamFormat format = stereoFormat(64, 0);
+		harness.expect(RingGeometry::validFormat(format), "a normal output format is valid");
 		harness.expectEqual(RingGeometry::slotBytes(format, Direction::Output), 512u, "2 x 64 floats round to 512 bytes");
 		harness.expectEqual(RingGeometry::slotBytes(format, Direction::Input), 0u, "a disabled direction has no slot");
 		harness.expectEqual(RingGeometry::totalBytes(format), 512u + 1024u, "header plus two output slots");
@@ -198,6 +199,35 @@ namespace
 		format.frames = 7;
 		harness.expectEqual(RingGeometry::slotBytes(format, Direction::Input), 128u, "3 x 7 floats (84 bytes) round up to 128");
 		harness.expectEqual(sizeof(eapo::ipc::RingHeader), eapo::ipc::ringHeaderBytes, "the header is 512 bytes");
+	}
+
+	void testInvalidGeometryIsRejected()
+	{
+		const auto rejectedByConsumer = [](const StreamFormat& invalid) {
+			StreamFormat valid = stereoFormat();
+			Region region(valid);
+			RingProducer producer(region.base(), valid, 1, region.producerSync());
+			static_cast<eapo::ipc::RingHeader*>(region.base())->format = invalid;
+			RingConsumer consumer(region.base(), region.bytes.size(), region.consumerSync());
+			return !consumer.valid();
+		};
+
+		StreamFormat tooManyChannels = stereoFormat();
+		tooManyChannels.channels[0] = eapo::ipc::maxRingChannels + 1;
+		harness.expectFalse(RingGeometry::validFormat(tooManyChannels), "a channel count over the ring bound is invalid");
+		harness.expect(rejectedByConsumer(tooManyChannels), "the consumer rejects a channel count over the ring bound");
+
+		StreamFormat tooManyFrames = stereoFormat(eapo::ipc::maxRingFrames + 1);
+		harness.expectFalse(RingGeometry::validFormat(tooManyFrames), "a frame count over the ring bound is invalid");
+		harness.expect(rejectedByConsumer(tooManyFrames), "the consumer rejects a frame count over the ring bound");
+
+		StreamFormat valid = stereoFormat();
+		Region region(valid);
+		RingProducer producer(region.base(), valid, 1, region.producerSync());
+		eapo::ipc::RingHeader* header = static_cast<eapo::ipc::RingHeader*>(region.base());
+		header->totalBytes -= static_cast<uint32_t>(eapo::ipc::ringAlignment);
+		RingConsumer consumer(region.base(), region.bytes.size(), region.consumerSync());
+		harness.expectFalse(consumer.valid(), "the consumer rejects a totalBytes value that disagrees with the format");
 	}
 
 	void testReadinessAndInOrderService()
@@ -364,6 +394,7 @@ namespace
 int runStreamRingTests()
 {
 	testGeometry();
+	testInvalidGeometryIsRejected();
 	testReadinessAndInOrderService();
 	testLateThenCatchUp();
 	testGoneWhenTheConsumerDies();

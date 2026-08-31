@@ -21,6 +21,7 @@
 
 #include <cstdint>
 #include <string>
+#include <type_traits>
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -58,7 +59,11 @@ namespace eapo::asio
 		uint32_t hostPid = 0;
 	};
 
+	static_assert(std::is_standard_layout_v<HostOpenRequest> && std::is_trivially_copyable_v<HostOpenRequest>,
+		"HostOpenRequest must remain a plain wire type");
 	static_assert(sizeof(HostOpenRequest) == 16 + 256 + 520, "HostOpenRequest must stay fixed-width");
+	static_assert(std::is_standard_layout_v<HostOpenReply> && std::is_trivially_copyable_v<HostOpenReply>,
+		"HostOpenReply must remain a plain wire type");
 	static_assert(sizeof(HostOpenReply) == 8, "HostOpenReply must stay fixed-width");
 
 	namespace HostNames

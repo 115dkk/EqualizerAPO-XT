@@ -20,7 +20,7 @@ namespace eapo::ipc
 			return static_cast<unsigned>(direction);
 		}
 
-		inline uint32_t roundUp(uint32_t value, uint32_t alignment) noexcept
+		inline uint64_t roundUp(uint64_t value, uint64_t alignment) noexcept
 		{
 			return (value + alignment - 1) / alignment * alignment;
 		}
@@ -47,18 +47,29 @@ namespace eapo::ipc
 
 	namespace RingGeometry
 	{
+		bool validFormat(const eapo::asio::StreamFormat& format) noexcept
+		{
+			return format.frames >= 1 && format.frames <= maxRingFrames
+				&& format.channels[0] <= maxRingChannels && format.channels[1] <= maxRingChannels
+				&& (format.channels[0] != 0 || format.channels[1] != 0);
+		}
+
 		uint32_t slotBytes(const eapo::asio::StreamFormat& format, Direction direction) noexcept
 		{
-			const uint32_t samples = format.channelCount(direction) * format.frames;
-			return samples == 0 ? 0 : roundUp(samples * static_cast<uint32_t>(sizeof(float)), static_cast<uint32_t>(ringAlignment));
+			const uint64_t samples = static_cast<uint64_t>(format.channelCount(direction)) * format.frames;
+			const uint64_t bytes = samples == 0 ? 0 : roundUp(samples * sizeof(float), ringAlignment);
+			// validFormat() bounds one slot to 16 MiB, so producer and consumer
+			// callers may cast this checked geometry to the fixed-width wire type.
+			return static_cast<uint32_t>(bytes);
 		}
 
 		uint32_t totalBytes(const eapo::asio::StreamFormat& format) noexcept
 		{
-			uint32_t total = static_cast<uint32_t>(ringHeaderBytes);
+			uint64_t total = ringHeaderBytes;
 			for (unsigned lane = 0; lane < directionCount; lane++)
-				total += 2 * slotBytes(format, static_cast<Direction>(lane));
-			return total;
+				total += 2ull * slotBytes(format, static_cast<Direction>(lane));
+			// validFormat() keeps both lanes and the header below 128 MiB.
+			return static_cast<uint32_t>(total);
 		}
 	}
 
@@ -259,7 +270,10 @@ namespace eapo::ipc
 			return;
 		if (header_->magic != ringMagic || header_->layoutVersion != ringLayoutVersion)
 			return;
-		if (header_->totalBytes > bytes || header_->totalBytes != RingGeometry::totalBytes(header_->format))
+		if (!RingGeometry::validFormat(header_->format))
+			return;
+		const uint64_t expectedBytes = RingGeometry::totalBytes(header_->format);
+		if (expectedBytes != header_->totalBytes || expectedBytes > bytes)
 			return;
 		for (unsigned lane = 0; lane < directionCount; lane++)
 		{

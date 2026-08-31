@@ -59,6 +59,12 @@ namespace eapo::asio
 		OpenReport report;
 		teardown();
 		profile_ = HandoffProfile();
+		if (!eapo::ipc::RingGeometry::validFormat(format))
+		{
+			report.status = OpenReport::Status::Rejected;
+			copyMessage(report.message, "EQ APO XT cannot serve this channel count or buffer size");
+			return report;
+		}
 
 		format_ = format;
 		mode_ = options.mode;
