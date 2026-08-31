@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.50.4 — 2026-08-31
+
 - **A configuration file locked by another program can no longer freeze the
   audio engine or the Editor forever.** The shared-file retry loop had no
   bound, so a config held exclusively (editor, backup, antivirus) could hang
