@@ -7,6 +7,7 @@
 #include "CrashHandler.h"
 
 #include <atomic>
+#include <cstddef>
 #include <cstdio>
 #include <cwchar>
 #include <exception>
@@ -23,11 +24,39 @@
 namespace
 {
 // Fixed-size storage only: the handler runs in a crashed process, so it must
-// not allocate. The breadcrumb is written by the UI thread and read by the
-// handler; a torn read of a short text buffer is acceptable.
-wchar_t breadcrumb[256] = L"(none)";
+// not allocate. The UI thread writes the inactive breadcrumb slot, then
+// publishes its index. The handler takes a bounded snapshot and retries once
+// if publication changes while it copies.
+wchar_t breadcrumbSlots[2][256] = {L"(none)", L"(none)"};
+std::atomic<int> breadcrumbIndex(0);
 wchar_t dumpDirectory[MAX_PATH] = L"";
 std::atomic<bool> handlingCrash(false);
+
+void copyBreadcrumbSlot(int index, wchar_t (&snapshot)[256])
+{
+	for (std::size_t i = 0; i < 255; i++)
+	{
+		snapshot[i] = breadcrumbSlots[index][i];
+		if (snapshot[i] == L'\0')
+			return;
+	}
+	snapshot[255] = L'\0';
+}
+
+const wchar_t* snapshotBreadcrumb(wchar_t (&snapshot)[256])
+{
+	int index = breadcrumbIndex.load(std::memory_order_acquire);
+	copyBreadcrumbSlot(index, snapshot);
+	int confirmedIndex = breadcrumbIndex.load(std::memory_order_acquire);
+	if (confirmedIndex == index)
+		return snapshot;
+
+	copyBreadcrumbSlot(confirmedIndex, snapshot);
+	if (breadcrumbIndex.load(std::memory_order_acquire) == confirmedIndex)
+		return snapshot;
+
+	return L"(breadcrumb changing)";
+}
 
 // %LOCALAPPDATA%\EqualizerAPO\logs\crash, created at install() time so the
 // crash path itself only formats a file name. Audit #250 C4, maintainer
@@ -86,6 +115,8 @@ void writeReport(EXCEPTION_POINTERS* pointers, const wchar_t* reason)
 	if (textFile)
 	{
 		wchar_t line[768];
+		wchar_t breadcrumbSnapshot[256];
+		const wchar_t* breadcrumb = snapshotBreadcrumb(breadcrumbSnapshot);
 		const DWORD code = (pointers != nullptr && pointers->ExceptionRecord != nullptr)
 			? pointers->ExceptionRecord->ExceptionCode : 0;
 		const void* address = (pointers != nullptr && pointers->ExceptionRecord != nullptr)
@@ -136,6 +167,8 @@ void install()
 
 void setBreadcrumb(const std::wstring& text)
 {
-	wcsncpy_s(breadcrumb, text.c_str(), _TRUNCATE);
+	int inactiveIndex = 1 - breadcrumbIndex.load(std::memory_order_relaxed);
+	wcsncpy_s(breadcrumbSlots[inactiveIndex], text.c_str(), _TRUNCATE);
+	breadcrumbIndex.store(inactiveIndex, std::memory_order_release);
 }
 }

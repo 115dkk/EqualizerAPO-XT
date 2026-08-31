@@ -18,9 +18,8 @@
 */
 
 #include <string>
+#include "platform/windows/WindowsPath.h"
 #include "services/registry/RegistryPaths.h"
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
 
 #include <QCoreApplication>
 #include <QSettings>
@@ -29,36 +28,16 @@
 #include "services/registry/WindowsRegistry.h"
 #include "QtAppBootstrap.h"
 
-namespace
-{
-std::wstring executableDirectory()
-{
-	wchar_t buffer[MAX_PATH];
-	DWORD length = GetModuleFileNameW(nullptr, buffer, MAX_PATH);
-	if (length == 0)
-		return std::wstring();
-	std::wstring path(buffer, length);
-	size_t slash = path.find_last_of(L"\\/");
-	if (slash == std::wstring::npos)
-		return path;
-	return path.substr(0, slash);
-}
-}
-
 namespace QtAppBootstrap
 {
 
 void addExecutableRelativePluginPath()
 {
-	std::wstring pluginDir = executableDirectory();
+	std::wstring pluginDir = pathutil::exeDirectory();
 	if (!pluginDir.empty())
 	{
 		pluginDir += L"\\qt";
 		QCoreApplication::addLibraryPath(QString::fromStdWString(pluginDir));
-	}
-	else
-	{
-		QCoreApplication::addLibraryPath(QStringLiteral("qt"));
 	}
 }
 

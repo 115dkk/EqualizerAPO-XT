@@ -43,7 +43,7 @@ FilterVector GraphicEQFilterFactory::createFilter(const wstring& configPath, wst
 		if (cmd.nodes.empty())
 			return reportParseError(command, L"expected frequency/gain pairs, as in \"25 -6; 50 -3; 100 0\"");
 
-		TraceF(L"Graphic equalizer with %d nodes", cmd.nodes.size());
+		TraceF(L"Graphic equalizer with %u nodes", static_cast<unsigned>(cmd.nodes.size()));
 
 		return singleFilter(makeFilter<GraphicEQFilter>(cmd.nodes, 16384));
 	}

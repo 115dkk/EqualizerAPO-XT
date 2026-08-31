@@ -14,6 +14,22 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Checking for updates can no longer hang forever on a silent server.**
+  The update check armed its 10-second timer but never started it and set
+  no transfer timeout, so a server that accepted the connection and never
+  answered left an invisible background process waiting indefinitely. Both
+  bounds are live now.
+- **The Editor family no longer loads GUI plugins from a
+  working-directory "qt" folder.** When the executable path could not be
+  resolved, the apps fell back to a path relative to whatever directory
+  they were started from; they now rely on Qt's default search alone, and
+  the five duplicated executable-path lookups were consolidated into one
+  shared helper with consistent failure handling.
+- **Crash reports capture the last action more reliably.** The note the
+  crash reporter records was read without synchronization while the UI
+  thread could still be rewriting it; it is now published atomically, so
+  the report cannot scan past the end of a half-written note.
+
 ## v2.50.4 — 2026-08-31
 
 - **A configuration file locked by another program can no longer freeze the
