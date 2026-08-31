@@ -49,7 +49,7 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 Equalizer APO 
 
 C++ 프로젝트는 Visual Studio 2022/2026 계열 도구와 Windows SDK 10.0을 기준으로 합니다. 현재 로컬 프로젝트는 VS 2026 `v145`에서 빌드하며, VS 2022만 있는 환경에서는 `/p:PlatformToolset=v143`으로 덮어쓰면 됩니다. CI도 같은 방식으로 처리합니다.
 
-`.vcxproj`는 C++17을 사용하며 `UNICODE`, `_UNICODE`, `MUP_USE_WIDE_STRING` 정의를 유지합니다. Qt 도구는 `Editor`, `DeviceSelector`, `UpdateChecker`에서 `.pro` 파일 중심으로 관리합니다.
+`.vcxproj`는 C++20을 사용하며 `/Zc:__cplusplus` 설정은 `Directory.Build.props`에서 공통으로 관리합니다. `UNICODE`, `_UNICODE`, `MUP_USE_WIDE_STRING` 정의를 유지합니다. Qt 도구는 `Editor`, `DeviceSelector`, `UpdateChecker`에서 `.pro` 파일 중심으로 관리합니다.
 
 ### 로컬 빌드 환경 설정
 

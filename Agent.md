@@ -45,7 +45,7 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 Equalizer APO 
 ## 빌드와 검증
 
 - C++ 프로젝트는 Visual Studio 2022/2026 계열 도구와 Windows SDK 10.0을 기준으로 합니다. 현재 로컬 프로젝트는 VS 2026 `v145`에서 빌드하며, VS 2022만 있는 환경에서는 `/p:PlatformToolset=v143`으로 덮어쓰면 됩니다. CI는 x64에서 `v145`, ARM64 runner에서 `v143`을 씁니다.
-- `.vcxproj`는 C++17을 사용합니다. 기존 `UNICODE`, `_UNICODE`, `MUP_USE_WIDE_STRING` 정의를 유지합니다.
+- `.vcxproj`는 C++20을 사용하며 `/Zc:__cplusplus` 설정은 `Directory.Build.props`에서 공통으로 관리합니다. 기존 `UNICODE`, `_UNICODE`, `MUP_USE_WIDE_STRING` 정의를 유지합니다.
 - Qt 도구는 `Editor`, `DeviceSelector`, `UpdateChecker`에서 `.pro` 파일을 중심으로 관리합니다.
 - 로컬 빌드 준비는 `setup-build.ps1`을 기준으로 봅니다. 이 스크립트는 `deps/` 아래 외부 라이브러리와 Qt 6.10.1을 설치합니다. 빌드는 MSBuild(`EqualizerAPO.sln`의 vcxproj들)와 qmake/nmake(Qt 도구)로 나뉩니다.
 - CI는 x64 `sse2`, `avx`, `avx2`, `avx512`, `avx10_1`, ARM64 `neon` 조합을 빌드하고 산출물과 설치 파일을 업로드합니다. 변형 목록과 의존성 핀은 `.github/simd-variants.psd1`이 기준입니다.

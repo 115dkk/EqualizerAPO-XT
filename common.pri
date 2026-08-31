@@ -4,6 +4,9 @@
 # QMAKE_LIBDIR stays in each .pro: the Editor links the dependency lib
 # directories directly while the satellite apps link the MSBuild output tree.
 # (audit #146 TD012)
+# The C++ standard mode is set once here for all three Qt applications.
+CONFIG += c++20
+
 contains(QT_ARCH, arm64) {
 	# ARM64 builds take NEON without an /arch switch.
 } else:!isEmpty(EAPO_SIMD_FLAGS) {

@@ -169,7 +169,6 @@
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
     </Link>
     <ClCompile>
-      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <QtTranslation>
       <QmOutputDir>$(ProjectDir)translations</QmOutputDir>
@@ -184,7 +183,6 @@
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
     </Link>
     <ClCompile>
-      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <QtTranslation>
       <QmOutputDir>$(ProjectDir)translations</QmOutputDir>
@@ -200,7 +198,6 @@
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
     </Link>
     <ClCompile>
-      <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdc11</LanguageStandard_C>
     </ClCompile>
     <QtTranslation>
@@ -217,7 +214,6 @@
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
     </Link>
     <ClCompile>
-      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <QtTranslation>
       <QmOutputDir>$(ProjectDir)translations</QmOutputDir>
@@ -234,7 +230,6 @@
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
     </Link>
     <ClCompile>
-      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <QtTranslation>
       <QmOutputDir>$(ProjectDir)translations</QmOutputDir>
@@ -249,7 +244,6 @@
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
     </Link>
     <ClCompile>
-      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <QtTranslation>
       <QmOutputDir>$(ProjectDir)translations</QmOutputDir>
@@ -266,7 +260,6 @@
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;UNICODE;_UNICODE;MUP_USE_WIDE_STRING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -285,7 +278,6 @@
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;UNICODE;_UNICODE;MUP_USE_WIDE_STRING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -304,7 +296,6 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -337,7 +328,6 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -367,7 +357,6 @@
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;UNICODE;_UNICODE;MUP_USE_WIDE_STRING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -386,7 +375,6 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>

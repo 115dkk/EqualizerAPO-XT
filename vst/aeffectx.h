@@ -1582,7 +1582,7 @@ struct vst_host_supports_t {
 	const char* editFile;
 	const char* openFileSelector;
 	const char* closeFileSelector;
-} /** @private */ vst_host_supports = {
+} /** @private */ inline constexpr vst_host_supports = {
 	.acceptIOChanges = "acceptIOChanges",
 	.startStopProcess = "startStopProcess",
 	.shellCategory = "shellCategory",
@@ -2881,7 +2881,7 @@ struct vst_effect_supports_t {
 	const char* _4in8out;
 	const char* _8in4out;
 	const char* _8in8out;
-} /** @private */ vst_effect_supports = {
+} /** @private */ inline constexpr vst_effect_supports = {
 	.bypass = "bypass",
 	.sendVstEvents = "sendVstEvents",
 	.receiveVstEvents = "receiveVstEvents",
