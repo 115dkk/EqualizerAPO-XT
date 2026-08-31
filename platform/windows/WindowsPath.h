@@ -7,7 +7,7 @@
 /*
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
-	Audit #250 F018: joinPath / fileExists / directoryExists / exeDirectory
+	Audit #250 F018: joinPath / fileExists / directoryExists / exePath / exeDirectory
 	used to be copied verbatim into three modules of this static library
 	(ApoRegistration, AudioEngineAccess, services/update/VelopackBootstrap). One header-only
 	home; consumers pull what they need into their namespace.
@@ -66,15 +66,24 @@ inline bool pathExists(const std::wstring& path)
 	return GetFileAttributesW(path.c_str()) != INVALID_FILE_ATTRIBUTES;
 }
 
-// The directory of the current executable; empty on failure.
-inline std::wstring exeDirectory()
+// The full path of the current executable; empty on failure or truncation.
+inline std::wstring exePath()
 {
 	wchar_t buffer[MAX_PATH];
 	DWORD length = GetModuleFileNameW(nullptr, buffer, MAX_PATH);
 	if (length == 0 || length >= MAX_PATH)
 		return std::wstring();
-	std::wstring path(buffer, length);
+	return std::wstring(buffer, length);
+}
+
+// The directory of the current executable; empty on failure.
+inline std::wstring exeDirectory()
+{
+	std::wstring path = exePath();
+	if (path.empty())
+		return std::wstring();
 	size_t slash = path.find_last_of(L"\\/");
+	// A slash-less module path counts as failure; Windows normally returns an absolute path.
 	if (slash == std::wstring::npos)
 		return std::wstring();
 	return path.substr(0, slash);

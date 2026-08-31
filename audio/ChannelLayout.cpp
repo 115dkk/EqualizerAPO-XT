@@ -118,7 +118,7 @@ int ChannelLayout::getChannelIndex(std::wstring word, const std::vector<std::wst
 
 		if (channelIndex < 0 || channelIndex >= static_cast<int>(channelNames.size()))
 		{
-			LogFStatic(L"Channel number %s out of range (1 - %d)", word.c_str(), channelNames.size());
+			LogFStatic(L"Channel number %s out of range (1 - %u)", word.c_str(), static_cast<unsigned>(channelNames.size()));
 			channelIndex = -1;
 		}
 	}

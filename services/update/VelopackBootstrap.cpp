@@ -32,6 +32,7 @@
 namespace
 {
 using pathutil::exeDirectory;
+using pathutil::exePath;
 using pathutil::fileExists;
 
 Velopack::UpdateOptions updateOptions(const std::string& channel)
@@ -174,9 +175,8 @@ std::unique_ptr<UpdateSession> VelopackBootstrap::createUpdateSession(
 
 bool VelopackBootstrap::launchElevatedUpdateCoordinator()
 {
-	wchar_t exePath[MAX_PATH];
-	const DWORD length = GetModuleFileNameW(nullptr, exePath, MAX_PATH);
-	if (length == 0 || length == MAX_PATH)
+	std::wstring editorPath = exePath();
+	if (editorPath.empty())
 	{
 		LogFStatic(
 			L"[VelopackBootstrap] failed to resolve Editor path for update elevation (gle=%lu)",
@@ -188,7 +188,7 @@ bool VelopackBootstrap::launchElevatedUpdateCoordinator()
 	info.cbSize = sizeof(info);
 	info.fMask = SEE_MASK_NOASYNC;
 	info.lpVerb = L"runas";
-	info.lpFile = exePath;
+	info.lpFile = editorPath.c_str();
 	info.lpParameters = kElevatedCoordinatorArgumentW;
 	info.nShow = SW_HIDE;
 

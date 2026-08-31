@@ -24,6 +24,7 @@
 #include <QCommandLineParser>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
+#include <QNetworkRequest>
 #include <QtWidgets/QApplication>
 #include "UpdateChecker.h"
 #include "UpdateInfoFormatter.h"
@@ -187,6 +188,7 @@ QByteArray readUpdateUrl(QNetworkAccessManager& manager, const QString& url, boo
 	{
 		QNetworkRequest request(QUrl(url, QUrl::StrictMode));
 		request.setHeader(QNetworkRequest::UserAgentHeader, "EqualizerAPO-XT UpdateChecker");
+		request.setTransferTimeout(std::chrono::seconds{10});
 		reply = manager.get(request);
 		QEventLoop loop;
 		QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
@@ -194,6 +196,7 @@ QByteArray readUpdateUrl(QNetworkAccessManager& manager, const QString& url, boo
 		timer.setInterval(std::chrono::seconds{10});
 		timer.setSingleShot(true);
 		QObject::connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+		timer.start();
 		loop.exec();
 
 		if (reply->isFinished() && reply->error() != QNetworkReply::HostNotFoundError)
