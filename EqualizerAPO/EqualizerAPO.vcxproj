@@ -167,7 +167,6 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;USE_WINDDK;_DEBUG;_WINDOWS;_WINDLL;_USRDLL;UNICODE;_UNICODE;EQUALIZERAPO_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <FloatingPointModel>Precise</FloatingPointModel>
-      <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard_C>stdc11</LanguageStandard_C>
       <ControlFlowGuard>Guard</ControlFlowGuard>
@@ -194,7 +193,6 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;USE_WINDDK;_DEBUG;_WINDOWS;_WINDLL;_USRDLL;UNICODE;_UNICODE;EQUALIZERAPO_EXPORTS;MUP_USE_WIDE_STRING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <FloatingPointModel>Precise</FloatingPointModel>
-      <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard_C>stdc11</LanguageStandard_C>
       <ControlFlowGuard>Guard</ControlFlowGuard>
@@ -221,7 +219,6 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;USE_WINDDK;NDEBUG;_WINDOWS;_USRDLL;UNICODE;_UNICODE;EQUALIZERAPO_EXPORTS;MUP_USE_WIDE_STRING</PreprocessorDefinitions>
       <FloatingPointModel>Precise</FloatingPointModel>
-      <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard_C>stdc11</LanguageStandard_C>
       <ControlFlowGuard>Guard</ControlFlowGuard>
@@ -247,7 +244,6 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;USE_WINDDK;NDEBUG;_WINDOWS;_USRDLL;UNICODE;_UNICODE;EQUALIZERAPO_EXPORTS;MUP_USE_WIDE_STRING</PreprocessorDefinitions>
       <FloatingPointModel>Precise</FloatingPointModel>
-      <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <StringPooling>true</StringPooling>
@@ -282,7 +278,6 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;USE_WINDDK;NDEBUG;_WINDOWS;_USRDLL;UNICODE;_UNICODE;EQUALIZERAPO_EXPORTS;MUP_USE_WIDE_STRING</PreprocessorDefinitions>
       <FloatingPointModel>Precise</FloatingPointModel>
-      <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <StringPooling>true</StringPooling>
@@ -317,7 +312,6 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;USE_WINDDK;NDEBUG;_WINDOWS;_USRDLL;UNICODE;_UNICODE;EQUALIZERAPO_EXPORTS</PreprocessorDefinitions>
       <FloatingPointModel>Precise</FloatingPointModel>
-      <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
       <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
       <StringPooling>true</StringPooling>

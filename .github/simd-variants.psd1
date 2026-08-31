@@ -245,12 +245,12 @@
             }
         }
         '115dkk/muparserx' = @{
-            Tag    = '4.0.13'
+            Tag    = '4.0.13-eapo1'
             Sha256 = @{
-                'muparserx-msvc-release-x64-avx2.zip'   = '5639167ce626c85a28f5c71f5f716533097d09895d388717177be9191d1f4b0e'
-                'muparserx-msvc-release-x64-avx512.zip' = '2b987bb3662d69152dd13b0df0b4a16906649d26e6c098450768fbc633b2b5a5'
-                'muparserx-msvc-release-x64-avx10.zip'  = '11aeea3c276a61b77355ba9f746e0b5b58a51f0c8e7edcfea4c71ef1ba3863be'
-                'muparserx-msvc-release-ARM64.zip'      = 'e4e3391e557a4bd61686efed886f49c469c9e274a3a1a3ba2cbeaf58b51d0c42'
+                'muparserx-msvc-release-x64-avx2.zip'   = 'baa2b9900e99b5047547653cf277a6406f2401ade305a75936959a5646f2bad8'
+                'muparserx-msvc-release-x64-avx512.zip' = '87d221da54aed72a63c9a426bab8a5fb674cad1f1fcdfacb41120a23e095373e'
+                'muparserx-msvc-release-x64-avx10.zip'  = '57fc793c53e185dd8b50d8796493fde7558926c1c008f90d93e1fe5cbcf6592d'
+                'muparserx-msvc-release-ARM64.zip'      = '7b2e9ce0e4398e8f3b1adc9ec1f2be346c025019654a73ead179430e06af2773'
             }
         }
         '115dkk/libsndfile' = @{

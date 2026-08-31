@@ -60,7 +60,6 @@
       <ConformanceMode>true</ConformanceMode>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <LanguageStandard>stdcpp17</LanguageStandard>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>

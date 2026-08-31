@@ -42,6 +42,9 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
+      <!-- The C++ standard mode is set once here for every MSBuild project. -->
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>

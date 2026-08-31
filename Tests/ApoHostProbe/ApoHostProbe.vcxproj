@@ -56,7 +56,6 @@
   <ItemDefinitionGroup>
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <LanguageStandard>stdcpp17</LanguageStandard>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_CONSOLE;UNICODE;_UNICODE;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>

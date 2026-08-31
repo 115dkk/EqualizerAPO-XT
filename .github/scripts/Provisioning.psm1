@@ -358,7 +358,7 @@ function Build-VcpkgDependencies {
     $sources = Get-ChildItem -Path $parserDir -Filter "*.cpp" -File | Where-Object { $_.Name -ne "mpTest.cpp" }
     foreach ($source in $sources) {
         $objectPath = Join-Path $muparserObjDir ($source.BaseName + ".obj")
-        $clArgs = @("/nologo", "/c", "/EHsc", "/std:c++17", "/O2", "/MD", "/DNDEBUG", "/DMUP_USE_WIDE_STRING", "/I$parserDir", "/Fo$objectPath")
+        $clArgs = @("/nologo", "/c", "/EHsc", "/std:c++20", "/O2", "/MD", "/DNDEBUG", "/DMUP_USE_WIDE_STRING", "/I$parserDir", "/Fo$objectPath")
         if ($archArg) {
             $clArgs += $archArg
         }
