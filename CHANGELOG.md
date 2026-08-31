@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.50.3 — 2026-08-31
+
 - **Opening an ASIO stream no longer fails at random right after launch.**
   The wrapper announced its shared audio ring only after asking the engine
   host to attach, so a fast host could inspect the still-empty ring first
