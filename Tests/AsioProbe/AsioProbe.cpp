@@ -70,6 +70,7 @@ namespace
 		double rate = 48000.0;
 		bool rateGiven = false;       // a real target is asked for --rate only when it was given
 		long periods = 200;
+		long paceUs = 0;
 		long inputs = 2;
 		long outputs = 2;
 		long sampleType = ASIOSTInt32LSB;
@@ -106,7 +107,7 @@ namespace
 			"AsioProbe --target fake|dll:<FakeAsioDriver.dll>|clsid:{...}|wasapi:{...}[,{...}] --wrapper static|dll:<EqualizerAPOAsio.dll>\n"
 			"          --processor inproc|passthrough|daemon-thread|daemon --config <config.txt> [--mode sync|pipelined]\n"
 			"          [--daemon <EqualizerAPOHost.exe>] [--endpoint <name>] [--deadline-us N]\n"
-			"          [--frames 64] [--rate 48000] [--periods 200] [--channels in,out] [--sample-type int16|int24|int32|float32]\n"
+			"          [--frames 64] [--rate 48000] [--periods 200] [--pace-us 0] [--channels in,out] [--sample-type int16|int24|int32|float32]\n"
 			"          [--seed N] [--host-seed N] [--no-input] [--no-output] [--output-ready]\n"
 			"          [--expect-sha256 hex] [--expect-first-sha256 hex] [--expect-input-sha256 hex] [--max-late N] [--no-reference]\n"
 			"          [--seconds 10] [--tone] [--sine Hz]   (real driver / wasapi:{playback guid}[,{recording guid}] only)\n", stderr);
@@ -136,6 +137,7 @@ namespace
 				a.rateGiven = true;
 			}
 			else if (key == L"--periods" && value(v)) a.periods = std::wcstol(v.c_str(), nullptr, 10);
+			else if (key == L"--pace-us" && value(v)) a.paceUs = std::wcstol(v.c_str(), nullptr, 10);
 			else if (key == L"--seconds" && value(v)) a.seconds = std::wcstod(v.c_str(), nullptr);
 			else if (key == L"--seed" && value(v)) a.seed = static_cast<unsigned>(std::wcstoul(v.c_str(), nullptr, 10));
 			else if (key == L"--host-seed" && value(v)) a.hostSeed = static_cast<unsigned>(std::wcstoul(v.c_str(), nullptr, 10));
@@ -399,7 +401,33 @@ namespace
 			std::fprintf(stderr, "AsioProbe: start failed with %ld: %s\n", error, message);
 			return 2;
 		}
-		control->pump(a.periods);
+		if (a.paceUs > 0)
+		{
+			// Real hardware paces buffer switches one period apart; the pipelined
+			// callback's zero-wait design counts on that grace, so a paced pump
+			// gives the engine host wall time between periods instead of the
+			// deterministic back-to-back default.
+			HANDLE pacer = CreateWaitableTimerExW(nullptr, nullptr, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS);
+			if (pacer == nullptr)
+				pacer = CreateWaitableTimerExW(nullptr, nullptr, 0, TIMER_ALL_ACCESS);
+			for (long p = 0; p < a.periods; p++)
+			{
+				control->pump(1);
+				if (pacer != nullptr)
+				{
+					LARGE_INTEGER due;
+					due.QuadPart = -static_cast<LONGLONG>(a.paceUs) * 10;
+					SetWaitableTimer(pacer, &due, 0, nullptr, nullptr, FALSE);
+					WaitForSingleObject(pacer, INFINITE);
+				}
+			}
+			if (pacer != nullptr)
+				CloseHandle(pacer);
+		}
+		else
+		{
+			control->pump(a.periods);
+		}
 		wrapper->stop();
 
 		StreamStats stats;
