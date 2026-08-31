@@ -76,11 +76,15 @@ $runs = @(
     # 2026-08-30, both "first period is not the engine's first period", both
     # green on rerun with nothing changed). The run keeps its assertion and
     # gets three attempts: a genuine regression fails all three.
+    # Since the pipelined callback stopped waiting in the kernel (zero-wait,
+    # 2026-08-31), a back-to-back pump would make every period late by
+    # construction; --pace-us restores the between-period wall time real
+    # hardware provides. The retries stay for scheduler stalls.
     [pscustomobject]@{
         Name = "dll-daemon-exe-pipelined-float32-32"
         Arguments = @("--target", "dll:$fakeDll", "--wrapper", "dll:$wrapperDll", "--processor", "daemon", "--config", $config,
             "--daemon", $hostExe, "--endpoint", "EAPO.ASIO.probe.gate", "--frames", "32", "--periods", "400",
-            "--sample-type", "float32", "--mode", "pipelined")
+            "--sample-type", "float32", "--mode", "pipelined", "--pace-us", "2000")
         Attempts = 3
     },
     [pscustomobject]@{
