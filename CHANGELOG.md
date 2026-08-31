@@ -14,6 +14,21 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **A configuration file locked by another program can no longer freeze the
+  audio engine or the Editor forever.** The shared-file retry loop had no
+  bound, so a config held exclusively (editor, backup, antivirus) could hang
+  audiodg's teardown or the Editor UI indefinitely. The retry now stops
+  after 10 seconds and the engine's copy also stops the moment the engine
+  shuts down.
+- **Closing the device test dialog no longer kills its worker mid-write.**
+  The test thread was terminated forcibly, which could leak a stuck pipe
+  thread, skip its registry cleanup and abandon COM state. It is now asked
+  to stop, given time to unwind, and detached with a log line in the worst
+  case.
+- **The analysis panel no longer draws a superseded configuration's
+  curve.** A result computed for an outdated request is discarded instead
+  of flashing on screen for one refresh before the current one replaces it.
+
 ## v2.50.3 — 2026-08-31
 
 - **Opening an ASIO stream no longer fails at random right after launch.**

@@ -8,6 +8,7 @@
 	the next read fails with ERROR_BROKEN_PIPE.
 */
 
+#include <chrono>
 #include <sstream>
 #include <string>
 #include <thread>
@@ -47,6 +48,31 @@ void runConfigurationFileReaderTests(test::Harness& harness)
 	DeleteFileW(missingPath.c_str());
 	std::stringstream missing = ConfigurationFileReader::readWithRetry(missingPath);
 	harness.expectFalse(missing.good(), "readWithRetry reports an open failure");
+
+	const std::wstring lockedPath = std::wstring(tempPath) + L"EapoLockedConfig-" + std::to_wstring(GetCurrentProcessId()) + L".txt";
+	winutil::UniqueHandle lockedFile(CreateFileW(
+		lockedPath.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
+	harness.require(static_cast<bool>(lockedFile), "sharing-retry test creates an exclusively shared file");
+	winutil::UniqueHandle cancelEvent(CreateEventW(nullptr, TRUE, TRUE, nullptr));
+	harness.require(static_cast<bool>(cancelEvent), "sharing-retry test creates a pre-signaled cancel event");
+
+	const auto cancelStart = std::chrono::steady_clock::now();
+	std::stringstream cancelled = ConfigurationFileReader::readWithRetry(lockedPath, cancelEvent.get());
+	const auto cancelElapsed = std::chrono::steady_clock::now() - cancelStart;
+	harness.expectFalse(cancelled.good(), "readWithRetry cancels a sharing retry");
+	harness.expect(cancelElapsed < std::chrono::milliseconds(100),
+		"readWithRetry observes a pre-signaled cancel event promptly");
+
+	const auto deadlineStart = std::chrono::steady_clock::now();
+	std::stringstream timedOut = ConfigurationFileReader::readWithRetry(lockedPath, nullptr, 100);
+	const auto deadlineElapsed = std::chrono::steady_clock::now() - deadlineStart;
+	harness.expectFalse(timedOut.good(), "readWithRetry times out a sharing retry");
+	harness.expect(deadlineElapsed >= std::chrono::milliseconds(80),
+		"readWithRetry waits until roughly the requested deadline");
+	harness.expect(deadlineElapsed < std::chrono::milliseconds(500),
+		"readWithRetry does not exceed the requested deadline excessively");
+	lockedFile.reset();
+	DeleteFileW(lockedPath.c_str());
 
 	const std::wstring pipeName = L"\\\\.\\pipe\\EngineOrchestrationTests-ConfigRead-" + std::to_wstring(GetCurrentProcessId());
 	winutil::UniqueHandle pipe(CreateNamedPipeW(

@@ -19,18 +19,25 @@
 
 #pragma once
 
+#include <algorithm>
+
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
 #include "platform/windows/Win32Resource.h"
 
 // Opens a file, retrying while another process holds it open for writing
-// (ERROR_SHARING_VIOLATION). Returns an empty owning handle on any other
-// error with that error code in lastError.
+// (ERROR_SHARING_VIOLATION), backing off exponentially (1..20 ms) until the
+// deadline passes or the optional cancel handle signals; both bounded exits
+// return an empty handle with lastError still ERROR_SHARING_VIOLATION. Any
+// other error returns an empty owning handle with that code in lastError.
 inline winutil::UniqueHandle openFileWithSharingRetry(
-	const wchar_t* path, DWORD desiredAccess, DWORD shareMode, DWORD creationDisposition, DWORD& lastError)
+	const wchar_t* path, DWORD desiredAccess, DWORD shareMode, DWORD creationDisposition, DWORD& lastError,
+	HANDLE cancel = nullptr, DWORD deadlineMilliseconds = 10000)
 {
 	lastError = ERROR_SUCCESS;
+	const ULONGLONG start = GetTickCount64();
+	DWORD backoffMilliseconds = 1;
 
 	for (;;)
 	{
@@ -43,7 +50,21 @@ inline winutil::UniqueHandle openFileWithSharingRetry(
 		if (lastError != ERROR_SHARING_VIOLATION)
 			return {};
 
-		// file is being written, so wait
-		Sleep(1);
+		const ULONGLONG elapsed = GetTickCount64() - start;
+		if (elapsed >= deadlineMilliseconds)
+			return {};
+
+		const DWORD waitMilliseconds = static_cast<DWORD>((std::min)(
+			static_cast<ULONGLONG>(backoffMilliseconds), deadlineMilliseconds - elapsed));
+		if (cancel != nullptr)
+		{
+			if (WaitForSingleObject(cancel, waitMilliseconds) == WAIT_OBJECT_0)
+				return {};
+		}
+		else
+		{
+			Sleep(waitMilliseconds);
+		}
+		backoffMilliseconds = (std::min)(backoffMilliseconds * 2, 20UL);
 	}
 }

@@ -76,7 +76,7 @@ ConfigFileCodec::ReadResult ConfigFileCodec::readConfig(const QString& path)
 
 	DWORD error = ERROR_SUCCESS;
 	winutil::UniqueHandle file = openFileWithSharingRetry(
-		path.toStdWString().c_str(), GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, error);
+		path.toStdWString().c_str(), GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, error, nullptr);
 	if (!file)
 	{
 		result.ok = false;

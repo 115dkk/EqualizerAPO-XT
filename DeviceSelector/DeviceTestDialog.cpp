@@ -22,6 +22,7 @@
 #include <services/registry/WindowsRegistry.h>
 #include "DeviceTestDialog.h"
 #include "OpacityIconEngine.h"
+#include "services/logging/Logging.h"
 
 DeviceTestDialog::DeviceTestDialog(QWidget* parent)
 	: QDialog(parent)
@@ -148,8 +149,20 @@ void DeviceTestDialog::addDevices(const std::vector<std::shared_ptr<DeviceAPOInf
 
 void DeviceTestDialog::closeEvent(QCloseEvent* event)
 {
-	if (thread != nullptr)
-		thread->terminate();
+	if (thread != nullptr && thread->isRunning())
+	{
+		thread->requestInterruption();
+		if (!thread->wait(5000))
+		{
+			LogFStatic(L"Device test thread did not stop within 5000 ms; detaching it from the closing dialog");
+			thread->setParent(nullptr);
+			connect(thread, &QThread::finished, thread, &QObject::deleteLater);
+			if (!thread->isRunning())
+				thread->deleteLater();
+			thread = nullptr;
+		}
+	}
+	QDialog::closeEvent(event);
 }
 
 void DeviceTestDialog::log(const QString& message)

@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <atomic>
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -80,7 +82,8 @@ protected:
 private:
 	QMutex mutex;
 	QWaitCondition condition;
-	bool quit = false;
+	std::atomic<bool> quit{false};
+	std::atomic<uint64_t> requestGeneration{0};
 
 	// input
 	std::shared_ptr<AbstractAPOInfo> device;

@@ -23,6 +23,7 @@
 
 #include "dsp/FftwPlanningPolicy.h"
 #include "engine/FilterEngine.h"
+#include "helpers/AnalysisRequestGeneration.h"
 #include "helpers/AnalysisWorkerRecovery.h"
 #include "AnalysisThread.h"
 
@@ -56,6 +57,7 @@ void AnalysisThread::setParameters(shared_ptr<AbstractAPOInfo> device, int chann
 	this->channelIndex = channelIndex;
 	this->configPath = configPath;
 	this->frameCount = frameCount;
+	requestGeneration.fetch_add(1, std::memory_order_relaxed);
 
 	condition.wakeAll();
 }
@@ -114,11 +116,12 @@ void AnalysisThread::run()
 		int channelIndex;
 		QString configPath;
 		int frameCount;
+		uint64_t generation;
 		{
 			QMutexLocker locker(&mutex);
-			while (!quit && this->frameCount == 0)
+			while (!quit.load(std::memory_order_relaxed) && this->frameCount == 0)
 				condition.wait(&mutex);
-			if (quit)
+			if (quit.load(std::memory_order_relaxed))
 				break;
 
 			device = this->device;
@@ -126,6 +129,7 @@ void AnalysisThread::run()
 			channelIndex = this->channelIndex;
 			configPath = this->configPath;
 			frameCount = this->frameCount;
+			generation = requestGeneration.load(std::memory_order_relaxed);
 			this->frameCount = 0;
 		}
 
@@ -135,6 +139,7 @@ void AnalysisThread::run()
 			continue;
 		}
 
+		bool resultPublished = false;
 		AnalysisWorkerRecovery::run([&]
 		{
 		QElapsedTimer timer;
@@ -194,6 +199,8 @@ void AnalysisThread::run()
 		setup.deviceGuid = device->getDeviceGuid();
 		engine.initialize(setup);
 		engine.setLoadTraceSink(nullptr);
+		if (quit.load(std::memory_order_relaxed))
+			return;
 		double initializationTime = (timer.nsecsElapsed() - startTime) / 1e6;
 
 		if (frameCount != lastFrameCount || channelCount != lastChannelCount)
@@ -243,6 +250,9 @@ void AnalysisThread::run()
 		// stop searching for startFrame after 10 seconds of audio data
 		while (processedFrames < 10 * sampleRate)
 		{
+			if (quit.load(std::memory_order_relaxed))
+				return;
+
 			qint64 startTime = timer.nsecsElapsed();
 			engine.process(buf2.data(), buf.data(), frameCount);
 			processingTime += (timer.nsecsElapsed() - startTime) / 1e6;
@@ -329,6 +339,9 @@ void AnalysisThread::run()
 
 		{
 			QMutexLocker locker(&mutex);
+			if (!isCurrentAnalysisRequest(
+				generation, requestGeneration.load(std::memory_order_relaxed)))
+				return;
 			this->resultResponse = std::move(response);
 			this->peakGain = peakGain;
 			this->initializationTime = initializationTime;
@@ -336,6 +349,7 @@ void AnalysisThread::run()
 			this->processedFrames = processedFrames;
 			this->resultErrorText.clear();
 			this->resultLoadTrace = std::move(traceCollector.entries);
+			resultPublished = true;
 		}
 
 		qDebug("Analysis took %.1f ms", timer.nsecsElapsed() / 1e6);
@@ -344,6 +358,9 @@ void AnalysisThread::run()
 		{
 			qCritical("Analysis failed; worker remains available: %s", error);
 			QMutexLocker locker(&mutex);
+			if (!isCurrentAnalysisRequest(
+				generation, requestGeneration.load(std::memory_order_relaxed)))
+				return;
 			// An empty response rather than a null one, so the graph clears
 			// instead of keeping the previous config's curve on screen.
 			resultResponse = std::make_shared<AnalysisResponse>();
@@ -353,8 +370,17 @@ void AnalysisThread::run()
 			processedFrames = 0;
 			resultErrorText = QString::fromUtf8(error);
 			resultLoadTrace.clear();
+			resultPublished = true;
 		});
 
-		emit analysisFinished();
+		bool emitFinished = false;
+		if (resultPublished)
+		{
+			QMutexLocker locker(&mutex);
+			emitFinished = isCurrentAnalysisRequest(
+				generation, requestGeneration.load(std::memory_order_relaxed));
+		}
+		if (emitFinished)
+			emit analysisFinished();
 	}
 }
