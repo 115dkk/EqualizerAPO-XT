@@ -166,14 +166,25 @@ namespace
 
 				if (!stop.stop_requested() || ReadAcquire(&header->state) != static_cast<LONG>(eapo::ipc::RingState::Empty))
 				{
-					eapo::ipc::RingConsumer consumer(base, request.ringBytes, sync);
-					eapo::asio::ServeOptions options;
-					options.configPath = request.configPath;
-					options.proAudio = true;
-					options.spinPeriods = 1.0;
-					options.publishFacts = true;
-					options.abandon = &worker.abandon;
-					eapo::asio::EngineHostCore::serveStream(consumer, options, GetCurrentProcessId());
+					const bool validFormat = eapo::ipc::RingGeometry::validFormat(header->format);
+					const uint64_t expectedBytes = validFormat ? eapo::ipc::RingGeometry::totalBytes(header->format) : 0;
+					if (!validFormat || expectedBytes != header->totalBytes || expectedBytes > request.ringBytes)
+					{
+						WriteRelease(&header->faultCode, static_cast<LONG>(eapo::ipc::RingFault::LayoutMismatch));
+						WriteRelease(&header->state, static_cast<LONG>(eapo::ipc::RingState::Fault));
+						SetEvent(sync.ready);
+					}
+					else
+					{
+						eapo::ipc::RingConsumer consumer(base, request.ringBytes, sync);
+						eapo::asio::ServeOptions options;
+						options.configPath = request.configPath;
+						options.proAudio = true;
+						options.spinPeriods = 1.0;
+						options.publishFacts = true;
+						options.abandon = &worker.abandon;
+						eapo::asio::EngineHostCore::serveStream(consumer, options, GetCurrentProcessId());
+					}
 				}
 			}
 			else

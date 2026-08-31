@@ -14,6 +14,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The ASIO engine host validates stream geometry before trusting it.**
+  The shared audio ring's sizes were computed in 32-bit arithmetic with no
+  channel or frame bounds, and the host accepted whatever geometry the
+  connecting wrapper announced, so a corrupted or hostile wrapper process
+  could make the host write past its mapping. Both sides now enforce
+  explicit bounds (64 channels, 65536 frames), recompute sizes in 64-bit,
+  and reject a session whose header disagrees, before any audio moves.
+
 ## v2.50.5 — 2026-08-31
 
 - **Checking for updates can no longer hang forever on a silent server.**

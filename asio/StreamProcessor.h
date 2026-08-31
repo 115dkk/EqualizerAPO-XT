@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <string>
+#include <type_traits>
 
 namespace eapo::asio
 {
@@ -57,6 +58,8 @@ namespace eapo::asio
 	};
 
 	static_assert(sizeof(wchar_t) == 2, "the ring header assumes two-byte wchar_t");
+	static_assert(std::is_standard_layout_v<StreamFormat> && std::is_trivially_copyable_v<StreamFormat>,
+		"StreamFormat must remain a plain wire type");
 	// 8 + 4 + 8 + 4 + 4 + 128 + 80 = 236 payload bytes, padded to the double's
 	// 8-byte alignment. Pinned so a field added on one side of the daemon
 	// protocol cannot go unnoticed on the other.

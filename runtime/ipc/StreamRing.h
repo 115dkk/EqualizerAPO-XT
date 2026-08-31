@@ -40,6 +40,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <type_traits>
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -57,6 +58,10 @@ namespace eapo::ipc
 	constexpr uint32_t ringLayoutVersion = 1;
 	constexpr size_t ringHeaderBytes = 512;
 	constexpr size_t ringAlignment = 64;
+	// ASIO hardware stays far below these bounds. They keep the complete ring
+	// under 128 MiB, so its uint32_t wire geometry cannot wrap.
+	constexpr uint32_t maxRingChannels = 64;
+	constexpr uint32_t maxRingFrames = 65536;
 
 	enum class RingState : uint32_t
 	{
@@ -109,7 +114,11 @@ namespace eapo::ipc
 		uint8_t reserved[ringHeaderBytes - (16 + sizeof(eapo::asio::StreamFormat) + 16 + 2 * sizeof(RingLane) + 48 + 4)];
 	};
 
+	static_assert(std::is_standard_layout_v<RingLane> && std::is_trivially_copyable_v<RingLane>,
+		"RingLane must remain a plain wire type");
 	static_assert(sizeof(RingLane) == 20, "RingLane must stay fixed-width");
+	static_assert(std::is_standard_layout_v<RingHeader> && std::is_trivially_copyable_v<RingHeader>,
+		"RingHeader must remain a plain wire type");
 	static_assert(sizeof(RingHeader) == ringHeaderBytes, "RingHeader must be exactly 512 bytes");
 	static_assert(offsetof(RingHeader, format) == 16, "StreamFormat sits at offset 16");
 	static_assert(offsetof(RingHeader, lanes) == 16 + sizeof(eapo::asio::StreamFormat) + 16, "lanes follow the state words");
@@ -117,6 +126,7 @@ namespace eapo::ipc
 	// Sizes both sides derive from the format alone.
 	namespace RingGeometry
 	{
+		bool validFormat(const eapo::asio::StreamFormat& format) noexcept;
 		uint32_t slotBytes(const eapo::asio::StreamFormat& format, eapo::asio::Direction direction) noexcept;
 		uint32_t totalBytes(const eapo::asio::StreamFormat& format) noexcept;
 	}
