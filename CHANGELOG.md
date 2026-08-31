@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.50.6 — 2026-08-31
+
 - **The ASIO engine host validates stream geometry before trusting it.**
   The shared audio ring's sizes were computed in 32-bit arithmetic with no
   channel or frame bounds, and the host accepted whatever geometry the
