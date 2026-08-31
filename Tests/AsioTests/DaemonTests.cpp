@@ -151,23 +151,24 @@ namespace
 		options.mode = Mode::Sync;
 		options.deadlineUs = 20000000;   // shape, not timing (see above)
 
-		Capture sync = runStream(std::make_unique<DaemonProcessor>(std::make_unique<ThreadHostLink>()), options, 32, 10, 0, 1);
+		constexpr long frames = 256;
+		Capture sync = runStream(std::make_unique<DaemonProcessor>(std::make_unique<ThreadHostLink>()), options, frames, 10, 0, 1);
 		options.mode = Mode::Pipelined;
-		Capture pipelined = runStream(std::make_unique<DaemonProcessor>(std::make_unique<ThreadHostLink>()), options, 32, 10, 0, 1);
+		Capture pipelined = runStream(std::make_unique<DaemonProcessor>(std::make_unique<ThreadHostLink>(true)), options, frames, 10, 0, 1);
 		harness.require(sync.started && pipelined.started, "both streams started");
-		harness.expectEqual(pipelined.outputLatency, sync.outputLatency + 32, "pipelined mode reports one buffer more");
+		harness.expectEqual(pipelined.outputLatency, sync.outputLatency + frames, "pipelined mode reports one buffer more");
 
 		SampleCodec codec;
 		eapo::asio::findSampleCodec(ASIOSTInt32LSB, codec);
 		std::vector<float> a(sync.outputs[0].size() / 4), b(pipelined.outputs[0].size() / 4);
 		codec.toFloat(sync.outputs[0].data(), a.data(), static_cast<unsigned>(a.size()));
 		codec.toFloat(pipelined.outputs[0].data(), b.data(), static_cast<unsigned>(b.size()));
-		harness.requireEqual(b.size(), static_cast<size_t>(320), "ten periods captured");
+		harness.requireEqual(b.size(), static_cast<size_t>(frames * 10), "ten periods captured");
 		bool firstSilent = true, shifted = true;
-		for (size_t n = 0; n < 32; n++)
+		for (size_t n = 0; n < static_cast<size_t>(frames); n++)
 			firstSilent = firstSilent && b[n] == 0.0f;
-		for (size_t n = 32; n < 320; n++)
-			shifted = shifted && std::fabs(b[n] - a[n - 32]) < 1e-7f;
+		for (size_t n = frames; n < b.size(); n++)
+			shifted = shifted && std::fabs(b[n] - a[n - frames]) < 1e-7f;
 		harness.expect(firstSilent, "the first pipelined block is silence");
 		harness.expect(shifted, "every later block is the sync result one period late");
 		directory.removeAll();

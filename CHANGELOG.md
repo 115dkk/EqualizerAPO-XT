@@ -14,6 +14,24 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Opening an ASIO stream no longer fails at random right after launch.**
+  The wrapper announced its shared audio ring only after asking the engine
+  host to attach, so a fast host could inspect the still-empty ring first
+  and reject the stream. The host now waits for the announcement (bounded,
+  watching the wrapper process) before validating.
+- **The default (pipelined) ASIO mode no longer stalls the driver callback
+  when the engine host hangs.** The callback used to wait at least 20 ms
+  (eight periods) inside the driver's buffer switch before giving up on a
+  stalled host. It now checks for the previous block without any kernel
+  wait (a pure spin of at most 10% of one period, capped at 0.5 ms),
+  passes unprocessed audio through, and writes the stream off only after
+  about eight unanswered periods in a row.
+- **ASIO teardown and host shutdown are more robust.** Driver callbacks
+  that race a stream teardown are fenced per slot, so a stalled callback
+  can no longer reach freed memory or another stream's wrapper, and the
+  engine host now owns and joins its serving threads on exit instead of
+  leaving them detached.
+
 ## v2.50.2 — 2026-08-30
 
 - **A switched-off row no longer shows a live "Locate..." button.** When an

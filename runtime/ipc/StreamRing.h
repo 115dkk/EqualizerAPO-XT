@@ -22,9 +22,9 @@
 	    lane's work event.
 	  * wait(seq, budget) returns Done when `completed >= seq`, Late when the
 	    budget passes first, Gone when the peer handle signals or the state
-	    leaves Ready. A late block is still processed by the consumer in
-	    order (filter state stays continuous); only the producer stops
-	    waiting for it.
+	    leaves Ready. poll(seq, budget) returns the same results without a
+	    kernel wait. A late block is still processed by the consumer in order
+	    (filter state stays continuous); only the producer stops waiting for it.
 	  * The consumer takes every published sequence in order, never skips.
 
 	Readiness: the producer formats the header (state Announced) and waits on
@@ -161,7 +161,10 @@ namespace eapo::ipc
 		void publish(eapo::asio::Direction direction, uint32_t seq) noexcept;
 		// budgetUs == 0 answers immediately (Done only if already completed).
 		RingWait wait(eapo::asio::Direction direction, uint32_t seq, uint32_t budgetUs) noexcept;
+		// Polls with pauses only; never enters a kernel wait.
+		RingWait poll(eapo::asio::Direction direction, uint32_t seq, uint32_t budgetUs) noexcept;
 		bool completed(eapo::asio::Direction direction, uint32_t seq) const noexcept;
+		bool peerGone() const noexcept;
 
 		void close() noexcept;
 		RingState state() const noexcept;

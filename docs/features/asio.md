@@ -108,11 +108,14 @@ badge shows the rate and channel count of the last stream once one has run
 
 By default the wrapper hands each buffer to the host and plays the previous
 one: one buffer of extra latency (1.3 ms at 64 frames and 48 kHz), reported
-to the application through the driver's latency query, and no dependence on
-how quickly the host answers. Measured on a Topping USB Audio Device at 64
-frames over ten minutes (450,005 buffers), this mode processed every buffer;
-all but three round trips took under 100 microseconds and the worst, 2.5 ms,
-was absorbed by the one-buffer pipeline.
+to the application through the driver's latency query. The callback checks
+for the previous result with a pure spin for 10% of one period, capped at 500
+microseconds, and never enters a kernel wait for the host. An incomplete
+result passes through; sustained silence for about eight periods latches the stream
+as Gone until it is reopened. Measured on a Topping USB Audio Device at 64 frames over
+ten minutes (450,005 buffers), this mode processed every buffer; all but three
+round trips took under 100 microseconds and the worst, 2.5 ms, was absorbed by
+the one-buffer pipeline.
 
 The synchronous mode waits for the host inside the buffer callback instead
 and adds no latency, but a buffer whose answer misses the deadline passes

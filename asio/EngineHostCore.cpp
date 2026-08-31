@@ -183,6 +183,11 @@ namespace eapo::asio
 			RingConsumer::Acquired acquired;
 			for (;;)
 			{
+				if (options.abandon != nullptr && options.abandon->load())
+				{
+					report.peerGone = false;
+					return report;
+				}
 				if (!consumer.acquire(acquired, options.idleWaitMs, spinUs))
 				{
 					if (consumer.state() == RingState::Closing || consumer.peerGone())

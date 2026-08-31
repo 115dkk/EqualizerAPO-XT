@@ -40,26 +40,6 @@ namespace eapo::asio
 			return static_cast<uint64_t>(counter.QuadPart);
 		}
 
-		struct InFlightGuard
-		{
-			explicit InFlightGuard(std::atomic<unsigned>& counter) noexcept
-				: counter_(counter)
-			{
-				counter_.fetch_add(1, std::memory_order_acq_rel);
-			}
-
-			~InFlightGuard()
-			{
-				counter_.fetch_sub(1, std::memory_order_acq_rel);
-			}
-
-			InFlightGuard(const InFlightGuard&) = delete;
-			InFlightGuard& operator=(const InFlightGuard&) = delete;
-
-		private:
-			std::atomic<unsigned>& counter_;
-		};
-
 		const char* const driverSuffix = " (EQ APO XT)";
 	}
 
@@ -439,6 +419,8 @@ namespace eapo::asio
 		auto unwind = [this]() noexcept {
 			target_->disposeBuffers();
 			CallbackTrampolines::release(this);
+			for (int i = 0; i < 2000 && !CallbackTrampolines::drained(trampolines_); i++)
+				Sleep(1);
 			trampolines_ = nullptr;
 			releaseChannels();
 		};
@@ -492,9 +474,11 @@ namespace eapo::asio
 		state_.store(State::Initialized, std::memory_order_release);
 		const ASIOError error = target_->disposeBuffers();
 		CallbackTrampolines::release(this);
-		trampolines_ = nullptr;
-		for (int i = 0; i < 2000 && inFlight_.load(std::memory_order_acquire) != 0; i++)
+		for (int i = 0; i < 2000 && !CallbackTrampolines::drained(trampolines_); i++)
 			Sleep(1);
+		// A timed-out slot remains closed with entrants and is quarantined: claim
+		// cannot reuse it until the stalled callbacks leave.
+		trampolines_ = nullptr;
 
 		processor_->close(stats_);
 		planes_[outputSlot] = nullptr;
@@ -559,7 +543,6 @@ namespace eapo::asio
 
 	void AsioWrapper::switchBuffers(long index, ASIOBool direct, ASIOTime* time) noexcept
 	{
-		InFlightGuard guard(inFlight_);
 		if (state() != State::Running || index < 0 || index > 1)
 			return;
 

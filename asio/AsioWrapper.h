@@ -147,7 +147,6 @@ namespace eapo::asio
 		bool hostSupportsResetRequest_ = false;
 		std::atomic<bool> hostUsesOutputReady_{false};
 		std::atomic<long> pendingOutputIndex_{-1};
-		std::atomic<unsigned> inFlight_{0};
 		std::atomic<bool> formatStale_{false};
 		std::atomic<bool> processorGone_{false};
 

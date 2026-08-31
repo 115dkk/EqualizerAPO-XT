@@ -441,11 +441,21 @@ namespace
 		harness.expectEqual(sinks[1].switches, 1u, "bufferSwitch reaches the bound sink");
 		harness.expectEqual(sinks[1].lastIndex, 1L, "the switch index is forwarded");
 		harness.expectEqual(sinks[0].switches, 0u, "other sinks are untouched");
-		release(&sinks[1]);
+		harness.expect(release(&sinks[1]), "a released slot with no entrants is drained");
 		sets[1]->bufferSwitch(0, ASIOTrue);
 		harness.expectEqual(sinks[1].switches, 1u, "a released slot drops callbacks");
 		harness.expectEqual(sets[1]->asioMessage(kAsioResetRequest, 0, nullptr, nullptr), 0L, "a released slot answers 0");
-		harness.expect(claim(&sinks[4]) == sets[1], "the released slot is reused");
+		harness.expect(claim(&sinks[4]) == sets[1], "the released-and-drained slot is reused");
+
+		using eapo::asio::CallbackTrampolines::testEnter;
+		using eapo::asio::CallbackTrampolines::testLeave;
+		harness.require(testEnter(sets[1]), "a callback can enter before release");
+		harness.expectFalse(release(&sinks[4]), "release reports an entrant that has not drained");
+		sets[1]->bufferSwitch(0, ASIOTrue);
+		harness.expectEqual(sinks[4].switches, 0u, "a callback after CLOSED is dropped");
+		harness.expect(claim(&sinks[1]) == nullptr, "a released-but-undrained slot is not reused");
+		testLeave(sets[1]);
+		harness.expect(claim(&sinks[1]) == sets[1], "a retired slot is reusable after its entrant drains");
 		for (CountingSink& sink : sinks)
 			release(&sink);
 	}
