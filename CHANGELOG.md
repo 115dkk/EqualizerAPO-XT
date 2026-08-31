@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.50.5 — 2026-08-31
+
 - **Checking for updates can no longer hang forever on a silent server.**
   The update check armed its 10-second timer but never started it and set
   no transfer timeout, so a server that accepted the connection and never
