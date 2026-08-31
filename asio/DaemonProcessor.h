@@ -67,6 +67,7 @@ namespace eapo::asio
 			std::vector<float> staging;
 			std::vector<float*> planes;
 			uint32_t sequence = 0;      // last published
+			uint32_t consecutiveLate = 0;
 			size_t samples = 0;
 			bool gone = false;
 		};
@@ -80,7 +81,8 @@ namespace eapo::asio
 		StreamFormat format_;
 		Mode mode_ = Mode::Sync;
 		uint32_t deadlineUs_ = 0;
-		uint32_t hangBoundUs_ = 0;
+		uint32_t pipelineSpinUs_ = 0;
+		uint32_t hangLateCount_ = 0;
 		bool open_ = false;
 		StreamStats lastStats_;
 		HandoffProfile profile_;

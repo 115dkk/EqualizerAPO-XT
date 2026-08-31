@@ -389,7 +389,7 @@ public:
 
 **상태 기계(제어 스레드).** `Loaded → init → Initialized → createBuffers → Prepared → start → Running → stop → Prepared → disposeBuffers → Initialized`. 순서 밖의 호출은 `ASE_InvalidMode`이고 대상에 전달하지 않는다. `createBuffers`는 대상의 `createBuffers`를 먼저 성공시켜 채널 수, 레이트, 버퍼 크기를 확정한 뒤 `open()`을 부르고, 실패하면 대상 버퍼를 해제하고 `ASE_HWMalfunction`을 돌려준다. `start()`는 `open` 뒤 데몬이 죽었는지 다시 확인한다.
 
-**주기당 순서(콜백 스레드, Sync).** 대상 입력 버퍼[i] → float 평면 → `process(Input)` → DAW 입력 버퍼[i] → DAW `bufferSwitch(i)` → DAW 출력 버퍼[i] → 평면 → `process(Output)` → 대상 출력 버퍼[i] → (DAW가 우리 `outputReady`를 불렀으면) 대상 `outputReady()`. 양방향이면 왕복 둘, 출력만이면 하나. Pipelined는 직전 블록의 결과를 먼저 회수해(대기 0) 이번 블록을 넘기며 방향당 정확히 `frames`의 지연이 붙고 `getLatencies`가 그렇게 보고한다.
+**주기당 순서(콜백 스레드, Sync).** 대상 입력 버퍼[i] → float 평면 → `process(Input)` → DAW 입력 버퍼[i] → DAW `bufferSwitch(i)` → DAW 출력 버퍼[i] → 평면 → `process(Output)` → 대상 출력 버퍼[i] → (DAW가 우리 `outputReady`를 불렀으면) 대상 `outputReady()`. 양방향이면 왕복 둘, 출력만이면 하나. Pipelined는 이번 블록을 먼저 넘긴 뒤 직전 블록의 완료를 주기의 10%(최대 500 us) 동안 커널 대기 없이 확인한다. 콜백은 호스트의 응답을 기다리며 커널에서 멈추지 않는다. 방향당 정확히 `frames`의 지연이 붙고 `getLatencies`가 그렇게 보고한다. 완료되지 않은 블록은 `Late`로 통과시키며, 약 8주기 동안 연속으로 완료되지 않으면 `Gone`을 고정한다.
 
 **실패 모드.** `Late`/`Gone`이면 평면을 버리고 원본을 그대로 옮긴다(=통과). `Gone`은 다음 `createBuffers`까지 고정이며 콜백 스레드는 재접속을 시도하지 않는다. `sampleRateDidChange`는 전달한 뒤 래퍼가 `kAsioResetRequest`를 보내고, DAW가 재시작할 때까지의 블록은 `staleBlocks`로 세며 통과시킨다. `kAsioResetRequest`/`kAsioLatenciesChanged`/`kAsioResyncRequest`/`kAsioOverload`는 그대로 전달, `kAsioSupportsTimeInfo`는 DAW의 답을 그대로 돌려주어 `bufferSwitch`/`bufferSwitchTimeInfo` 선택이 DAW를 따른다. DSD 샘플 형식은 `createBuffers`에서 `ASE_InvalidMode`.
 

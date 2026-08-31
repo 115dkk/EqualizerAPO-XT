@@ -33,12 +33,17 @@ namespace eapo::asio
 	{
 		constexpr unsigned slotCount = 4;
 
-		// Binds a free slot to the sink and returns its callback set, or
-		// nullptr when every slot is taken. Control thread only.
+		// Binds a free or fully drained retired slot to the sink and returns
+		// its callback set, or nullptr when every slot is taken. Control thread only.
 		ASIOCallbacks* claim(ITargetCallbackSink* sink) noexcept;
 
-		// Unbinds the sink's slot. A callback that races the release finds a
-		// null sink and returns without touching anything. Control thread only.
-		void release(const ITargetCallbackSink* sink) noexcept;
+		// Closes and unbinds the sink's slot without waiting. Returns true when
+		// no callback still holds the slot lease. Control thread only.
+		bool release(const ITargetCallbackSink* sink) noexcept;
+		bool drained(const ASIOCallbacks* callbacks) noexcept;
+
+		// Test seam for simulating an entrant stalled before the sink load.
+		bool testEnter(const ASIOCallbacks* callbacks) noexcept;
+		void testLeave(const ASIOCallbacks* callbacks) noexcept;
 	}
 }

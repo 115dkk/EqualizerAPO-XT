@@ -158,6 +158,26 @@ namespace eapo::ipc
 		return sequenceAtLeast(static_cast<uint32_t>(ReadAcquire(&lane.completed)), seq);
 	}
 
+	bool RingProducer::peerGone() const noexcept
+	{
+		return sync_.peer != nullptr && WaitForSingleObject(sync_.peer, 0) != WAIT_TIMEOUT;
+	}
+
+	RingWait RingProducer::poll(Direction direction, uint32_t seq, uint32_t budgetUs) noexcept
+	{
+		const uint64_t deadline = tickNow() + static_cast<uint64_t>(budgetUs * ticksPerMicro_);
+		for (;;)
+		{
+			if (completed(direction, seq))
+				return RingWait::Done;
+			if (readState(header_) != static_cast<uint32_t>(RingState::Ready) || peerGone())
+				return RingWait::Gone;
+			if (tickNow() >= deadline)
+				return RingWait::Late;
+			YieldProcessor();
+		}
+	}
+
 	RingWait RingProducer::wait(Direction direction, uint32_t seq, uint32_t budgetUs) noexcept
 	{
 		const unsigned index = laneOf(direction);

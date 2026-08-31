@@ -22,8 +22,11 @@
 
 #include <atomic>
 #include <cstring>
+#include <memory>
+#include <stop_token>
 #include <string>
 #include <thread>
+#include <vector>
 
 #include "asio/EngineHostCore.h"
 #include "asio/HostProtocol.h"
@@ -67,28 +70,56 @@ namespace
 	struct Server
 	{
 		Arguments arguments;
+		struct ServeThread
+		{
+			std::atomic<bool> abandon{false};
+			std::atomic<bool> finished{false};
+			std::jthread thread;
+		};
+
 		std::atomic<int> activeStreams{0};
 		std::atomic<ULONGLONG> idleSince{0};
 		std::atomic<bool> stopping{false};
+		std::vector<std::unique_ptr<ServeThread>> serveThreads;
 
-		static bool overlappedIo(HANDLE pipe, bool write, void* buffer, DWORD bytes)
+		~Server()
+		{
+			stopServeThreads();
+		}
+
+		static bool overlappedIo(HANDLE pipe, bool write, void* buffer, DWORD bytes, std::stop_token stop = {})
 		{
 			OVERLAPPED overlapped = {};
 			overlapped.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+			if (overlapped.hEvent == nullptr)
+				return false;
 			DWORD transferred = 0;
 			BOOL ok = write ? WriteFile(pipe, buffer, bytes, &transferred, &overlapped) : ReadFile(pipe, buffer, bytes, &transferred, &overlapped);
 			if (!ok && GetLastError() == ERROR_IO_PENDING)
 			{
-				if (WaitForSingleObject(overlapped.hEvent, 5000) == WAIT_OBJECT_0)
-					ok = GetOverlappedResult(pipe, &overlapped, &transferred, FALSE);
-				else
-					CancelIo(pipe);
+				const ULONGLONG deadline = GetTickCount64() + 5000;
+				for (;;)
+				{
+					const DWORD waited = WaitForSingleObject(overlapped.hEvent, 50);
+					if (waited == WAIT_OBJECT_0)
+					{
+						ok = GetOverlappedResult(pipe, &overlapped, &transferred, FALSE);
+						break;
+					}
+					if (waited == WAIT_FAILED || stop.stop_requested() || GetTickCount64() >= deadline)
+					{
+						CancelIoEx(pipe, &overlapped);
+						GetOverlappedResult(pipe, &overlapped, &transferred, TRUE);
+						ok = FALSE;
+						break;
+					}
+				}
 			}
 			CloseHandle(overlapped.hEvent);
 			return ok && transferred == bytes;
 		}
 
-		void serve(HostOpenRequest request)
+		void serve(HostOpenRequest request, ServeThread& worker, std::stop_token stop)
 		{
 			HANDLE mapping = OpenFileMappingW(FILE_MAP_ALL_ACCESS, FALSE, request.ringName);
 			void* base = mapping != nullptr ? MapViewOfFile(mapping, FILE_MAP_ALL_ACCESS, 0, 0, request.ringBytes) : nullptr;
@@ -110,13 +141,40 @@ namespace
 				sync.done[1] = events[3];
 				sync.ready = events[4];
 				sync.peer = producer;
-				eapo::ipc::RingConsumer consumer(base, request.ringBytes, sync);
-				eapo::asio::ServeOptions options;
-				options.configPath = request.configPath;
-				options.proAudio = true;
-				options.spinPeriods = 1.0;
-				options.publishFacts = true;
-				eapo::asio::EngineHostCore::serveStream(consumer, options, GetCurrentProcessId());
+
+				// HostOpenRequest has no readiness timeout. Match ThreadHostLink's
+				// fixed 5 ms poll and StreamOptions' 20 second cold-start bound.
+				eapo::ipc::RingHeader* header = static_cast<eapo::ipc::RingHeader*>(base);
+				const ULONGLONG deadline = GetTickCount64() + 20000;
+				while (ReadAcquire(&header->state) == static_cast<LONG>(eapo::ipc::RingState::Empty) && !stop.stop_requested())
+				{
+					if (producer != nullptr)
+					{
+						const DWORD waited = WaitForSingleObject(producer, 5);
+						if (waited == WAIT_OBJECT_0)
+							break;
+						if (waited == WAIT_FAILED)
+							Sleep(5);
+					}
+					else
+					{
+						Sleep(5);
+					}
+					if (GetTickCount64() >= deadline)
+						break;
+				}
+
+				if (!stop.stop_requested() || ReadAcquire(&header->state) != static_cast<LONG>(eapo::ipc::RingState::Empty))
+				{
+					eapo::ipc::RingConsumer consumer(base, request.ringBytes, sync);
+					eapo::asio::ServeOptions options;
+					options.configPath = request.configPath;
+					options.proAudio = true;
+					options.spinPeriods = 1.0;
+					options.publishFacts = true;
+					options.abandon = &worker.abandon;
+					eapo::asio::EngineHostCore::serveStream(consumer, options, GetCurrentProcessId());
+				}
 			}
 			else
 			{
@@ -133,8 +191,30 @@ namespace
 				UnmapViewOfFile(base);
 			if (mapping != nullptr)
 				CloseHandle(mapping);
-			if (activeStreams.fetch_sub(1) == 1)
-				idleSince = GetTickCount64();
+			idleSince.store(GetTickCount64(), std::memory_order_release);
+			activeStreams.fetch_sub(1, std::memory_order_release);
+			worker.finished.store(true, std::memory_order_release);
+		}
+
+		void reapServeThreads()
+		{
+			for (auto it = serveThreads.begin(); it != serveThreads.end();)
+			{
+				if ((*it)->finished.load(std::memory_order_acquire))
+					it = serveThreads.erase(it);
+				else
+					++it;
+			}
+		}
+
+		void stopServeThreads()
+		{
+			for (const std::unique_ptr<ServeThread>& worker : serveThreads)
+			{
+				worker->abandon.store(true, std::memory_order_release);
+				worker->thread.request_stop();
+			}
+			serveThreads.clear();
 		}
 
 		void handleConnection(HANDLE pipe)
@@ -158,8 +238,12 @@ namespace
 			{
 				if (request.lingerMs > arguments.lingerMs)
 					arguments.lingerMs = request.lingerMs;
-				activeStreams.fetch_add(1);
-				std::thread([this, request] { serve(request); }).detach();
+				reapServeThreads();
+				std::unique_ptr<ServeThread> worker = std::make_unique<ServeThread>();
+				ServeThread* raw = worker.get();
+				activeStreams.fetch_add(1, std::memory_order_release);
+				raw->thread = std::jthread([this, request, raw](std::stop_token stop) {serve(request, *raw, stop);});
+				serveThreads.push_back(std::move(worker));
 			}
 			overlappedIo(pipe, true, &reply, sizeof(reply));
 			FlushFileBuffers(pipe);
@@ -179,6 +263,7 @@ namespace
 				if (pipe == INVALID_HANDLE_VALUE)
 				{
 					LogFStatic(L"ASIO host: the control pipe could not be created (error %lu)", GetLastError());
+					stopServeThreads();
 					return 2;
 				}
 				OVERLAPPED overlapped = {};
@@ -209,9 +294,7 @@ namespace
 				if (stopping.load())
 					break;
 			}
-			// stopping is only set with no active stream, so nothing is
-			// being served here; a stream that arrived in between was refused
-			// with ShuttingDown.
+			stopServeThreads();
 			LogFStatic(L"ASIO host: idle for %u ms, leaving", arguments.lingerMs);
 			return 0;
 		}
