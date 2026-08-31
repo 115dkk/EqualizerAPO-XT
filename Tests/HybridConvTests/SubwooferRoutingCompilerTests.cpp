@@ -4,6 +4,7 @@
 #include "Tests/TestHarness.h"
 
 #include <cmath>
+#include <numbers>
 #include <complex>
 #include <string>
 #include <vector>
@@ -141,8 +142,7 @@ double evaluateMagnitudeDb(
 	double frequencyHz,
 	double sampleRate)
 {
-	const double pi = 3.141592653589793238462643383279502884;
-	const double omega = 2.0 * pi * frequencyHz / sampleRate;
+	const double omega = 2.0 * std::numbers::pi_v<double> * frequencyHz / sampleRate;
 	const std::complex<double> z1 = std::polar(1.0, -omega);
 	const std::complex<double> z2 = z1 * z1;
 	const std::complex<double> numerator =

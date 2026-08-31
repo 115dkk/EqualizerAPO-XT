@@ -57,10 +57,7 @@ namespace
 		unsigned long long mtime = 0;
 		int sampleRate = 0;
 
-		bool operator==(const IrCacheKey& o) const
-		{
-			return sampleRate == o.sampleRate && mtime == o.mtime && path == o.path;
-		}
+		bool operator==(const IrCacheKey&) const = default;
 	};
 
 	struct IrCacheKeyHash

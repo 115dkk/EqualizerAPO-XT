@@ -33,6 +33,7 @@
 
 #include <atomic>
 #include <cmath>
+#include <numbers>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -42,7 +43,6 @@
 
 namespace
 {
-const double pi = 3.14159265358979323846;
 
 struct Options
 {
@@ -514,7 +514,7 @@ void renderThread(RenderJob* job)
 			float* samples = reinterpret_cast<float*>(data);
 			for (UINT32 f = 0; f < frames; f++, sampleIndex++)
 			{
-				const float value = (float)(job->amplitude * std::sin(2.0 * pi * job->tone * (double)sampleIndex / (double)job->rate));
+				const float value = (float)(job->amplitude * std::sin(2.0 * std::numbers::pi_v<double> * job->tone * (double)sampleIndex / (double)job->rate));
 				for (unsigned c = 0; c < job->channels; c++)
 					samples[(size_t)f * job->channels + c] = value;
 			}
@@ -729,7 +729,7 @@ int wmain(int argc, wchar_t** argv)
 		const unsigned long long measureFrames = (unsigned long long)(o.seconds * rate);
 		std::vector<double> sumSquares(channels, 0.0);
 		unsigned long long seen = 0, counted = 0, silentPackets = 0;
-		const double coeff = 2.0 * std::cos(2.0 * pi * o.tone / (double)rate);
+		const double coeff = 2.0 * std::cos(2.0 * std::numbers::pi_v<double> * o.tone / (double)rate);
 		double s1 = 0.0, s2 = 0.0;
 		const DWORD deadline = GetTickCount() + (DWORD)((o.settle + o.seconds) * 1000.0) + 3000;
 		HRESULT captureError = S_OK;

@@ -228,7 +228,7 @@ void SubwooferRoutingRoutingAdapter::applyBassSendAssignments(
 		const std::optional<std::string> target =
 			fromWideId(assignment.targetChannel);
 		if (!target.has_value()
-			|| bassPathIds.find(*target) == bassPathIds.end())
+			|| !bassPathIds.contains(*target))
 		{
 			continue;
 		}
@@ -245,7 +245,7 @@ void SubwooferRoutingRoutingAdapter::applyBassSendAssignments(
 			const std::optional<std::string> source =
 				fromWideId(summand.channel);
 			if (!source.has_value()
-				|| groups.find(*source) == groups.end())
+				|| !groups.contains(*source))
 			{
 				continue;
 			}
@@ -401,7 +401,7 @@ void SubwooferRoutingRoutingAdapter::applyOutputAssignments(
 		const std::optional<std::string> target =
 			fromWideId(assignment.targetChannel);
 		if (!target.has_value()
-			|| physicalChannels.find(*target) == physicalChannels.end()
+			|| !physicalChannels.contains(*target)
 			|| !seenTargets.insert(*target).second)
 		{
 			continue;
@@ -418,7 +418,7 @@ void SubwooferRoutingRoutingAdapter::applyOutputAssignments(
 				assignmentFactorToDb(summand);
 
 			if (!source.has_value() || !gainDb.has_value()
-				|| pathIds.find(*source) == pathIds.end())
+				|| !pathIds.contains(*source))
 			{
 				continue;
 			}
@@ -445,7 +445,7 @@ void SubwooferRoutingRoutingAdapter::applyOutputAssignments(
 
 	for (const EditedOutput& edited : editedOutputs)
 	{
-		if (existingTargets.find(edited.target) != existingTargets.end())
+		if (existingTargets.contains(edited.target))
 			continue;
 
 		subroute::OutputMatrixEntry output;

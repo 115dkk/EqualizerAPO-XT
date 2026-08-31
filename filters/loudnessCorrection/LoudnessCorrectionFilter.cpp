@@ -24,10 +24,8 @@
 
 #include <chrono>
 
-#ifndef _USE_MATH_DEFINES
-#define _USE_MATH_DEFINES
-#endif
 #include <math.h>
+#include <numbers>
 
 LoudnessCorrectionFilter::LoudnessCorrectionFilter(const FilterParameters& fParameters)
 	: _parameters(fParameters)
@@ -250,7 +248,7 @@ void LoudnessCorrectionFilter::upDateBiquadCoefficients(CoefficientSet& target, 
 	double A;
 	A = pow(10, dbGain / 40);
 
-	double omega = 2 * M_PI * freq / _sampleRate;
+	double omega = 2 * std::numbers::pi_v<double> * freq / _sampleRate;
 	double sn = sin(omega);
 	double cs = cos(omega);
 	double alpha;

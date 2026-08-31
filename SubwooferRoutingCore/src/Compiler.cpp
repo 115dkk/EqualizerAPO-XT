@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "SubwooferRouting/Compiler.h"
+#include <numbers>
 
 #include <algorithm>
 #include <cmath>
@@ -20,7 +21,6 @@ namespace subroute
 namespace
 {
 
-constexpr double kPi = 3.141592653589793238462643383279502884;
 constexpr double kMaximumDelaySeconds = 10.0;
 
 void addDiagnostic(
@@ -348,7 +348,7 @@ BiquadCoefficients makeBiquad(
 	const BiquadFilter& filter,
 	double sampleRate)
 {
-	const double omega = 2.0 * kPi * filter.frequencyHz / sampleRate;
+	const double omega = 2.0 * std::numbers::pi_v<double> * filter.frequencyHz / sampleRate;
 	const double cosine = std::cos(omega);
 	const double sine = std::sin(omega);
 	const double amplitude = std::pow(10.0, filter.gainDb / 40.0);
@@ -589,7 +589,7 @@ std::complex<double> evaluatePathResponse(
 	double frequencyHz,
 	double sampleRate)
 {
-	const double omega = 2.0 * kPi * frequencyHz / sampleRate;
+	const double omega = 2.0 * std::numbers::pi_v<double> * frequencyHz / sampleRate;
 	std::complex<double> response(1.0, 0.0);
 
 	for (const CompiledStage& stage : path.stages)
@@ -955,8 +955,7 @@ ValidationResult validate(const SubwooferRoutingState& state)
 				path.id,
 				termPointer + "/gainLinear");
 
-			if (physicalChannelIds.find(term.inputChannelId)
-				== physicalChannelIds.end())
+			if (!physicalChannelIds.contains(term.inputChannelId))
 			{
 				addDiagnostic(
 					result,
@@ -1285,8 +1284,7 @@ ValidationResult validate(const SubwooferRoutingState& state)
 				"The output target is duplicated.");
 		}
 
-		if (physicalChannelIds.find(output.targetChannelId)
-			== physicalChannelIds.end())
+		if (!physicalChannelIds.contains(output.targetChannelId))
 		{
 			addDiagnostic(
 				result,
@@ -1334,7 +1332,7 @@ ValidationResult validate(const SubwooferRoutingState& state)
 
 			matrixReferencedPathIds.insert(term.sourcePathId);
 
-			if (pathIndices.find(term.sourcePathId) == pathIndices.end())
+			if (!pathIndices.contains(term.sourcePathId))
 			{
 				addDiagnostic(
 					result,
@@ -1388,11 +1386,9 @@ ValidationResult validate(const SubwooferRoutingState& state)
 	for (const Path& path : state.paths)
 	{
 		const bool matrixReferenced =
-			matrixReferencedPathIds.find(path.id)
-			!= matrixReferencedPathIds.end();
+			matrixReferencedPathIds.contains(path.id);
 		const bool groupReferenced =
-			groupReferencedPathIds.find(path.id)
-			!= groupReferencedPathIds.end();
+			groupReferencedPathIds.contains(path.id);
 
 		if (path.kind == PathKind::SourceLfe)
 		{
@@ -1429,15 +1425,13 @@ ValidationResult validate(const SubwooferRoutingState& state)
 		for (const std::string& pathId : group.mainPathIds)
 		{
 			used = used
-				|| matrixReferencedPathIds.find(pathId)
-					!= matrixReferencedPathIds.end();
+				|| matrixReferencedPathIds.contains(pathId);
 		}
 
 		if (group.bassPathId.has_value())
 		{
 			used = used
-				|| matrixReferencedPathIds.find(*group.bassPathId)
-					!= matrixReferencedPathIds.end();
+				|| matrixReferencedPathIds.contains(*group.bassPathId);
 		}
 
 		if (!used)
@@ -1524,7 +1518,7 @@ ValidationResult validate(
 	{
 		const std::string& channelId = state.layout.channels[channelIndex].id;
 
-		if (deviceChannelIds.find(channelId) == deviceChannelIds.end())
+		if (!deviceChannelIds.contains(channelId))
 		{
 			addDiagnostic(
 				result,

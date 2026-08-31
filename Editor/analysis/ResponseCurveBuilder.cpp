@@ -4,14 +4,12 @@
 	SPDX-License-Identifier: GPL-2.0-or-later
 */
 
-// Before anything that reaches <math.h>: M_PI is only declared when this is
-// defined at the point math.h is first processed.
-#define _USE_MATH_DEFINES
 
 #include "ResponseCurveBuilder.h"
 
 #include <algorithm>
 #include <cmath>
+#include <numbers>
 #include <limits>
 
 #include <QtGlobal>
@@ -109,10 +107,10 @@ BinSeries unwrappedPhase(const AnalysisResponse& response, bool includeLatency)
 		if (continuing)
 		{
 			const double step = raw - previousRaw;
-			if (step > M_PI)
-				offset -= 2.0 * M_PI;
-			else if (step < -M_PI)
-				offset += 2.0 * M_PI;
+			if (step > std::numbers::pi_v<double>)
+				offset -= 2.0 * std::numbers::pi_v<double>;
+			else if (step < -std::numbers::pi_v<double>)
+				offset += 2.0 * std::numbers::pi_v<double>;
 		}
 		else
 		{
@@ -123,7 +121,7 @@ BinSeries unwrappedPhase(const AnalysisResponse& response, bool includeLatency)
 		}
 		double value = raw + offset;
 		if (includeLatency)
-			value -= 2.0 * M_PI * response.frequencyOf(static_cast<size_t>(i)) * latency;
+			value -= 2.0 * std::numbers::pi_v<double> * response.frequencyOf(static_cast<size_t>(i)) * latency;
 		series.values[i] = value;
 		series.valid[i] = true;
 		previousRaw = raw;
@@ -166,7 +164,7 @@ BinSeries groupDelayMs(const AnalysisResponse& response, const BinSeries& phase)
 		if (!usable)
 			continue;
 		const double slope = (phase.values[right] - phase.values[left]) / ((right - left) * binHz);
-		series.values[i] = -slope / (2.0 * M_PI) * 1000.0;
+		series.values[i] = -slope / (2.0 * std::numbers::pi_v<double>) * 1000.0;
 		series.valid[i] = true;
 	}
 	return series;
@@ -471,7 +469,7 @@ AnalysisCurve buildAnalysisCurve(const AnalysisResponse& response, const Analysi
 		{
 			series = phase;
 			for (int i = 0; i < binCount; i++)
-				series.values[i] *= 180.0 / M_PI;
+				series.values[i] *= 180.0 / std::numbers::pi_v<double>;
 		}
 		else
 		{

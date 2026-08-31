@@ -625,8 +625,8 @@ int wmain(int argc, wchar_t** argv)
 	IASIO* target = nullptr;
 	IFakeAsioControl* control = nullptr;
 	std::wstring targetClsid = L"{B7E3A9F4-52C1-4D0B-8A6E-1F9C3D5E7B21}";
-	const bool realDriver = a.target.rfind(L"clsid:", 0) == 0;
-	const bool wasapiTarget = a.target.rfind(L"wasapi:", 0) == 0;
+	const bool realDriver = a.target.starts_with(L"clsid:");
+	const bool wasapiTarget = a.target.starts_with(L"wasapi:");
 	// A target with a device behind it: no fake control, no pump, timed run.
 	const bool liveTarget = realDriver || wasapiTarget;
 	eapo::asio::WasapiExclusiveTarget* wasapi = nullptr;
@@ -634,7 +634,7 @@ int wmain(int argc, wchar_t** argv)
 	{
 		target = new FakeAsioDriver();
 	}
-	else if (a.target.rfind(L"dll:", 0) == 0)
+	else if (a.target.starts_with(L"dll:"))
 	{
 		target = loadFromDll(a.target.substr(4), CLSID_FakeAsio, targetModule);
 	}
@@ -714,7 +714,7 @@ int wmain(int argc, wchar_t** argv)
 		staticWrapper = new AsioWrapper(target, probeWrapperClsid, targetClsid, options, std::move(processor));
 		wrapper = staticWrapper;
 	}
-	else if (a.wrapper.rfind(L"dll:", 0) == 0)
+	else if (a.wrapper.starts_with(L"dll:"))
 	{
 		wrapper = wrapThroughDll(a.wrapper.substr(4), target, targetClsid, a, wrapperModule);
 	}

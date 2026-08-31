@@ -10,6 +10,7 @@
 */
 
 #include "InstallerWindow.h"
+#include <numbers>
 
 #include <d2d1.h>
 #include <dwrite.h>
@@ -180,8 +181,8 @@ void drawSpinner(const RenderContext& ctx, D2D1_POINT_2F center, float radius,
 	brush->SetColor(kColorBarTrack);
 	ctx.target->DrawEllipse(D2D1::Ellipse(center, radius, radius), brush, 1.8f);
 
-	const float startAngle = ctx.animPhase * 2.0f * 3.14159265f;
-	const float sweep = 0.55f * 3.14159265f;
+	const float startAngle = ctx.animPhase * 2.0f * std::numbers::pi_v<float>;
+	const float sweep = 0.55f * std::numbers::pi_v<float>;
 	const D2D1_POINT_2F start = D2D1::Point2F(
 		center.x + radius * std::cos(startAngle), center.y + radius * std::sin(startAngle));
 	const D2D1_POINT_2F end = D2D1::Point2F(

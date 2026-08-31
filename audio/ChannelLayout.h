@@ -21,7 +21,6 @@
 
 #include <string>
 #include <vector>
-#include <unordered_map>
 
 class ChannelLayout
 {
@@ -29,11 +28,4 @@ public:
 	static int getDefaultChannelMask(int channelCount);
 	static std::vector<std::wstring> getChannelNames(int channelCount, int channelMask);
 	static int getChannelIndex(std::wstring word, const std::vector<std::wstring>& channelNames, bool allowAdditional = false);
-
-private:
-	ChannelLayout();
-	static ChannelLayout instance;
-
-	static std::unordered_map<std::wstring, int> channelNameToPosMap;
-	static std::unordered_map<int, std::wstring> channelPosToNameMap;
 };

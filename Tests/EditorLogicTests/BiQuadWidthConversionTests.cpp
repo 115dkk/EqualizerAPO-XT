@@ -12,9 +12,9 @@
 	filter, quiet enough to miss and large enough to hear.
 */
 
-#define _USE_MATH_DEFINES
 
 #include <cmath>
+#include <numbers>
 #include <limits>
 
 #include "Editor/guis/BiQuadWidthConversion.h"
@@ -124,7 +124,7 @@ void testBiQuadWidthModesAndDefaults()
 	// A new all-pass starts at 0.707, not at the 10 the editors used to create.
 	// Q 10 at 1 kHz concentrates about 30 ms of group delay into a narrow band,
 	// which is a strange place to start a phase correction from.
-	expectTrue(std::abs(BiQuadWidth::defaultQ(BiQuad::ALL_PASS) - M_SQRT1_2) < 1e-12,
+	expectTrue(std::abs(BiQuadWidth::defaultQ(BiQuad::ALL_PASS) - std::numbers::sqrt2_v<double> / 2.0) < 1e-12,
 		QStringLiteral("a new all-pass starts at Q 0.707"));
 	// Peaking keeps its own default: this reform does not touch it.
 	expectTrue(BiQuadWidth::defaultQ(BiQuad::PEAKING) == 10.0,

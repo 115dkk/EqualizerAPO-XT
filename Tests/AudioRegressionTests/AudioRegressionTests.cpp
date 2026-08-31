@@ -9,6 +9,7 @@
 */
 
 #include <algorithm>
+#include <numbers>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -258,7 +259,7 @@ void ensureDirectory(const std::wstring& path)
 	{
 		start = 3;
 	}
-	else if (normalized.rfind(L"\\\\", 0) == 0)
+	else if (normalized.starts_with(L"\\\\"))
 	{
 		size_t serverEnd = normalized.find(L'\\', 2);
 		if (serverEnd == std::wstring::npos)
@@ -340,7 +341,7 @@ std::vector<float> generateSignal(SignalType type, unsigned sampleRate, unsigned
 			buf[c] = 1.0f;
 		break;
 	case SignalType::Sine1k: {
-		double w = 2.0 * 3.14159265358979323846 * 1000.0 / sampleRate;
+		double w = 2.0 * std::numbers::pi_v<double> * 1000.0 / sampleRate;
 		for (unsigned i = 0; i < frames; ++i) {
 			float s = (float)std::sin(w * i);
 			for (unsigned c = 0; c < channels; ++c)

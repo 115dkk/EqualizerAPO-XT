@@ -20,8 +20,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "stdafx.h"
 #include "text/WideString.h"
 #include "parser/NumericText.h"
-#define _USE_MATH_DEFINES
 #include <cmath>
+#include <numbers>
 #include <regex>
 #include <sstream>
 
@@ -95,7 +95,7 @@ bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& paramete
 	wstring* errorOut)
 {
 	// starts-with check (rfind at position 0), the pre-C++20 idiom
-	if (command.rfind(L"Filter", 0) != 0)
+	if (!command.starts_with(L"Filter"))
 		return false;
 
 	// Collected reasons for a recognized-but-malformed line. They reach the
@@ -269,7 +269,7 @@ bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& paramete
 		}
 		else if (type == BiQuad::LOW_PASS || type == BiQuad::HIGH_PASS || type == BiQuad::BAND_PASS)
 		{
-			bandwidthOrQOrS = M_SQRT1_2;
+			bandwidthOrQOrS = std::numbers::sqrt2_v<double> / 2.0;
 		}
 		else if (type == BiQuad::LOW_SHELF || type == BiQuad::HIGH_SHELF)
 		{

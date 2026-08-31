@@ -69,17 +69,7 @@ public:
 			exclusiveModeEq = false;
 		}
 
-		bool operator!=(const InstallState& other) const
-		{
-			return installPreMix != other.installPreMix
-				|| installPostMix != other.installPostMix
-				|| useOriginalAPOPreMix != other.useOriginalAPOPreMix
-				|| useOriginalAPOPostMix != other.useOriginalAPOPostMix
-				|| autoAdjust != other.autoAdjust
-				|| installMode != other.installMode
-				|| allowSilentBufferModification != other.allowSilentBufferModification
-				|| exclusiveModeEq != other.exclusiveModeEq;
-		}
+		bool operator==(const InstallState&) const = default;
 	};
 
 	// Every registry access this class makes goes through the injected port. The

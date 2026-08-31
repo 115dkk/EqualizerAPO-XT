@@ -26,6 +26,7 @@
 #include <QLinearGradient>
 #include <QPainterPath>
 #include <QtMath>
+#include <numbers>
 
 #include "Editor/skins/shared/SkinPaint.h"
 
@@ -288,7 +289,7 @@ public:
 		{
 			const double bandW = slab.width() * 0.32;
 			const double bandX = slab.left() - bandW + s.hover * (slab.width() + 2.0 * bandW);
-			const int gleam = qRound(qSin(M_PI * s.hover) * (dark ? 30 : 16));
+			const int gleam = qRound(qSin(std::numbers::pi_v<double> * s.hover) * (dark ? 30 : 16));
 			const QColor ray = dark ? QColor(255, 255, 255) : accent;
 			QLinearGradient sweep(QPointF(bandX - bandW * 0.5, slab.top()), QPointF(bandX + bandW * 0.5, slab.bottom()));
 			sweep.setColorAt(0.0, withAlpha(ray, 0));

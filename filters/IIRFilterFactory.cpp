@@ -20,7 +20,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "stdafx.h"
 #include "text/WideString.h"
 #include "parser/NumericText.h"
-#define _USE_MATH_DEFINES
 #include <cmath>
 #include <regex>
 #include <sstream>
@@ -66,7 +65,7 @@ bool IIRFilterFactory::parseCommand(const wstring& command, const wstring& param
 	};
 
 	// starts-with check (rfind at position 0), the pre-C++20 idiom
-	if (command.rfind(L"Filter", 0) != 0)
+	if (!command.starts_with(L"Filter"))
 		return false;
 
 	wsmatch match;

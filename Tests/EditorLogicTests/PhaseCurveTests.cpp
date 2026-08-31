@@ -15,9 +15,9 @@
 */
 
 // Before anything that reaches <math.h>.
-#define _USE_MATH_DEFINES
 
 #include <cmath>
+#include <numbers>
 #include <complex>
 #include <limits>
 #include <memory>
@@ -58,7 +58,7 @@ std::shared_ptr<AnalysisResponse> biquadResponse(BiQuad::Type type, double freq,
 	auto response = emptyResponse();
 	for (size_t i = 0; i < response->bins.size(); i++)
 	{
-		const double omega = 2.0 * M_PI * response->frequencyOf(i) / SampleRate;
+		const double omega = 2.0 * std::numbers::pi_v<double> * response->frequencyOf(i) / SampleRate;
 		const std::complex<double> z1 = std::polar(1.0, -omega);
 		const std::complex<double> z2 = z1 * z1;
 		response->bins[i] = (b0 + b1 * z1 + b2 * z2) / (1.0 + a1 * z1 + a2 * z2);
@@ -218,7 +218,7 @@ void testPhaseAndGroupDelayOfAnAllPass()
 	const double widePeak = valueNearest(wide, request, 1000.0);
 	const double sharpPeak = valueNearest(sharp, request, 1000.0);
 	// 4Q / sin(w0) samples at Fc, converted to milliseconds.
-	const double omega0 = 2.0 * M_PI * 1000.0 / SampleRate;
+	const double omega0 = 2.0 * std::numbers::pi_v<double> * 1000.0 / SampleRate;
 	const double expectedWide = 4.0 * 0.707 / std::sin(omega0) / SampleRate * 1000.0;
 	expectTrue(std::abs(widePeak - expectedWide) < expectedWide * 0.02,
 		QStringLiteral("group delay at Fc matches 4Q/sin(w0) (expected %1 ms, got %2 ms)")

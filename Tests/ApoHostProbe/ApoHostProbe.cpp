@@ -35,6 +35,7 @@
 #include <audiomediatype.h>
 
 #include <cmath>
+#include <numbers>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -45,7 +46,6 @@
 
 namespace
 {
-const double pi = 3.14159265358979323846;
 
 struct Options
 {
@@ -316,7 +316,7 @@ int run(const Options& o, IAudioProcessingObjectRT* rt,
 	{
 		for (unsigned f = 0; f < o.frames; f++, sampleIndex++)
 		{
-			const double value = o.amplitude * std::sin(2.0 * pi * o.tone * (double)sampleIndex / (double)o.sampleRate);
+			const double value = o.amplitude * std::sin(2.0 * std::numbers::pi_v<double> * o.tone * (double)sampleIndex / (double)o.sampleRate);
 			for (unsigned c = 0; c < o.inputChannels; c++)
 				input[(size_t)f * o.inputChannels + c] = (SampleT)value;
 		}

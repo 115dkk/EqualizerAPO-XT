@@ -1052,7 +1052,7 @@ private:
 				return false;
 			}
 
-			const bool duplicate = object.find(key) != object.end();
+			const bool duplicate = object.contains(key);
 
 			skipWhitespace();
 			if (offset_ == text_.size())

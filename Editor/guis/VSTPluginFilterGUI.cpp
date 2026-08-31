@@ -44,13 +44,10 @@
 #include "VSTPluginFilterGUI.h"
 #include "ui_VSTPluginFilterGUI.h"
 
-using std::bind;
 using std::replace;
 using std::string;
 using std::unordered_map;
 using std::wstring;
-using std::placeholders::_1;
-using std::placeholders::_2;
 
 VSTPluginFilterGUI::VSTPluginFilterGUI(std::shared_ptr<VSTPluginLibrary> library, const std::wstring& chunkData, const std::unordered_map<std::wstring, float>& paramMap,
 	bool stereoInput, const std::optional<VST3BusContract>& busContract,
@@ -440,7 +437,7 @@ void VSTPluginFilterGUI::initPlugin()
 			if (effect->initialize())
 			{
 				effect->setLanguage(QLocale().language() == QLocale::German ? 2 : 1);
-				effect->setAutomateFunc(bind(&VSTPluginFilterGUI::onAutomate, this));
+				effect->setAutomateFunc([this]() { onAutomate(); });
 
 				color = Qt::black;
 				text = QString::fromStdWString(effect->getName());
@@ -551,7 +548,7 @@ void VSTPluginFilterGUI::on_embedAction_toggled(bool checked)
 
 			if (embedPlugin())
 			{
-				effect->setSizeWindowFunc(bind(&VSTPluginFilterGUI::onSizeWindow, this, _1, _2));
+				effect->setSizeWindowFunc([this](int width, int height) { onSizeWindow(width, height); });
 				connect(QAbstractEventDispatcher::instance(), SIGNAL(aboutToBlock()), SLOT(on_idle()));
 			}
 			else

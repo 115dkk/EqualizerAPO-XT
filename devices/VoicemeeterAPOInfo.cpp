@@ -79,7 +79,7 @@ void VoicemeeterAPOInfo::prependInfos(vector<shared_ptr<AbstractAPOInfo>>& list,
 			outputCount = 1;
 
 		bool defaultDevice = false;
-		list.erase(remove_if(list.begin(), list.end(), [&defaultDevice](const shared_ptr<AbstractAPOInfo>& info) {
+		std::erase_if(list, [&defaultDevice](const shared_ptr<AbstractAPOInfo>& info) {
 			if (info->getDeviceName().find(L"VB-Audio VoiceMeeter") != wstring::npos)
 			{
 				if (info->isDefaultDevice())
@@ -89,7 +89,7 @@ void VoicemeeterAPOInfo::prependInfos(vector<shared_ptr<AbstractAPOInfo>>& list,
 			}
 
 			return false;
-			}), list.end());
+			});
 
 		bool anyInstalled = false;
 		for (unsigned i = 0; i < outputCount; i++)
