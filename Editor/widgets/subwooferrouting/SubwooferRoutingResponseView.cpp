@@ -17,6 +17,7 @@
 */
 
 #include "SubwooferRoutingResponseView.h"
+#include <numbers>
 
 #include <algorithm>
 #include <cmath>
@@ -63,7 +64,7 @@ double biquadMagnitude(
 	double sampleRate)
 {
 	const double omega =
-		2.0 * 3.14159265358979323846 * frequencyHz / sampleRate;
+		2.0 * std::numbers::pi_v<double> * frequencyHz / sampleRate;
 	const std::complex<double> z1 =
 		std::exp(std::complex<double>(0.0, -omega));
 	const std::complex<double> z2 = z1 * z1;

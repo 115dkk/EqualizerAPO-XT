@@ -149,9 +149,9 @@ void FilterListModel::removeItems(const QSet<FilterListItem*>& itemsToRemove)
 	selectedSet.swap(newSelectedSet);
 	focusedItem = newFocusedItem;
 	selectionStartItem = newSelectionStartItem;
-	ownedItems.erase(std::remove_if(ownedItems.begin(), ownedItems.end(), [&itemsToRemove](const auto& ownedItem) {
+	std::erase_if(ownedItems, [&itemsToRemove](const auto& ownedItem) {
 		return itemsToRemove.contains(ownedItem.get());
-	}), ownedItems.end());
+	});
 }
 
 QList<FilterListItem*> FilterListModel::insertLines(const QStringList& lines, const QList<QVariantMap>& prefsList, int dropRow)
@@ -281,9 +281,9 @@ void FilterListModel::deleteSelected()
 	itemList.swap(newItemList);
 	focusedItem = newFocusedItem;
 	selectionStartItem = newSelectionStartItem;
-	ownedItems.erase(std::remove_if(ownedItems.begin(), ownedItems.end(), [&removedItems](const auto& ownedItem) {
+	std::erase_if(ownedItems, [&removedItems](const auto& ownedItem) {
 		return removedItems.contains(ownedItem.get());
-	}), ownedItems.end());
+	});
 }
 
 void FilterListModel::selectOnly(FilterListItem* item)

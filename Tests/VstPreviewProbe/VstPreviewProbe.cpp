@@ -41,6 +41,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <numbers>
 #include <mmdeviceapi.h>
 #include <Audioclient.h>
 #include <mmreg.h>
@@ -177,7 +178,7 @@ int runPluginProbe(const std::wstring& pluginPath, double seconds, float sampleR
 			for (int i = 0; i < blockFrames; i++)
 			{
 				const double sample = sineAmplitude
-					* std::sin(2.0 * 3.14159265358979323846 * sineFrequency * (position + i) / sampleRate);
+					* std::sin(2.0 * std::numbers::pi_v<double> * sineFrequency * (position + i) / sampleRate);
 				if (useDouble)
 					inputDouble[channel][i] = sample;
 				else
@@ -356,9 +357,9 @@ int runLoopbackProbe(double seconds)
 						// level meters settle into a motionless reading, and
 						// the panel-feed A/B keys on meter movement.
 						const double t = (renderedFrames + i) / sampleRate;
-						const double envelope = std::pow(std::sin(2.0 * 3.14159265358979323846 * 1.5 * t / 2.0), 2.0);
+						const double envelope = std::pow(std::sin(2.0 * std::numbers::pi_v<double> * 1.5 * t / 2.0), 2.0);
 						const float value = static_cast<float>(sineAmplitude * envelope
-							* std::sin(2.0 * 3.14159265358979323846 * sineFrequency * t));
+							* std::sin(2.0 * std::numbers::pi_v<double> * sineFrequency * t));
 						for (UINT32 channel = 0; channel < channelCount; channel++)
 							samples[i * channelCount + channel] = value;
 					}

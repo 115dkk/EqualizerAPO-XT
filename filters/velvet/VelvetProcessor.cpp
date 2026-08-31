@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "stdafx.h"
+#include <numbers>
 #include "VelvetProcessor.h"
 
 #include <algorithm>
@@ -31,7 +32,6 @@ namespace velvet
 {
 namespace
 {
-constexpr double Pi = 3.1415926535897932384626433832795;
 
 std::uint64_t splitMix64(std::uint64_t& state) noexcept
 {
@@ -172,8 +172,8 @@ void Processor::processTyped(Sample* const* output, const Sample* const* input,
 		double newWeight = 0.0;
 		if (transitioning)
 		{
-			const double phase = transitionSamples <= 1 ? Pi * 0.5
-				: Pi * 0.5 * static_cast<double>(transitionPosition)
+			const double phase = transitionSamples <= 1 ? std::numbers::pi_v<double> * 0.5
+				: std::numbers::pi_v<double> * 0.5 * static_cast<double>(transitionPosition)
 					/ static_cast<double>(transitionSamples - 1);
 			oldWeight = std::cos(phase);
 			newWeight = std::sin(phase);

@@ -30,8 +30,8 @@
 #include <fstream>
 #include <algorithm>
 #include <numeric>
-#define _USE_MATH_DEFINES
 #include <cmath>
+#include <numbers>
 #include <string>
 #include <vector>
 #include <tclap/CmdLine.h>
@@ -155,7 +155,7 @@ int main(int argc, char** argv)
 			for (unsigned i = 0; i < frameCount; i++)
 			{
 				double t = i * 1.0 / sampleRate;
-				float s = static_cast<float>(sin(((sweepFrom + sweepDiff * (t / length) / 2) * t) * 2 * M_PI));
+				float s = static_cast<float>(sin(((sweepFrom + sweepDiff * (t / length) / 2) * t) * 2 * std::numbers::pi_v<double>));
 
 				for (unsigned j = 0; j < channelCount; j++)
 					buf[i * channelCount + j] = s;

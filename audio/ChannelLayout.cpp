@@ -19,6 +19,9 @@
 
 #include "stdafx.h"
 #include <algorithm>
+#include <array>
+#include <string_view>
+#include <utility>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <Ks.h>
@@ -29,29 +32,22 @@
 
 using std::find;
 using std::to_wstring;
-using std::unordered_map;
 using std::vector;
 using std::wstring;
 
-unordered_map<wstring, int> ChannelLayout::channelNameToPosMap;
-unordered_map<int, wstring> ChannelLayout::channelPosToNameMap;
-// must come last, so that the static members are already initialized
-ChannelLayout ChannelLayout::instance;
-
-ChannelLayout::ChannelLayout()
+namespace
 {
-	channelNameToPosMap[L"L"] = SPEAKER_FRONT_LEFT;
-	channelNameToPosMap[L"R"] = SPEAKER_FRONT_RIGHT;
-	channelNameToPosMap[L"C"] = SPEAKER_FRONT_CENTER;
-	channelNameToPosMap[L"LFE"] = SPEAKER_LOW_FREQUENCY;
-	channelNameToPosMap[L"RL"] = SPEAKER_BACK_LEFT;
-	channelNameToPosMap[L"RR"] = SPEAKER_BACK_RIGHT;
-	channelNameToPosMap[L"RC"] = SPEAKER_BACK_CENTER;
-	channelNameToPosMap[L"SL"] = SPEAKER_SIDE_LEFT;
-	channelNameToPosMap[L"SR"] = SPEAKER_SIDE_RIGHT;
-
-	for (unordered_map<wstring, int>::iterator it = channelNameToPosMap.begin(); it != channelNameToPosMap.end(); it++)
-		channelPosToNameMap[it->second] = it->first;
+	constexpr std::array<std::pair<std::wstring_view, int>, 9> channelPositions{
+		std::pair{ std::wstring_view{ L"L" }, SPEAKER_FRONT_LEFT },
+		std::pair{ std::wstring_view{ L"R" }, SPEAKER_FRONT_RIGHT },
+		std::pair{ std::wstring_view{ L"C" }, SPEAKER_FRONT_CENTER },
+		std::pair{ std::wstring_view{ L"LFE" }, SPEAKER_LOW_FREQUENCY },
+		std::pair{ std::wstring_view{ L"RL" }, SPEAKER_BACK_LEFT },
+		std::pair{ std::wstring_view{ L"RR" }, SPEAKER_BACK_RIGHT },
+		std::pair{ std::wstring_view{ L"RC" }, SPEAKER_BACK_CENTER },
+		std::pair{ std::wstring_view{ L"SL" }, SPEAKER_SIDE_LEFT },
+		std::pair{ std::wstring_view{ L"SR" }, SPEAKER_SIDE_RIGHT }
+	};
 }
 
 int ChannelLayout::getDefaultChannelMask(int channelCount)
@@ -92,9 +88,10 @@ vector<wstring> ChannelLayout::getChannelNames(int channelCount, int channelMask
 		int channelPos = 1 << i;
 		if (channelMask & channelPos)
 		{
-			auto it = channelPosToNameMap.find(channelPos);
-			if (it != channelPosToNameMap.end())
-				channelNames.push_back(it->second);
+			auto it = std::find_if(channelPositions.begin(), channelPositions.end(),
+				[channelPos](const auto& entry) { return entry.second == channelPos; });
+			if (it != channelPositions.end())
+				channelNames.emplace_back(it->first.data(), it->first.size());
 			else
 				channelNames.push_back(to_wstring((unsigned long long)c));
 			c++;

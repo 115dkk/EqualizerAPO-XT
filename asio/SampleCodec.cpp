@@ -6,6 +6,7 @@
 
 #include "asio/SampleCodec.h"
 
+#include <bit>
 #include <cmath>
 #include <cstring>
 
@@ -171,7 +172,7 @@ namespace eapo::asio
 			for (unsigned i = 0; i < count; i++)
 			{
 				uint32_t raw = swap32(in[i]);
-				std::memcpy(&destination[i], &raw, sizeof(float));
+				destination[i] = std::bit_cast<float>(raw);
 			}
 		}
 
@@ -186,8 +187,7 @@ namespace eapo::asio
 			uint32_t* out = static_cast<uint32_t*>(destination);
 			for (unsigned i = 0; i < count; i++)
 			{
-				uint32_t raw;
-				std::memcpy(&raw, &source[i], sizeof(float));
+				uint32_t raw = std::bit_cast<uint32_t>(source[i]);
 				out[i] = swap32(raw);
 			}
 		}
@@ -201,8 +201,7 @@ namespace eapo::asio
 				uint64_t raw = in[i];
 				if (bigEndian)
 					raw = swap64(raw);
-				double value;
-				std::memcpy(&value, &raw, sizeof(double));
+				double value = std::bit_cast<double>(raw);
 				destination[i] = static_cast<float>(value);
 			}
 		}
@@ -214,8 +213,7 @@ namespace eapo::asio
 			for (unsigned i = 0; i < count; i++)
 			{
 				double value = source[i];
-				uint64_t raw;
-				std::memcpy(&raw, &value, sizeof(double));
+				uint64_t raw = std::bit_cast<uint64_t>(value);
 				out[i] = bigEndian ? swap64(raw) : raw;
 			}
 		}

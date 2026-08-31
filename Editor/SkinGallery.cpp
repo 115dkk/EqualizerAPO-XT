@@ -5,6 +5,7 @@
 */
 
 #include "SkinGallery.h"
+#include <numbers>
 // For the two gates moved out of main.cpp (audit #275 B7): the VST
 // round-trip self test and the analysis layout probe.
 #include <optional>
@@ -767,11 +768,6 @@ std::shared_ptr<const AnalysisResponse> galleryAnalysisResponse()
 // coefficients. Flat in magnitude by construction, so it is the fixture that
 // makes the phase and group-delay shots show something a magnitude plot cannot:
 // a full turn of phase around 1 kHz and a delay peak sitting on it.
-// Spelled out rather than reached for through M_PI, which only exists when
-// _USE_MATH_DEFINES was defined before the first header that pulls math.h in -
-// an ordering constraint no translation unit this large should have to keep.
-constexpr double Pi = 3.14159265358979323846;
-
 std::shared_ptr<const AnalysisResponse> galleryAllPassResponse()
 {
 	auto response = std::make_shared<AnalysisResponse>();
@@ -785,7 +781,7 @@ std::shared_ptr<const AnalysisResponse> galleryAllPassResponse()
 	biquad.getCoefficients(packed, b0);
 	for (size_t i = 0; i < response->bins.size(); i++)
 	{
-		const double omega = 2.0 * Pi * response->frequencyOf(i) / response->sampleRate;
+		const double omega = 2.0 * std::numbers::pi_v<double> * response->frequencyOf(i) / response->sampleRate;
 		const std::complex<double> z1 = std::polar(1.0, -omega);
 		const std::complex<double> z2 = z1 * z1;
 		response->bins[i] = (b0 + packed[0] * z1 + packed[1] * z2)

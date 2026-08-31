@@ -18,8 +18,8 @@
 */
 
 #include "stdafx.h"
-#define _USE_MATH_DEFINES
 #include <cmath>
+#include <numbers>
 #include <limits>
 #include <memory>
 #include <mutex>
@@ -55,17 +55,7 @@ namespace
 		int sampleRate = 0;
 		unsigned filterLength = 0;
 
-		bool operator==(const EqIrCacheKey& o) const
-		{
-			if (sampleRate != o.sampleRate || filterLength != o.filterLength) return false;
-			if (nodes.size() != o.nodes.size()) return false;
-			for (size_t i = 0; i < nodes.size(); ++i)
-			{
-				if (nodes[i].freq != o.nodes[i].freq || nodes[i].dbGain != o.nodes[i].dbGain)
-					return false;
-			}
-			return true;
-		}
+		bool operator==(const EqIrCacheKey&) const = default;
 	};
 
 	struct EqIrCacheKeyHash
@@ -150,7 +140,7 @@ void GraphicEQFilter::initializeFilters(unsigned frameCount)
 
 		for (unsigned i = 0; i < filterLength; i++)
 		{
-			double factor = 0.5 * (1 + cos(2 * M_PI * i * 1.0 / (2 * filterLength)));
+			double factor = 0.5 * (1 + cos(2 * std::numbers::pi_v<double> * i * 1.0 / (2 * filterLength)));
 			timeData.get()[i][0] *= factor;
 			timeData.get()[i][1] *= factor;
 		}

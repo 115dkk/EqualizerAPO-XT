@@ -10,6 +10,7 @@
 */
 
 #include <algorithm>
+#include <numbers>
 #include <cmath>
 #include <complex>
 #include <cstddef>
@@ -26,7 +27,6 @@
 
 namespace
 {
-constexpr double Pi = 3.1415926535897932384626433832795;
 test::Harness harness("HilbertVelvetTests");
 
 std::complex<double> responseAt(const std::vector<double>& taps, double omega)
@@ -91,8 +91,8 @@ void testHilbertFirContract()
 	harness.expectTrue(maximumDirectionError < 1.0e-14,
 		"the two phase directions are exact sign inverses");
 
-	const std::complex<double> minusMid = responseAt(minus, Pi * 0.5);
-	const std::complex<double> plusMid = responseAt(plus, Pi * 0.5);
+	const std::complex<double> minusMid = responseAt(minus, std::numbers::pi_v<double> * 0.5);
+	const std::complex<double> plusMid = responseAt(plus, std::numbers::pi_v<double> * 0.5);
 	harness.expectTrue(std::abs(std::abs(minusMid) - 1.0) < 1.0e-12,
 		"Hilbert mid-band magnitude is normalized to 0 dB");
 	harness.expectTrue(minusMid.imag() < -0.999999999

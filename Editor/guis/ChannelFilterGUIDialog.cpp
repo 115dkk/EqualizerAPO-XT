@@ -87,7 +87,7 @@ ChannelFilterGUIDialog::ChannelFilterGUIDialog(QWidget* parent, const QStringLis
 		{
 			channelIndex++;
 			bool checked = false;
-			remainingChannelNames.erase(remove(remainingChannelNames.begin(), remainingChannelNames.end(), channelName.toStdWString()), remainingChannelNames.end());
+			std::erase(remainingChannelNames, channelName.toStdWString());
 			if (remainingSelectedChannels.removeOne(channelName))
 				checked = true;
 			else if (channelName == "LFE" && remainingSelectedChannels.removeOne("SUB"))

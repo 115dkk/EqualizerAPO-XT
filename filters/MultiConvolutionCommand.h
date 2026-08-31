@@ -59,10 +59,7 @@ struct MultiConvolutionCommand
 		IrChannelRef(unsigned channel = 0, double factor = 1.0, bool isDecibel = false)
 			: channel(channel), factor(factor), isDecibel(isDecibel) {}
 
-		bool operator==(const IrChannelRef& other) const
-		{
-			return channel == other.channel && factor == other.factor && isDecibel == other.isDecibel;
-		}
+		bool operator==(const IrChannelRef&) const = default;
 	};
 
 	struct Mapping

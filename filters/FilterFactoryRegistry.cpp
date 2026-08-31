@@ -87,7 +87,7 @@ wstring FilterFactoryRegistry::canonicalCommand(const wstring& key)
 	// prefix here rather than comparing the first token is what keeps this
 	// function honest about what the engine will actually run.
 	static const wstring filterPrefix = L"Filter";
-	if (trimmedKey.rfind(filterPrefix, 0) == 0 && knownConfigCommands().count(filterPrefix) != 0)
+	if (trimmedKey.starts_with(filterPrefix) && knownConfigCommands().count(filterPrefix) != 0)
 		return filterPrefix;
 
 	// Every other factory compares the whole key for equality, so a trailing

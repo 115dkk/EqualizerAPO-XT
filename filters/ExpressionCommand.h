@@ -50,10 +50,7 @@ struct InlineExpression
 		// Literal text with escapes resolved, or the expression body.
 		std::wstring text;
 
-		bool operator==(const Segment& other) const
-		{
-			return isExpression == other.isExpression && text == other.text;
-		}
+		bool operator==(const Segment&) const = default;
 	};
 
 	// Splits parameters into segments: "\`" yields a literal backtick (the

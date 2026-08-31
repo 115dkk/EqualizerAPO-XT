@@ -18,6 +18,7 @@
 */
 
 #include "stdafx.h"
+#include <numbers>
 #include "BiQuad.h"
 
 using std::log10;
@@ -31,7 +32,7 @@ BiQuad::BiQuad(Type type, double dbGain, double freq, double srate, double bandw
 		A = pow(10, dbGain / 40);
 	else
 		A = pow(10, dbGain / 20);
-	double omega = 2 * M_PI * freq / srate;
+	double omega = 2 * std::numbers::pi_v<double> * freq / srate;
 	double sn = sin(omega);
 	double cs = cos(omega);
 	double alpha;
@@ -41,7 +42,7 @@ BiQuad::BiQuad(Type type, double dbGain, double freq, double srate, double bandw
 	else if (type == LOW_SHELF || type == HIGH_SHELF) // S
 		alpha = sn / 2 * sqrt((A + 1 / A) * (1 / bandwidthOrQOrS - 1) + 2);
 	else // BW
-		alpha = sn * sinh(M_LN2 / 2 * bandwidthOrQOrS * omega / sn);
+		alpha = sn * sinh(std::numbers::ln2_v<double> / 2 * bandwidthOrQOrS * omega / sn);
 
 	double beta = 2 * sqrt(A) * alpha;
 
@@ -105,7 +106,7 @@ BiQuad::BiQuad(Type type, double dbGain, double freq, double srate, double bandw
 		// z = -c is inside the unit circle. At the very edges the pole reaches
 		// it, which is the same boundary behaviour every 2nd-order section
 		// here already has.
-		double K = tan(M_PI * freq / srate);
+		double K = tan(std::numbers::pi_v<double> * freq / srate);
 		double c = (K - 1) / (K + 1);
 		b0 = c;
 		b1 = 1;
@@ -155,7 +156,7 @@ BiQuad::BiQuad(Type type, double dbGain, double freq, double srate, double bandw
 
 double BiQuad::gainAt(double freq, double srate)
 {
-	double omega = 2 * M_PI * freq / srate;
+	double omega = 2 * std::numbers::pi_v<double> * freq / srate;
 	double sn = sin(omega / 2.0);
 	double phi = sn * sn;
 	double b0 = this->a0;

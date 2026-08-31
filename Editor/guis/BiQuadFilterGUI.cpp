@@ -17,8 +17,8 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#define _USE_MATH_DEFINES
 #include <cmath>
+#include <numbers>
 #include <QStandardItemModel>
 
 #include "Editor/guis/BiQuadWidthConversion.h"
@@ -82,7 +82,7 @@ BiQuadFilterGUI::BiQuadFilterGUI(const BiQuadCommand& command)
 	if (type == BiQuad::PEAKING)
 		ui->qComboBox->setCurrentIndex(command.isBandwidthOrS ? 1 : 0);
 	else if (type == BiQuad::LOW_PASS || type == BiQuad::HIGH_PASS || type == BiQuad::BAND_PASS)
-		ui->qComboBox->setCurrentIndex(command.bandwidthOrQOrS == M_SQRT1_2 ? 0 : 1);
+		ui->qComboBox->setCurrentIndex(command.bandwidthOrQOrS == std::numbers::sqrt2_v<double> / 2.0 ? 0 : 1);
 	else if ((type == BiQuad::LOW_SHELF || type == BiQuad::HIGH_SHELF))
 		ui->qComboBox->setCurrentIndex(command.isBandwidthOrS ? (command.bandwidthOrQOrS == 0.9 || command.isCornerFreq ? 0 : 1) : (command.isCornerFreq ? 1 : 2));
 	else if (type == BiQuad::NOTCH)
@@ -334,7 +334,7 @@ void BiQuadFilterGUI::on_qComboBox_currentIndexChanged(int index)
 	{
 		BiQuad::Type type = (BiQuad::Type)ui->typeComboBox->currentData().toInt();
 		if (type == BiQuad::LOW_PASS || type == BiQuad::HIGH_PASS || type == BiQuad::BAND_PASS)
-			ui->qSpinBox->setValue(M_SQRT1_2);
+			ui->qSpinBox->setValue(std::numbers::sqrt2_v<double> / 2.0);
 		else if (type == BiQuad::LOW_SHELF || type == BiQuad::HIGH_SHELF)
 			ui->qSpinBox->setValue(0.9);
 		else if (type == BiQuad::NOTCH)

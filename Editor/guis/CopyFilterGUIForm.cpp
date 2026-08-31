@@ -193,9 +193,9 @@ vector<Assignment> CopyFilterGUIForm::buildAssignments(QWidget* pressedButton)
 	}
 
 	// remove empty assignments (can be caused by remove button)
-	assignments.erase(remove_if(assignments.begin(), assignments.end(), [](Assignment assignment) {
+	std::erase_if(assignments, [](Assignment assignment) {
 		return assignment.sourceSum.empty();
-	}), assignments.end());
+	});
 
 	return assignments;
 }

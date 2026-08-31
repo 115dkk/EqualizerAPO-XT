@@ -21,10 +21,6 @@
 #include "VSTPluginFilterGUIDialog.h"
 #include "ui_VSTPluginFilterGUIDialog.h"
 
-using std::bind;
-using std::placeholders::_1;
-using std::placeholders::_2;
-
 VSTPluginFilterGUIDialog::VSTPluginFilterGUIDialog(QWidget* parent, VSTPluginInstance* effect, bool autoApply)
 	: QDialog(parent, Qt::WindowCloseButtonHint),
 	ui(std::make_unique<Ui::VSTPluginFilterGUIDialog>()),
@@ -46,7 +42,7 @@ VSTPluginFilterGUIDialog::VSTPluginFilterGUIDialog(QWidget* parent, VSTPluginIns
 	effect->startEditing(hwnd, &width, &height, scaleFactor);
 
 	ui->frame->setFixedSize(width, height);
-	effect->setSizeWindowFunc(bind(&VSTPluginFilterGUIDialog::onSizeWindow, this, _1, _2));
+	effect->setSizeWindowFunc([this](int width, int height) { onSizeWindow(width, height); });
 }
 
 VSTPluginFilterGUIDialog::~VSTPluginFilterGUIDialog()

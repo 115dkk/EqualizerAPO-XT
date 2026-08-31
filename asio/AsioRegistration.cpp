@@ -54,7 +54,7 @@ namespace eapo::asio
 		bool isWrapperEntry(const std::wstring& entryName)
 		{
 			const std::wstring tail(suffix);
-			return entryName.size() >= tail.size() && entryName.compare(entryName.size() - tail.size(), tail.size(), tail) == 0;
+			return entryName.ends_with(tail);
 		}
 
 		std::wstring wrapperClsidFor(const std::wstring& targetClsid)

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "SubwooferRouting/Crossover.h"
+#include <numbers>
 
 #include <algorithm>
 #include <cmath>
@@ -12,7 +13,6 @@ namespace subroute
 namespace
 {
 
-constexpr double kPi = 3.14159265358979323846;
 
 // Relative tolerance for recognizing written values ("0.707", "80") as the
 // exact alignment constants.
@@ -35,7 +35,7 @@ std::vector<double> butterworthQs(int order)
 	for (int k = 0; k < order / 2; ++k)
 	{
 		const double theta =
-			kPi * (2.0 * k + 1.0) / (2.0 * order);
+			std::numbers::pi_v<double> * (2.0 * k + 1.0) / (2.0 * order);
 		result.push_back(1.0 / (2.0 * std::cos(theta)));
 	}
 	return result;

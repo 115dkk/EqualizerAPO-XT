@@ -32,8 +32,7 @@ bool suffixNumber(const std::wstring& source, const std::wstring& suffix,
 	const std::wstring lower = text::toLower(text);
 	if (!suffix.empty())
 	{
-		if (lower.size() < suffix.size()
-			|| lower.substr(lower.size() - suffix.size()) != suffix)
+		if (!lower.ends_with(suffix))
 			return false;
 		text.resize(text.size() - suffix.size());
 	}

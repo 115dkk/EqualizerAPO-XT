@@ -5,6 +5,7 @@
 */
 
 #include "stdafx.h"
+#include <numbers>
 #include "HilbertFilter.h"
 
 #include <algorithm>
@@ -25,7 +26,6 @@ ConvolverMuteDiagnostics muteDiagnostics;
 
 namespace
 {
-constexpr double Pi = 3.1415926535897932384626433832795;
 
 double besselI0(double value)
 {
@@ -83,7 +83,7 @@ std::vector<double> designHilbertFir(int directionDegrees)
 		const double window = besselI0(beta
 			* std::sqrt(std::max(0.0, 1.0 - position * position)))
 			/ denominator;
-		taps[n] = sign * 2.0 * window / (Pi * static_cast<double>(k));
+		taps[n] = sign * 2.0 * window / (std::numbers::pi_v<double> * static_cast<double>(k));
 	}
 
 	// Pin the mid-band gain to unity. Windowing changes it by a small amount;
@@ -91,7 +91,7 @@ std::vector<double> designHilbertFir(int directionDegrees)
 	std::complex<double> response;
 	for (size_t n = 0; n < taps.size(); ++n)
 		response += taps[n] * std::exp(std::complex<double>(
-			0.0, -Pi * 0.5 * static_cast<double>(n)));
+			0.0, -std::numbers::pi_v<double> * 0.5 * static_cast<double>(n)));
 	const double gain = std::abs(response);
 	if (gain > 0.0)
 		for (double& tap : taps)
@@ -124,10 +124,9 @@ std::vector<std::wstring> HilbertFilter::initialize(float sampleRate,
 
 	// Aliases can resolve two different spellings to one physical channel.
 	// The phase-shifted role wins and the duplicate aligned role is dropped.
-	aligned.erase(std::remove_if(aligned.begin(), aligned.end(),
-		[this](int index) {
+	std::erase_if(aligned, [this](int index) {
 			return std::find(shifted.begin(), shifted.end(), index) != shifted.end();
-		}), aligned.end());
+		});
 
 	coefficients = designHilbertFir(command.directionDegrees);
 	if (!shifted.empty())

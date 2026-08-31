@@ -32,12 +32,8 @@
 	it, on the same shared function the new card calls.
 */
 
-// Before any header that reaches <math.h>: M_PI and M_SQRT2 are only declared
-// when this is defined at the point math.h is first processed, and <complex>
-// gets there on its own.
-#define _USE_MATH_DEFINES
-
 #include <cmath>
+#include <numbers>
 #include <complex>
 #include <cstring>
 #include <sstream>
@@ -83,7 +79,7 @@ BiQuad makeAllPass(double freq, double srate, double widthValue, bool isBandwidt
 
 std::complex<double> responseAt(const Coefficients& c, double freq, double srate)
 {
-	const double omega = 2.0 * M_PI * freq / srate;
+	const double omega = 2.0 * std::numbers::pi_v<double> * freq / srate;
 	const std::complex<double> z1 = std::polar(1.0, -omega);
 	const std::complex<double> z2 = z1 * z1;
 	return (c.b0 + c.b1 * z1 + c.b2 * z2) / (1.0 + c.a1 * z1 + c.a2 * z2);
@@ -91,7 +87,7 @@ std::complex<double> responseAt(const Coefficients& c, double freq, double srate
 
 double phaseDegreesAt(const Coefficients& c, double freq, double srate)
 {
-	return std::arg(responseAt(c, freq, srate)) * 180.0 / M_PI;
+	return std::arg(responseAt(c, freq, srate)) * 180.0 / std::numbers::pi_v<double>;
 }
 
 // Group delay in samples, differentiated in closed form.
@@ -110,7 +106,7 @@ double phaseDegreesAt(const Coefficients& c, double freq, double srate)
 double groupDelaySamplesAt(const Coefficients& c, double freq, double srate)
 {
 	const std::complex<double> j(0.0, 1.0);
-	const std::complex<double> z1 = std::polar(1.0, -2.0 * M_PI * freq / srate);
+	const std::complex<double> z1 = std::polar(1.0, -2.0 * std::numbers::pi_v<double> * freq / srate);
 	const std::complex<double> z2 = z1 * z1;
 
 	const std::complex<double> numerator = c.b0 + c.b1 * z1 + c.b2 * z2;
@@ -228,7 +224,7 @@ void testGroupDelayAtCenterMatchesTheClosedForm()
 			const double fc = 200.0;
 			const Coefficients c = coefficientsOf(makeAllPass(fc, srate, q, false));
 
-			const double omega0 = 2.0 * M_PI * fc / srate;
+			const double omega0 = 2.0 * std::numbers::pi_v<double> * fc / srate;
 			const double measured = groupDelaySamplesAt(c, fc, srate);
 			const double expected = 4.0 * q / std::sin(omega0);
 			std::ostringstream oss;
@@ -238,7 +234,7 @@ void testGroupDelayAtCenterMatchesTheClosedForm()
 
 			// The textbook 2Q/(pi*Fc) seconds only holds while w0 is small;
 			// at 200 Hz it is within a part in 10^4 at every rate here.
-			const double approxSeconds = 2.0 * q / (M_PI * fc);
+			const double approxSeconds = 2.0 * q / (std::numbers::pi_v<double> * fc);
 			harness.expect(std::abs(measured / srate - approxSeconds) < approxSeconds * 1e-3,
 				"the 2Q/(pi*Fc) approximation holds at low Fc, " + describe(srate, q));
 		}
@@ -423,7 +419,7 @@ void testBandwidthIsNotTheSameNumberAsQ()
 		/ groupDelaySamplesAt(asQ, fc, srate);
 	std::ostringstream oss;
 	oss << "rewriting BW Oct 1 as Q 1 changes the group delay at Fc by about 41% (ratio " << ratio << ")";
-	harness.expect(std::abs(ratio - M_SQRT2) < 0.01, oss.str());
+	harness.expect(std::abs(ratio - std::numbers::sqrt2_v<double>) < 0.01, oss.str());
 }
 
 // Two 1st-order sections at the same frequency, in series, are exactly one
@@ -518,7 +514,7 @@ void testFirstOrderAllPassBehaviour()
 				"1st-order phase approaches -180 deg at Nyquist and no further, " + label.str());
 
 			// Group delay at Fc, in samples, is (1 + K^2) / (2K).
-			const double K = std::tan(M_PI * fc / srate);
+			const double K = std::tan(std::numbers::pi_v<double> * fc / srate);
 			const double expected = (1.0 + K * K) / (2.0 * K);
 			const double measured = groupDelaySamplesAt(c, fc, srate);
 			std::ostringstream gd;

@@ -106,7 +106,7 @@ std::wstring expectedHashFromChecksums(const std::string& text, const std::wstri
 
 	// Skip a UTF-8 byte order mark, in case the generator wrote one.
 	size_t lineStart = 0;
-	if (text.size() >= 3 && text.compare(0, 3, "\xEF\xBB\xBF") == 0)
+	if (text.starts_with("\xEF\xBB\xBF"))
 		lineStart = 3;
 
 	while (lineStart < text.size())

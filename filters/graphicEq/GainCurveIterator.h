@@ -36,6 +36,8 @@ struct FilterNode
 	{
 		return freq < other.freq;
 	}
+
+	bool operator==(const FilterNode&) const = default;
 };
 
 class GainCurveIterator

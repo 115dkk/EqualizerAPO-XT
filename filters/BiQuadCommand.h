@@ -55,7 +55,7 @@ struct BiQuadCommand
 // line cannot be reproduced from this struct alone, because BiQuadFilterFactory's
 // parser is intentionally lossy and normalizing:
 //   - A missing Q / BW / slope token is replaced by a synthesized default
-//     (M_SQRT1_2 for LP/HP/BP, 0.9 for shelves, 30 for notch), so "no token" and
+//     (1 / sqrt(2) for LP/HP/BP, 0.9 for shelves, 30 for notch), so "no token" and
 //     "a token whose value equals the default" collapse to identical fields.
 //   - LP/LPQ, HP/HPQ and LS/LSC all map to one BiQuad::Type; the spelling that
 //     was written is not recorded.

@@ -295,13 +295,13 @@ public:
 		// throwing. The format check stays, because the real one runs splitKey
 		// before it ever looks for the key.
 		requireWellFormed(key);
-		return keys_.find(key) != keys_.end();
+		return keys_.contains(key);
 	}
 
 	bool valueExists(const std::wstring& key, const std::wstring& valuename) const override
 	{
 		const ValueMap& values = requireKey(key);
-		return values.find(valuename) != values.end();
+		return values.contains(valuename);
 	}
 
 	bool keyEmpty(const std::wstring& key) const override
@@ -352,7 +352,7 @@ public:
 	void createKey(const std::wstring& key) override
 	{
 		requireWellFormed(key);
-		if (deniedCreateKeys_.find(key) != deniedCreateKeys_.end())
+		if (deniedCreateKeys_.contains(key))
 			throw RegistryError(L"Error while creating registry key " + key + L": access is denied");
 		ensureKey(key);
 	}
@@ -440,7 +440,7 @@ private:
 		std::map<std::wstring, ValueMap, CaseInsensitiveLess>::const_iterator it = keys_.find(key);
 		if (it == keys_.end())
 			throw RegistryError(L"Error while opening registry key " + key + L": the system cannot find the file specified");
-		if (deniedReadKeys_.find(key) != deniedReadKeys_.end())
+		if (deniedReadKeys_.contains(key))
 			throw RegistryError(L"Error while opening registry key " + key + L": access is denied");
 		return it->second;
 	}
@@ -456,7 +456,7 @@ private:
 
 	void requireWritableValue(const std::wstring& key, const std::wstring& valuename) const
 	{
-		if (failedValueWrites_.find(key + L"\\" + valuename) != failedValueWrites_.end())
+		if (failedValueWrites_.contains(key + L"\\" + valuename))
 			throw RegistryError(L"Error while writing registry value " + key + L"\\" + valuename + L": access is denied");
 	}
 

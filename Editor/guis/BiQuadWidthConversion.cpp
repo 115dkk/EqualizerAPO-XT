@@ -4,11 +4,11 @@
 	SPDX-License-Identifier: GPL-2.0-or-later
 */
 
-#define _USE_MATH_DEFINES
 
 #include "BiQuadWidthConversion.h"
 
 #include <cmath>
+#include <numbers>
 
 namespace BiQuadWidth
 {
@@ -16,7 +16,7 @@ double bandwidthFromQ(double q)
 {
 	if (!(q > 0.0) || !std::isfinite(q))
 		return 0.0;
-	return 2.0 / M_LN2 * std::asinh(1.0 / (2.0 * q));
+	return 2.0 / std::numbers::ln2_v<double> * std::asinh(1.0 / (2.0 * q));
 }
 
 double qFromBandwidth(double octaves)
@@ -39,19 +39,19 @@ double defaultQ(BiQuad::Type type)
 	switch (type)
 	{
 	case BiQuad::ALL_PASS:
-		return M_SQRT1_2;
+		return std::numbers::sqrt2_v<double> / 2.0;
 	case BiQuad::PEAKING:
 		return 10.0;
 	case BiQuad::LOW_PASS:
 	case BiQuad::HIGH_PASS:
 	case BiQuad::BAND_PASS:
-		return M_SQRT1_2;
+		return std::numbers::sqrt2_v<double> / 2.0;
 	case BiQuad::NOTCH:
 		return 30.0;
 	case BiQuad::LOW_SHELF:
 	case BiQuad::HIGH_SHELF:
 		return 0.9;
 	}
-	return M_SQRT1_2;
+	return std::numbers::sqrt2_v<double> / 2.0;
 }
 }

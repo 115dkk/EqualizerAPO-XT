@@ -53,20 +53,21 @@ namespace eapo::asio
 					lane.planes[c] = lane.storage.data() + static_cast<size_t>(c) * format.frames;
 
 				lane.engine = std::make_unique<FilterEngine>();
-				EngineSetup setup;
-				setup.sampleRate = static_cast<float>(format.sampleRate);
-				setup.inputChannelCount = channels;
-				setup.realChannelCount = channels;
-				setup.outputChannelCount = channels;
-				setup.channelMask = 0;
-				setup.maxFrameCount = format.frames;
-				setup.customPath = options.configPath;
-				setup.preMix = false;
-				setup.capture = direction == Direction::Input;
-				setup.postMixInstalled = true;
-				setup.deviceName = format.deviceName;
-				setup.connectionName = L"ASIO";
-				setup.deviceGuid = format.deviceGuid;
+				EngineSetup setup{
+					.sampleRate = static_cast<float>(format.sampleRate),
+					.inputChannelCount = channels,
+					.realChannelCount = channels,
+					.outputChannelCount = channels,
+					.channelMask = 0,
+					.maxFrameCount = format.frames,
+					.customPath = options.configPath,
+					.preMix = false,
+					.capture = direction == Direction::Input,
+					.postMixInstalled = true,
+					.deviceName = format.deviceName,
+					.connectionName = L"ASIO",
+					.deviceGuid = format.deviceGuid
+				};
 				lane.engine->initialize(setup);
 			}
 			catch (const std::exception& e)

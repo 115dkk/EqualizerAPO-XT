@@ -9,6 +9,7 @@
 #define INIT_CLASS_IID
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <numbers>
 
 #include <algorithm>
 #include <atomic>
@@ -522,7 +523,7 @@ public:
 			for (int32 sample = 0; sample < data.numSamples; ++sample)
 			{
 				const double value = state.gain * 0.05 * std::sin(
-					2.0 * 3.14159265358979323846 * 440.0
+					2.0 * std::numbers::pi_v<double> * 440.0
 					* static_cast<double>(tonePosition + sample) / setup.sampleRate);
 				for (int32 channel = 0; channel < 2; ++channel)
 				{

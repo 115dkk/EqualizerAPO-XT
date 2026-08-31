@@ -20,8 +20,8 @@
 #include "stdafx.h"
 #include "text/WideString.h"
 #include "services/registry/RegistryPaths.h"
-#define _USE_MATH_DEFINES
 #include <cmath>
+#include <numbers>
 #include <sstream>
 #include <fstream>
 #include <algorithm>
@@ -141,7 +141,7 @@ void FilterEngine::initialize(const EngineSetup& setup)
 		this->transitionCounter = 0;
 		this->transitionLength = (unsigned)(sampleRate / 100);
 		transitionFactorTable.resize(transitionLength);
-		const double scale = M_PI / static_cast<double>(transitionLength);
+		const double scale = std::numbers::pi_v<double> / static_cast<double>(transitionLength);
 		for (unsigned i = 0; i < transitionLength; i++)
 			transitionFactorTable[i] = 0.5 * (1.0 - std::cos(i * scale));
 
