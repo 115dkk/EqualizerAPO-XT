@@ -190,6 +190,13 @@ double minBatchSeconds(Fn&& fn, int samples, int batch)
 // so the write kernels keep the scalar loop there and a write bar would be
 // meaningless. Both directions are always measured and printed for the
 // benchmark record; three attempts absorb CI scheduling outliers.
+//
+// This TU is pinned to /std:c++17 in the project file: under /std:c++20 the
+// compiler optimizes the reference lambdas themselves (avx2 runner: write
+// reference 1650 ns -> 295 ns, candidate unchanged), which collapses the
+// ratio and inverts the meaning of the bar. #pragma loop(no_vector) did not
+// restore the naive shape, so the pin keeps the compilation the bars were
+// calibrated against. Revisit if the bars are ever recalibrated for C++20.
 void testStereoFloatConversionBeatsScalarReference(test::Harness& harness)
 {
 	constexpr unsigned channels = 2;
