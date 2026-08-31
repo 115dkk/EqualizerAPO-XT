@@ -24,11 +24,12 @@ std::stringstream makeFailedStream()
 }
 }
 
-std::stringstream ConfigurationFileReader::readWithRetry(const std::wstring& path)
+std::stringstream ConfigurationFileReader::readWithRetry(
+	const std::wstring& path, HANDLE cancel, DWORD deadlineMilliseconds)
 {
 	DWORD error = ERROR_SUCCESS;
 	winutil::UniqueHandle file = openFileWithSharingRetry(
-		path.c_str(), GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, error);
+		path.c_str(), GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, error, cancel, deadlineMilliseconds);
 	if (!file)
 	{
 		LogFStatic(L"Error while reading configuration file %s: %s", path.c_str(), win32::errorMessage(error).c_str());

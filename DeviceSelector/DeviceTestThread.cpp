@@ -75,6 +75,9 @@ void DeviceTestThread::run()
 		return;
 	}
 
+	if (isInterruptionRequested())
+		return;
+
 	try
 	{
 		emit log(tr("Restarting audio service..."));
@@ -124,6 +127,9 @@ void DeviceTestThread::run()
 
 		for (QString deviceGuid : remainingDevices)
 		{
+			if (isInterruptionRequested())
+				return;
+
 			auto testInfo = infoMap.find(deviceGuid);
 			try
 			{
@@ -146,7 +152,7 @@ void DeviceTestThread::run()
 		try
 		{
 			std::string message;
-			while ((message= thread.waitUntil(timeout)) != "")
+			while (!isInterruptionRequested() && (message = thread.waitUntil(timeout)) != "")
 			{
 				QJsonParseError error;
 				QJsonDocument jsonDoc = QJsonDocument::fromJson(QByteArray(QString::fromStdString(message).toUtf8()), &error);
@@ -197,12 +203,18 @@ void DeviceTestThread::run()
 				}
 			}
 
+			if (isInterruptionRequested())
+				return;
+
 			if (!remainingDevices.isEmpty())
 			{
 				emit logError(tr("Check failed for %n device(s).", nullptr, remainingDevices.size()));
 				QMutableSetIterator<QString> it(remainingDevices);
 				while (it.hasNext())
 				{
+					if (isInterruptionRequested())
+						return;
+
 					QString deviceGuid = it.next();
 					auto testInfo = infoMap.find(deviceGuid);
 					DeviceAPOInfo::InstallState& installState = testInfo->deviceInfo->getSelectedInstallState();

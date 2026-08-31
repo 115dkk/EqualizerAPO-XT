@@ -24,7 +24,7 @@
 #include "ReceiveThread.h"
 
 ReceiveThread::ReceiveThread(const std::wstring& pipeName)
-	:pipeName(pipeName)
+	: pipeName(pipeName)
 {
 	thread = std::thread(&ReceiveThread::run, this);
 }
@@ -36,27 +36,26 @@ ReceiveThread::~ReceiveThread()
 
 void ReceiveThread::stop()
 {
-	if (pipeName != L"")
+	if (!thread.joinable())
+		return;
+
+	const std::wstring fullPipeName = L"\\\\.\\pipe\\" + pipeName;
+	winutil::UniqueHandle pipe(CreateFileW(fullPipeName.c_str(),
+		GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr));
+	if (!pipe)
 	{
-		winutil::UniqueHandle pipe(CreateFileW((L"\\\\.\\pipe\\" + pipeName).c_str(),
-			GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr));
-		if (!pipe)
-		{
-			if (WaitNamedPipeW((L"\\\\.\\pipe\\" + pipeName).c_str(), 1000))
-				pipe.reset(CreateFileW((L"\\\\.\\pipe\\" + pipeName).c_str(),
-					GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr));
-		}
-		if (pipe)
-		{
-			DWORD bytesWritten;
-			WriteFile(pipe.get(), "stop", 4, &bytesWritten, nullptr);
-			FlushFileBuffers(pipe.get());
-		}
-		pipeName = L"";
+		if (WaitNamedPipeW(fullPipeName.c_str(), 1000))
+			pipe.reset(CreateFileW(fullPipeName.c_str(),
+				GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr));
+	}
+	if (pipe)
+	{
+		DWORD bytesWritten;
+		WriteFile(pipe.get(), "stop", 4, &bytesWritten, nullptr);
+		FlushFileBuffers(pipe.get());
 	}
 
-	if (thread.joinable())
-		thread.join();
+	thread.join();
 }
 
 void ReceiveThread::run()
@@ -116,5 +115,4 @@ void ReceiveThread::run()
 		caughtException = e;
 		cond.notify_all();
 	}
-	pipeName = L"";
 }

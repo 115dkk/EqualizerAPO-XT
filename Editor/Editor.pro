@@ -507,6 +507,7 @@ HEADERS  += \
 	../parser/EngineParser.h \
 	../parser/StringOperators.h \
 	AnalysisThread.h \
+	helpers/AnalysisRequestGeneration.h \
 	widgets/ExponentialSpinBox.h \
 	FilterTableMimeData.h \
 	CustomStyle.h \

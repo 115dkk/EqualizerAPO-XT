@@ -83,7 +83,7 @@ public:
 private:
 	void run();
 
-	std::wstring pipeName;
+	const std::wstring pipeName;
 	std::thread thread;
 	std::list<std::string> answers;
 	std::mutex mutex;

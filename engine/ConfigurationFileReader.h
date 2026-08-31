@@ -21,7 +21,8 @@
 class ConfigurationFileReader
 {
 public:
-	static std::stringstream readWithRetry(const std::wstring& path);
+	static std::stringstream readWithRetry(
+		const std::wstring& path, HANDLE cancel = nullptr, DWORD deadlineMilliseconds = 10000);
 
 	static std::vector<std::wstring> decodeLines(std::istream& input)
 	{

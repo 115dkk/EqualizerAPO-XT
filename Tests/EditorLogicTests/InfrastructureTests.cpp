@@ -18,6 +18,7 @@
 #include <QTemporaryDir>
 
 #include "Benchmark/BatchPlan.h"
+#include "Editor/helpers/AnalysisRequestGeneration.h"
 #include "Editor/helpers/AnalysisWorkerRecovery.h"
 #include "Editor/skins/SkinThemeData.h"
 #include "Editor/widgets/EditableValueText.h"
@@ -222,6 +223,10 @@ void testAnalysisWorkerRecovery()
 		[](const char*) {});
 	expectTrue(recovered, "next analysis iteration did not recover");
 	expectTrue(nextIterationRan, "analysis worker did not accept work after a failure");
+	expectTrue(isCurrentAnalysisRequest(4, 4),
+		"analysis publishes the response for the current request generation");
+	expectFalse(isCurrentAnalysisRequest(4, 5),
+		"analysis skips a response superseded by a newer request generation");
 }
 
 void testMemoryHelperConstructReleasesStorageWhenConstructorThrows()
