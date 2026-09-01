@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.50.7 — 2026-09-01
+
 - **An ASIO entry offers honest buffer sizes after a sample-rate change.**
   The exclusive-mode target converted the device's minimum period into
   frames once, at the endpoint's own rate, so a DAW that switched the
