@@ -288,6 +288,12 @@ namespace
 		policy = wasapi::bufferPolicy(4000);
 		harness.expectEqual(policy.minSize, 4096L, "a huge minimum is honoured");
 		harness.expectEqual(policy.maxSize, 4096L, "and the maximum follows it up");
+		const unsigned minPeriod48 = wasapi::framesFromHns(30000, 48000);
+		harness.expectEqual(minPeriod48, 144u, "a 3 ms minimum is 144 frames at 48 kHz");
+		harness.expectEqual(wasapi::bufferPolicy(minPeriod48).minSize, 256L, "the 48 kHz minimum offers 256 frames");
+		const unsigned minPeriod96 = wasapi::framesFromHns(30000, 96000);
+		harness.expectEqual(minPeriod96, 288u, "the same 3 ms minimum is 288 frames at 96 kHz");
+		harness.expectEqual(wasapi::bufferPolicy(minPeriod96).minSize, 512L, "the 96 kHz minimum offers 512 frames");
 
 		// Frames and 100 ns units.
 		harness.expectEqual(wasapi::framesFromHns(30000, 48000), 144u, "3 ms at 48 kHz is 144 frames");
@@ -297,6 +303,17 @@ namespace
 		harness.expectEqual(wasapi::hnsFromFrames(144, 48000), 30000LL, "144 frames at 48 kHz is 3 ms");
 		harness.expectEqual(wasapi::hnsFromFrames(441, 44100), 100000LL, "441 frames at 44.1 kHz is 10 ms");
 		harness.expectEqual(wasapi::framesFromHns(wasapi::hnsFromFrames(256, 96000), 96000), 256u, "frames survive the round trip");
+
+		// Capture packets retain only what fits while the whole packet is released.
+		wasapi::CapturePlan capturePlan = wasapi::planCapturePacket(32, 128, 64);
+		harness.expectEqual(capturePlan.dropFromQueue, static_cast<size_t>(0), "a fitting capture packet drops nothing");
+		harness.expectEqual(capturePlan.copyFrames, static_cast<size_t>(64), "a fitting capture packet is copied whole");
+		capturePlan = wasapi::planCapturePacket(96, 128, 64);
+		harness.expectEqual(capturePlan.dropFromQueue, static_cast<size_t>(32), "capture overflow drops exactly the excess");
+		harness.expectEqual(capturePlan.copyFrames, static_cast<size_t>(64), "capture overflow still copies the packet");
+		capturePlan = wasapi::planCapturePacket(48, 128, 256);
+		harness.expectEqual(capturePlan.dropFromQueue, static_cast<size_t>(48), "an oversized packet drops the queued frames");
+		harness.expectEqual(capturePlan.copyFrames, static_cast<size_t>(128), "an oversized packet copies one capacity");
 
 		// Interleaving, every container width.
 		for (unsigned bytes : {2u, 3u, 4u})

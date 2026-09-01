@@ -71,6 +71,7 @@ namespace
 		bool rateGiven = false;       // a real target is asked for --rate only when it was given
 		long periods = 200;
 		long paceUs = 0;
+		long burst = 1;
 		long inputs = 2;
 		long outputs = 2;
 		long sampleType = ASIOSTInt32LSB;
@@ -107,7 +108,7 @@ namespace
 			"AsioProbe --target fake|dll:<FakeAsioDriver.dll>|clsid:{...}|wasapi:{...}[,{...}] --wrapper static|dll:<EqualizerAPOAsio.dll>\n"
 			"          --processor inproc|passthrough|daemon-thread|daemon --config <config.txt> [--mode sync|pipelined]\n"
 			"          [--daemon <EqualizerAPOHost.exe>] [--endpoint <name>] [--deadline-us N]\n"
-			"          [--frames 64] [--rate 48000] [--periods 200] [--pace-us 0] [--channels in,out] [--sample-type int16|int24|int32|float32]\n"
+			"          [--frames 64] [--rate 48000] [--periods 200] [--pace-us 0] [--burst 1] [--channels in,out] [--sample-type int16|int24|int32|float32]\n"
 			"          [--seed N] [--host-seed N] [--no-input] [--no-output] [--output-ready]\n"
 			"          [--expect-sha256 hex] [--expect-first-sha256 hex] [--expect-input-sha256 hex] [--max-late N] [--no-reference]\n"
 			"          [--seconds 10] [--tone] [--sine Hz]   (real driver / wasapi:{playback guid}[,{recording guid}] only)\n", stderr);
@@ -138,6 +139,7 @@ namespace
 			}
 			else if (key == L"--periods" && value(v)) a.periods = std::wcstol(v.c_str(), nullptr, 10);
 			else if (key == L"--pace-us" && value(v)) a.paceUs = std::wcstol(v.c_str(), nullptr, 10);
+			else if (key == L"--burst" && value(v)) a.burst = std::wcstol(v.c_str(), nullptr, 10);
 			else if (key == L"--seconds" && value(v)) a.seconds = std::wcstod(v.c_str(), nullptr);
 			else if (key == L"--seed" && value(v)) a.seed = static_cast<unsigned>(std::wcstoul(v.c_str(), nullptr, 10));
 			else if (key == L"--host-seed" && value(v)) a.hostSeed = static_cast<unsigned>(std::wcstoul(v.c_str(), nullptr, 10));
@@ -172,7 +174,7 @@ namespace
 			else if (key == L"--sine" && value(v)) a.sineHz = std::wcstod(v.c_str(), nullptr);
 			else return false;
 		}
-		return a.frames > 0 && a.periods > 0 && a.rate > 0.0;
+		return a.frames > 0 && a.periods > 0 && a.rate > 0.0 && a.burst > 0;
 	}
 
 	struct Module
@@ -406,13 +408,17 @@ namespace
 			// Real hardware paces buffer switches one period apart; the pipelined
 			// callback's zero-wait design counts on that grace, so a paced pump
 			// gives the engine host wall time between periods instead of the
-			// deterministic back-to-back default.
+			// deterministic back-to-back default. --burst pumps more than one
+			// period back-to-back before that single wait, standing in for a
+			// host that delivers callbacks in bursts rather than one per wait.
 			HANDLE pacer = CreateWaitableTimerExW(nullptr, nullptr, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS);
 			if (pacer == nullptr)
 				pacer = CreateWaitableTimerExW(nullptr, nullptr, 0, TIMER_ALL_ACCESS);
-			for (long p = 0; p < a.periods; p++)
+			for (long p = 0; p < a.periods; p += a.burst)
 			{
-				control->pump(1);
+				const long count = a.burst < a.periods - p ? a.burst : a.periods - p;
+				for (long k = 0; k < count; k++)
+					control->pump(1);
 				if (pacer != nullptr)
 				{
 					LARGE_INTEGER due;

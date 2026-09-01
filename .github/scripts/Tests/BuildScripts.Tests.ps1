@@ -58,13 +58,16 @@ Describe "extracted build script decisions" {
         # The pipelined run over the real host process is timing-bound on a
         # shared runner and gets more than one attempt; the deterministic
         # runs get exactly one, so a regression in them cannot hide.
-        $pipelinedDll = $plan.Runs | Where-Object { $_.Name -eq "dll-daemon-exe-pipelined-float32-32" }
+        $pipelinedDll = $plan.Runs | Where-Object { $_.Name -eq "dll-daemon-exe-pipelined-float32-96" }
         $pipelinedDll.Attempts | Should -BeGreaterThan 1
         foreach ($run in $plan.Runs) {
             if ($run.Arguments -contains "--max-late") {
                 ($run.PSObject.Properties["Attempts"]) | Should -BeNullOrEmpty -Because "$($run.Name) is deterministic"
             }
         }
+        # --burst is pinned exactly once, in sync mode; a regression there
+        # cannot hide behind the pipelined run's timing-bound retries.
+        @($plan.Runs | Where-Object { $_.Arguments -contains "--burst" }).Count | Should -Be 1
     }
 
     It "lists the capture probes so every leg builds them" {
