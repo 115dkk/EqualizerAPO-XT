@@ -125,6 +125,15 @@ namespace eapo::asio
 			return policy;
 		}
 
+		CapturePlan planCapturePacket(size_t pendingFrames, size_t capacityFrames, size_t packetFrames) noexcept
+		{
+			CapturePlan plan;
+			plan.copyFrames = std::min(packetFrames, capacityFrames);
+			if (pendingFrames + plan.copyFrames > capacityFrames)
+				plan.dropFromQueue = pendingFrames + plan.copyFrames - capacityFrames;
+			return plan;
+		}
+
 		unsigned framesFromHns(long long hns, unsigned rate)
 		{
 			if (hns <= 0 || rate == 0)
@@ -246,10 +255,32 @@ namespace eapo::asio
 			return static_cast<uint64_t>(seconds * 1e9);
 		}
 
-		// The endpoint's name in the 32 bytes ASIO gives a driver name,
-		// non-ASCII folded to '?'.
+		// The endpoint's name in the 32 bytes ASIO gives an ANSI driver name.
 		void narrowName(const std::wstring& wide, char* out, size_t capacity) noexcept
 		{
+			if (capacity == 0)
+				return;
+			char converted[256] = {};
+			BOOL usedDefault = FALSE;
+			const int written = WideCharToMultiByte(CP_ACP, WC_NO_BEST_FIT_CHARS, wide.c_str(), -1,
+				converted, static_cast<int>(sizeof(converted)), "?", &usedDefault);
+			if (written > 0)
+			{
+				size_t source = 0;
+				size_t destination = 0;
+				while (converted[source] != '\0')
+				{
+					const size_t bytes = IsDBCSLeadByteEx(CP_ACP, static_cast<BYTE>(converted[source])) ? 2 : 1;
+					if (source + bytes >= static_cast<size_t>(written) || destination + bytes >= capacity)
+						break;
+					std::memcpy(out + destination, converted + source, bytes);
+					source += bytes;
+					destination += bytes;
+				}
+				out[destination] = '\0';
+				return;
+			}
+
 			size_t n = 0;
 			for (; n + 1 < capacity && n < wide.size(); n++)
 				out[n] = wide[n] < 128 ? static_cast<char>(wide[n]) : '?';
@@ -300,7 +331,7 @@ namespace eapo::asio
 		pending.clear();
 		pendingFrames = 0;
 		staged = 0;
-		latencyFrames = 0;
+		latencyFrames.store(0, std::memory_order_relaxed);
 	}
 
 	// The ASIO buffers outlive a stream: the host holds their pointers from
@@ -310,6 +341,8 @@ namespace eapo::asio
 	{
 		planes[0].clear();
 		planes[1].clear();
+		planePointers[0].clear();
+		planePointers[1].clear();
 	}
 
 	void WasapiExclusiveTarget::Port::closeDevice() noexcept
@@ -328,6 +361,8 @@ namespace eapo::asio
 		ports_[0].endpointGuid = std::move(renderEndpointGuid);
 		ports_[1].capture = true;
 		ports_[1].endpointGuid = std::move(captureEndpointGuid);
+		stopEvent_ = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+		startAckEvent_ = CreateEventW(nullptr, FALSE, FALSE, nullptr);
 	}
 
 	WasapiExclusiveTarget::~WasapiExclusiveTarget()
@@ -335,6 +370,10 @@ namespace eapo::asio
 		stop();
 		for (Port& port : ports_)
 			port.closeDevice();
+		if (startAckEvent_ != nullptr)
+			CloseHandle(startAckEvent_);
+		if (stopEvent_ != nullptr)
+			CloseHandle(stopEvent_);
 	}
 
 	HRESULT STDMETHODCALLTYPE WasapiExclusiveTarget::QueryInterface(REFIID riid, void** object)
@@ -447,11 +486,8 @@ namespace eapo::asio
 			return false;
 		}
 
-		REFERENCE_TIME defaultPeriod = 0, minPeriod = 0;
-		if (SUCCEEDED(port.client->GetDevicePeriod(&defaultPeriod, &minPeriod)))
-			port.minPeriodFrames = wasapi::framesFromHns(minPeriod, port.deviceRate);
-		if (port.minPeriodFrames == 0)
-			port.minPeriodFrames = 128;
+		REFERENCE_TIME defaultPeriod = 0;
+		port.client->GetDevicePeriod(&defaultPeriod, &port.minPeriodHns);
 		return true;
 	}
 
@@ -566,9 +602,9 @@ namespace eapo::asio
 		// the device period being captured and the driver's share.
 		const long bridge = static_cast<long>(bridge_.load(std::memory_order_acquire));
 		if (inputLatency != nullptr)
-			*inputLatency = ports_[1].device != nullptr ? bridge * frames_ + ports_[1].latencyFrames : 0;
+			*inputLatency = ports_[1].device != nullptr ? bridge * frames_ + ports_[1].latencyFrames.load(std::memory_order_relaxed) : 0;
 		if (outputLatency != nullptr)
-			*outputLatency = ports_[0].device != nullptr ? (bridge + 1) * frames_ + ports_[0].latencyFrames : 0;
+			*outputLatency = ports_[0].device != nullptr ? (bridge + 1) * frames_ + ports_[0].latencyFrames.load(std::memory_order_relaxed) : 0;
 		return ASE_OK;
 	}
 
@@ -578,8 +614,15 @@ namespace eapo::asio
 			return ASE_NotPresent;
 		unsigned minPeriod = 0;
 		for (const Port& port : ports_)
-			if (port.device != nullptr && port.minPeriodFrames > minPeriod)
-				minPeriod = port.minPeriodFrames;
+		{
+			if (port.device == nullptr)
+				continue;
+			unsigned frames = wasapi::framesFromHns(port.minPeriodHns, rate_);
+			if (frames == 0)
+				frames = 128;
+			if (frames > minPeriod)
+				minPeriod = frames;
+		}
 		const wasapi::BufferPolicy policy = wasapi::bufferPolicy(minPeriod);
 		if (minSize != nullptr)
 			*minSize = policy.minSize;
@@ -654,10 +697,10 @@ namespace eapo::asio
 
 	ASIOError WasapiExclusiveTarget::getSamplePosition(ASIOSamples* sPos, ASIOTimeStamp* tStamp)
 	{
-		if (!running_)
+		if (!running_.load(std::memory_order_acquire) || !threadAlive_.load(std::memory_order_acquire))
 			return ASE_SPNotAdvancing;
 		if (sPos != nullptr)
-			splitInt64(samplePosition_, sPos->hi, sPos->lo);
+			splitInt64(samplePosition_.load(std::memory_order_relaxed), sPos->hi, sPos->lo);
 		if (tStamp != nullptr)
 			splitInt64(nowNanoseconds(), tStamp->hi, tStamp->lo);
 		return ASE_OK;
@@ -683,6 +726,16 @@ namespace eapo::asio
 
 	HRESULT WasapiExclusiveTarget::initializeStream(Port& port, long frames, unsigned bridge)
 	{
+		if (port.client == nullptr)
+		{
+			HRESULT activate = port.device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, reinterpret_cast<void**>(&port.client));
+			if (FAILED(activate) || port.client == nullptr)
+			{
+				std::snprintf(errorMessage_, sizeof(errorMessage_), "The %s endpoint is no longer available (0x%08lx)",
+					port.capture ? "recording" : "playback", static_cast<unsigned long>(activate));
+				return FAILED(activate) ? activate : E_FAIL;
+			}
+		}
 		WAVEFORMATEXTENSIBLE fmt = wasapi::makeFormat(port.container, port.channels, rate_, port.channelMask);
 		const long deviceFrames = frames * static_cast<long>(bridge);
 		const REFERENCE_TIME period = wasapi::hnsFromFrames(static_cast<unsigned>(deviceFrames), rate_);
@@ -727,7 +780,7 @@ namespace eapo::asio
 		}
 		REFERENCE_TIME latency = 0;
 		if (SUCCEEDED(port.client->GetStreamLatency(&latency)))
-			port.latencyFrames = static_cast<long>(wasapi::framesFromHns(latency, rate_));
+			port.latencyFrames.store(static_cast<long>(wasapi::framesFromHns(latency, rate_)), std::memory_order_relaxed);
 
 		const size_t frameBytes = static_cast<size_t>(port.channels) * port.container.bytes();
 		port.block.assign(static_cast<size_t>(deviceFrames) * frameBytes, 0);
@@ -799,8 +852,12 @@ namespace eapo::asio
 			for (int half = 0; half < 2; half++)
 			{
 				port.planes[half].assign(port.channels, std::vector<unsigned char>());
+				port.planePointers[half].resize(port.channels);
 				for (unsigned c = 0; c < port.channels; c++)
+				{
 					port.planes[half][c].assign(planeBytes, 0);
+					port.planePointers[half][c] = port.planes[half][c].data();
+				}
 			}
 		}
 		bridge_.store(1, std::memory_order_release);
@@ -815,7 +872,7 @@ namespace eapo::asio
 			bufferInfos[i].buffers[0] = port.planes[0][static_cast<size_t>(bufferInfos[i].channelNum)].data();
 			bufferInfos[i].buffers[1] = port.planes[1][static_cast<size_t>(bufferInfos[i].channelNum)].data();
 		}
-		samplePosition_ = 0;
+		samplePosition_.store(0, std::memory_order_relaxed);
 		counters_ = Counters();
 		prepared_ = true;
 		errorMessage_[0] = '\0';
@@ -872,37 +929,61 @@ namespace eapo::asio
 	{
 		if (!prepared_)
 			return ASE_InvalidMode;
-		if (running_)
+		if (stopEvent_ == nullptr || startAckEvent_ == nullptr)
+		{
+			setError("The stream synchronization events are not available");
+			return ASE_HWMalfunction;
+		}
+		if (running_.load(std::memory_order_acquire) && threadAlive_.load(std::memory_order_acquire))
 			return ASE_OK;
-		stopRequested_ = false;
-		running_ = true;
+		if (thread_.joinable())
+		{
+			stopRequested_.store(true, std::memory_order_release);
+			SetEvent(stopEvent_);
+			thread_.join();
+		}
+		stopRequested_.store(false, std::memory_order_release);
+		ResetEvent(stopEvent_);
+		threadAlive_.store(true, std::memory_order_release);
+		startResult_.store(ASE_OK, std::memory_order_relaxed);
 		try
 		{
 			thread_ = std::thread(&WasapiExclusiveTarget::streamThread, this);
 		}
 		catch (...)
 		{
-			running_ = false;
+			threadAlive_.store(false, std::memory_order_release);
+			running_.store(false, std::memory_order_release);
 			setError("The stream thread could not be started");
 			return ASE_HWMalfunction;
 		}
+		WaitForSingleObject(startAckEvent_, INFINITE);
+		const ASIOError result = static_cast<ASIOError>(startResult_.load(std::memory_order_acquire));
+		if (result != ASE_OK)
+		{
+			thread_.join();
+			running_.store(false, std::memory_order_release);
+			threadAlive_.store(false, std::memory_order_release);
+			return result;
+		}
+		running_.store(true, std::memory_order_release);
 		return ASE_OK;
 	}
 
 	ASIOError WasapiExclusiveTarget::stop()
 	{
-		if (!running_)
-			return ASE_OK;
-		stopRequested_ = true;
+		stopRequested_.store(true, std::memory_order_release);
+		if (stopEvent_ != nullptr)
+			SetEvent(stopEvent_);
 		if (thread_.joinable())
 			thread_.join();
-		running_ = false;
+		running_.store(false, std::memory_order_release);
 		return ASE_OK;
 	}
 
 	void WasapiExclusiveTarget::fillTimeInfo(ASIOTime& time) const noexcept
 	{
-		splitInt64(samplePosition_, time.timeInfo.samplePosition.hi, time.timeInfo.samplePosition.lo);
+		splitInt64(samplePosition_.load(std::memory_order_relaxed), time.timeInfo.samplePosition.hi, time.timeInfo.samplePosition.lo);
 		splitInt64(nowNanoseconds(), time.timeInfo.systemTime.hi, time.timeInfo.systemTime.lo);
 		time.timeInfo.sampleRate = static_cast<ASIOSampleRate>(rate_);
 		time.timeInfo.flags = kSystemTimeValid | kSamplePositionValid | kSampleRateValid;
@@ -922,23 +1003,24 @@ namespace eapo::asio
 			DWORD flags = 0;
 			if (FAILED(port.captureClient->GetBuffer(&data, &frames, &flags, nullptr, nullptr)))
 				break;
-			if (frames > capacityFrames)
-				frames = static_cast<UINT32>(capacityFrames);
+			const UINT32 packetFrames = frames;
+			const wasapi::CapturePlan plan = wasapi::planCapturePacket(port.pendingFrames, capacityFrames, packetFrames);
 			// Bounded at two periods: older audio makes way so the input
 			// never drifts further than that behind the output clock.
-			if (port.pendingFrames + frames > capacityFrames)
+			if (plan.dropFromQueue != 0)
 			{
-				const size_t drop = port.pendingFrames + frames - capacityFrames;
-				std::memmove(port.pending.data(), port.pending.data() + drop * frameBytes, (port.pendingFrames - drop) * frameBytes);
-				port.pendingFrames -= drop;
+				std::memmove(port.pending.data(), port.pending.data() + plan.dropFromQueue * frameBytes,
+					(port.pendingFrames - plan.dropFromQueue) * frameBytes);
+				port.pendingFrames -= plan.dropFromQueue;
 			}
 			unsigned char* at = port.pending.data() + port.pendingFrames * frameBytes;
 			if (flags & AUDCLNT_BUFFERFLAGS_SILENT)
-				std::memset(at, 0, static_cast<size_t>(frames) * frameBytes);
+				std::memset(at, 0, plan.copyFrames * frameBytes);
 			else
-				std::memcpy(at, data, static_cast<size_t>(frames) * frameBytes);
-			port.pendingFrames += frames;
-			port.captureClient->ReleaseBuffer(frames);
+				std::memcpy(at, data, plan.copyFrames * frameBytes);
+			port.pendingFrames += plan.copyFrames;
+			if (FAILED(port.captureClient->ReleaseBuffer(packetFrames)))
+				break;
 		}
 	}
 
@@ -954,10 +1036,7 @@ namespace eapo::asio
 		// is handed to the device once every ASIO period of the device
 		// period is in it (one write per event with bridge 1).
 		const size_t frameBytes = static_cast<size_t>(port.channels) * port.container.bytes();
-		std::vector<const void*> planes(port.channels);
-		for (unsigned c = 0; c < port.channels; c++)
-			planes[c] = port.planes[half][c].data();
-		wasapi::interleave(planes.data(), port.channels, port.container.bytes(), static_cast<unsigned>(frames_),
+		wasapi::interleave(port.planePointers[half].data(), port.channels, port.container.bytes(), static_cast<unsigned>(frames_),
 			port.block.data() + static_cast<size_t>(port.staged) * static_cast<size_t>(frames_) * frameBytes);
 		port.staged++;
 		committed_.store(true, std::memory_order_release);
@@ -982,12 +1061,10 @@ namespace eapo::asio
 		{
 			drainCapture(in);
 			const size_t frameBytes = static_cast<size_t>(in.channels) * in.container.bytes();
-			std::vector<void*> planes(in.channels);
-			for (unsigned c = 0; c < in.channels; c++)
-				planes[c] = in.planes[half][c].data();
+			void* const* planes = in.planePointers[half].data();
 			if (in.pendingFrames >= static_cast<size_t>(frames_))
 			{
-				wasapi::deinterleave(in.pending.data(), in.channels, in.container.bytes(), static_cast<unsigned>(frames_), planes.data());
+				wasapi::deinterleave(in.pending.data(), in.channels, in.container.bytes(), static_cast<unsigned>(frames_), planes);
 				in.pendingFrames -= static_cast<size_t>(frames_);
 				std::memmove(in.pending.data(), in.pending.data() + static_cast<size_t>(frames_) * frameBytes, in.pendingFrames * frameBytes);
 			}
@@ -1014,7 +1091,7 @@ namespace eapo::asio
 		if (!committed_.load(std::memory_order_acquire))
 			commitOutput(half);
 		pendingHalf_.store(-1, std::memory_order_release);
-		samplePosition_ += static_cast<uint64_t>(frames_);
+		samplePosition_.fetch_add(static_cast<uint64_t>(frames_), std::memory_order_relaxed);
 		counters_.periods++;
 	}
 
@@ -1053,10 +1130,24 @@ namespace eapo::asio
 			return false;
 		}
 		primeOutput();
-		if (in.client != nullptr && in.captureClient != nullptr && FAILED(in.client->Start()))
-			return false;
-		if (out.client != nullptr && out.render != nullptr && FAILED(out.client->Start()))
-			return false;
+		if (in.client != nullptr && in.captureClient != nullptr)
+		{
+			const HRESULT hr = in.client->Start();
+			if (FAILED(hr))
+			{
+				std::snprintf(errorMessage_, sizeof(errorMessage_), "The recording endpoint could not start (0x%08lx)", static_cast<unsigned long>(hr));
+				return false;
+			}
+		}
+		if (out.client != nullptr && out.render != nullptr)
+		{
+			const HRESULT hr = out.client->Start();
+			if (FAILED(hr))
+			{
+				std::snprintf(errorMessage_, sizeof(errorMessage_), "The playback endpoint could not start (0x%08lx)", static_cast<unsigned long>(hr));
+				return false;
+			}
+		}
 		bridge_.store(factor, std::memory_order_release);
 		counters_.bridge = factor;
 		if (callbacks_.asioMessage != nullptr
@@ -1082,10 +1173,24 @@ namespace eapo::asio
 		Port& in = ports_[1];
 		primeOutput();
 		bool started = true;
-		if (in.client != nullptr && in.captureClient != nullptr && FAILED(in.client->Start()))
-			started = false;
-		if (started && out.client != nullptr && out.render != nullptr && FAILED(out.client->Start()))
-			started = false;
+		if (in.client != nullptr && in.captureClient != nullptr)
+		{
+			const HRESULT hr = in.client->Start();
+			if (FAILED(hr))
+			{
+				std::snprintf(errorMessage_, sizeof(errorMessage_), "The recording endpoint could not start (0x%08lx)", static_cast<unsigned long>(hr));
+				started = false;
+			}
+		}
+		if (started && out.client != nullptr && out.render != nullptr)
+		{
+			const HRESULT hr = out.client->Start();
+			if (FAILED(hr))
+			{
+				std::snprintf(errorMessage_, sizeof(errorMessage_), "The playback endpoint could not start (0x%08lx)", static_cast<unsigned long>(hr));
+				started = false;
+			}
+		}
 
 		// Some drivers accept a small period and then signal at their own
 		// coarser cycle (a virtual cable: every 10 ms against a 5.8 ms
@@ -1112,6 +1217,8 @@ namespace eapo::asio
 		}
 		if (started && forcedBridge != 0 && !rebridge(forcedBridge))
 			started = false;
+		startResult_.store(started ? ASE_OK : ASE_HWMalfunction, std::memory_order_release);
+		SetEvent(startAckEvent_);
 		bool calibrated = forcedBridge != 0;
 		uint64_t calibration[calibrationEvents] = {};
 		unsigned calibrationCount = 0;
@@ -1122,12 +1229,16 @@ namespace eapo::asio
 		uint64_t devicePeriodNanos = periodNanos * bridge_.load(std::memory_order_acquire);
 		uint64_t previousEvent = 0;
 		uint64_t intervalSum = 0, intervalCount = 0, intervalMax = 0, serviceMax = 0;
+		const bool enteredLoop = started;
 		while (started && !stopRequested_.load(std::memory_order_acquire))
 		{
-			const DWORD waited = WaitForSingleObject(clock, 500);
+			const HANDLE waits[2] = {stopEvent_, clock};
+			const DWORD waited = WaitForMultipleObjects(2, waits, FALSE, 500);
+			if (waited == WAIT_OBJECT_0)
+				break;
 			if (waited == WAIT_TIMEOUT)
 				continue;
-			if (waited != WAIT_OBJECT_0)
+			if (waited != WAIT_OBJECT_0 + 1)
 				break;
 			const uint64_t now = nowNanoseconds();
 			if (previousEvent != 0)
@@ -1183,6 +1294,9 @@ namespace eapo::asio
 		counters_.eventIntervalMaxUs = intervalMax / 1000;
 		counters_.serviceMaxUs = serviceMax / 1000;
 		counters_.bridge = bridge_.load(std::memory_order_acquire);
+		if (enteredLoop && !stopRequested_.load(std::memory_order_acquire) && callbacks_.asioMessage != nullptr
+			&& callbacks_.asioMessage(kAsioSelectorSupported, kAsioResetRequest, nullptr, nullptr) == 1)
+			callbacks_.asioMessage(kAsioResetRequest, 0, nullptr, nullptr);
 
 		if (out.client != nullptr)
 			out.client->Stop();
@@ -1195,5 +1309,6 @@ namespace eapo::asio
 		threadId_.store(0, std::memory_order_release);
 		if (SUCCEEDED(com))
 			CoUninitialize();
+		threadAlive_.store(false, std::memory_order_release);
 	}
 }

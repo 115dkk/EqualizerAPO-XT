@@ -85,6 +85,13 @@ namespace eapo::asio
 		};
 		BufferPolicy bufferPolicy(unsigned minPeriodFrames);
 
+		struct CapturePlan
+		{
+			size_t dropFromQueue = 0;
+			size_t copyFrames = 0;
+		};
+		CapturePlan planCapturePacket(size_t pendingFrames, size_t capacityFrames, size_t packetFrames) noexcept;
+
 		// Frames <-> 100 ns units at a rate, both to nearest, so a period
 		// survives the round trip the audio stack puts it through.
 		unsigned framesFromHns(long long hns, unsigned rate);
@@ -175,14 +182,15 @@ namespace eapo::asio
 			unsigned channels = 0;
 			unsigned long channelMask = 0;
 			unsigned deviceRate = 0;
-			unsigned minPeriodFrames = 0;               // from GetDevicePeriod at the device rate
+			REFERENCE_TIME minPeriodHns = 0;            // from GetDevicePeriod, independent of sample rate
 			wasapi::Container container;                // negotiated for the current rate
 			bool haveContainer = false;
 			std::vector<std::vector<unsigned char>> planes[2];   // [half][channel], the ASIO buffers; live from createBuffers to disposeBuffers
+			std::vector<void*> planePointers[2];         // [half][channel], stable aliases into planes
 			std::vector<unsigned char> block;           // one interleaved device period (bridge ASIO periods)
 			std::vector<unsigned char> pending;         // capture: packets not yet handed out
 			size_t pendingFrames = 0;
-			long latencyFrames = 0;
+			std::atomic<long> latencyFrames{0};
 			// The device period in ASIO periods. 1 on a driver that honours
 			// the period it accepted; a driver that signals at its own coarser
 			// cycle gets a device period of `bridge` ASIO periods and the host
@@ -214,17 +222,21 @@ namespace eapo::asio
 		bool prepared_ = false;
 		std::atomic<bool> running_{false};
 		std::atomic<bool> stopRequested_{false};
+		std::atomic<bool> threadAlive_{false};
 		std::atomic<unsigned long> threadId_{0};
 		std::atomic<unsigned> bridge_{1};
 		std::thread thread_;
+		HANDLE stopEvent_ = nullptr;
+		HANDLE startAckEvent_ = nullptr;
+		std::atomic<long> startResult_{ASE_OK};
 		ASIOCallbacks callbacks_ = {};
 		bool hostSupportsTimeInfo_ = false;
 		long frames_ = 0;
 		unsigned rate_ = 0;
 		std::atomic<long> pendingHalf_{-1};  // the half whose output has not been committed yet
 		std::atomic<bool> committed_{false};
-		uint64_t samplePosition_ = 0;
-		Counters counters_;
+		std::atomic<uint64_t> samplePosition_{0};
+		Counters counters_;  // Stream thread writes; readers observe only after stop() joins.
 		char errorMessage_[124] = {};
 	};
 }

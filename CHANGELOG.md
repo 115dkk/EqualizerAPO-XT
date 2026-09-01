@@ -14,6 +14,29 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **An ASIO entry offers honest buffer sizes after a sample-rate change.**
+  The exclusive-mode target converted the device's minimum period into
+  frames once, at the endpoint's own rate, so a DAW that switched the
+  entry to another rate was offered sizes computed for the old one and
+  the stream could fail to open. The minimum is stored as time now and
+  converted at the current rate on every query.
+- **An ASIO stream that fails to start says so, and one that dies can be
+  restarted.** Starting used to report success before the devices
+  actually started; a failure there, or a device vanishing mid-stream,
+  left the entry claiming it was running while further start calls did
+  nothing. The real start result now reaches the app, an abnormal end
+  asks the DAW to reset the driver, stopping no longer waits up to half
+  a second, a device that cannot be re-activated fails cleanly instead
+  of crashing, and the streaming thread no longer allocates memory or
+  tears shared counters mid-period.
+- **An oversized recording packet no longer breaks the ASIO capture
+  path.** The guard for packets larger than the pending queue released
+  only part of the packet, which WASAPI rejects, killing the very drain
+  it was defending. Packets are now always released whole.
+- **Korean device names reach the DAW as Korean.** The ASIO driver name
+  folded every non-ASCII character to '?'; it now converts through the
+  system codepage.
+
 ## v2.50.6 — 2026-08-31
 
 - **The ASIO engine host validates stream geometry before trusting it.**

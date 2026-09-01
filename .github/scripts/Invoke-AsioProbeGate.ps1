@@ -61,6 +61,15 @@ $runs = @(
         Arguments = @("--target", "fake", "--wrapper", "static", "--processor", "daemon-thread", "--config", $config,
             "--frames", "128", "--periods", "150", "--sample-type", "int24", "--mode", "pipelined", "--max-late", "0")
     },
+    # Pipelined-under-burst cannot assert bit-exactness because late periods
+    # pass through unprocessed. The capture gate's asio-entry round covers its
+    # end-to-end function on a cable that really bridges.
+    [pscustomobject]@{
+        Name = "daemon-thread-sync-burst4-int32-64"
+        Arguments = @("--target", "fake", "--wrapper", "static", "--processor", "daemon-thread", "--config", $config,
+            "--frames", "64", "--periods", "300", "--sample-type", "int32", "--mode", "sync",
+            "--deadline-us", "1000000", "--burst", "4", "--pace-us", "5333", "--max-late", "0")
+    },
     # The real host process, started by the link on the probe's own
     # endpoint. A one-second sync deadline keeps a shared runner's scheduling
     # out of the hash; the timing run is a separate, informational matter.
@@ -76,14 +85,14 @@ $runs = @(
     # 2026-08-30, both "first period is not the engine's first period", both
     # green on rerun with nothing changed). The run keeps its assertion and
     # gets three attempts: a genuine regression fails all three.
-    # Since the pipelined callback stopped waiting in the kernel (zero-wait,
-    # 2026-08-31), a back-to-back pump would make every period late by
-    # construction; --pace-us restores the between-period wall time real
-    # hardware provides. The retries stay for scheduler stalls.
+    # At 48 kHz, 96 frames take 2000 us, so --pace-us matches the period.
+    # Hosted runners cannot hold a 667 us hard gate; 32-frame real-time
+    # behaviour is evidenced by the capture gate's asio-entry cable round.
+    # The retries stay for scheduler stalls.
     [pscustomobject]@{
-        Name = "dll-daemon-exe-pipelined-float32-32"
+        Name = "dll-daemon-exe-pipelined-float32-96"
         Arguments = @("--target", "dll:$fakeDll", "--wrapper", "dll:$wrapperDll", "--processor", "daemon", "--config", $config,
-            "--daemon", $hostExe, "--endpoint", "EAPO.ASIO.probe.gate", "--frames", "32", "--periods", "400",
+            "--daemon", $hostExe, "--endpoint", "EAPO.ASIO.probe.gate", "--frames", "96", "--periods", "400",
             "--sample-type", "float32", "--mode", "pipelined", "--pace-us", "2000")
         Attempts = 3
     },
