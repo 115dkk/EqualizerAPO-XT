@@ -18,7 +18,7 @@
 QWidget {
     background: @BG@;
     color: @TEXT@;
-    font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
+    font-family: "@FONT@", "EAPO Sans KR", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
     font-size: 11pt;
     font-weight: 500;
 }
@@ -244,7 +244,7 @@ QAbstractSpinBox#AnalysisFormSpin {
 }
 QFrame#AnalysisStatChip { background: @SURFACE@; border: 1px solid @BORDER@; border-radius: 14px; }
 QLabel#AnalysisStatLabel { color: @MUTED@; background: transparent; font-weight: 600; font-size: 10pt; letter-spacing: 1px; }
-QLabel#AnalysisStatValue { color: @TEXT@; background: transparent; font-weight: 700; font-family: "@MONO@", "Consolas", "JetBrains Mono", "Malgun Gothic", monospace; }
+QLabel#AnalysisStatValue { color: @TEXT@; background: transparent; font-weight: 700; font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "JetBrains Mono", "Malgun Gothic", monospace; }
 QLabel#AnalysisStatValue[severity="warning"] { color: #d97706; }
 QLabel#AnalysisStatValue[severity="critical"] { color: #dc2626; }
 
@@ -270,7 +270,7 @@ QLabel#FilterTypeBadge {
 }
 QLabel#FilterCardTitle { color: @TEXT@; background: transparent; font-weight: 600; font-size: 12pt; }
 QLabel#FilterCardSummary, QLabel#FilterCardRawText { color: @MUTED@; background: transparent; }
-QLabel#FilterCardNumber { color: @MUTED@; background: transparent; font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 600; }
+QLabel#FilterCardNumber { color: @MUTED@; background: transparent; font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace; font-weight: 600; }
 
 /* Dynamic commands: SoftSkin::prepareCommandRow retells a simple If/Eval
    line as a friendly sentence ("If device is Speakers", "Otherwise"), and
@@ -353,14 +353,14 @@ QLabel#EditableValue {
     background: @CARD@; color: @TEXT@;
     border: 1px solid @BORDER@; border-radius: 16px;
     padding: 8px 14px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace; font-weight: 700;
 }
 /* The all-pass card states its fixed magnitude as a reading. It takes this
    skin's value typography but none of the field chrome: there is nothing to
    type into it, and a box would say there is. */
 QLabel#AllPassCardMagnitudeValue {
     color: @TEXT@;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
     background: transparent;
     border: 0;
@@ -370,7 +370,7 @@ QLabel#AllPassCardMagnitudeValue {
 QLineEdit#EditableValueEditor {
     background: @CARD@; border: 1px solid @ACCENT@;
     border-radius: 16px; padding: 8px 14px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace; font-weight: 700;
 }
 
 /* Reference cards (Include / Convolution / MultiConvolution / VST
@@ -866,7 +866,7 @@ QLabel#CardValidationMessage {
 QLabel#HilbertCaption, QLabel#VelvetCaption { color: @MUTED@; font-weight: 600; }
 QLabel#HilbertReadout {
     color: @TEXT@;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
 }
 QLabel#CardValidationMessage { color: @DANGER@; font-weight: 700; }
@@ -881,7 +881,7 @@ QLabel#SoftBassHeadline {
     color: @TEXT@;
     background: transparent;
     border: 0;
-    font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
+    font-family: "@FONT@", "EAPO Sans KR", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
     font-size: 12pt;
     font-weight: 600;
 }
@@ -891,7 +891,7 @@ QLabel#SoftBassCaption {
     color: @MUTED@;
     background: transparent;
     border: 0;
-    font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
+    font-family: "@FONT@", "EAPO Sans KR", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
     font-size: 10.5pt;
     font-weight: 500;
 }
@@ -906,7 +906,7 @@ QLabel#SoftBassFactPill {
     border-radius: 12px;
     padding: 3px 12px;
     min-height: 18px;
-    font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
+    font-family: "@FONT@", "EAPO Sans KR", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
     font-size: 10pt;
     font-weight: 500;
 }
@@ -924,7 +924,7 @@ QToolButton#SoftBassActionButton {
     padding: 0 16px;
     min-width: 40px;
     min-height: 40px;
-    font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
+    font-family: "@FONT@", "EAPO Sans KR", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
     font-size: 10pt;
     font-weight: 600;
 }

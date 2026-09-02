@@ -139,6 +139,9 @@ void MainWindow::applySkinAndRebuild()
 	}
 	SkinManager::instance()->applySkin(skinId, skinDark);
 	skinId = SkinManager::instance()->currentSkinId();
+	// The new sheet re-polished the analysis bar; re-pin the dock floor so a
+	// graph parked at the floor keeps its size across the switch.
+	updateAnalysisDockFloor();
 	// Each skin supplies its own Copy routing renderer (node graph, crosspoint
 	// matrix, step list, ...) and per-skin card chrome. Those widgets are built
 	// once when the row is created, so the rows must be rebuilt for the new

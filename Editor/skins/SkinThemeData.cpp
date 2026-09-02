@@ -31,8 +31,8 @@ SkinTokens studioTokens(bool dark)
 {
 	SkinTokens t;
 	t.dark = dark;
-	t.fontFamily = QStringLiteral("DM Sans");
-	t.monoFontFamily = QStringLiteral("DM Mono");
+	t.fontFamily = QStringLiteral("EAPO Sans");
+	t.monoFontFamily = QStringLiteral("EAPO Mono");
 	t.borderRadius = 8;
 	// 36, down from 40 (2026-08 density round): a long config only ever
 	// shows a handful of cards per screen, and the header floor was the
@@ -81,8 +81,8 @@ SkinTokens minimalTokens(bool dark)
 	SkinTokens t;
 	t.dark = dark;
 	t.accent = QStringLiteral("#3B82F6");
-	t.fontFamily = QStringLiteral("DM Mono");
-	t.monoFontFamily = QStringLiteral("DM Mono");
+	t.fontFamily = QStringLiteral("EAPO Mono");
+	t.monoFontFamily = QStringLiteral("EAPO Mono");
 	t.borderRadius = 0;
 	t.rowHeight = 32;
 	t.channelGroupIndent = 16;
@@ -126,8 +126,8 @@ SkinTokens softTokens(bool dark)
 {
 	SkinTokens t;
 	t.dark = dark;
-	t.fontFamily = QStringLiteral("DM Sans");
-	t.monoFontFamily = QStringLiteral("DM Mono");
+	t.fontFamily = QStringLiteral("EAPO Sans");
+	t.monoFontFamily = QStringLiteral("EAPO Mono");
 	t.borderRadius = 14;
 	// 44, down from 48 (2026-08 density round): still the airiest header of
 	// the five, but no longer half again the compact skins' height.
@@ -184,8 +184,8 @@ SkinTokens rackTokens(bool dark)
 {
 	SkinTokens t;
 	t.dark = dark;
-	t.fontFamily = QStringLiteral("DM Sans");
-	t.monoFontFamily = QStringLiteral("DM Mono");
+	t.fontFamily = QStringLiteral("EAPO Sans");
+	t.monoFontFamily = QStringLiteral("EAPO Mono");
 	t.borderRadius = 3;
 	t.rowHeight = 36;
 	t.channelGroupIndent = 16;
@@ -228,8 +228,8 @@ SkinTokens matrixTokens(bool dark)
 {
 	SkinTokens t;
 	t.dark = dark;
-	t.fontFamily = QStringLiteral("DM Sans");
-	t.monoFontFamily = QStringLiteral("DM Mono");
+	t.fontFamily = QStringLiteral("EAPO Sans");
+	t.monoFontFamily = QStringLiteral("EAPO Mono");
 	t.borderRadius = 0;
 	t.rowHeight = 36;
 	t.channelGroupIndent = 24;
@@ -313,15 +313,15 @@ void registerBundledFonts(bool includeSarasa)
 	}
 
 	const QStringList cjkChain = {
-		QStringLiteral("Pretendard"), QStringLiteral("Noto Sans KR"),
+		QStringLiteral("EAPO Sans KR"), QStringLiteral("Noto Sans KR"),
 		QStringLiteral("Noto Sans"), QStringLiteral("Malgun Gothic"),
 		QStringLiteral("Microsoft YaHei")
 	};
-	QFont::insertSubstitutions(QStringLiteral("DM Sans"), cjkChain);
+	QFont::insertSubstitutions(QStringLiteral("EAPO Sans"), cjkChain);
 	QStringList monoChain{ QStringLiteral("Consolas") };
 	if (includeSarasa)
-		monoChain.append(QStringLiteral("Sarasa Mono K"));
-	QFont::insertSubstitutions(QStringLiteral("DM Mono"), monoChain + cjkChain);
+		monoChain.append(QStringLiteral("EAPO Mono K"));
+	QFont::insertSubstitutions(QStringLiteral("EAPO Mono"), monoChain + cjkChain);
 }
 
 const QVector<SkinEntry>& roster()

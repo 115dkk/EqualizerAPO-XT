@@ -15,7 +15,7 @@
 QWidget {
     background: @BG@;
     color: @TEXT@;
-    font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
+    font-family: "@FONT@", "EAPO Sans KR", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
     font-size: 11pt;
     font-weight: 500;
 }
@@ -37,7 +37,7 @@ QToolTip {
     border: 1px solid @BORDER@;
     border-radius: 0;
     padding: 6px 10px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
 }
 
 /* ===== Menu Bar / Menus: the board's header row =====
@@ -236,7 +236,7 @@ QToolBar#MainToolBar QLabel#DirtyStatusBadge {
     padding: 2px 8px 2px 20px;
     min-height: 24px;
     max-height: 24px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-weight: 500;
     font-size: 10pt;
     text-transform: uppercase;
@@ -287,7 +287,7 @@ QToolBar#MainToolBar QLabel#DeviceFormatBadge {
     padding: 2px 8px;
     min-height: 24px;
     max-height: 24px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-size: 10pt;
 }
 QToolBar#MainToolBar QLabel#DeviceFormatBadge[severity="warning"] {
@@ -339,7 +339,7 @@ QAbstractSpinBox {
     selection-color: #06141A;
 }
 QAbstractSpinBox {
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
 }
 QLineEdit:focus,
 QPlainTextEdit:focus,
@@ -855,7 +855,7 @@ QStatusBar {
     color: @MUTED@;
     border: 0;
     border-top: 1px solid @BORDER@;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-size: 10pt;
 }
 QStatusBar::item {
@@ -869,7 +869,7 @@ QProgressBar {
     border: 1px solid @BORDER@;
     border-radius: 0;
     text-align: center;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
 }
 QProgressBar::chunk {
     background: @ACCENT@;
@@ -945,7 +945,7 @@ QLabel#AnalysisStatValue {
     color: @TEXT@;
     background: transparent;
     font-weight: 700;
-    font-family: "@MONO@", "Consolas", "JetBrains Mono", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "JetBrains Mono", "Malgun Gothic", monospace;
 }
 QLabel#AnalysisStatValue[severity="warning"] { color: @WARNING@; }
 QLabel#AnalysisStatValue[severity="critical"] { color: @DANGER@; }
@@ -981,7 +981,7 @@ QWidget#FilterCardEditor {
 QLabel#FilterTypeBadge {
     border: 1px solid @BORDER@;
     border-radius: 0;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
     padding: 2px 6px;
     min-height: 18px;
@@ -1030,7 +1030,7 @@ QLabel#FilterCardNumber {
     border: 1px solid @BORDER@;
     border-radius: 0;
     padding: 1px 4px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
 }
 QWidget#FilterCardHeader[selected="true"] QLabel#FilterCardNumber {
@@ -1068,7 +1068,7 @@ QLineEdit#FilterCardRawEditor {
     border: 1px solid @ACCENT@;
     border-radius: 0;
     padding: 6px 10px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
 }
 QCheckBox#FilterCardEnabled {
     background: transparent;
@@ -1102,7 +1102,7 @@ QLabel#EditableValue {
     border: 1px solid @BORDER@;
     border-radius: 0;
     padding: 6px 10px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
 }
 /* The all-pass card states its fixed magnitude as a reading. It takes this
@@ -1110,7 +1110,7 @@ QLabel#EditableValue {
    type into it, and a box would say there is. */
 QLabel#AllPassCardMagnitudeValue {
     color: @TEXT@;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
     background: transparent;
     border: 0;
@@ -1122,7 +1122,7 @@ QLineEdit#EditableValueEditor {
     border: 1px solid @ACCENT@;
     border-radius: 0;
     padding: 6px 10px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
 }
 /* ===== GraphicEQ card =====
@@ -1157,7 +1157,7 @@ QWidget#GraphicEQReadout {
 QLabel#GraphicEQBandCaption {
     background: transparent;
     color: @MUTED@;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-size: 9pt;
     font-weight: 600;
     text-transform: uppercase;
@@ -1178,7 +1178,7 @@ QLabel#GraphicEQReadoutLabel {
 QLabel#UpdateToastLabel {
     background: transparent;
     color: @TEXT@;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-size: 10pt;
 }
 QToolButton#UpdateToastClose {
@@ -1220,7 +1220,7 @@ QLabel#MatrixRefMarker {
     border: 1px solid @BORDER@;
     border-radius: 0;
     padding: 2px 6px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
     font-size: 10pt;
     letter-spacing: 1px;
@@ -1240,7 +1240,7 @@ QLabel#MatrixRefMarker:disabled {
 QLabel#MatrixRefName {
     background: transparent;
     color: @TEXT@;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
     font-size: 11pt;
 }
@@ -1253,7 +1253,7 @@ QLabel#MatrixRefName:disabled {
 QLabel#MatrixRefLocation {
     background: transparent;
     color: @MUTED@;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-size: 9pt;
 }
 /* ABS: a hollow amber token. An absolute path is a portability hazard, and
@@ -1264,7 +1264,7 @@ QLabel#MatrixRefAbsCell {
     border: 1px solid @WARNING@;
     border-radius: 0;
     padding: 1px 5px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
     font-size: 8pt;
     letter-spacing: 1px;
@@ -1276,7 +1276,7 @@ QLabel#MatrixRefFormatCell {
     border: 1px solid @BORDER@;
     border-radius: 0;
     padding: 1px 5px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
     font-size: 8pt;
     letter-spacing: 1px;
@@ -1289,7 +1289,7 @@ QLabel#MatrixRefReadoutCell {
     border: 1px solid @BORDER@;
     border-radius: 0;
     padding: 2px 8px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
     font-size: 10pt;
 }
@@ -1301,7 +1301,7 @@ QLabel#MatrixRefReadoutCell:disabled {
 QLabel#MatrixRefStatusLine {
     background: transparent;
     color: @MUTED@;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-size: 10pt;
 }
 QLabel#MatrixRefStatusLine[severity="warning"] { color: @WARNING@; }
@@ -1316,7 +1316,7 @@ QWidget#MatrixRefPortStrip {
 QLabel#MatrixRefPortLabel {
     background: transparent;
     color: @MUTED@;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
     font-size: 10pt;
     letter-spacing: 1px;
@@ -1337,7 +1337,7 @@ QComboBox[matrixBusCell="true"] {
     padding: 1px 22px 1px 6px;
     min-height: 22px;
     max-height: 22px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-weight: 600;
     font-size: 10pt;
 }
@@ -1350,7 +1350,7 @@ QComboBox[matrixBusCell="true"] QLineEdit {
     background: transparent;
     border: 0;
     padding: 0;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
 }
 /* Panel cell (VST): the open-panel button joins the action cell train's
    metrics instead of standing as a tall dialog button. */
@@ -1363,7 +1363,7 @@ QPushButton#VSTCardPanelButton {
 /* LOCATE: an untranslated mono-caps board token, monochrome at rest; the
    shared icon-button hover supplies the accent pre-light. */
 QToolButton#FilterCardIconButton[matrixLocate="true"] {
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-size: 10pt;
     letter-spacing: 1px;
 }
@@ -1375,7 +1375,7 @@ QLineEdit#RefPathEdit {
     border: 1px solid @BORDER@;
     border-radius: 0;
     padding: 4px 8px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
 }
 QLineEdit#RefPathEdit:focus {
     border-color: @ACCENT@;
@@ -1385,7 +1385,7 @@ QLineEdit#CrosspointEditor {
     background: @GRAPH@;
     border: 1px solid @ACCENT@;
     border-radius: 0;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
 }
 
 /* Toolbar/Tab spacers and labels transparent so parent bg shows through */
@@ -1404,7 +1404,7 @@ QWidget#AppTitleBar {
 QLabel#TitleBarText {
     background: transparent;
     color: @TEXT@;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-size: 10pt;
     letter-spacing: 1px;
 }
@@ -1437,7 +1437,7 @@ QToolButton#TitleBarClose:pressed {
    crosspoint grid; the hint stays in the same mono register. */
 QLabel#MultiConvolutionMappingCaption {
     color: @MUTED@;
-    font-family: "@MONO@", "Consolas", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", monospace;
     font-size: 9pt; letter-spacing: 2px;
     text-transform: uppercase;
 }
@@ -1550,7 +1550,7 @@ QToolButton#DeviceChipMore {
     border-radius: 0;
     padding: 2px 8px;
     min-height: 24px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-size: 10pt;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -1583,7 +1583,7 @@ QToolButton#ChannelChip {
     padding: 2px 8px;
     min-width: 24px;
     min-height: 24px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
     font-size: 10pt;
     letter-spacing: 1px;
@@ -1644,7 +1644,7 @@ QLineEdit#ChannelChipAdd {
     border-radius: 0;
     padding: 2px 8px;
     min-height: 24px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-size: 10pt;
 }
 QLineEdit#ChannelChipAdd:hover {
@@ -1702,7 +1702,7 @@ QToolButton#StageChipUnknown:disabled {
     border-radius: 0;
     padding: 2px 10px;
     min-height: 24px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-size: 10pt;
     letter-spacing: 1px;
 }
@@ -1728,7 +1728,7 @@ QLabel#CommentCardGlyph {
     border: 1px solid @BORDER@;
     border-radius: 0;
     padding: 2px 7px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
     font-size: 11pt;
 }
@@ -1739,7 +1739,7 @@ QLineEdit#CommentCardText:disabled {
     border: 1px solid @BORDER@;
     border-radius: 0;
     padding: 2px 6px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-size: 10pt;
 }
 QLineEdit#CommentCardText:hover {
@@ -1771,7 +1771,7 @@ QLabel#CardValidationMessage {
 QLabel#HilbertCaption, QLabel#VelvetCaption { color: @MUTED@; font-weight: 600; }
 QLabel#HilbertReadout {
     color: @TEXT@;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
 }
 QLabel#CardValidationMessage { color: @DANGER@; font-weight: 700; }
@@ -1796,7 +1796,7 @@ QLabel#MatrixBassCaption {
     color: @MUTED@;
     background: transparent;
     border: 0;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-size: 8.5pt;
     font-weight: 600;
     letter-spacing: 1px;
@@ -1812,7 +1812,7 @@ QLabel#MatrixBassValueCell {
     border-radius: 0;
     padding: 3px 10px;
     min-height: 18px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-size: 10.5pt;
     font-weight: 700;
 }
@@ -1830,7 +1830,7 @@ QLabel#MatrixBassRemark {
     color: @MUTED@;
     background: transparent;
     border: 0;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-size: 9.5pt;
     font-weight: 600;
 }
@@ -1848,7 +1848,7 @@ QToolButton#MatrixBassActionButton {
     padding: 5px 11px;
     min-width: 40px;
     min-height: 40px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-family: "@MONO@", "EAPO Mono K", "EAPO Sans KR", "Consolas", "Malgun Gothic", monospace;
     font-size: 9.5pt;
     font-weight: 600;
 }

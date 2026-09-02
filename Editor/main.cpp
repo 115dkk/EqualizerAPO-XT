@@ -507,6 +507,9 @@ int main(int argc, char* argv[])
 		// Real-window A/B probe for the panel preview feed (SkinGallery::
 		// armVstPanelFeedProbe); pair it with EAPO_DISABLE_PANEL_FEED=1 for
 		// the control run.
+		QCommandLineOption skinMetricsOption(QStringLiteral("skin-metrics-probe"));
+		skinMetricsOption.setFlags(QCommandLineOption::HiddenFromHelp);
+		parser.addOption(skinMetricsOption);
 		QCommandLineOption vstPanelFeedOption(QStringLiteral("vst-panel-feed-test"));
 		vstPanelFeedOption.setValueName(QStringLiteral("durationMs"));
 		vstPanelFeedOption.setFlags(QCommandLineOption::HiddenFromHelp);
@@ -526,6 +529,11 @@ int main(int argc, char* argv[])
 			// SkinGallery.cpp (audit #275 B7); it arms the timers and later
 			// exits the event loop with the verdict.
 			if (!SkinGallery::armAnalysisLayoutProbe(w, parser.value(analysisLayoutOption)))
+				return 1;
+		}
+		else if (parser.isSet(skinMetricsOption))
+		{
+			if (!SkinGallery::armSkinMetricsProbe(w))
 				return 1;
 		}
 		else if (parser.isSet(vstPanelFeedOption))

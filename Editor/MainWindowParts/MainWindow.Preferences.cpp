@@ -472,8 +472,27 @@ void MainWindow::applyRedesignPreferences()
 		resizeDocks({ ui->analysisDockWidget }, { preferredWidth }, Qt::Horizontal);
 	}
 	ui->analysisDockWidget->setVisible(graphFullscreen || graphWasShown);
+	updateAnalysisDockFloor();
 
 	setCurrentRenderMode(currentRenderMode);
+}
+
+// The analysis dock can be dragged down to its minimum size, and users park
+// it there. That minimum used to be whatever the active skin's control bar
+// and dock title added up to, and the skins differ by up to 20px (rack's 10pt
+// bar is the smallest, minimal's tracked captions the widest), so a graph
+// parked at the floor in one skin grew on the next skin switch. Pin one
+// floor for every skin: the larger of a fixed budget sized to the biggest
+// skin and the live content minimum, so no skin can squeeze its controls
+// and none can undercut the others.
+void MainWindow::updateAnalysisDockFloor()
+{
+	const int floorWidth = GUIHelper::scale(296.0);
+	const int floorHeight = GUIHelper::scale(268.0);
+	QDockWidget* dock = ui->analysisDockWidget;
+	dock->setMinimumSize(0, 0);
+	const QSize content = dock->minimumSizeHint();
+	dock->setMinimumSize(qMax(floorWidth, content.width()), qMax(floorHeight, content.height()));
 }
 
 void MainWindow::setCurrentRenderMode(FilterTable::RenderMode mode)

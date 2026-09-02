@@ -100,6 +100,11 @@ int runScrollBench();
 // dock is missing, in which case the caller exits 1 immediately.
 bool armAnalysisLayoutProbe(MainWindow& window, const QString& screenshotPath);
 
+// Entry point behind --skin-metrics-probe (diagnostic): shrinks the analysis
+// dock, walks the five skins on the live MainWindow and reports dock
+// minimums plus the physical font face serving Korean chrome text.
+bool armSkinMetricsProbe(MainWindow& window);
+
 // Entry point behind --vst-panel-feed-test: embeds the first VST card's
 // panel in the live MainWindow, then samples the card's composited screen
 // pixels for the given duration and reports whether they animate
