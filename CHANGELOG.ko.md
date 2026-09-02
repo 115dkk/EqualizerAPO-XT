@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.50.8 — 2026-09-02
+
 - **시스템에 같은 이름의 폰트가 설치돼 있어도 스킨의 한국어가 번들 서체로
   그려집니다.** Editor는 DM Sans, DM Mono, Pretendard, Sarasa Mono K를 함께
   배포하지만 공개 가족명 그대로 등록했기 때문에, 사용자가 Pretendard(또는

@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.50.8 — 2026-09-02
+
 - **Korean text in the skins stays on the bundled typeface even when a
   same-named font is installed system-wide.** The Editor ships DM Sans, DM
   Mono, Pretendard and Sarasa Mono K, but registered them under their public
