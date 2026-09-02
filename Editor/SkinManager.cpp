@@ -137,6 +137,11 @@ void SkinManager::paintKnob(QPainter& painter, const QRect& rect, const KnobStat
 	activeSkin->paintKnob(painter, rect, state, currentTokens);
 }
 
+KnobGesture SkinManager::knobGesture() const
+{
+	return activeSkin->knobGesture();
+}
+
 QString SkinManager::cardFrameStyle(const CommandRowInfo& info) const
 {
 	return activeSkin->cardFrameStyle(info, currentTokens);

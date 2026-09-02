@@ -412,6 +412,8 @@ int main(int argc, char* argv[])
 		// and renders untranslated English strings for deterministic output.
 		if (application.arguments().contains(QStringLiteral("--skin-gallery")))
 			return SkinGallery::run(application.arguments());
+		if (application.arguments().contains(QStringLiteral("--knob-specimen")))
+			return SkinGallery::runKnobSpecimen(application.arguments());
 
 		// Headless live skin-switch robustness gate (crash + slowness), same
 		// offscreen contract as the gallery.

@@ -48,6 +48,11 @@ QString ISkin::qssResource(bool dark) const
 	return SkinThemeData::qssResource(id(), dark);
 }
 
+KnobGesture ISkin::knobGesture() const
+{
+	return KnobGesture::Rotary;
+}
+
 void ISkin::paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens) const
 {
 	painter.setRenderHint(QPainter::Antialiasing);

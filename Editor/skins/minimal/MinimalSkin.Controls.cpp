@@ -17,125 +17,196 @@
 #include <QtMath>
 
 #include "Editor/skins/shared/SkinPaint.h"
+#include "Editor/widgets/KnobTravel.h"
 
-// "The number is the control; the knob is confirmation." The figure is the
-// brightest ink in the row - painted here when the widget supplies
-// valueText, living in the adjacent ValueScrubBox (promoted by
-// precision_*.qss) for the row dials, which supply none. The knob itself
-// is a hairline instrument: a 1px 270-degree range arc, a travelled arc in
-// text ink and a radial cursor tick at the value angle - no filled disc,
-// no hub. Monochrome until dragged; dragging turns the travelled ink
-// accent (active-state law).
+namespace
+{
+// Ink ladder shared by the drum's parts: hairline (rim lines, the travel
+// rule), secondary (crown lines, window rules, the detent), travelled ink
+// (reading line and position tick: body text, accent while dragging,
+// secondary when disabled), promoted figure (one step above body text:
+// white on the dark console, full black on the light paper; mode is read
+// off the background's value because SkinTokens carries no dark flag).
+struct KnobInk
+{
+	QColor hairline;
+	QColor secondary;
+	QColor active;
+	QColor promoted;
+	QColor travelled;
+};
+
+KnobInk knobInk(const KnobState& state, const SkinTokens& tokens)
+{
+	KnobInk ink;
+	ink.hairline = QColor(tokens.border);
+	ink.secondary = QColor(tokens.mutedText);
+	ink.active = QColor(tokens.accent);
+	const bool darkMode = skinIsDark(tokens);
+	ink.promoted = !state.enabled ? ink.secondary
+		: (darkMode ? QColor(255, 255, 255) : QColor(0, 0, 0));
+	ink.travelled = !state.enabled ? ink.secondary
+		: (state.dragging ? ink.active : QColor(tokens.text));
+	return ink;
+}
+
+// Bold mono figure, shrunk (never clipped) until it fits the width (AR1 N2).
+QFont knobNumberFont(const SkinTokens& tokens, const QString& text, double available)
+{
+	QFont font(tokens.monoFontFamily);
+	font.setBold(true);
+	font.setPointSizeF(10.0);
+	while (QFontMetricsF(font).horizontalAdvance(text) > available && font.pointSizeF() > 6.5)
+		font.setPointSizeF(font.pointSizeF() - 0.5);
+	return font;
+}
+
+// A cylinder seen edge-on with a horizontal axis: the surface line at angle
+// theta (degrees; 0 faces the viewer) projects to y = cy - R sin(theta) and
+// is visible while cos(theta) > 0. Rolling the drum shifts every theta by
+// the same phase, so straight hairlines alone read as a turning wheel: open
+// at the crown, dense toward the rims, appearing at one rim and vanishing
+// at the other.
+struct DrumLine
+{
+	int y;
+	bool crown;   // near the crown (faces the viewer) vs. compressed at the rim
+};
+
+QList<DrumLine> drumLines(int cy, int radius, double phaseDegrees, int perRevolution)
+{
+	QList<DrumLine> lines;
+	for (int k = 0; k < perRevolution; k++)
+	{
+		const double theta = qDegreesToRadians(k * 360.0 / perRevolution + phaseDegrees);
+		const double facing = qCos(theta);
+		if (facing <= 0.05)
+			continue;
+		lines.append({ cy - qRound(radius * qSin(theta)), facing > 0.55 });
+	}
+	return lines;
+}
+
+// Drum rotation across the whole range. The surface covers exactly the
+// pointer travel that sweeps the range (KnobTravel::RangePixels, the figure
+// AudioKnob's VerticalDrag gesture uses), so under a drag the drum rolls
+// with the pointer one to one: 200px of travel is 200px of surface, about
+// one and a half turns of a 22px drum. Value up rolls the surface up.
+double drumTravelDegrees(int radius)
+{
+	return KnobTravel::RangePixels * 360.0 / (2.0 * M_PI * radius);
+}
+
+// Keyboard focus: a square hairline frame (radius 0 corner language).
+void paintKnobFocus(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens)
+{
+	if (!state.focused)
+		return;
+	painter.setRenderHint(QPainter::Antialiasing);
+	painter.setPen(QPen(QColor(tokens.focusRing), 1));
+	painter.setBrush(Qt::NoBrush);
+	painter.drawRect(QRectF(rect).adjusted(0.5, 0.5, -0.5, -0.5));
+}
+
+// Dials without a figure (their number lives in the ValueScrubBox) show the
+// dial position as a percentage in the constant bottom strip while hovered
+// or dragged: the only honest readout for a log-scaled dial.
+void paintKnobReadout(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens, const KnobInk& ink)
+{
+	if (!state.enabled || !(state.hovered || state.dragging))
+		return;
+	QFont readoutFont(tokens.monoFontFamily);
+	readoutFont.setPointSizeF(8.5);
+	painter.setFont(readoutFont);
+	painter.setPen(state.dragging ? ink.active : ink.secondary);
+	const QRectF readoutRect(rect.left(), rect.bottom() - 14.0, rect.width(), 14.0);
+	painter.drawText(readoutRect, Qt::AlignCenter, QStringLiteral("%1%").arg(qRound(state.ratio * 100.0)));
+}
+}
+
+// The register drum. "The number is the control; the knob is confirmation"
+// still holds - the figure is the brightest ink in the row - but the knob
+// is now seen edge-on, the way an adding machine shows its register:
+// straight hairlines spaced as a cylinder's surface roll with the value,
+// the figure is printed on the drum inside a two-rule window, an index tick
+// against each rim is the reading line, and a hairline travel rule on the
+// right carries the position in range (bipolar drums mark the detent on
+// it). Dials without a figure are the bare drum. Under 64px the travel rule
+// folds so the window keeps the figure at full size (a crowded row squeezes
+// the knob to 50px). Monochrome until dragged; dragging turns the reading
+// line, the position tick and the figure accent (active-state law). The
+// drum is rolled, not turned: knobGesture() asks AudioKnob for the vertical
+// drag, and the rotation per range is derived from that gesture's travel so
+// the surface moves with the pointer.
 void MinimalSkin::paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens) const
 {
-	painter.setRenderHint(QPainter::Antialiasing);
-
-	const QColor hairline(tokens.border);
-	const QColor secondary(tokens.mutedText);
-	const QColor active(tokens.accent);
-	// The promoted figure sits one brightness step above body text: white on
-	// the dark console, full black on the light paper. Mode is read off the
-	// background's value because SkinTokens carries no dark flag.
-	const bool darkMode = skinIsDark(tokens);
-	const QColor promoted(!state.enabled ? secondary
-		: (darkMode ? QColor(255, 255, 255) : QColor(0, 0, 0)));
-	const QColor travelled = !state.enabled ? secondary
-		: (state.dragging ? active : QColor(tokens.text));
-
+	painter.setRenderHint(QPainter::Antialiasing, false);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+	const KnobInk ink = knobInk(state, tokens);
 	const bool hasNumber = !state.valueText.isEmpty();
-	const double arcRadius = hasNumber ? 9.0 : 12.0;
+	const bool travelRule = rect.width() >= 64;
+	const int radius = 22;
+	const int left = rect.left() + 5;
+	const int right = rect.right() - (travelRule ? 13 : 5);
+	const int cy = hasNumber ? rect.center().y() : rect.top() + (rect.height() - 14) / 2;
+	const int windowHalf = hasNumber ? 11 : 0;
 
-	QFont numberFont(tokens.monoFontFamily);
-	numberFont.setBold(true);
-	numberFont.setPointSizeF(10.0);
-
-	QPointF arcCenter;
-	QRectF numberRect;
+	// Rims, then the surface (skipped behind the window).
+	painter.setPen(QPen(ink.hairline, 1));
+	painter.drawLine(left, cy - radius, left, cy + radius);
+	painter.drawLine(right, cy - radius, right, cy + radius);
+	for (const DrumLine& line : drumLines(cy, radius, state.ratio * drumTravelDegrees(radius), 24))
+	{
+		if (qAbs(line.y - cy) <= windowHalf)
+			continue;
+		painter.setPen(QPen(line.crown ? ink.secondary : ink.hairline, 1));
+		painter.drawLine(left + 1, line.y, right - 1, line.y);
+	}
 	if (hasNumber)
 	{
-		// Number left (primary), confirmation arc beside it; the pair is
-		// centred in the widget. Shrink the font instead of clipping when a
-		// long value (e.g. "-100.0") meets a narrow widget.
-		const double gap = 6.0;
-		double available = rect.width() - 2.0 * arcRadius - gap - 4.0;
-		double textWidth = QFontMetricsF(numberFont).horizontalAdvance(state.valueText);
-		while (textWidth > available && numberFont.pointSizeF() > 6.5)
+		painter.setPen(QPen(ink.secondary, 1));
+		painter.drawLine(left, cy - windowHalf, right, cy - windowHalf);
+		painter.drawLine(left, cy + windowHalf, right, cy + windowHalf);
+	}
+
+	// Reading line: an index tick against each rim.
+	painter.setPen(QPen(ink.travelled, 1));
+	painter.drawLine(left - 4, cy, left - 1, cy);
+	painter.drawLine(right + 1, cy, right + 4, cy);
+
+	if (travelRule)
+	{
+		const int ruleX = right + 9;
+		painter.setPen(QPen(ink.hairline, 1));
+		painter.drawLine(ruleX, cy - radius, ruleX, cy + radius);
+		if (state.bipolar)
 		{
-			numberFont.setPointSizeF(numberFont.pointSizeF() - 0.5);
-			textWidth = QFontMetricsF(numberFont).horizontalAdvance(state.valueText);
+			painter.setPen(QPen(ink.secondary, 1));
+			painter.drawLine(ruleX - 2, cy, ruleX + 2, cy);
 		}
-		const double pairWidth = textWidth + gap + 2.0 * arcRadius;
-		const double left = rect.left() + (rect.width() - pairWidth) / 2.0;
-		numberRect = QRectF(left, rect.top(), textWidth, rect.height());
-		arcCenter = QPointF(left + textWidth + gap + arcRadius, QRectF(rect).center().y());
+		const int positionY = cy + radius - qRound(state.ratio * 2.0 * radius);
+		painter.setPen(QPen(ink.travelled, 1));
+		painter.drawLine(ruleX - 2, positionY, ruleX + 2, positionY);
 	}
-	else
-	{
-		// Arc only; keep a constant bottom strip free for the hover/drag
-		// readout so the instrument does not jump when the readout appears.
-		arcCenter = QPointF(QRectF(rect).center().x(), rect.top() + (rect.height() - 14.0) / 2.0);
-	}
-
-	// Hairline range arc: the full 270-degree travel, 1px, open across the
-	// bottom dead zone like every knob in the product.
-	const QRectF arcRect(arcCenter.x() - arcRadius, arcCenter.y() - arcRadius, arcRadius * 2.0, arcRadius * 2.0);
-	painter.setPen(QPen(hairline, 1));
-	painter.setBrush(Qt::NoBrush);
-	painter.drawArc(arcRect, -135 * 16, -270 * 16);
-
-	if (state.bipolar)
-	{
-		// Fixed detent tick at 12 o'clock and a 1px deviation arc measured
-		// from it: boost grows clockwise, cut counter-clockwise. On the
-		// detent the deviation vanishes and only the tick remains - the
-		// honest "0 dB".
-		painter.setPen(QPen(secondary, 1));
-		painter.drawLine(skinArcPoint(arcCenter, arcRadius - 2.5, -270.0),
-			skinArcPoint(arcCenter, arcRadius + 2.5, -270.0));
-		const double deviationDegrees = 270.0 * (state.ratio - 0.5);
-		painter.setPen(QPen(travelled, 1));
-		painter.drawArc(arcRect, -270 * 16, -qRound(deviationDegrees * 16.0));
-	}
-	else
-	{
-		// Unipolar: the travelled range fills from the arc's start. No detent
-		// tick, no centre origin - the two kinds cannot be confused.
-		painter.setPen(QPen(travelled, 1));
-		painter.drawArc(arcRect, -135 * 16, -qRound(270.0 * state.ratio * 16.0));
-	}
-
-	// Radial cursor tick crossing the range arc at the value angle.
-	const double valueDegrees = -(135.0 + 270.0 * state.ratio);
-	painter.setPen(QPen(travelled, 1));
-	painter.drawLine(skinArcPoint(arcCenter, arcRadius - 3.0, valueDegrees),
-		skinArcPoint(arcCenter, arcRadius + 3.0, valueDegrees));
 
 	if (hasNumber)
 	{
-		painter.setFont(numberFont);
-		painter.setPen((state.enabled && state.dragging) ? active : promoted);
-		painter.drawText(numberRect, Qt::AlignVCenter | Qt::AlignLeft, state.valueText);
+		painter.setFont(knobNumberFont(tokens, state.valueText, right - left - 4.0));
+		painter.setPen((state.enabled && state.dragging) ? ink.active : ink.promoted);
+		painter.drawText(QRectF(left, cy - windowHalf, right - left, 2.0 * windowHalf), Qt::AlignCenter, state.valueText);
 	}
-	else if (state.enabled && (state.hovered || state.dragging))
+	else
 	{
-		// No supplied value text: show the dial position derived from ratio.
-		// The real value sits in the adjacent scrub box, so a percentage is
-		// the only honest readout for log-scaled legacy dials.
-		QFont readoutFont(tokens.monoFontFamily);
-		readoutFont.setPointSizeF(8.5);
-		painter.setFont(readoutFont);
-		painter.setPen(state.dragging ? active : secondary);
-		const QRectF readoutRect(rect.left(), rect.bottom() - 14.0, rect.width(), 14.0);
-		painter.drawText(readoutRect, Qt::AlignCenter, QStringLiteral("%1%").arg(qRound(state.ratio * 100.0)));
+		paintKnobReadout(painter, rect, state, tokens, ink);
 	}
+	paintKnobFocus(painter, rect, state, tokens);
+}
 
-	// Keyboard focus: a square hairline frame (radius 0 corner language).
-	if (state.focused)
-	{
-		painter.setPen(QPen(QColor(tokens.focusRing), 1));
-		painter.setBrush(Qt::NoBrush);
-		painter.drawRect(QRectF(rect).adjusted(0.5, 0.5, -0.5, -0.5));
-	}
+KnobGesture MinimalSkin::knobGesture() const
+{
+	// A drum is rolled, not turned: the pointer's vertical travel moves the
+	// surface under it.
+	return KnobGesture::VerticalDrag;
 }
 
 // A row of mutually exclusive choices as this skin's selector field.

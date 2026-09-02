@@ -26,6 +26,7 @@ struct BadgeTreatment;
 struct CommandRowInfo;
 struct GraphicEQPlotState;
 struct KnobState;
+enum class KnobGesture;
 struct ListChromeState;
 struct SegmentedControlState;
 struct VstBusFrameState;
@@ -65,6 +66,8 @@ public:
 	// tokens. Called by AudioKnob::paintEvent; the widget keeps all input
 	// handling and hands only the painting to the skin.
 	void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state) const;
+	// The pointer gesture the active skin's knobs use (ISkin::knobGesture).
+	KnobGesture knobGesture() const;
 
 	// Per-command-type row chrome, delegated to the active skin with the
 	// current tokens (see the ISkin hooks for semantics).

@@ -12,15 +12,18 @@
 
 #include "Editor/SkinManager.h"
 #include "Editor/skins/ISkin.h"
+#include "KnobTravel.h"
 
 AudioKnob::AudioKnob(QWidget* parent)
-	: QDial(parent)
+	: QDial(parent), gesture(KnobGesture::Rotary)
 {
 	setRange(0, 100);
 	setNotchesVisible(false);
 	setWrapping(false);
-	setCursor(Qt::OpenHandCursor);
+	syncGestureCursor();
 	connect(SkinManager::instance(), &SkinManager::skinChanged, this, [this](const SkinTokens&) {
+		if (!isSliderDown())
+			syncGestureCursor();
 		update();
 	});
 }
@@ -64,6 +67,16 @@ void AudioKnob::paintEvent(QPaintEvent*)
 	SkinManager::instance()->paintKnob(painter, rect(), state);
 }
 
+void AudioKnob::syncGestureCursor()
+{
+	// The resting cursor announces the gesture before the first press: a
+	// hand for a knob that is grabbed and turned, a vertical arrow for a
+	// drum that is rolled up and down. The rotary hand closes while dragging;
+	// the arrow stays, because it already says which way the drum moves.
+	setCursor(SkinManager::instance()->knobGesture() == KnobGesture::VerticalDrag
+		? Qt::SizeVerCursor : Qt::OpenHandCursor);
+}
+
 void AudioKnob::setValueFromAngle(const QPointF& widgetPos)
 {
 	// Map the cursor's angle around the knob centre onto the 270-degree value arc
@@ -80,17 +93,44 @@ void AudioKnob::setValueFromAngle(const QPointF& widgetPos)
 	setValue(qBound(minimum(), minimum() + static_cast<int>(qRound(ratio * (maximum() - minimum()))), maximum()));
 }
 
+void AudioKnob::setValueFromTravel(const QPointF& widgetPos, Qt::KeyboardModifiers modifiers)
+{
+	// Relative vertical drag: the press grabbed the drum where it was, and
+	// only travel since then moves it - up to increase, KnobTravel::RangePixels
+	// for the whole range, a tenth of that rate with Shift. Horizontal motion
+	// is ignored, so a hand that wanders sideways does not move the value.
+	// The travel is accumulated in fractional units and clamped at every move
+	// (KnobTravel::advance), so the drum stops at either end and answers a
+	// reversal at once. The minimal skin's drum rolls under the pointer one to
+	// one because its painter derives the surface travel from the same figure.
+	const double travel = travelY - widgetPos.y();
+	travelY = widgetPos.y();
+	travelValue = KnobTravel::advance(travelValue, travel, minimum(), maximum(),
+		modifiers.testFlag(Qt::ShiftModifier));
+	setValue(qRound(travelValue));
+}
+
 void AudioKnob::mousePressEvent(QMouseEvent* event)
 {
 	if (event->button() == Qt::LeftButton)
 	{
-		// Rotary tracking: the knob turns to follow the cursor. We deliberately do
-		// not call QDial's handlers; QDial maps the cursor with a different angle
-		// convention than our paintEvent, which made the indicator drift and lurched
-		// the value when the button was released.
+		// We deliberately do not call QDial's handlers; QDial maps the cursor
+		// with a different angle convention than our paintEvent, which made the
+		// indicator drift and lurched the value when the button was released.
+		gesture = SkinManager::instance()->knobGesture();
 		setSliderDown(true);
-		setCursor(Qt::ClosedHandCursor);
-		setValueFromAngle(event->position());
+		if (gesture == KnobGesture::VerticalDrag)
+		{
+			// Grab, do not jump: the value only moves with travel from here.
+			travelValue = value();
+			travelY = event->position().y();
+		}
+		else
+		{
+			// Rotary tracking: the knob turns to follow the cursor.
+			setCursor(Qt::ClosedHandCursor);
+			setValueFromAngle(event->position());
+		}
 		event->accept();
 		return;
 	}
@@ -102,7 +142,10 @@ void AudioKnob::mouseMoveEvent(QMouseEvent* event)
 {
 	if (event->buttons() & Qt::LeftButton)
 	{
-		setValueFromAngle(event->position());
+		if (gesture == KnobGesture::VerticalDrag)
+			setValueFromTravel(event->position(), event->modifiers());
+		else
+			setValueFromAngle(event->position());
 		event->accept();
 		return;
 	}
@@ -118,7 +161,7 @@ void AudioKnob::mouseReleaseEvent(QMouseEvent* event)
 		// re-run setValue() for the release position using its own angle mapping,
 		// which is the sudden value surge seen when letting go of the knob.
 		setSliderDown(false);
-		setCursor(Qt::OpenHandCursor);
+		syncGestureCursor();
 		event->accept();
 		return;
 	}

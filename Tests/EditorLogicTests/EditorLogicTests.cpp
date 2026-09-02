@@ -137,6 +137,7 @@ int main(int argc, char** argv)
 		testPhaseAndGroupDelayAxisCaptions();
 		testBiQuadWidthRoundTripsExactly();
 		testBiQuadWidthModesAndDefaults();
+		testKnobTravelLaw();
 		testConfigFileCodec();
 		testConfigFileCodecRetriesAtomicReplaceAfterReaderCloses();
 		testConfigFileCodecPreservesExistingFileWhenAtomicReplaceFails();

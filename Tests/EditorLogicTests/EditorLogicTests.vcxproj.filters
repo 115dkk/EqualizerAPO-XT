@@ -26,6 +26,9 @@
     <ClCompile Include="BiQuadWidthConversionTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="KnobTravelTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Editor\guis\BiQuadWidthConversion.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
