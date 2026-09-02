@@ -3469,3 +3469,221 @@ bool SkinGallery::armVstPanelFeedProbe(MainWindow& window, const QString& durati
 	});
 	return true;
 }
+
+// ---------------------------------------------------------------------------
+// --skin-metrics-probe (diagnostic): shrink the analysis dock, then walk the
+// five skins on the live MainWindow and report the dock's size/minimums and
+// which physical font face serves Korean text in the chrome. Not a gate.
+// ---------------------------------------------------------------------------
+
+#include <QFontDatabase>
+#include <QFontInfo>
+#include <QRawFont>
+#include <QAction>
+
+namespace
+{
+QAction* findSkinAction(const MainWindow& window, const QString& skinId)
+{
+	for (QAction* action : window.findChildren<QAction*>())
+		if (action->isCheckable() && action->data().toString() == skinId)
+			return action;
+	return nullptr;
+}
+
+void reportFontDatabase()
+{
+	for (const QString& family : { QStringLiteral("Pretendard"), QStringLiteral("Pretendard Variable"),
+		QStringLiteral("EAPO Sans KR"), QStringLiteral("EAPO Sans"), QStringLiteral("EAPO Mono"), QStringLiteral("EAPO Mono K"), QStringLiteral("Malgun Gothic"),
+		QStringLiteral("Noto Sans KR"), QStringLiteral("Noto Sans") })
+	{
+		fprintf(stderr, "  family %s: has=%d private=%d korean=%d styles=",
+			qPrintable(family), QFontDatabase::hasFamily(family) ? 1 : 0,
+			QFontDatabase::isPrivateFamily(family) ? 1 : 0,
+			QFontDatabase::writingSystems(family).contains(QFontDatabase::Korean) ? 1 : 0);
+		for (const QString& style : QFontDatabase::styles(family))
+			fprintf(stderr, "[%s w%d] ", qPrintable(style), QFontDatabase::weight(family, style));
+		fprintf(stderr, "\n");
+	}
+}
+
+void reportFontMatrix()
+{
+	const QList<QStringList> lists = {
+		{ QStringLiteral("Pretendard") },
+		{ QStringLiteral("EAPO Sans KR") },
+		{ QStringLiteral("EAPO Sans"), QStringLiteral("EAPO Sans KR") },
+		{ QStringLiteral("EAPO Mono"), QStringLiteral("EAPO Mono K"), QStringLiteral("EAPO Sans KR") },
+		{ QStringLiteral("EAPO Sans"), QStringLiteral("EAPO Sans KR"), QStringLiteral("Noto Sans KR"),
+			QStringLiteral("Noto Sans"), QStringLiteral("Malgun Gothic"), QStringLiteral("Microsoft YaHei"),
+			QStringLiteral("sans-serif") }
+	};
+	for (const QStringList& list : lists)
+	{
+		for (int weight : { 400, 500, 600, 700 })
+		{
+			fprintf(stderr, "  matrix [%s] w=%d:", qPrintable(list.join(QLatin1Char(','))), weight);
+			for (double pt : { 9.0, 10.0, 10.5, 11.0, 12.0, 14.0 })
+			{
+				QFont font;
+				font.setFamilies(list);
+				font.setWeight(QFont::Weight(weight));
+				font.setPointSizeF(pt);
+				const QRawFont korean = QRawFont::fromFont(font, QFontDatabase::Korean);
+				fprintf(stderr, " %.1f=%s/%s", pt, qPrintable(korean.familyName()), qPrintable(korean.styleName()));
+			}
+			fprintf(stderr, "\n");
+		}
+	}
+}
+
+void reportFace(const char* label, const QWidget* widget)
+{
+	if (widget == nullptr)
+	{
+		fprintf(stderr, "    %s: (missing)\n", label);
+		return;
+	}
+	const QFont font = widget->font();
+	const QFontInfo info(font);
+	const QRawFont latin = QRawFont::fromFont(font, QFontDatabase::Latin);
+	const QRawFont korean = QRawFont::fromFont(font, QFontDatabase::Korean);
+	fprintf(stderr, "    %s: request=[%s] w=%d pt=%.1f | info=%s w=%d | latin=%s/%s w=%d | korean=%s/%s w=%d\n",
+		label, qPrintable(font.families().join(QLatin1Char(','))), int(font.weight()), font.pointSizeF(),
+		qPrintable(info.family()), int(info.weight()),
+		qPrintable(latin.familyName()), qPrintable(latin.styleName()), int(latin.weight()),
+		qPrintable(korean.familyName()), qPrintable(korean.styleName()), int(korean.weight()));
+}
+
+void reportFonts(const MainWindow& window)
+{
+	reportFace("titlebar", window.findChild<QLabel*>(QStringLiteral("TitleBarText")));
+	reportFace("menubar", window.findChild<QMenuBar*>());
+	reportFace("cardtitle", window.findChild<QLabel*>(QStringLiteral("FilterCardTitle")));
+	reportFace("formlabel", window.findChild<QLabel*>(QStringLiteral("AnalysisFormLabel")));
+	QLabel probe(QStringLiteral("probe"));
+	probe.ensurePolished();
+	reportFace("plainlabel", &probe);
+}
+
+void reportDockMetrics(const MainWindow& window, const QDockWidget* dock)
+{
+	const QWidget* contents = dock->widget();
+	const QWidget* controls = window.findChild<QWidget*>(QStringLiteral("analysisControlBar"));
+	const QWidget* graph = window.findChild<QWidget*>(QStringLiteral("ModernAnalysisGraph"));
+	const auto sz = [](const QSize& s) { return QStringLiteral("%1x%2").arg(s.width()).arg(s.height()); };
+	fprintf(stderr, "    dock: size=%s minHint=%s min=%s hint=%s\n",
+		qPrintable(sz(dock->size())), qPrintable(sz(dock->minimumSizeHint())),
+		qPrintable(sz(dock->minimumSize())), qPrintable(sz(dock->sizeHint())));
+	if (contents != nullptr)
+		fprintf(stderr, "    contents: size=%s minHint=%s min=%s\n",
+			qPrintable(sz(contents->size())), qPrintable(sz(contents->minimumSizeHint())),
+			qPrintable(sz(contents->minimumSize())));
+	if (controls != nullptr)
+	{
+		fprintf(stderr, "    controls: size=%s minHint=%s hint=%s\n",
+			qPrintable(sz(controls->size())), qPrintable(sz(controls->minimumSizeHint())),
+			qPrintable(sz(controls->sizeHint())));
+		for (const QWidget* child : controls->findChildren<QWidget*>(QString(), Qt::FindDirectChildrenOnly))
+		{
+			if (!child->isVisibleTo(controls))
+				continue;
+			fprintf(stderr, "      %s(%s): size=%s minHint=%s hint=%s\n",
+				qPrintable(child->objectName()), child->metaObject()->className(),
+				qPrintable(sz(child->size())), qPrintable(sz(child->minimumSizeHint())),
+				qPrintable(sz(child->sizeHint())));
+		}
+	}
+	if (graph != nullptr)
+		fprintf(stderr, "    graph: size=%s minHint=%s min=%s hint=%s\n",
+			qPrintable(sz(graph->size())), qPrintable(sz(graph->minimumSizeHint())),
+			qPrintable(sz(graph->minimumSize())), qPrintable(sz(graph->sizeHint())));
+}
+
+void settle()
+{
+	for (int i = 0; i < 4; i++)
+	{
+		QCoreApplication::sendPostedEvents();
+		QApplication::processEvents(QEventLoop::AllEvents, 50);
+	}
+}
+}
+
+bool SkinGallery::armSkinMetricsProbe(MainWindow& window)
+{
+	QDockWidget* dock = window.findChild<QDockWidget*>(QStringLiteral("analysisDockWidget"));
+	if (dock == nullptr)
+	{
+		fprintf(stderr, "Skin metrics probe: required dock is missing\n");
+		return false;
+	}
+	window.showNormal();
+	window.resize(1024, 768);
+	dock->show();
+	QTimer::singleShot(750, &window, [&window, dock]() {
+		const QString originalSkin = SkinManager::instance()->currentSkinId();
+		const Qt::DockWidgetArea area = window.dockWidgetArea(dock);
+		fprintf(stderr, "Skin metrics probe: platform=%s skin=%s dark=%d area=%d appfont=[%s] w=%d\n",
+			qPrintable(QGuiApplication::platformName()), qPrintable(originalSkin),
+			SkinManager::instance()->isDark() ? 1 : 0, int(area),
+			qPrintable(QApplication::font().families().join(QLatin1Char(','))), int(QApplication::font().weight()));
+		reportFontDatabase();
+		reportFontMatrix();
+		const bool vertical = area == Qt::TopDockWidgetArea || area == Qt::BottomDockWidgetArea;
+		window.resizeDocks({ dock }, { vertical ? 170 : 330 }, vertical ? Qt::Vertical : Qt::Horizontal);
+		settle();
+		fprintf(stderr, "  after shrink: dock=%dx%d\n", dock->width(), dock->height());
+		for (const QString& skinId : { QStringLiteral("studio"), QStringLiteral("minimal"),
+			QStringLiteral("soft"), QStringLiteral("rack"), QStringLiteral("matrix"), QStringLiteral("studio") })
+		{
+			QAction* action = findSkinAction(window, skinId);
+			if (action == nullptr)
+			{
+				fprintf(stderr, "  skin %s: no menu action\n", qPrintable(skinId));
+				continue;
+			}
+			action->trigger();
+			settle();
+			fprintf(stderr, "  skin %s (active=%s):\n", qPrintable(skinId),
+				qPrintable(SkinManager::instance()->currentSkinId()));
+			reportDockMetrics(window, dock);
+			reportFonts(window);
+		}
+		// Second pass with the dock on the right, where the minimum WIDTH is
+		// what a shrunken dock runs into.
+		const QComboBox* positionCombo = window.findChild<QComboBox*>(QStringLiteral("graphPositionComboBox"));
+		const int originalPosition = positionCombo != nullptr ? positionCombo->currentIndex() : -1;
+		QMetaObject::invokeMethod(&window, "on_graphPositionComboBox_currentIndexChanged",
+			Qt::DirectConnection, Q_ARG(int, 2));
+		settle();
+		window.resizeDocks({ dock }, { 330 }, Qt::Horizontal);
+		settle();
+		fprintf(stderr, "  right dock after shrink: dock=%dx%d area=%d\n", dock->width(), dock->height(),
+			int(window.dockWidgetArea(dock)));
+		for (const QString& skinId : { QStringLiteral("studio"), QStringLiteral("minimal"),
+			QStringLiteral("soft"), QStringLiteral("rack"), QStringLiteral("matrix"), QStringLiteral("studio") })
+		{
+			QAction* action = findSkinAction(window, skinId);
+			if (action == nullptr)
+				continue;
+			action->trigger();
+			settle();
+			fprintf(stderr, "  right skin %s:\n", qPrintable(skinId));
+			reportDockMetrics(window, dock);
+		}
+		if (originalPosition >= 0)
+		{
+			QMetaObject::invokeMethod(&window, "on_graphPositionComboBox_currentIndexChanged",
+				Qt::DirectConnection, Q_ARG(int, originalPosition));
+			settle();
+		}
+		if (QAction* original = findSkinAction(window, originalSkin))
+		{
+			original->trigger();
+			settle();
+		}
+		QCoreApplication::exit(0);
+	});
+	return true;
+}

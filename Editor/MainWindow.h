@@ -148,6 +148,7 @@ private:
 	void setupRedesignActions();
 	void setupWindowChrome();
 	void applyRedesignPreferences();
+	void updateAnalysisDockFloor();
 	// Re-tint the toolbar and menu action icons from the active skin's
 	// tokens; wired to SkinManager::skinChanged in the constructor so every
 	// switch path (menu, shortcut, preferences) re-dresses the chrome.

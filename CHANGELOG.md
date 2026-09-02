@@ -14,6 +14,23 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Korean text in the skins stays on the bundled typeface even when a
+  same-named font is installed system-wide.** The Editor ships DM Sans, DM
+  Mono, Pretendard and Sarasa Mono K, but registered them under their public
+  family names, so a Pretendard (or a variable DM Sans) installed on the
+  machine merged into the same family and took over its faces: on such a
+  machine the studio, soft and matrix skins drew menus, labels and the title
+  bar in a Thin Noto Sans KR or in Malgun Gothic while rack looked right. The
+  bundled fonts now carry private family names (`EAPO Sans`, `EAPO Mono`,
+  `EAPO Sans KR`, `EAPO Mono K`), every skin sheet names the bundled Korean
+  fallbacks explicitly, and minimal's Korean text finally lands on the
+  monospace Sarasa face it has bundled since v2.2.1.
+- **The analysis graph keeps its size across skin switches.** The dock's
+  minimum size was whatever the active skin's control bar and title added
+  up to, and the skins differed by up to 20px, so a graph dragged down to
+  its smallest size grew when switching from rack to minimal (or to any
+  other skin). All five skins now share one floor.
+
 ## v2.50.7 — 2026-09-01
 
 - **An ASIO entry offers honest buffer sizes after a sample-rate change.**
