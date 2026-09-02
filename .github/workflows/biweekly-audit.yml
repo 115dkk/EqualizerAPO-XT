@@ -186,9 +186,9 @@ jobs:
         run: |
           unset ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN
 
-          # Fable 5's safety classifiers can silently re-run a flagged
+          # Fable 5.1's safety classifiers can silently re-run a flagged
           # request on Opus 4.8 and keep the session there. Restricting
-          # availableModels to Fable 5 blocks that fallback target, so a
+          # availableModels to Fable 5.1 blocks that fallback target, so a
           # flagged request ends with an explicit refusal error instead of
           # a quiet model switch (and no Opus tokens are spent). See
           # code.claude.com/docs/en/model-config, "Automatic model
@@ -196,9 +196,9 @@ jobs:
           # fallback is opt-in (--fallback-model) and stays unset.
           set +e
           claude \
-            --model claude-fable-5 \
+            --model claude-fable-5-1 \
             --effort xhigh \
-            --settings '{"availableModels": ["claude-fable-5"]}' \
+            --settings '{"availableModels": ["claude-fable-5-1"]}' \
             --permission-mode auto \
             --max-turns 100 \
             -p "
@@ -291,7 +291,7 @@ jobs:
             echo "# Biweekly Audit: ${DATE}"
             echo ""
             echo "Changed relevant files: **${COUNT}**"
-            echo "Model: Fable 5 - Effort: xhigh - 1M context"
+            echo "Model: Fable 5.1 - Effort: xhigh - 1M context"
             echo ""
             echo "This issue body corresponds to the generated \`issue-body.md\` artifact."
             echo "The remaining audit outputs are posted in full as file-specific comments below."
