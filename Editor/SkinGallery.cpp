@@ -3761,7 +3761,11 @@ bool SkinGallery::armWindowShotProbe(MainWindow& window, const QStringList& argu
 	// 1-based card to select by clicking its header, 0 for none.
 	const int selectCard = probeOptionValue(arguments, QStringLiteral("--window-shot-select"), QStringLiteral("0")).toInt();
 	QDir outDir(outPath);
-	outDir.mkpath(QStringLiteral("."));
+	if (!outDir.mkpath(QStringLiteral(".")))
+	{
+		fprintf(stderr, "Window shot: cannot create %s\n", qPrintable(outPath));
+		return false;
+	}
 
 	window.showNormal();
 	window.resize(qMax(640, width), qMax(480, height));
