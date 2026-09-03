@@ -3689,6 +3689,209 @@ bool SkinGallery::armSkinMetricsProbe(MainWindow& window)
 }
 
 // ---------------------------------------------------------------------------
+// --window-shot <outDir> [--window-shot-skins a,b] [--window-shot-modes dark,light]
+// [--window-shot-dock bottom|right] [--window-shot-width N] [--window-shot-height N]
+// (diagnostic): grabs the live MainWindow, loaded from the positional
+// config, once per skin and mode into <outDir>/<skin>_<mode>_window.png.
+// The row gallery shows one row at a time; a review of composition (where
+// the eye lands, where the light comes from) needs the whole window with a
+// realistic config, which is what this renders. The skin and dark actions
+// persist the user's choice, so the original pair is restored before exit.
+// Judging material, not a gate.
+// ---------------------------------------------------------------------------
+
+namespace
+{
+QAction* findDarkThemeAction(const MainWindow& window)
+{
+	// The dark action has no object name; its shortcut is the stable handle.
+	const QKeySequence darkShortcut(QStringLiteral("Ctrl+Alt+D"));
+	for (QAction* action : window.findChildren<QAction*>())
+		if (action->isCheckable() && action->shortcut() == darkShortcut)
+			return action;
+	return nullptr;
+}
+
+QString probeOptionValue(const QStringList& arguments, const QString& name, const QString& fallback)
+{
+	const int index = arguments.indexOf(name);
+	return index >= 0 && index + 1 < arguments.size() ? arguments.at(index + 1) : fallback;
+}
+
+void settleFor(int milliseconds)
+{
+	// Skin swaps rebuild every row and the analysis thread redraws the graph
+	// asynchronously; a plain settle() grabs half-built windows.
+	QElapsedTimer clock;
+	clock.start();
+	while (clock.elapsed() < milliseconds)
+	{
+		QCoreApplication::sendPostedEvents();
+		QApplication::processEvents(QEventLoop::AllEvents, 50);
+	}
+}
+}
+
+bool SkinGallery::armWindowShotProbe(MainWindow& window, const QStringList& arguments)
+{
+	const QString outPath = probeOptionValue(arguments, QStringLiteral("--window-shot"), QString());
+	if (outPath.isEmpty())
+	{
+		fprintf(stderr, "Window shot: --window-shot needs an output directory\n");
+		return false;
+	}
+	QDockWidget* dock = window.findChild<QDockWidget*>(QStringLiteral("analysisDockWidget"));
+	QAction* darkAction = findDarkThemeAction(window);
+	if (dock == nullptr || darkAction == nullptr)
+	{
+		fprintf(stderr, "Window shot: analysis dock or dark theme action is missing\n");
+		return false;
+	}
+	const QStringList skins = probeOptionValue(arguments, QStringLiteral("--window-shot-skins"),
+		QStringLiteral("studio,minimal,soft,rack,matrix")).split(QLatin1Char(','), Qt::SkipEmptyParts);
+	const QStringList modes = probeOptionValue(arguments, QStringLiteral("--window-shot-modes"),
+		QStringLiteral("dark,light")).split(QLatin1Char(','), Qt::SkipEmptyParts);
+	const bool dockRight = probeOptionValue(arguments, QStringLiteral("--window-shot-dock"),
+		QStringLiteral("bottom")) == QStringLiteral("right");
+	const int width = probeOptionValue(arguments, QStringLiteral("--window-shot-width"), QStringLiteral("1280")).toInt();
+	const int height = probeOptionValue(arguments, QStringLiteral("--window-shot-height"), QStringLiteral("820")).toInt();
+	// Dock extent (height for bottom, width for right); the default split
+	// gives the dock most of a short window and hides the list.
+	const int dockSize = probeOptionValue(arguments, QStringLiteral("--window-shot-dock-size"), QStringLiteral("300")).toInt();
+	// 1-based card to select by clicking its header, 0 for none.
+	const int selectCard = probeOptionValue(arguments, QStringLiteral("--window-shot-select"), QStringLiteral("0")).toInt();
+	QDir outDir(outPath);
+	outDir.mkpath(QStringLiteral("."));
+
+	window.showNormal();
+	window.resize(qMax(640, width), qMax(480, height));
+	dock->show();
+	QTimer::singleShot(750, &window, [&window, dock, darkAction, skins, modes, dockRight, dockSize, selectCard, outDir]() {
+		const QString originalSkin = SkinManager::instance()->currentSkinId();
+		const bool originalDark = SkinManager::instance()->isDark();
+		QMetaObject::invokeMethod(&window, "on_graphPositionComboBox_currentIndexChanged",
+			Qt::DirectConnection, Q_ARG(int, dockRight ? 2 : 1));
+		settleFor(600);
+		window.resizeDocks({ dock }, { dockSize }, dockRight ? Qt::Horizontal : Qt::Vertical);
+		// Without an audio device the analysis has no channel layout and draws
+		// a flat line; a fixed stereo layout lets the response show.
+		// The toolbar combos share one object name. The device combo is the
+		// one without a stereo mask; its first real entry (the heading has
+		// no data) gives the analysis a device, and then the layout combo's
+		// stereo entry gives it two named channels to draw.
+		const QList<QComboBox*> toolbarCombos = window.findChildren<QComboBox*>(QStringLiteral("ToolBarComboBox"));
+		for (QComboBox* combo : toolbarCombos)
+		{
+			if (combo->findData(3) >= 0)
+				continue;
+			for (int i = 0; i < combo->count(); i++)
+			{
+				if (combo->itemData(i).isValid())
+				{
+					// The window listens to activated (a user choice), which
+					// setCurrentIndex does not emit.
+					combo->setCurrentIndex(i);
+					Q_EMIT combo->activated(i);
+					break;
+				}
+			}
+		}
+		settleFor(300);
+		for (QComboBox* combo : toolbarCombos)
+		{
+			const int stereo = combo->findData(3);
+			if (stereo >= 0)
+			{
+				combo->setCurrentIndex(stereo);
+				Q_EMIT combo->activated(stereo);
+				fprintf(stderr, "Window shot: layout '%s' (mask %d)\n",
+					qPrintable(combo->currentText()), combo->currentData().toInt());
+				break;
+			}
+		}
+		// Analyse the loaded file itself, not the install's root config.
+		// The .ui name is overridden for skinning (MainWindow renames the
+		// analysis form combos), so the source combo is found by its shape:
+		// the control bar's two-entry combo whose first entry is config.txt.
+		QComboBox* startFrom = nullptr;
+		if (QWidget* controls = window.findChild<QWidget*>(QStringLiteral("analysisControlBar")))
+		{
+			for (QComboBox* combo : controls->findChildren<QComboBox*>())
+			{
+				if (combo->count() == 2 && combo->itemText(0) == QStringLiteral("config.txt"))
+				{
+					startFrom = combo;
+					break;
+				}
+			}
+		}
+		if (startFrom != nullptr)
+		{
+			startFrom->setCurrentIndex(1);
+			Q_EMIT startFrom->activated(1);
+			window.startAnalysis();
+			settleFor(1500);
+			fprintf(stderr, "Window shot: analysis from item %d of %d ('%s')\n", startFrom->currentIndex(),
+				startFrom->count(), qPrintable(startFrom->currentText()));
+		}
+		settleFor(600);
+		if (selectCard > 0)
+		{
+			const QList<QWidget*> headers = window.findChildren<QWidget*>(QStringLiteral("FilterCardHeader"));
+			if (selectCard <= headers.size())
+			{
+				QWidget* header = headers.at(selectCard - 1);
+				const QPoint localPos(header->width() / 2, header->height() / 2);
+				const QPoint globalPos = header->mapToGlobal(localPos);
+				QMouseEvent press(QEvent::MouseButtonPress, QPointF(localPos), QPointF(globalPos),
+					Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+				QApplication::sendEvent(header, &press);
+				QMouseEvent release(QEvent::MouseButtonRelease, QPointF(localPos), QPointF(globalPos),
+					Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+				QApplication::sendEvent(header, &release);
+				settleFor(200);
+			}
+			else
+				fprintf(stderr, "Window shot: only %d cards, cannot select %d\n", int(headers.size()), selectCard);
+		}
+		fprintf(stderr, "Window shot: platform=%s window=%dx%d dock=%s %dpx select=%d\n",
+			qPrintable(QGuiApplication::platformName()), window.width(), window.height(),
+			dockRight ? "right" : "bottom", dockSize, selectCard);
+		int saved = 0;
+		for (const QString& skinId : skins)
+		{
+			QAction* action = findSkinAction(window, skinId);
+			if (action == nullptr)
+			{
+				fprintf(stderr, "  skin %s: no menu action\n", qPrintable(skinId));
+				continue;
+			}
+			for (const QString& mode : modes)
+			{
+				const bool dark = mode == QStringLiteral("dark");
+				if (darkAction->isChecked() != dark)
+					darkAction->setChecked(dark);
+				action->trigger();
+				settleFor(1500);
+				const QPixmap shot = window.grab();
+				const QString file = outDir.filePath(QStringLiteral("%1_%2_window.png").arg(skinId, mode));
+				const bool ok = shot.save(file);
+				saved += ok ? 1 : 0;
+				fprintf(stderr, "  %s %s: %dx%d %s\n", qPrintable(skinId), qPrintable(mode),
+					shot.width(), shot.height(), ok ? "saved" : "NOT SAVED");
+			}
+		}
+		if (darkAction->isChecked() != originalDark)
+			darkAction->setChecked(originalDark);
+		if (QAction* original = findSkinAction(window, originalSkin))
+			original->trigger();
+		settleFor(300);
+		QCoreApplication::exit(saved == skins.size() * modes.size() ? 0 : 1);
+	});
+	return true;
+}
+
+// ---------------------------------------------------------------------------
 // --knob-specimen <outDir> [--knob-specimen-skins id,id,...] (diagnostic):
 // paints a skin's knob straight through ISkin::paintKnob for a fixed set of
 // states - card knobs with a figure and row dials without one; hovered,
