@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.51.0 — 2026-09-03
+
 - **The minimal skin's knob is a register drum, rolled by dragging up and
   down.** The hairline arc read badly as a knob (issue #338). The knob is now
   seen edge-on like an adding machine's register: hairlines spaced as a
