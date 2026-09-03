@@ -484,8 +484,11 @@ int main(int argc, char* argv[])
 		if (!systemRegistry().keyExists(EDITOR_PER_FILE_REGPATH))
 			systemRegistry().createKey(EDITOR_PER_FILE_REGPATH);
 
+		// Both probes start from a clean window: no saved geometry, layout or
+		// open files, so a capture depends on the config alone.
 		const bool analysisLayoutTestRequested =
-			application.arguments().contains(QStringLiteral("--analysis-layout-test"));
+			application.arguments().contains(QStringLiteral("--analysis-layout-test"))
+			|| application.arguments().contains(QStringLiteral("--window-shot"));
 		MainWindow w(configDir, updateSession.get(), nullptr, analysisLayoutTestRequested);
 		w.show();
 
@@ -516,6 +519,20 @@ int main(int argc, char* argv[])
 		vstPanelFeedOption.setValueName(QStringLiteral("durationMs"));
 		vstPanelFeedOption.setFlags(QCommandLineOption::HiddenFromHelp);
 		parser.addOption(vstPanelFeedOption);
+		// Whole-window captures per skin/mode (SkinGallery::armWindowShotProbe);
+		// the sub-options are registered so the parser accepts them.
+		QCommandLineOption windowShotOption(QStringLiteral("window-shot"));
+		windowShotOption.setValueName(QStringLiteral("outDir"));
+		windowShotOption.setFlags(QCommandLineOption::HiddenFromHelp);
+		parser.addOption(windowShotOption);
+		for (const char* name : { "window-shot-skins", "window-shot-modes", "window-shot-dock",
+			"window-shot-width", "window-shot-height", "window-shot-dock-size", "window-shot-select" })
+		{
+			QCommandLineOption sub(QString::fromLatin1(name));
+			sub.setValueName(QStringLiteral("value"));
+			sub.setFlags(QCommandLineOption::HiddenFromHelp);
+			parser.addOption(sub);
+		}
 		parser.process(application);
 		QStringList args = parser.positionalArguments();
 		if (!analysisLayoutTestRequested && args.isEmpty() && w.isEmpty())
@@ -536,6 +553,11 @@ int main(int argc, char* argv[])
 		else if (parser.isSet(skinMetricsOption))
 		{
 			if (!SkinGallery::armSkinMetricsProbe(w))
+				return 1;
+		}
+		else if (parser.isSet(windowShotOption))
+		{
+			if (!SkinGallery::armWindowShotProbe(w, application.arguments()))
 				return 1;
 		}
 		else if (parser.isSet(vstPanelFeedOption))
