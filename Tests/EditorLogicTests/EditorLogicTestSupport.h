@@ -58,6 +58,7 @@ void testPhaseBreaksWhereTheResponseIsDead();
 void testPhaseAndGroupDelayAxisCaptions();
 void testBiQuadWidthRoundTripsExactly();
 void testBiQuadWidthModesAndDefaults();
+void testKnobTravelLaw();
 void testConfigFileCodec();
 void testConfigFileCodecRetriesAtomicReplaceAfterReaderCloses();
 void testConfigFileCodecPreservesExistingFileWhenAtomicReplaceFails();

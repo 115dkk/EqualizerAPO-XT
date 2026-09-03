@@ -104,6 +104,7 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClCompile Include="ResponseCurveBuilderTests.cpp" />
     <ClCompile Include="PhaseCurveTests.cpp" />
     <ClCompile Include="BiQuadWidthConversionTests.cpp" />
+    <ClCompile Include="KnobTravelTests.cpp" />
     <ClCompile Include="ConfigFileCodecTests.cpp" />
     <ClCompile Include="AutoInstallerLogicTests.cpp" />
     <ClCompile Include="InstallerUiModelTests.cpp" />

@@ -14,6 +14,19 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The minimal skin's knob is a register drum, rolled by dragging up and
+  down.** The hairline arc read badly as a knob (issue #338). The knob is now
+  seen edge-on like an adding machine's register: hairlines spaced as a
+  cylinder's surface roll with the value, the figure sits in a two-rule
+  window, index ticks against the rims are the reading line, and a travel
+  rule on the right shows the position in range (folded when a crowded row
+  squeezes the knob, so the figure keeps its size). Because a drum is rolled
+  rather than turned, dragging it is vertical: press to grab it where it is,
+  drag up to raise the value (200px for the whole range, Shift for a tenth
+  of the rate), and the surface moves with the pointer one to one. The
+  other skins keep their rotary knobs
+  ([#340](https://github.com/115dkk/EqualizerAPO-XT/pull/340)).
+
 ## v2.50.8 — 2026-09-02
 
 - **Korean text in the skins stays on the bundled typeface even when a

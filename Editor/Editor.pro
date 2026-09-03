@@ -551,6 +551,7 @@ HEADERS  += \
 	widgets/AddCardRow.h \
 	widgets/ActivatableListChrome.h \
 	widgets/AudioKnob.h \
+	widgets/KnobTravel.h \
 	widgets/FilterInsertSeam.h \
 	widgets/GraphicEQPlotWidget.h \
 	widgets/FlowLayout.h \

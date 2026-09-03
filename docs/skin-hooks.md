@@ -13,8 +13,9 @@ constitution before styling anything skin-specific.
 ## Knob paint hook
 
 `AudioKnob` (`Editor/widgets/AudioKnob.{h,cpp}`, a `QDial`) owns **all input
-handling**: rotary drag tracking, wheel, keyboard. Its `paintEvent` only
-collects a `KnobState` and delegates painting:
+handling**: rotary or vertical drag tracking (the skin picks one, see the
+gesture hook below), wheel, keyboard. Its `paintEvent` only collects a
+`KnobState` and delegates painting:
 
 ```cpp
 // ISkin (Editor/skins/ISkin.h)
@@ -45,6 +46,28 @@ virtual void paintKnob(QPainter& painter, const QRect& rect,
 the override on its `ISkin` subclass, whose definitions are grouped by visual
 responsibility under `Editor/skins/<id>/`. `Skins.cpp` only holds the roster
 lookup; concrete skin code stays inside its module folder.
+
+### Knob gesture hook
+
+```cpp
+enum class KnobGesture { Rotary, VerticalDrag };
+virtual KnobGesture knobGesture() const;   // default: Rotary
+```
+
+The widget still owns both gestures; the skin only names the one its
+instrument is built for, because a gesture that contradicts the picture is
+the discomfort itself (turning a drum in circles). `Rotary` follows the
+pointer's angle about the centre (every arc knob). `VerticalDrag` follows
+the pointer's vertical travel: the press grabs without moving the value,
+`KnobTravel::RangePixels` (200 logical px, `Editor/widgets/KnobTravel.h`)
+sweeps the whole range, Shift divides the rate by ten, the ends clamp with
+no rubber band, horizontal motion is ignored, and the resting cursor is a
+vertical arrow. A skin that paints a rolling surface derives its rotation
+per range from the same constant so the surface moves with the pointer one
+to one (minimal's register drum). The law is pinned by `EditorLogicTests`
+(`KnobTravelTests.cpp`). `Editor --knob-specimen <outDir>` paints a skin's
+knob for staged states (hover, drag, focus, disabled, a 50px squeeze) that
+the gallery cannot stage.
 
 ## Command-row chrome hook
 

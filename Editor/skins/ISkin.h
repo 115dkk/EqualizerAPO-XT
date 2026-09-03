@@ -404,6 +404,19 @@ struct KnobState
 	bool focused = false;
 };
 
+// How AudioKnob turns pointer motion into value changes. The widget owns
+// both gestures (Editor/widgets/AudioKnob.cpp); a skin only names the one
+// its instrument is built for, and paints the instrument to match: a
+// rotary knob follows the pointer's angle about its centre, a rolling drum
+// follows the pointer's vertical travel (KnobTravel::RangePixels for the
+// whole range, Editor/widgets/KnobTravel.h; a painter that derives its
+// surface travel from the same figure rolls under the pointer one to one).
+enum class KnobGesture
+{
+	Rotary,
+	VerticalDrag
+};
+
 class ISkin
 {
 public:
@@ -432,6 +445,12 @@ public:
 	// deliberately ignores the hover/drag/focus state flags. Skins override
 	// this to give knobs their own philosophy.
 	virtual void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens) const;
+
+	// The pointer gesture AudioKnob uses for this skin's knobs. Default:
+	// Rotary, the gesture of every arc knob. A skin answers VerticalDrag when
+	// its knob is a surface that rolls (minimal's register drum); the widget
+	// then also rests a vertical-arrow cursor on it.
+	virtual KnobGesture knobGesture() const;
 
 	// Inline stylesheet for the modern card's frame (QFrame#FilterCardRow),
 	// re-evaluated whenever the row's state changes. The default reproduces

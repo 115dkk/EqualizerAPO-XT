@@ -28,6 +28,7 @@ public:
 
 	void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state,
 		const SkinTokens& tokens) const override;
+	KnobGesture knobGesture() const override;
 	void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state,
 		const SkinTokens& tokens) const override;
 	void paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& state,

@@ -105,6 +105,10 @@ bool armAnalysisLayoutProbe(MainWindow& window, const QString& screenshotPath);
 // minimums plus the physical font face serving Korean chrome text.
 bool armSkinMetricsProbe(MainWindow& window);
 
+// Entry point behind --knob-specimen <outDir> (diagnostic): paints a
+// skin's knob for staged states at 3x and 1x, dark and light.
+int runKnobSpecimen(const QStringList& arguments);
+
 // Entry point behind --vst-panel-feed-test: embeds the first VST card's
 // panel in the live MainWindow, then samples the card's composited screen
 // pixels for the given duration and reports whether they animate
