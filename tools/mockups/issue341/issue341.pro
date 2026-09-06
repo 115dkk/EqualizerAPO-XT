@@ -1,0 +1,10 @@
+QT += widgets testlib svg
+CONFIG += c++17 console
+CONFIG -= app_bundle
+TEMPLATE = app
+TARGET = Issue341Mockup
+SOURCES += main.cpp
+HEADERS += SoftPresentation.h SoftLayout.h
+HEADERS += StudySurfaces.h EditorStudy.h SoftEditorStudy.h StudioEditorStudy.h StudyScenarios.h
+HEADERS += StudyEditors.h
+win32:QMAKE_CXXFLAGS += /utf-8

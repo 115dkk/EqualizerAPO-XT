@@ -1,0 +1,247 @@
+{
+    "checks": 60,
+    "failures": 0,
+    "qt": "6.10.1",
+    "results": [
+        {
+            "check": "soft-light keeps original 13 config lines",
+            "pass": true
+        },
+        {
+            "check": "soft-light includes actual menu bar",
+            "pass": true
+        },
+        {
+            "check": "soft-light includes file tabs",
+            "pass": true
+        },
+        {
+            "check": "soft-light picker opens inside editor",
+            "pass": true
+        },
+        {
+            "check": "soft-light empty search cannot insert",
+            "pass": true
+        },
+        {
+            "check": "soft-light search resolves one VST template",
+            "pass": true
+        },
+        {
+            "check": "soft-light inserts before selected row",
+            "pass": true
+        },
+        {
+            "check": "soft-light undo restores order",
+            "pass": true
+        },
+        {
+            "check": "soft-light redo restores insertion",
+            "pass": true
+        },
+        {
+            "check": "soft-light delete removes selected command",
+            "pass": true
+        },
+        {
+            "check": "soft-light reference example begins missing",
+            "pass": true
+        },
+        {
+            "check": "soft-light VST input bus selector exists",
+            "pass": true
+        },
+        {
+            "check": "soft-light bus request updates model",
+            "pass": true
+        },
+        {
+            "check": "soft-light raw preview reflects VST bus request",
+            "pass": true
+        },
+        {
+            "check": "soft-light recovery offers fixture replacement",
+            "pass": true
+        },
+        {
+            "check": "soft-light recovery clears only mock missing state",
+            "pass": true
+        },
+        {
+            "check": "soft-light route coefficient editor exists",
+            "pass": true
+        },
+        {
+            "check": "soft-light routing edit updates coefficient",
+            "pass": true
+        },
+        {
+            "check": "soft-light routing undo restores coefficient",
+            "pass": true
+        },
+        {
+            "check": "soft-light graphic EQ has numeric editor",
+            "pass": true
+        },
+        {
+            "check": "soft-light graphic EQ point changes",
+            "pass": true
+        },
+        {
+            "check": "soft-light graphic EQ supports keyboard",
+            "pass": true
+        },
+        {
+            "check": "soft-light file tabs retain independent edits",
+            "pass": true
+        },
+        {
+            "check": "soft-light analysis settings open",
+            "pass": true
+        },
+        {
+            "check": "soft-light no horizontal scroll at 1280",
+            "pass": true
+        },
+        {
+            "check": "soft-light visible combo boxes fit actual window bounds",
+            "pass": true
+        },
+        {
+            "check": "soft-light changed flag survives switching files",
+            "pass": true
+        },
+        {
+            "check": "soft-light long reference identities have bounded elision",
+            "pass": true
+        },
+        {
+            "check": "soft-light picker fits compact window",
+            "pass": true
+        },
+        {
+            "check": "soft-light rebuild does not accumulate widgets",
+            "pass": true
+        },
+        {
+            "check": "studio-dark keeps original 13 config lines",
+            "pass": true
+        },
+        {
+            "check": "studio-dark includes actual menu bar",
+            "pass": true
+        },
+        {
+            "check": "studio-dark includes file tabs",
+            "pass": true
+        },
+        {
+            "check": "studio-dark picker opens inside editor",
+            "pass": true
+        },
+        {
+            "check": "studio-dark empty search cannot insert",
+            "pass": true
+        },
+        {
+            "check": "studio-dark search resolves one VST template",
+            "pass": true
+        },
+        {
+            "check": "studio-dark inserts before selected row",
+            "pass": true
+        },
+        {
+            "check": "studio-dark undo restores order",
+            "pass": true
+        },
+        {
+            "check": "studio-dark redo restores insertion",
+            "pass": true
+        },
+        {
+            "check": "studio-dark delete removes selected command",
+            "pass": true
+        },
+        {
+            "check": "studio-dark reference example begins missing",
+            "pass": true
+        },
+        {
+            "check": "studio-dark VST input bus selector exists",
+            "pass": true
+        },
+        {
+            "check": "studio-dark bus request updates model",
+            "pass": true
+        },
+        {
+            "check": "studio-dark raw preview reflects VST bus request",
+            "pass": true
+        },
+        {
+            "check": "studio-dark recovery offers fixture replacement",
+            "pass": true
+        },
+        {
+            "check": "studio-dark recovery clears only mock missing state",
+            "pass": true
+        },
+        {
+            "check": "studio-dark route coefficient editor exists",
+            "pass": true
+        },
+        {
+            "check": "studio-dark routing edit updates coefficient",
+            "pass": true
+        },
+        {
+            "check": "studio-dark routing undo restores coefficient",
+            "pass": true
+        },
+        {
+            "check": "studio-dark graphic EQ has numeric editor",
+            "pass": true
+        },
+        {
+            "check": "studio-dark graphic EQ point changes",
+            "pass": true
+        },
+        {
+            "check": "studio-dark graphic EQ supports keyboard",
+            "pass": true
+        },
+        {
+            "check": "studio-dark file tabs retain independent edits",
+            "pass": true
+        },
+        {
+            "check": "studio-dark analysis settings open",
+            "pass": true
+        },
+        {
+            "check": "studio-dark no horizontal scroll at 1280",
+            "pass": true
+        },
+        {
+            "check": "studio-dark visible combo boxes fit actual window bounds",
+            "pass": true
+        },
+        {
+            "check": "studio-dark changed flag survives switching files",
+            "pass": true
+        },
+        {
+            "check": "studio-dark long reference identities have bounded elision",
+            "pass": true
+        },
+        {
+            "check": "studio-dark picker fits compact window",
+            "pass": true
+        },
+        {
+            "check": "studio-dark rebuild does not accumulate widgets",
+            "pass": true
+        }
+    ]
+}
