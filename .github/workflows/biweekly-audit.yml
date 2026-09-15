@@ -13,7 +13,13 @@
 # Requirements:
 #   1. Add CLAUDE_CODE_OAUTH_TOKEN under repository Actions secrets.
 #   2. Set Actions workflow permissions to "Read and write permissions".
-#   3. Keep the two audit skills vendored under .claude/skills.
+#   3. Keep the three audit skills vendored under .claude/skills.
+#      improve-codebase-architecture no longer carries its own architecture
+#      glossary: upstream moved the deep-module vocabulary (module, interface,
+#      depth, seam, adapter, leverage, locality, the deletion test) into a
+#      separate codebase-design skill that it reaches through the Skill tool.
+#      Without codebase-design installed, Part 1 still runs but loses the
+#      vocabulary it is supposed to phrase every finding in.
 
 name: Biweekly Audit
 
@@ -132,20 +138,33 @@ jobs:
           mkdir -p "$HOME/.claude/skills"
           cp -R .claude/skills/improve-codebase-architecture "$HOME/.claude/skills/"
           cp -R .claude/skills/tech-debt-audit "$HOME/.claude/skills/"
+          # improve-codebase-architecture calls this one through the Skill tool
+          # for the architecture vocabulary, so it has to be installed too.
+          cp -R .claude/skills/codebase-design "$HOME/.claude/skills/"
 
           test -f "$HOME/.claude/skills/improve-codebase-architecture/SKILL.md"
           test -f "$HOME/.claude/skills/tech-debt-audit/SKILL.md"
+          test -f "$HOME/.claude/skills/codebase-design/SKILL.md"
 
-          # The vendored tech-debt-audit skill is locked with
-          # disable-model-invocation so interactive sessions never trigger a
-          # whole-repo audit by accident. This run's prompt explicitly says
-          # "Run /tech-debt-audit", and the model can only do that through the
-          # Skill tool, which the lock blocks (the 2026-08-15 audit had to
-          # improvise Part 2 without the skill). Unlock the installed copy
-          # only; the copy in the repository stays locked.
-          sed -i '/^disable-model-invocation:/d' "$HOME/.claude/skills/tech-debt-audit/SKILL.md"
-          if grep -q "disable-model-invocation" "$HOME/.claude/skills/tech-debt-audit/SKILL.md"; then
-            echo "::error::tech-debt-audit SKILL.md still carries disable-model-invocation after the unlock"
+          # Both audit skills are locked with disable-model-invocation so
+          # interactive sessions never trigger a whole-repo audit by accident.
+          # This run's prompt explicitly says "Run /tech-debt-audit" and
+          # "Run /improve-codebase-architecture", and the model can only do
+          # that through the Skill tool, which the lock blocks (the 2026-08-15
+          # audit had to improvise Part 2 without the skill). Unlock the
+          # installed copies only; the copies in the repository stay locked.
+          # codebase-design is deliberately not in this list: it carries no
+          # lock, because the architecture skill has to be able to call it.
+          for locked in tech-debt-audit improve-codebase-architecture; do
+            sed -i '/^disable-model-invocation:/d' "$HOME/.claude/skills/$locked/SKILL.md"
+            if grep -q "disable-model-invocation" "$HOME/.claude/skills/$locked/SKILL.md"; then
+              echo "::error::$locked SKILL.md still carries disable-model-invocation after the unlock"
+              exit 1
+            fi
+          done
+
+          if grep -q "^disable-model-invocation:" "$HOME/.claude/skills/codebase-design/SKILL.md"; then
+            echo "::error::codebase-design must stay invocable; improve-codebase-architecture calls it."
             exit 1
           fi
 
@@ -237,14 +256,26 @@ jobs:
 
           PART 1: Architecture Analysis
           Run /improve-codebase-architecture.
+          That skill holds no glossary of its own any more. It will
+          tell you to call the codebase-design skill for the
+          architecture vocabulary (module, interface, depth, seam,
+          adapter, leverage, locality) and its principles, including
+          the deletion test. Do call it, and phrase every candidate in
+          those exact terms rather than drifting into component,
+          service, API, or boundary.
           Identify specific consolidation and deepening opportunities.
           Instead of the skill's HTML report, write the full
           deliverable as Markdown to ARCHITECTURE_AUDIT.md in the
           repository root: every candidate with files, problem,
           solution, benefits, and recommendation strength, plus the
           closing top recommendation. Do not write to the OS temp
-          directory and do not open a browser. When the file is
-          complete, proceed immediately to Part 2.
+          directory and do not open a browser.
+          Stop there. The skill's step 3 is a grilling loop that asks
+          the user which candidate to pursue, and this session has no
+          user, so do not ask, do not call the grilling or
+          domain-modeling skills, and do not let that step's side
+          effects happen: leave CONTEXT.md and docs/adr/ untouched.
+          When the file is complete, proceed immediately to Part 2.
 
           PART 2: Tech Debt Audit
           Run /tech-debt-audit.
