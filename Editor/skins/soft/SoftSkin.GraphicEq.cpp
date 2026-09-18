@@ -25,7 +25,6 @@ void SoftSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& s
 {
 	const QColor card(tokens.card);
 	const QColor accent(tokens.accent);
-	const QColor accent2(tokens.accent2);
 	const QColor muted(tokens.mutedText);
 	const QColor border(tokens.border);
 	const QColor well = state.enabled ? QColor(tokens.surfaceSunken) : QColor(tokens.background);
@@ -112,8 +111,6 @@ void SoftSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& s
 			QPointF(state.plotRect.right() - 6.0, state.zeroY));
 	}
 
-	const QColor boost = mixColor(accent, card, 0.25);
-	const QColor cut = mixColor(accent2, card, 0.25);
 	if (state.curve.size() >= 2)
 	{
 		if (!state.enabled)
@@ -125,29 +122,20 @@ void SoftSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& s
 		}
 		else
 		{
+			// One accent line with a faint wash of the same ink down to
+			// the notch, either side of 0 dB: boost and cut are directions
+			// the notch already tells apart, not hues (the accent2 cut
+			// side retired with the concept swap).
 			const double base = qBound(state.plotRect.top(), state.zeroY, state.plotRect.bottom());
 			QPolygonF fillPoly = state.curve;
 			fillPoly.append(QPointF(state.curve.last().x(), base));
 			fillPoly.prepend(QPointF(state.curve.first().x(), base));
-
-			// Two passes split at the 0 dB seam by clip rects, so the
-			// boost/cut colour change lands exactly on the zero crossing
-			// (and a frame panned fully past 0 dB gets one whole side).
-			const qreal splitY = qBound(frame.top(), qreal(state.zeroY), frame.bottom());
-			const QRectF aboveZero(frame.left() - 2.0, frame.top() - 2.0, frame.width() + 4.0, splitY - frame.top() + 2.0);
-			const QRectF belowZero(frame.left() - 2.0, splitY, frame.width() + 4.0, frame.bottom() - splitY + 2.0);
-			for (int pass = 0; pass < 2; pass++)
-			{
-				const bool boostPass = pass == 0;
-				QPainterStateGuard curvePassState(&painter);
-				painter.setClipRect(boostPass ? aboveZero : belowZero, Qt::IntersectClip);
-				painter.setPen(Qt::NoPen);
-				painter.setBrush(withAlpha(boostPass ? accent : accent2, 40));
-				painter.drawPolygon(fillPoly);
-				painter.setPen(QPen(boostPass ? boost : cut, 3, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-				painter.setBrush(Qt::NoBrush);
-				painter.drawPolyline(state.curve);
-			}
+			painter.setPen(Qt::NoPen);
+			painter.setBrush(withAlpha(accent, 26));
+			painter.drawPolygon(fillPoly);
+			painter.setPen(QPen(accent, 3, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+			painter.setBrush(Qt::NoBrush);
+			painter.drawPolyline(state.curve);
 		}
 	}
 
@@ -158,8 +146,7 @@ void SoftSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& s
 		const double base = qBound(state.plotRect.top(), state.zeroY, state.plotRect.bottom());
 		for (const QPointF& node : state.nodePositions)
 		{
-			painter.setPen(QPen(withAlpha(node.y() > state.zeroY ? accent2 : accent, 90), 4,
-				Qt::SolidLine, Qt::RoundCap));
+			painter.setPen(QPen(mixColor(accent, card, 0.78), 4, Qt::SolidLine, Qt::RoundCap));
 			painter.drawLine(QPointF(node.x(), base), node);
 		}
 	}
@@ -169,7 +156,6 @@ void SoftSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& s
 		const QPointF& center = state.nodePositions.at(i);
 		const bool selected = state.selectedNodes.contains(i);
 		const bool hovered = state.hoveredNode == i;
-		const QColor side = center.y() > state.zeroY ? accent2 : accent;
 
 		if (!state.enabled)
 		{
@@ -184,18 +170,16 @@ void SoftSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& s
 		const double radius = hovered ? 5.5 : 5.0;
 		if (selected)
 		{
-			// ON grammar: opaque pastel fill plus the light ring.
-			painter.setPen(QPen(withAlpha(side, 90), 3));
-			painter.setBrush(Qt::NoBrush);
-			painter.drawEllipse(center, radius + 2.5, radius + 2.5);
-			painter.setPen(QPen(well, 1.5));
-			painter.setBrush(side);
+			// The chosen-pill grammar, in the round: the tint under a
+			// full accent ring.
+			painter.setPen(QPen(accent, 2));
+			painter.setBrush(QColor(tokens.cardSelected));
 		}
 		else
 		{
-			// OFF: the quiet elevated face with the side's pastel edge;
-			// hover lifts the face exactly one value step.
-			painter.setPen(QPen(mixColor(side, card, 0.25), 2));
+			// Resting: the paper face with the accent ring; hover lifts
+			// the face exactly one value step.
+			painter.setPen(QPen(accent, 1.5));
 			painter.setBrush(hovered ? QColor(tokens.cardHover) : card);
 		}
 		painter.drawEllipse(center, radius, radius);
@@ -210,8 +194,8 @@ void SoftSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& s
 		}
 	}
 
-	// Cursor readout: the knob value badge's grammar, a small stadium
-	// chip resting in the well's top-right corner.
+	// Cursor readout: a chosen pill (tint, accent ink, the mixed edge)
+	// resting in the well's top-right corner.
 	if (state.enabled && state.cursorValid && !state.cursorText.isEmpty())
 	{
 		QFont pillFont(tokens.fontFamily);
@@ -221,11 +205,11 @@ void SoftSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& s
 		const qreal pillH = 18.0;
 		const qreal pillW = pillMetrics.horizontalAdvance(state.cursorText) + 16.0;
 		QRectF pill(state.plotRect.right() - pillW - 6.0, state.plotRect.top() + 6.0, pillW, pillH);
-		painter.setPen(QPen(border, 1));
-		painter.setBrush(card);
+		painter.setPen(QPen(mixColor(card, accent, 0.42), 1));
+		painter.setBrush(QColor(tokens.cardSelected));
 		painter.drawRoundedRect(pill, pillH / 2.0, pillH / 2.0);
 		painter.setFont(pillFont);
-		painter.setPen(QColor(tokens.text));
+		painter.setPen(accent);
 		painter.drawText(pill, Qt::AlignCenter, state.cursorText);
 	}
 

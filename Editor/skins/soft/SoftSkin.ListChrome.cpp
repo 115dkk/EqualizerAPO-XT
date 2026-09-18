@@ -25,7 +25,8 @@ void SoftSkin::paintAddRow(QPainter& painter, const QRect& rect, const ListChrom
 	painter.setRenderHint(QPainter::Antialiasing);
 
 	const QColor accent(tokens.accent);
-	const QColor warmInk(QStringLiteral("#2B251D"));
+	// The lit disc is a switch: accent fill under a paper mark.
+	const QColor paper(tokens.card);
 	const bool lifted = state.hovered || state.pressed;
 
 	QRectF frame = QRectF(rect).adjusted(0.5, 0.5, -0.5, -0.5);
@@ -70,7 +71,7 @@ void SoftSkin::paintAddRow(QPainter& painter, const QRect& rect, const ListChrom
 	if (state.pressed)
 	{
 		painter.setPen(Qt::NoPen);
-		painter.setBrush(mixColor(accent, warmInk, 0.18));
+		painter.setBrush(mixColor(accent, QColor(tokens.text), 0.18));
 	}
 	else if (state.hovered)
 	{
@@ -84,7 +85,7 @@ void SoftSkin::paintAddRow(QPainter& painter, const QRect& rect, const ListChrom
 	}
 	painter.drawEllipse(discRect);
 
-	QPen plusPen(lifted ? warmInk : QColor(tokens.mutedText), 2.4, Qt::SolidLine, Qt::RoundCap);
+	QPen plusPen(lifted ? paper : QColor(tokens.mutedText), 2.4, Qt::SolidLine, Qt::RoundCap);
 	painter.setPen(plusPen);
 	const QPointF discCenter = discRect.center();
 	const qreal arm = discD * 0.21;
@@ -106,7 +107,7 @@ void SoftSkin::paintInsertSeam(QPainter& painter, const QRect& rect, const ListC
 
 	painter.setRenderHint(QPainter::Antialiasing);
 	const QColor accent(tokens.accent);
-	const QColor warmInk(QStringLiteral("#2B251D"));
+	const QColor paper(tokens.card);
 	QRectF r(rect);
 	const qreal cy = r.center().y();
 	const qreal discR = qMin<qreal>(9.0, r.height() / 2.0);
@@ -119,10 +120,10 @@ void SoftSkin::paintInsertSeam(QPainter& painter, const QRect& rect, const ListC
 	painter.setBrush(mixColor(accent, QColor(tokens.card), 0.25));
 	painter.drawRoundedRect(bar, lineH / 2.0, lineH / 2.0);
 
-	painter.setBrush(state.pressed ? mixColor(accent, warmInk, 0.18) : accent);
+	painter.setBrush(state.pressed ? mixColor(accent, QColor(tokens.text), 0.18) : accent);
 	painter.drawEllipse(QPointF(discCx, cy), discR, discR);
 
-	QPen plusPen(warmInk, qMax<qreal>(1.6, discR * 0.36), Qt::SolidLine, Qt::RoundCap);
+	QPen plusPen(paper, qMax<qreal>(1.6, discR * 0.36), Qt::SolidLine, Qt::RoundCap);
 	painter.setPen(plusPen);
 	const qreal arm = discR * 0.45;
 	painter.drawLine(QPointF(discCx - arm, cy), QPointF(discCx + arm, cy));

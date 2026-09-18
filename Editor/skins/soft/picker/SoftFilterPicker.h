@@ -14,8 +14,6 @@
 
 #pragma once
 
-#include <QColor>
-#include <QHash>
 #include <QStringList>
 
 #include "Editor/widgets/FilterPickerView.h"
@@ -43,12 +41,10 @@ private:
 	const SkinTokens skinTokens;
 	void rebuildList();
 
-	// Per-entry tile monograms, parallel to pickerEntries(); computed once per
-	// catalog so a search never re-letters the tiles.
+	// Per-entry monograms (the fallback for an unmapped pictogram), parallel
+	// to pickerEntries(); computed once per catalog so a search never
+	// re-letters them.
 	QStringList entryMonograms;
-	// Category -> pastel tile colour, assigned in catalog order so a category
-	// keeps its hue however the search narrows the list.
-	QHash<QString, QColor> sectionColors;
 	QLineEdit* searchEdit = nullptr;
 	QListWidget* listWidget = nullptr;
 	int listContentHeight = 0;

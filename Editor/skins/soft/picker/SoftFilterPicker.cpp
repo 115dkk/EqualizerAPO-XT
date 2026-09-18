@@ -36,14 +36,12 @@ enum SoftPickerRole
 	TitleRole,
 	// The friendly caption under the name (entries and the empty state).
 	CaptionRole,
-	// The category pastel (QColor).
-	TintRole,
 	// SoftPickerItemKind.
 	KindRole,
-	// The per-item tile monogram (entries only; the fallback glyph).
+	// The per-item monogram (entries only; the fallback glyph).
 	GlyphRole,
-	// The per-item tile pictogram resource (entries only; empty falls back
-	// to the monogram).
+	// The per-item pictogram resource (entries only; empty falls back to
+	// the monogram).
 	IconRole
 };
 
@@ -54,21 +52,13 @@ enum SoftPickerItemKind
 	EmptyStateItem
 };
 
-// Pastel hues handed out to categories in catalog order.
-QColor sectionPastel(int sectionIndex, bool dark)
-{
-	static const int hues[] = { 216, 150, 26, 268, 336, 190, 48, 0, 286, 120 };
-	const int hue = hues[sectionIndex % int(sizeof(hues) / sizeof(hues[0]))];
-	return QColor::fromHslF(hue / 360.0, dark ? 0.52 : 0.58, dark ? 0.64 : 0.56);
-}
-
-// Per-item tile monograms (single initials collide: Comment, Channel, Copy
+// Per-item monograms (single initials collide: Comment, Channel, Copy
 // and Convolution would all wear "C"). Multi-word names take their first two
 // word initials ("Low-pass filter" -> "LP"), single-word names their first
 // two letters ("Channel" -> "Ch"), and a catalog-wide uniqueness pass walks
 // the remaining letters of a single-word name whose candidate is taken
 // (Comment keeps "Co", Copy becomes "Cp", Convolution "Cn"). Deterministic
-// in catalog order; the category pastel stays the second disambiguator.
+// in catalog order.
 QStringList softMonograms(const QList<FilterPickerEntry>& entries)
 {
 	QSet<QString> used;
@@ -110,11 +100,11 @@ QStringList softMonograms(const QList<FilterPickerEntry>& entries)
 	return result;
 }
 
-// The tile pictogram for a catalog entry, keyed off the template line the
+// The pictogram for a catalog entry, keyed off the template line the
 // entry inserts (names are translated and lend no stable key; command words
 // are not). Biquad templates split further by their type token, so every EQ
 // shape carries its own response-curve glyph. An unmapped template returns
-// empty and the tile falls back to its monogram, so future catalog entries
+// empty and the row falls back to its monogram, so future catalog entries
 // degrade gracefully instead of going blank.
 QString softEntryIcon(const FilterPickerEntry& entry)
 {
@@ -146,8 +136,10 @@ QString softCaption(const QString& line)
 	return display;
 }
 
-// Paints the menu rows: stadium highlights, rounded-square colour tiles and
-// pill section headers, all from the live skin tokens so both modes stay calm.
+// Paints the menu rows: stadium highlights, stroke pictograms in ink and
+// quiet section captions, all from the live skin tokens so both modes stay
+// calm. No colour tiles and no category hues since the concept swap: a
+// template's kind is neither chosen nor in need of attention.
 class SoftPickerDelegate : public QStyledItemDelegate
 {
 public:
@@ -178,7 +170,6 @@ public:
 	void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const override
 	{
 		const SkinTokens& t = skinTokens;
-		const bool dark = skinTokens.dark;
 		const QString title = index.data(TitleRole).toString();
 
 		painter->save();
@@ -187,13 +178,13 @@ public:
 		switch (index.data(KindRole).toInt())
 		{
 		case SectionItem:
-			paintSection(painter, option, index, t, dark, title);
+			paintSection(painter, option, t, title);
 			break;
 		case EmptyStateItem:
 			paintEmptyState(painter, option, index, t, title);
 			break;
 		default:
-			paintEntry(painter, option, index, t, dark, title);
+			paintEntry(painter, option, index, t, title);
 			break;
 		}
 
@@ -201,34 +192,31 @@ public:
 	}
 
 private:
-	static void paintSection(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index,
-		const SkinTokens& t, bool dark, const QString& title)
+	// A section is a quiet caption in the muted ink over its rows, the
+	// whitespace above it doing the dividing; no pill, no hue.
+	static void paintSection(QPainter* painter, const QStyleOptionViewItem& option,
+		const SkinTokens& t, const QString& title)
 	{
-		const QColor tint = index.data(TintRole).value<QColor>();
-		QFont pillFont = option.font;
-		pillFont.setWeight(QFont::DemiBold);
-		pillFont.setPointSizeF(option.font.pointSizeF() * 0.84);
-		pillFont.setLetterSpacing(QFont::AbsoluteSpacing, 0.8);
+		QFont captionFont = option.font;
+		captionFont.setWeight(QFont::DemiBold);
+		captionFont.setPointSizeF(option.font.pointSizeF() * 0.84);
+		captionFont.setLetterSpacing(QFont::AbsoluteSpacing, 0.8);
 		const QString label = title.toUpper();
-		const QFontMetricsF metrics(pillFont);
+		const QFontMetricsF metrics(captionFont);
 
-		const qreal pillHeight = GUIHelper::scale(22.0);
-		const qreal pillWidth = qMin<qreal>(option.rect.width() - GUIHelper::scale(12.0),
-			metrics.horizontalAdvance(label) + GUIHelper::scale(24.0));
-		const QRectF pill(option.rect.left() + GUIHelper::scale(6.0),
-			option.rect.bottom() - pillHeight - GUIHelper::scale(1.0), pillWidth, pillHeight);
-
-		painter->setPen(Qt::NoPen);
-		painter->setBrush(withAlpha(tint, dark ? 46 : 40));
-		painter->drawRoundedRect(pill, pillHeight / 2.0, pillHeight / 2.0);
-		painter->setFont(pillFont);
-		painter->setPen(mixColor(tint, QColor(t.text), dark ? 0.42 : 0.40));
-		painter->drawText(pill, Qt::AlignCenter, metrics.elidedText(label, Qt::ElideRight, pillWidth - GUIHelper::scale(16.0)));
+		const qreal captionHeight = GUIHelper::scale(22.0);
+		const QRectF caption(option.rect.left() + GUIHelper::scale(16.0),
+			option.rect.bottom() - captionHeight - GUIHelper::scale(1.0),
+			option.rect.width() - GUIHelper::scale(28.0), captionHeight);
+		painter->setFont(captionFont);
+		painter->setPen(QColor(t.mutedText));
+		painter->drawText(caption, Qt::AlignLeft | Qt::AlignVCenter,
+			metrics.elidedText(label, Qt::ElideRight, caption.width()));
 	}
 
-	// The fruitless search: a friendly card one value step above the menu
-	// surface - a pastel circle with a painted magnifier, the title in full
-	// ink, a muted caption, no warning colour anywhere.
+	// The fruitless search: a friendly card on the menu surface - a well
+	// disc with a painted magnifier in ink, the title in full ink, a muted
+	// caption, no warning colour anywhere.
 	static void paintEmptyState(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index,
 		const SkinTokens& t, const QString& title)
 	{
@@ -237,19 +225,19 @@ private:
 		QRectF card(option.rect);
 		card.adjust(GUIHelper::scale(14.0), GUIHelper::scale(8.0), -GUIHelper::scale(14.0), -GUIHelper::scale(6.0));
 		painter->setPen(QPen(QColor(t.border), 1));
-		painter->setBrush(QColor(t.cardHover));
+		painter->setBrush(QColor(t.card));
 		painter->drawRoundedRect(card, 14.0, 14.0);
 
-		// The magnifier rests in a pastel accent circle: lens ring plus a
-		// short rounded handle, drawn with strokes (no glyph fonts, no icons).
+		// The magnifier rests in a well disc: lens ring plus a short rounded
+		// handle, drawn with strokes (no glyph fonts, no icons).
 		const qreal tileSide = GUIHelper::scale(30.0);
 		const QRectF tile(card.center().x() - tileSide / 2.0, card.top() + GUIHelper::scale(12.0), tileSide, tileSide);
-		painter->setPen(Qt::NoPen);
-		painter->setBrush(withAlpha(QColor(t.accent), 38));
+		painter->setPen(QPen(QColor(t.border), 1));
+		painter->setBrush(QColor(t.surfaceSunken));
 		painter->drawEllipse(tile);
 		const QPointF lensCenter = tile.center() - QPointF(tileSide * 0.07, tileSide * 0.07);
 		const qreal lensRadius = tileSide * 0.20;
-		painter->setPen(QPen(QColor(t.accent), 2, Qt::SolidLine, Qt::RoundCap));
+		painter->setPen(QPen(QColor(t.text), 2, Qt::SolidLine, Qt::RoundCap));
 		painter->setBrush(Qt::NoBrush);
 		painter->drawEllipse(lensCenter, lensRadius, lensRadius);
 		const QPointF handleStart = lensCenter + QPointF(lensRadius * 0.75, lensRadius * 0.75);
@@ -275,14 +263,14 @@ private:
 	}
 
 	static void paintEntry(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index,
-		const SkinTokens& t, bool dark, const QString& title)
+		const SkinTokens& t, const QString& title)
 	{
 		QRectF row(option.rect);
 		row.adjust(0, GUIHelper::scale(2.0), 0, -GUIHelper::scale(2.0));
 
-		// The hovered row lifts one value step; the current row gets the
-		// fully rounded stadium in the selection tint, the same silhouette as
-		// the skin's chips. Calm: no fill change beyond one step, no glow.
+		// The hovered row sinks onto the well; the current row is the chosen
+		// pill: the fully rounded stadium in the tint behind the mixed
+		// accent edge. Calm: no glow.
 		const bool selected = option.state.testFlag(QStyle::State_Selected);
 		const bool hovered = option.state.testFlag(QStyle::State_MouseOver);
 		if (selected || hovered)
@@ -290,42 +278,39 @@ private:
 			const qreal radius = row.height() / 2.0;
 			if (selected)
 			{
-				painter->setPen(QPen(withAlpha(QColor(t.accent), dark ? 120 : 110), 1));
+				painter->setPen(QPen(mixColor(QColor(t.card), QColor(t.accent), 0.42), 1));
 				painter->setBrush(QColor(t.cardSelected));
 			}
 			else
 			{
-				painter->setPen(Qt::NoPen);
-				painter->setBrush(QColor(t.cardHover));
+				painter->setPen(QPen(QColor(t.border), 1));
+				painter->setBrush(QColor(t.surfaceSunken));
 			}
 			painter->drawRoundedRect(row.adjusted(0.5, 0.5, -0.5, -0.5), radius, radius);
 		}
 
-		// A rounded-square colour tile carrying the entry's pictogram; the
-		// monogram stays as the fallback for unmapped templates.
-		const QColor tint = index.data(TintRole).value<QColor>();
+		// The entry's pictogram, a stroke glyph in the body ink where the
+		// colour tile used to sit; the monogram stays as the fallback for
+		// unmapped templates.
 		const qreal tileSide = GUIHelper::scale(28.0);
 		const QRectF tile(row.left() + GUIHelper::scale(10.0), row.center().y() - tileSide / 2.0, tileSide, tileSide);
-		painter->setPen(Qt::NoPen);
-		painter->setBrush(tint);
-		painter->drawRoundedRect(tile, tileSide * 0.32, tileSide * 0.32);
 		const QString iconResource = index.data(IconRole).toString();
 		if (!iconResource.isEmpty())
 		{
-			const int glyphSide = qMax(1, qRound(tileSide * 0.6));
+			const int glyphSide = qMax(1, qRound(tileSide * 0.72));
 			const QRect glyphRect(qRound(tile.center().x() - glyphSide / 2.0),
 				qRound(tile.center().y() - glyphSide / 2.0), glyphSide, glyphSide);
-			GUIHelper::tintedIcon(iconResource, QColor(QStringLiteral("#FAFAFC")), glyphSide)
+			GUIHelper::tintedIcon(iconResource, QColor(t.text), glyphSide)
 				.paint(painter, glyphRect);
 		}
 		else
 		{
 			const QString glyph = index.data(GlyphRole).toString();
 			QFont glyphFont = option.font;
-			glyphFont.setWeight(QFont::Bold);
+			glyphFont.setWeight(QFont::DemiBold);
 			glyphFont.setPointSizeF(option.font.pointSizeF() * (glyph.size() > 1 ? 0.9 : 1.1));
 			painter->setFont(glyphFont);
-			painter->setPen(QColor(QStringLiteral("#FAFAFC")));
+			painter->setPen(QColor(t.text));
 			painter->drawText(tile, Qt::AlignCenter, glyph);
 		}
 
@@ -402,14 +387,6 @@ SoftFilterPickerView::SoftFilterPickerView(const SkinTokens& tokens, QWidget* pa
 void SoftFilterPickerView::entriesChanged()
 {
 	entryMonograms = softMonograms(pickerEntries());
-	sectionColors.clear();
-	const bool dark = skinTokens.dark;
-	for (const FilterPickerEntry& entry : pickerEntries())
-	{
-		const QString section = entry.path.isEmpty() ? tr("General") : entry.path.join(QStringLiteral(" / "));
-		if (!sectionColors.contains(section))
-			sectionColors.insert(section, sectionPastel(sectionColors.size(), dark));
-	}
 	rebuildList();
 	searchEdit->setFocus();
 }
@@ -474,8 +451,6 @@ void SoftFilterPickerView::rebuildList()
 		const FilterPickerEntry& entry = pickerEntries()[match.originalIndex];
 		const QString& section = match.section;
 
-		const QColor tint = sectionColors.value(section,
-			sectionPastel(0, skinTokens.dark));
 		if (!sectionStarted || section != currentSection)
 		{
 			sectionStarted = true;
@@ -484,7 +459,6 @@ void SoftFilterPickerView::rebuildList()
 			caption->setFlags(Qt::NoItemFlags);
 			caption->setData(EntryIndexRole, -1);
 			caption->setData(TitleRole, section);
-			caption->setData(TintRole, tint);
 			caption->setData(KindRole, SectionItem);
 		}
 
@@ -496,7 +470,6 @@ void SoftFilterPickerView::rebuildList()
 		// fallback so a future, undescribed template still reads kindly.
 		item->setData(CaptionRole,
 			entry.description.isEmpty() ? softCaption(entry.line) : entry.description);
-		item->setData(TintRole, tint);
 		item->setData(KindRole, EntryItem);
 		item->setData(GlyphRole, entryMonograms.value(match.originalIndex, entry.name.left(1).toUpper()));
 		item->setData(IconRole, softEntryIcon(entry));
@@ -538,7 +511,6 @@ void SoftFilterPickerView::paintEvent(QPaintEvent* event)
 {
 	Q_UNUSED(event);
 	const SkinTokens& t = skinTokens;
-	const bool dark = skinTokens.dark;
 
 	QPainter painter(this);
 	painter.setRenderHint(QPainter::Antialiasing);
@@ -547,15 +519,13 @@ void SoftFilterPickerView::paintEvent(QPaintEvent* event)
 	// what the popup floats over.
 	painter.fillRect(rect(), QColor(t.background));
 
-	// Faked elevation, per the constitution: one background value step nudged
-	// down under the card; never a real shadow effect. The card rounds at the
-	// constitutional 14px.
+	// Faked elevation, per the constitution: the 2px darker base step every
+	// paper panel stands on; never a real shadow effect. Menus round at
+	// 14px (the cards at 18).
 	const qreal radius = 14.0;
 	QRectF card(rect());
 	card.adjust(0.5, 0.5, -0.5, -2.5);
-	const QColor stepColor = dark
-		? mixColor(QColor(t.background), QColor(Qt::black), 0.45)
-		: mixColor(QColor(t.background), QColor(t.border), 0.7);
+	const QColor stepColor = mixColor(QColor(t.background), QColor(t.border), 0.5);
 	painter.setPen(Qt::NoPen);
 	painter.setBrush(stepColor);
 	painter.drawRoundedRect(card.translated(0, 2.0), radius, radius);

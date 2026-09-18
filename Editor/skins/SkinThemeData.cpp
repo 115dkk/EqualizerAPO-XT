@@ -128,7 +128,9 @@ SkinTokens softTokens(bool dark)
 	t.dark = dark;
 	t.fontFamily = QStringLiteral("EAPO Sans");
 	t.monoFontFamily = QStringLiteral("EAPO Mono");
-	t.borderRadius = 14;
+	// 18, up from 14 (2026-09 concept swap, #341): the paper card of the
+	// accepted mockup rounds further than the studio glass ever did.
+	t.borderRadius = 18;
 	// 44, down from 48 (2026-08 density round): still the airiest header of
 	// the five, but no longer half again the compact skins' height.
 	t.rowHeight = 44;
@@ -136,44 +138,50 @@ SkinTokens softTokens(bool dark)
 	t.density = 2;
 	t.channelGroupStyle = SkinTokens::SoftShadow;
 	t.badgeStyle = SkinTokens::SoftPill;
-	// The accent and the semantic colours live on the pastel shelf
-	// themselves (the softPastelize recipe applied to the old saturated
-	// values), so every consumer - knob arcs, focus rings, toggles, ON
-	// pills, severity inks - is pastel without knowing it.
+	// Paper and ink (2026-09 concept swap, #341). Two chromatic colours in
+	// the whole skin: one blue-grey accent for everything chosen or held,
+	// and one amber ink for anything that needs attention. The rest is
+	// warm paper (window, card, well) and warm ink (text, muted). accent2
+	// and danger alias the accent and the warning on purpose: consumers
+	// that split boost/cut or warning/danger by hue keep compiling and
+	// simply draw one colour, which is the point. cardSelected is the
+	// TINT - the pale accent wash a chosen pill or a selected card wears
+	// under accent ink, never an opaque accent fill (that is reserved for
+	// switches). success stays a quiet sage for DeviceSelector's status
+	// dots; no Editor chrome uses it any more.
 	if (dark)
 	{
-		t.background = QStringLiteral("#1C1A17");
-		t.surface = QStringLiteral("#262320");
-		t.card = QStringLiteral("#2F2B26");
-		t.cardHover = QStringLiteral("#38332D");
-		// The pastel accent mixed deep into the card (softMix 0.75).
-		t.cardSelected = QStringLiteral("#3F4650");
-		t.text = QStringLiteral("#F4F1EA");
-		t.mutedText = QStringLiteral("#B3AB9D");
-		t.border = QStringLiteral("#423D34");
-		t.graph = QStringLiteral("#181613");
-		t.accent = QStringLiteral("#6E96CF");
-		t.accent2 = QStringLiteral("#8B6ECF");
-		t.success = QStringLiteral("#6ECF91");
-		t.warning = QStringLiteral("#CFAB6E");
-		t.danger = QStringLiteral("#CF6E6E");
+		t.background = QStringLiteral("#23221F");
+		t.surface = QStringLiteral("#302F2A");
+		t.card = QStringLiteral("#302F2A");
+		t.cardHover = QStringLiteral("#383731");
+		t.cardSelected = QStringLiteral("#3E4751");
+		t.text = QStringLiteral("#EEEAE1");
+		t.mutedText = QStringLiteral("#B7B3A8");
+		t.border = QStringLiteral("#4A4840");
+		t.graph = QStringLiteral("#282722");
+		t.accent = QStringLiteral("#A2B9D8");
+		t.accent2 = QStringLiteral("#A2B9D8");
+		t.success = QStringLiteral("#9DBFA5");
+		t.warning = QStringLiteral("#E1BD86");
+		t.danger = QStringLiteral("#E1BD86");
 	}
 	else
 	{
-		t.background = QStringLiteral("#F2EEE6");
-		t.surface = QStringLiteral("#FFF7E6");
-		t.card = QStringLiteral("#F5F5F5");
-		t.cardHover = QStringLiteral("#FFF1DD");
-		t.cardSelected = QStringLiteral("#DEE6FF");
-		t.text = QStringLiteral("#28231F");
-		t.mutedText = QStringLiteral("#786F67");
-		t.border = QStringLiteral("#E8DDCF");
-		t.graph = QStringLiteral("#FFF3E2");
-		t.accent = QStringLiteral("#6190D1");
-		t.accent2 = QStringLiteral("#8361D1");
-		t.success = QStringLiteral("#61D18A");
-		t.warning = QStringLiteral("#D1A861");
-		t.danger = QStringLiteral("#D16161");
+		t.background = QStringLiteral("#F2F0E9");
+		t.surface = QStringLiteral("#FCFBF7");
+		t.card = QStringLiteral("#FCFBF7");
+		t.cardHover = QStringLiteral("#FFFFFF");
+		t.cardSelected = QStringLiteral("#E4EBF3");
+		t.text = QStringLiteral("#343730");
+		t.mutedText = QStringLiteral("#73746B");
+		t.border = QStringLiteral("#DFDED3");
+		t.graph = QStringLiteral("#F0EEE7");
+		t.accent = QStringLiteral("#4D719F");
+		t.accent2 = QStringLiteral("#4D719F");
+		t.success = QStringLiteral("#5E8A6B");
+		t.warning = QStringLiteral("#886032");
+		t.danger = QStringLiteral("#886032");
 	}
 	finishTokens(t);
 	return t;

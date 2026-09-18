@@ -231,5 +231,5 @@ void SoftSubwooferRoutingCardView::paintEvent(QPaintEvent* event)
 	painter.setPen(QPen(halo, 3.0));
 	painter.setBrush(Qt::NoBrush);
 	painter.drawRoundedRect(
-		QRectF(rect()).adjusted(1.5, 1.5, -1.5, -1.5), 14.0, 14.0);
+		QRectF(rect()).adjusted(1.5, 1.5, -1.5, -1.5), 18.0, 18.0);
 }

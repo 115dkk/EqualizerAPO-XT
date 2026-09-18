@@ -122,11 +122,13 @@ QString softFriendlySentence(const QString& command, const QString& asWritten)
 }
 }
 
-// One calm silhouette for every command type: a 12px rounded card one
-// value step above the window, "shadowed" only by that step and a very
-// light 1px border. Hover lifts the whole card one more value step
-// (QSS :hover re-evaluates at paint time, so the inline rule is enough).
-// A commented-out row sinks flush into the window background and keeps
+// One paper card for every command type: an 18px rounded sheet standing
+// on a 2px darker base step (the constitution's only elevation), closed
+// by the very light 1px border. Hover lifts the face one value step (QSS
+// :hover re-evaluates at paint time, so the inline rule is enough).
+// Selected, the face takes a third of the tint and the edge the card
+// mixed 42% toward the accent - a tinted sheet, not an outlined one. A
+// commented-out row sinks flush into the window background and keeps
 // only a dashed outline - an empty slot, not an alarm.
 QString SoftSkin::cardFrameStyle(const CommandRowInfo& info, const SkinTokens& t) const
 {
@@ -137,15 +139,22 @@ QString SoftSkin::cardFrameStyle(const CommandRowInfo& info, const SkinTokens& t
 			.arg(t.borderRadius);
 	}
 
-	const QString borderColor = info.focused ? t.focusRing : (info.selected ? t.accent : t.border);
-	const QString backgroundColor = info.selected ? t.cardSelected : t.card;
-	const QString hoverColor = info.selected ? t.cardSelected : t.cardHover;
+	const QColor card(t.card);
+	const QColor accent(t.accent);
+	const QString step = cssColor(mixColor(QColor(t.background), QColor(t.border), 0.5));
+	QString borderColor = t.border;
+	if (info.focused)
+		borderColor = t.focusRing;
+	else if (info.selected)
+		borderColor = cssColor(mixColor(card, accent, 0.42));
+	const QString face = info.selected ? cssColor(mixColor(card, QColor(t.cardSelected), 0.30)) : t.card;
+	const QString hoverFace = info.selected ? face : t.cardHover;
 	return QStringLiteral(
-		"QFrame#FilterCardRow { background: %1; border: 1px solid %2; border-radius: %3px; }"
-		"QFrame#FilterCardRow:hover { background: %4; }")
-		.arg(backgroundColor, borderColor)
+		"QFrame#FilterCardRow { background: %1; border: 1px solid %2; border-bottom: 2px solid %3; border-radius: %4px; }"
+		"QFrame#FilterCardRow:hover { background: %5; }")
+		.arg(face, borderColor, step)
 		.arg(t.borderRadius)
-		.arg(hoverColor);
+		.arg(hoverFace);
 }
 
 // No header strip: the header shares the card surface so the row reads as
@@ -157,31 +166,52 @@ QString SoftSkin::cardHeaderStyle(const CommandRowInfo&, const SkinTokens&) cons
 	return QStringLiteral("QWidget#FilterCardHeader { background: transparent; }");
 }
 
-// The row's type badge wears the picker's pastel grammar instead of the
-// shared saturated pill. The ink is a deep warm neutral on the pastel
-// chip - white text on a pastel is exactly the kind of low-contrast
-// anxiety this skin removes. A sleeping (commented-out) row sinks its
-// chip toward the window background.
+// The row's type mark is the pictogram alone, in ink: no tile, no
+// colour (the concept swap keeps colour for what is chosen or needs
+// attention, and a command's type is neither). The chip keeps its box
+// as transparent chrome so the header does not move, and the pictogram
+// takes the text ink pulled a third of the way toward the paper -
+// present, quieter than the title beside it. A sleeping (commented-out)
+// row relaxes it toward the muted ink.
 BadgeTreatment SoftSkin::badgeTreatment(const CommandRowInfo& info, const QString& typeColor,
 	const QString& badgeToken, const SkinTokens& t) const
 {
+	Q_UNUSED(typeColor);
 	Q_UNUSED(badgeToken);
-	const bool dark = skinIsDark(t);
-	const QColor pastel = softPastelize(QColor(typeColor), dark);
-	if (!info.enabled)
-	{
-		const QColor sleeping = mixColor(pastel, QColor(t.background), 0.62);
-		return {
-			QStringLiteral("color:%1; border-color:transparent; background-color:%2;")
-				.arg(t.mutedText, sleeping.name()),
-			QColor(t.mutedText)
-		};
-	}
+	const QColor ink = info.enabled
+		? mixColor(QColor(t.text), QColor(t.card), 0.35)
+		: mixColor(QColor(t.mutedText), QColor(t.background), 0.45);
 	return {
-		QStringLiteral("color:#2B251D; border-color:transparent; background-color:%1;")
-			.arg(pastel.name()),
-		QColor(QStringLiteral("#2B251D"))
+		QStringLiteral("color:%1; border-color:transparent; background-color:transparent;")
+			.arg(cssColor(ink)),
+		ink
 	};
+}
+
+// The channel badges beside the title: quiet resting pills in ink, the
+// eight channel hues retired with the concept swap (a channel name is a
+// fact, not a state). A virtual channel keeps the dashed edge of things
+// the hardware does not vouch for.
+bool SoftSkin::paintChannelBadge(QPainter& painter, const QRect& rect, const QString& channel,
+	bool virtualChannel, const SkinTokens& tokens) const
+{
+	painter.setRenderHint(QPainter::Antialiasing);
+	const QRectF pill = QRectF(rect).adjusted(1.0, 2.5, -1.0, -2.5);
+	const qreal radius = pill.height() / 2.0;
+	QPen edge(QColor(tokens.border), 1);
+	if (virtualChannel)
+		edge.setStyle(Qt::DashLine);
+	painter.setPen(edge);
+	painter.setBrush(QColor(tokens.surfaceSunken));
+	painter.drawRoundedRect(pill, radius, radius);
+
+	QFont badgeFont = painter.font();
+	badgeFont.setWeight(QFont::DemiBold);
+	badgeFont.setPointSizeF(qMax(7.5, badgeFont.pointSizeF() - 1.0));
+	painter.setFont(badgeFont);
+	painter.setPen(QColor(tokens.text));
+	painter.drawText(rect, Qt::AlignCenter, channel);
+	return true;
 }
 
 // The plain-text rows (bare note lines and programmatic commands such

@@ -17,6 +17,7 @@
 #include <QFontMetrics>
 
 #include "Editor/SkinManager.h"
+#include "Editor/skins/shared/SkinPaint.h"
 #include "Editor/widgets/routing/CopyRoutingAdapter.h"
 
 using std::vector;
@@ -107,10 +108,12 @@ void BlockChipView::paintEvent(QPaintEvent*)
 	const SkinTokens& t = skinTokens;
 	QPainter p(this);
 	p.setRenderHint(QPainter::Antialiasing, true);
-	const int radius = qMax(8, t.borderRadius);
+	// Blocks round like menus (14), one step short of the card they sit in.
+	const int radius = 14;
 
-	const QColor text(t.text), muted(t.mutedText), card(t.cardHover), border(t.border);
-	const QColor ok(t.success), warn(t.warning), accent(t.accent);
+	const QColor text(t.text), muted(t.mutedText), card(t.card), border(t.border);
+	const QColor well(t.surfaceSunken), tint(t.cardSelected), accent(t.accent);
+	const QColor chosenEdge = mixColor(card, accent, 0.42);
 
 	hits.clear();
 	addHits.clear();
@@ -125,27 +128,26 @@ void BlockChipView::paintEvent(QPaintEvent*)
 		const int y = gap + dr * (blockH + gap);
 		const QRect block(4, y, width() - 8, blockH);
 
-		// Soft block background with a subtle accent edge.
+		// The equation block: a well on the card paper, no edge, no colour
+		// bar - the mockup's formula row. The target channel leads it as a
+		// chosen pill (tint, accent ink), the one accent in the block.
 		QPainterPath path;
 		path.addRoundedRect(block, radius, radius);
-		p.fillPath(path, card);
-		p.setPen(QPen(alpha(accent, 70), 1.5));
-		p.drawPath(path);
+		p.fillPath(path, well);
 
 		const QString dest = QString::fromStdWString(a.targetChannel);
-		const QColor destCol(CopyRoutingAdapter::channelColor(dest));
-		p.setPen(Qt::NoPen);
-		p.setBrush(destCol);
-		p.drawRoundedRect(QRect(block.left() + 6, y, 5, blockH), 2, 2);
-
 		QFont big = uiFont(skinTokens, 14);
-		big.setBold(true);
+		big.setWeight(QFont::DemiBold);
 		p.setFont(big);
 		QFontMetrics bfm(big);
-		int x = block.left() + 18;
-		p.setPen(destCol);
-		p.drawText(QRect(x, y, bfm.horizontalAdvance(dest) + 4, blockH), Qt::AlignVCenter | Qt::AlignLeft, dest);
-		x += bfm.horizontalAdvance(dest) + 10;
+		int x = block.left() + 10;
+		const QRect destChip(x, y + (blockH - 28) / 2, bfm.horizontalAdvance(dest) + 22, 28);
+		p.setPen(QPen(chosenEdge, 1));
+		p.setBrush(tint);
+		p.drawRoundedRect(destChip, 14, 14);
+		p.setPen(accent);
+		p.drawText(destChip, Qt::AlignCenter, dest);
+		x += destChip.width() + 8;
 		p.setPen(muted);
 		p.drawText(QRect(x, y, 16, blockH), Qt::AlignCenter, QStringLiteral("="));
 		x += 22;
@@ -161,16 +163,18 @@ void BlockChipView::paintEvent(QPaintEvent*)
 			const bool neg = s.factor < 0;
 			const bool showGain = s.factor != 1.0 || s.isDecibel;
 
+			// The operators are arithmetic, not verdicts: muted ink for
+			// plus and minus alike.
 			if (si > 0)
 			{
-				p.setPen(neg ? warn : muted);
-				p.drawText(QRect(x, y, 16, blockH), Qt::AlignCenter, neg ? QStringLiteral("−") : QStringLiteral("+"));
+				p.setPen(muted);
+				p.drawText(QRect(x, y, 16, blockH), Qt::AlignCenter, neg ? QStringLiteral("-") : QStringLiteral("+"));
 				x += 18;
 			}
 			else if (neg)
 			{
-				p.setPen(warn);
-				p.drawText(QRect(x, y, 12, blockH), Qt::AlignCenter, QStringLiteral("−"));
+				p.setPen(muted);
+				p.drawText(QRect(x, y, 12, blockH), Qt::AlignCenter, QStringLiteral("-"));
 				x += 14;
 			}
 
@@ -186,17 +190,18 @@ void BlockChipView::paintEvent(QPaintEvent*)
 				}
 			}
 
-			// Soft chip: factor·channel inside one rounded pill. Fixed sources
-			// (IR file channels) are ports, not virtual channels, so they keep
-			// the solid chip styling.
-			const QColor col(CopyRoutingAdapter::channelColor(ch));
+			// Source chip: factor and channel inside one resting pill on the
+			// card paper (a source is a fact, in ink). A virtual channel wears
+			// the dashed edge of things the hardware does not vouch for; fixed
+			// sources (IR file channels) are ports, not virtual channels, so
+			// they keep the solid edge.
 			const bool virt = !portModel.fixedSourceMode() && CopyRoutingAdapter::isVirtualChannel(ch);
 			const int fw = fm.horizontalAdvance(factorText);
 			const int cw = fm.horizontalAdvance(ch);
 			const int chipW = fw + cw + 18;
 			const QRect chip(x, y + (blockH - 26) / 2, chipW, 26);
-			p.setPen(virt ? QPen(alpha(col, 180), 1, Qt::DashLine) : QPen(alpha(col, 120), 1));
-			p.setBrush(alpha(col, virt ? 22 : 40));
+			p.setPen(QPen(border, 1, virt ? Qt::DashLine : Qt::SolidLine));
+			p.setBrush(card);
 			p.drawRoundedRect(chip, 13, 13);
 
 			int cx = chip.left() + 9;
@@ -213,9 +218,9 @@ void BlockChipView::paintEvent(QPaintEvent*)
 				// no factor shown: allow editing by clicking the chip
 				hits.append({ r, si, chip });
 			}
-			p.setPen(col.darker(virt ? 100 : 130));
+			p.setPen(text);
 			QFont chBold = chipFont;
-			chBold.setBold(true);
+			chBold.setWeight(QFont::DemiBold);
 			p.setFont(chBold);
 			p.drawText(QRect(cx, chip.top(), cw + 4, chip.height()), Qt::AlignVCenter | Qt::AlignLeft, ch);
 			p.setFont(chipFont);
@@ -223,13 +228,14 @@ void BlockChipView::paintEvent(QPaintEvent*)
 			x += chipW + 8;
 		}
 
-		// Soft [+] chip per block: adds a source channel to this equation. This
-		// is what makes an emptied Copy refillable from the GUI.
+		// The dashed [+] chip per block adds a source channel to this
+		// equation (what makes an emptied Copy refillable from the GUI): the
+		// not-there grammar in the muted ink, no fill.
 		const QRect addChip(x, y + (blockH - 26) / 2, 32, 26);
-		p.setPen(QPen(alpha(accent, 140), 1, Qt::DashLine));
-		p.setBrush(alpha(accent, 24));
+		p.setPen(QPen(alpha(muted, 150), 1, Qt::DashLine));
+		p.setBrush(Qt::NoBrush);
 		p.drawRoundedRect(addChip, 13, 13);
-		p.setPen(alpha(accent, 220));
+		p.setPen(muted);
 		p.drawText(addChip, Qt::AlignCenter, QStringLiteral("+"));
 		addHits.append({ r, addChip });
 		x += 40;
@@ -249,10 +255,10 @@ void BlockChipView::paintEvent(QPaintEvent*)
 		}
 	}
 
-	// The control row: a quiet "show more channels" pill (OFF-state pill
-	// grammar - sunken ground, 1px border, muted ink; hover raises it one
-	// step) and the dashed "add channel" chip (the not-hardware-backed
-	// grammar shared with the per-block [+]).
+	// The control row: a quiet "show more channels" pill (the resting pill
+	// - the well, 1px border, muted ink; hover raises it to the card face)
+	// and the dashed "add channel" chip (the not-hardware-backed grammar
+	// shared with the per-block [+]).
 	const int y = gap + fold.visibleRows.size() * (blockH + gap);
 	QFont chipFont = uiFont(skinTokens, 12);
 	p.setFont(chipFont);
@@ -267,8 +273,8 @@ void BlockChipView::paintEvent(QPaintEvent*)
 		const int w = fm.horizontalAdvance(caption) + 24;
 		revealRect = QRect(x, y, w, controlH - 4);
 		const bool hovered = hoveredControl == 1;
-		p.setPen(QPen(alpha(border, 160), 1));
-		p.setBrush(hovered ? alpha(border, 60) : alpha(border, 30));
+		p.setPen(QPen(hovered ? alpha(accent, 128) : border, 1));
+		p.setBrush(hovered ? card : well);
 		p.drawRoundedRect(revealRect, (controlH - 4) / 2, (controlH - 4) / 2);
 		p.setPen(hovered ? text : muted);
 		p.drawText(revealRect, Qt::AlignCenter, caption);
@@ -280,10 +286,10 @@ void BlockChipView::paintEvent(QPaintEvent*)
 		const int w = fm.horizontalAdvance(caption) + 24;
 		addChannelRect = QRect(x, y, w, controlH - 4);
 		const bool hovered = hoveredControl == 2;
-		p.setPen(QPen(alpha(accent, hovered ? 220 : 140), 1, Qt::DashLine));
-		p.setBrush(alpha(accent, hovered ? 40 : 24));
+		p.setPen(QPen(hovered ? alpha(accent, 200) : alpha(muted, 150), 1, Qt::DashLine));
+		p.setBrush(hovered ? well : QBrush(Qt::NoBrush));
 		p.drawRoundedRect(addChannelRect, (controlH - 4) / 2, (controlH - 4) / 2);
-		p.setPen(alpha(accent, hovered ? 255 : 220));
+		p.setPen(hovered ? text : muted);
 		p.drawText(addChannelRect, Qt::AlignCenter, caption);
 	}
 }

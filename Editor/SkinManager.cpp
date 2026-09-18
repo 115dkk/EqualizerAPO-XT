@@ -6,7 +6,10 @@
 
 #include "SkinManager.h"
 
+#include <QAction>
 #include <QApplication>
+#include <QToolBar>
+#include <QToolButton>
 #include <QFile>
 #include <QWidget>
 
@@ -256,8 +259,14 @@ void SkinManager::styleMainToolbar(QToolBar* toolBar) const
 		return;
 	// Reset the shared mutable toolbar state before delegating so one skin's
 	// choices cannot leak across a live skin switch (minimal sets
-	// Qt::ToolButtonTextOnly; everyone else expects icon-only).
+	// Qt::ToolButtonTextOnly, soft pins each labelled button's minimum width;
+	// everyone else expects icon-only buttons that size themselves).
 	toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
+	for (QAction* action : toolBar->actions())
+	{
+		if (QToolButton* button = qobject_cast<QToolButton*>(toolBar->widgetForAction(action)))
+			button->setMinimumWidth(0);
+	}
 	activeSkin->styleMainToolbar(toolBar, currentTokens);
 }
 

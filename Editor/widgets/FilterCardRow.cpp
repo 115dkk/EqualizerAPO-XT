@@ -102,6 +102,9 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 
 	expandButton = new QToolButton(headerWidget);
 	expandButton->setObjectName(QStringLiteral("FilterCardIconButton"));
+	// Which control this is, for a skin sheet that dresses the power switch
+	// differently from the other four (they share one object name).
+	expandButton->setProperty("cardControl", QStringLiteral("expand"));
 	expandButton->setCheckable(true);
 	expandButton->setChecked(gui != nullptr);
 	expandButton->setText(expandButton->isChecked() ? QStringLiteral("v") : QStringLiteral(">"));
@@ -123,6 +126,7 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	// the right.
 	enabledButton = new QToolButton(headerWidget);
 	enabledButton->setObjectName(QStringLiteral("FilterCardIconButton"));
+	enabledButton->setProperty("cardControl", QStringLiteral("power"));
 	enabledButton->setCheckable(true);
 	enabledButton->setToolTip(tr("Enable or comment out this command"));
 	enabledButton->setChecked(descriptor.enabled);
@@ -132,6 +136,7 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 
 	addButton = new QToolButton(headerWidget);
 	addButton->setObjectName(QStringLiteral("FilterCardIconButton"));
+	addButton->setProperty("cardControl", QStringLiteral("add"));
 	addButton->setText(QStringLiteral("+"));
 	addButton->setToolTip(tr("Add filter above this card"));
 	connect(addButton, SIGNAL(clicked()), this, SLOT(addAbove()));
@@ -139,6 +144,7 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 
 	removeButton = new QToolButton(headerWidget);
 	removeButton->setObjectName(QStringLiteral("FilterCardIconButton"));
+	removeButton->setProperty("cardControl", QStringLiteral("remove"));
 	removeButton->setText(QStringLiteral("-"));
 	removeButton->setToolTip(tr("Remove filter"));
 	connect(removeButton, SIGNAL(clicked()), this, SLOT(removeThis()));
@@ -146,6 +152,7 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 
 	editButton = new QToolButton(headerWidget);
 	editButton->setObjectName(QStringLiteral("FilterCardIconButton"));
+	editButton->setProperty("cardControl", QStringLiteral("edit"));
 	editButton->setCheckable(true);
 	// A code mark ("</>"), not "..." and not a pencil: the ellipsis promised
 	// an options menu it never opens, and the pencil collided with the

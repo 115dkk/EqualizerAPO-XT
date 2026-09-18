@@ -14,6 +14,22 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The Soft skin is re-dressed as paper and ink.** The pastel shelf of the
+  earlier rounds (blue, amber, green and violet tiles, the green save pill,
+  the eight channel hues, the filled terrain under the analysis curve) is
+  gone. The skin now has two colours: one blue-grey accent for whatever is
+  chosen or held (switches fill with it, chosen pills wear a pale tint under
+  accent ink) and one amber ink for whatever needs attention (a missing
+  file, an unsaved change, a response above 0 dB). Cards are warm paper
+  sheets on a 2px darker base step instead of a lighter tray, the type mark
+  is the pictogram alone in ink, the knob has thin arcs and a paper face on a
+  base rim, the value boxes are borderless wells, the analysis graph is one
+  accent line on the panel, and the toolbar names its actions beside the
+  glyphs. Layout is unchanged: every control stays where it was. The visual
+  concept follows the maintainer-accepted Soft mockup of
+  [#341](https://github.com/115dkk/EqualizerAPO-XT/issues/341); the mockup's
+  layout was rejected.
+
 ## v2.51.0 — 2026-09-03
 
 - **The minimal skin's knob is a register drum, rolled by dragging up and

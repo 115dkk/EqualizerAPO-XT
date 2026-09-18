@@ -18,13 +18,15 @@
 #include "Editor/helpers/GUIHelper.h"
 
 // One icon, several pre-rendered sizes (16px for the File menu rows up to
-// the 22px toolbar size and beyond), so Qt never stretches a tile. The
-// tile matches SoftFilterPicker's category tiles: a rounded square at 32%
-// corner radius with the glyph inked in the picker's near-white literal.
-QIcon SoftSkin::softTileIcon(const QString& resource, const QColor& tile)
+// the 22px toolbar size and beyond), so Qt never stretches a glyph. The
+// glyph is the shared stroke pictogram in the given ink; a tile colour
+// with any opacity puts a rounded square (32% corner radius) under it,
+// and a transparent tile leaves the bare glyph - the toolbar's form since
+// the concept swap, where colour tiles retired.
+QIcon SoftSkin::softTileIcon(const QString& resource, const QColor& tile, const QColor& ink)
 {
 	QIcon icon;
-	// 44/64 keep the tile crisp on 2x displays (22/32 logical at DPR 2).
+	// 44/64 keep the glyph crisp on 2x displays (22/32 logical at DPR 2).
 	for (const int logical : { 16, 18, 20, 22, 24, 32, 44, 64 })
 	{
 		const int side = GUIHelper::scale(double(logical));
@@ -32,11 +34,14 @@ QIcon SoftSkin::softTileIcon(const QString& resource, const QColor& tile)
 		pixmap.fill(Qt::transparent);
 		QPainter painter(&pixmap);
 		painter.setRenderHint(QPainter::Antialiasing);
-		painter.setPen(Qt::NoPen);
-		painter.setBrush(tile);
-		painter.drawRoundedRect(QRectF(0, 0, side, side), side * 0.32, side * 0.32);
-		const int glyphSide = qMax(10, qRound(logical * 0.66));
-		const QPixmap glyph = GUIHelper::tintedIcon(resource, QColor(QStringLiteral("#FAFAFC")), glyphSide)
+		if (tile.alpha() > 0)
+		{
+			painter.setPen(Qt::NoPen);
+			painter.setBrush(tile);
+			painter.drawRoundedRect(QRectF(0, 0, side, side), side * 0.32, side * 0.32);
+		}
+		const int glyphSide = qMax(10, qRound(logical * (tile.alpha() > 0 ? 0.66 : 0.9)));
+		const QPixmap glyph = GUIHelper::tintedIcon(resource, ink, glyphSide)
 			.pixmap(GUIHelper::scale(QSize(glyphSide, glyphSide)));
 		// Centre by the glyph's LOGICAL size: on high-DPR displays
 		// QIcon::pixmap returns a pixmap whose width() is physical pixels
@@ -47,7 +52,7 @@ QIcon SoftSkin::softTileIcon(const QString& resource, const QColor& tile)
 			(side - glyphLogical.height()) / 2.0), glyph);
 		painter.end();
 		icon.addPixmap(pixmap);
-		// The whole tile fades when the action is disabled, the shared
+		// The whole mark fades when the action is disabled, the shared
 		// disabled-glyph recipe (undo/redo on an empty history).
 		icon.addPixmap(GUIHelper::fadedPixmap(pixmap), QIcon::Disabled);
 	}

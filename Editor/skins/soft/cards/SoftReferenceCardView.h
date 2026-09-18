@@ -8,7 +8,7 @@
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
 	Soft Lab's reference card (Include / Convolution / MultiConvolution /
-	VSTPlugin row bodies): a pastel tile leading a two-line identity, with
+	VSTPlugin row bodies): a stroke pictogram leading a two-line identity, with
 	measured facts as stadium chips.
 	Constitution: docs/skins/soft.md ("참조 카드" section).
 */
@@ -24,7 +24,7 @@ class ElidedLabel;
 class QAbstractButton;
 class QHBoxLayout;
 class QLabel;
-class SoftReferenceTile;
+class SoftReferenceGlyph;
 
 class SoftReferenceCardView : public ReferenceCardView
 {
@@ -49,7 +49,7 @@ private:
 	QHBoxLayout* rootLayout = nullptr;
 	QHBoxLayout* actionLayout = nullptr;
 	QHBoxLayout* chipLayout = nullptr;
-	SoftReferenceTile* tile = nullptr;
+	SoftReferenceGlyph* glyph = nullptr;
 	ElidedLabel* nameLabel = nullptr;
 	QLabel* formatChip = nullptr;
 	ElidedLabel* captionLabel = nullptr;
