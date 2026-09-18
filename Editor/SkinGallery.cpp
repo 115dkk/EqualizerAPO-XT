@@ -1922,7 +1922,7 @@ int runSwitchTest(const QStringList& arguments)
 					failures++;
 				}
 				if (skin->id() == QLatin1String("soft"))
-					checkPaintOnlyChrome(QStringLiteral("SoftReferenceTile"));
+					checkPaintOnlyChrome(QStringLiteral("SoftReferenceGlyph"));
 				{
 					// Caption ink check. tintedIcon paints every covered pixel
 					// in the ink colour, so the strongest-coverage pixel must
