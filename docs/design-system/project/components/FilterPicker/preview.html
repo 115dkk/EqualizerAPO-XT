@@ -1,0 +1,194 @@
+<!-- @dsCard group="Chrome" height=770 width=960 subtitle="The command picker popup: frosted glass, terminal index, settings menu, 1U preset browser, crosspoint instrument" -->
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>FilterPicker — preview</title>
+<style>
+  html, body { margin: 0; background: transparent; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 10px; }
+  .grid > .skin { min-height: 330px; padding-top: 24px; }
+  .pk { position: relative; display: flex; flex-direction: column; font-size: 12.5px; }
+  .it { display: flex; align-items: center; gap: 8px; padding: 0 10px; height: 28px; box-sizing: border-box; white-space: nowrap; }
+  .it svg { width: 14px; height: 14px; flex: none; }
+  .it .cap { margin-left: auto; color: var(--muted); font-size: 12.13px; opacity: .67; }
+  .sec { font-size: 10.67px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); padding: 8px 10px 4px; }
+  .search { display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 10px; box-sizing: border-box; margin: 10px 10px 4px; font-family: var(--mono); }
+  .search svg { width: 12px; height: 12px; }
+  .foot { font-size: 10.67px; color: var(--muted); padding: 8px 10px; margin-top: auto; }
+
+  /* ===== Studio: a frosted glass panel on a deep stage, lit from behind ===== */
+  .skin-studio .pk { margin: 13px; background: radial-gradient(circle at 22% 10%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 42%), radial-gradient(circle at 92% 96%, color-mix(in srgb, var(--accent2) 22%, transparent), transparent 38%), color-mix(in srgb, var(--card) 93%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); border-radius: var(--radius); padding-bottom: 6px;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 16%, transparent), 0 0 0 4px color-mix(in srgb, var(--accent) 7%, transparent), 0 0 14px color-mix(in srgb, var(--accent) 22%, transparent), 0 6px 18px rgba(0,0,0,.45); }
+  .skin-studio .pk::before { content: ""; position: absolute; left: 12%; right: 12%; top: -1px; height: 1px; background: linear-gradient(90deg, transparent, var(--accent) 40%, var(--accent2) 70%, transparent); box-shadow: 0 0 4px var(--accent); }
+  .skin-studio .search { background: var(--sunken); border: 1px solid var(--border); border-top-color: rgba(0,0,0,.55); border-radius: var(--radius); color: var(--text); }
+  [data-theme="light"] .skin-studio .search { background: var(--input); border-top-color: var(--border); }
+  .skin-studio .sec { position: relative; } .skin-studio .sec::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: 0; height: 1px; background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 45%, transparent), transparent); }
+  .skin-studio .it { margin: 0 6px; border-radius: 6px; border: 1px solid transparent; }
+  .skin-studio .it.sel { background: color-mix(in srgb, var(--accent) 20%, transparent); border-color: color-mix(in srgb, var(--accent) 70%, transparent); box-shadow: inset 0 0 10px color-mix(in srgb, var(--accent) 22%, transparent); }
+  .skin-studio .it.hov { background: radial-gradient(ellipse 60% 120% at 30% 50%, color-mix(in srgb, var(--accent) 24%, transparent), transparent); }
+  .skin-studio .it.sel .cap { opacity: .86; }
+  .skin-studio .bar { position: absolute; right: 3px; top: 84px; width: 4px; height: 70px; border-radius: 2px; background: color-mix(in srgb, var(--card-hover) 70%, transparent); border-top: 1px solid rgba(255,255,255,.3); }
+
+  /* ===== Minimal: a numbered terminal index; the cursor is the inverted block ===== */
+  .skin-minimal .pk { background: var(--bg); border: 1px solid var(--border); font-family: var(--mono); }
+  .skin-minimal .search { margin: 0; height: 30px; border-bottom: 1px solid var(--border); color: var(--text); }
+  .skin-minimal .search .p { color: var(--accent); font-weight: 700; } .skin-minimal .search .n { margin-left: auto; color: var(--muted); }
+  .skin-minimal .sec { border-bottom: 1px solid var(--border); padding: 8px 10px 3px; }
+  .skin-minimal .it { height: 24px; gap: 10px; }
+  .skin-minimal .it .no { color: var(--muted); font-weight: 700; } .skin-minimal .it svg { display: none; } .skin-minimal .it .cap { display: none; }
+  .skin-minimal .it.sel { background: var(--text); color: var(--surface); } .skin-minimal .it.sel .no { color: var(--surface); }
+  .skin-minimal .it.hov { background: var(--card-hover); }
+  .skin-minimal .foot { border-top: 1px solid var(--border); letter-spacing: .5px; }
+
+  /* ===== Soft: a rounded settings menu; two-line rows with colour tiles ===== */
+  .skin-soft .pk { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 2px 0 0 var(--surface); padding: 4px 6px 8px; }
+  .skin-soft .search { background: var(--sunken); border-radius: 999px; color: var(--text); font-family: var(--font); margin: 8px 4px 6px; }
+  .skin-soft .sec { display: inline-flex; align-self: flex-start; margin: 4px 4px 2px; padding: 3px 10px; border-radius: 999px; background: hsl(142 50% 62% / .35); color: var(--text); letter-spacing: 0; text-transform: none; font-size: 11px; }
+  .skin-soft .it { height: 42px; border-radius: 999px; margin: 1px 0; padding: 0 8px; gap: 10px; }
+  .skin-soft .tile { width: 24px; height: 24px; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; color: var(--on-accent); flex: none; }
+  .skin-soft .it .nm { display: flex; flex-direction: column; line-height: 1.15; } .skin-soft .it .nm b { font-weight: 600; } .skin-soft .it .nm small { color: var(--muted); font-size: 11px; font-family: var(--font); }
+  .skin-soft .it .cap { display: none; }
+  .skin-soft .it.sel { background: var(--card-hover); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 60%, transparent); }
+  .skin-soft .it.hov { background: var(--card-hover); }
+  .skin-soft .t-biquad { background: hsl(142 50% 62%); } .skin-soft .t-geq { background: hsl(258 50% 62%); } .skin-soft .t-pre { background: hsl(38 50% 62%); }
+  .skin-soft .t-inc { background: hsl(215 16% 62%); } .skin-soft .t-vst { background: hsl(271 50% 62%); } .skin-soft .t-copy { background: hsl(189 50% 62%); }
+  [data-theme="light"] .skin-soft .t-biquad { background: hsl(142 55% 60%); } [data-theme="light"] .skin-soft .t-geq { background: hsl(258 55% 60%); } [data-theme="light"] .skin-soft .t-pre { background: hsl(38 55% 60%); }
+  [data-theme="light"] .skin-soft .t-inc { background: hsl(215 16% 60%); } [data-theme="light"] .skin-soft .t-vst { background: hsl(271 55% 60%); } [data-theme="light"] .skin-soft .t-copy { background: hsl(189 55% 60%); }
+
+  /* ===== Rack: a 1U module preset browser on a brushed faceplate ===== */
+  .skin-rack .pk { background: var(--card); border: 1px solid var(--seam); border-top-color: rgba(255,255,255,.14); border-radius: var(--radius); padding: 8px 22px 6px; box-shadow: inset 1px 1px 0 rgba(255,255,255,.08), inset -1px -1px 0 rgba(0,0,0,.35); }
+  .screw { position: absolute; width: 7px; height: 7px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #9aa0a4, #3a4046 70%); box-shadow: 0 0 0 1px rgba(0,0,0,.5); }
+  .screw::after { content: ""; position: absolute; left: 0; right: 0; top: 3px; height: 1px; background: rgba(0,0,0,.75); }
+  .screw.tl { left: 5px; top: 5px; transform: rotate(15deg); } .screw.tr { right: 5px; top: 5px; transform: rotate(-40deg); } .screw.bl { left: 5px; bottom: 5px; transform: rotate(65deg); } .screw.br { right: 5px; bottom: 5px; transform: rotate(0deg); }
+  .skin-rack .hd { display: flex; align-items: center; gap: 8px; font-size: 10.67px; font-weight: 700; letter-spacing: 1px; color: var(--muted); padding: 2px 0 6px; }
+  .led { width: 8px; height: 8px; border-radius: 50%; flex: none; box-shadow: 0 0 0 1.5px #0a0c0e, 0 0 0 2.5px #4a5257; background: radial-gradient(circle at 40% 35%, #fff8 0 1px, var(--accent2) 2px, color-mix(in srgb, var(--accent2) 60%, black)); }
+  .led.dim { background: radial-gradient(circle at 40% 35%, #fff2 0 1px, #2a2622 2px, #15120f); box-shadow: 0 0 0 1.5px #0a0c0e, 0 0 0 2.5px #33393e; }
+  .led.amber { background: radial-gradient(circle at 40% 35%, #fff8 0 1px, var(--accent) 2px, color-mix(in srgb, var(--accent) 60%, black)); box-shadow: 0 0 0 1.5px #0a0c0e, 0 0 0 2.5px #4a5257, 0 0 6px var(--accent); }
+  .led.heat { background: radial-gradient(circle at 40% 35%, #fff3 0 1px, color-mix(in srgb, var(--accent) 45%, #2a2622) 2px, #15120f); box-shadow: 0 0 0 1.5px #0a0c0e, 0 0 0 2.5px #4a5257; }
+  .skin-rack .search { margin: 0 0 6px; background: var(--graph); border: 1px solid #0a0c0e; border-radius: 2px; color: var(--accent2); font-weight: 700; text-shadow: 0 0 4px color-mix(in srgb, var(--accent2) 60%, transparent); box-shadow: inset 0 1px 2px rgba(0,0,0,.8), 0 1px 0 rgba(255,255,255,.06); }
+  .skin-rack .sec { position: relative; margin: 4px 0 2px; padding: 3px 14px; background: color-mix(in srgb, var(--card) 80%, black); border: 1px solid #0a0c0e; border-radius: 2px; color: var(--muted); }
+  .skin-rack .sec::before, .skin-rack .sec::after { content: ""; position: absolute; top: 50%; width: 4px; height: 4px; margin-top: -2px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #8b9196, #2b3136); }
+  .skin-rack .sec::before { left: 4px; } .skin-rack .sec::after { right: 4px; }
+  .skin-rack .it { height: 26px; padding: 0 6px; gap: 10px; font-size: 12px; } .skin-rack .it svg { display: none; } .skin-rack .it .cap { display: none; }
+  .skin-rack .it.sel { background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%); border-radius: 2px; }
+  .skin-rack .foot { text-align: center; letter-spacing: 2px; font-weight: 700; font-size: 9px; padding: 8px 0 0; }
+
+  /* ===== Matrix: a two-axis crosspoint instrument, bus rail x coordinate column ===== */
+  .skin-matrix .pk { background: var(--bg); border: 1px solid var(--border); font-family: var(--mono); }
+  .skin-matrix .search { margin: 0; height: 30px; background: var(--graph); border-bottom: 1px solid var(--border); color: var(--text); }
+  .skin-matrix .search .p { color: var(--accent); font-weight: 700; } .skin-matrix .search .cur { display: inline-block; width: 7px; height: 12px; background: var(--accent); margin-left: 2px; }
+  .skin-matrix .mast { display: flex; align-items: center; justify-content: space-between; height: 24px; padding: 0 8px; font-size: 10.5px; font-weight: 700; letter-spacing: 1px; color: var(--muted); border-bottom: 1px solid var(--border); }
+  .skin-matrix .mast .ins { color: var(--text); }
+  .skin-matrix .board { display: grid; grid-template-columns: 150px 1fr; }
+  .skin-matrix .bus { border-right: 1px solid var(--border); }
+  .skin-matrix .bus .b { display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 6px; border-bottom: 1px solid var(--border); color: var(--muted); font-size: 10px; letter-spacing: 1px; position: relative; }
+  .skin-matrix .bus .b .nm { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .skin-matrix .bus .b .ltr { width: 16px; height: 16px; border: 1px solid var(--border); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; }
+  .skin-matrix .bus .b.on { color: var(--text); } .skin-matrix .bus .b.on .ltr { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  .skin-matrix .bus .b.on::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent); }
+  .skin-matrix .it { height: 28px; border-bottom: 1px solid var(--border); padding: 0 8px 0 0; gap: 8px; }
+  .skin-matrix .it .co { width: 34px; height: 100%; display: inline-flex; align-items: center; justify-content: center; border-right: 1px solid var(--border); color: var(--muted); font-size: 10.5px; letter-spacing: 2px; font-weight: 600; flex: none; }
+  .skin-matrix .it svg { display: none; } .skin-matrix .it .cap { display: none; }
+  .skin-matrix .it.sel { background: color-mix(in srgb, var(--accent) 20%, transparent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .skin-matrix .it.sel .co { background: var(--accent); color: var(--on-accent); }
+  .skin-matrix .it.hov { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+  .skin-matrix .trace { position: absolute; left: 118px; top: 68px; width: 36px; height: 2px; background: var(--accent); }
+  .skin-matrix .foot { border-top: 1px solid var(--border); background: var(--graph); color: var(--text); font-size: 11px; }
+  .skin-matrix .foot .p { color: var(--accent); font-weight: 700; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <g id="mag"><circle cx="10" cy="10" r="6"/><path d="M14.5 14.5L20 20"/></g>
+  <g id="p-biquad"><path d="M3 15.5H6.5C9 15.5 9.5 6.5 12 6.5C14.5 6.5 15 15.5 17.5 15.5H21"/></g>
+  <g id="p-geq"><path d="M6 4.5v15"/><path d="M12 4.5v15"/><path d="M18 4.5v15"/><path d="M3.8 9.5h4.4"/><path d="M9.8 14.5h4.4"/><path d="M15.8 7.5h4.4"/></g>
+  <g id="p-pre"><path d="M4.5 17.5L19.5 17.5L19.5 4.5Z" fill="currentColor" stroke-linejoin="round"/></g>
+  <g id="p-inc"><path d="M13.5 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10A1.5 1.5 0 0 0 18.5 19V8.5z"/><path d="M13.5 3.5V8.5H18.5"/><path d="M8.8 12.5h6.4"/><path d="M8.8 15.5h6.4"/></g>
+  <g id="p-vst"><rect x="6.5" y="6.5" width="11" height="11" rx="2"/><path d="M9.5 3.5v3M14.5 3.5v3M9.5 17.5v3M14.5 17.5v3"/><path d="M3.5 9.5h3M3.5 14.5h3M17.5 9.5h3M17.5 14.5h3"/></g>
+  <g id="p-copy"><path d="M3 7.5C10 7.5 14 16.5 21 16.5"/><path d="M3 16.5C10 16.5 14 7.5 21 7.5"/><path d="M18.3 5.6L21 7.5l-2.8 1.7"/><path d="M18.3 14.6L21 16.5l-2.8 1.7"/></g>
+</defs></svg>
+<div class="grid">
+
+  <div class="skin skin-studio"><span class="skin-caption">studio</span>
+    <div class="pk">
+      <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><use href="#mag"/></svg>eq</div>
+      <div class="sec">Filters</div>
+      <div class="it sel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-biquad"/></svg>Filter<span class="cap">peaking filter</span></div>
+      <div class="it hov"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-geq"/></svg>GraphicEQ<span class="cap">15 bands</span></div>
+      <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-pre"/></svg>Preamp<span class="cap">gain</span></div>
+      <div class="sec">Structure</div>
+      <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-inc"/></svg>Include</div>
+      <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-vst"/></svg>VSTPlugin</div>
+      <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-copy"/></svg>Copy</div>
+      <span class="bar"></span>
+    </div>
+  </div>
+
+  <div class="skin skin-minimal"><span class="skin-caption">minimal</span>
+    <div class="pk">
+      <div class="search"><span class="p">&gt;</span>eq<span class="n">6/22</span></div>
+      <div class="sec">Filters</div>
+      <div class="it sel"><span class="no">01</span>Filter</div>
+      <div class="it hov"><span class="no">02</span>GraphicEQ</div>
+      <div class="it"><span class="no">03</span>Preamp</div>
+      <div class="sec">Structure</div>
+      <div class="it"><span class="no">07</span>Include</div>
+      <div class="it"><span class="no">08</span>VSTPlugin</div>
+      <div class="it"><span class="no">09</span>Copy</div>
+      <div class="foot">A-Z FILTER · NN JUMP · ↑↓ MOVE · RET INSERT</div>
+    </div>
+  </div>
+
+  <div class="skin skin-soft"><span class="skin-caption">soft</span>
+    <div class="pk">
+      <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><use href="#mag"/></svg>eq</div>
+      <div class="sec">Filters</div>
+      <div class="it sel"><span class="tile t-biquad"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-biquad"/></svg></span><span class="nm"><b>Filter</b><small>Peaking, shelf, pass and notch</small></span></div>
+      <div class="it hov"><span class="tile t-geq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-geq"/></svg></span><span class="nm"><b>GraphicEQ</b><small>15 or 31 bands</small></span></div>
+      <div class="it"><span class="tile t-pre"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-pre"/></svg></span><span class="nm"><b>Preamp</b><small>Overall gain</small></span></div>
+      <div class="it"><span class="tile t-inc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-inc"/></svg></span><span class="nm"><b>Include</b><small>Choose the details after adding</small></span></div>
+      <div class="it"><span class="tile t-vst"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-vst"/></svg></span><span class="nm"><b>VSTPlugin</b><small>Load a plug-in</small></span></div>
+    </div>
+  </div>
+
+  <div class="skin skin-rack"><span class="skin-caption">rack</span>
+    <div class="pk rack-brushed">
+      <span class="screw tl"></span><span class="screw tr"></span><span class="screw bl"></span><span class="screw br"></span>
+      <div class="hd">MODULE SELECT<span class="led"></span></div>
+      <div class="search">EQ_</div>
+      <div class="sec">Filters</div>
+      <div class="it sel"><span class="led amber"></span>Filter</div>
+      <div class="it hov"><span class="led heat"></span>GraphicEQ</div>
+      <div class="it"><span class="led dim"></span>Preamp</div>
+      <div class="sec">Structure</div>
+      <div class="it"><span class="led dim"></span>Include</div>
+      <div class="it"><span class="led dim"></span>VSTPlugin</div>
+      <div class="foot">EAPO-XT SERIES</div>
+    </div>
+  </div>
+
+  <div class="skin skin-matrix"><span class="skin-caption">matrix</span>
+    <div class="pk">
+      <div class="mast"><span class="ins">&#9632; INSERT</span><span class="search" style="margin:0;height:20px;border:1px solid var(--border);padding:0 6px;font-size:10px"><span class="p">&gt;</span><span class="cur"></span>SCAN</span></div>
+      <div class="board">
+        <div class="bus"><div class="b"><span class="ltr">A</span><span class="nm">BASIC FILTERS</span>2</div><div class="b on"><span class="ltr">B</span><span class="nm">PARAMETRIC FILTERS</span>7</div>
+          <div class="b"><span class="ltr">C</span><span class="nm">PHASE &amp; TIME</span>4</div><div class="b"><span class="ltr">D</span><span class="nm">GRAPHIC EQUALIZERS</span>3</div><div class="b"><span class="ltr">E</span><span class="nm">ADVANCED FILTERS</span>4</div><div class="b"><span class="ltr">F</span><span class="nm">PLUGINS</span>1</div></div>
+        <div class="col">
+          <div class="it sel"><span class="co">B1</span>Peaking filter</div>
+          <div class="it hov"><span class="co">B2</span>Low-pass filter</div>
+          <div class="it"><span class="co">B3</span>High-pass filter</div>
+          <div class="it"><span class="co">B4</span>Band-pass filter</div>
+          <div class="it"><span class="co">B5</span>Low-shelf filter</div>
+          <div class="it"><span class="co">B6</span>High-shelf filter</div>
+        </div>
+      </div>
+      <span class="trace"></span>
+      <div class="foot"><span class="p">&gt;</span> Filter: ON PK Fc 100 Hz Gain 0 dB Q 10  B1</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

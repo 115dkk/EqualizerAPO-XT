@@ -1,0 +1,50 @@
+<!-- @dsCard height=288 -->
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>EqualizerAPO-XT</title>
+<style>
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--studio-bg); color: var(--studio-text); font-family: var(--font-sans); overflow: hidden; }
+  .cover { position: relative; width: 960px; height: 288px; overflow: hidden; }
+  .band { position: absolute; left: 0; top: 0; width: 960px; height: 120px; }
+  .band svg { display: block; width: 960px; height: 120px; }
+  .studio { fill: var(--studio-accent); rx: var(--studio-radius); }
+  .minimal { fill: var(--minimal-text); rx: var(--minimal-radius); }
+  .soft { fill: var(--soft-accent); rx: var(--soft-radius-card); }
+  .rack { fill: var(--rack-accent); rx: var(--rack-radius); }
+  .matrix { fill: var(--matrix-accent); rx: var(--matrix-radius); }
+  .rule { stroke: var(--studio-bg); stroke-width: 1; }
+  .words { position: absolute; left: 40px; right: 40px; top: 156px; }
+  .name { margin: 0; font-size: 64px; line-height: .95; font-weight: 700; letter-spacing: -.02em; color: var(--studio-text); white-space: nowrap; }
+  .tag { margin: 12px 0 0 3px; font-size: 14px; line-height: 20px; color: var(--studio-muted); }
+</style>
+</head>
+<body>
+<div class="cover">
+<div class="band" aria-hidden="true">
+<svg viewBox="0 0 960 120" width="960" height="120">
+<!--
+  blocks      studio-accent 288x120 · minimal-text 112x120 · soft-accent 176x120 · rack-accent 152x120 · matrix-accent 200x120: the five skins' identity colours at full value, 42 % of 960x288
+  arrangement the top-band skeleton (the name is wider than 440px at 64px): a strip of unequal bands full width, each corner cut by its own skin's radius token (studio-radius 8, minimal-radius 0, soft-radius-card 14, rack-radius 3, matrix-radius 0)
+  pattern     hairline rules, from "one card grammar, five skins": three 1px rules in the ground colour at the studio-row-height pitch (36px) crossing every block, the row grid all five skins share
+  scales      widths in card-gap (8px) multiples, gutters card-gap 8, band = 3 x studio-row-height 36 + card-padding 12, rule pitch studio-row-height 36
+-->
+<rect class="studio" x="0" y="0" width="288" height="120" rx="8"/>
+<rect class="minimal" x="296" y="0" width="112" height="120" rx="0"/>
+<rect class="soft" x="416" y="0" width="176" height="120" rx="14"/>
+<rect class="rack" x="600" y="0" width="152" height="120" rx="3"/>
+<rect class="matrix" x="760" y="0" width="200" height="120" rx="0"/>
+<line class="rule" x1="0" y1="36.5" x2="960" y2="36.5" shape-rendering="crispEdges"/>
+<line class="rule" x1="0" y1="72.5" x2="960" y2="72.5" shape-rendering="crispEdges"/>
+<line class="rule" x1="0" y1="108.5" x2="960" y2="108.5" shape-rendering="crispEdges"/>
+</svg>
+</div>
+<div class="words">
+<h1 class="name">EqualizerAPO-XT</h1>
+<p class="tag">한 카드 문법 위에 선 다섯 스킨. 유리, 단말기, 설정 화면, 랙, 보드.</p>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!-- @dsCard group="Chrome" height=440 width=960 subtitle="Update notice banner (toast_normal): the shared card chrome with a news keel, per-skin ink and dismiss" -->
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>UpdateToast — preview</title>
+<style>
+  html, body { margin: 0; background: transparent; }
+  .toast { position: relative; display: inline-flex; align-items: center; gap: 14px; margin: 8px 0 4px; height: 40px; padding: 0 10px 0 16px; box-sizing: border-box;
+    background: var(--card-hover); border: 1px solid var(--border); color: var(--text); }
+  .toast::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent); }
+  .msg { white-space: nowrap; }
+  .x { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; color: var(--muted); box-sizing: border-box; }
+  .x svg { width: 12px; height: 12px; display: block; }
+  .pair { display: flex; align-items: center; gap: 14px; }
+  .tag { font-size: 9.5px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); opacity: .7; font-family: var(--mono); }
+
+  /* ===== Studio: a lit chip on the glass; the dismiss is a caption button with light pooling on hover ===== */
+  .skin-studio .toast { border-radius: var(--radius); border-top-color: rgba(255,255,255,.10); }
+  .skin-studio .toast::before { border-radius: 8px 0 0 8px; box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 60%, transparent); }
+  .skin-studio .x.hov { background: radial-gradient(circle at 50% 60%, color-mix(in srgb, var(--accent) 40%, transparent), transparent 70%); color: var(--text); border-radius: 6px; }
+
+  /* ===== Minimal: the widget's shared chrome; only the type answers; x is an engraved command glyph ===== */
+  .skin-minimal .toast { border-radius: 0; font-family: var(--mono); }
+  .skin-minimal .x { font-family: var(--mono); font-weight: 700; border: 1px solid transparent; }
+  .skin-minimal .x.hov { background: var(--border); color: var(--text); border-color: var(--accent); }
+
+  /* ===== Soft: the pastel tokens make the shared card a news card; the dismiss warms, never reddens ===== */
+  .skin-soft .toast { border-radius: var(--radius); background: var(--card); }
+  .skin-soft .toast::before { border-radius: 14px 0 0 14px; }
+  .skin-soft .x { border-radius: 50%; background: var(--card-hover); }
+  .skin-soft .x.hov { background: var(--warning); color: var(--on-accent); }
+
+  /* ===== Rack: an amber news keel; the message is warm body ink, not an engraving; the close cap is a machine button ===== */
+  .skin-rack .toast { border-radius: var(--radius); border-color: var(--seam); }
+  .skin-rack .x { background: linear-gradient(180deg, #2c333a, #1b2126); border: 1px solid #11161a; border-top-color: #3e474f; border-radius: 2px; color: var(--text); }
+  [data-theme="light"] .skin-rack .x { background: linear-gradient(180deg, var(--card-hover), var(--card)); border-color: var(--seam); border-top-color: #fff8; }
+  .skin-rack .x.hov { border-color: var(--accent); color: var(--accent); }
+
+  /* ===== Matrix: a posting cell; the body is a mono readout line; the close cell prelights in danger ===== */
+  .skin-matrix .toast { border-radius: 0; background: var(--card); }
+  .skin-matrix .msg { font-family: var(--mono); font-size: 13.33px; }
+  .skin-matrix .x { border: 1px solid var(--border); background: var(--bg); }
+  .skin-matrix .x.hov { border-color: var(--danger); color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><g id="xg"><path d="M7 7l10 10"/><path d="M17 7L7 17"/></g></defs></svg>
+<div class="ds-stack">
+
+  <div class="skin skin-studio"><span class="skin-caption">studio</span>
+    <div class="pair"><div class="toast"><span class="msg">Update 2.99.0 has been downloaded and will be applied when you close the editor.</span>
+      <span class="x"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><use href="#xg"/></svg></span></div>
+      <span class="x hov"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><use href="#xg"/></svg></span><span class="tag">dismiss · hover</span></div>
+  </div>
+
+  <div class="skin skin-minimal"><span class="skin-caption">minimal</span>
+    <div class="pair"><div class="toast"><span class="msg">Update 2.99.0 has been downloaded and will be applied when you close the editor.</span><span class="x">x</span></div>
+      <span class="x hov">x</span><span class="tag">dismiss · hover</span></div>
+  </div>
+
+  <div class="skin skin-soft"><span class="skin-caption">soft</span>
+    <div class="pair"><div class="toast"><span class="msg">Update 2.99.0 has been downloaded and will be applied when you close the editor.</span>
+      <span class="x"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><use href="#xg"/></svg></span></div>
+      <span class="x hov"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><use href="#xg"/></svg></span><span class="tag">dismiss · hover</span></div>
+  </div>
+
+  <div class="skin skin-rack"><span class="skin-caption">rack</span>
+    <div class="pair"><div class="toast"><span class="msg">Update 2.99.0 has been downloaded and will be applied when you close the editor.</span>
+      <span class="x"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><use href="#xg"/></svg></span></div>
+      <span class="x hov"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><use href="#xg"/></svg></span><span class="tag">dismiss · hover</span></div>
+  </div>
+
+  <div class="skin skin-matrix"><span class="skin-caption">matrix</span>
+    <div class="pair"><div class="toast"><span class="msg">Update 2.99.0 has been downloaded and will be applied when you close the editor.</span>
+      <span class="x"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><use href="#xg"/></svg></span></div>
+      <span class="x hov"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><use href="#xg"/></svg></span><span class="tag">dismiss · hover</span></div>
+  </div>
+
+</div>
+</body>
+</html>

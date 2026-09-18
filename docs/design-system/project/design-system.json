@@ -1,0 +1,472 @@
+{
+  "v": 3,
+  "layout": "files",
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-09-17T11:23:03Z"
+  },
+  "title": "EqualizerAPO-XT",
+  "namespace": "EAPOXT",
+  "libraries": [],
+  "sections": {},
+  "groups": [
+    "Logos",
+    "Icons"
+  ],
+  "assetGroups": {
+    "Logos": {
+      "name": "Logos",
+      "tile": "l",
+      "order": [
+        "app-icon.png"
+      ],
+      "files": {
+        "app-icon.png": {
+          "name": "app-icon.png",
+          "blob": "b27d6cc1b7a67423b039ce1c9aedf76b",
+          "size": 9517,
+          "type": "image/png"
+        }
+      }
+    },
+    "Icons": {
+      "name": "Icons",
+      "tile": "xs",
+      "order": [
+        "eq-peaking.svg",
+        "eq-lowpass.svg",
+        "eq-highpass.svg",
+        "eq-bandpass.svg",
+        "eq-lowshelf.svg",
+        "eq-highshelf.svg",
+        "eq-notch.svg",
+        "eq-allpass.svg",
+        "multi-convolution.svg",
+        "channel-select.svg",
+        "comment-bubble.svg",
+        "delay-clock.svg",
+        "device-speaker.svg",
+        "graphic-eq.svg",
+        "loudness.svg",
+        "subwoofer-routing.svg",
+        "preamp-gain.svg",
+        "stage-chain.svg",
+        "route-channels.svg",
+        "plugin.svg",
+        "file-include.svg",
+        "logic-if.svg",
+        "logic-eval.svg",
+        "waveform.svg",
+        "import.svg",
+        "code-line.svg",
+        "pencil.svg",
+        "alert-triangle.svg",
+        "folder-open.svg",
+        "file-new.svg",
+        "save.svg",
+        "check-dark.svg",
+        "check-light.svg",
+        "chevron-down.svg",
+        "chevron-right.svg",
+        "chevron-up.svg",
+        "copy.svg",
+        "cut.svg",
+        "dash-dark.svg",
+        "dash-light.svg",
+        "folder-new.svg",
+        "folder-up.svg",
+        "matrix-grid-dark.svg",
+        "matrix-grid-light.svg",
+        "nav-back.svg",
+        "nav-forward.svg",
+        "paste.svg",
+        "redo.svg",
+        "save-as.svg",
+        "select-all.svg",
+        "soft-toggle-knob-off.svg",
+        "soft-toggle-knob-on.svg",
+        "trash.svg",
+        "undo.svg",
+        "view-detail.svg",
+        "view-list.svg",
+        "window-close.svg",
+        "window-max.svg",
+        "window-min.svg",
+        "window-restore.svg"
+      ],
+      "files": {
+        "eq-peaking.svg": {
+          "name": "eq-peaking.svg",
+          "blob": "858618aee24ec80fe1b8b837038a4a3b",
+          "size": 246,
+          "type": "image/svg+xml"
+        },
+        "eq-lowpass.svg": {
+          "name": "eq-lowpass.svg",
+          "blob": "6d978f8b19907d1ad16edf1524c984fe",
+          "size": 221,
+          "type": "image/svg+xml"
+        },
+        "eq-highpass.svg": {
+          "name": "eq-highpass.svg",
+          "blob": "9017b46f4dae11ddef289892568aa181",
+          "size": 219,
+          "type": "image/svg+xml"
+        },
+        "eq-bandpass.svg": {
+          "name": "eq-bandpass.svg",
+          "blob": "17dd52d2fdbf0e99758c65e4ef46c8c5",
+          "size": 237,
+          "type": "image/svg+xml"
+        },
+        "eq-lowshelf.svg": {
+          "name": "eq-lowshelf.svg",
+          "blob": "ff8f362f6116acdc99cdbc606aa5785e",
+          "size": 221,
+          "type": "image/svg+xml"
+        },
+        "eq-highshelf.svg": {
+          "name": "eq-highshelf.svg",
+          "blob": "5124faed251e68ddb1b70f702324ffb4",
+          "size": 221,
+          "type": "image/svg+xml"
+        },
+        "eq-notch.svg": {
+          "name": "eq-notch.svg",
+          "blob": "55db4d390e239a2c9d62192f08cc3f55",
+          "size": 245,
+          "type": "image/svg+xml"
+        },
+        "eq-allpass.svg": {
+          "name": "eq-allpass.svg",
+          "blob": "70de05d653dad15095813ea16c647108",
+          "size": 220,
+          "type": "image/svg+xml"
+        },
+        "multi-convolution.svg": {
+          "name": "multi-convolution.svg",
+          "blob": "86f86371d5b5a2747a015dfc9d01676b",
+          "size": 294,
+          "type": "image/svg+xml"
+        },
+        "channel-select.svg": {
+          "name": "channel-select.svg",
+          "blob": "08a4c8b561d4b223e6554d1fbd97f382",
+          "size": 294,
+          "type": "image/svg+xml"
+        },
+        "comment-bubble.svg": {
+          "name": "comment-bubble.svg",
+          "blob": "189ab37ed96d2f5b0403699ddba36a8b",
+          "size": 304,
+          "type": "image/svg+xml"
+        },
+        "delay-clock.svg": {
+          "name": "delay-clock.svg",
+          "blob": "1f8f6e8982e46b090e454a3a1d2dade6",
+          "size": 239,
+          "type": "image/svg+xml"
+        },
+        "device-speaker.svg": {
+          "name": "device-speaker.svg",
+          "blob": "1e93c0b633f173bfc385bb81b221786b",
+          "size": 312,
+          "type": "image/svg+xml"
+        },
+        "graphic-eq.svg": {
+          "name": "graphic-eq.svg",
+          "blob": "6a23dab60aacee174e1996391aba4bcc",
+          "size": 355,
+          "type": "image/svg+xml"
+        },
+        "loudness.svg": {
+          "name": "loudness.svg",
+          "blob": "3ee246e61dc7e731c047eef2b74bf44a",
+          "size": 330,
+          "type": "image/svg+xml"
+        },
+        "subwoofer-routing.svg": {
+          "name": "subwoofer-routing.svg",
+          "blob": "ac3cbf38fed12806566ea9d58a43b818",
+          "size": 545,
+          "type": "image/svg+xml"
+        },
+        "preamp-gain.svg": {
+          "name": "preamp-gain.svg",
+          "blob": "a1b9f2afbc73a9200b7ddf99b3e769a8",
+          "size": 204,
+          "type": "image/svg+xml"
+        },
+        "stage-chain.svg": {
+          "name": "stage-chain.svg",
+          "blob": "8ac9b3feaf3d354a20657c600a74ab0d",
+          "size": 363,
+          "type": "image/svg+xml"
+        },
+        "route-channels.svg": {
+          "name": "route-channels.svg",
+          "blob": "b5182e35d8c4a2cd636e3f68a35bc2af",
+          "size": 356,
+          "type": "image/svg+xml"
+        },
+        "plugin.svg": {
+          "name": "plugin.svg",
+          "blob": "4d63dce76fe276e550e35ccdd0e40093",
+          "size": 354,
+          "type": "image/svg+xml"
+        },
+        "file-include.svg": {
+          "name": "file-include.svg",
+          "blob": "3bcd3d7890b8ea2cea2aa908208e90ad",
+          "size": 375,
+          "type": "image/svg+xml"
+        },
+        "logic-if.svg": {
+          "name": "logic-if.svg",
+          "blob": "381b098773cf279676d9ca433d302608",
+          "size": 391,
+          "type": "image/svg+xml"
+        },
+        "logic-eval.svg": {
+          "name": "logic-eval.svg",
+          "blob": "b4e6e4debbbb717c58a04aafe58f18d1",
+          "size": 334,
+          "type": "image/svg+xml"
+        },
+        "waveform.svg": {
+          "name": "waveform.svg",
+          "blob": "b2c01387f1e7c2b274eb679c27de297f",
+          "size": 440,
+          "type": "image/svg+xml"
+        },
+        "import.svg": {
+          "name": "import.svg",
+          "blob": "57b38b032697695fe8f26159d3fed118",
+          "size": 318,
+          "type": "image/svg+xml"
+        },
+        "code-line.svg": {
+          "name": "code-line.svg",
+          "blob": "70bd5b7c20d6f49821f5419c0e71621e",
+          "size": 287,
+          "type": "image/svg+xml"
+        },
+        "pencil.svg": {
+          "name": "pencil.svg",
+          "blob": "62cc0d5cccc510e2874c5a6b662a56dc",
+          "size": 300,
+          "type": "image/svg+xml"
+        },
+        "alert-triangle.svg": {
+          "name": "alert-triangle.svg",
+          "blob": "905fb95f939b7023660fcccbae653c33",
+          "size": 347,
+          "type": "image/svg+xml"
+        },
+        "folder-open.svg": {
+          "name": "folder-open.svg",
+          "blob": "034fbf1a9824c8170a7c42a18a618f96",
+          "size": 388,
+          "type": "image/svg+xml"
+        },
+        "file-new.svg": {
+          "name": "file-new.svg",
+          "blob": "97f2b288187bf91d6cc69b06185fcb86",
+          "size": 370,
+          "type": "image/svg+xml"
+        },
+        "save.svg": {
+          "name": "save.svg",
+          "blob": "73b9111aa0074a5c8b2aec969a77ef36",
+          "size": 376,
+          "type": "image/svg+xml"
+        },
+        "check-dark.svg": {
+          "name": "check-dark.svg",
+          "blob": "52745614da297b513b7744868fa34b1c",
+          "size": 228,
+          "type": "image/svg+xml"
+        },
+        "check-light.svg": {
+          "name": "check-light.svg",
+          "blob": "aad7098a2671d5b30e86d577f391f548",
+          "size": 228,
+          "type": "image/svg+xml"
+        },
+        "chevron-down.svg": {
+          "name": "chevron-down.svg",
+          "blob": "d8ecd6a6b7738ef0198b3540ea0356f6",
+          "size": 205,
+          "type": "image/svg+xml"
+        },
+        "chevron-right.svg": {
+          "name": "chevron-right.svg",
+          "blob": "270f3b201c8115f8b560900c27b9529d",
+          "size": 205,
+          "type": "image/svg+xml"
+        },
+        "chevron-up.svg": {
+          "name": "chevron-up.svg",
+          "blob": "699d019e3d7f46a563e2c8514f5d9bf6",
+          "size": 205,
+          "type": "image/svg+xml"
+        },
+        "copy.svg": {
+          "name": "copy.svg",
+          "blob": "19861eccd7d21b51f134a0e484d934b4",
+          "size": 338,
+          "type": "image/svg+xml"
+        },
+        "cut.svg": {
+          "name": "cut.svg",
+          "blob": "2e4aa6ad735e024c4bafa3ecc4c4d4dc",
+          "size": 327,
+          "type": "image/svg+xml"
+        },
+        "dash-dark.svg": {
+          "name": "dash-dark.svg",
+          "blob": "06edd2e8958bf237eb5592b7e8992718",
+          "size": 187,
+          "type": "image/svg+xml"
+        },
+        "dash-light.svg": {
+          "name": "dash-light.svg",
+          "blob": "02688206bbe272d5ac9826d33132998d",
+          "size": 187,
+          "type": "image/svg+xml"
+        },
+        "folder-new.svg": {
+          "name": "folder-new.svg",
+          "blob": "8c8885812e069c3549905600be92dfcc",
+          "size": 353,
+          "type": "image/svg+xml"
+        },
+        "folder-up.svg": {
+          "name": "folder-up.svg",
+          "blob": "468907fa624925a9e452ecab16a408c0",
+          "size": 366,
+          "type": "image/svg+xml"
+        },
+        "matrix-grid-dark.svg": {
+          "name": "matrix-grid-dark.svg",
+          "blob": "92db0f791527f2f61ef5cc794f1faf61",
+          "size": 197,
+          "type": "image/svg+xml"
+        },
+        "matrix-grid-light.svg": {
+          "name": "matrix-grid-light.svg",
+          "blob": "bf1fa108af6badb1ef0f95f8ab5e7add",
+          "size": 197,
+          "type": "image/svg+xml"
+        },
+        "nav-back.svg": {
+          "name": "nav-back.svg",
+          "blob": "6204b609e2309979069fb604d5f0dd48",
+          "size": 205,
+          "type": "image/svg+xml"
+        },
+        "nav-forward.svg": {
+          "name": "nav-forward.svg",
+          "blob": "2fad85b230fb145cdacb5caa1ba67ba4",
+          "size": 206,
+          "type": "image/svg+xml"
+        },
+        "paste.svg": {
+          "name": "paste.svg",
+          "blob": "a7631bdee3ac55c6797f4449b036e0c1",
+          "size": 406,
+          "type": "image/svg+xml"
+        },
+        "redo.svg": {
+          "name": "redo.svg",
+          "blob": "62c25790c4e9f4e8993b0fb22f168ec4",
+          "size": 253,
+          "type": "image/svg+xml"
+        },
+        "save-as.svg": {
+          "name": "save-as.svg",
+          "blob": "05ce24c8f70891d18876344aa5467e9f",
+          "size": 421,
+          "type": "image/svg+xml"
+        },
+        "select-all.svg": {
+          "name": "select-all.svg",
+          "blob": "2bbb61a9acfa4bb05384d840324e5ba7",
+          "size": 556,
+          "type": "image/svg+xml"
+        },
+        "soft-toggle-knob-off.svg": {
+          "name": "soft-toggle-knob-off.svg",
+          "blob": "03622ca8db8a648f3e71a8bbdbf1f524",
+          "size": 159,
+          "type": "image/svg+xml"
+        },
+        "soft-toggle-knob-on.svg": {
+          "name": "soft-toggle-knob-on.svg",
+          "blob": "83f10a1b5a37f5a4e7a3fba56359841b",
+          "size": 159,
+          "type": "image/svg+xml"
+        },
+        "trash.svg": {
+          "name": "trash.svg",
+          "blob": "c1c4c96083679f981f856d39bf56bbf8",
+          "size": 427,
+          "type": "image/svg+xml"
+        },
+        "undo.svg": {
+          "name": "undo.svg",
+          "blob": "539caa099ee5fe82555ee929dc843485",
+          "size": 257,
+          "type": "image/svg+xml"
+        },
+        "view-detail.svg": {
+          "name": "view-detail.svg",
+          "blob": "e6f7568f5beb6ee90837efec3f1b98f0",
+          "size": 324,
+          "type": "image/svg+xml"
+        },
+        "view-list.svg": {
+          "name": "view-list.svg",
+          "blob": "eed6f7c32c235222ff8330b3b08ca799",
+          "size": 363,
+          "type": "image/svg+xml"
+        },
+        "window-close.svg": {
+          "name": "window-close.svg",
+          "blob": "c923f9bdabea7e571074d9d8d3765ca4",
+          "size": 224,
+          "type": "image/svg+xml"
+        },
+        "window-max.svg": {
+          "name": "window-max.svg",
+          "blob": "7ac3fe6e4f613543fc30d9b4ecaf1fd9",
+          "size": 226,
+          "type": "image/svg+xml"
+        },
+        "window-min.svg": {
+          "name": "window-min.svg",
+          "blob": "cb8c31288c462b0a6af8133fe841de62",
+          "size": 191,
+          "type": "image/svg+xml"
+        },
+        "window-restore.svg": {
+          "name": "window-restore.svg",
+          "blob": "0d14286bd9245fa498c8f1397f3bac3a",
+          "size": 327,
+          "type": "image/svg+xml"
+        }
+      }
+    }
+  },
+  "blobs": {},
+  "docs": {
+    "readme": "project/README.md",
+    "sections": []
+  },
+  "lastChange": {
+    "by": "115dkk",
+    "at": "2026-09-18T02:31:58Z",
+    "via": "Claude Code · GitHub · 115dkk/EqualizerAPO-XT@2ba424e7",
+    "note": "Second pass: 19 component previews measured against the offscreen gallery (1350 shots) and DeviceSelector --skin-shots; the card-row grammar moved into bundle.css"
+  }
+}
