@@ -1,0 +1,101 @@
+"""FileDialog: the skinned QFileDialog (filedialog_normal: 820x520 per skin), two frames per line at layout width 1680."""
+from rowlib import *
+
+NAV = {'back': '<path d="M15 6l-6 6 6 6"/>', 'fwd': '<path d="M9 6l6 6-6 6"/>',
+       'up': '<path d="M4 8.5V6.5A1.5 1.5 0 0 1 5.5 5H9l2 2h5.5A1.5 1.5 0 0 1 18 8.5v1.5"/><path d="M3.2 10h16.4a1 1 0 0 1 .96 1.27l-1.6 5.7A1.6 1.6 0 0 1 17.4 18.2H5.1a1.6 1.6 0 0 1-1.54-1.18l-1.3-5.7A1 1 0 0 1 3.2 10z"/><path d="M12 16v-4"/><path d="M10 14l2-2 2 2"/>',
+       'new': '<path d="M4 8.5V6.5A1.5 1.5 0 0 1 5.5 5H9l2 2h5.5A1.5 1.5 0 0 1 18 8.5v1.5"/><path d="M3.2 10h16.4a1 1 0 0 1 .96 1.27l-1.6 5.7A1.6 1.6 0 0 1 17.4 18.2H5.1a1.6 1.6 0 0 1-1.54-1.18l-1.3-5.7A1 1 0 0 1 3.2 10z"/><path d="M12 12v4"/><path d="M10 14h4"/>',
+       'list': '<path d="M5 7h14"/><path d="M5 12h14"/><path d="M5 17h14"/>',
+       'detail': '<rect x="4" y="5" width="16" height="14" rx="1"/><path d="M4 10h16"/><path d="M4 15h16"/><path d="M10 5v14"/>',
+       'file': '<path d="M13.5 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8.5l-5-5z"/><path d="M13.5 3.5V8.5h5"/>',
+       'folder': PICT['folder'], 'x': '<path d="M7 7l10 10"/><path d="M17 7L7 17"/>'}
+def ico(n, s=14): return f'<svg viewBox="0 0 24 24" width="{s}" height="{s}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{NAV[n]}</svg>'
+
+CSS = '''
+  .ds-stack { display: grid; grid-template-columns: 1fr 1fr; }
+  .ds-stack > .skin { width: auto; padding: 16px; }
+  .dlg { width: 820px; height: 520px; box-sizing: border-box; display: flex; flex-direction: column; font-size: 12.5px; }
+  .tb { display: flex; align-items: center; justify-content: space-between; height: 30px; padding: 0 10px; }
+  .tb .x { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; color: var(--muted); }
+  .lookin { display: flex; align-items: center; gap: 8px; padding: 6px 10px; }
+  .lookin .lbl { min-width: 54px; }
+  .pathc { flex: 1; display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px; font-family: var(--mono); font-size: 11.5px; }
+  .nav { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; color: var(--text); }
+  .nav.on { color: var(--accent); }
+  .main { flex: 1; display: flex; gap: 6px; padding: 0 10px; min-height: 0; }
+  .side { width: 100px; display: flex; flex-direction: column; gap: 4px; padding: 6px 4px; }
+  .side .it { display: flex; align-items: center; gap: 6px; padding: 4px 6px; }
+  .tbl { flex: 1; display: flex; flex-direction: column; }
+  .tbl .hd, .tbl .r { display: grid; grid-template-columns: 1fr 70px 90px 150px; align-items: center; height: 24px; padding: 0 8px; gap: 8px; }
+  .tbl .hd { color: var(--muted); font-size: 11px; }
+  .tbl .r .n { display: flex; align-items: center; gap: 6px; }
+  .tbl .r .num { text-align: right; }
+  .tbl .fill { flex: 1; }
+  .bot { display: grid; grid-template-columns: 90px 1fr 100px; gap: 8px 10px; align-items: center; padding: 8px 10px 10px; }
+  .fld { height: 28px; display: flex; align-items: center; padding: 0 8px; }
+  .fld.focus { position: relative; }
+  .fld.focus::after { content: ""; width: 1px; height: 14px; background: var(--accent); }
+  .cmb { justify-content: space-between; }
+  .btn { height: 28px; display: inline-flex; align-items: center; justify-content: center; padding: 0 14px; font-weight: 600; color: var(--text); }
+  .btn.dis { color: var(--muted); }
+  .chev { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid currentColor; }
+  /* studio: glass over the file data; the chrome recedes in half-muted ink */
+  .skin-studio .dlg { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); color: color-mix(in srgb, var(--text) 60%, var(--muted)); }
+  .skin-studio .tb { border-bottom: 1px solid var(--border); }
+  .skin-studio .pathc, .skin-studio .fld { background: var(--input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); }
+  .skin-studio .tbl { background: var(--card); border: 1px solid var(--border); border-radius: 6px; }
+  .skin-studio .tbl .hd { border-bottom: 1px solid var(--border); }
+  .skin-studio .btn { background: var(--card-hover); border: 1px solid var(--border); border-radius: 6px; }
+  .skin-studio .fld.focus { border-color: var(--accent); }
+  /* minimal: the terminal's file list, uppercase headers */
+  .skin-minimal .dlg { background: var(--bg); border: 1px solid var(--border); font-family: var(--mono); }
+  .skin-minimal .tb { border-bottom: 1px solid var(--border); color: var(--muted); }
+  .skin-minimal .pathc, .skin-minimal .fld { background: var(--input); border: 1px solid var(--border); }
+  .skin-minimal .tbl { border: 1px solid var(--border); background: var(--surface); }
+  .skin-minimal .tbl .hd { text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); }
+  .skin-minimal .btn { border: 1px solid var(--border); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+  .skin-minimal .fld.focus { border-color: var(--accent); }
+  /* soft: rounded, roomy, pastel-tinted navigation tiles */
+  .skin-soft .dlg { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); }
+  .skin-soft .pathc, .skin-soft .fld { background: var(--sunken); border: 1px solid var(--border); border-radius: 999px; font-family: var(--font); }
+  .skin-soft .nav { border-radius: 7px; background: var(--card-hover); }
+  .skin-soft .nav.a2 { background: var(--accent2); color: var(--on-accent); } .skin-soft .nav.acc { background: var(--accent); color: var(--on-accent); }
+  .skin-soft .tbl { background: var(--card); border: 1px solid var(--border); border-radius: 10px; }
+  .skin-soft .tbl .hd { border-bottom: 1px solid var(--border); }
+  .skin-soft .btn { background: var(--card); border: 1px solid var(--border); border-radius: 999px; }
+  .skin-soft .fld.focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
+  /* rack: an OPEN FILE unit, machined caps on the navigation row, the LCD path */
+  .skin-rack .dlg { background: var(--card); border: 1px solid var(--seam); border-radius: 3px; }
+  .skin-rack .tb { text-transform: uppercase; letter-spacing: 1px; font-size: 11px; font-weight: 700; color: var(--muted); border-bottom: 1px solid #060809; }
+  .skin-rack .pathc, .skin-rack .fld { background: var(--input); border: 1px solid #060809; border-bottom-color: #39424a; border-radius: 2px; }
+  .skin-rack .nav, .skin-rack .btn { background: linear-gradient(180deg, #2c333a, #1b2126); border: 1px solid #11161a; border-top-color: #3e474f; border-radius: 2px; }
+  [data-theme="light"] .skin-rack .nav, [data-theme="light"] .skin-rack .btn { background: linear-gradient(180deg, var(--card-hover), var(--card)); border-color: var(--seam); border-top-color: #fff8; }
+  .skin-rack .btn { text-transform: uppercase; letter-spacing: 1px; font-size: 11px; font-weight: 700; }
+  .skin-rack .tbl { background: color-mix(in srgb, var(--card) 70%, black); border: 1px solid #0a0c0e; border-radius: 3px; }
+  .skin-rack .tbl .hd { text-transform: uppercase; letter-spacing: 1px; font-size: 10px; font-weight: 700; border-bottom: 1px solid #0a0c0e; }
+  .skin-rack .fld.focus { border-color: var(--accent); }
+  /* matrix: the board grid behind the views, cells everywhere */
+  .skin-matrix .dlg { background: var(--bg); border: 1px solid var(--border); background-image: repeating-linear-gradient(90deg, color-mix(in srgb, var(--border) 40%, transparent) 0 1px, transparent 1px var(--pitch)); }
+  .skin-matrix .tb { border-bottom: 1px solid var(--border); font-family: var(--mono); }
+  .skin-matrix .pathc, .skin-matrix .fld { background: var(--graph); border: 1px solid var(--border); }
+  .skin-matrix .nav, .skin-matrix .btn { background: var(--graph); border: 1px solid var(--border); }
+  .skin-matrix .tbl { background: var(--graph); border: 1px solid var(--border); }
+  .skin-matrix .tbl .hd { text-transform: uppercase; letter-spacing: 1px; font-size: 10.67px; font-family: var(--mono); border-bottom: 1px solid var(--border); }
+  .skin-matrix .tbl .r .num, .skin-matrix .tbl .r .d { font-family: var(--mono); }
+  .skin-matrix .fld.focus { border-color: var(--accent); }
+'''
+ROWS = [('folder', 'config', '', 'File Folder', '2026-01-01 21:00'), ('folder', 'IRs', '', 'File Folder', '2026-01-01 21:00'),
+        ('file', 'demo.txt', '36 B', 'text/plain', '2026-01-01 21:00'), ('file', 'voice - bass boost.txt', '36 B', 'text/plain', '2026-01-01 21:00')]
+
+def dialog(skin):
+    title = 'OPEN FILE' if skin == 'rack' else 'Open file'
+    navs = ''.join(f'<span class="nav {c}">{ico(n)}</span>' for n, c in (('back', 'a2'), ('fwd', 'a2'), ('up', 'acc'), ('new', 'acc'), ('list', ''), ('detail', 'on')))
+    rows = ''.join(f'<div class="r"><span class="n">{ico(k)}{n}</span><span class="num">{sz}</span><span>{t}</span><span class="d">{d}</span></div>' for k, n, sz, t, d in ROWS)
+    return (f'<div class="dlg"><div class="tb"><span>{title}</span><span class="x">{ico("x", 12)}</span></div>'
+            f'<div class="lookin"><span class="lbl">Look in:</span><span class="pathc">{ico("folder")}...\\EqualizerAPO\\config <span class="chev" style="margin-left:auto"></span></span>{navs}</div>'
+            f'<div class="main"><div class="side"><span class="it">{ico("folder")}config</span><span class="it">{ico("folder")}IRs</span></div>'
+            f'<div class="tbl"><div class="hd"><span>Name</span><span class="num">Size</span><span>Type</span><span>Date Modified</span></div>{rows}<span class="fill"></span></div></div>'
+            f'<div class="bot"><span>File name:</span><span class="fld focus"></span><span class="btn dis">Open</span>'
+            f'<span>Files of type:</span><span class="fld cmb">E-APO configurations (*.txt) <span class="chev"></span></span><span class="btn">Cancel</span></div></div>')
+
+frames = [frame(s, dialog(s), cls='') for s in SKINS]
+page('FileDialog', 'Chrome', 1700, 'The skinned open-file dialog (820x520): title, look-in row with navigation, sidebar, file table, name and type fields', CSS, frames, width=1680)

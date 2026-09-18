@@ -1,0 +1,184 @@
+<!-- @dsCard group="Controls" height=520 width=960 subtitle="Buttons, input, selectors, value scrub, checkbox, power toggle per skin" -->
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Controls — preview</title>
+<style>
+  html, body { margin: 0; background: transparent; }
+  .line { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 8px 4px 4px 12px; }
+  .btn, .in, .combo, .psel, .fsel, .scrub { display: inline-flex; align-items: center; gap: 8px; box-sizing: border-box; }
+  .btn { min-height: 22px; padding: 6px 14px; }
+  .in { min-height: 22px; padding: 4px 8px; min-width: 140px; }
+  .combo { min-height: 28px; padding: 4px 10px; min-width: 120px; justify-content: space-between; }
+  .caret { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid currentColor; }
+  .chev { width: 12px; height: 12px; display: block; }
+  .scrub { font-family: var(--mono); font-size: 13.33px; font-weight: 700; height: 24px; padding: 0 8px; }
+  .scrub small { font-weight: 500; opacity: .7; font-size: 11px; }
+  .cb { width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; }
+  .cb svg { width: 10px; height: 10px; }
+  .power { position: relative; display: inline-block; }
+  .g { display: inline-flex; align-items: center; gap: 6px; }
+  .lbl { font-size: 10.67px; color: var(--muted); font-weight: 600; }
+
+  /* ===== Studio: glass panes; sunken wells; light on hover ===== */
+  .skin-studio .btn { background: var(--card); color: var(--text); border: 1px solid var(--border); border-top-color: rgba(255,255,255,.10); border-radius: var(--radius); }
+  .skin-studio .btn.def { border-color: var(--accent); }
+  .skin-studio .btn.dis { color: #5a5a72; background: #0d0d14; border-color: #14141d; } /* studio_dark.qss QPushButton:disabled */
+  [data-theme="light"] .skin-studio .btn { border-top-color: rgba(255,255,255,.95); }
+  [data-theme="light"] .skin-studio .btn.dis { color: var(--muted); background: var(--surface); border-color: var(--border); }
+  .skin-studio .in { background: var(--input); color: var(--text); border: 1px solid var(--border); border-top-color: rgba(0,0,0,.55); border-radius: var(--radius); }
+  [data-theme="light"] .skin-studio .in { border-top-color: var(--border); }
+  .skin-studio .combo { background: var(--card); color: var(--text); border: 1px solid var(--border); border-top-color: rgba(255,255,255,.10); border-radius: var(--radius); }
+  .skin-studio .fsel { font-weight: 600; background: var(--card-hover); }
+  .skin-studio .psel { background: transparent; border-color: transparent; color: var(--muted); }
+  .skin-studio .scrub { background: var(--sunken); color: var(--text); border: 1px solid var(--border); border-top-color: rgba(0,0,0,.55); border-radius: var(--radius); }
+  [data-theme="light"] .skin-studio .scrub { background: var(--input); border-top-color: var(--border); }
+  .skin-studio .cb { background: var(--input); border: 1px solid var(--border); border-radius: 4px; }
+  .skin-studio .cb.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .skin-studio .power { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--accent); box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 45%, transparent); }
+  .skin-studio .power::after { content: ""; position: absolute; left: 4.75px; top: -2px; width: 1.5px; height: 7px; background: var(--accent); }
+  .skin-studio .power.off { border-color: var(--muted); box-shadow: none; opacity: .5; } .skin-studio .power.off::after { background: var(--muted); }
+
+  /* ===== Minimal: hairline boxes, engraved commands, ink ladder ===== */
+  .skin-minimal .btn { background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 0; padding: 4px 14px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+  .skin-minimal .btn.def { border-color: var(--accent); }
+  .skin-minimal .btn.dis { color: #555555; background: var(--surface); border-color: var(--card-hover); } /* precision_dark.qss QPushButton:disabled */
+  .skin-minimal .in { background: var(--input); color: var(--text); border: 1px solid var(--border); border-radius: 0; }
+  .skin-minimal .combo { background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 0; }
+  /* X5 selector grammar: a caption with a caret, transparent, 1px underline */
+  .skin-minimal .psel, .skin-minimal .fsel { background: transparent; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; padding: 2px 2px; min-height: 0; min-width: 0; }
+  .skin-minimal .psel { color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+  .skin-minimal .fsel { color: var(--text); font-weight: 700; }
+  .skin-minimal .scrub { color: var(--ink-bright); padding: 0 2px; }
+  .skin-minimal .cb { width: 14px; height: 14px; background: var(--input); border: 1px solid var(--border); border-radius: 0; }
+  .skin-minimal .cb.on { background: var(--accent); border-color: var(--accent); color: #f8fafc; }
+  .skin-minimal .power { font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: 1px; color: var(--text); }
+  .skin-minimal .power.off { color: var(--muted); }
+
+  /* ===== Soft: rounded, roomy, pastel ON ===== */
+  .skin-soft .btn { background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-control); padding: 8px 18px; min-height: 24px; }
+  .skin-soft .btn.def { border-color: var(--accent); }
+  .skin-soft .btn.dis { color: color-mix(in srgb, var(--muted) 55%, transparent); background: var(--surface); }
+  .skin-soft .in { background: var(--sunken); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-control); padding: 6px 12px; }
+  .skin-soft .combo { background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-control); padding: 6px 14px; }
+  .skin-soft .psel { background: var(--card-hover); border-color: transparent; color: var(--muted); border-radius: 999px; min-height: 24px; padding: 2px 12px; min-width: 0; }
+  .skin-soft .fsel { border-radius: 999px; }
+  .skin-soft .scrub { background: var(--sunken); color: var(--text); border-radius: 999px; padding: 0 12px; font-weight: 600; }
+  .skin-soft .cb { width: 18px; height: 18px; background: var(--sunken); border: 1px solid var(--border); border-radius: 6px; }
+  .skin-soft .cb.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .skin-soft .power { width: 30px; height: 16px; border-radius: 999px; background: var(--accent); }
+  .skin-soft .power::after { content: ""; position: absolute; right: 2px; top: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--on-accent); opacity: .9; }
+  .skin-soft .power.off { background: var(--card-hover); border: 1px solid var(--border); box-sizing: border-box; }
+  .skin-soft .power.off::after { right: auto; left: 1px; top: 1px; background: var(--muted); }
+
+  /* ===== Rack: machined bezels, amber lamps, LCD wells ===== */
+  .skin-rack .btn, .skin-rack .combo { background: linear-gradient(180deg, #2c333a, #1b2126); color: var(--text); border: 1px solid #11161a; border-top-color: #3e474f; border-radius: var(--radius);
+    padding: 4px 14px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; } /* rack_dark.qss QPushButton */
+  [data-theme="light"] .skin-rack .btn, [data-theme="light"] .skin-rack .combo { background: linear-gradient(180deg, var(--card-hover), var(--card)); border-color: var(--seam); border-top-color: #fff8; }
+  .skin-rack .combo { text-transform: none; letter-spacing: 0; padding: 3px 10px; }
+  .skin-rack .btn.def { border-color: var(--accent); }
+  .skin-rack .btn.dis { color: #4e4a40; background: var(--surface); border-color: #22282d; }
+  .skin-rack .in { background: var(--input); color: var(--text); border: 1px solid var(--seam); border-bottom-color: #39424a; border-radius: 2px; padding: 3px 8px; }
+  /* the engraved selector: flat on the panel, a milled groove under it, a small printed triangle */
+  .skin-rack .psel { background: transparent; border: 0; border-bottom: 1px solid rgba(0,0,0,.55); box-shadow: 0 1px 0 rgba(255,255,255,.07); border-radius: 0; min-height: 0; min-width: 0; padding: 2px 2px;
+    color: var(--muted); font-size: 10.67px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+  .skin-rack .psel .caret { border-left-width: 3px; border-right-width: 3px; border-top-width: 4px; }
+  .skin-rack .scrub { background: var(--graph); color: var(--accent2); border: 1px solid #0a0c0e; border-radius: 2px; box-shadow: inset 0 1px 2px rgba(0,0,0,.8), 0 1px 0 rgba(255,255,255,.06);
+    text-shadow: 0 0 4px color-mix(in srgb, var(--accent2) 60%, transparent); }
+  .skin-rack .scrub small { color: var(--accent2); }
+  .skin-rack .cb { width: 15px; height: 15px; background: linear-gradient(180deg, #2c333a, #161b1f); border: 1px solid #11161a; border-top-color: #3e474f; border-radius: 2px; }
+  .skin-rack .cb.on { background: linear-gradient(180deg, #ffd89a, #e8a33c); border: 1px solid #8a5c12; color: #1a1208; } /* rack_dark.qss indicator:checked */
+  .skin-rack .power { width: 22px; height: 12px; border-radius: 2px; background: linear-gradient(180deg, #2c3338, #12161a); box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 0 0 1px #05070a; }
+  .skin-rack .power::after { content: ""; position: absolute; left: 4px; top: 4px; width: 4px; height: 4px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 4px var(--accent); }
+  .skin-rack .power.off::after { background: #3a3128; box-shadow: none; left: 14px; }
+
+  /* ===== Matrix: square cells, 1px rules, engaged = accent LED fill ===== */
+  .skin-matrix .btn { background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 0; }
+  .skin-matrix .btn.def { border-color: var(--accent); }
+  .skin-matrix .btn.dis { color: #4a6470; background: #0b1218; border: 1px dashed #1a2933; } /* matrix_dark.qss QPushButton:disabled */
+  [data-theme="light"] .skin-matrix .btn.dis { color: var(--muted); background: var(--surface); border-color: var(--border); }
+  .skin-matrix .in { background: var(--graph); color: var(--text); border: 1px solid var(--border); border-radius: 0; }
+  .skin-matrix .combo { background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 0; }
+  .skin-matrix .psel { background: transparent; border: 0; color: var(--muted); font-size: 10.67px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; min-width: 0; }
+  .skin-matrix .psel .zone { border: 1px solid var(--border); padding: 3px 5px; display: inline-flex; }
+  .skin-matrix .fsel { background: var(--graph); font-family: var(--mono); }
+  .skin-matrix .scrub { background: var(--graph); color: var(--text); border: 1px solid var(--border); border-radius: 0; }
+  .skin-matrix .cb { background: var(--graph); border: 1px solid var(--border); border-radius: 0; }
+  .skin-matrix .cb.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .skin-matrix .power { width: 18px; height: 14px; background: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .skin-matrix .power::after { content: ""; position: absolute; left: 5px; top: 3px; width: 8px; height: 8px; border: 1.5px solid var(--on-accent); border-radius: 50%; border-top-color: transparent; }
+  .skin-matrix .power.off { background: var(--bg); box-shadow: 0 0 0 1px var(--border); }
+  .skin-matrix .power.off::after { border-color: var(--muted); border-top-color: transparent; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <g id="chk"><path d="M1.6 5.4 L4.0 7.8 L8.4 2.4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></g>
+  <g id="chv"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></g>
+</defs></svg>
+<div class="ds-stack">
+
+  <div class="skin skin-studio"><span class="skin-caption">studio</span>
+    <div class="line">
+      <span class="btn">Apply</span><span class="btn def">Save</span><span class="btn dis">Reset</span>
+      <span class="in">Preamp: -3 dB</span>
+      <span class="combo fsel">Peaking <svg class="chev" viewBox="0 0 24 24"><use href="#chv"/></svg></span>
+      <span class="combo psel">Fc <svg class="chev" viewBox="0 0 24 24"><use href="#chv"/></svg></span>
+      <span class="scrub">1000<small>Hz</small></span>
+      <span class="g"><span class="cb on"><svg viewBox="0 0 10 10"><use href="#chk"/></svg></span><span class="cb"></span></span>
+      <span class="g"><span class="power"></span><span class="power off"></span></span>
+    </div>
+  </div>
+
+  <div class="skin skin-minimal"><span class="skin-caption">minimal</span>
+    <div class="line">
+      <span class="btn">Apply</span><span class="btn def">Save</span><span class="btn dis">Reset</span>
+      <span class="in">Preamp: -3 dB</span>
+      <span class="fsel">Peaking <span class="caret"></span></span>
+      <span class="psel">FC <span class="caret"></span></span>
+      <span class="scrub">1000.0<small>Hz</small></span>
+      <span class="g"><span class="cb on"><svg viewBox="0 0 10 10"><use href="#chk"/></svg></span><span class="cb"></span></span>
+      <span class="g"><span class="power">ON</span><span class="power off">OFF</span></span>
+    </div>
+  </div>
+
+  <div class="skin skin-soft"><span class="skin-caption">soft</span>
+    <div class="line">
+      <span class="btn">Apply</span><span class="btn def">Save</span><span class="btn dis">Reset</span>
+      <span class="in">Preamp: -3 dB</span>
+      <span class="combo fsel">Peaking <svg class="chev" viewBox="0 0 24 24"><use href="#chv"/></svg></span>
+      <span class="psel">Frequency <span class="caret"></span></span>
+      <span class="scrub">1000<small>Hz</small></span>
+      <span class="g"><span class="cb on"><svg viewBox="0 0 10 10"><use href="#chk"/></svg></span><span class="cb"></span></span>
+      <span class="g"><span class="power"></span><span class="power off"></span></span>
+    </div>
+  </div>
+
+  <div class="skin skin-rack"><span class="skin-caption">rack</span>
+    <div class="line">
+      <span class="btn">Apply</span><span class="btn def">Save</span><span class="btn dis">Reset</span>
+      <span class="in">Preamp: -3 dB</span>
+      <span class="combo fsel">Peaking <svg class="chev" viewBox="0 0 24 24"><use href="#chv"/></svg></span>
+      <span class="psel">Freq <span class="caret"></span></span>
+      <span class="scrub">1000<small>Hz</small></span>
+      <span class="g"><span class="cb on"><svg viewBox="0 0 10 10"><use href="#chk"/></svg></span><span class="cb"></span></span>
+      <span class="g"><span class="power"></span><span class="power off"></span></span>
+    </div>
+  </div>
+
+  <div class="skin skin-matrix"><span class="skin-caption">matrix</span>
+    <div class="line">
+      <span class="btn">Apply</span><span class="btn def">Save</span><span class="btn dis">Reset</span>
+      <span class="in">Preamp: -3 dB</span>
+      <span class="combo fsel">PEAKING <svg class="chev" viewBox="0 0 24 24"><use href="#chv"/></svg></span>
+      <span class="psel">FREQ <span class="zone"><span class="caret"></span></span></span>
+      <span class="scrub">1000<small>Hz</small></span>
+      <span class="g"><span class="cb on"><svg viewBox="0 0 10 10"><use href="#chk"/></svg></span><span class="cb"></span></span>
+      <span class="g"><span class="power"></span><span class="power off"></span></span>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

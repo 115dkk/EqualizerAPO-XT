@@ -1,0 +1,151 @@
+<!-- @dsCard group="Badges" height=580 width=960 subtitle="Command type badges (6 types + disabled) and channel badges, five skins" -->
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>TypeBadge — preview</title>
+<style>
+  html, body { margin: 0; background: transparent; }
+  .line { display: flex; align-items: center; gap: 10px; padding: 6px 0 6px 12px; }
+  .cap { min-width: 64px; font-size: 10.67px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+  .b { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 20px; }
+  .b svg { width: 16px; height: 16px; display: block; }
+  .ch { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 16px; padding: 0 6px;
+    font-family: var(--mono); font-size: 10.67px; font-weight: 700; line-height: 1; }
+  .sep { width: 1px; height: 18px; background: var(--border); margin: 0 4px; }
+
+  /* ===== Studio: lit glass chips; BiQuad wears the band light, others the command ink ===== */
+  .skin-studio .b { color: var(--t); background: color-mix(in srgb, var(--t) 15%, transparent); border: 1px solid color-mix(in srgb, var(--t) 42%, transparent); border-radius: var(--radius); }
+  [data-theme="light"] .skin-studio .b { background: color-mix(in srgb, var(--t) 10%, transparent); border-color: color-mix(in srgb, var(--t) 45%, transparent); }
+  .skin-studio .b.off { color: var(--muted); background: transparent; border-color: color-mix(in srgb, var(--muted) 42%, transparent); }
+  .skin-studio .ch { border-radius: 999px; color: #fff; background: var(--c); }
+  /* ===== Minimal: outline only, ink = type colour; glyph carries the form ===== */
+  .skin-minimal .b { color: var(--t); border: 1px solid var(--t); border-radius: 0; }
+  .skin-minimal .b.off { color: var(--muted); border-color: var(--muted); }
+  .skin-minimal .ch { color: var(--c); padding: 0 2px; }
+  /* ===== Soft: pastel stadium chips (softPastelize of the type hue) with warm on-ink ===== */
+  .skin-soft .b { width: 28px; height: 22px; border-radius: 999px; color: var(--on-accent); background: var(--p); }
+  .skin-soft .b.off { background: transparent; color: var(--muted); border: 1px dotted var(--muted); }
+  .skin-soft .ch { border-radius: 999px; height: 18px; padding: 0 7px; color: var(--on-accent); background: var(--p); font-family: var(--font); }
+  /* ===== Rack: wireframe printed on the plate, pictogram in type ink ===== */
+  .skin-rack .b { color: var(--t); border: 1px solid var(--t); border-radius: 2px; }
+  .skin-rack .b.off { opacity: .45; color: var(--muted); border-color: var(--muted); }
+  .skin-rack .ch { color: var(--c); border: 1px solid currentColor; border-radius: 2px; }
+  /* ===== Matrix: monochrome code cells; the type colour is ignored on purpose ===== */
+  .skin-matrix .b { color: var(--text); border: 1px solid var(--text); border-radius: 0; background: var(--bg); }
+  .skin-matrix .b.off { color: var(--muted); border: 1px dotted var(--muted); }
+  .skin-matrix .ch { color: var(--c); border: 1px solid currentColor; border-radius: 0; background: var(--bg); }
+
+  /* type inks (t) and pastel shelf values (p): hue kept, saturation capped at .50/.55, lightness .62/.60 */
+  .t-biquad { --t: var(--type-biquad); --p: hsl(142 50% 62%); } .skin-studio .t-biquad { --t: var(--accent); }
+  .t-include { --t: var(--type-include); --p: hsl(215 16% 62%); }
+  .t-vst { --t: var(--type-vst); --p: hsl(271 50% 62%); }
+  .t-copy { --t: var(--type-copy); --p: hsl(189 50% 62%); }
+  .t-comment { --t: var(--type-comment); --p: hsl(215 20% 62%); }
+  .t-if { --t: var(--type-if); --p: hsl(350 50% 62%); }
+  [data-theme="light"] .t-biquad { --p: hsl(142 55% 60%); } [data-theme="light"] .t-include { --p: hsl(215 16% 60%); }
+  [data-theme="light"] .t-vst { --p: hsl(271 55% 60%); } [data-theme="light"] .t-copy { --p: hsl(189 55% 60%); }
+  [data-theme="light"] .t-comment { --p: hsl(215 20% 60%); } [data-theme="light"] .t-if { --p: hsl(350 55% 60%); }
+  .c-l { --c: var(--channel-l); --p: hsl(0 50% 62%); } .c-r { --c: var(--channel-r); --p: hsl(217 50% 62%); }
+  .c-c { --c: var(--channel-c); --p: hsl(142 50% 62%); } .c-lfe { --c: var(--channel-lfe); --p: hsl(38 50% 62%); }
+  .c-sl { --c: var(--channel-sl); --p: hsl(271 50% 62%); } .c-sr { --c: var(--channel-sr); --p: hsl(330 50% 62%); }
+  [data-theme="light"] .c-l { --p: hsl(0 55% 60%); } [data-theme="light"] .c-r { --p: hsl(217 55% 60%); } [data-theme="light"] .c-c { --p: hsl(142 55% 60%); }
+  [data-theme="light"] .c-lfe { --p: hsl(38 55% 60%); } [data-theme="light"] .c-sl { --p: hsl(271 55% 60%); } [data-theme="light"] .c-sr { --p: hsl(330 55% 60%); }
+  .skin-minimal .c-l { --c: var(--minimal-ch-l); } .skin-minimal .c-r { --c: var(--minimal-ch-r); } .skin-minimal .c-c { --c: var(--minimal-ch-c); }
+  .skin-minimal .c-lfe { --c: var(--minimal-ch-lfe); } .skin-minimal .c-sl { --c: var(--minimal-ch-sl); } .skin-minimal .c-sr { --c: var(--minimal-ch-sr); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <g id="p-biquad"><path d="M3 15.5H6.5C9 15.5 9.5 6.5 12 6.5C14.5 6.5 15 15.5 17.5 15.5H21"/></g>
+    <g id="p-include"><path d="M13.5 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10A1.5 1.5 0 0 0 18.5 19V8.5z"/><path d="M13.5 3.5V8.5H18.5"/><path d="M8.8 12.5h6.4"/><path d="M8.8 15.5h6.4"/></g>
+    <g id="p-vst"><rect x="6.5" y="6.5" width="11" height="11" rx="2"/><path d="M9.5 3.5v3M14.5 3.5v3M9.5 17.5v3M14.5 17.5v3"/><path d="M3.5 9.5h3M3.5 14.5h3M17.5 9.5h3M17.5 14.5h3"/></g>
+    <g id="p-copy"><path d="M3 7.5C10 7.5 14 16.5 21 16.5"/><path d="M3 16.5C10 16.5 14 7.5 21 7.5"/><path d="M18.3 5.6L21 7.5l-2.8 1.7"/><path d="M18.3 14.6L21 16.5l-2.8 1.7"/></g>
+    <g id="p-comment"><path d="M6 5.5h12a1.5 1.5 0 0 1 1.5 1.5v7.5a1.5 1.5 0 0 1-1.5 1.5h-6.5L7 19.5v-3.5H6a1.5 1.5 0 0 1-1.5-1.5V7A1.5 1.5 0 0 1 6 5.5z"/></g>
+    <g id="p-if"><path d="M12 6v4"/><path d="M12 10l4.8 4-4.8 4-4.8-4z"/><path d="M16.8 14h2.2"/><path d="M18.4 12.4l1.7 1.6-1.7 1.6"/><path d="M7.2 14H5"/><path d="M5.6 12.4L3.9 14l1.7 1.6"/></g>
+  </defs>
+</svg>
+<div class="ds-stack">
+  <div class="skin skin-studio"><span class="skin-caption">studio</span>
+    <div class="line"><span class="cap">Type</span>
+      <span class="b t-biquad"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-biquad"/></svg></span>
+      <span class="b t-include"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-include"/></svg></span>
+      <span class="b t-vst"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-vst"/></svg></span>
+      <span class="b t-copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-copy"/></svg></span>
+      <span class="b t-comment"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-comment"/></svg></span>
+      <span class="b t-if"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-if"/></svg></span>
+      <span class="sep"></span>
+      <span class="b t-biquad off"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-biquad"/></svg></span>
+    </div>
+    <div class="line"><span class="cap">Channel</span>
+      <span class="ch c-l">L</span><span class="ch c-r">R</span><span class="ch c-c">C</span><span class="ch c-lfe">LFE</span><span class="ch c-sl">SL</span><span class="ch c-sr">SR</span>
+    </div>
+  </div>
+
+  <div class="skin skin-minimal"><span class="skin-caption">minimal</span>
+    <div class="line"><span class="cap">Type</span>
+      <span class="b t-biquad"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-biquad"/></svg></span>
+      <span class="b t-include"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-include"/></svg></span>
+      <span class="b t-vst"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-vst"/></svg></span>
+      <span class="b t-copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-copy"/></svg></span>
+      <span class="b t-comment"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-comment"/></svg></span>
+      <span class="b t-if"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-if"/></svg></span>
+      <span class="sep"></span>
+      <span class="b t-biquad off"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-biquad"/></svg></span>
+    </div>
+    <div class="line"><span class="cap">Channel</span>
+      <span class="ch c-l">L</span><span class="ch c-r">R</span><span class="ch c-c">C</span><span class="ch c-lfe">LFE</span><span class="ch c-sl">SL</span><span class="ch c-sr">SR</span>
+    </div>
+  </div>
+
+  <div class="skin skin-soft"><span class="skin-caption">soft</span>
+    <div class="line"><span class="cap">Type</span>
+      <span class="b t-biquad"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-biquad"/></svg></span>
+      <span class="b t-include"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-include"/></svg></span>
+      <span class="b t-vst"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-vst"/></svg></span>
+      <span class="b t-copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-copy"/></svg></span>
+      <span class="b t-comment"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-comment"/></svg></span>
+      <span class="b t-if"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-if"/></svg></span>
+      <span class="sep"></span>
+      <span class="b t-biquad off"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-biquad"/></svg></span>
+    </div>
+    <div class="line"><span class="cap">Channel</span>
+      <span class="ch c-l">L</span><span class="ch c-r">R</span><span class="ch c-c">C</span><span class="ch c-lfe">LFE</span><span class="ch c-sl">SL</span><span class="ch c-sr">SR</span>
+    </div>
+  </div>
+
+  <div class="skin skin-rack"><span class="skin-caption">rack</span>
+    <div class="line"><span class="cap">Type</span>
+      <span class="b t-biquad"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-biquad"/></svg></span>
+      <span class="b t-include"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-include"/></svg></span>
+      <span class="b t-vst"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-vst"/></svg></span>
+      <span class="b t-copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-copy"/></svg></span>
+      <span class="b t-comment"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-comment"/></svg></span>
+      <span class="b t-if"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-if"/></svg></span>
+      <span class="sep"></span>
+      <span class="b t-biquad off"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-biquad"/></svg></span>
+    </div>
+    <div class="line"><span class="cap">Channel</span>
+      <span class="ch c-l">L</span><span class="ch c-r">R</span><span class="ch c-c">C</span><span class="ch c-lfe">LFE</span><span class="ch c-sl">SL</span><span class="ch c-sr">SR</span>
+    </div>
+  </div>
+
+  <div class="skin skin-matrix"><span class="skin-caption">matrix</span>
+    <div class="line"><span class="cap">Type</span>
+      <span class="b t-biquad"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-biquad"/></svg></span>
+      <span class="b t-include"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-include"/></svg></span>
+      <span class="b t-vst"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-vst"/></svg></span>
+      <span class="b t-copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-copy"/></svg></span>
+      <span class="b t-comment"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-comment"/></svg></span>
+      <span class="b t-if"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-if"/></svg></span>
+      <span class="sep"></span>
+      <span class="b t-biquad off"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#p-biquad"/></svg></span>
+    </div>
+    <div class="line"><span class="cap">Channel</span>
+      <span class="ch c-l">L</span><span class="ch c-r">R</span><span class="ch c-c">C</span><span class="ch c-lfe">LFE</span><span class="ch c-sl">SL</span><span class="ch c-sr">SR</span>
+    </div>
+  </div>
+</div>
+</body>
+</html>

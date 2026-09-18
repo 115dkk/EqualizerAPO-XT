@@ -1,0 +1,250 @@
+/* EqualizerAPO-XT design system: preview scaffolding.
+   The Editor is a Qt application, so previews are static HTML renditions of
+   the painted chrome. Every preview draws the same component five times, once
+   per skin, inside a .skin frame. The frame maps that skin's tokens
+   (tokens.css: --studio-*, --minimal-*, --soft-*, --rack-*, --matrix-*) onto
+   one generic vocabulary (--bg, --card, --text, --accent, ...) so a preview's
+   own CSS never names a skin. Dark and light follow html[data-theme]. */
+
+.ds-stack { display: flex; flex-direction: column; gap: 10px; padding: 10px; background: transparent; }
+.ds-stack > .skin { width: 100%; box-sizing: border-box; }
+
+.skin {
+  --bg: #000; --surface: #000; --card: #000; --card-hover: #000; --card-selected: #000;
+  --text: #fff; --muted: #888; --border: #333; --graph: #000; --sunken: #000; --input: #000;
+  --accent: #5b8cff; --accent2: #a66cff; --success: #22c55e; --warning: #f59e0b; --danger: #ef4444;
+  --on-accent: #fff; --radius: 8px; --row: 36px; --indent: 18px;
+  --font: var(--font-sans); --mono: var(--font-mono); --body: 14.67px;
+  position: relative;
+  background: var(--bg); color: var(--text);
+  font-family: var(--font); font-size: var(--body); font-weight: 500; line-height: 1.25;
+  padding: 12px; border-radius: 0;
+}
+.skin * { box-sizing: border-box; }
+.skin .mono { font-family: var(--mono); }
+
+/* Frame caption: the skin's id, set in the skin's own caption register. */
+.skin-caption {
+  position: absolute; top: 4px; right: 10px;
+  font-size: 10.67px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--muted); opacity: .85; pointer-events: none;
+}
+
+.skin-studio {
+  --bg: var(--studio-bg); --surface: var(--studio-surface); --card: var(--studio-card);
+  --card-hover: var(--studio-card-hover); --card-selected: var(--studio-card-selected);
+  --text: var(--studio-text); --muted: var(--studio-muted); --border: var(--studio-border);
+  --graph: var(--studio-graph); --sunken: var(--studio-surface-sunken); --input: var(--studio-input);
+  --accent: var(--studio-accent); --accent2: var(--studio-accent2);
+  --success: var(--studio-success); --warning: var(--studio-warning); --danger: var(--studio-danger);
+  --on-accent: var(--studio-on-accent);
+  --radius: var(--studio-radius); --row: var(--studio-row-height); --indent: var(--studio-channel-indent);
+}
+.skin-minimal {
+  --bg: var(--minimal-bg); --surface: var(--minimal-surface); --card: var(--minimal-card);
+  --card-hover: var(--minimal-card-hover); --card-selected: var(--minimal-card-selected);
+  --text: var(--minimal-text); --muted: var(--minimal-muted); --border: var(--minimal-border);
+  --graph: var(--minimal-graph); --sunken: var(--minimal-graph); --input: var(--minimal-graph);
+  --accent: var(--minimal-accent); --accent2: var(--minimal-accent2);
+  --success: var(--minimal-success); --warning: var(--minimal-warning); --danger: var(--minimal-danger);
+  --on-accent: var(--minimal-on-accent); --ink-bright: var(--minimal-ink-bright);
+  --radius: var(--minimal-radius); --row: var(--minimal-row-height); --indent: var(--minimal-channel-indent);
+  --font: var(--font-mono);
+}
+.skin-soft {
+  --bg: var(--soft-bg); --surface: var(--soft-surface); --card: var(--soft-card);
+  --card-hover: var(--soft-card-hover); --card-selected: var(--soft-card-selected);
+  --text: var(--soft-text); --muted: var(--soft-muted); --border: var(--soft-border);
+  --graph: var(--soft-graph); --sunken: var(--soft-graph); --input: var(--soft-graph);
+  --accent: var(--soft-accent); --accent2: var(--soft-accent2);
+  --success: var(--soft-success); --warning: var(--soft-warning); --danger: var(--soft-danger);
+  --on-accent: var(--soft-on-ink);
+  --radius: var(--soft-radius-card); --radius-control: var(--soft-radius-control); --pill: var(--soft-radius-pill);
+  --row: var(--soft-row-height); --indent: var(--soft-channel-indent);
+}
+.skin-rack {
+  --bg: var(--rack-bg); --surface: var(--rack-surface); --card: var(--rack-card);
+  --card-hover: var(--rack-card-hover); --card-selected: var(--rack-card-selected);
+  --text: var(--rack-text); --muted: var(--rack-muted); --border: var(--rack-border); --seam: var(--rack-seam);
+  --graph: var(--rack-graph); --sunken: var(--rack-graph); --input: var(--rack-input);
+  --accent: var(--rack-accent); --accent2: var(--rack-accent2);
+  --success: var(--rack-success); --warning: var(--rack-warning); --danger: var(--rack-danger);
+  --on-accent: var(--rack-on-accent);
+  --radius: var(--rack-radius); --row: var(--rack-row-height); --indent: var(--rack-channel-indent);
+  --body: 13.33px;
+}
+.skin-matrix {
+  --bg: var(--matrix-bg); --surface: var(--matrix-surface); --card: var(--matrix-card);
+  --card-hover: var(--matrix-card-hover); --card-selected: var(--matrix-card-selected);
+  --text: var(--matrix-text); --muted: var(--matrix-muted); --border: var(--matrix-border);
+  --graph: var(--matrix-graph); --sunken: var(--matrix-graph); --input: var(--matrix-graph);
+  --accent: var(--matrix-accent); --accent2: var(--matrix-accent2);
+  --success: var(--matrix-success); --warning: var(--matrix-warning); --danger: var(--matrix-danger);
+  --on-accent: var(--matrix-on-accent);
+  --radius: var(--matrix-radius); --row: var(--matrix-row-height); --indent: var(--matrix-channel-indent);
+  --pitch: var(--matrix-grid-pitch); --rail: var(--matrix-card-rail);
+}
+
+/* Shared paint recipes the skins reuse across previews (design-free helpers,
+   the HTML twin of Editor/skins/shared/SkinPaint.h). */
+.rack-brushed {
+  background-image: repeating-linear-gradient(180deg,
+    rgba(255,255,255,.028) 0 1px, rgba(0,0,0,.05) 1px 2px, rgba(255,255,255,.012) 2px 3px, rgba(0,0,0,.028) 3px 4px);
+}
+.matrix-grid {
+  background-image: repeating-linear-gradient(90deg, var(--border) 0 1px, transparent 1px var(--pitch));
+  background-position: 0 0;
+}
+
+/* ===================== The card row grammar (measured against the gallery, 2026-09-18) =====================
+   A command row is a 948px card inside the 960px viewport. Header: 40px, its controls are 34x30 boxes in
+   the fixed left column [expand][number][power][+][-][code], then the 44x30 type badge, the title and the
+   summary; channel badges ride at the right. Each skin answers with its own box material below. */
+.crow { position: relative; margin: 0 6px; overflow: hidden; }
+.crow .hdr { display: flex; align-items: center; gap: 4px; height: 40px; padding: 0 10px 0 14px; }
+.crow .hb { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 30px; box-sizing: border-box;
+  font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--text); }
+.crow .hb svg { width: 14px; height: 14px; display: block; }
+.crow .hb.code { font-size: 10.5px; letter-spacing: -.5px; }
+.crow .num { min-width: 22px; text-align: center; color: var(--muted); font-family: var(--mono); font-size: 13px; font-weight: 600; margin: 0 2px; }
+.crow .tbadge { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 30px; box-sizing: border-box; margin-left: 18px; }
+.crow .tbadge svg { width: 16px; height: 16px; display: block; }
+.crow .tbadge .mono3 { font-family: var(--mono); font-size: 10.67px; font-weight: 700; letter-spacing: 1px; }
+.crow .title { font-weight: 600; margin-left: 6px; white-space: nowrap; }
+.crow .summary { color: var(--muted); margin-left: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.crow .readout { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.crow .spacer { flex: 1; }
+.crow .ch { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 16px; padding: 0 5px; font-family: var(--mono);
+  font-size: 10.67px; font-weight: 700; line-height: 1; margin-left: 4px; }
+.crow .body { position: relative; padding: 8px 12px 10px 16px; }
+.crow .cap { font-size: 10.67px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+.crow .vbox { display: inline-flex; align-items: center; height: 32px; padding: 0 14px; box-sizing: border-box; font-family: var(--mono); font-size: 13.33px; font-weight: 600; color: var(--text); min-width: 120px; }
+.crow .sel { display: inline-flex; align-items: center; justify-content: space-between; gap: 8px; height: 30px; padding: 0 10px; box-sizing: border-box; color: var(--muted); font-size: 12.5px; min-width: 150px; }
+.crow .chev { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid currentColor; }
+.crow .btn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; box-sizing: border-box; font-weight: 600; color: var(--text); }
+.crow .btn svg { width: 14px; height: 14px; }
+.crow .ibtn { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 32px; box-sizing: border-box; color: var(--text); }
+.crow .ibtn svg { width: 14px; height: 14px; }
+.crow .dis { opacity: .45; }
+.skin-list { padding: 8px 0 6px; }
+
+/* Studio: the header controls are lit glass boxes, expand is a filled pane, power wears the accent outline */
+.skin-studio .crow { background: color-mix(in srgb, var(--card) 88%, transparent); border: 1px solid var(--border); border-top-color: rgba(255,255,255,.10); border-radius: var(--radius);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18), inset 0 -14px 18px -14px rgba(0,0,0,.20); }
+[data-theme="light"] .skin-studio .crow { border-top-color: rgba(255,255,255,.95); box-shadow: inset 0 1px 0 rgba(255,255,255,.8), inset 0 -14px 18px -14px rgba(0,0,0,.10); }
+.skin-studio .crow .hdr { background: rgba(255,255,255,.04); }
+[data-theme="light"] .skin-studio .crow .hdr { background: rgba(255,255,255,.55); }
+.skin-studio .crow.lamp::before { content: ""; position: absolute; left: 0; top: 11px; width: 3px; height: 18px; border-radius: 0 2px 2px 0;
+  background: linear-gradient(180deg, transparent, var(--accent) 50%, transparent); box-shadow: 0 0 3px var(--accent); }
+.skin-studio .crow.dotted { border-style: dotted; border-top-color: var(--border); }
+.skin-studio .crow .hb { background: color-mix(in srgb, var(--card-hover) 80%, transparent); border: 1px solid color-mix(in srgb, var(--border) 60%, var(--muted)); border-radius: 6px; }
+.skin-studio .crow .hb.expand { background: color-mix(in srgb, var(--accent) 45%, var(--card)); border-color: color-mix(in srgb, var(--accent) 70%, transparent); color: #fff; }
+.skin-studio .crow .hb.power { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.skin-studio .crow .tbadge { color: var(--t, var(--accent)); background: color-mix(in srgb, var(--t, var(--accent)) 15%, transparent); border: 1px solid color-mix(in srgb, var(--t, var(--accent)) 42%, transparent); border-radius: 6px; }
+.skin-studio .crow .ch { border-radius: 999px; color: var(--c); background: color-mix(in srgb, var(--c) 18%, transparent); border: 1px solid color-mix(in srgb, var(--c) 55%, transparent); }
+.skin-studio .crow .vbox { background: var(--sunken); border: 1px solid var(--border); border-top-color: rgba(0,0,0,.55); border-radius: var(--radius); }
+[data-theme="light"] .skin-studio .crow .vbox { background: var(--input); border-top-color: var(--border); }
+.skin-studio .crow .sel { background: color-mix(in srgb, var(--card-hover) 60%, transparent); border: 1px solid var(--border); border-radius: var(--radius); }
+.skin-studio .crow .sel.quiet { background: transparent; border-color: transparent; }
+.skin-studio .crow .btn, .skin-studio .crow .ibtn { background: color-mix(in srgb, var(--card-hover) 80%, transparent); border: 1px solid var(--border); border-top-color: rgba(255,255,255,.10); border-radius: var(--radius); }
+.skin-studio .crow .btn.lit { border-color: var(--accent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent); }
+.skin-studio .crow .well { background: var(--sunken); border: 1px solid var(--border); border-top-color: rgba(0,0,0,.55); border-radius: var(--radius); }
+[data-theme="light"] .skin-studio .crow .well { background: var(--input); border-top-color: var(--border); }
+.skin-studio .crow .chip { display: inline-flex; align-items: center; height: 18px; padding: 0 8px; border-radius: 999px; font-family: var(--mono); font-size: 10.67px; font-weight: 700; letter-spacing: 1px;
+  color: var(--k, var(--accent)); background: color-mix(in srgb, var(--k, var(--accent)) 15%, transparent); border: 1px solid color-mix(in srgb, var(--k, var(--accent)) 42%, transparent); }
+
+/* Minimal: hairline boxes, transparent header, the row-head glyph in the gutter */
+.skin-minimal .crow { background: var(--card); border: 1px solid var(--border); border-radius: 0; margin-left: 20px; overflow: visible; }
+.skin-minimal .crow .glyph { position: absolute; left: -18px; top: 12px; width: 14px; text-align: center; color: var(--text); font-family: var(--mono); font-weight: 700; font-size: 12px; }
+.skin-minimal .crow .hb { background: transparent; border: 1px solid var(--border); border-radius: 0; }
+.skin-minimal .crow .hb.expand { background: var(--surface); }
+.skin-minimal .crow .num.cursor { background: var(--text); color: var(--surface); }
+.skin-minimal .crow .tbadge { border: 0; color: var(--t, var(--text)); }
+.skin-minimal .crow .title { text-transform: uppercase; letter-spacing: 1px; font-weight: 500; font-family: var(--mono); }
+.skin-minimal .crow .summary { font-family: var(--mono); }
+.skin-minimal .crow .ch { color: var(--c); padding: 0 2px; }
+.skin-minimal .crow .body { background: var(--surface); border-top: 1px solid var(--border); padding-left: 14px; }
+.skin-minimal .crow .vbox { background: var(--input); border: 1px solid var(--border); border-radius: 0; font-weight: 500; }
+.skin-minimal .crow .sel { background: transparent; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; padding: 0 2px; font-family: var(--mono); }
+.skin-minimal .crow .btn, .skin-minimal .crow .ibtn { background: transparent; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; color: var(--muted);
+  font-family: var(--mono); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-size: 12px; padding: 0 16px; width: auto; }
+.skin-minimal .crow .btn.lit { color: var(--text); }
+.skin-minimal .crow .btn svg, .skin-minimal .crow .ibtn svg { display: none; }
+.skin-minimal .crow .well { background: transparent; }
+.skin-minimal .crow .chip { font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: 1px; color: var(--k, var(--text)); }
+.skin-minimal .crow .chip.inv { background: var(--text); color: var(--surface); padding: 1px 6px; }
+
+/* Soft: round buttons, a single calm silhouette, pastel tiles */
+.skin-soft .crow { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 2px 0 0 var(--surface); }
+.skin-soft .crow .hdr { height: 44px; gap: 6px; }
+.skin-soft .crow .hb { width: 34px; height: 34px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border); }
+.skin-soft .crow .hb.expand { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+.skin-soft .crow .hb.power { background: color-mix(in srgb, var(--accent) 60%, var(--card)); color: var(--on-accent); border-color: transparent; }
+.skin-soft .crow .tbadge { width: 40px; height: 34px; border-radius: 10px; background: var(--p, var(--accent)); color: var(--on-accent); }
+.skin-soft .crow .title { font-size: 15px; }
+.skin-soft .crow .ch { border-radius: 999px; color: var(--c); background: color-mix(in srgb, var(--c) 18%, transparent); border: 1px solid color-mix(in srgb, var(--c) 55%, transparent); font-family: var(--font); }
+.skin-soft .crow .body { background: var(--surface); margin: 0 6px 6px; border-radius: 10px; padding: 8px 10px 10px 12px; }
+.skin-soft .crow .vbox { background: var(--sunken); border: 1px solid var(--border); border-radius: 999px; }
+.skin-soft .crow .sel { background: var(--card-hover); border-radius: 999px; font-family: var(--font); }
+.skin-soft .crow .btn, .skin-soft .crow .ibtn { background: var(--card); border: 1px solid var(--border); border-radius: 999px; }
+.skin-soft .crow .ibtn { border-radius: 50%; width: 36px; }
+.skin-soft .crow .btn.lit { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+.skin-soft .crow .well { background: var(--sunken); border: 1px solid var(--border); border-radius: 999px; }
+.skin-soft .crow .chip { display: inline-flex; align-items: center; height: 20px; padding: 0 9px; border-radius: 999px; font-size: 11px; font-weight: 600; background: var(--k, var(--accent)); color: var(--on-accent); }
+
+/* Rack: the faceplate, ears with a vertical engraving, machined caps, an amber-lit expand cap */
+.skin-rack .crow { background: var(--card); border: 1px solid var(--seam); border-radius: var(--radius); box-shadow: inset 1px 1px 0 rgba(255,255,255,.08), inset -1px -1px 0 rgba(0,0,0,.35);
+  background-image: repeating-linear-gradient(180deg, rgba(255,255,255,.028) 0 1px, rgba(0,0,0,.05) 1px 2px, rgba(255,255,255,.012) 2px 3px, rgba(0,0,0,.028) 3px 4px); }
+.skin-rack .crow::before, .skin-rack .crow::after { content: ""; position: absolute; top: 0; bottom: 0; width: 16px; background: color-mix(in srgb, var(--card) 70%, black); }
+.skin-rack .crow::before { left: 0; border-right: 1px solid rgba(0,0,0,.45); } .skin-rack .crow::after { right: 0; border-left: 1px solid rgba(255,255,255,.06); }
+.skin-rack .crow .ear { position: absolute; left: -12px; top: 50%; width: 40px; transform: translateY(-50%) rotate(-90deg); font-size: 7px; font-weight: 700; letter-spacing: 2px; color: var(--muted); opacity: .75; z-index: 2; text-align: center; white-space: nowrap; }
+.skin-rack .crow .screw { position: absolute; width: 6px; height: 6px; border-radius: 50%; z-index: 2; background: radial-gradient(circle at 35% 35%, #9aa0a4, #3a4046 70%); box-shadow: 0 0 0 1px rgba(0,0,0,.5); }
+.skin-rack .crow .screw::after { content: ""; position: absolute; left: 0; right: 0; top: 2.5px; height: 1px; background: rgba(0,0,0,.75); }
+.skin-rack .crow .screw.tl { left: 5px; top: 5px; transform: rotate(20deg); } .skin-rack .crow .screw.tr { right: 5px; top: 5px; transform: rotate(-35deg); }
+.skin-rack .crow .screw.bl { left: 5px; bottom: 5px; transform: rotate(70deg); } .skin-rack .crow .screw.br { right: 5px; bottom: 5px; transform: rotate(5deg); }
+.skin-rack .crow .led { position: absolute; left: 6px; top: 16px; width: 5px; height: 5px; border-radius: 50%; z-index: 2;
+  background: radial-gradient(circle at 40% 35%, #fff8 0 1px, var(--accent2) 2px, color-mix(in srgb, var(--accent2) 60%, black)); box-shadow: 0 0 0 1px #0a0c0e, 0 0 4px var(--accent2); }
+.skin-rack .crow .hdr { padding-left: 26px; padding-right: 26px; }
+.skin-rack .crow .body { padding-left: 34px; padding-right: 26px; }
+.skin-rack .crow .hb { background: linear-gradient(180deg, #2c333a, #1b2126); border: 1px solid #11161a; border-top-color: #3e474f; border-radius: 3px; }
+[data-theme="light"] .skin-rack .crow .hb { background: linear-gradient(180deg, var(--card-hover), var(--card)); border-color: var(--seam); border-top-color: #fff8; }
+.skin-rack .crow .hb.expand { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 35%, #2c333a), color-mix(in srgb, var(--accent) 22%, #1b2126)); border-color: var(--accent); }
+.skin-rack .crow .hb.power { border-color: var(--accent); color: var(--accent); }
+.skin-rack .crow .tbadge { border: 1px solid var(--t, var(--muted)); color: var(--t, var(--muted)); border-radius: 2px; }
+.skin-rack .crow .title { text-transform: uppercase; letter-spacing: 1px; font-size: 12px; font-weight: 700; }
+.skin-rack .crow .ch { border: 1px solid currentColor; border-radius: 2px; color: var(--c); }
+.skin-rack .crow .vbox { background: var(--graph); color: var(--accent2); border: 1px solid #0a0c0e; border-radius: 2px; box-shadow: inset 0 1px 2px rgba(0,0,0,.8), 0 1px 0 rgba(255,255,255,.06);
+  text-shadow: 0 0 4px color-mix(in srgb, var(--accent2) 60%, transparent); font-weight: 700; }
+.skin-rack .crow .sel { background: transparent; border: 0; border-bottom: 1px solid rgba(0,0,0,.55); box-shadow: 0 1px 0 rgba(255,255,255,.07); border-radius: 0; padding: 0 2px; }
+.skin-rack .crow .btn, .skin-rack .crow .ibtn { background: linear-gradient(180deg, #2c333a, #1b2126); border: 1px solid #11161a; border-top-color: #3e474f; border-radius: 3px;
+  text-transform: uppercase; letter-spacing: 1px; font-size: 11px; font-weight: 700; }
+[data-theme="light"] .skin-rack .crow .btn, [data-theme="light"] .skin-rack .crow .ibtn { background: linear-gradient(180deg, var(--card-hover), var(--card)); border-color: var(--seam); border-top-color: #fff8; }
+.skin-rack .crow .btn.lit { border-color: var(--accent); }
+.skin-rack .crow .well { background: color-mix(in srgb, var(--card) 70%, black); border: 1px solid #0a0c0e; border-radius: 3px; box-shadow: inset 0 2px 3px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.06); }
+.skin-rack .crow .chip { font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--k, var(--muted)); }
+.skin-rack .crow .chip.wire { border: 1px solid currentColor; border-radius: 2px; padding: 1px 5px; }
+.skin-rack .crow .plate { position: absolute; right: 30px; top: 9px; height: 22px; padding: 0 14px; display: inline-flex; align-items: center; gap: 10px; border-radius: 2px;
+  background: linear-gradient(180deg, #c9a45a, #8a6a2c); color: #2b1d08; font-size: 9px; font-weight: 700; letter-spacing: 2px; box-shadow: inset 0 1px 0 #ffe7b0, 0 1px 2px rgba(0,0,0,.6); }
+.skin-rack .crow .plate::before, .skin-rack .crow .plate::after { content: ""; width: 3px; height: 3px; border-radius: 50%; background: #5a4418; }
+
+/* Matrix: rectangular cells, the 3px rail and gutter lamp, the coordinate cell, the grid behind the header */
+.skin-matrix .crow { background: var(--card); border: 1px solid var(--border); border-radius: 0; border-left: 0; margin-left: 12px; }
+.skin-matrix .crow::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: var(--rail); background: var(--success); }
+.skin-matrix .crow.remark::before { background: var(--border); }
+.skin-matrix .crow .lampdot { position: absolute; left: 10px; top: 17px; width: 5px; height: 5px; background: var(--success); }
+.skin-matrix .crow .lampdot.off { background: transparent; border: 1px solid var(--muted); box-sizing: border-box; }
+.skin-matrix .crow .hdr { padding-left: 22px; background-image: repeating-linear-gradient(90deg, color-mix(in srgb, var(--border) 60%, transparent) 0 1px, transparent 1px var(--pitch)); background-position: 22px 0; }
+.skin-matrix .crow .hb { background: var(--bg); border: 1px solid var(--border); border-radius: 0; }
+.skin-matrix .crow .hb.expand { background: color-mix(in srgb, var(--accent) 35%, var(--bg)); border-color: var(--accent); }
+.skin-matrix .crow .hb.power { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--bg)); }
+.skin-matrix .crow .num { border: 1px solid var(--border); background: var(--bg); min-width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; letter-spacing: 1px; font-size: 12px; }
+.skin-matrix .crow .tbadge { border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 0; }
+.skin-matrix .crow .ch { border: 1px solid currentColor; border-radius: 0; background: var(--bg); color: var(--c); }
+.skin-matrix .crow .body { background: var(--bg); border-top: 1px solid var(--border); padding-left: 22px; }
+.skin-matrix .crow .vbox { background: var(--graph); border: 1px solid var(--border); border-radius: 0; }
+.skin-matrix .crow .sel { background: transparent; border: 1px solid var(--border); border-radius: 0; font-family: var(--font); text-transform: uppercase; letter-spacing: 1px; font-size: 10.67px; font-weight: 600; }
+.skin-matrix .crow .btn, .skin-matrix .crow .ibtn { background: var(--graph); border: 1px solid var(--border); border-radius: 0; font-family: var(--mono); font-size: 12px; }
+.skin-matrix .crow .btn.lit { border-color: var(--text); }
+.skin-matrix .crow .well { background: var(--graph); border: 1px solid var(--border); }
+.skin-matrix .crow .chip { display: inline-flex; align-items: center; height: 18px; padding: 0 7px; border: 1px solid var(--k, var(--text)); color: var(--k, var(--text)); background: var(--bg);
+  font-family: var(--mono); font-size: 10.67px; font-weight: 700; letter-spacing: 1px; }

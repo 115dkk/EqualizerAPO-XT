@@ -1,0 +1,8 @@
+# Staged from the Editor sources by stage-assets.py (fonts, the icon set, the app icon); not committed.
+project/fonts/
+project/assets/Icons/*.svg
+project/assets/Logos/*.png
+# Local render-check output of check.py / shots.py and the gallery contact sheets.
+_check/
+contact/
+__pycache__/
