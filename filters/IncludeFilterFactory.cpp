@@ -24,6 +24,7 @@
 #include "engine/FilterEngine.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "IncludeCommand.h"
+#include "ConfigPathPolicy.h"
 #include "IncludeFilterFactory.h"
 
 REGISTER_FILTER_FACTORY(FilterFactoryPriority::Include, IncludeFilterFactory, L"Include")
@@ -35,6 +36,7 @@ const int RECURSION_LIMIT = 100;
 
 void IncludeFilterFactory::initialize(FilterEngine* engine)
 {
+	ParseReportingFactory::initialize(engine);
 	this->engine = engine;
 }
 
@@ -75,7 +77,10 @@ FilterVector IncludeFilterFactory::createFilter(const wstring& configPath, wstri
 			includePath = (basePath / includedPath).lexically_normal().wstring();
 		}
 
-		if (recursionDepth >= RECURSION_LIMIT)
+		wstring reason;
+		if (!ConfigPathPolicy::allowsOpen(includePath, configPath, reason))
+			reportParseError(command, reason);
+		else if (recursionDepth >= RECURSION_LIMIT)
 			LogF(L"Skipping include of %s as recursion limit of %d has been reached", value.c_str(), RECURSION_LIMIT);
 		else
 			engine->loadConfigFile(includePath);

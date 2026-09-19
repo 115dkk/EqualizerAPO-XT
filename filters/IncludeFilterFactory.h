@@ -24,7 +24,7 @@
 #include "engine/IFilterFactory.h"
 #include "engine/IFilter.h"
 
-class IncludeFilterFactory : public IFilterFactory
+class IncludeFilterFactory : public ParseReportingFactory
 {
 public:
 	void initialize(FilterEngine* engine) override;

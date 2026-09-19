@@ -192,6 +192,7 @@ SOURCES += main.cpp\
 	../filters/IncludeFilterFactory.cpp \
 	../filters/ChannelFilter.cpp \
 	../filters/ConvolutionFilter.cpp \
+	../filters/ConfigPathPolicy.cpp \
 	../filters/ConvolutionFilePath.cpp \
 	../filters/MultiConvolutionCommand.cpp \
 	../filters/MultiConvolutionFilter.cpp \
@@ -480,6 +481,7 @@ HEADERS  += \
 	../filters/IfFilterFactory.h \
 	../filters/StageCommand.h \
 	../filters/StageFilterFactory.h \
+	../filters/ConfigPathPolicy.h \
 	../filters/ConvolutionFilterFactory.h \
 	../filters/IIRCommand.h \
 	../filters/IIRFilter.h \
