@@ -14,6 +14,17 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **A configuration line can no longer make the audio service open a network
+  share or a device path.** `Include`, `Convolution`, `MultiConvolution`,
+  `SubwooferRouting: Profile` and `VSTPlugin: Library` opened whatever path
+  the line named, and the engine runs as LOCAL SERVICE inside audiodg.exe
+  reading a file any user of the PC may edit, so one line naming
+  `\\host\share\...` made the service authenticate to that host with the
+  machine account. Such a path is now refused with the reason on that line
+  (log and Editor card) and the rest of the file still loads; a configuration
+  that itself lives on a network share may still reference that share. Local
+  paths of every shape are untouched ([#346](https://github.com/115dkk/EqualizerAPO-XT/pull/346)).
+
 ## v2.51.0 — 2026-09-03
 
 - **The minimal skin's knob is a register drum, rolled by dragging up and

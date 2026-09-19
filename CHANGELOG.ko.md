@@ -8,6 +8,16 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **설정 줄로 오디오 서비스가 네트워크 공유나 장치 경로를 열게 할 수 없게
+  됐습니다.** `Include`, `Convolution`, `MultiConvolution`, `SubwooferRouting: Profile`,
+  `VSTPlugin: Library`는 줄에 적힌 경로를 그대로 열었고, 엔진은 audiodg.exe 안에서
+  LOCAL SERVICE 계정으로 PC의 어느 사용자든 편집할 수 있는 파일을 읽으므로,
+  `\\host\share\...`를 적은 줄 하나로 서비스가 그 호스트에 머신 계정으로 인증을
+  시도했습니다. 이제 그런 경로는 해당 줄의 이유와 함께 거부되고(로그와 Editor 카드)
+  파일의 나머지 줄은 계속 불러옵니다. 설정 파일 자체가 네트워크 공유에 있으면 그
+  공유는 여전히 가리킬 수 있습니다. 로컬 경로는 어떤 모양이든 그대로입니다
+  ([#346](https://github.com/115dkk/EqualizerAPO-XT/pull/346)).
+
 ## v2.51.0 — 2026-09-03
 
 - **minimal 스킨의 노브가 위아래로 끌어 굴리는 레지스터 드럼이 됐습니다.**
