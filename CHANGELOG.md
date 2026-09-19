@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.51.1 — 2026-09-19
+
 - **A configuration line can no longer make the audio service open a network
   share or a device path.** `Include`, `Convolution`, `MultiConvolution`,
   `SubwooferRouting: Profile` and `VSTPlugin: Library` opened whatever path

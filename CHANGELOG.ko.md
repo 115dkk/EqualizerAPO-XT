@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.51.1 — 2026-09-19
+
 - **설정 줄로 오디오 서비스가 네트워크 공유나 장치 경로를 열게 할 수 없게
   됐습니다.** `Include`, `Convolution`, `MultiConvolution`, `SubwooferRouting: Profile`,
   `VSTPlugin: Library`는 줄에 적힌 경로를 그대로 열었고, 엔진은 audiodg.exe 안에서
