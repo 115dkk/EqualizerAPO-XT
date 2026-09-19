@@ -9,6 +9,8 @@ Command: Parameters
 
 Lines that do not name a supported command are inert text. That is how comments work — a line starting with `#` is simply not a recognised command — and unknown command names are ignored too. Command names are case-sensitive: `Preamp` is active, while `preamp` is not. Every filtering command — `Preamp`, `Filter`, `IIR`, `Delay`, `Copy`, `GraphicEQ`, both convolution commands, `VSTPlugin`, `Hilbert`, `Velvet`, `SubwooferRouting` and `LoudnessCorrection` — reports the file, line and reason for malformed input in `EqualizerAPO.log` and on the line itself in the Editor. Later lines still load. Only the control commands (`Include`, `Device`, `Stage`, `If`, `Eval`) report through their own messages.
 
+File paths in a configuration (`Include`, `Convolution`, `MultiConvolution`, `SubwooferRouting: Profile`, `VSTPlugin: Library`) may point anywhere on a local drive, absolute or relative to the file that names them. Network shares (`\\server\share\...`) and device paths (`\\.\...`, `\\?\...`) are not opened: the audio service runs as LOCAL SERVICE and would authenticate to whatever host a configuration line names, so such a line is reported as an error on that line and skipped while the rest of the file still loads. The one exception is a configuration that itself lives on a network share, which may reference files on that same share.
+
 Example:
 
 ```

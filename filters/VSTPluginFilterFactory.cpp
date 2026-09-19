@@ -23,6 +23,7 @@
 #include "services/logging/Logging.h"
 #include "VSTPluginCommand.h"
 #include "VSTPluginFilter.h"
+#include "filters/ConfigPathPolicy.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "VSTPluginFilterFactory.h"
 
@@ -40,6 +41,13 @@ FilterVector VSTPluginFilterFactory::createFilter(const wstring& configPath, wst
 		const VSTPluginCommand pluginCommand = VSTPluginCommand::parse(configPath, parameters);
 		if (!pluginCommand.valid)
 			return reportParseError(command, pluginCommand.error);
+
+		wstring reason;
+		if (!pluginCommand.libraryPath.empty()
+			&& !ConfigPathPolicy::allowsOpen(pluginCommand.libraryPath, configPath, reason))
+		{
+			return reportParseError(command, reason);
+		}
 
 		shared_ptr<VSTPluginLibrary> library = pluginCommand.libraryPath.empty()
 			? nullptr : VSTPluginLibrary::getInstance(pluginCommand.libraryPath);

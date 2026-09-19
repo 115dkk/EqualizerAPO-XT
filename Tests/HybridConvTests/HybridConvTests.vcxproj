@@ -97,6 +97,7 @@ if exist "$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configurati
     <ClCompile Include="BiQuadKernelTests.cpp" />
     <ClCompile Include="ChannelCommandTests.cpp" />
     <ClCompile Include="CommonLogicTests.cpp" />
+    <ClCompile Include="ConfigPathPolicyTests.cpp" />
     <ClCompile Include="ConvolutionCommandTests.cpp" />
     <ClCompile Include="MultiConvolutionTests.cpp" />
     <ClCompile Include="CopyCommandTests.cpp" />
@@ -118,6 +119,7 @@ if exist "$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configurati
     <ClCompile Include="ParserTests.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\filters\ConfigPathPolicy.h" />
     <ClInclude Include="..\..\filters\ConvolutionFilePath.h" />
     <ClInclude Include="..\..\libHybridConv-0.1.1\libHybridConv_eapo.h" />
     <ClInclude Include="..\TestVst3Plugin\TestVst3Protocol.h" />

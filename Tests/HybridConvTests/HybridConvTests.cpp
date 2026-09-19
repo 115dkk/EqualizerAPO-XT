@@ -46,6 +46,7 @@ void runSubwooferRoutingProcessorTests();
 void runBiQuadKernelTests();
 void runChannelCommandTests();
 void runCommonLogicTests();
+void runConfigPathPolicyTests();
 void runConvolutionCommandTests();
 void runCopyCommandTests();
 void runDelayCommandTests();
@@ -487,6 +488,7 @@ int runHybridConvTests()
 	runBiQuadKernelTests();
 	runChannelCommandTests();
 	runCommonLogicTests();
+	runConfigPathPolicyTests();
 	runConvolutionCommandTests();
 	runCopyCommandTests();
 	runDelayCommandTests();

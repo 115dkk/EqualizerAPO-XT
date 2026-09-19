@@ -20,6 +20,7 @@
 
 #include "runtime/memory/AlignedMemory.h"
 #include "MultiConvolutionCommand.h"
+#include "ConfigPathPolicy.h"
 #include "ConvolutionFilePath.h"
 #include "MultiConvolutionFilter.h"
 #include "filters/FilterFactoryRegistry.h"
@@ -46,6 +47,10 @@ FilterVector MultiConvolutionFilterFactory::createFilter(const wstring& configPa
 	wstring absolutePath = ConvolutionFilePath::resolve(configPath, cmd.path);
 	if (absolutePath.empty())
 		return reportParseError(command, L"the impulse response file \"" + cmd.path + L"\" was not found");
+
+	wstring reason;
+	if (!ConfigPathPolicy::allowsOpen(absolutePath, configPath, reason))
+		return reportParseError(command, reason);
 
 	return singleFilter(makeFilter<MultiConvolutionFilter>(cmd.mappings, absolutePath));
 }

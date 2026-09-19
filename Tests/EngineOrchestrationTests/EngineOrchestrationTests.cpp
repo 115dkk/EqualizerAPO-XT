@@ -1088,6 +1088,56 @@ void testParseErrorsAreReportedPerLineAndProseIsNot(test::Harness& harness)
 		"a configuration with eight unusable lines still loads, because the working lines below them have to run");
 }
 
+void testConfigReferencedRemotePathsAreRefused(test::Harness& harness)
+{
+	writeConfig(harness, L"local-included.txt", "Preamp: -1 dB\n");
+	const std::wstring configPath = writeConfig(harness, L"remote-paths.txt",
+		"Include: \\\\eapo-policy-test.invalid\\share\\nested.txt\n"
+		"Convolution: \\\\eapo-policy-test.invalid\\share\\ir.wav\n"
+		"MultiConvolution: L=0 \\\\eapo-policy-test.invalid\\share\\ir.wav\n"
+		"SubwooferRouting: Profile \\\\eapo-policy-test.invalid\\share\\p.swxt.json\n"
+		"VSTPlugin: Library \\\\eapo-policy-test.invalid\\share\\plugin.dll\n"
+		"Include: local-included.txt\n"
+		"Preamp: -3 dB\n");
+
+	struct Collector : ConfigLoadTraceSink
+	{
+		std::vector<ConfigLoadTraceEntry> entries;
+		void addEntry(const ConfigLoadTraceEntry& entry) override
+		{
+			entries.push_back(entry);
+		}
+	};
+	Collector collector;
+
+	FilterEngine engine;
+	engine.setLoadTraceSink(&collector);
+	initializeEngine(engine, 48000, 2, 512, configPath);
+
+	std::vector<const ConfigLoadTraceEntry*> errors;
+	for (const ConfigLoadTraceEntry& entry : collector.entries)
+	{
+		if (entry.kind == ConfigLoadTraceEntry::Kind::ParseError)
+			errors.push_back(&entry);
+	}
+
+	harness.requireEqual(errors.size(), size_t(5),
+		"the five remote references are refused and the local lines still load");
+	for (size_t index = 0; index < errors.size(); ++index)
+	{
+		const ConfigLoadTraceEntry& entry = *errors[index];
+		harness.expectEqual(entry.line, static_cast<int>(index + 1),
+			"remote path errors are reported on lines 1 through 5 in order");
+		harness.expect(entry.error, "a remote path refusal is flagged as an error");
+		harness.expect(entry.file == configPath, "a remote path refusal names its configuration file");
+		harness.expect(entry.text.find(L"network share") != std::wstring::npos,
+			"a remote path refusal identifies the network-share policy");
+	}
+
+	harness.expect(engine.loadConfig(configPath),
+		"a configuration with refused remote references and working local lines still loads");
+}
+
 // Audit #250 A6/A3: the engine's registry surface (the config language's
 // readRegDWORD here) goes through the injected port, so a config that reads
 // the registry is deterministic under a fake - previously these functions
@@ -1226,6 +1276,7 @@ int runEngineOrchestrationTests()
 	testWeakValueCacheKeepsEntriesExactlyAsLongAsSomeoneUsesThem(harness);
 	testVoicemeeterPrependInfosMapsEditionToOutputCount(harness);
 	testParseErrorsAreReportedPerLineAndProseIsNot(harness);
+	testConfigReferencedRemotePathsAreRefused(harness);
 	testConfigRegistryReadsGoThroughThePort(harness);
 	testAnalysisFreezesDynamicVelvetAndLabelsTheSnapshot(harness);
 
