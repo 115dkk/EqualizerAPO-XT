@@ -254,9 +254,9 @@ void testDenormalGuardFlushesAndRestores()
 {
 	volatile double subnormal = 4.9e-320;
 	volatile double one = 1.0;
-	volatile double tiny = 1e-300;
 	{
 		MxcsrFtzDazGuard guard;
+		volatile double tiny = 1e-300;
 		const double operand = subnormal * one;
 		harness.expect(operand == 0.0, "a subnormal operand reads as zero inside the guard");
 		const double result = tiny * 1e-10;
