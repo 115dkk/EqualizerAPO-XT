@@ -6,10 +6,12 @@
 
 #include "asio/Win32HostLink.h"
 
+#include <algorithm>
 #include <atomic>
 #include <cstring>
 
 #include "asio/HostProtocol.h"
+#include "platform/windows/NamedPipeSecurity.h"
 
 namespace eapo::asio
 {
@@ -27,6 +29,59 @@ namespace eapo::asio
 			const DWORD attributes = GetFileAttributesW(path.c_str());
 			return attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0;
 		}
+
+		std::string utf8(const std::wstring& text)
+		{
+			const int length = WideCharToMultiByte(CP_UTF8, 0, text.c_str(), static_cast<int>(text.size()), nullptr, 0, nullptr, nullptr);
+			std::string result(length > 0 ? length : 0, '\0');
+			if (length > 0)
+				WideCharToMultiByte(CP_UTF8, 0, text.c_str(), static_cast<int>(text.size()), result.data(), length, nullptr, nullptr);
+			return result;
+		}
+
+		// A request or a reply carries no size of its own to wait for, so a
+		// host that accepted the connection and then hung used to hang the
+		// application's open call with it. One overlapped transfer that gives
+		// up at the deadline, cancelling the I/O before it returns.
+		bool transfer(HANDLE pipe, bool write, void* buffer, DWORD bytes, ULONGLONG deadline, DWORD& error)
+		{
+			winutil::UniqueHandle event(CreateEventW(nullptr, TRUE, FALSE, nullptr));
+			if (!event)
+			{
+				error = GetLastError();
+				return false;
+			}
+			OVERLAPPED overlapped = {};
+			overlapped.hEvent = event.get();
+			const BOOL started = write ? WriteFile(pipe, buffer, bytes, nullptr, &overlapped)
+				: ReadFile(pipe, buffer, bytes, nullptr, &overlapped);
+			if (!started && GetLastError() != ERROR_IO_PENDING)
+			{
+				error = GetLastError();
+				return false;
+			}
+			const ULONGLONG now = GetTickCount64();
+			const DWORD wait = now >= deadline ? 0 : static_cast<DWORD>((std::min<ULONGLONG>)(deadline - now, INFINITE - 1));
+			DWORD transferred = 0;
+			if (WaitForSingleObject(event.get(), wait) != WAIT_OBJECT_0)
+			{
+				CancelIoEx(pipe, &overlapped);
+				GetOverlappedResult(pipe, &overlapped, &transferred, TRUE);
+				error = ERROR_TIMEOUT;
+				return false;
+			}
+			if (!GetOverlappedResult(pipe, &overlapped, &transferred, FALSE))
+			{
+				error = GetLastError();
+				return false;
+			}
+			error = transferred == bytes ? ERROR_SUCCESS : ERROR_INVALID_DATA;
+			return transferred == bytes;
+		}
+
+		// The reply may need more time than a cold start left over, so the
+		// exchange always gets at least this much.
+		constexpr ULONGLONG exchangeFloorMs = 2000;
 	}
 
 	std::wstring Win32HostLink::moduleDirectory()
@@ -41,9 +96,26 @@ namespace eapo::asio
 		return slash == std::wstring::npos ? L"." : result.substr(0, slash);
 	}
 
+	std::wstring Win32HostLink::hostExecutable(const StreamOptions& options, const std::wstring& moduleDirectory)
+	{
+		if (!options.daemonExePath.empty())
+			return options.daemonExePath;
+		const std::wstring beside = moduleDirectory + L"\\EqualizerAPOHost.exe";
+		if (fileExists(beside))
+			return beside;
+		const size_t slash = moduleDirectory.find_last_of(L"\\/");
+		if (slash != std::wstring::npos)
+		{
+			const std::wstring parent = moduleDirectory.substr(0, slash) + L"\\EqualizerAPOHost.exe";
+			if (fileExists(parent))
+				return parent;
+		}
+		return beside;
+	}
+
 	bool Win32HostLink::spawnHost(const std::wstring& endpoint, const StreamOptions& options, std::string& error)
 	{
-		std::wstring exe = options.daemonExePath.empty() ? moduleDirectory() + L"\\EqualizerAPOHost.exe" : options.daemonExePath;
+		const std::wstring exe = hostExecutable(options, moduleDirectory());
 		if (!fileExists(exe))
 		{
 			error = "EQ APO XT engine host executable is missing";
@@ -67,18 +139,33 @@ namespace eapo::asio
 		return true;
 	}
 
-	bool Win32HostLink::connectToHost(const std::wstring& endpoint, const StreamOptions& options, HANDLE& pipe, std::string& error)
+	bool Win32HostLink::connectToHost(const std::wstring& endpoint, const StreamOptions& options, ULONGLONG deadline, HANDLE& pipe,
+		std::string& error)
 	{
 		const std::wstring pipeName = HostNames::pipe(endpoint);
-		const ULONGLONG deadline = GetTickCount64() + options.readyTimeoutMs;
 		bool spawned = false;
 		for (;;)
 		{
-			pipe = CreateFileW(pipeName.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
+			pipe = CreateFileW(pipeName.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, nullptr);
 			if (pipe != INVALID_HANDLE_VALUE)
 			{
 				DWORD mode = PIPE_READMODE_MESSAGE;
 				SetNamedPipeHandleState(pipe, &mode, nullptr, nullptr);
+
+				// The pipe name is global, so whoever serves it has to be the
+				// host this link would have started before it is told
+				// anything.
+				DWORD identityError = ERROR_SUCCESS;
+				const std::wstring server = winutil::pipes::serverImagePath(pipe, identityError);
+				const std::wstring expected = hostExecutable(options, moduleDirectory());
+				if (server.empty() || !winutil::pipes::sameFile(server, expected))
+				{
+					CloseHandle(pipe);
+					pipe = INVALID_HANDLE_VALUE;
+					error = server.empty() ? describe("the program serving the EQ APO XT engine host pipe could not be identified", identityError)
+						: "EQ APO XT engine host pipe is held by another program (" + utf8(server) + ")";
+					return false;
+				}
 				return true;
 			}
 			const DWORD last = GetLastError();
@@ -151,7 +238,8 @@ namespace eapo::asio
 		session.sync.ready = objects_.events[4];
 
 		HANDLE pipe = INVALID_HANDLE_VALUE;
-		if (!connectToHost(endpoint, options, pipe, error))
+		const ULONGLONG deadline = GetTickCount64() + options.readyTimeoutMs;
+		if (!connectToHost(endpoint, options, deadline, pipe, error))
 		{
 			close(session);
 			return false;
@@ -163,15 +251,16 @@ namespace eapo::asio
 		request.lingerMs = options.lingerMs;
 		wcsncpy_s(request.ringName, ringName.c_str(), _TRUNCATE);
 		wcsncpy_s(request.configPath, options.configPath.c_str(), _TRUNCATE);
-		DWORD transferred = 0;
 		HostOpenReply reply;
-		const bool exchanged = WriteFile(pipe, &request, sizeof(request), &transferred, nullptr) && transferred == sizeof(request)
-			&& ReadFile(pipe, &reply, sizeof(reply), &transferred, nullptr) && transferred == sizeof(reply);
-		const DWORD last = GetLastError();
+		const ULONGLONG exchangeDeadline = (std::max)(deadline, GetTickCount64() + exchangeFloorMs);
+		DWORD last = ERROR_SUCCESS;
+		const bool exchanged = transfer(pipe, true, &request, sizeof(request), exchangeDeadline, last)
+			&& transfer(pipe, false, &reply, sizeof(reply), exchangeDeadline, last);
 		CloseHandle(pipe);
 		if (!exchanged)
 		{
-			error = describe("EQ APO XT engine host did not accept the stream", last);
+			error = last == ERROR_TIMEOUT ? "EQ APO XT engine host did not answer the stream request in time"
+				: describe("EQ APO XT engine host did not accept the stream", last);
 			close(session);
 			return false;
 		}

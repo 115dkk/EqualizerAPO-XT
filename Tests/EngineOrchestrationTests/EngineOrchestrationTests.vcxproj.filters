@@ -23,6 +23,9 @@
     <ClCompile Include="EngineOrchestrationTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="NamedPipeSecurityTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="RegistryTransactionTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

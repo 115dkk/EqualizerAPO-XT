@@ -93,6 +93,7 @@ if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"</
     <ClCompile Include="DeviceApoInfoTests.cpp" />
     <ClCompile Include="EngineOrchestrationTests.cpp" />
     <ClCompile Include="InstallDiagnosticsTests.cpp" />
+    <ClCompile Include="NamedPipeSecurityTests.cpp" />
     <ClCompile Include="RegistryTransactionTests.cpp" />
     <!-- Executable-side helpers under test, compiled directly like
          AudioEngineAccess: ApoRegistration is not a Common.lib member, and

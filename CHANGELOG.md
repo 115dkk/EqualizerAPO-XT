@@ -14,6 +14,21 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The device test and ASIO pipes answer only the programs they are for.**
+  Any account could add its own instance of the Device Selector's device
+  test pipe and receive what the audio service sent, and the ASIO driver
+  sent its stream request to whichever program held the engine host's pipe
+  name. Both pipes now name who may use them, their servers refuse a name
+  another program took first, and the driver checks that the program
+  serving the pipe is the engine host. A host that stops answering now fails
+  the application's open call within seconds instead of hanging it
+  ([#361](https://github.com/115dkk/EqualizerAPO-XT/pull/361)).
+- **The 32-bit ASIO driver can start the engine host.** It ships alone in the
+  `x86` folder and looked for the host there, so a 32-bit application could
+  open an ASIO entry only while the host was already running. It now starts
+  the host from the install folder. A unit test covers where it looks; it
+  has not been run with a real 32-bit application ([#361](https://github.com/115dkk/EqualizerAPO-XT/pull/361)).
+
 ## v2.52.0 — 2026-09-24
 
 - **UpdateChecker.exe is no longer shipped.** The Editor already downloads a
