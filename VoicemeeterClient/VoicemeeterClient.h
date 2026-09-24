@@ -26,6 +26,7 @@
 #include "../engine/FilterEngine.h"
 #include "../platform/windows/Win32Resource.h"
 #include "../runtime/concurrency/SynchronizedState.h"
+#include "../runtime/errors/WideError.h"
 #include "VoicemeeterRemote.h"
 
 class VoicemeeterClient
@@ -65,19 +66,11 @@ private:
 	SynchronizedState<EngineState> engineState;
 };
 
-class InitError
+class InitError : public WideError
 {
 public:
 	InitError(const std::wstring& message)
-		: message(message)
+		: WideError(message)
 	{
 	}
-
-	const std::wstring& getMessage() const
-	{
-		return message;
-	}
-
-private:
-	std::wstring message;
 };

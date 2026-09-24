@@ -35,13 +35,6 @@ public:
     std::vector<std::wstring> initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames) override;
     void process(double** output, double** input, unsigned frameCount) override;
 
-    BiQuad::Type getType() const;
-    double getDbGain() const;
-    double getFreq() const;
-    double getBandwidthOrQOrS() const;
-    bool getIsBandwidthOrS() const;
-    bool getIsCornerFreq() const;
-
 private:
     BiQuad::Type type;
     double dbGain;

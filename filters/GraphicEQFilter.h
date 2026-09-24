@@ -31,8 +31,6 @@ class GraphicEQFilter : public ConvolutionFilter
 public:
 	GraphicEQFilter(const std::vector<FilterNode>& nodes, unsigned filterLength);
 
-	const std::vector<FilterNode>& getNodes();
-
 protected:
 	void initializeFilters(unsigned frameCount) override;
 

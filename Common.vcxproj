@@ -365,6 +365,8 @@
     <ClInclude Include="platform\windows\WindowsPath.h" />
     <ClInclude Include="devices\DeviceAPOInfoKeys.h" />
     <ClInclude Include="devices\DeviceInstallReport.h" />
+    <ClInclude Include="devices\ReportedOperation.h" />
+    <ClInclude Include="devices\DeviceException.h" />
     <ClInclude Include="devices\VoicemeeterDetection.h" />
     <ClInclude Include="libHybridConv-0.1.1\HcAlignedStorage.h" />
     <ClInclude Include="platform\windows\FileSharingRetry.h" />
@@ -378,6 +380,7 @@
     <ClInclude Include="services\logging\TaggedLogger.h" />
     <ClInclude Include="dsp\FftwRAII.h" />
     <ClInclude Include="dsp\FftwPlanningPolicy.h" />
+    <ClInclude Include="runtime\errors\WideError.h" />
     <ClInclude Include="runtime\memory\AlignedMemory.h" />
     <ClInclude Include="runtime\WeakValueCache.h" />
     <ClInclude Include="runtime\concurrency\ParallelExecutor.h" />
@@ -427,6 +430,7 @@
     <ClCompile Include="devices\DeviceAPOInfo.State.cpp" />
     <ClCompile Include="devices\DeviceAPOInfo.Uninstall.cpp" />
     <ClCompile Include="devices\DeviceInstallReport.cpp" />
+    <ClCompile Include="devices\ReportedOperation.cpp" />
     <ClCompile Include="engine\FilterConfiguration.cpp" />
     <ClCompile Include="engine\FilterEngine.cpp" />
     <ClCompile Include="engine\FilterEngine.Configuration.cpp" />

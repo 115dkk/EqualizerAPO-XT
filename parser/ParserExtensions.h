@@ -25,6 +25,6 @@ class ParserX;
 
 // Registers the muparserx extensions that need no FilterEngine: the regex
 // functions, the string-aware '+' AddOperator, and the '!' NotOperator.
-// ExpressionFilterFactory::initialize and the parser tests share this roster
-// so a new engine-free extension cannot silently miss one of them.
+// EngineParser is the one caller, so every parser the engine builds gets the
+// same roster and a new engine-free extension goes here once.
 void registerEngineFreeParserExtensions(mup::ParserX& parser);

@@ -22,10 +22,7 @@
 #include "services/registry/RegistryPaths.h"
 #include <cmath>
 #include <numbers>
-#include <sstream>
-#include <fstream>
 #include <algorithm>
-#include <exception>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
@@ -34,22 +31,12 @@
 #include "services/logging/Logging.h"
 #include "runtime/memory/AlignedMemory.h"
 #include "audio/ChannelLayout.h"
-#include "ConfigurationFileReader.h"
 #include "FilterEngine.h"
 #include "filters/FilterFactoryRegistry.h"
 
-using std::exception;
-using std::find;
 using std::lock_guard;
-using std::make_unique;
-using std::max;
-using std::move;
 using std::mutex;
-using std::string;
-using std::stringstream;
-using std::swap;
 using std::thread;
-using std::unique_lock;
 using std::vector;
 using std::wstring;
 
@@ -79,7 +66,6 @@ FilterEngine::FilterEngine()
 	  inputChannelCount(0),
       realChannelCount(0),
       outputChannelCount(0),
-	  lastInputWasSilent(false),
 	  transitionCounter(0)
 {
 }

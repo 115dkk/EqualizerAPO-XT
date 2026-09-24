@@ -62,7 +62,8 @@ struct DeviceInstallReport
 	{
 		// No operation has run on this object yet. The Voicemeeter and preview
 		// device types never leave this state, because what they change is a
-		// shortcut file rather than an endpoint's APO chain.
+		// shortcut file (or nothing) rather than registry state; the endpoint
+		// and ASIO types report every operation.
 		NotAttempted,
 		Succeeded,
 		Failed
