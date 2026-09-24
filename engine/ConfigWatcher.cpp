@@ -22,7 +22,7 @@ struct WatchedKey
 {
 	wstring path;
 	winutil::UniqueRegistryKey handle;
-	bool failureLogged;
+	bool failureLogged = false;
 };
 
 bool sameKeyList(const vector<WatchedKey>& watched, const vector<wstring>& keys)

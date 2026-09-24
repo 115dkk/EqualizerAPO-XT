@@ -266,36 +266,6 @@ void testConfigImport()
 
 void testLegacyMigrationScanAndPolicy()
 {
-	// Audit #348 TD-05: the launcher's LOCALAPPDATA crosses UAC as an
-	// argument, so the elevated hook accepts it only as a drive path strictly
-	// below the profiles directory.
-	using EqAPO::Import::LegacyMigrationPolicy;
-	const QString profiles = QStringLiteral("C:\\Users");
-	expectTrue(LegacyMigrationPolicy::isAcceptableCallerLocalAppData(
-		QStringLiteral("C:\\Users\\Alice\\AppData\\Local"), profiles),
-		"a profile's LOCALAPPDATA is accepted");
-	expectTrue(LegacyMigrationPolicy::isAcceptableCallerLocalAppData(
-		QStringLiteral("c:/users/Bob Smith/AppData/Local"), profiles),
-		"case and separators do not matter");
-	expectTrue(!LegacyMigrationPolicy::isAcceptableCallerLocalAppData(
-		QStringLiteral("\\\\server\\share\\AppData\\Local"), profiles),
-		"a UNC path is refused");
-	expectTrue(!LegacyMigrationPolicy::isAcceptableCallerLocalAppData(
-		QStringLiteral("\\\\?\\C:\\Users\\Alice\\AppData\\Local"), profiles),
-		"a device-namespace path is refused");
-	expectTrue(!LegacyMigrationPolicy::isAcceptableCallerLocalAppData(
-		QStringLiteral("C:\\Users\\..\\Windows\\Temp"), profiles),
-		"a path climbing out with .. is refused");
-	expectTrue(!LegacyMigrationPolicy::isAcceptableCallerLocalAppData(
-		QStringLiteral("C:\\Users"), profiles),
-		"the profiles directory itself is not a profile folder");
-	expectTrue(!LegacyMigrationPolicy::isAcceptableCallerLocalAppData(
-		QStringLiteral("D:\\Data\\AppData\\Local"), profiles),
-		"a folder outside the profiles directory is refused");
-	expectTrue(!LegacyMigrationPolicy::isAcceptableCallerLocalAppData(
-		QStringLiteral("AppData\\Local"), profiles),
-		"a relative path is refused");
-
 	QTemporaryDir tempDir;
 	requireTrue(tempDir.isValid(), "QTemporaryDir must be valid");
 

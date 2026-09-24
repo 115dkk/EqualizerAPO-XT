@@ -49,8 +49,8 @@ VSTPluginFilterGUIDialog::VSTPluginFilterGUIDialog(QWidget* parent, VSTPluginIns
 
 VSTPluginFilterGUIDialog::~VSTPluginFilterGUIDialog()
 {
-	if (!editorOpen)
-		return;
+	// Unconditional: a VST3 startEditing that failed after creating its view
+	// still needs it released before this dialog's frame goes away.
 	effect->stopEditing();
 	effect->setSizeWindowFunc(nullptr);
 }

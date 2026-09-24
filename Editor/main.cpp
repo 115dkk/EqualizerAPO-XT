@@ -167,10 +167,7 @@ int relaunchElevatedAndWait(int argc, char* argv[])
 		return 1;
 	}
 
-	// The elevated copy may run under another account's profile; hand it
-	// this user's LOCALAPPDATA for the stable config root (audit #348 TD-05).
-	std::wstring parameters = buildArgumentLine(argc, argv)
-		+ VelopackBootstrap::callerLocalAppDataParameter();
+	std::wstring parameters = buildArgumentLine(argc, argv);
 
 	SHELLEXECUTEINFOW info;
 	ZeroMemory(&info, sizeof(info));
@@ -301,11 +298,6 @@ int main(int argc, char* argv[])
 	// coordinator writes, so there is one place to look rather than two.
 	if (!Logging::useUserFile(L"Editor.log", true, false, false))
 		Logging::useDefaultApoLog();
-
-	// An elevated copy started by relaunchElevatedAndWait or the update
-	// coordinator carries the launcher's LOCALAPPDATA; publish it to this
-	// process and the hook processes Update.exe starts from it.
-	VelopackBootstrap::forwardCallerLocalAppData();
 
 	int hookResult = handleVelopackHook(argc, argv);
 	if (hookResult >= 0)

@@ -38,26 +38,6 @@ bool LegacyMigrationPolicy::hasLegacyApoFolderName(const QString& dir)
     return legacyPattern.match(clean).hasMatch();
 }
 
-bool LegacyMigrationPolicy::isAcceptableCallerLocalAppData(const QString& path, const QString& profilesRoot)
-{
-    const QString raw = path.trimmed();
-    if (raw.isEmpty() || profilesRoot.trimmed().isEmpty())
-        return false;
-    // Judged before any separator conversion: Qt drops a leading \\?\ when it
-    // converts, which would turn a device-namespace path into a drive path.
-    if (raw.startsWith(QLatin1String("\\\\")) || raw.startsWith(QLatin1String("//")))
-        return false;
-    const QString native = QDir::fromNativeSeparators(raw);
-    // A drive-rooted path only: "C:/...". Rejects //server/share, //?/...,
-    // //./..., and relative paths.
-    static const QRegularExpression driveRooted(QStringLiteral("^[A-Za-z]:/"));
-    if (!driveRooted.match(native).hasMatch())
-        return false;
-    if (native.split(QLatin1Char('/')).contains(QStringLiteral("..")))
-        return false;
-    return !remapUnderRoot(native, profilesRoot, QStringLiteral("/x")).isEmpty();
-}
-
 QString LegacyMigrationPolicy::remapUnderRoot(const QString& path, const QString& fromRoot, const QString& toRoot)
 {
     const QString cleanPath = QDir::cleanPath(QDir::fromNativeSeparators(path.trimmed()));

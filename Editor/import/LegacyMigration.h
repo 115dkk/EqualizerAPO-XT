@@ -29,12 +29,9 @@ class LegacyMigration
 public:
     // %LOCALAPPDATA%\EqualizerAPO-XT\config for the current user; empty when
     // the environment variable is missing.
-    // %LOCALAPPDATA%\EqualizerAPO-XT\config. In an elevated hook launched
-    // on behalf of another account, the launcher's LOCALAPPDATA (forwarded
-    // by VelopackBootstrap) is used when it passes the policy's check and
-    // exists; otherwise this process's own, read as UTF-16 (audit #348
+    // %LOCALAPPDATA%\EqualizerAPO-XT\config, read as UTF-16 (audit #348
     // TD-05: the ANSI qgetenv turned characters outside the code page into
-    // '?', and the hook wrote that path to HKLM ConfigPath).
+    // '?', and the elevated hook wrote that path to HKLM ConfigPath).
     static QString stableConfigRoot();
     // The folder the Editor edits: HKLM ConfigPath when it can be read, else
     // the stable root when it exists, else the working directory. One rule

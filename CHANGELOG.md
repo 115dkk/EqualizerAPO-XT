@@ -35,12 +35,11 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   "Save as" adopted the new name anyway. In instant mode a change made in the
   last 200 ms before closing a tab or the window is now written first ([#349](https://github.com/115dkk/EqualizerAPO-XT/pull/349)).
 - **The configuration folder is right for user names outside the system code
-  page and for installs approved with another administrator's account.** The
-  installer derived the folder from an ANSI copy of `%LOCALAPPDATA%`, so a
-  character the code page cannot hold became `?` and the audio engine read a
-  folder that does not exist; approving the install with another account put
-  the folder in that account's profile. The folder now comes from the
-  launching user's profile ([#349](https://github.com/115dkk/EqualizerAPO-XT/pull/349)).
+  page.** The installer derived the folder from an ANSI copy of
+  `%LOCALAPPDATA%`, so a character the code page cannot hold became `?` and the
+  audio engine read a folder that does not exist. The variable is now read as
+  Unicode, and the Editor and its file dialog find the folder by one rule
+  ([#349](https://github.com/115dkk/EqualizerAPO-XT/pull/349)).
 - **Device Selector no longer closes when an install step fails.** An error
   from the ASIO entry or from the device test's fallback reinstall ended the
   program instead of being reported. The command-line device test now reports

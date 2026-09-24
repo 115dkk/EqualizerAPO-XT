@@ -296,7 +296,12 @@ ApoRegistration::Result ApoRegistration::uninstallAllDeviceApos(const DeviceUnin
 			guarded(endpointGuid, [&] {
 				DeviceAPOInfo info(registry);
 				if (info.load(endpointGuid, defaultDeviceGuid))
+				{
+					// As loadAllInfos does: the selection starts as what is
+					// installed.
+					info.getSelectedInstallState() = info.getCurrentInstallState();
 					uninstallInfo(endpointGuid, info);
+				}
 			});
 		}
 

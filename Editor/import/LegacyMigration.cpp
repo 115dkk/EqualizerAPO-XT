@@ -13,14 +13,6 @@
 #include "services/install/ApoRegistration.h"
 #include "services/logging/Logging.h"
 #include "services/registry/WindowsRegistry.h"
-#include "services/update/VelopackBootstrap.h"
-
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <windows.h>
-#include <shlobj.h>
-#include <knownfolders.h>
 
 #include <cstdio>
 
@@ -106,20 +98,6 @@ void writeMigrationBreadcrumbs(IRegistry& registry, const QString& from, int fil
 
 QString LegacyMigration::stableConfigRoot()
 {
-    const QString caller = qEnvironmentVariable(EAPO_CALLER_LOCALAPPDATA_ENVIRONMENT);
-    if (!caller.isEmpty())
-    {
-        QString profilesRoot;
-        PWSTR profiles = nullptr;
-        if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_UserProfiles, KF_FLAG_DEFAULT, nullptr, &profiles)))
-            profilesRoot = QString::fromWCharArray(profiles);
-        CoTaskMemFree(profiles);
-        if (LegacyMigrationPolicy::isAcceptableCallerLocalAppData(caller, profilesRoot)
-            && QDir(caller).exists())
-            return LegacyMigrationPolicy::stableConfigRoot(caller);
-        LogFStatic(L"Migration: ignoring the launcher's LOCALAPPDATA %s (not a local profile folder)",
-            reinterpret_cast<const wchar_t*>(caller.utf16()));
-    }
     return LegacyMigrationPolicy::stableConfigRoot(qEnvironmentVariable("LOCALAPPDATA"));
 }
 

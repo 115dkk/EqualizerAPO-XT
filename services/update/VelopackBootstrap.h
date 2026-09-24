@@ -23,14 +23,6 @@ class UpdateSession;
 // is what main.cpp parses; the wide constant is what ShellExecuteExW passes.
 // Both derive from this macro so they cannot drift apart (audit #275 TD-02).
 #define EAPO_ELEVATED_COORDINATOR_ARGUMENT "--eapo-apply-update-elevated"
-// The unelevated launcher's %LOCALAPPDATA%, handed across UAC. When a standard
-// user approves with another account's credentials the elevated process runs
-// with that account's profile, and the install hook used to derive the stable
-// config root (and write HKLM ConfigPath) from it (audit #348 TD-05). The
-// argument carries the value into the elevated process; the environment
-// variable carries it on to the hook processes Update.exe starts from there.
-#define EAPO_CALLER_LOCALAPPDATA_ARGUMENT "--eapo-caller-localappdata="
-#define EAPO_CALLER_LOCALAPPDATA_ENVIRONMENT "EAPO_CALLER_LOCALAPPDATA"
 
 class VelopackBootstrap
 {
@@ -39,20 +31,6 @@ public:
 		EAPO_ELEVATED_COORDINATOR_ARGUMENT;
 	inline static constexpr wchar_t kElevatedCoordinatorArgumentW[] =
 		L"" EAPO_ELEVATED_COORDINATOR_ARGUMENT;
-	inline static constexpr wchar_t kCallerLocalAppDataArgumentW[] =
-		L"" EAPO_CALLER_LOCALAPPDATA_ARGUMENT;
-	inline static constexpr wchar_t kCallerLocalAppDataEnvironmentW[] =
-		L"" EAPO_CALLER_LOCALAPPDATA_ENVIRONMENT;
-
-	// " \"--eapo-caller-localappdata=<this process's LOCALAPPDATA>\"", ready
-	// to append to an elevated launch's parameters; empty when the variable
-	// is unset. Trailing backslashes are dropped so the closing quote is not
-	// escaped.
-	static std::wstring callerLocalAppDataParameter();
-	// In the elevated process: moves the argument (read from the wide command
-	// line) into the environment variable, so every child inherits it. The
-	// value is validated where it is used, not here.
-	static void forwardCallerLocalAppData();
 
 	// Pure path rule behind installRoot(): a Velopack install runs the binaries
 	// from <root>\current, so a bin directory whose leaf is "current" resolves
