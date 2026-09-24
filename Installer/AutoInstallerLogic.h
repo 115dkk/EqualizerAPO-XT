@@ -50,6 +50,11 @@ struct CpuFeatures
 // Most specific / newest first: arm64, avx10-1, avx512, avx2, avx, sse2.
 std::wstring channelForCpu(const CpuFeatures& features, int* outIndex = nullptr);
 
+// "x64-avx2" -> "64-bit x86 with AVX2" and so on, from the same table
+// channelForCpu reads. Unknown channels come back verbatim so a future
+// channel never renders as an empty line.
+std::wstring describeChannel(const std::wstring& channel);
+
 // Per-variant installer asset name; the shared grammar header explains the
 // doubled channel.
 std::wstring assetName(const std::wstring& channel);

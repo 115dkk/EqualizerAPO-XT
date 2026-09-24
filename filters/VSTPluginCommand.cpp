@@ -74,6 +74,24 @@ bool parseFloatToken(const wstring& token, float& value)
 	return errno != ERANGE && end != token.c_str() && *end == L'\0' && std::isfinite(value);
 }
 
+// Whether a legacy "<key> <value>" token is a number rather than the name in
+// a "ParamName <name> <value>" triple: a digit, optionally after a sign and
+// a decimal point ("0.5", "-0.5", ".5", "+1", "-.5"). The first-digit test
+// this replaced sent "-0.5" and ".5" down the name branch, which dropped the
+// parameter and filed the next token's value under the name "-0.5" (audit
+// #348). wcstof alone would also take "inf" and "nan", which begin real
+// parameter names ("Input Gain"), so the test stays on the leading
+// characters.
+bool isLegacyNumber(const wstring& value)
+{
+	size_t at = 0;
+	if (at < value.size() && (value[at] == L'-' || value[at] == L'+'))
+		at++;
+	if (at < value.size() && value[at] == L'.')
+		at++;
+	return at < value.size() && std::iswdigit(value[at]);
+}
+
 bool splitChannelFill(const wstring& value, vector<wstring>& fill)
 {
 	fill.clear();
@@ -357,7 +375,7 @@ VSTPluginCommand VSTPluginCommand::parse(const wstring& /*configPath*/, const ws
 		}
 		else
 		{
-			if (value.empty() || !std::iswdigit(value[0]))
+			if (!isLegacyNumber(value))
 			{
 				size_t x = (size_t)i + 2;
 				if (x < parts.size())

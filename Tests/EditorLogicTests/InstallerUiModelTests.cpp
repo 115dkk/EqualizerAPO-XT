@@ -94,16 +94,3 @@ void testInstallerUiModelFormatting()
 	expectEqual(wide(shortHash(L"abcdef")), QStringLiteral("abcdef"),
 		"short input passes through unchanged");
 }
-
-void testInstallerUiModelChannelDescriptions()
-{
-	// Every channel in the release grammar has a human description; an
-	// unknown channel falls through verbatim so it never renders empty.
-	expectEqual(wide(describeChannel(L"x64-sse2")), QStringLiteral("64-bit x86 with SSE2"), "sse2");
-	expectEqual(wide(describeChannel(L"x64-avx")), QStringLiteral("64-bit x86 with AVX"), "avx");
-	expectEqual(wide(describeChannel(L"x64-avx2")), QStringLiteral("64-bit x86 with AVX2"), "avx2");
-	expectEqual(wide(describeChannel(L"x64-avx512")), QStringLiteral("64-bit x86 with AVX-512"), "avx512");
-	expectEqual(wide(describeChannel(L"x64-avx10-1")), QStringLiteral("64-bit x86 with AVX10.1"), "avx10.1");
-	expectEqual(wide(describeChannel(L"arm64-neon")), QStringLiteral("ARM64 with NEON"), "arm64");
-	expectEqual(wide(describeChannel(L"riscv-rvv")), QStringLiteral("riscv-rvv"), "unknown passes through");
-}

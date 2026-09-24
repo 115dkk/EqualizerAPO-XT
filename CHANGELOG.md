@@ -8,20 +8,39 @@ fork started on 2026-05-22.
 
 Versions are bumped automatically by CI from Conventional Commits message
 types, so some version numbers were skipped (1.7, 1.9, 1.12.1, 1.14, 1.16,
-1.23, 1.25, 2.30.1, 2.31, and 2.32 were never released). Tags up to v1.10.1 carried a `-main.<run>` suffix; from v1.11.0 on,
+1.23, 1.25, 2.30.1, 2.31, 2.32, and 2.53 were never released). Tags up to v1.10.1 carried a `-main.<run>` suffix; from v1.11.0 on,
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
 ## Unreleased
 
-## v2.52.0 — 2026-09-24
+- **Benchmark.exe stops with an error instead of hanging on a short read or
+  write.** When libsndfile returned no frames before the expected count, the
+  input and output loops spun forever; they now print the reason and exit
+  with code 1. The `--from` help text now states the real default (1.0 Hz)
+  ([#353](https://github.com/115dkk/EqualizerAPO-XT/pull/353)).
+- **A VSTPlugin line keeps parameter values written as `-0.5` or `.5`.** In
+  the key-value form (`VSTPlugin: Library ... Gain -0.5`), a value that did
+  not start with a digit was read as a parameter name, so the parameter was
+  dropped and the next token's value was filed under the name `-0.5`. Values
+  starting with a sign or a decimal point are numbers now; the
+  `ParamName <name> <value>` form still works ([#353](https://github.com/115dkk/EqualizerAPO-XT/pull/353)).
+- **ARM64 handles very quiet signals the way x64 does.** On x64 the engine
+  flushes subnormal numbers (the tail of a signal decaying below about
+  -300 dB, such as a filter's feedback ringing out) to zero; the ARM64 build
+  did not, so the same configuration produced slightly different and slower
+  output there. ARM64 now sets the matching flush-to-zero mode for each
+  processed block ([#353](https://github.com/115dkk/EqualizerAPO-XT/pull/353)).
+- **Closing the setup window no longer stops the install.** Closing
+  `EqualizerAPO-XT-Setup.exe` during the download used to cancel it, while
+  closing it a moment later, during the checksum check, did not, and the
+  Velopack installer then appeared behind a window that was already gone.
+  Now closing only hides the window at every step: the install carries on,
+  and if a step fails afterwards the window comes back with the error. Exit
+  code 5 is retired ([#353](https://github.com/115dkk/EqualizerAPO-XT/pull/353)).
 
-- **UpdateChecker.exe is no longer shipped.** The Editor already downloads a
-  new release in the background and applies it when it closes. The separate
-  notify-only tool had not been started automatically since the NSIS
-  installer was removed, and on the `x64-avx` channel it could offer another
-  channel's installer, because it matched installer names by prefix. An
-  update removes it from the install folder ([#352](https://github.com/115dkk/EqualizerAPO-XT/pull/352)).
+## v2.54.0 — 2026-09-24
+
 - **A Windows device's ASIO entry has the options a driver's entry has.**
   Ticking **Use in ASIO apps** for a playback or recording endpoint in the
   Device Selector now unfolds **Remove the buffer** with its **Wait time**,
@@ -31,6 +50,15 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   start the host at boot, and was not registered for 32-bit applications.
   The command-line option `--exclusive-mode-eq` is now `--asio-entry`; the
   old name still works ([#351](https://github.com/115dkk/EqualizerAPO-XT/pull/351)).
+
+## v2.52.0 — 2026-09-24
+
+- **UpdateChecker.exe is no longer shipped.** The Editor already downloads a
+  new release in the background and applies it when it closes. The separate
+  notify-only tool had not been started automatically since the NSIS
+  installer was removed, and on the `x64-avx` channel it could offer another
+  channel's installer, because it matched installer names by prefix. An
+  update removes it from the install folder ([#352](https://github.com/115dkk/EqualizerAPO-XT/pull/352)).
 
 ## v2.51.2 — 2026-09-24
 
