@@ -129,17 +129,6 @@ jobs:
         with:
           msbuild-architecture: x64
 
-      # Same pinned-tag resolution as build.yml: the manifest is the single
-      # authority for dependency versions.
-      - name: Resolve pinned dependency tags
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
-          $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
-          "VST3_TAG=$($manifest.Shared.Vst3Tag)" >> $env:GITHUB_ENV
-          "TCLAP_TAG=$($manifest.Shared.TclapTag)" >> $env:GITHUB_ENV
-          "HIGHWAY_TAG=$($manifest.Shared.HighwayTag)" >> $env:GITHUB_ENV
-
       - name: Download dependency release assets
         shell: pwsh
         run: |
@@ -153,29 +142,17 @@ jobs:
           Invoke-DependencyDownload -Downloads $downloads `
             -DownloadRoot "${{ github.workspace }}\deps\_downloads"
 
-      - name: Download TCLAP
-        uses: actions/checkout@v6
-        with:
-          repository: 115dkk/tclap
-          ref: ${{ env.TCLAP_TAG }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          path: deps/tclap
-
-      - name: Download VST3 pluginterfaces
-        uses: actions/checkout@v6
-        with:
-          repository: steinbergmedia/vst3_pluginterfaces
-          ref: ${{ env.VST3_TAG }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          path: deps/vst3sdk/pluginterfaces
-
-      - name: Download Highway
-        uses: actions/checkout@v6
-        with:
-          repository: google/highway
-          ref: ${{ env.HIGHWAY_TAG }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          path: deps/highway
+      # The header-only source dependencies (TCLAP, VST3 pluginterfaces,
+      # Highway), cloned at the manifest's tags and held to its commits by the
+      # same routine setup-build.ps1 uses: a retargeted upstream tag fails here
+      # instead of changing what ships (audit #348 TD-26).
+      - name: Clone pinned source dependencies
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
+          $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
+          Install-PinnedSourceDependency -Manifest $manifest -DepsRoot "${{ github.workspace }}\deps"
 
       - name: Setup dependency structures
         shell: pwsh

@@ -94,73 +94,15 @@ if ($usesVcpkg) {
 
 Write-Host "  Dependencies downloaded." -ForegroundColor Green
 
-# --- 2. Clone TCLAP ---
-# Pinned to the manifest's TclapTag, matching the build.yml checkout. Cached
-# clones are re-checked against the tag so a TclapTag bump actually takes
-# effect (the zip downloads above get the same treatment via SHA-256).
-# Audit #250 F072/F058: one checkout routine for the three source
-# dependencies. All of them re-verify a cached checkout against the pinned
-# tag (previously only TCLAP did, so a tag bump left local trees stale), and
-# all of them assert the reviewed commit SHA from the manifest - a git tag is
-# movable, and a silently retargeted tag must fail here, not ship.
-function Sync-PinnedCheckout {
-    param(
-        [Parameter(Mandatory)] [string]$Name,
-        [Parameter(Mandatory)] [string]$RepoUrl,
-        [Parameter(Mandatory)] [string]$Tag,
-        [Parameter(Mandatory)] [string]$ExpectedCommit,
-        [Parameter(Mandatory)] [string]$CheckoutDir,
-        [Parameter(Mandatory)] [string]$ProbeFile
-    )
-
-    $cachedCommit = $null
-    if ((Test-Path (Join-Path $CheckoutDir $ProbeFile)) -and (Test-Path (Join-Path $CheckoutDir ".git"))) {
-        $cachedCommit = (git -C $CheckoutDir rev-parse HEAD 2>$null)
-        if ($LASTEXITCODE -ne 0) { $cachedCommit = $null; $global:LASTEXITCODE = 0 }
-    }
-    if ($cachedCommit -eq $ExpectedCommit -and $cachedCommit) {
-        Write-Host "  [cached] $Name already present at $Tag ($ExpectedCommit)"
-        return
-    }
-
-    if (Test-Path $CheckoutDir) {
-        Write-Host "  Cached $Name is not at $Tag/$ExpectedCommit; re-cloning..."
-        Remove-Item $CheckoutDir -Recurse -Force
-    }
-    git clone --depth 1 --branch $Tag $RepoUrl $CheckoutDir
-    if ($LASTEXITCODE -ne 0) { throw "Failed to clone $Name" }
-
-    $actualCommit = (git -C $CheckoutDir rev-parse HEAD)
-    if ($actualCommit -ne $ExpectedCommit) {
-        throw "$Name tag $Tag resolved to $actualCommit, but the manifest pins $ExpectedCommit. The tag moved - review the diff and update simd-variants.psd1 deliberately."
-    }
-    Write-Host "  -> $CheckoutDir ($actualCommit)"
-}
-
-Write-Host "`n=== Step 2: Clone TCLAP ===" -ForegroundColor Yellow
-Sync-PinnedCheckout -Name "TCLAP" -RepoUrl "https://github.com/115dkk/tclap" `
-    -Tag $simdManifest.Shared.TclapTag -ExpectedCommit $simdManifest.Shared.TclapCommit `
-    -CheckoutDir (Join-Path $depsDir "tclap") -ProbeFile "include"
-
-# --- 2b. Clone VST3 SDK (pluginterfaces only) ---
-# VST3 hosting only needs the Steinberg pluginterfaces headers (COM-style interface
-# definitions + the IID instantiation unit). public.sdk / vstgui / samples are not
-# compiled, so we fetch just the pluginterfaces submodule. Pinned to the 3.8.0 tag,
-# which is the first MIT-licensed release (compatible with our GPLv2-or-later code).
-Write-Host "`n=== Step 2b: Clone VST3 SDK (pluginterfaces) ===" -ForegroundColor Yellow
-$vst3Dir = Join-Path $depsDir "vst3sdk"
-New-Item -ItemType Directory -Force -Path $vst3Dir | Out-Null
-Sync-PinnedCheckout -Name "VST3 pluginterfaces" -RepoUrl "https://github.com/steinbergmedia/vst3_pluginterfaces" `
-    -Tag $simdManifest.Shared.Vst3Tag -ExpectedCommit $simdManifest.Shared.Vst3Commit `
-    -CheckoutDir (Join-Path $vst3Dir "pluginterfaces") -ProbeFile "base\funknown.h"
-
-# --- 2c. Clone Google Highway (header-only portable SIMD) ---
-# The Common DSP kernels use Highway in static per-target dispatch mode, so only
-# the headers are needed (no libhwy build, no runtime dispatch table).
-Write-Host "`n=== Step 2c: Clone Highway ===" -ForegroundColor Yellow
-Sync-PinnedCheckout -Name "Highway" -RepoUrl "https://github.com/google/highway" `
-    -Tag $simdManifest.Shared.HighwayTag -ExpectedCommit $simdManifest.Shared.HighwayCommit `
-    -CheckoutDir (Join-Path $depsDir "highway") -ProbeFile "hwy\highway.h"
+# --- 2. Clone the header-only source dependencies ---
+# TCLAP, the VST3 pluginterfaces (hosting needs only the COM-style interface
+# headers and the IID unit; the 3.8.0 tag is the first MIT-licensed release)
+# and Google Highway (static per-target dispatch, headers only). Each is
+# cloned at the manifest's tag and must resolve to the manifest's commit; a
+# cached checkout at that commit is reused. CI runs the same routine from
+# Provisioning.psm1 (audit #250 F072/F058, audit #348 TD-26).
+Write-Host "`n=== Step 2: Clone TCLAP, VST3 pluginterfaces, Highway ===" -ForegroundColor Yellow
+Install-PinnedSourceDependency -Manifest $simdManifest -DepsRoot $depsDir
 
 # --- 3. Install Qt ---
 # $qtArchDir is also needed by the verification section below when Qt was
