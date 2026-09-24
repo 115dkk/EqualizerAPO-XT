@@ -60,9 +60,9 @@
 //    is an error, not a miss. All access goes through the 64-bit registry view.
 //
 //  * Errors are reported by throwing RegistryError (declared in
-//    services/registry/RegistryError.h). It does not
-//    derive from std::exception, so catch(...) or catch(const RegistryError&)
-//    are the only things that will stop it.
+//    services/registry/RegistryError.h). It derives from WideError, so a
+//    caller that handles every device-layer failure alike catches
+//    const WideError&.
 //
 //  * A missing key is an exception, not an empty result, for every operation
 //    except keyExists. That includes valueExists: it answers false only when the
