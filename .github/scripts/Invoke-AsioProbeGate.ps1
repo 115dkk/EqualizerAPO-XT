@@ -56,10 +56,17 @@ $runs = @(
         Arguments = @("--target", "fake", "--wrapper", "static", "--processor", "daemon-thread", "--config", $config,
             "--frames", "64", "--periods", "300", "--sample-type", "int32", "--deadline-us", "1000000", "--max-late", "0")
     },
+    # Paced like the pipelined run over the real host below: the fake pumps
+    # periods back to back, which leaves the host 10% of a period per block,
+    # and the hang bound (eight late periods) then fires after about 2 ms of
+    # host stall instead of 21 ms. A hosted runner stalls that long now and
+    # then (ARM64 on 2026-09-24, x64 the next day). At 48 kHz 128 frames take
+    # 2667 us.
     [pscustomobject]@{
         Name = "daemon-thread-pipelined-int24-128"
         Arguments = @("--target", "fake", "--wrapper", "static", "--processor", "daemon-thread", "--config", $config,
-            "--frames", "128", "--periods", "150", "--sample-type", "int24", "--mode", "pipelined", "--max-late", "0")
+            "--frames", "128", "--periods", "150", "--sample-type", "int24", "--mode", "pipelined", "--max-late", "0",
+            "--pace-us", "2667")
     },
     # Pipelined-under-burst cannot assert bit-exactness because late periods
     # pass through unprocessed. The capture gate's asio-entry round covers its
