@@ -21,12 +21,11 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 Equalizer APO 
 
 ## 저장소 구조
 
-- `EqualizerAPO.sln`: Visual Studio 솔루션입니다. `Common`, `EqualizerAPO`, `SubwooferRoutingCore`, `SubwooferRoutingVst3`, `Benchmark`, `VoicemeeterClient`, `DeviceSelector`, `UpdateChecker`, `Installer`, `TestVst2Plugin`, `TestVst3Plugin`, `HybridConvTests`, `EditorLogicTests`, `EngineOrchestrationTests`, `AudioRegressionTests` 프로젝트를 묶습니다.
+- `EqualizerAPO.sln`: Visual Studio 솔루션입니다. `Common`, `EqualizerAPO`, `SubwooferRoutingCore`, `SubwooferRoutingVst3`, `Benchmark`, `VoicemeeterClient`, `Installer`, `EqualizerAPOAsio`, `EqualizerAPOHost`, `TestVst2Plugin`, `TestVst3Plugin`, `FakeAsioDriver`, `HybridConvTests`, `EditorLogicTests`, `EngineOrchestrationTests`, `AudioRegressionTests`, `AsioTests`, `VstPreviewProbe`, `AsioProbe`, `ApoHostProbe`, `CaptureProbe` 프로젝트를 묶습니다. Qt 앱(Editor, DeviceSelector)은 솔루션에 없고 `.pro`로만 빌드합니다.
 - `Common.vcxproj`: 필터 엔진, 필터 구현, 파서 확장, 도메인별 공용 모듈을 포함하는 정적 라이브러리입니다.
 - `EqualizerAPO/`: Windows Audio Processing Object DLL 프로젝트입니다. ATL 기반이므로 `atls.lib`가 필요합니다.
 - `Editor/`: Qt 기반 설정 편집기입니다. `.pro`, `.ui`, 리소스, 번역 파일, 필터별 GUI가 있습니다.
 - `DeviceSelector/`: Qt 기반 장치 선택 도구입니다.
-- `UpdateChecker/`: Qt 기반 업데이트 확인 도구입니다.
 - `Benchmark/`: 오디오 처리 성능 측정용 콘솔 프로그램입니다.
 - `VoicemeeterClient/`: Voicemeeter 연동용 보조 프로그램입니다.
 - `filters/`: 실제 오디오 필터 구현과 각 필터의 factory가 있습니다. 새 필터는 구현 파일, 헤더, factory, 필요하면 GUI를 함께 봅니다.
@@ -46,7 +45,7 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 Equalizer APO 
 
 - C++ 프로젝트는 Visual Studio 2022/2026 계열 도구와 Windows SDK 10.0을 기준으로 합니다. 현재 로컬 프로젝트는 VS 2026 `v145`에서 빌드하며, VS 2022만 있는 환경에서는 `/p:PlatformToolset=v143`으로 덮어쓰면 됩니다. CI는 x64에서 `v145`, ARM64 runner에서 `v143`을 씁니다.
 - `.vcxproj`는 C++20을 사용하며 `/Zc:__cplusplus` 설정은 `Directory.Build.props`에서 공통으로 관리합니다. 기존 `UNICODE`, `_UNICODE`, `MUP_USE_WIDE_STRING` 정의를 유지합니다.
-- Qt 도구는 `Editor`, `DeviceSelector`, `UpdateChecker`에서 `.pro` 파일을 중심으로 관리합니다.
+- Qt 도구는 `Editor`, `DeviceSelector`에서 `.pro` 파일을 중심으로 관리합니다.
 - 로컬 빌드 준비는 `setup-build.ps1`을 기준으로 봅니다. 이 스크립트는 `deps/` 아래 외부 라이브러리와 Qt 6.10.1을 설치합니다. 빌드는 MSBuild(`EqualizerAPO.sln`의 vcxproj들)와 qmake/nmake(Qt 도구)로 나뉩니다.
 - CI는 x64 `sse2`, `avx`, `avx2`, `avx512`, `avx10_1`, ARM64 `neon` 조합을 빌드하고 산출물과 설치 파일을 업로드합니다. 변형 목록과 의존성 핀은 `.github/simd-variants.psd1`이 기준입니다.
 - `main`에 push되면 CI가 모든 변형 빌드를 끝낸 뒤 GitHub Release를 만듭니다. Release에는 Velopack으로 감싼 채널별 설치 파일, CPU 자동 감지 설치기(`EqualizerAPO-XT-Setup.exe`), `git archive`로 만든 소스 코드 zip이 올라갑니다.

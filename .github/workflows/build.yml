@@ -319,7 +319,7 @@ jobs:
       with:
         python-version: '3.12'
 
-    # Install Qt for Editor, DeviceSelector, and UpdateChecker. The aqt install
+    # Install Qt for Editor and DeviceSelector. The aqt install
     # (concurrency 1: parallel extraction raced intermittently) lives in
     # .github/scripts/Provisioning.psm1, shared with setup-build.ps1 (TD015).
     - name: Install Qt
@@ -462,7 +462,7 @@ jobs:
         retention-days: 30
         if-no-files-found: warn
 
-    # Build Qt projects with qmake (Editor, DeviceSelector, UpdateChecker)
+    # Build Qt projects with qmake (Editor, DeviceSelector)
     - name: Build Qt Applications
       shell: pwsh
       run: |
@@ -604,7 +604,7 @@ jobs:
       run: |
         $symDir = "${{ github.workspace }}\symbols"
         New-Item -ItemType Directory -Force -Path $symDir | Out-Null
-        foreach ($app in @("Editor", "DeviceSelector", "UpdateChecker")) {
+        foreach ($app in @("Editor", "DeviceSelector")) {
           $pdb = "build-$app-${{ matrix.platform }}\release\$app.pdb"
           if (Test-Path $pdb) {
             Move-Item $pdb (Join-Path $symDir "$app.pdb") -Force

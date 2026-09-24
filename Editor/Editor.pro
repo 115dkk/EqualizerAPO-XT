@@ -711,7 +711,7 @@ contains(QT_ARCH, arm64) {
 }
 
 # The Editor's auto-update needs to know which release channel it was built for so
-# UpdateManager fetches the matching feed (mirrors UpdateChecker.pro).
+# UpdateManager fetches the matching feed.
 !isEmpty(EAPO_UPDATE_CHANNEL) {
 	DEFINES += EAPO_UPDATE_CHANNEL=\\\"$$EAPO_UPDATE_CHANNEL\\\"
 }

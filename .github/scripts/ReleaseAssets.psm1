@@ -4,9 +4,8 @@
 # channel again), the universal installer, the feed, the source zip, the
 # checksums file and the pack id used to live as parallel literals in two
 # languages and six files. PowerShell consumers import this module; the C++
-# consumers (Installer/AutoInstaller, UpdateChecker) include
-# release/ReleaseAssetNames.h, and ReleaseAssets.Tests.ps1 keeps the two
-# spellings in step.
+# consumer (Installer/AutoInstaller) includes release/ReleaseAssetNames.h, and
+# ReleaseAssets.Tests.ps1 keeps the two spellings in step.
 
 $script:ProductPrefix = "EqualizerAPO-XT"
 

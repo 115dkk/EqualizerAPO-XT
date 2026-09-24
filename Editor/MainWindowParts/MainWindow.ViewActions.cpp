@@ -50,7 +50,7 @@ using std::wstring;
 
 namespace
 {
-// Companion tools (DeviceSelector, UpdateChecker) dress themselves from
+// The companion DeviceSelector dresses itself from
 // interface/skin + interface/dark at startup. savePreferences() writes the
 // pair only when the Editor closes, so a freshly picked skin stayed
 // invisible to a tool launched right after the switch - persist immediately.

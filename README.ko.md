@@ -83,7 +83,7 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
 - `VSTPlugin: Library "...\\Plugin.vst3" Input Stereo Output 7.1`처럼 VST3 주 입력·출력 버스를 서로 다르게 지정할 수 있습니다. 각 방향은 Auto, Mono, Stereo, 4.0, 4.1, 5.0, 5.1, 6.1, 7.1, 7.1.2, 7.1.4를 지원합니다. VST3가 계약을 거부하면 다른 폭으로 몰래 바꾸지 않고 입력을 그대로 통과시키며, VST2는 레이아웃 키를 무시합니다. 자세한 문법은 [설정 레퍼런스](https://github.com/115dkk/EqualizerAPO-XT/wiki/Korean-Configuration-reference#vstplugin-버스-레이아웃)에 있습니다.
 - SIMD 커널은 [Google Highway](https://github.com/google/highway)로 한 번만 작성해 변형별로 컴파일합니다. x64는 SSE2, AVX, AVX2, AVX-512, AVX10.1, ARM64는 NEON입니다.
 - Qt Editor를 현대화했습니다. 카드 기반 필터 UI와 행 chrome·노브 렌더링·Copy 라우팅 렌더러까지 서로 다른 5종 스킨([docs/skin-integration-report.md](docs/skin-integration-report.md)), 내장 폰트, 고해상도(High-DPI) 대응이 들어 있습니다.
-- Editor가 새 릴리스를 백그라운드에서 내려받아 종료할 때 적용하는 자동 업데이트가 들어 있습니다. 알림만 하는 UpdateChecker 도구도 따로 있습니다.
+- Editor가 새 릴리스를 백그라운드에서 내려받아 종료할 때 적용하는 자동 업데이트가 들어 있습니다.
 - 자동 감지 설치기가 로컬 CPU에 맞는 SIMD 빌드를 골라 내려받고, 실행 전에 릴리스 체크섬으로 검증합니다.
 - 오디오 처리는 AOCL-FFTW, libsndfile, muparserx, TCLAP을 쓰고, GUI 도구는 Qt로 만들었습니다.
 - Windows 호환성을 위해 공유 VC++ 런타임 DLL을 함께 배포합니다.
@@ -150,7 +150,7 @@ SIMD 변형 집합은 `.github/simd-variants.psd1` 한 곳에 정의합니다. �
 
 PR은 기본 변형인 `avx2`만 빌드합니다. `main` push는 자동 버전 bump로 새 버전이 나올 때만 여섯 개를 모두 빌드하며, 릴리스를 만들 수 없는 push(docs, CI, 리팩토링만 있는 변경)는 빌드 매트릭스를 건너뜁니다. 수동 `workflow_dispatch` 실행은 항상 여섯 개를 모두 빌드합니다. SIMD 매트릭스, 의존성 산출물 이름, 설치 파일 이름, 테스트 정책은 [docs/SimdBuildMatrix.md](docs/SimdBuildMatrix.md)에서 관리합니다.
 
-Qt 도구는 CI에서도, 문서화된 로컬 설정에서도 qmake로 빌드합니다. Visual Studio 솔루션 전체를 빌드하려면 Qt VS Tools/QtMsBuild도 제대로 설정되어 있어야 합니다.
+Qt 도구는 CI에서도, 문서화된 로컬 설정에서도 qmake로 빌드합니다. Visual Studio 솔루션에는 MSBuild 프로젝트만 있고, Qt 앱에는 .vcxproj가 없습니다.
 
 ## 테스트
 

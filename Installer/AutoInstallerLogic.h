@@ -8,9 +8,9 @@
 	channel a CPU maps to, which asset that names, and how the sha256sum
 	checksums text is read. The Win32 work (CPUID/XGETBV gathering, WinHTTP,
 	BCrypt, process launch) stays in AutoInstaller.cpp; this unit only
-	decides. EditorLogicTests compiles AutoInstallerLogic.cpp directly, the
-	same pattern it uses for UpdateChecker's decision core, so PRs verify
-	logic the release-only installer build used to leave until release day.
+	decides. EditorLogicTests compiles AutoInstallerLogic.cpp directly, so
+	PRs verify logic the release-only installer build used to leave until
+	release day.
 
 	Like the installer itself this must stay free of project libraries: it
 	is std C++ plus the grammar header and version.h.

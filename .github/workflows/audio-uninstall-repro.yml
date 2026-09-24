@@ -411,7 +411,7 @@ jobs:
           # which resolves relative to the CWD; with the wrong CWD it cannot find
           # its Qt platform plugin and pops a modal error dialog that hangs forever
           # on a headless runner (that is what cancelled this step on the first
-          # full run). The bug also affects DeviceSelector/UpdateChecker in the
+          # full run). The bug also affects DeviceSelector in the
           # shipped build (only Editor's path was fixed) - tracked separately.
           Write-Host "Running $devsel /u (cwd=$env:VELO_CURRENT)"
           $p = Start-Process -FilePath $devsel -ArgumentList "/u" -WorkingDirectory $env:VELO_CURRENT -PassThru

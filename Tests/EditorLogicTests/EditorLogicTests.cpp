@@ -104,10 +104,6 @@ int main(int argc, char** argv)
 
 		testConvolutionPathHelper();
 		testAnalysisWorkerRecovery();
-		testUpdateInfoFormatter();
-		testVelopackUpdateInfo();
-		testVelopackGitHubRelease();
-		testVelopackFeeds();
 		testFilterCardDescriptors();
 		testCardEditsKeepSwitchedOffLinesOff();
 	testSubwooferRoutingDescriptors();

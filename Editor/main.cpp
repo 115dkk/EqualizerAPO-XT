@@ -356,7 +356,7 @@ int main(int argc, char* argv[])
 	FftwPlanningPolicy::ensurePlannerThreadSafe();
 
 	// Anchor the Qt plugin search to the executable's directory; shared with
-	// DeviceSelector and UpdateChecker.
+	// DeviceSelector.
 	QtAppBootstrap::addExecutableRelativePluginPath();
 
 	// High-DPI: let Qt scale the whole UI by the monitor's device pixel ratio,

@@ -83,7 +83,7 @@ Copy-Item $vst3Source -Destination (Join-Path $vst3BundleDir "EapoXtSubwooferRou
 Copy-Item (Join-Path $WorkspaceRoot $vst3PluginLicense) `
     -Destination (Join-Path $artifactPath "VST3\EapoXtSubwooferRouting.vst3\LICENSE") -Force
 
-foreach ($app in @("Editor", "DeviceSelector", "UpdateChecker")) {
+foreach ($app in @("Editor", "DeviceSelector")) {
     $buildDir = Join-Path $WorkspaceRoot "build-$app-$Platform\release"
     $exe = Join-Path $buildDir "$app.exe"
     if (-not (Test-Path $exe)) { throw "$app.exe not built" }
