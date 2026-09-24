@@ -13,19 +13,13 @@
 
 #include <string>
 
-class RegistryError
+#include "runtime/errors/WideError.h"
+
+class RegistryError : public WideError
 {
 public:
 	explicit RegistryError(const std::wstring& message)
-		: message(message)
+		: WideError(message)
 	{
 	}
-
-	const std::wstring& getMessage() const
-	{
-		return message;
-	}
-
-private:
-	std::wstring message;
 };

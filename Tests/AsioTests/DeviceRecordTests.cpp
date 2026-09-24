@@ -16,6 +16,7 @@
 #include "asio/AsioRegistration.h"
 #include "asio/WrapperRecord.h"
 #include "devices/AsioAPOInfo.h"
+#include "devices/DeviceException.h"
 #include "services/registry/RegistryPaths.h"
 #include "Tests/EngineOrchestrationTests/FakeRegistry.h"
 #include "Tests/TestHarness.h"
@@ -360,6 +361,122 @@ namespace
 		harness.expectEqual(out->getChannelMask(), 3ul, "two channels derive the stereo mask");
 		harness.expectEqual(in->getChannelCount(), 0u, "the capture record reads its own count");
 	}
+
+	AsioAPOInfo* findPlaybackRecord(const std::vector<std::shared_ptr<AbstractAPOInfo>>& list, const wchar_t* clsid)
+	{
+		for (const std::shared_ptr<AbstractAPOInfo>& info : list)
+		{
+			AsioAPOInfo* record = static_cast<AsioAPOInfo*>(info.get());
+			if (record->getDeviceGuid() == clsid)
+				return record;
+		}
+		return nullptr;
+	}
+
+	// Audit #348 C2/TD-31: the ASIO adapter wrote its record, the entry in
+	// both views and the Run value straight to the registry, so a failure
+	// midway left a record with no entry, and nothing was logged or
+	// reported. The three operations now run in one transaction with a
+	// report, like the endpoint adapter's.
+	void testOperationsAreTransactionalAndReported()
+	{
+		const std::wstring entryKey = AsioRegistration::asioRoot(false) + L"\\"
+			+ AsioRegistration::entryNameFor(L"Topping USB Audio Device");
+		const std::wstring recordKey = eapo::asio::WrapperRecords::recordKey(AsioRegistration::wrapperClsidFor(toppingClsid));
+
+		{
+			test::FakeRegistry registry;
+			seedTargets(registry);
+			std::vector<std::shared_ptr<AbstractAPOInfo>> playback;
+			AsioAPOInfo::appendInfos(playback, false, registry);
+			AsioAPOInfo* topping = findPlaybackRecord(playback, toppingClsid);
+			harness.require(topping != nullptr, "the playback record exists");
+
+			// The entry's Description is written after the record: failing it
+			// stops the install midway.
+			registry.failValueWrite(entryKey, L"Description");
+			bool threw = false;
+			try
+			{
+				topping->install();
+			}
+			catch (const WideError& e)
+			{
+				threw = true;
+				harness.expectFalse(e.getMessage().empty(), "the failure carries a message");
+			}
+			harness.expectTrue(threw, "a failing install throws a WideError");
+			harness.expectFalse(registry.keyExists(recordKey), "the record written before the failure is taken back");
+			harness.expectFalse(registry.keyExists(entryKey), "no half-written entry is left");
+			harness.expectFalse(topping->isInstalled(), "the record reads as not installed");
+			const DeviceInstallReport& failed = topping->getLastOperationReport();
+			harness.expect(failed.operation == DeviceInstallReport::Operation::Install, "the report names the install");
+			harness.expect(failed.outcome == DeviceInstallReport::Outcome::Failed, "and says it failed");
+			harness.expectFalse(failed.failure.empty(), "with the reason");
+			harness.expectFalse(failed.leftInconsistent(), "and a complete rollback");
+		}
+
+		{
+			test::FakeRegistry registry;
+			seedTargets(registry);
+			std::vector<std::shared_ptr<AbstractAPOInfo>> playback;
+			AsioAPOInfo::appendInfos(playback, false, registry);
+			AsioAPOInfo* topping = findPlaybackRecord(playback, toppingClsid);
+			harness.require(topping != nullptr, "the playback record exists again");
+
+			topping->install();
+			const DeviceInstallReport& done = topping->getLastOperationReport();
+			harness.expect(done.outcome == DeviceInstallReport::Outcome::Succeeded, "a clean install reports success");
+			harness.expect(done.asioEntry == AsioRegistration::entryNameFor(L"Topping USB Audio Device"), "and names the entry");
+			harness.expectFalse(done.appliedOperations.empty(), "and lists what it wrote");
+
+			// A reinstall that fails in its install half must not leave the
+			// entry removed by its uninstall half.
+			topping->setSynchronous(true);
+			registry.failValueWrite(recordKey, L"Mode");
+			bool threw = false;
+			try
+			{
+				topping->reinstall();
+			}
+			catch (const WideError&)
+			{
+				threw = true;
+			}
+			harness.expectTrue(threw, "the failing reinstall throws");
+			harness.expectTrue(registry.keyExists(entryKey), "the entry is still registered");
+			harness.expectTrue(registry.keyExists(recordKey), "and its record is back");
+			harness.expectTrue(topping->isInstalled(), "the record still reads as installed");
+			harness.expect(topping->getLastOperationReport().operation == DeviceInstallReport::Operation::Reinstall,
+				"the report names the reinstall");
+		}
+
+		{
+			// Without the InstallPath value there is no wrapper DLL to point
+			// at. The endpoint adapter says so with a DeviceException, and so
+			// does this one now (it used to surface readValue's RegistryError).
+			test::FakeRegistry registry;
+			seedTargets(registry);
+			registry.deleteValue(APP_REGPATH, L"InstallPath");
+			std::vector<std::shared_ptr<AbstractAPOInfo>> playback;
+			AsioAPOInfo::appendInfos(playback, false, registry);
+			AsioAPOInfo* topping = findPlaybackRecord(playback, toppingClsid);
+			harness.require(topping != nullptr, "the playback record exists without InstallPath");
+			harness.expectFalse(topping->canHost32(), "32-bit support reads as unavailable instead of throwing");
+			bool deviceError = false;
+			try
+			{
+				topping->install();
+			}
+			catch (const DeviceException&)
+			{
+				deviceError = true;
+			}
+			harness.expectTrue(deviceError, "a missing InstallPath is a DeviceException");
+			harness.expectFalse(registry.keyExists(recordKey), "and nothing is written");
+			harness.expectFalse(topping->changesNeedAudioRestart(), "an ASIO entry needs no audio service restart");
+		}
+	}
 }
 
 int runDeviceRecordTests()
@@ -371,6 +488,7 @@ int runDeviceRecordTests()
 	testRecordsShareOneWrapperRecord();
 	testBootAndHost32Options();
 	testFactsFeedTheRecord();
+	testOperationsAreTransactionalAndReported();
 	harness.report();
 	return 0;
 }

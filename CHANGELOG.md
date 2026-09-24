@@ -14,6 +14,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **A failed ASIO entry change is put back and reported.** Turning an ASIO
+  driver's entry on, off or changing its options wrote the record, the
+  driver-list entry in both registry views and the start-at-boot value one
+  after another; a failure midway left a record without an entry, and
+  nothing was logged. The Device Selector now applies the change in one step
+  that it undoes on failure, writes the outcome to its log, and a missing
+  install folder is reported the same way for ASIO drivers as for devices
+  ([#359](https://github.com/115dkk/EqualizerAPO-XT/pull/359)).
 ## v2.52.0 — 2026-09-24
 
 - **UpdateChecker.exe is no longer shipped.** The Editor already downloads a

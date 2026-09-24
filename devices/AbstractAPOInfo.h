@@ -42,9 +42,25 @@ public:
 	virtual bool isDefaultDevice() const = 0;
 	virtual bool isDisabled() const = 0;
 	virtual bool isUnplugged() const = 0;
+	// All three throw only exceptions derived from WideError
+	// (runtime/errors/WideError.h): RegistryError when the registry refuses
+	// a read or write, DeviceException for any other device error (a missing
+	// InstallPath, an endpoint that is gone). A caller that does not care
+	// which catches `const WideError&` (audit #348 C1/TD-32).
 	virtual void install() = 0;
 	virtual void uninstall() = 0;
 	virtual void reinstall() = 0;
+
+	// Whether an install, uninstall or reinstall of this record takes effect
+	// only once the Windows audio service restarts, which Device Selector's
+	// device test then checks. True for the endpoint APO chain; the ASIO
+	// entry, the Voicemeeter shortcut and the gallery preview need no
+	// restart. Device Selector used to answer this by casting to the
+	// endpoint type (audit #348 C1).
+	virtual bool changesNeedAudioRestart() const
+	{
+		return false;
+	}
 
 	// A short word the device lists append to the state text when the
 	// device is reached through something other than a Windows endpoint
@@ -63,10 +79,11 @@ public:
 	// wants the report in both paths.
 	//
 	// Not pure virtual, and the storage is here rather than in each subclass,
-	// because the device types that do not touch an endpoint's APO chain have
+	// because the device types whose change is not a registry transaction have
 	// nothing to fill it with: the Voicemeeter type rewrites a startup shortcut
 	// and the preview type used by the skin gallery does nothing at all. They
-	// leave it at NotAttempted, which is the truth about them.
+	// leave it at NotAttempted, which is the truth about them. The endpoint and
+	// ASIO types fill it through ReportedOperation::run.
 	const DeviceInstallReport& getLastOperationReport() const
 	{
 		return lastOperationReport;

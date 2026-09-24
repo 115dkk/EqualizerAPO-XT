@@ -142,7 +142,7 @@ void DeviceTestThread::run()
 					emit setItemStatus(deviceGuid, true, ItemStatusType::waiting);
 				testInfo->deviceInfo->testAPOInstallation();
 			}
-			catch (const DeviceException& e)
+			catch (const WideError& e)
 			{
 				emit showErrorDialog(QString::fromStdWString(e.getMessage()));
 			}
@@ -281,11 +281,7 @@ void DeviceTestThread::run()
 					{
 						testInfo->deviceInfo->reinstall();
 					}
-					catch (const RegistryError& e)
-					{
-						giveUp(e.getMessage());
-					}
-					catch (const DeviceException& e)
+					catch (const WideError& e)
 					{
 						giveUp(e.getMessage());
 					}
