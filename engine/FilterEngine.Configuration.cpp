@@ -48,11 +48,9 @@ using std::make_unique;
 using std::max;
 using std::move;
 using std::mutex;
-using std::string;
 using std::stringstream;
 using std::swap;
 using std::thread;
-using std::unique_lock;
 using std::vector;
 using std::wstring;
 

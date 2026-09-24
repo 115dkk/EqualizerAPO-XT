@@ -39,4 +39,3 @@
 #include <Shlwapi.h>
 #include <Ks.h>
 #include <KsMedia.h>
-#include "runtime/lifetime/ScopeExit.h"
