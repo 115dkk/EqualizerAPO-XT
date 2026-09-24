@@ -82,6 +82,13 @@ public:
 	// namespace-scope harness still constructs and destructs, which is where
 	// this catches it. Suites that legitimately run nothing (soft skips) call
 	// report(), which keeps them out of this branch.
+	//
+	// This only protects suites whose runner owns its harness, which is
+	// HybridConvTests' sub-suites. EditorLogicTests and
+	// EngineOrchestrationTests share one harness across many test functions,
+	// so a forgotten call there still leaves checks from the others; for those
+	// two, .github/scripts/Test-SourceSync.ps1 checks that every test function
+	// is called (audit #348 TD-23).
 	~Harness()
 	{
 		if (reported_ || aborting_)
