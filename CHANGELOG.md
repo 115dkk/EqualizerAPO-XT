@@ -14,6 +14,12 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **A VSTPlugin line keeps parameter values written as `-0.5` or `.5`.** In
+  the key-value form (`VSTPlugin: Library ... Gain -0.5`), a value that did
+  not start with a digit was read as a parameter name, so the parameter was
+  dropped and the next token's value was filed under the name `-0.5`. Values
+  starting with a sign or a decimal point are numbers now; the
+  `ParamName <name> <value>` form still works ([#355](https://github.com/115dkk/EqualizerAPO-XT/pull/355)).
 ## v2.51.2 — 2026-09-24
 
 - **Uninstalling no longer leaves the PC without sound when one audio device
