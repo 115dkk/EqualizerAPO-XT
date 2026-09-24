@@ -10,6 +10,7 @@
 
 #include "AllPassCardEditor.h"
 #include "FilterCardEditorRegistry.h"
+#include "FilterLineCard.h"
 #include "IIRCardEditor.h"
 #include "filters/BiQuadCommand.h"
 #include "filters/BiQuadFilterFactory.h"
@@ -27,36 +28,48 @@
 // appear to work, and then a link-order change would silently send every
 // all-pass to the coefficient card.
 //
-// The order is not arbitrary. IIR is tried first because its parser is the
-// stricter of the two and rejects everything that is not an explicit
-// coefficient line. The all-pass is tried next, on the type the BiQuad parser
-// reports. Anything else returns nullptr, which the factory chain reads as "no
-// card editor" and answers with the legacy GUI - that nullptr is load-bearing,
-// and it is the only thing keeping an ordinary "Filter: ON PK ..." out of the
-// coefficient card.
-REGISTER_FILTER_CARD_EDITOR(Filter, [](FilterTable*, const QString& command, const QString& parameters) -> IFilterGUI* {
-	const std::wstring wideCommand = command.toStdWString();
+// The choice is filterLineCard (FilterLineCard.h), registered as the entry's
+// predicate so FilterCardEditorFactory::available answers per line: an
+// ordinary "Filter: ON PK ..." is not a card line and takes the legacy knob
+// GUI from the start (audit #348 TD-57). The creator constructs what the
+// predicate chose; a nullptr from it still falls back to the legacy chain in
+// FilterTable::createRowGui.
+namespace
+{
+bool acceptsFilterLine(const QString& command, const QString& parameters)
+{
+	return filterLineCard(command, parameters) != FilterLineCard::None;
+}
 
+IFilterGUI* createFilterCard(FilterTable*, const QString& command, const QString& parameters)
+{
+	const std::wstring wideCommand = command.toStdWString();
+	// parseCommand rewrites its parameters argument as it consumes tokens, so
+	// each parse needs its own copy of the original text.
+	std::wstring wideParameters = parameters.toStdWString();
+	switch (filterLineCard(command, parameters))
+	{
+	case FilterLineCard::IirCoefficients:
 	{
 		IIRCommand cmd;
-		std::wstring wideParameters = parameters.toStdWString();
 		if (IIRFilterFactory::parseCommand(wideCommand, wideParameters, cmd))
 			return new IIRCardEditor(cmd.order, cmd.coefficients);
+		break;
 	}
-
+	case FilterLineCard::AllPass:
 	{
 		BiQuadCommand cmd;
-		// parseCommand rewrites its parameters argument as it consumes tokens,
-		// so each attempt needs its own copy of the original text.
-		std::wstring wideParameters = parameters.toStdWString();
-		if (BiQuadFilterFactory::parseCommand(wideCommand, wideParameters, cmd)
-			&& (cmd.type == BiQuad::ALL_PASS || cmd.type == BiQuad::ALL_PASS_1))
-		{
-			// The command name is carried through verbatim so that editing
-			// "Filter 99:" saves "Filter 99:" and not "Filter:".
+		// The command name is carried through verbatim so that editing
+		// "Filter 99:" saves "Filter 99:" and not "Filter:".
+		if (BiQuadFilterFactory::parseCommand(wideCommand, wideParameters, cmd))
 			return new AllPassCardEditor(cmd, command);
-		}
+		break;
 	}
-
+	case FilterLineCard::None:
+		break;
+	}
 	return nullptr;
-})
+}
+}
+
+REGISTER_FILTER_CARD_EDITOR(Filter, createFilterCard, false, acceptsFilterLine)

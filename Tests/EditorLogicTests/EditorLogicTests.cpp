@@ -153,6 +153,8 @@ int main(int argc, char** argv)
 		testLegacyMigrationHookAdoptsStableRootThroughThePort();
 		testLegacyMigrationHookRescuesVolatileTreeAndLeavesBreadcrumbs();
 		testSubwooferRoutingUiStateTracksMutationsAndValidation();
+		testSubwooferRoutingDefaultStates();
+		testFilterLineCardDecidesPerLine();
 		testSubwooferRoutingUiStateRejectsUnknownTargets();
 		testSubwooferRoutingUiStateHeadroomModes();
 		testVelopackInstallRootFollowsTheCurrentLeafRule();
