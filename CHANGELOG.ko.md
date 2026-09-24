@@ -8,6 +8,10 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **Benchmark.exe가 읽기나 쓰기가 중간에 멈추면 멈춰 서지 않고 오류로
+  끝납니다.** libsndfile이 기대한 프레임 수에 못 미친 채 0을 돌려주면 입출력
+  반복이 끝나지 않았습니다. 이제 이유를 출력하고 종료 코드 1로 끝납니다.
+  `--from` 도움말도 실제 기본값(1.0 Hz)을 적습니다([#356](https://github.com/115dkk/EqualizerAPO-XT/pull/356)).
 - **VSTPlugin 줄이 `-0.5`나 `.5`로 적은 파라미터 값을 그대로 씁니다.** 키-값
   형식(`VSTPlugin: Library ... Gain -0.5`)에서 숫자로 시작하지 않는 값을
   파라미터 이름으로 읽어, 그 파라미터가 빠지고 다음 토큰의 값이 `-0.5`라는
