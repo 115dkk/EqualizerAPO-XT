@@ -135,7 +135,8 @@ from the operating system preempting one of the two threads, so it is not the
 default. It can be selected per entry in the Device Selector: select the
 driver's entry, or an endpoint with **Use in ASIO apps** ticked, open the
 troubleshooting options and tick **Remove the buffer**; it applies to both
-directions. Once ticked, **Wait time** unfolds
+directions. The measurements in this section are from a driver's entry;
+the synchronous mode on an endpoint's entry has not been measured yet. Once ticked, **Wait time** unfolds
 beside it: how long a buffer waits for the host before it comes out without
 the EQ, up to a quarter of the buffer (the default), half, or three
 quarters. A longer wait misses fewer buffers and leaves the application less
