@@ -14,8 +14,6 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
-## v2.52.0 — 2026-09-24
-
 - **Benchmark.exe stops with an error instead of hanging on a short read or
   write.** When libsndfile returned no frames before the expected count, the
   input and output loops spun forever; they now print the reason and exit
@@ -40,12 +38,9 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   Now closing only hides the window at every step: the install carries on,
   and if a step fails afterwards the window comes back with the error. Exit
   code 5 is retired ([#353](https://github.com/115dkk/EqualizerAPO-XT/pull/353)).
-- **UpdateChecker.exe is no longer shipped.** The Editor already downloads a
-  new release in the background and applies it when it closes. The separate
-  notify-only tool had not been started automatically since the NSIS
-  installer was removed, and on the `x64-avx` channel it could offer another
-  channel's installer, because it matched installer names by prefix. An
-  update removes it from the install folder ([#352](https://github.com/115dkk/EqualizerAPO-XT/pull/352)).
+
+## v2.53.0 — 2026-09-24
+
 - **A Windows device's ASIO entry has the options a driver's entry has.**
   Ticking **Use in ASIO apps** for a playback or recording endpoint in the
   Device Selector now unfolds **Remove the buffer** with its **Wait time**,
@@ -55,6 +50,15 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   start the host at boot, and was not registered for 32-bit applications.
   The command-line option `--exclusive-mode-eq` is now `--asio-entry`; the
   old name still works ([#351](https://github.com/115dkk/EqualizerAPO-XT/pull/351)).
+
+## v2.52.0 — 2026-09-24
+
+- **UpdateChecker.exe is no longer shipped.** The Editor already downloads a
+  new release in the background and applies it when it closes. The separate
+  notify-only tool had not been started automatically since the NSIS
+  installer was removed, and on the `x64-avx` channel it could offer another
+  channel's installer, because it matched installer names by prefix. An
+  update removes it from the install folder ([#352](https://github.com/115dkk/EqualizerAPO-XT/pull/352)).
 
 ## v2.51.2 — 2026-09-24
 
