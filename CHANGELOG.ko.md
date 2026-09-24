@@ -8,6 +8,12 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **ARM64용 Benchmark.exe가 설정의 모든 필터를 적용합니다.** ARM64 빌드는 모든
+  필터를 프로그램에 남기는 링크 옵션 없이 만들어져, 프로그램 안에서 따로
+  참조하지 않는 필터가 빠졌고 그 설정 줄은 모르는 명령으로 건너뛰었습니다. 이제
+  오디오 엔진을 담는 프로그램은 모든 빌드가 링크 설정을 한 파일에서
+  가져옵니다([#360](https://github.com/115dkk/EqualizerAPO-XT/pull/360)).
+
 ## v2.52.0 — 2026-09-24
 
 - **UpdateChecker.exe를 더는 배포하지 않습니다.** Editor가 이미 새 릴리스를

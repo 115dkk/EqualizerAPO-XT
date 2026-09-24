@@ -66,3 +66,31 @@ if ($offenders.Count -gt 0) {
 }
 
 Write-Host "No per-project EnableEnhancedInstructionSet literals outside Directory.Build.props."
+
+# Audit #348 D2/TD-28/TD-33: the engine link contract - Common.lib and its
+# companions, /WHOLEARCHIVE, the *_LIB defaults and MUP_USE_WIDE_STRING - is
+# written once, in EngineConsumer.props (the test suites reach it through
+# Tests/Tests.props). Hand copies in project files had drifted: the ARM64
+# Benchmark shipped without /WHOLEARCHIVE and the ARM64 APO without the
+# muparserx define. Fail on any copy outside comments. Common.vcxproj is the
+# one exception, because it builds the library the contract links.
+$contractLiterals = @('Common.lib', 'WHOLEARCHIVE', 'MUP_USE_WIDE_STRING', '_LIB Condition=')
+$contractOffenders = @()
+foreach ($project in $projectFiles) {
+  if ($project.Name -eq 'Common.vcxproj') { continue }
+  $content = [regex]::Replace((Get-Content -Path $project.FullName -Raw), '<!--.*?-->', '',
+    [System.Text.RegularExpressions.RegexOptions]::Singleline)
+  $found = @($contractLiterals | Where-Object { $content.Contains($_) })
+  if ($found.Count -gt 0) {
+    $relative = $project.FullName.Substring($RepoRoot.Length).TrimStart('\', '/')
+    $contractOffenders += "$relative ($($found -join ', '))"
+  }
+}
+if ($contractOffenders.Count -gt 0) {
+  foreach ($offender in $contractOffenders) {
+    Write-Host "::error file=$($offender.Split(' ')[0])::Engine link contract spelled in a project file: $offender. Import EngineConsumer.props (or Tests/Tests.props) instead."
+  }
+  throw "Project files copy the engine link contract that EngineConsumer.props owns."
+}
+
+Write-Host "No project file outside Common.vcxproj copies the engine link contract of EngineConsumer.props."

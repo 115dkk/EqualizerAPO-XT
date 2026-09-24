@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The ASIO wrapper's core sources: the COM driver object, the callback
+  trampolines, the sample codec, the daemon-side processor and its ring, the
+  host link and the WASAPI exclusive target. EqualizerAPOAsio builds the
+  shipped DLL from them, and AsioTests and AsioProbe compile the same files to
+  test that DLL's behaviour, so the list is written once (audit #348 F13).
+  AsioInProcSources.props has the three files only the tests add.
+-->
+<Project>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)AsioWrapper.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)CallbackTrampolines.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SampleCodec.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)DaemonProcessor.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Win32HostLink.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WasapiExclusiveTarget.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\runtime\ipc\StreamRing.cpp" />
+  </ItemGroup>
+</Project>
