@@ -21,6 +21,7 @@
 
 #include <stdexcept>
 
+#include "audio/ChannelLayout.h"
 #include "dsp/FftwPlanningPolicy.h"
 #include "engine/FilterEngine.h"
 #include "helpers/AnalysisRequestGeneration.h"
@@ -145,22 +146,14 @@ void AnalysisThread::run()
 		QElapsedTimer timer;
 		timer.start();
 
-		unsigned channelCount = device->getChannelCount();
-		if (channelMask != 0 && channelMask != device->getChannelMask())
-		{
-			channelCount = 0;
-			for (int i = 0; i < 31; i++)
-			{
-				int channelPos = 1 << i;
-				if (channelMask & channelPos)
-					channelCount++;
-			}
-		}
-		if (channelCount == 0)
-		{
-			channelCount = 8;
-			channelMask = KSAUDIO_SPEAKER_7POINT1_SURROUND;
-		}
+		const ChannelLayout::AnalysisLayout layout = ChannelLayout::analysisLayout(
+			device->getChannelCount(), device->getChannelMask(), channelMask);
+		const unsigned channelCount = layout.channelCount;
+		channelMask = layout.channelMask;
+		// channelIndex is a position in the analysis channel list, built from
+		// the same layout; an index outside it would read past the buffer.
+		if (channelIndex < 0 || static_cast<unsigned>(channelIndex) >= channelCount)
+			throw std::out_of_range("the analysis channel is outside the stream's channel layout");
 
 		unsigned sampleRate = device->getSampleRate();
 		if (sampleRate == 0)
@@ -307,7 +300,10 @@ void AnalysisThread::run()
 
 			peakGain = -DBL_MAX;
 
-			for (int i = 0; i < frameCount / 2; i++)
+			// Every bin the transform wrote, the Nyquist bin included: the graph
+			// draws it, so a peak there must count too (audit #348).
+			const int binCount = static_cast<int>(AnalysisResponse::binCountFor(frameCount));
+			for (int i = 0; i < binCount; i++)
 			{
 				double sqrGain = freqData.get()[i][0] * freqData.get()[i][0] + freqData.get()[i][1] * freqData.get()[i][1];
 				if (sqrGain > peakGain)

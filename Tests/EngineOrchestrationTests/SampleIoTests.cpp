@@ -291,9 +291,43 @@ void testStereoFloatConversionBeatsScalarReference(test::Harness& harness)
 
 } // namespace
 
+// Audit #348 TD-41/A3: the planar write covers every output channel, like the
+// interleaved writes. With one input and two outputs (a mono source feeding a
+// stereo device) it used to stop after channel 0 and leave channel 1 holding
+// whatever the caller's buffer held; with more inputs than outputs it wrote
+// past the caller's pointer array.
+void testFloatPlanarWriteCoversEveryOutputChannel(test::Harness& harness)
+{
+	constexpr unsigned frames = 64;
+	const EngineStreamFormat monoToStereo{ 1, 2, maxFrames };
+	FilterConfiguration config(monoToStereo, {}, 2);
+
+	std::vector<float> input(frames);
+	for (unsigned i = 0; i < frames; i++)
+		input[i] = static_cast<float>(i) / frames;
+	const float* inputs[1] = { input.data() };
+	config.readFloatPlanar(inputs, frames);
+
+	std::vector<float> left(frames, -2.0f);
+	std::vector<float> right(frames, -2.0f);
+	float* outputs[2] = { left.data(), right.data() };
+	config.writeFloatPlanar(outputs, frames);
+
+	bool leftCopied = true;
+	bool rightWritten = true;
+	for (unsigned i = 0; i < frames; i++)
+	{
+		leftCopied = leftCopied && left[i] == input[i];
+		rightWritten = rightWritten && right[i] != -2.0f;
+	}
+	harness.expect(leftCopied, "writeFloatPlanar mono->stereo: channel 0 carries the input");
+	harness.expect(rightWritten, "writeFloatPlanar mono->stereo: channel 1 is written, not left untouched");
+}
+
 void runSampleIoTests(test::Harness& harness)
 {
 	testConversionsMatchScalarReferenceBitExactly(harness);
+	testFloatPlanarWriteCoversEveryOutputChannel(harness);
 	// Timing contracts are meaningless under AddressSanitizer: the
 	// instrumentation cost lands on the vectorized candidate, not on the
 	// reference loop shape, so the ratio inverts regardless of the code

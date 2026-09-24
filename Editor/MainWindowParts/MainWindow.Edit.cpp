@@ -84,7 +84,15 @@ void MainWindow::linesChanged()
 					QString currentPath = filterTable->getConfigPath();
 					if (currentPath.length() > 0)
 					{
-						save(filterTable, currentPath);
+						// Instant mode shows no '*'; a save that failed puts
+						// it back so the tab asks before it is closed.
+						if (!save(filterTable, currentPath))
+						{
+							forEachFilterTable([&](int i, FilterTable* candidate) {
+								if (candidate == filterTable)
+									setTabDirty(i, true);
+							});
+						}
 						updateDirtyStatus();
 					}
 				});

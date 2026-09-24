@@ -5,6 +5,7 @@
 */
 
 #include "asio/AsioWrapper.h"
+#include "asio/DriverNameText.h"
 
 #include <cstring>
 #include <new>
@@ -23,14 +24,12 @@ namespace eapo::asio
 			return static_cast<unsigned>(direction);
 		}
 
-		// Driver names are ASCII by convention; widen byte-wise so no code page
-		// decision is made inside a DAW's process.
+		// Driver names are in the ANSI code page of this (the DAW's) process;
+		// the WASAPI target narrowed its endpoint name with CP_ACP in this same
+		// process, so CP_ACP widens it back exactly.
 		void widen(const char* source, wchar_t* destination, size_t capacity) noexcept
 		{
-			size_t i = 0;
-			for (; i + 1 < capacity && source[i] != '\0'; i++)
-				destination[i] = static_cast<wchar_t>(static_cast<unsigned char>(source[i]));
-			destination[i] = L'\0';
+			drivername::widen(source, destination, capacity, CP_ACP);
 		}
 
 		inline uint64_t tickNow() noexcept
@@ -140,9 +139,10 @@ namespace eapo::asio
 		target_->getDriverName(targetName);
 		targetName[31] = '\0';
 		const size_t suffixLength = std::strlen(driverSuffix);
-		size_t baseLength = std::strlen(targetName);
-		if (baseLength + suffixLength > 31)
-			baseLength = 31 - suffixLength;
+		// Cut on a character boundary: half a double-byte character before
+		// the suffix would garble the name in the DAW's list.
+		const size_t baseLength = drivername::characterBoundary(
+			targetName, std::strlen(targetName), 31 - suffixLength, CP_ACP);
 		std::memcpy(name, targetName, baseLength);
 		std::memcpy(name + baseLength, driverSuffix, suffixLength);
 		name[baseLength + suffixLength] = '\0';

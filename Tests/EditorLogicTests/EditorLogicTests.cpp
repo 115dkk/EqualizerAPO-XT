@@ -109,6 +109,7 @@ int main(int argc, char** argv)
 		testVelopackGitHubRelease();
 		testVelopackFeeds();
 		testFilterCardDescriptors();
+		testCardEditsKeepSwitchedOffLinesOff();
 	testSubwooferRoutingDescriptors();
 	testSubwooferRoutingCrossoverRecipes();
 		testFilterCardDepths();

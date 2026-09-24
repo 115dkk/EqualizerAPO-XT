@@ -42,9 +42,23 @@ class DeviceTestThread : public QThread
 public:
 	DeviceTestThread(QObject* parent, const QVector<std::shared_ptr<DeviceAPOInfo>>& devices);
 
-	// How many devices no install mode worked for, once finished() fired.
-	// The dialog reads the verdict off the log; the headless command
-	// (DeviceSelector --install-endpoint) needs it as a number.
+	// How a run ended. Incomplete covers every exit before the verdict: a
+	// pipe that could not be read, a message that was not JSON, an aborted
+	// service restart, an interruption. Audit #348 TD-19: the headless command
+	// used to read a count that starts at 0 and is only written at the very
+	// end, so a run that stopped early reported "the APO is alive".
+	enum class Verdict
+	{
+		Incomplete,
+		Passed,
+		Failed
+	};
+
+	// Valid once finished() fired. The dialog reads the verdict off the log;
+	// the headless command (DeviceSelector --install-endpoint) needs it as a
+	// value, and treats Incomplete as a failure.
+	Verdict verdict() const {return verdictValue.load();}
+	// How many devices no install mode worked for; meaningful for Failed.
 	int nonWorkingDeviceCount() const {return nonWorking.load();}
 
 signals:
@@ -101,4 +115,5 @@ private:
 
 	QHash<QString, DeviceTestInfo> infoMap;
 	std::atomic<int> nonWorking{0};
+	std::atomic<Verdict> verdictValue{Verdict::Incomplete};
 };

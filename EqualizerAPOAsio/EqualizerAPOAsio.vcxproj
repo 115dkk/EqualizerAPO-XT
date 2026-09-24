@@ -98,6 +98,22 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
   </ItemDefinitionGroup>
+  <!-- The 32-bit wrapper is loaded by 32-bit DAWs from the x64 package, which
+       only guarantees the x64 VC++ runtime: with the dynamic CRT a machine
+       without the x86 redistributable could not load the driver at all
+       (audit #348 TD-12). It links nothing but system libraries, so the
+       static CRT is safe, and it keeps the DAW's own CRT out of the picture.
+       The x64 DLL keeps the runtime the installer guarantees. -->
+  <ItemDefinitionGroup Condition="'$(Platform)'=='Win32' And '$(Configuration)'=='Debug'">
+    <ClCompile>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)'=='Win32' And '$(Configuration)'=='Release'">
+    <ClCompile>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="DllMain.cpp" />
     <ClCompile Include="..\asio\AsioWrapper.cpp" />
@@ -119,6 +135,7 @@
   <ItemGroup>
     <ClInclude Include="..\asio\AsioSdk.h" />
     <ClInclude Include="..\asio\AsioWrapper.h" />
+    <ClInclude Include="..\asio\DriverNameText.h" />
     <ClInclude Include="..\asio\CallbackTrampolines.h" />
     <ClInclude Include="..\asio\SampleCodec.h" />
     <ClInclude Include="..\asio\StreamProcessor.h" />

@@ -100,6 +100,7 @@ if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"</
   <ItemGroup>
     <ClInclude Include="..\..\asio\AsioSdk.h" />
     <ClInclude Include="..\..\asio\AsioWrapper.h" />
+    <ClInclude Include="..\..\asio\DriverNameText.h" />
     <ClInclude Include="..\..\asio\InProcProcessor.h" />
     <ClInclude Include="..\..\asio\StreamProcessor.h" />
     <ClInclude Include="..\..\asio\DaemonProcessor.h" />

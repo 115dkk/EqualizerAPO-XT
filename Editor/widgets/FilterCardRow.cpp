@@ -842,6 +842,11 @@ void FilterCardRow::applyDescriptor()
 	// but its body IS the note editor - keep it editable.
 	if (gui != nullptr)
 		gui->setEnabled(descriptor.enabled || descriptor.type == QStringLiteral("comment"));
+	// The Copy routing view is the body of a Copy row (gui is null there), so
+	// it follows the same rule; before this it stayed live on a switched-off
+	// line (audit #348 TD-04).
+	if (routingView != nullptr)
+		routingView->setEnabled(descriptor.enabled);
 	// A row's own channel list (the Channel card's selection, Copy's
 	// destinations) wins. Other rows inside a Channel: selection inherit the
 	// selection's badges, so the group's reach is readable on every member
@@ -882,12 +887,7 @@ void FilterCardRow::updateModel()
 	QString command;
 	QString parameters;
 	senderGui->store(command, parameters);
-	// "#" is the comment card's sentinel: a pure comment line has no colon, so
-	// it is reassembled as "# <text>" (a bare "#" when the note is empty).
-	if (command == QStringLiteral("#"))
-		item->text = parameters.isEmpty() ? QStringLiteral("#") : QStringLiteral("# ") + parameters;
-	else
-		item->text = command + QStringLiteral(": ") + parameters;
+	item->text = FilterCardModel::assembleLine(command, parameters, item->text);
 	rebuildSummary();
 	table->updateModel();
 }
@@ -898,7 +898,7 @@ void FilterCardRow::routingEdited()
 		return;
 
 	const QString parameters = CopyRoutingAdapter::serialize(routingView->assignments());
-	item->text = QStringLiteral("Copy: ") + parameters;
+	item->text = FilterCardModel::assembleLine(QStringLiteral("Copy"), parameters, item->text);
 	rebuildSummary();
 	table->updateModel();
 }

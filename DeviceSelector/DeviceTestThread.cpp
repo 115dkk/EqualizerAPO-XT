@@ -169,8 +169,12 @@ void DeviceTestThread::run()
 
 				if (testInfo == infoMap.end())
 				{
+					// Another endpoint's APO can answer on the same pipe (an
+					// app opening a stream elsewhere during the test). That is
+					// not a verdict about the devices under test: note it and
+					// keep waiting for theirs.
 					emit logError(tr("Received unknown device GUID %1.").arg(deviceGuid));
-					return;
+					continue;
 				}
 
 				TestResult& result = testInfo->currentResult;
@@ -261,7 +265,30 @@ void DeviceTestThread::run()
 					installState.installMode = installMode;
 					installState.useOriginalAPOPreMix = testInfo->wantsOriginalApoPreMix && testInfo->deviceInfo->getOriginalAPOPreMix() != L"";
 					installState.useOriginalAPOPostMix = testInfo->wantsOriginalApoPostMix && testInfo->deviceInfo->getOriginalAPOPostMix() != L"";
-					testInfo->deviceInfo->reinstall();
+					// A refused write rolls the endpoint back and throws; out of
+					// QThread::run that was std::terminate for the diagnostic
+					// tool itself (audit #348 TD-06). The device stops being
+					// tested and counts as not working.
+					auto giveUp = [&](const std::wstring& error) {
+						emit logError(QString::fromStdWString(error));
+						if (remainingDevices.contains(deviceGuid))
+						{
+							it.remove();
+							nonWorkingDevices++;
+						}
+					};
+					try
+					{
+						testInfo->deviceInfo->reinstall();
+					}
+					catch (const RegistryError& e)
+					{
+						giveUp(e.getMessage());
+					}
+					catch (const DeviceException& e)
+					{
+						giveUp(e.getMessage());
+					}
 				}
 
 				if (!remainingDevices.isEmpty())
@@ -287,7 +314,11 @@ void DeviceTestThread::run()
 		}
 	}
 
+	if (isInterruptionRequested())
+		return;
+
 	nonWorking.store(nonWorkingDevices);
+	verdictValue.store(nonWorkingDevices == 0 ? Verdict::Passed : Verdict::Failed);
 	if (nonWorkingDevices == 0)
 		emit log("<b>" + tr("Checks done. No problems were detected.") + "</b>");
 	else

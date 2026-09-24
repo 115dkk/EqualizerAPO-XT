@@ -482,14 +482,18 @@ void FilterConfiguration::writeFloatInterleaved(float* output, unsigned frameCou
 
 #undef WRITE_FLOAT_INTERLEAVED_MACRO
 
-#pragma AVRT_CODE_END
-
-
+// The output array holds outputChannelCount pointers, like every other write
+// and both bypass paths assume. Audit #275's consolidation had narrowed this
+// loop to realChannelCount (mono in, stereo out left channel 1 unwritten; more
+// inputs than outputs wrote past the array) and moved it out of the AVRT
+// region; both are undone here (audit #348 TD-41/A3).
 void FilterConfiguration::writeFloatPlanar(float* const* output, unsigned frameCount)
 {
-	for (unsigned c = 0; c < realChannelCount; c++)
+	for (unsigned c = 0; c < outputChannelCount; c++)
 		sampleconv::demote(output[c], allSamples[c], frameCount);
 }
+
+#pragma AVRT_CODE_END
 
 bool FilterConfiguration::isEmpty()
 {

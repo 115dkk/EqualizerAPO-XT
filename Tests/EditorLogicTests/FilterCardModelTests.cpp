@@ -20,6 +20,31 @@
 
 #include "EditorLogicTestSupport.h"
 
+// Audit #348 TD-04/B7: the Copy routing view (and any card that writes its
+// state back) rebuilt "Copy: ..." without looking at whether the line was
+// switched off, so touching a switched-off Copy row switched it on.
+void testCardEditsKeepSwitchedOffLinesOff()
+{
+	expectEqual(FilterCardModel::assembleLine("Copy", "L=R R=L", "# Copy: L=L R=R"),
+		"# Copy: L=R R=L", "editing a switched-off Copy line keeps it switched off");
+	expectEqual(FilterCardModel::assembleLine("Copy", "L=R", "Copy: L=L"),
+		"Copy: L=R", "editing a live Copy line keeps it live");
+	expectEqual(FilterCardModel::assembleLine("VSTPlugin", "Library x.dll Gain 0.5", "#VSTPlugin: Library x.dll Gain 0.2"),
+		"# VSTPlugin: Library x.dll Gain 0.5", "a VST state read-back on a switched-off line keeps it off");
+	expectEqual(FilterCardModel::assembleLine("#", "a note", "# a note"),
+		"# a note", "the note card writes its sentinel form");
+	expectEqual(FilterCardModel::assembleLine("#", "", "# old"),
+		"#", "an emptied note is a bare #");
+	// A note that merely looks like "word: text" is not a switched-off
+	// command, so a card that turns it into a command writes it live.
+	expectEqual(FilterCardModel::assembleLine("Preamp", "-3 dB", "# todo: louder"),
+		"Preamp: -3 dB", "a note is not a switched-off command");
+	// Round trip with the enable toggle's spelling.
+	const QString off = FilterCardModel::assembleLine("Preamp", "-3 dB", "# Preamp: -6 dB");
+	expectTrue(FilterCardModel::describeLine(off).enabled == false,
+		"the reassembled switched-off line still describes as disabled");
+}
+
 void testFilterCardDescriptors()
 {
 	// Every classification below runs through FilterCardModel::canonicalCommand,

@@ -136,6 +136,20 @@ void testChannelLayout()
 	harness.expectEqual(ChannelLayout::getChannelIndex(L"5", stereo, true), -1, "out-of-range channel number is -1");
 	// "SUB" is the legacy alias for the LFE channel.
 	harness.expectEqual(ChannelLayout::getChannelIndex(L"SUB", surround), 3, "SUB alias resolves to the LFE index");
+
+	// Audit #348 TD-20: the analysis layout rule the channel list and the
+	// analysis thread share.
+	const ChannelLayout::AnalysisLayout own = ChannelLayout::analysisLayout(6, surroundMask, 0);
+	harness.expectTrue(own.channelCount == 6 && own.channelMask == 0,
+		"no selection keeps the device's channel count");
+	const ChannelLayout::AnalysisLayout same = ChannelLayout::analysisLayout(6, surroundMask, surroundMask);
+	harness.expectTrue(same.channelCount == 6, "selecting the device's own mask keeps its channel count");
+	const ChannelLayout::AnalysisLayout narrower = ChannelLayout::analysisLayout(6, surroundMask, stereoMask);
+	harness.expectTrue(narrower.channelCount == 2 && narrower.channelMask == stereoMask,
+		"another selection counts its mask bits");
+	const ChannelLayout::AnalysisLayout unknown = ChannelLayout::analysisLayout(0, 0, 0);
+	harness.expectTrue(unknown.channelCount == 8 && unknown.channelMask == ChannelLayout::getDefaultChannelMask(8),
+		"a device with no channel count analyses as 7.1");
 }
 }
 

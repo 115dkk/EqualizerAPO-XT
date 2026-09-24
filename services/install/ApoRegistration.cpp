@@ -21,6 +21,7 @@
 #include "services/registry/RegistryPaths.h"
 
 #include <cstdio>
+#include <cstring>
 #include <memory>
 #include <vector>
 
@@ -33,6 +34,10 @@
 #include "platform/windows/WindowsPath.h"
 #include "services/security/AudioEngineAccess.h"
 #include "devices/DeviceAPOInfo.h"
+#include "devices/DeviceAPOInfoKeys.h"
+#include "devices/AsioAPOInfo.h"
+#include "devices/VoicemeeterAPOInfo.h"
+#include "runtime/lifetime/ScopeExit.h"
 #include "services/logging/Logging.h"
 #include "services/logging/TaggedLogger.h"
 #include "services/registry/WindowsRegistry.h"
@@ -42,8 +47,8 @@
 
 namespace
 {
-// The one spelling lives in WindowsRegistry.h; DeviceAPOInfoKeys.h composes
-// on the same macro.
+// The one spelling lives in services/registry/RegistryPaths.h;
+// DeviceAPOInfoKeys.h composes on the same macro.
 constexpr const wchar_t* kRegPath = APP_REGPATH;
 constexpr wchar_t kAudioRegPath[] = L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Audio";
 constexpr wchar_t kAudioServiceName[] = L"AudioSrv";
@@ -185,7 +190,35 @@ ApoRegistration::Result ApoRegistration::uninstall(const std::wstring& installDi
 	if (!AudioEngineAccess::isElevated())
 		logLine(L"WARN", L"uninstall() is running unelevated; device APO removal and HKLM cleanup will fail");
 
-	bool serviceWasRunning = stopAudioService();
+	const bool serviceWasRunning = stopAudioService();
+	// The audio service comes back on every path out of this function,
+	// including an exception thrown by anything below: a hook that ends with
+	// AudioSrv stopped leaves the user without sound until a reboot (audit
+	// #348 TD-02).
+	SCOPE_EXIT{
+		if (!serviceWasRunning)
+			return;
+		try
+		{
+			// This epilogue intentionally belongs to the package hook, not
+			// the /u helper. The hook has already stopped AudioSrv and must
+			// rebuild the endpoint graph exactly once after every device has
+			// been cleaned.
+			try
+			{
+				WindowsServiceControl::restart(kAudioEndpointBuilderServiceName);
+			}
+			catch (const WindowsServiceError& e)
+			{
+				logLine(L"WARN", L"Failed to restart AudioEndpointBuilder; a reboot may be needed to fully apply the removal: %s", e.getMessage().c_str());
+			}
+			startAudioService();
+		}
+		catch (...)
+		{
+			logLine(L"ERR", L"Restarting the audio services after the uninstall failed");
+		}
+	};
 
 	const Result deviceResult = uninstallAllDeviceApos([](const std::wstring& message) {
 		logLine(L"ERR", L"Failed to uninstall APO from device: %s", message.c_str());
@@ -204,52 +237,80 @@ ApoRegistration::Result ApoRegistration::uninstall(const std::wstring& installDi
 	if (!StartMenuShortcuts::remove())
 		logLine(L"WARN", L"Failed to remove start menu shortcuts");
 
-	if (serviceWasRunning)
-	{
-		// This epilogue intentionally belongs to the package hook, not the /u
-		// helper. The hook has already stopped AudioSrv and must rebuild the
-		// endpoint graph exactly once after every device has been cleaned.
-		try
-		{
-			WindowsServiceControl::restart(kAudioEndpointBuilderServiceName);
-		}
-		catch (const WindowsServiceError& e)
-		{
-			logLine(L"WARN", L"Failed to restart AudioEndpointBuilder; a reboot may be needed to fully apply the removal: %s", e.getMessage().c_str());
-		}
-		startAudioService();
-	}
-
 	return deviceResult;
 }
 
 ApoRegistration::Result ApoRegistration::uninstallAllDeviceApos(const DeviceUninstallErrorSink& errorSink,
-	IRegistry& registry)
+	IRegistry& registry, const DefaultDeviceLookup& defaultDeviceLookup)
 {
 	Result result = Result::Success;
+	auto report = [&](const std::wstring& message) {
+		if (errorSink)
+			errorSink(message);
+		result = Result::DeviceUninstallFailed;
+	};
+	// One item at a time, each in its own try: DeviceAPOInfo::loadAllInfos
+	// would throw for the whole list on the first unreadable endpoint.
+	auto guarded = [&](const std::wstring& what, const auto& step) {
+		try
+		{
+			step();
+		}
+		catch (const RegistryError& e)
+		{
+			report(what.empty() ? e.getMessage() : what + L": " + e.getMessage());
+		}
+		catch (const DeviceException& e)
+		{
+			report(what.empty() ? e.getMessage() : what + L": " + e.getMessage());
+		}
+		catch (const std::exception& e)
+		{
+			report((what.empty() ? std::wstring() : what + L": ") + L"unexpected error: "
+				+ std::wstring(e.what(), e.what() + strlen(e.what())));
+		}
+	};
+	auto uninstallInfo = [&](const std::wstring& what, AbstractAPOInfo& info) {
+		guarded(what, [&] {
+			if (info.isInstalled())
+				info.uninstall();
+		});
+	};
+
 	for (int inputPass = 0; inputPass <= 1; inputPass++)
 	{
-		std::vector<std::shared_ptr<AbstractAPOInfo>> apoInfos = DeviceAPOInfo::loadAllInfos(inputPass == 1, registry);
-		for (std::shared_ptr<AbstractAPOInfo>& apoInfo : apoInfos)
+		const bool input = inputPass == 1;
+		const std::wstring defaultDeviceGuid = defaultDeviceLookup
+			? defaultDeviceLookup(input)
+			: DeviceAPOInfo::getDefaultDevice(input);
+
+		// A direction with no endpoint key at all has nothing to clean.
+		const std::wstring endpointRoot = input ? captureKeyPath : renderKeyPath;
+		std::vector<std::wstring> endpointGuids;
+		guarded(L"", [&] {
+			if (registry.keyExists(endpointRoot))
+				endpointGuids = registry.enumSubKeys(endpointRoot);
+		});
+		for (const std::wstring& endpointGuid : endpointGuids)
 		{
-			try
-			{
-				if (apoInfo->isInstalled())
-					apoInfo->uninstall();
-			}
-			catch (const RegistryError& e)
-			{
-				if (errorSink)
-					errorSink(e.getMessage());
-				result = Result::DeviceUninstallFailed;
-			}
-			catch (const DeviceException& e)
-			{
-				if (errorSink)
-					errorSink(e.getMessage());
-				result = Result::DeviceUninstallFailed;
-			}
+			guarded(endpointGuid, [&] {
+				DeviceAPOInfo info(registry);
+				if (info.load(endpointGuid, defaultDeviceGuid))
+				{
+					// As loadAllInfos does: the selection starts as what is
+					// installed.
+					info.getSelectedInstallState() = info.getCurrentInstallState();
+					uninstallInfo(endpointGuid, info);
+				}
+			});
 		}
+
+		std::vector<std::shared_ptr<AbstractAPOInfo>> others;
+		if (!input)
+			guarded(L"Voicemeeter", [&] { VoicemeeterAPOInfo::prependInfos(others, registry); });
+		guarded(L"ASIO", [&] { AsioAPOInfo::appendInfos(others, input, registry); });
+		for (std::shared_ptr<AbstractAPOInfo>& apoInfo : others)
+			uninstallInfo(L"", *apoInfo);
 	}
 	return result;
 }

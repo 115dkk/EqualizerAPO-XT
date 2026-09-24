@@ -67,7 +67,7 @@ std::vector<std::wstring> LoudnessCorrectionFilter::initialize(float sampleRate,
 	HRESULT res = VolumeController.getVolume(vol);
 	if (res == S_OK)
 	{
-		double preAmp;
+		double preAmp = 0.0;
 		getLShelfParamter(vol, freqLS, qLS, gainLS, preAmp);
 		_attFactor = exp(preAmp / 6 * log(2));
 		getHShelfParamter(vol + preAmp, freqHS, qHS, gainHS);
@@ -100,26 +100,33 @@ std::vector<std::wstring> LoudnessCorrectionFilter::initialize(float sampleRate,
 	return channelNames;
 }
 
-void LoudnessCorrectionFilter::getLShelfParamter(const double& volume, double& frequence, double& q, double& gain, double& preAmp)
+LoudnessCorrectionFilter::LowShelf LoudnessCorrectionFilter::lowShelfFor(const FilterParameters& parameters, double volume)
 {
-	frequence = 75;
-	q = 0.52;
-	double volDiff = _parameters.referenceLevel - _parameters.referenceOffset - volume;
+	LowShelf shelf;
+	const double volDiff = parameters.referenceLevel - parameters.referenceOffset - volume;
 	if (volDiff > 0)
 	{
 		// old: gain=volDiff*0.55*_parameters.attenuation;
-		gain = volDiff * 0.55 / (1 - 0.55) * _parameters.attenuation;
-		preAmp = -gain;
+		shelf.gain = volDiff * 0.55 / (1 - 0.55) * parameters.attenuation;
+		shelf.preAmp = -shelf.gain;
 	}
 	else if (volDiff < 0)
 	{
-		preAmp = 0.0;
-		gain = volDiff * 0.55 * exp(volDiff / 90.0) * _parameters.attenuation;
+		shelf.gain = volDiff * 0.55 * exp(volDiff / 90.0) * parameters.attenuation;
 	}
-	else
-	{
-		gain = 0;
-	}
+	// At the reference point both stay 0. The out-parameter version this
+	// replaced left preAmp unwritten there, so initialize() computed the
+	// attenuation from an uninitialised double (audit #348 TD-03).
+	return shelf;
+}
+
+void LoudnessCorrectionFilter::getLShelfParamter(const double& volume, double& frequence, double& q, double& gain, double& preAmp)
+{
+	const LowShelf shelf = lowShelfFor(_parameters, volume);
+	frequence = shelf.frequency;
+	q = shelf.q;
+	gain = shelf.gain;
+	preAmp = shelf.preAmp;
 }
 void LoudnessCorrectionFilter::getHShelfParamter(const double& volume, double& frequence, double& q, double& gain)
 {
@@ -145,7 +152,7 @@ void LoudnessCorrectionFilter::parameterUpdateThread(LoudnessCorrectionFilter* l
 	VolumeController volumeController;
 	double volOld(lCorrection->_parameters.referenceLevel);
 	double vol(lCorrection->_parameters.referenceLevel);
-	double freqLS, qLS, gainLS, preAmp;
+	double freqLS = 0.0, qLS = 0.0, gainLS = 0.0, preAmp = 0.0;
 	double freqHS, qHS, gainHS;
 	HRESULT res;
 	while (true)

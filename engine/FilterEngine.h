@@ -89,11 +89,14 @@ public:
 	void loadConfigFile(const std::wstring& path);
 	void watchRegistryKey(const std::wstring& key);
 	// Three surfaces: float interleaved (the APO's usual connection format),
-	// float planar (VoicemeeterClient - Voicemeeter hands per-channel pointer
-	// arrays), and double interleaved (the APO's double connection, Benchmark,
-	// the Editor's analysis engine). The double-planar overload was removed in
-	// audit #275 (A7/TD-17): it had no production caller and only a null-path
-	// test, so it claimed support nothing verified.
+	// float planar (VoicemeeterClient, whose host hands per-channel pointer
+	// arrays, and the ASIO stream processors asio/EngineHostCore.cpp and
+	// asio/InProcProcessor.cpp), and double interleaved (the APO's double
+	// connection, Benchmark, the Editor's analysis engine). The planar surface
+	// reads realChannelCount input pointers and writes outputChannelCount
+	// output pointers. The double-planar overload was removed in audit #275
+	// (A7/TD-17): it had no production caller and only a null-path test, so it
+	// claimed support nothing verified.
 	void process(float* output, float* input, unsigned frameCount);
 	void process(float** output, float** input, unsigned frameCount);
 	void process(double* output, double* input, unsigned frameCount);

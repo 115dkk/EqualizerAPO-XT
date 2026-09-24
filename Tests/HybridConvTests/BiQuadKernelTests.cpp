@@ -14,6 +14,7 @@
 	of what the test host can execute.
 */
 
+#include <cmath>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -45,6 +46,68 @@ void testBiQuadRejectsNonFiniteParameters()
 		harness.expectFalse(BiQuadFilterFactory::parseCommand(L"Filter", parameters, command),
 			"BiQuad rejects a non-finite numeric parameter");
 	}
+}
+
+// Audit #348 TD-13: only finiteness was checked, so a zero or negative
+// frequency, Q or bandwidth reached the coefficient formulas.
+void testBiQuadRejectsNonPositiveParameters()
+{
+	const wchar_t* cases[] = {
+		L"ON PK Fc 0 Hz Gain 3 dB Q 1",
+		L"ON PK Fc -100 Hz Gain 3 dB Q 1",
+		L"ON PK Fc 1000 Hz Gain 3 dB Q -1",
+		L"ON PK Fc 1000 Hz Gain 3 dB BW Oct -1",
+		L"ON LS -6 dB Fc 100 Hz Gain 3 dB",
+	};
+	for (const wchar_t* text : cases)
+	{
+		std::wstring parameters(text);
+		BiQuadCommand command;
+		std::wstring error;
+		harness.expectFalse(BiQuadFilterFactory::parseCommand(L"Filter", parameters, command, &error),
+			"BiQuad rejects a non-positive frequency, Q, bandwidth or slope");
+		harness.expectFalse(error.empty(), "the rejection carries a reason for the trace");
+	}
+
+	std::wstring valid(L"ON PK Fc 1000 Hz Gain 3 dB Q 1");
+	BiQuadCommand command;
+	harness.expectTrue(BiQuadFilterFactory::parseCommand(L"Filter", valid, command),
+		"a positive peaking band still parses");
+}
+
+// A band exactly at Nyquist puts both poles on the unit circle; the section
+// must pass the signal through instead of ringing forever. A band above
+// Nyquist folds back and stays stable, as it always has, and must stay finite.
+void testBiQuadAtNyquistPassesThrough()
+{
+	constexpr unsigned length = 4096;
+	for (BiQuad::Type type : {BiQuad::PEAKING, BiQuad::LOW_PASS})
+	{
+		BiQuadFilter filter(type, 6.0, 22050.0, 0.7, false, false);
+		vector<wstring> names(1, L"L");
+		filter.initialize(44100.0f, length, names);
+
+		vector<double> in(length, 0.0), out(length, 0.0);
+		in[0] = 1.0;
+		double* inPtr[1] = {in.data()};
+		double* outPtr[1] = {out.data()};
+		filter.process(outPtr, inPtr, length);
+		harness.expect(memcmp(in.data(), out.data(), length * sizeof(double)) == 0,
+			"a biquad exactly at Nyquist passes an impulse through unchanged");
+	}
+
+	BiQuadFilter folded(BiQuad::PEAKING, 6.0, 30000.0, 1.0, false, false);
+	vector<wstring> names(1, L"L");
+	folded.initialize(44100.0f, length, names);
+	vector<double> in(length, 0.0), out(length, 0.0);
+	in[0] = 1.0;
+	double* inPtr[1] = {in.data()};
+	double* outPtr[1] = {out.data()};
+	folded.process(outPtr, inPtr, length);
+	bool finite = true;
+	for (double sample : out)
+		finite = finite && std::isfinite(sample) && std::abs(sample) < 16.0;
+	harness.expect(finite, "a biquad above Nyquist stays finite and bounded");
 }
 
 constexpr unsigned frameCount = 480;
@@ -185,6 +248,8 @@ void testMultiChannelMatchesMonoBitExactly()
 void runBiQuadKernelTests()
 {
 	testBiQuadRejectsNonFiniteParameters();
+	testBiQuadRejectsNonPositiveParameters();
+	testBiQuadAtNyquistPassesThrough();
 	testPlanCoversEveryChannelOnce();
 	testPlanDoesNotSerializePairableChannels();
 	testMultiChannelMatchesMonoBitExactly();

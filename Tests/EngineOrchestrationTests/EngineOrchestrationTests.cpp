@@ -32,6 +32,7 @@
 #endif
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <objbase.h>
 #include "devices/DeviceAPOInfo.h"
 #include "devices/VoicemeeterAPOInfo.h"
 #include "devices/VoicemeeterDetection.h"
@@ -765,6 +766,71 @@ void testConfigWatcherBackoffAndPathRefresh(test::Harness& harness)
 		"both config directories produced change callbacks");
 }
 
+// Audit #348 TD-01: a configuration that reads the registry (readRegString,
+// readRegDWORD) makes the watcher arm RegNotifyChangeKeyValue on that key.
+// The audit read that closing an armed key signals the event and concluded
+// the watcher reloads forever; closing does signal it, but re-arming resets
+// it (measured on Windows 11 22621), so it never looped. This pins the
+// property either way: no reload without a change, exactly one per change.
+// The key lives under the HKCU test sandbox and is removed on every path.
+void testConfigWatcherRegistryKeyIsQuietUntilChanged(test::Harness& harness)
+{
+	GUID guid = {};
+	CoCreateGuid(&guid);
+	wchar_t guidText[64] = {};
+	StringFromGUID2(guid, guidText, 64);
+	const std::wstring subKey = std::wstring(L"Software\\EqualizerAPO-XT-Tests\\") + guidText;
+	const std::wstring fullKey = L"HKEY_CURRENT_USER\\" + subKey;
+
+	HKEY created = nullptr;
+	if (RegCreateKeyExW(HKEY_CURRENT_USER, subKey.c_str(), 0, nullptr, 0,
+		KEY_SET_VALUE, nullptr, &created, nullptr) != ERROR_SUCCESS)
+	{
+		harness.expect(false, "could not create the HKCU sandbox key for the registry watch test");
+		return;
+	}
+	RegCloseKey(created);
+
+	std::atomic<int> callbackCount = 0;
+	Win32Event shutdown(true, false);
+	Win32Event changed(true, false);
+	ConfigWatcher watcher(
+		shutdown.get(),
+		[&] {
+			ConfigWatcher::Snapshot snapshot;
+			snapshot.registryKeys.push_back(fullKey);
+			return snapshot;
+		},
+		[&] {
+			++callbackCount;
+			changed.set();
+			return true;
+		});
+	std::thread worker([&] { watcher.run(); });
+
+	// Three backoff ticks with no change must stay silent.
+	Sleep(3200);
+	harness.expect(callbackCount.load() == 0,
+		"a watched registry key without changes does not trigger reloads");
+
+	changed.reset();
+	const DWORD value = 1;
+	RegSetKeyValueW(HKEY_CURRENT_USER, subKey.c_str(), L"Probe", REG_DWORD,
+		&value, sizeof(value));
+	const bool observed = WaitForSingleObject(changed.get(), 2000) == WAIT_OBJECT_0;
+	Sleep(1500);
+	harness.expect(observed, "a registry value change triggers a reload");
+	harness.expect(callbackCount.load() == 1,
+		"one registry value change triggers exactly one reload");
+
+	shutdown.set();
+	worker.join();
+	RegDeleteTreeW(HKEY_CURRENT_USER, subKey.c_str());
+	RegDeleteKeyW(HKEY_CURRENT_USER, subKey.c_str());
+	// Fails harmlessly while another run's sandbox key still exists.
+	RegDeleteKeyW(HKEY_CURRENT_USER, L"Software\\EqualizerAPO-XT-Tests");
+}
+
 // initialize() seeds an empty active configuration and publishes the requested
 // file through the same worker->RT channel used by every later reload. Before
 // the first audio block consumes it, the public state query must conservatively
@@ -1263,6 +1329,7 @@ int runEngineOrchestrationTests()
 	testEmptyConfigurationExpandsRenderChannels(harness);
 	testParallelExecutor(harness);
 	testConfigWatcherBackoffAndPathRefresh(harness);
+	testConfigWatcherRegistryKeyIsQuietUntilChanged(harness);
 	runConfigurationFileReaderTests(harness);
 	runSampleIoTests(harness);
 	runApoFormatTests(harness);

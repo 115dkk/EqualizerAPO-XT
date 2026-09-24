@@ -400,6 +400,14 @@ void VSTCardEditor::openPanel()
 		previewFeeder.start(effect.get());
 
 		VSTPluginFilterGUIDialog dialog(this, effect.get(), autoApplyDialog);
+		if (!dialog.isEditorOpen())
+		{
+			// Same report as a failed embed, instead of an empty dialog.
+			previewFeeder.stop();
+			initErrorText = tr("Plugin crashed when opening panel.");
+			updateReferenceState();
+			return;
+		}
 		connect(dialog.getApplyButton(), SIGNAL(pressed()), SLOT(applyDialog()));
 		connect(dialog.getAutoApplyCheckBox(), SIGNAL(toggled(bool)), SLOT(autoApplyToggled(bool)));
 		connect(QAbstractEventDispatcher::instance(), SIGNAL(aboutToBlock()), SLOT(onIdle()));

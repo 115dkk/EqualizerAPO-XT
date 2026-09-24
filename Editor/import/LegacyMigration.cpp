@@ -98,8 +98,28 @@ void writeMigrationBreadcrumbs(IRegistry& registry, const QString& from, int fil
 
 QString LegacyMigration::stableConfigRoot()
 {
-    return LegacyMigrationPolicy::stableConfigRoot(
-        QString::fromLocal8Bit(qgetenv("LOCALAPPDATA")));
+    return LegacyMigrationPolicy::stableConfigRoot(qEnvironmentVariable("LOCALAPPDATA"));
+}
+
+QString LegacyMigration::configRoot(const IRegistry& registry)
+{
+    try
+    {
+        if (registry.keyExists(APP_REGPATH) && registry.valueExists(APP_REGPATH, L"ConfigPath"))
+        {
+            const QString configured = QString::fromStdWString(registry.readValue(APP_REGPATH, L"ConfigPath"));
+            if (!configured.isEmpty())
+                return configured;
+        }
+    }
+    catch (const RegistryError& e)
+    {
+        LogFStatic(L"Could not read ConfigPath, using the stable config root: %s", e.getMessage().c_str());
+    }
+    const QString stableRoot = stableConfigRoot();
+    if (!stableRoot.isEmpty() && QDir(stableRoot).exists())
+        return stableRoot;
+    return QDir::currentPath();
 }
 
 bool LegacyMigration::looksLikeLegacyApoConfigDir(const QString& configDir)

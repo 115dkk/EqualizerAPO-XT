@@ -49,6 +49,7 @@
 #include "asio/WrapperRecord.h"
 #include "devices/DeviceAPOInfo.h"
 #include "devices/DeviceAPOInfoKeys.h"
+#include "services/install/ApoRegistration.h"
 #include "services/registry/WindowsRegistry.h"
 #include "platform/windows/WindowsVersion.h"
 #include "Tests/TestHarness.h"
@@ -778,6 +779,41 @@ void testCheckProtectedAudioDGReportsAndFixesTheDisabledFlag(test::Harness& harn
 	harness.expect(DeviceAPOInfo::checkProtectedAudioDG(false, registry),
 		"once the flag is set the check passes and stops nagging");
 }
+// Audit #348 TD-02: the package uninstall hook stops AudioSrv and then sweeps
+// every endpoint. The sweep built the whole list with loadAllInfos outside
+// its try, so one endpoint whose values could not be read threw out of the
+// hook before any device was cleaned, the DLL was unregistered or the
+// service restarted. It now isolates each endpoint: the broken one is
+// reported, the healthy one is still cleaned.
+void testUninstallSweepSurvivesAnUnreadableEndpoint(test::Harness& harness)
+{
+	FakeRegistry registry;
+	installOnBareDevice(harness, registry);
+
+	// Sorts before the healthy endpoint, so the sweep meets it first.
+	const std::wstring brokenGuid = L"{00000000-0000-0000-0000-000000000001}";
+	const std::wstring brokenKey = renderKeyPath L"\\" + brokenGuid;
+	registry.seedDword(brokenKey, L"DeviceState", DEVICE_STATE_ACTIVE);
+	registry.seedString(brokenKey + L"\\Properties", connectionValueName, connectionName);
+	registry.denyRead(brokenKey + L"\\Properties");
+
+	std::vector<std::wstring> errors;
+	const ApoRegistration::Result result = ApoRegistration::uninstallAllDeviceApos(
+		[&](const std::wstring& message) { errors.push_back(message); },
+		registry,
+		[](bool) { return otherDeviceGuid; });
+
+	harness.expect(result == ApoRegistration::Result::DeviceUninstallFailed,
+		"the sweep reports that one endpoint could not be handled");
+	harness.expectEqual(errors.size(), static_cast<size_t>(1),
+		"exactly the unreadable endpoint is reported");
+	harness.expect(!errors.empty() && errors.front().find(brokenGuid) != std::wstring::npos,
+		"the report names the endpoint it could not read");
+	harness.expectFalse(registry.keyExists(childApoKey),
+		"the healthy endpoint after the broken one is still uninstalled");
+	harness.expectFalse(registry.keyExists(fxPropertiesKey),
+		"the healthy endpoint's FxProperties created by the install is gone too");
+}
 } // namespace
 
 void runDeviceApoInfoTests(test::Harness& harness)
@@ -803,4 +839,5 @@ void runDeviceApoInfoTests(test::Harness& harness)
 	testInstallLeavesTheEndpointAloneWhenAMidwaySlotWriteFails(harness);
 	testUninstallPutsTheInstallationBackWhenItCannotFinish(harness);
 	testCheckProtectedAudioDGReportsAndFixesTheDisabledFlag(harness);
+	testUninstallSweepSurvivesAnUnreadableEndpoint(harness);
 }

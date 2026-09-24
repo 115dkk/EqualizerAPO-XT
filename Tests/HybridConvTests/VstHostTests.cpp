@@ -332,6 +332,13 @@ void runVstHostTests()
 	harness.expectTrue(instance->canDoubleReplacing(), "plugin advertises double replacing");
 	harness.expectTrue(instance->getName() == L"TestVst2Plugin", "plugin reports its name");
 
+	// Audit #348 TD-14: this plugin has no editor (VST_EFFECT_FLAG_EDITOR is
+	// clear). Opening its panel used to dereference an uninitialised rect.
+	short editorWidth = 0;
+	short editorHeight = 0;
+	harness.expectFalse(instance->startEditing(nullptr, &editorWidth, &editorHeight),
+		"startEditing on a VST2 plugin without an editor reports failure");
+
 	instance->prepareForProcessing(48000.0f, 512);
 	instance->startProcessing();
 

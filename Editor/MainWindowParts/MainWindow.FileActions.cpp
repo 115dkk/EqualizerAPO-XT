@@ -81,11 +81,8 @@ void MainWindow::on_actionSave_triggered()
 	}
 	else
 	{
-		save(filterTable, filterTable->getConfigPath());
-
-		QString tabText = ui->tabWidget->tabText(ui->tabWidget->currentIndex());
-		if (tabText.endsWith('*'))
-			ui->tabWidget->setTabText(ui->tabWidget->currentIndex(), tabText.left(tabText.length() - 1));
+		if (save(filterTable, filterTable->getConfigPath()))
+			setTabDirty(ui->tabWidget->currentIndex(), false);
 		updateDirtyStatus();
 	}
 }
@@ -120,7 +117,12 @@ void MainWindow::on_actionSaveAs_triggered()
 	if (dialog.exec() == QDialog::Accepted)
 	{
 		QString savePath = dialog.selectedFiles().at(0);
-		save(filterTable, savePath);
+		// A failed write keeps the tab on its old path and unsaved.
+		if (!save(filterTable, savePath))
+		{
+			updateDirtyStatus();
+			return;
+		}
 		filterTable->setConfigPath(QDir::toNativeSeparators(savePath));
 
 		QFileInfo fileInfo(savePath);
@@ -148,6 +150,7 @@ void MainWindow::recentFileSelected()
 
 bool MainWindow::askForClose(int tabIndex)
 {
+	flushPendingInstantSave(tabIndex);
 	bool discarded = false;
 	if (ui->tabWidget->tabText(tabIndex).endsWith('*'))
 	{

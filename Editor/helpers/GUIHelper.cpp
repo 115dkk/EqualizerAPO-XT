@@ -184,24 +184,12 @@ void GUIHelper::prepareFileDialog(QFileDialog& dialog)
 		return true;
 	};
 
-	QString configRoot;
-	try
-	{
-		if (systemRegistry().keyExists(APP_REGPATH) && systemRegistry().valueExists(APP_REGPATH, L"ConfigPath"))
-			configRoot = QString::fromStdWString(systemRegistry().readValue(APP_REGPATH, L"ConfigPath"));
-	}
-	catch (const RegistryError&)
-	{
-		// Unreadable registry: fall through to the stable root.
-	}
-	if (configRoot.isEmpty())
-		configRoot = EqAPO::Import::LegacyMigration::stableConfigRoot();
-	appendSidebar(configRoot);
+	appendSidebar(EqAPO::Import::LegacyMigration::configRoot(systemRegistry()));
 
 	// The original Equalizer APO's config folder, for setups that keep the
 	// upstream install (or its leftovers) side by side.
 	const QString programFiles = QDir::fromNativeSeparators(
-		QString::fromLocal8Bit(qgetenv("ProgramFiles")));
+		qEnvironmentVariable("ProgramFiles"));
 	if (!programFiles.isEmpty())
 		appendSidebar(programFiles + QStringLiteral("/EqualizerAPO/config"));
 

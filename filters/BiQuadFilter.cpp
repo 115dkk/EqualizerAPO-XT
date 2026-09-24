@@ -21,6 +21,7 @@
 #include "BiQuadFilter.h"
 #include "BiQuadKernelPlan.h"
 #include "diagnostics/performance/PerfProfile.h"
+#include "services/logging/Logging.h"
 
 #include "hwy/highway.h"
 
@@ -95,6 +96,34 @@ std::vector<std::wstring> BiQuadFilter::initialize(float sampleRate, unsigned ma
     double temp_coeffs[4];
 
     masterBiquad.getCoefficients(temp_coeffs, temp_a0);
+
+    // Audit #348 TD-13: the parser rejects non-positive frequency, Q,
+    // bandwidth and slope, but a frequency at or above Nyquist (a filter
+    // written for 96 kHz on a 44.1 kHz device) still reaches the cookbook
+    // formulas. Above Nyquist the design folds back and stays stable, which
+    // is the long-standing behaviour and is kept; exactly at Nyquist, or with
+    // any other degenerate input, the poles land on or outside the unit
+    // circle and the output grows without bound. Such a section passes the
+    // signal through instead, so one bad line cannot turn the channel into
+    // NaN (the engine has no output guard).
+    const bool finiteCoefficients = std::isfinite(temp_a0)
+        && std::isfinite(temp_coeffs[0]) && std::isfinite(temp_coeffs[1])
+        && std::isfinite(temp_coeffs[2]) && std::isfinite(temp_coeffs[3]);
+    const bool stable = finiteCoefficients
+        && std::abs(temp_coeffs[3]) < 1.0
+        && std::abs(temp_coeffs[2]) < 1.0 + temp_coeffs[3];
+    if (!stable)
+    {
+        LogF(L"Filter at %g Hz cannot be realised at a %g Hz sample rate (unstable or non-finite coefficients); passing the signal through",
+            freq, static_cast<double>(sampleRate));
+        temp_a0 = 1.0;
+        temp_coeffs[0] = temp_coeffs[1] = temp_coeffs[2] = temp_coeffs[3] = 0.0;
+    }
+    else if (biquadFreq >= sampleRate / 2.0)
+    {
+        TraceF(L"Filter at %g Hz is at or above the Nyquist frequency of a %g Hz stream; its response folds back",
+            biquadFreq, static_cast<double>(sampleRate));
+    }
 
     // Populate the SoA vectors with the coefficients for all channels.
     // The mapping is based on the original `process` function's variable usage:

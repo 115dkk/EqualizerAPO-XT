@@ -245,8 +245,24 @@ int handleVelopackHook(int argc, char* argv[])
 		}
 		if (matchesHook(arg, "--veloapp-uninstall"))
 		{
-			auto rc = ApoRegistration::uninstall(exeDir);
-			return rc == ApoRegistration::Result::Success ? 0 : static_cast<int>(rc);
+			// The device sweep reports per-item failures and does not throw
+			// them, and uninstall() restarts the audio service on every path;
+			// this guard keeps anything else from ending the hook in the crash
+			// handler instead of with an exit code (audit #348 TD-02).
+			try
+			{
+				auto rc = ApoRegistration::uninstall(exeDir);
+				return rc == ApoRegistration::Result::Success ? 0 : static_cast<int>(rc);
+			}
+			catch (const RegistryError& e)
+			{
+				LogFStatic(L"[Editor] uninstall hook failed: %s", e.getMessage().c_str());
+			}
+			catch (const std::exception& e)
+			{
+				LogFStatic(L"[Editor] uninstall hook failed: %S", e.what());
+			}
+			return static_cast<int>(ApoRegistration::Result::DeviceUninstallFailed);
 		}
 	}
 	return -1;
@@ -352,6 +368,10 @@ int main(int argc, char* argv[])
 	QCoreApplication::setAttribute(Qt::AA_Use96Dpi);
 
 	bool restart;
+	// Velopack reports the first run for the whole process, so an in-process
+	// restart (language or interface-mode switch) of the first session used
+	// to open Device Selector a second time (audit #348).
+	bool firstRunHandled = false;
 	do
 	{
 		// LegacyRows is a whole presentation, not just a row widget: the
@@ -465,15 +485,9 @@ int main(int argc, char* argv[])
 		QTranslator editorTranslator;
 		QtAppBootstrap::installTranslators(application, QStringLiteral("Editor"), qtTranslator, editorTranslator);
 
-		// Without a registry value the old fallback was the process CWD, which
-		// silently edits whatever folder the Editor was launched from; prefer
-		// the stable XT config root when it exists.
-		QString stableRoot = EqAPO::Import::LegacyMigration::stableConfigRoot();
-		QString configPath = !stableRoot.isEmpty() && QDir(stableRoot).exists()
-			? stableRoot : QDir::currentPath();
-		if (systemRegistry().keyExists(APP_REGPATH) && systemRegistry().valueExists(APP_REGPATH, L"ConfigPath"))
-			configPath = QString::fromStdWString(systemRegistry().readValue(APP_REGPATH, L"ConfigPath"));
-		QDir configDir(configPath);
+		// HKLM ConfigPath, else the stable XT config root, else the working
+		// directory: the same rule the file dialog's sidebar uses.
+		QDir configDir(EqAPO::Import::LegacyMigration::configRoot(systemRegistry()));
 
 		if (!systemRegistry().keyExists(USER_REGPATH))
 			systemRegistry().createKey(USER_REGPATH);
@@ -541,7 +555,7 @@ int main(int argc, char* argv[])
 		for (const QString& arg : args)
 			w.load(configDir.absoluteFilePath(arg));
 
-		bool firstRun = VelopackBootstrap::isFirstRun();
+		const bool firstRun = !firstRunHandled && VelopackBootstrap::isFirstRun();
 		if (parser.isSet(analysisLayoutOption))
 		{
 			// The probe itself lives with the other offscreen gates in
@@ -570,7 +584,10 @@ int main(int argc, char* argv[])
 		else if (parser.isSet(stormOption))
 			SkinSwitchStorm::run(w);  // storm sessions skip doChecks: its modal warnings would stall the timer
 		else if (firstRun)
+		{
 			launchDeviceSelector(pathutil::exeDirectory());
+			firstRunHandled = true;
+		}
 		else
 			w.doChecks();
 

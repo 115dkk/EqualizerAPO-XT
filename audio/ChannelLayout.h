@@ -28,4 +28,18 @@ public:
 	static int getDefaultChannelMask(int channelCount);
 	static std::vector<std::wstring> getChannelNames(int channelCount, int channelMask);
 	static int getChannelIndex(std::wstring word, const std::vector<std::wstring>& channelNames, bool allowAdditional = false);
+
+	// The layout the Editor's analysis runs with for a device and a selected
+	// channel configuration: the device's own channel count when nothing
+	// else is selected (mask 0 or the device's mask), the selected mask's
+	// bit count otherwise, and 7.1 when that comes out as zero. The analysis
+	// channel list and the analysis thread both read this one rule; they
+	// used to carry a copy each, and the thread indexes its buffer with the
+	// list's position (audit #348 TD-20).
+	struct AnalysisLayout
+	{
+		unsigned channelCount;
+		int channelMask;
+	};
+	static AnalysisLayout analysisLayout(unsigned deviceChannelCount, unsigned deviceChannelMask, int selectedMask);
 };

@@ -10,11 +10,10 @@
 
 	Deliberately NOT driven here: the full install()/uninstall() hooks
 	(they restart services, run icacls and write Public Start Menu entries
-	on the machine running the tests) and uninstallAllDeviceApos (its
-	default-device lookup goes through COM device enumeration, which
-	DeviceApoInfoTests already avoids by loading devices directly). The
-	per-device uninstall semantics are covered in DeviceApoInfoTests; the
-	pieces here are the registry role those hooks delegate to.
+	on the machine running the tests). The device sweep they call,
+	uninstallAllDeviceApos, takes an injected default-device lookup and is
+	driven in DeviceApoInfoTests next to the per-device uninstall semantics;
+	the pieces here are the registry role those hooks delegate to.
 
 	String comparisons use expect(a == b): the harness's expectEqual
 	streams its operands into a narrow ostream, which std::wstring cannot.

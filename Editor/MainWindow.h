@@ -72,7 +72,10 @@ public:
 	void doChecks();
 	void runDeviceSelector();
 	void load(QString path);
-	void save(FilterTable* filterTable, QString path);
+	// Writes the table's lines to path. False when the file could not be
+	// written (the error was shown); callers keep the tab marked unsaved and
+	// its previous path then (audit #348 TD-07).
+	bool save(FilterTable* filterTable, QString path);
 	bool isEmpty();
 	bool shouldRestart();
 	void startAnalysis();
@@ -162,6 +165,12 @@ private:
 	FilterTable* currentFilterTable() const;
 	void forEachFilterTable(const std::function<void(int, FilterTable*)>& visitor) const;
 	void updateDirtyStatus();
+	// Adds or removes the tab title's unsaved-changes '*'.
+	void setTabDirty(int tabIndex, bool dirty);
+	// Runs an instant-mode save that is still waiting out its debounce, so
+	// closing a tab or the window inside that window does not drop the last
+	// edit. A failed save marks the tab unsaved.
+	void flushPendingInstantSave(int tabIndex);
 	// Grey the Edit-menu undo/redo entries out while the active tab's history
 	// has nothing to step to; without this they always render enabled and
 	// silently no-op, which reads as "undo/redo is gone".

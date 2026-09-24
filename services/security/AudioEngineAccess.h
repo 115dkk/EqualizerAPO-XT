@@ -72,8 +72,11 @@ bool isRunnableByUsers(const std::wstring& path);
 // Grants LOCAL SERVICE and Users read+execute over the install tree, so audiodg
 // can map EqualizerAPO.dll and a non-administrator can start the Editor.
 Grant grantEngineAccess(const std::wstring& installRoot);
-// Grants Users full control (they edit configs) and LOCAL SERVICE modify
-// (audiodg reads configs and writes APO trace logs) over the config tree.
+// Grants Users modify (they edit configs) and LOCAL SERVICE modify (audiodg
+// reads configs and writes APO trace logs) over the config tree. Not full
+// control for Users: WRITE_DAC would let a standard user re-ACL the tree and
+// cut LOCAL SERVICE off (audit #250 F043). tools/Repair-EqualizerAPO.ps1
+// applies the same grants; a Pester test keeps the two in step.
 Grant grantConfigAccess(const std::wstring& configDir);
 
 // A one-line, human-readable form of a Grant, for logs and the diagnostics

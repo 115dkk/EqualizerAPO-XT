@@ -282,14 +282,26 @@ void registerBundledFonts(bool includeSarasa)
 	// QApplication drops every registered application font while a plain
 	// static guard stayed true - the run after a legacy-rows round trip came
 	// back with DM Sans / DM Mono / Pretendard missing and every skin fell
-	// back to the system font.
-	static const QCoreApplication* commonOwner = nullptr;
-	static const QCoreApplication* sarasaOwner = nullptr;
-	const bool commonAdded = commonOwner == QCoreApplication::instance();
-	const bool sarasaAdded = sarasaOwner == QCoreApplication::instance();
+	// back to the system font. The guard is cleared by the application's
+	// destroyed() signal. Comparing QApplication addresses (the previous fix)
+	// did not work: main.cpp's restart loop builds the next QApplication in
+	// the same stack slot, so the new instance had the old address and the
+	// fonts were skipped (audit #348 TD-15).
+	static bool commonAdded = false;
+	static bool sarasaAdded = false;
+	static bool resetConnected = false;
+	if (!resetConnected && QCoreApplication::instance() != nullptr)
+	{
+		QObject::connect(QCoreApplication::instance(), &QObject::destroyed, [] {
+			commonAdded = false;
+			sarasaAdded = false;
+			resetConnected = false;
+		});
+		resetConnected = true;
+	}
 	if (!commonAdded)
 	{
-		commonOwner = QCoreApplication::instance();
+		commonAdded = true;
 		const QStringList fonts = {
 			QStringLiteral(":/fonts/DMSans-Regular.ttf"),
 			QStringLiteral(":/fonts/DMSans-Medium.ttf"),
@@ -307,7 +319,7 @@ void registerBundledFonts(bool includeSarasa)
 	}
 	if (includeSarasa && !sarasaAdded)
 	{
-		sarasaOwner = QCoreApplication::instance();
+		sarasaAdded = true;
 		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/SarasaMonoK-Regular.ttf"));
 		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/SarasaMonoK-Bold.ttf"));
 	}

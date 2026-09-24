@@ -16,6 +16,36 @@
 using std::wstring;
 using std::vector;
 
+namespace
+{
+struct WatchedKey
+{
+	wstring path;
+	winutil::UniqueRegistryKey handle;
+	bool failureLogged = false;
+};
+
+bool sameKeyList(const vector<WatchedKey>& watched, const vector<wstring>& keys)
+{
+	if (watched.size() != keys.size())
+		return false;
+	for (size_t i = 0; i < keys.size(); i++)
+		if (watched[i].path != keys[i])
+			return false;
+	return true;
+}
+
+// Arming resets the event (it is an asynchronous registry I/O), which is why
+// re-arming after a close never left it signalled. A key that was deleted
+// cannot be armed again; dropping its handle makes the next pass reopen it.
+void arm(WatchedKey& watched, HANDLE event)
+{
+	if (RegNotifyChangeKeyValue(watched.handle.get(), false,
+		REG_NOTIFY_CHANGE_LAST_SET, event, true) != ERROR_SUCCESS)
+		watched.handle = {};
+}
+}
+
 ConfigWatcher::ConfigWatcher(HANDLE shutdownEvent,
 	SnapshotProvider snapshotProvider,
 	ChangeCallback changeCallback)
@@ -32,6 +62,7 @@ void ConfigWatcher::run()
 	bool waitFailureLogged = false;
 	bool watchFailureLogged = false;
 	Win32Event registryEvent(true, false);
+	vector<WatchedKey> watchedKeys;
 
 	while (true)
 	{
@@ -57,19 +88,34 @@ void ConfigWatcher::run()
 			}
 		}
 
-		vector<winutil::UniqueRegistryKey> keyHandles;
-		for (const wstring& key : snapshot.registryKeys)
+		// The watched keys stay open across passes instead of being reopened
+		// on every 1 s backoff tick, and a key that cannot be opened is logged
+		// once per key list rather than once per second. Closing an armed key
+		// signals the event, so a key list change resets it after the close.
+		if (!sameKeyList(watchedKeys, snapshot.registryKeys))
 		{
+			watchedKeys.clear();
+			registryEvent.reset();
+			for (const wstring& key : snapshot.registryKeys)
+				watchedKeys.push_back(WatchedKey{key, {}, false});
+		}
+		// A key that does not exist yet (or was deleted) is retried on every
+		// pass; opening a new key does not signal the event.
+		for (WatchedKey& watched : watchedKeys)
+		{
+			if (watched.handle)
+				continue;
 			try
 			{
-				keyHandles.push_back(WindowsRegistry::openKey(
-					key, KEY_NOTIFY | KEY_WOW64_64KEY));
-				RegNotifyChangeKeyValue(keyHandles.back().get(), false,
-					REG_NOTIFY_CHANGE_LAST_SET, registryEvent.get(), true);
+				watched.handle = WindowsRegistry::openKey(
+					watched.path, KEY_NOTIFY | KEY_WOW64_64KEY);
+				arm(watched, registryEvent.get());
 			}
 			catch (const RegistryError& error)
 			{
-				LogFStatic(L"%s", error.getMessage().c_str());
+				if (!watched.failureLogged)
+					LogFStatic(L"%s", error.getMessage().c_str());
+				watched.failureLogged = true;
 			}
 		}
 
@@ -103,6 +149,16 @@ void ConfigWatcher::run()
 		}
 		waitFailureLogged = false;
 
+		if (waitResult == WAIT_OBJECT_0 + 1)
+		{
+			// The asynchronous notification is one-shot: reset the event, then
+			// arm every held key again before the reload reads the values.
+			registryEvent.reset();
+			for (WatchedKey& watched : watchedKeys)
+				if (watched.handle)
+					arm(watched, registryEvent.get());
+		}
+
 		const bool directoryChanged =
 			directoryIndex != MAXDWORD
 			&& waitResult == WAIT_OBJECT_0 + directoryIndex;
@@ -125,6 +181,5 @@ void ConfigWatcher::run()
 
 		if (!changeCallback())
 			break;
-		registryEvent.reset();
 	}
 }
