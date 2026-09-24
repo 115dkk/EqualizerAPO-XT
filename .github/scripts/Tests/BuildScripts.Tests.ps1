@@ -70,6 +70,21 @@ Describe "extracted build script decisions" {
         @($plan.Runs | Where-Object { $_.Arguments -contains "--burst" }).Count | Should -Be 1
     }
 
+    It "runs every runtime suite and the golden regression suite under the memory gate" {
+        # Audit #348 D1/TD-22: the memcheck list was typed by hand and had
+        # drifted (AsioTests rebuilt with ASan but never run,
+        # AudioRegressionTests absent). It now derives from Build-Solution.
+        $solution = & (Join-Path $PSScriptRoot "..\Build-Solution.ps1") `
+            -WorkspaceRoot $root -Platform x64 -SimdVariant avx2 -ArchFlag AdvancedVectorExtensions2 -PlanOnly
+        $memcheck = & (Join-Path $PSScriptRoot "..\Invoke-MemcheckTests.ps1") -WorkspaceRoot $root -PlanOnly
+        foreach ($suite in $solution.RuntimeTests) {
+            $memcheck.Suites | Should -Contain $suite -Because "memcheck must run every suite Build-Solution runs"
+            $memcheck.Projects | Should -Contain "Tests\$suite\$suite.vcxproj"
+        }
+        $memcheck.Suites | Should -Contain "AudioRegressionTests"
+        $memcheck.SuiteArguments["AudioRegressionTests"] | Should -Contain "--ref-dir"
+    }
+
     It "lists the capture probes so every leg builds them" {
         $avx2 = & (Join-Path $PSScriptRoot "..\Build-Solution.ps1") `
             -WorkspaceRoot $root -Platform x64 -SimdVariant avx2 -ArchFlag AdvancedVectorExtensions2 -PlanOnly

@@ -26,13 +26,53 @@
       candidate and would invert every ratio.
     - The ASan runtime DLL ships in the VC toolset bin directory, which
       Import-VsDevEnvironment puts on PATH before the run.
+
+    Which suites run is not written here (audit #348 D1/TD-22). The runtime
+    suites are the ones Build-Solution.ps1 runs on an executing leg, read
+    from its plan, plus AudioRegressionTests, which build.yml runs in its
+    own step because it needs its reference arguments. The list used to be
+    typed twice and had already drifted: AsioTests was rebuilt with ASan but
+    never run, and AudioRegressionTests (the widest walk through the engine
+    buffers) was in neither. BuildScripts.Tests.ps1 pins the two lists.
+
+    -PlanOnly returns the projects, the suites and their arguments, for
+    Pester.
 #>
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)] [string] $WorkspaceRoot
+    [Parameter(Mandatory)] [string] $WorkspaceRoot,
+    [switch] $PlanOnly
 )
 
 $ErrorActionPreference = "Stop"
+
+$solutionPlan = & (Join-Path $PSScriptRoot "Build-Solution.ps1") `
+    -WorkspaceRoot $WorkspaceRoot -Platform x64 -SimdVariant avx2 `
+    -ArchFlag AdvancedVectorExtensions2 -CanExecute $true -PlanOnly
+$suites = @($solutionPlan.RuntimeTests) + @("AudioRegressionTests")
+$suiteArguments = @{
+    AudioRegressionTests = @(
+        "--variant", "avx2",
+        "--config-dir", (Join-Path $WorkspaceRoot "Tests\AudioRegressionTests\configs"),
+        "--ref-dir", (Join-Path $WorkspaceRoot "Tests\AudioRegressionTests\references"),
+        "--out-dir", (Join-Path ([System.IO.Path]::GetTempPath()) "eapo-memcheck-regression")
+    )
+}
+# The suite exes plus everything they load: the companion VST modules must be
+# part of the same ASan build so their objects agree with the host's.
+$projects = @(
+    "SubwooferRoutingCore\SubwooferRoutingCore.vcxproj",
+    "Common.vcxproj",
+    "Tests\TestVst2Plugin\TestVst2Plugin.vcxproj",
+    "VST3\SubwooferRouting\SubwooferRoutingVst3.vcxproj"
+) + @($suites | ForEach-Object { "Tests\$_\$_.vcxproj" })
+$plan = [pscustomobject]@{
+    Projects = $projects
+    Suites = $suites
+    SuiteArguments = $suiteArguments
+}
+if ($PlanOnly) { return $plan }
+
 Set-Location $WorkspaceRoot
 
 $libPaths = @($env:LIBSNDFILE_LIB, $env:MUPARSERX_LIB, $env:FFTW_LIB)
@@ -52,18 +92,6 @@ $buildParams = @(
     "/p:QT_ROOT=$env:QT_ROOT"
 )
 
-# The suite exes plus everything they load: the companion VST modules must be
-# part of the same ASan build so their objects agree with the host's.
-$projects = @(
-    "SubwooferRoutingCore\SubwooferRoutingCore.vcxproj",
-    "Common.vcxproj",
-    "Tests\TestVst2Plugin\TestVst2Plugin.vcxproj",
-    "VST3\SubwooferRouting\SubwooferRoutingVst3.vcxproj",
-    "Tests\HybridConvTests\HybridConvTests.vcxproj",
-    "Tests\EngineOrchestrationTests\EngineOrchestrationTests.vcxproj",
-    "Tests\EditorLogicTests\EditorLogicTests.vcxproj",
-    "Tests\AsioTests\AsioTests.vcxproj"
-)
 foreach ($project in $projects) {
     msbuild $project @buildParams
     if ($LASTEXITCODE -ne 0) { throw "ASan build failed for $project" }
@@ -71,10 +99,11 @@ foreach ($project in $projects) {
 Remove-Item Env:CL
 
 $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:MUPARSERX_LIB;$env:QT_ROOT\bin;$env:PATH"
-foreach ($name in @("HybridConvTests", "EngineOrchestrationTests", "EditorLogicTests")) {
+foreach ($name in $suites) {
     $testExe = Join-Path $WorkspaceRoot "Tests\$name\x64\Release\$name.exe"
     if (-not (Test-Path $testExe)) { throw "Test executable not found: $testExe" }
     Write-Host "== memcheck: $name =="
-    & $testExe
+    $arguments = if ($suiteArguments.ContainsKey($name)) { $suiteArguments[$name] } else { @() }
+    & $testExe @arguments
     if ($LASTEXITCODE -ne 0) { throw "$name failed under the memory gate" }
 }

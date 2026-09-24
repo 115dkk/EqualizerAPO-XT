@@ -105,6 +105,11 @@ env:
   # Scream release pin (the self-signed recipe is verified against 4.0).
   SCREAM_VERSION: "4.0"
   SCREAM_URL: "https://github.com/duncanthrax/scream/releases/download/4.0/Scream4.0.zip"
+  # The zip is signed again with a runner-local test certificate and loaded as
+  # a kernel driver, so it is pinned by hash like the capture gate's VB-CABLE
+  # and the XTC fixture (audit #348 TD-76). Measured 2026-09-24 from the URL
+  # above.
+  SCREAM_SHA256: "FA33E25F9A46C61E4E0CD83362C51C3D2A45C6FE4091AAD7507E240E40F1A520"
 
 jobs:
   live-repro:
@@ -176,6 +181,8 @@ jobs:
           $zip = Join-Path $work "Scream.zip"
           Log "Downloading Scream $env:SCREAM_VERSION from $env:SCREAM_URL"
           Invoke-WebRequest -Uri $env:SCREAM_URL -OutFile $zip
+          $hash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash
+          if ($hash -ne $env:SCREAM_SHA256) { throw "Scream download hash $hash does not match the pinned $env:SCREAM_SHA256" }
           Expand-Archive -Path $zip -DestinationPath $work -Force
 
           # Scream4.0.zip extracts to <work>\Install\... (NOT <work>\Scream\Install).
