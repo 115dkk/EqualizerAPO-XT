@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.51.2 — 2026-09-24
+
 - **Uninstalling no longer leaves the PC without sound when one audio device
   cannot be read.** The uninstall step stops the Windows audio service, then
   removes the APO from every device; one device whose registry entries could
