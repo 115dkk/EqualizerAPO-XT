@@ -14,6 +14,16 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **A Windows device's ASIO entry has the options a driver's entry has.**
+  Ticking **Use in ASIO apps** for a playback or recording endpoint in the
+  Device Selector now unfolds **Remove the buffer** with its **Wait time**,
+  **Start the engine host automatically at boot** and **32-bit host
+  support** under it, the options an ASIO driver's entry already offered.
+  Until now the endpoint's entry always ran with the extra buffer, could not
+  start the host at boot, and was not registered for 32-bit applications.
+  The command-line option `--exclusive-mode-eq` is now `--asio-entry`; the
+  old name still works ([#351](https://github.com/115dkk/EqualizerAPO-XT/pull/351)).
+
 ## v2.51.2 — 2026-09-24
 
 - **Uninstalling no longer leaves the PC without sound when one audio device

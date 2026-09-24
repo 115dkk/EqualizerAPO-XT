@@ -100,7 +100,8 @@ bool DeviceAPOInfo::load(const wstring& deviceGuid, wstring defaultDeviceGuid)
 	currentInstallState.useOriginalAPOPostMix = !input;
 	currentInstallState.allowSilentBufferModification = false;
 	currentInstallState.autoAdjust = true;
-	currentInstallState.exclusiveModeEq = false;
+	currentInstallState.asioEntry = false;
+	currentInstallState.asioEntryOptions = {};
 
 	if (!registry.keyExists(keyPath + L"\\FxProperties"))
 	{
@@ -265,8 +266,10 @@ bool DeviceAPOInfo::load(const wstring& deviceGuid, wstring defaultDeviceGuid)
 	// carry that CLSID, so the kind check is belt and braces.
 	{
 		eapo::asio::WrapperRecord record;
-		currentInstallState.exclusiveModeEq = eapo::asio::WrapperRecords::read(registry, eapo::asio::AsioRegistration::wrapperClsidFor(deviceGuid), record)
+		currentInstallState.asioEntry = eapo::asio::WrapperRecords::read(registry, eapo::asio::AsioRegistration::wrapperClsidFor(deviceGuid), record)
 			&& record.targetKind == eapo::asio::TargetKind::WasapiExclusive;
+		if (currentInstallState.asioEntry)
+			currentInstallState.asioEntryOptions = eapo::asio::WrapperRecords::entryOptions(record);
 	}
 
 	return true;

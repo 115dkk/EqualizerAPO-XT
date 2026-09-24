@@ -139,6 +139,7 @@
     <ClInclude Include="..\asio\CallbackTrampolines.h" />
     <ClInclude Include="..\asio\SampleCodec.h" />
     <ClInclude Include="..\asio\StreamProcessor.h" />
+    <ClInclude Include="..\asio\EntryOptions.h" />
     <ClInclude Include="..\asio\WrapperRecord.h" />
     <ClInclude Include="..\asio\DaemonProcessor.h" />
     <ClInclude Include="..\asio\HostLink.h" />

@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <asio/EntryOptions.h>
 #include <devices/AbstractAPOInfo.h>
 #include <QtWidgets/QDialog>
 #include "ui_DeviceSelector.h"
@@ -45,8 +46,12 @@ public:
 	void previewOpenTroubleshooting();
 	void previewRemoveBuffer();
 
+	void previewAsioEntry();
+
 private:
 	void showAsioWaitTime(bool shown);
+	void placeAsioOptions(bool underAsioEntry);
+	bool readAsioOption(const QObject* sender, eapo::asio::EntryOptions& options) const;
 	void setupChrome();
 	void finishSetup();
 	void onDeviceSelectionChanged();

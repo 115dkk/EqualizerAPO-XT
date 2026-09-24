@@ -113,6 +113,7 @@ if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"</
     <ClInclude Include="..\..\asio\HostProtocol.h" />
     <ClInclude Include="..\..\asio\ThreadHostLink.h" />
     <ClInclude Include="..\..\asio\Win32HostLink.h" />
+    <ClInclude Include="..\..\asio\EntryOptions.h" />
     <ClInclude Include="..\..\asio\WrapperRecord.h" />
     <ClInclude Include="..\..\runtime\ipc\StreamRing.h" />
     <ClInclude Include="..\AsioSupport\HostStub.h" />

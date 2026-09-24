@@ -46,8 +46,16 @@ but a player with an ASIO output can be pointed at the entry instead. A
 playback endpoint gives an output-only device, a recording endpoint an
 input-only one. The entry belongs to the endpoint's installation: it is
 written with the APO and removed with it, and the install report names it.
-`DeviceSelector --install-endpoint {guid} --exclusive-mode-eq` does the same from
-a terminal.
+`DeviceSelector --install-endpoint {guid} --asio-entry` does the same from
+a terminal (`--exclusive-mode-eq`, the option's first name, is still
+accepted).
+
+Ticking **Use in ASIO apps** unfolds the entry's own options under it, the
+same ones an ASIO driver's entry has: **Remove the buffer** with its
+**Wait time**, **Start the engine host automatically at boot** and
+**32-bit host support** (see [Latency and the two modes](#latency-and-the-two-modes)
+and [Options in the Device Selector](#options-in-the-device-selector)).
+Unticking it folds them away again.
 
 What the entry offers: buffer sizes in powers of two from the smallest
 exclusive period the driver declares (a virtual cable at 48 kHz: 128
@@ -86,7 +94,10 @@ heard the preamp and the peak filter of the test configuration; duplex
 way through the wrapper DLL and the real host. On CI the capture gate
 installs the cable's playback endpoint with the entry, activates the
 entry's CLSID through COM the way a DAW does, and hears the preamp on the
-far side. The 32-bit host option does not apply to these entries yet.
+far side. With **32-bit host support** ticked, the entry is registered
+for 32-bit applications too, and the 32-bit wrapper opens the endpoint the
+same way; that combination has not been run against a real 32-bit
+application yet.
 
 ## What the config sees
 
@@ -121,9 +132,10 @@ The synchronous mode waits for the host inside the buffer callback instead
 and adds no latency, but a buffer whose answer misses the deadline passes
 through unprocessed. On the same interface a few buffers per minute missed,
 from the operating system preempting one of the two threads, so it is not the
-default. It can be selected per driver in the Device Selector: select the
-driver's entry, open the troubleshooting options and tick **Remove the
-buffer**; it applies to both directions. Once ticked, **Wait time** unfolds
+default. It can be selected per entry in the Device Selector: select the
+driver's entry, or an endpoint with **Use in ASIO apps** ticked, open the
+troubleshooting options and tick **Remove the buffer**; it applies to both
+directions. Once ticked, **Wait time** unfolds
 beside it: how long a buffer waits for the host before it comes out without
 the EQ, up to a quarter of the buffer (the default), half, or three
 quarters. A longer wait misses fewer buffers and leaves the application less
@@ -133,12 +145,14 @@ under that row.
 ## Options in the Device Selector
 
 Besides the synchronous mode and its wait time, an ASIO entry's
-troubleshooting panel has two options, both off by default:
+troubleshooting panel has two options, both off by default. A driver's entry
+shows them on its own page; an endpoint's entry shows them under **Use in
+ASIO apps**.
 
 - **Start the engine host automatically at boot** writes one `Run` value for
   the machine so the host is up before any application opens the driver.
   Otherwise the first application starts it and it leaves a minute after the
-  last one closes the driver. The value stays while any driver asks for it;
+  last one closes the driver. The value stays while any entry asks for it;
   after the option is turned off, a host already running stays until
   sign-out.
 - **32-bit host support** also registers the driver entry where 32-bit
@@ -163,7 +177,7 @@ The record behind an entry lives under
   of that session; reopening the device starts a fresh host. The DAW is not
   affected beyond that.
 - 32-bit applications see the entry only with **32-bit host support** ticked
-  for the driver; x64 builds ship the 32-bit wrapper, which talks to the
+  for the driver or the endpoint; x64 builds ship the 32-bit wrapper, which talks to the
   same 64-bit host. The ARM64 build has no 32-bit
   wrapper, and its wrapper is ARM64-native: an x64 application running under
   emulation on an ARM64 machine cannot load it (the 64-bit registry view is

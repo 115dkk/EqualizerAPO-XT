@@ -7,6 +7,7 @@
 #include "stdafx.h"
 #include "asio/AsioRegistration.h"
 
+#include "asio/WrapperRecord.h"
 #include "platform/windows/GuidText.h"
 #include "services/registry/ClsidRegistration.h"
 
@@ -192,6 +193,32 @@ namespace eapo::asio
 			{
 				registry.deleteValue(runKey, runValueName);
 			}
+		}
+
+		void refreshAutoStart(IRegistry& registry, const std::wstring& installDirectory)
+		{
+			const bool wanted = WrapperRecords::autoStartWanted(registry);
+			if (wanted && installDirectory.empty())
+				return;
+			setAutoStart(registry, installDirectory + L"\\EqualizerAPOHost.exe", wanted);
+		}
+
+		std::wstring wrapperDllPath(const std::wstring& installDirectory)
+		{
+			return installDirectory + L"\\EqualizerAPOAsio.dll";
+		}
+
+		std::wstring wrapper32DllPath(const std::wstring& installDirectory)
+		{
+			return installDirectory + L"\\x86\\EqualizerAPOAsio.dll";
+		}
+
+		bool wrapper32Shipped(const std::wstring& installDirectory)
+		{
+			if (installDirectory.empty())
+				return false;
+			const DWORD attributes = GetFileAttributesW(wrapper32DllPath(installDirectory).c_str());
+			return attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0;
 		}
 	}
 }
