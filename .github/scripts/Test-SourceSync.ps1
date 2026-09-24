@@ -225,8 +225,12 @@ $sharedHarnessSuites = @(
 )
 $uncalled = @()
 $checkedTestFunctions = 0
+$checkedSuites = 0
 foreach ($suite in $sharedHarnessSuites) {
   $suiteDir = Join-Path $RepoRoot "Tests" $suite.Name
+  # The Pester cases run this script against a minimal fake tree.
+  if (-not (Test-Path -LiteralPath $suiteDir)) { continue }
+  $checkedSuites++
   $files = @(Get-ChildItem -LiteralPath $suiteDir -Filter "*.cpp" -File)
   $texts = @{}
   foreach ($file in $files) { $texts[$file.Name] = Get-Content -LiteralPath $file.FullName -Raw }
@@ -246,7 +250,7 @@ foreach ($suite in $sharedHarnessSuites) {
     }
   }
 }
-if ($checkedTestFunctions -eq 0) {
+if ($checkedSuites -gt 0 -and $checkedTestFunctions -eq 0) {
   throw "No test functions found in the shared-harness suites, so this lint checked nothing."
 }
 foreach ($entry in $uncalled) {
