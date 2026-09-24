@@ -2,7 +2,11 @@
 #
 # Runs /improve-codebase-architecture and /tech-debt-audit in a single
 # Claude Code session. Skips scheduled runs when no relevant code/build files
-# changed since the last audit tag.
+# changed since the last audit tag, and also when that tag is younger than
+# MIN_AUDIT_INTERVAL_DAYS: an audit run by hand (the tag is pushed with the
+# same audit/YYYYMMDD-HHMMSS name) then stands in for the next scheduled one
+# instead of being repeated a few days later. workflow_dispatch ignores the
+# interval; force_run additionally ignores the change detection.
 #
 # The audit job runs on the same Windows image as the builds (this is a
 # Windows-MSVC repo) with Git Bash as the step shell, and pre-provisions the
@@ -36,6 +40,13 @@ on:
 permissions:
   contents: write
   issues: write
+
+env:
+  # A scheduled run this close to the newest audit/* tag is skipped. The
+  # schedule fires on the 1st and 15th, so an out-of-band audit up to ten
+  # days before a scheduled date replaces that date's run and the following
+  # one (at least fourteen days later) still fires.
+  MIN_AUDIT_INTERVAL_DAYS: 10
 
 jobs:
   check-changes:
@@ -79,6 +90,25 @@ jobs:
 
           echo "Last audit: $LAST_AUDIT"
           echo "last_audit_ref=$LAST_AUDIT" >> "$GITHUB_OUTPUT"
+
+          # The tag name carries the audit time (audit/YYYYMMDD-HHMMSS, UTC);
+          # the tag is lightweight, so this is the only timestamp it has.
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            STAMP="${LAST_AUDIT#audit/}"
+            if [[ "$STAMP" =~ ^([0-9]{8})-([0-9]{2})([0-9]{2})([0-9]{2})$ ]]; then
+              LAST_EPOCH=$(date -u -d "${BASH_REMATCH[1]} ${BASH_REMATCH[2]}:${BASH_REMATCH[3]}:${BASH_REMATCH[4]}" +%s)
+              AGE_DAYS=$(( ( $(date -u +%s) - LAST_EPOCH ) / 86400 ))
+              echo "Last audit age: ${AGE_DAYS} day(s); minimum interval: ${MIN_AUDIT_INTERVAL_DAYS}."
+              if [ "$AGE_DAYS" -lt "$MIN_AUDIT_INTERVAL_DAYS" ]; then
+                echo "The last audit is too recent for a scheduled run. Skipping audit."
+                echo "should_audit=false" >> "$GITHUB_OUTPUT"
+                echo "changed_files_count=too-recent" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+            else
+              echo "::warning::Audit tag '$LAST_AUDIT' does not carry a YYYYMMDD-HHMMSS stamp; the interval check is skipped."
+            fi
+          fi
 
           CODE_CHANGES=$(git diff --name-only "$LAST_AUDIT"..HEAD -- "${code_pathspecs[@]}" | wc -l | tr -d ' ')
 
