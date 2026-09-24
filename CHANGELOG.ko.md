@@ -8,6 +8,10 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **Benchmark.exe가 읽기나 쓰기가 중간에 멈추면 멈춰 서지 않고 오류로
+  끝납니다.** libsndfile이 기대한 프레임 수에 못 미친 채 0을 돌려주면 입출력
+  반복이 끝나지 않았습니다. 이제 이유를 출력하고 종료 코드 1로 끝납니다.
+  `--from` 도움말도 실제 기본값(1.0 Hz)을 적습니다([#356](https://github.com/115dkk/EqualizerAPO-XT/pull/356)).
 ## v2.51.2 — 2026-09-24
 
 - **오디오 장치 하나를 읽지 못해도 제거 뒤 소리가 끊긴 채 남지 않습니다.** 제거

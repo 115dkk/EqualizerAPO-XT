@@ -14,6 +14,11 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Benchmark.exe stops with an error instead of hanging on a short read or
+  write.** When libsndfile returned no frames before the expected count, the
+  input and output loops spun forever; they now print the reason and exit
+  with code 1. The `--from` help text now states the real default (1.0 Hz)
+  ([#356](https://github.com/115dkk/EqualizerAPO-XT/pull/356)).
 ## v2.51.2 — 2026-09-24
 
 - **Uninstalling no longer leaves the PC without sound when one audio device
