@@ -25,30 +25,25 @@
 #include <list>
 #include <winsock2.h>
 
-class ReceiveException
+#include "runtime/errors/WideError.h"
+
+class ReceiveException : public WideError
 {
 public:
 	ReceiveException()
+		: WideError(std::wstring())
 	{
 	}
 
 	ReceiveException(const std::wstring& message)
-		: message(message)
+		: WideError(message)
 	{
 	}
 
-	bool isEmpty()
+	bool isEmpty() const
 	{
-		return message.empty();
+		return getMessage().empty();
 	}
-
-	const std::wstring& getMessage() const
-	{
-		return message;
-	}
-
-private:
-	std::wstring message;
 };
 
 class ReceiveThread

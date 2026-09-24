@@ -24,6 +24,7 @@
 #include <vector>
 #include <memory>
 #include "AbstractAPOInfo.h"
+#include "DeviceException.h"
 #include "asio/EntryOptions.h"
 #include "services/registry/IRegistry.h"
 #include "services/registry/RegistryTransaction.h"
@@ -101,6 +102,10 @@ public:
 	bool hasDriverEffectChain() const;
 	std::wstring getOriginalAPOPreMix();
 	std::wstring getOriginalAPOPostMix();
+	bool changesNeedAudioRestart() const override
+	{
+		return true;
+	}
 	// Whether the ASIO entry can be offered to 32-bit hosts: the x86
 	// wrapper ships beside the product (not in ARM64 builds).
 	bool canHostAsio32() const;
@@ -167,18 +172,15 @@ private:
 	void applyAsioEntry(RegistryTransaction& plan);
 	void removeAsioEntry(RegistryTransaction& plan);
 
-	// The one place the three public operations share: it opens the transaction,
-	// records what the device looked like beforehand, runs the steps, and fills in
-	// the report whether they finished or threw. The steps are a callable because
-	// reinstall() is three of them under one transaction, which a member-function
-	// pointer could not express.
+	// The one place the three public operations share: it records what the
+	// device looked like beforehand and runs the steps through
+	// ReportedOperation::run (one transaction, the report filled whether they
+	// finished or threw). The steps are a callable because reinstall() is three
+	// of them under one transaction, which a member-function pointer could not
+	// express.
 	void runReported(DeviceInstallReport::Operation operation,
 		const std::function<void(RegistryTransaction&)>& steps);
 	void beginReport(DeviceInstallReport::Operation operation);
-	void finishReport(RegistryTransaction& plan);
-	// Rolls the transaction back before reading what the rollback could not do,
-	// then logs the whole report. The caller rethrows.
-	void failReport(RegistryTransaction& plan, const std::wstring& failure);
 
 	std::wstring deviceName;
 	std::wstring connectionName;
@@ -213,19 +215,4 @@ private:
 	IRegistry& registry;
 };
 
-class DeviceException
-{
-public:
-	DeviceException(const std::wstring& message)
-		: message(message)
-	{
-	}
 
-	const std::wstring& getMessage() const
-	{
-		return message;
-	}
-
-private:
-	std::wstring message;
-};

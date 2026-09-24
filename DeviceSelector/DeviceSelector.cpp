@@ -386,35 +386,27 @@ void DeviceSelector::onDialogAccepted()
 
 			try
 			{
-				const DeviceAPOInfo* deviceInfo = dynamic_cast<DeviceAPOInfo*>(info.get());
 				if (checked && !info->isInstalled())
 				{
 					info->install();
-					if (deviceInfo != nullptr)
-						deviceUpdated = true;
+					deviceUpdated = deviceUpdated || info->changesNeedAudioRestart();
 				}
 				else if (!checked && info->isInstalled())
 				{
 					info->uninstall();
-					if (deviceInfo != nullptr)
-						deviceUpdated = true;
+					deviceUpdated = deviceUpdated || info->changesNeedAudioRestart();
 				}
 				else if (checked && (info->canBeUpgraded() || info->hasChanges() || info->isEnhancementsDisabled()))
 				{
 					info->reinstall();
-					if (deviceInfo != nullptr)
-						deviceUpdated = true;
+					deviceUpdated = deviceUpdated || info->changesNeedAudioRestart();
 				}
 			}
-			catch (const RegistryError& e)
+			catch (const WideError& e)
 			{
-				reportFailure(e.getMessage());
-			}
-			catch (const DeviceException& e)
-			{
-				// Thrown since the ASIO entry joined the install (a missing
-				// InstallPath value); escaping this slot ended the elevated
-				// process mid-install (audit #348 TD-06).
+				// Every adapter operation throws WideError only
+				// (AbstractAPOInfo.h). An escaping exception here used to end
+				// the elevated process mid-install (audit #348 TD-06).
 				reportFailure(e.getMessage());
 			}
 		}

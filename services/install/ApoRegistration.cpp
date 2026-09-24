@@ -256,11 +256,7 @@ ApoRegistration::Result ApoRegistration::uninstallAllDeviceApos(const DeviceUnin
 		{
 			step();
 		}
-		catch (const RegistryError& e)
-		{
-			report(what.empty() ? e.getMessage() : what + L": " + e.getMessage());
-		}
-		catch (const DeviceException& e)
+		catch (const WideError& e)
 		{
 			report(what.empty() ? e.getMessage() : what + L": " + e.getMessage());
 		}
