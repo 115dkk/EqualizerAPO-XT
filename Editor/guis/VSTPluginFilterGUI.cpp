@@ -364,6 +364,18 @@ void VSTPluginFilterGUI::on_openPanelButton_clicked()
 		previewFeeder.start(effect.get());
 
 		VSTPluginFilterGUIDialog dialog(this, effect.get(), autoApplyDialog);
+		if (!dialog.isEditorOpen())
+		{
+			// Same report as a failed embed, instead of an empty dialog.
+			previewFeeder.stop();
+			ui->statusLabel->setVisible(true);
+			QPalette palette = ui->statusLabel->palette();
+			palette.setColor(QPalette::Active, QPalette::WindowText, Qt::red);
+			palette.setColor(QPalette::Inactive, QPalette::WindowText, Qt::red);
+			ui->statusLabel->setPalette(palette);
+			ui->statusLabel->setText(tr("Plugin crashed when opening panel."));
+			return;
+		}
 		connect(dialog.getApplyButton(), SIGNAL(pressed()), SLOT(applyDialog()));
 		connect(dialog.getAutoApplyCheckBox(), SIGNAL(toggled(bool)), SLOT(autoApplyToggled(bool)));
 		connect(QAbstractEventDispatcher::instance(), SIGNAL(aboutToBlock()), SLOT(on_idle()));

@@ -117,6 +117,16 @@ QString FilterCardModel::canonicalCommand(const QString& key)
 		FilterFactoryRegistry::canonicalCommand(key.toStdWString()));
 }
 
+QString FilterCardModel::assembleLine(const QString& command, const QString& parameters,
+	const QString& replacedLine)
+{
+	if (command == QStringLiteral("#"))
+		return parameters.isEmpty() ? QStringLiteral("#") : QStringLiteral("# ") + parameters;
+	const QString line = command + QStringLiteral(": ") + parameters;
+	// Same spelling as the enable toggle writes, so edit and toggle round-trip.
+	return isDisabledCommandLine(replacedLine) ? QStringLiteral("# ") + line : line;
+}
+
 bool FilterCardModel::isDisabledCommandLine(const QString& line)
 {
 	QString trimmed = line.trimmed();

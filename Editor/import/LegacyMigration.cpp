@@ -13,6 +13,14 @@
 #include "services/install/ApoRegistration.h"
 #include "services/logging/Logging.h"
 #include "services/registry/WindowsRegistry.h"
+#include "services/update/VelopackBootstrap.h"
+
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#include <shlobj.h>
+#include <knownfolders.h>
 
 #include <cstdio>
 
@@ -98,8 +106,42 @@ void writeMigrationBreadcrumbs(IRegistry& registry, const QString& from, int fil
 
 QString LegacyMigration::stableConfigRoot()
 {
-    return LegacyMigrationPolicy::stableConfigRoot(
-        QString::fromLocal8Bit(qgetenv("LOCALAPPDATA")));
+    const QString caller = qEnvironmentVariable(EAPO_CALLER_LOCALAPPDATA_ENVIRONMENT);
+    if (!caller.isEmpty())
+    {
+        QString profilesRoot;
+        PWSTR profiles = nullptr;
+        if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_UserProfiles, KF_FLAG_DEFAULT, nullptr, &profiles)))
+            profilesRoot = QString::fromWCharArray(profiles);
+        CoTaskMemFree(profiles);
+        if (LegacyMigrationPolicy::isAcceptableCallerLocalAppData(caller, profilesRoot)
+            && QDir(caller).exists())
+            return LegacyMigrationPolicy::stableConfigRoot(caller);
+        LogFStatic(L"Migration: ignoring the launcher's LOCALAPPDATA %s (not a local profile folder)",
+            reinterpret_cast<const wchar_t*>(caller.utf16()));
+    }
+    return LegacyMigrationPolicy::stableConfigRoot(qEnvironmentVariable("LOCALAPPDATA"));
+}
+
+QString LegacyMigration::configRoot(const IRegistry& registry)
+{
+    try
+    {
+        if (registry.keyExists(APP_REGPATH) && registry.valueExists(APP_REGPATH, L"ConfigPath"))
+        {
+            const QString configured = QString::fromStdWString(registry.readValue(APP_REGPATH, L"ConfigPath"));
+            if (!configured.isEmpty())
+                return configured;
+        }
+    }
+    catch (const RegistryError& e)
+    {
+        LogFStatic(L"Could not read ConfigPath, using the stable config root: %s", e.getMessage().c_str());
+    }
+    const QString stableRoot = stableConfigRoot();
+    if (!stableRoot.isEmpty() && QDir(stableRoot).exists())
+        return stableRoot;
+    return QDir::currentPath();
 }
 
 bool LegacyMigration::looksLikeLegacyApoConfigDir(const QString& configDir)

@@ -21,6 +21,7 @@
 
 #include "asio/AsioWrapper.h"
 #include "asio/CallbackTrampolines.h"
+#include "asio/DriverNameText.h"
 #include "asio/InProcProcessor.h"
 #include "asio/SampleCodec.h"
 #include "asio/StreamProcessor.h"
@@ -362,6 +363,38 @@ namespace
 			std::string("naming the missing endpoint: ") + message);
 		if (SUCCEEDED(com))
 			CoUninitialize();
+	}
+
+	// Audit #348 TD-10: a Korean endpoint name, narrowed with the ANSI code
+	// page by the WASAPI target, must widen back to the same text and never be
+	// cut in the middle of a double-byte character. Pinned with code page 949
+	// so the check does not depend on the runner's system locale.
+	void testDriverNameText()
+	{
+		if (!IsValidCodePage(949))
+		{
+			std::printf("DriverNameText: code page 949 not installed, skipped\n");
+			return;
+		}
+		// "AB" + U+C2A4 U+D53C U+CEE4 in code page 949.
+		const char korean[] = {'A', 'B', '\xBD', '\xBA', '\xC7', '\xC7', '\xC4', '\xBF', '\0'};
+		wchar_t wide[16] = {};
+		eapo::asio::drivername::widen(korean, wide, 16, 949);
+		harness.expect(std::wstring(wide) == std::wstring(L"AB\uC2A4\uD53C\uCEE4"),
+			"a code page 949 name widens to the same text");
+
+		harness.expectEqual(eapo::asio::drivername::characterBoundary(korean, 8, 5, 949), static_cast<size_t>(4),
+			"a cut at 5 bytes drops the lead byte of the second character");
+		harness.expectEqual(eapo::asio::drivername::characterBoundary(korean, 8, 6, 949), static_cast<size_t>(6),
+			"a cut on a boundary keeps it");
+		harness.expectEqual(eapo::asio::drivername::characterBoundary(korean, 8, 31, 949), static_cast<size_t>(8),
+			"a short name is kept whole");
+
+		const char ascii[] = "TOPPING USB DAC";
+		wchar_t asciiWide[8] = {};
+		eapo::asio::drivername::widen(ascii, asciiWide, 8, 949);
+		harness.expect(std::wstring(asciiWide) == std::wstring(L"TOPPING"),
+			"widening truncates to the destination and terminates it");
 	}
 
 	void testCodecBytePatterns()
@@ -1025,6 +1058,7 @@ namespace
 	{
 		testCodecRoundTrips();
 		testWasapiTargetPolicy();
+		testDriverNameText();
 		testCodecBytePatterns();
 		testTrampolines();
 		testStateMachineOrdering();

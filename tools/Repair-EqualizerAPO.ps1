@@ -6,7 +6,11 @@
 .DESCRIPTION
     Applies the same ACL grants the install hook would set on a clean install:
       - install root: LOCAL SERVICE RX recursive, Users RX recursive
-      - config dir:   Users F recursive, LOCAL SERVICE M recursive
+      - config dir:   Users M recursive, LOCAL SERVICE M recursive
+    Users get Modify, not Full control: Full control includes WRITE_DAC, and a
+    standard user who can re-ACL the config directory can cut LOCAL SERVICE's
+    read and silence the whole APO (audit #250 F043). The product's
+    grantConfigAccess() made the same change; this script follows it.
     Then restarts Audiosrv so the audio engine reloads the APO with the
     corrected ACL.
 
@@ -79,11 +83,11 @@ if ($PSCmdlet.ShouldProcess($installPath, 'Grant LOCAL SERVICE RX recursive')) {
 }
 
 if ($configPath -and (Test-Path -LiteralPath $configPath)) {
-    if ($PSCmdlet.ShouldProcess($configPath, 'Grant Users F + LOCAL SERVICE M recursive')) {
+    if ($PSCmdlet.ShouldProcess($configPath, 'Grant Users M + LOCAL SERVICE M recursive')) {
         Write-Host ""
-        Write-Host "Granting Users (F) and LOCAL SERVICE (M) on config dir..."
+        Write-Host "Granting Users (M) and LOCAL SERVICE (M) on config dir..."
         Invoke-Icacls -Path $configPath -Grants @(
-            '*S-1-5-32-545:(OI)(CI)F',
+            '*S-1-5-32-545:(OI)(CI)M',
             '*S-1-5-19:(OI)(CI)M'
         )
     }

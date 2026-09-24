@@ -27,6 +27,7 @@
 #include <QFile>
 #include <QMessageBox>
 #include <QRegularExpression>
+#include <clocale>
 #include <cstdarg>
 #include <cstring>
 #include <QFontDatabase>
@@ -257,6 +258,10 @@ void say(const wchar_t* format, ...)
 int runEndpointCommand(QApplication& app, bool install)
 {
 	ConsoleAttachment console;
+	// say() hands wide text to fputws, which converts through the CRT locale;
+	// under the default "C" locale a translated (Korean) message stopped at
+	// its first non-ASCII character. The user's code page converts it.
+	setlocale(LC_CTYPE, "");
 	const QStringList args = app.arguments();
 	const QString flag = install ? QStringLiteral("--install-endpoint") : QStringLiteral("--uninstall-endpoint");
 	const int flagIndex = args.indexOf(flag);
@@ -366,17 +371,17 @@ int runEndpointCommand(QApplication& app, bool install)
 	DeviceTestThread thread(nullptr, devices);
 	bool aborted = false;
 	QObject::connect(&thread, &DeviceTestThread::log, [](const QString& message) {
-		say(L"test: %hs\n", qPrintable(plainText(message)));
+		say(L"test: %s\n", reinterpret_cast<const wchar_t*>(plainText(message).utf16()));
 	});
 	QObject::connect(&thread, &DeviceTestThread::logError, [](const QString& message) {
-		say(L"test error: %hs\n", qPrintable(plainText(message)));
+		say(L"test error: %s\n", reinterpret_cast<const wchar_t*>(plainText(message).utf16()));
 	});
 	QObject::connect(&thread, &DeviceTestThread::showErrorDialog, [](const QString& message) {
-		say(L"test error: %hs\n", qPrintable(plainText(message)));
+		say(L"test error: %s\n", reinterpret_cast<const wchar_t*>(plainText(message).utf16()));
 	});
 	QObject::connect(&thread, &DeviceTestThread::abort, [&aborted](const QString& message, int) {
 		aborted = true;
-		say(L"test aborted: %hs\n", qPrintable(plainText(message)));
+		say(L"test aborted: %s\n", reinterpret_cast<const wchar_t*>(plainText(message).utf16()));
 	});
 	QObject::connect(&thread, &DeviceTestThread::setItemStatus, [](const QString& deviceGuid, bool postMix, ItemStatusType status) {
 		static const char* const names[] = {"waiting", "success", "warning", "error"};
@@ -388,7 +393,10 @@ int runEndpointCommand(QApplication& app, bool install)
 	loop.exec();
 	thread.wait();
 
-	const bool ok = !aborted && thread.nonWorkingDeviceCount() == 0;
+	const DeviceTestThread::Verdict verdict = thread.verdict();
+	const bool ok = !aborted && verdict == DeviceTestThread::Verdict::Passed;
+	if (!aborted && verdict == DeviceTestThread::Verdict::Incomplete)
+		say(L"device test: the test stopped before it reached a verdict\n");
 	say(L"device test: %hs\n", ok ? "the APO is alive on the endpoint" : "the APO did not come up on the endpoint");
 	return ok ? 0 : 1;
 }
@@ -437,15 +445,33 @@ int main(int argc, char* argv[])
 
 	if (app.arguments().contains("/u"))
 	{
-		const ApoRegistration::Result uninstallResult = ApoRegistration::uninstallAllDeviceApos(
-			[](const std::wstring& message) {
-				// /u is unattended: stderr cannot block on a modal dialog.
-				fwprintf(stderr, L"DeviceSelector /u: %ls\n", message.c_str());
-			});
-		if (uninstallResult != ApoRegistration::Result::Success)
+		// The sweep reports per-item failures and does not throw them; this
+		// guard is for anything else, so an unattended /u always ends with an
+		// exit code instead of a crash (audit #348 TD-02/TD-06).
+		try
+		{
+			const ApoRegistration::Result uninstallResult = ApoRegistration::uninstallAllDeviceApos(
+				[](const std::wstring& message) {
+					// /u is unattended: stderr cannot block on a modal dialog.
+					fwprintf(stderr, L"DeviceSelector /u: %ls\n", message.c_str());
+				});
+			if (uninstallResult != ApoRegistration::Result::Success)
+				result = -1;
+		}
+		catch (const std::exception& e)
+		{
+			fwprintf(stderr, L"DeviceSelector /u: %hs\n", e.what());
 			result = -1;
+		}
 
-		VoicemeeterAPOInfo::ensureVoicemeeterClientRunning();
+		try
+		{
+			VoicemeeterAPOInfo::ensureVoicemeeterClientRunning();
+		}
+		catch (const std::exception& e)
+		{
+			LogFStatic(L"Could not start the Voicemeeter client: %S", e.what());
+		}
 	}
 	else
 	{

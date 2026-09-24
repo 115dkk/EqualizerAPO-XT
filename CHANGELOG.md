@@ -14,6 +14,61 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Uninstalling no longer leaves the PC without sound when one audio device
+  cannot be read.** The uninstall step stops the Windows audio service, then
+  removes the APO from every device; one device whose registry entries could
+  not be read stopped it there, with the service still stopped, until a
+  reboot. Each device is now handled on its own, a failure is logged and the
+  rest are still cleaned, and the audio service is started again on every
+  path. Device Selector's `/u` does the same ([#349](https://github.com/115dkk/EqualizerAPO-XT/pull/349)).
+- **LoudnessCorrection no longer applies a random attenuation at the reference
+  volume.** With the system volume exactly at the reference point the filter
+  computed its preamp from an uninitialised value, and returning to that
+  volume kept the previous volume's attenuation ([#349](https://github.com/115dkk/EqualizerAPO-XT/pull/349)).
+- **Editing a switched-off line no longer switches it on.** Touching the Copy
+  routing grid of a line turned off with the power button dropped the `#` and
+  put the copy back into the chain; a VST card writing its plugin state back
+  did the same. The routing grid is now disabled on a switched-off line, and
+  every card keeps a switched-off line switched off ([#349](https://github.com/115dkk/EqualizerAPO-XT/pull/349)).
+- **A failed save no longer marks the tab as saved.** The tab lost its `*`
+  even when the file could not be written, so closing it did not ask, and
+  "Save as" adopted the new name anyway. In instant mode a change made in the
+  last 200 ms before closing a tab or the window is now written first ([#349](https://github.com/115dkk/EqualizerAPO-XT/pull/349)).
+- **The configuration folder is right for user names outside the system code
+  page and for installs approved with another administrator's account.** The
+  installer derived the folder from an ANSI copy of `%LOCALAPPDATA%`, so a
+  character the code page cannot hold became `?` and the audio engine read a
+  folder that does not exist; approving the install with another account put
+  the folder in that account's profile. The folder now comes from the
+  launching user's profile ([#349](https://github.com/115dkk/EqualizerAPO-XT/pull/349)).
+- **Device Selector no longer closes when an install step fails.** An error
+  from the ASIO entry or from the device test's fallback reinstall ended the
+  program instead of being reported. The command-line device test now reports
+  a test that stopped early as a failure instead of "the APO is alive", and a
+  translated message on its console is no longer cut at the first non-ASCII
+  character ([#349](https://github.com/115dkk/EqualizerAPO-XT/pull/349)).
+- **Filter lines with a frequency, Q, bandwidth or slope of zero or below are
+  reported as errors**, and a band exactly at the Nyquist frequency passes the
+  signal through instead of ringing without bound ([#349](https://github.com/115dkk/EqualizerAPO-XT/pull/349)).
+- **ASIO entries follow the device.** Removing the ASIO entry of an endpoint
+  that was renamed after it was created left the old entry in every DAW's
+  driver list; a non-ASCII endpoint name (a Korean "스피커") reached the
+  engine and the device list garbled, so a `Device:` line naming it never
+  matched; and the 32-bit driver needed the x86 Visual C++ runtime, which the
+  installer does not provide ([#349](https://github.com/115dkk/EqualizerAPO-XT/pull/349)).
+- **Opening the panel of a VST2 plugin without an editor no longer crashes the
+  Editor**, and a panel that cannot open reports it on the card instead of
+  showing an empty window ([#349](https://github.com/115dkk/EqualizerAPO-XT/pull/349)).
+- **The bundled fonts come back after the Editor restarts itself** (language
+  or interface-mode switch); every skin fell back to the system font until the
+  next launch ([#349](https://github.com/115dkk/EqualizerAPO-XT/pull/349)).
+- The analysis graph's peak gain includes the Nyquist bin; the first session
+  after installing opens Device Selector once even when the Editor restarts
+  itself; a configuration that reads a registry key that does not exist no
+  longer logs the same error every second; `tools/Repair-EqualizerAPO.ps1`
+  grants the configuration folder the same Modify right as the installer
+  instead of Full control ([#349](https://github.com/115dkk/EqualizerAPO-XT/pull/349)).
+
 ## v2.51.1 — 2026-09-19
 
 - **A configuration line can no longer make the audio service open a network

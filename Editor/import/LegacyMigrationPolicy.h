@@ -70,6 +70,13 @@ public:
     // "...\config"). Pure string logic for remapping saved open-file and
     // recent-file paths after a migration.
     static QString remapUnderRoot(const QString& path, const QString& fromRoot, const QString& toRoot);
+
+    // Whether a %LOCALAPPDATA% handed across elevation by the unelevated
+    // launcher may replace the elevated account's own: an absolute path on a
+    // drive (no UNC share, no \\?\ or \\.\ device namespace, no "..") strictly
+    // below the machine's profiles directory. Existence is the caller's
+    // check; this is the string rule.
+    static bool isAcceptableCallerLocalAppData(const QString& path, const QString& profilesRoot);
 };
 
 }

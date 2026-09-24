@@ -197,7 +197,7 @@ namespace
 
 }
 
-// The single hot-path choreography behind all four public overloads: null and
+// The single hot-path choreography behind all three public overloads: null and
 // empty-config bypass, current-config pass, crossfade into a pending next
 // configuration, write-back, transition bookkeeping. Validated against the
 // audio regression references and EngineOrchestrationTests, which pin the
@@ -267,8 +267,9 @@ void FilterEngine::process(float* output, float* input, unsigned frameCount)
 }
 
 
-// Process non-interleaved audio (float**) - Voicemeeter hands per-channel
-// pointer arrays (VoicemeeterClient is the production caller).
+// Process non-interleaved audio (float**): per-channel pointer arrays from
+// VoicemeeterClient and the ASIO stream processors (EngineHostCore,
+// InProcProcessor).
 void FilterEngine::process(float** output, float** input, unsigned frameCount)
 {
 	processImpl<FloatPlanarIo>(output, input, frameCount);

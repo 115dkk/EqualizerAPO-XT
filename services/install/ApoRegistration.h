@@ -49,8 +49,20 @@ public:
 	static Result uninstall(const std::wstring& installDir,
 		IRegistry& registry = systemRegistry());
 	using DeviceUninstallErrorSink = std::function<void(const std::wstring&)>;
+	// The default endpoint (render or capture) the device sweep hands to each
+	// endpoint's load(). Empty means DeviceAPOInfo::getDefaultDevice, which
+	// asks COM; tests pass a fixed answer so the sweep runs on a fake registry.
+	using DefaultDeviceLookup = std::function<std::wstring(bool input)>;
+	// Removes the APO from every endpoint, Voicemeeter strip and ASIO entry.
+	// A failure on one item (an endpoint whose values cannot be read, an
+	// enumeration that throws) is reported through errorSink and the sweep
+	// goes on with the rest; the result is DeviceUninstallFailed then. It
+	// never lets a RegistryError or DeviceException escape (audit #348
+	// TD-02: one unreadable endpoint used to abort the whole uninstall hook
+	// with AudioSrv still stopped).
 	static Result uninstallAllDeviceApos(const DeviceUninstallErrorSink& errorSink,
-		IRegistry& registry = systemRegistry());
+		IRegistry& registry = systemRegistry(),
+		const DefaultDeviceLookup& defaultDeviceLookup = {});
 
 	// The registry role of install()/uninstall(), named and callable on its
 	// own: writes (or cleans) the HKLM app vocabulary - InstallPath, the
@@ -65,7 +77,7 @@ public:
 	static bool stopAudioService();
 	static bool startAudioService();
 
-	// Grants Users full control and LOCAL SERVICE modify on a config
+	// Grants Users and LOCAL SERVICE modify on a config
 	// directory (recursive), so the user can edit configs and audiodg can
 	// read them (and write APO trace logs). install() applies it to the
 	// packaged config dir; the legacy migration applies it to the stable

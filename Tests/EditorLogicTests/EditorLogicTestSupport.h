@@ -30,6 +30,7 @@ void testVelopackUpdateInfo();
 void testVelopackGitHubRelease();
 void testVelopackFeeds();
 void testFilterCardDescriptors();
+void testCardEditsKeepSwitchedOffLinesOff();
 void testSubwooferRoutingDescriptors();
 void testSubwooferRoutingCrossoverRecipes();
 void testFilterCardDepths();

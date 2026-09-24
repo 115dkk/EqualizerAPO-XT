@@ -32,6 +32,7 @@
 #include "services/logging/Logging.h"
 #include "audio/io/SndfileRAII.h"
 #include "platform/windows/Win32Resource.h"
+#include "Tests/AlignedMemoryGate.h"
 #include "Tests/TestHarness.h"
 
 #pragma comment(lib, "bcrypt.lib")
@@ -306,7 +307,19 @@ Options parseOptions(int argc, char** argv)
 		else if (a == "--ref-dir") o.refDir = toWide(next());
 		else if (a == "--config-dir") o.configDir = toWide(next());
 		else if (a == "--out-dir") o.outDir = toWide(next());
-		else if (a == "--tolerance-db") o.toleranceDb = std::atof(next().c_str());
+		else if (a == "--tolerance-db")
+		{
+			// Strict: atof read "abc" as 0 dB, which silently loosened the gate.
+			const std::string text = next();
+			char* end = nullptr;
+			const double value = std::strtod(text.c_str(), &end);
+			if (text.empty() || end == nullptr || *end != '\0' || !std::isfinite(value))
+			{
+				fprintf(stderr, "Invalid --tolerance-db value: %s\n", text.c_str());
+				exit(2);
+			}
+			o.toleranceDb = value;
+		}
 		else if (a == "--equiv-ir") o.equivIrFiles.push_back(toWide(next()));
 		else if (a == "--help" || a == "-h") {
 			printf("Usage: AudioRegressionTests [options]\n");
@@ -390,6 +403,10 @@ struct CompareResult
 	double rmse;
 	double snrDb;
 	size_t sampleCount;
+	// Set when the output or the reference holds a NaN or an infinity. A NaN
+	// makes every "err > maxAbsError" comparison false, so without this an
+	// all-NaN output passed with maxAbsError 0 (audit #348 TD-21).
+	bool nonFinite;
 };
 
 CompareResult compareBuffers(const std::vector<float>& out, const std::vector<float>& ref, double toleranceDb)
@@ -410,6 +427,16 @@ CompareResult compareBuffers(const std::vector<float>& out, const std::vector<fl
 
 	for (size_t i = 0; i < r.sampleCount; ++i)
 	{
+		if (!std::isfinite(out[i]) || !std::isfinite(ref[i]))
+		{
+			r.passed = false;
+			r.nonFinite = true;
+			r.maxAbsError = std::numeric_limits<double>::infinity();
+			r.maxErrorIndex = i;
+			r.rmse = std::numeric_limits<double>::infinity();
+			r.snrDb = -std::numeric_limits<double>::infinity();
+			return r;
+		}
 		double err = std::fabs((double)out[i] - (double)ref[i]);
 		if (err > r.maxAbsError) {
 			r.maxAbsError = err;
@@ -871,8 +898,11 @@ bool runCase(const TestCase& tc, const Options& opts, bool& outFailed)
 
 	CompareResult cr = compareBuffers(output, reference, opts.toleranceDb);
 	const char* verdict = cr.passed ? "PASS" : "FAIL";
-	printf("  %s  maxAbsError=%.3e (at %zu)  rmse=%.3e  snr=%.2f dB\n",
-		verdict, cr.maxAbsError, cr.maxErrorIndex, cr.rmse, cr.snrDb);
+	if (cr.nonFinite)
+		printf("  FAIL  non-finite sample at index %zu (output or reference)\n", cr.maxErrorIndex);
+	else
+		printf("  %s  maxAbsError=%.3e (at %zu)  rmse=%.3e  snr=%.2f dB\n",
+			verdict, cr.maxAbsError, cr.maxErrorIndex, cr.rmse, cr.snrDb);
 	if (!cr.passed) outFailed = true;
 	return cr.passed;
 }
@@ -884,6 +914,19 @@ int runAudioRegressionTests(int argc, char** argv)
 	Logging::set(stderr, false, false, false);
 
 	Options opts = parseOptions(argc, argv);
+
+	// The comparison must reject a non-finite sample; if this ever passes,
+	// every verdict below would be meaningless.
+	{
+		const std::vector<float> reference(4, 0.0f);
+		std::vector<float> poisoned(4, 0.0f);
+		poisoned[2] = std::numeric_limits<float>::quiet_NaN();
+		if (compareBuffers(poisoned, reference, opts.toleranceDb).passed)
+		{
+			fprintf(stderr, "AudioRegressionTests: self-check failed, a NaN sample compared as equal\n");
+			return EXIT_FAILURE;
+		}
+	}
 
 	printf("AudioRegressionTests\n");
 	printf("  variant     = %s\n", opts.variant.c_str());
@@ -935,7 +978,10 @@ int runAudioRegressionTests(int argc, char** argv)
 	test::Harness harness("AudioRegressionTests");
 	harness.expect(!anyFailed, "one or more regression cases failed (drift beyond tolerance or I/O error)");
 	harness.report();
-	return 0;
+	// Every engine in runCase and the batteries is a local that is gone by
+	// now, so the engine-buffer counters must balance (audit #348 TD-22/D1:
+	// this was the one suite that skipped the canary).
+	return test::reportAlignedMemoryBalance("AudioRegressionTests");
 }
 
 int main(int argc, char** argv)

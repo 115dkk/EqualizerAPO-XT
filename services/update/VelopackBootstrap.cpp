@@ -16,6 +16,7 @@
 #include "services/logging/Logging.h"
 #include "platform/windows/WindowsPath.h"
 
+#include <iterator>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -159,6 +160,39 @@ bool VelopackBootstrap::isVelopackInstall()
 	return !updateExePath().empty();
 }
 
+std::wstring VelopackBootstrap::callerLocalAppDataParameter()
+{
+	wchar_t buffer[MAX_PATH * 2] = {};
+	const DWORD length = GetEnvironmentVariableW(L"LOCALAPPDATA", buffer, static_cast<DWORD>(std::size(buffer)));
+	if (length == 0 || length >= std::size(buffer))
+		return std::wstring();
+	std::wstring value(buffer, length);
+	while (!value.empty() && (value.back() == L'\\' || value.back() == L'/'))
+		value.pop_back();
+	if (value.empty() || value.find(L'"') != std::wstring::npos)
+		return std::wstring();
+	return L" \"" + std::wstring(kCallerLocalAppDataArgumentW) + value + L"\"";
+}
+
+void VelopackBootstrap::forwardCallerLocalAppData()
+{
+	int count = 0;
+	LPWSTR* arguments = CommandLineToArgvW(GetCommandLineW(), &count);
+	if (arguments == nullptr)
+		return;
+	const std::wstring prefix = kCallerLocalAppDataArgumentW;
+	for (int i = 1; i < count; i++)
+	{
+		const std::wstring argument = arguments[i];
+		if (argument.size() > prefix.size() && argument.compare(0, prefix.size(), prefix) == 0)
+		{
+			SetEnvironmentVariableW(kCallerLocalAppDataEnvironmentW, argument.substr(prefix.size()).c_str());
+			break;
+		}
+	}
+	LocalFree(arguments);
+}
+
 std::unique_ptr<UpdateSession> VelopackBootstrap::createUpdateSession(
 	const std::string& repoUrl,
 	const std::string& channel)
@@ -184,12 +218,14 @@ bool VelopackBootstrap::launchElevatedUpdateCoordinator()
 		return false;
 	}
 
+	const std::wstring parameters = std::wstring(kElevatedCoordinatorArgumentW)
+		+ callerLocalAppDataParameter();
 	SHELLEXECUTEINFOW info{};
 	info.cbSize = sizeof(info);
 	info.fMask = SEE_MASK_NOASYNC;
 	info.lpVerb = L"runas";
 	info.lpFile = editorPath.c_str();
-	info.lpParameters = kElevatedCoordinatorArgumentW;
+	info.lpParameters = parameters.c_str();
 	info.nShow = SW_HIDE;
 
 	if (ShellExecuteExW(&info))

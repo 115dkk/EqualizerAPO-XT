@@ -42,6 +42,18 @@ public:
 		float attenuation = 1.0f;
 	};
 
+	// The low-shelf stage for one volume reading: the boost it applies and
+	// the preamp that makes room for it. Pure, so the three volume regions
+	// (below, at and above the reference point) can be tested directly.
+	struct LowShelf
+	{
+		double frequency = 75;
+		double q = 0.52;
+		double gain = 0.0;
+		double preAmp = 0.0;
+	};
+	static LowShelf lowShelfFor(const FilterParameters& parameters, double volume);
+
 	LoudnessCorrectionFilter(const FilterParameters& fParameters);
 	virtual ~LoudnessCorrectionFilter();
 	virtual bool getInPlace() {return true;}

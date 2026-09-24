@@ -140,7 +140,25 @@ namespace eapo::asio
 			for (int view = 0; view < 2; view++)
 			{
 				const bool wow = view == 1;
-				deleteKeyIfPresent(registry, asioRoot(wow) + L"\\" + entryName);
+				// Every entry that points at this wrapper, whatever it is called.
+				// The entry is named after the target, and an endpoint target's
+				// name is the device's friendly name at install time: after the
+				// user (or a driver update) renamed the device, the name derived
+				// here no longer matched, and the old entry stayed in every DAW's
+				// list pointing at a CLSID that was unregistered below (audit
+				// #348 TD-08).
+				const std::wstring root = asioRoot(wow);
+				if (registry.keyExists(root))
+				{
+					for (const std::wstring& name : registry.enumSubKeys(root))
+					{
+						const std::wstring key = root + L"\\" + name;
+						if (registry.valueExists(key, clsidValue)
+							&& _wcsicmp(registry.readValue(key, clsidValue).c_str(), wrapperClsid.c_str()) == 0)
+							registry.deleteKey(key);
+					}
+				}
+				deleteKeyIfPresent(registry, root + L"\\" + entryName);
 				const std::wstring classKey = classesClsidRoot(wow) + L"\\" + wrapperClsid;
 				deleteKeyIfPresent(registry, classKey + L"\\InprocServer32");
 				deleteKeyIfPresent(registry, classKey);

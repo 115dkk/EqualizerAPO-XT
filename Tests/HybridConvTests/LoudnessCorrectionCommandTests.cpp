@@ -11,6 +11,7 @@
 #include <string>
 
 #include "filters/loudnessCorrection/LoudnessCorrectionCommand.h"
+#include "filters/loudnessCorrection/LoudnessCorrectionFilter.h"
 #include "Tests/TestHarness.h"
 
 using std::wstring;
@@ -109,6 +110,37 @@ void testRoundTrip()
 		harness.expectTrue(second.serialize() == serialized, "second serialization is identical");
 	}
 }
+
+// Audit #348 TD-03: at the reference point the preamp was left unwritten, so
+// initialize() derived the attenuation from an uninitialised double. The
+// three volume regions are pinned here through the pure low-shelf function.
+void testLowShelfRegions()
+{
+	LoudnessCorrectionFilter::FilterParameters parameters;
+	parameters.state = true;
+	parameters.referenceLevel = -20.0f;
+	parameters.referenceOffset = 0.0f;
+	parameters.attenuation = 1.0f;
+
+	const LoudnessCorrectionFilter::LowShelf at = LoudnessCorrectionFilter::lowShelfFor(parameters, -20.0);
+	harness.expectTrue(at.gain == 0.0 && at.preAmp == 0.0,
+		"at the reference point the low shelf applies no gain and no preamp");
+
+	// 10 dB below the reference point: boost 10 * 0.55 / 0.45 dB, preamp = -boost.
+	const LoudnessCorrectionFilter::LowShelf below = LoudnessCorrectionFilter::lowShelfFor(parameters, -30.0);
+	harness.expectNear(below.gain, 10.0 * 0.55 / 0.45, 1e-12, "below the reference point the low shelf boosts");
+	harness.expectNear(below.preAmp, -below.gain, 1e-12, "below the reference point the preamp makes room for the boost");
+
+	// 10 dB above the reference point: a cut and no preamp.
+	const LoudnessCorrectionFilter::LowShelf above = LoudnessCorrectionFilter::lowShelfFor(parameters, -10.0);
+	harness.expectTrue(above.gain < 0.0, "above the reference point the low shelf cuts");
+	harness.expectTrue(above.preAmp == 0.0, "above the reference point there is no preamp");
+
+	// A reading back at the reference point after a lower one must not keep
+	// the previous preamp (the update thread reused its variable).
+	const LoudnessCorrectionFilter::LowShelf back = LoudnessCorrectionFilter::lowShelfFor(parameters, -20.0);
+	harness.expectTrue(back.preAmp == 0.0, "returning to the reference point clears the preamp");
+}
 }
 
 void runLoudnessCorrectionCommandTests()
@@ -117,6 +149,7 @@ void runLoudnessCorrectionCommandTests()
 	testParameterValidation();
 	testSerialization();
 	testRoundTrip();
+	testLowShelfRegions();
 
 	harness.report();
 }

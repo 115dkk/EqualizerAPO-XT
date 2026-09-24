@@ -147,6 +147,7 @@ bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& paramete
 	bool isBandwidthOrS = false;
 	bool isCornerFreq = false;
 	bool orderWasExplicit = false;
+	bool frequencyGiven = false;
 	bool error = false;
 
 	found = regex_search(parameters, match, regexFreq);
@@ -154,6 +155,7 @@ bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& paramete
 	{
 		wstring freqString = match.str(1);
 		freq = getFreq(freqString);
+		frequencyGiven = true;
 		stream << " with frequency " << freq << " Hz";
 	}
 	else
@@ -258,6 +260,23 @@ bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& paramete
 	{
 		noteError(L"filter parameters must be finite");
 		error = true;
+	}
+	else
+	{
+		// Audit #348 TD-13: a zero or negative frequency, Q, bandwidth or
+		// slope makes the coefficient formulas divide by zero or place the
+		// poles outside the unit circle. A width of exactly 0 still means
+		// "not given" below, as it always has.
+		if (frequencyGiven && freq <= 0)
+		{
+			noteError(L"the frequency must be above 0 Hz");
+			error = true;
+		}
+		if (bandwidthOrQOrS < 0)
+		{
+			noteError(L"Q, bandwidth and slope must be positive");
+			error = true;
+		}
 	}
 
 	if (bandwidthOrQOrS == 0)

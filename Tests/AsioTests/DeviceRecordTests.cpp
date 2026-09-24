@@ -155,6 +155,42 @@ namespace
 		harness.expect(old.renderEndpoint.empty() && old.captureEndpoint.empty(), "with no endpoints");
 	}
 
+	// Audit #348 TD-08: an endpoint entry is named after the device's
+	// friendly name at install time. Removing it after the device was renamed
+	// used to derive the new name, miss the old key, and leave the entry in
+	// every DAW's list. Removal now follows the wrapper CLSID.
+	void testUnregisterFindsAnEntryUnderItsOldName()
+	{
+		test::FakeRegistry registry;
+		const std::wstring endpoint = L"{A6974EEF-CBB1-4E81-B9CA-34B91FFF5279}";
+		const AsioTarget installed = AsioRegistration::endpointTarget(endpoint, L"Speakers", L"TOPPING USB DAC");
+		AsioRegistration::registerWrapper(registry, installed, L"C:\\eapo\\EqualizerAPOAsio.dll", L"C:\\eapo\\x86\\EqualizerAPOAsio.dll");
+		harness.require(AsioRegistration::wrapperRegistered(registry, installed), "the entry is registered under the install-time name");
+
+		// An unrelated driver entry must survive the sweep.
+		registry.seedString(L"HKEY_LOCAL_MACHINE\\SOFTWARE\\ASIO\\Other Driver", L"CLSID", L"{11111111-2222-3333-4444-555555555555}");
+
+		const AsioTarget renamed = AsioRegistration::endpointTarget(endpoint, L"Speakers", L"Desk DAC");
+		AsioRegistration::unregisterWrapper(registry, renamed);
+
+		const std::wstring wrapperClsid = AsioRegistration::wrapperClsidFor(endpoint);
+		for (int view = 0; view < 2; view++)
+		{
+			const std::wstring root = AsioRegistration::asioRoot(view == 1);
+			bool left = false;
+			if (registry.keyExists(root))
+				for (const std::wstring& name : registry.enumSubKeys(root))
+				{
+					const std::wstring key = root + L"\\" + name;
+					if (registry.valueExists(key, L"CLSID") && _wcsicmp(registry.readValue(key, L"CLSID").c_str(), wrapperClsid.c_str()) == 0)
+						left = true;
+				}
+			harness.expect(!left, view == 0 ? "no 64-bit ASIO entry points at the wrapper after removal under a new name"
+				: "no 32-bit ASIO entry points at the wrapper after removal under a new name");
+		}
+		harness.expect(registry.keyExists(L"HKEY_LOCAL_MACHINE\\SOFTWARE\\ASIO\\Other Driver"), "another driver's entry is left alone");
+	}
+
 	void testRecordsShareOneWrapperRecord()
 	{
 		test::FakeRegistry registry;
@@ -331,6 +367,7 @@ int runDeviceRecordTests()
 	testEnumerationAndDerivedIds();
 	testRegisterAndUnregisterBothViews();
 	testWasapiRecordAndEndpointTarget();
+	testUnregisterFindsAnEntryUnderItsOldName();
 	testRecordsShareOneWrapperRecord();
 	testBootAndHost32Options();
 	testFactsFeedTheRecord();

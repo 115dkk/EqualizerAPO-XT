@@ -29,7 +29,18 @@ class LegacyMigration
 public:
     // %LOCALAPPDATA%\EqualizerAPO-XT\config for the current user; empty when
     // the environment variable is missing.
+    // %LOCALAPPDATA%\EqualizerAPO-XT\config. In an elevated hook launched
+    // on behalf of another account, the launcher's LOCALAPPDATA (forwarded
+    // by VelopackBootstrap) is used when it passes the policy's check and
+    // exists; otherwise this process's own, read as UTF-16 (audit #348
+    // TD-05: the ANSI qgetenv turned characters outside the code page into
+    // '?', and the hook wrote that path to HKLM ConfigPath).
     static QString stableConfigRoot();
+    // The folder the Editor edits: HKLM ConfigPath when it can be read, else
+    // the stable root when it exists, else the working directory. One rule
+    // for the startup path and the file dialog's sidebar (audit #348 TD-50);
+    // a registry error is logged and falls through instead of escaping.
+    static QString configRoot(const IRegistry& registry);
 
     // On-disk verdict for a candidate legacy config dir: its parent holds an
     // Equalizer APO install (EqualizerAPO.dll or the NSIS Uninstall.exe).

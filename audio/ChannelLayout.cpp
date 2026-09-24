@@ -50,6 +50,25 @@ namespace
 	};
 }
 
+ChannelLayout::AnalysisLayout ChannelLayout::analysisLayout(unsigned deviceChannelCount,
+	unsigned deviceChannelMask, int selectedMask)
+{
+	AnalysisLayout layout{deviceChannelCount, selectedMask};
+	if (selectedMask != 0 && static_cast<unsigned>(selectedMask) != deviceChannelMask)
+	{
+		layout.channelCount = 0;
+		for (int i = 0; i < 31; i++)
+			if (selectedMask & (1 << i))
+				layout.channelCount++;
+	}
+	if (layout.channelCount == 0)
+	{
+		layout.channelCount = 8;
+		layout.channelMask = KSAUDIO_SPEAKER_7POINT1_SURROUND;
+	}
+	return layout;
+}
+
 int ChannelLayout::getDefaultChannelMask(int channelCount)
 {
 	int channelMask;

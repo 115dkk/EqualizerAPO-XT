@@ -308,6 +308,28 @@ void DeviceSelector::onDialogAccepted()
 			std::shared_ptr<AbstractAPOInfo> info = item->data(0, Qt::UserRole).value<std::shared_ptr<AbstractAPOInfo>>();
 			bool checked = item->checkState(0) == Qt::Checked;
 
+			// The operation put the endpoint back before throwing, and its
+			// report is already in DeviceSelector.log. Two things are added
+			// here: where to find that log, and the one case where the
+			// endpoint was *not* put back, which the user has to know about
+			// before they try again.
+			auto reportFailure = [&](const std::wstring& error) {
+				QString message = QString::fromStdWString(error);
+				const DeviceInstallReport& report = info->getLastOperationReport();
+				if (report.leftInconsistent())
+				{
+					message += QLatin1String("\n\n") + tr("Undoing the change did not finish either, so this "
+						"device may be left partly changed. Reboot before trying again, and see the log for details.");
+				}
+				else if (report.operation != DeviceInstallReport::Operation::None)
+				{
+					message += QLatin1String("\n\n") + tr("The device was left as it was before.");
+				}
+				message += QLatin1String("\n\n") + tr("Details are in %1.")
+					.arg(QDir::toNativeSeparators(QString::fromStdWString(Logging::currentPath())));
+				QMessageBox::critical(this, tr("Error while accessing the registry"), message);
+			};
+
 			try
 			{
 				const DeviceAPOInfo* deviceInfo = dynamic_cast<DeviceAPOInfo*>(info.get());
@@ -332,30 +354,27 @@ void DeviceSelector::onDialogAccepted()
 			}
 			catch (const RegistryError& e)
 			{
-				// The operation put the endpoint back before throwing, and its
-				// report is already in DeviceSelector.log. Two things are added
-				// here: where to find that log, and the one case where the
-				// endpoint was *not* put back, which the user has to know about
-				// before they try again.
-				QString message = QString::fromStdWString(e.getMessage());
-				const DeviceInstallReport& report = info->getLastOperationReport();
-				if (report.leftInconsistent())
-				{
-					message += QLatin1String("\n\n") + tr("Undoing the change did not finish either, so this "
-						"device may be left partly changed. Reboot before trying again, and see the log for details.");
-				}
-				else if (report.operation != DeviceInstallReport::Operation::None)
-				{
-					message += QLatin1String("\n\n") + tr("The device was left as it was before.");
-				}
-				message += QLatin1String("\n\n") + tr("Details are in %1.")
-					.arg(QDir::toNativeSeparators(QString::fromStdWString(Logging::currentPath())));
-				QMessageBox::critical(this, tr("Error while accessing the registry"), message);
+				reportFailure(e.getMessage());
+			}
+			catch (const DeviceException& e)
+			{
+				// Thrown since the ASIO entry joined the install (a missing
+				// InstallPath value); escaping this slot ended the elevated
+				// process mid-install (audit #348 TD-06).
+				reportFailure(e.getMessage());
 			}
 		}
 	}
 
-	VoicemeeterAPOInfo::ensureVoicemeeterClientRunning();
+	// Process enumeration behind this throws std::runtime_error.
+	try
+	{
+		VoicemeeterAPOInfo::ensureVoicemeeterClientRunning();
+	}
+	catch (const std::exception& e)
+	{
+		LogFStatic(L"Could not start the Voicemeeter client: %S", e.what());
+	}
 
 	finish(deviceUpdated);
 }

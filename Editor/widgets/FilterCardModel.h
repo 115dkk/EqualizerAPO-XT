@@ -130,6 +130,15 @@ public:
 	// would serialize the expression away. Both deciders (the editor factory
 	// gate and the row's body construction) ask this one predicate.
 	static bool opensRoutingView(const FilterCardDescriptor& descriptor);
+	// The line an edited card writes back. `command` "#" is the note card's
+	// sentinel (a pure comment has no colon): "# text", or a bare "#" for an
+	// empty note. Any other command becomes "command: parameters", and when
+	// the line being replaced was switched off (a disabled command line) the
+	// result stays off: "# command: parameters". Editing a switched-off line
+	// must never switch it on; the Copy routing view and the VST card's state
+	// read-back used to drop the '#' (audit #348 TD-04/B7).
+	static QString assembleLine(const QString& command, const QString& parameters,
+		const QString& replacedLine);
 
 private:
 	static QStringList parseChannelList(const QString& text);

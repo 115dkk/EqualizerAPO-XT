@@ -13,6 +13,7 @@
 #include <QPushButton>
 #include <QStandardItemModel>
 #include <QStringBuilder>
+#include <QTimer>
 #include <QScrollArea>
 #include <QFileInfo>
 #include <QFileDialog>
@@ -87,7 +88,7 @@ void MainWindow::load(QString path)
 	updateRecentFiles();
 }
 
-void MainWindow::save(FilterTable* filterTable, QString path)
+bool MainWindow::save(FilterTable* filterTable, QString path)
 {
 	QElapsedTimer timer;
 	timer.start();
@@ -98,17 +99,44 @@ void MainWindow::save(FilterTable* filterTable, QString path)
 	if (!writeResult.opened)
 	{
 		QMessageBox::critical(this, tr("Error"), tr("Error while writing configuration file: %0").arg(writeResult.errorMessage));
-		return;
+		return false;
 	}
 	if (writeResult.bytesWritten != writeResult.totalBytes)
 	{
-		// should never happen
 		QMessageBox::critical(this, tr("Error"), tr("Only %0/%1 bytes have been written!").arg(writeResult.bytesWritten).arg(writeResult.totalBytes));
+		return false;
 	}
 
 	qDebug("Saving took %.1f ms", timer.nsecsElapsed() / 1e6);
 
 	startAnalysis();
+	updateDirtyStatus();
+	return true;
+}
+
+void MainWindow::setTabDirty(int tabIndex, bool dirty)
+{
+	if (tabIndex < 0 || tabIndex >= ui->tabWidget->count())
+		return;
+	const QString tabText = ui->tabWidget->tabText(tabIndex);
+	if (dirty && !tabText.endsWith('*'))
+		ui->tabWidget->setTabText(tabIndex, tabText + '*');
+	else if (!dirty && tabText.endsWith('*'))
+		ui->tabWidget->setTabText(tabIndex, tabText.left(tabText.length() - 1));
+}
+
+void MainWindow::flushPendingInstantSave(int tabIndex)
+{
+	FilterTable* filterTable = filterTableForTab(tabIndex);
+	if (filterTable == nullptr)
+		return;
+	QTimer* timer = filterTable->findChild<QTimer*>(QStringLiteral("__instantModeSaveTimer"), Qt::FindDirectChildrenOnly);
+	if (timer == nullptr || !timer->isActive())
+		return;
+	timer->stop();
+	const QString path = filterTable->getConfigPath();
+	if (path.length() > 0 && !save(filterTable, path))
+		setTabDirty(tabIndex, true);
 	updateDirtyStatus();
 }
 

@@ -161,10 +161,23 @@ bool VSTPluginInstance::startEditing(HWND hWnd, short* width, short* height, dou
 	if (effect == NULL)
 		return false;
 
-	vst_rect_t* rect;
+	// An effect without its own editor has nothing to open; asking anyway
+	// left rect uninitialised and dereferenced it (audit #348 TD-14).
+	if ((effect->flags & VST_EFFECT_FLAG_EDITOR) == 0)
+		return false;
+
+	vst_rect_t* rect = nullptr;
 	effect->control(effect.get(), VST_EFFECT_OPCODE_EDITOR_GET_RECT, 0, 0, &rect, 0.0f);
 	effect->control(effect.get(), VST_EFFECT_OPCODE_EDITOR_OPEN, 0, 0, hWnd, 0.0f);
 	effect->control(effect.get(), VST_EFFECT_OPCODE_EDITOR_GET_RECT, 0, 0, &rect, 0.0f);
+
+	if (rect == nullptr || rect->right - rect->left <= 0 || rect->bottom - rect->top <= 0)
+	{
+		// Opened but unsized: close it again, since a false return means the
+		// caller will not call stopEditing() for this window.
+		effect->control(effect.get(), VST_EFFECT_OPCODE_EDITOR_CLOSE, 0, 0, NULL, 0.0f);
+		return false;
+	}
 
 	if (width != NULL)
 		*width = rect->right - rect->left;

@@ -59,11 +59,8 @@ void MainWindow::instantModeEnabled(bool enabled)
 		forEachFilterTable([&](int i, FilterTable* filterTable) {
 			if (filterTable->getConfigPath().length() > 0)
 			{
-				save(filterTable, filterTable->getConfigPath());
-
-				QString tabText = ui->tabWidget->tabText(i);
-				if (tabText.endsWith('*'))
-					ui->tabWidget->setTabText(i, tabText.left(tabText.length() - 1));
+				if (save(filterTable, filterTable->getConfigPath()))
+					setTabDirty(i, false);
 			}
 		});
 		updateDirtyStatus();
