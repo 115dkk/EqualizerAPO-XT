@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.2 — 2026-09-24
+
 - **A failed ASIO entry change is put back and reported.** Turning an ASIO
   driver's entry on, off or changing its options wrote the record, the
   driver-list entry in both registry views and the start-at-boot value one
