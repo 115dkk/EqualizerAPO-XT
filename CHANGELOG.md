@@ -8,7 +8,7 @@ fork started on 2026-05-22.
 
 Versions are bumped automatically by CI from Conventional Commits message
 types, so some version numbers were skipped (1.7, 1.9, 1.12.1, 1.14, 1.16,
-1.23, 1.25, 2.30.1, 2.31, and 2.32 were never released). Tags up to v1.10.1 carried a `-main.<run>` suffix; from v1.11.0 on,
+1.23, 1.25, 2.30.1, 2.31, 2.32, and 2.53 were never released). Tags up to v1.10.1 carried a `-main.<run>` suffix; from v1.11.0 on,
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
@@ -39,7 +39,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   and if a step fails afterwards the window comes back with the error. Exit
   code 5 is retired ([#353](https://github.com/115dkk/EqualizerAPO-XT/pull/353)).
 
-## v2.53.0 — 2026-09-24
+## v2.54.0 — 2026-09-24
 
 - **A Windows device's ASIO entry has the options a driver's entry has.**
   Ticking **Use in ASIO apps** for a playback or recording endpoint in the
