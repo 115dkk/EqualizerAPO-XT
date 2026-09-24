@@ -44,6 +44,7 @@ $plan = [pscustomobject]@{
     ArtifactName = $artifactName
     RequiredFiles = $requiredFiles
     Win32Wrapper = $win32Wrapper
+    Vst3PluginModule = $vst3PluginModule
     ExcludedExtensions = $excludeExtensions
     QtPluginFolders = $qtPluginFolders
 }

@@ -214,21 +214,6 @@ jobs:
         # host-architecture spelling ('x64'/'arm64') for exactly this purpose.
         msbuild-architecture: ${{ matrix.msvcdevplatform }}
 
-    # Pinned dependency tags/versions live in .github/simd-variants.psd1 so they are
-    # defined once and shared with setup-build.ps1. Export them as job env vars for the
-    # checkout/download steps below (a typo'd tag would otherwise diverge silently).
-    - name: Resolve pinned dependency tags
-      shell: pwsh
-      run: |
-        $ErrorActionPreference = "Stop"
-        $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
-        "VST3_TAG=$($manifest.Shared.Vst3Tag)" >> $env:GITHUB_ENV
-        "HIGHWAY_TAG=$($manifest.Shared.HighwayTag)" >> $env:GITHUB_ENV
-        "TCLAP_TAG=$($manifest.Shared.TclapTag)" >> $env:GITHUB_ENV
-        Write-Host "VST3 tag: $($manifest.Shared.Vst3Tag)"
-        Write-Host "Highway tag: $($manifest.Shared.HighwayTag)"
-        Write-Host "TCLAP tag: $($manifest.Shared.TclapTag)"
-
     # Supply-chain pins: the prebuilt binary dependencies (and velopack_libc)
     # are downloaded from a pinned release tag and verified against the SHA-256
     # recorded in .github/simd-variants.psd1, so a new upload to those personal
@@ -274,39 +259,17 @@ jobs:
           -SimdVariant "${{ matrix.simd_variant }}" `
           -VcpkgCommit $manifest.Shared.VcpkgCommit
 
-    # Clone tclap repository (header-only library). Pinned like the other source
-    # dependencies; the tag comes from .github/simd-variants.psd1 (Shared.TclapTag).
-    - name: Download TCLAP
-      uses: actions/checkout@v6
-      with:
-        repository: 115dkk/tclap
-        ref: ${{ env.TCLAP_TAG }}
-        token: ${{ secrets.GITHUB_TOKEN }}
-        path: deps/tclap
-
-    # Clone the VST3 SDK pluginterfaces (header-only COM interfaces + IID unit).
-    # Only this submodule is needed for VST3 hosting; public.sdk / vstgui are not
-    # compiled. Pinned to the first MIT-licensed release; the exact tag comes from
-    # .github/simd-variants.psd1 (Shared.Vst3Tag), shared with setup-build.ps1.
-    - name: Download VST3 pluginterfaces
-      uses: actions/checkout@v6
-      with:
-        repository: steinbergmedia/vst3_pluginterfaces
-        ref: ${{ env.VST3_TAG }}
-        token: ${{ secrets.GITHUB_TOKEN }}
-        path: deps/vst3sdk/pluginterfaces
-
-    # Clone Google Highway (header-only portable SIMD). The Common DSP kernels
-    # use it in static per-target dispatch mode (one TU compiled per /arch), so
-    # only the headers are needed; libhwy / the runtime dispatch table are not.
-    # The exact tag comes from .github/simd-variants.psd1 (Shared.HighwayTag).
-    - name: Download Highway
-      uses: actions/checkout@v6
-      with:
-        repository: google/highway
-        ref: ${{ env.HIGHWAY_TAG }}
-        token: ${{ secrets.GITHUB_TOKEN }}
-        path: deps/highway
+    # The header-only source dependencies (TCLAP, VST3 pluginterfaces,
+    # Highway), cloned at the manifest's tags and held to its commits by the
+    # same routine setup-build.ps1 uses: a retargeted upstream tag fails here
+    # instead of changing what ships (audit #348 TD-26).
+    - name: Clone pinned source dependencies
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+        Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
+        $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
+        Install-PinnedSourceDependency -Manifest $manifest -DepsRoot "${{ github.workspace }}\deps"
 
     # Setup dependency structures
     - name: Setup dependency structures
@@ -764,15 +727,6 @@ jobs:
       with:
         msbuild-architecture: x64
 
-    - name: Resolve pinned dependency tags
-      shell: pwsh
-      run: |
-        $ErrorActionPreference = "Stop"
-        $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
-        "VST3_TAG=$($manifest.Shared.Vst3Tag)" >> $env:GITHUB_ENV
-        "HIGHWAY_TAG=$($manifest.Shared.HighwayTag)" >> $env:GITHUB_ENV
-        "TCLAP_TAG=$($manifest.Shared.TclapTag)" >> $env:GITHUB_ENV
-
     - name: Download dependency release assets
       shell: pwsh
       run: |
@@ -789,29 +743,17 @@ jobs:
         Invoke-DependencyDownload -Downloads (Get-SdkDownloadSpec -Manifest $manifest -DepsRoot "${{ github.workspace }}\deps") `
           -DownloadRoot "${{ github.workspace }}\deps\_downloads"
 
-    - name: Download TCLAP
-      uses: actions/checkout@v6
-      with:
-        repository: 115dkk/tclap
-        ref: ${{ env.TCLAP_TAG }}
-        token: ${{ secrets.GITHUB_TOKEN }}
-        path: deps/tclap
-
-    - name: Download VST3 pluginterfaces
-      uses: actions/checkout@v6
-      with:
-        repository: steinbergmedia/vst3_pluginterfaces
-        ref: ${{ env.VST3_TAG }}
-        token: ${{ secrets.GITHUB_TOKEN }}
-        path: deps/vst3sdk/pluginterfaces
-
-    - name: Download Highway
-      uses: actions/checkout@v6
-      with:
-        repository: google/highway
-        ref: ${{ env.HIGHWAY_TAG }}
-        token: ${{ secrets.GITHUB_TOKEN }}
-        path: deps/highway
+    # The header-only source dependencies (TCLAP, VST3 pluginterfaces,
+    # Highway), cloned at the manifest's tags and held to its commits by the
+    # same routine setup-build.ps1 uses: a retargeted upstream tag fails here
+    # instead of changing what ships (audit #348 TD-26).
+    - name: Clone pinned source dependencies
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+        Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
+        $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
+        Install-PinnedSourceDependency -Manifest $manifest -DepsRoot "${{ github.workspace }}\deps"
 
     - name: Setup dependency structures
       shell: pwsh

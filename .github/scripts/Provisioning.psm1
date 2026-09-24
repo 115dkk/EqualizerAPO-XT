@@ -19,6 +19,9 @@
       Invoke-DependencyDownload   download / cache-reuse, verify, extract loop
       Build-VcpkgDependencies     vcpkg FFTW+libsndfile build & muparserx rebuild
       Install-QtSdk               aqt-based Qt install, returns the Qt root
+      Get-PinnedSourceSpec        the header-only source dependencies with their pinned commits
+      Sync-PinnedCheckout         clone at a tag, fail unless it is the pinned commit
+      Install-PinnedSourceDependency  every source dependency through Sync-PinnedCheckout
 
     All pinned names, tags, and hashes come from .github/simd-variants.psd1
     (Import-PowerShellDataFile at the call site); this module never hardcodes
@@ -450,4 +453,92 @@ function Install-QtSdk {
     return $qtRoot
 }
 
-Export-ModuleMember -Function Get-SimdVariantEntry, Get-DependencyDownloadSpec, Get-SdkDownloadSpec, Invoke-DependencyDownload, Build-VcpkgDependencies, Install-QtSdk
+function Get-PinnedSourceSpec {
+    <#
+    .SYNOPSIS
+        The three header-only source dependencies, each with the tag it is
+        cloned at and the commit that tag must resolve to (from the manifest).
+    #>
+    param(
+        [Parameter(Mandatory)] [hashtable] $Manifest,
+        [Parameter(Mandatory)] [string] $DepsRoot
+    )
+    $shared = $Manifest.Shared
+    @(
+        [pscustomobject]@{ Name = 'TCLAP'; RepoUrl = 'https://github.com/115dkk/tclap'
+            Tag = $shared.TclapTag; Commit = $shared.TclapCommit
+            CheckoutDir = (Join-Path $DepsRoot 'tclap'); ProbeFile = 'include' },
+        [pscustomobject]@{ Name = 'VST3 pluginterfaces'; RepoUrl = 'https://github.com/steinbergmedia/vst3_pluginterfaces'
+            Tag = $shared.Vst3Tag; Commit = $shared.Vst3Commit
+            CheckoutDir = (Join-Path $DepsRoot 'vst3sdk\pluginterfaces'); ProbeFile = 'base\funknown.h' },
+        [pscustomobject]@{ Name = 'Highway'; RepoUrl = 'https://github.com/google/highway'
+            Tag = $shared.HighwayTag; Commit = $shared.HighwayCommit
+            CheckoutDir = (Join-Path $DepsRoot 'highway'); ProbeFile = 'hwy\highway.h' }
+    )
+}
+
+function Sync-PinnedCheckout {
+    <#
+    .SYNOPSIS
+        Clones one source dependency at its tag and fails unless the tag
+        resolved to the manifest's commit; a cached checkout at that commit
+        is kept.
+    .DESCRIPTION
+        A git tag is movable. Audit #250 F072/F058 gave local setup this
+        check; CI still checked the three repositories out by tag alone, so a
+        retargeted upstream tag would have changed the shipped binaries with
+        no diff here (audit #348 TD-26). CI and setup-build.ps1 both call this
+        now.
+    #>
+    param(
+        [Parameter(Mandatory)] [string] $Name,
+        [Parameter(Mandatory)] [string] $RepoUrl,
+        [Parameter(Mandatory)] [string] $Tag,
+        [Parameter(Mandatory)] [string] $ExpectedCommit,
+        [Parameter(Mandatory)] [string] $CheckoutDir,
+        [Parameter(Mandatory)] [string] $ProbeFile
+    )
+
+    $cachedCommit = $null
+    if ((Test-Path (Join-Path $CheckoutDir $ProbeFile)) -and (Test-Path (Join-Path $CheckoutDir ".git"))) {
+        $cachedCommit = (git -C $CheckoutDir rev-parse HEAD 2>$null)
+        if ($LASTEXITCODE -ne 0) { $cachedCommit = $null; $global:LASTEXITCODE = 0 }
+    }
+    if ($cachedCommit -eq $ExpectedCommit -and $cachedCommit) {
+        Write-Host "  [cached] $Name already present at $Tag ($ExpectedCommit)"
+        return
+    }
+
+    if (Test-Path $CheckoutDir) {
+        Write-Host "  Cached $Name is not at $Tag/$ExpectedCommit; re-cloning..."
+        Remove-Item $CheckoutDir -Recurse -Force
+    }
+    $parent = Split-Path -Parent $CheckoutDir
+    if ($parent) { New-Item -ItemType Directory -Force -Path $parent | Out-Null }
+    git clone --depth 1 --branch $Tag $RepoUrl $CheckoutDir
+    if ($LASTEXITCODE -ne 0) { throw "Failed to clone $Name" }
+
+    $actualCommit = (git -C $CheckoutDir rev-parse HEAD)
+    if ($actualCommit -ne $ExpectedCommit) {
+        throw "$Name tag $Tag resolved to $actualCommit, but the manifest pins $ExpectedCommit. The tag moved - review the diff and update simd-variants.psd1 deliberately."
+    }
+    Write-Host "  -> $CheckoutDir ($actualCommit)"
+}
+
+function Install-PinnedSourceDependency {
+    <#
+    .SYNOPSIS
+        Every source dependency from Get-PinnedSourceSpec, through
+        Sync-PinnedCheckout.
+    #>
+    param(
+        [Parameter(Mandatory)] [hashtable] $Manifest,
+        [Parameter(Mandatory)] [string] $DepsRoot
+    )
+    foreach ($spec in (Get-PinnedSourceSpec -Manifest $Manifest -DepsRoot $DepsRoot)) {
+        Sync-PinnedCheckout -Name $spec.Name -RepoUrl $spec.RepoUrl -Tag $spec.Tag `
+            -ExpectedCommit $spec.Commit -CheckoutDir $spec.CheckoutDir -ProbeFile $spec.ProbeFile
+    }
+}
+
+Export-ModuleMember -Function Get-SimdVariantEntry, Get-DependencyDownloadSpec, Get-SdkDownloadSpec, Invoke-DependencyDownload, Build-VcpkgDependencies, Install-QtSdk, Get-PinnedSourceSpec, Sync-PinnedCheckout, Install-PinnedSourceDependency

@@ -55,53 +55,17 @@ jobs:
           build-mode: ${{ matrix.build-mode }}
           queries: security-extended
 
-      # 출하되는 C++ 표면을 컴파일해 CodeQL 트레이서에 태운다. CodeQL은 링크가
-      # 아니라 컴파일만 필요하므로(추출기가 cl.exe 호출을 후킹) APO DLL·보조
-      # exe는 /t:ClCompile로 컴파일만 한다. 이렇게 하면 표준 GitHub 러너의
-      # VS(현재 VS 2026/"18")에 ATL 컴포넌트가 없어 링크 단계에서 atls.lib를
-      # 못 찾던 문제(build.yml이 커스텀 windows-2025-vs2026 러너를 쓰는 이유)를
-      # 링크 자체를 건너뛰어 피한다. Common은 다른 프로젝트가 참조하는 정적
-      # 라이브러리라 먼저 정식 빌드한다(lib.exe는 외부 lib를 링크하지 않는다).
-      # 보안 표면이 아닌 테스트 프로젝트는 분석 잡음이라 뺀다.
+      # 출하되는 C++ 표면을 컴파일해 CodeQL 트레이서에 태운다. 대상 목록과
+      # 빌드 방법은 Invoke-CodeQLBuild.ps1에 있다. CodeQL은 링크가 아니라
+      # 컴파일만 필요하므로(추출기가 cl.exe 호출을 후킹) Common만 정식 빌드하고
+      # 나머지는 /t:ClCompile로 컴파일만 한다. 이렇게 하면 표준 GitHub 러너의
+      # VS에 ATL 컴포넌트가 없어 링크 단계에서 atls.lib를 못 찾던 문제(build.yml이
+      # 커스텀 windows-2025-vs2026 러너를 쓰는 이유)를 링크 자체를 건너뛰어 피한다.
+      # 목록은 BuildScripts.Tests.ps1이 Package-Artifacts.ps1의 출하 파일과 대조하므로,
+      # 새로 출하되는 C++ 바이너리가 스캔 밖에 남지 않는다(감사 #348 TD-25).
       - name: Build C++ core (MSVC)
         shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
-          $deps = "${{ github.workspace }}\deps"
-
-          # 헤더 경로만 있으면 컴파일된다(링크는 하지 않으므로 lib 경로 불필요).
-          $includeParams = @(
-            "/m",
-            "/p:Configuration=Release",
-            "/p:Platform=x64",
-            "/p:PlatformToolset=v143",  # windows-2025 이미지의 VS는 v143 툴셋; .vcxproj 기본 v145는 없다
-            "/p:EnableEnhancedInstructionSet=AdvancedVectorExtensions2",  # 출하되는 avx2 코드경로를 분석
-            "/p:FFTW_INCLUDE=$deps\fftw\include",
-            "/p:MUPARSERX_INCLUDE=$deps\muparserx\parser",
-            "/p:LIBSNDFILE_INCLUDE=$deps\libsndfile\include",
-            "/p:TCLAP_ROOT=$deps\tclap",
-            "/p:VST3_SDK=$deps\vst3sdk",
-            "/p:HIGHWAY_INCLUDE=$deps\highway"
-          )
-
-          # 프로젝트별 빌드 대상: Common은 정식 빌드(정적 lib 생성 + 컴파일),
-          # 나머지는 컴파일 전용.
-          $targets = [ordered]@{
-            "Common.vcxproj"                              = "Build"
-            "EqualizerAPO\EqualizerAPO.vcxproj"           = "ClCompile"
-            "VoicemeeterClient\VoicemeeterClient.vcxproj" = "ClCompile"
-            "Benchmark\Benchmark.vcxproj"                 = "ClCompile"
-          }
-
-          foreach ($project in $targets.Keys) {
-            $target = $targets[$project]
-            Write-Host "`n=== $target $project ==="
-            msbuild $project "/t:$target" @includeParams
-            if ($LASTEXITCODE -ne 0) {
-              Write-Error "Build failed for $project"
-              exit $LASTEXITCODE
-            }
-          }
+        run: ./.github/scripts/Invoke-CodeQLBuild.ps1 -WorkspaceRoot "${{ github.workspace }}" -DepsPath "${{ github.workspace }}\deps"
 
       # 저장소 안의 모델 팩(.github/codeql/eapo-models)을 질의 평가에 얹는다.
       # CodeQL의 windows-registry 출처는 RegQueryValueExW 같은 원시 Win32 호출에만
