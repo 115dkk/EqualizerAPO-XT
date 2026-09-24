@@ -516,6 +516,7 @@ HEADERS  += \
 	../devices/AbstractAPOInfo.h \
 	../devices/AsioAPOInfo.h \
 	../asio/AsioRegistration.h \
+	../asio/EntryOptions.h \
 	../asio/WrapperRecord.h \
 	../asio/StreamProcessor.h \
 	../devices/VoicemeeterAPOInfo.h \

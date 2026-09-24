@@ -101,5 +101,39 @@ namespace eapo::asio
 			if (registry.keyExists(key))
 				registry.deleteKey(key);
 		}
+
+		EntryOptions entryOptions(const WrapperRecord& record)
+		{
+			EntryOptions options;
+			options.synchronous = record.options.mode == Mode::Sync;
+			if (record.options.deadlinePercent != 0)
+				options.deadlinePercent = record.options.deadlinePercent;
+			options.autoStart = record.autoStart;
+			options.host32 = record.register32;
+			return options;
+		}
+
+		void setEntryOptions(WrapperRecord& record, const EntryOptions& options)
+		{
+			record.options.mode = options.synchronous ? Mode::Sync : Mode::Pipelined;
+			record.options.deadlinePercent = options.deadlinePercent;
+			record.autoStart = options.autoStart;
+			record.register32 = options.host32;
+		}
+
+		bool autoStartWanted(const IRegistry& registry)
+		{
+			const std::wstring root = rootKey();
+			if (!registry.keyExists(root))
+				return false;
+			for (const std::wstring& clsid : registry.enumSubKeys(root))
+			{
+				WrapperRecord record;
+				if (read(registry, clsid, record) && record.autoStart
+					&& (record.options.processOutput || record.options.processInput))
+					return true;
+			}
+			return false;
+		}
 	}
 }

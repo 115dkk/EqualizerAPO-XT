@@ -26,6 +26,8 @@
 
 #include <algorithm>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
 #include "platform/windows/GuidText.h"
 #include "services/registry/RegistryPaths.h"
 #include <string>
@@ -453,11 +455,11 @@ void testInstallWithTheAsioEntryRegistersTheWrapperAndUninstallRemovesIt(test::H
 
 	DeviceAPOInfo info(registry);
 	harness.require(info.load(testDeviceGuid, otherDeviceGuid), "the device loads");
-	harness.expectFalse(info.getCurrentInstallState().exclusiveModeEq, "no entry before install");
+	harness.expectFalse(info.getCurrentInstallState().asioEntry, "no entry before install");
 	DeviceAPOInfo::InstallState& selected = info.getSelectedInstallState();
 	selected.installPreMix = true;
 	selected.installPostMix = true;
-	selected.exclusiveModeEq = true;
+	selected.asioEntry = true;
 	info.install();
 
 	const std::wstring wrapperClsid = eapo::asio::AsioRegistration::wrapperClsidFor(testDeviceGuid);
@@ -477,7 +479,7 @@ void testInstallWithTheAsioEntryRegistersTheWrapperAndUninstallRemovesIt(test::H
 
 	DeviceAPOInfo reloaded(registry);
 	harness.require(reloaded.load(testDeviceGuid, otherDeviceGuid), "the device reloads");
-	harness.expectTrue(reloaded.getCurrentInstallState().exclusiveModeEq, "a fresh load sees the entry");
+	harness.expectTrue(reloaded.getCurrentInstallState().asioEntry, "a fresh load sees the entry");
 
 	reloaded.uninstall();
 	harness.expectFalse(registry.keyExists(recordKey), "the uninstall removes the record");
@@ -489,9 +491,99 @@ void testInstallWithTheAsioEntryRegistersTheWrapperAndUninstallRemovesIt(test::H
 	harness.require(again.load(testDeviceGuid, otherDeviceGuid), "the device loads once more");
 	again.getSelectedInstallState().installPreMix = false;
 	again.getSelectedInstallState().installPostMix = false;
-	again.getSelectedInstallState().exclusiveModeEq = true;
+	again.getSelectedInstallState().asioEntry = true;
 	again.install();
 	harness.expectFalse(registry.keyExists(recordKey), "no APO, no entry");
+}
+
+// The endpoint's ASIO entry offers what an ASIO driver row offers: the
+// stream mode and its wait, the host at boot, and the 32-bit registration.
+// They reach the record, a reload reads them back, and the one Run value
+// follows every entry that asks for it, whichever kind the entry is.
+void testAsioEntryCarriesTheDriverEntryOptions(test::Harness& harness)
+{
+	// A product directory with the x86 wrapper in it, so the 32-bit
+	// registration has a file to point at.
+	const std::filesystem::path product = std::filesystem::temp_directory_path()
+		/ (L"EngineOrchestrationTests-asio-" + std::to_wstring(GetCurrentProcessId()));
+	std::filesystem::create_directories(product / L"x86");
+	std::ofstream(product / L"x86" / L"EqualizerAPOAsio.dll").put('\0');
+	const std::wstring installPath = product.wstring();
+
+	FakeRegistry registry;
+	registry.seedString(APP_REGPATH, L"InstallPath", installPath);
+	seedRenderDevice(registry);
+
+	DeviceAPOInfo info(registry);
+	harness.require(info.load(testDeviceGuid, otherDeviceGuid), "the device loads");
+	harness.expectTrue(info.canHostAsio32(), "the x86 wrapper beside the product makes 32-bit hosts possible");
+	harness.expectTrue(info.getCurrentInstallState().asioEntryOptions == eapo::asio::EntryOptions{},
+		"no entry yet: the options read as the defaults");
+	DeviceAPOInfo::InstallState& selected = info.getSelectedInstallState();
+	selected.installPreMix = true;
+	selected.installPostMix = true;
+	selected.asioEntry = true;
+	selected.asioEntryOptions.synchronous = true;
+	selected.asioEntryOptions.deadlinePercent = 50;
+	selected.asioEntryOptions.autoStart = true;
+	selected.asioEntryOptions.host32 = true;
+	info.install();
+
+	const std::wstring wrapperClsid = eapo::asio::AsioRegistration::wrapperClsidFor(testDeviceGuid);
+	const std::wstring recordKey = eapo::asio::WrapperRecords::recordKey(wrapperClsid);
+	harness.require(registry.keyExists(recordKey), "the wrapper record exists");
+	harness.expectEqual(registry.readDWORDValue(recordKey, L"Mode"), 0ul, "the buffer is removed (synchronous mode)");
+	harness.expectEqual(registry.readDWORDValue(recordKey, L"DeadlinePercent"), 50ul, "with the chosen wait");
+	harness.expectEqual(registry.readDWORDValue(recordKey, L"AutoStart"), 1ul, "the host starts at boot");
+	harness.expectEqual(registry.readDWORDValue(recordKey, L"Register32"), 1ul, "and 32-bit hosts are asked for");
+	const std::wstring class32 = eapo::asio::AsioRegistration::classesClsidRoot(true) + L"\\" + wrapperClsid + L"\\InprocServer32";
+	harness.require(registry.keyExists(class32), "the 32-bit view has the class tree");
+	harness.expect(registry.readValue(class32, L"") == installPath + L"\\x86\\EqualizerAPOAsio.dll",
+		"pointing at the x86 wrapper");
+	const std::wstring runKey = eapo::asio::AsioRegistration::autoStartKey();
+	const std::wstring runValue = eapo::asio::AsioRegistration::autoStartValueName();
+	harness.require(eapo::asio::AsioRegistration::autoStartRegistered(registry), "the Run value appears");
+	harness.expect(registry.readValue(runKey, runValue) == L"\"" + installPath + L"\\EqualizerAPOHost.exe\" --resident",
+		"starting the host beside the product, resident");
+
+	DeviceAPOInfo reloaded(registry);
+	harness.require(reloaded.load(testDeviceGuid, otherDeviceGuid), "the device reloads");
+	harness.expectTrue(reloaded.getCurrentInstallState().asioEntryOptions == selected.asioEntryOptions,
+		"a fresh load reads the options back");
+
+	// Another entry asks for the host at boot too; taking the endpoint's
+	// entry away must leave the value for it.
+	eapo::asio::WrapperRecord driver;
+	driver.wrapperClsid = L"{C0C0C0C0-1111-2222-3333-444444444444}";
+	driver.targetClsid = L"{D0D0D0D0-1111-2222-3333-444444444444}";
+	driver.targetName = L"Some Interface";
+	driver.options.processInput = false;
+	driver.autoStart = true;
+	eapo::asio::WrapperRecords::write(registry, driver);
+
+	reloaded.getSelectedInstallState() = reloaded.getCurrentInstallState();
+	reloaded.getSelectedInstallState().asioEntryOptions.autoStart = false;
+	reloaded.getSelectedInstallState().asioEntryOptions.host32 = false;
+	harness.expectTrue(reloaded.hasChanges(), "an option change is a pending change");
+	reloaded.reinstall();
+	harness.expectEqual(registry.readDWORDValue(recordKey, L"AutoStart"), 0ul, "the entry stops asking for the host");
+	harness.expectFalse(registry.keyExists(class32), "the 32-bit view goes when it is no longer asked for");
+	harness.expectTrue(eapo::asio::AsioRegistration::autoStartRegistered(registry), "the other entry still keeps the Run value");
+
+	eapo::asio::WrapperRecords::remove(registry, driver.wrapperClsid);
+	DeviceAPOInfo last(registry);
+	harness.require(last.load(testDeviceGuid, otherDeviceGuid), "the device loads once more");
+	last.getSelectedInstallState() = last.getCurrentInstallState();
+	last.getSelectedInstallState().asioEntryOptions.autoStart = true;
+	last.reinstall();
+	harness.expectTrue(eapo::asio::AsioRegistration::autoStartRegistered(registry), "asking again brings the value back");
+	last.uninstall();
+	harness.expectFalse(registry.keyExists(recordKey), "the uninstall removes the record");
+	harness.expectFalse(eapo::asio::AsioRegistration::autoStartRegistered(registry),
+		"and the Run value, since no entry is left to ask for it");
+
+	std::error_code ignored;
+	std::filesystem::remove_all(product, ignored);
 }
 
 void testUninstallRemovesTheFxPropertiesKeyItCreated(test::Harness& harness)
@@ -831,6 +923,7 @@ void runDeviceApoInfoTests(test::Harness& harness)
 	testInstallRegistersEveryModeOfTheDirection(harness);
 	testInstallOnACaptureDeviceFillsTheStreamSlotForTheCaptureModes(harness);
 	testInstallWithTheAsioEntryRegistersTheWrapperAndUninstallRemovesIt(harness);
+	testAsioEntryCarriesTheDriverEntryOptions(harness);
 	testUninstallRemovesTheFxPropertiesKeyItCreated(harness);
 	testUninstallKeepsFxPropertiesWhenWindowsPutItsOwnSubkeysThere(harness);
 	testInstallExportsTheDriverValuesBeforeOverwritingThem(harness);

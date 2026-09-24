@@ -24,6 +24,7 @@
 #include <vector>
 #include <memory>
 #include "AbstractAPOInfo.h"
+#include "asio/EntryOptions.h"
 #include "services/registry/IRegistry.h"
 #include "services/registry/RegistryTransaction.h"
 
@@ -50,12 +51,15 @@ public:
 		bool autoAdjust;
 		InstallMode installMode;
 		bool allowSilentBufferModification;
-		// "Enable the EQ in WASAPI exclusive mode": an entry for this endpoint
-		// in the ASIO driver list, served by the wrapper over a WASAPI
-		// exclusive target (asio/WasapiExclusiveTarget.h), for applications
-		// whose exclusive-mode stream no APO can reach. Part of the
-		// installation: it goes with the APO and leaves with it.
-		bool exclusiveModeEq;
+		// "Use in ASIO apps": an entry for this endpoint in the ASIO driver
+		// list, served by the wrapper over a WASAPI exclusive target
+		// (asio/WasapiExclusiveTarget.h), for applications whose
+		// exclusive-mode stream no APO can reach. Part of the installation:
+		// it goes with the APO and leaves with it.
+		bool asioEntry;
+		// The entry's stream options, the same ones an ASIO driver row offers
+		// (AsioAPOInfo). Only written while asioEntry is on.
+		eapo::asio::EntryOptions asioEntryOptions;
 
 		InstallState()
 		{
@@ -66,7 +70,7 @@ public:
 			autoAdjust = true;
 			installMode = INSTALL_LFX_GFX;
 			allowSilentBufferModification = false;
-			exclusiveModeEq = false;
+			asioEntry = false;
 		}
 
 		bool operator==(const InstallState&) const = default;
@@ -97,6 +101,9 @@ public:
 	bool hasDriverEffectChain() const;
 	std::wstring getOriginalAPOPreMix();
 	std::wstring getOriginalAPOPostMix();
+	// Whether the ASIO entry can be offered to 32-bit hosts: the x86
+	// wrapper ships beside the product (not in ARM64 builds).
+	bool canHostAsio32() const;
 
 	// POST-CONDITIONS ON FAILURE. All three run their registry changes inside one
 	// RegistryTransaction, so a throw leaves the endpoint as it was found: no

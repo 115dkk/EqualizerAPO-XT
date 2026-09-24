@@ -140,6 +140,11 @@ int runSkinShots(QApplication& app)
 			dialog.previewOpenTroubleshooting();
 			QApplication::processEvents();
 			save(QStringLiteral("options"));
+			// The endpoint's ASIO entry ticked: the same ASIO options unfold
+			// under it.
+			dialog.previewAsioEntry();
+			QApplication::processEvents();
+			save(QStringLiteral("asioentry"));
 			// The ASIO target's own options page (the installed ASIO row of
 			// the preview roster), for the judging material.
 			dialog.previewSelectDevice(0, 4);
@@ -244,7 +249,7 @@ void say(const wchar_t* format, ...)
 }
 
 // --install-endpoint {guid} [--install-mode lfx-gfx|sfx-mfx|sfx-efx]
-//                           [--no-original-apo] [--exclusive-mode-eq] [--no-test]
+//                           [--no-original-apo] [--asio-entry] [--no-test]
 // --uninstall-endpoint {guid}
 //
 // The dialog's OK for one endpoint, without the dialog: the same
@@ -267,7 +272,7 @@ int runEndpointCommand(QApplication& app, bool install)
 	const int flagIndex = args.indexOf(flag);
 	if (flagIndex < 0 || flagIndex + 1 >= args.size())
 	{
-		say(L"usage: DeviceSelector %hs {endpoint-guid} [--install-mode lfx-gfx|sfx-mfx|sfx-efx] [--no-original-apo] [--exclusive-mode-eq] [--no-test]\n", qPrintable(flag));
+		say(L"usage: DeviceSelector %hs {endpoint-guid} [--install-mode lfx-gfx|sfx-mfx|sfx-efx] [--no-original-apo] [--asio-entry] [--no-test]\n", qPrintable(flag));
 		return 2;
 	}
 	const std::wstring guid = args[flagIndex + 1].toStdWString();
@@ -314,10 +319,12 @@ int runEndpointCommand(QApplication& app, bool install)
 		state.useOriginalAPOPreMix = false;
 		state.useOriginalAPOPostMix = false;
 	}
-	// "Enable the EQ in WASAPI exclusive mode": the endpoint's entry in the
-	// ASIO driver list, the dialog's checkbox.
-	if (args.contains(QStringLiteral("--exclusive-mode-eq")))
-		state.exclusiveModeEq = true;
+	// "Use in ASIO apps": the endpoint's entry in the ASIO driver list, the
+	// dialog's checkbox. The entry keeps the options it already has; a new
+	// one gets the defaults.
+	// --exclusive-mode-eq is its first name, still accepted.
+	if (args.contains(QStringLiteral("--asio-entry")) || args.contains(QStringLiteral("--exclusive-mode-eq")))
+		state.asioEntry = true;
 
 	try
 	{
