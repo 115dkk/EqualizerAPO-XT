@@ -7,8 +7,7 @@
 	installer binary itself is built release-only, so until this split its
 	channel mapping, asset grammar and checksum parsing were verified for
 	the first time on release day. These tests compile the logic unit
-	directly, the same pattern the suite uses for UpdateChecker's decision
-	core.
+	directly.
 */
 
 #include <string>

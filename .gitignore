@@ -189,7 +189,6 @@ deps/
 Qt/
 build-*/
 DeviceSelector/translations/DeviceSelector_*.qm
-UpdateChecker/translations/UpdateChecker_*.qm
 
 # Local build helpers
 aqt-settings.ini

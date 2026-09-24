@@ -21,7 +21,7 @@ if (-not $UpdateChannel) {
     $UpdateChannel = $entry.Channel
 }
 $updateChannel = $UpdateChannel
-$requiredExes = @("Editor", "DeviceSelector", "UpdateChecker") |
+$requiredExes = @("Editor", "DeviceSelector") |
     ForEach-Object { "build-$_-$Platform\release\$_.exe" }
 $plan = [pscustomobject]@{ UpdateChannel = $updateChannel; RequiredExecutables = $requiredExes }
 if ($PlanOnly) { return $plan }
@@ -76,6 +76,5 @@ function Build-QtProject([string] $name, [string] $project) {
 
 Build-QtProject "Editor" "Editor\Editor.pro"
 Build-QtProject "DeviceSelector" "DeviceSelector\DeviceSelector.pro"
-Build-QtProject "UpdateChecker" "UpdateChecker\UpdateChecker.pro"
 $missing = @($requiredExes | Where-Object { -not (Test-Path (Join-Path $WorkspaceRoot $_)) })
 if ($missing.Count) { throw "Qt build did not produce: $($missing -join ', ')" }

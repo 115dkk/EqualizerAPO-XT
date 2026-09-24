@@ -118,7 +118,6 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClCompile Include="FilterCardModelTests.cpp" />
     <ClCompile Include="FilterListModelTests.cpp" />
     <ClCompile Include="ConfigImportTests.cpp" />
-    <ClCompile Include="UpdateCheckerTests.cpp" />
     <ClCompile Include="SelectionModelTests.cpp" />
     <ClCompile Include="RoutingModelTests.cpp" />
     <ClCompile Include="SubwooferRoutingTests.cpp" />
@@ -138,7 +137,6 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClCompile Include="LegacyMigrationHookTests.cpp" />
     <ClCompile Include="..\..\Editor\import\LegacyMigration.cpp" />
     <ClCompile Include="..\..\services\install\ApoRegistration.cpp" />
-    <ClCompile Include="..\..\services\security\AudioEngineAccess.cpp" />
     <ClCompile Include="..\..\services\windows\WindowsService.cpp" />
     <ClCompile Include="..\..\services\shell\StartMenuShortcuts.cpp" />
     <ClCompile Include="..\..\Editor\skins\SkinThemeData.cpp" />
@@ -171,8 +169,6 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
          every one of them a duplicate symbol. -->
     <ClCompile Include="..\..\Installer\AutoInstallerLogic.cpp" />
     <ClCompile Include="..\..\Installer\InstallerUiModel.cpp" />
-    <ClCompile Include="..\..\UpdateChecker\UpdateInfoFormatter.cpp" />
-    <ClCompile Include="..\..\UpdateChecker\VelopackUpdateInfo.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Benchmark\BatchPlan.h" />
@@ -201,8 +197,6 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClInclude Include="..\..\filters\BiQuadCommand.h" />
     <ClInclude Include="..\..\filters\ChannelCommand.h" />
     <ClInclude Include="..\..\filters\FilterFactoryRegistry.h" />
-    <ClInclude Include="..\..\UpdateChecker\UpdateInfoFormatter.h" />
-    <ClInclude Include="..\..\UpdateChecker\VelopackUpdateInfo.h" />
     <ClInclude Include="EditorLogicTestSupport.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

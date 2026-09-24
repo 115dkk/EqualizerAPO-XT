@@ -23,10 +23,9 @@ The easiest way to reach the configuration folder is to open the **Configuration
 The installation folder also holds `VST3\EapoXtSubwooferRouting.vst3` (the standalone subwoofer-routing plug-in with its MIT `LICENSE`), the ASIO wrapper `EqualizerAPOAsio.dll` with its engine host `EqualizerAPOHost.exe` (and a 32-bit wrapper under `x86\` on x64 builds), and the two license texts `License.txt` (GPL version 2 or later, the program's license) and `License-gpl-3.0.txt` (GPL version 3, which the ASIO wrapper and the installers that ship it are distributed under).
 
 ### Automatic updates
-XT installs through [Velopack](https://velopack.io/), so updates are delivered per build channel rather than by reinstalling from scratch:
+XT installs through [Velopack](https://velopack.io/), so updates are delivered per build channel rather than by reinstalling from scratch.
 
-* **UpdateChecker** runs at logon (via a scheduled task) and tells you when a newer release for your channel is available. It checks the GitHub release feed for your variant and respects a 24-hour throttle and any version you chose to skip.
-* The **Configuration Editor** also updates itself: about a minute after launch it quietly downloads a newer build for your channel in the background, then applies it silently when you close the editor. The new version comes up the next time you start it.
+The **Configuration Editor** updates itself: about a minute after launch it quietly downloads a newer build for your channel in the background, then applies it silently when you close the editor. The new version comes up the next time you start it.
 
 ## First configuration
 1. Open the configuration folder (see [above](#where-things-live)). The main file is `config.txt`; Equalizer APO loads it automatically and reloads it whenever you save.

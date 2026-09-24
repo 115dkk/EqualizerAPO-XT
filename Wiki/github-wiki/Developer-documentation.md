@@ -21,7 +21,6 @@ The repository is organized around the following components. `EqualizerAPO.sln` 
 * **EqualizerAPO** — the Audio Processing Object DLL (`EqualizerAPO.dll`). It contains the COM boilerplate, implements the APO interfaces, and calls into the Common filter engine. Being ATL-based, it needs `atls.lib`.
 * **Editor** — the Qt-based Configuration Editor. `Editor.exe` is the Velopack package's main executable and handles every Velopack install/update/uninstall hook through `services/install/ApoRegistration` and `services/update/VelopackBootstrap`.
 * **DeviceSelector** — the Qt utility shown after the first install so the user can pick the audio devices to register the APO for. It replaces the original Configurator.
-* **UpdateChecker** — the Qt tool that runs at logon and notifies the user when a newer release for the build channel is available.
 * **Benchmark** — a console program for testing the audio processing without installing it on a device. Handy for experimenting with filter types and measuring performance.
 * **VoicemeeterClient** — a helper for Voicemeeter integration.
 * **SubwooferRoutingCore** — the shared, MIT-licensed subwoofer-routing DSP and state compiler used by both the APO command and the standalone plug-in.

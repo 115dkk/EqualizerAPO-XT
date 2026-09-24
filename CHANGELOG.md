@@ -14,6 +14,12 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **UpdateChecker.exe is no longer shipped.** The Editor already downloads a
+  new release in the background and applies it when it closes. The separate
+  notify-only tool had not been started automatically since the NSIS
+  installer was removed, and on the `x64-avx` channel it could offer another
+  channel's installer, because it matched installer names by prefix. An
+  update removes it from the install folder ([#352](https://github.com/115dkk/EqualizerAPO-XT/pull/352)).
 - **A Windows device's ASIO entry has the options a driver's entry has.**
   Ticking **Use in ASIO apps** for a playback or recording endpoint in the
   Device Selector now unfolds **Remove the buffer** with its **Wait time**,
