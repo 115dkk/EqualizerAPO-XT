@@ -331,11 +331,6 @@ public:
 		store(key, valuename, stored);
 	}
 
-	void writeMultiValue(const std::wstring& key, const std::wstring& valuename, const std::wstring& value) override
-	{
-		writeMultiValue(key, valuename, std::vector<std::wstring>{value});
-	}
-
 	void writeMultiValue(const std::wstring& key, const std::wstring& valuename, const std::vector<std::wstring>& values) override
 	{
 		store(key, valuename, multiString(values));

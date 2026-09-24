@@ -32,16 +32,16 @@
 //
 // The method set is what devices/DeviceAPOInfo.{Install,Load,State,
 // Uninstall}.cpp, DeviceAPOInfo.cpp and VoicemeeterAPOInfo.cpp call, plus the
-// three RegistryTransaction needs to undo them, and it is meant to stay that
+// two RegistryTransaction needs to undo them, and it is meant to stay that
 // way. Nothing was added for symmetry or completeness: an operation nobody
 // calls is an operation every future fake has to implement for nothing.
 //
-// Those three - enumValues, readMultiValue and the vector overload of
-// writeMultiValue - are here because a rollback has to put back exactly what it
-// displaced, which is a strictly larger set of operations than applying the
-// change needed. install() only ever writes a REG_MULTI_SZ that was absent, but
-// uninstall() deletes the processing-mode values it wrote, and undoing that
-// delete means reading a REG_MULTI_SZ and writing all of its strings back.
+// Those two - enumValues and readMultiValue - are here because a rollback has
+// to put back exactly what it displaced, which is a strictly larger set of
+// operations than applying the change needed. uninstall() deletes the
+// processing-mode values install() wrote, and undoing that delete means
+// reading a REG_MULTI_SZ and writing all of its strings back. (A one-string
+// writeMultiValue that nothing called went in audit #348 TD-55.)
 // deleteKey takes a key's values with it, so undoing one means enumerating them
 // first. A port that could only describe the forward direction would leave the
 // rollback guessing.
@@ -123,11 +123,10 @@ public:
 	// Writes REG_SZ, overwriting whatever type was there.
 	virtual void writeValue(const std::wstring& key, const std::wstring& valuename, const std::wstring& value) = 0;
 	virtual void writeDWORDValue(const std::wstring& key, const std::wstring& valuename, unsigned long value) = 0;
-	// Writes a REG_MULTI_SZ holding this one string. The device layer only ever
-	// writes the single processing-mode GUID through this one.
-	virtual void writeMultiValue(const std::wstring& key, const std::wstring& valuename, const std::wstring& value) = 0;
-	// Writes a REG_MULTI_SZ holding every string given. Only a rollback uses it,
-	// to put back a driver's multi-string value verbatim.
+	// Writes a REG_MULTI_SZ holding every string given: install() writes the
+	// processing-mode lists through it, and a rollback puts back a driver's
+	// list verbatim. An empty string ends the list, so trailing empty strings
+	// do not survive a read.
 	virtual void writeMultiValue(const std::wstring& key, const std::wstring& valuename, const std::vector<std::wstring>& values) = 0;
 	// Throws if the value is not there, so callers guard it with valueExists.
 	virtual void deleteValue(const std::wstring& key, const std::wstring& valuename) = 0;

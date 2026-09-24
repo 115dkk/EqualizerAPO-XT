@@ -142,8 +142,7 @@ void checkMissingKey(test::Harness& harness, const RegistryUnderTest& under)
 		{"keyEmpty", [&] { registry.keyEmpty(missing); }},
 		{"writeValue", [&] { registry.writeValue(missing, L"Name", L"text"); }},
 		{"writeDWORDValue", [&] { registry.writeDWORDValue(missing, L"Name", 1); }},
-		{"writeMultiValue (one string)", [&] { registry.writeMultiValue(missing, L"Name", L"text"); }},
-		{"writeMultiValue (list)", [&] { registry.writeMultiValue(missing, L"Name", std::vector<std::wstring>{L"a", L"b"}); }},
+		{"writeMultiValue", [&] { registry.writeMultiValue(missing, L"Name", std::vector<std::wstring>{L"a", L"b"}); }},
 		{"deleteValue", [&] { registry.deleteValue(missing, L"Name"); }},
 		{"deleteKey", [&] { registry.deleteKey(missing); }},
 	};
@@ -190,8 +189,6 @@ void checkValues(test::Harness& harness, const RegistryUnderTest& under)
 	registry.writeMultiValue(key, L"List", std::vector<std::wstring>{L"a", L"", L"b"});
 	registry.writeMultiValue(key, L"Trailing", std::vector<std::wstring>{L"a", L""});
 	registry.writeMultiValue(key, L"None", std::vector<std::wstring>{});
-	registry.writeMultiValue(key, L"Single", L"one");
-	registry.writeMultiValue(key, L"SingleBlank", L"");
 	under.seedBinary(key, L"Bytes", {0x00, 0x01, 0x7F, 0xFF});
 	registry.writeValue(key, L"", L"default");
 
@@ -206,10 +203,6 @@ void checkValues(test::Harness& harness, const RegistryUnderTest& under)
 	harness.expect(registry.readMultiValue(key, L"Trailing") == std::vector<std::wstring>({L"a"}),
 		at + "a trailing empty string does not survive, it is the list terminator");
 	harness.expect(registry.readMultiValue(key, L"None").empty(), at + "an empty REG_MULTI_SZ reads back empty");
-	harness.expect(registry.readMultiValue(key, L"Single") == std::vector<std::wstring>({L"one"}),
-		at + "the one-string writeMultiValue stores a one-element list");
-	harness.expect(registry.readMultiValue(key, L"SingleBlank").empty(),
-		at + "a one-string writeMultiValue of the empty string reads back as an empty list");
 	harness.expect(registry.readBinaryValue(key, L"Bytes") == std::vector<unsigned char>({0x00, 0x01, 0x7F, 0xFF}),
 		at + "a REG_BINARY reads back byte for byte");
 	harness.expect(registry.readValue(key, L"") == L"default", at + "the default value is the empty name");
@@ -222,7 +215,7 @@ void checkValues(test::Harness& harness, const RegistryUnderTest& under)
 	harness.expect(throwsRegistryError([&] { registry.readBinaryValue(key, L"Text"); }), at + "readBinaryValue refuses a REG_SZ");
 
 	harness.expect(normalizedNames(registry.enumValues(key)) == normalizedNames({L"", L"Blank", L"Bytes", L"List", L"None",
-		L"Number", L"Single", L"SingleBlank", L"Text", L"Trailing"}),
+		L"Number", L"Text", L"Trailing"}),
 		at + "enumValues lists every value by name, the default value as the empty name");
 
 	registry.deleteValue(key, L"Text");

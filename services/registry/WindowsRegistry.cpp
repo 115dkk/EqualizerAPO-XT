@@ -208,20 +208,6 @@ void WindowsRegistry::writeDWORDValue(const wstring& key, const wstring& valuena
 		throw RegistryError(L"Error while writing to registry value " + key + L"\\" + valuename + L": " + win32::errorMessage(status));
 }
 
-void WindowsRegistry::writeMultiValue(const wstring& key, const wstring& valuename, const wstring& value)
-{
-	winutil::UniqueRegistryKey keyHandle(openKey(key, KEY_SET_VALUE | KEY_WOW64_64KEY));
-
-	wstring data = value;
-	data.push_back(L'\0');
-	data.push_back(L'\0');
-
-	LSTATUS status = RegSetValueExW(keyHandle.get(), valuename.c_str(), 0, REG_MULTI_SZ, reinterpret_cast<const BYTE*>(data.data()), static_cast<DWORD>(data.size() * sizeof(wchar_t)));
-
-	if (status != ERROR_SUCCESS)
-		throw RegistryError(L"Error while writing to registry value " + key + L"\\" + valuename + L": " + win32::errorMessage(status));
-}
-
 void WindowsRegistry::writeMultiValue(const wstring& key, const wstring& valuename, const vector<wstring>& values)
 {
 	winutil::UniqueRegistryKey keyHandle(openKey(key, KEY_SET_VALUE | KEY_WOW64_64KEY));
