@@ -68,6 +68,13 @@ void testParameterValidation()
 		LoudnessCorrectionCommand::parse(L"LoudnessCorrection", L"State 1 ReferenceLevel 0 ReferenceOffset 0 Attenuation 2.5", cmd),
 		"an out-of-range attenuation still parses the line");
 	harness.expectTrue(cmd.attenuation == 1.0f, "out-of-range attenuation falls back to 1.0");
+
+	// Audit #348 TD-42: the grammar takes a decimal comma, and wcstod used to
+	// stop at it and read the attenuation as 0.
+	harness.expectTrue(
+		LoudnessCorrectionCommand::parse(L"LoudnessCorrection", L"State 1 ReferenceLevel 0 ReferenceOffset 0 Attenuation 0,5", cmd),
+		"a decimal comma attenuation parses");
+	harness.expectTrue(cmd.attenuation == 0.5f, "and reads as 0.5, not 0");
 }
 
 void testSerialization()

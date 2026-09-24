@@ -38,11 +38,12 @@ bool suffixNumber(const std::wstring& source, const std::wstring& suffix,
 	}
 	if (text.empty())
 		return false;
-	// Audit #250 F015: accept the decimal comma like the BiQuad family.
-	text = numeric_text::normalizeDecimalComma(text);
-	wchar_t* end = nullptr;
-	out = wcstod(text.c_str(), &end);
-	return end != text.c_str() && *end == L'\0' && std::isfinite(out);
+	// The decimal comma is accepted like the BiQuad family (audit #250 F015).
+	const std::optional<double> number = numeric_text::parseNumber(text);
+	if (!number)
+		return false;
+	out = *number;
+	return true;
 }
 
 bool fail(std::wstring* error, const std::wstring& reason)

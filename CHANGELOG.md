@@ -14,6 +14,13 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **`LoudnessCorrection` reads an attenuation written with a decimal comma.**
+  `Attenuation 0,5` was accepted but read as 0; it now reads as 0.5, like a
+  decimal comma everywhere else in the configuration. The commands that read
+  numbers now share one reader: `MultiConvolution` no longer takes `inf`,
+  `nan` or hexadecimal text as a factor, and `Copy` no longer takes
+  hexadecimal text ([#364](https://github.com/115dkk/EqualizerAPO-XT/pull/364)).
+
 ## v2.54.1 — 2026-09-24
 
 - **Benchmark.exe stops with an error instead of hanging on a short read or
