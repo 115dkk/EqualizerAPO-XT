@@ -184,12 +184,12 @@ int main(int argc, char** argv)
 		testSharedRawBodyAndRoutingViewPredicates();
 		testVstChunkPathCandidates();
 		testAutoInstallerChannelMapping();
+		testAutoInstallerChannelDescriptions();
 		testAutoInstallerAssetGrammar();
 		testAutoInstallerChecksumParsing();
 		testAutoInstallerFlagScan();
 		testInstallerUiModelStepTransitions();
 		testInstallerUiModelFormatting();
-		testInstallerUiModelChannelDescriptions();
 
 		harness.report();
 		if (test::reportAlignedMemoryBalance("EditorLogicTests") != 0)

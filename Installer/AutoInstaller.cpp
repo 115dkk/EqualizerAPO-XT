@@ -22,10 +22,9 @@
         file cannot be downloaded, does not list the asset, or the hash
         differs, the download is deleted and the process exits with code 4.
 
-    The six channel strings below MUST stay in sync with
-    .github/simd-variants.psd1, .github/workflows/build.yml and
-    .github/scripts/New-ReleaseNotes.ps1 (this file is compiled C++ and cannot
-    read the manifest).
+    The channel strings live in one table in AutoInstallerLogic.cpp; this
+    binary cannot read .github/simd-variants.psd1, so
+    .github/scripts/Test-VariantSync.ps1 holds the two together.
 */
 
 #ifndef WIN32_LEAN_AND_MEAN
@@ -185,19 +184,17 @@ std::wstring tempFilePath(const std::wstring& fileName)
 enum class DownloadOutcome
 {
     Ok,
-    Failed,
-    Canceled
+    Failed
 };
 
 // Download github.com<path> to outFile over HTTPS. WinHTTP follows GitHub's
 // redirect to the objects CDN automatically (https->https, allowed by the
 // default redirect policy). progress, when set, is called per received chunk
 // with (bytesSoFar, totalBytes) - totalBytes is 0 when the server sent no
-// Content-Length - and cancels the download by returning false. Returns Ok
-// on HTTP 200 + complete write.
+// Content-Length. Returns Ok on HTTP 200 + complete write.
 DownloadOutcome downloadToFile(const std::wstring& path, const std::wstring& outFile,
     std::wstring& error,
-    const std::function<bool(unsigned long long, unsigned long long)>& progress = {})
+    const std::function<void(unsigned long long, unsigned long long)>& progress = {})
 {
     DownloadOutcome outcome = DownloadOutcome::Failed;
     winutil::UniqueWinHttpHandle session;
@@ -215,9 +212,9 @@ DownloadOutcome downloadToFile(const std::wstring& path, const std::wstring& out
         goto cleanup;
     }
 
-    // Bound every blocking phase: with the window's close button acting as a
-    // cancel, the worker must never sit in a system default (potentially
-    // multi-minute) wait after the user already gave up.
+    // Bound every blocking phase, so a stalled connection ends in an error
+    // the window can show instead of a system default (potentially
+    // multi-minute) wait.
     WinHttpSetTimeouts(session.get(), 15000, 15000, 30000, 30000);
 
     connect.reset(WinHttpConnect(session.get(), L"github.com", INTERNET_DEFAULT_HTTPS_PORT, 0));
@@ -303,11 +300,8 @@ DownloadOutcome downloadToFile(const std::wstring& path, const std::wstring& out
         }
 
         receivedBytes += read;
-        if (progress && !progress(receivedBytes, totalBytes))
-        {
-            outcome = DownloadOutcome::Canceled;
-            goto cleanup;
-        }
+        if (progress)
+            progress(receivedBytes, totalBytes);
     }
 
     if (progress)
@@ -587,7 +581,7 @@ int runInstallFlow(InstallerUi::InstallerWindow* ui, bool silent)
         if (ui != nullptr)
         {
             ui->update([step, text](Model& model) { failStep(model, step, text); });
-            ui->finish(exitCode, 0);
+            ui->finish(0);
         }
         else if (useMessageBoxes)
         {
@@ -630,13 +624,11 @@ int runInstallFlow(InstallerUi::InstallerWindow* ui, bool silent)
     {
         downloadedTotal = received;
         if (ui == nullptr)
-            return true;
-        if (ui->isCancelRequested())
-            return false;
+            return;
         // Post at most every 512 KiB (plus the final chunk) so a fast
         // connection cannot flood the message queue.
         if (received - lastPostedBytes < 512 * 1024 && !(total != 0 && received >= total))
-            return true;
+            return;
         lastPostedBytes = received;
         ui->update([received, total](Model& model)
         {
@@ -644,17 +636,10 @@ int runInstallFlow(InstallerUi::InstallerWindow* ui, bool silent)
             model.totalBytes = total;
             model.details[kStepDownload] = formatDownloadDetail(received, total);
         });
-        return true;
     };
 
     std::wstring error;
     const DownloadOutcome downloaded = downloadToFile(assetPath(channel), outFile, error, progress);
-    if (downloaded == DownloadOutcome::Canceled)
-    {
-        if (ui != nullptr)
-            ui->finish(kExitCanceled, 0);
-        return kExitCanceled;
-    }
     if (downloaded != DownloadOutcome::Ok)
         return fail(kStepDownload, kExitDownloadFailed, error);
 
@@ -702,7 +687,7 @@ int runInstallFlow(InstallerUi::InstallerWindow* ui, bool silent)
             finishStep(model, kStepLaunch, L"Velopack installer started \u2014 this window closes itself");
             model.completed = true;
         });
-        ui->finish(kExitSuccess, 1500);
+        ui->finish(1500);
     }
     return kExitSuccess;
 }
@@ -739,8 +724,11 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int)
     if (!window.create(instance))
         return runInstallFlow(nullptr, false);
 
-    std::thread worker([&window] { runInstallFlow(&window, false); });
-    const int result = window.runMessageLoop();
+    // The flow's own result is the exit code: closing the window does not
+    // end or cancel it, so the loop always outlives the worker's finish().
+    int result = InstallerUi::kExitSuccess;
+    std::thread worker([&window, &result] { result = runInstallFlow(&window, false); });
+    InstallerUi::InstallerWindow::runMessageLoop();
     worker.join();
     return result;
 }

@@ -10,6 +10,7 @@
 */
 
 #include "InstallerWindow.h"
+#include "AutoInstallerLogic.h"
 #include <numbers>
 
 #include <d2d1.h>
@@ -58,7 +59,6 @@ constexpr UINT kMsgRepaint = WM_APP + 1;
 constexpr UINT kMsgFinish = WM_APP + 2;
 constexpr UINT_PTR kAnimTimer = 1;
 constexpr UINT_PTR kCloseTimer = 2;
-constexpr UINT_PTR kCancelWatchdogTimer = 3;
 
 // GitHub dark palette; proven legible on dark and consistent with where the
 // download actually comes from.
@@ -471,7 +471,7 @@ bool InstallerWindow::create(HINSTANCE instance)
 	return true;
 }
 
-int InstallerWindow::runMessageLoop()
+void InstallerWindow::runMessageLoop()
 {
 	MSG message = {};
 	while (GetMessageW(&message, nullptr, 0, 0) > 0)
@@ -479,7 +479,6 @@ int InstallerWindow::runMessageLoop()
 		TranslateMessage(&message);
 		DispatchMessageW(&message);
 	}
-	return exitCode;
 }
 
 void InstallerWindow::update(const std::function<void(Model&)>& mutate)
@@ -491,15 +490,9 @@ void InstallerWindow::update(const std::function<void(Model&)>& mutate)
 	PostMessageW(hwnd, kMsgRepaint, 0, 0);
 }
 
-void InstallerWindow::finish(int code, unsigned closeDelayMs)
+void InstallerWindow::finish(unsigned closeDelayMs)
 {
-	PostMessageW(hwnd, kMsgFinish, static_cast<WPARAM>(code),
-		static_cast<LPARAM>(closeDelayMs));
-}
-
-bool InstallerWindow::isCancelRequested() const
-{
-	return cancelRequested.load();
+	PostMessageW(hwnd, kMsgFinish, 0, static_cast<LPARAM>(closeDelayMs));
 }
 
 LRESULT CALLBACK InstallerWindow::wndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -553,12 +546,23 @@ LRESULT InstallerWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lPara
 		InvalidateRect(hwnd, nullptr, FALSE);
 		return 0;
 	case kMsgFinish:
-		exitCode = static_cast<int>(wParam);
-		sessionFinished.store(true);
-		if (cancelRequested.load())
-			DestroyWindow(hwnd);
-		else if (lParam > 0)
-			SetTimer(hwnd, kCloseTimer, static_cast<UINT>(lParam), nullptr);
+		sessionFinished = true;
+		if (lParam > 0)
+		{
+			// The hand-off succeeded. A window the user already closed has
+			// nothing left to show.
+			if (closedWhileRunning)
+				DestroyWindow(hwnd);
+			else
+				SetTimer(hwnd, kCloseTimer, static_cast<UINT>(lParam), nullptr);
+		}
+		else if (closedWhileRunning)
+		{
+			// The flow failed after the user closed the window: bring it back
+			// with the error panel instead of ending without a word.
+			ShowWindow(hwnd, SW_SHOW);
+			SetForegroundWindow(hwnd);
+		}
 		InvalidateRect(hwnd, nullptr, FALSE);
 		return 0;
 	case WM_TIMER:
@@ -566,7 +570,7 @@ LRESULT InstallerWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lPara
 		{
 			InvalidateRect(hwnd, nullptr, FALSE);
 		}
-		else if (wParam == kCloseTimer || wParam == kCancelWatchdogTimer)
+		else if (wParam == kCloseTimer)
 		{
 			KillTimer(hwnd, wParam);
 			DestroyWindow(hwnd);
@@ -620,18 +624,16 @@ LRESULT InstallerWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lPara
 			PostMessageW(hwnd, WM_CLOSE, 0, 0);
 		return 0;
 	case WM_CLOSE:
-		if (sessionFinished.load())
+		if (sessionFinished)
 		{
 			DestroyWindow(hwnd);
 		}
 		else
 		{
-			// The worker is mid-download: hide immediately, let it notice the
-			// cancel flag and post its finish. The watchdog covers a worker
-			// stuck in a blocking WinHTTP call.
-			cancelRequested.store(true);
+			// Not a cancel: the window goes away and the worker carries on to
+			// the hand-off; kMsgFinish decides what happens after that.
+			closedWhileRunning = true;
 			ShowWindow(hwnd, SW_HIDE);
-			SetTimer(hwnd, kCancelWatchdogTimer, 10000, nullptr);
 		}
 		return 0;
 	case WM_DESTROY:
@@ -782,7 +784,7 @@ std::vector<ShotFixture> shotFixtures()
 
 	Model downloading = detecting;
 	finishStep(downloading, kStepDetect,
-		describeChannel(L"x64-avx2") + L" \u2014 x64-avx2 build");
+		AutoInstallerLogic::describeChannel(L"x64-avx2") + L" \u2014 x64-avx2 build");
 	downloading.downloadedBytes = 116686848ULL;
 	downloading.totalBytes = 276824064ULL;
 	startStep(downloading, kStepDownload,
@@ -807,7 +809,7 @@ std::vector<ShotFixture> shotFixtures()
 
 	Model downloadError = detecting;
 	finishStep(downloadError, kStepDetect,
-		describeChannel(L"x64-avx2") + L" \u2014 x64-avx2 build");
+		AutoInstallerLogic::describeChannel(L"x64-avx2") + L" \u2014 x64-avx2 build");
 	startStep(downloadError, kStepDownload, L"");
 	failStep(downloadError, kStepDownload,
 		L"The matching installer was not found on the release page (HTTP 404)."

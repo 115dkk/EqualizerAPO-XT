@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "text/WideString.h"
 #include "platform/windows/TextEncoding.h"
-#ifdef DEBUG
+#ifdef _DEBUG
 #include <stdlib.h>
 #include <crtdbg.h>
 #endif
@@ -80,7 +80,7 @@ int main(int argc, char** argv)
 		TCLAP::ValueArg<string> inputArg("i", "input", "File to load sound data from instead of generating sweep", false, "", "string", cmd);
 		TCLAP::ValueArg<unsigned> rateArg("r", "rate", "Sample rate of generated sweep (Default: 44100)", false, 44100, "integer", cmd);
 		TCLAP::ValueArg<float> toArg("t", "to", "End frequency of generated sweep in Hz (Default: 20000.0)", false, 20000.0f, "float", cmd);
-		TCLAP::ValueArg<float> fromArg("f", "from", "Start frequency of generated sweep in Hz (Default: 0.1)", false, 1.0f, "float", cmd);
+		TCLAP::ValueArg<float> fromArg("f", "from", "Start frequency of generated sweep in Hz (Default: 1.0)", false, 1.0f, "float", cmd);
 		TCLAP::ValueArg<float> lengthArg("l", "length", "Length of generated sweep in seconds (Default: 200.0)", false, 200.0f, "float", cmd);
 		TCLAP::ValueArg<unsigned> channelArg("c", "channels", "Number of channels of generated sweep (Default: 2)", false, 2, "integer", cmd);
 
@@ -128,9 +128,20 @@ int main(int argc, char** argv)
 
 			buf.resize((size_t)frameCount * channelCount);
 
+			// sf_readf_float returns 0 once the file ends early or a read fails;
+			// the loop has to stop there instead of spinning (audit #348 TD-70).
 			sf_count_t numRead = 0;
 			while (numRead < frameCount)
-				numRead += sf_readf_float(inFile.get(), buf.data() + numRead * channelCount, frameCount - numRead);
+			{
+				const sf_count_t read = sf_readf_float(inFile.get(), buf.data() + numRead * channelCount, frameCount - numRead);
+				if (read <= 0)
+				{
+					cerr << "Reading " << input << " stopped after " << numRead << " of " << frameCount
+						<< " frames: " << sf_strerror(inFile.get()) << "\n";
+					return 1;
+				}
+				numRead += read;
+			}
 
 			double readTime = timer.stop();
 			cout << "Reading input file took " << readTime << " seconds\n";
@@ -334,7 +345,16 @@ int main(int argc, char** argv)
 
 			sf_count_t numWritten = 0;
 			while (numWritten < processedFrameCount)
-				numWritten += sf_writef_float(outFile.get(), buf2.data() + numWritten * channelCount, processedFrameCount - numWritten);
+			{
+				const sf_count_t written = sf_writef_float(outFile.get(), buf2.data() + numWritten * channelCount, processedFrameCount - numWritten);
+				if (written <= 0)
+				{
+					cerr << "Writing " << output << " stopped after " << numWritten << " of " << processedFrameCount
+						<< " frames: " << sf_strerror(outFile.get()) << "\n";
+					return 1;
+				}
+				numWritten += written;
+			}
 		}
 
 		if (!noPauseArg.getValue())

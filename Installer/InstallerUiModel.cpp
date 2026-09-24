@@ -57,23 +57,6 @@ void failStep(Model& model, int step, std::wstring error)
 	model.errorText = std::move(error);
 }
 
-std::wstring describeChannel(const std::wstring& channel)
-{
-	if (channel == L"x64-sse2")
-		return L"64-bit x86 with SSE2";
-	if (channel == L"x64-avx")
-		return L"64-bit x86 with AVX";
-	if (channel == L"x64-avx2")
-		return L"64-bit x86 with AVX2";
-	if (channel == L"x64-avx512")
-		return L"64-bit x86 with AVX-512";
-	if (channel == L"x64-avx10-1")
-		return L"64-bit x86 with AVX10.1";
-	if (channel == L"arm64-neon")
-		return L"ARM64 with NEON";
-	return channel;
-}
-
 std::wstring formatByteSize(unsigned long long bytes)
 {
 	wchar_t buffer[32] = {};
