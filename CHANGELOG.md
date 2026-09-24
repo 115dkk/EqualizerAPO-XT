@@ -14,6 +14,12 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **A VSTPlugin line keeps parameter values written as `-0.5` or `.5`.** In
+  the key-value form (`VSTPlugin: Library ... Gain -0.5`), a value that did
+  not start with a digit was read as a parameter name, so the parameter was
+  dropped and the next token's value was filed under the name `-0.5`. Values
+  starting with a sign or a decimal point are numbers now; the
+  `ParamName <name> <value>` form still works ([#355](https://github.com/115dkk/EqualizerAPO-XT/pull/355)).
 - **ARM64 handles very quiet signals the way x64 does.** On x64 the engine
   flushes subnormal numbers (the tail of a signal decaying below about
   -300 dB, such as a filter's feedback ringing out) to zero; the ARM64 build
