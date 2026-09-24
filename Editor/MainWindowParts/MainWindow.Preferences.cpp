@@ -136,7 +136,7 @@ void MainWindow::loadPreferences()
 	recentFiles.removeDuplicates();
 	updateRecentFiles();
 
-	QVariant languageValue = settings.value("language");
+	QVariant languageValue = settings.value(QLatin1String(EditorSettings::Keys::Language));
 	QLocale::Language language;
 	if (languageValue.isValid())
 		language = QLocale(languageValue.toString()).language();

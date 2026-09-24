@@ -13,6 +13,7 @@
 #include "Editor/FilterGUIFactoryRegistry.h"
 #include "Editor/FilterTable.h"
 #include "Editor/widgets/cards/SubwooferRoutingCardEditor.h"
+#include "Editor/widgets/subwooferrouting/SubwooferRoutingDefaults.h"
 #include "filters/subwooferRouting/SubwooferRoutingCommand.h"
 #include "audio/ChannelLayout.h"
 

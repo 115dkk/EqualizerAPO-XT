@@ -75,6 +75,8 @@ void testLegacyMigrationHookAdoptsStableRootThroughThePort();
 void testLegacyMigrationHookRescuesVolatileTreeAndLeavesBreadcrumbs();
 void testVelopackInstallRootFollowsTheCurrentLeafRule();
 void testSubwooferRoutingUiStateTracksMutationsAndValidation();
+void testSubwooferRoutingDefaultStates();
+void testFilterLineCardDecidesPerLine();
 void testSubwooferRoutingUiStateRejectsUnknownTargets();
 void testSubwooferRoutingUiStateHeadroomModes();
 void testElevatedCoordinatorArgumentHasOneSpelling();

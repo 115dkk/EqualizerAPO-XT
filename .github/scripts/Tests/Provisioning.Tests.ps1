@@ -130,11 +130,33 @@ Describe "Provisioning.psm1" {
             $exported | Should -Be @(
                 'Build-VcpkgDependencies',
                 'Get-DependencyDownloadSpec',
+                'Get-PinnedSourceSpec',
                 'Get-SdkDownloadSpec',
                 'Get-SimdVariantEntry',
+                'Install-PinnedSourceDependency',
                 'Install-QtSdk',
-                'Invoke-DependencyDownload'
+                'Invoke-DependencyDownload',
+                'Sync-PinnedCheckout'
             )
+        }
+    }
+
+    Context "Get-PinnedSourceSpec against the repo manifest" {
+        # Audit #348 TD-26: CI cloned these by tag alone. Each one now carries
+        # the commit its tag must resolve to, straight from the manifest.
+        It "pins every header-only source dependency to a full commit" {
+            $deps = Join-Path (New-TempDir) 'deps'
+            $specs = @(Get-PinnedSourceSpec -Manifest $script:RepoManifest -DepsRoot $deps)
+            ($specs.Name | Sort-Object) | Should -Be @('Highway', 'TCLAP', 'VST3 pluginterfaces')
+            foreach ($spec in $specs) {
+                $spec.Tag | Should -Not -BeNullOrEmpty -Because "$($spec.Name) is cloned at a tag"
+                $spec.Commit | Should -Match '^[0-9a-f]{40}$' -Because "$($spec.Name) is held to a full commit"
+                $spec.RepoUrl | Should -Match '^https://github\.com/'
+                $spec.CheckoutDir | Should -BeLike "$deps*"
+            }
+            ($specs | Where-Object Name -eq 'Highway').Commit | Should -Be $script:RepoManifest.Shared.HighwayCommit
+            ($specs | Where-Object Name -eq 'VST3 pluginterfaces').CheckoutDir |
+                Should -Be (Join-Path $deps 'vst3sdk\pluginterfaces')
         }
     }
 

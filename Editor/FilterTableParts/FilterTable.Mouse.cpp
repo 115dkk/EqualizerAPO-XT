@@ -21,7 +21,7 @@
 #include <QJsonDocument>
 #include <QSettings>
 
-#include "MainWindow.h"
+#include "Editor/helpers/EditorSettings.h"
 #include "FilterTableRow.h"
 #include "FilterTableMimeData.h"
 #include "Editor/helpers/GUIHelper.h"

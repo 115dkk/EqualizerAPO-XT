@@ -27,6 +27,7 @@ struct Registration
 {
 	FilterCardEditorCreator creator = nullptr;
 	bool dynamicCapable = false;
+	FilterCardEditorAccepts accepts = nullptr;
 };
 
 // Function-local static so registrations from other translation units'
@@ -39,9 +40,9 @@ QHash<QString, Registration>& registry()
 }
 
 bool FilterCardEditorRegistry::registerEditor(const QString& commandKeyword,
-	FilterCardEditorCreator creator, bool dynamicCapable)
+	FilterCardEditorCreator creator, bool dynamicCapable, FilterCardEditorAccepts accepts)
 {
-	registry().insert(commandKeyword, { creator, dynamicCapable });
+	registry().insert(commandKeyword, { creator, dynamicCapable, accepts });
 	return true;
 }
 
@@ -53,4 +54,12 @@ FilterCardEditorCreator FilterCardEditorRegistry::find(const QString& commandKey
 bool FilterCardEditorRegistry::supportsDynamicParameters(const QString& commandKeyword)
 {
 	return registry().value(commandKeyword).dynamicCapable;
+}
+
+bool FilterCardEditorRegistry::accepts(const QString& commandKeyword, const QString& command, const QString& parameters)
+{
+	const auto entry = registry().constFind(commandKeyword);
+	if (entry == registry().constEnd() || entry->creator == nullptr)
+		return false;
+	return entry->accepts == nullptr || entry->accepts(command, parameters);
 }

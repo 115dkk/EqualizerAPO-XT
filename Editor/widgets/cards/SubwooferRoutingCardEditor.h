@@ -18,12 +18,6 @@ class SubwooferRoutingCardView;
 class FilterTable;
 class QToolButton;
 
-namespace subwooferroutingeditor
-{
-subroute::SubwooferRoutingState buildDefaultState(
-	const std::vector<std::wstring>& deviceChannels);
-}
-
 class SubwooferRoutingCardEditor : public IFilterGUI
 {
 	Q_OBJECT

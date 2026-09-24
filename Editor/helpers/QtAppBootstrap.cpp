@@ -20,6 +20,7 @@
 #include <string>
 #include "platform/windows/WindowsPath.h"
 #include "services/registry/RegistryPaths.h"
+#include "Editor/helpers/EditorSettings.h"
 
 #include <QCoreApplication>
 #include <QSettings>
@@ -44,7 +45,7 @@ void addExecutableRelativePluginPath()
 void applyUserLocale()
 {
 	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
-	QVariant languageValue = settings.value(QStringLiteral("language"));
+	QVariant languageValue = settings.value(QLatin1String(EditorSettings::Keys::Language));
 	if (languageValue.isValid())
 		QLocale::setDefault(QLocale(languageValue.toString()));
 	else

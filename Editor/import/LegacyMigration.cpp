@@ -6,6 +6,7 @@
 
 #include "LegacyMigration.h"
 #include "services/registry/RegistryPaths.h"
+#include "Editor/helpers/EditorSettings.h"
 #include "LegacyMigrationPolicy.h"
 #include "ConfigDependencyScanner.h"
 #include "ImportExecutor.h"
@@ -322,11 +323,10 @@ QString LegacyMigration::adoptMigratedFile(const QString& path)
 
 	// Row prefs and scroll offsets are keyed by the absolute path; port them
 	// so the remapped tab keeps its per-file state. Never overwrite prefs the
-	// new path already accumulated. The key mirrors EDITOR_PER_FILE_REGPATH
-	// (MainWindow.h) without pulling the whole MainWindow header in here.
-	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH L"\\file-specific"), QSettings::NativeFormat);
-	const QString oldGroup = QDir::toNativeSeparators(path).replace(QLatin1Char('\\'), QLatin1Char('|'));
-	const QString newGroup = QDir::toNativeSeparators(remapped).replace(QLatin1Char('\\'), QLatin1Char('|'));
+	// new path already accumulated.
+	QSettings settings(QString::fromWCharArray(EDITOR_PER_FILE_REGPATH), QSettings::NativeFormat);
+	const QString oldGroup = EditorSettings::perFileGroup(path);
+	const QString newGroup = EditorSettings::perFileGroup(remapped);
 	settings.beginGroup(newGroup);
 	const bool newGroupEmpty = settings.allKeys().isEmpty();
 	settings.endGroup();

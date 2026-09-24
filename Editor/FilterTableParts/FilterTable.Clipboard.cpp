@@ -21,7 +21,7 @@
 #include <QJsonDocument>
 #include <QSettings>
 
-#include "MainWindow.h"
+#include "Editor/helpers/EditorSettings.h"
 #include "FilterTableRow.h"
 #include "FilterTableMimeData.h"
 #include "Editor/helpers/GUIHelper.h"
@@ -193,7 +193,7 @@ void FilterTable::savePreferences()
 		}
 
 		QSettings settings(QString::fromWCharArray(EDITOR_PER_FILE_REGPATH), QSettings::NativeFormat);
-		settings.beginGroup(QString(configPath).replace('\\', '|'));
+		settings.beginGroup(EditorSettings::perFileGroup(configPath));
 		settings.setValue("rowPrefs", prefLines);
 		settings.setValue("scrollX", scrollArea->horizontalScrollBar()->value());
 		settings.setValue("scrollY", scrollArea->verticalScrollBar()->value());
