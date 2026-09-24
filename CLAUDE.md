@@ -23,12 +23,11 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 Equalizer APO 
 
 ## 저장소 구조
 
-- `EqualizerAPO.sln`: Visual Studio 솔루션입니다. `Common`, `EqualizerAPO`, `SubwooferRoutingCore`, `SubwooferRoutingVst3`, `Benchmark`, `VoicemeeterClient`, `DeviceSelector`, `UpdateChecker`, `Installer`, `TestVst2Plugin`, `TestVst3Plugin`, `HybridConvTests`, `EditorLogicTests`, `EngineOrchestrationTests`, `AudioRegressionTests`, `VstPreviewProbe` 프로젝트를 묶습니다.
+- `EqualizerAPO.sln`: Visual Studio 솔루션입니다. `Common`, `EqualizerAPO`, `SubwooferRoutingCore`, `SubwooferRoutingVst3`, `Benchmark`, `VoicemeeterClient`, `Installer`, `EqualizerAPOAsio`, `EqualizerAPOHost`, `TestVst2Plugin`, `TestVst3Plugin`, `FakeAsioDriver`, `HybridConvTests`, `EditorLogicTests`, `EngineOrchestrationTests`, `AudioRegressionTests`, `AsioTests`, `VstPreviewProbe`, `AsioProbe`, `ApoHostProbe`, `CaptureProbe` 프로젝트를 묶습니다. Qt 앱(Editor, DeviceSelector)은 솔루션에 없고 `.pro`로만 빌드합니다.
 - `Common.vcxproj`: 필터 엔진, 필터 구현, 파서 확장, 헬퍼 코드를 포함하는 정적 라이브러리입니다.
 - `EqualizerAPO/`: Windows Audio Processing Object DLL 프로젝트입니다. ATL 기반이므로 `atls.lib`가 필요합니다.
 - `Editor/`: Qt 기반 설정 편집기입니다. `.pro`, `.ui`, 리소스, 번역 파일, 필터별 GUI가 있습니다.
 - `DeviceSelector/`: Qt 기반 장치 선택 도구입니다.
-- `UpdateChecker/`: Qt 기반 업데이트 확인 도구입니다.
 - `Benchmark/`: 오디오 처리 성능 측정용 콘솔 프로그램입니다.
 - `VoicemeeterClient/`: Voicemeeter 연동용 보조 프로그램입니다.
 - `Tests/`: `HybridConvTests`, `EditorLogicTests`, `AudioRegressionTests` 등 단위/회귀 테스트 프로젝트가 있습니다.
@@ -49,7 +48,7 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 Equalizer APO 
 
 C++ 프로젝트는 Visual Studio 2022/2026 계열 도구와 Windows SDK 10.0을 기준으로 합니다. 현재 로컬 프로젝트는 VS 2026 `v145`에서 빌드하며, VS 2022만 있는 환경에서는 `/p:PlatformToolset=v143`으로 덮어쓰면 됩니다. CI도 같은 방식으로 처리합니다.
 
-`.vcxproj`는 C++20을 사용하며 `/Zc:__cplusplus` 설정은 `Directory.Build.props`에서 공통으로 관리합니다. `UNICODE`, `_UNICODE`, `MUP_USE_WIDE_STRING` 정의를 유지합니다. Qt 도구는 `Editor`, `DeviceSelector`, `UpdateChecker`에서 `.pro` 파일 중심으로 관리합니다.
+`.vcxproj`는 C++20을 사용하며 `/Zc:__cplusplus` 설정은 `Directory.Build.props`에서 공통으로 관리합니다. `UNICODE`, `_UNICODE`, `MUP_USE_WIDE_STRING` 정의를 유지합니다. Qt 도구는 `Editor`, `DeviceSelector`에서 `.pro` 파일 중심으로 관리합니다.
 
 ### 로컬 빌드 환경 설정
 
@@ -76,19 +75,27 @@ x64 AVX2 변형의 바이너리 자산은 CI에서 사용하는 GitHub Release�
 
 ### 빌드 명령
 
-MSBuild 프로젝트는 다음과 같이 빌드합니다.
+MSBuild 프로젝트는 CI와 같은 목록을 같은 속성으로 빌드합니다. 목록은 `.github/scripts/Build-Solution.ps1 -PlanOnly`가 돌려줍니다. msbuild는 `/p:`의 상대 경로를 각 프로젝트 폴더 기준으로 풀기 때문에 경로는 절대 경로로 넘깁니다. `EditorLogicTests`는 Qt 헤더를 쓰므로 `QT_ROOT`가 없으면 빌드되지 않습니다.
 
 ```powershell
-$env:LIB = "deps\libsndfile\build\Release;deps\muparserx\build\Release;deps\fftw\Release"
-
-msbuild EqualizerAPO.sln `
-  /p:Configuration=Release /p:Platform=x64 `
-  /p:PlatformToolset=v143 `
-  /p:FFTW_INCLUDE=deps\fftw\include /p:FFTW_LIB=deps\fftw\Release `
-  /p:MUPARSERX_INCLUDE=deps\muparserx\parser /p:MUPARSERX_LIB=deps\muparserx\build\Release `
-  /p:LIBSNDFILE_INCLUDE=deps\libsndfile\include /p:LIBSNDFILE_LIB=deps\libsndfile\build\Release `
-  /p:TCLAP_ROOT=deps\tclap
+# VS 환경 임포트 후, 저장소 루트에서
+$root = (Get-Location).Path
+$env:LIB = "$root\deps\libsndfile\build\Release;$root\deps\muparserx\build\Release;$root\deps\fftw\Release"
+$plan = & .\.github\scripts\Build-Solution.ps1 -WorkspaceRoot $root -Platform x64 -SimdVariant avx2 -PlanOnly
+foreach ($project in $plan.Projects) {
+  msbuild $project /m `
+    /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 `
+    /p:EnableEnhancedInstructionSet=AdvancedVectorExtensions2 `
+    /p:FFTW_INCLUDE=$root\deps\fftw\include /p:FFTW_LIB=$root\deps\fftw\Release `
+    /p:MUPARSERX_INCLUDE=$root\deps\muparserx\parser /p:MUPARSERX_LIB=$root\deps\muparserx\build\Release `
+    /p:LIBSNDFILE_INCLUDE=$root\deps\libsndfile\include /p:LIBSNDFILE_LIB=$root\deps\libsndfile\build\Release `
+    /p:TCLAP_ROOT=$root\deps\tclap /p:VST3_SDK=$root\deps\vst3sdk /p:HIGHWAY_INCLUDE=$root\deps\highway `
+    /p:ASIO_SDK=$root\deps\asiosdk\ASIOSDK /p:QT_ROOT=$root\Qt\6.10.1\msvc2022_64
+  if ($LASTEXITCODE -ne 0) { throw "Build failed for $project" }
+}
 ```
+
+VS 2022만 있는 환경에서는 `/p:PlatformToolset=v143`으로 바꿉니다. 설치기(`Installer\Installer.vcxproj`)는 Win32 전용이라 `/p:Platform=Win32`로 따로 빌드합니다.
 
 Qt 프로젝트는 `VsDevCmd.bat`로 환경을 잡은 뒤 빌드합니다. `lrelease`를 먼저 돌리지 않으면 `.qm` 파일이 없어 nmake가 멈춥니다.
 
@@ -101,7 +108,7 @@ qmake ..\Editor\Editor.pro -r "CONFIG+=release" "EAPO_UPDATE_CHANNEL=x64-avx2" "
 nmake
 ```
 
-`DeviceSelector`, `UpdateChecker`도 같은 절차로 빌드합니다.
+`DeviceSelector`도 같은 절차로 빌드합니다.
 
 ### 테스트 실행
 

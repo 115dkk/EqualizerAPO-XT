@@ -26,9 +26,9 @@
 class QCoreApplication;
 class QTranslator;
 
-// Startup bootstrap shared by the three Qt apps (Editor, DeviceSelector,
-// UpdateChecker), so the plugin-path anchoring and translator setup cannot
-// drift apart between the three main()s.
+// Startup bootstrap shared by the two Qt apps (Editor, DeviceSelector), so
+// the plugin-path anchoring and translator setup cannot drift apart between
+// the two main()s.
 namespace QtAppBootstrap
 {
 // Qt's plugins (platforms\qwindows.dll, imageformats, styles, tls) ship in a
@@ -44,8 +44,8 @@ void addExecutableRelativePluginPath();
 
 // Applies the user's language choice as the default QLocale: the preference
 // the Editor's language menu writes (EDITOR_REGPATH value "language") when
-// set, the system locale otherwise. Shared so DeviceSelector and
-// UpdateChecker follow the language chosen in the Editor.
+// set, the system locale otherwise. Shared so DeviceSelector follows the
+// language chosen in the Editor.
 void applyUserLocale();
 
 // Installs the qtbase and <catalogName> catalogs from :/translations for the

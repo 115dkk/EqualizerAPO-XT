@@ -271,7 +271,7 @@ To build the project, open a VS Developer Command Prompt and run:
   qmake ..\Editor\Editor.pro -r "CONFIG+=release" $qmakeVariantArgs
   nmake
 
-  # DeviceSelector and UpdateChecker build the same way from their .pro files.
+  # DeviceSelector builds the same way from its .pro file.
 "@
 } else {
     Write-Host "`n=== Setup Incomplete ===" -ForegroundColor Red

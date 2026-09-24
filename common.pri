@@ -1,6 +1,6 @@
-# Shared qmake fragment for the three Qt apps (Editor, DeviceSelector,
-# UpdateChecker). The SIMD flag selection and its misconfiguration gate used
-# to be pasted into each .pro, so every change had to be made three times.
+# Shared qmake fragment for the Qt apps (Editor, DeviceSelector). The SIMD
+# flag selection and its misconfiguration gate used to be pasted into each
+# .pro, so every change had to be made once per app.
 # QMAKE_LIBDIR stays in each .pro: the Editor links the dependency lib
 # directories directly while the satellite apps link the MSBuild output tree.
 # (audit #146 TD012)

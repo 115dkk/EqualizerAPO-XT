@@ -45,7 +45,7 @@
 ## 검증 기준
 
 - C++ 프로젝트는 `EqualizerAPO.sln`의 Release 빌드를 우선 확인합니다.
-- Qt 도구는 가능한 경우 `Editor`, `DeviceSelector`, `UpdateChecker`의 qmake 빌드를 확인합니다.
+- Qt 도구는 가능한 경우 `Editor`, `DeviceSelector`의 qmake 빌드를 확인합니다.
 - 전체 로컬 빌드가 환경 문제로 막히면, 실패 원인과 실행한 명령을 PR에 남깁니다.
 
 ## 로컬 검증 결과

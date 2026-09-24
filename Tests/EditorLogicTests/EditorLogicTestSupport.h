@@ -25,10 +25,6 @@ void requireEqual(int actual, int expected, const QString& message);
 
 void testConvolutionPathHelper();
 void testAnalysisWorkerRecovery();
-void testUpdateInfoFormatter();
-void testVelopackUpdateInfo();
-void testVelopackGitHubRelease();
-void testVelopackFeeds();
 void testFilterCardDescriptors();
 void testCardEditsKeepSwitchedOffLinesOff();
 void testSubwooferRoutingDescriptors();

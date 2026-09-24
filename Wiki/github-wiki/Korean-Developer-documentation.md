@@ -21,7 +21,6 @@ XT는 Windows 프로젝트입니다. C++ 프로젝트는 Visual Studio 2022 / 20
 * **EqualizerAPO** — Audio Processing Object DLL(`EqualizerAPO.dll`)입니다. COM 보일러플레이트를 담고 APO 인터페이스를 구현하며 Common 필터 엔진을 호출합니다. ATL 기반이라 `atls.lib`가 필요합니다.
 * **Editor** — Qt 기반 설정 편집기입니다. `Editor.exe`가 Velopack 패키지의 메인 실행 파일이며, `services/install/ApoRegistration`과 `services/update/VelopackBootstrap`을 통해 모든 Velopack 설치/업데이트/제거 훅을 처리합니다.
 * **DeviceSelector** — 처음 설치한 뒤 사용자가 APO를 등록할 오디오 장치를 고르도록 보여 주는 Qt 도구입니다. 원본의 Configurator를 대체합니다.
-* **UpdateChecker** — 로그온할 때 실행되어 빌드 채널에 새 릴리스가 있으면 알려 주는 Qt 도구입니다.
 * **Benchmark** — 장치에 설치하지 않고 오디오 처리를 시험하는 콘솔 프로그램입니다. 필터 종류를 실험하거나 성능을 잴 때 편합니다.
 * **VoicemeeterClient** — Voicemeeter 연동용 보조 프로그램입니다.
 * **SubwooferRoutingCore** — APO 명령과 독립 플러그인이 함께 쓰는 MIT 라이선스 서브우퍼 라우팅 DSP 및 상태 컴파일러입니다.

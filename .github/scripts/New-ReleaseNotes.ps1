@@ -194,7 +194,7 @@ function Get-AssetPurpose {
     return "Manual installer for the $channel channel."
   }
   if ($AssetName -match "^releases\..*\.json$") {
-    return "Velopack update feed for the $channel channel. UpdateChecker reads this file."
+    return "Velopack update feed for the $channel channel. The Editor's automatic update reads this file."
   }
   if ($AssetName -match "-full\.nupkg$") {
     return "Velopack full package for the $channel channel. Normal manual installs should use the setup executable instead."

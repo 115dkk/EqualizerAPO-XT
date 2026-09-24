@@ -15,8 +15,8 @@
 	lands in only one language fails the Pester gate.
 
 	Header-only std C++ on purpose: the auto-detect installer is a standalone
-	32-bit binary that links no project library, and UpdateChecker compiles
-	under Qt - both can include this, neither can link Common.
+	32-bit binary that links no project library, so it can include this but
+	cannot link Common.
 */
 
 #pragma once
