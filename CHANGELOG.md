@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.52.0 — 2026-09-24
+
 - **UpdateChecker.exe is no longer shipped.** The Editor already downloads a
   new release in the background and applies it when it closes. The separate
   notify-only tool had not been started automatically since the NSIS

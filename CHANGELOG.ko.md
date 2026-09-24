@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.52.0 — 2026-09-24
+
 - **UpdateChecker.exe를 더는 배포하지 않습니다.** Editor가 이미 새 릴리스를
   백그라운드에서 내려받아 닫을 때 적용합니다. 알림만 하던 이 도구는 NSIS
   설치기가 빠진 뒤로 자동으로 실행되지 않았고, `x64-avx` 채널에서는 설치 파일
