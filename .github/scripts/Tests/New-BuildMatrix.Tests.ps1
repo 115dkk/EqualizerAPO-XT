@@ -31,6 +31,12 @@ Describe "New-BuildMatrix.ps1" {
         $included[0].name | Should -Be $primaryName
     }
 
+    It "names the primary variant's artifact for the jobs that test it" {
+        $result = & $scriptPath -EventName pull_request -PassThru
+        $primary = @($manifest.Variants | Where-Object { $_.Primary })[0]
+        $result.PrimaryArtifact | Should -Be "EqualizerAPO-$($primary.Platform)-$($primary.Simd)"
+    }
+
     It "expands a missing x64 ArchFlag to the explicit NotSet sentinel" {
         # sse2 must never fall back to the project files' local AVX2 default.
         $result = & $scriptPath -EventName push -PassThru

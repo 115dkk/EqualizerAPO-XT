@@ -60,6 +60,11 @@ param(
     [string] $VbCableSha256 = "66FD0A4D9F4896FF41632B7E3D53892C085C4561F53E8AE8D0F0BC10EEDD1CDD",
     [double] $PreampDb = -20.0,
     [double] $ToleranceDb = 1.0,
+    # Seconds to wait after an --uninstall-endpoint before measuring.
+    [int] $GraphSettleSeconds = 3,
+    # Exit code for "the gate could not run" (the driver download), kept apart
+    # from 1 = "the product failed the gate".
+    [int] $InfrastructureExitCode = 3,
     [switch] $SkipDriverInstall,
     [switch] $PlanOnly
 )
@@ -297,6 +302,16 @@ function Copy-Logs([string] $phase) {
     }
 }
 
+# After --uninstall-endpoint the audio engine rebuilds the endpoint's graph
+# while the measurement starts. On 2026-09-18 (run 35300200485, a docs-only
+# PR) ll-after-uninstall read -5.68 dB with a normal rmsDb and only the 1 kHz
+# bin low: a discontinuity inside the capture window, not a gain change. The
+# re-run passed at -0.01 dB. A short settle keeps that race out of a gate that
+# now blocks the release.
+function Wait-GraphSettle {
+    Start-Sleep -Seconds $GraphSettleSeconds
+}
+
 function Measure-Cable($measurement, [string] $round = "") {
     $noRender = $measurement.PSObject.Properties["NoRender"] -and $measurement.NoRender
     $arguments = @("--capture", $captureConnection, "--json",
@@ -410,7 +425,14 @@ if ($endpoints) {
             Invoke-WebRequest -Uri $VbCableUrl -OutFile $zip -UseBasicParsing -TimeoutSec 120
             break
         } catch {
-            if ($attempt -ge 3) { throw }
+            if ($attempt -ge 3) {
+                # This gate blocks the release, so an unreachable download
+                # site must not read like a product regression: it gets its
+                # own annotation and exit code, and re-running the failed job
+                # is the remedy (a re-run also re-runs create-release).
+                Write-Host "::error title=capture-gate infrastructure::VB-CABLE could not be downloaded after $attempt attempts ($($_.Exception.Message)). This is not a product failure; re-run the failed job."
+                exit $InfrastructureExitCode
+            }
             Write-Warning "download attempt $attempt failed: $($_.Exception.Message)"
             Start-Sleep -Seconds 15
         }
@@ -546,6 +568,7 @@ foreach ($mode in $installModes) {
     Save-EndpointSnapshot $endpoints.Capture "50-$round-uninstalled"
     if ($uninstall.ExitCode -ne 0) { Add-Failure "$round/uninstall: DeviceSelector --uninstall-endpoint exited with $($uninstall.ExitCode)" }
     if ($eqLeft) { Add-Failure "$round/uninstall: the endpoint's FxProperties still names an EQ APO CLSID" }
+    Wait-GraphSettle
     Measure-Cable $measurements[4] $round | Out-Null
     Copy-Logs "50-$round-uninstalled"
     $summary.rounds += [pscustomobject]$roundRecord
@@ -602,6 +625,7 @@ $lowLatency.uninstall = [ordered]@{ exitCode = $uninstall.ExitCode; eqClsidLeft 
 Save-EndpointSnapshot $endpoints.Render "80-low-latency-uninstalled" "Render"
 if ($uninstall.ExitCode -ne 0) { Add-Failure "low-latency/uninstall: DeviceSelector --uninstall-endpoint on the playback endpoint exited with $($uninstall.ExitCode)" }
 if ($eqLeftRender) { Add-Failure "low-latency/uninstall: the playback endpoint's FxProperties still names an EQ APO CLSID" }
+Wait-GraphSettle
 Measure-Cable $lowLatencyMeasurements[3] "low-latency" | Out-Null
 Copy-Logs "80-low-latency-uninstalled"
 [System.IO.File]::WriteAllText($configFile, $config, (New-Object System.Text.UTF8Encoding($false)))

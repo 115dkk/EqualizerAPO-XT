@@ -2,9 +2,9 @@ name: Build EqualizerAPO
 
 on:
   push:
-    branches: [ main, SIMD_CI ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, feat/asio ]
+    branches: [ main ]
   workflow_dispatch:
     inputs:
       regenerate_references:
@@ -141,6 +141,11 @@ jobs:
       # cross-variant-compare job so its gating list cannot drift from the
       # manifest.
       runner_executable_variants: ${{ steps.gen.outputs.runner_executable_variants }}
+      # The primary variant's artifact name, for the jobs that test the
+      # product the PR leg builds (audit #348 TD-77: it was spelled out as
+      # EqualizerAPO-x64-avx2 in those jobs, and the build steps chose the
+      # primary leg by comparing simd_variant with 'avx2').
+      primary_artifact: ${{ steps.gen.outputs.primary_artifact }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v6
@@ -493,7 +498,7 @@ jobs:
     #   rebuild costs 1.4-1.6 s per move on this runner and fails the gate).
     # - card-selection pins pointer-selection chrome across skins.
     - name: Run VST Editor self-test (offscreen)
-      if: matrix.simd_variant == 'avx2'
+      if: matrix.primary == true
       timeout-minutes: 3
       shell: pwsh
       run: |
@@ -505,7 +510,7 @@ jobs:
     # (the audit #275 B4 extraction silently turned every plain biquad row
     # into a collapsed raw fragment), and the toggle round-trips the text.
     - name: Run power toggle test (offscreen)
-      if: matrix.simd_variant == 'avx2'
+      if: matrix.primary == true
       timeout-minutes: 5
       shell: pwsh
       run: |
@@ -519,7 +524,7 @@ jobs:
     # a Channel / Device card written as ALL must take the next chip click
     # as the new selection in every skin.
     - name: Run routing edit test (offscreen)
-      if: matrix.simd_variant == 'avx2'
+      if: matrix.primary == true
       timeout-minutes: 5
       shell: pwsh
       run: |
@@ -530,7 +535,7 @@ jobs:
     # fatal-error dialog again, the job must fail in minutes, not hang for
     # hours.
     - name: Run skin gallery (offscreen)
-      if: matrix.simd_variant == 'avx2'
+      if: matrix.primary == true
       timeout-minutes: 10
       shell: pwsh
       run: |
@@ -538,7 +543,7 @@ jobs:
           -WorkspaceRoot "${{ github.workspace }}" -Gate skin-gallery -Platform "${{ matrix.platform }}"
 
     - name: Run skin switch test (offscreen)
-      if: matrix.simd_variant == 'avx2'
+      if: matrix.primary == true
       timeout-minutes: 10
       shell: pwsh
       run: |
@@ -546,7 +551,7 @@ jobs:
           -WorkspaceRoot "${{ github.workspace }}" -Gate skin-switch
 
     - name: Run analysis dock layout test (offscreen)
-      if: matrix.simd_variant == 'avx2'
+      if: matrix.primary == true
       timeout-minutes: 5
       shell: pwsh
       run: |
@@ -554,7 +559,7 @@ jobs:
           -WorkspaceRoot "${{ github.workspace }}" -Gate analysis-layout
 
     - name: Run card move test (offscreen)
-      if: matrix.simd_variant == 'avx2'
+      if: matrix.primary == true
       timeout-minutes: 10
       shell: pwsh
       run: |
@@ -562,7 +567,7 @@ jobs:
           -WorkspaceRoot "${{ github.workspace }}" -Gate card-move
 
     - name: Run card selection test (offscreen)
-      if: matrix.simd_variant == 'avx2'
+      if: matrix.primary == true
       timeout-minutes: 5
       shell: pwsh
       run: |
@@ -570,21 +575,21 @@ jobs:
           -WorkspaceRoot "${{ github.workspace }}" -Gate card-selection
 
     - name: Upload skin gallery
-      if: matrix.simd_variant == 'avx2'
+      if: matrix.primary == true
       uses: actions/upload-artifact@v7
       with:
         name: skin-gallery
         path: skin-gallery/*.png
 
     - name: Upload analysis dock layout proof
-      if: matrix.simd_variant == 'avx2'
+      if: matrix.primary == true
       uses: actions/upload-artifact@v7
       with:
         name: analysis-layout
         path: analysis-layout/*
 
     - name: Upload card selection proof
-      if: matrix.simd_variant == 'avx2'
+      if: matrix.primary == true
       uses: actions/upload-artifact@v7
       with:
         name: card-selection
@@ -745,7 +750,9 @@ jobs:
   # MSVC has no LeakSanitizer on Windows, so full-heap leak detection is
   # not available; the canary covers the engine-buffer class - the
   # original convolution-tail bug class - deterministically instead.
-  # Build/run mechanics live in .github/scripts/Invoke-MemcheckTests.ps1.
+  # Build/run mechanics live in .github/scripts/Invoke-MemcheckTests.ps1,
+  # which takes its suite list from Build-Solution.ps1's plan plus
+  # AudioRegressionTests. create-release waits for this job.
   memcheck:
     runs-on: windows-latest
     steps:
@@ -921,6 +928,9 @@ jobs:
         path: pester-results.xml
         retention-days: 30
 
+  # A signal, not a release gate: create-release does not wait for it (the
+  # release notes say so). A difference between variants is read here and
+  # handled by a follow-up change.
   cross-variant-compare:
     needs: [build, prepare-matrix]
     runs-on: ubuntu-latest
@@ -958,12 +968,15 @@ jobs:
   # no audio hardware, so the gate installs VB-CABLE (a signed virtual cable
   # driver) and measures its recording side with Tests/CaptureProbe before
   # and after the product's own install path puts the APO on it, with a
-  # config that says Preamp: -20 dB. Blocking: a field report of "neither
-  # the EQ nor a VST reaches my microphone" is exactly what this catches.
+  # config that says Preamp: -20 dB. It blocks the release (create-release
+  # waits for it): a field report of "neither the EQ nor a VST reaches my
+  # microphone" is exactly what this catches. A failed VB-CABLE download
+  # exits 3 with its own annotation; re-running the failed job re-runs
+  # create-release too.
   # windows-2022 deliberately, like audio-live-repro.yml: the virtual driver
   # recipe is verified there.
   capture-gate:
-    needs: [build]
+    needs: [build, prepare-matrix]
     runs-on: windows-2022
     if: always() && needs.build.result == 'success'
     timeout-minutes: 30
@@ -974,8 +987,8 @@ jobs:
     - name: Download the primary build artifact
       uses: actions/download-artifact@v7
       with:
-        name: EqualizerAPO-x64-avx2
-        path: artifacts/EqualizerAPO-x64-avx2
+        name: ${{ needs.prepare-matrix.outputs.primary_artifact }}
+        path: artifacts/${{ needs.prepare-matrix.outputs.primary_artifact }}
 
     - name: Download the capture probes
       uses: actions/download-artifact@v7
@@ -992,7 +1005,7 @@ jobs:
         foreach ($probe in $probes) { Copy-Item -LiteralPath $probe.FullName -Destination $probeDir -Force }
         & "${{ github.workspace }}\.github\scripts\Invoke-CaptureGate.ps1" `
           -WorkspaceRoot "${{ github.workspace }}" `
-          -ArtifactPath "${{ github.workspace }}\artifacts\EqualizerAPO-x64-avx2" `
+          -ArtifactPath "${{ github.workspace }}\artifacts\${{ needs.prepare-matrix.outputs.primary_artifact }}" `
           -ProbeDirectory $probeDir `
           -SnapshotDirectory "${{ runner.temp }}\capture-gate"
 
@@ -1005,10 +1018,21 @@ jobs:
         retention-days: 30
         if-no-files-found: warn
 
+  # The release waits for every blocking gate (audit #348 D5). main has no
+  # branch protection, so these needs are what keeps a red memcheck, capture
+  # gate, cppcheck or Pester run from publishing installers and a Velopack
+  # feed. New-ReleaseNotes.ps1 reads this list to say what the release waited
+  # for. The cross-variant comparison is not a gate; it runs alongside.
   create-release:
-    needs: [build, version-bump]
+    needs: [build, version-bump, memcheck, capture-gate, cppcheck, pester]
     runs-on: windows-2025-vs2026
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.build.result == 'success'
+    if: >-
+      github.event_name == 'push' && github.ref == 'refs/heads/main'
+      && needs.build.result == 'success'
+      && needs.memcheck.result == 'success'
+      && needs.capture-gate.result == 'success'
+      && needs.cppcheck.result == 'success'
+      && needs.pester.result == 'success'
     permissions:
       actions: read
       contents: write
@@ -1096,7 +1120,7 @@ jobs:
           -Repository "${{ github.repository }}" `
           -Tag "${{ steps.version.outputs.tag }}" `
           -PackVersion "${{ steps.version.outputs.pack_version }}" `
-          -TargetCommit "${{ github.sha }}" `
+          -TargetCommit "${{ needs.version-bump.outputs.bumped_sha || github.sha }}" `
           -WorkspaceRoot "${{ github.workspace }}" `
           -MissingChannels $missingChannels `
           -NeedsSource:("${{ steps.version.outputs.needs_source }}" -eq "true")
@@ -1198,7 +1222,7 @@ jobs:
           -Tag "${{ steps.version.outputs.tag }}" `
           -PackVersion "${{ steps.version.outputs.pack_version }}" `
           -WorkflowRunId "${{ github.run_id }}" `
-          -TargetCommit "${{ github.sha }}" `
+          -TargetCommit "${{ needs.version-bump.outputs.bumped_sha || github.sha }}" `
           -OutputPath $notesPath
         if ($LASTEXITCODE -ne 0) {
           exit $LASTEXITCODE

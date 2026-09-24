@@ -212,3 +212,51 @@ if ($satelliteDrift.Count -gt 0) {
 }
 
 Write-Host "The satellite apps' .pro and .vcxproj source lists agree."
+
+# Audit #348 TD-23: TestHarness's "zero checks" backstop fires per harness, so
+# it only catches a forgotten call in HybridConvTests, where every sub-suite
+# owns a harness. EditorLogicTests shares one harness across every test
+# function and EngineOrchestrationTests hands one to all its runners: there a
+# test function that is defined but never called leaves the suite green. Every
+# test function must be called somewhere in its suite besides its definition.
+$sharedHarnessSuites = @(
+  @{ Name = "EditorLogicTests"; Pattern = '(?m)^void (test\w+)\(\)\s*$' },
+  @{ Name = "EngineOrchestrationTests"; Pattern = '(?m)^void ((?:test|run)\w+)\(test::Harness&\s*\w*\)\s*$' }
+)
+$uncalled = @()
+$checkedTestFunctions = 0
+$checkedSuites = 0
+foreach ($suite in $sharedHarnessSuites) {
+  $suiteDir = Join-Path $RepoRoot "Tests" $suite.Name
+  # The Pester cases run this script against a minimal fake tree.
+  if (-not (Test-Path -LiteralPath $suiteDir)) { continue }
+  $checkedSuites++
+  $files = @(Get-ChildItem -LiteralPath $suiteDir -Filter "*.cpp" -File)
+  $texts = @{}
+  foreach ($file in $files) { $texts[$file.Name] = Get-Content -LiteralPath $file.FullName -Raw }
+  foreach ($file in $files) {
+    foreach ($match in [regex]::Matches($texts[$file.Name], $suite.Pattern)) {
+      $name = $match.Groups[1].Value
+      $checkedTestFunctions++
+      $callPattern = '(?<![\w:])' + [regex]::Escape($name) + '\s*\((?!\s*\)\s*$)'
+      $called = $false
+      foreach ($other in $files) {
+        $text = $texts[$other.Name]
+        # The definition line itself matches the pattern too; count calls only.
+        $calls = [regex]::Matches($text, '(?m)^(?!void ).*' + $callPattern)
+        if ($calls.Count -gt 0) { $called = $true; break }
+      }
+      if (-not $called) { $uncalled += "$($suite.Name): $name is defined in $($file.Name) but never called" }
+    }
+  }
+}
+if ($checkedSuites -gt 0 -and $checkedTestFunctions -eq 0) {
+  throw "No test functions found in the shared-harness suites, so this lint checked nothing."
+}
+foreach ($entry in $uncalled) {
+  Write-Host "::error::$entry"
+}
+if ($uncalled.Count -gt 0) {
+  throw "A test function in a shared-harness suite is never called."
+}
+Write-Host "All $checkedTestFunctions test functions of the shared-harness suites are called."

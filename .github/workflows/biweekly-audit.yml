@@ -77,7 +77,12 @@ jobs:
             exit 0
           fi
 
-          mapfile -t audit_tags < <(git tag -l 'audit/*' --sort=-creatordate)
+          # By name, not by date: the name carries the audit time
+          # (audit/YYYYMMDD-HHMMSS) and the tag is lightweight, so its
+          # "creator date" is the date of whatever commit it points at - a
+          # tag placed later on an older commit sorted behind older audits
+          # (audit #348 TD-77).
+          mapfile -t audit_tags < <(git tag -l 'audit/*' --sort=-refname)
           LAST_AUDIT="${audit_tags[0]:-}"
 
           if [ -z "$LAST_AUDIT" ]; then
@@ -154,6 +159,10 @@ jobs:
         uses: microsoft/setup-msbuild@v3
 
       - name: Install Claude Code
+        # Deliberately unpinned, the one tool in the pipeline that is not
+        # (maintainer decision on audit #348 TD-76): the audit should run on
+        # the CLI the maintainer uses, and a stale pin would silently keep an
+        # old model list and skill loader.
         run: npm install -g @anthropic-ai/claude-code
 
       # Give the auditing session a buildable tree: deps/ (FFTW, muparserx,

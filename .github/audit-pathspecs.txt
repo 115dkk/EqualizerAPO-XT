@@ -1,6 +1,9 @@
 .
 :!*.md
-:!*.txt
+:!License*.txt
+:!Editor/Licenseheader.txt
+:!Editor/fonts/*.txt
+:!.github/audit-pathspecs.txt
 :!*.rst
 :!*.adoc
 :!*.ipynb
@@ -29,6 +32,7 @@
 :!wiki/**
 :!.github/ISSUE_TEMPLATE/**
 :!.vscode/**
+:!.superloopy/**
 :!**/translations/*.ts
 :!**/translations/*.qm
 :!Tests/AudioRegressionTests/references/**

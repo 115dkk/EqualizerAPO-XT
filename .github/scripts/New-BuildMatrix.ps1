@@ -91,14 +91,22 @@ $compareVariants = @($manifest.Variants |
 $compareJson = ConvertTo-Json -InputObject $compareVariants -Compress
 Write-Host "Runner-executable x64 variants: $compareJson"
 
+# The artifact the primary leg uploads (build.yml names it
+# EqualizerAPO-<platform>-<simd>); the capture gate tests that product.
+$primaryVariant = @($manifest.Variants | Where-Object { $_.Primary })[0]
+$primaryArtifact = "EqualizerAPO-$($primaryVariant.Platform)-$($primaryVariant.Simd)"
+Write-Host "Primary artifact: $primaryArtifact"
+
 if ($env:GITHUB_OUTPUT) {
   "matrix=$json" >> $env:GITHUB_OUTPUT
   "runner_executable_variants=$compareJson" >> $env:GITHUB_OUTPUT
+  "primary_artifact=$primaryArtifact" >> $env:GITHUB_OUTPUT
 }
 
 if ($PassThru) {
   [pscustomobject]@{
     Matrix                   = $matrix
     RunnerExecutableVariants = @($compareVariants)
+    PrimaryArtifact          = $primaryArtifact
   }
 }

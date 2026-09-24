@@ -71,6 +71,38 @@ Describe "New-ReleaseNotes.ps1" {
         $notes | Should -Match "A tested change"
     }
 
+    It "states the suites the build plan runs and the gates the release waits for" {
+        # Audit #348 TD-24: read from Build-Solution.ps1's plan and from
+        # create-release's needs in build.yml, never typed.
+        $output = Join-Path $TestDrive "notes-verification.md"
+        . $scriptPath -Repository "owner/repo" -Tag "v9.9.9" -PackVersion "9.9.9" `
+            -WorkflowRunId "123" -TargetCommit "abcdef0123456789" -OutputPath $output
+        $notes = Get-Content $output -Raw
+        $primary = @((Import-PowerShellDataFile $manifestPath).Variants | Where-Object { $_.Primary })[0]
+        $plan = & (Join-Path $PSScriptRoot "..\Build-Solution.ps1") -WorkspaceRoot $TestDrive `
+            -Platform $primary.Platform -SimdVariant $primary.Simd -ArchFlag $primary.ArchFlag -PlanOnly
+        foreach ($suite in @($plan.RuntimeTests) + @("AudioRegressionTests")) {
+            $notes | Should -Match ([regex]::Escape($suite))
+        }
+        $facts = Get-VerificationFacts -WorkflowPath (Join-Path $PSScriptRoot "..\..\workflows\build.yml") -ManifestPath $manifestPath
+        $facts.GateJobs | Should -Contain "memcheck"
+        $facts.GateJobs | Should -Contain "capture-gate"
+        foreach ($phrase in $facts.GatePhrases) {
+            $notes | Should -Match ([regex]::Escape($phrase))
+        }
+        $notes | Should -Match "does not hold the release"
+    }
+
+    It "refuses a release gate it cannot describe" {
+        # Dot-sourcing the script defines the function in this test's scope.
+        . $scriptPath -Repository "owner/repo" -Tag "v9.9.9" -PackVersion "9.9.9" `
+            -WorkflowRunId "123" -TargetCommit "abcdef0123456789" -OutputPath (Join-Path $TestDrive "notes-gate.md")
+        $workflow = Join-Path $TestDrive "build.yml"
+        Set-Content -LiteralPath $workflow -Value "jobs:`n  create-release:`n    needs: [build, version-bump, mystery-gate]`n"
+        { Get-VerificationFacts -WorkflowPath $workflow -ManifestPath $manifestPath } |
+            Should -Throw "*mystery-gate*"
+    }
+
     It "falls back to the current commit when compare is unavailable" {
         $global:ReleaseNotesGhMode = "compare-unavailable"
         $output = Join-Path $TestDrive "notes-no-compare.md"

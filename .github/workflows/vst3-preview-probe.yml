@@ -33,7 +33,9 @@
 # SCOPE
 #   Manual workflow_dispatch, plus pushes to probe/vst3-preview** branches so
 #   the probe can run before the fix ever lands on the default branch. Not
-#   part of the PR gate; safe to delete once the preview feed has soaked.
+#   part of the PR gate. Keep it: runs 3 and 4 below are the only end-to-end
+#   discriminators of the panel monitor layer (audit #348 TD-77), so it is
+#   the check to dispatch after touching PanelFeedEngine or PanelMonitorGate.
 #
 #   These are PREMISE probes: they exercise host capabilities that existed
 #   before the fix and would pass on a pre-fix tree by design. The
@@ -97,6 +99,11 @@ env:
   # audio-live-repro.yml).
   SCREAM_VERSION: "4.0"
   SCREAM_URL: "https://github.com/duncanthrax/scream/releases/download/4.0/Scream4.0.zip"
+  # The zip is signed again with a runner-local test certificate and loaded as
+  # a kernel driver, so it is pinned by hash like the capture gate's VB-CABLE
+  # and the XTC fixture (audit #348 TD-76). Measured 2026-09-24 from the URL
+  # above.
+  SCREAM_SHA256: "FA33E25F9A46C61E4E0CD83362C51C3D2A45C6FE4091AAD7507E240E40F1A520"
   # The Open-XTC 1.51 windows-x64 distribution shared by its author
   # (PRG-XTC-1.51-windows-x64.zip). The hash pins the exact bytes this probe
   # was written against; a silent content swap on the link fails loudly here.
@@ -244,6 +251,8 @@ jobs:
 
           $zip = Join-Path $work "Scream.zip"
           Invoke-WebRequest -Uri $env:SCREAM_URL -OutFile $zip
+          $hash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash
+          if ($hash -ne $env:SCREAM_SHA256) { throw "Scream download hash $hash does not match the pinned $env:SCREAM_SHA256" }
           Expand-Archive -Path $zip -DestinationPath $work -Force
 
           $driverDir = Join-Path $work "Install\driver\x64"

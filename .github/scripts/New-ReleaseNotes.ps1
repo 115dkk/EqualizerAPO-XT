@@ -41,6 +41,46 @@ $ChannelTable = [ordered]@{
 # levels up from this script (.github/scripts/ -> .github/simd-variants.psd1).
 # $manifestChannels is reused below to author the Verification variant list from
 # the manifest instead of hard-coding it here.
+# What the release waited for, from the release job's own needs. Jobs that
+# only produce the build are not gates; everything else must have a phrase.
+function Get-VerificationFacts {
+  param(
+    [Parameter(Mandatory)] [string]$WorkflowPath,
+    [Parameter(Mandatory)] [string]$ManifestPath
+  )
+
+  $gatePhrase = [ordered]@{
+    'memcheck'     = 'the memory gate (the runtime suites rebuilt with AddressSanitizer and checked for engine-buffer leaks)'
+    'capture-gate' = 'the capture gate (the APO measured on a virtual recording device)'
+    'cppcheck'     = 'static analysis (cppcheck)'
+    'pester'       = 'the build-script tests (Pester)'
+  }
+  $notGates = @('build', 'version-bump', 'prepare-matrix')
+
+  $workflow = Get-Content -LiteralPath $WorkflowPath -Raw
+  $match = [regex]::Match($workflow, '(?m)^  create-release:\s*\r?\n\s+needs:\s*\[([^\]]*)\]')
+  if (-not $match.Success) { throw "create-release needs not found in $WorkflowPath" }
+  $needs = @($match.Groups[1].Value -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+  $phrases = @()
+  foreach ($job in $needs) {
+    if ($notGates -contains $job) { continue }
+    if (-not $gatePhrase.Contains($job)) {
+      throw "create-release waits for '$job', which New-ReleaseNotes.ps1 cannot describe. Add it to the gate phrase table."
+    }
+    $phrases += $gatePhrase[$job]
+  }
+
+  $primary = (Import-PowerShellDataFile -Path $ManifestPath).Variants | Where-Object { $_.Primary } | Select-Object -First 1
+  $plan = & (Join-Path $PSScriptRoot "Build-Solution.ps1") -WorkspaceRoot $PSScriptRoot `
+    -Platform $primary.Platform -SimdVariant $primary.Simd -ArchFlag $primary.ArchFlag -CanExecute $true -PlanOnly
+
+  [pscustomobject]@{
+    RuntimeSuites = @($plan.RuntimeTests)
+    GateJobs = @($needs | Where-Object { $notGates -notcontains $_ })
+    GatePhrases = $phrases
+  }
+}
+
 $manifestChannels = @()
 $manifestPath = Join-Path $PSScriptRoot "..\simd-variants.psd1"
 if (Test-Path $manifestPath) {
@@ -353,10 +393,25 @@ $builtVariantsPhrase = if ($manifestChannels.Count -gt 0) {
 } else {
   "installers for every SIMD/architecture channel"
 }
-# EditorLogicTests sits behind the same CanExecute gate as the other suites
-# since it started linking Common.lib whole-archive (Build-Solution.ps1), so
-# it must not be advertised as running on every variant (audit #275 TD-34).
-[void]$lines.Add("The linked workflow builds $builtVariantsPhrase. It runs EditorLogicTests, HybridConvTests, EngineOrchestrationTests, and AudioRegressionTests (plus a cross-variant output comparison) on the variants whose instruction set the GitHub-hosted runner can execute; the remaining variants are compile-verified.")
+# The suites and the gates are read, not typed (audit #348 TD-24; the typed
+# sentence had drifted twice): the runtime suites from Build-Solution.ps1's
+# plan for the primary variant, and the gates from create-release's needs in
+# build.yml. A job in those needs without a phrase here fails the release
+# notes, so a new gate cannot ship undescribed.
+$verification = Get-VerificationFacts -WorkflowPath (Join-Path $PSScriptRoot "..\workflows\build.yml") `
+  -ManifestPath $manifestPath
+$suiteNames = @($verification.RuntimeSuites) + @("AudioRegressionTests", "the ASIO probe gate")
+$suiteList = (($suiteNames | Select-Object -SkipLast 1) -join ", ") + ", and " + $suiteNames[-1]
+[void]$lines.Add("The linked workflow builds $builtVariantsPhrase. On the variants whose instruction set the GitHub-hosted runner can execute it runs $suiteList; the remaining variants are compile-verified.")
+if ($verification.GatePhrases.Count -gt 0) {
+  $gateList = if ($verification.GatePhrases.Count -gt 1) {
+    (($verification.GatePhrases | Select-Object -SkipLast 1) -join ", ") + ", and " + $verification.GatePhrases[-1]
+  } else {
+    $verification.GatePhrases[0]
+  }
+  [void]$lines.Add("")
+  [void]$lines.Add("This release was published only after $gateList passed. A cross-variant output comparison runs alongside for inspection and does not hold the release.")
+}
 [void]$lines.Add("")
 [void]$lines.Add("Release page: [$Tag]($releaseUrl)")
 

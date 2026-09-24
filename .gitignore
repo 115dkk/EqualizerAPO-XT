@@ -269,3 +269,7 @@ TECH_DEBT_AUDIT.md
 
 # Generated benchmark input (Benchmark/scenarios/New-BenchIr.ps1)
 Benchmark/scenarios/*.wav
+
+# Tool output and IDE settings (audit #348 TD-77)
+.superloopy/
+.vscode/
