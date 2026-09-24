@@ -10,8 +10,14 @@
 	installer stays a single dependency-free binary.
 
 	Threading contract: create() and runMessageLoop() run on the main
-	thread. update()/finish()/isCancelRequested() are for the worker thread;
-	update() locks the model, applies the mutation and posts a repaint.
+	thread. update()/finish() are for the worker thread; update() locks the
+	model, applies the mutation and posts a repaint.
+
+	Closing the window is not a cancel (audit #348 TD-52, the maintainer's
+	decision): while the flow runs, closing only hides the window, and the
+	install carries on to the Velopack hand-off. finish() then ends the
+	session quietly on success, or shows the window again on a failure so
+	the error is never swallowed.
 */
 
 #pragma once
@@ -36,15 +42,15 @@ struct IDWriteTextFormat;
 
 namespace InstallerUi
 {
-// Process exit codes. 2/3/4 predate the window (documented in
-// docs/AutoDetectInstaller.md); 5 is new with the cancelable window.
+// Process exit codes (documented in docs/AutoDetectInstaller.md). 5 meant
+// "closed mid-download" while closing still cancelled; it is retired, not
+// reused.
 enum ExitCode
 {
 	kExitSuccess = 0,
 	kExitDownloadFailed = 2,
 	kExitLaunchFailed = 3,
-	kExitVerifyFailed = 4,
-	kExitCanceled = 5
+	kExitVerifyFailed = 4
 };
 
 // The DirectWrite formats one render pass needs; shared between the live
@@ -74,20 +80,18 @@ public:
 	// headless flow.
 	bool create(HINSTANCE instance);
 
-	// Runs until the window is destroyed; returns the exit code from
-	// finish() (or kExitCanceled when the user closed the window mid-run).
-	int runMessageLoop();
+	// The calling thread's message loop; it ends when the window is
+	// destroyed, which is never before finish().
+	static void runMessageLoop();
 
 	// Worker-thread side. Locks the model, mutates it, schedules a repaint.
 	void update(const std::function<void(Model&)>& mutate);
 
-	// Ends the session. closeDelayMs > 0 closes the window by itself after
-	// the delay (the success hand-off); 0 leaves it open until the user
-	// closes it or uses the error panel's buttons.
-	void finish(int exitCode, unsigned closeDelayMs);
-
-	// True once the user closed the window while the worker was running.
-	bool isCancelRequested() const;
+	// Ends the session. closeDelayMs > 0 is the success hand-off: the window
+	// closes itself after the delay, or at once if the user already closed
+	// it. 0 is a failure: the window stays (or comes back) with the error
+	// panel until the user closes it or uses the panel's buttons.
+	void finish(unsigned closeDelayMs);
 
 	// Renders the fixed preview states as PNGs into outDir (--ui-shot).
 	// The caller must have initialized COM (WIC). Returns false when any
@@ -131,9 +135,9 @@ private:
 	mutable std::mutex modelMutex;
 	Model model;
 
-	std::atomic<bool> cancelRequested{ false };
-	std::atomic<bool> sessionFinished{ false };
-	int exitCode = kExitCanceled;
+	// Both are touched on the window thread only (WM_CLOSE, kMsgFinish).
+	bool closedWhileRunning = false;
+	bool sessionFinished = false;
 
 	// Laid out during paint (under the model lock), hit-tested on mouse
 	// messages on the same thread.

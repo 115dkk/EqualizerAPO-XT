@@ -26,6 +26,7 @@
 #include "widgets/MainToolbarKit.h"
 #include "SubwooferRouting/Preset.h"
 #include "SubwooferRouting/StateCodec.h"
+#include "widgets/subwooferrouting/SubwooferRoutingDefaults.h"
 
 #include <cmath>
 #include <complex>

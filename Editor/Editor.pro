@@ -275,6 +275,7 @@ SOURCES += main.cpp\
 	widgets/cards/ChannelSelectionModel.cpp \
 	widgets/cards/ConvolutionCardEditor.cpp \
 	widgets/cards/SubwooferRoutingCardEditor.cpp \
+	widgets/subwooferrouting/SubwooferRoutingDefaults.cpp \
 	widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp \
 	widgets/subwooferrouting/SubwooferRoutingResponseView.cpp \
 	widgets/subwooferrouting/SubwooferRoutingUiState.cpp \
@@ -298,6 +299,7 @@ SOURCES += main.cpp\
 	widgets/cards/HilbertCardEditor.cpp \
 	widgets/cards/VelvetCardEditor.cpp \
 	widgets/cards/FilterCardEditorRouter.cpp \
+	widgets/cards/FilterLineCard.cpp \
 	analysis/AnalysisViewController.cpp \
 	widgets/cards/IncludeCardEditor.cpp \
 	widgets/cards/PreampCardEditor.cpp \
@@ -568,6 +570,7 @@ HEADERS  += \
 	widgets/cards/ChannelSelectionModel.h \
 	widgets/cards/ConvolutionCardEditor.h \
 	widgets/cards/SubwooferRoutingCardEditor.h \
+	widgets/subwooferrouting/SubwooferRoutingDefaults.h \
 	widgets/subwooferrouting/SubwooferRoutingEditorDialog.h \
 	widgets/subwooferrouting/SubwooferRoutingResponseView.h \
 	widgets/subwooferrouting/SubwooferRoutingUiState.h \
@@ -583,6 +586,7 @@ HEADERS  += \
 	widgets/cards/FilterCardEditorFactory.h \
 	widgets/cards/DelayCardEditor.h \
 	widgets/cards/FilterCardEditorRegistry.h \
+	widgets/cards/FilterLineCard.h \
 	widgets/cards/FileReferenceController.h \
 	widgets/cards/GraphicEQCardEditor.h \
 	widgets/cards/IIRCardEditor.h \

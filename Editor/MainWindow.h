@@ -36,8 +36,7 @@
 #include "Editor/AnalysisThread.h"
 #include "Editor/widgets/EqGraphView.h"
 #include "services/registry/WindowsRegistry.h"
-
-#define EDITOR_PER_FILE_REGPATH EDITOR_REGPATH L"\\file-specific"
+#include "Editor/helpers/EditorSettings.h"
 
 namespace Ui {
 class MainWindow;

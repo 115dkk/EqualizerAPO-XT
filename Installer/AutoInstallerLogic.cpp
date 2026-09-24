@@ -29,44 +29,68 @@ char toLowerAscii(char c)
 {
 	return (c >= 'A' && c <= 'Z') ? static_cast<char>(c - 'A' + 'a') : c;
 }
+
+struct ChannelEntry
+{
+	ChannelIndex index;
+	const wchar_t* id;
+	const wchar_t* description;
+};
+
+// The only place the installer spells its channels.
+// .github/scripts/Test-VariantSync.ps1 holds the ids to simd-variants.psd1.
+const ChannelEntry kChannels[] = {
+	{ kSse2, L"x64-sse2", L"64-bit x86 with SSE2" },
+	{ kAvx, L"x64-avx", L"64-bit x86 with AVX" },
+	{ kAvx2, L"x64-avx2", L"64-bit x86 with AVX2" },
+	{ kAvx512, L"x64-avx512", L"64-bit x86 with AVX-512" },
+	{ kAvx10_1, L"x64-avx10-1", L"64-bit x86 with AVX10.1" },
+	{ kArm64, L"arm64-neon", L"ARM64 with NEON" },
+};
+
+const ChannelEntry& entryFor(ChannelIndex index)
+{
+	for (const ChannelEntry& entry : kChannels)
+	{
+		if (entry.index == index)
+			return entry;
+	}
+	return kChannels[0];
+}
+
+ChannelIndex indexForCpu(const CpuFeatures& features)
+{
+	if (features.arm64Native)
+		return kArm64;
+	// Most specific / newest first.
+	if (features.avx10_1)
+		return kAvx10_1;
+	if (features.avx512f)
+		return kAvx512;
+	if (features.avx2)
+		return kAvx2;
+	if (features.avx)
+		return kAvx;
+	return kSse2;
+}
 }
 
 std::wstring channelForCpu(const CpuFeatures& features, int* outIndex)
 {
-	if (features.arm64Native)
-	{
-		if (outIndex != nullptr)
-			*outIndex = kArm64;
-		return L"arm64-neon";
-	}
-	// Most specific / newest first.
-	if (features.avx10_1)
-	{
-		if (outIndex != nullptr)
-			*outIndex = kAvx10_1;
-		return L"x64-avx10-1";
-	}
-	if (features.avx512f)
-	{
-		if (outIndex != nullptr)
-			*outIndex = kAvx512;
-		return L"x64-avx512";
-	}
-	if (features.avx2)
-	{
-		if (outIndex != nullptr)
-			*outIndex = kAvx2;
-		return L"x64-avx2";
-	}
-	if (features.avx)
-	{
-		if (outIndex != nullptr)
-			*outIndex = kAvx;
-		return L"x64-avx";
-	}
+	const ChannelIndex index = indexForCpu(features);
 	if (outIndex != nullptr)
-		*outIndex = kSse2;
-	return L"x64-sse2";
+		*outIndex = index;
+	return entryFor(index).id;
+}
+
+std::wstring describeChannel(const std::wstring& channel)
+{
+	for (const ChannelEntry& entry : kChannels)
+	{
+		if (channel == entry.id)
+			return entry.description;
+	}
+	return channel;
 }
 
 std::wstring assetName(const std::wstring& channel)

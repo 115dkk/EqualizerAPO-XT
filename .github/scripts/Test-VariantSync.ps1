@@ -43,6 +43,29 @@ if ($missingInInstaller.Count -gt 0 -or $unknownInInstaller.Count -gt 0) {
 
 Write-Host "AutoInstallerLogic.cpp channels match simd-variants.psd1: $($manifestChannels -join ', ')"
 
+# Audit #348 TD-52/F18: the channel table (ids and descriptions) lives in
+# AutoInstallerLogic.cpp, but a channel literal anywhere else in the installer
+# (a preview fixture, a message) must still name a channel the manifest knows.
+$otherInstallerSources = @(Get-ChildItem -Path (Join-Path $RepoRoot "Installer" "*") -File -Include "*.cpp", "*.h" |
+  Where-Object { $_.Name -ne "AutoInstallerLogic.cpp" })
+$strayChannels = @()
+foreach ($file in $otherInstallerSources) {
+  $text = Get-Content -LiteralPath $file.FullName -Raw
+  foreach ($match in [regex]::Matches($text, $pattern)) {
+    $channel = $match.Groups[1].Value
+    if ($manifestChannels -notcontains $channel) {
+      $strayChannels += "$($file.Name): $channel"
+    }
+  }
+}
+if ($strayChannels.Count -gt 0) {
+  foreach ($entry in $strayChannels) {
+    Write-Host "::error file=Installer/$($entry.Split(':')[0])::Channel not in simd-variants.psd1: $($entry.Split(':')[1].Trim())"
+  }
+  throw "An installer source names a channel that .github/simd-variants.psd1 does not have."
+}
+Write-Host "The other $($otherInstallerSources.Count) installer sources name only manifest channels."
+
 # Audit #275 D2/TD-21: the /arch decision has exactly one mechanism - the
 # EapoVariantArch opt-in resolved by Directory.Build.props (locally AVX2,
 # overridden per CI leg via /p:EnableEnhancedInstructionSet). A literal

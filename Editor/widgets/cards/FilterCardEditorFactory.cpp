@@ -38,7 +38,10 @@ bool FilterCardEditorFactory::available(const QString& command, const QString& p
 			return false;
 	}
 
-	return FilterCardEditorRegistry::find(commandKeyword) != nullptr;
+	// The command goes to the predicate as written, like it goes to the
+	// creator below: the shared Filter entry's parsers tell "Filter 1: ON IIR"
+	// apart from an ordinary biquad by it.
+	return FilterCardEditorRegistry::accepts(commandKeyword, command, parameters);
 }
 
 IFilterGUI* FilterCardEditorFactory::create(FilterTable* filterTable, const QString& command, const QString& parameters)

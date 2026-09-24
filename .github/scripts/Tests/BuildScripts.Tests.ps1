@@ -144,6 +144,28 @@ Describe "extracted build script decisions" {
         $plan.AsioEntry.Required | Should -BeTrue
     }
 
+    It "compiles every shipped C++ binary for CodeQL" {
+        # Audit #348 TD-25: the CodeQL build was four projects written into the
+        # YAML, and the ASIO wrapper, the engine host, the VST3 plug-in and the
+        # installer shipped unscanned. Every C++ file the x64 artifact ships
+        # maps to its project, which the CodeQL plan must compile.
+        $repo = Join-Path $PSScriptRoot "..\..\.."
+        $codeql = & (Join-Path $PSScriptRoot "..\Invoke-CodeQLBuild.ps1") -PlanOnly
+        $scanned = @($codeql.Targets | ForEach-Object { "$($_.Project)|$($_.Platform)" })
+        $pack = & (Join-Path $PSScriptRoot "..\Package-Artifacts.ps1") `
+            -WorkspaceRoot $repo -Platform x64 -SimdVariant avx2 -PlanOnly
+        $shipped = @($pack.RequiredFiles) + @($pack.Vst3PluginModule)
+        foreach ($file in $shipped) {
+            $projectDir = ($file -split '\\x64\\Release\\')[0]
+            $projects = @(Get-ChildItem -LiteralPath (Join-Path $repo $projectDir) -Filter "*.vcxproj" -File)
+            $projects.Count | Should -Be 1 -Because "$file comes from one project in $projectDir"
+            $scanned | Should -Contain "$projectDir\$($projects[0].Name)|x64" -Because "$file ships"
+        }
+        $pack.Win32Wrapper | Should -Not -BeNullOrEmpty
+        $scanned | Should -Contain "EqualizerAPOAsio\EqualizerAPOAsio.vcxproj|Win32" -Because "the x86 wrapper ships"
+        $scanned | Should -Contain "Installer\Installer.vcxproj|Win32" -Because "the installer is a release asset"
+    }
+
     It "builds only the two 32-bit ASIO DLLs for Win32" {
         $plan = & (Join-Path $PSScriptRoot "..\Build-AsioWin32.ps1") -WorkspaceRoot $root -PlanOnly
         $plan.Projects | Should -Be @("EqualizerAPOAsio\EqualizerAPOAsio.vcxproj", "Tests\FakeAsioDriver\FakeAsioDriver.vcxproj")

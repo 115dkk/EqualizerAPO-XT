@@ -264,7 +264,7 @@ void MainWindow::languageSelected(bool selected)
 		QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
 		if (language == QLocale::AnyLanguage)
 		{
-			settings.remove("language");
+			settings.remove(QLatin1String(EditorSettings::Keys::Language));
 		}
 		else
 		{
@@ -272,7 +272,7 @@ void MainWindow::languageSelected(bool selected)
 			int index = name.indexOf('_');
 			if (index != -1)
 				name = name.left(index);
-			settings.setValue("language", name);
+			settings.setValue(QLatin1String(EditorSettings::Keys::Language), name);
 		}
 
 		restart = true;
