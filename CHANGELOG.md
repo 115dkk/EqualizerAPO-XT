@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.1 — 2026-09-24
+
 - **Benchmark.exe stops with an error instead of hanging on a short read or
   write.** When libsndfile returned no frames before the expected count, the
   input and output loops spun forever; they now print the reason and exit
