@@ -23,12 +23,6 @@ namespace
 	const wchar_t* const sampleRateFact = L"SampleRate";
 	const wchar_t* const outputChannelsFact = L"OutputChannels";
 	const wchar_t* const inputChannelsFact = L"InputChannels";
-
-	bool fileExists(const std::wstring& path)
-	{
-		const DWORD attributes = GetFileAttributesW(path.c_str());
-		return attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0;
-	}
 }
 
 void AsioAPOInfo::appendInfos(std::vector<std::shared_ptr<AbstractAPOInfo>>& list, bool input, IRegistry& registry)
@@ -51,25 +45,15 @@ std::wstring AsioAPOInfo::factsKey(const std::wstring& targetClsid)
 void AsioAPOInfo::loadState()
 {
 	installed = false;
-	currentSynchronous = false;
-	currentDeadlinePercent = 25;
-	currentAutoStart = false;
-	currentHost32 = false;
+	current = {};
 	WrapperRecord record;
 	if (eapo::asio::AsioRegistration::wrapperRegistered(registry, target)
 		&& WrapperRecords::read(registry, wrapperClsidFor(target.clsid), record))
 	{
 		installed = input ? record.options.processInput : record.options.processOutput;
-		currentSynchronous = record.options.mode == eapo::asio::Mode::Sync;
-		if (record.options.deadlinePercent != 0)
-			currentDeadlinePercent = record.options.deadlinePercent;
-		currentAutoStart = record.autoStart;
-		currentHost32 = record.register32;
+		current = WrapperRecords::entryOptions(record);
 	}
-	selectedSynchronous = currentSynchronous;
-	selectedDeadlinePercent = currentDeadlinePercent;
-	selectedAutoStart = currentAutoStart;
-	selectedHost32 = currentHost32;
+	selected = current;
 
 	channelCount = 0;
 	sampleRate = 0;
@@ -143,10 +127,7 @@ bool AsioAPOInfo::canBeUpgraded() const
 
 bool AsioAPOInfo::hasChanges() const
 {
-	return installed && (selectedSynchronous != currentSynchronous
-		|| selectedDeadlinePercent != currentDeadlinePercent
-		|| selectedAutoStart != currentAutoStart
-		|| selectedHost32 != currentHost32);
+	return installed && selected != current;
 }
 
 bool AsioAPOInfo::isEnhancementsDisabled() const
@@ -180,35 +161,10 @@ std::wstring AsioAPOInfo::installDirectory() const
 	return registry.readValue(APP_REGPATH, L"InstallPath");
 }
 
-std::wstring AsioAPOInfo::wrapper32Path() const
-{
-	// The 32-bit wrapper ships beside the 64-bit one under x86\; a build
-	// without it (ARM64) cannot serve 32-bit hosts.
-	return installDirectory() + L"\\x86\\EqualizerAPOAsio.dll";
-}
-
 bool AsioAPOInfo::canHost32() const
 {
-	return fileExists(wrapper32Path());
-}
-
-void AsioAPOInfo::refreshAutoStart()
-{
-	// One Run value for the machine: present while any installed target
-	// asks for it, gone with the last one.
-	bool wanted = false;
-	const std::wstring root = WrapperRecords::rootKey();
-	if (registry.keyExists(root))
-	{
-		for (const std::wstring& clsid : registry.enumSubKeys(root))
-		{
-			WrapperRecord other;
-			if (WrapperRecords::read(registry, clsid, other) && other.autoStart
-				&& (other.options.processOutput || other.options.processInput))
-				wanted = true;
-		}
-	}
-	eapo::asio::AsioRegistration::setAutoStart(registry, installDirectory() + L"\\EqualizerAPOHost.exe", wanted);
+	// A build without the x86 wrapper (ARM64) cannot serve 32-bit hosts.
+	return eapo::asio::AsioRegistration::wrapper32Shipped(installDirectory());
 }
 
 void AsioAPOInfo::install()
@@ -230,23 +186,26 @@ void AsioAPOInfo::install()
 		record.options.processOutput = true;
 	// Options this row changed win; the other direction's row, installed in
 	// the same pass with an untouched selection, must not put them back.
-	if (fresh || selectedSynchronous != currentSynchronous)
-		record.options.mode = selectedSynchronous ? eapo::asio::Mode::Sync : eapo::asio::Mode::Pipelined;
-	if (fresh || selectedDeadlinePercent != currentDeadlinePercent)
-		record.options.deadlinePercent = selectedDeadlinePercent;
-	if (fresh || selectedAutoStart != currentAutoStart)
-		record.autoStart = selectedAutoStart;
-	if (fresh || selectedHost32 != currentHost32)
-		record.register32 = selectedHost32;
+	eapo::asio::EntryOptions options = fresh ? selected : WrapperRecords::entryOptions(record);
+	if (selected.synchronous != current.synchronous)
+		options.synchronous = selected.synchronous;
+	if (selected.deadlinePercent != current.deadlinePercent)
+		options.deadlinePercent = selected.deadlinePercent;
+	if (selected.autoStart != current.autoStart)
+		options.autoStart = selected.autoStart;
+	if (selected.host32 != current.host32)
+		options.host32 = selected.host32;
+	WrapperRecords::setEntryOptions(record, options);
 	WrapperRecords::write(registry, record);
 
-	const std::wstring dll64 = installDirectory() + L"\\EqualizerAPOAsio.dll";
 	// The 32-bit view only when asked for, and only when the x86 wrapper
 	// is there to point at.
-	const std::wstring dll32 = wrapper32Path();
-	eapo::asio::AsioRegistration::registerWrapper(registry, target, dll64,
-		record.register32 && fileExists(dll32) ? dll32 : std::wstring());
-	refreshAutoStart();
+	const std::wstring directory = installDirectory();
+	eapo::asio::AsioRegistration::registerWrapper(registry, target,
+		eapo::asio::AsioRegistration::wrapperDllPath(directory),
+		record.register32 && eapo::asio::AsioRegistration::wrapper32Shipped(directory)
+			? eapo::asio::AsioRegistration::wrapper32DllPath(directory) : std::wstring());
+	eapo::asio::AsioRegistration::refreshAutoStart(registry, directory);
 	loadState();
 }
 
@@ -263,27 +222,21 @@ void AsioAPOInfo::uninstall()
 		if (record.options.processInput || record.options.processOutput)
 		{
 			WrapperRecords::write(registry, record);
-			refreshAutoStart();
+			eapo::asio::AsioRegistration::refreshAutoStart(registry, installDirectory());
 			loadState();
 			return;
 		}
 		WrapperRecords::remove(registry, wrapperClsid);
 	}
 	eapo::asio::AsioRegistration::unregisterWrapper(registry, target);
-	refreshAutoStart();
+	eapo::asio::AsioRegistration::refreshAutoStart(registry, installDirectory());
 	loadState();
 }
 
 void AsioAPOInfo::reinstall()
 {
-	const bool synchronous = selectedSynchronous;
-	const unsigned deadlinePercent = selectedDeadlinePercent;
-	const bool autoStart = selectedAutoStart;
-	const bool host32 = selectedHost32;
+	const eapo::asio::EntryOptions options = selected;
 	uninstall();
-	selectedSynchronous = synchronous;
-	selectedDeadlinePercent = deadlinePercent;
-	selectedAutoStart = autoStart;
-	selectedHost32 = host32;
+	selected = options;
 	install();
 }

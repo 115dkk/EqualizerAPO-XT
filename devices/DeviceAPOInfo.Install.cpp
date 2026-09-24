@@ -164,7 +164,7 @@ std::vector<wstring> processingModesFor(bool input)
 void DeviceAPOInfo::applyAsioEntry(RegistryTransaction& plan)
 {
 	removeAsioEntry(plan);
-	if (!selectedInstallState.exclusiveModeEq || (!selectedInstallState.installPreMix && !selectedInstallState.installPostMix))
+	if (!selectedInstallState.asioEntry || (!selectedInstallState.installPreMix && !selectedInstallState.installPostMix))
 		return;
 
 	// The wrapper DLL beside the product; the value the install hook writes.
@@ -184,8 +184,14 @@ void DeviceAPOInfo::applyAsioEntry(RegistryTransaction& plan)
 		record.renderEndpoint = deviceGuid;
 	record.options.processOutput = !input;
 	record.options.processInput = input;
+	eapo::asio::WrapperRecords::setEntryOptions(record, selectedInstallState.asioEntryOptions);
 	eapo::asio::WrapperRecords::write(plan, record);
-	eapo::asio::AsioRegistration::registerWrapper(plan, target, installPath + L"\\EqualizerAPOAsio.dll", L"");
+	// The 32-bit view only when asked for and when the x86 wrapper is there
+	// to point at, the same rule as an ASIO driver row's.
+	eapo::asio::AsioRegistration::registerWrapper(plan, target, eapo::asio::AsioRegistration::wrapperDllPath(installPath),
+		record.register32 && eapo::asio::AsioRegistration::wrapper32Shipped(installPath)
+			? eapo::asio::AsioRegistration::wrapper32DllPath(installPath) : L"");
+	eapo::asio::AsioRegistration::refreshAutoStart(plan, installPath);
 	lastOperationReport.asioEntry = eapo::asio::AsioRegistration::entryNameFor(target.name);
 }
 
@@ -194,6 +200,15 @@ void DeviceAPOInfo::removeAsioEntry(RegistryTransaction& plan)
 	const eapo::asio::AsioTarget target = eapo::asio::AsioRegistration::endpointTarget(deviceGuid, connectionName, deviceName);
 	eapo::asio::AsioRegistration::unregisterWrapper(plan, target);
 	eapo::asio::WrapperRecords::remove(plan, eapo::asio::AsioRegistration::wrapperClsidFor(deviceGuid));
+	// The entry may have been the last one asking for the host at boot.
+	const wstring installPath = plan.valueExists(APP_REGPATH, L"InstallPath") ? plan.readValue(APP_REGPATH, L"InstallPath") : L"";
+	eapo::asio::AsioRegistration::refreshAutoStart(plan, installPath);
+}
+
+bool DeviceAPOInfo::canHostAsio32() const
+{
+	const wstring installPath = registry.valueExists(APP_REGPATH, L"InstallPath") ? registry.readValue(APP_REGPATH, L"InstallPath") : L"";
+	return eapo::asio::AsioRegistration::wrapper32Shipped(installPath);
 }
 
 void DeviceAPOInfo::installWithin(RegistryTransaction& plan)

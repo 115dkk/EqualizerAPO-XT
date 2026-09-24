@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <string>
 
+#include "asio/EntryOptions.h"
 #include "asio/StreamProcessor.h"
 #include "services/registry/IRegistry.h"
 
@@ -60,5 +61,14 @@ namespace eapo::asio
 
 		// Deletes the record; a missing record is not an error.
 		void remove(IRegistry& registry, const std::wstring& wrapperClsid);
+
+		// The Device Selector's four choices as a record holds them, and back.
+		// A record written before DeadlinePercent existed reads as 25.
+		EntryOptions entryOptions(const WrapperRecord& record);
+		void setEntryOptions(WrapperRecord& record, const EntryOptions& options);
+
+		// Whether any record with a direction enabled asks for the engine
+		// host at boot; the Run value follows this (AsioRegistration::refreshAutoStart).
+		bool autoStartWanted(const IRegistry& registry);
 	}
 }
