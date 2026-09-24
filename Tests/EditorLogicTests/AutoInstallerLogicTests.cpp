@@ -56,6 +56,31 @@ void testAutoInstallerChannelMapping()
 	expectEqual(index, int(kArm64), "arm64 index");
 }
 
+void testAutoInstallerChannelDescriptions()
+{
+	// The window's "detected" line reads the same table channelForCpu does
+	// (audit #348 F18): every channel the mapping can return has its own
+	// description, and an unknown channel comes back verbatim.
+	const auto describedFor = [](CpuFeatures features, const char* expected, const char* label)
+	{
+		const std::wstring channel = channelForCpu(features);
+		expectEqual(wide(describeChannel(channel)), QString::fromLatin1(expected), label);
+	};
+	CpuFeatures features;
+	describedFor(features, "64-bit x86 with SSE2", "sse2 description");
+	features.avx = true;
+	describedFor(features, "64-bit x86 with AVX", "avx description");
+	features.avx2 = true;
+	describedFor(features, "64-bit x86 with AVX2", "avx2 description");
+	features.avx512f = true;
+	describedFor(features, "64-bit x86 with AVX-512", "avx512 description");
+	features.avx10_1 = true;
+	describedFor(features, "64-bit x86 with AVX10.1", "avx10.1 description");
+	features.arm64Native = true;
+	describedFor(features, "ARM64 with NEON", "arm64 description");
+	expectEqual(wide(describeChannel(L"riscv64-v")), QStringLiteral("riscv64-v"), "an unknown channel comes back verbatim");
+}
+
 void testAutoInstallerAssetGrammar()
 {
 	expectEqual(wide(assetName(L"x64-avx2")),

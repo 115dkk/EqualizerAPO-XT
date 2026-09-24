@@ -14,6 +14,13 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Closing the setup window no longer stops the install.** Closing
+  `EqualizerAPO-XT-Setup.exe` during the download used to cancel it, while
+  closing it a moment later, during the checksum check, did not, and the
+  Velopack installer then appeared behind a window that was already gone.
+  Now closing only hides the window at every step: the install carries on,
+  and if a step fails afterwards the window comes back with the error. Exit
+  code 5 is retired ([#353](https://github.com/115dkk/EqualizerAPO-XT/pull/353)).
 - **UpdateChecker.exe is no longer shipped.** The Editor already downloads a
   new release in the background and applies it when it closes. The separate
   notify-only tool had not been started automatically since the NSIS
