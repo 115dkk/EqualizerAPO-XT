@@ -20,6 +20,7 @@
 #include "stdafx.h"
 #include "services/registry/RegistryPaths.h"
 #include <devices/DeviceAPOInfo.h>
+#include <devices/DevicePlan.h>
 #include <services/registry/WindowsRegistry.h>
 #include <ObjBase.h>
 #include <QDir>
@@ -330,7 +331,7 @@ int runEndpointCommand(QApplication& app, bool install)
 	{
 		if (install)
 		{
-			if (info->isInstalled())
+			if (planForHeadlessInstall(deviceFactsOf(*info)).action == DeviceAction::Reinstall)
 				info->reinstall();
 			else
 				info->install();
