@@ -8,6 +8,12 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **설정 실수를 더 많이 그 줄에 알립니다.** 철자가 틀린 `Stage`, 앞에
+  `If`가 없는 `ElseIf`·`Else`·`EndIf`, `EndIf`가 없는 `If`(이제 그 `If`
+  줄에 표시), 너무 깊이 중첩된 `Include`는 로그에만 남았는데, 이제 Editor가
+  다른 쓸 수 없는 줄처럼 그 줄의 카드에 도움말 풍선으로 보여 줍니다. 필터가 준비 중에 실패하면 여전히
+  설정 전체를 적용하지 않지만, 로그와 Editor가 원인이 된 줄을 알려 줍니다([#366](https://github.com/115dkk/EqualizerAPO-XT/pull/366)).
+
 ## v2.54.2 — 2026-09-24
 
 - **ASIO 항목 변경이 실패하면 원래대로 되돌리고 알립니다.** ASIO 드라이버

@@ -20,13 +20,14 @@
 #pragma once
 
 #include <string>
+#include <vector>
 #include "engine/IFilterFactory.h"
 #include "engine/IFilter.h"
 
 class EngineParser;
 namespace mup { class Value; }
 
-class IfFilterFactory : public IFilterFactory
+class IfFilterFactory : public ParseReportingFactory
 {
 public:
 	void initialize(FilterEngine* engine) override;
@@ -43,6 +44,12 @@ private:
 	unsigned falseCount = 0;
 	bool executeElse = false;
 	std::stack<unsigned> trueCountStack;
+	// The lines of the Ifs in the current file that no EndIf has closed yet,
+	// so an unclosed one is reported on its own line rather than on the end
+	// of the file, where the Editor has no row to show it on. Saved across an
+	// Include like trueCount.
+	std::vector<int> openIfLines;
+	std::stack<std::vector<int>> openIfLinesStack;
 
 	bool toBoolean(const mup::Value& value);
 };

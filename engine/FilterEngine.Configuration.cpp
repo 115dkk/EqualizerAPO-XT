@@ -34,6 +34,7 @@
 #include "audio/ChannelLayout.h"
 #include "ConfigLoadTrace.h"
 #include "ConfigurationFileReader.h"
+#include "platform/windows/TextEncoding.h"
 #include "FilterEngine.h"
 // The individual filter factories self-register via REGISTER_FILTER_FACTORY, and
 // every consumer links Common.lib with /WHOLEARCHIVE, which forces each factory
@@ -121,9 +122,13 @@ bool FilterEngine::loadConfig(const wstring& customPath)
 	}
 	catch (const exception& e)
 	{
+		// An exception out of a line leaves the load positioned on it, since
+		// loadConfigFile restores the position only on its way out normally.
+		const wstring where = load.traceLine > 0
+			? L" (line " + std::to_wstring(load.traceLine) + L" of " + load.traceFile + L")" : wstring();
 		rollback();
 		timer.stop();
-		LogF(L"Configuration load failed; keeping the active configuration: %S", e.what());
+		LogF(L"Configuration load failed; keeping the active configuration: %S%s", e.what(), where.c_str());
 	}
 	catch (...)
 	{
@@ -268,7 +273,24 @@ void FilterEngine::addFilters(FilterVector filters)
 
 		load.lastChannelNames = load.currentChannelNames;
 
-		vector<wstring> newChannelNames = filter->initialize(sampleRate, maxFrameCount, load.currentChannelNames);
+		vector<wstring> newChannelNames;
+		try
+		{
+			newChannelNames = filter->initialize(sampleRate, maxFrameCount, load.currentChannelNames);
+		}
+		catch (const exception& e)
+		{
+			// The load still rolls back as a whole (audit #348 TD-18), but the
+			// line whose filter failed goes on the load trace first, so the
+			// Editor can point at it; loadConfig's log line names it too.
+			ConfigLoadTraceEntry entry;
+			entry.kind = ConfigLoadTraceEntry::Kind::SetupError;
+			entry.error = true;
+			entry.text = L"could not be set up (" + wintext::toWideString(e.what(), CP_UTF8)
+				+ L"), so the configuration was not applied";
+			traceLoadEvent(std::move(entry));
+			throw;
+		}
 
 		if (filterInfo->inPlace && load.lastInPlace && load.lastNewChannelNames == newChannelNames)
 		{
@@ -308,8 +330,11 @@ void FilterEngine::addFilters(FilterVector filters)
 	}
 }
 
-void FilterEngine::reportParseError(const wstring& command, const wstring& reason)
+void FilterEngine::reportParseError(const wstring& command, const wstring& reason, int line)
 {
+	const int currentLine = load.traceLine;
+	if (line > 0)
+		load.traceLine = line;
 	// The log line goes out whether or not a sink is attached: the APO runtime
 	// never attaches one, and a user whose Convolution line silently does nothing
 	// has to be able to find out why from the log.
@@ -320,6 +345,7 @@ void FilterEngine::reportParseError(const wstring& command, const wstring& reaso
 	entry.error = true;
 	entry.text = reason;
 	traceLoadEvent(std::move(entry));
+	load.traceLine = currentLine;
 }
 
 void FilterEngine::traceLoadEvent(ConfigLoadTraceEntry entry)

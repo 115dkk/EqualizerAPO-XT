@@ -461,8 +461,11 @@ CommandRowInfo FilterCardRow::currentRowInfo() const
 				info.lineSkipped = true;
 				break;
 			case ConfigLoadTraceEntry::Kind::ParseError:
+			case ConfigLoadTraceEntry::Kind::SetupError:
 				// Several can arrive for one line if a factory reports more than
-				// once; the first is the one that stopped it.
+				// once; the first is the one that stopped it. A setup error
+				// (the whole configuration rolled back) shows the same way
+				// until a skin gives these a surface of their own.
 				if (info.parseError.isEmpty())
 					info.parseError = QString::fromStdWString(fact.text);
 				break;

@@ -14,6 +14,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **More configuration mistakes are reported on their line.** A misspelled
+  `Stage`, an `ElseIf`, `Else` or `EndIf` with no `If` before it, an `If`
+  with no `EndIf` (now on the `If` line itself), and an `Include` nested too
+  deep went only to the log; the Editor now shows them on that line's card as
+  a tooltip, as it does for other unusable lines. When a filter fails while being set up, the configuration is
+  still not applied as a whole, and both the log and the Editor now name the
+  line that caused it ([#366](https://github.com/115dkk/EqualizerAPO-XT/pull/366)).
+
 ## v2.54.2 — 2026-09-24
 
 - **A failed ASIO entry change is put back and reported.** Turning an ASIO
