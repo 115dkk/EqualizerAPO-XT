@@ -8,6 +8,11 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **ARM64도 아주 작은 신호를 x64와 같게 처리합니다.** x64에서 엔진은
+  서브노멀 수(필터 피드백이 잦아들며 약 -300 dB 아래로 내려간 꼬리 같은 값)를
+  0으로 버리지만, ARM64 빌드는 그러지 않아 같은 설정에서 출력이 조금 다르고
+  더 느렸습니다. 이제 ARM64도 블록마다 같은 뜻의 flush-to-zero 모드를 켭니다
+  ([#354](https://github.com/115dkk/EqualizerAPO-XT/pull/354)).
 - **설치 창을 닫아도 설치가 멈추지 않습니다.** `EqualizerAPO-XT-Setup.exe`는
   다운로드 중에 창을 닫으면 설치를 취소했지만, 조금 뒤 체크섬을 검사하는
   중에 닫으면 취소하지 않고 이미 사라진 창 뒤에서 Velopack 설치기를 띄웠습니다.

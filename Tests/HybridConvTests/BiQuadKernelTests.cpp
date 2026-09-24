@@ -23,6 +23,7 @@
 #include "filters/BiQuadFilter.h"
 #include "filters/BiQuadFilterFactory.h"
 #include "filters/BiQuadKernelPlan.h"
+#include "dsp/MxcsrGuard.h"
 #include "Tests/TestHarness.h"
 
 using std::vector;
@@ -243,6 +244,27 @@ void testMultiChannelMatchesMonoBitExactly()
 			label);
 	}
 }
+
+// The engine processes every block under MxcsrFtzDazGuard, so a subnormal
+// never reaches a filter's arithmetic: MXCSR FTZ|DAZ on x64, FPCR.FZ on ARM64
+// (audit #348). Both flush a subnormal operand and a subnormal result, and
+// the caller's mode comes back when the scope ends. The ARM64 leg of CI runs
+// this on an ARM64 runner.
+void testDenormalGuardFlushesAndRestores()
+{
+	volatile double subnormal = 4.9e-320;
+	volatile double one = 1.0;
+	volatile double tiny = 1e-300;
+	{
+		MxcsrFtzDazGuard guard;
+		const double operand = subnormal * one;
+		harness.expect(operand == 0.0, "a subnormal operand reads as zero inside the guard");
+		const double result = tiny * 1e-10;
+		harness.expect(result == 0.0, "a subnormal result is flushed to zero inside the guard");
+	}
+	const double kept = subnormal * one;
+	harness.expect(kept != 0.0, "the caller's floating-point mode comes back when the guard ends");
+}
 }
 
 void runBiQuadKernelTests()
@@ -253,6 +275,7 @@ void runBiQuadKernelTests()
 	testPlanCoversEveryChannelOnce();
 	testPlanDoesNotSerializePairableChannels();
 	testMultiChannelMatchesMonoBitExactly();
+	testDenormalGuardFlushesAndRestores();
 
 	harness.report();
 }

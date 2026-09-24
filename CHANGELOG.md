@@ -14,6 +14,12 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **ARM64 handles very quiet signals the way x64 does.** On x64 the engine
+  flushes subnormal numbers (the tail of a signal decaying below about
+  -300 dB, such as a filter's feedback ringing out) to zero; the ARM64 build
+  did not, so the same configuration produced slightly different and slower
+  output there. ARM64 now sets the matching flush-to-zero mode for each
+  processed block ([#354](https://github.com/115dkk/EqualizerAPO-XT/pull/354)).
 - **Closing the setup window no longer stops the install.** Closing
   `EqualizerAPO-XT-Setup.exe` during the download used to cancel it, while
   closing it a moment later, during the checksum check, did not, and the
