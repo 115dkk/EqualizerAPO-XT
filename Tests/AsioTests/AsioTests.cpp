@@ -30,7 +30,7 @@
 #include "services/logging/Logging.h"
 #include "Tests/AlignedMemoryGate.h"
 #include "Tests/AsioSupport/HostStub.h"
-#include "Tests/EngineOrchestrationTests/FakeRegistry.h"
+#include "Tests/FakeRegistry.h"
 #include "Tests/FakeAsioDriver/FakeAsio.h"
 #include "Tests/TestDirectory.h"
 #include "Tests/TestHarness.h"

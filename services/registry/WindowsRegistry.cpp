@@ -379,16 +379,24 @@ void WindowsRegistry::takeOwnership(const wstring& key)
 
 bool WindowsRegistry::keyExists(const wstring& key) const
 {
-	bool result;
-
 	HKEY rootKey;
 	wstring subKey = splitKey(key, &rootKey);
 
 	winutil::UniqueRegistryKey keyHandle;
-	result = (RegOpenKeyExW(rootKey, subKey.c_str(), 0,
-		KEY_QUERY_VALUE | KEY_WOW64_64KEY, keyHandle.put()) == ERROR_SUCCESS);
-
-	return result;
+	const LSTATUS status = RegOpenKeyExW(rootKey, subKey.c_str(), 0,
+		KEY_QUERY_VALUE | KEY_WOW64_64KEY, keyHandle.put());
+	if (status == ERROR_SUCCESS)
+		return true;
+	if (status == ERROR_FILE_NOT_FOUND || status == ERROR_PATH_NOT_FOUND)
+		return false;
+	// A key whose ACL refuses the query is still there. This used to answer
+	// false, and install() then took ownership of an FxProperties key the
+	// driver had locked and recorded the driver's effect chain as absent, so
+	// an uninstall could never put it back (audit #348). Answering true lets
+	// the first read fail instead, and the install rolls back.
+	if (status == ERROR_ACCESS_DENIED)
+		return true;
+	throw RegistryError(L"Error while opening registry key " + key + L": " + win32::errorMessage(status));
 }
 
 bool WindowsRegistry::valueExists(const wstring& key, const wstring& valuename) const

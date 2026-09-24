@@ -22,7 +22,7 @@
 #include "services/registry/RegistryTransaction.h"
 #include "Tests/TestHarness.h"
 
-#include "FakeRegistry.h"
+#include "Tests/FakeRegistry.h"
 
 namespace
 {

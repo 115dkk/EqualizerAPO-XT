@@ -110,6 +110,8 @@ public:
 	// Throws if the key is missing.
 	virtual std::vector<std::wstring> enumValues(const std::wstring& key) const = 0;
 	// The only operation that answers false instead of throwing for a missing key.
+	// A key that exists but refuses to be opened answers true: a denial is not
+	// an absence, and the first read of it throws.
 	virtual bool keyExists(const std::wstring& key) const = 0;
 	// Throws if the key is missing; returns false only for a missing value.
 	virtual bool valueExists(const std::wstring& key, const std::wstring& valuename) const = 0;

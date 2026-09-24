@@ -18,7 +18,7 @@
 #include "devices/AsioAPOInfo.h"
 #include "devices/DeviceException.h"
 #include "services/registry/RegistryPaths.h"
-#include "Tests/EngineOrchestrationTests/FakeRegistry.h"
+#include "Tests/FakeRegistry.h"
 #include "Tests/TestHarness.h"
 
 using eapo::asio::AsioTarget;
