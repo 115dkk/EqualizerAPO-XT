@@ -142,9 +142,21 @@ void Logging::log(const char* file, int line, const void* caller, bool trace, co
 		fflush(fp);
 }
 
-void Logging::reset()
+void Logging::refreshTrace()
 {
-	useDefaultApoLog();
+	// A missing value means off, as it does at first use; reading it is the
+	// only thing that can fail, and that is worth a line in the log.
+	bool trace = false;
+	try
+	{
+		if (systemRegistry().valueExists(APP_REGPATH, L"EnableTrace"))
+			trace = systemRegistry().readValue(APP_REGPATH, L"EnableTrace") != L"false";
+	}
+	catch (const RegistryError& e)
+	{
+		LogFStatic(L"%s", e.getMessage().c_str());
+	}
+	enableTrace.store(trace);
 }
 
 void Logging::set(FILE* fp, bool enableTrace, bool compact, bool useConsoleColors)

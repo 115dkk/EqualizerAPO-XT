@@ -36,6 +36,7 @@
 #include "../services/registry/WindowsRegistry.h"
 #include "../platform/windows/ComPtr.h"
 #include "../platform/windows/Win32Resource.h"
+#include "../devices/ApoRuntimeFacts.h"
 #include "../devices/DeviceAPOInfo.h"
 #include "../devices/DeviceAPOInfoKeys.h"
 #include "EqualizerAPO.h"
@@ -173,7 +174,7 @@ HRESULT EqualizerAPO::GetLatency(HNSTIME* pTime)
 HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 {
 	return ComBoundary::invoke([&]() -> HRESULT {
-	Logging::reset();
+	Logging::refreshTrace();
 
 	TraceF(L"Initialize: cbDataSize=%u (APOInitSystemEffects=%u)", cbDataSize, static_cast<unsigned>(sizeof(APOInitSystemEffects)));
 
@@ -247,21 +248,16 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 
 	try
 	{
-		DeviceAPOInfo apoInfo;
-		if (apoInfo.load(deviceGuid))
+		const std::optional<ApoRuntimeFacts> facts = readApoRuntimeFacts(systemRegistry(), deviceGuid, engineSetup.preMix);
+		if (facts)
 		{
-			engineSetup.capture = apoInfo.isInput();
-			engineSetup.postMixInstalled = apoInfo.getCurrentInstallState().installPostMix;
-			engineSetup.deviceName = apoInfo.getDeviceName();
-			engineSetup.connectionName = apoInfo.getConnectionName();
-			engineSetup.deviceGuid = apoInfo.getDeviceGuid();
-
-			if (apoGuid == EQUALIZERAPO_PRE_MIX_GUID)
-				childApoGuid = apoInfo.getPreMixChildGuid();
-			else
-				childApoGuid = apoInfo.getPostMixChildGuid();
-
-			allowSilentBufferModification = apoInfo.getCurrentInstallState().allowSilentBufferModification;
+			engineSetup.capture = facts->capture;
+			engineSetup.postMixInstalled = facts->postMixInstalled;
+			engineSetup.deviceName = facts->deviceName;
+			engineSetup.connectionName = facts->connectionName;
+			engineSetup.deviceGuid = facts->deviceGuid;
+			childApoGuid = facts->childApoGuid;
+			allowSilentBufferModification = facts->allowSilentBufferModification;
 		}
 	}
 	catch (const RegistryError& e)
@@ -271,7 +267,7 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 
 	TraceF(L"Child APO GUID: %s", childApoGuid.c_str());
 
-	if (childApoGuid != L"" && childApoGuid != APOGUID_NULL && childApoGuid != APOGUID_NOKEY && childApoGuid != APOGUID_NOVALUE)
+	if (!childApoGuid.empty())
 	{
 		GUID childGuid;
 		hr = CLSIDFromString(childApoGuid.c_str(), &childGuid);

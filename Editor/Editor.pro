@@ -79,6 +79,7 @@ SOURCES += main.cpp\
 	guis/DeviceFilterGUIFactory.cpp \
 	../devices/DeviceAPOInfo.cpp \
 	../devices/DeviceAPOInfo.Install.cpp \
+	../devices/ApoRuntimeFacts.cpp \
 	../devices/DeviceAPOInfo.Load.cpp \
 	../devices/DeviceAPOInfo.State.cpp \
 	../devices/DeviceAPOInfo.Uninstall.cpp \
@@ -394,6 +395,7 @@ HEADERS  += \
 	FilterTemplate.h \
 	guis/DeviceFilterGUI.h \
 	guis/DeviceFilterGUIFactory.h \
+	../devices/ApoRuntimeFacts.h \
 	../devices/DeviceAPOInfo.h \
 	guis/DeviceFilterGUIDialog.h \
 	../filters/DeviceCommand.h \

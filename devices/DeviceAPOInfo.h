@@ -90,6 +90,11 @@ public:
 	// own DllRegisterServer, and never writes through the port.
 	static bool checkAPORegistration(bool fix, const IRegistry& registry = systemRegistry());
 	bool load(const std::wstring& deviceGuid, std::wstring defaultDeviceGuid = L"");
+	// load() without the default-endpoint lookup, which goes through the
+	// MMDevice enumerator: everything it reads comes through the registry
+	// port. isDefaultDevice() stays false. The APO reads its endpoint this way
+	// from inside audiodg (ApoRuntimeFacts.h).
+	bool loadFromRegistry(const std::wstring& deviceGuid);
 	bool canBeUpgraded() const override;
 	bool hasChanges() const override;
 	// True when the audio driver published an effect chain (an FxProperties
