@@ -67,10 +67,6 @@ void finishStep(Model& model, int step, std::wstring detail);
 // pending; the walk is over.
 void failStep(Model& model, int step, std::wstring error);
 
-// "x64-avx2" -> "64-bit x86 with AVX2" and so on. Unknown channels come back
-// verbatim so a future channel never renders as an empty line.
-std::wstring describeChannel(const std::wstring& channel);
-
 // 1536 -> "1.5 KB", 276824064 -> "264.0 MB". Bytes below 1 KB render as "n B".
 std::wstring formatByteSize(unsigned long long bytes);
 

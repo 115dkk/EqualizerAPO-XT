@@ -89,8 +89,10 @@ timeline: the detected CPU and chosen channel, a real progress bar with byte
 counts taken from `Content-Length`, the computed SHA-256 prefix once the
 checksum matched, and the Velopack hand-off. Failures render in an in-window
 error panel with an "Open releases page" button instead of a `MessageBox`.
-Closing the window mid-download cancels it (exit code 5) and deletes the
-partial file.
+Closing the window is not a cancel. While the flow runs it only hides the
+window: the download, the checksum check and the Velopack hand-off go on,
+and the installer exits quietly once the hand-off succeeds. If a step fails
+after the window was closed, the window comes back with the error panel.
 
 Auxiliary modes:
 
@@ -146,7 +148,7 @@ Exit codes in normal (non-`--detect-only`) mode:
 | 2 | the installer download failed |
 | 3 | the verified installer could not be started |
 | 4 | integrity verification failed |
-| 5 | the user closed the window while the download was still running |
+| 5 | retired: it meant "closed mid-download" while closing still cancelled, and is not reused |
 
 Caveat for scripts: with `--silent`, a successful launch forwards the
 per-variant `Setup.exe`'s own exit code, so a nonzero code can also originate

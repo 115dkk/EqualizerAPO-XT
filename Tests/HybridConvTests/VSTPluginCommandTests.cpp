@@ -136,6 +136,25 @@ void testNonNumericValueBranch()
 		0.25f, "non-ASCII parameter name is classified safely");
 }
 
+void testSignedAndFractionalValuesAreNumbers()
+{
+	// A value that starts with a sign or a decimal point is still a number
+	// (audit #348): the first-digit test sent "-0.5" and ".5" down the name
+	// branch above, dropping the parameter.
+	VSTPluginCommand cmd = VSTPluginCommand::parse(
+		L"", L"Library C:\\plugins\\reverb.dll Gain -0.5 Mix .25 Tilt +1 Pan -.5");
+	harness.expectEqual(cmd.paramMap.size(), (size_t)4, "signed and fractional values: four params");
+	harness.expectEqual(paramValue(cmd.paramMap, L"Gain", "negative value"), -0.5f, "a negative value stays with its key");
+	harness.expectEqual(paramValue(cmd.paramMap, L"Mix", "leading-point value"), 0.25f, "a value starting with '.' stays with its key");
+	harness.expectEqual(paramValue(cmd.paramMap, L"Tilt", "plus-signed value"), 1.0f, "a '+' value stays with its key");
+	harness.expectEqual(paramValue(cmd.paramMap, L"Pan", "negative fraction"), -0.5f, "'-.5' stays with its key");
+
+	// Words that wcstof would read as numbers are names here.
+	VSTPluginCommand named = VSTPluginCommand::parse(
+		L"", L"Library C:\\plugins\\reverb.dll ParamName Input 0.5");
+	harness.expectEqual(paramValue(named.paramMap, L"Input", "inf-prefixed name"), 0.5f, "a name starting with 'Inf' is still a name");
+}
+
 // Asserts that serializing a parsed command reproduces the expected canonical
 // body, and that a second parse/serialize cycle is stable (the canonical form is
 // a fixed point of the parser/serializer pair). The leading library path is held
@@ -359,6 +378,7 @@ void runVSTPluginCommandTests()
 	testQuotedName();
 	testIdParams();
 	testNonNumericValueBranch();
+	testSignedAndFractionalValuesAreNumbers();
 	testSerializeRoundTrip();
 	testStereoInput();
 	testVSTPluginBusContract();
