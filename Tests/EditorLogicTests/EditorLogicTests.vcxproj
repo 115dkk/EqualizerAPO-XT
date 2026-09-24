@@ -122,7 +122,13 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClCompile Include="RoutingModelTests.cpp" />
     <ClCompile Include="SubwooferRoutingTests.cpp" />
     <ClCompile Include="SubwooferRoutingUiStateTests.cpp" />
+    <ClCompile Include="SubwooferRoutingDefaultsTests.cpp" />
+    <ClCompile Include="FilterLineCardTests.cpp" />
+    <ClCompile Include="..\..\Editor\widgets\cards\FilterLineCard.cpp" />
+    <ClCompile Include="..\..\Editor\widgets\cards\FilterCardEditorRegistry.cpp" />
+    <ClCompile Include="..\..\Editor\widgets\cards\FilterCardEditorFactory.cpp" />
     <ClCompile Include="..\..\Editor\widgets\subwooferrouting\SubwooferRoutingUiState.cpp" />
+    <ClCompile Include="..\..\Editor\widgets\subwooferrouting\SubwooferRoutingDefaults.cpp" />
     <ClCompile Include="..\..\Editor\widgets\routing\SubwooferRoutingRoutingAdapter.cpp" />
     <ClCompile Include="UpdateSessionTests.cpp" />
     <ClCompile Include="..\..\services\update\UpdateSession.cpp" />

@@ -31,14 +31,12 @@
 #include "Editor/SkinManager.h"
 #include "Editor/skins/ISkin.h"
 #include "Editor/widgets/cards/SubwooferRoutingCardView.h"
+#include "Editor/widgets/subwooferrouting/SubwooferRoutingDefaults.h"
 #include "Editor/widgets/subwooferrouting/SubwooferRoutingEditorDialog.h"
 #include "Editor/widgets/cards/FilterCardEditorRegistry.h"
 
 namespace
 {
-constexpr double kDefaultCrossoverHz = 80.0;
-constexpr double kButterworthQ = 0.7071067811865476;
-
 QString fromUtf8(const std::string& text)
 {
 	return QString::fromUtf8(text.data(), static_cast<int>(text.size()));
@@ -49,68 +47,6 @@ std::string toUtf8(const QString& text)
 	const QByteArray bytes = text.toUtf8();
 	return std::string(bytes.constData(),
 		static_cast<std::size_t>(bytes.size()));
-}
-
-subroute::PathStage polarityStage()
-{
-	return subroute::PolarityStage{false};
-}
-
-subroute::PathStage delayStage()
-{
-	return subroute::DelayStage{0.0};
-}
-
-subroute::PathStage equalizerSlotsStage()
-{
-	return subroute::EqualizerSlotsStage{};
-}
-
-subroute::Path makePath(const std::string& id,
-	subroute::PathKind kind,
-	const std::vector<subroute::SourceMixTerm>& sourceMix,
-	std::optional<subroute::BiquadType> crossoverType)
-{
-	subroute::Path path;
-	path.id = id;
-	path.kind = kind;
-	path.sourceMix = sourceMix;
-	path.chain.push_back(polarityStage());
-	if (crossoverType.has_value())
-	{
-		subroute::BiquadFilter filter;
-		filter.type = *crossoverType;
-		filter.frequencyHz = kDefaultCrossoverHz;
-		filter.q = kButterworthQ;
-		filter.gainDb = 0.0;
-		path.chain.push_back(subroute::BiquadStage{filter});
-	}
-	path.chain.push_back(delayStage());
-	path.chain.push_back(equalizerSlotsStage());
-	return path;
-}
-
-std::vector<std::string> usableChannelIds(
-	const std::vector<std::wstring>& channels)
-{
-	std::vector<std::string> result;
-	for (const std::wstring& channel : channels)
-	{
-		const std::string id = subwooferRoutingToUtf8(channel);
-		if (!id.empty() && subroute::isValidStableId(id)
-			&& std::find(result.begin(), result.end(), id) == result.end())
-		{
-			result.push_back(id);
-		}
-	}
-	return result;
-}
-
-bool isLfeId(const std::string& id)
-{
-	QString value = fromUtf8(id);
-	return value.compare(QStringLiteral("LFE"),
-		Qt::CaseInsensitive) == 0;
 }
 
 QString profilePayloadPath(QString text)
@@ -154,7 +90,7 @@ QString layoutLabel(const subroute::SubwooferRoutingState& state)
 	for (const subroute::PhysicalChannel& channel
 		: state.layout.channels)
 	{
-		if (isLfeId(channel.id))
+		if (subwooferroutingeditor::isLfeChannelId(channel.id))
 			lfeChannels++;
 	}
 
@@ -247,116 +183,6 @@ unsigned tableSampleRate(FilterTable* table)
 	const std::shared_ptr<AbstractAPOInfo> device =
 		table == nullptr ? nullptr : table->getSelectedDevice();
 	return device == nullptr ? 0 : device->getSampleRate();
-}
-}
-
-namespace subwooferroutingeditor
-{
-subroute::SubwooferRoutingState buildDefaultState(
-	const std::vector<std::wstring>& deviceChannels)
-{
-	std::vector<std::string> channels =
-		usableChannelIds(deviceChannels);
-	if (channels.size() < 2)
-		channels = {"L", "R"};
-
-	auto lfe = std::find_if(channels.begin(), channels.end(),
-		[](const std::string& id)
-		{
-			return isLfeId(id);
-		});
-
-	std::vector<std::string> mainChannels;
-	for (const std::string& id : channels)
-	{
-		if (!isLfeId(id))
-			mainChannels.push_back(id);
-	}
-	if (mainChannels.size() < 2)
-	{
-		channels = {"L", "R"};
-		mainChannels = channels;
-		lfe = channels.end();
-	}
-
-	std::string left = mainChannels[0];
-	std::string right = mainChannels[1];
-	for (const std::string& id : mainChannels)
-	{
-		const QString channel = fromUtf8(id);
-		if (channel.compare(QStringLiteral("L"),
-			Qt::CaseInsensitive) == 0)
-		{
-			left = id;
-		}
-		else if (channel.compare(QStringLiteral("R"),
-			Qt::CaseInsensitive) == 0)
-		{
-			right = id;
-		}
-	}
-
-	const bool hasLfe = lfe != channels.end();
-	const std::string lfeId = hasLfe ? *lfe : std::string();
-
-	subroute::SubwooferRoutingState state;
-	for (const std::string& id : channels)
-		state.layout.channels.push_back({id, id});
-
-	state.metadata.creatingApp = "Equalizer APO XT";
-	state.metadata.creatingAppVersion = "";
-	state.metadata.profileName = "";
-	state.headroom.mode = subroute::HeadroomMode::Auto;
-	state.headroom.manualTrimDb = 0.0;
-
-	const std::optional<subroute::BiquadType> mainCrossover =
-		hasLfe
-		? std::optional<subroute::BiquadType>(
-			subroute::BiquadType::HighPass)
-		: std::nullopt;
-
-	state.paths.push_back(makePath("FrontLeft",
-		subroute::PathKind::Main, {{left, 1.0}},
-		mainCrossover));
-	state.paths.push_back(makePath("FrontRight",
-		subroute::PathKind::Main, {{right, 1.0}},
-		mainCrossover));
-
-	subroute::SpeakerGroup group;
-	group.id = "Front";
-	group.displayName = "Front";
-	group.mainPathIds = {"FrontLeft", "FrontRight"};
-
-	if (hasLfe)
-	{
-		state.paths.push_back(makePath("FrontBass",
-			subroute::PathKind::Bass,
-			{{left, 1.0}, {right, 1.0}},
-			subroute::BiquadType::LowPass));
-		group.bassPathId = "FrontBass";
-
-		state.paths.push_back(makePath("SourceLFE",
-			subroute::PathKind::SourceLfe,
-			{{lfeId, 1.0}}, std::nullopt));
-	}
-
-	state.speakerGroups.push_back(group);
-
-	state.outputMatrix.push_back(
-		{left, subroute::OutputMode::Replace,
-			{{"FrontLeft", 0.0}}});
-	state.outputMatrix.push_back(
-		{right, subroute::OutputMode::Replace,
-			{{"FrontRight", 0.0}}});
-
-	if (hasLfe)
-	{
-		state.outputMatrix.push_back(
-			{lfeId, subroute::OutputMode::Replace,
-				{{"FrontBass", 0.0}, {"SourceLFE", 0.0}}});
-	}
-
-	return state;
 }
 }
 

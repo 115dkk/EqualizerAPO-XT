@@ -34,7 +34,7 @@
 #include <algorithm>
 #include <functional>
 
-#include "MainWindow.h"
+#include "Editor/helpers/EditorSettings.h"
 #include "SkinManager.h"
 #include "FilterTableRow.h"
 #include "FilterTableMimeData.h"
@@ -63,6 +63,7 @@
 #include "services/registry/WindowsRegistry.h"
 #include "FilterTable.h"
 #include "Editor/widgets/FilterCardRow.h"
+#include "Editor/widgets/subwooferrouting/SubwooferRoutingDefaults.h"
 
 using std::list;
 using std::max;
@@ -222,7 +223,7 @@ void FilterTable::setLines(const QString& configPath, const QList<QString>& line
 	model.setLines(lines);
 
 	QSettings settings(QString::fromWCharArray(EDITOR_PER_FILE_REGPATH), QSettings::NativeFormat);
-	settings.beginGroup(QString(configPath).replace('\\', '|'));
+	settings.beginGroup(EditorSettings::perFileGroup(configPath));
 	QVariant prefsValue = settings.value("rowPrefs");
 	QStringList prefLines;
 	if (prefsValue.isValid())

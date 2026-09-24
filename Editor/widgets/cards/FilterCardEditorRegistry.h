@@ -26,6 +26,11 @@ class IFilterGUI;
 
 using FilterCardEditorCreator = IFilterGUI* (*)(FilterTable* filterTable, const QString& command, const QString& parameters);
 
+// Whether an entry's card answers this particular line. Most entries answer
+// every line of their keyword and register none; "Filter" does not (see
+// FilterLineCard.h). Receives the command as written, like the creator.
+using FilterCardEditorAccepts = bool (*)(const QString& command, const QString& parameters);
+
 // Self-registration for the modern card editors, mirroring the engine's
 // REGISTER_FILTER_FACTORY and the Editor's REGISTER_FILTER_GUI_FACTORY: each
 // card editor's .cpp is the single place it joins the roster, so adding a card
@@ -39,12 +44,16 @@ class FilterCardEditorRegistry
 {
 public:
 	static bool registerEditor(const QString& commandKeyword, FilterCardEditorCreator creator,
-		bool dynamicCapable = false);
+		bool dynamicCapable = false, FilterCardEditorAccepts accepts = nullptr);
 
 	// The creator registered for a canonical command keyword, or nullptr when
 	// no card editor covers it.
 	static FilterCardEditorCreator find(const QString& commandKeyword);
 	static bool supportsDynamicParameters(const QString& commandKeyword);
+
+	// An entry exists for the keyword and, when it registered a predicate,
+	// the predicate accepts this line.
+	static bool accepts(const QString& commandKeyword, const QString& command, const QString& parameters);
 };
 
 // Registers a card editor for a command keyword. The keyword is stringified, so
