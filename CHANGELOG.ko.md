@@ -11,17 +11,17 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 - **Benchmark.exe가 읽기나 쓰기가 중간에 멈추면 멈춰 서지 않고 오류로
   끝납니다.** libsndfile이 기대한 프레임 수에 못 미친 채 0을 돌려주면 입출력
   반복이 끝나지 않았습니다. 이제 이유를 출력하고 종료 코드 1로 끝납니다.
-  `--from` 도움말도 실제 기본값(1.0 Hz)을 적습니다([#356](https://github.com/115dkk/EqualizerAPO-XT/pull/356)).
+  `--from` 도움말도 실제 기본값(1.0 Hz)을 적습니다([#353](https://github.com/115dkk/EqualizerAPO-XT/pull/353)).
 - **VSTPlugin 줄이 `-0.5`나 `.5`로 적은 파라미터 값을 그대로 씁니다.** 키-값
   형식(`VSTPlugin: Library ... Gain -0.5`)에서 숫자로 시작하지 않는 값을
   파라미터 이름으로 읽어, 그 파라미터가 빠지고 다음 토큰의 값이 `-0.5`라는
   이름으로 들어갔습니다. 이제 부호나 소수점으로 시작하는 값도 숫자로 읽으며,
-  `ParamName <이름> <값>` 형식은 그대로 동작합니다([#355](https://github.com/115dkk/EqualizerAPO-XT/pull/355)).
+  `ParamName <이름> <값>` 형식은 그대로 동작합니다([#353](https://github.com/115dkk/EqualizerAPO-XT/pull/353)).
 - **ARM64도 아주 작은 신호를 x64와 같게 처리합니다.** x64에서 엔진은
   서브노멀 수(필터 피드백이 잦아들며 약 -300 dB 아래로 내려간 꼬리 같은 값)를
   0으로 버리지만, ARM64 빌드는 그러지 않아 같은 설정에서 출력이 조금 다르고
   더 느렸습니다. 이제 ARM64도 블록마다 같은 뜻의 flush-to-zero 모드를 켭니다
-  ([#354](https://github.com/115dkk/EqualizerAPO-XT/pull/354)).
+  ([#353](https://github.com/115dkk/EqualizerAPO-XT/pull/353)).
 - **설치 창을 닫아도 설치가 멈추지 않습니다.** `EqualizerAPO-XT-Setup.exe`는
   다운로드 중에 창을 닫으면 설치를 취소했지만, 조금 뒤 체크섬을 검사하는
   중에 닫으면 취소하지 않고 이미 사라진 창 뒤에서 Velopack 설치기를 띄웠습니다.

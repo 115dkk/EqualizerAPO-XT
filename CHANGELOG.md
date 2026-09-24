@@ -18,19 +18,19 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   write.** When libsndfile returned no frames before the expected count, the
   input and output loops spun forever; they now print the reason and exit
   with code 1. The `--from` help text now states the real default (1.0 Hz)
-  ([#356](https://github.com/115dkk/EqualizerAPO-XT/pull/356)).
+  ([#353](https://github.com/115dkk/EqualizerAPO-XT/pull/353)).
 - **A VSTPlugin line keeps parameter values written as `-0.5` or `.5`.** In
   the key-value form (`VSTPlugin: Library ... Gain -0.5`), a value that did
   not start with a digit was read as a parameter name, so the parameter was
   dropped and the next token's value was filed under the name `-0.5`. Values
   starting with a sign or a decimal point are numbers now; the
-  `ParamName <name> <value>` form still works ([#355](https://github.com/115dkk/EqualizerAPO-XT/pull/355)).
+  `ParamName <name> <value>` form still works ([#353](https://github.com/115dkk/EqualizerAPO-XT/pull/353)).
 - **ARM64 handles very quiet signals the way x64 does.** On x64 the engine
   flushes subnormal numbers (the tail of a signal decaying below about
   -300 dB, such as a filter's feedback ringing out) to zero; the ARM64 build
   did not, so the same configuration produced slightly different and slower
   output there. ARM64 now sets the matching flush-to-zero mode for each
-  processed block ([#354](https://github.com/115dkk/EqualizerAPO-XT/pull/354)).
+  processed block ([#353](https://github.com/115dkk/EqualizerAPO-XT/pull/353)).
 - **Closing the setup window no longer stops the install.** Closing
   `EqualizerAPO-XT-Setup.exe` during the download used to cancel it, while
   closing it a moment later, during the checksum check, did not, and the
