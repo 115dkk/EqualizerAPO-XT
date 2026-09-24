@@ -31,6 +31,8 @@
 #include "devices/AbstractAPOInfo.h"
 #include "services/registry/IRegistry.h"
 
+class RegistryTransaction;
+
 class AsioAPOInfo : public AbstractAPOInfo
 {
 public:
@@ -95,7 +97,16 @@ public:
 
 private:
 	void loadState();
-	std::wstring installDirectory() const;
+	// The product's install directory (the InstallPath value its install hook
+	// writes). The required form throws DeviceException when the value is
+	// missing, as the endpoint adapter does; the optional form answers empty.
+	static std::wstring requiredInstallDirectory(const IRegistry& from);
+	static std::wstring optionalInstallDirectory(const IRegistry& from);
+	// The bodies of the three operations, each inside the transaction
+	// ReportedOperation::run opens (audit #348 C2/TD-31).
+	void beginReport(DeviceInstallReport::Operation operation);
+	void installWithin(RegistryTransaction& plan);
+	void uninstallWithin(RegistryTransaction& plan);
 
 	eapo::asio::AsioTarget target;
 	bool input;

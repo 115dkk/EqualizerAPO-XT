@@ -18,6 +18,7 @@
 #include "DeviceAPOInfo.h"
 #include "VoicemeeterAPOInfo.h"
 #include "DeviceAPOInfoKeys.h"
+#include "ReportedOperation.h"
 
 #include "services/logging/Logging.h"
 #include "services/registry/WindowsRegistry.h"
@@ -41,33 +42,8 @@ void DeviceAPOInfo::install()
 void DeviceAPOInfo::runReported(DeviceInstallReport::Operation operation,
 	const std::function<void(RegistryTransaction&)>& steps)
 {
-	RegistryTransaction plan(registry);
 	beginReport(operation);
-
-	try
-	{
-		steps(plan);
-	}
-	catch (const RegistryError& e)
-	{
-		failReport(plan, e.getMessage());
-		throw;
-	}
-	catch (const DeviceException& e)
-	{
-		failReport(plan, e.getMessage());
-		throw;
-	}
-	catch (...)
-	{
-		// Whatever it was, the endpoint still has to be put back and the report
-		// still has to say what happened before the caller sees the exception.
-		failReport(plan, L"an exception of an unexpected type");
-		throw;
-	}
-
-	plan.commit();
-	finishReport(plan);
+	ReportedOperation::run(registry, lastOperationReport, steps);
 }
 
 void DeviceAPOInfo::beginReport(DeviceInstallReport::Operation operation)
@@ -114,41 +90,6 @@ void DeviceAPOInfo::beginReport(DeviceInstallReport::Operation operation)
 	report.installPostMix = state.installPostMix;
 
 	lastOperationReport = report;
-}
-
-void DeviceAPOInfo::finishReport(RegistryTransaction& plan)
-{
-	lastOperationReport.outcome = DeviceInstallReport::Outcome::Succeeded;
-	lastOperationReport.appliedOperations = plan.appliedOperations();
-	lastOperationReport.permissionsWidened = !plan.isFullyReversible();
-
-	// The summary is worth a log line every time: it is how a support request
-	// about a device that stopped working can be tied to the moment it was
-	// installed. The registry detail goes behind trace, because it is long and
-	// only interesting once something is wrong.
-	LogF(L"%s", lastOperationReport.toSummaryLine().c_str());
-	for (const wstring& line : lastOperationReport.toLines())
-		TraceF(L"%s", line.c_str());
-}
-
-void DeviceAPOInfo::failReport(RegistryTransaction& plan, const wstring& failure)
-{
-	// Roll back here rather than letting the destructor do it, because the
-	// report has to carry what the rollback could not put back, and the
-	// destructor runs after this function is done.
-	plan.rollback();
-
-	lastOperationReport.outcome = DeviceInstallReport::Outcome::Failed;
-	lastOperationReport.failure = failure;
-	lastOperationReport.appliedOperations = plan.appliedOperations();
-	lastOperationReport.rollbackFailures = plan.rollbackFailures();
-	lastOperationReport.permissionsWidened = !plan.isFullyReversible();
-
-	// A failure is logged in full: this is the block a user is asked for when
-	// they report that installing did nothing, and until now there was nothing
-	// to ask for.
-	for (const wstring& line : lastOperationReport.toLines())
-		LogF(L"%s", line.c_str());
 }
 
 namespace

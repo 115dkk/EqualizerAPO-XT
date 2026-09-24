@@ -52,6 +52,8 @@
 #include "devices/DeviceAPOInfo.h"
 #include "devices/DeviceAPOInfoKeys.h"
 #include "services/install/ApoRegistration.h"
+#include "services/security/AudioEngineAccess.h"
+#include "services/windows/WindowsService.h"
 #include "services/registry/WindowsRegistry.h"
 #include "platform/windows/WindowsVersion.h"
 #include "Tests/TestHarness.h"
@@ -586,6 +588,44 @@ void testAsioEntryCarriesTheDriverEntryOptions(test::Harness& harness)
 	std::filesystem::remove_all(product, ignored);
 }
 
+// Audit #348 C1/TD-32: the wide-message exceptions had no common base and
+// did not derive from std::exception, so every call site picked its own set
+// of catch clauses and some missed a type. They share WideError now, whose
+// what() is the message in UTF-8.
+void testWideErrorsShareOneBase(test::Harness& harness)
+{
+	auto caughtAsWideError = [](auto thrower) {
+		try
+		{
+			thrower();
+		}
+		catch (const WideError& e)
+		{
+			return e.getMessage();
+		}
+		return std::wstring(L"not caught");
+	};
+	harness.expect(caughtAsWideError([] { throw RegistryError(L"registry"); }) == L"registry", "RegistryError is a WideError");
+	harness.expect(caughtAsWideError([] { throw DeviceException(L"device"); }) == L"device", "DeviceException is a WideError");
+	harness.expect(caughtAsWideError([] { throw WindowsServiceError(L"service"); }) == L"service", "WindowsServiceError is a WideError");
+	harness.expect(caughtAsWideError([] { throw AccessQueryException(L"access"); }) == L"access", "AccessQueryException is a WideError");
+
+	try
+	{
+		throw DeviceException(L"\xD55C\xAE00 \xD83D\xDE00 \xD800!");
+	}
+	catch (const std::exception& e)
+	{
+		const std::string expected = "\xED\x95\x9C\xEA\xB8\x80 \xF0\x9F\x98\x80 \xEF\xBF\xBD!";
+		harness.expect(std::string(e.what()) == expected,
+			"what() is UTF-8: Hangul, a surrogate pair, and an unpaired surrogate as U+FFFD");
+	}
+
+	FakeRegistry registry;
+	DeviceAPOInfo endpoint(registry);
+	harness.expectTrue(endpoint.changesNeedAudioRestart(), "an endpoint change needs the audio service restarted");
+}
+
 void testUninstallRemovesTheFxPropertiesKeyItCreated(test::Harness& harness)
 {
 	FakeRegistry registry;
@@ -924,6 +964,7 @@ void runDeviceApoInfoTests(test::Harness& harness)
 	testInstallOnACaptureDeviceFillsTheStreamSlotForTheCaptureModes(harness);
 	testInstallWithTheAsioEntryRegistersTheWrapperAndUninstallRemovesIt(harness);
 	testAsioEntryCarriesTheDriverEntryOptions(harness);
+	testWideErrorsShareOneBase(harness);
 	testUninstallRemovesTheFxPropertiesKeyItCreated(harness);
 	testUninstallKeepsFxPropertiesWhenWindowsPutItsOwnSubkeysThere(harness);
 	testInstallExportsTheDriverValuesBeforeOverwritingThem(harness);

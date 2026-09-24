@@ -128,13 +128,3 @@ void DelayFilter::process(double** output, double** input, unsigned frameCount)
 		bufferOffset = (bufferOffset + frameCount) % bufferLength;
 }
 #pragma AVRT_CODE_END
-
-bool DelayFilter::getIsMs() const
-{
-	return isMs;
-}
-
-double DelayFilter::getDelay() const
-{
-	return delay;
-}

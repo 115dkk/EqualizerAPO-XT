@@ -85,11 +85,6 @@ GraphicEQFilter::GraphicEQFilter(const std::vector<FilterNode>& nodes, unsigned 
 {
 }
 
-const std::vector<FilterNode>& GraphicEQFilter::getNodes()
-{
-	return nodes;
-}
-
 void GraphicEQFilter::initializeFilters(unsigned frameCount)
 {
 	EqIrCacheKey key{ nodes, static_cast<int>(sampleRate), filterLength };

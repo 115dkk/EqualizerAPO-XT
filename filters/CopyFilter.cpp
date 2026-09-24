@@ -175,11 +175,6 @@ void CopyFilter::process(double** output, double** input, unsigned frameCount)
 }
 #pragma AVRT_CODE_END
 
-const std::vector<Assignment>& CopyFilter::getAssignments() const
-{
-	return assignments;
-}
-
 std::vector<Assignment> parseCopyAssignments(const wstring& parameters)
 {
 	// One parse shared by the engine factory and the Editor GUI factory; the

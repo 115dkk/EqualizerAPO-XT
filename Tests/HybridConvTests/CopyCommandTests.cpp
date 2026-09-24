@@ -7,8 +7,8 @@
 	(parseCopyAssignments + serializeCopyAssignments in filters/CopyFilter.cpp).
 	They confirm that representative "Copy:" lines - simple identity routing,
 	crossfeed with factors, summands, dB factors, constant values and virtual
-	channels - parse to the expected std::vector<Assignment> (the same type
-	CopyFilter::getAssignments() returns), that malformed chunks are dropped
+	channels - parse to the expected std::vector<Assignment> (the type a
+	CopyFilter is built from), that malformed chunks are dropped
 	exactly as the engine factory drops them, and that serializing a parsed set
 	of assignments reproduces the canonical parameter string so that
 	serialize(parse(line)) round-trips.

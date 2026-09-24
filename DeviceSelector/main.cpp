@@ -345,12 +345,7 @@ int runEndpointCommand(QApplication& app, bool install)
 			info->uninstall();
 		}
 	}
-	catch (const RegistryError& e)
-	{
-		say(L"%s\n", e.getMessage().c_str());
-		return 1;
-	}
-	catch (const DeviceException& e)
+	catch (const WideError& e)
 	{
 		say(L"%s\n", e.getMessage().c_str());
 		return 1;

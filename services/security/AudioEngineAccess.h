@@ -37,6 +37,8 @@
 
 #include <string>
 
+#include "runtime/errors/WideError.h"
+
 namespace AudioEngineAccess
 {
 
@@ -90,17 +92,9 @@ const wchar_t* describe(Grant grant);
 // be read. It is a separate type from RegistryError because this module is
 // about files, and because a caller that catches it has to decide something
 // different from "no access".
-class AccessQueryException
+class AccessQueryException : public WideError
 {
 public:
 	explicit AccessQueryException(const std::wstring& message)
-		: message(message) {}
-
-	const std::wstring& getMessage() const
-	{
-		return message;
-	}
-
-private:
-	std::wstring message;
+		: WideError(message) {}
 };
