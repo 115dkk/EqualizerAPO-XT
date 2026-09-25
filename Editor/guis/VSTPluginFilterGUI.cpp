@@ -19,6 +19,7 @@
 
 #include <QFileInfo>
 #include "services/registry/RegistryPaths.h"
+#include "Editor/widgets/cards/FileReferenceController.h"
 #include <QFileDialog>
 #include <QSettings>
 #include <QAbstractEventDispatcher>
@@ -530,10 +531,7 @@ void VSTPluginFilterGUI::on_selectButton_clicked()
 	{
 		QString absolutePath = dialog.selectedFiles().first();
 		settings.setValue("vst/lastDir", QDir::toNativeSeparators(QFileInfo(absolutePath).absolutePath()));
-		QString relativePath = pluginsDir.relativeFilePath(absolutePath);
-		if (relativePath.startsWith("../../"))
-			relativePath = absolutePath;
-		ui->pathLineEdit->setText(QDir::toNativeSeparators(relativePath));
+		ui->pathLineEdit->setText(FileReferenceController::displayPathForBaseDirectory(pluginsDir.absolutePath(), absolutePath));
 		on_pathLineEdit_editingFinished();
 	}
 }

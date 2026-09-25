@@ -43,7 +43,7 @@
 // remainder of the line and keeps its inner spaces: the first word that cannot
 // continue the mapping grammar starts the path, so file names containing '='
 // or '+' still work. Quotes and environment variables are left in the path for
-// ConvolutionFilePath::resolve to handle.
+// ConfigFileReference::resolve to handle.
 struct MultiConvolutionCommand
 {
 	// One "<factor>*<ir ch>" summand. Like Copy, a dB factor keeps its raw dB
@@ -89,6 +89,13 @@ struct MultiConvolutionCommand
 	// Returns true only when command is "MultiConvolution" and the parameters
 	// carry at least one mapping and a non-empty path.
 	static bool parse(const std::wstring& command, const std::wstring& parameters, MultiConvolutionCommand& out);
+
+	// Adds the channels this line writes to a configuration's channel list,
+	// as MultiConvolutionFilter declares them to the engine: every mapping's
+	// target, an existing channel or a new virtual one
+	// (ChannelLayout::declare). The Editor's channel propagation calls this,
+	// so a line below can select a channel this line created (audit #348 A2).
+	void declareChannels(std::vector<std::wstring>& channelNames) const;
 
 private:
 	// serialize() returns a reference, so the composed string is cached here.

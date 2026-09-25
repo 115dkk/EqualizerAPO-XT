@@ -1216,6 +1216,16 @@ Select a different file or change the device configuration.</source>
         <translation type="unfinished">일부 파일을 복사하지 못했습니다:
 %1</translation>
     </message>
+    <message>
+        <location filename="../widgets/cards/FileReferenceController.cpp" line="98"/>
+        <source>The audio service only opens files on local drives</source>
+        <translation>오디오 서비스는 로컬 드라이브의 파일만 엽니다</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/FileReferenceController.cpp" line="100"/>
+        <source>Not readable by the audio service</source>
+        <translation>오디오 서비스가 읽을 수 없습니다</translation>
+    </message>
 </context>
 <context>
     <name>FilterCardModel</name>

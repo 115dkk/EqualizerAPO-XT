@@ -1218,6 +1218,16 @@ Select a different file or change the device configuration.</source>
         <translation type="unfinished">部分文件无法复制：
 %1</translation>
     </message>
+    <message>
+        <location filename="../widgets/cards/FileReferenceController.cpp" line="98"/>
+        <source>The audio service only opens files on local drives</source>
+        <translation>音频服务只打开本地驱动器上的文件</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/FileReferenceController.cpp" line="100"/>
+        <source>Not readable by the audio service</source>
+        <translation>音频服务无法读取</translation>
+    </message>
 </context>
 <context>
     <name>FilterCardModel</name>

@@ -1225,6 +1225,16 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
         <translation type="unfinished">Certains fichiers n&apos;ont pas pu être copiés :
 %1</translation>
     </message>
+    <message>
+        <location filename="../widgets/cards/FileReferenceController.cpp" line="98"/>
+        <source>The audio service only opens files on local drives</source>
+        <translation>Le service audio n&apos;ouvre que les fichiers des lecteurs locaux</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/FileReferenceController.cpp" line="100"/>
+        <source>Not readable by the audio service</source>
+        <translation>Illisible par le service audio</translation>
+    </message>
 </context>
 <context>
     <name>FilterCardModel</name>

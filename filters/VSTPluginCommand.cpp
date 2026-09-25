@@ -27,6 +27,7 @@
 
 #include "vst/VSTPluginInstance.h"
 #include "vst/VSTPluginLibrary.h"
+#include "ConfigFileReference.h"
 #include "VSTPluginCommand.h"
 
 using std::vector;
@@ -38,13 +39,7 @@ wstring resolveLibraryReference(const wstring& libraryReference)
 {
 	if (libraryReference.empty())
 		return L"";
-	if (!PathIsRelativeW(libraryReference.c_str()))
-		return libraryReference;
-
-	wstring pluginPath = VSTPluginLibrary::getDefaultPluginPath();
-	while (!pluginPath.empty() && (pluginPath.back() == L'\\' || pluginPath.back() == L'/'))
-		pluginPath.pop_back();
-	return pluginPath + L"\\" + libraryReference;
+	return ConfigFileReference::resolveLibrary(VSTPluginLibrary::getDefaultPluginPath(), libraryReference);
 }
 
 wstring quoteCommandToken(const wstring& token, bool force = false)

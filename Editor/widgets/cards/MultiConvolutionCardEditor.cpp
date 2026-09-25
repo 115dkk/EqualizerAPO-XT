@@ -38,7 +38,6 @@
 #include "Editor/FilterTable.h"
 #include "Editor/SkinManager.h"
 #include "Editor/skins/ISkin.h"
-#include "Editor/helpers/ConvolutionPathHelper.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/import/ConfigDependencyScanner.h"
 #include "Editor/import/ImportDialog.h"
@@ -341,9 +340,11 @@ void MultiConvolutionCardEditor::updateFileInfo()
 			// inside the config directory. The offscreen gallery skips the probe.
 			if (!qEnvironmentVariableIsSet("EAPO_SKIN_GALLERY"))
 			{
-				if (!FileReferenceController::isReadableByAudioService(state.fullPath))
+				const QString problem = FileReferenceController::audioServiceProblem(
+					state.fullPath, filterTable->getConfigPath());
+				if (!problem.isEmpty())
 				{
-					state.statusText = tr("Not readable by the audio service");
+					state.statusText = problem;
 					state.statusSeverity = ReferenceCardState::Severity::Critical;
 					offerImport = true;
 				}

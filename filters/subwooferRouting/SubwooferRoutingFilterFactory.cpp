@@ -29,8 +29,7 @@
 
 #include "SubwooferRouting/Compiler.h"
 #include "SubwooferRouting/StateCodec.h"
-#include "filters/ConfigPathPolicy.h"
-#include "filters/ConvolutionFilePath.h"
+#include "filters/ConfigFileReference.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "SubwooferRoutingCommand.h"
 #include "SubwooferRoutingFilter.h"
@@ -107,15 +106,14 @@ FilterVector SubwooferRoutingFilterFactory::createFilter(
 	std::string utf8Text;
 	if (parsed.form == SubwooferRoutingCommand::Form::Profile)
 	{
-		const std::wstring resolvedPath =
-			ConvolutionFilePath::resolve(configPath, parsed.payload);
-		if (resolvedPath.empty())
+		const ConfigFileReference::Target profile =
+			ConfigFileReference::target(configPath, parsed.payload);
+		if (!profile.refusal.empty())
+			return reportParseError(command, profile.refusal);
+		if (profile.path.empty())
 			return reportParseError(command,
 				L"expected the path of a profile file");
-
-		std::wstring reason;
-		if (!ConfigPathPolicy::allowsOpen(resolvedPath, configPath, reason))
-			return reportParseError(command, reason);
+		const std::wstring& resolvedPath = profile.path;
 
 		if (!readProfile(resolvedPath, utf8Text))
 		{
