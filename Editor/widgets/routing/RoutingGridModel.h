@@ -5,10 +5,8 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
-	StudioRoutingModel is the widget-free working model behind the studio
-	skin's Light Trace routing view: input ports (top row), output ports
+	RoutingGridModel owns the shared routing edits and the widget-free
+	port projection used by Light Trace: input ports, output ports
 	(bottom row) and the traces between them, with the seeding and alias
 	rules ported from the legacy CopyFilterGUIScene::load so existing config
 	strings resolve to the same chips ("LFE"/"SUB" aliases, 1-based numeric
@@ -26,9 +24,37 @@
 
 #include "filters/CopyFilter.h"
 
-class StudioRoutingModel
+class RoutingGridModel
 {
 public:
+	// Shared row operations work on the assignment representation directly:
+	// matrix/list views must retain written spelling, order and duplicate
+	// summands, while the port projection below keeps its legacy aliases.
+	static int rowIndexOf(const std::vector<Assignment>& assignments, const QString& target);
+	static int summandIndex(const Assignment& assignment, const QString& channel,
+		Qt::CaseSensitivity sensitivity = Qt::CaseSensitive);
+	static bool commitFactor(Assignment::Summand& summand, const QString& text);
+	static bool commitFactor(std::vector<Assignment>& assignments, int row,
+		const QString& channel, const QString& text, bool allowFactors);
+	static bool commitSource(std::vector<Assignment>& assignments, int row, int summand,
+		const QString& text, bool fixedPorts, bool allowFactors);
+	// Chips keep bare numbers as gains, but also accept an offered channel
+	// (including the current one) at unity. Unknown non-factor text fails.
+	static bool commitChip(std::vector<Assignment>& assignments, int row, int summand,
+		const QString& text, const QStringList& channels);
+	static QStringList sourceChannels(const std::vector<Assignment>& assignments,
+		const std::vector<std::wstring>& deviceChannels, const QStringList& fixedSources);
+	static bool addChannel(std::vector<Assignment>& assignments, QStringList& pinnedChannels,
+		const QString& text);
+	static void removePin(QStringList& pinnedChannels, const QString& channel);
+	static bool removeChannel(std::vector<Assignment>& assignments, QStringList& pinnedChannels,
+		const QString& channel);
+
+	// The return value from a commit tells the view whether to emit
+	// routingChanged. Parse failures never modify state or request a signal.
+	// Adding an empty target is accepted without changing the serialized line.
+	bool addChannel(QStringList& pinnedChannels, const QString& text);
+
 	// The view maps RoutingPortModel (IRoutingRenderer.h) onto this so the
 	// model stays free of widget headers.
 	struct PortConfig
@@ -86,8 +112,9 @@ public:
 
 	// The factor editor's commit: empty text removes the trace, a "db"
 	// suffix (any case) sets decibel mode, ',' reads as '.'; unparsable
-	// text leaves the trace unchanged. Ignored when factors are locked.
-	void setFactorText(int index, const QString& text);
+	// text leaves the trace unchanged. INV inverts; non-finite values are
+	// rejected. False means no routingChanged, including locked factors.
+	bool setFactorText(int index, const QString& text);
 
 	// Assignments in load order (then first-connection order for outputs
 	// that gained traces later); outputs whose sum is empty are skipped,

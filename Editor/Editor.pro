@@ -354,7 +354,7 @@ SOURCES += main.cpp\
 	widgets/routing/CopyRoutingAdapter.cpp \
 	widgets/routing/RoutingFold.cpp \
 	widgets/routing/MultiConvolutionRoutingAdapter.cpp \
-	widgets/routing/StudioRoutingModel.cpp \
+	widgets/routing/RoutingGridModel.cpp \
 	widgets/MiddleClickTabWidget.cpp \
 	import/ConfigDependencyScanner.cpp \
 	import/ImportDialog.cpp \
@@ -667,7 +667,7 @@ HEADERS  += \
 	widgets/routing/RoutingFold.h \
 	widgets/routing/MultiConvolutionRoutingAdapter.h \
 	widgets/routing/IRoutingRenderer.h \
-	widgets/routing/StudioRoutingModel.h \
+	widgets/routing/RoutingGridModel.h \
 	widgets/MiddleClickTabWidget.h \
 	import/ConfigDependencyScanner.h \
 	import/ImportDialog.h \

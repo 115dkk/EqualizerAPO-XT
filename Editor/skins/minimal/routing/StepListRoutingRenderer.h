@@ -68,7 +68,6 @@ private:
 	struct AddHit { int row = 0; QRect rect; };
 
 	void refold();
-	int rowIndexOf(const QString& target) const;
 	QStringList sourceCandidatesForRow(int row) const;
 	bool addSourceToRow(int row, const QString& channel);
 	void showAddMenu(int row, const QPoint& globalPos);
