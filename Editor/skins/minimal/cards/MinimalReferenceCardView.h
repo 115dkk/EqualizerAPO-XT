@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Precision Minimal's reference card (Include / Convolution / MultiConvolution /
 	VSTPlugin row bodies): one line of monospace type, reading
 

@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	The skinnable "add filter" picker. FilterTable::chooseFilterTemplate used
 	to open one flat search palette that listed every template at once, which
 	read as noise. The picker is now a compact, dropdown-like popup anchored at

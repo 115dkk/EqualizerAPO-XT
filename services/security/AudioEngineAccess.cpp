@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	See AudioEngineAccess.h for why this module exists.
 
 	The grants are applied by spawning the system icacls.exe rather than by

@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Hardware Rack device selector: a patch bay. Constitution (the rack
 	grammar and its laws): docs/skins/rack.md. Element mapping: the APO bus
 	is a bus bar in a rail channel on the list's left edge; a device row is

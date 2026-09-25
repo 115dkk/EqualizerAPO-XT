@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	The row-GUI decision, as data (audit #275 B4): which editor a config line
 	gets - comment card, skin routing view, modern card editor, the legacy
 	factory chain, or the raw body - used to be decided inline across ninety

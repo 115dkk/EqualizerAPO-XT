@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Neutral default implementations of the ISkin hooks, shared by every
 	skin that does not override them.
 */

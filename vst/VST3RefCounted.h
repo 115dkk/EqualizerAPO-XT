@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	The FUnknown boilerplate every host-side VST3 object used to repeat
 	(audit #275 C4/TD-25): the interlocked refcount with delete-on-zero and
 	the linear iid match over the object's interface list. Deriving from

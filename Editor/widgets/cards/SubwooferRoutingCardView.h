@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	SubwooferRoutingCardView is the skin seam for the compact summary of a
 	SubwooferRouting command. The editor owns parsing, validation and actions;
 	the view owns only structure and presentation.

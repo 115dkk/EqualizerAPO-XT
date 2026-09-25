@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	The troubleshooting disclosure's header row: a full-width, keyboard
 	reachable fold control painted by the active skin's DeviceSkinPainter.
 	The slide animation of the panel below stays in

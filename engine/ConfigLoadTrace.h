@@ -5,8 +5,6 @@
 */
 
 /*
-    This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
     Per-line facts collected while FilterEngine loads a configuration, so a UI
     (the Editor) can echo evaluation results next to the config rows: which If
     branch ran, what an Eval computed, which lines a false branch swallowed.

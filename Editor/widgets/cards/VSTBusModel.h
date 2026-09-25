@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Document-side state of the modern VST card's main-bus contract. Keeping
 	the legacy StereoInput migration and the paired Input/Output values out of
 	widget code makes the config transition deterministic and testable in

@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Audit #250 F018: joinPath / fileExists / directoryExists / exePath / exeDirectory
 	used to be copied verbatim into three modules of this static library
 	(ApoRegistration, AudioEngineAccess, services/update/VelopackBootstrap). One header-only

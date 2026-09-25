@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Selection logic behind the in-place device picker (DeviceCardEditor).
 	Pure Qt Core so EditorLogicTests can exercise it: it maps a "Device:"
 	parameter string onto a chip list (one chip per available endpoint, plus

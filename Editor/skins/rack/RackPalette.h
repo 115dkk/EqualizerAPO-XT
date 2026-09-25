@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	The rack skin's painted colours that are not skin tokens: machined metal,
 	display glass, LCD segments, lamp bezels, the brass VST nameplate, the
 	patchbay caps and the file-dialog glyphs. Each value is the literal the

@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Shared scaffolding of the skin gallery and the offscreen gates: the
 	representative rows, the synthetic audio endpoints, the fixture files,
 	the toolbar replica and the FilterTable host (GallerySupport.h).

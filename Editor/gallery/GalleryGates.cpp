@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	The offscreen robustness gates over a gallery-built FilterTable:
 	--skin-switch-test, --card-move-test and --card-selection-test.
 */

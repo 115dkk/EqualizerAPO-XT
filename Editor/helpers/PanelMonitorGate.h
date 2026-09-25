@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	The decision logic of the panel monitor: when may the preview feed play
 	the plugin's processed output out loud? Only a signal the plugin created
 	on its own - a calibration noise, a test sweep - may be rendered. Audio

@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	RoutingFold is the shared, presentation-free half of the Copy and
 	MultiConvolution routing views' target-channel fold. Seeding every device
 	channel keeps an emptied command editable, but laying the whole seeded set

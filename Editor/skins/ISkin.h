@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	A skin is a self-contained visual identity. Beyond colour tokens it decides
 	which QSS sheet to load and which Copy routing renderer to inject, so that
 	each skin can present the same configuration with a genuinely different

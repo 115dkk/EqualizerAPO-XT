@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	See WindowsVersion.h. Moved out of WindowsRegistry unchanged apart from the
 	cache becoming a function-local static, which also makes the first call
 	thread-safe; the old file-scope DWORD was written without synchronisation and
