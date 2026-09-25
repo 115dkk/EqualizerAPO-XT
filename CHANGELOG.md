@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.18 — 2026-09-25
+
 - **The configuration folder lands in the installing user's profile.** When
   a standard user installed or updated EqualizerAPO-XT with an administrator
   approving the prompt, the install step ran as the administrator and put the
