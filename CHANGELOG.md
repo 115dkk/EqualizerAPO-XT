@@ -21,7 +21,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   processed channels came out twice as late, and the channels passed through
   once as late, so the two still did not line up. Now only the channels the plug-in does not
   write (the ones an explicit bus layout or a channel fill passes through)
-  are delayed, so they line up with the processed ones (#PRNUM).
+  are delayed, so they line up with the processed ones ([#377](https://github.com/115dkk/EqualizerAPO-XT/pull/377)).
 
 ## v2.54.7 — 2026-09-25
 
