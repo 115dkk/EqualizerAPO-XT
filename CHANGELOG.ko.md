@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.54.4 — 2026-09-25
+
 - **`LoudnessCorrection`이 소수점 쉼표로 적은 감쇠값을 제대로 읽습니다.**
   `Attenuation 0,5`는 문법에는 맞았지만 0으로 읽혔습니다. 이제 설정의 다른
   곳처럼 0.5로 읽습니다. 숫자를 읽는 명령들이 읽기 함수 하나를 함께 쓰게 되어,

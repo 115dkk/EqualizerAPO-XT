@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.4 — 2026-09-25
+
 - **`LoudnessCorrection` reads an attenuation written with a decimal comma.**
   `Attenuation 0,5` was accepted but read as 0; it now reads as 0.5, like a
   decimal comma everywhere else in the configuration. The commands that read
