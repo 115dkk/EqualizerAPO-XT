@@ -36,7 +36,11 @@ public:
 	static void useFile(const std::wstring& path, bool enableTrace, bool compact, bool useConsoleColors);
 	static bool useUserFile(const std::wstring& fileName, bool enableTrace, bool compact, bool useConsoleColors);
 	static void useStream(FILE* fp, bool enableTrace, bool compact, bool useConsoleColors);
-	static void reset();
+	// Re-reads EnableTrace, so a change takes effect with the next stream
+	// without moving where the log goes. The APO calls it from Initialize,
+	// which runs while other instances in audiodg may be logging (audit #348
+	// TD-47); it used to call a reset that cleared the log path under them.
+	static void refreshTrace();
 	static void set(FILE* fp, bool enableTrace, bool compact, bool useConsoleColors);
 
 	// Where log() is writing, or an empty string when it is writing to a stream
@@ -48,7 +52,7 @@ public:
 private:
 	// First log() call may race between RT, worker, and GUI threads: the
 	// acquire load on `initialized` publishes `logPath` written under the init
-	// mutex in log(). reset()/set() stay single-threaded test/tool helpers.
+	// mutex in log(). set() stays a single-threaded test/tool helper.
 	static std::atomic<bool> initialized;
 	static std::wstring logPath;
 	static std::atomic<bool> enableTrace;

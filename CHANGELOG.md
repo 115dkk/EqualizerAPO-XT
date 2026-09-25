@@ -14,6 +14,15 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **A driver's own effects keep running when an endpoint's ASIO entry cannot
+  be read.** When the audio service starts the EQ on an endpoint, the EQ reads
+  the endpoint's install record, which says which of the driver's own effects
+  it runs behind. It read the endpoint's ASIO entry in the same step, and when
+  that entry could not be read it dropped the whole record: the driver's
+  effects stopped and a recording endpoint was treated as a playback one. An
+  unreadable ASIO entry now counts as none, and the EQ no longer asks Windows
+  for the default device from inside the audio service ([#363](https://github.com/115dkk/EqualizerAPO-XT/pull/363)).
+
 ## v2.54.6 — 2026-09-25
 
 - **The device test and ASIO pipes answer only the programs they are for.**

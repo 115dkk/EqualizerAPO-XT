@@ -291,6 +291,7 @@
     <ClInclude Include="asio\StreamProcessor.h" />
     <ClInclude Include="engine\ConfigLoadTrace.h" />
     <ClInclude Include="engine\ConfigurationFileReader.h" />
+    <ClInclude Include="devices\ApoRuntimeFacts.h" />
     <ClInclude Include="devices\DeviceAPOInfo.h" />
     <ClInclude Include="devices\DevicePlan.h" />
     <ClInclude Include="engine\ConfigSwapChannel.h" />
@@ -425,6 +426,7 @@
     <ClCompile Include="asio\AsioRegistration.cpp" />
     <ClCompile Include="asio\WrapperRecord.cpp" />
     <ClCompile Include="engine\ConfigurationFileReader.cpp" />
+    <ClCompile Include="devices\ApoRuntimeFacts.cpp" />
     <ClCompile Include="devices\DeviceAPOInfo.cpp" />
     <ClCompile Include="devices\DeviceAPOInfo.Install.cpp" />
     <ClCompile Include="devices\DeviceAPOInfo.Load.cpp" />
