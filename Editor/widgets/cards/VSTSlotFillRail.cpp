@@ -438,7 +438,7 @@ void VSTSlotFillRail::relayout()
 	}
 }
 
-int VSTSlotFillRail::railHeight() const
+int VSTSlotFillRail::railHeight()
 {
 	return 26;
 }

@@ -115,7 +115,7 @@ protected:
 
 private:
 	void relayout();
-	int railHeight() const;
+	static int railHeight();
 
 	bool output = false;
 	bool collapsed = false;
