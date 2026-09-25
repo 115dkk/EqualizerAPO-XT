@@ -14,6 +14,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The soft skin's file dialog uses its own icons.** The other four skins
+  draw the folder and file pictograms in the Open and Save dialogs
+  themselves, but soft still showed the Windows shell icons. Soft now draws
+  them as its small rounded pastel tiles: folders, drives and the computer
+  on the warm tint of the dialog's folder buttons, files on the Include
+  blue, with the file kind (configuration, audio, plug-in, other) told apart
+  by the glyph ([#395](https://github.com/115dkk/EqualizerAPO-XT/pull/395)).
+
 ## v2.54.23 — 2026-09-25
 
 - **The audio engine opens a file a configuration line names through the
