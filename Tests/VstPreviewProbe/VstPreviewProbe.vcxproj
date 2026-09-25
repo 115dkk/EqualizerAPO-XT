@@ -60,7 +60,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;_CONSOLE;UNICODE;_UNICODE;MUP_USE_WIDE_STRING;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_CONSOLE;UNICODE;_UNICODE;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <PostBuildEvent>
       <Command>if exist "$(FFTW_LIB)\*.dll" copy /Y "$(FFTW_LIB)\*.dll" "$(OutDir)"

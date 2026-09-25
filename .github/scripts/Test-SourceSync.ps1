@@ -113,7 +113,11 @@ $testProjects = @(
   (Join-Path $RepoRoot "Tests" "AsioProbe" "AsioProbe.vcxproj"),
   (Join-Path $RepoRoot "Tests" "FakeAsioDriver" "FakeAsioDriver.vcxproj"),
   (Join-Path $RepoRoot "EqualizerAPOAsio" "EqualizerAPOAsio.vcxproj"),
-  (Join-Path $RepoRoot "EqualizerAPOHost" "EqualizerAPOHost.vcxproj")
+  (Join-Path $RepoRoot "EqualizerAPOHost" "EqualizerAPOHost.vcxproj"),
+  # The ASIO source lists the wrapper and its two test projects import
+  # (audit #348 F13). Their entries are spelled from $(MSBuildThisFileDirectory).
+  (Join-Path $RepoRoot "asio" "AsioCoreSources.props"),
+  (Join-Path $RepoRoot "asio" "AsioInProcSources.props")
 )
 
 $missingTestSources = @()
@@ -128,7 +132,9 @@ foreach ($projectFile in $testProjects) {
   foreach ($node in $testProject.SelectNodes("//*[local-name()='ClCompile' or local-name()='ClInclude'][@Include]")) {
     # MSBuild resolves a relative Include against the project directory, and the
     # test projects reach out of theirs with ..\..\ for the sources they share.
-    $resolved = Join-Path $projectDirectory $node.Include
+    # An imported source list spells its own directory as a property instead.
+    $include = $node.Include.Replace('$(MSBuildThisFileDirectory)', '')
+    $resolved = Join-Path $projectDirectory $include
     $checkedTestSources++
     if (-not (Test-Path -LiteralPath $resolved)) {
       $missingTestSources += [pscustomobject]@{
@@ -147,7 +153,7 @@ if ($missingTestSources.Count -gt 0) {
   throw "A test project lists a source that does not exist."
 }
 
-Write-Host "The test projects' $checkedTestSources listed sources and headers all exist."
+Write-Host "The test projects' and ASIO source lists' $checkedTestSources listed sources and headers all exist."
 
 # Audit #250 F071 compared the Qt apps' .pro and .vcxproj source lists here.
 # Audit #348 TD-29 deleted the .vcxproj files (and UpdateChecker itself), so

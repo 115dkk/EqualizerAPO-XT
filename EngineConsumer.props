@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The link contract of every executable that links the engine (Common.lib):
+  the library-path defaults, the engine's link inputs, /WHOLEARCHIVE and the
+  muparserx string type. Product projects (Benchmark, VoicemeeterClient,
+  EqualizerAPO, EqualizerAPOHost) import it directly; the test suites import
+  it through Tests\Tests.props.
+
+  One place because the copies had drifted (audit #348 D2, TD-28, TD-33). The
+  product projects spelled these per configuration, six times each: the
+  Benchmark shipped in the ARM64 channel linked without /WHOLEARCHIVE, the
+  Debug builds of VoicemeeterClient and the APO did too, and the APO's
+  Release|ARM64 and Debug|Win32 compiled without MUP_USE_WIDE_STRING.
+
+  Only the contract lives here. Optimization, warning level, subsystem and
+  debug information stay with each project, because a DLL, a GUI process and
+  a test console want different ones.
+
+  Import this AFTER $(VCTargetsPath)\Microsoft.Cpp.props: LibraryPath below
+  extends the toolset's value, which does not exist earlier.
+
+  CI passes the *_LIB values as global properties; a local build falls back
+  to the deps/ layout, which ships Release libraries only (a Debug link needs
+  a locally built Debug muparserx). The *_INCLUDE halves are in the repo
+  root's Directory.Build.props.
+-->
+<Project>
+  <PropertyGroup>
+    <FFTW_LIB Condition="'$(FFTW_LIB)'==''">$(MSBuildThisFileDirectory)deps\fftw\Release</FFTW_LIB>
+    <LIBSNDFILE_LIB Condition="'$(LIBSNDFILE_LIB)'==''">$(MSBuildThisFileDirectory)deps\libsndfile\build\Release</LIBSNDFILE_LIB>
+    <MUPARSERX_LIB Condition="'$(MUPARSERX_LIB)'=='' and '$(Configuration)'=='Debug'">$(MSBuildThisFileDirectory)deps\muparserx\build\Debug</MUPARSERX_LIB>
+    <MUPARSERX_LIB Condition="'$(MUPARSERX_LIB)'==''">$(MSBuildThisFileDirectory)deps\muparserx\build\Release</MUPARSERX_LIB>
+    <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <!-- muparserx's string_type is std::wstring only under this define.
+           Common.lib is compiled with it, so a translation unit that sees a
+           muparserx header without it disagrees with the library about the
+           layout of every mup::Value it passes across. -->
+      <PreprocessorDefinitions>MUP_USE_WIDE_STRING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <!-- Whole-archive, in every configuration. The set of recognized config
+           commands is assembled by file-scope self-registration in the filter
+           factory TUs (REGISTER_FILTER_FACTORY), and on-demand linking keeps
+           only the objects something else references, so without this the
+           registry comes up empty and every config line is an unknown
+           command. -->
+      <AdditionalOptions>/WHOLEARCHIVE:Common.lib %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalDependencies>$(MSBuildThisFileDirectory)$(Platform)\$(Configuration)\Common.lib;$(MSBuildThisFileDirectory)SubwooferRoutingCore\$(Platform)\$(Configuration)\SubwooferRoutingCore.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <!-- muparserx names its Debug library with a trailing 'd'. -->
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
+    <Link>
+      <AdditionalDependencies>muparserxd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'!='Debug'">
+    <Link>
+      <AdditionalDependencies>muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+</Project>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The sources that run the engine inside the test process instead of in
+  EqualizerAPOHost: the in-process processor, the host core it shares with
+  EqualizerAPOHost, and the thread-backed host link. AsioTests and AsioProbe
+  import this next to AsioCoreSources.props (audit #348 F13).
+  EqualizerAPOHost lists EngineHostCore.cpp itself, because it needs nothing
+  else from here.
+-->
+<Project>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)InProcProcessor.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)EngineHostCore.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ThreadHostLink.cpp" />
+  </ItemGroup>
+</Project>
