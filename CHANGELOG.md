@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.21 — 2026-09-25
+
 - **The ASIO host keeps a high priority on machines where Windows refuses
   its audio priority.** EqualizerAPOHost serves ASIO streams on a thread
   registered with the Pro Audio class of the Multimedia Class Scheduler

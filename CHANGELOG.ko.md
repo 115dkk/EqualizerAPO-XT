@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.54.21 — 2026-09-25
+
 - **Windows가 오디오 우선순위를 거부하는 컴퓨터에서도 ASIO 호스트가
   높은 우선순위로 돕니다.** EqualizerAPOHost는 ASIO
   스트림을 멀티미디어 클래스 스케줄러 서비스(MMCSS)의 Pro Audio
