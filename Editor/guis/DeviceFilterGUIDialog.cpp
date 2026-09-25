@@ -17,7 +17,6 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include "Editor/helpers/GUIHelper.h"
 #include "DeviceFilterGUIDialog.h"
 #include "ui_DeviceFilterGUIDialog.h"
 
@@ -31,7 +30,7 @@ DeviceFilterGUIDialog::DeviceFilterGUIDialog(DeviceFilterGUI* gui, DeviceFilterG
 	ui(std::make_unique<Ui::DeviceFilterGUIDialog>())
 {
 	ui->setupUi(this);
-	resize(GUIHelper::scale(QSize(500, 350)));
+	resize(QSize(500, 350));
 
 	bool all = pattern.trimmed() == "all";
 	ui->allDevicesCheckBox->setChecked(all);

@@ -15,7 +15,6 @@
 #include <QWheelEvent>
 
 #include "Editor/SkinManager.h"
-#include "Editor/helpers/GUIHelper.h"
 
 using std::vector;
 
@@ -142,14 +141,14 @@ void GraphicEQPlotWidget::frameToResponse()
 
 QSize GraphicEQPlotWidget::sizeHint() const
 {
-	return QSize(400, GUIHelper::scale(210));
+	return QSize(400, 210);
 }
 
 QRectF GraphicEQPlotWidget::plotRect() const
 {
 	// Label margins: dB column on the left, Hz line at the bottom. Skins
 	// receive these areas through state.rect vs state.plotRect.
-	return QRectF(rect()).adjusted(GUIHelper::scale(34), GUIHelper::scale(6), -GUIHelper::scale(8), -GUIHelper::scale(18));
+	return QRectF(rect()).adjusted(34, 6, -8, -18);
 }
 
 double GraphicEQPlotWidget::hzToX(double hz) const
@@ -182,7 +181,7 @@ int GraphicEQPlotWidget::nodeAt(const QPointF& pos) const
 {
 	// 10px grab radius: generous for a precision surface, and every node
 	// stays reachable through the readout strip and the keyboard as well.
-	const double radius = GUIHelper::scale(10.0);
+	const double radius = 10;
 	int best = -1;
 	double bestDistance = radius * radius;
 	for (int i = 0; i < int(nodeList.size()); i++)

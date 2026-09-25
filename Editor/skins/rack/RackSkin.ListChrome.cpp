@@ -9,6 +9,7 @@
 */
 
 #include "RackSkin.h"
+#include "Editor/skins/rack/RackPalette.h"
 
 #include <QPainter>
 #include <QPainterPath>
@@ -34,15 +35,15 @@ void RackSkin::paintAddRow(QPainter& painter, const QRect& rect, const ListChrom
 	QLinearGradient interior(r.topLeft(), r.bottomLeft());
 	if (dark)
 	{
-		interior.setColorAt(0.0, QColor(0x03, 0x04, 0x05));
-		interior.setColorAt(0.4, QColor(0x0A, 0x0C, 0x0E));
-		interior.setColorAt(1.0, QColor(0x12, 0x15, 0x18));
+		interior.setColorAt(0.0, RackPalette::RackInteriorTop.dark);
+		interior.setColorAt(0.4, RackPalette::RackInteriorMiddle.dark);
+		interior.setColorAt(1.0, RackPalette::RackInteriorBottom.dark);
 	}
 	else
 	{
-		interior.setColorAt(0.0, QColor(0x2E, 0x2A, 0x23));
-		interior.setColorAt(0.4, QColor(0x42, 0x3D, 0x33));
-		interior.setColorAt(1.0, QColor(0x52, 0x4B, 0x3F));
+		interior.setColorAt(0.0, RackPalette::RackInteriorTop.light);
+		interior.setColorAt(0.4, RackPalette::RackInteriorMiddle.light);
+		interior.setColorAt(1.0, RackPalette::RackInteriorBottom.light);
 	}
 	painter.setPen(Qt::NoPen);
 	painter.setBrush(interior);
@@ -53,10 +54,10 @@ void RackSkin::paintAddRow(QPainter& painter, const QRect& rect, const ListChrom
 	// steel, one step lighter than the interior darkness.
 	const QRectF leftRail(r.left(), r.top(), RackSkinDetail::EarWidth, r.height());
 	const QRectF rightRail(r.right() - RackSkinDetail::EarWidth, r.top(), RackSkinDetail::EarWidth, r.height());
-	const QColor railFill(255, 255, 255, dark ? 14 : 24);
+	const QColor railFill = RackPalette::light(dark ? 14 : 24);
 	painter.fillRect(leftRail, railFill);
 	painter.fillRect(rightRail, railFill);
-	painter.setPen(QPen(QColor(0, 0, 0, dark ? 150 : 130), 1));
+	painter.setPen(QPen(RackPalette::shadow(dark ? 150 : 130), 1));
 	painter.drawLine(QPointF(leftRail.right(), r.top()), QPointF(leftRail.right(), r.bottom()));
 	painter.drawLine(QPointF(rightRail.left(), r.top()), QPointF(rightRail.left(), r.bottom()));
 
@@ -65,9 +66,9 @@ void RackSkin::paintAddRow(QPainter& painter, const QRect& rect, const ListChrom
 		// work light - recessed, so the light law is the plate chamfer's
 		// inverse.
 		painter.setPen(Qt::NoPen);
-		painter.setBrush(QColor(0, 0, 0, dark ? 210 : 180));
+		painter.setBrush(RackPalette::shadow(dark ? 210 : 180));
 		painter.drawEllipse(center, 2.6, 2.6);
-		painter.setPen(QPen(QColor(255, 255, 255, dark ? 40 : 70), 1));
+		painter.setPen(QPen(RackPalette::light(dark ? 40 : 70), 1));
 		painter.setBrush(Qt::NoBrush);
 		painter.drawArc(QRectF(center.x() - 2.6, center.y() - 2.6, 5.2, 5.2), 200 * 16, 140 * 16);
 	};
@@ -81,9 +82,9 @@ void RackSkin::paintAddRow(QPainter& painter, const QRect& rect, const ListChrom
 	// The opening's chamfer is the faceplate's inverse: the top inner edge
 	// falls into the overhang's shadow, the lower lip catches the work
 	// light.
-	painter.setPen(QPen(QColor(0, 0, 0, dark ? 170 : 150), 1));
+	painter.setPen(QPen(RackPalette::shadow(dark ? 170 : 150), 1));
 	painter.drawLine(QPointF(r.left() + radius, r.top() + 1.0), QPointF(r.right() - radius, r.top() + 1.0));
-	painter.setPen(QPen(QColor(255, 255, 255, dark ? 26 : 50), 1));
+	painter.setPen(QPen(RackPalette::light(dark ? 26 : 50), 1));
 	painter.drawLine(QPointF(r.left() + radius, r.bottom() - 1.0), QPointF(r.right() - radius, r.bottom() - 1.0));
 
 	// Stencilled marking inside the bay - hardware printing, never
@@ -99,7 +100,7 @@ void RackSkin::paintAddRow(QPainter& painter, const QRect& rect, const ListChrom
 	if (warm)
 		stencilInk = withAlpha(QColor(tokens.accent), state.pressed ? 255 : 225);
 	else
-		stencilInk = dark ? QColor(0x8A, 0x84, 0x78, 170) : QColor(0xB8, 0xAF, 0x9E, 190);
+		stencilInk = RackPalette::BayStencil(dark);
 	const QRectF stencilRect = r.adjusted(RackSkinDetail::EarWidth + 6, 0, -RackSkinDetail::EarWidth - 6, 0);
 	RackSkinDetail::engraveText(painter, stencilRect, Qt::AlignCenter,
 		warm ? QStringLiteral("INSTALL MODULE") : QStringLiteral("EMPTY BAY"), stencilInk, true);
@@ -140,7 +141,7 @@ void RackSkin::paintInsertSeam(QPainter& painter, const QRect& rect, const ListC
 	const qreal y = rect.center().y();
 	const qreal left = rect.left();
 	const qreal right = rect.right();
-	painter.setPen(QPen(QColor(0, 0, 0, dark ? 150 : 90), 1));
+	painter.setPen(QPen(RackPalette::shadow(dark ? 150 : 90), 1));
 	painter.drawLine(QPointF(left, y + 1.5), QPointF(right, y + 1.5));
 
 	QColor amber(tokens.accent);

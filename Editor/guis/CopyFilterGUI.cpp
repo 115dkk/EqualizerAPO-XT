@@ -18,7 +18,6 @@
 */
 
 #include "Editor/widgets/ResizeCorner.h"
-#include "Editor/helpers/GUIHelper.h"
 #include "CopyFilterGUIForm.h"
 #include "CopyFilterGUI.h"
 #include "ui_CopyFilterGUI.h"
@@ -41,7 +40,7 @@ CopyFilterGUI::CopyFilterGUI(const std::vector<Assignment>& assignments, FilterT
 	ui->form->load(assignments);
 
 	ResizeCorner* cornerWidget = new ResizeCorner(filterTable,
-			QSize(0, GUIHelper::scale(85)), QSize(0, INT_MAX),
+			QSize(0, 85), QSize(0, INT_MAX),
 			[this]() {
 		return QSize(0, ui->scrollArea->height());
 	},
@@ -106,14 +105,14 @@ void CopyFilterGUI::store(QString& command, QString& parameters)
 
 void CopyFilterGUI::loadPreferences(const QVariantMap& prefs)
 {
-	ui->scrollArea->setFixedHeight(GUIHelper::scale(prefs.value("height", DEFAULT_HEIGHT).toDouble()));
+	ui->scrollArea->setFixedHeight(qRound(prefs.value("height", DEFAULT_HEIGHT).toDouble()));
 	ui->tabWidget->setCurrentIndex(prefs.value("tabIndex", 0).toInt());
 }
 
 void CopyFilterGUI::storePreferences(QVariantMap& prefs)
 {
-	if (GUIHelper::invScale(ui->scrollArea->height()) != DEFAULT_HEIGHT)
-		prefs.insert("height", GUIHelper::invScale(ui->scrollArea->height()));
+	if (double(ui->scrollArea->height()) != DEFAULT_HEIGHT)
+		prefs.insert("height", double(ui->scrollArea->height()));
 	if (ui->tabWidget->currentIndex() != 0)
 		prefs.insert("tabIndex", ui->tabWidget->currentIndex());
 }

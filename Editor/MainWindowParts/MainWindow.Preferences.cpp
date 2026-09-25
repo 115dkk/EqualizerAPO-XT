@@ -452,7 +452,7 @@ void MainWindow::applyRedesignPreferences()
 	controlPolicy.setHorizontalPolicy(dockOnRight ? QSizePolicy::Expanding : QSizePolicy::Maximum);
 	ui->analysisControlBar->setSizePolicy(controlPolicy);
 	ui->analysisControlBar->setMaximumWidth(dockOnRight
-		? QWIDGETSIZE_MAX : GUIHelper::scale(280.0));
+		? QWIDGETSIZE_MAX : 280);
 
 	// The horizontal graph asks for 960px, which is a useful bottom-dock hint
 	// but a disastrous right-dock width: QMainWindow otherwise grants almost
@@ -462,9 +462,9 @@ void MainWindow::applyRedesignPreferences()
 	// the user's choice.
 	if (dockAreaChanged && dockOnRight)
 	{
-		const int minimumGraphDockWidth = GUIHelper::scale(320.0);
-		const int maximumGraphDockWidth = GUIHelper::scale(480.0);
-		const int filterWorkspaceFloor = GUIHelper::scale(520.0);
+		const int minimumGraphDockWidth = 320;
+		const int maximumGraphDockWidth = 480;
+		const int filterWorkspaceFloor = 520;
 		int preferredWidth = qBound(minimumGraphDockWidth, width() * 38 / 100,
 			maximumGraphDockWidth);
 		preferredWidth = qMin(preferredWidth,
@@ -487,8 +487,8 @@ void MainWindow::applyRedesignPreferences()
 // and none can undercut the others.
 void MainWindow::updateAnalysisDockFloor()
 {
-	const int floorWidth = GUIHelper::scale(296.0);
-	const int floorHeight = GUIHelper::scale(268.0);
+	const int floorWidth = 296;
+	const int floorHeight = 268;
 	QDockWidget* dock = ui->analysisDockWidget;
 	dock->setMinimumSize(0, 0);
 	const QSize content = dock->minimumSizeHint();

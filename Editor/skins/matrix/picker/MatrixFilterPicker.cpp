@@ -22,8 +22,8 @@
 
 namespace
 {
-// Unscaled metric constants; everything is multiplied by GUIHelper::scale so
-// the board keeps its 1px-rule density on high-DPI screens.
+// Metric constants in logical pixels; s() rounds each to a whole pixel so the
+// board keeps its 1px-rule density (Qt's device pixel ratio does the scaling).
 namespace Metrics
 {
 constexpr double headerHeight = 32.0;
@@ -42,7 +42,7 @@ constexpr double panelMaxHeight = 478.0;
 
 int s(double pixel)
 {
-	return GUIHelper::scale(pixel);
+	return qRound(pixel);
 }
 }
 

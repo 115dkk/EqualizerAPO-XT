@@ -17,7 +17,6 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include "Editor/helpers/GUIHelper.h"
 #include "ChannelFilterGUIChannelItem.h"
 #include "ChannelFilterGUIScene.h"
 
@@ -70,7 +69,7 @@ void ChannelFilterGUIScene::load(vector<wstring> channelNames, const QStringList
 		item->setSelected(true);
 	}
 
-	int margin = GUIHelper::scale(4);
+	int margin = 4;
 	setSceneRect(itemsBoundingRect().marginsAdded(QMarginsF(margin, margin, margin, margin)));
 	blockSignals(false);
 }

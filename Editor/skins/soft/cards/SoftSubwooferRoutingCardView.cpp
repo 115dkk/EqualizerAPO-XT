@@ -28,7 +28,6 @@
 #include <QVariant>
 
 #include "Editor/SkinManager.h"
-#include "Editor/helpers/GUIHelper.h"
 
 namespace
 {
@@ -68,7 +67,7 @@ SoftSubwooferRoutingCardView::SoftSubwooferRoutingCardView(
 	// the short headline in half once the pills stopped absorbing the row's
 	// slack; the floor keeps a one-sentence headline on one line while a
 	// long translation still wraps instead of widening the card.
-	headlineLabel->setMinimumWidth(GUIHelper::scale(360.0));
+	headlineLabel->setMinimumWidth(360);
 	headlineLabel->setAccessibleName(tr("Bass-management summary"));
 	headlineRow->addWidget(headlineLabel);
 

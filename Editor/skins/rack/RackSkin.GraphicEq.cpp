@@ -9,6 +9,7 @@
 */
 
 #include "RackSkin.h"
+#include "Editor/skins/rack/RackPalette.h"
 
 #include <QFontMetricsF>
 #include <QLinearGradient>
@@ -28,20 +29,20 @@ void RackSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& s
 	// The scope well is dark in BOTH finishes (the display law). The
 	// graticule sits in the scope-grid family: the cream table's grid token
 	// is panel paint, so it never reaches the glass.
-	const QColor glassTop = dark ? QColor(0x04, 0x06, 0x05) : QColor(0x0A, 0x0E, 0x0B);
-	const QColor glassBottom = dark ? QColor(0x0A, 0x0F, 0x0C) : QColor(0x11, 0x16, 0x10);
-	const QColor bezel = dark ? QColor(0x05, 0x08, 0x07) : QColor(0x4A, 0x44, 0x38);
-	const QColor bezelLip = dark ? QColor(0x39, 0x42, 0x4A) : QColor(0x6B, 0x63, 0x54);
-	const QColor gridMinor = dark ? QColor(tokens.graphGridMinor) : QColor(0x25, 0x43, 0x37);
+	const QColor glassTop = RackPalette::GlassTop(dark);
+	const QColor glassBottom = RackPalette::GlassBottom(dark);
+	const QColor bezel = RackPalette::GlassBezel(dark);
+	const QColor bezelLip = RackPalette::GlassBezelLip(dark);
+	const QColor gridMinor = dark ? QColor(tokens.graphGridMinor) : RackPalette::ScopeGridMinorLight;
 	const QColor gridMajor = gridMinor.lighter(168);
 	// Phosphor: accent2 is the machine's LED green. The cream panel's token
 	// is paint, not light, so it is lifted to emission strength on the glass.
 	const QColor phosphor = dark ? QColor(tokens.accent2) : QColor(tokens.accent2).lighter(195);
 	// Etched axis figures and the cursor readout follow the sheets' LCD
 	// segment palette; a powered-down display dims to the service shade.
-	const QColor segmentBright = dark ? QColor(0x86, 0xF2, 0xBA) : QColor(0x3E, 0xD6, 0x8E);
-	const QColor segmentDim = dark ? QColor(0x4C, 0x9E, 0x74) : QColor(0x2F, 0x8A, 0x61);
-	const QColor segmentOff = dark ? QColor(0x3A, 0x6B, 0x51) : QColor(0x2F, 0x6B, 0x4D);
+	const QColor segmentBright = RackPalette::SegmentBright(dark);
+	const QColor segmentDim = RackPalette::SegmentDim(dark);
+	const QColor segmentOff = RackPalette::SegmentOff(dark);
 
 	const QRectF r = QRectF(state.rect).adjusted(0.5, 0.5, -0.5, -0.5);
 	const qreal radius = 2.0;
@@ -239,8 +240,8 @@ void RackSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& s
 	// recessed grammar (shadowed top edge, lit lower lip below).
 	painter.setRenderHint(QPainter::Antialiasing, true);
 	QLinearGradient overhang(r.topLeft(), QPointF(r.left(), r.top() + 9.0));
-	overhang.setColorAt(0.0, QColor(0, 0, 0, dark ? 150 : 130));
-	overhang.setColorAt(1.0, QColor(0, 0, 0, 0));
+	overhang.setColorAt(0.0, RackPalette::shadow(dark ? 150 : 130));
+	overhang.setColorAt(1.0, RackPalette::shadow(0));
 	painter.fillRect(QRectF(r.left(), r.top(), r.width(), 9.0), overhang);
 
 	// Bezel frame: the LCD-well border grammar. Focus lights the amber

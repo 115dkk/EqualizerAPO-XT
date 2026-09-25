@@ -13,7 +13,6 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
-#include "Editor/SkinManager.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/ElidedLabel.h"
 
@@ -31,8 +30,8 @@ QString iconResourceFor(const ReferenceCardState& state)
 }
 }
 
-DefaultReferenceCardView::DefaultReferenceCardView(QWidget* parent)
-	: ReferenceCardView(parent)
+DefaultReferenceCardView::DefaultReferenceCardView(const SkinTokens& tokens, QWidget* parent)
+	: ReferenceCardView(parent), skinTokens(tokens)
 {
 	QWidget* page = contentWidget();
 	rootLayout = new QHBoxLayout(page);
@@ -110,7 +109,7 @@ DefaultReferenceCardView::DefaultReferenceCardView(QWidget* parent)
 
 	// Neutral styling straight from the tokens, so the default stays legible
 	// under any skin that has not supplied its own view.
-	const SkinTokens& tk = SkinManager::instance()->tokens();
+	const SkinTokens& tk = skinTokens;
 	nameLabel->setStyleSheet(QStringLiteral(
 		"QLabel { color: %1; font-weight: 600; }")
 		.arg(tk.text));
@@ -151,9 +150,9 @@ void DefaultReferenceCardView::addLeadingWidget(QWidget* widget)
 
 void DefaultReferenceCardView::applyState(const ReferenceCardState& state)
 {
-	const SkinTokens& tk = SkinManager::instance()->tokens();
+	const SkinTokens& tk = skinTokens;
 	iconLabel->setPixmap(GUIHelper::tintedIcon(iconResourceFor(state),
-		QColor(state.missing ? tk.warning : tk.mutedText), 20).pixmap(GUIHelper::scale(QSize(20, 20))));
+		QColor(state.missing ? tk.warning : tk.mutedText), 20).pixmap(QSize(20, 20)));
 
 	nameLabel->setText(state.name);
 	nameLabel->setToolTip(state.fullPath);

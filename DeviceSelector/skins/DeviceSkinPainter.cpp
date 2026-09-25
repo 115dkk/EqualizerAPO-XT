@@ -70,25 +70,10 @@ void DeviceSkinPainter::setActiveTheme(const QString& skinId, bool dark)
 void DeviceSkinPainter::setHeritageTheme()
 {
 	static const DeviceSkinPainter neutral;
-	SkinTokens tokens; // classic light values, mirroring SkinManager::applyHeritage
-	tokens.dark = false;
-	tokens.background = QStringLiteral("#f0f0f0");
-	tokens.surface = QStringLiteral("#ffffff");
-	tokens.surfaceRaised = QStringLiteral("#f5f5f5");
-	tokens.surfaceSunken = QStringLiteral("#e8e8e8");
-	tokens.card = QStringLiteral("#ffffff");
-	tokens.cardHover = QStringLiteral("#f0f6fc");
-	tokens.cardSelected = QStringLiteral("#cce4f7");
-	tokens.text = QStringLiteral("#000000");
-	tokens.mutedText = QStringLiteral("#606060");
-	tokens.border = QStringLiteral("#adadad");
-	tokens.accent = QStringLiteral("#0078d7");
-	tokens.accent2 = QStringLiteral("#2b88d8");
-	tokens.focusRing = QStringLiteral("#0078d7");
-	tokens.fontFamily = QStringLiteral("Segoe UI");
-	tokens.monoFontFamily = QStringLiteral("Consolas");
+	// Classic light values: the palette the Editor's HeritageSkin wears
+	// (SkinThemeData::heritageTokens).
 	activeTheme().painter = &neutral;
-	activeTheme().tokens = tokens;
+	activeTheme().tokens = SkinThemeData::heritageTokens();
 }
 
 const DeviceSkinPainter* DeviceSkinPainter::active()

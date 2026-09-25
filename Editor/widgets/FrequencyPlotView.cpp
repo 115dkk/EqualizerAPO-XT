@@ -37,7 +37,7 @@ using std::vector;
 FrequencyPlotView::FrequencyPlotView(QWidget* parent)
 	: QGraphicsView(parent)
 {
-	setViewportMargins(GUIHelper::scale(32), 0, 0, GUIHelper::scale(20));
+	setViewportMargins(32, 0, 0, 20);
 	hRuler = new FrequencyPlotHRuler(this);
 	vRuler = new FrequencyPlotVRuler(this);
 	hRuler->setMouseTracking(true);
@@ -68,7 +68,7 @@ void FrequencyPlotView::drawBackground(QPainter* painter, const QRectF& drawRect
 	FrequencyPlotScene* s = scene();
 	QPointF topLeft = mapToScene(0, 0);
 	QPointF bottomRight = mapToScene(viewport()->width(), viewport()->height());
-	double dbStep = abs(s->yToDb(0) - s->yToDb(GUIHelper::scale(30)));
+	double dbStep = abs(s->yToDb(0) - s->yToDb(30));
 
 	double dbBase = pow(10, floor(log10(dbStep)));
 	if (dbStep >= 5 * dbBase)

@@ -17,7 +17,6 @@
 #include <QPainter>
 
 #include "Editor/SkinManager.h"
-#include "Editor/helpers/GUIHelper.h"
 
 namespace
 {
@@ -37,7 +36,7 @@ QString layoutName(VST3BusLayout layout)
 
 int selectorHeight()
 {
-	return GUIHelper::scale(20.0);
+	return 20;
 }
 
 // The selector's width is computed from the widest layout token so a pick
@@ -46,7 +45,7 @@ int selectorWidth(bool output)
 {
 	const SkinTokens& t = SkinManager::instance()->tokens();
 	QFont valueFont(t.monoFontFamily);
-	valueFont.setPixelSize(GUIHelper::scale(12.0));
+	valueFont.setPixelSize(12);
 	const QFontMetricsF valueMetrics(valueFont);
 	qreal widestValue = 0;
 	for (VST3BusLayout layout : kMenuLayouts)
@@ -59,7 +58,7 @@ int selectorWidth(bool output)
 	}
 
 	QFont roleFont(t.fontFamily);
-	roleFont.setPixelSize(GUIHelper::scale(9.0));
+	roleFont.setPixelSize(9);
 	const QFontMetricsF roleMetrics(roleFont);
 	const QString roleToken = output ? QStringLiteral("OUT") : QStringLiteral("IN");
 	const QString roleText = output
@@ -70,10 +69,10 @@ int selectorWidth(bool output)
 	// Lean paddings on purpose: the strip shares one wide row with the
 	// identity and the action buttons, and every reserved pixel here is a
 	// pixel the location and name columns lose at 960px.
-	return qRound(GUIHelper::scale(6.0) * 2	// cell padding
-		+ roleWidth + GUIHelper::scale(4.0)
-		+ widestValue + GUIHelper::scale(3.0)
-		+ GUIHelper::scale(6.0));	// caret
+	return qRound(6 * 2	// cell padding
+		+ roleWidth + 4
+		+ widestValue + 3
+		+ 6);	// caret
 }
 }
 
@@ -237,22 +236,22 @@ namespace
 {
 int hMargin()
 {
-	return GUIHelper::scale(4.0);
+	return 4;
 }
 
 int vMargin()
 {
-	return GUIHelper::scale(3.0);
+	return 3;
 }
 
 int jointWidth()
 {
-	return GUIHelper::scale(14.0);
+	return 14;
 }
 
 int verdictGap()
 {
-	return GUIHelper::scale(6.0);
+	return 6;
 }
 }
 
@@ -392,11 +391,11 @@ int VSTBusStrip::verdictWidth() const
 	const bool hasText = !verdictText.isEmpty()
 		|| !verdictInputText.isEmpty() || !verdictOutputText.isEmpty();
 	if (!hasText)
-		return verdictTone == VstBusFrameState::Tone::Neutral ? 0 : GUIHelper::scale(14.0);
+		return verdictTone == VstBusFrameState::Tone::Neutral ? 0 : 14;
 
 	const SkinTokens& t = SkinManager::instance()->tokens();
 	QFont verdictFont(t.monoFontFamily);
-	verdictFont.setPixelSize(GUIHelper::scale(10.0));
+	verdictFont.setPixelSize(10);
 	const QFontMetricsF metrics(verdictFont);
 	// Lamp allowance + text (a pair adds the painted direction mark), capped
 	// so a translated verdict cannot push the action buttons off the row;
@@ -404,11 +403,11 @@ int VSTBusStrip::verdictWidth() const
 	int text;
 	if (!verdictInputText.isEmpty() || !verdictOutputText.isEmpty())
 		text = qRound(metrics.horizontalAdvance(verdictInputText)
-			+ metrics.horizontalAdvance(verdictOutputText)) + GUIHelper::scale(16.0);
+			+ metrics.horizontalAdvance(verdictOutputText)) + 16;
 	else
 		// The word register: a small slack on top of the measure, because
 		// letter-spaced board/engraved verdicts render wider than the plain
 		// metric this reserve is computed with.
-		text = qRound(metrics.horizontalAdvance(verdictText)) + GUIHelper::scale(5.0);
-	return qMin(GUIHelper::scale(150.0), GUIHelper::scale(12.0) + text + GUIHelper::scale(6.0));
+		text = qRound(metrics.horizontalAdvance(verdictText)) + 5;
+	return qMin(150, 12 + text + 6);
 }

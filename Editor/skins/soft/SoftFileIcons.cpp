@@ -27,7 +27,7 @@ QIcon SoftSkin::softTileIcon(const QString& resource, const QColor& tile)
 	// 44/64 keep the tile crisp on 2x displays (22/32 logical at DPR 2).
 	for (const int logical : { 16, 18, 20, 22, 24, 32, 44, 64 })
 	{
-		const int side = GUIHelper::scale(double(logical));
+		const int side = logical;
 		QPixmap pixmap(side, side);
 		pixmap.fill(Qt::transparent);
 		QPainter painter(&pixmap);
@@ -37,7 +37,7 @@ QIcon SoftSkin::softTileIcon(const QString& resource, const QColor& tile)
 		painter.drawRoundedRect(QRectF(0, 0, side, side), side * 0.32, side * 0.32);
 		const int glyphSide = qMax(10, qRound(logical * 0.66));
 		const QPixmap glyph = GUIHelper::tintedIcon(resource, QColor(QStringLiteral("#FAFAFC")), glyphSide)
-			.pixmap(GUIHelper::scale(QSize(glyphSide, glyphSide)));
+			.pixmap(QSize(glyphSide, glyphSide));
 		// Centre by the glyph's LOGICAL size: on high-DPR displays
 		// QIcon::pixmap returns a pixmap whose width() is physical pixels
 		// (dpr baked in), and drawPixmap honors the dpr - centring by

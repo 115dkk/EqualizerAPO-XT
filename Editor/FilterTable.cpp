@@ -40,7 +40,6 @@
 #include "FilterTableRow.h"
 #include "FilterTableMimeData.h"
 #include "FilterGUIFactoryRegistry.h"
-#include "Editor/helpers/GUIHelper.h"
 #include "services/logging/Logging.h"
 #include "audio/ChannelLayout.h"
 #include "services/registry/WindowsRegistry.h"
@@ -70,7 +69,7 @@ FilterTable::FilterTable(QWidget* parent)
 
 	QIcon icon(QStringLiteral(":/icons/arrow_right.ico"));
 	insertArrow = new QLabel(this);
-	insertArrow->setPixmap(icon.pixmap(GUIHelper::scale(QSize(24, 15))));
+	insertArrow->setPixmap(icon.pixmap(QSize(24, 15)));
 	insertArrow->setVisible(false);
 
 	// The roster and its matching order live in the factory translation units
@@ -267,10 +266,10 @@ void FilterTable::updateGuis()
 	{
 		// Frozen heritage flow: the classic toolbar action and cascading menu.
 		QToolBar* toolBar = new QToolBar;
-		toolBar->setIconSize(GUIHelper::scale(QSize(16, 16)));
+		toolBar->setIconSize(QSize(16, 16));
 
 		QWidget* spacer = new QWidget;
-		spacer->setFixedWidth(GUIHelper::scale(25));
+		spacer->setFixedWidth(25);
 		toolBar->addWidget(spacer);
 
 		QAction* addAction = new QAction(QIcon(":/icons/list-add-green.ico"), tr("Add filter"), toolBar);

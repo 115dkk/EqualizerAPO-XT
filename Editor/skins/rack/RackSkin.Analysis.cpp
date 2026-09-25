@@ -9,6 +9,7 @@
 */
 
 #include "RackSkin.h"
+#include "Editor/skins/rack/RackPalette.h"
 
 #include <QFontMetricsF>
 #include <QLinearGradient>
@@ -40,15 +41,15 @@ void RackSkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& s
 	// reaches the glass), the phosphor is the machine's LED green lifted to
 	// emission strength on the cream finish, and the OVER voice is the
 	// danger red lifted the same way.
-	const QColor glassTop = dark ? QColor(0x04, 0x06, 0x05) : QColor(0x0A, 0x0E, 0x0B);
-	const QColor glassBottom = dark ? QColor(0x0A, 0x0F, 0x0C) : QColor(0x11, 0x16, 0x10);
-	const QColor bezelInk = dark ? QColor(0x05, 0x08, 0x07) : QColor(0x4A, 0x44, 0x38);
-	const QColor bezelLip = dark ? QColor(0x39, 0x42, 0x4A) : QColor(0x6B, 0x63, 0x54);
-	const QColor gridMinor = dark ? QColor(tokens.graphGridMinor) : QColor(0x25, 0x43, 0x37);
+	const QColor glassTop = RackPalette::GlassTop(dark);
+	const QColor glassBottom = RackPalette::GlassBottom(dark);
+	const QColor bezelInk = RackPalette::GlassBezel(dark);
+	const QColor bezelLip = RackPalette::GlassBezelLip(dark);
+	const QColor gridMinor = dark ? QColor(tokens.graphGridMinor) : RackPalette::ScopeGridMinorLight;
 	const QColor gridMajor = gridMinor.lighter(168);
 	const QColor phosphor = dark ? QColor(tokens.accent2) : QColor(tokens.accent2).lighter(195);
-	const QColor segmentBright = dark ? QColor(0x86, 0xF2, 0xBA) : QColor(0x3E, 0xD6, 0x8E);
-	const QColor segmentDim = dark ? QColor(0x4C, 0x9E, 0x74) : QColor(0x2F, 0x8A, 0x61);
+	const QColor segmentBright = RackPalette::SegmentBright(dark);
+	const QColor segmentDim = RackPalette::SegmentDim(dark);
 	// The OVER voice is the danger red of a hardware PEAK lamp, not the
 	// panel's amber accent: overdrive is damage. Only barely lifted on the
 	// cream finish - the glass is dark in BOTH finishes, so a strong lift
@@ -68,7 +69,7 @@ void RackSkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& s
 	plateSheen.setColorAt(1.0, plateColor.darker(dark ? 110 : 105));
 	painter.fillRect(plate, plateSheen);
 	// The machined bottom edge: the dark rack seam under the plate.
-	painter.setPen(QPen(dark ? QColor(0x06, 0x08, 0x09) : QColor(0x8F, 0x82, 0x68), 1));
+	painter.setPen(QPen(RackPalette::Seam(dark), 1));
 	painter.drawLine(state.rect.left(), state.rect.bottom(), state.rect.right(), state.rect.bottom());
 
 	// Plate printing: engraved designation left, the footer caption centre,
@@ -342,7 +343,7 @@ void RackSkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& s
 			painter.drawPolyline(segment);
 			painter.setPen(QPen(overInk, 1.8, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
 			painter.drawPolyline(segment);
-			painter.setPen(QPen(withAlpha(mixColor(overInk, QColor(255, 255, 255), 0.55), 215), 0.9, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+			painter.setPen(QPen(withAlpha(mixColor(overInk, RackPalette::light(255), 0.55), 215), 0.9, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
 			painter.drawPolyline(segment);
 		}
 	}
@@ -405,8 +406,8 @@ void RackSkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& s
 	// recessed grammar (shadowed top lip, lit lower lip below).
 	painter.setRenderHint(QPainter::Antialiasing, true);
 	QLinearGradient overhang(glassFrame.topLeft(), QPointF(glassFrame.left(), glassFrame.top() + 9.0));
-	overhang.setColorAt(0.0, QColor(0, 0, 0, dark ? 150 : 130));
-	overhang.setColorAt(1.0, QColor(0, 0, 0, 0));
+	overhang.setColorAt(0.0, RackPalette::shadow(dark ? 150 : 130));
+	overhang.setColorAt(1.0, RackPalette::shadow(0));
 	painter.fillRect(QRectF(glassFrame.left(), glassFrame.top(), glassFrame.width(), 9.0), overhang);
 
 	glassState.restore();

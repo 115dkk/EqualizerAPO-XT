@@ -9,6 +9,7 @@
 */
 
 #include "RackSubwooferRoutingCardView.h"
+#include "Editor/skins/rack/RackPalette.h"
 
 #include <algorithm>
 #include <cmath>
@@ -31,7 +32,6 @@
 #include <QVBoxLayout>
 
 #include "Editor/SkinManager.h"
-#include "Editor/helpers/GUIHelper.h"
 #include "Editor/skins/shared/SkinPaint.h"
 #include "RackSubwooferRoutingDetail.h"
 
@@ -94,8 +94,8 @@ QSize RackCrossoverReadout::sizeHint() const
 	const int lines = secondary.isEmpty() ? 1 : 2;
 
 	return QSize(
-		qMax(GUIHelper::scale(132.0), contentWidth + GUIHelper::scale(20.0)),
-		GUIHelper::scale(lines == 1 ? 46.0 : 62.0));
+		qMax(132, contentWidth + 20),
+		(lines == 1 ? 46 : 62));
 }
 
 QSize RackCrossoverReadout::minimumSizeHint() const
@@ -109,9 +109,9 @@ QSize RackCrossoverReadout::minimumSizeHint() const
 		valueMetrics.horizontalAdvance(secondary));
 	const int lines = secondary.isEmpty() ? 1 : 2;
 	return QSize(
-		qMax(GUIHelper::scale(96.0),
-			contentWidth + GUIHelper::scale(14.0)),
-		GUIHelper::scale(lines == 1 ? 42.0 : 58.0));
+		qMax(96,
+			contentWidth + 14),
+		(lines == 1 ? 42 : 58));
 }
 
 void RackCrossoverReadout::paintEvent(QPaintEvent* event)
@@ -127,9 +127,9 @@ void RackCrossoverReadout::paintEvent(QPaintEvent* event)
 	const QFont valueFace = valueFont();
 	const QFontMetrics captionMetrics(captionFace);
 	const QFontMetrics valueMetrics(valueFace);
-	const qreal horizontalPadding = GUIHelper::scale(6.0);
-	const qreal topPadding = GUIHelper::scale(2.0);
-	const qreal bottomPadding = GUIHelper::scale(2.0);
+	const qreal horizontalPadding = 6;
+	const qreal topPadding = 2;
+	const qreal bottomPadding = 2;
 	const qreal availableHeight =
 		height() - topPadding - bottomPadding;
 	const qreal contentWidth =
@@ -141,13 +141,13 @@ void RackCrossoverReadout::paintEvent(QPaintEvent* event)
 	// removed the scale and folded the two per-type meters into one.
 	qreal cursorY = topPadding;
 	if (availableHeight >= captionMetrics.height()
-		+ valueMetrics.height() + GUIHelper::scale(4.0))
+		+ valueMetrics.height() + 4)
 	{
 		const QRectF captionRect(
 			horizontalPadding,
 			cursorY,
 			contentWidth,
-			captionMetrics.height() + GUIHelper::scale(1.0));
+			captionMetrics.height() + 1);
 		drawEngravedText(
 			painter,
 			this,
@@ -156,7 +156,7 @@ void RackCrossoverReadout::paintEvent(QPaintEvent* event)
 			fittedText(caption, captionFace, captionRect.width()),
 			captionFace,
 			mutedInk);
-		cursorY = captionRect.bottom() + GUIHelper::scale(3.0);
+		cursorY = captionRect.bottom() + 3;
 	}
 
 	const QString lines[] = {primary, secondary};
@@ -185,7 +185,7 @@ void RackCrossoverReadout::paintEvent(QPaintEvent* event)
 			fittedText(line, valueFace, lineRect.width()),
 			valueFace,
 			textInk);
-		cursorY = lineRect.bottom() + GUIHelper::scale(2.0);
+		cursorY = lineRect.bottom() + 2;
 	}
 }
 
@@ -238,8 +238,8 @@ QFont RackLfeLamp::valueFont() const
 QSize RackLfeLamp::sizeHint() const
 {
 	return QSize(
-		GUIHelper::scale(82.0),
-		GUIHelper::scale(62.0));
+		82,
+		62);
 }
 
 QSize RackLfeLamp::minimumSizeHint() const
@@ -269,9 +269,9 @@ void RackLfeLamp::paintEvent(QPaintEvent* event)
 	const QFont valueFace = valueFont();
 	const QFontMetrics captionMetrics(captionFace);
 	const QFontMetrics valueMetrics(valueFace);
-	const qreal horizontalPadding = GUIHelper::scale(3.0);
-	const qreal topPadding = GUIHelper::scale(2.0);
-	const qreal bottomPadding = GUIHelper::scale(2.0);
+	const qreal horizontalPadding = 3;
+	const qreal topPadding = 2;
+	const qreal bottomPadding = 2;
 
 	const QRectF captionRect(
 		horizontalPadding,
@@ -325,32 +325,32 @@ void RackLfeLamp::paintEvent(QPaintEvent* event)
 		valueRect.width());
 
 	const qreal lampAreaTop =
-		captionRect.bottom() + GUIHelper::scale(2.0);
+		captionRect.bottom() + 2;
 	const qreal lampAreaBottom =
-		valueRect.top() - GUIHelper::scale(2.0);
+		valueRect.top() - 2;
 	const qreal lampAreaHeight =
 		qMax<qreal>(0.0, lampAreaBottom - lampAreaTop);
 	const qreal lampSize = qMin<qreal>(
-		GUIHelper::scale(15.0),
+		15,
 		qMin(
-			qMax<qreal>(0.0, width() - GUIHelper::scale(16.0)),
-			qMax<qreal>(0.0, lampAreaHeight - GUIHelper::scale(8.0))));
+			qMax<qreal>(0.0, width() - 16),
+			qMax<qreal>(0.0, lampAreaHeight - 8)));
 
-	if (lampSize >= GUIHelper::scale(6.0))
+	if (lampSize >= 6)
 	{
 		const QPointF center(
 			width() / 2.0,
 			(lampAreaTop + lampAreaBottom) / 2.0);
 		const QRectF bezel(
-			center.x() - lampSize / 2.0 - GUIHelper::scale(2.0),
-			center.y() - lampSize / 2.0 - GUIHelper::scale(2.0),
-			lampSize + GUIHelper::scale(4.0),
-			lampSize + GUIHelper::scale(4.0));
+			center.x() - lampSize / 2.0 - 2,
+			center.y() - lampSize / 2.0 - 2,
+			lampSize + 4,
+			lampSize + 4);
 		const QRectF dome = bezel.adjusted(
-			GUIHelper::scale(2.5),
-			GUIHelper::scale(2.5),
-			-GUIHelper::scale(2.5),
-			-GUIHelper::scale(2.5));
+			3,
+			3,
+			-3,
+			-3);
 
 		painter.setPen(QPen(
 			enabledInk(this, shadow, 210),
@@ -361,10 +361,10 @@ void RackLfeLamp::paintEvent(QPaintEvent* event)
 		if (on)
 		{
 			const QRectF halo = bezel.adjusted(
-				-GUIHelper::scale(4.0),
-				-GUIHelper::scale(4.0),
-				GUIHelper::scale(4.0),
-				GUIHelper::scale(4.0));
+				-4,
+				-4,
+				4,
+				4);
 			QRadialGradient haloGradient(
 				halo.center(),
 				halo.width() / 2.0);
@@ -473,15 +473,15 @@ QFont RackHeadroomMeter::scaleFont() const
 QSize RackHeadroomMeter::sizeHint() const
 {
 	return QSize(
-		GUIHelper::scale(220.0),
-		GUIHelper::scale(64.0));
+		220,
+		64);
 }
 
 QSize RackHeadroomMeter::minimumSizeHint() const
 {
 	return QSize(
-		GUIHelper::scale(154.0),
-		GUIHelper::scale(60.0));
+		154,
+		60);
 }
 
 void RackHeadroomMeter::paintEvent(QPaintEvent* event)
@@ -493,17 +493,17 @@ void RackHeadroomMeter::paintEvent(QPaintEvent* event)
 	const QColor textInk(tokens.text);
 	const QColor mutedInk(tokens.mutedText);
 	const QColor accentInk(tokens.accent);
-	const QColor glassTop(QStringLiteral("#151A17"));
-	const QColor glassBottom(QStringLiteral("#080B09"));
-	const QColor glassBorder(QStringLiteral("#050807"));
+	const QColor glassTop = RackPalette::MeterGlassTop;
+	const QColor glassBottom = RackPalette::MeterGlassBottom;
+	const QColor glassBorder = RackPalette::GlassBezel.dark;
 
 	const QFont captionFace = captionFont();
 	const QFont scaleFace = scaleFont();
 	const QFontMetrics captionMetrics(captionFace);
 	const QFontMetrics scaleMetrics(scaleFace);
-	const qreal horizontalPadding = GUIHelper::scale(4.0);
-	const qreal topPadding = GUIHelper::scale(1.0);
-	const qreal bottomPadding = GUIHelper::scale(2.0);
+	const qreal horizontalPadding = 4;
+	const qreal topPadding = 1;
+	const qreal bottomPadding = 2;
 
 	QString captionText;
 
@@ -524,7 +524,7 @@ void RackHeadroomMeter::paintEvent(QPaintEvent* event)
 		horizontalPadding,
 		topPadding,
 		qMax<qreal>(0.0, width() - horizontalPadding * 2.0),
-		captionMetrics.height() + GUIHelper::scale(1.0));
+		captionMetrics.height() + 1);
 	const QString shownCaption = fittedText(
 		captionText,
 		captionFace,
@@ -555,22 +555,22 @@ void RackHeadroomMeter::paintEvent(QPaintEvent* event)
 
 	const qreal leftLabelHalf =
 		(scaleMetrics.horizontalAdvance(tickTexts[0]) +
-			GUIHelper::scale(4.0)) / 2.0;
+			4) / 2.0;
 	const qreal rightLabelHalf =
 		(scaleMetrics.horizontalAdvance(tickTexts[4]) +
-			GUIHelper::scale(4.0)) / 2.0;
+			4) / 2.0;
 	const qreal left = qMax<qreal>(
-		GUIHelper::scale(9.0),
-		leftLabelHalf + GUIHelper::scale(1.0));
+		9,
+		leftLabelHalf + 1);
 	const qreal right = qMin<qreal>(
-		width() - GUIHelper::scale(9.0),
-		width() - rightLabelHalf - GUIHelper::scale(1.0));
+		width() - 9,
+		width() - rightLabelHalf - 1);
 	const qreal trackTop =
-		captionRect.bottom() + GUIHelper::scale(6.0);
-	const qreal trackHeight = GUIHelper::scale(8.0);
+		captionRect.bottom() + 6;
+	const qreal trackHeight = 8;
 	const qreal trackBottom = trackTop + trackHeight;
 
-	if (right - left < GUIHelper::scale(12.0) ||
+	if (right - left < 12 ||
 		trackBottom > height() - bottomPadding)
 	{
 		return;
@@ -636,8 +636,8 @@ void RackHeadroomMeter::paintEvent(QPaintEvent* event)
 			painter,
 			this,
 			x,
-			trackBottom + GUIHelper::scale(2.0),
-			trackBottom + GUIHelper::scale(stop ? 8.0 : 6.0),
+			trackBottom + 2,
+			trackBottom + (stop ? 8 : 6),
 			enabledInk(
 				this,
 				stop ? textInk : mutedInk,
@@ -650,14 +650,14 @@ void RackHeadroomMeter::paintEvent(QPaintEvent* event)
 			painter,
 			this,
 			markerX,
-			trackTop - GUIHelper::scale(4.0),
-			trackBottom + GUIHelper::scale(2.0),
+			trackTop - 4,
+			trackBottom + 2,
 			enabledInk(this, accentInk),
 			2.0);
 	}
 
 	const qreal labelTop =
-		trackBottom + GUIHelper::scale(8.0);
+		trackBottom + 8;
 
 	if (labelTop + scaleMetrics.height() >
 		height() - bottomPadding)
@@ -671,7 +671,7 @@ void RackHeadroomMeter::paintEvent(QPaintEvent* event)
 		const qreal x = left + fraction * (right - left);
 		const qreal labelWidth =
 			scaleMetrics.horizontalAdvance(tickTexts[index]) +
-			GUIHelper::scale(4.0);
+			4;
 		const qreal labelLeft = std::clamp(
 			x - labelWidth / 2.0,
 			qreal(0.0),
@@ -702,9 +702,9 @@ void RackHeadroomMeter::paintEvent(QPaintEvent* event)
 		const QRectF currentRect = labelRect(index);
 
 		if (currentRect.left() >=
-				occupiedRight + GUIHelper::scale(2.0) &&
+				occupiedRight + 2 &&
 			currentRect.right() <=
-				lastRect.left() - GUIHelper::scale(2.0))
+				lastRect.left() - 2)
 		{
 			painter.drawText(
 				currentRect,
@@ -717,7 +717,7 @@ void RackHeadroomMeter::paintEvent(QPaintEvent* event)
 	}
 
 	if (lastRect.left() >=
-		occupiedRight + GUIHelper::scale(2.0))
+		occupiedRight + 2)
 	{
 		painter.drawText(
 			lastRect,

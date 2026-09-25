@@ -30,7 +30,7 @@ QToolButton* makeCaptionButton(const char* objectName, QWidget* parent)
 	button->setFocusPolicy(Qt::NoFocus);
 	// Caption buttons are wider than tall, like the native ones, so the hit
 	// targets stay comfortable; QSS may restyle freely.
-	button->setFixedSize(GUIHelper::scale(QSize(40, 30)));
+	button->setFixedSize(QSize(40, 30));
 	return button;
 }
 }
@@ -40,10 +40,10 @@ TitleBar::TitleBar(QWidget* window, QWidget* parent, bool dialogMode)
 {
 	setObjectName(QStringLiteral("AppTitleBar"));
 	setAttribute(Qt::WA_StyledBackground, true);
-	setFixedHeight(GUIHelper::scale(34.0));
+	setFixedHeight(34);
 
 	QHBoxLayout* layout = new QHBoxLayout(this);
-	layout->setContentsMargins(GUIHelper::scale(12.0), 0, 0, 0);
+	layout->setContentsMargins(12, 0, 0, 0);
 	layout->setSpacing(0);
 
 	titleLabel = new QLabel(hostWindow->windowTitle(), this);

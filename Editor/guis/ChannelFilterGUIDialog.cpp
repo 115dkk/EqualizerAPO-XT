@@ -21,7 +21,6 @@
 #include <Ks.h>
 #include <KsMedia.h>
 
-#include "Editor/helpers/GUIHelper.h"
 #include "Editor/helpers/GUIChannelHelper.h"
 #include "ChannelFilterGUIDialog.h"
 #include "ui_ChannelFilterGUIDialog.h"
@@ -37,7 +36,7 @@ ChannelFilterGUIDialog::ChannelFilterGUIDialog(QWidget* parent, const QStringLis
 	ui(std::make_unique<Ui::ChannelFilterGUIDialog>())
 {
 	ui->setupUi(this);
-	resize(GUIHelper::scale(QSize(355, 329)));
+	resize(QSize(355, 329));
 
 	ui->centerCheckBox->setProperty(PROPERTY_POSITION, SPEAKER_FRONT_CENTER);
 	ui->leftCheckBox->setProperty(PROPERTY_POSITION, SPEAKER_FRONT_LEFT);

@@ -23,7 +23,6 @@
 #include <QLineEdit>
 #include <QToolButton>
 
-#include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/ResizingLineEdit.h"
 #include "CopyFilterGUIChannelItem.h"
 #include "CopyFilterGUIScene.h"
@@ -160,7 +159,7 @@ void CopyFilterGUIScene::load(const vector<wstring>& channelNames, const vector<
 	addProxyItem = addWidget(addButton);
 	addProxyItem->setPos(getNextChannelPoint(lastOutputItem, true));
 
-	int margin = GUIHelper::scale(4);
+	int margin = 4;
 	setSceneRect(itemsBoundingRect().marginsAdded(QMarginsF(margin, margin, margin, margin)));
 }
 

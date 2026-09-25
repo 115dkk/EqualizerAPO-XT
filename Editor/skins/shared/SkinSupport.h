@@ -12,7 +12,11 @@
 
 #include "Editor/skins/ISkin.h"
 
-// Common derived tokens shared by every skin.
+// Common derived tokens shared by every skin. surfaceRaised, surfaceSunken,
+// graphGridMajor and focusRing are always derived here, so a skin table does
+// not set them: the major graph grid is the border colour in every skin
+// (minimal's own grid-major values never reached the screen and were removed,
+// audit #348 TD-60).
 inline void finishTokens(SkinTokens& t)
 {
 	t.surfaceRaised = t.cardHover;

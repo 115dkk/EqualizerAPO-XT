@@ -9,6 +9,7 @@
 */
 
 #include "RackSkin.h"
+#include "Editor/skins/rack/RackPalette.h"
 
 #include <QFontMetricsF>
 #include <QHash>
@@ -53,7 +54,7 @@ QString RackSkin::cardFrameStyle(const CommandRowInfo& info, const SkinTokens& t
 		// units separate physically; focus and selection keep their signal
 		// colours.
 		const bool dark = skinIsDark(tokens);
-		const QString seam = dark ? QStringLiteral("#060809") : QStringLiteral("#8F8268");
+		const QString seam = RackPalette::Seam.hex(dark);
 		// The engaged frame (selected or focused unit). In dark mode the full
 		// amber both popped and glared (maintainer, brightness round 2:
 		// "the border colour is the problem"); the judged replacement is a
@@ -109,12 +110,12 @@ void RackSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWid
 			{
 				const SkinTokens& tk = tokens;
 				const bool dark = skinIsDark(tk);
-				const QString glass = dark ? QStringLiteral("#0B0F0C") : QStringLiteral("#11150F");
+				const QString glass = RackPalette::LcdWindowGlass.hex(dark);
 				const QString segments = !info.enabled
-					? (dark ? QStringLiteral("#3A6B51") : QStringLiteral("#2F6B4D"))
-					: (dark ? QStringLiteral("#86F2BA") : QStringLiteral("#3ED68E"));
-				const QString bezel = dark ? QStringLiteral("#050807") : QStringLiteral("#4A4438");
-				const QString lowerLip = dark ? QStringLiteral("#39424A") : QStringLiteral("#6B6354");
+					? RackPalette::SegmentOff.hex(dark)
+					: RackPalette::SegmentBright.hex(dark);
+				const QString bezel = RackPalette::GlassBezel.hex(dark);
+				const QString lowerLip = RackPalette::GlassBezelLip.hex(dark);
 				raw->setStyleSheet(QStringLiteral(
 					"QLabel#FilterCardRawText { background:%1; color:%2;"
 					" border:1px solid %3; border-bottom-color:%4; border-radius:2px;"
@@ -146,25 +147,25 @@ void RackSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Comma
 	QLinearGradient sheen(r.topLeft(), r.bottomLeft());
 	if (dark)
 	{
-		sheen.setColorAt(0.0, QColor(255, 255, 255, 22));
-		sheen.setColorAt(0.12, QColor(255, 255, 255, 9));
-		sheen.setColorAt(0.55, QColor(255, 255, 255, 0));
-		sheen.setColorAt(1.0, QColor(0, 0, 0, 46));
+		sheen.setColorAt(0.0, RackPalette::light(22));
+		sheen.setColorAt(0.12, RackPalette::light(9));
+		sheen.setColorAt(0.55, RackPalette::light(0));
+		sheen.setColorAt(1.0, RackPalette::shadow(46));
 	}
 	else
 	{
-		sheen.setColorAt(0.0, QColor(255, 255, 255, 110));
-		sheen.setColorAt(0.5, QColor(255, 255, 255, 0));
-		sheen.setColorAt(1.0, QColor(0, 0, 0, 26));
+		sheen.setColorAt(0.0, RackPalette::light(110));
+		sheen.setColorAt(0.5, RackPalette::light(0));
+		sheen.setColorAt(1.0, RackPalette::shadow(26));
 	}
 	painter.fillRect(r, sheen);
 
 	// Per-type finish: Include units wear patchbay black, VST units a warm
 	// charcoal; filters keep the bare aluminium.
 	if (info.type == QLatin1String("include"))
-		painter.fillRect(r, QColor(0, 0, 0, dark ? 64 : 28));
+		painter.fillRect(r, RackPalette::shadow(dark ? 64 : 28));
 	else if (info.type == QLatin1String("vst"))
-		painter.fillRect(r, dark ? QColor(34, 20, 6, 50) : QColor(74, 50, 14, 18));
+		painter.fillRect(r, RackPalette::VstUnitFinish(dark));
 
 	// Horizontal brushing grain, seeded per unit so two stacked units never
 	// share the same streak pattern - sheets cut from the same stock.
@@ -173,13 +174,13 @@ void RackSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Comma
 	// Rack ears, separated from the panel by a machined groove.
 	const QRectF leftEar(r.left(), r.top(), RackSkinDetail::EarWidth, r.height());
 	const QRectF rightEar(r.right() - RackSkinDetail::EarWidth, r.top(), RackSkinDetail::EarWidth, r.height());
-	const QColor earFill(0, 0, 0, dark ? 52 : 20);
+	const QColor earFill = RackPalette::shadow(dark ? 52 : 20);
 	painter.fillRect(leftEar, earFill);
 	painter.fillRect(rightEar, earFill);
-	painter.setPen(QPen(QColor(0, 0, 0, dark ? 120 : 60), 1));
+	painter.setPen(QPen(RackPalette::shadow(dark ? 120 : 60), 1));
 	painter.drawLine(QPointF(leftEar.right(), r.top()), QPointF(leftEar.right(), r.bottom()));
 	painter.drawLine(QPointF(rightEar.left(), r.top()), QPointF(rightEar.left(), r.bottom()));
-	painter.setPen(QPen(QColor(255, 255, 255, dark ? 26 : 120), 1));
+	painter.setPen(QPen(RackPalette::light(dark ? 26 : 120), 1));
 	painter.drawLine(QPointF(leftEar.right() + 1, r.top()), QPointF(leftEar.right() + 1, r.bottom()));
 	painter.drawLine(QPointF(rightEar.left() + 1, r.top()), QPointF(rightEar.left() + 1, r.bottom()));
 
@@ -189,15 +190,15 @@ void RackSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Comma
 	// along the bottom and right - so every row reads as its own bolted
 	// unit rather than a list stripe.
 	painter.setBrush(Qt::NoBrush);
-	painter.setPen(QPen(QColor(0, 0, 0, dark ? 90 : 40), 1));
+	painter.setPen(QPen(RackPalette::shadow(dark ? 90 : 40), 1));
 	painter.drawRoundedRect(r.adjusted(0.5, 0.5, -0.5, -0.5), radius, radius);
-	painter.setPen(QPen(QColor(255, 255, 255, dark ? 36 : 150), 1));
+	painter.setPen(QPen(RackPalette::light(dark ? 36 : 150), 1));
 	painter.drawLine(QPointF(r.left() + radius, r.top() + 1.5), QPointF(r.right() - radius, r.top() + 1.5));
-	painter.setPen(QPen(QColor(255, 255, 255, dark ? 16 : 80), 1));
+	painter.setPen(QPen(RackPalette::light(dark ? 16 : 80), 1));
 	painter.drawLine(QPointF(r.left() + 1.5, r.top() + radius), QPointF(r.left() + 1.5, r.bottom() - radius));
-	painter.setPen(QPen(QColor(0, 0, 0, dark ? 140 : 70), 1));
+	painter.setPen(QPen(RackPalette::shadow(dark ? 140 : 70), 1));
 	painter.drawLine(QPointF(r.left() + radius, r.bottom() - 1.5), QPointF(r.right() - radius, r.bottom() - 1.5));
-	painter.setPen(QPen(QColor(0, 0, 0, dark ? 60 : 30), 1));
+	painter.setPen(QPen(RackPalette::shadow(dark ? 60 : 30), 1));
 	painter.drawLine(QPointF(r.right() - 1.5, r.top() + radius), QPointF(r.right() - 1.5, r.bottom() - radius));
 
 	// Module groove under the control strip whenever the unit is opened (the
@@ -205,9 +206,9 @@ void RackSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Comma
 	if (r.height() >= tokens.rowHeight + 26)
 	{
 		const qreal y = r.top() + tokens.rowHeight;
-		painter.setPen(QPen(QColor(0, 0, 0, dark ? 110 : 55), 1));
+		painter.setPen(QPen(RackPalette::shadow(dark ? 110 : 55), 1));
 		painter.drawLine(QPointF(leftEar.right() + 2, y), QPointF(rightEar.left() - 2, y));
-		painter.setPen(QPen(QColor(255, 255, 255, dark ? 24 : 110), 1));
+		painter.setPen(QPen(RackPalette::light(dark ? 24 : 110), 1));
 		painter.drawLine(QPointF(leftEar.right() + 2, y + 1), QPointF(rightEar.left() - 2, y + 1));
 	}
 
@@ -246,17 +247,17 @@ void RackSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Comma
 		QLinearGradient brass(plateRect.topLeft(), plateRect.bottomLeft());
 		if (dark)
 		{
-			brass.setColorAt(0.0, QColor(0xD6, 0xB2, 0x6A));
-			brass.setColorAt(0.5, QColor(0xA8, 0x85, 0x46));
-			brass.setColorAt(1.0, QColor(0x86, 0x67, 0x30));
+			brass.setColorAt(0.0, RackPalette::BrassHighlight.dark);
+			brass.setColorAt(0.5, RackPalette::BrassBody.dark);
+			brass.setColorAt(1.0, RackPalette::BrassEdge.dark);
 		}
 		else
 		{
-			brass.setColorAt(0.0, QColor(0xE8, 0xC8, 0x86));
-			brass.setColorAt(0.5, QColor(0xC4, 0xA0, 0x5C));
-			brass.setColorAt(1.0, QColor(0x9A, 0x7A, 0x3C));
+			brass.setColorAt(0.0, RackPalette::BrassHighlight.light);
+			brass.setColorAt(0.5, RackPalette::BrassBody.light);
+			brass.setColorAt(1.0, RackPalette::BrassEdge.light);
 		}
-		painter.setPen(QPen(QColor(0x5A, 0x44, 0x16), 1));
+		painter.setPen(QPen(RackPalette::BrassRim, 1));
 		painter.setBrush(brass);
 		painter.drawRoundedRect(plateRect, 3, 3);
 
@@ -272,13 +273,13 @@ void RackSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Comma
 		const QString brand = info.formatTag.isEmpty() ? QStringLiteral("VST") : info.formatTag;
 		// Engraved into the brass itself, so the passes are brass-tinted in
 		// both modes rather than following the panel's engraving direction.
-		painter.setPen(QColor(255, 240, 200, 160));
+		painter.setPen(RackPalette::BrassEngraveRelief);
 		painter.drawText(plateRect.translated(1, 1), Qt::AlignCenter, brand);
-		painter.setPen(QColor(0x3A, 0x2A, 0x0C));
+		painter.setPen(RackPalette::BrassEngraveInk);
 		painter.drawText(plateRect, Qt::AlignCenter, brand);
 
-		painter.setPen(QPen(QColor(0x55, 0x40, 0x14), 0.8));
-		painter.setBrush(QColor(0xE9, 0xD3, 0x9A));
+		painter.setPen(QPen(RackPalette::BrassRivetRim, 0.8));
+		painter.setBrush(RackPalette::BrassRivet);
 		painter.drawEllipse(QPointF(plateRect.left() + 6, plateRect.center().y()), 1.6, 1.6);
 		painter.drawEllipse(QPointF(plateRect.right() - 6, plateRect.center().y()), 1.6, 1.6);
 	}
@@ -301,7 +302,7 @@ void RackSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Comma
 
 	// Commented-out line: the whole unit is powered down behind a dim film.
 	if (!info.enabled)
-		painter.fillPath(plate, dark ? QColor(0, 0, 0, 80) : QColor(255, 252, 244, 120));
+		painter.fillPath(plate, RackPalette::PoweredDownFilm(dark));
 
 	// Keyboard focus: a thin amber line along the inner bezel (UI necessity,
 	// kept as small as a hardware unit's rail light).
@@ -338,7 +339,7 @@ bool RackSkin::paintScopeGutter(QPainter& painter, const QSize& size, const Comm
 	// faceplate metal, and the lamps follow the LED palette (green = engaged,
 	// danger = evaluation fault). A de-energized run (a swallowed line, a
 	// powered-down unit) dims the core instead of raising an alarm.
-	const QColor seam(dark ? QStringLiteral("#060809") : QStringLiteral("#8F8268"));
+	const QColor seam = RackPalette::Seam(dark);
 	const QColor amber(tokens.accent);
 	const QColor amberDim = mixColor(amber, QColor(tokens.card), 0.55);
 	const QColor lampGreen(tokens.accent2);

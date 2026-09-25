@@ -21,14 +21,13 @@
 #include <QPainterPathStroker>
 
 #include "Editor/SkinManager.h"
-#include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/routing/CopyRoutingAdapter.h"
 
 using std::vector;
 
 namespace
 {
-int sc(int px) { return GUIHelper::scale(px); }
+int sc(int px) { return px; }
 
 // is-dark / withAlphaF live in the shared SkinPaint.h.
 }

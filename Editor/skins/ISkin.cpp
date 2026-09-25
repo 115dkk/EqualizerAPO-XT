@@ -480,18 +480,18 @@ void ISkin::paintVstBusSelector(QPainter& painter, const VstBusSelectorState& st
 		valueInk = withAlpha(QColor(tokens.mutedText), 170);
 	}
 
-	const int pad = GUIHelper::scale(8.0);
+	const int pad = 8;
 	QRectF textRect = cell.adjusted(pad, 0, -pad, 0);
 
 	QFont roleFont = painter.font();
-	roleFont.setPixelSize(GUIHelper::scale(9.0));
+	roleFont.setPixelSize(9);
 	painter.setFont(roleFont);
 	painter.setPen(roleInk);
 	painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, state.roleText);
 	const qreal roleWidth = QFontMetricsF(roleFont).horizontalAdvance(state.roleText);
 
 	// Caret: a small down triangle at the right edge, the shared dropdown cue.
-	const qreal caretWidth = GUIHelper::scale(7.0);
+	const qreal caretWidth = 7;
 	const QPointF caretCenter(textRect.right() - caretWidth / 2.0, cell.center().y() + 0.5);
 	QPainterPath caret;
 	caret.moveTo(caretCenter + QPointF(-caretWidth / 2.0, -caretWidth / 4.0));
@@ -501,14 +501,14 @@ void ISkin::paintVstBusSelector(QPainter& painter, const VstBusSelectorState& st
 	painter.fillPath(caret, roleInk);
 
 	QFont valueFont = painter.font();
-	valueFont.setPixelSize(GUIHelper::scale(12.0));
+	valueFont.setPixelSize(12);
 	painter.setFont(valueFont);
 	painter.setPen(valueInk);
 	QString value = state.layoutText;
 	if (state.channelCount > 0)
 		value += QStringLiteral(" %1").arg(state.channelCount);
-	textRect.setLeft(textRect.left() + roleWidth + GUIHelper::scale(6.0));
-	textRect.setRight(textRect.right() - caretWidth - GUIHelper::scale(4.0));
+	textRect.setLeft(textRect.left() + roleWidth + 6);
+	textRect.setRight(textRect.right() - caretWidth - 4);
 	painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, value);
 }
 
@@ -562,7 +562,7 @@ void ISkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& state, c
 	if (!state.enabled)
 		lamp = withAlpha(lamp, 150);
 
-	const qreal lampRadius = GUIHelper::scale(2.5);
+	const qreal lampRadius = 3;
 	painter.setPen(Qt::NoPen);
 	painter.setBrush(lamp);
 	painter.drawEllipse(QPointF(state.verdictRect.left() + lampRadius,
@@ -571,25 +571,25 @@ void ISkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& state, c
 		return;
 
 	QFont verdictFont = painter.font();
-	verdictFont.setPixelSize(GUIHelper::scale(10.0));
+	verdictFont.setPixelSize(10);
 	painter.setFont(verdictFont);
 	const QColor ink = state.tone == VstBusFrameState::Tone::Critical ? lamp : muted;
 	painter.setPen(ink);
 	QRectF textRect(state.verdictRect);
-	textRect.setLeft(textRect.left() + lampRadius * 2.0 + GUIHelper::scale(5.0));
+	textRect.setLeft(textRect.left() + lampRadius * 2.0 + 5);
 	if (pairVerdict)
 	{
 		// The pair joins over the same painted mark as the joint, so the
 		// readout repeats the strip's direction grammar instead of a glyph.
 		const QFontMetricsF metrics(verdictFont);
 		const qreal inWidth = metrics.horizontalAdvance(state.verdictInputText);
-		const qreal markWidth = GUIHelper::scale(14.0);
+		const qreal markWidth = 14;
 		painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, state.verdictInputText);
-		const qreal markLeft = textRect.left() + inWidth + GUIHelper::scale(3.0);
+		const qreal markLeft = textRect.left() + inWidth + 3;
 		const qreal midY = textRect.center().y() + 0.5;
 		painter.setPen(QPen(ink, 1.1, Qt::SolidLine, Qt::RoundCap));
-		painter.drawLine(QPointF(markLeft, midY), QPointF(markLeft + markWidth - GUIHelper::scale(6.0), midY));
-		const QPointF head(markLeft + markWidth - GUIHelper::scale(6.0), midY);
+		painter.drawLine(QPointF(markLeft, midY), QPointF(markLeft + markWidth - 6, midY));
+		const QPointF head(markLeft + markWidth - 6, midY);
 		painter.drawLine(head, head + QPointF(-3.0, -3.0));
 		painter.drawLine(head, head + QPointF(-3.0, 3.0));
 		painter.setPen(ink);
@@ -640,17 +640,17 @@ void ISkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& 
 		valueInk = withAlpha(valueInk, 150);
 	}
 
-	const qreal pad = GUIHelper::scale(6.0);
+	const qreal pad = 6;
 	QRectF textRect = cell.adjusted(pad, 0, -pad, 0);
 
 	QFont roleFont = painter.font();
-	roleFont.setPixelSize(GUIHelper::scale(9.0));
+	roleFont.setPixelSize(9);
 	painter.setFont(roleFont);
 	painter.setPen(roleInk);
 	painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, state.roleToken);
 	const qreal roleWidth = QFontMetricsF(roleFont).horizontalAdvance(state.roleToken);
 
-	const qreal caretWidth = GUIHelper::scale(6.0);
+	const qreal caretWidth = 6;
 	const QPointF caretCenter(textRect.right() - caretWidth / 2.0, cell.center().y() + 0.5);
 	QPainterPath caret;
 	caret.moveTo(caretCenter + QPointF(-caretWidth / 2.0, -caretWidth / 4.0));
@@ -660,11 +660,11 @@ void ISkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& 
 	painter.fillPath(caret, roleInk);
 
 	QFont valueFont(tokens.monoFontFamily);
-	valueFont.setPixelSize(GUIHelper::scale(11.0));
+	valueFont.setPixelSize(11);
 	painter.setFont(valueFont);
 	painter.setPen(valueInk);
-	textRect.setLeft(textRect.left() + roleWidth + GUIHelper::scale(5.0));
-	textRect.setRight(textRect.right() - caretWidth - GUIHelper::scale(4.0));
+	textRect.setLeft(textRect.left() + roleWidth + 5);
+	textRect.setRight(textRect.right() - caretWidth - 4);
 	painter.drawText(textRect, Qt::AlignRight | Qt::AlignVCenter, state.valueText);
 }
 
@@ -679,11 +679,11 @@ void ISkin::paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& 
 
 	if (!state.cellsRect.isNull() && !state.collapsed)
 	{
-		const QRectF tray = QRectF(state.cellsRect).adjusted(-GUIHelper::scale(4.0), -GUIHelper::scale(3.0),
-			GUIHelper::scale(4.0), GUIHelper::scale(3.0));
+		const QRectF tray = QRectF(state.cellsRect).adjusted(-4, -3,
+			4, 3);
 		painter.setPen(QPen(withAlpha(QColor(tokens.border), 120), 1));
 		painter.setBrush(withAlpha(QColor(tokens.surfaceSunken), 90));
-		painter.drawRoundedRect(tray, GUIHelper::scale(4.0), GUIHelper::scale(4.0));
+		painter.drawRoundedRect(tray, 4, 4);
 	}
 
 	if (state.latchRect.isNull())
@@ -697,19 +697,19 @@ void ISkin::paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& 
 	painter.setBrush(QColor(state.latchPressed ? tokens.cardHover : tokens.surface));
 	painter.drawRoundedRect(latch, latch.height() / 2.0, latch.height() / 2.0);
 
-	const qreal dotRadius = GUIHelper::scale(3.0);
+	const qreal dotRadius = 3;
 	const QColor dot = state.collapsed ? QColor(tokens.mutedText) : QColor(tokens.accent);
 	painter.setPen(Qt::NoPen);
 	painter.setBrush(state.enabled ? dot : withAlpha(dot, 140));
-	painter.drawEllipse(QPointF(latch.left() + GUIHelper::scale(9.0), latch.center().y() + 0.5),
+	painter.drawEllipse(QPointF(latch.left() + 9, latch.center().y() + 0.5),
 		dotRadius, dotRadius);
 
 	QFont latchFont = painter.font();
-	latchFont.setPixelSize(GUIHelper::scale(9.0));
+	latchFont.setPixelSize(9);
 	painter.setFont(latchFont);
 	painter.setPen(QColor(state.collapsed ? tokens.mutedText : tokens.text));
 	QRectF labelRect = latch;
-	labelRect.setLeft(latch.left() + GUIHelper::scale(15.0));
+	labelRect.setLeft(latch.left() + 15);
 	painter.drawText(labelRect, Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("FILL"));
 }
 
@@ -754,19 +754,17 @@ FilterPickerView* ISkin::createFilterPicker(QWidget* parent, const SkinTokens& t
 ReferenceCardView* ISkin::createReferenceCardView(const QString& kind, QWidget* parent,
 	const SkinTokens& tokens) const
 {
-	Q_UNUSED(tokens);
 	// Neutral default: the plain token-styled information hierarchy. kind is
 	// unused here because the neutral view derives everything from the state;
 	// skins that split their answer per kind branch on it.
 	Q_UNUSED(kind);
-	return new DefaultReferenceCardView(parent);
+	return new DefaultReferenceCardView(tokens, parent);
 }
 
 SubwooferRoutingCardView* ISkin::createSubwooferRoutingCardView(QWidget* parent,
 	const SkinTokens& tokens) const
 {
-	Q_UNUSED(tokens);
-	return new DefaultSubwooferRoutingCardView(parent);
+	return new DefaultSubwooferRoutingCardView(tokens, parent);
 }
 
 void ISkin::paintTitleBarChrome(QPainter&, const QRect&, const SkinTokens&) const
@@ -784,7 +782,7 @@ void ISkin::styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const
 	// legacy .ico set the .ui file still references (kept there so a skin
 	// could deliberately return to it).
 	const QColor ink(tokens.text);
-	toolBar->setIconSize(GUIHelper::scale(QSize(18, 18)));
+	toolBar->setIconSize(QSize(18, 18));
 	for (QAction* action : toolBar->actions())
 	{
 		if (action->objectName() == QStringLiteral("actionNew"))
@@ -824,7 +822,7 @@ void ISkin::styleFileDialog(QFileDialog* dialog, const SkinTokens& tokens) const
 		if (toolButton != nullptr)
 		{
 			toolButton->setIcon(GUIHelper::tintedIcon(QLatin1String(button.resource), ink, 18));
-			toolButton->setIconSize(GUIHelper::scale(QSize(18, 18)));
+			toolButton->setIconSize(QSize(18, 18));
 		}
 	}
 }

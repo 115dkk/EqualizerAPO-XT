@@ -34,7 +34,6 @@
 #include <QPainter>
 #include <QPalette>
 #include <QPixmap>
-#include <QScreen>
 #include <QSettings>
 #include <QSplitter>
 #include <QStandardPaths>
@@ -47,51 +46,6 @@
 #include "Editor/import/LegacyMigration.h"
 #include "Editor/widgets/DialogChrome.h"
 
-QSize GUIHelper::scale(QSize size)
-{
-	if (qApp->testAttribute(Qt::AA_Use96Dpi))
-		return size;
-
-	qreal dpi = QGuiApplication::primaryScreen()->logicalDotsPerInchX();
-	return QSize(qRound(size.width() * dpi / 96), qRound(size.height() * dpi / 96));
-}
-
-int GUIHelper::scale(double pixel)
-{
-	if (qApp->testAttribute(Qt::AA_Use96Dpi))
-		return qRound(pixel);
-
-	qreal dpi = QGuiApplication::primaryScreen()->logicalDotsPerInchX();
-	return qRound(pixel * dpi / 96);
-}
-
-double GUIHelper::scaleZoom(double zoom)
-{
-	if (qApp->testAttribute(Qt::AA_Use96Dpi))
-		return zoom;
-
-	qreal dpi = QGuiApplication::primaryScreen()->logicalDotsPerInchX();
-	return zoom * dpi / 96;
-}
-
-double GUIHelper::invScale(int pixel)
-{
-	if (qApp->testAttribute(Qt::AA_Use96Dpi))
-		return pixel;
-
-	qreal dpi = QGuiApplication::primaryScreen()->logicalDotsPerInchX();
-	return pixel * 96 / dpi;
-}
-
-double GUIHelper::invScaleZoom(double zoom)
-{
-	if (qApp->testAttribute(Qt::AA_Use96Dpi))
-		return zoom;
-
-	qreal dpi = QGuiApplication::primaryScreen()->logicalDotsPerInchX();
-	return zoom * 96 / dpi;
-}
-
 bool GUIHelper::isDarkMode()
 {
 	return QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark;
@@ -100,7 +54,7 @@ bool GUIHelper::isDarkMode()
 QIcon GUIHelper::tintedIcon(const QString& resource, const QColor& color, int size)
 {
 	QIcon base(resource);
-	QPixmap pixmap = base.pixmap(scale(QSize(size, size)));
+	QPixmap pixmap = base.pixmap(QSize(size, size));
 	if (pixmap.isNull())
 		return base;
 
@@ -252,7 +206,7 @@ void GUIHelper::prepareFileDialog(QFileDialog& dialog)
 
 	// A roomier default than QFileDialog's compact size hint, so the Detail
 	// columns (name/size/date) fit without immediate scrolling.
-	dialog.resize(scale(QSize(820, 520)));
+	dialog.resize(QSize(820, 520));
 
 	// Readable Detail columns: the name column takes the free width and the
 	// metadata columns track their content. The stock dialog leaves every
@@ -268,7 +222,7 @@ void GUIHelper::prepareFileDialog(QFileDialog& dialog)
 	// Enough sidebar width for the location labels under the larger skin
 	// typefaces; the stock split truncates even short folder names on soft.
 	if (QSplitter* splitter = dialog.findChild<QSplitter*>(QStringLiteral("splitter")))
-		splitter->setSizes({ scale(150.0), scale(650.0) });
+		splitter->setSizes({ 150, 650 });
 
 	// The same skinned caption the main window wears - title text plus the
 	// conventional close X - replaces the native Windows caption, which was

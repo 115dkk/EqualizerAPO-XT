@@ -83,7 +83,7 @@
 namespace
 {
 // The VST round-trip self test lives with the other offscreen gates in
-// SkinGallery.cpp (audit #275 B7).
+// Editor/gallery/GallerySelfTests.cpp (audit #275 B7).
 
 bool matchesHook(const char* arg, const char* name)
 {
@@ -360,9 +360,11 @@ int main(int argc, char* argv[])
 	QtAppBootstrap::addExecutableRelativePluginPath();
 
 	// High-DPI: let Qt scale the whole UI by the monitor's device pixel ratio,
-	// and pin the logical DPI to 96 (AA_Use96Dpi) so GUIHelper::scale becomes a
-	// no-op — Qt's device pixel ratio is then the single scaling source and we
-	// avoid double scaling. PassThrough keeps fractional factors like 150%
+	// and pin the logical DPI to 96 (AA_Use96Dpi) so the code's pixel values need
+	// no DPI factor of their own — Qt's device pixel ratio is then the single
+	// scaling source and we avoid double scaling (the GUIHelper::scale helpers
+	// were identities under this and are gone, audit #348 F7). PassThrough keeps
+	// fractional factors like 150%
 	// exact instead of rounding them to 100%/200%.
 	QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 	QCoreApplication::setAttribute(Qt::AA_Use96Dpi);
@@ -559,7 +561,7 @@ int main(int argc, char* argv[])
 		if (parser.isSet(analysisLayoutOption))
 		{
 			// The probe itself lives with the other offscreen gates in
-			// SkinGallery.cpp (audit #275 B7); it arms the timers and later
+			// Editor/gallery/GalleryProbes.cpp (audit #275 B7); it arms the timers and later
 			// exits the event loop with the verdict.
 			if (!SkinGallery::armAnalysisLayoutProbe(w, parser.value(analysisLayoutOption)))
 				return 1;

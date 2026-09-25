@@ -20,7 +20,6 @@
 #include <QVBoxLayout>
 
 #include "Editor/SkinManager.h"
-#include "Editor/helpers/GUIHelper.h"
 
 namespace
 {
@@ -44,7 +43,7 @@ constexpr int ShowcaseHoverRole = Qt::UserRole + 5;
 // both modes stay intentional without shipping an icon asset.
 QPixmap makeSearchGlyph(const QColor& color)
 {
-	const int side = GUIHelper::scale(16.0);
+	const int side = 16;
 	QPixmap pixmap(side, side);
 	pixmap.fill(Qt::transparent);
 	QPainter painter(&pixmap);
@@ -76,10 +75,10 @@ public:
 	{
 		Q_UNUSED(option);
 		if (index.data(CaptionRole).toBool())
-			return QSize(0, GUIHelper::scale(index.data(FirstCaptionRole).toBool() ? 22.0 : 31.0));
+			return QSize(0, (index.data(FirstCaptionRole).toBool() ? 22 : 31));
 		if (index.data(EmptyNoteRole).toBool())
-			return QSize(0, GUIHelper::scale(44.0));
-		return QSize(0, GUIHelper::scale(30.0));
+			return QSize(0, 44);
+		return QSize(0, 30);
 	}
 
 	void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const override
@@ -100,11 +99,11 @@ public:
 private:
 	void paintCaption(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
 	{
-		const int pad = GUIHelper::scale(10.0);
+		const int pad = 10;
 		// The extra height above non-first captions is the section gap; the
 		// caption text itself sits in the lower band.
 		QRectF rect = QRectF(option.rect).adjusted(pad, 0, -pad, 0);
-		rect.setTop(rect.bottom() - GUIHelper::scale(20.0));
+		rect.setTop(rect.bottom() - 20);
 
 		QFont font(t.fontFamily);
 		font.setPointSizeF(8.6);
@@ -120,8 +119,8 @@ private:
 		// the caption and dissolves toward the right edge.
 		const double textWidth = QFontMetricsF(font).horizontalAdvance(text);
 		const double y = rect.center().y() + 0.5;
-		const double x0 = rect.left() + textWidth + GUIHelper::scale(8.0);
-		if (x0 < rect.right() - GUIHelper::scale(12.0))
+		const double x0 = rect.left() + textWidth + 8;
+		if (x0 < rect.right() - 12)
 		{
 			QLinearGradient line(x0, y, rect.right(), y);
 			line.setColorAt(0.0, withAlpha(t.accent, dark ? 110 : 130));
@@ -207,7 +206,7 @@ private:
 		if (!selected && !hovered)
 			textColor = mixColor(QColor(t.text), QColor(t.mutedText), 0.18);
 		painter->setPen(textColor);
-		const QRectF textRect = rect.adjusted(GUIHelper::scale(12.0), 0, -GUIHelper::scale(8.0), 0);
+		const QRectF textRect = rect.adjusted(12, 0, -8, 0);
 		const QString name = index.data(Qt::DisplayRole).toString();
 		const double nameWidth = QFontMetricsF(font).horizontalAdvance(name);
 		painter->drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter,
@@ -217,8 +216,8 @@ private:
 		// secondary information at secondary luminance. It brightens a touch
 		// with the entry's own light and yields entirely when space runs out.
 		const QString caption = index.data(SecondaryRole).toString();
-		const double captionSpace = textRect.width() - nameWidth - GUIHelper::scale(18.0);
-		if (!caption.isEmpty() && captionSpace > GUIHelper::scale(56.0))
+		const double captionSpace = textRect.width() - nameWidth - 18;
+		if (!caption.isEmpty() && captionSpace > 56)
 		{
 			QFont captionFont(t.fontFamily);
 			captionFont.setPointSizeF(9.1);
@@ -248,11 +247,11 @@ StudioFilterPickerView::StudioFilterPickerView(const SkinTokens& tokens, QWidget
 	// luminance is an unambiguous mode proxy (see Skins.cpp).
 	dark = skinIsDark(skinTokens);
 
-	const int glow = GUIHelper::scale(13.0);
-	const int pad = GUIHelper::scale(12.0);
+	const int glow = 13;
+	const int pad = 12;
 	QVBoxLayout* layout = new QVBoxLayout(this);
 	layout->setContentsMargins(glow + pad, glow + pad, glow + pad, glow + pad);
-	layout->setSpacing(GUIHelper::scale(10.0));
+	layout->setSpacing(10);
 	// Prominent sunken-glass search field: the inverse of the raised panel,
 	// with a darker top edge as the inner shadow (the skin's input rule).
 	searchEdit = new QLineEdit(this);
@@ -323,13 +322,13 @@ StudioFilterPickerView::StudioFilterPickerView(const SkinTokens& tokens, QWidget
 			QStringLiteral("rgba(%1, %2, %3, 0.55)")
 			.arg(QColor(skinTokens.accent).red()).arg(QColor(skinTokens.accent).green()).arg(QColor(skinTokens.accent).blue()),
 			skinTokens.accent));
-	listWidget->setMinimumHeight(GUIHelper::scale(330.0));
+	listWidget->setMinimumHeight(330);
 	layout->addWidget(listWidget, 1);
 	bindListPicker(searchEdit, listWidget, EntryIndexRole, [this]() { rebuildList(); });
 
-	setMinimumWidth(GUIHelper::scale(388.0));
-	setMaximumWidth(GUIHelper::scale(440.0));
-	setMaximumHeight(GUIHelper::scale(470.0));
+	setMinimumWidth(388);
+	setMaximumWidth(440);
+	setMaximumHeight(470);
 }
 
 void StudioFilterPickerView::entriesChanged()
@@ -441,9 +440,9 @@ void StudioFilterPickerView::paintEvent(QPaintEvent* event)
 	const QColor background(skinTokens.background);
 	painter.fillRect(rect(), background);
 
-	const double glow = GUIHelper::scale(13.0);
+	const double glow = 13;
 	const QRectF panel = QRectF(rect()).adjusted(glow, glow, -glow, -glow);
-	const double radius = GUIHelper::scale(14.0);
+	const double radius = 14;
 	const QColor accent(skinTokens.accent);
 	const QColor card(skinTokens.card);
 

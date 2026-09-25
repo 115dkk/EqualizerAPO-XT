@@ -19,7 +19,6 @@
 
 #include <QGraphicsItem>
 
-#include "Editor/helpers/GUIHelper.h"
 #include "ChannelGraphScene.h"
 
 ChannelGraphScene::ChannelGraphScene(QWidget* parent)
@@ -33,8 +32,8 @@ QPointF ChannelGraphScene::getNextChannelPoint(QGraphicsItem* lastItem, bool out
 	if (lastItem != nullptr)
 	{
 		QRectF lastRect = lastItem->sceneBoundingRect();
-		x = lastRect.left() + lastRect.width() + 1 + GUIHelper::scale(10);
+		x = lastRect.left() + lastRect.width() + 1 + 10;
 	}
 
-	return QPointF(x, output ? GUIHelper::scale(50) : 0);
+	return QPointF(x, output ? 50 : 0);
 }

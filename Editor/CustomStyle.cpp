@@ -17,7 +17,6 @@
 	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 #include "CustomStyle.h"
-#include "Editor/helpers/GUIHelper.h"
 #include "SkinManager.h"
 
 CustomStyle::CustomStyle(QStyle* style)
@@ -31,9 +30,9 @@ int CustomStyle::pixelMetric(QStyle::PixelMetric metric, const QStyleOption* opt
 	{
 	case PM_ToolBarIconSize:
 	case PM_TabBarIconSize:
-		return GUIHelper::scale(16);
+		return 16;
 	case PM_DockWidgetTitleBarButtonMargin:
-		return GUIHelper::scale(baseStyle()->pixelMetric(metric, option, widget));
+		return baseStyle()->pixelMetric(metric, option, widget);
 	default:
 		return baseStyle()->pixelMetric(metric, option, widget);
 	}

@@ -41,9 +41,9 @@ BiQuadFilterGUI::BiQuadFilterGUI(const BiQuadCommand& command)
 	// 84x66: every skin paints the knob in a centred square sized by the 66px
 	// height, so the width beyond ~66px is pure horizontal padding. The trim
 	// lets the row fit the 960px viewport in the widest-font skins.
-	ui->freqDial->setFixedSize(GUIHelper::scale(QSize(84, 66)));
-	ui->gainDial->setFixedSize(GUIHelper::scale(QSize(84, 66)));
-	ui->qDial->setFixedSize(GUIHelper::scale(QSize(84, 66)));
+	ui->freqDial->setFixedSize(QSize(84, 66));
+	ui->gainDial->setFixedSize(QSize(84, 66));
+	ui->qDial->setFixedSize(QSize(84, 66));
 	// Shared identity for the skins: these are genuine parameter mode
 	// selectors, not labels, and skins may key their styling off these
 	// properties without touching the legacy .ui.

@@ -259,7 +259,12 @@ SOURCES += main.cpp\
 	guis/LoudnessCorrectionFilterGUIDialog.cpp \
 	helpers/CrashHandler.cpp \
 	helpers/QtSndfileHandle.cpp \
-	SkinGallery.cpp \
+	gallery/GalleryGates.cpp \
+	gallery/GalleryKnobSpecimen.cpp \
+	gallery/GalleryProbes.cpp \
+	gallery/GallerySelfTests.cpp \
+	gallery/GallerySkinShots.cpp \
+	gallery/GallerySupport.cpp \
 	SkinManager.cpp \
 	skins/ISkin.cpp \
 	skins/Skins.cpp \
@@ -554,6 +559,7 @@ HEADERS  += \
 	diagnostics/SkinSwitchStorm.h \
 	helpers/QtSndfileHandle.h \
 	SkinGallery.h \
+	gallery/GallerySupport.h \
 	SkinTokens.h \
 	SkinManager.h \
 	skins/ISkin.h \

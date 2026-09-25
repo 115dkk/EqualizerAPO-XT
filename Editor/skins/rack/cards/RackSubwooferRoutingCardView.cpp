@@ -30,8 +30,6 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
-#include "Editor/SkinManager.h"
-#include "Editor/helpers/GUIHelper.h"
 #include "Editor/skins/shared/SkinPaint.h"
 #include "RackSubwooferRoutingDetail.h"
 
@@ -114,9 +112,9 @@ RackSubwooferRoutingCardView::RackSubwooferRoutingCardView(const SkinTokens& tok
 	setObjectName(QStringLiteral("RackSubwooferRoutingCardView"));
 	setAutoFillBackground(false);
 
-	const int sideMargin = GUIHelper::scale(28.0);
-	const int topMargin = GUIHelper::scale(12.0);
-	const int bottomMargin = GUIHelper::scale(12.0);
+	const int sideMargin = 28;
+	const int topMargin = 12;
+	const int bottomMargin = 12;
 
 	QVBoxLayout* root = new QVBoxLayout(this);
 	root->setContentsMargins(
@@ -124,14 +122,14 @@ RackSubwooferRoutingCardView::RackSubwooferRoutingCardView(const SkinTokens& tok
 		topMargin,
 		sideMargin,
 		bottomMargin);
-	root->setSpacing(GUIHelper::scale(8.0));
+	root->setSpacing(8);
 
 	headerWidget = new QWidget(this);
 	headerWidget->setObjectName(QStringLiteral("RackBassHeader"));
 
 	QHBoxLayout* headerLayout = new QHBoxLayout(headerWidget);
 	headerLayout->setContentsMargins(0, 0, 0, 0);
-	headerLayout->setSpacing(GUIHelper::scale(8.0));
+	headerLayout->setSpacing(8);
 
 	validityLabel = new QLabel(headerWidget);
 	validityLabel->setObjectName(QStringLiteral("RackBassValidity"));
@@ -149,7 +147,7 @@ RackSubwooferRoutingCardView::RackSubwooferRoutingCardView(const SkinTokens& tok
 	profileLabel->setObjectName(QStringLiteral("RackBassProfile"));
 	profileLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
 	profileLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
-	profileLabel->setMaximumWidth(GUIHelper::scale(280.0));
+	profileLabel->setMaximumWidth(280);
 	profileLabel->setAccessibleName(tr("Bass-management profile"));
 	headerLayout->addWidget(profileLabel, 0, Qt::AlignVCenter);
 
@@ -160,7 +158,7 @@ RackSubwooferRoutingCardView::RackSubwooferRoutingCardView(const SkinTokens& tok
 
 	QHBoxLayout* instrumentLayout = new QHBoxLayout(instrumentWidget);
 	instrumentLayout->setContentsMargins(0, 0, 0, 0);
-	instrumentLayout->setSpacing(GUIHelper::scale(8.0));
+	instrumentLayout->setSpacing(8);
 
 	crossoverReadout = new RackCrossoverReadout(skinTokens, instrumentWidget);
 	instrumentLayout->addWidget(
@@ -186,7 +184,7 @@ RackSubwooferRoutingCardView::RackSubwooferRoutingCardView(const SkinTokens& tok
 
 	actionLayout = new QHBoxLayout(actionHost);
 	actionLayout->setContentsMargins(0, 0, 0, 0);
-	actionLayout->setSpacing(GUIHelper::scale(8.0));
+	actionLayout->setSpacing(8);
 
 	actionHost->setVisible(false);
 	instrumentLayout->addWidget(
@@ -203,29 +201,6 @@ RackSubwooferRoutingCardView::RackSubwooferRoutingCardView(const SkinTokens& tok
 	statusLabel->setAccessibleName(tr("Bass-management status"));
 	statusLabel->setVisible(false);
 	root->addWidget(statusLabel);
-
-	connect(
-		SkinManager::instance(),
-		&SkinManager::skinChanged,
-		this,
-		[this]()
-		{
-			layoutLabel->update();
-			profileLabel->update();
-			validityLabel->update();
-			statusLabel->update();
-			crossoverReadout->updateGeometry();
-			lfeLamp->updateGeometry();
-			headroomMeter->updateGeometry();
-			crossoverReadout->update();
-			lfeLamp->update();
-			headroomMeter->update();
-			headerWidget->update();
-			instrumentWidget->update();
-			updateGeometry();
-			updateResponsiveLayout();
-			update();
-		});
 
 	setSeverityProperty(validityLabel, QStringLiteral("valid"));
 	setSeverityProperty(profileLabel, QStringLiteral("normal"));
@@ -304,9 +279,9 @@ void RackSubwooferRoutingCardView::addActionButton(
 	button->style()->polish(button);
 	button->ensurePolished();
 
-	const int targetHeight = GUIHelper::scale(40.0);
+	const int targetHeight = 40;
 	const int targetWidth = qMax(
-		GUIHelper::scale(40.0),
+		40,
 		button->sizeHint().width());
 	button->setMinimumSize(
 		qMax(button->minimumWidth(), targetWidth),
@@ -562,8 +537,8 @@ void RackSubwooferRoutingCardView::paintEvent(QPaintEvent* event)
 
 	painter.setRenderHint(QPainter::Antialiasing, true);
 
-	const qreal screwRadius = GUIHelper::scale(3.6);
-	const qreal screwInset = GUIHelper::scale(10.0);
+	const qreal screwRadius = 4;
+	const qreal screwInset = 10;
 	const QPointF screwCenters[] = {
 		QPointF(screwInset, screwInset),
 		QPointF(width() - screwInset, screwInset),
@@ -622,37 +597,37 @@ void RackSubwooferRoutingCardView::paintEvent(QPaintEvent* event)
 	const QFont railFace = rackFont(skinTokens, 7, true, 1.4);
 	const QFontMetrics railMetrics(railFace);
 	const qreal railTop =
-		screwInset + screwRadius + GUIHelper::scale(5.0);
+		screwInset + screwRadius + 5;
 	const qreal railBottom =
-		height() - screwInset - screwRadius - GUIHelper::scale(5.0);
+		height() - screwInset - screwRadius - 5;
 	const qreal railHeight =
 		qMax<qreal>(0.0, railBottom - railTop);
-	const qreal railWidth = GUIHelper::scale(20.0);
+	const qreal railWidth = 20;
 	const QRect tightBounds =
 		railMetrics.tightBoundingRect(railText);
 	const qreal requiredTextLength = qMax(
 		qreal(railMetrics.horizontalAdvance(railText)),
 		qreal(tightBounds.width())) +
-		GUIHelper::scale(4.0);
+		4;
 	const qreal requiredTextThickness =
 		qMax(
 			qreal(railMetrics.height()),
 			qreal(tightBounds.height())) +
-		GUIHelper::scale(2.0);
+		2;
 
 	if (requiredTextLength <= railHeight &&
 		requiredTextThickness <= railWidth)
 	{
 		painter.save();
 		painter.translate(
-			GUIHelper::scale(3.0),
+			3,
 			railBottom);
 		painter.rotate(-90.0);
 
 		const QRectF railTextRect(
-			GUIHelper::scale(2.0),
+			2,
 			0.0,
-			railHeight - GUIHelper::scale(4.0),
+			railHeight - 4,
 			railWidth);
 		drawEngravedText(
 			painter,
@@ -679,13 +654,13 @@ void RackSubwooferRoutingCardView::updateResponsiveLayout()
 {
 	const int availableWidth = width();
 	const bool showProfile =
-		availableWidth >= GUIHelper::scale(650.0);
+		availableWidth >= 650;
 	const bool showLfe =
-		availableWidth >= GUIHelper::scale(760.0);
+		availableWidth >= 760;
 	const bool showCrossover =
-		availableWidth >= GUIHelper::scale(500.0);
+		availableWidth >= 500;
 	const bool compactActions =
-		availableWidth < GUIHelper::scale(700.0);
+		availableWidth < 700;
 	const bool hasActions =
 		actionLayout->count() > 0;
 

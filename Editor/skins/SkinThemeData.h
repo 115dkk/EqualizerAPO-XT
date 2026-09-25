@@ -81,6 +81,13 @@ QString resolveId(const QString& id);
 // The token table for a (resolved or unresolved) skin id.
 SkinTokens tokens(const QString& id, bool dark);
 
+// The heritage (legacy rows) palette: classic light values for the custom
+// painters that consume tokens, over Studio's light table for everything it
+// does not set. Not in the roster, because heritage is not a selectable skin;
+// it lives here so the Editor's HeritageSkin and Device Selector's heritage
+// theme read one palette.
+SkinTokens heritageTokens();
+
 // The ":/skins/..." QSS resource path for the id, honouring the historical
 // precision_* file names of the minimal skin.
 QString qssResource(const QString& id, bool dark);
@@ -92,6 +99,10 @@ QString qssResource(const QString& id, bool dark);
 // it previously had to spell the palette value out by hand, which meant a token
 // change did not reach it. QSS has no variables and its rgba() wants numbers, so
 // this is the only way a sheet can hold a token at partial alpha.
+//
+// @FONT_STACK@ and @MONO_STACK@ expand to a whole font-family value: the
+// skin's body or monospace face followed by the bundled fallback families,
+// so the ten sheets do not each spell the fallback list out.
 QString substituteTokens(QString qss, const SkinTokens& tokens);
 
 // Token-derived QPalette for the widgets QSS does not cover (item views,

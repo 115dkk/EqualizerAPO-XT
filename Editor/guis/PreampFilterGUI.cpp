@@ -19,7 +19,6 @@
 
 #include <cmath>
 
-#include "Editor/helpers/GUIHelper.h"
 #include "PreampFilterGUI.h"
 #include <filters/PreampCommand.h>
 #include "ui_PreampFilterGUI.h"
@@ -31,7 +30,7 @@ PreampFilterGUI::PreampFilterGUI(double dbGain)
 {
 	ui->setupUi(this);
 
-	ui->dial->setFixedSize(GUIHelper::scale(QSize(100, 66)));
+	ui->dial->setFixedSize(QSize(100, 66));
 	ui->doubleSpinBox->setValue(dbGain);
 }
 

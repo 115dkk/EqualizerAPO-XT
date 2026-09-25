@@ -45,7 +45,6 @@
 #include "services/update/UpdateSession.h"
 #include "Editor/widgets/UpdateToast.h"
 #include "Editor/helpers/GUIChannelHelper.h"
-#include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/SkinComboBox.h"
 #include "Editor/widgets/MainToolbarKit.h"
 #include "version.h"
@@ -95,7 +94,7 @@ MainWindow::MainWindow(QDir configDir, const UpdateSession* updateSession, QWidg
 	}
 
 	ui->setupUi(this);
-	resize(GUIHelper::scale(QSize(1024, 768)));
+	resize(QSize(1024, 768));
 
 	// Audit #250 F019: one display-version rule for all binaries (version.h).
 	QString version = QString::fromStdWString(eapoDisplayVersionW());
