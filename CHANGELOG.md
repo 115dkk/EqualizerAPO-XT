@@ -23,7 +23,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   the folder is a real folder in a local user profile (no links along the
   way) and records it, without creating, re-permissioning or copying
   anything in that folder; if the check fails, it keeps the old behaviour
-  (#PRNUM). This was checked with unit
+  ([#384](https://github.com/115dkk/EqualizerAPO-XT/pull/384)). This was checked with unit
   tests on this machine; an install with a second, administrator account
   approving it was not run.
 
