@@ -15,7 +15,7 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   모두 더한 값을 가리키는 Minimal 카드의 접근성 이름은 'Effective LFE gain'으로
   이름을 바꿨습니다. 카드는 이제 대화상자와 같은 경로에서 그룹의 크로스오버를
   읽습니다. SubwooferRouting VST3 플러그인은 컨트롤에 보이는 헤드룸 트림을 늘
-  48 kHz가 아니라 호스트가 실제로 쓰는 샘플레이트로 계산합니다(#PRNUM).
+  48 kHz가 아니라 호스트가 실제로 쓰는 샘플레이트로 계산합니다([#379](https://github.com/115dkk/EqualizerAPO-XT/pull/379)).
 
 ## v2.54.8 — 2026-09-25
 

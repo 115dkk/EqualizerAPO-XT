@@ -23,7 +23,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   "Effective LFE gain". The card now reads a group's crossover from the same
   path the dialog does. In the SubwooferRouting VST3 plug-in, the headroom
   trim shown in its controls is computed at the sample rate the host runs,
-  instead of always at 48 kHz (#PRNUM).
+  instead of always at 48 kHz ([#379](https://github.com/115dkk/EqualizerAPO-XT/pull/379)).
 
 ## v2.54.8 — 2026-09-25
 
