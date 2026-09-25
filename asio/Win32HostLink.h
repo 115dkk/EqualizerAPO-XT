@@ -10,6 +10,10 @@
 	name another path) and retries until the ready timeout. The host's
 	process handle is the ring's peer, so a host that dies mid-stream turns
 	the next wait into Gone.
+
+	Before it sends anything the link checks that the process serving the
+	pipe is that host executable, and the request and reply share the ready
+	deadline instead of waiting without limit (audit #348 TD-46).
 */
 
 #pragma once
@@ -32,6 +36,13 @@ namespace eapo::asio
 		// for there when the options carry no path.
 		static std::wstring moduleDirectory();
 
+		// The engine host this link starts and expects to find serving the
+		// pipe: the options' path, else EqualizerAPOHost.exe beside the module,
+		// else the one in the module's parent folder. The last case is the
+		// 32-bit wrapper, which ships alone in the x86 folder and talks to the
+		// 64-bit host.
+		static std::wstring hostExecutable(const StreamOptions& options, const std::wstring& moduleDirectory);
+
 	private:
 		struct Objects
 		{
@@ -39,7 +50,8 @@ namespace eapo::asio
 			HANDLE events[5] = {};
 		};
 
-		bool connectToHost(const std::wstring& endpoint, const StreamOptions& options, HANDLE& pipe, std::string& error);
+		bool connectToHost(const std::wstring& endpoint, const StreamOptions& options, ULONGLONG deadline, HANDLE& pipe,
+			std::string& error);
 		static bool spawnHost(const std::wstring& endpoint, const StreamOptions& options, std::string& error);
 
 		Objects objects_;
