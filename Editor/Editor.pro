@@ -451,6 +451,7 @@ HEADERS  += \
 	guis/CopyFilterGUIRow.h \
 	helpers/GUIChannelHelper.h \
 	../audio/ChannelLayout.h \
+	../audio/SampleFormat.h \
 	guis/DelayFilterGUI.h \
 	guis/DelayFilterGUIFactory.h \
 	../filters/DelayCommand.h \
