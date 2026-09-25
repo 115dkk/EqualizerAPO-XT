@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.7 — 2026-09-25
+
 - **A driver's own effects keep running when an endpoint's ASIO entry cannot
   be read.** When the audio service starts the EQ on an endpoint, the EQ reads
   the endpoint's install record, which says which of the driver's own effects
