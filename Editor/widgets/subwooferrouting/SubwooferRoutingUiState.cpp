@@ -22,40 +22,12 @@
 #include <variant>
 
 #include "Editor/widgets/routing/SubwooferRoutingRoutingAdapter.h"
+#include "Editor/widgets/subwooferrouting/SubwooferRoutingStateReads.h"
+
+using subwooferroutingeditor::findPath;
 
 namespace
 {
-subroute::PrepareSpec prepareSpecFor(
-	const subroute::SubwooferRoutingState& state,
-	unsigned sampleRate)
-{
-	subroute::PrepareSpec spec;
-	spec.sampleRate = sampleRate;
-	spec.maximumBlockSize = 1024;
-	spec.channelLayout.reserve(state.layout.channels.size());
-
-	for (const subroute::PhysicalChannel& channel
-		: state.layout.channels)
-	{
-		spec.channelLayout.push_back(channel.id);
-	}
-
-	return spec;
-}
-
-subroute::Path* findPath(
-	subroute::SubwooferRoutingState& state,
-	const std::string& id)
-{
-	const auto path = std::find_if(state.paths.begin(), state.paths.end(),
-		[&id](const subroute::Path& candidate)
-		{
-			return candidate.id == id;
-		});
-
-	return path == state.paths.end() ? nullptr : &*path;
-}
-
 /*
 	Every section of the type moves together: an LR4 is two sections at one
 	corner, and moving only the first would silently split the alignment.
@@ -109,6 +81,13 @@ bool setPathDelay(subroute::Path& path, double milliseconds)
 }
 }
 
+double SubwooferRoutingUiState::previewSampleRateFor(unsigned deviceSampleRate)
+{
+	return deviceSampleRate > 0
+		? static_cast<double>(deviceSampleRate)
+		: kPreviewFallbackSampleRate;
+}
+
 SubwooferRoutingUiState::SubwooferRoutingUiState(
 	const subroute::SubwooferRoutingState& state,
 	unsigned sampleRate)
@@ -135,14 +114,26 @@ unsigned SubwooferRoutingUiState::sampleRate() const
 	return deviceSampleRate;
 }
 
+double SubwooferRoutingUiState::previewSampleRate() const
+{
+	return previewSampleRateFor(deviceSampleRate);
+}
+
 bool SubwooferRoutingUiState::isDirty() const
 {
 	return dirty;
 }
 
+const subroute::CompileResult& SubwooferRoutingUiState::preview() const
+{
+	return previewResult;
+}
+
 std::optional<double> SubwooferRoutingUiState::computedTrimDb() const
 {
-	return appliedTrimDb;
+	if (!previewResult.headroom.has_value())
+		return std::nullopt;
+	return previewResult.headroom->appliedTrimDb;
 }
 
 bool SubwooferRoutingUiState::setSourceLfeGainDb(double gainDb)
@@ -400,19 +391,14 @@ bool SubwooferRoutingUiState::commitMutation()
 
 void SubwooferRoutingUiState::refreshValidation()
 {
-	appliedTrimDb.reset();
-
-	if (deviceSampleRate == 0)
-	{
-		currentValidation = subroute::validate(currentState);
-		return;
-	}
-
-	const subroute::CompileResult compiled = subroute::compile(
+	previewResult = subroute::compile(
 		currentState,
-		prepareSpecFor(currentState, deviceSampleRate));
+		subroute::previewSpecFor(currentState, previewSampleRate()));
 
-	currentValidation = compiled.validation;
-	if (compiled.headroom.has_value())
-		appliedTrimDb = compiled.headroom->appliedTrimDb;
+	// The device checks a compile adds (Nyquist, channel availability, the
+	// headroom warnings) are about a device. Without one, the validation shown
+	// stays the structural check; only the trim uses the fallback rate.
+	currentValidation = deviceSampleRate == 0
+		? subroute::validate(currentState)
+		: previewResult.validation;
 }

@@ -12,6 +12,7 @@
 #include "SubwooferRouting/State.h"
 #include "pluginterfaces/vst/ivstaudioprocessor.h"
 #include "pluginterfaces/vst/ivstcomponent.h"
+#include "pluginterfaces/vst/ivsthostapplication.h"
 #include "pluginterfaces/vst/ivstmessage.h"
 
 namespace eapoxt::subwooferrouting::vst3
@@ -108,6 +109,10 @@ private:
 		bool rebuild);
 	bool rebuildCurrentLocked();
 	void clearPublishedEngineLocked();
+	// Tells the connected controller the rate processing runs at. Takes
+	// stateMutex_ itself only to copy host_ and peer_; the notify call runs
+	// outside it.
+	void sendSampleRate(double sampleRate);
 
 	std::atomic<Steinberg::uint32> refCount_{1};
 	std::atomic<bool> active_{false};
@@ -129,6 +134,7 @@ private:
 	std::atomic<Steinberg::uint32> pendingParameterMask_{0};
 	std::atomic<double> pendingParameterValues_[6];
 
+	Steinberg::Vst::IHostApplication* host_ = nullptr;
 	Steinberg::Vst::IConnectionPoint* peer_ = nullptr;
 };
 

@@ -14,6 +14,17 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The subwoofer routing screens show the same numbers.** With no device
+  selected, the card and the response graph assumed 48 kHz for the headroom
+  trim, while the editor dialog showed "Unavailable"; all three now show the
+  48 kHz trim. The dialog's gain field, which sets the adjustment before the
+  LFE path, is labelled "LFE gain adjustment", and the Minimal card's
+  accessible name for its value, which adds up every gain on that path, is
+  "Effective LFE gain". The card now reads a group's crossover from the same
+  path the dialog does. In the SubwooferRouting VST3 plug-in, the headroom
+  trim shown in its controls is computed at the sample rate the host runs,
+  instead of always at 48 kHz (#PRNUM).
+
 ## v2.54.8 — 2026-09-25
 
 - **The Voicemeeter client no longer holds up audio while it sets up strips.**

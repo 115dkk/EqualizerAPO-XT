@@ -41,4 +41,9 @@ inline constexpr char kParameterMessageId[] = "eapo-xt-subwoofer-routing-paramet
 inline constexpr char kMessageParameterId[] = "parameter-id";
 inline constexpr char kMessageParameterValue[] = "normalized-value";
 
+// Processor -> controller: the rate setupProcessing() accepted, so the
+// controller's headroom preview compiles at the rate the audio runs at.
+inline constexpr char kSampleRateMessageId[] = "eapo-xt-subwoofer-routing-sample-rate";
+inline constexpr char kMessageSampleRate[] = "sample-rate";
+
 }

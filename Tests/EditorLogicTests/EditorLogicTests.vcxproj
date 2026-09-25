@@ -128,18 +128,23 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClCompile Include="RoutingModelTests.cpp" />
     <ClCompile Include="SubwooferRoutingTests.cpp" />
     <ClCompile Include="SubwooferRoutingUiStateTests.cpp" />
+    <ClCompile Include="SubwooferRoutingStateReadsTests.cpp" />
+    <ClCompile Include="AnalysisMeasurementTests.cpp" />
     <ClCompile Include="SubwooferRoutingDefaultsTests.cpp" />
     <ClCompile Include="FilterLineCardTests.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\FilterLineCard.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\FilterCardEditorRegistry.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\FilterCardEditorFactory.cpp" />
     <ClCompile Include="..\..\Editor\widgets\subwooferrouting\SubwooferRoutingUiState.cpp" />
+    <ClCompile Include="..\..\Editor\widgets\subwooferrouting\SubwooferRoutingStateReads.cpp" />
     <ClCompile Include="..\..\Editor\widgets\subwooferrouting\SubwooferRoutingDefaults.cpp" />
     <ClCompile Include="..\..\Editor\widgets\routing\SubwooferRoutingRoutingAdapter.cpp" />
     <ClCompile Include="UpdateSessionTests.cpp" />
     <ClCompile Include="..\..\services\update\UpdateSession.cpp" />
     <ClCompile Include="..\..\Editor\ConfigFileCodec.cpp" />
     <ClCompile Include="..\..\Editor\analysis\AnalysisResponse.cpp" />
+    <ClCompile Include="..\..\Editor\analysis\AnalysisRequestFence.cpp" />
+    <ClCompile Include="..\..\Editor\analysis\ImpulseMeasurement.cpp" />
     <ClCompile Include="..\..\Editor\analysis\ResponseCurveBuilder.cpp" />
     <ClCompile Include="..\..\Editor\guis\BiQuadWidthConversion.cpp" />
     <ClCompile Include="..\..\Editor\helpers\ConvolutionPathHelper.cpp" />
@@ -210,6 +215,9 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClInclude Include="..\..\filters\ChannelCommand.h" />
     <ClInclude Include="..\..\filters\FilterFactoryRegistry.h" />
     <ClInclude Include="EditorLogicTestSupport.h" />
+    <ClInclude Include="..\..\Editor\analysis\AnalysisRequestFence.h" />
+    <ClInclude Include="..\..\Editor\analysis\ImpulseMeasurement.h" />
+    <ClInclude Include="..\..\Editor\widgets\subwooferrouting\SubwooferRoutingStateReads.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

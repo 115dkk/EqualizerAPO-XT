@@ -2974,7 +2974,7 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
     </message>
     <message>
         <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="122"/>
-        <source>Source LFE gain</source>
+        <source>Effective LFE gain</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4424,7 +4424,7 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
     </message>
     <message>
         <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="381"/>
-        <source>Gain:</source>
+        <source>LFE gain adjustment:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
