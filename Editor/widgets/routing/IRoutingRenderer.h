@@ -25,6 +25,7 @@
 #include <QWidget>
 
 #include "filters/CopyFilter.h"
+#include "Editor/widgets/routing/ChannelIdentity.h"
 
 struct SkinTokens;
 
@@ -120,7 +121,20 @@ struct RoutingPortModel
 	// False hides factor labels and editors; connections are unity only.
 	bool allowFactors = true;
 
+	// The device's channels, which decide which channels the view draws as
+	// virtual (ChannelIdentity::isVirtual). Separate from create()'s
+	// channelNames, which also carries the channels a host adds for seeding
+	// (MultiConvolution's session outputs, the subwoofer dialog's bass
+	// paths). Empty when the device is not known.
+	std::vector<std::wstring> deviceChannels;
+
 	bool fixedSourceMode() const { return !fixedSources.isEmpty(); }
+
+	// True when channel is virtual on this view's device.
+	bool isVirtualChannel(const QString& channel) const
+	{
+		return ChannelIdentity::isVirtual(channel, deviceChannels);
+	}
 };
 
 class IRoutingRenderer

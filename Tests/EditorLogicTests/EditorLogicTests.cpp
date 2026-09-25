@@ -121,6 +121,7 @@ int main(int argc, char** argv)
 		testRoutingGridModelPorts();
 		testRoutingGridModel();
 		testRoutingFold();
+		testVirtualChannelRule();
 		testSourceTokenGrammar();
 		testAnalysisResponseBinArithmetic();
 		testAnalysisResponseEmptyAndLatency();

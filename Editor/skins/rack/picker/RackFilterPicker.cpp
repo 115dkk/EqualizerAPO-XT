@@ -7,9 +7,8 @@
 /*
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
-	See RackFilterPicker.h. The small LED painter is deliberately a local
-	expression of Rack's hardware idiom (its glow scales between dark and lit);
-	the screw and the engraved printing are the card chrome's own.
+	See RackFilterPicker.h. The screw, the engraved printing and the panel
+	LEDs are the card chrome's own painters (RackSkinDetail).
 */
 
 #include "RackFilterPicker.h"
@@ -44,57 +43,11 @@ enum RowKind
 	SectionRow = 1
 };
 
-// The engraved faceplate printing and the slotted screw are the card chrome's
-// own painters (RackSkinDetail); only the LED keeps a local, glow-scaled form.
+// The engraved faceplate printing, the slotted screw and the panel LED are
+// the card chrome's own painters (RackSkinDetail).
 using RackSkinDetail::engraveText;
+using RackSkinDetail::paintLed;
 using RackSkinDetail::paintScrew;
-
-// A panel LED in a bezel ring; glow scales 0..1 so the hover lamp can sit
-// between fully dark and fully lit. Unlit lamps recede one step (thinner
-// bezel ink, translucent dome, fainter specular dot) so a column of module
-// slots never reads as bullet spam.
-void paintLed(QPainter& painter, const QPointF& center, qreal radius, const QColor& litColor, qreal glow, bool dark)
-{
-	const bool unlit = glow <= 0.0;
-	painter.setPen(QPen(dark ? RackPalette::shadow(unlit ? 110 : 190) : withAlpha(RackPalette::LedBezel.light, unlit ? 100 : 190), 1));
-	painter.setBrush(Qt::NoBrush);
-	painter.drawEllipse(center, radius + 1.2, radius + 1.2);
-
-	if (glow > 0.0)
-	{
-		QRadialGradient halo(center, radius * 3.2);
-		halo.setColorAt(0.0, withAlpha(litColor, int(110 * glow)));
-		halo.setColorAt(1.0, withAlpha(litColor, 0));
-		painter.setPen(Qt::NoPen);
-		painter.setBrush(halo);
-		painter.drawEllipse(center, radius * 3.2, radius * 3.2);
-	}
-
-	QRadialGradient dome(center - QPointF(radius * 0.3, radius * 0.3), radius * 1.6);
-	const QColor off = litColor.darker(330);
-	const QColor hot = litColor.lighter(150);
-	auto mix = [glow](const QColor& a, const QColor& b) {
-		return QColor(
-			qRound(a.red() + (b.red() - a.red()) * glow),
-			qRound(a.green() + (b.green() - a.green()) * glow),
-			qRound(a.blue() + (b.blue() - a.blue()) * glow));
-	};
-	QColor domeTop = mix(off.lighter(140), hot);
-	QColor domeEdge = mix(off, litColor.darker(125));
-	if (unlit)
-	{
-		domeTop.setAlpha(140);
-		domeEdge.setAlpha(140);
-	}
-	dome.setColorAt(0.0, domeTop);
-	dome.setColorAt(1.0, domeEdge);
-	painter.setPen(Qt::NoPen);
-	painter.setBrush(dome);
-	painter.drawEllipse(center, radius, radius);
-	painter.setBrush(RackPalette::light(unlit ? (dark ? 14 : 30)
-		: int((dark ? 28 : 60) + (170 - (dark ? 28 : 60)) * glow)));
-	painter.drawEllipse(center - QPointF(radius * 0.35, radius * 0.35), radius * 0.3, radius * 0.3);
-}
 
 // Paints section plates and labeled slots; the panel behind them belongs to
 // RackFilterPickerView::paintEvent.
@@ -163,7 +116,8 @@ private:
 	}
 
 	// A labeled slot: panel LED left of the printed label. Selection lights
-	// the LED amber and backlights the slot; hover is a faint lamp glow.
+	// the LED amber and backlights the slot; hover is a faint lamp glow on
+	// the slot and leaves the LED dark, so a lit LED still means selected.
 	void paintEntry(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index, const SkinTokens& tokens, bool dark) const
 	{
 		const bool selected = option.state & QStyle::State_Selected;
@@ -193,7 +147,7 @@ private:
 		}
 
 		const QPointF led(slot.left() + 11.0, slot.center().y());
-		paintLed(*painter, led, 2.8, accent, selected ? 1.0 : (hovered ? 0.55 : 0.0), dark);
+		paintLed(*painter, led, 2.8, accent, selected, dark);
 
 		QFont labelFont(tokens.fontFamily);
 		labelFont.setPixelSize(13);
@@ -438,7 +392,7 @@ void RackFilterPickerView::paintEvent(QPaintEvent* event)
 	const QRectF titleRect(r.left() + 26, r.top() + 6, r.width() - 80, 22);
 	engraveText(painter, titleRect, Qt::AlignVCenter | Qt::AlignLeft,
 		QStringLiteral("MODULE SELECT"), withAlpha(QColor(tokens.mutedText), 230), dark);
-	paintLed(painter, QPointF(r.right() - 28, r.top() + 17), 3.0, QColor(tokens.accent2), 1.0, dark);
+	paintLed(painter, QPointF(r.right() - 28, r.top() + 17), 3.0, QColor(tokens.accent2), true, dark);
 
 	// Machined groove separating the header from the controls.
 	const qreal grooveY = r.top() + 31;

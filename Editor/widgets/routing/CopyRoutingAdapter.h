@@ -41,11 +41,6 @@ public:
 		const QString& channel);
 	static void pinChannel(QStringList& pinnedChannels, const QString& channel);
 
-	// True for channels that are not part of the standard physical layout
-	// (the upmix scratch channels such as VSL/VRR). Used to style them as
-	// dashed "virtual" badges.
-	static bool isVirtualChannel(const QString& channel);
-
 	// Fixed display colour for a channel (physical channels have a stable hue;
 	// virtual channels reuse their base colour or a neutral slate). Forwards
 	// to ChannelIdentity, the palette the header badges share.

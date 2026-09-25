@@ -14,7 +14,9 @@ class ChBadge : public QWidget
 
 public:
 	explicit ChBadge(QWidget* parent = nullptr);
-	explicit ChBadge(const QString& channel, QWidget* parent = nullptr);
+	// isVirtual is the channel's verdict under ChannelIdentity::isVirtual for
+	// the host's device; the badge draws a virtual channel dashed.
+	ChBadge(const QString& channel, bool isVirtual, QWidget* parent = nullptr);
 
 	const QString& channel() const;
 	void setChannel(const QString& channel);
@@ -25,7 +27,7 @@ protected:
 
 private:
 	QColor channelColor() const;
-	bool isVirtualChannel() const;
 
 	QString currentChannel;
+	bool virtualChannel = false;
 };

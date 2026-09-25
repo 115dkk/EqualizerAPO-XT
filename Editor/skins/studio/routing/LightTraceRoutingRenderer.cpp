@@ -403,7 +403,7 @@ void StudioRoutingView::paintEvent(QPaintEvent*)
 		const bool isConst = inputRow && model.constInput(index);
 		const bool monoChip = (inputRow && portModel.fixedSourceMode()) || isConst;
 		const bool hovered = lit && hoveredChip == index && hoveredChipIsInput == inputRow;
-		const bool virt = !monoChip && CopyRoutingAdapter::isVirtualChannel(label);
+		const bool virt = !monoChip && portModel.isVirtualChannel(label);
 
 		QColor ink = monoChip ? QColor(t.text) : QColor(CopyRoutingAdapter::channelColor(label));
 		if (!dark && !monoChip)
@@ -468,7 +468,7 @@ void StudioRoutingView::paintEvent(QPaintEvent*)
 		// of leaving, so they never get one).
 		const QString label = chipLabel(false, i);
 		if (lit && hoveredChip == i && !hoveredChipIsInput
-			&& CopyRoutingAdapter::isVirtualChannel(label))
+			&& portModel.isVirtualChannel(label))
 		{
 			const QRect chip = outputRects[i];
 			const QRect xr(chip.right() - sc(7), chip.top() - sc(7), sc(14), sc(14));

@@ -42,6 +42,7 @@ void testStageSelectionModel();
 void testRoutingGridModelPorts();
 void testRoutingGridModel();
 void testRoutingFold();
+void testVirtualChannelRule();
 void testSourceTokenGrammar();
 void testAnalysisResponseBinArithmetic();
 void testAnalysisResponseEmptyAndLatency();

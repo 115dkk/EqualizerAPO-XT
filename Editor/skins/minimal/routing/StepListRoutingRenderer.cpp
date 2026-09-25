@@ -170,7 +170,7 @@ void StepListView::paintEvent(QPaintEvent*)
 		// A bare colored token, the way a terminal marks special text (ls
 		// --color). Only virtual channels keep the dashed hairline frame:
 		// fixed sources (IR file channels) are ports, not virtual channels.
-		const bool virt = (sourceSide && portModel.fixedSourceMode()) ? false : CopyRoutingAdapter::isVirtualChannel(ch);
+		const bool virt = (sourceSide && portModel.fixedSourceMode()) ? false : portModel.isVirtualChannel(ch);
 		const QColor ink = minimalChannelInk(ch, t.dark);
 		const int w = fm.horizontalAdvance(ch) + 12;
 		const QRect pill(x, y + (rowH - h) / 2, w, h);
@@ -281,7 +281,7 @@ void StepListView::paintEvent(QPaintEvent*)
 
 		// A virtual channel can leave the listing: hovering its step exposes
 		// an [x] bracket target (device channels fold instead of leaving).
-		if (CopyRoutingAdapter::isVirtualChannel(dest) && hoveredRow == r)
+		if (portModel.isVirtualChannel(dest) && hoveredRow == r)
 		{
 			const QRect xRect(x, y + (rowH - 18) / 2, 18, 18);
 			drawBracketTarget(xRect, QStringLiteral("x"), false);

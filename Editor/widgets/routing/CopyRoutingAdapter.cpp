@@ -59,20 +59,6 @@ void CopyRoutingAdapter::ensureTargetChannel(std::vector<Assignment>& assignment
 	pinChannel(pinnedChannels, channel);
 }
 
-bool CopyRoutingAdapter::isVirtualChannel(const QString& channel)
-{
-	static const QSet<QString> physical = {
-		QStringLiteral("L"), QStringLiteral("R"), QStringLiteral("C"),
-		QStringLiteral("LFE"), QStringLiteral("SUB"),
-		QStringLiteral("SL"), QStringLiteral("SR"),
-		QStringLiteral("RL"), QStringLiteral("RR"),
-		QStringLiteral("BL"), QStringLiteral("BR"),
-		QStringLiteral("SBL"), QStringLiteral("SBR"),
-		QStringLiteral("RC"), QStringLiteral("FLC"), QStringLiteral("FRC")
-	};
-	return !physical.contains(channel.toUpper());
-}
-
 QString CopyRoutingAdapter::channelColor(const QString& channel)
 {
 	// The cross-skin data ink for channel identity lives in ChannelIdentity,

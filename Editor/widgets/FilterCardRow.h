@@ -79,7 +79,9 @@ private:
 	void applyDescriptor();
 	void rebuildSummary();
 	void setEditing(bool editing);
-	void buildChannelBadges(const QStringList& channels);
+	// deviceChannels is part of the cache key: the same list judges both
+	// which Copy targets reach the header and which badges are dashed.
+	void buildChannelBadges(const QStringList& channels, const std::vector<std::wstring>& deviceChannels);
 	CommandRowInfo currentRowInfo() const;
 	QString uncommentedLine() const;
 	// Indent units for the outer margin. Branch/tail rows of the If family
@@ -114,5 +116,8 @@ private:
 	QLineEdit* lineEdit = nullptr;
 	RoutingView* routingView = nullptr;
 	QStringList renderedChannelBadges;
+	// The device channels the rendered badges were judged against (virtual
+	// or not), so a device change redraws them.
+	std::vector<std::wstring> renderedBadgeDeviceChannels;
 	bool editingDone = false;
 };

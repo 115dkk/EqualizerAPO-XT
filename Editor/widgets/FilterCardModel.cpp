@@ -15,6 +15,7 @@
 #include "filters/BiQuadCommand.h"
 #include "filters/HilbertCommand.h"
 #include "FilterCommandCatalog.h"
+#include "Editor/widgets/routing/ChannelIdentity.h"
 
 namespace
 {
@@ -162,6 +163,27 @@ bool FilterCardModel::hasInlineExpressions(const QString& parameters)
 		if (segment.isExpression)
 			return true;
 	return false;
+}
+
+QStringList FilterCardModel::headerChannels(const FilterCardDescriptor& descriptor,
+	const std::vector<std::wstring>& deviceChannels)
+{
+	QStringList channels;
+	if (descriptor.channelBadgesAreCopyTargets)
+	{
+		for (const QString& target : descriptor.channelBadges)
+		{
+			if (!ChannelIdentity::isVirtual(target, deviceChannels))
+				channels.append(target);
+		}
+	}
+	else
+	{
+		channels = descriptor.channelBadges;
+	}
+	if (channels.isEmpty() && FilterCommandCatalog::channelSelectionGatesType(descriptor.type))
+		channels = descriptor.scopeChannels;
+	return channels;
 }
 
 bool FilterCardModel::hostsSharedRawBody(const QString& type, bool dynamicLine)
@@ -317,11 +339,10 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		while (matches.hasNext())
 			destinations.append(matches.next().captured(1).toUpper());
 
-		for (const QString& destination : destinations)
-		{
-			if (!destination.startsWith('V'))
-				descriptor.channelBadges.append(destination);
-		}
+		// Every destination: which are virtual depends on the device, which
+		// the line does not know (headerChannels decides).
+		descriptor.channelBadges = destinations;
+		descriptor.channelBadgesAreCopyTargets = true;
 	}
 	else if (keyword == QStringLiteral("Channel"))
 	{

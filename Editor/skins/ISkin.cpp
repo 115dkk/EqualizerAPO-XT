@@ -43,11 +43,6 @@ SkinTokens ISkin::tokens(bool dark) const
 	return SkinThemeData::tokens(id(), dark);
 }
 
-QString ISkin::qssResource(bool dark) const
-{
-	return SkinThemeData::qssResource(id(), dark);
-}
-
 KnobGesture ISkin::knobGesture() const
 {
 	return KnobGesture::Rotary;

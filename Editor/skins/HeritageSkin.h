@@ -32,8 +32,6 @@ public:
 	// Classic light values for the custom painters that consume tokens; the
 	// dark flag is ignored (heritage is the classic light look, always).
 	SkinTokens tokens(bool dark) const override;
-	// No QSS: the widget chrome comes from the native style.
-	QString qssResource(bool dark) const override;
 	// No skin routing view: Copy rows keep the legacy CopyFilterGUI.
 	IRoutingRenderer* routingRenderer() const override;
 	// Native toolbar and platform file dialog: the skin adds nothing.

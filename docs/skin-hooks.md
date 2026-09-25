@@ -168,7 +168,9 @@ LegacyRows GraphicEQ GUI keeps the original QGraphicsView stack untouched.
 skin system: id aliases (`resolveId`), the five token tables, QSS resource
 paths, the `@TOKEN@` substitution, the token → `QPalette` mapping and the
 Qt 6.10 combo-arrow override. The `ISkin` classes delegate their
-`tokens()`/`qssResource()` here, so the tables cannot drift. DeviceSelector
+`tokens()` here, so the tables cannot drift; an `ISkin::tokens` override
+reaches the painters only, because `applyToApplication` builds the QSS and
+palette from the table. DeviceSelector
 compiles this one unit plus the aliased `.qss`/font resources
 (`DeviceSelector/DeviceSelectorSkins.qrc`) and wears the Editor's stored
 skin (`interface/skin`, default studio; heritage mode keeps the native

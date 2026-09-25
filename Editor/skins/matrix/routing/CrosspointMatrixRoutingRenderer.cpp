@@ -178,7 +178,7 @@ void CrosspointMatrixView::paintEvent(QPaintEvent*)
 		const QString ch = matrix.inputs[c];
 		const QColor col(CopyRoutingAdapter::channelColor(ch));
 		const QRect hr(rowHeaderWidth + c * cellW, 0, cellW, colHeaderHeight);
-		const bool virt = !portModel.fixedSourceMode() && CopyRoutingAdapter::isVirtualChannel(ch);
+		const bool virt = !portModel.fixedSourceMode() && portModel.isVirtualChannel(ch);
 		QRect pill = hr.adjusted(6, 6, -6, -8);
 		if (virt)
 		{
@@ -201,7 +201,7 @@ void CrosspointMatrixView::paintEvent(QPaintEvent*)
 		const QString out = matrix.outputs[r];
 		const QColor col(CopyRoutingAdapter::channelColor(out));
 		const QRect rr(0, colHeaderHeight + r * cellH, rowHeaderWidth, cellH);
-		const bool virt = CopyRoutingAdapter::isVirtualChannel(out);
+		const bool virt = portModel.isVirtualChannel(out);
 		QRect pill = rr.adjusted(6, 4, -8, -4);
 		if (virt)
 		{

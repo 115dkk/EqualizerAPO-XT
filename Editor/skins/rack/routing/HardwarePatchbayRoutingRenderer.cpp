@@ -244,7 +244,7 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 		// A virtual channel label can be unpatched from the faceplate:
 		// hovering its row engraves an x target under the label (device
 		// channels fold instead of leaving, so they never get one).
-		if (CopyRoutingAdapter::isVirtualChannel(out) && hoveredRow == r)
+		if (portModel.isVirtualChannel(out) && hoveredRow == r)
 		{
 			const QRect xr(labelRect.right() - 12, labelRect.center().y() + 8, 14, 14);
 			p.setPen(a8(col, 230));
