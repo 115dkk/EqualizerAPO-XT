@@ -85,6 +85,7 @@ SOURCES += main.cpp\
 	../devices/DeviceAPOInfo.Uninstall.cpp \
 	../devices/DeviceInstallReport.cpp \
 	../devices/DevicePlan.cpp \
+	../devices/DeviceTestPlan.cpp \
 	../devices/ReportedOperation.cpp \
 	guis/DeviceFilterGUIDialog.cpp \
 	../filters/DeviceCommand.cpp \
@@ -321,6 +322,8 @@ SOURCES += main.cpp\
 	widgets/cards/VSTBusStrip.cpp \
 	widgets/cards/VSTSlotFillModel.cpp \
 	widgets/cards/VSTSlotFillRail.cpp \
+	widgets/cards/VSTRowDocument.cpp \
+	widgets/cards/VSTPluginSession.cpp \
 	widgets/cards/VSTCardEditor.cpp \
 	widgets/ElidedLabel.cpp \
 	widgets/EditableValue.cpp \
@@ -332,6 +335,7 @@ SOURCES += main.cpp\
 	widgets/FilterRowGuiPolicy.cpp \
 	widgets/FilterCommandCatalog.cpp \
 	widgets/FilterCardRow.cpp \
+	widgets/ChannelFlow.cpp \
 	widgets/FilterListModel.cpp \
 	widgets/FilterListUndo.cpp \
 	widgets/FilterPickerModel.cpp \
@@ -370,6 +374,7 @@ HEADERS  += \
 	../services/registry/RegistryError.h \
 	../services/registry/RegistryPaths.h \
 	../platform/windows/WindowsVersion.h \
+	../platform/windows/CommandLineQuoting.h \
 	../platform/windows/GuidText.h \
 	../services/security/AudioEngineAccess.h \
 	../services/diagnostics/InstallDiagnostics.h \
@@ -408,6 +413,8 @@ HEADERS  += \
 	../devices/ApoRuntimeFacts.h \
 	../devices/DeviceAPOInfo.h \
 	../devices/DevicePlan.h \
+	../devices/DeviceTestPlan.h \
+	../devices/DeviceTestWire.h \
 	../devices/ReportedOperation.h \
 	../devices/DeviceException.h \
 	../runtime/errors/WideError.h \
@@ -623,6 +630,8 @@ HEADERS  += \
 	widgets/cards/VSTBusStrip.h \
 	widgets/cards/VSTSlotFillModel.h \
 	widgets/cards/VSTSlotFillRail.h \
+	widgets/cards/VSTRowDocument.h \
+	widgets/cards/VSTPluginSession.h \
 	widgets/cards/VSTCardEditor.h \
 	widgets/ElidedLabel.h \
 	widgets/EditableValue.h \
@@ -634,6 +643,7 @@ HEADERS  += \
 	widgets/FilterRowGuiPolicy.h \
 	widgets/FilterCommandCatalog.h \
 	widgets/FilterCardRow.h \
+	widgets/ChannelFlow.h \
 	widgets/FilterListModel.h \
 	widgets/FilterListUndo.h \
 	widgets/FilterPickerModel.h \

@@ -349,36 +349,8 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 
 QString FilterCardModel::badgeIconResource(const QString& type, const QString& badge)
 {
-	if (type == QStringLiteral("biquad"))
-	{
-		// Prefix matching folds the factory's long vocabulary onto the eight
-		// response-curve glyphs (LPQ rides with LP, LSC with LS, PEQ/MODAL
-		// with PK); an unparsed biquad ("BQUAD") shows the generic peaking
-		// curve rather than a letter chunk, mirroring the picker's fallback.
-		for (const FilterCommandCatalog::BiquadCurveEntry& curve
-			: FilterCommandCatalog::biquadCurves())
-			if (badge.startsWith(QLatin1String(curve.code)))
-				return FilterCommandCatalog::iconResource(curve.icon);
-		return FilterCommandCatalog::iconResource("eq-peaking");
-	}
-	if (type == QStringLiteral("convolution"))
-	{
-		// The badge splits the siblings: one shared type, two pictograms.
-		return commandIconResource(badge == QStringLiteral("MCONV")
-			? QStringLiteral("multiconvolution") : QStringLiteral("convolution"));
-	}
-	if (type == QStringLiteral("hilbert"))
-		return commandIconResource(QStringLiteral("hilbert"));
-	if (type == QStringLiteral("velvet"))
-		return commandIconResource(QStringLiteral("velvet"));
-
-	if (type == QStringLiteral("comment"))
-		return commandIconResource(QStringLiteral("#"));
-	if (type == QStringLiteral("vst"))
-		return commandIconResource(QStringLiteral("vstplugin"));
-	if (type == QStringLiteral("loudness"))
-		return commandIconResource(QStringLiteral("loudnesscorrection"));
-	return commandIconResource(type);
+	// The type-to-pictogram mapping is the catalog's (the entry's icon).
+	return FilterCommandCatalog::badgeIconResource(type, badge);
 }
 
 QString FilterCardModel::commandIconResource(const QString& command, const QString& parameters)

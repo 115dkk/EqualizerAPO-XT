@@ -56,6 +56,12 @@ struct CommandEntry
 	// carries the unparsed-biquad fallback.
 	const char* icon;
 	bool routeType;
+	// The engine narrows this command to the enclosing Channel: selection
+	// (every downstream filter initializes against the selected channel
+	// set), so a card of this command inherits the selection's channel
+	// badges as a fact. Channel/Copy carry their own badges, and control
+	// lines, notes and commands that pick their own channels are not gated.
+	bool channelSelectionTarget;
 	// Card title, translated in the "FilterCardModel" context.
 	const char* title;
 	// One-line picker description, translated in the "FilterPickerView"
@@ -103,6 +109,15 @@ const CommandEntry* entryForKeyword(const QString& canonicalKeyword);
 // Trimmed, case-insensitive match ("preamp"); also accepts "comment" for
 // the "#" row. This is the picker/icon lookup spelling.
 const CommandEntry* entryForCommandWord(const QString& word);
+// True when a command of this card type is a channel-selection target
+// (CommandEntry::channelSelectionTarget; types shared by siblings answer for
+// all of them).
+bool channelSelectionGatesType(const QString& type);
+// The badge pictogram of a card: the entry of that card type, told apart by
+// badge where siblings share a type (Convolution/MultiConvolution), and the
+// Filter command's response curve by badge prefix (biquadCurves()). Empty
+// for a type no entry has, so raw text keeps its monogram.
+QString badgeIconResource(const QString& type, const QString& badge);
 
 const QList<BiquadCurveEntry>& biquadCurves();
 

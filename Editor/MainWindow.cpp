@@ -165,11 +165,12 @@ MainWindow::MainWindow(QDir configDir, const UpdateSession* updateSession, QWidg
 	ui->analysisControlBar->setAttribute(Qt::WA_StyledBackground, true);
 	for (QLabel* label : { ui->startFromLabel, ui->analysisChannelLabel, ui->resolutionLabel })
 		label->setObjectName(QStringLiteral("AnalysisFormLabel"));
-	// Ignored rather than Preferred: these sit in a bar capped at 280px, and a
-	// combo's own size hint is its widest item plus the drop-down and whatever
-	// padding the active skin gives it. That hint has always been larger than
-	// the column can offer, so the layout laid them out at their minimum and
-	// the bar clipped their right edge - which reads as the graph pane eating
+	// Ignored rather than Preferred: these sit in a bar capped at
+	// analysisControlBarWidth, and a combo's own size hint is its widest item
+	// plus the drop-down and whatever padding the active skin gives it. That
+	// hint has always been larger than the column can offer, so the layout
+	// laid them out at their minimum and the bar clipped their right edge -
+	// which reads as the graph pane eating
 	// into the bar. With the hint ignored they take the column's width instead
 	// and elide, which is what a fixed-width bar needs them to do.
 	for (QComboBox* combo : { ui->startFromComboBox, ui->analysisChannelComboBox, ui->graphPositionComboBox })

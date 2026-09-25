@@ -26,70 +26,70 @@ constexpr const char* pickerContext = "FilterPickerView";
 const QList<CommandEntry>& commands()
 {
 	static const QList<CommandEntry> entries = {
-		{ "#", "comment", "#", "#94a3b8", "comment-bubble", false,
+		{ "#", "comment", "#", "#94a3b8", "comment-bubble", false, false,
 		  QT_TRANSLATE_NOOP("FilterCardModel", "Comment"),
 		  QT_TRANSLATE_NOOP("FilterPickerView", "A note EqualizerAPO skips while processing") },
-		{ "Preamp", "preamp", "PRE", "#f59e0b", "preamp-gain", false,
+		{ "Preamp", "preamp", "PRE", "#f59e0b", "preamp-gain", false, true,
 		  QT_TRANSLATE_NOOP("FilterCardModel", "Preamp"),
 		  QT_TRANSLATE_NOOP("FilterPickerView", "Applies overall gain before the other filters") },
-		{ "Delay", "delay", "DLY", "#14b8a6", "delay-clock", false,
+		{ "Delay", "delay", "DLY", "#14b8a6", "delay-clock", false, true,
 		  QT_TRANSLATE_NOOP("FilterCardModel", "Delay"),
 		  QT_TRANSLATE_NOOP("FilterPickerView", "Delays the signal by a time or distance") },
-		{ "Hilbert", "hilbert", "H90", "#6366f1", "eq-allpass", false,
+		{ "Hilbert", "hilbert", "H90", "#6366f1", "eq-allpass", false, false,
 		  QT_TRANSLATE_NOOP("FilterCardModel", "Hilbert transform"),
 		  QT_TRANSLATE_NOOP("FilterPickerView", "Shifts phase by 90 degrees per channel, as in crossfeed synthesis") },
-		{ "Velvet", "velvet", "VEL", "#d946ef", "waveform", false,
+		{ "Velvet", "velvet", "VEL", "#d946ef", "waveform", false, true,
 		  QT_TRANSLATE_NOOP("FilterCardModel", "Velvet decorrelator"),
 		  QT_TRANSLATE_NOOP("FilterPickerView", "Decorrelates channels with sparse velvet noise for a wider image") },
-		{ "Filter", "biquad", "BQUAD", "#22c55e", "eq-peaking", false,
+		{ "Filter", "biquad", "BQUAD", "#22c55e", "eq-peaking", false, true,
 		  QT_TRANSLATE_NOOP("FilterCardModel", "Biquad"),
 		  nullptr },
-		{ "GraphicEQ", "graphiceq", "GEQ", "#8b5cf6", "graphic-eq", false,
+		{ "GraphicEQ", "graphiceq", "GEQ", "#8b5cf6", "graphic-eq", false, true,
 		  QT_TRANSLATE_NOOP("FilterCardModel", "Graphic EQ"),
 		  QT_TRANSLATE_NOOP("FilterPickerView", "Sets a gain for each graphic-EQ band") },
-		{ "Copy", "copy", "CPY", "#06b6d4", "route-channels", true,
+		{ "Copy", "copy", "CPY", "#06b6d4", "route-channels", true, false,
 		  QT_TRANSLATE_NOOP("FilterCardModel", "Copy"),
 		  QT_TRANSLATE_NOOP("FilterPickerView", "Mixes and routes the signal between channels") },
-		{ "Channel", "channel", "CH", "#3b82f6", "channel-select", true,
+		{ "Channel", "channel", "CH", "#3b82f6", "channel-select", true, false,
 		  QT_TRANSLATE_NOOP("FilterCardModel", "Channel"),
 		  QT_TRANSLATE_NOOP("FilterPickerView", "Selects which channels the following filters affect") },
-		{ "Include", "include", "INC", "#64748b", "file-include", true,
+		{ "Include", "include", "INC", "#64748b", "file-include", true, true,
 		  QT_TRANSLATE_NOOP("FilterCardModel", "Include"),
 		  QT_TRANSLATE_NOOP("FilterPickerView", "Loads another configuration file here") },
-		{ "Convolution", "convolution", "CONV", "#ec4899", "waveform", false,
+		{ "Convolution", "convolution", "CONV", "#ec4899", "waveform", false, true,
 		  QT_TRANSLATE_NOOP("FilterCardModel", "Convolution"),
 		  QT_TRANSLATE_NOOP("FilterPickerView", "Applies an impulse response, such as a room or reverb") },
-		{ "MultiConvolution", "convolution", "MCONV", "#ec4899", "multi-convolution", false,
+		{ "MultiConvolution", "convolution", "MCONV", "#ec4899", "multi-convolution", false, true,
 		  QT_TRANSLATE_NOOP("FilterCardModel", "MultiConvolution"),
 		  QT_TRANSLATE_NOOP("FilterPickerView", "Convolves several inputs, as in BRIR headphone synthesis") },
-		{ "VSTPlugin", "vst", "VST", "#a855f7", "plugin", false,
+		{ "VSTPlugin", "vst", "VST", "#a855f7", "plugin", false, true,
 		  QT_TRANSLATE_NOOP("FilterCardModel", "VST Plugin"),
 		  QT_TRANSLATE_NOOP("FilterPickerView", "Runs a VST audio plugin, with explicit VST3 input and output bus layouts") },
-		{ "Device", "device", "DEV", "#64748b", "device-speaker", false,
+		{ "Device", "device", "DEV", "#64748b", "device-speaker", false, false,
 		  QT_TRANSLATE_NOOP("FilterCardModel", "Device"),
 		  QT_TRANSLATE_NOOP("FilterPickerView", "Limits the following filters to one device") },
-		{ "Stage", "stage", "STG", "#f97316", "stage-chain", false,
+		{ "Stage", "stage", "STG", "#f97316", "stage-chain", false, false,
 		  QT_TRANSLATE_NOOP("FilterCardModel", "Stage"),
 		  QT_TRANSLATE_NOOP("FilterPickerView", "Chooses the processing stage for the following filters") },
-		{ "LoudnessCorrection", "loudness", "LOUD", "#eab308", "loudness", false,
+		{ "LoudnessCorrection", "loudness", "LOUD", "#eab308", "loudness", false, true,
 		  QT_TRANSLATE_NOOP("FilterCardModel", "Loudness"),
 		  QT_TRANSLATE_NOOP("FilterPickerView", "Compensates hearing at low listening levels") },
-		{ "SubwooferRouting", "subwooferrouting", "SUB", "#84cc16", "subwoofer-routing", false,
+		{ "SubwooferRouting", "subwooferrouting", "SUB", "#84cc16", "subwoofer-routing", false, false,
 		  QT_TRANSLATE_NOOP("FilterCardModel", "Subwoofer routing"),
 		  QT_TRANSLATE_NOOP("FilterPickerView", "Applies crossover filtering and routes bass and source LFE per speaker group") },
-		{ "If", "if", "IF", "#f43f5e", "logic-if", false,
+		{ "If", "if", "IF", "#f43f5e", "logic-if", false, false,
 		  QT_TRANSLATE_NOOP("FilterCardModel", "If"),
 		  QT_TRANSLATE_NOOP("FilterPickerView", "Applies the following filters only when a condition holds") },
-		{ "ElseIf", "if", "ELIF", "#f43f5e", "logic-if", false,
+		{ "ElseIf", "if", "ELIF", "#f43f5e", "logic-if", false, false,
 		  QT_TRANSLATE_NOOP("FilterCardModel", "Else if"),
 		  QT_TRANSLATE_NOOP("FilterPickerView", "Tries another condition when the previous one failed") },
-		{ "Else", "if", "ELSE", "#f43f5e", "logic-if", false,
+		{ "Else", "if", "ELSE", "#f43f5e", "logic-if", false, false,
 		  QT_TRANSLATE_NOOP("FilterCardModel", "Else"),
 		  QT_TRANSLATE_NOOP("FilterPickerView", "Runs when none of the conditions above matched") },
-		{ "EndIf", "if", "ENDIF", "#f43f5e", "logic-if", false,
+		{ "EndIf", "if", "ENDIF", "#f43f5e", "logic-if", false, false,
 		  QT_TRANSLATE_NOOP("FilterCardModel", "End if"),
 		  QT_TRANSLATE_NOOP("FilterPickerView", "Closes the conditional block") },
-		{ "Eval", "eval", "EVAL", "#0ea5e9", "logic-eval", false,
+		{ "Eval", "eval", "EVAL", "#0ea5e9", "logic-eval", false, false,
 		  QT_TRANSLATE_NOOP("FilterCardModel", "Eval"),
 		  QT_TRANSLATE_NOOP("FilterPickerView", "Computes a variable from an expression") }
 	};
@@ -113,6 +113,38 @@ const CommandEntry* entryForCommandWord(const QString& word)
 		if (normalized.compare(QLatin1String(entry.keyword), Qt::CaseInsensitive) == 0)
 			return &entry;
 	return nullptr;
+}
+
+bool channelSelectionGatesType(const QString& type)
+{
+	for (const CommandEntry& entry : commands())
+		if (entry.channelSelectionTarget && type == QLatin1String(entry.type))
+			return true;
+	return false;
+}
+
+QString badgeIconResource(const QString& type, const QString& badge)
+{
+	// Prefix matching folds the factory's long vocabulary onto the eight
+	// response-curve glyphs (LPQ rides with LP, LSC with LS, PEQ/MODAL with
+	// PK); an unparsed biquad ("BQUAD", "IIR") falls through to the Filter
+	// entry's generic peaking curve below, mirroring the picker's fallback.
+	if (type == QLatin1String("biquad"))
+		for (const BiquadCurveEntry& curve : biquadCurves())
+			if (badge.startsWith(QLatin1String(curve.code)))
+				return iconResource(curve.icon);
+
+	const CommandEntry* firstOfType = nullptr;
+	for (const CommandEntry& entry : commands())
+	{
+		if (type != QLatin1String(entry.type))
+			continue;
+		if (badge == QLatin1String(entry.badge))
+			return iconResource(entry.icon);
+		if (firstOfType == nullptr)
+			firstOfType = &entry;
+	}
+	return firstOfType == nullptr ? QString() : iconResource(firstOfType->icon);
 }
 
 const QList<BiquadCurveEntry>& biquadCurves()

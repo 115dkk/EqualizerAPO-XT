@@ -16,6 +16,7 @@
 #include "services/registry/WindowsRegistry.h"
 
 #include <cstdio>
+#include <optional>
 
 #include <QDateTime>
 #include <QDir>
@@ -32,17 +33,23 @@ namespace EqAPO::Import
 namespace
 {
 
-QString readRegistryString(const IRegistry& registry, const wchar_t* name)
+// An empty string when the value is absent; nullopt when it is there but could
+// not be read, which is logged here. The two used to be one answer, so a
+// ConfigPath the hook failed to read looked unset and was overwritten with the
+// stable root (audit #348 TD-49).
+std::optional<QString> readRegistryString(const IRegistry& registry, const wchar_t* name)
 {
     try
     {
-        if (registry.valueExists(APP_REGPATH, name))
+        if (registry.keyExists(APP_REGPATH) && registry.valueExists(APP_REGPATH, name))
             return QString::fromStdWString(registry.readValue(APP_REGPATH, name));
+        return QString();
     }
-    catch (const RegistryError&)
+    catch (const RegistryError& e)
     {
+        LogFStatic(L"Migration: could not read %s: %s", name, e.getMessage().c_str());
+        return std::nullopt;
     }
-    return QString();
 }
 
 // Copy every file below sourceDir into targetDir, keeping the relative
@@ -154,7 +161,15 @@ void LegacyMigration::runElevatedHookStep(const std::wstring& exeDir, IRegistry&
         return;
     }
 
-    const QString existing = readRegistryString(registry, L"ConfigPath");
+    const std::optional<QString> configured = readRegistryString(registry, L"ConfigPath");
+    if (!configured)
+    {
+        // Whatever the value is, it may be a folder the user chose; the policy
+        // leaves such a folder alone (RespectCustom), and so does a failed read.
+        LogFStatic(L"Migration: ConfigPath could not be read, leaving it alone");
+        return;
+    }
+    const QString existing = *configured;
     const LegacyMigrationPolicy::Action action = LegacyMigrationPolicy::classify(
         existing, stableRoot,
         looksLikeLegacyApoConfigDir(existing),
@@ -249,11 +264,14 @@ void LegacyMigration::runElevatedHookStep(const std::wstring& exeDir, IRegistry&
 int LegacyMigration::dryRun()
 {
 	const QString stableRoot = stableConfigRoot();
-	const QString existing = readRegistryString(systemRegistry(), L"ConfigPath");
+	const std::optional<QString> configured = readRegistryString(systemRegistry(), L"ConfigPath");
+	const QString existing = configured.value_or(QString());
 	const bool legacyMarkers = looksLikeLegacyApoConfigDir(existing);
 	const bool volatileXt = LegacyMigrationPolicy::isVolatileXtConfigDir(existing);
-	const LegacyMigrationPolicy::Action action = LegacyMigrationPolicy::classify(
-		existing, stableRoot, legacyMarkers, volatileXt);
+	// The hook leaves a ConfigPath it cannot read alone; report the same.
+	const LegacyMigrationPolicy::Action action = configured
+		? LegacyMigrationPolicy::classify(existing, stableRoot, legacyMarkers, volatileXt)
+		: LegacyMigrationPolicy::Action::RespectCustom;
 
 	const char* actionName = "?";
 	switch (action)
@@ -266,7 +284,8 @@ int LegacyMigration::dryRun()
 	}
 
 	fwprintf(stderr, L"[migration dry-run] ConfigPath: %s\n",
-		existing.isEmpty() ? L"(absent)" : reinterpret_cast<const wchar_t*>(existing.utf16()));
+		!configured ? L"(could not be read)"
+		: existing.isEmpty() ? L"(absent)" : reinterpret_cast<const wchar_t*>(existing.utf16()));
 	fwprintf(stderr, L"[migration dry-run] stable root: %s\n",
 		reinterpret_cast<const wchar_t*>(stableRoot.utf16()));
 	fwprintf(stderr, L"[migration dry-run] legacy markers: %d, volatile XT dir: %d\n",
@@ -300,7 +319,7 @@ int LegacyMigration::dryRun()
 
 QString LegacyMigration::adoptMigratedFile(const QString& path)
 {
-	const QString migratedFrom = readRegistryString(systemRegistry(), L"MigratedFrom");
+	const QString migratedFrom = readRegistryString(systemRegistry(), L"MigratedFrom").value_or(QString());
 	if (migratedFrom.isEmpty())
 		return path;
 
@@ -349,7 +368,7 @@ QString LegacyMigration::adoptMigratedFile(const QString& path)
 
 void LegacyMigration::maybeShowStartupNotice(QWidget* parent)
 {
-    const QString stamp = readRegistryString(systemRegistry(), L"MigrationStamp");
+    const QString stamp = readRegistryString(systemRegistry(), L"MigrationStamp").value_or(QString());
     if (stamp.isEmpty())
         return;
 
@@ -357,7 +376,7 @@ void LegacyMigration::maybeShowStartupNotice(QWidget* parent)
     if (settings.value(QStringLiteral("interface/migrationNoticeShown")).toString() == stamp)
         return;
 
-    const QString from = readRegistryString(systemRegistry(), L"MigratedFrom");
+    const QString from = readRegistryString(systemRegistry(), L"MigratedFrom").value_or(QString());
     const QString root = stableConfigRoot();
     QMessageBox::information(parent, QObject::tr("Configuration folder moved"),
         QObject::tr("Your Equalizer APO configuration was imported into the EqualizerAPO-XT "

@@ -11,7 +11,7 @@
 
 #include "stdafx.h"
 
-#include "services/logging/Logging.h"
+#include "services/logging/TaggedLogger.h"
 #include "platform/windows/Win32Resource.h"
 #include "ComSelfRegistration.h"
 
@@ -19,11 +19,12 @@ namespace winutil
 {
 HRESULT selfRegisterComServer(const wchar_t* logTag, const std::wstring& dllPath, bool unregister)
 {
+	const logging::TaggedLogger logLine(logTag);
 	winutil::UniqueModule module(LoadLibraryExW(dllPath.c_str(), nullptr, LOAD_WITH_ALTERED_SEARCH_PATH));
 	if (!module)
 	{
 		const DWORD lastError = GetLastError();
-		LogFStatic(L"[%s] LoadLibrary failed for %s (gle=%lu)", logTag, dllPath.c_str(), lastError);
+		logLine(L"ERR", L"LoadLibrary failed for %s (gle=%lu)", dllPath.c_str(), lastError);
 		return HRESULT_FROM_WIN32(lastError);
 	}
 
@@ -33,13 +34,13 @@ HRESULT selfRegisterComServer(const wchar_t* logTag, const std::wstring& dllPath
 	if (proc == nullptr)
 	{
 		const DWORD lastError = GetLastError();
-		LogFStatic(L"[%s] %S not found in %s (gle=%lu)", logTag, entryName, dllPath.c_str(), lastError);
+		logLine(L"ERR", L"%S not found in %s (gle=%lu)", entryName, dllPath.c_str(), lastError);
 		return HRESULT_FROM_WIN32(lastError);
 	}
 
 	const HRESULT hr = proc();
 	if (FAILED(hr))
-		LogFStatic(L"[%s] %S failed for %s (hr=0x%08lX)", logTag, entryName, dllPath.c_str(), static_cast<unsigned long>(hr));
+		logLine(L"ERR", L"%S failed for %s (hr=0x%08lX)", entryName, dllPath.c_str(), static_cast<unsigned long>(hr));
 	return hr;
 }
 }

@@ -17,11 +17,11 @@
 	alone and reported, not asserted - a test that pins a wart makes the wart
 	harder to remove.
 
-	Host dependency, deliberately not hidden: load()'s install-mode inference
-	asks WindowsVersion::isAtLeast(6, 3), which reads the running
-	kernel32 and is not part of the port. The two inference tests therefore
-	expect whichever answer the host justifies rather than assuming Windows 8.1
-	or newer.
+	load()'s install-mode inference used to ask the running Windows whether it
+	was 8.1 or newer, so these tests expected whichever answer the host
+	justified. The minimum supported Windows is now 10 1809 (Qt 6.10) and the
+	question is gone (audit #348 TD-53); the inference depends on the registry
+	alone.
 */
 
 #include <algorithm>
@@ -56,7 +56,6 @@
 #include "services/security/AudioEngineAccess.h"
 #include "services/windows/WindowsService.h"
 #include "services/registry/WindowsRegistry.h"
-#include "platform/windows/WindowsVersion.h"
 #include "Tests/TestHarness.h"
 
 #include "Tests/FakeRegistry.h"
@@ -209,10 +208,9 @@ void testLoadWithForeignApoGuidsReportsNotInstalled(test::Harness& harness)
 	harness.expect(info.getOriginalAPOPostMix() == vendorPostMixGuid,
 		"the MFX slot answers the same way for the post-mix half");
 
-	const bool windows81OrNewer = WindowsVersion::isAtLeast(6, 3);
 	harness.expectEqual(static_cast<int>(info.getCurrentInstallState().installMode),
-		static_cast<int>(windows81OrNewer ? DeviceAPOInfo::INSTALL_SFX_EFX : DeviceAPOInfo::INSTALL_LFX_GFX),
-		"a driver that supplies SFX/MFX gets the SFX/EFX mode on Windows 8.1 and newer; before that only LFX/GFX exists");
+		static_cast<int>(DeviceAPOInfo::INSTALL_SFX_EFX),
+		"a driver that supplies SFX/MFX gets the SFX/EFX mode");
 }
 
 void testLoadInfersLfxGfxWhenTheDriverSuppliesOnlyLegacySlots(test::Harness& harness)
@@ -242,9 +240,8 @@ void testLoadInfersSfxMfxForACombinedBluetoothDevice(test::Harness& harness)
 	DeviceAPOInfo info(registry);
 	harness.require(info.load(testDeviceGuid, otherDeviceGuid), "the device loads");
 
-	const bool windows81OrNewer = WindowsVersion::isAtLeast(6, 3);
 	harness.expectEqual(static_cast<int>(info.getCurrentInstallState().installMode),
-		static_cast<int>(windows81OrNewer ? DeviceAPOInfo::INSTALL_SFX_MFX : DeviceAPOInfo::INSTALL_LFX_GFX),
+		static_cast<int>(DeviceAPOInfo::INSTALL_SFX_MFX),
 		"a combined Bluetooth endpoint falls back to SFX/MFX because its EFX slot is never reached");
 }
 

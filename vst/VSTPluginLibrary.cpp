@@ -26,6 +26,7 @@
 #include "VST3HostObjects.h"
 #include "VST3RefCounted.h"
 #include "platform/windows/Win32Resource.h"
+#include "platform/windows/WindowsPath.h"
 #include "pluginterfaces/base/futils.h"
 #include "pluginterfaces/vst/ivstaudioprocessor.h"
 #include "pluginterfaces/vst/ivsthostapplication.h"
@@ -141,12 +142,8 @@ wstring VSTPluginLibrary::getDefaultPluginPath()
 			// VSTPlugins folder beside the executable; installed systems have
 			// the registry value and never take this path.
 			LogFStatic(L"%s - falling back to the executable directory for VST plugins", e.getMessage().c_str());
-			wchar_t modulePath[MAX_PATH];
-			modulePath[0] = L'\0';
-			GetModuleFileNameW(nullptr, modulePath, MAX_PATH);
-			wstring exePath = modulePath;
-			size_t separator = exePath.find_last_of(L'\\');
-			defaultPluginPath = (separator != wstring::npos ? exePath.substr(0, separator) : L".") + L"\\VSTPlugins";
+			const wstring exeDirectory = pathutil::exeDirectory();
+			defaultPluginPath = (exeDirectory.empty() ? wstring(L".") : exeDirectory) + L"\\VSTPlugins";
 		}
 	}
 

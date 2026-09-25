@@ -76,6 +76,34 @@ void testLegacyMigrationHookAdoptsStableRootThroughThePort()
 		QStringLiteral("adopting an empty ConfigPath leaves no migration breadcrumbs"));
 }
 
+// Audit #348 TD-49: a ConfigPath the hook could not read used to come back as
+// an empty string, which the policy takes for "no ConfigPath" and answers by
+// adopting the stable root - overwriting a value that may be a folder the user
+// chose. A DWORD under the name makes valueExists true and readValue throw.
+void testLegacyMigrationHookLeavesAnUnreadableConfigPathAlone()
+{
+	QTemporaryDir tempRoot;
+	requireTrue(tempRoot.isValid(), QStringLiteral("temp LOCALAPPDATA root created"));
+	ScopedLocalAppData scopedEnv(tempRoot.path());
+
+	QTemporaryDir exeDir;
+	requireTrue(exeDir.isValid(), QStringLiteral("temp exe dir created"));
+
+	test::FakeRegistry registry;
+	registry.seedKey(APP_REGPATH);
+	registry.seedDword(APP_REGPATH, L"ConfigPath", 1);
+
+	EqAPO::Import::LegacyMigration::runElevatedHookStep(
+		QDir::toNativeSeparators(exeDir.path()).toStdWString(), registry);
+
+	expectEqual(static_cast<int>(registry.readDWORDValue(APP_REGPATH, L"ConfigPath")), 1,
+		QStringLiteral("a ConfigPath that could not be read is left as it was"));
+	expectFalse(QDir(tempRoot.path() + QStringLiteral("/EqualizerAPO-XT/config")).exists(),
+		QStringLiteral("a ConfigPath that could not be read does not get the stable root created for it"));
+	expectFalse(registry.valueExists(APP_REGPATH, L"MigratedFrom"),
+		QStringLiteral("a ConfigPath that could not be read leaves no migration breadcrumbs"));
+}
+
 void testLegacyMigrationHookRescuesVolatileTreeAndLeavesBreadcrumbs()
 {
 	QTemporaryDir tempRoot;

@@ -27,8 +27,9 @@ class VSTSlotFillModel
 {
 public:
 	// The contract the fills belong to. A side with an Auto layout (or no
-	// contract at all) has no rail; the caller keeps the fill lists in sync
-	// with layout changes (they clear when a side's layout changes).
+	// contract at all) has no rail. Only the layouts change here: the fill
+	// lists stay as they are. Clearing a side whose layout changed is
+	// VSTRowDocument's rule.
 	void setContract(const std::optional<VST3BusContract>& contract);
 	void setFill(std::vector<std::wstring> input, std::vector<std::wstring> output);
 	// The channels selected at this row, in selection order. Slot defaults

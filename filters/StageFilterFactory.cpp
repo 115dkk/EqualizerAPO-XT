@@ -44,7 +44,7 @@ void StageFilterFactory::initialize(FilterEngine* engine)
 
 FilterVector StageFilterFactory::startOfConfiguration()
 {
-	stageMatches = engineCapture || !enginePreMix || !enginePostMixInstalled;
+	stageMatches = StageCommand::matchesByDefault(enginePreMix, engineCapture, enginePostMixInstalled);
 	while (!stageMatchesStack.empty())
 		stageMatchesStack.pop();
 
@@ -63,36 +63,13 @@ FilterVector StageFilterFactory::createFilter(const wstring& configPath, wstring
 	StageCommand cmd;
 	if (StageCommand::parse(command, parameters, cmd))
 	{
-		stageMatches = false;
-
+		// The rule itself is StageCommand's, shared with the Editor's channel
+		// flow; this factory only keeps the state and the log lines.
 		wstring matchingPart;
+		stageMatches = cmd.matches(enginePreMix, engineCapture, &matchingPart);
 		for (const wstring& part : cmd.stages)
 		{
-			if (part == StageCommand::preMix)
-			{
-				if (!engineCapture && enginePreMix)
-				{
-					stageMatches = true;
-					matchingPart = part;
-				}
-			}
-			else if (part == StageCommand::postMix)
-			{
-				if (!engineCapture && !enginePreMix)
-				{
-					stageMatches = true;
-					matchingPart = part;
-				}
-			}
-			else if (part == StageCommand::capture)
-			{
-				if (engineCapture)
-				{
-					stageMatches = true;
-					matchingPart = part;
-				}
-			}
-			else
+			if (!StageCommand::isKnownStage(part))
 			{
 				// On the load trace, so the Editor can show it on the line (audit
 				// #348 TD-18); it used to reach only the log. The other parts of

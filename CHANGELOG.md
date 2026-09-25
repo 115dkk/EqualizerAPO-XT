@@ -14,6 +14,40 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.17 — 2026-09-25
+
+- **The Editor's channel lists follow `Device:` and `Stage:` lines.** The
+  channels each line offers (a VST row's channel fill, the Channel and Copy
+  pickers) were worked out without looking at `Device:` or `Stage:`, so a
+  `Channel:` line inside a block for another device still narrowed the lines
+  below it in the Editor, though the engine skips it. They now follow the
+  engine. Which `If` branch runs cannot be known while editing, so each
+  branch starts from the channels at its `If` line and the lines after
+  `EndIf` continue from the `If` branch; `docs/FilterListUiPolicy.md`
+  describes this.
+- **The legacy VST row no longer marks valid channel fills as missing.** A
+  fill entry written as a position number (`1`) or an alias (`SL`) was
+  painted red on the legacy row although the engine accepts it; the legacy
+  row now judges fills the way the card does, and both rows share one plug-in
+  session, so a VST feature lands in both ([#381](https://github.com/115dkk/EqualizerAPO-XT/pull/381)).
+
+## v2.54.16 — 2026-09-25
+
+- **Korean and other non-English text in the Device Selector's command-line
+  output is readable.** Its headless messages were converted to the ANSI code
+  page and came out garbled; they are now written as Unicode to a console and
+  as UTF-8 otherwise. Paths ending in a backslash, or containing quotes, now
+  survive when the Editor restarts the Device Selector or when a Voicemeeter
+  shortcut is written.
+- **A configuration folder whose registry value cannot be read is left
+  alone.** When the Editor could not read the configured ConfigPath, its
+  first-run migration treated the value as if no folder were set; it now
+  keeps the configured folder and logs why.
+- **More failures reach the log.** Qt warnings and errors are now written to
+  `Editor.log` and the Device Selector's log, as are a failed APO
+  registration, a failed Velopack update check at restart and a failed
+  Device Selector launch on the first run ([#380](https://github.com/115dkk/EqualizerAPO-XT/pull/380)).
+
 ## v2.54.15 — 2026-09-25
 
 - **The subwoofer routing screens show the same numbers.** With no device

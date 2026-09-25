@@ -119,10 +119,12 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClCompile Include="ReferenceCardStateTests.cpp" />
     <ClCompile Include="VSTBusModelTests.cpp" />
     <ClCompile Include="VSTSlotFillModelTests.cpp" />
+    <ClCompile Include="VSTRowDocumentTests.cpp" />
     <ClCompile Include="PanelMonitorGateTests.cpp" />
     <ClCompile Include="InfrastructureTests.cpp" />
     <ClCompile Include="FilterCardModelTests.cpp" />
     <ClCompile Include="FilterListModelTests.cpp" />
+    <ClCompile Include="ChannelFlowTests.cpp" />
     <ClCompile Include="ConfigImportTests.cpp" />
     <ClCompile Include="SelectionModelTests.cpp" />
     <ClCompile Include="RoutingModelTests.cpp" />
@@ -140,6 +142,7 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClCompile Include="..\..\Editor\widgets\subwooferrouting\SubwooferRoutingDefaults.cpp" />
     <ClCompile Include="..\..\Editor\widgets\routing\SubwooferRoutingRoutingAdapter.cpp" />
     <ClCompile Include="UpdateSessionTests.cpp" />
+    <ClCompile Include="CommandLineQuotingTests.cpp" />
     <ClCompile Include="..\..\services\update\UpdateSession.cpp" />
     <ClCompile Include="..\..\Editor\ConfigFileCodec.cpp" />
     <ClCompile Include="..\..\Editor\analysis\AnalysisResponse.cpp" />
@@ -168,6 +171,7 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClCompile Include="..\..\Editor\widgets\FilterCommandCatalog.cpp" />
     <ClCompile Include="..\..\Editor\widgets\FilterPickerModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\EditableValueText.cpp" />
+    <ClCompile Include="..\..\Editor\widgets\ChannelFlow.cpp" />
     <ClCompile Include="..\..\Editor\widgets\FilterListModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\FilterListUndo.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\ChannelSelectionModel.cpp" />
@@ -176,6 +180,7 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClCompile Include="..\..\Editor\widgets\cards\ReferenceCardState.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\VSTBusModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\VSTSlotFillModel.cpp" />
+    <ClCompile Include="..\..\Editor\widgets\cards\VSTRowDocument.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\StageSelectionModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\routing\MultiConvolutionRoutingAdapter.cpp" />
     <ClCompile Include="..\..\Editor\widgets\routing\RoutingFold.cpp" />
@@ -202,6 +207,7 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClInclude Include="..\..\Editor\widgets\FilterCommandCatalog.h" />
     <ClInclude Include="..\..\Editor\widgets\FilterPickerModel.h" />
     <ClInclude Include="..\..\Editor\widgets\EditableValueText.h" />
+    <ClInclude Include="..\..\Editor\widgets\ChannelFlow.h" />
     <ClInclude Include="..\..\Editor\widgets\FilterListModel.h" />
     <ClInclude Include="..\..\Editor\widgets\FilterListUndo.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\ChannelSelectionModel.h" />
