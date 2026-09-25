@@ -43,7 +43,8 @@ namespace eapo::asio
 		bool isWrapperEntry(const std::wstring& entryName);
 
 		// A CLSID for the wrapper entry, derived from the target's CLSID so
-		// the same target always maps to the same wrapper.
+		// the same target always maps to the same wrapper. Empty when the
+		// target's CLSID is not a braced GUID (a ProgID is not accepted).
 		std::wstring wrapperClsidFor(const std::wstring& targetClsid);
 
 		// A Windows audio endpoint as a target: the entry is named after the
@@ -53,18 +54,22 @@ namespace eapo::asio
 		// and become slashes.
 		AsioTarget endpointTarget(const std::wstring& endpointGuid, const std::wstring& connectionName, const std::wstring& deviceName);
 		// Every target driver registered in the 64-bit view, without the
-		// wrapper's own entries. A subkey without a CLSID is skipped.
+		// wrapper's own entries. A subkey without a CLSID, or with one that
+		// is not a braced GUID, is skipped.
 		std::vector<AsioTarget> enumerateTargets(const IRegistry& registry);
 
 		bool wrapperRegistered(const IRegistry& registry, const AsioTarget& target);
 
 		// Writes the entry and the class tree in the 64-bit view, and again in
 		// the WOW6432Node view when a 32-bit DLL path is given. Idempotent.
+		// Throws WideError, writing nothing, when the target's CLSID is not a
+		// braced GUID.
 		void registerWrapper(IRegistry& registry, const AsioTarget& target,
 			const std::wstring& dll64Path, const std::wstring& dll32Path);
 
 		// Removes what registerWrapper wrote, in both views, ignoring what is
-		// already absent.
+		// already absent. A target whose CLSID is not a GUID was never
+		// registered, so nothing is touched for it.
 		void unregisterWrapper(IRegistry& registry, const AsioTarget& target);
 
 		// The engine host at boot: one Run value for the machine, present

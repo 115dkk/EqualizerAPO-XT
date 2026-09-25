@@ -220,10 +220,10 @@ namespace eapo::asio
 		session.ringBytes = ringBytes;
 		std::memset(session.ringBase, 0, ringBytes);
 
-		const wchar_t* const suffixes[5] = {L"work0", L"work1", L"done0", L"done1", L"ready"};
-		for (int i = 0; i < 5; i++)
+		for (unsigned i = 0; i < RingEvents::count; i++)
 		{
-			objects_.events[i] = CreateEventW(nullptr, i == 4 ? TRUE : FALSE, FALSE, HostNames::event(ringName, suffixes[i]).c_str());
+			const RingEvents::Entry& entry = RingEvents::table[i];
+			objects_.events[i] = CreateEventW(nullptr, entry.manualReset ? TRUE : FALSE, FALSE, HostNames::event(ringName, entry.suffix).c_str());
 			if (objects_.events[i] == nullptr)
 			{
 				error = describe("the stream events could not be created", GetLastError());
@@ -231,11 +231,8 @@ namespace eapo::asio
 				return false;
 			}
 		}
-		session.sync.work[0] = objects_.events[0];
-		session.sync.work[1] = objects_.events[1];
-		session.sync.done[0] = objects_.events[2];
-		session.sync.done[1] = objects_.events[3];
-		session.sync.ready = objects_.events[4];
+		// The peer (the host's process handle) follows once the host answered.
+		session.sync = RingEvents::toSync(objects_.events, nullptr);
 
 		HANDLE pipe = INVALID_HANDLE_VALUE;
 		const ULONGLONG deadline = GetTickCount64() + options.readyTimeoutMs;

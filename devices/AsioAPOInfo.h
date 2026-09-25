@@ -92,9 +92,6 @@ public:
 	void setHost32(bool host32) {selected.host32 = host32;}
 	bool canHost32() const;
 
-	// Where the engine host publishes what it saw for a target.
-	static std::wstring factsKey(const std::wstring& targetClsid);
-
 private:
 	void loadState();
 	// The product's install directory (the InstallPath value its install hook
