@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.17 — 2026-09-25
+
 - **The Editor's channel lists follow `Device:` and `Stage:` lines.** The
   channels each line offers (a VST row's channel fill, the Channel and Copy
   pickers) were worked out without looking at `Device:` or `Stage:`, so a

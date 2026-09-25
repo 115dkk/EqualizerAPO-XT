@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.54.17 — 2026-09-25
+
 - **Editor의 채널 목록이 `Device:`와 `Stage:` 줄을 따릅니다.** 각 줄이 보여 주는
   채널(VST 행의 채널 채우기, Channel·Copy 선택기)을 `Device:`·`Stage:`를 보지 않고
   계산해서, 다른 장치용 블록 안의 `Channel:` 줄이 엔진은 건너뛰는데도 Editor에서는
