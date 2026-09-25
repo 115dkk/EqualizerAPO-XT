@@ -313,6 +313,8 @@ SOURCES += main.cpp\
 	widgets/cards/VSTBusStrip.cpp \
 	widgets/cards/VSTSlotFillModel.cpp \
 	widgets/cards/VSTSlotFillRail.cpp \
+	widgets/cards/VSTRowDocument.cpp \
+	widgets/cards/VSTPluginSession.cpp \
 	widgets/cards/VSTCardEditor.cpp \
 	widgets/ElidedLabel.cpp \
 	widgets/EditableValue.cpp \
@@ -324,6 +326,7 @@ SOURCES += main.cpp\
 	widgets/FilterRowGuiPolicy.cpp \
 	widgets/FilterCommandCatalog.cpp \
 	widgets/FilterCardRow.cpp \
+	widgets/ChannelFlow.cpp \
 	widgets/FilterListModel.cpp \
 	widgets/FilterListUndo.cpp \
 	widgets/FilterPickerModel.cpp \
@@ -607,6 +610,8 @@ HEADERS  += \
 	widgets/cards/VSTBusStrip.h \
 	widgets/cards/VSTSlotFillModel.h \
 	widgets/cards/VSTSlotFillRail.h \
+	widgets/cards/VSTRowDocument.h \
+	widgets/cards/VSTPluginSession.h \
 	widgets/cards/VSTCardEditor.h \
 	widgets/ElidedLabel.h \
 	widgets/EditableValue.h \
@@ -618,6 +623,7 @@ HEADERS  += \
 	widgets/FilterRowGuiPolicy.h \
 	widgets/FilterCommandCatalog.h \
 	widgets/FilterCardRow.h \
+	widgets/ChannelFlow.h \
 	widgets/FilterListModel.h \
 	widgets/FilterListUndo.h \
 	widgets/FilterPickerModel.h \

@@ -24,6 +24,8 @@
 #include <QWidget>
 #include <QVariantMap>
 
+#include "Editor/widgets/ChannelFlow.h"
+
 class IFilterGUI : public QWidget
 {
 	Q_OBJECT
@@ -32,16 +34,11 @@ public:
 	IFilterGUI(QWidget* parent = 0);
 	virtual ~IFilterGUI();
 
-	virtual void configureChannels(std::vector<std::wstring>& channelNames) {}
-
-	// The channels SELECTED at this row, walked top-down right after
-	// configureChannels: a Channel row replaces the vector with its own
-	// resolved selection for the rows below it (mirroring the engine's
-	// getSelectChannels flow), a consumer copies it, everyone else leaves it
-	// alone. Distinct from configureChannels on purpose - that vector is the
-	// names IN SCOPE (Copy keeps adding to it), this one is what the engine
-	// would actually hand a filter on this line.
-	virtual void configureSelectedChannels(std::vector<std::wstring>& selectedChannels) {}
+	// What this row's line sees of the document's channel flow, before its
+	// own effect: the names in scope and the channels selected there
+	// (computeChannelFlow). A row only reads it; what a Channel: or Copy:
+	// line does to the rows below is computed from the lines themselves.
+	virtual void setChannelFlow(const ChannelFlowAtLine& flow) {}
 
 	virtual void store(QString& command, QString& parameters) = 0;
 

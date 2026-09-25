@@ -136,9 +136,9 @@ void MultiConvolutionCardEditor::store(QString& command, QString& parameters)
 	parameters = QString::fromStdWString(cmd.serialize());
 }
 
-void MultiConvolutionCardEditor::configureChannels(std::vector<std::wstring>& channelNames)
+void MultiConvolutionCardEditor::setChannelFlow(const ChannelFlowAtLine& flow)
 {
-	rowChannels = channelNames;
+	rowChannels = flow.namesInScope;
 	rebuildRoutingView();
 }
 

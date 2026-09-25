@@ -33,8 +33,6 @@ public:
 		const QString& parseError, QWidget* parent = nullptr);
 
 	void store(QString& command, QString& parameters) override;
-	void configureChannels(
-		std::vector<std::wstring>& channelNames) override;
 
 protected:
 	virtual void openFullEditor();

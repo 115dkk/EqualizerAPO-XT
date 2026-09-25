@@ -34,8 +34,7 @@ class CommentFilterGUI : public IFilterGUI
 public:
 	explicit CommentFilterGUI(IFilterGUI* child, bool isComment);
 	~CommentFilterGUI();
-	void configureChannels(std::vector<std::wstring>& channelNames) override;
-	void configureSelectedChannels(std::vector<std::wstring>& selectedChannels) override;
+	void setChannelFlow(const ChannelFlowAtLine& flow) override;
 	void store(QString& command, QString& parameters) override;
 
 	void loadPreferences(const QVariantMap& prefs) override;

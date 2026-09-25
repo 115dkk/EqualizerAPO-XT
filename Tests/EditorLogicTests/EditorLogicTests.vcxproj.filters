@@ -83,6 +83,12 @@
     <ClCompile Include="FilterListModelTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ChannelFlowTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Editor\widgets\ChannelFlow.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="ConfigImportTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -120,6 +126,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Editor\widgets\cards\VSTBusModel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Editor\widgets\cards\VSTRowDocument.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VSTRowDocumentTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

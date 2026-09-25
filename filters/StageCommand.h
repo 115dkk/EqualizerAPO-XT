@@ -39,6 +39,20 @@ struct StageCommand
 
 	bool contains(const std::wstring& stage) const;
 
+	// The engine's Stage: rule, as pure functions of the APO instance's stage
+	// facts (FilterEngine::isPreMix/isCapture/isPostMixInstalled). The engine
+	// factory and the Editor's channel flow both decide through these.
+	//
+	// Whether lines before any Stage: line run: always on the capture and
+	// post-mix instances, and on the pre-mix instance only while no post-mix
+	// instance is installed.
+	static bool matchesByDefault(bool instancePreMix, bool instanceCapture, bool postMixInstalled);
+	// Whether this Stage: line lets the lines after it run on that instance.
+	// matchingStage (optional) receives the last selector that matched.
+	bool matches(bool instancePreMix, bool instanceCapture, std::wstring* matchingStage = nullptr) const;
+	// True for the three selectors of the stage vocabulary.
+	static bool isKnownStage(const std::wstring& stage);
+
 	// Canonical space-separated parameter string.
 	std::wstring serialize() const;
 

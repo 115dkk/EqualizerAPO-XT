@@ -36,8 +36,7 @@ public:
 	explicit ChannelCardEditor(const QString& parameters, QWidget* parent = nullptr);
 
 	void store(QString& command, QString& parameters) override;
-	void configureChannels(std::vector<std::wstring>& channelNames) override;
-	void configureSelectedChannels(std::vector<std::wstring>& selectedChannels) override;
+	void setChannelFlow(const ChannelFlowAtLine& flow) override;
 
 private slots:
 	void allToggled(bool checked);

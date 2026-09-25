@@ -27,29 +27,9 @@
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/ChBadge.h"
 #include "Editor/widgets/ElidedLabel.h"
+#include "Editor/widgets/FilterCommandCatalog.h"
 #include "Editor/widgets/routing/IRoutingRenderer.h"
 #include "Editor/widgets/routing/CopyRoutingAdapter.h"
-
-namespace
-{
-// Row types the engine narrows to the enclosing Channel: selection (every
-// downstream filter initializes against the selected channel set), so an
-// inherited scope badge on them states a fact. Channel/Copy rows carry their
-// own channel badges, and control rows (device, stage, eval, the If family),
-// notes and unknown raw text are not gated by the selection at all.
-bool channelSelectionGatesType(const QString& type)
-{
-	return type == QStringLiteral("biquad")
-		|| type == QStringLiteral("preamp")
-		|| type == QStringLiteral("delay")
-		|| type == QStringLiteral("graphiceq")
-		|| type == QStringLiteral("convolution")
-		|| type == QStringLiteral("velvet")
-		|| type == QStringLiteral("vst")
-		|| type == QStringLiteral("loudness")
-		|| type == QStringLiteral("include");
-}
-}
 
 FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* item, IFilterGUI* gui,
 	FilterCardDescriptor preparedDescriptor, QWidget* parent)
@@ -236,40 +216,20 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 		// Skin-specific Copy routing view (crosspoint matrix, step list, ...).
 		// The view owns its working routing state; on edit we serialise it
 		// back into item->text.
-		QWidget* editorContainer = new QWidget(bodyStack);
-		editorContainer->setObjectName(QStringLiteral("FilterCardEditor"));
-		editorContainer->setAttribute(Qt::WA_StyledBackground, true);
-		editorContainer->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
-		editorContainer->setMinimumSize(0, 0);
-		QVBoxLayout* editorLayout = new QVBoxLayout(editorContainer);
-		editorLayout->setContentsMargins(12, 10, 12, 12);
-
-		std::vector<Assignment> routingAssignments = CopyRoutingAdapter::parse(descriptor.parameters);
-		// Seed the routing editor with the real device channel set (L, R, C, ...),
-		// the same list the legacy CopyFilterGUI receives via configureChannels.
-		// Without it the graph only shows channels already named in the line, so
-		// the user cannot route to/from a channel that has no assignment yet
-		// (e.g. copying L onto R when R is not referenced).
-		std::vector<std::wstring> channelNames = table->getChannelNames();
-		// Copy uses the default port model: symmetric sources/targets seeded
-		// from the device channels, with editable factors.
-		routingView = routingRenderer->create(routingAssignments, channelNames, RoutingPortModel(), editorContainer,
-			SkinManager::instance()->tokens());
-
-		QScrollArea* routingScroll = new QScrollArea(editorContainer);
-		routingScroll->setObjectName(QStringLiteral("FilterCardEditorScroll"));
-		routingScroll->setFrameShape(QFrame::NoFrame);
-		routingScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-		routingScroll->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-		routingScroll->setWidgetResizable(true);
-		routingScroll->setMinimumSize(0, 0);
-		routingScroll->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
-		routingScroll->setWidget(routingView);
-		watchEditorScroll(routingScroll);
-		editorLayout->addWidget(routingScroll);
-
-		bodyStack->addWidget(editorContainer);
-		bodyStack->setCurrentWidget(editorContainer);
+		mountEditorBody([this, routingRenderer](QWidget* editorContainer) -> QWidget* {
+			std::vector<Assignment> routingAssignments = CopyRoutingAdapter::parse(descriptor.parameters);
+			// Seed the routing editor with the real device channel set (L, R, C, ...),
+			// the same list the legacy CopyFilterGUI starts from in setChannelFlow.
+			// Without it the graph only shows channels already named in the line, so
+			// the user cannot route to/from a channel that has no assignment yet
+			// (e.g. copying L onto R when R is not referenced).
+			std::vector<std::wstring> channelNames = this->table->getChannelNames();
+			// Copy uses the default port model: symmetric sources/targets seeded
+			// from the device channels, with editable factors.
+			routingView = routingRenderer->create(routingAssignments, channelNames, RoutingPortModel(), editorContainer,
+				SkinManager::instance()->tokens());
+			return routingView;
+		});
 		connect(routingView, SIGNAL(routingChanged()), this, SLOT(routingEdited()));
 		connect(routingView, SIGNAL(routingChanged()), table, SLOT(updateChannels()));
 
@@ -279,42 +239,9 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	}
 	else if (gui != nullptr)
 	{
-		QWidget* editorContainer = new QWidget(bodyStack);
-		editorContainer->setObjectName(QStringLiteral("FilterCardEditor"));
-		editorContainer->setAttribute(Qt::WA_StyledBackground, true);
-		// Match bodyStack: stop overgrown filter GUIs from inflating the card width.
-		editorContainer->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
-		editorContainer->setMinimumSize(0, 0);
-		QVBoxLayout* editorLayout = new QVBoxLayout(editorContainer);
-		editorLayout->setContentsMargins(12, 10, 12, 12);
-		// Wrap the legacy filter GUI in a borderless scroll area. Without this,
-		// any filter GUI that has a content-driven sizeHint (DeviceFilterGUI's
-		// QTreeWidget AdjustToContents, GraphicEQ / Convolution / VSTPlugin's
-		// internal AdjustToContents widgets) propagates a huge minimumSize up
-		// through editorContainer/bodyStack/cardFrame/FilterCardRow and the
-		// QGridLayout in FilterTable then forces every card column to that
-		// width, pushing the cards' content thousands of pixels off screen.
-		QWidget* guiWidget = qobject_cast<QWidget*>(gui);
-		if (guiWidget != nullptr)
-		{
-			QScrollArea* guiScroll = new QScrollArea(editorContainer);
-			guiScroll->setObjectName(QStringLiteral("FilterCardEditorScroll"));
-			guiScroll->setFrameShape(QFrame::NoFrame);
-			guiScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-			guiScroll->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-			guiScroll->setWidgetResizable(true);
-			guiScroll->setMinimumSize(0, 0);
-			guiScroll->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
-			guiScroll->setWidget(guiWidget);
-			watchEditorScroll(guiScroll);
-			editorLayout->addWidget(guiScroll);
-		}
-		else
-		{
-			editorLayout->addWidget(gui);
-		}
-		bodyStack->addWidget(editorContainer);
-		bodyStack->setCurrentWidget(editorContainer);
+		mountEditorBody([this](QWidget*) -> QWidget* {
+			return this->gui;
+		});
 		connect(gui, SIGNAL(updateModel()), this, SLOT(updateModel()));
 	}
 	else
@@ -375,35 +302,12 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 		watchPointerSelection(button);
 }
 
-void FilterCardRow::configureChannels(std::vector<std::wstring>& channelNames)
+void FilterCardRow::setChannelFlow(const ChannelFlowAtLine& flow)
 {
-	if (routingView != nullptr && descriptor.type == QStringLiteral("copy"))
-	{
-		if (descriptor.enabled)
-			propagateCopyChannels(CopyRoutingAdapter::parse(descriptor.parameters), channelNames);
-		return;
-	}
-
+	// The Copy routing rows have no gui; what their line adds to the names
+	// in scope below is computed from the line itself (computeChannelFlow).
 	if (gui != nullptr)
-		gui->configureChannels(channelNames);
-}
-
-void FilterCardRow::configureSelectedChannels(std::vector<std::wstring>& selectedChannels)
-{
-	// The Copy routing rows have no gui, and Copy never changes the
-	// selection anyway (getSelectChannels is false in the engine).
-	if (gui == nullptr)
-		return;
-	if (descriptor.enabled)
-	{
-		gui->configureSelectedChannels(selectedChannels);
-		return;
-	}
-	// A powered-off row still sees the selection (its controls keep their
-	// meaning) but must not change what flows to the rows below: the engine
-	// skips commented lines, so a commented Channel row narrows nothing.
-	std::vector<std::wstring> copy = selectedChannels;
-	gui->configureSelectedChannels(copy);
+		gui->setChannelFlow(flow);
 }
 
 CommandRowInfo FilterCardRow::currentRowInfo() const
@@ -588,6 +492,54 @@ void FilterCardRow::watchPointerSelection(QWidget* root)
 	}
 }
 
+void FilterCardRow::mountEditorBody(const std::function<QWidget*(QWidget* editorContainer)>& createContent)
+{
+	QWidget* editorContainer = new QWidget(bodyStack);
+	editorContainer->setObjectName(QStringLiteral("FilterCardEditor"));
+	editorContainer->setAttribute(Qt::WA_StyledBackground, true);
+	// Match bodyStack: stop overgrown editors from inflating the card width.
+	editorContainer->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+	editorContainer->setMinimumSize(0, 0);
+	QVBoxLayout* editorLayout = new QVBoxLayout(editorContainer);
+	editorLayout->setContentsMargins(12, 10, 12, 12);
+
+	QWidget* content = createContent(editorContainer);
+
+	// Wrap the editor in a borderless scroll area. Without this, any editor
+	// that has a content-driven sizeHint (DeviceFilterGUI's QTreeWidget
+	// AdjustToContents, GraphicEQ / Convolution / VSTPlugin's internal
+	// AdjustToContents widgets) propagates a huge minimumSize up through
+	// editorContainer/bodyStack/cardFrame/FilterCardRow and the QGridLayout
+	// in FilterTable then forces every card column to that width, pushing
+	// the cards' content thousands of pixels off screen.
+	QScrollArea* scroll = new QScrollArea(editorContainer);
+	scroll->setObjectName(QStringLiteral("FilterCardEditorScroll"));
+	scroll->setFrameShape(QFrame::NoFrame);
+	scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+	scroll->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+	scroll->setWidgetResizable(true);
+	scroll->setMinimumSize(0, 0);
+	scroll->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+	scroll->setWidget(content);
+	watchEditorScroll(scroll);
+	editorLayout->addWidget(scroll);
+
+	bodyStack->addWidget(editorContainer);
+	bodyStack->setCurrentWidget(editorContainer);
+}
+
+bool FilterCardRow::fitEditorScrollHeight(QScrollArea* scroll, int contentHeight)
+{
+	// Generous cap: legacy filter GUIs can report content heights of
+	// thousands of pixels (the same hints the width clamp exists for); a
+	// runaway body must not swallow the whole table.
+	const int desired = qBound(24, contentHeight, 600);
+	if (scroll->minimumHeight() == desired && scroll->maximumHeight() == desired)
+		return false;
+	scroll->setFixedHeight(desired);
+	return true;
+}
+
 void FilterCardRow::watchEditorScroll(QScrollArea* scroll)
 {
 	scroll->installEventFilter(this);
@@ -603,16 +555,11 @@ void FilterCardRow::syncEditorScrollHeight(QScrollArea* scroll)
 		return;
 
 	const int width = scroll->viewport()->width();
-	int desired = content->hasHeightForWidth() && width > 0
+	const int desired = content->hasHeightForWidth() && width > 0
 		? content->heightForWidth(width)
 		: content->sizeHint().height();
-	// Generous cap: legacy filter GUIs can report content heights of
-	// thousands of pixels (the same hints the width clamp exists for); a
-	// runaway body must not swallow the whole table.
-	desired = qBound(24, desired, 600);
-	if (scroll->minimumHeight() != desired || scroll->maximumHeight() != desired)
+	if (fitEditorScrollHeight(scroll, desired))
 	{
-		scroll->setFixedHeight(desired);
 		// The new height must reach the FilterTable grid, but the layout
 		// chain above the scroll (editor container -> body stack -> card
 		// frame -> row) re-validates lazily hop by hop and the cascade can
@@ -854,7 +801,7 @@ void FilterCardRow::applyDescriptor()
 	// actually narrows to the selection; control rows, notes and raw text
 	// would claim an influence they do not have.
 	QStringList badgeChannels = descriptor.channelBadges;
-	if (badgeChannels.isEmpty() && channelSelectionGatesType(descriptor.type))
+	if (badgeChannels.isEmpty() && FilterCommandCatalog::channelSelectionGatesType(descriptor.type))
 		badgeChannels = descriptor.scopeChannels;
 	buildChannelBadges(badgeChannels);
 	syncVisualState();

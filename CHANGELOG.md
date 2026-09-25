@@ -14,6 +14,21 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The Editor's channel lists follow `Device:` and `Stage:` lines.** The
+  channels each line offers (a VST row's channel fill, the Channel and Copy
+  pickers) were worked out without looking at `Device:` or `Stage:`, so a
+  `Channel:` line inside a block for another device still narrowed the lines
+  below it in the Editor, though the engine skips it. They now follow the
+  engine. Which `If` branch runs cannot be known while editing, so each
+  branch starts from the channels at its `If` line and the lines after
+  `EndIf` continue from the `If` branch; `docs/FilterListUiPolicy.md`
+  describes this.
+- **The legacy VST row no longer marks valid channel fills as missing.** A
+  fill entry written as a position number (`1`) or an alias (`SL`) was
+  painted red on the legacy row although the engine accepts it; the legacy
+  row now judges fills the way the card does, and both rows share one plug-in
+  session, so a VST feature lands in both (#PRNUM).
+
 ## v2.54.7 — 2026-09-25
 
 - **A driver's own effects keep running when an endpoint's ASIO entry cannot

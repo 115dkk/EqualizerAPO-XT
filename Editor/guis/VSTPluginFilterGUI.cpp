@@ -1,4 +1,4 @@
-﻿/*
+/*
     This file is part of Equalizer APO, a system-wide equalizer.
     Copyright (C) 2017  Jonas Thedering
 
@@ -21,7 +21,6 @@
 #include "services/registry/RegistryPaths.h"
 #include <QFileDialog>
 #include <QSettings>
-#include <QAbstractEventDispatcher>
 #include <QAction>
 #include <QBrush>
 #include <QCheckBox>
@@ -31,30 +30,23 @@
 #include <QMenu>
 #include <QStringList>
 
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include "services/security/AudioEngineAccess.h"
 #include "filters/VSTPluginCommand.h"
 #include "Editor/helpers/GUIHelper.h"
-#include "Editor/helpers/VstChunkScan.h"
 #include "Editor/MainWindow.h"
 #include "Editor/SkinManager.h"
 #include "Editor/skins/ISkin.h"
-#include "VSTPluginFilterGUIDialog.h"
 #include "VSTPluginFilterGUI.h"
 #include "ui_VSTPluginFilterGUI.h"
 
-using std::replace;
-using std::string;
 using std::unordered_map;
 using std::wstring;
 
 VSTPluginFilterGUI::VSTPluginFilterGUI(std::shared_ptr<VSTPluginLibrary> library, const std::wstring& chunkData, const std::unordered_map<std::wstring, float>& paramMap,
 	bool stereoInput, const std::optional<VST3BusContract>& busContract,
 	std::vector<std::wstring> inputChannels, std::vector<std::wstring> outputChannels)
-	: ui(std::make_unique<Ui::VSTPluginFilterGUI>()), library(library), chunkData(chunkData), paramMap(paramMap),
-	stereoInput(stereoInput), busContract(busContract),
-	inputChannels(std::move(inputChannels)), outputChannels(std::move(outputChannels))
+	: ui(std::make_unique<Ui::VSTPluginFilterGUI>()), stereoInput(stereoInput),
+	document(busContract, false, std::move(inputChannels), std::move(outputChannels)),
+	session(std::make_unique<VSTPluginSession>(VSTPluginSession::Row::Legacy, library, chunkData, paramMap))
 {
 	ui->setupUi(this);
 	ui->frame->setVisible(false);
@@ -99,7 +91,7 @@ VSTPluginFilterGUI::VSTPluginFilterGUI(std::shared_ptr<VSTPluginLibrary> library
 
 	// The channel-fill rows sit between the bus dropdowns and the embed
 	// frame, inside the row (never below the table's add button). Their
-	// combos are rebuilt from VSTSlotFillModel whenever the contract, the
+	// combos are rebuilt from the document's fill whenever the contract, the
 	// lists or the selected channels change.
 	QGridLayout* grid = static_cast<QGridLayout*>(layout());
 	inputFillRow = new QWidget(this);
@@ -110,26 +102,33 @@ VSTPluginFilterGUI::VSTPluginFilterGUI(std::shared_ptr<VSTPluginLibrary> library
 	new QHBoxLayout(outputFillRow);
 	static_cast<QHBoxLayout*>(outputFillRow->layout())->setContentsMargins(0, 0, 0, 0);
 	grid->addWidget(outputFillRow, 4, 0, 1, 4);
-	fillCollapsed = this->inputChannels.empty() && this->outputChannels.empty();
+	fillCollapsed = document.fill().inputFill().empty() && document.fill().outputFill().empty();
 
 	updateBusControls();
 	updateFillRows();
 
-	// Frozen legacy row: it stays functional under every skin, so it consults
-	// the same chrome hook as the card editors (legacyRow marks it for skins
+	// Legacy row: it stays functional under every skin, so it consults the
+	// same chrome hook as the card editors (legacyRow marks it for skins
 	// that want to leave the legacy path untouched).
 	CommandRowInfo rowInfo;
 	rowInfo.type = QStringLiteral("vst");
 	rowInfo.command = QStringLiteral("vstplugin");
 	rowInfo.legacyRow = true;
 	SkinManager::instance()->prepareCommandRow(rowInfo, nullptr, nullptr, this);
+
+	connect(session.get(), &VSTPluginSession::statusChanged, this, &VSTPluginFilterGUI::showStatus);
+	connect(session.get(), &VSTPluginSession::stateChanged, this, &VSTPluginFilterGUI::pluginStateChanged);
+	connect(session.get(), &VSTPluginSession::automated, this, &VSTPluginFilterGUI::pluginStateChanged);
+	connect(session.get(), &VSTPluginSession::sizeRequested, this, [this](int w, int h) {
+		ui->frame->setFixedSize(w, h);
+	});
 }
 
 VSTPluginFilterGUI::~VSTPluginFilterGUI()
 {
-	if (effect != nullptr)
+	if (session->instance() != nullptr)
 	{
-		if (embedded)
+		if (session->embedded())
 			on_embedAction_toggled(false);
 	}
 }
@@ -138,7 +137,7 @@ void VSTPluginFilterGUI::store(QString& command, QString& parameters)
 {
 	command = "VSTPlugin";
 
-	QString absolutePath = QString::fromStdWString(library->getLibPath());
+	QString absolutePath = QString::fromStdWString(session->library()->getLibPath());
 	QDir pluginsDir(QString::fromStdWString(VSTPluginLibrary::getDefaultPluginPath()));
 	QString relativePath = QDir::toNativeSeparators(pluginsDir.relativeFilePath(absolutePath));
 	if (relativePath.startsWith(QDir::toNativeSeparators("../../")))
@@ -152,15 +151,15 @@ void VSTPluginFilterGUI::store(QString& command, QString& parameters)
 	// Qt's QDir. The opaque bus contract and ChunkData-or-param body are produced
 	// by the shared serializer (the same one the round-trip tests exercise).
 	VSTPluginCommand cmd;
-	cmd.chunkData = chunkData;
-	cmd.paramMap = paramMap;
+	cmd.chunkData = session->chunkData();
+	cmd.paramMap = session->paramMap();
 	cmd.stereoInput = stereoInput;
-	if (busContract)
+	if (document.bus().contract())
 	{
-		cmd.busContract = *busContract;
+		cmd.busContract = *document.bus().contract();
 		cmd.hasBusContract = true;
-		cmd.inputChannels = inputChannels;
-		cmd.outputChannels = outputChannels;
+		cmd.inputChannels = document.fill().inputFill();
+		cmd.outputChannels = document.fill().outputFill();
 	}
 	parameters += QString::fromStdWString(cmd.serialize());
 }
@@ -182,18 +181,17 @@ void VSTPluginFilterGUI::busLayoutPicked()
 	std::optional<VST3BusContract> picked;
 	if (input != VST3BusLayout::Auto || output != VST3BusLayout::Auto)
 		picked = VST3BusContract{input, output};
-	const bool same = busContract.has_value() == picked.has_value()
-		&& (!picked || (busContract->input == picked->input && busContract->output == picked->output));
+	const std::optional<VST3BusContract>& current = document.bus().contract();
+	const bool same = current.has_value() == picked.has_value()
+		&& (!picked || (current->input == picked->input && current->output == picked->output));
 	if (same)
 		return;
-	// A changed layout invalidates that side's per-slot channel fill: the
-	// slot count no longer matches, so the stale list would fail to parse.
-	if (input != (busContract ? busContract->input : VST3BusLayout::Auto))
-		inputChannels.clear();
-	if (output != (busContract ? busContract->output : VST3BusLayout::Auto))
-		outputChannels.clear();
-	busContract = picked;
-	if (busContract && stereoInput)
+	// The document drops the fill of a side whose layout changed.
+	if (picked)
+		document.setLayouts(input, output);
+	else
+		document.clearLayouts();
+	if (picked && stereoInput)
 	{
 		// The parser rejects StereoInput combined with Input/Output, so the
 		// explicit contract silently retires the legacy flag.
@@ -212,16 +210,15 @@ void VSTPluginFilterGUI::fillToggleClicked(bool checked)
 	updateFillRows();
 }
 
-void VSTPluginFilterGUI::configureSelectedChannels(std::vector<std::wstring>& selectedChannels)
+void VSTPluginFilterGUI::setChannelFlow(const ChannelFlowAtLine& flow)
 {
-	fillModel.setSelectedChannels(selectedChannels);
+	document.setSelectedChannels(flow.selected);
 	updateFillRows();
 }
 
 void VSTPluginFilterGUI::updateFillRows()
 {
-	fillModel.setContract(busContract);
-	fillModel.setFill(inputChannels, outputChannels);
+	const VSTSlotFillModel& fillModel = document.fill();
 	// A single rail never folds; the toggle quietly disappears with it.
 	if (!fillModel.latchPresent())
 		fillCollapsed = false;
@@ -233,6 +230,7 @@ void VSTPluginFilterGUI::updateFillRows()
 
 void VSTPluginFilterGUI::rebuildFillRow(bool output)
 {
+	const VSTSlotFillModel& fillModel = document.fill();
 	QWidget* row = output ? outputFillRow : inputFillRow;
 	QHBoxLayout* box = static_cast<QHBoxLayout*>(row->layout());
 	while (QLayoutItem* item = box->takeAt(0))
@@ -272,20 +270,19 @@ void VSTPluginFilterGUI::rebuildFillRow(bool output)
 			int index = combo->findData(value);
 			if (index < 0)
 			{
-				// A committed channel outside the current selection stays
-				// visible (the engine would refuse it), marked in red.
+				// A committed value the menu does not list stays visible. It is
+				// marked red only when the engine's resolver cannot place it in
+				// the selection (the engine would refuse it); a position number
+				// or an alias such as SL for RL resolves and stays plain.
 				combo->insertItem(0, value, value);
-				combo->setItemData(0, QBrush(Qt::red), Qt::ForegroundRole);
+				if (fillModel.slotChannelMissing(output, slot))
+					combo->setItemData(0, QBrush(Qt::red), Qt::ForegroundRole);
 				index = 0;
 			}
 			combo->setCurrentIndex(index);
 			connect(combo, &QComboBox::activated, this, [this, combo, output, slot](int picked)
 			{
-				fillModel.setContract(busContract);
-				fillModel.setFill(inputChannels, outputChannels);
-				fillModel.pickSlot(output, slot, combo->itemData(picked).toString().toStdWString());
-				inputChannels = fillModel.inputFill();
-				outputChannels = fillModel.outputFill();
+				document.pickSlot(output, slot, combo->itemData(picked).toString().toStdWString());
 				updateFillRows();
 				updateModel();
 			});
@@ -297,28 +294,27 @@ void VSTPluginFilterGUI::rebuildFillRow(bool output)
 
 void VSTPluginFilterGUI::updateBusControls()
 {
-	ui->busInputComboBox->setCurrentIndex(ui->busInputComboBox->findData(
-		static_cast<int>(busContract ? busContract->input : VST3BusLayout::Auto)));
-	ui->busOutputComboBox->setCurrentIndex(ui->busOutputComboBox->findData(
-		static_cast<int>(busContract ? busContract->output : VST3BusLayout::Auto)));
+	const VSTBusModel& bus = document.bus();
+	ui->busInputComboBox->setCurrentIndex(ui->busInputComboBox->findData(static_cast<int>(bus.input())));
+	ui->busOutputComboBox->setCurrentIndex(ui->busOutputComboBox->findData(static_cast<int>(bus.output())));
 
 	// The row has no separate repair affordance, so the dropdowns stay enabled
 	// even for a loaded VST2 module; the tooltip carries the caveat instead.
-	const bool loadedVst2 = effect != nullptr && !library->isVST3();
+	const bool loadedVst2 = session->instance() != nullptr && !session->library()->isVST3();
 	const QString busToolTip = loadedVst2
 		? tr("A VST2 plugin ignores the Input and Output layouts.") : QString();
 	ui->busInputComboBox->setToolTip(busToolTip);
 	ui->busOutputComboBox->setToolTip(busToolTip);
 
-	stereoInputAction->setEnabled(!busContract);
-	stereoInputAction->setToolTip(busContract
+	stereoInputAction->setEnabled(!bus.contract());
+	stereoInputAction->setToolTip(bus.contract()
 		? tr("Not available while Input and Output layouts are set.")
 		: tr("Use for upmixers that expand a stereo signal to multichannel."));
 }
 
 void VSTPluginFilterGUI::loadPreferences(const QVariantMap& prefs)
 {
-	autoApplyDialog = prefs.value("autoApplyDialog", true).toBool();
+	session->setAutoApplyDialog(prefs.value("autoApplyDialog", true).toBool());
 
 	if (prefs.contains("slotFillCollapsed"))
 	{
@@ -331,13 +327,13 @@ void VSTPluginFilterGUI::loadPreferences(const QVariantMap& prefs)
 		// will also call initPlugin
 		ui->embedAction->setChecked(true);
 	else
-		initPlugin();
+		session->initPlugin();
 }
 
 void VSTPluginFilterGUI::storePreferences(QVariantMap& prefs)
 {
 	prefs.insert("embed", ui->embedAction->isChecked());
-	prefs.insert("autoApplyDialog", autoApplyDialog);
+	prefs.insert("autoApplyDialog", session->autoApplyDialog());
 	if (fillCollapsedFromPrefs)
 		prefs.insert("slotFillCollapsed", fillCollapsed);
 }
@@ -352,151 +348,38 @@ void VSTPluginFilterGUI::on_openPanelButton_clicked()
 		return;
 	}
 
-	initPlugin();
-
-	if (effect != nullptr)
-	{
-		effect->writeToEffect(chunkData, paramMap);
-
-		// Before the dialog's startEditing: the feed prepares the instance
-		// for the loopback mix format, which must happen while the processor
-		// is still deactivated.
-		previewFeeder.start(effect.get());
-
-		VSTPluginFilterGUIDialog dialog(this, effect.get(), autoApplyDialog);
-		if (!dialog.isEditorOpen())
-		{
-			// Same report as a failed embed, instead of an empty dialog.
-			previewFeeder.stop();
-			ui->statusLabel->setVisible(true);
-			QPalette palette = ui->statusLabel->palette();
-			palette.setColor(QPalette::Active, QPalette::WindowText, Qt::red);
-			palette.setColor(QPalette::Inactive, QPalette::WindowText, Qt::red);
-			ui->statusLabel->setPalette(palette);
-			ui->statusLabel->setText(tr("Plugin crashed when opening panel."));
-			return;
-		}
-		connect(dialog.getApplyButton(), SIGNAL(pressed()), SLOT(applyDialog()));
-		connect(dialog.getAutoApplyCheckBox(), SIGNAL(toggled(bool)), SLOT(autoApplyToggled(bool)));
-		connect(QAbstractEventDispatcher::instance(), SIGNAL(aboutToBlock()), SLOT(on_idle()));
-
-		if (dialog.exec() == QDialog::Accepted)
-		{
-			effect->readFromEffect(chunkData, paramMap);
-			updateModel();
-			updatePermissionWarning();
-		}
-		disconnect(QAbstractEventDispatcher::instance(), SIGNAL(aboutToBlock()), this, SLOT(on_idle()));
-		previewFeeder.stop();
-	}
+	session->initPlugin();
+	session->openDialog(this);
 }
 
-void VSTPluginFilterGUI::applyDialog()
+void VSTPluginFilterGUI::pluginStateChanged()
 {
-	effect->readFromEffect(chunkData, paramMap);
 	updateModel();
 	updatePermissionWarning();
 }
 
-void VSTPluginFilterGUI::autoApplyToggled(bool checked)
+// The session's status as this row always showed it: the plugin name in
+// black, a failure in red, on the label the embedded panel replaces (the
+// embed toggle shows and hides the label).
+void VSTPluginFilterGUI::showStatus()
 {
-	autoApplyDialog = checked;
-}
-
-void VSTPluginFilterGUI::initPlugin()
-{
-	if (effect != nullptr)
-		return;
-
-	QColor color;
-	QString text;
-	if (library->getLibPath() == L"")
-	{
-		text = tr("No file selected.");
-		color = Qt::red;
-	}
-	else
-	{
-		int result = library->initialize();
-		if (result < 0)
-		{
-			color = Qt::red;
-
-			switch (result)
-			{
-			case AbstractLibrary::FILE_NOT_FOUND:
-				text = tr("File not found.");
-				break;
-			case AbstractLibrary::LOADING_FAILED:
-				text = tr("Library could not be loaded.");
-				break;
-			case AbstractLibrary::FUNCTIONS_MISSING:
-				text = tr("Library does not contain needed functions.");
-				break;
-			case AbstractLibrary::WRONG_ARCHITECTURE:
-#ifdef _WIN64
-				int bitDepth = 64;
-#else
-				int bitDepth = 32;
-#endif
-				text = tr("Library has the wrong architecture. Only %1-bit libraries are supported.").arg(bitDepth);
-				break;
-			}
-		}
-		else
-		{
-			effect = std::make_unique<VSTPluginInstance>(library, 1);
-			if (effect->initialize())
-			{
-				effect->setLanguage(QLocale().language() == QLocale::German ? 2 : 1);
-				effect->setAutomateFunc([this]() { onAutomate(); });
-
-				color = Qt::black;
-				text = QString::fromStdWString(effect->getName());
-			}
-			else
-			{
-				effect.reset();
-
-				color = Qt::red;
-				text = tr("Plugin crashed during initialization.");
-			}
-		}
-	}
-
+	const VSTPluginSession::Status& status = session->status();
+	const QColor color = status.critical ? QColor(Qt::red) : QColor(Qt::black);
 	QPalette palette = ui->statusLabel->palette();
 	palette.setColor(QPalette::Active, QPalette::WindowText, color);
 	palette.setColor(QPalette::Inactive, QPalette::WindowText, color);
 	ui->statusLabel->setPalette(palette);
-	ui->statusLabel->setText(text);
+	ui->statusLabel->setText(status.text);
 	updateBusControls();
 }
 
 void VSTPluginFilterGUI::on_pathLineEdit_editingFinished()
 {
-	if (QString::fromStdWString(library->getLibPath()) != ui->pathLineEdit->text())
+	if (session->libraryDiffers(ui->pathLineEdit->text()))
 	{
-		int oldId = 0;
-		if (effect != nullptr)
-		{
-			oldId = effect->uniqueID();
-			if (ui->embedAction->isChecked())
-				on_embedAction_toggled(false);
-			effect.reset();
-		}
-
-		QDir pluginsDir(QString::fromStdWString(VSTPluginLibrary::getDefaultPluginPath()));
-		QString path = ui->pathLineEdit->text();
-		if (path.length() > 0)
-			path = QDir::toNativeSeparators(QFileInfo(pluginsDir, ui->pathLineEdit->text()).absoluteFilePath());
-		library = VSTPluginLibrary::getInstance(path.toStdWString());
-		initPlugin();
-
-		if (effect == nullptr || oldId == 0 || effect->uniqueID() != oldId)
-		{
-			chunkData = L"";
-			paramMap.clear();
-		}
+		if (session->instance() != nullptr && ui->embedAction->isChecked())
+			on_embedAction_toggled(false);
+		session->replaceLibrary(ui->pathLineEdit->text());
 
 		updateModel();
 		updatePermissionWarning();
@@ -540,53 +423,20 @@ void VSTPluginFilterGUI::on_selectButton_clicked()
 
 void VSTPluginFilterGUI::on_embedAction_toggled(bool checked)
 {
-	initPlugin();
+	session->initPlugin();
 
-	bool enable = checked;
-	if (effect == nullptr)
-		enable = false;
-
-	if (enable != embedded)
+	const bool enable = checked && session->instance() != nullptr;
+	if (enable != session->embedded())
 	{
-		embedded = enable;
+		// The frame is shown before the session embeds into it; the status
+		// label gives way to it, and both return when embedding failed
+		// (reported through the status).
 		ui->frame->setVisible(enable);
 		ui->statusLabel->setVisible(!enable);
-
-		if (enable)
+		if (!session->setEmbedded(enable, ui->frame))
 		{
-			// Before embedPlugin()'s startEditing, for the same deactivation
-			// contract as the dialog path.
-			previewFeeder.start(effect.get());
-
-			if (embedPlugin())
-			{
-				effect->setSizeWindowFunc([this](int width, int height) { onSizeWindow(width, height); });
-				connect(QAbstractEventDispatcher::instance(), SIGNAL(aboutToBlock()), SLOT(on_idle()));
-			}
-			else
-			{
-				previewFeeder.stop();
-				embedded = false;
-				ui->frame->setVisible(false);
-				ui->statusLabel->setVisible(true);
-
-				QPalette palette = ui->statusLabel->palette();
-				palette.setColor(QPalette::Active, QPalette::WindowText, Qt::red);
-				palette.setColor(QPalette::Inactive, QPalette::WindowText, Qt::red);
-				ui->statusLabel->setPalette(palette);
-				ui->statusLabel->setText(tr("Plugin crashed when opening panel."));
-			}
-		}
-		else
-		{
-			previewFeeder.stop();
-			if (effect != nullptr)
-			{
-				effect->stopEditing();
-				effect->setSizeWindowFunc(nullptr);
-			}
-
-			disconnect(QAbstractEventDispatcher::instance(), SIGNAL(aboutToBlock()), this, SLOT(on_idle()));
+			ui->frame->setVisible(false);
+			ui->statusLabel->setVisible(true);
 		}
 	}
 
@@ -594,82 +444,13 @@ void VSTPluginFilterGUI::on_embedAction_toggled(bool checked)
 	// opening the panel) would claim a panel that is not shown; drop the
 	// check so the button reads "Open panel" again. The recursive toggle is
 	// a no-op because embedded already matches.
-	if (checked && !embedded && ui->embedAction->isChecked())
+	if (checked && !session->embedded() && ui->embedAction->isChecked())
 		ui->embedAction->setChecked(false);
 
 	// The button stays visible while embedded - it is the way out. Hiding it
 	// left the embed removable only through the options menu, which read as
 	// "the panel cannot be closed".
-	ui->openPanelButton->setText(embedded ? tr("Close panel") : tr("Open panel"));
-}
-
-void VSTPluginFilterGUI::on_idle()
-{
-	if (effect != nullptr)
-	{
-		effect->doIdle();
-
-		if (embedded || autoApplyDialog)
-		{
-			if (!lastReadTimer.isValid() || lastReadTimer.elapsed() > 1000)
-			{
-				wstring newChunkData;
-				unordered_map<std::wstring, float> newParamMap;
-				effect->readFromEffect(newChunkData, newParamMap);
-				if (newChunkData != chunkData || newParamMap != paramMap)
-				{
-					chunkData = newChunkData;
-					paramMap = newParamMap;
-					updateModel();
-					updatePermissionWarning();
-				}
-				lastReadTimer.restart();
-			}
-		}
-	}
-}
-
-void VSTPluginFilterGUI::onAutomate()
-{
-	if (embedded || autoApplyDialog)
-	{
-		effect->readFromEffect(chunkData, paramMap);
-		updateModel();
-		updatePermissionWarning();
-	}
-}
-
-void VSTPluginFilterGUI::onSizeWindow(int w, int h)
-{
-	if (embedded)
-		ui->frame->setFixedSize(w, h);
-}
-
-bool VSTPluginFilterGUI::embedPlugin()
-{
-	bool result = true;
-
-	__try
-	{
-		effect->writeToEffect(chunkData, paramMap);
-
-		HWND hwnd = (HWND)ui->frame->winId();
-		short width = 0, height = 0;
-
-		// startEditing also fails without an exception (no view, attach
-		// refused); unchecked, that embedded its 400x300 placeholder size as
-		// an empty frame and reported the panel as open.
-		result = effect->startEditing(hwnd, &width, &height, ui->frame->devicePixelRatioF());
-
-		if (result)
-			ui->frame->setFixedSize(width, height);
-	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
-	{
-		result = false;
-	}
-
-	return result;
+	ui->openPanelButton->setText(session->embedded() ? tr("Close panel") : tr("Open panel"));
 }
 
 void VSTPluginFilterGUI::updatePermissionWarning()
@@ -679,35 +460,23 @@ void VSTPluginFilterGUI::updatePermissionWarning()
 	// silently vanished on the next row rebuild, while the file stayed
 	// unreadable for the audio service - a real problem reading as a false
 	// alarm.
-	if (library->getLibPath().empty())
+	if (session->library()->getLibPath().empty())
 	{
 		ui->warningTextEdit->setVisible(false);
 		return;
 	}
 
-	if (!AudioEngineAccess::isReadableByAudioEngine(library->getLibPath()))
-	{
-		QString text = tr("The library is not readable by the audio service.\nChange the file permissions or copy the file to the VSTPlugins directory.");
+	QString text = session->libraryPermissionWarning();
+	if (text.isEmpty())
+		text = session->chunkPermissionWarning();
 
-		ui->warningTextEdit->setPlainText(text);
-		QSize textSize = ui->warningTextEdit->fontMetrics().size(0, text);
-		ui->warningTextEdit->setFixedSize(textSize + GUIHelper::scale(QSize(40, 15)));
-		ui->warningTextEdit->setVisible(true);
-		return;
-	}
-
-	const QStringList files = vstChunkUnreadablePaths(chunkData);
-
-	if (files.isEmpty())
+	if (text.isEmpty())
 	{
 		ui->warningTextEdit->setVisible(false);
 		ui->warningTextEdit->setPlainText("");
 	}
 	else
 	{
-		QString text = tr("The plugin seemingly accesses these files not readable by the audio service:\n"
-				"%0\n"
-				"Change the file permissions or copy the files to the config directory.").arg(files.join("\n"));
 		ui->warningTextEdit->setPlainText(text);
 		QSize textSize = ui->warningTextEdit->fontMetrics().size(0, text);
 		ui->warningTextEdit->setFixedSize(textSize + GUIHelper::scale(QSize(40, 15)));
