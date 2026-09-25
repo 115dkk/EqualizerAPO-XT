@@ -243,8 +243,6 @@ StudioFilterPickerView::StudioFilterPickerView(const SkinTokens& tokens, QWidget
 {
 	setObjectName(QStringLiteral("StudioFilterPicker"));
 	skinTokens = tokens;
-	// The hooks convention: studio's dark background is near-black, so
-	// luminance is an unambiguous mode proxy (see Skins.cpp).
 	dark = skinIsDark(skinTokens);
 
 	const int glow = 13;

@@ -272,3 +272,10 @@ Benchmark/scenarios/*.wav
 # Tool output and IDE settings (audit #348 TD-77)
 .superloopy/
 .vscode/
+
+# Offscreen gate output (.github/scripts/Invoke-EditorOffscreenTest.ps1) and
+# the before/after copies kept while comparing galleries
+/skin-gallery/
+/skin-gallery-*/
+/analysis-layout/
+/card-selection/

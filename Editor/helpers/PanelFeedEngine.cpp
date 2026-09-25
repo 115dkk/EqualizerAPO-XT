@@ -511,8 +511,8 @@ bool PanelFeedEngine::tick()
 		return false;
 	EngineState& s = *state;
 
-	// A view that never attached holds no Processing state to feed; the
-	// capture is still drained so it does not pile up.
+	// VSTPluginInstance owns the format-specific processing-state rules. When
+	// it is not ready, capture is still drained so it does not pile up.
 	const bool processReady = s.effect->canProcessNow();
 
 	if (s.gate.state() == PanelMonitorGate::State::Render)

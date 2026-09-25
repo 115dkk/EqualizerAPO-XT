@@ -18,6 +18,7 @@
 #include <mmreg.h>
 #include <ksmedia.h>
 
+#include "audio/SampleFormat.h"
 #include "platform/windows/ComPtr.h"
 
 using winutil::ComPtr;
@@ -94,18 +95,19 @@ Result probe(const std::wstring& deviceGuid)
 	result.isFloat = IsEqualGUID(subFormat, KSDATAFORMAT_SUBTYPE_IEEE_FLOAT) != 0;
 	result.subtypeDescription = formatSubtypeName(subFormat);
 
-	if (result.isFloat)
+	// The shared-mode mix format is the engine format the APO receives, so the
+	// APO's own rule predicts what it will do with this stream.
+	switch (audio::sampleFormatFor(result.isFloat, result.containerBytes))
 	{
-		if (result.containerBytes == 4)
-			result.status = Status::ActiveFloat32;
-		else if (result.containerBytes == 8)
-			result.status = Status::ActiveFloat64;
-		else
-			result.status = Status::Passthrough;
-	}
-	else
-	{
+	case audio::SampleFormat::Float32:
+		result.status = Status::ActiveFloat32;
+		break;
+	case audio::SampleFormat::Float64:
+		result.status = Status::ActiveFloat64;
+		break;
+	default:
 		result.status = Status::Passthrough;
+		break;
 	}
 
 	return result;

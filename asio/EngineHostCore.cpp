@@ -26,25 +26,46 @@ namespace eapo::asio
 		using eapo::ipc::RingFault;
 		using eapo::ipc::RingState;
 
+		// MMCSS Pro Audio for the serving thread. Where MMCSS refuses (it is
+		// off when SystemResponsiveness is 100), the thread runs time-critical
+		// instead and the loop does not spin: a spinning thread outside MMCSS
+		// was measured at 95 of 100 probe runs late under load, against 6
+		// without the spin.
 		struct ProAudioScope
 		{
+			enum class Mode { Off, On, RefusedTimeCritical };
 			HANDLE task = nullptr;
+			Mode mode = Mode::Off;
+			int previousPriority = THREAD_PRIORITY_NORMAL;
 
 			explicit ProAudioScope(bool enabled)
 			{
-				if (enabled)
+				if (!enabled)
+					return;
+				DWORD index = 0;
+				task = AvSetMmThreadCharacteristicsW(L"Pro Audio", &index);
+				if (task != nullptr)
 				{
-					DWORD index = 0;
-					task = AvSetMmThreadCharacteristicsW(L"Pro Audio", &index);
-					if (task != nullptr)
-						AvSetMmThreadPriority(task, AVRT_PRIORITY_CRITICAL);
+					AvSetMmThreadPriority(task, AVRT_PRIORITY_CRITICAL);
+					mode = Mode::On;
+					return;
 				}
+				previousPriority = GetThreadPriority(GetCurrentThread());
+				SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
+				mode = Mode::RefusedTimeCritical;
 			}
 
 			~ProAudioScope()
 			{
 				if (task != nullptr)
 					AvRevertMmThreadCharacteristics(task);
+				else if (mode == Mode::RefusedTimeCritical)
+					SetThreadPriority(GetCurrentThread(), previousPriority);
+			}
+
+			const wchar_t* describe() const noexcept
+			{
+				return mode == Mode::On ? L"on" : mode == Mode::RefusedTimeCritical ? L"refused, time-critical" : L"off";
 			}
 
 			ProAudioScope(const ProAudioScope&) = delete;
@@ -117,6 +138,77 @@ namespace eapo::asio
 		{
 			return options.abandon != nullptr && options.abandon->load();
 		}
+
+		// ServeOptions::traceSlowUs: blocks whose wake-up, core move or
+		// engine call reached the threshold, or that were acquired after the
+		// next block was already published, kept in a fixed table and logged
+		// after the loop so the loop itself does no I/O. dispatch counts from
+		// the lane's latest publish, which is `behind` blocks later.
+		struct SlowTrace
+		{
+			struct Entry
+			{
+				unsigned direction;
+				uint32_t sequence;
+				uint32_t behind;
+				uint32_t dispatchUs;
+				uint32_t setupUs;
+				uint32_t engineUs;
+			};
+			static constexpr unsigned capacity = 64;
+			Entry entries[capacity] = {};
+			unsigned count = 0;
+			uint64_t dropped = 0;
+			double ticksPerMicro = 0.0;
+
+			SlowTrace()
+			{
+				LARGE_INTEGER frequency;
+				QueryPerformanceFrequency(&frequency);
+				ticksPerMicro = static_cast<double>(frequency.QuadPart) / 1000000.0;
+			}
+
+			uint32_t micros(LONGLONG from, LONGLONG to) const noexcept
+			{
+				return to > from && ticksPerMicro > 0.0 ? static_cast<uint32_t>(static_cast<double>(to - from) / ticksPerMicro) : 0;
+			}
+
+			void note(uint32_t thresholdUs, const RingConsumer::Acquired& acquired, LONGLONG woke, LONGLONG started, LONGLONG done) noexcept
+			{
+				const uint32_t dispatchUs = micros(acquired.publishTick, woke);
+				const uint32_t setupUs = micros(woke, started);
+				const uint32_t engineUs = micros(started, done);
+				if (acquired.behind == 0 && dispatchUs < thresholdUs && setupUs < thresholdUs && engineUs < thresholdUs)
+					return;
+				if (count == capacity)
+				{
+					dropped++;
+					return;
+				}
+				entries[count++] = {static_cast<unsigned>(acquired.direction), acquired.sequence, acquired.behind, dispatchUs, setupUs,
+					engineUs};
+			}
+
+			void log() const noexcept
+			{
+				for (unsigned i = 0; i < count; i++)
+				{
+					const Entry& e = entries[i];
+					LogFStatic(L"ASIO host: slow block direction=%s seq=%u behind=%u dispatch=%u us setup=%u us engine=%u us",
+						e.direction == static_cast<unsigned>(Direction::Output) ? L"output" : L"input", e.sequence, e.behind, e.dispatchUs,
+						e.setupUs, e.engineUs);
+				}
+				if (dropped != 0)
+					LogFStatic(L"ASIO host: %llu more slow blocks not listed", static_cast<unsigned long long>(dropped));
+			}
+		};
+
+		inline LONGLONG tickNow() noexcept
+		{
+			LARGE_INTEGER counter;
+			QueryPerformanceCounter(&counter);
+			return counter.QuadPart;
+		}
 	}
 
 	namespace EngineHostCore
@@ -156,12 +248,14 @@ namespace eapo::asio
 			consumer.setState(RingState::Ready);
 			if (options.registry != nullptr)
 				publishFacts(*options.registry, format);
-			LogFStatic(L"ASIO host: serving %s at %.0f Hz, %u frames, out %u in %u",
-				format.deviceName, format.sampleRate, format.frames, format.channels[0], format.channels[1]);
-
 			ProAudioScope priority(options.proAudio);
-			const uint32_t spinUs = static_cast<uint32_t>(options.spinPeriods * periodUs(format));
+			// Whether MMCSS took the thread, for the log a late stream is read from.
+			LogFStatic(L"ASIO host: serving %s at %.0f Hz, %u frames, out %u in %u, pro audio %s",
+				format.deviceName, format.sampleRate, format.frames, format.channels[0], format.channels[1], priority.describe());
+			const uint32_t spinUs = priority.mode == ProAudioScope::Mode::RefusedTimeCritical
+				? 0 : static_cast<uint32_t>(options.spinPeriods * periodUs(format));
 			CoreAvoidance avoidance;
+			std::unique_ptr<SlowTrace> slow = options.traceSlowUs != 0 ? std::make_unique<SlowTrace>() : nullptr;
 			RingConsumer::Acquired acquired;
 			for (;;)
 			{
@@ -176,6 +270,7 @@ namespace eapo::asio
 						break;
 					continue;
 				}
+				const LONGLONG woke = slow != nullptr ? tickNow() : 0;
 				avoidance.keepOff(consumer.producerCpu());
 				while (options.hold != nullptr && options.hold->load() && !abandoned(options))
 					Sleep(1);
@@ -185,16 +280,21 @@ namespace eapo::asio
 					return report;
 				}
 				Lane& lane = lanes[static_cast<unsigned>(acquired.direction)];
+				const LONGLONG started = slow != nullptr ? tickNow() : 0;
 				if (lane.engine != nullptr)
 				{
 					for (size_t c = 0; c < lane.planes.size(); c++)
 						lane.planes[c] = acquired.slot + c * format.frames;
 					lane.engine->process(lane.planes.data(), lane.planes.data(), format.frames);
 				}
+				if (slow != nullptr)
+					slow->note(options.traceSlowUs, acquired, woke, started, tickNow());
 				report.blocks[static_cast<unsigned>(acquired.direction)]++;
 				consumer.release(acquired);
 			}
 			report.peerGone = consumer.peerGone();
+			if (slow != nullptr)
+				slow->log();
 			LogFStatic(L"ASIO host: stream %s ended (out %llu in %llu blocks%s)", format.deviceName,
 				static_cast<unsigned long long>(report.blocks[0]), static_cast<unsigned long long>(report.blocks[1]),
 				report.peerGone ? L", producer gone" : L"");

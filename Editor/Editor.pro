@@ -354,7 +354,7 @@ SOURCES += main.cpp\
 	widgets/routing/CopyRoutingAdapter.cpp \
 	widgets/routing/RoutingFold.cpp \
 	widgets/routing/MultiConvolutionRoutingAdapter.cpp \
-	widgets/routing/StudioRoutingModel.cpp \
+	widgets/routing/RoutingGridModel.cpp \
 	widgets/MiddleClickTabWidget.cpp \
 	import/ConfigDependencyScanner.cpp \
 	import/ImportDialog.cpp \
@@ -451,6 +451,7 @@ HEADERS  += \
 	guis/CopyFilterGUIRow.h \
 	helpers/GUIChannelHelper.h \
 	../audio/ChannelLayout.h \
+	../audio/SampleFormat.h \
 	guis/DelayFilterGUI.h \
 	guis/DelayFilterGUIFactory.h \
 	../filters/DelayCommand.h \
@@ -667,7 +668,7 @@ HEADERS  += \
 	widgets/routing/RoutingFold.h \
 	widgets/routing/MultiConvolutionRoutingAdapter.h \
 	widgets/routing/IRoutingRenderer.h \
-	widgets/routing/StudioRoutingModel.h \
+	widgets/routing/RoutingGridModel.h \
 	widgets/MiddleClickTabWidget.h \
 	import/ConfigDependencyScanner.h \
 	import/ImportDialog.h \

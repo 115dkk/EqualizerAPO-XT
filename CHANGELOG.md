@@ -31,6 +31,37 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   the audio service's own account and file systems other than NTFS were not
   tested.
 
+## v2.54.21 — 2026-09-25
+
+- **The ASIO host keeps a high priority on machines where Windows refuses
+  its audio priority.** EqualizerAPOHost serves ASIO streams on a thread
+  registered with the Pro Audio class of the Multimedia Class Scheduler
+  Service (MMCSS) and busy-waits up to one period for the next block. Where
+  MMCSS is turned off (the SystemResponsiveness registry value is 100), that
+  registration fails and the thread used to run at normal priority while
+  still busy-waiting, which in local tests left 95 of 100 runs with late
+  blocks under load. The thread now runs at time-critical priority there and
+  does not busy-wait (0 of 150 runs late in the same test), and the host log
+  says which of the two applies. The CI check that failed now and then on
+  late blocks ran its test threads at normal priority, unlike the host; it
+  now runs them the way the host does
+  ([#391](https://github.com/115dkk/EqualizerAPO-XT/pull/391)). Whether
+  MMCSS is on for real users with SystemResponsiveness 100 was not checked
+  on such a machine.
+
+## v2.54.20 — 2026-09-25
+
+- **Copy routing edits follow one rule in every skin.** In the studio skin
+  the factor editor refused `INV`, which the other skins accept, and took
+  `inf` and `nan`, which are not numbers a filter can use. In the soft skin,
+  text that could not be read as a factor left the chip unchanged but still
+  marked the configuration as changed. All five skins now commit factor
+  edits, added channels and removed channels through one shared model, so
+  studio accepts `INV` and refuses non-finite values, and soft no longer
+  reports a change when nothing changed
+  ([#390](https://github.com/115dkk/EqualizerAPO-XT/pull/390)). The gallery
+  renders every scene as before.
+
 ## v2.54.19 — 2026-09-25
 
 - **The installer no longer grants permissions recursively, as
