@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Which Windows this is running on.
 
 	The answer decides real behaviour in three places: which APO slots a device

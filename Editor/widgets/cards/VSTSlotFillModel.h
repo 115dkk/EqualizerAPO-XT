@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Document-side state of the per-slot channel fill on a VST card: the two
 	InputChannels/OutputChannels lists against the contract's layouts, and
 	the channels selected at this row (Channel:/Copy: flow). Keeping the

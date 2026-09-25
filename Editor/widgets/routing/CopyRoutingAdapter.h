@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	CopyRoutingAdapter is the single, skin-independent place that converts a
 	Copy command's parameter string to/from the engine's std::vector<Assignment>
 	(filters/CopyFilter.h) and derives a display-oriented crosspoint matrix view

@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	One channel-fill rail of the modern VST card: a row of slot cells, each
 	assigning a config channel to one negotiated bus slot, mounted inside the
 	card (input rail under the header, output rail under the body). The input

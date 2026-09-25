@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Studio Glass's reference card (Include / Convolution / MultiConvolution /
 	VSTPlugin row bodies): an identity line with lit-glass chips over a
 	sunken mono data window.

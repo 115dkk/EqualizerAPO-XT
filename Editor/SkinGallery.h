@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Offscreen screenshot gallery for the skin program. For each requested skin
 	and dark/light mode it renders representative filter card rows (a simple
 	filter, a shelf filter with its three knobs, an Include row, a VST row) in

@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	The --skin-gallery renderer: every gallery row in its states and the
 	registered chrome scenes, per skin and mode, plus the heritage dumps
 	(SkinGallery::run).

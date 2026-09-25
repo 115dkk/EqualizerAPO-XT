@@ -1,12 +1,8 @@
 /*
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
+	Copyright (C) 2026 Mephistos (DCinside)
 	Copyright (C) 2026 115dkk
 	SPDX-License-Identifier: GPL-2.0-or-later
-*/
-
-/*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-	Copyright (C) 2026 Mephistos (DCinside)
 
 	The Qt owner of PanelFeedEngine. It maps the environment kill switches,
 	starts the feed before the editor session and drives tick() from a GUI-thread

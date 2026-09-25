@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	See DeviceInstallReport.h. Only the formatting lives here.
 */
 

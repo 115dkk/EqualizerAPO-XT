@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Registry of the built-in skins. SkinManager looks skins up here by id.
 */
 

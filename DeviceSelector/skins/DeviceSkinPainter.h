@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Form layer of the Device Selector's skin identity. The dialog's device
 	list, buttons and the troubleshooting disclosure delegate every pixel to
 	the painter matching the Editor's active skin; QSS remains a colour coat

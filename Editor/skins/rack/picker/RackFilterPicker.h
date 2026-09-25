@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	The "add filter" picker of the rack skin: a 1U module preset browser
 	painted as a brushed faceplate with an LCD search strip and LED slots.
 	Constitution: docs/skins/rack.md ("필터 픽커" section).

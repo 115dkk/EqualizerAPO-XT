@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Shared base for the skins' file-dialog icon providers. The non-native
 	QFileDialog asks its icon provider for every folder/file pictogram (list,
 	sidebar, look-in combo), which is the last place the platform shell's

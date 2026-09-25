@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	The install-path report, inside the program that performs the install.
 
 	It used to live outside it. tools/Diagnose-EqualizerAPO.ps1 collected all of

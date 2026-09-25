@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	QComboBox with a DPI-aware sizing floor and a popup sized to its
 	contents. The skins' QSS keeps a px floor for every combo box, but that
 	floor cannot follow the user's font size; this subclass derives the

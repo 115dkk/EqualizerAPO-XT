@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Canonical Qt FlowLayout (wrapping layout) example, trimmed for the cards.
 	See FlowLayout.h.
 */

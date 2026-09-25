@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Rack skin's Copy renderer: a hardware ROUTING MATRIX button field. The
 	same crosspoint grid as the Signal Matrix, but each crosspoint is a small
 	square illuminated latching button mounted in a recessed sub-panel - the

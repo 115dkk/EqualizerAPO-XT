@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	A registry port that remembers how to undo itself.
 
 	WHY THIS EXISTS. Installing Equalizer APO on one audio endpoint performs

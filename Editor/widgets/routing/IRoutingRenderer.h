@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	A skin contributes one IRoutingRenderer. Given the same routing data
 	(std::vector<Assignment>), each skin's renderer produces a completely
 	different RoutingView widget: a crosspoint matrix, a step list, a node

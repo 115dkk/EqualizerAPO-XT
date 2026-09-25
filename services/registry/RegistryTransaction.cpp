@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	See RegistryTransaction.h for what this class promises and what it refuses.
 */
 

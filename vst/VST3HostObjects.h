@@ -5,8 +5,6 @@
 */
 
 /*
-    This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
     Host-side VST3 utility objects shared by the factory host context
     (VSTPluginLibrary) and the per-instance host context (VST3HostContext):
     the IMessage/IAttributeList pair a plug-in asks its host to create via

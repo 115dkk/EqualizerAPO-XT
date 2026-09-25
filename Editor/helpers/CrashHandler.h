@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Field crash diagnostics for the Editor. On an unhandled SEH exception (or
 	std::terminate) it writes a minidump plus a small text report to
 	%LOCALAPPDATA%\EqualizerAPO\logs\crash, including the version and the

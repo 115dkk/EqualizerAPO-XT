@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Skinned window chrome for dialogs. The main window replaces the native
 	Windows caption with the skinnable TitleBar strip (MainWindow.Frame.cpp);
 	a native-captioned dialog inside that session breaks the illusion, so

@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Signal Matrix device selector: the operator's target-acquisition board.
 	Constitution (colour rationing, crisp-rule/AA law, corner language):
 	docs/skins/matrix.md. Element mapping: a vertical bus trace runs down

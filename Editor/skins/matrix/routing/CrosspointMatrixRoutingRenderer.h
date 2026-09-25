@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Signal Matrix skin's Copy renderer: a flat crosspoint grid (input columns ×
 	output rows) where each cell encodes the routing coefficient by colour and
 	number, in the manner of an audio routing matrix / patch-bay. Best for the

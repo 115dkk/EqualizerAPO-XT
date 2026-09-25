@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	See RackFilterPicker.h. The screw, the engraved printing and the panel
 	LEDs are the card chrome's own painters (RackSkinDetail).
 */

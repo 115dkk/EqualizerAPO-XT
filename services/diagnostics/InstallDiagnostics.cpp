@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	See InstallDiagnostics.h. The section order follows the order a reader needs:
 	what is installed, whether the audio engine can reach it, and what it is
 	attached to. Every section keeps going when its own lookup fails, because a
