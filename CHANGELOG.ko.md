@@ -19,6 +19,14 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   공유도 가리킬 수 있고, `\\?\C:\...`로 적은 로컬 경로는 더는 거부하지
   않으며, 파일 이름이 없는 `Include:`는 그 줄의 오류로 보고합니다([#369](https://github.com/115dkk/EqualizerAPO-XT/pull/369)).
 
+## v2.54.4 — 2026-09-25
+
+- **`LoudnessCorrection`이 소수점 쉼표로 적은 감쇠값을 제대로 읽습니다.**
+  `Attenuation 0,5`는 문법에는 맞았지만 0으로 읽혔습니다. 이제 설정의 다른
+  곳처럼 0.5로 읽습니다. 숫자를 읽는 명령들이 읽기 함수 하나를 함께 쓰게 되어,
+  `MultiConvolution`은 `inf`, `nan`, 16진수 글자를 배율로 받지 않고 `Copy`는
+  16진수 글자를 받지 않습니다([#364](https://github.com/115dkk/EqualizerAPO-XT/pull/364)).
+
 ## v2.54.3 — 2026-09-25
 
 - **ARM64용 Benchmark.exe가 설정의 모든 필터를 적용합니다.** ARM64 빌드는 모든

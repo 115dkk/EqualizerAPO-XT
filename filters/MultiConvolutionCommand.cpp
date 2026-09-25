@@ -89,17 +89,14 @@ bool parseSummand(const std::wstring& word, MultiConvolutionCommand::IrChannelRe
 		factorText.resize(factorText.size() - 2);
 	}
 
-	// Audit #250 F015: accept the decimal comma like the BiQuad family.
-	factorText = numeric_text::normalizeDecimalComma(factorText);
-
 	// The factor must be a complete number: a partial parse means the word was
 	// not a summand (e.g. a stray file name), not a factor with trailing junk.
-	wchar_t* end = nullptr;
-	const double factor = wcstod(factorText.c_str(), &end);
-	if (end == factorText.c_str() || *end != L'\0')
+	// The decimal comma is accepted like the BiQuad family (audit #250 F015).
+	const std::optional<double> factor = numeric_text::parseNumber(factorText);
+	if (!factor)
 		return false;
 
-	ref = MultiConvolutionCommand::IrChannelRef(channel, factor, isDecibel);
+	ref = MultiConvolutionCommand::IrChannelRef(channel, *factor, isDecibel);
 	return true;
 }
 }
