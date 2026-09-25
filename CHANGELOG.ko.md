@@ -8,6 +8,17 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **`Include`가 따옴표로 감싼 파일 이름과 환경 변수를 받고, 네트워크 공유로
+  이어지는 링크는 공유와 똑같이 거부합니다.** `Include: "my presets.txt"`와
+  `Include: %USERPROFILE%\eq\room.txt`를 이제 불러옵니다. `Convolution`은
+  원래 이렇게 읽었고, Editor의 Include 카드와 설정 폴더 가져오기도 이런 줄을
+  같은 방식으로 읽습니다. 로컬 경로처럼 보여도 심볼릭 링크나 정션을 거쳐
+  네트워크 공유로 이어지는 경로는 이제 공유를 직접 적은 경우처럼 그 줄에서
+  거부하고, Editor의 파일 카드도 쓸 수 있는 파일로 표시하는 대신 그 사실을
+  알립니다. 공유에 둔 설정은 이제 `\\?\UNC\server\share` 형태로 적은 같은
+  공유도 가리킬 수 있고, `\\?\C:\...`로 적은 로컬 경로는 더는 거부하지
+  않으며, 파일 이름이 없는 `Include:`는 그 줄의 오류로 보고합니다([#369](https://github.com/115dkk/EqualizerAPO-XT/pull/369)).
+
 ## v2.54.3 — 2026-09-25
 
 - **ARM64용 Benchmark.exe가 설정의 모든 필터를 적용합니다.** ARM64 빌드는 모든

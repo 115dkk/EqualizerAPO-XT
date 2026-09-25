@@ -1219,6 +1219,16 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
         <translation type="unfinished">Einige Dateien konnten nicht kopiert werden:
 %1</translation>
     </message>
+    <message>
+        <location filename="../widgets/cards/FileReferenceController.cpp" line="98"/>
+        <source>The audio service only opens files on local drives</source>
+        <translation>Der Audiodienst öffnet nur Dateien auf lokalen Laufwerken</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/FileReferenceController.cpp" line="100"/>
+        <source>Not readable by the audio service</source>
+        <translation>Für den Audiodienst nicht lesbar</translation>
+    </message>
 </context>
 <context>
     <name>FilterCardModel</name>

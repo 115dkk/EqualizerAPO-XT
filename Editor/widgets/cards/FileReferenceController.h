@@ -23,8 +23,9 @@ public:
 	const QString& resolvedPath() const;
 	void setWrittenPath(const QString& path);
 	void setResolvedPath(const QString& path);
+	// The file the engine opens for the written text (ConfigFileReference):
+	// quotes and %VARIABLES% taken, relative to the configuration's folder.
 	void resolveAgainstConfig(const QString& configPath);
-	void resolveAgainstDirectory(const QString& directoryPath);
 
 	// selectVst3Bundles additionally lets the dialog pick *.vst3 bundle
 	// directories as if they were files (GUIHelper::enableVst3BundleSelection).
@@ -34,7 +35,11 @@ public:
 		const QString& selectedFile = QString(),
 		bool selectVst3Bundles = false);
 	ReferenceCardState describe(const QString& emptyName) const;
-	static bool isReadableByAudioService(const QString& absolutePath);
+	// Why the audio service will not open absolutePath, or an empty string
+	// when it will: first the engine's own rule for where a line's file may
+	// be (ConfigPathPolicy, the check it makes when it loads the line), then
+	// LOCAL SERVICE's rights on the file.
+	static QString audioServiceProblem(const QString& absolutePath, const QString& configPath);
 	bool importIntoConfig(QWidget* parent, const QString& configPath);
 
 	static QString displayPathForBaseDirectory(

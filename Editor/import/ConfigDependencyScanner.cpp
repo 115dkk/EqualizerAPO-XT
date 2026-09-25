@@ -7,7 +7,7 @@
 #include "ConfigDependencyScanner.h"
 #include "../ConfigFileCodec.h"
 #include "../widgets/FilterCardModel.h"
-#include "filters/ConvolutionFilePath.h"
+#include "filters/ConfigFileReference.h"
 #include "filters/MultiConvolutionCommand.h"
 #include "filters/VSTPluginCommand.h"
 #include "filters/subwooferRouting/SubwooferRoutingCommand.h"
@@ -37,19 +37,11 @@ bool isReferenceCommand(const QString& keyword)
         || keyword == QStringLiteral("SubwooferRouting");
 }
 
-// The engine unquotes convolution paths in ConvolutionFilePath::resolve, so a
-// quoted reference is a valid line; the scanner must look at the same file.
-QString stripSurroundingQuotes(const QString& text)
-{
-    QString trimmed = text.trimmed();
-    if (trimmed.length() >= 2 && trimmed.startsWith(QLatin1Char('"')) && trimmed.endsWith(QLatin1Char('"')))
-        return trimmed.mid(1, trimmed.length() - 2);
-    return trimmed;
-}
-
-// The path portion of the line for the given reference command. The
-// convolution family and VSTPlugin share their engine grammar so routing
-// factors, mappings, state and parameter pairs never leak into the path.
+// The path portion of the line for the given reference command, as written.
+// The convolution family and VSTPlugin share their engine grammar so routing
+// factors, mappings, state and parameter pairs never leak into the path;
+// quotes and variables are left to ConfigFileReference::resolve, the engine's
+// own reading.
 QString referencePath(const QString& keyword, const QString& parameters)
 {
     if (keyword == QStringLiteral("MultiConvolution"))
@@ -57,10 +49,10 @@ QString referencePath(const QString& keyword, const QString& parameters)
         MultiConvolutionCommand command;
         if (!MultiConvolutionCommand::parse(L"MultiConvolution", parameters.toStdWString(), command))
             return QString();
-        return stripSurroundingQuotes(QString::fromStdWString(command.path));
+        return QString::fromStdWString(command.path);
     }
     if (keyword == QStringLiteral("Convolution"))
-        return stripSurroundingQuotes(parameters);
+        return parameters;
     if (keyword == QStringLiteral("VSTPlugin"))
         return QString::fromStdWString(
             VSTPluginCommand::extractLibraryReference(parameters.toStdWString()));
@@ -72,14 +64,14 @@ QString referencePath(const QString& keyword, const QString& parameters)
         if (!SubwooferRoutingCommand::parse(L"SubwooferRouting", parameters.toStdWString(), command)
             || command.form != SubwooferRoutingCommand::Form::Profile)
             return QString();
-        return stripSurroundingQuotes(QString::fromStdWString(command.payload));
+        return QString::fromStdWString(command.payload);
     }
     return parameters;
 }
 
 QString resolveAbsolute(const QString& reference, const QString& configPath)
 {
-    const std::wstring resolved = ConvolutionFilePath::resolve(
+    const std::wstring resolved = ConfigFileReference::resolve(
         configPath.toStdWString(), reference.toStdWString());
     if (resolved.empty())
         return QString();

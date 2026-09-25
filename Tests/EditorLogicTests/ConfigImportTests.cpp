@@ -32,6 +32,7 @@
 #include "Editor/import/ImportExecutor.h"
 #include "Editor/import/ImportManifest.h"
 #include "Editor/import/LegacyMigrationPolicy.h"
+#include "Editor/widgets/cards/FileReferenceController.h"
 
 #include "EditorLogicTestSupport.h"
 
@@ -73,6 +74,62 @@ void testConvolutionPathHelper()
 	expectFalse(
 		ConvolutionPathHelper::relativePathLooksContainedLexically("C:/Impulse/room.wav"),
 		"absolute path was accepted as relative");
+}
+
+// Audit #348 A1: the import scanner and the card read a line's file the way
+// the engine does (ConfigFileReference), so a quoted Include or one through a
+// variable names the same file in all three; and the card's verdict applies
+// the engine's location rule before the ACL.
+void testFileReferencesReadLikeTheEngine()
+{
+	QTemporaryDir tempDir;
+	requireTrue(tempDir.isValid(), "QTemporaryDir must be valid");
+	const QString sourceDir = tempDir.path() + "/Source";
+	requireTrue(QDir().mkpath(sourceDir + "/sub dir"), "failed to create the source tree");
+	auto writeText = [](const QString& path, const QString& body) {
+		QFile f(path);
+		expectTrue(f.open(QIODevice::WriteOnly | QIODevice::Text), QString("could not open %1 for write").arg(path));
+		QTextStream ts(&f);
+		ts << body;
+	};
+	qputenv("EAPO_XT_TEST_IMPORT_DIR", QDir::toNativeSeparators(sourceDir).toLocal8Bit());
+	writeText(sourceDir + "/main.txt",
+		"Include: \"sub dir\\child.txt\"\n"
+		"Include: %EAPO_XT_TEST_IMPORT_DIR%\\by-variable.txt\n");
+	writeText(sourceDir + "/sub dir/child.txt", "Preamp: -1 dB\n");
+	writeText(sourceDir + "/by-variable.txt", "Preamp: -2 dB\n");
+
+	const EqAPO::Import::ImportManifest manifest = EqAPO::Import::ConfigDependencyScanner::scan(
+		sourceDir + "/main.txt", tempDir.path() + "/configdir");
+	expectFalse(manifest.hasErrors, "a quoted include and one through a variable are both found");
+	QStringList destinations;
+	for (const auto& item : manifest.items)
+		destinations.append(item.destRelative);
+	expectTrue(destinations.contains("Source/sub dir/child.txt"), "the quoted include is imported");
+	expectTrue(destinations.contains("Source/by-variable.txt"), "the include through a variable is imported");
+
+	FileReferenceController quoted(QStringLiteral("include"), QStringLiteral("\"sub dir\\child.txt\""));
+	quoted.resolveAgainstConfig(sourceDir + "/main.txt");
+	expectPath(QDir::fromNativeSeparators(quoted.resolvedPath()), sourceDir + "/sub dir/child.txt");
+	const ReferenceCardState state = quoted.describe(QStringLiteral("none"));
+	expectFalse(state.missing, "the card finds the quoted include");
+	expectEqual(state.name, QStringLiteral("child.txt"), "and names it without the quotes");
+
+	FileReferenceController variable(QStringLiteral("include"),
+		QStringLiteral("%EAPO_XT_TEST_IMPORT_DIR%\\by-variable.txt"));
+	variable.resolveAgainstConfig(sourceDir + "/main.txt");
+	expectPath(QDir::fromNativeSeparators(variable.resolvedPath()), sourceDir + "/by-variable.txt");
+
+	expectEqual(FileReferenceController::audioServiceProblem(
+		QStringLiteral("\\\\nas\\irs\\room.wav"), sourceDir + "/main.txt"),
+		QStringLiteral("The audio service only opens files on local drives"),
+		"a file on a share is refused by the engine's rule, not reported as an ACL problem");
+	qputenv("EAPO_SKIN_GALLERY", "1");
+	expectTrue(FileReferenceController::audioServiceProblem(
+		QStringLiteral("\\\\nas\\irs\\room.wav"), sourceDir + "/main.txt").isEmpty(),
+		"the offscreen gallery skips the verdict");
+	qunsetenv("EAPO_SKIN_GALLERY");
+	qunsetenv("EAPO_XT_TEST_IMPORT_DIR");
 }
 
 void testConfigImport()

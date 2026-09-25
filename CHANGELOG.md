@@ -14,6 +14,18 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **`Include` takes quoted file names and environment variables, and a link
+  to a network share is refused like the share.** `Include: "my presets.txt"`
+  and `Include: %USERPROFILE%\eq\room.txt` now load, as they always did for
+  `Convolution`, and the Editor's Include card and its import of a
+  configuration folder read such lines the same way. A path that looks local
+  but leads through a symbolic link or junction to a network share is now
+  refused on its line like a share written out, and the Editor's file cards
+  say so instead of showing the file as usable. A configuration kept on a
+  share may now name that share in the `\\?\UNC\server\share` form too, a
+  local path written as `\\?\C:\...` is no longer refused, and an
+  `Include:` with no file name is reported on its line ([#369](https://github.com/115dkk/EqualizerAPO-XT/pull/369)).
+
 ## v2.54.3 — 2026-09-25
 
 - **Benchmark.exe on ARM64 applies every filter in the configuration.** The

@@ -1,4 +1,4 @@
-﻿/*
+/*
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 	Copyright (C) 2026 115dkk
 	SPDX-License-Identifier: GPL-2.0-or-later
@@ -10,8 +10,10 @@
 #include "text/WideString.h"
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <Shlwapi.h>
 
-#include "ConvolutionFilePath.h"
+#include "ConfigPathPolicy.h"
+#include "ConfigFileReference.h"
 
 using std::wstring;
 namespace filesystem = std::filesystem;
@@ -41,14 +43,14 @@ wstring expandEnvironmentStrings(const wstring& value)
 }
 }
 
-wstring ConvolutionFilePath::normalizeParameter(const wstring& parameters)
+wstring ConfigFileReference::normalize(const wstring& written)
 {
-	return expandEnvironmentStrings(unquote(text::trim(parameters)));
+	return expandEnvironmentStrings(unquote(text::trim(written)));
 }
 
-wstring ConvolutionFilePath::resolve(const wstring& configPath, const wstring& parameters)
+wstring ConfigFileReference::resolve(const wstring& configPath, const wstring& written)
 {
-	wstring value = normalizeParameter(parameters);
+	wstring value = normalize(written);
 	if (value.empty())
 		return L"";
 
@@ -59,4 +61,26 @@ wstring ConvolutionFilePath::resolve(const wstring& configPath, const wstring& p
 	filesystem::path basePath(configPath);
 	basePath.remove_filename();
 	return (basePath / path).lexically_normal().wstring();
+}
+
+wstring ConfigFileReference::resolveLibrary(const wstring& pluginFolder, const wstring& reference)
+{
+	if (reference.empty())
+		return L"";
+	if (!PathIsRelativeW(reference.c_str()))
+		return reference;
+
+	wstring folder = pluginFolder;
+	while (!folder.empty() && (folder.back() == L'\\' || folder.back() == L'/'))
+		folder.pop_back();
+	return folder + L"\\" + reference;
+}
+
+ConfigFileReference::Target ConfigFileReference::target(const wstring& configPath, const wstring& written)
+{
+	Target result;
+	result.path = resolve(configPath, written);
+	if (!result.path.empty() && !ConfigPathPolicy::allowsOpen(result.path, configPath, result.refusal))
+		result.path.clear();
+	return result;
 }

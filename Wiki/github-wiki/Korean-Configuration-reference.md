@@ -9,7 +9,7 @@ Command: Parameters
 
 지원하는 명령 이름이 없는 줄은 아무 동작도 하지 않는 텍스트입니다. 주석이 이렇게 동작합니다. `#`로 시작하는 줄은 인식되는 명령이 아니며, 존재하지 않는 명령 이름도 무시됩니다. 명령 이름은 대소문자를 구분합니다. `Preamp`는 동작하지만 `preamp`는 동작하지 않습니다. 모든 필터링 명령(`Preamp`, `Filter`, `IIR`, `Delay`, `Copy`, `GraphicEQ`, 두 컨볼루션 명령, `VSTPlugin`, `Hilbert`, `Velvet`, `SubwooferRouting`, `LoudnessCorrection`)은 잘못된 입력의 파일·줄·이유를 `EqualizerAPO.log`와 Editor의 해당 줄에 남깁니다. 뒤의 줄은 계속 불러옵니다. 제어 명령(`Include`, `Device`, `Stage`, `If`, `Eval`)만 자체 메시지로 보고합니다.
 
-설정 파일이 가리키는 파일 경로(`Include`, `Convolution`, `MultiConvolution`, `SubwooferRouting: Profile`, `VSTPlugin: Library`)는 로컬 드라이브 어디든 될 수 있고, 절대 경로나 그 줄이 든 파일 기준의 상대 경로로 씁니다. 네트워크 공유(`\\server\share\...`)와 장치 경로(`\\.\...`, `\\?\...`)는 열지 않습니다. 오디오 서비스는 LOCAL SERVICE 계정으로 돌기 때문에 설정 줄이 적은 호스트에 인증을 시도하게 되므로, 그런 줄은 해당 줄의 오류로 보고하고 건너뛰며 나머지 줄은 계속 불러옵니다. 예외는 설정 파일 자체가 네트워크 공유에 있는 경우뿐이며, 그때는 같은 공유의 파일을 가리킬 수 있습니다.
+설정 파일이 가리키는 파일 경로(`Include`, `Convolution`, `MultiConvolution`, `SubwooferRouting: Profile`, `VSTPlugin: Library`)는 로컬 드라이브 어디든 될 수 있고, 절대 경로나 그 줄이 든 파일 기준의 상대 경로로 씁니다. 네트워크 공유(`\\server\share\...`, `\\?\UNC\server\share\...`로 적어도 같습니다), 네트워크 드라이브, 장치 경로(`\\.\pipe\...`, `\\?\GLOBALROOT\...`)는 열지 않습니다. 오디오 서비스는 LOCAL SERVICE 계정으로 돌기 때문에 설정 줄이 적은 호스트에 인증을 시도하게 되므로, 그런 줄은 해당 줄의 오류로 보고하고 건너뛰며 나머지 줄은 계속 불러옵니다. 경로는 실제로 닿는 곳을 보고 판정합니다. 가는 길에 있는 심볼릭 링크나 정션이 공유를 가리키면 공유를 직접 적은 것과 똑같이 거부합니다. `\\?\C:\...`처럼 적은 로컬 경로는 로컬로 봅니다. 예외는 설정 파일 자체가 네트워크 공유에 있는 경우뿐이며, 그때는 같은 공유의 파일을 가리킬 수 있습니다.
 
 예시:
 
@@ -297,7 +297,7 @@ SubwooferRouting: Profile "SubwooferRouting\Issue 246 Front Rear 4.1.swxt.json"
 ### Include
 **문법:** `Include: <파일 이름>`
 
-지정한 파일을 설정 파일로 불러옵니다. `config.txt`를 직접 고치는 대신 실제 필터 정의를 별도 파일에 두면, 예를 들어 불러오기 전에 프리앰프를 먼저 정할 수 있습니다. 상대 경로는 불러오는 파일 기준이며, 더는 260자에서 잘리지 않습니다.
+지정한 파일을 설정 파일로 불러옵니다. `config.txt`를 직접 고치는 대신 실제 필터 정의를 별도 파일에 두면, 예를 들어 불러오기 전에 프리앰프를 먼저 정할 수 있습니다. 상대 경로는 불러오는 파일 기준이며, 더는 260자에서 잘리지 않습니다. `Convolution`과 마찬가지로 파일 이름을 따옴표로 감쌀 수 있고 `%USERPROFILE%` 같은 환경 변수를 넣을 수 있습니다.
 
 ```
 Include: example.txt

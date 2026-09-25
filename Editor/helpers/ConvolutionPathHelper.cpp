@@ -9,7 +9,7 @@
 #include <QDir>
 #include <QFileInfo>
 
-#include "filters/ConvolutionFilePath.h"
+#include "filters/ConfigFileReference.h"
 
 namespace
 {
@@ -22,7 +22,7 @@ QDir configDirectory(const QString& configPath)
 
 QString ConvolutionPathHelper::absolutePathForConfig(const QString& configPath, const QString& path)
 {
-	const std::wstring resolved = ConvolutionFilePath::resolve(
+	const std::wstring resolved = ConfigFileReference::resolve(
 		configPath.toStdWString(), path.toStdWString());
 	if (resolved.empty())
 		return QString();
