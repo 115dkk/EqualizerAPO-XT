@@ -114,8 +114,15 @@
 .crow .summary { color: var(--muted); margin-left: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .crow .readout { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--muted); }
 .crow .spacer { flex: 1; }
-.crow .ch { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 16px; padding: 0 5px; font-family: var(--mono);
-  font-size: 10.67px; font-weight: 700; line-height: 1; margin-left: 4px; }
+/* Channel badges (ChBadge): one identity colour per channel (channel-*, ALL and unknown = channel-neutral), a 24x16 chip
+   after the title and summary. Filled skins (studio, soft) tint it 27 % (19 % light) inside a full-colour line; the wire
+   skins (rack, matrix) tint it 14 % (9 %). A virtual channel, one the device does not have, is dashed. */
+.crow .chs { display: inline-flex; align-items: center; gap: 5px; margin-left: 24px; }
+.crow .ch { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 16px; padding: 0 5px; box-sizing: border-box; font-family: var(--font);
+  font-size: 11.5px; font-weight: 700; line-height: 1; color: var(--c); border: 1px solid var(--c); border-radius: 999px; background: color-mix(in srgb, var(--c) 27%, transparent); }
+[data-theme="light"] .crow .ch { background: color-mix(in srgb, var(--c) 19%, transparent); }
+.crow .ch.virt { border-style: dashed; background: color-mix(in srgb, var(--c) 14%, transparent); }
+[data-theme="light"] .crow .ch.virt { background: color-mix(in srgb, var(--c) 9%, transparent); }
 .crow .body { position: relative; padding: 8px 12px 10px 16px; }
 .crow .cap { font-size: 10.67px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
 .crow .vbox { display: inline-flex; align-items: center; height: 32px; padding: 0 14px; box-sizing: border-box; font-family: var(--mono); font-size: 13.33px; font-weight: 600; color: var(--text); min-width: 120px; }
@@ -141,7 +148,6 @@
 .skin-studio .crow .hb.expand { background: color-mix(in srgb, var(--accent) 45%, var(--card)); border-color: color-mix(in srgb, var(--accent) 70%, transparent); color: #fff; }
 .skin-studio .crow .hb.power { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
 .skin-studio .crow .tbadge { color: var(--t, var(--accent)); background: color-mix(in srgb, var(--t, var(--accent)) 15%, transparent); border: 1px solid color-mix(in srgb, var(--t, var(--accent)) 42%, transparent); border-radius: 6px; }
-.skin-studio .crow .ch { border-radius: 999px; color: var(--c); background: color-mix(in srgb, var(--c) 18%, transparent); border: 1px solid color-mix(in srgb, var(--c) 55%, transparent); }
 .skin-studio .crow .vbox { background: var(--sunken); border: 1px solid var(--border); border-top-color: rgba(0,0,0,.55); border-radius: var(--radius); }
 [data-theme="light"] .skin-studio .crow .vbox { background: var(--input); border-top-color: var(--border); }
 .skin-studio .crow .sel { background: color-mix(in srgb, var(--card-hover) 60%, transparent); border: 1px solid var(--border); border-radius: var(--radius); }
@@ -162,7 +168,8 @@
 .skin-minimal .crow .tbadge { border: 0; color: var(--t, var(--text)); }
 .skin-minimal .crow .title { text-transform: uppercase; letter-spacing: 1px; font-weight: 500; font-family: var(--mono); }
 .skin-minimal .crow .summary { font-family: var(--mono); }
-.skin-minimal .crow .ch { color: var(--c); padding: 0 2px; }
+.skin-minimal .crow .ch { color: var(--c); padding: 0 2px; border: 0; border-radius: 0; background: none; font-family: var(--mono); font-size: 12.67px; }
+.skin-minimal .crow .ch.virt { border: 1px dashed var(--c); }
 .skin-minimal .crow .body { background: var(--surface); border-top: 1px solid var(--border); padding-left: 14px; }
 .skin-minimal .crow .vbox { background: var(--input); border: 1px solid var(--border); border-radius: 0; font-weight: 500; }
 .skin-minimal .crow .sel { background: transparent; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; padding: 0 2px; font-family: var(--mono); }
@@ -182,7 +189,6 @@
 .skin-soft .crow .hb.power { background: color-mix(in srgb, var(--accent) 60%, var(--card)); color: var(--on-accent); border-color: transparent; }
 .skin-soft .crow .tbadge { width: 40px; height: 34px; border-radius: 10px; background: var(--p, var(--accent)); color: var(--on-accent); }
 .skin-soft .crow .title { font-size: 15px; }
-.skin-soft .crow .ch { border-radius: 999px; color: var(--c); background: color-mix(in srgb, var(--c) 18%, transparent); border: 1px solid color-mix(in srgb, var(--c) 55%, transparent); font-family: var(--font); }
 .skin-soft .crow .body { background: var(--surface); margin: 0 6px 6px; border-radius: 10px; padding: 8px 10px 10px 12px; }
 .skin-soft .crow .vbox { background: var(--sunken); border: 1px solid var(--border); border-radius: 999px; }
 .skin-soft .crow .sel { background: var(--card-hover); border-radius: 999px; font-family: var(--font); }
@@ -197,7 +203,18 @@
   background-image: repeating-linear-gradient(180deg, rgba(255,255,255,.028) 0 1px, rgba(0,0,0,.05) 1px 2px, rgba(255,255,255,.012) 2px 3px, rgba(0,0,0,.028) 3px 4px); }
 .skin-rack .crow::before, .skin-rack .crow::after { content: ""; position: absolute; top: 0; bottom: 0; width: 16px; background: color-mix(in srgb, var(--card) 70%, black); }
 .skin-rack .crow::before { left: 0; border-right: 1px solid rgba(0,0,0,.45); } .skin-rack .crow::after { right: 0; border-left: 1px solid rgba(255,255,255,.06); }
-.skin-rack .crow .ear { position: absolute; left: -12px; top: 50%; width: 40px; transform: translateY(-50%) rotate(-90deg); font-size: 7px; font-weight: 700; letter-spacing: 2px; color: var(--muted); opacity: .75; z-index: 2; text-align: center; white-space: nowrap; }
+/* The ear stencil runs up the left ear from 16 px above the bottom edge to 38 px below the top (between the bottom
+   screw and the SELECT LED), 9 px bold with 1.5 px tracking. It is printed only when the whole word fits that run
+   and the unit is at least 96 px tall (a run of 42 px); otherwise it is left off, never clipped. The flex column
+   does the judging: a zero-height first item holds the visible line, and a word that does not fit wraps into the
+   second line, which the 12 px box hides. The channel card prints CHANNEL at 6 px (ADR 0001). */
+.skin-rack .crow .ear { position: absolute; left: 2px; top: 38px; bottom: 16px; width: 12px; display: flex; flex-direction: column; flex-wrap: wrap;
+  justify-content: flex-end; align-content: flex-start; overflow: hidden; z-index: 2; font-size: 9px; font-weight: 700; letter-spacing: 1.5px; line-height: 12px;
+  color: color-mix(in srgb, var(--muted) 78%, transparent); text-shadow: 0 1px 0 rgba(0,0,0,.55); }
+[data-theme="light"] .skin-rack .crow .ear { text-shadow: 0 1px 0 rgba(255,255,255,.6); }
+.skin-rack .crow .ear::before { content: ""; width: 12px; height: 0; }
+.skin-rack .crow .ear > span { width: 12px; min-height: 42px; writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; text-align: start; }
+.skin-rack .crow .ear.small { font-size: 6px; }
 .skin-rack .crow .screw { position: absolute; width: 6px; height: 6px; border-radius: 50%; z-index: 2; background: radial-gradient(circle at 35% 35%, #9aa0a4, #3a4046 70%); box-shadow: 0 0 0 1px rgba(0,0,0,.5); }
 .skin-rack .crow .screw::after { content: ""; position: absolute; left: 0; right: 0; top: 2.5px; height: 1px; background: rgba(0,0,0,.75); }
 .skin-rack .crow .screw.tl { left: 5px; top: 5px; transform: rotate(20deg); } .skin-rack .crow .screw.tr { right: 5px; top: 5px; transform: rotate(-35deg); }
@@ -205,16 +222,23 @@
 .skin-rack .crow .led { position: absolute; left: 6px; top: 16px; width: 5px; height: 5px; border-radius: 50%; z-index: 2;
   background: radial-gradient(circle at 40% 35%, #fff8 0 1px, var(--accent2) 2px, color-mix(in srgb, var(--accent2) 60%, black)); box-shadow: 0 0 0 1px #0a0c0e, 0 0 4px var(--accent2); }
 .skin-rack .crow .hdr { padding-left: 26px; padding-right: 26px; }
-.skin-rack .crow .body { padding-left: 34px; padding-right: 26px; }
+.skin-rack .crow .body { padding: 12px 26px 16px 34px; }
 .skin-rack .crow .hb { background: linear-gradient(180deg, #2c333a, #1b2126); border: 1px solid #11161a; border-top-color: #3e474f; border-radius: 3px; }
 [data-theme="light"] .skin-rack .crow .hb { background: linear-gradient(180deg, var(--card-hover), var(--card)); border-color: var(--seam); border-top-color: #fff8; }
 .skin-rack .crow .hb.expand { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 35%, #2c333a), color-mix(in srgb, var(--accent) 22%, #1b2126)); border-color: var(--accent); }
 .skin-rack .crow .hb.power { border-color: var(--accent); color: var(--accent); }
 .skin-rack .crow .tbadge { border: 1px solid var(--t, var(--muted)); color: var(--t, var(--muted)); border-radius: 2px; }
 .skin-rack .crow .title { text-transform: uppercase; letter-spacing: 1px; font-size: 12px; font-weight: 700; }
-.skin-rack .crow .ch { border: 1px solid currentColor; border-radius: 2px; color: var(--c); }
+.skin-rack .crow .ch, .skin-matrix .crow .ch { border-radius: var(--radius); background: color-mix(in srgb, var(--c) 14%, transparent); }
+[data-theme="light"] .skin-rack .crow .ch, [data-theme="light"] .skin-matrix .crow .ch { background: color-mix(in srgb, var(--c) 9%, transparent); }
 .skin-rack .crow .vbox { background: var(--graph); color: var(--accent2); border: 1px solid #0a0c0e; border-radius: 2px; box-shadow: inset 0 1px 2px rgba(0,0,0,.8), 0 1px 0 rgba(255,255,255,.06);
   text-shadow: 0 0 4px color-mix(in srgb, var(--accent2) 60%, transparent); font-weight: 700; }
+/* The display clause: an LCD or a scope glass stays a dark well with lit segments on the cream panel too. The code paints
+   these wells from RackPalette literals (LcdWindowGlass, GlassTop/GlassBottom, SegmentBright), not from rack-graph and rack-accent2, whose
+   light values are cream and a dark green, so the mirror hard-codes the same light values. */
+.skin-rack { --glass: var(--rack-graph); --scope: var(--rack-accent2); }
+[data-theme="light"] .skin-rack { --glass: #0e1210; --scope: #3ed68e; }
+[data-theme="light"] .skin-rack .crow .vbox { background: #11150f; color: #3ed68e; }
 .skin-rack .crow .sel { background: transparent; border: 0; border-bottom: 1px solid rgba(0,0,0,.55); box-shadow: 0 1px 0 rgba(255,255,255,.07); border-radius: 0; padding: 0 2px; }
 .skin-rack .crow .btn, .skin-rack .crow .ibtn { background: linear-gradient(180deg, #2c333a, #1b2126); border: 1px solid #11161a; border-top-color: #3e474f; border-radius: 3px;
   text-transform: uppercase; letter-spacing: 1px; font-size: 11px; font-weight: 700; }
@@ -224,7 +248,7 @@
 .skin-rack .crow .chip { font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--k, var(--muted)); }
 .skin-rack .crow .chip.wire { border: 1px solid currentColor; border-radius: 2px; padding: 1px 5px; }
 .skin-rack .crow .plate { position: absolute; right: 30px; top: 9px; height: 22px; padding: 0 14px; display: inline-flex; align-items: center; gap: 10px; border-radius: 2px;
-  background: linear-gradient(180deg, #c9a45a, #8a6a2c); color: #2b1d08; font-size: 9px; font-weight: 700; letter-spacing: 2px; box-shadow: inset 0 1px 0 #ffe7b0, 0 1px 2px rgba(0,0,0,.6); }
+  background: linear-gradient(180deg, #c9a45a, #8a6a2c); color: #2b1d08; font-size: 10px; font-weight: 700; letter-spacing: 2.5px; box-shadow: inset 0 1px 0 #ffe7b0, 0 1px 2px rgba(0,0,0,.6); }
 .skin-rack .crow .plate::before, .skin-rack .crow .plate::after { content: ""; width: 3px; height: 3px; border-radius: 50%; background: #5a4418; }
 
 /* Matrix: rectangular cells, the 3px rail and gutter lamp, the coordinate cell, the grid behind the header */
@@ -239,7 +263,6 @@
 .skin-matrix .crow .hb.power { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--bg)); }
 .skin-matrix .crow .num { border: 1px solid var(--border); background: var(--bg); min-width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; letter-spacing: 1px; font-size: 12px; }
 .skin-matrix .crow .tbadge { border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 0; }
-.skin-matrix .crow .ch { border: 1px solid currentColor; border-radius: 0; background: var(--bg); color: var(--c); }
 .skin-matrix .crow .body { background: var(--bg); border-top: 1px solid var(--border); padding-left: 22px; }
 .skin-matrix .crow .vbox { background: var(--graph); border: 1px solid var(--border); border-radius: 0; }
 .skin-matrix .crow .sel { background: transparent; border: 1px solid var(--border); border-radius: 0; font-family: var(--font); text-transform: uppercase; letter-spacing: 1px; font-size: 10.67px; font-weight: 600; }

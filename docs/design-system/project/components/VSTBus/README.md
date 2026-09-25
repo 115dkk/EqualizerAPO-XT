@@ -1,10 +1,12 @@
 # VSTBus
 
-VST 행의 본문이다. 강제 협상 슬롯의 채널 배선(SlotFill 레일, 헤더 아래가 입력이고 본문 아래가 출력), 참조 라인(플러그인 파일, 결손 상태, `Locate`·`Open panel`·옵션), Input/Output 계약을 알리는 버스 스트립으로 구성된다. 미리보기는 갤러리 `vst_slotfill_normal`(파일 결손, 레일과 버스는 선 상태)을 옮겼다.
+VST 행의 본문이다. 강제 협상 슬롯의 채널 배선(SlotFill 레일, 헤더 아래가 입력이고 본문 아래가 출력), 참조 라인(플러그인 파일, 결손 상태, `Locate`·`Open panel`·옵션), Input/Output 계약을 알리는 버스 스트립으로 구성된다. 미리보기는 갤러리 `vst_slotfill_normal`(파일 결손, 레일과 버스는 선 상태)과 `vst3_bus_rejected_normal`(플러그인이 버스 계약을 거부한 상태)을 옮겼다.
 
 ## 공유 계약
 
-버스 스트립은 IN/OUT 두 선택기와 그 사이의 방향 표시, 그리고 판정 하나로 이루어진다. 수락된 명시 계약은 판정만 남기고 값을 두 번 말하지 않는다(총강 조문 1). Auto 협상은 실제 체결된 페어를 판독하고 거부와 VST2 경고문은 스트립이 아니라 기존 상태 줄이 말한다(조문 3). 방향 글리프는 페인트로 그린다(조문 5). SlotFill 셀은 버스 선택기와 같은 컨트롤로 읽히면 안 되고, `-`와 암묵 기본값은 muted, 선택 밖 채널은 danger 잉크다. 접기 래치는 그 스킨의 상태 문법을 입는다.
+버스 스트립은 IN/OUT 두 선택기와 그 사이의 방향 표시, 그리고 판정 하나로 이루어진다. 수락된 명시 계약은 판정만 남기고 값을 두 번 말하지 않는다(총강 조문 1). Auto 협상은 실제 체결된 페어를 판독하고 거부와 VST2 경고문은 스트립이 아니라 기존 상태 줄이 말한다(조문 3). 방향 글리프는 페인트로 그린다(조문 5). SlotFill 셀은 버스 선택기와 같은 컨트롤로 읽히면 안 되고, `-`와 암묵 기본값은 muted, 선택 밖 채널은 danger 잉크다. SlotFill 셀의 폭은 그 스킨이 실제로 그리는 활자로 잰다(`ISkin::vstSlotFillCellSize`). 역할 토큰과 채널 값의 폭에 스킨의 여백을 더한 값이라 가장 긴 채널 이름도 잘리지 않고, 같은 셀도 스킨마다 폭이 다르다. 접기 래치는 그 스킨의 상태 문법을 입는다.
+
+카드 상태 줄(거부 사유, 서비스가 읽을 수 없는 위치, 로더 오류)은 유닛 줄 안에 넣지 않고 그 아래에 본문 전폭으로 한 줄을 따로 쓰며, 길면 줄바꿈한다. rack은 라벨 스트립과 같은 들여쓰기에 `rack-danger` 11px로, studio는 붉은 점 뒤에 본문 잉크로, matrix는 `!` 뒤에 `matrix-danger` 모노로 쓴다. soft는 참조 타일 옆 정체성 열의 셋째 줄에 쓰고, minimal은 한 줄 식의 끝에 `!!` 잉크 태그로 붙인다.
 
 ## 스킨별 재질
 
@@ -20,4 +22,4 @@ hover는 studio 알파 채움 상승, minimal 캐럿·밑줄 출현, soft 한 �
 
 ## 소비자가 주는 것
 
-플러그인 파일과 존재 여부, 로드된 ABI, 입력·출력 버스 레이아웃과 폭, 판정(수락·거부·Auto 체결 페어), 슬롯 채우기 배선과 선택 밖 채널. hand-written from `Editor/skins/<id>/<Skin>.CommandRows.cpp`, `docs/skins/*.md` VST 버스·SlotFill sections, against the gallery shot `vst_slotfill_normal`.
+플러그인 파일과 존재 여부, 로드된 ABI, 입력·출력 버스 레이아웃과 폭, 판정(수락·거부·Auto 체결 페어), 슬롯 채우기 배선과 선택 밖 채널. hand-written from `Editor/skins/<id>/<Skin>.CommandRows.cpp`, `Editor/widgets/cards/VSTSlotFillRail.cpp`, `docs/skins/*.md` VST 버스·SlotFill sections, against the gallery shots `vst_slotfill_normal` and `vst3_bus_rejected_normal`.

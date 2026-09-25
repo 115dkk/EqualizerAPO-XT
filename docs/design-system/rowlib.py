@@ -40,34 +40,37 @@ GLYPH = {'biquad': '~', 'include': '>>', 'vst': '[]', 'copy': '->', 'comment': '
          'geq': '·', 'preamp': '·', 'device': '·', 'channel': '·', 'stage': '·', 'delay': '·'}
 BUS = {'biquad': 'B', 'include': 'I', 'vst': 'V', 'copy': 'C', 'comment': '#', 'text': 'R', 'if': 'F', 'eval': 'E', 'geq': 'G',
        'preamp': 'P', 'device': 'D', 'channel': 'C', 'stage': 'S', 'delay': 'D'}
-EAR = {'biquad': 'FILTER', 'include': 'PATCH', 'vst': 'VST', 'copy': 'ROUTE', 'comment': 'NOTE', 'text': 'AUX', 'if': 'LOGIC', 'eval': 'LOGIC',
-       'geq': 'GRAPHIC', 'preamp': 'PREAMP', 'device': 'DEVICE', 'channel': 'CHAN', 'stage': 'STAGE', 'delay': 'DELAY'}
+EAR = {'biquad': 'FILTER', 'include': 'PATCH', 'vst': 'VST', 'copy': 'ROUTE', 'comment': 'NOTE', 'text': 'AUX', 'if': 'IF', 'eval': 'EVAL',
+       'geq': 'GRAPHIC', 'preamp': 'PREAMP', 'device': 'DEVICE', 'channel': 'CHANNEL', 'stage': 'STAGE', 'delay': 'DELAY'}
 CHANNEL = {'L': 'var(--channel-l)', 'R': 'var(--channel-r)', 'C': 'var(--channel-c)', 'LFE': 'var(--channel-lfe)', 'SL': 'var(--channel-sl)',
            'SR': 'var(--channel-sr)', 'RL': 'var(--channel-rl)', 'RR': 'var(--channel-rr)', 'SBL': 'var(--channel-sbl)', 'SBR': 'var(--channel-sbr)'}
 MINIMAL_INK = {'L': 'var(--minimal-ch-l)', 'R': 'var(--minimal-ch-r)', 'C': 'var(--minimal-ch-c)', 'LFE': 'var(--minimal-ch-lfe)', 'SL': 'var(--minimal-ch-sl)',
                'SR': 'var(--minimal-ch-sr)', 'RL': 'var(--minimal-ch-rl)', 'RR': 'var(--minimal-ch-rr)', 'SBL': 'var(--minimal-ch-sbl)', 'SBR': 'var(--minimal-ch-sbr)'}
-PASTEL_HUE = {'L': 0, 'R': 217, 'C': 142, 'LFE': 38, 'SL': 271, 'SR': 330, 'RL': 25, 'RR': 189, 'SBL': 258, 'SBR': 174}
 
 def svg(pict, size=None, extra=''):
     s = f' width="{size}" height="{size}"' if size else ''
     return f'<svg viewBox="0 0 24 24"{s} fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"{extra}>{PICT[pict]}</svg>'
 
 def chip_ink(skin, ch):
-    if skin == 'minimal': return MINIMAL_INK.get(ch, 'var(--muted)')
-    if skin == 'soft': return f'hsl({PASTEL_HUE.get(ch, 215)} 50% 62%)'
+    # One identity palette (ChannelIdentity.h): the header badges of studio, soft, rack and matrix wear the
+    # routing colours as they are; minimal prints its console inks; ALL and unknown channels are channel-neutral.
+    if skin == 'minimal': return MINIMAL_INK.get(ch, 'var(--minimal-ch-neutral)')
     return CHANNEL.get(ch, 'var(--channel-neutral)')
 
 def channel_badges(skin, chans, virtual=()):
+    """virtual: the channels the device does not have (ChannelIdentity::isVirtual); the previews assume a
+    7.1 device (L R C LFE RL RR SL SR), so VC or SBL is virtual and L is not. Virtual badges are dashed."""
     out = []
     for c in chans:
         style = f'--c:{chip_ink(skin, c)}'
-        dotted = ' style="border-style:dotted;' + style + '"' if c in virtual else f' style="{style}"'
-        out.append(f'<span class="ch"{dotted}>{c}</span>')
-    return ''.join(out)
+        cls = 'ch virt' if c in virtual else 'ch'
+        out.append(f'<span class="{cls}" style="{style}">{c}</span>')
+    return f'<span class="chs">{"".join(out)}</span>' if out else ''
 
 def header(skin, kind, num, title, summary='', chans=(), collapsed=False, readout='', pict=None, cursor=False, enabled=True, extra='', power=True):
     """The shared header: [expand][number][power][+][-][code][badge][title][summary] ... [channels]."""
     t, p = TYPE.get(kind, TYPE['comment'])
+    if skin == 'studio' and kind == 'biquad': t = 'var(--accent)'  # studio's BiQuad chip wears the row's band light
     pict = pict or kind
     badge_inner = svg(pict) if pict in PICT else f'<span class="mono3">{pict}</span>'
     numcell = {'matrix': f'{BUS.get(kind, "R")}{num}', 'minimal': f'{num}'}.get(skin, f'{num}')
@@ -78,10 +81,11 @@ def header(skin, kind, num, title, summary='', chans=(), collapsed=False, readou
              f'<span class="tbadge" style="--t:{t};--p:{p}">{badge_inner}</span>',
              f'<span class="title">{title}</span>']
     if summary: parts.append(f'<span class="summary">{summary}</span>')
+    # the badge strip follows the title and summary, and the stretch after it owns the rest (FilterCardRow)
+    parts.append(channel_badges(skin, chans))
     parts.append(extra)
     if readout: parts.append(f'<span class="readout">{readout}</span>')
     else: parts.append('<span class="spacer"></span>')
-    parts.append(channel_badges(skin, chans))
     return f'<div class="hdr">{"".join(parts)}</div>'
 
 def row(skin, kind, num, title, body_html, summary='', chans=(), collapsed=False, readout='', pict=None, cursor=False, cls='', extra='', power=True):
@@ -93,7 +97,9 @@ def row(skin, kind, num, title, body_html, summary='', chans=(), collapsed=False
     if skin == 'minimal': furniture += f'<span class="glyph">{GLYPH.get(kind, "·")}</span>'
     if skin == 'rack':
         furniture += '<span class="screw tl"></span><span class="screw tr"></span><span class="screw bl"></span><span class="screw br"></span>'
-        furniture += f'<span class="ear">{EAR.get(kind, "UNIT")}</span>'
+        # the ear stencil: printed up the left ear only when the whole word fits between the bottom screw and the
+        # SELECT LED on a unit at least 96 px tall; the channel card alone prints CHANNEL small (ADR 0001)
+        furniture += f'<span class="ear{" small" if kind == "channel" else ""}"><span>{EAR.get(kind, "UNIT")}</span></span>'
         if kind not in ('comment', 'text', 'if', 'eval'): furniture += '<span class="led"></span>'
         if kind == 'vst': furniture += '<span class="plate">VST</span>'
     if skin == 'matrix':
