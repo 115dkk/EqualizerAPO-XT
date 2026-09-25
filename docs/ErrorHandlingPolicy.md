@@ -12,7 +12,7 @@ another by accident.
 | --- | --- | --- |
 | System integration (registry, service control) | Throw an exception | `services/registry/WindowsRegistry.cpp`, `services/windows/WindowsService.cpp` |
 | Install / uninstall orchestration | Return a `Result` enum | `services/install/ApoRegistration.h`, `services/install/ApoRegistration.cpp` |
-| VST plugin loading | Return `bool` | `vst/VSTPluginInstance.cpp` |
+| VST plugin loading | Return `bool` | `vst/VSTPluginInstance.cpp`, `vst/VST2Instance.cpp`, `vst/VST3Instance.cpp` |
 | Aligned allocation (audio / real-time path) | Return `nullptr` and log | `runtime/memory/AlignedMemory.cpp` |
 | Configuration parsing | Report the line and keep loading | `filters/*Factory.cpp`, `ConfigLoadTrace.h` |
 
@@ -66,10 +66,10 @@ flow specifically.
 
 ### VST plugin loading returns `bool`
 
-`VSTPluginInstance::initialize` (and the internal `initializeVST2` /
-`initializeVST3`) return `bool`. Loading a third-party plugin is runtime work
+`VSTPluginInstance::initialize` (and the format implementations behind it,
+`VST2Instance::initialize` / `VST3Instance::initialize`) return `bool`. Loading a third-party plugin is runtime work
 that can fail in ordinary ways (wrong magic number, a VST3 interface that will
-not instantiate) or crash outright; `initializeVST2` even wraps the plugin entry
+not instantiate) or crash outright; the VST2 loader even wraps the plugin entry
 point in a structured-exception guard and reports the crash as `false`. A plain
 `bool` keeps that failure local: the engine skips the plugin and keeps building
 the rest of the filter graph, with no exception crossing the graph-construction

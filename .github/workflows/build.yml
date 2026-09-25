@@ -629,8 +629,6 @@ jobs:
           --suppress=postfixOperator \
           --suppress=noExplicitConstructor \
           --suppress=LocalAllocCalled \
-          --suppress=unknownMacro:vst/VSTPluginInstance.cpp \
-          --suppress=unknownMacro:vst/VSTPluginInstanceInternal.h \
           --suppress=unknownMacro:vst/VSTPluginLibrary.cpp \
           --suppress=unusedStructMember:engine/FilterEngine.Process.cpp \
           --suppress=uninitMemberVarNoCtor:libHybridConv-0.1.1/* \

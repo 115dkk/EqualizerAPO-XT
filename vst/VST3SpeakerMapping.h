@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -30,6 +31,9 @@ namespace vst3speakers
 		Steinberg::Vst::SpeakerArrangement currentArrangement);
 	bool arrangementMatchesLayout(Steinberg::Vst::SpeakerArrangement arrangement,
 		VST3BusLayout layout);
+	// The logical layout an accepted arrangement stands for; none for Auto,
+	// unknown and vendor-specific arrangements.
+	std::optional<VST3BusLayout> layoutOfArrangement(Steinberg::Vst::SpeakerArrangement arrangement);
 	bool buildChannelMapping(Steinberg::Vst::SpeakerArrangement arrangement,
 		const std::vector<std::wstring>& channelNames, std::vector<int>& mapping);
 }

@@ -96,7 +96,10 @@ wstring previousLocalAppData;
 void assertFftwWisdomIsExported()
 {
 	wisdomTestDirectory = scratchDirectory().path() + L"\\wisdom";
-	harness.expectTrue(CreateDirectoryW(wisdomTestDirectory.c_str(), nullptr) != FALSE,
+	// The scratch directory is named after the process id; a leftover from an
+	// earlier run with a reused id already holds this folder.
+	harness.expectTrue(CreateDirectoryW(wisdomTestDirectory.c_str(), nullptr) != FALSE
+			|| GetLastError() == ERROR_ALREADY_EXISTS,
 		"FFTW wisdom test creates its stand-in LOCALAPPDATA directory");
 
 	wchar_t oldLocalAppData[MAX_PATH] = {};

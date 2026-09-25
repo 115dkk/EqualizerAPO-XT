@@ -15,6 +15,7 @@
 #include <cstdio>
 #include <cmath>
 #include <cstdint>
+#include <cstring>
 #include <memory>
 #include <string>
 #include <thread>
@@ -29,13 +30,14 @@
 #include "vst/VSTPluginInstance.h"
 #include "filters/VSTPluginFilter.h"
 #include "filters/VSTPluginFilterFactory.h"
-// After VSTPluginInstance.h: the VST3 SDK defines a VST_VERSION macro that
+// After VSTPluginLibrary.h: the VST3 SDK defines a VST_VERSION macro that
 // would otherwise break the enum of the same name in the VST2 aeffectx.h.
 #include "pluginterfaces/vst/vstspeaker.h"
 #include "Tests/TestHarness.h"
 #include "Tests/Vst3Bundle.h"
 #include "platform/windows/WindowsPath.h"
 #include "Tests/TestVst3Plugin/TestVst3Protocol.h"
+#include "vst/VST3MemoryStream.h"
 
 using std::shared_ptr;
 using std::wstring;
@@ -65,6 +67,167 @@ wstring prepareBundle(const wstring& directory, const wchar_t* bundleName = L"Te
 	const wchar_t* moduleName = L"TestVst3Plugin.vst3")
 {
 	return test::prepareVst3Bundle(directory, L"TestVst3PluginModule.vst3", bundleName, moduleName);
+}
+
+wstring encodeBytes(const std::vector<char>& bytes)
+{
+	DWORD length = 0;
+	CryptBinaryToStringW(reinterpret_cast<const BYTE*>(bytes.data()), static_cast<DWORD>(bytes.size()),
+		CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, nullptr, &length);
+	if (length == 0)
+		return wstring();
+	std::vector<wchar_t> value(length);
+	return CryptBinaryToStringW(reinterpret_cast<const BYTE*>(bytes.data()), static_cast<DWORD>(bytes.size()),
+		CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, value.data(), &length) == TRUE ? wstring(value.data()) : wstring();
+}
+
+// The combined state layout VSTPluginInstance writes for a VST3 plug-in
+// (magic "E3ST", version 1, three sizes, then component state, controller
+// state and the parameter snapshot). Spelled out here because it is a file
+// format: a saved configuration must keep loading.
+#pragma pack(push, 1)
+struct CombinedStateHeader
+{
+	uint32_t magic = 0x54533345;
+	uint32_t version = 1;
+	uint32_t componentSize = 0;
+	uint32_t controllerSize = 0;
+	uint32_t parameterCount = 0;
+};
+
+struct CombinedStateParameter
+{
+	uint32_t id = 0;
+	double value = 0.0;
+};
+#pragma pack(pop)
+
+// Audit #348 TD-48: the stream a plug-in reads and writes its state through
+// takes positions from the plug-in, so a wild one must not turn into an
+// allocation or a copy past the plug-in's buffer.
+void testMemoryStreamBounds()
+{
+	using Steinberg::IBStream;
+	using Steinberg::int32;
+	using Steinberg::int64;
+	auto stream = Steinberg::IPtr<VST3MemoryStream>::adopt(new VST3MemoryStream(std::vector<char>{1, 2, 3}));
+	int64 position = -1;
+
+	harness.expectEqual(stream->seek(static_cast<int64>(VST3MemoryStream::maximumSize) + 1, IBStream::kIBSeekSet, &position),
+		Steinberg::kInvalidArgument, "a seek past the stream bound is refused");
+	harness.expectEqual(stream->getData().size(), static_cast<size_t>(3), "a refused seek allocates nothing");
+	stream->tell(&position);
+	harness.expectEqual(position, static_cast<int64>(0), "a refused seek leaves the cursor in place");
+
+	harness.expectEqual(stream->seek(INT64_MAX, IBStream::kIBSeekEnd, &position), Steinberg::kInvalidArgument,
+		"a seek whose sum would overflow is refused");
+	harness.expectEqual(stream->seek(2, IBStream::kIBSeekSet, &position), Steinberg::kResultOk,
+		"a seek inside the data moves the cursor");
+	harness.expectEqual(stream->seek(INT64_MIN, IBStream::kIBSeekCur, &position), Steinberg::kResultOk,
+		"a seek before the start clamps");
+	harness.expectEqual(position, static_cast<int64>(0), "a seek before the start lands on it");
+	harness.expectEqual(stream->seek(0, 7, &position), Steinberg::kInvalidArgument,
+		"an unknown seek mode is refused");
+
+	char buffer[4] = {9, 9, 9, 9};
+	int32 bytesRead = -1;
+	harness.expectEqual(stream->read(buffer, -1, &bytesRead), Steinberg::kResultOk,
+		"a negative read count is answered");
+	harness.expectTrue(bytesRead == 0 && buffer[0] == 9,
+		"a negative read count copies nothing into the plug-in's buffer");
+
+	harness.expectEqual(stream->seek(8, IBStream::kIBSeekSet, &position), Steinberg::kResultOk,
+		"a seek past the end within the bound still extends the stream");
+	int32 bytesWritten = -1;
+	harness.expectEqual(stream->write(buffer, 2, &bytesWritten), Steinberg::kResultOk,
+		"a write after the extended end succeeds");
+	harness.expectTrue(bytesWritten == 2 && stream->getData().size() == 10
+		&& stream->getData()[5] == 0 && stream->getData()[9] == 9,
+		"the gap before the write is zero-filled and the write lands after it");
+}
+
+// Audit #348 TD-48: a saved state with more parameter values than the
+// 1023-slot edit ring must reach the processor whole. The snapshot carries
+// 1499 values the component does not use and, last, its gain.
+void testRestoreBeyondEditRing(const wstring& directory)
+{
+	const wstring bundle = prepareBundle(directory, L"ParameterFloodBundle.vst3", L"ParameterFlood.vst3");
+	shared_ptr<VSTPluginLibrary> library = VSTPluginLibrary::getInstance(bundle);
+	harness.require(!bundle.empty() && library->initialize() >= 0, "parameter-flood VST3 module initializes");
+	typedef int (*CountFunc)();
+	HMODULE module = GetModuleHandleW(L"ParameterFlood.vst3");
+	CountFunc receivedChanges = module != nullptr
+		? reinterpret_cast<CountFunc>(GetProcAddress(module, "GetReceivedParameterChangeCount")) : nullptr;
+	harness.expectTrue(receivedChanges != nullptr, "parameter-change probe is exported");
+	if (receivedChanges == nullptr)
+		return;
+
+	VSTPluginInstance instance(library, 2);
+	harness.require(instance.initialize(), "parameter-flood component initializes");
+
+	constexpr uint32_t parameterCount = 1500;
+	PluginState component;
+	component.gain = 1.0;
+	CombinedStateHeader header;
+	header.componentSize = sizeof(component);
+	header.parameterCount = parameterCount;
+	std::vector<char> blob(sizeof(header) + sizeof(component) + parameterCount * sizeof(CombinedStateParameter));
+	memcpy(blob.data(), &header, sizeof(header));
+	memcpy(blob.data() + sizeof(header), &component, sizeof(component));
+	for (uint32_t i = 0; i < parameterCount; i++)
+	{
+		CombinedStateParameter parameter;
+		// The component's gain parameter id is 100 (TestVst3Plugin).
+		parameter.id = i + 1 == parameterCount ? 100 : 1000 + i;
+		parameter.value = i + 1 == parameterCount ? 0.625 : 0.5;
+		memcpy(blob.data() + sizeof(header) + sizeof(component) + i * sizeof(parameter), &parameter, sizeof(parameter));
+	}
+
+	const int changesBefore = receivedChanges();
+	instance.writeToEffect(encodeBytes(blob), std::unordered_map<wstring, float>());
+	harness.expectEqual(receivedChanges() - changesBefore, static_cast<int>(parameterCount),
+		"every restored parameter value reaches the processor");
+
+	PluginState restored;
+	restored.gain = 0.625;
+	wstring chunk;
+	std::unordered_map<wstring, float> parameters;
+	instance.readFromEffect(chunk, parameters);
+	harness.expectTrue(chunk == encodeState(restored),
+		"the value after the 1023rd restored parameter is applied");
+}
+
+// Audit #348 TD-48: a plug-in that keeps the host's component handler and
+// calls it after the instance is gone must be refused, not let into freed
+// memory.
+void testHostContextDetach(const wstring& directory)
+{
+	const wstring bundle = prepareBundle(directory, L"RetainHandlerBundle.vst3", L"RetainHandler.vst3");
+	shared_ptr<VSTPluginLibrary> library = VSTPluginLibrary::getInstance(bundle);
+	harness.require(!bundle.empty() && library->initialize() >= 0, "handler-retaining VST3 module initializes");
+	typedef int (*CallFunc)();
+	typedef void (*ReleaseFunc)();
+	HMODULE module = GetModuleHandleW(L"RetainHandler.vst3");
+	CallFunc callRetained = module != nullptr
+		? reinterpret_cast<CallFunc>(GetProcAddress(module, "CallRetainedComponentHandler")) : nullptr;
+	ReleaseFunc releaseRetained = module != nullptr
+		? reinterpret_cast<ReleaseFunc>(GetProcAddress(module, "ReleaseRetainedComponentHandler")) : nullptr;
+	harness.expectTrue(callRetained != nullptr && releaseRetained != nullptr, "retained-handler probes are exported");
+	if (callRetained == nullptr || releaseRetained == nullptr)
+		return;
+
+	int automateCalls = 0;
+	{
+		VSTPluginInstance instance(library, 2);
+		harness.require(instance.initialize(), "handler-retaining component initializes");
+		instance.setAutomateFunc([&automateCalls]() { automateCalls++; });
+		harness.expectEqual(callRetained(), 3, "the handler accepts edit and dirty calls while the instance lives");
+		harness.expectTrue(automateCalls > 0, "those calls reach the instance");
+	}
+	const int automateCallsAtRelease = automateCalls;
+	harness.expectEqual(callRetained(), 0, "the kept handler refuses both calls after the instance is gone");
+	harness.expectEqual(automateCalls, automateCallsAtRelease, "nothing reaches the released instance");
+	releaseRetained();
 }
 }
 
@@ -934,6 +1097,10 @@ void runVst3HostTests()
 		harness.expectTrue(fallbackPassedThrough,
 			"4.1 names fall back cleanly through the default stereo-only component");
 	}
+
+	testMemoryStreamBounds();
+	testRestoreBeyondEditRing(directory);
+	testHostContextDetach(directory);
 
 	harness.report();
 }
