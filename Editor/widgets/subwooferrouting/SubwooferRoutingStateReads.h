@@ -67,7 +67,10 @@ double pathDelayMs(const subroute::Path& path);
 double sourceLfeEffectiveGainDb(const subroute::Path& path);
 double sourceLfeAdjustmentDb(const subroute::Path& path);
 
-// The one built-in preset whose display name is written out rather than
-// taken from its descriptor. Each widget keeps its own tr() text.
-bool isIssue246Preset(const subroute::PresetDescriptor& preset);
+// The name the card's preset menu and the dialog's preset list both show for
+// a built-in preset: the descriptor's display name, as the dialog showed it.
+// The card used to prefix "Built-in preset: " to every preset but Issue #246,
+// and each widget wrote the Issue #246 name out on its own, the same text the
+// descriptor carries (audit #348 open question).
+std::string presetDisplayName(const subroute::PresetDescriptor& preset);
 }

@@ -116,7 +116,9 @@ if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"</
          runner measured the write reference dropping 1650 ns to 295 ns with
          the candidate unchanged, collapsing the gated ratio to 1.9x).
          #pragma loop(no_vector) does not restore the naive shape, so the
-         reference TU keeps the standard the bars were calibrated against. -->
+         reference TU keeps the standard the bars were calibrated against.
+         Only this TU: the conversions under test come from Common.lib,
+         built as C++20 like the product (see the comment at the 2.4x bar). -->
     <ClCompile Include="SampleIoTests.cpp">
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>

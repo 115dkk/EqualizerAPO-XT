@@ -878,6 +878,43 @@ namespace
 		w->disposeBuffers();
 	}
 
+	// Audit #348 TD-73: a reopened fake driver starts like a fresh one. Its
+	// input generator used to carry on from where the previous stream
+	// stopped, so a test that reopened could not predict the input from
+	// sample 0.
+	void testReopenedTargetRestartsItsInput()
+	{
+		FakeAsioConfig config;
+		config.seed = 5;
+		StreamOptions options;
+		options.processInput = false;
+		Rig rig(config, options, asiotest::HostStub::Options());
+		AsioWrapper* w = rig.wrapper;
+		rig.host->openChannels(1, 1);
+		harness.require(w->init(nullptr) == ASIOTrue, "init");
+		harness.require(rig.host->createBuffers(w, 16) == ASE_OK, "first createBuffers");
+		harness.require(w->start() == ASE_OK, "first start");
+		rig.control()->pump(3);
+		w->stop();
+		w->disposeBuffers();
+		rig.control()->clearRecords();
+
+		harness.require(rig.host->createBuffers(w, 16) == ASE_OK, "createBuffers again");
+		harness.require(w->start() == ASE_OK, "start again");
+		rig.control()->pump(2);
+		w->stop();
+		w->disposeBuffers();
+
+		SampleCodec codec;
+		eapo::asio::findSampleCodec(config.sampleType, codec);
+		std::vector<float> in = decode(codec, supplied(rig.control(), 0));
+		harness.requireEqual(in.size(), static_cast<size_t>(2 * 16), "the reopened stream supplied two periods");
+		bool fromZero = true;
+		for (size_t n = 0; n < in.size(); n++)
+			fromZero = fromZero && std::fabs(in[n] - quantized(codec, FakeAsioDriver::generatorSample(config.seed, 0, n))) < 1e-6f;
+		harness.expect(fromZero, "after the reopen the input starts again at generator sample 0");
+	}
+
 	void testOutputReadyPath()
 	{
 		FakeAsioConfig config;
@@ -1225,6 +1262,7 @@ namespace
 		testFirstBlockIsAlreadyProcessed();
 		testLateAndOffPassThrough();
 		testGoneIsStickyUntilReopen();
+		testReopenedTargetRestartsItsInput();
 		testOutputReadyPath();
 		testUnopenedChannelsSeeSilence();
 		testResetAndRateChangePropagate();

@@ -68,14 +68,10 @@ QString fromUtf8(const std::string& text)
 	return QString::fromUtf8(text.data(), static_cast<int>(text.size()));
 }
 
+// The same name the card's preset menu shows (audit #348).
 QString presetName(const subroute::PresetDescriptor& preset)
 {
-	if (subwooferroutingeditor::isIssue246Preset(preset))
-		return SubwooferRoutingEditorDialog::tr(
-			"Issue #246 - Front/Rear 4.1");
-
-	return SubwooferRoutingEditorDialog::tr("%1")
-		.arg(fromUtf8(preset.displayName));
+	return fromUtf8(subwooferroutingeditor::presetDisplayName(preset));
 }
 
 QDoubleSpinBox* frequencySpinBox(QWidget* parent)

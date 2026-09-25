@@ -80,6 +80,9 @@ private:
 
 	std::thread _parameterUpdateThread;
 	static void parameterUpdateThread(LoudnessCorrectionFilter* filter);
+	// Stops and joins the update thread if one runs; the destructor and a
+	// repeated initialize() both need it.
+	void stopParameterUpdateThread();
 	// Guards the stop flag and the 10 ms sleep of the parameter update thread
 	// only. The audio thread never touches this mutex; do not reuse it for the
 	// coefficient hand-off, which is what _coefficientSlots is for.

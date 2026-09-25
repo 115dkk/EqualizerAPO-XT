@@ -69,7 +69,8 @@ public:
 	static long instanceCount() noexcept;
 
 	// The generator the tests use to predict input contents: channel c,
-	// sample n (counted from the first pump) as a float in [-0.5, 0.5).
+	// sample n (counted from the first pump after createBuffers, so a reopen
+	// starts at 0 again) as a float in [-0.5, 0.5).
 	static float generatorSample(unsigned seed, long channel, uint64_t sampleIndex) noexcept;
 
 private:
