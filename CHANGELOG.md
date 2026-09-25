@@ -14,6 +14,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The rack skin prints short file names in full.** On Include, Convolution
+  and VST cards, a name such as `example.txt` could be shortened to
+  `exam….txt` although the card had room for it. The label measured the name
+  in whole pixels but shortened it against the exact width, so about half of
+  all names lost their middle. Names are now shortened only when they really
+  do not fit, and the gallery checks this for 288 names
+  ([#403](https://github.com/115dkk/EqualizerAPO-XT/pull/403)).
+
 ## v2.54.26 — 2026-09-25
 
 - **Virtual channels are the channels your device does not have.** The

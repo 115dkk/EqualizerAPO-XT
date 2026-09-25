@@ -234,9 +234,19 @@ void RackEngravedLabel::paintEvent(QPaintEvent*)
 		flags = Qt::AlignHCenter | Qt::AlignVCenter | Qt::TextSingleLine;
 	}
 
+	// Elide by the measure sizeHint() used. QFontMetrics rounds the
+	// letter-spaced advance to whole pixels (example.txt at 14 px: 86.30 ->
+	// 86), while elidedText() compares the fractional advance, so a label
+	// given exactly its hint width elided on an otherwise empty plate. The
+	// rounded-off remainder (under half a pixel) prints into the 1 px side
+	// inset; a label squeezed below its hint still elides.
 	QString shown = text;
 	if (elideMode != Qt::ElideNone && !wordWrap)
-		shown = QFontMetrics(font).elidedText(text, elideMode, int(textRect.width()));
+	{
+		const QFontMetrics metrics(font);
+		if (metrics.horizontalAdvance(text) > int(textRect.width()))
+			shown = metrics.elidedText(text, elideMode, int(textRect.width()));
+	}
 
 	// Stamped tags are printed wireframe outlines - no fill; on this plate
 	// colour lives only in lamps and engravings.

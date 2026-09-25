@@ -109,6 +109,7 @@
 #include "Editor/analysis/AnalysisResponse.h"
 #include "filters/BiQuad.h"
 #include "Editor/skins/shared/SkinFileIcons.h"
+#include "Editor/skins/rack/cards/RackReferenceCardView.h"
 #include "Editor/widgets/FilterCardRow.h"
 #include "Editor/widgets/CommandRowFrame.h"
 #include "Editor/widgets/FilterInsertSeam.h"
@@ -302,6 +303,100 @@ int checkFillCellFit()
 	}
 	return failures;
 }
+}
+
+// A reference card's label strip takes the width its labels' size hints ask
+// for, so a label given exactly that width is on a plate with room and must
+// print its whole text; only a label squeezed below its hint may elide. The
+// hint and the paint-time elision measured the text two ways (a rounded
+// integer advance against the fractional one), and every name whose advance
+// rounded down printed elided on an empty plate: example.txt on the rack
+// Include card, at 13 px and at 14 px alike. Each text is rendered into
+// the recorder once at the hint (whole) and once 8 px narrower (elided, so
+// the check stays live). Covers both elidable faces the card uses: the
+// reference name and the location prefix under it.
+int SkinGalleryDetail::checkEngravedLabelFit()
+{
+	ISkin* rack = nullptr;
+	for (ISkin* skin : Skins::all())
+	{
+		if (skin->id() == QLatin1String("rack"))
+			rack = skin;
+	}
+	if (rack == nullptr)
+	{
+		fprintf(stderr, "[label fit selftest] FAIL, no rack skin\n");
+		return 1;
+	}
+
+	QStringList texts = {
+		QStringLiteral("example.txt"), QStringLiteral("example.wav"), QStringLiteral("TestVst3Plugin"),
+		QStringLiteral("Upmixer"), QStringLiteral("Surround\\"),
+		QStringLiteral("E:\\eapo-wt\\rack-elide\\Tests\\TestVst3Plugin\\x64\\Release\\")};
+	// Every prefix of two longer names, so the advances land on many
+	// different fractions of a pixel.
+	for (const QString& sweep : { QStringLiteral("Hall_Large_48k_Stereo_Impulse.wav"),
+			QStringLiteral("C:\\Program Files\\EqualizerAPO\\config\\") })
+	{
+		for (int length = 3; length <= sweep.size(); length++)
+			texts.append(sweep.left(length));
+	}
+
+	struct Face { const char* name = nullptr; int pixelSize = 0; qreal letterSpacing = 0.0; bool bold = true; };
+	// The values RackReferenceCardView gives nameLabel and dirLabel.
+	const Face faces[] = { { "name", 14, 0.4, true }, { "location", 11, 0.0, false } };
+
+	int failures = 0;
+	int checked = 0;
+	for (const bool dark : { true, false })
+	{
+		const SkinTokens tokens = rack->tokens(dark);
+		for (const Face& face : faces)
+		{
+			for (const QString& text : texts)
+			{
+				RackEngravedLabel label(tokens);
+				label.setPixelSize(face.pixelSize);
+				label.setLetterSpacing(face.letterSpacing);
+				label.setBoldFace(face.bold);
+				label.setElideMode(Qt::ElideMiddle);
+				label.setText(text);
+
+				const QSize hint = label.sizeHint();
+				const auto printedWhole = [&](int width) {
+					label.resize(width, hint.height());
+					FillCellRecorder recorder(label.size());
+					label.render(&recorder, QPoint(), QRegion(), QWidget::RenderFlags());
+					if (recorder.texts.isEmpty())
+						return false;
+					for (const FillCellRecorder::Text& item : recorder.texts)
+					{
+						if (item.text != text)
+							return false;
+					}
+					return true;
+				};
+
+				checked++;
+				const char* mode = dark ? "dark" : "light";
+				if (!printedWhole(hint.width()))
+				{
+					failures++;
+					fprintf(stderr, "[label fit selftest] %s %s '%s': elided at its own hint width %d px\n",
+						mode, face.name, text.toUtf8().constData(), hint.width());
+				}
+				else if (text.size() > 6 && printedWhole(hint.width() - 8))
+				{
+					failures++;
+					fprintf(stderr, "[label fit selftest] %s %s '%s': printed whole in %d px, below its hint %d px\n",
+						mode, face.name, text.toUtf8().constData(), hint.width() - 8, hint.width());
+				}
+			}
+		}
+	}
+	fprintf(stderr, "[label fit selftest] %s (%d texts, %d failure(s))\n", failures == 0 ? "PASS" : "FAIL",
+		checked, failures);
+	return failures;
 }
 
 // Mechanical round-trip check for VST plugin data: parse a VSTPlugin line, feed

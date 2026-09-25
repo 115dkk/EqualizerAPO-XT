@@ -166,4 +166,8 @@ QToolBar* buildToolbarReplica(QWidget* parent);
 // it; returns the card rows in line order.
 QList<FilterCardRow*> buildRows(QScrollArea& scrollArea, const QString& configPath, const QList<QString>& lines,
 	std::shared_ptr<AbstractAPOInfo> device = nullptr, unsigned long channelMask = 0);
+// The rack engraved label's width contract: given the width its size hint
+// asked for, an elidable label prints its whole text, and squeezed below it,
+// it still elides. Returns the number of failing texts (GallerySelfTests.cpp).
+int checkEngravedLabelFit();
 }
