@@ -27,7 +27,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   fill entry written as a position number (`1`) or an alias (`SL`) was
   painted red on the legacy row although the engine accepts it; the legacy
   row now judges fills the way the card does, and both rows share one plug-in
-  session, so a VST feature lands in both (#PRNUM).
+  session, so a VST feature lands in both ([#381](https://github.com/115dkk/EqualizerAPO-XT/pull/381)).
 
 ## v2.54.9 — 2026-09-25
 
