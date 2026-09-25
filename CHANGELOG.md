@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.16 — 2026-09-25
+
 - **Korean and other non-English text in the Device Selector's command-line
   output is readable.** Its headless messages were converted to the ANSI code
   page and came out garbled; they are now written as Unicode to a console and
