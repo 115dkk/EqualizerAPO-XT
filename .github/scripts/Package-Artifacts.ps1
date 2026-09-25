@@ -19,8 +19,8 @@ $requiredFiles = @(
 )
 # 32-bit DAWs load a 32-bit driver: the Win32 wrapper ships under the x86
 # folder on the x64 legs (Build-AsioWin32.ps1 builds it there). The ARM64 leg
-# has no x86 cross-build and ships without it; AsioAPOInfo registers the
-# 64-bit view only when the file is absent.
+# has no x86 cross-build and ships without it; AsioAPOInfo then registers the
+# 64-bit view alone, since the 32-bit one needs the file to point at.
 $win32Wrapper = if ($Platform -eq "x64") { "EqualizerAPOAsio\Release\EqualizerAPOAsio.dll" } else { $null }
 $extraDllFolders = @("x86")
 # The standalone MIT Subwoofer Routing VST3 ships inside the same artifact as an

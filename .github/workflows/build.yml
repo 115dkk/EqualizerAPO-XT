@@ -370,7 +370,7 @@ jobs:
 
         $repoRefDir = "${{ github.workspace }}\Tests\AudioRegressionTests\references"
         $hasRefs = Test-Path (Join-Path $repoRefDir "cases.json")
-        # The primary (reference-seeding) variant is flagged in simd-variants.psd1.
+        # The primary (reference-recording) variant is flagged in simd-variants.psd1.
         $isPrimary = "${{ matrix.primary }}" -eq "true"
         # Seeding is an explicit workflow_dispatch decision (audit #275 TD-08).
         # Empty on push/pull_request events, which therefore always verify.
@@ -717,7 +717,9 @@ jobs:
   # which takes its suite list from Build-Solution.ps1's plan plus
   # AudioRegressionTests. create-release waits for this job.
   memcheck:
-    runs-on: windows-latest
+    # Named image rather than windows-latest (audit #348 TD-78):
+    # Invoke-MemcheckTests.ps1 builds with the v145 toolset this image carries.
+    runs-on: windows-2025-vs2026
     steps:
     - name: Checkout repository
       uses: actions/checkout@v6
@@ -789,14 +791,15 @@ jobs:
           -WorkspaceRoot "${{ github.workspace }}"
 
   pester:
-    # Unit-tests the release-keystone scripts the version-bump job runs:
-    # Bump-Version.ps1 (the Conventional Commit -> SemVer mapping that decides
-    # every release) and Update-Changelog.ps1 (moving the Unreleased entries
-    # under the bumped version). Like cppcheck this is an independent gate with
-    # no `if:`, so it runs on pull requests too, where the version-bump job is
-    # skipped. Pester 5 is pinned for reproducibility the same way the cppcheck
-    # version is.
-    runs-on: windows-latest
+    # Runs every Pester suite under .github/scripts/Tests: the release-keystone
+    # scripts the version-bump job runs (Bump-Version.ps1, Update-Changelog.ps1),
+    # the build, packaging and release-note scripts, and the project and source
+    # lints. Like cppcheck this is an independent gate with no `if:`, so it
+    # runs on pull requests too, where the version-bump job is skipped. Pester 5
+    # is pinned for reproducibility the same way the cppcheck version is.
+    # The image is named rather than windows-latest (audit #348 TD-78), the
+    # same one the build matrix uses.
+    runs-on: windows-2025-vs2026
     steps:
     - name: Checkout repository
       uses: actions/checkout@v6
