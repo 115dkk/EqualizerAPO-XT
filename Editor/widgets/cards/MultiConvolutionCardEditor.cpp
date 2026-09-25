@@ -217,6 +217,10 @@ void MultiConvolutionCardEditor::rebuildRoutingView()
 
 	RoutingPortModel portModel;
 	portModel.fixedSources = MultiConvolutionRoutingAdapter::sourcePorts(fileChannelCount, mappings);
+	// The device's channels, not targets: the session's added outputs are
+	// exactly the virtual ones.
+	if (filterTable != nullptr)
+		portModel.deviceChannels = filterTable->getChannelNames();
 
 	routingView = renderer->create(assignments, targets, portModel, this,
 		SkinManager::instance()->tokens());

@@ -21,12 +21,6 @@ SkinTokens HeritageSkin::tokens(bool dark) const
 	return SkinThemeData::heritageTokens();
 }
 
-QString HeritageSkin::qssResource(bool dark) const
-{
-	Q_UNUSED(dark);
-	return QString();
-}
-
 IRoutingRenderer* HeritageSkin::routingRenderer() const
 {
 	return nullptr;

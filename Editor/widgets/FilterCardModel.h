@@ -12,6 +12,9 @@
 #include <QList>
 #include <QVector>
 
+#include <string>
+#include <vector>
+
 struct FilterCardDescriptor
 {
 	QString command;
@@ -38,6 +41,10 @@ struct FilterCardDescriptor
 	bool canToggleEnabled = true;
 	bool routeType = false;
 	bool dynamicLine = false;
+	// True when channelBadges lists the channels a Copy line writes, in
+	// line order and virtual ones included. The line alone cannot tell which
+	// are virtual; headerChannels() judges that against the device.
+	bool channelBadgesAreCopyTargets = false;
 };
 
 // Per-row scope answer of calculateScopes(): the indent that drives the left
@@ -125,6 +132,15 @@ public:
 	// editor has no raw label to style, which the skins' findChild guards
 	// already absorb.
 	static bool hostsSharedRawBody(const QString& type, bool dynamicLine);
+	// The channels a card header shows as badges, for the device whose
+	// channels are given (empty when no device is known). A row's own list
+	// wins: a Channel line's selection, or the device channels a Copy line
+	// writes (its virtual targets dropped by ChannelIdentity::isVirtual, the
+	// rule the Copy routing view draws with, so header and body agree).
+	// Rows without one inherit the enclosing selection when the engine
+	// narrows their type to it.
+	static QStringList headerChannels(const FilterCardDescriptor& descriptor,
+		const std::vector<std::wstring>& deviceChannels);
 	// A Copy line opens the skin routing view only while its factors are
 	// static: the routing editor parses and re-serializes the parameters, so
 	// inline-expression factors must stay on the raw body or the first edit

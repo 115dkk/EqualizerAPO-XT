@@ -15,6 +15,8 @@
 #include <QVector>
 
 #include "Editor/widgets/FilterCardModel.h"
+#include "Editor/widgets/FilterCommandCatalog.h"
+#include "Editor/widgets/routing/IRoutingRenderer.h"
 #include "Editor/widgets/FilterRowGuiPolicy.h"
 #include "filters/FilterFactoryRegistry.h"
 
@@ -136,6 +138,37 @@ void testFilterCardDescriptors()
 	expectEqual(copy.badge, "CPY", "copy card badge");
 	expectTrue(copy.summary.isEmpty(), "copy header must not paraphrase its steps");
 	expectTrue(copy.channelBadges.contains("L") && copy.channelBadges.contains("R"), "copy card did not expose final physical channels");
+	// describeLine lists every destination and leaves virtual-ness to
+	// headerChannels, which judges it against the device the way the Copy
+	// routing view does. Without a device that is the 7.1 layout: SBL (never
+	// a Windows channel name) and a number past it stay off like VC.
+	const FilterCardDescriptor targets = FilterCardModel::describeLine("Copy: VC=L SBL=L R=L 3=L 9=L");
+	expectEqual(targets.channelBadges, QStringList({"VC", "SBL", "R", "3", "9"}),
+		"describeLine lists every Copy destination");
+	expectEqual(FilterCardModel::headerChannels(targets, {}), QStringList({"R", "3"}),
+		"without a device the header keeps the 7.1 destinations");
+
+	// Stereo device, "Copy: C=L": C is a new channel there, so the routing
+	// view draws it dashed and the header must not badge it as a device
+	// channel. Header and body read the same device list.
+	const std::vector<std::wstring> stereo = {L"L", L"R"};
+	const FilterCardDescriptor center = FilterCardModel::describeLine("Copy: C=L R=L");
+	RoutingPortModel body;
+	body.deviceChannels = stereo;
+	expectTrue(body.isVirtualChannel("C"), "the stereo body draws C as virtual");
+	expectEqual(FilterCardModel::headerChannels(center, stereo), QStringList({"R"}),
+		"the stereo header drops the C the body draws virtual");
+	expectEqual(FilterCardModel::headerChannels(center, {}), QStringList({"C", "R"}),
+		"without a device C is a 7.1 channel in the header and the body alike");
+	expectFalse(RoutingPortModel().isVirtualChannel("C"), "without a device the body keeps C real");
+
+	// A Copy that writes only virtual channels leaves the header to the
+	// enclosing selection, as before.
+	FilterCardDescriptor scoped = FilterCardModel::describeLine("Copy: VC=L");
+	scoped.scopeChannels = QStringList({"L", "R"});
+	expectEqual(FilterCardModel::headerChannels(scoped, stereo),
+		FilterCommandCatalog::channelSelectionGatesType(scoped.type) ? QStringList({"L", "R"}) : QStringList(),
+		"an all-virtual Copy falls back to the scope rule");
 
 	FilterCardDescriptor channel = FilterCardModel::describeLine("Channel: L, R");
 	expectEqual(channel.badge, "CH", "channel card badge");
