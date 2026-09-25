@@ -4,11 +4,9 @@
 	SPDX-License-Identifier: GPL-2.0-or-later
 */
 
-/*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-*/
-
-#include "StudioRoutingModel.h"
+#include "RoutingGridModel.h"
+#include "CopyRoutingAdapter.h"
+#include "RoutingFold.h"
 
 namespace
 {
@@ -44,7 +42,7 @@ int findPort(const QStringList& ports, int seededCount, const QString& written)
 }
 }
 
-void StudioRoutingModel::load(const std::vector<Assignment>& assignments,
+void RoutingGridModel::load(const std::vector<Assignment>& assignments,
 	const std::vector<std::wstring>& channelNames, const PortConfig& config)
 {
 	this->config = config;
@@ -110,32 +108,32 @@ void StudioRoutingModel::load(const std::vector<Assignment>& assignments,
 	}
 }
 
-const QStringList& StudioRoutingModel::inputPorts() const
+const QStringList& RoutingGridModel::inputPorts() const
 {
 	return inputs;
 }
 
-const QStringList& StudioRoutingModel::outputPorts() const
+const QStringList& RoutingGridModel::outputPorts() const
 {
 	return outputs;
 }
 
-bool StudioRoutingModel::constInput(int index) const
+bool RoutingGridModel::constInput(int index) const
 {
 	return index == constInputIndex && constInputIndex >= 0;
 }
 
-const QVector<StudioRoutingModel::Trace>& StudioRoutingModel::traces() const
+const QVector<RoutingGridModel::Trace>& RoutingGridModel::traces() const
 {
 	return traceList;
 }
 
-bool StudioRoutingModel::allowFactors() const
+bool RoutingGridModel::allowFactors() const
 {
 	return config.allowFactors;
 }
 
-int StudioRoutingModel::addOutput(const QString& name)
+int RoutingGridModel::addOutput(const QString& name)
 {
 	const QString trimmed = name.trimmed();
 	if (trimmed.isEmpty())
@@ -147,17 +145,17 @@ int StudioRoutingModel::addOutput(const QString& name)
 	return outputs.size() - 1;
 }
 
-int StudioRoutingModel::seededInputCount() const
+int RoutingGridModel::seededInputCount() const
 {
 	return seededInputs;
 }
 
-int StudioRoutingModel::seededOutputCount() const
+int RoutingGridModel::seededOutputCount() const
 {
 	return seededOutputs;
 }
 
-bool StudioRoutingModel::removeChannel(const QString& name)
+bool RoutingGridModel::removeChannel(const QString& name)
 {
 	bool changed = false;
 
@@ -222,7 +220,7 @@ bool StudioRoutingModel::removeChannel(const QString& name)
 	return changed;
 }
 
-void StudioRoutingModel::addTrace(int input, int output)
+void RoutingGridModel::addTrace(int input, int output)
 {
 	if (input < 0 || input >= inputs.size() || output < 0 || output >= outputs.size())
 		return;
@@ -239,7 +237,7 @@ void StudioRoutingModel::addTrace(int input, int output)
 		emitOrder.append(output);
 }
 
-bool StudioRoutingModel::rewirePort(bool inputSide, int fromPort, int toPort)
+bool RoutingGridModel::rewirePort(bool inputSide, int fromPort, int toPort)
 {
 	const int portCount = inputSide ? inputs.size() : outputs.size();
 	if (fromPort < 0 || fromPort >= portCount || toPort < 0
@@ -279,44 +277,32 @@ bool StudioRoutingModel::rewirePort(bool inputSide, int fromPort, int toPort)
 	return true;
 }
 
-void StudioRoutingModel::removeTrace(int index)
+void RoutingGridModel::removeTrace(int index)
 {
 	if (index >= 0 && index < traceList.size())
 		traceList.removeAt(index);
 }
 
-void StudioRoutingModel::setFactorText(int index, const QString& text)
+bool RoutingGridModel::setFactorText(int index, const QString& text)
 {
-	if (index < 0 || index >= traceList.size())
-		return;
-	if (!config.allowFactors)
-		return;
+	if (index < 0 || index >= traceList.size() || !config.allowFactors)
+		return false;
 
-	QString raw = text.trimmed();
-	if (raw.isEmpty())
+	if (text.trimmed().isEmpty())
 	{
 		traceList.removeAt(index);
-		return;
+		return true;
 	}
 
-	bool isDecibel = false;
-	if (raw.right(2).compare(QLatin1String("db"), Qt::CaseInsensitive) == 0)
-	{
-		isDecibel = true;
-		raw = raw.left(raw.size() - 2).trimmed();
-	}
-	raw.replace(QLatin1Char(','), QLatin1Char('.'));
-
-	bool ok = false;
-	const double factor = raw.toDouble(&ok);
-	if (!ok)
-		return;
-
-	traceList[index].factor = factor;
-	traceList[index].isDecibel = isDecibel;
+	Assignment::Summand parsed;
+	if (!commitFactor(parsed, text))
+		return false;
+	traceList[index].factor = parsed.factor;
+	traceList[index].isDecibel = parsed.isDecibel;
+	return true;
 }
 
-std::vector<Assignment> StudioRoutingModel::assignments() const
+std::vector<Assignment> RoutingGridModel::assignments() const
 {
 	std::vector<Assignment> result;
 	for (int output : emitOrder)
@@ -340,7 +326,7 @@ std::vector<Assignment> StudioRoutingModel::assignments() const
 	return result;
 }
 
-int StudioRoutingModel::resolveInput(const QString& written)
+int RoutingGridModel::resolveInput(const QString& written)
 {
 	const int found = findPort(inputs, config.fixedSourceMode() ? 0 : seededInputs, written);
 	if (found >= 0)
@@ -364,11 +350,181 @@ int StudioRoutingModel::resolveInput(const QString& written)
 	return inputs.size() - 1;
 }
 
-int StudioRoutingModel::resolveOutput(const QString& written)
+int RoutingGridModel::resolveOutput(const QString& written)
 {
 	const int found = findPort(outputs, seededOutputs, written);
 	if (found >= 0)
 		return found;
 	outputs.append(written);
 	return outputs.size() - 1;
+}
+
+int RoutingGridModel::rowIndexOf(const std::vector<Assignment>& assignments, const QString& target)
+{
+	for (int i = 0; i < static_cast<int>(assignments.size()); i++)
+		if (QString::fromStdWString(assignments[i].targetChannel).compare(target, Qt::CaseInsensitive) == 0)
+			return i;
+	return -1;
+}
+
+int RoutingGridModel::summandIndex(const Assignment& assignment, const QString& channel,
+	Qt::CaseSensitivity sensitivity)
+{
+	for (int i = 0; i < static_cast<int>(assignment.sourceSum.size()); i++)
+		if (QString::fromStdWString(assignment.sourceSum[i].channel).compare(channel, sensitivity) == 0)
+			return i;
+	return -1;
+}
+
+bool RoutingGridModel::commitFactor(Assignment::Summand& summand, const QString& text)
+{
+	return RoutingFold::parseFactor(text, summand);
+}
+
+bool RoutingGridModel::commitFactor(std::vector<Assignment>& assignments, int row,
+	const QString& channel, const QString& text, bool allowFactors)
+{
+	if (!allowFactors || row < 0 || row >= static_cast<int>(assignments.size()) || channel.isEmpty())
+		return false;
+
+	Assignment& assignment = assignments[row];
+	const int index = summandIndex(assignment, channel);
+	if (text.trimmed().isEmpty())
+	{
+		if (index >= 0)
+			assignment.sourceSum.erase(assignment.sourceSum.begin() + index);
+		// The grids historically notify even when an empty cell is cleared.
+		return true;
+	}
+
+	Assignment::Summand parsed;
+	if (!commitFactor(parsed, text))
+		return false;
+	if (index >= 0)
+	{
+		assignment.sourceSum[index].factor = parsed.factor;
+		assignment.sourceSum[index].isDecibel = parsed.isDecibel;
+	}
+	else
+	{
+		parsed.channel = channel.toStdWString();
+		assignment.sourceSum.push_back(parsed);
+	}
+	return true;
+}
+
+bool RoutingGridModel::commitSource(std::vector<Assignment>& assignments, int row, int summand,
+	const QString& text, bool fixedPorts, bool allowFactors)
+{
+	if (row < 0 || row >= static_cast<int>(assignments.size()) || summand < 0
+		|| summand >= static_cast<int>(assignments[row].sourceSum.size()))
+		return false;
+
+	Assignment& assignment = assignments[row];
+	const QString raw = text.trimmed();
+	if (raw.isEmpty())
+	{
+		assignment.sourceSum.erase(assignment.sourceSum.begin() + summand);
+		return true;
+	}
+
+	Assignment::Summand& current = assignment.sourceSum[summand];
+	Assignment::Summand edited = current;
+	if (!RoutingFold::parseSourceToken(raw, fixedPorts, edited)
+		|| (!allowFactors && (edited.factor != 1.0 || edited.isDecibel)))
+		return false;
+	if (edited.channel == current.channel && edited.factor == current.factor
+		&& edited.isDecibel == current.isDecibel)
+		return false;
+	current = edited;
+	return true;
+}
+
+bool RoutingGridModel::commitChip(std::vector<Assignment>& assignments, int row, int summand,
+	const QString& text, const QStringList& channels)
+{
+	if (row < 0 || row >= static_cast<int>(assignments.size()) || summand < 0
+		|| summand >= static_cast<int>(assignments[row].sourceSum.size()))
+		return false;
+
+	Assignment& assignment = assignments[row];
+	const QString raw = text.trimmed();
+	if (raw.isEmpty())
+	{
+		assignment.sourceSum.erase(assignment.sourceSum.begin() + summand);
+		return true;
+	}
+
+	Assignment::Summand& current = assignment.sourceSum[summand];
+	Assignment::Summand edited = current;
+	// Bare integers remain gains in the chip editor, unlike the step list's
+	// source-token editor. Only an offered channel can be re-entered here;
+	// arbitrary words must still fail instead of declaring a virtual source.
+	if (!commitFactor(edited, raw))
+	{
+		if (!channels.contains(raw, Qt::CaseInsensitive))
+			return false;
+		edited.channel = raw.toStdWString();
+		edited.factor = 1.0;
+		edited.isDecibel = false;
+	}
+	current = edited;
+	return true;
+}
+
+QStringList RoutingGridModel::sourceChannels(const std::vector<Assignment>& assignments,
+	const std::vector<std::wstring>& deviceChannels, const QStringList& fixedSources)
+{
+	if (!fixedSources.isEmpty())
+		return fixedSources;
+
+	QStringList channels;
+	auto append = [&channels](const QString& channel) {
+		if (!channel.isEmpty() && channel != QLatin1String(" ")
+			&& !channels.contains(channel, Qt::CaseInsensitive))
+			channels.append(channel);
+	};
+	for (const std::wstring& channel : deviceChannels)
+		append(QString::fromStdWString(channel));
+	for (const Assignment& assignment : assignments)
+	{
+		append(QString::fromStdWString(assignment.targetChannel));
+		for (const Assignment::Summand& summand : assignment.sourceSum)
+			append(QString::fromStdWString(summand.channel));
+	}
+	return channels;
+}
+
+bool RoutingGridModel::addChannel(std::vector<Assignment>& assignments, QStringList& pinnedChannels,
+	const QString& text)
+{
+	const QString name = text.trimmed();
+	if (!RoutingFold::isValidChannelName(name))
+		return false;
+	CopyRoutingAdapter::ensureTargetChannel(assignments, pinnedChannels, name);
+	return true;
+}
+
+bool RoutingGridModel::addChannel(QStringList& pinnedChannels, const QString& text)
+{
+	const QString name = text.trimmed();
+	if (!RoutingFold::isValidChannelName(name))
+		return false;
+	addOutput(name);
+	CopyRoutingAdapter::pinChannel(pinnedChannels, name);
+	return true;
+}
+
+void RoutingGridModel::removePin(QStringList& pinnedChannels, const QString& channel)
+{
+	for (int i = pinnedChannels.size() - 1; i >= 0; i--)
+		if (pinnedChannels[i].compare(channel, Qt::CaseInsensitive) == 0)
+			pinnedChannels.removeAt(i);
+}
+
+bool RoutingGridModel::removeChannel(std::vector<Assignment>& assignments, QStringList& pinnedChannels,
+	const QString& channel)
+{
+	removePin(pinnedChannels, channel);
+	return RoutingFold::removeChannel(assignments, channel);
 }

@@ -216,7 +216,7 @@ Mono 잉크, 같은 점선 고스트 유리)이 말한다. 클릭하면 전체 �
 작은 × 판이 켜져 유리에서 내릴 수 있다(장치 채널은 내려가지 않고 소등될
 뿐이다). 빈 상태는 알람이 아니라 소등 톤의 안내 한 줄이다. 구현은
 QGraphicsScene이 아니라 이웃 렌더러와 같은 QWidget+QPainter 단일 페인트다.
-순수 상태는 `StudioRoutingModel`(위젯 무관)에 살고, EditorLogicTests가 별칭
+순수 상태는 `RoutingGridModel`(위젯 무관, 다섯 렌더러가 함께 쓰는 Copy 편집 규칙도 여기에 있다)에 살고, EditorLogicTests가 별칭
 해석·로드 순서 왕복과 removeChannel의 인덱스 봉합을 고정한다.
 
 MultiConvolution 카드는 같은 뷰를 고정 소스 모드(RoutingPortModel)로
@@ -456,7 +456,7 @@ AR1 S5). 스크롤바 핸들은 채널 위의 **유리 조각**이다. 알파 �
 - 픽커: `Editor/skins/studio/picker/StudioFilterPicker.{h,cpp}`
 - 참조 카드: `Editor/skins/studio/cards/StudioReferenceCardView.{h,cpp}`
 - Copy: `Editor/skins/studio/routing/LightTraceRoutingRenderer.{h,cpp}` +
-  `StudioRoutingModel.{h,cpp}`
+  `Editor/widgets/routing/RoutingGridModel.{h,cpp}`
 - Device Selector: `DeviceSelector/skins/StudioDeviceSkin.cpp` (공용 폼 계약은
   `DeviceSelector/skins/DeviceSkinPainter.{h,cpp}`)
 - 헬퍼: 기계적 색 헬퍼(`cssRgba`/`withAlpha`/`skinIsDark`)는 공유
