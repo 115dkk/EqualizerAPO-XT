@@ -36,85 +36,45 @@ void copyString128(String128 destination, const wchar_t* source)
 	wcsncpy_s(reinterpret_cast<wchar_t*>(destination), 128, source, _TRUNCATE);
 }
 
-double clampNormalized(double value)
-{
-	if (!std::isfinite(value))
-		return 0.0;
-	return std::clamp(value, 0.0, 1.0);
-}
-
-double normalizedToRange(double normalized, double minimum, double maximum)
-{
-	return minimum + clampNormalized(normalized) * (maximum - minimum);
-}
-
-int parameterSlot(ParamID id)
-{
-	switch (id)
-	{
-	case kBypassParamId:
-		return 0;
-	case kSourceLfeGainParamId:
-		return 1;
-	case kSourceLfePolarityParamId:
-		return 2;
-	case kSourceLfeDelayParamId:
-		return 3;
-	case kOutputTrimParamId:
-		return 4;
-	case kHeadroomAutoParamId:
-		return 5;
-	default:
-		return -1;
-	}
-}
-
-// cppcheck-suppress constParameterReference // the caller mutates through the returned pointer
-subroute::Path* findSourceLfePath(subroute::SubwooferRoutingState& state)
-{
-	for (subroute::Path& path : state.paths)
-	{
-		if (path.kind == subroute::PathKind::SourceLfe)
-			return &path;
-	}
-	return nullptr;
-}
-
-bool readExact(IBStream* stream, void* destination, uint32 byteCount)
+bool readExact(IBStream* stream, void* destination, std::size_t byteCount)
 {
 	uint8* output = static_cast<uint8*>(destination);
-	uint32 total = 0;
+	std::size_t total = 0;
 	while (total < byteCount)
 	{
 		int32 bytesRead = 0;
-		const uint32 remaining = byteCount - total;
+		const std::size_t remaining = byteCount - total;
 		const int32 request = static_cast<int32>(
-			std::min<uint32>(remaining, static_cast<uint32>(std::numeric_limits<int32>::max())));
+			std::min<std::size_t>(
+				remaining,
+				static_cast<std::size_t>(std::numeric_limits<int32>::max())));
 		const tresult result = stream->read(output + total, request, &bytesRead);
 		if (result != kResultOk || bytesRead <= 0 || bytesRead > request)
 			return false;
-		total += static_cast<uint32>(bytesRead);
+		total += static_cast<std::size_t>(bytesRead);
 	}
 	return true;
 }
 
-bool writeExact(IBStream* stream, const void* source, uint32 byteCount)
+bool writeExact(IBStream* stream, const void* source, std::size_t byteCount)
 {
 	const uint8* input = static_cast<const uint8*>(source);
-	uint32 total = 0;
+	std::size_t total = 0;
 	while (total < byteCount)
 	{
 		int32 bytesWritten = 0;
-		const uint32 remaining = byteCount - total;
+		const std::size_t remaining = byteCount - total;
 		const int32 request = static_cast<int32>(
-			std::min<uint32>(remaining, static_cast<uint32>(std::numeric_limits<int32>::max())));
+			std::min<std::size_t>(
+				remaining,
+				static_cast<std::size_t>(std::numeric_limits<int32>::max())));
 		const tresult result = stream->write(
 			const_cast<uint8*>(input + total),
 			request,
 			&bytesWritten);
 		if (result != kResultOk || bytesWritten <= 0 || bytesWritten > request)
 			return false;
-		total += static_cast<uint32>(bytesWritten);
+		total += static_cast<std::size_t>(bytesWritten);
 	}
 	return true;
 }
@@ -374,50 +334,21 @@ tresult PLUGIN_API SubwooferRoutingProcessor::setActive(TBool state)
 	return kResultOk;
 }
 
-bool SubwooferRoutingProcessor::readFramedState(IBStream* stream, std::string& json)
-{
-	if (stream == nullptr)
-		return false;
-
-	uint32 header[2] = {};
-	if (!readExact(stream, header, sizeof(header))
-		|| header[0] != kStateMagic
-		|| header[1] > kMaximumStateBytes)
-	{
-		return false;
-	}
-
-	std::string incoming(header[1], '\0');
-	if (header[1] != 0 && !readExact(stream, incoming.data(), header[1]))
-		return false;
-
-	json = std::move(incoming);
-	return true;
-}
-
-tresult SubwooferRoutingProcessor::writeFramedState(IBStream* stream, const std::string& json)
-{
-	if (stream == nullptr)
-		return kInvalidArgument;
-	if (json.size() > kMaximumStateBytes)
-		return kResultFalse;
-
-	const uint32 header[2] = {
-		kStateMagic,
-		static_cast<uint32>(json.size())
-	};
-	if (!writeExact(stream, header, sizeof(header)))
-		return kResultFalse;
-	if (!json.empty() && !writeExact(stream, json.data(), static_cast<uint32>(json.size())))
-		return kResultFalse;
-	return kResultOk;
-}
-
 tresult PLUGIN_API SubwooferRoutingProcessor::setState(IBStream* stream)
 {
-	std::string incomingJson;
-	if (!readFramedState(stream, incomingJson))
+	if (stream == nullptr)
 		return kResultFalse;
+
+	std::string incomingJson;
+	if (!readStateFrame(
+		[stream](void* destination, std::size_t byteCount)
+		{
+			return readExact(stream, destination, byteCount);
+		},
+		incomingJson))
+	{
+		return kResultFalse;
+	}
 
 	const subroute::StateDecodeResult decoded = subroute::decodeState(incomingJson);
 	if (!decoded.succeeded())
@@ -455,8 +386,18 @@ tresult PLUGIN_API SubwooferRoutingProcessor::setState(IBStream* stream)
 
 tresult PLUGIN_API SubwooferRoutingProcessor::getState(IBStream* stream)
 {
+	if (stream == nullptr)
+		return kInvalidArgument;
+
 	std::lock_guard<std::mutex> lock(stateMutex_);
-	return writeFramedState(stream, canonicalJson_);
+	return writeStateFrame(
+		[stream](const void* source, std::size_t byteCount)
+		{
+			return writeExact(stream, source, byteCount);
+		},
+		canonicalJson_)
+		? kResultOk
+		: kResultFalse;
 }
 
 bool SubwooferRoutingProcessor::isAcceptedArrangement(SpeakerArrangement arrangement)
@@ -641,17 +582,19 @@ void SubwooferRoutingProcessor::consumeParameterChanges(IParameterChanges* chang
 		if (queue == nullptr || queue->getPointCount() <= 0)
 			continue;
 
-		const int slot = parameterSlot(queue->getParameterId());
-		if (slot < 0)
+		const ParameterDescriptor* parameter =
+			parameterById(queue->getParameterId());
+		if (parameter == nullptr)
 			continue;
+		const std::size_t slot = parameter->slot;
 
 		int32 sampleOffset = 0;
 		ParamValue value = 0.0;
 		if (queue->getPoint(queue->getPointCount() - 1, sampleOffset, value) != kResultOk)
 			continue;
 
-		value = clampNormalized(value);
-		if (queue->getParameterId() == kBypassParamId)
+		value = clampNormalizedParameter(value);
+		if (parameter->kind == ParameterKind::Bypass)
 		{
 			bypass_.store(value >= 0.5, std::memory_order_release);
 			continue;
@@ -659,7 +602,7 @@ void SubwooferRoutingProcessor::consumeParameterChanges(IParameterChanges* chang
 
 		pendingParameterValues_[slot].store(value, std::memory_order_relaxed);
 		pendingParameterMask_.fetch_or(
-			static_cast<uint32>(1u << slot),
+			static_cast<uint32>(1u << static_cast<uint32>(slot)),
 			std::memory_order_release);
 	}
 }
@@ -845,7 +788,7 @@ tresult PLUGIN_API SubwooferRoutingProcessor::notify(IMessage* message)
 	std::lock_guard<std::mutex> lock(stateMutex_);
 	return applyParameterLocked(
 		static_cast<ParamID>(rawId),
-		clampNormalized(value),
+		clampNormalizedParameter(value),
 		true)
 		? kResultOk
 		: kResultFalse;
@@ -982,35 +925,17 @@ bool SubwooferRoutingProcessor::applyPendingParametersLocked()
 		return true;
 
 	bool changed = false;
-	for (int slot = 1; slot < 6; ++slot)
+	for (std::size_t slot = 1; slot < kParameterCount; ++slot)
 	{
-		if ((mask & static_cast<uint32>(1u << slot)) == 0)
+		if ((mask & static_cast<uint32>(1u << static_cast<uint32>(slot))) == 0)
 			continue;
 
-		ParamID id = kBypassParamId;
-		switch (slot)
-		{
-		case 1:
-			id = kSourceLfeGainParamId;
-			break;
-		case 2:
-			id = kSourceLfePolarityParamId;
-			break;
-		case 3:
-			id = kSourceLfeDelayParamId;
-			break;
-		case 4:
-			id = kOutputTrimParamId;
-			break;
-		case 5:
-			id = kHeadroomAutoParamId;
-			break;
-		default:
+		const ParameterDescriptor* parameter = parameterBySlot(slot);
+		if (parameter == nullptr)
 			continue;
-		}
 
 		changed = applyParameterLocked(
-			id,
+			parameter->id,
 			pendingParameterValues_[slot].load(std::memory_order_relaxed),
 			false)
 			|| changed;
@@ -1032,79 +957,38 @@ bool SubwooferRoutingProcessor::applyParameterLocked(
 	ParamValue normalizedValue,
 	bool rebuild)
 {
-	normalizedValue = clampNormalized(normalizedValue);
+	const ParameterDescriptor* parameter = parameterById(id);
+	if (parameter == nullptr)
+		return false;
 
-	if (id == kBypassParamId)
+	normalizedValue = clampNormalizedParameter(normalizedValue);
+	if (parameter->kind == ParameterKind::Bypass)
 	{
-		bypass_.store(normalizedValue >= 0.5, std::memory_order_release);
+		bool bypass = bypass_.load(std::memory_order_acquire);
+		if (!writeNormalizedParameter(
+			*parameter,
+			state_,
+			normalizedValue,
+			state_.headroom.manualTrimDb,
+			bypass))
+		{
+			return false;
+		}
+		bypass_.store(bypass, std::memory_order_release);
 		return true;
 	}
 
 	subroute::SubwooferRoutingState candidate = state_;
-	subroute::Path* sourceLfe = findSourceLfePath(candidate);
-
-	if (id == kSourceLfeGainParamId)
-	{
-		if (sourceLfe == nullptr)
-			return false;
-		sourceLfe->preGainDb = normalizedToRange(normalizedValue, -20.0, 20.0);
-	}
-	else if (id == kSourceLfePolarityParamId)
-	{
-		if (sourceLfe == nullptr)
-			return false;
-		bool found = false;
-		for (subroute::PathStage& stage : sourceLfe->chain)
-		{
-			if (subroute::PolarityStage* polarity =
-				std::get_if<subroute::PolarityStage>(&stage))
-			{
-				polarity->inverted = normalizedValue >= 0.5;
-				found = true;
-				break;
-			}
-		}
-		if (!found)
-			return false;
-	}
-	else if (id == kSourceLfeDelayParamId)
-	{
-		if (sourceLfe == nullptr)
-			return false;
-		bool found = false;
-		for (subroute::PathStage& stage : sourceLfe->chain)
-		{
-			if (subroute::DelayStage* delay =
-				std::get_if<subroute::DelayStage>(&stage))
-			{
-				delay->milliseconds =
-					normalizedToRange(normalizedValue, 0.0, 100.0);
-				found = true;
-				break;
-			}
-		}
-		if (!found)
-			return false;
-	}
-	else if (id == kOutputTrimParamId)
-	{
-		const double requested =
-			normalizedToRange(normalizedValue, -40.0, 0.0);
-		double automatic = candidate.headroom.manualTrimDb;
-		if (const PreparedEngine* engine = current_.load(std::memory_order_acquire))
-			automatic = engine->automaticTrimDb;
-
-		candidate.headroom.manualTrimDb = requested;
-		if (std::fabs(requested - automatic) > 1.0e-9)
-			candidate.headroom.mode = subroute::HeadroomMode::Manual;
-	}
-	else if (id == kHeadroomAutoParamId)
-	{
-		candidate.headroom.mode = normalizedValue >= 0.5
-			? subroute::HeadroomMode::Auto
-			: subroute::HeadroomMode::Manual;
-	}
-	else
+	double automatic = candidate.headroom.manualTrimDb;
+	if (const PreparedEngine* engine = current_.load(std::memory_order_acquire))
+		automatic = engine->automaticTrimDb;
+	bool bypass = bypass_.load(std::memory_order_acquire);
+	if (!writeNormalizedParameter(
+		*parameter,
+		candidate,
+		normalizedValue,
+		automatic,
+		bypass))
 	{
 		return false;
 	}

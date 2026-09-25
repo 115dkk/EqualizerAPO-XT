@@ -90,6 +90,7 @@ if exist "$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configurati
     <ClCompile Include="SubwooferRoutingCompilerTests.cpp" />
     <ClCompile Include="SubwooferRoutingEngineTests.cpp" />
     <ClCompile Include="SubwooferRoutingVst3Tests.cpp" />
+    <ClCompile Include="..\..\VST3\SubwooferRouting\parameter_table.cpp" />
     <ClCompile Include="SubwooferRoutingJsonTests.cpp" />
     <ClCompile Include="SubwooferRoutingProcessorTests.cpp" />
     <ClCompile Include="BiQuadKernelTests.cpp" />
@@ -123,6 +124,7 @@ if exist "$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configurati
     <ClInclude Include="..\..\filters\ConfigPathPolicy.h" />
     <ClInclude Include="..\..\libHybridConv-0.1.1\libHybridConv_eapo.h" />
     <ClInclude Include="..\TestVst3Plugin\TestVst3Protocol.h" />
+    <ClInclude Include="..\..\VST3\SubwooferRouting\parameter_table.h" />
   </ItemGroup>
   <!-- Build the companion VST2 test plugin first and copy it next to the test
        executable so VstHostTests' GetModuleFileName-relative lookup finds it on

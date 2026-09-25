@@ -27,16 +27,6 @@ inline constexpr char kVersion[] = "1.0.0";
 inline constexpr char kSdkVersion[] = "VST 3.8";
 inline constexpr char kSubCategories[] = "Fx|Tools";
 
-inline constexpr Steinberg::Vst::ParamID kBypassParamId = 1000;
-inline constexpr Steinberg::Vst::ParamID kSourceLfeGainParamId = 1001;
-inline constexpr Steinberg::Vst::ParamID kSourceLfePolarityParamId = 1002;
-inline constexpr Steinberg::Vst::ParamID kSourceLfeDelayParamId = 1003;
-inline constexpr Steinberg::Vst::ParamID kOutputTrimParamId = 1004;
-inline constexpr Steinberg::Vst::ParamID kHeadroomAutoParamId = 1005;
-
-inline constexpr Steinberg::uint32 kStateMagic = 0x31584D42; // "BMX1" in little-endian byte order.
-inline constexpr Steinberg::uint32 kMaximumStateBytes = 64u * 1024u * 1024u;
-
 inline constexpr char kParameterMessageId[] = "eapo-xt-subwoofer-routing-parameter";
 inline constexpr char kMessageParameterId[] = "parameter-id";
 inline constexpr char kMessageParameterValue[] = "normalized-value";

@@ -214,6 +214,7 @@ SOURCES += main.cpp\
 	../SubwooferRoutingCore/src/Preset.cpp \
 	../SubwooferRoutingCore/src/Processor.cpp \
 	../SubwooferRoutingCore/src/StateCodec.cpp \
+	../SubwooferRoutingCore/src/Text.cpp \
 	../filters/HilbertCommand.cpp \
 	../filters/HilbertFilter.cpp \
 	../filters/HilbertFilterFactory.cpp \

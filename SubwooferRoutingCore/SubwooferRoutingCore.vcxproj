@@ -93,6 +93,7 @@
     <ClInclude Include="include\SubwooferRouting\Processor.h" />
     <ClInclude Include="include\SubwooferRouting\State.h" />
     <ClInclude Include="include\SubwooferRouting\StateCodec.h" />
+    <ClInclude Include="src\Text.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Compiler.cpp" />
@@ -102,6 +103,7 @@
     <ClCompile Include="src\Preset.cpp" />
     <ClCompile Include="src\Processor.cpp" />
     <ClCompile Include="src\StateCodec.cpp" />
+    <ClCompile Include="src\Text.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="LICENSE" />

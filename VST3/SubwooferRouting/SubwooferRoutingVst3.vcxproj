@@ -71,10 +71,12 @@
   <ItemGroup>
     <ClCompile Include="controller.cpp" />
     <ClCompile Include="factory.cpp" />
+    <ClCompile Include="parameter_table.cpp" />
     <ClCompile Include="processor.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="controller.h" />
+    <ClInclude Include="parameter_table.h" />
     <ClInclude Include="plugin_ids.h" />
     <ClInclude Include="processor.h" />
   </ItemGroup>

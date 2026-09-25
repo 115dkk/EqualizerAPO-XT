@@ -32,6 +32,9 @@
     <ClCompile Include="SubwooferRoutingVst3Tests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\VST3\SubwooferRouting\parameter_table.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="SubwooferRoutingJsonTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -110,6 +113,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\TestVst3Plugin\TestVst3Protocol.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\VST3\SubwooferRouting\parameter_table.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
