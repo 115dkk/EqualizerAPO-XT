@@ -10,13 +10,19 @@
 	header channel badges (ChBadge) all ask here, and the minimal skin keys
 	its designed console inks by the same canonical names (audit #348
 	B5/TD-44, maintainer decision: the routing palette is the identity).
+	Which channels are virtual (dashed) is decided here too, by isVirtual.
 */
 
 #pragma once
 
+#include <string>
+#include <vector>
+
 #include <QColor>
 #include <QHash>
 #include <QString>
+
+#include "audio/ChannelLayout.h"
 
 namespace ChannelIdentity
 {
@@ -74,5 +80,36 @@ inline QString colorName(const QString& channel)
 inline QColor color(const QString& channel)
 {
 	return QColor(colorName(channel));
+}
+
+// The channel list the virtual rule judges against when the device is not
+// known (no device selected, the gallery's deviceless card path): the 7.1
+// layout the Editor's analysis runs with in the same situation
+// (ChannelLayout::analysisLayout).
+inline const std::vector<std::wstring>& unknownDeviceChannels()
+{
+	static const std::vector<std::wstring> names = [] {
+		const ChannelLayout::AnalysisLayout layout = ChannelLayout::analysisLayout(0, 0, 0);
+		return ChannelLayout::getChannelNames(static_cast<int>(layout.channelCount), layout.channelMask);
+	}();
+	return names;
+}
+
+// The one rule for which channels are virtual (audit #348 TD-44): a channel
+// is virtual when it names none of the device's channels. It names one the
+// way the engine resolves a Copy or MultiConvolution target
+// (ChannelLayout::resolveTarget): by name, by alias (SL/RL, SR/RR, SUB for
+// LFE) or by 1-based number, case-insensitive like the Editor's parsers. A
+// target the engine cannot resolve becomes a new channel of that name, and
+// that is what the views draw dashed. ALL selects every channel and is never
+// virtual. An empty deviceChannels means the device is not known; the rule
+// then judges against unknownDeviceChannels().
+inline bool isVirtual(const QString& channel, const std::vector<std::wstring>& deviceChannels)
+{
+	const QString upper = channel.trimmed().toUpper();
+	if (upper == QLatin1String("ALL"))
+		return false;
+	const std::vector<std::wstring>& names = deviceChannels.empty() ? unknownDeviceChannels() : deviceChannels;
+	return ChannelLayout::getChannelIndex(upper.toStdWString(), names, true) < 0;
 }
 }

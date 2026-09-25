@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include "asio/AsioConstants.h"
+
 namespace eapo::asio
 {
 	struct EntryOptions
@@ -22,7 +24,7 @@ namespace eapo::asio
 		// and a missed deadline passes the buffer through unprocessed.
 		bool synchronous = false;
 		// How much of the buffer period a synchronous switch waits: 25, 50 or 75.
-		unsigned deadlinePercent = 25;
+		unsigned deadlinePercent = defaultDeadlinePercent;
 		// Start the engine host at boot (one Run value for the machine).
 		bool autoStart = false;
 		// Register the entry for 32-bit hosts too, when the x86 wrapper ships.

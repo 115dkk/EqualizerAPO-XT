@@ -101,10 +101,10 @@ def soft():
     return ''.join(s)
 
 def rack():
-    s = [f'<defs>{clip_defs("rk")}<linearGradient id="rk-glow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent2)" stop-opacity=".18"/><stop offset="1" stop-color="var(--accent2)" stop-opacity=".02"/></linearGradient>'
+    s = [f'<defs>{clip_defs("rk")}<linearGradient id="rk-glow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--scope)" stop-opacity=".18"/><stop offset="1" stop-color="var(--scope)" stop-opacity=".02"/></linearGradient>'
          f'<linearGradient id="rk-over" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--danger)" stop-opacity=".22"/><stop offset="1" stop-color="var(--danger)" stop-opacity=".04"/></linearGradient></defs>',
          f'<rect x="{L - 10}" y="{T - 8}" width="{R - L + 20}" height="{B - T + 16}" rx="3" fill="var(--card)" stroke="var(--seam)"/>',
-         f'<rect x="{L}" y="{T}" width="{R - L}" height="{B - T}" fill="var(--graph)" stroke="#0a0c0e"/>',
+         f'<rect x="{L}" y="{T}" width="{R - L}" height="{B - T}" fill="var(--glass)" stroke="#0a0c0e"/>',
          f'<rect x="{L}" y="{T}" width="{R - L}" height="{MID - T}" fill="url(#rk-over)"/>',  # the OVER zone: the band above the 0 dB axis heats in danger red
          f'<rect x="{L}" y="{T}" width="{R - L}" height="4" fill="rgba(0,0,0,.55)"/>', f'<rect x="{L}" y="{B - 1}" width="{R - L}" height="1" fill="rgba(255,255,255,.08)"/>']
     s.append(lines(FREQ_MIN + FREQ_MAJ, [-12, -9, -6, -3], 'var(--rack-scope-grid)', 1))
@@ -113,18 +113,18 @@ def rack():
         x = round(fx(f)) + .5
         s.append(f'<line x1="{x}" y1="{T}" x2="{x}" y2="{MID}" stroke="var(--danger)" stroke-opacity=".28" shape-rendering="crispEdges"/>')
     y0 = round(fy(0)) + .5
-    s.append(f'<line x1="{L}" y1="{y0}" x2="{R}" y2="{y0}" stroke="var(--accent2)" stroke-opacity=".55" stroke-width="1" shape-rendering="crispEdges"/>')
+    s.append(f'<line x1="{L}" y1="{y0}" x2="{R}" y2="{y0}" stroke="var(--scope)" stroke-opacity=".55" stroke-width="1" shape-rendering="crispEdges"/>')
     s.append(f'<path d="{FILL}" fill="url(#rk-glow)" clip-path="url(#rk-dn)"/>')
     for w, o in ((9, .08), (5, .22), (2.5, .6), (1.4, 1)):
-        s.append(f'<path d="{TRACE}" fill="none" stroke="var(--accent2)" stroke-width="{w}" stroke-opacity="{o}" stroke-linejoin="round" clip-path="url(#rk-dn)"/>')
+        s.append(f'<path d="{TRACE}" fill="none" stroke="var(--scope)" stroke-width="{w}" stroke-opacity="{o}" stroke-linejoin="round" clip-path="url(#rk-dn)"/>')
         s.append(f'<path d="{TRACE}" fill="none" stroke="var(--danger)" stroke-width="{w}" stroke-opacity="{o}" stroke-linejoin="round" clip-path="url(#rk-up)"/>')
     s.append(f'<path d="{TRACE}" fill="none" stroke="#fff" stroke-width=".8" stroke-opacity=".6" clip-path="url(#rk-up)"/>')  # the white-hot core of the overdriven beam
     s.append(labels('var(--mono)', 9.5, 'var(--accent2)', weight=700, extra=' fill-opacity=".85"', dbs=[(0, '0'), (-6, '-6'), (-12, '-12')]))
     for g, t in ((12, '+12'), (6, '+6')):
         s.append(f'<text x="{L - 5}" y="{fy(g) + 3.5:.1f}" text-anchor="end" font-family="var(--mono)" font-size="9.5" font-weight="700" fill="var(--danger)">{t}</text>')
-    s.append(f'<text x="{L}" y="{H - 3}" font-family="var(--font)" font-size="9" font-weight="700" letter-spacing="1" fill="var(--muted)">SPECTRUM MONITOR</text>')
-    s.append(f'<text x="{(L + R) / 2}" y="{H - 3}" text-anchor="middle" font-family="var(--font)" font-size="9.5" fill="var(--text)">{CAPTION}</text>')
-    s.append(f'<text x="{R - 14}" y="{H - 3}" text-anchor="end" font-family="var(--font)" font-size="9" font-weight="700" letter-spacing="1" fill="var(--danger)">OVER</text>')
+    s.append(f'<text x="{L}" y="{H - 3}" font-family="var(--font)" font-size="9" font-weight="700" letter-spacing="2" fill="var(--muted)">SPECTRUM MONITOR</text>')
+    s.append(f'<text x="{(L + R) / 2}" y="{H - 3}" text-anchor="middle" font-family="var(--font)" font-size="10" fill="var(--text)">{CAPTION}</text>')
+    s.append(f'<text x="{R - 14}" y="{H - 3}" text-anchor="end" font-family="var(--font)" font-size="9" font-weight="700" letter-spacing="2" fill="var(--danger)">OVER</text>')
     s.append(f'<circle cx="{R - 4}" cy="{H - 6}" r="3.5" fill="var(--danger)" stroke="#0a0c0e" stroke-width="1.5"/><circle cx="{R - 5}" cy="{H - 7}" r="1" fill="#fff" fill-opacity=".5"/>')
     return ''.join(s)
 

@@ -14,6 +14,8 @@
 #include <QString>
 #include <QStringList>
 
+#include "Editor/widgets/routing/ChannelIdentity.h"
+#include "Editor/widgets/routing/IRoutingRenderer.h"
 #include "Editor/widgets/routing/MultiConvolutionRoutingAdapter.h"
 #include "Editor/widgets/routing/RoutingFold.h"
 #include "Editor/widgets/routing/RoutingGridModel.h"
@@ -343,6 +345,52 @@ void testRoutingFold()
 	expectFalse(RoutingFold::removeChannel(seedOnly, "SR"),
 		"folding away a pure seed row is not a serialized change");
 	expectEqual((int)seedOnly.size(), (int)emptySeeded.size() - 1, "the seed row itself is still removed");
+}
+
+void testVirtualChannelRule()
+{
+	// ChannelIdentity::isVirtual: the one rule for which channels the views
+	// draw dashed (audit #348 TD-44). A channel is virtual when it names none
+	// of the device's channels, resolved the way the engine resolves a Copy
+	// target (ChannelLayout::resolveTarget).
+	const std::vector<std::wstring> stereo = {L"L", L"R"};
+	const std::vector<std::wstring> surround51 = {L"L", L"R", L"C", L"LFE", L"RL", L"RR"};
+	expectFalse(ChannelIdentity::isVirtual("L", stereo), "a device channel is not virtual");
+	expectFalse(ChannelIdentity::isVirtual("r", stereo), "the rule reads names case-insensitively");
+	expectTrue(ChannelIdentity::isVirtual("C", stereo), "C on a stereo device is a new channel");
+	expectTrue(ChannelIdentity::isVirtual("VSL", surround51), "an upmix scratch name is virtual");
+	expectTrue(ChannelIdentity::isVirtual("SBL", surround51),
+		"SBL is no Windows channel name, so the engine declares it new");
+	expectTrue(ChannelIdentity::isVirtual("WET", surround51), "a name without a V is virtual too");
+
+	// Aliases and numbers resolve like the engine's.
+	expectFalse(ChannelIdentity::isVirtual("SL", surround51), "SL names RL on a 5.1 device");
+	expectFalse(ChannelIdentity::isVirtual("SUB", surround51), "SUB names LFE");
+	expectTrue(ChannelIdentity::isVirtual("SUB", stereo), "SUB names nothing on a stereo device");
+	expectFalse(ChannelIdentity::isVirtual("2", stereo), "a number within the device names a channel");
+	expectTrue(ChannelIdentity::isVirtual("3", stereo), "a number past the device is a new channel");
+	expectTrue(ChannelIdentity::isVirtual("0", stereo), "channel numbers start at 1");
+
+	// ALL selects every channel and is never virtual.
+	expectFalse(ChannelIdentity::isVirtual("ALL", stereo), "ALL is a selector, not a new channel");
+	expectFalse(ChannelIdentity::isVirtual("all", {}), "ALL is not virtual without a device either");
+
+	// Without a device the rule judges against the analysis's 7.1 layout.
+	expectEqual((int)ChannelIdentity::unknownDeviceChannels().size(), 8, "the unknown-device layout is 7.1");
+	for (const char* name : {"L", "R", "C", "LFE", "SUB", "RL", "RR", "SL", "SR", "1", "8"})
+		expectFalse(ChannelIdentity::isVirtual(name, {}),
+			QStringLiteral("%1 is a channel of the unknown-device layout").arg(name));
+	for (const char* name : {"VC", "VSL", "SBL", "SBR", "BL", "FLC", "RC", "9"})
+		expectTrue(ChannelIdentity::isVirtual(name, {}),
+			QStringLiteral("%1 is virtual on the unknown-device layout").arg(name));
+
+	// The routing views ask through their port model, which carries the
+	// device's channels rather than the view's seeding list.
+	RoutingPortModel ports;
+	expectFalse(ports.isVirtualChannel("SR"), "a port model without a device uses the 7.1 layout");
+	ports.deviceChannels = stereo;
+	expectTrue(ports.isVirtualChannel("SR"), "a port model judges against its device");
+	expectFalse(ports.isVirtualChannel("L"), "a stereo port model keeps L real");
 }
 
 void testSourceTokenGrammar()

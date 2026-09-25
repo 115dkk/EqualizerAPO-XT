@@ -42,6 +42,7 @@
 #include "asio/CallbackTrampolines.h"
 #include "asio/SampleCodec.h"
 #include "asio/StreamProcessor.h"
+#include "platform/windows/ComPtr.h"
 
 namespace eapo::asio
 {
@@ -139,14 +140,14 @@ namespace eapo::asio
 		bool processorEnabled(Direction direction) const noexcept;
 
 		std::atomic<long> refCount_{1};
-		IASIO* target_;
+		winutil::ComPtr<IASIO> target_;
 		GUID wrapperClsid_;
 		std::wstring targetClsid_;
 		StreamOptions options_;
 		std::unique_ptr<IStreamProcessor> processor_;
 
 		std::atomic<State> state_{State::Loaded};
-		char errorMessage_[124] = {};
+		char errorMessage_[errorMessageBytes] = {};
 
 		ASIOCallbacks host_ = {};
 		bool hostPresent_ = false;

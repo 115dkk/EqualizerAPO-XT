@@ -822,10 +822,14 @@ void SubwooferRoutingEditorDialog::updateLeftPaneWidth()
 
 void SubwooferRoutingEditorDialog::rebuildRoutingViews()
 {
+	// The plugin's physical layout is the device these views route to: its
+	// channels are real, and the bass paths the send view targets are
+	// virtual.
 	RoutingPortModel bassSendPorts;
 	bassSendPorts.fixedSources =
 		SubwooferRoutingRoutingAdapter::bassSendSources(model->state());
 	bassSendPorts.allowFactors = false;
+	bassSendPorts.deviceChannels = physicalTargets(model->state());
 
 	rebuildRoutingView(bassSendRoutingView, bassSendRoutingHint,
 		bassSendRoutingLayout,
@@ -839,6 +843,7 @@ void SubwooferRoutingEditorDialog::rebuildRoutingViews()
 	outputPorts.fixedSources =
 		SubwooferRoutingRoutingAdapter::outputSources(model->state());
 	outputPorts.allowFactors = true;
+	outputPorts.deviceChannels = physicalTargets(model->state());
 
 	rebuildRoutingView(outputRoutingView, outputRoutingHint,
 		outputRoutingLayout,

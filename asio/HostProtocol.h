@@ -32,6 +32,7 @@
 #include <windows.h>
 
 #include "runtime/ipc/StreamRing.h"
+#include "platform/windows/Win32Resource.h"
 
 namespace eapo::asio
 {
@@ -135,6 +136,14 @@ namespace eapo::asio
 			sync.ready = events[4];
 			sync.peer = peer;
 			return sync;
+		}
+
+		inline eapo::ipc::RingSync toSync(const winutil::UniqueHandle (&events)[count], HANDLE peer) noexcept
+		{
+			HANDLE borrowed[count];
+			for (unsigned i = 0; i < count; i++)
+				borrowed[i] = events[i].get();
+			return toSync(borrowed, peer);
 		}
 	}
 }

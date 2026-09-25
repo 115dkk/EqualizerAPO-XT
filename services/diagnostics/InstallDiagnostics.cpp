@@ -167,8 +167,6 @@ vector<wstring> attachedEndpoints(const IRegistry& registry)
 		return lines;
 	}
 
-	static const wchar_t* const slotNames[] = {L"LFX", L"GFX", L"SFX", L"MFX", L"EFX"};
-
 	for (const wchar_t* root : {renderKeyPath, captureKeyPath})
 	{
 		vector<wstring> devices;
@@ -214,7 +212,7 @@ vector<wstring> attachedEndpoints(const IRegistry& registry)
 
 					if (!attachedSlots.empty())
 						attachedSlots += L", ";
-					attachedSlots += wstring(slotNames[i]) + L"=" + which;
+					attachedSlots += wstring(apoSlotNames[i]) + L"=" + which;
 				}
 			}
 			catch (const RegistryError&)

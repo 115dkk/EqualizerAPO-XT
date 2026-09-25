@@ -85,8 +85,10 @@ def rack(bipolar, ratio, text=''):
         s.append(f'<line x1="{f(x0)}" y1="{f(y0)}" x2="{f(x1)}" y2="{f(y1)}" stroke="var({"--text" if major else "--muted"})" stroke-width="{1.5 if major else 1}"/>')
     if bipolar:  # the engraved 0 dB centre detent: the plate's longest, thickest mark, amber
         s.append(f'<line x1="{C}" y1="{C - 37}" x2="{C}" y2="{C - 27}" stroke="var(--accent)" stroke-width="3"/>')
-        s.append(f'<text x="8" y="70" font-family="var(--font)" font-size="9" font-weight="700" fill="var(--text)">-</text>')
-        s.append(f'<text x="62" y="70" font-family="var(--font)" font-size="9" font-weight="700" fill="var(--text)">+</text>')
+        # the cut/boost glyphs (12 px bold) in the dead zone just past the scale ends, 2.5 px inside the scale radius
+        for glyph, ratio_at in (('-', -0.07), ('+', 1.07)):
+            gx, gy = pt(32.5, -135 + 270 * ratio_at)
+            s.append(f'<text x="{f(gx)}" y="{f(gy)}" text-anchor="middle" dominant-baseline="central" font-family="var(--font)" font-size="12" font-weight="700" fill="var(--text)">{glyph}</text>')
     s.append(f'<circle cx="{C}" cy="{C + 1}" r="23" fill="rgba(0,0,0,.45)"/>')
     s.append(f'<circle cx="{C}" cy="{C}" r="22" fill="url(#rackBody)" stroke="#0a0c0e" stroke-width="1"/>')
     a = angle(bipolar, ratio)
@@ -142,6 +144,7 @@ if __name__ == '__main__':
   .rack-row { display: flex; align-items: center; gap: 12px; }
   .lcd { font-family: var(--mono); font-size: 13.33px; font-weight: 700; color: var(--accent2); background: var(--graph); border: 1px solid #0a0c0e;
     border-radius: 2px; padding: 3px 8px; box-shadow: inset 0 1px 2px rgba(0,0,0,.8), 0 1px 0 rgba(255,255,255,.06); text-shadow: 0 0 4px color-mix(in srgb, var(--accent2) 60%, transparent); }
+  [data-theme="light"] .lcd { background: #11150f; color: #3ed68e; }
   .cell { height: 16px; min-width: 52px; display: inline-flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 11px; font-weight: 700;
     color: var(--text); background: var(--graph); border: 1px solid var(--border); }
   .skin-soft .k { gap: 8px; }

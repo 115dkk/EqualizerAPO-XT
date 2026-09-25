@@ -12,6 +12,7 @@
 
 #include "asio/HostProtocol.h"
 #include "platform/windows/NamedPipeSecurity.h"
+#include "platform/windows/WindowsPath.h"
 
 namespace eapo::asio
 {
@@ -22,12 +23,6 @@ namespace eapo::asio
 		std::string describe(const char* what, DWORD error)
 		{
 			return std::string(what) + " (error " + std::to_string(error) + ")";
-		}
-
-		bool fileExists(const std::wstring& path)
-		{
-			const DWORD attributes = GetFileAttributesW(path.c_str());
-			return attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0;
 		}
 
 		std::string utf8(const std::wstring& text)
@@ -101,13 +96,13 @@ namespace eapo::asio
 		if (!options.daemonExePath.empty())
 			return options.daemonExePath;
 		const std::wstring beside = moduleDirectory + L"\\EqualizerAPOHost.exe";
-		if (fileExists(beside))
+		if (pathutil::fileExists(beside))
 			return beside;
 		const size_t slash = moduleDirectory.find_last_of(L"\\/");
 		if (slash != std::wstring::npos)
 		{
 			const std::wstring parent = moduleDirectory.substr(0, slash) + L"\\EqualizerAPOHost.exe";
-			if (fileExists(parent))
+			if (pathutil::fileExists(parent))
 				return parent;
 		}
 		return beside;
@@ -116,7 +111,7 @@ namespace eapo::asio
 	bool Win32HostLink::spawnHost(const std::wstring& endpoint, const StreamOptions& options, std::string& error)
 	{
 		const std::wstring exe = hostExecutable(options, moduleDirectory());
-		if (!fileExists(exe))
+		if (!pathutil::fileExists(exe))
 		{
 			error = "EQ APO XT engine host executable is missing";
 			return false;
@@ -134,34 +129,33 @@ namespace eapo::asio
 			error = describe("EQ APO XT engine host could not be started", GetLastError());
 			return false;
 		}
-		CloseHandle(process.hThread);
-		CloseHandle(process.hProcess);
+		winutil::UniqueHandle threadHandle(process.hThread);
+		winutil::UniqueHandle processHandle(process.hProcess);
 		return true;
 	}
 
-	bool Win32HostLink::connectToHost(const std::wstring& endpoint, const StreamOptions& options, ULONGLONG deadline, HANDLE& pipe,
+	bool Win32HostLink::connectToHost(const std::wstring& endpoint, const StreamOptions& options, ULONGLONG deadline, winutil::UniqueHandle& pipe,
 		std::string& error)
 	{
 		const std::wstring pipeName = HostNames::pipe(endpoint);
 		bool spawned = false;
 		for (;;)
 		{
-			pipe = CreateFileW(pipeName.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, nullptr);
-			if (pipe != INVALID_HANDLE_VALUE)
+			pipe.reset(CreateFileW(pipeName.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, nullptr));
+			if (pipe)
 			{
 				DWORD mode = PIPE_READMODE_MESSAGE;
-				SetNamedPipeHandleState(pipe, &mode, nullptr, nullptr);
+				SetNamedPipeHandleState(pipe.get(), &mode, nullptr, nullptr);
 
 				// The pipe name is global, so whoever serves it has to be the
 				// host this link would have started before it is told
 				// anything.
 				DWORD identityError = ERROR_SUCCESS;
-				const std::wstring server = winutil::pipes::serverImagePath(pipe, identityError);
+				const std::wstring server = winutil::pipes::serverImagePath(pipe.get(), identityError);
 				const std::wstring expected = hostExecutable(options, moduleDirectory());
 				if (server.empty() || !winutil::pipes::sameFile(server, expected))
 				{
-					CloseHandle(pipe);
-					pipe = INVALID_HANDLE_VALUE;
+					pipe.reset();
 					error = server.empty() ? describe("the program serving the EQ APO XT engine host pipe could not be identified", identityError)
 						: "EQ APO XT engine host pipe is held by another program (" + utf8(server) + ")";
 					return false;
@@ -204,13 +198,13 @@ namespace eapo::asio
 		const std::wstring ringName = HostNames::ring(endpoint, pid, ++ringSerial);
 		const uint32_t ringBytes = eapo::ipc::RingGeometry::totalBytes(format);
 
-		objects_.mapping = CreateFileMappingW(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, ringBytes, ringName.c_str());
-		if (objects_.mapping == nullptr)
+		objects_.mapping.reset(CreateFileMappingW(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, ringBytes, ringName.c_str()));
+		if (!objects_.mapping)
 		{
 			error = describe("the stream ring could not be created", GetLastError());
 			return false;
 		}
-		session.ringBase = MapViewOfFile(objects_.mapping, FILE_MAP_ALL_ACCESS, 0, 0, ringBytes);
+		session.ringBase = MapViewOfFile(objects_.mapping.get(), FILE_MAP_ALL_ACCESS, 0, 0, ringBytes);
 		if (session.ringBase == nullptr)
 		{
 			error = describe("the stream ring could not be mapped", GetLastError());
@@ -223,8 +217,8 @@ namespace eapo::asio
 		for (unsigned i = 0; i < RingEvents::count; i++)
 		{
 			const RingEvents::Entry& entry = RingEvents::table[i];
-			objects_.events[i] = CreateEventW(nullptr, entry.manualReset ? TRUE : FALSE, FALSE, HostNames::event(ringName, entry.suffix).c_str());
-			if (objects_.events[i] == nullptr)
+			objects_.events[i].reset(CreateEventW(nullptr, entry.manualReset ? TRUE : FALSE, FALSE, HostNames::event(ringName, entry.suffix).c_str()));
+			if (!objects_.events[i])
 			{
 				error = describe("the stream events could not be created", GetLastError());
 				close(session);
@@ -234,7 +228,7 @@ namespace eapo::asio
 		// The peer (the host's process handle) follows once the host answered.
 		session.sync = RingEvents::toSync(objects_.events, nullptr);
 
-		HANDLE pipe = INVALID_HANDLE_VALUE;
+		winutil::UniqueHandle pipe;
 		const ULONGLONG deadline = GetTickCount64() + options.readyTimeoutMs;
 		if (!connectToHost(endpoint, options, deadline, pipe, error))
 		{
@@ -251,9 +245,9 @@ namespace eapo::asio
 		HostOpenReply reply;
 		const ULONGLONG exchangeDeadline = (std::max)(deadline, GetTickCount64() + exchangeFloorMs);
 		DWORD last = ERROR_SUCCESS;
-		const bool exchanged = transfer(pipe, true, &request, sizeof(request), exchangeDeadline, last)
-			&& transfer(pipe, false, &reply, sizeof(reply), exchangeDeadline, last);
-		CloseHandle(pipe);
+		const bool exchanged = transfer(pipe.get(), true, &request, sizeof(request), exchangeDeadline, last)
+			&& transfer(pipe.get(), false, &reply, sizeof(reply), exchangeDeadline, last);
+		pipe.reset();
 		if (!exchanged)
 		{
 			error = last == ERROR_TIMEOUT ? "EQ APO XT engine host did not answer the stream request in time"
@@ -273,7 +267,8 @@ namespace eapo::asio
 		// The peer handle turns a host crash into Gone; when it cannot be
 		// opened (a different integrity level) the ring still works, the
 		// wrapper just learns of a crash through the deadline instead.
-		session.sync.peer = OpenProcess(SYNCHRONIZE, FALSE, reply.hostPid);
+		objects_.peer.reset(OpenProcess(SYNCHRONIZE, FALSE, reply.hostPid));
+		session.sync.peer = objects_.peer.get();
 		return true;
 	}
 
@@ -281,17 +276,10 @@ namespace eapo::asio
 	{
 		if (session.ringBase != nullptr)
 			UnmapViewOfFile(session.ringBase);
-		if (session.sync.peer != nullptr)
-			CloseHandle(session.sync.peer);
-		for (HANDLE& event : objects_.events)
-		{
-			if (event != nullptr)
-				CloseHandle(event);
-			event = nullptr;
-		}
-		if (objects_.mapping != nullptr)
-			CloseHandle(objects_.mapping);
-		objects_.mapping = nullptr;
+		objects_.peer.reset();
+		for (winutil::UniqueHandle& event : objects_.events)
+			event.reset();
+		objects_.mapping.reset();
 		session = HostSession();
 	}
 }

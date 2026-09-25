@@ -11,7 +11,7 @@ Include·Convolution·MultiConvolution·VST 행의 본문, 곧 다른 파일이�
 - **studio:** 이름은 판 위에서 가장 밝은 잉크로 서되 크기는 본문과 같다. 가라앉은 유리 데이터 창(`studio-surface-sunken`)이 위치 사실과 IR 판독값을 `EAPO Mono` muted 잉크로 담는다. 결손은 붉은 벽이 아니라 소등과 경고등이다. 이름이 muted로 어두워지고 `studio-danger`로 점등한 `MISSING` 칩 하나, 그리고 액센트 보더 유리를 입은 `Locate...`가 선다. Include 카드의 보더는 점선이고 램프를 달지 않는다.
 - **minimal:** 문자 그대로 한 줄이다. 컨테이너 접두가 보조 잉크로 줄을 열고 페이로드가 `minimal-ink-bright`로 잇는다. 액션은 줄 끝의 대문자 모노 각인 명령(`BROWSE`/`OPEN`/`LOCATE`)이고 결손은 반전 블록 `MISSING`이다. 아이콘도 필도 없다.
 - **soft:** 픽커의 타일 문법을 승격한 34px 둥근 사각 파스텔 타일이 행을 이끌고 두 줄 정체성이 따른다. 결손은 타일이 `soft-danger` 파스텔로 바뀌고 픽토그램 대신 스트로크 느낌표가 들어가며 `Locate...` 액센트 파스텔 필이 주인공이 된다. MISSING 배지도 빨간 벽도 없다.
-- **rack:** 왼쪽 베젤 상태 램프(`rack-accent2`), 각인 라벨 스트립(`PATCH` 캡션 + 이름 + muted 위치), 함몰 LCD 판독창, 기계 버튼 열 순서다. 결손은 서비스 컨디션이다. 램프가 `rack-danger`로 점등하고 이름이 물러나며 앰버 `NOT FOUND` 각인과 `LOCATE` 캡이 붙는다.
+- **rack:** 왼쪽 베젤 상태 램프(`rack-accent2`), 각인 라벨 스트립(`PATCH` 캡션 + 이름 + muted 위치), 함몰 LCD 판독창, 기계 버튼 열 순서다. 결손은 서비스 컨디션이다. 램프가 `rack-danger`로 점등하고 이름이 물러나며 앰버 `NOT FOUND` 각인과 `LOCATE` 캡이 붙는다. 캡션 각인은 9px, 이름은 14px다. 서비스가 읽을 수 없는 위치나 로더 오류처럼 문장이 필요한 상태는 라벨 스트립에 끼우지 않고 유닛 줄 아래 판 전폭에 한 줄을 따로 써서 길면 줄바꿈한다(VSTBus의 거부 상태와 같은 자리).
 - **matrix:** 피드 라인이다. 함몰 모노 마커 셀(`> SRC`/`> IR`/`> IR+`), `<dir>@` 위치 판독, 가장 밝은 모노 페이로드 순서다. 결손은 마커 셀이 속 빈 `matrix-danger`의 `MISSING`으로 전환하고 `LOCATE` 모노 캡스 셀이 복구 진입점이다.
 
 ## 상태

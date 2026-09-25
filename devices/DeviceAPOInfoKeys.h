@@ -14,7 +14,7 @@
 // Registry vocabulary shared by DeviceAPOInfo's split implementation. Keeping
 // install, load, state and uninstall on this table makes ownership symmetric.
 #define protectedDGKeyPath L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Audio"
-#define protectedDGValueName L"DisableProtectedAudioDG"
+inline constexpr wchar_t protectedDGValueName[] = L"DisableProtectedAudioDG";
 #define apoRegistrationKeyPath L"HKEY_CLASSES_ROOT\\AudioEngine\\AudioProcessingObjects"
 // Audit #250 F022: DllRegisterServer writes this tree as
 // HKEY_LOCAL_MACHINE\SOFTWARE\Classes\CLSID; readers used to spell it
@@ -78,6 +78,8 @@ inline constexpr wchar_t multiEfxGuidValueName[] = L"{d04e05a6-594b-4fb6-a80d-01
 inline constexpr const wchar_t* allGuidValueNames[] = {
 	lfxGuidValueName, gfxGuidValueName, sfxGuidValueName, mfxGuidValueName, efxGuidValueName
 };
+inline constexpr const wchar_t* apoSlotNames[] = {L"LFX", L"GFX", L"SFX", L"MFX", L"EFX"};
+static_assert(sizeof(apoSlotNames) == sizeof(allGuidValueNames));
 inline constexpr unsigned allGuidValueNameCount = static_cast<unsigned>(sizeof(allGuidValueNames) / sizeof(allGuidValueNames[0]));
 
 enum GuidValueIndices

@@ -26,8 +26,8 @@
 #include "Editor/SkinManager.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/ChBadge.h"
+#include "Editor/widgets/routing/ChannelIdentity.h"
 #include "Editor/widgets/ElidedLabel.h"
-#include "Editor/widgets/FilterCommandCatalog.h"
 #include "Editor/widgets/routing/IRoutingRenderer.h"
 #include "Editor/widgets/routing/CopyRoutingAdapter.h"
 #include "filters/MultiConvolutionCommand.h"
@@ -226,8 +226,11 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 			// (e.g. copying L onto R when R is not referenced).
 			std::vector<std::wstring> channelNames = this->table->getChannelNames();
 			// Copy uses the default port model: symmetric sources/targets seeded
-			// from the device channels, with editable factors.
-			routingView = routingRenderer->create(routingAssignments, channelNames, RoutingPortModel(), editorContainer,
+			// from the device channels, with editable factors. The same device
+			// channels decide which channels the view draws as virtual.
+			RoutingPortModel portModel;
+			portModel.deviceChannels = channelNames;
+			routingView = routingRenderer->create(routingAssignments, channelNames, portModel, editorContainer,
 				SkinManager::instance()->tokens());
 			return routingView;
 		});
@@ -807,25 +810,28 @@ void FilterCardRow::applyDescriptor()
 	// line (audit #348 TD-04).
 	if (routingView != nullptr)
 		routingView->setEnabled(descriptor.enabled);
-	// A row's own channel list (the Channel card's selection, Copy's
+	// A row's own channel list (the Channel card's selection, Copy's device
 	// destinations) wins. Other rows inside a Channel: selection inherit the
 	// selection's badges, so the group's reach is readable on every member
 	// row instead of only on its head - but only for row types the engine
 	// actually narrows to the selection; control rows, notes and raw text
-	// would claim an influence they do not have.
-	QStringList badgeChannels = descriptor.channelBadges;
-	if (badgeChannels.isEmpty() && FilterCommandCatalog::channelSelectionGatesType(descriptor.type))
-		badgeChannels = descriptor.scopeChannels;
-	buildChannelBadges(badgeChannels);
+	// would claim an influence they do not have. The device list is the one
+	// the Copy routing view judges virtual channels by, so a target the body
+	// draws dashed never shows in the header.
+	const std::vector<std::wstring> deviceChannels = table != nullptr
+		? table->getChannelNames() : std::vector<std::wstring>();
+	buildChannelBadges(FilterCardModel::headerChannels(descriptor, deviceChannels), deviceChannels);
 	syncVisualState();
 	update();
 }
 
-void FilterCardRow::buildChannelBadges(const QStringList& channels)
+void FilterCardRow::buildChannelBadges(const QStringList& channels,
+	const std::vector<std::wstring>& deviceChannels)
 {
-	if (channels == renderedChannelBadges)
+	if (channels == renderedChannelBadges && deviceChannels == renderedBadgeDeviceChannels)
 		return;
 	renderedChannelBadges = channels;
+	renderedBadgeDeviceChannels = deviceChannels;
 
 	while (QLayoutItem* child = channelBadgeLayout->takeAt(0))
 	{
@@ -834,7 +840,8 @@ void FilterCardRow::buildChannelBadges(const QStringList& channels)
 	}
 
 	for (const QString& channel : channels.mid(0, 8))
-		channelBadgeLayout->addWidget(new ChBadge(channel, channelBadgeContainer));
+		channelBadgeLayout->addWidget(new ChBadge(channel,
+			ChannelIdentity::isVirtual(channel, deviceChannels), channelBadgeContainer));
 	channelBadgeContainer->setVisible(!channels.isEmpty());
 }
 
