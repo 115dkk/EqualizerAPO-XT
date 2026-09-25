@@ -92,6 +92,9 @@
     <ClCompile Include="Vst3HostTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="NumericTextTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="ParserPreampTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

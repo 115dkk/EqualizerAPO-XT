@@ -83,6 +83,7 @@ SOURCES += main.cpp\
 	../devices/DeviceAPOInfo.State.cpp \
 	../devices/DeviceAPOInfo.Uninstall.cpp \
 	../devices/DeviceInstallReport.cpp \
+	../devices/DevicePlan.cpp \
 	../devices/ReportedOperation.cpp \
 	guis/DeviceFilterGUIDialog.cpp \
 	../filters/DeviceCommand.cpp \
@@ -396,6 +397,7 @@ HEADERS  += \
 	guis/DeviceFilterGUI.h \
 	guis/DeviceFilterGUIFactory.h \
 	../devices/DeviceAPOInfo.h \
+	../devices/DevicePlan.h \
 	../devices/ReportedOperation.h \
 	../devices/DeviceException.h \
 	../runtime/errors/WideError.h \

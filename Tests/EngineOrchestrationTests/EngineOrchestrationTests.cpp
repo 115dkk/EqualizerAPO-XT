@@ -1336,6 +1336,7 @@ void runApoFormatTests(test::Harness& harness);
 void runConfigurationFileReaderTests(test::Harness& harness);
 void runDeviceApoInfoTests(test::Harness& harness);
 void runRegistryTransactionTests(test::Harness& harness);
+void runDevicePlanTests(test::Harness& harness);
 void runInstallDiagnosticsTests(test::Harness& harness);
 void runApoRegistrationTests(test::Harness& harness);
 void runChannelInheritanceTests(test::Harness& harness);
@@ -1378,6 +1379,7 @@ int runEngineOrchestrationTests()
 	testDeviceTestPipeNameAllowList(harness);
 	testInstallStateComparisonIgnoresPadding(harness);
 	runRegistryTransactionTests(harness);
+	runDevicePlanTests(harness);
 	runDeviceApoInfoTests(harness);
 	runInstallDiagnosticsTests(harness);
 	runApoRegistrationTests(harness);
