@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.13 — 2026-09-25
+
 - **A VST plug-in that reports latency no longer delays its own output a
   second time.** The latency compensation delayed every channel of the
   filter by the plug-in's reported latency, including the channels the
