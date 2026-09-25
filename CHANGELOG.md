@@ -23,6 +23,16 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   drawn as a card of that type, and the Editor no longer writes an
   out-of-range channel number to its log each time it refreshes the channel
   lists ([#370](https://github.com/115dkk/EqualizerAPO-XT/pull/370)).
+- **A device whose driver locks its effect settings is no longer offered for
+  an install that loses them.** When a driver kept its endpoint's effect
+  settings (the FxProperties key) from being read, the Device Selector took
+  that as "no driver effects", and installing there took ownership of the
+  key without recording the driver's effects, so uninstalling could not bring
+  them back. Such a device is now left out of the device lists in the Device
+  Selector and the Editor and written to the log, like any device whose
+  registry keys cannot be read. Before, one device whose other keys could
+  not be read emptied the Device Selector's whole list with an error
+  ([#365](https://github.com/115dkk/EqualizerAPO-XT/pull/365)).
 
 ## v2.54.4 — 2026-09-25
 
