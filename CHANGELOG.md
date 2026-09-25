@@ -25,6 +25,15 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   not be read emptied the Device Selector's whole list with an error
   ([#365](https://github.com/115dkk/EqualizerAPO-XT/pull/365)).
 
+## v2.54.4 — 2026-09-25
+
+- **`LoudnessCorrection` reads an attenuation written with a decimal comma.**
+  `Attenuation 0,5` was accepted but read as 0; it now reads as 0.5, like a
+  decimal comma everywhere else in the configuration. The commands that read
+  numbers now share one reader: `MultiConvolution` no longer takes `inf`,
+  `nan` or hexadecimal text as a factor, and `Copy` no longer takes
+  hexadecimal text ([#364](https://github.com/115dkk/EqualizerAPO-XT/pull/364)).
+
 ## v2.54.3 — 2026-09-25
 
 - **Benchmark.exe on ARM64 applies every filter in the configuration.** The

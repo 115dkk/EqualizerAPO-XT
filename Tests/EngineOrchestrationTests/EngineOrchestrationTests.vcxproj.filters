@@ -26,6 +26,9 @@
     <ClCompile Include="RegistryConformanceTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="DevicePlanTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="RegistryTransactionTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

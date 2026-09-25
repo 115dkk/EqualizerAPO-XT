@@ -30,6 +30,7 @@
 #include <QStyle>
 #include <QStyleOptionButton>
 #include <devices/AsioAPOInfo.h>
+#include <devices/DevicePlan.h>
 #include <devices/VoicemeeterAPOInfo.h>
 #include "DeviceTestDialog.h"
 #include "../version.h"
@@ -386,21 +387,23 @@ void DeviceSelector::onDialogAccepted()
 
 			try
 			{
-				if (checked && !info->isInstalled())
+				const DevicePlan plan = planFor(checked, deviceFactsOf(*info));
+				switch (plan.action)
 				{
+				case DeviceAction::Install:
 					info->install();
-					deviceUpdated = deviceUpdated || info->changesNeedAudioRestart();
-				}
-				else if (!checked && info->isInstalled())
-				{
+					break;
+				case DeviceAction::Uninstall:
 					info->uninstall();
-					deviceUpdated = deviceUpdated || info->changesNeedAudioRestart();
-				}
-				else if (checked && (info->canBeUpgraded() || info->hasChanges() || info->isEnhancementsDisabled()))
-				{
+					break;
+				case DeviceAction::Reinstall:
 					info->reinstall();
-					deviceUpdated = deviceUpdated || info->changesNeedAudioRestart();
+					break;
+				case DeviceAction::None:
+					break;
 				}
+				if (plan.changesSomething())
+					deviceUpdated = deviceUpdated || info->changesNeedAudioRestart();
 			}
 			catch (const WideError& e)
 			{
@@ -744,8 +747,7 @@ bool DeviceSelector::isChanged()
 			QTreeWidgetItem* item = topItem->child(i);
 			std::shared_ptr<AbstractAPOInfo> apoInfo = item->data(0, Qt::UserRole).value<std::shared_ptr<AbstractAPOInfo>>();
 			bool checked = item->checkState(0) == Qt::Checked;
-			if (checked != apoInfo->isInstalled()
-				|| checked && apoInfo->isInstalled() && (apoInfo->canBeUpgraded() || apoInfo->hasChanges() || apoInfo->isEnhancementsDisabled()))
+			if (planFor(checked, deviceFactsOf(*apoInfo)).changesSomething())
 			{
 				changed = true;
 				break;
@@ -768,7 +770,7 @@ bool DeviceSelector::hasUpgrades()
 			QTreeWidgetItem* item = topItem->child(i);
 			std::shared_ptr<AbstractAPOInfo> apoInfo = item->data(0, Qt::UserRole).value<std::shared_ptr<AbstractAPOInfo>>();
 			bool checked = item->checkState(0) == Qt::Checked;
-			if (checked && apoInfo->isInstalled() && (apoInfo->canBeUpgraded() || apoInfo->isEnhancementsDisabled()))
+			if (planFor(checked, deviceFactsOf(*apoInfo)).isUpgrade())
 			{
 				hasUpgrades = true;
 				break;
@@ -782,20 +784,27 @@ bool DeviceSelector::hasUpgrades()
 QString DeviceSelector::getStateText(const std::shared_ptr<AbstractAPOInfo>& apoInfo, bool checked)
 {
 	QString state;
-	if (checked && !apoInfo->isInstalled())
+	const DevicePlan plan = planFor(checked, deviceFactsOf(*apoInfo));
+	switch (plan.action)
+	{
+	case DeviceAction::Install:
 		state = tr("APO will be installed");
-	else if (!checked && apoInfo->isInstalled())
+		break;
+	case DeviceAction::Uninstall:
 		state = tr("APO will be uninstalled");
-	else if (apoInfo->isInstalled() && apoInfo->canBeUpgraded())
-		state = tr("APO will be upgraded");
-	else if (apoInfo->isInstalled() && apoInfo->hasChanges())
-		state = tr("APO installation will be changed");
-	else if (apoInfo->isInstalled() && apoInfo->isEnhancementsDisabled())
-		state = tr("Audio enhancements will be enabled");
-	else if (apoInfo->isInstalled())
-		state = tr("APO is already installed");
-	else
-		state = tr("APO can be installed");
+		break;
+	case DeviceAction::Reinstall:
+		if (plan.reason == DevicePlan::Reason::Upgrade)
+			state = tr("APO will be upgraded");
+		else if (plan.reason == DevicePlan::Reason::Changes)
+			state = tr("APO installation will be changed");
+		else
+			state = tr("Audio enhancements will be enabled");
+		break;
+	case DeviceAction::None:
+		state = apoInfo->isInstalled() ? tr("APO is already installed") : tr("APO can be installed");
+		break;
+	}
 
 	VoicemeeterAPOInfo* voicemeeterInfo = dynamic_cast<VoicemeeterAPOInfo*>(apoInfo.get());
 	if (voicemeeterInfo != nullptr && !voicemeeterInfo->isVoicemeeterInstalled())
