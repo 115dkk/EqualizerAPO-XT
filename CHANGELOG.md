@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.8 — 2026-09-25
+
 - **The Voicemeeter client no longer holds up audio while it sets up strips.**
   When Voicemeeter reported a different set of strips, the client loaded the
   configuration for every strip while the audio callback waited for it; the
