@@ -168,6 +168,8 @@ int relaunchElevatedAndWait()
 		arguments.push_back(details.migratedFrom);
 		arguments.push_back(L"--caller-migrated-files");
 		arguments.push_back(details.migratedFiles);
+		arguments.push_back(L"--caller-install-grants-prepared");
+		arguments.push_back(details.installGrantsPrepared ? L"1" : L"0");
 	}
 	std::wstring parameters = winutil::joinCommandLineArguments(arguments);
 
@@ -226,7 +228,7 @@ int handleVelopackHook(int argc, char* argv[])
 		std::wstring exeDir = pathutil::exeDirectory();
 		if (matchesHook(arg, "--veloapp-install"))
 		{
-			auto rc = ApoRegistration::install(exeDir);
+			auto rc = ApoRegistration::install(exeDir, systemRegistry(), callerLocalAppData.installGrantsPrepared);
 			// The trusted config root: adopt the stable folder, or migrate a
 			// legacy Equalizer APO / volatile current\config tree into it.
 			if (rc == ApoRegistration::Result::Success)
@@ -236,7 +238,7 @@ int handleVelopackHook(int argc, char* argv[])
 		if (matchesHook(arg, "--veloapp-updated"))
 		{
 			ApoRegistration::stopAudioService();
-			auto rc = ApoRegistration::install(exeDir);
+			auto rc = ApoRegistration::install(exeDir, systemRegistry(), callerLocalAppData.installGrantsPrepared);
 			if (rc == ApoRegistration::Result::Success)
 				EqAPO::Import::LegacyMigration::runElevatedHookStep(exeDir, callerLocalAppData);
 			ApoRegistration::startAudioService();

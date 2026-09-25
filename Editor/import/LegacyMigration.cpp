@@ -283,6 +283,17 @@ std::wstring LegacyMigration::prepareHookStep(const std::wstring& exeDir, const 
         *details = {};
     if (AudioEngineAccess::isElevated())
         return L"failed";
+    // Install permissions are independent of config migration: even a custom
+    // ConfigPath needs the packaged DLL and Editor to be readable/executable.
+    const QString packagedConfig = QDir(QString::fromStdWString(exeDir)).absoluteFilePath(QStringLiteral("config"));
+    const bool installGranted = AudioEngineAccess::grantOwnedEngineAccess(exeDir) == AudioEngineAccess::Grant::Applied
+        && QDir().mkpath(packagedConfig)
+        && AudioEngineAccess::grantOwnedConfigAccess(QDir::toNativeSeparators(packagedConfig).toStdWString())
+            == AudioEngineAccess::Grant::Applied;
+    if (details)
+        details->installGrantsPrepared = installGranted;
+    if (!installGranted)
+        LogFStatic(L"Migration prepare: install grants failed; no prepared-install flag will be sent");
     const QString root = stableConfigRoot();
     const auto configured = readRegistryString(registry, L"ConfigPath");
     if (root.isEmpty() || !configured)
@@ -346,6 +357,8 @@ LegacyMigration::Handoff LegacyMigration::parseHandoff(const std::vector<std::ws
             result.migratedFrom = i + 1 < arguments.size() ? arguments[++i] : L"";
         else if (arguments[i] == L"--caller-migrated-files")
             result.migratedFiles = i + 1 < arguments.size() ? arguments[++i] : L"";
+        else if (arguments[i] == L"--caller-install-grants-prepared")
+            result.installGrantsPrepared = i + 1 < arguments.size() && arguments[++i] == L"1";
     }
     return result;
 }

@@ -14,6 +14,19 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The installer no longer grants permissions recursively, as
+  administrator, on a folder a standard user can change.** EqualizerAPO-XT
+  installs per user under `%LocalAppData%`. When a standard user installed
+  or updated it with an administrator approving the prompt, the elevated
+  install step walked that user's folder with `icacls /T` to let the audio
+  service read it. A link placed in the folder during that walk could carry
+  the grant to another folder. The Editor now grants the audio service and
+  users access to its own install folder as the user who owns it, before
+  asking for elevation, and the elevated step skips its recursive grants
+  when that worked. When the install starts already elevated, nothing
+  changes (#PRNUM). This was checked with unit tests; an install approved by
+  a second, administrator account was not run.
+
 ## v2.54.18 — 2026-09-25
 
 - **The configuration folder lands in the installing user's profile.** When
