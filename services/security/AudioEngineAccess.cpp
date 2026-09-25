@@ -21,6 +21,10 @@
 	install location and the principals are built-in well-known SIDs, never from
 	network or user input. If either ever becomes caller-supplied it has to be
 	validated and quoted before it reaches a command line.
+
+	grantOwnedConfigAccess runs only unelevated on the user's own config root.
+	It uses SetSecurityInfo, propagating inheritable ACEs to eligible existing
+	children; it never performs this operation with an administrator token.
 */
 
 #include "services/security/AudioEngineAccess.h"
@@ -38,6 +42,7 @@
 #include "services/logging/TaggedLogger.h"
 #include "platform/windows/Win32Resource.h"
 #include "platform/windows/WindowsPath.h"
+#include "services/security/ConfigDirectoryHandles.h"
 
 namespace
 {
@@ -288,6 +293,67 @@ Grant grantConfigAccess(const std::wstring& configDir)
 		L"/grant " + std::wstring(kUsersSid) + L":(OI)(CI)M "
 		L"/grant " + std::wstring(kLocalServiceSid) + L":(OI)(CI)M";
 	return applyGrant(configDir, grants);
+}
+
+Grant grantOwnedConfigAccess(const std::wstring& configDir)
+{
+	// This entry point is exclusively for the unelevated prepare step. Even
+	// a raced pathname cannot give the process more authority than its user.
+	if (isElevated())
+		return Grant::Failed;
+	std::wstring reason;
+	auto handle = configaccess::openDirectory(configDir, FILE_READ_ATTRIBUTES | FILE_LIST_DIRECTORY
+		| READ_CONTROL | WRITE_DAC, FILE_SHARE_READ | FILE_SHARE_WRITE, reason);
+	if (!handle)
+	{
+		logLine(L"ERR", L"Owned config grant refused: %s", reason.c_str());
+		return Grant::Failed;
+	}
+	winutil::UniqueLocalPtr<void> descriptor;
+	PACL oldAcl = nullptr;
+	DWORD error = GetSecurityInfo(handle.get(), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION,
+		nullptr, nullptr, &oldAcl, nullptr, descriptor.put());
+	if (error != ERROR_SUCCESS || oldAcl == nullptr)
+	{
+		// Do not replace a null (unrestricted) DACL with a two-principal DACL.
+		logLine(L"ERR", L"Cannot read config DACL (error=%lu, null=%d)", error, oldAcl == nullptr);
+		return Grant::Failed;
+	}
+
+	winutil::UniqueLocalPtr<void> users;
+	winutil::UniqueLocalPtr<void> service;
+	// Skip icacls's leading '*'; retain the one SID vocabulary above.
+	if (!ConvertStringSidToSidW(kUsersSid + 1, users.put())
+		|| !ConvertStringSidToSidW(kLocalServiceSid + 1, service.put()))
+		return Grant::Failed;
+	EXPLICIT_ACCESSW entries[2] = {};
+	entries[0].Trustee.ptstrName = static_cast<LPWSTR>(users.get());
+	entries[1].Trustee.ptstrName = static_cast<LPWSTR>(service.get());
+	for (auto& entry : entries)
+	{
+		entry.grfAccessPermissions = FILE_GENERIC_READ | FILE_GENERIC_WRITE | FILE_GENERIC_EXECUTE | DELETE;
+		entry.grfAccessMode = GRANT_ACCESS;
+		entry.grfInheritance = OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE;
+		entry.Trustee.TrusteeForm = TRUSTEE_IS_SID;
+		entry.Trustee.TrusteeType = TRUSTEE_IS_UNKNOWN;
+	}
+	winutil::UniqueLocalPtr<ACL> acl;
+	error = SetEntriesInAclW(2, entries, oldAcl, acl.put());
+	if (error == ERROR_SUCCESS)
+	{
+		// Allow normal inheritance propagation to existing children. This is
+		// deliberately unelevated; neither a link nor a concurrent replacement
+		// gives this operation authority beyond the installing user's token.
+		// Protected child DACLs and inaccessible children need not inherit.
+		error = SetSecurityInfo(handle.get(), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION,
+			nullptr, nullptr, acl.get(), nullptr);
+	}
+	if (error != ERROR_SUCCESS)
+	{
+		logLine(L"ERR", L"Config handle grant failed (error=%lu)", error);
+		return Grant::Failed;
+	}
+	return Grant::Applied;
 }
 
 const wchar_t* describe(Grant grant)

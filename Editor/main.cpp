@@ -151,7 +151,25 @@ int relaunchElevatedAndWait()
 		return 1;
 	}
 
-	std::wstring parameters = winutil::joinCommandLineArguments(wideArgumentsAfterProgramName());
+	auto arguments = wideArgumentsAfterProgramName();
+	// Last occurrence wins on the elevated side, so an incoming value cannot
+	// override the environment of the process actually requesting elevation.
+	if (std::find(arguments.begin(), arguments.end(), L"--veloapp-install") != arguments.end()
+		|| std::find(arguments.begin(), arguments.end(), L"--veloapp-updated") != arguments.end())
+	{
+		EqAPO::Import::LegacyMigration::Handoff details;
+		const auto outcome = EqAPO::Import::LegacyMigration::prepareHookStep(pathutil::exeDirectory(), &details);
+		logLine(L"INFO", L"Unelevated migration preparation: %s", outcome.c_str());
+		arguments.push_back(L"--caller-localappdata");
+		arguments.push_back(qEnvironmentVariable("LOCALAPPDATA").toStdWString());
+		arguments.push_back(L"--caller-migration-outcome");
+		arguments.push_back(outcome);
+		arguments.push_back(L"--caller-migrated-from");
+		arguments.push_back(details.migratedFrom);
+		arguments.push_back(L"--caller-migrated-files");
+		arguments.push_back(details.migratedFiles);
+	}
+	std::wstring parameters = winutil::joinCommandLineArguments(arguments);
 
 	SHELLEXECUTEINFOW info;
 	ZeroMemory(&info, sizeof(info));
@@ -197,6 +215,8 @@ int handleVelopackHook(int argc, char* argv[])
 	if (!AudioEngineAccess::isElevated())
 		return relaunchElevatedAndWait();
 
+	const auto callerLocalAppData = EqAPO::Import::LegacyMigration::parseHandoff(wideArgumentsAfterProgramName());
+
 	for (int i = 1; i < argc; i++)
 	{
 		const char* arg = argv[i];
@@ -210,7 +230,7 @@ int handleVelopackHook(int argc, char* argv[])
 			// The trusted config root: adopt the stable folder, or migrate a
 			// legacy Equalizer APO / volatile current\config tree into it.
 			if (rc == ApoRegistration::Result::Success)
-				EqAPO::Import::LegacyMigration::runElevatedHookStep(exeDir);
+				EqAPO::Import::LegacyMigration::runElevatedHookStep(exeDir, callerLocalAppData);
 			return rc == ApoRegistration::Result::Success ? 0 : static_cast<int>(rc);
 		}
 		if (matchesHook(arg, "--veloapp-updated"))
@@ -218,7 +238,7 @@ int handleVelopackHook(int argc, char* argv[])
 			ApoRegistration::stopAudioService();
 			auto rc = ApoRegistration::install(exeDir);
 			if (rc == ApoRegistration::Result::Success)
-				EqAPO::Import::LegacyMigration::runElevatedHookStep(exeDir);
+				EqAPO::Import::LegacyMigration::runElevatedHookStep(exeDir, callerLocalAppData);
 			ApoRegistration::startAudioService();
 			return rc == ApoRegistration::Result::Success ? 0 : static_cast<int>(rc);
 		}

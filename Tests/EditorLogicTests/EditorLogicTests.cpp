@@ -154,6 +154,9 @@ int main(int argc, char** argv)
 		testLegacyMigrationHookAdoptsStableRootThroughThePort();
 		testLegacyMigrationHookRescuesVolatileTreeAndLeavesBreadcrumbs();
 		testLegacyMigrationHookLeavesAnUnreadableConfigPathAlone();
+		testCallerProfileCheckRejectsUnsafePaths();
+		testLegacyMigrationHookUsesVerifiedCallerOrFallsBack();
+		testConfigHandleGrantRejectsJunctionsAndPreservesChildren();
 		testCommandLineQuotingRoundTripsThroughCommandLineToArgvW();
 		testSubwooferRoutingUiStateTracksMutationsAndValidation();
 		testSubwooferRoutingDefaultStates();

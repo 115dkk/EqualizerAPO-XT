@@ -14,6 +14,19 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The configuration folder lands in the installing user's profile.** When
+  a standard user installed or updated EqualizerAPO-XT with an administrator
+  approving the prompt, the install step ran as the administrator and put the
+  configuration folder in the administrator's profile. The Editor now creates
+  the folder, sets its permissions and moves the old configuration into it as
+  the user, before asking for elevation. The elevated step only checks that
+  the folder is a real folder in a local user profile (no links along the
+  way) and records it, without creating, re-permissioning or copying
+  anything in that folder; if the check fails, it keeps the old behaviour
+  (#PRNUM). This was checked with unit
+  tests on this machine; an install with a second, administrator account
+  approving it was not run.
+
 ## v2.54.17 — 2026-09-25
 
 - **The Editor's channel lists follow `Device:` and `Stage:` lines.** The

@@ -155,6 +155,7 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClCompile Include="..\..\Editor\import\ImportExecutor.cpp" />
     <ClCompile Include="..\..\Editor\import\LegacyMigrationPolicy.cpp" />
     <ClCompile Include="LegacyMigrationHookTests.cpp" />
+    <ClCompile Include="..\..\Editor\import\CallerProfileCheck.cpp" />
     <ClCompile Include="..\..\Editor\import\LegacyMigration.cpp" />
     <ClCompile Include="..\..\services\install\ApoRegistration.cpp" />
     <ClCompile Include="..\..\services\windows\WindowsService.cpp" />
@@ -198,6 +199,8 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClInclude Include="..\..\Editor\import\ConfigDependencyScanner.h" />
     <ClInclude Include="..\..\Editor\import\ImportExecutor.h" />
     <ClInclude Include="..\..\Editor\import\LegacyMigrationPolicy.h" />
+    <ClInclude Include="..\..\Editor\import\CallerProfileCheck.h" />
+    <ClInclude Include="..\..\services\security\ConfigDirectoryHandles.h" />
     <ClInclude Include="..\..\Editor\skins\SkinThemeData.h" />
     <ClInclude Include="..\..\Editor\import\ImportManifest.h" />
     <ClInclude Include="..\..\Editor\helpers\VstChunkScan.h" />
