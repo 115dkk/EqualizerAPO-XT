@@ -49,7 +49,6 @@ public:
 	std::vector<unsigned char> readBinaryValue(const std::wstring& key, const std::wstring& valuename) const override;
 	void writeValue(const std::wstring& key, const std::wstring& valuename, const std::wstring& value) override;
 	void writeDWORDValue(const std::wstring& key, const std::wstring& valuename, unsigned long value) override;
-	void writeMultiValue(const std::wstring& key, const std::wstring& valuename, const std::wstring& value) override;
 	void writeMultiValue(const std::wstring& key, const std::wstring& valuename, const std::vector<std::wstring>& values) override;
 	void deleteValue(const std::wstring& key, const std::wstring& valuename) override;
 	void createKey(const std::wstring& key) override;

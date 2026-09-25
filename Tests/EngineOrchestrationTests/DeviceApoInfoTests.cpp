@@ -58,7 +58,7 @@
 #include "platform/windows/WindowsVersion.h"
 #include "Tests/TestHarness.h"
 
-#include "FakeRegistry.h"
+#include "Tests/FakeRegistry.h"
 
 namespace
 {
@@ -946,6 +946,46 @@ void testUninstallSweepSurvivesAnUnreadableEndpoint(test::Harness& harness)
 	harness.expectFalse(registry.keyExists(fxPropertiesKey),
 		"the healthy endpoint's FxProperties created by the install is gone too");
 }
+
+// Audit #348: keyExists answers true for a key that refuses to be opened, so
+// an endpoint whose FxProperties the driver locked now throws in load()
+// instead of loading as one without a driver chain. loadAllInfos has to drop
+// that endpoint and keep the rest, because the Editor builds its device list
+// without a try and the Device Selector would show an empty one.
+void testLoadAllInfosSkipsAnUnreadableEndpoint(test::Harness& harness)
+{
+	FakeRegistry registry;
+	seedRenderDevice(registry);
+
+	const std::wstring lockedGuid = L"{00000000-0000-0000-0000-000000000001}";
+	const std::wstring lockedKey = renderKeyPath L"\\" + lockedGuid;
+	registry.seedDword(lockedKey, L"DeviceState", DEVICE_STATE_ACTIVE);
+	registry.seedString(lockedKey + L"\\Properties", connectionValueName, connectionName);
+	registry.seedString(lockedKey + L"\\Properties", deviceValueName, deviceName);
+	registry.seedKey(lockedKey + L"\\FxProperties");
+	registry.denyRead(lockedKey + L"\\FxProperties");
+
+	std::vector<std::shared_ptr<AbstractAPOInfo>> infos;
+	bool threw = false;
+	try
+	{
+		infos = DeviceAPOInfo::loadAllInfos(false, registry);
+	}
+	catch (const RegistryError&)
+	{
+		threw = true;
+	}
+
+	harness.expectFalse(threw, "an endpoint whose FxProperties cannot be read does not throw the device list away");
+	const auto listed = [&infos](const std::wstring& guid) {
+		return std::count_if(infos.begin(), infos.end(), [&guid](const std::shared_ptr<AbstractAPOInfo>& info) {
+			return info->getDeviceGuid() == guid;
+		});
+	};
+	harness.expectEqual(listed(testDeviceGuid), std::ptrdiff_t(1), "the readable endpoint is listed");
+	harness.expectEqual(listed(lockedGuid), std::ptrdiff_t(0),
+		"the locked endpoint is left out rather than offered as one without a driver chain");
+}
 } // namespace
 
 void runDeviceApoInfoTests(test::Harness& harness)
@@ -974,4 +1014,5 @@ void runDeviceApoInfoTests(test::Harness& harness)
 	testUninstallPutsTheInstallationBackWhenItCannotFinish(harness);
 	testCheckProtectedAudioDGReportsAndFixesTheDisabledFlag(harness);
 	testUninstallSweepSurvivesAnUnreadableEndpoint(harness);
+	testLoadAllInfosSkipsAnUnreadableEndpoint(harness);
 }

@@ -137,14 +137,6 @@ void RegistryTransaction::writeDWORDValue(const wstring& key, const wstring& val
 	recordApplied(L"write dword " + key + L"\\" + valuename + L" = " + std::to_wstring(value));
 }
 
-void RegistryTransaction::writeMultiValue(const wstring& key, const wstring& valuename, const wstring& value)
-{
-	const Entry entry = prepareValueWrite(key, valuename);
-	target.writeMultiValue(key, valuename, value);
-	keep(entry);
-	recordApplied(L"write multi " + key + L"\\" + valuename + L" = " + value);
-}
-
 void RegistryTransaction::writeMultiValue(const wstring& key, const wstring& valuename, const vector<wstring>& values)
 {
 	const Entry entry = prepareValueWrite(key, valuename);
