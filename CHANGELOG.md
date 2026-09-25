@@ -14,6 +14,16 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Lines below a `MultiConvolution` line can select the channels it
+  creates in the Editor.** A `MultiConvolution` line that writes to a new
+  channel, such as `Wet=0`, creates that channel in the engine, but the
+  channel pickers on the lines below it in the Editor did not offer it. They
+  now do, as they already did for channels created by `Copy`. A `Filter` line
+  whose type the engine rejects, such as `ON pk` in lower case, is no longer
+  drawn as a card of that type, and the Editor no longer writes an
+  out-of-range channel number to its log each time it refreshes the channel
+  lists ([#370](https://github.com/115dkk/EqualizerAPO-XT/pull/370)).
+
 ## v2.54.10 — 2026-09-25
 
 - **`Include` takes quoted file names and environment variables, and a link

@@ -8,6 +8,14 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **Editor에서 `MultiConvolution` 줄이 만든 채널을 아래 줄이 고를 수
+  있습니다.** `Wet=0`처럼 새 채널에 쓰는 `MultiConvolution` 줄은 엔진에서 그
+  채널을 만들지만, Editor에서 그 아래 줄의 채널 선택기에는 나타나지
+  않았습니다. 이제 `Copy`가 만든 채널처럼 나타납니다. `ON pk`처럼 엔진이
+  받지 않는 종류를 적은 `Filter` 줄은 더는 그 종류의 카드로 그리지 않고,
+  Editor가 채널 목록을 새로 고칠 때마다 범위를 벗어난 채널 번호를 로그에
+  남기지도 않습니다([#370](https://github.com/115dkk/EqualizerAPO-XT/pull/370)).
+
 ## v2.54.10 — 2026-09-25
 
 - **`Include`가 따옴표로 감싼 파일 이름과 환경 변수를 받고, 네트워크 공유로

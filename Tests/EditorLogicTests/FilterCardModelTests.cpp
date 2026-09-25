@@ -74,6 +74,18 @@ void testFilterCardDescriptors()
 	expectEqual(disabledFilter.title, "Peaking", "disabled biquad title");
 	expectTrue(disabledFilter.summary.isEmpty(), "disabled biquad header must not echo its parameters");
 
+	// Audit #348 TD-44: the type is judged by the engine's vocabulary and
+	// case. The engine rejects "pk", so the card must not call it peaking;
+	// "Modal" is spelled that way in the engine's table.
+	FilterCardDescriptor lowerCaseType = FilterCardModel::describeLine("Filter: ON pk Fc 1000 Hz Gain -3 dB Q 0.71");
+	expectTrue(lowerCaseType.badge != "PK" && lowerCaseType.title != "Peaking",
+		"a type the engine rejects is not drawn as that type");
+	FilterCardDescriptor lowerCaseSwitch = FilterCardModel::describeLine("Filter: on PK Fc 1000 Hz Gain -3 dB Q 0.71");
+	expectTrue(lowerCaseSwitch.badge != "PK", "nor is a line whose ON the engine does not read");
+	FilterCardDescriptor modal = FilterCardModel::describeLine("Filter: ON Modal Fc 60 Hz Gain -6 dB Q 8");
+	expectEqual(modal.badge, "MODAL", "Modal keeps its badge");
+	expectEqual(modal.title, "Peaking", "and is a peaking filter");
+
 	FilterCardDescriptor lowShelfCenterFilter = FilterCardModel::describeLine("Filter: ON LSC 12 dB Fc 200 Hz Gain 3 dB");
 	expectEqual(lowShelfCenterFilter.badge, "LSC", "low-shelf center badge");
 	expectEqual(lowShelfCenterFilter.title, "Low-shelf", "low-shelf center title");

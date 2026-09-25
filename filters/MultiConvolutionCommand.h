@@ -90,6 +90,13 @@ struct MultiConvolutionCommand
 	// carry at least one mapping and a non-empty path.
 	static bool parse(const std::wstring& command, const std::wstring& parameters, MultiConvolutionCommand& out);
 
+	// Adds the channels this line writes to a configuration's channel list,
+	// as MultiConvolutionFilter declares them to the engine: every mapping's
+	// target, an existing channel or a new virtual one
+	// (ChannelLayout::declare). The Editor's channel propagation calls this,
+	// so a line below can select a channel this line created (audit #348 A2).
+	void declareChannels(std::vector<std::wstring>& channelNames) const;
+
 private:
 	// serialize() returns a reference, so the composed string is cached here.
 	mutable std::wstring serialized;

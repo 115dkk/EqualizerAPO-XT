@@ -69,8 +69,8 @@ bool ChannelCommand::parse(const std::wstring& command, const std::wstring& para
 	return true;
 }
 
-std::vector<std::wstring> ChannelCommand::resolveSelection(const std::vector<std::wstring>& selectorTokens,
-	const std::vector<std::wstring>& channelNames)
+std::vector<size_t> ChannelCommand::selectedIndices(const std::vector<std::wstring>& selectorTokens,
+	const std::vector<std::wstring>& channelNames, bool logUnknown)
 {
 	std::vector<bool> selected(channelNames.size(), false);
 	for (const std::wstring& token : selectorTokens)
@@ -80,18 +80,25 @@ std::vector<std::wstring> ChannelCommand::resolveSelection(const std::vector<std
 			selected.assign(channelNames.size(), true);
 			continue;
 		}
-		// allowAdditional suppresses the invalid-name log line: the Editor
-		// resolves on every channel propagation, not once per config load.
-		const int index = ChannelLayout::getChannelIndex(token, channelNames, true);
+		const int index = ChannelLayout::getChannelIndex(token, channelNames, !logUnknown);
 		if (index >= 0 && index < static_cast<int>(channelNames.size()))
 			selected[static_cast<size_t>(index)] = true;
 	}
 
-	std::vector<std::wstring> selectedNames;
+	std::vector<size_t> indices;
 	for (size_t i = 0; i < channelNames.size(); i++)
 	{
 		if (selected[i])
-			selectedNames.push_back(channelNames[i]);
+			indices.push_back(i);
 	}
+	return indices;
+}
+
+std::vector<std::wstring> ChannelCommand::resolveSelection(const std::vector<std::wstring>& selectorTokens,
+	const std::vector<std::wstring>& channelNames, bool logUnknown)
+{
+	std::vector<std::wstring> selectedNames;
+	for (const size_t index : selectedIndices(selectorTokens, channelNames, logUnknown))
+		selectedNames.push_back(channelNames[index]);
 	return selectedNames;
 }
