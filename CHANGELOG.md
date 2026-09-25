@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.25 — 2026-09-25
+
 - **The SubwooferRouting card and its dialog name a built-in preset the same
   way.** The card showed "Built-in preset: Issue #246 - Front/Rear 4.1" and
   the dialog "Issue #246 - Front/Rear 4.1"; both now show the preset's own
