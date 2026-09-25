@@ -78,9 +78,29 @@ wstring ConfigFileReference::resolveLibrary(const wstring& pluginFolder, const w
 
 ConfigFileReference::Target ConfigFileReference::target(const wstring& configPath, const wstring& written)
 {
-	Target result;
-	result.path = resolve(configPath, written);
-	if (!result.path.empty() && !ConfigPathPolicy::allowsOpen(result.path, configPath, result.refusal))
-		result.path.clear();
-	return result;
+	return ConfigPathPolicy::judge(resolve(configPath, written), configPath);
+}
+
+ConfigFileReference::Target ConfigFileReference::library(const wstring& pluginFolder, const wstring& reference,
+	const wstring& configPath)
+{
+	return ConfigPathPolicy::judge(resolveLibrary(pluginFolder, reference), configPath, true);
+}
+
+HANDLE JudgedPath::leaf() const
+{
+	if (file == nullptr)
+		return nullptr;
+	FILE_ATTRIBUTE_TAG_INFO info = {};
+	if (!GetFileInformationByHandleEx(file, FileAttributeTagInfo, &info, sizeof(info)))
+		return nullptr;
+	// A writer may set reparse data in place after judgment. Never follow it,
+	// and do not hand even a no-follow leaf to a reader once it became a link.
+	if ((info.FileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0
+		|| ((info.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0 && IsReparseTagNameSurrogate(info.ReparseTag)))
+	{
+		SetLastError(ERROR_CANT_ACCESS_FILE);
+		return nullptr;
+	}
+	return file;
 }

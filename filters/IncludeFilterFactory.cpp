@@ -61,7 +61,7 @@ FilterVector IncludeFilterFactory::createFilter(const wstring& configPath, wstri
 		// Read by the rule every file a line names shares (audit #348 A1):
 		// relative to the including config file, quotes and %VARIABLES% taken
 		// the way Convolution always took them.
-		const ConfigFileReference::Target file = ConfigFileReference::target(configPath, cmd.path);
+		const ConfigFileReference::Target file = engine->judgeIncludedFile(configPath, cmd.path);
 		if (!file.refusal.empty())
 			reportParseError(command, file.refusal);
 		else if (file.path.empty())

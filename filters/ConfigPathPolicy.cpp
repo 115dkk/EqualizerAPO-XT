@@ -13,6 +13,8 @@
 
 #include "platform/windows/Win32Resource.h"
 #include <winioctl.h>
+#include <winternl.h>
+#include <limits>
 
 #include "ConfigPathPolicy.h"
 
@@ -163,6 +165,7 @@ struct Destination
 	wstring root;
 	wstring link;
 	Problem problem = Problem::None;
+	wstring path;
 };
 
 Destination destinationOf(const wstring& path, const ConfigPathPolicy::FileSystem& fileSystem)
@@ -173,7 +176,7 @@ Destination destinationOf(const wstring& path, const ConfigPathPolicy::FileSyste
 	{
 		wstring spelled = withoutNtPrefix(current);
 		if (!ConfigPathPolicy::remoteRoot(spelled).empty())
-			return {ConfigPathPolicy::remoteRoot(spelled), lastLink};
+			return {ConfigPathPolicy::remoteRoot(spelled), lastLink, Problem::None, spelled};
 		// A verbatim path reaches the kernel as written; anything else is
 		// folded first, and the walk has to see what the open will see.
 		if (!isVerbatim(spelled))
@@ -183,8 +186,10 @@ Destination destinationOf(const wstring& path, const ConfigPathPolicy::FileSyste
 		if (spelled.empty() || !splitLocal(spelled, local))
 			return {};
 		if (local.driveLetter != 0 && fileSystem.isNetworkDrive(local.driveLetter))
-			return {wstring(1, static_cast<wchar_t>(std::towlower(local.driveLetter))) + L":", lastLink};
+			return {wstring(1, static_cast<wchar_t>(std::towlower(local.driveLetter))) + L":", lastLink, Problem::None, spelled};
 
+		if (!fileSystem.begin(local.root))
+			return {};
 		vector<wstring> walked;
 		bool relinked = false;
 		for (size_t index = 0; index < local.components.size() && !relinked; ++index)
@@ -207,6 +212,8 @@ Destination destinationOf(const wstring& path, const ConfigPathPolicy::FileSyste
 				return {L"", candidate, Problem::OtherLink};
 			case Entry::Kind::Unexaminable:
 			{
+				if (fileSystem.strict())
+					return {};
 				// The one step that reaches the target: judge where the open
 				// arrived.
 				const wstring arrived = fileSystem.finalPath(joined(candidate, local.components, index + 1));
@@ -306,28 +313,68 @@ bool isMissingError(DWORD error)
 class Win32FileSystem : public ConfigPathPolicy::FileSystem
 {
 public:
-	Entry entry(const wstring& path) const override
+	bool strict() const override { return true; }
+
+	bool begin(const wstring& root) const override
 	{
-		Entry result;
-		// FILE_FLAG_OPEN_REPARSE_POINT opens a link itself rather than what
-		// it points at, so reading one never reaches its target.
-		const winutil::UniqueHandle handle(CreateFileW(path.c_str(), FILE_READ_ATTRIBUTES,
-			FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
+		parent = nullptr;
+		leafPath.clear();
+		lastAttributesOnly = false;
+		winutil::UniqueHandle handle(CreateFileW(root.c_str(), FILE_LIST_DIRECTORY | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+			FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING,
 			FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT, nullptr));
+		if (!handle && GetLastError() == ERROR_ACCESS_DENIED)
+		{
+			handle.reset(CreateFileW(root.c_str(), FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+				FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING,
+				FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT, nullptr));
+			if (handle)
+			{
+				++attributesOnlyPins;
+				lastAttributesOnly = true;
+			}
+		}
 		if (!handle)
 		{
-			result.kind = isMissingError(GetLastError()) ? Entry::Kind::Missing : Entry::Kind::Unexaminable;
+			error = GetLastError();
+			return false;
+		}
+		FILE_ATTRIBUTE_TAG_INFO info = {};
+		if (!GetFileInformationByHandleEx(handle.get(), FileAttributeTagInfo, &info, sizeof(info))
+			|| (info.FileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0
+			|| ((info.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0 && IsReparseTagNameSurrogate(info.ReparseTag)))
+		{
+			error = ERROR_CANT_ACCESS_FILE;
+			return false;
+		}
+		parent = handle.get();
+		pins.push_back(std::move(handle));
+		leafPath = root;
+		return true;
+	}
+
+	Entry entry(const wstring& path) const override
+	{
+		const size_t separator = path.find_last_of(L"\\/");
+		const wstring component = path.substr(separator == wstring::npos ? 0 : separator + 1);
+		Entry result;
+		winutil::UniqueHandle handle = openChild(parent, component);
+		if (!handle)
+		{
+			result.kind = isMissingError(error) ? Entry::Kind::Missing : Entry::Kind::Unexaminable;
+			parent = nullptr;
 			return result;
 		}
-
+		parent = handle.get();
+		pins.push_back(std::move(handle));
+		leafPath = path;
 		FILE_ATTRIBUTE_TAG_INFO tagInfo = {};
-		if (!GetFileInformationByHandleEx(handle.get(), FileAttributeTagInfo, &tagInfo, sizeof(tagInfo)))
+		if (!GetFileInformationByHandleEx(parent, FileAttributeTagInfo, &tagInfo, sizeof(tagInfo)))
 		{
+			error = GetLastError();
 			result.kind = Entry::Kind::Unexaminable;
 			return result;
 		}
-		// A reparse point that is not a name surrogate (a cloud placeholder,
-		// a deduplicated file) is the file itself, not a way elsewhere.
 		if ((tagInfo.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) == 0 || !IsReparseTagNameSurrogate(tagInfo.ReparseTag))
 		{
 			result.kind = Entry::Kind::Plain;
@@ -338,13 +385,12 @@ public:
 			result.kind = Entry::Kind::OtherLink;
 			return result;
 		}
-
 		vector<unsigned char> buffer(kReparseBufferSize);
 		DWORD returned = 0;
-		if (!DeviceIoControl(handle.get(), FSCTL_GET_REPARSE_POINT, nullptr, 0, buffer.data(),
-				static_cast<DWORD>(buffer.size()), &returned, nullptr)
-			|| !readLinkTarget(buffer.data(), returned, result))
+		if (!DeviceIoControl(parent, FSCTL_GET_REPARSE_POINT, nullptr, 0, buffer.data(),
+			static_cast<DWORD>(buffer.size()), &returned, nullptr) || !readLinkTarget(buffer.data(), returned, result))
 		{
+			error = ERROR_CANT_ACCESS_FILE;
 			result.kind = Entry::Kind::Unexaminable;
 			return result;
 		}
@@ -352,36 +398,136 @@ public:
 		return result;
 	}
 
-	wstring finalPath(const wstring& path) const override
-	{
-		const winutil::UniqueHandle handle(CreateFileW(path.c_str(), FILE_READ_ATTRIBUTES,
-			FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
-			FILE_FLAG_BACKUP_SEMANTICS, nullptr));
-		if (!handle)
-			return L"";
-
-		// A volume without a drive letter has no DOS name; its GUID name is
-		// just as local.
-		for (const DWORD volumeName : {VOLUME_NAME_DOS, VOLUME_NAME_GUID})
-		{
-			const DWORD flags = FILE_NAME_NORMALIZED | volumeName;
-			const DWORD needed = GetFinalPathNameByHandleW(handle.get(), nullptr, 0, flags);
-			if (needed == 0)
-				continue;
-			wstring result(needed, L'\0');
-			const DWORD written = GetFinalPathNameByHandleW(handle.get(), result.data(), needed, flags);
-			if (written == 0 || written >= needed)
-				continue;
-			result.resize(written);
-			return result;
-		}
-		return L"";
-	}
+	wstring finalPath(const wstring&) const override { return L""; }
 
 	bool isNetworkDrive(wchar_t driveLetter) const override
 	{
 		const wchar_t root[] = {driveLetter, L':', L'\\', L'\0'};
 		return GetDriveTypeW(root) == DRIVE_REMOTE;
+	}
+
+	// No name-based enumeration: Contents and the architecture directory are
+	// judged first, then their pinned directory handle supplies the module name.
+	wstring moduleName() const
+	{
+		alignas(FILE_ID_BOTH_DIR_INFO) unsigned char buffer[16384];
+		bool first = true;
+		for (;;)
+		{
+			if (!GetFileInformationByHandleEx(parent, first ? FileIdBothDirectoryRestartInfo : FileIdBothDirectoryInfo,
+				buffer, sizeof(buffer)))
+			{
+				error = GetLastError();
+				if (error == ERROR_NO_MORE_FILES)
+					error = ERROR_FILE_NOT_FOUND;
+				return L"";
+			}
+			first = false;
+			size_t offset = 0;
+			for (;;)
+			{
+				const auto* info = reinterpret_cast<const FILE_ID_BOTH_DIR_INFO*>(buffer + offset);
+				const size_t header = offsetof(FILE_ID_BOTH_DIR_INFO, FileName);
+				if (offset + header > sizeof(buffer) || info->FileNameLength > sizeof(buffer) - offset - header
+					|| info->FileNameLength % sizeof(wchar_t) != 0)
+				{
+					error = ERROR_INVALID_DATA;
+					return L"";
+				}
+				wstring name(info->FileName, info->FileNameLength / sizeof(wchar_t));
+				if (name.size() >= 5 && lowered(name.substr(name.size() - 5)) == L".vst3")
+					return name;
+				if (info->NextEntryOffset == 0)
+					break;
+				if (info->NextEntryOffset < header || info->NextEntryOffset > sizeof(buffer) - offset - header
+					|| info->NextEntryOffset % alignof(FILE_ID_BOTH_DIR_INFO) != 0)
+				{
+					error = ERROR_INVALID_DATA;
+					return L"";
+				}
+				offset += info->NextEntryOffset;
+			}
+		}
+	}
+
+	mutable vector<winutil::UniqueHandle> pins;
+	mutable HANDLE parent = nullptr;
+	mutable wstring leafPath;
+	mutable DWORD error = ERROR_SUCCESS;
+	mutable size_t attributesOnlyPins = 0;
+	// Whether the handle in parent was opened attributes-only. A leaf file
+	// held that way cannot be read, so judge() refuses it as before.
+	mutable bool lastAttributesOnly = false;
+
+private:
+	winutil::UniqueHandle openChild(HANDLE directory, const wstring& component) const
+	{
+		// winternl.h provides the ABI; load exports like ProcessCommandLine does.
+		static const winutil::UniqueModule module(LoadLibraryW(L"ntdll.dll"));
+		static const auto create = reinterpret_cast<decltype(&NtCreateFile)>(GetProcAddress(module.get(), "NtCreateFile"));
+		static const auto toDos = reinterpret_cast<decltype(&RtlNtStatusToDosError)>(GetProcAddress(module.get(), "RtlNtStatusToDosError"));
+		lastAttributesOnly = false;
+		if (create == nullptr || toDos == nullptr || directory == nullptr
+			|| component.empty() || component.size() > (std::numeric_limits<USHORT>::max)() / sizeof(wchar_t))
+		{
+			error = ERROR_INVALID_NAME;
+			return {};
+		}
+		UNICODE_STRING name = {};
+		name.Buffer = const_cast<wchar_t*>(component.data());
+		name.Length = static_cast<USHORT>(component.size() * sizeof(wchar_t));
+		name.MaximumLength = name.Length;
+		OBJECT_ATTRIBUTES attributes = {};
+		attributes.Length = sizeof(attributes);
+		attributes.RootDirectory = directory;
+		attributes.ObjectName = &name;
+		attributes.Attributes = OBJ_CASE_INSENSITIVE;
+		IO_STATUS_BLOCK statusBlock = {};
+		HANDLE result = nullptr;
+		// FILE_READ_DATA and FILE_LIST_DIRECTORY are the same access bit. Unlike
+		// attributes-only opens this takes part in delete-sharing checks.
+		NTSTATUS status = create(&result, FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+			&attributes, &statusBlock, nullptr, 0, FILE_SHARE_READ | FILE_SHARE_WRITE, FILE_OPEN,
+			FILE_OPEN_REPARSE_POINT | FILE_SYNCHRONOUS_IO_NONALERT, nullptr, 0);
+		if (status < 0 && toDos(status) == ERROR_ACCESS_DENIED)
+		{
+			// The engine runs as LOCAL SERVICE, which may not list C:\Users\<name>,
+			// AppData or Local but reaches the configuration folder below them
+			// through bypass-traverse checking (SeChangeNotifyPrivilege, which
+			// every service token holds) and the grants on that folder. So a
+			// component it may not list is held with FILE_READ_ATTRIBUTES only;
+			// a child opened relative to that handle is checked against the
+			// child's own DACL, and the parent's traverse right is skipped only
+			// under that privilege (EngineOrchestrationTests proves both).
+			//
+			// What this does to the guarantees. Readers are unaffected: every
+			// component is still opened relative to the handle before it, and
+			// the bytes come from the leaf handle; a handle follows the object,
+			// not the name, so nothing done to an ancestor's name redirects a
+			// chain that is already open. An attributes-only open takes no part
+			// in share checks, so on its own it would not stop a rename of that
+			// folder. It is never on its own: the chain also holds the next
+			// component and the leaf below it, and NTFS refuses to rename a
+			// directory with open handles beneath it (ERROR_ACCESS_DENIED for
+			// MoveFileW and for a POSIX-semantics rename, measured on Windows 11
+			// 22621 in EngineOrchestrationTests), and a folder cannot be
+			// deleted while it holds anything. That is file-system behaviour,
+			// not a share mode; it was not measured on ReFS or a Dev Drive.
+			status = create(&result, FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+				&attributes, &statusBlock, nullptr, 0, FILE_SHARE_READ | FILE_SHARE_WRITE, FILE_OPEN,
+				FILE_OPEN_REPARSE_POINT | FILE_SYNCHRONOUS_IO_NONALERT, nullptr, 0);
+			if (status >= 0)
+			{
+				++attributesOnlyPins;
+				lastAttributesOnly = true;
+			}
+		}
+		if (status < 0)
+		{
+			error = toDos(status);
+			return {};
+		}
+		return winutil::UniqueHandle(result);
 	}
 };
 
@@ -395,6 +541,38 @@ wstring displayed(const wstring& path)
 		return path.substr(4);
 	return path;
 }
+
+bool acceptsDestination(const wstring& path, const Destination& destination, const wstring& configRoot, wstring& reason)
+{
+	switch (destination.problem)
+	{
+	case Problem::OtherLink:
+		reason = L"\"" + path + L"\" leads through \"" + displayed(destination.link)
+			+ L"\", a kind of link the audio engine does not follow, so copy the file into the configuration folder";
+		return false;
+	case Problem::TooManyLinks:
+		reason = L"\"" + path + L"\" leads through more than " + std::to_wstring(ConfigPathPolicy::kLinkLimit)
+			+ L" links, so copy the file into the configuration folder";
+		return false;
+	case Problem::None:
+		break;
+	}
+
+	if (destination.root.empty())
+		return true;
+	// The configuration's own place is judged the same way, so a config
+	// reached through a link to a share may still name that share.
+	if (destination.root == configRoot)
+		return true;
+
+	if (destination.link.empty())
+		reason = L"\"" + path + L"\" is on a network share or a device path; " + kCopyAdvice;
+	else
+		reason = L"\"" + path + L"\" leads through \"" + displayed(destination.link) + L"\" to a network share or a device path; "
+			+ kCopyAdvice;
+	return false;
+}
+
 }
 
 wstring ConfigPathPolicy::remoteRoot(const wstring& path)
@@ -425,7 +603,7 @@ wstring ConfigPathPolicy::remoteRoot(const wstring& path)
 
 bool ConfigPathPolicy::allowsOpen(const wstring& path, const wstring& configPath, wstring& reason)
 {
-	static const Win32FileSystem fileSystem;
+	const Win32FileSystem fileSystem;
 	return allowsOpen(path, configPath, reason, fileSystem);
 }
 
@@ -433,31 +611,123 @@ bool ConfigPathPolicy::allowsOpen(const wstring& path, const wstring& configPath
 	const FileSystem& fileSystem)
 {
 	const Destination destination = destinationOf(path, fileSystem);
-	switch (destination.problem)
+	return acceptsDestination(path, destination, destination.root.empty() || configPath.empty() ? L"" : destinationOf(configPath, fileSystem).root, reason);
+}
+
+ConfigFileReference::Target ConfigPathPolicy::judge(const wstring& path, const wstring& configPath, bool library)
+{
+	ConfigFileReference::Target result;
+	if (path.empty())
+		return result;
+	Win32FileSystem fileSystem;
+	const Destination destination = destinationOf(path, fileSystem);
+	// Keep the same remote-root and link diagnostics as the table-driven policy.
+	if (destination.problem != Problem::None || !destination.root.empty())
 	{
-	case Problem::OtherLink:
-		reason = L"\"" + path + L"\" leads through \"" + displayed(destination.link)
-			+ L"\", a kind of link the audio engine does not follow, so copy the file into the configuration folder";
-		return false;
-	case Problem::TooManyLinks:
-		reason = L"\"" + path + L"\" leads through more than " + std::to_wstring(kLinkLimit)
-			+ L" links, so copy the file into the configuration folder";
-		return false;
-	case Problem::None:
-		break;
+		Win32FileSystem check;
+		const wstring configRoot = configPath.empty() ? L"" : destinationOf(configPath, check).root;
+		if (!acceptsDestination(path, destination, configRoot, result.refusal))
+			return result;
+		// A same-share reference is the deliberate exception. Open its share
+		// root only after judgment, then use the same handle-relative walk.
+		if (!destination.root.empty())
+		{
+			LocalPath local;
+			wstring root;
+			vector<wstring> parts;
+			if (splitLocal(destination.path, local))
+			{
+				root = local.root;
+				parts = local.components;
+			}
+			else
+			{
+				parts = componentsFrom(destination.path, 2);
+				if (parts.size() >= 2 && isLocalDevicePrefix(parts[0]) && lowered(parts[1]) == L"unc")
+					parts.erase(parts.begin(), parts.begin() + 2);
+				if (parts.size() < 2)
+					return result;
+				root = L"\\\\" + parts[0] + L"\\" + parts[1] + L"\\";
+				parts.erase(parts.begin(), parts.begin() + 2);
+			}
+			if (fileSystem.begin(root))
+			{
+				wstring candidate = root;
+				for (const auto& part : parts)
+				{
+					candidate = joined(candidate, {part}, 0);
+					const Entry entry = fileSystem.entry(candidate);
+					if (entry.kind != Entry::Kind::Plain)
+					{
+						if (entry.kind == Entry::Kind::Link || entry.kind == Entry::Kind::OtherLink)
+							fileSystem.error = ERROR_CANT_ACCESS_FILE;
+						break;
+					}
+				}
+			}
+		}
 	}
-
-	if (destination.root.empty())
-		return true;
-	// The configuration's own place is judged the same way, so a config
-	// reached through a link to a share may still name that share.
-	if (!configPath.empty() && destination.root == destinationOf(configPath, fileSystem).root)
-		return true;
-
-	if (destination.link.empty())
-		reason = L"\"" + path + L"\" is on a network share or a device path; " + kCopyAdvice;
-	else
-		reason = L"\"" + path + L"\" leads through \"" + displayed(destination.link) + L"\" to a network share or a device path; "
-			+ kCopyAdvice;
-	return false;
+	if (fileSystem.error == ERROR_SUCCESS && fileSystem.parent != nullptr && library)
+	{
+		FILE_ATTRIBUTE_TAG_INFO info = {};
+		if (!GetFileInformationByHandleEx(fileSystem.parent, FileAttributeTagInfo, &info, sizeof(info)))
+			fileSystem.error = GetLastError();
+		else if ((info.FileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0
+			&& path.size() >= 5 && lowered(path.substr(path.size() - 5)) == L".vst3")
+		{
+#if defined(_M_ARM64)
+			const wchar_t* platform = L"arm64-win";
+#elif defined(_WIN64)
+			const wchar_t* platform = L"x86_64-win";
+#else
+			const wchar_t* platform = L"x86-win";
+#endif
+			const wstring folder = joined(fileSystem.leafPath, {L"Contents", platform}, 0);
+			// Apply the same local-link and same-share rules to bundle children.
+			// Keep the earlier bundle pins while acquiring the next judged chain.
+			auto keep = [&](ConfigFileReference::Target next) {
+				if (!next.refusal.empty())
+					result.refusal = std::move(next.refusal);
+				fileSystem.error = next.error;
+				fileSystem.parent = next.path.file;
+				fileSystem.leafPath = next.path.name;
+				fileSystem.attributesOnlyPins += next.path.attributesOnlyPins;
+				// The nested judge already refused an unreadable leaf of its own.
+				fileSystem.lastAttributesOnly = false;
+				for (auto& pin : next.path.pins)
+					fileSystem.pins.push_back(std::move(pin));
+			};
+			keep(judge(folder, configPath));
+			if (result.refusal.empty() && fileSystem.error == ERROR_SUCCESS && fileSystem.parent != nullptr)
+			{
+				const wstring module = fileSystem.moduleName();
+				if (!module.empty())
+					keep(judge(joined(fileSystem.leafPath, {module}, 0), configPath));
+			}
+		}
+	}
+	// Ancestors may be attributes-only, the file itself may not: the readers
+	// and LoadLibraryW need its data, and a leaf the service cannot read stays
+	// refused as it was before the fallback existed. A directory leaf (a .vst3
+	// bundle before its module is found) is left to the caller.
+	if (fileSystem.error == ERROR_SUCCESS && fileSystem.parent != nullptr && fileSystem.lastAttributesOnly)
+	{
+		FILE_ATTRIBUTE_TAG_INFO info = {};
+		if (!GetFileInformationByHandleEx(fileSystem.parent, FileAttributeTagInfo, &info, sizeof(info))
+			|| (info.FileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0)
+			fileSystem.error = ERROR_ACCESS_DENIED;
+	}
+	result.error = fileSystem.error;
+	if (result.error == ERROR_SHARING_VIOLATION)
+		result.refusal = L"the file or its folder is in use by another program; try again";
+	else if (result.error != ERROR_SUCCESS && !isMissingError(result.error))
+		result.refusal = L"the file or its folder could not be checked safely; check its permissions and try again";
+	if (!result.refusal.empty())
+		return result;
+	// Missing files retain their judged spelling for the existing missing-file
+	// diagnostics, but never acquire a handle or retry an open by name.
+	const HANDLE leaf = result.error == ERROR_SUCCESS ? fileSystem.parent : nullptr;
+	result.path = JudgedPath(fileSystem.leafPath.empty() || leaf == nullptr ? path : fileSystem.leafPath,
+		std::move(fileSystem.pins), leaf, fileSystem.attributesOnlyPins);
+	return result;
 }

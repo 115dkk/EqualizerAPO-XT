@@ -43,11 +43,11 @@ FilterVector ConvolutionFilterFactory::createFilter(const wstring& configPath, w
 	if (cmd.path.empty())
 		return reportParseError(command, L"expected the path of an impulse response file");
 
-	const ConfigFileReference::Target file = ConfigFileReference::target(configPath, cmd.path);
+	ConfigFileReference::Target file = ConfigFileReference::target(configPath, cmd.path);
 	if (!file.refusal.empty())
 		return reportParseError(command, file.refusal);
 	if (file.path.empty())
 		return reportParseError(command, L"the impulse response file \"" + cmd.path + L"\" was not found");
 
-	return singleFilter(makeFilter<ConvolutionFilter>(file.path));
+	return singleFilter(makeFilter<ConvolutionFilter>(std::move(file.path)));
 }

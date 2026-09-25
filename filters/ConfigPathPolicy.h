@@ -7,6 +7,7 @@
 #pragma once
 
 #include <string>
+#include "ConfigFileReference.h"
 
 // Whether the engine may open a file that a configuration line names.
 //
@@ -26,13 +27,15 @@
 // spelling at a share, so every component of a local path is read without
 // following it, and a link's stored target is judged as a path of its own.
 // A link to a share is refused that way before the service ever reaches the
-// share. The walk stops at a component it cannot read without following (the
-// service may pass through a folder it has no right to read); the rest is
-// judged by opening the path and asking where the open arrived
-// (GetFinalPathNameByHandleW). That open does reach the target, which is why
-// it comes last. A network drive letter counts as a share. Paths spelled on a
-// share are not walked: judging them needs no I/O, and nothing is read from a
-// share before the engine opens the file anyway.
+// share. Runtime walks open each child relative to its held parent and retain
+// every handle, leaf included, without delete sharing. A folder the engine may
+// not list (a user profile ancestor, for LOCAL SERVICE) is held attributes-only
+// instead; share modes do not protect its name, the held components below it
+// do on NTFS (see Win32FileSystem::openChild). An unexaminable local component
+// fails closed; the table-only fallback is retained for policy tests.
+// Same-share references remain the explicit exception and are opened only
+// after their remote root has been judged.
+
 class ConfigPathPolicy
 {
 public:
@@ -69,6 +72,10 @@ public:
 	public:
 		virtual ~FileSystem() = default;
 		virtual Entry entry(const std::wstring& path) const = 0;
+		// Real walks start at a root and open each child relative to the held
+		// parent. Table tests need no handles and keep using entry().
+		virtual bool begin(const std::wstring&) const { return true; }
+		virtual bool strict() const { return false; }
 		// Where an open of path arrives, spelled as GetFinalPathNameByHandleW
 		// spells it (\\?\C:\x or \\?\UNC\srv\share\x); empty when path cannot
 		// be opened.
@@ -82,6 +89,7 @@ public:
 	// Returns true when the engine may open path. On false, reason carries
 	// the sentence for reportParseError.
 	static bool allowsOpen(const std::wstring& path, const std::wstring& configPath, std::wstring& reason);
+	static ConfigFileReference::Target judge(const std::wstring& path, const std::wstring& configPath, bool library = false);
 	static bool allowsOpen(const std::wstring& path, const std::wstring& configPath, std::wstring& reason,
 		const FileSystem& fileSystem);
 

@@ -139,7 +139,21 @@ void FilterEngine::loadConfigFile(const wstring& path)
 {
 	TraceF(L"Loading configuration from %s", path.c_str());
 
-	stringstream inputStream = ConfigurationFileReader::readWithRetry(path, configChannel.shutdownHandle());
+	loadConfigStream(path, ConfigurationFileReader::readWithRetry(path, configChannel.shutdownHandle()));
+}
+
+ConfigFileReference::Target FilterEngine::judgeIncludedFile(const wstring& configPath, const wstring& written)
+{
+	return ConfigurationFileReader::judgeWithRetry(configPath, written, configChannel.shutdownHandle());
+}
+
+void FilterEngine::loadConfigFile(const JudgedPath& path)
+{
+	loadConfigStream(path.path(), ConfigurationFileReader::read(path));
+}
+
+void FilterEngine::loadConfigStream(const wstring& path, stringstream inputStream)
+{
 	if (!inputStream.good())
 		return;
 

@@ -118,7 +118,12 @@ void runVst3HostTests()
 	shared_ptr<VSTPluginLibrary> library = VSTPluginLibrary::getInstance(bundle);
 	harness.require(library != nullptr, "bundle resolves to a library");
 	harness.expectTrue(library->isVST3(), "bundle is recognized as VST3");
-	harness.expectTrue(library->initialize() >= 0, "Windows VST3 module lifecycle initializes before factory access");
+	{
+		const auto judged = ConfigFileReference::library(L"", bundle, L"");
+		harness.require(judged.refusal.empty() && judged.path.leaf() != nullptr,
+			"bundle module is discovered and pinned through directory handles");
+		harness.expectTrue(library->initialize(judged.path) >= 0, "Windows VST3 module loads while the complete bundle path is pinned");
+	}
 	harness.expectTrue(library->getFactory() != nullptr, "VST3 factory is available after module initialization");
 
 	const wstring rawVst3Module = directory + L"\\TestVst3RawModule.dll";

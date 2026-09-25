@@ -43,11 +43,11 @@ FilterVector MultiConvolutionFilterFactory::createFilter(const wstring& configPa
 	if (cmd.path.empty())
 		return reportParseError(command, L"expected the path of an impulse response file after the mappings");
 
-	const ConfigFileReference::Target file = ConfigFileReference::target(configPath, cmd.path);
+	ConfigFileReference::Target file = ConfigFileReference::target(configPath, cmd.path);
 	if (!file.refusal.empty())
 		return reportParseError(command, file.refusal);
 	if (file.path.empty())
 		return reportParseError(command, L"the impulse response file \"" + cmd.path + L"\" was not found");
 
-	return singleFilter(makeFilter<MultiConvolutionFilter>(cmd.mappings, file.path));
+	return singleFilter(makeFilter<MultiConvolutionFilter>(cmd.mappings, std::move(file.path)));
 }
