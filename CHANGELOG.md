@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.6 — 2026-09-25
+
 - **The device test and ASIO pipes answer only the programs they are for.**
   Any account could add its own instance of the Device Selector's device
   test pipe and receive what the audio service sent, and the ASIO driver
