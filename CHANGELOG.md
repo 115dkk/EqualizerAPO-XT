@@ -21,7 +21,25 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   a tooltip, as it does for other unusable lines. When a filter fails while
   being set up, the configuration is still not applied as a whole, and both
   the log and the Editor now name the line that caused it
-  ([#369](https://github.com/115dkk/EqualizerAPO-XT/pull/369)).
+  ([#368](https://github.com/115dkk/EqualizerAPO-XT/pull/368)).
+
+## v2.54.4 — 2026-09-25
+
+- **`LoudnessCorrection` reads an attenuation written with a decimal comma.**
+  `Attenuation 0,5` was accepted but read as 0; it now reads as 0.5, like a
+  decimal comma everywhere else in the configuration. The commands that read
+  numbers now share one reader: `MultiConvolution` no longer takes `inf`,
+  `nan` or hexadecimal text as a factor, and `Copy` no longer takes
+  hexadecimal text ([#364](https://github.com/115dkk/EqualizerAPO-XT/pull/364)).
+
+## v2.54.3 — 2026-09-25
+
+- **Benchmark.exe on ARM64 applies every filter in the configuration.** The
+  ARM64 build was linked without the option that keeps every filter in the
+  program, so filters nothing else in it referred to were left out and their
+  configuration lines were skipped as unknown commands. Every build of the
+  programs that contain the audio engine now takes its link settings from one
+  shared file ([#360](https://github.com/115dkk/EqualizerAPO-XT/pull/360)).
 
 ## v2.54.2 — 2026-09-24
 

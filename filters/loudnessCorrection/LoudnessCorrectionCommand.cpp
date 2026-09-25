@@ -20,6 +20,7 @@
 #include "stdafx.h"
 
 #include "LoudnessCorrectionCommand.h"
+#include "parser/NumericText.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -31,8 +32,8 @@ using std::wstring;
 
 // Regexes preserved from FilterParameters::deSerialize. ReferenceLevel and
 // ReferenceOffset only accept integers; Attenuation only accepts values
-// between 0 and 1 (a decimal comma is tolerated by the regex but wcstod stops
-// at it, like the previous conversion did).
+// between 0 and 1, with a decimal point or comma like every other command.
+// (wcstod used to stop at the comma and read "0,5" as 0; audit #348 TD-42.)
 static wregex regexState(L"\\s*State\\s+(0|1)");
 static wregex regexReferenceLevel(L"\\s*ReferenceLevel\\s+([-+0-9]+)");
 static wregex regexReferenceOffset(L"\\s*ReferenceOffset\\s+([-+0-9]+)");
@@ -67,14 +68,14 @@ bool LoudnessCorrectionCommand::parse(const wstring& command, const wstring& par
 
 	if (!regex_search(parameters, match, regexReferenceLevel))
 		return false;
-	out.referenceLevel = static_cast<float>(wcstod(match.str(1).c_str(), nullptr));
+	out.referenceLevel = static_cast<float>(numeric_text::readNumber(match.str(1)).value);
 
 	if (!regex_search(parameters, match, regexReferenceOffset))
 		return false;
-	out.referenceOffset = static_cast<float>(wcstod(match.str(1).c_str(), nullptr));
+	out.referenceOffset = static_cast<float>(numeric_text::readNumber(match.str(1)).value);
 
 	if (regex_search(parameters, match, regexAttenuation))
-		out.attenuation = static_cast<float>(wcstod(match.str(1).c_str(), nullptr));
+		out.attenuation = static_cast<float>(numeric_text::readNumber(match.str(1)).value);
 	else
 		out.attenuation = 1.0f;
 
