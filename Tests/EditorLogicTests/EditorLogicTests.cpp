@@ -112,6 +112,7 @@ int main(int argc, char** argv)
 		testRowGuiPolicyRoutesEachLineShape();
 		testFilterCardBuildPlans();
 		testConfigImport();
+		testFileReferencesReadLikeTheEngine();
 		testLegacyMigrationScanAndPolicy();
 		testChannelSelectionModel();
 		testDeviceSelectionModel();

@@ -35,7 +35,7 @@
     <ClInclude Include="filters\ConfigPathPolicy.h">
       <Filter>filters</Filter>
     </ClInclude>
-    <ClInclude Include="filters\ConvolutionFilePath.h">
+    <ClInclude Include="filters\ConfigFileReference.h">
       <Filter>filters</Filter>
     </ClInclude>
     <ClInclude Include="filters\ConvolutionFilterFactory.h">
@@ -327,7 +327,7 @@
     <ClCompile Include="filters\ConfigPathPolicy.cpp">
       <Filter>filters</Filter>
     </ClCompile>
-    <ClCompile Include="filters\ConvolutionFilePath.cpp">
+    <ClCompile Include="filters\ConfigFileReference.cpp">
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\ConvolutionFilterFactory.cpp">
