@@ -20,7 +20,11 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   deep went only to the log; the Editor now shows them on that line's card as
   a tooltip, as it does for other unusable lines. When a filter fails while
   being set up, the configuration is still not applied as a whole, and both
-  the log and the Editor now name the line that caused it
+  the log and the Editor now name the line that caused it. The Editor says so
+  in plain words: a notice at the bottom of the window names the line and
+  file and says the previous settings keep playing, the analysis panel reads
+  "Not applied" and draws no curve, and the line's card explains what to
+  check. The engine's error text stays in the log
   ([#368](https://github.com/115dkk/EqualizerAPO-XT/pull/368)).
 
 ## v2.54.4 — 2026-09-25
