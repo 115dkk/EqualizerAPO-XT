@@ -76,16 +76,11 @@ VSTPluginFilterGUI::VSTPluginFilterGUI(std::shared_ptr<VSTPluginLibrary> library
 
 	// The VST3 main-bus contract as two plain dropdowns. The layout names are
 	// config tokens, not prose, so they stay untranslated.
-	static const VST3BusLayout busLayoutChoices[] = {
-		VST3BusLayout::Auto, VST3BusLayout::Mono, VST3BusLayout::Stereo,
-		VST3BusLayout::Surround40, VST3BusLayout::Surround41, VST3BusLayout::Surround50,
-		VST3BusLayout::Surround51, VST3BusLayout::Surround61, VST3BusLayout::Surround71,
-		VST3BusLayout::Surround712, VST3BusLayout::Surround714};
-	for (VST3BusLayout layout : busLayoutChoices)
+	for (const VST3BusLayoutDefinition& definition : vst3BusLayoutTable)
 	{
-		const QString name = QString::fromWCharArray(vst3BusLayoutName(layout));
-		ui->busInputComboBox->addItem(name, static_cast<int>(layout));
-		ui->busOutputComboBox->addItem(name, static_cast<int>(layout));
+		const QString name = QString::fromWCharArray(definition.name);
+		ui->busInputComboBox->addItem(name, static_cast<int>(definition.layout));
+		ui->busOutputComboBox->addItem(name, static_cast<int>(definition.layout));
 	}
 	connect(ui->busInputComboBox, &QComboBox::activated, this, &VSTPluginFilterGUI::busLayoutPicked);
 	connect(ui->busOutputComboBox, &QComboBox::activated, this, &VSTPluginFilterGUI::busLayoutPicked);

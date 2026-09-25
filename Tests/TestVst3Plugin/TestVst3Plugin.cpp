@@ -57,12 +57,18 @@ bool surround41CineOnlyMode = false;
 bool busInfoMismatchMode = false;
 bool toneGeneratorMode = false;
 bool latency512Mode = false;
+bool retainHandlerMode = false;
 std::atomic<int> upmixerComponentCount{0};
 std::atomic<int> upmixerProcessCount{0};
 std::atomic<unsigned long long> surround41AcceptedOutputArrangement{
 	static_cast<unsigned long long>(SpeakerArr::kStereo)
 };
 std::atomic<bool> zeroSampleFlushInProgress{false};
+// Every parameter change the processor received, over all process calls.
+std::atomic<int> receivedParameterChangeCount{0};
+// RetainHandler.vst3 mode: the component handler kept past the host's
+// setComponentHandler(nullptr), the way a misbehaving plug-in would.
+IComponentHandler* retainedHandler = nullptr;
 wchar_t loadedModulePath[MAX_PATH] = {};
 
 bool iidIs(const TUID iid, const FUID& expected)
@@ -487,6 +493,8 @@ public:
 			for (int32 parameterIndex = 0; parameterIndex < data.inputParameterChanges->getParameterCount(); ++parameterIndex)
 			{
 				IParamValueQueue* queue = data.inputParameterChanges->getParameterData(parameterIndex);
+				if (queue != nullptr && queue->getPointCount() > 0)
+					++receivedParameterChangeCount;
 				if (queue == nullptr || queue->getParameterId() != gainParamId || queue->getPointCount() == 0)
 					continue;
 				int32 sampleOffset = 0;
@@ -1039,6 +1047,11 @@ public:
 		if (handler != nullptr)
 		{
 			handler->addRef();
+			if (retainHandlerMode && retainedHandler == nullptr)
+			{
+				retainedHandler = handler;
+				retainedHandler->addRef();
+			}
 			IComponentHandler2* extendedHandler = nullptr;
 			hasExtendedHandler = handler->queryInterface(IComponentHandler2::iid,
 				reinterpret_cast<void**>(&extendedHandler)) == kResultOk && extendedHandler != nullptr;
@@ -1229,6 +1242,7 @@ extern "C" __declspec(dllexport) bool InitDll()
 	surround41Mode = wcsstr(modulePath, L"Surround41.vst3") != nullptr || surround41CineOnlyMode;
 	toneGeneratorMode = wcsstr(modulePath, L"ToneGenerator.vst3") != nullptr;
 	latency512Mode = wcsstr(modulePath, L"LatencyUpmixer.vst3") != nullptr;
+	retainHandlerMode = wcsstr(modulePath, L"RetainHandler.vst3") != nullptr;
 	upmixerProcessCount.store(0);
 	surround41AcceptedOutputArrangement.store(
 		static_cast<unsigned long long>(SpeakerArr::kStereo));
@@ -1256,6 +1270,7 @@ extern "C" __declspec(dllexport) bool ExitDll()
 	busInfoMismatchMode = false;
 	toneGeneratorMode = false;
 	latency512Mode = false;
+	retainHandlerMode = false;
 	return true;
 }
 
@@ -1278,6 +1293,42 @@ extern "C" __declspec(dllexport) int GetUpmixerProcessCount()
 extern "C" __declspec(dllexport) unsigned long long GetSurround41AcceptedOutputArrangement()
 {
 	return surround41AcceptedOutputArrangement.load();
+}
+
+// In-process test hook: how many parameter changes the processor received,
+// so the host test can prove a large restored state reached it whole.
+extern "C" __declspec(dllexport) int GetReceivedParameterChangeCount()
+{
+	return receivedParameterChangeCount.load();
+}
+
+// In-process test hooks for RetainHandler.vst3 mode. The first calls the
+// handler the plug-in kept - performEdit, then IComponentHandler2::setDirty -
+// and returns -1 when none was kept, otherwise bit 0 set when performEdit was
+// accepted and bit 1 when setDirty was. The second drops the kept reference.
+extern "C" __declspec(dllexport) int CallRetainedComponentHandler()
+{
+	if (retainedHandler == nullptr)
+		return -1;
+	int accepted = 0;
+	if (retainedHandler->performEdit(gainParamId, 0.5) == kResultOk)
+		accepted |= 1;
+	IComponentHandler2* extendedHandler = nullptr;
+	if (retainedHandler->queryInterface(IComponentHandler2::iid,
+		reinterpret_cast<void**>(&extendedHandler)) == kResultOk && extendedHandler != nullptr)
+	{
+		if (extendedHandler->setDirty(true) == kResultOk)
+			accepted |= 2;
+		extendedHandler->release();
+	}
+	return accepted;
+}
+
+extern "C" __declspec(dllexport) void ReleaseRetainedComponentHandler()
+{
+	if (retainedHandler != nullptr)
+		retainedHandler->release();
+	retainedHandler = nullptr;
 }
 
 extern "C" __declspec(dllexport) IPluginFactory* PLUGIN_API GetPluginFactory()

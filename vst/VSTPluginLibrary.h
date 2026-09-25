@@ -26,10 +26,7 @@
 #include "AbstractLibrary.h"
 // aeffectx.h for the VST2 entry-point signature and the two base VST3 headers for
 // the factory this class owns. It deliberately does not include
-// VSTPluginInstance.h: nothing here refers to an instance, and that header pulls
-// in the whole VST3 audio-processor and edit-controller set - which every
-// translation unit that only wanted getInstance()/getLibPath() was paying for.
-// The six Editor units that include this one use four members between them.
+// VSTPluginInstance.h: nothing here refers to an instance.
 #include "aeffectx.h"
 #include "pluginterfaces/base/ipluginbase.h"
 #include "pluginterfaces/base/smartpointer.h"

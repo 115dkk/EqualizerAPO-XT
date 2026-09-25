@@ -18,10 +18,13 @@
 */
 
 #include "stdafx.h"
+#include "text/WideString.h"
+#include "platform/windows/TextEncoding.h"
 #include "services/logging/Logging.h"
 #include "VSTPluginLibrary.h"
-#include "VSTPluginInstance.h"
-#include "VSTPluginInstanceInternal.h"
+#include "VST3Instance.h"
+#include "VST3HostContext.h"
+#include "VST3MemoryStream.h"
 #include "VST3SpeakerMapping.h"
 #include "pluginterfaces/base/futils.h"
 #include "pluginterfaces/base/smartpointer.h"
@@ -31,7 +34,7 @@ using namespace std;
 using namespace Steinberg;
 using namespace Steinberg::Vst;
 
-bool VSTPluginInstance::initializeVST3()
+bool VST3Instance::initialize()
 {
 	vst3HostContext = IPtr<VST3HostContext>::adopt(new VST3HostContext(this));
 
@@ -150,6 +153,7 @@ bool VSTPluginInstance::initializeVST3()
 	configureVST3Buses(2, {});
 
 	vst3SupportsDouble = vst3Processor->canProcessSampleSize(kSample64) == kResultOk;
+	doubleProcessing = vst3SupportsDouble;
 	if (!vst3SupportsDouble && vst3Processor->canProcessSampleSize(kSample32) != kResultOk)
 	{
 		LogF(L"VST3 plugin %s supports neither 32-bit nor 64-bit sample processing.", library->getLibPath().c_str());
@@ -161,16 +165,18 @@ bool VSTPluginInstance::initializeVST3()
 	return true;
 }
 
-void VSTPluginInstance::releaseVST3()
+void VST3Instance::releaseVST3()
 {
-	if (!library->isVST3())
-		return;
-
 	automateFunc = nullptr;
 	sizeWindowFunc = nullptr;
 	stopEditing();
 	stopProcessingSafely();
 
+	// From here on nothing the plug-in calls through the host context may
+	// reach this instance: not during terminate below, and not later through
+	// a reference the plug-in kept (audit #348 TD-48).
+	if (vst3HostContext != NULL)
+		vst3HostContext->detach();
 	if (vst3Controller != NULL)
 		vst3Controller->setComponentHandler(NULL);
 
@@ -209,18 +215,18 @@ void VSTPluginInstance::releaseVST3()
 	vst3OutputArrangement = SpeakerArr::kEmpty;
 	vst3InputChannelNameHints.clear();
 	vst3OutputChannelNameHints.clear();
-	vst3InputChannelMapping.clear();
-	vst3OutputChannelMapping.clear();
+	inputMapping.clear();
+	outputMapping.clear();
 }
 
-void VSTPluginInstance::configureVST3Buses(int requestedChannelCount,
+void VST3Instance::configureVST3Buses(int requestedChannelCount,
 	const vector<wstring>& channelNames)
 {
 	configureVST3Buses(requestedChannelCount, requestedChannelCount,
 		channelNames, channelNames);
 }
 
-void VSTPluginInstance::configureVST3Buses(int requestedInputChannelCount, int requestedOutputChannelCount,
+void VST3Instance::configureVST3Buses(int requestedInputChannelCount, int requestedOutputChannelCount,
 	const vector<wstring>& inputChannelNames, const vector<wstring>& outputChannelNames)
 {
 	if (vst3Component == NULL || vst3Processor == NULL)
@@ -310,7 +316,7 @@ void VSTPluginInstance::configureVST3Buses(int requestedInputChannelCount, int r
 	updateVST3ChannelMappings();
 }
 
-void VSTPluginInstance::applyVST3BusActivation()
+void VST3Instance::applyVST3BusActivation()
 {
 	for (int i = 0; i < vst3InputBusCount; i++)
 		vst3Component->activateBus(kAudio, kInput, i, i == 0);
@@ -318,7 +324,7 @@ void VSTPluginInstance::applyVST3BusActivation()
 		vst3Component->activateBus(kAudio, kOutput, i, i == 0);
 }
 
-bool VSTPluginInstance::refreshAcceptedVST3Arrangements()
+bool VST3Instance::refreshAcceptedVST3Arrangements()
 {
 	SpeakerArrangement inputArrangement = SpeakerArr::kEmpty;
 	SpeakerArrangement outputArrangement = SpeakerArr::kEmpty;
@@ -337,15 +343,15 @@ bool VSTPluginInstance::refreshAcceptedVST3Arrangements()
 	return available;
 }
 
-void VSTPluginInstance::updateVST3ChannelMappings()
+void VST3Instance::updateVST3ChannelMappings()
 {
 	vst3speakers::buildChannelMapping(
-		vst3InputArrangement, vst3InputChannelNameHints, vst3InputChannelMapping);
+		vst3InputArrangement, vst3InputChannelNameHints, inputMapping);
 	vst3speakers::buildChannelMapping(
-		vst3OutputArrangement, vst3OutputChannelNameHints, vst3OutputChannelMapping);
+		vst3OutputArrangement, vst3OutputChannelNameHints, outputMapping);
 }
 
-int VSTPluginInstance::vst3BusChannelCount(BusDirection direction) const
+int VST3Instance::vst3BusChannelCount(BusDirection direction) const
 {
 	BusInfo busInfo;
 	memset(&busInfo, 0, sizeof(busInfo));
@@ -354,11 +360,9 @@ int VSTPluginInstance::vst3BusChannelCount(BusDirection direction) const
 	return max(0, busInfo.channelCount);
 }
 
-bool VSTPluginInstance::negotiateChannelCount(int channelCount,
+bool VST3Instance::negotiateChannelCount(int channelCount,
 	const vector<wstring>& channelNames)
 {
-	if (!library->isVST3())
-		return max(numInputs(), numOutputs()) >= channelCount;
 	if (vst3Component == NULL || vst3Processor == NULL)
 		return false;
 
@@ -366,11 +370,9 @@ bool VSTPluginInstance::negotiateChannelCount(int channelCount,
 	return max(vst3InputChannelCount, vst3OutputChannelCount) >= channelCount;
 }
 
-bool VSTPluginInstance::negotiateBusChannelCounts(int inputChannelCount, int outputChannelCount,
+bool VST3Instance::negotiateBusChannelCounts(int inputChannelCount, int outputChannelCount,
 	const vector<wstring>& inputChannelNames, const vector<wstring>& outputChannelNames)
 {
-	if (!library->isVST3())
-		return numInputs() >= inputChannelCount && numOutputs() >= outputChannelCount;
 	if (vst3Component == NULL || vst3Processor == NULL)
 		return false;
 
@@ -379,11 +381,11 @@ bool VSTPluginInstance::negotiateBusChannelCounts(int inputChannelCount, int out
 	return vst3InputChannelCount == inputChannelCount && vst3OutputChannelCount == outputChannelCount;
 }
 
-bool VSTPluginInstance::negotiateBusLayouts(VST3BusLayout inputLayout, VST3BusLayout outputLayout,
+bool VST3Instance::negotiateBusLayouts(VST3BusLayout inputLayout, VST3BusLayout outputLayout,
 	int automaticChannelCount, const vector<wstring>& inputChannelNames,
 	const vector<wstring>& outputChannelNames)
 {
-	if (!library->isVST3() || vst3Component == NULL || vst3Processor == NULL)
+	if (vst3Component == NULL || vst3Processor == NULL)
 		return false;
 	if (vst3InputBusCount <= 0 || vst3OutputBusCount <= 0)
 		return false;
@@ -445,7 +447,7 @@ bool VSTPluginInstance::negotiateBusLayouts(VST3BusLayout inputLayout, VST3BusLa
 	return false;
 }
 
-bool VSTPluginInstance::acceptedVST3BusMetadataIsConsistent() const
+bool VST3Instance::acceptedVST3BusMetadataIsConsistent() const
 {
 	if (vst3InputArrangement == SpeakerArr::kEmpty || vst3OutputArrangement == SpeakerArr::kEmpty)
 		return false;
@@ -456,32 +458,40 @@ bool VSTPluginInstance::acceptedVST3BusMetadataIsConsistent() const
 		&& vst3BusChannelCount(kOutput) == outputArrangementChannels;
 }
 
-std::optional<VST3BusLayout> VSTPluginInstance::getNegotiatedVST3InputLayout() const
+std::optional<VST3BusLayout> VST3Instance::negotiatedInputLayout() const
 {
-	if (!library->isVST3())
-		return std::nullopt;
-	for (VST3BusLayout layout : { VST3BusLayout::Mono, VST3BusLayout::Stereo,
-		VST3BusLayout::Surround40, VST3BusLayout::Surround41, VST3BusLayout::Surround50,
-		VST3BusLayout::Surround51, VST3BusLayout::Surround61, VST3BusLayout::Surround71,
-		VST3BusLayout::Surround712, VST3BusLayout::Surround714 })
-	{
-		if (vst3speakers::arrangementMatchesLayout(vst3InputArrangement, layout))
-			return layout;
-	}
-	return std::nullopt;
+	return vst3speakers::layoutOfArrangement(vst3InputArrangement);
 }
 
-std::optional<VST3BusLayout> VSTPluginInstance::getNegotiatedVST3OutputLayout() const
+std::optional<VST3BusLayout> VST3Instance::negotiatedOutputLayout() const
 {
-	if (!library->isVST3())
-		return std::nullopt;
-	for (VST3BusLayout layout : { VST3BusLayout::Mono, VST3BusLayout::Stereo,
-		VST3BusLayout::Surround40, VST3BusLayout::Surround41, VST3BusLayout::Surround50,
-		VST3BusLayout::Surround51, VST3BusLayout::Surround61, VST3BusLayout::Surround71,
-		VST3BusLayout::Surround712, VST3BusLayout::Surround714 })
-	{
-		if (vst3speakers::arrangementMatchesLayout(vst3OutputArrangement, layout))
-			return layout;
-	}
-	return std::nullopt;
+	return vst3speakers::layoutOfArrangement(vst3OutputArrangement);
+}
+
+int VST3Instance::numInputs() const
+{
+	return vst3InputChannelCount;
+}
+
+int VST3Instance::numOutputs() const
+{
+	return vst3OutputChannelCount;
+}
+
+int VST3Instance::uniqueID() const
+{
+	const PClassInfo& classInfo = library->getVST3ClassInfo();
+	int result = 0;
+	memcpy(&result, classInfo.cid, sizeof(result));
+	return result;
+}
+
+std::wstring VST3Instance::getName() const
+{
+	return wintext::toWideString(library->getVST3ClassInfo().name, CP_UTF8);
+}
+
+int VST3Instance::getInitialDelay() const
+{
+	return vst3Processor != NULL ? (int)vst3Processor->getLatencySamples() : 0;
 }

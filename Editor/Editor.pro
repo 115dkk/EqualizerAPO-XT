@@ -253,10 +253,11 @@ SOURCES += main.cpp\
 	../filters/VSTPluginFilter.cpp \
 	../filters/VSTPluginFilterFactory.cpp \
 	../vst/VSTPluginInstance.cpp \
-	../vst/VSTPluginInstance.Editor.cpp \
-	../vst/VSTPluginInstance.State.cpp \
-	../vst/VSTPluginInstance.VST2.cpp \
-	../vst/VSTPluginInstance.VST3.cpp \
+	../vst/VST2Instance.cpp \
+	../vst/VST3Instance.cpp \
+	../vst/VST3Instance.Editor.cpp \
+	../vst/VST3Instance.Processing.cpp \
+	../vst/VST3Instance.State.cpp \
 	../diagnostics/performance/PerfProfile.cpp \
 	guis/LoudnessCorrectionFilterGUI.cpp \
 	guis/LoudnessCorrectionFilterGUIFactory.cpp \
@@ -569,6 +570,11 @@ HEADERS  += \
 	../filters/VSTPluginFilter.h \
 	../filters/VSTPluginFilterFactory.h \
 	../vst/VSTPluginInstance.h \
+	../vst/VSTFormatInstance.h \
+	../vst/VST3Instance.h \
+	../vst/VST3HostContext.h \
+	../vst/VST3MemoryStream.h \
+	../vst/VSTChunkBase64.h \
 	../vst/VST3Lifecycle.h \
 	../vst/VST3SpeakerMapping.h \
 	guis/LoudnessCorrectionFilterGUI.h \

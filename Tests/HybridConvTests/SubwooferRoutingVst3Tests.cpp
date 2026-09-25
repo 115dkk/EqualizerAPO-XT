@@ -19,7 +19,7 @@
 #include "SubwooferRouting/StateCodec.h"
 #include "vst/VSTPluginInstance.h"
 #include "vst/VSTPluginLibrary.h"
-// After VSTPluginInstance.h: the VST3 SDK headers define VST_VERSION as a
+// After VSTPluginLibrary.h: the VST3 SDK headers define VST_VERSION as a
 // macro, which breaks the VST2 aeffectx.h that header includes first.
 #include "vst/VST3HostObjects.h"
 #include "pluginterfaces/vst/ivstaudioprocessor.h"

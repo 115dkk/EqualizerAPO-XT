@@ -208,15 +208,12 @@ private:
 int checkFillCellFit()
 {
 	QStringList roles;
-	for (VST3BusLayout layout : { VST3BusLayout::Mono, VST3BusLayout::Stereo, VST3BusLayout::Surround40,
-			VST3BusLayout::Surround41, VST3BusLayout::Surround50, VST3BusLayout::Surround51,
-			VST3BusLayout::Surround61, VST3BusLayout::Surround71, VST3BusLayout::Surround712,
-			VST3BusLayout::Surround714 })
+	for (const VST3BusLayoutDefinition& definition : vst3ExplicitBusLayouts())
 	{
-		for (const std::wstring& name : vst3BusLayoutChannelNames(layout))
+		for (const wchar_t* name : definition.channelNames)
 		{
-			if (!roles.contains(QString::fromStdWString(name)))
-				roles.append(QString::fromStdWString(name));
+			if (!roles.contains(QString::fromWCharArray(name)))
+				roles.append(QString::fromWCharArray(name));
 		}
 	}
 	QStringList values = roles;
