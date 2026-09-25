@@ -23,6 +23,7 @@
 #include <memory>
 #include <new>
 #include <string>
+#include <optional>
 #include <stdexcept>
 #include <thread>
 #include <vector>
@@ -36,6 +37,7 @@
 #include "devices/DeviceAPOInfo.h"
 #include "devices/VoicemeeterAPOInfo.h"
 #include "devices/VoicemeeterDetection.h"
+#include "platform/windows/ProcessCommandLine.h"
 #include "devices/DeviceAPOInfoKeys.h"
 #include "engine/ConfigLoadTrace.h"
 #include "runtime/WeakValueCache.h"
@@ -1093,6 +1095,64 @@ void testVoicemeeterPrependInfosMapsEditionToOutputCount(test::Harness& harness)
 		"the Wow6432Node uninstall key detects the edition too");
 }
 
+// Audit #348 E5: the vocabulary the install side and the client now share.
+void testVoicemeeterStripVocabulary(test::Harness& harness)
+{
+	harness.expectEqual(voicemeeterOutputCount(1), 1u, "standard Voicemeeter has one strip");
+	harness.expectEqual(voicemeeterOutputCount(2), 3u, "Banana has three");
+	harness.expectEqual(voicemeeterOutputCount(3), 5u, "Potato has five");
+	harness.expectEqual(voicemeeterOutputCount(0), 1u, "an unknown type is treated as the standard edition");
+	harness.expect(voicemeeterOutputName(0) == L"Output A1", "strips are named from A1");
+	harness.expect(voicemeeterOutputName(4) == L"Output A5", "to A5 on Potato");
+}
+
+// Whether SeDebugPrivilege is on in this process's token; nullopt when the
+// token does not hold it at all.
+std::optional<bool> debugPrivilegeEnabled()
+{
+	winutil::UniqueHandle token;
+	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, token.put()))
+		return std::nullopt;
+	LUID luid;
+	if (!LookupPrivilegeValueW(nullptr, SE_DEBUG_NAME, &luid))
+		return std::nullopt;
+	DWORD size = 0;
+	GetTokenInformation(token.get(), TokenPrivileges, nullptr, 0, &size);
+	std::vector<unsigned char> buffer(size);
+	if (size == 0 || !GetTokenInformation(token.get(), TokenPrivileges, buffer.data(), size, &size))
+		return std::nullopt;
+	const TOKEN_PRIVILEGES* privileges = reinterpret_cast<const TOKEN_PRIVILEGES*>(buffer.data());
+	for (DWORD i = 0; i < privileges->PrivilegeCount; i++)
+	{
+		const LUID_AND_ATTRIBUTES& entry = privileges->Privileges[i];
+		if (entry.Luid.LowPart == luid.LowPart && entry.Luid.HighPart == luid.HighPart)
+			return (entry.Attributes & SE_PRIVILEGE_ENABLED) != 0;
+	}
+	return std::nullopt;
+}
+
+// Audit #348 TD-51: the Voicemeeter client check enabled SeDebugPrivilege on
+// every apply, with or without a client to look at, and never turned it off.
+void testProcessSearchLeavesTheTokenAsItWas(test::Harness& harness)
+{
+	const std::optional<bool> before = debugPrivilegeEnabled();
+
+	const std::vector<winutil::ProcessWithCommandLine> none =
+		winutil::findProcessesByExeName(L"EqualizerAPO-XT-no-such-process.exe");
+	harness.expect(none.empty(), "no process of an unknown name is found");
+	harness.expect(debugPrivilegeEnabled() == before, "and with nothing to inspect the token is not touched");
+
+	wchar_t self[MAX_PATH] = {};
+	GetModuleFileNameW(nullptr, self, MAX_PATH);
+	const wchar_t* selfName = wcsrchr(self, L'\\') != nullptr ? wcsrchr(self, L'\\') + 1 : self;
+	const std::vector<winutil::ProcessWithCommandLine> found = winutil::findProcessesByExeName(selfName);
+	bool foundSelf = false;
+	for (const winutil::ProcessWithCommandLine& process : found)
+		foundSelf = foundSelf || process.processId == GetCurrentProcessId();
+	harness.expect(foundSelf, "this test process is found by its own name, in any case");
+	harness.expect(debugPrivilegeEnabled() == before, "and after inspecting it the token is back as it was");
+}
+
 // The parse-error channel that replaced the engine's guess. What matters is the
 // pair of judgements: a factory's own broken line is reported, and a line no
 // factory claimed is not - because prose and notes are how 1.4.2 configurations
@@ -1342,6 +1402,8 @@ int runEngineOrchestrationTests()
 	testConfigLoadTrace(harness);
 	testWeakValueCacheKeepsEntriesExactlyAsLongAsSomeoneUsesThem(harness);
 	testVoicemeeterPrependInfosMapsEditionToOutputCount(harness);
+	testVoicemeeterStripVocabulary(harness);
+	testProcessSearchLeavesTheTokenAsItWas(harness);
 	testParseErrorsAreReportedPerLineAndProseIsNot(harness);
 	testConfigReferencedRemotePathsAreRefused(harness);
 	testConfigRegistryReadsGoThroughThePort(harness);

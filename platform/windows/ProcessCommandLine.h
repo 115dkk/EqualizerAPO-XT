@@ -28,10 +28,12 @@ namespace winutil
 	};
 
 	// Answers every running process whose executable file name equals
-	// exeFileName (case-sensitive, name only - no path), with the command
-	// line read from its PEB. Enables SeDebugPrivilege on the calling
-	// process's token first. Throws std::runtime_error when the privilege
-	// cannot be enabled or a matching process refuses inspection.
+	// exeFileName (case-insensitive, name only - no path), with the command
+	// line read from its PEB. When a process of that name runs, enables
+	// SeDebugPrivilege on the calling process's token for the inspection and
+	// puts the token back as it was afterwards; with none, the token is not
+	// touched (audit #348 TD-51). Throws std::runtime_error when the token
+	// cannot be adjusted or a matching process refuses inspection.
 	std::vector<ProcessWithCommandLine> findProcessesByExeName(const wchar_t* exeFileName);
 
 	// Asks a process to close by posting WM_QUIT to each of its threads
