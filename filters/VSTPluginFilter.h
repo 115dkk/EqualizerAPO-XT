@@ -22,8 +22,10 @@
 #include <vector>
 #include <optional>
 
+#include "dsp/DelayLine.h"
 #include "engine/IFilter.h"
 #include "runtime/memory/AlignedMemory.h"
+#include "filters/VSTChannelPlan.h"
 #include "vst/VSTPluginInstance.h"
 #include "vst/VSTPluginLibrary.h"
 
@@ -53,7 +55,37 @@ public:
 	const std::vector<std::wstring>& getOutputChannels() const;
 
 private:
+	// What initialize() carries from one step to the next.
+	struct InitContext
+	{
+		AlignedMemory::UniqueObject<VSTPluginInstance> firstEffect;
+		bool upmixerLayout = false;
+		int reportedInputCount = 0;
+		int reportedOutputCount = 0;
+		int reportedLatency = 0;
+		VSTChannelPlan plan;
+	};
+
 	void cleanup();
+	// Logs format (libPath first, then args), sets skipProcessing and returns
+	// false, so a step can end initialize() with `return passThrough(...)`.
+	template<class... Args>
+	bool passThrough(const wchar_t* format, Args... args);
+	// Brings one instance to the bus layout this line asks for.
+	bool negotiateInstance(VSTPluginInstance* effect, unsigned targetChannelCount,
+		const std::vector<std::wstring>& outputChannelNames, bool upmixerLayout);
+	// Creates, initializes and negotiates the full-width first instance.
+	bool createFirstInstance(InitContext& context, const std::vector<std::wstring>& channelNames);
+	// Snapshots and validates the channel and latency metadata it reported.
+	bool readMetadata(InitContext& context);
+	// Maps the channels onto instances (planVstChannels) and keeps the fill.
+	bool planChannels(InitContext& context, const std::vector<std::wstring>& channelNames);
+	// Re-negotiates a split first instance and creates the other instances.
+	bool createRemainingInstances(InitContext& context, const std::vector<std::wstring>& channelNames);
+	// Padding, "-" scratch and float conversion buffers.
+	bool allocateBuffers(const InitContext& context, unsigned maxFrameCount);
+	// The latency compensation ring for the channels the plugin does not write.
+	bool allocateDelayCompensation(const InitContext& context, unsigned maxFrameCount);
 
 	std::shared_ptr<VSTPluginLibrary> library;
 	std::wstring libPath;
@@ -74,11 +106,11 @@ private:
 	std::vector<float*> floatOutputs;
 	AlignedMemory::UniqueAllocation<float> floatOutputBuffer;
 
-	// Delay compensation buffers
-	unsigned delayBufferLength = 0;
-	std::vector<AlignedMemory::UniqueAllocation<double>> delayBuffers;
-	AlignedMemory::UniqueAllocation<double> delayTempBuffer;
-	unsigned delayBufferOffset = 0;
+	// Delay compensation for the latency the plugin reported, on the channels
+	// no plugin output writes; delayedOutputs is sized in initialize().
+	DelayLine latencyDelay;
+	std::vector<unsigned> delayedChannels;
+	std::vector<double*> delayedOutputs;
 
 	bool skipProcessing = false;
 	bool reportCrash = true;

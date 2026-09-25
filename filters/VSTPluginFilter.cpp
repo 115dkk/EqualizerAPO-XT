@@ -51,35 +51,12 @@ bool isUpmixerSubCategory(const std::string& subCategories)
 		|| lower.find("surround") != std::string::npos;
 }
 
-bool checkedMultiply(size_t left, size_t right, size_t& result) noexcept
+std::vector<std::wstring> channelNameSlice(const std::vector<std::wstring>& channelNames, size_t offset, size_t width)
 {
-	if (left != 0 && right > (std::numeric_limits<size_t>::max)() / left)
-		return false;
-	result = left * right;
-	return true;
-}
-
-// "-" is the only selector the config resolves itself; everything else goes
-// through the same name/alias/number lookup the Copy command uses, so a fill
-// accepts exactly the channel spellings the rest of a configuration does.
-bool resolveChannelFill(const std::vector<std::wstring>& fill,
-	const std::vector<std::wstring>& channelNames, std::vector<int>& resolved)
-{
-	resolved.clear();
-	resolved.reserve(fill.size());
-	for (const std::wstring& selector : fill)
-	{
-		if (selector == L"-")
-		{
-			resolved.push_back(-1);
-			continue;
-		}
-		const int channelIndex = ChannelLayout::getChannelIndex(selector, channelNames);
-		if (channelIndex < 0)
-			return false;
-		resolved.push_back(channelIndex);
-	}
-	return true;
+	const size_t end = (std::min)(channelNames.size(), offset + width);
+	if (offset >= end)
+		return std::vector<std::wstring>();
+	return std::vector<std::wstring>(channelNames.begin() + offset, channelNames.begin() + end);
 }
 }
 
@@ -102,6 +79,14 @@ VSTPluginFilter::~VSTPluginFilter()
 	cleanup();
 }
 
+template<class... Args>
+bool VSTPluginFilter::passThrough(const wchar_t* format, Args... args)
+{
+	LogF(format, libPath.c_str(), args...);
+	skipProcessing = true;
+	return false;
+}
+
 std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames)
 {
 	cleanup();
@@ -111,30 +96,66 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 		return channelNames;
 	if (channelCount > (std::numeric_limits<unsigned>::max)())
 	{
-		LogF(L"The VST plugin %s was assigned too many host channels; passing audio through.", libPath.c_str());
-		skipProcessing = true;
+		passThrough(L"The VST plugin %s was assigned too many host channels; passing audio through.");
 		return channelNames;
 	}
 
 	skipProcessing = false;
 
-	AlignedMemory::UniqueObject<VSTPluginInstance> firstEffect;
+	InitContext context;
+	if (!createFirstInstance(context, channelNames)
+		|| !readMetadata(context)
+		|| !planChannels(context, channelNames)
+		|| !createRemainingInstances(context, channelNames))
+		return channelNames;
+
+	prepareForProcessing(sampleRate, maxFrameCount);
+	if (skipProcessing)
+		return channelNames;
+
+	if (!allocateBuffers(context, maxFrameCount))
+		return channelNames;
+	allocateDelayCompensation(context, maxFrameCount);
+	return channelNames;
+}
+
+bool VSTPluginFilter::negotiateInstance(VSTPluginInstance* effect, unsigned targetChannelCount,
+	const std::vector<std::wstring>& outputChannelNames, bool upmixerLayout)
+{
+	if (busContract)
+	{
+		const std::vector<std::wstring> inputNames = busContract->input == VST3BusLayout::Auto
+			? outputChannelNames : vst3BusLayoutChannelNames(busContract->input);
+		const std::vector<std::wstring> contractOutputNames = busContract->output == VST3BusLayout::Auto
+			? outputChannelNames : vst3BusLayoutChannelNames(busContract->output);
+		effect->setBusChannelNameHints(inputNames, contractOutputNames);
+		return effect->negotiateBusLayouts(busContract->input, busContract->output,
+			static_cast<int>(targetChannelCount));
+	}
+
+	effect->setChannelNameHints(outputChannelNames);
+	effect->negotiateChannelCount(static_cast<int>(targetChannelCount));
+	if (upmixerLayout && targetChannelCount > 2)
+	{
+		const std::vector<std::wstring> stereoInputNames = {L"L", L"R"};
+		effect->setBusChannelNameHints(stereoInputNames, outputChannelNames);
+		effect->negotiateBusChannelCounts(2, static_cast<int>(targetChannelCount));
+	}
+	return true;
+}
+
+bool VSTPluginFilter::createFirstInstance(InitContext& context, const std::vector<std::wstring>& channelNames)
+{
 	try
 	{
-		firstEffect = AlignedMemory::constructUnique<VSTPluginInstance>(library, 2);
+		context.firstEffect = AlignedMemory::constructUnique<VSTPluginInstance>(library, 2);
 	}
 	catch (const std::bad_alloc&)
 	{
-		LogF(L"The VST plugin %s could not allocate its host instance; passing audio through.", libPath.c_str());
-		skipProcessing = true;
-		return channelNames;
+		return passThrough(L"The VST plugin %s could not allocate its host instance; passing audio through.");
 	}
-	if (!firstEffect->initialize())
-	{
-		LogF(L"The VST plugin %s crashed during initialization.", libPath.c_str());
-		skipProcessing = true;
-		return channelNames;
-	}
+	if (!context.firstEffect->initialize())
+		return passThrough(L"The VST plugin %s crashed during initialization.");
 
 	// A multichannel-capable plugin must see the full device width before its
 	// channel counts are frozen below. Without this, the stereo probe from
@@ -149,162 +170,83 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 	// subcategory; it is never inferred from accepted layouts alone, because
 	// for anything but an upmixer a narrowed input bus would discard device
 	// channels.
-	const bool upmixerLayout = !busContract && channelCount > 2
+	context.upmixerLayout = !busContract && channelCount > 2
 		&& (forceStereoInput || isUpmixerSubCategory(library->getVST3SubCategories()));
-	const auto negotiateInstance = [this, upmixerLayout](VSTPluginInstance* effect, unsigned targetChannelCount,
-		const std::vector<std::wstring>& outputChannelNames)
-	{
-		if (busContract)
-		{
-			const std::vector<std::wstring> inputNames = busContract->input == VST3BusLayout::Auto
-				? outputChannelNames : vst3BusLayoutChannelNames(busContract->input);
-			const std::vector<std::wstring> contractOutputNames = busContract->output == VST3BusLayout::Auto
-				? outputChannelNames : vst3BusLayoutChannelNames(busContract->output);
-			effect->setBusChannelNameHints(inputNames, contractOutputNames);
-			return effect->negotiateBusLayouts(busContract->input, busContract->output,
-				static_cast<int>(targetChannelCount));
-		}
-
-		effect->setChannelNameHints(outputChannelNames);
-		effect->negotiateChannelCount(static_cast<int>(targetChannelCount));
-		if (upmixerLayout && targetChannelCount > 2)
-		{
-			const std::vector<std::wstring> stereoInputNames = {L"L", L"R"};
-			effect->setBusChannelNameHints(stereoInputNames, outputChannelNames);
-			effect->negotiateBusChannelCounts(2, static_cast<int>(targetChannelCount));
-		}
-		return true;
-	};
 	if (channelCount <= kMaxPluginChannelCount
-		&& !negotiateInstance(firstEffect.get(), static_cast<unsigned>(channelCount), channelNames))
+		&& !negotiateInstance(context.firstEffect.get(), static_cast<unsigned>(channelCount), channelNames,
+			context.upmixerLayout))
 	{
-		LogF(L"The VST3 plugin %s does not support the requested %s -> %s bus contract; passing audio through.",
-			libPath.c_str(), vst3BusLayoutName(busContract->input), vst3BusLayoutName(busContract->output));
-		skipProcessing = true;
-		return channelNames;
+		return passThrough(L"The VST3 plugin %s does not support the requested %s -> %s bus contract; passing audio through.",
+			vst3BusLayoutName(busContract->input), vst3BusLayoutName(busContract->output));
 	}
+	return true;
+}
 
+bool VSTPluginFilter::readMetadata(InitContext& context)
+{
 	// Metadata is plugin-controlled. Snapshot it once, validate the signed
 	// values, and use only the cached values for every allocation and processing
 	// loop below. Re-reading allows a broken plugin to change the loop bounds
 	// after the corresponding buffers were sized.
-	const int reportedInputCount = firstEffect->numInputs();
-	const int reportedOutputCount = firstEffect->numOutputs();
-	const int reportedLatency = firstEffect->getInitialDelay();
-	if (reportedInputCount < 0 || reportedOutputCount < 0 || reportedLatency < 0
-		|| reportedInputCount > static_cast<int>(kMaxPluginChannelCount)
-		|| reportedOutputCount > static_cast<int>(kMaxPluginChannelCount)
-		|| reportedLatency > static_cast<int>(kMaxPluginLatencySamples))
+	context.reportedInputCount = context.firstEffect->numInputs();
+	context.reportedOutputCount = context.firstEffect->numOutputs();
+	context.reportedLatency = context.firstEffect->getInitialDelay();
+	if (context.reportedInputCount < 0 || context.reportedOutputCount < 0 || context.reportedLatency < 0
+		|| context.reportedInputCount > static_cast<int>(kMaxPluginChannelCount)
+		|| context.reportedOutputCount > static_cast<int>(kMaxPluginChannelCount)
+		|| context.reportedLatency > static_cast<int>(kMaxPluginLatencySamples))
 	{
-		LogF(L"The VST plugin %s reported invalid channel or latency metadata; passing audio through.", libPath.c_str());
+		return passThrough(L"The VST plugin %s reported invalid channel or latency metadata; passing audio through.");
+	}
+
+	effectInputCount = static_cast<unsigned>(context.reportedInputCount);
+	effectOutputCount = static_cast<unsigned>(context.reportedOutputCount);
+	return true;
+}
+
+bool VSTPluginFilter::planChannels(InitContext& context, const std::vector<std::wstring>& channelNames)
+{
+	VSTChannelPlanRequest request;
+	request.channelNames = channelNames;
+	request.effectInputCount = effectInputCount;
+	request.effectOutputCount = effectOutputCount;
+	request.oneContractInstance = busContract && busContract->hasExplicitLayout();
+	request.inputFill = inputChannels;
+	request.outputFill = outputChannels;
+	context.plan = planVstChannels(request);
+	effectChannelCount = context.plan.effectChannelCount;
+
+	switch (context.plan.refusal)
+	{
+	case VSTChannelPlan::Refusal::None:
+		break;
+	case VSTChannelPlan::Refusal::NoChannels:
 		skipProcessing = true;
-		return channelNames;
+		return false;
+	case VSTChannelPlan::Refusal::PaddingOverflow:
+		return passThrough(L"The VST plugin %s reported metadata that overflows its padded channel count; passing audio through.");
+	case VSTChannelPlan::Refusal::FillNeedsOneInstance:
+		return passThrough(L"The VST plugin %s needs several instances, which a channel fill cannot address; passing audio through.");
+	case VSTChannelPlan::Refusal::FillSlotCountMismatch:
+		return passThrough(L"The VST plugin %s negotiated a different bus slot count than its channel fill names; passing audio through.");
+	case VSTChannelPlan::Refusal::FillChannelMissing:
+		return passThrough(L"The VST plugin %s has a channel fill naming a channel this device does not have; passing audio through.");
+	case VSTChannelPlan::Refusal::DuplicateOutputChannel:
+		return passThrough(L"The VST plugin %s has two output slots resolving to the same channel; passing audio through.");
 	}
 
-	effectInputCount = static_cast<unsigned>(reportedInputCount);
-	effectOutputCount = static_cast<unsigned>(reportedOutputCount);
-	effectChannelCount = max(effectInputCount, effectOutputCount);
-	if (effectChannelCount == 0)
+	if (context.plan.usesFill())
 	{
-		skipProcessing = true;
-		return channelNames;
+		passthroughChannels = context.plan.passthroughChannels;
+		resolvedInputChannels = context.plan.resolvedInputChannels;
+		resolvedOutputChannels = context.plan.resolvedOutputChannels;
 	}
+	return true;
+}
 
-	// round up
-	const bool oneContractInstance = busContract && busContract->hasExplicitLayout();
-	const size_t requiredEffectCount = oneContractInstance ? 1
-		: channelCount / effectChannelCount + (channelCount % effectChannelCount != 0 ? 1 : 0);
-	size_t paddedChannelCount = 0;
-	if (!checkedMultiply(requiredEffectCount, effectChannelCount, paddedChannelCount))
-	{
-		LogF(L"The VST plugin %s reported metadata that overflows its padded channel count; passing audio through.", libPath.c_str());
-		skipProcessing = true;
-		return channelNames;
-	}
-
-	// Every "-" slot is handed its own scratch buffer, so the fills add to the
-	// padding buffers allocated below.
-	size_t fillScratchCount = 0;
-	if (!inputChannels.empty() || !outputChannels.empty())
-	{
-		if (requiredEffectCount != 1)
-		{
-			LogF(L"The VST plugin %s needs several instances, which a channel fill cannot address; passing audio through.",
-				libPath.c_str());
-			skipProcessing = true;
-			return channelNames;
-		}
-		if ((!inputChannels.empty() && inputChannels.size() != effectInputCount)
-			|| (!outputChannels.empty() && outputChannels.size() != effectOutputCount))
-		{
-			LogF(L"The VST plugin %s negotiated a different bus slot count than its channel fill names; passing audio through.",
-				libPath.c_str());
-			skipProcessing = true;
-			return channelNames;
-		}
-
-		std::vector<int> resolvedInput;
-		std::vector<int> resolvedOutput;
-		if (!resolveChannelFill(inputChannels, channelNames, resolvedInput)
-			|| !resolveChannelFill(outputChannels, channelNames, resolvedOutput))
-		{
-			LogF(L"The VST plugin %s has a channel fill naming a channel this device does not have; passing audio through.",
-				libPath.c_str());
-			skipProcessing = true;
-			return channelNames;
-		}
-
-		std::vector<bool> writtenChannels(channelCount, false);
-		if (resolvedOutput.empty())
-		{
-			for (unsigned channel = 0; channel < effectOutputCount && channel < channelCount; channel++)
-				writtenChannels[channel] = true;
-		}
-		else
-		{
-			for (int channelIndex : resolvedOutput)
-			{
-				if (channelIndex < 0)
-					continue;
-				if (writtenChannels[static_cast<size_t>(channelIndex)])
-				{
-					LogF(L"The VST plugin %s has two output slots resolving to the same channel; passing audio through.",
-						libPath.c_str());
-					skipProcessing = true;
-					return channelNames;
-				}
-				writtenChannels[static_cast<size_t>(channelIndex)] = true;
-			}
-		}
-
-		for (int channelIndex : resolvedInput)
-		{
-			if (channelIndex < 0)
-				fillScratchCount++;
-		}
-		for (int channelIndex : resolvedOutput)
-		{
-			if (channelIndex < 0)
-				fillScratchCount++;
-		}
-
-		passthroughChannels.reserve(channelCount);
-		for (size_t channel = 0; channel < channelCount; channel++)
-		{
-			if (!writtenChannels[channel])
-				passthroughChannels.push_back(static_cast<unsigned>(channel));
-		}
-		resolvedInputChannels = std::move(resolvedInput);
-		resolvedOutputChannels = std::move(resolvedOutput);
-	}
-
-	const auto channelNameSlice = [&channelNames](size_t offset, size_t width)
-	{
-		const size_t end = (std::min)(channelNames.size(), offset + width);
-		if (offset >= end)
-			return std::vector<std::wstring>();
-		return std::vector<std::wstring>(channelNames.begin() + offset, channelNames.begin() + end);
-	};
+bool VSTPluginFilter::createRemainingInstances(InitContext& context, const std::vector<std::wstring>& channelNames)
+{
+	const size_t requiredEffectCount = context.plan.instanceCount;
 
 	// If the full-width proposal fell back to a narrower plugin layout, give
 	// the first split instance the same per-instance name slice as every
@@ -312,27 +254,21 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 	// non-semantic and therefore retains identity order.
 	if (requiredEffectCount > 1)
 	{
-		if (!negotiateInstance(firstEffect.get(), effectChannelCount,
-			channelNameSlice(0, effectChannelCount)))
+		if (!negotiateInstance(context.firstEffect.get(), effectChannelCount,
+			channelNameSlice(channelNames, 0, effectChannelCount), context.upmixerLayout))
 		{
-			LogF(L"The VST3 plugin %s rejected its repeated automatic bus layout; passing audio through.",
-				libPath.c_str());
-			skipProcessing = true;
-			return channelNames;
+			return passThrough(L"The VST3 plugin %s rejected its repeated automatic bus layout; passing audio through.");
 		}
-		if (firstEffect->numInputs() != reportedInputCount
-			|| firstEffect->numOutputs() != reportedOutputCount
-			|| firstEffect->getInitialDelay() != reportedLatency)
+		if (context.firstEffect->numInputs() != context.reportedInputCount
+			|| context.firstEffect->numOutputs() != context.reportedOutputCount
+			|| context.firstEffect->getInitialDelay() != context.reportedLatency)
 		{
-			LogF(L"The VST plugin %s changed metadata while configuring its first split instance; passing audio through.",
-				libPath.c_str());
-			skipProcessing = true;
-			return channelNames;
+			return passThrough(L"The VST plugin %s changed metadata while configuring its first split instance; passing audio through.");
 		}
 	}
 
 	effects.reserve(requiredEffectCount);
-	effects.push_back(std::move(firstEffect));
+	effects.push_back(std::move(context.firstEffect));
 	for (size_t i = 1; i < requiredEffectCount; i++)
 	{
 		try
@@ -341,54 +277,44 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 		}
 		catch (const std::bad_alloc&)
 		{
-			LogF(L"The VST plugin %s could not allocate instance %Iu; passing audio through.", libPath.c_str(), i);
-			skipProcessing = true;
-			return channelNames;
+			return passThrough(L"The VST plugin %s could not allocate instance %Iu; passing audio through.", i);
 		}
 		if (!effects[i]->initialize())
-		{
-			LogF(L"The VST plugin %s crashed during initialization.", libPath.c_str());
-			skipProcessing = true;
-			return channelNames;
-		}
+			return passThrough(L"The VST plugin %s crashed during initialization.");
 
 		// Every additional instance is brought to the same negotiated layout
 		// as the first one before the consistency check below.
 		if (!negotiateInstance(effects[i].get(), effectChannelCount,
-			channelNameSlice(i * effectChannelCount, effectChannelCount)))
+			channelNameSlice(channelNames, i * effectChannelCount, effectChannelCount), context.upmixerLayout))
 		{
-			LogF(L"The VST3 plugin %s rejected an automatic bus layout on instance %Iu; passing audio through.",
-				libPath.c_str(), i);
-			skipProcessing = true;
-			return channelNames;
+			return passThrough(L"The VST3 plugin %s rejected an automatic bus layout on instance %Iu; passing audio through.", i);
 		}
 
 		const int instanceInputCount = effects[i]->numInputs();
 		const int instanceOutputCount = effects[i]->numOutputs();
 		const int instanceLatency = effects[i]->getInitialDelay();
-		if (instanceInputCount != reportedInputCount
-			|| instanceOutputCount != reportedOutputCount
-			|| instanceLatency != reportedLatency)
+		if (instanceInputCount != context.reportedInputCount
+			|| instanceOutputCount != context.reportedOutputCount
+			|| instanceLatency != context.reportedLatency)
 		{
-			LogF(L"The VST plugin %s reported inconsistent per-instance metadata; passing audio through.", libPath.c_str());
-			skipProcessing = true;
-			return channelNames;
+			return passThrough(L"The VST plugin %s reported inconsistent per-instance metadata; passing audio through.");
 		}
 	}
+	return true;
+}
 
-	prepareForProcessing(sampleRate, maxFrameCount);
-	if (skipProcessing)
-		return channelNames;
+bool VSTPluginFilter::allocateBuffers(const InitContext& context, unsigned maxFrameCount)
+{
+	const size_t paddedChannelCount = context.plan.paddedChannelCount;
+	const size_t fillScratchCount = context.plan.fillScratchCount;
 
 	// 2 times for input and output
 	const size_t paddingChannelCount = paddedChannelCount > channelCount
 		? paddedChannelCount - channelCount : 0;
-	if ((!oneContractInstance && paddedChannelCount < channelCount)
+	if ((!(busContract && busContract->hasExplicitLayout()) && paddedChannelCount < channelCount)
 		|| paddingChannelCount > ((std::numeric_limits<size_t>::max)() - fillScratchCount) / 2)
 	{
-		LogF(L"The VST plugin %s reported metadata that overflows its padding count; passing audio through.", libPath.c_str());
-		skipProcessing = true;
-		return channelNames;
+		return passThrough(L"The VST plugin %s reported metadata that overflows its padding count; passing audio through.");
 	}
 	const size_t emptyChannelCount = 2 * paddingChannelCount + fillScratchCount;
 	emptyChannels.reserve(emptyChannelCount);
@@ -396,11 +322,7 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 	{
 		auto channel = AlignedMemory::allocateArray<double>(maxFrameCount);
 		if (!channel)
-		{
-			LogF(L"The VST plugin %s could not allocate padding channel %Iu; passing audio through.", libPath.c_str(), i);
-			skipProcessing = true;
-			return channelNames;
-		}
+			return passThrough(L"The VST plugin %s could not allocate padding channel %Iu; passing audio through.", i);
 		std::fill_n(channel.get(), maxFrameCount, 0.0);
 		emptyChannels.push_back(std::move(channel));
 	}
@@ -417,20 +339,13 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 		const size_t maxSize = (std::numeric_limits<size_t>::max)();
 		if (maxFrameCount != 0 && inputCount > maxSize / maxFrameCount)
 		{
-			LogF(L"The VST plugin %s reported input dimensions that overflow the conversion buffer; passing audio through.",
-				libPath.c_str());
-			skipProcessing = true;
-			return channelNames;
+			return passThrough(L"The VST plugin %s reported input dimensions that overflow the conversion buffer; passing audio through.");
 		}
 
 		floatInputs.resize(inputCount);
 		floatInputBuffer = AlignedMemory::allocateArray<float>(inputCount * maxFrameCount);
 		if (!floatInputBuffer)
-		{
-			LogF(L"The VST plugin %s could not allocate float input buffers; passing audio through.", libPath.c_str());
-			skipProcessing = true;
-			return channelNames;
-		}
+			return passThrough(L"The VST plugin %s could not allocate float input buffers; passing audio through.");
 		for (unsigned i = 0; i < effectInputCount; ++i) {
 			floatInputs[i] = floatInputBuffer.get() + i * maxFrameCount;
 		}
@@ -442,55 +357,44 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 		const size_t maxSize = (std::numeric_limits<size_t>::max)();
 		if (maxFrameCount != 0 && outputCount > maxSize / maxFrameCount)
 		{
-			LogF(L"The VST plugin %s reported output dimensions that overflow the conversion buffer; passing audio through.",
-				libPath.c_str());
-			skipProcessing = true;
-			return channelNames;
+			return passThrough(L"The VST plugin %s reported output dimensions that overflow the conversion buffer; passing audio through.");
 		}
 
 		floatOutputs.resize(outputCount);
 		floatOutputBuffer = AlignedMemory::allocateArray<float>(outputCount * maxFrameCount);
 		if (!floatOutputBuffer)
-		{
-			LogF(L"The VST plugin %s could not allocate float output buffers; passing audio through.", libPath.c_str());
-			skipProcessing = true;
-			return channelNames;
-		}
+			return passThrough(L"The VST plugin %s could not allocate float output buffers; passing audio through.");
 		for (unsigned i = 0; i < effectOutputCount; ++i) {
 			floatOutputs[i] = floatOutputBuffer.get() + i * maxFrameCount;
 		}
 	}
+	return true;
+}
 
-	// Allocate delay compensation buffers
-	delayBufferLength = static_cast<unsigned>(reportedLatency);
-	if (delayBufferLength > 0)
+bool VSTPluginFilter::allocateDelayCompensation(const InitContext& context, unsigned maxFrameCount)
+{
+	// A channel a plugin output writes is already late by the reported latency.
+	// Only the channels the plugin does not write are delayed, so they line up
+	// with the processed ones: with a fill, the channels no output slot names;
+	// without one, the device channels beyond the instances' buses, which an
+	// explicit contract copies through unchanged.
+	const unsigned latency = static_cast<unsigned>(context.reportedLatency);
+	if (latency == 0)
+		return true;
+	if (context.plan.usesFill())
+		delayedChannels = context.plan.passthroughChannels;
+	else
 	{
-		delayBuffers.reserve(channelCount);
-		for (size_t i = 0; i < channelCount; i++)
-		{
-			auto buffer = AlignedMemory::allocateArray<double>(delayBufferLength);
-			if (!buffer)
-			{
-				LogF(L"The VST plugin %s could not allocate delay buffer %Iu; passing audio through.", libPath.c_str(), i);
-				skipProcessing = true;
-				delayBufferLength = 0;
-				return channelNames;
-			}
-			std::fill_n(buffer.get(), delayBufferLength, 0.0);
-			delayBuffers.push_back(std::move(buffer));
-		}
-		delayTempBuffer = AlignedMemory::allocateArray<double>(maxFrameCount);
-		if (!delayTempBuffer)
-		{
-			LogF(L"The VST plugin %s could not allocate its delay scratch buffer; passing audio through.", libPath.c_str());
-			skipProcessing = true;
-			delayBufferLength = 0;
-			return channelNames;
-		}
-		delayBufferOffset = 0;
+		for (size_t channel = context.plan.paddedChannelCount; channel < channelCount; channel++)
+			delayedChannels.push_back(static_cast<unsigned>(channel));
 	}
+	if (delayedChannels.empty())
+		return true;
 
-	return channelNames;
+	delayedOutputs.assign(delayedChannels.size(), nullptr);
+	if (!latencyDelay.allocate(static_cast<unsigned>(delayedChannels.size()), latency, maxFrameCount))
+		return passThrough(L"The VST plugin %s could not allocate its delay compensation buffers; passing audio through.");
+	return true;
 }
 
 void VSTPluginFilter::prepareForProcessing(float sampleRate, unsigned maxFrameCount)
@@ -637,47 +541,11 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 		}
 
 		// Apply delay compensation if needed
-		if (!delayBuffers.empty() && delayBufferLength > 0)
+		if (!latencyDelay.empty())
 		{
-			for (unsigned i = 0; i < channelCount; i++)
-			{
-				double* outputChannel = output[i];
-				double* delayBuffer = delayBuffers[i].get();
-
-				if (delayBufferLength <= frameCount)
-				{
-					std::copy_n(outputChannel + frameCount - delayBufferLength, delayBufferLength, delayTempBuffer.get());
-					std::copy_backward(outputChannel, outputChannel + frameCount - delayBufferLength, outputChannel + frameCount);
-					std::copy_n(delayBuffer + delayBufferOffset, delayBufferLength - delayBufferOffset, outputChannel);
-					std::copy_n(delayBuffer, delayBufferOffset, outputChannel + delayBufferLength - delayBufferOffset);
-					std::copy_n(delayTempBuffer.get(), delayBufferLength, delayBuffer);
-				}
-				else
-				{
-					std::copy_n(outputChannel, frameCount, delayTempBuffer.get());
-
-					if (delayBufferLength < delayBufferOffset + frameCount)
-					{
-						// Wrapping around the delay buffer
-						std::copy_n(delayBuffer + delayBufferOffset, delayBufferLength - delayBufferOffset, outputChannel);
-						std::copy_n(delayBuffer, frameCount - (delayBufferLength - delayBufferOffset), outputChannel + delayBufferLength - delayBufferOffset);
-						std::copy_n(delayTempBuffer.get(), delayBufferLength - delayBufferOffset, delayBuffer + delayBufferOffset);
-						std::copy_n(delayTempBuffer.get() + delayBufferLength - delayBufferOffset, frameCount - (delayBufferLength - delayBufferOffset), delayBuffer);
-					}
-					else
-					{
-						// Simple case - no wrapping
-						std::copy_n(delayBuffer + delayBufferOffset, frameCount, outputChannel);
-						std::copy_n(delayTempBuffer.get(), frameCount, delayBuffer + delayBufferOffset);
-					}
-				}
-			}
-
-			// Update buffer offset
-			if (delayBufferLength <= frameCount)
-				delayBufferOffset = 0;
-			else
-				delayBufferOffset = (delayBufferOffset + frameCount) % delayBufferLength;
+			for (size_t i = 0; i < delayedChannels.size(); i++)
+				delayedOutputs[i] = output[delayedChannels[i]];
+			latencyDelay.process(delayedOutputs.data(), delayedOutputs.data(), frameCount);
 		}
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
@@ -765,8 +633,7 @@ void VSTPluginFilter::cleanup()
 	floatInputBuffer.reset();
 	floatOutputs.clear();
 	floatOutputBuffer.reset();
-	delayBuffers.clear();
-	delayTempBuffer.reset();
-	delayBufferLength = 0;
-	delayBufferOffset = 0;
+	latencyDelay.release();
+	delayedChannels.clear();
+	delayedOutputs.clear();
 }
