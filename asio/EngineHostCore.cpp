@@ -12,11 +12,11 @@
 
 #include <avrt.h>
 
+#include "asio/StreamEngineSetup.h"
+#include "asio/StreamFacts.h"
 #include "engine/FilterEngine.h"
 #include "services/logging/Logging.h"
 #include "services/registry/RegistryError.h"
-#include "services/registry/RegistryPaths.h"
-#include "services/registry/WindowsRegistry.h"
 
 namespace eapo::asio
 {
@@ -87,20 +87,12 @@ namespace eapo::asio
 		};
 
 		// What the device record reads back for channel counts and rate
-		// (AsioAPOInfo::factsKey): the last stream's shape, under HKCU so it
-		// needs no elevation. Best effort; a stream does not depend on it.
-		void publishFacts(const StreamFormat& format) noexcept
+		// (asio/StreamFacts.h). Best effort; a stream does not depend on it.
+		void publishFacts(IRegistry& registry, const StreamFormat& format) noexcept
 		{
 			try
 			{
-				IRegistry& registry = systemRegistry();
-				const std::wstring key = std::wstring(USER_REGPATH) + L"\\ASIO\\" + format.deviceGuid;
-				registry.createKey(key);
-				registry.writeDWORDValue(key, L"SampleRate", static_cast<unsigned long>(format.sampleRate));
-				registry.writeDWORDValue(key, L"OutputChannels", format.channels[0]);
-				registry.writeDWORDValue(key, L"InputChannels", format.channels[1]);
-				registry.writeDWORDValue(key, L"Frames", format.frames);
-				registry.writeValue(key, L"DeviceName", format.deviceName);
+				StreamFacts::write(registry, format);
 			}
 			catch (const RegistryError&)
 			{
@@ -117,23 +109,13 @@ namespace eapo::asio
 				return true;
 			lane.planes.resize(channels);
 			lane.engine = std::make_unique<FilterEngine>();
-			EngineSetup setup{
-				.sampleRate = static_cast<float>(format.sampleRate),
-				.inputChannelCount = channels,
-				.realChannelCount = channels,
-				.outputChannelCount = channels,
-				.channelMask = 0,
-				.maxFrameCount = format.frames,
-				.customPath = options.configPath,
-				.preMix = false,
-				.capture = direction == Direction::Input,
-				.postMixInstalled = true,
-				.deviceName = format.deviceName,
-				.connectionName = L"ASIO",
-				.deviceGuid = format.deviceGuid
-			};
-			lane.engine->initialize(setup);
+			lane.engine->initialize(streamEngineSetup(format, direction, options.configPath));
 			return true;
+		}
+
+		bool abandoned(const ServeOptions& options) noexcept
+		{
+			return options.abandon != nullptr && options.abandon->load();
 		}
 	}
 
@@ -172,19 +154,18 @@ namespace eapo::asio
 			}
 
 			consumer.setState(RingState::Ready);
-			if (options.publishFacts)
-				publishFacts(format);
+			if (options.registry != nullptr)
+				publishFacts(*options.registry, format);
 			LogFStatic(L"ASIO host: serving %s at %.0f Hz, %u frames, out %u in %u",
 				format.deviceName, format.sampleRate, format.frames, format.channels[0], format.channels[1]);
 
 			ProAudioScope priority(options.proAudio);
-			const uint32_t spinUs = format.sampleRate > 0.0
-				? static_cast<uint32_t>(options.spinPeriods * static_cast<double>(format.frames) * 1000000.0 / format.sampleRate) : 0;
+			const uint32_t spinUs = static_cast<uint32_t>(options.spinPeriods * periodUs(format));
 			CoreAvoidance avoidance;
 			RingConsumer::Acquired acquired;
 			for (;;)
 			{
-				if (options.abandon != nullptr && options.abandon->load())
+				if (abandoned(options))
 				{
 					report.peerGone = false;
 					return report;
@@ -196,7 +177,9 @@ namespace eapo::asio
 					continue;
 				}
 				avoidance.keepOff(consumer.producerCpu());
-				if (options.abandon != nullptr && options.abandon->load())
+				while (options.hold != nullptr && options.hold->load() && !abandoned(options))
+					Sleep(1);
+				if (abandoned(options))
 				{
 					report.peerGone = false;
 					return report;
@@ -216,6 +199,41 @@ namespace eapo::asio
 				static_cast<unsigned long long>(report.blocks[0]), static_cast<unsigned long long>(report.blocks[1]),
 				report.peerGone ? L", producer gone" : L"");
 			return report;
+		}
+
+		ServeReport attachAndServe(void* base, size_t bytes, const eapo::ipc::RingSync& sync, const ServeOptions& options,
+			uint32_t hostPid) noexcept
+		{
+			ServeReport report;
+			if (base == nullptr || bytes < eapo::ipc::ringHeaderBytes)
+				return report;
+			// The producer formats the header after the host was told about
+			// the ring; wait for Announced before validating anything.
+			const eapo::ipc::RingHeader* header = static_cast<const eapo::ipc::RingHeader*>(base);
+			const ULONGLONG deadline = GetTickCount64() + options.readyTimeoutMs;
+			while (ReadAcquire(&header->state) == static_cast<LONG>(RingState::Empty) && !abandoned(options))
+			{
+				if (sync.peer != nullptr)
+				{
+					const DWORD waited = WaitForSingleObject(sync.peer, 5);
+					if (waited == WAIT_OBJECT_0)
+						break;
+					if (waited == WAIT_FAILED)
+						Sleep(5);
+				}
+				else
+				{
+					Sleep(5);
+				}
+				if (GetTickCount64() >= deadline)
+					break;
+			}
+			if (abandoned(options))
+				return report;
+			// RingConsumer checks everything a header can get wrong, an Empty
+			// one included; serveStream turns a refusal into Fault.
+			RingConsumer consumer(base, bytes, sync);
+			return serveStream(consumer, options, hostPid);
 		}
 	}
 }

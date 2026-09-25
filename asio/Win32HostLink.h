@@ -21,6 +21,7 @@
 #include <string>
 
 #include "asio/HostLink.h"
+#include "asio/HostProtocol.h"
 
 namespace eapo::asio
 {
@@ -47,7 +48,7 @@ namespace eapo::asio
 		struct Objects
 		{
 			HANDLE mapping = nullptr;
-			HANDLE events[5] = {};
+			HANDLE events[RingEvents::count] = {};
 		};
 
 		bool connectToHost(const std::wstring& endpoint, const StreamOptions& options, ULONGLONG deadline, HANDLE& pipe,

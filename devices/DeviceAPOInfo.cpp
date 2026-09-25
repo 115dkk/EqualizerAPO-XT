@@ -36,6 +36,7 @@
 #include "platform/windows/ComPtr.h"
 #include "platform/windows/ComSelfRegistration.h"
 #include "platform/windows/Win32Resource.h"
+#include "platform/windows/WindowsPath.h"
 
 using std::make_shared;
 using std::move;
@@ -149,11 +150,13 @@ bool DeviceAPOInfo::checkAPORegistration(bool fix, const IRegistry& registry)
 
 		if (fix)
 		{
-			wchar_t path[MAX_PATH];
-			if (GetModuleFileNameW(nullptr, path, MAX_PATH) != 0)
+			// pathutil answers empty on a truncated module path as well as a
+			// failed one; the copy that stood here checked only for failure
+			// (audit #348 TD-54).
+			const wstring directory = pathutil::exeDirectory();
+			if (!directory.empty())
 			{
-				PathRemoveFileSpecW(path);
-				wstring dllPath = wstring(path) + L"\\EqualizerAPO.dll";
+				const wstring dllPath = pathutil::joinPath(directory, L"EqualizerAPO.dll");
 
 				// Self-register the COM in-proc server by calling its
 				// DllRegisterServer export directly instead of spawning

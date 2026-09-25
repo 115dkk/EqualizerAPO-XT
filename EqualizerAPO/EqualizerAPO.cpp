@@ -40,6 +40,7 @@
 #include "../platform/windows/NamedPipeSecurity.h"
 #include "../devices/DeviceAPOInfo.h"
 #include "../devices/DeviceAPOInfoKeys.h"
+#include "../devices/DeviceTestWire.h"
 #include "EqualizerAPO.h"
 
 namespace
@@ -243,7 +244,7 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 	}
 
 	if (deviceTestPipeName != L"")
-		sendMessage(deviceTestPipeName, deviceGuid, apoGuid, "Initialize");
+		sendMessage(deviceTestPipeName, deviceGuid, apoGuid, devicetest::wire::kPhaseInitialize);
 
 	wstring childApoGuid;
 
@@ -313,7 +314,7 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 		TraceF(L"Successfully created and initialized child APO");
 
 		if (deviceTestPipeName != L"")
-			sendMessage(deviceTestPipeName, deviceGuid, apoGuid, "ChildAPO");
+			sendMessage(deviceTestPipeName, deviceGuid, apoGuid, devicetest::wire::kPhaseChildApo);
 	}
 
 	return S_OK;
@@ -583,7 +584,9 @@ void EqualizerAPO::resetChild()
 
 void EqualizerAPO::sendMessage(std::wstring& deviceTestPipeName, const std::wstring& deviceGuid, GUID apoGuid, const std::string& phase)
 {
-	string message = "{\"deviceGuid\":\"" + wintext::toNarrowString(deviceGuid, CP_UTF8) + "\", \"stage\":\"" + (apoGuid == EQUALIZERAPO_PRE_MIX_GUID ? "PreMix" : "PostMix") + "\", \"phase\":\"" + phase + "\"}";
+	// The keys and values are the Device Selector's too (DeviceTestWire.h).
+	string message = devicetest::wire::composeMessage(wintext::toNarrowString(deviceGuid, CP_UTF8),
+		apoGuid == EQUALIZERAPO_PRE_MIX_GUID, phase.c_str());
 
 	// Only the right the message needs; who may do what with the pipe is in
 	// NamedPipeSecurity.h.

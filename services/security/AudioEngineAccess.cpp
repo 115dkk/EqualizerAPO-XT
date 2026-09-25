@@ -35,7 +35,7 @@
 #include <authz.h>
 #include <sddl.h>
 
-#include "services/logging/Logging.h"
+#include "services/logging/TaggedLogger.h"
 #include "platform/windows/Win32Resource.h"
 #include "platform/windows/WindowsPath.h"
 
@@ -70,6 +70,8 @@ std::wstring systemPath()
 using pathutil::joinPath;
 using pathutil::pathExists;
 
+constexpr logging::TaggedLogger logLine(L"AudioEngineAccess");
+
 // Runs a system tool to completion and returns its exit code, or -1 when it
 // could not be started or timed out. Moved here with the icacls calls it exists
 // for; nothing else in the tree spawned a process through the old copy.
@@ -90,7 +92,7 @@ int runToCompletion(const std::wstring& executable, const std::wstring& argument
 	if (!CreateProcessW(executable.c_str(), mutableCommand.data(), nullptr, nullptr, FALSE,
 			CREATE_NO_WINDOW, nullptr, nullptr, &startupInfo, processInfo.put()))
 	{
-		LogFStatic(L"[AudioEngineAccess] CreateProcess failed for %s (gle=%lu)", executable.c_str(), GetLastError());
+		logLine(L"ERR", L"CreateProcess failed for %s (gle=%lu)", executable.c_str(), GetLastError());
 		return -1;
 	}
 
@@ -102,7 +104,7 @@ int runToCompletion(const std::wstring& executable, const std::wstring& argument
 	}
 	else
 	{
-		LogFStatic(L"[AudioEngineAccess] %s timed out after %u ms", executable.c_str(), timeoutMs);
+		logLine(L"ERR", L"%s timed out after %u ms", executable.c_str(), timeoutMs);
 		TerminateProcess(processInfo.process(), 1);
 	}
 

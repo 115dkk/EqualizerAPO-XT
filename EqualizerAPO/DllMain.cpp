@@ -118,8 +118,9 @@ STDAPI DllRegisterServer()
 			winutil::guidToString(EQUALIZERAPO_PRE_MIX_GUID),
 			L"EqualizerAPO Pre-Mix Class", filename);
 	}
-	catch (const RegistryError&)
+	catch (const RegistryError& e)
 	{
+		LogFStatic(L"Could not register the APO class keys: %s", e.getMessage().c_str());
 		UnregisterAPO(EQUALIZERAPO_POST_MIX_GUID);
 		UnregisterAPO(EQUALIZERAPO_PRE_MIX_GUID);
 		return E_FAIL;
@@ -137,8 +138,9 @@ STDAPI DllUnregisterServer()
 		ClsidRegistration::unregisterClsidTree(systemRegistry(),
 			winutil::guidToString(EQUALIZERAPO_PRE_MIX_GUID));
 	}
-	catch (const RegistryError&)
+	catch (const RegistryError& e)
 	{
+		LogFStatic(L"Could not remove the APO class keys: %s", e.getMessage().c_str());
 		return E_FAIL;
 	}
 

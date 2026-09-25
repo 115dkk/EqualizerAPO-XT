@@ -156,6 +156,7 @@
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
+       <!-- width: MainWindow::analysisControlBarWidth -->
        <property name="maximumSize">
         <size>
          <width>280</width>

@@ -21,11 +21,9 @@
 
 #include <memory>
 #include <optional>
-#include <QElapsedTimer>
 #include "Editor/IFilterGUI.h"
-#include "Editor/helpers/PanelPreviewFeeder.h"
-#include "Editor/widgets/cards/VSTSlotFillModel.h"
-#include "vst/VSTPluginInstance.h"
+#include "Editor/widgets/cards/VSTPluginSession.h"
+#include "Editor/widgets/cards/VSTRowDocument.h"
 #include "vst/VSTPluginLibrary.h"
 
 class QCheckBox;
@@ -34,6 +32,10 @@ namespace Ui {
 class VSTPluginFilterGUI;
 }
 
+// The legacy VSTPlugin row. It shares its document state (VSTRowDocument)
+// and its plugin session (VSTPluginSession) with the card, so it only
+// builds its original controls, forwards what the user does and draws what
+// those two report.
 class VSTPluginFilterGUI : public IFilterGUI
 {
 	Q_OBJECT
@@ -45,55 +47,40 @@ public:
 	~VSTPluginFilterGUI() override;
 
 	void store(QString& command, QString& parameters) override;
-	void configureSelectedChannels(std::vector<std::wstring>& selectedChannels) override;
+	void setChannelFlow(const ChannelFlowAtLine& flow) override;
 	void loadPreferences(const QVariantMap& prefs) override;
 	void storePreferences(QVariantMap& prefs) override;
-	void onAutomate();
-	void onSizeWindow(int w, int h);
 
 private slots:
 	void on_openPanelButton_clicked();
-	void applyDialog();
-	void autoApplyToggled(bool checked);
 	void on_pathLineEdit_editingFinished();
 	void on_selectButton_clicked();
 	void on_embedAction_toggled(bool checked);
 	void stereoInputToggled(bool checked);
 	void busLayoutPicked();
 	void fillToggleClicked(bool checked);
-	void on_idle();
+	void pluginStateChanged();
+	void showStatus();
 
 private:
-	void initPlugin();
-	bool embedPlugin();
 	void updatePermissionWarning();
 	void updateBusControls();
 	void updateFillRows();
 	void rebuildFillRow(bool output);
 
 	std::unique_ptr<Ui::VSTPluginFilterGUI> ui;
-	std::shared_ptr<VSTPluginLibrary> library;
-	std::unique_ptr<VSTPluginInstance> effect;
-	std::wstring chunkData;
-	std::unordered_map<std::wstring, float> paramMap;
-	bool embedded = false;
-	bool autoApplyDialog = true;
+	// The legacy "StereoInput 1" option stays a flag of this row, outside the
+	// document, so a line that carries it is written back unchanged (the card
+	// migrates it into the equivalent contract instead).
 	bool stereoInput = false;
-	std::optional<VST3BusContract> busContract;
-	// Per-slot channel fill for the forced layouts, edited by the two plain
-	// combo rows below the bus dropdowns. A side's list drops when that
-	// side's layout changes, because the slot count no longer matches.
-	std::vector<std::wstring> inputChannels;
-	std::vector<std::wstring> outputChannels;
-	VSTSlotFillModel fillModel;
+	// The bus contract and the per-slot channel fill, edited by the two bus
+	// dropdowns and the plain combo rows below them.
+	VSTRowDocument document;
+	std::unique_ptr<VSTPluginSession> session;
 	bool fillCollapsed = false;
 	bool fillCollapsedFromPrefs = false;
 	QWidget* inputFillRow = nullptr;
 	QWidget* outputFillRow = nullptr;
 	QCheckBox* fillToggle = nullptr;
 	QAction* stereoInputAction = nullptr;
-	QElapsedTimer lastReadTimer;
-	// Declared after effect on purpose: reverse member destruction stops the
-	// pump before the instance it feeds goes away.
-	PanelPreviewFeeder previewFeeder;
 };

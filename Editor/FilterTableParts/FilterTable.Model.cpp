@@ -60,6 +60,7 @@
 #include "SubwooferRouting/StateCodec.h"
 #include "services/logging/Logging.h"
 #include "audio/ChannelLayout.h"
+#include "filters/DeviceCommand.h"
 #include "services/registry/WindowsRegistry.h"
 #include "FilterTable.h"
 #include "Editor/widgets/FilterCardRow.h"
@@ -87,10 +88,32 @@ vector<wstring> FilterTable::getChannelNames() const
 
 void FilterTable::propagateChannels()
 {
-	vector<wstring> channelNames = getChannelNames();
-	// The engine's selection flow, mirrored: the device set until a Channel
-	// row replaces it (configureSelectedChannels), never widened by Copy.
-	vector<wstring> selectedChannels = channelNames;
+	// The engine's channel flow, computed once from the lines themselves
+	// (ChannelFlow); each row widget only reads its own line's element.
+	ChannelFlowContext context;
+	context.deviceChannels = getChannelNames();
+	if (selectedDevice != nullptr)
+	{
+		context.deviceString = DeviceCommand::matchString(selectedDevice->getConnectionName(),
+			selectedDevice->getDeviceName(), selectedDevice->getDeviceGuid());
+		// The Editor analyses the selected device the way AnalysisThread runs
+		// the engine: the capture flag from the device, the post-mix instance
+		// with a post-mix APO installed (ChannelFlowContext's defaults).
+		context.capture = selectedDevice->isInput();
+	}
+
+	std::vector<ChannelFlowLine> lines;
+	lines.reserve(size_t(model.items().size()));
+	for (const Item* item : model.items())
+	{
+		ChannelFlowLine line;
+		QString parameters;
+		line.command = FilterCardModel::commandForLine(item->text, &parameters).toStdWString();
+		line.parameters = parameters.toStdWString();
+		line.enabled = !item->text.trimmed().startsWith('#');
+		lines.push_back(std::move(line));
+	}
+	const std::vector<ChannelFlowAtLine> flow = computeChannelFlow(lines, context);
 
 	const QVector<QWidget*> rowWidgets = renderMode == ModernCards
 		? rowWidgetsByRow() : QVector<QWidget*>();
@@ -102,17 +125,13 @@ void FilterTable::propagateChannels()
 			FilterCardRow* cardRow = qobject_cast<FilterCardRow*>(rowWidgets[row]);
 			if (cardRow != nullptr)
 			{
-				cardRow->configureChannels(channelNames);
-				cardRow->configureSelectedChannels(selectedChannels);
+				cardRow->setChannelFlow(flow[size_t(row)]);
 				continue;
 			}
 		}
 
 		if (item->gui != nullptr)
-		{
-			item->gui->configureChannels(channelNames);
-			item->gui->configureSelectedChannels(selectedChannels);
-		}
+			item->gui->setChannelFlow(flow[size_t(row)]);
 	}
 }
 

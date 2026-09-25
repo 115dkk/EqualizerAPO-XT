@@ -19,6 +19,7 @@
 #include <thread>
 
 #include "asio/HostLink.h"
+#include "asio/HostProtocol.h"
 
 namespace eapo::asio
 {
@@ -39,14 +40,19 @@ namespace eapo::asio
 		// Makes the serving thread leave without releasing what it holds,
 		// the way a crashed host would. For the tests.
 		void killHost() noexcept;
+		// While held, the serving thread keeps the next block it picks up
+		// without completing it, the way a host the scheduler stalled would;
+		// releasing it resumes in order. For the tests.
+		void holdHost(bool held) noexcept;
 
 	private:
 		void* region_ = nullptr;
-		HANDLE events_[5] = {};
+		HANDLE events_[RingEvents::count] = {};
 		HANDLE hostGone_ = nullptr;        // producer's peer: set when the thread leaves
 		HANDLE producerGone_ = nullptr;    // consumer's peer: set by close()
 		std::thread thread_;
 		std::atomic<bool> kill_{false};
+		std::atomic<bool> hold_{false};
 		bool proAudio_;
 	};
 }

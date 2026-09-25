@@ -33,6 +33,37 @@ bool StageCommand::contains(const wstring& stage) const
 	return false;
 }
 
+bool StageCommand::matchesByDefault(bool instancePreMix, bool instanceCapture, bool postMixInstalled)
+{
+	return instanceCapture || !instancePreMix || !postMixInstalled;
+}
+
+bool StageCommand::matches(bool instancePreMix, bool instanceCapture, wstring* matchingStage) const
+{
+	// Matching loop preserved from the engine factory: every selector is
+	// checked, so the last matching one is the one reported.
+	bool result = false;
+	for (const wstring& part : stages)
+	{
+		const bool partMatches = part == preMix ? !instanceCapture && instancePreMix
+			: part == postMix ? !instanceCapture && !instancePreMix
+			: part == capture ? instanceCapture
+			: false;
+		if (partMatches)
+		{
+			result = true;
+			if (matchingStage != nullptr)
+				*matchingStage = part;
+		}
+	}
+	return result;
+}
+
+bool StageCommand::isKnownStage(const wstring& stage)
+{
+	return stage == preMix || stage == postMix || stage == capture;
+}
+
 wstring StageCommand::serialize() const
 {
 	wstring result;

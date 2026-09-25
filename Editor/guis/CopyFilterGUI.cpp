@@ -60,19 +60,17 @@ CopyFilterGUI::CopyFilterGUI(const std::vector<Assignment>& assignments, FilterT
 
 CopyFilterGUI::~CopyFilterGUI() = default;
 
-void CopyFilterGUI::configureChannels(vector<wstring>& channelNames)
+void CopyFilterGUI::setChannelFlow(const ChannelFlowAtLine& flow)
 {
-	vector<Assignment> assignments = ui->form->buildAssignments();
-
-	if (channelNames != inputChannelNames)
+	// Only the names in scope at this line; the names this line adds for the
+	// rows below come from the stored line (computeChannelFlow).
+	if (flow.namesInScope != inputChannelNames)
 	{
-		inputChannelNames = channelNames;
+		inputChannelNames = flow.namesInScope;
 
-		scene->load(inputChannelNames, assignments);
-		ui->form->setChannelNames(channelNames);
+		scene->load(inputChannelNames, ui->form->buildAssignments());
+		ui->form->setChannelNames(inputChannelNames);
 	}
-
-	propagateCopyChannels(assignments, channelNames);
 }
 
 void CopyFilterGUI::store(QString& command, QString& parameters)

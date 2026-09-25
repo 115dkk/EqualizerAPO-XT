@@ -24,16 +24,13 @@
 #include "audio/ChannelLayout.h"
 #include "dsp/FftwPlanningPolicy.h"
 #include "engine/FilterEngine.h"
-#include "helpers/AnalysisRequestGeneration.h"
+#include "Editor/analysis/ImpulseMeasurement.h"
 #include "helpers/AnalysisWorkerRecovery.h"
 #include "AnalysisThread.h"
 
-using std::abs;
-using std::log10;
 using std::mutex;
 using std::numeric_limits;
 using std::shared_ptr;
-using std::sqrt;
 
 AnalysisThread::AnalysisThread()
 {
@@ -58,7 +55,7 @@ void AnalysisThread::setParameters(shared_ptr<AbstractAPOInfo> device, int chann
 	this->channelIndex = channelIndex;
 	this->configPath = configPath;
 	this->frameCount = frameCount;
-	requestGeneration.fetch_add(1, std::memory_order_relaxed);
+	requestTicket = requestFence.begin();
 
 	condition.wakeAll();
 }
@@ -117,7 +114,7 @@ void AnalysisThread::run()
 		int channelIndex;
 		QString configPath;
 		int frameCount;
-		uint64_t generation;
+		AnalysisRequestFence::Ticket ticket;
 		{
 			QMutexLocker locker(&mutex);
 			while (!quit.load(std::memory_order_relaxed) && this->frameCount == 0)
@@ -130,7 +127,7 @@ void AnalysisThread::run()
 			channelIndex = this->channelIndex;
 			configPath = this->configPath;
 			frameCount = this->frameCount;
-			generation = requestGeneration.load(std::memory_order_relaxed);
+			ticket = requestTicket;
 			this->frameCount = 0;
 		}
 
@@ -236,11 +233,11 @@ void AnalysisThread::run()
 		lastFrameCount = frameCount;
 		lastChannelCount = channelCount;
 
-		int latency = 0;
-		int startFrame = -1;
+		ImpulseMeasurement measurement(
+			channelCount, channelIndex, frameCount, timeData.get());
 		double processingTime = 0.0;
 		unsigned processedFrames = 0;
-		// stop searching for startFrame after 10 seconds of audio data
+		// stop searching for the impulse after 10 seconds of audio data
 		while (processedFrames < 10 * sampleRate)
 		{
 			if (quit.load(std::memory_order_relaxed))
@@ -251,66 +248,28 @@ void AnalysisThread::run()
 			processingTime += (timer.nsecsElapsed() - startTime) / 1e6;
 			processedFrames += frameCount;
 
-			if (startFrame != -1)
-			{
-				for (int i = 0; i < startFrame; i++)
-				{
-					timeData.get()[frameCount - startFrame + i] = buf2[i * channelCount + channelIndex];
-				}
+			if (measurement.addBlock(buf2.data()))
 				break;
-			}
 
-			for (int i = 0; i < frameCount; i++)
-			{
-				double s = buf2[i * channelCount + channelIndex];
-				if (abs(s) > 1e-5f)
-				{
-					startFrame = i;
-					break;
-				}
-			}
-
-			if (startFrame != -1)
-			{
-				for (int i = 0; i < frameCount - startFrame; i++)
-				{
-						timeData.get()[i] = buf2[(startFrame + i) * channelCount + channelIndex];
-				}
-
-				if (startFrame == 0)
-					break;
-			}
-
-			if (latency == 0)
+			// The impulse is one frame long: after the first block the engine
+			// is fed silence.
+			if (processedFrames == static_cast<unsigned>(frameCount))
 			{
 				for (unsigned i = 0; i < channelCount; i++)
 					buf[i] = 0.0f;
 			}
-
-			if (startFrame == -1)
-				latency += frameCount;
 		}
 
+		int latency;
 		double peakGain;
-		if (startFrame != -1)
+		if (measurement.found())
 		{
-			latency += startFrame;
+			latency = measurement.latencyFrames();
 
 			fftw_execute(planForward.get());
 
-			peakGain = -DBL_MAX;
-
-			// Every bin the transform wrote, the Nyquist bin included: the graph
-			// draws it, so a peak there must count too (audit #348).
-			const int binCount = static_cast<int>(AnalysisResponse::binCountFor(frameCount));
-			for (int i = 0; i < binCount; i++)
-			{
-				double sqrGain = freqData.get()[i][0] * freqData.get()[i][0] + freqData.get()[i][1] * freqData.get()[i][1];
-				if (sqrGain > peakGain)
-					peakGain = sqrGain;
-			}
-			peakGain = sqrt(peakGain);
-			peakGain = log10(peakGain) * 20.0;
+			peakGain = impulsePeakGainDb(freqData.get(),
+				AnalysisResponse::binCountFor(frameCount));
 		}
 		else
 		{
@@ -335,17 +294,18 @@ void AnalysisThread::run()
 
 		{
 			QMutexLocker locker(&mutex);
-			if (!isCurrentAnalysisRequest(
-				generation, requestGeneration.load(std::memory_order_relaxed)))
+			if (!requestFence.publishIf(ticket, [&]
+			{
+				this->resultResponse = std::move(response);
+				this->peakGain = peakGain;
+				this->initializationTime = initializationTime;
+				this->processingTime = processingTime;
+				this->processedFrames = processedFrames;
+				this->resultErrorText.clear();
+				this->resultLoadTrace = std::move(traceCollector.entries);
+				resultPublished = true;
+			}))
 				return;
-			this->resultResponse = std::move(response);
-			this->peakGain = peakGain;
-			this->initializationTime = initializationTime;
-			this->processingTime = processingTime;
-			this->processedFrames = processedFrames;
-			this->resultErrorText.clear();
-			this->resultLoadTrace = std::move(traceCollector.entries);
-			resultPublished = true;
 		}
 
 		qDebug("Analysis took %.1f ms", timer.nsecsElapsed() / 1e6);
@@ -354,27 +314,29 @@ void AnalysisThread::run()
 		{
 			qCritical("Analysis failed; worker remains available: %s", error);
 			QMutexLocker locker(&mutex);
-			if (!isCurrentAnalysisRequest(
-				generation, requestGeneration.load(std::memory_order_relaxed)))
-				return;
-			// An empty response rather than a null one, so the graph clears
-			// instead of keeping the previous config's curve on screen.
-			resultResponse = std::make_shared<AnalysisResponse>();
-			peakGain = numeric_limits<double>::quiet_NaN();
-			initializationTime = 0.0;
-			processingTime = 0.0;
-			processedFrames = 0;
-			resultErrorText = QString::fromUtf8(error);
-			resultLoadTrace.clear();
-			resultPublished = true;
+			requestFence.publishIf(ticket, [&]
+			{
+				// An empty response rather than a null one, so the graph clears
+				// instead of keeping the previous config's curve on screen.
+				resultResponse = std::make_shared<AnalysisResponse>();
+				peakGain = numeric_limits<double>::quiet_NaN();
+				initializationTime = 0.0;
+				processingTime = 0.0;
+				processedFrames = 0;
+				resultErrorText = QString::fromUtf8(error);
+				resultLoadTrace.clear();
+				resultPublished = true;
+			});
 		});
 
 		bool emitFinished = false;
 		if (resultPublished)
 		{
 			QMutexLocker locker(&mutex);
-			emitFinished = isCurrentAnalysisRequest(
-				generation, requestGeneration.load(std::memory_order_relaxed));
+			requestFence.publishIf(ticket, [&]
+			{
+				emitFinished = true;
+			});
 		}
 		if (emitFinished)
 			emit analysisFinished();

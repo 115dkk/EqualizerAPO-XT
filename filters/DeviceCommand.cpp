@@ -64,6 +64,12 @@ bool DeviceCommand::matches(const wstring& deviceString) const
 	return matches;
 }
 
+wstring DeviceCommand::matchString(const wstring& connectionName, const wstring& deviceName,
+	const wstring& deviceGuid)
+{
+	return connectionName + L" " + deviceName + (deviceGuid.empty() ? L"" : L" " + deviceGuid);
+}
+
 wstring DeviceCommand::serialize() const
 {
 	wstring result;

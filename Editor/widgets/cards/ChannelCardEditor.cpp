@@ -59,25 +59,15 @@ void ChannelCardEditor::store(QString& command, QString& storedParameters)
 	storedParameters = model.serialize();
 }
 
-void ChannelCardEditor::configureChannels(std::vector<std::wstring>& channelNames)
+void ChannelCardEditor::setChannelFlow(const ChannelFlowAtLine& flow)
 {
-	deviceChannels = channelNames;
-	// Re-seed the chips with the device's channel set, keeping the current
-	// selection (parameters tracks the latest edit).
+	// Re-seed the chips with the names in scope at this line (the device's
+	// channels plus what Copy created above), keeping the current selection
+	// (parameters tracks the latest edit). The selection this line hands the
+	// rows below is computed from the stored line (computeChannelFlow).
+	deviceChannels = flow.namesInScope;
 	model.load(parameters, deviceChannels);
 	reloadChips();
-}
-
-void ChannelCardEditor::configureSelectedChannels(std::vector<std::wstring>& selectedChannels)
-{
-	// Replace the flowing selection with this line's, resolved by the same
-	// routine the tests pin to ChannelFilter. deviceChannels is the in-scope
-	// vector configureChannels just delivered, so Copy-created channels
-	// above this row resolve here exactly as they would in the engine.
-	ChannelCommand cmd;
-	if (!ChannelCommand::parse(L"Channel", parameters.toStdWString(), cmd))
-		return;
-	selectedChannels = ChannelCommand::resolveSelection(cmd.channels, deviceChannels);
 }
 
 void ChannelCardEditor::allToggled(bool checked)

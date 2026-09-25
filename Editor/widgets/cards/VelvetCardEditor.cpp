@@ -19,6 +19,7 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
+#include "Editor/widgets/FilterCardRow.h"
 #include "Editor/widgets/FlowLayout.h"
 #include "Editor/widgets/SegmentedControl.h"
 #include "Editor/widgets/ValueScrubBox.h"
@@ -224,8 +225,7 @@ void VelvetCardEditor::setAdvanced(bool expanded)
 		QScrollArea* scroll = qobject_cast<QScrollArea*>(ancestor);
 		if (scroll == nullptr || scroll->widget() != this)
 			continue;
-		const int desired = qBound(24, layout()->sizeHint().height(), 600);
-		scroll->setFixedHeight(desired);
+		FilterCardRow::fitEditorScrollHeight(scroll, layout()->sizeHint().height());
 		scroll->updateGeometry();
 		break;
 	}

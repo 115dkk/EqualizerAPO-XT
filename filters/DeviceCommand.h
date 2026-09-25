@@ -39,6 +39,12 @@ struct DeviceCommand
 	// a GUID fragment. An empty pattern list matches nothing.
 	bool matches(const std::wstring& deviceString) const;
 
+	// The device string matches() is meant for, in the one spelling the engine
+	// builds it: connection name, device name, then the GUID when there is
+	// one. The engine and the Editor's channel flow both assemble it here.
+	static std::wstring matchString(const std::wstring& connectionName, const std::wstring& deviceName,
+		const std::wstring& deviceGuid);
+
 	// Canonical parameter string: words joined with spaces, patterns joined
 	// with "; ".
 	std::wstring serialize() const;

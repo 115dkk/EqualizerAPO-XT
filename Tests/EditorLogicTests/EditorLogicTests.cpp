@@ -153,11 +153,21 @@ int main(int argc, char** argv)
 		testUpdateCoordinatorContainsAdapterFailure();
 		testLegacyMigrationHookAdoptsStableRootThroughThePort();
 		testLegacyMigrationHookRescuesVolatileTreeAndLeavesBreadcrumbs();
+		testLegacyMigrationHookLeavesAnUnreadableConfigPathAlone();
+		testCommandLineQuotingRoundTripsThroughCommandLineToArgvW();
 		testSubwooferRoutingUiStateTracksMutationsAndValidation();
 		testSubwooferRoutingDefaultStates();
 		testFilterLineCardDecidesPerLine();
 		testSubwooferRoutingUiStateRejectsUnknownTargets();
 		testSubwooferRoutingUiStateHeadroomModes();
+		testSubwooferRoutingReadsRoundTripEverySetter();
+		testSubwooferRoutingSourceLfeGainReaders();
+		testSubwooferRoutingPreviewRateAndTrim();
+		testAnalysisRequestFence();
+		testImpulseMeasurementFindsTheDelay();
+		testImpulseMeasurementAtTheBlockStart();
+		testImpulseMeasurementWithoutAnImpulse();
+		testImpulsePeakGain();
 		testVelopackInstallRootFollowsTheCurrentLeafRule();
 		testElevatedCoordinatorArgumentHasOneSpelling();
 		testTheSkinRosterIsTheOneList();
@@ -170,6 +180,8 @@ int main(int argc, char** argv)
 		testReferenceCardDerivesSharedPresentationState();
 		testVSTBusModelMigratesAndEdits();
 		testVSTSlotFillModel();
+		testChannelFlow();
+		testVSTRowDocument();
 		testPanelMonitorGateOpensOnlyForSelfGeneratedAudio();
 		testPanelMonitorGateArmDelayOutlivesReverbTails();
 		testPanelMonitorGateClosesAndRearms();
@@ -180,6 +192,7 @@ int main(int argc, char** argv)
 		testFilterCommandCatalogIconsExistOnDisk();
 		testFilterCommandCatalogTemplateRoster();
 		testFilterCommandCatalogDescriptions();
+		testFilterCommandCatalogChannelSelectionTargets();
 		testFilterPickerModelMatchesTermsAndPreservesCatalogIndices();
 		testFilterPickerModelOwnsSelectionNavigation();
 		testSharedRawBodyAndRoutingViewPredicates();

@@ -194,7 +194,7 @@ QWidget* buildAnalysisPanelReplica(QWidget* parent)
 	QFrame* bar = new QFrame;
 	bar->setObjectName(QStringLiteral("analysisControlBar"));
 	bar->setAttribute(Qt::WA_StyledBackground, true);
-	bar->setMaximumWidth(280);
+	bar->setMaximumWidth(MainWindow::analysisControlBarWidth);
 	QGridLayout* grid = new QGridLayout(bar);
 	// Matches MainWindow.ui after the metric switch and the base-delay option
 	// joined this bar: the two extra rows are paid for by tightening the

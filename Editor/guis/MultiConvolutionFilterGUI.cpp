@@ -54,18 +54,6 @@ MultiConvolutionFilterGUI::MultiConvolutionFilterGUI(const QString& configPath, 
 	layout->addWidget(selectButton);
 }
 
-// The line's target channels exist for the lines below it, as they do in
-// the engine (MultiConvolutionCommand::declareChannels).
-void MultiConvolutionFilterGUI::configureChannels(std::vector<std::wstring>& channelNames)
-{
-	QString command;
-	QString parameters;
-	store(command, parameters);
-	MultiConvolutionCommand parsed;
-	if (MultiConvolutionCommand::parse(command.toStdWString(), parameters.toStdWString(), parsed))
-		parsed.declareChannels(channelNames);
-}
-
 void MultiConvolutionFilterGUI::store(QString& command, QString& parameters)
 {
 	command = QStringLiteral("MultiConvolution");

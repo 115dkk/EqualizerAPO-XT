@@ -43,7 +43,9 @@ public:
 	const subroute::SubwooferRoutingState& state() const {return core.state();}
 	const subroute::ValidationResult& validation() const {return core.validation();}
 	unsigned sampleRate() const {return core.sampleRate();}
+	double previewSampleRate() const {return core.previewSampleRate();}
 	bool isDirty() const {return core.isDirty();}
+	const subroute::CompileResult& preview() const {return core.preview();}
 	std::optional<double> computedTrimDb() const {return core.computedTrimDb();}
 
 	void setSourceLfeGainDb(double gainDb) {relay(core.setSourceLfeGainDb(gainDb));}

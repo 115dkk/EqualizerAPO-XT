@@ -44,38 +44,13 @@ CommentFilterGUI::CommentFilterGUI(IFilterGUI* child, bool isComment)
 
 CommentFilterGUI::~CommentFilterGUI() = default;
 
-void CommentFilterGUI::configureChannels(vector<wstring>& channelNames)
-{
-	if (ui->actionPowerOn->isChecked())
-	{
-		child->configureChannels(channelNames);
-	}
-	else
-	{
-		// prevent modification of channel names
-		vector<wstring> copy = channelNames;
-		child->configureChannels(copy);
-	}
-}
-
-void CommentFilterGUI::configureSelectedChannels(vector<wstring>& selectedChannels)
+void CommentFilterGUI::setChannelFlow(const ChannelFlowAtLine& flow)
 {
 	// Every legacy row sits behind this decorator, so a missing forward here
-	// left the whole LegacyRows presentation without the selection flow: a
-	// VST row's channel fill offered nothing but silence, and a Channel row
-	// could not narrow the rows below it. Same rule as configureChannels: a
-	// powered-off line still sees the selection (its controls stay
-	// meaningful) but cannot change what flows on, because the engine skips
-	// commented lines.
-	if (ui->actionPowerOn->isChecked())
-	{
-		child->configureSelectedChannels(selectedChannels);
-	}
-	else
-	{
-		vector<wstring> copy = selectedChannels;
-		child->configureSelectedChannels(copy);
-	}
+	// leaves the whole LegacyRows presentation without the channel flow. What
+	// a switched-off line does to the flow (nothing) is decided by
+	// computeChannelFlow from the line itself, not here.
+	child->setChannelFlow(flow);
 }
 
 void CommentFilterGUI::store(QString& command, QString& parameters)
