@@ -15,7 +15,7 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   호스트는 공유 스트림 머리를 더 엄격하게 검사하고(샘플레이트 1 kHz~1 MHz, 끝이
   맺힌 이름, 형식에서 다시 계산한 슬롯 배치), 앱 프로세스를 지켜볼 수 없을 때
   로그를 남기며, 앱의 콜백이 제때 끝나지 않으면 버퍼를 앱 밑에서 풀지 않고 그대로
-  두고, CLSID가 GUID가 아닌 ASIO 드라이버 항목은 받지 않습니다(#PRNUM).
+  두고, CLSID가 GUID가 아닌 ASIO 드라이버 항목은 받지 않습니다([#378](https://github.com/115dkk/EqualizerAPO-XT/pull/378)).
 
 ## v2.54.7 — 2026-09-25
 

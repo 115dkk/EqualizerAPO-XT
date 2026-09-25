@@ -23,7 +23,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   and 1 MHz, terminated names, slot layout recomputed from the format), logs
   when it cannot watch the app's process, keeps its buffers when the app's
   callbacks do not finish in time instead of releasing them under the app,
-  and refuses an ASIO driver entry whose CLSID is not a GUID (#PRNUM).
+  and refuses an ASIO driver entry whose CLSID is not a GUID ([#378](https://github.com/115dkk/EqualizerAPO-XT/pull/378)).
 
 ## v2.54.7 — 2026-09-25
 
