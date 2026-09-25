@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.19 — 2026-09-25
+
 - **The installer no longer grants permissions recursively, as
   administrator, on a folder a standard user can change.** EqualizerAPO-XT
   installs per user under `%LocalAppData%`. When a standard user installed
