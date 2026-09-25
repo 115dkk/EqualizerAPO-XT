@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.54.29 — 2026-09-25
+
 - **rack 스킨이 짧은 파일 이름을 온전히 보여 줍니다.**
   Include, Convolution, VST 카드에서
   `example.txt` 같은 이름이 자리가 넉넉한데도

@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.29 — 2026-09-25
+
 - **The rack skin prints short file names in full.** On Include, Convolution
   and VST cards, a name such as `example.txt` could be shortened to
   `exam….txt` although the card had room for it. The label measured the name
