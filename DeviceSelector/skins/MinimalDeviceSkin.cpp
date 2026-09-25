@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Precision Minimal device selector: a terminal's device-selection menu.
 	Constitution (reverse-video cursor, type ladder): docs/skins/minimal.md.
 	Element mapping: a device is a printed two-line entry - a drawn [x]/[ ]

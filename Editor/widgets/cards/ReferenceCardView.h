@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	A reference card is the body of a command row whose subject is an external
 	file the configuration points at: Include (a config file), Convolution /
 	MultiConvolution (an impulse response) and VSTPlugin (a plugin library).

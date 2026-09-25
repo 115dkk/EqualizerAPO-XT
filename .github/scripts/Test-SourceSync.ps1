@@ -271,3 +271,37 @@ if (Test-Path -LiteralPath $environmentDoc) {
   }
   Write-Host "All $($read.Count) EAPO_* environment variables the code reads are listed in docs/EnvironmentVariables.md."
 }
+
+# Audit #348 TD-66: a bulk insert once put a second licence header above
+# files that already opened with the project sentence, and a GPL SPDX line
+# above a BSD vendor header. A source file names the project once and
+# declares one licence.
+$headerSources = @()
+if (Get-Command git -ErrorAction SilentlyContinue) {
+  $headerSources = @(& git -C $RepoRoot ls-files -- '*.cpp' '*.h' 2>$null)
+  if ($LASTEXITCODE -ne 0) { $headerSources = @() }
+}
+if ($headerSources.Count -eq 0) {
+  $headerSources = @(Get-ChildItem -LiteralPath $RepoRoot -Recurse -File -Include '*.cpp', '*.h' |
+    ForEach-Object { [System.IO.Path]::GetRelativePath($RepoRoot, $_.FullName) })
+}
+$headerProblems = @()
+foreach ($source in $headerSources) {
+  $text = Get-Content -LiteralPath (Join-Path $RepoRoot $source) -Raw
+  if ($null -eq $text) { continue }
+  $sentences = [regex]::Matches($text, 'This file is part of EqualizerAPO-XT, a system-wide equalizer').Count
+  $licences = [regex]::Matches($text, 'SPDX-License-Identifier:').Count
+  if ($sentences -gt 1) {
+    $headerProblems += "::error file=$($source -replace '\\', '/')::names the project in $sentences licence headers; keep one."
+  }
+  if ($licences -gt 1) {
+    $headerProblems += "::error file=$($source -replace '\\', '/')::declares $licences SPDX licences; a file declares one."
+  }
+}
+foreach ($problem in $headerProblems) {
+  Write-Host $problem
+}
+if ($headerProblems.Count -gt 0) {
+  throw "A source file carries a duplicated licence header or more than one SPDX licence."
+}
+Write-Host "All $($headerSources.Count) C++ sources carry at most one licence header and one SPDX licence."

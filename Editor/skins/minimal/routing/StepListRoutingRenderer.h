@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Minimal skin's Copy renderer: a monospace, terminal-like sequential step
 	list. Each output is one row "# │ Dest ← Sources" with explicit + / − signs,
 	×N gain factors and an INV marker for phase inversion. This is the academic,

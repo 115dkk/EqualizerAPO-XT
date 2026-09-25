@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	StageSelectionModel is the pure selection/serialization logic behind the
 	Stage card's chips, kept Qt-widget-free so EditorLogicTests can pin the
 	written bytes. It parses through the shared StageCommand codec (the same

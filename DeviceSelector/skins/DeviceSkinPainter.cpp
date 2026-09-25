@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Neutral base forms for the Device Selector chrome plus the id -> painter
 	factory. The base is deliberately plain (readable rows, a quiet toggle,
 	flat buttons); each skin subclass replaces the forms wholesale with its

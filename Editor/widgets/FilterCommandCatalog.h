@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	The Editor-side vocabulary of every config command, in one table: card
 	identity (descriptor type, badge, accent, title), the badge/picker
 	pictogram, the picker description, and the add-picker template roster

@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Signal Matrix's subwoofer-routing card: a departure-board posting. Each
 	fact lives in a boxed sunken mono cell under a mono board caption, the
 	state cell is the only place traffic-light colour is spent, and faults

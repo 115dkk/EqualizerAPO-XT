@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Mechanical paint helpers shared by the skin TUs (skins, pickers,
 	reference cards, routing renderers). Nothing here carries a design
 	decision, so sharing them cannot breach the differentiation gate - a

@@ -4,10 +4,6 @@
 	SPDX-License-Identifier: GPL-2.0-or-later
 */
 
-/*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-*/
-
 // Minimal skin. Constitution: docs/skins/minimal.md. The file-scope
 // instance is exposed through minimalSkin() so Skins::all() can assemble
 // the roster without a central definition list.

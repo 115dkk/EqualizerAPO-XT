@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Studio Glass "add filter" picker: a floating frosted-glass panel that
 	paints its own stage, with a sunken-glass search field over a sectioned
 	list.

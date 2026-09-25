@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	See RackFilterPicker.h. The small LED painter is deliberately a local
 	expression of Rack's hardware idiom (its glow scales between dark and lit);
 	the screw and the engraved printing are the card chrome's own.

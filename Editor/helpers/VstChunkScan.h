@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	The VST chunk path scan: decode a plugin's base64 state chunk and find
 	absolute Windows paths inside it, so the editors can warn when a plugin
 	references files the audio service cannot read. Audit #250 B5: the scan

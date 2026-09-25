@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	The VST panel-preview probe: a disposable console harness behind the
 	vst3-preview-probe workflow. It validates the two premises of the panel
 	preview feed (Editor/helpers/PanelPreviewFeeder) on a real machine.

@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Custom window title bar for the frameless main window. The native Windows
 	caption clashed with every skin (and the menu bar under it), so the window
 	draws its own: app title text and the minimize / maximize / close buttons,

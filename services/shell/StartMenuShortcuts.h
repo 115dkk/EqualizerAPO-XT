@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	The Start Menu shortcut writer, split out of ApoRegistration (audit #250
 	C2): shortcut authoring is shell/COM work with no relation to APO
 	registration, and it was a fifth role inside a class named for another

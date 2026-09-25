@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Shared mute-path diagnostics for the convolver family (audit #250 A4).
 	When process() sees a block size other than the one the convolver was
 	initialized for, it mutes rather than re-initializing on the audio

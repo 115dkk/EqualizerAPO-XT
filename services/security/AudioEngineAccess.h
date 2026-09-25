@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	"Can audiodg.exe read this file?" - asked and answered in one place.
 
 	That question is the most common failure in the field. audiodg.exe hosts every

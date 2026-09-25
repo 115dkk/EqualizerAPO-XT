@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	The heritage presentation as a skin (audit #275 B5). Heritage mode - the
 	frozen legacy-rows look - used to live as six special-case branches inside
 	SkinManager's forwarders, three of which literally called the ISkin base

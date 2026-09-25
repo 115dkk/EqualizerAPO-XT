@@ -291,6 +291,24 @@ Describe "Test-SourceSync.ps1" {
         $result.Output | Should -Match "All 2 EAPO_\* environment variables"
     }
 
+    It "fails on a second licence header or a second SPDX licence in one source" {
+        $root = New-FixtureRepo -CommonSources @('FilterEngine.cpp') -EditorSources @('../FilterEngine.cpp')
+        $header = "/*`n`tThis file is part of EqualizerAPO-XT, a system-wide equalizer.`n`tSPDX-License-Identifier: GPL-2.0-or-later`n*/`n"
+        [System.IO.File]::WriteAllText((Join-Path $root 'FilterEngine.cpp'), $header + "/*`n`tThis file is part of EqualizerAPO-XT, a system-wide equalizer.`n*/`n")
+        [System.IO.File]::WriteAllText((Join-Path $root 'Vendor.h'), $header + "/* SPDX-License-Identifier: BSD-2-Clause */`n")
+        $result = Invoke-SourceSync -RepoRoot $root
+
+        $result.ExitCode | Should -Not -Be 0
+        $result.Output | Should -Match ([regex]::Escape("::error file=FilterEngine.cpp::names the project in 2 licence headers"))
+        $result.Output | Should -Match ([regex]::Escape("::error file=Vendor.h::declares 2 SPDX licences"))
+
+        [System.IO.File]::WriteAllText((Join-Path $root 'FilterEngine.cpp'), $header)
+        [System.IO.File]::WriteAllText((Join-Path $root 'Vendor.h'), "/* SPDX-License-Identifier: BSD-2-Clause */`n")
+        $result = Invoke-SourceSync -RepoRoot $root
+        $result.ExitCode | Should -Be 0
+        $result.Output | Should -Match "at most one licence header and one SPDX licence"
+    }
+
     It "refuses to pass when it could not read any ClCompile entry" {
         $root = New-FixtureRepo -SkipKnownOmissions -CommonSources @() -EditorSources @('../FilterEngine.cpp')
         $result = Invoke-SourceSync -RepoRoot $root

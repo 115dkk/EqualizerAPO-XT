@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Signal Matrix's reference card (Include / Convolution / MultiConvolution /
 	VSTPlugin row bodies): the reference as a feed line of board cells -
 	marker cell, location readout, payload name, boxed fact cells.

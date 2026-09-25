@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Soft Lab device selector: fear-free device cards. Constitution (pastel
 	ladder, painted lift, stitch grammar): docs/skins/soft.md. Element
 	mapping: devices are big rounded cards; the toggle is a large rounded

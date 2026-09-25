@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	The release asset-name grammar for C++ consumers, mirroring
 	.github/scripts/ReleaseAssets.psm1 (audit #250 F067). The channel appears
 	twice in the setup name because the Velopack pack id already embeds it and

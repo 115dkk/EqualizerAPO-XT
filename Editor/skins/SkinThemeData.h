@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	The data half of the skin system: id aliases, per-skin colour/metric token
 	tables, QSS resource paths, the @TOKEN@ substitution and the token-derived
 	widget palette. Everything here is behaviour-free (no pickers, renderers or

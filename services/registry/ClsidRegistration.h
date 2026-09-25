@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	The COM class-registration tree, extracted from the APO DLL's
 	DllRegisterServer (audit #250 A3/F002): the CLSID writes were the last
 	registry mutations in the machine-changing path that no test could

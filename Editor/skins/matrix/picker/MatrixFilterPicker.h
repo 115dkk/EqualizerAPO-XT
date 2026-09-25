@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Signal Matrix "add filter" picker: a two-axis selection instrument - a
 	bus rail of categories on the left, that bus's templates as coordinate
 	cells on the right.

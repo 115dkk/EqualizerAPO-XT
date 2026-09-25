@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	The Editor's session with one VST plug-in, shared by the modern card
 	(VSTCardEditor) and the legacy row (VSTPluginFilterGUI): loading the
 	library and reporting why it failed, the preview instance and its
