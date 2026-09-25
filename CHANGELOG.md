@@ -25,6 +25,85 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   trim shown in its controls is computed at the sample rate the host runs,
   instead of always at 48 kHz ([#379](https://github.com/115dkk/EqualizerAPO-XT/pull/379)).
 
+## v2.54.14 — 2026-09-25
+
+- **ASIO: a late block no longer makes the output jump.** With the separate
+  host process in pipelined mode, the output runs one block behind. When the
+  host fell behind, the ASIO app got the current block's unprocessed input,
+  a block early, so the sound skipped forward and back. It now gets a copy of
+  the previous block's input, which keeps the timeline. The ASIO host also
+  checks the shared stream header more strictly (sample rate between 1 kHz
+  and 1 MHz, terminated names, slot layout recomputed from the format), logs
+  when it cannot watch the app's process, keeps its buffers when the app's
+  callbacks do not finish in time instead of releasing them under the app,
+  and refuses an ASIO driver entry whose CLSID is not a GUID ([#378](https://github.com/115dkk/EqualizerAPO-XT/pull/378)).
+
+## v2.54.13 — 2026-09-25
+
+- **A VST plug-in that reports latency no longer delays its own output a
+  second time.** The latency compensation delayed every channel of the
+  filter by the plug-in's reported latency, including the channels the
+  plug-in had just processed, which were already late by that amount. The
+  processed channels came out twice as late, and the channels passed through
+  once as late, so the two still did not line up. Now only the channels the plug-in does not
+  write (the ones an explicit bus layout or a channel fill passes through)
+  are delayed, so they line up with the processed ones ([#377](https://github.com/115dkk/EqualizerAPO-XT/pull/377)).
+
+## v2.54.12 — 2026-09-25
+
+- **An endpoint's "Use in ASIO apps" entry notices an unplugged device.** When
+  the device behind the entry disappeared (a USB DAC pulled out), the stream
+  kept waiting for it and the ASIO app heard nothing until it was restarted.
+  The stream now ends when Windows reports the device invalidated, or after
+  four 500 ms waits with no signal from the device, and asks the app to reset
+  ([#375](https://github.com/115dkk/EqualizerAPO-XT/pull/375)). This was checked with unit tests on synthetic input; unplugging
+  real hardware was not tried.
+
+## v2.54.11 — 2026-09-25
+
+- **Lines below a `MultiConvolution` line can select the channels it
+  creates in the Editor.** A `MultiConvolution` line that writes to a new
+  channel, such as `Wet=0`, creates that channel in the engine, but the
+  channel pickers on the lines below it in the Editor did not offer it. They
+  now do, as they already did for channels created by `Copy`. A `Filter` line
+  whose type the engine rejects, such as `ON pk` in lower case, is no longer
+  drawn as a card of that type, and the Editor no longer writes an
+  out-of-range channel number to its log each time it refreshes the channel
+  lists ([#370](https://github.com/115dkk/EqualizerAPO-XT/pull/370)).
+
+## v2.54.10 — 2026-09-25
+
+- **`Include` takes quoted file names and environment variables, and a link
+  to a network share is refused like the share.** `Include: "my presets.txt"`
+  and `Include: %USERPROFILE%\eq\room.txt` now load, as they always did for
+  `Convolution`, and the Editor's Include card and its import of a
+  configuration folder read such lines the same way. A path that looks local
+  but leads through a symbolic link or junction to a network share is now
+  refused on its line like a share written out, and the Editor's file cards
+  say so instead of showing the file as usable. A configuration kept on a
+  share may now name that share in the `\\?\UNC\server\share` form too, a
+  local path written as `\\?\C:\...` is no longer refused, and an
+  `Include:` with no file name is reported on its line. A file chosen in a
+  legacy Convolution or MultiConvolution row is now written the way the
+  cards write it: relative to the configuration folder unless it lies more
+  than one level above it, so a file in a sibling folder is no longer
+  written as an absolute path ([#369](https://github.com/115dkk/EqualizerAPO-XT/pull/369)).
+
+## v2.54.9 — 2026-09-25
+
+- **More configuration mistakes are reported on their line.** A misspelled
+  `Stage`, an `ElseIf`, `Else` or `EndIf` with no `If` before it, an `If`
+  with no `EndIf` (now on the `If` line itself), and an `Include` nested too
+  deep went only to the log; the Editor now shows them on that line's card as
+  a tooltip, as it does for other unusable lines. When a filter fails while
+  being set up, the configuration is still not applied as a whole, and both
+  the log and the Editor now name the line that caused it. The Editor says so
+  in plain words: a notice at the bottom of the window names the line and
+  file and says the previous settings keep playing, the analysis panel reads
+  "Not applied" and draws no curve, and the line's card explains what to
+  check. The engine's error text stays in the log
+  ([#368](https://github.com/115dkk/EqualizerAPO-XT/pull/368)).
+
 ## v2.54.8 — 2026-09-25
 
 - **The Voicemeeter client no longer holds up audio while it sets up strips.**

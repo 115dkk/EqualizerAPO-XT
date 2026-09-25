@@ -33,6 +33,7 @@ void testFilterCardDepths();
 void testRowGuiPolicyRoutesEachLineShape();
 void testFilterCardBuildPlans();
 void testConfigImport();
+void testFileReferencesReadLikeTheEngine();
 void testLegacyMigrationScanAndPolicy();
 void testChannelSelectionModel();
 void testDeviceSelectionModel();

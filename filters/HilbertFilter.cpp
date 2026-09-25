@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <cmath>
 #include <complex>
+#include <new>
 #include <set>
 
 #include "audio/ChannelLayout.h"
@@ -116,7 +117,7 @@ std::vector<std::wstring> HilbertFilter::initialize(float sampleRate,
 	(void)sampleRate;
 	bank.finishAndReport(muteDiagnostics, kFrameCountMismatchLogPrefix, __FILE__, __LINE__, this);
 	channelCount = static_cast<unsigned>(channelNames.size());
-	delayOffset = 0;
+	alignedDelay.release();
 	shifted = resolve(command.shiftedChannels, channelNames, true);
 	aligned = resolve(command.alignedChannels, channelNames, false);
 
@@ -136,10 +137,13 @@ std::vector<std::wstring> HilbertFilter::initialize(float sampleRate,
 		bank.install(buildConvolverArray(sources, maxFrameCount), maxFrameCount);
 	}
 
-	delayLines.assign(channelCount, {});
-	for (int channel : aligned)
-		delayLines[static_cast<size_t>(channel)].assign(
-			HilbertLatencySamples, 0.0);
+	alignedOutputs.assign(aligned.size(), nullptr);
+	alignedInputs.assign(aligned.size(), nullptr);
+	// The per-channel std::vector rings this replaces threw std::bad_alloc
+	// out of initialize() on failure; the DelayLine keeps that.
+	if (!aligned.empty() && !alignedDelay.allocate(static_cast<unsigned>(aligned.size()),
+		HilbertLatencySamples, maxFrameCount))
+		throw std::bad_alloc();
 	TraceF(L"Hilbert %d degrees: %zu shifted, %zu aligned, %u taps",
 		command.directionDegrees, shifted.size(), aligned.size(), HilbertTapCount);
 	return channelNames;
@@ -172,16 +176,14 @@ void HilbertFilter::process(double** output, double** input, unsigned frameCount
 		hcGetSingle(convolver, out);
 	}
 
-	for (unsigned frame = 0; frame < frameCount; ++frame)
+	if (!aligned.empty())
 	{
-		for (int channel : aligned)
+		for (size_t i = 0; i < aligned.size(); ++i)
 		{
-			std::vector<double>& line = delayLines[static_cast<size_t>(channel)];
-			output[channel][frame] = line[delayOffset];
-			line[delayOffset] = input[channel][frame];
+			alignedOutputs[i] = output[aligned[i]];
+			alignedInputs[i] = input[aligned[i]];
 		}
-		if (!aligned.empty())
-			delayOffset = (delayOffset + 1) % HilbertLatencySamples;
+		alignedDelay.process(alignedOutputs.data(), alignedInputs.data(), frameCount);
 	}
 }
 #pragma AVRT_CODE_END

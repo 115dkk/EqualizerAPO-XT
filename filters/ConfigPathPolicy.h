@@ -20,20 +20,80 @@
 // file. Those are refused, with one exception: a configuration that itself
 // lives on a share may reference that share, so a config folder kept on a
 // NAS keeps working.
+//
+// A path is judged by where it leads, not only by how it is spelled (audit
+// #348 A1). A symbolic link or a junction on the way can point a local
+// spelling at a share, so every component of a local path is read without
+// following it, and a link's stored target is judged as a path of its own.
+// A link to a share is refused that way before the service ever reaches the
+// share. The walk stops at a component it cannot read without following (the
+// service may pass through a folder it has no right to read); the rest is
+// judged by opening the path and asking where the open arrived
+// (GetFinalPathNameByHandleW). That open does reach the target, which is why
+// it comes last. A network drive letter counts as a share. Paths spelled on a
+// share are not walked: judging them needs no I/O, and nothing is read from a
+// share before the engine opens the file anyway.
 class ConfigPathPolicy
 {
 public:
+	// One path component as the policy reads it, without following it.
+	struct Entry
+	{
+		enum class Kind
+		{
+			// Nothing by that name. The open will fail on its own; nothing
+			// further is judged.
+			Missing,
+			// It may exist, but it could not be read without following it.
+			Unexaminable,
+			// A file or a folder, or a reparse point that redirects nothing
+			// (cloud placeholders, deduplicated files).
+			Plain,
+			// A symbolic link or a junction; target says where it points.
+			Link,
+			// A redirecting reparse point of a kind the engine does not follow.
+			OtherLink,
+		};
+
+		Kind kind = Kind::Missing;
+		// Link: the target as stored, \??\C:\x, \??\UNC\srv\share\x, or
+		// relative to the link's folder.
+		std::wstring target;
+		bool relative = false;
+	};
+
+	// The file system as the policy reads it: Win32 in the product, a table
+	// in the tests.
+	class FileSystem
+	{
+	public:
+		virtual ~FileSystem() = default;
+		virtual Entry entry(const std::wstring& path) const = 0;
+		// Where an open of path arrives, spelled as GetFinalPathNameByHandleW
+		// spells it (\\?\C:\x or \\?\UNC\srv\share\x); empty when path cannot
+		// be opened.
+		virtual std::wstring finalPath(const std::wstring& path) const = 0;
+		virtual bool isNetworkDrive(wchar_t driveLetter) const = 0;
+	};
+
 	// path: the fully resolved path a factory is about to open.
 	// configPath: the configuration file whose line named it (L"" when the
 	// caller has none; then every remote path is refused).
 	// Returns true when the engine may open path. On false, reason carries
 	// the sentence for reportParseError.
 	static bool allowsOpen(const std::wstring& path, const std::wstring& configPath, std::wstring& reason);
+	static bool allowsOpen(const std::wstring& path, const std::wstring& configPath, std::wstring& reason,
+		const FileSystem& fileSystem);
 
-	// The `\\host\share` prefix (or `\\?\x`, `\\.\x`: the first two
-	// components after two leading separators) of a path that starts with
-	// two separators, lower-cased, backslashes only. Empty for every other
-	// shape: drive-letter, relative, root-relative, drive-relative. Exposed
-	// for the tests.
+	// The `\\host\share` prefix of a path spelled on a share, lower-cased,
+	// backslashes only; `\\?\UNC\host\share` and `\??\UNC\host\share` have
+	// the same root as `\\host\share`. A device path has its first component
+	// as the root (`\\.\pipe`, `\\?\globalroot`). Empty for every local
+	// shape: drive-letter, relative, root-relative, drive-relative, and the
+	// verbatim drive and volume forms (`\\?\C:\x`, `\\?\Volume{...}\x`).
+	// Lexical only. Exposed for the tests.
 	static std::wstring remoteRoot(const std::wstring& path);
+
+	// Links followed before a path is refused as a loop; the Win32 limit.
+	static constexpr int kLinkLimit = 63;
 };

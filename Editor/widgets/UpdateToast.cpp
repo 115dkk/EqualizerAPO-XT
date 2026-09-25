@@ -35,16 +35,13 @@ UpdateToast::UpdateToast(QWidget* host)
 	closeButton->setAutoRaise(true);
 	closeButton->setText(QString(QChar(0x00D7))); // multiplication sign as a close glyph
 	closeButton->setToolTip(tr("Dismiss"));
-	connect(closeButton, &QToolButton::clicked, this, [this]() {
-		autoHideTimer->stop();
-		hide();
-	});
+	connect(closeButton, &QToolButton::clicked, this, &UpdateToast::hideMessage);
 	layout->addWidget(closeButton, 0, Qt::AlignTop);
 
 	autoHideTimer = new QTimer(this);
 	autoHideTimer->setObjectName(QStringLiteral("UpdateToastAutoHide"));
 	autoHideTimer->setSingleShot(true);
-	connect(autoHideTimer, &QTimer::timeout, this, &QWidget::hide);
+	connect(autoHideTimer, &QTimer::timeout, this, &UpdateToast::hideMessage);
 
 	host->installEventFilter(this);
 	connect(SkinManager::instance(), &SkinManager::skinChanged, this, [this](const SkinTokens& tokens) {
@@ -58,13 +55,41 @@ UpdateToast::UpdateToast(QWidget* host)
 void UpdateToast::showMessage(const QString& message, int autoHideMs)
 {
 	label->setText(message);
-	adjustSize();
-	reposition();
+	fitToHost();
 	show();
 	raise();
+	reposition();
 	autoHideTimer->stop();
 	if (autoHideMs > 0)
 		autoHideTimer->start(autoHideMs);
+}
+
+void UpdateToast::fitToHost()
+{
+	// One line while the message fits the host; otherwise the label wraps at
+	// the host's width so a long notice stays inside a narrow window instead
+	// of running past both edges.
+	label->setWordWrap(false);
+	setMinimumWidth(0);
+	setMaximumWidth(QWIDGETSIZE_MAX);
+	adjustSize();
+	QWidget* host = parentWidget();
+	if (host == nullptr)
+		return;
+	const int cap = host->width() - 2 * kHostMargin;
+	if (cap <= 0 || width() <= cap)
+		return;
+	label->setWordWrap(true);
+	setFixedWidth(cap);
+	resize(cap, layout()->heightForWidth(cap));
+}
+
+void UpdateToast::hideMessage()
+{
+	autoHideTimer->stop();
+	hide();
+	// Lets a toast that sat above this one drop back to the bottom.
+	reposition();
 }
 
 void UpdateToast::paintEvent(QPaintEvent*)
@@ -90,8 +115,11 @@ void UpdateToast::paintEvent(QPaintEvent*)
 
 bool UpdateToast::eventFilter(QObject* watched, QEvent* event)
 {
-	if (watched == parentWidget() && event->type() == QEvent::Resize && isVisible())
+	if (watched == parentWidget() && event->type() == QEvent::Resize && !isHidden())
+	{
+		fitToHost();
 		reposition();
+	}
 	return QWidget::eventFilter(watched, event);
 }
 
@@ -100,7 +128,18 @@ void UpdateToast::reposition()
 	QWidget* host = parentWidget();
 	if (host == nullptr)
 		return;
-	const int x = (host->width() - width()) / 2;
-	const int y = host->height() - height() - 18;
-	move(qMax(0, x), qMax(0, y));
+	// isHidden rather than isVisible: the gallery shows toasts on a host that
+	// is never shown itself. Children are in stacking order, which raise()
+	// updates, so the notice shown last sits on top.
+	int bottom = host->height() - 18;
+	const QList<UpdateToast*> toasts = host->findChildren<UpdateToast*>(Qt::FindDirectChildrenOnly);
+	for (UpdateToast* toast : toasts)
+	{
+		if (toast->isHidden())
+			continue;
+		const int x = (host->width() - toast->width()) / 2;
+		const int y = bottom - toast->height();
+		toast->move(qMax(0, x), qMax(0, y));
+		bottom = y - 8;
+	}
 }

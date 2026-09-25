@@ -17,6 +17,8 @@
 // {B7E3A9F4-52C1-4D0B-8A6E-1F9C3D5E7B21}: the driver's CLSID, which is also
 // the IID an ASIO host asks for.
 inline constexpr GUID CLSID_FakeAsio = {0xb7e3a9f4, 0x52c1, 0x4d0b, {0x8a, 0x6e, 0x1f, 0x9c, 0x3d, 0x5e, 0x7b, 0x21}};
+// The same CLSID as text: the Device: line's GUID for a stream over the fake.
+inline constexpr wchar_t CLSID_FakeAsioText[] = L"{B7E3A9F4-52C1-4D0B-8A6E-1F9C3D5E7B21}";
 // {A1F0C7D2-3B6E-4F1A-9C58-6E2D7B0A4F11}
 inline constexpr GUID IID_IFakeAsioControl = {0xa1f0c7d2, 0x3b6e, 0x4f1a, {0x9c, 0x58, 0x6e, 0x2d, 0x7b, 0x0a, 0x4f, 0x11}};
 

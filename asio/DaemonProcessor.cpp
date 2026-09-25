@@ -6,6 +6,7 @@
 
 #include "asio/DaemonProcessor.h"
 
+#include <algorithm>
 #include <cstring>
 
 namespace eapo::asio
@@ -68,16 +69,18 @@ namespace eapo::asio
 
 		format_ = format;
 		mode_ = options.mode;
-		const double periodUs = format.sampleRate > 0.0 ? static_cast<double>(format.frames) * 1000000.0 / format.sampleRate : 0.0;
+		const double period = periodUs(format);
 		deadlineUs_ = syncDeadlineUs(format, options);
-		pipelineSpinUs_ = static_cast<uint32_t>(periodUs * 0.1);
+		pipelineSpinUs_ = static_cast<uint32_t>(period * 0.1);
 		if (pipelineSpinUs_ > 500)
 			pipelineSpinUs_ = 500;
-		uint32_t hangBoundUs = static_cast<uint32_t>(periodUs * 8.0);
+		// Gone after eight periods of lateness or 20 ms, whichever is longer,
+		// counted in blocks.
+		uint32_t hangBoundUs = static_cast<uint32_t>(period * 8.0);
 		if (hangBoundUs < 20000)
 			hangBoundUs = 20000;
-		hangLateCount_ = periodUs > 0.0 ? static_cast<uint32_t>(static_cast<double>(hangBoundUs) / periodUs) : 8;
-		if (periodUs > 0.0 && periodUs * hangLateCount_ < hangBoundUs)
+		hangLateCount_ = period > 0.0 ? static_cast<uint32_t>(static_cast<double>(hangBoundUs) / period) : 8;
+		if (period > 0.0 && period * hangLateCount_ < hangBoundUs)
 			hangLateCount_++;
 
 		for (unsigned slot = 0; slot < directionCount; slot++)
@@ -89,6 +92,7 @@ namespace eapo::asio
 			lane.consecutiveLate = 0;
 			lane.gone = false;
 			lane.staging.assign(lane.samples, 0.0f);
+			lane.previousInput.assign(mode_ == Mode::Pipelined ? lane.samples : 0, 0.0f);
 			lane.planes.resize(channels);
 			for (uint32_t c = 0; c < channels; c++)
 				lane.planes[c] = lane.staging.data() + static_cast<size_t>(c) * format.frames;
@@ -154,6 +158,8 @@ namespace eapo::asio
 				lane.gone = true;
 				return Outcome::Gone;
 			}
+			if (mode_ == Mode::Pipelined)
+				holdTimeline(lane);
 			return Outcome::Late;      // the host is two blocks behind; drop this one
 		}
 		lane.sequence = seq;
@@ -180,6 +186,7 @@ namespace eapo::asio
 		// Pipelined: the block before this one is what goes out now.
 		if (seq == 1)
 		{
+			std::memcpy(lane.previousInput.data(), lane.staging.data(), lane.samples * sizeof(float));
 			std::memset(lane.staging.data(), 0, lane.samples * sizeof(float));
 			return Outcome::Processed;
 		}
@@ -188,6 +195,7 @@ namespace eapo::asio
 		{
 			lane.consecutiveLate = 0;
 			record(direction);
+			std::memcpy(lane.previousInput.data(), lane.staging.data(), lane.samples * sizeof(float));
 			std::memcpy(lane.staging.data(), producer_->slot(direction, seq - 1), lane.samples * sizeof(float));
 			return Outcome::Processed;
 		}
@@ -201,7 +209,16 @@ namespace eapo::asio
 			lane.gone = true;
 			return Outcome::Gone;
 		}
+		holdTimeline(lane);
 		return Outcome::Late;
+	}
+
+	void DaemonProcessor::holdTimeline(Lane& lane) noexcept
+	{
+		// The planes take the previous block's original audio and the
+		// current block's becomes the previous one, in one pass and without
+		// a third buffer.
+		std::swap_ranges(lane.staging.begin(), lane.staging.end(), lane.previousInput.begin());
 	}
 
 	void DaemonProcessor::close(const StreamStats& stats) noexcept
@@ -223,6 +240,7 @@ namespace eapo::asio
 		for (Lane& lane : lanes_)
 		{
 			lane.staging.clear();
+			lane.previousInput.clear();
 			lane.planes.clear();
 			lane.samples = 0;
 			lane.sequence = 0;

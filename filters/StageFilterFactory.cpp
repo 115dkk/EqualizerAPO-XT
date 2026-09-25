@@ -33,6 +33,7 @@ using std::wstring;
 
 void StageFilterFactory::initialize(FilterEngine* engine)
 {
+	ParseReportingFactory::initialize(engine);
 	enginePreMix = engine->isPreMix();
 	engineCapture = engine->isCapture();
 	enginePostMixInstalled = engine->isPostMixInstalled();
@@ -93,7 +94,10 @@ FilterVector StageFilterFactory::createFilter(const wstring& configPath, wstring
 			}
 			else
 			{
-				LogF(L"Unknown stage \"%s\"! Only pre-mix, post-mix and capture are supported.", part.c_str());
+				// On the load trace, so the Editor can show it on the line (audit
+				// #348 TD-18); it used to reach only the log. The other parts of
+				// the line still count.
+				reportParseError(command, L"unknown stage \"" + part + L"\"; the stages are pre-mix, post-mix and capture");
 			}
 		}
 

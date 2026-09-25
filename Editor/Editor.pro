@@ -135,6 +135,7 @@ SOURCES += main.cpp\
 	../filters/GraphicEQFilterFactory.cpp \
 	../libHybridConv-0.1.1/libHybridConv_eapo.cpp \
 	../dsp/FftwPlanningPolicy.cpp \
+	../dsp/DelayLine.cpp \
 	../filters/graphicEq/GainCurveIterator.cpp \
 	guis/GraphicEQFilterGUIScene.cpp \
 	widgets/FrequencyPlotView.cpp \
@@ -198,8 +199,8 @@ SOURCES += main.cpp\
 	../filters/IncludeFilterFactory.cpp \
 	../filters/ChannelFilter.cpp \
 	../filters/ConvolutionFilter.cpp \
+	../filters/ConfigFileReference.cpp \
 	../filters/ConfigPathPolicy.cpp \
-	../filters/ConvolutionFilePath.cpp \
 	../filters/MultiConvolutionCommand.cpp \
 	../filters/MultiConvolutionFilter.cpp \
 	../filters/MultiConvolutionFilterFactory.cpp \
@@ -236,6 +237,7 @@ SOURCES += main.cpp\
 	../asio/AsioRegistration.cpp \
 	../services/registry/ClsidRegistration.cpp \
 	../asio/WrapperRecord.cpp \
+	../asio/StreamFacts.cpp \
 	../devices/VoicemeeterAPOInfo.cpp \
 	../vst/AbstractLibrary.cpp \
 	../vst/VST3PluginIIDs.cpp \
@@ -244,6 +246,7 @@ SOURCES += main.cpp\
 	guis/VSTPluginFilterGUIFactory.cpp \
 	guis/VSTPluginFilterGUIDialog.cpp \
 	../filters/VSTPluginCommand.cpp \
+	../filters/VSTChannelPlan.cpp \
 	../filters/VSTPluginFilter.cpp \
 	../filters/VSTPluginFilterFactory.cpp \
 	../vst/VSTPluginInstance.cpp \
@@ -452,6 +455,7 @@ HEADERS  += \
 	../filters/GraphicEQFilterFactory.h \
 	../libHybridConv-0.1.1/libHybridConv_eapo.h \
 	../dsp/FftwPlanningPolicy.h \
+	../dsp/DelayLine.h \
 	../dsp/SampleConversion.h \
 	../runtime/WeakValueCache.h \
 	../filters/graphicEq/GainCurveIterator.h \
@@ -498,6 +502,7 @@ HEADERS  += \
 	../filters/IfFilterFactory.h \
 	../filters/StageCommand.h \
 	../filters/StageFilterFactory.h \
+	../filters/ConfigFileReference.h \
 	../filters/ConfigPathPolicy.h \
 	../filters/ConvolutionFilterFactory.h \
 	../filters/IIRCommand.h \
@@ -535,6 +540,7 @@ HEADERS  += \
 	../asio/AsioRegistration.h \
 	../asio/EntryOptions.h \
 	../asio/WrapperRecord.h \
+	../asio/StreamFacts.h \
 	../asio/StreamProcessor.h \
 	../devices/VoicemeeterAPOInfo.h \
 	../vst/AbstractLibrary.h \
@@ -543,6 +549,7 @@ HEADERS  += \
 	guis/VSTPluginFilterGUIFactory.h \
 	guis/VSTPluginFilterGUIDialog.h \
 	../filters/VSTPluginCommand.h \
+	../filters/VSTChannelPlan.h \
 	../filters/VSTPluginFilter.h \
 	../filters/VSTPluginFilterFactory.h \
 	../vst/VSTPluginInstance.h \

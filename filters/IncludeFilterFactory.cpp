@@ -18,13 +18,12 @@
 */
 
 #include "stdafx.h"
-#include <filesystem>
 
 #include "services/logging/Logging.h"
 #include "engine/FilterEngine.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "IncludeCommand.h"
-#include "ConfigPathPolicy.h"
+#include "ConfigFileReference.h"
 #include "IncludeFilterFactory.h"
 
 REGISTER_FILTER_FACTORY(FilterFactoryPriority::Include, IncludeFilterFactory, L"Include")
@@ -59,31 +58,18 @@ FilterVector IncludeFilterFactory::createFilter(const wstring& configPath, wstri
 	IncludeCommand cmd;
 	if (IncludeCommand::parse(command, parameters, cmd))
 	{
-		const wstring& value = cmd.path;
-
-		// Same relative-path dialect as ConvolutionFilePath::resolve
-		// (audit #275 TD-06): relative to the including config file, resolved
-		// with std::filesystem. The previous Shlwapi variant went through a
-		// MAX_PATH buffer, so a long path was silently truncated.
-		namespace filesystem = std::filesystem;
-		const filesystem::path includedPath(value);
-		wstring includePath;
-		if (includedPath.is_absolute())
-			includePath = includedPath.lexically_normal().wstring();
-		else
-		{
-			filesystem::path basePath(configPath);
-			basePath.remove_filename();
-			includePath = (basePath / includedPath).lexically_normal().wstring();
-		}
-
-		wstring reason;
-		if (!ConfigPathPolicy::allowsOpen(includePath, configPath, reason))
-			reportParseError(command, reason);
+		// Read by the rule every file a line names shares (audit #348 A1):
+		// relative to the including config file, quotes and %VARIABLES% taken
+		// the way Convolution always took them.
+		const ConfigFileReference::Target file = ConfigFileReference::target(configPath, cmd.path);
+		if (!file.refusal.empty())
+			reportParseError(command, file.refusal);
+		else if (file.path.empty())
+			reportParseError(command, L"expected the path of a configuration file");
 		else if (recursionDepth >= RECURSION_LIMIT)
-			LogF(L"Skipping include of %s as recursion limit of %d has been reached", value.c_str(), RECURSION_LIMIT);
+			reportParseError(command, L"not included: includes are nested more than " + std::to_wstring(RECURSION_LIMIT) + L" deep");
 		else
-			engine->loadConfigFile(includePath);
+			engine->loadConfigFile(file.path);
 		command = L"";
 	}
 
