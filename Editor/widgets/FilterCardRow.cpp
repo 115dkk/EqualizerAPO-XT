@@ -29,6 +29,7 @@
 #include "Editor/widgets/ElidedLabel.h"
 #include "Editor/widgets/routing/IRoutingRenderer.h"
 #include "Editor/widgets/routing/CopyRoutingAdapter.h"
+#include "filters/MultiConvolutionCommand.h"
 
 namespace
 {
@@ -386,6 +387,16 @@ void FilterCardRow::configureChannels(std::vector<std::wstring>& channelNames)
 
 	if (gui != nullptr)
 		gui->configureChannels(channelNames);
+
+	// A MultiConvolution line declares its targets as channels, as Copy does,
+	// so a line below it can select one (audit #348 A2). A switched-off line
+	// declares nothing: the engine never runs it.
+	if (descriptor.type == QStringLiteral("multiconvolution") && descriptor.enabled)
+	{
+		MultiConvolutionCommand parsed;
+		if (MultiConvolutionCommand::parse(L"MultiConvolution", descriptor.parameters.toStdWString(), parsed))
+			parsed.declareChannels(channelNames);
+	}
 }
 
 void FilterCardRow::configureSelectedChannels(std::vector<std::wstring>& selectedChannels)
@@ -465,6 +476,12 @@ CommandRowInfo FilterCardRow::currentRowInfo() const
 				// once; the first is the one that stopped it.
 				if (info.parseError.isEmpty())
 					info.parseError = QString::fromStdWString(fact.text);
+				break;
+			case ConfigLoadTraceEntry::Kind::SetupError:
+				// The whole configuration rolled back. The exception text is a
+				// developer's log line and stays in the log; the row only needs
+				// to know that this line is the one that stopped the load.
+				info.setupFailed = true;
 				break;
 			}
 		}
@@ -827,9 +844,15 @@ void FilterCardRow::applyDescriptor()
 	// A line the engine could not use says why on hover. The analysis run is what
 	// produces the reason, so this is empty until one has happened and goes stale
 	// on edit, like every other load fact.
-	const QString parseError = currentRowInfo().parseError;
-	summaryLabel->setToolTip(parseError.isEmpty() ? descriptor.summary
-		: tr("This line was not applied: %1").arg(parseError));
+	// A setup failure wins over a parse error: it is the one that kept the
+	// whole configuration from playing.
+	const CommandRowInfo rowInfo = currentRowInfo();
+	if (rowInfo.setupFailed)
+		summaryLabel->setToolTip(tr("Equalizer APO could not prepare this filter, so the whole configuration was not applied and the previous settings keep playing. Check the file or plug-in this line uses, or switch the line off."));
+	else if (!rowInfo.parseError.isEmpty())
+		summaryLabel->setToolTip(tr("This line was not applied: %1").arg(rowInfo.parseError));
+	else
+		summaryLabel->setToolTip(descriptor.summary);
 	enabledButton->blockSignals(true);
 	enabledButton->setChecked(descriptor.enabled);
 	enabledButton->setIcon(QIcon(descriptor.enabled ? QStringLiteral(":/icons/power_on.svg") : QStringLiteral(":/icons/power_off.svg")));

@@ -135,19 +135,13 @@ void IncludeCardEditor::pathCommitted(const QString& text)
 	emit updateModel();
 }
 
+// The file the engine includes for this line: the text read by the rule
+// every file a line names shares (audit #348 A1), so quotes and %VARIABLES%
+// mean here what they mean to the engine.
 QFileInfo IncludeCardEditor::currentFileInfo() const
 {
-	if (filterTable == nullptr)
-		return QFileInfo(reference->writtenPath());
-
-	QString normalizedPath = QDir::fromNativeSeparators(reference->writtenPath());
-	if (QDir::isAbsolutePath(normalizedPath))
-		return QFileInfo(reference->writtenPath());
-
-	QFileInfo configInfo(filterTable->getConfigPath());
-	QFileInfo fileInfo;
-	fileInfo.setFile(configInfo.absoluteDir(), reference->writtenPath());
-	return fileInfo;
+	reference->resolveAgainstConfig(filterTable != nullptr ? filterTable->getConfigPath() : QString());
+	return QFileInfo(reference->resolvedPath());
 }
 
 void IncludeCardEditor::updateFileInfo()
@@ -159,9 +153,11 @@ void IncludeCardEditor::updateFileInfo()
 	if (!state.missing)
 	{
 		state.nameClickable = true;
-		if (!FileReferenceController::isReadableByAudioService(state.fullPath))
+		const QString problem = FileReferenceController::audioServiceProblem(state.fullPath,
+			filterTable != nullptr ? filterTable->getConfigPath() : QString());
+		if (!problem.isEmpty())
 		{
-			state.statusText = tr("Not readable by the audio service");
+			state.statusText = problem;
 			state.statusSeverity = ReferenceCardState::Severity::Critical;
 			state.nameClickable = false;
 			offerImport = true;

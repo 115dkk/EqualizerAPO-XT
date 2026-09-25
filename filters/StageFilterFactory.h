@@ -25,7 +25,7 @@
 #include "engine/IFilterFactory.h"
 #include "engine/IFilter.h"
 
-class StageFilterFactory : public IFilterFactory
+class StageFilterFactory : public ParseReportingFactory
 {
 public:
 	void initialize(FilterEngine* engine) override;

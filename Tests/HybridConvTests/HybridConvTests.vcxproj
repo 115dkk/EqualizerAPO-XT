@@ -118,8 +118,8 @@ if exist "$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configurati
     <ClCompile Include="ParserTests.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\filters\ConfigFileReference.h" />
     <ClInclude Include="..\..\filters\ConfigPathPolicy.h" />
-    <ClInclude Include="..\..\filters\ConvolutionFilePath.h" />
     <ClInclude Include="..\..\libHybridConv-0.1.1\libHybridConv_eapo.h" />
     <ClInclude Include="..\TestVst3Plugin\TestVst3Protocol.h" />
   </ItemGroup>

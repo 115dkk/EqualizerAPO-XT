@@ -50,6 +50,11 @@ struct ConfigLoadTraceEntry
 		// valid no-op path silently became a false warning until somebody added it
 		// to the list.
 		ParseError,
+		// A line whose filter was built but threw while being set up
+		// (IFilter::initialize). The whole configuration was then not applied:
+		// the load rolls back and the previous configuration keeps running
+		// (audit #348 TD-18). text carries the reason and error is always set.
+		SetupError,
 	};
 
 	// How a Condition line's expression fared. NotEvaluated marks an ElseIf
