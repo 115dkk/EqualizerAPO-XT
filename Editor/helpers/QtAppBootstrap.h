@@ -42,6 +42,14 @@ namespace QtAppBootstrap
 // executable's own directory instead. Call before constructing QApplication.
 void addExecutableRelativePluginPath();
 
+// Copies Qt's warnings, criticals and fatals into the product log (Editor.log,
+// DeviceSelector.log) and then hands every message on to the handler that was
+// installed before, so what reaches the console or the debugger is unchanged.
+// Without it a qWarning from Qt or from our own code left no trace in the file
+// a user sends (audit #348 TD-49). Debug and info messages are not copied.
+// Call once, after the log destination is chosen.
+void installMessageHandler();
+
 // Applies the user's language choice as the default QLocale: the preference
 // the Editor's language menu writes (EDITOR_REGPATH value "language") when
 // set, the system locale otherwise. Shared so DeviceSelector follows the

@@ -16,12 +16,12 @@
 	round-tripping chunk state - without depending on any plugin installed on
 	the machine.
 
-	Soft skip: if TestVst2Plugin.dll is not found next to the running test
-	executable (e.g. the plugin project was not built or copied), the test
-	prints a clear "skipped" line and returns without failing, so the suite
-	never breaks the build. The HybridConvTests project copies the DLL next to
-	HybridConvTests.exe as a post-build step, which is what makes the
-	GetModuleFileName-relative lookup succeed on both x64 and ARM64.
+	A missing TestVst2Plugin.dll fails the suite: the HybridConvTests project
+	copies the DLL next to HybridConvTests.exe as a post-build step (which is
+	what makes the executable-relative lookup work on both x64 and ARM64), so
+	its absence is a build or copy problem. The one path that still skips is
+	a test executable whose own directory cannot be read; it prints a
+	"skipped" line.
 
 	VST headers: this translation unit includes VSTPluginLibrary.h and
 	VSTPluginInstance.h, exactly as VSTPluginInstance.cpp does. Those headers
@@ -53,6 +53,7 @@
 #include "filters/VSTPluginFilterFactory.h"
 #include "filters/loudnessCorrection/VolumeController.h"
 #include "Tests/TestHarness.h"
+#include "platform/windows/WindowsPath.h"
 
 using std::shared_ptr;
 using std::unordered_map;
@@ -113,26 +114,10 @@ struct ChunkBlob
 };
 #pragma pack(pop)
 
-// Directory of the running test executable. The plugin DLL is copied next to it
-// by the HybridConvTests post-build step.
-wstring exeDirectory()
-{
-	wchar_t path[MAX_PATH] = {};
-	DWORD len = GetModuleFileNameW(nullptr, path, MAX_PATH);
-	if (len == 0 || len >= MAX_PATH)
-		return wstring();
-
-	wstring full(path, len);
-	size_t slash = full.find_last_of(L"\\/");
-	if (slash == wstring::npos)
-		return wstring();
-	return full.substr(0, slash);
-}
-
-bool fileExists(const wstring& path)
-{
-	return GetFileAttributesW(path.c_str()) != INVALID_FILE_ATTRIBUTES;
-}
+// The plugin DLL is copied next to the running test executable by the
+// HybridConvTests post-build step.
+using pathutil::exeDirectory;
+using pathutil::fileExists;
 
 // Base64-encode a ChunkBlob the way the engine stores chunk state, so it can be
 // fed straight into VSTPluginInstance::writeToEffect.
@@ -289,8 +274,9 @@ void runVstHostTests()
 {
 	testVolumeControllerBalancesComInitialization();
 
-	// Both soft-skip paths report before returning: under the harness default
-	// (Collect) a failure recorded above only fails the build through report().
+	// Both early returns (the skip below and the missing-DLL failure after it)
+	// report first: under the harness default (Collect) a failure recorded
+	// above only fails the build through report().
 	const wstring dir = exeDirectory();
 	if (dir.empty())
 	{

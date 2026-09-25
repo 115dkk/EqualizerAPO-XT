@@ -56,7 +56,9 @@ public:
 		// list, served by the wrapper over a WASAPI exclusive target
 		// (asio/WasapiExclusiveTarget.h), for applications whose
 		// exclusive-mode stream no APO can reach. Part of the installation:
-		// it goes with the APO and leaves with it.
+		// it goes with the APO and leaves with it. The headless install sets it
+		// with --asio-entry (--exclusive-mode-eq, its first name, is still
+		// accepted).
 		bool asioEntry;
 		// The entry's stream options, the same ones an ASIO driver row offers
 		// (AsioAPOInfo). Only written while asioEntry is on.

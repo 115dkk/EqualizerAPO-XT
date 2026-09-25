@@ -17,7 +17,6 @@
 #include "DeviceAPOInfoKeys.h"
 
 #include "services/registry/WindowsRegistry.h"
-#include "platform/windows/WindowsVersion.h"
 
 using std::make_shared;
 using std::move;
@@ -47,11 +46,10 @@ wstring DeviceAPOInfo::getOriginalAPOPreMix()
 	{
 	case INSTALL_LFX_GFX:
 		guid = originalApoGuids[LFX_INDEX];
-		if (WindowsVersion::isAtLeast(6, 3)) // Windows 8.1
-		{
-			if (originalApoGuids[LFX_INDEX] == APOGUID_NOVALUE && originalApoGuids[GFX_INDEX] == APOGUID_NOVALUE)
-				guid = originalApoGuids[SFX_INDEX];
-		}
+		// Windows 10 1809 is the minimum, so the SFX slot always exists to fall
+		// back to (the check for Windows 8.1 is gone, audit #348 TD-53).
+		if (originalApoGuids[LFX_INDEX] == APOGUID_NOVALUE && originalApoGuids[GFX_INDEX] == APOGUID_NOVALUE)
+			guid = originalApoGuids[SFX_INDEX];
 		break;
 	case INSTALL_SFX_MFX:
 		guid = originalApoGuids[SFX_INDEX];
@@ -78,11 +76,8 @@ wstring DeviceAPOInfo::getOriginalAPOPostMix()
 	{
 	case INSTALL_LFX_GFX:
 		guid = originalApoGuids[GFX_INDEX];
-		if (WindowsVersion::isAtLeast(6, 3)) // Windows 8.1
-		{
-			if (originalApoGuids[LFX_INDEX] == APOGUID_NOVALUE && originalApoGuids[GFX_INDEX] == APOGUID_NOVALUE)
-				guid = originalApoGuids[MFX_INDEX];
-		}
+		if (originalApoGuids[LFX_INDEX] == APOGUID_NOVALUE && originalApoGuids[GFX_INDEX] == APOGUID_NOVALUE)
+			guid = originalApoGuids[MFX_INDEX];
 		break;
 	case INSTALL_SFX_MFX:
 		guid = originalApoGuids[MFX_INDEX];

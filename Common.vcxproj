@@ -296,6 +296,8 @@
     <ClInclude Include="devices\ApoRuntimeFacts.h" />
     <ClInclude Include="devices\DeviceAPOInfo.h" />
     <ClInclude Include="devices\DevicePlan.h" />
+    <ClInclude Include="devices\DeviceTestPlan.h" />
+    <ClInclude Include="devices\DeviceTestWire.h" />
     <ClInclude Include="engine\ConfigSwapChannel.h" />
     <ClInclude Include="engine\ConfigWatcher.h" />
     <ClInclude Include="engine\FilterConfiguration.h" />
@@ -368,6 +370,7 @@
     <ClInclude Include="dsp\MxcsrGuard.h" />
     <ClInclude Include="platform\windows\Win32Event.h" />
     <ClInclude Include="platform\windows\WindowsPath.h" />
+    <ClInclude Include="platform\windows\CommandLineQuoting.h" />
     <ClInclude Include="devices\DeviceAPOInfoKeys.h" />
     <ClInclude Include="devices\DeviceInstallReport.h" />
     <ClInclude Include="devices\ReportedOperation.h" />
@@ -440,6 +443,7 @@
     <ClCompile Include="devices\DeviceAPOInfo.Uninstall.cpp" />
     <ClCompile Include="devices\DeviceInstallReport.cpp" />
     <ClCompile Include="devices\DevicePlan.cpp" />
+    <ClCompile Include="devices\DeviceTestPlan.cpp" />
     <ClCompile Include="devices\ReportedOperation.cpp" />
     <ClCompile Include="engine\ChannelRoutingPlan.cpp" />
     <ClCompile Include="engine\FilterConfiguration.cpp" />

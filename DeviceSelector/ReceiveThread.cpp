@@ -22,6 +22,7 @@
 #include "services/logging/Logging.h"
 #include "platform/windows/Win32Resource.h"
 #include "platform/windows/NamedPipeSecurity.h"
+#include "devices/DeviceTestWire.h"
 #include "ReceiveThread.h"
 
 ReceiveThread::ReceiveThread(const std::wstring& pipeName)
@@ -44,7 +45,7 @@ void ReceiveThread::stop()
 	if (pipe)
 	{
 		DWORD bytesWritten;
-		WriteFile(pipe.get(), "stop", 4, &bytesWritten, nullptr);
+		WriteFile(pipe.get(), devicetest::wire::kStopMessage, sizeof(devicetest::wire::kStopMessage) - 1, &bytesWritten, nullptr);
 		FlushFileBuffers(pipe.get());
 	}
 
@@ -97,7 +98,7 @@ void ReceiveThread::run()
 					throw ReceiveException(L"Could not read from pipe: " + win32::errorMessage(GetLastError()));
 
 				std::string s(buf, bytesRead);
-				if (s == "stop")
+				if (s == devicetest::wire::kStopMessage)
 					break;
 
 				std::scoped_lock lock(mutex);

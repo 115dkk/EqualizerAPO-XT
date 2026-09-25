@@ -8,6 +8,18 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **Device Selector의 명령줄 출력에서 한국어 등 영어가 아닌 글자가 깨지지
+  않습니다.** 화면 없이 돌 때 내는 메시지를 ANSI 코드 페이지로 바꿔 내보내 글자가
+  깨졌는데, 이제 콘솔에는 유니코드로, 그 밖에는 UTF-8로 씁니다. 백슬래시로 끝나거나
+  따옴표가 든 경로도 Editor가 Device Selector를 다시 띄울 때나 Voicemeeter 바로
+  가기를 쓸 때 그대로 전달됩니다.
+- **레지스트리 값을 읽지 못한 설정 폴더는 건드리지 않습니다.** Editor가 지정된
+  ConfigPath를 읽지 못하면 첫 실행 이전 작업이 폴더가 지정되지 않은 것처럼 다뤘는데,
+  이제 지정된 폴더를 그대로 두고 그 이유를 로그에 남깁니다.
+- **더 많은 실패가 로그에 남습니다.** Qt 경고와 오류가 이제 `Editor.log`와
+  Device Selector 로그에 기록되고, APO 등록 실패, 재시작 때 Velopack 업데이트 확인
+  실패, 첫 실행 때 Device Selector 실행 실패도 남습니다([#380](https://github.com/115dkk/EqualizerAPO-XT/pull/380)).
+
 ## v2.54.15 — 2026-09-25
 
 - **서브우퍼 라우팅 화면들이 같은 수치를 보입니다.** 장치를 고르지 않았을 때

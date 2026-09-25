@@ -26,6 +26,7 @@
 #include "pluginterfaces/vst/ivsthostapplication.h"
 #include "pluginterfaces/vst/ivstmessage.h"
 #include "Tests/TestHarness.h"
+#include "platform/windows/WindowsPath.h"
 #include "VST3/SubwooferRouting/plugin_ids.h"
 
 using std::shared_ptr;
@@ -36,16 +37,7 @@ namespace
 
 test::Harness harness("SubwooferRoutingVst3Tests");
 
-wstring exeDirectory()
-{
-	wchar_t path[MAX_PATH] = {};
-	const DWORD length = GetModuleFileNameW(nullptr, path, MAX_PATH);
-	if (length == 0 || length >= MAX_PATH)
-		return {};
-	const wstring full(path, length);
-	const size_t slash = full.find_last_of(L"\\/");
-	return slash == wstring::npos ? wstring() : full.substr(0, slash);
-}
+using pathutil::exeDirectory;
 
 bool ensureDirectory(const wstring& path)
 {

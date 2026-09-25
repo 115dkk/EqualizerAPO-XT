@@ -153,6 +153,8 @@ int main(int argc, char** argv)
 		testUpdateCoordinatorContainsAdapterFailure();
 		testLegacyMigrationHookAdoptsStableRootThroughThePort();
 		testLegacyMigrationHookRescuesVolatileTreeAndLeavesBreadcrumbs();
+		testLegacyMigrationHookLeavesAnUnreadableConfigPathAlone();
+		testCommandLineQuotingRoundTripsThroughCommandLineToArgvW();
 		testSubwooferRoutingUiStateTracksMutationsAndValidation();
 		testSubwooferRoutingDefaultStates();
 		testFilterLineCardDecidesPerLine();
