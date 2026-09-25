@@ -292,6 +292,7 @@
     <ClInclude Include="engine\ConfigLoadTrace.h" />
     <ClInclude Include="engine\ConfigurationFileReader.h" />
     <ClInclude Include="devices\DeviceAPOInfo.h" />
+    <ClInclude Include="devices\DevicePlan.h" />
     <ClInclude Include="engine\ConfigSwapChannel.h" />
     <ClInclude Include="engine\ConfigWatcher.h" />
     <ClInclude Include="engine\FilterConfiguration.h" />
@@ -430,6 +431,7 @@
     <ClCompile Include="devices\DeviceAPOInfo.State.cpp" />
     <ClCompile Include="devices\DeviceAPOInfo.Uninstall.cpp" />
     <ClCompile Include="devices\DeviceInstallReport.cpp" />
+    <ClCompile Include="devices\DevicePlan.cpp" />
     <ClCompile Include="devices\ReportedOperation.cpp" />
     <ClCompile Include="engine\FilterConfiguration.cpp" />
     <ClCompile Include="engine\FilterEngine.cpp" />
