@@ -1295,6 +1295,13 @@ int run(const QStringList& arguments)
 		failures += renderSkin(outDir, skinId.trimmed(), configPath, true);
 		failures += renderSkin(outDir, skinId.trimmed(), configPath, false);
 	}
+	// The rack reference cards' labels print whole whenever the label strip
+	// got the width they asked for.
+	for (const QString& skinId : skinIds)
+	{
+		if (skinId.trimmed() == QStringLiteral("rack"))
+			failures += checkEngravedLabelFit();
+	}
 
 	// Self-check the shot count so a silently dropped skin, row or state fails
 	// the run even when every attempted grab succeeded. galleryRows() drives the

@@ -8,6 +8,15 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **rack 스킨이 짧은 파일 이름을 온전히 보여 줍니다.**
+  Include, Convolution, VST 카드에서
+  `example.txt` 같은 이름이 자리가 넉넉한데도
+  `exam….txt`로 줄어드는 일이 있었습니다. 라벨이 이름의 폭을 정수
+  픽셀로 재고 줄일지는 소수점 폭으로 판단해서, 이름의 절반가량이 가운데를
+  잃었습니다. 이제 정말 들어가지 않을 때만 줄이고, 갤러리가 이름 288개로
+  이를
+  검사합니다([#403](https://github.com/115dkk/EqualizerAPO-XT/pull/403)).
+
 ## v2.54.28 — 2026-09-25
 
 - **VST3 플러그인의 저장된 상태가 빠짐없이 돌아옵니다.** VST3
