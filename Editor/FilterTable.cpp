@@ -179,7 +179,7 @@ void FilterTable::updateGuis()
 
 	clearRows();
 
-	qDebug("Delete took %d ms", int(timer.elapsed()));
+	TraceF(L"Delete took %d ms", int(timer.elapsed()));
 	timer.start();
 
 	gridLayout = new QGridLayout(this);
@@ -313,7 +313,7 @@ void FilterTable::updateGuis()
 
 	setUpdatesEnabled(updatesWereEnabled);
 
-	qDebug("Create took %d ms (prepare %d, editor guis %d, card rows %d, add %d, channels %d, rows %d)",
+	TraceF(L"Create took %d ms (prepare %d, editor guis %d, card rows %d, add %d, channels %d, rows %d)",
 		int(timer.elapsed()), int(prepareNs / 1000000), int(guiNs / 1000000),
 		int(rowCtorNs / 1000000), int(addNs / 1000000), int(channelsNs / 1000000), row);
 	update();
@@ -679,7 +679,7 @@ void FilterTable::insertRowAt(int index)
 	// state on paint; repaint them all like a full rebuild would have.
 	updateRowWidgets();
 
-	qDebug("Incremental insert took %d ms", int(timer.elapsed()));
+	TraceF(L"Incremental insert took %d ms", int(timer.elapsed()));
 	update();
 }
 
@@ -740,6 +740,6 @@ void FilterTable::removeRowAt(int index)
 	syncListChrome();
 	updateRowWidgets();
 
-	qDebug("Incremental remove took %d ms", int(timer.elapsed()));
+	TraceF(L"Incremental remove took %d ms", int(timer.elapsed()));
 	update();
 }

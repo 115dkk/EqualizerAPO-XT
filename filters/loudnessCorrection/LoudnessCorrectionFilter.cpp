@@ -42,6 +42,11 @@ LoudnessCorrectionFilter::LoudnessCorrectionFilter(const FilterParameters& fPara
 
 LoudnessCorrectionFilter::~LoudnessCorrectionFilter()
 {
+	stopParameterUpdateThread();
+}
+
+void LoudnessCorrectionFilter::stopParameterUpdateThread()
+{
 	{
 		std::lock_guard<std::mutex> lock(_parameterUpdateThreadMutex);
 		_stopParameterUpdateThread = true;
@@ -53,6 +58,12 @@ LoudnessCorrectionFilter::~LoudnessCorrectionFilter()
 
 std::vector<std::wstring> LoudnessCorrectionFilter::initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames)
 {
+	// A second call re-initializes. The update thread from the first call is
+	// stopped first: assigning a new std::thread over a joinable one is
+	// std::terminate, and the thread would otherwise race the slot seeding
+	// below (audit #348 open question, IFilter::initialize contract).
+	stopParameterUpdateThread();
+
 	this->_channelCount = channelNames.size();
 	_lowShelfBiquads.resize(_channelCount);
 	_highShelfBiquads.resize(_channelCount);

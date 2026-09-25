@@ -9,8 +9,8 @@ untested UI model in the tree.
 
 `Tests/EditorLogicTests` is the seam for Editor logic: document and selection
 state live in widget-free models so this suite can verify them as a plain
-console binary. Two constraints define which sources may join its list
-(`EditorLogicTests.vcxproj`):
+console binary. Three constraints define which sources may join its list
+(`EditorLogicTests.vcxproj`), and a fourth rule says how they are compiled:
 
 1. **No Qt widget stack.** The binary links Qt6Core/Gui/Widgets import
    libraries but constructs no QApplication; sources must stand without the
@@ -22,6 +22,17 @@ console binary. Two constraints define which sources may join its list
 3. **No engine sources.** The suite links `Common.lib` whole-archive for the
    filter factories; adding an engine `.cpp` to the source list would define
    the same symbols twice and break the link.
+4. **No `EapoVariantArch`, by decision (audit #348).** The suite's own
+   sources, the Editor analysis code included (`Editor/analysis/*.cpp`), are
+   compiled for the baseline instruction set, while the shipped Editor is
+   built with the variant's flags. That is accepted: there is no per-variant
+   build of the EditorLogicTests sources. The per-variant DSP is covered by
+   the engine suites (HybridConvTests, EngineOrchestrationTests,
+   AudioRegressionTests), which opt into `EapoVariantArch` and run per
+   variant. The suite itself still runs only on legs whose variant executes
+   (`Build-Solution.ps1`), because the `Common.lib` it links carries the
+   variant's instructions; that decides whether the binary can start, not
+   which instruction set the analysis code is tested with.
 
 The consequence of (2) is a design convention, not just a build detail:
 

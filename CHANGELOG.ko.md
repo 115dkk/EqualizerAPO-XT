@@ -8,6 +8,13 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **SubwooferRouting 카드와 대화상자가 기본 프리셋 이름을 같게
+  보여 줍니다.** 카드는 "Built-in preset: Issue #246
+  - Front/Rear 4.1", 대화상자는 "Issue #246 -
+  Front/Rear 4.1"로 달랐는데, 이제 둘 다 프리셋 자체의 이름을
+  보여
+  줍니다([#398](https://github.com/115dkk/EqualizerAPO-XT/pull/398)).
+
 ## v2.54.24 — 2026-09-25
 
 - **soft 스킨의 파일 대화상자가 자기 아이콘을 씁니다.** 다른 네
