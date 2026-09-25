@@ -18,7 +18,7 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   이제 지정된 폴더를 그대로 두고 그 이유를 로그에 남깁니다.
 - **더 많은 실패가 로그에 남습니다.** Qt 경고와 오류가 이제 `Editor.log`와
   Device Selector 로그에 기록되고, APO 등록 실패, 재시작 때 Velopack 업데이트 확인
-  실패, 첫 실행 때 Device Selector 실행 실패도 남습니다(#PRNUM).
+  실패, 첫 실행 때 Device Selector 실행 실패도 남습니다([#380](https://github.com/115dkk/EqualizerAPO-XT/pull/380)).
 
 ## v2.54.8 — 2026-09-25
 

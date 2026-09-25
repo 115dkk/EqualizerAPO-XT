@@ -27,7 +27,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 - **More failures reach the log.** Qt warnings and errors are now written to
   `Editor.log` and the Device Selector's log, as are a failed APO
   registration, a failed Velopack update check at restart and a failed
-  Device Selector launch on the first run (#PRNUM).
+  Device Selector launch on the first run ([#380](https://github.com/115dkk/EqualizerAPO-XT/pull/380)).
 
 ## v2.54.8 — 2026-09-25
 
