@@ -5,8 +5,9 @@
 .DESCRIPTION
     A 32-bit DAW can only load a 32-bit ASIO driver, so the wrapper DLL ships
     for Win32 as well; the engine stays in the 64-bit host process. Neither
-    DLL links the engine or takes a SIMD flag, so one build on the avx2 leg
-    covers every variant. The fake driver is built alongside so a future
+    DLL links the engine or takes a SIMD flag. Every x64 leg runs this,
+    because every x64 artifact ships the wrapper under x86
+    (Package-Artifacts.ps1). The fake driver is built alongside so a future
     32-bit probe leg has its target.
 
     -PlanOnly returns the projects and the MSBuild arguments, for Pester.
