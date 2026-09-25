@@ -9,6 +9,7 @@
 */
 
 #include "CopyRoutingAdapter.h"
+#include "ChannelIdentity.h"
 #include "RoutingFold.h"
 #include "RoutingGridModel.h"
 
@@ -74,33 +75,9 @@ bool CopyRoutingAdapter::isVirtualChannel(const QString& channel)
 
 QString CopyRoutingAdapter::channelColor(const QString& channel)
 {
-	// Fixed per-channel hues: the cross-skin data ink for channel identity.
-	static const QHash<QString, QString> colors = {
-		{ QStringLiteral("L"), QStringLiteral("#ef4444") },
-		{ QStringLiteral("R"), QStringLiteral("#3b82f6") },
-		{ QStringLiteral("C"), QStringLiteral("#22c55e") },
-		{ QStringLiteral("LFE"), QStringLiteral("#f59e0b") },
-		{ QStringLiteral("SUB"), QStringLiteral("#f59e0b") },
-		{ QStringLiteral("SL"), QStringLiteral("#a855f7") },
-		{ QStringLiteral("SR"), QStringLiteral("#ec4899") },
-		{ QStringLiteral("RL"), QStringLiteral("#f97316") },
-		{ QStringLiteral("RR"), QStringLiteral("#06b6d4") },
-		{ QStringLiteral("SBL"), QStringLiteral("#8b5cf6") },
-		{ QStringLiteral("SBR"), QStringLiteral("#14b8a6") }
-	};
-
-	QString key = channel.toUpper();
-	if (colors.contains(key))
-		return colors.value(key);
-	// Virtual channels: derive from their trailing physical-ish suffix or fall
-	// back to a neutral slate.
-	if (key.startsWith(QLatin1Char('V')) && key.size() > 1)
-	{
-		const QString base = key.mid(1);
-		if (colors.contains(base))
-			return colors.value(base);
-	}
-	return QStringLiteral("#94a3b8");
+	// The cross-skin data ink for channel identity lives in ChannelIdentity,
+	// which the header badges read as well.
+	return ChannelIdentity::colorName(channel);
 }
 
 CopyRoutingAdapter::Cell CopyRoutingAdapter::Matrix::cell(int outRow, int inCol) const

@@ -68,7 +68,7 @@ void CrosspointMatrixView::updateMetrics()
 	// its caption clipped it to fragments ("rontBas"). The caption font
 	// decides the width a column really needs.
 	QFont monoFont(skinTokens.monoFontFamily);
-	monoFont.setPixelSize(11);
+	monoFont.setPixelSize(12);
 	const QFontMetrics fm(monoFont);
 
 	int longestInput = 0;
@@ -164,7 +164,7 @@ void CrosspointMatrixView::paintEvent(QPaintEvent*)
 	const QColor danger(t.danger);
 
 	QFont monoFont(t.monoFontFamily);
-	monoFont.setPixelSize(11);
+	monoFont.setPixelSize(12);
 	p.setFont(monoFont);
 
 	removeRects.clear();

@@ -45,7 +45,7 @@ int selectorWidth(bool output)
 {
 	const SkinTokens& t = SkinManager::instance()->tokens();
 	QFont valueFont(t.monoFontFamily);
-	valueFont.setPixelSize(12);
+	valueFont.setPixelSize(13);
 	const QFontMetricsF valueMetrics(valueFont);
 	qreal widestValue = 0;
 	for (VST3BusLayout layout : kMenuLayouts)
@@ -58,7 +58,7 @@ int selectorWidth(bool output)
 	}
 
 	QFont roleFont(t.fontFamily);
-	roleFont.setPixelSize(9);
+	roleFont.setPixelSize(10);
 	const QFontMetricsF roleMetrics(roleFont);
 	const QString roleToken = output ? QStringLiteral("OUT") : QStringLiteral("IN");
 	const QString roleText = output
@@ -395,7 +395,7 @@ int VSTBusStrip::verdictWidth() const
 
 	const SkinTokens& t = SkinManager::instance()->tokens();
 	QFont verdictFont(t.monoFontFamily);
-	verdictFont.setPixelSize(10);
+	verdictFont.setPixelSize(11);
 	const QFontMetricsF metrics(verdictFont);
 	// Lamp allowance + text (a pair adds the painted direction mark), capped
 	// so a translated verdict cannot push the action buttons off the row;

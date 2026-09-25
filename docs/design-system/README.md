@@ -5,7 +5,7 @@ Editor의 다섯 스킨(studio, minimal, soft, rack, matrix)을 Design System �
 ## 구성
 
 - `project/README.md`: 브랜드북(한국어). 아티팩트 페이지의 본문이다.
-- `project/tokens.json`: 색(다크 먼저, 라이트), 활자, 간격, 라운드 토큰. 색 이름은 `<스킨>-<역할>`이고 공용은 `type-*`, `channel-*`, `badge-*`뿐이다.
+- `project/tokens.json`: 색(다크 먼저, 라이트), 활자, 간격, 라운드 토큰. 색 이름은 `<스킨>-<역할>`이고 공용은 `type-*`, `channel-*`뿐이다.
 - `project/skins/*.md`: 스킨별 절(헌법 요약).
 - `project/components/<Name>/preview.html`과 `README.md`: 미리보기 19종과 사용 지침. 미리보기는 Qt가 그리는 것을 옮긴 정적 HTML이다.
 - `project/components/bundle.css`: 미리보기 스캐폴드. 스킨 토큰을 `--bg --card --accent…` 일반 이름에 매핑하는 `.skin-<id>` 프레임과, 갤러리에서 실측한 카드 행 문법 `.crow`(헤더 40px, 컨트롤 34x30, 배지 44x30, 스킨별 재질)가 여기 있다.

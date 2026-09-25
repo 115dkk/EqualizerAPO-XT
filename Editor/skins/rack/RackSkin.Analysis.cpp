@@ -78,7 +78,7 @@ void RackSkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& s
 	// localized data engraved as-is - no uppercasing, no tracking.
 	const QRectF plateText = plate.adjusted(10.0, 1.0, -10.0, -2.0);
 	QFont plateFont(tokens.fontFamily);
-	plateFont.setPixelSize(8);
+	plateFont.setPixelSize(9);
 	plateFont.setBold(true);
 	plateFont.setLetterSpacing(QFont::AbsoluteSpacing, 2.0);
 	const QFontMetricsF plateMetrics(plateFont);
@@ -126,7 +126,7 @@ void RackSkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& s
 	if (!state.channelText.isEmpty())
 	{
 		QFont captionFont(tokens.fontFamily);
-		captionFont.setPixelSize(9);
+		captionFont.setPixelSize(10);
 		const QFontMetricsF captionMetrics(captionFont);
 		const QRectF captionRect(plateText.left() + reservedLeft, plateText.top(),
 			qMax(0.0, plateText.width() - reservedLeft - reservedRight), plateText.height());

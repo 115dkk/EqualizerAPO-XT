@@ -92,7 +92,7 @@ void RackSkin::paintAddRow(QPainter& painter, const QRect& rect, const ListChrom
 	// dark-recess engraving pass: the interior is dark in both finishes.
 	const bool warm = state.hovered || state.pressed;
 	QFont stencilFont(tokens.fontFamily);
-	stencilFont.setPixelSize(9);
+	stencilFont.setPixelSize(10);
 	stencilFont.setBold(true);
 	stencilFont.setLetterSpacing(QFont::AbsoluteSpacing, 3.0);
 	painter.setFont(stencilFont);

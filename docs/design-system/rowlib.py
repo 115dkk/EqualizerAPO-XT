@@ -55,7 +55,7 @@ def svg(pict, size=None, extra=''):
 def chip_ink(skin, ch):
     if skin == 'minimal': return MINIMAL_INK.get(ch, 'var(--muted)')
     if skin == 'soft': return f'hsl({PASTEL_HUE.get(ch, 215)} 50% 62%)'
-    return CHANNEL.get(ch, 'var(--badge-fallback)')
+    return CHANNEL.get(ch, 'var(--channel-neutral)')
 
 def channel_badges(skin, chans, virtual=()):
     out = []

@@ -15,7 +15,8 @@
 	The rail and its cells own all behavior - the channel popup menu,
 	keyboard access, focus, accessibility - and hand painting to the active
 	skin (ISkin::paintVstSlotFillCell / ISkin::paintVstSlotFillRail), the
-	same split VSTBusStrip uses. The host (VSTCardEditor) owns the
+	same split VSTBusStrip uses. A cell's size comes from the skin as well
+	(ISkin::vstSlotFillCellSize), measured in the fonts that skin draws with. The host (VSTCardEditor) owns the
 	semantics through VSTSlotFillModel: which rails exist, the effective
 	values, and what a pick means.
 */

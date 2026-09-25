@@ -335,9 +335,9 @@ void SoftSkin::paintVstBusSelector(QPainter& painter, const VstBusSelectorState&
 	}
 
 	QFont roleFont(tokens.fontFamily);
-	roleFont.setPixelSize(9);
+	roleFont.setPixelSize(10);
 	QFont valueFont(tokens.fontFamily);
-	valueFont.setPixelSize(11);
+	valueFont.setPixelSize(12);
 	valueFont.setWeight(QFont::DemiBold);
 
 	QRectF textRect = pill.adjusted(8.0, 0, -6.0, 0);
@@ -425,7 +425,7 @@ void SoftSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& state
 		return;
 
 	QFont captionFont(tokens.fontFamily);
-	captionFont.setPixelSize(11);
+	captionFont.setPixelSize(12);
 	painter.setFont(captionFont);
 	QColor ink(tokens.mutedText);
 	if (state.tone == VstBusFrameState::Tone::Critical)
@@ -454,6 +454,36 @@ void SoftSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& state
 		painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter,
 			QFontMetricsF(captionFont).elidedText(state.verdictText, Qt::ElideRight, textRect.width()));
 	}
+}
+
+namespace
+{
+// The fill cell's fonts, shared by the painter and the size it answers:
+// the value is the sans face in DemiBold, not the neutral painter's mono.
+QFont softFillRoleFont(const SkinTokens& tokens)
+{
+	QFont font(tokens.fontFamily);
+	font.setPixelSize(10);
+	return font;
+}
+
+QFont softFillValueFont(const SkinTokens& tokens)
+{
+	QFont font(tokens.fontFamily);
+	font.setPixelSize(12);
+	font.setWeight(QFont::DemiBold);
+	return font;
+}
+}
+
+QSize SoftSkin::vstSlotFillCellSize(const QString& role, const QString& value, const SkinTokens& tokens) const
+{
+	// The painter's pill: a 0.5 inset each side, 8 before the role and 6
+	// after the caret, 5 between role and value, and the value rect stops 8
+	// short of the text edge so it ends before the caret.
+	const qreal roleWidth = QFontMetricsF(softFillRoleFont(tokens)).horizontalAdvance(role);
+	const qreal valueWidth = QFontMetricsF(softFillValueFont(tokens)).horizontalAdvance(value);
+	return QSize(qCeil(1.0 + 8.0 + roleWidth + 5.0 + valueWidth + 8.0 + 6.0), 20);
 }
 
 void SoftSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state, const SkinTokens& tokens) const
@@ -489,11 +519,8 @@ void SoftSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellStat
 	painter.setBrush(fill);
 	painter.drawRoundedRect(pill, radius, radius);
 
-	QFont roleFont(tokens.fontFamily);
-	roleFont.setPixelSize(9);
-	QFont valueFont(tokens.fontFamily);
-	valueFont.setPixelSize(11);
-	valueFont.setWeight(QFont::DemiBold);
+	const QFont roleFont = softFillRoleFont(tokens);
+	const QFont valueFont = softFillValueFont(tokens);
 
 	QRectF textRect = pill.adjusted(8.0, 0, -6.0, 0);
 	painter.setFont(roleFont);
@@ -549,7 +576,7 @@ void SoftSkin::paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailStat
 	painter.setBrush(state.collapsed ? QBrush(Qt::NoBrush) : QBrush(pastel));
 	painter.drawEllipse(dotCenter, 4.0, 4.0);
 	QFont latchFont(tokens.fontFamily);
-	latchFont.setPixelSize(10);
+	latchFont.setPixelSize(11);
 	if (state.latchHovered)
 		latchFont.setUnderline(true);
 	painter.setFont(latchFont);

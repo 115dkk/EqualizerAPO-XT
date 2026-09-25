@@ -47,7 +47,8 @@ public:
 	static bool isVirtualChannel(const QString& channel);
 
 	// Fixed display colour for a channel (physical channels have a stable hue;
-	// virtual channels reuse their base colour or a neutral slate).
+	// virtual channels reuse their base colour or a neutral slate). Forwards
+	// to ChannelIdentity, the palette the header badges share.
 	static QString channelColor(const QString& channel);
 
 	// ── Crosspoint matrix view ─────────────────────────────────────────────

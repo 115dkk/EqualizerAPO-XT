@@ -31,6 +31,33 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   the audio service's own account and file systems other than NTFS were not
   tested.
 
+## v2.54.22 — 2026-09-25
+
+- **A channel wears one colour everywhere.** The channel badges in a card's
+  header used their own palette, so R was orange there and blue in the Copy
+  routing view, and C, SL and the channels after them also differed. The
+  badges in the studio, soft, rack and matrix skins now use the routing
+  colours, LFE, SBL and SBR get their routing colours in the header too, and
+  channels outside the palette (ALL, numbered channels) use one neutral
+  slate. The minimal skin's console inks are unchanged
+  ([#393](https://github.com/115dkk/EqualizerAPO-XT/pull/393)).
+- **Text drawn by the skins' own painters follows the larger type step.**
+  The +1 step in #300 raised the sizes set in style sheets but not the 89
+  sizes that the skins' painters set in pixels (knob and scale labels, rack
+  engravings, matrix board text, meter readouts and similar), so those
+  stayed one step smaller than the text next to them. They are now 1 px
+  larger. In the rack skin, the red status line under a VST bus or a file
+  card now has a line of its own across the unit and wraps when it is long;
+  before, it shared the unit row and was cut off with an ellipsis. The
+  vertical stencil on the rack channel card's ear now shows the whole word
+  CHANNEL in a smaller type, where it used to be cut off
+  ([#393](https://github.com/115dkk/EqualizerAPO-XT/pull/393)).
+- **The VST channel fill cells fit their labels in every skin.** The width
+  of the fill cells was measured with a font no product skin uses, so in the
+  soft skin the SR label touched the cell's arrow. Each skin now measures
+  with the font it draws in
+  ([#393](https://github.com/115dkk/EqualizerAPO-XT/pull/393)).
+
 ## v2.54.21 — 2026-09-25
 
 - **The ASIO host keeps a high priority on machines where Windows refuses
