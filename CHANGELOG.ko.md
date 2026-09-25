@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.54.23 — 2026-09-25
+
 - **오디오 엔진이 설정 줄이 가리키는 파일을 검사한 핸들 그대로 엽니다.**
   Include, Convolution, MultiConvolution,
   SubwooferRouting 프로필, VSTPlugin 라이브러리는 엔진이

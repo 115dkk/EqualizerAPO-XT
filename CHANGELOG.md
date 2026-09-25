@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.23 — 2026-09-25
+
 - **The audio engine opens a file a configuration line names through the
   same handles it checked.** Include, Convolution, MultiConvolution,
   SubwooferRouting profiles and VSTPlugin libraries are checked so that the
