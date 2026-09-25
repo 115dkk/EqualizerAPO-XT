@@ -24,7 +24,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   users access to its own install folder as the user who owns it, before
   asking for elevation, and the elevated step skips its recursive grants
   when that worked. When the install starts already elevated, nothing
-  changes (#PRNUM). This was checked with unit tests; an install approved by
+  changes ([#387](https://github.com/115dkk/EqualizerAPO-XT/pull/387)). This was checked with unit tests; an install approved by
   a second, administrator account was not run.
 
 ## v2.54.18 — 2026-09-25
