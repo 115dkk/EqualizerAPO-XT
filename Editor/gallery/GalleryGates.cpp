@@ -275,8 +275,9 @@ int runSwitchTest(const QStringList& arguments)
 				problems++;
 			}
 		}
-		// Pixels, not flags: the field bug rendered the strip blank while
-		// every logical probe stayed healthy.
+		// A rendered toolbar is never one flat colour: buttons, combos and labels
+		// cover much of it. Matching the corner pixel almost everywhere means the
+		// controls were not painted, even when every logical probe stayed healthy.
 		if (probeToolBar->isVisible()
 			&& ToolbarPixelProbe::renderIsBlank(probeToolBar->grab().toImage().convertToFormat(QImage::Format_RGB32)))
 		{

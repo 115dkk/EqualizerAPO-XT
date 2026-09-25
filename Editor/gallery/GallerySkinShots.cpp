@@ -119,15 +119,9 @@ using namespace SkinGalleryDetail;
 
 namespace
 {
-// renderSkin() renders, per skin and per mode: every gallery row in
-// kStatesPerRow states (normal + hover from renderStates(commented=false), and
-// disabled from renderStates(commented=true)), plus the registered fixed
-// chrome shots (picker x3, toolbar, titlebar, menubar, menu, analysis,
-// addrow x2, seam, toast, controls, filedialog, graph x2, copyfold x5,
-// multiconvfold x2, logic, channelscope). run() multiplies these by skins x 2
-// modes to self-check the
-// output count, so adding a gallery row needs no external count to be
-// updated. The fixed count is derived from galleryScenarios().
+// renderSkin() emits every galleryRows() entry in kStatesPerRow states and
+// every fixed scene registered by galleryScenarios(). run() derives the
+// expected output count from those two sources and checks it.
 constexpr int kStatesPerRow = 3;
 
 struct GalleryScenario

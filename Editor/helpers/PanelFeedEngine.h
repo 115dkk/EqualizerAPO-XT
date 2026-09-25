@@ -8,10 +8,10 @@
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 	Copyright (C) 2026 Mephistos (DCinside)
 
-	The core of the panel preview feed, split out of PanelPreviewFeeder so
-	the headless probe harness can drive it without Qt. While a plugin panel
-	is open the engine runs the Editor's preview instance in one of two
-	states, decided by PanelMonitorGate:
+	The panel preview feed core. Both PanelPreviewFeeder and the headless
+	probe harness drive it. While a plugin panel is open the engine runs the
+	Editor's preview instance in one of two states, decided by
+	PanelMonitorGate:
 
 	Listen (default): capture the system mix via WASAPI loopback and run it
 	through the preview instance so meters and analyzers in the plugin UI
@@ -66,9 +66,10 @@ public:
 	// no live audio, as before the feed existed.
 	bool start(VSTPluginInstance* effect, const Options& options);
 	void stop();
-	// One pump step. Call roughly every tickIntervalMs() milliseconds, and
-	// always from the same thread; the Editor uses its GUI thread (see
-	// PanelPreviewFeeder for why that is the contract, not a compromise).
+	// One pump step. Call roughly every tickIntervalMs() milliseconds and
+	// always from the same thread. VSTPluginInstance::canProcessNow() guards
+	// each process call. The Editor uses its GUI thread, which also owns the
+	// preview instance's parameter edits.
 	// Returns false when the feed shut itself down (device invalidated,
 	// plugin crash) and the owner can stop ticking.
 	bool tick();

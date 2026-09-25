@@ -3,14 +3,13 @@
 	Copyright (C) 2026 115dkk
 	SPDX-License-Identifier: GPL-2.0-or-later
 
-    Walks an external EqualizerAPO config file (the one the user is
-    about to import) and collects every file it references through
-    Include, Convolution, MultiConvolution, and VSTPlugin commands.
-    Recursion follows the same pattern as filters/IncludeFilterFactory.cpp
-    so nested config trees are picked up.
+    Builds the manifest for an external EqualizerAPO config import. It
+    collects files referenced by Include, Convolution, MultiConvolution
+    and SubwooferRouting Profile commands, and records VSTPlugin Library
+    values as external references. Include files are scanned recursively.
 
-    The scanner is read-only and side-effect free. ImportExecutor is the
-    component that actually copies files.
+    The scanner only reads the source tree. ImportExecutor copies the
+    manifest's items.
 */
 
 #pragma once
@@ -38,15 +37,13 @@ enum class DestLayout
 class ConfigDependencyScanner
 {
 public:
-    // Maximum recursion depth, matches IncludeFilterFactory::RECURSION_LIMIT.
+    // Kept equal to the engine's file-local RECURSION_LIMIT.
     static constexpr int kRecursionLimit = 100;
 
-    // Build a manifest for importing rootSource into configDir.
-    //
-    // rootSource may be a config text file (.txt) — its references are
-    // walked recursively — or a single binary (.wav, .dll, etc.) in
-    // which case the manifest contains exactly one item. configDir is
-    // only used to compute dest paths; the scanner never writes there.
+    // Build a manifest rooted at rootSource. A .txt root is scanned for
+    // dependencies; any other existing file produces one Root item. The
+    // layout controls destination paths. configDir is retained for callers
+    // but is not read or written.
     static ImportManifest scan(const QString& rootSource, const QString& configDir,
         DestLayout layout = DestLayout::NestUnderSourceFolder);
 };

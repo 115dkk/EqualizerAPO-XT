@@ -121,9 +121,8 @@ void SkinManager::applySkin(const QString& newSkinId, bool dark)
 	LogFStatic(L"Skin %s applied", reinterpret_cast<const wchar_t*>(skinId.utf16()));
 }
 
-// The forwarders below delegate without a null check on purpose: activeSkin
-// is never null (class invariant, see the header). Only genuinely different
-// behavior - the heritage branches - earns a conditional.
+// The forwarders delegate without a null check because activeSkin always names
+// either a registered skin or the HeritageSkin singleton (see the header).
 
 IRoutingRenderer* SkinManager::routingRenderer() const
 {
