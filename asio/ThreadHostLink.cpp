@@ -38,16 +38,36 @@ namespace eapo::asio
 		}
 		std::memset(region_, 0, bytes);
 		for (unsigned i = 0; i < RingEvents::count; i++)
-			events_[i] = CreateEventW(nullptr, RingEvents::table[i].manualReset ? TRUE : FALSE, FALSE, nullptr);
-		hostGone_ = CreateEventW(nullptr, TRUE, FALSE, nullptr);
-		producerGone_ = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+		{
+			events_[i].reset(CreateEventW(nullptr, RingEvents::table[i].manualReset ? TRUE : FALSE, FALSE, nullptr));
+			if (!events_[i])
+			{
+				error = "the stream events could not be created";
+				close(session);
+				return false;
+			}
+		}
+		hostGone_.reset(CreateEventW(nullptr, TRUE, FALSE, nullptr));
+		if (!hostGone_)
+		{
+			error = "the host liveness event could not be created";
+			close(session);
+			return false;
+		}
+		producerGone_.reset(CreateEventW(nullptr, TRUE, FALSE, nullptr));
+		if (!producerGone_)
+		{
+			error = "the producer liveness event could not be created";
+			close(session);
+			return false;
+		}
 
 		session.ringBase = region_;
 		session.ringBytes = bytes;
-		session.sync = RingEvents::toSync(events_, hostGone_);
+		session.sync = RingEvents::toSync(events_, hostGone_.get());
 		session.hostPid = GetCurrentProcessId();
 
-		const eapo::ipc::RingSync consumerSync = RingEvents::toSync(events_, producerGone_);
+		const eapo::ipc::RingSync consumerSync = RingEvents::toSync(events_, producerGone_.get());
 		kill_ = false;
 		hold_ = false;
 		ServeOptions serve;
@@ -62,29 +82,21 @@ namespace eapo::asio
 		void* base = region_;
 		thread_ = std::thread([this, base, bytes, consumerSync, serve] {
 			EngineHostCore::attachAndServe(base, bytes, consumerSync, serve, GetCurrentProcessId());
-			SetEvent(hostGone_);
+			SetEvent(hostGone_.get());
 		});
 		return true;
 	}
 
 	void ThreadHostLink::close(HostSession& session) noexcept
 	{
-		if (producerGone_ != nullptr)
-			SetEvent(producerGone_);
+		if (producerGone_)
+			SetEvent(producerGone_.get());
 		if (thread_.joinable())
 			thread_.join();
-		for (HANDLE& event : events_)
-		{
-			if (event != nullptr)
-				CloseHandle(event);
-			event = nullptr;
-		}
-		if (hostGone_ != nullptr)
-			CloseHandle(hostGone_);
-		if (producerGone_ != nullptr)
-			CloseHandle(producerGone_);
-		hostGone_ = nullptr;
-		producerGone_ = nullptr;
+		for (winutil::UniqueHandle& event : events_)
+			event.reset();
+		hostGone_.reset();
+		producerGone_.reset();
 		if (region_ != nullptr)
 			_aligned_free(region_);
 		region_ = nullptr;

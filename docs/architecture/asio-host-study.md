@@ -422,7 +422,7 @@ struct alignas(64) RingHeader
 // 배치: [RingHeader][슬롯0: out 평면들 | in 평면들][슬롯1: ...]  각 블록 64바이트 정렬
 ```
 
-생산자 `publish(seq)`는 `sequence`를 release 저장하고 work 이벤트를 켠다. `wait(seq, budget)`은 `{done, peerProcess}`를 함께 기다려 `completed == seq`면 `Done`, 시간 초과면 `Late`, 상대 프로세스 핸들이 신호되거나 `state`가 `Fault/Closing`이면 `Gone`이다. 슬롯은 둘이고 생산자는 `completed >= seq-1`일 때만 게시하므로 늦은 블록이 다음 블록과 충돌하지 않는다. 소비자는 게시된 순서를 전부 처리해(생산자가 이미 포기했더라도) IIR 상태를 끊지 않는다.
+생산자 `publish(seq)`는 `sequence`를 release 저장하고 work 이벤트를 켠다. `wait(seq, budget)`은 `{done, peerProcess}`를 함께 기다려 `completed == seq`면 `Done`, 시간 초과면 `Late`, 상대 프로세스 핸들이 신호되거나 `state`가 `Fault/Closing`이면 `Gone`이다. 방향마다 슬롯이 둘이며 생산자는 `seq`가 1이나 2일 때는 바로 게시한다. 그 이후에는 `completed`가 `seq-2` 이상인지 순번의 순환을 고려해 비교한다. 이번에 쓸 슬롯(`seq & 1`)을 앞서 사용한 블록이 완료되어야 다시 게시하므로 아직 처리 중인 슬롯을 덮어쓰지 않는다. 소비자는 게시된 순서를 전부 처리해(생산자가 이미 포기했더라도) IIR 상태를 끊지 않는다.
 
 `EngineHostCore::serve(RingConsumer&)`는 헤더를 한 번 읽어 `EngineSetup` 둘(출력: `capture=false`, 입력: `capture=true`; `channelMask=0`, `maxFrameCount=frames`, `connectionName=L"ASIO"`, `customPath` 비움)을 만들고 `initialize` 뒤 `Ready`를 쓴다. `EqualizerAPOHost.exe`는 `Win32HostLink` + `EngineHostCore` + VoicemeeterClient식 메시지 루프이고, 프로브는 같은 코어를 스레드에서 돌린다. 마지막 스트림이 떠나면 `lingerMs` 뒤 종료.
 

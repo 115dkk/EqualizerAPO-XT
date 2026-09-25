@@ -357,16 +357,6 @@ namespace eapo::asio
 		// because the SDK only defines the key for INITGUID translation units.
 		const PROPERTYKEY keyDeviceFormat = {{0xf19f064d, 0x082c, 0x4e27, {0xbc, 0x73, 0x68, 0x82, 0xa1, 0xbb, 0x8e, 0x4c}}, 0};
 
-		template<typename T>
-		void releaseAndNull(T*& p) noexcept
-		{
-			if (p != nullptr)
-			{
-				p->Release();
-				p = nullptr;
-			}
-		}
-
 		void splitInt64(uint64_t value, unsigned long& hi, unsigned long& lo) noexcept
 		{
 			hi = static_cast<unsigned long>(value >> 32);
@@ -442,18 +432,14 @@ namespace eapo::asio
 	{
 		if (client != nullptr)
 			client->Stop();
-		releaseAndNull(render);
-		releaseAndNull(captureClient);
-		if (event != nullptr)
-		{
-			CloseHandle(event);
-			event = nullptr;
-		}
+		render.reset();
+		captureClient.reset();
+		event.reset();
 		// An IAudioClient cannot be initialized twice; a fresh one is
 		// activated so the next createBuffers can open the endpoint again.
-		releaseAndNull(client);
+		client.reset();
 		if (device != nullptr)
-			device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, reinterpret_cast<void**>(&client));
+			device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, reinterpret_cast<void**>(client.put()));
 		block.clear();
 		queue.clear();
 		stager.reset(bridge, 0);
@@ -475,8 +461,8 @@ namespace eapo::asio
 	{
 		closeStream();
 		releasePlanes();
-		releaseAndNull(client);
-		releaseAndNull(device);
+		client.reset();
+		device.reset();
 	}
 
 	// ---- lifetime ----
@@ -487,8 +473,15 @@ namespace eapo::asio
 		ports_[0].endpointGuid = std::move(renderEndpointGuid);
 		ports_[1].capture = true;
 		ports_[1].endpointGuid = std::move(captureEndpointGuid);
-		stopEvent_ = CreateEventW(nullptr, TRUE, FALSE, nullptr);
-		startAckEvent_ = CreateEventW(nullptr, FALSE, FALSE, nullptr);
+		stopEvent_.reset(CreateEventW(nullptr, TRUE, FALSE, nullptr));
+		if (!stopEvent_)
+		{
+			setError("The stream stop event could not be created");
+			return;
+		}
+		startAckEvent_.reset(CreateEventW(nullptr, FALSE, FALSE, nullptr));
+		if (!startAckEvent_)
+			setError("The stream start event could not be created");
 	}
 
 	WasapiExclusiveTarget::~WasapiExclusiveTarget()
@@ -496,10 +489,6 @@ namespace eapo::asio
 		stop();
 		for (Port& port : ports_)
 			port.closeDevice();
-		if (startAckEvent_ != nullptr)
-			CloseHandle(startAckEvent_);
-		if (stopEvent_ != nullptr)
-			CloseHandle(stopEvent_);
 	}
 
 	HRESULT STDMETHODCALLTYPE WasapiExclusiveTarget::QueryInterface(REFIID riid, void** object)
@@ -547,21 +536,21 @@ namespace eapo::asio
 	bool WasapiExclusiveTarget::openPort(Port& port, IMMDeviceEnumerator* enumerator, char* message)
 	{
 		const std::wstring id = wasapi::endpointId(port.capture, port.endpointGuid);
-		HRESULT hr = enumerator->GetDevice(id.c_str(), &port.device);
+		HRESULT hr = enumerator->GetDevice(id.c_str(), port.device.put());
 		if (FAILED(hr) || port.device == nullptr)
 		{
-			std::snprintf(message, 124, "The %s endpoint is not present", port.capture ? "recording" : "playback");
+			std::snprintf(message, errorMessageBytes, "The %s endpoint is not present", port.capture ? "recording" : "playback");
 			return false;
 		}
 		DWORD state = 0;
 		if (SUCCEEDED(port.device->GetState(&state)) && state != DEVICE_STATE_ACTIVE)
 		{
-			std::snprintf(message, 124, "The %s endpoint is not active", port.capture ? "recording" : "playback");
+			std::snprintf(message, errorMessageBytes, "The %s endpoint is not active", port.capture ? "recording" : "playback");
 			return false;
 		}
 
-		IPropertyStore* store = nullptr;
-		if (SUCCEEDED(port.device->OpenPropertyStore(STGM_READ, &store)) && store != nullptr)
+		winutil::ComPtr<IPropertyStore> store;
+		if (SUCCEEDED(port.device->OpenPropertyStore(STGM_READ, store.put())) && store != nullptr)
 		{
 			PROPVARIANT value;
 			PropVariantInit(&value);
@@ -575,13 +564,12 @@ namespace eapo::asio
 				port.deviceFormat.assign(value.blob.pBlobData, value.blob.pBlobData + value.blob.cbSize);
 			}
 			PropVariantClear(&value);
-			store->Release();
 		}
 
-		hr = port.device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, reinterpret_cast<void**>(&port.client));
+		hr = port.device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, reinterpret_cast<void**>(port.client.put()));
 		if (FAILED(hr) || port.client == nullptr)
 		{
-			std::snprintf(message, 124, "The %s endpoint gave no audio client (0x%08lx)", port.capture ? "recording" : "playback", static_cast<unsigned long>(hr));
+			std::snprintf(message, errorMessageBytes, "The %s endpoint gave no audio client (0x%08lx)", port.capture ? "recording" : "playback", static_cast<unsigned long>(hr));
 			return false;
 		}
 		if (port.deviceFormat.empty())
@@ -596,7 +584,7 @@ namespace eapo::asio
 		}
 		if (port.deviceFormat.empty())
 		{
-			std::snprintf(message, 124, "The %s endpoint reports no format", port.capture ? "recording" : "playback");
+			std::snprintf(message, errorMessageBytes, "The %s endpoint reports no format", port.capture ? "recording" : "playback");
 			return false;
 		}
 		const WAVEFORMATEX* format = reinterpret_cast<const WAVEFORMATEX*>(port.deviceFormat.data());
@@ -608,7 +596,7 @@ namespace eapo::asio
 			port.channelMask = port.channels == 1 ? SPEAKER_FRONT_CENTER : (port.channels == 2 ? (SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT) : 0);
 		if (port.channels == 0 || port.deviceRate == 0)
 		{
-			std::snprintf(message, 124, "The %s endpoint reports no channels or rate", port.capture ? "recording" : "playback");
+			std::snprintf(message, errorMessageBytes, "The %s endpoint reports no channels or rate", port.capture ? "recording" : "playback");
 			return false;
 		}
 
@@ -639,33 +627,33 @@ namespace eapo::asio
 	{
 		if (initialized_)
 			return ASIOTrue;
+		if (!stopEvent_ || !startAckEvent_)
+			return ASIOFalse;
 		if (ports_[0].endpointGuid.empty() && ports_[1].endpointGuid.empty())
 		{
 			setError("No endpoint is recorded for this entry");
 			return ASIOFalse;
 		}
-		IMMDeviceEnumerator* enumerator = nullptr;
-		HRESULT hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), reinterpret_cast<void**>(&enumerator));
+		winutil::ComPtr<IMMDeviceEnumerator> enumerator;
+		HRESULT hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), reinterpret_cast<void**>(enumerator.put()));
 		if (FAILED(hr) || enumerator == nullptr)
 		{
 			setError("The audio device enumerator is not available");
 			return ASIOFalse;
 		}
-		char message[124] = {};
+		char message[errorMessageBytes] = {};
 		for (Port& port : ports_)
 		{
 			if (port.endpointGuid.empty())
 				continue;
 			if (!openPort(port, enumerator, message))
 			{
-				enumerator->Release();
 				for (Port& opened : ports_)
 					opened.closeDevice();
 				setError(message);
 				return ASIOFalse;
 			}
 		}
-		enumerator->Release();
 
 		rate_ = ports_[0].device != nullptr ? ports_[0].deviceRate : ports_[1].deviceRate;
 		for (Port& port : ports_)
@@ -854,7 +842,7 @@ namespace eapo::asio
 	{
 		if (port.client == nullptr)
 		{
-			HRESULT activate = port.device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, reinterpret_cast<void**>(&port.client));
+			HRESULT activate = port.device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, reinterpret_cast<void**>(port.client.put()));
 			if (FAILED(activate) || port.client == nullptr)
 			{
 				std::snprintf(errorMessage_, sizeof(errorMessage_), "The %s endpoint is no longer available (0x%08lx)",
@@ -875,8 +863,8 @@ namespace eapo::asio
 				std::snprintf(errorMessage_, sizeof(errorMessage_), "The %s endpoint: %s (0x%08lx)", port.capture ? "recording" : "playback", describe(hr), static_cast<unsigned long>(hr));
 			// The client is spent after a failed Initialize; a fresh one
 			// keeps the entry usable for the next attempt.
-			releaseAndNull(port.client);
-			port.device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, reinterpret_cast<void**>(&port.client));
+			port.client.reset();
+			port.device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, reinterpret_cast<void**>(port.client.put()));
 			return hr;
 		}
 		UINT32 bufferFrames = 0;
@@ -887,17 +875,17 @@ namespace eapo::asio
 			port.closeStream();
 			return E_FAIL;
 		}
-		port.event = CreateEventW(nullptr, FALSE, FALSE, nullptr);
-		if (port.event == nullptr || FAILED(hr = port.client->SetEventHandle(port.event)))
+		port.event.reset(CreateEventW(nullptr, FALSE, FALSE, nullptr));
+		if (!port.event || FAILED(hr = port.client->SetEventHandle(port.event.get())))
 		{
 			setError("The stream event could not be set");
 			port.closeStream();
 			return FAILED(hr) ? hr : E_FAIL;
 		}
 		if (port.capture)
-			hr = port.client->GetService(__uuidof(IAudioCaptureClient), reinterpret_cast<void**>(&port.captureClient));
+			hr = port.client->GetService(__uuidof(IAudioCaptureClient), reinterpret_cast<void**>(port.captureClient.put()));
 		else
-			hr = port.client->GetService(__uuidof(IAudioRenderClient), reinterpret_cast<void**>(&port.render));
+			hr = port.client->GetService(__uuidof(IAudioRenderClient), reinterpret_cast<void**>(port.render.put()));
 		if (FAILED(hr))
 		{
 			std::snprintf(errorMessage_, sizeof(errorMessage_), "The %s endpoint gave no stream service (0x%08lx)", port.capture ? "recording" : "playback", static_cast<unsigned long>(hr));
@@ -961,7 +949,7 @@ namespace eapo::asio
 			}
 		}
 
-		char message[124] = {};
+		char message[errorMessageBytes] = {};
 		if (!prepareStreams(bufferSize, 1, message))
 		{
 			setError(message);
@@ -1052,7 +1040,7 @@ namespace eapo::asio
 	{
 		if (!prepared_)
 			return ASE_InvalidMode;
-		if (stopEvent_ == nullptr || startAckEvent_ == nullptr)
+		if (!stopEvent_ || !startAckEvent_)
 		{
 			setError("The stream synchronization events are not available");
 			return ASE_HWMalfunction;
@@ -1062,11 +1050,11 @@ namespace eapo::asio
 		if (thread_.joinable())
 		{
 			stopRequested_.store(true, std::memory_order_release);
-			SetEvent(stopEvent_);
+			SetEvent(stopEvent_.get());
 			thread_.join();
 		}
 		stopRequested_.store(false, std::memory_order_release);
-		ResetEvent(stopEvent_);
+		ResetEvent(stopEvent_.get());
 		threadAlive_.store(true, std::memory_order_release);
 		startResult_.store(ASE_OK, std::memory_order_relaxed);
 		try
@@ -1080,7 +1068,7 @@ namespace eapo::asio
 			setError("The stream thread could not be started");
 			return ASE_HWMalfunction;
 		}
-		WaitForSingleObject(startAckEvent_, INFINITE);
+		WaitForSingleObject(startAckEvent_.get(), INFINITE);
 		const ASIOError result = static_cast<ASIOError>(startResult_.load(std::memory_order_acquire));
 		if (result != ASE_OK)
 		{
@@ -1096,8 +1084,8 @@ namespace eapo::asio
 	ASIOError WasapiExclusiveTarget::stop()
 	{
 		stopRequested_.store(true, std::memory_order_release);
-		if (stopEvent_ != nullptr)
-			SetEvent(stopEvent_);
+		if (stopEvent_)
+			SetEvent(stopEvent_.get());
 		if (thread_.joinable())
 			thread_.join();
 		running_.store(false, std::memory_order_release);
@@ -1263,7 +1251,7 @@ namespace eapo::asio
 		for (Port& port : ports_)
 			if (port.device != nullptr)
 				port.closeStream();
-		char message[124] = {};
+		char message[errorMessageBytes] = {};
 		if (!prepareStreams(frames_, factor, message))
 		{
 			setError(message);
@@ -1321,9 +1309,9 @@ namespace eapo::asio
 		if (started && calibrator.forced() && !rebridge(calibrator.factor()))
 			started = false;
 		startResult_.store(started ? ASE_OK : ASE_HWMalfunction, std::memory_order_release);
-		SetEvent(startAckEvent_);
+		SetEvent(startAckEvent_.get());
 
-		HANDLE clock = out.event != nullptr ? out.event : in.event;
+		HANDLE clock = out.event ? out.event.get() : in.event.get();
 		long half = 0;
 		uint64_t devicePeriodNanos = periodNanos * bridge_.load(std::memory_order_acquire);
 		uint64_t previousEvent = 0;
@@ -1332,7 +1320,7 @@ namespace eapo::asio
 		const bool enteredLoop = started;
 		while (started && !stopRequested_.load(std::memory_order_acquire))
 		{
-			const HANDLE waits[2] = {stopEvent_, clock};
+			const HANDLE waits[2] = {stopEvent_.get(), clock};
 			const DWORD waited = WaitForMultipleObjects(2, waits, FALSE, wasapi::eventWaitMs);
 			if (waited == WAIT_OBJECT_0)
 				break;
@@ -1386,7 +1374,7 @@ namespace eapo::asio
 				// device that vanished would; the host sees no more switches.
 				if (!rebridge(calibrator.factor()))
 					break;
-				clock = out.event != nullptr ? out.event : in.event;
+				clock = out.event ? out.event.get() : in.event.get();
 				devicePeriodNanos = periodNanos * calibrator.factor();
 				previousEvent = 0;
 			}

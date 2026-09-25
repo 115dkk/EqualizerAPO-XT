@@ -32,3 +32,5 @@
 #include "asio.h"
 #include "iasiodrv.h"
 #pragma warning(pop)
+
+#include "asio/AsioConstants.h"

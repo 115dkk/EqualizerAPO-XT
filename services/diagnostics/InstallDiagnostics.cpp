@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	See InstallDiagnostics.h. The section order follows the order a reader needs:
 	what is installed, whether the audio engine can reach it, and what it is
 	attached to. Every section keeps going when its own lookup fails, because a
@@ -169,8 +167,6 @@ vector<wstring> attachedEndpoints(const IRegistry& registry)
 		return lines;
 	}
 
-	static const wchar_t* const slotNames[] = {L"LFX", L"GFX", L"SFX", L"MFX", L"EFX"};
-
 	for (const wchar_t* root : {renderKeyPath, captureKeyPath})
 	{
 		vector<wstring> devices;
@@ -216,7 +212,7 @@ vector<wstring> attachedEndpoints(const IRegistry& registry)
 
 					if (!attachedSlots.empty())
 						attachedSlots += L", ";
-					attachedSlots += wstring(slotNames[i]) + L"=" + which;
+					attachedSlots += wstring(apoSlotNames[i]) + L"=" + which;
 				}
 			}
 			catch (const RegistryError&)

@@ -24,7 +24,6 @@
 #include "asio/AsioWrapper.h"
 #include "asio/DaemonProcessor.h"
 #include "asio/WasapiExclusiveTarget.h"
-#include "asio/WasapiExclusiveTarget.h"
 #include "asio/Win32HostLink.h"
 #include "asio/WrapperRecord.h"
 #include "platform/windows/GuidText.h"
@@ -120,7 +119,7 @@ namespace
 			if (outer != nullptr)
 				return CLASS_E_NOAGGREGATION;
 
-			IASIO* target = nullptr;
+			winutil::ComPtr<IASIO> target;
 			HRESULT hr = S_OK;
 			if (record_.targetKind == eapo::asio::TargetKind::WasapiExclusive)
 			{
@@ -129,7 +128,7 @@ namespace
 				// error message, not as a failed activation.
 				try
 				{
-					target = new eapo::asio::WasapiExclusiveTarget(record_.renderEndpoint, record_.captureEndpoint);
+					*target.put() = new eapo::asio::WasapiExclusiveTarget(record_.renderEndpoint, record_.captureEndpoint);
 				}
 				catch (const std::bad_alloc&)
 				{
@@ -147,7 +146,7 @@ namespace
 
 				// ASIO's activation quirk: the requested interface id is the
 				// driver's own CLSID.
-				hr = CoCreateInstance(targetClsid, nullptr, CLSCTX_INPROC_SERVER, targetClsid, reinterpret_cast<void**>(&target));
+				hr = CoCreateInstance(targetClsid, nullptr, CLSCTX_INPROC_SERVER, targetClsid, reinterpret_cast<void**>(target.put()));
 				if (FAILED(hr) || target == nullptr)
 				{
 					LogFStatic(L"ASIO wrapper %s: loading target %s (%s) failed with 0x%08x",
@@ -158,20 +157,16 @@ namespace
 
 			try
 			{
-				AsioWrapper* wrapper = new AsioWrapper(target, clsid_, record_.targetClsid, record_.options, makeProcessor(record_.options));
-				target->Release();
-				hr = wrapper->QueryInterface(riid, object);
-				wrapper->Release();
-				return hr;
+				winutil::ComPtr<AsioWrapper> wrapper;
+				*wrapper.put() = new AsioWrapper(target.get(), clsid_, record_.targetClsid, record_.options, makeProcessor(record_.options));
+				return wrapper->QueryInterface(riid, object);
 			}
 			catch (const std::bad_alloc&)
 			{
-				target->Release();
 				return E_OUTOFMEMORY;
 			}
 			catch (...)
 			{
-				target->Release();
 				return E_FAIL;
 			}
 		}
@@ -278,10 +273,9 @@ STDAPI DllGetClassObject(const CLSID& clsid, const IID& iid, void** object)
 
 	try
 	{
-		WrapperClassFactory* factory = new WrapperClassFactory(clsid, std::move(record));
-		const HRESULT hr = factory->QueryInterface(iid, object);
-		factory->Release();
-		return hr;
+		winutil::ComPtr<WrapperClassFactory> factory;
+		*factory.put() = new WrapperClassFactory(clsid, std::move(record));
+		return factory->QueryInterface(iid, object);
 	}
 	catch (const std::bad_alloc&)
 	{
