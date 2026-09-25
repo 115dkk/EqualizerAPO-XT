@@ -37,6 +37,7 @@
 #include "../platform/windows/ComPtr.h"
 #include "../platform/windows/Win32Resource.h"
 #include "../devices/ApoRuntimeFacts.h"
+#include "../platform/windows/NamedPipeSecurity.h"
 #include "../devices/DeviceAPOInfo.h"
 #include "../devices/DeviceAPOInfoKeys.h"
 #include "EqualizerAPO.h"
@@ -584,14 +585,9 @@ void EqualizerAPO::sendMessage(std::wstring& deviceTestPipeName, const std::wstr
 {
 	string message = "{\"deviceGuid\":\"" + wintext::toNarrowString(deviceGuid, CP_UTF8) + "\", \"stage\":\"" + (apoGuid == EQUALIZERAPO_PRE_MIX_GUID ? "PreMix" : "PostMix") + "\", \"phase\":\"" + phase + "\"}";
 
-	winutil::UniqueHandle pipe(CreateFileW((L"\\\\.\\pipe\\" + deviceTestPipeName).c_str(),
-		GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr));
-	if (!pipe)
-	{
-		if (WaitNamedPipeW((L"\\\\.\\pipe\\" + deviceTestPipeName).c_str(), 1000))
-			pipe.reset(CreateFileW((L"\\\\.\\pipe\\" + deviceTestPipeName).c_str(),
-				GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr));
-	}
+	// Only the right the message needs; who may do what with the pipe is in
+	// NamedPipeSecurity.h.
+	winutil::UniqueHandle pipe = winutil::pipes::openDeviceTestClient(L"\\\\.\\pipe\\" + deviceTestPipeName);
 	if (pipe)
 	{
 		DWORD bytesWritten;

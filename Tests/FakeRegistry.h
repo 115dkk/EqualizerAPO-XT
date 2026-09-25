@@ -3,7 +3,8 @@
 	Copyright (C) 2026 115dkk
 	SPDX-License-Identifier: GPL-2.0-or-later
 
-	An in-memory IRegistry for the device tests. It exists so install(),
+	An in-memory IRegistry for the device tests (EngineOrchestrationTests,
+	AsioTests and EditorLogicTests share it). It exists so install(),
 	load() and uninstall() can be exercised without touching HKLM: those three
 	functions are the ones that rewrite an audio endpoint's APO chain, and a
 	test that ran them for real would leave the machine's audio graph in
@@ -14,13 +15,19 @@
 	ownership because createKey threw, uninstall() keeps a key because
 	deleteKey would have thrown - so a fake that is merely convenient would
 	report those branches as untestable or, worse, as dead. Every rule below is
-	taken from services/registry/WindowsRegistry.cpp and repeated here on purpose:
+	taken from services/registry/WindowsRegistry.cpp and repeated here on
+	purpose, and RegistryConformanceTests.cpp in EngineOrchestrationTests runs
+	one battery over this fake and over the real registry (an HKCU sandbox key)
+	so the two cannot drift apart unnoticed (audit #348 TD-38):
 
 	  * A malformed path (no backslash, unknown root) is an error even for
 	    keyExists, because the real keyExists calls splitKey first.
 	  * A missing key throws in every operation except keyExists. valueExists
 	    throws for a missing key and answers false only for a missing value.
 	  * Reads are type-checked; REG_SZ is not converted from REG_DWORD.
+	  * A REG_MULTI_SZ loses its trailing empty strings: an empty string is
+	    the list terminator, so {"a", ""} and {""} read back as {"a"} and {}.
+	    An empty string between two others survives.
 	  * Writes never create their key.
 	  * createKey creates the whole missing path and succeeds on an existing
 	    key.
@@ -51,8 +58,8 @@
 
 	  * denyRead() arms a key that exists but cannot be opened, which is what a
 	    driver-locked FxProperties key is. keyExists keeps answering true for it,
-	    because the real keyExists opens the key for query and a denial is not an
-	    absence; code that walks every endpoint has to survive the difference.
+	    as the real one does since audit #348: a denial is not an absence. Code
+	    that walks every endpoint has to survive the read that then throws.
 
 	enumValues returns the names in the map's case-insensitive order rather than
 	the insertion order RegEnumValueW happens to produce. The port documents no
@@ -73,6 +80,7 @@
 #include <map>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "services/registry/IRegistry.h"
@@ -165,10 +173,7 @@ public:
 
 	void seedMulti(const std::wstring& key, const std::wstring& valuename, const std::vector<std::wstring>& value)
 	{
-		Value stored;
-		stored.type = Value::Type::MultiString;
-		stored.multiValue = value;
-		ensureKey(key)[valuename] = stored;
+		ensureKey(key)[valuename] = multiString(value);
 	}
 
 	// Arms the ACL denial install() recovers from: createKey on this exact path
@@ -326,17 +331,9 @@ public:
 		store(key, valuename, stored);
 	}
 
-	void writeMultiValue(const std::wstring& key, const std::wstring& valuename, const std::wstring& value) override
-	{
-		writeMultiValue(key, valuename, std::vector<std::wstring>{value});
-	}
-
 	void writeMultiValue(const std::wstring& key, const std::wstring& valuename, const std::vector<std::wstring>& values) override
 	{
-		Value stored;
-		stored.type = Value::Type::MultiString;
-		stored.multiValue = values;
-		store(key, valuename, stored);
+		store(key, valuename, multiString(values));
 	}
 
 	void deleteValue(const std::wstring& key, const std::wstring& valuename) override
@@ -408,6 +405,20 @@ private:
 	{
 		CaseInsensitiveLess less;
 		return !less(left, right) && !less(right, left);
+	}
+
+	// A REG_MULTI_SZ is strings separated by one NUL and ended by two, so a
+	// trailing empty string cannot be told from the terminator and the real
+	// read drops it. Stored the same way, a round trip here matches.
+	static Value multiString(std::vector<std::wstring> strings)
+	{
+		while (!strings.empty() && strings.back().empty())
+			strings.pop_back();
+
+		Value stored;
+		stored.type = Value::Type::MultiString;
+		stored.multiValue = std::move(strings);
+		return stored;
 	}
 
 	static bool startsWith(const std::wstring& text, const std::wstring& prefix)
