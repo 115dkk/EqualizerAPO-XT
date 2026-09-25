@@ -1,6 +1,6 @@
 #define MAJOR 2
 #define MINOR 54
-#define REVISION 21
+#define REVISION 22
 
 // Audit #250 F019: the "MAJOR.MINOR, append REVISION when non-zero" display
 // rule used to be copied into four binaries, and the copies had diverged. This

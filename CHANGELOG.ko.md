@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.54.22 — 2026-09-25
+
 - **한 채널은 어디서나 한 색입니다.** 카드 헤더의 채널 배지는 따로
   팔레트를 써서 R이 헤더에서는 주황, Copy 라우팅 화면에서는 파랑이었고,
   C와 SL 이하도 서로 달랐습니다. 이제 studio, soft, rack,

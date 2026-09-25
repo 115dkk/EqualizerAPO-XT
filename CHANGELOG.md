@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.22 — 2026-09-25
+
 - **A channel wears one colour everywhere.** The channel badges in a card's
   header used their own palette, so R was orange there and blue in the Copy
   routing view, and C, SL and the channels after them also differed. The
