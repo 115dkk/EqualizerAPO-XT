@@ -2,7 +2,7 @@ EqualizerAPO-XT의 Editor는 하나의 카드 문법 위에 다섯 스킨을 입
 
 ## 시스템을 쓰는 법
 
-색은 언제나 `<스킨>-<역할>` 토큰으로 쓴다. `studio-accent`, `minimal-ink-bright`, `soft-on-ink`, `rack-seam`, `matrix-card-rail`처럼 스킨 접두사가 붙은 이름만 존재하고, 스킨을 가로지르는 공용 색은 명령 타입 색 `type-*`, 채널 라우팅 잉크 `channel-*`, 헤더 채널 배지 잉크 `badge-*` 세 묶음뿐이다. 다크가 첫 테마이고 라이트가 둘째 테마다. 테마별로 값을 하드코딩하지 않는다. 모드 분기가 꼭 필요하면 배경 명도로 추정한다(코드의 `skinIsDark`).
+색은 언제나 `<스킨>-<역할>` 토큰으로 쓴다. `studio-accent`, `minimal-ink-bright`, `soft-on-ink`, `rack-seam`, `matrix-card-rail`처럼 스킨 접두사가 붙은 이름만 존재하고, 스킨을 가로지르는 공용 색은 명령 타입 색 `type-*`와 채널 식별 색 `channel-*` 두 묶음뿐이다. 다크가 첫 테마이고 라이트가 둘째 테마다. 테마별로 값을 하드코딩하지 않는다. 모드 분기가 꼭 필요하면 배경 명도로 추정한다(코드의 `skinIsDark`).
 
 새 요소를 그릴 때는 다섯 스킨이 각자의 철학으로 따로 답해야 한다. 두 스킨이 팔레트만 다르면 차별화 게이트에서 실패다. 심사 항목은 타입 표시, 호버, 비활성, Include 행, VST 행, 모서리·엣지 언어, 위계의 주도자 일곱 가지다. 각 스킨의 답은 이 시스템의 스킨별 절(Studio Glass, Precision Minimal, Soft Lab, Hardware Rack, Signal Matrix)에 있고, 그 절의 '새 요소를 이 스킨답게 만드는 법' 물음에 답하는 식으로 설계한다.
 
@@ -16,7 +16,7 @@ EqualizerAPO-XT의 Editor는 하나의 카드 문법 위에 다섯 스킨을 입
 
 명령 타입 색 `type-biquad`, `type-include`, `type-vst`, `type-copy`, `type-if` 등은 카탈로그(`FilterCommandCatalog.cpp`)의 색이다. studio는 이 색을 점등된 유리 칩에, soft는 softPastelize(색조 유지, 채도 상한 0.50/0.55, 명도 0.62/0.60)로 파스텔 선반에 올려 스타디움 칩에 쓴다. minimal은 외곽선만, rack은 와이어프레임 안의 픽토그램 잉크로만, matrix는 아예 무시하고 보드 잉크 단색으로 그린다.
 
-채널 식별은 데이터이지 장식이 아니다. 라우팅과 헤더 채널 범위는 `channel-l`부터 `channel-sbr`까지의 고정 색을 쓰고, minimal은 그 색을 콘솔 잉크 표 `minimal-ch-*`로 바꿔 채움 없이 맨 잉크로 인쇄한다. 헤더의 채널 배지 위젯(`ChBadge`)은 별도의 `badge-*` 팔레트를 가지며 R과 C 이하가 라우팅 팔레트와 다르다. 두 표를 합치지 말고 소스 그대로 두되, 새 요소는 라우팅 팔레트 `channel-*`를 따른다.
+채널 식별은 데이터이지 장식이 아니다. 라우팅과 헤더 채널 범위는 `channel-l`부터 `channel-sbr`까지의 고정 색을 쓰고, minimal은 그 색을 콘솔 잉크 표 `minimal-ch-*`로 바꿔 채움 없이 맨 잉크로 인쇄한다. 헤더의 채널 배지 위젯(`ChBadge`)도 같은 표를 쓴다. 한 채널은 어디서 불리든 한 색이고, 표는 `Editor/widgets/routing/ChannelIdentity.h` 하나에 있다(감사 #348 B5, 메인테이너 결정). 표 밖의 채널(ALL, 번호 채널)은 `channel-neutral`을 쓴다.
 
 대비는 소스 값 그대로 기록했다. `minimal-muted`는 다크 그라운드에서 4.4:1로 4.5:1에 못 미치고, `studio-muted`와 `matrix-muted`는 카드 위에서 통과한다. 새로 고르는 잉크는 자기 그라운드에서 4.5:1을 넘긴다.
 

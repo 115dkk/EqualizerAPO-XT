@@ -80,7 +80,7 @@ static QFont uiFont(const SkinTokens& tokens, int px)
 
 QSize BlockChipView::sizeHint() const
 {
-	QFontMetrics fm(uiFont(skinTokens, 13));
+	QFontMetrics fm(uiFont(skinTokens, 14));
 	int maxW = 240;
 	for (int row : fold.visibleRows)
 	{
@@ -139,7 +139,7 @@ void BlockChipView::paintEvent(QPaintEvent*)
 		p.setBrush(destCol);
 		p.drawRoundedRect(QRect(block.left() + 6, y, 5, blockH), 2, 2);
 
-		QFont big = uiFont(skinTokens, 14);
+		QFont big = uiFont(skinTokens, 15);
 		big.setBold(true);
 		p.setFont(big);
 		QFontMetrics bfm(big);
@@ -151,7 +151,7 @@ void BlockChipView::paintEvent(QPaintEvent*)
 		p.drawText(QRect(x, y, 16, blockH), Qt::AlignCenter, QStringLiteral("="));
 		x += 22;
 
-		QFont chipFont = uiFont(skinTokens, 13);
+		QFont chipFont = uiFont(skinTokens, 14);
 		p.setFont(chipFont);
 		QFontMetrics fm(chipFont);
 
@@ -255,7 +255,7 @@ void BlockChipView::paintEvent(QPaintEvent*)
 	// step) and the dashed "add channel" chip (the not-hardware-backed
 	// grammar shared with the per-block [+]).
 	const int y = gap + fold.visibleRows.size() * (blockH + gap);
-	QFont chipFont = uiFont(skinTokens, 12);
+	QFont chipFont = uiFont(skinTokens, 13);
 	p.setFont(chipFont);
 	QFontMetrics fm(chipFont);
 	int x = 8;

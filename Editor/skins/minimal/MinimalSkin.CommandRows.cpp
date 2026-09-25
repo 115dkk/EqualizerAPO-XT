@@ -19,7 +19,6 @@
 
 #include "Editor/skins/shared/SkinPaint.h"
 #include "Editor/skins/minimal/MinimalChannelInk.h"
-#include "Editor/widgets/routing/CopyRoutingAdapter.h"
 #include "Editor/widgets/FilterCardModel.h"
 
 namespace
@@ -98,8 +97,7 @@ bool MinimalSkin::paintChannelBadge(QPainter& painter, const QRect& rect, const 
 	// channel-scope tokens follow the Copy listing's grammar - the designed
 	// console ink on bare ground, uppercase mono, no pill chrome. Virtual
 	// channels keep the dashed frame (the unverified-token dash grammar).
-	const QColor ink = minimalChannelInk(
-		QColor(CopyRoutingAdapter::channelColor(channel)), skinIsDark(tokens));
+	const QColor ink = minimalChannelInk(channel, skinIsDark(tokens));
 	QFont font(tokens.monoFontFamily);
 	font.setPointSizeF(9.5);
 	font.setBold(true);

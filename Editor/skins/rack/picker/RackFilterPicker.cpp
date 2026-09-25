@@ -152,7 +152,7 @@ private:
 		painter->drawEllipse(QPointF(plate.right() - 7, plate.center().y()), 1.6, 1.6);
 
 		QFont plateFont(tokens.fontFamily);
-		plateFont.setPixelSize(9);
+		plateFont.setPixelSize(10);
 		plateFont.setBold(true);
 		plateFont.setLetterSpacing(QFont::AbsoluteSpacing, 1.6);
 		painter->setFont(plateFont);
@@ -196,7 +196,7 @@ private:
 		paintLed(*painter, led, 2.8, accent, selected ? 1.0 : (hovered ? 0.55 : 0.0), dark);
 
 		QFont labelFont(tokens.fontFamily);
-		labelFont.setPixelSize(12);
+		labelFont.setPixelSize(13);
 		painter->setFont(labelFont);
 		const QRectF textRect = slot.adjusted(24, 0, -8, 0);
 		const QString label = QFontMetrics(labelFont).elidedText(
@@ -431,7 +431,7 @@ void RackFilterPickerView::paintEvent(QPaintEvent* event)
 
 	// Engraved header: the unit designation, with the power LED on the right.
 	QFont titleFont(tokens.fontFamily);
-	titleFont.setPixelSize(10);
+	titleFont.setPixelSize(11);
 	titleFont.setBold(true);
 	titleFont.setLetterSpacing(QFont::AbsoluteSpacing, 2.0);
 	painter.setFont(titleFont);
@@ -451,7 +451,7 @@ void RackFilterPickerView::paintEvent(QPaintEvent* event)
 	if (listWidget != nullptr && listWidget->count() == 0)
 	{
 		QFont emptyFont(tokens.fontFamily);
-		emptyFont.setPixelSize(10);
+		emptyFont.setPixelSize(11);
 		emptyFont.setBold(true);
 		emptyFont.setLetterSpacing(QFont::AbsoluteSpacing, 2.0);
 		painter.setFont(emptyFont);
@@ -461,7 +461,7 @@ void RackFilterPickerView::paintEvent(QPaintEvent* event)
 
 	// Tiny model engraving on the bottom rail, between the screws.
 	QFont modelFont(tokens.fontFamily);
-	modelFont.setPixelSize(8);
+	modelFont.setPixelSize(9);
 	modelFont.setBold(true);
 	modelFont.setLetterSpacing(QFont::AbsoluteSpacing, 1.2);
 	painter.setFont(modelFont);

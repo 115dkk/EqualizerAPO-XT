@@ -109,6 +109,7 @@ public:
 
 	// The VST channel-fill rails (ISkin::paintVstSlotFillCell /
 	// ISkin::paintVstSlotFillRail). Same heritage reasoning as the bus strip.
+	QSize vstSlotFillCellSize(const QString& role, const QString& value) const;
 	void paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state) const;
 	void paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state) const;
 

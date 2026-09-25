@@ -64,7 +64,7 @@ void HardwarePatchbayView::updateMetrics()
 	// longer than its column was clipped to fragments ("ntBass"). The
 	// engraving font decides the width a column really needs.
 	QFont label(skinTokens.monoFontFamily);
-	label.setPixelSize(11);
+	label.setPixelSize(12);
 	label.setLetterSpacing(QFont::AbsoluteSpacing, 1);
 	const QFontMetrics fm(label);
 
@@ -168,7 +168,7 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 	// Engraved header labels: the faceplate's tracked lettering; channel
 	// colour stays the cross-skin data ink.
 	QFont label(t.monoFontFamily);
-	label.setPixelSize(11);
+	label.setPixelSize(12);
 	label.setLetterSpacing(QFont::AbsoluteSpacing, 1);
 	p.setFont(label);
 
@@ -183,7 +183,7 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 
 	// The button legend is printed type on the cap, not tracked engraving.
 	QFont legend(t.monoFontFamily);
-	legend.setPixelSize(10);
+	legend.setPixelSize(11);
 	legend.setBold(true);
 
 	// The control-cap recipe, shared by the crosspoint blanks and the

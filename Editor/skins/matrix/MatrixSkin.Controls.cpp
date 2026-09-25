@@ -400,7 +400,7 @@ void MatrixSkin::paintVstBusSelector(QPainter& painter, const VstBusSelectorStat
 	painter.drawRect(cell);
 
 	QFont roleFont(tokens.monoFontFamily);
-	roleFont.setPixelSize(8);
+	roleFont.setPixelSize(9);
 	roleFont.setLetterSpacing(QFont::AbsoluteSpacing, 0.8);
 	painter.setFont(roleFont);
 	painter.setPen(withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150));
@@ -409,7 +409,7 @@ void MatrixSkin::paintVstBusSelector(QPainter& painter, const VstBusSelectorStat
 	const qreal roleWidth = QFontMetricsF(roleFont).horizontalAdvance(state.roleToken);
 
 	QFont valueFont(tokens.monoFontFamily);
-	valueFont.setPixelSize(11);
+	valueFont.setPixelSize(12);
 	painter.setFont(valueFont);
 	painter.setPen(state.enabled ? QColor(tokens.text) : QColor(tokens.mutedText));
 	QRectF valueRect(textRect);
@@ -420,7 +420,7 @@ void MatrixSkin::paintVstBusSelector(QPainter& painter, const VstBusSelectorStat
 	{
 		const qreal valueWidth = QFontMetricsF(valueFont).horizontalAdvance(state.layoutText);
 		QFont countFont(tokens.monoFontFamily);
-		countFont.setPixelSize(9);
+		countFont.setPixelSize(10);
 		painter.setFont(countFont);
 		painter.setPen(withAlpha(QColor(tokens.mutedText), state.enabled ? 220 : 130));
 		QRectF countRect(valueRect);
@@ -452,7 +452,7 @@ void MatrixSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& sta
 	painter.setRenderHint(QPainter::TextAntialiasing, true);
 
 	QFont monoFont(tokens.monoFontFamily);
-	monoFont.setPixelSize(11);
+	monoFont.setPixelSize(12);
 	painter.setFont(monoFont);
 	painter.setPen(withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150));
 	painter.drawText(QRectF(state.jointRect), Qt::AlignCenter, QStringLiteral(">"));
@@ -501,7 +501,7 @@ void MatrixSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& sta
 		return;
 
 	QFont remarkFont(tokens.monoFontFamily);
-	remarkFont.setPixelSize(10);
+	remarkFont.setPixelSize(11);
 	painter.setFont(remarkFont);
 	painter.setPen(withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150));
 	QRectF textRect(state.verdictRect);
@@ -509,6 +509,36 @@ void MatrixSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& sta
 	const QString text = state.verdictInputText + QStringLiteral(">") + state.verdictOutputText;
 	painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter,
 		QFontMetricsF(remarkFont).elidedText(text, Qt::ElideRight, textRect.width()));
+}
+
+namespace
+{
+// The fill cell's fonts, shared by the painter and the size it answers:
+// a letter-spaced mono role and the mono channel.
+QFont matrixFillRoleFont(const SkinTokens& tokens)
+{
+	QFont font(tokens.monoFontFamily);
+	font.setPixelSize(9);
+	font.setLetterSpacing(QFont::AbsoluteSpacing, 0.8);
+	return font;
+}
+
+QFont matrixFillValueFont(const SkinTokens& tokens)
+{
+	QFont font(tokens.monoFontFamily);
+	font.setPixelSize(12);
+	return font;
+}
+}
+
+QSize MatrixSkin::vstSlotFillCellSize(const QString& role, const QString& value, const SkinTokens& tokens) const
+{
+	// The painter's posting: a 0.5 inset and 4 before the role, 5 to the
+	// channel, then 3 of air before the caret, which spans the last 7.5 of
+	// the cell (its tip sits 5 in from the inset edge, 2 wide each side).
+	const qreal roleWidth = QFontMetricsF(matrixFillRoleFont(tokens)).horizontalAdvance(role);
+	const qreal valueWidth = QFontMetricsF(matrixFillValueFont(tokens)).horizontalAdvance(value);
+	return QSize(qCeil(0.5 + 4.0 + roleWidth + 5.0 + valueWidth + 3.0 + 7.5), 20);
 }
 
 void MatrixSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state, const SkinTokens& tokens) const
@@ -522,18 +552,14 @@ void MatrixSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellSt
 	// cancelled posting - dashed rule, danger ink.
 	const QRectF cell = QRectF(state.rect).adjusted(0.5, 0.5, -0.5, -0.5);
 
-	QFont roleFont(tokens.monoFontFamily);
-	roleFont.setPixelSize(8);
-	roleFont.setLetterSpacing(QFont::AbsoluteSpacing, 0.8);
+	const QFont roleFont = matrixFillRoleFont(tokens);
 	painter.setFont(roleFont);
 	painter.setPen(withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150));
 	QRectF textRect = cell.adjusted(4.0, 0, -4.0, 0);
 	painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, state.roleToken);
 	const qreal roleWidth = QFontMetricsF(roleFont).horizontalAdvance(state.roleToken);
 
-	QFont valueFont(tokens.monoFontFamily);
-	valueFont.setPixelSize(11);
-	painter.setFont(valueFont);
+	painter.setFont(matrixFillValueFont(tokens));
 	QColor valueInk(state.silent || state.defaulted ? tokens.mutedText : tokens.text);
 	if (state.missingChannel)
 		valueInk = QColor(tokens.danger);
@@ -598,7 +624,7 @@ void MatrixSkin::paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailSt
 	painter.setBrush(Qt::NoBrush);
 	painter.drawRect(gate);
 	QFont gateFont(tokens.monoFontFamily);
-	gateFont.setPixelSize(8);
+	gateFont.setPixelSize(9);
 	gateFont.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);
 	painter.setFont(gateFont);
 	painter.setPen(state.collapsed ? QColor(tokens.mutedText) : QColor(tokens.text));

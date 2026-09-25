@@ -73,7 +73,7 @@ void RackSkin::paintKnob(QPainter& painter, const QRect& rect, const KnobState& 
 	if (state.bipolar)
 	{
 		QFont glyphFont(tokens.fontFamily);
-		glyphFont.setPixelSize(11);
+		glyphFont.setPixelSize(12);
 		glyphFont.setBold(true);
 		painter.setFont(glyphFont);
 		const QPointF minusAt = pointAt(-0.07, scaleRadius - 2.5);
@@ -277,7 +277,7 @@ void RackSkin::paintSegmentedControl(QPainter& painter, const SegmentedControlSt
 	};
 
 	QFont legendFont(tokens.fontFamily);
-	legendFont.setPixelSize(9);
+	legendFont.setPixelSize(10);
 	legendFont.setBold(true);
 	const QFontMetricsF legendMetrics(legendFont);
 
@@ -468,7 +468,7 @@ void RackSkin::paintVstBusSelector(QPainter& painter, const VstBusSelectorState&
 	const QRectF rect(state.rect);
 
 	QFont roleFont(tokens.fontFamily);
-	roleFont.setPixelSize(8);
+	roleFont.setPixelSize(9);
 	roleFont.setBold(true);
 	roleFont.setLetterSpacing(QFont::AbsoluteSpacing, 1.2);
 	painter.setFont(roleFont);
@@ -494,7 +494,7 @@ void RackSkin::paintVstBusSelector(QPainter& painter, const VstBusSelectorState&
 	// latched cap carries its print down with it.
 	const qreal drop = down ? 1.0 : 0.0;
 	QFont valueFont(tokens.monoFontFamily);
-	valueFont.setPixelSize(11);
+	valueFont.setPixelSize(12);
 	painter.setFont(valueFont);
 	QColor print(state.enabled ? tokens.text : tokens.mutedText);
 	QRectF printRect = cap.adjusted(6.0, drop, -5.0, drop);
@@ -504,7 +504,7 @@ void RackSkin::paintVstBusSelector(QPainter& painter, const VstBusSelectorState&
 	{
 		const qreal valueWidth = QFontMetricsF(valueFont).horizontalAdvance(state.layoutText);
 		QFont countFont(tokens.monoFontFamily);
-		countFont.setPixelSize(8);
+		countFont.setPixelSize(9);
 		painter.setFont(countFont);
 		painter.setPen(withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150));
 		painter.drawText(QRectF(printRect.left() + valueWidth + 4.0, printRect.top(),
@@ -568,7 +568,7 @@ void RackSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& state
 		return;
 
 	QFont engraveFont(tokens.monoFontFamily);
-	engraveFont.setPixelSize(9);
+	engraveFont.setPixelSize(10);
 	engraveFont.setLetterSpacing(QFont::AbsoluteSpacing, 0.4);
 	painter.setFont(engraveFont);
 	const QColor textInk = state.tone == VstBusFrameState::Tone::Critical && state.enabled
@@ -584,6 +584,37 @@ void RackSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& state
 		QFontMetricsF(engraveFont).elidedText(text, Qt::ElideRight, textRect.width()), textInk, dark);
 }
 
+namespace
+{
+// The fill cell's fonts, shared by the painter and the size it answers:
+// an engraved bold, letter-spaced role and the mono channel print.
+QFont rackFillRoleFont(const SkinTokens& tokens)
+{
+	QFont font(tokens.fontFamily);
+	font.setPixelSize(9);
+	font.setBold(true);
+	font.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);
+	return font;
+}
+
+QFont rackFillValueFont(const SkinTokens& tokens)
+{
+	QFont font(tokens.monoFontFamily);
+	font.setPixelSize(12);
+	return font;
+}
+}
+
+QSize RackSkin::vstSlotFillCellSize(const QString& role, const QString& value, const SkinTokens& tokens) const
+{
+	// The painter's layout: the engraved role, 5 to the cap, and the channel
+	// printed inside the cap with 6 before it and 5 after (the cap itself
+	// ends 0.5 short of the cell). The cap has no caret.
+	const qreal roleWidth = QFontMetricsF(rackFillRoleFont(tokens)).horizontalAdvance(role);
+	const qreal valueWidth = QFontMetricsF(rackFillValueFont(tokens)).horizontalAdvance(value);
+	return QSize(qCeil(roleWidth + 5.0 + 6.0 + valueWidth + 5.0 + 0.5), 20);
+}
+
 void RackSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state, const SkinTokens& tokens) const
 {
 	QPainterStateGuard guard(&painter);
@@ -596,10 +627,7 @@ void RackSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellStat
 	const QColor mutedInk(tokens.mutedText);
 	const QRectF rect(state.rect);
 
-	QFont roleFont(tokens.fontFamily);
-	roleFont.setPixelSize(8);
-	roleFont.setBold(true);
-	roleFont.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);
+	const QFont roleFont = rackFillRoleFont(tokens);
 	painter.setFont(roleFont);
 	const qreal roleWidth = QFontMetricsF(roleFont).horizontalAdvance(state.roleToken);
 	RackSkinDetail::engraveText(painter,
@@ -630,9 +658,7 @@ void RackSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellStat
 	}
 
 	const qreal drop = down ? 1.0 : 0.0;
-	QFont valueFont(tokens.monoFontFamily);
-	valueFont.setPixelSize(11);
-	painter.setFont(valueFont);
+	painter.setFont(rackFillValueFont(tokens));
 	QColor print(state.silent || state.defaulted ? mutedInk : bodyInk);
 	if (state.missingChannel)
 		print = QColor(tokens.danger);
@@ -683,7 +709,7 @@ void RackSkin::paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailStat
 	RackSkinDetail::paintLed(painter, QPointF(cap.left() + 8.0, cap.center().y() + 0.5 + drop), 2.6,
 		amber, state.enabled && !state.collapsed, dark);
 	QFont capFont(tokens.fontFamily);
-	capFont.setPixelSize(8);
+	capFont.setPixelSize(9);
 	capFont.setBold(true);
 	capFont.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);
 	painter.setFont(capFont);
