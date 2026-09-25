@@ -111,6 +111,7 @@ if exist "$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configurati
     <ClCompile Include="LoudnessCorrectionCommandTests.cpp" />
     <ClCompile Include="StageCommandTests.cpp" />
     <ClCompile Include="VSTPluginCommandTests.cpp" />
+    <ClCompile Include="VSTChannelPlanTests.cpp" />
     <ClCompile Include="VstHostTests.cpp" />
     <ClCompile Include="Vst3HostTests.cpp" />
     <ClCompile Include="NumericTextTests.cpp" />

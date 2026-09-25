@@ -86,6 +86,9 @@
     <ClCompile Include="VSTPluginCommandTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="VSTChannelPlanTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="VstHostTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

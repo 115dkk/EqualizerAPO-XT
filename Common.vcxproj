@@ -354,6 +354,7 @@
     <ClInclude Include="filters\StageCommand.h" />
     <ClInclude Include="filters\StageFilterFactory.h" />
     <ClInclude Include="filters\VSTPluginCommand.h" />
+    <ClInclude Include="filters\VSTChannelPlan.h" />
     <ClInclude Include="filters\VSTPluginFilter.h" />
     <ClInclude Include="filters\VSTPluginFilterFactory.h" />
     <ClInclude Include="vst\AbstractLibrary.h" />
@@ -382,6 +383,7 @@
     <ClInclude Include="services\logging\TaggedLogger.h" />
     <ClInclude Include="dsp\FftwRAII.h" />
     <ClInclude Include="dsp\FftwPlanningPolicy.h" />
+    <ClInclude Include="dsp\DelayLine.h" />
     <ClInclude Include="runtime\errors\WideError.h" />
     <ClInclude Include="runtime\memory\AlignedMemory.h" />
     <ClInclude Include="runtime\WeakValueCache.h" />
@@ -497,6 +499,7 @@
     <ClCompile Include="filters\StageCommand.cpp" />
     <ClCompile Include="filters\StageFilterFactory.cpp" />
     <ClCompile Include="filters\VSTPluginCommand.cpp" />
+    <ClCompile Include="filters\VSTChannelPlan.cpp" />
     <ClCompile Include="filters\VSTPluginFilter.cpp" />
     <ClCompile Include="filters\VSTPluginFilterFactory.cpp" />
     <ClCompile Include="vst\AbstractLibrary.cpp" />
@@ -528,6 +531,7 @@
     <ClCompile Include="engine\IFilter.cpp" />
     <ClCompile Include="libHybridConv-0.1.1\libHybridConv_eapo.cpp" />
     <ClCompile Include="dsp\FftwPlanningPolicy.cpp" />
+    <ClCompile Include="dsp\DelayLine.cpp" />
     <ClCompile Include="parser\LogicalOperators.cpp" />
     <ClCompile Include="parser\ParserExtensions.cpp" />
     <ClCompile Include="parser\EngineParser.cpp" />

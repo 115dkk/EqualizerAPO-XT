@@ -135,6 +135,9 @@
     <ClInclude Include="filters\VSTPluginCommand.h">
       <Filter>filters</Filter>
     </ClInclude>
+    <ClInclude Include="filters\VSTChannelPlan.h">
+      <Filter>filters</Filter>
+    </ClInclude>
     <ClInclude Include="filters\VSTPluginFilter.h">
       <Filter>filters</Filter>
     </ClInclude>
@@ -181,6 +184,9 @@
       <Filter>dsp</Filter>
     </ClInclude>
     <ClInclude Include="dsp\FftwPlanningPolicy.h">
+      <Filter>dsp</Filter>
+    </ClInclude>
+    <ClInclude Include="dsp\DelayLine.h">
       <Filter>dsp</Filter>
     </ClInclude>
     <ClInclude Include="runtime\memory\AlignedMemory.h">
@@ -423,6 +429,9 @@
     <ClCompile Include="filters\VSTPluginCommand.cpp">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="filters\VSTChannelPlan.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="filters\VSTPluginFilter.cpp">
       <Filter>filters</Filter>
     </ClCompile>
@@ -502,6 +511,9 @@
       <Filter>libHybridConv-0.1.1</Filter>
     </ClCompile>
     <ClCompile Include="dsp\FftwPlanningPolicy.cpp">
+      <Filter>dsp</Filter>
+    </ClCompile>
+    <ClCompile Include="dsp\DelayLine.cpp">
       <Filter>dsp</Filter>
     </ClCompile>
     <ClCompile Include="parser\ParserExtensions.cpp">

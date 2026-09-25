@@ -61,6 +61,7 @@ void runIncludeCommandTests();
 void runLoudnessCorrectionCommandTests();
 void runStageCommandTests();
 void runVSTPluginCommandTests();
+void runVSTChannelPlanTests();
 void runVstHostTests();
 void runVst3HostTests();
 void runParserTests();
@@ -506,6 +507,8 @@ int runHybridConvTests()
 	runLoudnessCorrectionCommandTests();
 	runStageCommandTests();
 	runVSTPluginCommandTests();
+	// Channel-to-instance plan of a VSTPlugin line, judged without a plug-in.
+	runVSTChannelPlanTests();
 	// Runtime VST2 host load/state/audio test. Soft-skips if the
 	// companion TestVst2Plugin.dll is not next to this executable.
 	runVstHostTests();

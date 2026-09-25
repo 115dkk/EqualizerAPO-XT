@@ -135,6 +135,7 @@ SOURCES += main.cpp\
 	../filters/GraphicEQFilterFactory.cpp \
 	../libHybridConv-0.1.1/libHybridConv_eapo.cpp \
 	../dsp/FftwPlanningPolicy.cpp \
+	../dsp/DelayLine.cpp \
 	../filters/graphicEq/GainCurveIterator.cpp \
 	guis/GraphicEQFilterGUIScene.cpp \
 	widgets/FrequencyPlotView.cpp \
@@ -241,6 +242,7 @@ SOURCES += main.cpp\
 	guis/VSTPluginFilterGUIFactory.cpp \
 	guis/VSTPluginFilterGUIDialog.cpp \
 	../filters/VSTPluginCommand.cpp \
+	../filters/VSTChannelPlan.cpp \
 	../filters/VSTPluginFilter.cpp \
 	../filters/VSTPluginFilterFactory.cpp \
 	../vst/VSTPluginInstance.cpp \
@@ -448,6 +450,7 @@ HEADERS  += \
 	../filters/GraphicEQFilterFactory.h \
 	../libHybridConv-0.1.1/libHybridConv_eapo.h \
 	../dsp/FftwPlanningPolicy.h \
+	../dsp/DelayLine.h \
 	../dsp/SampleConversion.h \
 	../runtime/WeakValueCache.h \
 	../filters/graphicEq/GainCurveIterator.h \
@@ -536,6 +539,7 @@ HEADERS  += \
 	guis/VSTPluginFilterGUIFactory.h \
 	guis/VSTPluginFilterGUIDialog.h \
 	../filters/VSTPluginCommand.h \
+	../filters/VSTChannelPlan.h \
 	../filters/VSTPluginFilter.h \
 	../filters/VSTPluginFilterFactory.h \
 	../vst/VSTPluginInstance.h \

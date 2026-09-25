@@ -43,7 +43,7 @@ static const double kMaxDelaySamples = 32.0 * 1024.0 * 1024.0;
 
 vector<wstring> DelayFilter::initialize(float sampleRate, unsigned maxFrameCount, vector<wstring> channelNames)
 {
-	buffers.clear();
+	delayLine.release();
 
 	channelCount = (unsigned)channelNames.size();
 
@@ -56,25 +56,10 @@ vector<wstring> DelayFilter::initialize(float sampleRate, unsigned maxFrameCount
 		LogFStatic(L"Delay length %.0f samples exceeds the %.0f sample cap; clamping", samples, kMaxDelaySamples);
 		samples = kMaxDelaySamples;
 	}
-	bufferLength = static_cast<unsigned>(samples);
+	const unsigned bufferLength = static_cast<unsigned>(samples);
 
-	std::vector<AlignedMemory::UniqueAllocation<double>> preparedBuffers;
-	preparedBuffers.reserve(channelCount);
-	for (unsigned i = 0; i < channelCount; i++)
-	{
-		auto buffer = AlignedMemory::allocateArray<double>(bufferLength);
-		if (!buffer)
-		{
-			LogFStatic(L"Delay buffer allocation failed (%u samples); passing audio through", bufferLength);
-			bufferOffset = 0;
-			return channelNames;
-		}
-		std::fill_n(buffer.get(), bufferLength, 0.0);
-		preparedBuffers.push_back(std::move(buffer));
-	}
-	buffers = std::move(preparedBuffers);
-
-	bufferOffset = 0;
+	if (!delayLine.allocate(channelCount, bufferLength, maxFrameCount))
+		LogFStatic(L"Delay buffer allocation failed (%u samples); passing audio through", bufferLength);
 
 	return channelNames;
 }
@@ -83,7 +68,7 @@ vector<wstring> DelayFilter::initialize(float sampleRate, unsigned maxFrameCount
 void DelayFilter::process(double** output, double** input, unsigned frameCount)
 {
 	PerfScope _ps("DelayFilter::process");
-	if (buffers.empty())
+	if (delayLine.empty())
 	{
 		// Allocation failed at initialize(): pass audio through undelayed rather
 		// than dereferencing a null ring buffer.
@@ -92,39 +77,6 @@ void DelayFilter::process(double** output, double** input, unsigned frameCount)
 				std::copy_n(input[i], frameCount, output[i]);
 		return;
 	}
-	for (unsigned i = 0; i < channelCount; i++)
-	{
-		double* inputChannel = input[i];
-		double* outputChannel = output[i];
-		double* bufferChannel = buffers[i].get();
-
-		if (bufferLength <= frameCount)
-		{
-			std::copy_n(bufferChannel + bufferOffset, bufferLength - bufferOffset, outputChannel);
-			std::copy_n(bufferChannel, bufferOffset, outputChannel + bufferLength - bufferOffset);
-			std::copy_n(inputChannel, frameCount - bufferLength, outputChannel + bufferLength);
-			std::copy_n(inputChannel + frameCount - bufferLength, bufferLength, bufferChannel);
-		}
-		else
-		{
-			if (bufferLength < bufferOffset + frameCount)
-			{
-				std::copy_n(bufferChannel + bufferOffset, bufferLength - bufferOffset, outputChannel);
-				std::copy_n(bufferChannel, frameCount - (bufferLength - bufferOffset), outputChannel + bufferLength - bufferOffset);
-				std::copy_n(inputChannel, bufferLength - bufferOffset, bufferChannel + bufferOffset);
-				std::copy_n(inputChannel + bufferLength - bufferOffset, frameCount - (bufferLength - bufferOffset), bufferChannel);
-			}
-			else
-			{
-				std::copy_n(bufferChannel + bufferOffset, frameCount, outputChannel);
-				std::copy_n(inputChannel, frameCount, bufferChannel + bufferOffset);
-			}
-		}
-	}
-
-	if (bufferLength <= frameCount)
-		bufferOffset = 0;
-	else
-		bufferOffset = (bufferOffset + frameCount) % bufferLength;
+	delayLine.process(output, input, frameCount);
 }
 #pragma AVRT_CODE_END

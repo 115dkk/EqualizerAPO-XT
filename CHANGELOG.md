@@ -14,6 +14,15 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **A VST plug-in that reports latency no longer delays its own output a
+  second time.** The latency compensation delayed every channel of the
+  filter by the plug-in's reported latency, including the channels the
+  plug-in had just processed, which were already late by that amount. The
+  processed channels came out twice as late, and the channels passed through
+  once as late, so the two still did not line up. Now only the channels the plug-in does not
+  write (the ones an explicit bus layout or a channel fill passes through)
+  are delayed, so they line up with the processed ones (#PRNUM).
+
 ## v2.54.7 — 2026-09-25
 
 - **A driver's own effects keep running when an endpoint's ASIO entry cannot
