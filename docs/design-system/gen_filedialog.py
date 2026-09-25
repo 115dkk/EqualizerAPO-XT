@@ -8,6 +8,21 @@ NAV = {'back': '<path d="M15 6l-6 6 6 6"/>', 'fwd': '<path d="M9 6l6 6-6 6"/>',
        'detail': '<rect x="4" y="5" width="16" height="14" rx="1"/><path d="M4 10h16"/><path d="M4 15h16"/><path d="M10 5v14"/>',
        'file': '<path d="M13.5 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8.5l-5-5z"/><path d="M13.5 3.5V8.5h5"/>',
        'folder': PICT['folder'], 'x': '<path d="M7 7l10 10"/><path d="M17 7L7 17"/>'}
+def _at(x, y):  # SoftFileIcons' glyph grid: 0..1, spread 15 % about the tile centre, on the 24 px viewBox
+    return f'{24 * (0.5 + (x - 0.5) * 1.15):.2f} {24 * (0.5 + (y - 0.5) * 1.15):.2f}'
+SOFT_GLYPH = {
+    'folder': f'<path d="M{_at(.27, .70)}L{_at(.27, .31)}L{_at(.44, .31)}L{_at(.50, .38)}L{_at(.73, .38)}L{_at(.73, .70)}Z"/>',
+    'file': (f'<path d="M{_at(.34, .24)}L{_at(.55, .24)}L{_at(.66, .35)}L{_at(.66, .76)}L{_at(.34, .76)}Z"/>'
+             f'<path d="M{_at(.43, .51)}L{_at(.57, .51)}"/><path d="M{_at(.43, .63)}L{_at(.57, .63)}"/>'),
+}
+def soft_icon(kind, s=16):
+    """Soft's file-dialog icons (SoftFileIconProvider): a rounded pastel tile, places (folders, drives) on the
+    warning pastel, files on the accent pastel, with a near-white round-cap stroke glyph. For soft's tokens the
+    pastel recipe returns the token itself, so the tiles are soft-warning and soft-accent."""
+    tile = 'var(--warning)' if kind == 'folder' else 'var(--accent)'
+    return (f'<svg viewBox="0 0 24 24" width="{s}" height="{s}" fill="none" stroke="#FAFAFC" stroke-width="2.04" stroke-linecap="round" stroke-linejoin="round">'
+            f'<rect x="1.2" y="1.2" width="21.6" height="21.6" rx="6.9" fill="{tile}" stroke="none"/>{SOFT_GLYPH[kind]}</svg>')
+
 def ico(n, s=14): return f'<svg viewBox="0 0 24 24" width="{s}" height="{s}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{NAV[n]}</svg>'
 
 CSS = '''
@@ -88,11 +103,12 @@ ROWS = [('folder', 'config', '', 'File Folder', '2026-01-01 21:00'), ('folder', 
 
 def dialog(skin):
     title = 'OPEN FILE' if skin == 'rack' else 'Open file'
+    item = (lambda k, sz=16: soft_icon(k, sz)) if skin == 'soft' else (lambda k, sz=14: ico(k))
     navs = ''.join(f'<span class="nav {c}">{ico(n)}</span>' for n, c in (('back', 'a2'), ('fwd', 'a2'), ('up', 'acc'), ('new', 'acc'), ('list', ''), ('detail', 'on')))
-    rows = ''.join(f'<div class="r"><span class="n">{ico(k)}{n}</span><span class="num">{sz}</span><span>{t}</span><span class="d">{d}</span></div>' for k, n, sz, t, d in ROWS)
+    rows = ''.join(f'<div class="r"><span class="n">{item(k)}{n}</span><span class="num">{sz}</span><span>{t}</span><span class="d">{d}</span></div>' for k, n, sz, t, d in ROWS)
     return (f'<div class="dlg"><div class="tb"><span>{title}</span><span class="x">{ico("x", 12)}</span></div>'
-            f'<div class="lookin"><span class="lbl">Look in:</span><span class="pathc">{ico("folder")}...\\EqualizerAPO\\config <span class="chev" style="margin-left:auto"></span></span>{navs}</div>'
-            f'<div class="main"><div class="side"><span class="it">{ico("folder")}config</span><span class="it">{ico("folder")}IRs</span></div>'
+            f'<div class="lookin"><span class="lbl">Look in:</span><span class="pathc">{item("folder")}...\\EqualizerAPO\\config <span class="chev" style="margin-left:auto"></span></span>{navs}</div>'
+            f'<div class="main"><div class="side"><span class="it">{item("folder", 20)}config</span><span class="it">{item("folder", 20)}IRs</span></div>'
             f'<div class="tbl"><div class="hd"><span>Name</span><span class="num">Size</span><span>Type</span><span>Date Modified</span></div>{rows}<span class="fill"></span></div></div>'
             f'<div class="bot"><span>File name:</span><span class="fld focus"></span><span class="btn dis">Open</span>'
             f'<span>Files of type:</span><span class="fld cmb">E-APO configurations (*.txt) <span class="chev"></span></span><span class="btn">Cancel</span></div></div>')

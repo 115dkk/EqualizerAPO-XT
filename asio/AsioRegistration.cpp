@@ -8,6 +8,7 @@
 #include "asio/AsioRegistration.h"
 
 #include "asio/WrapperRecord.h"
+#include "devices/DeviceAPOInfoKeys.h"
 #include "platform/windows/GuidText.h"
 #include "runtime/errors/WideError.h"
 #include "services/registry/ClsidRegistration.h"
@@ -64,7 +65,7 @@ namespace eapo::asio
 		std::wstring classesClsidRoot(bool wow6432)
 		{
 			return wow6432 ? L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\WOW6432Node\\CLSID"
-				: L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID";
+				: clsidKeyPath;
 		}
 
 		std::wstring entryNameFor(const std::wstring& targetName)

@@ -22,6 +22,34 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   do not fit, and the gallery checks this for 288 names
   ([#403](https://github.com/115dkk/EqualizerAPO-XT/pull/403)).
 
+## v2.54.28 — 2026-09-25
+
+- **A VST3 plug-in's saved state reaches it whole.** Restoring the state of
+  a VST3 plug-in hands its parameter values to the plug-in's audio side
+  through a queue of 1023 entries; a plug-in with more parameters than that
+  lost the rest without any message, so some settings came back at their
+  old values. The host now empties the queue and continues, so every value
+  arrives. When it cannot (audio is playing through the plug-in at that
+  moment), it writes to the log how many values did not reach the plug-in
+  ([#401](https://github.com/115dkk/EqualizerAPO-XT/pull/401)).
+- **The VST3 host refuses calls that break the plug-in protocol.** A plug-in
+  that kept the host's handle after its instance was closed and called it
+  later reached memory that was already freed; those calls are now refused.
+  A plug-in asking the state stream to move to an unreasonable position
+  (beyond 256 MiB) made the host allocate that much memory; that request is
+  now refused as well
+  ([#401](https://github.com/115dkk/EqualizerAPO-XT/pull/401)).
+
+## v2.54.27 — 2026-09-25
+
+- **The ASIO host no longer frees a pipe wait the system is still using.**
+  When EqualizerAPOHost stopped waiting for its client to connect, it
+  cancelled the wait and released the event and buffer at once, although
+  Windows completes a cancelled wait later. It now waits for the
+  cancellation to finish, and a failed wait or a failure to create one of
+  its events is logged and ends the host cleanly instead of being ignored
+  ([#400](https://github.com/115dkk/EqualizerAPO-XT/pull/400)).
+
 ## v2.54.26 — 2026-09-25
 
 - **Virtual channels are the channels your device does not have.** The

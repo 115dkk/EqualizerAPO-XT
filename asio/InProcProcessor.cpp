@@ -16,7 +16,7 @@ namespace eapo::asio
 {
 	namespace
 	{
-		void copyMessage(char (&destination)[124], const char* source) noexcept
+		void copyMessage(char (&destination)[errorMessageBytes], const char* source) noexcept
 		{
 			size_t i = 0;
 			for (; i + 1 < sizeof(destination) && source[i] != '\0'; i++)

@@ -47,11 +47,12 @@ namespace eapo::asio
 	private:
 		struct Objects
 		{
-			HANDLE mapping = nullptr;
-			HANDLE events[RingEvents::count] = {};
+			winutil::UniqueHandle mapping;
+			winutil::UniqueHandle events[RingEvents::count];
+			winutil::UniqueHandle peer;
 		};
 
-		bool connectToHost(const std::wstring& endpoint, const StreamOptions& options, ULONGLONG deadline, HANDLE& pipe,
+		bool connectToHost(const std::wstring& endpoint, const StreamOptions& options, ULONGLONG deadline, winutil::UniqueHandle& pipe,
 			std::string& error);
 		static bool spawnHost(const std::wstring& endpoint, const StreamOptions& options, std::string& error);
 

@@ -16,16 +16,69 @@ using namespace Steinberg::Vst;
 
 namespace
 {
-	bool channelNamesEqual(const vector<wstring>& channelNames,
-		initializer_list<const wchar_t*> expected)
+	// The SDK side of vst3BusLayoutTable (audit #348 TD-48): for each layout,
+	// in the same order, the speaker arrangements that stand for it.
+	//   - layout: proposed, in this order, when the config names the layout,
+	//     and accepted as that layout when the plug-in reports one of them.
+	//   - byCount: proposed after the semantic candidates when only a channel
+	//     count is known. A subset: the Windows-mask order the host has
+	//     always used, so 4.1 adds nothing to a 5-channel count (5.0 does).
+	//   - semantic: the layout's channel names identify it as a whole. Mono
+	//     is left out, so a lone C never proposes kMono ahead of the count.
+	//   - sideAlias: the names also match with SL/SR in place of RL/RR, the
+	//     spelling of a Windows side-only mask.
+	struct ArrangementRow
 	{
+		VST3BusLayout layout = VST3BusLayout::Auto;
+		vector<SpeakerArrangement> byLayout;
+		vector<SpeakerArrangement> byCount;
+		bool semantic = false;
+		bool sideAlias = false;
+	};
+
+	const vector<ArrangementRow>& arrangementTable()
+	{
+		static const vector<ArrangementRow> rows = {
+			{VST3BusLayout::Auto, {}, {}, false, false},
+			{VST3BusLayout::Mono, {SpeakerArr::kMono}, {SpeakerArr::kMono}, false, false},
+			{VST3BusLayout::Stereo, {SpeakerArr::kStereo}, {SpeakerArr::kStereo}, true, false},
+			{VST3BusLayout::Surround40, {SpeakerArr::k40Music, SpeakerArr::k40Cine},
+				{SpeakerArr::k40Music, SpeakerArr::k40Cine}, true, true},
+			{VST3BusLayout::Surround41, {SpeakerArr::k41Music, SpeakerArr::k41Cine}, {}, true, true},
+			{VST3BusLayout::Surround50, {SpeakerArr::k50}, {SpeakerArr::k50}, true, true},
+			{VST3BusLayout::Surround51, {SpeakerArr::k51}, {SpeakerArr::k51}, true, false},
+			{VST3BusLayout::Surround61, {SpeakerArr::k61Cine, SpeakerArr::k61Music},
+				{SpeakerArr::k61Cine}, true, false},
+			{VST3BusLayout::Surround71, {SpeakerArr::k71Music, SpeakerArr::k71Cine},
+				{SpeakerArr::k71Music, SpeakerArr::k71Cine}, true, false},
+			{VST3BusLayout::Surround712, {SpeakerArr::k71_2, SpeakerArr::k71_2_TF},
+				{SpeakerArr::k71_2}, true, false},
+			{VST3BusLayout::Surround714, {SpeakerArr::k71_4}, {SpeakerArr::k71_4}, true, false}
+		};
+		return rows;
+	}
+
+	const ArrangementRow& arrangementRow(VST3BusLayout layout)
+	{
+		const vector<ArrangementRow>& rows = arrangementTable();
+		const size_t index = static_cast<size_t>(layout);
+		return index < rows.size() ? rows[index] : rows[0];
+	}
+
+	bool channelNamesEqual(const vector<wstring>& channelNames, VST3BusLayout layout, bool sideSpelling)
+	{
+		const vector<wstring> expected = vst3BusLayoutChannelNames(layout);
 		if (channelNames.size() != expected.size())
 			return false;
 
-		size_t index = 0;
-		for (const wchar_t* name : expected)
+		for (size_t index = 0; index < expected.size(); index++)
 		{
-			if (channelNames[index++] != name)
+			wstring name = expected[index];
+			if (sideSpelling && name == L"RL")
+				name = L"SL";
+			else if (sideSpelling && name == L"RR")
+				name = L"SR";
+			if (channelNames[index] != name)
 				return false;
 		}
 		return true;
@@ -49,42 +102,15 @@ vector<wstring> vst3speakers::channelNamesForLayout(VST3BusLayout layout,
 vector<SpeakerArrangement> vst3speakers::semanticArrangementCandidates(
 	const vector<wstring>& channelNames)
 {
-	if (channelNamesEqual(channelNames, {L"L", L"R"}))
-		return {SpeakerArr::kStereo};
-	if (channelNamesEqual(channelNames, {L"L", L"R", L"RL", L"RR"})
-		|| channelNamesEqual(channelNames, {L"L", L"R", L"SL", L"SR"}))
+	for (const ArrangementRow& row : arrangementTable())
 	{
-		return {SpeakerArr::k40Music, SpeakerArr::k40Cine};
-	}
-	if (channelNamesEqual(channelNames, {L"L", L"R", L"LFE", L"RL", L"RR"})
-		|| channelNamesEqual(channelNames, {L"L", L"R", L"LFE", L"SL", L"SR"}))
-	{
-		return {SpeakerArr::k41Music, SpeakerArr::k41Cine};
-	}
-	if (channelNamesEqual(channelNames, {L"L", L"R", L"C", L"RL", L"RR"})
-		|| channelNamesEqual(channelNames, {L"L", L"R", L"C", L"SL", L"SR"}))
-	{
-		return {SpeakerArr::k50};
-	}
-	if (channelNamesEqual(channelNames, {L"L", L"R", L"C", L"LFE", L"RL", L"RR"}))
-		return {SpeakerArr::k51};
-	if (channelNamesEqual(channelNames, {L"L", L"R", L"C", L"LFE", L"RC", L"SL", L"SR"}))
-		return {SpeakerArr::k61Cine, SpeakerArr::k61Music};
-	if (channelNamesEqual(channelNames,
-		{L"L", L"R", L"C", L"LFE", L"RL", L"RR", L"SL", L"SR"}))
-	{
-		return {SpeakerArr::k71Music, SpeakerArr::k71Cine};
-	}
-	if (channelNamesEqual(channelNames,
-		{L"L", L"R", L"C", L"LFE", L"RL", L"RR", L"SL", L"SR", L"TSL", L"TSR"}))
-	{
-		return {SpeakerArr::k71_2, SpeakerArr::k71_2_TF};
-	}
-	if (channelNamesEqual(channelNames,
-		{L"L", L"R", L"C", L"LFE", L"RL", L"RR", L"SL", L"SR",
-			L"TFL", L"TFR", L"TRL", L"TRR"}))
-	{
-		return {SpeakerArr::k71_4};
+		if (!row.semantic)
+			continue;
+		if (channelNamesEqual(channelNames, row.layout, false)
+			|| (row.sideAlias && channelNamesEqual(channelNames, row.layout, true)))
+		{
+			return row.byLayout;
+		}
 	}
 	return {};
 }
@@ -96,37 +122,12 @@ vector<SpeakerArrangement> vst3speakers::arrangementCandidatesForChannelCount(
 
 	// Count-based candidates stay after semantic candidates and preserve the
 	// existing Windows-mask-first ordering.
-	switch (channelCount)
+	for (const ArrangementRow& row : arrangementTable())
 	{
-	case 1:
-		appendArrangementCandidate(SpeakerArr::kMono, candidates);
-		break;
-	case 2:
-		appendArrangementCandidate(SpeakerArr::kStereo, candidates);
-		break;
-	case 4:
-		appendArrangementCandidate(SpeakerArr::k40Music, candidates);
-		appendArrangementCandidate(SpeakerArr::k40Cine, candidates);
-		break;
-	case 5:
-		appendArrangementCandidate(SpeakerArr::k50, candidates);
-		break;
-	case 6:
-		appendArrangementCandidate(SpeakerArr::k51, candidates);
-		break;
-	case 7:
-		appendArrangementCandidate(SpeakerArr::k61Cine, candidates);
-		break;
-	case 8:
-		appendArrangementCandidate(SpeakerArr::k71Music, candidates);
-		appendArrangementCandidate(SpeakerArr::k71Cine, candidates);
-		break;
-	case 10:
-		appendArrangementCandidate(SpeakerArr::k71_2, candidates);
-		break;
-	case 12:
-		appendArrangementCandidate(SpeakerArr::k71_4, candidates);
-		break;
+		if (row.layout == VST3BusLayout::Auto || vst3BusLayoutChannelCount(row.layout) != channelCount)
+			continue;
+		for (SpeakerArrangement arrangement : row.byCount)
+			appendArrangementCandidate(arrangement, candidates);
 	}
 	return candidates;
 }
@@ -144,48 +145,7 @@ vector<SpeakerArrangement> vst3speakers::arrangementCandidatesForLayout(
 		return candidates;
 	}
 
-	vector<SpeakerArrangement> candidates;
-	switch (layout)
-	{
-	case VST3BusLayout::Mono:
-		appendArrangementCandidate(SpeakerArr::kMono, candidates);
-		break;
-	case VST3BusLayout::Stereo:
-		appendArrangementCandidate(SpeakerArr::kStereo, candidates);
-		break;
-	case VST3BusLayout::Surround40:
-		appendArrangementCandidate(SpeakerArr::k40Music, candidates);
-		appendArrangementCandidate(SpeakerArr::k40Cine, candidates);
-		break;
-	case VST3BusLayout::Surround41:
-		appendArrangementCandidate(SpeakerArr::k41Music, candidates);
-		appendArrangementCandidate(SpeakerArr::k41Cine, candidates);
-		break;
-	case VST3BusLayout::Surround50:
-		appendArrangementCandidate(SpeakerArr::k50, candidates);
-		break;
-	case VST3BusLayout::Surround51:
-		appendArrangementCandidate(SpeakerArr::k51, candidates);
-		break;
-	case VST3BusLayout::Surround61:
-		appendArrangementCandidate(SpeakerArr::k61Cine, candidates);
-		appendArrangementCandidate(SpeakerArr::k61Music, candidates);
-		break;
-	case VST3BusLayout::Surround71:
-		appendArrangementCandidate(SpeakerArr::k71Music, candidates);
-		appendArrangementCandidate(SpeakerArr::k71Cine, candidates);
-		break;
-	case VST3BusLayout::Surround712:
-		appendArrangementCandidate(SpeakerArr::k71_2, candidates);
-		appendArrangementCandidate(SpeakerArr::k71_2_TF, candidates);
-		break;
-	case VST3BusLayout::Surround714:
-		appendArrangementCandidate(SpeakerArr::k71_4, candidates);
-		break;
-	case VST3BusLayout::Auto:
-		break;
-	}
-	return candidates;
+	return arrangementRow(layout).byLayout;
 }
 
 bool vst3speakers::arrangementMatchesLayout(SpeakerArrangement arrangement,
@@ -194,6 +154,17 @@ bool vst3speakers::arrangementMatchesLayout(SpeakerArrangement arrangement,
 	const vector<SpeakerArrangement> candidates = arrangementCandidatesForLayout(
 		layout, 0, {}, SpeakerArr::kEmpty);
 	return find(candidates.begin(), candidates.end(), arrangement) != candidates.end();
+}
+
+optional<VST3BusLayout> vst3speakers::layoutOfArrangement(SpeakerArrangement arrangement)
+{
+	for (const VST3BusLayoutDefinition& definition : vst3ExplicitBusLayouts())
+	{
+		const vector<SpeakerArrangement>& candidates = arrangementRow(definition.layout).byLayout;
+		if (find(candidates.begin(), candidates.end(), arrangement) != candidates.end())
+			return definition.layout;
+	}
+	return nullopt;
 }
 
 bool vst3speakers::buildChannelMapping(SpeakerArrangement arrangement,

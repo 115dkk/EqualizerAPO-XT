@@ -9,6 +9,7 @@
 -->
 <Project>
   <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)AsioConstants.h" />
     <ClCompile Include="$(MSBuildThisFileDirectory)AsioWrapper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CallbackTrampolines.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SampleCodec.cpp" />

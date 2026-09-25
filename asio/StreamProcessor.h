@@ -21,6 +21,8 @@
 #include <string>
 #include <type_traits>
 
+#include "asio/AsioConstants.h"
+
 namespace eapo::asio
 {
 	enum class Direction : uint32_t
@@ -107,7 +109,7 @@ namespace eapo::asio
 		// wrapper then copies the original samples without conversion.
 		float** planes[directionCount] = {nullptr, nullptr};
 		uint32_t extraLatencyFrames = 0;  // 0 for Sync, frames for Pipelined
-		char message[124] = {};           // reported through getErrorMessage when status != Ok
+		char message[errorMessageBytes] = {};           // reported through getErrorMessage when status != Ok
 	};
 
 	// The value both the registry record and the probe's command line fill.
@@ -149,7 +151,7 @@ namespace eapo::asio
 			return options.deadlineUs;
 		if (format.sampleRate <= 0.0)
 			return 0;
-		const uint32_t percent = options.deadlinePercent != 0 ? options.deadlinePercent : 25;
+		const uint32_t percent = options.deadlinePercent != 0 ? options.deadlinePercent : defaultDeadlinePercent;
 		return static_cast<uint32_t>(periodUs(format) * static_cast<double>(percent) / 100.0);
 	}
 

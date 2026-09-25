@@ -99,4 +99,4 @@ for s in SKINS:
     ind = {'studio': 18, 'minimal': 16, 'soft': 20, 'rack': 16, 'matrix': 24}[s]
     f = frame(s, build(s)).replace('class="skin skin-' + s + ' skin-list"', f'class="skin skin-{s} skin-list" style="--indent:{ind}px"')
     frames.append(f)
-page('LogicRows', 'Rows', 2700, 'If, Else if, End if and Eval rows with each skin scope gutter: gate beam, indent guides, pastel arm, relay bus, printed brackets', CSS, frames)
+page('LogicRows', 'Rows', 2720, 'If, Else if, End if and Eval rows with each skin scope gutter: gate beam, indent guides, pastel arm, relay bus, printed brackets', CSS, frames)

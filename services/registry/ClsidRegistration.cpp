@@ -6,11 +6,7 @@
 
 #include "stdafx.h"
 #include "services/registry/ClsidRegistration.h"
-
-namespace
-{
-const wchar_t* const clsidRoot = L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\";
-}
+#include "devices/DeviceAPOInfoKeys.h"
 
 namespace ClsidRegistration
 {
@@ -29,12 +25,12 @@ void registerClsidTreeAt(IRegistry& registry, const std::wstring& clsidRootPath,
 void registerClsidTree(IRegistry& registry, const std::wstring& clsidString,
 	const std::wstring& className, const std::wstring& dllPath)
 {
-	registerClsidTreeAt(registry, std::wstring(clsidRoot, wcslen(clsidRoot) - 1), clsidString, className, dllPath);
+	registerClsidTreeAt(registry, clsidKeyPath, clsidString, className, dllPath);
 }
 
 void unregisterClsidTree(IRegistry& registry, const std::wstring& clsidString)
 {
-	const std::wstring classKey = clsidRoot + clsidString;
+	const std::wstring classKey = clsidKeyPath L"\\" + clsidString;
 
 	registry.deleteKey(classKey + L"\\InprocServer32");
 	registry.deleteKey(classKey);

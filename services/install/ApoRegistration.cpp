@@ -1,6 +1,7 @@
 /*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2025  EqualizerAPO-XT contributors
+    SPDX-License-Identifier: GPL-2.0-or-later
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -50,8 +51,6 @@ namespace
 // The one spelling lives in services/registry/RegistryPaths.h;
 // DeviceAPOInfoKeys.h composes on the same macro.
 constexpr const wchar_t* kRegPath = APP_REGPATH;
-constexpr wchar_t kAudioRegPath[] = L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Audio";
-constexpr wchar_t kAudioServiceName[] = L"AudioSrv";
 constexpr wchar_t kAudioEndpointBuilderServiceName[] = L"AudioEndpointBuilder";
 
 // Audit #250 F018: the shared path vocabulary lives in WindowsPath.h.
@@ -95,7 +94,7 @@ ApoRegistration::Result ApoRegistration::writeAppInstallRegistry(
 		if (!registry.valueExists(kRegPath, L"EnableTrace"))
 			registry.writeValue(kRegPath, L"EnableTrace", L"false");
 
-		registry.writeDWORDValue(kAudioRegPath, L"DisableProtectedAudioDG", 1);
+		registry.writeDWORDValue(protectedDGKeyPath, protectedDGValueName, 1);
 	}
 	catch (const RegistryError& e)
 	{
@@ -109,8 +108,8 @@ void ApoRegistration::cleanupAppRegistry(IRegistry& registry)
 {
 	try
 	{
-		if (registry.valueExists(kAudioRegPath, L"DisableProtectedAudioDG"))
-			registry.deleteValue(kAudioRegPath, L"DisableProtectedAudioDG");
+		if (registry.valueExists(protectedDGKeyPath, protectedDGValueName))
+			registry.deleteValue(protectedDGKeyPath, protectedDGValueName);
 	}
 	catch (const RegistryError& e)
 	{
@@ -330,7 +329,7 @@ bool ApoRegistration::stopAudioService()
 
 	try
 	{
-		WindowsService service(manager.get(), kAudioServiceName, true);
+		WindowsService service(manager.get(), audioServiceName, true);
 		DWORD state = service.getState();
 		if (state == SERVICE_RUNNING)
 		{
@@ -358,7 +357,7 @@ bool ApoRegistration::startAudioService()
 
 	try
 	{
-		WindowsService service(manager.get(), kAudioServiceName, true);
+		WindowsService service(manager.get(), audioServiceName, true);
 		DWORD state = service.getState();
 		if (state == SERVICE_STOPPED)
 		{

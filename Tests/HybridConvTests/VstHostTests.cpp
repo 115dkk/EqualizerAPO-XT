@@ -5,7 +5,8 @@
 
 	Self-contained runtime test for the VST2 hosting path of the engine's VST
 	host classes - VSTPluginLibrary (LoadLibrary + GetProcAddress(VSTPluginMain))
-	and VSTPluginInstance (VSTPluginInstance.cpp + .VST2.cpp + .State.cpp).
+	and VSTPluginInstance (the facade in VSTPluginInstance.cpp and the VST2
+	implementation behind it in VST2Instance.cpp).
 	It loads the companion TestVst2Plugin.dll (built
 	from Tests/TestVst2Plugin from our own source, so it always matches the host
 	architecture) and round-trips state plus audio through the engine's public
@@ -24,13 +25,12 @@
 	"skipped" line.
 
 	VST headers: this translation unit includes VSTPluginLibrary.h and
-	VSTPluginInstance.h, exactly as VSTPluginInstance.cpp does. Those headers
-	pull in the VST2 ABI (vst/aeffectx.h) and the Steinberg pluginterfaces/
-	vst headers (ibstream, ivstaudioprocessor, ivsteditcontroller, ivstevents,
-	ivsthostapplication, ivstmessage, ivstparameterchanges, ivstprocesscontext,
-	iplugview) that VSTPluginInstance.h needs for its Steinberg::Vst:: pointer
-	members. They resolve through $(VST3_SDK), already on this project's include
-	path. No additional include directory is required.
+	VSTPluginInstance.h, exactly as VSTPluginInstance.cpp does.
+	VSTPluginLibrary.h pulls in the VST2 ABI (vst/aeffectx.h) and two base
+	Steinberg headers (ipluginbase, smartpointer) for the factory it owns;
+	VSTPluginInstance.h includes no SDK header since the instance was split by
+	format. They resolve through $(VST3_SDK), already on this project's
+	include path. No additional include directory is required.
 */
 
 #include <cmath>

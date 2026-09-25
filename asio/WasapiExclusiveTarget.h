@@ -42,6 +42,8 @@
 #include <vector>
 
 #include "asio/AsioSdk.h"
+#include "platform/windows/ComPtr.h"
+#include "platform/windows/Win32Resource.h"
 #include <mmdeviceapi.h>
 #include <audioclient.h>
 #include <mmreg.h>
@@ -291,11 +293,11 @@ namespace eapo::asio
 			bool capture = false;
 			std::wstring endpointGuid;
 			std::wstring friendlyName;
-			IMMDevice* device = nullptr;
-			IAudioClient* client = nullptr;
-			IAudioRenderClient* render = nullptr;
-			IAudioCaptureClient* captureClient = nullptr;
-			HANDLE event = nullptr;
+			winutil::ComPtr<IMMDevice> device;
+			winutil::ComPtr<IAudioClient> client;
+			winutil::ComPtr<IAudioRenderClient> render;
+			winutil::ComPtr<IAudioCaptureClient> captureClient;
+			winutil::UniqueHandle event;
 			std::vector<unsigned char> deviceFormat;   // WAVEFORMATEX blob, PKEY_AudioEngine_DeviceFormat
 			unsigned channels = 0;
 			unsigned long channelMask = 0;
@@ -345,8 +347,8 @@ namespace eapo::asio
 		std::atomic<unsigned long> threadId_{0};
 		std::atomic<unsigned> bridge_{1};
 		std::thread thread_;
-		HANDLE stopEvent_ = nullptr;
-		HANDLE startAckEvent_ = nullptr;
+		winutil::UniqueHandle stopEvent_;
+		winutil::UniqueHandle startAckEvent_;
 		std::atomic<long> startResult_{ASE_OK};
 		ASIOCallbacks callbacks_ = {};
 		bool hostSupportsTimeInfo_ = false;
@@ -357,6 +359,6 @@ namespace eapo::asio
 		HRESULT deviceResult_ = S_OK;        // stream thread: the worst device call result of the current event
 		std::atomic<uint64_t> samplePosition_{0};
 		Counters counters_;  // Stream thread writes; readers observe only after stop() joins.
-		char errorMessage_[124] = {};
+		char errorMessage_[errorMessageBytes] = {};
 	};
 }

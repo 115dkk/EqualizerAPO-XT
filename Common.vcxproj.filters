@@ -258,7 +258,19 @@
     <ClInclude Include="vst\VST3RefCounted.h">
       <Filter>vst</Filter>
     </ClInclude>
-    <ClInclude Include="vst\VSTPluginInstanceInternal.h">
+    <ClInclude Include="vst\VST3HostContext.h">
+      <Filter>vst</Filter>
+    </ClInclude>
+    <ClInclude Include="vst\VST3Instance.h">
+      <Filter>vst</Filter>
+    </ClInclude>
+    <ClInclude Include="vst\VST3MemoryStream.h">
+      <Filter>vst</Filter>
+    </ClInclude>
+    <ClInclude Include="vst\VSTChunkBase64.h">
+      <Filter>vst</Filter>
+    </ClInclude>
+    <ClInclude Include="vst\VSTFormatInstance.h">
       <Filter>vst</Filter>
     </ClInclude>
     <ClInclude Include="vst\VSTPluginLibrary.h">
@@ -511,16 +523,19 @@
     <ClCompile Include="vst\VSTPluginInstance.cpp">
       <Filter>vst</Filter>
     </ClCompile>
-    <ClCompile Include="vst\VSTPluginInstance.Editor.cpp">
+    <ClCompile Include="vst\VST2Instance.cpp">
       <Filter>vst</Filter>
     </ClCompile>
-    <ClCompile Include="vst\VSTPluginInstance.State.cpp">
+    <ClCompile Include="vst\VST3Instance.cpp">
       <Filter>vst</Filter>
     </ClCompile>
-    <ClCompile Include="vst\VSTPluginInstance.VST2.cpp">
+    <ClCompile Include="vst\VST3Instance.Editor.cpp">
       <Filter>vst</Filter>
     </ClCompile>
-    <ClCompile Include="vst\VSTPluginInstance.VST3.cpp">
+    <ClCompile Include="vst\VST3Instance.Processing.cpp">
+      <Filter>vst</Filter>
+    </ClCompile>
+    <ClCompile Include="vst\VST3Instance.State.cpp">
       <Filter>vst</Filter>
     </ClCompile>
     <ClCompile Include="vst\VSTPluginLibrary.cpp">

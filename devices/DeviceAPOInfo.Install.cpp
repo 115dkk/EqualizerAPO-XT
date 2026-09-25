@@ -58,15 +58,14 @@ void DeviceAPOInfo::beginReport(DeviceInstallReport::Operation operation)
 	// originalApoGuids is what load() found on the endpoint, so it is the record
 	// of the state before this operation - which is exactly what a reader needs
 	// to understand the rest of the report.
-	report.fxPropertiesExisted = originalApoGuids[0] != APOGUID_NOKEY;
+	report.fxPropertiesExisted = hasDriverEffectChain();
 	if (report.fxPropertiesExisted)
 	{
-		static const wchar_t* const slotNames[] = {L"LFX", L"GFX", L"SFX", L"MFX", L"EFX"};
 		for (unsigned i = 0; i < allGuidValueNameCount; i++)
 		{
 			// APOGUID_NOVALUE means the slot was empty, which is not worth a line.
 			if (originalApoGuids[i] != APOGUID_NOVALUE && !originalApoGuids[i].empty())
-				report.driverSlots.push_back(wstring(slotNames[i]) + L" = " + originalApoGuids[i]);
+				report.driverSlots.push_back(wstring(apoSlotNames[i]) + L" = " + originalApoGuids[i]);
 		}
 	}
 

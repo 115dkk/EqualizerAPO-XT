@@ -16,15 +16,6 @@
 
 namespace
 {
-// Every layout the config grammar accepts, in menu order (VST3BusLayout.h is
-// the authority on names and widths).
-const VST3BusLayout kMenuLayouts[] = {
-	VST3BusLayout::Auto, VST3BusLayout::Mono, VST3BusLayout::Stereo,
-	VST3BusLayout::Surround40, VST3BusLayout::Surround41, VST3BusLayout::Surround50,
-	VST3BusLayout::Surround51, VST3BusLayout::Surround61, VST3BusLayout::Surround71,
-	VST3BusLayout::Surround712, VST3BusLayout::Surround714
-};
-
 QString layoutName(VST3BusLayout layout)
 {
 	return QString::fromWCharArray(vst3BusLayoutName(layout));
@@ -44,8 +35,11 @@ int selectorWidth(bool output)
 	valueFont.setPixelSize(13);
 	const QFontMetricsF valueMetrics(valueFont);
 	qreal widestValue = 0;
-	for (VST3BusLayout layout : kMenuLayouts)
+	// Every layout the config grammar accepts, in menu order (the table in
+	// VST3BusLayout.h is the authority on names and widths).
+	for (const VST3BusLayoutDefinition& definition : vst3BusLayoutTable)
 	{
+		const VST3BusLayout layout = definition.layout;
 		const int channels = vst3BusLayoutChannelCount(layout);
 		QString value = layoutName(layout);
 		if (channels > 0)
@@ -194,8 +188,11 @@ void VSTBusSelector::focusOutEvent(QFocusEvent*)
 void VSTBusSelector::openMenu()
 {
 	QMenu menu(this);
-	for (VST3BusLayout layout : kMenuLayouts)
+	// Every layout the config grammar accepts, in menu order (the table in
+	// VST3BusLayout.h is the authority on names and widths).
+	for (const VST3BusLayoutDefinition& definition : vst3BusLayoutTable)
 	{
+		const VST3BusLayout layout = definition.layout;
 		const int channels = vst3BusLayoutChannelCount(layout);
 		// The tab column right-aligns the widths the way shortcut hints sit
 		// in every other menu.

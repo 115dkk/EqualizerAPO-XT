@@ -19,42 +19,30 @@
 
 #pragma once
 
-#include <array>
-#include <atomic>
-#include <string>
-#include <memory>
+// The public face of one hosted plug-in. The format-specific work sits behind
+// it in VST2Instance or VST3Instance (VSTFormatInstance.h), chosen once when
+// the instance is constructed; this header deliberately includes neither the
+// VST2 nor the VST3 SDK headers, so its callers do not compile them.
+
 #include <functional>
+#include <memory>
 #include <optional>
+#include <string>
+#include <unordered_map>
 #include <vector>
-#include "aeffectx.h"
-#include "pluginterfaces/base/ibstream.h"
-#include "pluginterfaces/base/smartpointer.h"
-#include "pluginterfaces/vst/ivstaudioprocessor.h"
-#include "pluginterfaces/vst/ivsteditcontroller.h"
-#include "pluginterfaces/vst/ivstevents.h"
-#include "pluginterfaces/vst/ivsthostapplication.h"
-#include "pluginterfaces/vst/ivstmessage.h"
-#include "pluginterfaces/vst/ivstparameterchanges.h"
-#include "pluginterfaces/vst/ivstprocesscontext.h"
-#include "pluginterfaces/gui/iplugview.h"
 #include "platform/windows/Win32Resource.h"
 #include "VST3BusLayout.h"
-#include "VST3Lifecycle.h"
 
+class VSTFormatInstance;
 class VSTPluginLibrary;
-
-struct VST2EffectDeleter
-{
-	void operator()(vst_effect_t* effect) const noexcept;
-};
-
-using VST2EffectPtr = std::unique_ptr<vst_effect_t, VST2EffectDeleter>;
 
 class VSTPluginInstance
 {
 public:
 	VSTPluginInstance(const std::shared_ptr<VSTPluginLibrary>& library, int processLevel);
 	~VSTPluginInstance();
+	VSTPluginInstance(const VSTPluginInstance&) = delete;
+	VSTPluginInstance& operator=(const VSTPluginInstance&) = delete;
 
 	bool initialize();
 
@@ -109,10 +97,6 @@ public:
 
 	void startProcessing();
 	void processDoubleReplacing(double** inputArray, double** outputArray, int frameCount);
-	// Shared VST3 body behind both widths; defined in VSTPluginInstance.cpp.
-	template<typename SampleType>
-	void processVst3Replacing(SampleType** inputArray, SampleType** outputArray, int frameCount);
-
 	void processReplacing(float** inputArray, float** outputArray, int frameCount);
 	void process(float** inputArray, float** outputArray, int frameCount);
 	void stopProcessing();
@@ -127,100 +111,9 @@ public:
 
 	void setSizeWindowFunc(std::function<void(int, int)> func);
 	void onSizeWindow(int w, int h);
-	// Backing store for VST_HOST_OPCODE_GET_TIME, refreshed and returned per
-	// call. Per instance: plugins in different audio streams process
-	// concurrently, so a shared global here would let them race on one struct.
-	vst_time_info* hostTimeInfo();
 
 private:
-	class VST3HostContext;
-	class VST3MemoryStream;
-	class VST3ParameterChanges;
-
-	// One GUI parameter edit waiting for the processor. The ring below is
-	// written by the edit path and drained by whoever runs the next process
-	// call; see queueVST3ParameterEdit for the threading contract.
-	struct PendingVST3ParameterEdit
-	{
-		Steinberg::Vst::ParamID id = 0;
-		Steinberg::Vst::ParamValue value = 0.0;
-	};
-
-	static constexpr unsigned vst3ParameterEditQueueSize = 1024;
-
-	// Audit #250 F040: the VST2 loader distinguishes its failure modes so
-	// initialize() can log the actual reason (the old bool collapsed every
-	// failure into "an exception").
-	enum class Vst2LoadResult
-	{
-		Loaded,
-		Crashed,
-		NoEntryPoint,
-		WrongMagicNumber
-	};
-
-	Vst2LoadResult initializeVST2();
-	bool initializeVST3();
-	void releaseVST3();
-	void configureVST3Buses(int requestedChannelCount,
-		const std::vector<std::wstring>& channelNames);
-	void configureVST3Buses(int requestedInputChannelCount, int requestedOutputChannelCount,
-		const std::vector<std::wstring>& inputChannelNames,
-		const std::vector<std::wstring>& outputChannelNames);
-	void applyVST3BusActivation();
-	bool acceptedVST3BusMetadataIsConsistent() const;
-	bool refreshAcceptedVST3Arrangements();
-	void updateVST3ChannelMappings();
-	int vst3BusChannelCount(Steinberg::Vst::BusDirection direction) const;
-	void onVST3ParameterEdit(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue value);
-	void queueVST3ParameterEdit(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue value);
-	Steinberg::Vst::IParameterChanges* prepareVST3ParameterChanges();
-	void flushVST3ParameterChanges();
-	void beginVST3EditorSession();
-	void endVST3EditorSession();
-
 	std::shared_ptr<VSTPluginLibrary> library;
-	VST2EffectPtr effect;
-	Steinberg::IPtr<Steinberg::Vst::IComponent> vst3Component;
-	Steinberg::IPtr<Steinberg::Vst::IAudioProcessor> vst3Processor;
-	Steinberg::IPtr<Steinberg::Vst::IEditController> vst3Controller;
-	Steinberg::IPtr<Steinberg::Vst::IConnectionPoint> vst3ComponentConnection;
-	Steinberg::IPtr<Steinberg::Vst::IConnectionPoint> vst3ControllerConnection;
-	Steinberg::IPtr<Steinberg::IPlugView> vst3View;
-	bool vst3ViewAttached = false;
-	winutil::UniqueWindowHandle vst3EditorHostWindow;
-	Steinberg::IPtr<VST3HostContext> vst3HostContext;
-	std::unique_ptr<VST3ParameterChanges> vst3InputParameterChanges;
-	std::array<PendingVST3ParameterEdit, vst3ParameterEditQueueSize> vst3ParameterEditQueue{};
-	std::atomic<unsigned> vst3ParameterEditWrite{ 0 };
-	std::atomic<unsigned> vst3ParameterEditRead{ 0 };
-	VST3Lifecycle vst3Lifecycle;
-	int vst3InputBusCount = 0;
-	int vst3OutputBusCount = 0;
-	int vst3InputChannelCount = 0;
-	int vst3OutputChannelCount = 0;
-	Steinberg::Vst::SpeakerArrangement vst3InputArrangement = Steinberg::Vst::SpeakerArr::kEmpty;
-	Steinberg::Vst::SpeakerArrangement vst3OutputArrangement = Steinberg::Vst::SpeakerArr::kEmpty;
-	std::vector<std::wstring> vst3InputChannelNameHints;
-	std::vector<std::wstring> vst3OutputChannelNameHints;
-	std::vector<int> vst3InputChannelMapping;
-	std::vector<int> vst3OutputChannelMapping;
-	bool vst3SupportsDouble = false;
-	// Whether initialize() succeeded on the component / whether the
-	// controller is a separately created object. A single-component plug-in
-	// exposes IEditController from the already initialized component object,
-	// which must not be initialized or terminated a second time.
-	bool vst3ComponentInitialized = false;
-	bool vst3ControllerInitializedSeparately = false;
-	bool vst2Processing = false;
-	Steinberg::Vst::ProcessContext vst3ProcessContext = {};
-	Steinberg::Vst::TSamples vst3SamplePosition = 0;
-	std::function<void()> automateFunc;
-	std::function<void(int, int)> sizeWindowFunc;
-	double editorScaleFactor = 1.0;
-	float sampleRate = 0.0f;
-	int usedChannelCount = -1;
-	int processLevel = 0;
-	int language = 1;
-	vst_time_info vstTime{ 0,0,0,0,0,0,0,0,0,0,{0}, 0xFFFF };
+	// Never null: VST2Instance or VST3Instance, fixed for the instance's life.
+	std::unique_ptr<VSTFormatInstance> host;
 };
