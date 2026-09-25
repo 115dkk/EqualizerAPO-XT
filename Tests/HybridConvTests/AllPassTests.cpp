@@ -6,30 +6,26 @@
 	All-pass DSP invariants and parser characterization.
 
 	These tests were written before the All-pass reform (issue #228) touched
-	anything, to pin what the engine does today. Nothing here asserts a desired
-	future behaviour; every check records a fact the reform must not change, or
-	a fact the reform is about to change and therefore has to be measured first.
+	anything, and they pin engine facts the reform was not allowed to change.
+	None of them asserts Editor behaviour.
 
-	Two of them are characterizations of the round-trip defect rather than of
-	correct behaviour:
+	Two of them record the defect the reform removed rather than correct
+	behaviour:
 
-	- testAllPassAcceptsBandwidth proves the engine and the parser have always
-	  honoured "BW Oct" for AP. The Editor is the only layer that refuses it,
-	  so the fix belongs there and cannot be blamed on the DSP.
-	- testAllPassBandwidthIsNotTheSameNumberAsQ measures what the Editor's
-	  silent "BW Oct 1 -> Q 1" rewrite actually costs. It is not a rounding
-	  difference; the coefficients move far enough to hear.
+	- testAcceptsBandwidth pins that the engine and the parser accept
+	  "BW Oct" for AP. The Editor used to be the only layer that refused it,
+	  which is why the fix went there.
+	- testBandwidthIsNotTheSameNumberAsQ measures what the Editor's old
+	  "BW Oct 1 -> Q 1" rewrite cost: the coefficients move far enough to
+	  hear, not by a rounding difference.
 
 	The closed forms used here are derived from the mirror-image (all-pass)
 	structure of the normalized coefficients, not copied from the reform
 	document, so a mistake in the document cannot pass through unnoticed.
 
-	What this file cannot cover is the round trip itself. The rewrite happens in
-	BiQuadFilterGUI, a Qt widget with a .ui, and EditorLogicTests does not link
-	it - so there is nowhere to assert "open this line, save it, get it back"
-	until the width-mode decision moves out of the widget into shared logic.
-	That extraction is part of the Editor stage; the round-trip test lands with
-	it, on the same shared function the new card calls.
+	The round trip itself is not tested here. Both editors now take the width
+	choice and the Q/bandwidth conversion from Editor/guis/BiQuadWidthConversion.h,
+	and EditorLogicTests (BiQuadWidthConversionTests.cpp) holds them to it.
 */
 
 #include <cmath>
@@ -384,7 +380,8 @@ void testExtremeCenterFrequenciesStayStable()
 
 // The engine has always accepted "BW Oct" for an all-pass: BiQuad's alpha
 // branch for bandwidth does not look at the filter type at all. Only the
-// Editor refuses it. Pinning that here keeps the fix on the Editor side.
+// Editor used to refuse it, and the fix went there; this keeps the engine side
+// of that fact pinned.
 void testAcceptsBandwidth()
 {
 	wstring parameters = L"ON AP Fc 80 Hz BW Oct 1";
@@ -397,10 +394,11 @@ void testAcceptsBandwidth()
 	harness.expect(std::abs(command.bandwidthOrQOrS - 1.0) < 1e-12, "the bandwidth value survives the parse");
 }
 
-// What the Editor's silent rewrite costs. Opening "BW Oct 1" and saving turns
-// it into "Q 1" today, because the width-mode selector offers the all-pass no
-// second entry to restore. The two are not the same filter, and the gap is
-// large enough to hear: this records how large before the fix removes it.
+// What the Editor's old silent rewrite cost. Opening "BW Oct 1" and saving
+// used to turn it into "Q 1", because the width-mode selector offered the
+// all-pass no second entry to restore; the editors now offer it. The two are
+// not the same filter, and the gap is large enough to hear: this records how
+// large.
 void testBandwidthIsNotTheSameNumberAsQ()
 {
 	const double srate = 48000.0;

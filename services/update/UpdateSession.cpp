@@ -13,7 +13,25 @@
 #include <exception>
 #include <utility>
 
-UpdateApplyOutcome coordinatePendingRestartUpdate(IUpdateClient& client)
+namespace
+{
+void reportCoordinatorError(const std::function<void(const std::string&)>& reportError,
+	const std::string& error) noexcept
+{
+	if (!reportError)
+		return;
+	try
+	{
+		reportError(error);
+	}
+	catch (...)
+	{
+	}
+}
+}
+
+UpdateApplyOutcome coordinatePendingRestartUpdate(IUpdateClient& client,
+	const std::function<void(const std::string&)>& reportError)
 {
 	try
 	{
@@ -21,8 +39,14 @@ UpdateApplyOutcome coordinatePendingRestartUpdate(IUpdateClient& client)
 			? UpdateApplyOutcome::UpdaterLaunched
 			: UpdateApplyOutcome::NoUpdate;
 	}
+	catch (const std::exception& error)
+	{
+		reportCoordinatorError(reportError, error.what());
+		return UpdateApplyOutcome::Failed;
+	}
 	catch (...)
 	{
+		reportCoordinatorError(reportError, "unknown pending restart update failure");
 		return UpdateApplyOutcome::Failed;
 	}
 }

@@ -21,7 +21,6 @@
 #include <devices/DeviceAPOInfo.h>
 #include <services/logging/Logging.h>
 #include <services/registry/WindowsRegistry.h>
-#include <platform/windows/WindowsVersion.h>
 #include <services/windows/WindowsService.h>
 #include <platform/windows/Win32Resource.h>
 #include <QDir>
@@ -77,11 +76,8 @@ DeviceSelector::DeviceSelector(QWidget* parent)
 		QMessageBox::critical(this, tr("Error while accessing the registry"), QString::fromStdWString(e.getMessage()));
 	}
 
-	if (!WindowsVersion::isAtLeast(6, 3)) // Windows 8.1
-	{
-		ui.installModeComboBox->removeItem(2);
-		ui.installModeComboBox->removeItem(1);
-	}
+	// Every install mode is offered: the minimum supported Windows is 10 1809,
+	// the oldest Qt 6.10 runs on, and SFX/MFX/EFX exist from Windows 8.1 on.
 
 	finishSetup();
 
@@ -706,8 +702,7 @@ void DeviceSelector::updateButtons()
 	ui.useOriginalAPOPreMixCheckBox->setChecked(installState.useOriginalAPOPreMix && hasOriginalAPOPreMix);
 	ui.useOriginalAPOPostMixCheckBox->setChecked(installState.useOriginalAPOPostMix && hasOriginalAPOPostMix);
 
-	if (WindowsVersion::isAtLeast(6, 3)) // Windows 8.1
-		ui.installModeComboBox->setCurrentIndex(installState.installMode);
+	ui.installModeComboBox->setCurrentIndex(installState.installMode);
 
 	ui.allowSilentBufferCheckBox->setChecked(installState.allowSilentBufferModification);
 	ui.asioEntryCheckBox->setChecked(installState.asioEntry);

@@ -33,6 +33,7 @@
 // would otherwise break the enum of the same name in the VST2 aeffectx.h.
 #include "pluginterfaces/vst/vstspeaker.h"
 #include "Tests/TestHarness.h"
+#include "platform/windows/WindowsPath.h"
 #include "Tests/TestVst3Plugin/TestVst3Protocol.h"
 
 using std::shared_ptr;
@@ -61,16 +62,7 @@ bool closeEnough(double actual, double expected)
 	return std::fabs(actual - expected) <= 1.0e-9;
 }
 
-wstring exeDirectory()
-{
-	wchar_t path[MAX_PATH] = {};
-	DWORD length = GetModuleFileNameW(nullptr, path, MAX_PATH);
-	if (length == 0 || length >= MAX_PATH)
-		return wstring();
-	wstring full(path, length);
-	size_t slash = full.find_last_of(L"\\/");
-	return slash == wstring::npos ? wstring() : full.substr(0, slash);
-}
+using pathutil::exeDirectory;
 
 bool ensureDirectory(const wstring& path)
 {

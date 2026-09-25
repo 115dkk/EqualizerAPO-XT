@@ -85,6 +85,7 @@ SOURCES += main.cpp\
 	../devices/DeviceAPOInfo.Uninstall.cpp \
 	../devices/DeviceInstallReport.cpp \
 	../devices/DevicePlan.cpp \
+	../devices/DeviceTestPlan.cpp \
 	../devices/ReportedOperation.cpp \
 	guis/DeviceFilterGUIDialog.cpp \
 	../filters/DeviceCommand.cpp \
@@ -362,6 +363,7 @@ HEADERS  += \
 	../services/registry/RegistryError.h \
 	../services/registry/RegistryPaths.h \
 	../platform/windows/WindowsVersion.h \
+	../platform/windows/CommandLineQuoting.h \
 	../platform/windows/GuidText.h \
 	../services/security/AudioEngineAccess.h \
 	../services/diagnostics/InstallDiagnostics.h \
@@ -400,6 +402,8 @@ HEADERS  += \
 	../devices/ApoRuntimeFacts.h \
 	../devices/DeviceAPOInfo.h \
 	../devices/DevicePlan.h \
+	../devices/DeviceTestPlan.h \
+	../devices/DeviceTestWire.h \
 	../devices/ReportedOperation.h \
 	../devices/DeviceException.h \
 	../runtime/errors/WideError.h \

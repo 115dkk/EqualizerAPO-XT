@@ -181,12 +181,18 @@ void testUpdateCoordinatorContainsAdapterFailure()
 	state->throwDuringPendingRestartApply = true;
 	FakeUpdateClient client(state);
 
-	const UpdateApplyOutcome outcome = coordinatePendingRestartUpdate(client);
+	std::string reportedError;
+	const UpdateApplyOutcome outcome = coordinatePendingRestartUpdate(client,
+		[&reportedError](const std::string& error) { reportedError = error; });
 
 	expectTrue(
 		outcome == UpdateApplyOutcome::Failed,
 		QStringLiteral("a coordinator SDK exception becomes a normal failure result"));
 	expectEqual(state->pendingRestartApplyCalls, 1, QStringLiteral("the failing coordinator apply is attempted once"));
+	expectEqual(
+		QString::fromStdString(reportedError),
+		QStringLiteral("pending restart apply failed"),
+		QStringLiteral("the coordinator failure's message reaches the injected reporter"));
 }
 
 void testUpdateSessionContainsBackgroundFailure()

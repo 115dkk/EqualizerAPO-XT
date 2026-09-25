@@ -1279,6 +1279,7 @@ void runRegistryTransactionTests(test::Harness& harness);
 void runNamedPipeSecurityTests(test::Harness& harness);
 void runRegistryConformanceTests(test::Harness& harness);
 void runDevicePlanTests(test::Harness& harness);
+void runDeviceTestPlanTests(test::Harness& harness);
 void runInstallDiagnosticsTests(test::Harness& harness);
 void runApoRegistrationTests(test::Harness& harness);
 void runChannelInheritanceTests(test::Harness& harness);
@@ -1324,6 +1325,7 @@ int runEngineOrchestrationTests()
 	runNamedPipeSecurityTests(harness);
 	runRegistryConformanceTests(harness);
 	runDevicePlanTests(harness);
+	runDeviceTestPlanTests(harness);
 	runDeviceApoInfoTests(harness);
 	runInstallDiagnosticsTests(harness);
 	runApoRegistrationTests(harness);

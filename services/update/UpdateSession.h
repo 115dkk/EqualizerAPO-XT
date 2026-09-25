@@ -44,7 +44,11 @@ enum class UpdateDownloadStatus
 	Failed
 };
 
-UpdateApplyOutcome coordinatePendingRestartUpdate(IUpdateClient& client);
+// A failure from the client becomes Failed; its message goes to reportError
+// when one is given, because the elevated coordinator has no window to show
+// it in and would otherwise leave no trace of why the update did not apply.
+UpdateApplyOutcome coordinatePendingRestartUpdate(IUpdateClient& client,
+	const std::function<void(const std::string&)>& reportError = {});
 
 class UpdateSession
 {

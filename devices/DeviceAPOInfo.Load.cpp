@@ -20,7 +20,6 @@
 
 #include "services/registry/WindowsRegistry.h"
 #include "services/logging/Logging.h"
-#include "platform/windows/WindowsVersion.h"
 #include "asio/AsioRegistration.h"
 #include "asio/WrapperRecord.h"
 
@@ -249,24 +248,25 @@ bool DeviceAPOInfo::loadFromRegistry(const wstring& deviceGuid)
 		}
 		else
 		{
-			if (WindowsVersion::isAtLeast(6, 3)) // Windows 8.1
-			{
-				// only use LFX/GFX if the audio driver supplied only those APOs
-				if (registry.keyExists(keyPath + L"\\FxProperties")
-					&& (registry.valueExists(keyPath + L"\\FxProperties", lfxGuidValueName) || registry.valueExists(keyPath + L"\\FxProperties", gfxGuidValueName))
-					&& !registry.valueExists(keyPath + L"\\FxProperties", sfxGuidValueName)
-					&& !registry.valueExists(keyPath + L"\\FxProperties", mfxGuidValueName)
-					&& !registry.valueExists(keyPath + L"\\FxProperties", efxGuidValueName)
-					&& !registry.valueExists(keyPath + L"\\FxProperties", multiSfxGuidValueName)
-					&& !registry.valueExists(keyPath + L"\\FxProperties", multiMfxGuidValueName)
-					&& !registry.valueExists(keyPath + L"\\FxProperties", multiEfxGuidValueName))
-					currentInstallState.installMode = INSTALL_LFX_GFX;
-				// bluetooth devices may be combined in Windows 11, EFX will not work then
-				else if (registry.valueExists(keyPath + L"\\Properties", combinedDeviceValueName))
-					currentInstallState.installMode = INSTALL_SFX_MFX;
-				else
-					currentInstallState.installMode = INSTALL_SFX_EFX;
-			}
+			// The minimum supported Windows is 10 1809, the oldest Qt 6.10 runs
+			// on, so the SFX/MFX/EFX slots (Windows 8.1 and newer) always exist;
+			// the branch that kept LFX/GFX for older systems is gone (audit #348
+			// TD-53).
+			// only use LFX/GFX if the audio driver supplied only those APOs
+			if (registry.keyExists(keyPath + L"\\FxProperties")
+				&& (registry.valueExists(keyPath + L"\\FxProperties", lfxGuidValueName) || registry.valueExists(keyPath + L"\\FxProperties", gfxGuidValueName))
+				&& !registry.valueExists(keyPath + L"\\FxProperties", sfxGuidValueName)
+				&& !registry.valueExists(keyPath + L"\\FxProperties", mfxGuidValueName)
+				&& !registry.valueExists(keyPath + L"\\FxProperties", efxGuidValueName)
+				&& !registry.valueExists(keyPath + L"\\FxProperties", multiSfxGuidValueName)
+				&& !registry.valueExists(keyPath + L"\\FxProperties", multiMfxGuidValueName)
+				&& !registry.valueExists(keyPath + L"\\FxProperties", multiEfxGuidValueName))
+				currentInstallState.installMode = INSTALL_LFX_GFX;
+			// bluetooth devices may be combined in Windows 11, EFX will not work then
+			else if (registry.valueExists(keyPath + L"\\Properties", combinedDeviceValueName))
+				currentInstallState.installMode = INSTALL_SFX_MFX;
+			else
+				currentInstallState.installMode = INSTALL_SFX_EFX;
 		}
 	}
 

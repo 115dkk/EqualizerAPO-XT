@@ -73,6 +73,8 @@ void testUpdateCoordinatorReportsNoPendingRestart();
 void testUpdateCoordinatorContainsAdapterFailure();
 void testLegacyMigrationHookAdoptsStableRootThroughThePort();
 void testLegacyMigrationHookRescuesVolatileTreeAndLeavesBreadcrumbs();
+void testLegacyMigrationHookLeavesAnUnreadableConfigPathAlone();
+void testCommandLineQuotingRoundTripsThroughCommandLineToArgvW();
 void testVelopackInstallRootFollowsTheCurrentLeafRule();
 void testSubwooferRoutingUiStateTracksMutationsAndValidation();
 void testSubwooferRoutingDefaultStates();

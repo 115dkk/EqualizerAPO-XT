@@ -14,6 +14,21 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Korean and other non-English text in the Device Selector's command-line
+  output is readable.** Its headless messages were converted to the ANSI code
+  page and came out garbled; they are now written as Unicode to a console and
+  as UTF-8 otherwise. Paths ending in a backslash, or containing quotes, now
+  survive when the Editor restarts the Device Selector or when a Voicemeeter
+  shortcut is written.
+- **A configuration folder whose registry value cannot be read is left
+  alone.** When the Editor could not read the configured ConfigPath, its
+  first-run migration treated the value as if no folder were set; it now
+  keeps the configured folder and logs why.
+- **More failures reach the log.** Qt warnings and errors are now written to
+  `Editor.log` and the Device Selector's log, as are a failed APO
+  registration, a failed Velopack update check at restart and a failed
+  Device Selector launch on the first run (#PRNUM).
+
 - **A driver's own effects keep running when an endpoint's ASIO entry cannot
   be read.** When the audio service starts the EQ on an endpoint, the EQ reads
   the endpoint's install record, which says which of the driver's own effects

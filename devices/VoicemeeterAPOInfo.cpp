@@ -26,11 +26,13 @@
 #include <KsMedia.h>
 #include <shellapi.h>
 #include "platform/windows/ComPtr.h"
+#include "platform/windows/CommandLineQuoting.h"
 #include "platform/windows/ProcessCommandLine.h"
 #include "platform/windows/ShellLink.h"
 #include "services/logging/Logging.h"
 #include "services/registry/WindowsRegistry.h"
 #include "platform/windows/Win32Resource.h"
+#include "platform/windows/WindowsPath.h"
 #include "VoicemeeterAPOInfo.h"
 
 using std::exception;
@@ -292,13 +294,12 @@ wstring VoicemeeterAPOInfo::getStartupPath()
 
 wstring VoicemeeterAPOInfo::getClientPath()
 {
-	wchar_t filename[MAX_PATH];
-	GetModuleFileNameW(nullptr, filename, ARRAYSIZE(filename));
-	PathRemoveFileSpecW(filename);
-	wstring clientPath = filename;
-	clientPath = clientPath + L"\\" + clientFilename;
-
-	return clientPath;
+	// Empty when the executable's own path cannot be read; the unchecked copy
+	// this replaces went on with whatever the buffer held (audit #348 TD-54).
+	const wstring directory = pathutil::exeDirectory();
+	if (directory.empty())
+		return wstring();
+	return pathutil::joinPath(directory, clientFilename);
 }
 
 void VoicemeeterAPOInfo::createLink(const wstring& lnkPath, const wstring& path, const wstring& args)
@@ -366,19 +367,9 @@ vector<wstring> VoicemeeterAPOInfo::splitArgs(const wstring& argString)
 
 wstring VoicemeeterAPOInfo::joinArgs(const vector<wstring>& args)
 {
-	wstring result;
-	for (const wstring& arg : args)
-	{
-		if (result.length() > 0)
-			result += L" ";
-
-		if (arg.find(' ') != wstring::npos)
-			result += L"\"" + arg + L"\"";
-		else
-			result += arg;
-	}
-
-	return result;
+	// splitArgs reads the result back through CommandLineToArgvW, whose
+	// backslash rules the quoting follows (audit #348 TD-53).
+	return winutil::joinCommandLineArguments(args);
 }
 
 void VoicemeeterAPOInfo::ensureVoicemeeterClientRunning()

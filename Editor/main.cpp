@@ -19,12 +19,12 @@
 
 #include <cstdio>
 #include "text/WideString.h"
-#include "platform/windows/TextEncoding.h"
 #include "services/registry/RegistryPaths.h"
 #include <cstring>
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include <QTranslator>
 #include <QApplication>
@@ -62,6 +62,8 @@
 #include "vst/VSTPluginInstance.h"
 #include "vst/VSTPluginLibrary.h"
 #include "services/logging/Logging.h"
+#include "services/logging/TaggedLogger.h"
+#include "platform/windows/CommandLineQuoting.h"
 #include "runtime/memory/AlignedMemory.h"
 #include "services/install/ApoRegistration.h"
 #include "services/registry/WindowsRegistry.h"
@@ -118,39 +120,21 @@ std::string configuredUpdateChannel()
 #endif
 }
 
-std::wstring widenArg(const char* arg)
-{
-	if (arg == nullptr)
-		return std::wstring();
-	return wintext::toWideString(std::string(arg), CP_UTF8);
-}
+constexpr logging::TaggedLogger logLine(L"Editor");
 
-std::wstring buildArgumentLine(int argc, char* argv[])
+// This process's arguments after the program name, as the command line
+// carried them. The CRT's argv is in the ANSI code page, so a path it could
+// not represent was already lost before any widening (audit #348 TD-53).
+std::vector<std::wstring> wideArgumentsAfterProgramName()
 {
-	std::wstring line;
+	std::vector<std::wstring> arguments;
+	int argc = 0;
+	winutil::UniqueLocalPtr<wchar_t*> argv(CommandLineToArgvW(GetCommandLineW(), &argc));
+	if (!argv)
+		return arguments;
 	for (int i = 1; i < argc; i++)
-	{
-		std::wstring piece = widenArg(argv[i]);
-		if (i > 1)
-			line.push_back(L' ');
-		bool needsQuote = piece.empty() || piece.find_first_of(L" \t\"") != std::wstring::npos;
-		if (needsQuote)
-		{
-			line.push_back(L'"');
-			for (wchar_t ch : piece)
-			{
-				if (ch == L'"')
-					line.push_back(L'\\');
-				line.push_back(ch);
-			}
-			line.push_back(L'"');
-		}
-		else
-		{
-			line += piece;
-		}
-	}
-	return line;
+		arguments.push_back(argv.get()[i]);
+	return arguments;
 }
 
 // Re-launches this exe elevated with the same arguments, waits, and returns
@@ -158,16 +142,16 @@ std::wstring buildArgumentLine(int argc, char* argv[])
 // user's security context, while APO registration needs HKLM access. The
 // Editor's in-app update path elevates Update.exe once before either update
 // hook, so this per-hook fallback is not reached during that flow.
-int relaunchElevatedAndWait(int argc, char* argv[])
+int relaunchElevatedAndWait()
 {
 	std::wstring exePath = pathutil::exePath();
 	if (exePath.empty())
 	{
-		LogFStatic(L"[Editor] GetModuleFileName failed (gle=%lu)", GetLastError());
+		logLine(L"ERR", L"GetModuleFileName failed (gle=%lu)", GetLastError());
 		return 1;
 	}
 
-	std::wstring parameters = buildArgumentLine(argc, argv);
+	std::wstring parameters = winutil::joinCommandLineArguments(wideArgumentsAfterProgramName());
 
 	SHELLEXECUTEINFOW info;
 	ZeroMemory(&info, sizeof(info));
@@ -181,7 +165,7 @@ int relaunchElevatedAndWait(int argc, char* argv[])
 	if (!ShellExecuteExW(&info))
 	{
 		DWORD gle = GetLastError();
-		LogFStatic(L"[Editor] ShellExecuteEx(runas) failed (gle=%lu)", gle);
+		logLine(L"ERR", L"ShellExecuteEx(runas) failed (gle=%lu)", gle);
 		// ERROR_CANCELLED (1223) means the user declined UAC.
 		return gle == ERROR_CANCELLED ? 1223 : 1;
 	}
@@ -211,7 +195,7 @@ int handleVelopackHook(int argc, char* argv[])
 		return -1;
 
 	if (!AudioEngineAccess::isElevated())
-		return relaunchElevatedAndWait(argc, argv);
+		return relaunchElevatedAndWait();
 
 	for (int i = 1; i < argc; i++)
 	{
@@ -256,11 +240,11 @@ int handleVelopackHook(int argc, char* argv[])
 			}
 			catch (const RegistryError& e)
 			{
-				LogFStatic(L"[Editor] uninstall hook failed: %s", e.getMessage().c_str());
+				logLine(L"ERR", L"uninstall hook failed: %s", e.getMessage().c_str());
 			}
 			catch (const std::exception& e)
 			{
-				LogFStatic(L"[Editor] uninstall hook failed: %S", e.what());
+				logLine(L"ERR", L"uninstall hook failed: %S", e.what());
 			}
 			return static_cast<int>(ApoRegistration::Result::DeviceUninstallFailed);
 		}
@@ -270,14 +254,18 @@ int handleVelopackHook(int argc, char* argv[])
 
 void launchDeviceSelector(const std::wstring& exeDir)
 {
-	std::wstring deviceSelector = exeDir;
-	if (!deviceSelector.empty() && deviceSelector.back() != L'\\' && deviceSelector.back() != L'/')
-		deviceSelector.push_back(L'\\');
-	deviceSelector += L"DeviceSelector.exe";
+	const std::wstring deviceSelector = pathutil::joinPath(exeDir, L"DeviceSelector.exe");
 
 	HINSTANCE result = ShellExecuteW(nullptr, L"open", deviceSelector.c_str(), L"/i", exeDir.c_str(), SW_SHOWNORMAL);
+	// The Editor is a GUI-subsystem program, so the stderr line this used to
+	// write went nowhere and a first run that never opened the Device Selector
+	// left no trace (audit #348 TD-49).
 	if (reinterpret_cast<INT_PTR>(result) <= 32)
-		fwprintf(stderr, L"DeviceSelector launch failed (code=%lld)\n", static_cast<long long>(reinterpret_cast<INT_PTR>(result)));
+	{
+		const DWORD gle = GetLastError();
+		logLine(L"ERR", L"DeviceSelector launch failed for %s (code=%lld, gle=%lu)", deviceSelector.c_str(),
+			static_cast<long long>(reinterpret_cast<INT_PTR>(result)), gle);
+	}
 }
 }
 
@@ -298,6 +286,7 @@ int main(int argc, char* argv[])
 	// coordinator writes, so there is one place to look rather than two.
 	if (!Logging::useUserFile(L"Editor.log", true, false, false))
 		Logging::useDefaultApoLog();
+	QtAppBootstrap::installMessageHandler();
 
 	int hookResult = handleVelopackHook(argc, argv);
 	if (hookResult >= 0)
@@ -316,10 +305,10 @@ int main(int argc, char* argv[])
 		const std::wstring reportPath = InstallDiagnostics::writeReport();
 		if (reportPath.empty())
 		{
-			LogFStatic(L"[Editor] the diagnostics report could not be written");
+			logLine(L"ERR", L"the diagnostics report could not be written");
 			return 1;
 		}
-		LogFStatic(L"[Editor] diagnostics written to %s", reportPath.c_str());
+		logLine(L"INFO", L"diagnostics written to %s", reportPath.c_str());
 		return 0;
 	}
 
@@ -628,7 +617,7 @@ int main(int argc, char* argv[])
 			return 0;
 		}
 		if (outcome == UpdateApplyOutcome::Failed)
-			LogFStatic(L"[Editor] staged update could not be applied");
+			logLine(L"ERR", L"staged update could not be applied");
 	}
 
 	return result;
