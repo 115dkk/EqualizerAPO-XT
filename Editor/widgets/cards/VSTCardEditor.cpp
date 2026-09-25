@@ -722,7 +722,7 @@ void VSTCardEditor::updatePermissionWarning()
 	{
 		warningTextEdit->setPlainText(text);
 		QSize textSize = warningTextEdit->fontMetrics().size(0, text);
-		warningTextEdit->setFixedSize(textSize + GUIHelper::scale(QSize(40, 15)));
+		warningTextEdit->setFixedSize(textSize + QSize(40, 15));
 		warningTextEdit->setVisible(true);
 	}
 }

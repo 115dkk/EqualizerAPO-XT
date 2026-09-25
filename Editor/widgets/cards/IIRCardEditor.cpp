@@ -10,7 +10,6 @@
 #include <QLabel>
 #include <QVBoxLayout>
 
-#include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/FlowLayout.h"
 #include "Editor/widgets/ValueScrubBox.h"
 #include "filters/IIRCommand.h"
@@ -176,7 +175,7 @@ void IIRCardEditor::rebuildRow(FlowLayout* flow, QVector<ValueScrubBox*>& boxes,
 		box->setKeyboardTracking(false);
 		// A fixed width keeps the flow rows a regular grid; long typed values
 		// scroll inside the field instead of stretching it.
-		box->setFixedWidth(GUIHelper::scale(96));
+		box->setFixedWidth(96);
 		box->setValue(values[i]);
 		connect(box, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &IIRCardEditor::coefficientChanged);
 		blockLayout->addWidget(box);

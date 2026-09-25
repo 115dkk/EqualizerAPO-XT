@@ -38,7 +38,7 @@ void FrequencyPlotVRuler::paintEvent(QPaintEvent*)
 
 	QPointF topLeft = view->mapToScene(0, 0);
 	QPointF bottomRight = view->mapToScene(view->viewport()->width(), view->viewport()->height());
-	double dbStep = abs(s->yToDb(0) - s->yToDb(GUIHelper::scale(30)));
+	double dbStep = abs(s->yToDb(0) - s->yToDb(30));
 
 	double dbBase = pow(10, floor(log10(dbStep)));
 	if (dbStep >= 5 * dbBase)

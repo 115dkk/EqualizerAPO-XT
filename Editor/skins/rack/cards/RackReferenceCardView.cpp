@@ -11,6 +11,7 @@
 */
 
 #include "RackReferenceCardView.h"
+#include "Editor/skins/rack/RackPalette.h"
 #include "Editor/skins/shared/SkinPaint.h"
 
 #include <QAbstractButton>
@@ -23,7 +24,6 @@
 #include <QVBoxLayout>
 
 #include "Editor/SkinManager.h"
-#include "Editor/helpers/GUIHelper.h"
 
 namespace
 {
@@ -149,7 +149,7 @@ QSize RackEngravedLabel::minimumSizeHint() const
 	QSize hint = sizeHint();
 	// Elidable printing must not let the full text dictate the minimum.
 	if (elideMode != Qt::ElideNone)
-		hint.setWidth(qMin(hint.width(), GUIHelper::scale(28.0)));
+		hint.setWidth(qMin(hint.width(), 28));
 	return hint;
 }
 
@@ -218,7 +218,7 @@ void RackEngravedLabel::paintEvent(QPaintEvent*)
 
 	// Rack's engraved-text double pass: the recess edge catching the
 	// work light, then the body ink on top.
-	QColor recess = dark ? QColor(0, 0, 0, 170) : QColor(255, 255, 255, 200);
+	QColor recess = RackPalette::EngraveRelief(dark);
 	if (!isEnabled())
 		recess.setAlpha(recess.alpha() / 2);
 	painter.setPen(recess);
@@ -248,7 +248,7 @@ RackStatusLamp::RackStatusLamp(const SkinTokens& tokens, QWidget* parent)
 	, skinTokens(tokens)
 	, litColor(tokens.accent2)
 {
-	setFixedSize(GUIHelper::scale(QSize(20, 20)));
+	setFixedSize(QSize(20, 20));
 }
 
 void RackStatusLamp::setLamp(const QColor& color, bool newLit)
@@ -271,7 +271,7 @@ void RackStatusLamp::paintEvent(QPaintEvent*)
 
 	// Rack's panel-lamp grammar: bezel ring, halo while lit, gradient
 	// dome, specular dot.
-	painter.setPen(QPen(dark ? QColor(0, 0, 0, 190) : QColor(70, 62, 50, 190), 1));
+	painter.setPen(QPen(RackPalette::LedBezel(dark), 1));
 	painter.setBrush(Qt::NoBrush);
 	painter.drawEllipse(center, radius + 1.2, radius + 1.2);
 
@@ -301,7 +301,7 @@ void RackStatusLamp::paintEvent(QPaintEvent*)
 	painter.setPen(Qt::NoPen);
 	painter.setBrush(dome);
 	painter.drawEllipse(center, radius, radius);
-	painter.setBrush(QColor(255, 255, 255, on ? 170 : (dark ? 28 : 60)));
+	painter.setBrush(RackPalette::light(on ? 170 : (dark ? 28 : 60)));
 	painter.drawEllipse(center - QPointF(radius * 0.35, radius * 0.35), radius * 0.3, radius * 0.3);
 }
 
@@ -311,7 +311,7 @@ RackLcdWindow::RackLcdWindow(const SkinTokens& tokens, QWidget* parent)
 	: QWidget(parent), skinTokens(tokens)
 {
 	setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
-	setMaximumWidth(GUIHelper::scale(320.0));
+	setMaximumWidth(320);
 }
 
 void RackLcdWindow::setSegments(const QString& newText)
@@ -348,7 +348,7 @@ QSize RackLcdWindow::sizeHint() const
 
 QSize RackLcdWindow::minimumSizeHint() const
 {
-	return QSize(GUIHelper::scale(72.0), sizeHint().height());
+	return QSize(72, sizeHint().height());
 }
 
 void RackLcdWindow::paintEvent(QPaintEvent*)
@@ -362,20 +362,20 @@ void RackLcdWindow::paintEvent(QPaintEvent*)
 	// glass in BOTH modes. Same glass and segment inks as the card's
 	// EditableValue display (rack sheets).
 	const QRectF well = QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5);
-	painter.setPen(QPen(QColor(0, 0, 0, 220), 1));
-	painter.setBrush(QColor(10, 14, 11));
+	painter.setPen(QPen(RackPalette::shadow(220), 1));
+	painter.setBrush(RackPalette::LcdWellGlass);
 	painter.drawRoundedRect(well, 2, 2);
 	// Recessed depth: the glass top edge falls into the well's shadow, the
 	// bottom bezel lip catches the work light (the valueScrub well's law).
-	painter.setPen(QPen(QColor(0, 0, 0, 160), 1));
+	painter.setPen(QPen(RackPalette::shadow(160), 1));
 	painter.drawLine(QPointF(well.left() + 2, well.top() + 1.5), QPointF(well.right() - 2, well.top() + 1.5));
-	painter.setPen(QPen(dark ? QColor(0x39, 0x42, 0x4A) : QColor(0x6B, 0x63, 0x54), 1));
+	painter.setPen(QPen(RackPalette::GlassBezelLip(dark), 1));
 	painter.drawLine(QPointF(well.left() + 2.5, well.bottom()), QPointF(well.right() - 2.5, well.bottom()));
 
 	if (text.isEmpty())
 		return;
 
-	QColor segmentInk = dark ? QColor(0x86, 0xF2, 0xBA) : QColor(0x3E, 0xD6, 0x8E);
+	QColor segmentInk = RackPalette::SegmentBright(dark);
 	if (!isEnabled())
 		segmentInk = withAlpha(segmentInk, 70);  // powered-down display
 	const QFont font = segmentFont();

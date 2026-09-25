@@ -54,14 +54,6 @@ struct SkinTokens
 	QString warning = QStringLiteral("#f59e0b");
 	QString danger = QStringLiteral("#ef4444");
 	QString focusRing = QStringLiteral("#3B82F6");
-	QString shadow = QStringLiteral("#000000");
-	int toolbarHeight = 36;
-	int cardPadding = 12;
-	int cardGap = 8;
-	int graphRadius = 10;
-	int density = 1;
-	bool showCardMiniGraphs = false;
-	bool zebraStripe = false;
 	// Width (in px) of the coloured rail drawn on the left edge of each filter
 	// card. Used by Signal Matrix to make the routing structure visible. 0 means
 	// no rail.

@@ -13,7 +13,6 @@
 #include <QFileDialog>
 #include <QToolButton>
 
-#include "Editor/helpers/GUIHelper.h"
 #include "Editor/skins/shared/SkinPaint.h"
 
 void SoftSkin::styleFileDialog(QFileDialog* dialog, const SkinTokens& tokens) const
@@ -44,7 +43,7 @@ void SoftSkin::styleFileDialog(QFileDialog* dialog, const SkinTokens& tokens) co
 		if (toolButton != nullptr)
 		{
 			toolButton->setIcon(softTileIcon(QLatin1String(button.resource), button.tile));
-			toolButton->setIconSize(GUIHelper::scale(QSize(22, 22)));
+			toolButton->setIconSize(QSize(22, 22));
 		}
 	}
 }

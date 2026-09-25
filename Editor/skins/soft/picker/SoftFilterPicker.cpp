@@ -166,12 +166,12 @@ public:
 		case SectionItem:
 			// Whitespace is the hierarchy device: every section after the
 			// first carries its breathing room above the pill.
-			return QSize(GUIHelper::scale(100.0), GUIHelper::scale(index.row() == 0 ? 26.0 : 38.0));
+			return QSize(100, (index.row() == 0 ? 26 : 38));
 		case EmptyStateItem:
 			// Room for the friendly empty-state card (glyph, title, caption).
-			return QSize(GUIHelper::scale(100.0), GUIHelper::scale(112.0));
+			return QSize(100, 112);
 		default:
-			return QSize(GUIHelper::scale(100.0), GUIHelper::scale(48.0));
+			return QSize(100, 48);
 		}
 	}
 
@@ -212,18 +212,18 @@ private:
 		const QString label = title.toUpper();
 		const QFontMetricsF metrics(pillFont);
 
-		const qreal pillHeight = GUIHelper::scale(22.0);
-		const qreal pillWidth = qMin<qreal>(option.rect.width() - GUIHelper::scale(12.0),
-			metrics.horizontalAdvance(label) + GUIHelper::scale(24.0));
-		const QRectF pill(option.rect.left() + GUIHelper::scale(6.0),
-			option.rect.bottom() - pillHeight - GUIHelper::scale(1.0), pillWidth, pillHeight);
+		const qreal pillHeight = 22;
+		const qreal pillWidth = qMin<qreal>(option.rect.width() - 12,
+			metrics.horizontalAdvance(label) + 24);
+		const QRectF pill(option.rect.left() + 6,
+			option.rect.bottom() - pillHeight - 1, pillWidth, pillHeight);
 
 		painter->setPen(Qt::NoPen);
 		painter->setBrush(withAlpha(tint, dark ? 46 : 40));
 		painter->drawRoundedRect(pill, pillHeight / 2.0, pillHeight / 2.0);
 		painter->setFont(pillFont);
 		painter->setPen(mixColor(tint, QColor(t.text), dark ? 0.42 : 0.40));
-		painter->drawText(pill, Qt::AlignCenter, metrics.elidedText(label, Qt::ElideRight, pillWidth - GUIHelper::scale(16.0)));
+		painter->drawText(pill, Qt::AlignCenter, metrics.elidedText(label, Qt::ElideRight, pillWidth - 16));
 	}
 
 	// The fruitless search: a friendly card one value step above the menu
@@ -235,15 +235,15 @@ private:
 		const QString caption = index.data(CaptionRole).toString();
 
 		QRectF card(option.rect);
-		card.adjust(GUIHelper::scale(14.0), GUIHelper::scale(8.0), -GUIHelper::scale(14.0), -GUIHelper::scale(6.0));
+		card.adjust(14, 8, -14, -6);
 		painter->setPen(QPen(QColor(t.border), 1));
 		painter->setBrush(QColor(t.cardHover));
 		painter->drawRoundedRect(card, 14.0, 14.0);
 
 		// The magnifier rests in a pastel accent circle: lens ring plus a
 		// short rounded handle, drawn with strokes (no glyph fonts, no icons).
-		const qreal tileSide = GUIHelper::scale(30.0);
-		const QRectF tile(card.center().x() - tileSide / 2.0, card.top() + GUIHelper::scale(12.0), tileSide, tileSide);
+		const qreal tileSide = 30;
+		const QRectF tile(card.center().x() - tileSide / 2.0, card.top() + 12, tileSide, tileSide);
 		painter->setPen(Qt::NoPen);
 		painter->setBrush(withAlpha(QColor(t.accent), 38));
 		painter->drawEllipse(tile);
@@ -262,14 +262,14 @@ private:
 		captionFont.setPointSizeF(option.font.pointSizeF() * 0.82);
 		const QFontMetricsF captionMetrics(captionFont);
 
-		const qreal textTop = tile.bottom() + GUIHelper::scale(8.0);
+		const qreal textTop = tile.bottom() + 8;
 		painter->setFont(nameFont);
 		painter->setPen(QColor(t.text));
 		painter->drawText(QRectF(card.left(), textTop, card.width(), nameMetrics.height()),
 			Qt::AlignHCenter | Qt::AlignVCenter, title);
 		painter->setFont(captionFont);
 		painter->setPen(QColor(t.mutedText));
-		painter->drawText(QRectF(card.left(), textTop + nameMetrics.height() + GUIHelper::scale(2.0),
+		painter->drawText(QRectF(card.left(), textTop + nameMetrics.height() + 2,
 			card.width(), captionMetrics.height()),
 			Qt::AlignHCenter | Qt::AlignVCenter, caption);
 	}
@@ -278,7 +278,7 @@ private:
 		const SkinTokens& t, bool dark, const QString& title)
 	{
 		QRectF row(option.rect);
-		row.adjust(0, GUIHelper::scale(2.0), 0, -GUIHelper::scale(2.0));
+		row.adjust(0, 2, 0, -2);
 
 		// The hovered row lifts one value step; the current row gets the
 		// fully rounded stadium in the selection tint, the same silhouette as
@@ -304,8 +304,8 @@ private:
 		// A rounded-square colour tile carrying the entry's pictogram; the
 		// monogram stays as the fallback for unmapped templates.
 		const QColor tint = index.data(TintRole).value<QColor>();
-		const qreal tileSide = GUIHelper::scale(28.0);
-		const QRectF tile(row.left() + GUIHelper::scale(10.0), row.center().y() - tileSide / 2.0, tileSide, tileSide);
+		const qreal tileSide = 28;
+		const QRectF tile(row.left() + 10, row.center().y() - tileSide / 2.0, tileSide, tileSide);
 		painter->setPen(Qt::NoPen);
 		painter->setBrush(tint);
 		painter->drawRoundedRect(tile, tileSide * 0.32, tileSide * 0.32);
@@ -333,8 +333,8 @@ private:
 		// face, not monospace: here it is a description, not an editor).
 		// The name is bold so it carries the row.
 		const QString caption = index.data(CaptionRole).toString();
-		const qreal textLeft = tile.right() + GUIHelper::scale(12.0);
-		const qreal textWidth = row.right() - GUIHelper::scale(16.0) - textLeft;
+		const qreal textLeft = tile.right() + 12;
+		const qreal textWidth = row.right() - 16 - textLeft;
 
 		QFont nameFont = option.font;
 		nameFont.setWeight(QFont::Bold);
@@ -343,7 +343,7 @@ private:
 		captionFont.setPointSizeF(option.font.pointSizeF() * 0.82);
 		const QFontMetricsF captionMetrics(captionFont);
 
-		const qreal gap = caption.isEmpty() ? 0.0 : GUIHelper::scale(1.0);
+		const qreal gap = caption.isEmpty() ? 0.0 : 1;
 		const qreal textHeight = nameMetrics.height() + gap + (caption.isEmpty() ? 0.0 : captionMetrics.height());
 		const qreal textTop = row.center().y() - textHeight / 2.0;
 
@@ -370,11 +370,11 @@ SoftFilterPickerView::SoftFilterPickerView(const SkinTokens& tokens, QWidget* pa
 	setObjectName(QStringLiteral("SoftFilterPicker"));
 
 	QVBoxLayout* layout = new QVBoxLayout(this);
-	const int pad = GUIHelper::scale(14.0);
+	const int pad = 14;
 	// The extra bottom margin keeps the list clear of the faked drop step
 	// painted along the card's bottom edge (paintEvent).
-	layout->setContentsMargins(pad, pad, pad, pad + GUIHelper::scale(2.0));
-	layout->setSpacing(GUIHelper::scale(10.0));
+	layout->setContentsMargins(pad, pad, pad, pad + 2);
+	layout->setSpacing(10);
 
 	searchEdit = new QLineEdit(this);
 	searchEdit->setObjectName(QStringLiteral("SoftPickerSearch"));
@@ -395,8 +395,8 @@ SoftFilterPickerView::SoftFilterPickerView(const SkinTokens& tokens, QWidget* pa
 	bindListPicker(searchEdit, listWidget, EntryIndexRole, [this]() { rebuildList(); });
 
 	// Roomy and approachable: the widest, tallest-rowed picker of the five.
-	setFixedWidth(GUIHelper::scale(380.0));
-	setMaximumHeight(GUIHelper::scale(470.0));
+	setFixedWidth(380);
+	setMaximumHeight(470);
 }
 
 void SoftFilterPickerView::entriesChanged()
@@ -529,9 +529,9 @@ QSize SoftFilterPickerView::sizeHint() const
 {
 	const QMargins margins = layout()->contentsMargins();
 	int height = margins.top() + margins.bottom() + layout()->spacing()
-		+ searchEdit->sizeHint().height() + listContentHeight + GUIHelper::scale(4.0);
+		+ searchEdit->sizeHint().height() + listContentHeight + 4;
 	height = qMin(height, maximumHeight());
-	return QSize(GUIHelper::scale(380.0), height);
+	return QSize(380, height);
 }
 
 void SoftFilterPickerView::paintEvent(QPaintEvent* event)

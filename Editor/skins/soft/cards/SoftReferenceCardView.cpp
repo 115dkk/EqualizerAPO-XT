@@ -65,7 +65,7 @@ public:
 	{
 		setObjectName(QStringLiteral("SoftReferenceTile"));
 		configurePaintOnlyChrome(this);
-		setFixedSize(GUIHelper::scale(QSize(34, 34)));
+		setFixedSize(QSize(34, 34));
 	}
 
 	const SkinTokens skinTokens;
@@ -144,9 +144,9 @@ SoftReferenceCardView::SoftReferenceCardView(const QString& kind, const SkinToke
 	QWidget* page = contentWidget();
 	rootLayout = new QHBoxLayout(page);
 	// Roomy by constitution: whitespace is the hierarchy device.
-	rootLayout->setContentsMargins(GUIHelper::scale(2.0), GUIHelper::scale(6.0),
-		GUIHelper::scale(2.0), GUIHelper::scale(6.0));
-	rootLayout->setSpacing(GUIHelper::scale(12.0));
+	rootLayout->setContentsMargins(2, 6,
+		2, 6);
+	rootLayout->setSpacing(12);
 
 	tile = new SoftReferenceTile(skinTokens, page);
 	rootLayout->addWidget(tile, 0, Qt::AlignVCenter);
@@ -154,12 +154,12 @@ SoftReferenceCardView::SoftReferenceCardView(const QString& kind, const SkinToke
 	QWidget* textColumn = new QWidget(page);
 	QVBoxLayout* textLayout = new QVBoxLayout(textColumn);
 	textLayout->setContentsMargins(0, 0, 0, 0);
-	textLayout->setSpacing(GUIHelper::scale(2.0));
+	textLayout->setSpacing(2);
 
 	QWidget* nameRow = new QWidget(textColumn);
 	QHBoxLayout* nameLayout = new QHBoxLayout(nameRow);
 	nameLayout->setContentsMargins(0, 0, 0, 0);
-	nameLayout->setSpacing(GUIHelper::scale(8.0));
+	nameLayout->setSpacing(8);
 
 	// The identity line: the name in body ink at the card-title weight,
 	// elided at paint time so a long plugin name can never push the row past
@@ -189,8 +189,8 @@ SoftReferenceCardView::SoftReferenceCardView(const QString& kind, const SkinToke
 
 	chipRow = new QWidget(textColumn);
 	chipLayout = new QHBoxLayout(chipRow);
-	chipLayout->setContentsMargins(0, GUIHelper::scale(2.0), 0, 0);
-	chipLayout->setSpacing(GUIHelper::scale(6.0));
+	chipLayout->setContentsMargins(0, 2, 0, 0);
+	chipLayout->setSpacing(6);
 	chipRow->setVisible(false);
 	textLayout->addWidget(chipRow);
 
@@ -206,7 +206,7 @@ SoftReferenceCardView::SoftReferenceCardView(const QString& kind, const SkinToke
 	// card's right edge; the stretch owns the leftover width.
 	actionLayout = new QHBoxLayout();
 	actionLayout->setContentsMargins(0, 0, 0, 0);
-	actionLayout->setSpacing(GUIHelper::scale(6.0));
+	actionLayout->setSpacing(6);
 	rootLayout->addLayout(actionLayout);
 	rootLayout->addStretch(1);
 

@@ -18,8 +18,6 @@
 #include <QPalette>
 #include <QVBoxLayout>
 
-#include "Editor/SkinManager.h"
-
 SubwooferRoutingCardView::SubwooferRoutingCardView(QWidget* parent)
 	: QWidget(parent)
 {
@@ -95,8 +93,9 @@ void SubwooferRoutingCardView::keyPressEvent(QKeyEvent* event)
 }
 
 DefaultSubwooferRoutingCardView::DefaultSubwooferRoutingCardView(
-	QWidget* parent)
-	: SubwooferRoutingCardView(parent)
+	const SkinTokens& tokens, QWidget* parent)
+	: SubwooferRoutingCardView(parent),
+	  skinTokens(tokens)
 {
 	QVBoxLayout* root = new QVBoxLayout(this);
 	root->setContentsMargins(12, 10, 12, 10);
@@ -156,7 +155,7 @@ void DefaultSubwooferRoutingCardView::addReadoutRow(
 	valueLabel->setAccessibleName(accessibleName);
 	valueLabel->setToolTip(toolTip);
 
-	QFont font(SkinManager::instance()->tokens().monoFontFamily);
+	QFont font(skinTokens.monoFontFamily);
 	if (font.family().isEmpty())
 		font.setStyleHint(QFont::Monospace);
 	valueLabel->setFont(font);

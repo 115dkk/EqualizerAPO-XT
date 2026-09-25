@@ -50,10 +50,10 @@ GraphicEQFilterGUI::GraphicEQFilterGUI(const std::vector<FilterNode>& nodes, con
 		ui->actionNormalizeResponse->setIcon(QIcon(":/icons/dark-mode/normalize_response.svg"));
 		ui->actionResetResponse->setIcon(QIcon(":/icons/dark-mode/reset_response.svg"));
 	}
-	ui->tableWidget->horizontalHeader()->setMinimumSectionSize(GUIHelper::scale(10));
-	ui->tableWidget->horizontalHeader()->setDefaultSectionSize(GUIHelper::scale(10));
-	ui->tableWidget->verticalHeader()->setMinimumSectionSize(GUIHelper::scale(23));
-	ui->tableWidget->verticalHeader()->setDefaultSectionSize(GUIHelper::scale(23));
+	ui->tableWidget->horizontalHeader()->setMinimumSectionSize(10);
+	ui->tableWidget->horizontalHeader()->setDefaultSectionSize(10);
+	ui->tableWidget->verticalHeader()->setMinimumSectionSize(23);
+	ui->tableWidget->verticalHeader()->setDefaultSectionSize(23);
 
 	scene = new GraphicEQFilterGUIScene(ui->graphicsView);
 	ui->graphicsView->setScene(scene);
@@ -116,16 +116,16 @@ void GraphicEQFilterGUI::store(QString& command, QString& parameters)
 
 void GraphicEQFilterGUI::loadPreferences(const QVariantMap& prefs)
 {
-	ui->tableWidget->setFixedWidth(GUIHelper::scale(prefs.value("tableWidth", DEFAULT_TABLE_WIDTH).toDouble()));
-	ui->graphicsView->setFixedHeight(GUIHelper::scale(prefs.value("viewHeight", DEFAULT_VIEW_HEIGHT).toDouble()));
-	double zoomX = GUIHelper::scaleZoom(prefs.value("zoomX", 1.0).toDouble());
-	double zoomY = GUIHelper::scaleZoom(prefs.value("zoomY", 1.0).toDouble());
+	ui->tableWidget->setFixedWidth(qRound(prefs.value("tableWidth", DEFAULT_TABLE_WIDTH).toDouble()));
+	ui->graphicsView->setFixedHeight(qRound(prefs.value("viewHeight", DEFAULT_VIEW_HEIGHT).toDouble()));
+	double zoomX = prefs.value("zoomX", 1.0).toDouble();
+	double zoomY = prefs.value("zoomY", 1.0).toDouble();
 	scene->setZoom(zoomX, zoomY);
 	bool ok;
-	int scrollX = GUIHelper::scale(prefs.value("scrollX").toDouble(&ok));
+	int scrollX = qRound(prefs.value("scrollX").toDouble(&ok));
 	if (!ok)
 		scrollX = round(scene->hzToX(20));
-	int scrollY = GUIHelper::scale(prefs.value("scrollY").toDouble(&ok));
+	int scrollY = qRound(prefs.value("scrollY").toDouble(&ok));
 	if (!ok)
 		scrollY = round(scene->dbToY(22));
 	ui->graphicsView->setScrollOffsets(scrollX, scrollY);
@@ -133,22 +133,22 @@ void GraphicEQFilterGUI::loadPreferences(const QVariantMap& prefs)
 
 void GraphicEQFilterGUI::storePreferences(QVariantMap& prefs)
 {
-	if (GUIHelper::invScale(ui->tableWidget->width()) != DEFAULT_TABLE_WIDTH)
-		prefs.insert("tableWidth", GUIHelper::invScale(ui->tableWidget->width()));
-	if (GUIHelper::invScale(ui->graphicsView->height()) != DEFAULT_VIEW_HEIGHT)
-		prefs.insert("viewHeight", GUIHelper::invScale(ui->graphicsView->height()));
-	if (GUIHelper::invScaleZoom(scene->getZoomX()) != 1.0)
-		prefs.insert("zoomX", GUIHelper::invScaleZoom(scene->getZoomX()));
-	if (GUIHelper::invScaleZoom(scene->getZoomY()) != 1.0)
-		prefs.insert("zoomY", GUIHelper::invScaleZoom(scene->getZoomY()));
+	if (double(ui->tableWidget->width()) != DEFAULT_TABLE_WIDTH)
+		prefs.insert("tableWidth", double(ui->tableWidget->width()));
+	if (double(ui->graphicsView->height()) != DEFAULT_VIEW_HEIGHT)
+		prefs.insert("viewHeight", double(ui->graphicsView->height()));
+	if (scene->getZoomX() != 1.0)
+		prefs.insert("zoomX", scene->getZoomX());
+	if (scene->getZoomY() != 1.0)
+		prefs.insert("zoomY", scene->getZoomY());
 	QScrollBar* hScrollBar = ui->graphicsView->horizontalScrollBar();
 	int value = hScrollBar->value();
 	if (value != round(scene->hzToX(20)))
-		prefs.insert("scrollX", GUIHelper::invScale(value));
+		prefs.insert("scrollX", double(value));
 	QScrollBar* vScrollBar = ui->graphicsView->verticalScrollBar();
 	value = vScrollBar->value();
 	if (value != round(scene->dbToY(22)))
-		prefs.insert("scrollY", GUIHelper::invScale(value));
+		prefs.insert("scrollY", double(value));
 }
 
 void GraphicEQFilterGUI::insertRow(int index, double hz, double db)

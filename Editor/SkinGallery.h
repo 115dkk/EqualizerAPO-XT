@@ -17,6 +17,9 @@
 	--skin-gallery <outDir> [--skin-gallery-skins id,id,...]. Used by the skin
 	agents and CI to prove appearance-preserving changes (pixel-identical
 	before/after) and to build judging contact sheets.
+
+	The implementation lives in Editor/gallery/, one file per scene family,
+	over the shared scaffolding in gallery/GallerySupport.h.
 */
 
 #pragma once

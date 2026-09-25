@@ -23,7 +23,6 @@
 #include <QPainter>
 #include <QLineEdit>
 
-#include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/ResizingLineEdit.h"
 #include "CopyFilterGUIChannelItem.h"
 #include "CopyFilterGUIScene.h"
@@ -65,7 +64,7 @@ QRectF CopyFilterGUIConnectionItem::boundingRect() const
 	QRectF rect = QGraphicsLineItem::boundingRect();
 
 	QPointF p2 = line().p2();
-	int as = GUIHelper::scale(maxArrowSize);
+	int as = maxArrowSize;
 	QRectF rect2 = QRectF(p2.x() - as, p2.y() - as, 2 * as, 2 * as);
 
 	return rect.united(rect2);
@@ -80,7 +79,7 @@ QPainterPath CopyFilterGUIConnectionItem::shape() const
 	double length = line().length();
 	if (length > 0)
 	{
-		double offset = fmin(length, GUIHelper::scale(maxArrowSize));
+		double offset = fmin(length, maxArrowSize);
 		QLineF unit = l.unitVector();
 		QLineF normal = l.normalVector().unitVector();
 		QPointF v(unit.dx(), unit.dy());
@@ -106,7 +105,7 @@ QPainterPath CopyFilterGUIConnectionItem::shape() const
 		if (factor != 1.0 || isDecibel)
 		{
 			QFont font;
-			font.setPixelSize(GUIHelper::scale(10));
+			font.setPixelSize(10);
 			QPointF center = labelCenter();
 			QString text = QString("%1").arg(factor);
 			if (isDecibel)
@@ -114,7 +113,7 @@ QPainterPath CopyFilterGUIConnectionItem::shape() const
 
 			QFontMetrics fontMetrics(font);
 			QSizeF size = fontMetrics.size(0, text);
-			size += QSizeF(GUIHelper::scale(8), GUIHelper::scale(4));
+			size += QSizeF(8, 4);
 			QRectF rect;
 			rect.setSize(size);
 			rect.moveCenter(center);
@@ -144,7 +143,7 @@ void CopyFilterGUIConnectionItem::paint(QPainter* painter, const QStyleOptionGra
 		painter->drawLine(line());
 
 		double length = line().length();
-		double offset = fmin(length, GUIHelper::scale(maxArrowSize));
+		double offset = fmin(length, maxArrowSize);
 		QLineF unit = l.unitVector();
 		QLineF normal = l.normalVector().unitVector();
 		QPointF v(unit.dx(), unit.dy());
@@ -163,7 +162,7 @@ void CopyFilterGUIConnectionItem::paint(QPainter* painter, const QStyleOptionGra
 		if (factor != 1.0 || isDecibel)
 		{
 			QFont font = painter->font();
-			font.setPixelSize(GUIHelper::scale(10));
+			font.setPixelSize(10);
 			painter->setFont(font);
 			QPointF center = labelCenter();
 			QString text = QString("%1").arg(factor);
@@ -171,7 +170,7 @@ void CopyFilterGUIConnectionItem::paint(QPainter* painter, const QStyleOptionGra
 				text += " dB";
 
 			QSizeF size = painter->fontMetrics().size(0, text);
-			size += QSizeF(GUIHelper::scale(8), GUIHelper::scale(4));
+			size += QSizeF(8, 4);
 			QRectF rect;
 			rect.setSize(size);
 			rect.moveCenter(center);

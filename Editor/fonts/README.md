@@ -30,4 +30,5 @@ Font License and do not use the upstream Reserved Font Names.
 To regenerate after updating an upstream file, put the upstream file in
 place and run `python Editor/fonts/rename-fonts.py` from the repository root
 (needs fontTools). The names it writes are the ones in the table above;
-`SkinThemeData.cpp` and every skin sheet reference those.
+`SkinThemeData.cpp` references those, and the skin sheets reach them through
+its `@FONT_STACK@` and `@MONO_STACK@` tokens.

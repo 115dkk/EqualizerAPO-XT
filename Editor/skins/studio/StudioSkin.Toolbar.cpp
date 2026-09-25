@@ -25,7 +25,7 @@ void StudioSkin::styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) c
 	const QColor ink((muted.red() + text.red()) / 2,
 		(muted.green() + text.green()) / 2,
 		(muted.blue() + text.blue()) / 2);
-	toolBar->setIconSize(GUIHelper::scale(QSize(18, 18)));
+	toolBar->setIconSize(QSize(18, 18));
 	for (QAction* action : toolBar->actions())
 	{
 		if (action->objectName() == QStringLiteral("actionNew"))

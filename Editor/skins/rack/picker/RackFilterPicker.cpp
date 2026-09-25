@@ -7,12 +7,13 @@
 /*
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
-	See RackFilterPicker.h. The small screw/LED painters are deliberately
-	local expressions of Rack's hardware idiom; they stay visually
-	consistent with the card chrome.
+	See RackFilterPicker.h. The small LED painter is deliberately a local
+	expression of Rack's hardware idiom (its glow scales between dark and lit);
+	the screw and the engraved printing are the card chrome's own.
 */
 
 #include "RackFilterPicker.h"
+#include "Editor/skins/rack/RackPalette.h"
 #include "Editor/skins/shared/SkinPaint.h"
 
 #include <QApplication>
@@ -25,7 +26,7 @@
 #include <QtMath>
 
 #include "Editor/SkinManager.h"
-#include "Editor/helpers/GUIHelper.h"
+#include "Editor/skins/rack/RackSkinDetail.h"
 
 namespace
 {
@@ -43,45 +44,10 @@ enum RowKind
 	SectionRow = 1
 };
 
-// Engraved faceplate printing: a contrast pass offset one pixel down (the
-// recess edge catching the light), then the body color on top.
-void engraveText(QPainter& painter, const QRectF& rect, int flags, const QString& text, const QColor& body, bool dark)
-{
-	painter.setPen(dark ? QColor(0, 0, 0, 170) : QColor(255, 255, 255, 200));
-	painter.drawText(rect.translated(0, 1), flags, text);
-	painter.setPen(body);
-	painter.drawText(rect, flags, text);
-}
-
-// A slotted machine screw, same construction as the card faceplates'.
-void paintScrew(QPainter& painter, const QPointF& center, qreal radius, qreal slotDegrees, bool dark)
-{
-	QRadialGradient body(center - QPointF(radius * 0.35, radius * 0.35), radius * 2.1);
-	if (dark)
-	{
-		body.setColorAt(0.0, QColor(0x9A, 0xA4, 0xAC));
-		body.setColorAt(0.55, QColor(0x4E, 0x57, 0x5E));
-		body.setColorAt(1.0, QColor(0x23, 0x28, 0x2C));
-	}
-	else
-	{
-		body.setColorAt(0.0, QColor(0xFF, 0xFF, 0xFC));
-		body.setColorAt(0.55, QColor(0xC4, 0xBD, 0xAE));
-		body.setColorAt(1.0, QColor(0x8E, 0x86, 0x76));
-	}
-	painter.setPen(QPen(dark ? QColor(0, 0, 0, 200) : QColor(0x6B, 0x62, 0x52), 1));
-	painter.setBrush(body);
-	painter.drawEllipse(center, radius, radius);
-
-	const qreal rad = qDegreesToRadians(slotDegrees);
-	const QPointF dir(qCos(rad), qSin(rad));
-	const QPointF a = center - dir * (radius - 1.2);
-	const QPointF b = center + dir * (radius - 1.2);
-	painter.setPen(QPen(dark ? QColor(10, 12, 14, 230) : QColor(60, 54, 44, 220), 1.4, Qt::SolidLine, Qt::RoundCap));
-	painter.drawLine(a, b);
-	painter.setPen(QPen(QColor(255, 255, 255, dark ? 60 : 170), 0.8, Qt::SolidLine, Qt::RoundCap));
-	painter.drawLine(a + QPointF(0, 1), b + QPointF(0, 1));
-}
+// The engraved faceplate printing and the slotted screw are the card chrome's
+// own painters (RackSkinDetail); only the LED keeps a local, glow-scaled form.
+using RackSkinDetail::engraveText;
+using RackSkinDetail::paintScrew;
 
 // A panel LED in a bezel ring; glow scales 0..1 so the hover lamp can sit
 // between fully dark and fully lit. Unlit lamps recede one step (thinner
@@ -90,7 +56,7 @@ void paintScrew(QPainter& painter, const QPointF& center, qreal radius, qreal sl
 void paintLed(QPainter& painter, const QPointF& center, qreal radius, const QColor& litColor, qreal glow, bool dark)
 {
 	const bool unlit = glow <= 0.0;
-	painter.setPen(QPen(dark ? QColor(0, 0, 0, unlit ? 110 : 190) : QColor(70, 62, 50, unlit ? 100 : 190), 1));
+	painter.setPen(QPen(dark ? RackPalette::shadow(unlit ? 110 : 190) : withAlpha(RackPalette::LedBezel.light, unlit ? 100 : 190), 1));
 	painter.setBrush(Qt::NoBrush);
 	painter.drawEllipse(center, radius + 1.2, radius + 1.2);
 
@@ -125,7 +91,7 @@ void paintLed(QPainter& painter, const QPointF& center, qreal radius, const QCol
 	painter.setPen(Qt::NoPen);
 	painter.setBrush(dome);
 	painter.drawEllipse(center, radius, radius);
-	painter.setBrush(QColor(255, 255, 255, unlit ? (dark ? 14 : 30)
+	painter.setBrush(RackPalette::light(unlit ? (dark ? 14 : 30)
 		: int((dark ? 28 : 60) + (170 - (dark ? 28 : 60)) * glow)));
 	painter.drawEllipse(center - QPointF(radius * 0.35, radius * 0.35), radius * 0.3, radius * 0.3);
 }
@@ -146,7 +112,7 @@ public:
 	{
 		Q_UNUSED(option);
 		const bool section = index.data(KindRole).toInt() == SectionRow;
-		return QSize(0, GUIHelper::scale(section ? 24.0 : 26.0));
+		return QSize(0, (section ? 24 : 26));
 	}
 
 	void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const override
@@ -172,16 +138,16 @@ private:
 	{
 		const QRectF plate = QRectF(option.rect).adjusted(2, 5, -2, -3);
 
-		painter->setPen(QPen(QColor(0, 0, 0, dark ? 150 : 70), 1));
-		painter->setBrush(QColor(0, 0, 0, dark ? 52 : 16));
+		painter->setPen(QPen(RackPalette::shadow(dark ? 150 : 70), 1));
+		painter->setBrush(RackPalette::shadow(dark ? 52 : 16));
 		painter->drawRoundedRect(plate, 2, 2);
 		// The lower plate edge catches the work light.
-		painter->setPen(QPen(QColor(255, 255, 255, dark ? 26 : 140), 1));
+		painter->setPen(QPen(RackPalette::light(dark ? 26 : 140), 1));
 		painter->drawLine(QPointF(plate.left() + 2, plate.bottom() + 1), QPointF(plate.right() - 2, plate.bottom() + 1));
 
 		// Rivets at both plate ends, like the VST brass nameplate's.
-		painter->setPen(QPen(dark ? QColor(0, 0, 0, 180) : QColor(0x6B, 0x62, 0x52), 0.8));
-		painter->setBrush(dark ? QColor(0x6A, 0x74, 0x7C) : QColor(0xD8, 0xCF, 0xBC));
+		painter->setPen(QPen(RackPalette::PlateRivetRim(dark), 0.8));
+		painter->setBrush(RackPalette::PlateRivet(dark));
 		painter->drawEllipse(QPointF(plate.left() + 7, plate.center().y()), 1.6, 1.6);
 		painter->drawEllipse(QPointF(plate.right() - 7, plate.center().y()), 1.6, 1.6);
 
@@ -250,8 +216,8 @@ RackFilterPickerView::RackFilterPickerView(const SkinTokens& tokens, QWidget* pa
 	const bool dark = skinIsDark(tokens);
 
 	QVBoxLayout* layout = new QVBoxLayout(this);
-	layout->setContentsMargins(GUIHelper::scale(12.0), GUIHelper::scale(38.0), GUIHelper::scale(12.0), GUIHelper::scale(20.0));
-	layout->setSpacing(GUIHelper::scale(8.0));
+	layout->setContentsMargins(12, 38, 12, 20);
+	layout->setSpacing(8);
 
 	// The search strip is an LCD character display set into the faceplate:
 	// a dark well with green segments in both modes (hardware displays do
@@ -259,7 +225,7 @@ RackFilterPickerView::RackFilterPickerView(const SkinTokens& tokens, QWidget* pa
 	searchEdit = new QLineEdit(this);
 	searchEdit->setObjectName(QStringLiteral("RackFilterPickerSearch"));
 	searchEdit->setPlaceholderText(tr("SEARCH"));
-	const QColor lcdInk = dark ? QColor(0x86, 0xF2, 0xBA) : QColor(0x3E, 0xD6, 0x8E);
+	const QColor lcdInk = RackPalette::SegmentBright(dark);
 	QFont lcdFont(tokens.monoFontFamily);
 	lcdFont.setPointSizeF(10.0);
 	lcdFont.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);
@@ -271,7 +237,7 @@ RackFilterPickerView::RackFilterPickerView(const SkinTokens& tokens, QWidget* pa
 		" border-radius: 2px; padding: 4px 8px;"
 		" selection-background-color: %1; selection-color: #0A0E0C; }"
 		"QLineEdit#RackFilterPickerSearch:focus { border: 1px solid %3; }")
-		.arg(lcdInk.name(), dark ? QStringLiteral("#39424A") : QStringLiteral("#FFFFFF"), tokens.accent));
+		.arg(lcdInk.name(), RackPalette::SearchLcdLowerLip.hex(dark), tokens.accent));
 	QPalette lcdPalette = searchEdit->palette();
 	lcdPalette.setColor(QPalette::PlaceholderText, withAlpha(lcdInk, 110));
 	searchEdit->setPalette(lcdPalette);
@@ -294,8 +260,8 @@ RackFilterPickerView::RackFilterPickerView(const SkinTokens& tokens, QWidget* pa
 
 	// The host gives focus to the view; the LCD is where typing belongs.
 	setFocusProxy(searchEdit);
-	setMinimumWidth(GUIHelper::scale(360.0));
-	setMaximumHeight(GUIHelper::scale(480.0));
+	setMinimumWidth(360);
+	setMaximumHeight(480);
 }
 
 void RackFilterPickerView::entriesChanged()
@@ -355,7 +321,7 @@ QSize RackFilterPickerView::sizeHint() const
 	const QMargins margins = layout()->contentsMargins();
 	const int height = margins.top() + searchEdit->sizeHint().height()
 		+ layout()->spacing() + listContentHeight + margins.bottom();
-	return QSize(GUIHelper::scale(366.0), qMin(height, GUIHelper::scale(470.0)));
+	return QSize(366, qMin(height, 470));
 }
 
 void RackFilterPickerView::rebuildList()
@@ -388,8 +354,8 @@ void RackFilterPickerView::rebuildList()
 		entryCount++;
 	}
 
-	listContentHeight = sectionCount * GUIHelper::scale(24.0)
-		+ entryCount * GUIHelper::scale(26.0) + GUIHelper::scale(4.0);
+	listContentHeight = sectionCount * 24
+		+ entryCount * 26 + 4;
 	updateGeometry();
 
 	// Preselect the first real slot so Return inserts immediately.
@@ -436,7 +402,7 @@ void RackFilterPickerView::paintEvent(QPaintEvent* event)
 	{
 		const uint seed = uint(qHash(QStringLiteral("module-select-brush")));
 		const int baseAlpha = 5;
-		QColor grain = dark ? QColor(255, 255, 255) : QColor(96, 84, 64);
+		QColor grain = RackPalette::BrushingGrain(dark);
 		for (qreal y = r.top() + 2; y < r.bottom() - 1; y += 2)
 		{
 			const uint h = (seed ^ uint(qRound(y * 7.0))) * 2654435761u;
@@ -449,11 +415,11 @@ void RackFilterPickerView::paintEvent(QPaintEvent* event)
 
 	// Machined plate edge: dark outline, lit top bezel, shadowed bottom.
 	painter.setBrush(Qt::NoBrush);
-	painter.setPen(QPen(dark ? QColor(0, 0, 0, 210) : QColor(0x8A, 0x80, 0x6C), 1));
+	painter.setPen(QPen(RackPalette::PickerPlateEdge(dark), 1));
 	painter.drawRoundedRect(r, radius, radius);
-	painter.setPen(QPen(QColor(255, 255, 255, dark ? 36 : 150), 1));
+	painter.setPen(QPen(RackPalette::light(dark ? 36 : 150), 1));
 	painter.drawLine(QPointF(r.left() + radius, r.top() + 1), QPointF(r.right() - radius, r.top() + 1));
-	painter.setPen(QPen(QColor(0, 0, 0, dark ? 140 : 60), 1));
+	painter.setPen(QPen(RackPalette::shadow(dark ? 140 : 60), 1));
 	painter.drawLine(QPointF(r.left() + radius, r.bottom() - 1), QPointF(r.right() - radius, r.bottom() - 1));
 
 	// Four corner screws; fixed slot angles so the faceplate looks hand-set,
@@ -476,9 +442,9 @@ void RackFilterPickerView::paintEvent(QPaintEvent* event)
 
 	// Machined groove separating the header from the controls.
 	const qreal grooveY = r.top() + 31;
-	painter.setPen(QPen(QColor(0, 0, 0, dark ? 120 : 60), 1));
+	painter.setPen(QPen(RackPalette::shadow(dark ? 120 : 60), 1));
 	painter.drawLine(QPointF(r.left() + 8, grooveY), QPointF(r.right() - 8, grooveY));
-	painter.setPen(QPen(QColor(255, 255, 255, dark ? 26 : 130), 1));
+	painter.setPen(QPen(RackPalette::light(dark ? 26 : 130), 1));
 	painter.drawLine(QPointF(r.left() + 8, grooveY + 1), QPointF(r.right() - 8, grooveY + 1));
 
 	// A filtered-out catalog: engrave NO SIGNAL where the slots would be.

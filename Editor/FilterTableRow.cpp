@@ -39,7 +39,7 @@ FilterTableRow::FilterTableRow(FilterTable* table, int number, FilterTable::Item
 	ui(std::make_unique<Ui::FilterTableRow>())
 {
 	ui->setupUi(this);
-	ui->labelNumber->setMinimumWidth(GUIHelper::scale(25));
+	ui->labelNumber->setMinimumWidth(25);
 
 	this->table = table;
 	this->item = item;

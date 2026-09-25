@@ -22,7 +22,6 @@
 #include <QVBoxLayout>
 
 #include "Editor/SkinManager.h"
-#include "Editor/helpers/GUIHelper.h"
 
 namespace
 {
@@ -30,17 +29,17 @@ namespace
 // taller so the hairline underline gets one clear pixel row of its own.
 int entryRowHeight()
 {
-	return GUIHelper::scale(20.0);
+	return 20;
 }
 
 int sectionRowHeight()
 {
-	return GUIHelper::scale(26.0);
+	return 26;
 }
 
 int sidePadding()
 {
-	return GUIHelper::scale(10.0);
+	return 10;
 }
 
 QFont pickerMonoFont(const SkinTokens& tokens, double pointSize, bool bold = false)
@@ -66,13 +65,13 @@ void MinimalPickerIndexList::setRows(const QList<Row>& rows)
 	rowList = rows;
 	rowTops.clear();
 	rowTops.reserve(rowList.size());
-	int y = GUIHelper::scale(2.0);
+	int y = 2;
 	for (const Row& row : rowList)
 	{
 		rowTops.append(y);
 		y += row.entryIndex < 0 ? sectionRowHeight() : entryRowHeight();
 	}
-	contentHeight = y + GUIHelper::scale(4.0);
+	contentHeight = y + 4;
 	// Inside a widgetResizable scroll area the minimum height is what makes
 	// the viewport scroll instead of squashing the rows.
 	setMinimumHeight(contentHeight);
@@ -111,7 +110,7 @@ QRect MinimalPickerIndexList::rowRect(int row) const
 
 QSize MinimalPickerIndexList::sizeHint() const
 {
-	return QSize(GUIHelper::scale(380.0), contentHeight);
+	return QSize(380, contentHeight);
 }
 
 int MinimalPickerIndexList::rowAt(const QPoint& pos) const
@@ -136,7 +135,7 @@ void MinimalPickerIndexList::paintEvent(QPaintEvent* event)
 	const QFontMetrics entryMetrics(entryFont);
 
 	const int pad = sidePadding();
-	const int numberGap = GUIHelper::scale(8.0);
+	const int numberGap = 8;
 
 	if (rowList.isEmpty())
 	{
@@ -145,7 +144,7 @@ void MinimalPickerIndexList::paintEvent(QPaintEvent* event)
 		// no box, no icon.
 		painter.setFont(entryFont);
 		painter.setPen(QColor(t.mutedText));
-		painter.drawText(QRect(pad, GUIHelper::scale(2.0), width() - 2 * pad, entryRowHeight()),
+		painter.drawText(QRect(pad, 2, width() - 2 * pad, entryRowHeight()),
 			Qt::AlignVCenter | Qt::AlignLeft, QStringLiteral("NO MATCH"));
 		return;
 	}
@@ -163,7 +162,7 @@ void MinimalPickerIndexList::paintEvent(QPaintEvent* event)
 			// hairline rule.
 			painter.setFont(captionFont);
 			painter.setPen(QColor(t.mutedText));
-			painter.drawText(r.adjusted(pad, GUIHelper::scale(5.0), -pad, -GUIHelper::scale(3.0)),
+			painter.drawText(r.adjusted(pad, 5, -pad, -3),
 				Qt::AlignVCenter | Qt::AlignLeft, row.text);
 			painter.fillRect(QRect(r.left(), r.bottom(), r.width(), 1), QColor(t.border));
 		}
@@ -271,8 +270,8 @@ MinimalFilterPickerView::MinimalFilterPickerView(const SkinTokens& tokens, QWidg
 	header->setObjectName(QStringLiteral("MinimalPickerHeader"));
 	header->setAttribute(Qt::WA_StyledBackground, true);
 	QHBoxLayout* headerLayout = new QHBoxLayout(header);
-	headerLayout->setContentsMargins(sidePadding(), GUIHelper::scale(6.0), sidePadding(), GUIHelper::scale(6.0));
-	headerLayout->setSpacing(GUIHelper::scale(8.0));
+	headerLayout->setContentsMargins(sidePadding(), 6, sidePadding(), 6);
+	headerLayout->setSpacing(8);
 
 	QLabel* prompt = new QLabel(QStringLiteral(">"), header);
 	prompt->setObjectName(QStringLiteral("MinimalPickerPrompt"));
@@ -322,8 +321,8 @@ MinimalFilterPickerView::MinimalFilterPickerView(const SkinTokens& tokens, QWidg
 
 	// The host calls view->setFocus(); typing must land in the query line.
 	setFocusProxy(queryEdit);
-	setMinimumWidth(GUIHelper::scale(360.0));
-	setMaximumHeight(GUIHelper::scale(460.0));
+	setMinimumWidth(360);
+	setMaximumHeight(460);
 }
 
 void MinimalFilterPickerView::entriesChanged()
@@ -396,8 +395,8 @@ QSize MinimalFilterPickerView::sizeHint() const
 	// The layout-driven hint grows with the full index; cap it here so the
 	// host's adjustSize() yields a dropdown, not a tower.
 	QSize hint = FilterPickerView::sizeHint();
-	hint.setWidth(GUIHelper::scale(380.0));
-	hint.setHeight(qMin(hint.height(), GUIHelper::scale(460.0)));
+	hint.setWidth(380);
+	hint.setHeight(qMin(hint.height(), 460));
 	return hint;
 }
 

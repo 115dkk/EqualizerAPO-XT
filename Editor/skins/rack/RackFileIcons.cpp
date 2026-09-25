@@ -9,6 +9,7 @@
 */
 
 #include "RackFileIcons.h"
+#include "Editor/skins/rack/RackPalette.h"
 
 #include <QLinearGradient>
 #include <QPainter>
@@ -39,9 +40,9 @@ protected:
 				sheet.lineTo(s * 0.24, s * 0.88);
 				sheet.closeSubpath();
 				QLinearGradient paper(0, s * 0.12, 0, s * 0.88);
-				paper.setColorAt(0.0, QColor(0xF7, 0xF4, 0xEA));
-				paper.setColorAt(1.0, QColor(0xE3, 0xDF, 0xD1));
-				painter.setPen(QPen(QColor(0x8A, 0x86, 0x78), outlineWidth));
+				paper.setColorAt(0.0, RackPalette::PaperTop);
+				paper.setColorAt(1.0, RackPalette::PaperBottom);
+				painter.setPen(QPen(RackPalette::PaperOutline, outlineWidth));
 				painter.setBrush(paper);
 				painter.drawPath(sheet);
 				// The turned corner: a shaded triangle with its own crease.
@@ -50,7 +51,7 @@ protected:
 				fold.lineTo(s * 0.62, s * 0.26);
 				fold.lineTo(s * 0.76, s * 0.26);
 				fold.closeSubpath();
-				painter.setBrush(QColor(0xCD, 0xC8, 0xB6));
+				painter.setBrush(RackPalette::PaperFold);
 				painter.drawPath(fold);
 				detail();
 			};
@@ -70,19 +71,19 @@ protected:
 				body.lineTo(s * 0.90, s * 0.80);
 				body.closeSubpath();
 				QLinearGradient manila(0, s * 0.24, 0, s * 0.80);
-				manila.setColorAt(0.0, QColor(0xE8, 0xC8, 0x7E));
-				manila.setColorAt(1.0, QColor(0xC7, 0xA1, 0x52));
-				painter.setPen(QPen(QColor(0x8F, 0x6F, 0x2E), outlineWidth));
+				manila.setColorAt(0.0, RackPalette::ManilaTop);
+				manila.setColorAt(1.0, RackPalette::ManilaBottom);
+				painter.setPen(QPen(RackPalette::ManilaOutline, outlineWidth));
 				painter.setBrush(manila);
 				painter.drawPath(body);
 				// Catch-light along the tab edge.
-				painter.setPen(QPen(QColor(0xFF, 0xEC, 0xBC), qMax(1.0, s * 0.04)));
+				painter.setPen(QPen(RackPalette::ManilaCatchLight, qMax(1.0, s * 0.04)));
 				painter.drawLine(QPointF(s * 0.13, s * 0.27), QPointF(s * 0.38, s * 0.27));
 				break;
 			}
 			case Glyph::ConfigFile:
 				paperSheet([&]() {
-					painter.setPen(QPen(QColor(0x9A, 0x94, 0x82), qMax(1.0, s * 0.05)));
+					painter.setPen(QPen(RackPalette::PaperRule, qMax(1.0, s * 0.05)));
 					painter.drawLine(QPointF(s * 0.32, s * 0.46), QPointF(s * 0.68, s * 0.46));
 					painter.drawLine(QPointF(s * 0.32, s * 0.58), QPointF(s * 0.68, s * 0.58));
 					painter.drawLine(QPointF(s * 0.32, s * 0.70), QPointF(s * 0.56, s * 0.70));
@@ -103,8 +104,8 @@ protected:
 			case Glyph::PluginFile:
 				paperSheet([&]() {
 					// A DIP chip on the sheet: the outboard unit's brain.
-					painter.setPen(QPen(QColor(0x2A, 0x2E, 0x33), qMax(1.0, s * 0.04)));
-					painter.setBrush(QColor(0x3A, 0x40, 0x47));
+					painter.setPen(QPen(RackPalette::ChipOutline, qMax(1.0, s * 0.04)));
+					painter.setBrush(RackPalette::ChipBody);
 					painter.drawRect(QRectF(s * 0.38, s * 0.48, s * 0.24, s * 0.20));
 					painter.drawLine(QPointF(s * 0.43, s * 0.48), QPointF(s * 0.43, s * 0.41));
 					painter.drawLine(QPointF(s * 0.50, s * 0.48), QPointF(s * 0.50, s * 0.41));
@@ -118,31 +119,31 @@ protected:
 			{
 				// A rack drive slab: brushed dark metal, milled slot, power LED.
 				QLinearGradient metal(0, s * 0.30, 0, s * 0.72);
-				metal.setColorAt(0.0, QColor(0x3C, 0x44, 0x4C));
-				metal.setColorAt(1.0, QColor(0x20, 0x26, 0x2B));
-				painter.setPen(QPen(QColor(0x0E, 0x12, 0x15), outlineWidth));
+				metal.setColorAt(0.0, RackPalette::DriveMetalTop);
+				metal.setColorAt(1.0, RackPalette::DriveMetalBottom);
+				painter.setPen(QPen(RackPalette::HardwareOutline, outlineWidth));
 				painter.setBrush(metal);
 				painter.drawRoundedRect(QRectF(s * 0.10, s * 0.30, s * 0.80, s * 0.42), s * 0.04, s * 0.04);
-				painter.setPen(QPen(QColor(0x0E, 0x12, 0x15), qMax(1.0, s * 0.04)));
+				painter.setPen(QPen(RackPalette::HardwareOutline, qMax(1.0, s * 0.04)));
 				painter.drawLine(QPointF(s * 0.18, s * 0.60), QPointF(s * 0.56, s * 0.60));
 				painter.setPen(Qt::NoPen);
-				painter.setBrush(QColor(0x7C, 0xE8, 0xA8));
+				painter.setBrush(RackPalette::PowerLedGreen);
 				painter.drawEllipse(QPointF(s * 0.78, s * 0.58), s * 0.045, s * 0.045);
 				break;
 			}
 			case Glyph::Computer:
 			{
 				// The studio's CRT monitor: dark bezel, powered screen.
-				painter.setPen(QPen(QColor(0x0E, 0x12, 0x15), outlineWidth));
-				painter.setBrush(QColor(0x2C, 0x32, 0x38));
+				painter.setPen(QPen(RackPalette::HardwareOutline, outlineWidth));
+				painter.setBrush(RackPalette::MonitorBezel);
 				painter.drawRoundedRect(QRectF(s * 0.12, s * 0.16, s * 0.76, s * 0.50), s * 0.05, s * 0.05);
 				painter.setPen(Qt::NoPen);
-				painter.setBrush(QColor(0x14, 0x1A, 0x14));
+				painter.setBrush(RackPalette::MonitorScreen);
 				painter.drawRect(QRectF(s * 0.20, s * 0.24, s * 0.60, s * 0.34));
-				painter.setBrush(QColor(0x7C, 0xE8, 0xA8));
+				painter.setBrush(RackPalette::PowerLedGreen);
 				painter.drawRect(QRectF(s * 0.24, s * 0.30, s * 0.22, s * 0.045));
-				painter.setPen(QPen(QColor(0x0E, 0x12, 0x15), outlineWidth));
-				painter.setBrush(QColor(0x2C, 0x32, 0x38));
+				painter.setPen(QPen(RackPalette::HardwareOutline, outlineWidth));
+				painter.setBrush(RackPalette::MonitorBezel);
 				painter.drawRect(QRectF(s * 0.44, s * 0.66, s * 0.12, s * 0.10));
 				painter.drawRect(QRectF(s * 0.30, s * 0.76, s * 0.40, s * 0.06));
 				break;

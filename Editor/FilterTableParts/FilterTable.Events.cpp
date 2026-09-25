@@ -24,7 +24,6 @@
 #include "Editor/helpers/EditorSettings.h"
 #include "FilterTableRow.h"
 #include "FilterTableMimeData.h"
-#include "Editor/helpers/GUIHelper.h"
 #include "services/logging/Logging.h"
 #include "audio/ChannelLayout.h"
 #include "services/registry/WindowsRegistry.h"
@@ -162,7 +161,7 @@ bool FilterTable::eventFilter(QObject* obj, QEvent* event)
 		{
 			QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
 
-			if ((mouseEvent->globalPos() - scrollStartPoint).manhattanLength() > GUIHelper::scale(30))
+			if ((mouseEvent->globalPos() - scrollStartPoint).manhattanLength() > 30)
 			{
 				scrollingNow = false;
 				if (appWheelFilterInstalled)

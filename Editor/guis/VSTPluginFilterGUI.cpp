@@ -477,7 +477,7 @@ void VSTPluginFilterGUI::updatePermissionWarning()
 	{
 		ui->warningTextEdit->setPlainText(text);
 		QSize textSize = ui->warningTextEdit->fontMetrics().size(0, text);
-		ui->warningTextEdit->setFixedSize(textSize + GUIHelper::scale(QSize(40, 15)));
+		ui->warningTextEdit->setFixedSize(textSize + QSize(40, 15));
 		ui->warningTextEdit->setVisible(true);
 	}
 }

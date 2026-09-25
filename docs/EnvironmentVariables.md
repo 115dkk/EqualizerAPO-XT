@@ -17,7 +17,7 @@ them unset.
   instead of the per-skin card gallery.
 - `EAPO_SWITCH_LIMIT_MS` / `EAPO_SWITCH_WARN_MS` — override the
   skin-switch stopwatch gate in the gallery's `--skin-switch-storm`
-  diagnostics (defaults live in `Editor/SkinGallery.cpp`; CI passes its own
+  diagnostics (defaults live in `Editor/gallery/GalleryGates.cpp`; CI passes its own
   values in `build.yml`). Raise them when judging on a loaded machine.
 - `EAPO_MOVE_LIMIT_MS` / `EAPO_MOVE_WARN_MS` — the same budget for the
   `--card-move-test` gate (a card move must not rebuild the whole list);

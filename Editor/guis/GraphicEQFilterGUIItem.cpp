@@ -34,7 +34,7 @@ GraphicEQFilterGUIItem::GraphicEQFilterGUIItem(int index, double hz, double db)
 
 QRectF GraphicEQFilterGUIItem::boundingRect() const
 {
-	int s = GUIHelper::scale(size);
+	int s = qRound(size);
 	return QRectF(-s / 2, -s / 2, s, s);
 }
 
@@ -58,7 +58,7 @@ void GraphicEQFilterGUIItem::paint(QPainter* painter, const QStyleOptionGraphics
             painter->setPen(Qt::white);
 
 		QFont font;
-		font.setPixelSize(GUIHelper::scale(9));
+		font.setPixelSize(9);
 		font.setLetterSpacing(QFont::AbsoluteSpacing, -1);
 		QFontMetrics metrics(font);
 		painter->setFont(font);

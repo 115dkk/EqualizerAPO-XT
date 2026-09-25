@@ -29,16 +29,11 @@ class QFileDialog;
 class GUIHelper
 {
 public:
-	static QSize scale(QSize size);
-	static int scale(double pixel);
-	static double scaleZoom(double zoom);
-	static double invScale(int pixel);
-	static double invScaleZoom(double zoom);
     static bool isDarkMode();
 	// Render a monochrome resource icon (SVG silhouette) recoloured to the given
 	// skin colour. The artwork's own colour is ignored: only its alpha mask is
 	// kept, so the same icon adapts to any dark/light skin without per-theme
-	// duplicate files. size is in logical pixels and is DPI-scaled internally.
+	// duplicate files. size is in logical pixels.
 	static QIcon tintedIcon(const QString& resource, const QColor& color, int size = 20);
 	// The pixmap at roughly a third of its alpha: the shared recipe for a
 	// disabled icon state, so every skin's disabled glyph fades the same way.

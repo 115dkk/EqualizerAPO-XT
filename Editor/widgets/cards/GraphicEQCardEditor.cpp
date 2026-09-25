@@ -96,7 +96,7 @@ GraphicEQCardEditor::GraphicEQCardEditor(const vector<FilterNode>& nodes, const 
 		button->setObjectName(QStringLiteral("GraphicEQActionButton"));
 		button->setAutoRaise(true);
 		button->setToolTip(action.toolTip);
-		button->setIconSize(GUIHelper::scale(QSize(16, 16)));
+		button->setIconSize(QSize(16, 16));
 		button->setProperty("modernIcon", QString::fromLatin1(action.icon));
 		connect(button, SIGNAL(clicked()), this, action.slot);
 		controlsLayout->addWidget(button);
@@ -110,7 +110,7 @@ GraphicEQCardEditor::GraphicEQCardEditor(const vector<FilterNode>& nodes, const 
 	mainLayout->addLayout(controlsLayout);
 
 	plot = new GraphicEQPlotWidget(this);
-	plot->setFixedHeight(GUIHelper::scale(210));
+	plot->setFixedHeight(210);
 	connect(plot, &GraphicEQPlotWidget::nodesEdited, this, [this]() {
 		syncReadout();
 		emit updateModel();

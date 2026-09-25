@@ -9,6 +9,7 @@
 */
 
 #include "RackSkin.h"
+#include "Editor/skins/rack/RackPalette.h"
 
 #include <QAction>
 #include <QCheckBox>
@@ -47,16 +48,16 @@ void paintToolbarRail(QPainter& painter, const QRect& rect, const QToolBar* tool
 	QLinearGradient sheen(r.topLeft(), r.bottomLeft());
 	if (dark)
 	{
-		sheen.setColorAt(0.0, QColor(255, 255, 255, 26));
-		sheen.setColorAt(0.14, QColor(255, 255, 255, 10));
-		sheen.setColorAt(0.55, QColor(255, 255, 255, 0));
-		sheen.setColorAt(1.0, QColor(0, 0, 0, 52));
+		sheen.setColorAt(0.0, RackPalette::light(26));
+		sheen.setColorAt(0.14, RackPalette::light(10));
+		sheen.setColorAt(0.55, RackPalette::light(0));
+		sheen.setColorAt(1.0, RackPalette::shadow(52));
 	}
 	else
 	{
-		sheen.setColorAt(0.0, QColor(255, 255, 255, 120));
-		sheen.setColorAt(0.5, QColor(255, 255, 255, 0));
-		sheen.setColorAt(1.0, QColor(0, 0, 0, 30));
+		sheen.setColorAt(0.0, RackPalette::light(120));
+		sheen.setColorAt(0.5, RackPalette::light(0));
+		sheen.setColorAt(1.0, RackPalette::shadow(30));
 	}
 	painter.fillRect(r, sheen);
 
@@ -65,9 +66,9 @@ void paintToolbarRail(QPainter& painter, const QRect& rect, const QToolBar* tool
 
 	// Machined edges: lit top chamfer, shadowed groove above the QSS border,
 	// so the strip reads as a milled rail rather than a flat band.
-	painter.setPen(QPen(QColor(255, 255, 255, dark ? 36 : 150), 1));
+	painter.setPen(QPen(RackPalette::light(dark ? 36 : 150), 1));
 	painter.drawLine(QPointF(r.left(), r.top() + 0.5), QPointF(r.right(), r.top() + 0.5));
-	painter.setPen(QPen(QColor(0, 0, 0, dark ? 150 : 70), 1));
+	painter.setPen(QPen(RackPalette::shadow(dark ? 150 : 70), 1));
 	painter.drawLine(QPointF(r.left(), r.bottom() - 0.5), QPointF(r.right(), r.bottom() - 0.5));
 
 	// Rail ears with one mounting screw each, painted at the live geometry of
@@ -75,7 +76,7 @@ void paintToolbarRail(QPainter& painter, const QRect& rect, const QToolBar* tool
 	// so the screw never sits under a control). The slot angles differ -
 	// hand-tightened, like the card corners.
 	const uint seed = uint(qHash(QStringLiteral("master-rail")));
-	const QColor earFill(0, 0, 0, dark ? 52 : 20);
+	const QColor earFill = RackPalette::shadow(dark ? 52 : 20);
 	for (const QWidget* spacer : toolBar->findChildren<QWidget*>(QLatin1String(kToolbarEarSpacerName), Qt::FindDirectChildrenOnly))
 	{
 		if (!spacer->isVisible() || spacer->width() < kRailEarWidth - 4)
@@ -89,9 +90,9 @@ void paintToolbarRail(QPainter& painter, const QRect& rect, const QToolBar* tool
 			: QRectF(g.left(), r.top(), r.right() - g.left(), r.height());
 		const qreal grooveX = leftSide ? ear.right() : ear.left();
 		painter.fillRect(ear, earFill);
-		painter.setPen(QPen(QColor(0, 0, 0, dark ? 120 : 60), 1));
+		painter.setPen(QPen(RackPalette::shadow(dark ? 120 : 60), 1));
 		painter.drawLine(QPointF(grooveX, r.top()), QPointF(grooveX, r.bottom()));
-		painter.setPen(QPen(QColor(255, 255, 255, dark ? 26 : 120), 1));
+		painter.setPen(QPen(RackPalette::light(dark ? 26 : 120), 1));
 		painter.drawLine(QPointF(grooveX + (leftSide ? 1 : -1), r.top()), QPointF(grooveX + (leftSide ? 1 : -1), r.bottom()));
 		RackSkinDetail::paintScrew(painter, QPointF(ear.center().x(), r.center().y()), 4.0,
 			qreal((seed + (leftSide ? 0u : 73u)) % 180u), dark);

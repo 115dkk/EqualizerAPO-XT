@@ -20,6 +20,7 @@ SOURCES += \
 HEADERS += \
 	$$PWD/RackSkin.h \
 	$$PWD/RackSkinDetail.h \
+	$$PWD/RackPalette.h \
 	$$PWD/RackFileIcons.h \
 	$$PWD/picker/RackFilterPicker.h \
 	$$PWD/cards/RackReferenceCardView.h \

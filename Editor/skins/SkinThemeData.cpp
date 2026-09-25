@@ -26,6 +26,44 @@
 
 namespace
 {
+// The fallback families behind a skin's body face, in the order the sheets'
+// @FONT_STACK@ lists them. The same list is the substitution chain of
+// "EAPO Sans" (registerBundledFonts), so the sheets and the code cannot
+// drift apart.
+const QStringList& bodyFallbackFamilies()
+{
+	static const QStringList families = {
+		QStringLiteral("EAPO Sans KR"), QStringLiteral("Noto Sans KR"),
+		QStringLiteral("Noto Sans"), QStringLiteral("Malgun Gothic"),
+		QStringLiteral("Microsoft YaHei")
+	};
+	return families;
+}
+
+// The fallback families behind a skin's monospace face, in the order the
+// sheets' @MONO_STACK@ lists them. The substitution chain of "EAPO Mono"
+// (registerBundledFonts) follows the same order; it used to put Consolas
+// first, and the gallery renders identically either way (audit #348 F8).
+const QStringList& monoFallbackFamilies()
+{
+	static const QStringList families = {
+		QStringLiteral("EAPO Mono K"), QStringLiteral("EAPO Sans KR"),
+		QStringLiteral("Consolas"), QStringLiteral("Malgun Gothic")
+	};
+	return families;
+}
+
+// A QSS font-family value: the skin's own face first, then the fallbacks,
+// then the generic family.
+QString fontStack(const QString& family, const QStringList& fallbacks, const QString& generic)
+{
+	QStringList quoted{ QStringLiteral("\"%1\"").arg(family) };
+	for (const QString& fallback : fallbacks)
+		quoted.append(QStringLiteral("\"%1\"").arg(fallback));
+	quoted.append(generic);
+	return quoted.join(QStringLiteral(", "));
+}
+
 // Constitution: docs/skins/studio.md
 SkinTokens studioTokens(bool dark)
 {
@@ -88,7 +126,6 @@ SkinTokens minimalTokens(bool dark)
 	t.channelGroupIndent = 16;
 	t.channelGroupStyle = SkinTokens::TreeLines;
 	t.badgeStyle = SkinTokens::OutlineOnly;
-	t.zebraStripe = true;
 	if (dark)
 	{
 		t.background = QStringLiteral("#191919");
@@ -100,7 +137,6 @@ SkinTokens minimalTokens(bool dark)
 		t.mutedText = QStringLiteral("#777777");
 		t.border = QStringLiteral("#3c3c3c");
 		t.graph = QStringLiteral("#0e0e0e");
-		t.graphGridMajor = QStringLiteral("#383838");
 		t.graphGridMinor = QStringLiteral("#2c2c2c");
 	}
 	else
@@ -114,7 +150,6 @@ SkinTokens minimalTokens(bool dark)
 		t.mutedText = QStringLiteral("#666660");
 		t.border = QStringLiteral("#D2D2CC");
 		t.graph = QStringLiteral("#E0E0E0");
-		t.graphGridMajor = QStringLiteral("#D2D2CC");
 		t.graphGridMinor = QStringLiteral("#DFDFD7");
 	}
 	finishTokens(t);
@@ -133,7 +168,6 @@ SkinTokens softTokens(bool dark)
 	// the five, but no longer half again the compact skins' height.
 	t.rowHeight = 44;
 	t.channelGroupIndent = 20;
-	t.density = 2;
 	t.channelGroupStyle = SkinTokens::SoftShadow;
 	t.badgeStyle = SkinTokens::SoftPill;
 	// The accent and the semantic colours live on the pastel shelf
@@ -324,16 +358,18 @@ void registerBundledFonts(bool includeSarasa)
 		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/SarasaMonoK-Bold.ttf"));
 	}
 
-	const QStringList cjkChain = {
-		QStringLiteral("EAPO Sans KR"), QStringLiteral("Noto Sans KR"),
-		QStringLiteral("Noto Sans"), QStringLiteral("Malgun Gothic"),
-		QStringLiteral("Microsoft YaHei")
-	};
+	const QStringList& cjkChain = bodyFallbackFamilies();
 	QFont::insertSubstitutions(QStringLiteral("EAPO Sans"), cjkChain);
-	QStringList monoChain{ QStringLiteral("Consolas") };
-	if (includeSarasa)
-		monoChain.append(QStringLiteral("EAPO Mono K"));
-	QFont::insertSubstitutions(QStringLiteral("EAPO Mono"), monoChain + cjkChain);
+	// The sheets' mono order, without the Sarasa face a satellite tool does not
+	// register, then the rest of the body chain.
+	QStringList monoChain;
+	for (const QString& family : monoFallbackFamilies())
+		if (includeSarasa || family != QStringLiteral("EAPO Mono K"))
+			monoChain.append(family);
+	for (const QString& family : cjkChain)
+		if (!monoChain.contains(family))
+			monoChain.append(family);
+	QFont::insertSubstitutions(QStringLiteral("EAPO Mono"), monoChain);
 }
 
 const QVector<SkinEntry>& roster()
@@ -417,6 +453,33 @@ SkinTokens tokens(const QString& id, bool dark)
 	return entry(id).tokens(dark);
 }
 
+SkinTokens heritageTokens()
+{
+	// The widget chrome itself comes from the native style, untouched by QSS;
+	// these values only reach the custom painters. Studio donates the values
+	// the block below does not overwrite (metrics, secondary hues).
+	SkinTokens tokens = SkinThemeData::tokens(QStringLiteral("studio"), false);
+	tokens.dark = false;
+	tokens.background = QStringLiteral("#f0f0f0");
+	tokens.surface = QStringLiteral("#ffffff");
+	tokens.surfaceRaised = QStringLiteral("#f5f5f5");
+	tokens.surfaceSunken = QStringLiteral("#e8e8e8");
+	tokens.card = QStringLiteral("#ffffff");
+	tokens.cardHover = QStringLiteral("#f0f6fc");
+	tokens.text = QStringLiteral("#000000");
+	tokens.mutedText = QStringLiteral("#606060");
+	tokens.border = QStringLiteral("#adadad");
+	tokens.graph = QStringLiteral("#ffffff");
+	tokens.graphGridMajor = QStringLiteral("#c8c8c8");
+	tokens.graphGridMinor = QStringLiteral("#e4e4e4");
+	tokens.accent = QStringLiteral("#0078d7");
+	tokens.accent2 = QStringLiteral("#2b88d8");
+	tokens.focusRing = QStringLiteral("#0078d7");
+	tokens.fontFamily = QStringLiteral("Segoe UI");
+	tokens.monoFontFamily = QStringLiteral("Consolas");
+	return tokens;
+}
+
 QString qssResource(const QString& id, bool dark)
 {
 	return QStringLiteral(":/skins/%1_%2.qss")
@@ -451,7 +514,10 @@ QString substituteTokens(QString qss, const SkinTokens& tokens)
 		{ "@DANGER@", tokens.danger },
 		{ "@FOCUS@", tokens.focusRing },
 		{ "@FONT@", tokens.fontFamily },
-		{ "@MONO@", tokens.monoFontFamily }
+		{ "@MONO@", tokens.monoFontFamily },
+		// Whole font-family values: the token face plus the bundled fallbacks.
+		{ "@FONT_STACK@", fontStack(tokens.fontFamily, bodyFallbackFamilies(), QStringLiteral("sans-serif")) },
+		{ "@MONO_STACK@", fontStack(tokens.monoFontFamily, monoFallbackFamilies(), QStringLiteral("monospace")) }
 	};
 	for (const Substitution& s : table)
 	{

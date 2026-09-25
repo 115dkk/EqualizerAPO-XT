@@ -9,6 +9,7 @@
 */
 
 #include "HardwarePatchbayRoutingRenderer.h"
+#include "Editor/skins/rack/RackPalette.h"
 
 #include <QPainter>
 #include <QMouseEvent>
@@ -173,9 +174,9 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 		p.setPen(Qt::NoPen);
 		p.setBrush(dark ? QColor(t.surface).darker(122) : QColor(t.surface).darker(106));
 		p.drawRoundedRect(field, 3, 3);
-		p.setPen(QPen(dark ? QColor(0x0C, 0x10, 0x13) : QColor(0xB8, 0xAC, 0x92), 1));
+		p.setPen(QPen(RackPalette::PatchFieldShadowEdge(dark), 1));
 		p.drawLine(field.left() + 2, field.top(), field.right() - 2, field.top());
-		p.setPen(QPen(dark ? QColor(0x3E, 0x47, 0x4F) : QColor(0xFF, 0xFF, 0xFF), 1));
+		p.setPen(QPen(RackPalette::PatchFieldLitEdge(dark), 1));
 		p.drawLine(field.left() + 2, field.bottom(), field.right() - 2, field.bottom());
 	}
 
@@ -209,35 +210,34 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 		QLinearGradient face(cap.topLeft(), cap.bottomLeft());
 		if (latched)
 		{
-			face.setColorAt(0, dark ? QColor(0x16, 0x1B, 0x20) : QColor(0xD9, 0xD0, 0xBA));
-			face.setColorAt(1, dark ? QColor(0x21, 0x27, 0x2D) : QColor(0xEE, 0xE7, 0xD4));
+			face.setColorAt(0, RackPalette::CapFaceLatchedTop(dark));
+			face.setColorAt(1, RackPalette::CapFaceLatchedBottom(dark));
 		}
 		else
 		{
-			face.setColorAt(0, dark ? QColor(prelit ? 0x34 : 0x2C, prelit ? 0x3C : 0x33, prelit ? 0x44 : 0x3A)
-				: (prelit ? QColor(0xFF, 0xFF, 0xFF) : QColor(0xFB, 0xF7, 0xEC)));
-			face.setColorAt(1, dark ? QColor(0x1B, 0x21, 0x26) : QColor(0xE6, 0xDE, 0xCC));
+			face.setColorAt(0, (prelit ? RackPalette::CapFacePrelitTop : RackPalette::CapFaceTop)(dark));
+			face.setColorAt(1, RackPalette::CapFaceBottom(dark));
 		}
 		p.setBrush(face);
-		p.setPen(QPen(dark ? QColor(0x11, 0x16, 0x1A) : QColor(0xAF, 0xA2, 0x88), 1));
+		p.setPen(QPen(RackPalette::CapOutline(dark), 1));
 		p.drawRoundedRect(cap, 2, 2);
 		if (latched)
 		{
-			p.setPen(QPen(dark ? QColor(0x0C, 0x10, 0x13) : QColor(0xB8, 0xAC, 0x92), 1));
+			p.setPen(QPen(RackPalette::PatchFieldShadowEdge(dark), 1));
 			p.drawLine(cap.left() + 2, cap.top() + 1, cap.right() - 2, cap.top() + 1);
-			p.setPen(QPen(dark ? QColor(0x3E, 0x47, 0x4F) : QColor(0xFF, 0xFF, 0xFF), 1));
+			p.setPen(QPen(RackPalette::PatchFieldLitEdge(dark), 1));
 			p.drawLine(cap.left() + 2, cap.bottom() - 1, cap.right() - 2, cap.bottom() - 1);
 		}
 		else
 		{
-			p.setPen(QPen(dark ? QColor(0x3E, 0x47, 0x4F) : QColor(0xFF, 0xFF, 0xFF), 1));
+			p.setPen(QPen(RackPalette::PatchFieldLitEdge(dark), 1));
 			p.drawLine(cap.left() + 2, cap.top() + 1, cap.right() - 2, cap.top() + 1);
 		}
 		if (!capText.isEmpty())
 		{
-			QColor capInk = dark ? QColor(0xB8, 0xC2, 0xCC) : QColor(0x5A, 0x50, 0x38);
+			QColor capInk = RackPalette::CapLegend(dark);
 			if (prelit || latched)
-				capInk = dark ? QColor(0xE6, 0xEC, 0xF2) : QColor(0x2A, 0x24, 0x14);
+				capInk = RackPalette::CapLegendLit(dark);
 			p.setFont(legend);
 			p.setPen(capInk);
 			p.drawText(cap, Qt::AlignCenter, capText);
@@ -285,14 +285,14 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 				// engraved actuator dimple so the empty position still reads
 				// as a press target.
 				QLinearGradient face(cap.topLeft(), cap.bottomLeft());
-				face.setColorAt(0, dark ? QColor(0x2C, 0x33, 0x3A) : QColor(0xFF, 0xFF, 0xFF));
-				face.setColorAt(1, dark ? QColor(0x1B, 0x21, 0x26) : QColor(0xE6, 0xDE, 0xCC));
+				face.setColorAt(0, RackPalette::BlankCapFaceTop(dark));
+				face.setColorAt(1, RackPalette::CapFaceBottom(dark));
 				p.setBrush(face);
-				p.setPen(QPen(dark ? QColor(0x11, 0x16, 0x1A) : QColor(0xAF, 0xA2, 0x88), 1));
+				p.setPen(QPen(RackPalette::CapOutline(dark), 1));
 				p.drawRoundedRect(cap, 2, 2);
-				p.setPen(QPen(dark ? QColor(0x3E, 0x47, 0x4F) : QColor(0xFF, 0xFF, 0xFF), 1));
+				p.setPen(QPen(RackPalette::PatchFieldLitEdge(dark), 1));
 				p.drawLine(cap.left() + 2, cap.top() + 1, cap.right() - 2, cap.top() + 1);
-				p.setBrush(dark ? QColor(0x11, 0x16, 0x1A) : QColor(0xB8, 0xAC, 0x92));
+				p.setBrush(RackPalette::CapDimple(dark));
 				p.setPen(Qt::NoPen);
 				p.drawEllipse(cap.center() + QPoint(1, 1), 2, 2);
 				continue;
@@ -307,21 +307,21 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 			QColor edge, bevelTop, bevelBottom, ink;
 			if (negative)
 			{
-				face.setColorAt(0, dark ? QColor(0x2A, 0x0E, 0x0C) : QColor(0xE8, 0xA6, 0x9E));
-				face.setColorAt(1, dark ? QColor(0x4A, 0x1D, 0x1C) : QColor(0xF8, 0xD7, 0xD0));
+				face.setColorAt(0, RackPalette::NegativeCapFaceTop(dark));
+				face.setColorAt(1, RackPalette::NegativeCapFaceBottom(dark));
 				edge = QColor(t.danger);
-				bevelTop = dark ? QColor(0x26, 0x08, 0x08) : QColor(0xA3, 0x40, 0x38);
-				bevelBottom = dark ? QColor(0x7A, 0x2E, 0x2A) : QColor(0xFF, 0xE4, 0xDE);
-				ink = dark ? QColor(0xFF, 0xD2, 0xCC) : QColor(0x5C, 0x12, 0x0C);
+				bevelTop = RackPalette::NegativeCapBevelTop(dark);
+				bevelBottom = RackPalette::NegativeCapBevelBottom(dark);
+				ink = RackPalette::NegativeCapLegend(dark);
 			}
 			else
 			{
-				face.setColorAt(0, dark ? QColor(0x24, 0x1B, 0x0C) : QColor(0xE8, 0xC8, 0x87));
-				face.setColorAt(1, dark ? QColor(0x4A, 0x3A, 0x1C) : QColor(0xFB, 0xE9, 0xC2));
+				face.setColorAt(0, RackPalette::RoutedCapFaceTop(dark));
+				face.setColorAt(1, RackPalette::RoutedCapFaceBottom(dark));
 				edge = QColor(t.accent);
-				bevelTop = dark ? QColor(0x2A, 0x20, 0x08) : QColor(0xB9, 0x8F, 0x3E);
-				bevelBottom = dark ? QColor(0x6E, 0x52, 0x1E) : QColor(0xFF, 0xF3, 0xD8);
-				ink = dark ? QColor(0xFF, 0xE9, 0xC8) : QColor(0x4A, 0x2E, 0x00);
+				bevelTop = RackPalette::RoutedCapBevelTop(dark);
+				bevelBottom = RackPalette::RoutedCapBevelBottom(dark);
+				ink = RackPalette::RoutedCapLegend(dark);
 			}
 			p.setBrush(face);
 			p.setPen(QPen(edge, 1));
