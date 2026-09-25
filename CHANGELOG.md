@@ -14,6 +14,22 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The ASIO host keeps a high priority on machines where Windows refuses
+  its audio priority.** EqualizerAPOHost serves ASIO streams on a thread
+  registered with the Pro Audio class of the Multimedia Class Scheduler
+  Service (MMCSS) and busy-waits up to one period for the next block. Where
+  MMCSS is turned off (the SystemResponsiveness registry value is 100), that
+  registration fails and the thread used to run at normal priority while
+  still busy-waiting, which in local tests left 95 of 100 runs with late
+  blocks under load. The thread now runs at time-critical priority there and
+  does not busy-wait (0 of 150 runs late in the same test), and the host log
+  says which of the two applies. The CI check that failed now and then on
+  late blocks ran its test threads at normal priority, unlike the host; it
+  now runs them the way the host does
+  ([#391](https://github.com/115dkk/EqualizerAPO-XT/pull/391)). Whether
+  MMCSS is on for real users with SystemResponsiveness 100 was not checked
+  on such a machine.
+
 ## v2.54.20 — 2026-09-25
 
 - **Copy routing edits follow one rule in every skin.** In the studio skin

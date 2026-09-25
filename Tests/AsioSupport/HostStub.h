@@ -220,6 +220,8 @@ namespace asiotest
 				HANDLE task = AvSetMmThreadCharacteristicsW(L"Pro Audio", &taskIndex);
 				if (task != nullptr)
 					AvSetMmThreadPriority(task, AVRT_PRIORITY_CRITICAL);
+				else      // MMCSS off (SystemResponsiveness 100): what the engine host falls back to
+					SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
 			}
 			if (frames_ <= 0)
 				return;

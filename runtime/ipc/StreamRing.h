@@ -232,6 +232,13 @@ namespace eapo::ipc
 			eapo::asio::Direction direction;
 			uint32_t sequence;
 			float* slot;
+			// For dispatch-latency diagnostics in the same process: the
+			// producer's QueryPerformanceCounter tick at the lane's latest
+			// publish, and how many blocks it published after this one
+			// (nonzero when the consumer is behind, and the tick is then
+			// that later block's).
+			LONGLONG publishTick;
+			uint32_t behind;
 		};
 
 		// Waits for work on either lane, the peer, or the timeout. Lanes are

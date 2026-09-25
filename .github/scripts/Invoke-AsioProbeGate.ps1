@@ -59,14 +59,22 @@ $runs = @(
     # Paced like the pipelined run over the real host below: the fake pumps
     # periods back to back, which leaves the host 10% of a period per block,
     # and the hang bound (eight late periods) then fires after about 2 ms of
-    # host stall instead of 21 ms. A hosted runner stalls that long now and
-    # then (ARM64 on 2026-09-24, x64 the next day). At 48 kHz 128 frames take
-    # 2667 us.
+    # host stall instead of 21 ms. At 48 kHz 128 frames take 2667 us.
+    # The daemon-thread runs serve and pump at the product's priority: MMCSS
+    # Pro Audio on both threads and a one-period spin on the serving one, or
+    # time-critical without the spin where MMCSS refuses (the log's "pro
+    # audio" says which). Until 2026-09-25 both ran at normal priority. Under
+    # load the serving thread then lost its core for 1-4.6 ms at a time,
+    # longer than the period plus spin this case allows, which came out as
+    # late blocks. The 44 ms call in the CI log was the pumping thread
+    # descheduled the same way; in pipelined mode that alone makes nothing
+    # late. --trace-slow names every block whose wake-up, core move or
+    # engine call took a millisecond or more.
     [pscustomobject]@{
         Name = "daemon-thread-pipelined-int24-128"
         Arguments = @("--target", "fake", "--wrapper", "static", "--processor", "daemon-thread", "--config", $config,
             "--frames", "128", "--periods", "150", "--sample-type", "int24", "--mode", "pipelined", "--max-late", "0",
-            "--pace-us", "2667")
+            "--pace-us", "2667", "--trace-slow", "1000")
     },
     # Pipelined-under-burst cannot assert bit-exactness because late periods
     # pass through unprocessed. The capture gate's asio-entry round covers its

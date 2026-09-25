@@ -353,6 +353,8 @@ namespace eapo::ipc
 		out.direction = direction;
 		out.sequence = next;
 		out.slot = reinterpret_cast<float*>(reinterpret_cast<unsigned char*>(header_) + slotOffset_[laneOf(direction)][next & 1]);
+		out.publishTick = header_->publishTick[laneOf(direction)];
+		out.behind = published - next;
 		header_->acquireTick[laneOf(direction)] = static_cast<LONGLONG>(tickNow());
 		return true;
 	}

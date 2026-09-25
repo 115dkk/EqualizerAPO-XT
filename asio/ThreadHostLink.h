@@ -27,8 +27,8 @@ namespace eapo::asio
 	{
 	public:
 		// proAudio lifts the serving thread to the MMCSS Pro Audio class,
-		// as the real host does; the tests leave it off.
-		explicit ThreadHostLink(bool proAudio = false);
+		// as the real host does; traceSlowUs is a probe-only diagnostic.
+		explicit ThreadHostLink(bool proAudio = false, uint32_t traceSlowUs = 0);
 		~ThreadHostLink() override;
 
 		ThreadHostLink(const ThreadHostLink&) = delete;
@@ -54,5 +54,6 @@ namespace eapo::asio
 		std::atomic<bool> kill_{false};
 		std::atomic<bool> hold_{false};
 		bool proAudio_;
+		uint32_t traceSlowUs_;
 	};
 }
