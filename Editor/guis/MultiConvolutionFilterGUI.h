@@ -37,6 +37,7 @@ public:
 	MultiConvolutionFilterGUI(const QString& configPath, const QString& mappingsText, const QString& path);
 
 	void store(QString& command, QString& parameters) override;
+	void configureChannels(std::vector<std::wstring>& channelNames) override;
 
 private slots:
 	void selectFile();

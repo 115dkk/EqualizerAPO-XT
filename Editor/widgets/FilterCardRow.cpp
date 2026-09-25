@@ -29,6 +29,7 @@
 #include "Editor/widgets/ElidedLabel.h"
 #include "Editor/widgets/routing/IRoutingRenderer.h"
 #include "Editor/widgets/routing/CopyRoutingAdapter.h"
+#include "filters/MultiConvolutionCommand.h"
 
 namespace
 {
@@ -386,6 +387,16 @@ void FilterCardRow::configureChannels(std::vector<std::wstring>& channelNames)
 
 	if (gui != nullptr)
 		gui->configureChannels(channelNames);
+
+	// A MultiConvolution line declares its targets as channels, as Copy does,
+	// so a line below it can select one (audit #348 A2). A switched-off line
+	// declares nothing: the engine never runs it.
+	if (descriptor.type == QStringLiteral("multiconvolution") && descriptor.enabled)
+	{
+		MultiConvolutionCommand parsed;
+		if (MultiConvolutionCommand::parse(L"MultiConvolution", descriptor.parameters.toStdWString(), parsed))
+			parsed.declareChannels(channelNames);
+	}
 }
 
 void FilterCardRow::configureSelectedChannels(std::vector<std::wstring>& selectedChannels)

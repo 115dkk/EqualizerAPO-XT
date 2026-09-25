@@ -75,19 +75,16 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 	plans.assign(mappings.size(), MappingPlan{0, -1, 0, 0});
 	for (size_t i = 0; i < mappings.size(); i++)
 	{
-		wstring channelName = mappings[i].targetChannel;
-		int channelIndex = ChannelLayout::getChannelIndex(channelName, channelNames, true);
-		if (channelIndex != -1)
-			channelName = channelNames[channelIndex];
+		const ChannelLayout::Target target = ChannelLayout::resolveTarget(mappings[i].targetChannel, channelNames);
 
-		vector<wstring>::const_iterator it = find(outChannelNames.begin(), outChannelNames.end(), channelName);
+		vector<wstring>::const_iterator it = find(outChannelNames.begin(), outChannelNames.end(), target.name);
 		plans[i].outputSlot = (unsigned)(it - outChannelNames.begin());
 		if (it == outChannelNames.end())
-			outChannelNames.push_back(channelName);
+			outChannelNames.push_back(target.name);
 
 		// The mapping convolves its target's own pre-command signal; a target
 		// that does not exist yet reads silence.
-		plans[i].inputChannel = channelIndex;
+		plans[i].inputChannel = target.index;
 	}
 
 	// Shared IR intake + cache (IrCache.cpp): validates the file, deinterleaves

@@ -9,6 +9,7 @@
 	back into that target, independent of the Channel command's selection.
 */
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <sstream>
@@ -560,6 +561,40 @@ void assertCommandSerializeRoundTrips()
 }
 } // namespace
 
+// Audit #348 A2: the Editor learns a MultiConvolution line's new channels
+// from MultiConvolutionCommand::declareChannels. It must give the list the
+// engine builds: the filter's declared outputs appended by name, the way
+// FilterEngine::addFilters appends them.
+void assertEditorDeclaresTheEnginesChannels()
+{
+	vector<double> ir0(frameLength, 0.0);
+	ir0[0] = 1.0;
+	vector<double> ir1(frameLength, 0.0);
+	ir1[0] = 1.0;
+
+	MultiConvolutionCommand command;
+	command.mappings = {{L"Wet", {0}}, {L"2", {1}}, {L"SUB", {0}}, {L"Wet", {1}}, {L"Dry", {1}}};
+	const vector<wstring> device = {L"L", L"R", L"C", L"LFE"};
+
+	vector<wstring> editor = device;
+	command.declareChannels(editor);
+
+	const wstring irFile = createMultiChannelIr({ir0, ir1});
+	MultiConvolutionFilter filter(command.mappings, irFile);
+	const vector<wstring> outputs = filter.initialize((float)sampleRate, frameLength, device);
+	DeleteFileW(irFile.c_str());
+	vector<wstring> engine = device;
+	for (const wstring& name : outputs)
+	{
+		if (std::find(engine.begin(), engine.end(), name) == engine.end())
+			engine.push_back(name);
+	}
+
+	harness.expectTrue(editor == engine, "the Editor's channel list after the line is the engine's");
+	harness.expectTrue(editor == vector<wstring>({L"L", L"R", L"C", L"LFE", L"Wet", L"Dry"}),
+		"new targets are added once, in order; a number and an alias name existing channels");
+}
+
 void runMultiConvolutionTests()
 {
 	assertMismatchIsLoggedAndProfiled();
@@ -574,5 +609,6 @@ void runMultiConvolutionTests()
 	assertFactorGrammarParses();
 	assertFactorScalesConvolutionResult();
 	assertCommandSerializeRoundTrips();
+	assertEditorDeclaresTheEnginesChannels();
 	harness.report();
 }
