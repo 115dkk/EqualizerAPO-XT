@@ -237,3 +237,37 @@ if ($uncalled.Count -gt 0) {
   throw "A test function in a shared-harness suite is never called."
 }
 Write-Host "All $checkedTestFunctions test functions of the shared-harness suites are called."
+
+# Audit #348 TD-80: docs/EnvironmentVariables.md calls itself the one list of
+# EAPO_* variables, and ten the code reads were missing from it. Every EAPO_*
+# name a C++ source reads from the environment must be written there.
+$environmentDoc = Join-Path $RepoRoot "docs" "EnvironmentVariables.md"
+if (Test-Path -LiteralPath $environmentDoc) {
+  $documented = Get-Content -LiteralPath $environmentDoc -Raw
+  $readPattern = '(?:qEnvironmentVariable\w*|qgetenv|GetEnvironmentVariableW?|_wgetenv|getenv)\(\s*(?:QStringLiteral\()?L?"(EAPO_[A-Z0-9_]+)"'
+  $sources = @()
+  if (Get-Command git -ErrorAction SilentlyContinue) {
+    $sources = @(& git -C $RepoRoot ls-files -- '*.cpp' '*.h' 2>$null)
+    if ($LASTEXITCODE -ne 0) { $sources = @() }
+  }
+  if ($sources.Count -eq 0) {
+    $sources = @(Get-ChildItem -LiteralPath $RepoRoot -Recurse -File -Include '*.cpp', '*.h' |
+      ForEach-Object { [System.IO.Path]::GetRelativePath($RepoRoot, $_.FullName) })
+  }
+  $read = @{}
+  foreach ($source in $sources) {
+    $text = Get-Content -LiteralPath (Join-Path $RepoRoot $source) -Raw
+    if ($null -eq $text -or $text -notmatch 'EAPO_') { continue }
+    foreach ($match in [regex]::Matches($text, $readPattern)) {
+      $read[$match.Groups[1].Value] = $source -replace '\\', '/'
+    }
+  }
+  $undocumented = @($read.Keys | Where-Object { $documented -notmatch ('\b' + [regex]::Escape($_) + '\b') } | Sort-Object)
+  foreach ($name in $undocumented) {
+    Write-Host "::error file=docs/EnvironmentVariables.md::$($read[$name]) reads $name from the environment, but docs/EnvironmentVariables.md does not list it."
+  }
+  if ($undocumented.Count -gt 0) {
+    throw "An EAPO_* environment variable the code reads is missing from docs/EnvironmentVariables.md."
+  }
+  Write-Host "All $($read.Count) EAPO_* environment variables the code reads are listed in docs/EnvironmentVariables.md."
+}

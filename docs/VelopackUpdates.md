@@ -1,6 +1,6 @@
 # Velopack Update Checks
 
-EqualizerAPO-XT publishes installers through the Velopack release job in GitHub Actions. Velopack creates channel-specific assets such as `releases.x64-avx2.json`, `EqualizerAPO-XT-x64-avx2-...-full.nupkg`, and `EqualizerAPO-XT-x64-avx2-Setup.exe`.
+EqualizerAPO-XT publishes installers through the Velopack release job in GitHub Actions. Velopack creates channel-specific assets such as `releases.x64-avx2.json`, `EqualizerAPO-XT-x64-avx2-<version>-x64-avx2-full.nupkg`, and `EqualizerAPO-XT-x64-avx2-x64-avx2-Setup.exe` (the channel appears twice because Velopack appends it to a pack id that already carries it; `.github/scripts/ReleaseAssets.psm1` owns the spelling).
 
 The Editor's in-app Velopack update (below) is the only update path. It reads the channel's feed, `releases.<channel>.json`, from the latest GitHub Release of `115dkk/EqualizerAPO-XT`. The standalone `UpdateChecker.exe`, a notify-only tool that nothing started automatically after the NSIS installer left (audit #250 F073), was removed in audit #348.
 
