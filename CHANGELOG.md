@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.12 — 2026-09-25
+
 - **An endpoint's "Use in ASIO apps" entry notices an unplugged device.** When
   the device behind the entry disappeared (a USB DAC pulled out), the stream
   kept waiting for it and the ASIO app heard nothing until it was restarted.
