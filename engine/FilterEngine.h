@@ -29,6 +29,7 @@
 #include <windows.h>
 
 #include "IFilterFactory.h"
+#include "ChannelRoutingPlan.h"
 #include "FilterConfiguration.h"
 #include "ConfigSwapChannel.h"
 #include "parser/EngineParser.h"
@@ -202,17 +203,15 @@ private:
 	struct LoadSession
 	{
 		std::vector<std::unique_ptr<FilterInfo>> filterInfos;
-		std::vector<std::wstring> currentChannelNames;
-		std::vector<std::wstring> lastChannelNames;
-		std::vector<std::wstring> lastNewChannelNames;
-		std::vector<std::wstring> allChannelNames;
+		// Which channel names each filter sees and where its buffers sit
+		// (audit #348 F1); its lastInPlace carries across loads.
+		ChannelRoutingPlan routing;
 		std::unordered_set<std::wstring> watchRegistryKeys;
 		// Position of the line loadConfigFile is currently feeding to the
 		// factories; saved/restored across Include recursion like the
 		// channel names. Only meaningful while a sink is attached.
 		std::wstring traceFile;
 		int traceLine = 0;
-		bool lastInPlace = false;
 		bool frozenDynamicAnalysis = false;
 	};
 	LoadSession load;
