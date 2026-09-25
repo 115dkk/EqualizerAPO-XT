@@ -26,7 +26,6 @@ CONFIG += object_parallel_to_source no_batch
 
 PRECOMPILED_HEADER = stable.h
 QMAKE_CXXFLAGS_WARN_ON -= -w34100
-QMAKE_LFLAGS += /STACK:32000000
 QMAKE_CXXFLAGS_RELEASE += /O2
 
 DEFINES += _UNICODE
@@ -122,7 +121,7 @@ SOURCES += main.cpp\
 	helpers/GUIHelper.cpp \
 	helpers/PanelFeedEngine.cpp \
 	helpers/PanelPreviewFeeder.cpp \
-	helpers/QtAppBootstrap.cpp \
+	../platform/qt/QtAppBootstrap.cpp \
 	helpers/VstChunkScan.cpp \
 	widgets/ResizingLineEdit.cpp \
 	widgets/ChannelGraphScene.cpp \
@@ -391,13 +390,13 @@ HEADERS  += \
 	../parser/LogicalOperators.h \
 	IFilterGUIFactory.h \
 	FilterGUIFactoryRegistry.h \
-	helpers/EditorSettings.h \
+	../services/settings/EditorSettings.h \
 	helpers/GUIHelper.h \
 	helpers/PanelFeedEngine.h \
 	helpers/PanelMonitorGate.h \
 	helpers/PanelPreviewFeeder.h \
 	helpers/WindowFrameHitTest.h \
-	helpers/QtAppBootstrap.h \
+	../platform/qt/QtAppBootstrap.h \
 	helpers/VstChunkScan.h \
 	stable.h \
 	IFilterGUI.h \

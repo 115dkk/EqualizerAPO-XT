@@ -30,7 +30,7 @@
 #include <windowsx.h>
 
 #include "Editor/widgets/TitleBar.h"
-#include "Editor/helpers/EditorSettings.h"
+#include "services/settings/EditorSettings.h"
 #include "Editor/helpers/WindowFrameHitTest.h"
 #include "MainWindow.h"
 #include "ui_MainWindow.h"

@@ -75,10 +75,10 @@
 #include "services/update/VelopackBootstrap.h"
 #include "dsp/FftwPlanningPolicy.h"
 #include "version.h"
-#include "helpers/QtAppBootstrap.h"
+#include "platform/qt/QtAppBootstrap.h"
 #include "Editor/helpers/CrashHandler.h"
 #include "Editor/helpers/GUIHelper.h"
-#include "Editor/helpers/EditorSettings.h"
+#include "services/settings/EditorSettings.h"
 #include "Editor/skins/SkinThemeData.h"
 
 

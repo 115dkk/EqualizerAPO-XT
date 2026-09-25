@@ -29,7 +29,7 @@
 
 #include "Editor/analysis/AnalysisMetric.h"
 #include "Editor/analysis/AnalysisViewController.h"
-#include "Editor/helpers/EditorSettings.h"
+#include "services/settings/EditorSettings.h"
 #include "services/registry/RegistryPaths.h"
 #include "Editor/widgets/EqGraphView.h"
 #include "Editor/widgets/SegmentedControl.h"

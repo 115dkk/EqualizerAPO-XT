@@ -36,7 +36,7 @@
 #include "Editor/AnalysisThread.h"
 #include "Editor/widgets/EqGraphView.h"
 #include "services/registry/WindowsRegistry.h"
-#include "Editor/helpers/EditorSettings.h"
+#include "services/settings/EditorSettings.h"
 
 namespace Ui {
 class MainWindow;

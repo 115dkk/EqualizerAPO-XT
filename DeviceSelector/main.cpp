@@ -44,8 +44,8 @@
 #include <services/windows/WindowsService.h>
 #include "PreviewDevices.h"
 #include "skins/DeviceSkinPainter.h"
-#include "Editor/helpers/QtAppBootstrap.h"
-#include "Editor/helpers/EditorSettings.h"
+#include "platform/qt/QtAppBootstrap.h"
+#include "services/settings/EditorSettings.h"
 #include "Editor/skins/SkinThemeData.h"
 #include "services/install/ApoRegistration.h"
 #include "services/diagnostics/InstallDiagnostics.h"
