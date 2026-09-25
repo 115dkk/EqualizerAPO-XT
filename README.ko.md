@@ -14,12 +14,11 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
 
 지금 진행 중인 작업은 다음과 같습니다.
 
-1. 변형별 릴리스 채널을 단일 바이너리 런타임 SIMD dispatch로 대체합니다([docs/RuntimeDispatchEpic.md](docs/RuntimeDispatchEpic.md)).
-2. 격주 자동 코드 감사가 찾아낸 문제를 처리합니다. 미뤄 두었던 아키텍처
+1. 격주 자동 코드 감사가 찾아낸 문제를 처리합니다. 미뤄 두었던 아키텍처
    작업으로 업데이트 세션의 테스트 이음새, 깊어진 픽커·카드 기반, 루트 헬퍼
    짬통을 대신하는 도메인 모듈까지 마련했습니다
    ([#264](https://github.com/115dkk/EqualizerAPO-XT/pull/264)).
-3. 커뮤니티 피드백 라운드를 반영해 Editor 스킨을 다듬습니다. 다섯 스킨은
+2. 커뮤니티 피드백 라운드를 반영해 Editor 스킨을 다듬습니다. 다섯 스킨은
    공용 동작을 유지하면서 시각 작업이 각 스킨 안에 머물도록 전용 모듈과 자동
    경계 검사를 갖췄습니다. 최근 작업에서는 오른쪽 분석 그래프의 처음 너비를
    균형 있게 잡고, 마우스로 바꾼 카드 선택과 포커스가 어긋나지 않게 했습니다
@@ -28,17 +27,17 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
    앞선 라운드에서는 Soft 파스텔 재작업, 다크 모드 상태 대비, 분석 패널 한칸
    배치, 그래픽 EQ 모던 카드, 카드 추가·삽입 계약, Device Selector 스킨
    동기화를 다뤘습니다([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172)).
-4. 위상과 시간. 분석 그래프가 크기·위상·그룹 지연을 전환하고, 올패스 필터에 전용 카드와 1차 섹션이 생겼으며, `Delay`와 올패스가 픽커의 'Phase & Time' 분류로 묶였습니다. 올패스는 음량을 전혀 바꾸지 않으므로 크기만 그리는 그래프로는 볼 수 없는 필터였습니다([#228](https://github.com/115dkk/EqualizerAPO-XT/issues/228), [docs/features/phase-and-time.md](docs/features/phase-and-time.md)).
-5. 프로그래밍 계열 설정 명령(`If:`/`ElseIf:`/`Else:`/`EndIf:`/`Eval:`) 전용 에디터 — 완료. 다섯 스킨이 분석 판정으로 블록을 각자의 계기로 표현하고, 픽커가 이 명령들을 삽입하며, 계수 직접 입력 IIR 줄과 백틱 인라인 식이 든 줄도 각자의 카드를 유지합니다([#178](https://github.com/115dkk/EqualizerAPO-XT/pull/178), [#182](https://github.com/115dkk/EqualizerAPO-XT/pull/182), [#183](https://github.com/115dkk/EqualizerAPO-XT/pull/183), [#184](https://github.com/115dkk/EqualizerAPO-XT/pull/184)).
-6. 서브우퍼 라우팅([#246](https://github.com/115dkk/EqualizerAPO-XT/issues/246)) — 핵심 기능은 완료됐습니다. `SubwooferRouting:` 명령, MIT SubwooferRoutingCore DSP 라이브러리, 독립 실행형 VST3 플러그인, 4.1 호스트 협상 수정, 다섯 스킨 각각의 카드 계기, 그리고 두 라우팅 행렬과 응답 뷰를 갖춘 전체 편집기까지 들어갔습니다. 남은 후속 작업은 연결된 프로필 파일로의 변경 사항 되쓰기(현재는 행을 인라인 상태로 전환), audition/solo 오버라이드, 새 문자열의 한국어 번역, 전용 VST3 편집기 화면(현재는 호스트의 일반 파라미터 화면)입니다.
-7. VST3 버스 레이아웃 명시([#216](https://github.com/115dkk/EqualizerAPO-XT/issues/216)) — 비대칭 입출력, 4.1, 엄격한 실패 처리, VST2에서의 조용한 무시를 포함한 백엔드 `VSTPlugin:` `Input`/`Output` 문법과 결정적 호스트 테스트를 마쳤습니다. Qt Editor에도 플러그인 이름 옆에 Input/Output 선택기가 들어갔습니다. 다섯 스킨이 각자의 시각 언어로 그리고, 판정 램프가 실제 체결된 버스를 알려 주며, VST2 잠금·잔존 키 제거와 구형 `StereoInput` 이전까지 처리합니다([#265](https://github.com/115dkk/EqualizerAPO-XT/pull/265)). 이번 라운드에서는 협상된 슬롯에 임의 설정 채널을 넣는 슬롯별 채널 채우기(`InputChannels`/`OutputChannels`, 지정하지 않은 채널은 그대로 통과)와 레거시 행의 Input/Output 드롭다운이 들어갔고([#290](https://github.com/115dkk/EqualizerAPO-XT/pull/290)), 채우기 목록의 편집기가 모든 스킨에 들어갔습니다. 카드 안의 레일 두 줄이 슬롯별 채널 드롭다운을 들고 라인의 `Channel:`/`Copy:` 흐름을 따르며, 양쪽 레일이 있으면 접기 스위치가 붙고, 레거시 표시에는 콤보 행이 들어갑니다([#292](https://github.com/115dkk/EqualizerAPO-XT/pull/292)).
-8. ASIO([#310](https://github.com/115dkk/EqualizerAPO-XT/issues/310)) —
+3. 위상과 시간. 분석 그래프가 크기·위상·그룹 지연을 전환하고, 올패스 필터에 전용 카드와 1차 섹션이 생겼으며, `Delay`와 올패스가 픽커의 'Phase & Time' 분류로 묶였습니다. 올패스는 음량을 전혀 바꾸지 않으므로 크기만 그리는 그래프로는 볼 수 없는 필터였습니다([#228](https://github.com/115dkk/EqualizerAPO-XT/issues/228), [docs/features/phase-and-time.md](docs/features/phase-and-time.md)).
+4. 프로그래밍 계열 설정 명령(`If:`/`ElseIf:`/`Else:`/`EndIf:`/`Eval:`) 전용 에디터 — 완료. 다섯 스킨이 분석 판정으로 블록을 각자의 계기로 표현하고, 픽커가 이 명령들을 삽입하며, 계수 직접 입력 IIR 줄과 백틱 인라인 식이 든 줄도 각자의 카드를 유지합니다([#178](https://github.com/115dkk/EqualizerAPO-XT/pull/178), [#182](https://github.com/115dkk/EqualizerAPO-XT/pull/182), [#183](https://github.com/115dkk/EqualizerAPO-XT/pull/183), [#184](https://github.com/115dkk/EqualizerAPO-XT/pull/184)).
+5. 서브우퍼 라우팅([#246](https://github.com/115dkk/EqualizerAPO-XT/issues/246)) — 핵심 기능은 완료됐습니다. `SubwooferRouting:` 명령, MIT SubwooferRoutingCore DSP 라이브러리, 독립 실행형 VST3 플러그인, 4.1 호스트 협상 수정, 다섯 스킨 각각의 카드 계기, 그리고 두 라우팅 행렬과 응답 뷰를 갖춘 전체 편집기까지 들어갔습니다. 남은 후속 작업은 연결된 프로필 파일로의 변경 사항 되쓰기(현재는 행을 인라인 상태로 전환), audition/solo 오버라이드, 새 문자열의 한국어 번역, 전용 VST3 편집기 화면(현재는 호스트의 일반 파라미터 화면)입니다.
+6. VST3 버스 레이아웃 명시([#216](https://github.com/115dkk/EqualizerAPO-XT/issues/216)) — 비대칭 입출력, 4.1, 엄격한 실패 처리, VST2에서의 조용한 무시를 포함한 백엔드 `VSTPlugin:` `Input`/`Output` 문법과 결정적 호스트 테스트를 마쳤습니다. Qt Editor에도 플러그인 이름 옆에 Input/Output 선택기가 들어갔습니다. 다섯 스킨이 각자의 시각 언어로 그리고, 판정 램프가 실제 체결된 버스를 알려 주며, VST2 잠금·잔존 키 제거와 구형 `StereoInput` 이전까지 처리합니다([#265](https://github.com/115dkk/EqualizerAPO-XT/pull/265)). 이번 라운드에서는 협상된 슬롯에 임의 설정 채널을 넣는 슬롯별 채널 채우기(`InputChannels`/`OutputChannels`, 지정하지 않은 채널은 그대로 통과)와 레거시 행의 Input/Output 드롭다운이 들어갔고([#290](https://github.com/115dkk/EqualizerAPO-XT/pull/290)), 채우기 목록의 편집기가 모든 스킨에 들어갔습니다. 카드 안의 레일 두 줄이 슬롯별 채널 드롭다운을 들고 라인의 `Channel:`/`Copy:` 흐름을 따르며, 양쪽 레일이 있으면 접기 스위치가 붙고, 레거시 표시에는 콤보 행이 들어갑니다([#292](https://github.com/115dkk/EqualizerAPO-XT/pull/292)).
+7. ASIO([#310](https://github.com/115dkk/EqualizerAPO-XT/issues/310)) —
    머지됐습니다([#314](https://github.com/115dkk/EqualizerAPO-XT/pull/314)). 래퍼
    드라이버, 엔진 호스트 프로세스, 둘 사이의 링, 장치 기록, 장치 선택기 옵션, CI
    게이트가 들어갔고, CI의 가짜 드라이버와 Topping USB Audio Device(장치 선택기로
    항목을 등록한 뒤 DAW가 여는 방식 그대로 열어서)로 검증했습니다. 남은 것은
    더 많은 DAW에서의 구동과 ARM64 기기에서 x64 DAW가 읽을 x64 항목입니다.
-9. 녹음 장치([#321](https://github.com/115dkk/EqualizerAPO-XT/pull/321)) —
+8. 녹음 장치([#321](https://github.com/115dkk/EqualizerAPO-XT/pull/321)) —
    마이크에 EQ도 VST도 적용되지 않는다는 제보가 출발점입니다. 이제 이 경로는
    빌드마다 측정됩니다. CI 게이트가 가상 케이블 드라이버를 설치하고, 장치
    선택기로 녹음 쪽에 APO를 등록한 뒤, 녹음 앱이 설정한 프리앰프를 듣는지
@@ -47,7 +46,7 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
    EQ가 닿습니다. "(실험적)" 표기는 없앴습니다. 남은 것은 제보자의 환경을 모른다는
    점이며, 그 환경에서 돌려 볼 프로브는
    [docs/features/capture.md](docs/features/capture.md)에 있습니다.
-10. WASAPI 독점 모드([#325](https://github.com/115dkk/EqualizerAPO-XT/pull/325)) —
+9. WASAPI 독점 모드([#325](https://github.com/115dkk/EqualizerAPO-XT/pull/325)) —
    독점 모드 스트림은 APO에 닿지 않으므로, ASIO 래퍼에 두 번째 종류의 대상을
    붙였습니다. 어떤 Windows 엔드포인트든 WASAPI 독점 모드로 열어 ASIO 응용
    프로그램에 제공하며, 장치 선택기의 그 엔드포인트 행에서 켭니다. 가상
@@ -112,12 +111,12 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
 
 프로젝트는 Visual Studio, Qt, Velopack과 몇 가지 외부 라이브러리를 사용합니다. [setup-build.ps1](setup-build.ps1)을 실행하면 로컬 빌드에 필요한 것(바이너리 의존성, 헤더 전용 체크아웃, Qt 6.10.1)이 모두 준비됩니다. 수동 배치 방법은 [docs/LocalDependencySetup.md](docs/LocalDependencySetup.md)에 있습니다.
 
-포크된 의존성 저장소는 다음과 같습니다.
+미리 빌드된 의존성은 아래 저장소에서 받습니다. 이 저장소들은 TheFireKahuna가 같은 태그로 올린 릴리스를 바이트 단위로 똑같이 옮겨 둔 것이고, 각 파일의 SHA-256은 `.github/simd-variants.psd1`에 고정되어 있습니다.
 
-- [AOCL-FFTW 5.1 / FFTW 3.3.10](https://github.com/thefirekahuna/amd-fftw)
-- [muparserx 4.0.13](https://github.com/thefirekahuna/muparserx)
-- [libsndfile 1.2.2](https://github.com/thefirekahuna/libsndfile)
-- [tclap 1.2.5](https://github.com/thefirekahuna/tclap)
+- [AOCL-FFTW 5.1 / FFTW 3.3.10](https://github.com/115dkk/amd-fftw)
+- [muparserx 4.0.13](https://github.com/115dkk/muparserx)
+- [libsndfile 1.2.2](https://github.com/115dkk/libsndfile)
+- [tclap 1.2.5](https://github.com/115dkk/tclap) (헤더 전용, 고정 커밋으로 체크아웃)
 
 헤더 전용 의존성 두 개는 저장소에 넣지 않고 체크아웃합니다. [Google Highway](https://github.com/google/highway)는 `deps/highway`에, Steinberg [VST3 pluginterfaces](https://github.com/steinbergmedia/vst3_pluginterfaces)는 `deps/vst3sdk/pluginterfaces`에 둡니다.
 
@@ -154,7 +153,13 @@ Qt 도구는 CI에서도, 문서화된 로컬 설정에서도 qmake로 빌드합
 
 ## 테스트
 
-`Tests/`에는 프로젝트 일곱 개가 있습니다. `EditorLogicTests`와 `HybridConvTests`(단위 테스트), `EngineOrchestrationTests`(엔진 라우팅과 설정 교체 동작), `AudioRegressionTests`(엔진 출력을 커밋된 참조 데이터와 비교하며, CI에서는 SIMD 변형별로도 실행), `TestVst2Plugin`/`TestVst3Plugin`(VST2·VST3 호스트를 런타임에 시험하기 위한 자체 빌드 플러그인), 그리고 `VstPreviewProbe`(플러그인 패널의 라이브 오디오 프리뷰 전제를 실제 엔드포인트에서 검증하는 `vst3-preview-probe` 워크플로우용 수동 콘솔 하니스)입니다. 변형별 테스트 정책은 [docs/SimdBuildMatrix.md](docs/SimdBuildMatrix.md)에 함께 있습니다.
+`Tests/`에는 테스트 스위트, 스위트가 불러 쓰는 픽스처, CI가 돌리는 프로브가 있습니다.
+
+- **스위트:** `EditorLogicTests`와 `HybridConvTests`(단위 테스트), `EngineOrchestrationTests`(엔진 라우팅, 설정 교체, 장치와 레지스트리 동작), `AudioRegressionTests`(엔진 출력을 커밋된 기준값과 비교하며 CI에서는 SIMD 변형끼리도 비교), `AsioTests`(ASIO 래퍼, 호스트 연결, 엔진 호스트)가 있습니다.
+- **픽스처:** `TestVst2Plugin`과 `TestVst3Plugin`(VST2·VST3 호스트를 시험하는 자체 플러그인), `FakeAsioDriver`(래퍼 테스트용 ASIO 드라이버), `AsioSupport`(공용 테스트 헤더)가 있습니다.
+- **프로브:** `VstPreviewProbe`(`vst3-preview-probe` 워크플로가 실제 엔드포인트에서 패널 실시간 미리 듣기를 확인), `AsioProbe`(ASIO 프로브 게이트), 가상 케이블 러너에서 캡처 게이트를 돌리는 `ApoHostProbe`와 `CaptureProbe`가 있습니다.
+
+변형별 테스트 정책은 [docs/SimdBuildMatrix.md](docs/SimdBuildMatrix.md)에 있습니다.
 
 ## 라이선스
 

@@ -357,55 +357,17 @@ jobs:
       # The gate is the manifest's per-variant RunnerCanExecute flag.
       if: matrix.can_execute == true
       shell: pwsh
+      # The verify/record decision lives in Invoke-AudioRegression.ps1
+      # (audit #348 TD-75), where Pester pins it. Regeneration is an explicit
+      # workflow_dispatch decision (audit #275 TD-08), empty on push and
+      # pull_request events, which therefore always verify.
       run: |
-        $variant = "${{ matrix.simd_variant }}"
-        $platform = "${{ matrix.platform }}"
-        $exe = "${{ github.workspace }}\Tests\AudioRegressionTests\$platform\Release\AudioRegressionTests.exe"
-        if (-not (Test-Path $exe)) {
-          Write-Error "AudioRegressionTests executable not found at $exe"
-          exit 1
-        }
-
-        $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:MUPARSERX_LIB;$env:PATH"
-
-        $repoRefDir = "${{ github.workspace }}\Tests\AudioRegressionTests\references"
-        $hasRefs = Test-Path (Join-Path $repoRefDir "cases.json")
-        # The primary (reference-seeding) variant is flagged in simd-variants.psd1.
-        $isPrimary = "${{ matrix.primary }}" -eq "true"
-        # Seeding is an explicit workflow_dispatch decision (audit #275 TD-08).
-        # Empty on push/pull_request events, which therefore always verify.
-        $regenerate = "${{ inputs.regenerate_references }}" -eq "true"
-
-        Push-Location "${{ github.workspace }}\Tests\AudioRegressionTests"
-        try {
-          if ($regenerate) {
-            if ($isPrimary) {
-              Write-Host "::warning::regenerate_references was requested; primary variant '$variant' is RE-RECORDING the golden references instead of verifying against them. See Tests/AudioRegressionTests/references/README.md before committing the result."
-            } else {
-              Write-Host "::warning::regenerate_references was requested; recording variant output only (non-primary variant '$variant')"
-            }
-            & $exe --variant $variant --config-dir configs --ref-dir references --out-dir output --generate-references
-            if ($LASTEXITCODE -ne 0) {
-              Write-Error "AudioRegressionTests reference generation failed for variant '$variant'"
-              exit $LASTEXITCODE
-            }
-          } else {
-            if (-not $hasRefs) {
-              # Never fall back to seeding implicitly: a deleted or renamed
-              # reference set must fail the gate, not re-record it.
-              Write-Error "references/cases.json is missing and regenerate_references was not requested. Restore the committed reference set, or dispatch the workflow with regenerate_references=true if re-recording is genuinely intended."
-              exit 1
-            }
-            Write-Host "Running verify mode for variant '$variant'"
-            & $exe --variant $variant --config-dir configs --ref-dir references --out-dir output
-            if ($LASTEXITCODE -ne 0) {
-              Write-Error "AudioRegressionTests verify failed for variant '$variant'"
-              exit $LASTEXITCODE
-            }
-          }
-        } finally {
-          Pop-Location
-        }
+        & "${{ github.workspace }}\.github\scripts\Invoke-AudioRegression.ps1" `
+          -WorkspaceRoot "${{ github.workspace }}" `
+          -Platform "${{ matrix.platform }}" `
+          -SimdVariant "${{ matrix.simd_variant }}" `
+          -Primary:$("${{ matrix.primary }}" -eq "true") `
+          -Regenerate:$("${{ inputs.regenerate_references }}" -eq "true")
 
     - name: Upload audio regression outputs
       if: matrix.can_execute == true
@@ -558,34 +520,24 @@ jobs:
         name: card-selection
         path: card-selection/*
 
-    # Pull the debug symbols out of the release dirs so the installers stay
-    # lean, and keep them as a run artifact: field crash minidumps written by
-    # the Editor's CrashHandler can only be symbolized against the PDB of the
-    # exact shipped binary.
+    # Keep the debug symbols of every shipped program as a run artifact:
+    # field crash minidumps can only be symbolized against the PDB of the
+    # exact shipped binary. The list comes from Package-Artifacts.ps1's plan,
+    # and a missing PDB fails the step (audit #348 TD-75).
     - name: Collect debug symbols
       shell: pwsh
       run: |
-        $symDir = "${{ github.workspace }}\symbols"
-        New-Item -ItemType Directory -Force -Path $symDir | Out-Null
-        foreach ($app in @("Editor", "DeviceSelector")) {
-          $pdb = "build-$app-${{ matrix.platform }}\release\$app.pdb"
-          if (Test-Path $pdb) {
-            Move-Item $pdb (Join-Path $symDir "$app.pdb") -Force
-          } else {
-            Write-Warning "$pdb not found (force_debug_info missing?)"
-          }
-        }
-        $apoPdb = "EqualizerAPO\${{ matrix.platform }}\Release\EqualizerAPO.pdb"
-        if (Test-Path $apoPdb) {
-          Copy-Item $apoPdb (Join-Path $symDir "EqualizerAPO.pdb") -Force
-        }
-        Get-ChildItem $symDir
+        & "${{ github.workspace }}\.github\scripts\Collect-Symbols.ps1" `
+          -WorkspaceRoot "${{ github.workspace }}" `
+          -Platform "${{ matrix.platform }}" `
+          -SimdVariant "${{ matrix.simd_variant }}"
 
     - name: Upload debug symbols
       uses: actions/upload-artifact@v7
       with:
         name: symbols-${{ matrix.platform }}-${{ matrix.simd_variant }}
-        path: symbols/*.pdb
+        path: symbols/
+        if-no-files-found: error
 
     # Package artifacts
     - name: Package binaries
@@ -717,7 +669,9 @@ jobs:
   # which takes its suite list from Build-Solution.ps1's plan plus
   # AudioRegressionTests. create-release waits for this job.
   memcheck:
-    runs-on: windows-latest
+    # Named image rather than windows-latest (audit #348 TD-78):
+    # Invoke-MemcheckTests.ps1 builds with the v145 toolset this image carries.
+    runs-on: windows-2025-vs2026
     steps:
     - name: Checkout repository
       uses: actions/checkout@v6
@@ -789,14 +743,15 @@ jobs:
           -WorkspaceRoot "${{ github.workspace }}"
 
   pester:
-    # Unit-tests the release-keystone scripts the version-bump job runs:
-    # Bump-Version.ps1 (the Conventional Commit -> SemVer mapping that decides
-    # every release) and Update-Changelog.ps1 (moving the Unreleased entries
-    # under the bumped version). Like cppcheck this is an independent gate with
-    # no `if:`, so it runs on pull requests too, where the version-bump job is
-    # skipped. Pester 5 is pinned for reproducibility the same way the cppcheck
-    # version is.
-    runs-on: windows-latest
+    # Runs every Pester suite under .github/scripts/Tests: the release-keystone
+    # scripts the version-bump job runs (Bump-Version.ps1, Update-Changelog.ps1),
+    # the build, packaging and release-note scripts, and the project and source
+    # lints. Like cppcheck this is an independent gate with no `if:`, so it
+    # runs on pull requests too, where the version-bump job is skipped. Pester 5
+    # is pinned for reproducibility the same way the cppcheck version is.
+    # The image is named rather than windows-latest (audit #348 TD-78), the
+    # same one the build matrix uses.
+    runs-on: windows-2025-vs2026
     steps:
     - name: Checkout repository
       uses: actions/checkout@v6

@@ -165,6 +165,9 @@
     <ClInclude Include="filters\ConvolverMuteDiagnostics.h">
       <Filter>filters</Filter>
     </ClInclude>
+    <ClInclude Include="filters\ConvolverBank.h">
+      <Filter>filters</Filter>
+    </ClInclude>
     <ClInclude Include="services\registry\IRegistry.h">
       <Filter>services</Filter>
     </ClInclude>
@@ -266,6 +269,7 @@
     </ClInclude>
     <ClInclude Include="devices\VoicemeeterAPOInfo.h" />
     <ClInclude Include="devices\AbstractAPOInfo.h" />
+    <ClInclude Include="engine\ChannelRoutingPlan.h" />
     <ClInclude Include="engine\ConfigLoadTrace.h" />
     <ClInclude Include="engine\ConfigurationFileReader.h" />
     <ClInclude Include="devices\DeviceAPOInfo.h" />
@@ -531,6 +535,7 @@
     <ClCompile Include="devices\DeviceInstallReport.cpp" />
     <ClCompile Include="devices\DevicePlan.cpp" />
     <ClCompile Include="devices\DeviceTestPlan.cpp" />
+    <ClCompile Include="engine\ChannelRoutingPlan.cpp" />
     <ClCompile Include="engine\FilterConfiguration.cpp" />
     <ClCompile Include="engine\FilterEngine.cpp" />
     <ClCompile Include="engine\FilterEngine.Configuration.cpp" />

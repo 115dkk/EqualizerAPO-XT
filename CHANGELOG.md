@@ -29,6 +29,18 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   registration, a failed Velopack update check at restart and a failed
   Device Selector launch on the first run (#PRNUM).
 
+## v2.54.8 — 2026-09-25
+
+- **The Voicemeeter client no longer holds up audio while it sets up strips.**
+  When Voicemeeter reported a different set of strips, the client loaded the
+  configuration for every strip while the audio callback waited for it; the
+  engines are now prepared first and swapped in at once. Applying the Device
+  Selector also no longer turns on the debug privilege when no Voicemeeter
+  client is running, and turns it back off after checking one
+  ([#367](https://github.com/115dkk/EqualizerAPO-XT/pull/367)).
+
+## v2.54.7 — 2026-09-25
+
 - **A driver's own effects keep running when an endpoint's ASIO entry cannot
   be read.** When the audio service starts the EQ on an endpoint, the EQ reads
   the endpoint's install record, which says which of the driver's own effects

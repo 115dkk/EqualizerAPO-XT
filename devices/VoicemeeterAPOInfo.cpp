@@ -72,13 +72,7 @@ void VoicemeeterAPOInfo::prependInfos(vector<shared_ptr<AbstractAPOInfo>>& list,
 		else if (setupFilename == L"voicemeeter8setup.exe")
 			voicemeeterType = 3;// potato
 
-		unsigned outputCount;
-		if (voicemeeterType == 3)
-			outputCount = 5;
-		else if (voicemeeterType == 2)
-			outputCount = 3;
-		else
-			outputCount = 1;
+		const unsigned outputCount = voicemeeterOutputCount(voicemeeterType);
 
 		bool defaultDevice = false;
 		std::erase_if(list, [&defaultDevice](const shared_ptr<AbstractAPOInfo>& info) {
@@ -96,9 +90,7 @@ void VoicemeeterAPOInfo::prependInfos(vector<shared_ptr<AbstractAPOInfo>>& list,
 		bool anyInstalled = false;
 		for (unsigned i = 0; i < outputCount; i++)
 		{
-			wstringstream sstream;
-			sstream << "Output A" << (i + 1);
-			shared_ptr<AbstractAPOInfo> info = *list.insert(list.begin() + i, make_shared<VoicemeeterAPOInfo>(sstream.str(), true, registry));
+			shared_ptr<AbstractAPOInfo> info = *list.insert(list.begin() + i, make_shared<VoicemeeterAPOInfo>(voicemeeterOutputName(i), true, registry));
 			if (info->isInstalled())
 				anyInstalled = true;
 		}
@@ -107,7 +99,9 @@ void VoicemeeterAPOInfo::prependInfos(vector<shared_ptr<AbstractAPOInfo>>& list,
 		{
 			for (unsigned i = 0; i < outputCount; i++)
 			{
-				const shared_ptr<VoicemeeterAPOInfo>& info = (const shared_ptr<VoicemeeterAPOInfo>&)list[i];
+				// Inserted as VoicemeeterAPOInfo just above. The C cast this
+				// replaces reinterpreted the shared_ptr object itself.
+				const shared_ptr<VoicemeeterAPOInfo> info = std::static_pointer_cast<VoicemeeterAPOInfo>(list[i]);
 				if (!anyInstalled || info->isInstalled())
 				{
 					info->defaultDevice = true;
@@ -388,6 +382,12 @@ void VoicemeeterAPOInfo::ensureVoicemeeterClientRunning()
 		: winutil::findProcessesByExeName(clientFilename))
 	{
 		vector<wstring> processArgs = splitArgs(process.commandLine);
+		// A command line that could not be read cannot match the link.
+		if (processArgs.empty())
+		{
+			winutil::requestProcessClose(process.processId);
+			continue;
+		}
 		wstring path = processArgs.front();
 		processArgs.erase(processArgs.begin());
 

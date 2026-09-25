@@ -21,12 +21,13 @@ jobs:
       matrix:
         include:
           # C++ 코어를 MSVC로 직접 빌드해 CodeQL 트레이서에 컴파일 과정을 태운다.
-          # 표준 GitHub 호스티드 windows-2025(VS 2022 Enterprise)에서 돌린다.
-          # build.yml의 x64 러너(windows-2025-vs2026, VS 2026/v145)는 커스텀
-          # 라벨이라 CodeQL 번들이 없어 쓰지 않는다. 그래서 아래 빌드는 이
-          # 이미지의 v143 툴셋으로 강제한다(.vcxproj 기본값은 v145).
+          # build.yml의 x64 레그와 같은 windows-2025-vs2026 이미지(VS 2026,
+          # v145)에서 돌린다. 예전 주석은 이 이미지에 CodeQL 번들이 없어 VS 2022
+          # 이미지의 v143으로 빌드한다고 적었지만, 2026-09-24 실행(36010761510)의
+          # windows-2025 라벨이 이미 이 이미지로 풀려 CodeQL이 동작했으므로
+          # 라벨을 이름으로 고정하고 프로젝트 기본 툴셋을 쓴다(audit #348 TD-78).
           - language: c-cpp
-            os: windows-2025
+            os: windows-2025-vs2026
             build-mode: manual
 
     steps:
