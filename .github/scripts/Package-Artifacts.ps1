@@ -28,6 +28,9 @@ $extraDllFolders = @("x86")
 $vst3PluginModule = "VST3\SubwooferRouting\$Platform\Release\EapoXtSubwooferRouting.vst3"
 $vst3PluginLicense = "VST3\SubwooferRouting\LICENSE"
 $vst3BundleArch = if ($Platform -eq "ARM64") { "arm64-win" } else { "x86_64-win" }
+# The Qt apps ship from their qmake release folders; Collect-Symbols.ps1 reads
+# this list too.
+$qtApps = @("Editor", "DeviceSelector")
 # Everything the Qt build leaves in release\ that is not part of the program:
 # object files and symbols, and the precompiled headers, moc/rcc sources and
 # their headers that qmake writes next to the executable. From v2.38.0 to
@@ -45,6 +48,7 @@ $plan = [pscustomobject]@{
     RequiredFiles = $requiredFiles
     Win32Wrapper = $win32Wrapper
     Vst3PluginModule = $vst3PluginModule
+    QtApps = $qtApps
     ExcludedExtensions = $excludeExtensions
     QtPluginFolders = $qtPluginFolders
 }
@@ -84,7 +88,7 @@ Copy-Item $vst3Source -Destination (Join-Path $vst3BundleDir "EapoXtSubwooferRou
 Copy-Item (Join-Path $WorkspaceRoot $vst3PluginLicense) `
     -Destination (Join-Path $artifactPath "VST3\EapoXtSubwooferRouting.vst3\LICENSE") -Force
 
-foreach ($app in @("Editor", "DeviceSelector")) {
+foreach ($app in $qtApps) {
     $buildDir = Join-Path $WorkspaceRoot "build-$app-$Platform\release"
     $exe = Join-Path $buildDir "$app.exe"
     if (-not (Test-Path $exe)) { throw "$app.exe not built" }
