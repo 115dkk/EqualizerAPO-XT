@@ -343,6 +343,44 @@ namespace
 		producer.close();
 	}
 
+	// The serving loop's --trace-slow diagnostic measures a block's wake-up
+	// from the producer's publish time, which acquire hands over with the block.
+	void testAcquiredCarriesThePublishTime()
+	{
+		StreamFormat format = stereoFormat(64, 2);
+		Region region(format);
+		RingProducer producer(region.base(), format, 1, region.producerSync());
+		RingConsumer consumer(region.base(), region.bytes.size(), region.consumerSync());
+		harness.require(consumer.valid(), "the consumer accepts the ring");
+		consumer.setState(RingState::Ready);
+		const eapo::ipc::RingHeader* header = static_cast<const eapo::ipc::RingHeader*>(region.base());
+
+		RingConsumer::Acquired acquired = {};
+		producer.publish(Direction::Input, 1);
+		harness.require(consumer.acquire(acquired, 1000), "seq 1 is acquired");
+		harness.expect(acquired.direction == Direction::Input, "on the lane it was published on");
+		harness.expect(acquired.publishTick != 0, "with a publish time");
+		harness.expect(acquired.publishTick == header->publishTick[static_cast<unsigned>(Direction::Input)],
+			"the one the producer wrote for that lane");
+		harness.expect(acquired.publishTick <= header->acquireTick[static_cast<unsigned>(Direction::Input)],
+			"and not after the acquire");
+		harness.expectEqual(acquired.behind, 0u, "nothing was published after it");
+		consumer.release(acquired);
+
+		// A consumer a block behind: the lane's publish time is the later
+		// block's, and the count says so.
+		producer.publish(Direction::Input, 2);
+		producer.publish(Direction::Input, 3);
+		harness.require(consumer.acquire(acquired, 1000), "seq 2 is acquired");
+		harness.expectEqual(acquired.sequence, 2u, "in order");
+		harness.expectEqual(acquired.behind, 1u, "seq 3 was published after it");
+		consumer.release(acquired);
+		harness.require(consumer.acquire(acquired, 1000), "seq 3 is acquired");
+		harness.expectEqual(acquired.behind, 0u, "and seq 3 is the latest");
+		consumer.release(acquired);
+		producer.close();
+	}
+
 	void testReadinessAndInOrderService()
 	{
 		StreamFormat format = stereoFormat();
@@ -510,6 +548,7 @@ int runStreamRingTests()
 	testInvalidGeometryIsRejected();
 	testHeaderGeometryAndFieldsAreChecked();
 	testLaterSlotOffsetChangeHasNoEffect();
+	testAcquiredCarriesThePublishTime();
 	testReadinessAndInOrderService();
 	testLateThenCatchUp();
 	testGoneWhenTheConsumerDies();

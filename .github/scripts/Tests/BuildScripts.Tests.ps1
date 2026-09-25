@@ -68,6 +68,11 @@ Describe "extracted build script decisions" {
         # --burst is pinned exactly once, in sync mode; a regression there
         # cannot hide behind the pipelined run's timing-bound retries.
         @($plan.Runs | Where-Object { $_.Arguments -contains "--burst" }).Count | Should -Be 1
+        # The paced pipelined daemon-thread run refuses every late block and
+        # names the slow ones, so a failure says which block and which step.
+        $pipelinedThread = $plan.Runs | Where-Object { $_.Name -eq "daemon-thread-pipelined-int24-128" }
+        $pipelinedThread.Arguments | Should -Contain "--trace-slow"
+        $pipelinedThread.Arguments[[array]::IndexOf($pipelinedThread.Arguments, "--max-late") + 1] | Should -Be "0"
     }
 
     It "runs every runtime suite and the golden regression suite under the memory gate" {
