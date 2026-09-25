@@ -137,6 +137,21 @@ void testChannelLayout()
 	// "SUB" is the legacy alias for the LFE channel.
 	harness.expectEqual(ChannelLayout::getChannelIndex(L"SUB", surround), 3, "SUB alias resolves to the LFE index");
 
+	// Audit #348 A2: the target rule Copy and MultiConvolution declare their
+	// outputs by, and the Editor mirrors.
+	const ChannelLayout::Target alias = ChannelLayout::resolveTarget(L"SUB", surround);
+	harness.expectTrue(alias.name == L"LFE" && alias.index == 3, "a target alias names the existing channel");
+	const ChannelLayout::Target number = ChannelLayout::resolveTarget(L"2", stereo);
+	harness.expectTrue(number.name == L"R" && number.index == 1, "a target number names the existing channel");
+	const ChannelLayout::Target fresh = ChannelLayout::resolveTarget(L"Wet", stereo);
+	harness.expectTrue(fresh.name == L"Wet" && fresh.index == -1, "an unknown target is a new channel named as written");
+	vector<wstring> declared = stereo;
+	ChannelLayout::declare(declared, L"Wet");
+	ChannelLayout::declare(declared, L"Wet");
+	ChannelLayout::declare(declared, L"2");
+	harness.expectTrue(declared == vector<wstring>({L"L", L"R", L"Wet"}),
+		"declare appends a new channel once and leaves existing ones alone");
+
 	// Audit #348 TD-20: the analysis layout rule the channel list and the
 	// analysis thread share.
 	const ChannelLayout::AnalysisLayout own = ChannelLayout::analysisLayout(6, surroundMask, 0);

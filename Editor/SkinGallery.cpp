@@ -554,6 +554,7 @@ const QList<GalleryScenario>& galleryScenarios()
 		{ QStringLiteral("addrow"), { QStringLiteral("normal"), QStringLiteral("hover") } },
 		{ QStringLiteral("seam"), { QStringLiteral("hover") } },
 		{ QStringLiteral("toast"), { QStringLiteral("normal") } },
+		{ QStringLiteral("loadnotice"), { QStringLiteral("normal") } },
 		{ QStringLiteral("filedialog"), { QStringLiteral("normal") } },
 		{ QStringLiteral("graph"), { QStringLiteral("normal"), QStringLiteral("cursor"),
 			QStringLiteral("phase"), QStringLiteral("groupdelay") } },
@@ -564,6 +565,7 @@ const QList<GalleryScenario>& galleryScenarios()
 		{ QStringLiteral("multiconvfold"), { QStringLiteral("normal"),
 			QStringLiteral("expanded") } },
 		{ QStringLiteral("logic"), { QStringLiteral("normal") } },
+		{ QStringLiteral("setuperror"), { QStringLiteral("normal") } },
 		{ QStringLiteral("channelscope"), { QStringLiteral("normal") } },
 		{ QStringLiteral("velvet-advanced"), { QStringLiteral("normal") } },
 		{ QStringLiteral("velvet-narrow"), { QStringLiteral("normal") } },
@@ -1221,6 +1223,20 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		failures += saveGrab(toast, outDir, skinId, mode, QStringLiteral("toast"), QStringLiteral("normal")) ? 0 : 1;
 	}
 
+	// The same toast carrying the load notice: a line whose filter could not be
+	// set up kept the whole configuration from being applied. No skin styles it
+	// apart from the update notice yet; this shot is the baseline for that round.
+	{
+		QWidget host;
+		host.resize(960, 90);
+		host.setAutoFillBackground(true);
+		UpdateToast* toast = new UpdateToast(&host);
+		host.show();
+		toast->showMessage(QStringLiteral("This configuration was not applied: the filter on line 12 of room.txt could not be prepared. Equalizer APO keeps playing the previous settings."), 0);
+		QApplication::processEvents();
+		failures += saveGrab(toast, outDir, skinId, mode, QStringLiteral("loadnotice"), QStringLiteral("normal")) ? 0 : 1;
+	}
+
 	// Every stateful form control the skins restyle, in every state that has
 	// its own QSS rule: check/partial/disabled checkboxes and radio buttons.
 	// This is the shot that catches a stylesheet whose checked box is only a
@@ -1527,6 +1543,36 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 			});
 			QApplication::processEvents();
 			failures += saveGrab(table, outDir, skinId, mode, QStringLiteral("logic"), QStringLiteral("normal")) ? 0 : 1;
+		}
+	}
+
+	// A line whose filter could not be set up (a plug-in that does not load),
+	// so the engine rolled the whole configuration back. The fact is injected
+	// the way the logic scene injects its facts. No skin paints it yet: the row
+	// carries it only as a tooltip, so this shot pins the row as it looks today.
+	{
+		QScrollArea scrollArea;
+		scrollArea.resize(960, 240);
+		buildRows(scrollArea, configPath, {
+			QStringLiteral("Filter 1: ON PK Fc 1000 Hz Gain 6 dB Q 0.71"),
+			QStringLiteral("VSTPlugin: Library missing.dll")
+		});
+		FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
+		if (table == nullptr)
+		{
+			qWarning("SkinGallery: setup error scene has no table (%s %s)", qPrintable(skinId), qPrintable(mode));
+			failures += 1;
+		}
+		else
+		{
+			ConfigLoadTraceEntry setupError;
+			setupError.line = 2;
+			setupError.kind = ConfigLoadTraceEntry::Kind::SetupError;
+			setupError.error = true;
+			setupError.text = L"could not be set up (test), so the configuration was not applied";
+			table->setLoadTraceFacts({setupError});
+			QApplication::processEvents();
+			failures += saveGrab(table, outDir, skinId, mode, QStringLiteral("setuperror"), QStringLiteral("normal")) ? 0 : 1;
 		}
 	}
 

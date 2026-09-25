@@ -19,6 +19,8 @@
 
 #include <QFileDialog>
 
+#include "filters/ConfigFileReference.h"
+#include "Editor/widgets/cards/FileReferenceController.h"
 #include "services/security/AudioEngineAccess.h"
 #include "Editor/SkinManager.h"
 #include "Editor/skins/ISkin.h"
@@ -46,6 +48,15 @@ IncludeFilterGUI::IncludeFilterGUI(FilterTable* filterTable, const QString& path
 
 IncludeFilterGUI::~IncludeFilterGUI() = default;
 
+// The file the engine includes for the written text (ConfigFileReference):
+// the frozen row still has to point at the same file the engine loads.
+QFileInfo IncludeFilterGUI::includedFile() const
+{
+	return QFileInfo(QString::fromStdWString(ConfigFileReference::resolve(
+		QDir::toNativeSeparators(filterTable->getConfigPath()).toStdWString(),
+		ui->pathLineEdit->text().toStdWString())));
+}
+
 void IncludeFilterGUI::store(QString& command, QString& parameters)
 {
 	command = "Include";
@@ -58,7 +69,7 @@ void IncludeFilterGUI::on_selectFileToolButton_clicked()
 	QDir configDir = fileInfo.absoluteDir();
 	QString path = ui->pathLineEdit->text();
 	if (path.length() > 0)
-		fileInfo.setFile(configDir, path);
+		fileInfo = includedFile();
 
 	QFileDialog dialog(this, tr("Include file"), fileInfo.absolutePath(), "*.txt");
 	dialog.setFileMode(QFileDialog::ExistingFile);
@@ -68,10 +79,7 @@ void IncludeFilterGUI::on_selectFileToolButton_clicked()
 	if (dialog.exec() == QDialog::Accepted)
 	{
 		QString absolutePath = dialog.selectedFiles().first();
-		QString relativePath = configDir.relativeFilePath(absolutePath);
-		if (relativePath.startsWith("../../"))
-			relativePath = absolutePath;
-		ui->pathLineEdit->setText(QDir::toNativeSeparators(relativePath));
+		ui->pathLineEdit->setText(FileReferenceController::displayPathForBaseDirectory(configDir.absolutePath(), absolutePath));
 		updateFileInfo();
 
 		emit updateModel();
@@ -87,15 +95,8 @@ void IncludeFilterGUI::on_pathLineEdit_editingFinished()
 
 void IncludeFilterGUI::on_openFileToolButton_clicked()
 {
-	QFileInfo fileInfo(filterTable->getConfigPath());
-	QDir configDir = fileInfo.absoluteDir();
-	QString path = ui->pathLineEdit->text();
-	if (path.length() > 0)
-	{
-		fileInfo.setFile(configDir, path);
-
-		filterTable->openConfig(fileInfo.absoluteFilePath());
-	}
+	if (ui->pathLineEdit->text().length() > 0)
+		filterTable->openConfig(includedFile().absoluteFilePath());
 }
 
 void IncludeFilterGUI::updateFileInfo()
@@ -109,9 +110,7 @@ void IncludeFilterGUI::updateFileInfo()
 	}
 	else
 	{
-		QFileInfo fileInfo(filterTable->getConfigPath());
-		QDir configDir = fileInfo.absoluteDir();
-		fileInfo.setFile(configDir, path);
+		const QFileInfo fileInfo = includedFile();
 		if (!fileInfo.exists())
 		{
 			error = tr("File not found");

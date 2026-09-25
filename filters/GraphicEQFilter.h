@@ -30,6 +30,12 @@ class GraphicEQFilter : public ConvolutionFilter
 {
 public:
 	GraphicEQFilter(const std::vector<FilterNode>& nodes, unsigned filterLength);
+	// GraphicEQ counts and reports its own mutes instead of Convolution's
+	// (audit #348 F3); pinned by HybridConvTests like the others. Named
+	// apart from ConvolutionFilter::kFrameCountMismatchLogPrefix, which it
+	// would otherwise hide.
+	static constexpr const wchar_t* kGraphicEQFrameCountMismatchLogPrefix =
+		L"GraphicEQFilter: frameCount";
 
 protected:
 	void initializeFilters(unsigned frameCount) override;
