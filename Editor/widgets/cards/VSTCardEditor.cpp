@@ -35,6 +35,7 @@
 
 #include "filters/ConfigPathPolicy.h"
 #include "filters/VSTPluginCommand.h"
+#include "vst/VST3SpeakerMapping.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/FilterTable.h"
 #include "Editor/SkinManager.h"
@@ -549,15 +550,15 @@ void VSTCardEditor::updateBusControls()
 	// engine makes, so the verdict states what playback will actually do.
 	const VST3BusLayout requestedInput = busModel.input();
 	const VST3BusLayout requestedOutput = busModel.output();
-	const std::vector<std::wstring> inputHints = requestedInput == VST3BusLayout::Auto
-		? deviceChannelNames : vst3BusLayoutChannelNames(requestedInput);
-	const std::vector<std::wstring> outputHints = requestedOutput == VST3BusLayout::Auto
-		? deviceChannelNames : vst3BusLayoutChannelNames(requestedOutput);
-	effect->setBusChannelNameHints(inputHints, outputHints);
+	const std::vector<std::wstring> inputHints = vst3speakers::channelNamesForLayout(
+		requestedInput, deviceChannelNames);
+	const std::vector<std::wstring> outputHints = vst3speakers::channelNamesForLayout(
+		requestedOutput, deviceChannelNames);
 	const int automaticChannelCount = !deviceChannelNames.empty()
 		? static_cast<int>(deviceChannelNames.size())
 		: std::max({2, effect->numInputs(), effect->numOutputs()});
-	const bool accepted = effect->negotiateBusLayouts(requestedInput, requestedOutput, automaticChannelCount);
+	const bool accepted = effect->negotiateBusLayouts(requestedInput, requestedOutput,
+		automaticChannelCount, inputHints, outputHints);
 
 	if (!accepted)
 	{

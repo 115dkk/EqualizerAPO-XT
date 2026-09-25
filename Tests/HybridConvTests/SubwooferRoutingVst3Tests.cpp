@@ -234,8 +234,7 @@ void runSubwooferRoutingVst3Tests()
 	const std::vector<wstring> channels = {
 		L"L", L"R", L"LFE", L"RL", L"RR"
 	};
-	instance.setChannelNameHints(channels);
-	harness.require(instance.negotiateChannelCount(5),
+	harness.require(instance.negotiateChannelCount(5, channels),
 		"semantic 4.1 channel names negotiate k41Music");
 	harness.expectEqual(instance.numInputs(), 5, "input bus has five channels");
 	harness.expectEqual(instance.numOutputs(), 5, "output bus has five channels");

@@ -243,6 +243,12 @@
     <ClInclude Include="vst\VST3BusLayout.h">
       <Filter>vst</Filter>
     </ClInclude>
+    <ClInclude Include="vst\VST3Lifecycle.h">
+      <Filter>vst</Filter>
+    </ClInclude>
+    <ClInclude Include="vst\VST3SpeakerMapping.h">
+      <Filter>vst</Filter>
+    </ClInclude>
     <ClInclude Include="vst\VST3HostObjects.h">
       <Filter>vst</Filter>
     </ClInclude>
@@ -492,6 +498,12 @@
     </ClCompile>
     <ClCompile Include="vst\VST3PluginIIDs.cpp">
       <Filter>text</Filter>
+    </ClCompile>
+    <ClCompile Include="vst\VST3Lifecycle.cpp">
+      <Filter>vst</Filter>
+    </ClCompile>
+    <ClCompile Include="vst\VST3SpeakerMapping.cpp">
+      <Filter>vst</Filter>
     </ClCompile>
     <ClCompile Include="vst\VSTPluginInstance.cpp">
       <Filter>vst</Filter>

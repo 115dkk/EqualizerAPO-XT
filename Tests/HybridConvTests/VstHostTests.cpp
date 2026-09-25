@@ -384,7 +384,11 @@ void runVstHostTests()
 		"startEditing on a VST2 plugin without an editor reports failure");
 
 	instance->prepareForProcessing(48000.0f, 512);
+	harness.expectFalse(instance->canProcessNow(),
+		"a prepared VST2 instance cannot process before startProcessing");
 	instance->startProcessing();
+	harness.expectTrue(instance->canProcessNow(),
+		"a started VST2 instance reports that it can process");
 
 	// --- Chunk round-trip: read default state, then set a known gain and read
 	// it back. The plugin sets the programChunks flag, so the engine routes all
@@ -469,6 +473,8 @@ void runVstHostTests()
 	harness.expectTrue(unityMatches, "unity gain passes audio through unchanged");
 
 	instance->stopProcessing();
+	harness.expectFalse(instance->canProcessNow(),
+		"a stopped VST2 instance no longer reports that it can process");
 
 	// The owning pointer mirrors the engine and sends effClose on every exit,
 	// including an unexpected exception from a later assertion.

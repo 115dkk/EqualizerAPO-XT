@@ -26,6 +26,9 @@
 #include "audio/ChannelLayout.h"
 #include "dsp/SampleConversion.h"
 #include "VSTPluginFilter.h"
+// After VSTPluginFilter.h: the VST3 SDK defines VST_VERSION, which would
+// otherwise replace the VST2 enum of the same name in aeffectx.h.
+#include "vst/VST3SpeakerMapping.h"
 
 using std::max;
 
@@ -124,22 +127,20 @@ bool VSTPluginFilter::negotiateInstance(VSTPluginInstance* effect, unsigned targ
 {
 	if (busContract)
 	{
-		const std::vector<std::wstring> inputNames = busContract->input == VST3BusLayout::Auto
-			? outputChannelNames : vst3BusLayoutChannelNames(busContract->input);
-		const std::vector<std::wstring> contractOutputNames = busContract->output == VST3BusLayout::Auto
-			? outputChannelNames : vst3BusLayoutChannelNames(busContract->output);
-		effect->setBusChannelNameHints(inputNames, contractOutputNames);
+		const std::vector<std::wstring> inputNames = vst3speakers::channelNamesForLayout(
+			busContract->input, outputChannelNames);
+		const std::vector<std::wstring> contractOutputNames = vst3speakers::channelNamesForLayout(
+			busContract->output, outputChannelNames);
 		return effect->negotiateBusLayouts(busContract->input, busContract->output,
-			static_cast<int>(targetChannelCount));
+			static_cast<int>(targetChannelCount), inputNames, contractOutputNames);
 	}
 
-	effect->setChannelNameHints(outputChannelNames);
-	effect->negotiateChannelCount(static_cast<int>(targetChannelCount));
+	effect->negotiateChannelCount(static_cast<int>(targetChannelCount), outputChannelNames);
 	if (upmixerLayout && targetChannelCount > 2)
 	{
 		const std::vector<std::wstring> stereoInputNames = {L"L", L"R"};
-		effect->setBusChannelNameHints(stereoInputNames, outputChannelNames);
-		effect->negotiateBusChannelCounts(2, static_cast<int>(targetChannelCount));
+		effect->negotiateBusChannelCounts(2, static_cast<int>(targetChannelCount),
+			stereoInputNames, outputChannelNames);
 	}
 	return true;
 }

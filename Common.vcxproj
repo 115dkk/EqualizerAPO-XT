@@ -412,6 +412,8 @@
     <ClInclude Include="parser\NumericText.h" />
     <ClInclude Include="vst\VSTPluginInstance.h" />
     <ClInclude Include="vst\VST3BusLayout.h" />
+    <ClInclude Include="vst\VST3Lifecycle.h" />
+    <ClInclude Include="vst\VST3SpeakerMapping.h" />
     <ClInclude Include="vst\VST3HostObjects.h" />
     <ClInclude Include="vst\VST3RefCounted.h" />
     <ClInclude Include="vst\VSTPluginInstanceInternal.h" />
@@ -531,6 +533,8 @@
     <ClCompile Include="platform\windows\Win32Error.cpp" />
     <ClCompile Include="parser\NumericText.cpp" />
     <ClCompile Include="vst\VST3PluginIIDs.cpp" />
+    <ClCompile Include="vst\VST3Lifecycle.cpp" />
+    <ClCompile Include="vst\VST3SpeakerMapping.cpp" />
     <ClCompile Include="vst\VSTPluginInstance.cpp" />
     <ClCompile Include="vst\VSTPluginInstance.Editor.cpp" />
     <ClCompile Include="vst\VSTPluginInstance.State.cpp" />

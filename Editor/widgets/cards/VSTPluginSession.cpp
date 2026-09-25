@@ -40,7 +40,11 @@ VSTPluginSession::VSTPluginSession(Row row, std::shared_ptr<VSTPluginLibrary> li
 {
 }
 
-VSTPluginSession::~VSTPluginSession() = default;
+VSTPluginSession::~VSTPluginSession()
+{
+	previewFeeder.stop();
+	releasePanelProcessing();
+}
 
 const std::shared_ptr<VSTPluginLibrary>& VSTPluginSession::library() const
 {
@@ -210,6 +214,7 @@ void VSTPluginSession::openDialog(QWidget* dialogParent)
 		reportPanelCrash();
 		return;
 	}
+	acquirePanelProcessing();
 	connect(dialog.getApplyButton(), &QPushButton::pressed, this, &VSTPluginSession::applyDialog);
 	connect(dialog.getAutoApplyCheckBox(), &QCheckBox::toggled, this, &VSTPluginSession::setAutoApplyDialog);
 	connect(QAbstractEventDispatcher::instance(), &QAbstractEventDispatcher::aboutToBlock,
@@ -223,6 +228,7 @@ void VSTPluginSession::openDialog(QWidget* dialogParent)
 	disconnect(QAbstractEventDispatcher::instance(), &QAbstractEventDispatcher::aboutToBlock,
 		this, &VSTPluginSession::onIdle);
 	previewFeeder.stop();
+	releasePanelProcessing();
 }
 
 bool VSTPluginSession::setEmbedded(bool enable, QWidget* host)
@@ -241,6 +247,7 @@ bool VSTPluginSession::setEmbedded(bool enable, QWidget* host)
 
 		if (embedPlugin(host))
 		{
+			acquirePanelProcessing();
 			effect->setSizeWindowFunc([this](int width, int height) {
 				if (isEmbedded)
 					emit sizeRequested(width, height);
@@ -260,6 +267,7 @@ bool VSTPluginSession::setEmbedded(bool enable, QWidget* host)
 		previewFeeder.stop();
 		if (effect != nullptr)
 		{
+			releasePanelProcessing();
 			effect->stopEditing();
 			effect->setSizeWindowFunc(nullptr);
 		}
@@ -363,6 +371,22 @@ bool VSTPluginSession::embedPlugin(QWidget* host)
 	}
 
 	return result;
+}
+
+void VSTPluginSession::acquirePanelProcessing()
+{
+	if (effect == nullptr || effect->canProcessNow())
+		return;
+	effect->startProcessing();
+	ownsPanelProcessing = effect->canProcessNow();
+}
+
+void VSTPluginSession::releasePanelProcessing()
+{
+	if (!ownsPanelProcessing || effect == nullptr)
+		return;
+	effect->stopProcessingSafely();
+	ownsPanelProcessing = false;
 }
 
 void VSTPluginSession::reportPanelCrash()
