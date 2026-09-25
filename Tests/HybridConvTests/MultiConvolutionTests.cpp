@@ -20,6 +20,7 @@
 #include <windows.h>
 
 #include "filters/ConvolutionFilter.h"
+#include "filters/GraphicEQFilter.h"
 #include "filters/MultiConvolutionCommand.h"
 #include "filters/MultiConvolutionFilter.h"
 #include "audio/io/SndfileRAII.h"
@@ -176,6 +177,52 @@ void assertConvolutionMismatchIsLogged()
 		"Convolution frame-count mismatch is logged");
 	harness.expectTrue(first != std::string::npos && log.find(marker, first + marker.size()) == std::string::npos,
 		"Convolution mismatch detail is logged only once per instance");
+}
+
+// GraphicEQFilter derives from ConvolutionFilter but counts and reports its
+// mutes under its own prefix (audit #348 F3): before, a GraphicEQ mute was
+// logged as Convolution's, which the second assertion rules out.
+void assertGraphicEQMismatchIsLoggedAsGraphicEQ()
+{
+	FILE* logFile = nullptr;
+	if (tmpfile_s(&logFile) != 0 || logFile == nullptr)
+	{
+		harness.fail("could not create GraphicEQ mismatch log capture");
+		return;
+	}
+	Logging::useStream(logFile, false, true, false);
+
+	{
+		GraphicEQFilter filter({ FilterNode(20.0, 0.0), FilterNode(20000.0, 0.0) }, 1024);
+		filter.initialize((float)sampleRate, frameLength, vector<wstring>{ L"L" });
+
+		constexpr unsigned shortBlock = frameLength / 2;
+		vector<double> in(shortBlock, 0.1);
+		vector<double> out(shortBlock, 1.0);
+		double* input[] = { in.data() };
+		double* output[] = { out.data() };
+		filter.process(output, input, shortBlock);
+		filter.process(output, input, shortBlock);
+		harness.expectTrue(out[0] == 0.0, "a mismatched GraphicEQ block is muted");
+	}
+
+	std::fflush(logFile);
+	std::rewind(logFile);
+	std::wstring log;
+	wchar_t buffer[1024];
+	while (std::fgetws(buffer, static_cast<int>(std::size(buffer)), logFile) != nullptr)
+		log.append(buffer);
+	std::fclose(logFile);
+	Logging::useStream(stdout, true, true, false);
+
+	const std::wstring marker = GraphicEQFilter::kGraphicEQFrameCountMismatchLogPrefix;
+	const size_t first = log.find(marker);
+	harness.expectTrue(first != std::string::npos,
+		"GraphicEQ frame-count mismatch is logged");
+	harness.expectTrue(first != std::string::npos && log.find(marker, first + marker.size()) == std::string::npos,
+		"GraphicEQ mismatch detail is logged only once per instance");
+	harness.expectTrue(log.find(ConvolutionFilter::kFrameCountMismatchLogPrefix) == std::string::npos,
+		"a GraphicEQ mismatch is not reported as Convolution's");
 }
 
 // First tracer bullet for the mapping semantics: "L=0+1" convolves channel L's
@@ -599,6 +646,7 @@ void runMultiConvolutionTests()
 {
 	assertMismatchIsLoggedAndProfiled();
 	assertConvolutionMismatchIsLogged();
+	assertGraphicEQMismatchIsLoggedAsGraphicEQ();
 	assertMappingConvolvesTargetsOwnSignal();
 	assertEachMappingWritesItsOwnOutput();
 	assertSimpleFormUsesEveryIrChannel();

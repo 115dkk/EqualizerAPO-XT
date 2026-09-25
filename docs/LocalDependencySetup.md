@@ -52,7 +52,7 @@ GitHub Actions artifact를 직접 받는 방법은 CI 설정과 방향이 맞습
 Qt 프로젝트는 CI와 같은 방식으로 qmake/nmake를 씁니다. 먼저 VS 개발자 환경과 Qt 경로를 잡아야 합니다.
 
 ```cmd
-set "PATH=%CD%\Qt\bin;%PATH%"
+set "PATH=%CD%\Qt\6.10.1\msvc2022_64\bin;%PATH%"
 call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
 ```
 
@@ -61,16 +61,16 @@ call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\
 ```cmd
 mkdir build-Editor-x64
 cd build-Editor-x64
-..\Qt\bin\lrelease.exe ..\Editor\Editor.pro
-..\Qt\bin\qmake.exe ..\Editor\Editor.pro -r "CONFIG+=release" "EAPO_UPDATE_CHANNEL=x64-avx2" "EAPO_SIMD_FLAGS=/arch:AVX2"
+..\Qt\6.10.1\msvc2022_64\bin\lrelease.exe ..\Editor\Editor.pro
+..\Qt\6.10.1\msvc2022_64\bin\qmake.exe ..\Editor\Editor.pro -r "CONFIG+=release" "EAPO_UPDATE_CHANNEL=x64-avx2" "EAPO_SIMD_FLAGS=/arch:AVX2"
 nmake /NOLOGO
 ```
 
 `DeviceSelector`도 같은 방식으로 빌드합니다. 두 `.pro` 파일 모두 x64 빌드에서 `EAPO_SIMD_FLAGS`(또는 SSE2 기준선의 `EAPO_SIMD_BASELINE=1`)가 없으면 qmake가 `error()`로 실패합니다. 변형별 플래그와 채널 값은 `.github/simd-variants.psd1`을 기준으로 합니다. 빌드 뒤에는 다음처럼 Qt 런타임을 배치합니다.
 
 ```powershell
-& .\Qt\bin\windeployqt.exe .\build-Editor-x64\release\Editor.exe --release --no-opengl-sw
-& .\Qt\bin\windeployqt.exe .\build-DeviceSelector-x64\release\DeviceSelector.exe --release --no-opengl-sw
+& .\Qt\6.10.1\msvc2022_64\bin\windeployqt.exe .\build-Editor-x64\release\Editor.exe --release --no-opengl-sw
+& .\Qt\6.10.1\msvc2022_64\bin\windeployqt.exe .\build-DeviceSelector-x64\release\DeviceSelector.exe --release --no-opengl-sw
 ```
 
 ## 주의할 점

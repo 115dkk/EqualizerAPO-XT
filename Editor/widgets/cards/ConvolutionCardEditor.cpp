@@ -22,7 +22,6 @@
 #include "Editor/FilterTable.h"
 #include "Editor/SkinManager.h"
 #include "Editor/skins/ISkin.h"
-#include "Editor/helpers/ConvolutionPathHelper.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/import/ConfigDependencyScanner.h"
 #include "Editor/import/ImportDialog.h"
@@ -179,15 +178,18 @@ void ConvolutionCardEditor::updateFileInfo()
 			}
 
 			// The audio service only holds rights inside the config directory, so
-			// a file it cannot read is offered for import; a readable file that
+			// a file it cannot read, or one in a place it does not open (a share,
+			// a link to one), is offered for import; a readable file that
 			// merely lives elsewhere is offered too, since copying it in keeps the
 			// config self-contained. The offscreen gallery renders synthetic
 			// files with no meaningful ACL story - it skips the probe.
 			if (!qEnvironmentVariableIsSet("EAPO_SKIN_GALLERY"))
 			{
-				if (!FileReferenceController::isReadableByAudioService(state.fullPath))
+				const QString problem = FileReferenceController::audioServiceProblem(
+					state.fullPath, filterTable->getConfigPath());
+				if (!problem.isEmpty())
 				{
-					state.statusText = tr("Not readable by the audio service");
+					state.statusText = problem;
 					state.statusSeverity = ReferenceCardState::Severity::Critical;
 					offerImport = true;
 				}

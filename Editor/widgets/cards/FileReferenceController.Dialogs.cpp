@@ -19,7 +19,6 @@
 #include "Editor/import/ConfigDependencyScanner.h"
 #include "Editor/import/ImportDialog.h"
 #include "Editor/import/ImportExecutor.h"
-#include "services/security/AudioEngineAccess.h"
 
 QString FileReferenceController::chooseExistingFile(QWidget* parent,
 	const QString& title, const QString& initialPath,
@@ -43,14 +42,6 @@ QString FileReferenceController::chooseExistingFile(QWidget* parent,
 		: displayPathForBaseDirectory(referenceBaseDirectory, selected);
 	resolved = QDir::toNativeSeparators(selected);
 	return selected;
-}
-
-bool FileReferenceController::isReadableByAudioService(const QString& absolutePath)
-{
-	if (absolutePath.isEmpty() || qEnvironmentVariableIsSet("EAPO_SKIN_GALLERY"))
-		return true;
-	return AudioEngineAccess::isReadableByAudioEngine(
-		QDir::toNativeSeparators(absolutePath).toStdWString());
 }
 
 bool FileReferenceController::importIntoConfig(

@@ -79,7 +79,7 @@ public:
 protected:
 	// Always returns {}. Does nothing when no engine has been handed over, which
 	// is the case in the unit tests that construct a factory directly.
-	FilterVector reportParseError(const std::wstring& command, const std::wstring& reason) const;
+	FilterVector reportParseError(const std::wstring& command, const std::wstring& reason, int line = 0) const;
 
 private:
 	FilterEngine* reportingEngine = nullptr;

@@ -21,6 +21,7 @@
 #include "platform/windows/Win32Error.h"
 #include "services/logging/Logging.h"
 #include "platform/windows/Win32Resource.h"
+#include "platform/windows/NamedPipeSecurity.h"
 #include "ReceiveThread.h"
 
 ReceiveThread::ReceiveThread(const std::wstring& pipeName)
@@ -39,15 +40,7 @@ void ReceiveThread::stop()
 	if (!thread.joinable())
 		return;
 
-	const std::wstring fullPipeName = L"\\\\.\\pipe\\" + pipeName;
-	winutil::UniqueHandle pipe(CreateFileW(fullPipeName.c_str(),
-		GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr));
-	if (!pipe)
-	{
-		if (WaitNamedPipeW(fullPipeName.c_str(), 1000))
-			pipe.reset(CreateFileW(fullPipeName.c_str(),
-				GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr));
-	}
+	winutil::UniqueHandle pipe = winutil::pipes::openDeviceTestClient(L"\\\\.\\pipe\\" + pipeName);
 	if (pipe)
 	{
 		DWORD bytesWritten;
@@ -62,51 +55,63 @@ void ReceiveThread::run()
 {
 	try
 	{
-		winutil::UniqueLocalPtr<void> pSD(LocalAlloc(LPTR, SECURITY_DESCRIPTOR_MIN_LENGTH));
-		if (!pSD)
-			throw ReceiveException(L"Could not allocate security descriptor: " + win32::errorMessage(GetLastError()));
+		// Who may touch the pipe is spelled out in NamedPipeSecurity.h; it used
+		// to be a NULL DACL, which let any account add an instance of its own
+		// and receive audiodg's messages (audit #348 TD-46).
+		winutil::pipes::PipeSecurity security(winutil::pipes::kDeviceTestServerSddl);
+		if (!security.valid())
+			throw ReceiveException(L"Could not build the pipe's security descriptor: " + win32::errorMessage(security.error()));
 
-		if (!InitializeSecurityDescriptor(pSD.get(), SECURITY_DESCRIPTOR_REVISION))
-			throw ReceiveException(L"Could not initialize security descriptor: " + win32::errorMessage(GetLastError()));
-
-		if (!SetSecurityDescriptorDacl(pSD.get(), TRUE, nullptr, FALSE))
-			throw ReceiveException(L"Could not set security descriptor DACL: " + win32::errorMessage(GetLastError()));
-
-		SECURITY_ATTRIBUTES sa;
-		sa.nLength = sizeof(sa);
-		sa.lpSecurityDescriptor = pSD.get();
-		sa.bInheritHandle = FALSE;
-
+		const std::wstring fullPipeName = L"\\\\.\\pipe\\" + pipeName;
 		char buf[1024];
+		const auto createInstance = [&](bool first) {
+			return winutil::UniqueHandle(CreateNamedPipeW(fullPipeName.c_str(),
+				PIPE_ACCESS_INBOUND | (first ? FILE_FLAG_FIRST_PIPE_INSTANCE : 0),
+				PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT | PIPE_REJECT_REMOTE_CLIENTS,
+				PIPE_UNLIMITED_INSTANCES, 0, sizeof(buf), 0, security.attributes()));
+		};
+
+		// The first instance has to be the first one of that name, so a
+		// program that took the name earlier is found here instead of
+		// receiving the test's messages.
+		winutil::UniqueHandle pipe = createInstance(true);
+		if (!pipe)
+		{
+			const DWORD error = GetLastError();
+			if (error == ERROR_ACCESS_DENIED)
+				throw ReceiveException(L"Another program already holds the pipe " + fullPipeName);
+			throw ReceiveException(L"Could not create named pipe: " + win32::errorMessage(error));
+		}
+
 		while (true)
 		{
-			winutil::UniqueHandle pipe(CreateNamedPipeW((L"\\\\.\\pipe\\" + pipeName).c_str(),
-				PIPE_ACCESS_INBOUND, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT | PIPE_REJECT_REMOTE_CLIENTS,
-				PIPE_UNLIMITED_INSTANCES, 0, sizeof(buf), 0, &sa));
-			if (!pipe)
-				throw ReceiveException(L"Could not create named pipe: " + win32::errorMessage(GetLastError()));
-
 			bool connected = ConnectNamedPipe(pipe.get(), nullptr);
 			if (!connected)
 				connected = GetLastError() == ERROR_PIPE_CONNECTED;
 
-			if (!connected)
-				continue;
+			if (connected)
+			{
+				DWORD bytesRead;
+				bool ok = ReadFile(pipe.get(), buf, sizeof(buf), &bytesRead, nullptr);
+				if (!ok || bytesRead == 0)
+					throw ReceiveException(L"Could not read from pipe: " + win32::errorMessage(GetLastError()));
 
-			SCOPE_EXIT{DisconnectNamedPipe(pipe.get());};
+				std::string s(buf, bytesRead);
+				if (s == "stop")
+					break;
 
-			DWORD bytesRead;
-			bool ok = ReadFile(pipe.get(), buf, sizeof(buf), &bytesRead, nullptr);
-			if (!ok || bytesRead == 0)
-				throw ReceiveException(L"Could not read from pipe: " + win32::errorMessage(GetLastError()));
+				std::scoped_lock lock(mutex);
+				answers.push_back(s);
+				cond.notify_all();
+			}
 
-			std::string s(buf, bytesRead);
-			if (s == "stop")
-				break;
-
-			std::scoped_lock lock(mutex);
-			answers.push_back(s);
-			cond.notify_all();
+			// The next instance exists before this one closes, so the name is
+			// never free for another program to take between two clients.
+			winutil::UniqueHandle next = createInstance(false);
+			if (!next)
+				throw ReceiveException(L"Could not create named pipe: " + win32::errorMessage(GetLastError()));
+			DisconnectNamedPipe(pipe.get());
+			pipe = std::move(next);
 		}
 	}
 	catch (const ReceiveException& e)

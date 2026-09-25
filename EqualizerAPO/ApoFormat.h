@@ -86,6 +86,67 @@ inline bool isBlockSilent(const SampleT* samples, size_t sampleCount)
 	return true;
 }
 
+// What APOProcess does with one block (audit #348 F20). The choice used to be
+// nested ifs in the COM method, where no test could reach it, and a wrong
+// branch there is how an endpoint goes mute or plays unprocessed audio.
+enum class BlockAction
+{
+	// Flags other than BUFFER_VALID and BUFFER_SILENT: leave the connection alone.
+	Ignore,
+	// Silent input that nothing could make audible (no stateful or tail-bearing
+	// filter, no child APO, and the host does not allow a silent buffer to turn
+	// audible): zero the output and report it silent, without the engine.
+	SilentFastPath,
+	ProcessFloat32,
+	ProcessFloat64,
+	// An unsupported or mismatched format on an in-place connection
+	// (APO_FLAG_INPLACE): the samples already sit in the output buffer, so pass
+	// them through with the input's flag. Reporting silence here would mute the
+	// device the moment the APO is installed.
+	PassThroughInPlace,
+	// The same with distinct buffers, which a conformant host never hands an
+	// in-place APO: the input's container size is unknown, so copying could
+	// truncate or overrun; zero the output and report silence instead.
+	SilenceDistinctBuffers
+};
+
+// What the choice depends on, read off the connections and the instance.
+struct BlockFacts
+{
+	APO_BUFFER_FLAGS inputFlags = BUFFER_INVALID;
+	bool allowSilentBufferModification = false;
+	bool hasChildApo = false;
+	bool engineHasStatefulOrTailFilters = true;
+	SampleFormat inputFormat = SampleFormat::Unsupported;
+	SampleFormat outputFormat = SampleFormat::Unsupported;
+	bool inPlace = false;
+};
+
+inline BlockAction chooseBlockAction(const BlockFacts& facts)
+{
+	if (facts.inputFlags != BUFFER_VALID && facts.inputFlags != BUFFER_SILENT)
+		return BlockAction::Ignore;
+
+	// The fast path only needs to zero the output, so any output format with a
+	// known sample size will do; an unknown one goes through the normal
+	// branches so it is never mishandled silently.
+	if (facts.inputFlags == BUFFER_SILENT && !facts.allowSilentBufferModification && !facts.hasChildApo
+		&& !facts.engineHasStatefulOrTailFilters && bytesPerSample(facts.outputFormat) > 0)
+	{
+		return BlockAction::SilentFastPath;
+	}
+
+	// The APO is registered with APO_FLAG_BITSPERSAMPLE_MUST_MATCH, so both
+	// sides should agree; the engine runs only when they do and the format is
+	// one it can read, so integer samples are never reinterpreted as float.
+	if (facts.inputFormat == facts.outputFormat && facts.inputFormat == SampleFormat::Float64)
+		return BlockAction::ProcessFloat64;
+	if (facts.inputFormat == facts.outputFormat && facts.inputFormat == SampleFormat::Float32)
+		return BlockAction::ProcessFloat32;
+
+	return facts.inPlace ? BlockAction::PassThroughInPlace : BlockAction::SilenceDistinctBuffers;
+}
+
 // The endpoint's channel mask, taken from the connection this instance
 // processes (input for capture, output for render), with a fallback to the
 // opposite side when the preferred mask is zero and the channel counts agree -

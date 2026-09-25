@@ -534,14 +534,17 @@ void VSTCardEditor::updateReferenceState()
 	// require a loaded plugin instance - gated on one, the verdict appeared
 	// when a panel opened and silently vanished on the next row rebuild,
 	// which read as a phantom error.
+	// The engine's location rule is judged too: a plug-in on a share loads
+	// here and is refused there.
 	bool offerImport = false;
-	if (!reference->writtenPath().isEmpty() && !state.missing
-		&& !FileReferenceController::isReadableByAudioService(
-			QString::fromStdWString(library->getLibPath())))
+	const QString problem = reference->writtenPath().isEmpty() || state.missing ? QString()
+		: FileReferenceController::audioServiceProblem(QString::fromStdWString(library->getLibPath()),
+			filterTable != nullptr ? filterTable->getConfigPath() : QString());
+	if (!problem.isEmpty())
 	{
 		if (state.statusText.isEmpty())
 		{
-			state.statusText = tr("Not readable by the audio service");
+			state.statusText = problem;
 			state.statusSeverity = ReferenceCardState::Severity::Critical;
 		}
 		offerImport = filterTable != nullptr;

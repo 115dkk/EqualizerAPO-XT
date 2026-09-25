@@ -43,7 +43,7 @@
 // remainder of the line and keeps its inner spaces: the first word that cannot
 // continue the mapping grammar starts the path, so file names containing '='
 // or '+' still work. Quotes and environment variables are left in the path for
-// ConvolutionFilePath::resolve to handle.
+// ConfigFileReference::resolve to handle.
 struct MultiConvolutionCommand
 {
 	// One "<factor>*<ir ch>" summand. Like Copy, a dB factor keeps its raw dB

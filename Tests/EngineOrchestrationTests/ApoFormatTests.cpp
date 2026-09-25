@@ -98,6 +98,70 @@ void testChannelMaskFallback(test::Harness& harness)
 		"no borrowing across different channel counts");
 }
 
+// Audit #348 F20: every branch of APOProcess, one fact changed at a time
+// from a block that takes the silent fast path.
+void testBlockActionTable(test::Harness& harness)
+{
+	using apo::BlockAction;
+	using apo::SampleFormat;
+
+	apo::BlockFacts quiet;
+	quiet.inputFlags = BUFFER_SILENT;
+	quiet.allowSilentBufferModification = false;
+	quiet.hasChildApo = false;
+	quiet.engineHasStatefulOrTailFilters = false;
+	quiet.inputFormat = SampleFormat::Float32;
+	quiet.outputFormat = SampleFormat::Float32;
+	quiet.inPlace = true;
+	harness.expect(apo::chooseBlockAction(quiet) == BlockAction::SilentFastPath,
+		"silent input that nothing could make audible skips the engine");
+
+	apo::BlockFacts facts = quiet;
+	facts.inputFlags = BUFFER_INVALID;
+	harness.expect(apo::chooseBlockAction(facts) == BlockAction::Ignore, "an invalid buffer is left alone");
+
+	facts = quiet;
+	facts.allowSilentBufferModification = true;
+	harness.expect(apo::chooseBlockAction(facts) == BlockAction::ProcessFloat32,
+		"a host that lets a silent buffer turn audible gets the engine's output");
+	facts = quiet;
+	facts.hasChildApo = true;
+	harness.expect(apo::chooseBlockAction(facts) == BlockAction::ProcessFloat32,
+		"a child APO could synthesize audio, so the engine runs");
+	facts = quiet;
+	facts.engineHasStatefulOrTailFilters = true;
+	harness.expect(apo::chooseBlockAction(facts) == BlockAction::ProcessFloat32,
+		"a filter with a tail can make silence audible, so the engine runs");
+
+	facts = quiet;
+	facts.inputFormat = SampleFormat::Unsupported;
+	harness.expect(apo::chooseBlockAction(facts) == BlockAction::SilentFastPath,
+		"the fast path only zeroes the output, so it needs only the output's sample size");
+	facts = quiet;
+	facts.outputFormat = SampleFormat::Unsupported;
+	facts.inputFormat = SampleFormat::Unsupported;
+	harness.expect(apo::chooseBlockAction(facts) == BlockAction::PassThroughInPlace,
+		"with no known output size the fast path is not taken, and an in-place block passes through");
+
+	facts = quiet;
+	facts.inputFlags = BUFFER_VALID;
+	harness.expect(apo::chooseBlockAction(facts) == BlockAction::ProcessFloat32, "valid float32 blocks are processed");
+	facts.inputFormat = SampleFormat::Float64;
+	facts.outputFormat = SampleFormat::Float64;
+	harness.expect(apo::chooseBlockAction(facts) == BlockAction::ProcessFloat64, "valid float64 blocks are processed");
+	facts.outputFormat = SampleFormat::Float32;
+	harness.expect(apo::chooseBlockAction(facts) == BlockAction::PassThroughInPlace,
+		"mismatched formats are never reinterpreted; an in-place block passes through");
+	facts.inPlace = false;
+	harness.expect(apo::chooseBlockAction(facts) == BlockAction::SilenceDistinctBuffers,
+		"with distinct buffers and an unknown input size the output is zeroed instead");
+	facts.inputFormat = SampleFormat::Unsupported;
+	facts.outputFormat = SampleFormat::Unsupported;
+	facts.inPlace = true;
+	harness.expect(apo::chooseBlockAction(facts) == BlockAction::PassThroughInPlace,
+		"an unsupported in-place block is passed through, not muted");
+}
+
 } // namespace
 
 // Called from the suite's main() in EngineOrchestrationTests.cpp.
@@ -106,4 +170,5 @@ void runApoFormatTests(test::Harness& harness)
 	testFormatDetection(harness);
 	testSilenceVerdict(harness);
 	testChannelMaskFallback(harness);
+	testBlockActionTable(harness);
 }

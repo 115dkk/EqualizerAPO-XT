@@ -14,12 +14,11 @@ The original fork goals are complete: the convolution tail bug is fixed, the eng
 
 Current work areas:
 
-1. Runtime SIMD dispatch in a single binary, replacing the per-variant release channels ([docs/RuntimeDispatchEpic.md](docs/RuntimeDispatchEpic.md)).
-2. Acting on findings from the biweekly automated code audit. The deferred
+1. Acting on findings from the biweekly automated code audit. The deferred
    architecture pass now has an owned update-session seam, deeper picker/card
    bases, and domain modules in place of the root helper junk drawer
    ([#264](https://github.com/115dkk/EqualizerAPO-XT/pull/264)).
-3. Refining the Editor skins from community feedback rounds. The five concrete
+2. Refining the Editor skins from community feedback rounds. The five concrete
    skins now have guarded per-skin modules so visual work stays local while
    behavior remains shared. The latest pass gives a right-docked analysis graph
    a balanced starting width and keeps mouse-driven card selection and focus in
@@ -29,23 +28,23 @@ Current work areas:
    covered the Soft pastel rework, dark-mode state contrast, the compact
    analysis panel, the modern GraphicEQ card, the insertion contract, and the
    skinned Device Selector ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172)).
-4. Phase and time. The analysis graph now switches between magnitude, phase and
+3. Phase and time. The analysis graph now switches between magnitude, phase and
    group delay, the all-pass filter has its own card and a 1st-order section,
    and `Delay` and the all-pass share a "Phase & Time" group in the picker. An
    all-pass changes nothing about level, so a magnitude-only graph could never
    show one ([#228](https://github.com/115dkk/EqualizerAPO-XT/issues/228),
    [docs/features/phase-and-time.md](docs/features/phase-and-time.md)).
-5. Editors for the programmatic config commands (`If:`/`ElseIf:`/`Else:`/`EndIf:`/`Eval:`) — complete. Each skin presents blocks with its own instrument driven by the analysis run, the picker inserts the vocabulary, custom-coefficient IIR lines have their own card, and lines with inline `` `expression` `` parameters keep their card in a dynamic mode ([#178](https://github.com/115dkk/EqualizerAPO-XT/pull/178), [#182](https://github.com/115dkk/EqualizerAPO-XT/pull/182), [#183](https://github.com/115dkk/EqualizerAPO-XT/pull/183), [#184](https://github.com/115dkk/EqualizerAPO-XT/pull/184)).
-6. Subwoofer routing ([#246](https://github.com/115dkk/EqualizerAPO-XT/issues/246)) — the core feature set is complete: the `SubwooferRouting:` command, the MIT SubwooferRoutingCore DSP library, the standalone VST3 plugin, the 4.1 host-negotiation fix, the Editor card with a per-skin instrument in every skin, and the full editor dialog with both routing matrices and a response view. Remaining follow-ups: writing changes back to a linked profile file (the dialog currently converts the row to inline state), audition/solo overrides, Korean translations for the new strings, and a custom VST3 editor view (hosts show their generic parameter panel).
-7. Explicit VST3 bus layouts ([#216](https://github.com/115dkk/EqualizerAPO-XT/issues/216)) — the backend `VSTPlugin:` `Input`/`Output` syntax and deterministic host tests are complete, including asymmetric layouts, 4.1, strict failure passthrough, and quiet VST2 ignore semantics. The Qt Editor now carries Input/Output selectors beside the plugin name in every skin's own visual language, with a verdict lamp for the actually negotiated bus, VST2 lock/repair handling, and the legacy `StereoInput` migration ([#265](https://github.com/115dkk/EqualizerAPO-XT/pull/265)). The current round adds per-slot channel fill (`InputChannels`/`OutputChannels` place arbitrary config channels into the negotiated slots, untouched channels pass through) and plain Input/Output dropdowns in the legacy row ([#290](https://github.com/115dkk/EqualizerAPO-XT/pull/290)). The fill lists now have their editor in every skin: two rails inside the card with per-slot channel dropdowns that follow the line's `Channel:`/`Copy:` flow, a fold switch when both rails exist, and combo rows in the legacy presentation ([#292](https://github.com/115dkk/EqualizerAPO-XT/pull/292)).
-8. ASIO ([#310](https://github.com/115dkk/EqualizerAPO-XT/issues/310)) —
+4. Editors for the programmatic config commands (`If:`/`ElseIf:`/`Else:`/`EndIf:`/`Eval:`) — complete. Each skin presents blocks with its own instrument driven by the analysis run, the picker inserts the vocabulary, custom-coefficient IIR lines have their own card, and lines with inline `` `expression` `` parameters keep their card in a dynamic mode ([#178](https://github.com/115dkk/EqualizerAPO-XT/pull/178), [#182](https://github.com/115dkk/EqualizerAPO-XT/pull/182), [#183](https://github.com/115dkk/EqualizerAPO-XT/pull/183), [#184](https://github.com/115dkk/EqualizerAPO-XT/pull/184)).
+5. Subwoofer routing ([#246](https://github.com/115dkk/EqualizerAPO-XT/issues/246)) — the core feature set is complete: the `SubwooferRouting:` command, the MIT SubwooferRoutingCore DSP library, the standalone VST3 plugin, the 4.1 host-negotiation fix, the Editor card with a per-skin instrument in every skin, and the full editor dialog with both routing matrices and a response view. Remaining follow-ups: writing changes back to a linked profile file (the dialog currently converts the row to inline state), audition/solo overrides, Korean translations for the new strings, and a custom VST3 editor view (hosts show their generic parameter panel).
+6. Explicit VST3 bus layouts ([#216](https://github.com/115dkk/EqualizerAPO-XT/issues/216)) — the backend `VSTPlugin:` `Input`/`Output` syntax and deterministic host tests are complete, including asymmetric layouts, 4.1, strict failure passthrough, and quiet VST2 ignore semantics. The Qt Editor now carries Input/Output selectors beside the plugin name in every skin's own visual language, with a verdict lamp for the actually negotiated bus, VST2 lock/repair handling, and the legacy `StereoInput` migration ([#265](https://github.com/115dkk/EqualizerAPO-XT/pull/265)). The current round adds per-slot channel fill (`InputChannels`/`OutputChannels` place arbitrary config channels into the negotiated slots, untouched channels pass through) and plain Input/Output dropdowns in the legacy row ([#290](https://github.com/115dkk/EqualizerAPO-XT/pull/290)). The fill lists now have their editor in every skin: two rails inside the card with per-slot channel dropdowns that follow the line's `Channel:`/`Copy:` flow, a fold switch when both rails exist, and combo rows in the legacy presentation ([#292](https://github.com/115dkk/EqualizerAPO-XT/pull/292)).
+7. ASIO ([#310](https://github.com/115dkk/EqualizerAPO-XT/issues/310)) —
    merged ([#314](https://github.com/115dkk/EqualizerAPO-XT/pull/314)): the
    wrapper driver, the engine host process, the ring between them, the device
    records, the Device Selector options and the CI gate. Verified with a fake
    driver on CI and, on a Topping USB Audio Device, by registering the entry
    through the Device Selector and opening it the way a DAW does. Remaining:
    runs under more DAWs, and the x64 entry for x64 DAWs on ARM64 machines.
-9. Recording devices ([#321](https://github.com/115dkk/EqualizerAPO-XT/pull/321)) -
+8. Recording devices ([#321](https://github.com/115dkk/EqualizerAPO-XT/pull/321)) -
    a field report of a microphone with neither the EQ nor a VST applied.
    The path is now measured on every build: a CI gate installs a virtual
    cable driver, registers the APO on its recording side through the
@@ -56,7 +55,7 @@ Current work areas:
    is gone. Remaining: the report's own environment is unknown; the probes
    in [docs/features/capture.md](docs/features/capture.md) are what to run
    on it.
-10. WASAPI exclusive mode ([#325](https://github.com/115dkk/EqualizerAPO-XT/pull/325)) -
+9. WASAPI exclusive mode ([#325](https://github.com/115dkk/EqualizerAPO-XT/pull/325)) -
    an exclusive-mode stream never reaches an APO, so the ASIO wrapper
    learned a second kind of target: any Windows endpoint, opened in WASAPI
    exclusive mode, offered to ASIO applications from the endpoint's own row
@@ -129,12 +128,12 @@ User documentation lives in the [GitHub Wiki](https://github.com/115dkk/Equalize
 
 The project uses Visual Studio, Qt, Velopack, and a small set of external libraries. Running [setup-build.ps1](setup-build.ps1) provisions all of them for a local build (binary dependencies, header-only checkouts, and Qt 6.10.1). The manual layout is documented in [docs/LocalDependencySetup.md](docs/LocalDependencySetup.md).
 
-The forked dependency repositories are:
+The prebuilt dependencies are downloaded from these repositories, which mirror TheFireKahuna's releases of the same tags byte for byte (`.github/simd-variants.psd1` pins each asset's SHA-256):
 
-- [AOCL-FFTW 5.1 / FFTW 3.3.10](https://github.com/thefirekahuna/amd-fftw)
-- [muparserx 4.0.13](https://github.com/thefirekahuna/muparserx)
-- [libsndfile 1.2.2](https://github.com/thefirekahuna/libsndfile)
-- [tclap 1.2.5](https://github.com/thefirekahuna/tclap)
+- [AOCL-FFTW 5.1 / FFTW 3.3.10](https://github.com/115dkk/amd-fftw)
+- [muparserx 4.0.13](https://github.com/115dkk/muparserx)
+- [libsndfile 1.2.2](https://github.com/115dkk/libsndfile)
+- [tclap 1.2.5](https://github.com/115dkk/tclap) (header-only, checked out at a pinned commit)
 
 Two header-only dependencies are checked out rather than vendored: [Google Highway](https://github.com/google/highway) under `deps/highway` and the Steinberg [VST3 pluginterfaces](https://github.com/steinbergmedia/vst3_pluginterfaces) under `deps/vst3sdk/pluginterfaces`.
 
@@ -171,7 +170,13 @@ Qt tools are built through qmake in CI and in the documented local setup. The Vi
 
 ## Tests
 
-`Tests/` holds seven projects: `EditorLogicTests` and `HybridConvTests` (unit tests), `EngineOrchestrationTests` (engine routing and config-swap behavior), `AudioRegressionTests` (engine output compared against committed references, also run across SIMD variants in CI), `TestVst2Plugin` / `TestVst3Plugin` (self-built plug-ins used to test the VST2 and VST3 hosts at runtime), and `VstPreviewProbe` (a manual console harness behind the `vst3-preview-probe` workflow that validates the plugin panel's live-audio preview premises on a real endpoint). Test policy per variant is part of [docs/SimdBuildMatrix.md](docs/SimdBuildMatrix.md).
+`Tests/` holds the test suites, the fixtures they load and the probes CI drives:
+
+- **Suites:** `EditorLogicTests` and `HybridConvTests` (unit tests), `EngineOrchestrationTests` (engine routing, config swap, device and registry behavior), `AudioRegressionTests` (engine output compared against committed references, also run across SIMD variants in CI) and `AsioTests` (the ASIO wrapper, host link and engine host).
+- **Fixtures:** `TestVst2Plugin` and `TestVst3Plugin` (self-built plug-ins that exercise the VST2 and VST3 hosts), `FakeAsioDriver` (an ASIO driver for the wrapper tests) and `AsioSupport` (shared test headers).
+- **Probes:** `VstPreviewProbe` (the `vst3-preview-probe` workflow's check of the panel's live-audio preview on a real endpoint), `AsioProbe` (the ASIO probe gate), and `ApoHostProbe` and `CaptureProbe` (the capture gate on a virtual-cable runner).
+
+Test policy per variant is part of [docs/SimdBuildMatrix.md](docs/SimdBuildMatrix.md).
 
 ## License
 
