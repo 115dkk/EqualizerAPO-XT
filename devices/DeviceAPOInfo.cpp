@@ -32,6 +32,7 @@
 #include "DeviceAPOInfoKeys.h"
 
 #include "services/registry/WindowsRegistry.h"
+#include "services/logging/Logging.h"
 #include "platform/windows/ComPtr.h"
 #include "platform/windows/ComSelfRegistration.h"
 #include "platform/windows/Win32Resource.h"
@@ -61,11 +62,25 @@ vector<shared_ptr<AbstractAPOInfo>> DeviceAPOInfo::loadAllInfos(bool input, IReg
 	{
 		wstring deviceGuidString = *it;
 
-		shared_ptr<DeviceAPOInfo> info = make_shared<DeviceAPOInfo>(registry);
-		if (info->load(deviceGuidString, defaultDeviceGuid))
+		// One endpoint at a time, as the uninstall sweep does: an endpoint
+		// whose keys cannot be read would otherwise throw the whole list away,
+		// and the Editor builds its device list without a try. keyExists
+		// answers true for a key that refuses to be opened (audit #348), so a
+		// driver-locked FxProperties now throws here instead of loading as an
+		// endpoint without a driver chain.
+		try
 		{
-			info->selectedInstallState = info->currentInstallState;
-			result.push_back(move(info));
+			shared_ptr<DeviceAPOInfo> info = make_shared<DeviceAPOInfo>(registry);
+			if (info->load(deviceGuidString, defaultDeviceGuid))
+			{
+				info->selectedInstallState = info->currentInstallState;
+				result.push_back(move(info));
+			}
+		}
+		catch (const RegistryError& e)
+		{
+			LogFStatic(L"Skipping endpoint %s, its registry keys could not be read: %s",
+				deviceGuidString.c_str(), e.getMessage().c_str());
 		}
 	}
 

@@ -1432,6 +1432,11 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
         <source>This line was not applied: %1</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <location filename="../widgets/FilterCardRow.cpp" line="840"/>
+        <source>Equalizer APO could not prepare this filter, so the whole configuration was not applied and the previous settings keep playing. Check the file or plug-in this line uses, or switch the line off.</source>
+        <translation>Equalizer APO n’a pas pu préparer ce filtre : la configuration entière n’a donc pas été appliquée et les réglages précédents continuent d’être lus. Vérifiez le fichier ou le plug-in qu’utilise cette ligne, ou désactivez la ligne.</translation>
+    </message>
 </context>
 <context>
     <name>FilterInsertSeam</name>
@@ -2620,6 +2625,16 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
         <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="263"/>
         <source>Analysis failed</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="305"/>
+        <source>Not applied</source>
+        <translation>Non appliquée</translation>
+    </message>
+    <message>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="281"/>
+        <source>This configuration was not applied: the filter on line %1 of %2 could not be prepared. Equalizer APO keeps playing the previous settings.</source>
+        <translation>Cette configuration n’a pas été appliquée : le filtre de la ligne %1 de %2 n’a pas pu être préparé. Equalizer APO continue de lire les réglages précédents.</translation>
     </message>
     <message>
         <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="276"/>

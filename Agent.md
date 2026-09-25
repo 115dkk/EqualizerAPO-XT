@@ -28,11 +28,17 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 Equalizer APO 
 - `DeviceSelector/`: Qt 기반 장치 선택 도구입니다.
 - `Benchmark/`: 오디오 처리 성능 측정용 콘솔 프로그램입니다.
 - `VoicemeeterClient/`: Voicemeeter 연동용 보조 프로그램입니다.
+- `EqualizerAPOAsio/`, `EqualizerAPOHost/`: DAW가 불러오는 ASIO 래퍼 드라이버 DLL과, 래퍼가 필요할 때 띄우는 엔진 호스트입니다. 둘이 공유하는 소스는 `asio/`에 있습니다.
+- `Installer/`: Win32 전용 자동 감지 설치기(`EqualizerAPO-XT-Setup.exe`)입니다.
 - `filters/`: 실제 오디오 필터 구현과 각 필터의 factory가 있습니다. 새 필터는 구현 파일, 헤더, factory, 필요하면 GUI를 함께 봅니다.
 - `parser/`: muparserx에 붙는 논리 연산자, 문자열 함수, 정규식 함수, 레지스트리 함수입니다.
 - `audio/`, `dsp/`, `platform/`, `runtime/`, `services/`, `text/`, `vst/`: 오디오 지식, 자원 수명, Windows 어댑터, 서비스, VST 호스트 같은 공용 모듈을 책임별로 나눕니다. 범용 `helpers/` 폴더는 사용하지 않습니다.
+- `engine/`: FilterEngine, 설정 파일 읽기와 적재, 설정 교체 같은 엔진 핵심입니다.
+- `devices/`: 장치 목록과 APO 설치·제거(DeviceAPOInfo, ASIO·Voicemeeter 항목, 적용 계획)입니다.
+- `asio/`: ASIO 래퍼와 엔진 호스트가 함께 쓰는 소스입니다. 소스 목록은 `asio/*Sources.props`가 한 번만 적습니다.
+- `diagnostics/`: 성능 측정 같은 진단 코드입니다.
 - `libHybridConv-0.1.1/`: convolution 처리에 쓰는 libHybridConv 코드와 Equalizer APO 연결 코드입니다.
-- `Tests/`: `HybridConvTests`, `EditorLogicTests`, `AudioRegressionTests` 등 단위/회귀 테스트 프로젝트가 있습니다.
+- `Tests/`: 테스트 스위트(`EditorLogicTests`, `HybridConvTests`, `EngineOrchestrationTests`, `AudioRegressionTests`, `AsioTests`), 스위트가 불러 쓰는 픽스처(`TestVst2Plugin`, `TestVst3Plugin`, `FakeAsioDriver`, `AsioSupport`), CI가 돌리는 프로브(`VstPreviewProbe`, `AsioProbe`, `ApoHostProbe`, `CaptureProbe`)가 있습니다.
 - `Setup/`: 설치 시 함께 들어가는 기본 설정 파일입니다.
 - `.github/workflows/build.yml`: CI 빌드와 설치 파일 생성 파이프라인입니다.
 - `.github/simd-variants.psd1`: SIMD 변형 매트릭스와 의존성 핀의 단일 기준 파일입니다.
@@ -50,7 +56,7 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 Equalizer APO 
 - CI는 x64 `sse2`, `avx`, `avx2`, `avx512`, `avx10_1`, ARM64 `neon` 조합을 빌드하고 산출물과 설치 파일을 업로드합니다. 변형 목록과 의존성 핀은 `.github/simd-variants.psd1`이 기준입니다.
 - `main`에 push되면 CI가 모든 변형 빌드를 끝낸 뒤 GitHub Release를 만듭니다. Release에는 Velopack으로 감싼 채널별 설치 파일, CPU 자동 감지 설치기(`EqualizerAPO-XT-Setup.exe`), `git archive`로 만든 소스 코드 zip이 올라갑니다.
 - APO 설치와 등록은 Editor가 처리하는 Velopack 훅(`services/install/ApoRegistration`, `services/update/VelopackBootstrap`, `Editor/main.cpp`)이 담당합니다. NSIS 기반 설치는 제거되었습니다.
-- 외부 라이브러리 경로는 프로젝트 파일의 환경 변수 기본값과 CI의 `deps` 경로를 함께 확인합니다. 주요 변수는 `FFTW_INCLUDE`, `FFTW_LIB`, `LIBSNDFILE_INCLUDE`, `LIBSNDFILE_LIB`, `MUPARSERX_INCLUDE`, `MUPARSERX_LIB`, `TCLAP_ROOT`입니다.
+- 외부 라이브러리 경로는 프로젝트 파일의 환경 변수 기본값과 CI의 `deps` 경로를 함께 확인합니다. 주요 변수는 `FFTW_INCLUDE`, `FFTW_LIB`, `LIBSNDFILE_INCLUDE`, `LIBSNDFILE_LIB`, `MUPARSERX_INCLUDE`, `MUPARSERX_LIB`, `TCLAP_ROOT`, `VST3_SDK`, `HIGHWAY_INCLUDE`, `ASIO_SDK`, `QT_ROOT`이고, Qt 앱은 `VELOPACK_INCLUDE`/`VELOPACK_LIB`도 읽습니다. 기본값은 `Directory.Build.props`와 각 `.pro`에 있습니다.
 - 로컬 의존성 설치와 검증 결과는 `docs/LocalDependencySetup.md`와 `docs/OptimizationNotes.md`를 함께 봅니다. GitHub Actions artifact는 만료될 수 있으므로, Release 자산과 qmake 빌드 경로도 확인합니다.
 - 테스트 실행 파일은 빌드 산출물과 같은 디렉터리에 만들어집니다. `EditorLogicTests.exe`, `HybridConvTests.exe`, `AudioRegressionTests.exe`를 실행할 때는 FFTW와 libsndfile DLL이 `PATH`에 있어야 합니다. 작은 변경은 관련 프로젝트 빌드로 확인하고, 공용 엔진이나 설치 파일에 영향을 주는 변경은 가능한 경우 CI와 같은 범위의 빌드를 확인합니다.
 

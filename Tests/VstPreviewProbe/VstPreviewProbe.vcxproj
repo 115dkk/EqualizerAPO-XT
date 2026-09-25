@@ -32,9 +32,11 @@
     <RootNamespace>VstPreviewProbe</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
-  <!-- Deliberately no EapoVariantArch: like EditorLogicTests, the probe must
-       execute on whatever CPU the CI runner has, so it stays baseline even
-       in AVX-512/AVX10.1 variant builds. -->
+  <!-- Deliberately no EapoVariantArch: the probe's own sources stay baseline.
+       It links Common.lib whole-archive (Tests.props), so the engine code in
+       it carries whatever /arch Common.lib was built with; the
+       vst3-preview-probe workflow builds the local default (AVX2), which the
+       hosted runners execute. -->
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -75,8 +77,6 @@ if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"</
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
-      <ControlFlowGuard>Guard</ControlFlowGuard>
-      <SDLCheck>true</SDLCheck>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
   </ItemDefinitionGroup>

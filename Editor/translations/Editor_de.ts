@@ -1426,6 +1426,11 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
         <source>This line was not applied: %1</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <location filename="../widgets/FilterCardRow.cpp" line="840"/>
+        <source>Equalizer APO could not prepare this filter, so the whole configuration was not applied and the previous settings keep playing. Check the file or plug-in this line uses, or switch the line off.</source>
+        <translation>Equalizer APO konnte diesen Filter nicht vorbereiten. Deshalb wurde die gesamte Konfiguration nicht angewendet, und die bisherigen Einstellungen werden weiter wiedergegeben. Prüfen Sie die Datei oder das Plug-in, das diese Zeile verwendet, oder schalten Sie die Zeile aus.</translation>
+    </message>
 </context>
 <context>
     <name>FilterInsertSeam</name>
@@ -2509,6 +2514,16 @@ Alexander Walch</translation>
         <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="263"/>
         <source>Analysis failed</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="305"/>
+        <source>Not applied</source>
+        <translation>Nicht angewendet</translation>
+    </message>
+    <message>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="281"/>
+        <source>This configuration was not applied: the filter on line %1 of %2 could not be prepared. Equalizer APO keeps playing the previous settings.</source>
+        <translation>Diese Konfiguration wurde nicht angewendet: Der Filter in Zeile %1 von %2 konnte nicht vorbereitet werden. Equalizer APO gibt weiter die bisherigen Einstellungen wieder.</translation>
     </message>
     <message>
         <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="276"/>

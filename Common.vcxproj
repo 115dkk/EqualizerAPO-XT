@@ -289,8 +289,10 @@
     <ClInclude Include="asio\EntryOptions.h" />
     <ClInclude Include="asio\WrapperRecord.h" />
     <ClInclude Include="asio\StreamProcessor.h" />
+    <ClInclude Include="engine\ChannelRoutingPlan.h" />
     <ClInclude Include="engine\ConfigLoadTrace.h" />
     <ClInclude Include="engine\ConfigurationFileReader.h" />
+    <ClInclude Include="devices\ApoRuntimeFacts.h" />
     <ClInclude Include="devices\DeviceAPOInfo.h" />
     <ClInclude Include="devices\DevicePlan.h" />
     <ClInclude Include="engine\ConfigSwapChannel.h" />
@@ -373,6 +375,7 @@
     <ClInclude Include="platform\windows\FileSharingRetry.h" />
     <ClInclude Include="filters\graphicEq\GainCurveIterator.h" />
     <ClInclude Include="filters\ConvolverMuteDiagnostics.h" />
+    <ClInclude Include="filters\ConvolverBank.h" />
     <ClInclude Include="services\registry\ClsidRegistration.h" />
     <ClInclude Include="services\registry\IRegistry.h" />
     <ClInclude Include="services\registry\RegistryTransaction.h" />
@@ -425,6 +428,7 @@
     <ClCompile Include="asio\AsioRegistration.cpp" />
     <ClCompile Include="asio\WrapperRecord.cpp" />
     <ClCompile Include="engine\ConfigurationFileReader.cpp" />
+    <ClCompile Include="devices\ApoRuntimeFacts.cpp" />
     <ClCompile Include="devices\DeviceAPOInfo.cpp" />
     <ClCompile Include="devices\DeviceAPOInfo.Install.cpp" />
     <ClCompile Include="devices\DeviceAPOInfo.Load.cpp" />
@@ -433,6 +437,7 @@
     <ClCompile Include="devices\DeviceInstallReport.cpp" />
     <ClCompile Include="devices\DevicePlan.cpp" />
     <ClCompile Include="devices\ReportedOperation.cpp" />
+    <ClCompile Include="engine\ChannelRoutingPlan.cpp" />
     <ClCompile Include="engine\FilterConfiguration.cpp" />
     <ClCompile Include="engine\FilterEngine.cpp" />
     <ClCompile Include="engine\FilterEngine.Configuration.cpp" />

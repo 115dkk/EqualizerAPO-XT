@@ -94,7 +94,9 @@ env:
 
 jobs:
   reproduce:
-    runs-on: windows-latest
+    # Named image rather than windows-latest (audit #348 TD-78), the one
+    # windows-latest resolved to when this was written.
+    runs-on: windows-2025-vs2026
     timeout-minutes: 30
 
     steps:

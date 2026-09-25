@@ -30,6 +30,72 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   than one level above it, so a file in a sibling folder is no longer
   written as an absolute path ([#369](https://github.com/115dkk/EqualizerAPO-XT/pull/369)).
 
+## v2.54.9 — 2026-09-25
+
+- **More configuration mistakes are reported on their line.** A misspelled
+  `Stage`, an `ElseIf`, `Else` or `EndIf` with no `If` before it, an `If`
+  with no `EndIf` (now on the `If` line itself), and an `Include` nested too
+  deep went only to the log; the Editor now shows them on that line's card as
+  a tooltip, as it does for other unusable lines. When a filter fails while
+  being set up, the configuration is still not applied as a whole, and both
+  the log and the Editor now name the line that caused it. The Editor says so
+  in plain words: a notice at the bottom of the window names the line and
+  file and says the previous settings keep playing, the analysis panel reads
+  "Not applied" and draws no curve, and the line's card explains what to
+  check. The engine's error text stays in the log
+  ([#368](https://github.com/115dkk/EqualizerAPO-XT/pull/368)).
+
+## v2.54.8 — 2026-09-25
+
+- **The Voicemeeter client no longer holds up audio while it sets up strips.**
+  When Voicemeeter reported a different set of strips, the client loaded the
+  configuration for every strip while the audio callback waited for it; the
+  engines are now prepared first and swapped in at once. Applying the Device
+  Selector also no longer turns on the debug privilege when no Voicemeeter
+  client is running, and turns it back off after checking one
+  ([#367](https://github.com/115dkk/EqualizerAPO-XT/pull/367)).
+
+## v2.54.7 — 2026-09-25
+
+- **A driver's own effects keep running when an endpoint's ASIO entry cannot
+  be read.** When the audio service starts the EQ on an endpoint, the EQ reads
+  the endpoint's install record, which says which of the driver's own effects
+  it runs behind. It read the endpoint's ASIO entry in the same step, and when
+  that entry could not be read it dropped the whole record: the driver's
+  effects stopped and a recording endpoint was treated as a playback one. An
+  unreadable ASIO entry now counts as none, and the EQ no longer asks Windows
+  for the default device from inside the audio service ([#363](https://github.com/115dkk/EqualizerAPO-XT/pull/363)).
+
+## v2.54.6 — 2026-09-25
+
+- **The device test and ASIO pipes answer only the programs they are for.**
+  Any account could add its own instance of the Device Selector's device
+  test pipe and receive what the audio service sent, and the ASIO driver
+  sent its stream request to whichever program held the engine host's pipe
+  name. Both pipes now name who may use them, their servers refuse a name
+  another program took first, and the driver checks that the program
+  serving the pipe is the engine host. A host that stops answering now fails
+  the application's open call within seconds instead of hanging it
+  ([#361](https://github.com/115dkk/EqualizerAPO-XT/pull/361)).
+- **The 32-bit ASIO driver can start the engine host.** It ships alone in the
+  `x86` folder and looked for the host there, so a 32-bit application could
+  open an ASIO entry only while the host was already running. It now starts
+  the host from the install folder. A unit test covers where it looks; it
+  has not been run with a real 32-bit application ([#361](https://github.com/115dkk/EqualizerAPO-XT/pull/361)).
+
+## v2.54.5 — 2026-09-25
+
+- **A device whose driver locks its effect settings is no longer offered for
+  an install that loses them.** When a driver kept its endpoint's effect
+  settings (the FxProperties key) from being read, the Device Selector took
+  that as "no driver effects", and installing there took ownership of the
+  key without recording the driver's effects, so uninstalling could not bring
+  them back. Such a device is now left out of the device lists in the Device
+  Selector and the Editor and written to the log, like any device whose
+  registry keys cannot be read. Before, one device whose other keys could
+  not be read emptied the Device Selector's whole list with an error
+  ([#365](https://github.com/115dkk/EqualizerAPO-XT/pull/365)).
+
 ## v2.54.4 — 2026-09-25
 
 - **`LoudnessCorrection` reads an attenuation written with a decimal comma.**

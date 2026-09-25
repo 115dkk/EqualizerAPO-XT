@@ -32,9 +32,9 @@ void ParseReportingFactory::initialize(FilterEngine* engine)
 	reportingEngine = engine;
 }
 
-FilterVector ParseReportingFactory::reportParseError(const std::wstring& command, const std::wstring& reason) const
+FilterVector ParseReportingFactory::reportParseError(const std::wstring& command, const std::wstring& reason, int line) const
 {
 	if (reportingEngine != nullptr)
-		reportingEngine->reportParseError(command, reason);
+		reportingEngine->reportParseError(command, reason, line);
 	return {};
 }

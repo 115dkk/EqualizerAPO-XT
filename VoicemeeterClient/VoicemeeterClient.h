@@ -53,6 +53,11 @@ private:
 		std::vector<int> idleSampleCounts;
 	};
 
+	// Sets every strip's engine up for the stream format, which a strip's
+	// device identity does not carry. Nothing happens before Voicemeeter has
+	// said what the format is (both values still zero).
+	static void initializeEngines(EngineState& state, float sampleRate, unsigned maxFrameCount);
+
 	std::vector<std::wstring> outputs;
 	unsigned long mainThreadId;
 	winutil::UniqueModule module;

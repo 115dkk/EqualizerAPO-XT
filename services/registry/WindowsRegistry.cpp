@@ -208,20 +208,6 @@ void WindowsRegistry::writeDWORDValue(const wstring& key, const wstring& valuena
 		throw RegistryError(L"Error while writing to registry value " + key + L"\\" + valuename + L": " + win32::errorMessage(status));
 }
 
-void WindowsRegistry::writeMultiValue(const wstring& key, const wstring& valuename, const wstring& value)
-{
-	winutil::UniqueRegistryKey keyHandle(openKey(key, KEY_SET_VALUE | KEY_WOW64_64KEY));
-
-	wstring data = value;
-	data.push_back(L'\0');
-	data.push_back(L'\0');
-
-	LSTATUS status = RegSetValueExW(keyHandle.get(), valuename.c_str(), 0, REG_MULTI_SZ, reinterpret_cast<const BYTE*>(data.data()), static_cast<DWORD>(data.size() * sizeof(wchar_t)));
-
-	if (status != ERROR_SUCCESS)
-		throw RegistryError(L"Error while writing to registry value " + key + L"\\" + valuename + L": " + win32::errorMessage(status));
-}
-
 void WindowsRegistry::writeMultiValue(const wstring& key, const wstring& valuename, const vector<wstring>& values)
 {
 	winutil::UniqueRegistryKey keyHandle(openKey(key, KEY_SET_VALUE | KEY_WOW64_64KEY));
@@ -379,16 +365,24 @@ void WindowsRegistry::takeOwnership(const wstring& key)
 
 bool WindowsRegistry::keyExists(const wstring& key) const
 {
-	bool result;
-
 	HKEY rootKey;
 	wstring subKey = splitKey(key, &rootKey);
 
 	winutil::UniqueRegistryKey keyHandle;
-	result = (RegOpenKeyExW(rootKey, subKey.c_str(), 0,
-		KEY_QUERY_VALUE | KEY_WOW64_64KEY, keyHandle.put()) == ERROR_SUCCESS);
-
-	return result;
+	const LSTATUS status = RegOpenKeyExW(rootKey, subKey.c_str(), 0,
+		KEY_QUERY_VALUE | KEY_WOW64_64KEY, keyHandle.put());
+	if (status == ERROR_SUCCESS)
+		return true;
+	if (status == ERROR_FILE_NOT_FOUND || status == ERROR_PATH_NOT_FOUND)
+		return false;
+	// A key whose ACL refuses the query is still there. This used to answer
+	// false, and install() then took ownership of an FxProperties key the
+	// driver had locked and recorded the driver's effect chain as absent, so
+	// an uninstall could never put it back (audit #348). Answering true lets
+	// the first read fail instead, and the install rolls back.
+	if (status == ERROR_ACCESS_DENIED)
+		return true;
+	throw RegistryError(L"Error while opening registry key " + key + L": " + win32::errorMessage(status));
 }
 
 bool WindowsRegistry::valueExists(const wstring& key, const wstring& valuename) const

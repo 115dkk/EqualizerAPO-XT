@@ -27,14 +27,26 @@ public:
 	explicit UpdateToast(QWidget* host);
 
 	// Shows the message, repositions against the host and starts the
-	// auto-hide countdown (the close button hides it immediately).
+	// auto-hide countdown (the close button hides it immediately). An
+	// autoHideMs of 0 or less keeps it up until hideMessage() or the close
+	// button.
 	void showMessage(const QString& message, int autoHideMs = 15000);
+	// Hides the notice and stops any pending auto-hide.
+	void hideMessage();
 
 protected:
 	void paintEvent(QPaintEvent* event) override;
 	bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
+	// The room a wrapped notice leaves on each side of the host.
+	static constexpr int kHostMargin = 24;
+
+	// Sizes the toast to its message: one line when it fits the host,
+	// wrapped at the host's width less the margins when it does not.
+	void fitToHost();
+	// Stacks every visible toast on the host bottom-up, the most recently
+	// raised on top, so two notices never cover each other.
 	void reposition();
 
 	QLabel* label = nullptr;

@@ -30,6 +30,7 @@
 
 #include "asio/EngineHostCore.h"
 #include "asio/HostProtocol.h"
+#include "platform/windows/NamedPipeSecurity.h"
 #include "runtime/ipc/StreamRing.h"
 #include "services/logging/Logging.h"
 
@@ -263,20 +264,40 @@ namespace
 		int run()
 		{
 			const std::wstring pipeName = eapo::asio::HostNames::pipe(arguments.endpoint);
+			// This user and SYSTEM only, where the default descriptor let
+			// everyone open the pipe for reading (audit #348 TD-46).
+			winutil::pipes::PipeSecurity security(winutil::pipes::userOnlySddl(winutil::pipes::currentUserSid()));
+			if (!security.valid())
+			{
+				LogFStatic(L"ASIO host: the control pipe's security descriptor could not be built (error %lu)", security.error());
+				return 2;
+			}
+			const auto createInstance = [&](bool first) {
+				return CreateNamedPipeW(pipeName.c_str(),
+					PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED | (first ? FILE_FLAG_FIRST_PIPE_INSTANCE : 0),
+					PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, PIPE_UNLIMITED_INSTANCES,
+					sizeof(HostOpenReply), sizeof(HostOpenRequest), 0, security.attributes());
+			};
+
 			idleSince = GetTickCount64();
 			LogFStatic(L"ASIO host: listening on %s, linger %u ms%s", pipeName.c_str(), arguments.lingerMs,
 				arguments.resident ? L", resident" : L"");
+			// The first instance has to be the first one of that name: a
+			// program that took it earlier would otherwise receive the
+			// wrappers' stream requests. The wrapper also checks who serves.
+			HANDLE pipe = createInstance(true);
+			if (pipe == INVALID_HANDLE_VALUE)
+			{
+				const DWORD error = GetLastError();
+				if (error == ERROR_ACCESS_DENIED)
+					LogFStatic(L"ASIO host: another program already holds %s", pipeName.c_str());
+				else
+					LogFStatic(L"ASIO host: the control pipe could not be created (error %lu)", error);
+				stopServeThreads();
+				return 2;
+			}
 			for (;;)
 			{
-				HANDLE pipe = CreateNamedPipeW(pipeName.c_str(), PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
-					PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, PIPE_UNLIMITED_INSTANCES,
-					sizeof(HostOpenReply), sizeof(HostOpenRequest), 0, nullptr);
-				if (pipe == INVALID_HANDLE_VALUE)
-				{
-					LogFStatic(L"ASIO host: the control pipe could not be created (error %lu)", GetLastError());
-					stopServeThreads();
-					return 2;
-				}
 				OVERLAPPED overlapped = {};
 				overlapped.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
 				bool connected = false;
@@ -300,10 +321,22 @@ namespace
 				CloseHandle(overlapped.hEvent);
 				if (connected)
 					handleConnection(pipe);
+				// The next instance exists before this one closes, so the name
+				// is never free for another program to take between two
+				// wrappers.
+				const HANDLE next = stopping.load() ? INVALID_HANDLE_VALUE : createInstance(false);
+				const DWORD nextError = GetLastError();
 				DisconnectNamedPipe(pipe);
 				CloseHandle(pipe);
 				if (stopping.load())
 					break;
+				if (next == INVALID_HANDLE_VALUE)
+				{
+					LogFStatic(L"ASIO host: the control pipe could not be created (error %lu)", nextError);
+					stopServeThreads();
+					return 2;
+				}
+				pipe = next;
 			}
 			stopServeThreads();
 			LogFStatic(L"ASIO host: idle for %u ms, leaving", arguments.lingerMs);

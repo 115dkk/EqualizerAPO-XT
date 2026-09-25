@@ -19,6 +19,11 @@
 
 #pragma once
 
+// Also compiled as C++17: Tests/EngineOrchestrationTests/SampleIoTests.cpp
+// includes this header and is pinned to /std:c++17 in its project file, the
+// standard its throughput bars were calibrated under (audit #348 TD-74). Keep
+// it free of C++20-only language and library features.
+
 #include <memory>
 #include <string>
 #include <vector>

@@ -14,3 +14,24 @@
 #define voicemeeterKeyPath L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\VB:Voicemeeter {17359A74-1236-5467}"
 #define voicemeeterWowKeyPath L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\VB:Voicemeeter {17359A74-1236-5467}"
 #define uninstallStringValueName L"UninstallString"
+
+#include <string>
+
+// How many "Output A<n>" strips an edition has, by Voicemeeter's own type
+// number (1 standard, 2 Banana, 3 Potato), and what each strip is called.
+// The install side and the client used to spell both, and a strip one of them
+// did not know would be installed and then never processed, with no error
+// (audit #348 E5).
+inline unsigned voicemeeterOutputCount(long voicemeeterType)
+{
+	if (voicemeeterType == 3)
+		return 5;
+	if (voicemeeterType == 2)
+		return 3;
+	return 1;
+}
+
+inline std::wstring voicemeeterOutputName(unsigned index)
+{
+	return L"Output A" + std::to_wstring(index + 1);
+}
