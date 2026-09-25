@@ -45,7 +45,12 @@ public:
 	// outside the port by design; tests judge the registry role through the
 	// two functions below and the device sweep, not the whole hook.
 	static Result install(const std::wstring& installDir,
-		IRegistry& registry = systemRegistry());
+		IRegistry& registry = systemRegistry(), bool installGrantsPrepared = false);
+	// A prepared hand-off only removes privileged work; it grants no authority.
+	static constexpr bool shouldGrantInstallAccess(bool installGrantsPrepared = false)
+	{
+		return !installGrantsPrepared;
+	}
 	static Result uninstall(const std::wstring& installDir,
 		IRegistry& registry = systemRegistry());
 	using DeviceUninstallErrorSink = std::function<void(const std::wstring&)>;
