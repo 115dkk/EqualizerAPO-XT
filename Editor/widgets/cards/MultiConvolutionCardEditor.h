@@ -50,7 +50,7 @@ public:
 
 	void store(QString& command, QString& parameters) override;
 	// The channels that exist at this row seed the routing view's output side.
-	void configureChannels(std::vector<std::wstring>& channelNames) override;
+	void setChannelFlow(const ChannelFlowAtLine& flow) override;
 
 private slots:
 	void chooseFile();
@@ -70,7 +70,7 @@ private:
 	// The mapping state of the line; the routing view edits it. A simple-form
 	// line stays simple until the routing is touched.
 	std::vector<MultiConvolutionCommand::Mapping> mappings;
-	// Channels in scope at this row (configureChannels) and virtual outputs the
+	// Channels in scope at this row (setChannelFlow) and virtual outputs the
 	// user added in this session; both seed the routing view's output side.
 	std::vector<std::wstring> rowChannels;
 	std::vector<std::wstring> extraTargets;

@@ -65,6 +65,11 @@ class MainWindow : public QMainWindow
 	Q_OBJECT
 
 public:
+	// The analysis control bar's width cap beside a top/bottom graph, in
+	// unscaled pixels. MainWindow.ui writes the same 280 (Designer takes no
+	// constants) and names this constant beside it.
+	static constexpr int analysisControlBarWidth = 280;
+
 	explicit MainWindow(QDir configDir, const UpdateSession* updateSession, QWidget* parent = 0,
 		bool analysisLayoutTestMode = false);
 	~MainWindow();

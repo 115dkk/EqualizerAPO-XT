@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -32,8 +33,7 @@ class FilterCardRow : public QWidget
 public:
 	FilterCardRow(FilterTable* table, int number, FilterTable::Item* item, IFilterGUI* gui,
 		FilterCardDescriptor descriptor, QWidget* parent = nullptr);
-	void configureChannels(std::vector<std::wstring>& channelNames);
-	void configureSelectedChannels(std::vector<std::wstring>& selectedChannels);
+	void setChannelFlow(const ChannelFlowAtLine& flow);
 
 	QRect getHeaderRect() const;
 	void editText();
@@ -48,6 +48,11 @@ public:
 	void updateRowPosition(int rowNumber, FilterCardRowScope scope);
 	QSize sizeHint() const override;
 	QSize minimumSizeHint() const override;
+	// Fixes an editor scroll wrapper to its content's height, bounded to
+	// 24..600 px so a runaway body cannot swallow the table. Returns whether
+	// the height changed. Shared with editors that resize their own body
+	// (VelvetCardEditor's advanced panel).
+	static bool fitEditorScrollHeight(QScrollArea* scroll, int contentHeight);
 
 protected:
 	void paintEvent(QPaintEvent*) override;
@@ -65,6 +70,10 @@ private slots:
 
 private:
 	void watchPointerSelection(QWidget* root);
+	// The body wrapper: the styled editor container and its width-pinned
+	// scroll area around the content createContent builds (as a child of the
+	// container), added to the body stack as the current page.
+	void mountEditorBody(const std::function<QWidget*(QWidget* editorContainer)>& createContent);
 	void watchEditorScroll(QScrollArea* scroll);
 	void syncEditorScrollHeight(QScrollArea* scroll);
 	void applyDescriptor();

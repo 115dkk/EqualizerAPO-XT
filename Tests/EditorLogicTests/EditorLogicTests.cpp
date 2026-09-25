@@ -180,6 +180,8 @@ int main(int argc, char** argv)
 		testReferenceCardDerivesSharedPresentationState();
 		testVSTBusModelMigratesAndEdits();
 		testVSTSlotFillModel();
+		testChannelFlow();
+		testVSTRowDocument();
 		testPanelMonitorGateOpensOnlyForSelfGeneratedAudio();
 		testPanelMonitorGateArmDelayOutlivesReverbTails();
 		testPanelMonitorGateClosesAndRearms();
@@ -190,6 +192,7 @@ int main(int argc, char** argv)
 		testFilterCommandCatalogIconsExistOnDisk();
 		testFilterCommandCatalogTemplateRoster();
 		testFilterCommandCatalogDescriptions();
+		testFilterCommandCatalogChannelSelectionTargets();
 		testFilterPickerModelMatchesTermsAndPreservesCatalogIndices();
 		testFilterPickerModelOwnsSelectionNavigation();
 		testSharedRawBodyAndRoutingViewPredicates();

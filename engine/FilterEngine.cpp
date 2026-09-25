@@ -33,6 +33,7 @@
 #include "audio/ChannelLayout.h"
 #include "FilterEngine.h"
 #include "filters/FilterFactoryRegistry.h"
+#include "filters/DeviceCommand.h"
 
 using std::lock_guard;
 using std::mutex;
@@ -115,8 +116,8 @@ void FilterEngine::initialize(const EngineSetup& setup)
 		// connection name, device name, then the GUID when present - the
 		// spelling DeviceAPOInfo::getDeviceString always produced. Callers
 		// used to hand-assemble this in six different spellings.
-		this->deviceString = setup.connectionName + L" " + setup.deviceName
-			+ (setup.deviceGuid.empty() ? L"" : L" " + setup.deviceGuid);
+		this->deviceString = DeviceCommand::matchString(setup.connectionName, setup.deviceName,
+			setup.deviceGuid);
 		this->registryPort = setup.registry;
 
 		this->sampleRate = sampleRate;

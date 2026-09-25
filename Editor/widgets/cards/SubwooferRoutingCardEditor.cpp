@@ -308,12 +308,6 @@ void SubwooferRoutingCardEditor::store(
 		+ fromUtf8(*encoded.text);
 }
 
-void SubwooferRoutingCardEditor::configureChannels(
-	std::vector<std::wstring>& channelNames)
-{
-	Q_UNUSED(channelNames);
-}
-
 void SubwooferRoutingCardEditor::openFullEditor()
 {
 	if (!currentState.has_value())

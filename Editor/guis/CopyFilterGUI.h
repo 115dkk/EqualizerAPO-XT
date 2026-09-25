@@ -40,7 +40,7 @@ public:
 	explicit CopyFilterGUI(const std::vector<Assignment>& assignments, FilterTable* filterTable);
 	~CopyFilterGUI();
 
-	void configureChannels(std::vector<std::wstring>& channelNames) override;
+	void setChannelFlow(const ChannelFlowAtLine& flow) override;
 
 	void store(QString& command, QString& parameters) override;
 

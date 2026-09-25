@@ -218,6 +218,44 @@ void testFilterCommandCatalogDescriptions()
 		"the first-order all-pass has its dedicated wording");
 }
 
+void testFilterCommandCatalogChannelSelectionTargets()
+{
+	// The commands the engine narrows to the enclosing Channel: selection,
+	// which is what lets a card inherit the selection's channel badges.
+	const QSet<QString> targets = {QStringLiteral("Preamp"), QStringLiteral("Delay"),
+		QStringLiteral("Velvet"), QStringLiteral("Filter"), QStringLiteral("GraphicEQ"),
+		QStringLiteral("Include"), QStringLiteral("Convolution"), QStringLiteral("MultiConvolution"),
+		QStringLiteral("VSTPlugin"), QStringLiteral("LoudnessCorrection")};
+	for (const FilterCommandCatalog::CommandEntry& entry : FilterCommandCatalog::commands())
+	{
+		const QString keyword = QLatin1String(entry.keyword);
+		expectEqual(int(entry.channelSelectionTarget), int(targets.contains(keyword)),
+			"channel-selection target flag of " + keyword);
+	}
+	expectTrue(FilterCommandCatalog::channelSelectionGatesType(QStringLiteral("biquad")),
+		"a biquad card inherits the selection");
+	expectTrue(FilterCommandCatalog::channelSelectionGatesType(QStringLiteral("convolution")),
+		"both convolution siblings inherit the selection");
+	expectFalse(FilterCommandCatalog::channelSelectionGatesType(QStringLiteral("copy")),
+		"Copy carries its own badges");
+	expectFalse(FilterCommandCatalog::channelSelectionGatesType(QStringLiteral("text")),
+		"raw text is not gated");
+
+	// The badge pictogram comes from the catalog entry of the card type.
+	expectEqual(FilterCommandCatalog::badgeIconResource(QStringLiteral("convolution"), QStringLiteral("MCONV")),
+		FilterCommandCatalog::iconResource("multi-convolution"), "MultiConvolution keeps its own pictogram");
+	expectEqual(FilterCommandCatalog::badgeIconResource(QStringLiteral("convolution"), QStringLiteral("CONV")),
+		FilterCommandCatalog::iconResource("waveform"), "Convolution keeps its pictogram");
+	expectEqual(FilterCommandCatalog::badgeIconResource(QStringLiteral("biquad"), QStringLiteral("IIR")),
+		FilterCommandCatalog::iconResource("eq-peaking"), "an unparsed biquad falls back to the peaking curve");
+	expectEqual(FilterCommandCatalog::badgeIconResource(QStringLiteral("biquad"), QStringLiteral("LSC")),
+		FilterCommandCatalog::iconResource("eq-lowshelf"), "a long biquad code folds onto its curve");
+	expectEqual(FilterCommandCatalog::badgeIconResource(QStringLiteral("comment"), QStringLiteral("#")),
+		FilterCommandCatalog::iconResource("comment-bubble"), "comment rows show the note pictogram");
+	expectTrue(FilterCommandCatalog::badgeIconResource(QStringLiteral("text"), QStringLiteral("TXT")).isEmpty(),
+		"raw text keeps its monogram");
+}
+
 void testSharedRawBodyAndRoutingViewPredicates()
 {
 	// The raw-body eligibility rule the five skins used to restate.

@@ -8,8 +8,10 @@
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
 	Logic ported from Editor/guis/VSTPluginFilterGUI.cpp (Copyright (C) 2017
-	Jonas Thedering) into a card-native layout; store()/parse round-trip verified
-	lossless by --selftest-vst. See VSTCardEditor.h for the presentation.
+	Jonas Thedering) into a card-native layout; the plugin session and the
+	row document it now shares with that row live in VSTPluginSession and
+	VSTRowDocument. store()/parse round-trip verified lossless by
+	--selftest-vst. See VSTCardEditor.h for the presentation.
 */
 
 #include "VSTCardEditor.h"
@@ -17,7 +19,6 @@
 
 #include <algorithm>
 
-#include <QAbstractEventDispatcher>
 #include <QAction>
 #include <QDir>
 #include <QFileDialog>
@@ -32,17 +33,13 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-
+#include "filters/ConfigPathPolicy.h"
 #include "filters/VSTPluginCommand.h"
 #include "Editor/helpers/GUIHelper.h"
-#include "Editor/helpers/VstChunkScan.h"
 #include "Editor/FilterTable.h"
 #include "Editor/SkinManager.h"
 #include "Editor/skins/ISkin.h"
 #include "Editor/MainWindow.h"
-#include "Editor/guis/VSTPluginFilterGUIDialog.h"
 #include "ReferenceCardView.h"
 #include "FileReferenceController.h"
 #include "VSTBusStrip.h"
@@ -77,9 +74,9 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 	const std::optional<VST3BusContract>& busContract,
 	std::vector<std::wstring> deviceChannelNames, FilterTable* filterTable, QWidget* parent,
 	std::vector<std::wstring> inputChannels, std::vector<std::wstring> outputChannels)
-	: IFilterGUI(parent), library(library), chunkData(chunkData), paramMap(paramMap),
-	busModel(busContract, stereoInput),
-	inputChannels(std::move(inputChannels)), outputChannels(std::move(outputChannels)),
+	: IFilterGUI(parent),
+	document(busContract, stereoInput, std::move(inputChannels), std::move(outputChannels)),
+	session(std::make_unique<VSTPluginSession>(VSTPluginSession::Row::Card, library, chunkData, paramMap)),
 	deviceChannelNames(std::move(deviceChannelNames)),
 	filterTable(filterTable)
 {
@@ -157,7 +154,7 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 	// where exactly); the card is wide, so the contract lives in the row's
 	// horizontal slack instead of a stacked extra row.
 	busStrip = new VSTBusStrip(view);
-	busStrip->setBusLayouts(busModel.input(), busModel.output());
+	busStrip->setBusLayouts(document.bus().input(), document.bus().output());
 	connect(busStrip, &VSTBusStrip::busLayoutsPicked, this, &VSTCardEditor::busLayoutsPicked);
 	view->placeBusStrip(busStrip);
 
@@ -174,8 +171,8 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 	connect(outputRail, &VSTSlotFillRail::slotPicked, this,
 		[this](int slot, const QString& value) { fillSlotPicked(slot, value, true); });
 	root->insertWidget(root->indexOf(view) + 1, outputRail);
-	fillModel.setSelectedChannels(this->deviceChannelNames);
-	fillCollapsed = this->inputChannels.empty() && this->outputChannels.empty();
+	document.setSelectedChannels(this->deviceChannelNames);
+	fillCollapsed = document.fill().inputFill().empty() && document.fill().outputFill().empty();
 
 	frame = new QFrame(this);
 	frame->setObjectName(QStringLiteral("VSTCardEmbedFrame"));
@@ -199,6 +196,15 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 	rowInfo.command = QStringLiteral("vstplugin");
 	SkinManager::instance()->prepareCommandRow(rowInfo, nullptr, nullptr, this);
 
+	// The card draws what the session reports; the session never touches
+	// the card's widgets beyond the embed host it is handed.
+	connect(session.get(), &VSTPluginSession::statusChanged, this, &VSTCardEditor::updateReferenceState);
+	connect(session.get(), &VSTPluginSession::stateChanged, this, &VSTCardEditor::pluginStateChanged);
+	connect(session.get(), &VSTPluginSession::automated, this, &VSTCardEditor::pluginStateChanged);
+	connect(session.get(), &VSTPluginSession::sizeRequested, this, [this](int w, int h) {
+		frame->setFixedSize(w, h);
+	});
+
 	updateBusControls();
 	updateFillRails();
 	updateReferenceState();
@@ -207,9 +213,9 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 
 VSTCardEditor::~VSTCardEditor()
 {
-	if (effect != nullptr)
+	if (session->instance() != nullptr)
 	{
-		if (embedded)
+		if (session->embedded())
 			embedToggled(false);
 	}
 }
@@ -231,30 +237,24 @@ void VSTCardEditor::store(QString& command, QString& parameters)
 	// Auto contract when the card opened (VSTBusModel); it is never emitted
 	// again. The frozen legacy row keeps writing it losslessly.
 	VSTPluginCommand cmd;
-	cmd.chunkData = chunkData;
-	cmd.paramMap = paramMap;
+	cmd.chunkData = session->chunkData();
+	cmd.paramMap = session->paramMap();
 	cmd.stereoInput = false;
-	if (busModel.contract())
+	if (document.bus().contract())
 	{
-		cmd.busContract = *busModel.contract();
+		cmd.busContract = *document.bus().contract();
 		cmd.hasBusContract = true;
-		cmd.inputChannels = inputChannels;
-		cmd.outputChannels = outputChannels;
+		cmd.inputChannels = document.fill().inputFill();
+		cmd.outputChannels = document.fill().outputFill();
 	}
 	parameters += QString::fromStdWString(cmd.serialize());
 }
 
 void VSTCardEditor::busLayoutsPicked(VST3BusLayout input, VST3BusLayout output)
 {
-	if (busModel.contract() && busModel.input() == input && busModel.output() == output)
+	if (document.bus().contract() && document.bus().input() == input && document.bus().output() == output)
 		return;
-	// A changed layout invalidates that side's per-slot channel fill: the
-	// slot count no longer matches, so the stale list would fail to parse.
-	if (input != busModel.input())
-		inputChannels.clear();
-	if (output != busModel.output())
-		outputChannels.clear();
-	busModel.setLayouts(input, output);
+	document.setLayouts(input, output);
 	updateBusControls();
 	updateFillRails();
 	updateReferenceState();
@@ -263,11 +263,9 @@ void VSTCardEditor::busLayoutsPicked(VST3BusLayout input, VST3BusLayout output)
 
 void VSTCardEditor::removeBusLayouts()
 {
-	if (!busModel.contract())
+	if (!document.bus().contract())
 		return;
-	busModel.clear();
-	inputChannels.clear();
-	outputChannels.clear();
+	document.clearLayouts();
 	updateBusControls();
 	updateFillRails();
 	updateReferenceState();
@@ -276,11 +274,7 @@ void VSTCardEditor::removeBusLayouts()
 
 void VSTCardEditor::fillSlotPicked(int slot, const QString& value, bool output)
 {
-	fillModel.setContract(busModel.contract());
-	fillModel.setFill(inputChannels, outputChannels);
-	fillModel.pickSlot(output, slot, value.toStdWString());
-	inputChannels = fillModel.inputFill();
-	outputChannels = fillModel.outputFill();
+	document.pickSlot(output, slot, value.toStdWString());
 	updateFillRails();
 	updateModel();
 }
@@ -294,24 +288,22 @@ void VSTCardEditor::fillLatchToggled()
 
 void VSTCardEditor::removeChannelFill()
 {
-	if (inputChannels.empty() && outputChannels.empty())
+	if (document.fill().inputFill().empty() && document.fill().outputFill().empty())
 		return;
-	inputChannels.clear();
-	outputChannels.clear();
+	document.clearFill();
 	updateFillRails();
 	updateModel();
 }
 
-void VSTCardEditor::configureSelectedChannels(std::vector<std::wstring>& selectedChannels)
+void VSTCardEditor::setChannelFlow(const ChannelFlowAtLine& flow)
 {
-	fillModel.setSelectedChannels(selectedChannels);
+	document.setSelectedChannels(flow.selected);
 	updateFillRails();
 }
 
 void VSTCardEditor::updateFillRails()
 {
-	fillModel.setContract(busModel.contract());
-	fillModel.setFill(inputChannels, outputChannels);
+	const VSTSlotFillModel& fillModel = document.fill();
 
 	const bool latchPresent = fillModel.latchPresent();
 	// A single rail never folds; the latch quietly disappears with it.
@@ -346,12 +338,12 @@ void VSTCardEditor::updateFillRails()
 	outputRail->setVisible(fillModel.railPresent(true) && !fillCollapsed);
 
 	if (removeFillAction != nullptr)
-		removeFillAction->setEnabled(!inputChannels.empty() || !outputChannels.empty());
+		removeFillAction->setEnabled(!fillModel.inputFill().empty() || !fillModel.outputFill().empty());
 }
 
 void VSTCardEditor::loadPreferences(const QVariantMap& prefs)
 {
-	autoApplyDialog = prefs.value("autoApplyDialog", true).toBool();
+	session->setAutoApplyDialog(prefs.value("autoApplyDialog", true).toBool());
 
 	if (prefs.contains("slotFillCollapsed"))
 	{
@@ -363,7 +355,7 @@ void VSTCardEditor::loadPreferences(const QVariantMap& prefs)
 	if (prefs.value("embed").toBool())
 		embedAction->setChecked(true);   // will also call initPlugin via embedToggled
 	else
-		initPlugin();
+		session->initPlugin();
 	updateBusControls();
 	updateReferenceState();
 }
@@ -371,7 +363,7 @@ void VSTCardEditor::loadPreferences(const QVariantMap& prefs)
 void VSTCardEditor::storePreferences(QVariantMap& prefs)
 {
 	prefs.insert("embed", embedAction->isChecked());
-	prefs.insert("autoApplyDialog", autoApplyDialog);
+	prefs.insert("autoApplyDialog", session->autoApplyDialog());
 	// Only a fold the user actually chose is worth remembering; the default
 	// (collapsed while both sides are implicit) re-derives on load.
 	if (fillCollapsedFromPrefs)
@@ -383,111 +375,20 @@ void VSTCardEditor::openPanel()
 	// The panel is already on screen inside the card; opening the dialog on
 	// top would steal the embedded view's window (startEditing recreates the
 	// view for the dialog and the card frame would keep showing nothing).
-	if (embedded)
+	if (session->embedded())
 		return;
 
-	initPlugin();
+	session->initPlugin();
 	updateBusControls();
 	updateReferenceState();
 
-	if (effect != nullptr)
-	{
-		effect->writeToEffect(chunkData, paramMap);
-
-		// Before the dialog's startEditing: the feed prepares the instance
-		// for the loopback mix format, which must happen while the processor
-		// is still deactivated.
-		previewFeeder.start(effect.get());
-
-		VSTPluginFilterGUIDialog dialog(this, effect.get(), autoApplyDialog);
-		if (!dialog.isEditorOpen())
-		{
-			// Same report as a failed embed, instead of an empty dialog.
-			previewFeeder.stop();
-			initErrorText = tr("Plugin crashed when opening panel.");
-			updateReferenceState();
-			return;
-		}
-		connect(dialog.getApplyButton(), SIGNAL(pressed()), SLOT(applyDialog()));
-		connect(dialog.getAutoApplyCheckBox(), SIGNAL(toggled(bool)), SLOT(autoApplyToggled(bool)));
-		connect(QAbstractEventDispatcher::instance(), SIGNAL(aboutToBlock()), SLOT(onIdle()));
-
-		if (dialog.exec() == QDialog::Accepted)
-		{
-			effect->readFromEffect(chunkData, paramMap);
-			updateModel();
-			updatePermissionWarning();
-		}
-		disconnect(QAbstractEventDispatcher::instance(), SIGNAL(aboutToBlock()), this, SLOT(onIdle()));
-		previewFeeder.stop();
-	}
+	session->openDialog(this);
 }
 
-void VSTCardEditor::applyDialog()
+void VSTCardEditor::pluginStateChanged()
 {
-	effect->readFromEffect(chunkData, paramMap);
 	updateModel();
 	updatePermissionWarning();
-}
-
-void VSTCardEditor::autoApplyToggled(bool checked)
-{
-	autoApplyDialog = checked;
-}
-
-void VSTCardEditor::initPlugin()
-{
-	if (effect != nullptr)
-		return;
-
-	initErrorText.clear();
-	libraryMissing = false;
-
-	if (library->getLibPath() == L"")
-	{
-		libraryMissing = true;
-	}
-	else
-	{
-		int result = library->initialize();
-		if (result < 0)
-		{
-			switch (result)
-			{
-			case AbstractLibrary::FILE_NOT_FOUND:
-				libraryMissing = true;
-				break;
-			case AbstractLibrary::LOADING_FAILED:
-				initErrorText = tr("Library could not be loaded.");
-				break;
-			case AbstractLibrary::FUNCTIONS_MISSING:
-				initErrorText = tr("Library does not contain needed functions.");
-				break;
-			case AbstractLibrary::WRONG_ARCHITECTURE:
-#ifdef _WIN64
-				int bitDepth = 64;
-#else
-				int bitDepth = 32;
-#endif
-				initErrorText = tr("Library has the wrong architecture. Only %1-bit libraries are supported.").arg(bitDepth);
-				break;
-			}
-		}
-		else
-		{
-			effect = std::make_unique<VSTPluginInstance>(library, 1);
-			if (effect->initialize())
-			{
-				effect->setLanguage(QLocale().language() == QLocale::German ? 2 : 1);
-				effect->setAutomateFunc([this]() { onAutomate(); });
-			}
-			else
-			{
-				effect.reset();
-				initErrorText = tr("Plugin crashed during initialization.");
-			}
-		}
-	}
 }
 
 // Map the library / plugin lifecycle onto the reference-card state: the
@@ -495,6 +396,8 @@ void VSTCardEditor::initPlugin()
 // the broken library as the missing transition with Locate as recovery.
 void VSTCardEditor::updateReferenceState()
 {
+	const std::shared_ptr<VSTPluginLibrary>& library = session->library();
+	const VSTPluginSession::Status& status = session->status();
 	reference->setResolvedPath(QString::fromStdWString(library->getLibPath()));
 	ReferenceCardState state = reference->describe(tr("No plugin selected"));
 	// Plugins routinely live in absolute system paths (Common Files\VST3);
@@ -502,15 +405,15 @@ void VSTCardEditor::updateReferenceState()
 	state.absolutePath = false;
 	if (!reference->writtenPath().isEmpty())
 	{
-		state.missing = state.missing || libraryMissing;
-		if (effect != nullptr)
+		state.missing = state.missing || status.libraryMissing;
+		if (session->instance() != nullptr)
 		{
 			// A .dll can host VST3 and a .vst3 bundle can still load as VST2;
 			// the format badge speaks only after the loader established the
 			// actual ABI (the extension is not format evidence, issue #216).
 			state.formatBadge = library->isVST3()
 				? QStringLiteral("VST3") : QStringLiteral("VST2");
-			const QString pluginName = QString::fromStdWString(effect->getName());
+			const QString pluginName = QString::fromStdWString(session->instance()->getName());
 			if (!pluginName.trimmed().isEmpty())
 				state.name = pluginName;
 			state.nameClickable = true;
@@ -520,9 +423,9 @@ void VSTCardEditor::updateReferenceState()
 			// Library present but not (yet) loaded: clicking the name still
 			// attempts the panel, which surfaces the load error honestly.
 			state.nameClickable = true;
-			if (!initErrorText.isEmpty())
+			if (status.critical && !status.text.isEmpty())
 			{
-				state.statusText = initErrorText;
+				state.statusText = status.text;
 				state.statusSeverity = ReferenceCardState::Severity::Critical;
 			}
 		}
@@ -590,6 +493,11 @@ void VSTCardEditor::updateReferenceState()
 // the status line and the strip's visibility feed the view's state pass.
 void VSTCardEditor::updateBusControls()
 {
+	const VSTBusModel& busModel = document.bus();
+	VSTPluginInstance* effect = session->instance();
+	const std::shared_ptr<VSTPluginLibrary>& library = session->library();
+	const bool embedded = session->embedded();
+
 	busStatusText.clear();
 	busStatusSeverity = ReferenceCardState::Severity::None;
 	removeBusAction->setEnabled(busModel.contract().has_value());
@@ -696,29 +604,11 @@ void VSTCardEditor::updateBusControls()
 void VSTCardEditor::pathCommitted(const QString& text)
 {
 	reference->setWrittenPath(text);
-	if (QString::fromStdWString(library->getLibPath()) != text)
+	if (session->libraryDiffers(text))
 	{
-		int oldId = 0;
-		if (effect != nullptr)
-		{
-			oldId = effect->uniqueID();
-			if (embedAction->isChecked())
-				embedToggled(false);
-			effect.reset();
-		}
-
-		QDir pluginsDir(QString::fromStdWString(VSTPluginLibrary::getDefaultPluginPath()));
-		QString path = text;
-		if (path.length() > 0)
-			path = QDir::toNativeSeparators(QFileInfo(pluginsDir, text).absoluteFilePath());
-		library = VSTPluginLibrary::getInstance(path.toStdWString());
-		initPlugin();
-
-		if (effect == nullptr || oldId == 0 || effect->uniqueID() != oldId)
-		{
-			chunkData = L"";
-			paramMap.clear();
-		}
+		if (session->instance() != nullptr && embedAction->isChecked())
+			embedToggled(false);
+		session->replaceLibrary(text);
 
 		updateModel();
 		updatePermissionWarning();
@@ -760,7 +650,7 @@ void VSTCardEditor::importToConfig()
 	if (filterTable == nullptr)
 		return;
 
-	reference->setResolvedPath(QString::fromStdWString(library->getLibPath()));
+	reference->setResolvedPath(QString::fromStdWString(session->library()->getLibPath()));
 	if (!reference->importIntoConfig(this, filterTable->getConfigPath()))
 		return;
 
@@ -784,154 +674,52 @@ void VSTCardEditor::panelButtonClicked()
 
 void VSTCardEditor::embedToggled(bool checked)
 {
-	initPlugin();
+	session->initPlugin();
 	updateReferenceState();
 
-	bool enable = checked;
-	if (effect == nullptr)
-		enable = false;
-
-	if (enable != embedded)
+	const bool enable = checked && session->instance() != nullptr;
+	if (enable != session->embedded())
 	{
-		embedded = enable;
+		// The host is shown before the session embeds into it, and hidden
+		// again when embedding failed (reported through the status).
 		frame->setVisible(enable);
-
-		if (enable)
-		{
-			// Before embedPlugin()'s startEditing, for the same deactivation
-			// contract as the dialog path.
-			previewFeeder.start(effect.get());
-
-			if (embedPlugin())
-			{
-				effect->setSizeWindowFunc([this](int w, int h) { onSizeWindow(w, h); });
-				connect(QAbstractEventDispatcher::instance(), SIGNAL(aboutToBlock()), SLOT(onIdle()));
-			}
-			else
-			{
-				previewFeeder.stop();
-				embedded = false;
-				frame->setVisible(false);
-
-				initErrorText = tr("Plugin crashed when opening panel.");
-				updateReferenceState();
-			}
-		}
-		else
-		{
-			previewFeeder.stop();
-			if (effect != nullptr)
-			{
-				effect->stopEditing();
-				effect->setSizeWindowFunc(nullptr);
-			}
-			disconnect(QAbstractEventDispatcher::instance(), SIGNAL(aboutToBlock()), this, SLOT(onIdle()));
-		}
+		if (!session->setEmbedded(enable, frame))
+			frame->setVisible(false);
 	}
 
 	// A checked action without a live embed (plugin missing or crashed while
 	// opening the panel) would leave the card claiming a panel it does not
 	// show; drop the check so the button reads "Open panel" again. The
 	// recursive toggle is a no-op: embedded already matches.
-	if (checked && !embedded && embedAction->isChecked())
+	if (checked && !session->embedded() && embedAction->isChecked())
 		embedAction->setChecked(false);
 
 	// The button stays visible while embedded - it is the way out. Hiding it
 	// left the embed removable only through the options menu, which read as
 	// "the panel cannot be closed".
-	openPanelButton->setText(embedded ? tr("Close panel") : tr("Open panel"));
+	openPanelButton->setText(session->embedded() ? tr("Close panel") : tr("Open panel"));
 
 	// The strip locks while the panel is embedded and unlocks with it.
 	updateBusControls();
 	updateReferenceState();
 }
 
-void VSTCardEditor::onIdle()
-{
-	if (effect != nullptr)
-	{
-		effect->doIdle();
-
-		if (embedded || autoApplyDialog)
-		{
-			if (!lastReadTimer.isValid() || lastReadTimer.elapsed() > 1000)
-			{
-				wstring newChunkData;
-				unordered_map<wstring, float> newParamMap;
-				effect->readFromEffect(newChunkData, newParamMap);
-				if (newChunkData != chunkData || newParamMap != paramMap)
-				{
-					chunkData = newChunkData;
-					paramMap = newParamMap;
-					updateModel();
-					updatePermissionWarning();
-				}
-				lastReadTimer.restart();
-			}
-		}
-	}
-}
-
-void VSTCardEditor::onAutomate()
-{
-	if (embedded || autoApplyDialog)
-	{
-		effect->readFromEffect(chunkData, paramMap);
-		updateModel();
-		updatePermissionWarning();
-	}
-}
-
-void VSTCardEditor::onSizeWindow(int w, int h)
-{
-	if (embedded)
-		frame->setFixedSize(w, h);
-}
-
-bool VSTCardEditor::embedPlugin()
-{
-	bool result = true;
-	__try
-	{
-		effect->writeToEffect(chunkData, paramMap);
-
-		HWND hwnd = (HWND)frame->winId();
-		short width = 0, height = 0;
-		// startEditing also fails without an exception (no view, attach
-		// refused); unchecked, that embedded its 400x300 placeholder size as
-		// an empty frame and reported the panel as open.
-		result = effect->startEditing(hwnd, &width, &height, frame->devicePixelRatioF());
-		if (result)
-			frame->setFixedSize(width, height);
-	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
-	{
-		result = false;
-	}
-	return result;
-}
-
 // The chunk-referenced-files warning. The library's own readability verdict
 // lives on the reference card's status line (updateReferenceState), where it
 // is computed from the path alone; this one scans the saved plugin state and
-// so needs only chunkData, never a loaded plugin instance. The old gate on
-// effect made both warnings appear when a panel opened and silently vanish on
-// the next row rebuild - a permission problem that toggles with the UI reads
-// as a false alarm.
+// so needs only the chunk data, never a loaded plugin instance
+// (VSTPluginSession::chunkPermissionWarning).
 void VSTCardEditor::updatePermissionWarning()
 {
-	const QStringList files = vstChunkUnreadablePaths(chunkData);
+	const QString text = session->chunkPermissionWarning();
 
-	if (files.isEmpty())
+	if (text.isEmpty())
 	{
 		warningTextEdit->setVisible(false);
 		warningTextEdit->setPlainText("");
 	}
 	else
 	{
-		QString text = tr("The plugin seemingly accesses these files not readable by the audio service:\n"
-				"%0\n"
-				"Change the file permissions or copy the files to the config directory.").arg(files.join("\n"));
 		warningTextEdit->setPlainText(text);
 		QSize textSize = warningTextEdit->fontMetrics().size(0, text);
 		warningTextEdit->setFixedSize(textSize + GUIHelper::scale(QSize(40, 15)));
@@ -943,28 +731,34 @@ void VSTCardEditor::updatePermissionWarning()
 #include <vector>
 
 #include "FilterCardEditorRegistry.h"
-#include "filters/VSTPluginFilter.h"
-#include "filters/VSTPluginFilterFactory.h"
-#include "vst/VSTPluginInstance.h"
 #include "vst/VSTPluginLibrary.h"
 
 REGISTER_FILTER_CARD_EDITOR(VSTPlugin, [](FilterTable* filterTable, const QString&, const QString& parameters) -> IFilterGUI* {
-	// Parse the line into the engine's VST filter (no plugin DLL is loaded
-	// for configPath == L""), then hand the opaque state to the card editor.
-	// The store()/parse round-trip is verified lossless (--selftest-vst).
-	VSTPluginFilterFactory factory;
-	std::wstring commandWStr = L"VSTPlugin";
-	std::wstring paramWStr = parameters.toStdWString();
-	FilterVector filters = factory.createFilter(L"", commandWStr, paramWStr);
+	// Parse straight into the shared command struct, like the legacy row's
+	// factory: the engine's exact grammar without building (and destroying)
+	// a VSTPluginFilter, and no plugin binary is loaded here - getInstance
+	// only returns the cached library object. A line the engine's factory
+	// would refuse (a malformed contract, no library, a library path the
+	// config path policy does not open) still opens an empty card, as it did
+	// when this path went through the factory. The store()/parse round-trip
+	// is verified lossless (--selftest-vst).
+	const VSTPluginCommand cmd = VSTPluginCommand::parse(L"", parameters.toStdWString());
+	std::wstring refusal;
+	const bool usable = cmd.valid && !cmd.libraryPath.empty()
+		&& ConfigPathPolicy::allowsOpen(cmd.libraryPath, L"", refusal);
 	VSTCardEditor* editor;
-	if (!filters.empty())
+	if (usable)
 	{
-		VSTPluginFilter* filter = static_cast<VSTPluginFilter*>(filters[0].get());
-		editor = new VSTCardEditor(filter->getLibrary(), filter->getChunkData(), filter->getParamMap(),
-			filter->getStereoInput(), filter->getBusContract(),
+		// The factory keeps the contract for parser-only callers and drops
+		// the StereoInput flag with it (the parser rejects the two together).
+		const std::optional<VST3BusContract> busContract = cmd.hasBusContract
+			? std::optional<VST3BusContract>(cmd.busContract) : std::nullopt;
+		editor = new VSTCardEditor(VSTPluginLibrary::getInstance(cmd.libraryPath), cmd.chunkData, cmd.paramMap,
+			cmd.hasBusContract ? false : cmd.stereoInput, busContract,
 			filterTable != nullptr ? filterTable->getChannelNames() : std::vector<std::wstring>(),
 			filterTable, nullptr,
-			filter->getInputChannels(), filter->getOutputChannels());
+			cmd.hasBusContract ? cmd.inputChannels : std::vector<std::wstring>(),
+			cmd.hasBusContract ? cmd.outputChannels : std::vector<std::wstring>());
 	}
 	else
 	{

@@ -323,9 +323,9 @@ void HilbertCardEditor::store(QString& command, QString& parameters)
 	parameters = QString::fromStdWString(current.serialize());
 }
 
-void HilbertCardEditor::configureChannels(std::vector<std::wstring>& channelNames)
+void HilbertCardEditor::setChannelFlow(const ChannelFlowAtLine& flow)
 {
-	for (const std::wstring& channel : channelNames)
+	for (const std::wstring& channel : flow.namesInScope)
 		if (std::find(deviceChannels.begin(), deviceChannels.end(), channel)
 			== deviceChannels.end())
 			deviceChannels.push_back(channel);

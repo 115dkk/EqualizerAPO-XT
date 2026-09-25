@@ -80,8 +80,9 @@ public:
 	// code so every EQ shape carries its response-curve glyph; an unmapped
 	// descriptor (raw text lines) returns empty and the badge falls back to
 	// its monogram, so future commands degrade gracefully instead of going
-	// blank. Picker entries use commandIconResource below, so the command
-	// vocabulary and these descriptor-specific cases stay in one owner.
+	// blank. The lookup itself is FilterCommandCatalog::badgeIconResource,
+	// over the same catalog entries picker entries read through
+	// commandIconResource below.
 	static QString badgeIconResource(const QString& type, const QString& badge);
 	// Shared command vocabulary used by picker entries and card badges.
 	// Parameters are consulted only for the Filter response-curve split.

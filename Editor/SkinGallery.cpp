@@ -623,7 +623,7 @@ QWidget* buildAnalysisPanelReplica(QWidget* parent)
 	QFrame* bar = new QFrame;
 	bar->setObjectName(QStringLiteral("analysisControlBar"));
 	bar->setAttribute(Qt::WA_StyledBackground, true);
-	bar->setMaximumWidth(280);
+	bar->setMaximumWidth(MainWindow::analysisControlBarWidth);
 	QGridLayout* grid = new QGridLayout(bar);
 	// Matches MainWindow.ui after the metric switch and the base-delay option
 	// joined this bar: the two extra rows are paid for by tightening the
@@ -867,7 +867,7 @@ QList<FilterCardRow*> buildRows(QScrollArea& scrollArea, const QString& configPa
 	// ports from the command text); a caller that judges device-channel
 	// seeding (the Copy fold scenes) passes its own synthetic endpoint. The
 	// heritage dump selects a synthetic device likewise: the legacy
-	// CopyFilterGUI scene only populates through configureChannels(), which
+	// CopyFilterGUI scene only populates through setChannelFlow(), which
 	// is empty without one.
 	if (device != nullptr)
 		table->updateDeviceAndChannelMask(device, channelMask);

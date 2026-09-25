@@ -12,7 +12,7 @@ list behavior is not implemented twice.
 | Mode | Row widget | Status | Representative files |
 | --- | --- | --- | --- |
 | `ModernCards` | `FilterCardRow` | Canonical, actively maintained, runtime default | `Editor/widgets/FilterCardRow.cpp`, `Editor/widgets/FilterCardModel.cpp`, `Editor/widgets/cards/` |
-| `LegacyRows` | `FilterTableRow` | Frozen fallback, not extended | `Editor/FilterTableRow.cpp` |
+| `LegacyRows` | `FilterTableRow` | Kept; guarantees only that existing usage keeps working | `Editor/FilterTableRow.cpp` |
 
 `FilterTable` branches on the active mode when it builds row widgets. The two
 branch points are in `FilterTable::updateGuis()` (full rebuild) and
@@ -28,7 +28,7 @@ routing and knob editors, and it carries the depth/indentation handling for
 nested includes. New filter-list work has been going into the card path, so it is
 where the current behavior lives and where the maintained code is.
 
-## Why legacy is frozen rather than deleted
+## Why legacy is kept rather than deleted
 
 `LegacyRows` (`FilterTableRow`) is the original Qt-table-style row UI, kept
 permanently by maintainer decision (2026-07-05): it is the heritage editor,
@@ -55,15 +55,51 @@ The offscreen gallery renders the heritage presentation with
 The maintenance concern this policy addresses is that, with two parallel UIs,
 every list behavior risks being implemented twice. The rule is therefore:
 
-- Add new filter-list behavior only to the card path (`FilterCardRow` and the
+- Add new filter-list behavior to the card path (`FilterCardRow` and the
   supporting `Editor/widgets/` code).
-- Do not extend `FilterTableRow`. Treat it as frozen. Bug-for-bug parity with
-  the card path is not a goal.
+- Legacy rows guarantee only that existing usage keeps working (maintainer
+  decision, audit #348 B1). They get no new presentation of their own, and
+  parity with the card path is not a goal in itself.
+- Logic a legacy row shares with its card lives in one place that both use,
+  never in two copies. The legacy VST row shares its document model
+  (`VSTRowDocument`) and its plugin session (`VSTPluginSession`) with the card,
+  so a VST feature lands in both. The channel flow (below) is shared by every
+  row.
 - Do not change the runtime default or remove either branch as part of unrelated
-  work. The freeze is a hold, not a deprecation schedule; any decision to delete
-  the legacy path is a separate, explicit change.
+  work. Keeping the legacy path is not a deprecation schedule; any decision to
+  delete it is a separate, explicit change.
 - Document-level features that live on `FilterTable` itself (above the row
   widgets) are not an extension of the legacy path and apply to both modes.
   Undo/redo is the existing example: `FilterListUndo` snapshots the config
   lines on every `linesChanged` and replays them through the same full-rebuild
   path as a document load, so it needs nothing row-specific.
+
+## The channel flow
+
+Several rows show which channels exist and which are selected at their line: a
+Channel row offers the names in scope, a Copy row routes between them, a VST
+row fills its bus slots from the selection. `FilterTable::propagateChannels`
+builds the lines from the document, calls `computeChannelFlow`
+(`Editor/widgets/ChannelFlow.h`) once, and hands each row widget its own line's
+element through `IFilterGUI::setChannelFlow`. Rows only read that element; no
+row changes what the rows below it see. Both render modes use the same flow.
+
+The flow follows the engine: `Channel:` replaces the selection
+(`ChannelCommand::resolveSelection`), `Copy:` adds its targets to the names in
+scope (`propagateCopyChannels`), a switched-off line changes nothing, and lines
+the engine skips because a `Device:` pattern or a `Stage:` does not match the
+selected device change nothing (`DeviceCommand::matches`,
+`StageCommand::matches`). The Editor judges `Stage:` as the post-mix instance
+with a post-mix APO installed, like its analysis engine.
+
+Two things the Editor cannot know, so the flow approximates them:
+
+- `If:`/`ElseIf:`/`Else:`/`EndIf:`: which branch runs depends on expressions
+  over the live device. Each branch starts from the state at its `If:` line, and
+  after `EndIf:` the flow continues with the state the `If:` branch left, as if
+  the first condition held.
+- A line whose parameters carry an inline `` `expression` `` changes nothing,
+  because its values exist only after the engine evaluates them. `Include:`
+  changes nothing either: the engine restores the selection after the included
+  file, and the names a `Copy:` inside it creates are not visible to the Editor,
+  which does not read the included file.

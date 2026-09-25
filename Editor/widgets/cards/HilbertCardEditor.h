@@ -26,7 +26,7 @@ public:
 		const QString& validationError = QString(), QWidget* parent = nullptr);
 
 	void store(QString& command, QString& parameters) override;
-	void configureChannels(std::vector<std::wstring>& channelNames) override;
+	void setChannelFlow(const ChannelFlowAtLine& flow) override;
 
 private:
 	void changed();
