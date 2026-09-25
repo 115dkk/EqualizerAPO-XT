@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "SubwooferRouting/StateCodec.h"
+#include "Text.h"
 
 #include <cmath>
 #include <cstdint>
@@ -19,206 +20,7 @@ namespace subroute
 namespace
 {
 
-std::string escapeJsonPointerToken(std::string_view token)
-{
-	std::string escaped;
-
-	for (const char character : token)
-	{
-		switch (character)
-		{
-		case '~':
-			escaped += "~0";
-			break;
-		case '/':
-			escaped += "~1";
-			break;
-		default:
-			escaped.push_back(character);
-			break;
-		}
-	}
-
-	return escaped;
-}
-
-std::string appendJsonPointer(
-	std::string_view parent,
-	std::string_view token)
-{
-	std::string pointer(parent);
-	pointer.push_back('/');
-	pointer += escapeJsonPointerToken(token);
-	return pointer;
-}
-
-std::string appendJsonPointer(
-	std::string_view parent,
-	std::size_t index)
-{
-	return appendJsonPointer(parent, std::to_string(index));
-}
-
-bool isContinuationByte(unsigned char value) noexcept
-{
-	return (value & 0xc0U) == 0x80U;
-}
-
-bool isValidUtf8(std::string_view text) noexcept
-{
-	std::size_t index = 0;
-
-	while (index < text.size())
-	{
-		const auto first = static_cast<unsigned char>(text[index]);
-
-		if (first <= 0x7fU)
-		{
-			++index;
-			continue;
-		}
-
-		if (first >= 0xc2U && first <= 0xdfU)
-		{
-			if (index + 1 >= text.size()
-				|| !isContinuationByte(
-					static_cast<unsigned char>(text[index + 1])))
-			{
-				return false;
-			}
-
-			index += 2;
-			continue;
-		}
-
-		if (first == 0xe0U)
-		{
-			if (index + 2 >= text.size())
-			{
-				return false;
-			}
-
-			const auto second =
-				static_cast<unsigned char>(text[index + 1]);
-			const auto third =
-				static_cast<unsigned char>(text[index + 2]);
-
-			if (second < 0xa0U || second > 0xbfU
-				|| !isContinuationByte(third))
-			{
-				return false;
-			}
-
-			index += 3;
-			continue;
-		}
-
-		if ((first >= 0xe1U && first <= 0xecU)
-			|| (first >= 0xeeU && first <= 0xefU))
-		{
-			if (index + 2 >= text.size()
-				|| !isContinuationByte(
-					static_cast<unsigned char>(text[index + 1]))
-				|| !isContinuationByte(
-					static_cast<unsigned char>(text[index + 2])))
-			{
-				return false;
-			}
-
-			index += 3;
-			continue;
-		}
-
-		if (first == 0xedU)
-		{
-			if (index + 2 >= text.size())
-			{
-				return false;
-			}
-
-			const auto second =
-				static_cast<unsigned char>(text[index + 1]);
-			const auto third =
-				static_cast<unsigned char>(text[index + 2]);
-
-			if (second < 0x80U || second > 0x9fU
-				|| !isContinuationByte(third))
-			{
-				return false;
-			}
-
-			index += 3;
-			continue;
-		}
-
-		if (first == 0xf0U)
-		{
-			if (index + 3 >= text.size())
-			{
-				return false;
-			}
-
-			const auto second =
-				static_cast<unsigned char>(text[index + 1]);
-
-			if (second < 0x90U || second > 0xbfU
-				|| !isContinuationByte(
-					static_cast<unsigned char>(text[index + 2]))
-				|| !isContinuationByte(
-					static_cast<unsigned char>(text[index + 3])))
-			{
-				return false;
-			}
-
-			index += 4;
-			continue;
-		}
-
-		if (first >= 0xf1U && first <= 0xf3U)
-		{
-			if (index + 3 >= text.size()
-				|| !isContinuationByte(
-					static_cast<unsigned char>(text[index + 1]))
-				|| !isContinuationByte(
-					static_cast<unsigned char>(text[index + 2]))
-				|| !isContinuationByte(
-					static_cast<unsigned char>(text[index + 3])))
-			{
-				return false;
-			}
-
-			index += 4;
-			continue;
-		}
-
-		if (first == 0xf4U)
-		{
-			if (index + 3 >= text.size())
-			{
-				return false;
-			}
-
-			const auto second =
-				static_cast<unsigned char>(text[index + 1]);
-
-			if (second < 0x80U || second > 0x8fU
-				|| !isContinuationByte(
-					static_cast<unsigned char>(text[index + 2]))
-				|| !isContinuationByte(
-					static_cast<unsigned char>(text[index + 3])))
-			{
-				return false;
-			}
-
-			index += 4;
-			continue;
-		}
-
-		return false;
-	}
-
-	return true;
-}
+using text::appendJsonPointer;
 
 StateCodecError makeError(
 	StateCodecErrorCode code,
@@ -388,7 +190,7 @@ private:
 
 		const std::string& string = value.asString();
 
-		if (!isValidUtf8(string))
+		if (!text::validateUtf8(string).valid)
 		{
 			addError(
 				StateCodecErrorCode::InvalidUtf8,

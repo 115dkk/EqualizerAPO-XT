@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "SubwooferRouting/Json.h"
+#include "Text.h"
 
 #include <array>
 #include <charconv>
@@ -234,118 +235,6 @@ bool JsonSerializeResult::succeeded() const noexcept
 namespace
 {
 
-bool validateUtf8Sequence(
-	std::string_view text,
-	std::size_t offset,
-	std::size_t& sequenceLength,
-	std::size_t& failureOffset)
-{
-	const auto byteAt = [&text](std::size_t index)
-	{
-		return static_cast<unsigned char>(text[index]);
-	};
-
-	const unsigned char first = byteAt(offset);
-	if (first <= 0x7F)
-	{
-		sequenceLength = 1;
-		return true;
-	}
-
-	std::size_t requiredLength = 0;
-	unsigned char secondMinimum = 0x80;
-	unsigned char secondMaximum = 0xBF;
-
-	if (first >= 0xC2 && first <= 0xDF)
-	{
-		requiredLength = 2;
-	}
-	else if (first == 0xE0)
-	{
-		requiredLength = 3;
-		secondMinimum = 0xA0;
-	}
-	else if (first >= 0xE1 && first <= 0xEC)
-	{
-		requiredLength = 3;
-	}
-	else if (first == 0xED)
-	{
-		requiredLength = 3;
-		secondMaximum = 0x9F;
-	}
-	else if (first >= 0xEE && first <= 0xEF)
-	{
-		requiredLength = 3;
-	}
-	else if (first == 0xF0)
-	{
-		requiredLength = 4;
-		secondMinimum = 0x90;
-	}
-	else if (first >= 0xF1 && first <= 0xF3)
-	{
-		requiredLength = 4;
-	}
-	else if (first == 0xF4)
-	{
-		requiredLength = 4;
-		secondMaximum = 0x8F;
-	}
-	else
-	{
-		failureOffset = offset;
-		return false;
-	}
-
-	if (offset + 1 >= text.size())
-	{
-		failureOffset = text.size();
-		return false;
-	}
-
-	const unsigned char second = byteAt(offset + 1);
-	if (second < secondMinimum || second > secondMaximum)
-	{
-		failureOffset = offset + 1;
-		return false;
-	}
-
-	for (std::size_t index = 2; index < requiredLength; ++index)
-	{
-		if (offset + index >= text.size())
-		{
-			failureOffset = text.size();
-			return false;
-		}
-
-		const unsigned char continuation = byteAt(offset + index);
-		if (continuation < 0x80 || continuation > 0xBF)
-		{
-			failureOffset = offset + index;
-			return false;
-		}
-	}
-
-	sequenceLength = requiredLength;
-	return true;
-}
-
-bool validateUtf8(std::string_view text, std::size_t& failureOffset)
-{
-	std::size_t offset = 0;
-	while (offset < text.size())
-	{
-		std::size_t sequenceLength = 0;
-		if (!validateUtf8Sequence(text, offset, sequenceLength, failureOffset))
-		{
-			return false;
-		}
-		offset += sequenceLength;
-	}
-	return true;
-}
-
 int hexadecimalValue(char character)
 {
 	if (character >= '0' && character <= '9')
@@ -459,17 +348,13 @@ private:
 		if (offset < text_.size()
 			&& static_cast<unsigned char>(text_[offset]) >= 0x80)
 		{
-			std::size_t sequenceLength = 0;
-			std::size_t failureOffset = offset;
-			if (!validateUtf8Sequence(
-				text_,
-				offset,
-				sequenceLength,
-				failureOffset))
+			const text::Utf8Validation validation =
+				text::validateUtf8(text_.substr(offset), 1);
+			if (!validation.valid)
 			{
 				return fail(
 					JsonParseErrorCode::InvalidUtf8,
-					failureOffset,
+					offset + validation.failureOffset,
 					"Malformed UTF-8 sequence");
 			}
 		}
@@ -731,22 +616,18 @@ private:
 				continue;
 			}
 
-			std::size_t sequenceLength = 0;
-			std::size_t failureOffset = offset_;
-			if (!validateUtf8Sequence(
-				text_,
-				offset_,
-				sequenceLength,
-				failureOffset))
+			const text::Utf8Validation validation =
+				text::validateUtf8(text_.substr(offset_), 1);
+			if (!validation.valid)
 			{
 				return fail(
 					JsonParseErrorCode::InvalidUtf8,
-					failureOffset,
+					offset_ + validation.failureOffset,
 					"Malformed UTF-8 sequence in JSON string");
 			}
 
-			output.append(text_.substr(offset_, sequenceLength));
-			offset_ += sequenceLength;
+			output.append(text_.substr(offset_, validation.validBytes));
+			offset_ += validation.validBytes;
 		}
 
 		return fail(
@@ -1140,32 +1021,6 @@ private:
 	std::optional<JsonParseError> error_;
 };
 
-std::string appendJsonPointerToken(
-	const std::string& pointer,
-	std::string_view token)
-{
-	std::string result = pointer;
-	result.push_back('/');
-
-	for (const char character : token)
-	{
-		if (character == '~')
-		{
-			result += "~0";
-		}
-		else if (character == '/')
-		{
-			result += "~1";
-		}
-		else
-		{
-			result.push_back(character);
-		}
-	}
-
-	return result;
-}
-
 class JsonSerializer
 {
 public:
@@ -1265,7 +1120,9 @@ private:
 		const char* invalidUtf8Message)
 	{
 		std::size_t failureOffset = 0;
-		if (!validateUtf8(value, failureOffset))
+		const text::Utf8Validation validation = text::validateUtf8(value);
+		failureOffset = validation.failureOffset;
+		if (!validation.valid)
 		{
 			return fail(
 				JsonSerializeErrorCode::InvalidUtf8,
@@ -1368,7 +1225,7 @@ private:
 
 			output_.push_back(':');
 			const std::string childPointer =
-				appendJsonPointerToken(pointer, member.first);
+				text::appendJsonPointer(pointer, member.first);
 			if (!writeValue(member.second, childPointer))
 			{
 				return false;

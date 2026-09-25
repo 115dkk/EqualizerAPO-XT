@@ -33,6 +33,9 @@
     <ClInclude Include="include\SubwooferRouting\StateCodec.h">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="src\Text.h">
+      <Filter>src</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Compiler.cpp">
@@ -51,6 +54,9 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\StateCodec.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Text.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

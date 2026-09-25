@@ -3,7 +3,6 @@
 #include "controller.h"
 
 #include <algorithm>
-#include <cmath>
 #include <cstring>
 #include <cwchar>
 #include <limits>
@@ -24,15 +23,6 @@ namespace eapoxt::subwooferrouting::vst3
 namespace
 {
 
-const ParamID parameterIds[] = {
-	kBypassParamId,
-	kSourceLfeGainParamId,
-	kSourceLfePolarityParamId,
-	kSourceLfeDelayParamId,
-	kOutputTrimParamId,
-	kHeadroomAutoParamId
-};
-
 bool iidIs(const TUID iid, const FUID& expected)
 {
 	return FUnknownPrivate::iidEqual(iid, expected);
@@ -43,45 +33,27 @@ void copyString128(String128 destination, const wchar_t* source)
 	wcsncpy_s(reinterpret_cast<wchar_t*>(destination), 128, source, _TRUNCATE);
 }
 
-double clampNormalized(double value)
-{
-	if (!std::isfinite(value))
-		return 0.0;
-	return std::clamp(value, 0.0, 1.0);
-}
-
-double toNormalized(double value, double minimum, double maximum)
-{
-	return clampNormalized((value - minimum) / (maximum - minimum));
-}
-
-bool readExact(IBStream* stream, void* destination, uint32 byteCount)
+bool readExact(IBStream* stream, void* destination, std::size_t byteCount)
 {
 	uint8* output = static_cast<uint8*>(destination);
-	uint32 total = 0;
+	std::size_t total = 0;
 	while (total < byteCount)
 	{
 		int32 bytesRead = 0;
-		const int32 request = static_cast<int32>(byteCount - total);
+		const std::size_t remaining = byteCount - total;
+		const int32 request = static_cast<int32>(
+			std::min<std::size_t>(
+				remaining,
+				static_cast<std::size_t>(std::numeric_limits<int32>::max())));
 		if (stream->read(output + total, request, &bytesRead) != kResultOk
 			|| bytesRead <= 0
 			|| bytesRead > request)
 		{
 			return false;
 		}
-		total += static_cast<uint32>(bytesRead);
+		total += static_cast<std::size_t>(bytesRead);
 	}
 	return true;
-}
-
-const subroute::Path* findSourceLfePath(const subroute::SubwooferRoutingState& state)
-{
-	for (const subroute::Path& path : state.paths)
-	{
-		if (path.kind == subroute::PathKind::SourceLfe)
-			return &path;
-	}
-	return nullptr;
 }
 
 }
@@ -187,32 +159,21 @@ tresult PLUGIN_API SubwooferRoutingController::terminate()
 	return kResultOk;
 }
 
-bool SubwooferRoutingController::readFramedState(IBStream* stream, std::string& json)
-{
-	if (stream == nullptr)
-		return false;
-
-	uint32 header[2] = {};
-	if (!readExact(stream, header, sizeof(header))
-		|| header[0] != kStateMagic
-		|| header[1] > kMaximumStateBytes)
-	{
-		return false;
-	}
-
-	std::string incoming(header[1], '\0');
-	if (header[1] != 0 && !readExact(stream, incoming.data(), header[1]))
-		return false;
-
-	json = std::move(incoming);
-	return true;
-}
-
 tresult PLUGIN_API SubwooferRoutingController::setComponentState(IBStream* stream)
 {
-	std::string json;
-	if (!readFramedState(stream, json))
+	if (stream == nullptr)
 		return kResultFalse;
+
+	std::string json;
+	if (!readStateFrame(
+		[stream](void* destination, std::size_t byteCount)
+		{
+			return readExact(stream, destination, byteCount);
+		},
+		json))
+	{
+		return kResultFalse;
+	}
 
 	const subroute::StateDecodeResult decoded = subroute::decodeState(json);
 	if (!decoded.succeeded())
@@ -236,56 +197,36 @@ tresult PLUGIN_API SubwooferRoutingController::getState(IBStream*)
 
 int32 PLUGIN_API SubwooferRoutingController::getParameterCount()
 {
-	return 6;
+	return static_cast<int32>(kParameterCount);
 }
 
 tresult PLUGIN_API SubwooferRoutingController::getParameterInfo(int32 index, ParameterInfo& info)
 {
-	if (index < 0 || index >= getParameterCount())
+	if (index < 0)
+		return kInvalidArgument;
+
+	const ParameterDescriptor* parameter =
+		parameterBySlot(static_cast<std::size_t>(index));
+	if (parameter == nullptr)
 		return kInvalidArgument;
 
 	std::memset(&info, 0, sizeof(info));
-	info.id = parameterIds[index];
+	info.id = parameter->id;
 	info.unitId = kRootUnitId;
-	info.defaultNormalizedValue = defaults_[index];
+	info.defaultNormalizedValue = defaults_[parameter->slot];
 	info.flags = ParameterInfo::kCanAutomate;
+	copyString128(info.title, parameter->title);
+	copyString128(info.shortTitle, parameter->shortTitle);
+	copyString128(info.units, parameter->unit);
 
-	switch (info.id)
+	if (parameter->kind == ParameterKind::Bypass
+		|| parameter->kind == ParameterKind::Polarity
+		|| parameter->kind == ParameterKind::HeadroomAuto)
 	{
-	case kBypassParamId:
-		copyString128(info.title, L"Bypass");
-		copyString128(info.shortTitle, L"Bypass");
 		info.stepCount = 1;
-		info.flags |= ParameterInfo::kIsBypass;
-		break;
-	case kSourceLfeGainParamId:
-		copyString128(info.title, L"Source LFE Gain");
-		copyString128(info.shortTitle, L"LFE Gain");
-		copyString128(info.units, L"dB");
-		break;
-	case kSourceLfePolarityParamId:
-		copyString128(info.title, L"Source LFE Polarity");
-		copyString128(info.shortTitle, L"LFE Pol");
-		info.stepCount = 1;
-		break;
-	case kSourceLfeDelayParamId:
-		copyString128(info.title, L"Source LFE Delay");
-		copyString128(info.shortTitle, L"LFE Delay");
-		copyString128(info.units, L"ms");
-		break;
-	case kOutputTrimParamId:
-		copyString128(info.title, L"Global Output Trim");
-		copyString128(info.shortTitle, L"Trim");
-		copyString128(info.units, L"dB");
-		break;
-	case kHeadroomAutoParamId:
-		copyString128(info.title, L"Headroom Auto");
-		copyString128(info.shortTitle, L"Headroom");
-		info.stepCount = 1;
-		break;
-	default:
-		return kInvalidArgument;
 	}
+	if (parameter->kind == ParameterKind::Bypass)
+		info.flags |= ParameterInfo::kIsBypass;
 
 	return kResultOk;
 }
@@ -295,31 +236,11 @@ tresult PLUGIN_API SubwooferRoutingController::getParamStringByValue(
 	ParamValue value,
 	String128 string)
 {
-	if (parameterIndex(id) < 0)
+	const ParameterDescriptor* parameter = parameterById(id);
+	if (parameter == nullptr)
 		return kInvalidArgument;
 
-	const double plain = normalizedParamToPlain(id, value);
-	switch (id)
-	{
-	case kBypassParamId:
-		copyString128(string, plain >= 0.5 ? L"On" : L"Off");
-		break;
-	case kSourceLfePolarityParamId:
-		copyString128(string, plain >= 0.5 ? L"Inverted" : L"Normal");
-		break;
-	case kHeadroomAutoParamId:
-		copyString128(string, plain >= 0.5 ? L"Auto" : L"Manual");
-		break;
-	case kSourceLfeGainParamId:
-	case kOutputTrimParamId:
-		swprintf_s(reinterpret_cast<wchar_t*>(string), 128, L"%.2f dB", plain);
-		break;
-	case kSourceLfeDelayParamId:
-		swprintf_s(reinterpret_cast<wchar_t*>(string), 128, L"%.2f ms", plain);
-		break;
-	default:
-		return kInvalidArgument;
-	}
+	copyString128(string, displayParameterValue(*parameter, value).c_str());
 	return kResultOk;
 }
 
@@ -328,25 +249,26 @@ tresult PLUGIN_API SubwooferRoutingController::getParamValueByString(
 	TChar* string,
 	ParamValue& value)
 {
-	if (parameterIndex(id) < 0 || string == nullptr)
+	const ParameterDescriptor* parameter = parameterById(id);
+	if (parameter == nullptr || string == nullptr)
 		return kInvalidArgument;
 
 	const wchar_t* text = reinterpret_cast<const wchar_t*>(string);
-	if (id == kBypassParamId)
+	if (parameter->kind == ParameterKind::Bypass)
 	{
 		value = (_wcsicmp(text, L"on") == 0 || _wcsicmp(text, L"true") == 0)
 			? 1.0
 			: 0.0;
 		return kResultOk;
 	}
-	if (id == kSourceLfePolarityParamId)
+	if (parameter->kind == ParameterKind::Polarity)
 	{
 		value = (_wcsicmp(text, L"inverted") == 0 || _wcsicmp(text, L"invert") == 0)
 			? 1.0
 			: 0.0;
 		return kResultOk;
 	}
-	if (id == kHeadroomAutoParamId)
+	if (parameter->kind == ParameterKind::HeadroomAuto)
 	{
 		value = _wcsicmp(text, L"auto") == 0 ? 1.0 : 0.0;
 		return kResultOk;
@@ -364,43 +286,20 @@ ParamValue PLUGIN_API SubwooferRoutingController::normalizedParamToPlain(
 	ParamID id,
 	ParamValue value)
 {
-	value = clampNormalized(value);
-	switch (id)
-	{
-	case kSourceLfeGainParamId:
-		return -20.0 + value * 40.0;
-	case kSourceLfeDelayParamId:
-		return value * 100.0;
-	case kOutputTrimParamId:
-		return -40.0 + value * 40.0;
-	case kBypassParamId:
-	case kSourceLfePolarityParamId:
-	case kHeadroomAutoParamId:
-		return value >= 0.5 ? 1.0 : 0.0;
-	default:
-		return 0.0;
-	}
+	const ParameterDescriptor* parameter = parameterById(id);
+	return parameter != nullptr
+		? normalizedParameterToPlain(*parameter, value)
+		: 0.0;
 }
 
 ParamValue PLUGIN_API SubwooferRoutingController::plainParamToNormalized(
 	ParamID id,
 	ParamValue value)
 {
-	switch (id)
-	{
-	case kSourceLfeGainParamId:
-		return toNormalized(value, -20.0, 20.0);
-	case kSourceLfeDelayParamId:
-		return toNormalized(value, 0.0, 100.0);
-	case kOutputTrimParamId:
-		return toNormalized(value, -40.0, 0.0);
-	case kBypassParamId:
-	case kSourceLfePolarityParamId:
-	case kHeadroomAutoParamId:
-		return value >= 0.5 ? 1.0 : 0.0;
-	default:
-		return 0.0;
-	}
+	const ParameterDescriptor* parameter = parameterById(id);
+	return parameter != nullptr
+		? plainParameterToNormalized(*parameter, value)
+		: 0.0;
 }
 
 ParamValue PLUGIN_API SubwooferRoutingController::getParamNormalized(ParamID id)
@@ -420,16 +319,37 @@ tresult PLUGIN_API SubwooferRoutingController::setParamNormalized(
 	if (index < 0)
 		return kInvalidArgument;
 
-	value = clampNormalized(value);
+	value = clampNormalizedParameter(value);
 	{
 		std::lock_guard<std::mutex> lock(mutex_);
-		values_[index] = value;
+		const ParameterDescriptor* parameter = parameterById(id);
+		if (parameter == nullptr)
+			return kInvalidArgument;
 
-		if (id == kOutputTrimParamId)
+		values_[parameter->slot] = value;
+		if (parameter->kind == ParameterKind::OutputTrim)
 		{
-			const double plain = normalizedParamToPlain(id, value);
-			if (std::fabs(plain - automaticTrimDb_) > 1.0e-9)
-				values_[parameterIndex(kHeadroomAutoParamId)] = 0.0;
+			subroute::SubwooferRoutingState candidate = state_;
+			bool bypass = values_[0] >= 0.5;
+			if (writeNormalizedParameter(
+				*parameter,
+				candidate,
+				value,
+				automaticTrimDb_,
+				bypass))
+			{
+				const ParameterDescriptor* headroom =
+					parameterById(kHeadroomAutoParamId);
+				if (headroom != nullptr)
+				{
+					readNormalizedParameter(
+						*headroom,
+						candidate,
+						automaticTrimDb_,
+						bypass,
+						values_[headroom->slot]);
+				}
+			}
 		}
 	}
 
@@ -507,32 +427,20 @@ tresult PLUGIN_API SubwooferRoutingController::notify(IMessage* message)
 void SubwooferRoutingController::updateValuesFromState(
 	const subroute::SubwooferRoutingState& state)
 {
-	values_[0] = 0.0;
-
-	const subroute::Path* sourceLfe = findSourceLfePath(state);
-	if (sourceLfe != nullptr)
+	updateTrimFromState(state);
+	for (std::size_t slot = 0; slot < kParameterCount; ++slot)
 	{
-		values_[1] = toNormalized(sourceLfe->preGainDb, -20.0, 20.0);
-		values_[2] = 0.0;
-		values_[3] = 0.0;
-
-		for (const subroute::PathStage& stage : sourceLfe->chain)
+		const ParameterDescriptor* parameter = parameterBySlot(slot);
+		if (parameter != nullptr)
 		{
-			if (const subroute::PolarityStage* polarity =
-				std::get_if<subroute::PolarityStage>(&stage))
-			{
-				values_[2] = polarity->inverted ? 1.0 : 0.0;
-			}
-			else if (const subroute::DelayStage* delay =
-				std::get_if<subroute::DelayStage>(&stage))
-			{
-				values_[3] = toNormalized(delay->milliseconds, 0.0, 100.0);
-			}
+			readNormalizedParameter(
+				*parameter,
+				state,
+				automaticTrimDb_,
+				false,
+				values_[slot]);
 		}
 	}
-
-	updateTrimFromState(state);
-	values_[5] = state.headroom.mode == subroute::HeadroomMode::Auto ? 1.0 : 0.0;
 }
 
 // The headroom preview compiles at the processor's rate once it has reported
@@ -546,10 +454,16 @@ void SubwooferRoutingController::updateTrimFromState(
 		? compiled.headroom->appliedTrimDb
 		: state.headroom.manualTrimDb;
 
-	const double displayedTrim = state.headroom.mode == subroute::HeadroomMode::Auto
-		? automaticTrimDb_
-		: state.headroom.manualTrimDb;
-	values_[4] = toNormalized(displayedTrim, -40.0, 0.0);
+	const ParameterDescriptor* trim = parameterById(kOutputTrimParamId);
+	if (trim != nullptr)
+	{
+		readNormalizedParameter(
+			*trim,
+			state,
+			automaticTrimDb_,
+			false,
+			values_[trim->slot]);
+	}
 }
 
 bool SubwooferRoutingController::sendParameter(ParamID id, ParamValue value)
@@ -603,14 +517,10 @@ bool SubwooferRoutingController::sendParameter(ParamID id, ParamValue value)
 	return result == kResultOk;
 }
 
-int SubwooferRoutingController::parameterIndex(ParamID id) const
+int SubwooferRoutingController::parameterIndex(ParamID id)
 {
-	for (int index = 0; index < 6; ++index)
-	{
-		if (parameterIds[index] == id)
-			return index;
-	}
-	return -1;
+	const ParameterDescriptor* parameter = parameterById(id);
+	return parameter != nullptr ? static_cast<int>(parameter->slot) : -1;
 }
 
 FUnknown* createSubwooferRoutingController()

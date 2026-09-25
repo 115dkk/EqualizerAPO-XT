@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "SubwooferRouting/Compiler.h"
+#include "Text.h"
 #include <numbers>
 
 #include <algorithm>
@@ -40,96 +41,6 @@ void addDiagnostic(
 	result.diagnostics.push_back(std::move(diagnostic));
 }
 
-bool isContinuationByte(unsigned char value) noexcept
-{
-	return (value & 0xc0U) == 0x80U;
-}
-
-bool isValidUtf8(std::string_view text) noexcept
-{
-	std::size_t index = 0;
-
-	while (index < text.size())
-	{
-		const auto first = static_cast<unsigned char>(text[index]);
-
-		if (first <= 0x7fU)
-		{
-			++index;
-			continue;
-		}
-
-		if (first >= 0xc2U && first <= 0xdfU)
-		{
-			if (index + 1 >= text.size()
-				|| !isContinuationByte(static_cast<unsigned char>(text[index + 1])))
-			{
-				return false;
-			}
-
-			index += 2;
-			continue;
-		}
-
-		if (first >= 0xe0U && first <= 0xefU)
-		{
-			if (index + 2 >= text.size())
-			{
-				return false;
-			}
-
-			const auto second = static_cast<unsigned char>(text[index + 1]);
-			const auto third = static_cast<unsigned char>(text[index + 2]);
-
-			if (!isContinuationByte(second) || !isContinuationByte(third))
-			{
-				return false;
-			}
-
-			if ((first == 0xe0U && second < 0xa0U)
-				|| (first == 0xedU && second >= 0xa0U))
-			{
-				return false;
-			}
-
-			index += 3;
-			continue;
-		}
-
-		if (first >= 0xf0U && first <= 0xf4U)
-		{
-			if (index + 3 >= text.size())
-			{
-				return false;
-			}
-
-			const auto second = static_cast<unsigned char>(text[index + 1]);
-			const auto third = static_cast<unsigned char>(text[index + 2]);
-			const auto fourth = static_cast<unsigned char>(text[index + 3]);
-
-			if (!isContinuationByte(second)
-				|| !isContinuationByte(third)
-				|| !isContinuationByte(fourth))
-			{
-				return false;
-			}
-
-			if ((first == 0xf0U && second < 0x90U)
-				|| (first == 0xf4U && second >= 0x90U))
-			{
-				return false;
-			}
-
-			index += 4;
-			continue;
-		}
-
-		return false;
-	}
-
-	return true;
-}
-
 std::string indexedPointer(const char* collection, std::size_t index)
 {
 	return std::string("/") + collection + "/" + std::to_string(index);
@@ -141,7 +52,7 @@ void validateUtf8Field(
 	const std::string& entityId,
 	const std::string& pointer)
 {
-	if (!isValidUtf8(value))
+	if (!text::validateUtf8(value).valid)
 	{
 		addDiagnostic(
 			result,

@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "SubwooferRouting/State.h"
+#include "parameter_table.h"
 #include "pluginterfaces/vst/ivstaudioprocessor.h"
 #include "pluginterfaces/vst/ivstcomponent.h"
 #include "pluginterfaces/vst/ivsthostapplication.h"
@@ -89,11 +90,6 @@ private:
 	static bool isAcceptedArrangement(Steinberg::Vst::SpeakerArrangement arrangement);
 	static std::vector<std::string> channelLayoutForArrangement(
 		Steinberg::Vst::SpeakerArrangement arrangement);
-	static bool readFramedState(Steinberg::IBStream* stream, std::string& json);
-	static Steinberg::tresult writeFramedState(
-		Steinberg::IBStream* stream,
-		const std::string& json);
-
 	std::unique_ptr<PreparedEngine> buildPrepared(
 		const subroute::SubwooferRoutingState& state,
 		const std::string& canonicalJson,
@@ -132,7 +128,7 @@ private:
 
 	std::atomic<bool> bypass_{false};
 	std::atomic<Steinberg::uint32> pendingParameterMask_{0};
-	std::atomic<double> pendingParameterValues_[6];
+	std::atomic<double> pendingParameterValues_[kParameterCount];
 
 	Steinberg::Vst::IHostApplication* host_ = nullptr;
 	Steinberg::Vst::IConnectionPoint* peer_ = nullptr;

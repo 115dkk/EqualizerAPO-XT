@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstring>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -26,6 +27,7 @@
 #include "pluginterfaces/vst/ivsthostapplication.h"
 #include "pluginterfaces/vst/ivstmessage.h"
 #include "Tests/TestHarness.h"
+#include "VST3/SubwooferRouting/parameter_table.h"
 #include "platform/windows/WindowsPath.h"
 #include "VST3/SubwooferRouting/plugin_ids.h"
 
@@ -169,10 +171,180 @@ bool below(const double output[5][64], double threshold)
 	return true;
 }
 
+void testParameterTable()
+{
+	using namespace eapoxt::subwooferrouting::vst3;
+	using namespace subroute;
+
+	const PresetCreateResult preset =
+		createBuiltInPreset(kIssue246FrontRear41PresetId);
+	harness.require(preset.succeeded(), "parameter-table preset is created");
+
+	SubwooferRoutingState fixture = *preset.state;
+	fixture.headroom.mode = HeadroomMode::Manual;
+	fixture.headroom.manualTrimDb = -12.5;
+	for (Path& path : fixture.paths)
+	{
+		if (path.kind != PathKind::SourceLfe)
+			continue;
+		path.preGainDb = 6.0;
+		for (PathStage& stage : path.chain)
+		{
+			if (PolarityStage* polarity = std::get_if<PolarityStage>(&stage))
+				polarity->inverted = true;
+			else if (DelayStage* delay = std::get_if<DelayStage>(&stage))
+				delay->milliseconds = 37.5;
+		}
+	}
+
+	bool fixtureBypass = true;
+	for (std::size_t slot = 0; slot < kParameterCount; ++slot)
+	{
+		const ParameterDescriptor* parameter = parameterBySlot(slot);
+		harness.require(parameter != nullptr, "every parameter slot resolves");
+		harness.expectEqual(parameter->slot, slot, "parameter slot is stable");
+
+		SubwooferRoutingState roundTrip = fixture;
+		bool roundTripBypass = fixtureBypass;
+		double normalized = 0.0;
+		harness.require(readNormalizedParameter(
+			*parameter, fixture, -12.5, fixtureBypass, normalized),
+			"parameter reads from the fixture state");
+		harness.expectTrue(writeNormalizedParameter(
+			*parameter, roundTrip, normalized, -12.5, roundTripBypass),
+			"normalized parameter writes back to state");
+		const StateEncodeResult fixtureEncoding = encodeStateCanonical(fixture);
+		const StateEncodeResult roundTripEncoding = encodeStateCanonical(roundTrip);
+		harness.require(fixtureEncoding.succeeded() && roundTripEncoding.succeeded(),
+			"parameter round-trip states encode");
+		harness.expectTrue(
+			*fixtureEncoding.text == *roundTripEncoding.text
+				&& fixtureBypass == roundTripBypass,
+			"state to normalized to state preserves the full state");
+
+		harness.expectTrue(
+			normalizedParameterToPlain(*parameter, 0.0) == parameter->minimum,
+			"parameter minimum maps from zero");
+		harness.expectTrue(
+			normalizedParameterToPlain(*parameter, 1.0) == parameter->maximum,
+			"parameter maximum maps from one");
+		harness.expectTrue(
+			plainParameterToNormalized(*parameter, parameter->minimum) == 0.0,
+			"parameter minimum maps to zero");
+		harness.expectTrue(
+			plainParameterToNormalized(*parameter, parameter->maximum) == 1.0,
+			"parameter maximum maps to one");
+	}
+
+	const ParameterDescriptor* bypass = parameterById(kBypassParamId);
+	const ParameterDescriptor* polarity = parameterById(kSourceLfePolarityParamId);
+	const ParameterDescriptor* gain = parameterById(kSourceLfeGainParamId);
+	const ParameterDescriptor* delay = parameterById(kSourceLfeDelayParamId);
+	const ParameterDescriptor* trim = parameterById(kOutputTrimParamId);
+	const ParameterDescriptor* headroom = parameterById(kHeadroomAutoParamId);
+	harness.require(bypass && polarity && gain && delay && trim && headroom,
+		"all six parameter IDs resolve");
+	harness.expectTrue(displayParameterValue(*bypass, 1.0) == L"On",
+		"bypass display string is On");
+	harness.expectTrue(displayParameterValue(*polarity, 0.0) == L"Normal",
+		"polarity display string is Normal");
+	harness.expectTrue(displayParameterValue(*gain, 0.75) == L"10.00 dB",
+		"gain display string includes dB");
+	harness.expectTrue(displayParameterValue(*delay, 0.125) == L"12.50 ms",
+		"delay display string includes ms");
+	harness.expectTrue(displayParameterValue(*headroom, 1.0) == L"Auto",
+		"headroom display string is Auto");
+
+	SubwooferRoutingState trimState = fixture;
+	trimState.headroom.mode = HeadroomMode::Auto;
+	bool trimBypass = false;
+	const double automaticTrimDb = -12.0;
+	const double automaticNormalized =
+		plainParameterToNormalized(*trim, automaticTrimDb);
+	harness.expectTrue(writeNormalizedParameter(
+		*trim, trimState, automaticNormalized, automaticTrimDb, trimBypass),
+		"automatic trim value writes");
+	harness.expectTrue(trimState.headroom.mode == HeadroomMode::Auto,
+		"moving trim onto the automatic value keeps Auto");
+	harness.expectTrue(writeNormalizedParameter(
+		*trim, trimState, automaticNormalized + 0.1, automaticTrimDb, trimBypass),
+		"manual trim value writes");
+	harness.expectTrue(trimState.headroom.mode == HeadroomMode::Manual,
+		"moving trim away from the automatic value switches to Manual");
+}
+
+void testStateFrame()
+{
+	using namespace eapoxt::subwooferrouting::vst3;
+
+	const std::string expected = R"({"state":"parameter table"})";
+	std::vector<std::uint8_t> frame;
+	const bool written = writeStateFrame(
+		[&frame](const void* source, std::size_t size)
+		{
+			const std::uint8_t* bytes = static_cast<const std::uint8_t*>(source);
+			frame.insert(frame.end(), bytes, bytes + size);
+			return true;
+		},
+		expected);
+	harness.require(written, "state frame writes");
+
+	auto readFrame = [&frame](std::string& json)
+	{
+		std::size_t offset = 0;
+		return readStateFrame(
+			[&frame, &offset](void* destination, std::size_t size)
+			{
+				if (size > frame.size() - offset)
+					return false;
+				std::memcpy(destination, frame.data() + offset, size);
+				offset += size;
+				return true;
+			},
+			json);
+	};
+
+	std::string actual;
+	harness.expectTrue(readFrame(actual) && actual == expected,
+		"state frame round-trips");
+
+	std::vector<std::uint8_t> badMagic = frame;
+	badMagic[0] ^= 0xffU;
+	std::size_t badOffset = 0;
+	harness.expectFalse(readStateFrame(
+		[&badMagic, &badOffset](void* destination, std::size_t size)
+		{
+			if (size > badMagic.size() - badOffset)
+				return false;
+			std::memcpy(destination, badMagic.data() + badOffset, size);
+			badOffset += size;
+			return true;
+		},
+		actual),
+		"state frame rejects bad magic");
+
+	std::vector<std::uint8_t> shortFrame(frame.begin(), frame.end() - 1);
+	std::size_t shortOffset = 0;
+	harness.expectFalse(readStateFrame(
+		[&shortFrame, &shortOffset](void* destination, std::size_t size)
+		{
+			if (size > shortFrame.size() - shortOffset)
+				return false;
+			std::memcpy(destination, shortFrame.data() + shortOffset, size);
+			shortOffset += size;
+			return true;
+		},
+		actual),
+		"state frame rejects a short payload");
+}
+
 }
 
 void runSubwooferRoutingVst3Tests()
 {
+	testParameterTable();
+	testStateFrame();
+
 	using namespace subroute;
 	using namespace Steinberg;
 	using namespace Steinberg::Vst;
