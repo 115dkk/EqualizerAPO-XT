@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Studio (glass) skin's routing renderer: "Light Trace" - an etched circuit
 	of light on the card glass. Input channels are lit glass chips on the top
 	row, outputs on the bottom row, and every connection is a glowing cubic

@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	MultiConvolutionRoutingAdapter is the single place that converts a
 	MultiConvolution command's mappings to/from the routing views' working type
 	(std::vector<Assignment>, filters/CopyFilter.h). The views stay Copy-shaped;

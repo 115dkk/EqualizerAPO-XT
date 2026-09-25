@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Renders the device tree through the active skin's DeviceSkinPainter and
 	owns the list's feel: per-row hover progress (interruptible 150ms in /
 	110ms out), toggle press feedback, click-to-toggle on the painted jack,

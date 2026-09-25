@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	A QLabel whose text is elided at paint time to the label's current width.
 	File paths are the motivating case: their informative tail (the leaf
 	folder / file name) must survive truncation, so the default mode is

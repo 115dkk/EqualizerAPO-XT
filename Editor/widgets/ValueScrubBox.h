@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Spin boxes for command-row editors with the native up/down buttons removed.
 	The value is changed by dragging
 	vertically on the text ("value scrub"), by the mouse wheel, or by typing;

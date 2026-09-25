@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	What one install, uninstall or repair of a device actually did.
 
 	Until this existed, the whole install path was silent. devices/,

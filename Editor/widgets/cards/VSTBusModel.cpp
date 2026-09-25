@@ -4,10 +4,6 @@
 	SPDX-License-Identifier: GPL-2.0-or-later
 */
 
-/*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-*/
-
 #include "VSTBusModel.h"
 
 VSTBusModel::VSTBusModel(const std::optional<VST3BusContract>& contract, bool legacyStereoInput)

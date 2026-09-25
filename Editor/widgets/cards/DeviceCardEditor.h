@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	In-place device picker for "Device:" card rows. Replaces the read-only
 	device table plus modal change-dialog with checkable chips directly in the
 	card body: one chip per endpoint (installed devices and the current

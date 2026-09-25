@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Skin theme data (see SkinThemeData.h). The skin classes' tokens()
 	overrides delegate here, so this file is the single source of truth for
 	skin colours.

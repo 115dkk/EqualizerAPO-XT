@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	The Include row's body: a reference card presenting the included
 	configuration as a named entity. The editor owns the
 	behavior - path resolution, the file dialog, the jump into the included

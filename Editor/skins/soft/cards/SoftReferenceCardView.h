@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Soft Lab's reference card (Include / Convolution / MultiConvolution /
 	VSTPlugin row bodies): a pastel tile leading a two-line identity, with
 	measured facts as stadium chips.

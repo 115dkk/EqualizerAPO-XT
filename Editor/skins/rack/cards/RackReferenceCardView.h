@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Hardware Rack's reference card (Include / Convolution / MultiConvolution /
 	VSTPlugin row bodies): the unit's service face - status lamp, engraved
 	label strip, recessed LCD readout. Rack's hardware grammar is expressed by

@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Modern card body for VSTPlugin rows. The plugin lifecycle (initialise,
 	open panel, embed, state read-back) is VSTPluginSession's and the row's
 	document state (bus contract, channel fill) is VSTRowDocument's; both are

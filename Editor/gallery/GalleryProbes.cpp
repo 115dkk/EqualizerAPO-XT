@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	The probes armed over the live MainWindow: --analysis-layout-test,
 	--vst-panel-feed-test, --skin-metrics-probe and --window-shot.
 */

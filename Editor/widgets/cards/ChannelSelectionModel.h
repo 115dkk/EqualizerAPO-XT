@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Selection logic behind the in-place channel multi-select editor
 	(ChannelCardEditor). Pure Qt Core so EditorLogicTests can exercise it:
 	it maps a "Channel:" parameter string onto a chip list and serializes

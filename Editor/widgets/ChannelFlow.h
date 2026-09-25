@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	The channel flow of a config document, walked top-down the way the engine
 	walks it: which channel names exist at each line (Copy adds to them) and
 	which of them are selected (Channel replaces the selection). Before this

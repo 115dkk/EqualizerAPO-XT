@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Push button whose pixels belong to the active skin's DeviceSkinPainter.
 	The widget owns the feel that is common law across skins: interruptible
 	hover progress (150ms in / 110ms out, OutCubic) and the 0.96 press scale

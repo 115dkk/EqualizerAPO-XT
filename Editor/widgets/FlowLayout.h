@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	A left-to-right layout that wraps its items onto the next line when they
 	run out of horizontal room, like word wrap for widgets. Used by the
 	in-card device chips so a machine with many endpoints grows the card

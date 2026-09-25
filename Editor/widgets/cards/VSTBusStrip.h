@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	The modern VST card's main-bus instrument: two format selectors (the
 	VST3 Input/Output contract) joined by a direction mark, with a compact
 	negotiation verdict readout trailing them. Mounted beside the plugin

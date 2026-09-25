@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Logic ported from Editor/guis/VSTPluginFilterGUI.cpp (Copyright (C) 2017
 	Jonas Thedering) into a card-native layout; the plugin session and the
 	row document it now shares with that row live in VSTPluginSession and

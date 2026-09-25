@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	The neutral reference-card presentation: the ISkin::createReferenceCardView
 	default for skins that have not answered with their own view. It renders
 	the reference-card information hierarchy plainly - icon, name-first label with format /

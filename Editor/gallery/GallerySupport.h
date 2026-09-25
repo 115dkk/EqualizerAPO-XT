@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Shared scaffolding of the skin gallery (Editor/SkinGallery.h) and the
 	offscreen gates. The gallery's own renderers live beside this header in
 	Editor/gallery/, one file per scene family.

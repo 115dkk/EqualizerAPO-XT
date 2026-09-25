@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	The card self tests: --selftest-vst (store/parse round trip and the
 	channel-fill menus), --routing-edit-test, --scroll-bench and
 	--power-toggle-test.

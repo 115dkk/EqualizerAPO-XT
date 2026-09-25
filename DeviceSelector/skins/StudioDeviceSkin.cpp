@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	Studio Glass device selector: the device list as a glowing glass
 	monitoring console. Constitution (pane formula, hairline rule, glow
 	discipline): docs/skins/studio.md. Element mapping: an endpoint is a

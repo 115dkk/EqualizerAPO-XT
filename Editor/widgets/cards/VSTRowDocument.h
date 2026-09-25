@@ -5,8 +5,6 @@
 */
 
 /*
-	This file is part of EqualizerAPO-XT, a system-wide equalizer.
-
 	The document state of one VSTPlugin row, shared by the modern card
 	(VSTCardEditor) and the legacy row (VSTPluginFilterGUI): the main-bus
 	contract (VSTBusModel) and the per-slot channel fill (VSTSlotFillModel)
