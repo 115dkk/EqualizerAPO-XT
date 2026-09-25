@@ -79,8 +79,6 @@ if exist "$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configurati
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
-      <ControlFlowGuard>Guard</ControlFlowGuard>
-      <SDLCheck>true</SDLCheck>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
   </ItemDefinitionGroup>

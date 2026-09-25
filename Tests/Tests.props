@@ -34,8 +34,12 @@
       <Optimization>Disabled</Optimization>
     </ClCompile>
   </ItemDefinitionGroup>
+  <!-- Release hardening every suite builds with (audit #348 TD-74). It was
+       copied into six suites and missing from EditorLogicTests. -->
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
+      <ControlFlowGuard>Guard</ControlFlowGuard>
+      <SDLCheck>true</SDLCheck>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>

@@ -93,9 +93,15 @@ if exist "$(FFTW_LIB)\*.dll" copy /Y "$(FFTW_LIB)\*.dll" "$(OutDir)"
 if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
+  <!-- Tests.props turns SDLCheck on for every suite. This one includes Qt's
+       widget headers, and SDLCheck makes C4996 an error: Qt 6.10 marks
+       QGuiApplication::compressEvent deprecated inside qguiapplication.h and
+       qapplication.h themselves, so the suite could not build. ControlFlowGuard
+       stays on. -->
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
       <PreprocessorDefinitions>QT_NO_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>false</SDLCheck>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
