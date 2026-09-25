@@ -23,6 +23,7 @@
 #include <string>
 
 #include "platform/windows/Win32Resource.h"
+#include "filters/ConfigFileReference.h"
 
 class AbstractLibrary
 {
@@ -35,6 +36,7 @@ public:
 	virtual ~AbstractLibrary();
 
 	int initialize();
+	int initialize(const JudgedPath& path);
 	virtual std::wstring getLibPath() = 0;
 	virtual std::wstring getLoadPath();
 
@@ -46,7 +48,7 @@ protected:
 	winutil::UniqueModule module;
 
 private:
-	static unsigned short getFileArchitecture(const std::wstring& filePath);
+	static unsigned short getFileArchitecture(HANDLE file);
 
 	// Serialises the lazy module load. A single VSTPluginLibrary instance is
 	// shared (via getInstance) between the GUI thread and the AnalysisThread,

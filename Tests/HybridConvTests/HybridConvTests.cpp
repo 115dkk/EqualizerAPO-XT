@@ -202,9 +202,26 @@ wstring createImpulseResponseFile(const vector<double>& impulseResponse)
 	return filename;
 }
 
+void assertJudgedIrCacheReuse()
+{
+	const wstring filename = createImpulseResponseFile({1.0, 0.5, 0.25});
+	_wputenv_s(L"EAPO_XT_JUDGED_IR", filename.c_str());
+	{
+		const auto first = ConfigFileReference::target(L"", L"\"%EAPO_XT_JUDGED_IR%\"");
+		const auto second = ConfigFileReference::target(L"", L"\"%EAPO_XT_JUDGED_IR%\"");
+		auto left = loadIrCached(first.path, sampleRate);
+		auto right = loadIrCached(second.path, sampleRate);
+		harness.require(left != nullptr, "quoted environment IR loads through its held handle");
+		harness.expectTrue(left == right, "second handle-backed IR load reuses the decoded cache entry");
+		harness.expectTrue(left->frames == 3 && left->buffers[0][1] == 0.5, "virtual IO preserves IR samples");
+	}
+	_wputenv_s(L"EAPO_XT_JUDGED_IR", L"");
+	DeleteFileW(filename.c_str());
+}
+
 vector<double> renderConvolutionFilter(const wstring& filename, int firstFrameLength)
 {
-	ConvolutionFilter filter(filename);
+	ConvolutionFilter filter(ConfigFileReference::target(L"", filename).path);
 	vector<wstring> channels = {L"L"};
 	filter.initialize(static_cast<float>(sampleRate), frameLength, channels);
 
@@ -471,7 +488,7 @@ void assertConvolutionPathParsing()
 	// target() is the pair every opening factory uses: resolved, then judged.
 	const ConfigFileReference::Target local =
 		ConfigFileReference::target(L"C:\\EqualizerAPO\\config\\config.txt", L"\"%EAPO_XT_TEST_IR_DIR%\\room.wav\"");
-	harness.expectTrue(local.path == L"C:\\Impulse Responses\\room.wav" && local.refusal.empty(),
+	harness.expectTrue(local.path.path() == L"C:\\Impulse Responses\\room.wav" && local.refusal.empty(),
 		"a quoted local reference with a variable resolves and is allowed");
 	const ConfigFileReference::Target share =
 		ConfigFileReference::target(L"C:\\EqualizerAPO\\config\\config.txt", L"\\\\nas\\irs\\room.wav");
@@ -487,6 +504,7 @@ int runHybridConvTests()
 {
 	Logging::set(stdout, true, true, false);
 
+	assertJudgedIrCacheReuse();
 	assertFftwWisdomIsExported();
 	assertSparseImpulseResponseSurvivesPastOneSecond(0);
 	assertSparseImpulseResponseSurvivesPastOneSecond(137);

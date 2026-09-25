@@ -7,6 +7,49 @@
 #pragma once
 
 #include <string>
+#include <vector>
+#include "platform/windows/Win32Resource.h"
+
+class ConfigPathPolicy;
+
+// A judged name and the handles that keep its traversal alive. Readers use
+// leaf(), never reopen path(). Only the policy can supply a nonempty pin.
+class JudgedPath
+{
+public:
+	JudgedPath() = default;
+	JudgedPath(JudgedPath&& other) noexcept
+		: name(std::move(other.name)), pins(std::move(other.pins)), file(std::exchange(other.file, nullptr)),
+		  attributesOnlyPins(std::exchange(other.attributesOnlyPins, 0)) {}
+	JudgedPath& operator=(JudgedPath&& other) noexcept
+	{
+		if (this != &other)
+		{
+			name = std::move(other.name);
+			pins = std::move(other.pins);
+			file = std::exchange(other.file, nullptr);
+			attributesOnlyPins = std::exchange(other.attributesOnlyPins, 0);
+		}
+		return *this;
+	}
+	JudgedPath(const JudgedPath&) = delete;
+	JudgedPath& operator=(const JudgedPath&) = delete;
+	const std::wstring& path() const { return name; }
+	bool empty() const { return name.empty(); }
+	HANDLE leaf() const;
+	// Diagnostic: these handles identify a component but do not prevent rename.
+	size_t attributesOnlyPinCount() const { return attributesOnlyPins; }
+
+private:
+	friend class ConfigFileReference;
+	friend class ConfigPathPolicy;
+	JudgedPath(std::wstring name, std::vector<winutil::UniqueHandle> pins, HANDLE file, size_t attributesOnlyPins)
+		: name(std::move(name)), pins(std::move(pins)), file(file), attributesOnlyPins(attributesOnlyPins) {}
+	std::wstring name;
+	std::vector<winutil::UniqueHandle> pins;
+	HANDLE file = nullptr;
+	size_t attributesOnlyPins = 0;
+};
 
 // A file that a configuration line names, from the text as written to the
 // file the engine may open (audit #348 A1). Include, Convolution,
@@ -39,14 +82,16 @@ public:
 	{
 		// resolve()'s result; empty when nothing is written and when the
 		// engine may not open it.
-		std::wstring path;
+		JudgedPath path;
 		// Why the engine will not open path (ConfigPathPolicy); empty when it
 		// may.
 		std::wstring refusal;
+		DWORD error = ERROR_SUCCESS;
 	};
 
 	// resolve() judged by ConfigPathPolicy::allowsOpen. A factory that opens a
 	// file a line names takes the path from here, so it cannot hold one that
 	// was not judged.
 	static Target target(const std::wstring& configPath, const std::wstring& written);
+	static Target library(const std::wstring& pluginFolder, const std::wstring& reference, const std::wstring& configPath);
 };

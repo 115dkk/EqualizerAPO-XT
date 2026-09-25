@@ -30,7 +30,7 @@
 class ConvolutionFilter : public IFilter
 {
 public:
-	ConvolutionFilter(const std::wstring& filename);
+	ConvolutionFilter(JudgedPath filename);
 	virtual ~ConvolutionFilter();
 	// The deferred mute diagnostic's prefix is part of the filter's
 	// observable contract (HybridConvTests pins it), like
@@ -45,7 +45,7 @@ protected:
 	// For subclasses that count and report their mutes under their own name
 	// (GraphicEQFilter, audit #348 F3). Stored rather than virtual: the report
 	// runs from ~ConvolutionFilter(), when a subclass override is gone.
-	ConvolutionFilter(const std::wstring& filename, ConvolverMuteDiagnostics& muteDiagnostics,
+	ConvolutionFilter(JudgedPath filename, ConvolverMuteDiagnostics& muteDiagnostics,
 		const wchar_t* muteLogPrefix);
 	// Builds the units and hands them to bank.install() with frameCount.
 	virtual void initializeFilters(unsigned frameCount);
@@ -61,7 +61,7 @@ protected:
 private:
 	void cleanup();
 
-	std::wstring filename;
+	JudgedPath filename;
 	ConvolverMuteDiagnostics* muteDiagnostics;
 	const wchar_t* muteLogPrefix;
 };

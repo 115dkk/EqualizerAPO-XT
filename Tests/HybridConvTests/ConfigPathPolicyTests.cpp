@@ -345,11 +345,12 @@ void testSharePathsAreNotWalked()
 
 // A junction, which needs no privilege: a directory whose mount-point
 // reparse data names substitute.
-bool makeJunction(const wstring& linkPath, const wstring& substitute)
+bool makeJunction(const wstring& linkPath, const wstring& substitute, bool existingDirectory = false)
 {
-	if (!CreateDirectoryW(linkPath.c_str(), nullptr))
+	if (!existingDirectory && !CreateDirectoryW(linkPath.c_str(), nullptr))
 		return false;
-	const winutil::UniqueHandle directory(CreateFileW(linkPath.c_str(), GENERIC_WRITE, 0, nullptr, OPEN_EXISTING,
+	const winutil::UniqueHandle directory(CreateFileW(linkPath.c_str(), GENERIC_WRITE,
+		FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
 		FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT, nullptr));
 	if (!directory)
 		return false;
@@ -373,6 +374,100 @@ bool makeJunction(const wstring& linkPath, const wstring& substitute)
 		nullptr, 0, &returned, nullptr) != FALSE;
 }
 
+// Audit #348 A1b: a no-delete-sharing directory handle does not keep its
+// children alive. The revised walk pins the leaf too, preventing emptying.
+void testPinnedDirectoryCanBecomeJunction()
+{
+	wchar_t temp[MAX_PATH + 1] = {};
+	GetTempPathW(MAX_PATH, temp);
+	const wstring root = wstring(temp) + L"eapo-xt-pin-race-" + std::to_wstring(GetCurrentProcessId());
+	const wstring folder = root + L"\\pinned";
+	const wstring target = root + L"\\target";
+	const wstring file = folder + L"\\payload.txt";
+	CreateDirectoryW(root.c_str(), nullptr);
+	CreateDirectoryW(folder.c_str(), nullptr);
+	CreateDirectoryW(target.c_str(), nullptr);
+	{
+		const winutil::UniqueHandle original(CreateFileW(file.c_str(), GENERIC_WRITE, 0, nullptr,
+			CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
+		harness.require(static_cast<bool>(original), "create original file for pin-race probe");
+		const winutil::UniqueHandle redirected(CreateFileW((target + L"\\payload.txt").c_str(), GENERIC_WRITE,
+			0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
+		harness.require(static_cast<bool>(redirected), "create redirected file for pin-race probe");
+		DWORD written = 0;
+		harness.require(WriteFile(redirected.get(), "redirected", 10, &written, nullptr) != FALSE,
+			"write distinct target contents");
+	}
+	{
+		const auto pin = ConfigFileReference::target(root + L"\\config.txt", file);
+		harness.require(pin.refusal.empty() && pin.path.leaf() != nullptr, "judge and pin existing file");
+		harness.expectFalse(MoveFileW(folder.c_str(), (root + L"\\renamed").c_str()) != FALSE,
+			"directory pin prevents rename");
+		harness.expectFalse(DeleteFileW(file.c_str()) != FALSE, "leaf pin prevents emptying its directory");
+		harness.expectFalse(makeJunction(folder, L"\\??\\" + target, true),
+			"pinned nonempty directory cannot become a junction in place");
+		char contents[11] = {};
+		DWORD count = 0;
+		harness.require(ReadFile(pin.path.leaf(), contents, 10, &count, nullptr) != FALSE,
+			"read the held leaf after attempted substitution");
+		harness.expectEqual(count, DWORD(0), "never read the substituted destination");
+		std::puts("A1b pin-race regression: last-child deletion and in-place junction refused; original leaf read");
+	}
+	harness.expectTrue(MoveFileW(folder.c_str(), (root + L"\\renamed").c_str()) != FALSE,
+		"directory can be renamed after the judged path dies");
+	MoveFileW((root + L"\\renamed").c_str(), folder.c_str());
+	DeleteFileW(file.c_str());
+	RemoveDirectoryW(folder.c_str());
+	DeleteFileW((target + L"\\payload.txt").c_str());
+	RemoveDirectoryW(target.c_str());
+	RemoveDirectoryW(root.c_str());
+}
+
+void testPinnedLeafSymlinkResidual()
+{
+	wchar_t temp[MAX_PATH + 1] = {};
+	GetTempPathW(MAX_PATH, temp);
+	const wstring root = wstring(temp) + L"eapo-xt-leaf-reparse-" + std::to_wstring(GetCurrentProcessId());
+	CreateDirectoryW(root.c_str(), nullptr);
+	const wstring file = root + L"\\leaf.txt";
+	{
+		const winutil::UniqueHandle created(CreateFileW(file.c_str(), GENERIC_WRITE, 0, nullptr,
+			CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
+		harness.require(static_cast<bool>(created), "create file for in-place symlink measurement");
+	}
+	{
+		const auto judged = ConfigFileReference::target(L"", file);
+		harness.require(judged.path.leaf() != nullptr, "pin leaf before setting reparse data");
+		const winutil::UniqueHandle attributes(CreateFileW(file.c_str(), FILE_WRITE_ATTRIBUTES,
+			FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
+			FILE_FLAG_OPEN_REPARSE_POINT, nullptr));
+		harness.require(static_cast<bool>(attributes), "attribute writer coexists with pinned reader");
+		const wstring substitute = L"\\??\\" + root + L"\\elsewhere.txt";
+		const size_t bytes = substitute.size() * sizeof(wchar_t);
+		std::vector<unsigned char> buffer(20 + bytes * 2 + sizeof(wchar_t) * 2);
+		const ULONG tag = IO_REPARSE_TAG_SYMLINK;
+		const USHORT length = static_cast<USHORT>(buffer.size() - 8);
+		const USHORT names[4] = {0, static_cast<USHORT>(bytes), static_cast<USHORT>(bytes + sizeof(wchar_t)), static_cast<USHORT>(bytes)};
+		std::memcpy(buffer.data(), &tag, sizeof(tag));
+		std::memcpy(buffer.data() + 4, &length, sizeof(length));
+		std::memcpy(buffer.data() + 8, names, sizeof(names));
+		std::memcpy(buffer.data() + 20, substitute.data(), bytes);
+		std::memcpy(buffer.data() + 20 + bytes + sizeof(wchar_t), substitute.data(), bytes);
+		DWORD returned = 0;
+		const bool set = DeviceIoControl(attributes.get(), FSCTL_SET_REPARSE_POINT, buffer.data(),
+			static_cast<DWORD>(buffer.size()), nullptr, 0, &returned, nullptr) != FALSE;
+		const DWORD error = set ? ERROR_SUCCESS : GetLastError();
+		std::printf("A1b leaf-symlink residual: FSCTL_SET_REPARSE_POINT with FILE_WRITE_ATTRIBUTES = %s (error %lu)\n",
+			set ? "succeeded" : "failed", error);
+		if (set)
+			harness.expectTrue(judged.path.leaf() == nullptr, "reader refuses leaf changed to a symlink in place");
+		else
+			std::printf("A1b leaf-symlink mutation unavailable with this token/filesystem (error %lu); successful-mutation assertion skipped\n", error);
+	}
+	DeleteFileW(file.c_str());
+	RemoveDirectoryW(root.c_str());
+}
+
 void testRealJunctions()
 {
 	wchar_t temp[MAX_PATH + 1] = {};
@@ -387,7 +482,13 @@ void testRealJunctions()
 	expectAllowed(file, configPath, "a plain local file on disk is allowed");
 
 	if (makeJunction(root + L"\\local", L"\\??\\" + root + L"\\real"))
+	{
 		expectAllowed(root + L"\\local\\ir.wav", configPath, "a real junction to a local folder is allowed");
+		const auto judged = ConfigFileReference::target(configPath, root + L"\\local\\ir.wav");
+		harness.expectTrue(judged.refusal.empty() && judged.path.leaf() != nullptr,
+			"handle-relative walk follows a judged local junction and pins its destination");
+		harness.expectFalse(DeleteFileW(file.c_str()) != FALSE, "local junction destination leaf is pinned");
+	}
 	else
 		std::printf("ConfigPathPolicyTests: could not create a junction (error %lu); real local-junction case not run\n",
 			GetLastError());
@@ -427,7 +528,9 @@ void runConfigPathPolicyTests()
 	testNetworkDrive();
 	testConfigReachedThroughALink();
 	testSharePathsAreNotWalked();
+	testPinnedLeafSymlinkResidual();
 	testRealJunctions();
+	testPinnedDirectoryCanBecomeJunction();
 
 	harness.report();
 }
