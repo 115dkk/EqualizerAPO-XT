@@ -86,7 +86,7 @@ namespace
 }
 
 GraphicEQFilter::GraphicEQFilter(const std::vector<FilterNode>& nodes, unsigned filterLength)
-	: ConvolutionFilter(L"", graphicEqMuteDiagnostics, kGraphicEQFrameCountMismatchLogPrefix), nodes(nodes), filterLength(filterLength)
+	: ConvolutionFilter(JudgedPath{}, graphicEqMuteDiagnostics, kGraphicEQFrameCountMismatchLogPrefix), nodes(nodes), filterLength(filterLength)
 {
 }
 

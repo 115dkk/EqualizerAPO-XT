@@ -27,6 +27,7 @@
 #include <vector>
 
 #include "runtime/memory/AlignedMemory.h"
+#include "ConfigFileReference.h"
 #include "libHybridConv-0.1.1/libHybridConv_eapo.h"
 
 // Decoded impulse-response PCM, shared between filters that reference the same
@@ -48,7 +49,7 @@ struct IrCacheEntry
 // frames > INT_MAX). One implementation shared by ConvolutionFilter and
 // MultiConvolutionFilter so the intake hardening and the cache cannot
 // diverge between them.
-std::shared_ptr<const IrCacheEntry> loadIrCached(const std::wstring& filename, double sampleRate);
+std::shared_ptr<const IrCacheEntry> loadIrCached(const JudgedPath& filename, double sampleRate);
 
 // RAII owner for a flat HConvSingle array. The array is a single block
 // allocated with AlignedMemory::alloc(sizeof(HConvSingle) * count) and must be

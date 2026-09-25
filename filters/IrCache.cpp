@@ -77,26 +77,61 @@ namespace
 		return c;
 	}
 
-	unsigned long long getMtime(const std::wstring& path)
+	// libsndfile fixes user_data to void*; HANDLE has the same non-const ABI.
+	// cppcheck-suppress constParameterCallback
+	sf_count_t fileLength(void* file)
 	{
-		WIN32_FILE_ATTRIBUTE_DATA attrs;
-		if (!GetFileAttributesExW(path.c_str(), GetFileExInfoStandard, &attrs))
-			return 0;
-		return (static_cast<unsigned long long>(attrs.ftLastWriteTime.dwHighDateTime) << 32)
-			| attrs.ftLastWriteTime.dwLowDateTime;
+		LARGE_INTEGER size = {};
+		return GetFileSizeEx(file, &size) ? size.QuadPart : -1;
 	}
+
+	sf_count_t seekFile(sf_count_t offset, int whence, void* file)
+	{
+		const DWORD method = whence == SEEK_SET ? FILE_BEGIN : whence == SEEK_CUR ? FILE_CURRENT : FILE_END;
+		LARGE_INTEGER distance = {}, position = {};
+		distance.QuadPart = offset;
+		return SetFilePointerEx(file, distance, &position, method) ? position.QuadPart : -1;
+	}
+
+	// SF_VIRTUAL_IO requires this exact callback signature, including void*.
+	// cppcheck-suppress constParameterCallback
+	sf_count_t readFile(void* data, sf_count_t count, void* file)
+	{
+		sf_count_t total = 0;
+		while (total < count)
+		{
+			const DWORD request = static_cast<DWORD>((std::min)(count - total, sf_count_t(MAXDWORD)));
+			DWORD received = 0;
+			if (!ReadFile(file, static_cast<char*>(data) + total, request, &received, nullptr) || received == 0)
+				break;
+			total += received;
+		}
+		return total;
+	}
+
+	sf_count_t writeFile(const void*, sf_count_t, void*) { return 0; }
+	sf_count_t tellFile(void* file) { return seekFile(0, SEEK_CUR, file); }
+
 }
 
-std::shared_ptr<const IrCacheEntry> loadIrCached(const std::wstring& filename, double sampleRate)
+std::shared_ptr<const IrCacheEntry> loadIrCached(const JudgedPath& judged, double sampleRate)
 {
+	const std::wstring& filename = judged.path();
+	HANDLE file = judged.leaf();
+	FILE_BASIC_INFO attributes = {};
+	if (file == nullptr || !GetFileInformationByHandleEx(file, FileBasicInfo, &attributes, sizeof(attributes)))
+		return nullptr;
 	const int sampleRateKey = static_cast<int>(sampleRate);
-	IrCacheKey key{ filename, getMtime(filename), sampleRateKey };
+	IrCacheKey key{ filename, static_cast<unsigned long long>(attributes.LastWriteTime.QuadPart), sampleRateKey };
 
 	if (auto entry = irCache().find(key))
 		return entry;
 
 	SF_INFO info{};
-	SNDFILE* opened = sf_wchar_open(filename.c_str(), SFM_READ, &info);
+	if (seekFile(0, SEEK_SET, file) < 0)
+		return nullptr;
+	SF_VIRTUAL_IO io = {fileLength, seekFile, readFile, writeFile, tellFile};
+	SNDFILE* opened = sf_open_virtual(&io, SFM_READ, &info, file);
 	if (opened == nullptr)
 	{
 		LogFStatic(L"Error while reading impulse response file: %S", sf_strerror(opened));

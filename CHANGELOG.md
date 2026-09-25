@@ -22,6 +22,25 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   blue, with the file kind (configuration, audio, plug-in, other) told apart
   by the glyph ([#395](https://github.com/115dkk/EqualizerAPO-XT/pull/395)).
 
+## v2.54.23 — 2026-09-25
+
+- **The audio engine opens a file a configuration line names through the
+  same handles it checked.** Include, Convolution, MultiConvolution,
+  SubwooferRouting profiles and VSTPlugin libraries are checked so that the
+  engine never opens a file on a network share (#346, #369). The check and
+  the open used to be two separate lookups by name, so a folder on the path
+  could be swapped for a link to a share in between. The engine now walks
+  the path one folder at a time, each opened relative to the one before and
+  kept open until the file is loaded, and reads the file through the handle
+  it checked. VST plug-ins are still loaded by name, with every folder and
+  the plug-in file held open during the load; on NTFS a folder cannot be
+  renamed while something below it is open. A folder or file the engine
+  cannot examine is now refused instead of being judged by its final name
+  ([#394](https://github.com/115dkk/EqualizerAPO-XT/pull/394)). This was
+  tested with unit tests, including a folder the test account may not list;
+  the audio service's own account and file systems other than NTFS were not
+  tested.
+
 ## v2.54.22 — 2026-09-25
 
 - **A channel wears one colour everywhere.** The channel badges in a card's

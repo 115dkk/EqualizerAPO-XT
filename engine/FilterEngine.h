@@ -20,6 +20,8 @@
 #pragma once
 
 #include <string>
+#include <sstream>
+#include "filters/ConfigFileReference.h"
 #include <vector>
 #include <memory>
 #include <unordered_set>
@@ -87,7 +89,8 @@ public:
 	// the active configuration and returns false; no initialization exception is
 	// allowed to escape the configuration-loading boundary.
 	bool loadConfig(const std::wstring& customPath = L"");
-	void loadConfigFile(const std::wstring& path);
+	void loadConfigFile(const JudgedPath& path);
+	ConfigFileReference::Target judgeIncludedFile(const std::wstring& configPath, const std::wstring& written);
 	void watchRegistryKey(const std::wstring& key);
 	// Three surfaces: float interleaved (the APO's usual connection format),
 	// float planar (VoicemeeterClient, whose host hands per-channel pointer
@@ -156,6 +159,8 @@ public:
 	bool hasStatefulOrTailFilters() const;
 
 private:
+	void loadConfigFile(const std::wstring& path);
+	void loadConfigStream(const std::wstring& path, std::stringstream inputStream);
 	struct FilterConfigurationDeleter
 	{
 		void operator()(FilterConfiguration* config) const;

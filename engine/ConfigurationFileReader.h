@@ -7,6 +7,7 @@
 #pragma once
 
 #include <istream>
+#include "filters/ConfigFileReference.h"
 #include "text/WideString.h"
 #include "platform/windows/TextEncoding.h"
 #include <sstream>
@@ -21,6 +22,9 @@
 class ConfigurationFileReader
 {
 public:
+	static std::stringstream read(const JudgedPath& path);
+	static ConfigFileReference::Target judgeWithRetry(const std::wstring& configPath, const std::wstring& written,
+		HANDLE cancel = nullptr, DWORD deadlineMilliseconds = 10000);
 	static std::stringstream readWithRetry(
 		const std::wstring& path, HANDLE cancel = nullptr, DWORD deadlineMilliseconds = 10000);
 

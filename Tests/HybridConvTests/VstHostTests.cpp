@@ -324,7 +324,10 @@ void runVstHostTests()
 	harness.require(library != nullptr, "getInstance returned a library");
 	harness.expectFalse(library->isVST3(), "test plugin is hosted via the VST2 path");
 
-	int loadResult = library->initialize();
+	const auto judgedLibrary = ConfigFileReference::library(dir, L"TestVst2Plugin.dll", L"");
+	harness.require(judgedLibrary.refusal.empty() && judgedLibrary.path.leaf() != nullptr,
+		"VST2 library reference retains a readable pinned leaf");
+	int loadResult = library->initialize(judgedLibrary.path);
 	harness.expectTrue(loadResult >= 0, "library initialize did not return an error code");
 	harness.expectTrue(library->VSTPluginMain != nullptr, "VSTPluginMain symbol resolved");
 

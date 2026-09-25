@@ -45,10 +45,10 @@ namespace
 	ConvolverMuteDiagnostics muteDiagnostics;
 }
 
-MultiConvolutionFilter::MultiConvolutionFilter(const vector<MultiConvolutionCommand::Mapping>& mappings, const wstring& filename)
+MultiConvolutionFilter::MultiConvolutionFilter(const vector<MultiConvolutionCommand::Mapping>& mappings, JudgedPath filename)
 {
 	this->mappings = mappings;
-	this->filename = filename;
+	this->filename = std::move(filename);
 	sampleRate = 0.0f;
 	unitCount = 0;
 }
@@ -60,7 +60,9 @@ MultiConvolutionFilter::~MultiConvolutionFilter()
 
 vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned maxFrameCount, vector<wstring> channelNames)
 {
+	auto previousIr = irEntry;
 	cleanup();
+	irEntry = std::move(previousIr);
 
 	this->sampleRate = sampleRate;
 
@@ -89,7 +91,9 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 	// Shared IR intake + cache (IrCache.cpp): validates the file, deinterleaves
 	// to channel-major buffers, and lets a config reload (or another filter on
 	// the same IR) skip the disk read entirely.
-	auto ir = loadIrCached(filename, sampleRate);
+	const wstring displayPath = filename.path();
+	auto ir = filename.empty() ? irEntry : loadIrCached(filename, sampleRate);
+	filename = JudgedPath{};
 	if (!ir)
 		return outChannelNames;
 	irEntry = ir;
@@ -119,7 +123,7 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 			{
 				if (ref.channel >= irChannels)
 				{
-					LogFStatic(L"Impulse response channel %u out of range (file has %u channels): %s", ref.channel, irChannels, filename.c_str());
+					LogFStatic(L"Impulse response channel %u out of range (file has %u channels): %s", ref.channel, irChannels, displayPath.c_str());
 					continue;
 				}
 				perMapping[i].push_back(ref);

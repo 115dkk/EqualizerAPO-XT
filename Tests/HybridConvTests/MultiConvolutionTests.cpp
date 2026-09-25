@@ -92,7 +92,7 @@ void assertMismatchIsLoggedAndProfiled()
 		vector<double> ir(frameLength, 0.0);
 		ir[0] = 1.0;
 		wstring irFile = createMultiChannelIr({ ir });
-		MultiConvolutionFilter filter({ { L"L", { 0 } } }, irFile);
+		MultiConvolutionFilter filter({ { L"L", { 0 } } }, ConfigFileReference::target(L"", irFile).path);
 		filter.initialize((float)sampleRate, frameLength, vector<wstring>{ L"L" });
 		DeleteFileW(irFile.c_str());
 
@@ -148,7 +148,7 @@ void assertConvolutionMismatchIsLogged()
 		vector<double> ir(frameLength, 0.0);
 		ir[0] = 1.0;
 		wstring irFile = createMultiChannelIr({ ir });
-		ConvolutionFilter filter(irFile);
+		ConvolutionFilter filter(ConfigFileReference::target(L"", irFile).path);
 		filter.initialize((float)sampleRate, frameLength, vector<wstring>{ L"L" });
 		DeleteFileW(irFile.c_str());
 
@@ -238,7 +238,7 @@ void assertMappingConvolvesTargetsOwnSignal()
 	ir1[0] = 3.0;
 	wstring irFile = createMultiChannelIr({ir0, ir1});
 
-	MultiConvolutionFilter filter({{L"L", {0, 1}}}, irFile);
+	MultiConvolutionFilter filter({{L"L", {0, 1}}}, ConfigFileReference::target(L"", irFile).path);
 	vector<wstring> allChannels = {L"L", L"R"};
 	vector<wstring> outChannels = filter.initialize((float)sampleRate, frameLength, allChannels);
 	DeleteFileW(irFile.c_str());
@@ -271,7 +271,7 @@ void assertEachMappingWritesItsOwnOutput()
 	ir1[0] = 3.0;
 	wstring irFile = createMultiChannelIr({ir0, ir1});
 
-	MultiConvolutionFilter filter({{L"L", {0}}, {L"R", {1}}}, irFile);
+	MultiConvolutionFilter filter({{L"L", {0}}, {L"R", {1}}}, ConfigFileReference::target(L"", irFile).path);
 	vector<wstring> allChannels = {L"L", L"R"};
 	vector<wstring> outChannels = filter.initialize((float)sampleRate, frameLength, allChannels);
 	DeleteFileW(irFile.c_str());
@@ -305,7 +305,7 @@ void assertSimpleFormUsesEveryIrChannel()
 	ir1[0] = 3.0;
 	wstring irFile = createMultiChannelIr({ir0, ir1});
 
-	MultiConvolutionFilter filter({{L"L", {}}}, irFile);
+	MultiConvolutionFilter filter({{L"L", {}}}, ConfigFileReference::target(L"", irFile).path);
 	vector<wstring> allChannels = {L"L", L"R"};
 	vector<wstring> outChannels = filter.initialize((float)sampleRate, frameLength, allChannels);
 	DeleteFileW(irFile.c_str());
@@ -336,7 +336,7 @@ void assertMissingSourcesAndDuplicatesDegradeGracefully()
 
 	{
 		wstring irFile = createMultiChannelIr({ir0, ir1});
-		MultiConvolutionFilter filter({{L"Wet", {0}}}, irFile);
+		MultiConvolutionFilter filter({{L"Wet", {0}}}, ConfigFileReference::target(L"", irFile).path);
 		vector<wstring> allChannels = {L"L", L"R"};
 		vector<wstring> outChannels = filter.initialize((float)sampleRate, frameLength, allChannels);
 		DeleteFileW(irFile.c_str());
@@ -357,7 +357,7 @@ void assertMissingSourcesAndDuplicatesDegradeGracefully()
 
 	{
 		wstring irFile = createMultiChannelIr({ir0, ir1});
-		MultiConvolutionFilter filter({{L"L", {0, 7}}}, irFile);
+		MultiConvolutionFilter filter({{L"L", {0, 7}}}, ConfigFileReference::target(L"", irFile).path);
 		vector<wstring> allChannels = {L"L", L"R"};
 		filter.initialize((float)sampleRate, frameLength, allChannels);
 		DeleteFileW(irFile.c_str());
@@ -375,7 +375,7 @@ void assertMissingSourcesAndDuplicatesDegradeGracefully()
 
 	{
 		wstring irFile = createMultiChannelIr({ir0, ir1});
-		MultiConvolutionFilter filter({{L"L", {0}}, {L"L", {1}}}, irFile);
+		MultiConvolutionFilter filter({{L"L", {0}}, {L"L", {1}}}, ConfigFileReference::target(L"", irFile).path);
 		vector<wstring> allChannels = {L"L", L"R"};
 		vector<wstring> outChannels = filter.initialize((float)sampleRate, frameLength, allChannels);
 		DeleteFileW(irFile.c_str());
@@ -559,7 +559,7 @@ void assertFactorScalesConvolutionResult()
 		if (c.alsoUnity1)
 			refs.push_back(IrRef(1));
 		wstring irFile = createMultiChannelIr({ir0, ir1});
-		MultiConvolutionFilter filter({{L"L", refs}}, irFile);
+		MultiConvolutionFilter filter({{L"L", refs}}, ConfigFileReference::target(L"", irFile).path);
 		vector<wstring> allChannels = {L"L", L"R"};
 		filter.initialize((float)sampleRate, frameLength, allChannels);
 		DeleteFileW(irFile.c_str());
@@ -627,7 +627,7 @@ void assertEditorDeclaresTheEnginesChannels()
 	command.declareChannels(editor);
 
 	const wstring irFile = createMultiChannelIr({ir0, ir1});
-	MultiConvolutionFilter filter(command.mappings, irFile);
+	MultiConvolutionFilter filter(command.mappings, ConfigFileReference::target(L"", irFile).path);
 	const vector<wstring> outputs = filter.initialize((float)sampleRate, frameLength, device);
 	DeleteFileW(irFile.c_str());
 	vector<wstring> engine = device;

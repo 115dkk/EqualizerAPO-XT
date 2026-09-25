@@ -22,6 +22,32 @@ std::stringstream makeFailedStream()
 	stream.setstate(std::ios::badbit);
 	return stream;
 }
+
+std::stringstream readHandle(HANDLE file, const std::wstring& path)
+{
+	LARGE_INTEGER zero = {};
+	if (file == nullptr || !SetFilePointerEx(file, zero, nullptr, FILE_BEGIN))
+		return makeFailedStream();
+	std::stringstream inputStream;
+	char buf[8192];
+	for (;;)
+	{
+		DWORD bytesRead = 0;
+		if (!ReadFile(file, buf, sizeof(buf), &bytesRead, nullptr))
+		{
+			const DWORD error = GetLastError();
+			LogFStatic(L"Error while reading configuration file %s: %s", path.c_str(), win32::errorMessage(error).c_str());
+			return makeFailedStream();
+		}
+		if (bytesRead == 0)
+			break;
+		inputStream.write(buf, bytesRead);
+	}
+
+	inputStream.seekg(0);
+	return inputStream;
+}
+
 }
 
 std::stringstream ConfigurationFileReader::readWithRetry(
@@ -36,22 +62,33 @@ std::stringstream ConfigurationFileReader::readWithRetry(
 		return makeFailedStream();
 	}
 
-	std::stringstream inputStream;
-	char buf[8192];
+	return readHandle(file.get(), path);
+}
+
+std::stringstream ConfigurationFileReader::read(const JudgedPath& path)
+{
+	return readHandle(path.leaf(), path.path());
+}
+
+ConfigFileReference::Target ConfigurationFileReader::judgeWithRetry(const std::wstring& configPath,
+	const std::wstring& written, HANDLE cancel, DWORD deadlineMilliseconds)
+{
+	const ULONGLONG start = GetTickCount64();
+	DWORD backoff = 1;
 	for (;;)
 	{
-		DWORD bytesRead = 0;
-		if (!ReadFile(file.get(), buf, sizeof(buf), &bytesRead, nullptr))
+		auto target = ConfigFileReference::target(configPath, written);
+		const ULONGLONG elapsed = GetTickCount64() - start;
+		if (target.error != ERROR_SHARING_VIOLATION || elapsed >= deadlineMilliseconds)
+			return target;
+		const DWORD wait = static_cast<DWORD>((std::min)(ULONGLONG(backoff), deadlineMilliseconds - elapsed));
+		if (cancel != nullptr)
 		{
-			error = GetLastError();
-			LogFStatic(L"Error while reading configuration file %s: %s", path.c_str(), win32::errorMessage(error).c_str());
-			return makeFailedStream();
+			if (WaitForSingleObject(cancel, wait) == WAIT_OBJECT_0)
+				return target;
 		}
-		if (bytesRead == 0)
-			break;
-		inputStream.write(buf, bytesRead);
+		else
+			Sleep(wait);
+		backoff = (std::min)(backoff * 2, 20UL);
 	}
-
-	inputStream.seekg(0);
-	return inputStream;
 }

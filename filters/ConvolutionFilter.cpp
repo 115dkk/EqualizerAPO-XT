@@ -45,16 +45,16 @@ namespace
 	ConvolverMuteDiagnostics convolutionMuteDiagnostics;
 }
 
-ConvolutionFilter::ConvolutionFilter(const wstring& filename)
-	: ConvolutionFilter(filename, convolutionMuteDiagnostics, kFrameCountMismatchLogPrefix)
+ConvolutionFilter::ConvolutionFilter(JudgedPath filename)
+	: ConvolutionFilter(std::move(filename), convolutionMuteDiagnostics, kFrameCountMismatchLogPrefix)
 {
 }
 
-ConvolutionFilter::ConvolutionFilter(const wstring& filename, ConvolverMuteDiagnostics& muteDiagnostics,
+ConvolutionFilter::ConvolutionFilter(JudgedPath filename, ConvolverMuteDiagnostics& muteDiagnostics,
 	const wchar_t* muteLogPrefix)
 	: muteDiagnostics(&muteDiagnostics), muteLogPrefix(muteLogPrefix)
 {
-	this->filename = filename;
+	this->filename = std::move(filename);
 }
 
 ConvolutionFilter::~ConvolutionFilter()
@@ -64,7 +64,9 @@ ConvolutionFilter::~ConvolutionFilter()
 
 vector<wstring> ConvolutionFilter::initialize(float sampleRate, unsigned maxFrameCount, vector<wstring> channelNames)
 {
+	auto previousIr = irEntry;
 	cleanup();
+	irEntry = std::move(previousIr);
 
 	this->sampleRate = sampleRate;
 	channelCount = (unsigned)channelNames.size();
@@ -122,7 +124,9 @@ void ConvolutionFilter::cleanup()
 
 void ConvolutionFilter::initializeFilters(unsigned frameCount)
 {
-	auto ir = loadIrCached(filename, sampleRate);
+	const wstring displayPath = filename.path();
+	auto ir = filename.empty() ? irEntry : loadIrCached(filename, sampleRate);
+	filename = JudgedPath{};
 	if (!ir)
 		return;
 
@@ -132,7 +136,7 @@ void ConvolutionFilter::initializeFilters(unsigned frameCount)
 	irEntry = ir;
 
 	TraceF(L"Convolving using impulse response file %s (%u channels, %u frames)",
-		filename.c_str(), ir->channels, ir->frames);
+		displayPath.c_str(), ir->channels, ir->frames);
 
 	// Build one immutable frequency-domain filter bank per distinct IR channel.
 	// Output channels that reuse a mono/stereo IR still receive independent
