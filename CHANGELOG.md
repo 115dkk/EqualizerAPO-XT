@@ -24,7 +24,11 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   say so instead of showing the file as usable. A configuration kept on a
   share may now name that share in the `\\?\UNC\server\share` form too, a
   local path written as `\\?\C:\...` is no longer refused, and an
-  `Include:` with no file name is reported on its line ([#369](https://github.com/115dkk/EqualizerAPO-XT/pull/369)).
+  `Include:` with no file name is reported on its line. A file chosen in a
+  legacy Convolution or MultiConvolution row is now written the way the
+  cards write it: relative to the configuration folder unless it lies more
+  than one level above it, so a file in a sibling folder is no longer
+  written as an absolute path ([#369](https://github.com/115dkk/EqualizerAPO-XT/pull/369)).
 
 ## v2.54.4 — 2026-09-25
 

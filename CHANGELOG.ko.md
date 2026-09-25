@@ -17,7 +17,10 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   거부하고, Editor의 파일 카드도 쓸 수 있는 파일로 표시하는 대신 그 사실을
   알립니다. 공유에 둔 설정은 이제 `\\?\UNC\server\share` 형태로 적은 같은
   공유도 가리킬 수 있고, `\\?\C:\...`로 적은 로컬 경로는 더는 거부하지
-  않으며, 파일 이름이 없는 `Include:`는 그 줄의 오류로 보고합니다([#369](https://github.com/115dkk/EqualizerAPO-XT/pull/369)).
+  않으며, 파일 이름이 없는 `Include:`는 그 줄의 오류로 보고합니다. 구형 Convolution·
+  MultiConvolution 행에서 고른 파일도 이제 카드와 같은 방식으로 적습니다. 설정
+  폴더보다 두 단계 이상 위에 있지 않으면 설정 폴더 기준 상대 경로로 적으므로,
+  이웃 폴더의 파일을 더는 절대 경로로 적지 않습니다([#369](https://github.com/115dkk/EqualizerAPO-XT/pull/369)).
 
 ## v2.54.4 — 2026-09-25
 

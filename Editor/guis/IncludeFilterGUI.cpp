@@ -20,6 +20,7 @@
 #include <QFileDialog>
 
 #include "filters/ConfigFileReference.h"
+#include "Editor/widgets/cards/FileReferenceController.h"
 #include "services/security/AudioEngineAccess.h"
 #include "Editor/SkinManager.h"
 #include "Editor/skins/ISkin.h"
@@ -78,10 +79,7 @@ void IncludeFilterGUI::on_selectFileToolButton_clicked()
 	if (dialog.exec() == QDialog::Accepted)
 	{
 		QString absolutePath = dialog.selectedFiles().first();
-		QString relativePath = configDir.relativeFilePath(absolutePath);
-		if (relativePath.startsWith("../../"))
-			relativePath = absolutePath;
-		ui->pathLineEdit->setText(QDir::toNativeSeparators(relativePath));
+		ui->pathLineEdit->setText(FileReferenceController::displayPathForBaseDirectory(configDir.absolutePath(), absolutePath));
 		updateFileInfo();
 
 		emit updateModel();

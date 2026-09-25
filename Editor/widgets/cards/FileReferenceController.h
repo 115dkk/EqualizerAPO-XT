@@ -42,6 +42,11 @@ public:
 	static QString audioServiceProblem(const QString& absolutePath, const QString& configPath);
 	bool importIntoConfig(QWidget* parent, const QString& configPath);
 
+	// How the Editor writes a file the user chose, relative to the folder a
+	// relative reference is read from: relative unless that means climbing
+	// more than one level above it (a path starting with ../../), absolute
+	// otherwise. The one rule for every card and legacy row (maintainer
+	// decision 2026-09-25, audit #348 open question 2).
 	static QString displayPathForBaseDirectory(
 		const QString& baseDirectory, const QString& selectedPath);
 

@@ -58,22 +58,18 @@ void testConvolutionPathHelper()
 	expectPath(
 		ConvolutionPathHelper::displayPathForSelection(configPath, "C:/EqualizerAPO/config/irs/room.wav"),
 		"irs/room.wav");
+	// One rule with the cards (maintainer decision 2026-09-25): one level
+	// above the config folder is still written relative.
 	expectPath(
 		ConvolutionPathHelper::displayPathForSelection(configPath, "C:/EqualizerAPO/shared/room.wav"),
-		"C:/EqualizerAPO/shared/room.wav");
+		"../shared/room.wav");
+	expectPath(
+		ConvolutionPathHelper::displayPathForSelection(configPath, "C:/Other/deep/room.wav"),
+		"C:/Other/deep/room.wav");
 	expectPath(
 		ConvolutionPathHelper::displayPathForSelection(configPath, "C:/Impulse/room.wav"),
 		"C:/Impulse/room.wav");
 
-	expectTrue(
-		ConvolutionPathHelper::relativePathLooksContainedLexically("irs/room.wav"),
-		"relative path inside config directory was rejected");
-	expectFalse(
-		ConvolutionPathHelper::relativePathLooksContainedLexically("../shared/room.wav"),
-		"parent-directory relative path was accepted");
-	expectFalse(
-		ConvolutionPathHelper::relativePathLooksContainedLexically("C:/Impulse/room.wav"),
-		"absolute path was accepted as relative");
 }
 
 // Audit #348 A1: the import scanner and the card read a line's file the way

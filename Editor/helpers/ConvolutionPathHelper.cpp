@@ -9,6 +9,7 @@
 #include <QDir>
 #include <QFileInfo>
 
+#include "Editor/widgets/cards/FileReferenceController.h"
 #include "filters/ConfigFileReference.h"
 
 namespace
@@ -35,19 +36,7 @@ QString ConvolutionPathHelper::displayPathForSelection(const QString& configPath
 	if (absolutePath.isEmpty())
 		return QString();
 
-	QDir configDir = configDirectory(configPath);
-	QString relativePath = configDir.relativeFilePath(absolutePath);
-	if (relativePathLooksContainedLexically(relativePath))
-		return QDir::toNativeSeparators(relativePath);
-
-	return QDir::toNativeSeparators(absolutePath);
-}
-
-// Lexical check only (QDir::cleanPath, no canonicalization or symlink resolution).
-// Decides whether a selected path is stored relative in the user's config file.
-// NOT a security boundary; the engine loads whatever path the config contains.
-bool ConvolutionPathHelper::relativePathLooksContainedLexically(const QString& relativePath)
-{
-	QString cleanPath = QDir::cleanPath(QDir::fromNativeSeparators(relativePath));
-	return !cleanPath.isEmpty() && cleanPath != ".." && !cleanPath.startsWith("../") && !QDir::isAbsolutePath(cleanPath);
+	// The cards' rule, so a legacy row writes a chosen file the way a card does.
+	return FileReferenceController::displayPathForBaseDirectory(
+		configDirectory(configPath).absolutePath(), absolutePath);
 }
