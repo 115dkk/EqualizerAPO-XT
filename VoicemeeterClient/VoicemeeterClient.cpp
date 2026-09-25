@@ -174,18 +174,10 @@ void VoicemeeterClient::handle(long nCommand, void* lpData, long nnn)
 		const unsigned newMaxFrameCount = audioInfo->nbSamplePerFrame;
 		sampleRate.store(newSampleRate);
 		maxFrameCount.store(newMaxFrameCount);
-		engineState.withLock([&](const EngineState& state) {
-			for (size_t i = 0; i < state.engines.size(); i++)
-				if (state.engines[i] != nullptr)
-				{
-					EngineSetup setup = state.engineSetups[i];
-					setup.sampleRate = newSampleRate;
-					setup.inputChannelCount = 8;
-					setup.realChannelCount = 8;
-					setup.outputChannelCount = 8;
-					setup.maxFrameCount = newMaxFrameCount;
-					state.engines[i]->initialize(setup);
-				}
+		// On the callback thread, before any buffer of the new stream, so the
+		// lock is not contended by the audio path here.
+		engineState.withLock([&](EngineState& state) {
+			initializeEngines(state, newSampleRate, newMaxFrameCount);
 		});
 		VoicemeeterAPOInfo::saveVoicemeeterSampleRate((unsigned)audioInfo->samplerate);
 	}
@@ -288,6 +280,24 @@ void VoicemeeterClient::initSoftware()
 	}
 }
 
+void VoicemeeterClient::initializeEngines(EngineState& state, float sampleRate, unsigned maxFrameCount)
+{
+	if (sampleRate == 0.0f || maxFrameCount == 0)
+		return;
+	for (size_t i = 0; i < state.engines.size(); i++)
+	{
+		if (state.engines[i] == nullptr)
+			continue;
+		EngineSetup setup = state.engineSetups[i];
+		setup.sampleRate = sampleRate;
+		setup.inputChannelCount = 8;
+		setup.realChannelCount = 8;
+		setup.outputChannelCount = 8;
+		setup.maxFrameCount = maxFrameCount;
+		state.engines[i]->initialize(setup);
+	}
+}
+
 void VoicemeeterClient::detectVoicemeeterType()
 {
 	long vmType;
@@ -296,13 +306,7 @@ void VoicemeeterClient::detectVoicemeeterType()
 	{
 		connected.store(true);
 
-		unsigned outputCount;
-		if (vmType == 3)
-			outputCount = 5;
-		else if (vmType == 2)
-			outputCount = 3;
-		else
-			outputCount = 1;
+		const unsigned outputCount = voicemeeterOutputCount(vmType);
 
 		bool sizeChanged = engineState.withLock([&](const EngineState& state) {
 			return outputCount != state.engines.size();
@@ -315,9 +319,7 @@ void VoicemeeterClient::detectVoicemeeterType()
 
 			for (unsigned i = 0; i < outputCount; i++)
 			{
-				wstringstream sstream;
-				sstream << "Output A" << (i + 1);
-				wstring output = sstream.str();
+				const wstring output = voicemeeterOutputName(i);
 				if (find(outputs.begin(), outputs.end(), output) != outputs.end())
 				{
 					auto engine = std::make_unique<FilterEngine>();
@@ -339,27 +341,26 @@ void VoicemeeterClient::detectVoicemeeterType()
 				replacement.idleSampleCounts.push_back(0);
 			}
 
-			// Finish building first, then initialize and publish atomically with
-			// respect to the audio callback.
+			// Set the new engines up before taking the lock the audio callback
+			// takes: an engine loads its whole configuration here, and the
+			// callback used to wait for that (audit #348 TD-51).
+			const float usedSampleRate = sampleRate.load();
+			const unsigned usedMaxFrameCount = maxFrameCount.load();
+			initializeEngines(replacement, usedSampleRate, usedMaxFrameCount);
+
+			EngineState retired;
 			engineState.withLock([&](EngineState& state) {
+				// A STARTING that changed the format meanwhile set up only the
+				// old engines; set the new ones up again rather than publish
+				// them for the wrong format. Rare, and then under the lock.
 				const float currentSampleRate = sampleRate.load();
 				const unsigned currentMaxFrameCount = maxFrameCount.load();
-				if (currentSampleRate != 0.0f && currentMaxFrameCount != 0)
-				{
-					for (size_t i = 0; i < replacement.engines.size(); i++)
-						if (replacement.engines[i] != nullptr)
-						{
-							EngineSetup setup = replacement.engineSetups[i];
-							setup.sampleRate = currentSampleRate;
-							setup.inputChannelCount = 8;
-							setup.realChannelCount = 8;
-							setup.outputChannelCount = 8;
-							setup.maxFrameCount = currentMaxFrameCount;
-							replacement.engines[i]->initialize(setup);
-						}
-				}
+				if (currentSampleRate != usedSampleRate || currentMaxFrameCount != usedMaxFrameCount)
+					initializeEngines(replacement, currentSampleRate, currentMaxFrameCount);
+				retired = std::move(state);
 				state = std::move(replacement);
 			});
+			// The old engines are destroyed here, outside the lock.
 		}
 	}
 }

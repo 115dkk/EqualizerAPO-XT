@@ -135,6 +135,7 @@ SOURCES += main.cpp\
 	../filters/GraphicEQFilterFactory.cpp \
 	../libHybridConv-0.1.1/libHybridConv_eapo.cpp \
 	../dsp/FftwPlanningPolicy.cpp \
+	../dsp/DelayLine.cpp \
 	../filters/graphicEq/GainCurveIterator.cpp \
 	guis/GraphicEQFilterGUIScene.cpp \
 	widgets/FrequencyPlotView.cpp \
@@ -178,6 +179,7 @@ SOURCES += main.cpp\
 	../engine/ConfigWatcher.cpp \
 	../filters/FilterFactoryRegistry.cpp \
 	../engine/FilterConfiguration.cpp \
+	../engine/ChannelRoutingPlan.cpp \
 	../filters/ChannelCommand.cpp \
 	../filters/ChannelFilterFactory.cpp \
 	../filters/ExpressionCommand.cpp \
@@ -195,8 +197,8 @@ SOURCES += main.cpp\
 	../filters/IncludeFilterFactory.cpp \
 	../filters/ChannelFilter.cpp \
 	../filters/ConvolutionFilter.cpp \
+	../filters/ConfigFileReference.cpp \
 	../filters/ConfigPathPolicy.cpp \
-	../filters/ConvolutionFilePath.cpp \
 	../filters/MultiConvolutionCommand.cpp \
 	../filters/MultiConvolutionFilter.cpp \
 	../filters/MultiConvolutionFilterFactory.cpp \
@@ -242,6 +244,7 @@ SOURCES += main.cpp\
 	guis/VSTPluginFilterGUIFactory.cpp \
 	guis/VSTPluginFilterGUIDialog.cpp \
 	../filters/VSTPluginCommand.cpp \
+	../filters/VSTChannelPlan.cpp \
 	../filters/VSTPluginFilter.cpp \
 	../filters/VSTPluginFilterFactory.cpp \
 	../vst/VSTPluginInstance.cpp \
@@ -449,6 +452,7 @@ HEADERS  += \
 	../filters/GraphicEQFilterFactory.h \
 	../libHybridConv-0.1.1/libHybridConv_eapo.h \
 	../dsp/FftwPlanningPolicy.h \
+	../dsp/DelayLine.h \
 	../dsp/SampleConversion.h \
 	../runtime/WeakValueCache.h \
 	../filters/graphicEq/GainCurveIterator.h \
@@ -485,6 +489,7 @@ HEADERS  += \
 	../engine/FilterEngine.h \
 	../engine/ConfigWatcher.h \
 	../engine/FilterConfiguration.h \
+	../engine/ChannelRoutingPlan.h \
 	../filters/ChannelFilterFactory.h \
 	../filters/ExpressionCommand.h \
 	../filters/ExpressionFilterFactory.h \
@@ -492,6 +497,7 @@ HEADERS  += \
 	../filters/IfFilterFactory.h \
 	../filters/StageCommand.h \
 	../filters/StageFilterFactory.h \
+	../filters/ConfigFileReference.h \
 	../filters/ConfigPathPolicy.h \
 	../filters/ConvolutionFilterFactory.h \
 	../filters/IIRCommand.h \
@@ -504,6 +510,7 @@ HEADERS  += \
 	../filters/ConvolutionCommand.h \
 	../filters/ConvolutionFilter.h \
 	../filters/IrCache.h \
+	../filters/ConvolverBank.h \
 	../filters/subwooferRouting/SubwooferRoutingCommand.h \
 	../filters/subwooferRouting/SubwooferRoutingFilter.h \
 	../filters/subwooferRouting/SubwooferRoutingFilterFactory.h \
@@ -538,6 +545,7 @@ HEADERS  += \
 	guis/VSTPluginFilterGUIFactory.h \
 	guis/VSTPluginFilterGUIDialog.h \
 	../filters/VSTPluginCommand.h \
+	../filters/VSTChannelPlan.h \
 	../filters/VSTPluginFilter.h \
 	../filters/VSTPluginFilterFactory.h \
 	../vst/VSTPluginInstance.h \

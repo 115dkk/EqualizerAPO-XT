@@ -11,9 +11,9 @@
 #include <algorithm>
 #include <cmath>
 #include <complex>
+#include <new>
 #include <set>
 
-#include "ConvolverMuteDiagnostics.h"
 #include "audio/ChannelLayout.h"
 #include "services/logging/Logging.h"
 #include "diagnostics/performance/PerfProfile.h"
@@ -108,17 +108,16 @@ HilbertFilter::~HilbertFilter()
 {
 	// Deferred report of the mute path process() took on the audio thread,
 	// like the other convolvers' cleanup(); only for instances that muted.
-	muteState.finishAndReport(muteDiagnostics, kFrameCountMismatchLogPrefix, __FILE__, __LINE__, this);
+	bank.finishAndReport(muteDiagnostics, kFrameCountMismatchLogPrefix, __FILE__, __LINE__, this);
 }
 
 std::vector<std::wstring> HilbertFilter::initialize(float sampleRate,
 	unsigned maxFrameCount, std::vector<std::wstring> channelNames)
 {
 	(void)sampleRate;
-	filters = nullptr;
+	bank.finishAndReport(muteDiagnostics, kFrameCountMismatchLogPrefix, __FILE__, __LINE__, this);
 	channelCount = static_cast<unsigned>(channelNames.size());
-	muteState.finishAndReport(muteDiagnostics, kFrameCountMismatchLogPrefix, __FILE__, __LINE__, this);
-	delayOffset = 0;
+	alignedDelay.release();
 	shifted = resolve(command.shiftedChannels, channelNames, true);
 	aligned = resolve(command.alignedChannels, channelNames, false);
 
@@ -135,15 +134,16 @@ std::vector<std::wstring> HilbertFilter::initialize(float sampleRate,
 		for (size_t i = 0; i < sources.size(); ++i)
 			sources[i] = {coefficients.data(),
 				static_cast<unsigned>(coefficients.size()), 0};
-		filters = buildConvolverArray(sources, maxFrameCount);
-		if (filters != nullptr)
-			muteState.arm(maxFrameCount);
+		bank.install(buildConvolverArray(sources, maxFrameCount), maxFrameCount);
 	}
 
-	delayLines.assign(channelCount, {});
-	for (int channel : aligned)
-		delayLines[static_cast<size_t>(channel)].assign(
-			HilbertLatencySamples, 0.0);
+	alignedOutputs.assign(aligned.size(), nullptr);
+	alignedInputs.assign(aligned.size(), nullptr);
+	// The per-channel std::vector rings this replaces threw std::bad_alloc
+	// out of initialize() on failure; the DelayLine keeps that.
+	if (!aligned.empty() && !alignedDelay.allocate(static_cast<unsigned>(aligned.size()),
+		HilbertLatencySamples, maxFrameCount))
+		throw std::bad_alloc();
 	TraceF(L"Hilbert %d degrees: %zu shifted, %zu aligned, %u taps",
 		command.directionDegrees, shifted.size(), aligned.size(), HilbertTapCount);
 	return channelNames;
@@ -157,15 +157,11 @@ void HilbertFilter::process(double** output, double** input, unsigned frameCount
 		if (output[channel] != input[channel])
 			std::copy_n(input[channel], frameCount, output[channel]);
 
-	const bool convolverReady = filters != nullptr
-		&& !muteState.shouldMute(frameCount);
-	if (filters != nullptr && muteState.shouldMute(frameCount))
-	{
-		// No logging here (audio thread); the destructor writes the deferred
-		// report through muteState.finishAndReport(), like the other
-		// convolvers (audit #250 A4 - this mute used to be silent).
-		muteState.recordMute(muteDiagnostics, frameCount);
-	}
+	// admit() records a block-size mismatch; no logging here (audio thread),
+	// the destructor writes the deferred report through
+	// bank.finishAndReport(), like the other convolvers (audit #250 A4 -
+	// this mute used to be silent).
+	const bool convolverReady = bank.admit(muteDiagnostics, frameCount);
 	for (size_t unit = 0; unit < shifted.size(); ++unit)
 	{
 		double* out = output[shifted[unit]];
@@ -174,21 +170,20 @@ void HilbertFilter::process(double** output, double** input, unsigned frameCount
 			std::fill_n(out, frameCount, 0.0);
 			continue;
 		}
-		hcPutSingle(&filters[static_cast<unsigned>(unit)], input[shifted[unit]]);
-		hcProcessSingle(&filters[static_cast<unsigned>(unit)]);
-		hcGetSingle(&filters[static_cast<unsigned>(unit)], out);
+		HConvSingle* convolver = bank.unit(static_cast<unsigned>(unit));
+		hcPutSingle(convolver, input[shifted[unit]]);
+		hcProcessSingle(convolver);
+		hcGetSingle(convolver, out);
 	}
 
-	for (unsigned frame = 0; frame < frameCount; ++frame)
+	if (!aligned.empty())
 	{
-		for (int channel : aligned)
+		for (size_t i = 0; i < aligned.size(); ++i)
 		{
-			std::vector<double>& line = delayLines[static_cast<size_t>(channel)];
-			output[channel][frame] = line[delayOffset];
-			line[delayOffset] = input[channel][frame];
+			alignedOutputs[i] = output[aligned[i]];
+			alignedInputs[i] = input[aligned[i]];
 		}
-		if (!aligned.empty())
-			delayOffset = (delayOffset + 1) % HilbertLatencySamples;
+		alignedDelay.process(alignedOutputs.data(), alignedInputs.data(), frameCount);
 	}
 }
 #pragma AVRT_CODE_END

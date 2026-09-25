@@ -8,11 +8,17 @@
 	Editor GUI both consume.
 */
 
+#include <fstream>
+#include <iterator>
 #include <string>
 #include <vector>
 
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
 #include "filters/ChannelCommand.h"
 #include "filters/ChannelFilter.h"
+#include "services/logging/Logging.h"
 #include "Tests/TestHarness.h"
 
 using std::wstring;
@@ -93,10 +99,10 @@ void testRoundTrip()
 
 void testResolveSelection()
 {
-	// resolveSelection must stay equivalent to ChannelFilter::initialize's
-	// selection: a subset of channelNames in channelNames order, ALL
-	// selecting everything, unknown selectors ignored. The equivalence run
-	// below pins it to the real filter.
+	// The selection ChannelFilter::initialize runs (audit #348 A2): a
+	// subset of channelNames in channelNames order, ALL selecting
+	// everything, unknown selectors ignored. The equivalence run below
+	// checks the filter's result against it.
 	const std::vector<wstring> names = {L"L", L"R", L"C", L"LFE", L"RL", L"RR"};
 
 	std::vector<wstring> picked = ChannelCommand::resolveSelection({L"RR", L"L"}, names);
@@ -129,6 +135,36 @@ void testResolveSelection()
 			"resolveSelection matches ChannelFilter::initialize");
 	}
 }
+
+// Audit #348 TD-44: the Editor resolves on every channel propagation, so its
+// resolution logs nothing, an out-of-range number included; the engine's
+// ChannelFilter logs each unknown selector, once per load.
+void testSelectionLogsOnlyForTheEngine()
+{
+	wchar_t temp[MAX_PATH + 1] = {};
+	GetTempPathW(MAX_PATH, temp);
+	const wstring logPath = wstring(temp) + L"eapo-xt-channel-selection.log";
+	const std::vector<wstring> names = {L"L", L"R"};
+
+	auto logged = [&](bool logUnknown) {
+		DeleteFileW(logPath.c_str());
+		Logging::useFile(logPath, false, true, false);
+		ChannelCommand::resolveSelection({L"9", L"NOSUCH"}, names, logUnknown);
+		Logging::set(stdout, true, true, false);
+		std::ifstream stream(logPath, std::ios::binary);
+		return std::string((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+	};
+
+	const std::string editor = logged(false);
+	harness.expectTrue(editor.find("out of range") == std::string::npos
+		&& editor.find("Invalid channel") == std::string::npos,
+		"the Editor's resolution logs neither an out-of-range number nor an unknown name");
+	const std::string engine = logged(true);
+	harness.expectTrue(engine.find("Channel number 9 out of range") != std::string::npos
+		&& engine.find("Invalid channel position NOSUCH") != std::string::npos,
+		"the engine's resolution logs both");
+	DeleteFileW(logPath.c_str());
+}
 }
 
 void runChannelCommandTests()
@@ -137,6 +173,7 @@ void runChannelCommandTests()
 	testCommandRecognition();
 	testRoundTrip();
 	testResolveSelection();
+	testSelectionLogsOnlyForTheEngine();
 
 	harness.report();
 }

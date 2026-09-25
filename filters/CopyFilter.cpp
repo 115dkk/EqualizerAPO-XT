@@ -53,10 +53,7 @@ vector<wstring> CopyFilter::initialize(float sampleRate, unsigned maxFrameCount,
 
 	for (const Assignment& a : assignments)
 	{
-		wstring channelName = a.targetChannel;
-		int channelIndex = ChannelLayout::getChannelIndex(a.targetChannel, channelNames, true);
-		if (channelIndex != -1)
-			channelName = channelNames[channelIndex];
+		const wstring channelName = ChannelLayout::resolveTarget(a.targetChannel, channelNames).name;
 		vector<wstring>::const_iterator it = find(outChannelNames.begin(), outChannelNames.end(), channelName);
 		const int targetChannel = static_cast<int>(it - outChannelNames.begin());
 		if (it == outChannelNames.end())
@@ -345,7 +342,6 @@ void propagateCopyChannels(const vector<Assignment>& assignments, vector<wstring
 		if (!hasSummand)
 			continue;
 
-		if (ChannelLayout::getChannelIndex(assignment.targetChannel, channelNames, true) == -1)
-			channelNames.push_back(assignment.targetChannel);
+		ChannelLayout::declare(channelNames, assignment.targetChannel);
 	}
 }

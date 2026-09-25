@@ -32,7 +32,6 @@
 #include "runtime/memory/AlignedMemory.h"
 #include "runtime/concurrency/ParallelExecutor.h"
 #include "diagnostics/performance/PerfProfile.h"
-#include "ConvolverMuteDiagnostics.h"
 #include "MultiConvolutionFilter.h"
 
 using std::find;
@@ -75,19 +74,16 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 	plans.assign(mappings.size(), MappingPlan{0, -1, 0, 0});
 	for (size_t i = 0; i < mappings.size(); i++)
 	{
-		wstring channelName = mappings[i].targetChannel;
-		int channelIndex = ChannelLayout::getChannelIndex(channelName, channelNames, true);
-		if (channelIndex != -1)
-			channelName = channelNames[channelIndex];
+		const ChannelLayout::Target target = ChannelLayout::resolveTarget(mappings[i].targetChannel, channelNames);
 
-		vector<wstring>::const_iterator it = find(outChannelNames.begin(), outChannelNames.end(), channelName);
+		vector<wstring>::const_iterator it = find(outChannelNames.begin(), outChannelNames.end(), target.name);
 		plans[i].outputSlot = (unsigned)(it - outChannelNames.begin());
 		if (it == outChannelNames.end())
-			outChannelNames.push_back(channelName);
+			outChannelNames.push_back(target.name);
 
 		// The mapping convolves its target's own pre-command signal; a target
 		// that does not exist yet reads silence.
-		plans[i].inputChannel = channelIndex;
+		plans[i].inputChannel = target.index;
 	}
 
 	// Shared IR intake + cache (IrCache.cpp): validates the file, deinterleaves
@@ -166,11 +162,10 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 		const unsigned irChannel = unitChannels[unit];
 		sources[unit] = { ir->buffers[irChannel].data(), irFrames, prototypes[irChannel] };
 	}
-	filters = buildConvolverArray(sources, maxFrameCount);
-	if (filters == nullptr)
+	bank.install(buildConvolverArray(sources, maxFrameCount), maxFrameCount);
+	if (!bank.installed())
 		return outChannelNames;
 	unitCount = next;
-	muteState.arm(maxFrameCount);
 
 	return outChannelNames;
 }
@@ -182,18 +177,13 @@ void MultiConvolutionFilter::process(double** output, double** input, unsigned f
 	if (frameCount == 0)
 		return;
 
-	if (filters != nullptr && muteState.shouldMute(frameCount))
-	{
-		// The deferred report is written by cleanup() through
-		// muteState.finishAndReport(); nothing is logged on the audio thread.
-		muteState.recordMute(muteDiagnostics, frameCount);
-	}
-
 	// libHybridConv fixes its block length at hcInitSingle time, so a block of
 	// any other size cannot be fed to the convolver; without a usable IR there
 	// is nothing to feed at all. Either way every mapping target still gets
-	// written (silence), never left uninitialized.
-	const bool usable = filters != nullptr && !muteState.shouldMute(frameCount);
+	// written (silence), never left uninitialized. admit() records a
+	// block-size mismatch; the deferred report is written by cleanup()
+	// through bank.finishAndReport(), nothing is logged on the audio thread.
+	const bool usable = bank.admit(muteDiagnostics, frameCount);
 
 	for (const MappingPlan& plan : plans)
 	{
@@ -207,9 +197,10 @@ void MultiConvolutionFilter::process(double** output, double** input, unsigned f
 		double* in = input[plan.inputChannel];
 		for (unsigned u = plan.firstUnit; u < plan.firstUnit + plan.unitCount; u++)
 		{
-			hcPutSingle(&filters[u], in);
-			hcProcessSingle(&filters[u]);
-			hcGetSingle(&filters[u], tempBuffer.data());
+			HConvSingle* convolver = bank.unit(u);
+			hcPutSingle(convolver, in);
+			hcProcessSingle(convolver);
+			hcGetSingle(convolver, tempBuffer.data());
 			const double factor = unitFactors[u];
 			if (factor == 1.0)
 			{
@@ -229,11 +220,8 @@ void MultiConvolutionFilter::process(double** output, double** input, unsigned f
 void MultiConvolutionFilter::cleanup()
 {
 	// Deferred report of the mute path that process() took on the audio
-	// thread; finishAndReport also disarms, so teardown order below is free.
-	muteState.finishAndReport(muteDiagnostics, kFrameCountMismatchLogPrefix, __FILE__, __LINE__, this);
-
-	// HConvSingleArray::reset() runs the close-then-free sequence.
-	filters = nullptr;
+	// thread, then disarm and release the units (close-then-free), in one call.
+	bank.finishAndReport(muteDiagnostics, kFrameCountMismatchLogPrefix, __FILE__, __LINE__, this);
 	// Release this filter's hold on the cached IR; the weak-ptr cache frees the
 	// entry once the last user drops it.
 	irEntry.reset();

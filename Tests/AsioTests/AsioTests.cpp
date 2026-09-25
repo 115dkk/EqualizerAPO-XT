@@ -365,6 +365,164 @@ namespace
 			CoUninitialize();
 	}
 
+	// The WASAPI target's stream decisions, taken out of the stream thread:
+	// the bridge calibration, the capture queue, the output staging and the
+	// judgement of a device that went away, fed synthetic numbers.
+	void testWasapiStreamParts()
+	{
+		namespace wasapi = eapo::asio::wasapi;
+		const uint64_t period = 2666666;     // 128 frames at 48 kHz, in ns
+
+		// Calibration: the median of twelve event spacings against the period.
+		const auto calibrate = [](uint64_t periodNanos, int forced, const std::vector<uint64_t>& spacings, unsigned* decidedOn)
+		{
+			wasapi::BridgeCalibrator calibrator(periodNanos, forced);
+			*decidedOn = 0;
+			for (size_t i = 0; i < spacings.size(); i++)
+				if (calibrator.addSpacing(spacings[i]))
+					*decidedOn = static_cast<unsigned>(i + 1);
+			return calibrator;
+		};
+		unsigned decidedOn = 0;
+		std::vector<uint64_t> spacings(wasapi::bridgeCalibrationEvents - 1, period);
+		wasapi::BridgeCalibrator partial = calibrate(period, 0, spacings, &decidedOn);
+		harness.expectFalse(partial.decided(), "eleven events do not decide the bridge");
+		spacings.push_back(period);
+		wasapi::BridgeCalibrator steady = calibrate(period, 0, spacings, &decidedOn);
+		harness.expectTrue(steady.decided(), "the twelfth event decides");
+		harness.expectEqual(decidedOn, wasapi::bridgeCalibrationEvents, "on the twelfth spacing, once");
+		harness.expectEqual(steady.factor(), 1u, "steady spacing at the period keeps a bridge of 1");
+		harness.expectFalse(steady.forced(), "a calibrated bridge is not forced");
+		harness.expectFalse(steady.addSpacing(period * 10), "spacings after the decision are ignored");
+		harness.expectEqual(steady.factor(), 1u, "and do not change it");
+
+		const uint64_t threshold = period + period / 2;
+		wasapi::BridgeCalibrator atThreshold = calibrate(period, 0, std::vector<uint64_t>(12, threshold), &decidedOn);
+		harness.expectEqual(atThreshold.factor(), 1u, "a median of exactly 1.5 periods keeps 1");
+		wasapi::BridgeCalibrator below = calibrate(period, 0, std::vector<uint64_t>(12, threshold - 1000), &decidedOn);
+		harness.expectEqual(below.factor(), 1u, "a median just below 1.5 periods keeps 1");
+		wasapi::BridgeCalibrator above = calibrate(period, 0, std::vector<uint64_t>(12, threshold + 1000), &decidedOn);
+		harness.expectEqual(above.factor(), 2u, "a median just above 1.5 periods bridges 2, rounded up");
+		// The virtual cable of docs/features/asio.md: 10 ms against a 5.8 ms period.
+		wasapi::BridgeCalibrator cable = calibrate(5805000, 0, std::vector<uint64_t>(12, 10000000), &decidedOn);
+		harness.expectEqual(cable.factor(), 2u, "a 10 ms cycle over a 5.8 ms period bridges 2");
+
+		std::vector<uint64_t> outliers(12, period);
+		outliers[3] = period * 5;
+		outliers[9] = period * 7;
+		wasapi::BridgeCalibrator stalls = calibrate(period, 0, outliers, &decidedOn);
+		harness.expectEqual(stalls.factor(), 1u, "two slow outliers among twelve do not move the median");
+
+		wasapi::BridgeCalibrator capped = calibrate(period, 0, std::vector<uint64_t>(12, period * 20), &decidedOn);
+		harness.expectEqual(capped.factor(), wasapi::bridgeCap, "a cycle of twenty periods is capped at 8");
+		wasapi::BridgeCalibrator unknownPeriod = calibrate(0, 0, std::vector<uint64_t>(12, period * 3), &decidedOn);
+		harness.expectEqual(unknownPeriod.factor(), 1u, "no period, no bridge");
+
+		wasapi::BridgeCalibrator forced = calibrate(period, 3, std::vector<uint64_t>(12, period), &decidedOn);
+		harness.expectTrue(forced.forced() && forced.decided(), "a forced value decides up front");
+		harness.expectEqual(forced.factor(), 3u, "and wins over steady spacing");
+		harness.expectEqual(decidedOn, 0u, "no spacing decides after it");
+		for (int ignored : {1, 0, -2, 9})
+		{
+			wasapi::BridgeCalibrator notForced(period, ignored);
+			harness.expectFalse(notForced.forced() || notForced.decided(), "a forced value of " + std::to_string(ignored) + " is ignored");
+		}
+		wasapi::BridgeCalibrator forcedCap(period, 8);
+		harness.expectEqual(forcedCap.factor(), 8u, "the cap itself may be forced");
+
+		// Capture queue: two channels of 16 bit, room for two periods of 4 frames.
+		const unsigned channels = 2, bytes = 2, frames = 4;
+		wasapi::CaptureQueue queue;
+		queue.reset(channels, bytes, frames * 2);
+		harness.expectEqual(queue.capacityFrames(), static_cast<size_t>(8), "capacity is counted in frames");
+		std::vector<uint16_t> left(frames), right(frames);
+		void* planes[2] = {left.data(), right.data()};
+		const auto packet = [](uint16_t first, size_t count)
+		{
+			std::vector<uint16_t> interleaved(count * 2);
+			for (size_t f = 0; f < count; f++)
+			{
+				interleaved[f * 2] = static_cast<uint16_t>(first + f);
+				interleaved[f * 2 + 1] = static_cast<uint16_t>(0x100 + first + f);
+			}
+			return interleaved;
+		};
+
+		std::vector<uint16_t> three = packet(1, 3);
+		queue.push(three.data(), 3, false);
+		for (unsigned f = 0; f < frames; f++)
+			left[f] = right[f] = 0xffff;
+		harness.expectFalse(queue.take(planes, frames), "a partial packet is not yet a period");
+		harness.expectTrue(left == std::vector<uint16_t>(frames, 0) && right == std::vector<uint16_t>(frames, 0), "the short period is zero-filled");
+		harness.expectEqual(queue.underruns(), static_cast<uint64_t>(1), "and counted as an underrun");
+		harness.expectEqual(queue.pendingFrames(), static_cast<size_t>(3), "the partial packet stays queued");
+		std::vector<uint16_t> two = packet(4, 2);
+		queue.push(two.data(), 2, false);
+		harness.expectTrue(queue.take(planes, frames), "the next packet completes the period");
+		harness.expectTrue(left == std::vector<uint16_t>({1, 2, 3, 4}) && right == std::vector<uint16_t>({0x101, 0x102, 0x103, 0x104}),
+			"the period is deinterleaved across the two packets in order");
+		harness.expectEqual(queue.pendingFrames(), static_cast<size_t>(1), "the frame past the period waits for the next one");
+		harness.expectEqual(queue.underruns(), static_cast<uint64_t>(1), "a full period is no underrun");
+
+		std::vector<uint16_t> garbage = packet(0x55, 3);
+		queue.push(garbage.data(), 3, true);
+		harness.expectTrue(queue.take(planes, frames), "a silent packet still counts its frames");
+		harness.expectTrue(left == std::vector<uint16_t>({5, 0, 0, 0}) && right == std::vector<uint16_t>({0x105, 0, 0, 0}),
+			"and queues zeros in place of its data");
+		queue.push(nullptr, 4, true);
+		harness.expectTrue(queue.take(planes, frames), "a silent packet needs no data");
+		harness.expectTrue(left == std::vector<uint16_t>(frames, 0), "and is silence");
+
+		std::vector<uint16_t> flood = packet(10, 10);
+		queue.push(flood.data(), 10, false);
+		harness.expectEqual(queue.pendingFrames(), static_cast<size_t>(8), "an oversized packet fills the queue to its capacity");
+		queue.clear();
+		harness.expectEqual(queue.pendingFrames(), static_cast<size_t>(0), "clear empties the queue");
+
+		// Output staging: bridge 4 over 128-frame periods.
+		wasapi::OutputStager stager;
+		stager.reset(4, 128);
+		unsigned writes = 0;
+		bool slotsInOrder = true, writesOnFourth = true, writeSize = true;
+		for (unsigned n = 0; n < 10; n++)
+		{
+			const wasapi::OutputStager::Step step = stager.stage();
+			slotsInOrder = slotsInOrder && step.slot == n % 4;
+			const bool due = step.writeFrames != 0;
+			writesOnFourth = writesOnFourth && due == (n % 4 == 3);
+			if (due)
+			{
+				writes++;
+				writeSize = writeSize && step.writeFrames == 512;
+			}
+		}
+		harness.expectTrue(slotsInOrder, "each period lands at the next slot of the device block");
+		harness.expectTrue(writesOnFourth, "the device is written every fourth period");
+		harness.expectTrue(writeSize, "with four periods' frames");
+		harness.expectEqual(writes, 2u, "ten periods at bridge 4 make two writes");
+		harness.expectEqual(stager.staged(), 2u, "and leave two periods staged");
+		stager.reset(1, 128);
+		const wasapi::OutputStager::Step single = stager.stage();
+		harness.expectTrue(single.slot == 0 && single.writeFrames == 128, "bridge 1 writes every period");
+
+		// Health: a vanished device from either device call, or four silent waits.
+		wasapi::StreamHealthJudge judge;
+		harness.expectTrue(judge.judgeWait(false, S_OK) == wasapi::StreamHealth::Continue, "an event with good calls continues");
+		harness.expectTrue(judge.judgeWait(false, AUDCLNT_E_BUFFER_TOO_LARGE) == wasapi::StreamHealth::Continue, "another failure is a miss, not a lost device");
+		harness.expectTrue(judge.judgeWait(false, AUDCLNT_E_DEVICE_INVALIDATED) == wasapi::StreamHealth::DeviceLost, "an invalidated device from GetBuffer or ReleaseBuffer is lost");
+		wasapi::StreamHealthJudge waits;
+		for (unsigned i = 1; i < wasapi::deviceLostTimeouts; i++)
+			harness.expectTrue(waits.judgeWait(true, S_OK) == wasapi::StreamHealth::Retry, "timeout " + std::to_string(i) + " is retried");
+		harness.expectTrue(waits.judgeWait(true, S_OK) == wasapi::StreamHealth::DeviceLost, "the fourth timeout in a row is a lost device");
+		wasapi::StreamHealthJudge recovering;
+		for (unsigned i = 1; i < wasapi::deviceLostTimeouts; i++)
+			recovering.judgeWait(true, S_OK);
+		harness.expectEqual(recovering.consecutiveTimeouts(), 3u, "three timeouts are counted");
+		harness.expectTrue(recovering.judgeWait(false, S_OK) == wasapi::StreamHealth::Continue, "an event between them continues");
+		harness.expectEqual(recovering.consecutiveTimeouts(), 0u, "and resets the count");
+		harness.expectTrue(recovering.judgeWait(true, S_OK) == wasapi::StreamHealth::Retry, "so the next timeout is the first again");
+	}
+
 	// Audit #348 TD-10: a Korean endpoint name, narrowed with the ANSI code
 	// page by the WASAPI target, must widen back to the same text and never be
 	// cut in the middle of a double-byte character. Pinned with code page 949
@@ -1058,6 +1216,7 @@ namespace
 	{
 		testCodecRoundTrips();
 		testWasapiTargetPolicy();
+		testWasapiStreamParts();
 		testDriverNameText();
 		testCodecBytePatterns();
 		testTrampolines();

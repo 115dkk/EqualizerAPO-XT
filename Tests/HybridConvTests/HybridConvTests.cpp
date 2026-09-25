@@ -23,7 +23,7 @@
 #include <windows.h>
 
 #include "filters/ConvolutionFilter.h"
-#include "filters/ConvolutionFilePath.h"
+#include "filters/ConfigFileReference.h"
 #include "filters/IrCache.h"
 #include "services/logging/Logging.h"
 #include "runtime/memory/AlignedMemory.h"
@@ -61,6 +61,7 @@ void runIncludeCommandTests();
 void runLoudnessCorrectionCommandTests();
 void runStageCommandTests();
 void runVSTPluginCommandTests();
+void runVSTChannelPlanTests();
 void runVstHostTests();
 void runVst3HostTests();
 void runParserTests();
@@ -441,17 +442,41 @@ void assertConvolutionPathParsing()
 	_wputenv_s(L"EAPO_XT_TEST_IR_DIR", L"C:\\Impulse Responses");
 
 	harness.expectTrue(
-		ConvolutionFilePath::normalizeParameter(L"  \"room with spaces.wav\"  ") == L"room with spaces.wav",
+		ConfigFileReference::normalize(L"  \"room with spaces.wav\"  ") == L"room with spaces.wav",
 		"quoted convolution path was not normalized");
 	harness.expectTrue(
-		ConvolutionFilePath::normalizeParameter(L"%EAPO_XT_TEST_IR_DIR%\\room.wav") == L"C:\\Impulse Responses\\room.wav",
+		ConfigFileReference::normalize(L"%EAPO_XT_TEST_IR_DIR%\\room.wav") == L"C:\\Impulse Responses\\room.wav",
 		"convolution path environment variable was not expanded");
 	harness.expectTrue(
-		ConvolutionFilePath::resolve(L"C:\\EqualizerAPO\\config\\config.txt", L"\"irs\\room.wav\"") == L"C:\\EqualizerAPO\\config\\irs\\room.wav",
+		ConfigFileReference::resolve(L"C:\\EqualizerAPO\\config\\config.txt", L"\"irs\\room.wav\"") == L"C:\\EqualizerAPO\\config\\irs\\room.wav",
 		"relative convolution path was not resolved from the config file directory");
 	harness.expectTrue(
-		ConvolutionFilePath::resolve(L"C:\\EqualizerAPO\\config\\config.txt", L"") == L"",
+		ConfigFileReference::resolve(L"C:\\EqualizerAPO\\config\\config.txt", L"") == L"",
 		"empty convolution path should remain empty");
+
+	// VSTPlugin's own rule, kept beside the shared one (audit #348 A1).
+	harness.expectTrue(
+		ConfigFileReference::resolveLibrary(L"C:\\VST\\", L"sub\\plug.dll") == L"C:\\VST\\sub\\plug.dll",
+		"a relative plug-in reference is taken from the plug-in folder");
+	harness.expectTrue(
+		ConfigFileReference::resolveLibrary(L"C:\\VST", L"D:\\x\\plug.dll") == L"D:\\x\\plug.dll",
+		"an absolute plug-in reference is kept as written");
+	harness.expectTrue(
+		ConfigFileReference::resolveLibrary(L"C:\\VST", L"\\x\\plug.dll") == L"\\x\\plug.dll",
+		"a root-relative plug-in reference is not relative to the plug-in folder");
+	harness.expectTrue(ConfigFileReference::resolveLibrary(L"C:\\VST", L"") == L"", "an empty plug-in reference stays empty");
+
+	// target() is the pair every opening factory uses: resolved, then judged.
+	const ConfigFileReference::Target local =
+		ConfigFileReference::target(L"C:\\EqualizerAPO\\config\\config.txt", L"\"%EAPO_XT_TEST_IR_DIR%\\room.wav\"");
+	harness.expectTrue(local.path == L"C:\\Impulse Responses\\room.wav" && local.refusal.empty(),
+		"a quoted local reference with a variable resolves and is allowed");
+	const ConfigFileReference::Target share =
+		ConfigFileReference::target(L"C:\\EqualizerAPO\\config\\config.txt", L"\\\\nas\\irs\\room.wav");
+	harness.expectTrue(share.path.empty() && !share.refusal.empty(),
+		"a refused reference carries the refusal and no path to open");
+	const ConfigFileReference::Target none = ConfigFileReference::target(L"C:\\EqualizerAPO\\config\\config.txt", L"  ");
+	harness.expectTrue(none.path.empty() && none.refusal.empty(), "an empty reference has neither");
 }
 
 }
@@ -506,6 +531,8 @@ int runHybridConvTests()
 	runLoudnessCorrectionCommandTests();
 	runStageCommandTests();
 	runVSTPluginCommandTests();
+	// Channel-to-instance plan of a VSTPlugin line, judged without a plug-in.
+	runVSTChannelPlanTests();
 	// Runtime VST2 host load/state/audio test. Soft-skips if the
 	// companion TestVst2Plugin.dll is not next to this executable.
 	runVstHostTests();

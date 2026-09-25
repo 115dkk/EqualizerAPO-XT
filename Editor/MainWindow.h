@@ -216,6 +216,9 @@ private:
 	bool useCustomFrame = true;
 	// Bottom-centre notice for the staged auto-update (created on demand).
 	UpdateToast* updateToast = nullptr;
+	// Bottom-centre notice that the last analysis found a line whose filter could
+	// not be set up, so the configuration was not applied (created on demand).
+	UpdateToast* loadNotice = nullptr;
 	QTimer* updateNoticeTimer = nullptr;
 	const UpdateSession* updateSession = nullptr;
 	bool analysisLayoutTestMode = false;

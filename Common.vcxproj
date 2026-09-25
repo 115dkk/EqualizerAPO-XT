@@ -290,6 +290,7 @@
     <ClInclude Include="asio\WrapperRecord.h" />
     <ClInclude Include="asio\StreamFacts.h" />
     <ClInclude Include="asio\StreamProcessor.h" />
+    <ClInclude Include="engine\ChannelRoutingPlan.h" />
     <ClInclude Include="engine\ConfigLoadTrace.h" />
     <ClInclude Include="engine\ConfigurationFileReader.h" />
     <ClInclude Include="devices\ApoRuntimeFacts.h" />
@@ -309,8 +310,8 @@
     <ClInclude Include="filters\ChannelFilterFactory.h" />
     <ClInclude Include="filters\ConvolutionCommand.h" />
     <ClInclude Include="filters\ConvolutionFilter.h" />
+    <ClInclude Include="filters\ConfigFileReference.h" />
     <ClInclude Include="filters\ConfigPathPolicy.h" />
-    <ClInclude Include="filters\ConvolutionFilePath.h" />
     <ClInclude Include="filters\ConvolutionFilterFactory.h" />
     <ClInclude Include="filters\IrCache.h" />
     <ClInclude Include="filters\MultiConvolutionCommand.h" />
@@ -355,6 +356,7 @@
     <ClInclude Include="filters\StageCommand.h" />
     <ClInclude Include="filters\StageFilterFactory.h" />
     <ClInclude Include="filters\VSTPluginCommand.h" />
+    <ClInclude Include="filters\VSTChannelPlan.h" />
     <ClInclude Include="filters\VSTPluginFilter.h" />
     <ClInclude Include="filters\VSTPluginFilterFactory.h" />
     <ClInclude Include="vst\AbstractLibrary.h" />
@@ -375,6 +377,7 @@
     <ClInclude Include="platform\windows\FileSharingRetry.h" />
     <ClInclude Include="filters\graphicEq\GainCurveIterator.h" />
     <ClInclude Include="filters\ConvolverMuteDiagnostics.h" />
+    <ClInclude Include="filters\ConvolverBank.h" />
     <ClInclude Include="services\registry\ClsidRegistration.h" />
     <ClInclude Include="services\registry\IRegistry.h" />
     <ClInclude Include="services\registry\RegistryTransaction.h" />
@@ -383,6 +386,7 @@
     <ClInclude Include="services\logging\TaggedLogger.h" />
     <ClInclude Include="dsp\FftwRAII.h" />
     <ClInclude Include="dsp\FftwPlanningPolicy.h" />
+    <ClInclude Include="dsp\DelayLine.h" />
     <ClInclude Include="runtime\errors\WideError.h" />
     <ClInclude Include="runtime\memory\AlignedMemory.h" />
     <ClInclude Include="runtime\WeakValueCache.h" />
@@ -437,6 +441,7 @@
     <ClCompile Include="devices\DeviceInstallReport.cpp" />
     <ClCompile Include="devices\DevicePlan.cpp" />
     <ClCompile Include="devices\ReportedOperation.cpp" />
+    <ClCompile Include="engine\ChannelRoutingPlan.cpp" />
     <ClCompile Include="engine\FilterConfiguration.cpp" />
     <ClCompile Include="engine\FilterEngine.cpp" />
     <ClCompile Include="engine\FilterEngine.Configuration.cpp" />
@@ -453,8 +458,8 @@
     <ClCompile Include="filters\ChannelFilterFactory.cpp" />
     <ClCompile Include="filters\ConvolutionCommand.cpp" />
     <ClCompile Include="filters\ConvolutionFilter.cpp" />
+    <ClCompile Include="filters\ConfigFileReference.cpp" />
     <ClCompile Include="filters\ConfigPathPolicy.cpp" />
-    <ClCompile Include="filters\ConvolutionFilePath.cpp" />
     <ClCompile Include="filters\ConvolutionFilterFactory.cpp" />
     <ClCompile Include="filters\IrCache.cpp" />
     <ClCompile Include="filters\MultiConvolutionCommand.cpp" />
@@ -499,6 +504,7 @@
     <ClCompile Include="filters\StageCommand.cpp" />
     <ClCompile Include="filters\StageFilterFactory.cpp" />
     <ClCompile Include="filters\VSTPluginCommand.cpp" />
+    <ClCompile Include="filters\VSTChannelPlan.cpp" />
     <ClCompile Include="filters\VSTPluginFilter.cpp" />
     <ClCompile Include="filters\VSTPluginFilterFactory.cpp" />
     <ClCompile Include="vst\AbstractLibrary.cpp" />
@@ -530,6 +536,7 @@
     <ClCompile Include="engine\IFilter.cpp" />
     <ClCompile Include="libHybridConv-0.1.1\libHybridConv_eapo.cpp" />
     <ClCompile Include="dsp\FftwPlanningPolicy.cpp" />
+    <ClCompile Include="dsp\DelayLine.cpp" />
     <ClCompile Include="parser\LogicalOperators.cpp" />
     <ClCompile Include="parser\ParserExtensions.cpp" />
     <ClCompile Include="parser\EngineParser.cpp" />

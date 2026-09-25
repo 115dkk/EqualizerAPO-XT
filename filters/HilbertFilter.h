@@ -8,8 +8,9 @@
 
 #include <vector>
 
+#include "dsp/DelayLine.h"
 #include "engine/IFilter.h"
-#include "filters/ConvolverMuteDiagnostics.h"
+#include "filters/ConvolverBank.h"
 #include "filters/HilbertCommand.h"
 #include "filters/IrCache.h"
 
@@ -39,12 +40,14 @@ public:
 private:
 	HilbertCommand command;
 	std::vector<double> coefficients;
-	HConvSingleArray filters;
+	ConvolverBank bank;
 	std::vector<int> shifted;
 	std::vector<int> aligned;
-	std::vector<std::vector<double>> delayLines;
-	unsigned delayOffset = 0;
+	// The aligned channels, delayed by HilbertLatencySamples to line up with
+	// the shifted ones; the pointer arrays are sized in initialize().
+	DelayLine alignedDelay;
+	std::vector<double*> alignedOutputs;
+	std::vector<const double*> alignedInputs;
 	unsigned channelCount = 0;
-	ConvolverMuteState muteState;
 };
 #pragma AVRT_VTABLES_END

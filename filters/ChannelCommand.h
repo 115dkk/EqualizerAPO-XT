@@ -38,12 +38,16 @@ struct ChannelCommand
 	// from parameters. Emptiness policy stays with the caller.
 	static bool parse(const std::wstring& command, const std::wstring& parameters, ChannelCommand& out);
 
-	// The selection ChannelFilter::initialize would produce for these
-	// selector tokens over channelNames: a subset of channelNames IN
-	// channelNames ORDER (never the written order), ALL selecting
-	// everything, unknown selectors ignored. Kept equivalent to the filter
-	// by ChannelCommandTests; the Editor mirrors the engine's selection
-	// flow through this one routine.
+	// The positions a Channel line selects in channelNames, in channelNames
+	// order (never the written order): ALL selects everything, unknown
+	// selectors are ignored. logUnknown logs each unknown selector, which
+	// the engine does once per load; the Editor resolves on every
+	// propagation and keeps it off.
+	static std::vector<size_t> selectedIndices(const std::vector<std::wstring>& selectorTokens,
+		const std::vector<std::wstring>& channelNames, bool logUnknown = false);
+
+	// The selected channel names. ChannelFilter::initialize and the
+	// Editor's selection flow both run this one routine (audit #348 A2).
 	static std::vector<std::wstring> resolveSelection(const std::vector<std::wstring>& selectorTokens,
-		const std::vector<std::wstring>& channelNames);
+		const std::vector<std::wstring>& channelNames, bool logUnknown = false);
 };

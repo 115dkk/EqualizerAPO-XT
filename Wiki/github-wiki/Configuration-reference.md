@@ -9,7 +9,7 @@ Command: Parameters
 
 Lines that do not name a supported command are inert text. That is how comments work — a line starting with `#` is simply not a recognised command — and unknown command names are ignored too. Command names are case-sensitive: `Preamp` is active, while `preamp` is not. Every filtering command — `Preamp`, `Filter`, `IIR`, `Delay`, `Copy`, `GraphicEQ`, both convolution commands, `VSTPlugin`, `Hilbert`, `Velvet`, `SubwooferRouting` and `LoudnessCorrection` — reports the file, line and reason for malformed input in `EqualizerAPO.log` and on the line itself in the Editor. Later lines still load. Only the control commands (`Include`, `Device`, `Stage`, `If`, `Eval`) report through their own messages.
 
-File paths in a configuration (`Include`, `Convolution`, `MultiConvolution`, `SubwooferRouting: Profile`, `VSTPlugin: Library`) may point anywhere on a local drive, absolute or relative to the file that names them. Network shares (`\\server\share\...`) and device paths (`\\.\...`, `\\?\...`) are not opened: the audio service runs as LOCAL SERVICE and would authenticate to whatever host a configuration line names, so such a line is reported as an error on that line and skipped while the rest of the file still loads. The one exception is a configuration that itself lives on a network share, which may reference files on that same share.
+File paths in a configuration (`Include`, `Convolution`, `MultiConvolution`, `SubwooferRouting: Profile`, `VSTPlugin: Library`) may point anywhere on a local drive, absolute or relative to the file that names them. Network shares (`\\server\share\...`, also when written `\\?\UNC\server\share\...`), network drives and device paths (`\\.\pipe\...`, `\\?\GLOBALROOT\...`) are not opened: the audio service runs as LOCAL SERVICE and would authenticate to whatever host a configuration line names, so such a line is reported as an error on that line and skipped while the rest of the file still loads. A path is judged by where it leads: a symbolic link or junction on the way that points at a share is refused like the share. A local path written in the verbatim form (`\\?\C:\...`) counts as local. The one exception is a configuration that itself lives on a network share, which may reference files on that same share.
 
 Example:
 
@@ -323,7 +323,7 @@ These do not change the audio directly; they control which commands run and how 
 ### Include
 **Syntax:** `Include: <File name>`
 
-Loads the named file as a configuration file. Splitting the actual filter definitions into a separate file (rather than editing `config.txt` directly) lets you, for example, set a preamp before pulling them in. A relative path is resolved against the including file and is no longer cut at 260 characters.
+Loads the named file as a configuration file. Splitting the actual filter definitions into a separate file (rather than editing `config.txt` directly) lets you, for example, set a preamp before pulling them in. A relative path is resolved against the including file and is no longer cut at 260 characters. As with `Convolution`, the file name may be quoted and may contain environment variables such as `%USERPROFILE%`.
 
 ```
 Include: example.txt
