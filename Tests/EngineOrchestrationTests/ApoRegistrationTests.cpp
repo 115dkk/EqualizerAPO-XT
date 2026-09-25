@@ -180,6 +180,12 @@ void testClsidTreeFailuresReachTheCallerForRollback(test::Harness& harness)
 
 void runApoRegistrationTests(test::Harness& harness)
 {
+	harness.expect(ApoRegistration::shouldGrantInstallAccess(),
+		"already-elevated install with no hand-off keeps both legacy grants");
+	harness.expect(ApoRegistration::shouldGrantInstallAccess(false),
+		"failed or absent preparation keeps both legacy grants");
+	harness.expectFalse(ApoRegistration::shouldGrantInstallAccess(true),
+		"prepared install skips both elevated recursive grants");
 	testInstallRegistryWritesTheAppVocabulary(harness);
 	testInstallRegistryNeverOverwritesUserValues(harness);
 	testCleanupRemovesTheFlagButOnlyEmptyKeys(harness);
