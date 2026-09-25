@@ -16,7 +16,7 @@ namespace eapo::asio
 		using eapo::ipc::RingState;
 		using eapo::ipc::RingWait;
 
-		void copyMessage(char (&destination)[124], const std::string& source) noexcept
+		void copyMessage(char (&destination)[errorMessageBytes], const std::string& source) noexcept
 		{
 			size_t i = 0;
 			for (; i + 1 < sizeof(destination) && i < source.size(); i++)

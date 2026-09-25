@@ -47,9 +47,9 @@ namespace eapo::asio
 
 	private:
 		void* region_ = nullptr;
-		HANDLE events_[RingEvents::count] = {};
-		HANDLE hostGone_ = nullptr;        // producer's peer: set when the thread leaves
-		HANDLE producerGone_ = nullptr;    // consumer's peer: set by close()
+		winutil::UniqueHandle events_[RingEvents::count];
+		winutil::UniqueHandle hostGone_;        // producer's peer: set when the thread leaves
+		winutil::UniqueHandle producerGone_;    // consumer's peer: set by close()
 		std::thread thread_;
 		std::atomic<bool> kill_{false};
 		std::atomic<bool> hold_{false};

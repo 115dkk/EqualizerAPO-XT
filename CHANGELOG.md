@@ -14,6 +14,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The ASIO host no longer frees a pipe wait the system is still using.**
+  When EqualizerAPOHost stopped waiting for its client to connect, it
+  cancelled the wait and released the event and buffer at once, although
+  Windows completes a cancelled wait later. It now waits for the
+  cancellation to finish, and a failed wait or a failure to create one of
+  its events is logged and ends the host cleanly instead of being ignored
+  ([#400](https://github.com/115dkk/EqualizerAPO-XT/pull/400)).
+
 ## v2.54.26 — 2026-09-25
 
 - **Virtual channels are the channels your device does not have.** The

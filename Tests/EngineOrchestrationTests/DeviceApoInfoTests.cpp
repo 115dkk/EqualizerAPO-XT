@@ -432,6 +432,12 @@ DeviceAPOInfo::InstallState installOnBareDevice(test::Harness& harness, FakeRegi
 	const DeviceAPOInfo::InstallState requested = selected;
 
 	info.install();
+	const DeviceInstallReport& report = info.getLastOperationReport();
+	harness.expectFalse(report.fxPropertiesExisted,
+		"the install report retains the absent driver chain even after creating FxProperties");
+	const std::vector<std::wstring> lines = report.toLines();
+	harness.expect(std::find(lines.begin(), lines.end(), L"  driver published FxProperties: no (Equalizer APO creates the effect chain)") != lines.end(),
+		"the report tells the reader that this install created the effect chain");
 	return requested;
 }
 
@@ -935,6 +941,9 @@ void testInstallLeavesTheEndpointAloneWhenAMidwaySlotWriteFails(test::Harness& h
 		"the rollback finished, so this device is not in the one state that needs a reboot to leave");
 	harness.expect(report.fxPropertiesExisted,
 		"the report says the driver had published its own FxProperties key, which is what makes the vendor-APO branch the one that ran");
+	const std::vector<std::wstring> lines = report.toLines();
+	harness.expect(std::find(lines.begin(), lines.end(), L"  driver published FxProperties: yes") != lines.end(),
+		"the report names the driver's existing effect chain after a failed install too");
 	harness.expectEqual(report.driverSlots.size(), size_t(2),
 		"and which slots the driver had filled, taken from what load() found rather than from the state after the failure");
 	harness.expect(!report.backupPath.empty(),

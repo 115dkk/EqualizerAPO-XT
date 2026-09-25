@@ -45,10 +45,11 @@ namespace eapo::asio
 
 	AsioWrapper::AsioWrapper(IASIO* target, const GUID& wrapperClsid, const std::wstring& targetClsid,
 		StreamOptions options, std::unique_ptr<IStreamProcessor> processor)
-		: target_(target), wrapperClsid_(wrapperClsid), targetClsid_(targetClsid),
+		: wrapperClsid_(wrapperClsid), targetClsid_(targetClsid),
 		options_(std::move(options)), processor_(std::move(processor))
 	{
-		target_->AddRef();
+		target->AddRef();
+		*target_.put() = target;
 		LARGE_INTEGER frequency;
 		QueryPerformanceFrequency(&frequency);
 		tickToMicros_ = frequency.QuadPart > 0 ? 1000000.0 / static_cast<double>(frequency.QuadPart) : 0.0;
@@ -63,7 +64,7 @@ namespace eapo::asio
 			stop();
 		if (state() == State::Prepared)
 			disposeBuffers();
-		target_->Release();
+		target_.reset();
 		instances.fetch_sub(1, std::memory_order_acq_rel);
 	}
 
@@ -124,7 +125,7 @@ namespace eapo::asio
 			return ASIOTrue;
 		if (target_->init(sysHandle) == ASIOFalse)
 		{
-			char message[124] = {};
+			char message[errorMessageBytes] = {};
 			target_->getErrorMessage(message);
 			setError(message);
 			return ASIOFalse;
