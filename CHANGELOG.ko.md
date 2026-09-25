@@ -14,6 +14,14 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   `MultiConvolution`은 `inf`, `nan`, 16진수 글자를 배율로 받지 않고 `Copy`는
   16진수 글자를 받지 않습니다([#364](https://github.com/115dkk/EqualizerAPO-XT/pull/364)).
 
+## v2.54.3 — 2026-09-25
+
+- **ARM64용 Benchmark.exe가 설정의 모든 필터를 적용합니다.** ARM64 빌드는 모든
+  필터를 프로그램에 남기는 링크 옵션 없이 만들어져, 프로그램 안에서 따로
+  참조하지 않는 필터가 빠졌고 그 설정 줄은 모르는 명령으로 건너뛰었습니다. 이제
+  오디오 엔진을 담는 프로그램은 모든 빌드가 링크 설정을 한 파일에서
+  가져옵니다([#360](https://github.com/115dkk/EqualizerAPO-XT/pull/360)).
+
 ## v2.54.2 — 2026-09-24
 
 - **ASIO 항목 변경이 실패하면 원래대로 되돌리고 알립니다.** ASIO 드라이버

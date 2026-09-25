@@ -1,40 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Shared scaffolding for the four engine test suites - EditorLogicTests,
-  HybridConvTests, EngineOrchestrationTests, AudioRegressionTests (audit
-  #250 F057). The library-path defaults and the whole-archive rule used to
-  be hand-copied per project and per configuration, which is exactly how a
-  /WHOLEARCHIVE omission shipped once: the flag existed in some Debug
-  configurations and not others, and nothing could tell.
+  Shared scaffolding for the engine test suites (audit #250 F057, audit #275
+  D1/TD-20): the compile and link settings every suite wants, written once so
+  the per-configuration copies cannot drift apart again.
 
-  Audit #275 D1/TD-20 hoisted the rest of the copy-paste here: the common
-  compile settings, the shared engine link inputs, and the muparserx
-  Debug/Release spelling. The suites used to repeat these per configuration
-  (six times per project), and the copies had already diverged - one suite's
-  Debug linked muparserx.lib while the other three linked muparserxd.lib.
-  The Debug spelling follows the muparserx convention (trailing 'd'); note
-  the deps/ layout ships Release libraries only, so a Debug link needs a
-  locally built Debug muparserx either way.
+  The engine link contract itself - library-path defaults, Common.lib and its
+  companions, /WHOLEARCHIVE, muparserx's Debug/Release spelling and
+  MUP_USE_WIDE_STRING - is in the repo root's EngineConsumer.props, which the
+  product executables import too (audit #348 D2). This file imports it and
+  adds what only a test console wants.
 
-  Import this AFTER $(VCTargetsPath)\Microsoft.Cpp.props: LibraryPath below
-  extends the toolset's value, which does not exist earlier.
+  Import this AFTER $(VCTargetsPath)\Microsoft.Cpp.props, for the same reason
+  EngineConsumer.props gives.
 
   The two test VST plugins (TestVst2Plugin, TestVst3Plugin) do NOT import
   this file: they link no Common.lib, so the whole-archive rule would break
   their links.
-
-  CI passes the *_LIB values as global properties; a local build falls back
-  to the deps/ layout. Only the library halves live here - the *_INCLUDE
-  halves are hoisted for the whole tree in the repo root's
-  Directory.Build.props.
 -->
 <Project>
-  <PropertyGroup>
-    <FFTW_LIB Condition="'$(FFTW_LIB)'==''">$(MSBuildThisFileDirectory)..\deps\fftw\Release</FFTW_LIB>
-    <LIBSNDFILE_LIB Condition="'$(LIBSNDFILE_LIB)'==''">$(MSBuildThisFileDirectory)..\deps\libsndfile\build\Release</LIBSNDFILE_LIB>
-    <MUPARSERX_LIB Condition="'$(MUPARSERX_LIB)'==''">$(MSBuildThisFileDirectory)..\deps\muparserx\build\Release</MUPARSERX_LIB>
-    <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
-  </PropertyGroup>
+  <Import Project="$(MSBuildThisFileDirectory)..\EngineConsumer.props" />
   <ItemDefinitionGroup>
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -43,26 +27,12 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <!-- Whole-archive, in every configuration of every suite. The set of
-           recognized config commands is assembled by file-scope
-           self-registration in the filter factory TUs
-           (REGISTER_FILTER_FACTORY), and on-demand linking keeps only the
-           objects something else references, so without this the registry
-           comes up empty and canonicalCommand() answers "unknown" for every
-           key. Stated once here so no configuration can lose it again. -->
-      <AdditionalOptions>/WHOLEARCHIVE:Common.lib %(AdditionalOptions)</AdditionalOptions>
-      <!-- The engine link inputs every suite shares. muparserx is added per
-           configuration below because its Debug library carries a 'd'. -->
-      <AdditionalDependencies>$(MSBuildThisFileDirectory)..\$(Platform)\$(Configuration)\Common.lib;$(MSBuildThisFileDirectory)..\SubwooferRoutingCore\$(Platform)\$(Configuration)\SubwooferRoutingCore.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
     </ClCompile>
-    <Link>
-      <AdditionalDependencies>muparserxd.lib;%(AdditionalDependencies)</AdditionalDependencies>
-    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
@@ -74,7 +44,6 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
 </Project>

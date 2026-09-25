@@ -21,6 +21,15 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   `nan` or hexadecimal text as a factor, and `Copy` no longer takes
   hexadecimal text ([#364](https://github.com/115dkk/EqualizerAPO-XT/pull/364)).
 
+## v2.54.3 — 2026-09-25
+
+- **Benchmark.exe on ARM64 applies every filter in the configuration.** The
+  ARM64 build was linked without the option that keeps every filter in the
+  program, so filters nothing else in it referred to were left out and their
+  configuration lines were skipped as unknown commands. Every build of the
+  programs that contain the audio engine now takes its link settings from one
+  shared file ([#360](https://github.com/115dkk/EqualizerAPO-XT/pull/360)).
+
 ## v2.54.2 — 2026-09-24
 
 - **A failed ASIO entry change is put back and reported.** Turning an ASIO
