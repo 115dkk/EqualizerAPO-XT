@@ -12,14 +12,18 @@
 	when the real host executable is missing.
 */
 
+#include <atomic>
+#include <chrono>
 #include <cmath>
 #include <fstream>
 #include <memory>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "asio/AsioWrapper.h"
 #include "asio/DaemonProcessor.h"
+#include "asio/HostProtocol.h"
 #include "asio/InProcProcessor.h"
 #include "asio/SampleCodec.h"
 #include "asio/ThreadHostLink.h"
@@ -244,6 +248,150 @@ namespace
 		harness.expect(wrapper->state() == AsioWrapper::State::Initialized, "the wrapper stays Initialized");
 		wrapper->Release();
 	}
+
+	// Audit #348 TD-46: the 32-bit wrapper ships alone in the x86 folder and
+	// looked for the host beside itself, so it could not start one.
+	void testHostExecutableFallsBackToTheParentFolder()
+	{
+		test::TestDirectory directory(L"DaemonTests-host");
+		const std::wstring x86 = directory.path() + L"\\x86";
+		CreateDirectoryW(x86.c_str(), nullptr);
+		const std::wstring parentHost = directory.path() + L"\\EqualizerAPOHost.exe";
+		const std::wstring besideHost = x86 + L"\\EqualizerAPOHost.exe";
+		HANDLE file = CreateFileW(parentHost.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, 0, nullptr);
+		CloseHandle(file);
+
+		StreamOptions options;
+		harness.expect(eapo::asio::Win32HostLink::hostExecutable(options, x86) == parentHost,
+			"with no host beside the module, the parent folder's host is the one to start");
+		file = CreateFileW(besideHost.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, 0, nullptr);
+		CloseHandle(file);
+		harness.expect(eapo::asio::Win32HostLink::hostExecutable(options, x86) == besideHost,
+			"a host beside the module comes first");
+		options.daemonExePath = L"C:\\elsewhere\\EqualizerAPOHost.exe";
+		harness.expect(eapo::asio::Win32HostLink::hostExecutable(options, x86) == options.daemonExePath,
+			"and a path in the options comes before both");
+
+		DeleteFileW(besideHost.c_str());
+		DeleteFileW(parentHost.c_str());
+		RemoveDirectoryW(x86.c_str());
+		directory.removeAll();
+	}
+
+	// A test-owned server stands in for another program on the control pipe.
+	// replyNever makes it read the request and then say nothing.
+	class PipeSquatter
+	{
+	public:
+		explicit PipeSquatter(const std::wstring& endpoint)
+			: pipe_(CreateNamedPipeW(eapo::asio::HostNames::pipe(endpoint).c_str(), PIPE_ACCESS_DUPLEX,
+				PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, PIPE_UNLIMITED_INSTANCES,
+				sizeof(eapo::asio::HostOpenReply), sizeof(eapo::asio::HostOpenRequest), 0, nullptr)),
+			release_(CreateEventW(nullptr, TRUE, FALSE, nullptr))
+		{
+			thread_ = std::thread([this] {
+				const bool connected = ConnectNamedPipe(pipe_, nullptr) || GetLastError() == ERROR_PIPE_CONNECTED;
+				if (connected)
+				{
+					eapo::asio::HostOpenRequest request;
+					DWORD read = 0;
+					requestRead_ = ReadFile(pipe_, &request, sizeof(request), &read, nullptr) && read == sizeof(request);
+					WaitForSingleObject(release_, 30000);
+				}
+				done_ = true;
+			});
+		}
+
+		~PipeSquatter()
+		{
+			SetEvent(release_);
+			while (!done_)
+			{
+				CancelSynchronousIo(thread_.native_handle());
+				Sleep(10);
+			}
+			thread_.join();
+			CloseHandle(pipe_);
+			CloseHandle(release_);
+		}
+
+		PipeSquatter(const PipeSquatter&) = delete;
+		PipeSquatter& operator=(const PipeSquatter&) = delete;
+
+		bool created() const
+		{
+			return pipe_ != INVALID_HANDLE_VALUE;
+		}
+
+		bool requestRead() const
+		{
+			return requestRead_;
+		}
+
+	private:
+		HANDLE pipe_;
+		HANDLE release_;
+		std::thread thread_;
+		std::atomic<bool> done_ = false;
+		std::atomic<bool> requestRead_ = false;
+	};
+
+	eapo::asio::StreamFormat smallFormat()
+	{
+		eapo::asio::StreamFormat format;
+		format.sampleRate = 48000.0;
+		format.frames = 64;
+		format.channels[0] = 2;
+		format.channels[1] = 2;
+		return format;
+	}
+
+	void testAnotherProgramOnTheControlPipeIsRefused()
+	{
+		const std::wstring endpoint = L"EAPO.ASIO.test.squat." + std::to_wstring(GetCurrentProcessId());
+		PipeSquatter squatter(endpoint);
+		harness.require(squatter.created(), "the stand-in server holds the control pipe");
+
+		StreamOptions options;
+		options.daemonEndpoint = endpoint;
+		options.daemonExePath = L"C:\\definitely\\not\\here\\EqualizerAPOHost.exe";
+		options.readyTimeoutMs = 3000;
+		eapo::asio::Win32HostLink link;
+		eapo::asio::HostSession session;
+		std::string error;
+		const bool opened = link.open(smallFormat(), options, session, error);
+		harness.expectFalse(opened, "the link does not use a pipe served by a program other than the host");
+		harness.expect(error.find("held by another program") != std::string::npos, "and says so: " + error);
+		harness.expectFalse(squatter.requestRead(), "the stand-in never receives the stream request");
+		link.close(session);
+	}
+
+	void testASilentServerTimesOut()
+	{
+		const std::wstring endpoint = L"EAPO.ASIO.test.silent." + std::to_wstring(GetCurrentProcessId());
+		PipeSquatter squatter(endpoint);
+		harness.require(squatter.created(), "the silent server holds the control pipe");
+
+		wchar_t self[MAX_PATH] = {};
+		GetModuleFileNameW(nullptr, self, MAX_PATH);
+		StreamOptions options;
+		options.daemonEndpoint = endpoint;
+		// The test process is the server here, so it passes the identity check
+		// and only the missing reply is under test.
+		options.daemonExePath = self;
+		options.readyTimeoutMs = 200;
+		eapo::asio::Win32HostLink link;
+		eapo::asio::HostSession session;
+		std::string error;
+		const auto started = std::chrono::steady_clock::now();
+		const bool opened = link.open(smallFormat(), options, session, error);
+		const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - started).count();
+		harness.expectFalse(opened, "a server that never replies does not hang the open call");
+		harness.expect(error.find("in time") != std::string::npos, "the error says the host did not answer in time: " + error);
+		harness.expect(elapsed < 10000, "and the call gives up within seconds (" + std::to_string(elapsed) + " ms)");
+		harness.expect(squatter.requestRead(), "the request itself was delivered");
+		link.close(session);
+	}
 }
 
 int runDaemonTests()
@@ -252,6 +400,9 @@ int runDaemonTests()
 	testPipelinedShape();
 	testHostDeathIsGoneThenReopens();
 	testMissingHostExecutableFailsLoudly();
+	testHostExecutableFallsBackToTheParentFolder();
+	testAnotherProgramOnTheControlPipeIsRefused();
+	testASilentServerTimesOut();
 	harness.report();
 	return 0;
 }

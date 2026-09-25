@@ -23,7 +23,7 @@
 #include <memory>
 
 #include "engine/IFilter.h"
-#include "ConvolverMuteDiagnostics.h"
+#include "ConvolverBank.h"
 #include "IrCache.h"
 
 #pragma AVRT_VTABLES_BEGIN
@@ -42,10 +42,16 @@ public:
 	void process(double** output, double** input, unsigned frameCount) override;
 
 protected:
+	// For subclasses that count and report their mutes under their own name
+	// (GraphicEQFilter, audit #348 F3). Stored rather than virtual: the report
+	// runs from ~ConvolutionFilter(), when a subclass override is gone.
+	ConvolutionFilter(const std::wstring& filename, ConvolverMuteDiagnostics& muteDiagnostics,
+		const wchar_t* muteLogPrefix);
+	// Builds the units and hands them to bank.install() with frameCount.
 	virtual void initializeFilters(unsigned frameCount);
 	float sampleRate = 0.0f;
 	unsigned channelCount = 0;
-	HConvSingleArray filters;
+	ConvolverBank bank;
 	// Keeps the cached impulse response alive for this filter's lifetime. The
 	// process-wide cache only holds weak references, so this is what pins the IR
 	// in memory while the filter exists. GraphicEQFilter synthesizes its own IR
@@ -56,6 +62,7 @@ private:
 	void cleanup();
 
 	std::wstring filename;
-	ConvolverMuteState muteState;
+	ConvolverMuteDiagnostics* muteDiagnostics;
+	const wchar_t* muteLogPrefix;
 };
 #pragma AVRT_VTABLES_END

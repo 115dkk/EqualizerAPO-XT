@@ -44,6 +44,11 @@ using std::pow;
 
 namespace
 {
+	// GraphicEQ's own mute bookkeeping (audit #348 F3). It used to share
+	// ConvolutionFilter's instance, so its mutes were counted and reported as
+	// Convolution's; see ConvolverMuteDiagnostics.h.
+	ConvolverMuteDiagnostics graphicEqMuteDiagnostics;
+
 	// Cache for the impulse response GraphicEQFilter::initializeFilters synthesizes
 	// from the node list. The IR depends only on (nodes, sampleRate, filterLength)
 	// and is reused across channels and across config reloads that re-create the
@@ -81,7 +86,7 @@ namespace
 }
 
 GraphicEQFilter::GraphicEQFilter(const std::vector<FilterNode>& nodes, unsigned filterLength)
-	: ConvolutionFilter(L""), nodes(nodes), filterLength(filterLength)
+	: ConvolutionFilter(L"", graphicEqMuteDiagnostics, kGraphicEQFrameCountMismatchLogPrefix), nodes(nodes), filterLength(filterLength)
 {
 }
 
@@ -155,7 +160,7 @@ void GraphicEQFilter::initializeFilters(unsigned frameCount)
 	std::vector<ConvolverUnitSource> sources(channelCount);
 	for (unsigned i = 0; i < channelCount; ++i)
 		sources[i] = { cached->data(), filterLength, 0 };
-	filters = buildConvolverArray(sources, frameCount);
+	bank.install(buildConvolverArray(sources, frameCount), frameCount);
 }
 
 // Minimum phase spectrum from coefficients

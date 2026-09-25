@@ -43,14 +43,12 @@
 #include "filters/FilterFactoryRegistry.h"
 
 using std::exception;
-using std::find;
 using std::lock_guard;
 using std::make_unique;
 using std::max;
 using std::move;
 using std::mutex;
 using std::stringstream;
-using std::swap;
 using std::thread;
 using std::vector;
 using std::wstring;
@@ -70,11 +68,6 @@ bool FilterEngine::loadConfig(const wstring& customPath)
 	// block, a rollback lambda and the member list in step by hand.
 	LoadSession saved = move(load);
 	load = LoadSession{};
-	// The in-place-ness of the previous load's last filter deliberately
-	// carries across loads: the first filter's output-inheritance test in
-	// addFilters reads it (see the channel-inheritance contract in
-	// FilterConfiguration.h).
-	load.lastInPlace = saved.lastInPlace;
 
 	auto rollback = [&]() noexcept {
 		load = move(saved);
@@ -82,9 +75,12 @@ bool FilterEngine::loadConfig(const wstring& customPath)
 
 	try
 	{
-		load.allChannelNames = ChannelLayout::getChannelNames(max(realChannelCount, outputChannelCount), channelMask);
-
-		load.currentChannelNames = load.allChannelNames;
+		// The in-place-ness of the previous load's last filter deliberately
+		// carries across loads: the first filter's output-inheritance test in
+		// addFilters reads it (see the channel-inheritance contract in
+		// FilterConfiguration.h).
+		load.routing.begin(ChannelLayout::getChannelNames(max(realChannelCount, outputChannelCount), channelMask),
+			saved.routing.lastInPlace());
 		parser.beginLoad();
 
 		for (auto it = factories.cbegin(); it != factories.cend(); it++)
@@ -108,7 +104,7 @@ bool FilterEngine::loadConfig(const wstring& customPath)
 				addFilters(move(newFilters));
 		}
 
-		FilterConfigurationPtr config(AlignedMemory::construct<FilterConfiguration>(streamFormat(), move(load.filterInfos), (unsigned)load.allChannelNames.size()));
+		FilterConfigurationPtr config(AlignedMemory::construct<FilterConfiguration>(streamFormat(), move(load.filterInfos), (unsigned)load.routing.allChannelNames().size()));
 
 		load.filterInfos.clear();
 
@@ -147,7 +143,7 @@ void FilterEngine::loadConfigFile(const wstring& path)
 	if (!inputStream.good())
 		return;
 
-	vector<wstring> savedChannelNames = load.currentChannelNames;
+	vector<wstring> savedChannelNames = load.routing.currentChannelNames();
 	// Load-trace position: like the channel names, the position is saved and
 	// restored across the Include recursion so entries reported after a nested
 	// file returns are stamped with the outer file again.
@@ -220,7 +216,7 @@ void FilterEngine::loadConfigFile(const wstring& path)
 	}
 
 	// restore channels selected in outer configuration file
-	load.currentChannelNames = savedChannelNames;
+	load.routing.setCurrentChannelNames(move(savedChannelNames));
 	load.traceFile = move(savedTraceFile);
 	load.traceLine = savedTraceLine;
 }
@@ -236,97 +232,31 @@ void FilterEngine::addFilters(FilterVector filters)
 		filterInfo->filter = move(ownedFilter);
 		IFilter* filter = filterInfo->filter.get();
 		filterInfo->inPlace = filter->getInPlace();
-		vector<wstring> savedChannelNames = load.currentChannelNames;
-		bool allChannels = filter->getAllChannels();
-		if (allChannels)
-			load.currentChannelNames = load.allChannelNames;
-
-		if (load.lastChannelNames == load.currentChannelNames)
-		{
-			filterInfo->inChannels.clear();
-		}
-		else
-		{
-			filterInfo->inChannels.resize(load.currentChannelNames.size());
-
-			size_t c = 0;
-			for (vector<wstring>::iterator it2 = load.currentChannelNames.begin(); it2 != load.currentChannelNames.end(); it2++)
-			{
-				vector<wstring>::iterator pos = find(load.allChannelNames.begin(), load.allChannelNames.end(), *it2);
-				if (pos == load.allChannelNames.end())
-				{
-					// Defensive: every load.currentChannelNames entry should already be in
-					// load.allChannelNames (seeded from it, or a filter's own subset). If that
-					// invariant is ever broken, append the name instead of storing a
-					// one-past-the-end index that process() would read out of bounds; the
-					// appended channel reads the zero-filled virtual range (silence).
-					// Mirrors the outChannels handling below.
-					filterInfo->inChannels[c++] = load.allChannelNames.size();
-					load.allChannelNames.push_back(*it2);
-				}
-				else
-				{
-					filterInfo->inChannels[c++] = pos - load.allChannelNames.begin();
-				}
-			}
-		}
-
-		load.lastChannelNames = load.currentChannelNames;
+		ChannelRoutingPlan::Entry entry = load.routing.enter(filter->getAllChannels());
+		filterInfo->inChannels = move(entry.inChannels);
 
 		vector<wstring> newChannelNames;
 		try
 		{
-			newChannelNames = filter->initialize(sampleRate, maxFrameCount, load.currentChannelNames);
+			newChannelNames = filter->initialize(sampleRate, maxFrameCount, move(entry.initializeWith));
 		}
 		catch (const exception& e)
 		{
 			// The load still rolls back as a whole (audit #348 TD-18), but the
 			// line whose filter failed goes on the load trace first, so the
 			// Editor can point at it; loadConfig's log line names it too.
-			ConfigLoadTraceEntry entry;
-			entry.kind = ConfigLoadTraceEntry::Kind::SetupError;
-			entry.error = true;
-			entry.text = L"could not be set up (" + wintext::toWideString(e.what(), CP_UTF8)
+			ConfigLoadTraceEntry traceEntry;
+			traceEntry.kind = ConfigLoadTraceEntry::Kind::SetupError;
+			traceEntry.error = true;
+			traceEntry.text = L"could not be set up (" + wintext::toWideString(e.what(), CP_UTF8)
 				+ L"), so the configuration was not applied";
-			traceLoadEvent(std::move(entry));
+			traceLoadEvent(std::move(traceEntry));
 			throw;
 		}
 
-		if (filterInfo->inPlace && load.lastInPlace && load.lastNewChannelNames == newChannelNames)
-		{
-			filterInfo->outChannels.clear();
-		}
-		else
-		{
-			filterInfo->outChannels.resize(newChannelNames.size());
-
-			size_t c = 0;
-			for (vector<wstring>::iterator it2 = newChannelNames.begin(); it2 != newChannelNames.end(); it2++)
-			{
-				vector<wstring>::iterator pos = find(load.allChannelNames.begin(), load.allChannelNames.end(), *it2);
-				if (pos == load.allChannelNames.end())
-				{
-					filterInfo->outChannels[c++] = load.allChannelNames.size();
-					load.allChannelNames.push_back(*it2);
-				}
-				else
-				{
-					filterInfo->outChannels[c++] = pos - load.allChannelNames.begin();
-				}
-			}
-		}
-
-		load.lastNewChannelNames = newChannelNames;
-		load.lastInPlace = filterInfo->inPlace;
-		if (!load.lastInPlace)
-			swap(load.lastChannelNames, load.lastNewChannelNames);
+		filterInfo->outChannels = load.routing.leave(newChannelNames, filterInfo->inPlace, filter->getSelectChannels());
 
 		load.filterInfos.push_back(move(filterInfo));
-
-		if (filter->getSelectChannels())
-			load.currentChannelNames = newChannelNames;
-		else
-			load.currentChannelNames = savedChannelNames;
 	}
 }
 
