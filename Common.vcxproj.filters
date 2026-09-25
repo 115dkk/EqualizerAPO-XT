@@ -441,9 +441,6 @@
     <ClCompile Include="services\registry\ClsidRegistration.cpp">
       <Filter>services</Filter>
     </ClCompile>
-    <ClCompile Include="services\registry\IRegistry.cpp">
-      <Filter>services</Filter>
-    </ClCompile>
     <ClCompile Include="services\registry\RegistryTransaction.cpp">
       <Filter>services</Filter>
     </ClCompile>
