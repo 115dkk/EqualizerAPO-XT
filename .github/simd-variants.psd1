@@ -29,9 +29,10 @@
 #   - .github/scripts/New-VelopackRelease.ps1 (packs each channel under its
 #                                            Channel/Title identity)
 #
-#   NOT yet consumed: the .vcxproj files. Those keep their inline AVX2 default for
-#   local builds (CI always overrides per variant) and report the chosen value at
-#   build time.
+#   NOT consumed: the .vcxproj files. A project that follows the variant opts in
+#   with <EapoVariantArch>true</EapoVariantArch>; the local AVX2 default for those
+#   lives once in Directory.Build.props, and CI overrides it per variant with
+#   /p:EnableEnhancedInstructionSet.
 #
 # SCHEMA
 #   Variants = ordered list of every variant CI builds. Each entry has:
@@ -65,8 +66,10 @@
 #                 Tests/AudioRegressionTests/scripts/cross_variant_compare.py via
 #                 the RUNNER_EXECUTABLE_VARIANTS env var in build.yml.
 #     Primary     $true on exactly one variant. The primary variant is the only one
-#                 pull requests build, and it seeds the audio regression reference
-#                 set when Tests/AudioRegressionTests/references is empty.
+#                 pull requests build, and the one that re-records the audio
+#                 regression references when build.yml is dispatched with
+#                 regenerate_references=true. A missing reference set fails the
+#                 run instead of seeding a new one (audit #275 TD-08).
 #
 #   Shared = pinned tags/versions that are NOT per-variant:
 #     VelopackLibcVersion  velopack/velopack release tag for velopack_libc_<v>.zip.

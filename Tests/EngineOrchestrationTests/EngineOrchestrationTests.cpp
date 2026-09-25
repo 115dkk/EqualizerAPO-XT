@@ -23,6 +23,7 @@
 #include <memory>
 #include <new>
 #include <string>
+#include <optional>
 #include <stdexcept>
 #include <thread>
 #include <vector>
@@ -36,8 +37,11 @@
 #include "devices/DeviceAPOInfo.h"
 #include "devices/VoicemeeterAPOInfo.h"
 #include "devices/VoicemeeterDetection.h"
+#include "platform/windows/ProcessCommandLine.h"
 #include "devices/DeviceAPOInfoKeys.h"
 #include "engine/ConfigLoadTrace.h"
+#include "engine/IFilterFactory.h"
+#include "filters/FilterFactoryRegistry.h"
 #include "runtime/WeakValueCache.h"
 #include "engine/FilterEngine.h"
 #include "engine/ConfigSwapChannel.h"
@@ -1093,6 +1097,64 @@ void testVoicemeeterPrependInfosMapsEditionToOutputCount(test::Harness& harness)
 		"the Wow6432Node uninstall key detects the edition too");
 }
 
+// Audit #348 E5: the vocabulary the install side and the client now share.
+void testVoicemeeterStripVocabulary(test::Harness& harness)
+{
+	harness.expectEqual(voicemeeterOutputCount(1), 1u, "standard Voicemeeter has one strip");
+	harness.expectEqual(voicemeeterOutputCount(2), 3u, "Banana has three");
+	harness.expectEqual(voicemeeterOutputCount(3), 5u, "Potato has five");
+	harness.expectEqual(voicemeeterOutputCount(0), 1u, "an unknown type is treated as the standard edition");
+	harness.expect(voicemeeterOutputName(0) == L"Output A1", "strips are named from A1");
+	harness.expect(voicemeeterOutputName(4) == L"Output A5", "to A5 on Potato");
+}
+
+// Whether SeDebugPrivilege is on in this process's token; nullopt when the
+// token does not hold it at all.
+std::optional<bool> debugPrivilegeEnabled()
+{
+	winutil::UniqueHandle token;
+	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, token.put()))
+		return std::nullopt;
+	LUID luid;
+	if (!LookupPrivilegeValueW(nullptr, SE_DEBUG_NAME, &luid))
+		return std::nullopt;
+	DWORD size = 0;
+	GetTokenInformation(token.get(), TokenPrivileges, nullptr, 0, &size);
+	std::vector<unsigned char> buffer(size);
+	if (size == 0 || !GetTokenInformation(token.get(), TokenPrivileges, buffer.data(), size, &size))
+		return std::nullopt;
+	const TOKEN_PRIVILEGES* privileges = reinterpret_cast<const TOKEN_PRIVILEGES*>(buffer.data());
+	for (DWORD i = 0; i < privileges->PrivilegeCount; i++)
+	{
+		const LUID_AND_ATTRIBUTES& entry = privileges->Privileges[i];
+		if (entry.Luid.LowPart == luid.LowPart && entry.Luid.HighPart == luid.HighPart)
+			return (entry.Attributes & SE_PRIVILEGE_ENABLED) != 0;
+	}
+	return std::nullopt;
+}
+
+// Audit #348 TD-51: the Voicemeeter client check enabled SeDebugPrivilege on
+// every apply, with or without a client to look at, and never turned it off.
+void testProcessSearchLeavesTheTokenAsItWas(test::Harness& harness)
+{
+	const std::optional<bool> before = debugPrivilegeEnabled();
+
+	const std::vector<winutil::ProcessWithCommandLine> none =
+		winutil::findProcessesByExeName(L"EqualizerAPO-XT-no-such-process.exe");
+	harness.expect(none.empty(), "no process of an unknown name is found");
+	harness.expect(debugPrivilegeEnabled() == before, "and with nothing to inspect the token is not touched");
+
+	wchar_t self[MAX_PATH] = {};
+	GetModuleFileNameW(nullptr, self, MAX_PATH);
+	const wchar_t* selfName = wcsrchr(self, L'\\') != nullptr ? wcsrchr(self, L'\\') + 1 : self;
+	const std::vector<winutil::ProcessWithCommandLine> found = winutil::findProcessesByExeName(selfName);
+	bool foundSelf = false;
+	for (const winutil::ProcessWithCommandLine& process : found)
+		foundSelf = foundSelf || process.processId == GetCurrentProcessId();
+	harness.expect(foundSelf, "this test process is found by its own name, in any case");
+	harness.expect(debugPrivilegeEnabled() == before, "and after inspecting it the token is back as it was");
+}
+
 // The parse-error channel that replaced the engine's guess. What matters is the
 // pair of judgements: a factory's own broken line is reported, and a line no
 // factory claimed is not - because prose and notes are how 1.4.2 configurations
@@ -1152,6 +1214,123 @@ void testParseErrorsAreReportedPerLineAndProseIsNot(test::Harness& harness)
 	// answers false only when the whole load failed.
 	harness.expect(engine.loadConfig(configPath),
 		"a configuration with eight unusable lines still loads, because the working lines below them have to run");
+}
+
+// A filter whose setup throws, for the one test below. Registered like any
+// factory, so every engine in this process has it; no other config names it.
+class ThrowingSetupFilter : public IFilter
+{
+public:
+	std::vector<std::wstring> initialize(float, unsigned, std::vector<std::wstring>) override
+	{
+		throw std::runtime_error("the test filter refuses to set up");
+	}
+
+	void process(double**, double**, unsigned) override
+	{
+	}
+};
+
+class ThrowingSetupFactory : public IFilterFactory
+{
+public:
+	FilterVector createFilter(const std::wstring&, std::wstring& command, std::wstring&) override
+	{
+		if (command != L"EapoTestThrowOnSetup")
+			return {};
+		return singleFilter(makeFilter<ThrowingSetupFilter>());
+	}
+};
+
+REGISTER_FILTER_FACTORY(1000, ThrowingSetupFactory, L"EapoTestThrowOnSetup")
+
+struct TraceCollector : ConfigLoadTraceSink
+{
+	std::vector<ConfigLoadTraceEntry> entries;
+	void addEntry(const ConfigLoadTraceEntry& entry) override
+	{
+		entries.push_back(entry);
+	}
+};
+
+// Audit #348 TD-18: a filter that throws while being set up rolls the whole
+// load back, as before, and now names the line it came from.
+void testFilterSetupFailureNamesItsLine(test::Harness& harness)
+{
+	const std::wstring good = writeConfig(harness, L"setup-good.txt", "Preamp: -6.0206 dB\n");
+	const std::wstring bad = writeConfig(harness, L"setup-bad.txt",
+		"Preamp: -20 dB\n"               // line 1: fine
+		"EapoTestThrowOnSetup: now\n");  // line 2: its filter throws in initialize
+
+	FilterEngine engine;
+	initializeEngine(engine, 48000, 2, 480, good);
+	TraceCollector collector;
+	engine.setLoadTraceSink(&collector);
+
+	harness.expectFalse(engine.loadConfig(bad), "a load whose filter cannot be set up fails as a whole");
+	const ConfigLoadTraceEntry* setup = nullptr;
+	for (const ConfigLoadTraceEntry& entry : collector.entries)
+	{
+		if (entry.kind == ConfigLoadTraceEntry::Kind::SetupError)
+			setup = &entry;
+	}
+	harness.require(setup != nullptr, "the failure is on the load trace");
+	harness.expectEqual(setup->line, 2, "on the line whose filter threw");
+	harness.expect(setup->file == bad, "in the file it is in");
+	harness.expect(setup->error, "flagged as an error");
+	harness.expect(setup->text.find(L"the test filter refuses to set up") != std::wstring::npos,
+		"carrying the reason the filter gave");
+
+	const std::vector<float> after = processDcBlock(engine, 1.0f, 1.0f, 480);
+	harness.expect(std::fabs(after[0] - 0.5f) < 1e-3f, "and the previous configuration keeps running");
+}
+
+// Audit #348 TD-18: these reached only the log; now they are on the line.
+void testControlFlowAndStageMistakesAreReported(test::Harness& harness)
+{
+	const std::wstring configPath = writeConfig(harness, L"control-mistakes.txt",
+		"Stage: pre-mix premix\n"  // line 1: one unknown stage among known ones
+		"ElseIf: 1\n"              // line 2: no If before it
+		"Else:\n"                  // line 3: no If before it
+		"EndIf:\n"                 // line 4: no If before it
+		"If: 1\n"                  // line 5: never closed
+		"Preamp: -3 dB\n");        // line 6
+
+	FilterEngine engine;
+	TraceCollector collector;
+	engine.setLoadTraceSink(&collector);
+	initializeEngine(engine, 48000, 2, 480, configPath);
+
+	std::vector<int> lines;
+	for (const ConfigLoadTraceEntry& entry : collector.entries)
+	{
+		if (entry.kind == ConfigLoadTraceEntry::Kind::ParseError)
+			lines.push_back(entry.line);
+	}
+	harness.requireEqual(lines.size(), size_t(5), "an unknown stage, three strays and the unclosed If");
+	harness.expectEqual(lines[0], 1, "the unknown stage on its line");
+	harness.expectEqual(lines[1], 2, "the stray ElseIf on its line");
+	harness.expectEqual(lines[2], 3, "the stray Else on its line");
+	harness.expectEqual(lines[3], 4, "the stray EndIf on its line");
+	harness.expectEqual(lines[4], 5, "the unclosed If on its own line, where the Editor has a row for it");
+}
+
+void testIncludeRecursionLimitIsReported(test::Harness& harness)
+{
+	const std::wstring configPath = writeConfig(harness, L"self-include.txt", "Include: self-include.txt\n");
+
+	FilterEngine engine;
+	TraceCollector collector;
+	engine.setLoadTraceSink(&collector);
+	initializeEngine(engine, 48000, 2, 480, configPath);
+
+	size_t reports = 0;
+	for (const ConfigLoadTraceEntry& entry : collector.entries)
+	{
+		if (entry.kind == ConfigLoadTraceEntry::Kind::ParseError && entry.text.find(L"nested") != std::wstring::npos)
+			reports++;
+	}
+	harness.expectEqual(reports, size_t(1), "the include that hits the nesting limit is reported once");
 }
 
 void testConfigReferencedRemotePathsAreRefused(test::Harness& harness)
@@ -1348,7 +1527,12 @@ int runEngineOrchestrationTests()
 	testConfigLoadTrace(harness);
 	testWeakValueCacheKeepsEntriesExactlyAsLongAsSomeoneUsesThem(harness);
 	testVoicemeeterPrependInfosMapsEditionToOutputCount(harness);
+	testVoicemeeterStripVocabulary(harness);
+	testProcessSearchLeavesTheTokenAsItWas(harness);
 	testParseErrorsAreReportedPerLineAndProseIsNot(harness);
+	testFilterSetupFailureNamesItsLine(harness);
+	testControlFlowAndStageMistakesAreReported(harness);
+	testIncludeRecursionLimitIsReported(harness);
 	testConfigReferencedRemotePathsAreRefused(harness);
 	testConfigRegistryReadsGoThroughThePort(harness);
 	testAnalysisFreezesDynamicVelvetAndLabelsTheSnapshot(harness);

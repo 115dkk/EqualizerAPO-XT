@@ -178,6 +178,7 @@ SOURCES += main.cpp\
 	../engine/ConfigWatcher.cpp \
 	../filters/FilterFactoryRegistry.cpp \
 	../engine/FilterConfiguration.cpp \
+	../engine/ChannelRoutingPlan.cpp \
 	../filters/ChannelCommand.cpp \
 	../filters/ChannelFilterFactory.cpp \
 	../filters/ExpressionCommand.cpp \
@@ -487,6 +488,7 @@ HEADERS  += \
 	../engine/FilterEngine.h \
 	../engine/ConfigWatcher.h \
 	../engine/FilterConfiguration.h \
+	../engine/ChannelRoutingPlan.h \
 	../filters/ChannelFilterFactory.h \
 	../filters/ExpressionCommand.h \
 	../filters/ExpressionFilterFactory.h \
@@ -506,6 +508,7 @@ HEADERS  += \
 	../filters/ConvolutionCommand.h \
 	../filters/ConvolutionFilter.h \
 	../filters/IrCache.h \
+	../filters/ConvolverBank.h \
 	../filters/subwooferRouting/SubwooferRoutingCommand.h \
 	../filters/subwooferRouting/SubwooferRoutingFilter.h \
 	../filters/subwooferRouting/SubwooferRoutingFilterFactory.h \

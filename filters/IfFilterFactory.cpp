@@ -35,6 +35,7 @@ using namespace mup;
 
 void IfFilterFactory::initialize(FilterEngine* engine)
 {
+	ParseReportingFactory::initialize(engine);
 	parser = engine->getParser();
 	this->engine = engine;
 }
@@ -45,6 +46,9 @@ FilterVector IfFilterFactory::startOfConfiguration()
 	falseCount = 0;
 	while (!trueCountStack.empty())
 		trueCountStack.pop();
+	openIfLines.clear();
+	while (!openIfLinesStack.empty())
+		openIfLinesStack.pop();
 
 	return {};
 }
@@ -53,6 +57,8 @@ FilterVector IfFilterFactory::startOfFile(const std::wstring& configPath)
 {
 	trueCountStack.push(trueCount);
 	trueCount = 0;
+	openIfLinesStack.push(std::move(openIfLines));
+	openIfLines.clear();
 	executeElse = false;
 	if (falseCount != 0)
 	{
@@ -85,6 +91,7 @@ FilterVector IfFilterFactory::createFilter(const wstring& configPath, wstring& c
 
 	if (isIfFamily && cmd.kind == IfCommand::Kind::If)
 	{
+		openIfLines.push_back(engine->loadTraceLine());
 		if (falseCount == 0)
 		{
 			try
@@ -126,7 +133,7 @@ FilterVector IfFilterFactory::createFilter(const wstring& configPath, wstring& c
 		{
 			if (trueCount == 0)
 			{
-				LogF(L"ElseIf without If!");
+				reportParseError(command, L"ElseIf without an If before it");
 				traceBranch(ConfigLoadTraceEntry::Kind::Condition, ConfigLoadTraceEntry::Result::NotEvaluated, false);
 			}
 			else
@@ -177,7 +184,7 @@ FilterVector IfFilterFactory::createFilter(const wstring& configPath, wstring& c
 		{
 			if (trueCount == 0)
 			{
-				LogF(L"Else without If!");
+				reportParseError(command, L"Else without an If before it");
 				traceBranch(ConfigLoadTraceEntry::Kind::ElseBranch, ConfigLoadTraceEntry::Result::NotEvaluated, false);
 			}
 			else
@@ -204,13 +211,21 @@ FilterVector IfFilterFactory::createFilter(const wstring& configPath, wstring& c
 		if (falseCount == 0)
 		{
 			if (trueCount == 0)
-				LogF(L"EndIf without If!");
+			{
+				reportParseError(command, L"EndIf without an If before it");
+			}
 			else
+			{
 				trueCount--;
+				if (!openIfLines.empty())
+					openIfLines.pop_back();
+			}
 		}
 		else
 		{
 			falseCount--;
+			if (!openIfLines.empty())
+				openIfLines.pop_back();
 		}
 
 		if (falseCount == 0)
@@ -235,11 +250,14 @@ FilterVector IfFilterFactory::endOfFile(const std::wstring& configPath)
 {
 	if (trueCount != 0 || falseCount != 0)
 	{
-		LogF(L"If was not closed by EndIf!");
+		for (int line : openIfLines)
+			reportParseError(L"If", L"this If has no EndIf before the end of its file", line);
 		falseCount = 0;
 	}
 	trueCount = trueCountStack.top();
 	trueCountStack.pop();
+	openIfLines = std::move(openIfLinesStack.top());
+	openIfLinesStack.pop();
 
 	return {};
 }

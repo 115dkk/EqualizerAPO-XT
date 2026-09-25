@@ -273,6 +273,24 @@ Describe "Test-SourceSync.ps1" {
         $result.Output | Should -Match "list only their projects' entries"
     }
 
+    It "requires every EAPO_ variable the code reads to be in the environment variable list" {
+        $root = New-FixtureRepo -CommonSources @('FilterEngine.cpp') -EditorSources @('../FilterEngine.cpp')
+        New-Item -ItemType Directory -Path (Join-Path $root 'docs') -Force | Out-Null
+        [System.IO.File]::WriteAllText((Join-Path $root 'docs' 'EnvironmentVariables.md'), "- ``EAPO_KNOWN`` - listed.")
+        [System.IO.File]::WriteAllText((Join-Path $root 'FilterEngine.cpp'),
+            'auto a = qEnvironmentVariableIsSet("EAPO_KNOWN"); auto b = GetEnvironmentVariableW(L"EAPO_HIDDEN", v, 8);')
+        $result = Invoke-SourceSync -RepoRoot $root
+
+        $result.ExitCode | Should -Not -Be 0
+        $result.Output | Should -Match "reads EAPO_HIDDEN"
+        $result.Output | Should -Not -Match "reads EAPO_KNOWN"
+
+        [System.IO.File]::WriteAllText((Join-Path $root 'docs' 'EnvironmentVariables.md'), "- ``EAPO_KNOWN``, ``EAPO_HIDDEN``")
+        $result = Invoke-SourceSync -RepoRoot $root
+        $result.ExitCode | Should -Be 0
+        $result.Output | Should -Match "All 2 EAPO_\* environment variables"
+    }
+
     It "refuses to pass when it could not read any ClCompile entry" {
         $root = New-FixtureRepo -SkipKnownOmissions -CommonSources @() -EditorSources @('../FilterEngine.cpp')
         $result = Invoke-SourceSync -RepoRoot $root

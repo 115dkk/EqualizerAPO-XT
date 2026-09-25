@@ -1413,6 +1413,11 @@ Select a different file or change the device configuration.</source>
         <source>This line was not applied: %1</source>
         <translation>이 줄은 적용되지 않았습니다: %1</translation>
     </message>
+    <message>
+        <location filename="../widgets/FilterCardRow.cpp" line="840"/>
+        <source>Equalizer APO could not prepare this filter, so the whole configuration was not applied and the previous settings keep playing. Check the file or plug-in this line uses, or switch the line off.</source>
+        <translation>Equalizer APO가 이 필터를 준비하지 못해 설정 전체를 적용하지 않았고, 이전 설정이 계속 재생됩니다. 이 줄이 쓰는 파일이나 플러그인을 확인하거나 이 줄을 끄십시오.</translation>
+    </message>
 </context>
 <context>
     <name>FilterInsertSeam</name>
@@ -2655,6 +2660,16 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="263"/>
         <source>Analysis failed</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="305"/>
+        <source>Not applied</source>
+        <translation>적용 안 됨</translation>
+    </message>
+    <message>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="281"/>
+        <source>This configuration was not applied: the filter on line %1 of %2 could not be prepared. Equalizer APO keeps playing the previous settings.</source>
+        <translation>설정이 적용되지 않았습니다. %2의 %1번째 줄 필터를 준비하지 못해 Equalizer APO가 이전 설정을 계속 재생합니다.</translation>
     </message>
     <message>
         <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="276"/>

@@ -33,6 +33,7 @@
 #include "services/registry/RegistryPaths.h"
 #include "Editor/widgets/EqGraphView.h"
 #include "Editor/widgets/SegmentedControl.h"
+#include "Editor/widgets/UpdateToast.h"
 #include "services/logging/Logging.h"
 #include "audio/ChannelLayout.h"
 #include "Editor/helpers/GUIChannelHelper.h"
@@ -228,8 +229,26 @@ void MainWindow::updateAnalysisPanel()
 	const int sampleRate = static_cast<int>(response->sampleRate);
 	const int latency = response->latencyFrames;
 	const QString errorText = result.errorText();
+
+	// A line whose filter could not be set up rolled the whole load back: the
+	// audio service keeps playing the previous configuration, and the response
+	// the analysis still published was computed without this one. The first
+	// such entry is the line that stopped the load.
+	const ConfigLoadTraceEntry* setupError = nullptr;
+	for (const ConfigLoadTraceEntry& entry : result.loadTrace())
+	{
+		if (entry.kind == ConfigLoadTraceEntry::Kind::SetupError)
+		{
+			setupError = &entry;
+			break;
+		}
+	}
+
+	// No curve for a configuration that does not play: an empty response clears
+	// the graph, as the failed-analysis path does.
 	if (eqGraphView != nullptr)
-		eqGraphView->setResponse(response, ui->analysisChannelComboBox->currentText());
+		eqGraphView->setResponse(setupError != nullptr ? std::make_shared<AnalysisResponse>() : response,
+			ui->analysisChannelComboBox->currentText());
 
 	// Hand the engine's per-line load facts to every open tab whose file took
 	// part in this load. A tab whose file was
@@ -252,6 +271,25 @@ void MainWindow::updateAnalysisPanel()
 		});
 	}
 
+	// The window-level notice. It stays until the user closes it or a result
+	// without a setup error arrives; closing it does not stop the next result
+	// that still has one from bringing it back. The exception text stays in the
+	// log, which the engine already writes.
+	QString setupNotice;
+	if (setupError != nullptr)
+	{
+		setupNotice = tr("This configuration was not applied: the filter on line %1 of %2 could not be prepared. Equalizer APO keeps playing the previous settings.")
+			.arg(setupError->line)
+			.arg(QFileInfo(QString::fromStdWString(setupError->file)).fileName());
+		if (loadNotice == nullptr)
+			loadNotice = new UpdateToast(centralWidget());
+		loadNotice->showMessage(setupNotice, 0);
+	}
+	else if (loadNotice != nullptr)
+	{
+		loadNotice->hideMessage();
+	}
+
 	auto setSeverity = [](QLabel* label, const char* severity)
 	{
 		if (label->property("severity").toString() == QLatin1String(severity))
@@ -262,6 +300,18 @@ void MainWindow::updateAnalysisPanel()
 		label->update();
 	};
 
+	if (setupError != nullptr)
+	{
+		ui->peakGainValueLabel->setText(tr("Not applied"));
+		ui->peakGainValueLabel->setToolTip(setupNotice);
+		setSeverity(ui->peakGainValueLabel, "critical");
+		const QString unavailable = QString::fromUtf8("\xE2\x80\x94");
+		ui->latencyValueLabel->setText(unavailable);
+		ui->initTimeValueLabel->setText(unavailable);
+		ui->cpuUsageValueLabel->setText(unavailable);
+		setSeverity(ui->cpuUsageValueLabel, "normal");
+		return;
+	}
 	if (!errorText.isEmpty())
 	{
 		ui->peakGainValueLabel->setText(tr("Analysis failed"));

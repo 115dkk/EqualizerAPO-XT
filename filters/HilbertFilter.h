@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "engine/IFilter.h"
-#include "filters/ConvolverMuteDiagnostics.h"
+#include "filters/ConvolverBank.h"
 #include "filters/HilbertCommand.h"
 #include "filters/IrCache.h"
 
@@ -39,12 +39,11 @@ public:
 private:
 	HilbertCommand command;
 	std::vector<double> coefficients;
-	HConvSingleArray filters;
+	ConvolverBank bank;
 	std::vector<int> shifted;
 	std::vector<int> aligned;
 	std::vector<std::vector<double>> delayLines;
 	unsigned delayOffset = 0;
 	unsigned channelCount = 0;
-	ConvolverMuteState muteState;
 };
 #pragma AVRT_VTABLES_END

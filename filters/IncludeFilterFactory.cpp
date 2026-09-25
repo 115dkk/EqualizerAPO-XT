@@ -81,7 +81,7 @@ FilterVector IncludeFilterFactory::createFilter(const wstring& configPath, wstri
 		if (!ConfigPathPolicy::allowsOpen(includePath, configPath, reason))
 			reportParseError(command, reason);
 		else if (recursionDepth >= RECURSION_LIMIT)
-			LogF(L"Skipping include of %s as recursion limit of %d has been reached", value.c_str(), RECURSION_LIMIT);
+			reportParseError(command, L"not included: includes are nested more than " + std::to_wstring(RECURSION_LIMIT) + L" deep");
 		else
 			engine->loadConfigFile(includePath);
 		command = L"";

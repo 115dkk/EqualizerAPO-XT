@@ -29,6 +29,31 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   row now judges fills the way the card does, and both rows share one plug-in
   session, so a VST feature lands in both (#PRNUM).
 
+## v2.54.9 — 2026-09-25
+
+- **More configuration mistakes are reported on their line.** A misspelled
+  `Stage`, an `ElseIf`, `Else` or `EndIf` with no `If` before it, an `If`
+  with no `EndIf` (now on the `If` line itself), and an `Include` nested too
+  deep went only to the log; the Editor now shows them on that line's card as
+  a tooltip, as it does for other unusable lines. When a filter fails while
+  being set up, the configuration is still not applied as a whole, and both
+  the log and the Editor now name the line that caused it. The Editor says so
+  in plain words: a notice at the bottom of the window names the line and
+  file and says the previous settings keep playing, the analysis panel reads
+  "Not applied" and draws no curve, and the line's card explains what to
+  check. The engine's error text stays in the log
+  ([#368](https://github.com/115dkk/EqualizerAPO-XT/pull/368)).
+
+## v2.54.8 — 2026-09-25
+
+- **The Voicemeeter client no longer holds up audio while it sets up strips.**
+  When Voicemeeter reported a different set of strips, the client loaded the
+  configuration for every strip while the audio callback waited for it; the
+  engines are now prepared first and swapped in at once. Applying the Device
+  Selector also no longer turns on the debug privilege when no Voicemeeter
+  client is running, and turns it back off after checking one
+  ([#367](https://github.com/115dkk/EqualizerAPO-XT/pull/367)).
+
 ## v2.54.7 — 2026-09-25
 
 - **A driver's own effects keep running when an endpoint's ASIO entry cannot
