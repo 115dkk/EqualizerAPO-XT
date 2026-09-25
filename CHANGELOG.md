@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.28 — 2026-09-25
+
 - **A VST3 plug-in's saved state reaches it whole.** Restoring the state of
   a VST3 plug-in hands its parameter values to the plug-in's audio side
   through a queue of 1023 entries; a plug-in with more parameters than that
