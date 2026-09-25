@@ -22,6 +22,31 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   its events is logged and ends the host cleanly instead of being ignored
   ([#400](https://github.com/115dkk/EqualizerAPO-XT/pull/400)).
 
+## v2.54.26 — 2026-09-25
+
+- **Virtual channels are the channels your device does not have.** The
+  channel badges, the Copy routing views and the Copy card's header each
+  decided which channels are virtual by their own rule (a name starting with
+  V, or a fixed list of sixteen names). They now all ask one rule, the one
+  the engine uses when a line names a channel: a channel is virtual when it
+  is not one of the device's channels, by name, alias (SL/RL, SR/RR,
+  SUB/LFE) or 1-based number. On a stereo device, for example, `Channel: C`
+  now shows C as a dotted (virtual) badge, and SBL/SBR on a 5.1 device are
+  drawn as virtual in the routing views. When the device is not known, the
+  7.1 layout stands in
+  ([#399](https://github.com/115dkk/EqualizerAPO-XT/pull/399)).
+- **The rack skin's module picker uses the same LED as the cards.** The
+  picker drew its lamps with a painter of its own; an unlit lamp now looks
+  like an unlit lamp on a card
+  ([#399](https://github.com/115dkk/EqualizerAPO-XT/pull/399)).
+
+## v2.54.25 — 2026-09-25
+
+- **The SubwooferRouting card and its dialog name a built-in preset the same
+  way.** The card showed "Built-in preset: Issue #246 - Front/Rear 4.1" and
+  the dialog "Issue #246 - Front/Rear 4.1"; both now show the preset's own
+  name ([#398](https://github.com/115dkk/EqualizerAPO-XT/pull/398)).
+
 ## v2.54.24 — 2026-09-25
 
 - **The soft skin's file dialog uses its own icons.** The other four skins

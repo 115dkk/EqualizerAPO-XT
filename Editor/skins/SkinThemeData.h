@@ -11,8 +11,8 @@
 	chrome painters), so satellite executables - first user: DeviceSelector -
 	can compile this single unit plus the .qss resources and wear the exact
 	skin the user picked in the Editor, without linking the Editor's widget
-	stack. The full ISkin classes delegate their tokens()/qssResource() here,
-	so the tables cannot drift apart.
+	stack. The full ISkin classes delegate their tokens() here, so the tables
+	cannot drift apart.
 */
 
 #pragma once

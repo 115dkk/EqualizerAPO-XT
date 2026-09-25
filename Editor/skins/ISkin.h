@@ -429,13 +429,11 @@ public:
 
 	// Colour + metric tokens for the requested mode. The default resolves the
 	// table SkinThemeData keeps for id(); the five shipped skins live there,
-	// so they do not override this.
+	// so they do not override this. An override reaches the painters and
+	// skinChanged only: the application's QSS and palette are built by
+	// SkinThemeData::applyToApplication from the table's tokens for id(), so
+	// they never see it.
 	virtual SkinTokens tokens(bool dark) const;
-
-	// Resource path of the QSS sheet for the requested mode. Default:
-	// SkinThemeData::qssResource(id(), dark), which also carries the minimal
-	// skin's historical precision_* file names.
-	virtual QString qssResource(bool dark) const;
 
 	// The Copy routing renderer that matches this skin's philosophy. May be
 	// nullptr, in which case the caller falls back to the legacy CopyFilterGUI.
@@ -505,7 +503,8 @@ public:
 	// One channel-scope token in a card header (the "Channel:'s influence"
 	// badges). Return true to replace ChBadge's shared chip painting; the
 	// neutral default keeps it, so every skin stays pixel-identical until
-	// it answers. virtualChannel marks a Copy-created (unverified) name.
+	// it answers. virtualChannel marks a channel that is not one of the
+	// device's (ChannelIdentity::isVirtual): a Copy-created name.
 	virtual bool paintChannelBadge(QPainter& painter, const QRect& rect, const QString& channel,
 		bool virtualChannel, const SkinTokens& tokens) const;
 

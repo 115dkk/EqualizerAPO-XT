@@ -20,9 +20,10 @@ ChBadge::ChBadge(QWidget* parent)
 	});
 }
 
-ChBadge::ChBadge(const QString& channel, QWidget* parent)
+ChBadge::ChBadge(const QString& channel, bool isVirtual, QWidget* parent)
 	: ChBadge(parent)
 {
+	virtualChannel = isVirtual;
 	setChannel(channel);
 }
 
@@ -44,11 +45,6 @@ QSize ChBadge::sizeHint() const
 	return QSize(width, 20);
 }
 
-bool ChBadge::isVirtualChannel() const
-{
-	return currentChannel.startsWith('V');
-}
-
 QColor ChBadge::channelColor() const
 {
 	// The routing views' identity palette, so a channel wears one colour in
@@ -62,7 +58,7 @@ void ChBadge::paintEvent(QPaintEvent*)
 	QPainter painter(this);
 	painter.setRenderHint(QPainter::Antialiasing);
 
-	if (SkinManager::instance()->paintChannelBadge(painter, rect(), currentChannel, isVirtualChannel()))
+	if (SkinManager::instance()->paintChannelBadge(painter, rect(), currentChannel, virtualChannel))
 		return;
 
 	const SkinTokens& tokens = SkinManager::instance()->tokens();
@@ -70,10 +66,10 @@ void ChBadge::paintEvent(QPaintEvent*)
 	QRectF badgeRect = rect().adjusted(1, 2, -1, -2);
 	int radius = tokens.badgeStyle == SkinTokens::OutlineOnly || tokens.badgeStyle == SkinTokens::WireframeBorder ? tokens.borderRadius : badgeRect.height() / 2;
 
-	if (tokens.badgeStyle == SkinTokens::OutlineOnly || tokens.badgeStyle == SkinTokens::WireframeBorder || isVirtualChannel())
+	if (tokens.badgeStyle == SkinTokens::OutlineOnly || tokens.badgeStyle == SkinTokens::WireframeBorder || virtualChannel)
 	{
 		QPen pen(color, 1.2);
-		if (isVirtualChannel())
+		if (virtualChannel)
 			pen.setStyle(Qt::DashLine);
 		painter.setPen(pen);
 		QColor fill = color;

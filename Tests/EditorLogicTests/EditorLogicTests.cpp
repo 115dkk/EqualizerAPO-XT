@@ -121,6 +121,7 @@ int main(int argc, char** argv)
 		testRoutingGridModelPorts();
 		testRoutingGridModel();
 		testRoutingFold();
+		testVirtualChannelRule();
 		testSourceTokenGrammar();
 		testAnalysisResponseBinArithmetic();
 		testAnalysisResponseEmptyAndLatency();
@@ -167,6 +168,7 @@ int main(int argc, char** argv)
 		testSubwooferRoutingReadsRoundTripEverySetter();
 		testSubwooferRoutingSourceLfeGainReaders();
 		testSubwooferRoutingPreviewRateAndTrim();
+		testSubwooferRoutingPresetDisplayName();
 		testAnalysisRequestFence();
 		testImpulseMeasurementFindsTheDelay();
 		testImpulseMeasurementAtTheBlockStart();

@@ -49,6 +49,14 @@ public:
 	// request that the channelNames returned by initialize become the new selection
 	virtual bool getSelectChannels() {return false;}
 	// return value is the channelNames vector, which may contain additional or fewer channel names
+	//
+	// Call contract (audit #348): the engine calls initialize() exactly once
+	// per filter object, before the first process(); a configuration reload
+	// builds new filter objects instead of re-initializing the old ones. A
+	// filter may support a second call (Convolution, MultiConvolution,
+	// VSTPlugin and LoudnessCorrection clean up and start over), but callers
+	// must not rely on it: a filter that is only ever initialized once is
+	// correct.
 	virtual std::vector<std::wstring> initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames) = 0;
 	virtual void process(double** output, double** input, unsigned frameCount) = 0;
 

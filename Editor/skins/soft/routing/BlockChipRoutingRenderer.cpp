@@ -187,7 +187,7 @@ void BlockChipView::paintEvent(QPaintEvent*)
 			// (IR file channels) are ports, not virtual channels, so they keep
 			// the solid chip styling.
 			const QColor col(CopyRoutingAdapter::channelColor(ch));
-			const bool virt = !portModel.fixedSourceMode() && CopyRoutingAdapter::isVirtualChannel(ch);
+			const bool virt = !portModel.fixedSourceMode() && portModel.isVirtualChannel(ch);
 			const int fw = fm.horizontalAdvance(factorText);
 			const int cw = fm.horizontalAdvance(ch);
 			const int chipW = fw + cw + 18;
@@ -234,7 +234,7 @@ void BlockChipView::paintEvent(QPaintEvent*)
 		// A virtual channel's block can be removed: hovering the block shows a
 		// quiet × pill at its tail (device channels fold instead of leaving,
 		// so they never get one). Muted, small, never alarming.
-		if (CopyRoutingAdapter::isVirtualChannel(dest) && hoveredRow == r)
+		if (portModel.isVirtualChannel(dest) && hoveredRow == r)
 		{
 			const QRect xChip(x, y + (blockH - 22) / 2, 22, 22);
 			p.setPen(QPen(alpha(muted, 140), 1));

@@ -228,7 +228,7 @@ void FilterTable::moveRows(const QList<Item*>& itemsInOrder, int dropRow)
 	updateRowWidgets();
 	setUpdatesEnabled(updatesWereEnabled);
 
-	qDebug("Incremental move took %d ms", int(timer.elapsed()));
+	TraceF(L"Incremental move took %d ms", int(timer.elapsed()));
 	update();
 }
 

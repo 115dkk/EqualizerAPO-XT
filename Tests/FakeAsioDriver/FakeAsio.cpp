@@ -318,6 +318,10 @@ ASIOError FakeAsioDriver::createBuffers(ASIOBufferInfo* bufferInfos, long numCha
 	counters_.hostSupportsTimeInfo = hostSupportsTimeInfo_ ? 1 : 0;
 	buffersCreated_ = true;
 	samplePosition_ = 0;
+	// A reopened driver starts like a fresh one: its input stream begins at
+	// generator sample 0 again, the index generatorSample() predicts from
+	// (audit #348 TD-73). Records are not cleared; clearRecords() does that.
+	generatorPosition_ = 0;
 	pendingHalf_ = -1;
 	return ASE_OK;
 }

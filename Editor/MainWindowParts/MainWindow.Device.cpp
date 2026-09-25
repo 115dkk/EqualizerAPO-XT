@@ -150,7 +150,7 @@ FilterTable* MainWindow::addTab(QString title, QString tooltip, QString configPa
 	phaseTimer.start();
 
 	filterTable->setLines(configPath, lines);
-	qDebug("addTab: setup %d, insert %d, setLines %d ms",
+	TraceF(L"addTab: setup %d, insert %d, setLines %d ms",
 		int(setupNs / 1000000), int(insertNs / 1000000), int(phaseTimer.nsecsElapsed() / 1000000));
 
 	return filterTable;

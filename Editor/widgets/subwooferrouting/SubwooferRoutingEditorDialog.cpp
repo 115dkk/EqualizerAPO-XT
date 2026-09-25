@@ -68,14 +68,10 @@ QString fromUtf8(const std::string& text)
 	return QString::fromUtf8(text.data(), static_cast<int>(text.size()));
 }
 
+// The same name the card's preset menu shows (audit #348).
 QString presetName(const subroute::PresetDescriptor& preset)
 {
-	if (subwooferroutingeditor::isIssue246Preset(preset))
-		return SubwooferRoutingEditorDialog::tr(
-			"Issue #246 - Front/Rear 4.1");
-
-	return SubwooferRoutingEditorDialog::tr("%1")
-		.arg(fromUtf8(preset.displayName));
+	return fromUtf8(subwooferroutingeditor::presetDisplayName(preset));
 }
 
 QDoubleSpinBox* frequencySpinBox(QWidget* parent)
@@ -826,10 +822,14 @@ void SubwooferRoutingEditorDialog::updateLeftPaneWidth()
 
 void SubwooferRoutingEditorDialog::rebuildRoutingViews()
 {
+	// The plugin's physical layout is the device these views route to: its
+	// channels are real, and the bass paths the send view targets are
+	// virtual.
 	RoutingPortModel bassSendPorts;
 	bassSendPorts.fixedSources =
 		SubwooferRoutingRoutingAdapter::bassSendSources(model->state());
 	bassSendPorts.allowFactors = false;
+	bassSendPorts.deviceChannels = physicalTargets(model->state());
 
 	rebuildRoutingView(bassSendRoutingView, bassSendRoutingHint,
 		bassSendRoutingLayout,
@@ -843,6 +843,7 @@ void SubwooferRoutingEditorDialog::rebuildRoutingViews()
 	outputPorts.fixedSources =
 		SubwooferRoutingRoutingAdapter::outputSources(model->state());
 	outputPorts.allowFactors = true;
+	outputPorts.deviceChannels = physicalTargets(model->state());
 
 	rebuildRoutingView(outputRoutingView, outputRoutingHint,
 		outputRoutingLayout,

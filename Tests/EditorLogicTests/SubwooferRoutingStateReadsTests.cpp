@@ -185,3 +185,25 @@ void testSubwooferRoutingPreviewRateAndTrim()
 	expectTrue(noDevice.computedTrimDb() == SubwooferRoutingUiState(fixture, 48000).computedTrimDb(),
 		"with rate 0 the trim equals the one a 48 kHz device shows");
 }
+
+// One preset name (audit #348 open question): the card's preset menu and the
+// dialog's preset list both show presetDisplayName, the descriptor's name,
+// with no "Built-in preset: " prefix.
+void testSubwooferRoutingPresetDisplayName()
+{
+	requireTrue(!subroute::builtInPresets().empty(), "there is a built-in preset");
+	for (const subroute::PresetDescriptor& preset : subroute::builtInPresets())
+	{
+		expectTrue(presetDisplayName(preset) == preset.displayName,
+			"a preset is shown by its descriptor's display name");
+		expectTrue(presetDisplayName(preset).rfind("Built-in preset", 0) != 0,
+			"the card's old prefix is gone");
+	}
+
+	for (const subroute::PresetDescriptor& preset : subroute::builtInPresets())
+	{
+		if (preset.id == subroute::kIssue246FrontRear41PresetId)
+			expectTrue(presetDisplayName(preset) == "Issue #246 - Front/Rear 4.1",
+				"the Issue #246 preset keeps the name both widgets showed");
+	}
+}
