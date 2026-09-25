@@ -14,8 +14,8 @@
 
 namespace eapo::asio
 {
-	ThreadHostLink::ThreadHostLink(bool proAudio)
-		: proAudio_(proAudio)
+	ThreadHostLink::ThreadHostLink(bool proAudio, uint32_t traceSlowUs)
+		: proAudio_(proAudio), traceSlowUs_(traceSlowUs)
 	{
 	}
 
@@ -54,6 +54,7 @@ namespace eapo::asio
 		serve.configPath = options.configPath;
 		serve.proAudio = proAudio_;
 		serve.spinPeriods = proAudio_ ? 1.0 : 0.0;
+		serve.traceSlowUs = traceSlowUs_;
 		serve.idleWaitMs = 100;
 		serve.readyTimeoutMs = options.readyTimeoutMs;
 		serve.abandon = &kill_;

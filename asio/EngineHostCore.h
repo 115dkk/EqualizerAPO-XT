@@ -44,6 +44,11 @@ namespace eapo::asio
 		// a wake-up; zero means it always blocks. The host uses one, the
 		// tests zero.
 		double spinPeriods = 0.0;
+		// Probe diagnostic (AsioProbe --trace-slow): blocks whose wake-up
+		// (publish to acquire), core move, or engine call reached this many
+		// microseconds, logged with lane and sequence after the stream ends.
+		// Zero records nothing.
+		uint32_t traceSlowUs = 0;
 		// Where to publish the stream's shape for the device record
 		// (asio/StreamFacts.h), or null not to. The host passes the system
 		// registry; the tests and the probe leave the user's registry alone

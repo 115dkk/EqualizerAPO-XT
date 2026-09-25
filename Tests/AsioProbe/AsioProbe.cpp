@@ -94,6 +94,7 @@ namespace
 		std::string expectFirstSha;
 		std::string expectInputSha;
 		long maxLate = 0;
+		long traceSlowUs = 0;
 		bool reference = true;
 		std::wstring daemonExe;
 		std::wstring endpoint = L"EAPO.ASIO.probe";
@@ -117,7 +118,7 @@ namespace
 			"          [--daemon <EqualizerAPOHost.exe>] [--endpoint <name>] [--deadline-us N]\n"
 			"          [--frames 64] [--rate 48000] [--periods 200] [--pace-us 0] [--burst 1] [--channels in,out] [--sample-type int16|int24|int32|float32]\n"
 			"          [--seed N] [--host-seed N] [--no-input] [--no-output] [--output-ready]\n"
-			"          [--expect-sha256 hex] [--expect-first-sha256 hex] [--expect-input-sha256 hex] [--max-late N] [--no-reference]\n"
+			"          [--expect-sha256 hex] [--expect-first-sha256 hex] [--expect-input-sha256 hex] [--max-late N] [--trace-slow us] [--no-reference]\n"
 			"          [--seconds 10] [--tone] [--sine Hz]   (real driver / wasapi:{playback guid}[,{recording guid}] only)\n", stderr);
 	}
 
@@ -151,6 +152,7 @@ namespace
 			else if (key == L"--seed" && value(v)) a.seed = static_cast<unsigned>(std::wcstoul(v.c_str(), nullptr, 10));
 			else if (key == L"--host-seed" && value(v)) a.hostSeed = static_cast<unsigned>(std::wcstoul(v.c_str(), nullptr, 10));
 			else if (key == L"--max-late" && value(v)) a.maxLate = std::wcstol(v.c_str(), nullptr, 10);
+			else if (key == L"--trace-slow" && value(v)) a.traceSlowUs = std::wcstol(v.c_str(), nullptr, 10);
 			else if (key == L"--daemon" && value(v)) a.daemonExe = v;
 			else if (key == L"--endpoint" && value(v)) a.endpoint = v;
 			else if (key == L"--deadline-us" && value(v)) a.deadlineUs = static_cast<uint32_t>(std::wcstoul(v.c_str(), nullptr, 10));
@@ -181,7 +183,7 @@ namespace
 			else if (key == L"--sine" && value(v)) a.sineHz = std::wcstod(v.c_str(), nullptr);
 			else return false;
 		}
-		return a.frames > 0 && a.periods > 0 && a.rate > 0.0 && a.burst > 0;
+		return a.frames > 0 && a.periods > 0 && a.rate > 0.0 && a.burst > 0 && a.traceSlowUs >= 0;
 	}
 
 	// A DLL the probe loaded. Deliberately never freed: COM objects created
@@ -372,6 +374,27 @@ namespace
 			static_cast<unsigned long long>(p.roundTripBuckets[4]), static_cast<unsigned long long>(p.roundTripBuckets[5]));
 	}
 
+	// --trace-slow: after each pumped period, a call at or above the
+	// threshold, or one that came back Late, with its block number.
+	void traceSlowCalls(const Arguments& a, const AsioWrapper* staticWrapper, uint64_t (&lateSeen)[eapo::asio::directionCount])
+	{
+		if (a.traceSlowUs == 0 || staticWrapper == nullptr)
+			return;
+		const StreamStats& stats = staticWrapper->stats();
+		for (unsigned slot = 0; slot < eapo::asio::directionCount; slot++)
+		{
+			const bool late = stats.late[slot] != lateSeen[slot];
+			lateSeen[slot] = stats.late[slot];
+			if (late || stats.lastProcessUs[slot] >= static_cast<uint32_t>(a.traceSlowUs))
+			{
+				std::fprintf(stderr, "AsioProbe: %s process direction=%s block=%llu elapsed=%u us late-total=%llu\n",
+					late ? "late" : "slow", slot == static_cast<unsigned>(Direction::Output) ? "output" : "input",
+					static_cast<unsigned long long>(stats.blocks[slot]), stats.lastProcessUs[slot],
+					static_cast<unsigned long long>(stats.late[slot]));
+			}
+		}
+	}
+
 	int runFakeStream(const Arguments& a, IASIO* target, IASIO* wrapper, IFakeAsioControl* control, AsioWrapper* staticWrapper)
 	{
 		SampleCodec codec;
@@ -380,6 +403,9 @@ namespace
 		hostOptions.sampleType = a.sampleType;
 		hostOptions.outputSeed = a.hostSeed;
 		hostOptions.callOutputReady = a.callOutputReady;
+		// The fake driver calls back on the thread that pumps it; a DAW's
+		// callback thread runs under MMCSS Pro Audio, so this one does too.
+		hostOptions.proAudioCallback = true;
 		asiotest::HostStub host(hostOptions);
 		host.openChannels(a.inputs, a.outputs);
 
@@ -425,6 +451,7 @@ namespace
 			// deterministic back-to-back default. --burst pumps more than one
 			// period back-to-back before that single wait, standing in for a
 			// host that delivers callbacks in bursts rather than one per wait.
+			uint64_t lateSeen[eapo::asio::directionCount] = {};
 			HANDLE pacer = CreateWaitableTimerExW(nullptr, nullptr, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS);
 			if (pacer == nullptr)
 				pacer = CreateWaitableTimerExW(nullptr, nullptr, 0, TIMER_ALL_ACCESS);
@@ -432,7 +459,10 @@ namespace
 			{
 				const long count = a.burst < a.periods - p ? a.burst : a.periods - p;
 				for (long k = 0; k < count; k++)
+				{
 					control->pump(1);
+					traceSlowCalls(a, staticWrapper, lateSeen);
+				}
 				if (pacer != nullptr)
 				{
 					LARGE_INTEGER due;
@@ -724,7 +754,15 @@ int wmain(int argc, wchar_t** argv)
 		else if (a.processor == L"passthrough")
 			processor = std::make_unique<eapo::asio::PassthroughProcessor>();
 		else if (a.processor == L"daemon-thread")
-			processor = std::make_unique<eapo::asio::DaemonProcessor>(std::make_unique<eapo::asio::ThreadHostLink>(liveTarget));
+		{
+			// Served the way EqualizerAPOHost serves (MMCSS Pro Audio and a
+			// one-period spin), fake target or not: a normal-priority serving
+			// thread is preempted for milliseconds on a busy machine, which
+			// the pipelined mode reports as late blocks the product would not
+			// have.
+			processor = std::make_unique<eapo::asio::DaemonProcessor>(
+				std::make_unique<eapo::asio::ThreadHostLink>(true, static_cast<uint32_t>(a.traceSlowUs)));
+		}
 		else if (a.processor == L"daemon")
 			processor = std::make_unique<eapo::asio::DaemonProcessor>(std::make_unique<eapo::asio::Win32HostLink>());
 		else
