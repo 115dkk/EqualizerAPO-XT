@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.26 — 2026-09-25
+
 - **Virtual channels are the channels your device does not have.** The
   channel badges, the Copy routing views and the Copy card's header each
   decided which channels are virtual by their own rule (a name starting with
