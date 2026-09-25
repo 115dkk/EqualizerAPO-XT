@@ -53,7 +53,7 @@
 #include "Tests/TestHarness.h"
 #include "Tests/TestDirectory.h"
 
-#include "FakeRegistry.h"
+#include "Tests/FakeRegistry.h"
 
 namespace
 {
@@ -1277,6 +1277,7 @@ void runConfigurationFileReaderTests(test::Harness& harness);
 void runDeviceApoInfoTests(test::Harness& harness);
 void runRegistryTransactionTests(test::Harness& harness);
 void runNamedPipeSecurityTests(test::Harness& harness);
+void runRegistryConformanceTests(test::Harness& harness);
 void runDevicePlanTests(test::Harness& harness);
 void runInstallDiagnosticsTests(test::Harness& harness);
 void runApoRegistrationTests(test::Harness& harness);
@@ -1321,6 +1322,7 @@ int runEngineOrchestrationTests()
 	testInstallStateComparisonIgnoresPadding(harness);
 	runRegistryTransactionTests(harness);
 	runNamedPipeSecurityTests(harness);
+	runRegistryConformanceTests(harness);
 	runDevicePlanTests(harness);
 	runDeviceApoInfoTests(harness);
 	runInstallDiagnosticsTests(harness);

@@ -33,7 +33,7 @@
 #include "services/registry/WindowsRegistry.h"
 #include "Tests/TestHarness.h"
 
-#include "FakeRegistry.h"
+#include "Tests/FakeRegistry.h"
 
 namespace
 {

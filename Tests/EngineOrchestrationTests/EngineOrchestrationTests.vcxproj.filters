@@ -26,6 +26,9 @@
     <ClCompile Include="NamedPipeSecurityTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="RegistryConformanceTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="DevicePlanTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -58,7 +61,7 @@
     <ClInclude Include="..\..\services\registry\RegistryTransaction.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FakeRegistry.h">
+    <ClInclude Include="..\FakeRegistry.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -107,7 +107,7 @@ if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"</
     <ClInclude Include="..\..\asio\WrapperRecord.h" />
     <ClInclude Include="..\..\runtime\ipc\StreamRing.h" />
     <ClInclude Include="..\AsioSupport\HostStub.h" />
-    <ClInclude Include="..\EngineOrchestrationTests\FakeRegistry.h" />
+    <ClInclude Include="..\FakeRegistry.h" />
     <ClInclude Include="..\FakeAsioDriver\FakeAsio.h" />
     <ClInclude Include="..\FakeAsioDriver\FakeAsioControl.h" />
     <ClInclude Include="..\TestHarness.h" />
