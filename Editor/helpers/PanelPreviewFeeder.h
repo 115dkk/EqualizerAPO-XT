@@ -8,15 +8,9 @@
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 	Copyright (C) 2026 Mephistos (DCinside)
 
-	The panel preview feed: while a plugin panel is open, run the Editor's
-	preview instance on live audio so meters and analyzers inside the plugin
-	UI work - and, when the plugin generates a signal of its own (a
-	calibration noise, a test sweep), play that signal out loud. The state
-	machine and the WASAPI plumbing live in PanelFeedEngine; this class is
-	the Qt face that owns the GUI-thread pump timer and the environment kill
-	switches. The audible signal path of the system stays in the audio
-	service, and the Editor keeps talking to it through the configuration
-	file only.
+	The Qt owner of PanelFeedEngine. It maps the environment kill switches,
+	starts the feed before the editor session and drives tick() from a GUI-thread
+	timer. PanelFeedEngine documents the audio behavior and threading contract.
 */
 
 #pragma once

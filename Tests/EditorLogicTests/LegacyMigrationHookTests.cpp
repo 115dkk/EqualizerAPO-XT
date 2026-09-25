@@ -182,6 +182,48 @@ void testLegacyMigrationHookUsesVerifiedCallerOrFallsBack()
 		return;
 	}
 	expectTrue(outcome == L"adopt", QStringLiteral("unelevated prepare succeeds"));
+	// Keep the install fixture separate from the stable profile fixture, as in
+	// a real Velopack current directory. Custom ConfigPath still needs grants.
+	const QString install = temp.path() + QStringLiteral("/package/current");
+	requireTrue(QDir().mkpath(install + QStringLiteral("/config")), QStringLiteral("install-shaped folder created"));
+	{
+		QFile dll(install + QStringLiteral("/fixture.dll"));
+		requireTrue(dll.open(QIODevice::WriteOnly), QStringLiteral("pre-existing install file created"));
+		dll.write("fixture");
+	}
+	test::FakeRegistry customInstall;
+	customInstall.seedKey(APP_REGPATH);
+	customInstall.seedString(APP_REGPATH, L"ConfigPath", L"D:\\CustomConfig");
+	Migration::Handoff installDetails;
+	expectTrue(Migration::prepareHookStep(install.toStdWString(), customInstall, &installDetails) == L"respect-custom",
+		QStringLiteral("install grants run even when migration respects custom config"));
+	expectTrue(installDetails.installGrantsPrepared, QStringLiteral("both owned install grants reported complete"));
+	const unsigned long rx = FILE_GENERIC_READ | FILE_GENERIC_EXECUTE;
+	const unsigned long modify = rx | FILE_GENERIC_WRITE | DELETE;
+	for (const auto& path : {install, install + QStringLiteral("/fixture.dll"), install + QStringLiteral("/config")})
+	{
+		const auto nativePath = QDir::toNativeSeparators(path).toStdWString();
+		const unsigned long expectedAccess = path.endsWith(QStringLiteral("/config")) ? modify : rx;
+		expectTrue((AudioEngineAccess::accessForUsers(nativePath) & expectedAccess) == expectedAccess,
+			QStringLiteral("Users install RX and packaged config Modify"));
+		expectTrue((AudioEngineAccess::accessForAudioEngine(nativePath) & expectedAccess) == expectedAccess,
+			QStringLiteral("LOCAL SERVICE install RX and packaged config Modify"));
+		if (expectedAccess == rx)
+			expectTrue((AudioEngineAccess::accessForAudioEngine(nativePath) & (FILE_WRITE_DATA | DELETE | WRITE_DAC)) == 0,
+				QStringLiteral("engine install grant does not add write or ACL control"));
+	}
+	for (const auto& value : {L"0", L"true", L"", L"bad"})
+		expectFalse(Migration::parseHandoff({L"--caller-install-grants-prepared", value}).installGrantsPrepared,
+			QStringLiteral("only literal one acknowledges both install grants"));
+	expectTrue(Migration::parseHandoff({L"--caller-install-grants-prepared", L"1"}).installGrantsPrepared,
+		QStringLiteral("prepared install flag parses"));
+	expectFalse(Migration::parseHandoff({L"--caller-install-grants-prepared"}).installGrantsPrepared,
+		QStringLiteral("missing flag value keeps legacy behavior"));
+	expectFalse(Migration::parseHandoff({}).installGrantsPrepared, QStringLiteral("absent flag keeps legacy behavior"));
+	expectFalse(Migration::parseHandoff({L"--caller-install-grants-prepared", L"1",
+		L"--caller-install-grants-prepared", L"0"}).installGrantsPrepared,
+		QStringLiteral("last prepared flag wins"));
+	std::puts("Install preparation: unelevated RX/Modify and hand-off flag passed");
 	expectFalse(registry.valueExists(APP_REGPATH, L"ConfigPath"), QStringLiteral("prepare never writes registry"));
 	const QString root = caller + QStringLiteral("/EqualizerAPO-XT/config");
 	expectTrue(QFile::exists(root + QStringLiteral("/config.txt")), QStringLiteral("prepare seeds samples"));

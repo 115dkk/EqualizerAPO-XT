@@ -295,7 +295,11 @@ Grant grantConfigAccess(const std::wstring& configDir)
 	return applyGrant(configDir, grants);
 }
 
-Grant grantOwnedConfigAccess(const std::wstring& configDir)
+namespace
+{
+// Only the two owned-directory grants share ACL construction; no public
+// arbitrary-permissions API is needed for installation preparation.
+Grant grantOwnedDirectoryAccess(const std::wstring& configDir, DWORD permissions)
 {
 	// This entry point is exclusively for the unelevated prepare step. Even
 	// a raced pathname cannot give the process more authority than its user.
@@ -331,7 +335,7 @@ Grant grantOwnedConfigAccess(const std::wstring& configDir)
 	entries[1].Trustee.ptstrName = static_cast<LPWSTR>(service.get());
 	for (auto& entry : entries)
 	{
-		entry.grfAccessPermissions = FILE_GENERIC_READ | FILE_GENERIC_WRITE | FILE_GENERIC_EXECUTE | DELETE;
+		entry.grfAccessPermissions = permissions;
 		entry.grfAccessMode = GRANT_ACCESS;
 		entry.grfInheritance = OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE;
 		entry.Trustee.TrusteeForm = TRUSTEE_IS_SID;
@@ -354,6 +358,18 @@ Grant grantOwnedConfigAccess(const std::wstring& configDir)
 		return Grant::Failed;
 	}
 	return Grant::Applied;
+}
+
+} // namespace
+
+Grant grantOwnedConfigAccess(const std::wstring& configDir)
+{
+	return grantOwnedDirectoryAccess(configDir, FILE_GENERIC_READ | FILE_GENERIC_WRITE | FILE_GENERIC_EXECUTE | DELETE);
+}
+
+Grant grantOwnedEngineAccess(const std::wstring& installRoot)
+{
+	return grantOwnedDirectoryAccess(installRoot, FILE_GENERIC_READ | FILE_GENERIC_EXECUTE);
 }
 
 const wchar_t* describe(Grant grant)

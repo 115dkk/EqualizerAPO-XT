@@ -55,8 +55,6 @@ private:
 	const SkinTokens skinTokens;
 	void rebuildMatrix();
 	void updateMetrics();
-	Assignment& rowAssignment(int outRow);
-	int summandIndex(int outRow, const QString& channel) const;
 	QRect cellRect(int outRow, int inCol) const;
 	bool hitTest(const QPoint& pos, int& outRow, int& inCol) const;
 	QRect stripRect() const;

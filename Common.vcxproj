@@ -364,6 +364,7 @@
     <ClInclude Include="vst\AbstractLibrary.h" />
     <ClInclude Include="vst\aeffectx.h" />
     <ClInclude Include="audio\ChannelLayout.h" />
+    <ClInclude Include="audio\SampleFormat.h" />
     <ClInclude Include="platform\windows\ComBoundary.h" />
     <ClInclude Include="platform\windows\ComPtr.h" />
     <ClInclude Include="dsp\SampleConversion.h" />

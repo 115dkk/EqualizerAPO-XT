@@ -129,7 +129,7 @@ void ApoRegistration::cleanupAppRegistry(IRegistry& registry)
 }
 
 ApoRegistration::Result ApoRegistration::install(const std::wstring& installDir,
-	IRegistry& registry)
+	IRegistry& registry, bool installGrantsPrepared)
 {
 	// Both hooks write HKLM and rewrite ACLs on the install tree, so they only
 	// work elevated. That was an assumption nothing checked: an unelevated run
@@ -159,9 +159,16 @@ ApoRegistration::Result ApoRegistration::install(const std::wstring& installDir,
 	// Initialize returning E_ACCESSDENIED in DeviceSelector. Widen the tree before
 	// any APO registration takes effect. Who gets what, and the trust boundary the
 	// grant relies on, are in services/security/AudioEngineAccess.cpp.
-	AudioEngineAccess::Grant installGrant = AudioEngineAccess::grantEngineAccess(installDir);
-	if (installGrant != AudioEngineAccess::Grant::Applied)
-		logLine(L"WARN", L"Install root access grant %s, continuing", AudioEngineAccess::describe(installGrant));
+	// With no unelevated parent, retain today's grants: Velopack was launched
+	// elevated and installed into that account's own LocalAppData. This assumes
+	// that tree is not writable by another standard user. A prepared hand-off
+	// skips both recursive grants below; its user already applied the ACEs.
+	if (shouldGrantInstallAccess(installGrantsPrepared))
+	{
+		AudioEngineAccess::Grant installGrant = AudioEngineAccess::grantEngineAccess(installDir);
+		if (installGrant != AudioEngineAccess::Grant::Applied)
+			logLine(L"WARN", L"Install root access grant %s, continuing", AudioEngineAccess::describe(installGrant));
+	}
 
 	int rc = registerComServer(dllPath, false);
 	if (rc != 0)
@@ -171,7 +178,8 @@ ApoRegistration::Result ApoRegistration::install(const std::wstring& installDir,
 	}
 
 	// secureConfigDir already logs which grant failed.
-	secureConfigDir(joinPath(installDir, L"config"));
+	if (shouldGrantInstallAccess(installGrantsPrepared))
+		secureConfigDir(joinPath(installDir, L"config"));
 
 	// Velopack's vpk pack only emits a shortcut for --mainExe (Editor.exe).
 	// DeviceSelector is the elevated companion that performs per-device APO

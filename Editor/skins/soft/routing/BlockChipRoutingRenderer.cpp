@@ -17,6 +17,7 @@
 #include <QFontMetrics>
 
 #include "Editor/SkinManager.h"
+#include "Editor/widgets/routing/RoutingGridModel.h"
 #include "Editor/widgets/routing/CopyRoutingAdapter.h"
 
 using std::vector;
@@ -295,10 +296,7 @@ void BlockChipView::mousePressEvent(QMouseEvent* event)
 		if (h.rect.contains(event->pos()))
 		{
 			const QString channel = QString::fromStdWString(workingAssignments[h.row].targetChannel);
-			for (int i = pinnedChannels.size() - 1; i >= 0; i--)
-				if (pinnedChannels[i].compare(channel, Qt::CaseInsensitive) == 0)
-					pinnedChannels.removeAt(i);
-			const bool changed = RoutingFold::removeChannel(workingAssignments, channel);
+			const bool changed = RoutingGridModel::removeChannel(workingAssignments, pinnedChannels, channel);
 			refold();
 			if (changed)
 				emit routingChanged();
@@ -472,22 +470,9 @@ void BlockChipView::commitEditor()
 	QString raw = editor->text().trimmed();
 	editor->hide();
 
-	if (row >= (int)workingAssignments.size() || si >= (int)workingAssignments[row].sourceSum.size())
+	if (!RoutingGridModel::commitChip(workingAssignments, row, si, raw,
+		RoutingGridModel::sourceChannels(workingAssignments, deviceChannels, portModel.fixedSources)))
 		return;
-
-	if (raw.isEmpty())
-	{
-		// Clearing the factor removes the source chip, mirroring the
-		// crosspoint / patch-bay grids.
-		Assignment& a = workingAssignments[row];
-		a.sourceSum.erase(a.sourceSum.begin() + si);
-		refold();
-		emit routingChanged();
-		return;
-	}
-
-	Assignment::Summand& s = workingAssignments[row].sourceSum[si];
-	CopyRoutingAdapter::parseFactorToken(raw, s);
 	refold();
 	emit routingChanged();
 }
@@ -516,14 +501,8 @@ void BlockChipView::commitChannelEditor()
 
 	const QString name = channelEditor->text().trimmed();
 	channelEditor->hide();
-	if (!RoutingFold::isValidChannelName(name))
-		return;
-
-	// An existing channel just gets its block back; a new name becomes a
-	// virtual channel block. No routingChanged: a fresh target has no sum yet
-	// and the serializer skips empty targets.
-	CopyRoutingAdapter::ensureTargetChannel(workingAssignments, pinnedChannels, name);
-	refold();
+	if (RoutingGridModel::addChannel(workingAssignments, pinnedChannels, name))
+		refold();
 }
 
 RoutingView* BlockChipRoutingRenderer::create(const vector<Assignment>& assignments,

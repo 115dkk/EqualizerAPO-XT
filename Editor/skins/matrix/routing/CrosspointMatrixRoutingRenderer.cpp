@@ -15,6 +15,7 @@
 #include <QFontMetrics>
 
 #include "Editor/SkinManager.h"
+#include "Editor/widgets/routing/RoutingGridModel.h"
 
 using std::vector;
 
@@ -101,22 +102,6 @@ void CrosspointMatrixView::galleryShowcase(const QString& state)
 		if (channelEditor != nullptr)
 			channelEditor->setText(QStringLiteral("VS"));
 	}
-}
-
-Assignment& CrosspointMatrixView::rowAssignment(int outRow)
-{
-	return workingAssignments[rowMap[outRow]];
-}
-
-int CrosspointMatrixView::summandIndex(int outRow, const QString& channel) const
-{
-	if (outRow < 0 || outRow >= rowMap.size())
-		return -1;
-	const Assignment& a = workingAssignments[rowMap[outRow]];
-	for (int i = 0; i < (int)a.sourceSum.size(); ++i)
-		if (QString::fromStdWString(a.sourceSum[i].channel) == channel)
-			return i;
-	return -1;
 }
 
 QRect CrosspointMatrixView::cellRect(int outRow, int inCol) const
@@ -342,10 +327,7 @@ void CrosspointMatrixView::mousePressEvent(QMouseEvent* event)
 		if (!removeRects[r].isNull() && removeRects[r].contains(event->pos()))
 		{
 			const QString channel = matrix.outputs[r];
-			for (int i = pinnedChannels.size() - 1; i >= 0; i--)
-				if (pinnedChannels[i].compare(channel, Qt::CaseInsensitive) == 0)
-					pinnedChannels.removeAt(i);
-			const bool changed = RoutingFold::removeChannel(workingAssignments, channel);
+			const bool changed = RoutingGridModel::removeChannel(workingAssignments, pinnedChannels, channel);
 			rebuildMatrix();
 			if (changed)
 				emit routingChanged();
@@ -369,8 +351,8 @@ void CrosspointMatrixView::mousePressEvent(QMouseEvent* event)
 		return;
 
 	const QString channel = matrix.inputs[inCol];
-	const int idx = summandIndex(outRow, channel);
-	Assignment& a = rowAssignment(outRow);
+	const int idx = RoutingGridModel::summandIndex(workingAssignments[rowMap[outRow]], channel);
+	Assignment& a = workingAssignments[rowMap[outRow]];
 	if (idx >= 0)
 	{
 		// Toggle off.
@@ -477,38 +459,9 @@ void CrosspointMatrixView::commitEditor()
 	QString raw = editor->text().trimmed();
 	editor->hide();
 
-	if (channel.isEmpty() || outRow >= rowMap.size())
+	if (!RoutingGridModel::commitFactor(workingAssignments, rowMap.value(outRow, -1),
+		channel, raw, portModel.allowFactors))
 		return;
-
-	Assignment& a = rowAssignment(outRow);
-	const int idx = summandIndex(outRow, channel);
-
-	if (raw.isEmpty())
-	{
-		if (idx >= 0)
-			a.sourceSum.erase(a.sourceSum.begin() + idx);
-		rebuildMatrix();
-		emit routingChanged();
-		return;
-	}
-
-	Assignment::Summand parsed;
-	if (!CopyRoutingAdapter::parseFactorToken(raw, parsed))
-		return;
-
-	if (idx >= 0)
-	{
-		a.sourceSum[idx].factor = parsed.factor;
-		a.sourceSum[idx].isDecibel = parsed.isDecibel;
-	}
-	else
-	{
-		Assignment::Summand s;
-		s.factor = parsed.factor;
-		s.isDecibel = parsed.isDecibel;
-		s.channel = channel.toStdWString();
-		a.sourceSum.push_back(s);
-	}
 	rebuildMatrix();
 	emit routingChanged();
 }
@@ -537,14 +490,8 @@ void CrosspointMatrixView::commitChannelEditor()
 
 	const QString name = channelEditor->text().trimmed();
 	channelEditor->hide();
-	if (!RoutingFold::isValidChannelName(name))
-		return;
-
-	// An existing channel just gets pinned onto the board; a new name becomes
-	// a virtual bus row. No routingChanged: a fresh target has no sum yet and
-	// the serializer skips empty targets.
-	CopyRoutingAdapter::ensureTargetChannel(workingAssignments, pinnedChannels, name);
-	rebuildMatrix();
+	if (RoutingGridModel::addChannel(workingAssignments, pinnedChannels, name))
+		rebuildMatrix();
 }
 
 RoutingView* CrosspointMatrixRoutingRenderer::create(const vector<Assignment>& assignments,

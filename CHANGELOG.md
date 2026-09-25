@@ -39,6 +39,34 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   with the font it draws in
   ([#393](https://github.com/115dkk/EqualizerAPO-XT/pull/393)).
 
+## v2.54.20 — 2026-09-25
+
+- **Copy routing edits follow one rule in every skin.** In the studio skin
+  the factor editor refused `INV`, which the other skins accept, and took
+  `inf` and `nan`, which are not numbers a filter can use. In the soft skin,
+  text that could not be read as a factor left the chip unchanged but still
+  marked the configuration as changed. All five skins now commit factor
+  edits, added channels and removed channels through one shared model, so
+  studio accepts `INV` and refuses non-finite values, and soft no longer
+  reports a change when nothing changed
+  ([#390](https://github.com/115dkk/EqualizerAPO-XT/pull/390)). The gallery
+  renders every scene as before.
+
+## v2.54.19 — 2026-09-25
+
+- **The installer no longer grants permissions recursively, as
+  administrator, on a folder a standard user can change.** EqualizerAPO-XT
+  installs per user under `%LocalAppData%`. When a standard user installed
+  or updated it with an administrator approving the prompt, the elevated
+  install step walked that user's folder with `icacls /T` to let the audio
+  service read it. A link placed in the folder during that walk could carry
+  the grant to another folder. The Editor now grants the audio service and
+  users access to its own install folder as the user who owns it, before
+  asking for elevation, and the elevated step skips its recursive grants
+  when that worked. When the install starts already elevated, nothing
+  changes ([#387](https://github.com/115dkk/EqualizerAPO-XT/pull/387)). This was checked with unit tests; an install approved by
+  a second, administrator account was not run.
+
 ## v2.54.18 — 2026-09-25
 
 - **The configuration folder lands in the installing user's profile.** When

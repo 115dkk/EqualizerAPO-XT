@@ -61,6 +61,7 @@ public:
         std::wstring outcome;
         std::wstring migratedFrom;
         std::wstring migratedFiles;
+        bool installGrantsPrepared = false;
     };
     // File work is forbidden when elevated. The returned action is a hint,
     // not authority: recordPreparedHookStep reclassifies the current HKLM value.

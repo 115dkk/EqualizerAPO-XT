@@ -40,7 +40,7 @@ StudioRoutingView::StudioRoutingView(const vector<Assignment>& assignments,
 	// even if their last trace is deleted.
 	pinnedChannels(RoutingFold::referencedTargets(assignments))
 {
-	StudioRoutingModel::PortConfig config;
+	RoutingGridModel::PortConfig config;
 	config.fixedSources = portModel.fixedSources;
 	config.allowFactors = portModel.allowFactors;
 	model.load(assignments, channelNames, config);
@@ -113,7 +113,7 @@ void StudioRoutingView::relayout()
 	hiddenOutputs = 0;
 	QVector<bool> inputLit(inputPorts.size(), false);
 	QVector<bool> outputLit(outputPorts.size(), false);
-	for (const StudioRoutingModel::Trace& trace : model.traces())
+	for (const RoutingGridModel::Trace& trace : model.traces())
 	{
 		if (trace.input >= 0 && trace.input < inputLit.size())
 			inputLit[trace.input] = true;
@@ -209,11 +209,11 @@ void StudioRoutingView::relayout()
 	// traces that converge on one output (the 0.28..0.72 spread).
 	traceShapes.clear();
 	QHash<int, int> perOutput;
-	for (const StudioRoutingModel::Trace& trace : model.traces())
+	for (const RoutingGridModel::Trace& trace : model.traces())
 		if (trace.input >= 0)
 			perOutput[trace.output]++;
 	QHash<int, int> seen;
-	for (const StudioRoutingModel::Trace& trace : model.traces())
+	for (const RoutingGridModel::Trace& trace : model.traces())
 	{
 		TraceShape shape;
 		if (trace.input >= 0 && trace.input < inputRects.size()
@@ -339,7 +339,7 @@ void StudioRoutingView::paintEvent(QPaintEvent*)
 		}
 	};
 
-	const QVector<StudioRoutingModel::Trace>& traces = model.traces();
+	const QVector<RoutingGridModel::Trace>& traces = model.traces();
 	for (int pass = 0; pass < 3; pass++)
 	{
 		for (int i = 0; i < traceShapes.size(); i++)
@@ -360,7 +360,7 @@ void StudioRoutingView::paintEvent(QPaintEvent*)
 	// is how the top-to-bottom flow states its direction (no arrowheads).
 	QVector<bool> inputLit(inputRects.size(), false);
 	QVector<bool> outputLit(outputRects.size(), false);
-	for (const StudioRoutingModel::Trace& trace : traces)
+	for (const RoutingGridModel::Trace& trace : traces)
 	{
 		if (trace.input >= 0 && trace.input < inputLit.size())
 			inputLit[trace.input] = true;
@@ -619,7 +619,7 @@ int StudioRoutingView::traceAt(const QPoint& pos) const
 
 bool StudioRoutingView::chipHasTrace(bool inputRow, int index) const
 {
-	for (const StudioRoutingModel::Trace& trace : model.traces())
+	for (const RoutingGridModel::Trace& trace : model.traces())
 		if ((inputRow && trace.input == index)
 			|| (!inputRow && trace.output == index))
 			return true;
@@ -641,9 +641,7 @@ void StudioRoutingView::mousePressEvent(QMouseEvent* event)
 	if (!removeRect.isNull() && removeRect.contains(event->pos()) && removeChip >= 0)
 	{
 		const QString channel = model.outputPorts().value(removeChip);
-		for (int i = pinnedChannels.size() - 1; i >= 0; i--)
-			if (pinnedChannels[i].compare(channel, Qt::CaseInsensitive) == 0)
-				pinnedChannels.removeAt(i);
+		RoutingGridModel::removePin(pinnedChannels, channel);
 		const bool changed = model.removeChannel(channel);
 		selectedTraces.clear();
 		hoveredTrace = -1;
@@ -775,7 +773,7 @@ void StudioRoutingView::mouseReleaseEvent(QMouseEvent* event)
 
 	// Plain click: select every trace touching this chip.
 	selectedTraces.clear();
-	const QVector<StudioRoutingModel::Trace>& traces = model.traces();
+	const QVector<RoutingGridModel::Trace>& traces = model.traces();
 	for (int i = 0; i < traces.size(); i++)
 		if ((fromInput && traces[i].input == fromChip)
 			|| (!fromInput && traces[i].output == fromChip))
@@ -832,7 +830,7 @@ void StudioRoutingView::changeEvent(QEvent* event)
 
 void StudioRoutingView::openFactorEditor(int trace)
 {
-	const QVector<StudioRoutingModel::Trace>& traces = model.traces();
+	const QVector<RoutingGridModel::Trace>& traces = model.traces();
 	if (trace < 0 || trace >= traces.size())
 		return;
 
@@ -851,7 +849,7 @@ void StudioRoutingView::openFactorEditor(int trace)
 		const QPointF center = traceShapes.value(trace).path.pointAtPercent(0.5);
 		rect = QRectF(center.x() - sc(28), center.y() - sc(11), sc(56), sc(22));
 	}
-	const StudioRoutingModel::Trace& data = traces[trace];
+	const RoutingGridModel::Trace& data = traces[trace];
 	factorEditor->setGeometry(rect.toRect().adjusted(-sc(4), -sc(2), sc(4), sc(2)));
 	factorEditor->setText(QString::number(data.factor) + (data.isDecibel ? QStringLiteral(" dB") : QString()));
 	factorEditor->show();
@@ -870,7 +868,8 @@ void StudioRoutingView::commitFactorEditor()
 	const QString text = factorEditor->text();
 	factorEditor->hide();
 
-	model.setFactorText(trace, text);
+	if (!model.setFactorText(trace, text))
+		return;
 	selectedTraces.clear();
 	hoveredTrace = -1;
 	relayout();
@@ -899,15 +898,8 @@ void StudioRoutingView::commitChannelEditor()
 
 	const QString name = channelEditor->text().trimmed();
 	channelEditor->hide();
-	if (!RoutingFold::isValidChannelName(name))
-		return;
-
-	// No routingChanged: a fresh output has no sum yet, and the serializer
-	// skips empty targets. Pinning keeps the new chip lit while it has no
-	// trace yet.
-	model.addOutput(name);
-	CopyRoutingAdapter::pinChannel(pinnedChannels, name);
-	relayout();
+	if (model.addChannel(pinnedChannels, name))
+		relayout();
 }
 
 RoutingView* LightTraceRoutingRenderer::create(const vector<Assignment>& assignments,

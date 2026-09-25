@@ -712,6 +712,89 @@ int SkinGallery::runRoutingEditTest()
 		}
 	}
 
+	// Shared routing commit contract, through each renderer's real editor:
+	// rejected input must not notify the host, not just retain the bytes.
+	for (ISkin* skin : Skins::all())
+	{
+		const QString name = skin->id();
+		SkinManager::instance()->applySkin(name, true);
+		QScrollArea scrollArea;
+		scrollArea.resize(960, 720);
+		QList<FilterCardRow*> rows = buildRows(scrollArea, configPath,
+			{ QStringLiteral("Copy: VC=0.5*L") }, stereo, 0x3);
+		RoutingView* view = rows.size() == 1 ? liveView(rows[0]) : nullptr;
+		if (!check(view != nullptr, QStringLiteral("%1: routing commit view missing").arg(name)))
+			continue;
+
+		int notifications = 0;
+		const QMetaObject::Connection connection = QObject::connect(view, &RoutingView::routingChanged,
+			view, [&notifications]() { notifications++; });
+		const auto commit = [&](const QString& text) {
+			view->grab();
+			QLineEdit* editor = nullptr;
+			// Hit rectangles belong to the skin. Find its real double-click
+			// target without duplicating that geometry in the gate or moving
+			// the desktop pointer. No preceding press toggles a grid cell.
+			for (int y = 2; y < view->height() && editor == nullptr; y += 4)
+				for (int x = 2; x < view->width() && editor == nullptr; x += 4)
+				{
+					const QPointF local(x, y);
+					QMouseEvent event(QEvent::MouseButtonDblClick, local,
+						QPointF(view->mapToGlobal(local.toPoint())), Qt::LeftButton,
+						Qt::LeftButton, Qt::NoModifier);
+					QApplication::sendEvent(view, &event);
+					for (QLineEdit* candidate : view->findChildren<QLineEdit*>())
+						if (candidate->isVisible())
+							editor = candidate;
+				}
+			if (!check(editor != nullptr, QStringLiteral("%1: routing editor did not open").arg(name)))
+				return;
+			editor->setText(text);
+			pressEnter(editor);
+			settle();
+		};
+		for (const QString& invalid : { QStringLiteral("inf"), QStringLiteral("bad*L") })
+		{
+			const QString before = lineText(scrollArea, 0);
+			// A bare word is a channel in the step-list grammar, so qualify
+			// infinity as a factor there rather than testing a valid name.
+			commit(name == QLatin1String("minimal") && invalid == QLatin1String("inf")
+				? QStringLiteral("inf*L") : invalid);
+			check(notifications == 0, QStringLiteral("%1: rejected routing text emitted a change").arg(name));
+			check(lineText(scrollArea, 0) == before,
+				QStringLiteral("%1: rejected routing text changed the line").arg(name));
+		}
+		commit(QStringLiteral("INV"));
+		check(notifications == 1, QStringLiteral("%1: INV did not emit exactly one change").arg(name));
+		check(lineText(scrollArea, 0) == QStringLiteral("Copy: VC=-1.0*L"),
+			QStringLiteral("%1: INV did not invert the source").arg(name));
+		if (name == QLatin1String("soft") || name == QLatin1String("minimal"))
+		{
+			commit(QStringLiteral("L"));
+			check(lineText(scrollArea, 0) == QStringLiteral("Copy: VC=L"),
+				QStringLiteral("%1: re-entering a source did not restore unity").arg(name));
+		}
+		const int beforeAdd = notifications;
+		const QString lineBeforeAdd = lineText(scrollArea, 0);
+		for (const QString& channel : { QStringLiteral("NewBus"), QStringLiteral("newbus"), QStringLiteral("VC") })
+		{
+			view->galleryShowcase(QStringLiteral("addChannel"));
+			QApplication::processEvents();
+			QLineEdit* editor = qobject_cast<QLineEdit*>(QApplication::focusWidget());
+			if (!check(editor != nullptr, QStringLiteral("%1: channel editor missing").arg(name)))
+				break;
+			editor->setText(channel);
+			pressEnter(editor);
+			settle();
+		}
+		// Qt delivers routingChanged through the connected lambda during
+		// pressEnter/settle; cppcheck cannot see that callback write.
+		// cppcheck-suppress knownConditionTrueFalse
+		check(notifications == beforeAdd && lineText(scrollArea, 0) == lineBeforeAdd,
+			QStringLiteral("%1: empty channel additions changed the routing").arg(name));
+		QObject::disconnect(connection);
+	}
+
 	// Part 3: ALL releases on the next pick, in every skin, on both cards.
 	for (ISkin* skin : Skins::all())
 	{

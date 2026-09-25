@@ -11,6 +11,7 @@
 #include "CopyRoutingAdapter.h"
 #include "ChannelIdentity.h"
 #include "RoutingFold.h"
+#include "RoutingGridModel.h"
 
 #include <QSet>
 
@@ -49,17 +50,12 @@ void CopyRoutingAdapter::pinChannel(QStringList& pinnedChannels, const QString& 
 void CopyRoutingAdapter::ensureTargetChannel(std::vector<Assignment>& assignments,
 	QStringList& pinnedChannels, const QString& channel)
 {
-	for (const Assignment& assignment : assignments)
+	if (RoutingGridModel::rowIndexOf(assignments, channel) < 0)
 	{
-		if (QString::fromStdWString(assignment.targetChannel).compare(channel, Qt::CaseInsensitive) == 0)
-		{
-			pinChannel(pinnedChannels, channel);
-			return;
-		}
+		Assignment assignment;
+		assignment.targetChannel = channel.toStdWString();
+		assignments.push_back(assignment);
 	}
-	Assignment assignment;
-	assignment.targetChannel = channel.toStdWString();
-	assignments.push_back(assignment);
 	pinChannel(pinnedChannels, channel);
 }
 

@@ -113,6 +113,15 @@
     <ClCompile Include="SelectionModelTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="RoutingGridModelTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Editor\widgets\routing\RoutingGridModel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Editor\widgets\routing\CopyRoutingAdapter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="RoutingModelTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -154,6 +163,12 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Editor\widgets\routing\RoutingGridModel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Editor\widgets\routing\CopyRoutingAdapter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Benchmark\BatchPlan.h">
       <Filter>Header Files</Filter>
     </ClInclude>
