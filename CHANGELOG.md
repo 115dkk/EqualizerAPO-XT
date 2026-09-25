@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.14 — 2026-09-25
+
 - **ASIO: a late block no longer makes the output jump.** With the separate
   host process in pipelined mode, the output runs one block behind. When the
   host fell behind, the ASIO app got the current block's unprocessed input,
