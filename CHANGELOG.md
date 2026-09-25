@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.20 — 2026-09-25
+
 - **Copy routing edits follow one rule in every skin.** In the studio skin
   the factor editor refused `INV`, which the other skins accept, and took
   `inf` and `nan`, which are not numbers a filter can use. In the soft skin,
