@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.3 — 2026-09-25
+
 - **Benchmark.exe on ARM64 applies every filter in the configuration.** The
   ARM64 build was linked without the option that keeps every filter in the
   program, so filters nothing else in it referred to were left out and their
