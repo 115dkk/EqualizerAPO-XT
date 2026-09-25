@@ -19,6 +19,36 @@ them unset.
   skin-switch stopwatch gate in the gallery's `--skin-switch-storm`
   diagnostics (defaults live in `Editor/SkinGallery.cpp`; CI passes its own
   values in `build.yml`). Raise them when judging on a loaded machine.
+- `EAPO_MOVE_LIMIT_MS` / `EAPO_MOVE_WARN_MS` — the same budget for the
+  `--card-move-test` gate (a card move must not rebuild the whole list);
+  `Invoke-EditorOffscreenTest.ps1` passes CI's values.
+- `EAPO_ANALYSIS_LAYOUT_HOLD_MS` — keeps the Editor open that many
+  milliseconds (0 to 30000) after the analysis-dock layout test, so the
+  window can be captured.
+- `EAPO_GALLERY_LANG` — renders the gallery with a shipped translation
+  (for example `ko`) instead of the default untranslated English, to judge
+  translated typography.
+- `EAPO_GALLERY_VST2_PLUGIN` / `EAPO_GALLERY_VST3_PLUGIN` /
+  `EAPO_GALLERY_VST3_UPMIXER` — the test plug-ins the gallery's VST cards
+  load (`TestVst2Plugin`, `TestVst3Plugin`, and a copy of the latter named
+  `Upmixer.vst3`); `Invoke-EditorOffscreenTest.ps1` sets them.
+
+## Editor field switches
+
+- `EAPO_DISABLE_PANEL_FEED` — turns the VST panel's live preview off
+  entirely (no meters, no monitor), the Editor as it was before the feed.
+- `EAPO_DISABLE_PANEL_MONITOR` — keeps the panel's meters but never plays
+  the audio a plug-in generates on its own.
+
+Both are kill switches for the field and the control arms of the
+`vst3-preview-probe` A/B checks; unset, the Editor behaves as shipped.
+
+## ASIO
+
+- `EAPO_WASAPI_FORCE_BRIDGE` — an integer from 2 to 8: makes the WASAPI
+  exclusive target serve that many ASIO periods per device event from the
+  start, instead of deciding from the first events, to exercise that path
+  on a driver that does not need it.
 
 ## Tests
 
