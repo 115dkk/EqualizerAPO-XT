@@ -415,13 +415,6 @@ QString buildFileDialogFixture(const QDir& fixtureRoot)
 	return fixtureDir.absolutePath();
 }
 
-// A rendered toolbar is never one flat colour: buttons, combos and labels
-// cover a sizable share of the strip. A grab that matches its own corner
-// pixel almost everywhere means the controls were not painted - the
-// styled-background overlay regression (a full-size chrome overlay child
-// picking up the sheets' universal QWidget background rule and blanking
-// the whole strip) produced exactly this while every visibility flag,
-// geometry and child list stayed healthy.
 // Faithful chrome replica of MainWindow's toolbar: same object names, same
 // widget train, dummy data where the real one reads devices. The gallery
 // judges chrome, not data, and constructing the real toolbar would drag in

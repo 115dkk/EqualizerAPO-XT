@@ -58,8 +58,8 @@ int cellWidth(const QString& role, const QString& value)
 
 int latchWidth()
 {
-	// Wide enough for the busiest skin answer (rack's machined key: recess
-	// walls, a bezel LED and the engraved legend side by side).
+	// The rack treatment is the widest: its pilot LED, engraved FILL label and
+	// margins must fit side by side.
 	const SkinTokens& t = SkinManager::instance()->tokens();
 	QFont latchFont(t.fontFamily);
 	latchFont.setPixelSize(9);
