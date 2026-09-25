@@ -175,11 +175,6 @@ void CopyFilter::process(double** output, double** input, unsigned frameCount)
 }
 #pragma AVRT_CODE_END
 
-const std::vector<Assignment>& CopyFilter::getAssignments() const
-{
-	return assignments;
-}
-
 std::vector<Assignment> parseCopyAssignments(const wstring& parameters)
 {
 	// One parse shared by the engine factory and the Editor GUI factory; the
@@ -227,15 +222,18 @@ std::vector<Assignment> parseCopyAssignments(const wstring& parameters)
 				}
 				else
 				{
-					// Audit #250 F015: BiQuad/Preamp/Delay normalize the decimal
-					// comma; a raw wcstod here silently truncated "0,5" to 0.
-					summand.factor = wcstod(numeric_text::normalizeDecimalComma(factor).c_str(), nullptr);
+					// Audit #250 F015 and #348 TD-42: the decimal comma and the C
+					// locale come with numeric_text; a text that starts with no
+					// number is dropped like a non-finite one instead of reading
+					// as 0.
+					const numeric_text::Number number = numeric_text::readNumber(factor);
+					summand.factor = number.value;
 					summand.isDecibel = factor.size() > 2 && text::toLower(factor.substr(factor.size() - 2)) == L"db";
 					const double linearFactor = summand.isDecibel
 						? pow(10.0, summand.factor / 20.0) : summand.factor;
-					if (!std::isfinite(summand.factor) || !std::isfinite(linearFactor))
+					if (number.length == 0 || !std::isfinite(linearFactor))
 					{
-						LogFStatic(L"Copy factor %s for target %s must be finite; ignoring assignment",
+						LogFStatic(L"Copy factor %s for target %s must be a finite number; ignoring assignment",
 							factor.c_str(), target.c_str());
 						validAssignment = false;
 						break;

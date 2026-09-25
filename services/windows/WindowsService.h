@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "platform/windows/Win32Resource.h"
+#include "runtime/errors/WideError.h"
 
 class WindowsServiceControl
 {
@@ -48,19 +49,11 @@ private:
 	std::wstring serviceName;
 };
 
-class WindowsServiceError
+class WindowsServiceError : public WideError
 {
 public:
 	WindowsServiceError(const std::wstring& message)
-		: message(message)
+		: WideError(message)
 	{
 	}
-
-	const std::wstring& getMessage() const
-	{
-		return message;
-	}
-
-private:
-	std::wstring message;
 };

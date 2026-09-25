@@ -228,6 +228,5 @@ private:
 	std::mutex loadMutex;
 	PrecisionTimer timer;
 	std::thread notificationWorker;
-	bool lastInputWasSilent;
 };
 #pragma AVRT_VTABLES_END

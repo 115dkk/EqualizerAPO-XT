@@ -33,6 +33,19 @@ the multi-step sequence without every caller threading a status code back up by
 hand. The cost of throwing does not matter here because nothing real-time is
 running.
 
+The thrown types share one base, `WideError` (`runtime/errors/WideError.h`):
+`RegistryError`, `DeviceException`, `WindowsServiceError`,
+`AccessQueryException`, DeviceSelector's `ReceiveException` and
+VoicemeeterClient's `InitError`. It derives from `std::exception`, keeps the
+wide message for `getMessage()` and gives `what()` the same text in UTF-8. The
+device adapters' `install`, `uninstall` and `reinstall` (`AbstractAPOInfo`)
+throw only `RegistryError` or `DeviceException`, so a caller that does not care
+which catches `const WideError&`. Before audit #348 (C1/TD-32) the types had no
+common base, and four call sites of the same three operations caught three
+different combinations. The endpoint and ASIO adapters run each operation in a
+`RegistryTransaction` through `ReportedOperation::run`, which rolls back and
+fills the `DeviceInstallReport` before the exception reaches the caller.
+
 ### Install/uninstall orchestration returns a `Result` enum
 
 `ApoRegistration::install` and `ApoRegistration::uninstall` return
