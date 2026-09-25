@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.15 — 2026-09-25
+
 - **The subwoofer routing screens show the same numbers.** With no device
   selected, the card and the response graph assumed 48 kHz for the headroom
   trim, while the editor dialog showed "Unavailable"; all three now show the
