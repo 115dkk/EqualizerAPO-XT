@@ -184,8 +184,8 @@ void scanConfigFile(ImportManifest& manifest,
             else if (!manifest.externalReferences.contains(reference))
                 manifest.externalReferences.append(reference);
 
-            // Plugin binaries are machine-installed dependencies. Preserve the
-            // config line verbatim, but never copy the binary into config.
+            // VST libraries remain external: record the Library value for
+            // diagnostics, but do not add the binary as a copy item.
             continue;
         }
 

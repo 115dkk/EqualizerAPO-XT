@@ -509,8 +509,8 @@ int main(int argc, char* argv[])
 		if (!systemRegistry().keyExists(EDITOR_PER_FILE_REGPATH))
 			systemRegistry().createKey(EDITOR_PER_FILE_REGPATH);
 
-		// Both probes start from a clean window: no saved geometry, layout or
-		// open files, so a capture depends on the config alone.
+		// The analysis-layout and window-shot probes ignore saved geometry, dock
+		// layout and open files, then load only the positional config.
 		const bool analysisLayoutTestRequested =
 			application.arguments().contains(QStringLiteral("--analysis-layout-test"))
 			|| application.arguments().contains(QStringLiteral("--window-shot"));

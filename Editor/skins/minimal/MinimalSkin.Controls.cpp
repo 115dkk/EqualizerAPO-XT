@@ -25,8 +25,7 @@ namespace
 // rule), secondary (crown lines, window rules, the detent), travelled ink
 // (reading line and position tick: body text, accent while dragging,
 // secondary when disabled), promoted figure (one step above body text:
-// white on the dark console, full black on the light paper; mode is read
-// off the background's value because SkinTokens carries no dark flag).
+// white on the dark console and full black on the light paper).
 struct KnobInk
 {
 	QColor hairline;
