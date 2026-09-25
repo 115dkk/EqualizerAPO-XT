@@ -17,7 +17,7 @@
 
 #include "Editor/import/LegacyMigration.h"
 #include "services/registry/RegistryPaths.h"
-#include "Tests/EngineOrchestrationTests/FakeRegistry.h"
+#include "Tests/FakeRegistry.h"
 
 namespace
 {

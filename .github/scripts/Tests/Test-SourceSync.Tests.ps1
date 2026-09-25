@@ -57,6 +57,13 @@ $items
 "@
         # UTF-8 with BOM, like the real file.
         [System.IO.File]::WriteAllText((Join-Path $root 'Common.vcxproj'), $vcxproj, (New-Object System.Text.UTF8Encoding($true)))
+        # Every project's entries must exist on disk (audit #348 TD-74), so the
+        # fixture carries the sources Common.vcxproj lists.
+        foreach ($source in $allCommon) {
+            $sourcePath = Join-Path $root $source
+            New-Item -ItemType Directory -Path (Split-Path -Parent $sourcePath) -Force | Out-Null
+            [System.IO.File]::WriteAllText($sourcePath, '')
+        }
 
         # A qmake SOURCES block: tab-indented continuation lines, Editor-local
         # entries mixed in, and a final line without the trailing backslash.
@@ -68,6 +75,21 @@ $items
         [System.IO.File]::WriteAllLines((Join-Path $root 'Editor' 'Editor.pro'), $lines)
 
         return $root
+    }
+
+    function Write-Project {
+        param([string]$Path, [string[]]$Includes)
+        New-Item -ItemType Directory -Path (Split-Path -Parent $Path) -Force | Out-Null
+        $items = ($Includes | ForEach-Object { '    <ClCompile Include="' + $_ + '" />' }) -join "`r`n"
+        $xml = @"
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+$items
+  </ItemGroup>
+</Project>
+"@
+        [System.IO.File]::WriteAllText($Path, $xml, (New-Object System.Text.UTF8Encoding($true)))
     }
 
     function Invoke-SourceSync {
@@ -202,6 +224,53 @@ Describe "Test-SourceSync.ps1" {
 
         $result.ExitCode | Should -Be 0
         $result.Output | Should -Match "listed sources and headers all exist"
+    }
+
+    It "checks every project in the tree, not only the test suites" {
+        $root = New-FixtureRepo -CommonSources @('FilterEngine.cpp') -EditorSources @('../FilterEngine.cpp')
+        Write-Project -Path (Join-Path $root 'Benchmark' 'Benchmark.vcxproj') -Includes @('Benchmark.cpp')
+        $result = Invoke-SourceSync -RepoRoot $root
+
+        $result.ExitCode | Should -Not -Be 0
+        $result.Output | Should -Match ([regex]::Escape("Benchmark/Benchmark.vcxproj lists Benchmark.cpp, which is not on disk"))
+    }
+
+    It "reports an entry a project lists twice" {
+        $root = New-FixtureRepo -CommonSources @('FilterEngine.cpp') -EditorSources @('../FilterEngine.cpp')
+        $projectDir = Join-Path $root 'Tests' 'EditorLogicTests'
+        Write-Project -Path (Join-Path $projectDir 'EditorLogicTests.vcxproj') -Includes @('Suite.cpp', '..\..\FilterEngine.cpp', '..\..\filterengine.cpp')
+        [System.IO.File]::WriteAllText((Join-Path $projectDir 'Suite.cpp'), '')
+        $result = Invoke-SourceSync -RepoRoot $root
+
+        $result.ExitCode | Should -Not -Be 0
+        $result.Output | Should -Match "twice"
+    }
+
+    It "reports a .filters entry its project does not list" {
+        $root = New-FixtureRepo -CommonSources @('FilterEngine.cpp') -EditorSources @('../FilterEngine.cpp')
+        Write-Project -Path (Join-Path $root 'Common.vcxproj.filters') -Includes @('FilterEngine.cpp', 'Removed.cpp')
+        $result = Invoke-SourceSync -RepoRoot $root
+
+        $result.ExitCode | Should -Not -Be 0
+        $result.Output | Should -Match ([regex]::Escape("Common.vcxproj.filters groups Removed.cpp"))
+    }
+
+    It "reports a .filters file whose project is gone" {
+        $root = New-FixtureRepo -CommonSources @('FilterEngine.cpp') -EditorSources @('../FilterEngine.cpp')
+        Write-Project -Path (Join-Path $root 'DeviceSelector' 'DeviceSelector.vcxproj.filters') -Includes @('main.cpp')
+        $result = Invoke-SourceSync -RepoRoot $root
+
+        $result.ExitCode | Should -Not -Be 0
+        $result.Output | Should -Match "which is not in the repository"
+    }
+
+    It "passes when a .filters file groups a subset of its project" {
+        $root = New-FixtureRepo -CommonSources @('FilterEngine.cpp', 'Other.cpp') -EditorSources @('../FilterEngine.cpp', '../Other.cpp')
+        Write-Project -Path (Join-Path $root 'Common.vcxproj.filters') -Includes @('FilterEngine.cpp')
+        $result = Invoke-SourceSync -RepoRoot $root
+
+        $result.ExitCode | Should -Be 0
+        $result.Output | Should -Match "list only their projects' entries"
     }
 
     It "refuses to pass when it could not read any ClCompile entry" {

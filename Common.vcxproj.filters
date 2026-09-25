@@ -441,9 +441,6 @@
     <ClCompile Include="services\registry\ClsidRegistration.cpp">
       <Filter>services</Filter>
     </ClCompile>
-    <ClCompile Include="services\registry\IRegistry.cpp">
-      <Filter>services</Filter>
-    </ClCompile>
     <ClCompile Include="services\registry\RegistryTransaction.cpp">
       <Filter>services</Filter>
     </ClCompile>
@@ -525,6 +522,7 @@
     <ClCompile Include="devices\VoicemeeterAPOInfo.cpp" />
     <ClCompile Include="devices\AbstractAPOInfo.cpp" />
     <ClCompile Include="engine\ConfigurationFileReader.cpp" />
+    <ClCompile Include="devices\ApoRuntimeFacts.cpp" />
     <ClCompile Include="devices\DeviceAPOInfo.cpp" />
     <ClCompile Include="devices\DeviceAPOInfo.Install.cpp" />
     <ClCompile Include="devices\DeviceAPOInfo.Load.cpp" />

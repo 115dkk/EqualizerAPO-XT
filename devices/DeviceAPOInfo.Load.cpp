@@ -19,6 +19,7 @@
 #include "DeviceAPOInfoKeys.h"
 
 #include "services/registry/WindowsRegistry.h"
+#include "services/logging/Logging.h"
 #include "platform/windows/WindowsVersion.h"
 #include "asio/AsioRegistration.h"
 #include "asio/WrapperRecord.h"
@@ -31,6 +32,23 @@ using std::wstring;
 
 bool DeviceAPOInfo::load(const wstring& deviceGuid, wstring defaultDeviceGuid)
 {
+	if (!loadFromRegistry(deviceGuid))
+		return false;
+
+	if (defaultDeviceGuid == L"")
+		defaultDeviceGuid = getDefaultDevice(input);
+
+	GUID guid1, guid2;
+	if (SUCCEEDED(CLSIDFromString(deviceGuid.c_str(), &guid1)) && SUCCEEDED(CLSIDFromString(defaultDeviceGuid.c_str(), &guid2)))
+		defaultDevice = (guid1 == guid2) != 0;
+	else
+		defaultDevice = false;
+	return true;
+}
+
+bool DeviceAPOInfo::loadFromRegistry(const wstring& deviceGuid)
+{
+	defaultDevice = false;
 	wstring keyPath;
 	if (registry.keyExists(renderKeyPath L"\\" + deviceGuid))
 	{
@@ -75,15 +93,6 @@ bool DeviceAPOInfo::load(const wstring& deviceGuid, wstring defaultDeviceGuid)
 	}
 	if (channelMask == 0 && registry.valueExists(keyPath + L"\\Properties", channelMaskValueName))
 		channelMask = registry.readDWORDValue(keyPath + L"\\Properties", channelMaskValueName);
-
-	if (defaultDeviceGuid == L"")
-		defaultDeviceGuid = getDefaultDevice(input);
-
-	GUID guid1, guid2;
-	if (SUCCEEDED(CLSIDFromString(deviceGuid.c_str(), &guid1)) && SUCCEEDED(CLSIDFromString(defaultDeviceGuid.c_str(), &guid2)))
-		defaultDevice = (guid1 == guid2) != 0;
-	else
-		defaultDevice = false;
 
 	enhancementsDisabled = false;
 	if (registry.keyExists(keyPath + L"\\FxProperties") && registry.valueExists(keyPath + L"\\FxProperties", disableEnhancementsValueName))
@@ -263,13 +272,22 @@ bool DeviceAPOInfo::load(const wstring& deviceGuid, wstring defaultDeviceGuid)
 
 	// The ASIO entry is the endpoint's own wrapper record, keyed by the
 	// CLSID derived from the endpoint GUID; a driver record could never
-	// carry that CLSID, so the kind check is belt and braces.
+	// carry that CLSID, so the kind check is belt and braces. A record that
+	// cannot be read reads as no entry: it used to throw away everything
+	// read above, the APO's child APO and capture flag included (audit #348
+	// TD-47).
+	try
 	{
 		eapo::asio::WrapperRecord record;
 		currentInstallState.asioEntry = eapo::asio::WrapperRecords::read(registry, eapo::asio::AsioRegistration::wrapperClsidFor(deviceGuid), record)
 			&& record.targetKind == eapo::asio::TargetKind::WasapiExclusive;
 		if (currentInstallState.asioEntry)
 			currentInstallState.asioEntryOptions = eapo::asio::WrapperRecords::entryOptions(record);
+	}
+	catch (const RegistryError& e)
+	{
+		currentInstallState.asioEntry = false;
+		LogFStatic(L"Could not read the ASIO entry of endpoint %s: %s", deviceGuid.c_str(), e.getMessage().c_str());
 	}
 
 	return true;

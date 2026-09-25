@@ -3,9 +3,6 @@
   <ItemGroup>
     <ClCompile Include="Benchmark.cpp" />
     <ClCompile Include="..\stdafx.cpp" />
-    <ClCompile Include="..\runtime\memory\AlignedMemory.cpp">
-      <Filter>shared modules</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BatchPlan.h" />
