@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.11 — 2026-09-25
+
 - **Lines below a `MultiConvolution` line can select the channels it
   creates in the Editor.** A `MultiConvolution` line that writes to a new
   channel, such as `Wet=0`, creates that channel in the engine, but the

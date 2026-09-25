@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.54.11 — 2026-09-25
+
 - **Editor에서 `MultiConvolution` 줄이 만든 채널을 아래 줄이 고를 수
   있습니다.** `Wet=0`처럼 새 채널에 쓰는 `MultiConvolution` 줄은 엔진에서 그
   채널을 만들지만, Editor에서 그 아래 줄의 채널 선택기에는 나타나지
