@@ -40,6 +40,8 @@
 #include "platform/windows/ProcessCommandLine.h"
 #include "devices/DeviceAPOInfoKeys.h"
 #include "engine/ConfigLoadTrace.h"
+#include "engine/IFilterFactory.h"
+#include "filters/FilterFactoryRegistry.h"
 #include "runtime/WeakValueCache.h"
 #include "engine/FilterEngine.h"
 #include "engine/ConfigSwapChannel.h"
@@ -1214,6 +1216,123 @@ void testParseErrorsAreReportedPerLineAndProseIsNot(test::Harness& harness)
 		"a configuration with eight unusable lines still loads, because the working lines below them have to run");
 }
 
+// A filter whose setup throws, for the one test below. Registered like any
+// factory, so every engine in this process has it; no other config names it.
+class ThrowingSetupFilter : public IFilter
+{
+public:
+	std::vector<std::wstring> initialize(float, unsigned, std::vector<std::wstring>) override
+	{
+		throw std::runtime_error("the test filter refuses to set up");
+	}
+
+	void process(double**, double**, unsigned) override
+	{
+	}
+};
+
+class ThrowingSetupFactory : public IFilterFactory
+{
+public:
+	FilterVector createFilter(const std::wstring&, std::wstring& command, std::wstring&) override
+	{
+		if (command != L"EapoTestThrowOnSetup")
+			return {};
+		return singleFilter(makeFilter<ThrowingSetupFilter>());
+	}
+};
+
+REGISTER_FILTER_FACTORY(1000, ThrowingSetupFactory, L"EapoTestThrowOnSetup")
+
+struct TraceCollector : ConfigLoadTraceSink
+{
+	std::vector<ConfigLoadTraceEntry> entries;
+	void addEntry(const ConfigLoadTraceEntry& entry) override
+	{
+		entries.push_back(entry);
+	}
+};
+
+// Audit #348 TD-18: a filter that throws while being set up rolls the whole
+// load back, as before, and now names the line it came from.
+void testFilterSetupFailureNamesItsLine(test::Harness& harness)
+{
+	const std::wstring good = writeConfig(harness, L"setup-good.txt", "Preamp: -6.0206 dB\n");
+	const std::wstring bad = writeConfig(harness, L"setup-bad.txt",
+		"Preamp: -20 dB\n"               // line 1: fine
+		"EapoTestThrowOnSetup: now\n");  // line 2: its filter throws in initialize
+
+	FilterEngine engine;
+	initializeEngine(engine, 48000, 2, 480, good);
+	TraceCollector collector;
+	engine.setLoadTraceSink(&collector);
+
+	harness.expectFalse(engine.loadConfig(bad), "a load whose filter cannot be set up fails as a whole");
+	const ConfigLoadTraceEntry* setup = nullptr;
+	for (const ConfigLoadTraceEntry& entry : collector.entries)
+	{
+		if (entry.kind == ConfigLoadTraceEntry::Kind::SetupError)
+			setup = &entry;
+	}
+	harness.require(setup != nullptr, "the failure is on the load trace");
+	harness.expectEqual(setup->line, 2, "on the line whose filter threw");
+	harness.expect(setup->file == bad, "in the file it is in");
+	harness.expect(setup->error, "flagged as an error");
+	harness.expect(setup->text.find(L"the test filter refuses to set up") != std::wstring::npos,
+		"carrying the reason the filter gave");
+
+	const std::vector<float> after = processDcBlock(engine, 1.0f, 1.0f, 480);
+	harness.expect(std::fabs(after[0] - 0.5f) < 1e-3f, "and the previous configuration keeps running");
+}
+
+// Audit #348 TD-18: these reached only the log; now they are on the line.
+void testControlFlowAndStageMistakesAreReported(test::Harness& harness)
+{
+	const std::wstring configPath = writeConfig(harness, L"control-mistakes.txt",
+		"Stage: pre-mix premix\n"  // line 1: one unknown stage among known ones
+		"ElseIf: 1\n"              // line 2: no If before it
+		"Else:\n"                  // line 3: no If before it
+		"EndIf:\n"                 // line 4: no If before it
+		"If: 1\n"                  // line 5: never closed
+		"Preamp: -3 dB\n");        // line 6
+
+	FilterEngine engine;
+	TraceCollector collector;
+	engine.setLoadTraceSink(&collector);
+	initializeEngine(engine, 48000, 2, 480, configPath);
+
+	std::vector<int> lines;
+	for (const ConfigLoadTraceEntry& entry : collector.entries)
+	{
+		if (entry.kind == ConfigLoadTraceEntry::Kind::ParseError)
+			lines.push_back(entry.line);
+	}
+	harness.requireEqual(lines.size(), size_t(5), "an unknown stage, three strays and the unclosed If");
+	harness.expectEqual(lines[0], 1, "the unknown stage on its line");
+	harness.expectEqual(lines[1], 2, "the stray ElseIf on its line");
+	harness.expectEqual(lines[2], 3, "the stray Else on its line");
+	harness.expectEqual(lines[3], 4, "the stray EndIf on its line");
+	harness.expectEqual(lines[4], 5, "the unclosed If on its own line, where the Editor has a row for it");
+}
+
+void testIncludeRecursionLimitIsReported(test::Harness& harness)
+{
+	const std::wstring configPath = writeConfig(harness, L"self-include.txt", "Include: self-include.txt\n");
+
+	FilterEngine engine;
+	TraceCollector collector;
+	engine.setLoadTraceSink(&collector);
+	initializeEngine(engine, 48000, 2, 480, configPath);
+
+	size_t reports = 0;
+	for (const ConfigLoadTraceEntry& entry : collector.entries)
+	{
+		if (entry.kind == ConfigLoadTraceEntry::Kind::ParseError && entry.text.find(L"nested") != std::wstring::npos)
+			reports++;
+	}
+	harness.expectEqual(reports, size_t(1), "the include that hits the nesting limit is reported once");
+}
+
 void testConfigReferencedRemotePathsAreRefused(test::Harness& harness)
 {
 	writeConfig(harness, L"local-included.txt", "Preamp: -1 dB\n");
@@ -1411,6 +1530,9 @@ int runEngineOrchestrationTests()
 	testVoicemeeterStripVocabulary(harness);
 	testProcessSearchLeavesTheTokenAsItWas(harness);
 	testParseErrorsAreReportedPerLineAndProseIsNot(harness);
+	testFilterSetupFailureNamesItsLine(harness);
+	testControlFlowAndStageMistakesAreReported(harness);
+	testIncludeRecursionLimitIsReported(harness);
 	testConfigReferencedRemotePathsAreRefused(harness);
 	testConfigRegistryReadsGoThroughThePort(harness);
 	testAnalysisFreezesDynamicVelvetAndLabelsTheSnapshot(harness);
