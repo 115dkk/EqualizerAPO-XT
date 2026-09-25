@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.10 — 2026-09-25
+
 - **`Include` takes quoted file names and environment variables, and a link
   to a network share is refused like the share.** `Include: "my presets.txt"`
   and `Include: %USERPROFILE%\eq\room.txt` now load, as they always did for

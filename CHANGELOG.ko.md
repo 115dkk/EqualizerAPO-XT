@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.54.10 — 2026-09-25
+
 - **`Include`가 따옴표로 감싼 파일 이름과 환경 변수를 받고, 네트워크 공유로
   이어지는 링크는 공유와 똑같이 거부합니다.** `Include: "my presets.txt"`와
   `Include: %USERPROFILE%\eq\room.txt`를 이제 불러옵니다. `Convolution`은
