@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.54.9 — 2026-09-25
+
 - **설정 실수를 더 많이 그 줄에 알립니다.** 철자가 틀린 `Stage`, 앞에
   `If`가 없는 `ElseIf`·`Else`·`EndIf`, `EndIf`가 없는 `If`(이제 그 `If`
   줄에 표시), 너무 깊이 중첩된 `Include`는 로그에만 남았는데, 이제 Editor가

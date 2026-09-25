@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.9 — 2026-09-25
+
 - **More configuration mistakes are reported on their line.** A misspelled
   `Stage`, an `ElseIf`, `Else` or `EndIf` with no `If` before it, an `If`
   with no `EndIf` (now on the `If` line itself), and an `Include` nested too
