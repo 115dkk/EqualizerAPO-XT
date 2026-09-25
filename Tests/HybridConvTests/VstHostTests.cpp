@@ -154,11 +154,6 @@ bool decodeChunk(const wstring& chunkData, ChunkBlob& out)
 	return out.magic == kChunkMagic;
 }
 
-bool closeEnough(double a, double b)
-{
-	return std::fabs(a - b) <= 1.0e-9;
-}
-
 void expectRejectedMetadataPassesThrough(const shared_ptr<VSTPluginLibrary>& library,
 	const wchar_t* mode, const std::string& label)
 {
@@ -184,7 +179,7 @@ void expectRejectedMetadataPassesThrough(const shared_ptr<VSTPluginLibrary>& lib
 		bool unchanged = true;
 		for (int i = 0; i < 4; ++i)
 		{
-			if (!closeEnough(outLeft[i], inLeft[i]) || !closeEnough(outRight[i], inRight[i]))
+			if (!test::nearlyEqual(outLeft[i], inLeft[i], 1.0e-9) || !test::nearlyEqual(outRight[i], inRight[i], 1.0e-9))
 				unchanged = false;
 		}
 		harness.expectTrue(unchanged, label + ": malformed plugin is bypassed");
@@ -404,7 +399,7 @@ void runVstHostTests()
 	ChunkBlob defaultBlob = {};
 	harness.expectTrue(decodeChunk(chunkA, defaultBlob), "default chunk decodes with the expected magic");
 	harness.expectEqual(defaultBlob.version, kChunkVersion, "default chunk version");
-	harness.expectTrue(closeEnough(defaultBlob.gain, 1.0), "default gain is unity");
+	harness.expectNear(defaultBlob.gain, 1.0, 1.0e-9, "default gain is unity");
 
 	// Write a chunk that sets gain = 0.5, bypass off, and read it back.
 	const float testGain = 0.5f;
@@ -423,7 +418,7 @@ void runVstHostTests()
 	instance->readFromEffect(chunkB, paramsB);
 	ChunkBlob readBlob = {};
 	harness.expectTrue(decodeChunk(chunkB, readBlob), "round-tripped chunk decodes");
-	harness.expectTrue(closeEnough(readBlob.gain, testGain), "gain survived the chunk write/read round-trip");
+	harness.expectNear(readBlob.gain, testGain, 1.0e-9, "gain survived the chunk write/read round-trip");
 	harness.expectTrue(chunkB == writeChunk, "chunk string is stable after writing the same state");
 
 	// Re-reading without an intervening write must return the identical string.
@@ -449,7 +444,7 @@ void runVstHostTests()
 	bool audioMatches = true;
 	for (int i = 0; i < frameCount && audioMatches; ++i)
 	{
-		if (!closeEnough(outLeft[i], inLeft[i] * testGain) || !closeEnough(outRight[i], inRight[i] * testGain))
+		if (!test::nearlyEqual(outLeft[i], inLeft[i] * testGain, 1.0e-9) || !test::nearlyEqual(outRight[i], inRight[i] * testGain, 1.0e-9))
 			audioMatches = false;
 	}
 	harness.expectTrue(audioMatches, "processDoubleReplacing output equals input * gain");
@@ -470,7 +465,7 @@ void runVstHostTests()
 	bool unityMatches = true;
 	for (int i = 0; i < frameCount && unityMatches; ++i)
 	{
-		if (!closeEnough(unityOutLeft[i], inLeft[i]) || !closeEnough(unityOutRight[i], inRight[i]))
+		if (!test::nearlyEqual(unityOutLeft[i], inLeft[i], 1.0e-9) || !test::nearlyEqual(unityOutRight[i], inRight[i], 1.0e-9))
 			unityMatches = false;
 	}
 	harness.expectTrue(unityMatches, "unity gain passes audio through unchanged");

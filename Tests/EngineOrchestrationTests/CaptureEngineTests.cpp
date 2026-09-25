@@ -15,47 +15,23 @@
 	(which the capture gate in CI covers).
 */
 
-#include <cmath>
-#include <fstream>
 #include <string>
 #include <vector>
 
 #include "engine/FilterEngine.h"
-#include "Tests/TestDirectory.h"
 #include "Tests/TestHarness.h"
+
+#include "EngineOrchestrationTestSupport.h"
 
 namespace
 {
-test::TestDirectory& captureDirectory()
-{
-	static test::TestDirectory directory(L"EngineOrchestrationTests-capture");
-	return directory;
-}
-
-std::wstring writeConfig(test::Harness& harness, const std::wstring& fileName, const std::string& content)
-{
-	const std::wstring path = captureDirectory().trackFile(fileName);
-	std::ofstream stream(path, std::ios::binary | std::ios::trunc);
-	stream << content;
-	stream.close();
-	if (!stream)
-		harness.fail("could not write temp config file");
-	return path;
-}
-
 // The APO's own assembly for a capture endpoint: EqualizerAPO::Initialize
 // sets preMix from the CLSID and capture/postMixInstalled from the device
 // record, LockForProcess supplies the stream facts.
 void initializeCaptureEngine(FilterEngine& engine, unsigned inputChannels, unsigned outputChannels,
 	const std::wstring& configPath, bool preMix = true)
 {
-	EngineSetup setup;
-	setup.sampleRate = 48000.0f;
-	setup.inputChannelCount = inputChannels;
-	setup.realChannelCount = inputChannels;
-	setup.outputChannelCount = outputChannels;
-	setup.maxFrameCount = 480;
-	setup.customPath = configPath;
+	EngineSetup setup = testEngineSetup(48000, inputChannels, outputChannels, 480, configPath);
 	setup.preMix = preMix;
 	setup.capture = true;
 	setup.postMixInstalled = false;
@@ -81,11 +57,6 @@ std::vector<float> processDc(FilterEngine& engine, unsigned inputChannels, unsig
 	return last;
 }
 
-bool closeTo(float value, float expected)
-{
-	return std::fabs(value - expected) < 1e-3f;
-}
-
 // -6.0206 dB is a factor of 0.5; two of them are 0.25.
 const char* const halfPreamp = "Preamp: -6.0206 dB\n";
 
@@ -99,7 +70,7 @@ void testUnstagedLinesApplyOnCapture(test::Harness& harness)
 	harness.expectFalse(engine.isPostMixInstalled(), "a capture endpoint has no post-mix APO");
 
 	std::vector<float> out = processDc(engine, 2, 2, 1.0f);
-	harness.expect(closeTo(out[0], 0.5f) && closeTo(out[1], 0.5f),
+	harness.expect(test::nearlyEqual(out[0], 0.5f, 1e-3f) && test::nearlyEqual(out[1], 0.5f, 1e-3f),
 		"a preamp with no Stage line must reach the capture stream (initial stages are post-mix and capture)");
 }
 
@@ -120,7 +91,7 @@ void testStageSelectionOnCapture(test::Harness& harness)
 	initializeCaptureEngine(engine, 2, 2, config);
 
 	std::vector<float> out = processDc(engine, 2, 2, 1.0f);
-	harness.expect(closeTo(out[0], 0.25f),
+	harness.expectNear(out[0], 0.25f, 1e-3f,
 		"only the two blocks that name the capture stage apply on a capture endpoint (post-mix and pre-mix blocks are skipped)");
 }
 
@@ -139,7 +110,7 @@ void testStageConstantIsCapture(test::Harness& harness)
 	initializeCaptureEngine(engine, 2, 2, config);
 
 	std::vector<float> out = processDc(engine, 2, 2, 1.0f);
-	harness.expect(closeTo(out[0], 0.5f),
+	harness.expectNear(out[0], 0.5f, 1e-3f,
 		"the stage constant reads \"capture\" on an input device and the post-mix branch stays out");
 }
 
@@ -160,7 +131,7 @@ void testDeviceMatchingOnCapture(test::Harness& harness)
 	initializeCaptureEngine(engine, 2, 2, config);
 
 	std::vector<float> out = processDc(engine, 2, 2, 1.0f);
-	harness.expect(closeTo(out[0], 0.25f),
+	harness.expectNear(out[0], 0.25f, 1e-3f,
 		"Device: selects a capture endpoint by connection name and by GUID, and does not match the playback side of the same cable");
 }
 
@@ -176,7 +147,7 @@ void testMonoCaptureEndpoint(test::Harness& harness)
 	harness.expect(engine.getChannelMask() != 0u, "a zero mask is replaced by the default layout for the channel count");
 
 	std::vector<float> out = processDc(engine, 1, 1, 1.0f);
-	harness.expect(closeTo(out[0], 0.5f), "the preamp reaches a mono capture stream");
+	harness.expectNear(out[0], 0.5f, 1e-3f, "the preamp reaches a mono capture stream");
 }
 
 // The APO's capture-side channel choice: the engine names channels after the
@@ -193,7 +164,7 @@ void testCaptureUsesInputChannelsForTheDevice(test::Harness& harness)
 	harness.expectEqual(engine.getRealChannelCount(), 2u, "the real channel count is the input side on capture");
 
 	std::vector<float> out = processDc(engine, 2, 1, 1.0f);
-	harness.expect(closeTo(out[0], 0.5f),
+	harness.expectNear(out[0], 0.5f, 1e-3f,
 		"the first output channel carries the processed left input when the app takes fewer channels than the device");
 }
 }
@@ -206,5 +177,4 @@ void runCaptureEngineTests(test::Harness& harness)
 	testDeviceMatchingOnCapture(harness);
 	testMonoCaptureEndpoint(harness);
 	testCaptureUsesInputChannelsForTheDevice(harness);
-	captureDirectory().removeAll();
 }

@@ -126,6 +126,9 @@ if exist "$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configurati
     <ClInclude Include="..\..\filters\ConfigPathPolicy.h" />
     <ClInclude Include="..\..\libHybridConv-0.1.1\libHybridConv_eapo.h" />
     <ClInclude Include="..\TestVst3Plugin\TestVst3Protocol.h" />
+    <ClInclude Include="..\TestDirectory.h" />
+    <ClInclude Include="..\Vst3Bundle.h" />
+    <ClInclude Include="..\WavFixtures.h" />
     <ClInclude Include="..\..\VST3\SubwooferRouting\parameter_table.h" />
   </ItemGroup>
   <!-- Build the companion VST2 test plugin first and copy it next to the test

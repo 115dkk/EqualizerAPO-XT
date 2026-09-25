@@ -27,9 +27,10 @@
 #include "filters/IrCache.h"
 #include "services/logging/Logging.h"
 #include "runtime/memory/AlignedMemory.h"
-#include "audio/io/SndfileRAII.h"
 #include "libHybridConv-0.1.1/libHybridConv_eapo.h"
+#include "Tests/TestDirectory.h"
 #include "Tests/TestHarness.h"
+#include "Tests/WavFixtures.h"
 #include "Tests/AlignedMemoryGate.h"
 
 // Forward declarations for the additional suites that share this binary's
@@ -82,17 +83,21 @@ constexpr int sampleRate = 48000;
 constexpr double tolerance = 1.0e-8;
 
 test::Harness harness("HybridConvTests");
+
+test::TestDirectory& scratchDirectory()
+{
+	static test::TestDirectory directory(L"HybridConvTests");
+	return directory;
+}
+
 wstring wisdomTestDirectory;
 wstring previousLocalAppData;
 
 void assertFftwWisdomIsExported()
 {
-	wchar_t tempPath[MAX_PATH] = {};
-	harness.expectTrue(GetTempPathW(MAX_PATH, tempPath) > 0,
-		"FFTW wisdom test resolves temporary directory");
-	wisdomTestDirectory = wstring(tempPath)
-		+ L"EqualizerAPO-XT-wisdom-" + std::to_wstring(GetCurrentProcessId());
-	CreateDirectoryW(wisdomTestDirectory.c_str(), nullptr);
+	wisdomTestDirectory = scratchDirectory().path() + L"\\wisdom";
+	harness.expectTrue(CreateDirectoryW(wisdomTestDirectory.c_str(), nullptr) != FALSE,
+		"FFTW wisdom test creates its stand-in LOCALAPPDATA directory");
 
 	wchar_t oldLocalAppData[MAX_PATH] = {};
 	const DWORD oldLength = GetEnvironmentVariableW(
@@ -138,9 +143,7 @@ void fail(const string& message)
 
 void expectClose(double actual, double expected, int sample)
 {
-	char message[256];
-	snprintf(message, sizeof(message), "sample %d expected %.12g, got %.12g", sample, expected, actual);
-	harness.expectTrue(fabs(actual - expected) <= tolerance, message);
+	harness.expectNear(actual, expected, tolerance, "sample " + std::to_string(sample));
 }
 
 vector<double> renderImpulseResponse(const vector<double>& impulseResponse, int leadingSilentFrames)
@@ -174,31 +177,10 @@ vector<double> renderImpulseResponse(const vector<double>& impulseResponse, int 
 
 wstring createImpulseResponseFile(const vector<double>& impulseResponse)
 {
-	wchar_t tempPath[MAX_PATH] = {};
-	wchar_t tempFile[MAX_PATH] = {};
-	if (GetTempPathW(MAX_PATH, tempPath) == 0)
-		fail("GetTempPathW failed");
-	if (GetTempFileNameW(tempPath, L"hc", 0, tempFile) == 0)
-		fail("GetTempFileNameW failed");
-
-	wstring filename = tempFile;
-	DeleteFileW(filename.c_str());
-	filename += L".wav";
-
-	SF_INFO info = {};
-	info.samplerate = sampleRate;
-	info.channels = 1;
-	info.format = SF_FORMAT_WAV | SF_FORMAT_DOUBLE;
-
-	sndfile::Handle file(sf_wchar_open(filename.c_str(), SFM_WRITE, &info));
-	if (!file)
-		fail("could not create temporary impulse response file");
-
-	sf_count_t written = sf_writef_double(file.get(), impulseResponse.data(), (sf_count_t)impulseResponse.size());
-
-	if (written != (sf_count_t)impulseResponse.size())
-		fail("could not write complete temporary impulse response file");
-
+	static unsigned fileCount = 0;
+	const wstring filename = scratchDirectory().trackFile(L"ir-" + std::to_wstring(fileCount++) + L".wav");
+	harness.require(test::writeWavFile(filename, sampleRate, impulseResponse),
+		"the temporary impulse response file is written completely");
 	return filename;
 }
 
@@ -574,6 +556,7 @@ int runHybridConvTests()
 	runMultiConvolutionTests();
 
 	cleanupFftwWisdomTest();
+	scratchDirectory().removeAll();
 	harness.report();
 	return test::reportAlignedMemoryBalance("HybridConvTests");
 }

@@ -23,6 +23,8 @@
 #include "Tests/TestHarness.h"
 #include "platform/windows/Win32Resource.h"
 
+#include "EngineOrchestrationTestSupport.h"
+
 void runConfigurationFileReaderTests(test::Harness& harness)
 {
 	const std::vector<std::wstring> mixed = ConfigurationFileReader::decodeLines(
@@ -41,15 +43,14 @@ void runConfigurationFileReaderTests(test::Harness& harness)
 	harness.expect(unicode[0] == L"# caf\u00e9",
 		"decodeLines decodes valid UTF-8");
 
-	wchar_t tempPath[MAX_PATH] = {};
-	DWORD tempLength = GetTempPathW(MAX_PATH, tempPath);
-	harness.require(tempLength > 0 && tempLength < MAX_PATH, "open-failure test obtains the temporary directory");
-	const std::wstring missingPath = std::wstring(tempPath) + L"EapoMissingConfig-" + std::to_wstring(GetCurrentProcessId()) + L".txt";
+	harness.require(GetFileAttributesW(testDirectory().c_str()) != INVALID_FILE_ATTRIBUTES,
+		"open-failure test has its temporary directory");
+	const std::wstring missingPath = testDirectory() + L"\\MissingConfig.txt";
 	DeleteFileW(missingPath.c_str());
 	std::stringstream missing = ConfigurationFileReader::readWithRetry(missingPath);
 	harness.expectFalse(missing.good(), "readWithRetry reports an open failure");
 
-	const std::wstring lockedPath = std::wstring(tempPath) + L"EapoLockedConfig-" + std::to_wstring(GetCurrentProcessId()) + L".txt";
+	const std::wstring lockedPath = testDirectory() + L"\\LockedConfig.txt";
 	winutil::UniqueHandle lockedFile(CreateFileW(
 		lockedPath.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
 	harness.require(static_cast<bool>(lockedFile), "sharing-retry test creates an exclusively shared file");

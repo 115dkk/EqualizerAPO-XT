@@ -27,6 +27,7 @@
 #include "pluginterfaces/vst/ivsthostapplication.h"
 #include "pluginterfaces/vst/ivstmessage.h"
 #include "Tests/TestHarness.h"
+#include "Tests/Vst3Bundle.h"
 #include "VST3/SubwooferRouting/parameter_table.h"
 #include "platform/windows/WindowsPath.h"
 #include "VST3/SubwooferRouting/plugin_ids.h"
@@ -40,53 +41,6 @@ namespace
 test::Harness harness("SubwooferRoutingVst3Tests");
 
 using pathutil::exeDirectory;
-
-bool ensureDirectory(const wstring& path)
-{
-	return CreateDirectoryW(path.c_str(), nullptr) != FALSE
-		|| GetLastError() == ERROR_ALREADY_EXISTS;
-}
-
-wstring bundleModulePath(const wstring& bundle, const wchar_t* moduleName)
-{
-	const wstring contents = bundle + L"\\Contents";
-#if defined(_M_ARM64)
-	const wstring platform = contents + L"\\arm64-win";
-#elif defined(_WIN64)
-	const wstring platform = contents + L"\\x86_64-win";
-#else
-	const wstring platform = contents + L"\\x86-win";
-#endif
-	return platform + L"\\" + moduleName;
-}
-
-wstring prepareBundle(
-	const wstring& directory,
-	const wchar_t* bundleName,
-	const wchar_t* moduleName)
-{
-	const wstring source =
-		directory + L"\\EapoXtSubwooferRoutingModule.vst3";
-	if (GetFileAttributesW(source.c_str()) == INVALID_FILE_ATTRIBUTES)
-		return {};
-
-	const wstring bundle = directory + L"\\" + bundleName;
-	const wstring contents = bundle + L"\\Contents";
-	const wstring module = bundleModulePath(bundle, moduleName);
-	const size_t slash = module.find_last_of(L"\\/");
-	const wstring platform = module.substr(0, slash);
-
-	if (!ensureDirectory(bundle)
-		|| !ensureDirectory(contents)
-		|| !ensureDirectory(platform))
-	{
-		return {};
-	}
-
-	if (CopyFileW(source.c_str(), module.c_str(), FALSE) == FALSE)
-		return {};
-	return bundle;
-}
 
 wstring encodeChunk(const std::string& json)
 {
@@ -353,8 +307,9 @@ void runSubwooferRoutingVst3Tests()
 	const wstring directory = exeDirectory();
 	const wstring bundle = directory.empty()
 		? wstring()
-		: prepareBundle(
+		: test::prepareVst3Bundle(
 			directory,
+			L"EapoXtSubwooferRoutingModule.vst3",
 			L"EapoXtSubwooferRouting.vst3",
 			L"EapoXtSubwooferRouting.vst3");
 

@@ -20,6 +20,7 @@
 #include "filters/ConfigPathPolicy.h"
 #include "platform/windows/Win32Resource.h"
 #include <winioctl.h>
+#include "Tests/TestDirectory.h"
 #include "Tests/TestHarness.h"
 
 using std::wstring;
@@ -28,6 +29,14 @@ using Kind = ConfigPathPolicy::Entry::Kind;
 namespace
 {
 test::Harness harness("ConfigPathPolicyTests");
+
+// The real-filesystem cases (junctions, pins, reparse points) each build
+// their tree in a folder of this directory and remove it themselves.
+test::TestDirectory& scratchDirectory()
+{
+	static test::TestDirectory directory(L"ConfigPathPolicyTests");
+	return directory;
+}
 
 bool contains(const wstring& text, const wstring& part)
 {
@@ -378,9 +387,7 @@ bool makeJunction(const wstring& linkPath, const wstring& substitute, bool exist
 // children alive. The revised walk pins the leaf too, preventing emptying.
 void testPinnedDirectoryCanBecomeJunction()
 {
-	wchar_t temp[MAX_PATH + 1] = {};
-	GetTempPathW(MAX_PATH, temp);
-	const wstring root = wstring(temp) + L"eapo-xt-pin-race-" + std::to_wstring(GetCurrentProcessId());
+	const wstring root = scratchDirectory().path() + L"\\pin-race";
 	const wstring folder = root + L"\\pinned";
 	const wstring target = root + L"\\target";
 	const wstring file = folder + L"\\payload.txt";
@@ -425,9 +432,7 @@ void testPinnedDirectoryCanBecomeJunction()
 
 void testPinnedLeafSymlinkResidual()
 {
-	wchar_t temp[MAX_PATH + 1] = {};
-	GetTempPathW(MAX_PATH, temp);
-	const wstring root = wstring(temp) + L"eapo-xt-leaf-reparse-" + std::to_wstring(GetCurrentProcessId());
+	const wstring root = scratchDirectory().path() + L"\\leaf-reparse";
 	CreateDirectoryW(root.c_str(), nullptr);
 	const wstring file = root + L"\\leaf.txt";
 	{
@@ -470,9 +475,7 @@ void testPinnedLeafSymlinkResidual()
 
 void testRealJunctions()
 {
-	wchar_t temp[MAX_PATH + 1] = {};
-	GetTempPathW(MAX_PATH, temp);
-	const wstring root = wstring(temp) + L"eapo-xt-configpath-" + std::to_wstring(GetCurrentProcessId());
+	const wstring root = scratchDirectory().path() + L"\\configpath";
 	CreateDirectoryW(root.c_str(), nullptr);
 	CreateDirectoryW((root + L"\\real").c_str(), nullptr);
 	const wstring file = root + L"\\real\\ir.wav";
@@ -532,5 +535,6 @@ void runConfigPathPolicyTests()
 	testRealJunctions();
 	testPinnedDirectoryCanBecomeJunction();
 
+	scratchDirectory().removeAll();
 	harness.report();
 }

@@ -17,7 +17,7 @@
 	The real run works under HKCU\Software\EqualizerAPO-XT-Tests\{random GUID},
 	the sandbox the ConfigWatcher test uses, and removes it on every path. It
 	needs no elevation and touches nothing outside that key and one file in
-	%TEMP%.
+	the suite's temporary directory.
 
 	Not covered, because the fake departs from the real registry on purpose
 	(FakeRegistry.h lists why): takeOwnership, makeWritable, the armed write
@@ -40,6 +40,8 @@
 #include "Tests/TestHarness.h"
 
 #include "Tests/FakeRegistry.h"
+
+#include "EngineOrchestrationTestSupport.h"
 
 namespace
 {
@@ -334,10 +336,7 @@ public:
 			created_ = true;
 		}
 
-		wchar_t tempPath[MAX_PATH] = {};
-		const DWORD length = GetTempPathW(MAX_PATH, tempPath);
-		exportPath_ = (length > 0 && length < MAX_PATH ? std::wstring(tempPath) : std::wstring(L".\\"))
-			+ L"EqualizerAPO-XT-Tests-" + newGuidText() + L".reg";
+		exportPath_ = testDirectory() + L"\\registry-export-" + newGuidText() + L".reg";
 	}
 
 	~Sandbox()

@@ -32,6 +32,8 @@
 
 #include "Tests/FakeRegistry.h"
 
+#include "EngineOrchestrationTestSupport.h"
+
 namespace
 {
 using test::FakeRegistry;
@@ -40,14 +42,11 @@ const std::wstring appKey = APP_REGPATH;
 const std::wstring audioKey = L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Audio";
 
 // A scratch directory for the F034 contract (ConfigPath must exist when the
-// registry role reports Success). Callers remove it when done.
+// registry role reports Success). The folder does not exist yet: the
+// registry role has to create it. Callers remove it when done.
 std::wstring makeScratchDir()
 {
-	wchar_t tempPath[MAX_PATH] = {};
-	if (GetTempPathW(MAX_PATH, tempPath) == 0)
-		return std::wstring();
-	return std::wstring(tempPath) + L"eapo-aporeg-test-"
-		+ std::to_wstring(GetCurrentProcessId());
+	return testDirectory() + L"\\aporeg-config";
 }
 
 void removeScratchDir(const std::wstring& dir)
