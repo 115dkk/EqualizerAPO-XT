@@ -1,12 +1,14 @@
 """VSTBus: the VST row with the forced-negotiation slot-fill rails, the reference line and the IN/OUT bus strip
-(vst_slotfill_normal: the plug-in file is missing, the rails and busses stand)."""
+(vst_slotfill_normal: the plug-in file is missing, the rails and busses stand), and the rejected VST3 bus
+(vst3_bus_rejected_normal): the card status line under the unit row, full width, wrapping instead of eliding.
+The fill cells are as wide as their label in the skin's own font (ISkin::vstSlotFillCellSize)."""
 from rowlib import *
 
 CSS = '''
   .vb { display: flex; flex-direction: column; gap: 8px; }
   .rail { display: flex; align-items: center; gap: 10px; height: 30px; padding: 0 10px; }
   .rail .role { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--muted); }
-  .rail .cellv { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 6px; font-family: var(--mono); font-size: 11.5px; font-weight: 700; color: var(--text); }
+  .rail .cellv { display: inline-flex; align-items: center; gap: 6px; width: max-content; height: 22px; padding: 0 6px; font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--text); }
   .rail .cellv.dash { color: var(--muted); }
   .rail .chev { border-left-width: 3px; border-right-width: 3px; border-top-width: 4px; }
   .rail .grp { display: inline-flex; align-items: center; gap: 4px; }
@@ -16,8 +18,34 @@ CSS = '''
   .name { font-weight: 600; font-size: 14px; }
   .name.dim { color: var(--muted); font-weight: 500; }
   .bus { display: inline-flex; align-items: center; gap: 8px; }
-  .bus .bcell { display: inline-flex; align-items: center; gap: 8px; height: 26px; padding: 0 8px; font-family: var(--mono); font-size: 11.5px; font-weight: 700; color: var(--text); }
-  .bus .bcap { font-size: 9.5px; font-weight: 700; letter-spacing: 1px; color: var(--muted); }
+  .bus .bcell { display: inline-flex; align-items: center; gap: 8px; height: 26px; padding: 0 8px; font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--text); }
+  .skin-studio .bus .bcell, .skin-minimal .bus .bcell { font-size: 13px; }
+  .bus .bcap { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--muted); }
+  .bus .rej { width: 6px; height: 6px; border-radius: 50%; background: var(--danger); box-shadow: 0 0 5px var(--danger); }
+  /* the card status line: its own line under the unit row, the full width, wrapping */
+  .status { display: flex; align-items: flex-start; gap: 8px; font-size: 12.5px; color: var(--text); line-height: 1.35; }
+  .status .sdot { width: 8px; height: 8px; margin-top: 4px; border-radius: 50%; flex: none; background: var(--danger); }
+  .path { font-family: var(--mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fmt { display: inline-flex; align-items: center; height: 18px; padding: 0 8px; font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 60%, transparent); border-radius: 999px; }
+  .skin-studio .band { display: flex; align-items: center; gap: 12px; height: 32px; padding: 0 12px 0 16px; background: var(--sunken); border: 1px solid var(--border); border-radius: var(--radius); }
+  .skin-studio .band .path { flex: 1; }
+  .skin-studio .band .bus { background: transparent; border: 0; padding: 0; }
+  .skin-minimal .status { color: var(--danger); font-family: var(--mono); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
+  .skin-minimal .fmt { border: 0; color: var(--muted); padding: 0; font-weight: 500; letter-spacing: 0; font-size: 13px; }
+  .skin-soft .fmt { background: color-mix(in srgb, var(--muted) 45%, transparent); color: var(--text); border: 0; font-family: var(--font); letter-spacing: 0; }
+  .skin-soft .col { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 0 1 320px; }
+  .skin-soft .status { color: var(--danger); font-size: 12.5px; }
+  .skin-rack .status { color: var(--danger); font-size: 11px; padding-left: 16px; }
+  /* the fill switch at rest (the rejected bus asks for no fill) */
+  .latch.off { color: var(--muted); } .latch.off .dot { background: var(--muted); box-shadow: none; }
+  .skin-studio .latch.off { background: transparent; border-color: var(--border); }
+  .skin-minimal .latch.off { background: transparent; color: var(--muted); }
+  .skin-soft .latch.off .dot { background: transparent; border: 1.5px solid var(--muted); box-sizing: border-box; }
+  .skin-rack .latch.off .dot { background: radial-gradient(circle at 40% 35%, #fff4 0 1px, #5a4a2a 2px, #2a2418); box-shadow: 0 0 0 1px #0a0c0e; }
+  .skin-matrix .latch.off { border: 1px dashed var(--border); background: transparent; color: var(--muted); }
+  .skin-rack .strip .dir { font-family: var(--font); font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .skin-matrix .status { color: var(--danger); font-family: var(--mono); font-size: 12.5px; }
+  .skin-matrix .rej { width: 10px; height: 8px; border-radius: 0; box-shadow: none; background: repeating-linear-gradient(180deg, var(--danger) 0 2px, transparent 2px 3px); }
   .bus .n { color: var(--muted); font-weight: 500; }
   .arrow { width: 14px; height: 10px; color: var(--muted); }
   .skin-list .crow + .crow { margin-top: 8px; }
@@ -45,13 +73,14 @@ CSS = '''
   .skin-soft .bus .bcell { background: var(--card); border: 1px solid var(--border); border-radius: 999px; font-family: var(--font); }
   .tile { width: 34px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; color: var(--on-accent); flex: none; font-weight: 800; font-size: 18px; }
   /* rack: the patch strip sunk into the face, caps everywhere, the pilot lamp on the FILL cap */
+  .skin-rack .rail .role { font-size: 9px; letter-spacing: 1.2px; }
   .skin-rack .rail { background: color-mix(in srgb, var(--card) 70%, black); border: 1px solid #0a0c0e; border-radius: 3px; box-shadow: inset 0 2px 3px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.06); }
   .skin-rack .rail .cellv, .skin-rack .latch, .skin-rack .bus .bcell { background: linear-gradient(180deg, #2c333a, #1b2126); border: 1px solid #11161a; border-top-color: #3e474f; border-radius: 3px; }
   [data-theme="light"] .skin-rack .rail .cellv, [data-theme="light"] .skin-rack .latch, [data-theme="light"] .skin-rack .bus .bcell { background: linear-gradient(180deg, var(--card-hover), var(--card)); border-color: var(--seam); border-top-color: #fff8; }
   .skin-rack .latch { color: var(--text); }
   .skin-rack .latch .dot { background: radial-gradient(circle at 40% 35%, #fff8 0 1px, var(--accent2) 2px, color-mix(in srgb, var(--accent2) 60%, black)); box-shadow: 0 0 0 1px #0a0c0e, 0 0 4px var(--accent2); }
   .skin-rack .strip { display: flex; flex-direction: column; justify-content: center; gap: 2px; min-width: 130px; }
-  .skin-rack .strip .cap { font-size: 8px; letter-spacing: 1.5px; }
+  .skin-rack .strip .cap { font-size: 9px; letter-spacing: 1.5px; }
   .rlamp { width: 8px; height: 8px; border-radius: 50%; flex: none; box-shadow: 0 0 0 1.5px #0a0c0e, 0 0 0 2.5px #4a5257, 0 0 6px var(--danger);
     background: radial-gradient(circle at 40% 35%, #fff8 0 1px, var(--danger) 2px, color-mix(in srgb, var(--danger) 60%, black)); }
   /* matrix: postings under a board rule; the gate cell; the port strip */
@@ -61,16 +90,16 @@ CSS = '''
   .skin-matrix .latch .dot { display: none; }
   .skin-matrix .name { font-family: var(--mono); font-weight: 700; }
   .skin-matrix .bus .bcell { border: 1px solid var(--border); background: var(--graph); }
-  .skin-matrix .port { display: flex; align-items: center; justify-content: space-between; height: 24px; padding: 0 8px; font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--muted); border-bottom: 1px solid var(--border); }
-  .marker { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border: 1px solid var(--danger); background: var(--graph); font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--danger); }
+  .skin-matrix .port { display: flex; align-items: center; justify-content: space-between; height: 24px; padding: 0 8px; font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: 2px; color: var(--muted); border-bottom: 1px solid var(--border); }
+  .marker { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border: 1px solid var(--danger); background: var(--graph); font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: 1px; color: var(--danger); }
 '''
 ARROW = '<svg class="arrow" viewBox="0 0 14 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 5h11"/><path d="M8 1.5L12 5 8 8.5"/></svg>'
 IN_SLOTS = [('L', 'L'), ('R', 'R'), ('C', 'C'), ('LFE', '-'), ('RL', 'SL'), ('RR', 'SR')]
 OUT_SLOTS = [('L', 'L'), ('R', 'R'), ('C', 'C'), ('LFE', 'LFE'), ('RL', 'RL'), ('RR', 'RR')]
 
-def rail(skin, slots, latch=None):
+def rail(skin, slots, latch=None, off=False):
     cells = ''.join(f'<span class="grp"><span class="role">{r}</span><span class="cellv{" dash" if v == "-" else ""}">{v}<span class="chev"></span></span></span>' for r, v in slots)
-    latch_html = f'<span class="latch"><span class="dot"></span>{latch}</span>' if latch else ''
+    latch_html = f'<span class="latch{" off" if off else ""}"><span class="dot"></span>{latch}</span>' if latch else ''
     return f'<div class="rail">{latch_html}{cells}</div>'
 
 def bus(skin):
@@ -93,12 +122,51 @@ def body(skin):
         return f'<div class="vb">{rail(skin, IN_SLOTS, "Fill")}{line}{rail(skin, OUT_SLOTS)}</div>'
     if skin == 'rack':
         line = (f'<div class="line"><span class="rlamp"></span><div class="strip"><span class="cap">MODULE <span style="color:var(--accent);margin-left:6px">NOT FOUND</span></span>'
-                f'<span class="name dim" style="font-size:12.5px">example.vst3</span></div>{bus(skin)}<span class="btn lit">LOCATE</span><span class="btn dis">OPEN PANEL</span><span class="btn">...</span></div>')
+                f'<span class="name dim" style="font-size:14px">example.vst3</span></div>{bus(skin)}<span class="btn lit">LOCATE</span><span class="btn dis">OPEN PANEL</span><span class="btn">...</span></div>')
         return f'<div class="vb">{rail(skin, IN_SLOTS, "FILL")}{line}{rail(skin, OUT_SLOTS)}</div>'
     if skin == 'matrix':
         port = '<div class="port"><span>&gt; IN</span><span>EXTERNAL DEVICE</span><span>OUT &gt;</span></div>'
         line = f'<div class="line"><span class="marker">MISSING</span><span class="name">example.vst3</span>{bus(skin)}<span class="btn lit">{svg("folder")}LOCATE</span><span class="btn dis">Open panel</span><span class="btn">...</span></div>'
         return f'<div class="vb">{rail(skin, IN_SLOTS, "FILL")}{port}{line}{rail(skin, OUT_SLOTS)}</div>'
 
-frames = [frame(s, row(s, 'vst', 9, 'VST Plugin', body(s))) for s in SKINS]
-page('VSTBus', 'Rows', 1240, 'The VST row: slot-fill rails, the reference line with IN/OUT bus strip, five skins', CSS, frames)
+def rbus(skin):
+    """the rejected negotiation: Stereo in, 7.1 out, the danger lamp after the OUT selector"""
+    sep = ':' if skin in ('minimal', 'matrix') else ' '
+    lamp = '' if skin == 'soft' else '<span class="rej"></span>'  # soft lets the reference tile speak, no red dot
+    if skin == 'minimal':
+        return (f'<span class="bus"><span class="bcell"><span class="bcap">in</span>Stereo<span class="n">:2</span><span class="chev"></span></span><span class="bcap">-&gt; out</span>'
+                f'<span class="bcell">7.1<span class="n">:8</span><span class="chev"></span></span></span>')
+    return (f'<span class="bus"><span class="bcell"><span class="bcap">IN</span>Stereo<span class="n">{sep}2</span><span class="chev"></span></span>{ARROW}'
+            f'<span class="bcell"><span class="bcap">OUT</span>7.1<span class="n">{sep}8</span><span class="chev"></span></span>{lamp}</span>')
+
+REJ = 'The plugin rejected Stereo in / 7.1 out. Audio passes through unchanged.'
+RPATH = 'C:\\Users\\example\\VST3\\'
+
+def rejected(skin):
+    ib = lambda p, dis=False: f'<span class="ibtn{" dis" if dis else ""}">{svg(p)}</span>'
+    fill = rail(skin, [], 'fill' if skin == 'minimal' else ('Fill' if skin == 'soft' else 'FILL'), off=True)
+    if skin == 'studio':
+        line = f'<div class="line"><span class="name">TestVst3Plugin</span><span class="fmt">VST3</span>{ib("folder")}<span class="btn lit">Open panel</span><span class="btn">...</span></div>'
+        band = f'<div class="band"><span class="path">{RPATH}</span>{rbus(skin)}</div>'
+        return f'<div class="vb">{fill}{line}{band}<div class="status"><span class="sdot"></span>{REJ}</div></div>'
+    if skin == 'minimal':
+        line = (f'<div class="line"><span class="path" style="flex:none">C:\\U…T3\\</span><span class="name">T…n</span><span class="fmt">VST3</span>{rbus(skin)}'
+                f'<span class="status">!! {REJ}</span><span class="btn">BROWSE</span><span class="btn">PANEL</span><span class="btn">OPT</span></div>')
+        return f'<div class="vb">{fill}{line}</div>'
+    if skin == 'soft':
+        col = f'<div class="col"><span><span class="name">TestVst3Plugin</span> <span class="fmt">VST3</span></span><span class="path">{RPATH}</span><span class="status">{REJ}</span></div>'
+        line = f'<div class="line" style="height:auto;padding:6px 0"><span class="tile" style="background:var(--danger)">!</span>{col}{rbus(skin)}{ib("folder")}<span class="btn lit">Open panel</span><span class="btn">...</span></div>'
+        return f'<div class="vb">{fill}{line}</div>'
+    if skin == 'rack':
+        line = (f'<div class="line" style="height:auto"><span class="rlamp"></span><div class="strip"><span class="cap">MODULE</span>'
+                f'<span class="name" style="font-size:14px">TestVst3Plugin</span><span class="dir">{RPATH}</span></div>'
+                f'<span style="flex:1"></span>{rbus(skin)}{ib("folder")}<span class="btn">OPEN PANEL</span><span class="btn">...</span></div>')
+        return f'<div class="vb">{fill}{line}<div class="status">{REJ}</div></div>'
+    if skin == 'matrix':
+        port = '<div class="port"><span>&gt; IN</span><span>EXTERNAL DEVICE · VST3</span><span>OUT &gt;</span></div>'
+        line = (f'<div class="line"><span class="marker" style="color:var(--muted);border-color:var(--border)">&gt; DEV</span><span class="path" style="color:var(--text)">C:\\Users\\…\\VST3@</span>'
+                f'<span class="name">Te…in</span>{rbus(skin)}{ib("folder")}<span class="btn">Open panel</span><span class="btn">...</span></div>')
+        return f'<div class="vb">{fill}{port}{line}<div class="status">! {REJ}</div></div>'
+
+frames = [frame(s, row(s, 'vst', 9, 'VST Plugin', body(s)) + row(s, 'vst', 36, 'VST Plugin', rejected(s), chans=('L', 'R'))) for s in SKINS]
+page('VSTBus', 'Rows', 2020, 'The VST row: slot-fill rails, the reference line with IN/OUT bus strip, and a rejected VST3 bus with the card status line, five skins', CSS, frames)

@@ -29,9 +29,12 @@ def grid(stroke, opacity, crisp=True, majors_only=False):
         s.append(f'<line x1="{L}" y1="{y}" x2="{R}" y2="{y}" stroke="{stroke}" stroke-opacity="{opacity}"{cr}/>')
     return ''.join(s)
 
-def labels(font, size, fill, weight=500):
-    s = [f'<text x="{fx(f):.1f}" y="{B + 13}" text-anchor="middle" font-family="{font}" font-size="{size}" font-weight="{weight}" fill="{fill}">{t}</text>' for f, t in FREQ]
-    s += [f'<text x="{L - 5}" y="{fy(g) + 3.5:.1f}" text-anchor="end" font-family="{font}" font-size="{size}" font-weight="{weight}" fill="{fill}">{t}</text>' for g, t in DB]
+def labels(font, size, fill, weight=500, majors_only=False):
+    # majors_only: soft prints only the decade frequencies and the 10 dB steps, like its majors-only grid
+    s = [f'<text x="{fx(f):.1f}" y="{B + 13}" text-anchor="middle" font-family="{font}" font-size="{size}" font-weight="{weight}" fill="{fill}">{t}</text>'
+         for f, t in FREQ if not majors_only or f in (20, 100, 1000, 10000, 20000)]
+    s += [f'<text x="{L - 5}" y="{fy(g) + 3.5:.1f}" text-anchor="end" font-family="{font}" font-size="{size}" font-weight="{weight}" fill="{fill}">{t}</text>'
+          for g, t in DB if not majors_only or g % 10 == 0]
     return ''.join(s)
 
 def nodes(kind):
@@ -71,10 +74,10 @@ def plot(skin):
                  + f'<line x1="{L + 10}" y1="{fy(0):.1f}" x2="{R - 10}" y2="{fy(0):.1f}" stroke="var(--text)" stroke-width="2" stroke-linecap="round" stroke-opacity=".6"/>'
                  f'<path d="{FILL}" fill="var(--accent2)" fill-opacity=".18"/>'
                  f'<path d="{TRACE}" fill="none" stroke="color-mix(in srgb, var(--accent2) 75%, var(--card))" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'
-                 + nodes('soft') + labels('var(--font)', 10, 'var(--muted)'))
+                 + nodes('soft') + labels('var(--font)', 10, 'var(--muted)', majors_only=True))
     elif skin == 'rack':
         inner = (f'<rect x="{L - 8}" y="{T - 6}" width="{R - L + 16}" height="{B - T + 12}" rx="3" fill="var(--card)" stroke="var(--seam)"/>'
-                 f'<rect x="{L}" y="{T}" width="{R - L}" height="{B - T}" fill="var(--graph)" stroke="#0a0c0e"/><rect x="{L}" y="{T}" width="{R - L}" height="4" fill="rgba(0,0,0,.55)"/>'
+                 f'<rect x="{L}" y="{T}" width="{R - L}" height="{B - T}" fill="var(--glass)" stroke="#0a0c0e"/><rect x="{L}" y="{T}" width="{R - L}" height="4" fill="rgba(0,0,0,.55)"/>'
                  + grid('var(--rack-scope-grid)', 1) + f'<line x1="{L}" y1="{y0}" x2="{R}" y2="{y0}" stroke="var(--accent2)" stroke-opacity=".6" shape-rendering="crispEdges"/>'
                  f'<path d="{FILL}" fill="var(--accent2)" fill-opacity=".08"/>')
         for w, o in ((7, .08), (3.5, .25), (1.5, 1)):
@@ -114,4 +117,4 @@ def body(skin):
     return tool + f'<div class="gplot">{plot(skin)}</div>' + read
 
 frames = [frame(s, row(s, 'geq', 20, 'Graphic EQ', body(s), chans=('L', 'R'))) for s in SKINS]
-page('GraphicEQCard', 'Rows', 1820, 'The GraphicEQ row: toolbar line, the painted response plot with band nodes, the readout strip, five skins', CSS, frames)
+page('GraphicEQCard', 'Rows', 1840, 'The GraphicEQ row: toolbar line, the painted response plot with band nodes, the readout strip, five skins', CSS, frames)
