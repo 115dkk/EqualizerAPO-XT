@@ -71,6 +71,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
+# The FxProperties vocabulary (slots, EQ CLSIDs, registry root) comes from the
+# shared module rather than copies here (audit #348 F23).
+Import-Module (Join-Path $PSScriptRoot "ApoEndpointHarness.psm1") -Force
 
 $renderConnection = "CABLE Input"
 $captureConnection = "CABLE Output"
@@ -264,23 +267,11 @@ function Write-ImpulseWav([string] $path, [int] $rate, [int] $frames) {
 
 # The effect chain an endpoint's FxProperties names, as "LFX=... GFX=...".
 function Get-EffectChain([string] $flow, [string] $endpointGuid) {
-    $fx = Get-ItemProperty -Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\$flow\$endpointGuid\FxProperties" -ErrorAction SilentlyContinue
-    if (-not $fx) { return $null }
-    $slots = @()
-    foreach ($slot in @(@("LFX", "1"), @("GFX", "2"), @("SFX", "5"), @("MFX", "6"), @("EFX", "7"))) {
-        $property = $fx.PSObject.Properties["{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},$($slot[1])"]
-        if ($property -and $property.Value) { $slots += "$($slot[0])=$($property.Value)" }
-    }
-    return ($slots -join " ")
+    return Format-ApoEffectChain -FxProperties (Get-ApoFxProperties -Flow $flow -EndpointGuid $endpointGuid)
 }
 
 function Test-EqClsidLeft([string] $flow, [string] $endpointGuid) {
-    $fx = Get-ItemProperty -Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\$flow\$endpointGuid\FxProperties" -ErrorAction SilentlyContinue
-    if (-not $fx) { return $false }
-    foreach ($property in $fx.PSObject.Properties) {
-        if ("$($property.Value)" -match "EACD2258-FCAC-4FF4-B36D-419E924A6D79|EC1CC9CE-FAED-4822-828A-82A81A6F018F") { return $true }
-    }
-    return $false
+    return Test-ApoEqClsid -FxProperties (Get-ApoFxProperties -Flow $flow -EndpointGuid $endpointGuid)
 }
 
 function Get-JsonField($json, [string] $name) {
@@ -534,16 +525,8 @@ foreach ($mode in $installModes) {
     $install = Invoke-Program (Join-Path $current "DeviceSelector.exe") (@("--install-endpoint", $endpoints.Capture) + $mode.Arguments) 300 $current
     $roundRecord.install = [ordered]@{ exitCode = $install.ExitCode; timedOut = $install.TimedOut }
     Save-EndpointSnapshot $endpoints.Capture "30-$round-installed"
-    $fxNow = Get-ItemProperty -Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Capture\$($endpoints.Capture)\FxProperties" -ErrorAction SilentlyContinue
-    if ($fxNow) {
-        $slots = @()
-        foreach ($slot in @(@("LFX", "1"), @("GFX", "2"), @("SFX", "5"), @("MFX", "6"), @("EFX", "7"))) {
-            $property = $fxNow.PSObject.Properties["{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},$($slot[1])"]
-            if ($property -and $property.Value) { $slots += "$($slot[0])=$($property.Value)" }
-        }
-        $roundRecord.installMode = ($slots -join " ")
-        Write-Host "effect chain now: $($roundRecord.installMode)"
-    }
+    $roundRecord.installMode = Get-EffectChain "Capture" $endpoints.Capture
+    if ($null -ne $roundRecord.installMode) { Write-Host "effect chain now: $($roundRecord.installMode)" }
     if ($install.ExitCode -ne 0 -and $roundRequired) {
         Add-Failure "$round/install: DeviceSelector --install-endpoint exited with $($install.ExitCode) (the device test did not see the APO come up)"
     }
@@ -557,13 +540,7 @@ foreach ($mode in $installModes) {
 
     Write-Phase "uninstall ($round)"
     $uninstall = Invoke-Program (Join-Path $current "DeviceSelector.exe") @("--uninstall-endpoint", $endpoints.Capture) 180 $current
-    $fxAfter = Get-ItemProperty -Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Capture\$($endpoints.Capture)\FxProperties" -ErrorAction SilentlyContinue
-    $eqLeft = $false
-    if ($fxAfter) {
-        foreach ($property in $fxAfter.PSObject.Properties) {
-            if ("$($property.Value)" -match "EACD2258-FCAC-4FF4-B36D-419E924A6D79|EC1CC9CE-FAED-4822-828A-82A81A6F018F") { $eqLeft = $true }
-        }
-    }
+    $eqLeft = Test-EqClsidLeft "Capture" $endpoints.Capture
     $roundRecord.uninstall = [ordered]@{ exitCode = $uninstall.ExitCode; eqClsidLeft = $eqLeft }
     Save-EndpointSnapshot $endpoints.Capture "50-$round-uninstalled"
     if ($uninstall.ExitCode -ne 0) { Add-Failure "$round/uninstall: DeviceSelector --uninstall-endpoint exited with $($uninstall.ExitCode)" }
