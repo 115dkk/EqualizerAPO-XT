@@ -34,7 +34,7 @@
 #include <algorithm>
 #include <functional>
 
-#include "Editor/helpers/EditorSettings.h"
+#include "services/settings/EditorSettings.h"
 #include "SkinManager.h"
 #include "FilterTableRow.h"
 #include "FilterTableMimeData.h"

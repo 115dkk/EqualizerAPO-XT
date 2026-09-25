@@ -6,7 +6,7 @@
 
 #include "LegacyMigration.h"
 #include "services/registry/RegistryPaths.h"
-#include "Editor/helpers/EditorSettings.h"
+#include "services/settings/EditorSettings.h"
 #include "LegacyMigrationPolicy.h"
 #include "ConfigDependencyScanner.h"
 #include "ImportExecutor.h"

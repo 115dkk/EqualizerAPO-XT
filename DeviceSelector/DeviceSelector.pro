@@ -20,7 +20,7 @@ QMAKE_CXXFLAGS_RELEASE += /O2
 PRECOMPILED_HEADER = stdafx.h
 
 SOURCES += \
-	../Editor/helpers/QtAppBootstrap.cpp \
+	../platform/qt/QtAppBootstrap.cpp \
 	../Editor/skins/SkinThemeData.cpp \
 	main.cpp \
 	DeviceListDelegate.cpp \
@@ -47,7 +47,7 @@ SOURCES += \
 	stdafx.cpp
 
 HEADERS += \
-	../Editor/helpers/QtAppBootstrap.h \
+	../platform/qt/QtAppBootstrap.h \
 	../Editor/skins/SkinThemeData.h \
 	DeviceListDelegate.h \
 	DeviceSelector.h \

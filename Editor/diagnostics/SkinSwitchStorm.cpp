@@ -40,7 +40,7 @@
 #include "audio/ChannelLayout.h"
 #include "Editor/helpers/GUIChannelHelper.h"
 #include "Editor/helpers/GUIHelper.h"
-#include "Editor/helpers/EditorSettings.h"
+#include "services/settings/EditorSettings.h"
 #include "version.h"
 #include "FilterTable.h"
 #include "MainWindow.h"
