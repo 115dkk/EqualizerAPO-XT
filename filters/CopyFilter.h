@@ -40,8 +40,7 @@ struct Assignment
 };
 
 // Shared, Qt-free parser for a "Copy:" config line. It turns the parameter
-// string into the same std::vector<Assignment> that CopyFilter::getAssignments()
-// returns: assignments are split on spaces, each "target=source" is split on
+// string into the std::vector<Assignment> a CopyFilter is built from: assignments are split on spaces, each "target=source" is split on
 // '=', the source is split into '+' summands, every summand is split on '*' into
 // an optional factor and a channel, a lone token is treated as a factor only
 // when it is "0" or contains a '.', and the dB suffix sets isDecibel. The
@@ -75,8 +74,6 @@ public:
 	bool producesTailFromSilentInput() const override {return false;}
 	std::vector<std::wstring> initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames) override;
 	void process(double** output, double** input, unsigned frameCount) override;
-
-	const std::vector<Assignment>& getAssignments() const;
 
 private:
 	std::vector<Assignment> assignments;

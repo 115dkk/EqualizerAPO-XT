@@ -64,7 +64,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;_CONSOLE;UNICODE;_UNICODE;MUP_USE_WIDE_STRING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_CONSOLE;UNICODE;_UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <PostBuildEvent>
       <Command>if exist "$(FFTW_LIB)\*.dll" copy /Y "$(FFTW_LIB)\*.dll" "$(OutDir)"
@@ -115,6 +115,7 @@ if exist "$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configurati
     <ClCompile Include="VSTPluginCommandTests.cpp" />
     <ClCompile Include="VstHostTests.cpp" />
     <ClCompile Include="Vst3HostTests.cpp" />
+    <ClCompile Include="NumericTextTests.cpp" />
     <ClCompile Include="ParserPreampTests.cpp" />
     <ClCompile Include="ParserTests.cpp" />
   </ItemGroup>

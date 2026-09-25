@@ -65,6 +65,7 @@ void runVstHostTests();
 void runVst3HostTests();
 void runParserTests();
 void runParserPreampTests();
+void runNumericTextTests();
 void runMultiConvolutionTests();
 
 using std::string;
@@ -519,6 +520,7 @@ int runHybridConvTests()
 	runSubwooferRoutingVst3Tests();
 	runParserTests();
 	runParserPreampTests();
+	runNumericTextTests();
 	runMultiConvolutionTests();
 
 	cleanupFftwWisdomTest();

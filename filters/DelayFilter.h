@@ -34,9 +34,6 @@ public:
 	std::vector<std::wstring> initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames) override;
 	void process(double** output, double** input, unsigned frameCount) override;
 
-	double getDelay() const;
-	bool getIsMs() const;
-
 private:
 	double delay;
 	bool isMs;

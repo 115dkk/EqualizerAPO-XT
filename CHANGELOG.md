@@ -29,6 +29,35 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   the host from the install folder. A unit test covers where it looks; it
   has not been run with a real 32-bit application ([#361](https://github.com/115dkk/EqualizerAPO-XT/pull/361)).
 
+## v2.54.4 — 2026-09-25
+
+- **`LoudnessCorrection` reads an attenuation written with a decimal comma.**
+  `Attenuation 0,5` was accepted but read as 0; it now reads as 0.5, like a
+  decimal comma everywhere else in the configuration. The commands that read
+  numbers now share one reader: `MultiConvolution` no longer takes `inf`,
+  `nan` or hexadecimal text as a factor, and `Copy` no longer takes
+  hexadecimal text ([#364](https://github.com/115dkk/EqualizerAPO-XT/pull/364)).
+
+## v2.54.3 — 2026-09-25
+
+- **Benchmark.exe on ARM64 applies every filter in the configuration.** The
+  ARM64 build was linked without the option that keeps every filter in the
+  program, so filters nothing else in it referred to were left out and their
+  configuration lines were skipped as unknown commands. Every build of the
+  programs that contain the audio engine now takes its link settings from one
+  shared file ([#360](https://github.com/115dkk/EqualizerAPO-XT/pull/360)).
+
+## v2.54.2 — 2026-09-24
+
+- **A failed ASIO entry change is put back and reported.** Turning an ASIO
+  driver's entry on, off or changing its options wrote the record, the
+  driver-list entry in both registry views and the start-at-boot value one
+  after another; a failure midway left a record without an entry, and
+  nothing was logged. The Device Selector now applies the change in one step
+  that it undoes on failure, writes the outcome to its log, and a missing
+  install folder is reported the same way for ASIO drivers as for devices
+  ([#359](https://github.com/115dkk/EqualizerAPO-XT/pull/359)).
+
 ## v2.54.1 — 2026-09-24
 
 - **Benchmark.exe stops with an error instead of hanging on a short read or
