@@ -13,10 +13,19 @@
 	             in order); the host gone -> Gone for the rest of the stream.
 	  Pipelined  publish(seq), then take seq - 1, which is normally complete
 	             already. One block of extra latency, no per-block deadline;
-	             a host that stops answering for eight periods is Gone.
+	             a host that stops answering for eight periods or 20 ms,
+	             whichever is longer, is Gone (so at 64 frames and 48 kHz,
+	             sixteen late blocks in a row).
 
 	A slot the host may still be reading (two behind) is never overwritten:
 	that block is dropped and reported Late without touching the ring.
+
+	A pipelined Late block keeps the one-block delay: the planes then hold
+	the previous block's original audio, which is what would have gone out
+	processed had the host answered, and the wrapper writes the planes
+	(StreamProcessor.h, Outcome::Late). Writing the current block's original
+	audio instead would move the output a block earlier for that block and
+	back again after it.
 */
 
 #pragma once
@@ -65,6 +74,9 @@ namespace eapo::asio
 		struct Lane
 		{
 			std::vector<float> staging;
+			// Pipelined only: the original audio of the last block process()
+			// was given, which a Late block puts out in its place.
+			std::vector<float> previousInput;
 			std::vector<float*> planes;
 			uint32_t sequence = 0;      // last published
 			uint32_t consecutiveLate = 0;
@@ -73,6 +85,7 @@ namespace eapo::asio
 		};
 
 		void teardown() noexcept;
+		static void holdTimeline(Lane& lane) noexcept;
 
 		std::unique_ptr<IHostLink> link_;
 		HostSession session_;

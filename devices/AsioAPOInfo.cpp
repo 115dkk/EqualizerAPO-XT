@@ -7,6 +7,7 @@
 #include "stdafx.h"
 #include "devices/AsioAPOInfo.h"
 
+#include "asio/StreamFacts.h"
 #include "asio/WrapperRecord.h"
 #include "audio/ChannelLayout.h"
 #include "devices/DeviceException.h"
@@ -21,13 +22,6 @@ using eapo::asio::AsioTarget;
 using eapo::asio::WrapperRecord;
 namespace WrapperRecords = eapo::asio::WrapperRecords;
 
-namespace
-{
-	const wchar_t* const sampleRateFact = L"SampleRate";
-	const wchar_t* const outputChannelsFact = L"OutputChannels";
-	const wchar_t* const inputChannelsFact = L"InputChannels";
-}
-
 void AsioAPOInfo::appendInfos(std::vector<std::shared_ptr<AbstractAPOInfo>>& list, bool input, IRegistry& registry)
 {
 	for (const AsioTarget& target : eapo::asio::AsioRegistration::enumerateTargets(registry))
@@ -38,11 +32,6 @@ AsioAPOInfo::AsioAPOInfo(const AsioTarget& target, bool input, IRegistry& regist
 	: target(target), input(input), registry(registry)
 {
 	loadState();
-}
-
-std::wstring AsioAPOInfo::factsKey(const std::wstring& targetClsid)
-{
-	return std::wstring(USER_REGPATH) + L"\\ASIO\\" + targetClsid;
 }
 
 void AsioAPOInfo::loadState()
@@ -58,17 +47,13 @@ void AsioAPOInfo::loadState()
 	}
 	selected = current;
 
-	channelCount = 0;
-	sampleRate = 0;
-	const std::wstring facts = factsKey(target.clsid);
-	if (registry.keyExists(facts))
-	{
-		const wchar_t* const channelsFact = input ? inputChannelsFact : outputChannelsFact;
-		if (registry.valueExists(facts, channelsFact))
-			channelCount = registry.readDWORDValue(facts, channelsFact);
-		if (registry.valueExists(facts, sampleRateFact))
-			sampleRate = registry.readDWORDValue(facts, sampleRateFact);
-	}
+	// What the engine host saw of the target's last stream; nothing until a
+	// DAW has opened it once.
+	eapo::asio::StreamShape shape;
+	eapo::asio::StreamFacts::read(registry, target.clsid, shape);
+	const eapo::asio::Direction direction = input ? eapo::asio::Direction::Input : eapo::asio::Direction::Output;
+	channelCount = shape.channels[static_cast<unsigned>(direction)];
+	sampleRate = shape.sampleRate;
 }
 
 std::wstring AsioAPOInfo::getWrapperClsid() const

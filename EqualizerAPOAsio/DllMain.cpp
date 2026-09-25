@@ -43,6 +43,9 @@ namespace
 {
 	HINSTANCE moduleHandle = nullptr;
 	long factoryLocks = 0;
+	// Live class factories. A DAW may hold one past its last wrapper, and
+	// the DLL must stay loaded while it does (DllCanUnloadNow).
+	long liveFactories = 0;
 	bool loggingReady = false;
 
 	void ensureLogging()
@@ -68,7 +71,16 @@ namespace
 		explicit WrapperClassFactory(const CLSID& clsid, WrapperRecord record)
 			: clsid_(clsid), record_(std::move(record))
 		{
+			InterlockedIncrement(&liveFactories);
 		}
+
+		~WrapperClassFactory()
+		{
+			InterlockedDecrement(&liveFactories);
+		}
+
+		WrapperClassFactory(const WrapperClassFactory&) = delete;
+		WrapperClassFactory& operator=(const WrapperClassFactory&) = delete;
 
 		HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** object) override
 		{
@@ -238,7 +250,7 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, void*)
 
 STDAPI DllCanUnloadNow()
 {
-	return (AsioWrapper::instanceCount() == 0 && factoryLocks == 0) ? S_OK : S_FALSE;
+	return (AsioWrapper::instanceCount() == 0 && factoryLocks == 0 && liveFactories == 0) ? S_OK : S_FALSE;
 }
 
 STDAPI DllGetClassObject(const CLSID& clsid, const IID& iid, void** object)

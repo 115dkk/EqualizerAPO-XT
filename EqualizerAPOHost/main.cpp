@@ -33,6 +33,7 @@
 #include "platform/windows/NamedPipeSecurity.h"
 #include "runtime/ipc/StreamRing.h"
 #include "services/logging/Logging.h"
+#include "services/registry/WindowsRegistry.h"
 
 // After windows.h (through the ring header): shellapi.h needs its types.
 #include <shellapi.h>
@@ -120,77 +121,39 @@ namespace
 			return ok && transferred == bytes;
 		}
 
-		void serve(HostOpenRequest request, ServeThread& worker, std::stop_token stop)
+		void serve(HostOpenRequest request, ServeThread& worker)
 		{
 			HANDLE mapping = OpenFileMappingW(FILE_MAP_ALL_ACCESS, FALSE, request.ringName);
 			void* base = mapping != nullptr ? MapViewOfFile(mapping, FILE_MAP_ALL_ACCESS, 0, 0, request.ringBytes) : nullptr;
-			const wchar_t* const suffixes[5] = {L"work0", L"work1", L"done0", L"done1", L"ready"};
-			HANDLE events[5] = {};
+			HANDLE events[eapo::asio::RingEvents::count] = {};
 			bool ok = base != nullptr;
-			for (int i = 0; ok && i < 5; i++)
+			for (unsigned i = 0; ok && i < eapo::asio::RingEvents::count; i++)
 			{
-				events[i] = OpenEventW(EVENT_MODIFY_STATE | SYNCHRONIZE, FALSE, eapo::asio::HostNames::event(request.ringName, suffixes[i]).c_str());
+				events[i] = OpenEventW(EVENT_MODIFY_STATE | SYNCHRONIZE, FALSE,
+					eapo::asio::HostNames::event(request.ringName, eapo::asio::RingEvents::table[i].suffix).c_str());
 				ok = events[i] != nullptr;
 			}
+			if (!ok)
+				LogFStatic(L"ASIO host: the ring %s could not be opened (error %lu)", request.ringName, GetLastError());
 			HANDLE producer = OpenProcess(SYNCHRONIZE, FALSE, request.producerPid);
+			if (ok && producer == nullptr)
+			{
+				// The stream still runs, but a producer that dies without
+				// closing the ring now goes unnoticed: this stream's thread
+				// keeps waiting for work, and the host counts it as active.
+				LogFStatic(L"ASIO host: the producer process %u of %s could not be opened (error %lu); serving without a liveness watch",
+					request.producerPid, request.ringName, GetLastError());
+			}
 			if (ok)
 			{
-				eapo::ipc::RingSync sync;
-				sync.work[0] = events[0];
-				sync.work[1] = events[1];
-				sync.done[0] = events[2];
-				sync.done[1] = events[3];
-				sync.ready = events[4];
-				sync.peer = producer;
-
-				// HostOpenRequest has no readiness timeout. Match ThreadHostLink's
-				// fixed 5 ms poll and StreamOptions' 20 second cold-start bound.
-				eapo::ipc::RingHeader* header = static_cast<eapo::ipc::RingHeader*>(base);
-				const ULONGLONG deadline = GetTickCount64() + 20000;
-				while (ReadAcquire(&header->state) == static_cast<LONG>(eapo::ipc::RingState::Empty) && !stop.stop_requested())
-				{
-					if (producer != nullptr)
-					{
-						const DWORD waited = WaitForSingleObject(producer, 5);
-						if (waited == WAIT_OBJECT_0)
-							break;
-						if (waited == WAIT_FAILED)
-							Sleep(5);
-					}
-					else
-					{
-						Sleep(5);
-					}
-					if (GetTickCount64() >= deadline)
-						break;
-				}
-
-				if (!stop.stop_requested() || ReadAcquire(&header->state) != static_cast<LONG>(eapo::ipc::RingState::Empty))
-				{
-					const bool validFormat = eapo::ipc::RingGeometry::validFormat(header->format);
-					const uint64_t expectedBytes = validFormat ? eapo::ipc::RingGeometry::totalBytes(header->format) : 0;
-					if (!validFormat || expectedBytes != header->totalBytes || expectedBytes > request.ringBytes)
-					{
-						WriteRelease(&header->faultCode, static_cast<LONG>(eapo::ipc::RingFault::LayoutMismatch));
-						WriteRelease(&header->state, static_cast<LONG>(eapo::ipc::RingState::Fault));
-						SetEvent(sync.ready);
-					}
-					else
-					{
-						eapo::ipc::RingConsumer consumer(base, request.ringBytes, sync);
-						eapo::asio::ServeOptions options;
-						options.configPath = request.configPath;
-						options.proAudio = true;
-						options.spinPeriods = 1.0;
-						options.publishFacts = true;
-						options.abandon = &worker.abandon;
-						eapo::asio::EngineHostCore::serveStream(consumer, options, GetCurrentProcessId());
-					}
-				}
-			}
-			else
-			{
-				LogFStatic(L"ASIO host: the ring %s could not be opened (error %lu)", request.ringName, GetLastError());
+				eapo::asio::ServeOptions options;
+				options.configPath = request.configPath;
+				options.proAudio = true;
+				options.spinPeriods = 1.0;
+				options.registry = &systemRegistry();
+				options.abandon = &worker.abandon;
+				eapo::asio::EngineHostCore::attachAndServe(base, request.ringBytes,
+					eapo::asio::RingEvents::toSync(events, producer), options, GetCurrentProcessId());
 			}
 			if (producer != nullptr)
 				CloseHandle(producer);
@@ -254,7 +217,7 @@ namespace
 				std::unique_ptr<ServeThread> worker = std::make_unique<ServeThread>();
 				ServeThread* raw = worker.get();
 				activeStreams.fetch_add(1, std::memory_order_release);
-				raw->thread = std::jthread([this, request, raw](std::stop_token stop) {serve(request, *raw, stop);});
+				raw->thread = std::jthread([this, request, raw] {serve(request, *raw);});
 				serveThreads.push_back(std::move(worker));
 			}
 			overlappedIo(pipe, true, &reply, sizeof(reply));

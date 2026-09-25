@@ -14,6 +14,17 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **ASIO: a late block no longer makes the output jump.** With the separate
+  host process in pipelined mode, the output runs one block behind. When the
+  host fell behind, the ASIO app got the current block's unprocessed input,
+  a block early, so the sound skipped forward and back. It now gets a copy of
+  the previous block's input, which keeps the timeline. The ASIO host also
+  checks the shared stream header more strictly (sample rate between 1 kHz
+  and 1 MHz, terminated names, slot layout recomputed from the format), logs
+  when it cannot watch the app's process, keeps its buffers when the app's
+  callbacks do not finish in time instead of releasing them under the app,
+  and refuses an ASIO driver entry whose CLSID is not a GUID ([#378](https://github.com/115dkk/EqualizerAPO-XT/pull/378)).
+
 ## v2.54.13 — 2026-09-25
 
 - **A VST plug-in that reports latency no longer delays its own output a

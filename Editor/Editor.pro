@@ -235,6 +235,7 @@ SOURCES += main.cpp\
 	../asio/AsioRegistration.cpp \
 	../services/registry/ClsidRegistration.cpp \
 	../asio/WrapperRecord.cpp \
+	../asio/StreamFacts.cpp \
 	../devices/VoicemeeterAPOInfo.cpp \
 	../vst/AbstractLibrary.cpp \
 	../vst/VST3PluginIIDs.cpp \
@@ -535,6 +536,7 @@ HEADERS  += \
 	../asio/AsioRegistration.h \
 	../asio/EntryOptions.h \
 	../asio/WrapperRecord.h \
+	../asio/StreamFacts.h \
 	../asio/StreamProcessor.h \
 	../devices/VoicemeeterAPOInfo.h \
 	../vst/AbstractLibrary.h \

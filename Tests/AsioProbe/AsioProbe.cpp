@@ -15,7 +15,12 @@
 	           clsid:{...} (a real driver through CoCreateInstance; no pump,
 	           the driver's own clock runs for --seconds)
 	Wrappers:  static (AsioWrapper linked in, processor chosen by --processor),
-	           dll:<path> (EqualizerAPOAsio.dll through EapoAsioCreateWrapper)
+	           dll:<path> (EqualizerAPOAsio.dll through EapoAsioCreateWrapper),
+	           none (the target is driven as it is; --processor does not
+	           apply). With clsid:{wrapper CLSID} that is the product's own
+	           registered entry, and the only wrapper in the stream is the
+	           product's: no late or gone counts of an outer probe wrapper
+	           are reported (audit #348 F14)
 	Processors: inproc (two FilterEngines in this process), passthrough,
 	           daemon-thread (the daemon adapter over the engine host running
 	           on a thread in this process), daemon (the daemon adapter over
@@ -41,6 +46,7 @@
 #include "asio/SampleCodec.h"
 #include "asio/WasapiExclusiveTarget.h"
 #include "engine/FilterEngine.h"
+#include "platform/windows/ComPtr.h"
 #include "services/logging/Logging.h"
 #include "Tests/AsioSupport/HostStub.h"
 #include "Tests/AsioSupport/Sha256.h"
@@ -53,6 +59,7 @@ using eapo::asio::Mode;
 using eapo::asio::SampleCodec;
 using eapo::asio::StreamOptions;
 using eapo::asio::StreamStats;
+using winutil::ComPtr;
 
 namespace
 {
@@ -105,7 +112,7 @@ namespace
 	void usage()
 	{
 		std::fputs(
-			"AsioProbe --target fake|dll:<FakeAsioDriver.dll>|clsid:{...}|wasapi:{...}[,{...}] --wrapper static|dll:<EqualizerAPOAsio.dll>\n"
+			"AsioProbe --target fake|dll:<FakeAsioDriver.dll>|clsid:{...}|wasapi:{...}[,{...}] --wrapper static|dll:<EqualizerAPOAsio.dll>|none\n"
 			"          --processor inproc|passthrough|daemon-thread|daemon --config <config.txt> [--mode sync|pipelined]\n"
 			"          [--daemon <EqualizerAPOHost.exe>] [--endpoint <name>] [--deadline-us N]\n"
 			"          [--frames 64] [--rate 48000] [--periods 200] [--pace-us 0] [--burst 1] [--channels in,out] [--sample-type int16|int24|int32|float32]\n"
@@ -177,120 +184,119 @@ namespace
 		return a.frames > 0 && a.periods > 0 && a.rate > 0.0 && a.burst > 0;
 	}
 
+	// A DLL the probe loaded. Deliberately never freed: COM objects created
+	// from it may still be releasing during teardown, and the process is
+	// exiting.
 	struct Module
 	{
 		HMODULE handle = nullptr;
-		~Module()
-		{
-			// Deliberately not freed: COM objects created from the DLL may
-			// still be releasing during teardown, and the process is exiting.
-		}
 	};
 
-	IASIO* loadFromDll(const std::wstring& path, const CLSID& clsid, Module& module)
+	ComPtr<IASIO> loadFromDll(const std::wstring& path, const CLSID& clsid, Module& module)
 	{
+		ComPtr<IASIO> driver;
 		module.handle = LoadLibraryExW(path.c_str(), nullptr, LOAD_WITH_ALTERED_SEARCH_PATH);
 		if (module.handle == nullptr)
 		{
 			std::fwprintf(stderr, L"AsioProbe: cannot load %s (error %lu)\n", path.c_str(), GetLastError());
-			return nullptr;
+			return driver;
 		}
 		typedef HRESULT (STDAPICALLTYPE* GetClassObject)(REFCLSID, REFIID, void**);
 		GetClassObject getClassObject = reinterpret_cast<GetClassObject>(GetProcAddress(module.handle, "DllGetClassObject"));
 		if (getClassObject == nullptr)
 		{
 			std::fwprintf(stderr, L"AsioProbe: %s exports no DllGetClassObject\n", path.c_str());
-			return nullptr;
+			return driver;
 		}
-		IClassFactory* factory = nullptr;
-		HRESULT hr = getClassObject(clsid, IID_IClassFactory, reinterpret_cast<void**>(&factory));
-		if (FAILED(hr) || factory == nullptr)
+		ComPtr<IClassFactory> factory;
+		HRESULT hr = getClassObject(clsid, IID_IClassFactory, reinterpret_cast<void**>(factory.put()));
+		if (FAILED(hr) || !factory)
 		{
 			std::fwprintf(stderr, L"AsioProbe: DllGetClassObject failed with 0x%08x\n", static_cast<unsigned>(hr));
-			return nullptr;
+			return driver;
 		}
-		IASIO* driver = nullptr;
-		hr = factory->CreateInstance(nullptr, clsid, reinterpret_cast<void**>(&driver));
-		factory->Release();
-		if (FAILED(hr) || driver == nullptr)
+		hr = factory->CreateInstance(nullptr, clsid, reinterpret_cast<void**>(driver.put()));
+		if (FAILED(hr) || !driver)
 		{
 			std::fwprintf(stderr, L"AsioProbe: CreateInstance failed with 0x%08x\n", static_cast<unsigned>(hr));
-			return nullptr;
+			driver.reset();
 		}
 		return driver;
 	}
 
-	IASIO* loadRealDriver(const std::wstring& clsidText)
+	ComPtr<IASIO> loadRealDriver(const std::wstring& clsidText)
 	{
+		ComPtr<IASIO> driver;
 		CLSID clsid;
 		if (FAILED(CLSIDFromString(clsidText.c_str(), &clsid)))
 		{
 			std::fwprintf(stderr, L"AsioProbe: %s is not a CLSID\n", clsidText.c_str());
-			return nullptr;
+			return driver;
 		}
-		IASIO* driver = nullptr;
-		const HRESULT hr = CoCreateInstance(clsid, nullptr, CLSCTX_INPROC_SERVER, clsid, reinterpret_cast<void**>(&driver));
-		if (FAILED(hr) || driver == nullptr)
+		const HRESULT hr = CoCreateInstance(clsid, nullptr, CLSCTX_INPROC_SERVER, clsid, reinterpret_cast<void**>(driver.put()));
+		if (FAILED(hr) || !driver)
 		{
 			std::fwprintf(stderr, L"AsioProbe: CoCreateInstance(%s) failed with 0x%08x\n", clsidText.c_str(), static_cast<unsigned>(hr));
-			return nullptr;
+			driver.reset();
 		}
 		return driver;
 	}
 
-	IASIO* wrapThroughDll(const std::wstring& path, IASIO* target, const std::wstring& targetClsid, const Arguments& a, Module& module)
+	ComPtr<IASIO> wrapThroughDll(const std::wstring& path, IASIO* target, const std::wstring& targetClsid, const Arguments& a, Module& module)
 	{
+		ComPtr<IASIO> wrapper;
 		module.handle = LoadLibraryExW(path.c_str(), nullptr, LOAD_WITH_ALTERED_SEARCH_PATH);
 		if (module.handle == nullptr)
 		{
 			std::fwprintf(stderr, L"AsioProbe: cannot load %s (error %lu)\n", path.c_str(), GetLastError());
-			return nullptr;
+			return wrapper;
 		}
 		typedef HRESULT (__stdcall* CreateWrapper)(IASIO*, const wchar_t*, const wchar_t*, const wchar_t*, IASIO**);
 		CreateWrapper create = reinterpret_cast<CreateWrapper>(GetProcAddress(module.handle, "EapoAsioCreateWrapper"));
 		if (create == nullptr)
 		{
 			std::fwprintf(stderr, L"AsioProbe: %s exports no EapoAsioCreateWrapper\n", path.c_str());
-			return nullptr;
+			return wrapper;
 		}
 		std::wstring options = L"output=" + std::wstring(a.processOutput ? L"1" : L"0")
 			+ L";input=" + std::wstring(a.processInput ? L"1" : L"0")
 			+ L";mode=" + a.mode + L";deadline=" + std::to_wstring(a.deadlineUs)
 			+ L";endpoint=" + a.endpoint + L";daemon=" + a.daemonExe + L";config=" + a.config;
-		IASIO* wrapper = nullptr;
-		const HRESULT hr = create(target, targetClsid.c_str(), options.c_str(), a.processor.c_str(), &wrapper);
-		if (FAILED(hr) || wrapper == nullptr)
+		const HRESULT hr = create(target, targetClsid.c_str(), options.c_str(), a.processor.c_str(), wrapper.put());
+		if (FAILED(hr) || !wrapper)
 		{
 			std::fwprintf(stderr, L"AsioProbe: EapoAsioCreateWrapper failed with 0x%08x\n", static_cast<unsigned>(hr));
-			return nullptr;
+			wrapper.reset();
 		}
 		return wrapper;
 	}
 
 	// Runs the engine directly over the same quantized signal the wrapper
 	// saw, one period at a time, and returns the per-channel byte streams
-	// in the layout the fake driver records them in.
-	bool computeReference(const Arguments& a, const SampleCodec& codec, const asiotest::HostStub& host, bool capture,
-		std::vector<std::vector<unsigned char>>& records, std::vector<unsigned char>& firstPeriod)
+	// in the layout the fake driver records them in. shiftPeriods is the
+	// delay the stream reported, in periods: that many periods of silence
+	// come first, and the last that many never leave.
+	void computeReference(const Arguments& a, const SampleCodec& codec, const asiotest::HostStub& host, bool capture,
+		long shiftPeriods, std::vector<std::vector<unsigned char>>& records, std::vector<unsigned char>& firstPeriod)
 	{
 		const long channels = capture ? a.inputs : a.outputs;
 		records.assign(static_cast<size_t>(channels), std::vector<unsigned char>());
 		firstPeriod.clear();
 		if (channels == 0)
-			return true;
+			return;
 
 		std::unique_ptr<FilterEngine> engine;
-		const bool filtering = a.processor != L"passthrough" && (capture ? a.processInput : a.processOutput);
-		// The pipelined adapter hands out one block of silence first and the
-		// processed stream one period late; the last period never leaves.
-		const bool pipelined = filtering && a.mode == L"pipelined";
-		if (pipelined)
+		const bool filtering = a.wrapper != L"none" && a.processor != L"passthrough" && (capture ? a.processInput : a.processOutput);
+		if (shiftPeriods > 0)
 		{
 			std::vector<unsigned char> silence(static_cast<size_t>(codec.bytesPerSample) * a.frames, 0);
 			std::vector<float> zeros(static_cast<size_t>(a.frames), 0.0f);
 			codec.fromFloat(zeros.data(), silence.data(), static_cast<unsigned>(a.frames));
 			for (long c = 0; c < channels; c++)
-				records[static_cast<size_t>(c)].insert(records[static_cast<size_t>(c)].end(), silence.begin(), silence.end());
+			{
+				for (long p = 0; p < shiftPeriods; p++)
+					records[static_cast<size_t>(c)].insert(records[static_cast<size_t>(c)].end(), silence.begin(), silence.end());
+			}
 		}
 		if (filtering)
 		{
@@ -306,7 +312,7 @@ namespace
 			setup.capture = capture;
 			setup.deviceName = L"FakeAsio";
 			setup.connectionName = L"ASIO";
-			setup.deviceGuid = L"{B7E3A9F4-52C1-4D0B-8A6E-1F9C3D5E7B21}";
+			setup.deviceGuid = CLSID_FakeAsioText;
 			engine->initialize(setup);
 		}
 
@@ -315,7 +321,7 @@ namespace
 		for (long c = 0; c < channels; c++)
 			planes[static_cast<size_t>(c)] = storage.data() + static_cast<size_t>(c) * a.frames;
 		std::vector<unsigned char> bytes(static_cast<size_t>(codec.bytesPerSample) * a.frames);
-		const long referencePeriods = pipelined ? a.periods - 1 : a.periods;
+		const long referencePeriods = a.periods - shiftPeriods;
 		for (long p = 0; p < referencePeriods; p++)
 		{
 			for (long c = 0; c < channels; c++)
@@ -341,7 +347,6 @@ namespace
 					firstPeriod.insert(firstPeriod.end(), bytes.begin(), bytes.end());
 			}
 		}
-		return true;
 	}
 
 	std::string hashOf(const std::vector<std::vector<unsigned char>>& records)
@@ -367,7 +372,7 @@ namespace
 			static_cast<unsigned long long>(p.roundTripBuckets[4]), static_cast<unsigned long long>(p.roundTripBuckets[5]));
 	}
 
-	int runFakeStream(const Arguments& a, IASIO* wrapper, IFakeAsioControl* control, AsioWrapper* staticWrapper)
+	int runFakeStream(const Arguments& a, IASIO* target, IASIO* wrapper, IFakeAsioControl* control, AsioWrapper* staticWrapper)
 	{
 		SampleCodec codec;
 		eapo::asio::findSampleCodec(a.sampleType, codec);
@@ -393,8 +398,17 @@ namespace
 			std::fprintf(stderr, "AsioProbe: createBuffers failed with %ld: %s\n", error, message);
 			return 2;
 		}
+		// What the stream reports against what the target alone reports for
+		// the same buffers: the difference is the delay the processor added,
+		// the one number both the reference and the first-period check take
+		// the shift from. Driven directly (--wrapper none) the two are one
+		// driver and the shift is zero.
 		long inputLatency = 0, outputLatency = 0;
 		wrapper->getLatencies(&inputLatency, &outputLatency);
+		long targetInputLatency = 0, targetOutputLatency = 0;
+		target->getLatencies(&targetInputLatency, &targetOutputLatency);
+		const long inputShift = (inputLatency - targetInputLatency) / a.frames;
+		const long outputShift = (outputLatency - targetOutputLatency) / a.frames;
 		error = wrapper->start();
 		if (error != ASE_OK)
 		{
@@ -451,7 +465,7 @@ namespace
 			control->capturedOutput(c, &data, &bytes);
 			outputs[static_cast<size_t>(c)].assign(data, data + bytes);
 			const size_t periodBytes = static_cast<size_t>(codec.bytesPerSample) * a.frames;
-			const size_t skip = a.mode == L"pipelined" && a.processor != L"passthrough" ? periodBytes : 0;
+			const size_t skip = static_cast<size_t>(outputShift) * periodBytes;
 			if (bytes >= skip + periodBytes)
 				firstPeriod.insert(firstPeriod.end(), data + skip, data + skip + periodBytes);
 		}
@@ -477,9 +491,9 @@ namespace
 		if (a.reference)
 		{
 			std::vector<std::vector<unsigned char>> referenceOutputs, referenceInputs;
-			std::vector<unsigned char> referenceFirst, unused;
-			computeReference(a, codec, host, false, referenceOutputs, referenceFirst);
-			computeReference(a, codec, host, true, referenceInputs, unused);
+			std::vector<unsigned char> referenceFirst, referenceFirstInput;
+			computeReference(a, codec, host, false, outputShift, referenceOutputs, referenceFirst);
+			computeReference(a, codec, host, true, inputShift, referenceInputs, referenceFirstInput);
 			const std::string referenceOutputSha = hashOf(referenceOutputs);
 			const std::string referenceFirstSha = asiotest::sha256Hex(referenceFirst);
 			const std::string referenceInputSha = hashOf(referenceInputs);
@@ -625,12 +639,13 @@ int wmain(int argc, wchar_t** argv)
 		return 1;
 	}
 	Logging::set(stderr, false, false, false);
-	const HRESULT comInit = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+	// First, so every COM pointer below is released before CoUninitialize.
+	const winutil::ComApartment apartment(COINIT_APARTMENTTHREADED);
 
 	Module targetModule, wrapperModule;
-	IASIO* target = nullptr;
-	IFakeAsioControl* control = nullptr;
-	std::wstring targetClsid = L"{B7E3A9F4-52C1-4D0B-8A6E-1F9C3D5E7B21}";
+	ComPtr<IASIO> target;
+	ComPtr<IFakeAsioControl> control;
+	std::wstring targetClsid = CLSID_FakeAsioText;
 	const bool realDriver = a.target.starts_with(L"clsid:");
 	const bool wasapiTarget = a.target.starts_with(L"wasapi:");
 	// A target with a device behind it: no fake control, no pump, timed run.
@@ -638,7 +653,7 @@ int wmain(int argc, wchar_t** argv)
 	eapo::asio::WasapiExclusiveTarget* wasapi = nullptr;
 	if (a.target == L"fake")
 	{
-		target = new FakeAsioDriver();
+		*target.put() = new FakeAsioDriver();
 	}
 	else if (a.target.starts_with(L"dll:"))
 	{
@@ -660,19 +675,19 @@ int wmain(int argc, wchar_t** argv)
 		const std::wstring captureGuid = comma == std::wstring::npos ? std::wstring() : spec.substr(comma + 1);
 		targetClsid = renderGuid.empty() ? captureGuid : renderGuid;
 		wasapi = new eapo::asio::WasapiExclusiveTarget(renderGuid, captureGuid);
-		target = wasapi;
+		*target.put() = wasapi;      // wasapi stays a non-owning alias for the counters
 	}
 	else
 	{
 		usage();
 		return 1;
 	}
-	if (target == nullptr)
+	if (!target)
 		return 2;
 
 	if (!liveTarget)
 	{
-		if (FAILED(target->QueryInterface(IID_IFakeAsioControl, reinterpret_cast<void**>(&control))))
+		if (FAILED(target->QueryInterface(IID_IFakeAsioControl, reinterpret_cast<void**>(control.put()))))
 		{
 			std::fputs("AsioProbe: the target is not the fake driver\n", stderr);
 			return 2;
@@ -699,8 +714,8 @@ int wmain(int argc, wchar_t** argv)
 	options.daemonExePath = a.daemonExe;
 	options.lingerMs = 2000;
 
-	IASIO* wrapper = nullptr;
-	AsioWrapper* staticWrapper = nullptr;
+	ComPtr<IASIO> wrapper;
+	AsioWrapper* staticWrapper = nullptr;     // non-owning alias of wrapper when it is the linked-in one
 	if (a.wrapper == L"static")
 	{
 		std::unique_ptr<IStreamProcessor> processor;
@@ -718,26 +733,29 @@ int wmain(int argc, wchar_t** argv)
 			return 1;
 		}
 		staticWrapper = new AsioWrapper(target, probeWrapperClsid, targetClsid, options, std::move(processor));
-		wrapper = staticWrapper;
+		*wrapper.put() = staticWrapper;
 	}
 	else if (a.wrapper.starts_with(L"dll:"))
 	{
 		wrapper = wrapThroughDll(a.wrapper.substr(4), target, targetClsid, a, wrapperModule);
+	}
+	else if (a.wrapper == L"none")
+	{
+		wrapper = target;
 	}
 	else
 	{
 		usage();
 		return 1;
 	}
-	target->Release();      // the wrapper holds its own reference
-	if (wrapper == nullptr)
+	if (!wrapper)
 		return 2;
 
 	int result;
 	if (liveTarget)
 		result = runRealStream(a, wrapper, staticWrapper);
 	else
-		result = runFakeStream(a, wrapper, control, staticWrapper);
+		result = runFakeStream(a, target, wrapper, control, staticWrapper);
 	if (wasapi != nullptr)
 	{
 		const eapo::asio::WasapiExclusiveTarget::Counters counters = wasapi->counters();
@@ -748,11 +766,6 @@ int wmain(int argc, wchar_t** argv)
 			static_cast<unsigned long long>(counters.serviceMaxUs), static_cast<unsigned long long>(counters.bridge));
 	}
 
-	if (control != nullptr)
-		control->Release();
-	wrapper->Release();
-	if (SUCCEEDED(comInit))
-		CoUninitialize();
 	std::printf("AsioProbe exit %d\n", result);
 	return result;
 }
