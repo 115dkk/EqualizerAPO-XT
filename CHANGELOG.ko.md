@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.54.27 — 2026-09-25
+
 - **ASIO 호스트가 시스템이 아직 쓰고 있는 파이프 대기를 해제하지
   않습니다.** EqualizerAPOHost는 클라이언트 연결 대기를 멈출
   때 대기를 취소하자마자 이벤트와 버퍼를 해제했는데, Windows는 취소된

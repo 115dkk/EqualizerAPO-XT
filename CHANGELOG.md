@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.27 — 2026-09-25
+
 - **The ASIO host no longer frees a pipe wait the system is still using.**
   When EqualizerAPOHost stopped waiting for its client to connect, it
   cancelled the wait and released the event and buffer at once, although
