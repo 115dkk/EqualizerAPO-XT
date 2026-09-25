@@ -61,6 +61,8 @@ void runIncludeCommandTests();
 void runLoudnessCorrectionCommandTests();
 void runStageCommandTests();
 void runVSTPluginCommandTests();
+void runVST3SpeakerMappingTests();
+void runVST3LifecycleTests();
 void runVSTChannelPlanTests();
 void runVstHostTests();
 void runVst3HostTests();
@@ -531,6 +533,9 @@ int runHybridConvTests()
 	runLoudnessCorrectionCommandTests();
 	runStageCommandTests();
 	runVSTPluginCommandTests();
+	// Pure VST3 speaker-layout and lifecycle state-machine contracts.
+	runVST3SpeakerMappingTests();
+	runVST3LifecycleTests();
 	// Channel-to-instance plan of a VSTPlugin line, judged without a plug-in.
 	runVSTChannelPlanTests();
 	// Runtime VST2 host load/state/audio test. Soft-skips if the

@@ -122,6 +122,8 @@ private slots:
 private:
 	void onAutomate();
 	bool embedPlugin(QWidget* host);
+	void acquirePanelProcessing();
+	void releasePanelProcessing();
 	void reportPanelCrash();
 
 	Row row;
@@ -131,6 +133,7 @@ private:
 	std::unordered_map<std::wstring, float> currentParamMap;
 	Status currentStatus;
 	bool isEmbedded = false;
+	bool ownsPanelProcessing = false;
 	bool autoApply = true;
 	QElapsedTimer lastReadTimer;
 	// Declared after effect on purpose: reverse member destruction stops the

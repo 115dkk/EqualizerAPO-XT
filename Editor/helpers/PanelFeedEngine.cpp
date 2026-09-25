@@ -198,7 +198,6 @@ struct PanelFeedEngine::EngineState
 {
 	VSTPluginInstance* effect = nullptr;
 	Options options;
-	bool isVst3 = false;
 	ProcessWidth width = ProcessWidth::Float32;
 	bool ownsProcessingState = false;
 	ComPtr<IMMDevice> device;
@@ -301,7 +300,6 @@ bool PanelFeedEngine::start(VSTPluginInstance* effect, const Options& options)
 	auto s = std::make_unique<EngineState>();
 	s->effect = effect;
 	s->options = options;
-	s->isVst3 = effect->isVST3();
 	if (effect->canDoubleReplacing())
 		s->width = ProcessWidth::Double64;
 	else if (effect->canReplacing())
@@ -393,16 +391,12 @@ bool PanelFeedEngine::start(VSTPluginInstance* effect, const Options& options)
 		: s->width == ProcessWidth::Float32 ? "float32" : "float32-accumulate",
 		options.monitorEnabled ? "enabled" : "disabled");
 
-	// A VST3 instance inside the Editor processes inside the editor session
-	// the caller is about to open (startEditing -> beginVST3EditorSession).
-	// A VST2 effect has no such session and would be fed while suspended, so
-	// the engine resumes it here and suspends it again in stop(). A headless
-	// VST3 harness has no editor session either; the engine then owns the
-	// activation the same way.
-	if (!s->isVst3 || !options.requireVst3EditorSession)
+	// A headless caller asks the feed to own processing. Editor panels wait
+	// for startEditing() to establish a process-ready session instead.
+	if (!options.requireVst3EditorSession && !effect->canProcessNow())
 	{
 		effect->startProcessing();
-		s->ownsProcessingState = true;
+		s->ownsProcessingState = effect->canProcessNow();
 	}
 
 	state = std::move(s);
@@ -517,11 +511,9 @@ bool PanelFeedEngine::tick()
 		return false;
 	EngineState& s = *state;
 
-	// A VST3 session whose view never attached (startEditing failed) holds
-	// no Processing state to feed; the capture is still drained so it does
-	// not pile up.
-	const bool processReady = !s.isVst3 || !s.options.requireVst3EditorSession
-		|| s.effect->vst3EditorSessionActive();
+	// A view that never attached holds no Processing state to feed; the
+	// capture is still drained so it does not pile up.
+	const bool processReady = s.effect->canProcessNow();
 
 	if (s.gate.state() == PanelMonitorGate::State::Render)
 		return renderTick(s, processReady);

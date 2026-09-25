@@ -243,6 +243,8 @@ SOURCES += main.cpp\
 	../vst/AbstractLibrary.cpp \
 	../vst/VST3PluginIIDs.cpp \
 	../vst/VSTPluginLibrary.cpp \
+	../vst/VST3Lifecycle.cpp \
+	../vst/VST3SpeakerMapping.cpp \
 	guis/VSTPluginFilterGUI.cpp \
 	guis/VSTPluginFilterGUIFactory.cpp \
 	guis/VSTPluginFilterGUIDialog.cpp \
@@ -566,6 +568,8 @@ HEADERS  += \
 	../filters/VSTPluginFilter.h \
 	../filters/VSTPluginFilterFactory.h \
 	../vst/VSTPluginInstance.h \
+	../vst/VST3Lifecycle.h \
+	../vst/VST3SpeakerMapping.h \
 	guis/LoudnessCorrectionFilterGUI.h \
 	guis/LoudnessCorrectionFilterGUIFactory.h \
 	../filters/loudnessCorrection/LoudnessCorrectionCommand.h \

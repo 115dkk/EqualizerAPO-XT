@@ -22,6 +22,7 @@
 #include "VSTPluginLibrary.h"
 #include "VSTPluginInstance.h"
 #include "VSTPluginInstanceInternal.h"
+#include "VST3SpeakerMapping.h"
 #include "pluginterfaces/base/futils.h"
 #include "pluginterfaces/base/smartpointer.h"
 #include "pluginterfaces/vst/vstspeaker.h"
@@ -29,34 +30,6 @@
 using namespace std;
 using namespace Steinberg;
 using namespace Steinberg::Vst;
-
-namespace
-{
-bool channelNamesEqual(const vector<wstring>& channelNames, initializer_list<const wchar_t*> expected)
-{
-	if (channelNames.size() != expected.size())
-		return false;
-
-	size_t index = 0;
-	for (const wchar_t* name : expected)
-	{
-		if (channelNames[index++] != name)
-			return false;
-	}
-	return true;
-}
-
-bool appendArrangementCandidate(SpeakerArrangement arrangement, SpeakerArrangement* candidates, int& count)
-{
-	for (int i = 0; i < count; i++)
-	{
-		if (candidates[i] == arrangement)
-			return false;
-	}
-	candidates[count++] = arrangement;
-	return true;
-}
-}
 
 bool VSTPluginInstance::initializeVST3()
 {
@@ -171,9 +144,10 @@ bool VSTPluginInstance::initializeVST3()
 		}
 	}
 
+	vst3Lifecycle.setInterfaces(vst3Component.get(), vst3Processor.get());
 	vst3InputBusCount = max(0, vst3Component->getBusCount(kAudio, kInput));
 	vst3OutputBusCount = max(0, vst3Component->getBusCount(kAudio, kOutput));
-	configureVST3Buses(2);
+	configureVST3Buses(2, {});
 
 	vst3SupportsDouble = vst3Processor->canProcessSampleSize(kSample64) == kResultOk;
 	if (!vst3SupportsDouble && vst3Processor->canProcessSampleSize(kSample32) != kResultOk)
@@ -209,6 +183,7 @@ void VSTPluginInstance::releaseVST3()
 		vst3ComponentConnection.reset();
 	if (vst3ControllerConnection != NULL)
 		vst3ControllerConnection.reset();
+	vst3Lifecycle.clearInterfaces();
 	if (vst3Controller != NULL)
 	{
 		// A controller obtained from the component object is terminated once,
@@ -238,49 +213,41 @@ void VSTPluginInstance::releaseVST3()
 	vst3OutputChannelMapping.clear();
 }
 
-void VSTPluginInstance::setChannelNameHints(const vector<wstring>& channelNames)
+void VSTPluginInstance::configureVST3Buses(int requestedChannelCount,
+	const vector<wstring>& channelNames)
 {
-	setBusChannelNameHints(channelNames, channelNames);
+	configureVST3Buses(requestedChannelCount, requestedChannelCount,
+		channelNames, channelNames);
 }
 
-void VSTPluginInstance::setBusChannelNameHints(const vector<wstring>& inputChannelNames,
-	const vector<wstring>& outputChannelNames)
-{
-	vst3InputChannelNameHints = inputChannelNames;
-	vst3OutputChannelNameHints = outputChannelNames;
-	updateVST3ChannelMappings();
-}
-
-void VSTPluginInstance::configureVST3Buses(int requestedChannelCount)
-{
-	configureVST3Buses(requestedChannelCount, requestedChannelCount);
-}
-
-void VSTPluginInstance::configureVST3Buses(int requestedInputChannelCount, int requestedOutputChannelCount)
+void VSTPluginInstance::configureVST3Buses(int requestedInputChannelCount, int requestedOutputChannelCount,
+	const vector<wstring>& inputChannelNames, const vector<wstring>& outputChannelNames)
 {
 	if (vst3Component == NULL || vst3Processor == NULL)
 		return;
 
 	const int inputChannelCount = max(1, requestedInputChannelCount);
 	const int outputChannelCount = max(1, requestedOutputChannelCount);
+	vst3InputChannelNameHints = inputChannelNames;
+	vst3OutputChannelNameHints = outputChannelNames;
 
 	applyVST3BusActivation();
 
 	// Semantic proposals are attempted first. Count-based proposals remain
 	// available afterwards for plugins that reject the semantic arrangement.
 	bool accepted = false;
-	SpeakerArrangement inputCandidates[vst3MaxArrangementCandidates];
-	SpeakerArrangement outputCandidates[vst3MaxArrangementCandidates];
-	const int inputCandidateCount = speakerArrangementCandidatesForChannelCount(
-		inputChannelCount, vst3InputChannelNameHints, inputCandidates);
-	const int outputCandidateCount = speakerArrangementCandidatesForChannelCount(
-		outputChannelCount, vst3OutputChannelNameHints, outputCandidates);
-	for (int i = 0; i < inputCandidateCount && !accepted; i++)
+	const vector<SpeakerArrangement> inputCandidates =
+		vst3speakers::arrangementCandidatesForChannelCount(inputChannelCount, inputChannelNames);
+	const vector<SpeakerArrangement> outputCandidates =
+		vst3speakers::arrangementCandidatesForChannelCount(outputChannelCount, outputChannelNames);
+	for (SpeakerArrangement inputCandidate : inputCandidates)
 	{
-		for (int j = 0; j < outputCandidateCount && !accepted; j++)
+		for (SpeakerArrangement outputCandidate : outputCandidates)
 		{
-			SpeakerArrangement inputArrangement = inputCandidates[i];
-			SpeakerArrangement outputArrangement = outputCandidates[j];
+			if (accepted)
+				break;
+			SpeakerArrangement inputArrangement = inputCandidate;
+			SpeakerArrangement outputArrangement = outputCandidate;
 			const tresult result = vst3Processor->setBusArrangements(
 				vst3InputBusCount > 0 ? &inputArrangement : NULL, vst3InputBusCount > 0 ? 1 : 0,
 				vst3OutputBusCount > 0 ? &outputArrangement : NULL, vst3OutputBusCount > 0 ? 1 : 0);
@@ -372,97 +339,10 @@ bool VSTPluginInstance::refreshAcceptedVST3Arrangements()
 
 void VSTPluginInstance::updateVST3ChannelMappings()
 {
-	buildVST3ChannelMapping(vst3InputArrangement, vst3InputChannelNameHints, vst3InputChannelMapping);
-	buildVST3ChannelMapping(vst3OutputArrangement, vst3OutputChannelNameHints, vst3OutputChannelMapping);
-}
-
-bool VSTPluginInstance::buildVST3ChannelMapping(SpeakerArrangement arrangement,
-	const vector<wstring>& channelNames, vector<int>& mapping)
-{
-	const int channelCount = arrangement != SpeakerArr::kEmpty
-		? SpeakerArr::getChannelCount(arrangement) : 0;
-	mapping.resize(max(0, channelCount));
-	for (int i = 0; i < channelCount; i++)
-		mapping[i] = i;
-
-	if (channelCount <= 0 || channelNames.size() != static_cast<size_t>(channelCount))
-		return false;
-
-	SpeakerArrangement semanticCandidates[vst3MaxArrangementCandidates];
-	const int semanticCandidateCount = semanticSpeakerArrangementCandidatesForChannelNames(
-		channelNames, semanticCandidates);
-	bool knownArrangement = false;
-	for (int i = 0; i < semanticCandidateCount; i++)
-	{
-		if (semanticCandidates[i] == arrangement)
-		{
-			knownArrangement = true;
-			break;
-		}
-	}
-	if (!knownArrangement)
-		return false;
-
-	const bool hasRearPair = find(channelNames.begin(), channelNames.end(), L"RL") != channelNames.end()
-		&& find(channelNames.begin(), channelNames.end(), L"RR") != channelNames.end();
-	const bool hasSidePair = find(channelNames.begin(), channelNames.end(), L"SL") != channelNames.end()
-		&& find(channelNames.begin(), channelNames.end(), L"SR") != channelNames.end();
-
-	vector<int> proposedMapping(channelCount);
-	for (int i = 0; i < channelCount; i++)
-		proposedMapping[i] = i;
-	vector<bool> usedBusSlots(channelCount, false);
-	for (int eapoSlot = 0; eapoSlot < channelCount; eapoSlot++)
-	{
-		const wstring& name = channelNames[eapoSlot];
-		Speaker speaker = 0;
-		if (name == L"L")
-			speaker = kSpeakerL;
-		else if (name == L"R")
-			speaker = kSpeakerR;
-		else if (name == L"C")
-			speaker = kSpeakerC;
-		else if (name == L"LFE")
-			speaker = kSpeakerLfe;
-		else if (name == L"RL")
-			speaker = kSpeakerLs;
-		else if (name == L"RR")
-			speaker = kSpeakerRs;
-		else if (name == L"SL")
-			speaker = hasRearPair && hasSidePair ? kSpeakerSl : kSpeakerLs;
-		else if (name == L"SR")
-			speaker = hasRearPair && hasSidePair ? kSpeakerSr : kSpeakerRs;
-		else if (name == L"RC")
-			speaker = kSpeakerCs;
-		else if (name == L"TFL")
-			speaker = kSpeakerTfl;
-		else if (name == L"TFR")
-			speaker = kSpeakerTfr;
-		else if (name == L"TRL")
-			speaker = kSpeakerTrl;
-		else if (name == L"TRR")
-			speaker = kSpeakerTrr;
-		else if (name == L"TSL")
-			speaker = kSpeakerTsl;
-		else if (name == L"TSR")
-			speaker = kSpeakerTsr;
-		else
-			return false;
-
-		const int busSlot = SpeakerArr::getSpeakerIndex(speaker, arrangement);
-		if (busSlot < 0 || busSlot >= channelCount || usedBusSlots[busSlot])
-			return false;
-		proposedMapping[eapoSlot] = busSlot;
-		usedBusSlots[busSlot] = true;
-	}
-
-	for (bool used : usedBusSlots)
-	{
-		if (!used)
-			return false;
-	}
-	mapping = std::move(proposedMapping);
-	return true;
+	vst3speakers::buildChannelMapping(
+		vst3InputArrangement, vst3InputChannelNameHints, vst3InputChannelMapping);
+	vst3speakers::buildChannelMapping(
+		vst3OutputArrangement, vst3OutputChannelNameHints, vst3OutputChannelMapping);
 }
 
 int VSTPluginInstance::vst3BusChannelCount(BusDirection direction) const
@@ -474,42 +354,49 @@ int VSTPluginInstance::vst3BusChannelCount(BusDirection direction) const
 	return max(0, busInfo.channelCount);
 }
 
-bool VSTPluginInstance::negotiateChannelCount(int channelCount)
+bool VSTPluginInstance::negotiateChannelCount(int channelCount,
+	const vector<wstring>& channelNames)
 {
 	if (!library->isVST3())
 		return max(numInputs(), numOutputs()) >= channelCount;
 	if (vst3Component == NULL || vst3Processor == NULL)
 		return false;
 
-	configureVST3Buses(channelCount);
+	configureVST3Buses(channelCount, channelNames);
 	return max(vst3InputChannelCount, vst3OutputChannelCount) >= channelCount;
 }
 
-bool VSTPluginInstance::negotiateBusChannelCounts(int inputChannelCount, int outputChannelCount)
+bool VSTPluginInstance::negotiateBusChannelCounts(int inputChannelCount, int outputChannelCount,
+	const vector<wstring>& inputChannelNames, const vector<wstring>& outputChannelNames)
 {
 	if (!library->isVST3())
 		return numInputs() >= inputChannelCount && numOutputs() >= outputChannelCount;
 	if (vst3Component == NULL || vst3Processor == NULL)
 		return false;
 
-	configureVST3Buses(inputChannelCount, outputChannelCount);
+	configureVST3Buses(inputChannelCount, outputChannelCount,
+		inputChannelNames, outputChannelNames);
 	return vst3InputChannelCount == inputChannelCount && vst3OutputChannelCount == outputChannelCount;
 }
 
 bool VSTPluginInstance::negotiateBusLayouts(VST3BusLayout inputLayout, VST3BusLayout outputLayout,
-	int automaticChannelCount)
+	int automaticChannelCount, const vector<wstring>& inputChannelNames,
+	const vector<wstring>& outputChannelNames)
 {
 	if (!library->isVST3() || vst3Component == NULL || vst3Processor == NULL)
 		return false;
 	if (vst3InputBusCount <= 0 || vst3OutputBusCount <= 0)
 		return false;
+	vst3InputChannelNameHints = inputChannelNames;
+	vst3OutputChannelNameHints = outputChannelNames;
 
 	// Auto/Auto is intentionally the existing automatic path. The explicit contract adds a
 	// metadata consistency check, but does not change the proposal or fallback
 	// order users already get from VSTPlugin.
 	if (inputLayout == VST3BusLayout::Auto && outputLayout == VST3BusLayout::Auto)
 	{
-		configureVST3Buses(automaticChannelCount);
+		configureVST3Buses(automaticChannelCount, automaticChannelCount,
+			inputChannelNames, outputChannelNames);
 		return acceptedVST3BusMetadataIsConsistent();
 	}
 
@@ -518,19 +405,17 @@ bool VSTPluginInstance::negotiateBusLayouts(VST3BusLayout inputLayout, VST3BusLa
 	const SpeakerArrangement currentInput = vst3InputArrangement;
 	const SpeakerArrangement currentOutput = vst3OutputArrangement;
 
-	SpeakerArrangement inputCandidates[vst3MaxArrangementCandidates];
-	SpeakerArrangement outputCandidates[vst3MaxArrangementCandidates];
-	const int inputCandidateCount = speakerArrangementCandidatesForLayout(inputLayout,
-		automaticChannelCount, vst3InputChannelNameHints, currentInput, inputCandidates);
-	const int outputCandidateCount = speakerArrangementCandidatesForLayout(outputLayout,
-		automaticChannelCount, vst3OutputChannelNameHints, currentOutput, outputCandidates);
+	const vector<SpeakerArrangement> inputCandidates = vst3speakers::arrangementCandidatesForLayout(
+		inputLayout, automaticChannelCount, inputChannelNames, currentInput);
+	const vector<SpeakerArrangement> outputCandidates = vst3speakers::arrangementCandidatesForLayout(
+		outputLayout, automaticChannelCount, outputChannelNames, currentOutput);
 
-	for (int i = 0; i < inputCandidateCount; i++)
+	for (SpeakerArrangement inputCandidate : inputCandidates)
 	{
-		for (int j = 0; j < outputCandidateCount; j++)
+		for (SpeakerArrangement outputCandidate : outputCandidates)
 		{
-			SpeakerArrangement inputArrangement = inputCandidates[i];
-			SpeakerArrangement outputArrangement = outputCandidates[j];
+			SpeakerArrangement inputArrangement = inputCandidate;
+			SpeakerArrangement outputArrangement = outputCandidate;
 			if (vst3Processor->setBusArrangements(&inputArrangement, 1,
 				&outputArrangement, 1) != kResultTrue)
 				continue;
@@ -539,10 +424,10 @@ bool VSTPluginInstance::negotiateBusLayouts(VST3BusLayout inputLayout, VST3BusLa
 
 			const bool inputAccepted = inputLayout == VST3BusLayout::Auto
 				? vst3InputArrangement != SpeakerArr::kEmpty
-				: arrangementMatchesLayout(vst3InputArrangement, inputLayout);
+				: vst3speakers::arrangementMatchesLayout(vst3InputArrangement, inputLayout);
 			const bool outputAccepted = outputLayout == VST3BusLayout::Auto
 				? vst3OutputArrangement != SpeakerArr::kEmpty
-				: arrangementMatchesLayout(vst3OutputArrangement, outputLayout);
+				: vst3speakers::arrangementMatchesLayout(vst3OutputArrangement, outputLayout);
 			if (!inputAccepted || !outputAccepted || !acceptedVST3BusMetadataIsConsistent())
 				continue;
 
@@ -571,20 +456,6 @@ bool VSTPluginInstance::acceptedVST3BusMetadataIsConsistent() const
 		&& vst3BusChannelCount(kOutput) == outputArrangementChannels;
 }
 
-bool VSTPluginInstance::arrangementMatchesLayout(SpeakerArrangement arrangement,
-	VST3BusLayout layout)
-{
-	SpeakerArrangement candidates[vst3MaxArrangementCandidates];
-	const int candidateCount = speakerArrangementCandidatesForLayout(layout, 0, {},
-		SpeakerArr::kEmpty, candidates);
-	for (int i = 0; i < candidateCount; i++)
-	{
-		if (arrangement == candidates[i])
-			return true;
-	}
-	return false;
-}
-
 std::optional<VST3BusLayout> VSTPluginInstance::getNegotiatedVST3InputLayout() const
 {
 	if (!library->isVST3())
@@ -594,7 +465,7 @@ std::optional<VST3BusLayout> VSTPluginInstance::getNegotiatedVST3InputLayout() c
 		VST3BusLayout::Surround51, VST3BusLayout::Surround61, VST3BusLayout::Surround71,
 		VST3BusLayout::Surround712, VST3BusLayout::Surround714 })
 	{
-		if (arrangementMatchesLayout(vst3InputArrangement, layout))
+		if (vst3speakers::arrangementMatchesLayout(vst3InputArrangement, layout))
 			return layout;
 	}
 	return std::nullopt;
@@ -609,169 +480,8 @@ std::optional<VST3BusLayout> VSTPluginInstance::getNegotiatedVST3OutputLayout() 
 		VST3BusLayout::Surround51, VST3BusLayout::Surround61, VST3BusLayout::Surround71,
 		VST3BusLayout::Surround712, VST3BusLayout::Surround714 })
 	{
-		if (arrangementMatchesLayout(vst3OutputArrangement, layout))
+		if (vst3speakers::arrangementMatchesLayout(vst3OutputArrangement, layout))
 			return layout;
 	}
 	return std::nullopt;
-}
-
-int VSTPluginInstance::semanticSpeakerArrangementCandidatesForChannelNames(
-	const vector<wstring>& channelNames, SpeakerArrangement* candidates)
-{
-	if (channelNamesEqual(channelNames, {L"L", L"R"}))
-	{
-		candidates[0] = SpeakerArr::kStereo;
-		return 1;
-	}
-	if (channelNamesEqual(channelNames, {L"L", L"R", L"RL", L"RR"})
-		|| channelNamesEqual(channelNames, {L"L", L"R", L"SL", L"SR"}))
-	{
-		candidates[0] = SpeakerArr::k40Music;
-		candidates[1] = SpeakerArr::k40Cine;
-		return 2;
-	}
-	if (channelNamesEqual(channelNames, {L"L", L"R", L"LFE", L"RL", L"RR"})
-		|| channelNamesEqual(channelNames, {L"L", L"R", L"LFE", L"SL", L"SR"}))
-	{
-		candidates[0] = SpeakerArr::k41Music;
-		candidates[1] = SpeakerArr::k41Cine;
-		return 2;
-	}
-	if (channelNamesEqual(channelNames, {L"L", L"R", L"C", L"RL", L"RR"})
-		|| channelNamesEqual(channelNames, {L"L", L"R", L"C", L"SL", L"SR"}))
-	{
-		candidates[0] = SpeakerArr::k50;
-		return 1;
-	}
-	if (channelNamesEqual(channelNames, {L"L", L"R", L"C", L"LFE", L"RL", L"RR"}))
-	{
-		candidates[0] = SpeakerArr::k51;
-		return 1;
-	}
-	if (channelNamesEqual(channelNames, {L"L", L"R", L"C", L"LFE", L"RC", L"SL", L"SR"}))
-	{
-		candidates[0] = SpeakerArr::k61Cine;
-		candidates[1] = SpeakerArr::k61Music;
-		return 2;
-	}
-	if (channelNamesEqual(channelNames, {L"L", L"R", L"C", L"LFE", L"RL", L"RR", L"SL", L"SR"}))
-	{
-		candidates[0] = SpeakerArr::k71Music;
-		candidates[1] = SpeakerArr::k71Cine;
-		return 2;
-	}
-	if (channelNamesEqual(channelNames,
-		{L"L", L"R", L"C", L"LFE", L"RL", L"RR", L"SL", L"SR", L"TSL", L"TSR"}))
-	{
-		candidates[0] = SpeakerArr::k71_2;
-		candidates[1] = SpeakerArr::k71_2_TF;
-		return 2;
-	}
-	if (channelNamesEqual(channelNames,
-		{L"L", L"R", L"C", L"LFE", L"RL", L"RR", L"SL", L"SR",
-			L"TFL", L"TFR", L"TRL", L"TRR"}))
-	{
-		candidates[0] = SpeakerArr::k71_4;
-		return 1;
-	}
-	return 0;
-}
-
-int VSTPluginInstance::speakerArrangementCandidatesForChannelCount(int count,
-	const vector<wstring>& channelNames, SpeakerArrangement* candidates)
-{
-	int candidateCount = semanticSpeakerArrangementCandidatesForChannelNames(channelNames, candidates);
-
-	// Count-based candidates stay after semantic candidates and preserve the
-	// existing Windows-mask-first ordering.
-	switch (count)
-	{
-	case 1:
-		appendArrangementCandidate(SpeakerArr::kMono, candidates, candidateCount);
-		break;
-	case 2:
-		appendArrangementCandidate(SpeakerArr::kStereo, candidates, candidateCount);
-		break;
-	case 4:
-		appendArrangementCandidate(SpeakerArr::k40Music, candidates, candidateCount);
-		appendArrangementCandidate(SpeakerArr::k40Cine, candidates, candidateCount);
-		break;
-	case 5:
-		appendArrangementCandidate(SpeakerArr::k50, candidates, candidateCount);
-		break;
-	case 6:
-		appendArrangementCandidate(SpeakerArr::k51, candidates, candidateCount);
-		break;
-	case 7:
-		appendArrangementCandidate(SpeakerArr::k61Cine, candidates, candidateCount);
-		break;
-	case 8:
-		appendArrangementCandidate(SpeakerArr::k71Music, candidates, candidateCount);
-		appendArrangementCandidate(SpeakerArr::k71Cine, candidates, candidateCount);
-		break;
-	case 10:
-		appendArrangementCandidate(SpeakerArr::k71_2, candidates, candidateCount);
-		break;
-	case 12:
-		appendArrangementCandidate(SpeakerArr::k71_4, candidates, candidateCount);
-		break;
-	}
-	return candidateCount;
-}
-
-int VSTPluginInstance::speakerArrangementCandidatesForLayout(VST3BusLayout layout,
-	int automaticChannelCount, const vector<wstring>& channelNames,
-	SpeakerArrangement currentArrangement, SpeakerArrangement* candidates)
-{
-	if (layout == VST3BusLayout::Auto)
-	{
-		int candidateCount = speakerArrangementCandidatesForChannelCount(
-			max(1, automaticChannelCount), channelNames, candidates);
-		if (currentArrangement != SpeakerArr::kEmpty)
-			appendArrangementCandidate(currentArrangement, candidates, candidateCount);
-		return candidateCount;
-	}
-
-	int candidateCount = 0;
-	switch (layout)
-	{
-	case VST3BusLayout::Mono:
-		appendArrangementCandidate(SpeakerArr::kMono, candidates, candidateCount);
-		break;
-	case VST3BusLayout::Stereo:
-		appendArrangementCandidate(SpeakerArr::kStereo, candidates, candidateCount);
-		break;
-	case VST3BusLayout::Surround40:
-		appendArrangementCandidate(SpeakerArr::k40Music, candidates, candidateCount);
-		appendArrangementCandidate(SpeakerArr::k40Cine, candidates, candidateCount);
-		break;
-	case VST3BusLayout::Surround41:
-		appendArrangementCandidate(SpeakerArr::k41Music, candidates, candidateCount);
-		appendArrangementCandidate(SpeakerArr::k41Cine, candidates, candidateCount);
-		break;
-	case VST3BusLayout::Surround50:
-		appendArrangementCandidate(SpeakerArr::k50, candidates, candidateCount);
-		break;
-	case VST3BusLayout::Surround51:
-		appendArrangementCandidate(SpeakerArr::k51, candidates, candidateCount);
-		break;
-	case VST3BusLayout::Surround61:
-		appendArrangementCandidate(SpeakerArr::k61Cine, candidates, candidateCount);
-		appendArrangementCandidate(SpeakerArr::k61Music, candidates, candidateCount);
-		break;
-	case VST3BusLayout::Surround71:
-		appendArrangementCandidate(SpeakerArr::k71Music, candidates, candidateCount);
-		appendArrangementCandidate(SpeakerArr::k71Cine, candidates, candidateCount);
-		break;
-	case VST3BusLayout::Surround712:
-		appendArrangementCandidate(SpeakerArr::k71_2, candidates, candidateCount);
-		appendArrangementCandidate(SpeakerArr::k71_2_TF, candidates, candidateCount);
-		break;
-	case VST3BusLayout::Surround714:
-		appendArrangementCandidate(SpeakerArr::k71_4, candidates, candidateCount);
-		break;
-	case VST3BusLayout::Auto:
-		break;
-	}
-	return candidateCount;
 }

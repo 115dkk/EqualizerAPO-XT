@@ -133,7 +133,7 @@ int runPluginProbe(const std::wstring& pluginPath, double seconds, float sampleR
 	}
 	wprintf(L"INFO: loaded '%s' (%hs)\n", instance.getName().c_str(), instance.isVST3() ? "VST3" : "VST2");
 
-	instance.negotiateChannelCount(2);
+	instance.negotiateChannelCount(2, {});
 	const int inputChannelCount = instance.numInputs();
 	const int outputChannelCount = instance.numOutputs();
 	wprintf(L"INFO: negotiated %d in / %d out\n", inputChannelCount, outputChannelCount);
@@ -520,7 +520,7 @@ int runMonitorProbe(const std::wstring& pluginPath, double seconds, bool expectL
 		wprintf(L"FAIL: plugin instance initialize failed\n");
 		return 2;
 	}
-	instance.negotiateChannelCount(2);
+	instance.negotiateChannelCount(2, {});
 	wprintf(L"INFO: loaded '%s' (%hs), %d in / %d out\n", instance.getName().c_str(),
 		instance.isVST3() ? "VST3" : "VST2", instance.numInputs(), instance.numOutputs());
 
