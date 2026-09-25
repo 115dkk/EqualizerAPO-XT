@@ -358,6 +358,7 @@ SOURCES += main.cpp\
 	import/ConfigDependencyScanner.cpp \
 	import/ImportDialog.cpp \
 	import/ImportExecutor.cpp \
+	import/CallerProfileCheck.cpp \
 	import/LegacyMigration.cpp \
 	import/LegacyMigrationPolicy.cpp \
 	widgets/MiddleClickTabBar.cpp
@@ -669,6 +670,8 @@ HEADERS  += \
 	import/ImportDialog.h \
 	import/ImportExecutor.h \
 	import/ImportManifest.h \
+	import/CallerProfileCheck.h \
+	../services/security/ConfigDirectoryHandles.h \
 	import/LegacyMigration.h \
 	import/LegacyMigrationPolicy.h \
 	widgets/MiddleClickTabBar.h

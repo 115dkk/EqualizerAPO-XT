@@ -17,12 +17,15 @@
 #include <QString>
 
 #include <string>
+#include <optional>
+#include <vector>
 
 class QWidget;
 class IRegistry;
 
 namespace EqAPO::Import
 {
+namespace CallerProfileCheck { class FileSystem; }
 
 class LegacyMigration
 {
@@ -52,6 +55,22 @@ public:
     // now drives this through a fake registry.
     static void runElevatedHookStep(const std::wstring& exeDir);
     static void runElevatedHookStep(const std::wstring& exeDir, IRegistry& registry);
+    struct Handoff
+    {
+        std::optional<std::wstring> localAppData;
+        std::wstring outcome;
+        std::wstring migratedFrom;
+        std::wstring migratedFiles;
+    };
+    // File work is forbidden when elevated. The returned action is a hint,
+    // not authority: recordPreparedHookStep reclassifies the current HKLM value.
+    static std::wstring prepareHookStep(const std::wstring& exeDir, const IRegistry& registry,
+        Handoff* details = nullptr);
+    static std::wstring prepareHookStep(const std::wstring& exeDir, Handoff* details = nullptr);
+    static Handoff parseHandoff(const std::vector<std::wstring>& arguments);
+    static void runElevatedHookStep(const std::wstring& exeDir, const Handoff& handoff);
+    static bool recordPreparedHookStep(const Handoff& handoff, IRegistry& registry,
+        const CallerProfileCheck::FileSystem* fileSystem = nullptr);
 
     // "--migration-dry-run": print the classification and the manifest the
     // hook would act on, write nothing. Field diagnostics for "why did my

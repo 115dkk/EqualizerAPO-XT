@@ -81,6 +81,11 @@ Grant grantEngineAccess(const std::wstring& installRoot);
 // applies the same grants; a Pester test keeps the two in step.
 Grant grantConfigAccess(const std::wstring& configDir);
 
+// Unelevated preparation only; refuses an elevated token. The user must own
+// or have WRITE_DAC on the existing directory. SetSecurityInfo propagates
+// inheritable ACEs to eligible existing children; new children inherit Modify.
+Grant grantOwnedConfigAccess(const std::wstring& configDir);
+
 // A one-line, human-readable form of a Grant, for logs and the diagnostics
 // report. Deliberately not translated: it goes into a log file a maintainer
 // reads, not onto the screen.
