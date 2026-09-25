@@ -66,16 +66,15 @@ public:
 	/*
 		Allocates and initializes all float and double scratch buffers, delay
 		lines, biquad states, path buffers, and original-input preservation
-		buffers needed by process(). The graph must have been compiled for an
-		equivalent PrepareSpec.
+		buffers needed by process(). The processor runs at the PrepareSpec the
+		graph was compiled for (graph.prepareSpec()); there is no second spec
+		to disagree with it.
 
 		prepare() may allocate and may throw std::invalid_argument,
 		std::length_error, or std::bad_alloc. It must not run on the audio
 		thread.
 	*/
-	void prepare(
-		const PrepareSpec& prepareSpec,
-		const ProcessingGraph& graph);
+	void prepare(const ProcessingGraph& graph);
 
 	/*
 		Clears all delay lines, filter histories, and scratch state without

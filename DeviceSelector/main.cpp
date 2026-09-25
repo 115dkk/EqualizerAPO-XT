@@ -28,8 +28,8 @@
 #include <QFile>
 #include <QMessageBox>
 #include <QRegularExpression>
-#include <clocale>
 #include <cstdarg>
+#include <io.h>
 #include <cstring>
 #include <QFontDatabase>
 #include <QSettings>
@@ -232,6 +232,33 @@ QString plainText(const QString& html)
 	return text;
 }
 
+// Wide text to a CRT stream without passing it through a code page: a console
+// takes it as UTF-16 through WriteConsoleW, anything else (a pipe, a
+// redirected file) gets UTF-8. fputws converted through the CRT locale, which
+// lost the Korean messages on consoles whose code page could not hold them
+// (audit #348 TD-53). The stream's own handle is asked rather than
+// GetStdHandle, because ConsoleAttachment rebinds the CRT stream with
+// freopen_s and leaves the Win32 standard handle where it was.
+void writeWide(FILE* stream, const wchar_t* text, size_t length)
+{
+	fflush(stream);
+	const int descriptor = _fileno(stream);
+	if (descriptor >= 0)
+	{
+		const HANDLE handle = reinterpret_cast<HANDLE>(_get_osfhandle(descriptor));
+		DWORD mode = 0;
+		if (handle != INVALID_HANDLE_VALUE && handle != nullptr && GetConsoleMode(handle, &mode))
+		{
+			DWORD written = 0;
+			WriteConsoleW(handle, text, static_cast<DWORD>(length), &written, nullptr);
+			return;
+		}
+	}
+	const QByteArray utf8 = QString::fromWCharArray(text, static_cast<qsizetype>(length)).toUtf8();
+	fwrite(utf8.constData(), 1, static_cast<size_t>(utf8.size()), stream);
+	fflush(stream);
+}
+
 // The headless commands' output goes to the attached console and to
 // DeviceSelector.log both: a CI runner has no console to attach to, and the
 // log is what its job uploads.
@@ -242,7 +269,7 @@ void say(const wchar_t* format, ...)
 	va_start(args, format);
 	_vsnwprintf_s(line, _TRUNCATE, format, args);
 	va_end(args);
-	fputws(line, stderr);
+	writeWide(stderr, line, wcslen(line));
 	size_t length = wcslen(line);
 	while (length > 0 && (line[length - 1] == L'\n' || line[length - 1] == L'\r'))
 		line[--length] = L'\0';
@@ -264,16 +291,12 @@ void say(const wchar_t* format, ...)
 int runEndpointCommand(QApplication& app, bool install)
 {
 	ConsoleAttachment console;
-	// say() hands wide text to fputws, which converts through the CRT locale;
-	// under the default "C" locale a translated (Korean) message stopped at
-	// its first non-ASCII character. The user's code page converts it.
-	setlocale(LC_CTYPE, "");
 	const QStringList args = app.arguments();
 	const QString flag = install ? QStringLiteral("--install-endpoint") : QStringLiteral("--uninstall-endpoint");
 	const int flagIndex = args.indexOf(flag);
 	if (flagIndex < 0 || flagIndex + 1 >= args.size())
 	{
-		say(L"usage: DeviceSelector %hs {endpoint-guid} [--install-mode lfx-gfx|sfx-mfx|sfx-efx] [--no-original-apo] [--asio-entry] [--no-test]\n", qPrintable(flag));
+		say(L"usage: DeviceSelector %s {endpoint-guid} [--install-mode lfx-gfx|sfx-mfx|sfx-efx] [--no-original-apo] [--asio-entry] [--no-test]\n", reinterpret_cast<const wchar_t*>(flag.utf16()));
 		return 2;
 	}
 	const std::wstring guid = args[flagIndex + 1].toStdWString();
@@ -309,7 +332,7 @@ int runEndpointCommand(QApplication& app, bool install)
 			state.installMode = DeviceAPOInfo::INSTALL_SFX_EFX;
 		else
 		{
-			say(L"unknown install mode %hs\n", qPrintable(mode));
+			say(L"unknown install mode %s\n", reinterpret_cast<const wchar_t*>(mode.utf16()));
 			return 2;
 		}
 		// A named mode is a decision; the test must not wander off it.
@@ -388,7 +411,7 @@ int runEndpointCommand(QApplication& app, bool install)
 	});
 	QObject::connect(&thread, &DeviceTestThread::setItemStatus, [](const QString& deviceGuid, bool postMix, ItemStatusType status) {
 		static const char* const names[] = {"waiting", "success", "warning", "error"};
-		say(L"test status: %hs %hs %hs\n", qPrintable(deviceGuid), postMix ? "post-mix" : "pre-mix", names[static_cast<int>(status)]);
+		say(L"test status: %s %hs %hs\n", reinterpret_cast<const wchar_t*>(deviceGuid.utf16()), postMix ? "post-mix" : "pre-mix", names[static_cast<int>(status)]);
 	});
 	QEventLoop loop;
 	QObject::connect(&thread, &DeviceTestThread::finished, &loop, &QEventLoop::quit);
@@ -415,6 +438,7 @@ int main(int argc, char* argv[])
 	// install, because the Editor was not the program that ran it.
 	if (!Logging::useUserFile(L"DeviceSelector.log", true, false, false))
 		Logging::useDefaultApoLog();
+	QtAppBootstrap::installMessageHandler();
 
 	// Shared bootstrap: anchors the plugin path (a security concern for this
 	// elevated process) and, below, applies the language the user picked in

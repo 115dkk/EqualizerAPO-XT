@@ -118,7 +118,7 @@ std::vector<std::wstring> SubwooferRoutingFilter::initialize(float sampleRate,
 	const subroute::ProcessingGraph& graph = *compiled.graph;
 	try
 	{
-		processor.prepare(spec, graph);
+		processor.prepare(graph);
 	}
 	catch (const std::exception& exception)
 	{

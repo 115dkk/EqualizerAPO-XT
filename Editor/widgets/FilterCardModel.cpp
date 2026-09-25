@@ -36,9 +36,9 @@ QString biquadTypeTitle(const QString& code)
 	// English titles mirror the engine's table (filters/BiQuadCommand.h,
 	// which the log lines use) but go through tr(): the card header is
 	// user-facing, and the untranslated "Peaking" between Korean titles was
-	// a field complaint (type-scale round). The keyword vocabulary here
-	// mirrors the typeExpression regex in describeLine; an unknown keyword
-	// falls back to "Biquad", matching the engine's own default.
+	// a field complaint (type-scale round). describeLine only passes a
+	// keyword biquadTypeFromName accepted; an unknown one falls back to
+	// "Biquad", matching the engine's own default.
 	const QString normalized = code.toUpper();
 	if (normalized == QStringLiteral("PK") || normalized == QStringLiteral("PEQ") || normalized == QStringLiteral("MODAL"))
 		return FilterCardModel::tr("Peaking");
@@ -285,8 +285,7 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		// keeps the biquad card type so every skin's biquad styling applies;
 		// only the badge and title say IIR. The engine
 		// (IIRFilterFactory::parseCommand) stays the single grammar owner.
-		static const QRegularExpression iirExpression(
-			QStringLiteral("^\\s*(ON|OFF)\\s+IIR\\b"), QRegularExpression::CaseInsensitiveOption);
+		static const QRegularExpression iirExpression(QStringLiteral("^\\s*(ON|OFF)\\s+IIR\\b"));
 		const QRegularExpressionMatch iirMatch = iirExpression.match(parameters);
 		if (iirMatch.hasMatch())
 		{
@@ -295,14 +294,14 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		}
 		else
 		{
-			// Recognise the full BiQuadFilterFactory vocabulary (including LSC/HSC
-			// shelf-with-slope, LPQ/HPQ Q-form, PEQ alias and Modal) so the card
-			// title agrees with the legacy GUI.
-			static const QRegularExpression typeExpression(
-				QStringLiteral("^\\s*(ON|OFF)\\s+(PK|PEQ|MODAL|LPQ|HPQ|LSC|HSC|LP|HP|BP|LS|HS|NO|AP)\\b"),
-				QRegularExpression::CaseInsensitiveOption);
+			// The type word is judged by the engine's own vocabulary, case
+			// included (biquadTypeFromName), so a line the engine rejects as
+			// "on pk" is not drawn as a peaking filter (audit #348 TD-44). The
+			// engine reads ON and OFF in capitals too.
+			static const QRegularExpression typeExpression(QStringLiteral("^\\s*(ON|OFF)\\s+([A-Za-z]+)"));
 			const QRegularExpressionMatch match = typeExpression.match(parameters);
-			if (match.hasMatch())
+			BiQuad::Type type;
+			if (match.hasMatch() && biquadTypeFromName(match.captured(2).toStdWString(), type))
 			{
 				const QString code = match.captured(2).toUpper();
 				descriptor.badge = code;

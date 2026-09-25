@@ -13,7 +13,7 @@
 #include "UpdateSession.h"
 
 #include "services/security/AudioEngineAccess.h"
-#include "services/logging/Logging.h"
+#include "services/logging/TaggedLogger.h"
 #include "platform/windows/WindowsPath.h"
 
 #include <memory>
@@ -34,6 +34,8 @@ namespace
 using pathutil::exeDirectory;
 using pathutil::exePath;
 using pathutil::fileExists;
+
+constexpr logging::TaggedLogger logLine(L"VelopackBootstrap");
 
 Velopack::UpdateOptions updateOptions(const std::string& channel)
 {
@@ -169,7 +171,7 @@ std::unique_ptr<UpdateSession> VelopackBootstrap::createUpdateSession(
 	return std::make_unique<UpdateSession>(
 		std::make_unique<VelopackUpdateClient>(repoUrl, channel),
 		[](const std::string& error) {
-			LogFStatic(L"[VelopackBootstrap] update operation failed: %S", error.c_str());
+			logLine(L"ERR", L"update operation failed: %S", error.c_str());
 		});
 }
 
@@ -178,8 +180,8 @@ bool VelopackBootstrap::launchElevatedUpdateCoordinator()
 	std::wstring editorPath = exePath();
 	if (editorPath.empty())
 	{
-		LogFStatic(
-			L"[VelopackBootstrap] failed to resolve Editor path for update elevation (gle=%lu)",
+		logLine(L"ERR",
+			L"failed to resolve Editor path for update elevation (gle=%lu)",
 			GetLastError());
 		return false;
 	}
@@ -195,8 +197,8 @@ bool VelopackBootstrap::launchElevatedUpdateCoordinator()
 	if (ShellExecuteExW(&info))
 		return true;
 
-	LogFStatic(
-		L"[VelopackBootstrap] update elevation was not started (gle=%lu)",
+	logLine(L"ERR",
+		L"update elevation was not started (gle=%lu)",
 		GetLastError());
 	return false;
 }
@@ -207,19 +209,22 @@ int VelopackBootstrap::runElevatedUpdateCoordinator(
 {
 	if (!AudioEngineAccess::isElevated())
 	{
-		LogFStatic(L"[VelopackBootstrap] refusing to coordinate an update without elevation");
+		logLine(L"ERR", L"refusing to coordinate an update without elevation");
 		return 1;
 	}
 	if (!isVelopackInstall() || repoUrl.empty())
 		return 1;
 
 	VelopackUpdateClient client(repoUrl, channel);
-	const UpdateApplyOutcome outcome = coordinatePendingRestartUpdate(client);
+	const UpdateApplyOutcome outcome = coordinatePendingRestartUpdate(client,
+		[](const std::string& error) {
+			logLine(L"ERR", L"elevated update coordination failed: %S", error.c_str());
+		});
 	if (outcome == UpdateApplyOutcome::UpdaterLaunched)
 		return 0;
 	if (outcome == UpdateApplyOutcome::NoUpdate)
-		LogFStatic(L"[VelopackBootstrap] elevated coordinator found no staged update");
+		logLine(L"INFO", L"elevated coordinator found no staged update");
 	else
-		LogFStatic(L"[VelopackBootstrap] elevated update coordination failed");
+		logLine(L"ERR", L"elevated update coordination failed");
 	return 1;
 }

@@ -221,6 +221,133 @@ namespace eapo::asio
 		{
 			return std::wstring(capture ? L"{0.0.1.00000000}." : L"{0.0.0.00000000}.") + endpointGuid;
 		}
+
+		// ---- BridgeCalibrator ----
+
+		BridgeCalibrator::BridgeCalibrator(uint64_t periodNanos, int forcedBridge) noexcept
+			: periodNanos_(periodNanos)
+		{
+			if (forcedBridge >= 2 && forcedBridge <= static_cast<int>(bridgeCap))
+			{
+				factor_ = static_cast<unsigned>(forcedBridge);
+				forced_ = true;
+				decided_ = true;
+			}
+		}
+
+		bool BridgeCalibrator::addSpacing(uint64_t spacingNanos) noexcept
+		{
+			if (decided_)
+				return false;
+			spacings_[count_++] = spacingNanos;
+			if (count_ < bridgeCalibrationEvents)
+				return false;
+			decided_ = true;
+			if (periodNanos_ == 0)
+				return true;
+			// The median spacing, so a stray stall does not decide.
+			uint64_t sorted[bridgeCalibrationEvents];
+			std::memcpy(sorted, spacings_, sizeof(sorted));
+			std::sort(sorted, sorted + bridgeCalibrationEvents);
+			const uint64_t typical = sorted[bridgeCalibrationEvents / 2];
+			const uint64_t threshold = periodNanos_ + periodNanos_ * (bridgeThresholdNumerator - bridgeThresholdDenominator) / bridgeThresholdDenominator;
+			if (typical > threshold)
+			{
+				unsigned factor = static_cast<unsigned>((typical + periodNanos_ - 1) / periodNanos_);
+				if (factor > bridgeCap)
+					factor = bridgeCap;
+				factor_ = factor;
+			}
+			return true;
+		}
+
+		// ---- CaptureQueue ----
+
+		void CaptureQueue::reset(unsigned channels, unsigned bytesPerSample, size_t capacityFrames)
+		{
+			channels_ = channels;
+			bytesPerSample_ = bytesPerSample;
+			frameBytes_ = static_cast<size_t>(channels) * bytesPerSample;
+			storage_.assign(capacityFrames * frameBytes_, 0);
+			pendingFrames_ = 0;
+		}
+
+		void CaptureQueue::clear() noexcept
+		{
+			storage_.clear();
+			pendingFrames_ = 0;
+		}
+
+		void CaptureQueue::push(const void* data, size_t frames, bool silent) noexcept
+		{
+			const CapturePlan plan = planCapturePacket(pendingFrames_, capacityFrames(), frames);
+			if (plan.dropFromQueue != 0)
+			{
+				std::memmove(storage_.data(), storage_.data() + plan.dropFromQueue * frameBytes_,
+					(pendingFrames_ - plan.dropFromQueue) * frameBytes_);
+				pendingFrames_ -= plan.dropFromQueue;
+			}
+			if (plan.copyFrames == 0)
+				return;
+			unsigned char* at = storage_.data() + pendingFrames_ * frameBytes_;
+			if (silent || data == nullptr)
+				std::memset(at, 0, plan.copyFrames * frameBytes_);
+			else
+				std::memcpy(at, data, plan.copyFrames * frameBytes_);
+			pendingFrames_ += plan.copyFrames;
+		}
+
+		bool CaptureQueue::take(void* const* planes, unsigned frames) noexcept
+		{
+			if (pendingFrames_ >= static_cast<size_t>(frames) && frameBytes_ != 0)
+			{
+				deinterleave(storage_.data(), channels_, bytesPerSample_, frames, planes);
+				pendingFrames_ -= static_cast<size_t>(frames);
+				std::memmove(storage_.data(), storage_.data() + static_cast<size_t>(frames) * frameBytes_, pendingFrames_ * frameBytes_);
+				return true;
+			}
+			for (unsigned c = 0; c < channels_; c++)
+				std::memset(planes[c], 0, static_cast<size_t>(frames) * bytesPerSample_);
+			underruns_++;
+			return false;
+		}
+
+		// ---- OutputStager ----
+
+		void OutputStager::reset(unsigned bridge, unsigned framesPerPeriod) noexcept
+		{
+			bridge_ = bridge != 0 ? bridge : 1;
+			framesPerPeriod_ = framesPerPeriod;
+			staged_ = 0;
+		}
+
+		OutputStager::Step OutputStager::stage() noexcept
+		{
+			Step step;
+			step.slot = staged_;
+			staged_++;
+			if (staged_ < bridge_)
+				return step;
+			staged_ = 0;
+			step.writeFrames = framesPerPeriod_ * bridge_;
+			return step;
+		}
+
+		// ---- StreamHealthJudge ----
+
+		StreamHealth StreamHealthJudge::judgeWait(bool timedOut, HRESULT deviceResult) noexcept
+		{
+			if (deviceResult == AUDCLNT_E_DEVICE_INVALIDATED)
+				return StreamHealth::DeviceLost;
+			if (!timedOut)
+			{
+				timeouts_ = 0;
+				return StreamHealth::Continue;
+			}
+			if (timeouts_ < deviceLostTimeouts)
+				timeouts_++;
+			return timeouts_ >= deviceLostTimeouts ? StreamHealth::DeviceLost : StreamHealth::Retry;
+		}
 	}
 
 	namespace
@@ -328,9 +455,8 @@ namespace eapo::asio
 		if (device != nullptr)
 			device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, reinterpret_cast<void**>(&client));
 		block.clear();
-		pending.clear();
-		pendingFrames = 0;
-		staged = 0;
+		queue.clear();
+		stager.reset(bridge, 0);
 		latencyFrames.store(0, std::memory_order_relaxed);
 	}
 
@@ -785,12 +911,9 @@ namespace eapo::asio
 		const size_t frameBytes = static_cast<size_t>(port.channels) * port.container.bytes();
 		port.block.assign(static_cast<size_t>(deviceFrames) * frameBytes, 0);
 		if (port.capture)
-		{
-			port.pending.assign(static_cast<size_t>(deviceFrames) * frameBytes * 2, 0);
-			port.pendingFrames = 0;
-		}
+			port.queue.reset(port.channels, port.container.bytes(), static_cast<size_t>(deviceFrames) * 2);
 		port.bridge = bridge;
-		port.staged = 0;
+		port.stager.reset(bridge, static_cast<unsigned>(frames));
 		return S_OK;
 	}
 
@@ -993,35 +1116,34 @@ namespace eapo::asio
 	{
 		if (port.captureClient == nullptr)
 			return;
-		const size_t frameBytes = static_cast<size_t>(port.channels) * port.container.bytes();
-		const size_t capacityFrames = port.pending.size() / frameBytes;
 		UINT32 packet = 0;
 		while (SUCCEEDED(port.captureClient->GetNextPacketSize(&packet)) && packet > 0)
 		{
 			BYTE* data = nullptr;
 			UINT32 frames = 0;
 			DWORD flags = 0;
-			if (FAILED(port.captureClient->GetBuffer(&data, &frames, &flags, nullptr, nullptr)))
-				break;
-			const UINT32 packetFrames = frames;
-			const wasapi::CapturePlan plan = wasapi::planCapturePacket(port.pendingFrames, capacityFrames, packetFrames);
-			// Bounded at two periods: older audio makes way so the input
-			// never drifts further than that behind the output clock.
-			if (plan.dropFromQueue != 0)
+			HRESULT hr = port.captureClient->GetBuffer(&data, &frames, &flags, nullptr, nullptr);
+			if (FAILED(hr))
 			{
-				std::memmove(port.pending.data(), port.pending.data() + plan.dropFromQueue * frameBytes,
-					(port.pendingFrames - plan.dropFromQueue) * frameBytes);
-				port.pendingFrames -= plan.dropFromQueue;
-			}
-			unsigned char* at = port.pending.data() + port.pendingFrames * frameBytes;
-			if (flags & AUDCLNT_BUFFERFLAGS_SILENT)
-				std::memset(at, 0, plan.copyFrames * frameBytes);
-			else
-				std::memcpy(at, data, plan.copyFrames * frameBytes);
-			port.pendingFrames += plan.copyFrames;
-			if (FAILED(port.captureClient->ReleaseBuffer(packetFrames)))
+				noteDeviceResult(hr);
 				break;
+			}
+			port.queue.push(data, frames, (flags & AUDCLNT_BUFFERFLAGS_SILENT) != 0);
+			hr = port.captureClient->ReleaseBuffer(frames);
+			if (FAILED(hr))
+			{
+				noteDeviceResult(hr);
+				break;
+			}
 		}
+	}
+
+	// Keeps the result the stream thread judges the event by: a device that
+	// went away outranks any other failure of the same event.
+	void WasapiExclusiveTarget::noteDeviceResult(HRESULT hr) noexcept
+	{
+		if (FAILED(hr) && deviceResult_ != AUDCLNT_E_DEVICE_INVALIDATED)
+			deviceResult_ = hr;
 	}
 
 	void WasapiExclusiveTarget::commitOutput(long half) noexcept
@@ -1036,22 +1158,24 @@ namespace eapo::asio
 		// is handed to the device once every ASIO period of the device
 		// period is in it (one write per event with bridge 1).
 		const size_t frameBytes = static_cast<size_t>(port.channels) * port.container.bytes();
+		const wasapi::OutputStager::Step step = port.stager.stage();
 		wasapi::interleave(port.planePointers[half].data(), port.channels, port.container.bytes(), static_cast<unsigned>(frames_),
-			port.block.data() + static_cast<size_t>(port.staged) * static_cast<size_t>(frames_) * frameBytes);
-		port.staged++;
+			port.block.data() + static_cast<size_t>(step.slot) * static_cast<size_t>(frames_) * frameBytes);
 		committed_.store(true, std::memory_order_release);
-		if (port.staged < port.bridge)
+		if (step.writeFrames == 0)
 			return;
-		port.staged = 0;
-		const UINT32 deviceFrames = static_cast<UINT32>(frames_) * port.bridge;
+		const UINT32 deviceFrames = step.writeFrames;
 		BYTE* data = nullptr;
-		if (FAILED(port.render->GetBuffer(deviceFrames, &data)))
+		HRESULT hr = port.render->GetBuffer(deviceFrames, &data);
+		if (FAILED(hr))
 		{
 			counters_.outputMisses++;
+			noteDeviceResult(hr);
 			return;
 		}
 		std::memcpy(data, port.block.data(), static_cast<size_t>(deviceFrames) * frameBytes);
-		port.render->ReleaseBuffer(deviceFrames, 0);
+		hr = port.render->ReleaseBuffer(deviceFrames, 0);
+		noteDeviceResult(hr);
 	}
 
 	void WasapiExclusiveTarget::servePeriod(long half) noexcept
@@ -1060,20 +1184,8 @@ namespace eapo::asio
 		if (in.captureClient != nullptr)
 		{
 			drainCapture(in);
-			const size_t frameBytes = static_cast<size_t>(in.channels) * in.container.bytes();
-			void* const* planes = in.planePointers[half].data();
-			if (in.pendingFrames >= static_cast<size_t>(frames_))
-			{
-				wasapi::deinterleave(in.pending.data(), in.channels, in.container.bytes(), static_cast<unsigned>(frames_), planes);
-				in.pendingFrames -= static_cast<size_t>(frames_);
-				std::memmove(in.pending.data(), in.pending.data() + static_cast<size_t>(frames_) * frameBytes, in.pendingFrames * frameBytes);
-			}
-			else
-			{
-				for (unsigned c = 0; c < in.channels; c++)
-					std::memset(planes[c], 0, in.planes[half][c].size());
+			if (!in.queue.take(in.planePointers[half].data(), static_cast<unsigned>(frames_)))
 				counters_.inputUnderruns++;
-			}
 		}
 
 		pendingHalf_.store(half, std::memory_order_release);
@@ -1108,6 +1220,34 @@ namespace eapo::asio
 			out.render->ReleaseBuffer(deviceFrames, AUDCLNT_BUFFERFLAGS_SILENT);
 	}
 
+	// Starts the recording endpoint, then the playback one, the order the
+	// stream relies on; on a failure the error text names the endpoint and
+	// the other is not started.
+	bool WasapiExclusiveTarget::startEndpoints() noexcept
+	{
+		Port& out = ports_[0];
+		Port& in = ports_[1];
+		if (in.client != nullptr && in.captureClient != nullptr)
+		{
+			const HRESULT hr = in.client->Start();
+			if (FAILED(hr))
+			{
+				std::snprintf(errorMessage_, sizeof(errorMessage_), "The recording endpoint could not start (0x%08lx)", static_cast<unsigned long>(hr));
+				return false;
+			}
+		}
+		if (out.client != nullptr && out.render != nullptr)
+		{
+			const HRESULT hr = out.client->Start();
+			if (FAILED(hr))
+			{
+				std::snprintf(errorMessage_, sizeof(errorMessage_), "The playback endpoint could not start (0x%08lx)", static_cast<unsigned long>(hr));
+				return false;
+			}
+		}
+		return true;
+	}
+
 	// Reopens both streams with a device period of `factor` ASIO periods.
 	// Stream thread only, between events. The ASIO buffers stay where they
 	// are; only the device side changes, and the host hears about the new
@@ -1130,24 +1270,8 @@ namespace eapo::asio
 			return false;
 		}
 		primeOutput();
-		if (in.client != nullptr && in.captureClient != nullptr)
-		{
-			const HRESULT hr = in.client->Start();
-			if (FAILED(hr))
-			{
-				std::snprintf(errorMessage_, sizeof(errorMessage_), "The recording endpoint could not start (0x%08lx)", static_cast<unsigned long>(hr));
-				return false;
-			}
-		}
-		if (out.client != nullptr && out.render != nullptr)
-		{
-			const HRESULT hr = out.client->Start();
-			if (FAILED(hr))
-			{
-				std::snprintf(errorMessage_, sizeof(errorMessage_), "The playback endpoint could not start (0x%08lx)", static_cast<unsigned long>(hr));
-				return false;
-			}
-		}
+		if (!startEndpoints())
+			return false;
 		bridge_.store(factor, std::memory_order_release);
 		counters_.bridge = factor;
 		if (callbacks_.asioMessage != nullptr
@@ -1172,25 +1296,7 @@ namespace eapo::asio
 		Port& out = ports_[0];
 		Port& in = ports_[1];
 		primeOutput();
-		bool started = true;
-		if (in.client != nullptr && in.captureClient != nullptr)
-		{
-			const HRESULT hr = in.client->Start();
-			if (FAILED(hr))
-			{
-				std::snprintf(errorMessage_, sizeof(errorMessage_), "The recording endpoint could not start (0x%08lx)", static_cast<unsigned long>(hr));
-				started = false;
-			}
-		}
-		if (started && out.client != nullptr && out.render != nullptr)
-		{
-			const HRESULT hr = out.client->Start();
-			if (FAILED(hr))
-			{
-				std::snprintf(errorMessage_, sizeof(errorMessage_), "The playback endpoint could not start (0x%08lx)", static_cast<unsigned long>(hr));
-				started = false;
-			}
-		}
+		bool started = startEndpoints();
 
 		// Some drivers accept a small period and then signal at their own
 		// coarser cycle (a virtual cable: every 10 ms against a 5.8 ms
@@ -1202,45 +1308,50 @@ namespace eapo::asio
 		// ASIO periods back to back. The host keeps its buffer size; the
 		// stream keeps its audio; only the latency grows, and is reported.
 		// EAPO_WASAPI_FORCE_BRIDGE=<n> takes that decision up front, for
-		// exercising the path on a driver that does not need it.
-		constexpr unsigned calibrationEvents = 12;
-		constexpr unsigned bridgeCap = 8;
-		unsigned forcedBridge = 0;
+		// exercising the path on a driver that does not need it. The
+		// decision itself is wasapi::BridgeCalibrator's.
+		int forcedBridge = 0;
 		{
 			wchar_t value[8] = {};
 			if (GetEnvironmentVariableW(L"EAPO_WASAPI_FORCE_BRIDGE", value, 8) > 0)
-			{
-				const int parsed = _wtoi(value);
-				if (parsed >= 2 && parsed <= static_cast<int>(bridgeCap))
-					forcedBridge = static_cast<unsigned>(parsed);
-			}
+				forcedBridge = _wtoi(value);
 		}
-		if (started && forcedBridge != 0 && !rebridge(forcedBridge))
+		const uint64_t periodNanos = rate_ != 0 ? static_cast<uint64_t>(static_cast<double>(frames_) * 1e9 / static_cast<double>(rate_)) : 0;
+		wasapi::BridgeCalibrator calibrator(periodNanos, forcedBridge);
+		if (started && calibrator.forced() && !rebridge(calibrator.factor()))
 			started = false;
 		startResult_.store(started ? ASE_OK : ASE_HWMalfunction, std::memory_order_release);
 		SetEvent(startAckEvent_);
-		bool calibrated = forcedBridge != 0;
-		uint64_t calibration[calibrationEvents] = {};
-		unsigned calibrationCount = 0;
 
 		HANDLE clock = out.event != nullptr ? out.event : in.event;
 		long half = 0;
-		uint64_t periodNanos = rate_ != 0 ? static_cast<uint64_t>(static_cast<double>(frames_) * 1e9 / static_cast<double>(rate_)) : 0;
 		uint64_t devicePeriodNanos = periodNanos * bridge_.load(std::memory_order_acquire);
 		uint64_t previousEvent = 0;
 		uint64_t intervalSum = 0, intervalCount = 0, intervalMax = 0, serviceMax = 0;
+		wasapi::StreamHealthJudge health;
 		const bool enteredLoop = started;
 		while (started && !stopRequested_.load(std::memory_order_acquire))
 		{
 			const HANDLE waits[2] = {stopEvent_, clock};
-			const DWORD waited = WaitForMultipleObjects(2, waits, FALSE, 500);
+			const DWORD waited = WaitForMultipleObjects(2, waits, FALSE, wasapi::eventWaitMs);
 			if (waited == WAIT_OBJECT_0)
 				break;
 			if (waited == WAIT_TIMEOUT)
+			{
+				// A device that was unplugged stops signalling; after a
+				// few silent waits the stream ends and the host is asked
+				// for a reset below, as for any other device failure.
+				if (health.judgeWait(true, S_OK) == wasapi::StreamHealth::DeviceLost)
+				{
+					setError("The device stopped signalling; it may have been unplugged");
+					break;
+				}
 				continue;
+			}
 			if (waited != WAIT_OBJECT_0 + 1)
 				break;
 			const uint64_t now = nowNanoseconds();
+			bool calibrationDue = false;
 			if (previousEvent != 0)
 			{
 				const uint64_t interval = now - previousEvent;
@@ -1250,10 +1361,10 @@ namespace eapo::asio
 				intervalCount++;
 				if (interval > intervalMax)
 					intervalMax = interval;
-				if (!calibrated && calibrationCount < calibrationEvents)
-					calibration[calibrationCount++] = interval;
+				calibrationDue = calibrator.addSpacing(interval);
 			}
 			previousEvent = now;
+			deviceResult_ = S_OK;
 			const unsigned bridge = bridge_.load(std::memory_order_acquire);
 			for (unsigned k = 0; k < bridge; k++)
 			{
@@ -1263,31 +1374,21 @@ namespace eapo::asio
 			const uint64_t served = nowNanoseconds() - now;
 			if (served > serviceMax)
 				serviceMax = served;
-
-			if (!calibrated && calibrationCount == calibrationEvents && periodNanos != 0)
+			if (health.judgeWait(false, deviceResult_) == wasapi::StreamHealth::DeviceLost)
 			{
-				calibrated = true;
-				// The median spacing, so a stray stall does not decide.
-				uint64_t sorted[calibrationEvents];
-				std::memcpy(sorted, calibration, sizeof(sorted));
-				std::sort(sorted, sorted + calibrationEvents);
-				const uint64_t typical = sorted[calibrationEvents / 2];
-				if (typical > periodNanos + periodNanos / 2)
-				{
-					unsigned factor = static_cast<unsigned>((typical + periodNanos - 1) / periodNanos);
-					if (factor > bridgeCap)
-						factor = bridgeCap;
-					if (factor >= 2)
-					{
-						// A device that will not reopen ends the stream, as a
-						// device that vanished would; the host sees no more switches.
-						if (!rebridge(factor))
-							break;
-						clock = out.event != nullptr ? out.event : in.event;
-						devicePeriodNanos = periodNanos * factor;
-						previousEvent = 0;
-					}
-				}
+				setError("The device went away; it may have been unplugged");
+				break;
+			}
+
+			if (calibrationDue && calibrator.factor() >= 2)
+			{
+				// A device that will not reopen ends the stream, as a
+				// device that vanished would; the host sees no more switches.
+				if (!rebridge(calibrator.factor()))
+					break;
+				clock = out.event != nullptr ? out.event : in.event;
+				devicePeriodNanos = periodNanos * calibrator.factor();
+				previousEvent = 0;
 			}
 		}
 		counters_.eventIntervalAvgUs = intervalCount != 0 ? intervalSum / intervalCount / 1000 : 0;

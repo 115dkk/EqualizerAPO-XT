@@ -11,6 +11,7 @@
 #include "filters/DeviceCommand.h"
 #include "filters/ExpressionCommand.h"
 #include "filters/FilterFactoryRegistry.h"
+#include "filters/MultiConvolutionCommand.h"
 #include "filters/StageCommand.h"
 #include "text/WideString.h"
 
@@ -162,6 +163,15 @@ std::vector<ChannelFlowAtLine> computeChannelFlow(const std::vector<ChannelFlowL
 			// Copy adds its targets to the names in scope and never changes
 			// the selection (getSelectChannels is false in the engine).
 			propagateCopyChannels(parseCopyAssignments(line.parameters), state.names);
+		}
+		else if (keyword == L"MultiConvolution")
+		{
+			// A MultiConvolution line declares its targets as channels, as
+			// Copy does, so a line below it can select one; it never changes
+			// the selection (audit #348 A2).
+			MultiConvolutionCommand cmd;
+			if (MultiConvolutionCommand::parse(keyword, line.parameters, cmd))
+				cmd.declareChannels(state.names);
 		}
 	}
 

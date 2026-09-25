@@ -1383,6 +1383,50 @@ void testConfigReferencedRemotePathsAreRefused(test::Harness& harness)
 		"a configuration with refused remote references and working local lines still loads");
 }
 
+// Audit #348 A1: Include reads its file argument by the rule every file a
+// line names shares, so the quotes and %VARIABLES% Convolution always took
+// work here too, and an Include with nothing after it is reported rather
+// than loading the configuration's own folder.
+void testIncludeTakesQuotesAndVariables(test::Harness& harness)
+{
+	writeConfig(harness, L"included with spaces.txt", "Preamp: -6.0206 dB\n");
+	writeConfig(harness, L"included-by-variable.txt", "Preamp: -6.0206 dB\n");
+	_wputenv_s(L"EAPO_XT_TEST_INCLUDE_DIR", testDirectory().c_str());
+	const std::wstring configPath = writeConfig(harness, L"include-dialect.txt",
+		"Include: \"included with spaces.txt\"\n"
+		"Include: %EAPO_XT_TEST_INCLUDE_DIR%\\included-by-variable.txt\n"
+		"Include:   \n");
+
+	struct Collector : ConfigLoadTraceSink
+	{
+		std::vector<ConfigLoadTraceEntry> entries;
+		void addEntry(const ConfigLoadTraceEntry& entry) override
+		{
+			entries.push_back(entry);
+		}
+	};
+	Collector collector;
+
+	FilterEngine engine;
+	engine.setLoadTraceSink(&collector);
+	initializeEngine(engine, 48000, 2, 480, configPath);
+	const std::vector<float> output = processDcBlock(engine, 1.0f, 1.0f, 480);
+	harness.expect(std::fabs(output[(size_t)478 * 2] - 0.25f) < 1e-3f,
+		"the quoted include and the include through a variable both applied their -6 dB");
+
+	std::vector<const ConfigLoadTraceEntry*> errors;
+	for (const ConfigLoadTraceEntry& entry : collector.entries)
+	{
+		if (entry.kind == ConfigLoadTraceEntry::Kind::ParseError)
+			errors.push_back(&entry);
+	}
+	harness.requireEqual(errors.size(), size_t(1), "only the empty include is an error");
+	harness.expectEqual(errors[0]->line, 3, "reported on its own line");
+	harness.expect(errors[0]->text.find(L"expected the path of a configuration file") != std::wstring::npos,
+		"as a missing path");
+	_wputenv_s(L"EAPO_XT_TEST_INCLUDE_DIR", L"");
+}
+
 // Audit #250 A6/A3: the engine's registry surface (the config language's
 // readRegDWORD here) goes through the injected port, so a config that reads
 // the registry is deterministic under a fake - previously these functions
@@ -1458,6 +1502,7 @@ void runRegistryTransactionTests(test::Harness& harness);
 void runNamedPipeSecurityTests(test::Harness& harness);
 void runRegistryConformanceTests(test::Harness& harness);
 void runDevicePlanTests(test::Harness& harness);
+void runDeviceTestPlanTests(test::Harness& harness);
 void runInstallDiagnosticsTests(test::Harness& harness);
 void runApoRegistrationTests(test::Harness& harness);
 void runChannelInheritanceTests(test::Harness& harness);
@@ -1503,6 +1548,7 @@ int runEngineOrchestrationTests()
 	runNamedPipeSecurityTests(harness);
 	runRegistryConformanceTests(harness);
 	runDevicePlanTests(harness);
+	runDeviceTestPlanTests(harness);
 	runDeviceApoInfoTests(harness);
 	runInstallDiagnosticsTests(harness);
 	runApoRegistrationTests(harness);
@@ -1534,6 +1580,7 @@ int runEngineOrchestrationTests()
 	testControlFlowAndStageMistakesAreReported(harness);
 	testIncludeRecursionLimitIsReported(harness);
 	testConfigReferencedRemotePathsAreRefused(harness);
+	testIncludeTakesQuotesAndVariables(harness);
 	testConfigRegistryReadsGoThroughThePort(harness);
 	testAnalysisFreezesDynamicVelvetAndLabelsTheSnapshot(harness);
 

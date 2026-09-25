@@ -1225,6 +1225,16 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
         <translation type="unfinished">Certains fichiers n&apos;ont pas pu être copiés :
 %1</translation>
     </message>
+    <message>
+        <location filename="../widgets/cards/FileReferenceController.cpp" line="98"/>
+        <source>The audio service only opens files on local drives</source>
+        <translation>Le service audio n&apos;ouvre que les fichiers des lecteurs locaux</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/FileReferenceController.cpp" line="100"/>
+        <source>Not readable by the audio service</source>
+        <translation>Illisible par le service audio</translation>
+    </message>
 </context>
 <context>
     <name>FilterCardModel</name>
@@ -2989,7 +2999,7 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
     </message>
     <message>
         <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="122"/>
-        <source>Source LFE gain</source>
+        <source>Effective LFE gain</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4439,7 +4449,7 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
     </message>
     <message>
         <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="381"/>
-        <source>Gain:</source>
+        <source>LFE gain adjustment:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

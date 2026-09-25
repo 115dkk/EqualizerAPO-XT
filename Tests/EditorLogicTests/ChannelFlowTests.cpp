@@ -87,6 +87,24 @@ void testChannelFlow()
 			QStringLiteral("a switched-off Copy line creates nothing"));
 	}
 
+	// Audit #348 A2: a MultiConvolution line declares its targets as
+	// channels for the lines below it, and a switched-off one declares
+	// nothing.
+	{
+		const std::vector<ChannelFlowAtLine> flow = computeChannelFlow(
+			{line(L"MultiConvolution", L"Wet=0 L=1 room.wav"), line(L"Preamp", L"0 dB"),
+			 line(L"MultiConvolution", L"Dry=0 room.wav", false), line(L"Preamp", L"0 dB")},
+			surroundContext());
+		requireEqual(static_cast<int>(flow.size()), 4, QStringLiteral("one flow element per line"));
+		expectFalse(names(flow[0].namesInScope).contains(QStringLiteral("Wet")),
+			QStringLiteral("the MultiConvolution line itself sees the names before its own effect"));
+		expectEqual(names(flow[1].namesInScope), all + QStringList{QStringLiteral("Wet")},
+			QStringLiteral("a MultiConvolution target is in scope below its line, and an existing one is not added twice"));
+		expectEqual(names(flow[1].selected), all, QStringLiteral("MultiConvolution does not change the selection"));
+		expectFalse(names(flow[3].namesInScope).contains(QStringLiteral("Dry")),
+			QStringLiteral("a switched-off MultiConvolution line declares nothing"));
+	}
+
 	// A Channel line resolves against the names in scope, so a Copy-created
 	// channel above it can be selected.
 	{

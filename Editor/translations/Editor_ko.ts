@@ -1216,6 +1216,16 @@ Select a different file or change the device configuration.</source>
         <translation type="unfinished">일부 파일을 복사하지 못했습니다:
 %1</translation>
     </message>
+    <message>
+        <location filename="../widgets/cards/FileReferenceController.cpp" line="98"/>
+        <source>The audio service only opens files on local drives</source>
+        <translation>오디오 서비스는 로컬 드라이브의 파일만 엽니다</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/FileReferenceController.cpp" line="100"/>
+        <source>Not readable by the audio service</source>
+        <translation>오디오 서비스가 읽을 수 없습니다</translation>
+    </message>
 </context>
 <context>
     <name>FilterCardModel</name>
@@ -2994,7 +3004,7 @@ Do you want to run the Device Selector application to fix the problem?</source>
     </message>
     <message>
         <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="122"/>
-        <source>Source LFE gain</source>
+        <source>Effective LFE gain</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4450,7 +4460,7 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
     </message>
     <message>
         <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="381"/>
-        <source>Gain:</source>
+        <source>LFE gain adjustment:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

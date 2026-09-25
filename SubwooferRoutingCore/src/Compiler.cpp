@@ -565,6 +565,8 @@ void appendBiquadStage(
 	stages.push_back(stage);
 }
 
+}
+
 std::complex<double> evaluateBiquad(
 	const BiquadCoefficients& coefficients,
 	double omega)
@@ -617,6 +619,9 @@ std::complex<double> evaluatePathResponse(
 
 	return response;
 }
+
+namespace
+{
 
 HeadroomAnalysis analyzeHeadroom(
 	const SubwooferRoutingState& state,
@@ -1582,6 +1587,23 @@ ValidationResult validate(
 	}
 
 	return result;
+}
+
+PrepareSpec previewSpecFor(
+	const SubwooferRoutingState& state,
+	double sampleRate)
+{
+	PrepareSpec spec;
+	spec.sampleRate = sampleRate;
+	spec.maximumBlockSize = 1024;
+	spec.channelLayout.reserve(state.layout.channels.size());
+
+	for (const PhysicalChannel& channel : state.layout.channels)
+	{
+		spec.channelLayout.push_back(channel.id);
+	}
+
+	return spec;
 }
 
 CompileResult compile(

@@ -6,8 +6,13 @@
 
 #include "FileReferenceController.h"
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QFileInfo>
+
+#include "filters/ConfigFileReference.h"
+#include "filters/ConfigPathPolicy.h"
+#include "services/security/AudioEngineAccess.h"
 
 FileReferenceController::FileReferenceController(const QString& kind,
 	const QString& writtenPath, QObject* parent)
@@ -37,21 +42,8 @@ void FileReferenceController::setResolvedPath(const QString& path)
 
 void FileReferenceController::resolveAgainstConfig(const QString& configPath)
 {
-	resolveAgainstDirectory(QFileInfo(configPath).absolutePath());
-}
-
-void FileReferenceController::resolveAgainstDirectory(const QString& directoryPath)
-{
-	if (written.isEmpty())
-	{
-		resolved.clear();
-		return;
-	}
-	const QString normalized = QDir::fromNativeSeparators(written);
-	resolved = QDir::toNativeSeparators(
-		QDir::isAbsolutePath(normalized)
-			? QFileInfo(normalized).absoluteFilePath()
-			: QDir(directoryPath).absoluteFilePath(normalized));
+	resolved = QDir::toNativeSeparators(QString::fromStdWString(ConfigFileReference::resolve(
+		QDir::toNativeSeparators(configPath).toStdWString(), written.toStdWString())));
 }
 
 QString FileReferenceController::displayPathForBaseDirectory(
@@ -75,7 +67,10 @@ ReferenceCardState FileReferenceController::describe(const QString& emptyName) c
 		return state;
 	}
 
-	const QString normalized = QDir::fromNativeSeparators(written);
+	// Named the way the engine reads the text: without its quotes, with its
+	// variables expanded.
+	const QString normalized = QDir::fromNativeSeparators(
+		QString::fromStdWString(ConfigFileReference::normalize(written.toStdWString())));
 	const QFileInfo asWritten(normalized);
 	state.name = asWritten.fileName();
 	state.absolutePath = QDir::isAbsolutePath(normalized);
@@ -88,4 +83,20 @@ ReferenceCardState FileReferenceController::describe(const QString& emptyName) c
 	else if (asWritten.path() != QStringLiteral("."))
 		state.directory = QDir::toNativeSeparators(asWritten.path());
 	return state;
+}
+
+QString FileReferenceController::audioServiceProblem(const QString& absolutePath, const QString& configPath)
+{
+	// The offscreen gallery renders synthetic files with no meaningful ACL or
+	// location story.
+	if (absolutePath.isEmpty() || qEnvironmentVariableIsSet("EAPO_SKIN_GALLERY"))
+		return {};
+
+	const std::wstring path = QDir::toNativeSeparators(absolutePath).toStdWString();
+	std::wstring reason;
+	if (!ConfigPathPolicy::allowsOpen(path, QDir::toNativeSeparators(configPath).toStdWString(), reason))
+		return QCoreApplication::translate("FileReferenceController", "The audio service only opens files on local drives");
+	if (!AudioEngineAccess::isReadableByAudioEngine(path))
+		return QCoreApplication::translate("FileReferenceController", "Not readable by the audio service");
+	return {};
 }

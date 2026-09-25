@@ -21,9 +21,9 @@
 #include "services/registry/RegistryPaths.h"
 #include <chrono>
 #include <services/registry/WindowsRegistry.h>
-#include <platform/windows/WindowsVersion.h>
 #include <services/windows/WindowsService.h>
 #include <devices/DeviceAPOInfoKeys.h>
+#include <devices/DeviceTestWire.h>
 #include <platform/windows/ComPtr.h>
 #include <ObjBase.h>
 #include "DeviceTestThread.h"
@@ -31,35 +31,41 @@
 using std::find;
 using std::thread;
 
+namespace
+{
+ItemStatusType itemStatusType(DeviceTestItemStatus status)
+{
+	switch (status)
+	{
+	case DeviceTestItemStatus::Waiting:
+		return ItemStatusType::waiting;
+	case DeviceTestItemStatus::Success:
+		return ItemStatusType::success;
+	case DeviceTestItemStatus::Warning:
+		return ItemStatusType::warning;
+	case DeviceTestItemStatus::Error:
+		break;
+	}
+	return ItemStatusType::error;
+}
+}
+
 DeviceTestThread::DeviceTestThread(QObject* parent, const QVector<std::shared_ptr<DeviceAPOInfo>>& devices)
 	: QThread(parent)
 {
-	bool isNewerWindows = WindowsVersion::isAtLeast(6, 3); // Windows 8.1
 	for (const std::shared_ptr<DeviceAPOInfo>& apoInfo : devices)
 	{
 		if (apoInfo->isDisabled() || apoInfo->isUnplugged())
 			continue;
 
-		DeviceTestInfo testInfo(apoInfo);
-		if (apoInfo->getSelectedInstallState().autoAdjust)
-		{
-			if (isNewerWindows)
-			{
-				testInfo.remainingInstallModes.append(DeviceAPOInfo::INSTALL_SFX_EFX);
-				testInfo.remainingInstallModes.append(DeviceAPOInfo::INSTALL_SFX_MFX);
-			}
-			testInfo.remainingInstallModes.append(DeviceAPOInfo::INSTALL_LFX_GFX);
-		}
-		else
-		{
-			testInfo.remainingInstallModes.append(apoInfo->getSelectedInstallState().installMode);
-		}
-		testInfo.bestInstallMode = apoInfo->getSelectedInstallState().installMode;
-		testInfo.wantsOriginalApoPreMix = apoInfo->getSelectedInstallState().useOriginalAPOPreMix || apoInfo->getOriginalAPOPreMix() == L"";
-		testInfo.wantsOriginalApoPostMix = apoInfo->getSelectedInstallState().useOriginalAPOPostMix || apoInfo->getOriginalAPOPostMix() == L"";
-
-		infoMap.insert(QString::fromStdWString(apoInfo->getDeviceGuid()).toLower(), testInfo);
+		infoMap.insert(QString::fromStdWString(apoInfo->getDeviceGuid()).toLower(),
+			DeviceUnderTest(apoInfo, deviceTestSelectionOf(*apoInfo)));
 	}
+}
+
+void DeviceTestThread::showStatus(const QString& deviceGuid, DeviceTestStage stage, DeviceTestItemStatus status)
+{
+	emit setItemStatus(deviceGuid, stage == DeviceTestStage::PostMix, itemStatusType(status));
 }
 
 void DeviceTestThread::run()
@@ -100,7 +106,7 @@ void DeviceTestThread::run()
 			break;
 
 		emit log(tr("Checking APO installation..."));
-		std::wstring pipeName = L"EqualizerAPODeviceTest";
+		std::wstring pipeName = devicetest::wire::kPipeName;
 		ReceiveThread thread(pipeName);
 
 		try
@@ -133,13 +139,12 @@ void DeviceTestThread::run()
 			auto testInfo = infoMap.find(deviceGuid);
 			try
 			{
-				testInfo->remainingInstallModes.removeOne(testInfo->deviceInfo->getSelectedInstallState().installMode);
-				testInfo->currentResult.childAPOPreMixOk = !testInfo->deviceInfo->getSelectedInstallState().useOriginalAPOPreMix || testInfo->deviceInfo->getOriginalAPOPreMix() == L"";
-				testInfo->currentResult.childAPOPostMixOk = !testInfo->deviceInfo->getSelectedInstallState().useOriginalAPOPostMix || testInfo->deviceInfo->getOriginalAPOPostMix() == L"";
-				if (testInfo->deviceInfo->getSelectedInstallState().installPreMix)
-					emit setItemStatus(deviceGuid, false, ItemStatusType::waiting);
-				if (testInfo->deviceInfo->getSelectedInstallState().installPostMix && !testInfo->deviceInfo->isInput())
-					emit setItemStatus(deviceGuid, true, ItemStatusType::waiting);
+				const DeviceTestSelection selection = deviceTestSelectionOf(*testInfo->deviceInfo);
+				testInfo->plan.beginAttempt(selection);
+				if (DeviceTestPlan::expectsPreMix(selection))
+					showStatus(deviceGuid, DeviceTestStage::PreMix, DeviceTestItemStatus::Waiting);
+				if (DeviceTestPlan::expectsPostMix(selection))
+					showStatus(deviceGuid, DeviceTestStage::PostMix, DeviceTestItemStatus::Waiting);
 				testInfo->deviceInfo->testAPOInstallation();
 			}
 			catch (const WideError& e)
@@ -162,9 +167,11 @@ void DeviceTestThread::run()
 					return;
 				}
 				QJsonObject jsonObj = jsonDoc.object();
-				QString deviceGuid = jsonObj.value("deviceGuid").toString();
-				QString stage = jsonObj.value("stage").toString();
-				QString phase = jsonObj.value("phase").toString();
+				QString deviceGuid = jsonObj.value(QLatin1String(devicetest::wire::kKeyDeviceGuid)).toString();
+				const std::optional<DeviceTestStage> stage = deviceTestStageFromWire(
+					jsonObj.value(QLatin1String(devicetest::wire::kKeyStage)).toString().toStdString());
+				const std::optional<DeviceTestPhase> phase = deviceTestPhaseFromWire(
+					jsonObj.value(QLatin1String(devicetest::wire::kKeyPhase)).toString().toStdString());
 				auto testInfo = infoMap.find(deviceGuid.toLower());
 
 				if (testInfo == infoMap.end())
@@ -177,29 +184,13 @@ void DeviceTestThread::run()
 					continue;
 				}
 
-				TestResult& result = testInfo->currentResult;
-				const DeviceAPOInfo::InstallState& installState = testInfo->deviceInfo->getSelectedInstallState();
-				if (stage == "PreMix")
+				if (stage)
 				{
-					if (phase == "Initialize")
-						result.preMixOk = true;
-					else if (phase == "ChildAPO")
-						result.childAPOPreMixOk = true;
-					if (result.preMixOk && result.childAPOPreMixOk)
-						emit setItemStatus(deviceGuid, false, ItemStatusType::success);
-				}
-				else if (stage == "PostMix")
-				{
-					if (phase == "Initialize")
-						result.postMixOk = true;
-					else if (phase == "ChildAPO")
-						result.childAPOPostMixOk = true;
-					if (result.postMixOk && result.childAPOPostMixOk)
-						emit setItemStatus(deviceGuid, true, ItemStatusType::success);
+					if (const std::optional<DeviceTestStage> completed = testInfo->plan.record(*stage, phase))
+						showStatus(deviceGuid, *completed, DeviceTestItemStatus::Success);
 				}
 
-				if ((result.preMixOk && result.childAPOPreMixOk || !installState.installPreMix)
-					&& (result.postMixOk && result.childAPOPostMixOk || !installState.installPostMix || testInfo->deviceInfo->isInput()))
+				if (testInfo->plan.satisfied(deviceTestSelectionOf(*testInfo->deviceInfo)))
 				{
 					remainingDevices.remove(deviceGuid.toLower());
 					if (remainingDevices.isEmpty())
@@ -222,49 +213,29 @@ void DeviceTestThread::run()
 					QString deviceGuid = it.next();
 					auto testInfo = infoMap.find(deviceGuid);
 					DeviceAPOInfo::InstallState& installState = testInfo->deviceInfo->getSelectedInstallState();
-					if (testInfo->currentResult.getScore() > testInfo->bestResult.getScore())
+					// The rows show this round against the state it was tried in,
+					// so the selection is read before the mode changes.
+					const DeviceTestSelection selection = deviceTestSelectionOf(*testInfo->deviceInfo);
+					const DeviceTestPlan::Fallback fallback = testInfo->plan.fallBack(selection);
+					if (fallback.givesUp)
 					{
-						testInfo->bestInstallMode = installState.installMode;
-						testInfo->bestResult = testInfo->currentResult;
-					}
-
-					DeviceAPOInfo::InstallMode installMode;
-					TestResult result;
-					if (!testInfo->remainingInstallModes.isEmpty())
-					{
-						installMode = testInfo->remainingInstallModes.first();
-						result = testInfo->currentResult;
-						testInfo->currentResult = TestResult();
-					}
-					else
-					{
-						installMode = testInfo->bestInstallMode;
-						result = testInfo->bestResult;
 						it.remove();
 						nonWorkingDevices++;
 					}
-					if (installState.installPreMix)
-						emit setItemStatus(deviceGuid, false, result.preMixOk ? (result.childAPOPreMixOk || !installState.useOriginalAPOPreMix ? ItemStatusType::success : ItemStatusType::warning) : ItemStatusType::error);
-					if (installState.installPostMix && !testInfo->deviceInfo->isInput())
-						emit setItemStatus(deviceGuid, true, result.postMixOk ? (result.childAPOPostMixOk || !installState.useOriginalAPOPostMix ? ItemStatusType::success : ItemStatusType::warning) : ItemStatusType::error);
-					QString installModeName;
-					switch (installMode)
-					{
-					case DeviceAPOInfo::INSTALL_LFX_GFX:
-						installModeName = "LFX/GFX";
-						break;
-					case DeviceAPOInfo::INSTALL_SFX_MFX:
-						installModeName = "SFX/MFX";
-						break;
-					case DeviceAPOInfo::INSTALL_SFX_EFX:
-						installModeName = "SFX/EFX";
-						break;
-					}
+					if (DeviceTestPlan::expectsPreMix(selection))
+						showStatus(deviceGuid, DeviceTestStage::PreMix,
+							DeviceTestPlan::statusFor(fallback.shown, DeviceTestStage::PreMix, selection));
+					if (DeviceTestPlan::expectsPostMix(selection))
+						showStatus(deviceGuid, DeviceTestStage::PostMix,
+							DeviceTestPlan::statusFor(fallback.shown, DeviceTestStage::PostMix, selection));
+					const QString installModeName = QString::fromLatin1(deviceTestModeName(fallback.mode));
 					emit log(tr("Setting install mode for %1 %2 to %3.").arg(testInfo->deviceInfo->getDeviceName()).arg(testInfo->deviceInfo->getConnectionName()).arg(installModeName));
 
-					installState.installMode = installMode;
-					installState.useOriginalAPOPreMix = testInfo->wantsOriginalApoPreMix && testInfo->deviceInfo->getOriginalAPOPreMix() != L"";
-					installState.useOriginalAPOPostMix = testInfo->wantsOriginalApoPostMix && testInfo->deviceInfo->getOriginalAPOPostMix() != L"";
+					installState.installMode = static_cast<DeviceAPOInfo::InstallMode>(fallback.mode);
+					// Which driver APO the new mode chains to depends on the
+					// mode, so these are asked after it is set.
+					installState.useOriginalAPOPreMix = testInfo->plan.chainsOriginalApoPreMix(testInfo->deviceInfo->getOriginalAPOPreMix() != L"");
+					installState.useOriginalAPOPostMix = testInfo->plan.chainsOriginalApoPostMix(testInfo->deviceInfo->getOriginalAPOPostMix() != L"");
 					// A refused write rolls the endpoint back and throws; out of
 					// QThread::run that was std::terminate for the diagnostic
 					// tool itself (audit #348 TD-06). The device stops being

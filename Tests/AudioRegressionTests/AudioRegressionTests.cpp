@@ -32,6 +32,7 @@
 #include "services/logging/Logging.h"
 #include "audio/io/SndfileRAII.h"
 #include "platform/windows/Win32Resource.h"
+#include "platform/windows/WindowsPath.h"
 #include "Tests/AlignedMemoryGate.h"
 #include "Tests/TestHarness.h"
 
@@ -236,16 +237,7 @@ std::wstring toWide(const std::string& s)
 	return w;
 }
 
-std::wstring exeDirectory()
-{
-	wchar_t buf[MAX_PATH];
-	DWORD n = GetModuleFileNameW(nullptr, buf, MAX_PATH);
-	std::wstring path(buf, n);
-	size_t slash = path.find_last_of(L"\\/");
-	if (slash != std::wstring::npos)
-		path.resize(slash);
-	return path;
-}
+using pathutil::exeDirectory;
 
 void ensureDirectory(const std::wstring& path)
 {
@@ -833,6 +825,17 @@ bool runCase(const TestCase& tc, const Options& opts, bool& outFailed)
 	if (tc.blockFrames == 0 || tc.frames % tc.blockFrames != 0)
 	{
 		fprintf(stderr, "  ERROR: blockFrames %u does not divide frames %u\n", tc.blockFrames, tc.frames);
+		outFailed = true;
+		return false;
+	}
+
+	// The engine treats a missing config file as an empty configuration and
+	// passes the signal through, and a pass-through case's reference equals its
+	// input (loudnesscorrection_bypassed), so without this the case stayed
+	// green with no config at all (audit #348 TD-71).
+	if (!pathutil::fileExists(configPath))
+	{
+		fprintf(stderr, "  ERROR: config file %S does not exist\n", configPath.c_str());
 		outFailed = true;
 		return false;
 	}

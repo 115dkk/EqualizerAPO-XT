@@ -27,7 +27,7 @@ struct ConvolutionCommand
 {
 	// Impulse response path as the author wrote it (whitespace-trimmed only).
 	// Quotes and environment variables are preserved so serialize() round-trips
-	// the config text; ConvolutionFilePath::resolve applies unquoting, variable
+	// the config text; ConfigFileReference::resolve applies unquoting, variable
 	// expansion, and config-relative resolution when the engine loads the file.
 	std::wstring path;
 

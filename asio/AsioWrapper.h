@@ -122,6 +122,13 @@ namespace eapo::asio
 
 		ASIOError prepareChannels(ASIOBufferInfo* bufferInfos, long numChannels, long bufferSize);
 		void releaseChannels() noexcept;
+		// Unbinds the callback slot and waits up to two seconds for a
+		// callback already inside to leave. False when one is still inside;
+		// the caller must then not free what that callback may touch.
+		bool retireCallbacks(const char* during) noexcept;
+		// Whether a process() outcome leaves audio in the planes to write:
+		// always for Processed, and for Late from an adapter that pipelines.
+		bool planesCarryAudio(Outcome outcome) const noexcept;
 		bool fillFormat(long bufferSize);
 		void setError(const char* message) noexcept;
 

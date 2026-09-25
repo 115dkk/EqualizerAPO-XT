@@ -37,6 +37,8 @@ class QLabel;
 class QScrollArea;
 class QVBoxLayout;
 class RoutingView;
+struct Assignment;
+struct RoutingPortModel;
 
 class SubwooferRoutingEditorDialog : public QDialog
 {
@@ -80,8 +82,17 @@ private:
 	void rebuildFrequencyControls();
 	void updateLeftPaneWidth();
 	void rebuildRoutingViews();
-	void rebuildBassSendRoutingView();
-	void rebuildOutputRoutingView();
+	// One routing editor (bass sends or physical outputs): replaces the
+	// previous view or heritage-skin hint in the layout and connects the new
+	// view's edits to editedSlot.
+	void rebuildRoutingView(
+		RoutingView*& view,
+		QLabel*& hint,
+		QVBoxLayout* layout,
+		const std::vector<Assignment>& assignments,
+		const std::vector<std::wstring>& targets,
+		const RoutingPortModel& portModel,
+		void (SubwooferRoutingEditorDialog::*editedSlot)());
 	void refreshValidation();
 
 	SubwooferRoutingUiModel* model = nullptr;

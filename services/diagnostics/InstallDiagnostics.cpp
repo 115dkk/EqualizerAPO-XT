@@ -30,6 +30,7 @@
 #include "services/registry/IRegistry.h"
 #include "services/registry/WindowsRegistry.h"
 #include "platform/windows/WindowsVersion.h"
+#include "platform/windows/WindowsPath.h"
 #include "devices/DeviceAPOInfoKeys.h"
 
 using std::vector;
@@ -69,10 +70,8 @@ wstring dwordOrNote(const IRegistry& registry, const wstring& key, const wstring
 	}
 }
 
-bool pathExists(const wstring& path)
-{
-	return !path.empty() && GetFileAttributesW(path.c_str()) != INVALID_FILE_ATTRIBUTES;
-}
+// The shared helper answers false for an empty path as well (audit #348 TD-54).
+using pathutil::pathExists;
 
 wstring environmentValue(const wchar_t* name)
 {
@@ -261,12 +260,11 @@ vector<wstring> collect(const IRegistry& registry)
 	const WindowsVersion::Version version = WindowsVersion::current();
 	lines.push_back(L"windows:       " + std::to_wstring(version.major) + L"."
 		+ std::to_wstring(version.minor) + L"." + std::to_wstring(version.build));
-	// The two version boundaries that change what this program does: 8.1 decides
-	// which APO slots the driver can be asked for, and build 26100 is where
-	// Windows started putting its own subkeys under FxProperties (issue #189),
-	// which is why uninstall deletes values rather than the key.
-	if (!WindowsVersion::isAtLeast(6, 3))
-		lines.push_back(L"note: before Windows 8.1, only the LFX/GFX slots are available.");
+	// The version boundary that changes what this program does: build 26100 is
+	// where Windows started putting its own subkeys under FxProperties (issue
+	// #189), which is why uninstall deletes values rather than the key. The
+	// minimum supported Windows is 10 1809 (Qt 6.10), so the Windows 8.1 note
+	// about the LFX/GFX-only slots could never be printed and is gone.
 	if (version.build >= 26100)
 		lines.push_back(L"note: on this build Windows adds its own subkeys under FxProperties, so an "
 			L"uninstall leaves the key in place and removes only the values it wrote.");
@@ -355,8 +353,7 @@ wstring writeReport()
 	if (!localAppData.empty())
 	{
 		const wstring directory = localAppData + L"\\EqualizerAPO\\logs";
-		if ((CreateDirectoryW((localAppData + L"\\EqualizerAPO").c_str(), nullptr) || GetLastError() == ERROR_ALREADY_EXISTS)
-			&& (CreateDirectoryW(directory.c_str(), nullptr) || GetLastError() == ERROR_ALREADY_EXISTS))
+		if (pathutil::createDirectoryRecursive(directory))
 		{
 			SYSTEMTIME now;
 			GetLocalTime(&now);

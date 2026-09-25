@@ -29,6 +29,100 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   row now judges fills the way the card does, and both rows share one plug-in
   session, so a VST feature lands in both ([#381](https://github.com/115dkk/EqualizerAPO-XT/pull/381)).
 
+## v2.54.16 — 2026-09-25
+
+- **Korean and other non-English text in the Device Selector's command-line
+  output is readable.** Its headless messages were converted to the ANSI code
+  page and came out garbled; they are now written as Unicode to a console and
+  as UTF-8 otherwise. Paths ending in a backslash, or containing quotes, now
+  survive when the Editor restarts the Device Selector or when a Voicemeeter
+  shortcut is written.
+- **A configuration folder whose registry value cannot be read is left
+  alone.** When the Editor could not read the configured ConfigPath, its
+  first-run migration treated the value as if no folder were set; it now
+  keeps the configured folder and logs why.
+- **More failures reach the log.** Qt warnings and errors are now written to
+  `Editor.log` and the Device Selector's log, as are a failed APO
+  registration, a failed Velopack update check at restart and a failed
+  Device Selector launch on the first run ([#380](https://github.com/115dkk/EqualizerAPO-XT/pull/380)).
+
+## v2.54.15 — 2026-09-25
+
+- **The subwoofer routing screens show the same numbers.** With no device
+  selected, the card and the response graph assumed 48 kHz for the headroom
+  trim, while the editor dialog showed "Unavailable"; all three now show the
+  48 kHz trim. The dialog's gain field, which sets the adjustment before the
+  LFE path, is labelled "LFE gain adjustment", and the Minimal card's
+  accessible name for its value, which adds up every gain on that path, is
+  "Effective LFE gain". The card now reads a group's crossover from the same
+  path the dialog does. In the SubwooferRouting VST3 plug-in, the headroom
+  trim shown in its controls is computed at the sample rate the host runs,
+  instead of always at 48 kHz ([#379](https://github.com/115dkk/EqualizerAPO-XT/pull/379)).
+
+## v2.54.14 — 2026-09-25
+
+- **ASIO: a late block no longer makes the output jump.** With the separate
+  host process in pipelined mode, the output runs one block behind. When the
+  host fell behind, the ASIO app got the current block's unprocessed input,
+  a block early, so the sound skipped forward and back. It now gets a copy of
+  the previous block's input, which keeps the timeline. The ASIO host also
+  checks the shared stream header more strictly (sample rate between 1 kHz
+  and 1 MHz, terminated names, slot layout recomputed from the format), logs
+  when it cannot watch the app's process, keeps its buffers when the app's
+  callbacks do not finish in time instead of releasing them under the app,
+  and refuses an ASIO driver entry whose CLSID is not a GUID ([#378](https://github.com/115dkk/EqualizerAPO-XT/pull/378)).
+
+## v2.54.13 — 2026-09-25
+
+- **A VST plug-in that reports latency no longer delays its own output a
+  second time.** The latency compensation delayed every channel of the
+  filter by the plug-in's reported latency, including the channels the
+  plug-in had just processed, which were already late by that amount. The
+  processed channels came out twice as late, and the channels passed through
+  once as late, so the two still did not line up. Now only the channels the plug-in does not
+  write (the ones an explicit bus layout or a channel fill passes through)
+  are delayed, so they line up with the processed ones ([#377](https://github.com/115dkk/EqualizerAPO-XT/pull/377)).
+
+## v2.54.12 — 2026-09-25
+
+- **An endpoint's "Use in ASIO apps" entry notices an unplugged device.** When
+  the device behind the entry disappeared (a USB DAC pulled out), the stream
+  kept waiting for it and the ASIO app heard nothing until it was restarted.
+  The stream now ends when Windows reports the device invalidated, or after
+  four 500 ms waits with no signal from the device, and asks the app to reset
+  ([#375](https://github.com/115dkk/EqualizerAPO-XT/pull/375)). This was checked with unit tests on synthetic input; unplugging
+  real hardware was not tried.
+
+## v2.54.11 — 2026-09-25
+
+- **Lines below a `MultiConvolution` line can select the channels it
+  creates in the Editor.** A `MultiConvolution` line that writes to a new
+  channel, such as `Wet=0`, creates that channel in the engine, but the
+  channel pickers on the lines below it in the Editor did not offer it. They
+  now do, as they already did for channels created by `Copy`. A `Filter` line
+  whose type the engine rejects, such as `ON pk` in lower case, is no longer
+  drawn as a card of that type, and the Editor no longer writes an
+  out-of-range channel number to its log each time it refreshes the channel
+  lists ([#370](https://github.com/115dkk/EqualizerAPO-XT/pull/370)).
+
+## v2.54.10 — 2026-09-25
+
+- **`Include` takes quoted file names and environment variables, and a link
+  to a network share is refused like the share.** `Include: "my presets.txt"`
+  and `Include: %USERPROFILE%\eq\room.txt` now load, as they always did for
+  `Convolution`, and the Editor's Include card and its import of a
+  configuration folder read such lines the same way. A path that looks local
+  but leads through a symbolic link or junction to a network share is now
+  refused on its line like a share written out, and the Editor's file cards
+  say so instead of showing the file as usable. A configuration kept on a
+  share may now name that share in the `\\?\UNC\server\share` form too, a
+  local path written as `\\?\C:\...` is no longer refused, and an
+  `Include:` with no file name is reported on its line. A file chosen in a
+  legacy Convolution or MultiConvolution row is now written the way the
+  cards write it: relative to the configuration folder unless it lies more
+  than one level above it, so a file in a sibling folder is no longer
+  written as an absolute path ([#369](https://github.com/115dkk/EqualizerAPO-XT/pull/369)).
+
 ## v2.54.9 — 2026-09-25
 
 - **More configuration mistakes are reported on their line.** A misspelled

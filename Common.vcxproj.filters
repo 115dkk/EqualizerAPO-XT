@@ -35,7 +35,7 @@
     <ClInclude Include="filters\ConfigPathPolicy.h">
       <Filter>filters</Filter>
     </ClInclude>
-    <ClInclude Include="filters\ConvolutionFilePath.h">
+    <ClInclude Include="filters\ConfigFileReference.h">
       <Filter>filters</Filter>
     </ClInclude>
     <ClInclude Include="filters\ConvolutionFilterFactory.h">
@@ -135,6 +135,9 @@
     <ClInclude Include="filters\VSTPluginCommand.h">
       <Filter>filters</Filter>
     </ClInclude>
+    <ClInclude Include="filters\VSTChannelPlan.h">
+      <Filter>filters</Filter>
+    </ClInclude>
     <ClInclude Include="filters\VSTPluginFilter.h">
       <Filter>filters</Filter>
     </ClInclude>
@@ -184,6 +187,9 @@
       <Filter>dsp</Filter>
     </ClInclude>
     <ClInclude Include="dsp\FftwPlanningPolicy.h">
+      <Filter>dsp</Filter>
+    </ClInclude>
+    <ClInclude Include="dsp\DelayLine.h">
       <Filter>dsp</Filter>
     </ClInclude>
     <ClInclude Include="runtime\memory\AlignedMemory.h">
@@ -327,7 +333,7 @@
     <ClCompile Include="filters\ConfigPathPolicy.cpp">
       <Filter>filters</Filter>
     </ClCompile>
-    <ClCompile Include="filters\ConvolutionFilePath.cpp">
+    <ClCompile Include="filters\ConfigFileReference.cpp">
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\ConvolutionFilterFactory.cpp">
@@ -427,6 +433,9 @@
     <ClCompile Include="filters\VSTPluginCommand.cpp">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="filters\VSTChannelPlan.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="filters\VSTPluginFilter.cpp">
       <Filter>filters</Filter>
     </ClCompile>
@@ -508,6 +517,9 @@
     <ClCompile Include="dsp\FftwPlanningPolicy.cpp">
       <Filter>dsp</Filter>
     </ClCompile>
+    <ClCompile Include="dsp\DelayLine.cpp">
+      <Filter>dsp</Filter>
+    </ClCompile>
     <ClCompile Include="parser\ParserExtensions.cpp">
       <Filter>parser</Filter>
     </ClCompile>
@@ -534,6 +546,7 @@
     <ClCompile Include="devices\DeviceAPOInfo.Uninstall.cpp" />
     <ClCompile Include="devices\DeviceInstallReport.cpp" />
     <ClCompile Include="devices\DevicePlan.cpp" />
+    <ClCompile Include="devices\DeviceTestPlan.cpp" />
     <ClCompile Include="engine\ChannelRoutingPlan.cpp" />
     <ClCompile Include="engine\FilterConfiguration.cpp" />
     <ClCompile Include="engine\FilterEngine.cpp" />

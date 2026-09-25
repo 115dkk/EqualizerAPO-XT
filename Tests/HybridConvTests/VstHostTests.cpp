@@ -16,12 +16,12 @@
 	round-tripping chunk state - without depending on any plugin installed on
 	the machine.
 
-	Soft skip: if TestVst2Plugin.dll is not found next to the running test
-	executable (e.g. the plugin project was not built or copied), the test
-	prints a clear "skipped" line and returns without failing, so the suite
-	never breaks the build. The HybridConvTests project copies the DLL next to
-	HybridConvTests.exe as a post-build step, which is what makes the
-	GetModuleFileName-relative lookup succeed on both x64 and ARM64.
+	A missing TestVst2Plugin.dll fails the suite: the HybridConvTests project
+	copies the DLL next to HybridConvTests.exe as a post-build step (which is
+	what makes the executable-relative lookup work on both x64 and ARM64), so
+	its absence is a build or copy problem. The one path that still skips is
+	a test executable whose own directory cannot be read; it prints a
+	"skipped" line.
 
 	VST headers: this translation unit includes VSTPluginLibrary.h and
 	VSTPluginInstance.h, exactly as VSTPluginInstance.cpp does. Those headers
@@ -53,6 +53,7 @@
 #include "filters/VSTPluginFilterFactory.h"
 #include "filters/loudnessCorrection/VolumeController.h"
 #include "Tests/TestHarness.h"
+#include "platform/windows/WindowsPath.h"
 
 using std::shared_ptr;
 using std::unordered_map;
@@ -113,26 +114,10 @@ struct ChunkBlob
 };
 #pragma pack(pop)
 
-// Directory of the running test executable. The plugin DLL is copied next to it
-// by the HybridConvTests post-build step.
-wstring exeDirectory()
-{
-	wchar_t path[MAX_PATH] = {};
-	DWORD len = GetModuleFileNameW(nullptr, path, MAX_PATH);
-	if (len == 0 || len >= MAX_PATH)
-		return wstring();
-
-	wstring full(path, len);
-	size_t slash = full.find_last_of(L"\\/");
-	if (slash == wstring::npos)
-		return wstring();
-	return full.substr(0, slash);
-}
-
-bool fileExists(const wstring& path)
-{
-	return GetFileAttributesW(path.c_str()) != INVALID_FILE_ATTRIBUTES;
-}
+// The plugin DLL is copied next to the running test executable by the
+// HybridConvTests post-build step.
+using pathutil::exeDirectory;
+using pathutil::fileExists;
 
 // Base64-encode a ChunkBlob the way the engine stores chunk state, so it can be
 // fed straight into VSTPluginInstance::writeToEffect.
@@ -208,6 +193,63 @@ void expectRejectedMetadataPassesThrough(const shared_ptr<VSTPluginLibrary>& lib
 	SetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", nullptr);
 }
 
+// Streams a unit impulse at sample 0 on both channels, then silence, through a
+// fresh gain-0.5 filter over {L, R} in blocks of blockSize frames (max frame
+// count 1024), and reports whether every output sample is 0.5 x the input
+// delayed by expectedDelay samples.
+bool latencyStreamMatches(const shared_ptr<VSTPluginLibrary>& library, unsigned blockSize, unsigned expectedDelay)
+{
+	constexpr unsigned maxFrameCount = 1024;
+	constexpr unsigned streamLength = 2048;
+
+	ChunkBlob gainBlob = {};
+	gainBlob.magic = kChunkMagic;
+	gainBlob.version = kChunkVersion;
+	gainBlob.gain = 0.5f;
+
+	VSTPluginFilter filter(library, encodeChunk(gainBlob), unordered_map<wstring, float>());
+	filter.initialize(48000.0f, maxFrameCount, {L"L", L"R"});
+
+	vector<double> inLeft(streamLength, 0.0);
+	vector<double> inRight(streamLength, 0.0);
+	inLeft[0] = 1.0;
+	inRight[0] = 1.0;
+	vector<double> outLeft(streamLength, -1.0);
+	vector<double> outRight(streamLength, -1.0);
+	for (unsigned offset = 0; offset < streamLength; offset += blockSize)
+	{
+		double* input[2] = {inLeft.data() + offset, inRight.data() + offset};
+		double* output[2] = {outLeft.data() + offset, outRight.data() + offset};
+		filter.process(output, input, blockSize);
+	}
+
+	for (unsigned i = 0; i < streamLength; ++i)
+	{
+		const double expected = i >= expectedDelay ? 0.5 * inLeft[i - expectedDelay] : 0.0;
+		if (outLeft[i] != expected || outRight[i] != expected)
+			return false;
+	}
+	return true;
+}
+
+// Audit #348 A10: the plug-in reports 512 samples of latency. The compensation
+// delays only the channels no plug-in output writes (maintainer decision; it
+// used to delay every channel, the processed ones included, which left them
+// twice as late). A VST2 plug-in's instances cover every channel, so nothing
+// is delayed here and no ring is allocated; Vst3HostTests covers a fill that
+// leaves a channel unwritten.
+void expectLatencyCompensationGolden(const shared_ptr<VSTPluginLibrary>& library)
+{
+	SetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", L"latency-512");
+
+	harness.expectTrue(latencyStreamMatches(library, 128, 0),
+		"latency-512: 128-frame blocks come out 0.5 x input with no extra delay");
+	harness.expectTrue(latencyStreamMatches(library, 1024, 0),
+		"latency-512: 1024-frame blocks come out 0.5 x input with no extra delay");
+
+	SetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", nullptr);
+}
+
 void testVolumeControllerBalancesComInitialization()
 {
 	bool threadStartedUninitialized = false;
@@ -232,8 +274,9 @@ void runVstHostTests()
 {
 	testVolumeControllerBalancesComInitialization();
 
-	// Both soft-skip paths report before returning: under the harness default
-	// (Collect) a failure recorded above only fails the build through report().
+	// Both early returns (the skip below and the missing-DLL failure after it)
+	// report first: under the harness default (Collect) a failure recorded
+	// above only fails the build through report().
 	const wstring dir = exeDirectory();
 	if (dir.empty())
 	{
@@ -319,6 +362,7 @@ void runVstHostTests()
 	expectRejectedMetadataPassesThrough(library, L"negative-outputs", "negative output count");
 	expectRejectedMetadataPassesThrough(library, L"negative-delay", "negative initial delay");
 	expectRejectedMetadataPassesThrough(library, L"huge-delay", "unrealistic initial delay");
+	expectLatencyCompensationGolden(library);
 
 	// Construct and initialize the instance the way the engine does (heap
 	// allocated, owned here). processLevel mirrors a realtime audio thread.

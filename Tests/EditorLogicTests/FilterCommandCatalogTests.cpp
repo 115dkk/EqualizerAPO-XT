@@ -12,7 +12,9 @@
 */
 
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
+#include <QRegularExpression>
 #include <QSet>
 
 #include "Editor/widgets/FilterCardModel.h"
@@ -97,16 +99,34 @@ void testFilterCommandCatalogRoster()
 void testFilterCommandCatalogIconsExistOnDisk()
 {
 	// Resource paths are asserted as strings elsewhere; this pins that every
-	// named SVG actually exists in the icon set, the drift class no gate
-	// caught before (a catalog row naming a file the qrc never shipped).
+	// named SVG exists in the icon set and is listed in Editor.qrc. The Editor
+	// loads it as ":/icons/modern/<name>.svg", so a file on disk that the qrc
+	// does not list is as missing at run time as no file at all (audit #348
+	// TD-71: the test used to look at the disk only).
 	QDir repoRoot(QFileInfo(QString::fromUtf8(__FILE__)).absolutePath());
 	requireTrue(repoRoot.cdUp(), "catalog test reaches the tests directory");
 	requireTrue(repoRoot.cdUp(), "catalog test reaches the repository root");
 
-	auto expectIconFile = [&repoRoot](const char* baseName) {
-		const QString path = repoRoot.filePath(
-			QStringLiteral("Editor/icons/modern/%1.svg").arg(QLatin1String(baseName)));
+	QFile qrcFile(repoRoot.filePath(QStringLiteral("Editor/Editor.qrc")));
+	requireTrue(qrcFile.open(QIODevice::ReadOnly | QIODevice::Text), "Editor.qrc can be read");
+	const QString qrcText = QString::fromUtf8(qrcFile.readAll());
+	// The resource name is the alias when there is one, the file path when
+	// not; Editor.qrc has the one prefix "/".
+	QSet<QString> resourceNames;
+	static const QRegularExpression fileEntry(
+		QStringLiteral("<file(?:\\s+alias=\"([^\"]*)\")?\\s*>([^<]*)</file>"));
+	for (QRegularExpressionMatchIterator it = fileEntry.globalMatch(qrcText); it.hasNext();)
+	{
+		const QRegularExpressionMatch match = it.next();
+		resourceNames.insert(match.captured(1).isEmpty() ? match.captured(2).trimmed() : match.captured(1));
+	}
+	requireTrue(!resourceNames.isEmpty(), "Editor.qrc lists resources");
+
+	auto expectIconFile = [&repoRoot, &resourceNames](const char* baseName) {
+		const QString resource = QStringLiteral("icons/modern/%1.svg").arg(QLatin1String(baseName));
+		const QString path = repoRoot.filePath(QStringLiteral("Editor/") + resource);
 		expectTrue(QFileInfo::exists(path), "icon file exists: " + path);
+		expectTrue(resourceNames.contains(resource), "icon is listed in Editor.qrc: " + resource);
 	};
 	for (const FilterCommandCatalog::CommandEntry& entry : FilterCommandCatalog::commands())
 		expectIconFile(entry.icon);

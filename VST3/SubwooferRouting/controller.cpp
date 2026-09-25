@@ -480,8 +480,27 @@ tresult PLUGIN_API SubwooferRoutingController::disconnect(IConnectionPoint* othe
 	return kResultOk;
 }
 
-tresult PLUGIN_API SubwooferRoutingController::notify(IMessage*)
+tresult PLUGIN_API SubwooferRoutingController::notify(IMessage* message)
 {
+	if (message == nullptr
+		|| message->getMessageID() == nullptr
+		|| std::strcmp(message->getMessageID(), kSampleRateMessageId) != 0
+		|| message->getAttributes() == nullptr)
+	{
+		return kResultOk;
+	}
+
+	double sampleRate = 0.0;
+	if (message->getAttributes()->getFloat(kMessageSampleRate, sampleRate) != kResultOk
+		|| !std::isfinite(sampleRate)
+		|| sampleRate <= 0.0)
+	{
+		return kResultFalse;
+	}
+
+	std::lock_guard<std::mutex> lock(mutex_);
+	previewSampleRate_ = sampleRate;
+	updateTrimFromState(state_);
 	return kResultOk;
 }
 
@@ -512,13 +531,17 @@ void SubwooferRoutingController::updateValuesFromState(
 		}
 	}
 
-	subroute::PrepareSpec specification;
-	specification.sampleRate = 48000.0;
-	specification.maximumBlockSize = 1024;
-	for (const subroute::PhysicalChannel& channel : state.layout.channels)
-		specification.channelLayout.push_back(channel.id);
+	updateTrimFromState(state);
+	values_[5] = state.headroom.mode == subroute::HeadroomMode::Auto ? 1.0 : 0.0;
+}
 
-	const subroute::CompileResult compiled = subroute::compile(state, specification);
+// The headroom preview compiles at the processor's rate once it has reported
+// one (audit #348 C6); it used to be a hard-coded 48 kHz.
+void SubwooferRoutingController::updateTrimFromState(
+	const subroute::SubwooferRoutingState& state)
+{
+	const subroute::CompileResult compiled = subroute::compile(
+		state, subroute::previewSpecFor(state, previewSampleRate_));
 	automaticTrimDb_ = compiled.succeeded() && compiled.headroom.has_value()
 		? compiled.headroom->appliedTrimDb
 		: state.headroom.manualTrimDb;
@@ -527,7 +550,6 @@ void SubwooferRoutingController::updateValuesFromState(
 		? automaticTrimDb_
 		: state.headroom.manualTrimDb;
 	values_[4] = toNormalized(displayedTrim, -40.0, 0.0);
-	values_[5] = state.headroom.mode == subroute::HeadroomMode::Auto ? 1.0 : 0.0;
 }
 
 bool SubwooferRoutingController::sendParameter(ParamID id, ParamValue value)

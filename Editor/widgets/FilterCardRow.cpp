@@ -30,6 +30,7 @@
 #include "Editor/widgets/FilterCommandCatalog.h"
 #include "Editor/widgets/routing/IRoutingRenderer.h"
 #include "Editor/widgets/routing/CopyRoutingAdapter.h"
+#include "filters/MultiConvolutionCommand.h"
 
 FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* item, IFilterGUI* gui,
 	FilterCardDescriptor preparedDescriptor, QWidget* parent)

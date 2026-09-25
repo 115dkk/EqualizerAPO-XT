@@ -27,10 +27,53 @@
 #include <QTranslator>
 
 #include "services/registry/WindowsRegistry.h"
+#include "services/logging/TaggedLogger.h"
 #include "QtAppBootstrap.h"
+
+namespace
+{
+QtMessageHandler previousMessageHandler = nullptr;
+
+void forwardToProductLog(QtMsgType type, const QMessageLogContext& context, const QString& message)
+{
+	const wchar_t* level = nullptr;
+	switch (type)
+	{
+	case QtWarningMsg:
+		level = L"WARN";
+		break;
+	case QtCriticalMsg:
+		level = L"ERR";
+		break;
+	case QtFatalMsg:
+		level = L"FATAL";
+		break;
+	default:
+		break;
+	}
+	if (level != nullptr)
+	{
+		constexpr logging::TaggedLogger logLine(L"Qt");
+		logLine(level, L"%s", reinterpret_cast<const wchar_t*>(message.utf16()));
+	}
+
+	// Qt answers the install with its own default handler when none was set,
+	// so the console and debugger output stays what it was.
+	if (previousMessageHandler != nullptr)
+		previousMessageHandler(type, context, message);
+}
+}
 
 namespace QtAppBootstrap
 {
+
+void installMessageHandler()
+{
+	QtMessageHandler previous = qInstallMessageHandler(forwardToProductLog);
+	// A second call would otherwise make the handler forward to itself.
+	if (previous != forwardToProductLog)
+		previousMessageHandler = previous;
+}
 
 void addExecutableRelativePluginPath()
 {
