@@ -39,6 +39,8 @@ public:
 		const SkinTokens& tokens) const override;
 	void paintVstBusFrame(QPainter& painter, const VstBusFrameState& state,
 		const SkinTokens& tokens) const override;
+	QSize vstSlotFillCellSize(const QString& role, const QString& value,
+		const SkinTokens& tokens) const override;
 	void paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state,
 		const SkinTokens& tokens) const override;
 	void paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state,

@@ -30,6 +30,7 @@
 #include "guis/VSTPluginFilterGUI.h"
 #include "widgets/cards/VSTCardEditor.h"
 #include "widgets/cards/VSTSlotFillRail.h"
+#include "vst/VST3BusLayout.h"
 #include "MainWindow.h"
 #include "diagnostics/ToolbarPixelProbe.h"
 #include "widgets/MainToolbarKit.h"
@@ -37,6 +38,7 @@
 #include "SubwooferRouting/StateCodec.h"
 #include "widgets/subwooferrouting/SubwooferRoutingDefaults.h"
 
+#include <climits>
 #include <cmath>
 #include <complex>
 #include <cstdio>
@@ -68,7 +70,12 @@
 #include <QMenu>
 #include <QMenuBar>
 #include <QMouseEvent>
+#include <QPaintDevice>
+#include <QPaintEngine>
+#include <QPainter>
+#include <QPainterPath>
 #include <QPixmap>
+#include <QPolygonF>
 #include <QPointer>
 #include <QRadioButton>
 #include <QToolButton>
@@ -116,6 +123,188 @@
 #include "Editor/widgets/routing/IRoutingRenderer.h"
 
 using namespace SkinGalleryDetail;
+
+namespace
+{
+// A paint device that draws nothing and records where a painter put its
+// text and its small shapes, so a check can compare what a skin painter
+// actually drew against the cell it was given (audit #348 F10).
+class FillCellRecorder : public QPaintDevice
+{
+public:
+	struct Text
+	{
+		QString text;
+		qreal left = 0.0;
+		qreal right = 0.0;
+	};
+
+	explicit FillCellRecorder(const QSize& size) : engine(this), deviceSize(size) {}
+
+	QPaintEngine* paintEngine() const override { return &engine; }
+
+	QList<Text> texts;
+	QList<QRectF> shapes;
+
+protected:
+	int metric(PaintDeviceMetric metric) const override
+	{
+		switch (metric)
+		{
+		case PdmWidth: return deviceSize.width();
+		case PdmHeight: return deviceSize.height();
+		case PdmWidthMM: return qRound(deviceSize.width() * 25.4 / 96.0);
+		case PdmHeightMM: return qRound(deviceSize.height() * 25.4 / 96.0);
+		case PdmNumColors: return INT_MAX;
+		case PdmDepth: return 32;
+		case PdmDpiX:
+		case PdmDpiY:
+		case PdmPhysicalDpiX:
+		case PdmPhysicalDpiY: return 96;
+		default: return QPaintDevice::metric(metric);
+		}
+	}
+
+private:
+	class Engine : public QPaintEngine
+	{
+	public:
+		explicit Engine(FillCellRecorder* owner) : QPaintEngine(QPaintEngine::AllFeatures), owner(owner) {}
+		bool begin(QPaintDevice*) override { return true; }
+		bool end() override { return true; }
+		Type type() const override { return QPaintEngine::User; }
+		void updateState(const QPaintEngineState& state) override
+		{
+			if (state.state() & QPaintEngine::DirtyTransform)
+				transform = state.transform();
+		}
+		void drawPixmap(const QRectF&, const QPixmap&, const QRectF&) override {}
+		void drawTextItem(const QPointF& p, const QTextItem& item) override
+		{
+			const QRectF box = transform.mapRect(QRectF(p.x(), p.y() - item.ascent(), item.width(),
+				item.ascent() + item.descent()));
+			owner->texts.append({ item.text(), box.left(), box.right() });
+		}
+		void drawPath(const QPainterPath& path) override
+		{
+			owner->shapes.append(transform.map(path).boundingRect());
+		}
+		void drawPolygon(const QPointF* points, int pointCount, PolygonDrawMode) override
+		{
+			owner->shapes.append(transform.map(QPolygonF(QList<QPointF>(points, points + pointCount))).boundingRect());
+		}
+
+	private:
+		FillCellRecorder* owner = nullptr;
+		QTransform transform;
+	};
+
+	mutable Engine engine;
+	QSize deviceSize;
+};
+
+// Every skin's fill cell, sized by that skin's vstSlotFillCellSize, must hold
+// the text its own painter draws: the role and the channel inside the cell,
+// the role before the channel, and the channel clear of the caret (any small
+// filled shape the painter adds). Returns the number of failing skins.
+int checkFillCellFit()
+{
+	QStringList roles;
+	for (VST3BusLayout layout : { VST3BusLayout::Mono, VST3BusLayout::Stereo, VST3BusLayout::Surround40,
+			VST3BusLayout::Surround41, VST3BusLayout::Surround50, VST3BusLayout::Surround51,
+			VST3BusLayout::Surround61, VST3BusLayout::Surround71, VST3BusLayout::Surround712,
+			VST3BusLayout::Surround714 })
+	{
+		for (const std::wstring& name : vst3BusLayoutChannelNames(layout))
+		{
+			if (!roles.contains(QString::fromStdWString(name)))
+				roles.append(QString::fromStdWString(name));
+		}
+	}
+	QStringList values = roles;
+	for (const QString& extra : { QStringLiteral("-"), QStringLiteral("SBL"), QStringLiteral("SBR"),
+			QStringLiteral("FLC"), QStringLiteral("FRC"), QStringLiteral("VSL"), QStringLiteral("12") })
+		values.append(extra);
+
+	int failures = 0;
+	for (ISkin* skin : Skins::all())
+	{
+		const SkinTokens tokens = skin->tokens(true);
+		QString problem;
+		int widest = 0;
+		QString widestLabel;
+		for (const QString& role : roles)
+		{
+			for (const QString& value : values)
+			{
+				const QSize size = skin->vstSlotFillCellSize(role, value, tokens);
+				FillCellRecorder recorder(size);
+				VstSlotFillCellState state;
+				state.rect = QRect(QPoint(0, 0), size);
+				state.roleToken = role;
+				state.valueText = value;
+				{
+					QPainter painter(&recorder);
+					skin->paintVstSlotFillCell(painter, state, tokens);
+				}
+				const QString label = role + QLatin1Char('/') + value;
+				if (size.width() > widest)
+				{
+					widest = size.width();
+					widestLabel = label;
+				}
+				// Painters draw the role (engraved skins twice) and then the
+				// channel, so the last text item is the channel.
+				if (recorder.texts.size() < 2 || recorder.texts.last().text != value)
+				{
+					problem = QStringLiteral("%1: expected the role then the channel as text").arg(label);
+					break;
+				}
+				const FillCellRecorder::Text valueText = recorder.texts.last();
+				qreal roleRight = 0.0;
+				qreal left = valueText.left;
+				for (int i = 0; i < recorder.texts.size() - 1; i++)
+				{
+					roleRight = qMax(roleRight, recorder.texts[i].right);
+					left = qMin(left, recorder.texts[i].left);
+				}
+				const qreal epsilon = 0.01;
+				if (left < -epsilon || valueText.right > size.width() + epsilon)
+					problem = QStringLiteral("%1: text spans %2..%3 in a %4 px cell").arg(label)
+						.arg(left, 0, 'f', 1).arg(valueText.right, 0, 'f', 1).arg(size.width());
+				else if (roleRight > valueText.left + epsilon)
+					problem = QStringLiteral("%1: role ends at %2, channel starts at %3").arg(label)
+						.arg(roleRight, 0, 'f', 1).arg(valueText.left, 0, 'f', 1);
+				for (const QRectF& shape : recorder.shapes)
+				{
+					const bool caret = shape.width() <= 8.0 && shape.height() <= 8.0 && shape.width() > 0.0;
+					if (caret && shape.right() > valueText.left && shape.left() < valueText.right - epsilon)
+						problem = QStringLiteral("%1: channel %2..%3 overlaps the caret at %4..%5").arg(label)
+							.arg(valueText.left, 0, 'f', 1).arg(valueText.right, 0, 'f', 1)
+							.arg(shape.left(), 0, 'f', 1).arg(shape.right(), 0, 'f', 1);
+				}
+				if (!problem.isEmpty())
+					break;
+			}
+			if (!problem.isEmpty())
+				break;
+		}
+		if (problem.isEmpty())
+		{
+			fprintf(stderr, "[VST fill selftest] fit %s: OK (%d role/channel pairs, widest cell %d px for %s)\n",
+				skin->id().toUtf8().constData(), int(roles.size() * values.size()), widest,
+				widestLabel.toUtf8().constData());
+		}
+		else
+		{
+			failures++;
+			fprintf(stderr, "[VST fill selftest] fit %s: FAIL, %s\n", skin->id().toUtf8().constData(),
+				problem.toUtf8().constData());
+		}
+	}
+	return failures;
+}
+}
 
 // Mechanical round-trip check for VST plugin data: parse a VSTPlugin line, feed
 // the parsed library, opaque state and options into the real VSTPluginFilterGUI,
@@ -317,6 +506,7 @@ int SkinGallery::runVstFillSelfTest()
 			}
 		}
 	}
+	failures += checkFillCellFit();
 	fprintf(stderr, "[VST fill selftest] %s (%d failure(s))\n", failures == 0 ? "PASS" : "FAIL", failures);
 	return failures == 0 ? 0 : 1;
 }

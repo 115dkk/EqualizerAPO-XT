@@ -6,10 +6,10 @@
 
 #include "ChBadge.h"
 
-#include <QHash>
 #include <QPainter>
 
 #include "Editor/SkinManager.h"
+#include "Editor/widgets/routing/ChannelIdentity.h"
 
 ChBadge::ChBadge(QWidget* parent)
 	: QWidget(parent)
@@ -51,22 +51,10 @@ bool ChBadge::isVirtualChannel() const
 
 QColor ChBadge::channelColor() const
 {
-	static const QHash<QString, QColor> colors = {
-		{ QStringLiteral("L"), QColor("#ef4444") },
-		{ QStringLiteral("R"), QColor("#f97316") },
-		{ QStringLiteral("C"), QColor("#eab308") },
-		{ QStringLiteral("SUB"), QColor("#22c55e") },
-		{ QStringLiteral("SL"), QColor("#06b6d4") },
-		{ QStringLiteral("SR"), QColor("#6366f1") },
-		{ QStringLiteral("RL"), QColor("#a855f7") },
-		{ QStringLiteral("RR"), QColor("#ec4899") },
-		{ QStringLiteral("ALL"), QColor("#94a3b8") }
-	};
-
-	QString baseChannel = currentChannel;
-	if (baseChannel.startsWith('V'))
-		baseChannel = baseChannel.mid(1);
-	return colors.value(baseChannel, QColor("#64748b"));
+	// The routing views' identity palette, so a channel wears one colour in
+	// the header and in the Copy views alike. ALL and unknown channels take
+	// its neutral slate.
+	return ChannelIdentity::color(currentChannel);
 }
 
 void ChBadge::paintEvent(QPaintEvent*)

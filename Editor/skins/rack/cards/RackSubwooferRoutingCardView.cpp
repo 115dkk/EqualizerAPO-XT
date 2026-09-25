@@ -594,7 +594,7 @@ void RackSubwooferRoutingCardView::paintEvent(QPaintEvent* event)
 	}
 
 	const QString railText = QStringLiteral("SUBWOOFER ROUTING");
-	const QFont railFace = rackFont(skinTokens, 7, true, 1.4);
+	const QFont railFace = rackFont(skinTokens, 8, true, 1.4);
 	const QFontMetrics railMetrics(railFace);
 	const qreal railTop =
 		screwInset + screwRadius + 5;

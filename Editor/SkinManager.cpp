@@ -220,6 +220,11 @@ void SkinManager::paintVstBusFrame(QPainter& painter, const VstBusFrameState& st
 	activeSkin->paintVstBusFrame(painter, state, currentTokens);
 }
 
+QSize SkinManager::vstSlotFillCellSize(const QString& role, const QString& value) const
+{
+	return activeSkin->vstSlotFillCellSize(role, value, currentTokens);
+}
+
 void SkinManager::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state) const
 {
 	activeSkin->paintVstSlotFillCell(painter, state, currentTokens);

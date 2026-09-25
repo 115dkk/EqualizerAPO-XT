@@ -312,7 +312,7 @@ void StudioSkin::paintVstBusSelector(QPainter& painter, const VstBusSelectorStat
 
 	// The caption on the pane, right-aligned against the glass.
 	QFont roleFont(tokens.fontFamily);
-	roleFont.setPixelSize(9);
+	roleFont.setPixelSize(10);
 	roleFont.setLetterSpacing(QFont::AbsoluteSpacing, 0.5);
 	const QString role = state.roleText.toUpper();
 	const qreal roleWidth = QFontMetricsF(roleFont).horizontalAdvance(role);
@@ -355,7 +355,7 @@ void StudioSkin::paintVstBusSelector(QPainter& painter, const VstBusSelectorStat
 	// Value in the window's mono data ink; the fixed width whispers in
 	// accent behind it, and the caret keeps the accent's low wattage.
 	QFont valueFont(tokens.monoFontFamily);
-	valueFont.setPixelSize(12);
+	valueFont.setPixelSize(13);
 	painter.setFont(valueFont);
 	QColor valueInk(state.hovered || state.menuOpen ? tokens.text : tokens.mutedText);
 	if (!state.enabled)
@@ -438,7 +438,7 @@ void StudioSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& sta
 		return;
 
 	QFont verdictFont(tokens.monoFontFamily);
-	verdictFont.setPixelSize(10);
+	verdictFont.setPixelSize(11);
 	painter.setFont(verdictFont);
 	const QColor ink = state.tone == VstBusFrameState::Tone::Critical
 		? lamp : withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150);
@@ -482,7 +482,7 @@ void StudioSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellSt
 	// is the printed strip caption, the channel sits in a shallow inset
 	// well. A channel pick must never read as a layout pick.
 	QFont roleFont(tokens.fontFamily);
-	roleFont.setPixelSize(9);
+	roleFont.setPixelSize(10);
 	const QString role = state.roleToken;
 	const qreal roleWidth = QFontMetricsF(roleFont).horizontalAdvance(role);
 	painter.setFont(roleFont);
@@ -505,7 +505,7 @@ void StudioSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellSt
 	painter.drawRoundedRect(well, 4.0, 4.0);
 
 	QFont valueFont(tokens.monoFontFamily);
-	valueFont.setPixelSize(11);
+	valueFont.setPixelSize(12);
 	painter.setFont(valueFont);
 	QColor valueInk(state.silent || state.defaulted ? tokens.mutedText : tokens.text);
 	if (state.missingChannel)
@@ -556,7 +556,7 @@ void StudioSkin::paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailSt
 	painter.setBrush(lamp);
 	painter.drawEllipse(QPointF(cap.left() + 8.0, cap.center().y() + 0.5), 2.5, 2.5);
 	QFont capFont(tokens.fontFamily);
-	capFont.setPixelSize(9);
+	capFont.setPixelSize(10);
 	capFont.setLetterSpacing(QFont::AbsoluteSpacing, 0.8);
 	painter.setFont(capFont);
 	painter.setPen(state.collapsed ? QColor(tokens.mutedText) : QColor(tokens.text));

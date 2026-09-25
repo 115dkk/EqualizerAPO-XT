@@ -75,12 +75,12 @@ void RackCrossoverReadout::setReadout(
 
 QFont RackCrossoverReadout::captionFont() const
 {
-	return rackFont(skinTokens, 8, true, 1.5);
+	return rackFont(skinTokens, 9, true, 1.5);
 }
 
 QFont RackCrossoverReadout::valueFont() const
 {
-	return rackMonoFont(skinTokens, 12, true, 0.3);
+	return rackMonoFont(skinTokens, 13, true, 0.3);
 }
 
 QSize RackCrossoverReadout::sizeHint() const
@@ -227,12 +227,12 @@ void RackLfeLamp::setLfeState(bool newPreserved, double newGainDb)
 
 QFont RackLfeLamp::captionFont() const
 {
-	return rackFont(skinTokens, 8, true, 1.4);
+	return rackFont(skinTokens, 9, true, 1.4);
 }
 
 QFont RackLfeLamp::valueFont() const
 {
-	return rackMonoFont(skinTokens, 8, true, 0.2);
+	return rackMonoFont(skinTokens, 9, true, 0.2);
 }
 
 QSize RackLfeLamp::sizeHint() const
@@ -462,12 +462,12 @@ void RackHeadroomMeter::setHeadroom(bool newAutomatic, double newTrimDb)
 
 QFont RackHeadroomMeter::captionFont() const
 {
-	return rackMonoFont(skinTokens, 9, true, 0.3);
+	return rackMonoFont(skinTokens, 10, true, 0.3);
 }
 
 QFont RackHeadroomMeter::scaleFont() const
 {
-	return rackMonoFont(skinTokens, 7, false);
+	return rackMonoFont(skinTokens, 8, false);
 }
 
 QSize RackHeadroomMeter::sizeHint() const

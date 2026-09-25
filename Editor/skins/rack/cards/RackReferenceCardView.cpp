@@ -119,6 +119,19 @@ void RackEngravedLabel::setElideMode(Qt::TextElideMode newElideMode)
 	update();
 }
 
+void RackEngravedLabel::setWordWrap(bool newWordWrap)
+{
+	wordWrap = newWordWrap;
+	// A fixed vertical policy would cap the height at the one-line hint and
+	// cut every line after the first; wrapped printing takes the height its
+	// width needs.
+	QSizePolicy policy(QSizePolicy::Preferred, wordWrap ? QSizePolicy::Preferred : QSizePolicy::Fixed);
+	policy.setHeightForWidth(wordWrap);
+	setSizePolicy(policy);
+	updateGeometry();
+	update();
+}
+
 QFont RackEngravedLabel::engraveFont() const
 {
 	// The letter-spaced DM Sans approximation of condensed engraving type
@@ -147,10 +160,28 @@ QSize RackEngravedLabel::sizeHint() const
 QSize RackEngravedLabel::minimumSizeHint() const
 {
 	QSize hint = sizeHint();
-	// Elidable printing must not let the full text dictate the minimum.
-	if (elideMode != Qt::ElideNone)
+	// Elidable and wrapping printing must not let the full text dictate the
+	// minimum.
+	if (elideMode != Qt::ElideNone || wordWrap)
 		hint.setWidth(qMin(hint.width(), 28));
 	return hint;
+}
+
+bool RackEngravedLabel::hasHeightForWidth() const
+{
+	return wordWrap && !stamped;
+}
+
+int RackEngravedLabel::heightForWidth(int width) const
+{
+	if (!hasHeightForWidth())
+		return QWidget::heightForWidth(width);
+	// The same text rect paintEvent uses (1 px side insets), plus the
+	// engraving's one-pixel relief pass below the last line.
+	const QFontMetrics metrics(engraveFont());
+	const QRect bounds = metrics.boundingRect(QRect(0, 0, qMax(1, width - 2), 0x7fff),
+		Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap, text);
+	return qMax(bounds.height(), metrics.height()) + 2;
 }
 
 void RackEngravedLabel::paintEvent(QPaintEvent*)
@@ -197,6 +228,8 @@ void RackEngravedLabel::paintEvent(QPaintEvent*)
 
 	QRectF textRect = QRectF(rect()).adjusted(1, 0, -1, -1);
 	int flags = Qt::AlignLeft | Qt::AlignVCenter | Qt::TextSingleLine;
+	if (wordWrap)
+		flags = Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap;
 	if (stamped)
 	{
 		textRect = QRectF(rect()).adjusted(5, 1, -5, -2);
@@ -204,7 +237,7 @@ void RackEngravedLabel::paintEvent(QPaintEvent*)
 	}
 
 	QString shown = text;
-	if (elideMode != Qt::ElideNone)
+	if (elideMode != Qt::ElideNone && !wordWrap)
 		shown = QFontMetrics(font).elidedText(text, elideMode, int(textRect.width()));
 
 	// Stamped tags are printed wireframe outlines - no fill; on this plate
@@ -327,7 +360,7 @@ void RackLcdWindow::setSegments(const QString& newText)
 QFont RackLcdWindow::segmentFont() const
 {
 	QFont font(skinTokens.monoFontFamily);
-	font.setPixelSize(10);
+	font.setPixelSize(11);
 	font.setBold(true);
 	font.setLetterSpacing(QFont::AbsoluteSpacing, 0.5);
 	return font;
@@ -393,9 +426,15 @@ RackReferenceCardView::RackReferenceCardView(const QString& kind, const SkinToke
 	: ReferenceCardView(parent), skinTokens(tokens)
 {
 	QWidget* page = contentWidget();
-	rootLayout = new QHBoxLayout(page);
-	rootLayout->setContentsMargins(0, 2, 0, 2);
+	QVBoxLayout* pageLayout = new QVBoxLayout(page);
+	pageLayout->setContentsMargins(0, 2, 0, 2);
+	pageLayout->setSpacing(1);
+	rootLayout = new QHBoxLayout();
+	rootLayout->setContentsMargins(0, 0, 0, 0);
 	rootLayout->setSpacing(10);
+	// The row keeps any spare height, as it did before the status line had
+	// its own line.
+	pageLayout->addLayout(rootLayout, 1);
 
 	// The status lamp leads the face: on hardware the service lamp sits
 	// beside the label strip, and state is read from lamps before words.
@@ -417,7 +456,7 @@ RackReferenceCardView::RackReferenceCardView(const QString& kind, const SkinToke
 	captionLayout->setSpacing(6);
 
 	captionLabel = new RackEngravedLabel(skinTokens, captionRow);
-	captionLabel->setPixelSize(8);
+	captionLabel->setPixelSize(9);
 	captionLabel->setLetterSpacing(2.0);
 	captionLabel->setInk(RackEngravedLabel::Ink::Muted);
 	captionLabel->setText(captionForKind(kind));
@@ -431,7 +470,7 @@ RackReferenceCardView::RackReferenceCardView(const QString& kind, const SkinToke
 	// The absolute-path hazard as a stamped wireframe tag in warning ink
 	// (untranslated hardware marking).
 	absStamp = new RackEngravedLabel(skinTokens, captionRow);
-	absStamp->setPixelSize(8);
+	absStamp->setPixelSize(9);
 	absStamp->setLetterSpacing(1.0);
 	absStamp->setInk(RackEngravedLabel::Ink::Warning);
 	absStamp->setStamped(true);
@@ -442,7 +481,7 @@ RackReferenceCardView::RackReferenceCardView(const QString& kind, const SkinToke
 	// The service condition caption (NOT FOUND / EMPTY SLOT): one small
 	// engraving, never an alarm sentence across the plate.
 	serviceTag = new RackEngravedLabel(skinTokens, captionRow);
-	serviceTag->setPixelSize(8);
+	serviceTag->setPixelSize(9);
 	serviceTag->setLetterSpacing(1.5);
 	serviceTag->setInk(RackEngravedLabel::Ink::Warning);
 	serviceTag->setVisible(false);
@@ -452,26 +491,19 @@ RackReferenceCardView::RackReferenceCardView(const QString& kind, const SkinToke
 	labelLayout->addWidget(captionRow);
 
 	nameLabel = new RackEngravedLabel(skinTokens, labelArea);
-	nameLabel->setPixelSize(13);
+	nameLabel->setPixelSize(14);
 	nameLabel->setLetterSpacing(0.4);
 	nameLabel->setElideMode(Qt::ElideMiddle);
 	installNameActivation(nameLabel);
 	labelLayout->addWidget(nameLabel);
 
 	dirLabel = new RackEngravedLabel(skinTokens, labelArea);
-	dirLabel->setPixelSize(10);
+	dirLabel->setPixelSize(11);
 	dirLabel->setBoldFace(false);
 	dirLabel->setInk(RackEngravedLabel::Ink::Muted);
 	dirLabel->setElideMode(Qt::ElideMiddle);
 	dirLabel->setVisible(false);
 	labelLayout->addWidget(dirLabel);
-
-	statusLabel = new RackEngravedLabel(skinTokens, labelArea);
-	statusLabel->setPixelSize(10);
-	statusLabel->setBoldFace(false);
-	statusLabel->setElideMode(Qt::ElideRight);
-	statusLabel->setVisible(false);
-	labelLayout->addWidget(statusLabel);
 
 	rootLayout->addWidget(labelArea, 0, Qt::AlignVCenter);
 
@@ -488,6 +520,22 @@ RackReferenceCardView::RackReferenceCardView(const QString& kind, const SkinToke
 	actionLayout->setSpacing(4);
 	rootLayout->addLayout(actionLayout);
 	rootLayout->addStretch(1);
+
+	// The service note is a sentence, not a label: it prints on its own line
+	// across the plate under the unit, aligned with the label strip, and
+	// wraps rather than elides (the other skins give the card status line
+	// the full width too). Squeezed into the label strip it was the first
+	// thing the row's width pressure cut, and the VST bus messages never fit.
+	QHBoxLayout* statusLayout = new QHBoxLayout();
+	statusLayout->setContentsMargins(lamp->width() + rootLayout->spacing(), 0, 0, 0);
+	statusLayout->setSpacing(0);
+	statusLabel = new RackEngravedLabel(skinTokens, page);
+	statusLabel->setPixelSize(11);
+	statusLabel->setBoldFace(false);
+	statusLabel->setWordWrap(true);
+	statusLabel->setVisible(false);
+	statusLayout->addWidget(statusLabel, 1);
+	pageLayout->addLayout(statusLayout);
 }
 
 void RackReferenceCardView::placeActionButton(ActionRole role, QAbstractButton* button)

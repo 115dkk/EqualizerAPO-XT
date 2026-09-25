@@ -582,9 +582,16 @@ public:
 	// tone lamp.
 	virtual void paintVstBusFrame(QPainter& painter, const VstBusFrameState& state, const SkinTokens& tokens) const;
 
+	// The size one slot cell needs for its role token and channel, measured
+	// with the fonts and paddings this skin's paintVstSlotFillCell draws
+	// with, so the drawn text fits the cell the rail lays out. The default
+	// measures the default painter's fonts; a skin whose cell fonts or
+	// paddings differ answers for itself.
+	virtual QSize vstSlotFillCellSize(const QString& role, const QString& value, const SkinTokens& tokens) const;
+
 	// One slot cell of the VST channel-fill rails: role engraving, the
-	// assigned channel, and the dropdown cue, sized by the widget so text
-	// never collides with the caret. The default is a neutral cell that
+	// assigned channel, and the dropdown cue, in a cell the widget sizes
+	// through vstSlotFillCellSize. The default is a neutral cell that
 	// reads visibly different from paintVstBusSelector (no channel-count
 	// suffix, silent slots in muted strike ink, missing channels in the
 	// danger tone).

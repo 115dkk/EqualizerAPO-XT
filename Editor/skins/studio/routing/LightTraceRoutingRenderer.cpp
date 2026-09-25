@@ -95,10 +95,10 @@ void StudioRoutingView::relayout()
 	const int traceZone = sc(72);
 
 	QFont sans(t.fontFamily);
-	sans.setPixelSize(sc(11));
+	sans.setPixelSize(sc(12));
 	sans.setBold(true);
 	QFont mono(t.monoFontFamily);
-	mono.setPixelSize(sc(11));
+	mono.setPixelSize(sc(12));
 	const QFontMetrics sansFm(sans);
 	const QFontMetrics monoFm(mono);
 
@@ -241,7 +241,7 @@ void StudioRoutingView::relayout()
 				const double tPos = n <= 1 ? 0.5 : 0.28 + 0.44 * k / (n - 1);
 				const QPointF center = shape.path.pointAtPercent(tPos);
 				QFont labelFont(t.monoFontFamily);
-				labelFont.setPixelSize(sc(10));
+				labelFont.setPixelSize(sc(11));
 				const QSizeF size = QFontMetrics(labelFont).size(0, shape.labelText)
 					+ QSizeF(sc(12), sc(6));
 				shape.labelRect = QRectF(center.x() - size.width() / 2,
@@ -393,10 +393,10 @@ void StudioRoutingView::paintEvent(QPaintEvent*)
 	// type-badge alpha formula, hover raises luminance one step, disabled
 	// switches the pane off.
 	QFont sans(t.fontFamily);
-	sans.setPixelSize(sc(11));
+	sans.setPixelSize(sc(12));
 	sans.setBold(true);
 	QFont mono(t.monoFontFamily);
-	mono.setPixelSize(sc(11));
+	mono.setPixelSize(sc(12));
 
 	auto drawChip = [&](const QRect& rect, bool inputRow, int index) {
 		const QString label = chipLabel(inputRow, index);
@@ -488,7 +488,7 @@ void StudioRoutingView::paintEvent(QPaintEvent*)
 	if (model.allowFactors())
 	{
 		QFont labelFont(t.monoFontFamily);
-		labelFont.setPixelSize(sc(10));
+		labelFont.setPixelSize(sc(11));
 		p.setFont(labelFont);
 		for (int i = 0; i < traceShapes.size(); i++)
 		{
@@ -531,7 +531,7 @@ void StudioRoutingView::paintEvent(QPaintEvent*)
 		p.setBrush(withAlphaF(accent, fillA));
 		p.drawRoundedRect(revealRect, sc(8), sc(8));
 		QFont revealFont(t.monoFontFamily);
-		revealFont.setPixelSize(sc(11));
+		revealFont.setPixelSize(sc(12));
 		p.setFont(revealFont);
 		QColor ink = accent;
 		ink.setAlpha(revealHovered ? 255 : 200);
@@ -578,7 +578,7 @@ void StudioRoutingView::paintEvent(QPaintEvent*)
 	if (traces.isEmpty() && lit && !dragging)
 	{
 		QFont hintFont(t.fontFamily);
-		hintFont.setPixelSize(sc(11));
+		hintFont.setPixelSize(sc(12));
 		p.setFont(hintFont);
 		p.setPen(withAlphaF(QColor(t.mutedText), 0.78));
 		const QRect zone(0, sc(8) + sc(22), width(), sc(72));

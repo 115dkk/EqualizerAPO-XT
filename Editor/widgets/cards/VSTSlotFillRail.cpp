@@ -40,29 +40,13 @@ int cellHeight()
 	return 20;
 }
 
-// The cell is sized from the exact fonts the neutral painter uses, with the
-// caret reserved separately, so the role, the value and the caret can never
-// collide (the mockup round reused the bus-selector painter and they did).
-int cellWidth(const QString& role, const QString& value)
-{
-	const SkinTokens& t = SkinManager::instance()->tokens();
-	QFont roleFont(t.fontFamily);
-	roleFont.setPixelSize(9);
-	QFont valueFont(t.monoFontFamily);
-	valueFont.setPixelSize(11);
-	return qRound(6 * 2
-		+ QFontMetricsF(roleFont).horizontalAdvance(role) + 5
-		+ QFontMetricsF(valueFont).horizontalAdvance(value) + 4
-		+ 6);
-}
-
 int latchWidth()
 {
 	// Wide enough for the busiest skin answer (rack's machined key: recess
 	// walls, a bezel LED and the engraved legend side by side).
 	const SkinTokens& t = SkinManager::instance()->tokens();
 	QFont latchFont(t.fontFamily);
-	latchFont.setPixelSize(9);
+	latchFont.setPixelSize(10);
 	return qRound(21
 		+ QFontMetricsF(latchFont).horizontalAdvance(QStringLiteral("FILL"))
 		+ 10);
@@ -113,7 +97,12 @@ QStringList VSTSlotFillCell::channelChoices() const
 
 QSize VSTSlotFillCell::sizeHint() const
 {
-	return QSize(cellWidth(role, value), cellHeight());
+	// The active skin measures the cell with the fonts and paddings its own
+	// painter draws with, so the role, the value and the caret fit the cell
+	// in each skin. (The mockup round reused the bus-selector painter and
+	// they collided; until audit #348 F10 the neutral painter's fonts sized
+	// the cell in every skin.)
+	return SkinManager::instance()->vstSlotFillCellSize(role, value);
 }
 
 QSize VSTSlotFillCell::minimumSizeHint() const

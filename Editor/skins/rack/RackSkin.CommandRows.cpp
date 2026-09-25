@@ -262,7 +262,7 @@ void RackSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Comma
 		painter.drawRoundedRect(plateRect, 3, 3);
 
 		QFont plateFont(tokens.fontFamily);
-		plateFont.setPixelSize(9);
+		plateFont.setPixelSize(10);
 		plateFont.setBold(true);
 		plateFont.setLetterSpacing(QFont::AbsoluteSpacing, 2.5);
 		painter.setFont(plateFont);
@@ -284,20 +284,50 @@ void RackSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Comma
 		painter.drawEllipse(QPointF(plateRect.right() - 6, plateRect.center().y()), 1.6, 1.6);
 	}
 
-	// Engraved unit designation running up the left ear on tall units.
+	// Engraved unit designation running up the left ear on tall units. The
+	// run is the free ear between the bottom screw (its head ends 13 px above
+	// the bottom edge; the print starts 3 px clear of it) and the SELECT
+	// LED (its bezel ends 35 px below the top edge; the print stops 3 px
+	// clear of it). Hardware is never printed with a sawn-off word, so a
+	// designation longer than the run is left off rather than clipped.
 	const QString label = unitLabel(info);
 	if (!label.isEmpty() && r.height() >= 96)
 	{
 		QFont earFont(tokens.fontFamily);
-		earFont.setPixelSize(8);
+		earFont.setPixelSize(9);
 		earFont.setBold(true);
-		earFont.setLetterSpacing(QFont::AbsoluteSpacing, 1.5);
-		QPainterStateGuard labelState(&painter);
-		painter.translate(r.left() + 14.5, r.bottom() - 16);
-		painter.rotate(-90);
-		painter.setFont(earFont);
-		const QRectF textRect(0, -10, r.height() - 64, 20);
-		RackSkinDetail::engraveText(painter, textRect, Qt::AlignLeft | Qt::AlignVCenter, label, withAlpha(QColor(tokens.mutedText), 200), dark);
+		qreal tracking = 1.5;
+		earFont.setLetterSpacing(QFont::AbsoluteSpacing, tracking);
+		const qreal runStart = r.bottom() - 16;
+		const qreal runEnd = r.top() + 38;
+		const qreal run = runStart - runEnd;
+		// The channel card keeps its designation (maintainer decision,
+		// recorded in docs/adr/0001-rack-channel-ear-stencil.md): CHANNEL does
+		// not fit that card's run at the 9 px face, so this one label prints
+		// at the pre-type-step 8 px and, while the whole word still does not
+		// fit, steps the size down, then the tracking. Every other
+		// designation keeps the 9 px face and is left off when it does not
+		// fit.
+		if (info.type == QLatin1String("channel"))
+		{
+			earFont.setPixelSize(8);
+			while (QFontMetricsF(earFont).horizontalAdvance(label) > run && earFont.pixelSize() > 5)
+				earFont.setPixelSize(earFont.pixelSize() - 1);
+			while (QFontMetricsF(earFont).horizontalAdvance(label) > run && tracking > 0.0)
+			{
+				tracking = qMax(0.0, tracking - 0.5);
+				earFont.setLetterSpacing(QFont::AbsoluteSpacing, tracking);
+			}
+		}
+		if (QFontMetricsF(earFont).horizontalAdvance(label) <= run)
+		{
+			QPainterStateGuard labelState(&painter);
+			painter.translate(r.left() + 14.5, runStart);
+			painter.rotate(-90);
+			painter.setFont(earFont);
+			const QRectF textRect(0, -10, run, 20);
+			RackSkinDetail::engraveText(painter, textRect, Qt::AlignLeft | Qt::AlignVCenter, label, withAlpha(QColor(tokens.mutedText), 200), dark);
+		}
 	}
 
 	// Commented-out line: the whole unit is powered down behind a dim film.

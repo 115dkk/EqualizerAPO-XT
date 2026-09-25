@@ -103,7 +103,7 @@ bool StepListView::connectSource(const QString& target, const QString& source)
 static QFont monoFont(const SkinTokens& tokens)
 {
 	QFont f(tokens.monoFontFamily);
-	f.setPixelSize(12);
+	f.setPixelSize(13);
 	return f;
 }
 
@@ -178,7 +178,7 @@ void StepListView::paintEvent(QPaintEvent*)
 		// --color). Only virtual channels keep the dashed hairline frame:
 		// fixed sources (IR file channels) are ports, not virtual channels.
 		const bool virt = (sourceSide && portModel.fixedSourceMode()) ? false : CopyRoutingAdapter::isVirtualChannel(ch);
-		const QColor ink = minimalChannelInk(QColor(CopyRoutingAdapter::channelColor(ch)), t.dark);
+		const QColor ink = minimalChannelInk(ch, t.dark);
 		const int w = fm.horizontalAdvance(ch) + 12;
 		const QRect pill(x, y + (rowH - h) / 2, w, h);
 		if (virt)

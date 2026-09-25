@@ -20,4 +20,4 @@
 
 ## 소비자가 주는 것
 
-명령 타입(카탈로그 id와 `type-*` 색), BiQuad면 필터 가족, 채널 이름 목록, enabled 플래그. hand-written from `Editor/widgets/FilterCardRow.cpp`, `Editor/widgets/ChBadge.cpp`, `Editor/widgets/FilterCommandCatalog.cpp`.
+명령 타입(카탈로그 id와 `type-*` 색), BiQuad면 필터 가족, 채널 이름 목록, enabled 플래그. hand-written from `Editor/widgets/FilterCardRow.cpp`, `Editor/widgets/ChBadge.cpp`(채널 색은 `Editor/widgets/routing/ChannelIdentity.h`), `Editor/widgets/FilterCommandCatalog.cpp`.

@@ -484,7 +484,7 @@ void ISkin::paintVstBusSelector(QPainter& painter, const VstBusSelectorState& st
 	QRectF textRect = cell.adjusted(pad, 0, -pad, 0);
 
 	QFont roleFont = painter.font();
-	roleFont.setPixelSize(9);
+	roleFont.setPixelSize(10);
 	painter.setFont(roleFont);
 	painter.setPen(roleInk);
 	painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, state.roleText);
@@ -501,7 +501,7 @@ void ISkin::paintVstBusSelector(QPainter& painter, const VstBusSelectorState& st
 	painter.fillPath(caret, roleInk);
 
 	QFont valueFont = painter.font();
-	valueFont.setPixelSize(12);
+	valueFont.setPixelSize(13);
 	painter.setFont(valueFont);
 	painter.setPen(valueInk);
 	QString value = state.layoutText;
@@ -571,7 +571,7 @@ void ISkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& state, c
 		return;
 
 	QFont verdictFont = painter.font();
-	verdictFont.setPixelSize(10);
+	verdictFont.setPixelSize(11);
 	painter.setFont(verdictFont);
 	const QColor ink = state.tone == VstBusFrameState::Tone::Critical ? lamp : muted;
 	painter.setPen(ink);
@@ -605,12 +605,26 @@ void ISkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& state, c
 	}
 }
 
+QSize ISkin::vstSlotFillCellSize(const QString& role, const QString& value, const SkinTokens& tokens) const
+{
+	// The default painter's font sizes, with the caret reserved separately.
+	// Only this painter is measured here: every product skin whose cell
+	// fonts or paddings differ answers this hook itself.
+	QFont roleFont(tokens.fontFamily);
+	roleFont.setPixelSize(10);
+	QFont valueFont(tokens.monoFontFamily);
+	valueFont.setPixelSize(12);
+	return QSize(qRound(6 * 2
+		+ QFontMetricsF(roleFont).horizontalAdvance(role) + 5
+		+ QFontMetricsF(valueFont).horizontalAdvance(value) + 4
+		+ 6), 20);
+}
+
 void ISkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state, const SkinTokens& tokens) const
 {
 	// Neutral default, deliberately unlike the bus selector: no channel-count
 	// suffix and a flatter cell, so a channel pick never reads as a layout
-	// pick. The widget sizes the cell from the same fonts used here, so the
-	// role, the value and the caret never collide.
+	// pick. vstSlotFillCellSize measures these font sizes and paddings.
 	QPainterStateGuard painterState(&painter);
 	painter.setRenderHint(QPainter::Antialiasing, true);
 	painter.setRenderHint(QPainter::TextAntialiasing, true);
@@ -644,7 +658,7 @@ void ISkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& 
 	QRectF textRect = cell.adjusted(pad, 0, -pad, 0);
 
 	QFont roleFont = painter.font();
-	roleFont.setPixelSize(9);
+	roleFont.setPixelSize(10);
 	painter.setFont(roleFont);
 	painter.setPen(roleInk);
 	painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, state.roleToken);
@@ -660,7 +674,7 @@ void ISkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& 
 	painter.fillPath(caret, roleInk);
 
 	QFont valueFont(tokens.monoFontFamily);
-	valueFont.setPixelSize(11);
+	valueFont.setPixelSize(12);
 	painter.setFont(valueFont);
 	painter.setPen(valueInk);
 	textRect.setLeft(textRect.left() + roleWidth + 5);
@@ -705,7 +719,7 @@ void ISkin::paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& 
 		dotRadius, dotRadius);
 
 	QFont latchFont = painter.font();
-	latchFont.setPixelSize(9);
+	latchFont.setPixelSize(10);
 	painter.setFont(latchFont);
 	painter.setPen(QColor(state.collapsed ? tokens.mutedText : tokens.text));
 	QRectF labelRect = latch;

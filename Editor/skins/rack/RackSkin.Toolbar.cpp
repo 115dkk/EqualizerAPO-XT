@@ -104,7 +104,7 @@ void paintToolbarRail(QPainter& painter, const QRect& rect, const QToolBar* tool
 	// never translated.
 	const QString marking = QStringLiteral("MASTER");
 	QFont markFont(tokens.fontFamily);
-	markFont.setPixelSize(8);
+	markFont.setPixelSize(9);
 	markFont.setBold(true);
 	markFont.setLetterSpacing(QFont::AbsoluteSpacing, 2.0);
 	const QFontMetricsF metrics(markFont);

@@ -60,9 +60,14 @@ public:
 	// Printed wireframe outline around the text (the badge law: no fills).
 	void setStamped(bool newStamped);
 	void setElideMode(Qt::TextElideMode newElideMode);
+	// Sentence printing (the status line): breaks at word boundaries over as
+	// many lines as the width needs instead of eliding.
+	void setWordWrap(bool newWordWrap);
 
 	QSize sizeHint() const override;
 	QSize minimumSizeHint() const override;
+	bool hasHeightForWidth() const override;
+	int heightForWidth(int width) const override;
 
 protected:
 	void paintEvent(QPaintEvent* event) override;
@@ -82,6 +87,7 @@ private:
 	bool boldFace = true;
 	bool stamped = false;
 	Qt::TextElideMode elideMode = Qt::ElideNone;
+	bool wordWrap = false;
 };
 
 // A bezel-set panel LED (Rack's panel-lamp grammar: bezel ring, halo
@@ -151,6 +157,8 @@ protected:
 
 private:
 	const SkinTokens skinTokens;
+	// The unit's row (lamp, label strip, bus strip, readout, buttons); the
+	// status sentence prints on its own line under it.
 	QHBoxLayout* rootLayout = nullptr;
 	QHBoxLayout* actionLayout = nullptr;
 	RackStatusLamp* lamp = nullptr;
