@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.24 — 2026-09-25
+
 - **The soft skin's file dialog uses its own icons.** The other four skins
   draw the folder and file pictograms in the Open and Save dialogs
   themselves, but soft still showed the Windows shell icons. Soft now draws
