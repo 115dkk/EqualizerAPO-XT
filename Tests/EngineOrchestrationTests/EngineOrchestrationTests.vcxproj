@@ -87,15 +87,21 @@ if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"</
     <ClCompile Include="ApoRegistrationTests.cpp" />
     <ClCompile Include="CaptureEngineTests.cpp" />
     <ClCompile Include="ChannelInheritanceTests.cpp" />
+    <ClCompile Include="ConfigLoadTests.cpp" />
     <ClCompile Include="ConfigurationFileReaderTests.cpp" />
     <ClCompile Include="DeviceApoInfoTests.cpp" />
     <ClCompile Include="DevicePlanTests.cpp" />
     <ClCompile Include="DeviceTestPlanTests.cpp" />
+    <ClCompile Include="DeviceVocabularyTests.cpp" />
+    <ClCompile Include="EngineLifecycleTests.cpp" />
     <ClCompile Include="EngineOrchestrationTests.cpp" />
+    <ClCompile Include="EngineRoutingTests.cpp" />
     <ClCompile Include="InstallDiagnosticsTests.cpp" />
+    <ClCompile Include="JudgedPathTests.cpp" />
     <ClCompile Include="NamedPipeSecurityTests.cpp" />
     <ClCompile Include="RegistryConformanceTests.cpp" />
     <ClCompile Include="RegistryTransactionTests.cpp" />
+    <ClCompile Include="RuntimeUtilityTests.cpp" />
     <!-- Executable-side helpers under test, compiled directly like
          AudioEngineAccess: ApoRegistration is not a Common.lib member, and
          it links against the service and shortcut units. -->
@@ -123,7 +129,10 @@ if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"</
     <ClInclude Include="..\..\services\registry\RegistryTransaction.h" />
     <ClInclude Include="..\..\runtime\concurrency\SynchronizedState.h" />
     <ClInclude Include="..\TestHarness.h" />
+    <ClInclude Include="..\TestDirectory.h" />
+    <ClInclude Include="..\WavFixtures.h" />
     <ClInclude Include="..\FakeRegistry.h" />
+    <ClInclude Include="EngineOrchestrationTestSupport.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

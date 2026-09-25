@@ -121,6 +121,15 @@
     <ClInclude Include="..\TestVst3Plugin\TestVst3Protocol.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\TestDirectory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Vst3Bundle.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\WavFixtures.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\VST3\SubwooferRouting\parameter_table.h">
       <Filter>Header Files</Filter>
     </ClInclude>

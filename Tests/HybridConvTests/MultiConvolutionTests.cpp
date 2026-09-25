@@ -23,10 +23,11 @@
 #include "filters/GraphicEQFilter.h"
 #include "filters/MultiConvolutionCommand.h"
 #include "filters/MultiConvolutionFilter.h"
-#include "audio/io/SndfileRAII.h"
 #include "services/logging/Logging.h"
 #include "diagnostics/performance/PerfProfile.h"
+#include "Tests/TestDirectory.h"
 #include "Tests/TestHarness.h"
+#include "Tests/WavFixtures.h"
 
 using std::vector;
 using std::wstring;
@@ -41,38 +42,20 @@ constexpr double tolerance = 1.0e-8;
 
 test::Harness harness("MultiConvolutionTests");
 
+test::TestDirectory& scratchDirectory()
+{
+	static test::TestDirectory directory(L"MultiConvolutionTests");
+	return directory;
+}
+
 // Writes a multi-channel impulse response to a temporary WAV. channels[c] holds
 // the samples of IR channel c; all channels must have the same length.
 wstring createMultiChannelIr(const vector<vector<double>>& channels)
 {
-	const unsigned numCh = (unsigned)channels.size();
-	const unsigned frames = (unsigned)channels[0].size();
-	vector<double> interleaved((size_t)frames * numCh);
-	for (unsigned f = 0; f < frames; f++)
-		for (unsigned c = 0; c < numCh; c++)
-			interleaved[(size_t)f * numCh + c] = channels[c][f];
-
-	wchar_t tempPath[MAX_PATH] = {};
-	wchar_t tempFile[MAX_PATH] = {};
-	if (GetTempPathW(MAX_PATH, tempPath) == 0)
-		harness.fail("GetTempPathW failed");
-	if (GetTempFileNameW(tempPath, L"mc", 0, tempFile) == 0)
-		harness.fail("GetTempFileNameW failed");
-
-	wstring filename = tempFile;
-	DeleteFileW(filename.c_str());
-	filename += L".wav";
-
-	SF_INFO info = {};
-	info.samplerate = sampleRate;
-	info.channels = (int)numCh;
-	info.format = SF_FORMAT_WAV | SF_FORMAT_DOUBLE;
-
-	sndfile::Handle file(sf_wchar_open(filename.c_str(), SFM_WRITE, &info));
-	if (!file)
-		harness.fail("could not create temporary impulse response file");
-	sf_writef_double(file.get(), interleaved.data(), (sf_count_t)frames);
-
+	static unsigned fileCount = 0;
+	const wstring filename = scratchDirectory().trackFile(L"ir-" + std::to_wstring(fileCount++) + L".wav");
+	harness.require(test::writeWavFile(filename, sampleRate, channels),
+		"the temporary impulse response file is written completely");
 	return filename;
 }
 
@@ -658,5 +641,6 @@ void runMultiConvolutionTests()
 	assertFactorScalesConvolutionResult();
 	assertCommandSerializeRoundTrips();
 	assertEditorDeclaresTheEnginesChannels();
+	scratchDirectory().removeAll();
 	harness.report();
 }

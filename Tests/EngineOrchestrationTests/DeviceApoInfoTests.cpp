@@ -60,6 +60,8 @@
 
 #include "Tests/FakeRegistry.h"
 
+#include "EngineOrchestrationTestSupport.h"
+
 namespace
 {
 using test::FakeRegistry;
@@ -589,8 +591,7 @@ void testAsioEntryCarriesTheDriverEntryOptions(test::Harness& harness)
 {
 	// A product directory with the x86 wrapper in it, so the 32-bit
 	// registration has a file to point at.
-	const std::filesystem::path product = std::filesystem::temp_directory_path()
-		/ (L"EngineOrchestrationTests-asio-" + std::to_wstring(GetCurrentProcessId()));
+	const std::filesystem::path product = std::filesystem::path(testDirectory()) / L"asio-product";
 	std::filesystem::create_directories(product / L"x86");
 	std::ofstream(product / L"x86" / L"EqualizerAPOAsio.dll").put('\0');
 	const std::wstring installPath = product.wstring();

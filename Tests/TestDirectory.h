@@ -7,9 +7,9 @@
 	the seven hand-rolled temp-directory fixtures the suites used to carry
 	(audit #275 D5/TD-23; the pattern is EngineOrchestrationTests', which was
 	the only copy with a PID suffix and a cleanup list). Header-only and
-	framework-free like TestHarness.h. Use this for new suites; the older
-	per-file GetTempFileNameW fixtures keep working but should migrate here
-	when touched.
+	framework-free like TestHarness.h. Audit #348 D4/TD-72 moved the
+	remaining hand-written temporary paths here; docs/TestSeams.md lists the
+	users and the one fixture that stays on its own.
 */
 
 #pragma once

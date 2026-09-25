@@ -7,7 +7,9 @@
 	libsndfile boilerplate for writing a double-precision test WAV existed
 	five times across the suites, in mono and multi-channel variants. One
 	writer, both shapes. Returns false instead of asserting so each suite
-	keeps its own failure policy (harness.fail vs require).
+	keeps its own failure policy (harness.fail vs require); false covers a
+	file that does not open and a write that falls short of every frame.
+	Every WAV the suites write goes through here since audit #348 D4/TD-72.
 
 	Requires libsndfile (sndfile.h) and the RAII handle from
 	audio/io/SndfileRAII.h, which every consumer already links.

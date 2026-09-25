@@ -35,6 +35,7 @@
 #include "platform/windows/WindowsPath.h"
 #include "Tests/AlignedMemoryGate.h"
 #include "Tests/TestHarness.h"
+#include "Tests/WavFixtures.h"
 
 #pragma comment(lib, "bcrypt.lib")
 
@@ -509,26 +510,6 @@ std::vector<std::vector<double>> makeSyntheticIr(unsigned channels, unsigned fra
 	return ir;
 }
 
-bool writeIrWav(const std::wstring& path, const std::vector<std::vector<double>>& channels, unsigned sampleRate)
-{
-	const unsigned numCh = (unsigned)channels.size();
-	const unsigned frames = (unsigned)channels[0].size();
-	std::vector<double> interleaved((size_t)frames * numCh);
-	for (unsigned f = 0; f < frames; ++f)
-		for (unsigned c = 0; c < numCh; ++c)
-			interleaved[(size_t)f * numCh + c] = channels[c][f];
-
-	SF_INFO info = {};
-	info.samplerate = (int)sampleRate;
-	info.channels = (int)numCh;
-	info.format = SF_FORMAT_WAV | SF_FORMAT_DOUBLE;
-	sndfile::Handle file(sf_wchar_open(path.c_str(), SFM_WRITE, &info));
-	if (!file)
-		return false;
-	sf_writef_double(file.get(), interleaved.data(), (sf_count_t)frames);
-	return true;
-}
-
 bool writeTextFile(const std::wstring& path, const std::wstring& text)
 {
 	std::string utf8;
@@ -781,7 +762,7 @@ void runAllEquivalenceBatteries(const Options& opts, bool& outFailed, unsigned& 
 	for (const auto& s : synth)
 	{
 		const std::wstring irPath = equivDir + L"\\" + toWide(s.label) + L"_ir.wav";
-		if (!writeIrWav(irPath, makeSyntheticIr(s.channels, synthFrames), sampleRate))
+		if (!test::writeWavFile(irPath, (int)sampleRate, makeSyntheticIr(s.channels, synthFrames)))
 		{
 			fprintf(stderr, "ERROR: could not write synthetic IR %S\n", irPath.c_str());
 			outFailed = true;

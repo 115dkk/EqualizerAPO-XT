@@ -19,6 +19,7 @@
 #include "filters/ChannelCommand.h"
 #include "filters/ChannelFilter.h"
 #include "services/logging/Logging.h"
+#include "Tests/TestDirectory.h"
 #include "Tests/TestHarness.h"
 
 using std::wstring;
@@ -141,9 +142,8 @@ void testResolveSelection()
 // ChannelFilter logs each unknown selector, once per load.
 void testSelectionLogsOnlyForTheEngine()
 {
-	wchar_t temp[MAX_PATH + 1] = {};
-	GetTempPathW(MAX_PATH, temp);
-	const wstring logPath = wstring(temp) + L"eapo-xt-channel-selection.log";
+	test::TestDirectory directory(L"ChannelCommandTests");
+	const wstring logPath = directory.trackFile(L"channel-selection.log");
 	const std::vector<wstring> names = {L"L", L"R"};
 
 	auto logged = [&](bool logUnknown) {
@@ -163,7 +163,7 @@ void testSelectionLogsOnlyForTheEngine()
 	harness.expectTrue(engine.find("Channel number 9 out of range") != std::string::npos
 		&& engine.find("Invalid channel position NOSUCH") != std::string::npos,
 		"the engine's resolution logs both");
-	DeleteFileW(logPath.c_str());
+	directory.removeAll();
 }
 }
 

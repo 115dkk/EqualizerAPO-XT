@@ -33,6 +33,7 @@
 // would otherwise break the enum of the same name in the VST2 aeffectx.h.
 #include "pluginterfaces/vst/vstspeaker.h"
 #include "Tests/TestHarness.h"
+#include "Tests/Vst3Bundle.h"
 #include "platform/windows/WindowsPath.h"
 #include "Tests/TestVst3Plugin/TestVst3Protocol.h"
 
@@ -57,50 +58,13 @@ wstring encodeState(const PluginState& state)
 		CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, value.data(), &length) == TRUE ? wstring(value.data()) : wstring();
 }
 
-bool closeEnough(double actual, double expected)
-{
-	return std::fabs(actual - expected) <= 1.0e-9;
-}
-
 using pathutil::exeDirectory;
 
-bool ensureDirectory(const wstring& path)
-{
-	return CreateDirectoryW(path.c_str(), nullptr) != FALSE || GetLastError() == ERROR_ALREADY_EXISTS;
-}
-
-wstring bundleModulePath(const wstring& bundle, const wchar_t* moduleName)
-{
-	const wstring contents = bundle + L"\\Contents";
-#if defined(_M_ARM64)
-	const wstring platform = contents + L"\\arm64-win";
-#elif defined(_WIN64)
-	const wstring platform = contents + L"\\x86_64-win";
-#else
-	const wstring platform = contents + L"\\x86-win";
-#endif
-	return platform + L"\\" + moduleName;
-}
-
+// The companion module staged beside the executable, wrapped in a bundle.
 wstring prepareBundle(const wstring& directory, const wchar_t* bundleName = L"TestVst3Bundle.vst3",
 	const wchar_t* moduleName = L"TestVst3Plugin.vst3")
 {
-	const wstring source = directory + L"\\TestVst3PluginModule.vst3";
-	if (GetFileAttributesW(source.c_str()) == INVALID_FILE_ATTRIBUTES)
-		return wstring();
-
-	const wstring bundle = directory + L"\\" + bundleName;
-	const wstring contents = bundle + L"\\Contents";
-	const wstring module = bundleModulePath(bundle, moduleName);
-	const size_t platformSlash = module.find_last_of(L"\\/");
-	const wstring platform = module.substr(0, platformSlash);
-	if (!ensureDirectory(bundle) || !ensureDirectory(contents) || !ensureDirectory(platform))
-		return wstring();
-
-	DeleteFileW((module + L".exit").c_str());
-	if (CopyFileW(source.c_str(), module.c_str(), FALSE) == FALSE)
-		return wstring();
-	return bundle;
+	return test::prepareVst3Bundle(directory, L"TestVst3PluginModule.vst3", bundleName, moduleName);
 }
 }
 
@@ -164,7 +128,7 @@ void runVst3HostTests()
 	double* doubleInputs[] = {doubleInLeft, doubleInRight};
 	double* doubleOutputs[] = {doubleOutLeft, doubleOutRight};
 	instance.processDoubleReplacing(doubleInputs, doubleOutputs, 4);
-	harness.expectTrue(closeEnough(doubleOutLeft[2], 0.375) && closeEnough(doubleOutRight[0], -0.5),
+	harness.expectTrue(test::nearlyEqual(doubleOutLeft[2], 0.375, 1.0e-9) && test::nearlyEqual(doubleOutRight[0], -0.5, 1.0e-9),
 		"VST3 double processing applies restored state");
 
 	instance.stopProcessing();
@@ -245,7 +209,7 @@ void runVst3HostTests()
 	std::fill_n(doubleOutLeft, 4, 0.0);
 	std::fill_n(doubleOutRight, 4, 0.0);
 	instance.processDoubleReplacing(doubleInputs, doubleOutputs, 4);
-	harness.expectTrue(closeEnough(doubleOutLeft[2], 0.5625) && closeEnough(doubleOutRight[0], -0.75),
+	harness.expectTrue(test::nearlyEqual(doubleOutLeft[2], 0.5625, 1.0e-9) && test::nearlyEqual(doubleOutRight[0], -0.75, 1.0e-9),
 		"VST3 editor parameter edits reach audio processing");
 	instance.stopProcessing();
 	wstring liveEditChunk;
@@ -352,7 +316,7 @@ void runVst3HostTests()
 	float* floatInputs[] = {floatInLeft, floatInRight};
 	float* floatOutputs[] = {floatOutLeft, floatOutRight};
 	floatOnlyInstance.processReplacing(floatInputs, floatOutputs, 4);
-	harness.expectTrue(closeEnough(floatOutLeft[2], 0.375) && closeEnough(floatOutRight[0], -0.5),
+	harness.expectTrue(test::nearlyEqual(floatOutLeft[2], 0.375, 1.0e-9) && test::nearlyEqual(floatOutRight[0], -0.5, 1.0e-9),
 		"VST3 float processing applies restored state");
 	floatOnlyInstance.stopProcessing();
 
@@ -381,7 +345,7 @@ void runVst3HostTests()
 		"failed VST3 module initialization remains failed when retried");
 
 	const wstring exitBundle = prepareBundle(directory, L"ExitInitBundle.vst3", L"ExitInit.vst3");
-	const wstring exitMarker = bundleModulePath(exitBundle, L"ExitInit.vst3") + L".exit";
+	const wstring exitMarker = test::vst3BundleModulePath(exitBundle, L"ExitInit.vst3") + L".exit";
 	{
 		shared_ptr<VSTPluginLibrary> exitLibrary = VSTPluginLibrary::getInstance(exitBundle);
 		harness.expectTrue(!exitBundle.empty() && exitLibrary->initialize() >= 0,
@@ -485,9 +449,9 @@ void runVst3HostTests()
 		// defect - the layout choice must stay an explicit opt-in.
 		double outputData[8][4] = {};
 		runUpmixerFilter(false, left, right, outputData);
-		harness.expectTrue(closeEnough(outputData[0][0], left) && closeEnough(outputData[1][0], right),
+		harness.expectTrue(test::nearlyEqual(outputData[0][0], left, 1.0e-9) && test::nearlyEqual(outputData[1][0], right, 1.0e-9),
 			"symmetric 7.1 layout passes the front pair through");
-		harness.expectTrue(closeEnough(outputData[2][0], 0.0) && closeEnough(outputData[4][0], 0.0),
+		harness.expectTrue(test::nearlyEqual(outputData[2][0], 0.0, 1.0e-9) && test::nearlyEqual(outputData[4][0], 0.0, 1.0e-9),
 			"symmetric 7.1 layout leaves the upmix engine disengaged");
 	}
 	if (upmixerComponentCount != nullptr)
@@ -500,15 +464,15 @@ void runVst3HostTests()
 		// output bus, which is what engages the upmix engine.
 		double outputData[8][4] = {};
 		runUpmixerFilter(true, left, right, outputData);
-		harness.expectTrue(closeEnough(outputData[0][0], left) && closeEnough(outputData[1][0], right),
+		harness.expectTrue(test::nearlyEqual(outputData[0][0], left, 1.0e-9) && test::nearlyEqual(outputData[1][0], right, 1.0e-9),
 			"StereoInput keeps the stereo source on the front channels");
-		harness.expectTrue(closeEnough(outputData[2][0], left + right),
+		harness.expectNear(outputData[2][0], left + right, 1.0e-9,
 			"StereoInput drives the center channel");
-		harness.expectTrue(closeEnough(outputData[3][0], 0.125 * (left + right)),
+		harness.expectNear(outputData[3][0], 0.125 * (left + right), 1.0e-9,
 			"StereoInput drives the LFE channel");
-		harness.expectTrue(closeEnough(outputData[4][0], 0.25 * left) && closeEnough(outputData[5][0], 0.25 * right),
+		harness.expectTrue(test::nearlyEqual(outputData[4][0], 0.25 * left, 1.0e-9) && test::nearlyEqual(outputData[5][0], 0.25 * right, 1.0e-9),
 			"StereoInput drives the rear channels");
-		harness.expectTrue(closeEnough(outputData[6][0], 0.5 * left) && closeEnough(outputData[7][0], 0.5 * right),
+		harness.expectTrue(test::nearlyEqual(outputData[6][0], 0.5 * left, 1.0e-9) && test::nearlyEqual(outputData[7][0], 0.5 * right, 1.0e-9),
 			"StereoInput drives the side channels");
 	}
 	if (upmixerComponentCount != nullptr)
@@ -539,8 +503,8 @@ void runVst3HostTests()
 			inputData[1][sample] = right;
 		}
 		busFilter.process(outputs, inputs, 4);
-		harness.expectTrue(closeEnough(outputData[2][0], left + right)
-			&& closeEnough(outputData[7][0], 0.5 * right),
+		harness.expectTrue(test::nearlyEqual(outputData[2][0], left + right, 1.0e-9)
+			&& test::nearlyEqual(outputData[7][0], 0.5 * right, 1.0e-9),
 			"VSTPlugin Stereo -> 7.1 processes the complete output bus");
 		if (upmixerComponentCount != nullptr)
 			harness.expectEqual(upmixerComponentCount() - instancesBefore, 1,
@@ -572,7 +536,7 @@ void runVst3HostTests()
 		for (int channel = 0; channel < 8; channel++)
 		{
 			for (int sample = 0; sample < 4; sample++)
-				passedThrough = passedThrough && closeEnough(outputData[channel][sample], inputData[channel][sample]);
+				passedThrough = passedThrough && test::nearlyEqual(outputData[channel][sample], inputData[channel][sample], 1.0e-9);
 		}
 		harness.expectTrue(passedThrough,
 			"rejected explicit VSTPlugin contract passes every device channel through");
@@ -608,7 +572,7 @@ void runVst3HostTests()
 		for (int channel = 0; channel < 8; channel++)
 		{
 			for (int sample = 0; sample < 4; sample++)
-				sameAsLegacy = sameAsLegacy && closeEnough(automaticOutput[channel][sample], legacyOutput[channel][sample]);
+				sameAsLegacy = sameAsLegacy && test::nearlyEqual(automaticOutput[channel][sample], legacyOutput[channel][sample], 1.0e-9);
 		}
 		harness.expectTrue(sameAsLegacy, "VSTPlugin Auto -> Auto matches automatic negotiation");
 	}
@@ -629,7 +593,7 @@ void runVst3HostTests()
 			stereoOutputs[channel] = stereoOut[channel];
 		}
 		stereoFilter.process(stereoOutputs, stereoInputs, 4);
-		harness.expectTrue(closeEnough(stereoOut[0][1], -0.5) && closeEnough(stereoOut[1][2], 0.75),
+		harness.expectTrue(test::nearlyEqual(stereoOut[0][1], -0.5, 1.0e-9) && test::nearlyEqual(stereoOut[1][2], 0.75, 1.0e-9),
 			"a stereo device still negotiates the upmixer's stereo layout");
 	}
 
@@ -670,39 +634,39 @@ void runVst3HostTests()
 		double mappedInput[8] = {};
 		runChannelFill(VST3BusLayout::Stereo, VST3BusLayout::Surround71,
 			{L"RL", L"RR"}, std::vector<wstring>(), mappedInput);
-		harness.expectTrue(closeEnough(mappedInput[0], fillLevels[4]) && closeEnough(mappedInput[1], fillLevels[5]),
+		harness.expectTrue(test::nearlyEqual(mappedInput[0], fillLevels[4], 1.0e-9) && test::nearlyEqual(mappedInput[1], fillLevels[5], 1.0e-9),
 			"InputChannels feeds the named config channels into the negotiated input slots");
-		harness.expectTrue(closeEnough(mappedInput[2], fillLevels[4] + fillLevels[5])
-			&& closeEnough(mappedInput[6], 0.5 * fillLevels[4]),
+		harness.expectTrue(test::nearlyEqual(mappedInput[2], fillLevels[4] + fillLevels[5], 1.0e-9)
+			&& test::nearlyEqual(mappedInput[6], 0.5 * fillLevels[4], 1.0e-9),
 			"a filled input bus drives every channel of the negotiated output bus");
 
 		double silentSlotInput[8] = {};
 		runChannelFill(VST3BusLayout::Stereo, VST3BusLayout::Surround71,
 			{L"L", L"-"}, std::vector<wstring>(), silentSlotInput);
-		harness.expectTrue(closeEnough(silentSlotInput[1], 0.0) && closeEnough(silentSlotInput[5], 0.0),
+		harness.expectTrue(test::nearlyEqual(silentSlotInput[1], 0.0, 1.0e-9) && test::nearlyEqual(silentSlotInput[5], 0.0, 1.0e-9),
 			"a dash input slot stays silent");
-		harness.expectTrue(closeEnough(silentSlotInput[2], fillLevels[0]),
+		harness.expectNear(silentSlotInput[2], fillLevels[0], 1.0e-9,
 			"the filled input slots beside a dash keep their config channel");
 
 		double mappedOutput[8] = {};
 		runChannelFill(VST3BusLayout::Surround71, VST3BusLayout::Stereo,
 			std::vector<wstring>(), {L"SL", L"SR"}, mappedOutput);
-		harness.expectTrue(closeEnough(mappedOutput[6], fillLevels[0]) && closeEnough(mappedOutput[7], fillLevels[1]),
+		harness.expectTrue(test::nearlyEqual(mappedOutput[6], fillLevels[0], 1.0e-9) && test::nearlyEqual(mappedOutput[7], fillLevels[1], 1.0e-9),
 			"OutputChannels writes the negotiated output slots to the named config channels");
 		bool untargetedPassedThrough = true;
 		for (int channel = 0; channel < 6; channel++)
-			untargetedPassedThrough = untargetedPassedThrough && closeEnough(mappedOutput[channel], fillLevels[channel]);
+			untargetedPassedThrough = untargetedPassedThrough && test::nearlyEqual(mappedOutput[channel], fillLevels[channel], 1.0e-9);
 		harness.expectTrue(untargetedPassedThrough,
 			"config channels no output slot targets pass through instead of being zero-filled");
 
 		double discardedOutput[8] = {};
 		runChannelFill(VST3BusLayout::Stereo, VST3BusLayout::Stereo,
 			{L"C", L"LFE"}, {L"L", L"-"}, discardedOutput);
-		harness.expectTrue(closeEnough(discardedOutput[0], fillLevels[2]),
+		harness.expectNear(discardedOutput[0], fillLevels[2], 1.0e-9,
 			"a filled input slot reaches the channel its output slot names");
-		harness.expectTrue(closeEnough(discardedOutput[1], fillLevels[1]),
+		harness.expectNear(discardedOutput[1], fillLevels[1], 1.0e-9,
 			"a dash output slot is discarded instead of reaching a config channel");
-		harness.expectTrue(closeEnough(discardedOutput[3], fillLevels[3]),
+		harness.expectNear(discardedOutput[3], fillLevels[3], 1.0e-9,
 			"a config channel read by an input slot still passes through");
 
 		const int fillProcessCallsBefore = upmixerProcessCount != nullptr ? upmixerProcessCount() : -1;
@@ -711,7 +675,7 @@ void runVst3HostTests()
 			{L"L", L"Nonexistent"}, std::vector<wstring>(), unresolvedFill);
 		bool unresolvedPassedThrough = true;
 		for (int channel = 0; channel < 8; channel++)
-			unresolvedPassedThrough = unresolvedPassedThrough && closeEnough(unresolvedFill[channel], fillLevels[channel]);
+			unresolvedPassedThrough = unresolvedPassedThrough && test::nearlyEqual(unresolvedFill[channel], fillLevels[channel], 1.0e-9);
 		harness.expectTrue(unresolvedPassedThrough,
 			"a channel fill naming an absent channel passes every config channel through");
 		if (upmixerProcessCount != nullptr)
@@ -744,10 +708,10 @@ void runVst3HostTests()
 					inputData[channel][sample] = fillLevels[channel];
 			}
 			virtualFill.process(outputs, inputs, 4);
-			harness.expectTrue(closeEnough(outputData[0][0], fillLevels[1]),
+			harness.expectNear(outputData[0][0], fillLevels[1], 1.0e-9,
 				"a virtual channel name feeds a slot and receives the slot's output");
-			harness.expectTrue(closeEnough(outputData[1][0], fillLevels[1])
-				&& closeEnough(outputData[2][0], fillLevels[2]) && closeEnough(outputData[3][0], fillLevels[3]),
+			harness.expectTrue(test::nearlyEqual(outputData[1][0], fillLevels[1], 1.0e-9)
+				&& test::nearlyEqual(outputData[2][0], fillLevels[2], 1.0e-9) && test::nearlyEqual(outputData[3][0], fillLevels[3], 1.0e-9),
 				"channels no output slot targets pass through, virtual ones included");
 		}
 	}
@@ -920,11 +884,11 @@ void runVst3HostTests()
 		}
 		surround41Filter.process(outputs, inputs, 4);
 
-		harness.expectTrue(closeEnough(outputData[2][0], 0.5),
+		harness.expectNear(outputData[2][0], 0.5, 1.0e-9,
 			"4.1 EAPO LFE receives the accepted arrangement's Lfe bus slot");
-		harness.expectTrue(closeEnough(outputData[3][0], 0.375),
+		harness.expectNear(outputData[3][0], 0.375, 1.0e-9,
 			"4.1 EAPO RL receives the accepted arrangement's Ls bus slot");
-		harness.expectTrue(closeEnough(outputData[4][0], 0.4375),
+		harness.expectNear(outputData[4][0], 0.4375, 1.0e-9,
 			"4.1 EAPO RR receives the accepted arrangement's Rs bus slot");
 	}
 
