@@ -40,50 +40,6 @@ constexpr double kMaximumFrequencyHz = 20000.0;
 constexpr int kSampleCount = 256;
 constexpr double kMinimumMagnitude = 1.0e-12;
 
-subroute::PrepareSpec prepareSpecFor(
-	const subroute::SubwooferRoutingState& state,
-	double sampleRate)
-{
-	subroute::PrepareSpec spec;
-	spec.sampleRate = sampleRate;
-	spec.maximumBlockSize = 1024;
-	spec.channelLayout.reserve(state.layout.channels.size());
-
-	for (const subroute::PhysicalChannel& channel
-		: state.layout.channels)
-	{
-		spec.channelLayout.push_back(channel.id);
-	}
-
-	return spec;
-}
-
-double biquadMagnitude(
-	const subroute::BiquadCoefficients& coefficients,
-	double frequencyHz,
-	double sampleRate)
-{
-	const double omega =
-		2.0 * std::numbers::pi_v<double> * frequencyHz / sampleRate;
-	const std::complex<double> z1 =
-		std::exp(std::complex<double>(0.0, -omega));
-	const std::complex<double> z2 = z1 * z1;
-
-	const std::complex<double> numerator =
-		coefficients.b0
-		+ coefficients.b1 * z1
-		+ coefficients.b2 * z2;
-	const std::complex<double> denominator =
-		1.0
-		+ coefficients.a1 * z1
-		+ coefficients.a2 * z2;
-
-	if (std::abs(denominator) <= kMinimumMagnitude)
-		return 1.0 / kMinimumMagnitude;
-
-	return std::abs(numerator / denominator);
-}
-
 QString frequencyLabel(double frequencyHz)
 {
 	if (frequencyHz >= 1000.0)
@@ -165,11 +121,11 @@ void SubwooferRoutingResponseView::recompute()
 	curves.clear();
 	appliedTrimDb.reset();
 
-	const double sampleRate =
-		model->sampleRate() > 0 ? model->sampleRate() : 48000.0;
-	const subroute::CompileResult compiled = subroute::compile(
-		model->state(),
-		prepareSpecFor(model->state(), sampleRate));
+	// The model's one preview compile, at the device rate or the fallback
+	// rate with no device: the trim drawn here is the one the dialog's
+	// applied-trim label and the card show.
+	const double sampleRate = model->previewSampleRate();
+	const subroute::CompileResult& compiled = model->preview();
 
 	if (!compiled.graph.has_value())
 	{
@@ -177,8 +133,7 @@ void SubwooferRoutingResponseView::recompute()
 		return;
 	}
 
-	if (compiled.headroom.has_value())
-		appliedTrimDb = compiled.headroom->appliedTrimDb;
+	appliedTrimDb = model->computedTrimDb();
 
 	double sampledMinimum = 0.0;
 	double sampledMaximum = 0.0;
@@ -201,14 +156,19 @@ void SubwooferRoutingResponseView::recompute()
 					kMaximumFrequencyHz / kMinimumFrequencyHz,
 					ratio);
 
+			// Only the filter sections are drawn: gain and delay stages
+			// (which subroute::evaluatePathResponse includes) would lift a
+			// gained path's curve off its crossover shape.
+			const double omega = 2.0 * std::numbers::pi_v<double>
+				* frequencyHz / sampleRate;
 			double magnitude = 1.0;
 			for (const subroute::CompiledStage& stage : path.stages)
 			{
 				if (stage.kind != subroute::CompiledStageKind::Biquad)
 					continue;
 
-				magnitude *= biquadMagnitude(
-					stage.biquad, frequencyHz, sampleRate);
+				magnitude *= std::abs(
+					subroute::evaluateBiquad(stage.biquad, omega));
 			}
 
 			const double decibels = 20.0 * std::log10(

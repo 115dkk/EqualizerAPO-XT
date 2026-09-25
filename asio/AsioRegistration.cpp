@@ -9,6 +9,7 @@
 
 #include "asio/WrapperRecord.h"
 #include "platform/windows/GuidText.h"
+#include "runtime/errors/WideError.h"
 #include "services/registry/ClsidRegistration.h"
 
 namespace eapo::asio
@@ -26,6 +27,25 @@ namespace eapo::asio
 		{
 			if (registry.keyExists(key))
 				registry.deleteKey(key);
+		}
+
+		// A braced GUID and nothing else. CLSIDFromString would also accept a
+		// ProgID and look it up; IIDFromString takes only the GUID form.
+		bool parseGuid(const std::wstring& text, GUID& guid)
+		{
+			return !text.empty() && SUCCEEDED(IIDFromString(text.c_str(), &guid));
+		}
+
+		// The wrapper CLSID of a target, refused when the target's CLSID is
+		// not a GUID: the empty result would name the CLSID root itself, and
+		// registerWrapper would write the class values there (audit #348
+		// TD-45).
+		std::wstring requireWrapperClsid(const AsioTarget& target)
+		{
+			const std::wstring wrapperClsid = AsioRegistration::wrapperClsidFor(target.clsid);
+			if (wrapperClsid.empty())
+				throw WideError(L"The ASIO target " + target.name + L" has a CLSID that is not a GUID: " + target.clsid);
+			return wrapperClsid;
 		}
 	}
 
@@ -61,7 +81,7 @@ namespace eapo::asio
 		std::wstring wrapperClsidFor(const std::wstring& targetClsid)
 		{
 			GUID guid = {};
-			if (FAILED(CLSIDFromString(targetClsid.c_str(), &guid)))
+			if (!parseGuid(targetClsid, guid))
 				return std::wstring();
 			// Flip a fixed pattern into the target's id and stamp it as a
 			// random-style (version 4) GUID, so the derived id can never equal
@@ -104,7 +124,10 @@ namespace eapo::asio
 				target.name = name;
 				target.clsid = registry.readValue(key, clsidValue);
 				target.description = registry.valueExists(key, descriptionValue) ? registry.readValue(key, descriptionValue) : name;
-				if (!target.clsid.empty())
+				// A driver whose CLSID is not a GUID cannot be loaded, and no
+				// wrapper CLSID derives from it; it is not offered.
+				GUID guid = {};
+				if (parseGuid(target.clsid, guid))
 					targets.push_back(std::move(target));
 			}
 			return targets;
@@ -118,7 +141,7 @@ namespace eapo::asio
 		void registerWrapper(IRegistry& registry, const AsioTarget& target,
 			const std::wstring& dll64Path, const std::wstring& dll32Path)
 		{
-			const std::wstring wrapperClsid = wrapperClsidFor(target.clsid);
+			const std::wstring wrapperClsid = requireWrapperClsid(target);
 			const std::wstring entryName = entryNameFor(target.name);
 			for (int view = 0; view < 2; view++)
 			{
@@ -136,7 +159,13 @@ namespace eapo::asio
 
 		void unregisterWrapper(IRegistry& registry, const AsioTarget& target)
 		{
+			// registerWrapper refuses a target whose CLSID is not a GUID, so
+			// nothing was ever written for one; an empty wrapper CLSID must
+			// not reach the key paths below, where it would name the CLSID
+			// root.
 			const std::wstring wrapperClsid = wrapperClsidFor(target.clsid);
+			if (wrapperClsid.empty())
+				return;
 			const std::wstring entryName = entryNameFor(target.name);
 			for (int view = 0; view < 2; view++)
 			{

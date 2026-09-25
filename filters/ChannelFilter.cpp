@@ -24,6 +24,7 @@
 #include "runtime/memory/AlignedMemory.h"
 #include "services/logging/Logging.h"
 #include "audio/ChannelLayout.h"
+#include "ChannelCommand.h"
 #include "ChannelFilter.h"
 #include "diagnostics/performance/PerfProfile.h"
 
@@ -42,42 +43,16 @@ ChannelFilter::~ChannelFilter()
 
 vector<wstring> ChannelFilter::initialize(float sampleRate, unsigned maxFrameCount, vector<wstring> channelNames)
 {
-	size_t channelCount = channelNames.size();
-	vector<bool> selectedChannels = vector<bool>(channelCount, false);
-
-	for (vector<wstring>::iterator it = words.begin(); it != words.end(); it++)
-	{
-		wstring currentWord = *it;
-		int channelNr = -1;
-
-		if (currentWord == L"ALL")
-			selectedChannels = vector<bool>(channelCount, true);
-		else
-			channelNr = ChannelLayout::getChannelIndex(currentWord, channelNames);
-
-		if (channelNr != -1 && channelNr < static_cast<int>(channelCount))
-		{
-			selectedChannels[channelNr] = true;
-		}
-	}
-
+	// The codec's selection, the one the Editor mirrors (audit #348 A2); the
+	// engine logs unknown selectors, once per load.
 	vector<wstring> selectedChannelNames;
-	for (unsigned i = 0; i < channelCount; i++)
-	{
-		if (selectedChannels[i])
-			selectedChannelNames.push_back(channelNames[i]);
-	}
-
 	wstringstream channelNumbers;
-	for (size_t c = 0; c < channelCount; c++)
+	for (const size_t c : ChannelCommand::selectedIndices(words, channelNames, true))
 	{
-		if (selectedChannels[c])
-		{
-			if (channelNumbers.tellp() > 0)
-				channelNumbers << L", ";
-
-			channelNumbers << c + 1;
-		}
+		selectedChannelNames.push_back(channelNames[c]);
+		if (channelNumbers.tellp() > 0)
+			channelNumbers << L", ";
+		channelNumbers << c + 1;
 	}
 
 	TraceF(L"Selecting channel(s) number %s", channelNumbers.str().c_str());

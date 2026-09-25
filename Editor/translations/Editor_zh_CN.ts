@@ -1218,6 +1218,16 @@ Select a different file or change the device configuration.</source>
         <translation type="unfinished">部分文件无法复制：
 %1</translation>
     </message>
+    <message>
+        <location filename="../widgets/cards/FileReferenceController.cpp" line="98"/>
+        <source>The audio service only opens files on local drives</source>
+        <translation>音频服务只打开本地驱动器上的文件</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/FileReferenceController.cpp" line="100"/>
+        <source>Not readable by the audio service</source>
+        <translation>音频服务无法读取</translation>
+    </message>
 </context>
 <context>
     <name>FilterCardModel</name>
@@ -1414,6 +1424,11 @@ Select a different file or change the device configuration.</source>
         <location filename="../widgets/FilterCardRow.cpp" line="826"/>
         <source>This line was not applied: %1</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCardRow.cpp" line="840"/>
+        <source>Equalizer APO could not prepare this filter, so the whole configuration was not applied and the previous settings keep playing. Check the file or plug-in this line uses, or switch the line off.</source>
+        <translation>Equalizer APO 无法准备此滤波器，因此整个配置未被应用，之前的设置仍在播放。请检查此行使用的文件或插件，或关闭此行。</translation>
     </message>
 </context>
 <context>
@@ -2499,6 +2514,16 @@ Alexander Walch</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="305"/>
+        <source>Not applied</source>
+        <translation>未应用</translation>
+    </message>
+    <message>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="281"/>
+        <source>This configuration was not applied: the filter on line %1 of %2 could not be prepared. Equalizer APO keeps playing the previous settings.</source>
+        <translation>此配置未被应用：%2 第 %1 行的滤波器无法准备。Equalizer APO 继续播放之前的设置。</translation>
+    </message>
+    <message>
         <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="276"/>
         <source>%0 dB</source>
         <translation>%0 dB</translation>
@@ -2963,7 +2988,7 @@ Do you want to run the Device Selector application to fix the problem?</source>
     </message>
     <message>
         <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="122"/>
-        <source>Source LFE gain</source>
+        <source>Effective LFE gain</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4413,7 +4438,7 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
     </message>
     <message>
         <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="381"/>
-        <source>Gain:</source>
+        <source>LFE gain adjustment:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

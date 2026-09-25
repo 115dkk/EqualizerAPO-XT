@@ -461,15 +461,6 @@ public:
 namespace
 {
 
-bool prepareSpecsAreEquivalent(
-	const PrepareSpec& left,
-	const PrepareSpec& right) noexcept
-{
-	return left.sampleRate == right.sampleRate &&
-		left.maximumBlockSize == right.maximumBlockSize &&
-		left.channelLayout == right.channelLayout;
-}
-
 void validateFinite(double value, const char* message)
 {
 	if (!std::isfinite(value))
@@ -491,15 +482,9 @@ Processor::Processor(Processor&& other) noexcept = default;
 
 Processor& Processor::operator=(Processor&& other) noexcept = default;
 
-void Processor::prepare(
-	const PrepareSpec& prepareSpec,
-	const ProcessingGraph& graph)
+void Processor::prepare(const ProcessingGraph& graph)
 {
-	if (!prepareSpecsAreEquivalent(prepareSpec, graph.prepareSpec()))
-	{
-		throw std::invalid_argument(
-			"PrepareSpec does not match the graph PrepareSpec");
-	}
+	const PrepareSpec& prepareSpec = graph.prepareSpec();
 
 	if (!std::isfinite(prepareSpec.sampleRate) ||
 		prepareSpec.sampleRate <= 0.0)

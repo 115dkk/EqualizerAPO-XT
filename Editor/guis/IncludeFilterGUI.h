@@ -21,6 +21,8 @@
 
 #include <memory>
 
+#include <QFileInfo>
+
 #include "Editor/IFilterGUI.h"
 #include "Editor/FilterTable.h"
 
@@ -45,6 +47,7 @@ private slots:
 
 private:
 	void updateFileInfo();
+	QFileInfo includedFile() const;
 
 	std::unique_ptr<Ui::IncludeFilterGUI> ui;
 	FilterTable* filterTable;

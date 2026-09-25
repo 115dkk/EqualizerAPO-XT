@@ -136,6 +136,7 @@ SOURCES += main.cpp\
 	../filters/GraphicEQFilterFactory.cpp \
 	../libHybridConv-0.1.1/libHybridConv_eapo.cpp \
 	../dsp/FftwPlanningPolicy.cpp \
+	../dsp/DelayLine.cpp \
 	../filters/graphicEq/GainCurveIterator.cpp \
 	guis/GraphicEQFilterGUIScene.cpp \
 	widgets/FrequencyPlotView.cpp \
@@ -170,7 +171,9 @@ SOURCES += main.cpp\
 	guis/StageFilterGUIFactory.cpp \
 	guis/ExpressionFilterGUIFactory.cpp \
 	widgets/ResizeCorner.cpp \
+	analysis/AnalysisRequestFence.cpp \
 	analysis/AnalysisResponse.cpp \
+	analysis/ImpulseMeasurement.cpp \
 	analysis/ResponseCurveBuilder.cpp \
 	../engine/FilterEngine.cpp \
 	../engine/FilterEngine.Configuration.cpp \
@@ -197,8 +200,8 @@ SOURCES += main.cpp\
 	../filters/IncludeFilterFactory.cpp \
 	../filters/ChannelFilter.cpp \
 	../filters/ConvolutionFilter.cpp \
+	../filters/ConfigFileReference.cpp \
 	../filters/ConfigPathPolicy.cpp \
-	../filters/ConvolutionFilePath.cpp \
 	../filters/MultiConvolutionCommand.cpp \
 	../filters/MultiConvolutionFilter.cpp \
 	../filters/MultiConvolutionFilterFactory.cpp \
@@ -235,6 +238,7 @@ SOURCES += main.cpp\
 	../asio/AsioRegistration.cpp \
 	../services/registry/ClsidRegistration.cpp \
 	../asio/WrapperRecord.cpp \
+	../asio/StreamFacts.cpp \
 	../devices/VoicemeeterAPOInfo.cpp \
 	../vst/AbstractLibrary.cpp \
 	../vst/VST3PluginIIDs.cpp \
@@ -243,6 +247,7 @@ SOURCES += main.cpp\
 	guis/VSTPluginFilterGUIFactory.cpp \
 	guis/VSTPluginFilterGUIDialog.cpp \
 	../filters/VSTPluginCommand.cpp \
+	../filters/VSTChannelPlan.cpp \
 	../filters/VSTPluginFilter.cpp \
 	../filters/VSTPluginFilterFactory.cpp \
 	../vst/VSTPluginInstance.cpp \
@@ -282,6 +287,7 @@ SOURCES += main.cpp\
 	widgets/subwooferrouting/SubwooferRoutingDefaults.cpp \
 	widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp \
 	widgets/subwooferrouting/SubwooferRoutingResponseView.cpp \
+	widgets/subwooferrouting/SubwooferRoutingStateReads.cpp \
 	widgets/subwooferrouting/SubwooferRoutingUiState.cpp \
 	widgets/subwooferrouting/SubwooferRoutingUiModel.cpp \
 	widgets/routing/SubwooferRoutingRoutingAdapter.cpp \
@@ -453,6 +459,7 @@ HEADERS  += \
 	../filters/GraphicEQFilterFactory.h \
 	../libHybridConv-0.1.1/libHybridConv_eapo.h \
 	../dsp/FftwPlanningPolicy.h \
+	../dsp/DelayLine.h \
 	../dsp/SampleConversion.h \
 	../runtime/WeakValueCache.h \
 	../filters/graphicEq/GainCurveIterator.h \
@@ -484,7 +491,9 @@ HEADERS  += \
 	guis/ExpressionFilterGUIFactory.h \
 	widgets/ResizeCorner.h \
 	analysis/AnalysisMetric.h \
+	analysis/AnalysisRequestFence.h \
 	analysis/AnalysisResponse.h \
+	analysis/ImpulseMeasurement.h \
 	analysis/ResponseCurveBuilder.h \
 	../engine/FilterEngine.h \
 	../engine/ConfigWatcher.h \
@@ -497,6 +506,7 @@ HEADERS  += \
 	../filters/IfFilterFactory.h \
 	../filters/StageCommand.h \
 	../filters/StageFilterFactory.h \
+	../filters/ConfigFileReference.h \
 	../filters/ConfigPathPolicy.h \
 	../filters/ConvolutionFilterFactory.h \
 	../filters/IIRCommand.h \
@@ -526,7 +536,6 @@ HEADERS  += \
 	../parser/EngineParser.h \
 	../parser/StringOperators.h \
 	AnalysisThread.h \
-	helpers/AnalysisRequestGeneration.h \
 	widgets/ExponentialSpinBox.h \
 	FilterTableMimeData.h \
 	CustomStyle.h \
@@ -535,6 +544,7 @@ HEADERS  += \
 	../asio/AsioRegistration.h \
 	../asio/EntryOptions.h \
 	../asio/WrapperRecord.h \
+	../asio/StreamFacts.h \
 	../asio/StreamProcessor.h \
 	../devices/VoicemeeterAPOInfo.h \
 	../vst/AbstractLibrary.h \
@@ -543,6 +553,7 @@ HEADERS  += \
 	guis/VSTPluginFilterGUIFactory.h \
 	guis/VSTPluginFilterGUIDialog.h \
 	../filters/VSTPluginCommand.h \
+	../filters/VSTChannelPlan.h \
 	../filters/VSTPluginFilter.h \
 	../filters/VSTPluginFilterFactory.h \
 	../vst/VSTPluginInstance.h \
@@ -584,6 +595,7 @@ HEADERS  += \
 	widgets/subwooferrouting/SubwooferRoutingDefaults.h \
 	widgets/subwooferrouting/SubwooferRoutingEditorDialog.h \
 	widgets/subwooferrouting/SubwooferRoutingResponseView.h \
+	widgets/subwooferrouting/SubwooferRoutingStateReads.h \
 	widgets/subwooferrouting/SubwooferRoutingUiState.h \
 	widgets/subwooferrouting/SubwooferRoutingUiModel.h \
 	widgets/routing/SubwooferRoutingRoutingAdapter.h \

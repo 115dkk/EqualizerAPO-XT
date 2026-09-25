@@ -22,6 +22,7 @@
 
 #include <cwctype>
 
+#include "audio/ChannelLayout.h"
 #include "MultiConvolutionCommand.h"
 
 
@@ -252,4 +253,10 @@ bool MultiConvolutionCommand::parse(const std::wstring& command, const std::wstr
 	out.mappings = std::move(mappings);
 	out.path = std::move(path);
 	return true;
+}
+
+void MultiConvolutionCommand::declareChannels(std::vector<std::wstring>& channelNames) const
+{
+	for (const Mapping& mapping : mappings)
+		ChannelLayout::declare(channelNames, mapping.targetChannel);
 }

@@ -112,6 +112,7 @@ int main(int argc, char** argv)
 		testRowGuiPolicyRoutesEachLineShape();
 		testFilterCardBuildPlans();
 		testConfigImport();
+		testFileReferencesReadLikeTheEngine();
 		testLegacyMigrationScanAndPolicy();
 		testChannelSelectionModel();
 		testDeviceSelectionModel();
@@ -159,6 +160,14 @@ int main(int argc, char** argv)
 		testFilterLineCardDecidesPerLine();
 		testSubwooferRoutingUiStateRejectsUnknownTargets();
 		testSubwooferRoutingUiStateHeadroomModes();
+		testSubwooferRoutingReadsRoundTripEverySetter();
+		testSubwooferRoutingSourceLfeGainReaders();
+		testSubwooferRoutingPreviewRateAndTrim();
+		testAnalysisRequestFence();
+		testImpulseMeasurementFindsTheDelay();
+		testImpulseMeasurementAtTheBlockStart();
+		testImpulseMeasurementWithoutAnImpulse();
+		testImpulsePeakGain();
 		testVelopackInstallRootFollowsTheCurrentLeafRule();
 		testElevatedCoordinatorArgumentHasOneSpelling();
 		testTheSkinRosterIsTheOneList();

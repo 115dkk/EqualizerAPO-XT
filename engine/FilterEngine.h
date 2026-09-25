@@ -139,8 +139,16 @@ public:
 	// A factory saying "this line was mine and its parameters are wrong". Stamps
 	// the current file and line, logs it, and passes it to the trace sink so the
 	// Editor can mark the row. See ParseReportingFactory in IFilterFactory.h for
-	// why the factories report this rather than the engine inferring it.
-	void reportParseError(const std::wstring& command, const std::wstring& reason);
+	// why the factories report this rather than the engine inferring it. A
+	// nonzero line stamps that line of the current file instead: an If that
+	// the end of its file shows to be unclosed is reported on its own line.
+	void reportParseError(const std::wstring& command, const std::wstring& reason, int line = 0);
+	// The 1-based line of the current file the load is at, for a factory that
+	// has to report on a line later (the If family).
+	int loadTraceLine() const
+	{
+		return load.traceLine;
+	}
 	// Returns true if the active configuration (or any transition target) carries
 	// state across blocks or has a tail. Used by the APO to skip processing on
 	// silent input when safe. Conservative: returns true while a config swap is

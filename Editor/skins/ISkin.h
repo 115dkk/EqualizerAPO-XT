@@ -106,6 +106,10 @@ struct CommandRowInfo
 	// belongs in a round with the gallery gate. The card carries it as a tooltip
 	// in the meantime, which is not a skin surface.
 	QString parseError;
+	// The engine could not prepare this line's filter (it threw while being set
+	// up), so the whole configuration was not applied and the previous one keeps
+	// playing. Like parseError, the card carries it as a tooltip for now.
+	bool setupFailed = false;
 	// True when the line's parameters carry inline `expression` segments, so
 	// its numbers are decided at load time. Rows without a dynamic-capable
 	// editor host the shared raw body; skins extend their raw-body styling

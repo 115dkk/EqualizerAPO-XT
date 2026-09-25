@@ -80,11 +80,12 @@ void testSubwooferRoutingUiStateHeadroomModes()
 	expectTrue(state.state().headroom.manualTrimDb == -6.0,
 		QStringLiteral("the manual trim reaches the state"));
 
-	// Without a sample rate the state cannot compile, so validation falls
-	// back to the structural check and no trim readout exists.
-	SubwooferRoutingUiState uncompiled = makeFixture(0);
-	expectFalse(uncompiled.computedTrimDb().has_value(),
-		QStringLiteral("no sample rate means no computed trim"));
-	expectTrue(uncompiled.validation().succeeded(),
+	// Without a device the validation stays the structural check, but the
+	// trim readout compiles at the 48 kHz preview fallback (maintainer
+	// decision, audit #348), so the dialog, the card and the graph agree.
+	SubwooferRoutingUiState noDevice = makeFixture(0);
+	expectTrue(noDevice.computedTrimDb().has_value(),
+		QStringLiteral("no device still yields a trim, compiled at the preview fallback rate"));
+	expectTrue(noDevice.validation().succeeded(),
 		QStringLiteral("structural validation still runs without a sample rate"));
 }

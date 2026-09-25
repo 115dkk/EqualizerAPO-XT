@@ -647,6 +647,9 @@ if (-not (Test-Path -LiteralPath $asioProbe)) {
         # sizes are recorded as evidence of how this driver behaves.
         # The probe asks for the cable's own rate, the one the recording side
         # runs at; the entry's default is the endpoint's device format.
+        # --wrapper none: the entry is driven as the DAW would drive it. A
+        # probe wrapper around it (passthrough) used to report its own late
+        # and gone counts, not the product's (audit #348 F14).
         $env:PATH = "$current;$env:PATH"
         $asioEntry.probes = @()
         foreach ($frames in $asioEntryFrames) {
@@ -655,7 +658,7 @@ if (-not (Test-Path -LiteralPath $asioProbe)) {
             Write-Host "-- $frames frames"
             $probeOut = [System.IO.Path]::GetTempFileName()
             $probeErr = [System.IO.Path]::GetTempFileName()
-            $probeProcess = Start-Process -FilePath $asioProbe -ArgumentList @("--target", "clsid:$($asioEntry.wrapperClsid)", "--wrapper", "static", "--processor", "passthrough", "--seconds", "25", "--sine", "1000", "--rate", "$impulseRate", "--frames", "$frames") -PassThru -NoNewWindow -RedirectStandardOutput $probeOut -RedirectStandardError $probeErr -WorkingDirectory $current
+            $probeProcess = Start-Process -FilePath $asioProbe -ArgumentList @("--target", "clsid:$($asioEntry.wrapperClsid)", "--wrapper", "none", "--seconds", "25", "--sine", "1000", "--rate", "$impulseRate", "--frames", "$frames") -PassThru -NoNewWindow -RedirectStandardOutput $probeOut -RedirectStandardError $probeErr -WorkingDirectory $current
             # Measure only once the stream runs: the probe prints its latency
             # line after createBuffers and start succeeded. The first probe
             # starts the engine host cold, which on a busy runner took long

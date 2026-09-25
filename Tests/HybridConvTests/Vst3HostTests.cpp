@@ -747,6 +747,63 @@ void runVst3HostTests()
 		}
 	}
 
+	{
+		// Audit #348 A10, maintainer decision: the latency compensation delays
+		// only the channels the plugin does not write, so they line up with the
+		// ones it does. The LatencyUpmixer module reports 512 samples of latency
+		// but adds none, and its Stereo -> Stereo bus copies L and R through. A
+		// fill over L, R, C leaves C unwritten: C comes out 512 samples late,
+		// L and R with no extra delay.
+		const wstring latencyBundle = prepareBundle(directory,
+			L"LatencyUpmixerBundle.vst3", L"TestVst3LatencyUpmixer.vst3");
+		shared_ptr<VSTPluginLibrary> latencyLibrary = VSTPluginLibrary::getInstance(latencyBundle);
+		harness.expectTrue(!latencyBundle.empty() && latencyLibrary->initialize() >= 0,
+			"latency-reporting VST3 module initializes");
+
+		const auto latencyStreamMatches = [&latencyLibrary](unsigned blockSize)
+		{
+			constexpr unsigned maxFrameCount = 1024;
+			constexpr unsigned streamLength = 2048;
+			constexpr unsigned latency = 512;
+			VST3BusContract contract;
+			contract.input = VST3BusLayout::Stereo;
+			contract.output = VST3BusLayout::Stereo;
+			VSTPluginFilter filter(latencyLibrary, wstring(), std::unordered_map<wstring, float>(),
+				contract, {L"L", L"R"}, std::vector<wstring>());
+			filter.initialize(48000.0f, maxFrameCount, {L"L", L"R", L"C"});
+
+			std::vector<std::vector<double>> inputData(3, std::vector<double>(streamLength, 0.0));
+			std::vector<std::vector<double>> outputData(3, std::vector<double>(streamLength, -1.0));
+			for (int channel = 0; channel < 3; channel++)
+				inputData[channel][0] = 1.0;
+			for (unsigned offset = 0; offset < streamLength; offset += blockSize)
+			{
+				double* inputs[3];
+				double* outputs[3];
+				for (int channel = 0; channel < 3; channel++)
+				{
+					inputs[channel] = inputData[channel].data() + offset;
+					outputs[channel] = outputData[channel].data() + offset;
+				}
+				filter.process(outputs, inputs, blockSize);
+			}
+
+			for (unsigned sample = 0; sample < streamLength; sample++)
+			{
+				const double delayed = sample >= latency ? inputData[2][sample - latency] : 0.0;
+				if (outputData[0][sample] != inputData[0][sample]
+					|| outputData[1][sample] != inputData[1][sample]
+					|| outputData[2][sample] != delayed)
+					return false;
+			}
+			return true;
+		};
+		harness.expectTrue(latencyStreamMatches(128),
+			"128-frame blocks: the unwritten channel is 512 samples late, the written ones are not delayed");
+		harness.expectTrue(latencyStreamMatches(1024),
+			"1024-frame blocks: the unwritten channel is 512 samples late, the written ones are not delayed");
+	}
+
 	const wstring mismatchBundle = prepareBundle(directory,
 		L"BusInfoMismatchBundle.vst3", L"TestVst3BusInfoMismatch.vst3");
 	shared_ptr<VSTPluginLibrary> mismatchLibrary = VSTPluginLibrary::getInstance(mismatchBundle);

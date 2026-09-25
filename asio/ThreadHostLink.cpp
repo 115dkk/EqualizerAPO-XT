@@ -10,6 +10,7 @@
 #include <malloc.h>
 
 #include "asio/EngineHostCore.h"
+#include "asio/HostProtocol.h"
 
 namespace eapo::asio
 {
@@ -36,48 +37,30 @@ namespace eapo::asio
 			return false;
 		}
 		std::memset(region_, 0, bytes);
-		for (int i = 0; i < 5; i++)
-			events_[i] = CreateEventW(nullptr, i == 4 ? TRUE : FALSE, FALSE, nullptr);
+		for (unsigned i = 0; i < RingEvents::count; i++)
+			events_[i] = CreateEventW(nullptr, RingEvents::table[i].manualReset ? TRUE : FALSE, FALSE, nullptr);
 		hostGone_ = CreateEventW(nullptr, TRUE, FALSE, nullptr);
 		producerGone_ = CreateEventW(nullptr, TRUE, FALSE, nullptr);
 
 		session.ringBase = region_;
 		session.ringBytes = bytes;
-		session.sync.work[0] = events_[0];
-		session.sync.work[1] = events_[1];
-		session.sync.done[0] = events_[2];
-		session.sync.done[1] = events_[3];
-		session.sync.ready = events_[4];
-		session.sync.peer = hostGone_;
+		session.sync = RingEvents::toSync(events_, hostGone_);
 		session.hostPid = GetCurrentProcessId();
 
-		eapo::ipc::RingSync consumerSync = session.sync;
-		consumerSync.peer = producerGone_;
+		const eapo::ipc::RingSync consumerSync = RingEvents::toSync(events_, producerGone_);
 		kill_ = false;
+		hold_ = false;
 		ServeOptions serve;
 		serve.configPath = options.configPath;
 		serve.proAudio = proAudio_;
 		serve.spinPeriods = proAudio_ ? 1.0 : 0.0;
 		serve.idleWaitMs = 100;
+		serve.readyTimeoutMs = options.readyTimeoutMs;
+		serve.abandon = &kill_;
+		serve.hold = &hold_;
 		void* base = region_;
 		thread_ = std::thread([this, base, bytes, consumerSync, serve] {
-			// The producer formats the header after open() returns; wait for
-			// Announced before validating.
-			eapo::ipc::RingHeader* header = static_cast<eapo::ipc::RingHeader*>(base);
-			while (ReadAcquire(&header->state) == static_cast<LONG>(eapo::ipc::RingState::Empty) && !kill_.load())
-			{
-				if (WaitForSingleObject(consumerSync.peer, 5) == WAIT_OBJECT_0)
-					break;
-			}
-			if (!kill_.load())
-			{
-				eapo::ipc::RingConsumer consumer(base, bytes, consumerSync);
-				if (kill_.load())
-					return;
-				ServeOptions local = serve;
-				local.abandon = &kill_;
-				EngineHostCore::serveStream(consumer, local, GetCurrentProcessId());
-			}
+			EngineHostCore::attachAndServe(base, bytes, consumerSync, serve, GetCurrentProcessId());
 			SetEvent(hostGone_);
 		});
 		return true;
@@ -110,5 +93,10 @@ namespace eapo::asio
 	void ThreadHostLink::killHost() noexcept
 	{
 		kill_ = true;
+	}
+
+	void ThreadHostLink::holdHost(bool held) noexcept
+	{
+		hold_ = held;
 	}
 }

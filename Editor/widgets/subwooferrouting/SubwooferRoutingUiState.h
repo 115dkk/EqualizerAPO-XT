@@ -41,6 +41,15 @@
 class SubwooferRoutingUiState
 {
 public:
+	// With no device selected the device rate is 0. Previews (the applied
+	// trim, the card's trim and the response graph) then compile at this rate
+	// instead of showing nothing (maintainer decision, audit #348).
+	static constexpr double kPreviewFallbackSampleRate =
+		subroute::kPreviewFallbackSampleRate;
+
+	// The rate a preview compiles at: the device rate, or the fallback at 0.
+	static double previewSampleRateFor(unsigned deviceSampleRate);
+
 	SubwooferRoutingUiState(
 		const subroute::SubwooferRoutingState& state,
 		unsigned deviceSampleRate);
@@ -48,7 +57,12 @@ public:
 	const subroute::SubwooferRoutingState& state() const;
 	const subroute::ValidationResult& validation() const;
 	unsigned sampleRate() const;
+	double previewSampleRate() const;
 	bool isDirty() const;
+	// The state compiled once per mutation at previewSampleRate(). The dialog's
+	// applied-trim label, the card and the response graph all read the trim
+	// from here, so the three show one number.
+	const subroute::CompileResult& preview() const;
 	std::optional<double> computedTrimDb() const;
 
 	// Every mutating method answers whether it changed the state (and
@@ -85,5 +99,5 @@ private:
 	subroute::ValidationResult currentValidation;
 	unsigned deviceSampleRate = 0;
 	bool dirty = false;
-	std::optional<double> appliedTrimDb;
+	subroute::CompileResult previewResult;
 };

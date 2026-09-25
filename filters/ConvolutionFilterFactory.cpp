@@ -22,8 +22,7 @@
 #include "runtime/memory/AlignedMemory.h"
 #include "services/logging/Logging.h"
 #include "ConvolutionCommand.h"
-#include "ConfigPathPolicy.h"
-#include "ConvolutionFilePath.h"
+#include "ConfigFileReference.h"
 #include "ConvolutionFilter.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "ConvolutionFilterFactory.h"
@@ -44,13 +43,11 @@ FilterVector ConvolutionFilterFactory::createFilter(const wstring& configPath, w
 	if (cmd.path.empty())
 		return reportParseError(command, L"expected the path of an impulse response file");
 
-	wstring absolutePath = ConvolutionFilePath::resolve(configPath, cmd.path);
-	if (absolutePath.empty())
+	const ConfigFileReference::Target file = ConfigFileReference::target(configPath, cmd.path);
+	if (!file.refusal.empty())
+		return reportParseError(command, file.refusal);
+	if (file.path.empty())
 		return reportParseError(command, L"the impulse response file \"" + cmd.path + L"\" was not found");
 
-	wstring reason;
-	if (!ConfigPathPolicy::allowsOpen(absolutePath, configPath, reason))
-		return reportParseError(command, reason);
-
-	return singleFilter(makeFilter<ConvolutionFilter>(absolutePath));
+	return singleFilter(makeFilter<ConvolutionFilter>(file.path));
 }

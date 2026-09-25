@@ -56,6 +56,7 @@ bool surround41Mode = false;
 bool surround41CineOnlyMode = false;
 bool busInfoMismatchMode = false;
 bool toneGeneratorMode = false;
+bool latency512Mode = false;
 std::atomic<int> upmixerComponentCount{0};
 std::atomic<int> upmixerProcessCount{0};
 std::atomic<unsigned long long> surround41AcceptedOutputArrangement{
@@ -711,7 +712,10 @@ public:
 	{
 		return size == kSample32 || size == kSample64 ? kResultOk : kResultFalse;
 	}
-	uint32 PLUGIN_API getLatencySamples() override { return 0; }
+	// LatencyUpmixer.vst3 mode reports 512 samples of latency without adding
+	// any: the host test sees whether the compensation delays the channels
+	// the plugin did not write, and only those.
+	uint32 PLUGIN_API getLatencySamples() override { return latency512Mode ? 512 : 0; }
 	tresult PLUGIN_API setupProcessing(ProcessSetup& newSetup) override { setup = newSetup; return kResultOk; }
 	tresult PLUGIN_API setProcessing(TBool state) override
 	{
@@ -1224,6 +1228,7 @@ extern "C" __declspec(dllexport) bool InitDll()
 	surround41CineOnlyMode = wcsstr(modulePath, L"Surround41CineOnly.vst3") != nullptr;
 	surround41Mode = wcsstr(modulePath, L"Surround41.vst3") != nullptr || surround41CineOnlyMode;
 	toneGeneratorMode = wcsstr(modulePath, L"ToneGenerator.vst3") != nullptr;
+	latency512Mode = wcsstr(modulePath, L"LatencyUpmixer.vst3") != nullptr;
 	upmixerProcessCount.store(0);
 	surround41AcceptedOutputArrangement.store(
 		static_cast<unsigned long long>(SpeakerArr::kStereo));
@@ -1250,6 +1255,7 @@ extern "C" __declspec(dllexport) bool ExitDll()
 	surround41CineOnlyMode = false;
 	busInfoMismatchMode = false;
 	toneGeneratorMode = false;
+	latency512Mode = false;
 	return true;
 }
 
