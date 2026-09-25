@@ -46,4 +46,6 @@ void SoftSkin::styleFileDialog(QFileDialog* dialog, const SkinTokens& tokens) co
 			toolButton->setIconSize(QSize(22, 22));
 		}
 	}
+	// The entry pictograms answer in the same tile language, smaller.
+	installFileIconProvider(dialog, tokens);
 }

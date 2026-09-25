@@ -63,4 +63,5 @@ public:
 
 private:
 	static QIcon softTileIcon(const QString& resource, const QColor& tile);
+	static void installFileIconProvider(QFileDialog* dialog, const SkinTokens& tokens);
 };
