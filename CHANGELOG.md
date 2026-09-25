@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.5 — 2026-09-25
+
 - **A device whose driver locks its effect settings is no longer offered for
   an install that loses them.** When a driver kept its endpoint's effect
   settings (the FxProperties key) from being read, the Device Selector took
