@@ -81,7 +81,8 @@ void usage()
 		L"  --hold-default            first hold a silent playback stream at the default period, then open --period\n"
 		L"  --expect-gain-db X [--tolerance-db Y]  exit 2 unless tone gain is X +- Y\n"
 		L"  --json                    one JSON line on stdout\n"
-		L"Without --render/--capture the default endpoints are used.\n");
+		L"Without --render/--capture the default endpoints are used.\n"
+		L"Exit 3: the deadline cut the window short (the reading is still printed).\n");
 }
 
 bool parse(int argc, wchar_t** argv, Options& o)
@@ -733,11 +734,17 @@ int wmain(int argc, wchar_t** argv)
 		double s1 = 0.0, s2 = 0.0;
 		const DWORD deadline = GetTickCount() + (DWORD)((o.settle + o.seconds) * 1000.0) + 3000;
 		HRESULT captureError = S_OK;
+		// A window the deadline cut short fails the run (exit 3) after the
+		// reading is printed: a gain measured over less than the requested
+		// window is not the measurement that was asked for (audit #348 TD-73;
+		// it used to pass).
+		bool cutShort = false;
 		while (counted < measureFrames)
 		{
 			if (GetTickCount() > deadline)
 			{
 				fwprintf(stderr, L"capture delivered %llu of %llu frames before the deadline\n", counted, measureFrames);
+				cutShort = true;
 				break;
 			}
 			UINT32 packet = 0;
@@ -821,11 +828,11 @@ int wmain(int argc, wchar_t** argv)
 			if (o.json)
 			{
 				printf("{\"capture\":\"%ls\",\"render\":\"%ls\",\"category\":\"%ls\",\"raw\":%s,\"rate\":%u,\"channels\":%u,"
-					"\"frames\":%llu,\"silentPackets\":%llu,"
+					"\"frames\":%llu,\"requestedFrames\":%llu,\"silentPackets\":%llu,"
 					"\"renderRate\":%u,\"renderPeriodFrames\":%u,\"engineDefaultPeriodFrames\":%u,\"engineMinPeriodFrames\":%u,"
 					"\"enginePeriodFrames\":%u,\"holdEnginePeriodFrames\":%u,\"rmsDb\":[",
 					captureLabel.c_str(), renderLabel.c_str(), o.categoryName.c_str(), o.raw ? "true" : "false",
-					rate, channels, counted, silentPackets,
+					rate, channels, counted, measureFrames, silentPackets,
 					job.rate, job.requestedPeriod, job.defaultPeriod, job.minPeriod, job.enginePeriod, job.holdEnginePeriod);
 				for (unsigned c = 0; c < channels; c++)
 					printf("%s%.2f", c ? "," : "", rmsDb[c]);
@@ -845,7 +852,13 @@ int wmain(int argc, wchar_t** argv)
 						job.holdDefault ? " after a held default-period stream" : "");
 			}
 			result = 0;
-			if (o.haveExpectation && std::fabs(gainDb - o.expectGainDb) > o.toleranceDb)
+			if (cutShort)
+			{
+				fprintf(stderr, "only %llu of the %llu requested frames were measured; the reading is not valid\n",
+					counted, measureFrames);
+				result = 3;
+			}
+			else if (o.haveExpectation && std::fabs(gainDb - o.expectGainDb) > o.toleranceDb)
 			{
 				fprintf(stderr, "gain %.2f dB is outside %.2f +- %.2f dB\n", gainDb, o.expectGainDb, o.toleranceDb);
 				result = 2;

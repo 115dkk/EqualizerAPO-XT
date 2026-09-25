@@ -90,6 +90,7 @@ void testSubwooferRoutingUiStateHeadroomModes();
 void testSubwooferRoutingReadsRoundTripEverySetter();
 void testSubwooferRoutingSourceLfeGainReaders();
 void testSubwooferRoutingPreviewRateAndTrim();
+void testSubwooferRoutingPresetDisplayName();
 void testAnalysisRequestFence();
 void testImpulseMeasurementFindsTheDelay();
 void testImpulseMeasurementAtTheBlockStart();

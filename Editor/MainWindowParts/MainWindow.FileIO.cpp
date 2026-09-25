@@ -76,7 +76,7 @@ void MainWindow::load(QString path)
 
 	connect(filterTable, SIGNAL(linesChanged()), this, SLOT(linesChanged()));
 
-	qDebug("Loading took %.1f ms", timer.nsecsElapsed() / 1e6);
+	TraceF(L"Loading took %.1f ms", timer.nsecsElapsed() / 1e6);
 
 	ui->tabWidget->setCurrentIndex(ui->tabWidget->count() - 1);
 	updateDirtyStatus();
@@ -107,7 +107,7 @@ bool MainWindow::save(FilterTable* filterTable, QString path)
 		return false;
 	}
 
-	qDebug("Saving took %.1f ms", timer.nsecsElapsed() / 1e6);
+	TraceF(L"Saving took %.1f ms", timer.nsecsElapsed() / 1e6);
 
 	startAnalysis();
 	updateDirtyStatus();

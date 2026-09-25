@@ -175,8 +175,8 @@ double sourceLfeAdjustmentDb(const subroute::Path& path)
 	return path.preGainDb;
 }
 
-bool isIssue246Preset(const subroute::PresetDescriptor& preset)
+std::string presetDisplayName(const subroute::PresetDescriptor& preset)
 {
-	return preset.id == subroute::kIssue246FrontRear41PresetId;
+	return preset.displayName;
 }
 }

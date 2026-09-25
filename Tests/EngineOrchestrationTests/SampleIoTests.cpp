@@ -191,12 +191,26 @@ double minBatchSeconds(Fn&& fn, int samples, int batch)
 // meaningless. Both directions are always measured and printed for the
 // benchmark record; three attempts absorb CI scheduling outliers.
 //
-// This TU is pinned to /std:c++17 in the project file: under /std:c++20 the
+// What the ratio compares (maintainer decision, audit #348 TD-74: keep this
+// contract as it is). The candidate is the product code: writeFloatInterleaved
+// and readFloatInterleaved come from Common.lib, compiled as C++20 with the
+// build variant's instruction set, exactly as the APO ships them. The
+// reference is the two lambdas below, a fixed yardstick: the one strided
+// element at a time loop the conversions used to be (the 2026-07 finding).
+// So the bar asks "is the shipped conversion still clearly faster than the
+// naive loop it replaced", and it fails if the product code ever falls back
+// to that shape. It does not ask whether the hand-written SIMD beats what
+// the C++20 compiler could make of a naive loop; the printed timings are the
+// record for that, not a gate.
+//
+// Why the reference is compiled as C++17. This TU is pinned to /std:c++17 in
+// the project file so the yardstick keeps its shape: under /std:c++20 the
 // compiler optimizes the reference lambdas themselves (avx2 runner: write
-// reference 1650 ns -> 295 ns, candidate unchanged), which collapses the
-// ratio and inverts the meaning of the bar. #pragma loop(no_vector) did not
-// restore the naive shape, so the pin keeps the compilation the bars were
-// calibrated against. Revisit if the bars are ever recalibrated for C++20.
+// reference 1650 ns -> 295 ns, candidate unchanged), so the ratio would
+// measure the compiler's treatment of the test's own loop instead of the
+// product code. #pragma loop(no_vector) did not restore the naive shape.
+// Only this TU is pinned; the product code under test is not. Revisit if the
+// bars are ever recalibrated for C++20.
 void testStereoFloatConversionBeatsScalarReference(test::Harness& harness)
 {
 	constexpr unsigned channels = 2;

@@ -26,6 +26,7 @@
 #include "engine/FilterEngine.h"
 #include "Editor/analysis/ImpulseMeasurement.h"
 #include "helpers/AnalysisWorkerRecovery.h"
+#include "services/logging/Logging.h"
 #include "AnalysisThread.h"
 
 using std::mutex;
@@ -308,7 +309,7 @@ void AnalysisThread::run()
 				return;
 		}
 
-		qDebug("Analysis took %.1f ms", timer.nsecsElapsed() / 1e6);
+		TraceF(L"Analysis took %.1f ms", timer.nsecsElapsed() / 1e6);
 		},
 		[&](const char* error)
 		{

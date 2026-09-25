@@ -30,6 +30,13 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   like an unlit lamp on a card
   ([#399](https://github.com/115dkk/EqualizerAPO-XT/pull/399)).
 
+## v2.54.25 — 2026-09-25
+
+- **The SubwooferRouting card and its dialog name a built-in preset the same
+  way.** The card showed "Built-in preset: Issue #246 - Front/Rear 4.1" and
+  the dialog "Issue #246 - Front/Rear 4.1"; both now show the preset's own
+  name ([#398](https://github.com/115dkk/EqualizerAPO-XT/pull/398)).
+
 ## v2.54.24 — 2026-09-25
 
 - **The soft skin's file dialog uses its own icons.** The other four skins

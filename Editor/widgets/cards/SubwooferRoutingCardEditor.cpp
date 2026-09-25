@@ -101,17 +101,6 @@ QString layoutLabel(const subroute::SubwooferRoutingState& state)
 	return QStringLiteral("%1.%2").arg(mainChannels).arg(lfeChannels);
 }
 
-QString presetDisplayName(
-	const subroute::PresetDescriptor& preset)
-{
-	if (subwooferroutingeditor::isIssue246Preset(preset))
-		return SubwooferRoutingCardEditor::tr(
-			"Issue #246 - Front/Rear 4.1");
-
-	return SubwooferRoutingCardEditor::tr(
-		"Built-in preset: %1").arg(fromUtf8(preset.displayName));
-}
-
 unsigned tableSampleRate(FilterTable* table)
 {
 	const std::shared_ptr<AbstractAPOInfo> device =
@@ -180,7 +169,7 @@ SubwooferRoutingCardEditor::SubwooferRoutingCardEditor(
 		: subroute::builtInPresets())
 	{
 		QAction* action = presetMenu->addAction(
-			presetDisplayName(preset));
+			fromUtf8(subwooferroutingeditor::presetDisplayName(preset)));
 		const std::string presetId = preset.id;
 		connect(action, &QAction::triggered, this,
 			[this, presetId]()
