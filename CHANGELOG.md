@@ -19,7 +19,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   kept waiting for it and the ASIO app heard nothing until it was restarted.
   The stream now ends when Windows reports the device invalidated, or after
   four 500 ms waits with no signal from the device, and asks the app to reset
-  (#PRNUM). This was checked with unit tests on synthetic input; unplugging
+  ([#375](https://github.com/115dkk/EqualizerAPO-XT/pull/375)). This was checked with unit tests on synthetic input; unplugging
   real hardware was not tried.
 
 ## v2.54.7 — 2026-09-25
