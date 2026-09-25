@@ -170,7 +170,9 @@ SOURCES += main.cpp\
 	guis/StageFilterGUIFactory.cpp \
 	guis/ExpressionFilterGUIFactory.cpp \
 	widgets/ResizeCorner.cpp \
+	analysis/AnalysisRequestFence.cpp \
 	analysis/AnalysisResponse.cpp \
+	analysis/ImpulseMeasurement.cpp \
 	analysis/ResponseCurveBuilder.cpp \
 	../engine/FilterEngine.cpp \
 	../engine/FilterEngine.Configuration.cpp \
@@ -284,6 +286,7 @@ SOURCES += main.cpp\
 	widgets/subwooferrouting/SubwooferRoutingDefaults.cpp \
 	widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp \
 	widgets/subwooferrouting/SubwooferRoutingResponseView.cpp \
+	widgets/subwooferrouting/SubwooferRoutingStateReads.cpp \
 	widgets/subwooferrouting/SubwooferRoutingUiState.cpp \
 	widgets/subwooferrouting/SubwooferRoutingUiModel.cpp \
 	widgets/routing/SubwooferRoutingRoutingAdapter.cpp \
@@ -484,7 +487,9 @@ HEADERS  += \
 	guis/ExpressionFilterGUIFactory.h \
 	widgets/ResizeCorner.h \
 	analysis/AnalysisMetric.h \
+	analysis/AnalysisRequestFence.h \
 	analysis/AnalysisResponse.h \
+	analysis/ImpulseMeasurement.h \
 	analysis/ResponseCurveBuilder.h \
 	../engine/FilterEngine.h \
 	../engine/ConfigWatcher.h \
@@ -527,7 +532,6 @@ HEADERS  += \
 	../parser/EngineParser.h \
 	../parser/StringOperators.h \
 	AnalysisThread.h \
-	helpers/AnalysisRequestGeneration.h \
 	widgets/ExponentialSpinBox.h \
 	FilterTableMimeData.h \
 	CustomStyle.h \
@@ -587,6 +591,7 @@ HEADERS  += \
 	widgets/subwooferrouting/SubwooferRoutingDefaults.h \
 	widgets/subwooferrouting/SubwooferRoutingEditorDialog.h \
 	widgets/subwooferrouting/SubwooferRoutingResponseView.h \
+	widgets/subwooferrouting/SubwooferRoutingStateReads.h \
 	widgets/subwooferrouting/SubwooferRoutingUiState.h \
 	widgets/subwooferrouting/SubwooferRoutingUiModel.h \
 	widgets/routing/SubwooferRoutingRoutingAdapter.h \

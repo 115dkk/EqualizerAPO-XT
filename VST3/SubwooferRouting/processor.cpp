@@ -208,6 +208,8 @@ SubwooferRoutingProcessor::~SubwooferRoutingProcessor()
 {
 	if (peer_ != nullptr)
 		peer_->release();
+	if (host_ != nullptr)
+		host_->release();
 
 	PreparedEngine* current = current_.exchange(nullptr, std::memory_order_acq_rel);
 	delete current;
@@ -261,6 +263,19 @@ tresult PLUGIN_API SubwooferRoutingProcessor::initialize(FUnknown* context)
 {
 	if (context == nullptr || initialized_)
 		return kResultFalse;
+
+	// Kept only to create the sample-rate message for the controller; a host
+	// without IHostApplication still gets a working processor.
+	IHostApplication* host = nullptr;
+	if (context->queryInterface(
+		IHostApplication::iid,
+		reinterpret_cast<void**>(&host)) != kResultOk)
+	{
+		host = nullptr;
+	}
+
+	std::lock_guard<std::mutex> lock(stateMutex_);
+	host_ = host;
 	initialized_ = true;
 	return kResultOk;
 }
@@ -273,6 +288,11 @@ tresult PLUGIN_API SubwooferRoutingProcessor::terminate()
 	if (PreparedEngine* engine = current_.load(std::memory_order_acquire))
 		engine->processor.reset();
 	reapRetired();
+	if (host_ != nullptr)
+	{
+		host_->release();
+		host_ = nullptr;
+	}
 	initialized_ = false;
 	return kResultOk;
 }
@@ -576,24 +596,28 @@ tresult PLUGIN_API SubwooferRoutingProcessor::setupProcessing(ProcessSetup& setu
 		return kResultFalse;
 	}
 
-	std::lock_guard<std::mutex> lock(stateMutex_);
-	applyPendingParametersLocked();
-
-	std::unique_ptr<PreparedEngine> replacement;
-	try
 	{
-		replacement = buildPrepared(state_, canonicalJson_, arrangement_, setup);
-	}
-	catch (...)
-	{
-		return kResultFalse;
-	}
-	if (!replacement)
-		return kResultFalse;
+		std::lock_guard<std::mutex> lock(stateMutex_);
+		applyPendingParametersLocked();
 
-	setup_ = setup;
-	hasSetup_ = true;
-	publish(std::move(replacement));
+		std::unique_ptr<PreparedEngine> replacement;
+		try
+		{
+			replacement = buildPrepared(state_, canonicalJson_, arrangement_, setup);
+		}
+		catch (...)
+		{
+			return kResultFalse;
+		}
+		if (!replacement)
+			return kResultFalse;
+
+		setup_ = setup;
+		hasSetup_ = true;
+		publish(std::move(replacement));
+	}
+
+	sendSampleRate(setup.sampleRate);
 	return kResultOk;
 }
 
@@ -768,13 +792,23 @@ tresult PLUGIN_API SubwooferRoutingProcessor::connect(IConnectionPoint* other)
 	if (other == nullptr)
 		return kInvalidArgument;
 
-	std::lock_guard<std::mutex> lock(stateMutex_);
-	if (peer_ == other)
-		return kResultOk;
-	if (peer_ != nullptr)
-		peer_->release();
-	peer_ = other;
-	peer_->addRef();
+	double sampleRate = 0.0;
+	{
+		std::lock_guard<std::mutex> lock(stateMutex_);
+		if (peer_ == other)
+			return kResultOk;
+		if (peer_ != nullptr)
+			peer_->release();
+		peer_ = other;
+		peer_->addRef();
+		if (hasSetup_)
+			sampleRate = setup_.sampleRate;
+	}
+
+	// A host may call setupProcessing() before connecting the two halves;
+	// the rate it reported then went nowhere, so repeat it to the new peer.
+	if (sampleRate > 0.0)
+		sendSampleRate(sampleRate);
 	return kResultOk;
 }
 
@@ -856,7 +890,7 @@ SubwooferRoutingProcessor::buildPrepared(
 		engine->channelCount * engine->maximumBlockSize);
 	engine->bypassScratch64.resize(
 		engine->channelCount * engine->maximumBlockSize);
-	engine->processor.prepare(specification, *compiled.graph);
+	engine->processor.prepare(*compiled.graph);
 	return engine;
 }
 
@@ -890,6 +924,55 @@ void SubwooferRoutingProcessor::reapRetired()
 void SubwooferRoutingProcessor::clearPublishedEngineLocked()
 {
 	publish(nullptr);
+}
+
+void SubwooferRoutingProcessor::sendSampleRate(double sampleRate)
+{
+	IHostApplication* host = nullptr;
+	IConnectionPoint* peer = nullptr;
+	{
+		std::lock_guard<std::mutex> lock(stateMutex_);
+		host = host_;
+		peer = peer_;
+		if (host != nullptr)
+			host->addRef();
+		if (peer != nullptr)
+			peer->addRef();
+	}
+
+	if (host == nullptr || peer == nullptr)
+	{
+		if (host != nullptr)
+			host->release();
+		if (peer != nullptr)
+			peer->release();
+		return;
+	}
+
+	TUID messageIid;
+	IMessage::iid.toTUID(messageIid);
+	IMessage* message = nullptr;
+	const tresult created = host->createInstance(
+		messageIid,
+		messageIid,
+		reinterpret_cast<void**>(&message));
+	host->release();
+
+	if (created != kResultOk
+		|| message == nullptr
+		|| message->getAttributes() == nullptr)
+	{
+		if (message != nullptr)
+			message->release();
+		peer->release();
+		return;
+	}
+
+	message->setMessageID(kSampleRateMessageId);
+	message->getAttributes()->setFloat(kMessageSampleRate, sampleRate);
+	peer->notify(message);
+	message->release();
+	peer->release();
 }
 
 bool SubwooferRoutingProcessor::applyPendingParametersLocked()

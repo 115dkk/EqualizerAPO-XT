@@ -119,7 +119,7 @@ MinimalSubwooferRoutingCardView::MinimalSubwooferRoutingCardView(
 		tr("Representative high-pass and low-pass crossover corner; "
 			"the full editor lists the per-group sections"));
 	addReadoutRow(2, tr("LFE GAIN"), lfeGainValue,
-		tr("Source LFE gain"),
+		tr("Effective LFE gain"),
 		tr("Whether source LFE is preserved and its applied gain"));
 	addReadoutRow(3, tr("TRIM"), trimValue,
 		tr("Headroom trim"),

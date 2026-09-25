@@ -18,7 +18,13 @@
 #include "SubwooferRouting/StateCodec.h"
 #include "vst/VSTPluginInstance.h"
 #include "vst/VSTPluginLibrary.h"
+// After VSTPluginInstance.h: the VST3 SDK headers define VST_VERSION as a
+// macro, which breaks the VST2 aeffectx.h that header includes first.
+#include "vst/VST3HostObjects.h"
 #include "pluginterfaces/vst/ivstaudioprocessor.h"
+#include "pluginterfaces/vst/ivsteditcontroller.h"
+#include "pluginterfaces/vst/ivsthostapplication.h"
+#include "pluginterfaces/vst/ivstmessage.h"
 #include "Tests/TestHarness.h"
 #include "VST3/SubwooferRouting/plugin_ids.h"
 
@@ -135,6 +141,29 @@ double nextNoise(std::uint32_t& state)
 	return (normalized * 2.0 - 1.0) * 0.25;
 }
 
+// The smallest host that lets the two halves talk: IConnectionPoint messages
+// are IMessage objects the host manufactures.
+class MessageHost : public VST3RefCounted<Steinberg::Vst::IHostApplication>
+{
+public:
+	Steinberg::tresult PLUGIN_API getName(Steinberg::Vst::String128 name) override
+	{
+		wcsncpy_s(reinterpret_cast<wchar_t*>(name), 128, L"SubwooferRoutingVst3Tests", _TRUNCATE);
+		return Steinberg::kResultOk;
+	}
+
+	Steinberg::tresult PLUGIN_API createInstance(Steinberg::TUID cid, Steinberg::TUID iid, void** obj) override
+	{
+		return VST3HostObjects::createInstance(cid, iid, obj);
+	}
+};
+
+// The controller's normalization of the trim parameter (-40..0 dB).
+double normalizedTrim(double trimDb)
+{
+	return (trimDb - -40.0) / (0.0 - -40.0);
+}
+
 bool below(const double output[5][64], double threshold)
 {
 	for (int channel = 0; channel < 5; ++channel)
@@ -245,7 +274,7 @@ void runSubwooferRoutingVst3Tests()
 	harness.require(compiled.succeeded(), "reference graph compiles");
 
 	subroute::Processor reference;
-	reference.prepare(specification, *compiled.graph);
+	reference.prepare(*compiled.graph);
 
 	instance.prepareForProcessing(static_cast<float>(sampleRate), blockSize);
 	instance.writeToEffect(chunk, std::unordered_map<wstring, float>());
@@ -333,5 +362,71 @@ void runSubwooferRoutingVst3Tests()
 		"deactivate/reactivate resets delay and IIR residue");
 
 	instance.stopProcessing();
+
+	// Audit #348 C6: the controller's headroom preview compiles at the rate
+	// the processor runs at, which the processor reports over the connection
+	// once setupProcessing() accepts it (it used to be a fixed 48 kHz).
+	{
+		const PresetCreateResult rateFixture =
+			createBuiltInPreset(kIssue246FrontRear41PresetId);
+		harness.require(rateFixture.succeeded()
+			&& rateFixture.state->headroom.mode == HeadroomMode::Auto,
+			"the controller's default preset uses automatic headroom");
+		const CompileResult at48 = compile(*rateFixture.state,
+			previewSpecFor(*rateFixture.state, 48000.0));
+		const CompileResult at96 = compile(*rateFixture.state,
+			previewSpecFor(*rateFixture.state, 96000.0));
+		harness.require(at48.headroom.has_value() && at96.headroom.has_value(),
+			"the preset compiles at 48 and 96 kHz");
+		harness.require(normalizedTrim(at48.headroom->appliedTrimDb)
+				!= normalizedTrim(at96.headroom->appliedTrimDb),
+			"the preset's automatic trim differs between 48 and 96 kHz");
+
+		IPtr<MessageHost> host = IPtr<MessageHost>::adopt(new MessageHost());
+
+		TUID controllerIid;
+		IEditController::iid.toTUID(controllerIid);
+		IComponent* rawComponent = nullptr;
+		IEditController* rawController = nullptr;
+		library->getFactory()->createInstance(
+			kComponentCid, componentIid, reinterpret_cast<void**>(&rawComponent));
+		library->getFactory()->createInstance(
+			kControllerCid, controllerIid, reinterpret_cast<void**>(&rawController));
+		IPtr<IComponent> component = IPtr<IComponent>::adopt(rawComponent);
+		IPtr<IEditController> controller = IPtr<IEditController>::adopt(rawController);
+		harness.require(component && controller, "component and controller are created");
+		harness.require(component->initialize(host.get()) == kResultOk
+			&& controller->initialize(host.get()) == kResultOk,
+			"component and controller initialize against the message host");
+
+		FUnknownPtr<IConnectionPoint> componentPoint(component);
+		FUnknownPtr<IConnectionPoint> controllerPoint(controller);
+		FUnknownPtr<IAudioProcessor> audio(component);
+		harness.require(componentPoint && controllerPoint && audio,
+			"both halves expose IConnectionPoint and the component IAudioProcessor");
+		componentPoint->connect(controllerPoint);
+		controllerPoint->connect(componentPoint);
+
+		harness.expectTrue(controller->getParamNormalized(kOutputTrimParamId)
+				== normalizedTrim(at48.headroom->appliedTrimDb),
+			"before setupProcessing the controller previews at 48 kHz");
+
+		ProcessSetup setup{};
+		setup.processMode = kRealtime;
+		setup.symbolicSampleSize = kSample64;
+		setup.maxSamplesPerBlock = 1024;
+		setup.sampleRate = 96000.0;
+		harness.expectTrue(audio->setupProcessing(setup) == kResultOk,
+			"the processor accepts a 96 kHz setup");
+		harness.expectTrue(controller->getParamNormalized(kOutputTrimParamId)
+				== normalizedTrim(at96.headroom->appliedTrimDb),
+			"after a 96 kHz setup the controller's trim is the 96 kHz compile's");
+
+		componentPoint->disconnect(controllerPoint);
+		controllerPoint->disconnect(componentPoint);
+		controller->terminate();
+		component->terminate();
+	}
+
 	harness.report();
 }

@@ -46,9 +46,20 @@
 #include "Editor/SkinTokens.h"
 #include "Editor/widgets/DialogChrome.h"
 #include "Editor/widgets/subwooferrouting/SubwooferRoutingResponseView.h"
+#include "Editor/widgets/subwooferrouting/SubwooferRoutingStateReads.h"
 #include "Editor/widgets/subwooferrouting/SubwooferRoutingUiModel.h"
 #include "Editor/widgets/routing/SubwooferRoutingRoutingAdapter.h"
 #include "Editor/widgets/routing/IRoutingRenderer.h"
+
+using subwooferroutingeditor::findPath;
+using subwooferroutingeditor::groupDelayMs;
+using subwooferroutingeditor::groupHighPass;
+using subwooferroutingeditor::groupRecipe;
+using subwooferroutingeditor::pathDelayMs;
+using subwooferroutingeditor::pathLowPass;
+using subwooferroutingeditor::pathPolarity;
+using subwooferroutingeditor::sourceLfeAdjustmentDb;
+using subwooferroutingeditor::sourceLfePath;
 
 namespace
 {
@@ -57,104 +68,9 @@ QString fromUtf8(const std::string& text)
 	return QString::fromUtf8(text.data(), static_cast<int>(text.size()));
 }
 
-const subroute::Path* findPath(
-	const subroute::SubwooferRoutingState& state,
-	const std::string& id)
-{
-	const auto path = std::find_if(state.paths.begin(), state.paths.end(),
-		[&id](const subroute::Path& candidate)
-		{
-			return candidate.id == id;
-		});
-
-	return path == state.paths.end() ? nullptr : &*path;
-}
-
-const subroute::Path* sourceLfePath(
-	const subroute::SubwooferRoutingState& state)
-{
-	const auto path = std::find_if(state.paths.begin(), state.paths.end(),
-		[](const subroute::Path& candidate)
-		{
-			return candidate.kind == subroute::PathKind::SourceLfe;
-		});
-
-	return path == state.paths.end() ? nullptr : &*path;
-}
-
-const subroute::BiquadFilter* firstBiquad(
-	const subroute::Path& path,
-	subroute::BiquadType type)
-{
-	for (const subroute::PathStage& stage : path.chain)
-	{
-		const subroute::BiquadStage* biquad =
-			std::get_if<subroute::BiquadStage>(&stage);
-		if (biquad != nullptr && biquad->filter.type == type)
-			return &biquad->filter;
-	}
-
-	return nullptr;
-}
-
-std::optional<double> groupHighPass(
-	const subroute::SubwooferRoutingState& state,
-	const subroute::SpeakerGroup& group)
-{
-	for (const std::string& pathId : group.mainPathIds)
-	{
-		const subroute::Path* path = findPath(state, pathId);
-		if (path == nullptr)
-			continue;
-
-		const subroute::BiquadFilter* filter =
-			firstBiquad(*path, subroute::BiquadType::HighPass);
-		if (filter != nullptr)
-			return filter->frequencyHz;
-	}
-
-	return std::nullopt;
-}
-
-std::optional<double> pathLowPass(const subroute::Path& path)
-{
-	const subroute::BiquadFilter* filter =
-		firstBiquad(path, subroute::BiquadType::LowPass);
-	if (filter == nullptr)
-		return std::nullopt;
-
-	return filter->frequencyHz;
-}
-
-bool pathPolarity(const subroute::Path& path)
-{
-	for (const subroute::PathStage& stage : path.chain)
-	{
-		const subroute::PolarityStage* polarity =
-			std::get_if<subroute::PolarityStage>(&stage);
-		if (polarity != nullptr)
-			return polarity->inverted;
-	}
-
-	return false;
-}
-
-double pathDelay(const subroute::Path& path)
-{
-	for (const subroute::PathStage& stage : path.chain)
-	{
-		const subroute::DelayStage* delay =
-			std::get_if<subroute::DelayStage>(&stage);
-		if (delay != nullptr)
-			return delay->milliseconds;
-	}
-
-	return 0.0;
-}
-
 QString presetName(const subroute::PresetDescriptor& preset)
 {
-	if (preset.id == subroute::kIssue246FrontRear41PresetId)
+	if (subwooferroutingeditor::isIssue246Preset(preset))
 		return SubwooferRoutingEditorDialog::tr(
 			"Issue #246 - Front/Rear 4.1");
 
@@ -261,35 +177,6 @@ void syncSlopeCombo(QComboBox* combo,
 	combo->setCurrentIndex(index >= 0 ? index : customIndex);
 }
 
-std::optional<subroute::CrossoverRecipe> groupRecipe(
-	const subroute::SubwooferRoutingState& state,
-	const subroute::SpeakerGroup& group)
-{
-	for (const std::string& pathId : group.mainPathIds)
-	{
-		const subroute::Path* path = findPath(state, pathId);
-		if (path == nullptr)
-			continue;
-		return subroute::recognizeCrossover(*path,
-			subroute::BiquadType::HighPass);
-	}
-	return std::nullopt;
-}
-
-std::optional<double> groupDelayMs(
-	const subroute::SubwooferRoutingState& state,
-	const subroute::SpeakerGroup& group)
-{
-	for (const std::string& pathId : group.mainPathIds)
-	{
-		const subroute::Path* path = findPath(state, pathId);
-		if (path == nullptr)
-			continue;
-		return pathDelay(*path);
-	}
-	return std::nullopt;
-}
-
 std::vector<std::wstring> bassPathTargets(
 	const subroute::SubwooferRoutingState& state)
 {
@@ -378,7 +265,7 @@ SubwooferRoutingEditorDialog::SubwooferRoutingEditorDialog(
 	sourceLfeGain->setRange(-60.0, 24.0);
 	sourceLfeGain->setSingleStep(0.5);
 	sourceLfeGain->setSuffix(tr(" dB"));
-	sourceLfeForm->addRow(tr("Gain:"), sourceLfeGain);
+	sourceLfeForm->addRow(tr("LFE gain adjustment:"), sourceLfeGain);
 
 	sourceLfePolarity = new QCheckBox(tr("Invert"), sourceLfeGroup);
 	sourceLfeForm->addRow(tr("Polarity:"), sourceLfePolarity);
@@ -678,9 +565,9 @@ void SubwooferRoutingEditorDialog::refreshControls()
 		const QSignalBlocker gainBlocker(sourceLfeGain);
 		const QSignalBlocker polarityBlocker(sourceLfePolarity);
 		const QSignalBlocker delayBlocker(sourceLfeDelay);
-		sourceLfeGain->setValue(lfe->preGainDb);
+		sourceLfeGain->setValue(sourceLfeAdjustmentDb(*lfe));
 		sourceLfePolarity->setChecked(pathPolarity(*lfe));
-		sourceLfeDelay->setValue(pathDelay(*lfe));
+		sourceLfeDelay->setValue(pathDelayMs(*lfe));
 	}
 
 	for (CrossoverControls& control : groupControls)
@@ -746,7 +633,7 @@ void SubwooferRoutingEditorDialog::refreshControls()
 
 		{
 			const QSignalBlocker blocker(control.delay);
-			control.delay->setValue(pathDelay(*path));
+			control.delay->setValue(pathDelayMs(*path));
 		}
 
 		{
@@ -939,106 +826,81 @@ void SubwooferRoutingEditorDialog::updateLeftPaneWidth()
 
 void SubwooferRoutingEditorDialog::rebuildRoutingViews()
 {
-	rebuildBassSendRoutingView();
-	rebuildOutputRoutingView();
-}
-
-void SubwooferRoutingEditorDialog::rebuildBassSendRoutingView()
-{
-	if (bassSendRoutingView != nullptr)
-	{
-		bassSendRoutingLayout->removeWidget(bassSendRoutingView);
-		bassSendRoutingView->hide();
-		bassSendRoutingView->deleteLater();
-		bassSendRoutingView = nullptr;
-	}
-
-	if (bassSendRoutingHint != nullptr)
-	{
-		bassSendRoutingLayout->removeWidget(bassSendRoutingHint);
-		bassSendRoutingHint->hide();
-		bassSendRoutingHint->deleteLater();
-		bassSendRoutingHint = nullptr;
-	}
-
-	IRoutingRenderer* renderer =
-		SkinManager::instance()->routingRenderer();
-	if (renderer == nullptr)
-	{
-		bassSendRoutingHint = new QLabel(
-			tr("The active heritage skin does not provide a routing editor."),
-			bassSendRoutingLayout->parentWidget());
-		bassSendRoutingHint->setWordWrap(true);
-		bassSendRoutingLayout->addWidget(bassSendRoutingHint);
-		return;
-	}
-
-	RoutingPortModel portModel;
-	portModel.fixedSources =
+	RoutingPortModel bassSendPorts;
+	bassSendPorts.fixedSources =
 		SubwooferRoutingRoutingAdapter::bassSendSources(model->state());
-	portModel.allowFactors = false;
+	bassSendPorts.allowFactors = false;
 
-	bassSendRoutingView = renderer->create(
+	rebuildRoutingView(bassSendRoutingView, bassSendRoutingHint,
+		bassSendRoutingLayout,
 		SubwooferRoutingRoutingAdapter::toBassSendAssignments(
 			model->state()),
 		bassPathTargets(model->state()),
-		portModel,
-		bassSendRoutingLayout->parentWidget(),
-		SkinManager::instance()->tokens());
-	bassSendRoutingLayout->addWidget(bassSendRoutingView);
-
-	connect(bassSendRoutingView, &RoutingView::routingChanged,
-		this,
+		bassSendPorts,
 		&SubwooferRoutingEditorDialog::bassSendRoutingEdited);
+
+	RoutingPortModel outputPorts;
+	outputPorts.fixedSources =
+		SubwooferRoutingRoutingAdapter::outputSources(model->state());
+	outputPorts.allowFactors = true;
+
+	rebuildRoutingView(outputRoutingView, outputRoutingHint,
+		outputRoutingLayout,
+		SubwooferRoutingRoutingAdapter::toOutputAssignments(
+			model->state()),
+		physicalTargets(model->state()),
+		outputPorts,
+		&SubwooferRoutingEditorDialog::outputRoutingEdited);
 }
 
-void SubwooferRoutingEditorDialog::rebuildOutputRoutingView()
+void SubwooferRoutingEditorDialog::rebuildRoutingView(
+	RoutingView*& view,
+	QLabel*& hint,
+	QVBoxLayout* layout,
+	const std::vector<Assignment>& assignments,
+	const std::vector<std::wstring>& targets,
+	const RoutingPortModel& portModel,
+	void (SubwooferRoutingEditorDialog::*editedSlot)())
 {
-	if (outputRoutingView != nullptr)
+	if (view != nullptr)
 	{
-		outputRoutingLayout->removeWidget(outputRoutingView);
-		outputRoutingView->hide();
-		outputRoutingView->deleteLater();
-		outputRoutingView = nullptr;
+		layout->removeWidget(view);
+		view->hide();
+		view->deleteLater();
+		view = nullptr;
 	}
 
-	if (outputRoutingHint != nullptr)
+	if (hint != nullptr)
 	{
-		outputRoutingLayout->removeWidget(outputRoutingHint);
-		outputRoutingHint->hide();
-		outputRoutingHint->deleteLater();
-		outputRoutingHint = nullptr;
+		layout->removeWidget(hint);
+		hint->hide();
+		hint->deleteLater();
+		hint = nullptr;
 	}
 
 	IRoutingRenderer* renderer =
 		SkinManager::instance()->routingRenderer();
 	if (renderer == nullptr)
 	{
-		outputRoutingHint = new QLabel(
+		hint = new QLabel(
 			tr("The active heritage skin does not provide a routing editor."),
-			outputRoutingLayout->parentWidget());
-		outputRoutingHint->setWordWrap(true);
-		outputRoutingLayout->addWidget(outputRoutingHint);
+			layout->parentWidget());
+		hint->setWordWrap(true);
+		layout->addWidget(hint);
 		return;
 	}
 
-	RoutingPortModel portModel;
-	portModel.fixedSources =
-		SubwooferRoutingRoutingAdapter::outputSources(model->state());
-	portModel.allowFactors = true;
-
-	outputRoutingView = renderer->create(
-		SubwooferRoutingRoutingAdapter::toOutputAssignments(
-			model->state()),
-		physicalTargets(model->state()),
+	view = renderer->create(
+		assignments,
+		targets,
 		portModel,
-		outputRoutingLayout->parentWidget(),
+		layout->parentWidget(),
 		SkinManager::instance()->tokens());
-	outputRoutingLayout->addWidget(outputRoutingView);
+	layout->addWidget(view);
 
-	connect(outputRoutingView, &RoutingView::routingChanged,
+	connect(view, &RoutingView::routingChanged,
 		this,
-		&SubwooferRoutingEditorDialog::outputRoutingEdited);
+		editedSlot);
 }
 
 void SubwooferRoutingEditorDialog::refreshValidation()

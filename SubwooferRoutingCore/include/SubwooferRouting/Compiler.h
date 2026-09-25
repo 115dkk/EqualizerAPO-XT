@@ -5,6 +5,7 @@
 #include "Graph.h"
 #include "State.h"
 
+#include <complex>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -131,5 +132,38 @@ ValidationResult validate(
 CompileResult compile(
 	const SubwooferRoutingState& state,
 	const PrepareSpec& prepareSpec);
+
+/*
+	The rate a preview compiles at while no device rate is known (no device
+	selected in the Editor, or a VST3 controller that has not yet heard the
+	processor's rate).
+*/
+inline constexpr double kPreviewFallbackSampleRate = 48000.0;
+
+/*
+	The PrepareSpec a preview (headroom readout, response graph) compiles
+	against: the state's own physical layout in order, a 1024-frame block and
+	the given sample rate.
+*/
+PrepareSpec previewSpecFor(
+	const SubwooferRoutingState& state,
+	double sampleRate);
+
+/*
+	The frequency response of one normalized biquad at the normalized angular
+	frequency omega (radians per sample).
+*/
+std::complex<double> evaluateBiquad(
+	const BiquadCoefficients& coefficients,
+	double omega);
+
+/*
+	The complex response of one compiled path at frequencyHz: every gain,
+	delay and biquad stage in order. Headroom analysis sums these.
+*/
+std::complex<double> evaluatePathResponse(
+	const CompiledPath& path,
+	double frequencyHz,
+	double sampleRate);
 
 }

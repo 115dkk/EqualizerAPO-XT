@@ -19,6 +19,7 @@
 #include "SubwooferRoutingRoutingAdapter.h"
 
 #include "SubwooferRouting/Compiler.h"
+#include "Editor/widgets/subwooferrouting/SubwooferRoutingStateReads.h"
 
 #include <algorithm>
 #include <cmath>
@@ -28,6 +29,8 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+
+using subwooferroutingeditor::findPath;
 
 namespace
 {
@@ -58,19 +61,6 @@ std::optional<std::string> fromWideId(const std::wstring& id)
 QString toQStringId(const std::string& id)
 {
 	return QString::fromLatin1(id.data(), static_cast<int>(id.size()));
-}
-
-const subroute::Path* findPath(
-	const subroute::SubwooferRoutingState& state,
-	const std::string& id)
-{
-	const auto path = std::find_if(state.paths.begin(), state.paths.end(),
-		[&id](const subroute::Path& candidate)
-		{
-			return candidate.id == id;
-		});
-
-	return path == state.paths.end() ? nullptr : &*path;
 }
 
 std::vector<subroute::SourceMixTerm> groupSourceMix(

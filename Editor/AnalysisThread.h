@@ -32,6 +32,7 @@
 
 #include "engine/ConfigLoadTrace.h"
 #include "devices/DeviceAPOInfo.h"
+#include "Editor/analysis/AnalysisRequestFence.h"
 #include "Editor/analysis/AnalysisResponse.h"
 #include "dsp/FftwRAII.h"
 
@@ -83,9 +84,10 @@ private:
 	QMutex mutex;
 	QWaitCondition condition;
 	std::atomic<bool> quit{false};
-	std::atomic<uint64_t> requestGeneration{0};
+	AnalysisRequestFence requestFence;
 
 	// input
+	AnalysisRequestFence::Ticket requestTicket = 0;
 	std::shared_ptr<AbstractAPOInfo> device;
 	int channelMask = 0;
 	int channelIndex = 0;

@@ -134,7 +134,7 @@ void testLfeOnlyImpulse()
 	}
 
 	subroute::Processor processor;
-	processor.prepare(spec, *compiled.graph);
+	processor.prepare(*compiled.graph);
 
 	constexpr std::size_t frameCount = 64;
 	std::vector<std::vector<double>> input(
@@ -228,7 +228,7 @@ void testUntouchedChannelBitExactness()
 
 	{
 		subroute::Processor processor;
-		processor.prepare(spec, *compiled.graph);
+		processor.prepare(*compiled.graph);
 
 		std::vector<std::vector<float>> input(
 			spec.channelLayout.size(),
@@ -272,7 +272,7 @@ void testUntouchedChannelBitExactness()
 
 	{
 		subroute::Processor processor;
-		processor.prepare(spec, *compiled.graph);
+		processor.prepare(*compiled.graph);
 
 		std::vector<std::vector<double>> input(
 			spec.channelLayout.size(),
@@ -358,7 +358,7 @@ void testBlockSplitContinuity()
 	}
 
 	subroute::Processor wholeProcessor;
-	wholeProcessor.prepare(spec, *compiled.graph);
+	wholeProcessor.prepare(*compiled.graph);
 
 	std::vector<const double*> wholeInputPlanes;
 	std::vector<double*> wholeOutputPlanes;
@@ -379,7 +379,7 @@ void testBlockSplitContinuity()
 	wholeProcessor.process(wholeBlock);
 
 	subroute::Processor splitProcessor;
-	splitProcessor.prepare(spec, *compiled.graph);
+	splitProcessor.prepare(*compiled.graph);
 
 	for (std::size_t offset = 0;
 		offset < frameCount;
@@ -435,7 +435,7 @@ void testFrontBassPolarity()
 	}
 
 	subroute::Processor processor;
-	processor.prepare(spec, *compiled.graph);
+	processor.prepare(*compiled.graph);
 
 	std::vector<std::vector<double>> input(
 		spec.channelLayout.size(),
@@ -519,7 +519,7 @@ void testInPlaceAliasing()
 
 	{
 		subroute::Processor processor;
-		processor.prepare(spec, *compiled.graph);
+		processor.prepare(*compiled.graph);
 
 		std::vector<const double*> inputPlanes;
 		std::vector<double*> outputPlanes;
@@ -542,7 +542,7 @@ void testInPlaceAliasing()
 
 	{
 		subroute::Processor processor;
-		processor.prepare(spec, *compiled.graph);
+		processor.prepare(*compiled.graph);
 
 		std::vector<const double*> inputPlanes;
 		std::vector<double*> outputPlanes;
@@ -592,7 +592,7 @@ void testResetReproducesImpulse()
 	}
 
 	subroute::Processor processor;
-	processor.prepare(spec, *compiled.graph);
+	processor.prepare(*compiled.graph);
 
 	std::vector<std::vector<double>> input(
 		spec.channelLayout.size(),

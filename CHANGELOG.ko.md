@@ -8,6 +8,15 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **서브우퍼 라우팅 화면들이 같은 수치를 보입니다.** 장치를 고르지 않았을 때
+  카드와 응답 그래프는 헤드룸 트림을 48 kHz로 가정해 그렸지만 편집 대화상자는
+  'Unavailable'을 보였습니다. 이제 셋 모두 48 kHz 트림을 보입니다. LFE 경로 앞의
+  조절값을 정하는 대화상자의 이득 칸은 'LFE gain adjustment'로, 그 경로의 이득을
+  모두 더한 값을 가리키는 Minimal 카드의 접근성 이름은 'Effective LFE gain'으로
+  이름을 바꿨습니다. 카드는 이제 대화상자와 같은 경로에서 그룹의 크로스오버를
+  읽습니다. SubwooferRouting VST3 플러그인은 컨트롤에 보이는 헤드룸 트림을 늘
+  48 kHz가 아니라 호스트가 실제로 쓰는 샘플레이트로 계산합니다([#379](https://github.com/115dkk/EqualizerAPO-XT/pull/379)).
+
 ## v2.54.14 — 2026-09-25
 
 - **ASIO: 늦은 블록 때문에 출력이 튀지 않습니다.** 별도 호스트 프로세스를
