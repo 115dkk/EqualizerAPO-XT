@@ -1,3 +1,0 @@
-studio_dark_filedialog_normal.png: the first file dialog a run opens loads the fixture directory asynchronously, so on a busy machine it is sometimes grabbed with its Back button enabled or before the file rows arrive
-rack_dark_srdialog_expanded.png: the slope combo boxes of the expanded routing dialog sometimes differ by a few pixels when the machine is busy
-rack_light_srdialog_expanded.png: the slope combo boxes of the expanded routing dialog sometimes differ by a few pixels when the machine is busy
