@@ -153,6 +153,9 @@
     <ClInclude Include="audio\ChannelLayout.h">
       <Filter>audio</Filter>
     </ClInclude>
+    <ClInclude Include="audio\SampleFormat.h">
+      <Filter>audio</Filter>
+    </ClInclude>
     <ClInclude Include="platform\windows\ComBoundary.h">
       <Filter>platform</Filter>
     </ClInclude>
