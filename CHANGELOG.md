@@ -14,6 +14,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **An endpoint's "Use in ASIO apps" entry notices an unplugged device.** When
+  the device behind the entry disappeared (a USB DAC pulled out), the stream
+  kept waiting for it and the ASIO app heard nothing until it was restarted.
+  The stream now ends when Windows reports the device invalidated, or after
+  four 500 ms waits with no signal from the device, and asks the app to reset
+  (#PRNUM). This was checked with unit tests on synthetic input; unplugging
+  real hardware was not tried.
+
 ## v2.54.7 — 2026-09-25
 
 - **A driver's own effects keep running when an endpoint's ASIO entry cannot

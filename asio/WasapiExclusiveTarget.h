@@ -25,8 +25,11 @@
 	driver. Nothing here depends on the Common library: the file compiles
 	into the wrapper DLL, the probe and the tests alike.
 
-	The pure parts (container order, buffer-size policy, interleaving) live
-	in the wasapi namespace so the tests can pin them without a device.
+	The pure parts (container order, buffer-size policy, interleaving, the
+	bridge calibration, the capture queue, the output staging and the
+	judgement of a device that went away) live in the wasapi namespace so
+	the tests can pin them without a device; the stream thread only calls
+	COM and hands them the numbers.
 */
 
 #pragma once
@@ -103,6 +106,121 @@ namespace eapo::asio
 
 		// The MMDevice id of an endpoint GUID ({...}) in one flow.
 		std::wstring endpointId(bool capture, const std::wstring& endpointGuid);
+
+		// The bridge calibration (f43d797d, docs/features/asio.md): the
+		// spacing of the first events of a stream, their median against the
+		// ASIO period, a device period of the smallest multiple that covers
+		// it when the median is over one and a half periods, never more than
+		// eight. The values are measured; change them here only.
+		constexpr unsigned bridgeCalibrationEvents = 12;
+		constexpr unsigned bridgeCap = 8;
+		constexpr uint64_t bridgeThresholdNumerator = 3;     // 1.5 periods
+		constexpr uint64_t bridgeThresholdDenominator = 2;
+
+		// Decides how many ASIO periods one device period holds. Fed the
+		// spacing of consecutive device events; decides once, on the last
+		// calibration event. A forced value (EAPO_WASAPI_FORCE_BRIDGE, read
+		// by the caller) between 2 and the cap decides up front; any other
+		// forced value is ignored.
+		class BridgeCalibrator
+		{
+		public:
+			BridgeCalibrator(uint64_t periodNanos, int forcedBridge) noexcept;
+
+			// True on the call that decides; spacings after that are ignored.
+			bool addSpacing(uint64_t spacingNanos) noexcept;
+			bool decided() const noexcept {return decided_;}
+			bool forced() const noexcept {return forced_;}
+			unsigned factor() const noexcept {return factor_;}
+
+		private:
+			uint64_t periodNanos_ = 0;
+			uint64_t spacings_[bridgeCalibrationEvents] = {};
+			unsigned count_ = 0;
+			unsigned factor_ = 1;
+			bool decided_ = false;
+			bool forced_ = false;
+		};
+
+		// The recording side's frames between the device's packets and the
+		// ASIO periods. Holds at most `capacityFrames` (two device periods);
+		// older audio makes way so the input never drifts further than that
+		// behind the output clock.
+		class CaptureQueue
+		{
+		public:
+			void reset(unsigned channels, unsigned bytesPerSample, size_t capacityFrames);
+			void clear() noexcept;
+
+			// One captured packet of interleaved frames; a silent packet
+			// (AUDCLNT_BUFFERFLAGS_SILENT) queues zeros and `data` is not read.
+			void push(const void* data, size_t frames, bool silent) noexcept;
+			// One ASIO period of `frames` into the planes. When fewer frames
+			// are queued the planes are zero-filled, the queue is left as it
+			// is, an underrun is counted and the answer is false.
+			bool take(void* const* planes, unsigned frames) noexcept;
+
+			size_t pendingFrames() const noexcept {return pendingFrames_;}
+			size_t capacityFrames() const noexcept {return frameBytes_ != 0 ? storage_.size() / frameBytes_ : 0;}
+			uint64_t underruns() const noexcept {return underruns_;}
+
+		private:
+			std::vector<unsigned char> storage_;
+			unsigned channels_ = 0;
+			unsigned bytesPerSample_ = 0;
+			size_t frameBytes_ = 0;
+			size_t pendingFrames_ = 0;
+			uint64_t underruns_ = 0;
+		};
+
+		// The playback side's ASIO periods gathered into one device period:
+		// `bridge` periods, each at its slot of the device block, written to
+		// the device in one GetBuffer/ReleaseBuffer once the last is in.
+		class OutputStager
+		{
+		public:
+			struct Step
+			{
+				unsigned slot = 0;          // where this ASIO period goes in the block
+				unsigned writeFrames = 0;   // frames to write to the device now; 0 while gathering
+			};
+
+			void reset(unsigned bridge, unsigned framesPerPeriod) noexcept;
+			Step stage() noexcept;
+			unsigned bridge() const noexcept {return bridge_;}
+			unsigned staged() const noexcept {return staged_;}
+
+		private:
+			unsigned bridge_ = 1;
+			unsigned framesPerPeriod_ = 0;
+			unsigned staged_ = 0;
+		};
+
+		// A device that went away: AUDCLNT_E_DEVICE_INVALIDATED from a
+		// GetBuffer or ReleaseBuffer, or this many event waits of
+		// `eventWaitMs` in a row without an event.
+		constexpr unsigned long eventWaitMs = 500;
+		constexpr unsigned deviceLostTimeouts = 4;
+
+		enum class StreamHealth
+		{
+			Continue,       // an event came; serve on
+			Retry,          // the wait timed out; wait again
+			DeviceLost,     // end the stream and ask the host for a reset
+		};
+
+		class StreamHealthJudge
+		{
+		public:
+			// After each wait: whether it timed out, and the worst HRESULT the
+			// device calls of that event returned (S_OK after a timeout). An
+			// event resets the timeout count.
+			StreamHealth judgeWait(bool timedOut, HRESULT deviceResult) noexcept;
+			unsigned consecutiveTimeouts() const noexcept {return timeouts_;}
+
+		private:
+			unsigned timeouts_ = 0;
+		};
 	}
 
 	class WasapiExclusiveTarget final : public IASIO
@@ -188,15 +306,14 @@ namespace eapo::asio
 			std::vector<std::vector<unsigned char>> planes[2];   // [half][channel], the ASIO buffers; live from createBuffers to disposeBuffers
 			std::vector<void*> planePointers[2];         // [half][channel], stable aliases into planes
 			std::vector<unsigned char> block;           // one interleaved device period (bridge ASIO periods)
-			std::vector<unsigned char> pending;         // capture: packets not yet handed out
-			size_t pendingFrames = 0;
+			wasapi::CaptureQueue queue;                 // capture: packets not yet handed out
 			std::atomic<long> latencyFrames{0};
 			// The device period in ASIO periods. 1 on a driver that honours
 			// the period it accepted; a driver that signals at its own coarser
 			// cycle gets a device period of `bridge` ASIO periods and the host
 			// is called that many times per event, gap-free (see streamThread).
 			unsigned bridge = 1;
-			unsigned staged = 0;                        // output: ASIO periods interleaved into block so far
+			wasapi::OutputStager stager;                // output: ASIO periods interleaved into block so far
 
 			void closeStream() noexcept;
 			void releasePlanes() noexcept;
@@ -209,6 +326,8 @@ namespace eapo::asio
 		bool prepareStreams(long frames, unsigned bridge, char* message);
 		bool rebridge(unsigned factor) noexcept;
 		void primeOutput() noexcept;
+		bool startEndpoints() noexcept;
+		void noteDeviceResult(HRESULT hr) noexcept;
 		void streamThread() noexcept;
 		void servePeriod(long half) noexcept;
 		void commitOutput(long half) noexcept;
@@ -235,6 +354,7 @@ namespace eapo::asio
 		unsigned rate_ = 0;
 		std::atomic<long> pendingHalf_{-1};  // the half whose output has not been committed yet
 		std::atomic<bool> committed_{false};
+		HRESULT deviceResult_ = S_OK;        // stream thread: the worst device call result of the current event
 		std::atomic<uint64_t> samplePosition_{0};
 		Counters counters_;  // Stream thread writes; readers observe only after stop() joins.
 		char errorMessage_[124] = {};
