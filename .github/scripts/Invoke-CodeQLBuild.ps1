@@ -37,13 +37,13 @@ $ErrorActionPreference = "Stop"
 if (-not $DepsPath) { $DepsPath = Join-Path $WorkspaceRoot "deps" }
 Set-Location $WorkspaceRoot
 
-# Header paths only: nothing links, so no library paths. v143 because the
-# windows-2025 image's Visual Studio has that toolset, not the projects'
-# default v145.
+# Header paths only: nothing links, so no library paths. v145, the projects'
+# default: codeql.yml runs on the windows-2025-vs2026 image, whose VS 2026
+# carries it (audit #348 TD-78; the v143 pin dated from a VS 2022 image).
 $common = @(
     "/m",
     "/p:Configuration=Release",
-    "/p:PlatformToolset=v143",
+    "/p:PlatformToolset=v145",
     "/p:FFTW_INCLUDE=$DepsPath\fftw\include",
     "/p:MUPARSERX_INCLUDE=$DepsPath\muparserx\parser",
     "/p:LIBSNDFILE_INCLUDE=$DepsPath\libsndfile\include",

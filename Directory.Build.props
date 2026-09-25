@@ -54,10 +54,13 @@
     and inherit this metadata pair (local default AVX2, CI's
     /p:EnableEnhancedInstructionSet wins) instead of repeating it per
     configuration (17 copies before the hoist). Opt-in, not global, because
-    some binaries must NOT follow the variant: EditorLogicTests runs on every
-    runner (so it stays baseline), the auto-detect installer probes CPUs that
-    may have no AVX at all, and the VST plugins/SubwooferRouting projects ship
-    one binary across channels. x64 only - Win32 and ARM64 never take an
+    some binaries must NOT follow the variant: the auto-detect installer
+    probes CPUs that may have no AVX at all, and the VST plugins and the
+    SubwooferRouting projects ship one binary across channels. A test suite
+    that does not opt in keeps its own sources baseline, but anything that
+    links Common.lib whole-archive carries the variant's instructions through
+    it, so Build-Solution.ps1 runs those suites only where the variant
+    executes. x64 only - Win32 and ARM64 never take an
     x86 /arch flag.
   -->
   <ItemDefinitionGroup Condition="'$(EapoVariantArch)'=='true' and '$(Platform)'=='x64'">
