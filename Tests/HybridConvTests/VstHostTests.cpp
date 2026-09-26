@@ -263,6 +263,65 @@ void testVolumeControllerBalancesComInitialization()
 	harness.expectTrue(threadStartedUninitialized, "COM balance test starts on an uninitialized thread");
 	harness.expectTrue(threadEndedUninitialized, "VolumeController balances COM initialization");
 }
+// The DLL is held against writers from the judgment to LoadLibraryW, the
+// window in which an emptied leaf could otherwise be given reparse data
+// (AbstractLibrary::holdForLoad). The hold must not stop the loader itself.
+void testLoadHold(const wstring& dir, const wstring& dllPath)
+{
+	const wstring folder = dir + L"\\load-hold";
+	const wstring plugin = folder + L"\\plugin.dll";
+	const wstring empty = folder + L"\\empty.dll";
+	CreateDirectoryW(folder.c_str(), nullptr);
+	harness.require(CopyFileW(dllPath.c_str(), plugin.c_str(), FALSE) != FALSE, "copy the test plugin for the hold test");
+	{
+		const auto judged = ConfigFileReference::library(L"", plugin, L"");
+		harness.require(judged.refusal.empty() && judged.path.leaf() != nullptr, "hold test plugin is judged");
+		winutil::UniqueHandle held;
+		harness.expectEqual(AbstractLibrary::holdForLoad(judged.path.leaf(), held), DWORD(ERROR_SUCCESS),
+			"a local plugin with data is held for loading");
+		harness.expectTrue(static_cast<bool>(held), "the hold is a handle of its own");
+		const winutil::UniqueHandle writer(CreateFileW(plugin.c_str(), FILE_WRITE_DATA,
+			FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+		const DWORD writerError = GetLastError();
+		harness.expectTrue(!writer && writerError == ERROR_SHARING_VIOLATION,
+			"while held, nobody can open the plugin to empty it");
+		HMODULE module = LoadLibraryW(plugin.c_str());
+		harness.expectTrue(module != nullptr, "the loader opens a held plugin as before");
+		if (module != nullptr)
+			FreeLibrary(module);
+	}
+	{
+		const winutil::UniqueHandle writer(CreateFileW(plugin.c_str(), FILE_WRITE_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE,
+			nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+		harness.require(static_cast<bool>(writer), "open a writer before the hold");
+		const auto judged = ConfigFileReference::library(L"", plugin, L"");
+		harness.require(judged.path.leaf() != nullptr, "a plugin open for writing is still judged");
+		winutil::UniqueHandle held;
+		harness.expectEqual(AbstractLibrary::holdForLoad(judged.path.leaf(), held), DWORD(ERROR_SHARING_VIOLATION),
+			"a plugin another program is writing is not held");
+		shared_ptr<VSTPluginLibrary> library = VSTPluginLibrary::getInstance(plugin);
+		harness.expectEqual(library->initialize(judged.path), AbstractLibrary::LOADING_FAILED,
+			"and not loaded, as LoadLibraryW would have refused it too");
+	}
+	{
+		const winutil::UniqueHandle create(CreateFileW(empty.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
+			FILE_ATTRIBUTE_NORMAL, nullptr));
+		harness.require(static_cast<bool>(create), "create an empty plugin file");
+	}
+	{
+		const auto judged = ConfigFileReference::library(L"", empty, L"");
+		harness.require(judged.path.leaf() != nullptr, "an empty file is judged");
+		winutil::UniqueHandle held;
+		harness.expectEqual(AbstractLibrary::holdForLoad(judged.path.leaf(), held), DWORD(ERROR_BAD_EXE_FORMAT),
+			"an empty file, the one file that can become a link, is refused");
+		shared_ptr<VSTPluginLibrary> library = VSTPluginLibrary::getInstance(empty);
+		harness.expectEqual(library->initialize(judged.path), AbstractLibrary::LOADING_FAILED,
+			"an empty file fails to load as it did before");
+	}
+	DeleteFileW(empty.c_str());
+	DeleteFileW(plugin.c_str());
+	RemoveDirectoryW(folder.c_str());
+}
 } // namespace
 
 void runVstHostTests()
@@ -294,6 +353,8 @@ void runVstHostTests()
 		harness.report();
 		return;
 	}
+
+	testLoadHold(dir, dllPath);
 
 	// A failed subclass initialization must roll the DLL load back completely.
 	// Otherwise the second call sees a non-null module and returns 0 (already
