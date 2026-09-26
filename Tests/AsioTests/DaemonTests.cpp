@@ -67,9 +67,11 @@ namespace
 	};
 
 	// Runs one stream over `processor` and returns what reached the fake's
-	// outputs and the host's inputs.
+	// outputs and the host's inputs. paceMs > 0 pumps one period at a time
+	// with that much wall time after each, as hardware spaces buffer
+	// switches; zero pumps them back to back.
 	Capture runStream(std::unique_ptr<IStreamProcessor> processor, const StreamOptions& options, long frames, long periods,
-		long inputs, long outputs, AsioWrapper** keep = nullptr, FakeAsioDriver** keepFake = nullptr)
+		long inputs, long outputs, AsioWrapper** keep = nullptr, FakeAsioDriver** keepFake = nullptr, DWORD paceMs = 0)
 	{
 		Capture capture;
 		FakeAsioConfig config;
@@ -92,7 +94,13 @@ namespace
 				if (wrapper->start() == ASE_OK)
 				{
 					capture.started = true;
-					fake->pump(periods);
+					if (paceMs == 0)
+						fake->pump(periods);
+					for (long p = 0; paceMs != 0 && p < periods; p++)
+					{
+						fake->pump(1);
+						Sleep(paceMs);
+					}
 					wrapper->stop();
 				}
 				capture.stats = wrapper->stats();
@@ -166,7 +174,11 @@ namespace
 		constexpr long frames = 256;
 		Capture sync = runStream(std::make_unique<DaemonProcessor>(std::make_unique<ThreadHostLink>()), options, frames, 10, 0, 1);
 		options.mode = Mode::Pipelined;
-		Capture pipelined = runStream(std::make_unique<DaemonProcessor>(std::make_unique<ThreadHostLink>(true)), options, frames, 10, 0, 1);
+		// Paced: a pipelined block expects the previous one back within a
+		// tenth of a period, which only holds when switches come a period
+		// apart as they do on hardware (the host sleeps between blocks).
+		Capture pipelined = runStream(std::make_unique<DaemonProcessor>(std::make_unique<ThreadHostLink>(true)), options, frames, 10, 0, 1,
+			nullptr, nullptr, 50);
 		harness.require(sync.started && pipelined.started, "both streams started");
 		harness.expectEqual(pipelined.outputLatency, sync.outputLatency + frames, "pipelined mode reports one buffer more");
 

@@ -359,7 +359,7 @@ namespace eapo::ipc
 		return true;
 	}
 
-	bool RingConsumer::acquire(Acquired& out, uint32_t timeoutMs, uint32_t spinUs) noexcept
+	bool RingConsumer::acquire(Acquired& out, uint32_t timeoutMs) noexcept
 	{
 		HANDLE handles[3] = {sync_.work[0], sync_.work[1], sync_.peer};
 		const DWORD count = sync_.peer != nullptr ? 3 : 2;
@@ -371,20 +371,6 @@ namespace eapo::ipc
 				return true;
 			if (peerGone_)
 				return false;
-			if (spinUs != 0)
-			{
-				const uint64_t deadline = tickNow() + static_cast<uint64_t>(spinUs * ticksPerMicro_);
-				while (tickNow() < deadline)
-				{
-					if (pending(Direction::Output, out) || pending(Direction::Input, out))
-						return true;
-					if (readState(header_) == static_cast<uint32_t>(RingState::Closing))
-						return false;
-					YieldProcessor();
-				}
-				// Events set while spinning stay set (auto-reset, unconsumed),
-				// so the kernel wait below returns at once in that case.
-			}
 			const DWORD result = WaitForMultipleObjects(count, handles, FALSE, timeoutMs);
 			if (result == WAIT_OBJECT_0 + 2)
 			{

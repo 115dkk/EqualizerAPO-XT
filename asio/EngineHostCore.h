@@ -38,12 +38,6 @@ namespace eapo::asio
 		// config.txt, which may hold convolution IRs); the host has no
 		// reason to give up sooner.
 		uint32_t readyTimeoutMs = StreamOptions().readyTimeoutMs;
-		// How long the loop polls for the next block before blocking, in
-		// buffer periods. One period means the thread never sleeps while a
-		// stream runs (a core's worth of CPU for that stream) and never pays
-		// a wake-up; zero means it always blocks. The host uses one, the
-		// tests zero.
-		double spinPeriods = 0.0;
 		// Probe diagnostic (AsioProbe --trace-slow): blocks whose wake-up
 		// (publish to acquire), core move, or engine call reached this many
 		// microseconds, logged with lane and sequence after the stream ends.

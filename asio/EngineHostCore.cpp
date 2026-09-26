@@ -28,9 +28,20 @@ namespace eapo::asio
 
 		// MMCSS Pro Audio for the serving thread. Where MMCSS refuses (it is
 		// off when SystemResponsiveness is 100), the thread runs time-critical
-		// instead and the loop does not spin: a spinning thread outside MMCSS
-		// was measured at 95 of 100 probe runs late under load, against 6
-		// without the spin.
+		// instead. The loop never spins waiting for a block, under MMCSS or
+		// not. A spinning thread outside MMCSS was measured at 95 of 100 probe
+		// runs late under load, against 6 without the spin. Under MMCSS the
+		// spin uses up the thread's share: MMCSS keeps SystemResponsiveness
+		// percent of each 10 ms for other threads (20 here, so 2 ms) and
+		// takes it from a thread that runs through it. Measured with 16
+		// below-normal busy loops on 16 processors, 150 runs each of the
+		// pipelined int24 128-frame probe (period 2667 us): a one-period spin
+		// showed 3081 stalls of 0.5 ms or more, clustered at 2 ms, and a
+		// worst wake-up (publish to acquire) of 2272 us; no spin showed none
+		// and 224 us. At 64 frames (period 1333 us) the spin's wake-up
+		// passed 2100 us in half of 80 pipelined runs, against 122 us
+		// without it. What the spin saved on an idle machine was the kernel
+		// wake-up, a median of 5 us and a p99 of 23 us.
 		struct ProAudioScope
 		{
 			enum class Mode { Off, On, RefusedTimeCritical };
@@ -252,8 +263,6 @@ namespace eapo::asio
 			// Whether MMCSS took the thread, for the log a late stream is read from.
 			LogFStatic(L"ASIO host: serving %s at %.0f Hz, %u frames, out %u in %u, pro audio %s",
 				format.deviceName, format.sampleRate, format.frames, format.channels[0], format.channels[1], priority.describe());
-			const uint32_t spinUs = priority.mode == ProAudioScope::Mode::RefusedTimeCritical
-				? 0 : static_cast<uint32_t>(options.spinPeriods * periodUs(format));
 			CoreAvoidance avoidance;
 			std::unique_ptr<SlowTrace> slow = options.traceSlowUs != 0 ? std::make_unique<SlowTrace>() : nullptr;
 			RingConsumer::Acquired acquired;
@@ -264,7 +273,7 @@ namespace eapo::asio
 					report.peerGone = false;
 					return report;
 				}
-				if (!consumer.acquire(acquired, options.idleWaitMs, spinUs))
+				if (!consumer.acquire(acquired, options.idleWaitMs))
 				{
 					if (consumer.state() == RingState::Closing || consumer.peerGone())
 						break;

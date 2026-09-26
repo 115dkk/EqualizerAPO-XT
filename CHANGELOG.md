@@ -14,6 +14,23 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The ASIO host no longer loses its real-time priority while it waits.**
+  On a busy machine the host now and then served a block a period late (3 of
+  200 loaded probe runs measured for #391). While waiting for the next block
+  the host polled for a whole buffer period instead of sleeping, and Windows
+  (MMCSS) takes real-time priority away from a thread that runs through its
+  share: by default it keeps 20% of every 10 ms for other programs. Measured
+  with every processor busy, the polling host stopped for about 2 ms at a
+  time over 3,000 times in 150 runs, and its slowest wake-up took 2272 us
+  out of a 2667 us period; at 64 frames it passed the whole period in half
+  the runs. The host now sleeps until a block arrives, as it already did
+  where MMCSS is off: no such stops, a slowest wake-up of 224 us, and one
+  processor core no longer kept busy per stream. Waking from sleep costs
+  about 5 us on an idle machine. The late block itself did not recur in
+  about 1,500 loaded runs before or after the change, so this removes the
+  stops that caused it rather than a reproduced failure
+  ([#405](https://github.com/115dkk/EqualizerAPO-XT/pull/405)).
+
 ## v2.54.30 — 2026-09-26
 
 - **A plug-in file can no longer be swapped for a link while the engine

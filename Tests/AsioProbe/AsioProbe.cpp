@@ -755,8 +755,8 @@ int wmain(int argc, wchar_t** argv)
 			processor = std::make_unique<eapo::asio::PassthroughProcessor>();
 		else if (a.processor == L"daemon-thread")
 		{
-			// Served the way EqualizerAPOHost serves (MMCSS Pro Audio and a
-			// one-period spin), fake target or not: a normal-priority serving
+			// Served the way EqualizerAPOHost serves (MMCSS Pro Audio), fake
+			// target or not: a normal-priority serving
 			// thread is preempted for milliseconds on a busy machine, which
 			// the pipelined mode reports as late blocks the product would not
 			// have.

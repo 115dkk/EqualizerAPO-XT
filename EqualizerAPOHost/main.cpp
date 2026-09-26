@@ -149,7 +149,6 @@ namespace
 				eapo::asio::ServeOptions options;
 				options.configPath = request.configPath;
 				options.proAudio = true;
-				options.spinPeriods = 1.0;
 				options.registry = &systemRegistry();
 				options.abandon = &worker.abandon;
 				eapo::asio::EngineHostCore::attachAndServe(base.get(), request.ringBytes,
