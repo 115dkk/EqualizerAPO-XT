@@ -14,6 +14,21 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **A plug-in file can no longer be swapped for a link while the engine
+  loads it.** The engine checks where a VSTPlugin line's file leads and
+  holds every folder on the way, but Windows loads a plug-in by its name, so
+  one step was left: an empty file can be given link data in place, and the
+  plug-in file allowed writers, so it could be emptied first. The engine now
+  reopens the checked file without allowing writers just before loading it,
+  and does not load an empty file. A plug-in another program is writing at
+  that moment was already refused by Windows; it is now also named in the
+  log. Measured on NTFS and on a Dev Drive (ReFS): a file with data and a
+  folder with anything in it cannot be made a link, even by an
+  administrator, and a folder with held files below it cannot be renamed.
+  Plug-ins on the configuration's own network share, and on FAT32 or exFAT
+  drives where no file can be a link, load exactly as before
+  ([#404](https://github.com/115dkk/EqualizerAPO-XT/pull/404)).
+
 ## v2.54.29 — 2026-09-25
 
 - **The rack skin prints short file names in full.** On Include, Convolution

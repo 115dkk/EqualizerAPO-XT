@@ -40,6 +40,12 @@ public:
 	virtual std::wstring getLibPath() = 0;
 	virtual std::wstring getLoadPath();
 
+	// Holds a judged leaf against writers until the load: reopens it through
+	// the handle without write sharing and refuses a link, a folder or an
+	// empty file. ERROR_SUCCESS with held empty for a file on a share or on a
+	// volume without reparse points, where nothing can become a link.
+	static DWORD holdForLoad(HANDLE leaf, winutil::UniqueHandle& held);
+
 protected:
 	virtual bool loadFunctions() = 0;
 	virtual int customInitialize();

@@ -1,4 +1,4 @@
-﻿/*
+/*
     This file is part of Equalizer APO, a system-wide equalizer.
     Copyright (C) 2017  Jonas Thedering
 
@@ -55,20 +55,33 @@ int AbstractLibrary::initialize(const JudgedPath& path)
 		HANDLE file = path.leaf();
 		if (file == nullptr)
 			return FILE_NOT_FOUND;
-		// Every component handle, the DLL included, stays held through this
-		// call, but LoadLibraryW parses the name again rather than using them.
-		// Below a user profile LOCAL SERVICE holds some ancestors attributes-
-		// only, which share modes do not protect. Swapping such a folder for a
-		// junction needs a rename, and NTFS refuses to rename a directory with
-		// open handles beneath it (measured on Windows 11 22621 for MoveFileW
-		// and POSIX-semantics rename; not measured on ReFS or a Dev Drive). On
-		// a file system without that rule the owner could rename such a folder
-		// and put a junction at its old name before LoadLibraryW follows it.
-		// Residual also remains for FILE_WRITE_ATTRIBUTES changing the leaf's
-		// reparse data in place; LoadLibraryW cannot load through our file handle.
-		// Local measurement: FSCTL_SET_REPARSE_POINT through an attribute-only
-		// writer failed with ERROR_PRIVILEGE_NOT_HELD (1314); not proven absent
-		// for an administrator or a token allowed to set symlink reparse data.
+		winutil::UniqueHandle held;
+		const DWORD holdError = holdForLoad(file, held);
+		if (holdError != ERROR_SUCCESS)
+		{
+			LogF(L"Not loading %s: %s (error %lu)", libPath.c_str(), holdError == ERROR_SHARING_VIOLATION
+				? L"another program has it open for writing" : holdError == ERROR_BAD_EXE_FORMAT
+				? L"the file is empty" : L"it could not be held for loading", holdError);
+			return LOADING_FAILED;
+		}
+		// LoadLibraryW parses the name again rather than using the handles the
+		// judgment holds, so what it opens is the judged file only if no
+		// component of that name can change until it does. The name is the
+		// judged one with every link already resolved, and each component is
+		// held (see ConfigPathPolicy). Measured on NTFS and on a Dev Drive
+		// (ReFS), Windows 11 22621, with the symbolic-link privilege enabled:
+		// - a held component cannot be renamed or deleted, and a folder the
+		//   engine holds attributes-only cannot be renamed while anything
+		//   beneath it is held (MoveFileW and POSIX rename, error 5);
+		// - a folder with anything in it cannot become a junction or a
+		//   symbolic link (FSCTL_SET_REPARSE_POINT, error 145), and every held
+		//   folder holds the next component;
+		// - a file with data cannot become a symbolic link (error 4392), but
+		//   an empty one can, even while held.
+		// So the leaf is the one component that could still turn into a link
+		// here: emptied through write sharing, then given reparse data (which
+		// needs only FILE_WRITE_ATTRIBUTES, outside share checks). holdForLoad
+		// denies writers from here to the load and refuses an empty file.
 		module.reset(LoadLibraryW(libPath.c_str()));
 		if (!module)
 		{
@@ -118,6 +131,41 @@ int AbstractLibrary::customInitialize()
 void AbstractLibrary::customUninitialize() noexcept
 {
 	// overwrite if needed
+}
+
+DWORD AbstractLibrary::holdForLoad(HANDLE leaf, winutil::UniqueHandle& held)
+{
+	// A plug-in on the configuration's own share (the one remote exception)
+	// keeps the server's rules; nothing below was measured there.
+	FILE_REMOTE_PROTOCOL_INFO remote = {};
+	if (GetFileInformationByHandleEx(leaf, FileRemoteProtocolInfo, &remote, sizeof(remote)))
+		return ERROR_SUCCESS;
+	// Nothing on a volume without reparse points (FAT32, exFAT) can become a
+	// link, so a plug-in there loads as it always did.
+	DWORD volumeFlags = 0;
+	if (GetVolumeInformationByHandleW(leaf, nullptr, 0, nullptr, nullptr, &volumeFlags, nullptr, 0)
+		&& (volumeFlags & FILE_SUPPORTS_REPARSE_POINTS) == 0)
+		return ERROR_SUCCESS;
+	// Reopened through the handle, so no name is parsed. Without write
+	// sharing it fails while any writer is open, which LoadLibraryW would
+	// also fail on: an image section needs a file nobody can write.
+	held.reset(ReOpenFile(leaf, FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE, FILE_SHARE_READ,
+		FILE_FLAG_OPEN_REPARSE_POINT));
+	if (!held)
+		return GetLastError();
+	// Checked after the reopen: from here the file cannot be emptied, and a
+	// file with data cannot be made a link.
+	FILE_ATTRIBUTE_TAG_INFO tag = {};
+	FILE_STANDARD_INFO standard = {};
+	if (!GetFileInformationByHandleEx(held.get(), FileAttributeTagInfo, &tag, sizeof(tag))
+		|| !GetFileInformationByHandleEx(held.get(), FileStandardInfo, &standard, sizeof(standard)))
+		return GetLastError();
+	if ((tag.FileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0
+		|| ((tag.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0 && IsReparseTagNameSurrogate(tag.ReparseTag)))
+		return ERROR_CANT_ACCESS_FILE;
+	if (standard.EndOfFile.QuadPart == 0)
+		return ERROR_BAD_EXE_FORMAT;
+	return ERROR_SUCCESS;
 }
 
 wstring AbstractLibrary::getLoadPath()

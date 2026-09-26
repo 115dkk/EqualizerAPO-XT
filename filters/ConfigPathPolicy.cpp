@@ -510,9 +510,9 @@ private:
 			// component and the leaf below it, and NTFS refuses to rename a
 			// directory with open handles beneath it (ERROR_ACCESS_DENIED for
 			// MoveFileW and for a POSIX-semantics rename, measured on Windows 11
-			// 22621 in EngineOrchestrationTests), and a folder cannot be
-			// deleted while it holds anything. That is file-system behaviour,
-			// not a share mode; it was not measured on ReFS or a Dev Drive.
+			// 22621 in EngineOrchestrationTests, and the same on a Dev Drive,
+			// which is ReFS), and a folder cannot be deleted while it holds
+			// anything. That is file-system behaviour, not a share mode.
 			status = create(&result, FILE_READ_ATTRIBUTES | SYNCHRONIZE,
 				&attributes, &statusBlock, nullptr, 0, FILE_SHARE_READ | FILE_SHARE_WRITE, FILE_OPEN,
 				FILE_OPEN_REPARSE_POINT | FILE_SYNCHRONOUS_IO_NONALERT, nullptr, 0);
