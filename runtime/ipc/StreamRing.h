@@ -244,11 +244,10 @@ namespace eapo::ipc
 		// Waits for work on either lane, the peer, or the timeout. Lanes are
 		// served in order, output first when both are pending. False means
 		// nothing to do: timeout, Closing, or the peer went away (check
-		// state() and peerGone()). spinUs is how long to poll before the
-		// kernel wait: a woken thread pays scheduler and C-state latency
-		// that a spinning one does not, and inside one buffer period that
-		// latency is most of a sync deadline.
-		bool acquire(Acquired& out, uint32_t timeoutMs, uint32_t spinUs = 0) noexcept;
+		// state() and peerGone()). It does not poll before the kernel wait:
+		// see ProAudioScope in EngineHostCore.cpp for what a spinning
+		// MMCSS thread measured.
+		bool acquire(Acquired& out, uint32_t timeoutMs) noexcept;
 		void release(const Acquired& acquired) noexcept;
 		bool peerGone() const noexcept {return peerGone_;}
 		// The processor the producer last published from, or -1.

@@ -73,7 +73,6 @@ namespace eapo::asio
 		ServeOptions serve;
 		serve.configPath = options.configPath;
 		serve.proAudio = proAudio_;
-		serve.spinPeriods = proAudio_ ? 1.0 : 0.0;
 		serve.traceSlowUs = traceSlowUs_;
 		serve.idleWaitMs = 100;
 		serve.readyTimeoutMs = options.readyTimeoutMs;
