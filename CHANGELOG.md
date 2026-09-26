@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.30 — 2026-09-26
+
 - **A plug-in file can no longer be swapped for a link while the engine
   loads it.** The engine checks where a VSTPlugin line's file leads and
   holds every folder on the way, but Windows loads a plug-in by its name, so
