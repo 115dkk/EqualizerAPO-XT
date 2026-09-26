@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.31 — 2026-09-26
+
 - **The ASIO host no longer loses its real-time priority while it waits.**
   On a busy machine the host now and then served a block a period late (3 of
   200 loaded probe runs measured for #391). While waiting for the next block
