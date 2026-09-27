@@ -609,6 +609,14 @@ void testServiceReadsBelowFoldersItMayNotOpen()
 		const auto unreadable = ConfigFileReference::target(configFile, L"private.txt");
 		harness.expectTrue(unreadable.path.empty() && unreadable.error == ERROR_ACCESS_DENIED && !unreadable.refusal.empty(),
 			"a file the service may not read is still refused");
+
+		// A mistyped folder below a passed one is reported as missing, not as
+		// a permissions problem.
+		const auto missing = ConfigFileReference::target(configFile, appData + L"\\typo\\include.txt");
+		std::printf("Service view: missing folder below a passed one: error %lu\n", missing.error);
+		harness.expectTrue(missing.refusal.empty() && missing.path.leaf() == nullptr
+			&& (missing.error == ERROR_FILE_NOT_FOUND || missing.error == ERROR_PATH_NOT_FOUND),
+			"a missing folder below a passed one is left to the missing-file report");
 	}
 	// Back as the user, who may rename the fixture's AppData: NTFS refuses
 	// while the file below it is held, so a folder that was passed rather than
