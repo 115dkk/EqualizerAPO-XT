@@ -6,12 +6,15 @@
 	Tests for the policy that keeps configuration-referenced file opens on
 	local drives while preserving same-share references for network configs.
 	A path is judged by where it leads (audit #348 A1): the walk is tested on
-	a file system given as a table, and once on real junctions.
+	a file system given as a table, and on real junctions and folder
+	permissions, including the audio service's view of a user's profile.
 */
 
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <cwctype>
+#include <iterator>
 #include <map>
 #include <set>
 #include <string>
@@ -19,6 +22,8 @@
 
 #include "filters/ConfigPathPolicy.h"
 #include "platform/windows/Win32Resource.h"
+#include <aclapi.h>
+#include <sddl.h>
 #include <winioctl.h>
 #include "Tests/TestDirectory.h"
 #include "Tests/TestHarness.h"
@@ -145,10 +150,11 @@ public:
 		entries[key(path)] = entry;
 	}
 
-	void mark(const wstring& path, Kind kind)
+	void mark(const wstring& path, Kind kind, const wstring& target = L"")
 	{
 		ConfigPathPolicy::Entry entry;
 		entry.kind = kind;
+		entry.target = target;
 		entries[key(path)] = entry;
 	}
 
@@ -302,6 +308,20 @@ void testUnexaminableComponentFallsBackToTheFinalPath()
 		"a file that cannot be opened is left to the open to report");
 }
 
+// The real walk reports PassedOffLocal at the first component it could open
+// after passing folders it could not, when that open arrived off the local
+// drives (testServiceReadsBelowFoldersItMayNotOpen covers the local arrival).
+void testPassedFoldersThatLeaveTheDrives()
+{
+	TableFileSystem fileSystem;
+	fileSystem.mark(L"C:\\Users\\me\\AppData\\cfg", Kind::PassedOffLocal, L"C:\\Users\\me\\AppData");
+	wstring reason;
+	harness.expectFalse(allows(fileSystem, L"C:\\Users\\me\\AppData\\cfg\\ir.wav", kLocalConfig, reason),
+		"an open past folders the engine may not read that left the local drives is refused");
+	harness.expectTrue(contains(reason, L"\"C:\\Users\\me\\AppData\"") && contains(reason, L"may not read")
+		&& contains(reason, L"network share"), "naming the first folder passed");
+}
+
 void testOtherLinksAndLoops()
 {
 	TableFileSystem fileSystem;
@@ -430,6 +450,193 @@ void testPinnedDirectoryCanBecomeJunction()
 	RemoveDirectoryW(root.c_str());
 }
 
+// The engine's view of the disk. audiodg runs as LOCAL SERVICE, which holds
+// bypass-traverse checking but has no grant on a user's profile folders
+// (C:\Users\<name>, AppData, Local, EqualizerAPO-XT), so it cannot open them
+// even to read their attributes, while the installer grants it the
+// configuration folder below them. A thread impersonating a restricted copy
+// of the test user's token sees the same: every access check is made again
+// against LOCAL SERVICE and the groups its token carries, and passes only if
+// both checks do.
+class ServiceView
+{
+public:
+	ServiceView()
+	{
+		winutil::UniqueHandle process;
+		harness.require(OpenProcessToken(GetCurrentProcess(),
+			TOKEN_DUPLICATE | TOKEN_QUERY | TOKEN_ASSIGN_PRIMARY | TOKEN_IMPERSONATE, process.put()) != FALSE,
+			"open the test process token");
+		const wchar_t* const names[] = {L"S-1-5-19", L"S-1-1-0", L"S-1-5-32-545", L"S-1-5-11", L"S-1-5-6",
+			L"S-1-2-0", L"S-1-5-15"};
+		SID_AND_ATTRIBUTES restricting[std::size(names)] = {};
+		for (size_t index = 0; index < std::size(names); ++index)
+			harness.require(ConvertStringSidToSidW(names[index], &restricting[index].Sid) != FALSE, "build a service SID");
+		winutil::UniqueHandle restricted;
+		// DISABLE_MAX_PRIVILEGE keeps SeChangeNotifyPrivilege, as the service has.
+		const BOOL created = CreateRestrictedToken(process.get(), DISABLE_MAX_PRIVILEGE, 0, nullptr, 0, nullptr,
+			static_cast<DWORD>(std::size(names)), restricting, restricted.put());
+		for (SID_AND_ATTRIBUTES& sid : restricting)
+			LocalFree(sid.Sid);
+		harness.require(created != FALSE, "create the service-view token");
+		harness.require(ImpersonateLoggedOnUser(restricted.get()) != FALSE, "impersonate the service view");
+	}
+	~ServiceView()
+	{
+		if (!RevertToSelf())
+			std::abort();
+	}
+	ServiceView(const ServiceView&) = delete;
+	ServiceView& operator=(const ServiceView&) = delete;
+};
+
+wstring currentUserSid()
+{
+	winutil::UniqueHandle token;
+	harness.require(OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, token.put()) != FALSE, "query the test user");
+	DWORD size = 0;
+	GetTokenInformation(token.get(), TokenUser, nullptr, 0, &size);
+	std::vector<unsigned char> user(size);
+	harness.require(GetTokenInformation(token.get(), TokenUser, user.data(), size, &size) != FALSE, "read the test user's SID");
+	wchar_t* text = nullptr;
+	harness.require(ConvertSidToStringSidW(reinterpret_cast<TOKEN_USER*>(user.data())->User.Sid, &text) != FALSE,
+		"format the test user's SID");
+	const wstring sid(text);
+	LocalFree(text);
+	return sid;
+}
+
+// Replaces path's DACL with sddl's, protected from inheritance.
+void setProtectedDacl(const wstring& path, const wstring& sddl)
+{
+	PSECURITY_DESCRIPTOR descriptor = nullptr;
+	harness.require(ConvertStringSecurityDescriptorToSecurityDescriptorW(sddl.c_str(), SDDL_REVISION_1, &descriptor,
+		nullptr) != FALSE, "build a fixture DACL");
+	PACL acl = nullptr;
+	BOOL present = FALSE;
+	BOOL defaulted = FALSE;
+	const BOOL decoded = GetSecurityDescriptorDacl(descriptor, &present, &acl, &defaulted);
+	const DWORD result = decoded && present ? SetNamedSecurityInfoW(const_cast<wchar_t*>(path.c_str()), SE_FILE_OBJECT,
+		DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION, nullptr, nullptr, acl, nullptr) : ERROR_INVALID_ACL;
+	LocalFree(descriptor);
+	harness.require(result == ERROR_SUCCESS, "install a fixture DACL");
+}
+
+void writeFile(const wstring& path, const char* text)
+{
+	const winutil::UniqueHandle file(CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
+		FILE_ATTRIBUTE_NORMAL, nullptr));
+	DWORD written = 0;
+	harness.require(file && WriteFile(file.get(), text, static_cast<DWORD>(std::strlen(text)), &written, nullptr) != FALSE,
+		"write a fixture file");
+}
+
+std::string readLeaf(const JudgedPath& path)
+{
+	char contents[64] = {};
+	DWORD count = 0;
+	const LARGE_INTEGER start = {};
+	if (path.leaf() == nullptr || !SetFilePointerEx(path.leaf(), start, nullptr, FILE_BEGIN)
+		|| !ReadFile(path.leaf(), contents, sizeof(contents) - 1, &count, nullptr))
+		return {};
+	return std::string(contents, count);
+}
+
+// From 2.54.23 Include refused every file in the default configuration
+// folder, %LOCALAPPDATA%\EqualizerAPO-XT\config: the walk opens each folder
+// on the way and stopped at the first one the service may not open, while
+// config.txt itself, read by name, still loaded. The fixture has the same
+// shape: profile and AppData grant only the user and SYSTEM, the config
+// folders grant LOCAL SERVICE the installer's modify right.
+void testServiceReadsBelowFoldersItMayNotOpen()
+{
+	const wstring root = scratchDirectory().path() + L"\\service-view";
+	const wstring profile = root + L"\\profile";
+	const wstring appData = profile + L"\\AppData";
+	const wstring config = appData + L"\\config";
+	const wstring elsewhere = profile + L"\\elsewhere";
+	const wstring elsewhereConfig = elsewhere + L"\\config";
+	const wstring junction = appData + L"\\linked";
+	const wstring configFile = config + L"\\config.txt";
+	for (const wstring& directory : {root, profile, appData, config, elsewhere, elsewhereConfig})
+		harness.require(CreateDirectoryW(directory.c_str(), nullptr) != FALSE, "create the service-view fixture");
+	writeFile(configFile, "Include: include.txt\r\n");
+	writeFile(config + L"\\include.txt", "service include");
+	writeFile(config + L"\\private.txt", "user only");
+	writeFile(elsewhereConfig + L"\\linked.txt", "through a junction");
+	const bool haveJunction = makeJunction(junction, L"\\??\\" + elsewhere);
+	const DWORD junctionError = haveJunction ? ERROR_SUCCESS : GetLastError();
+
+	const wstring user = currentUserSid();
+	const wstring granted = L"D:P(A;OICI;FA;;;" + user + L")(A;OICI;0x1301bf;;;LS)";
+	setProtectedDacl(config, granted);
+	setProtectedDacl(elsewhereConfig, granted);
+	setProtectedDacl(config + L"\\private.txt", L"D:P(A;;FA;;;" + user + L")");
+	setProtectedDacl(profile, L"D:P(A;OICI;FA;;;" + user + L")(A;OICI;FA;;;SY)");
+
+	ConfigFileReference::Target included;
+	{
+		ServiceView view;
+		const winutil::UniqueHandle folder(CreateFileW(appData.c_str(), FILE_READ_ATTRIBUTES,
+			FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
+			FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT, nullptr));
+		const DWORD folderError = GetLastError();
+		harness.require(!folder && folderError == ERROR_ACCESS_DENIED,
+			"the service view may not even read the attributes of the fixture's AppData");
+		const winutil::UniqueHandle named(CreateFileW((config + L"\\include.txt").c_str(), GENERIC_READ,
+			FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+		harness.require(static_cast<bool>(named),
+			"yet it opens a granted file below it by name, the way the engine opens config.txt");
+
+		included = ConfigFileReference::target(configFile, L"include.txt");
+		std::printf("Service view: Include beside config.txt: error %lu, %zu passed folder(s), refusal \"%ls\"\n",
+			included.error, included.path.passedComponentCount(), included.refusal.c_str());
+		harness.expectTrue(included.refusal.empty() && included.path.leaf() != nullptr,
+			"a file beside config.txt is judged under the service's view");
+		harness.expectEqual(readLeaf(included.path), std::string("service include"), "and read through the held leaf");
+		harness.expectTrue(included.path.passedComponentCount() > 0, "by passing the folders the service may not open");
+
+		if (haveJunction)
+		{
+			const auto linked = ConfigFileReference::target(configFile, junction + L"\\config\\linked.txt");
+			harness.expectTrue(linked.refusal.empty() && linked.path.leaf() != nullptr,
+				"a local junction among those folders leads to a local file, which is allowed");
+			harness.expectEqual(readLeaf(linked.path), std::string("through a junction"), "and the destination is read");
+		}
+		else
+			std::printf("Service view: could not create a junction (error %lu); the junction case not run\n", junctionError);
+
+		const auto unreadable = ConfigFileReference::target(configFile, L"private.txt");
+		harness.expectTrue(unreadable.path.empty() && unreadable.error == ERROR_ACCESS_DENIED && !unreadable.refusal.empty(),
+			"a file the service may not read is still refused");
+
+		// A mistyped folder below a passed one is reported as missing, not as
+		// a permissions problem.
+		const auto missing = ConfigFileReference::target(configFile, appData + L"\\typo\\include.txt");
+		std::printf("Service view: missing folder below a passed one: error %lu\n", missing.error);
+		harness.expectTrue(missing.refusal.empty() && missing.path.leaf() == nullptr
+			&& (missing.error == ERROR_FILE_NOT_FOUND || missing.error == ERROR_PATH_NOT_FOUND),
+			"a missing folder below a passed one is left to the missing-file report");
+	}
+	// Back as the user, who may rename the fixture's AppData: NTFS refuses
+	// while the file below it is held, so a folder that was passed rather than
+	// pinned keeps its name for as long as the judged path lives.
+	const wstring moved = profile + L"\\moved";
+	const BOOL renamed = MoveFileW(appData.c_str(), moved.c_str());
+	const DWORD renameError = GetLastError();
+	if (renamed)
+		MoveFileW(moved.c_str(), appData.c_str());
+	harness.expectTrue(included.path.leaf() == nullptr || (!renamed && renameError == ERROR_ACCESS_DENIED),
+		"a passed folder cannot be renamed while the judged file below it is held");
+	included = {};
+
+	for (const wstring& file : {configFile, config + L"\\include.txt", config + L"\\private.txt",
+		elsewhereConfig + L"\\linked.txt"})
+		DeleteFileW(file.c_str());
+	for (const wstring& directory : {junction, config, elsewhereConfig, elsewhere, appData, profile, root})
+		RemoveDirectoryW(directory.c_str());
+}
+
 void testPinnedLeafSymlinkResidual()
 {
 	const wstring root = scratchDirectory().path() + L"\\leaf-reparse";
@@ -527,6 +734,7 @@ void runConfigPathPolicyTests()
 	testFoldingComesBeforeTheWalk();
 	testMissingComponentEndsTheWalk();
 	testUnexaminableComponentFallsBackToTheFinalPath();
+	testPassedFoldersThatLeaveTheDrives();
 	testOtherLinksAndLoops();
 	testNetworkDrive();
 	testConfigReachedThroughALink();
@@ -534,6 +742,7 @@ void runConfigPathPolicyTests()
 	testPinnedLeafSymlinkResidual();
 	testRealJunctions();
 	testPinnedDirectoryCanBecomeJunction();
+	testServiceReadsBelowFoldersItMayNotOpen();
 
 	scratchDirectory().removeAll();
 	harness.report();

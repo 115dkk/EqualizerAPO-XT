@@ -14,6 +14,27 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Include reads files in the configuration folder again.** From v2.54.23,
+  an Include line that named a file in the default configuration folder
+  (`%LOCALAPPDATA%\EqualizerAPO-XT\config`), even a file beside config.txt,
+  was refused and its filters were not applied; config.txt itself still
+  loaded. Giving the LOCAL SERVICE account read access to the folders above
+  worked around it, and is no longer needed. The audio engine checks a path
+  one folder at a time (#394), and the account it runs as may not open the
+  profile folders above the configuration folder (`C:\Users\<name>`,
+  `AppData`, `Local`, `EqualizerAPO-XT`), not even to read their attributes,
+  so the check stopped at the first of them. It now opens the folder below
+  such a folder with the folder's name in the path, and checks from the
+  handle it opened that the file is on a local drive. Convolution,
+  MultiConvolution, SubwooferRouting profiles and VSTPlugin libraries under
+  the profile were refused for the same reason and are fixed with it
+  ([#406](https://github.com/115dkk/EqualizerAPO-XT/pull/406)). Tested with
+  unit tests that give the test thread the service account's view of the
+  disk (a restricted token), and once against an installed configuration
+  folder; the audio service itself was not run. If a folder the engine cannot
+  open is a link to a network share, the engine follows it and reaches the
+  share before refusing it; that case was not tested, for want of a share.
+
 ## v2.54.31 — 2026-09-26
 
 - **The ASIO host no longer loses its real-time priority while it waits.**

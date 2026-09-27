@@ -20,7 +20,8 @@ public:
 	JudgedPath() = default;
 	JudgedPath(JudgedPath&& other) noexcept
 		: name(std::move(other.name)), pins(std::move(other.pins)), file(std::exchange(other.file, nullptr)),
-		  attributesOnlyPins(std::exchange(other.attributesOnlyPins, 0)) {}
+		  attributesOnlyPins(std::exchange(other.attributesOnlyPins, 0)),
+		  passedComponents(std::exchange(other.passedComponents, 0)) {}
 	JudgedPath& operator=(JudgedPath&& other) noexcept
 	{
 		if (this != &other)
@@ -29,6 +30,7 @@ public:
 			pins = std::move(other.pins);
 			file = std::exchange(other.file, nullptr);
 			attributesOnlyPins = std::exchange(other.attributesOnlyPins, 0);
+			passedComponents = std::exchange(other.passedComponents, 0);
 		}
 		return *this;
 	}
@@ -39,16 +41,23 @@ public:
 	HANDLE leaf() const;
 	// Diagnostic: these handles identify a component but do not prevent rename.
 	size_t attributesOnlyPinCount() const { return attributesOnlyPins; }
+	// Diagnostic: folders the walk could not open at all and passed on its way
+	// to the one below them, so they hold no handle (see
+	// ConfigPathPolicy.cpp, Win32FileSystem::entry).
+	size_t passedComponentCount() const { return passedComponents; }
 
 private:
 	friend class ConfigFileReference;
 	friend class ConfigPathPolicy;
-	JudgedPath(std::wstring name, std::vector<winutil::UniqueHandle> pins, HANDLE file, size_t attributesOnlyPins)
-		: name(std::move(name)), pins(std::move(pins)), file(file), attributesOnlyPins(attributesOnlyPins) {}
+	JudgedPath(std::wstring name, std::vector<winutil::UniqueHandle> pins, HANDLE file, size_t attributesOnlyPins,
+		size_t passedComponents)
+		: name(std::move(name)), pins(std::move(pins)), file(file), attributesOnlyPins(attributesOnlyPins),
+		  passedComponents(passedComponents) {}
 	std::wstring name;
 	std::vector<winutil::UniqueHandle> pins;
 	HANDLE file = nullptr;
 	size_t attributesOnlyPins = 0;
+	size_t passedComponents = 0;
 };
 
 // A file that a configuration line names, from the text as written to the
