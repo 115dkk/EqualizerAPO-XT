@@ -154,6 +154,7 @@ enum class Problem
 	None,
 	OtherLink,
 	TooManyLinks,
+	PassedOffLocal,
 };
 
 // Where a path leads. root is empty when every step stays on the local
@@ -210,6 +211,8 @@ Destination destinationOf(const wstring& path, const ConfigPathPolicy::FileSyste
 				break;
 			case Entry::Kind::OtherLink:
 				return {L"", candidate, Problem::OtherLink};
+			case Entry::Kind::PassedOffLocal:
+				return {L"", entry.target, Problem::PassedOffLocal};
 			case Entry::Kind::Unexaminable:
 			{
 				if (fileSystem.strict())
@@ -310,6 +313,50 @@ bool isMissingError(DWORD error)
 	}
 }
 
+FARPROC ntdllExport(const char* name)
+{
+	// winternl.h provides the ABI; load exports like ProcessCommandLine does.
+	static const winutil::UniqueModule module(LoadLibraryW(L"ntdll.dll"));
+	return module ? GetProcAddress(module.get(), name) : nullptr;
+}
+
+// FILE_FS_DEVICE_INFORMATION and the query that fills it, which the
+// user-mode headers leave out (ntifs.h). GetDriveTypeW makes the same query.
+struct DeviceInformation
+{
+	ULONG deviceType;
+	ULONG characteristics;
+};
+constexpr int kFileFsDeviceInformation = 4;
+constexpr ULONG kRemoteDeviceCharacteristic = 0x00000010; // FILE_REMOTE_DEVICE
+using QueryVolumeInformationFile = NTSTATUS(NTAPI*)(HANDLE, PIO_STATUS_BLOCK, PVOID, ULONG, int);
+
+// Whether an open file is on a local drive: not behind a network redirector,
+// and on a storage device rather than in the device namespace (a pipe, a
+// mailslot). Asks the handle, so it needs no access to the file and sees
+// where the open arrived whatever the path was spelled.
+bool onLocalDrive(HANDLE handle)
+{
+	static const auto query = reinterpret_cast<QueryVolumeInformationFile>(ntdllExport("NtQueryVolumeInformationFile"));
+	DeviceInformation device = {};
+	IO_STATUS_BLOCK statusBlock = {};
+	if (query == nullptr || query(handle, &statusBlock, &device, sizeof(device), kFileFsDeviceInformation) < 0
+		|| (device.characteristics & kRemoteDeviceCharacteristic) != 0)
+		return false;
+	switch (device.deviceType)
+	{
+	case FILE_DEVICE_DISK:
+	case FILE_DEVICE_DISK_FILE_SYSTEM:
+	case FILE_DEVICE_VIRTUAL_DISK:
+	case FILE_DEVICE_CD_ROM:
+	case FILE_DEVICE_CD_ROM_FILE_SYSTEM:
+	case FILE_DEVICE_DVD:
+		return true;
+	default:
+		return false;
+	}
+}
+
 class Win32FileSystem : public ConfigPathPolicy::FileSystem
 {
 public:
@@ -319,6 +366,8 @@ public:
 	{
 		parent = nullptr;
 		leafPath.clear();
+		passed.clear();
+		passedFrom.clear();
 		lastAttributesOnly = false;
 		winutil::UniqueHandle handle(CreateFileW(root.c_str(), FILE_LIST_DIRECTORY | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
 			FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING,
@@ -358,13 +407,52 @@ public:
 		const size_t separator = path.find_last_of(L"\\/");
 		const wstring component = path.substr(separator == wstring::npos ? 0 : separator + 1);
 		Entry result;
-		winutil::UniqueHandle handle = openChild(parent, component);
+		winutil::UniqueHandle handle = openChild(parent, passed + component);
+		if (!handle && error == ERROR_ACCESS_DENIED && parent != nullptr)
+		{
+			// The service may not open some folders even attributes-only:
+			// LOCAL SERVICE has no grant on C:\Users\<name>, AppData, Local
+			// or EqualizerAPO-XT, and none on the folder above them to list
+			// it, yet it reaches the configuration folder below them through
+			// bypass-traverse checking and the installer's grant there. Such a
+			// folder is passed: the next component is opened relative to the
+			// last held handle with this one in its name. The kernel follows
+			// whatever the passed folders are, so where that open arrived is
+			// judged from its handle (onLocalDrive) before the walk goes on.
+			// A passed folder holds no handle; NTFS still refuses to rename it
+			// while the components below it are held. error stays
+			// ACCESS_DENIED until an open below succeeds, so a walk that ends
+			// on a passed component (the file itself unreadable) is refused.
+			if (passed.empty())
+				passedFrom = path;
+			passed += component + L"\\";
+			++passedComponents;
+			result.kind = Entry::Kind::Plain;
+			return result;
+		}
 		if (!handle)
 		{
 			result.kind = isMissingError(error) ? Entry::Kind::Missing : Entry::Kind::Unexaminable;
 			parent = nullptr;
 			return result;
 		}
+		if (!passed.empty())
+		{
+			passed.clear();
+			// The one open that may have left the local drives through a
+			// link the walk could not read. A walk on a share (the same-share
+			// exception in judge()) never arrives on a local drive, so a
+			// folder it could not open there stays refused.
+			if (!onLocalDrive(handle.get()))
+			{
+				error = ERROR_CANT_ACCESS_FILE;
+				result.kind = Entry::Kind::PassedOffLocal;
+				result.target = passedFrom;
+				parent = nullptr;
+				return result;
+			}
+		}
+		error = ERROR_SUCCESS;
 		parent = handle.get();
 		pins.push_back(std::move(handle));
 		leafPath = path;
@@ -455,17 +543,22 @@ public:
 	mutable wstring leafPath;
 	mutable DWORD error = ERROR_SUCCESS;
 	mutable size_t attributesOnlyPins = 0;
+	mutable size_t passedComponents = 0;
+	// The folders passed since the last held handle, each followed by a
+	// backslash, and the full path of the first of them.
+	mutable wstring passed;
+	mutable wstring passedFrom;
 	// Whether the handle in parent was opened attributes-only. A leaf file
 	// held that way cannot be read, so judge() refuses it as before.
 	mutable bool lastAttributesOnly = false;
 
 private:
+	// component may be several names joined by backslashes when folders were
+	// passed (see entry()); only the last is opened without following it.
 	winutil::UniqueHandle openChild(HANDLE directory, const wstring& component) const
 	{
-		// winternl.h provides the ABI; load exports like ProcessCommandLine does.
-		static const winutil::UniqueModule module(LoadLibraryW(L"ntdll.dll"));
-		static const auto create = reinterpret_cast<decltype(&NtCreateFile)>(GetProcAddress(module.get(), "NtCreateFile"));
-		static const auto toDos = reinterpret_cast<decltype(&RtlNtStatusToDosError)>(GetProcAddress(module.get(), "RtlNtStatusToDosError"));
+		static const auto create = reinterpret_cast<decltype(&NtCreateFile)>(ntdllExport("NtCreateFile"));
+		static const auto toDos = reinterpret_cast<decltype(&RtlNtStatusToDosError)>(ntdllExport("RtlNtStatusToDosError"));
 		lastAttributesOnly = false;
 		if (create == nullptr || toDos == nullptr || directory == nullptr
 			|| component.empty() || component.size() > (std::numeric_limits<USHORT>::max)() / sizeof(wchar_t))
@@ -553,6 +646,10 @@ bool acceptsDestination(const wstring& path, const Destination& destination, con
 	case Problem::TooManyLinks:
 		reason = L"\"" + path + L"\" leads through more than " + std::to_wstring(ConfigPathPolicy::kLinkLimit)
 			+ L" links, so copy the file into the configuration folder";
+		return false;
+	case Problem::PassedOffLocal:
+		reason = L"\"" + path + L"\" leads through \"" + displayed(destination.link)
+			+ L"\", a folder the audio engine may not read, to a network share or a device path; " + kCopyAdvice;
 		return false;
 	case Problem::None:
 		break;
@@ -692,6 +789,7 @@ ConfigFileReference::Target ConfigPathPolicy::judge(const wstring& path, const w
 				fileSystem.parent = next.path.file;
 				fileSystem.leafPath = next.path.name;
 				fileSystem.attributesOnlyPins += next.path.attributesOnlyPins;
+				fileSystem.passedComponents += next.path.passedComponents;
 				// The nested judge already refused an unreadable leaf of its own.
 				fileSystem.lastAttributesOnly = false;
 				for (auto& pin : next.path.pins)
@@ -728,6 +826,6 @@ ConfigFileReference::Target ConfigPathPolicy::judge(const wstring& path, const w
 	// diagnostics, but never acquire a handle or retry an open by name.
 	const HANDLE leaf = result.error == ERROR_SUCCESS ? fileSystem.parent : nullptr;
 	result.path = JudgedPath(fileSystem.leafPath.empty() || leaf == nullptr ? path : fileSystem.leafPath,
-		std::move(fileSystem.pins), leaf, fileSystem.attributesOnlyPins);
+		std::move(fileSystem.pins), leaf, fileSystem.attributesOnlyPins, fileSystem.passedComponents);
 	return result;
 }

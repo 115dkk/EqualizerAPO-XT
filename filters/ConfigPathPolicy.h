@@ -29,12 +29,20 @@
 // A link to a share is refused that way before the service ever reaches the
 // share. Runtime walks open each child relative to its held parent and retain
 // every handle, leaf included, without delete sharing. A folder the engine may
-// not list (a user profile ancestor, for LOCAL SERVICE) is held attributes-only
-// instead; share modes do not protect its name, the held components below it
-// do on NTFS (see Win32FileSystem::openChild). An unexaminable local component
-// fails closed; the table-only fallback is retained for policy tests.
-// Same-share references remain the explicit exception and are opened only
-// after their remote root has been judged.
+// not list is held attributes-only instead. A folder it may not open at all
+// is passed: LOCAL SERVICE has no grant on C:\Users\<name>, AppData, Local or
+// EqualizerAPO-XT, which lie above the default configuration folder, so the
+// walk opens the next component with the passed names in its relative name
+// and judges where that open arrived from its handle (Win32FileSystem::entry).
+// A link among passed folders is therefore followed before it is judged: a
+// share behind one is refused, but only after the open has reached it (the
+// decision recorded for audit #348 A1: the final-path judgment only behind
+// components the engine cannot read). Share modes do not protect the name of an attributes-only or a passed
+// folder; the held components below it do on NTFS (see
+// Win32FileSystem::openChild). Any other unexaminable local component fails
+// closed; the table-only fallback is retained for policy tests. Same-share
+// references remain the explicit exception and are opened only after their
+// remote root has been judged.
 
 class ConfigPathPolicy
 {
@@ -56,6 +64,11 @@ public:
 			Link,
 			// A redirecting reparse point of a kind the engine does not follow.
 			OtherLink,
+			// Real walks only: reached by an open that passed folders the
+			// engine may not open (the kernel followed whatever they are),
+			// and that open arrived off the local drives. target is the
+			// first folder passed.
+			PassedOffLocal,
 		};
 
 		Kind kind = Kind::Missing;
