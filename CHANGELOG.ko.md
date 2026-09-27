@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.54.32 — 2026-09-27
+
 - **Include가 설정 폴더의 파일을 다시 불러옵니다.** v2.54.23부터 엔진은
   기본 설정 폴더(`%LOCALAPPDATA%\EqualizerAPO-XT\config`)의 파일을
   가리키는 Include 줄을 config.txt와 같은 폴더의 파일이라도 거부해, 그

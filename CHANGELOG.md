@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.54.32 — 2026-09-27
+
 - **Include reads files in the configuration folder again.** From v2.54.23,
   an Include line that named a file in the default configuration folder
   (`%LOCALAPPDATA%\EqualizerAPO-XT\config`), even a file beside config.txt,
