@@ -1167,7 +1167,8 @@ QToolButton#FilterCardIconButton[studioLocate="true"]:disabled {
 /* MultiConvolution's channel-mapping strip: the caption is quiet mono ink
    over the glass, the hint reads as an instruction, and the routing graph
    itself is the Light Trace view (LightTraceRoutingRenderer). */
-QLabel#MultiConvolutionMappingCaption {
+QLabel#MultiConvolutionMappingCaption,
+QLabel#SendFieldCaption {
     color: @MUTED@;
     font-family: @MONO_STACK@;
     font-size: 9pt;
@@ -1984,3 +1985,7 @@ QToolButton#NewChannelChip[invalid="true"]:hover {
     border-color: @DANGER@;
 }
 QLineEdit#NewChannelAdd[invalid="true"] { border-color: @DANGER@; }
+
+/* Send card: the field captions read like the MultiConvolution mapping
+   caption; a latency the card cannot read takes the danger colour. */
+QLineEdit#SendLatencyEdit[invalid="true"] { border-color: @DANGER@; }

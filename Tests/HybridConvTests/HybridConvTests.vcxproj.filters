@@ -53,6 +53,9 @@
     <ClCompile Include="CopyCommandTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="SendCommandTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="DelayCommandTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

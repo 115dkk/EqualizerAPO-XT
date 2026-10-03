@@ -76,6 +76,15 @@ void testFailedConfigLoadKeepsActiveConfiguration(test::Harness& harness);
 void testConfigWatcherBackoffAndPathRefresh(test::Harness& harness);
 void testConfigWatcherRegistryKeyIsQuietUntilChanged(test::Harness& harness);
 
+// SendRingTests.cpp
+void runSendRingTests(test::Harness& harness);
+
+// SendSeamTests.cpp
+void runSendSeamTests(test::Harness& harness);
+
+// SendTests.cpp
+void runSendTests(test::Harness& harness);
+
 // EngineRoutingTests.cpp
 void testChannelSelectorRouting(test::Harness& harness);
 void testCopySwapsChannels(test::Harness& harness);

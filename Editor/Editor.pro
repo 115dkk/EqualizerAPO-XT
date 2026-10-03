@@ -70,6 +70,8 @@ SOURCES += main.cpp\
 	../filters/PreampCommand.cpp \
 	../filters/PreampFilter.cpp \
 	../filters/PreampFilterFactory.cpp \
+	../runtime/ipc/SendRing.cpp \
+	../runtime/ipc/SendRingWin32.cpp \
 	../runtime/memory/AlignedMemory.cpp \
 	../runtime/concurrency/ParallelExecutor.cpp \
 	FilterTableRow.cpp \
@@ -79,6 +81,7 @@ SOURCES += main.cpp\
 	../devices/DeviceAPOInfo.cpp \
 	../devices/DeviceAPOInfo.Install.cpp \
 	../devices/ApoRuntimeFacts.cpp \
+	../devices/ReceiverEndpoints.cpp \
 	../devices/DeviceAPOInfo.Load.cpp \
 	../devices/DeviceAPOInfo.State.cpp \
 	../devices/DeviceAPOInfo.Uninstall.cpp \
@@ -105,6 +108,10 @@ SOURCES += main.cpp\
 	guis/CopyFilterGUIChannelItem.cpp \
 	../filters/CopyFilter.cpp \
 	../filters/CopyFilterFactory.cpp \
+	../filters/SendCommand.cpp \
+	../filters/SendFilter.cpp \
+	../filters/SendFilterFactory.cpp \
+	../filters/SendLink.cpp \
 	../engine/IFilter.cpp \
 	guis/CopyFilterGUIScene.cpp \
 	guis/CopyFilterGUIForm.cpp \
@@ -276,6 +283,7 @@ SOURCES += main.cpp\
 	gallery/GalleryProbes.cpp \
 	gallery/GallerySelfTests.cpp \
 	gallery/GallerySkinShots.cpp \
+	gallery/GalleryStallWatch.cpp \
 	gallery/GallerySupport.cpp \
 	SkinManager.cpp \
 	skins/ISkin.cpp \
@@ -308,6 +316,8 @@ SOURCES += main.cpp\
 	widgets/cards/DeviceCardEditor.cpp \
 	widgets/cards/NewChannelCardEditor.cpp \
 	widgets/cards/NewChannelListModel.cpp \
+	widgets/cards/SendCardEditor.cpp \
+	widgets/cards/SendCardModel.cpp \
 	widgets/cards/StageCardEditor.cpp \
 	widgets/cards/StageSelectionModel.cpp \
 	widgets/cards/DeviceSelectionModel.cpp \
@@ -418,12 +428,15 @@ HEADERS  += \
 	../filters/PreampCommand.h \
 	../filters/PreampFilter.h \
 	../filters/PreampFilterFactory.h \
+	../runtime/ipc/SendRing.h \
+	../runtime/ipc/SendRingWin32.h \
 	../runtime/memory/AlignedMemory.h \
 	FilterTableRow.h \
 	FilterTemplate.h \
 	guis/DeviceFilterGUI.h \
 	guis/DeviceFilterGUIFactory.h \
 	../devices/ApoRuntimeFacts.h \
+	../devices/ReceiverEndpoints.h \
 	../devices/DeviceAPOInfo.h \
 	../devices/DevicePlan.h \
 	../devices/DeviceTestPlan.h \
@@ -449,6 +462,10 @@ HEADERS  += \
 	guis/CopyFilterGUIConnectionItem.h \
 	guis/CopyFilterGUIChannelItem.h \
 	../filters/CopyFilter.h \
+	../filters/SendCommand.h \
+	../filters/SendFilter.h \
+	../filters/SendFilterFactory.h \
+	../filters/SendLink.h \
 	../filters/CopyFilterFactory.h \
 	../engine/IFilter.h \
 	../engine/IFilterFactory.h \
@@ -514,6 +531,7 @@ HEADERS  += \
 	analysis/ImpulseMeasurement.h \
 	analysis/ResponseCurveBuilder.h \
 	../engine/FilterEngine.h \
+	../engine/IInputTap.h \
 	../engine/ConfigWatcher.h \
 	../engine/FilterConfiguration.h \
 	../engine/ChannelRoutingPlan.h \
@@ -597,6 +615,7 @@ HEADERS  += \
 	diagnostics/SkinSwitchStorm.h \
 	helpers/QtSndfileHandle.h \
 	SkinGallery.h \
+	gallery/GalleryStallWatch.h \
 	gallery/GallerySupport.h \
 	SkinTokens.h \
 	SkinManager.h \
@@ -634,6 +653,8 @@ HEADERS  += \
 	widgets/cards/DeviceCardEditor.h \
 	widgets/cards/NewChannelCardEditor.h \
 	widgets/cards/NewChannelListModel.h \
+	widgets/cards/SendCardEditor.h \
+	widgets/cards/SendCardModel.h \
 	widgets/cards/StageCardEditor.h \
 	widgets/cards/StageSelectionModel.h \
 	widgets/cards/DeviceSelectionModel.h \

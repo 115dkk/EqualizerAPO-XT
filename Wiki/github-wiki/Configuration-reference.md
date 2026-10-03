@@ -382,6 +382,29 @@ VSTPlugin: Library "Upmixer.vst3" Input Stereo InputChannels L,R Output 5.1 Outp
 Copy: L=L+0.5*VC+0.7*VRL R=R+0.5*VC+0.7*VRR
 ```
 
+### Send
+**Syntax:** `Send: {<endpoint GUID>} <Target channel>=<Source sum> ... [Latency=<ms>|<n>ms|<n>samples] [Compensate=true|false] [Mode=Mix|Replace]`
+
+Hands channels of this configuration to the equalizer of another playback endpoint. It is meant for interfaces that Windows shows as several stereo endpoints although they are one device, such as a Topping E4x4 Pre showing up as Playback 1/2 and Playback 3/4: a configuration on Playback 1/2 can build a subwoofer feed and send it to the outputs of Playback 3/4.
+
+- The first word is the GUID of the receiving endpoint, in braces. The Editor's Send card picks it from a list, so you rarely type it.
+- Each assignment uses the grammar of [Copy](#copy): the left side is a channel name **of the receiving endpoint** (`L`, `R`, `LFE`, a number), the right side a sum of channels **of this configuration**, real or virtual, with optional factors (`0.5*SUB1`, `-6dB*L`). A channel this configuration does not have, or a constant, rejects the assignment.
+- `Latency` is how far the receiving endpoint plays behind the moment the audio was sent, in milliseconds by default (`Latency=20`, `Latency=13.33ms`) or in whole samples (`Latency=960samples`). Without it the engine uses two processing periods of this endpoint. If the log reports underruns, raise it.
+- `Compensate` (default `true`) delays this endpoint's own channels by the same latency, so both endpoints play in time. Turn it off only when the timing does not matter.
+- `Mode` (default `Mix`) says whether the received channels are added to what the receiving endpoint already plays or replace it on the targeted channels.
+
+The receiving endpoint needs no line of its own; filters in a `Device:` block for it apply to what it receives. Send works only between endpoints of the audio service on the same computer, in the post-mix stage, and only one configuration may send to a given endpoint at a time. Turn on the **Send** option of the receiving endpoint in the Device Selector: it keeps a silent stream open there (through `EqualizerAPOHost.exe`, started at logon), so the receiving equalizer runs even when no program plays on that endpoint. Without it the sent audio is heard only while something else plays there.
+
+```
+Device: Playback 1/2
+NewChannel: SUB1 SUB2
+Copy: SUB1=0.5*L+0.5*R SUB2=0.5*L+0.5*R
+Include: room_correction.txt
+Send: {01234567-89ab-cdef-0123-456789abcdef} L=SUB1 R=SUB2
+```
+
+The Send line sits below the room correction so that the subwoofer feed carries it.
+
 ### Stage
 **Syntax:** `Stage: <stage 1> <stage 2>`
 

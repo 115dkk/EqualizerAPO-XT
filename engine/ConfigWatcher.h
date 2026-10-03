@@ -20,6 +20,7 @@ public:
 	{
 		std::wstring directory;
 		std::vector<std::wstring> registryKeys;
+		std::vector<std::wstring> eventNames;
 	};
 
 	using SnapshotProvider = std::function<Snapshot()>;

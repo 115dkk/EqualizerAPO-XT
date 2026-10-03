@@ -9,6 +9,7 @@
 
 #include "asio/WrapperRecord.h"
 #include "devices/DeviceAPOInfoKeys.h"
+#include "devices/ReceiverEndpoints.h"
 #include "platform/windows/GuidText.h"
 #include "runtime/errors/WideError.h"
 #include "services/registry/ClsidRegistration.h"
@@ -227,7 +228,7 @@ namespace eapo::asio
 
 		void refreshAutoStart(IRegistry& registry, const std::wstring& installDirectory)
 		{
-			const bool wanted = WrapperRecords::autoStartWanted(registry);
+			const bool wanted = WrapperRecords::autoStartWanted(registry) || !receivingEndpoints(registry).empty();
 			if (wanted && installDirectory.empty())
 				return;
 			setAutoStart(registry, installDirectory + L"\\EqualizerAPOHost.exe", wanted);

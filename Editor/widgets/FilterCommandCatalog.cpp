@@ -52,6 +52,9 @@ const QList<CommandEntry>& commands()
 		{ "NewChannel", "newchannel", "VCH", "#06b6d4", "channel-add", true, false,
 		  QT_TRANSLATE_NOOP("FilterCardModel", "New channel"),
 		  QT_TRANSLATE_NOOP("FilterPickerView", "Creates silent virtual channels and adds them to the selection") },
+		{ "Send", "send", "SEND", "#06b6d4", "send-endpoint", true, false,
+		  QT_TRANSLATE_NOOP("FilterCardModel", "Send"),
+		  QT_TRANSLATE_NOOP("FilterPickerView", "Hands channels to the equalizer of another playback endpoint") },
 		{ "Include", "include", "INC", "#64748b", "file-include", true, true,
 		  QT_TRANSLATE_NOOP("FilterCardModel", "Include"),
 		  QT_TRANSLATE_NOOP("FilterPickerView", "Loads another configuration file here") },
@@ -272,6 +275,11 @@ const QList<TemplateEntry>& pickerTemplates()
 		  QT_TRANSLATE_NOOP("DeviceFilterGUIFactory", "Control"), "DeviceFilterGUIFactory" },
 		{ QT_TRANSLATE_NOOP("ChannelFilterGUIFactory", "Channel (Select channels)"), "ChannelFilterGUIFactory",
 		  "Channel: all", TemplateKind::Literal,
+		  QT_TRANSLATE_NOOP("ChannelFilterGUIFactory", "Control"), "ChannelFilterGUIFactory" },
+		// Send sits with Device and Channel (maintainer decision 4); it has no
+		// legacy factory either, so its name has the catalogue's own context.
+		{ QT_TRANSLATE_NOOP("FilterCommandCatalog", "Send (Send channels to another endpoint)"), "FilterCommandCatalog",
+		  "Send:", TemplateKind::Literal,
 		  QT_TRANSLATE_NOOP("ChannelFilterGUIFactory", "Control"), "ChannelFilterGUIFactory" },
 		{ QT_TRANSLATE_NOOP("StageFilterGUIFactory", "Stage (Select processing stage)"), "StageFilterGUIFactory",
 		  "Stage: post-mix", TemplateKind::Literal,

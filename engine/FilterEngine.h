@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <atomic>
+#include <cstdint>
 #include <string>
 #include <sstream>
 #include "filters/ConfigFileReference.h"
@@ -40,7 +42,16 @@
 
 struct ConfigLoadTraceEntry;
 class ConfigLoadTraceSink;
+class IInputTap;
 class IRegistry;
+
+enum class EngineHost
+{
+	Apo,
+	AsioHost,
+	Editor,
+	Test
+};
 
 // Everything initialize() needs, in one value (audit #250 A6). The old shape
 // was three calls whose ordering lived only in comments (setPreMix and
@@ -68,6 +79,10 @@ struct EngineSetup
 	std::wstring deviceName;
 	std::wstring connectionName;
 	std::wstring deviceGuid;
+	EngineHost host = EngineHost::Test;
+	// Prefix of the Send ring's mapping and event names. The audio service
+	// uses the default; tests use their own so they never meet a live APO.
+	std::wstring sendNamePrefix = L"Local\\EAPO.Send.";
 	// Registry port for the ConfigPath read and the config language's
 	// readRegString/readRegDWORD; null = the live registry.
 	IRegistry* registry = nullptr;
@@ -92,6 +107,14 @@ public:
 	void loadConfigFile(const JudgedPath& path);
 	ConfigFileReference::Target judgeIncludedFile(const std::wstring& configPath, const std::wstring& written);
 	void watchRegistryKey(const std::wstring& key);
+	void watchEvent(const std::wstring& name);
+	// The factory that installs the tap lives as long as the engine, so the tap
+	// must outlive processing. The tap runs after the configuration read and its
+	// virtual-channel zero fill (rather than literally immediately after read),
+	// which keeps targets at indices >= realChannelCount from being wiped.
+	void setInputTap(IInputTap* tap) {inputTap.store(tap, std::memory_order_release);}
+	// Read only from the audio thread (filters' process()).
+	uint64_t blockCounter() const {return processBlockCounter;}
 	// Three surfaces: float interleaved (the APO's usual connection format),
 	// float planar (VoicemeeterClient, whose host hands per-channel pointer
 	// arrays, and the ASIO stream processors asio/EngineHostCore.cpp and
@@ -108,6 +131,8 @@ public:
 	bool isPreMix() const {return preMix;}
 	bool isCapture() const {return capture;}
 	bool isPostMixInstalled() const {return postMixInstalled;}
+	EngineHost getHost() const {return host;}
+	const std::wstring& getSendNamePrefix() const {return sendNamePrefix;}
 	const std::wstring& getDeviceName() const {return deviceName;}
 	const std::wstring& getConnectionName() const {return connectionName;}
 	const std::wstring& getDeviceGuid() const {return deviceGuid;}
@@ -184,6 +209,8 @@ private:
 	bool preMix;
 	bool capture;
 	bool postMixInstalled;
+	EngineHost host = EngineHost::Test;
+	std::wstring sendNamePrefix = L"Local\\EAPO.Send.";
 	std::wstring deviceName;
 	std::wstring connectionName;
 	std::wstring deviceGuid;
@@ -213,8 +240,8 @@ private:
 	// field added here is transactional by construction instead of by
 	// keeping the save block, the rollback lambda and the member list in
 	// step by hand (frozenDynamicAnalysis once missed exactly that).
-	// watchRegistryKeys and frozenDynamicAnalysis are the two load results
-	// read after the load: the watcher thread snapshots the keys under
+	// The registry keys, named events and frozen-analysis flag are load results
+	// read afterward: the watcher thread snapshots both watch sets under
 	// loadMutex, and the Editor's analysis reads the freeze flag.
 	struct LoadSession
 	{
@@ -223,6 +250,7 @@ private:
 		// (audit #348 F1); its lastInPlace carries across loads.
 		ChannelRoutingPlan routing;
 		std::unordered_set<std::wstring> watchRegistryKeys;
+		std::unordered_set<std::wstring> watchEvents;
 		// Position of the line loadConfigFile is currently feeding to the
 		// factories; saved/restored across Include recursion like the
 		// channel names. Only meaningful while a sink is attached.
@@ -234,6 +262,9 @@ private:
 	EngineParser parser;
 
 	ConfigSwapChannel<FilterConfigurationPtr> configChannel;
+	std::atomic<IInputTap*> inputTap{nullptr};
+	// Realtime-thread-only token. Incremented once at processImpl entry.
+	uint64_t processBlockCounter = 0;
 
 	unsigned transitionCounter;
 	unsigned transitionLength = 0;

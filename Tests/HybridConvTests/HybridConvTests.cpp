@@ -50,6 +50,7 @@ void runCommonLogicTests();
 void runConfigPathPolicyTests();
 void runConvolutionCommandTests();
 void runCopyCommandTests();
+void runSendCommandTests();
 void runDelayCommandTests();
 void runDeviceCommandTests();
 void runExpressionCommandTests();
@@ -522,6 +523,7 @@ int runHybridConvTests()
 	runConfigPathPolicyTests();
 	runConvolutionCommandTests();
 	runCopyCommandTests();
+	runSendCommandTests();
 	runDelayCommandTests();
 	runDeviceCommandTests();
 	runExpressionCommandTests();

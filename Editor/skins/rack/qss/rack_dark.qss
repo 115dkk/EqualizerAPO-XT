@@ -629,7 +629,8 @@ QToolButton#FilterCardIconButton[rackLocate="true"]:disabled {
 /* MultiConvolution's channel-mapping strip: the caption is engraved plate
    printing (uppercase tracking like the other rack captions), the hint is
    quieter service text; the patch grid below paints itself. */
-QLabel#MultiConvolutionMappingCaption {
+QLabel#MultiConvolutionMappingCaption,
+QLabel#SendFieldCaption {
     color: @MUTED@;
     font-size: 8pt; font-weight: 700; letter-spacing: 2px;
     text-transform: uppercase;
@@ -1410,3 +1411,7 @@ QToolButton#NewChannelChip[invalid="true"]:hover {
     border-color: @DANGER@;
 }
 QLineEdit#NewChannelAdd[invalid="true"] { border-color: @DANGER@; }
+
+/* Send card: the field captions read like the MultiConvolution mapping
+   caption; a latency the card cannot read takes the danger colour. */
+QLineEdit#SendLatencyEdit[invalid="true"] { border-color: @DANGER@; }

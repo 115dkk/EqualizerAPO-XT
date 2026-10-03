@@ -22,6 +22,7 @@
 #include <typeinfo>
 
 #include "FilterConfiguration.h"
+#include "IInputTap.h"
 #include "diagnostics/performance/PerfProfile.h"
 
 #include "hwy/highway.h"
@@ -348,7 +349,7 @@ void FilterConfiguration::readFloatPlanar(const float* const* input, unsigned fr
 		sampleconv::promote(allSamples[c], input[c], frameCount);
 }
 
-void FilterConfiguration::process(unsigned frameCount)
+void FilterConfiguration::process(unsigned frameCount, IInputTap* tap, uint64_t blockToken)
 {
 	for (unsigned c = realChannelCount; c < allChannelCount; c++)
 		std::fill_n(allSamples[c], frameCount, 0.0);
@@ -356,6 +357,12 @@ void FilterConfiguration::process(unsigned frameCount)
 	// for real mono input and >= stereo output, upmix to stereo as the Windows audio system would do automatically if no APO was present
 	if (realChannelCount == 1 && outputChannelCount >= 2)
 		std::copy_n(allSamples[0], frameCount, allSamples[1]);
+
+	if (tap != nullptr)
+	{
+		const unsigned channelCount = (std::min)((std::max)(realChannelCount, outputChannelCount), allChannelCount);
+		tap->apply(allSamples.data(), channelCount, frameCount, blockToken);
+	}
 
 	for (const auto& filterInfoPtr : filterInfos)
 	{

@@ -5,6 +5,9 @@
 */
 
 #include "stdafx.h"
+#include <algorithm>
+#include <utility>
+
 #include "platform/windows/Win32Error.h"
 
 #include "services/logging/Logging.h"
@@ -119,7 +122,24 @@ void ConfigWatcher::run()
 			}
 		}
 
-		HANDLE handles[3] = {shutdownEvent, registryEvent.get(), nullptr};
+		// Event handles belong to one snapshot pass. Missing named events are
+		// expected while another endpoint is starting, so OpenEventW failure is
+		// deliberately quiet. One slot remains available for the directory watch.
+		vector<winutil::UniqueHandle> eventHandles;
+		const size_t maxEventCount = MAXIMUM_WAIT_OBJECTS - 2
+			- (directoryNotification ? 1 : 0);
+		eventHandles.reserve((std::min)(snapshot.eventNames.size(), maxEventCount));
+		for (const wstring& name : snapshot.eventNames)
+		{
+			if (eventHandles.size() >= maxEventCount)
+				break;
+			winutil::UniqueHandle handle(OpenEventW(
+				SYNCHRONIZE | EVENT_MODIFY_STATE, FALSE, name.c_str()));
+			if (handle)
+				eventHandles.push_back(std::move(handle));
+		}
+
+		HANDLE handles[MAXIMUM_WAIT_OBJECTS] = {shutdownEvent, registryEvent.get()};
 		DWORD handleCount = 2;
 		DWORD directoryIndex = MAXDWORD;
 		if (directoryNotification)
@@ -127,6 +147,9 @@ void ConfigWatcher::run()
 			directoryIndex = handleCount;
 			handles[handleCount++] = directoryNotification.get();
 		}
+		const DWORD eventStartIndex = handleCount;
+		for (const winutil::UniqueHandle& handle : eventHandles)
+			handles[handleCount++] = handle.get();
 
 		const DWORD waitResult = WaitForMultipleObjects(
 			handleCount, handles, false,
@@ -158,6 +181,10 @@ void ConfigWatcher::run()
 				if (watched.handle)
 					arm(watched, registryEvent.get());
 		}
+
+		const DWORD signalledIndex = waitResult - WAIT_OBJECT_0;
+		if (signalledIndex >= eventStartIndex && signalledIndex < handleCount)
+			ResetEvent(handles[signalledIndex]);
 
 		const bool directoryChanged =
 			directoryIndex != MAXDWORD

@@ -42,7 +42,8 @@ namespace eapo::asio
 			.postMixInstalled = true,
 			.deviceName = format.deviceName,
 			.connectionName = L"ASIO",
-			.deviceGuid = format.deviceGuid
+			.deviceGuid = format.deviceGuid,
+			.host = EngineHost::AsioHost
 		};
 	}
 }

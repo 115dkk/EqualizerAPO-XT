@@ -204,6 +204,12 @@
     <ClInclude Include="dsp\DelayLine.h">
       <Filter>dsp</Filter>
     </ClInclude>
+    <ClInclude Include="runtime\ipc\SendRing.h">
+      <Filter>runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="runtime\ipc\SendRingWin32.h">
+      <Filter>runtime</Filter>
+    </ClInclude>
     <ClInclude Include="runtime\memory\AlignedMemory.h">
       <Filter>runtime</Filter>
     </ClInclude>
@@ -313,6 +319,7 @@
     <ClInclude Include="engine\ConfigWatcher.h" />
     <ClInclude Include="engine\FilterConfiguration.h" />
     <ClInclude Include="engine\FilterEngine.h" />
+    <ClInclude Include="engine\IInputTap.h" />
     <ClInclude Include="engine\IFilter.h" />
     <ClInclude Include="engine\IFilterFactory.h" />
     <ClInclude Include="filters\loudnessCorrection\LoudnessCorrectionCommand.h">
@@ -326,6 +333,18 @@
     </ClInclude>
     <ClInclude Include="filters\loudnessCorrection\LoudnessCorrectionFilter.h">
       <Filter>filters\loudnessCorrection</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\SendCommand.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\SendFilter.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\SendFilterFactory.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\SendLink.h">
+      <Filter>filters</Filter>
     </ClInclude>
     <ClInclude Include="parser\LogicalOperators.h">
       <Filter>parser</Filter>
@@ -401,6 +420,18 @@
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\CopyFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\SendCommand.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\SendFilter.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\SendFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\SendLink.cpp">
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\DelayCommand.cpp">
@@ -505,6 +536,12 @@
     <ClCompile Include="services\logging\Logging.cpp">
       <Filter>platform</Filter>
     </ClCompile>
+    <ClCompile Include="runtime\ipc\SendRing.cpp">
+      <Filter>runtime</Filter>
+    </ClCompile>
+    <ClCompile Include="runtime\ipc\SendRingWin32.cpp">
+      <Filter>runtime</Filter>
+    </ClCompile>
     <ClCompile Include="runtime\memory\AlignedMemory.cpp">
       <Filter>runtime</Filter>
     </ClCompile>
@@ -587,6 +624,7 @@
     <ClCompile Include="devices\AbstractAPOInfo.cpp" />
     <ClCompile Include="engine\ConfigurationFileReader.cpp" />
     <ClCompile Include="devices\ApoRuntimeFacts.cpp" />
+    <ClCompile Include="devices\ReceiverEndpoints.cpp" />
     <ClCompile Include="devices\DeviceAPOInfo.cpp" />
     <ClCompile Include="devices\DeviceAPOInfo.Install.cpp" />
     <ClCompile Include="devices\DeviceAPOInfo.Load.cpp" />

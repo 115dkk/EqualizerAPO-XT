@@ -1282,6 +1282,7 @@ namespace
 int runStreamRingTests();
 int runDaemonTests();
 int runDeviceRecordTests();
+int runReceiverKeepaliveTests();
 
 int main()
 {
@@ -1293,6 +1294,8 @@ int main()
 		if (runDaemonTests() != 0)
 			return 1;
 		if (runDeviceRecordTests() != 0)
+			return 1;
+		if (runReceiverKeepaliveTests() != 0)
 			return 1;
 		return runAsioTests();
 	}

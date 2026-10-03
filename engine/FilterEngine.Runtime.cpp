@@ -51,6 +51,9 @@ void FilterEngine::notificationThread(FilterEngine* engine)
 				snapshot.registryKeys.assign(
 					engine->load.watchRegistryKeys.begin(),
 					engine->load.watchRegistryKeys.end());
+				snapshot.eventNames.assign(
+					engine->load.watchEvents.begin(),
+					engine->load.watchEvents.end());
 				return snapshot;
 			},
 			[engine] {

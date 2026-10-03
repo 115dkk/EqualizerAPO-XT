@@ -48,6 +48,7 @@ namespace FilterFactoryPriority
 	constexpr int VSTPlugin = 16;
 	constexpr int LoudnessCorrection = 17;
 	constexpr int NewChannel = 18;
+	constexpr int Send = 19;
 }
 
 class FilterFactoryRegistry

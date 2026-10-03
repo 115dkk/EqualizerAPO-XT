@@ -87,6 +87,7 @@ void DeviceAPOInfo::beginReport(DeviceInstallReport::Operation operation)
 	}
 	report.installPreMix = state.installPreMix;
 	report.installPostMix = state.installPostMix;
+	report.receiveFromEndpoints = state.receiveFromEndpoints && !input && state.installPostMix;
 
 	lastOperationReport = report;
 }
@@ -155,6 +156,8 @@ void DeviceAPOInfo::installWithin(RegistryTransaction& plan)
 {
 	if (!selectedInstallState.installPreMix && !selectedInstallState.installPostMix)
 		return;
+
+	const bool receive = selectedInstallState.receiveFromEndpoints && !input && selectedInstallState.installPostMix;
 
 	// The mode list a slot we populate gets when the driver left none: every
 	// mode an app can end up in for this direction (DeviceAPOInfoKeys.h). A
@@ -237,7 +240,16 @@ void DeviceAPOInfo::installWithin(RegistryTransaction& plan)
 	plan.writeValue(childApoPath L"\\" + deviceGuid, preMixChildGuidValueName, preMixValue);
 	plan.writeValue(childApoPath L"\\" + deviceGuid, postMixChildGuidValueName, postMixValue);
 
-	plan.writeValue(childApoPath L"\\" + deviceGuid, allowSilentBufferValueName, selectedInstallState.allowSilentBufferModification ? L"true" : L"false");
+	plan.writeValue(childApoPath L"\\" + deviceGuid, allowSilentBufferValueName,
+		selectedInstallState.allowSilentBufferModification || receive ? L"true" : L"false");
+	if (receive)
+	{
+		plan.writeValue(childApoPath L"\\" + deviceGuid, receiveFromEndpointsValueName, L"true");
+	}
+	else if (plan.valueExists(childApoPath L"\\" + deviceGuid, receiveFromEndpointsValueName))
+	{
+		plan.deleteValue(childApoPath L"\\" + deviceGuid, receiveFromEndpointsValueName);
+	}
 	if (selectedInstallState.autoAdjust)
 	{
 		if (plan.valueExists(childApoPath L"\\" + deviceGuid, disableAutoAdjustValueName))

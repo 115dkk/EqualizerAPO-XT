@@ -107,6 +107,7 @@ bool DeviceAPOInfo::loadFromRegistry(const wstring& deviceGuid)
 	currentInstallState.useOriginalAPOPreMix = true;
 	currentInstallState.useOriginalAPOPostMix = !input;
 	currentInstallState.allowSilentBufferModification = false;
+	currentInstallState.receiveFromEndpoints = false;
 	currentInstallState.autoAdjust = true;
 	currentInstallState.asioEntry = false;
 	currentInstallState.asioEntryOptions = {};
@@ -213,6 +214,8 @@ bool DeviceAPOInfo::loadFromRegistry(const wstring& deviceGuid)
 
 					if (registry.valueExists(childApoPath L"\\" + deviceGuid, allowSilentBufferValueName))
 						currentInstallState.allowSilentBufferModification = registry.readValue(childApoPath L"\\" + deviceGuid, allowSilentBufferValueName) != L"false";
+					if (!input && registry.valueExists(childApoPath L"\\" + deviceGuid, receiveFromEndpointsValueName))
+						currentInstallState.receiveFromEndpoints = registry.readValue(childApoPath L"\\" + deviceGuid, receiveFromEndpointsValueName) != L"false";
 					if (registry.valueExists(childApoPath L"\\" + deviceGuid, disableAutoAdjustValueName))
 						currentInstallState.autoAdjust = registry.readValue(childApoPath L"\\" + deviceGuid, disableAutoAdjustValueName) == L"false";
 				}

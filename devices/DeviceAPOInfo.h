@@ -52,6 +52,13 @@ public:
 		bool autoAdjust;
 		InstallMode installMode;
 		bool allowSilentBufferModification;
+		// The Device Selector's "Send" option: this playback endpoint plays audio
+		// that Send: lines on other endpoints hand to it. Stored as
+		// ReceiveFromEndpoints; while it is on, silent-buffer modification is
+		// written as on and the resident EqualizerAPOHost keeps a stream open on
+		// the endpoint from logon. Offered only to render endpoints with the
+		// post-mix stage. The headless install sets it with --receive.
+		bool receiveFromEndpoints;
 		// "Use in ASIO apps": an entry for this endpoint in the ASIO driver
 		// list, served by the wrapper over a WASAPI exclusive target
 		// (asio/WasapiExclusiveTarget.h), for applications whose
@@ -73,6 +80,7 @@ public:
 			autoAdjust = true;
 			installMode = INSTALL_LFX_GFX;
 			allowSilentBufferModification = false;
+			receiveFromEndpoints = false;
 			asioEntry = false;
 		}
 
@@ -153,6 +161,10 @@ public:
 	bool isDefaultDevice() const override;
 	bool isDisabled() const override;
 	bool isUnplugged() const override;
+	bool receivesFromEndpoints() const override
+	{
+		return currentInstallState.receiveFromEndpoints;
+	}
 	const InstallState& getCurrentInstallState();
 	InstallState& getSelectedInstallState();
 	// By const reference: both callers copy into a local or compare, and the
