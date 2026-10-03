@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.55.0 — 2026-10-03
+
 - **새 명령 `NewChannel:`이 가상 채널을 만들고 선택합니다.**
   `NewChannel: VC VRL VRR`은 장치에 없는 무음 채널을 선언하고 지금의 선택에
   더합니다. 그래서 아래의 `VSTPlugin:` 줄이 `OutputChannels`로 그 채널을

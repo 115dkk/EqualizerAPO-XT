@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.55.0 — 2026-10-03
+
 - **New command `NewChannel:` creates virtual channels and selects them.**
   `NewChannel: VC VRL VRR` declares silent channels the device does not have
   and adds them to the current selection, so a `VSTPlugin:` line below can
