@@ -14,6 +14,19 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **ASIO games can pick 64 or 128 on a device whose fastest exclusive
+  period is 3 ms.** An endpoint's ASIO entry (**Use in ASIO apps**) refused
+  any buffer below the device's smallest exclusive period rounded up to a
+  power of two, so on a USB DAC with a 3 ms minimum a game set to 128
+  frames could not open the stream. The entry now accepts buffers down to an
+  eighth of that size, never below 32. The device still runs at its own
+  smallest period and plays the game's buffers two, four or eight at a time,
+  so the sound comes out exactly as late as at that period; what changes is
+  that the smaller setting is no longer refused
+  ([#410](https://github.com/115dkk/EqualizerAPO-XT/pull/410)). Checked on a
+  virtual cable whose smallest size is 128 frames: 64 and 32 frames each
+  played every buffer for five seconds. Not tried in a game.
+
 ## v2.57.0 — 2026-10-03
 
 - **New command `Send:` hands channels to another playback endpoint.** An

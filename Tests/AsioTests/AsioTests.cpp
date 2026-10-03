@@ -276,25 +276,50 @@ namespace
 		harness.expectEqual(static_cast<unsigned long>(floating.dwChannelMask), 0x63ful, "the channel mask is passed through");
 		harness.expectEqual(floating.Format.nAvgBytesPerSec, 48000u * 32u, "bytes per second follow the layout");
 
-		// Buffer sizes: powers of two from the smallest at or above the device minimum.
+		// Buffer sizes: the device's own smallest power of two is preferred;
+		// down to an eighth of it the device runs at that size and serves
+		// several buffers per period.
 		wasapi::BufferPolicy policy = wasapi::bufferPolicy(144);       // 3 ms at 48 kHz
-		harness.expectEqual(policy.minSize, 256L, "3 ms at 48 kHz offers 256 frames as the smallest");
-		harness.expectEqual(policy.preferredSize, 256L, "and prefers it");
+		harness.expectEqual(policy.preferredSize, 256L, "3 ms at 48 kHz prefers 256 frames, the smallest the device takes");
+		harness.expectEqual(policy.minSize, 32L, "and offers down to an eighth of it");
 		harness.expectEqual(policy.maxSize, 2048L, "up to 2048");
 		harness.expectEqual(policy.granularity, -1L, "in powers of two");
 		policy = wasapi::bufferPolicy(96);
-		harness.expectEqual(policy.minSize, 128L, "2 ms at 48 kHz offers 128");
-		policy = wasapi::bufferPolicy(0);
+		harness.expectEqual(policy.preferredSize, 128L, "2 ms at 48 kHz prefers 128");
 		harness.expectEqual(policy.minSize, 32L, "never below 32");
+		policy = wasapi::bufferPolicy(0);
+		harness.expectEqual(policy.preferredSize, 32L, "no minimum prefers 32");
+		harness.expectEqual(policy.minSize, 32L, "and offers 32");
 		policy = wasapi::bufferPolicy(4000);
-		harness.expectEqual(policy.minSize, 4096L, "a huge minimum is honoured");
+		harness.expectEqual(policy.preferredSize, 4096L, "a huge minimum is honoured");
+		harness.expectEqual(policy.minSize, 512L, "an eighth of it is the smallest offered");
 		harness.expectEqual(policy.maxSize, 4096L, "and the maximum follows it up");
 		const unsigned minPeriod48 = wasapi::framesFromHns(30000, 48000);
 		harness.expectEqual(minPeriod48, 144u, "a 3 ms minimum is 144 frames at 48 kHz");
-		harness.expectEqual(wasapi::bufferPolicy(minPeriod48).minSize, 256L, "the 48 kHz minimum offers 256 frames");
+		harness.expectEqual(wasapi::bufferPolicy(minPeriod48).preferredSize, 256L, "the 48 kHz minimum prefers 256 frames");
 		const unsigned minPeriod96 = wasapi::framesFromHns(30000, 96000);
 		harness.expectEqual(minPeriod96, 288u, "the same 3 ms minimum is 288 frames at 96 kHz");
-		harness.expectEqual(wasapi::bufferPolicy(minPeriod96).minSize, 512L, "the 96 kHz minimum offers 512 frames");
+		harness.expectEqual(wasapi::bufferPolicy(minPeriod96).preferredSize, 512L, "the 96 kHz minimum prefers 512 frames");
+		harness.expectEqual(wasapi::bufferPolicy(minPeriod96).minSize, 64L, "and offers down to 64");
+
+		// The device period a buffer opens with, in buffers.
+		harness.expectEqual(wasapi::initialBridge(256, 256), 1u, "the preferred size needs no bridge");
+		harness.expectEqual(wasapi::initialBridge(1024, 256), 1u, "nor does a larger buffer");
+		harness.expectEqual(wasapi::initialBridge(128, 256), 2u, "a game's 128 on a 3 ms device: two buffers per 256-frame period");
+		harness.expectEqual(wasapi::initialBridge(64, 256), 4u, "64: four");
+		harness.expectEqual(wasapi::initialBridge(32, 256), 8u, "32: eight, the cap");
+		harness.expectEqual(wasapi::initialBridge(96, 256), 3u, "a buffer that does not divide it rounds up to cover the period");
+		harness.expectEqual(wasapi::initialBridge(0, 256), 1u, "no buffer, no bridge");
+		for (unsigned minPeriod : {0u, 96u, 144u, 288u, 4000u})
+		{
+			const wasapi::BufferPolicy offered = wasapi::bufferPolicy(minPeriod);
+			for (long frames = offered.minSize; frames <= offered.preferredSize; frames *= 2)
+			{
+				const unsigned bridge = wasapi::initialBridge(frames, offered.preferredSize);
+				harness.expectTrue(bridge <= wasapi::bridgeCap && static_cast<long>(bridge) * frames >= offered.preferredSize,
+					"every offered size reaches the device minimum within the cap: " + std::to_string(frames) + " over " + std::to_string(minPeriod));
+			}
+		}
 
 		// Frames and 100 ns units.
 		harness.expectEqual(wasapi::framesFromHns(30000, 48000), 144u, "3 ms at 48 kHz is 144 frames");
@@ -374,9 +399,9 @@ namespace
 		const uint64_t period = 2666666;     // 128 frames at 48 kHz, in ns
 
 		// Calibration: the median of twelve event spacings against the period.
-		const auto calibrate = [](uint64_t periodNanos, int forced, const std::vector<uint64_t>& spacings, unsigned* decidedOn)
+		const auto calibrate = [](uint64_t periodNanos, int forced, const std::vector<uint64_t>& spacings, unsigned* decidedOn, unsigned current = 1)
 		{
-			wasapi::BridgeCalibrator calibrator(periodNanos, forced);
+			wasapi::BridgeCalibrator calibrator(periodNanos, current, forced);
 			*decidedOn = 0;
 			for (size_t i = 0; i < spacings.size(); i++)
 				if (calibrator.addSpacing(spacings[i]))
@@ -424,11 +449,31 @@ namespace
 		harness.expectEqual(decidedOn, 0u, "no spacing decides after it");
 		for (int ignored : {1, 0, -2, 9})
 		{
-			wasapi::BridgeCalibrator notForced(period, ignored);
+			wasapi::BridgeCalibrator notForced(period, 1, ignored);
 			harness.expectFalse(notForced.forced() || notForced.decided(), "a forced value of " + std::to_string(ignored) + " is ignored");
 		}
-		wasapi::BridgeCalibrator forcedCap(period, 8);
+		wasapi::BridgeCalibrator forcedCap(period, 1, 8);
 		harness.expectEqual(forcedCap.factor(), 8u, "the cap itself may be forced");
+
+		// A stream that opened with a bridge (a buffer below the device
+		// minimum) is judged against its device period, and never asked
+		// to go below it.
+		wasapi::BridgeCalibrator opened(period, 2, 0);
+		harness.expectEqual(opened.factor(), 2u, "before any spacing the factor is the bridge the stream opened with");
+		wasapi::BridgeCalibrator honoured = calibrate(period, 0, std::vector<uint64_t>(12, period * 2), &decidedOn, 2);
+		harness.expectEqual(honoured.factor(), 2u, "events at the two-buffer device period keep the bridge of 2");
+		wasapi::BridgeCalibrator underThree = calibrate(period, 0, std::vector<uint64_t>(12, period * 3), &decidedOn, 2);
+		harness.expectEqual(underThree.factor(), 2u, "a median of 1.5 device periods keeps it");
+		wasapi::BridgeCalibrator slowCable = calibrate(1333333, 0, std::vector<uint64_t>(12, 10000000), &decidedOn, 2);
+		harness.expectEqual(slowCable.factor(), 8u, "64 frames over a 10 ms cycle: from 2 up to 8");
+		wasapi::BridgeCalibrator fastEvents = calibrate(period, 0, std::vector<uint64_t>(12, period), &decidedOn, 4);
+		harness.expectEqual(fastEvents.factor(), 4u, "events faster than the device period never lower the bridge");
+		wasapi::BridgeCalibrator forcedBelow(period, 4, 3);
+		harness.expectFalse(forcedBelow.forced(), "a forced value at or below the opened bridge is ignored");
+		harness.expectEqual(forcedBelow.factor(), 4u, "and the opened bridge stands");
+		wasapi::BridgeCalibrator forcedAbove(period, 2, 5);
+		harness.expectTrue(forcedAbove.forced(), "a forced value above the opened bridge decides");
+		harness.expectEqual(forcedAbove.factor(), 5u, "with its own value");
 
 		// Capture queue: two channels of 16 bit, room for two periods of 4 frames.
 		const unsigned channels = 2, bytes = 2, frames = 4;
