@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.57.0 — 2026-10-03
+
 - **새 명령 `Send:`가 채널을 다른 재생 엔드포인트로 넘깁니다.** Topping E4x4
   Pre(Playback 1/2와 Playback 3/4)처럼 Windows가 스테레오 엔드포인트 여러
   개로 잡는 인터페이스를 이제 설정 하나로 다룰 수 있습니다. Playback 1/2에

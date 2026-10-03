@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.57.0 — 2026-10-03
+
 - **New command `Send:` hands channels to another playback endpoint.** An
   interface that Windows shows as several stereo endpoints, such as a Topping
   E4x4 Pre (Playback 1/2 and Playback 3/4), can now be driven from one
