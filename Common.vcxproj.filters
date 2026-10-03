@@ -204,6 +204,12 @@
     <ClInclude Include="dsp\DelayLine.h">
       <Filter>dsp</Filter>
     </ClInclude>
+    <ClInclude Include="runtime\ipc\SendRing.h">
+      <Filter>runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="runtime\ipc\SendRingWin32.h">
+      <Filter>runtime</Filter>
+    </ClInclude>
     <ClInclude Include="runtime\memory\AlignedMemory.h">
       <Filter>runtime</Filter>
     </ClInclude>
@@ -511,6 +517,12 @@
     </ClCompile>
     <ClCompile Include="services\logging\Logging.cpp">
       <Filter>platform</Filter>
+    </ClCompile>
+    <ClCompile Include="runtime\ipc\SendRing.cpp">
+      <Filter>runtime</Filter>
+    </ClCompile>
+    <ClCompile Include="runtime\ipc\SendRingWin32.cpp">
+      <Filter>runtime</Filter>
     </ClCompile>
     <ClCompile Include="runtime\memory\AlignedMemory.cpp">
       <Filter>runtime</Filter>

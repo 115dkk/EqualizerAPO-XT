@@ -398,6 +398,8 @@
     <ClInclude Include="dsp\FftwPlanningPolicy.h" />
     <ClInclude Include="dsp\DelayLine.h" />
     <ClInclude Include="runtime\errors\WideError.h" />
+    <ClInclude Include="runtime\ipc\SendRing.h" />
+    <ClInclude Include="runtime\ipc\SendRingWin32.h" />
     <ClInclude Include="runtime\memory\AlignedMemory.h" />
     <ClInclude Include="runtime\WeakValueCache.h" />
     <ClInclude Include="runtime\concurrency\ParallelExecutor.h" />
@@ -540,6 +542,8 @@
     <ClCompile Include="platform\windows\ShellLink.cpp" />
     <ClCompile Include="platform\windows\GuidText.cpp" />
     <ClCompile Include="services\logging\Logging.cpp" />
+    <ClCompile Include="runtime\ipc\SendRing.cpp" />
+    <ClCompile Include="runtime\ipc\SendRingWin32.cpp" />
     <ClCompile Include="runtime\memory\AlignedMemory.cpp" />
     <ClCompile Include="runtime\concurrency\ParallelExecutor.cpp" />
     <ClCompile Include="diagnostics\performance\PerfProfile.cpp" />

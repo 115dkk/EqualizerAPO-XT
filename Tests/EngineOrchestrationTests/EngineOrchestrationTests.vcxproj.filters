@@ -71,6 +71,9 @@
     <ClCompile Include="RuntimeUtilityTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="SendRingTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="SendSeamTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

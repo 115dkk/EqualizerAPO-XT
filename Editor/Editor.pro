@@ -70,6 +70,8 @@ SOURCES += main.cpp\
 	../filters/PreampCommand.cpp \
 	../filters/PreampFilter.cpp \
 	../filters/PreampFilterFactory.cpp \
+	../runtime/ipc/SendRing.cpp \
+	../runtime/ipc/SendRingWin32.cpp \
 	../runtime/memory/AlignedMemory.cpp \
 	../runtime/concurrency/ParallelExecutor.cpp \
 	FilterTableRow.cpp \
@@ -422,6 +424,8 @@ HEADERS  += \
 	../filters/PreampCommand.h \
 	../filters/PreampFilter.h \
 	../filters/PreampFilterFactory.h \
+	../runtime/ipc/SendRing.h \
+	../runtime/ipc/SendRingWin32.h \
 	../runtime/memory/AlignedMemory.h \
 	FilterTableRow.h \
 	FilterTemplate.h \
