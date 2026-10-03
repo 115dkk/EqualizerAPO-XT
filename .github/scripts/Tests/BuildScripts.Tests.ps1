@@ -6,7 +6,8 @@ Describe "extracted build script decisions" {
     It "selects native ARM64 toolchain and suppresses unsupported runtime tests" {
         $plan = & (Join-Path $PSScriptRoot "..\Build-Solution.ps1") `
             -WorkspaceRoot $root -Platform ARM64 -SimdVariant neon -CanExecute:$false -PlanOnly
-        $plan.PlatformToolset | Should -Be "v143"
+        # The ARM64 image ships ATL for ARM64 only with the v145 toolset.
+        $plan.PlatformToolset | Should -Be "v145"
         $plan.ToolArchitecture | Should -Be "ARM64"
         # A runner that cannot execute the variant runs nothing: EditorLogicTests
         # links Common.lib whole-archive and so now carries the variant's /arch

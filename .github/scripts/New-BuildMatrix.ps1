@@ -35,8 +35,9 @@ foreach ($variant in $manifest.Variants) {
   $isArm = $variant.Platform -eq 'ARM64'
 
   # Keys mirror what build.yml's hand-written matrix.include block used to define.
-  # windows-2025-vs2026 ships VS 2026 (v145); windows-11-arm still ships VS 2022
-  # (v143) — the build step picks the platform toolset from matrix.platform.
+  # Both images ship VS 2026 (v145): windows-2025-vs2026, and windows-11-arm,
+  # which GitHub moved to its VS 2026 image in September 2026. Build-Solution.ps1
+  # builds every platform with v145.
   # The per-variant asset zip names are NOT expanded into the matrix: the
   # download step resolves them from the manifest by platform+simd via
   # .github/scripts/Provisioning.psm1 (Get-DependencyDownloadSpec).

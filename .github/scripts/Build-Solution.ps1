@@ -42,7 +42,11 @@ $projects = @(
     "Tests\ApoHostProbe\ApoHostProbe.vcxproj",
     "Tests\CaptureProbe\CaptureProbe.vcxproj"
 )
-$platformToolset = if ($Platform -eq "ARM64") { "v143" } else { "v145" }
+# Both runner images ship VS 2026. The ARM64 image (windows-11-arm, which moved
+# to windows-11-vs2026-arm64 in September 2026) keeps the v143 ARM64 compilers
+# but carries ATL for ARM64 only for the default v145 toolset, so a v143 build
+# of EqualizerAPO.dll stopped linking there (LNK1104 atls.lib).
+$platformToolset = "v145"
 $toolArchitecture = if ($Platform -eq "ARM64") { "ARM64" } else { "x64" }
 # EditorLogicTests used to run everywhere because it linked no engine code and
 # so carried only baseline instructions. It now links Common.lib whole-archive
