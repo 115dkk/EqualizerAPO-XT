@@ -27,8 +27,10 @@ them unset.
   the GUI thread's call stack until it ends and prints a `StallWatch:` report
   (process, system and memory counters, the commonest stacks, the other
   threads at the moment the threshold was crossed, and the CPU time other
-  processes used from then on). Defaults to each gate's
-  warning budget (`EAPO_SWITCH_WARN_MS`, `EAPO_MOVE_WARN_MS`).
+  processes used from then on). Without it the gate starts sampling at
+  its warning budget (`EAPO_SWITCH_WARN_MS`, `EAPO_MOVE_WARN_MS`) or at a
+  multiple of the median of the operations it has timed so far (1.5 for
+  skin switches, 2 for card moves), whichever is lower.
 - `EAPO_STALL_SELFTEST` — `1` makes the first two watched operations stall on
   purpose (a 900 ms sleep, then a 600 ms busy loop), to check that the
   `StallWatch:` report names them. Never set in CI.

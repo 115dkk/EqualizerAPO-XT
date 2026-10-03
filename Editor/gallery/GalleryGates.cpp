@@ -12,6 +12,7 @@
 #include "SkinGallery.h"
 #include "Editor/gallery/GallerySupport.h"
 #include "Editor/gallery/GalleryStallWatch.h"
+#include <algorithm>
 #include <numbers>
 // For the two gates moved out of main.cpp (audit #275 B7): the VST
 // round-trip self test and the analysis layout probe.
@@ -114,6 +115,22 @@
 #include "Editor/widgets/routing/IRoutingRenderer.h"
 
 using namespace SkinGalleryDetail;
+
+namespace
+{
+// When the stall watch starts sampling: at the gate's budget, or at `factor`
+// times the median of the operations this run has timed so far, whichever is
+// lower. A fast runner then still reports an operation that took twice its
+// usual time, which the budget alone would let pass unexplained.
+int stallThreshold(QList<qint64> previous, int budgetMs, double factor)
+{
+	if (previous.size() < 3)
+		return budgetMs;
+	std::sort(previous.begin(), previous.end());
+	const qint64 median = previous[previous.size() / 2];
+	return int(std::min<qint64>(budgetMs, qint64(factor * double(median))));
+}
+}
 
 namespace SkinGallery
 {
@@ -346,6 +363,7 @@ int runSwitchTest(const QStringList& arguments)
 	}
 	qint64 worstMs = 0;
 	QString worstName;
+	QList<qint64> switchTimes;
 	const int rounds = 3;
 	for (int round = 1; round <= rounds; round++)
 	{
@@ -362,11 +380,10 @@ int runSwitchTest(const QStringList& arguments)
 				qint64 applyMs = 0;
 				qint64 rebuildMs = 0;
 				{
-					// Prints the GUI thread's stacks when the switch runs past the
-					// warning budget.
+					// Prints the GUI thread's stacks when the switch runs long.
 					const GalleryStallWatch watch("SkinSwitchTest",
 						name + QStringLiteral(" round %1").arg(round),
-						warningMs > 0 ? warningMs : limitMs / 2);
+						stallThreshold(switchTimes, warningMs > 0 ? warningMs : limitMs / 2, 1.5));
 					// MainWindow::skinSelected's exact live sequence: tear the
 					// rows down BEFORE the global stylesheet swap (which also
 					// re-derives the palette), rebuild after.
@@ -387,6 +404,7 @@ int runSwitchTest(const QStringList& arguments)
 					rebuildMs = timer.elapsed();
 				}
 				const qint64 elapsed = clearMs + applyMs + rebuildMs;
+				switchTimes.append(elapsed);
 
 				if (SkinManager::instance()->currentSkinId() != skin->id())
 				{
@@ -584,6 +602,7 @@ int runCardMoveTest(const QStringList& arguments)
 	int moves = 0;
 	qint64 worstMs = 0;
 	QString worstName;
+	QList<qint64> moveTimes;
 	for (ISkin* skin : Skins::all())
 	{
 		for (int darkIndex = 0; darkIndex < 2; darkIndex++)
@@ -626,16 +645,16 @@ int runCardMoveTest(const QStringList& arguments)
 				timer.start();
 				qint64 elapsed = 0;
 				{
-					// Prints the GUI thread's stacks when the move runs past the
-					// warning budget.
+					// Prints the GUI thread's stacks when the move runs long.
 					const GalleryStallWatch watch("CardMoveTest",
 						name + QStringLiteral(" move %1").arg(pass + 1),
-						warningMs > 0 ? warningMs : limitMs / 2);
+						stallThreshold(moveTimes, warningMs > 0 ? warningMs : limitMs / 2, 2.0));
 					table->moveRows({ moved }, dropRow);
 					QApplication::processEvents();
 					elapsed = timer.elapsed();
 				}
 				moves++;
+				moveTimes.append(elapsed);
 
 				QList<QString> expected = before;
 				expected.move(sourceRow, targetRow);
