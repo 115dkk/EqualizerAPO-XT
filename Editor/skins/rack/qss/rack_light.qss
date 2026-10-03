@@ -974,7 +974,8 @@ QToolButton#DeviceChipMore:disabled { background: #E2DCCE; border-color: #C9C0AC
    window UNDER the cap; ALL is the green bus master; custom/virtual
    channels are dashed printed seats that only gain a real lamp when
    taken. Same cascade discipline as the Device bank. */
-QToolButton#ChannelChip {
+QToolButton#ChannelChip,
+QToolButton#NewChannelChip {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #E0E0E0, stop:1 #E6DECC);
     color: @TEXT@;
     border: 1px solid #AFA288; border-top-color: #E0E0E0;
@@ -983,7 +984,8 @@ QToolButton#ChannelChip {
     font-weight: 700; font-size: 9pt;
     text-transform: uppercase; letter-spacing: 1px;
 }
-QToolButton#ChannelChip:hover {
+QToolButton#ChannelChip:hover,
+QToolButton#NewChannelChip:hover {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #E0E0E0, stop:1 #E8E0CE);
     border: 1px solid @ACCENT@; border-top-color: #E0E0E0;
     color: #7A4A05;
@@ -995,7 +997,8 @@ QToolButton#ChannelChip:checked {
     border-bottom: 2px solid @ACCENT@;
     color: #4A2E00;
 }
-QToolButton#ChannelChip:disabled {
+QToolButton#ChannelChip:disabled,
+QToolButton#NewChannelChip:disabled {
     background: #E2DCCE;
     border: 1px solid #C9C0AC; border-top-color: #C9C0AC;
     color: #A99F8E;
@@ -1023,12 +1026,14 @@ QToolButton#ChannelChip[allChannels="true"]:checked:disabled {
 }
 /* Custom/virtual channel = a seat printed on the panel: dashed
    wireframe, no fill. */
-QToolButton#ChannelChip[customChannel="true"] {
+QToolButton#ChannelChip[customChannel="true"],
+QToolButton#NewChannelChip {
     background: transparent;
     border: 1px dashed #B4A890;
     color: @MUTED@;
 }
-QToolButton#ChannelChip[customChannel="true"]:hover {
+QToolButton#ChannelChip[customChannel="true"]:hover,
+QToolButton#NewChannelChip:hover {
     background: transparent;
     border: 1px dashed @ACCENT@;
     color: #7A4A05;
@@ -1041,7 +1046,8 @@ QToolButton#ChannelChip[customChannel="true"]:checked {
     border-bottom: 2px solid @ACCENT@;
     color: #4A2E00;
 }
-QToolButton#ChannelChip[customChannel="true"]:disabled {
+QToolButton#ChannelChip[customChannel="true"]:disabled,
+QToolButton#NewChannelChip:disabled {
     background: transparent;
     border: 1px dashed #D2C9B6;
     color: #A99F8E;
@@ -1053,14 +1059,17 @@ QToolButton#ChannelChip[customChannel="true"]:checked:disabled {
     color: #9A7A3A;
 }
 /* The add-a-seat entry: a small labeling well, genuine input grammar. */
-QLineEdit#ChannelChipAdd {
+QLineEdit#ChannelChipAdd,
+QLineEdit#NewChannelAdd {
     background: #E5E1D7; color: @TEXT@;
     border: 1px solid #8F8268; border-bottom-color: #E0E0E0;
     border-radius: 2px; padding: 3px 8px;
     min-height: 18px; font-size: 9pt; letter-spacing: 1px;
 }
-QLineEdit#ChannelChipAdd:focus { border: 1px solid @ACCENT@; }
-QLineEdit#ChannelChipAdd:disabled { color: #A99F8E; background: #E2DCCE; }
+QLineEdit#ChannelChipAdd:focus,
+QLineEdit#NewChannelAdd:focus { border: 1px solid @ACCENT@; }
+QLineEdit#ChannelChipAdd:disabled,
+QLineEdit#NewChannelAdd:disabled { color: #A99F8E; background: #E2DCCE; }
 
 /* ── Comment card: embossed label tape ───────────────────────────────────
    The note is a black embossed tape strip stuck to the cream plate -
@@ -1342,3 +1351,13 @@ QCheckBox::indicator:indeterminate {
     border: 1px solid #8A5C12;
     image: url(:/icons/modern/dash-dark.svg);
 }
+
+/* NewChannel card: one chip per declared virtual channel, dressed like the
+   Channel card's custom (virtual) chip; a name the engine refuses and a
+   refused entry in the add field take the danger colour. */
+QToolButton#NewChannelChip[invalid="true"],
+QToolButton#NewChannelChip[invalid="true"]:hover {
+    color: @DANGER@;
+    border-color: @DANGER@;
+}
+QLineEdit#NewChannelAdd[invalid="true"] { border-color: @DANGER@; }

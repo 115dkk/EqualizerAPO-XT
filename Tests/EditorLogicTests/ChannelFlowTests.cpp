@@ -105,6 +105,62 @@ void testChannelFlow()
 			QStringLiteral("a switched-off MultiConvolution line declares nothing"));
 	}
 
+	// NewChannel declares its names and adds them to the selection, the way
+	// the engine's NewChannelFilter does: the lines below see the previous
+	// selection followed by the new names. A name declared again is not
+	// added twice, and a switched-off line declares nothing.
+	{
+		const std::vector<ChannelFlowAtLine> flow = computeChannelFlow(
+			{line(L"Channel", L"L R"), line(L"NewChannel", L"vc, VRL"), line(L"Preamp", L"0 dB"),
+			 line(L"NewChannel", L"VC"), line(L"Preamp", L"0 dB"),
+			 line(L"NewChannel", L"VX", false), line(L"Preamp", L"0 dB")},
+			surroundContext());
+		requireEqual(static_cast<int>(flow.size()), 7, QStringLiteral("one flow element per line"));
+		const QStringList declared = {QStringLiteral("VC"), QStringLiteral("VRL")};
+		expectEqual(names(flow[1].selected), front,
+			QStringLiteral("the NewChannel line itself sees the selection before its own effect"));
+		expectEqual(names(flow[2].selected), front + declared,
+			QStringLiteral("NewChannel adds its upper-cased names to the selection"));
+		expectEqual(names(flow[2].namesInScope), all + declared,
+			QStringLiteral("NewChannel declares its names in scope"));
+		expectEqual(static_cast<int>(flow[2].deviceChannelCount), static_cast<int>(all.size()),
+			QStringLiteral("the device channels lead the names in scope"));
+		expectEqual(names(flow[4].selected), front + declared,
+			QStringLiteral("declaring a name again adds nothing twice"));
+		expectEqual(names(flow[4].namesInScope), all + declared,
+			QStringLiteral("declaring a name again does not add it to the scope twice"));
+		expectFalse(names(flow[6].namesInScope).contains(QStringLiteral("VX")),
+			QStringLiteral("a switched-off NewChannel line declares nothing"));
+	}
+
+	// Without a Channel line the selection is every device channel, and the
+	// new names follow it. A line the engine refuses (one bad name refuses
+	// the whole line) changes nothing.
+	{
+		const std::vector<ChannelFlowAtLine> flow = computeChannelFlow(
+			{line(L"NewChannel", L"VC"), line(L"NewChannel", L"VD L"), line(L"NewChannel", L"SL"),
+			 line(L"NewChannel", L"2X"), line(L"NewChannel", L"all"), line(L"NewChannel", L""),
+			 line(L"Preamp", L"0 dB")},
+			surroundContext());
+		requireEqual(static_cast<int>(flow.size()), 7, QStringLiteral("one flow element per line"));
+		const QStringList withVc = all + QStringList{QStringLiteral("VC")};
+		expectEqual(names(flow[1].selected), withVc,
+			QStringLiteral("without a Channel line the new name follows every device channel"));
+		expectEqual(names(flow[6].selected), withVc,
+			QStringLiteral("a device channel, an alias of one, a leading digit, ALL and an empty line are refused"));
+		expectEqual(names(flow[6].namesInScope), withVc,
+			QStringLiteral("a refused line declares none of its names, not even the valid ones"));
+	}
+
+	// A Channel line below can select a declared name.
+	{
+		const std::vector<ChannelFlowAtLine> flow = computeChannelFlow(
+			{line(L"NewChannel", L"VC"), line(L"Channel", L"VC"), line(L"Preamp", L"0 dB")}, surroundContext());
+		requireEqual(static_cast<int>(flow.size()), 3, QStringLiteral("one flow element per line"));
+		expectEqual(names(flow[2].selected), QStringList{QStringLiteral("VC")},
+			QStringLiteral("a Channel line selects a NewChannel name above it"));
+	}
+
 	// A Channel line resolves against the names in scope, so a Copy-created
 	// channel above it can be selected.
 	{

@@ -64,6 +64,13 @@ Current work areas:
    [docs/architecture/wasapi-exclusive-study.md](docs/architecture/wasapi-exclusive-study.md).
    Remaining: hardware beyond the cable, and one entry that pairs a device's
    playback and recording endpoints.
+10. Virtual channels and sending audio to another endpoint. `NewChannel:`
+    declares silent virtual channels and adds them to the selection, so an
+    upmixer plug-in can write to channels the device does not have
+    ([#PRNUM](https://github.com/115dkk/EqualizerAPO-XT/pull/PRNUM)). Next is
+    `Send:`, which hands channels to the APO of another endpoint in the same
+    audio engine, for interfaces such as the Topping E4x4 Pre that Windows
+    shows as several stereo endpoints.
 
 ## Features
 
@@ -95,6 +102,7 @@ Current work areas:
   built-in preset reproducing issue #246's original chain sample for sample.
   The same MIT-licensed DSP core also ships as the standalone
   `EAPO XT Subwoofer Routing` VST3 plugin, exchanging the identical JSON state.
+- Virtual channels by name: `NewChannel: VC VRL VRR` declares silent channels the device does not have and adds them to the channel selection, so a VST upmixer's extra outputs have somewhere to go before a `Copy:` line mixes them back into the device's channels.
 - Native VST3 hosting through the Steinberg VST3 SDK (MIT-licensed pluginterfaces), with 64-bit (double) processing where the plug-in supports it. Channel layouts are negotiated from the actual channel names, so a 4.1 system negotiates as 4.1 instead of being mislabeled 5.0.
 - Explicit asymmetric VST3 main buses through `VSTPlugin: Library "...\\Plugin.vst3" Input Stereo Output 7.1`. Input and output independently support Auto, Mono, Stereo, 4.0, 4.1, 5.0, 5.1, 6.1, 7.1, 7.1.2, and 7.1.4; rejected VST3 contracts safely pass audio through instead of silently choosing another width, while VST2 ignores the layout keys. See the [configuration reference](https://github.com/115dkk/EqualizerAPO-XT/wiki/Configuration-reference#vstplugin-bus-layouts).
 - Portable SIMD kernels written once with [Google Highway](https://github.com/google/highway) and compiled per variant: SSE2, AVX, AVX2, AVX-512, and AVX10.1 on x64, NEON on ARM64.

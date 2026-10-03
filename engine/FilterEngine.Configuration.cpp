@@ -54,6 +54,16 @@ using std::vector;
 using std::wstring;
 
 
+vector<wstring> FilterEngine::deviceChannelNames() const
+{
+	return ChannelLayout::getChannelNames(max(realChannelCount, outputChannelCount), channelMask);
+}
+
+const vector<wstring>& FilterEngine::loadingChannelNames() const
+{
+	return load.routing.allChannelNames();
+}
+
 bool FilterEngine::loadConfig(const wstring& customPath)
 {
 	lock_guard<mutex> lock(loadMutex);
@@ -79,8 +89,7 @@ bool FilterEngine::loadConfig(const wstring& customPath)
 		// carries across loads: the first filter's output-inheritance test in
 		// addFilters reads it (see the channel-inheritance contract in
 		// FilterConfiguration.h).
-		load.routing.begin(ChannelLayout::getChannelNames(max(realChannelCount, outputChannelCount), channelMask),
-			saved.routing.lastInPlace());
+		load.routing.begin(deviceChannelNames(), saved.routing.lastInPlace());
 		parser.beginLoad();
 
 		for (auto it = factories.cbegin(); it != factories.cend(); it++)

@@ -82,6 +82,9 @@ void testCopySwapsChannels(test::Harness& harness);
 void testMultiConvolutionIgnoresChannelSelection(test::Harness& harness);
 void testRealBrirCrossfeed(test::Harness& harness);
 
+// NewChannelTests.cpp
+void runNewChannelTests(test::Harness& harness);
+
 // ConfigLoadTests.cpp
 void testConfigLoadTrace(test::Harness& harness);
 void testParseErrorsAreReportedPerLineAndProseIsNot(test::Harness& harness);

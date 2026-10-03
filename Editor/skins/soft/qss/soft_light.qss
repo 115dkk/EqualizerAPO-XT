@@ -658,13 +658,15 @@ QToolButton#DeviceChipMore:disabled {
    channels are awake seats with a dashed edge (full ink and chip
    elevation; only the sleeping slot sinks to @BG@ with muted ink).
    Same cascade law: sleep family last. --- */
-QToolButton#ChannelChip {
+QToolButton#ChannelChip,
+QToolButton#NewChannelChip {
     background: @SURFACE_SUNKEN@; color: @TEXT@;
     border: 1px solid @BORDER@; border-radius: 16px;
     padding: 4px 12px; min-height: 22px; min-width: 24px;
     font-weight: 600;
 }
-QToolButton#ChannelChip:hover {
+QToolButton#ChannelChip:hover,
+QToolButton#NewChannelChip:hover {
     background: @CARD@; border: 1px solid rgba(97, 144, 209, 0.50);
 }
 QToolButton#ChannelChip:checked {
@@ -672,10 +674,12 @@ QToolButton#ChannelChip:checked {
     border: 1px solid @ACCENT@;
 }
 QToolButton#ChannelChip:checked:hover { background: #79A1D8; }
-QToolButton#ChannelChip[customChannel="true"] {
+QToolButton#ChannelChip[customChannel="true"],
+QToolButton#NewChannelChip {
     background: @SURFACE_SUNKEN@; border: 1px dashed @BORDER@;
 }
-QToolButton#ChannelChip[customChannel="true"]:hover {
+QToolButton#ChannelChip[customChannel="true"]:hover,
+QToolButton#NewChannelChip:hover {
     background: @CARD@; border: 1px dashed rgba(97, 144, 209, 0.55);
 }
 QToolButton#ChannelChip[customChannel="true"]:checked {
@@ -692,7 +696,8 @@ QToolButton#ChannelChip[allChannels="true"]:checked:hover { background: @ACCENT@
    keeping only the faint 0.10 trace. */
 QToolButton#ChannelChip:disabled,
 QToolButton#ChannelChip[customChannel="true"]:disabled,
-QToolButton#ChannelChip[allChannels="true"]:disabled {
+QToolButton#ChannelChip[allChannels="true"]:disabled,
+QToolButton#NewChannelChip:disabled {
     background: @BG@; color: rgba(120, 111, 103, 0.45);
     border: 1px dashed @BORDER@;
 }
@@ -706,14 +711,18 @@ QToolButton#ChannelChip[allChannels="true"]:disabled:checked {
    it on the white step behind the calm accent ring. Explicit
    :focus/:disabled rules keep the id selector from freezing the
    generic QLineEdit states out. */
-QLineEdit#ChannelChipAdd {
+QLineEdit#ChannelChipAdd,
+QLineEdit#NewChannelAdd {
     background: transparent; color: @TEXT@;
     border: 1px dashed @BORDER@; border-radius: 16px;
     padding: 4px 12px; min-height: 22px;
 }
-QLineEdit#ChannelChipAdd:hover { border: 1px dashed rgba(97, 144, 209, 0.55); }
-QLineEdit#ChannelChipAdd:focus { background: @CARD@; border: 1px solid @ACCENT@; }
-QLineEdit#ChannelChipAdd:disabled {
+QLineEdit#ChannelChipAdd:hover,
+QLineEdit#NewChannelAdd:hover { border: 1px dashed rgba(97, 144, 209, 0.55); }
+QLineEdit#ChannelChipAdd:focus,
+QLineEdit#NewChannelAdd:focus { background: @CARD@; border: 1px solid @ACCENT@; }
+QLineEdit#ChannelChipAdd:disabled,
+QLineEdit#NewChannelAdd:disabled {
     background: transparent; color: rgba(120, 111, 103, 0.45);
     border: 1px dashed @BORDER@;
 }
@@ -960,3 +969,13 @@ QCheckBox::indicator:indeterminate {
     border-color: @ACCENT@;
     image: url(:/icons/modern/dash-light.svg);
 }
+
+/* NewChannel card: one chip per declared virtual channel, dressed like the
+   Channel card's custom (virtual) chip; a name the engine refuses and a
+   refused entry in the add field take the danger colour. */
+QToolButton#NewChannelChip[invalid="true"],
+QToolButton#NewChannelChip[invalid="true"]:hover {
+    color: @DANGER@;
+    border-color: @DANGER@;
+}
+QLineEdit#NewChannelAdd[invalid="true"] { border-color: @DANGER@; }

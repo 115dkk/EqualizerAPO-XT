@@ -155,6 +155,7 @@ int runEngineOrchestrationTests()
 	runApoFormatTests(harness);
 	testChannelSelectorRouting(harness);
 	testCopySwapsChannels(harness);
+	runNewChannelTests(harness);
 	testMultiConvolutionIgnoresChannelSelection(harness);
 	testConfigSwapCrossfades(harness);
 	testFailedConfigLoadKeepsActiveConfiguration(harness);

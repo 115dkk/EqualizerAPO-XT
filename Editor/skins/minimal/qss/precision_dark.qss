@@ -797,7 +797,8 @@ QWidget#StageCardEditor, QWidget#CommentCardEditor {
 }
 
 /* -- Shared chip token: boxed mono type, one step above the strip. -- */
-QToolButton#DeviceChip, QToolButton#ChannelChip, QToolButton#StageChip {
+QToolButton#DeviceChip, QToolButton#ChannelChip, QToolButton#StageChip,
+QToolButton#NewChannelChip {
     background: @CARD@; color: @TEXT@;
     border: 1px solid @BORDER@; border-radius: 0;
     padding: 2px 8px; min-height: 20px;
@@ -805,7 +806,8 @@ QToolButton#DeviceChip, QToolButton#ChannelChip, QToolButton#StageChip {
 /* Channel register: signal seats print as bold code columns (L, R,
    VSL...); a small min-width keeps one-letter seats from collapsing
    into slivers (the zero-padded column's spirit). */
-QToolButton#ChannelChip { font-weight: 700; min-width: 14px; }
+QToolButton#ChannelChip,
+QToolButton#NewChannelChip { font-weight: 700; min-width: 14px; }
 /* Stage register: engine modes are uppercase tracked command words.
    Which stage is which is said by the word itself - no per-stage hue
    (that would cross into matrix's signal-light board). */
@@ -830,7 +832,8 @@ QToolButton#DeviceChip[allDevices="true"] {
 /* Custom / virtual seat: dashed hairline (no verified substance, the
    uninstalled-endpoint line) but full ink - the user authored this
    payload, so it stays bright. */
-QToolButton#ChannelChip[customChannel="true"] { border: 1px dashed @BORDER@; }
+QToolButton#ChannelChip[customChannel="true"],
+QToolButton#NewChannelChip { border: 1px dashed @BORDER@; }
 /* The ALL seat is a mode word, tracked like "All devices" (property
    from ChannelCardEditor - see widget note; inert until it lands). */
 QToolButton#ChannelChip[allChannels="true"] { letter-spacing: 1px; }
@@ -840,7 +843,8 @@ QToolButton#ChannelChip[allChannels="true"] { letter-spacing: 1px; }
 /* Hover: exactly one background-value step up. That is the whole
    grammar; a kind's dash and ink read through untouched. */
 QToolButton#DeviceChip:hover, QToolButton#ChannelChip:hover,
-QToolButton#StageChip:hover {
+QToolButton#StageChip:hover,
+QToolButton#NewChannelChip:hover {
     background: @CARD_HOVER@;
 }
 /* Selection (Channel/Stage): the terminal's reverse video, the same
@@ -850,7 +854,8 @@ QToolButton#StageChip:hover {
    the selection it is about to commit. A solid edge always sits under
    the cursor, so dashes never read through it. */
 QToolButton#ChannelChip:pressed, QToolButton#StageChip:pressed,
-QToolButton#ChannelChip:checked, QToolButton#StageChip:checked {
+QToolButton#ChannelChip:checked, QToolButton#StageChip:checked,
+QToolButton#NewChannelChip:pressed {
     background: @TEXT@; color: @SURFACE@; border: 1px solid @TEXT@;
 }
 /* Selection (Device): a routed endpoint is the console's current
@@ -866,19 +871,22 @@ QToolButton#DeviceChip:pressed, QToolButton#DeviceChip:checked {
    (the engraved commands' focus grammar). Declared after the kind
    blocks so it fires on dashed chips too. */
 QToolButton#DeviceChip:focus, QToolButton#ChannelChip:focus,
-QToolButton#StageChip:focus {
+QToolButton#StageChip:focus,
+QToolButton#NewChannelChip:focus {
     border: 1px solid @ACCENT@;
 }
 /* Inert (ALL rules the card, or the line is commented out): melt one
    step below rest into the strip, secondary ink. */
 QToolButton#DeviceChip:disabled, QToolButton#ChannelChip:disabled,
-QToolButton#StageChip:disabled {
+QToolButton#StageChip:disabled,
+QToolButton#NewChannelChip:disabled {
     background: @SURFACE@; color: @MUTED@; border: 1px solid @BORDER@;
 }
 /* Inert kind: the dash survives while ALL holds the card - the token
    is still unverified. Border only; ground and ink come from :disabled. */
 QToolButton#DeviceChip[deviceInstalled="false"]:disabled,
-QToolButton#ChannelChip[customChannel="true"]:disabled {
+QToolButton#ChannelChip[customChannel="true"]:disabled,
+QToolButton#NewChannelChip:disabled {
     border: 1px dashed @BORDER@;
 }
 /* Selected but inert (a stored selection while ALL rules): the reverse
@@ -934,14 +942,18 @@ QToolButton#DeviceChipMore:disabled {
    focus turns it into the insert line - accent hairline + input
    ground, the RefPathEdit grammar (edit mode IS the active
    interaction). */
-QLineEdit#ChannelChipAdd {
+QLineEdit#ChannelChipAdd,
+QLineEdit#NewChannelAdd {
     background: transparent; color: @TEXT@;
     border: 1px solid transparent; border-bottom: 1px solid @BORDER@;
     border-radius: 0; padding: 2px 6px; min-height: 20px;
 }
-QLineEdit#ChannelChipAdd:hover { background: @CARD@; }
-QLineEdit#ChannelChipAdd:focus { background: #0a0a0a; border: 1px solid @ACCENT@; }
-QLineEdit#ChannelChipAdd:disabled {
+QLineEdit#ChannelChipAdd:hover,
+QLineEdit#NewChannelAdd:hover { background: @CARD@; }
+QLineEdit#ChannelChipAdd:focus,
+QLineEdit#NewChannelAdd:focus { background: #0a0a0a; border: 1px solid @ACCENT@; }
+QLineEdit#ChannelChipAdd:disabled,
+QLineEdit#NewChannelAdd:disabled {
     background: transparent; color: @MUTED@; border-bottom-color: @CARD_HOVER@;
 }
 
@@ -1119,3 +1131,13 @@ QCheckBox::indicator:indeterminate {
 /* The menu's checkable items share the square indicator, so they share the
    glyph. (Rack/Studio/Soft menus keep their round lamp/dot idiom.) */
 QMenu::indicator:checked { image: url(:/icons/modern/check-light.svg); }
+
+/* NewChannel card: one chip per declared virtual channel, dressed like the
+   Channel card's custom (virtual) chip; a name the engine refuses and a
+   refused entry in the add field take the danger colour. */
+QToolButton#NewChannelChip[invalid="true"],
+QToolButton#NewChannelChip[invalid="true"]:hover {
+    color: @DANGER@;
+    border-color: @DANGER@;
+}
+QLineEdit#NewChannelAdd[invalid="true"] { border-color: @DANGER@; }

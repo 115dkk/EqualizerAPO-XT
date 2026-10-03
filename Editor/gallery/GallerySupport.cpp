@@ -265,7 +265,14 @@ QList<GalleryRow> galleryRows()
 		// must still open the knob editor - this exact line (the insert
 		// template's default) used to collapse to the raw body. Appended last
 		// (mid-list insertion renumbers every following scene).
-		{ QStringLiteral("delay_zero"), QStringLiteral("Delay: 0 ms") }
+		{ QStringLiteral("delay_zero"), QStringLiteral("Delay: 0 ms") },
+		// The NewChannel card: declared virtual channels as chips, and a line
+		// the engine refuses on any device (a leading digit and ALL), whose
+		// chips take the danger colour over the validation line. The gallery
+		// has no device, so a device channel name would not be judged. Appended
+		// last (mid-list insertion renumbers every following scene).
+		{ QStringLiteral("newchannel"), QStringLiteral("NewChannel: VC VRL VRR") },
+		{ QStringLiteral("newchannel_invalid"), QStringLiteral("NewChannel: VC 2X ALL") }
 	};
 	// Fixture-gated VST bus scenes, appended last (mid-list insertion
 	// renumbers every following scene against the stored baseline).

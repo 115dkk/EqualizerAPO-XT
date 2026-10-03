@@ -14,6 +14,7 @@
 #include "filters/FilterFactoryRegistry.h"
 #include "filters/BiQuadCommand.h"
 #include "filters/HilbertCommand.h"
+#include "filters/NewChannelCommand.h"
 #include "FilterCommandCatalog.h"
 #include "Editor/widgets/routing/ChannelIdentity.h"
 
@@ -29,6 +30,18 @@ void applyCommandIdentity(FilterCardDescriptor& descriptor,
 	descriptor.title = FilterCommandCatalog::title(entry);
 	descriptor.color = QLatin1String(entry.color);
 	descriptor.routeType = entry.routeType;
+}
+
+// The names a NewChannel line declares, through the engine's own parser
+// (upper-cased, duplicates dropped).
+QStringList newChannelNames(const QString& parameters)
+{
+	NewChannelCommand cmd;
+	NewChannelCommand::parse(L"NewChannel", parameters.toStdWString(), cmd);
+	QStringList names;
+	for (const std::wstring& name : cmd.names)
+		names.append(QString::fromStdWString(name));
+	return names;
 }
 
 QString biquadTypeTitle(const QString& code)
@@ -74,6 +87,18 @@ FilterCardRowScope advanceScope(bool enabled, const QString& keyword,
 		const bool selectsAll = channelBadges.isEmpty() || channelBadges.contains(QStringLiteral("ALL"));
 		channelDepth = selectsAll ? 0 : 1;
 		activeChannels = selectsAll ? QStringList() : channelBadges;
+	}
+	else if (enabled && keyword == QStringLiteral("NewChannel"))
+	{
+		// NewChannel adds its names to the selection. An explicit selection
+		// grows by them; ALL (no names here) stays ALL, which still covers
+		// the device channels the header shows.
+		scope.indent = channelDepth + ifDepth;
+		scope.logic = ifDepth;
+		if (!activeChannels.isEmpty())
+			for (const QString& name : channelBadges)
+				if (!activeChannels.contains(name))
+					activeChannels.append(name);
 	}
 	else if (enabled && keyword == QStringLiteral("If"))
 	{
@@ -169,6 +194,8 @@ QStringList FilterCardModel::headerChannels(const FilterCardDescriptor& descript
 	const std::vector<std::wstring>& deviceChannels)
 {
 	QStringList channels;
+	if (descriptor.type == QStringLiteral("newchannel"))
+		return channels;
 	if (descriptor.channelBadgesAreCopyTargets)
 	{
 		for (const QString& target : descriptor.channelBadges)
@@ -348,6 +375,13 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 	{
 		descriptor.channelBadges = parseChannelList(parameters);
 	}
+	else if (keyword == QStringLiteral("NewChannel"))
+	{
+		// The declared names, for advanceScope(). headerChannels() badges
+		// none of them: they are virtual, and a name that is not is the
+		// reason the engine skips the line, which the body's chips show.
+		descriptor.channelBadges = newChannelNames(parameters);
+	}
 
 	// Header summaries do not echo or paraphrase a recognized command's
 	// parameters (round 2 of the raw-exposure cleanup: a VSTPlugin header
@@ -413,8 +447,8 @@ QVector<FilterCardRowScope> FilterCardModel::calculateScopes(const QList<QString
 		const bool enabled = !line.trimmed().startsWith('#');
 		QString parameters;
 		const QString keyword = canonicalCommand(commandForLine(line, &parameters));
-		const QStringList channels = keyword == QStringLiteral("Channel")
-			? parseChannelList(parameters) : QStringList();
+		const QStringList channels = keyword == QStringLiteral("Channel") ? parseChannelList(parameters)
+			: keyword == QStringLiteral("NewChannel") ? newChannelNames(parameters) : QStringList();
 		scopes.append(advanceScope(enabled, keyword, channels, activeChannels, channelDepth, ifDepth));
 	}
 

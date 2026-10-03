@@ -204,6 +204,9 @@ SOURCES += main.cpp\
 	../filters/MultiConvolutionCommand.cpp \
 	../filters/MultiConvolutionFilter.cpp \
 	../filters/MultiConvolutionFilterFactory.cpp \
+	../filters/NewChannelCommand.cpp \
+	../filters/NewChannelFilter.cpp \
+	../filters/NewChannelFilterFactory.cpp \
 	../filters/subwooferRouting/SubwooferRoutingCommand.cpp \
 	../filters/subwooferRouting/SubwooferRoutingFilter.cpp \
 	../filters/subwooferRouting/SubwooferRoutingFilterFactory.cpp \
@@ -303,6 +306,8 @@ SOURCES += main.cpp\
 	widgets/cards/MultiConvolutionCardEditor.cpp \
 	widgets/cards/CommentCardEditor.cpp \
 	widgets/cards/DeviceCardEditor.cpp \
+	widgets/cards/NewChannelCardEditor.cpp \
+	widgets/cards/NewChannelListModel.cpp \
 	widgets/cards/StageCardEditor.cpp \
 	widgets/cards/StageSelectionModel.cpp \
 	widgets/cards/DeviceSelectionModel.cpp \
@@ -528,6 +533,9 @@ HEADERS  += \
 	../filters/IncludeCommand.h \
 	../filters/IncludeFilterFactory.h \
 	../filters/ChannelCommand.h \
+	../filters/NewChannelCommand.h \
+	../filters/NewChannelFilter.h \
+	../filters/NewChannelFilterFactory.h \
 	../filters/ChannelFilter.h \
 	../filters/ConvolutionCommand.h \
 	../filters/ConvolutionFilter.h \
@@ -624,6 +632,8 @@ HEADERS  += \
 	widgets/cards/MultiConvolutionCardEditor.h \
 	widgets/cards/CommentCardEditor.h \
 	widgets/cards/DeviceCardEditor.h \
+	widgets/cards/NewChannelCardEditor.h \
+	widgets/cards/NewChannelListModel.h \
 	widgets/cards/StageCardEditor.h \
 	widgets/cards/StageSelectionModel.h \
 	widgets/cards/DeviceSelectionModel.h \

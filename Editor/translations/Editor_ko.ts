@@ -4,9 +4,9 @@
 <context>
     <name>AddCardRow</name>
     <message>
-        <location filename="../widgets/AddCardRow.cpp" line="13"/>
-        <location filename="../widgets/AddCardRow.cpp" line="14"/>
-        <location filename="../widgets/AddCardRow.cpp" line="40"/>
+        <location filename="../widgets/AddCardRow.cpp" line="19"/>
+        <location filename="../widgets/AddCardRow.cpp" line="20"/>
+        <location filename="../widgets/AddCardRow.cpp" line="46"/>
         <source>Add filter</source>
         <translation>필터 추가</translation>
     </message>
@@ -14,82 +14,82 @@
 <context>
     <name>AllPassCardEditor</name>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="165"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="171"/>
         <source>Order</source>
         <translation type="unfinished">차수</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="165"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="171"/>
         <source>1st</source>
         <translation>1차</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="165"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="171"/>
         <source>2nd</source>
         <translation>2차</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="166"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="172"/>
         <source>A 1st-order section turns 180 degrees in total and passes 90 degrees at Fc. A 2nd-order section turns a full 360 and has a width.</source>
         <translation>1차 섹션은 전체 180도를 돌고 Fc에서 90도를 지납니다. 2차 섹션은 360도를 다 돌고 폭을 가집니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="104"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="110"/>
         <source>Center frequency</source>
         <translation type="unfinished">중심 주파수</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="92"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="98"/>
         <source>An all-pass changes phase and group delay around Fc. The magnitude response stays at 0 dB, so this filter is invisible in the magnitude graph.</source>
         <translation>올패스는 Fc 부근의 위상과 그룹 지연을 바꿉니다. 크기 응답은 0 dB에 머무르므로 크기 그래프에서는 이 필터가 보이지 않습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="122"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="128"/>
         <source>Q factor</source>
         <translation type="unfinished">Q 값</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="123"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="129"/>
         <source>Bandwidth</source>
         <translation type="unfinished">대역폭</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="176"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="182"/>
         <source>Phase</source>
         <translation type="unfinished">위상</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="176"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="182"/>
         <source>Group delay</source>
         <translation>그룹 지연</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="176"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="182"/>
         <source>Graph</source>
         <translation type="unfinished">그래프</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="177"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="183"/>
         <source>Show this reading in the analysis graph. The existing analysis is reused; nothing is measured again.</source>
         <translation>이 값을 분석 그래프에 표시합니다. 기존 분석 결과를 다시 쓰며, 다시 측정하지 않습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="200"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="206"/>
         <source>Magnitude</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="204"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="210"/>
         <source>0.0 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="207"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="213"/>
         <source>An all-pass does not change level at any frequency, so there is nothing to set here.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="358"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="364"/>
         <source>Oct</source>
         <translation>옥타브</translation>
     </message>
@@ -194,74 +194,74 @@
     <name>BiQuadFilterGUIFactory</name>
     <message>
         <location filename="../guis/BiQuadFilterGUIFactory.cpp" line="33"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="153"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="156"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="159"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="162"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="165"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="168"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="171"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="196"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="199"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="202"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="205"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="208"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="211"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="214"/>
         <source>Parametric filters</source>
         <translation>파라메트릭 필터</translation>
     </message>
     <message>
         <location filename="../guis/BiQuadFilterGUIFactory.cpp" line="36"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="151"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="194"/>
         <source>Peaking filter</source>
         <translation>피킹 필터</translation>
     </message>
     <message>
         <location filename="../guis/BiQuadFilterGUIFactory.cpp" line="37"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="154"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="197"/>
         <source>Low-pass filter</source>
         <translation>로우패스 필터</translation>
     </message>
     <message>
         <location filename="../guis/BiQuadFilterGUIFactory.cpp" line="38"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="157"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="200"/>
         <source>High-pass filter</source>
         <translation>하이패스 필터</translation>
     </message>
     <message>
         <location filename="../guis/BiQuadFilterGUIFactory.cpp" line="39"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="160"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="203"/>
         <source>Band-pass filter</source>
         <translation>밴드패스 필터</translation>
     </message>
     <message>
         <location filename="../guis/BiQuadFilterGUIFactory.cpp" line="40"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="163"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="206"/>
         <source>Low-shelf filter</source>
         <translation>로우셸프 필터</translation>
     </message>
     <message>
         <location filename="../guis/BiQuadFilterGUIFactory.cpp" line="41"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="166"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="209"/>
         <source>High-shelf filter</source>
         <translation>하이셸프 필터</translation>
     </message>
     <message>
         <location filename="../guis/BiQuadFilterGUIFactory.cpp" line="42"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="169"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="212"/>
         <source>Notch filter</source>
         <translation>노치 필터</translation>
     </message>
     <message>
         <location filename="../guis/BiQuadFilterGUIFactory.cpp" line="54"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="177"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="180"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="220"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="223"/>
         <source>Phase &amp; Time</source>
         <translation>위상과 시간</translation>
     </message>
     <message>
         <location filename="../guis/BiQuadFilterGUIFactory.cpp" line="55"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="175"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="218"/>
         <source>1st-order all-pass</source>
         <translation>1차 올패스</translation>
     </message>
     <message>
         <location filename="../guis/BiQuadFilterGUIFactory.cpp" line="56"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="178"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="221"/>
         <source>2nd-order all-pass</source>
         <translation>2차 올패스</translation>
     </message>
@@ -269,19 +269,19 @@
 <context>
     <name>BlockChipView</name>
     <message>
-        <location filename="../skins/soft/routing/BlockChipRoutingRenderer.cpp" line="259"/>
+        <location filename="../skins/soft/routing/BlockChipRoutingRenderer.cpp" line="262"/>
         <source>Show fewer channels</source>
         <translation>채널 접기</translation>
     </message>
     <message numerus="yes">
-        <location filename="../skins/soft/routing/BlockChipRoutingRenderer.cpp" line="260"/>
+        <location filename="../skins/soft/routing/BlockChipRoutingRenderer.cpp" line="263"/>
         <source>Show %n more channel(s)</source>
         <translation>
             <numerusform>채널 %n개 더 보기</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../skins/soft/routing/BlockChipRoutingRenderer.cpp" line="273"/>
+        <location filename="../skins/soft/routing/BlockChipRoutingRenderer.cpp" line="276"/>
         <source>Add channel</source>
         <translation>채널 추가</translation>
     </message>
@@ -289,17 +289,17 @@
 <context>
     <name>ChannelCardEditor</name>
     <message>
-        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="23"/>
+        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="30"/>
         <source>Select every channel</source>
         <translation>모든 채널 선택</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="37"/>
+        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="44"/>
         <source>Add channel</source>
         <translation>채널 추가</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="38"/>
+        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="45"/>
         <source>Add a custom or virtual channel name (e.g. VSL)</source>
         <translation>사용자 지정 또는 가상 채널 이름 추가 (예: VSL)</translation>
     </message>
@@ -399,13 +399,13 @@
     <name>ChannelFilterGUIFactory</name>
     <message>
         <location filename="../guis/ChannelFilterGUIFactory.cpp" line="39"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="230"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="273"/>
         <source>Channel (Select channels)</source>
         <translation>채널 (채널 선택)</translation>
     </message>
     <message>
         <location filename="../guis/ChannelFilterGUIFactory.cpp" line="39"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="232"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="275"/>
         <source>Control</source>
         <translation>컨트롤</translation>
     </message>
@@ -413,7 +413,7 @@
 <context>
     <name>ChannelRoleSelector</name>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="186"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="192"/>
         <source>Add channel</source>
         <translation>채널 추가</translation>
     </message>
@@ -438,7 +438,7 @@
     <name>CommentFilterGUIFactory</name>
     <message>
         <location filename="../guis/CommentFilterGUIFactory.cpp" line="35"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="141"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="178"/>
         <source>Comment</source>
         <translation>주석</translation>
     </message>
@@ -446,63 +446,62 @@
 <context>
     <name>ConvolutionCardEditor</name>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="94"/>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="200"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="99"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="208"/>
         <source>Select impulse response file</source>
         <translation>임펄스 응답 파일 선택</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="57"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="62"/>
         <source>Copy this file into the config directory</source>
         <translation>이 파일을 구성 디렉터리로 복사</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="95"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="100"/>
         <source>Impulse response (*.wav *.flac *.ogg)</source>
         <translation>임펄스 응답 (*.wav *.flac *.ogg)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="145"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="150"/>
         <source>No file selected</source>
         <translation>선택된 파일 없음</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="164"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="169"/>
         <source>%1 ms</source>
         <translation>%1 ms</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="165"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="170"/>
         <source>%1 samples</source>
         <translation>%1 샘플</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="166"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="171"/>
         <source>%1 Hz</source>
         <translation>%1 Hz</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="184"/>
         <source>Not readable by the audio service</source>
-        <translation>오디오 서비스가 읽을 수 없습니다</translation>
+        <translation type="vanished">오디오 서비스가 읽을 수 없습니다</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="199"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="207"/>
         <source>Locate...</source>
         <translation>위치 찾기...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="200"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="208"/>
         <source>Locate the missing file</source>
         <translation>누락된 파일 위치 찾기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="157"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="162"/>
         <source>Unsupported file format</source>
         <translation>지원하지 않는 파일 형식</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="170"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="175"/>
         <source>Sample rate does not match the device (%1 Hz)</source>
         <translation>샘플레이트가 장치와 일치하지 않습니다 (%1 Hz)</translation>
     </message>
@@ -590,13 +589,13 @@ Select a different file or change the device configuration.</source>
     <name>ConvolutionFilterGUIFactory</name>
     <message>
         <location filename="../guis/ConvolutionFilterGUIFactory.cpp" line="48"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="198"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="241"/>
         <source>Convolution (Convolution with impulse response)</source>
         <translation>컨볼루션 (임펄스 응답 적용)</translation>
     </message>
     <message>
         <location filename="../guis/ConvolutionFilterGUIFactory.cpp" line="48"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="200"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="243"/>
         <source>Advanced filters</source>
         <translation>고급 필터</translation>
     </message>
@@ -628,13 +627,14 @@ Select a different file or change the device configuration.</source>
     <name>CopyFilterGUIFactory</name>
     <message>
         <location filename="../guis/CopyFilterGUIFactory.cpp" line="39"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="147"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="184"/>
         <source>Copy (Copy between channels)</source>
         <translation>복사 (채널 간 복사)</translation>
     </message>
     <message>
         <location filename="../guis/CopyFilterGUIFactory.cpp" line="39"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="149"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="186"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="192"/>
         <source>Basic filters</source>
         <translation>기본 필터</translation>
     </message>
@@ -693,7 +693,7 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>DefaultFilterPickerView</name>
     <message>
-        <location filename="../widgets/FilterPickerView.cpp" line="176"/>
+        <location filename="../widgets/FilterPickerView.cpp" line="177"/>
         <source>Search filters</source>
         <translation>필터 검색</translation>
     </message>
@@ -701,12 +701,12 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>DefaultReferenceCardView</name>
     <message>
-        <location filename="../widgets/cards/DefaultReferenceCardView.cpp" line="64"/>
+        <location filename="../widgets/cards/DefaultReferenceCardView.cpp" line="69"/>
         <source>Absolute path - this reference does not move with the configuration</source>
         <translation>절대 경로 - 이 참조는 설정과 함께 이동하지 않습니다</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/DefaultReferenceCardView.cpp" line="68"/>
+        <location filename="../widgets/cards/DefaultReferenceCardView.cpp" line="73"/>
         <source>MISSING</source>
         <translation>누락</translation>
     </message>
@@ -714,138 +714,138 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>DefaultSubwooferRoutingCardView</name>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="104"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="109"/>
         <source>Layout</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="105"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="110"/>
         <source>Speaker layout</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="106"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="111"/>
         <source>Physical channel layout stored in this subwoofer-routing state</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="107"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="112"/>
         <source>Crossover</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="108"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="113"/>
         <source>Representative crossover</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="109"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="114"/>
         <source>Representative high-pass and low-pass crossover corner</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="110"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="115"/>
         <source>Source LFE</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="111"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="116"/>
         <source>Source LFE routing</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="112"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="117"/>
         <source>Whether the source LFE signal is preserved and at what gain</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="113"/>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="114"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="118"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="119"/>
         <source>Headroom</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="115"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="120"/>
         <source>Automatic or manual headroom trim</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="116"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="121"/>
         <source>Profile</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="117"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="122"/>
         <source>Bass-management profile</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="118"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="123"/>
         <source>Embedded state or linked profile name</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="125"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="130"/>
         <source>Bass-management status</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="129"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="134"/>
         <source>Bass-management actions</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="175"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="180"/>
         <source>Unknown</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="181"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="186"/>
         <source>Preserved at %1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="183"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="188"/>
         <source>Not preserved</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="188"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="193"/>
         <source>Auto, %1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="190"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="195"/>
         <source>Auto, trim unavailable</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="195"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="200"/>
         <source>Manual, %1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="203"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="208"/>
         <source>Linked profile</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="206"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="211"/>
         <source> (missing)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="211"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="216"/>
         <source>Embedded state</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="218"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="223"/>
         <source>Error: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="220"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="225"/>
         <source>Warning: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -853,18 +853,18 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>DelayCardEditor</name>
     <message>
-        <location filename="../widgets/cards/DelayCardEditor.cpp" line="48"/>
+        <location filename="../widgets/cards/DelayCardEditor.cpp" line="54"/>
         <source>Time</source>
         <translation>시간</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/DelayCardEditor.cpp" line="49"/>
+        <location filename="../widgets/cards/DelayCardEditor.cpp" line="55"/>
         <source>Samples</source>
         <translation>샘플</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/DelayCardEditor.cpp" line="42"/>
-        <location filename="../widgets/cards/DelayCardEditor.cpp" line="107"/>
+        <location filename="../widgets/cards/DelayCardEditor.cpp" line="48"/>
+        <location filename="../widgets/cards/DelayCardEditor.cpp" line="113"/>
         <source>samples</source>
         <translation>샘플</translation>
     </message>
@@ -873,7 +873,7 @@ Select a different file or change the device configuration.</source>
     <name>DelayFilterGUI</name>
     <message>
         <location filename="../guis/DelayFilterGUI.ui" line="32"/>
-        <location filename="../guis/DelayFilterGUI.cpp" line="55"/>
+        <location filename="../guis/DelayFilterGUI.cpp" line="54"/>
         <source> ms</source>
         <translation type="unfinished"></translation>
     </message>
@@ -893,7 +893,7 @@ Select a different file or change the device configuration.</source>
         <translation>샘플</translation>
     </message>
     <message>
-        <location filename="../guis/DelayFilterGUI.cpp" line="55"/>
+        <location filename="../guis/DelayFilterGUI.cpp" line="54"/>
         <source> samples</source>
         <translation> 샘플</translation>
     </message>
@@ -902,13 +902,13 @@ Select a different file or change the device configuration.</source>
     <name>DelayFilterGUIFactory</name>
     <message>
         <location filename="../guis/DelayFilterGUIFactory.cpp" line="38"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="181"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="224"/>
         <source>Delay</source>
         <translation>지연</translation>
     </message>
     <message>
         <location filename="../guis/DelayFilterGUIFactory.cpp" line="38"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="183"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="226"/>
         <source>Phase &amp; Time</source>
         <translation>위상과 시간</translation>
     </message>
@@ -916,47 +916,47 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>DeviceCardEditor</name>
     <message>
-        <location filename="../widgets/cards/DeviceCardEditor.cpp" line="56"/>
+        <location filename="../widgets/cards/DeviceCardEditor.cpp" line="64"/>
         <source>All devices</source>
         <translation>모든 장치</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/DeviceCardEditor.cpp" line="59"/>
+        <location filename="../widgets/cards/DeviceCardEditor.cpp" line="67"/>
         <source>Apply to every device</source>
         <translation>모든 장치에 적용</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/DeviceCardEditor.cpp" line="66"/>
+        <location filename="../widgets/cards/DeviceCardEditor.cpp" line="74"/>
         <source>Show devices that do not have the APO installed</source>
         <translation>APO가 설치되지 않은 장치 표시</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/DeviceCardEditor.cpp" line="147"/>
+        <location filename="../widgets/cards/DeviceCardEditor.cpp" line="173"/>
         <source>Capture</source>
         <translation>캡처</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/DeviceCardEditor.cpp" line="147"/>
+        <location filename="../widgets/cards/DeviceCardEditor.cpp" line="173"/>
         <source>Playback</source>
         <translation>재생</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/DeviceCardEditor.cpp" line="148"/>
+        <location filename="../widgets/cards/DeviceCardEditor.cpp" line="174"/>
         <source>APO installed</source>
         <translation>APO 설치됨</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/DeviceCardEditor.cpp" line="148"/>
+        <location filename="../widgets/cards/DeviceCardEditor.cpp" line="174"/>
         <source>APO not installed</source>
         <translation>APO 미설치</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/DeviceCardEditor.cpp" line="166"/>
+        <location filename="../widgets/cards/DeviceCardEditor.cpp" line="196"/>
         <source>Show fewer</source>
         <translation>간략히 보기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/DeviceCardEditor.cpp" line="166"/>
+        <location filename="../widgets/cards/DeviceCardEditor.cpp" line="196"/>
         <source>Show all (+%1)</source>
         <translation>모두 보기 (+%1)</translation>
     </message>
@@ -1047,42 +1047,42 @@ Select a different file or change the device configuration.</source>
         <translation>APO가 설치된 장치만 표시</translation>
     </message>
     <message>
-        <location filename="../guis/DeviceFilterGUIDialog.cpp" line="44"/>
+        <location filename="../guis/DeviceFilterGUIDialog.cpp" line="43"/>
         <source>Connection</source>
         <translation>연결</translation>
     </message>
     <message>
-        <location filename="../guis/DeviceFilterGUIDialog.cpp" line="45"/>
+        <location filename="../guis/DeviceFilterGUIDialog.cpp" line="44"/>
         <source>Device</source>
         <translation>장치</translation>
     </message>
     <message>
-        <location filename="../guis/DeviceFilterGUIDialog.cpp" line="46"/>
+        <location filename="../guis/DeviceFilterGUIDialog.cpp" line="45"/>
         <source>State</source>
         <translation>상태</translation>
     </message>
     <message>
-        <location filename="../guis/DeviceFilterGUIDialog.cpp" line="48"/>
+        <location filename="../guis/DeviceFilterGUIDialog.cpp" line="47"/>
         <source>Playback devices</source>
         <translation>재생 장치</translation>
     </message>
     <message>
-        <location filename="../guis/DeviceFilterGUIDialog.cpp" line="50"/>
+        <location filename="../guis/DeviceFilterGUIDialog.cpp" line="49"/>
         <source>Capture devices</source>
         <translation>캡처 장치</translation>
     </message>
     <message>
-        <location filename="../guis/DeviceFilterGUIDialog.cpp" line="60"/>
+        <location filename="../guis/DeviceFilterGUIDialog.cpp" line="59"/>
         <source>APO installed</source>
         <translation>APO 설치됨</translation>
     </message>
     <message>
-        <location filename="../guis/DeviceFilterGUIDialog.cpp" line="62"/>
+        <location filename="../guis/DeviceFilterGUIDialog.cpp" line="61"/>
         <source>APO not installed</source>
         <translation>APO 미설치</translation>
     </message>
     <message>
-        <location filename="../guis/DeviceFilterGUIDialog.cpp" line="65"/>
+        <location filename="../guis/DeviceFilterGUIDialog.cpp" line="64"/>
         <source>Voicemeeter was uninstalled</source>
         <translation>Voicemeeter가 제거되었습니다</translation>
     </message>
@@ -1091,13 +1091,13 @@ Select a different file or change the device configuration.</source>
     <name>DeviceFilterGUIFactory</name>
     <message>
         <location filename="../guis/DeviceFilterGUIFactory.cpp" line="43"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="227"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="270"/>
         <source>Device (Select device)</source>
         <translation>장치 (장치 선택)</translation>
     </message>
     <message>
         <location filename="../guis/DeviceFilterGUIFactory.cpp" line="43"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="229"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="272"/>
         <source>Control</source>
         <translation>컨트롤</translation>
     </message>
@@ -1105,37 +1105,37 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>EqAPO::Import::ImportDialog</name>
     <message>
-        <location filename="../import/ImportDialog.cpp" line="42"/>
+        <location filename="../import/ImportDialog.cpp" line="44"/>
         <source>Import to config directory</source>
         <translation>구성 디렉터리로 가져오기</translation>
     </message>
     <message>
-        <location filename="../import/ImportDialog.cpp" line="53"/>
+        <location filename="../import/ImportDialog.cpp" line="55"/>
         <source>%1 file(s), %2 will be copied into %3.</source>
         <translation>%1개 파일 중 %2개를 %3(으)로 복사합니다.</translation>
     </message>
     <message>
-        <location filename="../import/ImportDialog.cpp" line="61"/>
+        <location filename="../import/ImportDialog.cpp" line="63"/>
         <source>Kind</source>
         <translation>종류</translation>
     </message>
     <message>
-        <location filename="../import/ImportDialog.cpp" line="61"/>
+        <location filename="../import/ImportDialog.cpp" line="63"/>
         <source>Source</source>
         <translation>원본</translation>
     </message>
     <message>
-        <location filename="../import/ImportDialog.cpp" line="61"/>
+        <location filename="../import/ImportDialog.cpp" line="63"/>
         <source>Size</source>
         <translation>크기</translation>
     </message>
     <message>
-        <location filename="../import/ImportDialog.cpp" line="72"/>
+        <location filename="../import/ImportDialog.cpp" line="74"/>
         <source>missing</source>
         <translation>없음</translation>
     </message>
     <message>
-        <location filename="../import/ImportDialog.cpp" line="90"/>
+        <location filename="../import/ImportDialog.cpp" line="92"/>
         <source>Import</source>
         <translation>가져오기</translation>
     </message>
@@ -1143,7 +1143,7 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>EqGraphView</name>
     <message>
-        <location filename="../widgets/EqGraphView.cpp" line="220"/>
+        <location filename="../widgets/EqGraphView.cpp" line="226"/>
         <source> · frozen Velvet snapshot</source>
         <translation> · 고정된 Velvet 스냅샷</translation>
     </message>
@@ -1152,46 +1152,46 @@ Select a different file or change the device configuration.</source>
     <name>ExpressionFilterGUIFactory</name>
     <message>
         <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="32"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="223"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="266"/>
         <source>Control</source>
         <translation>컨트롤</translation>
     </message>
     <message>
         <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="33"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="238"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="241"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="244"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="247"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="281"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="284"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="287"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="290"/>
         <source>Branching</source>
         <translation>분기점</translation>
     </message>
     <message>
         <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="36"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="236"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="279"/>
         <source>If (Begin conditional section)</source>
         <translation>If (조건 구간 시작)</translation>
     </message>
     <message>
         <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="37"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="239"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="282"/>
         <source>ElseIf (Alternative condition)</source>
         <translation>ElseIf (그 외 조건)</translation>
     </message>
     <message>
         <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="38"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="242"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="285"/>
         <source>Else (Fallback section)</source>
         <translation>Else (나머지 경우)</translation>
     </message>
     <message>
         <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="39"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="245"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="288"/>
         <source>EndIf (End conditional section)</source>
         <translation>EndIf (조건 구간 끝)</translation>
     </message>
     <message>
         <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="35"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="221"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="264"/>
         <source>Eval (Evaluate expression)</source>
         <translation>Eval (식 계산)</translation>
     </message>
@@ -1199,18 +1199,18 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>FileReferenceController</name>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="59"/>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="72"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="58"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="71"/>
         <source>Import</source>
         <translation type="unfinished">가져오기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="60"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="59"/>
         <source>Nothing to import: %1</source>
         <translation type="unfinished">가져올 항목 없음: %1</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="73"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="72"/>
         <source>Some files could not be copied:
 %1</source>
         <translation type="unfinished">일부 파일을 복사하지 못했습니다:
@@ -1230,163 +1230,168 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>FilterCardModel</name>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="24"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="26"/>
         <source>Comment</source>
         <translation>주석</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="237"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="300"/>
         <source>Text</source>
         <translation>텍스트</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="27"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="29"/>
         <source>Preamp</source>
         <translation>프리앰프</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="30"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="32"/>
         <source>Delay</source>
         <translation>지연</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="33"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="35"/>
         <source>Hilbert transform</source>
         <translation>힐베르트 변환</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="36"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="38"/>
         <source>Velvet decorrelator</source>
         <translation>벨벳 비상관화</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="38"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="58"/>
         <source>Peaking</source>
         <translation>피킹 필터</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="40"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="60"/>
         <source>Low-pass</source>
         <translation>로우패스 필터</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="42"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="62"/>
         <source>High-pass</source>
         <translation>하이패스 필터</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="44"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="64"/>
         <source>Band-pass</source>
         <translation>밴드패스 필터</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="46"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="66"/>
         <source>Low-shelf</source>
         <translation>로우셸프 필터</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="48"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="68"/>
         <source>High-shelf</source>
         <translation>하이셸프 필터</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="50"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="70"/>
         <source>Notch</source>
         <translation>노치 필터</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="52"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="72"/>
         <source>All-pass</source>
         <translation>올패스 필터</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="53"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="39"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="73"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="41"/>
         <source>Biquad</source>
         <translation>바이쿼드</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="278"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="340"/>
         <source>IIR filter</source>
         <translation>IIR 필터</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="42"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="44"/>
         <source>Graphic EQ</source>
         <translation>그래픽 EQ</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="45"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="47"/>
         <source>Copy</source>
         <translation>복사</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="48"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="50"/>
         <source>Channel</source>
         <translation>채널</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="51"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="53"/>
+        <source>New channel</source>
+        <translation>새 채널</translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="56"/>
         <source>Include</source>
         <translation>포함</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="54"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="59"/>
         <source>Convolution</source>
         <translation>컨볼루션</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="57"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="62"/>
         <source>MultiConvolution</source>
         <translation>멀티 컨볼루션</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="60"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="65"/>
         <source>VST Plugin</source>
         <translation>VST 플러그인</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="63"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="68"/>
         <source>Device</source>
         <translation>장치</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="66"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="71"/>
         <source>Stage</source>
         <translation>스테이지</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="69"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="74"/>
         <source>Loudness</source>
         <translation>라우드니스</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="72"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="77"/>
         <source>Subwoofer routing</source>
         <translation>서브우퍼 라우팅</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="75"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="80"/>
         <source>If</source>
         <translation>조건</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="78"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="83"/>
         <source>Else if</source>
         <translation>그 외 조건</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="81"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="86"/>
         <source>Else</source>
         <translation>나머지 경우</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="84"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="89"/>
         <source>End if</source>
         <translation>조건 끝</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="87"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="92"/>
         <source>Eval</source>
         <translation>식 계산</translation>
     </message>
@@ -1394,47 +1399,55 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>FilterCardRow</name>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="102"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="89"/>
         <source>Expand filter card</source>
         <translation>필터 카드 펼치기</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="121"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="108"/>
         <source>Enable or comment out this command</source>
         <translation>이 명령을 활성화하거나 주석 처리합니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="130"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="117"/>
         <source>Add filter above this card</source>
         <translation>이 카드 위에 필터 추가</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="137"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="124"/>
         <source>Remove filter</source>
         <translation>필터 제거</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="151"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="138"/>
         <source>Edit raw command</source>
         <translation>원본 명령 편집</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="826"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="793"/>
         <source>This line was not applied: %1</source>
         <translation>이 줄은 적용되지 않았습니다: %1</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="840"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="791"/>
         <source>Equalizer APO could not prepare this filter, so the whole configuration was not applied and the previous settings keep playing. Check the file or plug-in this line uses, or switch the line off.</source>
         <translation>Equalizer APO가 이 필터를 준비하지 못해 설정 전체를 적용하지 않았고, 이전 설정이 계속 재생됩니다. 이 줄이 쓰는 파일이나 플러그인을 확인하거나 이 줄을 끄십시오.</translation>
     </message>
 </context>
 <context>
+    <name>FilterCommandCatalog</name>
+    <message>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="190"/>
+        <source>NewChannel (Create virtual channels)</source>
+        <translation>NewChannel (가상 채널 만들기)</translation>
+    </message>
+</context>
+<context>
     <name>FilterInsertSeam</name>
     <message>
-        <location filename="../widgets/FilterInsertSeam.cpp" line="15"/>
-        <location filename="../widgets/FilterInsertSeam.cpp" line="16"/>
-        <location filename="../widgets/FilterInsertSeam.cpp" line="32"/>
+        <location filename="../widgets/FilterInsertSeam.cpp" line="21"/>
+        <location filename="../widgets/FilterInsertSeam.cpp" line="22"/>
+        <location filename="../widgets/FilterInsertSeam.cpp" line="38"/>
         <source>Insert filter at the top</source>
         <translation>맨 위에 필터 삽입</translation>
     </message>
@@ -1442,152 +1455,157 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>FilterPickerView</name>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="25"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="27"/>
         <source>A note EqualizerAPO skips while processing</source>
         <translation>처리할 때 건너뛰는 메모입니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="34"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="36"/>
         <source>Shifts phase by 90 degrees per channel, as in crossfeed synthesis</source>
         <translation>크로스피드 합성처럼 채널마다 위상을 90도 이동합니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="37"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="39"/>
         <source>Decorrelates channels with sparse velvet noise for a wider image</source>
         <translation>성긴 벨벳 노이즈로 채널 상관을 줄여 음상을 넓힙니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="61"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="54"/>
+        <source>Creates silent virtual channels and adds them to the selection</source>
+        <translation>무음 가상 채널을 만들어 채널 선택에 더합니다</translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="66"/>
         <source>Runs a VST audio plugin, with explicit VST3 input and output bus layouts</source>
         <translation>VST 오디오 플러그인을 실행합니다. VST3는 입력·출력 버스 레이아웃을 명시할 수 있습니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="73"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="78"/>
         <source>Applies crossover filtering and routes bass and source LFE per speaker group</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="118"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="155"/>
         <source>Boosts or cuts a band around a center frequency</source>
         <translation>중심 주파수 주변 대역을 키우거나 줄입니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="120"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="157"/>
         <source>Passes the lows and rolls off above the cutoff</source>
         <translation>낮은 대역만 통과시키고 차단 주파수 위를 깎습니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="122"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="159"/>
         <source>Passes the highs and rolls off below the cutoff</source>
         <translation>높은 대역만 통과시키고 차단 주파수 아래를 깎습니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="124"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="161"/>
         <source>Passes a band around the center and drops the rest</source>
         <translation>중심 주변 대역만 통과시키고 나머지를 줄입니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="126"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="163"/>
         <source>Raises or lowers everything below the corner frequency</source>
         <translation>기준 주파수 아래 전체를 올리거나 내립니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="128"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="165"/>
         <source>Raises or lowers everything above the corner frequency</source>
         <translation>기준 주파수 위 전체를 올리거나 내립니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="130"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="167"/>
         <source>Cuts a narrow band deeply and leaves the rest</source>
         <translation>좁은 대역만 깊게 깎고 나머지는 그대로 둡니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="132"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="169"/>
         <source>Changes phase and group delay around the center frequency. Level remains unchanged.</source>
         <translation>중심 주파수 부근의 위상과 그룹 지연을 바꿉니다. 음량은 바뀌지 않습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="28"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="30"/>
         <source>Applies overall gain before the other filters</source>
         <translation>다른 필터보다 먼저 전체 음량을 조정합니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="31"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="33"/>
         <source>Delays the signal by a time or distance</source>
         <translation>신호를 지정한 시간이나 거리만큼 늦춥니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="46"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="48"/>
         <source>Mixes and routes the signal between channels</source>
         <translation>채널 사이로 신호를 섞거나 보냅니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="43"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="45"/>
         <source>Sets a gain for each graphic-EQ band</source>
         <translation>그래픽 EQ 대역마다 이득을 지정합니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="55"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="60"/>
         <source>Applies an impulse response, such as a room or reverb</source>
         <translation>방이나 리버브 같은 임펄스 응답을 적용합니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="58"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="63"/>
         <source>Convolves several inputs, as in BRIR headphone synthesis</source>
         <translation>BRIR 헤드폰 합성처럼 여러 입력을 컨볼루션합니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="70"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="75"/>
         <source>Compensates hearing at low listening levels</source>
         <translation>낮은 음량에서 청감을 보정합니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="49"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="51"/>
         <source>Selects which channels the following filters affect</source>
         <translation>뒤따르는 필터가 적용될 채널을 고릅니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="64"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="69"/>
         <source>Limits the following filters to one device</source>
         <translation>뒤따르는 필터를 특정 장치로 한정합니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="67"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="72"/>
         <source>Chooses the processing stage for the following filters</source>
         <translation>뒤따르는 필터의 처리 단계를 고릅니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="52"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="57"/>
         <source>Loads another configuration file here</source>
         <translation>다른 설정 파일을 이 자리에 불러옵니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="88"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="93"/>
         <source>Computes a variable from an expression</source>
         <translation>식을 계산해 변수에 담습니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="76"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="81"/>
         <source>Applies the following filters only when a condition holds</source>
         <translation>조건이 참일 때만 뒤따르는 필터를 적용합니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="79"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="84"/>
         <source>Tries another condition when the previous one failed</source>
         <translation>앞 조건이 어긋나면 다른 조건을 확인합니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="82"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="87"/>
         <source>Runs when none of the conditions above matched</source>
         <translation>위 조건에 하나도 맞지 않을 때 실행합니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="85"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="90"/>
         <source>Closes the conditional block</source>
         <translation>조건 블록을 닫습니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterPickerModel.cpp" line="13"/>
+        <location filename="../widgets/FilterPickerModel.cpp" line="15"/>
         <source>General</source>
         <translation type="unfinished">일반</translation>
     </message>
@@ -1595,7 +1613,7 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>FilterTable</name>
     <message>
-        <location filename="../FilterTable.cpp" line="276"/>
+        <location filename="../FilterTable.cpp" line="275"/>
         <source>Add filter</source>
         <translation>필터 추가</translation>
     </message>
@@ -1659,89 +1677,89 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>GraphicEQCardEditor</name>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="67"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="73"/>
         <source>15-band</source>
         <translation>15밴드</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="68"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="74"/>
         <source>31-band</source>
         <translation>31밴드</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="69"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="75"/>
         <source>variable</source>
         <translation>가변</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="70"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="76"/>
         <source>Band layout</source>
         <translation>밴드 구성</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="81"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="87"/>
         <source>Import</source>
         <translation>가져오기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="82"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="88"/>
         <source>Export</source>
         <translation>내보내기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="83"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="89"/>
         <source>Invert response</source>
         <translation>응답 반전</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="84"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="90"/>
         <source>Normalize response</source>
         <translation>응답 정규화</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="85"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="91"/>
         <source>Reset response</source>
         <translation>응답 초기화</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="129"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="135"/>
         <source>Freq.</source>
         <translation>주파수</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="141"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="147"/>
         <source>Gain</source>
         <translation>게인</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="251"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="257"/>
         <source>Band %0 / %1</source>
         <translation>밴드 %0 / %1</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="257"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="263"/>
         <source>No bands</source>
         <translation>밴드 없음</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="309"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="315"/>
         <source>Import frequency response</source>
         <translation>주파수 응답 가져오기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="312"/>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="369"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="318"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="375"/>
         <source>Frequency response (*.csv)</source>
         <translation>주파수 응답 (*.csv)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="313"/>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="370"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="319"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="376"/>
         <source>All files (*.*)</source>
         <translation>모든 파일 (*.*)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="365"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="371"/>
         <source>Export frequency response</source>
         <translation>주파수 응답 내보내기</translation>
     </message>
@@ -1832,27 +1850,27 @@ Select a different file or change the device configuration.</source>
         <location filename="../guis/GraphicEQFilterGUIFactory.cpp" line="51"/>
         <location filename="../guis/GraphicEQFilterGUIFactory.cpp" line="52"/>
         <location filename="../guis/GraphicEQFilterGUIFactory.cpp" line="53"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="190"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="193"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="196"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="233"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="236"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="239"/>
         <source>Graphic equalizers</source>
         <translation>그래픽 이퀄라이저</translation>
     </message>
     <message>
         <location filename="../guis/GraphicEQFilterGUIFactory.cpp" line="51"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="188"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="231"/>
         <source>15-band graphic equalizer</source>
         <translation>15밴드 그래픽 이퀄라이저</translation>
     </message>
     <message>
         <location filename="../guis/GraphicEQFilterGUIFactory.cpp" line="52"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="191"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="234"/>
         <source>31-band graphic equalizer</source>
         <translation>31밴드 그래픽 이퀄라이저</translation>
     </message>
     <message>
         <location filename="../guis/GraphicEQFilterGUIFactory.cpp" line="53"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="194"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="237"/>
         <source>Graphic equalizer with variable bands</source>
         <translation>가변 밴드 그래픽 이퀄라이저</translation>
     </message>
@@ -1860,63 +1878,63 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>HilbertCardEditor</name>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="218"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="224"/>
         <source>A fixed 1025-tap linear-phase Hilbert FIR. Shifted channels receive the selected ±90° transform; aligned channels receive only its 512-sample group delay.</source>
         <translation>고정 1025탭 선형 위상 힐베르트 FIR입니다. 위상 변환 채널에는 선택한 ±90° 변환을, 지연 정렬 채널에는 512샘플 그룹 지연만 적용합니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="238"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="244"/>
         <source>Direction</source>
         <translation>방향</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="260"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="266"/>
         <source>Graph</source>
         <translation>그래프</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="266"/>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="279"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="272"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="285"/>
         <source>Phase</source>
         <translation>위상</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="266"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="272"/>
         <source>Group delay</source>
         <translation>그룹 지연</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="290"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="296"/>
         <source>Phase-shifted channels</source>
         <translation>위상 변환 채널</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="292"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="298"/>
         <source>Latency-aligned channels</source>
         <translation>지연 정렬 채널</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="280"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="286"/>
         <source>Latency</source>
         <translation>지연 시간</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="282"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="288"/>
         <source>FIR</source>
         <translation>FIR</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="283"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="289"/>
         <source>%1 taps</source>
         <translation>%1탭</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="285"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="291"/>
         <source>Passband</source>
         <translation>통과 대역</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="353"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="359"/>
         <source>%1 ms · %2 samples</source>
         <translation>%1 ms · %2샘플</translation>
     </message>
@@ -1924,17 +1942,17 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>IIRCardEditor</name>
     <message>
-        <location filename="../widgets/cards/IIRCardEditor.cpp" line="57"/>
+        <location filename="../widgets/cards/IIRCardEditor.cpp" line="62"/>
         <source>Order</source>
         <translation>차수</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/IIRCardEditor.cpp" line="76"/>
+        <location filename="../widgets/cards/IIRCardEditor.cpp" line="81"/>
         <source>Feedforward (b)</source>
         <translation>피드포워드 (b)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/IIRCardEditor.cpp" line="83"/>
+        <location filename="../widgets/cards/IIRCardEditor.cpp" line="88"/>
         <source>Feedback (a)</source>
         <translation>피드백 (a)</translation>
     </message>
@@ -1947,34 +1965,33 @@ Select a different file or change the device configuration.</source>
         <translation>포함할 파일 선택</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="68"/>
+        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="72"/>
         <source>Copy this file and its dependencies into the config directory</source>
         <translation>이 파일과 의존 파일을 구성 디렉터리로 복사</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="76"/>
+        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="80"/>
         <source>Edit the included file in the editor</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="107"/>
+        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="111"/>
         <source>Include file</source>
         <translation>포함 파일</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="108"/>
+        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="112"/>
         <source>E-APO configurations (*.txt)</source>
         <translation>E-APO 구성 (*.txt)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="151"/>
+        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="149"/>
         <source>No file selected</source>
         <translation>선택된 파일 없음</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="158"/>
         <source>Not readable by the audio service</source>
-        <translation>오디오 서비스가 읽을 수 없습니다</translation>
+        <translation type="vanished">오디오 서비스가 읽을 수 없습니다</translation>
     </message>
     <message>
         <location filename="../widgets/cards/IncludeCardEditor.cpp" line="168"/>
@@ -2005,27 +2022,27 @@ Select a different file or change the device configuration.</source>
         <translation>포함</translation>
     </message>
     <message>
-        <location filename="../guis/IncludeFilterGUI.cpp" line="63"/>
+        <location filename="../guis/IncludeFilterGUI.cpp" line="74"/>
         <source>Include file</source>
         <translation>포함 파일</translation>
     </message>
     <message>
-        <location filename="../guis/IncludeFilterGUI.cpp" line="65"/>
+        <location filename="../guis/IncludeFilterGUI.cpp" line="76"/>
         <source>E-APO configurations (*.txt)</source>
         <translation>E-APO 구성 (*.txt)</translation>
     </message>
     <message>
-        <location filename="../guis/IncludeFilterGUI.cpp" line="108"/>
+        <location filename="../guis/IncludeFilterGUI.cpp" line="109"/>
         <source>No file selected</source>
         <translation>선택된 파일 없음</translation>
     </message>
     <message>
-        <location filename="../guis/IncludeFilterGUI.cpp" line="117"/>
+        <location filename="../guis/IncludeFilterGUI.cpp" line="116"/>
         <source>File not found</source>
         <translation>파일을 찾을 수 없음</translation>
     </message>
     <message>
-        <location filename="../guis/IncludeFilterGUI.cpp" line="124"/>
+        <location filename="../guis/IncludeFilterGUI.cpp" line="123"/>
         <source>The file is not readable for the audio service.
 Change the file permissions or copy the file to the config directory.</source>
         <translation>오디오 서비스가 이 파일을 읽을 수 없습니다.
@@ -2036,13 +2053,13 @@ Change the file permissions or copy the file to the config directory.</source>
     <name>IncludeFilterGUIFactory</name>
     <message>
         <location filename="../guis/IncludeFilterGUIFactory.cpp" line="39"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="224"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="267"/>
         <source>Include (Include configuration file)</source>
         <translation>포함 (구성 파일 포함)</translation>
     </message>
     <message>
         <location filename="../guis/IncludeFilterGUIFactory.cpp" line="39"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="226"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="269"/>
         <source>Control</source>
         <translation>컨트롤</translation>
     </message>
@@ -2154,13 +2171,13 @@ Alexander Walch</translation>
     <name>LoudnessCorrectionFilterGUIFactory</name>
     <message>
         <location filename="../guis/LoudnessCorrectionFilterGUIFactory.cpp" line="46"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="208"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="251"/>
         <source>Loudness correction</source>
         <translation>라우드니스 보정</translation>
     </message>
     <message>
         <location filename="../guis/LoudnessCorrectionFilterGUIFactory.cpp" line="46"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="210"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="253"/>
         <source>Advanced filters</source>
         <translation>고급 필터</translation>
     </message>
@@ -2168,7 +2185,7 @@ Alexander Walch</translation>
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="../MainWindow.cpp" line="102"/>
+        <location filename="../MainWindow.cpp" line="101"/>
         <source>Equalizer APO %0 Configuration Editor</source>
         <translation>Equalizer APO %0 구성 편집기</translation>
     </message>
@@ -2178,95 +2195,95 @@ Alexander Walch</translation>
         <translation>파일</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="532"/>
+        <location filename="../MainWindow.ui" line="533"/>
         <source>APO settings</source>
         <translation>APO 설정</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="535"/>
+        <location filename="../MainWindow.ui" line="536"/>
         <source>Run the Device Selector to install or remove Equalizer APO on audio devices</source>
         <translation>장치 선택기를 실행해 오디오 장치에 Equalizer APO를 설치하거나 제거합니다</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="190"/>
+        <location filename="../MainWindow.ui" line="191"/>
         <source>From</source>
         <translation>소스</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="203"/>
+        <location filename="../MainWindow.ui" line="204"/>
         <source>Current file</source>
         <translation>현재 파일</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="211"/>
+        <location filename="../MainWindow.ui" line="212"/>
         <source>Channel</source>
         <translation>채널</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="221"/>
+        <location filename="../MainWindow.ui" line="222"/>
         <source>Res</source>
         <translation>해상도</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="247"/>
+        <location filename="../MainWindow.ui" line="248"/>
         <source>Pos</source>
         <translation>위치</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="255"/>
+        <location filename="../MainWindow.ui" line="256"/>
         <source>Top</source>
         <translation>위</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="260"/>
+        <location filename="../MainWindow.ui" line="261"/>
         <source>Bottom</source>
         <translation>아래</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="265"/>
+        <location filename="../MainWindow.ui" line="266"/>
         <source>Right</source>
         <translation>오른쪽</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="309"/>
+        <location filename="../MainWindow.ui" line="310"/>
         <source>Peak</source>
         <translation>피크</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="392"/>
+        <location filename="../MainWindow.ui" line="393"/>
         <source>Init</source>
         <translation>초기화</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="430"/>
+        <location filename="../MainWindow.ui" line="431"/>
         <source>CPU</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="471"/>
+        <location filename="../MainWindow.ui" line="472"/>
         <source>New</source>
         <translation>새로 만들기</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="483"/>
-        <location filename="../MainWindow.ui" line="486"/>
+        <location filename="../MainWindow.ui" line="484"/>
+        <location filename="../MainWindow.ui" line="487"/>
         <source>Open</source>
         <translation>열기</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="498"/>
-        <location filename="../MainWindow.ui" line="501"/>
+        <location filename="../MainWindow.ui" line="499"/>
+        <location filename="../MainWindow.ui" line="502"/>
         <source>Save</source>
         <translation>저장</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="513"/>
-        <location filename="../MainWindow.ui" line="516"/>
+        <location filename="../MainWindow.ui" line="514"/>
+        <location filename="../MainWindow.ui" line="517"/>
         <source>Save as...</source>
         <translation>다른 이름으로 저장...</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="524"/>
+        <location filename="../MainWindow.ui" line="525"/>
         <source>Exit</source>
         <translation>종료</translation>
     </message>
@@ -2276,67 +2293,67 @@ Alexander Walch</translation>
         <translation>편집</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="276"/>
+        <location filename="../MainWindow.ui" line="277"/>
         <source>Include base delay</source>
         <translation>기본 지연 포함</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="347"/>
+        <location filename="../MainWindow.ui" line="348"/>
         <source>Lat</source>
         <translation>지연</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="540"/>
+        <location filename="../MainWindow.ui" line="541"/>
         <source>Open program folder</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="543"/>
+        <location filename="../MainWindow.ui" line="544"/>
         <source>Show the folder this program is installed in</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="548"/>
+        <location filename="../MainWindow.ui" line="549"/>
         <source>Undo</source>
         <translation>수정 취소</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="556"/>
+        <location filename="../MainWindow.ui" line="557"/>
         <source>Redo</source>
         <translation>다시 수정</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="568"/>
+        <location filename="../MainWindow.ui" line="569"/>
         <source>Cut</source>
         <translation>잘라내기</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="580"/>
+        <location filename="../MainWindow.ui" line="581"/>
         <source>Copy</source>
         <translation>복사</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="592"/>
+        <location filename="../MainWindow.ui" line="593"/>
         <source>Paste</source>
         <translation>붙여넣기</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="604"/>
+        <location filename="../MainWindow.ui" line="605"/>
         <source>Delete</source>
         <translation>삭제</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="628"/>
+        <location filename="../MainWindow.ui" line="629"/>
         <source>Reset all global preferences</source>
         <translation>모든 전역 설정 초기화</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="633"/>
+        <location filename="../MainWindow.ui" line="634"/>
         <source>Reset all file-specific preferences</source>
         <translation>모든 파일별 설정 초기화</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="642"/>
+        <location filename="../MainWindow.ui" line="643"/>
         <source>Select all</source>
         <translation>모두 선택</translation>
     </message>
@@ -2347,12 +2364,12 @@ Alexander Walch</translation>
     </message>
     <message>
         <location filename="../MainWindow.ui" line="112"/>
-        <location filename="../MainWindow.ui" line="615"/>
+        <location filename="../MainWindow.ui" line="616"/>
         <source>Toolbar</source>
         <translation>도구 모음</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="623"/>
+        <location filename="../MainWindow.ui" line="624"/>
         <source>Analysis panel</source>
         <translation>분석 패널</translation>
     </message>
@@ -2367,38 +2384,38 @@ Alexander Walch</translation>
         <translation>설정</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="117"/>
+        <location filename="../MainWindow.cpp" line="116"/>
         <source>Instant mode</source>
         <translation>즉시 적용 모드</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="121"/>
+        <location filename="../MainWindow.cpp" line="120"/>
         <source>Changes are saved immediately</source>
         <translation>변경 사항을 즉시 저장합니다</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="118"/>
-        <location filename="../MainWindowParts/MainWindow.Edit.cpp" line="114"/>
+        <location filename="../MainWindow.cpp" line="117"/>
+        <location filename="../MainWindowParts/MainWindow.Edit.cpp" line="129"/>
         <source>Saved</source>
         <translation>저장됨</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="122"/>
+        <location filename="../MainWindow.cpp" line="121"/>
         <source>Current file save state</source>
         <translation>현재 파일 저장 상태</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="119"/>
+        <location filename="../MainWindow.cpp" line="118"/>
         <source>Device</source>
         <translation>장치</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="123"/>
+        <location filename="../MainWindow.cpp" line="122"/>
         <source>Whether EqualizerAPO is processing this device&apos;s stream natively, or forwarding it without applying filters.</source>
         <translation>EqualizerAPO가 이 장치의 스트림을 직접 처리하는지, 필터 없이 그대로 전달하는지 나타냅니다.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="120"/>
+        <location filename="../MainWindow.cpp" line="119"/>
         <source>Channels</source>
         <translation>채널</translation>
     </message>
@@ -2484,190 +2501,190 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <translation>장치 선택기를 열지 않았습니다. 오디오 장치를 관리하려면 관리자 승인이 필요하며, 파일 &gt; APO 설정에서 언제든 다시 열 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="138"/>
+        <location filename="../MainWindow.cpp" line="137"/>
         <source>Playback devices:</source>
         <translation>재생 장치:</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="149"/>
+        <location filename="../MainWindow.cpp" line="148"/>
         <source>Capture devices:</source>
         <translation>캡처 장치:</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="136"/>
+        <location filename="../MainWindow.cpp" line="135"/>
         <source>Default</source>
         <translation>기본값</translation>
     </message>
     <message>
         <location filename="../MainWindow.ui" line="129"/>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="410"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="417"/>
         <source>Graph</source>
         <translation>그래프</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="229"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="236"/>
         <source>Interface</source>
         <translation>인터페이스</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="233"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="240"/>
         <source>Modern cards</source>
         <translation>모던 카드</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="237"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="244"/>
         <source>Legacy rows</source>
         <translation>레거시 행</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="252"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="259"/>
         <source>Studio Glass</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="253"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="260"/>
         <source>Precision Minimal</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="254"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="261"/>
         <source>Soft Lab</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="255"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="262"/>
         <source>Hardware Rack</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="256"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="263"/>
         <source>Signal Matrix</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="286"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="175"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="293"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="185"/>
         <source>Knob gain range</source>
         <translation>노브 게인 범위</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="291"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="298"/>
         <source>±%1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="296"/>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="345"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="303"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="352"/>
         <source>Custom...</source>
         <translation>사용자 지정...</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="315"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="322"/>
         <source>Native title bar</source>
         <translation>기본 제목 표시줄</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="346"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="353"/>
         <source>Custom (±%1 dB)...</source>
         <translation>사용자 지정 (±%1 dB)...</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="268"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="275"/>
         <source>Dark theme</source>
         <translation>어두운 테마</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="306"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="313"/>
         <source>Fullscreen graph</source>
         <translation>그래프 전체화면</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="176"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="186"/>
         <source>Gain knobs will cover ± this many dB:</source>
         <translation>게인 노브가 담당할 ± dB 범위:</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="95"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="225"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="252"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="279"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="298"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="102"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="235"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="262"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="289"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="308"/>
         <source>Restart required</source>
         <translation>다시 시작 필요</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="95"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="225"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="252"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="279"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="298"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="102"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="235"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="262"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="289"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="308"/>
         <source>Configuration Editor will be restarted to apply the changed settings. Proceed?</source>
         <translation>변경된 설정을 적용하려면 구성 편집기를 다시 시작해야 합니다. 계속하시겠습니까?</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Edit.cpp" line="114"/>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="150"/>
+        <location filename="../MainWindowParts/MainWindow.Edit.cpp" line="129"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="160"/>
         <source>Unsaved changes</source>
         <translation>저장되지 않은 변경 사항</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="53"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="60"/>
         <source>Open file</source>
         <translation>파일 열기</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="55"/>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="107"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="62"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="111"/>
         <source>E-APO configurations (*.txt)</source>
         <translation>E-APO 구성 (*.txt)</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="104"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="108"/>
         <source>Save file as</source>
         <translation>다른 이름으로 파일 저장</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="128"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="137"/>
         <source>Unsaved</source>
         <translation>저장 안 됨</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="151"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="161"/>
         <source>The configuration file %0 has unsaved changes.</source>
         <translation>구성 파일 %0에 저장되지 않은 변경 사항이 있습니다.</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="152"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="162"/>
         <source>Do you want to save the changes before closing the file?</source>
         <translation>파일을 닫기 전에 변경 사항을 저장하시겠습니까?</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="151"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="156"/>
         <source>Mag</source>
         <translation>크기</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="151"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="156"/>
         <source>Phase</source>
         <translation type="unfinished">위상</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="151"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="156"/>
         <source>GD</source>
         <translation>군지연</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="153"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="158"/>
         <source>What the graph shows: magnitude in dB, phase in degrees, or group delay in ms.</source>
         <translation>그래프가 보여줄 값입니다. 크기(dB), 위상(도), 그룹 지연(ms) 중에서 고릅니다.</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="155"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="160"/>
         <source>The analyzer removes the configuration&apos;s bulk delay before measuring, so a filter&apos;s own phase is readable. Switch this on to put that delay back into the reading.</source>
         <translation>분석기는 측정 전에 설정 전체의 기본 지연을 걷어냅니다. 그래야 필터 자신의 위상이 읽힙니다. 이 항목을 켜면 그 지연을 다시 값에 넣습니다.</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="263"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="317"/>
         <source>Analysis failed</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2682,100 +2699,104 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <translation>설정이 적용되지 않았습니다. %2의 %1번째 줄 필터를 준비하지 못해 Equalizer APO가 이전 설정을 계속 재생합니다.</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="276"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="330"/>
         <source>%0 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="285"/>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="293"/>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="297"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="339"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="347"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="351"/>
         <source>%0 ms</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="294"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="348"/>
         <source>%0 ms (%1 samples) of latency the analyzer removed before measuring</source>
         <translation>분석기가 측정 전에 걷어낸 지연 %0 ms (%1 샘플)</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="300"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="354"/>
         <source>%0 %</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="66"/>
-        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="68"/>
-        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="70"/>
-        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="74"/>
+        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="73"/>
+        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="75"/>
+        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="77"/>
+        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="81"/>
         <source>From device</source>
         <translation>장치 설정 따름</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="187"/>
+        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="206"/>
         <source>EQ active · 32-bit float</source>
         <translation>EQ 활성 · 32비트 부동소수점</translation>
     </message>
     <message>
+        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="181"/>
         <source>ASIO · %0 Hz · %1 ch</source>
         <translation>ASIO · %0 Hz · %1채널</translation>
     </message>
     <message>
+        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="182"/>
         <source>The last ASIO stream on this interface ran at %0 Hz with %1 channels in this direction; the engine host processes it in a separate process.</source>
         <translation>이 인터페이스의 마지막 ASIO 스트림은 이 방향에서 %0 Hz, %1채널로 돌았습니다. 엔진 호스트가 별도 프로세스에서 처리합니다.</translation>
     </message>
     <message>
+        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="188"/>
         <source>ASIO · no stream yet</source>
         <translation>ASIO · 아직 스트림 없음</translation>
     </message>
     <message>
+        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="189"/>
         <source>No ASIO application has opened this interface through EqualizerAPO yet. Pick &quot;%0 (EQ APO XT)&quot; as the ASIO driver in the application.</source>
         <translation>아직 어떤 ASIO 애플리케이션도 EqualizerAPO를 거쳐 이 인터페이스를 열지 않았습니다. 애플리케이션에서 ASIO 드라이버로 &quot;%0 (EQ APO XT)&quot;을 고르세요.</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="189"/>
+        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="208"/>
         <source>EqualizerAPO is processing this stream natively (IEEE_FLOAT 32-bit, %0 Hz, %1 ch).</source>
         <translation>EqualizerAPO가 이 스트림을 직접 처리하고 있습니다 (IEEE_FLOAT 32비트, %0 Hz, %1 ch).</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="193"/>
+        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="212"/>
         <source>EQ active · 64-bit float</source>
         <translation>EQ 활성 · 64비트 부동소수점</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="195"/>
+        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="214"/>
         <source>EqualizerAPO is processing this stream natively (IEEE_FLOAT 64-bit, %0 Hz, %1 ch).</source>
         <translation>EqualizerAPO가 이 스트림을 직접 처리하고 있습니다 (IEEE_FLOAT 64비트, %0 Hz, %1 ch).</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="199"/>
+        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="218"/>
         <source>Passthrough · EQ inactive</source>
         <translation>패스스루 · EQ 비활성</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="201"/>
+        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="220"/>
         <source>This device&apos;s stream format is %0 (%1-bit container). EqualizerAPO only processes IEEE_FLOAT 32/64-bit streams natively, so audio is forwarded without any filter being applied. Switch the device&apos;s default format to a 32-bit IEEE_FLOAT one in Sound Settings if you need filtering on this device.</source>
         <translation>이 장치의 스트림 형식은 %0(%1비트 컨테이너)입니다. EqualizerAPO는 IEEE_FLOAT 32/64비트 스트림만 직접 처리하므로, 필터가 적용되지 않은 채 오디오가 그대로 전달됩니다. 이 장치에 필터링이 필요하면 소리 설정에서 장치 기본 형식을 32비트 IEEE_FLOAT로 바꾸세요.</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="60"/>
-        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="93"/>
-        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="99"/>
+        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="68"/>
+        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="101"/>
+        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="106"/>
         <source>Error</source>
         <translation>오류</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="60"/>
+        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="68"/>
         <source>Error while reading configuration file: %0</source>
         <translation>구성 파일을 읽는 중 오류가 발생했습니다: %0</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="93"/>
+        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="101"/>
         <source>Error while writing configuration file: %0</source>
         <translation>구성 파일을 쓰는 중 오류가 발생했습니다: %0</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="99"/>
+        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="106"/>
         <source>Only %0/%1 bytes have been written!</source>
         <translation>%1바이트 중 %0바이트만 기록되었습니다!</translation>
     </message>
@@ -2783,7 +2804,7 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>MatrixFilterPickerView</name>
     <message>
-        <location filename="../skins/matrix/picker/MatrixFilterPicker.cpp" line="127"/>
+        <location filename="../skins/matrix/picker/MatrixFilterPicker.cpp" line="129"/>
         <source>General</source>
         <translation>일반</translation>
     </message>
@@ -2950,7 +2971,7 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>MinimalFilterPickerView</name>
     <message>
-        <location filename="../skins/minimal/picker/MinimalFilterPicker.cpp" line="354"/>
+        <location filename="../skins/minimal/picker/MinimalFilterPicker.cpp" line="355"/>
         <source>General</source>
         <translation>일반</translation>
     </message>
@@ -3202,93 +3223,92 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>MultiConvolutionCardEditor</name>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="83"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="82"/>
         <source>Copy this file into the config directory</source>
         <translation>이 파일을 구성 디렉터리로 복사</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="101"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="100"/>
         <source>Channel mapping</source>
         <translation>채널 매핑</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="108"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="107"/>
         <source>Add an output channel (a new name creates a virtual channel)</source>
         <translation>출력 채널 추가 (새 이름은 가상 채널을 만듭니다)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="167"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="166"/>
         <source>Add output channel</source>
         <translation>출력 채널 추가</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="168"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="167"/>
         <source>Channel name (an unknown name creates a virtual channel):</source>
         <translation>채널 이름 (알 수 없는 이름은 가상 채널을 만듭니다):</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="238"/>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="362"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="241"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="367"/>
         <source>Select impulse response file</source>
         <translation>임펄스 응답 파일 선택</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="239"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="242"/>
         <source>Impulse response (*.wav *.flac *.ogg)</source>
         <translation>임펄스 응답 (*.wav *.flac *.ogg)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="289"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="292"/>
         <source>No file selected</source>
         <translation>선택된 파일 없음</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="299"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="302"/>
         <source>Unsupported file format</source>
         <translation>지원하지 않는 파일 형식</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="308"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="311"/>
         <source>%1 ms</source>
         <translation>%1 ms</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="309"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="312"/>
         <source>%1 samples</source>
         <translation>%1 샘플</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="310"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="313"/>
         <source>%1 Hz</source>
         <translation>%1 Hz</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="311"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="314"/>
         <source>%1 ch</source>
         <translation>%1 ch</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="316"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="319"/>
         <source>Sample rate does not match the device (%1 Hz)</source>
         <translation>샘플레이트가 장치와 일치하지 않습니다 (%1 Hz)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="334"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="337"/>
         <source>Mapping references channel %1, but the file has %2 channels</source>
         <translation>매핑이 채널 %1을(를) 참조하지만 파일에는 채널이 %2개뿐입니다</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="346"/>
         <source>Not readable by the audio service</source>
-        <translation>오디오 서비스가 읽을 수 없습니다</translation>
+        <translation type="vanished">오디오 서비스가 읽을 수 없습니다</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="361"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="366"/>
         <source>Locate...</source>
         <translation>위치 찾기...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="362"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="367"/>
         <source>Locate the missing file</source>
         <translation>누락된 파일 위치 찾기</translation>
     </message>
@@ -3326,22 +3346,79 @@ Do you want to run the Device Selector application to fix the problem?</source>
     <name>MultiConvolutionFilterGUIFactory</name>
     <message>
         <location filename="../guis/MultiConvolutionFilterGUIFactory.cpp" line="36"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="201"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="244"/>
         <source>MultiConvolution (BRIR / multi-input synthesis convolution)</source>
         <translation>다중 합성 컨볼루션 (BRIR / 다중 입력 합성 컨볼루션)</translation>
     </message>
     <message>
         <location filename="../guis/MultiConvolutionFilterGUIFactory.cpp" line="36"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="203"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="246"/>
         <source>Advanced filters</source>
         <translation>고급 필터</translation>
     </message>
 </context>
 <context>
+    <name>NewChannelCardEditor</name>
+    <message>
+        <location filename="../widgets/cards/NewChannelCardEditor.cpp" line="53"/>
+        <source>Add channel</source>
+        <translation>채널 추가</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/NewChannelCardEditor.cpp" line="54"/>
+        <location filename="../widgets/cards/NewChannelCardEditor.cpp" line="119"/>
+        <source>Name one or more new channels, separated by spaces or commas</source>
+        <translation>새 채널 이름을 하나 이상 입력하십시오. 여러 이름은 공백이나 쉼표로 구분합니다</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/NewChannelCardEditor.cpp" line="147"/>
+        <source>Remove %1</source>
+        <translation>%1 제거</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/NewChannelCardEditor.cpp" line="148"/>
+        <source>%1: %2. Click to remove it.</source>
+        <translation>%1: %2. 클릭하면 제거합니다.</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/NewChannelCardEditor.cpp" line="163"/>
+        <source>Name at least one channel. The engine skips an empty line.</source>
+        <translation>채널 이름을 하나 이상 입력하십시오. 엔진은 빈 줄을 건너뜁니다.</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/NewChannelCardEditor.cpp" line="165"/>
+        <source>The engine skips this whole line until the marked names are removed or renamed.</source>
+        <translation>표시된 이름을 제거하거나 바꾸기 전까지 엔진은 이 줄 전체를 건너뜁니다.</translation>
+    </message>
+</context>
+<context>
+    <name>NewChannelListModel</name>
+    <message>
+        <location filename="../widgets/cards/NewChannelListModel.cpp" line="88"/>
+        <source>Starts with a digit, which the engine reads as a channel number</source>
+        <translation>숫자로 시작해 엔진이 채널 번호로 처리함</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/NewChannelListModel.cpp" line="90"/>
+        <source>ALL already means every channel</source>
+        <translation>ALL은 이미 모든 채널을 뜻함</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/NewChannelListModel.cpp" line="92"/>
+        <source>Contains = * + - . or `, which Copy lines read as part of a formula</source>
+        <translation>= * + - . 또는 ` 포함(Copy 줄에서 수식의 일부로 처리함)</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/NewChannelListModel.cpp" line="94"/>
+        <source>Already a channel of this device</source>
+        <translation>이미 이 장치에 있는 채널</translation>
+    </message>
+</context>
+<context>
     <name>PreampCardEditor</name>
     <message>
-        <location filename="../widgets/cards/PreampCardEditor.cpp" line="41"/>
-        <location filename="../widgets/cards/PreampCardEditor.cpp" line="55"/>
+        <location filename="../widgets/cards/PreampCardEditor.cpp" line="47"/>
+        <location filename="../widgets/cards/PreampCardEditor.cpp" line="61"/>
         <source>Gain</source>
         <translation>게인</translation>
     </message>
@@ -3368,13 +3445,13 @@ Do you want to run the Device Selector application to fix the problem?</source>
     <name>PreampFilterGUIFactory</name>
     <message>
         <location filename="../guis/PreampFilterGUIFactory.cpp" line="30"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="144"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="181"/>
         <source>Preamp (Preamplification)</source>
         <translation>프리앰프</translation>
     </message>
     <message>
         <location filename="../guis/PreampFilterGUIFactory.cpp" line="30"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="146"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="183"/>
         <source>Basic filters</source>
         <translation>기본 필터</translation>
     </message>
@@ -3382,12 +3459,12 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../import/LegacyMigration.cpp" line="340"/>
+        <location filename="../import/LegacyMigration.cpp" line="587"/>
         <source>Configuration folder moved</source>
         <translation>설정 폴더 이동 안내</translation>
     </message>
     <message>
-        <location filename="../import/LegacyMigration.cpp" line="341"/>
+        <location filename="../import/LegacyMigration.cpp" line="588"/>
         <source>Your Equalizer APO configuration was imported into the EqualizerAPO-XT configuration folder:
 
 %1
@@ -3404,82 +3481,82 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 %2</translation>
     </message>
     <message>
-        <location filename="../import/ConfigDependencyScanner.cpp" line="135"/>
+        <location filename="../import/ConfigDependencyScanner.cpp" line="129"/>
         <source>Missing file: %1</source>
         <translation>누락된 파일: %1</translation>
     </message>
     <message>
-        <location filename="../import/ConfigDependencyScanner.cpp" line="150"/>
+        <location filename="../import/ConfigDependencyScanner.cpp" line="144"/>
         <source>Recursion limit reached at %1; nested references were not followed.</source>
         <translation>%1에서 재귀 한도에 도달했습니다. 중첩된 참조는 따라가지 않았습니다.</translation>
     </message>
     <message>
-        <location filename="../import/ConfigDependencyScanner.cpp" line="162"/>
+        <location filename="../import/ConfigDependencyScanner.cpp" line="156"/>
         <source>Cannot open %1 for scanning.</source>
         <translation>스캔할 %1을(를) 열 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../import/ConfigDependencyScanner.cpp" line="185"/>
+        <location filename="../import/ConfigDependencyScanner.cpp" line="179"/>
         <source>VSTPlugin line has no Library reference: %1 (in %2)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../import/ConfigDependencyScanner.cpp" line="205"/>
+        <location filename="../import/ConfigDependencyScanner.cpp" line="199"/>
         <source>Reference outside the source folder will be skipped: %1 (in %2)</source>
         <translation>원본 폴더 밖의 참조는 건너뜁니다: %1 (%2 내)</translation>
     </message>
     <message>
-        <location filename="../import/ConfigDependencyScanner.cpp" line="232"/>
+        <location filename="../import/ConfigDependencyScanner.cpp" line="226"/>
         <source>Root file does not exist: %1</source>
         <translation>루트 파일이 존재하지 않습니다: %1</translation>
     </message>
     <message>
-        <location filename="../import/ImportDialog.cpp" line="24"/>
+        <location filename="../import/ImportDialog.cpp" line="26"/>
         <source>0 B</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../import/ImportDialog.cpp" line="26"/>
+        <location filename="../import/ImportDialog.cpp" line="28"/>
         <source>%1 B</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../import/ImportDialog.cpp" line="28"/>
+        <location filename="../import/ImportDialog.cpp" line="30"/>
         <source>%1 KB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../import/ImportDialog.cpp" line="29"/>
+        <location filename="../import/ImportDialog.cpp" line="31"/>
         <source>%1 MB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="22"/>
+        <location filename="../import/ImportExecutor.cpp" line="24"/>
         <source>Import target directory is empty.</source>
         <translation>가져오기 대상 디렉터리가 비어 있습니다.</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="29"/>
+        <location filename="../import/ImportExecutor.cpp" line="31"/>
         <source>Could not create config directory %1.</source>
         <translation>구성 디렉터리 %1을(를) 만들 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="38"/>
+        <location filename="../import/ImportExecutor.cpp" line="40"/>
         <source>Source missing, skipped: %1</source>
         <translation>원본 없음, 건너뜀: %1</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="48"/>
+        <location filename="../import/ImportExecutor.cpp" line="50"/>
         <source>Could not create %1.</source>
         <translation>%1을(를) 만들 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="57"/>
+        <location filename="../import/ImportExecutor.cpp" line="59"/>
         <source>Could not overwrite %1.</source>
         <translation>%1을(를) 덮어쓸 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="65"/>
+        <location filename="../import/ImportExecutor.cpp" line="67"/>
         <source>Failed to copy %1 to %2.</source>
         <translation>%1을(를) %2(으)로 복사하지 못했습니다.</translation>
     </message>
@@ -3487,17 +3564,17 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>RackCrossoverReadout</name>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="42"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="44"/>
         <source>Crossover corner frequency</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="61"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="63"/>
         <source>%1: %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="62"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="64"/>
         <source>%1: %2, %3</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3505,7 +3582,7 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>RackFilterPickerView</name>
     <message>
-        <location filename="../skins/rack/picker/RackFilterPicker.cpp" line="255"/>
+        <location filename="../skins/rack/picker/RackFilterPicker.cpp" line="179"/>
         <source>SEARCH</source>
         <translation>검색</translation>
     </message>
@@ -3513,72 +3590,72 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>RackHeadroomMeter</name>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="426"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="428"/>
         <source>Applied headroom trim</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="440"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="442"/>
         <source>Automatic headroom trim: %1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="442"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="444"/>
         <source>Manual headroom trim: %1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="448"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="450"/>
         <source>Automatic headroom trim: --</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="449"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="451"/>
         <source>Manual headroom trim: --</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="507"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="509"/>
         <source>AUTO %1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="508"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="510"/>
         <source>MANUAL %1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="513"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="515"/>
         <source>AUTO --</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="514"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="516"/>
         <source>MANUAL --</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="543"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="545"/>
         <source>-24</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="544"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="546"/>
         <source>-18</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="545"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="547"/>
         <source>-12</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="546"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="548"/>
         <source>-6</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="547"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="549"/>
         <source>0</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3586,42 +3663,42 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>RackLfeLamp</name>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="193"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="195"/>
         <source>Source LFE lamp</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="205"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="207"/>
         <source>Source LFE is not preserved</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="209"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="211"/>
         <source>Source LFE is preserved at %1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="214"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="216"/>
         <source>Source LFE is preserved; gain: --</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="276"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="278"/>
         <source>LFE</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="298"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="300"/>
         <source>CUT</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="302"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="304"/>
         <source>ON  -- dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="306"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingInstruments.cpp" line="308"/>
         <source>ON  %1 dB</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3654,149 +3731,149 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="250"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="227"/>
         <source>Open editor</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="254"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="231"/>
         <source>Preset</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="266"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="243"/>
         <source>Action</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="289"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="266"/>
         <source>Bass-management action</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="332"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="309"/>
         <source>X ERROR</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="334"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="311"/>
         <source>Bass-management state has an error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="339"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="316"/>
         <source>! WARNING</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="341"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="318"/>
         <source>Bass-management state has a warning</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="346"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="323"/>
         <source>OK READY</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="348"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="325"/>
         <source>Bass-management state is valid</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="359"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="336"/>
         <source>Unknown layout</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="362"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="339"/>
         <source>LAYOUT  %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="364"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="341"/>
         <source>Physical speaker layout: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="376"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="353"/>
         <source>HP %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="377"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="354"/>
         <source>HP %1 %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="384"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="361"/>
         <source>LP %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="385"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="362"/>
         <source>LP %1 %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="392"/>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="397"/>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="403"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="369"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="374"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="380"/>
         <source>CROSSOVER</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="392"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="369"/>
         <source>FULL RANGE</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="420"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="397"/>
         <source>Unnamed profile</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="426"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="403"/>
         <source>LINKED  %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="430"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="407"/>
         <source>Linked profile is missing: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="436"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="413"/>
         <source>Linked subwoofer-routing profile: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="442"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="419"/>
         <source>Embedded state</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="444"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="421"/>
         <source>LOCAL  %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="446"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="423"/>
         <source>Embedded subwoofer-routing state: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="460"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="437"/>
         <source>ERROR: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="464"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="441"/>
         <source>ERROR: Invalid subwoofer-routing state</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="468"/>
+        <location filename="../skins/rack/cards/RackSubwooferRoutingCardView.cpp" line="445"/>
         <source>WARNING: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3804,7 +3881,7 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>ScalarKnobCardEditor</name>
     <message>
-        <location filename="../widgets/cards/ScalarKnobCardEditor.cpp" line="60"/>
+        <location filename="../widgets/cards/ScalarKnobCardEditor.cpp" line="66"/>
         <source>Computed when the configuration loads; edit the raw line to change the expression.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3812,32 +3889,32 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>SoftFilterPickerView</name>
     <message>
-        <location filename="../skins/soft/picker/SoftFilterPicker.cpp" line="137"/>
+        <location filename="../skins/soft/picker/SoftFilterPicker.cpp" line="139"/>
         <source>Complete as it is</source>
         <translation>이대로 완성됩니다</translation>
     </message>
     <message>
-        <location filename="../skins/soft/picker/SoftFilterPicker.cpp" line="139"/>
+        <location filename="../skins/soft/picker/SoftFilterPicker.cpp" line="141"/>
         <source>Choose the details after adding</source>
         <translation>추가한 뒤 세부 정보를 설정하세요</translation>
     </message>
     <message>
-        <location filename="../skins/soft/picker/SoftFilterPicker.cpp" line="375"/>
+        <location filename="../skins/soft/picker/SoftFilterPicker.cpp" line="377"/>
         <source>Search filters</source>
         <translation>필터 검색</translation>
     </message>
     <message>
-        <location filename="../skins/soft/picker/SoftFilterPicker.cpp" line="403"/>
+        <location filename="../skins/soft/picker/SoftFilterPicker.cpp" line="405"/>
         <source>General</source>
         <translation>일반</translation>
     </message>
     <message>
-        <location filename="../skins/soft/picker/SoftFilterPicker.cpp" line="508"/>
+        <location filename="../skins/soft/picker/SoftFilterPicker.cpp" line="510"/>
         <source>Nothing matches your search</source>
         <translation>검색 결과가 없습니다</translation>
     </message>
     <message>
-        <location filename="../skins/soft/picker/SoftFilterPicker.cpp" line="509"/>
+        <location filename="../skins/soft/picker/SoftFilterPicker.cpp" line="511"/>
         <source>Try a shorter or different keyword</source>
         <translation>더 짧거나 다른 키워드로 검색해 보세요</translation>
     </message>
@@ -3845,102 +3922,102 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>SoftSkin</name>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="54"/>
+        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="56"/>
         <source>Otherwise</source>
         <translation>그렇지 않으면</translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="56"/>
+        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="58"/>
         <source>End of the rule</source>
         <translation>규칙 끝</translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="67"/>
+        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="69"/>
         <source>Set %1 to %2</source>
         <translation>%1을(를) %2(으)로 설정</translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="88"/>
+        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="90"/>
         <source>If %1 is %2</source>
         <translation>%1이(가) %2이면</translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="90"/>
+        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="92"/>
         <source>If %1 is not %2</source>
         <translation>%1이(가) %2이(가) 아니면</translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="92"/>
+        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="94"/>
         <source>If %1 is at least %2</source>
         <translation>%1이(가) %2 이상이면</translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="94"/>
+        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="96"/>
         <source>If %1 is more than %2</source>
         <translation>%1이(가) %2보다 크면</translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="96"/>
+        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="98"/>
         <source>If %1 is at most %2</source>
         <translation>%1이(가) %2 이하이면</translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="98"/>
+        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="100"/>
         <source>If %1 is less than %2</source>
         <translation>%1이(가) %2보다 작으면</translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="103"/>
+        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="105"/>
         <source>Otherwise, if %1 is %2</source>
         <translation>그렇지 않고 %1이(가) %2이면</translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="105"/>
+        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="107"/>
         <source>Otherwise, if %1 is not %2</source>
         <translation>그렇지 않고 %1이(가) %2이(가) 아니면</translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="107"/>
+        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="109"/>
         <source>Otherwise, if %1 is at least %2</source>
         <translation>그렇지 않고 %1이(가) %2 이상이면</translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="109"/>
+        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="111"/>
         <source>Otherwise, if %1 is more than %2</source>
         <translation>그렇지 않고 %1이(가) %2보다 크면</translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="111"/>
+        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="113"/>
         <source>Otherwise, if %1 is at most %2</source>
         <translation>그렇지 않고 %1이(가) %2 이하이면</translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="113"/>
+        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="115"/>
         <source>Otherwise, if %1 is less than %2</source>
         <translation>그렇지 않고 %1이(가) %2보다 작으면</translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.Analysis.cpp" line="256"/>
+        <location filename="../skins/soft/SoftSkin.Analysis.cpp" line="258"/>
         <source>Sound may distort - keep it below 0 dB</source>
         <translation>소리가 일그러질 수 있어요. 0 dB 아래로 낮춰 주세요</translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.Analysis.cpp" line="287"/>
+        <location filename="../skins/soft/SoftSkin.Analysis.cpp" line="289"/>
         <source>Phase in %1</source>
         <translation>%1의 위상</translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.Analysis.cpp" line="288"/>
+        <location filename="../skins/soft/SoftSkin.Analysis.cpp" line="290"/>
         <source>Delay in %1</source>
         <translation>%1의 지연</translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.Analysis.cpp" line="290"/>
+        <location filename="../skins/soft/SoftSkin.Analysis.cpp" line="292"/>
         <source>How far each pitch is turned - the volume stays the same</source>
         <translation>각 음높이가 얼마나 돌아가는지 - 음량은 그대로입니다</translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.Analysis.cpp" line="291"/>
+        <location filename="../skins/soft/SoftSkin.Analysis.cpp" line="293"/>
         <source>How long each pitch is held back before you hear it</source>
         <translation>각 음높이가 귀에 닿기까지 얼마나 늦춰지는지</translation>
     </message>
@@ -3948,72 +4025,72 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>SoftSubwooferRoutingCardView</name>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="72"/>
+        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="71"/>
         <source>Bass-management summary</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="88"/>
+        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="87"/>
         <source>Bass-management details</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="141"/>
+        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="140"/>
         <source>This bass setup needs attention.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="147"/>
+        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="146"/>
         <source>All speakers play the full range.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="148"/>
+        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="147"/>
         <source>No crossover is set, so nothing is redirected to a subwoofer.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="156"/>
+        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="155"/>
         <source>Bass plays on the subwoofer.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="164"/>
+        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="163"/>
         <source>The movie LFE track is kept and played at %1 dB.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="169"/>
+        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="168"/>
         <source>The source LFE channel is left out.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="181"/>
+        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="180"/>
         <source>Unknown layout</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="182"/>
+        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="181"/>
         <source>%1 speakers</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="185"/>
+        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="184"/>
         <source>LFE %1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="192"/>
+        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="191"/>
         <source>Auto trim %1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="194"/>
+        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="193"/>
         <source>Trim %1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="207"/>
+        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="206"/>
         <source>Linked profile</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4021,26 +4098,26 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>SpatialFilterGUIFactory</name>
     <message>
-        <location filename="../guis/SpatialFilterGUIFactory.cpp" line="31"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="184"/>
+        <location filename="../guis/SpatialFilterGUIFactory.cpp" line="37"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="227"/>
         <source>Hilbert transform</source>
         <translation>힐베르트 변환</translation>
     </message>
     <message>
-        <location filename="../guis/SpatialFilterGUIFactory.cpp" line="33"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="186"/>
+        <location filename="../guis/SpatialFilterGUIFactory.cpp" line="39"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="229"/>
         <source>Phase &amp; Time</source>
         <translation>위상과 시간</translation>
     </message>
     <message>
-        <location filename="../guis/SpatialFilterGUIFactory.cpp" line="34"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="204"/>
+        <location filename="../guis/SpatialFilterGUIFactory.cpp" line="40"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="247"/>
         <source>Velvet decorrelator</source>
         <translation>벨벳 비상관화</translation>
     </message>
     <message>
-        <location filename="../guis/SpatialFilterGUIFactory.cpp" line="36"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="207"/>
+        <location filename="../guis/SpatialFilterGUIFactory.cpp" line="42"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="250"/>
         <source>Advanced filters</source>
         <translation>고급 필터</translation>
     </message>
@@ -4131,13 +4208,13 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
     <name>StageFilterGUIFactory</name>
     <message>
         <location filename="../guis/StageFilterGUIFactory.cpp" line="29"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="233"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="276"/>
         <source>Stage (Select processing stage)</source>
         <translation>스테이지 (처리 단계 선택)</translation>
     </message>
     <message>
         <location filename="../guis/StageFilterGUIFactory.cpp" line="29"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="235"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="278"/>
         <source>Control</source>
         <translation>컨트롤</translation>
     </message>
@@ -4145,12 +4222,12 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>StudioFilterPickerView</name>
     <message>
-        <location filename="../skins/studio/picker/StudioFilterPicker.cpp" line="254"/>
+        <location filename="../skins/studio/picker/StudioFilterPicker.cpp" line="253"/>
         <source>Search filters</source>
         <translation>필터 검색</translation>
     </message>
     <message>
-        <location filename="../skins/studio/picker/StudioFilterPicker.cpp" line="378"/>
+        <location filename="../skins/studio/picker/StudioFilterPicker.cpp" line="377"/>
         <source>No matching filters</source>
         <translation>일치하는 필터 없음</translation>
     </message>
@@ -4158,7 +4235,7 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>StudioRoutingView</name>
     <message>
-        <location filename="../skins/studio/routing/LightTraceRoutingRenderer.cpp" line="581"/>
+        <location filename="../skins/studio/routing/LightTraceRoutingRenderer.cpp" line="582"/>
         <source>Drag between channels to route - click + to add an output</source>
         <translation>채널 사이를 드래그해 라우팅하세요. +를 누르면 출력이 추가됩니다</translation>
     </message>
@@ -4299,59 +4376,49 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>SubwooferRoutingCardEditor</name>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="232"/>
-        <source>Issue #246 - Front/Rear 4.1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="235"/>
-        <source>Built-in preset: %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="394"/>
-        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="395"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="149"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="150"/>
         <source>Open editor</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="396"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="151"/>
         <source>Open the full subwoofer-routing editor</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="407"/>
-        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="408"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="162"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="163"/>
         <source>Preset</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="409"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="164"/>
         <source>Choose a built-in subwoofer-routing preset</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="484"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="239"/>
         <source>Linked profile was not found: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="490"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="245"/>
         <source>Linked profile could not be read: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="501"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="256"/>
         <source>Linked profile is invalid: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="590"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="339"/>
         <source>The selected preset could not be created: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="636"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="385"/>
         <source>Unknown</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4359,32 +4426,32 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>SubwooferRoutingCardView</name>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="21"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="25"/>
         <source>Subwoofer routing summary</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="22"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="26"/>
         <source>Bass-management crossover, routing and headroom summary</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="40"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="44"/>
         <source>%1 Hz</source>
         <translation type="unfinished">%1 Hz</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="57"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="61"/>
         <source>HP %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="59"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="63"/>
         <source>LP %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="61"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardView.cpp" line="65"/>
         <source>Full range</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4392,186 +4459,175 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>SubwooferRoutingEditorDialog</name>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="158"/>
-        <source>Issue #246 - Front/Rear 4.1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="161"/>
-        <source>%1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="171"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="83"/>
         <source> Hz</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="184"/>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="390"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="96"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="273"/>
         <source> ms</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="185"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="97"/>
         <source>Path delay applied after the crossover sections</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="240"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="152"/>
         <source>Custom</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="241"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="153"/>
         <source>Crossover alignment and acoustic slope. Custom marks a hand-written section chain and leaves it untouched.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="329"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="212"/>
         <source>Subwoofer Routing Editor</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="356"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="239"/>
         <source>Layout &amp;&amp; preset</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="359"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="242"/>
         <source>Current state</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="369"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="252"/>
         <source>Preset:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="373"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="256"/>
         <source>Source LFE</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="380"/>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="415"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="263"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="298"/>
         <source> dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="381"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="264"/>
         <source>LFE gain adjustment:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="383"/>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="865"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="266"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="748"/>
         <source>Invert</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="384"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="267"/>
         <source>Polarity:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="391"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="274"/>
         <source>Delay:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="395"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="278"/>
         <source>Speaker groups</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="400"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="283"/>
         <source>Bass paths</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="405"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="288"/>
         <source>Headroom</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="408"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="291"/>
         <source>Automatic</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="409"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="292"/>
         <source>Mode:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="416"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="299"/>
         <source>Manual trim:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="419"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="302"/>
         <source>Applied trim:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="453"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="336"/>
         <source>Bass sends</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="458"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="341"/>
         <source>Physical outputs</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="463"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="346"/>
         <source>Path response</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="770"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="653"/>
         <source>%1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="771"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="654"/>
         <source>Unavailable</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="801"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="684"/>
         <source>High-pass corner for this speaker group</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="812"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="695"/>
         <source> HP:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="862"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="745"/>
         <source>Low-pass corner for this bass path</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="866"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="749"/>
         <source>Invert the bass path&apos;s polarity (the phase flip a summed crossover often needs)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="876"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="759"/>
         <source> LP:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="969"/>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="1018"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="887"/>
         <source>The active heritage skin does not provide a routing editor.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="1051"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="914"/>
         <source>State is valid.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4579,14 +4635,14 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>SubwooferRoutingFilterGUIFactory</name>
     <message>
-        <location filename="../guis/SubwooferRoutingFilterGUIFactory.cpp" line="61"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="216"/>
+        <location filename="../guis/SubwooferRoutingFilterGUIFactory.cpp" line="68"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="259"/>
         <source>Subwoofer routing (crossover + LFE routing)</source>
         <translation>서브우퍼 라우팅 (크로스오버 + LFE 라우팅)</translation>
     </message>
     <message>
-        <location filename="../guis/SubwooferRoutingFilterGUIFactory.cpp" line="63"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="218"/>
+        <location filename="../guis/SubwooferRoutingFilterGUIFactory.cpp" line="70"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="261"/>
         <source>Speaker management</source>
         <translation>스피커 관리</translation>
     </message>
@@ -4594,12 +4650,12 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>SubwooferRoutingResponseView</name>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingResponseView.cpp" line="424"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingResponseView.cpp" line="385"/>
         <source>Headroom %1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subwooferrouting/SubwooferRoutingResponseView.cpp" line="450"/>
+        <location filename="../widgets/subwooferrouting/SubwooferRoutingResponseView.cpp" line="411"/>
         <source>The current state could not be compiled.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4607,12 +4663,12 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>TitleBar</name>
     <message>
-        <location filename="../widgets/TitleBar.cpp" line="111"/>
+        <location filename="../widgets/TitleBar.cpp" line="113"/>
         <source>Restore</source>
         <translation>복원</translation>
     </message>
     <message>
-        <location filename="../widgets/TitleBar.cpp" line="111"/>
+        <location filename="../widgets/TitleBar.cpp" line="113"/>
         <source>Maximize</source>
         <translation>최대화</translation>
     </message>
@@ -4620,7 +4676,7 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>UpdateToast</name>
     <message>
-        <location filename="../widgets/UpdateToast.cpp" line="31"/>
+        <location filename="../widgets/UpdateToast.cpp" line="37"/>
         <source>Dismiss</source>
         <translation>닫기</translation>
     </message>
@@ -4628,24 +4684,24 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>VSTBusStrip</name>
     <message>
-        <location filename="../widgets/cards/VSTBusStrip.cpp" line="60"/>
-        <location filename="../widgets/cards/VSTBusStrip.cpp" line="120"/>
+        <location filename="../widgets/cards/VSTBusStrip.cpp" line="55"/>
+        <location filename="../widgets/cards/VSTBusStrip.cpp" line="115"/>
         <source>Out</source>
         <translation>출력</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTBusStrip.cpp" line="60"/>
-        <location filename="../widgets/cards/VSTBusStrip.cpp" line="120"/>
+        <location filename="../widgets/cards/VSTBusStrip.cpp" line="55"/>
+        <location filename="../widgets/cards/VSTBusStrip.cpp" line="115"/>
         <source>In</source>
         <translation>입력</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTBusStrip.cpp" line="84"/>
+        <location filename="../widgets/cards/VSTBusStrip.cpp" line="79"/>
         <source>VST3 output bus layout</source>
         <translation>VST3 출력 버스 레이아웃</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTBusStrip.cpp" line="85"/>
+        <location filename="../widgets/cards/VSTBusStrip.cpp" line="80"/>
         <source>VST3 input bus layout</source>
         <translation>VST3 입력 버스 레이아웃</translation>
     </message>
@@ -4653,140 +4709,139 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>VSTCardEditor</name>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="541"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="724"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="466"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="636"/>
         <source>Select VST plugin</source>
         <translation>VST 플러그인 선택</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="117"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="812"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="119"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="699"/>
         <source>Open panel</source>
         <translation>패널 열기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="112"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="114"/>
         <source>Copy the library into the config directory so the audio service can read it</source>
         <translation>오디오 서비스가 읽을 수 있도록 라이브러리를 구성 디렉터리로 복사</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="128"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="130"/>
         <source>Embed panel in card</source>
         <translation>카드에 패널 삽입</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="133"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="135"/>
         <source>Remove Input/Output layouts</source>
         <translation>Input/Output 레이아웃 제거</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="134"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="136"/>
         <source>Deletes the saved VST3 bus layouts from this line.</source>
         <translation>이 줄에 저장된 VST3 버스 레이아웃을 삭제합니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="140"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="142"/>
         <source>Remove channel fill</source>
         <translation>채널 채우기 제거</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="141"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="143"/>
         <source>Deletes the saved per-slot channel lists from this line.</source>
         <translation>이 라인에 저장된 슬롯별 채널 목록을 지웁니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="441"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="119"/>
         <source>Library could not be loaded.</source>
         <translation>라이브러리를 로드할 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="444"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="124"/>
         <source>Library does not contain needed functions.</source>
         <translation>라이브러리에 필요한 함수가 없습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="452"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="135"/>
         <source>Library has the wrong architecture. Only %1-bit libraries are supported.</source>
         <translation>라이브러리의 아키텍처가 올바르지 않습니다. %1비트 라이브러리만 지원합니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="467"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="158"/>
         <source>Plugin crashed during initialization.</source>
         <translation>초기화 중 플러그인이 충돌했습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="479"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="401"/>
         <source>No plugin selected</source>
         <translation>선택된 플러그인 없음</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="524"/>
         <source>Not readable by the audio service</source>
-        <translation>오디오 서비스가 읽을 수 없습니다</translation>
+        <translation type="vanished">오디오 서비스가 읽을 수 없습니다</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="540"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="465"/>
         <source>Locate...</source>
         <translation>위치 찾기...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="541"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="466"/>
         <source>Locate the missing plugin library</source>
         <translation>누락된 플러그인 라이브러리 위치 찾기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="585"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="515"/>
         <source>The bus layout can be changed after the plugin loads.</source>
         <translation>버스 레이아웃은 플러그인이 로드된 뒤에 바꿀 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="593"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="523"/>
         <source>Input and Output layouts are only supported for VST3 plugins.</source>
         <translation>Input/Output 레이아웃은 VST3 플러그인에서만 지원합니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="597"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="527"/>
         <source>This module loaded as VST2 and ignores the saved Input/Output layouts. Remove them via Options.</source>
         <translation>이 모듈은 VST2로 로드되어 저장된 Input/Output 레이아웃을 무시합니다. 옵션 메뉴에서 제거할 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="611"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="541"/>
         <source>Close the plugin panel to change the bus layout.</source>
         <translation>버스 레이아웃을 바꾸려면 플러그인 패널을 닫으세요.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="641"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="571"/>
         <source>The plugin rejected %1 in / %2 out. Audio passes through unchanged.</source>
         <translation>플러그인이 입력 %1 / 출력 %2 구성을 거부했습니다. 소리는 그대로 통과합니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="659"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="661"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="589"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="591"/>
         <source>%1 ch</source>
         <translation>%1채널</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="670"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="600"/>
         <source>The legacy Stereo input option now reads as Input Stereo, Output Auto and will be saved that way.</source>
         <translation>구형 &apos;스테레오 입력&apos; 옵션을 Input Stereo, Output Auto로 읽었습니다. 저장할 때에도 이 형태로 기록됩니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="725"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="637"/>
         <source>VST plugins (*.dll *.vst3)</source>
         <translation>VST 플러그인 (*.dll *.vst3)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="787"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="395"/>
         <source>Plugin crashed when opening panel.</source>
         <translation>패널을 여는 중 플러그인이 충돌했습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="812"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="699"/>
         <source>Close panel</source>
         <translation type="unfinished">패널 닫기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="898"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="298"/>
         <source>The plugin seemingly accesses these files not readable by the audio service:
 %0
 Change the file permissions or copy the files to the config directory.</source>
@@ -4798,19 +4853,19 @@ Change the file permissions or copy the files to the config directory.</source>
 <context>
     <name>VSTPluginFilterGUI</name>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="79"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="69"/>
         <source>Stereo input</source>
         <translation>스테레오 입력</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="82"/>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="319"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="72"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="308"/>
         <source>Use for upmixers that expand a stereo signal to multichannel.</source>
         <translation>스테레오 신호를 다채널로 확장하는 업믹서에 사용합니다.</translation>
     </message>
     <message>
         <location filename="../guis/VSTPluginFilterGUI.ui" line="44"/>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="581"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="446"/>
         <source>Open panel</source>
         <translation>패널 열기</translation>
     </message>
@@ -4840,104 +4895,104 @@ Change the file permissions or copy the files to the config directory.</source>
         <translation>삽입</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="252"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="243"/>
         <source>Channel fill</source>
         <translation>채널 채우기</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="254"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="245"/>
         <source>Choose which channels occupy the negotiated bus slots.</source>
         <translation>협상된 버스 슬롯을 어느 채널로 채울지 고릅니다.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="260"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="251"/>
         <source>Output fill</source>
         <translation>출력 채우기</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="260"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="251"/>
         <source>Input fill</source>
         <translation>입력 채우기</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="273"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="264"/>
         <source>Discard (-)</source>
         <translation>버림 (-)</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="273"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="264"/>
         <source>Silence (-)</source>
         <translation>무음 (-)</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="312"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="301"/>
         <source>A VST2 plugin ignores the Input and Output layouts.</source>
         <translation>VST2 플러그인은 입력/출력 레이아웃을 무시합니다.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="318"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="307"/>
         <source>Not available while Input and Output layouts are set.</source>
         <translation>입력/출력 레이아웃이 설정된 동안에는 쓸 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="400"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="101"/>
         <source>No file selected.</source>
         <translation>선택된 파일 없음.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="413"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="115"/>
         <source>File not found.</source>
         <translation>파일을 찾을 수 없음.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="416"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="120"/>
         <source>Library could not be loaded.</source>
         <translation>라이브러리를 로드할 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="419"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="125"/>
         <source>Library does not contain needed functions.</source>
         <translation>라이브러리에 필요한 함수가 없습니다.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="427"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="136"/>
         <source>Library has the wrong architecture. Only %1-bit libraries are supported.</source>
         <translation>라이브러리의 아키텍처가 올바르지 않습니다. %1비트 라이브러리만 지원합니다.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="447"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="159"/>
         <source>Plugin crashed during initialization.</source>
         <translation>초기화 중 플러그인이 충돌했습니다.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="508"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="402"/>
         <source>Select VST plugin</source>
         <translation>VST 플러그인 선택</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="510"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="404"/>
         <source>VST plugins (*.dll *.vst3)</source>
         <translation>VST 플러그인 (*.dll *.vst3)</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="556"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="396"/>
         <source>Plugin crashed when opening panel.</source>
         <translation>패널을 여는 중 플러그인이 충돌했습니다.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="581"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="446"/>
         <source>Close panel</source>
         <translation>패널 닫기</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="664"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="283"/>
         <source>The library is not readable by the audio service.
 Change the file permissions or copy the file to the VSTPlugins directory.</source>
         <translation>오디오 서비스가 이 라이브러리를 읽을 수 없습니다.
 파일 권한을 바꾸거나 VSTPlugins 디렉터리로 파일을 복사하세요.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="682"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="301"/>
         <source>The plugin seemingly accesses these files not readable by the audio service:
 %0
 Change the file permissions or copy the files to the config directory.</source>
@@ -4958,13 +5013,13 @@ Change the file permissions or copy the files to the config directory.</source>
     <name>VSTPluginFilterGUIFactory</name>
     <message>
         <location filename="../guis/VSTPluginFilterGUIFactory.cpp" line="36"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="212"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="255"/>
         <source>VST plugin</source>
         <translation>VST 플러그인</translation>
     </message>
     <message>
         <location filename="../guis/VSTPluginFilterGUIFactory.cpp" line="36"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="214"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="257"/>
         <source>Plugins</source>
         <translation>플러그인</translation>
     </message>
@@ -4972,22 +5027,22 @@ Change the file permissions or copy the files to the config directory.</source>
 <context>
     <name>VSTSlotFillCell</name>
     <message>
-        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="77"/>
+        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="62"/>
         <source>Output slot channel</source>
         <translation>출력 슬롯 채널</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="77"/>
+        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="62"/>
         <source>Input slot channel</source>
         <translation>입력 슬롯 채널</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="214"/>
+        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="204"/>
         <source>Discard (-)</source>
         <translation>버림 (-)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="214"/>
+        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="204"/>
         <source>Silence (-)</source>
         <translation>무음 (-)</translation>
     </message>
@@ -4995,7 +5050,7 @@ Change the file permissions or copy the files to the config directory.</source>
 <context>
     <name>VSTSlotFillRail</name>
     <message>
-        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="254"/>
+        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="244"/>
         <source>Channel fill</source>
         <translation>채널 채우기</translation>
     </message>
@@ -5003,72 +5058,72 @@ Change the file permissions or copy the files to the config directory.</source>
 <context>
     <name>VelvetCardEditor</name>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="27"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="34"/>
         <source>A sparse, unit-energy velvet-noise FIR. Each processed channel gets an independent kernel; Dynamic mode renews all kernels with an equal-power crossfade.</source>
         <translation>희소 단위 에너지 벨벳 노이즈 FIR입니다. 처리하는 채널마다 독립 커널을 사용하며, 동적 모드는 동일 전력 크로스페이드로 모든 커널을 갱신합니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="48"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="55"/>
         <source>Mode</source>
         <translation>모드</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="54"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="61"/>
         <source>Static</source>
         <translation>고정</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="54"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="61"/>
         <source>Dynamic</source>
         <translation>동적</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="64"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="71"/>
         <source>Amount</source>
         <translation>양</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="66"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="73"/>
         <source>Time spread</source>
         <translation>시간 분산</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="68"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="75"/>
         <source>Evolution</source>
         <translation>변화 주기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="79"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="86"/>
         <source>Advanced</source>
         <translation>고급</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="92"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="99"/>
         <source>Density</source>
         <translation>밀도</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="94"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="101"/>
         <source>Transition</source>
         <translation>전환</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="97"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="104"/>
         <source>Decay</source>
         <translation>감쇠</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="100"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="107"/>
         <source>Variation</source>
         <translation>변형</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="108"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="115"/>
         <source>Regenerate</source>
         <translation>다시 생성</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="110"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="117"/>
         <source>Choose the next deterministic variation</source>
         <translation>다음 결정적 변형을 선택합니다</translation>
     </message>

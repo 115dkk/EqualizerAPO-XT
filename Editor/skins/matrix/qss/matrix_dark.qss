@@ -1575,7 +1575,8 @@ QToolButton#DeviceChipMore:checked:disabled {
    A Device chip stays sans (names), a Channel chip is mono
    (coordinates). min-width/min-height 24 square the single letter
    cells (L, R) on the grid pitch. */
-QToolButton#ChannelChip {
+QToolButton#ChannelChip,
+QToolButton#NewChannelChip {
     background: @GRAPH@;
     color: @TEXT@;
     border: 1px solid @BORDER@;
@@ -1594,7 +1595,8 @@ QToolButton#ChannelChip[allChannels="true"] {
     color: @MUTED@;
     font-weight: 600;
 }
-QToolButton#ChannelChip:hover {
+QToolButton#ChannelChip:hover,
+QToolButton#NewChannelChip:hover {
     color: @TEXT@;
     border-color: @ACCENT@;
     background: rgba(34, 211, 238, 0.10);
@@ -1608,12 +1610,14 @@ QToolButton#ChannelChip:checked:hover {
     background: rgba(34, 211, 238, 0.32);
 }
 /* Custom/virtual channel: the Copy grid's dashed virtual grammar. */
-QToolButton#ChannelChip[customChannel="true"] {
+QToolButton#ChannelChip[customChannel="true"],
+QToolButton#NewChannelChip {
     color: @MUTED@;
     background: @GRAPH@;
     border: 1px dashed @BORDER@;
 }
-QToolButton#ChannelChip[customChannel="true"]:hover {
+QToolButton#ChannelChip[customChannel="true"]:hover,
+QToolButton#NewChannelChip:hover {
     color: @TEXT@;
     border: 1px dashed @ACCENT@;
     background: rgba(34, 211, 238, 0.08);
@@ -1630,14 +1634,16 @@ QToolButton#ChannelChip:checked:disabled,
 QToolButton#ChannelChip[allChannels="true"]:disabled,
 QToolButton#ChannelChip[allChannels="true"]:checked:disabled,
 QToolButton#ChannelChip[customChannel="true"]:disabled,
-QToolButton#ChannelChip[customChannel="true"]:checked:disabled {
+QToolButton#ChannelChip[customChannel="true"]:checked:disabled,
+QToolButton#NewChannelChip:disabled {
     color: #4A6470;
     background: #0A1014;
     border: 1px dashed #1A2933;
 }
 /* The add-a-channel entry: a coordinate not yet posted; typing
    engages the scan grammar. */
-QLineEdit#ChannelChipAdd {
+QLineEdit#ChannelChipAdd,
+QLineEdit#NewChannelAdd {
     background: transparent;
     color: @TEXT@;
     border: 1px dashed @BORDER@;
@@ -1647,14 +1653,17 @@ QLineEdit#ChannelChipAdd {
     font-family: @MONO_STACK@;
     font-size: 10pt;
 }
-QLineEdit#ChannelChipAdd:hover {
+QLineEdit#ChannelChipAdd:hover,
+QLineEdit#NewChannelAdd:hover {
     border-color: @ACCENT@;
 }
-QLineEdit#ChannelChipAdd:focus {
+QLineEdit#ChannelChipAdd:focus,
+QLineEdit#NewChannelAdd:focus {
     border: 1px solid @ACCENT@;
     background: #081820;
 }
-QLineEdit#ChannelChipAdd:disabled {
+QLineEdit#ChannelChipAdd:disabled,
+QLineEdit#NewChannelAdd:disabled {
     color: #4A6470;
     background: transparent;
     border: 1px dashed #1A2933;
@@ -1897,3 +1906,13 @@ QCheckBox::indicator:indeterminate {
 /* The menu's checkable items share the square indicator, so they share the
    glyph. (Rack/Studio/Soft menus keep their round lamp/dot idiom.) */
 QMenu::indicator:checked { image: url(:/icons/modern/check-light.svg); }
+
+/* NewChannel card: one chip per declared virtual channel, dressed like the
+   Channel card's custom (virtual) chip; a name the engine refuses and a
+   refused entry in the add field take the danger colour. */
+QToolButton#NewChannelChip[invalid="true"],
+QToolButton#NewChannelChip[invalid="true"]:hover {
+    color: @DANGER@;
+    border-color: @DANGER@;
+}
+QLineEdit#NewChannelAdd[invalid="true"] { border-color: @DANGER@; }

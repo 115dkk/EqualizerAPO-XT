@@ -175,7 +175,7 @@ Copy: <Target channel>=<Source channel>+...
 Copy: <Target channel>=<Constant value>+...
 ```
 
-Replaces the target channel with the sum of the listed source channels, each with an optional factor. To add to the target instead of replacing it, include the target as one of the sources. A factor may be given in dB by appending `dB`. Several assignments can share one line if separated by spaces, so a single assignment must not contain spaces. A bare `0` is a constant; every other constant must contain a decimal point to distinguish it from a numeric channel index. Thus `L=2` copies channel 2, while `L=2.0` writes the constant 2. See the [Channel](#channel) command for channel identifiers.
+Replaces the target channel with the sum of the listed source channels, each with an optional factor. To add to the target instead of replacing it, include the target as one of the sources. A factor may be given in dB by appending `dB`. Several assignments can share one line if separated by spaces, so a single assignment must not contain spaces. A bare `0` is a constant; every other constant must contain a decimal point to distinguish it from a numeric channel index. A target that is not a channel of the device becomes a new virtual channel; to create an empty one and select it in one step, use [NewChannel](#newchannel). Thus `L=2` copies channel 2, while `L=2.0` writes the constant 2. See the [Channel](#channel) command for channel identifiers.
 
 ```
 # Adds the audio on channel R multiplied by 0.5 to channel L
@@ -273,7 +273,7 @@ The card-based Editor now provides **Input** and **Output** selectors beside the
 
 **Legacy rows** mode has plain **Input** and **Output** dropdowns for the same contract. Setting both back to `Auto` removes the keys from the line, and an explicit pair disables the legacy Stereo input toggle (the two spellings cannot be combined).
 
-The channel fill has its own editor in both modes: two rails inside the card (the input rail under the header, the output rail under the body; plain combo rows in Legacy rows mode), one dropdown per negotiated slot. A side with an `Auto` layout has no rail. The dropdowns offer exactly the channels selected at that line - a `Channel:` line above restricts them, and channels created by `Copy:` appear once a `Channel:` line selects them - plus the `-` silence/discard entry; a saved channel outside the current selection stays visible in the danger color, because the engine would disable the plug-in over it. When both rails exist, a fill switch on the input rail folds them away to save space (a card with a single rail does not fold). The first edit on a side writes the full list into the line; **Options → Remove channel fill** returns to the implicit first-channels default, which is not the same thing as an identity list (an explicit fill changes untargeted channels to passthrough). A side's list also drops automatically when that side's layout changes.
+The channel fill has its own editor in both modes: two rails inside the card (the input rail under the header, the output rail under the body; plain combo rows in Legacy rows mode), one dropdown per negotiated slot. A side with an `Auto` layout has no rail. The dropdowns offer exactly the channels selected at that line - a `Channel:` line above restricts them, channels created by `Copy:` appear once a `Channel:` line selects them, and channels declared by [`NewChannel:`](#newchannel) appear at once - plus the `-` silence/discard entry; a saved channel outside the current selection stays visible in the danger color, because the engine would disable the plug-in over it. When both rails exist, a fill switch on the input rail folds them away to save space (a card with a single rail does not fold). The first edit on a side writes the full list into the line; **Options → Remove channel fill** returns to the implicit first-channels default, which is not the same thing as an identity list (an explicit fill changes untargeted channels to passthrough). A side's list also drops automatically when that side's layout changes.
 
 ### Hilbert
 **Syntax:** `Hilbert: [Shift=<channel>[,<channel>...]] [Align=<channel>[,<channel>...]] [Direction=-90|+90]`
@@ -363,6 +363,23 @@ Selects the channels that subsequent ordinary filtering commands apply to, inclu
 Channel: L RL
 # Selects the first, second and center channel
 Channel: 1 2 C
+```
+
+### NewChannel
+**Syntax:** `NewChannel: <Name 1> <Name 2> ...`
+
+Creates virtual channels and adds them to the current channel selection. A virtual channel is silent at the start of every block and never reaches the device; it exists so that later lines can write to it and read from it. Use it to hold the output of an upmixer before you mix it back into the real channels.
+
+Separate names with spaces or commas. Names are upper-cased, so `vc` and `VC` are the same channel and a `Channel:` line can select it. A name must not start with a digit, must not be `ALL`, must not contain `=`, `*`, `+`, `-`, `.` or a backtick, and must not be a channel of the device (including the aliases `SL`/`RL`, `SR`/`RR` and `SUB` for `LFE`). If one name breaks a rule, the whole line is skipped and the log says which name and why. Naming a virtual channel that already exists is allowed and only adds it to the selection.
+
+The selection after the line is the selection before it followed by the new names. `Copy: VC=0` also creates a silent channel, but it does not select it, and `Copy: VC=1` copies channel 1 instead.
+
+```
+# A stereo device: give an upmixer plug-in three more outputs
+NewChannel: VC VRL VRR
+VSTPlugin: Library "Upmixer.vst3" Input Stereo InputChannels L,R Output 5.1 OutputChannels L,R,VC,-,VRL,VRR
+# Fold the extra outputs back into the real channels
+Copy: L=L+0.5*VC+0.7*VRL R=R+0.5*VC+0.7*VRR
 ```
 
 ### Stage

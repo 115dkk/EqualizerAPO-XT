@@ -18,6 +18,7 @@
 #include <string>
 #include <vector>
 
+#include "filters/NewChannelCommand.h"
 #include "filters/VSTChannelPlan.h"
 #include "Tests/TestHarness.h"
 
@@ -128,6 +129,19 @@ void runVSTChannelPlanTests()
 
 	for (const PlanCase& testCase : cases)
 		checkCase(testCase);
+
+	const VSTChannelPlan withoutDeclaration = planVstChannels(
+		request(stereo, 2, 2, true, {}, {L"L", L"VC"}));
+	harness.expectEqual(static_cast<int>(withoutDeclaration.refusal),
+		static_cast<int>(Refusal::FillChannelMissing),
+		"OutputChannels refuses a virtual channel that was not declared");
+	const vector<wstring> withVirtual = NewChannelCommand::extendSelection(stereo, {L"VC"});
+	const VSTChannelPlan withDeclaration = planVstChannels(
+		request(withVirtual, 2, 2, true, {}, {L"L", L"VC"}));
+	harness.expectEqual(static_cast<int>(withDeclaration.refusal), static_cast<int>(Refusal::None),
+		"OutputChannels accepts a channel declared by the preceding NewChannel line");
+	harness.expectTrue(withDeclaration.resolvedOutputChannels == vector<int>({0, 2}),
+		"the declared virtual output resolves to its appended channel index");
 
 	harness.report();
 }

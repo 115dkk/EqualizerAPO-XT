@@ -6,8 +6,9 @@
 
 /*
 	The channel flow of a config document, walked top-down the way the engine
-	walks it: which channel names exist at each line (Copy adds to them) and
-	which of them are selected (Channel replaces the selection). Before this
+	walks it: which channel names exist at each line (Copy and NewChannel add
+	to them) and which of them are selected (Channel replaces the selection,
+	NewChannel adds to it). Before this
 	unit the flow was two shared vectors handed from row widget to row widget,
 	each row editing them in place, and the rule for a switched-off line was
 	written in two decorators (audit #348 B6). Now the whole flow is computed
@@ -55,6 +56,10 @@ struct ChannelFlowAtLine
 	std::vector<std::wstring> namesInScope;
 	// The channels the engine would hand a filter on this line.
 	std::vector<std::wstring> selected;
+	// How many leading entries of namesInScope are the device's own
+	// channels; the rest are virtual channels declared above. A NewChannel
+	// line may not name a device channel, so its card needs the split.
+	size_t deviceChannelCount = 0;
 };
 
 // Element i is what line i sees, before its own effect: the same two

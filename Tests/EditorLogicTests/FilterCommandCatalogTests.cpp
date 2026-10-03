@@ -48,7 +48,7 @@ QString commandWordOfTemplate(const FilterCommandCatalog::TemplateEntry& entry)
 void testFilterCommandCatalogRoster()
 {
 	const QList<FilterCommandCatalog::CommandEntry>& entries = FilterCommandCatalog::commands();
-	requireEqual(int(entries.size()), 22, "the catalog covers every decorated command");
+	requireEqual(int(entries.size()), 23, "the catalog covers every decorated command");
 
 	QSet<QString> keywords;
 	for (const FilterCommandCatalog::CommandEntry& entry : entries)
@@ -137,7 +137,7 @@ void testFilterCommandCatalogIconsExistOnDisk()
 void testFilterCommandCatalogTemplateRoster()
 {
 	const QList<FilterCommandCatalog::TemplateEntry>& templates = FilterCommandCatalog::pickerTemplates();
-	requireEqual(int(templates.size()), 32, "the picker roster holds every template");
+	requireEqual(int(templates.size()), 33, "the picker roster holds every template");
 
 	// Every template resolves to a command the engine (or the comment card)
 	// recognizes - a template whose line does not parse as its command would

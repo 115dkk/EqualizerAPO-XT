@@ -407,6 +407,32 @@ void testFilterCardDepths()
 	expectEqual(channelScopes[1].channels, QStringList({ "SL", "SR" }), "member under channel selection");
 	expectEqual(channelScopes[3].channels, QStringList({ "SL", "SR" }), "commented channel keeps the selection");
 	expectEqual(channelScopes[5].channels, QStringList(), "channel-all resets the selection");
+
+	// NewChannel adds its names to an explicit selection, the way the
+	// engine does, and leaves ALL as ALL (the scope names no channel then).
+	QVector<FilterCardRowScope> newChannelScopes = FilterCardModel::calculateScopes(QList<QString>({
+		"Channel: L R",                           // 0: selects L R
+		"NewChannel: vc, VRL",                    // 1: adds VC VRL
+		"Preamp: -3 dB",                          // 2: under L R VC VRL
+		"Channel: ALL",                           // 3: back to all channels
+		"NewChannel: VX",                         // 4: ALL stays ALL
+		"Preamp: 0 dB"                            // 5: no selection
+	}));
+	requireEqual(newChannelScopes.size(), 6, "new channel scope count");
+	expectEqual(newChannelScopes[2].channels, QStringList({ "L", "R", "VC", "VRL" }),
+		"NewChannel extends an explicit selection");
+	expectEqual(newChannelScopes[2].indent, newChannelScopes[1].indent, "NewChannel opens no scope of its own");
+	expectEqual(newChannelScopes[5].channels, QStringList(), "NewChannel under ALL leaves ALL");
+
+	const FilterCardDescriptor declared = FilterCardModel::describeLine("NewChannel: vc VRL");
+	expectEqual(declared.type, "newchannel", "new channel card type");
+	expectEqual(declared.badge, "VCH", "new channel card badge");
+	expectEqual(declared.channelBadges, QStringList({ "VC", "VRL" }), "the declared names, upper-cased");
+	expectTrue(declared.summary.isEmpty(), "the header does not repeat the names");
+	expectTrue(FilterCardModel::headerChannels(declared, {L"L", L"R"}).isEmpty(),
+		"every declared name is virtual, so the header badges none");
+	expectTrue(FilterCardModel::headerChannels(FilterCardModel::describeLine("NewChannel: VC L"), {}).isEmpty(),
+		"a refused device name is not badged either; the body flags it");
 }
 
 void testFilterCardBuildPlans()

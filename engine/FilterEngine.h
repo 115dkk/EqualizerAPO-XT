@@ -118,6 +118,9 @@ public:
 	unsigned getChannelMask() const {return channelMask;}
 	float getSampleRate() const {return sampleRate;}
 	unsigned getMaxFrameCount() const {return maxFrameCount;}
+	std::vector<std::wstring> deviceChannelNames() const;
+	// Meaningful only while a configuration load runs on the control thread.
+	const std::vector<std::wstring>& loadingChannelNames() const;
 	// The three stream facts a FilterConfiguration is built for (audit #250 A2).
 	EngineStreamFormat streamFormat() const {return {realChannelCount, outputChannelCount, maxFrameCount};}
 	// Crossfade length in samples for a configuration swap, set by initialize().

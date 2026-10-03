@@ -3,6 +3,7 @@
     "preamp_minus6",
     "biquad_peaking_1khz",
     "copy_crossfeed",
+    "newchannel_remix",
     "delay_512",
     "graphiceq_15band",
     "convolution_short",
