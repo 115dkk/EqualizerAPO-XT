@@ -150,6 +150,7 @@ int runEngineOrchestrationTests()
 	testParallelExecutor(harness);
 	testConfigWatcherBackoffAndPathRefresh(harness);
 	testConfigWatcherRegistryKeyIsQuietUntilChanged(harness);
+	runSendSeamTests(harness);
 	runConfigurationFileReaderTests(harness);
 	runSampleIoTests(harness);
 	runApoFormatTests(harness);

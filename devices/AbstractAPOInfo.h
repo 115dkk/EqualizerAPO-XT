@@ -71,6 +71,15 @@ public:
 		return std::wstring();
 	}
 
+	// Whether the Device Selector's Send option is on for this endpoint: the
+	// resident host keeps a stream open on it so audio a Send: line hands to
+	// it plays even when no program does. Only a playback endpoint can have
+	// it.
+	virtual bool receivesFromEndpoints() const
+	{
+		return false;
+	}
+
 	// What the last install, uninstall or reinstall on this object did. The
 	// caller needs this whether the operation succeeded or threw, so it is a
 	// value on the object rather than a return type: the three functions are

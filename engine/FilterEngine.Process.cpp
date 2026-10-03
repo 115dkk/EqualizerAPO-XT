@@ -24,6 +24,7 @@
 #include "diagnostics/performance/PerfProfile.h"
 #include "dsp/MxcsrGuard.h"
 #include "FilterEngine.h"
+#include "IInputTap.h"
 // Filter factory headers intentionally omitted: the factories self-register and
 // are pulled into the link via /WHOLEARCHIVE in the consumers; this hot-path TU
 // names none of them (see FilterEngine.Configuration.cpp). The muparserx and
@@ -205,6 +206,8 @@ namespace
 template <typename IoTraits, typename SampleType>
 void FilterEngine::processImpl(SampleType output, SampleType input, unsigned frameCount)
 {
+	const uint64_t blockToken = ++processBlockCounter;
+	IInputTap* const tap = inputTap.load(std::memory_order_acquire);
 	PerfScope _eapo_total(IoTraits::totalLabel);
 	MxcsrFtzDazGuard _mxcsrGuard;
 
@@ -219,7 +222,7 @@ void FilterEngine::processImpl(SampleType output, SampleType input, unsigned fra
 		return;
 	}
 
-	if (currentConfig->isEmpty() && !configChannel.hasPending())
+	if (tap == nullptr && currentConfig->isEmpty() && !configChannel.hasPending())
 	{
 		// A render APO can legitimately receive fewer channels than the endpoint
 		// exposes. Preserve the real input channels and initialize every output even
@@ -234,7 +237,7 @@ void FilterEngine::processImpl(SampleType output, SampleType input, unsigned fra
 	}
 	{
 		PerfScope _ps("FilterConfiguration::process(current)");
-		currentConfig->process(frameCount);
+		currentConfig->process(frameCount, tap, blockToken);
 	}
 
 	if (configChannel.hasPending())
@@ -246,7 +249,7 @@ void FilterEngine::processImpl(SampleType output, SampleType input, unsigned fra
 		}
 		{
 			PerfScope _ps("FilterConfiguration::process(next)");
-			nextConfig->process(frameCount);
+			nextConfig->process(frameCount, tap, blockToken);
 		}
 		PerfScope _ps("FilterConfiguration::doTransition");
 		transitionCounter = currentConfig->doTransition(nextConfig.get(), frameCount, transitionCounter, transitionLength, transitionFactorTable.data());
@@ -297,6 +300,9 @@ void FilterEngine::finishTransitionIfReady()
 
 bool FilterEngine::hasStatefulOrTailFilters() const
 {
+	IInputTap* const tap = inputTap.load(std::memory_order_acquire);
+	if (tap != nullptr && tap->mayAddAudio())
+		return true;
 	if (configChannel.hasPending())
 		return true;
 	const FilterConfigurationPtr& currentConfig = configChannel.current();

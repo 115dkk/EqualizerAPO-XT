@@ -28,6 +28,7 @@
 #include <thread>
 #include <vector>
 
+#include "EqualizerAPOHost/Keepalive.h"
 #include "asio/EngineHostCore.h"
 #include "asio/HostProtocol.h"
 #include "platform/windows/NamedPipeSecurity.h"
@@ -349,7 +350,11 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 		return 2;
 	if (GetLastError() == ERROR_ALREADY_EXISTS)
 		return 0;
-	const int result = server.run();
+	int result;
+	{
+		std::jthread keepalive = server.arguments.resident ? startKeepalive() : std::jthread();
+		result = server.run();
+	}
 	ReleaseMutex(owner.get());
 	return result;
 }

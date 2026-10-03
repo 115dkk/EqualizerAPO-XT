@@ -314,3 +314,8 @@ void FilterEngine::watchRegistryKey(const std::wstring& key)
 {
 	load.watchRegistryKeys.insert(key);
 }
+
+void FilterEngine::watchEvent(const std::wstring& name)
+{
+	load.watchEvents.insert(name);
+}

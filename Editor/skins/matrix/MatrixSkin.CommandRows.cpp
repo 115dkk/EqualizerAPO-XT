@@ -37,7 +37,7 @@ QString matrixBusLetter(const QString& type)
 	if (type == QStringLiteral("graphiceq"))
 		return QStringLiteral("G");
 	if (type == QStringLiteral("copy") || type == QStringLiteral("channel") || type == QStringLiteral("newchannel")
-		|| type == QStringLiteral("convolution"))
+		|| type == QStringLiteral("send") || type == QStringLiteral("convolution"))
 		return QStringLiteral("C");
 	if (type == QStringLiteral("include"))
 		return QStringLiteral("I");

@@ -40,6 +40,7 @@ void testDeviceSelectionModel();
 void testMultiConvolutionRoutingAdapter();
 void testStageSelectionModel();
 void testNewChannelListModel();
+void testSendCardModel();
 void testRoutingGridModelPorts();
 void testRoutingGridModel();
 void testRoutingFold();

@@ -60,6 +60,7 @@ inline constexpr wchar_t audioServiceName[] = L"AudioSrv";
 inline constexpr wchar_t preMixChildGuidValueName[] = L"PreMixChild";
 inline constexpr wchar_t postMixChildGuidValueName[] = L"PostMixChild";
 inline constexpr wchar_t allowSilentBufferValueName[] = L"AllowSilentBufferModification";
+inline constexpr wchar_t receiveFromEndpointsValueName[] = L"ReceiveFromEndpoints";
 inline constexpr wchar_t disableAutoAdjustValueName[] = L"DisableAutomaticAdjustment";
 inline constexpr wchar_t versionValueName[] = L"Version";
 inline constexpr wchar_t connectionValueName[] = L"{a45c254e-df1c-4efd-8020-67d146a850e0},2";

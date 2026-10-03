@@ -72,18 +72,18 @@ namespace eapo::asio
 		// registered, so nothing is touched for it.
 		void unregisterWrapper(IRegistry& registry, const AsioTarget& target);
 
-		// The engine host at boot: one Run value for the machine, present
-		// while any target asks for it. The host is one per session, so one
-		// value serves every target; it starts the host resident.
+		// The engine host at logon: one Run value for the machine, present
+		// while an enabled wrapper asks for it or a Send receiver needs it.
+		// One resident host per session serves both reasons.
 		std::wstring autoStartKey();
 		std::wstring autoStartValueName();
 		bool autoStartRegistered(const IRegistry& registry);
 		void setAutoStart(IRegistry& registry, const std::wstring& hostExePath, bool wanted);
 
-		// Recomputes the Run value from the wrapper records after an entry
-		// changed: present while any enabled entry asks for it, gone with the
-		// last one. Needs the install directory only to write the value; with
-		// none known, a wanted value that is already there stays as it is.
+		// Recomputes the Run value from wrapper records and Send receivers:
+		// present while an enabled wrapper asks for it or a receiver exists.
+		// Needs the install directory only to write the value; with none
+		// known, a wanted value that is already there stays as it is.
 		void refreshAutoStart(IRegistry& registry, const std::wstring& installDirectory);
 
 		// The files the product ships under its install directory: the 64-bit

@@ -177,6 +177,7 @@ void AnalysisThread::run()
 		engine.setAnalysisMode(true);
 		engine.setLoadTraceSink(&traceCollector);
 		EngineSetup setup;
+		setup.host = EngineHost::Editor;
 		setup.sampleRate = sampleRate;
 		setup.inputChannelCount = channelCount;
 		setup.realChannelCount = channelCount;

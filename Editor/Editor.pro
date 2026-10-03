@@ -79,6 +79,7 @@ SOURCES += main.cpp\
 	../devices/DeviceAPOInfo.cpp \
 	../devices/DeviceAPOInfo.Install.cpp \
 	../devices/ApoRuntimeFacts.cpp \
+	../devices/ReceiverEndpoints.cpp \
 	../devices/DeviceAPOInfo.Load.cpp \
 	../devices/DeviceAPOInfo.State.cpp \
 	../devices/DeviceAPOInfo.Uninstall.cpp \
@@ -105,6 +106,7 @@ SOURCES += main.cpp\
 	guis/CopyFilterGUIChannelItem.cpp \
 	../filters/CopyFilter.cpp \
 	../filters/CopyFilterFactory.cpp \
+	../filters/SendCommand.cpp \
 	../engine/IFilter.cpp \
 	guis/CopyFilterGUIScene.cpp \
 	guis/CopyFilterGUIForm.cpp \
@@ -308,6 +310,8 @@ SOURCES += main.cpp\
 	widgets/cards/DeviceCardEditor.cpp \
 	widgets/cards/NewChannelCardEditor.cpp \
 	widgets/cards/NewChannelListModel.cpp \
+	widgets/cards/SendCardEditor.cpp \
+	widgets/cards/SendCardModel.cpp \
 	widgets/cards/StageCardEditor.cpp \
 	widgets/cards/StageSelectionModel.cpp \
 	widgets/cards/DeviceSelectionModel.cpp \
@@ -424,6 +428,7 @@ HEADERS  += \
 	guis/DeviceFilterGUI.h \
 	guis/DeviceFilterGUIFactory.h \
 	../devices/ApoRuntimeFacts.h \
+	../devices/ReceiverEndpoints.h \
 	../devices/DeviceAPOInfo.h \
 	../devices/DevicePlan.h \
 	../devices/DeviceTestPlan.h \
@@ -449,6 +454,7 @@ HEADERS  += \
 	guis/CopyFilterGUIConnectionItem.h \
 	guis/CopyFilterGUIChannelItem.h \
 	../filters/CopyFilter.h \
+	../filters/SendCommand.h \
 	../filters/CopyFilterFactory.h \
 	../engine/IFilter.h \
 	../engine/IFilterFactory.h \
@@ -514,6 +520,7 @@ HEADERS  += \
 	analysis/ImpulseMeasurement.h \
 	analysis/ResponseCurveBuilder.h \
 	../engine/FilterEngine.h \
+	../engine/IInputTap.h \
 	../engine/ConfigWatcher.h \
 	../engine/FilterConfiguration.h \
 	../engine/ChannelRoutingPlan.h \
@@ -634,6 +641,8 @@ HEADERS  += \
 	widgets/cards/DeviceCardEditor.h \
 	widgets/cards/NewChannelCardEditor.h \
 	widgets/cards/NewChannelListModel.h \
+	widgets/cards/SendCardEditor.h \
+	widgets/cards/SendCardModel.h \
 	widgets/cards/StageCardEditor.h \
 	widgets/cards/StageSelectionModel.h \
 	widgets/cards/DeviceSelectionModel.h \

@@ -272,7 +272,13 @@ QList<GalleryRow> galleryRows()
 		// has no device, so a device channel name would not be judged. Appended
 		// last (mid-list insertion renumbers every following scene).
 		{ QStringLiteral("newchannel"), QStringLiteral("NewChannel: VC VRL VRR") },
-		{ QStringLiteral("newchannel_invalid"), QStringLiteral("NewChannel: VC 2X ALL") }
+		{ QStringLiteral("newchannel_invalid"), QStringLiteral("NewChannel: VC 2X ALL") },
+		// The Send card: a routed line to a receiving endpoint, one to an
+		// endpoint whose Send option is off (the card says what that means),
+		// and the picker's empty template. Appended last.
+		{ QStringLiteral("send"), QStringLiteral("Send: {0d6a0000-0000-4000-8000-000000000002} L=L+0.5*R R=R Latency=20") },
+		{ QStringLiteral("send_noreceive"), QStringLiteral("Send: {0d6a0000-0000-4000-8000-000000000003} L=L Mode=Replace Compensate=false") },
+		{ QStringLiteral("send_empty"), QStringLiteral("Send:") }
 	};
 	// Fixture-gated VST bus scenes, appended last (mid-list insertion
 	// renumbers every following scene against the stored baseline).
@@ -282,9 +288,14 @@ QList<GalleryRow> galleryRows()
 
 void galleryDevices(QList<std::shared_ptr<AbstractAPOInfo>>& outputs, QList<std::shared_ptr<AbstractAPOInfo>>& inputs)
 {
-	outputs.append(std::make_shared<GalleryAPOInfo>(L"Speakers", L"Example Audio", false, true));
-	outputs.append(std::make_shared<GalleryAPOInfo>(L"Headphones", L"Example Audio", false, true));
-	outputs.append(std::make_shared<GalleryAPOInfo>(L"Digital Output", L"Example Audio", false, false));
+	// GUIDs for the Send card's target list: Headphones has the Device
+	// Selector's Send option on, Digital Output does not.
+	outputs.append(std::make_shared<GalleryAPOInfo>(L"Speakers", L"Example Audio", false, true, 2, 0x3,
+		L"{0d6a0000-0000-4000-8000-000000000001}"));
+	outputs.append(std::make_shared<GalleryAPOInfo>(L"Headphones", L"Example Audio", false, true, 2, 0x3,
+		L"{0d6a0000-0000-4000-8000-000000000002}", true));
+	outputs.append(std::make_shared<GalleryAPOInfo>(L"Digital Output", L"Example Audio", false, false, 2, 0x3,
+		L"{0d6a0000-0000-4000-8000-000000000003}"));
 	inputs.append(std::make_shared<GalleryAPOInfo>(L"Microphone", L"Example Audio", true, true));
 }
 

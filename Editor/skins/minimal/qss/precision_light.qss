@@ -704,7 +704,8 @@ QToolButton#TitleBarClose:hover, QToolButton#TitleBarClose:pressed {
 
 /* MultiConvolution's channel-mapping strip: terminal caption and hint in the
    same mono register as the step list below them. */
-QLabel#MultiConvolutionMappingCaption {
+QLabel#MultiConvolutionMappingCaption,
+QLabel#SendFieldCaption {
     color: @MUTED@;
     font-family: @MONO_STACK@;
     font-size: 9pt; letter-spacing: 1px;
@@ -1065,3 +1066,7 @@ QToolButton#NewChannelChip[invalid="true"]:hover {
     border-color: @DANGER@;
 }
 QLineEdit#NewChannelAdd[invalid="true"] { border-color: @DANGER@; }
+
+/* Send card: the field captions read like the MultiConvolution mapping
+   caption; a latency the card cannot read takes the danger colour. */
+QLineEdit#SendLatencyEdit[invalid="true"] { border-color: @DANGER@; }

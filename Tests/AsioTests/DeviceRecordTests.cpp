@@ -18,6 +18,7 @@
 #include "asio/StreamFacts.h"
 #include "asio/WrapperRecord.h"
 #include "devices/AsioAPOInfo.h"
+#include "devices/DeviceAPOInfoKeys.h"
 #include "devices/DeviceException.h"
 #include "runtime/errors/WideError.h"
 #include "services/registry/RegistryPaths.h"
@@ -361,6 +362,42 @@ namespace
 		harness.expectFalse(eapo::asio::WrapperRecords::read(registry, topping->getWrapperClsid(), record), "the record goes with the last direction");
 	}
 
+	void testReceiverOnlyAutoStart()
+	{
+		test::FakeRegistry registry;
+		const std::wstring receiver = std::wstring(childApoPath) + L"\\" + toppingClsid;
+		registry.seedString(receiver, receiveFromEndpointsValueName, L"true");
+		registry.seedKey(std::wstring(renderKeyPath) + L"\\" + toppingClsid);
+		AsioRegistration::refreshAutoStart(registry, L"C:\\eapo");
+		harness.require(AsioRegistration::autoStartRegistered(registry), "a receiver alone writes the Run value");
+		harness.expect(registry.readValue(AsioRegistration::autoStartKey(), AsioRegistration::autoStartValueName())
+			== L"\"C:\\eapo\\EqualizerAPOHost.exe\" --resident", "the receiver starts the resident host at logon");
+		AsioRegistration::refreshAutoStart(registry, L"");
+		harness.expectTrue(AsioRegistration::autoStartRegistered(registry), "unknown install directory preserves a wanted Run value");
+		registry.writeValue(receiver, receiveFromEndpointsValueName, L"false");
+		AsioRegistration::refreshAutoStart(registry, L"");
+		harness.expectFalse(AsioRegistration::autoStartRegistered(registry), "no wrapper and no receiver removes the Run value");
+
+		eapo::asio::WrapperRecord wrapper;
+		wrapper.wrapperClsid = AsioRegistration::wrapperClsidFor(minidspClsid);
+		wrapper.targetClsid = minidspClsid;
+		wrapper.options.processOutput = true;
+		wrapper.autoStart = true;
+		eapo::asio::WrapperRecords::write(registry, wrapper);
+		registry.writeValue(receiver, receiveFromEndpointsValueName, L"true");
+		AsioRegistration::refreshAutoStart(registry, L"C:\\eapo");
+		registry.writeValue(receiver, receiveFromEndpointsValueName, L"false");
+		AsioRegistration::refreshAutoStart(registry, L"C:\\eapo");
+		harness.expectTrue(AsioRegistration::autoStartRegistered(registry), "a wrapper keeps autostart after the receiver is disabled");
+		registry.writeValue(receiver, receiveFromEndpointsValueName, L"true");
+		eapo::asio::WrapperRecords::remove(registry, wrapper.wrapperClsid);
+		AsioRegistration::refreshAutoStart(registry, L"C:\\eapo");
+		harness.expectTrue(AsioRegistration::autoStartRegistered(registry), "a receiver keeps autostart after the last wrapper is removed");
+		registry.deleteValue(receiver, receiveFromEndpointsValueName);
+		AsioRegistration::refreshAutoStart(registry, L"C:\\eapo");
+		harness.expectFalse(AsioRegistration::autoStartRegistered(registry), "removing the last receiver option removes autostart");
+	}
+
 	void testFactsFeedTheRecord()
 	{
 		test::FakeRegistry registry;
@@ -565,6 +602,7 @@ int runDeviceRecordTests()
 	testUnregisterFindsAnEntryUnderItsOldName();
 	testRecordsShareOneWrapperRecord();
 	testBootAndHost32Options();
+	testReceiverOnlyAutoStart();
 	testFactsFeedTheRecord();
 	testNonGuidTargetIsRefused();
 	testOperationsAreTransactionalAndReported();

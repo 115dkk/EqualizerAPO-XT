@@ -98,10 +98,14 @@ if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"</
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Keepalive.cpp" />
+    <ClCompile Include="KeepaliveFill.cpp" />
     <ClCompile Include="..\asio\EngineHostCore.cpp" />
     <ClCompile Include="..\runtime\ipc\StreamRing.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Keepalive.h" />
+    <ClInclude Include="KeepaliveFill.h" />
     <ClInclude Include="..\asio\EngineHostCore.h" />
     <ClInclude Include="..\asio\HostProtocol.h" />
     <ClInclude Include="..\asio\StreamProcessor.h" />

@@ -24,11 +24,14 @@
 // standard its throughput bars were calibrated under (audit #348 TD-74). Keep
 // it free of C++20-only language and library features.
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "IFilter.h"
+
+class IInputTap;
 
 // The stream facts a FilterConfiguration is built for (audit #250 A2). The
 // constructor used to take a FilterEngine* and read exactly these three
@@ -91,7 +94,7 @@ public:
 	// #275 (A7): no caller.
 	void readFloatInterleaved(const float* input, unsigned frameCount);
 	void readFloatPlanar(const float* const* input, unsigned frameCount);
-	void process(unsigned frameCount);
+	void process(unsigned frameCount, IInputTap* tap = nullptr, uint64_t blockToken = 0);
 	// factorTable[i] holds the equal-power crossfade factor for the i-th frame
 	// of the transition, precomputed by the engine; i >= transitionLength implies
 	// the fade is complete (factor = 1.0). Passing the table avoids a per-frame

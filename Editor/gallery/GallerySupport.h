@@ -47,9 +47,10 @@ class GalleryAPOInfo : public AbstractAPOInfo
 {
 public:
 	GalleryAPOInfo(const std::wstring& connection, const std::wstring& name, bool input, bool installed,
-		unsigned channelCount = 2, unsigned long channelMask = 0x3)
+		unsigned channelCount = 2, unsigned long channelMask = 0x3, const std::wstring& guid = std::wstring(),
+		bool receives = false)
 		: connection(connection), name(name), input(input), installed(installed),
-		channelCount(channelCount), channelMask(channelMask)
+		channelCount(channelCount), channelMask(channelMask), guid(guid), receives(receives)
 	{
 	}
 
@@ -63,9 +64,16 @@ public:
 		return name;
 	}
 
+	// The Send card lists its targets by GUID, so the playback endpoints
+	// carry one; the Device rows match by getDeviceString() and ignore it.
 	std::wstring getDeviceGuid() const override
 	{
-		return L"";
+		return guid;
+	}
+
+	bool receivesFromEndpoints() const override
+	{
+		return receives;
 	}
 
 	// The card pre-selects a chip when the row's pattern matches this string
@@ -151,6 +159,8 @@ private:
 	bool installed;
 	unsigned channelCount;
 	unsigned long channelMask;
+	std::wstring guid;
+	bool receives;
 };
 
 void galleryDevices(QList<std::shared_ptr<AbstractAPOInfo>>& outputs, QList<std::shared_ptr<AbstractAPOInfo>>& inputs);

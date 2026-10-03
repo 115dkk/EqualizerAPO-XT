@@ -209,6 +209,7 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 	{
 		LogF(L"Could not convert apo guid to guid string");
 	}
+	engineSetup.host = EngineHost::Apo;
 	engineSetup.preMix = (apoGuid == EQUALIZERAPO_PRE_MIX_GUID) != 0;
 
 	winutil::PropVariant var;

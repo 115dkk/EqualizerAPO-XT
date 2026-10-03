@@ -294,6 +294,7 @@
     <ClInclude Include="engine\ConfigLoadTrace.h" />
     <ClInclude Include="engine\ConfigurationFileReader.h" />
     <ClInclude Include="devices\ApoRuntimeFacts.h" />
+    <ClInclude Include="devices\ReceiverEndpoints.h" />
     <ClInclude Include="devices\DeviceAPOInfo.h" />
     <ClInclude Include="devices\DevicePlan.h" />
     <ClInclude Include="devices\DeviceTestPlan.h" />
@@ -302,6 +303,7 @@
     <ClInclude Include="engine\ConfigWatcher.h" />
     <ClInclude Include="engine\FilterConfiguration.h" />
     <ClInclude Include="engine\FilterEngine.h" />
+    <ClInclude Include="engine\IInputTap.h" />
     <ClInclude Include="filters\BiQuad.h" />
     <ClInclude Include="filters\BiQuadCommand.h" />
     <ClInclude Include="filters\BiQuadFilter.h" />
@@ -334,6 +336,7 @@
     <ClInclude Include="filters\velvet\VelvetProcessor.h" />
     <ClInclude Include="filters\CopyFilter.h" />
     <ClInclude Include="filters\CopyFilterFactory.h" />
+    <ClInclude Include="filters\SendCommand.h" />
     <ClInclude Include="filters\DelayCommand.h" />
     <ClInclude Include="filters\DelayFilter.h" />
     <ClInclude Include="filters\DelayFilterFactory.h" />
@@ -446,6 +449,7 @@
     <ClCompile Include="asio\StreamFacts.cpp" />
     <ClCompile Include="engine\ConfigurationFileReader.cpp" />
     <ClCompile Include="devices\ApoRuntimeFacts.cpp" />
+    <ClCompile Include="devices\ReceiverEndpoints.cpp" />
     <ClCompile Include="devices\DeviceAPOInfo.cpp" />
     <ClCompile Include="devices\DeviceAPOInfo.Install.cpp" />
     <ClCompile Include="devices\DeviceAPOInfo.Load.cpp" />
@@ -494,6 +498,7 @@
     <ClCompile Include="filters\velvet\VelvetProcessor.cpp" />
     <ClCompile Include="filters\CopyFilter.cpp" />
     <ClCompile Include="filters\CopyFilterFactory.cpp" />
+    <ClCompile Include="filters\SendCommand.cpp" />
     <ClCompile Include="filters\DelayCommand.cpp" />
     <ClCompile Include="filters\DelayFilter.cpp" />
     <ClCompile Include="filters\DelayFilterFactory.cpp" />
