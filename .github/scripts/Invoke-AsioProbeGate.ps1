@@ -101,8 +101,11 @@ $runs = @(
     # green on rerun with nothing changed). The run keeps its assertion and
     # gets three attempts: a genuine regression fails all three.
     # At 48 kHz, 96 frames take 2000 us, so --pace-us matches the period.
-    # Hosted runners cannot hold a 667 us hard gate; 32-frame real-time
-    # behaviour is evidenced by the capture gate's asio-entry cable round.
+    # Hosted runners cannot hold a 667 us hard gate (32 frames), so no CI
+    # round judges real-time behaviour below 96 frames: the capture gate's
+    # asio-entry round judges 256 on a cable and records 64, 1024 and 2048.
+    # The small-buffer figures on real hardware are local measurements
+    # (docs/architecture/asio-host-study.md section 12).
     # The retries stay for scheduler stalls.
     [pscustomobject]@{
         Name = "dll-daemon-exe-pipelined-float32-96"

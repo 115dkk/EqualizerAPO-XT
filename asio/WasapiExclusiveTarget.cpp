@@ -118,11 +118,20 @@ namespace eapo::asio
 			unsigned size = 32;
 			while (size < minPeriodFrames && size < (1u << 20))
 				size *= 2;
-			policy.minSize = static_cast<long>(size);
+			const unsigned smallest = size / bridgeCap;
+			policy.minSize = static_cast<long>(smallest > 32 ? smallest : 32);
 			policy.maxSize = static_cast<long>(size > 2048 ? size : 2048);
 			policy.preferredSize = static_cast<long>(size);
 			policy.granularity = -1;
 			return policy;
+		}
+
+		unsigned initialBridge(long frames, long preferredSize) noexcept
+		{
+			if (frames <= 0 || frames >= preferredSize)
+				return 1;
+			const long count = (preferredSize + frames - 1) / frames;
+			return static_cast<unsigned>(count < static_cast<long>(bridgeCap) ? count : bridgeCap);
 		}
 
 		CapturePlan planCapturePacket(size_t pendingFrames, size_t capacityFrames, size_t packetFrames) noexcept
@@ -224,10 +233,10 @@ namespace eapo::asio
 
 		// ---- BridgeCalibrator ----
 
-		BridgeCalibrator::BridgeCalibrator(uint64_t periodNanos, int forcedBridge) noexcept
-			: periodNanos_(periodNanos)
+		BridgeCalibrator::BridgeCalibrator(uint64_t periodNanos, unsigned currentBridge, int forcedBridge) noexcept
+			: periodNanos_(periodNanos), current_(currentBridge != 0 ? currentBridge : 1), factor_(current_)
 		{
-			if (forcedBridge >= 2 && forcedBridge <= static_cast<int>(bridgeCap))
+			if (forcedBridge > static_cast<int>(current_) && forcedBridge <= static_cast<int>(bridgeCap))
 			{
 				factor_ = static_cast<unsigned>(forcedBridge);
 				forced_ = true;
@@ -250,13 +259,15 @@ namespace eapo::asio
 			std::memcpy(sorted, spacings_, sizeof(sorted));
 			std::sort(sorted, sorted + bridgeCalibrationEvents);
 			const uint64_t typical = sorted[bridgeCalibrationEvents / 2];
-			const uint64_t threshold = periodNanos_ + periodNanos_ * (bridgeThresholdNumerator - bridgeThresholdDenominator) / bridgeThresholdDenominator;
+			const uint64_t devicePeriod = periodNanos_ * current_;
+			const uint64_t threshold = devicePeriod + devicePeriod * (bridgeThresholdNumerator - bridgeThresholdDenominator) / bridgeThresholdDenominator;
 			if (typical > threshold)
 			{
 				unsigned factor = static_cast<unsigned>((typical + periodNanos_ - 1) / periodNanos_);
 				if (factor > bridgeCap)
 					factor = bridgeCap;
-				factor_ = factor;
+				if (factor > current_)
+					factor_ = factor;
 			}
 			return true;
 		}
@@ -949,8 +960,11 @@ namespace eapo::asio
 			}
 		}
 
+		// A buffer below the preferred size runs the device at the preferred
+		// size, each device period serving `bridge` buffers.
+		const unsigned bridge = wasapi::initialBridge(bufferSize, preferred);
 		char message[errorMessageBytes] = {};
-		if (!prepareStreams(bufferSize, 1, message))
+		if (!prepareStreams(bufferSize, bridge, message))
 		{
 			setError(message);
 			return ASE_HWMalfunction;
@@ -971,7 +985,7 @@ namespace eapo::asio
 				}
 			}
 		}
-		bridge_.store(1, std::memory_order_release);
+		bridge_.store(bridge, std::memory_order_release);
 		callbacks_ = *callbacks;
 		hostSupportsTimeInfo_ = callbacks_.bufferSwitchTimeInfo != nullptr && callbacks_.asioMessage != nullptr
 			&& callbacks_.asioMessage(kAsioSelectorSupported, kAsioSupportsTimeInfo, nullptr, nullptr) == 1
@@ -985,6 +999,7 @@ namespace eapo::asio
 		}
 		samplePosition_.store(0, std::memory_order_relaxed);
 		counters_ = Counters();
+		counters_.bridge = bridge;
 		prepared_ = true;
 		errorMessage_[0] = '\0';
 		return ASE_OK;
@@ -1295,6 +1310,8 @@ namespace eapo::asio
 		// period that covers the cycle, and every event serves that many
 		// ASIO periods back to back. The host keeps its buffer size; the
 		// stream keeps its audio; only the latency grows, and is reported.
+		// A buffer below the device's minimum already opened that way
+		// (createBuffers), and the calibration starts from that bridge.
 		// EAPO_WASAPI_FORCE_BRIDGE=<n> takes that decision up front, for
 		// exercising the path on a driver that does not need it. The
 		// decision itself is wasapi::BridgeCalibrator's.
@@ -1305,7 +1322,7 @@ namespace eapo::asio
 				forcedBridge = _wtoi(value);
 		}
 		const uint64_t periodNanos = rate_ != 0 ? static_cast<uint64_t>(static_cast<double>(frames_) * 1e9 / static_cast<double>(rate_)) : 0;
-		wasapi::BridgeCalibrator calibrator(periodNanos, forcedBridge);
+		wasapi::BridgeCalibrator calibrator(periodNanos, bridge_.load(std::memory_order_acquire), forcedBridge);
 		if (started && calibrator.forced() && !rebridge(calibrator.factor()))
 			started = false;
 		startResult_.store(started ? ASE_OK : ASE_HWMalfunction, std::memory_order_release);
@@ -1368,7 +1385,7 @@ namespace eapo::asio
 				break;
 			}
 
-			if (calibrationDue && calibrator.factor() >= 2)
+			if (calibrationDue && calibrator.factor() > bridge_.load(std::memory_order_acquire))
 			{
 				// A device that will not reopen ends the stream, as a
 				// device that vanished would; the host sees no more switches.

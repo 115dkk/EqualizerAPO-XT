@@ -77,10 +77,17 @@ namespace eapo::asio
 		WAVEFORMATEXTENSIBLE makeFormat(const Container& container, unsigned channels, unsigned rate, unsigned long channelMask);
 
 		// What getBufferSize answers for an endpoint whose smallest exclusive
-		// period is `minPeriodFrames`: powers of two from the first one at or
-		// above the minimum (and never below 32) up to 2048, the smallest
-		// preferred. Powers of two satisfy every alignment a WaveRT driver
-		// has been seen to demand (HDAudio wants multiples of 128).
+		// period is `minPeriodFrames`. Preferred: the first power of two at
+		// or above the minimum (never below 32), the smallest buffer the
+		// device can take as its own period. Smaller powers of two down to
+		// an eighth of that (never below 32) are offered too: the device
+		// then runs at the preferred size and each of its periods serves
+		// several of the application's buffers (initialBridge). A game's
+		// "128" on a device whose minimum is 3 ms opens instead of being
+		// refused; the device hears the same blocks, as late, as it would
+		// at the preferred size. Up to 2048. Powers of two satisfy every
+		// alignment a WaveRT driver has been seen to demand (HDAudio wants
+		// multiples of 128).
 		struct BufferPolicy
 		{
 			long minSize = 0;
@@ -89,6 +96,11 @@ namespace eapo::asio
 			long granularity = -1;
 		};
 		BufferPolicy bufferPolicy(unsigned minPeriodFrames);
+
+		// How many ASIO buffers of `frames` one device period holds when the
+		// stream opens: 1 from the preferred size up, otherwise the smallest
+		// count that reaches it (a power of two for power-of-two buffers).
+		unsigned initialBridge(long frames, long preferredSize) noexcept;
 
 		struct CapturePlan
 		{
@@ -121,13 +133,17 @@ namespace eapo::asio
 
 		// Decides how many ASIO periods one device period holds. Fed the
 		// spacing of consecutive device events; decides once, on the last
-		// calibration event. A forced value (EAPO_WASAPI_FORCE_BRIDGE, read
-		// by the caller) between 2 and the cap decides up front; any other
-		// forced value is ignored.
+		// calibration event. The stream opened with `currentBridge` ASIO
+		// periods per device period (initialBridge), so the spacing is
+		// judged against that device period, and the answer is never below
+		// it: a factor above currentBridge asks for a reopen. A forced value
+		// (EAPO_WASAPI_FORCE_BRIDGE, read by the caller) above currentBridge
+		// and up to the cap decides up front; any other forced value is
+		// ignored.
 		class BridgeCalibrator
 		{
 		public:
-			BridgeCalibrator(uint64_t periodNanos, int forcedBridge) noexcept;
+			BridgeCalibrator(uint64_t periodNanos, unsigned currentBridge, int forcedBridge) noexcept;
 
 			// True on the call that decides; spacings after that are ignored.
 			bool addSpacing(uint64_t spacingNanos) noexcept;
@@ -139,6 +155,7 @@ namespace eapo::asio
 			uint64_t periodNanos_ = 0;
 			uint64_t spacings_[bridgeCalibrationEvents] = {};
 			unsigned count_ = 0;
+			unsigned current_ = 1;
 			unsigned factor_ = 1;
 			bool decided_ = false;
 			bool forced_ = false;
