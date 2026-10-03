@@ -179,7 +179,10 @@ receiving.
 - The capture gate in CI runs that probe round when the runner shows a second
   active playback endpoint besides VB-CABLE's `CABLE Input`, and lists the
   runner's active playback endpoints in its summary either way. Without a
-  second one the round is skipped and the summary says so.
+  second one the round is skipped and the summary says so. The first run
+  (PR #409, windows-2022 runner, VB-CABLE Driver Pack 43) showed one active
+  playback endpoint, `CABLE Input`, so the round is skipped on hosted
+  runners as they are today.
 
 ## Not measured
 

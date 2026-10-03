@@ -79,10 +79,12 @@ void SendFilterFactory::initialize(FilterEngine* engine)
 				wintext::toWideString(e.what(), CP_UTF8).c_str());
 		}
 	}
-	else if (engine_->getHost() == EngineHost::Apo && engine_->isPreMix()
+	else if (engine_->getHost() == EngineHost::Apo && !engine_->isCapture() && engine_->isPreMix()
 		&& !engine_->isPostMixInstalled() && !missingPostMixLogged_)
 	{
-		LogF(L"Receiving Send audio needs the post-mix stage installed on this endpoint");
+		// A trace, not a log line: every stream on a pre-mix-only endpoint
+		// passes here, and most of those endpoints never receive anything.
+		TraceF(L"Receiving Send audio needs the post-mix stage installed on this endpoint");
 		missingPostMixLogged_ = true;
 	}
 }
