@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.56.0 — 2026-10-03
+
 - **v2.55.0 was not published; this release carries its changes.** GitHub
   moved the ARM64 build machines to a Visual Studio 2026 image that lacks the
   ATL library the ARM64 build used, so the v2.55.0 build failed before any

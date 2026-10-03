@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.56.0 — 2026-10-03
+
 - **v2.55.0은 나가지 않았고, 그 변경은 이 릴리스에 들어 있습니다.** GitHub이
   ARM64 빌드 기계를 Visual Studio 2026 이미지로 바꾸면서 ARM64 빌드가 쓰던
   ATL 라이브러리가 빠졌고, 그래서 v2.55.0 빌드는 설치 파일을 만들기 전에
