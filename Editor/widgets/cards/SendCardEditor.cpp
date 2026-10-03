@@ -11,7 +11,7 @@
 
 #include <QCheckBox>
 #include <QComboBox>
-#include <QHBoxLayout>
+#include <QGridLayout>
 #include <QLabel>
 #include <QLineEdit>
 #include <QStyle>
@@ -58,17 +58,25 @@ SendCardEditor::SendCardEditor(FilterTable* filterTable, const QString& paramete
 	layout->setContentsMargins(4, 2, 4, 2);
 	layout->setSpacing(6);
 
-	QHBoxLayout* fields = new QHBoxLayout();
+	// Two rows: where and how in the first, timing in the second. One row
+	// overflowed every skin's card width with an endpoint name of ordinary
+	// length.
+	QGridLayout* fields = new QGridLayout();
 	fields->setContentsMargins(0, 0, 0, 0);
-	fields->setSpacing(8);
+	fields->setHorizontalSpacing(8);
+	fields->setVerticalSpacing(6);
+	fields->setColumnStretch(1, 1);
 
-	fields->addWidget(makeCaption(tr("To"), this));
+	fields->addWidget(makeCaption(tr("To"), this), 0, 0);
 	targetCombo = new QComboBox(this);
 	targetCombo->setObjectName(QStringLiteral("SendTargetCombo"));
 	targetCombo->setToolTip(tr("The playback endpoint that receives these channels"));
-	targetCombo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
+	// Fill the row rather than grow with the longest endpoint name.
+	targetCombo->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+	targetCombo->setMinimumContentsLength(16);
+	targetCombo->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 	connect(targetCombo, SIGNAL(activated(int)), this, SLOT(targetChosen(int)));
-	fields->addWidget(targetCombo, 1);
+	fields->addWidget(targetCombo, 0, 1);
 
 	modeCombo = new QComboBox(this);
 	modeCombo->setObjectName(QStringLiteral("SendModeCombo"));
@@ -76,23 +84,25 @@ SendCardEditor::SendCardEditor(FilterTable* filterTable, const QString& paramete
 	modeCombo->addItem(tr("Replace its audio"), int(SendCommand::Mode::Replace));
 	modeCombo->setToolTip(tr("Whether the received channels are added to what the endpoint already plays, or take its place"));
 	connect(modeCombo, SIGNAL(activated(int)), this, SLOT(modeChosen(int)));
-	fields->addWidget(modeCombo);
+	fields->addWidget(modeCombo, 0, 2);
 
-	fields->addWidget(makeCaption(tr("Latency"), this));
+	fields->addWidget(makeCaption(tr("Latency"), this), 1, 0);
 	latencyEdit = new QLineEdit(this);
 	latencyEdit->setObjectName(QStringLiteral("SendLatencyEdit"));
 	latencyEdit->setPlaceholderText(tr("Default"));
 	latencyEdit->setToolTip(tr("Milliseconds, or a whole number followed by \"samples\". Empty uses two processing periods of this device; raise it if the log reports underruns."));
-	latencyEdit->setMaximumWidth(110);
+	// Room for "960samples" in the widest skin font.
+	latencyEdit->setMinimumWidth(104);
+	latencyEdit->setMaximumWidth(140);
 	connect(latencyEdit, SIGNAL(editingFinished()), this, SLOT(latencyEdited()));
 	connect(latencyEdit, SIGNAL(textEdited(QString)), this, SLOT(latencyTyped()));
-	fields->addWidget(latencyEdit);
+	fields->addWidget(latencyEdit, 1, 1, Qt::AlignLeft);
 
 	compensateCheck = new QCheckBox(tr("Delay this device to match"), this);
 	compensateCheck->setObjectName(QStringLiteral("SendCompensateCheck"));
 	compensateCheck->setToolTip(tr("Delays this device's own channels by the same latency, so both devices play in time"));
 	connect(compensateCheck, SIGNAL(toggled(bool)), this, SLOT(compensateToggled(bool)));
-	fields->addWidget(compensateCheck);
+	fields->addWidget(compensateCheck, 1, 2);
 	layout->addLayout(fields);
 
 	// The validation line Hilbert, Velvet and NewChannel use, which every
