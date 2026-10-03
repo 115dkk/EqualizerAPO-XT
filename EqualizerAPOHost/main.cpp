@@ -352,6 +352,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 		return 0;
 	int result;
 	{
+		// Held for its lifetime only: the keepalive thread runs while the server
+		// does and is stopped and joined when this scope ends.
+		// cppcheck-suppress unreadVariable
 		std::jthread keepalive = server.arguments.resident ? startKeepalive() : std::jthread();
 		result = server.run();
 	}

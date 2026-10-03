@@ -300,7 +300,7 @@ void FilterEngine::finishTransitionIfReady()
 
 bool FilterEngine::hasStatefulOrTailFilters() const
 {
-	IInputTap* const tap = inputTap.load(std::memory_order_acquire);
+	const IInputTap* const tap = inputTap.load(std::memory_order_acquire);
 	if (tap != nullptr && tap->mayAddAudio())
 		return true;
 	if (configChannel.hasPending())
