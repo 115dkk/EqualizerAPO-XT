@@ -25,8 +25,9 @@ them unset.
 - `EAPO_STALL_SAMPLE_MS` — when a timed operation of the skin-switch or
   card-move gate runs longer than this many milliseconds, the gate samples
   the GUI thread's call stack until it ends and prints a `StallWatch:` report
-  (process, system and memory counters, the commonest stacks, and the other
-  threads at the moment the threshold was crossed). Defaults to each gate's
+  (process, system and memory counters, the commonest stacks, the other
+  threads at the moment the threshold was crossed, and the CPU time other
+  processes used from then on). Defaults to each gate's
   warning budget (`EAPO_SWITCH_WARN_MS`, `EAPO_MOVE_WARN_MS`).
 - `EAPO_STALL_SELFTEST` — `1` makes the first two watched operations stall on
   purpose (a 900 ms sleep, then a 600 ms busy loop), to check that the

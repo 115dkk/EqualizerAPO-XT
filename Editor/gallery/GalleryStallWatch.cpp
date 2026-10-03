@@ -14,6 +14,8 @@
 #include <cstring>
 #include <mutex>
 #include <thread>
+#include <utility>
+#include <vector>
 
 #include <QDebug>
 #include <QFileInfo>
@@ -201,6 +203,54 @@ struct ThreadSnapshot
 	StackSample stack;
 };
 
+// Another process's CPU time, keyed by id and creation time so a reused id
+// is not taken for the same process.
+struct ProcessTimes
+{
+	DWORD id = 0;
+	ULONGLONG created = 0;
+	ULONGLONG cpu = 0;
+	QString name;
+};
+
+ULONGLONG systemTimeNow()
+{
+	FILETIME now;
+	GetSystemTimeAsFileTime(&now);
+	return fileTime(now);
+}
+
+// Every other process this query right reaches, protected ones included. It
+// allocates, so it runs only while no thread is suspended.
+std::vector<ProcessTimes> readProcessTimes()
+{
+	std::vector<ProcessTimes> result;
+	const HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	if (snapshot == INVALID_HANDLE_VALUE)
+		return result;
+	const DWORD self = GetCurrentProcessId();
+	PROCESSENTRY32W entry = {};
+	entry.dwSize = sizeof(entry);
+	if (Process32FirstW(snapshot, &entry))
+	{
+		do
+		{
+			if (entry.th32ProcessID == 0 || entry.th32ProcessID == self)
+				continue;
+			const HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, entry.th32ProcessID);
+			if (process == nullptr)
+				continue;
+			FILETIME created, exited, kernel, user;
+			if (GetProcessTimes(process, &created, &exited, &kernel, &user))
+				result.push_back({ entry.th32ProcessID, fileTime(created), fileTime(kernel) + fileTime(user),
+					QString::fromWCharArray(entry.szExeFile) });
+			CloseHandle(process);
+		} while (Process32NextW(snapshot, &entry));
+	}
+	CloseHandle(snapshot);
+	return result;
+}
+
 struct Sampler
 {
 	std::mutex mutex;
@@ -225,6 +275,8 @@ struct Sampler
 	std::array<StackSample, maxSamples> stacks;
 	std::array<ThreadSnapshot, maxThreads> threads;
 	std::array<DWORD64, stackBytes / sizeof(DWORD64)> stackCopy = {};
+	std::vector<ProcessTimes> processes;
+	ULONGLONG processesTime = 0;
 
 	Sampler()
 	{
@@ -304,7 +356,11 @@ struct Sampler
 					continue;
 				lastSample = now;
 				if (attempts == 0)
+				{
+					processesTime = systemTimeNow();
+					processes = readProcessTimes();
 					snapshotThreads();
+				}
 				attempts++;
 				StackSample sample;
 				captureStack(guiThread, sample, stackCopy.data());
@@ -376,6 +432,8 @@ void printFrame(DWORD64 address, bool symbolsReady)
 
 void printThreads(Sampler& state, bool symbolsReady)
 {
+	if (state.threadCount == 0)
+		return;
 	std::array<int, maxThreads> ranked = {};
 	for (int i = 0; i < state.threadCount; i++)
 		ranked[i] = i;
@@ -418,6 +476,35 @@ void printThreads(Sampler& state, bool symbolsReady)
 		distinct++;
 	}
 }
+
+// The machine's other users between the threshold crossing and the end: a
+// runner's scanner or updater appears here, not among this process's threads.
+void printProcesses(const std::vector<ProcessTimes>& before, ULONGLONG since)
+{
+	const std::vector<ProcessTimes> after = readProcessTimes();
+	std::vector<std::pair<ULONGLONG, const ProcessTimes*>> used;
+	for (const ProcessTimes& now : after)
+	{
+		const auto then = std::find_if(before.cbegin(), before.cend(), [&now](const ProcessTimes& candidate) {
+			return candidate.id == now.id && candidate.created == now.created;
+		});
+		if (then != before.cend())
+			used.push_back({ difference(now.cpu, then->cpu), &now });
+		else if (now.created >= since)
+			used.push_back({ now.cpu, &now });
+	}
+	std::stable_sort(used.begin(), used.end(), [](const auto& left, const auto& right) {
+		return left.first > right.first;
+	});
+	QStringList top;
+	for (size_t i = 0; i < std::min<size_t>(6, used.size()) && used[i].first != 0; i++)
+	{
+		top.append(QStringLiteral("%1 (%2) %3 ms").arg(used[i].second->name).arg(used[i].second->id)
+			.arg(static_cast<double>(used[i].first) / 10000.0, 0, 'f', 1));
+	}
+	qWarning("StallWatch:   other processes, cpu since threshold: %s",
+		top.isEmpty() ? "none measured" : qPrintable(top.join(QStringLiteral(", "))));
+}
 }
 #endif
 
@@ -436,6 +523,8 @@ GalleryStallWatch::GalleryStallWatch(const char* gate, const QString& operation,
 		state.attempts = 0;
 		state.stackCount = 0;
 		state.threadCount = 0;
+		state.processes.clear();
+		state.processesTime = 0;
 		state.maxGap = 0;
 		state.lastSample = 0;
 		state.startCounters = {};
@@ -520,6 +609,8 @@ GalleryStallWatch::~GalleryStallWatch()
 				printFrame(stack.addresses[frame], symbolsReady);
 		}
 		printThreads(state, symbolsReady);
+		if (state.processesTime != 0 && !state.processes.empty())
+			printProcesses(state.processes, state.processesTime);
 	}
 	for (int i = 0; i < state.threadCount; i++)
 	{
