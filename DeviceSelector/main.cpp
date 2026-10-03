@@ -277,7 +277,7 @@ void say(const wchar_t* format, ...)
 }
 
 // --install-endpoint {guid} [--install-mode lfx-gfx|sfx-mfx|sfx-efx]
-//                           [--no-original-apo] [--asio-entry] [--no-test]
+//                           [--no-original-apo] [--asio-entry] [--receive] [--no-test]
 // --uninstall-endpoint {guid}
 //
 // The dialog's OK for one endpoint, without the dialog: the same
@@ -296,7 +296,7 @@ int runEndpointCommand(QApplication& app, bool install)
 	const int flagIndex = args.indexOf(flag);
 	if (flagIndex < 0 || flagIndex + 1 >= args.size())
 	{
-		say(L"usage: DeviceSelector %s {endpoint-guid} [--install-mode lfx-gfx|sfx-mfx|sfx-efx] [--no-original-apo] [--asio-entry] [--no-test]\n", reinterpret_cast<const wchar_t*>(flag.utf16()));
+		say(L"usage: DeviceSelector %s {endpoint-guid} [--install-mode lfx-gfx|sfx-mfx|sfx-efx] [--no-original-apo] [--asio-entry] [--receive] [--no-test]\n", reinterpret_cast<const wchar_t*>(flag.utf16()));
 		return 2;
 	}
 	const std::wstring guid = args[flagIndex + 1].toStdWString();
@@ -349,6 +349,16 @@ int runEndpointCommand(QApplication& app, bool install)
 	// --exclusive-mode-eq is its first name, still accepted.
 	if (args.contains(QStringLiteral("--asio-entry")) || args.contains(QStringLiteral("--exclusive-mode-eq")))
 		state.asioEntry = true;
+	if (install && args.contains(QStringLiteral("--receive")))
+	{
+		state.receiveFromEndpoints = true;
+		state.allowSilentBufferModification = true;
+		if (info->isInput() || !state.installPostMix)
+		{
+			say(L"--receive applies to playback endpoints with the post-mix stage\n");
+			return 2;
+		}
+	}
 
 	try
 	{

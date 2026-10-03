@@ -170,6 +170,7 @@ void DeviceSelector::finishSetup()
 	connect(ui.installModeComboBox, QOverload<int>::of(&QComboBox::activated), this, &DeviceSelector::onTroubleShootingOptionChanged);
 	connect(ui.allowSilentBufferCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
 	connect(ui.asioEntryCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
+	connect(ui.receiveCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
 	connect(ui.autoCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
 	connect(ui.asioSyncCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
 	connect(ui.asioDeadlineComboBox, QOverload<int>::of(&QComboBox::activated), this, &DeviceSelector::onTroubleShootingOptionChanged);
@@ -557,7 +558,14 @@ void DeviceSelector::onTroubleShootingOptionChanged()
 			if (sender == ui.installPreMixCheckBox)
 				deviceInfo->getSelectedInstallState().installPreMix = ui.installPreMixCheckBox->isChecked();
 			else if (sender == ui.installPostMixCheckBox)
-				deviceInfo->getSelectedInstallState().installPostMix = ui.installPostMixCheckBox->isChecked();
+			{
+				DeviceAPOInfo::InstallState& state = deviceInfo->getSelectedInstallState();
+				state.installPostMix = ui.installPostMixCheckBox->isChecked();
+				// Receiving runs in the post-mix APO; without it there is
+				// nothing to keep running.
+				if (!state.installPostMix)
+					state.receiveFromEndpoints = false;
+			}
 			else if (sender == ui.useOriginalAPOPreMixCheckBox)
 				deviceInfo->getSelectedInstallState().useOriginalAPOPreMix = ui.useOriginalAPOPreMixCheckBox->isChecked();
 			else if (sender == ui.useOriginalAPOPostMixCheckBox)
@@ -568,6 +576,16 @@ void DeviceSelector::onTroubleShootingOptionChanged()
 				deviceInfo->getSelectedInstallState().allowSilentBufferModification = ui.allowSilentBufferCheckBox->isChecked();
 			else if (sender == ui.autoCheckBox)
 				deviceInfo->getSelectedInstallState().autoAdjust = ui.autoCheckBox->isChecked();
+			else if (sender == ui.receiveCheckBox)
+			{
+				// The keepalive stream's input is silence, and without
+				// silent buffer modification the APO discards its output on
+				// silent input, so receiving turns that option on with it.
+				DeviceAPOInfo::InstallState& state = deviceInfo->getSelectedInstallState();
+				state.receiveFromEndpoints = ui.receiveCheckBox->isChecked();
+				if (state.receiveFromEndpoints)
+					state.allowSilentBufferModification = true;
+			}
 			else if (sender == ui.asioEntryCheckBox)
 			{
 				DeviceAPOInfo::InstallState& state = deviceInfo->getSelectedInstallState();
@@ -677,8 +695,12 @@ void DeviceSelector::updateButtons()
 	ui.useOriginalAPOPreMixCheckBox->setEnabled(enable && hasOriginalAPOPreMix && installState.installPreMix);
 	ui.useOriginalAPOPostMixCheckBox->setEnabled(enable && !isInput && hasOriginalAPOPostMix && installState.installPostMix);
 	ui.installModeComboBox->setEnabled(enable);
-	ui.allowSilentBufferCheckBox->setEnabled(enable);
+	// While the endpoint receives, silent buffer modification is required
+	// and shown on without being editable.
+	ui.allowSilentBufferCheckBox->setEnabled(enable && !installState.receiveFromEndpoints);
 	ui.asioEntryCheckBox->setEnabled(enable);
+	// Receiving happens in the post-mix APO of a playback endpoint.
+	ui.receiveCheckBox->setEnabled(enable && !isInput && installState.installPostMix);
 	// Page 0: nothing to say. Page 1: an endpoint's APO chain. Page 2: an
 	// ASIO target's options.
 	ui.stackedWidget->setCurrentIndex(!enable ? 0 : (asioSelected ? 2 : 1));
@@ -706,6 +728,7 @@ void DeviceSelector::updateButtons()
 
 	ui.allowSilentBufferCheckBox->setChecked(installState.allowSilentBufferModification);
 	ui.asioEntryCheckBox->setChecked(installState.asioEntry);
+	ui.receiveCheckBox->setChecked(installState.receiveFromEndpoints && !isInput);
 	ui.autoCheckBox->setChecked(installState.autoAdjust);
 }
 

@@ -441,6 +441,155 @@ DeviceAPOInfo::InstallState installOnBareDevice(test::Harness& harness, FakeRegi
 	return requested;
 }
 
+void testInstallWithReceiveWritesAndLoadsTheStateAndReport(test::Harness& harness)
+{
+	FakeRegistry registry;
+	seedRenderDevice(registry);
+
+	DeviceAPOInfo info(registry);
+	harness.require(info.load(testDeviceGuid, otherDeviceGuid), "the render endpoint loads before enabling Send receive");
+	DeviceAPOInfo::InstallState& selected = info.getSelectedInstallState();
+	selected = info.getCurrentInstallState();
+	selected.allowSilentBufferModification = false;
+	selected.receiveFromEndpoints = true;
+	info.install();
+
+	harness.expect(registry.readValue(childApoKey, receiveFromEndpointsValueName) == L"true",
+		"a render endpoint with its post-mix stage stores ReceiveFromEndpoints as true");
+	harness.expect(registry.readValue(childApoKey, allowSilentBufferValueName) == L"true",
+		"receiving forces silent-buffer modification on even when its separate option was off");
+	const DeviceInstallReport& report = info.getLastOperationReport();
+	harness.expectTrue(report.receiveFromEndpoints, "the install report records the effective Send receiver state");
+	const std::vector<std::wstring> lines = report.toLines();
+	harness.expect(std::find(lines.begin(), lines.end(),
+		L"  receives Send audio: yes (EqualizerAPOHost keeps the endpoint running from logon)") != lines.end(),
+		"the detailed report says why EqualizerAPOHost runs from logon");
+
+	DeviceAPOInfo reloaded(registry);
+	harness.require(reloaded.load(testDeviceGuid, otherDeviceGuid), "the receiver reloads after installation");
+	harness.expectTrue(reloaded.getCurrentInstallState().receiveFromEndpoints,
+		"a fresh load reads ReceiveFromEndpoints back");
+	harness.expectTrue(reloaded.getCurrentInstallState().allowSilentBufferModification,
+		"a fresh load sees the silent-buffer setting forced by receiving");
+	harness.expectTrue(reloaded.receivesFromEndpoints(),
+		"the AbstractAPOInfo query exposes the loaded receiver state");
+}
+
+void testReceiveWithoutPostMixWritesNoReceiverValue(test::Harness& harness)
+{
+	FakeRegistry registry;
+	seedRenderDevice(registry);
+
+	DeviceAPOInfo info(registry);
+	harness.require(info.load(testDeviceGuid, otherDeviceGuid), "the render endpoint loads");
+	DeviceAPOInfo::InstallState& selected = info.getSelectedInstallState();
+	selected = info.getCurrentInstallState();
+	selected.installPostMix = false;
+	selected.receiveFromEndpoints = true;
+	info.install();
+
+	harness.require(registry.keyExists(childApoKey), "the pre-mix stage still installs");
+	harness.expectFalse(registry.valueExists(childApoKey, receiveFromEndpointsValueName),
+		"ReceiveFromEndpoints is absent when the resulting installation has no post-mix stage");
+	harness.expectFalse(info.getLastOperationReport().receiveFromEndpoints,
+		"the report records the effective state rather than the invalid request");
+}
+
+void testReceiveOnCaptureWritesNoReceiverValue(test::Harness& harness)
+{
+	FakeRegistry registry;
+	const std::wstring captureDeviceKey = captureKeyPath L"\\" + testDeviceGuid;
+	const std::wstring captureProperties = captureDeviceKey + L"\\Properties";
+	registry.seedDword(captureDeviceKey, L"DeviceState", DEVICE_STATE_ACTIVE);
+	registry.seedString(captureProperties, connectionValueName, L"Microphone");
+	registry.seedString(captureProperties, deviceValueName, L"USB Audio Device");
+
+	DeviceAPOInfo info(registry);
+	harness.require(info.load(testDeviceGuid, otherDeviceGuid), "the capture endpoint loads");
+	DeviceAPOInfo::InstallState& selected = info.getSelectedInstallState();
+	selected = info.getCurrentInstallState();
+	selected.receiveFromEndpoints = true;
+	info.install();
+
+	harness.require(registry.keyExists(childApoKey), "the capture pre-mix stage installs");
+	harness.expectFalse(registry.valueExists(childApoKey, receiveFromEndpointsValueName),
+		"a capture endpoint never stores ReceiveFromEndpoints");
+	harness.expectFalse(info.getLastOperationReport().receiveFromEndpoints,
+		"the capture install report does not claim to receive Send audio");
+
+	DeviceAPOInfo reloaded(registry);
+	harness.require(reloaded.load(testDeviceGuid, otherDeviceGuid), "the installed capture endpoint reloads");
+	harness.expectFalse(reloaded.getCurrentInstallState().receiveFromEndpoints,
+		"loading a capture endpoint never reports it as a receiver");
+	harness.expectFalse(reloaded.receivesFromEndpoints(),
+		"the abstract receiver query is false for capture too");
+}
+
+void testInstallingWithReceiveOffDeletesTheReceiverValue(test::Harness& harness)
+{
+	FakeRegistry registry;
+	registry.seedString(APP_REGPATH, L"InstallPath", L"C:\\eapo");
+	registry.seedString(APP_REGPATH, L"ConfigPath", L"C:\\ProgramData\\EqualizerAPO\\config");
+	seedRenderDevice(registry);
+
+	DeviceAPOInfo info(registry);
+	harness.require(info.load(testDeviceGuid, otherDeviceGuid), "the render endpoint loads");
+	DeviceAPOInfo::InstallState& selected = info.getSelectedInstallState();
+	selected = info.getCurrentInstallState();
+	selected.receiveFromEndpoints = true;
+	info.install();
+	harness.require(registry.valueExists(childApoKey, receiveFromEndpointsValueName),
+		"the first install enables receiving");
+	harness.require(eapo::asio::AsioRegistration::autoStartRegistered(registry),
+		"the receiver makes the resident host start at logon");
+
+	DeviceAPOInfo reloaded(registry);
+	harness.require(reloaded.load(testDeviceGuid, otherDeviceGuid), "the enabled receiver reloads before changing its installation");
+	reloaded.getSelectedInstallState() = reloaded.getCurrentInstallState();
+	reloaded.getSelectedInstallState().receiveFromEndpoints = false;
+	reloaded.install();
+	harness.expectFalse(registry.valueExists(childApoKey, receiveFromEndpointsValueName),
+		"installing the endpoint with receiving off deletes the old value");
+	harness.expectFalse(reloaded.getLastOperationReport().receiveFromEndpoints,
+		"the second report records receiving as off");
+	harness.expectFalse(eapo::asio::AsioRegistration::autoStartRegistered(registry),
+		"refreshAutoStart sees the value deletion before the transaction commits");
+}
+
+void testReceiveAutoStartFollowsInstallAndUninstall(test::Harness& harness)
+{
+	FakeRegistry registry;
+	const std::wstring installPath = L"C:\\eapo";
+	registry.seedString(APP_REGPATH, L"InstallPath", installPath);
+	seedRenderDevice(registry);
+
+	DeviceAPOInfo info(registry);
+	harness.require(info.load(testDeviceGuid, otherDeviceGuid), "the render endpoint loads");
+	DeviceAPOInfo::InstallState& selected = info.getSelectedInstallState();
+	selected = info.getCurrentInstallState();
+	selected.receiveFromEndpoints = true;
+	info.install();
+
+	const std::wstring runKey = eapo::asio::AsioRegistration::autoStartKey();
+	const std::wstring runValue = eapo::asio::AsioRegistration::autoStartValueName();
+	harness.require(eapo::asio::AsioRegistration::autoStartRegistered(registry),
+		"refreshAutoStart sees the child key and receiver value written earlier in the install transaction");
+	harness.expect(registry.readValue(runKey, runValue) == L"\"" + installPath + L"\\EqualizerAPOHost.exe\" --resident",
+		"the Run value starts the resident host from the configured install directory");
+
+	// Keep the parent present after this endpoint's child key is deleted, so the
+	// refresh below has to enumerate it and observe that the deleted child is gone.
+	const std::wstring otherChild = std::wstring(childApoPath) + L"\\" + otherDeviceGuid;
+	registry.seedString(otherChild, versionValueName, installVersion);
+
+	DeviceAPOInfo reloaded(registry);
+	harness.require(reloaded.load(testDeviceGuid, otherDeviceGuid), "the installed receiver reloads");
+	reloaded.uninstall();
+	harness.expectFalse(registry.keyExists(childApoKey), "uninstall deletes the receiver's child key");
+	harness.expectFalse(eapo::asio::AsioRegistration::autoStartRegistered(registry),
+		"refreshAutoStart sees the key deletion and removes the Run value when no ASIO entry remains");
+}
+
 void testInstallThenLoadRoundTripsTheInstallState(test::Harness& harness)
 {
 	FakeRegistry registry;
@@ -1096,6 +1245,11 @@ void runDeviceApoInfoTests(test::Harness& harness)
 	testApoRuntimeFactsSkipAnAbsentEndpoint(harness);
 	testApoRuntimeFactsSurviveAnUnreadableAsioRecord(harness);
 	testLoadTreatsAVersionlessInstallationAsUpgradable(harness);
+	testInstallWithReceiveWritesAndLoadsTheStateAndReport(harness);
+	testReceiveWithoutPostMixWritesNoReceiverValue(harness);
+	testReceiveOnCaptureWritesNoReceiverValue(harness);
+	testInstallingWithReceiveOffDeletesTheReceiverValue(harness);
+	testReceiveAutoStartFollowsInstallAndUninstall(harness);
 	testInstallThenLoadRoundTripsTheInstallState(harness);
 	testInstallRegistersEveryModeOfTheDirection(harness);
 	testInstallOnACaptureDeviceFillsTheStreamSlotForTheCaptureModes(harness);

@@ -93,6 +93,9 @@ vector<wstring> DeviceInstallReport::toLines() const
 		lines.push_back(requested);
 	}
 
+	if (receiveFromEndpoints)
+		lines.push_back(L"  receives Send audio: yes (EqualizerAPOHost keeps the endpoint running from logon)");
+
 	if (!asioEntry.empty())
 		lines.push_back(L"  ASIO entry: " + asioEntry);
 
