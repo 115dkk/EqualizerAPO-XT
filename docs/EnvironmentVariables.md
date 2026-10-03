@@ -22,6 +22,15 @@ them unset.
 - `EAPO_MOVE_LIMIT_MS` / `EAPO_MOVE_WARN_MS` — the same budget for the
   `--card-move-test` gate (a card move must not rebuild the whole list);
   `Invoke-EditorOffscreenTest.ps1` passes CI's values.
+- `EAPO_STALL_SAMPLE_MS` — when a timed operation of the skin-switch or
+  card-move gate runs longer than this many milliseconds, the gate samples
+  the GUI thread's call stack until it ends and prints a `StallWatch:` report
+  (process, system and memory counters, the commonest stacks, and the other
+  threads at the moment the threshold was crossed). Defaults to each gate's
+  warning budget (`EAPO_SWITCH_WARN_MS`, `EAPO_MOVE_WARN_MS`).
+- `EAPO_STALL_SELFTEST` — `1` makes the first two watched operations stall on
+  purpose (a 900 ms sleep, then a 600 ms busy loop), to check that the
+  `StallWatch:` report names them. Never set in CI.
 - `EAPO_ANALYSIS_LAYOUT_HOLD_MS` — keeps the Editor open that many
   milliseconds (0 to 30000) after the analysis-dock layout test, so the
   window can be captured.

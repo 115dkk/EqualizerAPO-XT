@@ -11,6 +11,7 @@
 
 #include "SkinGallery.h"
 #include "Editor/gallery/GallerySupport.h"
+#include "Editor/gallery/GalleryStallWatch.h"
 #include <numbers>
 // For the two gates moved out of main.cpp (audit #275 B7): the VST
 // round-trip self test and the analysis layout probe.
@@ -355,24 +356,34 @@ int runSwitchTest(const QStringList& arguments)
 
 				QElapsedTimer timer;
 				timer.start();
-				// MainWindow::skinSelected's exact live sequence: tear the
-				// rows down BEFORE the global stylesheet swap (which also
-				// re-derives the palette), rebuild after.
-				table->clearRows();
-				const qint64 clearMs = timer.restart();
-				SkinManager::instance()->applySkin(skin->id(), dark);
-				const qint64 applyMs = timer.restart();
-				table->updateGuis();
-				QApplication::processEvents();
-				// The live editor returns to the event loop between switches,
-				// which is when deleteLater victims (combo popup containers,
-				// editor internals) actually die; a bare processEvents() does
-				// not deliver DeferredDelete, and without this the harness
-				// accumulates a dead generation per switch that the real app
-				// never keeps.
-				QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
-				QApplication::processEvents();
-				const qint64 rebuildMs = timer.elapsed();
+				qint64 clearMs = 0;
+				qint64 applyMs = 0;
+				qint64 rebuildMs = 0;
+				{
+					// Prints the GUI thread's stacks when the switch runs past the
+					// warning budget.
+					const GalleryStallWatch watch("SkinSwitchTest",
+						name + QStringLiteral(" round %1").arg(round),
+						warningMs > 0 ? warningMs : limitMs / 2);
+					// MainWindow::skinSelected's exact live sequence: tear the
+					// rows down BEFORE the global stylesheet swap (which also
+					// re-derives the palette), rebuild after.
+					table->clearRows();
+					clearMs = timer.restart();
+					SkinManager::instance()->applySkin(skin->id(), dark);
+					applyMs = timer.restart();
+					table->updateGuis();
+					QApplication::processEvents();
+					// The live editor returns to the event loop between switches,
+					// which is when deleteLater victims (combo popup containers,
+					// editor internals) actually die; a bare processEvents() does
+					// not deliver DeferredDelete, and without this the harness
+					// accumulates a dead generation per switch that the real app
+					// never keeps.
+					QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+					QApplication::processEvents();
+					rebuildMs = timer.elapsed();
+				}
 				const qint64 elapsed = clearMs + applyMs + rebuildMs;
 
 				if (SkinManager::instance()->currentSkinId() != skin->id())
@@ -608,9 +619,17 @@ int runCardMoveTest(const QStringList& arguments)
 
 				QElapsedTimer timer;
 				timer.start();
-				table->moveRows({ moved }, dropRow);
-				QApplication::processEvents();
-				const qint64 elapsed = timer.elapsed();
+				qint64 elapsed = 0;
+				{
+					// Prints the GUI thread's stacks when the move runs past the
+					// warning budget.
+					const GalleryStallWatch watch("CardMoveTest",
+						name + QStringLiteral(" move %1").arg(pass + 1),
+						warningMs > 0 ? warningMs : limitMs / 2);
+					table->moveRows({ moved }, dropRow);
+					QApplication::processEvents();
+					elapsed = timer.elapsed();
+				}
 				moves++;
 
 				QList<QString> expected = before;

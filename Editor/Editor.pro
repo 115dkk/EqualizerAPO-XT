@@ -283,6 +283,7 @@ SOURCES += main.cpp\
 	gallery/GalleryProbes.cpp \
 	gallery/GallerySelfTests.cpp \
 	gallery/GallerySkinShots.cpp \
+	gallery/GalleryStallWatch.cpp \
 	gallery/GallerySupport.cpp \
 	SkinManager.cpp \
 	skins/ISkin.cpp \
@@ -614,6 +615,7 @@ HEADERS  += \
 	diagnostics/SkinSwitchStorm.h \
 	helpers/QtSndfileHandle.h \
 	SkinGallery.h \
+	gallery/GalleryStallWatch.h \
 	gallery/GallerySupport.h \
 	SkinTokens.h \
 	SkinManager.h \
