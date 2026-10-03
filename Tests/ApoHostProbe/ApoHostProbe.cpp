@@ -18,6 +18,18 @@
 	Windows loads the APO for that endpoint at all; the capture gate in CI
 	covers that with a real virtual cable.
 
+	With --stage postmix --send-to {receiver-guid}, two instances from the
+	same class factory run in this process. The sender locks first to publish
+	its Send ring; the receiver locks next, then processes zero-filled valid
+	input after each sender block. With a config such as:
+	    Device: {sender-guid}
+	    Send: {receiver-guid} L=L R=R Compensate=false
+	the round measures the hand-over through the shared ring. Device matches
+	the endpoint GUID, so only the sender executes the Send line. No receiver
+	command is needed. This does not prove that audiodg loads both endpoints'
+	APOs into one process, or that the keepalive runs the receiving endpoint.
+	The probe reads the existing config; it does not install this example.
+
 	Exit codes: 0 measured (or within --expect-gain-db), 1 usage or a failed
 	call, 2 the measured gain missed the expectation.
 */
@@ -51,6 +63,7 @@ struct Options
 {
 	std::wstring dllPath;
 	std::wstring endpointGuid;
+	std::wstring receiverEndpointGuid;
 	bool preMix = true;
 	unsigned sampleRate = 48000;
 	unsigned inputChannels = 2;
@@ -72,11 +85,14 @@ void usage()
 	fwprintf(stderr,
 		L"ApoHostProbe --dll <EqualizerAPO.dll> --endpoint {guid} [options]\n"
 		L"  --stage premix|postmix   which CLSID to create (default premix, the capture slot)\n"
+		L"  --send-to {guid}         receive on a different endpoint (postmix only)\n"
+		L"  --skip N                 initial blocks not measured (default 2, at least 4 for Send)\n"
 		L"  --rate N --in N --out N  connection format (default 48000, 2, 2)\n"
 		L"  --float64                connection sample type double instead of float\n"
 		L"  --frames N --blocks N    block size and block count (default 480, 20)\n"
 		L"  --tone Hz --amp A        the sine pushed through (default 1000, 0.5)\n"
 		L"  --expect-gain-db X [--tolerance-db Y]  exit 2 unless the output/input gain is X +- Y\n"
+		L"                           in Send mode, check receiver output / sender input\n"
 		L"  --json                   one JSON line on stdout\n");
 }
 
@@ -96,6 +112,12 @@ bool parse(int argc, wchar_t** argv, Options& o)
 			o.dllPath = v;
 		else if (a == L"--endpoint" && next(v))
 			o.endpointGuid = v;
+		else if (a == L"--send-to" && next(v))
+		{
+			if (v.empty())
+				return false;
+			o.receiverEndpointGuid = v;
+		}
 		else if (a == L"--stage" && next(v))
 			o.preMix = (v != L"postmix");
 		else if (a == L"--rate" && next(v))
@@ -130,6 +152,19 @@ bool parse(int argc, wchar_t** argv, Options& o)
 			fwprintf(stderr, L"unknown or incomplete argument: %s\n", a.c_str());
 			return false;
 		}
+	}
+	if (!o.receiverEndpointGuid.empty())
+	{
+		GUID sender = {}, receiver = {};
+		if (o.preMix || FAILED(CLSIDFromString(o.endpointGuid.c_str(), &sender))
+			|| FAILED(CLSIDFromString(o.receiverEndpointGuid.c_str(), &receiver))
+			|| IsEqualGUID(sender, receiver))
+		{
+			fwprintf(stderr, L"--send-to requires postmix and two different endpoint GUIDs\n");
+			return false;
+		}
+		if (o.skipBlocks < 4)
+			o.skipBlocks = 4;
 	}
 	if (o.dllPath.empty() || o.endpointGuid.empty() || o.inputChannels == 0 || o.outputChannels == 0
 		|| o.frames == 0 || o.blocks <= o.skipBlocks)
@@ -307,9 +342,11 @@ HRESULT makeMediaType(const Options& o, unsigned channels, IAudioMediaType** typ
 template<typename SampleT>
 int run(const Options& o, IAudioProcessingObjectRT* rt,
 	APO_CONNECTION_PROPERTY* inProp, APO_CONNECTION_PROPERTY* outProp,
-	SampleT* input, SampleT* output, double& gainDb, double& residualDb, double& rmsIn, double& rmsOut)
+	SampleT* input, SampleT* output, double& gainDb, double& residualDb, double& rmsIn, double& rmsOut,
+	double& receiverGainDb, IAudioProcessingObjectRT* receiverRt = nullptr,
+	APO_CONNECTION_PROPERTY* receiverInProp = nullptr, APO_CONNECTION_PROPERTY* receiverOutProp = nullptr)
 {
-	double sumIn = 0.0, sumOut = 0.0, sumDiff = 0.0;
+	double sumIn = 0.0, sumOut = 0.0, sumDiff = 0.0, sumReceiver = 0.0;
 	unsigned long long counted = 0;
 	unsigned long long sampleIndex = 0;
 	for (unsigned block = 0; block < o.blocks; block++)
@@ -330,6 +367,26 @@ int run(const Options& o, IAudioProcessingObjectRT* rt,
 		APO_CONNECTION_PROPERTY* outs[1] = {outProp};
 		rt->APOProcess(1, ins, 1, outs);
 
+		if (receiverRt != nullptr)
+		{
+			memset(reinterpret_cast<void*>(receiverInProp->pBuffer), 0, (size_t)o.frames * o.inputChannels * sizeof(SampleT));
+			memset(reinterpret_cast<void*>(receiverOutProp->pBuffer), 0, (size_t)o.frames * o.outputChannels * sizeof(SampleT));
+			receiverInProp->u32ValidFrameCount = o.frames;
+			// BUFFER_SILENT can bypass the processing that receives Send audio.
+			receiverInProp->u32BufferFlags = BUFFER_VALID;
+			receiverOutProp->u32ValidFrameCount = 0;
+			receiverOutProp->u32BufferFlags = BUFFER_INVALID;
+			APO_CONNECTION_PROPERTY* receiverIns[1] = {receiverInProp};
+			APO_CONNECTION_PROPERTY* receiverOuts[1] = {receiverOutProp};
+			receiverRt->APOProcess(1, receiverIns, 1, receiverOuts);
+			if (receiverOutProp->u32ValidFrameCount != o.frames)
+			{
+				fwprintf(stderr, L"block %u: receiver APOProcess reported %u valid frames, expected %u\n",
+					block, receiverOutProp->u32ValidFrameCount, o.frames);
+				return 1;
+			}
+		}
+
 		if (block < o.skipBlocks)
 			continue;
 		if (outProp->u32ValidFrameCount != o.frames)
@@ -347,6 +404,12 @@ int run(const Options& o, IAudioProcessingObjectRT* rt,
 			sumIn += in * in;
 			sumOut += out * out;
 			sumDiff += (out - in) * (out - in);
+			if (receiverRt != nullptr)
+			{
+				const double received = receiverOutProp->u32BufferFlags == BUFFER_SILENT ? 0.0
+					: (double)reinterpret_cast<SampleT*>(receiverOutProp->pBuffer)[(size_t)f * o.outputChannels];
+				sumReceiver += received * received;
+			}
 			counted++;
 		}
 	}
@@ -354,7 +417,105 @@ int run(const Options& o, IAudioProcessingObjectRT* rt,
 	rmsOut = std::sqrt(sumOut / (double)counted);
 	gainDb = toDb(rmsOut / rmsIn);
 	residualDb = toDb(std::sqrt(sumDiff / (double)counted) / rmsIn);
+	if (receiverRt != nullptr)
+		receiverGainDb = toDb(std::sqrt(sumReceiver / (double)counted) / rmsIn);
 	return 0;
+}
+
+// The sender is already locked. Keep the receiver's entire lifetime inside
+// this call so it unlocks and releases before the sender does, even on failure.
+int runRound(const Options& o, IClassFactory* factory, const APOInitSystemEffects2& senderInit,
+	IAudioProcessingObjectRT* rt, const APO_CONNECTION_DESCRIPTOR& inDesc,
+	const APO_CONNECTION_DESCRIPTOR& outDesc, APO_CONNECTION_PROPERTY& inProp,
+	APO_CONNECTION_PROPERTY& outProp, double& gainDb, double& residualDb,
+	double& rmsIn, double& rmsOut, double& receiverGainDb)
+{
+	ComRelease<EndpointPropertyStore> store;
+	ComRelease<IAudioProcessingObject> apo;
+	ComRelease<IAudioProcessingObjectRT> receiverRt;
+	ComRelease<IAudioProcessingObjectConfiguration> cfg;
+	ComRelease<IAudioMediaType> suggested;
+	void* input = nullptr;
+	void* output = nullptr;
+	APO_CONNECTION_PROPERTY receiverInProp = inProp;
+	APO_CONNECTION_PROPERTY receiverOutProp = outProp;
+
+	if (!o.receiverEndpointGuid.empty())
+	{
+		HRESULT hr = factory->CreateInstance(nullptr, __uuidof(IAudioProcessingObject), reinterpret_cast<void**>(&apo.p));
+		if (FAILED(hr))
+		{
+			fwprintf(stderr, L"receiver CreateInstance failed: 0x%08X\n", hr);
+			return 1;
+		}
+		if (FAILED(apo.p->QueryInterface(__uuidof(IAudioProcessingObjectRT), reinterpret_cast<void**>(&receiverRt.p)))
+			|| FAILED(apo.p->QueryInterface(__uuidof(IAudioProcessingObjectConfiguration), reinterpret_cast<void**>(&cfg.p))))
+		{
+			fwprintf(stderr, L"the receiver APO does not expose RT/Configuration interfaces\n");
+			return 1;
+		}
+		store.p = new EndpointPropertyStore(o.receiverEndpointGuid);
+		APOInitSystemEffects2 init = senderInit;
+		init.pAPOEndpointProperties = store.p;
+		hr = apo.p->Initialize(sizeof(init), reinterpret_cast<BYTE*>(&init));
+		fwprintf(stderr, L"receiver Initialize: 0x%08X\n", hr);
+		if (FAILED(hr))
+			return 1;
+
+		hr = apo.p->IsInputFormatSupported(outDesc.pFormat, inDesc.pFormat, &suggested.p);
+		fwprintf(stderr, L"receiver IsInputFormatSupported: 0x%08X%s\n", hr,
+			hr == S_FALSE ? L" (another input format was suggested)" : L"");
+		if (FAILED(hr))
+			return 1;
+
+		const size_t sampleBytes = o.float64 ? sizeof(double) : sizeof(float);
+		input = _aligned_malloc((size_t)o.frames * o.inputChannels * sampleBytes, 64);
+		output = _aligned_malloc((size_t)o.frames * o.outputChannels * sampleBytes, 64);
+		if (input == nullptr || output == nullptr)
+		{
+			fwprintf(stderr, L"receiver out of memory\n");
+			_aligned_free(output);
+			_aligned_free(input);
+			return 1;
+		}
+		APO_CONNECTION_DESCRIPTOR receiverInDesc = inDesc;
+		receiverInDesc.pBuffer = reinterpret_cast<UINT_PTR>(input);
+		APO_CONNECTION_DESCRIPTOR receiverOutDesc = outDesc;
+		receiverOutDesc.pBuffer = reinterpret_cast<UINT_PTR>(output);
+		APO_CONNECTION_DESCRIPTOR* inDescs[1] = {&receiverInDesc};
+		APO_CONNECTION_DESCRIPTOR* outDescs[1] = {&receiverOutDesc};
+		hr = cfg.p->LockForProcess(1, inDescs, 1, outDescs);
+		fwprintf(stderr, L"receiver LockForProcess: 0x%08X\n", hr);
+		if (FAILED(hr))
+		{
+			_aligned_free(output);
+			_aligned_free(input);
+			return 1;
+		}
+		receiverInProp.pBuffer = reinterpret_cast<UINT_PTR>(input);
+		receiverOutProp.pBuffer = reinterpret_cast<UINT_PTR>(output);
+	}
+
+	int result;
+	if (o.float64)
+		result = run<double>(o, rt, &inProp, &outProp,
+			reinterpret_cast<double*>(inProp.pBuffer), reinterpret_cast<double*>(outProp.pBuffer),
+			gainDb, residualDb, rmsIn, rmsOut, receiverGainDb, receiverRt.p, &receiverInProp, &receiverOutProp);
+	else
+		result = run<float>(o, rt, &inProp, &outProp,
+			reinterpret_cast<float*>(inProp.pBuffer), reinterpret_cast<float*>(outProp.pBuffer),
+			gainDb, residualDb, rmsIn, rmsOut, receiverGainDb, receiverRt.p, &receiverInProp, &receiverOutProp);
+
+	if (cfg.p != nullptr)
+	{
+		const HRESULT hr = cfg.p->UnlockForProcess();
+		fwprintf(stderr, L"receiver UnlockForProcess: 0x%08X\n", hr);
+		if (FAILED(hr))
+			result = 1;
+	}
+	_aligned_free(output);
+	_aligned_free(input);
+	return result;
 }
 }
 
@@ -510,13 +671,14 @@ int wmain(int argc, wchar_t** argv)
 		APO_CONNECTION_PROPERTY outProp = inProp;
 		outProp.pBuffer = reinterpret_cast<UINT_PTR>(output);
 
-		double gainDb = 0.0, residualDb = 0.0, rmsIn = 0.0, rmsOut = 0.0;
-		if (o.float64)
-			result = run<double>(o, rt.p, &inProp, &outProp, static_cast<double*>(input), static_cast<double*>(output), gainDb, residualDb, rmsIn, rmsOut);
-		else
-			result = run<float>(o, rt.p, &inProp, &outProp, static_cast<float*>(input), static_cast<float*>(output), gainDb, residualDb, rmsIn, rmsOut);
+		double gainDb = 0.0, residualDb = 0.0, rmsIn = 0.0, rmsOut = 0.0, receiverGainDb = 0.0;
+		result = runRound(o, factory.p, init, rt.p, inDesc, outDesc, inProp, outProp,
+			gainDb, residualDb, rmsIn, rmsOut, receiverGainDb);
 
-		cfg.p->UnlockForProcess();
+		hr = cfg.p->UnlockForProcess();
+		fwprintf(stderr, L"UnlockForProcess: 0x%08X\n", hr);
+		if (FAILED(hr))
+			result = 1;
 		_aligned_free(input);
 		_aligned_free(output);
 
@@ -529,9 +691,13 @@ int wmain(int argc, wchar_t** argv)
 			if (o.json)
 			{
 				printf("{\"endpoint\":\"%ls\",\"stage\":\"%s\",\"rate\":%u,\"in\":%u,\"out\":%u,\"format\":\"%s\","
-					"\"rmsIn\":%.6f,\"rmsOut\":%.6f,\"gainDb\":%.3f,\"residualDb\":%.1f,\"changed\":%s}\n",
+					"\"rmsIn\":%.6f,\"rmsOut\":%.6f,\"gainDb\":%.3f,\"residualDb\":%.1f,\"changed\":%s",
 					o.endpointGuid.c_str(), o.preMix ? "premix" : "postmix", o.sampleRate, o.inputChannels, o.outputChannels,
 					o.float64 ? "float64" : "float32", rmsIn, rmsOut, gainDb, residualDb, changed ? "true" : "false");
+				if (!o.receiverEndpointGuid.empty())
+					printf(",\"mode\":\"send\",\"receiverEndpoint\":\"%ls\",\"receiverGainDb\":%.3f",
+						o.receiverEndpointGuid.c_str(), receiverGainDb);
+				printf("}\n");
 			}
 			else
 			{
@@ -539,10 +705,15 @@ int wmain(int argc, wchar_t** argv)
 					o.sampleRate, o.inputChannels, o.outputChannels, o.float64 ? "float64" : "float32");
 				printf("rms in %.6f out %.6f gain %.3f dB residual %.1f dB -> %s\n",
 					rmsIn, rmsOut, gainDb, residualDb, changed ? "the APO changed the signal" : "passthrough");
+				if (!o.receiverEndpointGuid.empty())
+					printf("receiver endpoint %ls gain %.3f dB\n", o.receiverEndpointGuid.c_str(), receiverGainDb);
 			}
-			if (o.haveExpectation && std::fabs(gainDb - o.expectGainDb) > o.toleranceDb)
+			const double measuredGainDb = o.receiverEndpointGuid.empty() ? gainDb : receiverGainDb;
+			if (o.haveExpectation && (!std::isfinite(measuredGainDb)
+				|| std::fabs(measuredGainDb - o.expectGainDb) > o.toleranceDb))
 			{
-				fprintf(stderr, "gain %.3f dB is outside %.3f +- %.3f dB\n", gainDb, o.expectGainDb, o.toleranceDb);
+				fprintf(stderr, "%sgain %.3f dB is outside %.3f +- %.3f dB\n",
+					o.receiverEndpointGuid.empty() ? "" : "receiver ", measuredGainDb, o.expectGainDb, o.toleranceDb);
 				result = 2;
 			}
 		}

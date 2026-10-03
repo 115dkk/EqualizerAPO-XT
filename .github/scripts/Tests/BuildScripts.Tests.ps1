@@ -103,6 +103,9 @@ Describe "extracted build script decisions" {
         $plan.VbCableSha256 | Should -Match "^[0-9A-F]{64}$"
         $plan.VbCableUrl | Should -Match "^https://download\.vb-audio\.com/"
         $plan.RenderConnection | Should -Be "CABLE Input"
+        # Send: the receiving instance plays the sender's tone at unity.
+        $plan.SendRound.ExpectGainDb | Should -Be 0
+        $plan.SendRound.Required | Should -BeTrue
         $plan.CaptureConnection | Should -Be "CABLE Output"
         $plan.PreampDb | Should -BeLessThan 0
         $names = @($plan.Measurements | ForEach-Object { $_.Name })

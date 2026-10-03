@@ -117,6 +117,14 @@ $asioEntryMeasurement = [pscustomobject]@{ Name = "asio-entry"; ExpectGainDb = $
 # The first size is the gated one; the rest are recorded. Small first: the
 # entry has to hold a small buffer, the point of exclusive mode.
 $asioEntryFrames = @(256, 1024, 2048)
+# The Send round (docs/features/send.md): EqualizerAPO.dll hosted twice in
+# one process, for the cable's playback endpoint and a second active playback
+# endpoint, under a config whose Send line hands the first one's channels to
+# the second. The receiving instance's output must carry the sender's tone.
+# It needs that second playback endpoint, which a hosted runner may not show;
+# the phase lists the runner's active playback endpoints either way and is
+# skipped, saying so, without one.
+$sendRound = [pscustomobject]@{ Name = "send-round"; ExpectGainDb = 0.0; ToleranceDb = 0.5; Required = $true; Note = "a Send line hands the sender's tone to the receiving instance" }
 
 $plan = [pscustomobject]@{
     VbCableUrl = $VbCableUrl
@@ -129,6 +137,7 @@ $plan = [pscustomobject]@{
     LowLatency = $lowLatencyMeasurements
     AsioEntry = $asioEntryMeasurement
     AsioEntryFrames = $asioEntryFrames
+    SendRound = $sendRound
     StageRoot = $StageRoot
 }
 if ($PlanOnly) { return $plan }
@@ -150,6 +159,8 @@ $summary = [ordered]@{
     endpoints = $null
     stage = $null
     apoHost = $null
+    renderEndpoints = @()
+    sendRound = $null
     rounds = @()
     lowLatency = $null
     asioEntry = $null
@@ -218,6 +229,21 @@ function Get-EndpointGuid([string] $flow, [string] $connectionName) {
         if ($connection -eq $connectionName -and [int]$state -eq 1) { return $key.PSChildName }
     }
     return $null
+}
+
+function Get-ActiveRenderEndpoints {
+    $root = "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render"
+    if (-not (Test-Path $root)) { return @() }
+    $found = @()
+    foreach ($key in Get-ChildItem $root -ErrorAction SilentlyContinue) {
+        $state = (Get-ItemProperty -Path $key.PSPath -Name DeviceState -ErrorAction SilentlyContinue).DeviceState
+        if ($null -eq $state -or [int]$state -ne 1) { continue }
+        $properties = Get-ItemProperty -Path "$($key.PSPath)\Properties" -ErrorAction SilentlyContinue
+        $connection = if ($properties -and $properties.PSObject.Properties["{a45c254e-df1c-4efd-8020-67d146a850e0},2"]) { $properties."{a45c254e-df1c-4efd-8020-67d146a850e0},2" } else { "" }
+        $device = if ($properties -and $properties.PSObject.Properties["{b3f8fa53-0004-438e-9003-51a46e139bfc},6"]) { $properties."{b3f8fa53-0004-438e-9003-51a46e139bfc},6" } else { "" }
+        $found += [pscustomobject]@{ Guid = $key.PSChildName; Connection = $connection; Device = $device }
+    }
+    return $found
 }
 
 function Wait-CableEndpoints([int] $timeoutSeconds) {
@@ -513,6 +539,42 @@ $hostRun = Invoke-Program $apoHostProbe @("--dll", (Join-Path $current "Equalize
 $summary.apoHost = [ordered]@{ exitCode = $hostRun.ExitCode; output = ($hostRun.StdOut + $hostRun.StdErr) }
 if ($hostRun.ExitCode -ne 0) {
     Add-Failure "apo-host: EqualizerAPO.dll hosted for the capture endpoint did not apply the preamp (exit $($hostRun.ExitCode))"
+}
+
+# ---------------------------------------------------------------------------
+Write-Phase "the DLL hosted for two playback endpoints, one sending to the other (no audio engine)"
+$renderEndpoints = @(Get-ActiveRenderEndpoints)
+$summary.renderEndpoints = @($renderEndpoints | ForEach-Object { "$($_.Guid) $($_.Connection) ($($_.Device))" })
+foreach ($line in $summary.renderEndpoints) { Write-Host "active playback endpoint $line" }
+$receiver = $renderEndpoints | Where-Object { $_.Guid -ne $endpoints.Render } | Select-Object -First 1
+if ($null -eq $receiver) {
+    $summary.sendRound = [ordered]@{ verdict = "skipped"; reason = "the runner shows one active playback endpoint" }
+    Write-Host "send-round skipped: the runner shows one active playback endpoint"
+}
+else {
+    # Device: keeps the Send line to the sending instance; the receiver loads
+    # the same file and must not try to send to itself.
+    $sendConfig = "Device: $($endpoints.Render)`r`nSend: $($receiver.Guid) L=L R=R Compensate=false`r`n"
+    [System.IO.File]::WriteAllText($configFile, $sendConfig, (New-Object System.Text.UTF8Encoding($false)))
+    try {
+        $sendRun = Invoke-Program $apoHostProbe @("--dll", (Join-Path $current "EqualizerAPO.dll"),
+            "--endpoint", $endpoints.Render, "--stage", "postmix", "--send-to", $receiver.Guid, "--json",
+            "--expect-gain-db", $sendRound.ExpectGainDb.ToString([cultureinfo]::InvariantCulture),
+            "--tolerance-db", $sendRound.ToleranceDb.ToString([cultureinfo]::InvariantCulture)) 60
+    }
+    finally {
+        [System.IO.File]::WriteAllText($configFile, $config, (New-Object System.Text.UTF8Encoding($false)))
+    }
+    $summary.sendRound = [ordered]@{
+        verdict = if ($sendRun.ExitCode -eq 0) { "passed" } else { "failed" }
+        receiver = "$($receiver.Guid) $($receiver.Connection) ($($receiver.Device))"
+        config = $sendConfig.Trim()
+        exitCode = $sendRun.ExitCode
+        output = ($sendRun.StdOut + $sendRun.StdErr)
+    }
+    if ($sendRun.ExitCode -ne 0) {
+        Add-Failure "send-round: the receiving instance did not play the sender's tone at $($sendRound.ExpectGainDb) dB (exit $($sendRun.ExitCode))"
+    }
 }
 
 # ---------------------------------------------------------------------------
