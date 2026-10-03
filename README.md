@@ -67,7 +67,7 @@ Current work areas:
 10. Virtual channels and sending audio to another endpoint. `NewChannel:`
     declares silent virtual channels and adds them to the selection, so an
     upmixer plug-in can write to channels the device does not have
-    ([#PRNUM](https://github.com/115dkk/EqualizerAPO-XT/pull/PRNUM)). Next is
+    ([#407](https://github.com/115dkk/EqualizerAPO-XT/pull/407)). Next is
     `Send:`, which hands channels to the APO of another endpoint in the same
     audio engine, for interfaces such as the Topping E4x4 Pre that Windows
     shows as several stereo endpoints.

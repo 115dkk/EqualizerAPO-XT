@@ -56,7 +56,7 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
    엔드포인트를 하나의 항목으로 묶는 일입니다.
 10. 가상 채널과 다른 엔드포인트로 보내기. `NewChannel:`은 무음 가상 채널을
     선언하고 선택에 더하므로, 업믹서 플러그인이 장치에 없는 채널에 출력을 쓸 수
-    있습니다([#PRNUM](https://github.com/115dkk/EqualizerAPO-XT/pull/PRNUM)).
+    있습니다([#407](https://github.com/115dkk/EqualizerAPO-XT/pull/407)).
     다음은 같은 오디오 엔진 안의 다른 엔드포인트 APO로 채널을 넘기는
     `Send:`입니다. Topping E4x4 Pre처럼 Windows가 스테레오 엔드포인트 여러 개로
     잡는 인터페이스를 위한 기능입니다.

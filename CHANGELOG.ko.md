@@ -19,7 +19,7 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   로그에 이유를 남깁니다. Editor에는 다섯 스킨 모두에 이 줄의 카드가 있어
   이름마다 칩 하나를 보여 주고, 엔진이 건너뛸 줄이면 그 이유를 적습니다.
   픽커는 Copy 옆에서 이 명령을 넣습니다
-  ([#PRNUM](https://github.com/115dkk/EqualizerAPO-XT/pull/PRNUM)).
+  ([#407](https://github.com/115dkk/EqualizerAPO-XT/pull/407)).
   엔진·Editor 로직·VST3 호스트 단위 테스트와 오디오 회귀 사례로 확인했고,
   카드는 오프스크린 스킨 갤러리에서 봤을 뿐 실제 장치에서는 확인하지
   않았습니다.

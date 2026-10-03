@@ -25,7 +25,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   makes the engine skip the whole line and log why. The Editor has a card for
   the line in every skin, with one chip per name and the reason when the
   engine would skip it, and the picker offers it next to Copy
-  ([#PRNUM](https://github.com/115dkk/EqualizerAPO-XT/pull/PRNUM)).
+  ([#407](https://github.com/115dkk/EqualizerAPO-XT/pull/407)).
   Tested with engine, Editor-logic and VST3 host unit tests and an audio
   regression case; the cards were checked in the offscreen skin gallery, not
   on a live device.
