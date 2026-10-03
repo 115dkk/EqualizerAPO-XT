@@ -57,9 +57,14 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
 10. 가상 채널과 다른 엔드포인트로 보내기. `NewChannel:`은 무음 가상 채널을
     선언하고 선택에 더하므로, 업믹서 플러그인이 장치에 없는 채널에 출력을 쓸 수
     있습니다([#407](https://github.com/115dkk/EqualizerAPO-XT/pull/407)).
-    다음은 같은 오디오 엔진 안의 다른 엔드포인트 APO로 채널을 넘기는
-    `Send:`입니다. Topping E4x4 Pre처럼 Windows가 스테레오 엔드포인트 여러 개로
-    잡는 인터페이스를 위한 기능입니다.
+    `Send:`는 같은 오디오 엔진 안의 다른 재생 엔드포인트 APO로 채널을
+    넘깁니다. Topping E4x4 Pre처럼 Windows가 스테레오 엔드포인트 여러 개로
+    잡는 인터페이스를 위한 기능이고, 장치 선택기의 전송 옵션이 받는
+    엔드포인트를 계속 돌게 합니다
+    ([#409](https://github.com/115dkk/EqualizerAPO-XT/pull/409),
+    [docs/features/send.md](docs/features/send.md)). 남은 것은 실제 다중
+    엔드포인트 인터페이스에서의 측정과, 받는 쪽 주기를 따르는 지연
+    (`Latency=Auto`)입니다.
 
 ## 주요 기능
 
@@ -84,6 +89,7 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
   [Dynamic Velvet Decorrelator VST3](https://github.com/115dkk/Velvet-Noise-Decorrelator-VST3)도
   별도로 배포합니다.
 - 한 줄 서브우퍼 라우팅: `SubwooferRouting:`가 스피커 그룹별 크로스오버, 전용 베이스 경로, 물리 LFE 입력 보존, 경로별 게인·극성·지연·EQ, 출력 합산 행렬을 JSON 상태 하나로(인라인 또는 `*.swxt.json` 프로필) 실행합니다. 자동 헤드룸이 합산 출력을 지키고, 내장 프리셋은 이슈 #246의 원본 사슬을 샘플 단위로 재현합니다. 같은 MIT 라이선스 DSP 코어가 독립 실행형 `EAPO XT Subwoofer Routing` VST3 플러그인으로도 실려, 동일한 JSON 상태를 주고받습니다.
+- 엔드포인트 사이 전송: `Send: {엔드포인트} L=SUB1 R=SUB2`는 같은 컴퓨터의 다른 재생 엔드포인트 이퀄라이저로 채널을 넘기고, 이 엔드포인트의 채널을 그만큼 늦춰 시간을 맞추며, 받는 쪽 소리에 섞거나 대신할 수 있습니다. 장치 선택기의 전송 옵션을 켜면 받는 엔드포인트에서 아무것도 재생하지 않아도 처리가 돕니다.
 - 이름으로 가상 채널을 만듭니다. `NewChannel: VC VRL VRR`은 장치에 없는 무음 채널을 선언하고 채널 선택에 더하므로, VST 업믹서가 늘린 출력을 받아 두었다가 `Copy:` 줄로 장치 채널에 다시 섞을 수 있습니다.
 - Steinberg VST3 SDK(MIT 라이선스 pluginterfaces)로 VST3를 네이티브 호스팅하며, 플러그인이 지원하면 64비트(double)로 처리합니다. 채널 배치는 실제 채널 이름으로 협상하므로 4.1 시스템이 5.0으로 잘못 알려지지 않습니다.
 - `VSTPlugin: Library "...\\Plugin.vst3" Input Stereo Output 7.1`처럼 VST3 주 입력·출력 버스를 서로 다르게 지정할 수 있습니다. 각 방향은 Auto, Mono, Stereo, 4.0, 4.1, 5.0, 5.1, 6.1, 7.1, 7.1.2, 7.1.4를 지원합니다. VST3가 계약을 거부하면 다른 폭으로 몰래 바꾸지 않고 입력을 그대로 통과시키며, VST2는 레이아웃 키를 무시합니다. 자세한 문법은 [설정 레퍼런스](https://github.com/115dkk/EqualizerAPO-XT/wiki/Korean-Configuration-reference#vstplugin-버스-레이아웃)에 있습니다.

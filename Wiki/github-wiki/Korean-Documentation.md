@@ -72,7 +72,7 @@ Equalizer APO는 기본적으로 사운드 카드 드라이버에 딸려 온 효
 Equalizer APO가 채우는 슬롯은 그 방향의 모든 처리 모드(녹음은 Default·Communications·Speech, 재생은 Default·Media·Movie·Communications·Notification)에 등록되므로, 모드를 선언하는 드라이버(Realtek, Intel SST 등)에서도 음성 채팅 앱이 Communications로 태그한 스트림이 APO에 닿습니다. 2.49.0 이전에 설치한 것은 Default 모드에만 올라 있으며, 장치 선택기에서 해제했다가 다시 설치해야(체크 해제, 확인, 다시 체크, 확인) 새 목록을 받습니다.
 
 ### 명령줄에서 쓰는 장치 선택기
-`DeviceSelector --install-endpoint {엔드포인트 GUID}`와 `DeviceSelector --uninstall-endpoint {엔드포인트 GUID}`는 대화상자의 확인 버튼이 엔드포인트 하나에 하는 일을 그대로 하고, 같은 장치 테스트를 돌린 뒤, APO가 오디오 엔진 안에서 살아 있다고 보고했을 때 0으로 끝납니다. `--install-mode lfx-gfx|sfx-mfx|sfx-efx`는 슬롯 쌍을 고정하고, `--no-original-apo`는 드라이버 APO를 체인에서 빼며, `--asio-entry`는 엔드포인트의 ASIO 항목을 더하고(처음 이름인 `--exclusive-mode-eq`도 그대로 받습니다), `--no-test`는 장치 테스트를 건너뜁니다. 대화상자처럼 관리자 권한이 필요하고, 모든 줄이 `DeviceSelector.log`에도 남습니다.
+`DeviceSelector --install-endpoint {엔드포인트 GUID}`와 `DeviceSelector --uninstall-endpoint {엔드포인트 GUID}`는 대화상자의 확인 버튼이 엔드포인트 하나에 하는 일을 그대로 하고, 같은 장치 테스트를 돌린 뒤, APO가 오디오 엔진 안에서 살아 있다고 보고했을 때 0으로 끝납니다. `--install-mode lfx-gfx|sfx-mfx|sfx-efx`는 슬롯 쌍을 고정하고, `--no-original-apo`는 드라이버 APO를 체인에서 빼며, `--asio-entry`는 엔드포인트의 ASIO 항목을 더하고(처음 이름인 `--exclusive-mode-eq`도 그대로 받습니다), `--receive`는 다른 엔드포인트의 `Send:` 줄이 넘긴 소리를 이 엔드포인트가 재생하도록 전송 옵션을 켜며(post-mix 단계가 설치된 재생 엔드포인트만), `--no-test`는 장치 테스트를 건너뜁니다. 대화상자처럼 관리자 권한이 필요하고, 모든 줄이 `DeviceSelector.log`에도 남습니다.
 
 ### 제어판에서 오디오 향상이 꺼져 있음
 설정 파일을 아무리 바꿔도 소리에 변화가 없다면, Windows 소리 설정에서 해당 장치의 APO가 꺼져 있을 수 있습니다. **시작 → 설정 → 시스템 → 소리**에서 장치 속성을 열고 다음을 확인합니다.

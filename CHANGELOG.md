@@ -14,6 +14,30 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **New command `Send:` hands channels to another playback endpoint.** An
+  interface that Windows shows as several stereo endpoints, such as a Topping
+  E4x4 Pre (Playback 1/2 and Playback 3/4), can now be driven from one
+  configuration: `Send: {GUID of Playback 3/4} L=SUB1 R=SUB2` on Playback 1/2
+  plays SUB1 and SUB2 on the outputs of Playback 3/4, through that endpoint's
+  own equalizer. By default this endpoint's channels are delayed by the same
+  latency so both play in time (`Compensate=`), the received channels are
+  mixed into what the receiver plays (`Mode=Replace` overwrites them), and the
+  latency is two processing periods (`Latency=` in ms or samples). Send works
+  between playback endpoints of the audio service, in the post-mix stage. The
+  Device Selector has a new **Send** option for the receiving endpoint: it
+  keeps a silent stream open there from logon through `EqualizerAPOHost.exe`,
+  so the receiver plays what it is sent even when no program plays on it. The
+  Editor has a Send card in every skin with an endpoint list, the routing in
+  the skin's routing view, the latency, the compensation switch and the mode
+  ([#409](https://github.com/115dkk/EqualizerAPO-XT/pull/409)). Tested
+  with unit tests, two engines in one process, and `EqualizerAPO.dll` hosted
+  twice by ApoHostProbe for two playback endpoints, where the receiving
+  endpoint played the sender's tone at 0.0 dB. It was not run inside the
+  audio service with two real endpoints, and whether the audio service runs
+  the receiver for the keepalive stream's zero-filled buffers was not
+  measured (a registry switch to dither the stream is there if it does not;
+  see docs/features/send.md).
+
 ## v2.56.0 — 2026-10-03
 
 - **v2.55.0 was not published; this release carries its changes.** GitHub
