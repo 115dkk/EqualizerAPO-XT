@@ -14,6 +14,22 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **New command `NewChannel:` creates virtual channels and selects them.**
+  `NewChannel: VC VRL VRR` declares silent channels the device does not have
+  and adds them to the current selection, so a `VSTPlugin:` line below can
+  fill them through `OutputChannels` and a `Copy:` line can mix them back
+  into the device's channels. `Copy: VC=0` already made such a channel, but
+  it did not select it, the Editor refused to write it, and `Copy: VC=1`
+  copies channel 1 instead. Names are upper-cased; a name that starts with a
+  digit, is `ALL`, contains a Copy separator or is a channel of the device
+  makes the engine skip the whole line and log why. The Editor has a card for
+  the line in every skin, with one chip per name and the reason when the
+  engine would skip it, and the picker offers it next to Copy
+  ([#407](https://github.com/115dkk/EqualizerAPO-XT/pull/407)).
+  Tested with engine, Editor-logic and VST3 host unit tests and an audio
+  regression case; the cards were checked in the offscreen skin gallery, not
+  on a live device.
+
 ## v2.54.32 — 2026-09-27
 
 - **Include reads files in the configuration folder again.** From v2.54.23,

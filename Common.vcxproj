@@ -310,6 +310,9 @@
     <ClInclude Include="filters\ChannelCommand.h" />
     <ClInclude Include="filters\ChannelFilter.h" />
     <ClInclude Include="filters\ChannelFilterFactory.h" />
+    <ClInclude Include="filters\NewChannelCommand.h" />
+    <ClInclude Include="filters\NewChannelFilter.h" />
+    <ClInclude Include="filters\NewChannelFilterFactory.h" />
     <ClInclude Include="filters\ConvolutionCommand.h" />
     <ClInclude Include="filters\ConvolutionFilter.h" />
     <ClInclude Include="filters\ConfigFileReference.h" />
@@ -467,6 +470,9 @@
     <ClCompile Include="filters\ChannelCommand.cpp" />
     <ClCompile Include="filters\ChannelFilter.cpp" />
     <ClCompile Include="filters\ChannelFilterFactory.cpp" />
+    <ClCompile Include="filters\NewChannelCommand.cpp" />
+    <ClCompile Include="filters\NewChannelFilter.cpp" />
+    <ClCompile Include="filters\NewChannelFilterFactory.cpp" />
     <ClCompile Include="filters\ConvolutionCommand.cpp" />
     <ClCompile Include="filters\ConvolutionFilter.cpp" />
     <ClCompile Include="filters\ConfigFileReference.cpp" />

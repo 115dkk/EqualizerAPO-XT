@@ -99,6 +99,7 @@ if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"</
     <ClCompile Include="InstallDiagnosticsTests.cpp" />
     <ClCompile Include="JudgedPathTests.cpp" />
     <ClCompile Include="NamedPipeSecurityTests.cpp" />
+    <ClCompile Include="NewChannelTests.cpp" />
     <ClCompile Include="RegistryConformanceTests.cpp" />
     <ClCompile Include="RegistryTransactionTests.cpp" />
     <ClCompile Include="RuntimeUtilityTests.cpp" />

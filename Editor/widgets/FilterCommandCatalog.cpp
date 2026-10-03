@@ -49,6 +49,9 @@ const QList<CommandEntry>& commands()
 		{ "Channel", "channel", "CH", "#3b82f6", "channel-select", true, false,
 		  QT_TRANSLATE_NOOP("FilterCardModel", "Channel"),
 		  QT_TRANSLATE_NOOP("FilterPickerView", "Selects which channels the following filters affect") },
+		{ "NewChannel", "newchannel", "VCH", "#06b6d4", "channel-add", true, false,
+		  QT_TRANSLATE_NOOP("FilterCardModel", "New channel"),
+		  QT_TRANSLATE_NOOP("FilterPickerView", "Creates silent virtual channels and adds them to the selection") },
 		{ "Include", "include", "INC", "#64748b", "file-include", true, true,
 		  QT_TRANSLATE_NOOP("FilterCardModel", "Include"),
 		  QT_TRANSLATE_NOOP("FilterPickerView", "Loads another configuration file here") },
@@ -180,6 +183,12 @@ const QList<TemplateEntry>& pickerTemplates()
 		  QT_TRANSLATE_NOOP("PreampFilterGUIFactory", "Basic filters"), "PreampFilterGUIFactory" },
 		{ QT_TRANSLATE_NOOP("CopyFilterGUIFactory", "Copy (Copy between channels)"), "CopyFilterGUIFactory",
 		  "Copy: ", TemplateKind::Literal,
+		  QT_TRANSLATE_NOOP("CopyFilterGUIFactory", "Basic filters"), "CopyFilterGUIFactory" },
+		// NewChannel has no legacy factory (the legacy rows are frozen), so
+		// its name has a context of its own; the section reuses Copy's. An
+		// empty "NewChannel:" is a parse error, so the template names one.
+		{ QT_TRANSLATE_NOOP("FilterCommandCatalog", "NewChannel (Create virtual channels)"), "FilterCommandCatalog",
+		  "NewChannel: VC", TemplateKind::Literal,
 		  QT_TRANSLATE_NOOP("CopyFilterGUIFactory", "Basic filters"), "CopyFilterGUIFactory" },
 		// Parametric filters
 		{ QT_TRANSLATE_NOOP("BiQuadFilterGUIFactory", "Peaking filter"), "BiQuadFilterGUIFactory",

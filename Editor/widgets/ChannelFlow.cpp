@@ -6,12 +6,14 @@
 
 #include "ChannelFlow.h"
 
+#include "audio/ChannelLayout.h"
 #include "filters/ChannelCommand.h"
 #include "filters/CopyFilter.h"
 #include "filters/DeviceCommand.h"
 #include "filters/ExpressionCommand.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "filters/MultiConvolutionCommand.h"
+#include "filters/NewChannelCommand.h"
 #include "filters/StageCommand.h"
 #include "text/WideString.h"
 
@@ -64,7 +66,7 @@ std::vector<ChannelFlowAtLine> computeChannelFlow(const std::vector<ChannelFlowL
 
 	for (const ChannelFlowLine& line : lines)
 	{
-		flow.push_back({state.names, state.selected});
+		flow.push_back({state.names, state.selected, context.deviceChannels.size()});
 
 		// A switched-off line is a comment to the engine: it sees the flow
 		// (its controls keep their meaning) and changes nothing.
@@ -76,7 +78,8 @@ std::vector<ChannelFlowAtLine> computeChannelFlow(const std::vector<ChannelFlowL
 			continue;
 
 		// The same order the engine's factories see a line in
-		// (FilterFactoryPriority): Device, If, Stage, then Channel and Copy.
+		// (FilterFactoryPriority): Device, If, Stage, then Channel, Copy and
+		// NewChannel.
 		// A line a skipped Device: or Stage: block hides sees the flow and
 		// changes nothing.
 		if (keyword == L"Device")
@@ -172,6 +175,21 @@ std::vector<ChannelFlowAtLine> computeChannelFlow(const std::vector<ChannelFlowL
 			MultiConvolutionCommand cmd;
 			if (MultiConvolutionCommand::parse(keyword, line.parameters, cmd))
 				cmd.declareChannels(state.names);
+		}
+		else if (keyword == L"NewChannel")
+		{
+			// NewChannel declares its names and, unlike Copy, adds them to
+			// the selection (getSelectChannels is true in the engine). The
+			// engine rejects the whole line when one name is unusable, and
+			// then nothing changes here either.
+			NewChannelCommand cmd;
+			if (NewChannelCommand::parse(keyword, line.parameters, cmd) && !cmd.names.empty()
+				&& NewChannelCommand::validate(cmd.names, context.deviceChannels).empty())
+			{
+				for (const std::wstring& name : cmd.names)
+					ChannelLayout::declare(state.names, name);
+				state.selected = NewChannelCommand::extendSelection(state.selected, cmd.names);
+			}
 		}
 	}
 

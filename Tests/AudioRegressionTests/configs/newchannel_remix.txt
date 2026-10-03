@@ -1,0 +1,5 @@
+NewChannel: VC
+Copy: VC=0.5*L+0.5*R
+Channel: VC
+Delay: 16 samples
+Copy: L=L+0.5*VC R=R+0.5*VC

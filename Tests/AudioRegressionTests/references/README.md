@@ -179,6 +179,12 @@ regenerated. `HilbertVelvetTests` separately proves FIR antisymmetry, phase
 sign, 0 dB mid-band normalization, unit-energy/correlation bounds, smooth
 dynamic renewal and host-block invariance.
 
+## `newchannel_remix`
+
+`newchannel_remix.raw` was generated on 2026-10-03 by the current `avx2` build,
+because no older build implements `NewChannel`. It uses `ImpulseStereo`, 48000 Hz,
+2 channels, 256 frames in 64-frame blocks.
+
 ## VST (not covered)
 
 The VST processing filter is intentionally not given a regression case. It

@@ -97,6 +97,7 @@ const TestCase kCases[] = {
 	{ "preamp_minus6",       "preamp_minus6.txt",       SignalType::DCStereo,      48000, 2, 4800, 480 },
 	{ "biquad_peaking_1khz", "biquad_peaking_1khz.txt", SignalType::ImpulseStereo, 48000, 2, 8192, 512 },
 	{ "copy_crossfeed",      "copy_crossfeed.txt",      SignalType::ImpulseStereo, 48000, 2, 256,  64  },
+	{ "newchannel_remix",    "newchannel_remix.txt",    SignalType::ImpulseStereo, 48000, 2, 256,  64  },
 	// 2048 frames in 256-frame blocks puts the 512-sample delay line's read and
 	// write heads in different blocks, which is where a delay's ring-buffer
 	// wrap-around goes wrong if it goes wrong at all.

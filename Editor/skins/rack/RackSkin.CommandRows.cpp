@@ -29,7 +29,7 @@ QString unitLabel(const CommandRowInfo& info)
 	static const struct { const char* type; const char* label; } table[] = {
 		{ "biquad", "FILTER" }, { "graphiceq", "GRAPHIC" }, { "include", "PATCH" },
 		{ "vst", "VST" }, { "copy", "ROUTE" }, { "preamp", "PREAMP" },
-		{ "channel", "CHANNEL" }, { "device", "DEVICE" }, { "stage", "STAGE" },
+		{ "channel", "CHANNEL" }, { "newchannel", "NEW CH" }, { "device", "DEVICE" }, { "stage", "STAGE" },
 		{ "delay", "DELAY" }, { "convolution", "CONV" }, { "loudness", "LOUDNESS" },
 		{ "comment", "NOTE" }, { "text", "AUX" }
 	};

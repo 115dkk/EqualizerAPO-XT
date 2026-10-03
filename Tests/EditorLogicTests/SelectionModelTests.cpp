@@ -3,7 +3,8 @@
 	Copyright (C) 2026 115dkk
 	SPDX-License-Identifier: GPL-2.0-or-later
 
-	Card selection models: Channel, Device and Stage. Each model must write
+	Card selection models: Channel, Device and Stage, and the NewChannel
+	card's name list. Each model must write
 	the same bytes the legacy dialogs produced for an equivalent selection,
 	so every check here is a serialization identity.
 */
@@ -17,6 +18,7 @@
 
 #include "Editor/widgets/cards/ChannelSelectionModel.h"
 #include "Editor/widgets/cards/DeviceSelectionModel.h"
+#include "Editor/widgets/cards/NewChannelListModel.h"
 #include "Editor/widgets/cards/StageSelectionModel.h"
 
 #include "EditorLogicTestSupport.h"
@@ -201,4 +203,46 @@ void testStageSelectionModel()
 	expectEqual(model.serialize(), "", "an empty selection serializes empty (matches no stage)");
 	model.setSelected("capture", true);
 	expectEqual(model.serialize(), "capture", "a single selection writes just its token");
+}
+
+void testNewChannelListModel()
+{
+	// The NewChannel card's list: names are parsed and upper-cased by the
+	// engine's own codec, each carries the engine's verdict against the
+	// device, and an addition is all or nothing.
+	NewChannelListModel model;
+	model.setDeviceChannels({L"L", L"R", L"C", L"LFE", L"RL", L"RR"});
+
+	model.load("vc, VRL  vc");
+	expectEqual(model.names().join(' '), "VC VRL", "names are upper-cased and kept once");
+	expectEqual(model.serialize(), "VC VRL", "the line is written with single spaces");
+	expectFalse(model.hasProblems(), "virtual names have no problem");
+
+	NewChannelListModel::AddOutcome added = model.add("vx, VC");
+	expectEqual(added.added.join(' '), "VX", "an already listed name is skipped quietly");
+	expectTrue(added.rejected.isEmpty(), "nothing was refused");
+	expectEqual(model.serialize(), "VC VRL VX", "added names follow the existing ones");
+
+	NewChannelListModel::AddOutcome refused = model.add("VY SL");
+	expectEqual(refused.rejected, "SL", "an alias of a device channel is refused");
+	expectTrue(refused.problem == NewChannelCommand::Problem::DeviceChannel, "the refusal says why");
+	expectTrue(refused.added.isEmpty(), "one refused name adds none of them");
+	expectEqual(model.serialize(), "VC VRL VX", "a refused addition leaves the list alone");
+
+	expectTrue(model.add("2X").problem == NewChannelCommand::Problem::StartsWithDigit, "a leading digit is refused");
+	expectTrue(model.add("All").problem == NewChannelCommand::Problem::ReservedAll, "ALL is refused in any case");
+	expectTrue(model.add("A=B").problem == NewChannelCommand::Problem::SeparatorCharacter, "a Copy separator is refused");
+	expectFalse(NewChannelListModel::problemText(NewChannelCommand::Problem::DeviceChannel).isEmpty(),
+		"every problem has card wording");
+	expectTrue(NewChannelListModel::problemText(NewChannelCommand::Problem::None).isEmpty(),
+		"no problem, no wording");
+
+	// A name the engine refuses stays as written, flagged, until removed.
+	model.load("VC L");
+	expectEqual(model.serialize(), "VC L", "a refused name in the file is kept");
+	expectTrue(model.problem("L") == NewChannelCommand::Problem::DeviceChannel, "and flagged");
+	expectTrue(model.hasProblems(), "the list reports the problem");
+	model.remove("L");
+	expectFalse(model.hasProblems(), "removing it clears the problem");
+	expectEqual(model.serialize(), "VC", "the remaining name is written");
 }

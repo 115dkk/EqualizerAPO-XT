@@ -118,6 +118,7 @@ int main(int argc, char** argv)
 		testDeviceSelectionModel();
 		testMultiConvolutionRoutingAdapter();
 		testStageSelectionModel();
+		testNewChannelListModel();
 		testRoutingGridModelPorts();
 		testRoutingGridModel();
 		testRoutingFold();
