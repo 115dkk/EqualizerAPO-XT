@@ -8,11 +8,18 @@ fork started on 2026-05-22.
 
 Versions are bumped automatically by CI from Conventional Commits message
 types, so some version numbers were skipped (1.7, 1.9, 1.12.1, 1.14, 1.16,
-1.23, 1.25, 2.30.1, 2.31, 2.32, and 2.53 were never released). Tags up to v1.10.1 carried a `-main.<run>` suffix; from v1.11.0 on,
+1.23, 1.25, 2.30.1, 2.31, 2.32, 2.53, and 2.55.0 were never released). Tags up to v1.10.1 carried a `-main.<run>` suffix; from v1.11.0 on,
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
 ## Unreleased
+
+- **v2.55.0 was not published; this release carries its changes.** GitHub
+  moved the ARM64 build machines to a Visual Studio 2026 image that lacks the
+  ATL library the ARM64 build used, so the v2.55.0 build failed before any
+  installer was made. ARM64 now builds with the same compiler version as x64
+  ([#408](https://github.com/115dkk/EqualizerAPO-XT/pull/408)). The `NewChannel:`
+  command listed under v2.55.0 ships in this release.
 
 ## v2.55.0 — 2026-10-03
 
