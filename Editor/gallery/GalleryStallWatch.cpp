@@ -103,6 +103,13 @@ struct Counters
 	}
 };
 
+double systemBusy(const Counters& first, const Counters& last)
+{
+	const ULONGLONG total = difference(last.systemTotal, first.systemTotal);
+	const ULONGLONG idle = std::min(difference(last.systemIdle, first.systemIdle), total);
+	return total != 0 ? 100.0 * (1.0 - static_cast<double>(idle) / static_cast<double>(total)) : 0.0;
+}
+
 void relocate(DWORD64& value, DWORD64 original, size_t copied, DWORD64 delta)
 {
 	if (value >= original && value - original < copied)
@@ -477,9 +484,9 @@ void printThreads(Sampler& state, bool symbolsReady)
 	}
 }
 
-// The machine's other users between the threshold crossing and the end: a
-// runner's scanner or updater appears here, not among this process's threads.
-void printProcesses(const std::vector<ProcessTimes>& before, ULONGLONG since)
+// The machine's other users since the earlier reading: a runner's scanner or
+// updater appears here, not among this process's threads.
+QString topProcesses(const std::vector<ProcessTimes>& before, ULONGLONG since)
 {
 	const std::vector<ProcessTimes> after = readProcessTimes();
 	std::vector<std::pair<ULONGLONG, const ProcessTimes*>> used;
@@ -502,8 +509,7 @@ void printProcesses(const std::vector<ProcessTimes>& before, ULONGLONG since)
 		top.append(QStringLiteral("%1 (%2) %3 ms").arg(used[i].second->name).arg(used[i].second->id)
 			.arg(static_cast<double>(used[i].first) / 10000.0, 0, 'f', 1));
 	}
-	qWarning("StallWatch:   other processes, cpu since threshold: %s",
-		top.isEmpty() ? "none measured" : qPrintable(top.join(QStringLiteral(", "))));
+	return top.isEmpty() ? QStringLiteral("none measured") : top.join(QStringLiteral(", "));
 }
 }
 #endif
@@ -575,9 +581,7 @@ GalleryStallWatch::~GalleryStallWatch()
 	if (wallMs > state.thresholdMs)
 	{
 		const Counters& first = state.startCounters;
-		const ULONGLONG systemTotal = difference(endCounters.systemTotal, first.systemTotal);
-		const ULONGLONG systemIdle = difference(endCounters.systemIdle, first.systemIdle);
-		const double busy = systemTotal != 0 ? 100.0 * (1.0 - static_cast<double>(std::min(systemIdle, systemTotal)) / systemTotal) : 0.0;
+		const double busy = systemBusy(first, endCounters);
 		qWarning("StallWatch: %s %s: wall %.1f ms, gui cpu %.1f ms, process cpu %.1f ms, system busy %.1f%% of %lu cpus, page faults %lu, reads %llu ops %.1f KiB, writes %llu ops %.1f KiB, working set %.1f MiB, private %.1f MiB, memory load %lu%% (%.1f MiB free), sampler heartbeat max gap %.1f ms, gui samples %d",
 			gate, qPrintable(operation), wallMs,
 			static_cast<double>(difference(endCounters.guiCpu, first.guiCpu)) / 10000.0,
@@ -610,12 +614,60 @@ GalleryStallWatch::~GalleryStallWatch()
 		}
 		printThreads(state, symbolsReady);
 		if (state.processesTime != 0 && !state.processes.empty())
-			printProcesses(state.processes, state.processesTime);
+			qWarning("StallWatch:   other processes, cpu since threshold: %s",
+				qPrintable(topProcesses(state.processes, state.processesTime)));
 	}
 	for (int i = 0; i < state.threadCount; i++)
 	{
 		CloseHandle(state.threads[i].handle);
 		state.threads[i].handle = nullptr;
 	}
+#endif
+}
+
+#if defined(_M_X64)
+struct GalleryLoadSummary::State
+{
+	LONGLONG start = 0;
+	LONGLONG frequency = 0;
+	Counters counters;
+	ULONGLONG processesTime = 0;
+	std::vector<ProcessTimes> processes;
+};
+#else
+struct GalleryLoadSummary::State
+{
+};
+#endif
+
+GalleryLoadSummary::GalleryLoadSummary(const char* gate)
+	: gate(gate), state(std::make_unique<State>())
+{
+#if defined(_M_X64)
+	LARGE_INTEGER frequency;
+	QueryPerformanceFrequency(&frequency);
+	state->frequency = frequency.QuadPart;
+	state->counters.read(GetCurrentThread());
+	state->processesTime = systemTimeNow();
+	state->processes = readProcessTimes();
+	state->start = counter();
+#endif
+}
+
+GalleryLoadSummary::~GalleryLoadSummary() = default;
+
+void GalleryLoadSummary::report() const
+{
+#if defined(_M_X64)
+	const LONGLONG end = counter();
+	Counters last;
+	last.read(GetCurrentThread());
+	const Counters& first = state->counters;
+	qWarning("StallWatch: %s whole run: wall %.1f s, gui cpu %.1f s, process cpu %.1f s, system busy %.1f%% of %lu cpus; other processes: %s",
+		gate, static_cast<double>(end - state->start) / static_cast<double>(state->frequency),
+		static_cast<double>(difference(last.guiCpu, first.guiCpu)) / 1.0e7,
+		static_cast<double>(difference(last.processCpu, first.processCpu)) / 1.0e7,
+		systemBusy(first, last), GetActiveProcessorCount(ALL_PROCESSOR_GROUPS),
+		qPrintable(topProcesses(state->processes, state->processesTime)));
 #endif
 }

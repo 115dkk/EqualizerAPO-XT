@@ -122,6 +122,8 @@ int runSwitchTest(const QStringList& arguments)
 	Q_UNUSED(arguments);
 
 	qWarning("SkinSwitchTest: starting");
+	// What else ran on the machine during the gate, printed before the verdict.
+	const GalleryLoadSummary load("SkinSwitchTest");
 
 	FilterInsertSeam accessibilitySeam;
 	int seamActivations = 0;
@@ -508,6 +510,7 @@ int runSwitchTest(const QStringList& arguments)
 		qWarning("SkinSwitchTest: %d top-level widgets", windows);
 	}
 
+	load.report();
 	qWarning("SkinSwitchTest: %d switches over %d rows, worst %lld ms (%s), warning %d ms, limit %d ms, failures %d",
 		rounds * int(Skins::all().size()) * 2, int(lines.size()), static_cast<long long>(worstMs),
 		qPrintable(worstName), warningMs, limitMs, failures);
@@ -524,6 +527,8 @@ int runCardMoveTest(const QStringList& arguments)
 	Q_UNUSED(arguments);
 
 	qWarning("CardMoveTest: starting");
+	// What else ran on the machine during the gate, printed before the verdict.
+	const GalleryLoadSummary load("CardMoveTest");
 
 	// Scratch reference targets so the reference cards resolve like the
 	// gallery's; EAPO_SKIN_GALLERY also skips the audio-service ACL probe.
@@ -683,6 +688,7 @@ int runCardMoveTest(const QStringList& arguments)
 		}
 	}
 
+	load.report();
 	qWarning("CardMoveTest: %d moves over %lld rows, worst %lld ms (%s), warning %d ms, limit %d ms, failures %d",
 		moves, static_cast<long long>(lines.size()), static_cast<long long>(worstMs),
 		qPrintable(worstName), warningMs, limitMs, failures);
