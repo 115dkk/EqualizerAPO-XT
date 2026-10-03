@@ -122,6 +122,120 @@ namespace
 		return prepareAttach(region.get(), sampleRate, maxFrames, deviceChannels, nowQpc);
 	}
 
+	void checkWriterOwnershipAfterIdleTakeover(test::Harness& harness)
+	{
+		AlignedRegion region;
+		SendWriterCore writerA(region.get());
+		SendWriterCore writerB(region.get());
+		writerA.publish(params(100, 4, MixMode::Replace, {L"L"}), qpcFrequency);
+		writeMono(writerA, {1.0f, 2.0f, 3.0f, 4.0f}, 100);
+
+		const int64_t takeoverQpc = 100 + qpcFrequency + 1;
+		writerB.publish(params(200, 4, MixMode::Replace, {L"L"}), qpcFrequency);
+		writeMono(writerB, {20.0f, 21.0f, 22.0f, 23.0f}, takeoverQpc);
+		const int64_t positionAfterB = loadSigned64(&region.header()->writePos);
+		writeMono(writerA, {5.0f, 6.0f, 7.0f, 8.0f}, takeoverQpc + 1);
+		harness.expectEqual(loadSigned64(&region.header()->writePos), positionAfterB,
+			"an idle writer cannot advance a ring another sender took over");
+
+		const AttachPlan plan = attach(region, {L"L"}, takeoverQpc, 1);
+		harness.require(plan.ok, "the winning writer could not be attached");
+		SendReaderCore reader(region.get(), plan, sampleRate, 1);
+		std::array<double, 4> output = {};
+		double* channels[] = {output.data()};
+		harness.expect(reader.read(channels, 1, 4, takeoverQpc) == SendReaderCore::Status::Delivered,
+			"the winning writer's block is available");
+		for (size_t frame = 0; frame < output.size(); frame++)
+			harness.expectEqual(output[frame], 20.0 + static_cast<double>(frame),
+				"the displaced writer cannot overwrite the winning writer's samples");
+	}
+
+	void checkAttachBeforeFirstWrite(test::Harness& harness)
+	{
+		AlignedRegion region;
+		SendWriterCore writer(region.get());
+		writer.publish(params(101, 4, MixMode::Replace, {L"L"}), qpcFrequency);
+		const AttachPlan plan = attach(region, {L"L"}, 50, 1);
+		harness.require(plan.ok, "a published sender can be attached before its first block");
+		harness.expectFalse(plan.anchored, "an attach before the first write has no cursor anchor");
+		SendReaderCore reader(region.get(), plan, sampleRate, 1);
+
+		std::array<double, 4> output = {9.0, 9.0, 9.0, 9.0};
+		double* channels[] = {output.data()};
+		harness.expect(reader.read(channels, 1, 4, 50) == SendReaderCore::Status::Idle,
+			"a sender that has not written is idle rather than gone or underrunning");
+		harness.expect(std::all_of(output.begin(), output.end(), [](double value) { return value == 9.0; }),
+			"Idle leaves Replace output untouched");
+		harness.expectEqual(reader.underruns(), uint64_t(0), "waiting for the first write is not an underrun");
+
+		writeMono(writer, {30.0f, 31.0f, 32.0f, 33.0f}, 100);
+		harness.expect(reader.read(channels, 1, 4, 200) == SendReaderCore::Status::Delivered,
+			"the first fresh block anchors and delivers without a reattach");
+		for (size_t frame = 0; frame < output.size(); frame++)
+			harness.expectEqual(output[frame], 30.0 + static_cast<double>(frame),
+				"first-write anchoring reads exactly D frames behind the writer");
+	}
+
+	void checkIdleThenResume(test::Harness& harness)
+	{
+		AlignedRegion region;
+		SendWriterCore writer(region.get());
+		writer.publish(params(102, 4, MixMode::Replace, {L"L"}), qpcFrequency);
+		writeMono(writer, {40.0f, 41.0f, 42.0f, 43.0f}, 100);
+		const AttachPlan plan = attach(region, {L"L"}, 100, 1);
+		harness.require(plan.ok && plan.anchored, "a fresh writer attaches with an anchor");
+		SendReaderCore reader(region.get(), plan, sampleRate, 1);
+		std::array<double, 4> output = {};
+		double* channels[] = {output.data()};
+		harness.require(reader.read(channels, 1, 4, 100) == SendReaderCore::Status::Delivered,
+			"the pre-idle block is delivered");
+
+		const uint64_t underrunsBefore = reader.underruns();
+		std::fill(output.begin(), output.end(), 12.0);
+		const int64_t idleQpc = 100 + qpcFrequency + 1;
+		harness.expect(reader.read(channels, 1, 4, idleQpc) == SendReaderCore::Status::Idle,
+			"a writer silent for more than one second becomes idle, not gone");
+		harness.expectEqual(reader.underruns(), underrunsBefore, "Idle does not increment underruns");
+		harness.expect(std::all_of(output.begin(), output.end(), [](double value) { return value == 12.0; }),
+			"Idle leaves the destination untouched");
+
+		writeMono(writer, {50.0f, 51.0f, 52.0f, 53.0f}, idleQpc + 1);
+		harness.expect(reader.read(channels, 1, 4, idleQpc + 1) == SendReaderCore::Status::Delivered,
+			"a resumed writer re-anchors and delivers without a new attachment");
+		for (size_t frame = 0; frame < output.size(); frame++)
+			harness.expectEqual(output[frame], 50.0 + static_cast<double>(frame),
+				"idle recovery delivers the resumed block at the requested delay");
+	}
+
+	void checkStallUnderOneSecondRecovers(test::Harness& harness)
+	{
+		AlignedRegion region;
+		SendWriterCore writer(region.get());
+		writer.publish(params(103, blockFrames, MixMode::Replace, {L"L"}), qpcFrequency);
+		writeRamp(writer, 0, blockFrames, 1, 100);
+		const AttachPlan plan = attach(region, {L"L"}, 100);
+		harness.require(plan.ok && plan.anchored, "the stall reader attaches to a fresh block");
+		SendReaderCore reader(region.get(), plan, sampleRate, blockFrames);
+		std::vector<double> output(blockFrames, 0.0);
+		double* channels[] = {output.data()};
+		harness.require(reader.read(channels, 1, blockFrames, 100) == SendReaderCore::Status::Delivered,
+			"the block before the stall is delivered");
+
+		for (int block = 1; block <= 30; block++)
+			reader.read(channels, 1, blockFrames, 100 + int64_t(block) * blockTicks);
+		harness.expect(reader.underruns() > 0, "a 300 ms stall counts missing blocks as underruns");
+
+		const int64_t resumeQpc = 100 + 30 * blockTicks;
+		writeRamp(writer, blockFrames, blockFrames, 1, resumeQpc);
+		const SendReaderCore::Status resumed = reader.read(channels, 1, blockFrames, resumeQpc);
+		harness.expect(resumed == SendReaderCore::Status::Underrun,
+			"the recovery block retains the underrun that caused its re-anchor");
+		bool exact = true;
+		for (uint32_t frame = 0; frame < blockFrames; frame++)
+			exact = exact && output[frame] == static_cast<double>(rampSample(0, blockFrames + frame));
+		harness.expect(exact, "the first resumed block is delivered instead of leaving the reader ahead forever");
+	}
+
 	void checkLayoutAndNames(test::Harness& harness)
 	{
 		harness.expectEqual(sizeof(Header), headerBytes, "Send header has the pinned byte size");
@@ -323,7 +437,6 @@ namespace
 	enum class GoneMutation
 	{
 		Closing,
-		Stale,
 		Generation,
 		SenderId
 	};
@@ -337,14 +450,11 @@ namespace
 		const AttachPlan plan = attach(region, {L"L"}, 100, 1);
 		harness.require(plan.ok, "liveness reader could not attach");
 		SendReaderCore reader(region.get(), plan, sampleRate, 1);
-		int64_t readQpc = 100;
+		const int64_t readQpc = 100;
 		switch (mutation)
 		{
 		case GoneMutation::Closing:
 			writer.close();
-			break;
-		case GoneMutation::Stale:
-			readQpc += qpcFrequency + 1;
 			break;
 		case GoneMutation::Generation:
 			store32(&region.header()->generation, plan.generation + 1);
@@ -368,9 +478,26 @@ namespace
 	void checkLiveness(test::Harness& harness)
 	{
 		checkGoneMutation(harness, GoneMutation::Closing);
-		checkGoneMutation(harness, GoneMutation::Stale);
 		checkGoneMutation(harness, GoneMutation::Generation);
 		checkGoneMutation(harness, GoneMutation::SenderId);
+
+		AlignedRegion region;
+		SendWriterCore writer(region.get());
+		writer.publish(params(70, 1, MixMode::Replace, {L"L"}), qpcFrequency);
+		writeMono(writer, {7.0f}, 100);
+		const AttachPlan plan = attach(region, {L"L"}, 100, 1);
+		harness.require(plan.ok, "stale-writer reader could not attach");
+		SendReaderCore reader(region.get(), plan, sampleRate, 1);
+		double output = 9.0;
+		double* channels[] = {&output};
+		harness.expect(reader.read(channels, 1, 1, 100 + qpcFrequency + 1)
+			== SendReaderCore::Status::Idle, "a stale writer is idle rather than departed");
+		harness.expectEqual(output, 9.0, "stale-writer Idle leaves Replace output untouched");
+		harness.expectEqual(reader.underruns(), uint64_t(0), "stale-writer Idle is not an underrun");
+		writeMono(writer, {8.0f}, 100 + qpcFrequency + 2);
+		harness.expect(reader.read(channels, 1, 1, 100 + qpcFrequency + 2)
+			== SendReaderCore::Status::Delivered, "stale-writer Idle is not sticky after writing resumes");
+		harness.expectEqual(output, 8.0, "the resumed stale writer delivers without reattachment");
 	}
 
 	void checkAttachRefusalsAndNames(test::Harness& harness)
@@ -565,6 +692,10 @@ namespace
 
 void runSendRingTests(test::Harness& harness)
 {
+	checkWriterOwnershipAfterIdleTakeover(harness);
+	checkAttachBeforeFirstWrite(harness);
+	checkIdleThenResume(harness);
+	checkStallUnderOneSecondRecovers(harness);
 	checkLayoutAndNames(harness);
 	checkDelayedReadWithPhase(harness);
 	checkWrap(harness);

@@ -371,7 +371,7 @@ void SendReceiver::apply(double* const* channels, unsigned channelCount, unsigne
 				mayAdd_.store(false, std::memory_order_release);
 				senderLeftNews_.store(true, std::memory_order_release);
 			}
-			else
+			else if (status != SendReaderCore::Status::Idle)
 			{
 				blockHasAudio_ = true;
 				if (status == SendReaderCore::Status::Underrun)

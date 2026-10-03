@@ -174,6 +174,47 @@ namespace
 		return result;
 	}
 
+	void checkAttachBeforeFirstProcessAndIdleResume(test::Harness& harness)
+	{
+		const std::wstring sendPrefix = prefix(L"late-start-idle-resume");
+		const std::wstring senderPath = writeConfig(harness, L"send-late-start-sender.txt",
+			"Send: " + narrowGuid(receiverGuid)
+			+ " L=L Compensate=false Latency=480samples\n");
+		const std::wstring receiverPath = writeConfig(harness, L"send-late-start-receiver.txt", "# empty\n");
+
+		FilterEngine sender;
+		sender.initialize(apoSetup(senderPath, senderGuid, sendPrefix));
+		FilterEngine receiver;
+		receiver.initialize(apoSetup(receiverPath, receiverGuid, sendPrefix));
+		harness.expectTrue(receiver.hasStatefulOrTailFilters(),
+			"the receiver attaches before the sender's first process call");
+
+		const std::vector<float> beforeFirstWrite = processBlock(receiver, stereoBlock(1.0f, 4.0f));
+		harness.expectEqual(beforeFirstWrite[0], 1.0f,
+			"an attached sender that has not written leaves receiver audio unchanged");
+		bool delivered = false;
+		for (int block = 0; block < 3; block++)
+		{
+			processBlock(sender, stereoBlock(2.0f, 0.0f));
+			const std::vector<float> output = processBlock(receiver, stereoBlock(1.0f, 4.0f));
+			delivered = output[0] == 3.0f && output[1] == 4.0f;
+		}
+		harness.expect(delivered,
+			"a receiver attached before the first sender block delivers after interleaved processing");
+
+		Sleep(1'100);
+		const std::vector<float> idle = processBlock(receiver, stereoBlock(1.0f, 4.0f));
+		harness.expectEqual(idle[0], 1.0f, "an idle sender contributes no stale audio");
+		harness.expectTrue(receiver.hasStatefulOrTailFilters(),
+			"an idle attachment keeps the receiver on the audio path");
+
+		processBlock(sender, stereoBlock(5.0f, 0.0f));
+		const std::vector<float> resumed = processBlock(receiver, stereoBlock(1.0f, 4.0f));
+		harness.expectEqual(resumed[0], 6.0f,
+			"the sender resumes after more than one second without a receiver reload");
+		harness.expectEqual(resumed[1], 4.0f, "idle recovery leaves the untargeted channel unchanged");
+	}
+
 	void checkRoutingAndReceiverState(test::Harness& harness)
 	{
 		const std::wstring sendPrefix = prefix(L"routing");
@@ -541,6 +582,7 @@ namespace
 
 void runSendTests(test::Harness& harness)
 {
+	checkAttachBeforeFirstProcessAndIdleResume(harness);
 	checkRoutingAndReceiverState(harness);
 	checkCompensation(harness);
 	checkMixMode(harness, "Mix", 12.0f, L"mix");

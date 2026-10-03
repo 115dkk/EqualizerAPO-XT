@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -115,11 +116,13 @@ namespace eapo::ipc::send
 
 	private:
 		Header* header_;
+		std::atomic<uint64_t> publishedSenderId_{0};
 	};
 
 	struct AttachPlan
 	{
 		bool ok = false;
+		bool anchored = false;
 		std::wstring reason;
 		uint64_t senderId = 0;
 		uint32_t generation = 0;
@@ -147,6 +150,9 @@ namespace eapo::ipc::send
 		{
 			Delivered,
 			Underrun,
+			// Still attached, but the sender has not written recently. No output is
+			// changed and this block is not counted as an underrun.
+			Idle,
 			SenderGone
 		};
 
@@ -168,6 +174,7 @@ namespace eapo::ipc::send
 		int64_t qpcFrequency_;
 		double sampleRate_;
 		uint32_t ownMaxFrameCount_;
+		bool anchored_ = false;
 		uint64_t underruns_ = 0;
 		uint64_t driftSteps_ = 0;
 		uint32_t leadSamples_ = 0;

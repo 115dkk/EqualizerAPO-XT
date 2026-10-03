@@ -83,6 +83,34 @@ namespace eapo::ipc::send
 			const int64_t age = nowQpc - stamp;
 			return age >= 0 && age < qpcFrequency;
 		}
+
+		struct WriteCursor
+		{
+			int64_t qpc = 0;
+			int64_t position = 0;
+		};
+
+		WriteCursor readWriteCursor(const Header* header) noexcept
+		{
+			WriteCursor cursor;
+			for (;;)
+			{
+				cursor.qpc = readSigned64(&header->writeQpc);
+				cursor.position = readSigned64(&header->writePos);
+				if (cursor.qpc == readSigned64(&header->writeQpc))
+					return cursor;
+			}
+		}
+
+		int64_t anchorPosition(const WriteCursor& cursor, int64_t nowQpc,
+			double sampleRate, int64_t qpcFrequency, uint32_t delayFrames) noexcept
+		{
+			const double elapsedValue = static_cast<double>(nowQpc - cursor.qpc)
+				* sampleRate / static_cast<double>(qpcFrequency);
+			const int64_t elapsed = static_cast<int64_t>(std::llround(
+				(std::clamp)(elapsedValue, 0.0, static_cast<double>(capacityFrames))));
+			return cursor.position + elapsed - delayFrames;
+		}
 	}
 
 	std::wstring mappingName(const std::wstring& prefix, const std::wstring& canonicalEndpointGuid)
@@ -151,12 +179,17 @@ namespace eapo::ipc::send
 			writeSigned64(&header_->writeQpc, 0);
 		}
 		writeWord(&header_->state, static_cast<uint32_t>(State::Ready));
+		publishedSenderId_.store(params.senderId, std::memory_order_release);
 	}
 
 	#pragma AVRT_CODE_BEGIN
 	void SendWriterCore::write(const float* const* planes, uint32_t channelCount, uint32_t frameCount,
 		int64_t nowQpc) noexcept
 	{
+		const uint64_t publishedSenderId = publishedSenderId_.load(std::memory_order_acquire);
+		if (publishedSenderId == 0 || readWord64(&header_->senderId) != publishedSenderId)
+			return;
+
 		const uint32_t publishedChannelCount = readWord(&header_->channelCount);
 		assert(channelCount == publishedChannelCount);
 		if (planes == nullptr || channelCount != publishedChannelCount || channelCount == 0)
@@ -267,15 +300,7 @@ namespace eapo::ipc::send
 			names[channel][nameChars - 1] = L'\0';
 		}
 
-		int64_t writeQpc;
-		int64_t writePos;
-		for (;;)
-		{
-			writeQpc = readSigned64(&header->writeQpc);
-			writePos = readSigned64(&header->writePos);
-			if (writeQpc == readSigned64(&header->writeQpc))
-				break;
-		}
+		const WriteCursor cursor = readWriteCursor(header);
 
 		if (readWord(&header->state) != static_cast<uint32_t>(State::Ready)
 			|| readWord64(&header->senderId) != senderId
@@ -285,16 +310,12 @@ namespace eapo::ipc::send
 			return plan;
 		}
 
-		const double elapsedValue = static_cast<double>(nowQpc - writeQpc)
-			* senderSampleRate / static_cast<double>(qpcFrequency);
-		const int64_t elapsed = static_cast<int64_t>(std::llround(
-			(std::clamp)(elapsedValue, 0.0, static_cast<double>(capacityFrames))));
-
 		plan.senderId = senderId;
 		plan.generation = generation;
 		plan.mixMode = mixMode;
 		plan.channelCount = channelCount;
-		plan.readPos = writePos + elapsed - delayFrames;
+		plan.anchored = cursor.qpc != 0 && fresh(cursor.qpc, nowQpc, qpcFrequency);
+		plan.readPos = anchorPosition(cursor, nowQpc, senderSampleRate, qpcFrequency, delayFrames);
 		plan.delayFrames = delayFrames;
 		for (uint32_t channel = 0; channel < channelCount; channel++)
 		{
@@ -328,7 +349,8 @@ namespace eapo::ipc::send
 		  delayFrames_(plan.delayFrames),
 		  qpcFrequency_(region == nullptr ? 0 : readSigned64(&header_->qpcFrequency)),
 		  sampleRate_(sampleRate),
-		  ownMaxFrameCount_(ownMaxFrameCount)
+		  ownMaxFrameCount_(ownMaxFrameCount),
+		  anchored_(plan.anchored)
 	{
 		assert(region != nullptr);
 		assert(plan.ok);
@@ -349,24 +371,49 @@ namespace eapo::ipc::send
 		if (senderGone_ || header_ == nullptr
 			|| readWord(&header_->state) != static_cast<uint32_t>(State::Ready)
 			|| readWord(&header_->generation) != generation_
-			|| readWord64(&header_->senderId) != senderId_
-			|| !fresh(readSigned64(&header_->writeQpc), nowQpc, qpcFrequency_))
+			|| readWord64(&header_->senderId) != senderId_)
 		{
 			senderGone_ = true;
 			return Status::SenderGone;
 		}
 
-		const int64_t writePos = readSigned64(&header_->writePos);
-		int64_t available = writePos - readPos_;
-		const int64_t leadBeforeRead = available;
+		const WriteCursor cursor = readWriteCursor(header_);
+		if (cursor.qpc == 0 || !fresh(cursor.qpc, nowQpc, qpcFrequency_))
+		{
+			anchored_ = false;
+			return Status::Idle;
+		}
+
+		auto resetLeadStatistics = [this]() noexcept {
+			leadSamples_ = 0;
+			leadSum_ = 0.0;
+			leadAtAttach_ = 0.0;
+			averageLead_ = 0.0;
+		};
+		auto reanchor = [this, &cursor, nowQpc, &resetLeadStatistics]() noexcept {
+			readPos_ = anchorPosition(cursor, nowQpc, sampleRate_, qpcFrequency_, delayFrames_);
+			resetLeadStatistics();
+			anchored_ = true;
+		};
+		if (!anchored_)
+			reanchor();
+
+		int64_t available = cursor.position - readPos_;
 		bool underrun = false;
 		const uint32_t lapLimit = frameCount < capacityFrames ? capacityFrames - frameCount : 0;
 		if (available > static_cast<int64_t>(lapLimit))
 		{
-			readPos_ = writePos - delayFrames_;
-			available = writePos - readPos_;
+			readPos_ = cursor.position - delayFrames_;
+			available = cursor.position - readPos_;
 			underrun = true;
 		}
+		else if (available <= -static_cast<int64_t>(frameCount))
+		{
+			reanchor();
+			available = cursor.position - readPos_;
+			underrun = true;
+		}
+		const int64_t leadBeforeRead = available;
 
 		const uint32_t availableFrames = available <= 0 ? 0
 			: static_cast<uint32_t>((std::min)(available,
