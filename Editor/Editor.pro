@@ -109,6 +109,9 @@ SOURCES += main.cpp\
 	../filters/CopyFilter.cpp \
 	../filters/CopyFilterFactory.cpp \
 	../filters/SendCommand.cpp \
+	../filters/SendFilter.cpp \
+	../filters/SendFilterFactory.cpp \
+	../filters/SendLink.cpp \
 	../engine/IFilter.cpp \
 	guis/CopyFilterGUIScene.cpp \
 	guis/CopyFilterGUIForm.cpp \
@@ -459,6 +462,9 @@ HEADERS  += \
 	guis/CopyFilterGUIChannelItem.h \
 	../filters/CopyFilter.h \
 	../filters/SendCommand.h \
+	../filters/SendFilter.h \
+	../filters/SendFilterFactory.h \
+	../filters/SendLink.h \
 	../filters/CopyFilterFactory.h \
 	../engine/IFilter.h \
 	../engine/IFilterFactory.h \

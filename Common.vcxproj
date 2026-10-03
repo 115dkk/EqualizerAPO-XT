@@ -337,6 +337,9 @@
     <ClInclude Include="filters\CopyFilter.h" />
     <ClInclude Include="filters\CopyFilterFactory.h" />
     <ClInclude Include="filters\SendCommand.h" />
+    <ClInclude Include="filters\SendFilter.h" />
+    <ClInclude Include="filters\SendFilterFactory.h" />
+    <ClInclude Include="filters\SendLink.h" />
     <ClInclude Include="filters\DelayCommand.h" />
     <ClInclude Include="filters\DelayFilter.h" />
     <ClInclude Include="filters\DelayFilterFactory.h" />
@@ -501,6 +504,9 @@
     <ClCompile Include="filters\CopyFilter.cpp" />
     <ClCompile Include="filters\CopyFilterFactory.cpp" />
     <ClCompile Include="filters\SendCommand.cpp" />
+    <ClCompile Include="filters\SendFilter.cpp" />
+    <ClCompile Include="filters\SendFilterFactory.cpp" />
+    <ClCompile Include="filters\SendLink.cpp" />
     <ClCompile Include="filters\DelayCommand.cpp" />
     <ClCompile Include="filters\DelayFilter.cpp" />
     <ClCompile Include="filters\DelayFilterFactory.cpp" />

@@ -152,6 +152,7 @@ int runEngineOrchestrationTests()
 	testConfigWatcherRegistryKeyIsQuietUntilChanged(harness);
 	runSendSeamTests(harness);
 	runSendRingTests(harness);
+	runSendTests(harness);
 	runConfigurationFileReaderTests(harness);
 	runSampleIoTests(harness);
 	runApoFormatTests(harness);

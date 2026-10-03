@@ -337,6 +337,15 @@
     <ClInclude Include="filters\SendCommand.h">
       <Filter>filters</Filter>
     </ClInclude>
+    <ClInclude Include="filters\SendFilter.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\SendFilterFactory.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\SendLink.h">
+      <Filter>filters</Filter>
+    </ClInclude>
     <ClInclude Include="parser\LogicalOperators.h">
       <Filter>parser</Filter>
     </ClInclude>
@@ -414,6 +423,15 @@
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\SendCommand.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\SendFilter.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\SendFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\SendLink.cpp">
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\DelayCommand.cpp">
