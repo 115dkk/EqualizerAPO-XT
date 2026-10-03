@@ -198,74 +198,74 @@
     <name>BiQuadFilterGUIFactory</name>
     <message>
         <location filename="../guis/BiQuadFilterGUIFactory.cpp" line="33"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="196"/>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="199"/>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="202"/>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="205"/>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="208"/>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="211"/>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="214"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="217"/>
         <source>Parametric filters</source>
         <translation>Filtres paramétriques</translation>
     </message>
     <message>
         <location filename="../guis/BiQuadFilterGUIFactory.cpp" line="36"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="194"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="197"/>
         <source>Peaking filter</source>
         <translation>Filtre de crête (peak)</translation>
     </message>
     <message>
         <location filename="../guis/BiQuadFilterGUIFactory.cpp" line="37"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="197"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="200"/>
         <source>Low-pass filter</source>
         <translation>Filtre passe-bas</translation>
     </message>
     <message>
         <location filename="../guis/BiQuadFilterGUIFactory.cpp" line="38"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="200"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="203"/>
         <source>High-pass filter</source>
         <translation>Filtre passe-haut</translation>
     </message>
     <message>
         <location filename="../guis/BiQuadFilterGUIFactory.cpp" line="39"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="203"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="206"/>
         <source>Band-pass filter</source>
         <translation>Filtre passe-bande</translation>
     </message>
     <message>
         <location filename="../guis/BiQuadFilterGUIFactory.cpp" line="40"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="206"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="209"/>
         <source>Low-shelf filter</source>
         <translation>Filtre en plateau bas</translation>
     </message>
     <message>
         <location filename="../guis/BiQuadFilterGUIFactory.cpp" line="41"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="209"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="212"/>
         <source>High-shelf filter</source>
         <translation>Filtre en plateau haut</translation>
     </message>
     <message>
         <location filename="../guis/BiQuadFilterGUIFactory.cpp" line="42"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="212"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="215"/>
         <source>Notch filter</source>
         <translation>Filtre coupe-bande (notch)</translation>
     </message>
     <message>
         <location filename="../guis/BiQuadFilterGUIFactory.cpp" line="54"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="220"/>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="223"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="226"/>
         <source>Phase &amp; Time</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../guis/BiQuadFilterGUIFactory.cpp" line="55"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="218"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="221"/>
         <source>1st-order all-pass</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../guis/BiQuadFilterGUIFactory.cpp" line="56"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="221"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="224"/>
         <source>2nd-order all-pass</source>
         <translation type="unfinished"></translation>
     </message>
@@ -404,13 +404,14 @@
     <name>ChannelFilterGUIFactory</name>
     <message>
         <location filename="../guis/ChannelFilterGUIFactory.cpp" line="39"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="273"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="276"/>
         <source>Channel (Select channels)</source>
         <translation>Channel (Sélection des canaux)</translation>
     </message>
     <message>
         <location filename="../guis/ChannelFilterGUIFactory.cpp" line="39"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="275"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="278"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="283"/>
         <source>Control</source>
         <translation>Contrôle</translation>
     </message>
@@ -443,7 +444,7 @@
     <name>CommentFilterGUIFactory</name>
     <message>
         <location filename="../guis/CommentFilterGUIFactory.cpp" line="35"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="178"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="181"/>
         <source>Comment</source>
         <translation>Commentaire</translation>
     </message>
@@ -594,13 +595,13 @@ Sélectionnez un autre fichier ou modifiez la configuration du périphérique.</
     <name>ConvolutionFilterGUIFactory</name>
     <message>
         <location filename="../guis/ConvolutionFilterGUIFactory.cpp" line="48"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="241"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="244"/>
         <source>Convolution (Convolution with impulse response)</source>
         <translation>Convolution (Convolution avec réponse impulsionnelle)</translation>
     </message>
     <message>
         <location filename="../guis/ConvolutionFilterGUIFactory.cpp" line="48"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="243"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="246"/>
         <source>Advanced filters</source>
         <translation>Filtres avancés</translation>
     </message>
@@ -632,14 +633,14 @@ Sélectionnez un autre fichier ou modifiez la configuration du périphérique.</
     <name>CopyFilterGUIFactory</name>
     <message>
         <location filename="../guis/CopyFilterGUIFactory.cpp" line="39"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="184"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="187"/>
         <source>Copy (Copy between channels)</source>
         <translation>Copy (Copier entre les canaux)</translation>
     </message>
     <message>
         <location filename="../guis/CopyFilterGUIFactory.cpp" line="39"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="186"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="192"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="189"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="195"/>
         <source>Basic filters</source>
         <translation>Filtres basiques</translation>
     </message>
@@ -911,13 +912,13 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
     <name>DelayFilterGUIFactory</name>
     <message>
         <location filename="../guis/DelayFilterGUIFactory.cpp" line="38"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="224"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="227"/>
         <source>Delay</source>
         <translation>Delay (Retard)</translation>
     </message>
     <message>
         <location filename="../guis/DelayFilterGUIFactory.cpp" line="38"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="226"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="229"/>
         <source>Phase &amp; Time</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1100,13 +1101,13 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
     <name>DeviceFilterGUIFactory</name>
     <message>
         <location filename="../guis/DeviceFilterGUIFactory.cpp" line="43"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="270"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="273"/>
         <source>Device (Select device)</source>
         <translation>Device (sélectionner un périphérique)</translation>
     </message>
     <message>
         <location filename="../guis/DeviceFilterGUIFactory.cpp" line="43"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="272"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="275"/>
         <source>Control</source>
         <translation>Contrôle</translation>
     </message>
@@ -1161,46 +1162,46 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
     <name>ExpressionFilterGUIFactory</name>
     <message>
         <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="32"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="266"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="269"/>
         <source>Control</source>
         <translation type="unfinished">Contrôle</translation>
     </message>
     <message>
         <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="33"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="281"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="284"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="287"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="290"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="289"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="292"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="295"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="298"/>
         <source>Branching</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="36"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="279"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="287"/>
         <source>If (Begin conditional section)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="37"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="282"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="290"/>
         <source>ElseIf (Alternative condition)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="38"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="285"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="293"/>
         <source>Else (Fallback section)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="39"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="288"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="296"/>
         <source>EndIf (End conditional section)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="35"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="264"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="267"/>
         <source>Eval (Evaluate expression)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1244,7 +1245,7 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
         <translation>Commentaire</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="300"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="302"/>
         <source>Text</source>
         <translation>Texte</translation>
     </message>
@@ -1315,7 +1316,7 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
         <translation>Biquad</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="340"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="342"/>
         <source>IIR filter</source>
         <translation>Filtre IIR</translation>
     </message>
@@ -1341,66 +1342,71 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
     </message>
     <message>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="56"/>
+        <source>Send</source>
+        <translation>Envoi</translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="59"/>
         <source>Include</source>
         <translation>Inclure</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="59"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="62"/>
         <source>Convolution</source>
         <translation>Convolution</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="62"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="65"/>
         <source>MultiConvolution</source>
         <translation>Multi-convolution</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="65"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="68"/>
         <source>VST Plugin</source>
         <translation>Plugin VST</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="68"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="71"/>
         <source>Device</source>
         <translation>Périphérique</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="71"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="74"/>
         <source>Stage</source>
         <translation>Étape</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="74"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="77"/>
         <source>Loudness</source>
         <translation>Loudness</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="77"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="80"/>
         <source>Subwoofer routing</source>
         <translation>Routage du caisson de basses</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="80"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="83"/>
         <source>If</source>
         <translation>Si</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="83"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="86"/>
         <source>Else if</source>
         <translation>Sinon si</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="86"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="89"/>
         <source>Else</source>
         <translation>Sinon</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="89"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="92"/>
         <source>End if</source>
         <translation>Fin si</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="92"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="95"/>
         <source>Eval</source>
         <translation>Évaluer</translation>
     </message>
@@ -1446,9 +1452,14 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
 <context>
     <name>FilterCommandCatalog</name>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="190"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="193"/>
         <source>NewChannel (Create virtual channels)</source>
         <translation>NewChannel (Créer des canaux virtuels)</translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="281"/>
+        <source>Send (Send channels to another endpoint)</source>
+        <translation>Send (Envoyer des canaux à un autre point de terminaison)</translation>
     </message>
 </context>
 <context>
@@ -1484,52 +1495,57 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
         <translation>Crée des canaux virtuels silencieux et les ajoute à la sélection</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="66"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="57"/>
+        <source>Hands channels to the equalizer of another playback endpoint</source>
+        <translation>Envoie des canaux à l’égaliseur d’un autre point de terminaison de lecture</translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="69"/>
         <source>Runs a VST audio plugin, with explicit VST3 input and output bus layouts</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="78"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="81"/>
         <source>Applies crossover filtering and routes bass and source LFE per speaker group</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="155"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="158"/>
         <source>Boosts or cuts a band around a center frequency</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="157"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="160"/>
         <source>Passes the lows and rolls off above the cutoff</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="159"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="162"/>
         <source>Passes the highs and rolls off below the cutoff</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="161"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="164"/>
         <source>Passes a band around the center and drops the rest</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="163"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="166"/>
         <source>Raises or lowers everything below the corner frequency</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="165"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="168"/>
         <source>Raises or lowers everything above the corner frequency</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="167"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="170"/>
         <source>Cuts a narrow band deeply and leaves the rest</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="169"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="172"/>
         <source>Changes phase and group delay around the center frequency. Level remains unchanged.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1554,17 +1570,17 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="60"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="63"/>
         <source>Applies an impulse response, such as a room or reverb</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="63"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="66"/>
         <source>Convolves several inputs, as in BRIR headphone synthesis</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="75"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="78"/>
         <source>Compensates hearing at low listening levels</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1574,42 +1590,42 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="69"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="72"/>
         <source>Limits the following filters to one device</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="72"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="75"/>
         <source>Chooses the processing stage for the following filters</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="57"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="60"/>
         <source>Loads another configuration file here</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="93"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="96"/>
         <source>Computes a variable from an expression</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="81"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="84"/>
         <source>Applies the following filters only when a condition holds</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="84"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="87"/>
         <source>Tries another condition when the previous one failed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="87"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="90"/>
         <source>Runs when none of the conditions above matched</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="90"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="93"/>
         <source>Closes the conditional block</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1858,7 +1874,7 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
     <name>GraphicEQFilterGUIFactory</name>
     <message>
         <location filename="../guis/GraphicEQFilterGUIFactory.cpp" line="51"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="231"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="234"/>
         <source>15-band graphic equalizer</source>
         <translation>Égaliseur graphique à 15 bandes</translation>
     </message>
@@ -1866,21 +1882,21 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
         <location filename="../guis/GraphicEQFilterGUIFactory.cpp" line="51"/>
         <location filename="../guis/GraphicEQFilterGUIFactory.cpp" line="52"/>
         <location filename="../guis/GraphicEQFilterGUIFactory.cpp" line="53"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="233"/>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="236"/>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="239"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="242"/>
         <source>Graphic equalizers</source>
         <translation>Égaliseurs graphiques</translation>
     </message>
     <message>
         <location filename="../guis/GraphicEQFilterGUIFactory.cpp" line="52"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="234"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="237"/>
         <source>31-band graphic equalizer</source>
         <translation>Égaliseur graphique à 31 bandes</translation>
     </message>
     <message>
         <location filename="../guis/GraphicEQFilterGUIFactory.cpp" line="53"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="237"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="240"/>
         <source>Graphic equalizer with variable bands</source>
         <translation>Égaliseur graphique à bandes variables</translation>
     </message>
@@ -2063,13 +2079,13 @@ Modifiez les autorisations du fichier ou copiez le fichier dans le répertoire d
     <name>IncludeFilterGUIFactory</name>
     <message>
         <location filename="../guis/IncludeFilterGUIFactory.cpp" line="39"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="267"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="270"/>
         <source>Include (Include configuration file)</source>
         <translation>Include (Inclure le fichier de configuration)</translation>
     </message>
     <message>
         <location filename="../guis/IncludeFilterGUIFactory.cpp" line="39"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="269"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="272"/>
         <source>Control</source>
         <translation>Contrôle</translation>
     </message>
@@ -2182,13 +2198,13 @@ Alexander Walch</translation>
     <name>LoudnessCorrectionFilterGUIFactory</name>
     <message>
         <location filename="../guis/LoudnessCorrectionFilterGUIFactory.cpp" line="46"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="251"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="254"/>
         <source>Loudness correction</source>
         <translation>Correction du Loudness</translation>
     </message>
     <message>
         <location filename="../guis/LoudnessCorrectionFilterGUIFactory.cpp" line="46"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="253"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="256"/>
         <source>Advanced filters</source>
         <translation>Filtres avancés</translation>
     </message>
@@ -2565,22 +2581,22 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
     <message>
         <location filename="../MainWindowParts/MainWindow.Device.cpp" line="181"/>
         <source>ASIO · %0 Hz · %1 ch</source>
-        <translation type="unfinished"></translation>
+        <translation>ASIO · %0 Hz · %1 canaux</translation>
     </message>
     <message>
         <location filename="../MainWindowParts/MainWindow.Device.cpp" line="182"/>
         <source>The last ASIO stream on this interface ran at %0 Hz with %1 channels in this direction; the engine host processes it in a separate process.</source>
-        <translation type="unfinished"></translation>
+        <translation>Le dernier flux ASIO sur cette interface utilisait %0 Hz et %1 canaux dans ce sens. L’hôte du moteur le traite dans un processus séparé.</translation>
     </message>
     <message>
         <location filename="../MainWindowParts/MainWindow.Device.cpp" line="188"/>
         <source>ASIO · no stream yet</source>
-        <translation type="unfinished"></translation>
+        <translation>ASIO · aucun flux pour le moment</translation>
     </message>
     <message>
         <location filename="../MainWindowParts/MainWindow.Device.cpp" line="189"/>
         <source>No ASIO application has opened this interface through EqualizerAPO yet. Pick &quot;%0 (EQ APO XT)&quot; as the ASIO driver in the application.</source>
-        <translation type="unfinished"></translation>
+        <translation>Aucune application ASIO n’a encore ouvert cette interface via EqualizerAPO. Choisissez &quot;%0 (EQ APO XT)&quot; comme pilote ASIO dans l’application.</translation>
     </message>
     <message>
         <location filename="../MainWindowParts/MainWindow.Device.cpp" line="206"/>
@@ -3037,7 +3053,7 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
     <message>
         <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="122"/>
         <source>Effective LFE gain</source>
-        <translation type="unfinished"></translation>
+        <translation>Gain LFE effectif</translation>
     </message>
     <message>
         <location filename="../skins/minimal/cards/MinimalSubwooferRoutingCardView.cpp" line="123"/>
@@ -3357,13 +3373,13 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
     <name>MultiConvolutionFilterGUIFactory</name>
     <message>
         <location filename="../guis/MultiConvolutionFilterGUIFactory.cpp" line="36"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="244"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="247"/>
         <source>MultiConvolution (BRIR / multi-input synthesis convolution)</source>
         <translation>MultiConvolution (BRIR / convolution de synthèse multi-entrées)</translation>
     </message>
     <message>
         <location filename="../guis/MultiConvolutionFilterGUIFactory.cpp" line="36"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="246"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="249"/>
         <source>Advanced filters</source>
         <translation>Filtres avancés</translation>
     </message>
@@ -3456,13 +3472,13 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
     <name>PreampFilterGUIFactory</name>
     <message>
         <location filename="../guis/PreampFilterGUIFactory.cpp" line="30"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="181"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="184"/>
         <source>Preamp (Preamplification)</source>
         <translation>Preamp (Préamplification)</translation>
     </message>
     <message>
         <location filename="../guis/PreampFilterGUIFactory.cpp" line="30"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="183"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="186"/>
         <source>Basic filters</source>
         <translation>Filtres basiques</translation>
     </message>
@@ -3892,6 +3908,97 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
     </message>
 </context>
 <context>
+    <name>SendCardEditor</name>
+    <message>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="65"/>
+        <source>To</source>
+        <translation>Vers</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="68"/>
+        <source>The playback endpoint that receives these channels</source>
+        <translation>Le point de terminaison de lecture qui reçoit ces canaux</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="75"/>
+        <source>Mix with its audio</source>
+        <translation>Mélanger à son audio</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="76"/>
+        <source>Replace its audio</source>
+        <translation>Remplacer son audio</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="77"/>
+        <source>Whether the received channels are added to what the endpoint already plays, or take its place</source>
+        <translation>Mélanger les canaux reçus à l’audio déjà lu par le point de terminaison, ou remplacer cet audio</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="81"/>
+        <source>Latency</source>
+        <translation>Latence</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="84"/>
+        <source>Default</source>
+        <translation>Défaut</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="85"/>
+        <source>Milliseconds, or a whole number followed by &quot;samples&quot;. Empty uses two processing periods of this device; raise it if the log reports underruns.</source>
+        <translation>Millisecondes, ou un entier suivi de &quot;samples&quot;. Si le champ est vide, le délai vaut deux périodes de traitement de ce périphérique. Augmentez la valeur si le journal signale des sous-alimentations du tampon.</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="91"/>
+        <source>Delay this device to match</source>
+        <translation>Retarder ce périphérique pour le synchroniser</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="93"/>
+        <source>Delays this device&apos;s own channels by the same latency, so both devices play in time</source>
+        <translation>Retarde les canaux propres à ce périphérique de la même durée pour que les deux périphériques jouent en même temps</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="176"/>
+        <source>The Send option of this endpoint is off in the Device Selector</source>
+        <translation>L’option Envoi de ce point de terminaison est désactivée dans le Device Selector</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="179"/>
+        <source>Choose an endpoint</source>
+        <translation>Choisir un point de terminaison</translation>
+    </message>
+</context>
+<context>
+    <name>SendCardModel</name>
+    <message>
+        <location filename="../widgets/cards/SendCardModel.cpp" line="50"/>
+        <source>Unknown endpoint %1</source>
+        <translation>Point de terminaison inconnu %1</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/SendCardModel.cpp" line="149"/>
+        <source>Choose the endpoint to send to.</source>
+        <translation>Choisissez le point de terminaison destinataire.</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/SendCardModel.cpp" line="151"/>
+        <source>This computer has no playback endpoint %1, so the engine sends nothing.</source>
+        <translation>Cet ordinateur n’a pas de point de terminaison de lecture %1. Aucun signal n’est donc envoyé.</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/SendCardModel.cpp" line="153"/>
+        <source>Connect at least one channel. The engine skips a Send line with no connection.</source>
+        <translation>Connectez au moins un canal. Une ligne Send sans connexion est ignorée.</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/SendCardModel.cpp" line="156"/>
+        <source>The Send option of %1 is off in the Device Selector. It plays what this line sends only while another program plays on it.</source>
+        <translation>L’option Envoi de %1 est désactivée dans le Device Selector. Le signal envoyé par cette ligne n’est lu que lorsqu’un autre programme lit de l’audio sur ce point de terminaison.</translation>
+    </message>
+</context>
+<context>
     <name>SoftFilterPickerView</name>
     <message>
         <location filename="../skins/soft/picker/SoftFilterPicker.cpp" line="139"/>
@@ -4104,25 +4211,25 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
     <name>SpatialFilterGUIFactory</name>
     <message>
         <location filename="../guis/SpatialFilterGUIFactory.cpp" line="37"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="227"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="230"/>
         <source>Hilbert transform</source>
         <translation type="unfinished">Transformée de Hilbert</translation>
     </message>
     <message>
         <location filename="../guis/SpatialFilterGUIFactory.cpp" line="39"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="229"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="232"/>
         <source>Phase &amp; Time</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../guis/SpatialFilterGUIFactory.cpp" line="40"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="247"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="250"/>
         <source>Velvet decorrelator</source>
         <translation type="unfinished">Décorrélateur Velvet</translation>
     </message>
     <message>
         <location filename="../guis/SpatialFilterGUIFactory.cpp" line="42"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="250"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="253"/>
         <source>Advanced filters</source>
         <translation type="unfinished">Filtres avancés</translation>
     </message>
@@ -4213,13 +4320,13 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
     <name>StageFilterGUIFactory</name>
     <message>
         <location filename="../guis/StageFilterGUIFactory.cpp" line="29"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="276"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="284"/>
         <source>Stage (Select processing stage)</source>
         <translation>Stage (Sélectionner l&apos;étape de traitement)</translation>
     </message>
     <message>
         <location filename="../guis/StageFilterGUIFactory.cpp" line="29"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="278"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="286"/>
         <source>Control</source>
         <translation>Contrôle</translation>
     </message>
@@ -4523,7 +4630,7 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
     <message>
         <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="264"/>
         <source>LFE gain adjustment:</source>
-        <translation type="unfinished"></translation>
+        <translation>Réglage du gain LFE :</translation>
     </message>
     <message>
         <location filename="../widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp" line="266"/>
@@ -4641,13 +4748,13 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
     <name>SubwooferRoutingFilterGUIFactory</name>
     <message>
         <location filename="../guis/SubwooferRoutingFilterGUIFactory.cpp" line="68"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="259"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="262"/>
         <source>Subwoofer routing (crossover + LFE routing)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../guis/SubwooferRoutingFilterGUIFactory.cpp" line="70"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="261"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="264"/>
         <source>Speaker management</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5018,13 +5125,13 @@ Modifiez les autorisations des fichiers ou copiez les fichiers dans le dossier d
     <name>VSTPluginFilterGUIFactory</name>
     <message>
         <location filename="../guis/VSTPluginFilterGUIFactory.cpp" line="36"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="255"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="258"/>
         <source>VST plugin</source>
         <translation>Plugin VST</translation>
     </message>
     <message>
         <location filename="../guis/VSTPluginFilterGUIFactory.cpp" line="36"/>
-        <location filename="../widgets/FilterCommandCatalog.cpp" line="257"/>
+        <location filename="../widgets/FilterCommandCatalog.cpp" line="260"/>
         <source>Plugins</source>
         <translation>Plugins</translation>
     </message>

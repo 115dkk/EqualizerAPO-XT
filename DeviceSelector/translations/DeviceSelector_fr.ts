@@ -4,37 +4,36 @@
 <context>
     <name>DeviceSelector</name>
     <message>
-        <location filename="../DeviceSelector.cpp" line="+40"/>
-        <location line="+40"/>
+        <location filename="../DeviceSelector.cpp" line="+63"/>
+        <location line="+37"/>
         <source>Playback devices</source>
         <translation>Périphériques de lecture</translation>
     </message>
     <message>
-        <location line="-35"/>
-        <location line="+39"/>
+        <location line="-32"/>
+        <location line="+36"/>
         <source>Capture devices</source>
         <translation>Périphériques de capture</translation>
     </message>
     <message>
-        <location line="-31"/>
-        <location line="+229"/>
-        <location filename="../main.cpp" line="+214"/>
+        <location line="-28"/>
+        <location line="+306"/>
         <source>Error while accessing the registry</source>
         <translation>Erreur durant l&apos;accès au registre</translation>
     </message>
     <message>
-        <location line="-214"/>
-        <location line="+249"/>
+        <location line="-294"/>
+        <location line="+365"/>
         <source>Info</source>
         <translation>Information</translation>
     </message>
     <message>
-        <location line="-249"/>
+        <location line="-365"/>
         <source>A registry value that is required for the operation of Equalizer APO was not set correctly. This might have been caused by a driver installation or uninstallation. The value has been corrected. A reboot may be required so that the changes can take effect.</source>
         <translation>Une valeur de registre requise pour le fonctionnement d’Equalizer APO n’a pas été définie correctement. Cela peut être dû à l&apos;installation ou à la désinstallation d&apos;un pilote. La valeur a été corrigée. Un redémarrage peut être nécessaire pour que les modifications puissent prendre effet.</translation>
     </message>
     <message>
-        <location line="+228"/>
+        <location line="+344"/>
         <source>Upgrades available</source>
         <translation>Mise à niveau disponibles</translation>
     </message>
@@ -59,33 +58,48 @@
         <translation>Pour appliquer les modifications, Windows doit être redémarré. Redémarrer maintenant?</translation>
     </message>
     <message>
-        <location line="-202"/>
-        <location line="+338"/>
+        <location line="-314"/>
+        <location line="+490"/>
         <source>Cancel</source>
         <translation>Annuler</translation>
     </message>
     <message>
-        <location line="-339"/>
+        <location line="-491"/>
         <source>OK</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+344"/>
+        <location line="+229"/>
+        <source>Undoing the change did not finish either, so this device may be left partly changed. Reboot before trying again, and see the log for details.</source>
+        <translation>L’annulation de la modification n’a pas non plus abouti. Certaines modifications du périphérique peuvent donc subsister. Redémarrez avant de réessayer et consultez le journal pour plus de détails.</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>The device was left as it was before.</source>
+        <translation>Le périphérique est dans son état précédent.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Details are in %1.</source>
+        <translation>Les détails se trouvent dans %1.</translation>
+    </message>
+    <message>
+        <location line="+260"/>
         <source>Close</source>
         <translation>Fermer</translation>
     </message>
     <message>
-        <location line="+131"/>
+        <location line="+169"/>
         <source>APO will be installed</source>
         <translation>APO va être installé</translation>
     </message>
     <message>
-        <location line="+2"/>
+        <location line="+3"/>
         <source>APO will be uninstalled</source>
         <translation>APO va être désinstallé</translation>
     </message>
     <message>
-        <location line="+2"/>
+        <location line="+4"/>
         <source>APO will be upgraded</source>
         <translation>APO va être mis à niveau</translation>
     </message>
@@ -100,17 +114,17 @@
         <translation>Les améliorations audio seront activées</translation>
     </message>
     <message>
-        <location line="+2"/>
+        <location line="+3"/>
         <source>APO is already installed</source>
         <translation>APO est déjà installé</translation>
     </message>
     <message>
-        <location line="+2"/>
+        <location line="+0"/>
         <source>APO can be installed</source>
         <translation>APO peut être installé</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="+6"/>
         <source>Voicemeeter was uninstalled</source>
         <translation>Voicemeeter a été désinstallé</translation>
     </message>
@@ -120,7 +134,7 @@
         <translation>Périphérique par défaut</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+6"/>
         <source>Disabled</source>
         <translation>Désactivé</translation>
     </message>
@@ -133,20 +147,22 @@
 <context>
     <name>DeviceSelectorClass</name>
     <message>
+        <location filename="../DeviceSelector.ui" line="+176"/>
         <source>Use in ASIO apps</source>
         <translation>Utiliser dans les applications ASIO</translation>
     </message>
     <message>
+        <location line="-3"/>
         <source>Adds `&lt;device&gt; - &lt;endpoint&gt; (EQ APO XT)` to the ASIO driver list. An application that picks it opens this device in WASAPI exclusive mode with the EQ applied.</source>
         <translation>Ajoute `&lt;périphérique&gt; - &lt;point de terminaison&gt; (EQ APO XT)` à la liste des pilotes ASIO. Une application qui la choisit ouvre ce périphérique en mode exclusif WASAPI avec l’égaliseur appliqué.</translation>
     </message>
     <message>
-        <location line="-496"/>
+        <location filename="../DeviceSelector.cpp" line="-691"/>
         <source>Troubleshooting options (only use in case of problems)</source>
         <translation>Options de dépannage (à utiliser uniquement en cas de problèmes)</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.ui" line="+42"/>
+        <location filename="../DeviceSelector.ui" line="-131"/>
         <source>Please select exactly one activated device by clicking on its name</source>
         <translation>Veuillez sélectionner exactement un périphérique activé en cliquant sur son nom</translation>
     </message>
@@ -212,48 +228,70 @@ ATTENTION: Certains pilotes de carte son peuvent produire des sons indésirables
         <translation>Autoriser la modification silencieuse du tampon</translation>
     </message>
     <message>
+        <location line="+17"/>
+        <source>Plays what Send: lines in other endpoints&apos; configurations hand to this endpoint, even when no program plays here. EqualizerAPOHost keeps a silent stream open on it from logon, and silent buffer modification is turned on with it.</source>
+        <translation>Lit le son envoyé à ce point de terminaison par les lignes Send: des configurations des autres points de terminaison, même si aucun programme n’y lit de son. EqualizerAPOHost y maintient un flux silencieux ouvert dès l’ouverture de session. Cette option autorise aussi la modification des tampons silencieux.</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Send</source>
+        <translation>Envoi</translation>
+    </message>
+    <message>
+        <location line="+31"/>
         <source>Remove the buffer</source>
         <translation>Supprimer le tampon</translation>
     </message>
     <message>
+        <location line="+26"/>
         <source>Wait time:</source>
-        <translation>Temps d'attente :</translation>
+        <translation>Temps d&apos;attente :</translation>
     </message>
     <message>
+        <location line="-3"/>
+        <location line="+10"/>
         <source>Sets how long to wait for processing once the buffer is removed. The longer the wait, the less sound without the EQ, but the more latency.</source>
-        <translation>Définit combien de temps attendre le traitement une fois le tampon supprimé. Plus l'attente est longue, moins il y a de son sans EQ, mais plus la latence augmente.</translation>
+        <translation>Définit combien de temps attendre le traitement une fois le tampon supprimé. Plus l&apos;attente est longue, moins il y a de son sans EQ, mais plus la latence augmente.</translation>
     </message>
     <message>
+        <location line="+4"/>
         <source>Up to a quarter of the buffer</source>
-        <translation>Jusqu'à un quart du tampon</translation>
+        <translation>Jusqu&apos;à un quart du tampon</translation>
     </message>
     <message>
+        <location line="+5"/>
         <source>Up to half of the buffer</source>
-        <translation>Jusqu'à la moitié du tampon</translation>
+        <translation>Jusqu&apos;à la moitié du tampon</translation>
     </message>
     <message>
+        <location line="+5"/>
         <source>Up to three quarters of the buffer</source>
-        <translation>Jusqu'aux trois quarts du tampon</translation>
+        <translation>Jusqu&apos;aux trois quarts du tampon</translation>
     </message>
     <message>
+        <location line="-50"/>
         <source>Removing the buffer reduces latency. But when processing occasionally does not finish in time, sound without the EQ applied may come out for a moment. Applies to both input and output.</source>
-        <translation>Supprimer le tampon réduit la latence. Mais si le traitement ne se termine parfois pas à temps, un son sans EQ peut être émis un instant. S'applique à l'entrée et à la sortie.</translation>
+        <translation>Supprimer le tampon réduit la latence. Mais si le traitement ne se termine parfois pas à temps, un son sans EQ peut être émis un instant. S&apos;applique à l&apos;entrée et à la sortie.</translation>
     </message>
     <message>
+        <location line="+81"/>
         <source>Start the engine host automatically at boot</source>
-        <translation>Démarrer automatiquement l'hôte du moteur au démarrage du système</translation>
+        <translation>Démarrer automatiquement l&apos;hôte du moteur au démarrage du système</translation>
     </message>
     <message>
+        <location line="-3"/>
         <source>Unchecked, the first application that opens the driver starts the host, and it leaves a minute after the last one closes it.</source>
-        <translation>Désactivé, la première application qui ouvre le pilote lance l'hôte, qui se ferme une minute après que la dernière l'a refermé.</translation>
+        <translation>Désactivé, la première application qui ouvre le pilote lance l&apos;hôte, qui se ferme une minute après que la dernière l&apos;a refermé.</translation>
     </message>
     <message>
+        <location line="+29"/>
         <source>32-bit host support</source>
         <translation>Prise en charge des hôtes 32 bits</translation>
     </message>
     <message>
+        <location line="-3"/>
         <source>Also registers the driver entry where 32-bit applications look for it. Unavailable when this build ships no 32-bit wrapper.</source>
-        <translation>Enregistre aussi l'entrée du pilote là où les applications 32 bits la cherchent. Indisponible quand cette version ne fournit pas de wrapper 32 bits.</translation>
+        <translation>Enregistre aussi l&apos;entrée du pilote là où les applications 32 bits la cherchent. Indisponible quand cette version ne fournit pas de wrapper 32 bits.</translation>
     </message>
     <message>
         <source>Connector</source>
@@ -268,7 +306,7 @@ ATTENTION: Certains pilotes de carte son peuvent produire des sons indésirables
         <translation type="vanished">Statut</translation>
     </message>
     <message>
-        <location line="+40"/>
+        <location line="+64"/>
         <source>Please select the devices for which Equalizer APO is to be installed:</source>
         <translation>Veuillez sélectionner les appareils pour lesquels Equalizer APO doit être installé:</translation>
     </message>
@@ -281,7 +319,7 @@ ATTENTION: Certains pilotes de carte son peuvent produire des sons indésirables
 <context>
     <name>DeviceTestDialog</name>
     <message>
-        <location filename="../DeviceTestDialog.cpp" line="+42"/>
+        <location filename="../DeviceTestDialog.cpp" line="+43"/>
         <source>Playback devices</source>
         <translation>Périphériques de lecture</translation>
     </message>
@@ -306,7 +344,7 @@ ATTENTION: Certains pilotes de carte son peuvent produire des sons indésirables
         <translation>Impossible de tester l&apos;installation d&apos;APO car le périphérique est débranché</translation>
     </message>
     <message>
-        <location line="+38"/>
+        <location line="+50"/>
         <location line="+46"/>
         <source>Error</source>
         <translation>Erreur</translation>
@@ -348,30 +386,50 @@ ATTENTION: Certains pilotes de carte son peuvent produire des sons indésirables
 <context>
     <name>DeviceTestThread</name>
     <message>
-        <location filename="../DeviceTestThread.cpp" line="+69"/>
-        <location line="+161"/>
+        <location filename="../DeviceTestThread.cpp" line="+78"/>
+        <source>Could not initialize COM for device testing.</source>
+        <translation>Impossible d’initialiser COM pour le test du périphérique.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>COM initialization failed (0x%1).</source>
+        <translation>Échec de l’initialisation de COM (0x%1).</translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <location line="+177"/>
         <source>Restarting audio service...</source>
         <translation>Redémarrage du service audio...</translation>
     </message>
     <message>
-        <location line="-156"/>
-        <location line="+161"/>
+        <location line="-172"/>
+        <location line="+177"/>
         <source>Restart failed.</source>
         <translation>Echec du redémarrage.</translation>
     </message>
     <message>
-        <location line="-147"/>
+        <location line="-163"/>
         <source>Checking APO installation...</source>
         <translation>Vérification de l&apos;installation d&apos;APO...</translation>
     </message>
     <message>
-        <location line="+48"/>
+        <location line="+10"/>
+        <source>Could not prepare the device test.</source>
+        <translation>Impossible de préparer le test du périphérique.</translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>Could not remove the device test registration: %1</source>
+        <translation>Impossible de supprimer l’enregistrement du test du périphérique : %1</translation>
+    </message>
+    <message>
+        <location line="+54"/>
         <source>Received unknown device GUID %1.</source>
         <translatorcomment>I don&apos;t have knowledge about GUID so I am not sure</translatorcomment>
         <translation>Réception d&apos;un GUID %1 de périphérique inconnu.</translation>
     </message>
     <message numerus="yes">
-        <location line="+36"/>
+        <location line="+23"/>
         <source>Check failed for %n device(s).</source>
         <translation>
             <numerusform>Echec de la vérification pour un périphérique.</numerusform>
@@ -379,17 +437,17 @@ ATTENTION: Certains pilotes de carte son peuvent produire des sons indésirables
         </translation>
     </message>
     <message>
-        <location line="+45"/>
+        <location line="+26"/>
         <source>Setting install mode for %1 %2 to %3.</source>
         <translation>Paramétrage du mode d&apos;installation pour %1 %2 à %3.</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="+30"/>
         <source>Trying other configurations...</source>
         <translation>Tentative avec d&apos;autres configurations...</translation>
     </message>
     <message>
-        <location line="+23"/>
+        <location line="+28"/>
         <source>Checks done. No problems were detected.</source>
         <translation>Vérifications effectuées. Aucun problème n&apos;a été détecté.</translation>
     </message>
