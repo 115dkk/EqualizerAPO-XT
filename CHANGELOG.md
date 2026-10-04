@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.57.1 — 2026-10-04
+
 - **ASIO games can pick 64 or 128 on a device whose fastest exclusive
   period is 3 ms.** An endpoint's ASIO entry (**Use in ASIO apps**) refused
   any buffer below the device's smallest exclusive period rounded up to a
