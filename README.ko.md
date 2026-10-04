@@ -52,8 +52,11 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
    프로그램에 제공하며, 장치 선택기의 그 엔드포인트 행에서 켭니다. 가상
    케이블로 로컬과 CI에서 측정했고, 저지연 모드의 답까지 담은 조사는
    [docs/architecture/wasapi-exclusive-study.md](docs/architecture/wasapi-exclusive-study.md)에
-   있습니다. 남은 것은 케이블 밖의 실제 하드웨어와, 한 장치의 재생·녹음
-   엔드포인트를 하나의 항목으로 묶는 일입니다.
+   있습니다. 장치의 최소 주기보다 작은 버퍼도 받으므로, 리듬 게임이 권하는
+   64나 128 설정이 거부되지 않습니다
+   ([#410](https://github.com/115dkk/EqualizerAPO-XT/pull/410)). 남은 것은
+   케이블 밖의 실제 하드웨어와 실제 게임에서의 확인, 그리고 한 장치의
+   재생·녹음 엔드포인트를 하나의 항목으로 묶는 일입니다.
 10. 가상 채널과 다른 엔드포인트로 보내기. `NewChannel:`은 무음 가상 채널을
     선언하고 선택에 더하므로, 업믹서 플러그인이 장치에 없는 채널에 출력을 쓸 수
     있습니다([#407](https://github.com/115dkk/EqualizerAPO-XT/pull/407)).
