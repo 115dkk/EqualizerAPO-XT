@@ -30,6 +30,7 @@
 #include "services/logging/Logging.h"
 #include "Tests/AlignedMemoryGate.h"
 #include "Tests/AsioSupport/HostStub.h"
+#include "Tests/AsioSupport/LatencyMatch.h"
 #include "Tests/FakeRegistry.h"
 #include "Tests/FakeAsioDriver/FakeAsio.h"
 #include "Tests/TestDirectory.h"
@@ -1253,6 +1254,49 @@ namespace
 		harness.expect(true, "removing a missing record is not an error");
 	}
 
+	// ---- loopback latency matching ----
+
+	void testLatencyMatchingAndSummary()
+	{
+		const std::vector<int64_t> emitted = {0, 5000000, 10000000};
+		asiotest::LatencyMatch match = asiotest::matchClicks(emitted, {1200, 5001200, 10001200}, 5000000);
+		harness.expectEqual(match.matched, static_cast<size_t>(3), "constant latency matches every click");
+		harness.expectEqual(match.missing, static_cast<size_t>(0), "constant latency has no missing click");
+		harness.expectEqual(match.latency100ns[1], static_cast<int64_t>(1200), "constant latency is retained per click");
+		asiotest::LatencySummary summary = asiotest::summarize(emitted, match, 500.0);
+		harness.expectNear(summary.meanUs, 120.0, 1e-9, "constant latency mean");
+		harness.expectNear(summary.stdevUs, 0.0, 1e-9, "constant latency deviation");
+
+		match = asiotest::matchClicks(emitted, {1200, 10001200}, 5000000);
+		harness.expectEqual(match.matched, static_cast<size_t>(2), "onsets on either side of a gap still match");
+		harness.expectEqual(match.missing, static_cast<size_t>(1), "one absent onset is missing");
+		harness.expectEqual(match.latency100ns[1], static_cast<int64_t>(INT64_MIN), "the missing click carries the sentinel");
+
+		match = asiotest::matchClicks({0}, {1000, 2000}, 5000000);
+		harness.expectEqual(match.matched, static_cast<size_t>(1), "the first onset is consumed");
+		harness.expectEqual(match.extra, static_cast<size_t>(1), "an unused onset is extra");
+
+		const std::vector<int64_t> stepEmitted = {0, 5000000, 10000000, 15000000};
+		match = asiotest::matchClicks(stepEmitted, {1000, 5001000, 10011000, 15011000}, 5000000);
+		summary = asiotest::summarize(stepEmitted, match, 500.0);
+		harness.expectEqual(summary.steps, static_cast<size_t>(1), "one middle latency jump is one step");
+		harness.expectNear(summary.largestStepUs, 1000.0, 1e-9, "the largest step keeps its positive sign");
+
+		constexpr int64_t halfMinute = 30LL * 10000000LL;
+		const std::vector<int64_t> driftEmitted = {0, halfMinute, halfMinute * 2, halfMinute * 3};
+		std::vector<int64_t> driftOnsets;
+		for (size_t i = 0; i < driftEmitted.size(); i++)
+			driftOnsets.push_back(driftEmitted[i] + 1000 + static_cast<int64_t>(i) * 600);
+		match = asiotest::matchClicks(driftEmitted, driftOnsets, halfMinute);
+		summary = asiotest::summarize(driftEmitted, match, 500.0);
+		harness.expectNear(summary.slopeUsPerMinute, 120.0, 1e-9, "linear drift reports microseconds per minute");
+
+		match = asiotest::matchClicks({}, {}, 5000000);
+		summary = asiotest::summarize({}, match, 500.0);
+		harness.expectEqual(summary.count, static_cast<size_t>(0), "empty latency input has an empty summary");
+		harness.expectNear(summary.meanUs, 0.0, 0.0, "empty latency input keeps zero statistics");
+	}
+
 	// ---- in-process engine adapter ----
 
 	void testInProcProcessorRunsTheEngine()
@@ -1329,6 +1373,7 @@ namespace
 		testHostWithoutTimeInfo();
 		testSyncDeadline();
 		testWrapperRecordRoundTrip();
+		testLatencyMatchingAndSummary();
 		testInProcProcessorRunsTheEngine();
 		harness.expectEqual(AsioWrapper::instanceCount(), 0L, "every wrapper was released");
 		harness.expectEqual(FakeAsioDriver::instanceCount(), 0L, "every fake driver was released");

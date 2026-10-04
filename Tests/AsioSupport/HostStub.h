@@ -38,6 +38,14 @@ namespace asiotest
 			long sampleType = ASIOSTInt32LSB;
 			double sineHz = 0.0;          // > 0: a sine at outputScale on every output instead of the noise
 			double sampleRate = 48000.0;  // the sine's clock
+			unsigned clickIntervalFrames = 0; // > 0: eight +0.5 samples on outputs 0 and 1 at each interval
+			size_t switchLogCapacity = 0;
+		};
+
+		struct SwitchLogEntry
+		{
+			uint64_t firstFrame = 0;
+			int64_t qpc = 0;
 		};
 
 		explicit HostStub(Options options)
@@ -48,6 +56,13 @@ namespace asiotest
 			callbacks_.asioMessage = &HostStub::asioMessageThunk;
 			callbacks_.bufferSwitchTimeInfo = &HostStub::bufferSwitchTimeInfoThunk;
 			eapo::asio::findSampleCodec(options.sampleType, codec_);
+			switchLog_.resize(options.switchLogCapacity);
+			if (options.switchLogCapacity > 0)
+			{
+				LARGE_INTEGER frequency = {};
+				if (QueryPerformanceFrequency(&frequency))
+					qpcFrequency_ = frequency.QuadPart;
+			}
 			current_ = this;
 		}
 
@@ -105,7 +120,13 @@ namespace asiotest
 			driver_ = driver;
 			frames_ = frames;
 			outputPosition_ = 0;
+			switchLogCount_ = 0;
+			switchLogOverflow_ = 0;
 			inputRecords_.assign(infos_.size(), std::vector<unsigned char>());
+			if (options_.clickIntervalFrames > 0 || options_.switchLogCapacity > 0)
+				outputSamples_.assign(frames > 0 ? static_cast<size_t>(frames) : 0, 0.0f);
+			else
+				outputSamples_.clear();
 			return driver->createBuffers(infos_.data(), static_cast<long>(infos_.size()), frames, &callbacks_);
 		}
 
@@ -118,6 +139,12 @@ namespace asiotest
 		// first switch, before the codec.
 		float outputSample(long channel, uint64_t sampleIndex) const noexcept
 		{
+			if (options_.clickIntervalFrames > 0)
+			{
+				if (channel > 1 || sampleIndex < options_.clickIntervalFrames)
+					return 0.0f;
+				return sampleIndex % options_.clickIntervalFrames < 8 ? 0.5f : 0.0f;
+			}
 			if (options_.sineHz > 0.0)
 				return static_cast<float>(std::sin(6.283185307179586 * options_.sineHz * static_cast<double>(sampleIndex) / options_.sampleRate)) * options_.outputScale;
 			if (options_.outputSeed == 0)
@@ -144,6 +171,10 @@ namespace asiotest
 		double lastRateChange() const noexcept {return lastRateChange_;}
 		unsigned long rateChanges() const noexcept {return rateChanges_;}
 		const std::vector<ASIOBufferInfo>& infos() const noexcept {return infos_;}
+		const std::vector<SwitchLogEntry>& switchLog() const noexcept {return switchLog_;}
+		size_t switchLogCount() const noexcept {return switchLogCount_;}
+		size_t switchLogOverflow() const noexcept {return switchLogOverflow_;}
+		int64_t qpcFrequency() const noexcept {return qpcFrequency_;}
 		ASIOCallbacks* callbacks() noexcept {return &callbacks_;}
 
 		// Optional: something to run inside every switch (a test stopping
@@ -211,6 +242,21 @@ namespace asiotest
 
 		void onBufferSwitch(long index, ASIOBool, bool timeInfo)
 		{
+			if (!switchLog_.empty())
+			{
+				LARGE_INTEGER now = {};
+				QueryPerformanceCounter(&now);
+				if (switchLogCount_ < switchLog_.size())
+				{
+					switchLog_[switchLogCount_].firstFrame = outputPosition_;
+					switchLog_[switchLogCount_].qpc = now.QuadPart;
+					switchLogCount_++;
+				}
+				else
+				{
+					switchLogOverflow_++;
+				}
+			}
 			switches_++;
 			if (timeInfo)
 				timeInfoSwitches_++;
@@ -225,7 +271,10 @@ namespace asiotest
 			}
 			if (frames_ <= 0)
 				return;
-			std::vector<float> samples(static_cast<size_t>(frames_));
+			std::vector<float> callbackSamples;
+			if (outputSamples_.empty())
+				callbackSamples.resize(static_cast<size_t>(frames_));
+			float* samples = outputSamples_.empty() ? callbackSamples.data() : outputSamples_.data();
 			size_t inputSlot = 0;
 			for (ASIOBufferInfo& info : infos_)
 			{
@@ -235,14 +284,17 @@ namespace asiotest
 				const size_t bytes = static_cast<size_t>(codec_.bytesPerSample) * static_cast<size_t>(frames_);
 				if (info.isInput != ASIOFalse)
 				{
-					inputRecords_[inputSlot].insert(inputRecords_[inputSlot].end(), buffer, buffer + bytes);
+					// Timing options keep the callback allocation-free; latency runs
+					// observe the separate WASAPI capture instead of these records.
+					if (options_.clickIntervalFrames == 0 && switchLog_.empty())
+						inputRecords_[inputSlot].insert(inputRecords_[inputSlot].end(), buffer, buffer + bytes);
 					inputSlot++;
 				}
 				else
 				{
 					for (long n = 0; n < frames_; n++)
 						samples[static_cast<size_t>(n)] = outputSample(info.channelNum, outputPosition_ + static_cast<uint64_t>(n));
-					codec_.fromFloat(samples.data(), buffer, static_cast<unsigned>(frames_));
+					codec_.fromFloat(samples, buffer, static_cast<unsigned>(frames_));
 				}
 			}
 			outputPosition_ += static_cast<uint64_t>(frames_);
@@ -259,6 +311,11 @@ namespace asiotest
 		long frames_ = 0;
 		std::vector<ASIOBufferInfo> infos_;
 		std::vector<std::vector<unsigned char>> inputRecords_;
+		std::vector<float> outputSamples_;
+		std::vector<SwitchLogEntry> switchLog_;
+		size_t switchLogCount_ = 0;
+		size_t switchLogOverflow_ = 0;
+		int64_t qpcFrequency_ = 0;
 		uint64_t outputPosition_ = 0;
 		unsigned long switches_ = 0;
 		unsigned long timeInfoSwitches_ = 0;
