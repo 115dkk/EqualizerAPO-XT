@@ -11,9 +11,11 @@
 	readiness-barrier proof.
 
 	Targets:   fake (the statically linked FakeAsioDriver),
-	           dll:<path> (FakeAsioDriver.dll through DllGetClassObject),
+	           dll:<path> (FakeAsioDriver.dll through DllGetClassObject, or a
+	           live driver class when paired with --clsid {...}),
 	           clsid:{...} (a real driver through CoCreateInstance; no pump,
-	           the driver's own clock runs for --seconds)
+	           the driver's own clock runs for --seconds),
+	           wasapi:{...} (the built-in exclusive-mode target)
 	Wrappers:  static (AsioWrapper linked in, processor chosen by --processor),
 	           dll:<path> (EqualizerAPOAsio.dll through EapoAsioCreateWrapper),
 	           none (the target is driven as it is; --processor does not
@@ -25,17 +27,31 @@
 	           daemon-thread (the daemon adapter over the engine host running
 	           on a thread in this process), daemon (the daemon adapter over
 	           EqualizerAPOHost.exe, reached or started on --endpoint)
+	Latency:   --latency-capture {endpoint GUID} writes a click train to a live
+	           target, timestamps capture on the cable's far side, prints the
+	           latency distribution and optionally writes --latency-csv rows.
 
-	Exit codes: 0 ok, 1 usage, 2 the stream could not be opened or started,
-	3 a hash mismatch, 4 more late blocks than --max-late allows.
+	Exit codes: 0 ok, 1 usage, 2 the stream or latency capture could not be
+	opened or started, 3 a hash mismatch, 4 too many late blocks, 5 no click
+	was matched during a requested latency run.
 */
 
+#include <atomic>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <fstream>
 #include <memory>
 #include <string>
+#include <thread>
 #include <vector>
+
+#include <audioclient.h>
+#include <ks.h>
+#include <ksmedia.h>
+#include <mmdeviceapi.h>
+#include <mmreg.h>
 
 #include "asio/AsioSdk.h"
 #include "asio/AsioWrapper.h"
@@ -47,8 +63,10 @@
 #include "asio/WasapiExclusiveTarget.h"
 #include "engine/FilterEngine.h"
 #include "platform/windows/ComPtr.h"
+#include "platform/windows/Win32Resource.h"
 #include "services/logging/Logging.h"
 #include "Tests/AsioSupport/HostStub.h"
+#include "Tests/AsioSupport/LatencyMatch.h"
 #include "Tests/AsioSupport/Sha256.h"
 #include "Tests/FakeAsioDriver/FakeAsio.h"
 
@@ -69,6 +87,7 @@ namespace
 	struct Arguments
 	{
 		std::wstring target = L"fake";
+		std::wstring targetDllClsid;
 		std::wstring wrapper = L"static";
 		std::wstring processor = L"inproc";
 		std::wstring config;
@@ -99,6 +118,9 @@ namespace
 		std::wstring daemonExe;
 		std::wstring endpoint = L"EAPO.ASIO.probe";
 		uint32_t deadlineUs = 0;
+		std::wstring latencyCapture;
+		unsigned clickIntervalMs = 500;
+		std::wstring latencyCsv;
 	};
 
 	std::string narrow(const std::wstring& text)
@@ -113,13 +135,14 @@ namespace
 	void usage()
 	{
 		std::fputs(
-			"AsioProbe --target fake|dll:<FakeAsioDriver.dll>|clsid:{...}|wasapi:{...}[,{...}] --wrapper static|dll:<EqualizerAPOAsio.dll>|none\n"
+			"AsioProbe --target fake|dll:<driver.dll>|clsid:{...}|wasapi:{...}[,{...}] [--clsid {...}] --wrapper static|dll:<EqualizerAPOAsio.dll>|none\n"
 			"          --processor inproc|passthrough|daemon-thread|daemon --config <config.txt> [--mode sync|pipelined]\n"
 			"          [--daemon <EqualizerAPOHost.exe>] [--endpoint <name>] [--deadline-us N]\n"
 			"          [--frames 64] [--rate 48000] [--periods 200] [--pace-us 0] [--burst 1] [--channels in,out] [--sample-type int16|int24|int32|float32]\n"
 			"          [--seed N] [--host-seed N] [--no-input] [--no-output] [--output-ready]\n"
 			"          [--expect-sha256 hex] [--expect-first-sha256 hex] [--expect-input-sha256 hex] [--max-late N] [--trace-slow us] [--no-reference]\n"
-			"          [--seconds 10] [--tone] [--sine Hz]   (real driver / wasapi:{playback guid}[,{recording guid}] only)\n", stderr);
+			"          [--seconds 10] [--tone] [--sine Hz]   (live targets only)\n"
+			"          [--latency-capture {capture endpoint GUID}] [--click-interval-ms 500] [--latency-csv <path>]\n", stderr);
 	}
 
 	bool parse(int argc, wchar_t** argv, Arguments& a)
@@ -135,6 +158,7 @@ namespace
 			};
 			std::wstring v;
 			if (key == L"--target" && value(v)) a.target = v;
+			else if (key == L"--clsid" && value(v)) a.targetDllClsid = v;
 			else if (key == L"--wrapper" && value(v)) a.wrapper = v;
 			else if (key == L"--processor" && value(v)) a.processor = v;
 			else if (key == L"--config" && value(v)) a.config = v;
@@ -156,6 +180,16 @@ namespace
 			else if (key == L"--daemon" && value(v)) a.daemonExe = v;
 			else if (key == L"--endpoint" && value(v)) a.endpoint = v;
 			else if (key == L"--deadline-us" && value(v)) a.deadlineUs = static_cast<uint32_t>(std::wcstoul(v.c_str(), nullptr, 10));
+			else if (key == L"--latency-capture" && value(v)) a.latencyCapture = v;
+			else if (key == L"--click-interval-ms" && value(v))
+			{
+				wchar_t* end = nullptr;
+				const unsigned long long interval = std::wcstoull(v.c_str(), &end, 10);
+				if (v.empty() || v.front() == L'-' || end == v.c_str() || *end != L'\0' || interval > UINT_MAX)
+					return false;
+				a.clickIntervalMs = static_cast<unsigned>(interval);
+			}
+			else if (key == L"--latency-csv" && value(v)) a.latencyCsv = v;
 			else if (key == L"--channels" && value(v))
 			{
 				const size_t comma = v.find(L',');
@@ -183,7 +217,13 @@ namespace
 			else if (key == L"--sine" && value(v)) a.sineHz = std::wcstod(v.c_str(), nullptr);
 			else return false;
 		}
-		return a.frames > 0 && a.periods > 0 && a.rate > 0.0 && a.burst > 0 && a.traceSlowUs >= 0;
+		const bool dllTarget = a.target.starts_with(L"dll:");
+		const bool liveTarget = a.target.starts_with(L"clsid:") || a.target.starts_with(L"wasapi:")
+			|| (dllTarget && !a.targetDllClsid.empty());
+		return a.frames > 0 && a.periods > 0 && a.rate > 0.0 && a.burst > 0 && a.traceSlowUs >= 0
+			&& a.clickIntervalMs >= 50 && (a.targetDllClsid.empty() || dllTarget)
+			&& (a.latencyCapture.empty() || (liveTarget && a.seconds > 0.0))
+			&& (a.latencyCsv.empty() || !a.latencyCapture.empty());
 	}
 
 	// A DLL the probe loaded. Deliberately never freed: COM objects created
@@ -569,6 +609,353 @@ namespace
 		return result;
 	}
 
+	struct LatencyCapture
+	{
+		LatencyCapture(std::wstring endpoint, unsigned clickFrames, double asioSampleRate, size_t capacity)
+			: endpointGuid(std::move(endpoint)), clickIntervalFrames(clickFrames), asioRate(asioSampleRate), onsetCapacity(capacity)
+		{
+			onsets100ns.reserve(capacity);
+		}
+
+		~LatencyCapture()
+		{
+			if (thread.joinable())
+			{
+				if (stopEvent)
+					SetEvent(stopEvent.get());
+				thread.join();
+			}
+		}
+
+		bool start()
+		{
+			stopEvent.reset(CreateEventW(nullptr, TRUE, FALSE, nullptr));
+			readyEvent.reset(CreateEventW(nullptr, TRUE, FALSE, nullptr));
+			failedEvent.reset(CreateEventW(nullptr, TRUE, FALSE, nullptr));
+			if (!stopEvent || !readyEvent || !failedEvent)
+			{
+				error = HRESULT_FROM_WIN32(GetLastError());
+				failure = L"event creation";
+				return false;
+			}
+			thread = std::thread(&LatencyCapture::run, this);
+			WaitForSingleObject(readyEvent.get(), INFINITE);
+			const bool ready = started.load(std::memory_order_acquire);
+			if (!ready && thread.joinable())
+				thread.join();
+			return ready;
+		}
+
+		void stop()
+		{
+			if (stopEvent)
+				SetEvent(stopEvent.get());
+			if (thread.joinable())
+				thread.join();
+		}
+
+		void printFailure() const
+		{
+			if (FAILED(error))
+				std::fwprintf(stderr, L"AsioProbe: latency capture %s failed with 0x%08x\n",
+					failure.c_str(), static_cast<unsigned>(error));
+		}
+
+		std::wstring endpointGuid;
+		unsigned clickIntervalFrames = 0;
+		double asioRate = 0.0;
+		size_t onsetCapacity = 0;
+		std::vector<int64_t> onsets100ns;
+		unsigned captureRate = 0;
+		uint64_t discontinuities = 0;
+		size_t onsetOverflow = 0;
+		HRESULT error = S_OK;
+		std::wstring failure;
+		std::atomic<bool> started{false};
+		winutil::UniqueHandle stopEvent;
+		winutil::UniqueHandle readyEvent;
+		winutil::UniqueHandle failedEvent;
+		std::thread thread;
+
+	private:
+		void fail(const wchar_t* operation, HRESULT result)
+		{
+			failure = operation;
+			error = FAILED(result) ? result : E_FAIL;
+			SetEvent(readyEvent.get());
+			SetEvent(failedEvent.get());
+		}
+
+		static bool isFloat32(const WAVEFORMATEX* format)
+		{
+			if (format == nullptr || format->wBitsPerSample != 32 || format->nChannels == 0
+				|| format->nBlockAlign != format->nChannels * sizeof(float))
+				return false;
+			if (format->wFormatTag == WAVE_FORMAT_IEEE_FLOAT)
+				return true;
+			if (format->wFormatTag != WAVE_FORMAT_EXTENSIBLE || format->cbSize < 22)
+				return false;
+			const WAVEFORMATEXTENSIBLE* extensible = reinterpret_cast<const WAVEFORMATEXTENSIBLE*>(format);
+			return extensible->SubFormat == KSDATAFORMAT_SUBTYPE_IEEE_FLOAT;
+		}
+
+		void run()
+		{
+			const winutil::ComApartment apartment(COINIT_MULTITHREADED);
+			if (!apartment.isUsable())
+			{
+				fail(L"CoInitializeEx", apartment.status());
+				return;
+			}
+			ComPtr<IMMDeviceEnumerator> enumerator;
+			HRESULT hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_INPROC_SERVER,
+				__uuidof(IMMDeviceEnumerator), reinterpret_cast<void**>(enumerator.put()));
+			if (FAILED(hr) || !enumerator)
+			{
+				fail(L"device enumerator", hr);
+				return;
+			}
+			ComPtr<IMMDevice> device;
+			const std::wstring deviceId = eapo::asio::wasapi::endpointId(true, endpointGuid);
+			hr = enumerator->GetDevice(deviceId.c_str(), device.put());
+			if (FAILED(hr) || !device)
+			{
+				fail(L"capture endpoint", hr);
+				return;
+			}
+			ComPtr<IAudioClient> client;
+			hr = device->Activate(__uuidof(IAudioClient), CLSCTX_INPROC_SERVER, nullptr,
+				reinterpret_cast<void**>(client.put()));
+			if (FAILED(hr) || !client)
+			{
+				fail(L"IAudioClient activation", hr);
+				return;
+			}
+			winutil::CoTaskMem<WAVEFORMATEX> mix;
+			hr = client->GetMixFormat(mix.put());
+			if (FAILED(hr) || !mix)
+			{
+				fail(L"GetMixFormat", hr);
+				return;
+			}
+			if (!isFloat32(mix.get()))
+			{
+				fail(L"mix format is not float32", AUDCLNT_E_UNSUPPORTED_FORMAT);
+				return;
+			}
+			captureRate = mix->nSamplesPerSec;
+			winutil::UniqueHandle captureEvent(CreateEventW(nullptr, FALSE, FALSE, nullptr));
+			if (!captureEvent)
+			{
+				fail(L"capture event creation", HRESULT_FROM_WIN32(GetLastError()));
+				return;
+			}
+			hr = client->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK,
+				0, 0, mix.get(), nullptr);
+			if (FAILED(hr))
+			{
+				fail(L"Initialize", hr);
+				return;
+			}
+			hr = client->SetEventHandle(captureEvent.get());
+			if (FAILED(hr))
+			{
+				fail(L"SetEventHandle", hr);
+				return;
+			}
+			ComPtr<IAudioCaptureClient> capture;
+			hr = client->GetService(__uuidof(IAudioCaptureClient), reinterpret_cast<void**>(capture.put()));
+			if (FAILED(hr) || !capture)
+			{
+				fail(L"GetService(IAudioCaptureClient)", hr);
+				return;
+			}
+			DWORD taskIndex = 0;
+			HANDLE task = AvSetMmThreadCharacteristicsW(L"Pro Audio", &taskIndex);
+			hr = client->Start();
+			if (FAILED(hr))
+			{
+				if (task != nullptr)
+					AvRevertMmThreadCharacteristics(task);
+				fail(L"Start", hr);
+				return;
+			}
+			started.store(true, std::memory_order_release);
+			SetEvent(readyEvent.get());
+
+			const uint64_t lowFramesNeeded = (std::max)(UINT64_C(1), static_cast<uint64_t>(std::llround(
+				static_cast<double>(clickIntervalFrames) * captureRate / ((std::max)(asioRate, 1.0) * 4.0))));
+			uint64_t lowFrames = 0;
+			bool running = true;
+			HANDLE waits[] = {stopEvent.get(), captureEvent.get()};
+			while (running)
+			{
+				const DWORD wait = WaitForMultipleObjects(2, waits, FALSE, 200);
+				if (wait == WAIT_OBJECT_0)
+					break;
+				if (wait == WAIT_FAILED)
+				{
+					fail(L"capture event wait", HRESULT_FROM_WIN32(GetLastError()));
+					break;
+				}
+				if (wait == WAIT_TIMEOUT)
+					continue;
+				UINT32 packetFrames = 0;
+				hr = capture->GetNextPacketSize(&packetFrames);
+				if (FAILED(hr))
+				{
+					fail(L"GetNextPacketSize", hr);
+					break;
+				}
+				while (packetFrames > 0)
+				{
+					BYTE* data = nullptr;
+					UINT32 frames = 0;
+					DWORD flags = 0;
+					UINT64 devicePosition = 0, qpcPosition = 0;
+					hr = capture->GetBuffer(&data, &frames, &flags, &devicePosition, &qpcPosition);
+					if (FAILED(hr))
+					{
+						fail(L"GetBuffer", hr);
+						running = false;
+						break;
+					}
+					if ((flags & AUDCLNT_BUFFERFLAGS_DATA_DISCONTINUITY) != 0)
+						discontinuities++;
+					const bool silent = (flags & AUDCLNT_BUFFERFLAGS_SILENT) != 0;
+					const float* samples = reinterpret_cast<const float*>(data);
+					for (UINT32 frame = 0; frame < frames; frame++)
+					{
+						const float sample = silent ? 0.0f : samples[static_cast<size_t>(frame) * mix->nChannels];
+						const float magnitude = std::fabs(sample);
+						if (magnitude >= 0.1f)
+						{
+							if (lowFrames >= lowFramesNeeded)
+							{
+								const int64_t onset = static_cast<int64_t>(qpcPosition)
+									+ static_cast<int64_t>(std::llround(static_cast<double>(frame) * 10000000.0 / captureRate));
+								if (onsets100ns.size() < onsetCapacity)
+									onsets100ns.push_back(onset);
+								else
+									onsetOverflow++;
+							}
+							lowFrames = 0;
+						}
+						else if (magnitude < 0.05f)
+						{
+							if (lowFrames < lowFramesNeeded)
+								lowFrames++;
+						}
+						else
+						{
+							lowFrames = 0;
+						}
+					}
+					hr = capture->ReleaseBuffer(frames);
+					if (FAILED(hr))
+					{
+						fail(L"ReleaseBuffer", hr);
+						running = false;
+						break;
+					}
+					hr = capture->GetNextPacketSize(&packetFrames);
+					if (FAILED(hr))
+					{
+						fail(L"GetNextPacketSize", hr);
+						running = false;
+						break;
+					}
+				}
+			}
+			client->Stop();
+			if (task != nullptr)
+				AvRevertMmThreadCharacteristics(task);
+		}
+	};
+
+	struct EmittedClick
+	{
+		uint64_t click = 0;
+		uint64_t frame = 0;
+		int64_t time100ns = 0;
+	};
+
+	int64_t qpcTo100ns(int64_t qpc, int64_t frequency)
+	{
+		if (frequency <= 0)
+			return 0;
+		const int64_t seconds = qpc / frequency;
+		const int64_t remainder = qpc % frequency;
+		return seconds * 10000000LL
+			+ (remainder * 10000000LL + frequency / 2) / frequency;
+	}
+
+	std::vector<EmittedClick> emittedClicks(const asiotest::HostStub& host, long bufferFrames,
+		unsigned clickIntervalFrames, double rate)
+	{
+		std::vector<EmittedClick> result;
+		if (bufferFrames <= 0 || clickIntervalFrames == 0 || rate <= 0.0 || host.qpcFrequency() <= 0)
+			return result;
+		const std::vector<asiotest::HostStub::SwitchLogEntry>& log = host.switchLog();
+		const size_t logCount = (std::min)(host.switchLogCount(), log.size());
+		if (logCount == 0)
+			return result;
+		const uint64_t lastFrame = log[logCount - 1].firstFrame + static_cast<uint64_t>(bufferFrames);
+		result.reserve(static_cast<size_t>(lastFrame / clickIntervalFrames));
+		size_t entry = 0;
+		for (uint64_t click = 1; click <= (UINT64_MAX / clickIntervalFrames); click++)
+		{
+			const uint64_t frame = click * clickIntervalFrames;
+			if (frame >= lastFrame)
+				break;
+			while (entry < logCount && frame >= log[entry].firstFrame + static_cast<uint64_t>(bufferFrames))
+				entry++;
+			if (entry >= logCount)
+				break;
+			if (frame < log[entry].firstFrame)
+				continue;
+			const uint64_t offset = frame - log[entry].firstFrame;
+			const int64_t time100ns = qpcTo100ns(log[entry].qpc, host.qpcFrequency())
+				+ static_cast<int64_t>(std::llround(static_cast<double>(offset) * 10000000.0 / rate));
+			result.push_back({click, frame, time100ns});
+		}
+		return result;
+	}
+
+	bool writeLatencyCsv(const std::wstring& path, const std::vector<EmittedClick>& clicks,
+		const asiotest::LatencyMatch& match)
+	{
+		if (path.empty())
+			return true;
+		std::ofstream csv(path);
+		if (!csv)
+		{
+			std::fwprintf(stderr, L"AsioProbe: cannot open latency CSV %s\n", path.c_str());
+			return false;
+		}
+		csv << "click,emitFrame,emit100ns,capture100ns,latencyUs\n";
+		for (size_t i = 0; i < clicks.size(); i++)
+		{
+			csv << clicks[i].click << ',' << clicks[i].frame << ',' << clicks[i].time100ns << ',';
+			if (i < match.latency100ns.size() && match.latency100ns[i] != INT64_MIN)
+			{
+				csv << clicks[i].time100ns + match.latency100ns[i] << ','
+					<< static_cast<double>(match.latency100ns[i]) / 10.0;
+			}
+			else
+			{
+				csv << ',';
+			}
+			csv << '\n';
+		}
+		if (!csv)
+		{
+			std::fwprintf(stderr, L"AsioProbe: could not finish latency CSV %s\n", path.c_str());
+			return false;
+		}
+		return true;
+	}
+
 	int runRealStream(const Arguments& a, IASIO* wrapper, AsioWrapper* staticWrapper)
 	{
 		long inputs = 0, outputs = 0;
@@ -611,9 +998,21 @@ namespace
 		std::printf("target channels in=%ld out=%ld buffer=%ld (min %ld max %ld preferred %ld) rate=%.0f type=%ld\n",
 			inputs, outputs, frames, minSize, maxSize, preferred, rate, info.type);
 		hostOptions.sampleRate = rate > 0.0 ? rate : 48000.0;
+		const bool measureLatency = !a.latencyCapture.empty();
+		const unsigned clickIntervalFrames = measureLatency
+			? static_cast<unsigned>(std::llround(hostOptions.sampleRate * a.clickIntervalMs / 1000.0)) : 0;
+		if (measureLatency)
+		{
+			hostOptions.clickIntervalFrames = clickIntervalFrames;
+			// A driver on its own timer may run a little fast; a full log
+			// would drop the last clicks and bias the last minute, so it
+			// holds 1 % more than the nominal count.
+			const double expectedSwitches = a.seconds * hostOptions.sampleRate / (std::max)(frames, 1L);
+			hostOptions.switchLogCapacity = static_cast<size_t>(std::ceil(expectedSwitches * 1.01)) + 64;
+		}
 
 		asiotest::HostStub host(hostOptions);
-		host.openChannels(inputs, outputs);
+		host.openChannels(measureLatency ? 0 : inputs, outputs);
 		ASIOError error = host.createBuffers(wrapper, frames);
 		if (error != ASE_OK)
 		{
@@ -628,19 +1027,72 @@ namespace
 		// The gate waits for this line before it measures; with stdout in a
 		// file the CRT would otherwise hold it until exit.
 		std::fflush(stdout);
+		std::unique_ptr<LatencyCapture> capture;
+		if (measureLatency)
+		{
+			const size_t onsetCapacity = static_cast<size_t>(std::ceil(a.seconds * 1000.0 / a.clickIntervalMs)) * 2 + 64;
+			capture = std::make_unique<LatencyCapture>(a.latencyCapture, clickIntervalFrames,
+				hostOptions.sampleRate, onsetCapacity);
+			if (!capture->start())
+			{
+				capture->printFailure();
+				wrapper->disposeBuffers();
+				return 2;
+			}
+		}
 		error = wrapper->start();
 		if (error != ASE_OK)
 		{
 			char message[124] = {};
 			wrapper->getErrorMessage(message);
 			std::fprintf(stderr, "AsioProbe: start failed with %ld: %s\n", error, message);
+			if (capture != nullptr)
+				capture->stop();
+			wrapper->disposeBuffers();
 			return 2;
 		}
-		Sleep(static_cast<DWORD>(a.seconds * 1000.0));
+		if (capture != nullptr)
+			WaitForSingleObject(capture->failedEvent.get(), static_cast<DWORD>(a.seconds * 1000.0));
+		else
+			Sleep(static_cast<DWORD>(a.seconds * 1000.0));
 		wrapper->stop();
+		if (capture != nullptr)
+			capture->stop();
 		StreamStats stats;
 		if (staticWrapper != nullptr)
 			stats = staticWrapper->stats();
+
+		int result = host.switches() > 0 ? 0 : 2;
+		if (capture != nullptr)
+		{
+			if (FAILED(capture->error))
+			{
+				capture->printFailure();
+				result = 2;
+			}
+			const std::vector<EmittedClick> clicks = emittedClicks(host, frames, clickIntervalFrames, hostOptions.sampleRate);
+			std::vector<int64_t> emitted100ns;
+			emitted100ns.reserve(clicks.size());
+			for (const EmittedClick& click : clicks)
+				emitted100ns.push_back(click.time100ns);
+			const int64_t window100ns = static_cast<int64_t>(a.clickIntervalMs) * 10000;
+			const asiotest::LatencyMatch match = asiotest::matchClicks(emitted100ns, capture->onsets100ns, window100ns);
+			const asiotest::LatencySummary summary = asiotest::summarize(emitted100ns, match, 500.0);
+			std::printf("latency-loopback: asio-rate %.0f capture-rate %u interval-ms %u emitted %zu matched %zu missing %zu extra %zu discontinuities %llu switch-log-overflow %zu onset-overflow %zu\n",
+				hostOptions.sampleRate, capture->captureRate, a.clickIntervalMs, clicks.size(), match.matched,
+				match.missing, match.extra, static_cast<unsigned long long>(capture->discontinuities),
+				host.switchLogOverflow(), capture->onsetOverflow);
+			std::printf("latency-loopback: ms min %.3f median %.3f max %.3f mean %.3f stdev %.3f\n",
+				summary.minUs / 1000.0, summary.medianUs / 1000.0, summary.maxUs / 1000.0,
+				summary.meanUs / 1000.0, summary.stdevUs / 1000.0);
+			std::printf("latency-loopback: ms first-minute %.3f last-minute %.3f drift-per-minute %.3f steps %zu largest-step %.3f\n",
+				summary.firstMinuteMeanUs / 1000.0, summary.lastMinuteMeanUs / 1000.0,
+				summary.slopeUsPerMinute / 1000.0, summary.steps, summary.largestStepUs / 1000.0);
+			if (!writeLatencyCsv(a.latencyCsv, clicks, match))
+				result = 2;
+			if (match.matched == 0 && result == 0)
+				result = 5;
+		}
 		printProfile(staticWrapper);
 		wrapper->disposeBuffers();
 
@@ -653,10 +1105,10 @@ namespace
 				static_cast<unsigned long long>(stats.gone[0]), static_cast<unsigned long long>(stats.gone[1]), stats.staleBlocks);
 			std::printf("process-us max out=%u in=%u last out=%u in=%u\n",
 				stats.maxProcessUs[0], stats.maxProcessUs[1], stats.lastProcessUs[0], stats.lastProcessUs[1]);
-			if (static_cast<long>(stats.late[0] + stats.late[1]) > a.maxLate)
-				return 4;
+			if (static_cast<long>(stats.late[0] + stats.late[1]) > a.maxLate && result == 0)
+				result = 4;
 		}
-		return host.switches() > 0 ? 0 : 2;
+		return result;
 	}
 }
 
@@ -678,8 +1130,9 @@ int wmain(int argc, wchar_t** argv)
 	std::wstring targetClsid = CLSID_FakeAsioText;
 	const bool realDriver = a.target.starts_with(L"clsid:");
 	const bool wasapiTarget = a.target.starts_with(L"wasapi:");
+	const bool dllDriver = a.target.starts_with(L"dll:") && !a.targetDllClsid.empty();
 	// A target with a device behind it: no fake control, no pump, timed run.
-	const bool liveTarget = realDriver || wasapiTarget;
+	const bool liveTarget = realDriver || wasapiTarget || dllDriver;
 	eapo::asio::WasapiExclusiveTarget* wasapi = nullptr;
 	if (a.target == L"fake")
 	{
@@ -687,7 +1140,17 @@ int wmain(int argc, wchar_t** argv)
 	}
 	else if (a.target.starts_with(L"dll:"))
 	{
-		target = loadFromDll(a.target.substr(4), CLSID_FakeAsio, targetModule);
+		CLSID clsid = CLSID_FakeAsio;
+		if (dllDriver)
+		{
+			targetClsid = a.targetDllClsid;
+			if (FAILED(CLSIDFromString(targetClsid.c_str(), &clsid)))
+			{
+				std::fwprintf(stderr, L"AsioProbe: %s is not a CLSID\n", targetClsid.c_str());
+				return 2;
+			}
+		}
+		target = loadFromDll(a.target.substr(4), clsid, targetModule);
 	}
 	else if (realDriver)
 	{

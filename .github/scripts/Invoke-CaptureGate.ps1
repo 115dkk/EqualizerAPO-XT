@@ -115,8 +115,11 @@ $lowLatencyMeasurements = @(
 # must take the entry and its record away again.
 $asioEntryMeasurement = [pscustomobject]@{ Name = "asio-entry"; ExpectGainDb = $PreampDb; ToleranceDb = $ToleranceDb; Required = $true; Note = "a DAW opening the endpoint's ASIO entry hears the preamp on the far side" }
 # The first size is the gated one; the rest are recorded. Small first: the
-# entry has to hold a small buffer, the point of exclusive mode.
-$asioEntryFrames = @(256, 1024, 2048)
+# entry has to hold a small buffer, the point of exclusive mode. 64 is what
+# a rhythm game asks for; below the cable's own smallest period the entry
+# runs the device at that period and serves several buffers per event
+# (wasapi::initialBridge), and the direct-target diagnosis prints the bridge.
+$asioEntryFrames = @(256, 64, 1024, 2048)
 # The Send round (docs/features/send.md): EqualizerAPO.dll hosted twice in
 # one process, for the cable's playback endpoint and a second active playback
 # endpoint, under a config whose Send line hands the first one's channels to

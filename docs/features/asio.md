@@ -57,16 +57,25 @@ same ones an ASIO driver's entry has: **Remove the buffer** with its
 and [Options in the Device Selector](#options-in-the-device-selector)).
 Unticking it folds them away again.
 
-What the entry offers: buffer sizes in powers of two from the smallest
-exclusive period the driver declares (a virtual cable at 48 kHz: 128
-frames; a USB DAC with a 3 ms minimum: 256), the sample rates the device
-accepts in exclusive mode, and the sample type the device takes there.
+What the entry offers: buffer sizes in powers of two up to 2048, the
+sample rates the device accepts in exclusive mode, and the sample type the
+device takes there. The preferred size is the first power of two at or
+above the smallest exclusive period the driver declares (a virtual cable at
+48 kHz: 128 frames; a USB DAC with a 3 ms minimum: 256). Smaller sizes are
+offered down to an eighth of that, and never below 32: a game that offers
+only 64 or 128 still opens on the DAC. The device then runs at the
+preferred size and each of its periods serves two, four or eight of the
+application's buffers back to back (the bridge described below, taken from
+the start). The application's smaller number therefore changes neither the
+latency nor the timing step, which stay those of the preferred size; it
+only stops the entry from refusing the setting, as it did until v2.57.0.
 Most hardware takes 32-, 24- or 16-bit integers rather than float; the
 entry tries the endpoint's own device format first and the wrapper converts
-at its edge. The reported latency is two buffers plus the driver's own on
-output and one buffer plus the driver's on input. `AsioProbe --target
-wasapi:{playback guid}[,{recording guid}]` opens the same target without
-any registration, for support sessions and for CI.
+at its edge. The reported latency is the device period plus one buffer plus
+the driver's own on output (two buffers when the buffer is the device
+period) and the device period plus the driver's on input. `AsioProbe
+--target wasapi:{playback guid}[,{recording guid}]` opens the same target
+without any registration, for support sessions and for CI.
 
 The buffer size an application picks is the period the endpoint is asked
 for. Two things stand between a small period and a driver keeping it.
@@ -80,8 +89,10 @@ signal, which would leave the rest of each cycle unplayed. The entry
 watches the first dozen signals of a stream; when they come well over
 the period, it reopens the device side at the smallest multiple of the
 application's buffer that covers the cycle and serves that many buffers
-per signal, back to back. The application keeps its buffer size, the
-audio keeps every sample, and the added latency is reported through
+per signal, back to back. The reopened stream is watched the same way and
+the multiple raised again if it is still too small, never past eight. The
+application keeps its buffer size, the audio keeps every sample, and the
+added latency is reported through
 `kAsioLatenciesChanged`. `AsioProbe --target wasapi:{guid} --frames <n>`
 shows what a driver did: `event-interval` is its real signal spacing,
 `slow-events` how many came late, `bridge` how many buffers each signal
@@ -89,7 +100,10 @@ ended up serving (1 on a driver that honours its period).
 
 Measured on the maintainer's VB-CABLE: 128 frames at 48 kHz, 2,256 buffers
 in six seconds, none late or missed, and a recording app on the far side
-heard the preamp and the peak filter of the test configuration; duplex
+heard the preamp and the peak filter of the test configuration. Below the
+cable's 128-frame preferred size, 64 frames opened with a bridge of 2 and
+32 frames with a bridge of 4: five seconds each, every buffer served, the
+device signalling every 2.667 ms (128 frames) in both, no miss; duplex
 (both sides of the cable in one device) and recording-only ran the same
 way through the wrapper DLL and the real host. On CI the capture gate
 installs the cable's playback endpoint with the entry, activates the
