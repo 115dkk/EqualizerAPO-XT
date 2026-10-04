@@ -468,6 +468,19 @@ namespace
 		harness.expectEqual(slowCable.factor(), 8u, "64 frames over a 10 ms cycle: from 2 up to 8");
 		wasapi::BridgeCalibrator fastEvents = calibrate(period, 0, std::vector<uint64_t>(12, period), &decidedOn, 4);
 		harness.expectEqual(fastEvents.factor(), 4u, "events faster than the device period never lower the bridge");
+		// The CI runner's cable (a 441-frame cycle at 44.1 kHz) under a
+		// 64-frame stream: opened with four buffers per period, its 10 ms
+		// cycle asks for seven; at 448 frames it signalled every 20 ms, and
+		// the stream thread judges the reopened period again.
+		const uint64_t runnerPeriod = 1451247;     // 64 frames at 44.1 kHz, in ns
+		wasapi::BridgeCalibrator runnerOpened = calibrate(runnerPeriod, 0, std::vector<uint64_t>(12, 10000000), &decidedOn, 4);
+		harness.expectEqual(runnerOpened.factor(), 7u, "a 10 ms cycle over 64 frames opened at 4 asks for 7");
+		wasapi::BridgeCalibrator runnerReopened = calibrate(runnerPeriod, 0, std::vector<uint64_t>(12, 20000000), &decidedOn, 7);
+		harness.expectEqual(runnerReopened.factor(), 8u, "the reopened 448-frame period signalled every 20 ms goes to the cap");
+		wasapi::BridgeCalibrator runnerSettled = calibrate(runnerPeriod, 0, std::vector<uint64_t>(12, 11610000), &decidedOn, 8);
+		harness.expectEqual(runnerSettled.factor(), 8u, "at 512 frames the cable keeps pace and the bridge stays");
+		wasapi::BridgeCalibrator runnerCapped = calibrate(runnerPeriod, 0, std::vector<uint64_t>(12, 20000000), &decidedOn, 8);
+		harness.expectEqual(runnerCapped.factor(), 8u, "at the cap a slower cycle asks for nothing more");
 		wasapi::BridgeCalibrator forcedBelow(period, 4, 3);
 		harness.expectFalse(forcedBelow.forced(), "a forced value at or below the opened bridge is ignored");
 		harness.expectEqual(forcedBelow.factor(), 4u, "and the opened bridge stands");

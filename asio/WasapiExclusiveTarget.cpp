@@ -1394,6 +1394,12 @@ namespace eapo::asio
 				clock = out.event ? out.event.get() : in.event.get();
 				devicePeriodNanos = periodNanos * calibrator.factor();
 				previousEvent = 0;
+				// The reopened period is judged again: a cable whose cycle
+				// is 441 frames took a 448-frame period (64 x 7) and then
+				// signalled every second cycle, which left half of each
+				// event unplayed. Each reopen only raises the bridge, up to
+				// the cap, so this ends.
+				calibrator = wasapi::BridgeCalibrator(periodNanos, calibrator.factor(), 0);
 			}
 		}
 		counters_.eventIntervalAvgUs = intervalCount != 0 ? intervalSum / intervalCount / 1000 : 0;

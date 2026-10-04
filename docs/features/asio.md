@@ -89,8 +89,10 @@ signal, which would leave the rest of each cycle unplayed. The entry
 watches the first dozen signals of a stream; when they come well over
 the period, it reopens the device side at the smallest multiple of the
 application's buffer that covers the cycle and serves that many buffers
-per signal, back to back. The application keeps its buffer size, the
-audio keeps every sample, and the added latency is reported through
+per signal, back to back. The reopened stream is watched the same way and
+the multiple raised again if it is still too small, never past eight. The
+application keeps its buffer size, the audio keeps every sample, and the
+added latency is reported through
 `kAsioLatenciesChanged`. `AsioProbe --target wasapi:{guid} --frames <n>`
 shows what a driver did: `event-interval` is its real signal spacing,
 `slow-events` how many came late, `bridge` how many buffers each signal
