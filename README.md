@@ -62,8 +62,11 @@ Current work areas:
    in the Device Selector. Measured on a virtual cable locally and on CI;
    the study, with the low-latency answer, is in
    [docs/architecture/wasapi-exclusive-study.md](docs/architecture/wasapi-exclusive-study.md).
-   Remaining: hardware beyond the cable, and one entry that pairs a device's
-   playback and recording endpoints.
+   Buffers below the device's smallest period open too, so the 64 or 128
+   that rhythm games recommend is no longer refused
+   ([#410](https://github.com/115dkk/EqualizerAPO-XT/pull/410)). Remaining:
+   hardware beyond the cable, a real game, and one entry that pairs a
+   device's playback and recording endpoints.
 10. Virtual channels and sending audio to another endpoint. `NewChannel:`
     declares silent virtual channels and adds them to the selection, so an
     upmixer plug-in can write to channels the device does not have
