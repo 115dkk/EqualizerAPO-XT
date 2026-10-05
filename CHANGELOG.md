@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.57.2 — 2026-10-05
+
 - **The analysis graph redraws about twice as fast after an edit.** With a
   VST3 upmixer and eight convolution lines at an analysis resolution of
   262144, the time from an edit to the new curve dropped from about 1.8 s
