@@ -160,6 +160,26 @@ function Get-SdkDownloadSpec {
     )
 }
 
+function Invoke-GitWithRetry {
+    # Internal: a git network command with three attempts. A clone that dies
+    # half way leaves a directory git refuses to clone into, so CleanupDir is
+    # removed before each retry.
+    param(
+        [Parameter(Mandatory)] [string[]]$Arguments,
+        [string]$CleanupDir
+    )
+
+    for ($attempt = 1; $attempt -le 3; $attempt++) {
+        if ($attempt -gt 1) {
+            Write-Host "  git $($Arguments[0]) failed; retrying ($attempt/3) in 10 s..."
+            Start-Sleep -Seconds 10
+            if ($CleanupDir -and (Test-Path $CleanupDir)) { Remove-Item $CleanupDir -Recurse -Force }
+        }
+        git @Arguments
+        if ($LASTEXITCODE -eq 0) { return }
+    }
+}
+
 function Invoke-DependencyFetch {
     # Internal: single network fetch, kept separate so tests can mock the
     # network away. Same curl invocation both consumers used inline.
@@ -168,7 +188,11 @@ function Invoke-DependencyFetch {
         [Parameter(Mandatory)] [string]$OutFile
     )
 
-    curl.exe --fail --location --retry 5 --retry-delay 5 --output $OutFile $Url
+    # --retry alone skips connection and TLS failures, which are what the
+    # hosted runners actually hit; --ssl-revoke-best-effort keeps an
+    # unreachable revocation server (CRYPT_E_REVOCATION_OFFLINE) from failing
+    # an otherwise valid download.
+    curl.exe --fail --location --retry 5 --retry-delay 5 --retry-all-errors --ssl-revoke-best-effort --output $OutFile $Url
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to download $Url"
     }
@@ -288,14 +312,14 @@ function Build-VcpkgDependencies {
             # change without a reviewed diff in simd-variants.psd1. --depth 1
             # keeps the clone small; the pinned commit is fetched by SHA and
             # checked out.
-            git clone --depth 1 https://github.com/microsoft/vcpkg $vcpkgRoot
+            Invoke-GitWithRetry -Arguments @('clone', '--depth', '1', 'https://github.com/microsoft/vcpkg', $vcpkgRoot) -CleanupDir $vcpkgRoot
             if ($LASTEXITCODE -ne 0) { throw "Failed to clone vcpkg" }
         }
     }
 
     # GitHub runner images also provide a git checkout. Pin that checkout just
     # like the fallback clone so CI and local builds use identical portfiles.
-    git -C $vcpkgRoot fetch --depth 1 origin $VcpkgCommit
+    Invoke-GitWithRetry -Arguments @('-C', $vcpkgRoot, 'fetch', '--depth', '1', 'origin', $VcpkgCommit)
     if ($LASTEXITCODE -ne 0) { throw "Failed to fetch pinned vcpkg commit $VcpkgCommit" }
     git -C $vcpkgRoot checkout --detach $VcpkgCommit
     if ($LASTEXITCODE -ne 0) { throw "Failed to check out pinned vcpkg commit $VcpkgCommit" }
@@ -515,7 +539,7 @@ function Sync-PinnedCheckout {
     }
     $parent = Split-Path -Parent $CheckoutDir
     if ($parent) { New-Item -ItemType Directory -Force -Path $parent | Out-Null }
-    git clone --depth 1 --branch $Tag $RepoUrl $CheckoutDir
+    Invoke-GitWithRetry -Arguments @('clone', '--depth', '1', '--branch', $Tag, $RepoUrl, $CheckoutDir) -CleanupDir $CheckoutDir
     if ($LASTEXITCODE -ne 0) { throw "Failed to clone $Name" }
 
     $actualCommit = (git -C $CheckoutDir rev-parse HEAD)
