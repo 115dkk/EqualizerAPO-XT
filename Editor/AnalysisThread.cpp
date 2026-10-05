@@ -19,6 +19,7 @@
 
 #include <QElapsedTimer>
 
+#include <algorithm>
 #include <stdexcept>
 
 #include "audio/ChannelLayout.h"
@@ -156,6 +157,7 @@ void AnalysisThread::run()
 		unsigned sampleRate = device->getSampleRate();
 		if (sampleRate == 0)
 			sampleRate = 48000;
+		const int blockFrames = (std::min)(frameCount, kAnalysisBlockFrames);
 
 		qint64 startTime = timer.nsecsElapsed();
 
@@ -183,26 +185,28 @@ void AnalysisThread::run()
 		setup.realChannelCount = channelCount;
 		setup.outputChannelCount = channelCount;
 		setup.channelMask = channelMask;
-		setup.maxFrameCount = frameCount;
+		setup.maxFrameCount = blockFrames;
 		setup.customPath = configPath.toStdWString();
 		setup.capture = device->isInput();
 		setup.deviceName = device->getDeviceName();
 		setup.connectionName = device->getConnectionName();
 		setup.deviceGuid = device->getDeviceGuid();
 		engine.initialize(setup);
+		if (!requestFence.isCurrent(ticket))
+			return;
 		engine.setLoadTraceSink(nullptr);
 		if (quit.load(std::memory_order_relaxed))
 			return;
 		double initializationTime = (timer.nsecsElapsed() - startTime) / 1e6;
 
-		if (frameCount != lastFrameCount || channelCount != lastChannelCount)
+		if (blockFrames != lastBlockFrames || channelCount != lastChannelCount)
 		{
 			if (channelCount != 0
-				&& static_cast<size_t>(frameCount) > (numeric_limits<size_t>::max)() / channelCount)
+				&& static_cast<size_t>(blockFrames) > (numeric_limits<size_t>::max)() / channelCount)
 			{
 				throw std::length_error("Analysis buffer size overflow");
 			}
-			const size_t sampleCount = static_cast<size_t>(frameCount) * channelCount;
+			const size_t sampleCount = static_cast<size_t>(blockFrames) * channelCount;
 			std::vector<double> newBuf(sampleCount, 0.0);
 			std::vector<double> newBuf2(sampleCount);
 			buf = std::move(newBuf);
@@ -211,7 +215,7 @@ void AnalysisThread::run()
 		for (unsigned i = 0; i < channelCount; i++)
 			buf[i] = 1.0f;
 
-		if (frameCount != lastFrameCount)
+		if (frameCount != lastResponseFrames)
 		{
 			auto newTimeData = fftw::allocateReal(frameCount);
 			// A real-to-complex transform writes frameCount / 2 + 1 bins and
@@ -232,30 +236,36 @@ void AnalysisThread::run()
 			planForward = std::move(newPlan);
 		}
 
-		lastFrameCount = frameCount;
+		lastResponseFrames = frameCount;
+		lastBlockFrames = blockFrames;
 		lastChannelCount = channelCount;
 
 		ImpulseMeasurement measurement(
-			channelCount, channelIndex, frameCount, timeData.get());
+			channelCount, channelIndex, frameCount, blockFrames, timeData.get());
 		double processingTime = 0.0;
 		unsigned processedFrames = 0;
-		// stop searching for the impulse after 10 seconds of audio data
-		while (processedFrames < 10 * sampleRate)
+		while (true)
 		{
 			if (quit.load(std::memory_order_relaxed))
 				return;
+			if (!requestFence.isCurrent(ticket))
+				return;
 
 			qint64 startTime = timer.nsecsElapsed();
-			engine.process(buf2.data(), buf.data(), frameCount);
+			engine.process(buf2.data(), buf.data(), blockFrames);
 			processingTime += (timer.nsecsElapsed() - startTime) / 1e6;
-			processedFrames += frameCount;
+			processedFrames += blockFrames;
 
 			if (measurement.addBlock(buf2.data()))
+				break;
+			// Stop only the search after ten seconds. Once the impulse has been
+			// found, the requested response still has to be filled completely.
+			if (!measurement.found() && processedFrames >= 10 * sampleRate)
 				break;
 
 			// The impulse is one frame long: after the first block the engine
 			// is fed silence.
-			if (processedFrames == static_cast<unsigned>(frameCount))
+			if (processedFrames == static_cast<unsigned>(blockFrames))
 			{
 				for (unsigned i = 0; i < channelCount; i++)
 					buf[i] = 0.0f;

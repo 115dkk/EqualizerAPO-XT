@@ -6,60 +6,56 @@
 
 #include "ImpulseMeasurement.h"
 
+#include <algorithm>
 #include <cfloat>
 #include <cmath>
 
 ImpulseMeasurement::ImpulseMeasurement(
 	unsigned channelCount,
 	int channelIndex,
-	int frameCount,
+	int responseFrames,
+	int blockFrames,
 	double* alignedResponse)
 	: channelCount(channelCount),
 	  channelIndex(channelIndex),
-	  frameCount(frameCount),
+	  responseFrames(responseFrames),
+	  blockFrames(blockFrames),
 	  alignedResponse(alignedResponse)
 {
 }
 
 bool ImpulseMeasurement::addBlock(const double* processed)
 {
-	if (start != -1)
+	int copyStart = 0;
+	if (start == -1)
 	{
-		// The tail of the previous block went to the front; this block's
-		// first frames complete the response.
-		for (int i = 0; i < start; i++)
+		for (int i = 0; i < blockFrames; i++)
 		{
-			alignedResponse[frameCount - start + i] = processed[i * channelCount + channelIndex];
-		}
-		return true;
-	}
-
-	for (int i = 0; i < frameCount; i++)
-	{
-		double s = processed[i * channelCount + channelIndex];
-		if (std::abs(s) > 1e-5f)
-		{
-			start = i;
-			break;
-		}
-	}
-
-	if (start != -1)
-	{
-		for (int i = 0; i < frameCount - start; i++)
-		{
-			alignedResponse[i] = processed[(start + i) * channelCount + channelIndex];
+			double sample = processed[i * channelCount + channelIndex];
+			if (std::abs(sample) > 1e-5f)
+			{
+				start = i;
+				copyStart = i;
+				break;
+			}
 		}
 
-		if (start == 0)
-			return true;
-	}
-	else
-	{
-		silentFrames += frameCount;
+		if (start == -1)
+		{
+			silentFrames += blockFrames;
+			return false;
+		}
 	}
 
-	return false;
+	const int availableFrames = blockFrames - copyStart;
+	const int copyFrames = (std::min)(availableFrames, responseFrames - copiedFrames);
+	for (int i = 0; i < copyFrames; i++)
+	{
+		alignedResponse[copiedFrames + i] =
+			processed[(copyStart + i) * channelCount + channelIndex];
+	}
+	copiedFrames += copyFrames;
+	return copiedFrames == responseFrames;
 }
 
 bool ImpulseMeasurement::found() const

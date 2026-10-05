@@ -224,11 +224,18 @@ void MainWindow::setupAnalysisMetricControls()
 
 void MainWindow::updateAnalysisPanel()
 {
+	QElapsedTimer panelTimer;
+	panelTimer.start();
 	auto result = analysisThread->lockResult();
 	const std::shared_ptr<const AnalysisResponse> response = result.response();
 	const int sampleRate = static_cast<int>(response->sampleRate);
 	const int latency = response->latencyFrames;
 	const QString errorText = result.errorText();
+	const auto finishProbe = [&]() {
+		if (analysisProbePanelUpdated)
+			analysisProbePanelUpdated(result.initializationTime(), result.processingTime(),
+				panelTimer.nsecsElapsed() / 1e6);
+	};
 
 	// A line whose filter could not be set up rolled the whole load back: the
 	// audio service keeps playing the previous configuration, and the response
@@ -310,6 +317,7 @@ void MainWindow::updateAnalysisPanel()
 		ui->initTimeValueLabel->setText(unavailable);
 		ui->cpuUsageValueLabel->setText(unavailable);
 		setSeverity(ui->cpuUsageValueLabel, "normal");
+		finishProbe();
 		return;
 	}
 	if (!errorText.isEmpty())
@@ -322,6 +330,7 @@ void MainWindow::updateAnalysisPanel()
 		ui->initTimeValueLabel->setText(unavailable);
 		ui->cpuUsageValueLabel->setText(unavailable);
 		setSeverity(ui->cpuUsageValueLabel, "normal");
+		finishProbe();
 		return;
 	}
 	ui->peakGainValueLabel->setToolTip(QString());
@@ -337,6 +346,7 @@ void MainWindow::updateAnalysisPanel()
 		ui->cpuUsageValueLabel->setText(QString::fromUtf8("\xE2\x80\x94"));
 		setSeverity(ui->cpuUsageValueLabel, "normal");
 		ui->initTimeValueLabel->setText(tr("%0 ms").arg(result.initializationTime(), 0, 'f', 1));
+		finishProbe();
 		return;
 	}
 
@@ -354,6 +364,7 @@ void MainWindow::updateAnalysisPanel()
 	ui->cpuUsageValueLabel->setText(tr("%0 %").arg(cpuUsage, 0, 'f', 1));
 	setSeverity(ui->cpuUsageValueLabel, cpuUsage >= 50 ? "critical" : (cpuUsage >= 20 ? "warning" : "normal"));
 
+	finishProbe();
 }
 
 
@@ -362,12 +373,10 @@ void MainWindow::startAnalysis()
 	if (!ui->analysisDockWidget->isVisible())
 		return;
 
-	// Debounce: instant-mode saves, slider drags, channel/resolution changes, and
-	// tab switches each call startAnalysis. AnalysisThread::setParameters already
-	// keeps only the most recent parameters via wakeAll, but the actual analysis
-	// run (engine init + up to ten seconds of impulse processing) does not abort
-	// mid-flight. Adding a short coalesce window cuts redundant runs while a
-	// user is still dragging.
+	// Debounce slider drags, channel/resolution changes and tab switches. Saves
+	// call executeStartAnalysis() directly because instant mode already coalesces
+	// edits before writing. The worker abandons superseded requests between its
+	// initialization and processing calls.
 	static constexpr int kAnalysisDebounceMs = 120;
 	if (analysisDebounceTimer == nullptr)
 	{
@@ -405,6 +414,8 @@ void MainWindow::executeStartAnalysis()
 			configPath = configDir.absoluteFilePath("config.txt");
 		configPath = QDir::toNativeSeparators(configPath);
 
+		if (analysisProbeParametersSet)
+			analysisProbeParametersSet();
 		analysisThread->setParameters(selectedDevice, channelMask, ui->analysisChannelComboBox->currentIndex(), configPath, ui->resolutionSpinBox->value());
 	}
 }
