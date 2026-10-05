@@ -90,6 +90,9 @@ void MainWindow::load(QString path)
 
 bool MainWindow::save(FilterTable* filterTable, QString path)
 {
+	if (analysisProbeSaveStarted)
+		analysisProbeSaveStarted();
+
 	QElapsedTimer timer;
 	timer.start();
 
@@ -109,7 +112,12 @@ bool MainWindow::save(FilterTable* filterTable, QString path)
 
 	TraceF(L"Saving took %.1f ms", timer.nsecsElapsed() / 1e6);
 
-	startAnalysis();
+	// An explicit save, including an instant-mode save that already waited out
+	// its edit debounce, should start analysis now. Other UI controls still use
+	// startAnalysis() to coalesce slider, channel, resolution and tab changes.
+	if (analysisDebounceTimer != nullptr)
+		analysisDebounceTimer->stop();
+	executeStartAnalysis();
 	updateDirtyStatus();
 	return true;
 }

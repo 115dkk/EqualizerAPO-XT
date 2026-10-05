@@ -372,7 +372,7 @@ int main(int argc, char* argv[])
 
 	// High-DPI: let Qt scale the whole UI by the monitor's device pixel ratio,
 	// and pin the logical DPI to 96 (AA_Use96Dpi) so the code's pixel values need
-	// no DPI factor of their own — Qt's device pixel ratio is then the single
+	// no DPI factor of their own; Qt's device pixel ratio is then the single
 	// scaling source and we avoid double scaling (the GUIHelper::scale helpers
 	// were identities under this and are gone, audit #348 F7). PassThrough keeps
 	// fractional factors like 150%
@@ -511,10 +511,11 @@ int main(int argc, char* argv[])
 		if (!systemRegistry().keyExists(EDITOR_PER_FILE_REGPATH))
 			systemRegistry().createKey(EDITOR_PER_FILE_REGPATH);
 
-		// The analysis-layout and window-shot probes ignore saved geometry, dock
-		// layout and open files, then load only the positional config.
+		// The live-window probes ignore saved geometry, dock layout and open
+		// files, then load only the positional config.
 		const bool analysisLayoutTestRequested =
 			application.arguments().contains(QStringLiteral("--analysis-layout-test"))
+			|| application.arguments().contains(QStringLiteral("--analysis-latency-test"))
 			|| application.arguments().contains(QStringLiteral("--window-shot"));
 		MainWindow w(configDir, updateSession.get(), nullptr, analysisLayoutTestRequested);
 		w.show();
@@ -536,6 +537,14 @@ int main(int argc, char* argv[])
 		analysisLayoutOption.setValueName(QStringLiteral("screenshot"));
 		analysisLayoutOption.setFlags(QCommandLineOption::HiddenFromHelp);
 		parser.addOption(analysisLayoutOption);
+		QCommandLineOption analysisLatencyOption(QStringLiteral("analysis-latency-test"));
+		analysisLatencyOption.setValueName(QStringLiteral("iterations"));
+		analysisLatencyOption.setFlags(QCommandLineOption::HiddenFromHelp);
+		parser.addOption(analysisLatencyOption);
+		QCommandLineOption analysisLatencyDeviceOption(QStringLiteral("analysis-latency-device"));
+		analysisLatencyDeviceOption.setValueName(QStringLiteral("substring"));
+		analysisLatencyDeviceOption.setFlags(QCommandLineOption::HiddenFromHelp);
+		parser.addOption(analysisLatencyDeviceOption);
 		// Real-window A/B probe for the panel preview feed (SkinGallery::
 		// armVstPanelFeedProbe); pair it with EAPO_DISABLE_PANEL_FEED=1 for
 		// the control run.
@@ -575,6 +584,11 @@ int main(int argc, char* argv[])
 			// Editor/gallery/GalleryProbes.cpp (audit #275 B7); it arms the timers and later
 			// exits the event loop with the verdict.
 			if (!SkinGallery::armAnalysisLayoutProbe(w, parser.value(analysisLayoutOption)))
+				return 1;
+		}
+		else if (parser.isSet(analysisLatencyOption))
+		{
+			if (!SkinGallery::armAnalysisLatencyProbe(w, application.arguments()))
 				return 1;
 		}
 		else if (parser.isSet(skinMetricsOption))

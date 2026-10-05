@@ -47,6 +47,7 @@ class TitleBar;
 class UpdateToast;
 class UpdateSession;
 namespace SkinSwitchStorm { void run(MainWindow& window); }
+namespace SkinGallery { bool armAnalysisLatencyProbe(MainWindow& window, const QStringList& arguments); }
 
 // MainWindow's implementation is split across several translation units (all
 // listed in Editor.pro SOURCES). When looking for a method, check the matching
@@ -142,6 +143,7 @@ private slots:
 
 private:
 	friend void SkinSwitchStorm::run(MainWindow& window);
+	friend bool SkinGallery::armAnalysisLatencyProbe(MainWindow& window, const QStringList& arguments);
 	void startSkinSwitchStorm();
 	void applySkinAndRebuild();
 	void executeStartAnalysis();
@@ -195,6 +197,9 @@ private:
 	EqGraphView* eqGraphView = nullptr;
 	std::unique_ptr<AnalysisThread> analysisThread;
 	QTimer* analysisDebounceTimer = nullptr;
+	std::function<void()> analysisProbeSaveStarted;
+	std::function<void()> analysisProbeParametersSet;
+	std::function<void(double, double, double)> analysisProbePanelUpdated;
 	bool restart = false;
 	bool noSavePreferences = false;
 	bool noSaveFilePreferences = false;

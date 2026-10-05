@@ -34,6 +34,7 @@
 #include "SubwooferRouting/StateCodec.h"
 #include "widgets/subwooferrouting/SubwooferRoutingDefaults.h"
 
+#include <array>
 #include <cmath>
 #include <complex>
 #include <cstdio>
@@ -765,6 +766,314 @@ bool SkinGallery::armWindowShotProbe(MainWindow& window, const QStringList& argu
 			original->trigger();
 		settleFor(300);
 		QCoreApplication::exit(saved == skins.size() * modes.size() ? 0 : 1);
+	});
+	return true;
+}
+
+// ---------------------------------------------------------------------------
+// --analysis-latency-test <iterations> [--analysis-latency-device substring]
+// (diagnostic): measures the real instant-save and analysis path. The loaded
+// file is restored byte-for-byte before the process exits.
+// ---------------------------------------------------------------------------
+
+bool SkinGallery::armAnalysisLatencyProbe(MainWindow& window, const QStringList& arguments)
+{
+	struct Sample
+	{
+		double totalMs = -1.0;
+		double saveWaitMs = -1.0;
+		double queueWaitMs = -1.0;
+		double initializationMs = -1.0;
+		double processingMs = -1.0;
+		double panelMs = -1.0;
+	};
+	enum class Phase
+	{
+		Warmup,
+		Idle,
+		Regular,
+		Burst,
+		Done
+	};
+	struct State
+	{
+		MainWindow* window = nullptr;
+		FilterTable* table = nullptr;
+		FilterTable::Item* probeItem = nullptr;
+		QString configPath;
+		QByteArray originalBytes;
+		QElapsedTimer timer;
+		Sample current;
+		QVector<Sample> samples;
+		Phase phase = Phase::Warmup;
+		int iterations = 10;
+		bool paramsSeen = false;
+		bool lowValue = false;
+		bool originalInstantMode = false;
+		bool finished = false;
+	};
+
+	bool iterationsOk = false;
+	int iterations = probeOptionValue(arguments, QStringLiteral("--analysis-latency-test"),
+		QStringLiteral("10")).toInt(&iterationsOk);
+	if (!iterationsOk || iterations <= 0)
+		iterations = 10;
+
+	FilterTable* table = window.currentFilterTable();
+	QDockWidget* dock = window.findChild<QDockWidget*>(QStringLiteral("analysisDockWidget"));
+	if (table == nullptr || dock == nullptr || window.instantModeCheckBox == nullptr)
+	{
+		fprintf(stderr, "Analysis latency: loaded table, analysis dock, or instant-mode control is missing\n");
+		return false;
+	}
+
+	QFile source(table->getConfigPath());
+	if (!source.open(QIODevice::ReadOnly))
+	{
+		fprintf(stderr, "Analysis latency: cannot read %s\n", qPrintable(table->getConfigPath()));
+		return false;
+	}
+
+	auto state = std::make_shared<State>();
+	state->window = &window;
+	state->table = table;
+	state->configPath = table->getConfigPath();
+	state->originalBytes = source.readAll();
+	state->iterations = iterations;
+	state->originalInstantMode = window.instantModeCheckBox->isChecked();
+	window.noSavePreferences = true;
+	window.noSaveFilePreferences = true;
+
+	auto finish = [state](int requestedExitCode) {
+		if (state->finished)
+			return;
+		state->finished = true;
+		state->phase = Phase::Done;
+		state->window->instantModeCheckBox->setChecked(state->originalInstantMode);
+
+		int exitCode = requestedExitCode;
+		QFile restore(state->configPath);
+		if (!restore.open(QIODevice::WriteOnly | QIODevice::Truncate)
+			|| restore.write(state->originalBytes) != state->originalBytes.size())
+		{
+			fprintf(stderr, "Analysis latency: failed to restore %s\n", qPrintable(state->configPath));
+			exitCode = 1;
+		}
+		else
+		{
+			restore.close();
+			fprintf(stderr, "Analysis latency: restored %s (%lld bytes)\n",
+				qPrintable(state->configPath), static_cast<long long>(state->originalBytes.size()));
+		}
+		std::fflush(nullptr);
+		QCoreApplication::exit(exitCode);
+	};
+
+	auto applyEdit = [state]() {
+		if (state->probeItem == nullptr)
+		{
+			state->lowValue = true;
+			state->probeItem = state->table->addLine(QStringLiteral("Preamp: -0.1 dB"));
+			return;
+		}
+		state->lowValue = !state->lowValue;
+		state->probeItem->text = state->lowValue
+			? QStringLiteral("Preamp: -0.1 dB") : QStringLiteral("Preamp: -0.2 dB");
+		state->table->updateModel();
+	};
+
+	auto printSummary = [state]() {
+		auto triplet = [state](auto member) {
+			QVector<double> values;
+			values.reserve(state->samples.size());
+			for (const Sample& sample : state->samples)
+				values.append(sample.*member);
+			std::sort(values.begin(), values.end());
+			const int middle = values.size() / 2;
+			const double median = values.size() % 2 == 0
+				? (values[middle - 1] + values[middle]) / 2.0 : values[middle];
+			return std::array<double, 3>{ values.first(), median, values.last() };
+		};
+		const auto total = triplet(&Sample::totalMs);
+		const auto save = triplet(&Sample::saveWaitMs);
+		const auto queue = triplet(&Sample::queueWaitMs);
+		const auto init = triplet(&Sample::initializationMs);
+		const auto processing = triplet(&Sample::processingMs);
+		const auto panel = triplet(&Sample::panelMs);
+		fprintf(stderr,
+			"Analysis latency summary min/median/max: total=%.1f/%.1f/%.1f save=%.1f/%.1f/%.1f "
+			"queue=%.1f/%.1f/%.1f init=%.1f/%.1f/%.1f processing=%.1f/%.1f/%.1f panel=%.1f/%.1f/%.1f ms\n",
+			total[0], total[1], total[2], save[0], save[1], save[2],
+			queue[0], queue[1], queue[2], init[0], init[1], init[2],
+			processing[0], processing[1], processing[2], panel[0], panel[1], panel[2]);
+	};
+
+	auto beginRegular = std::make_shared<std::function<void()>>();
+	*beginRegular = [state, applyEdit]() {
+		state->phase = Phase::Regular;
+		state->current = Sample{};
+		state->paramsSeen = false;
+		state->timer.restart();
+		applyEdit();
+	};
+
+	auto beginBurst = std::make_shared<std::function<void()>>();
+	*beginBurst = [state, applyEdit]() {
+		state->phase = Phase::Idle;
+		for (int edit = 0; edit < 5; edit++)
+		{
+			QTimer::singleShot(edit * 80, state->window, [state, applyEdit, edit]() {
+				if (state->finished)
+					return;
+				if (edit == 4)
+				{
+					state->phase = Phase::Burst;
+					state->current = Sample{};
+					state->paramsSeen = false;
+					state->timer.restart();
+				}
+				applyEdit();
+			});
+		}
+	};
+
+	window.analysisProbeSaveStarted = [state]() {
+		if ((state->phase == Phase::Regular || state->phase == Phase::Burst)
+			&& state->current.saveWaitMs < 0.0)
+		{
+			state->current.saveWaitMs = state->timer.nsecsElapsed() / 1e6;
+		}
+	};
+	window.analysisProbeParametersSet = [state]() {
+		if (state->phase == Phase::Warmup)
+		{
+			state->paramsSeen = true;
+			return;
+		}
+		if (state->phase != Phase::Regular && state->phase != Phase::Burst)
+			return;
+		const double nowMs = state->timer.nsecsElapsed() / 1e6;
+		state->current.queueWaitMs = state->current.saveWaitMs >= 0.0
+			? nowMs - state->current.saveWaitMs : nowMs;
+		state->paramsSeen = true;
+	};
+	window.analysisProbePanelUpdated = [state, beginRegular, beginBurst, printSummary, finish](
+		double initializationMs, double processingMs, double panelMs) {
+		if (state->phase == Phase::Warmup)
+		{
+			if (!state->paramsSeen)
+				return;
+			state->phase = Phase::Idle;
+			fprintf(stderr, "Analysis latency: warmup complete; iterations=%d\n", state->iterations);
+			QTimer::singleShot(100, state->window, *beginRegular);
+			return;
+		}
+		if ((state->phase != Phase::Regular && state->phase != Phase::Burst) || !state->paramsSeen)
+			return;
+
+		state->current.totalMs = state->timer.nsecsElapsed() / 1e6;
+		state->current.initializationMs = initializationMs;
+		state->current.processingMs = processingMs;
+		state->current.panelMs = panelMs;
+		if (state->phase == Phase::Regular)
+		{
+			state->samples.append(state->current);
+			const Sample& sample = state->samples.last();
+			fprintf(stderr,
+				"Analysis latency edit %d: total=%.1f save=%.1f queue=%.1f init=%.1f processing=%.1f panel=%.1f ms\n",
+				int(state->samples.size()), sample.totalMs, sample.saveWaitMs,
+				sample.queueWaitMs, sample.initializationMs, sample.processingMs, sample.panelMs);
+			state->phase = Phase::Idle;
+			if (state->samples.size() < state->iterations)
+				QTimer::singleShot(100, state->window, *beginRegular);
+			else
+			{
+				printSummary();
+				QTimer::singleShot(100, state->window, *beginBurst);
+			}
+			return;
+		}
+
+		const Sample sample = state->current;
+		fprintf(stderr,
+			"Analysis latency burst (5 edits, 80 ms apart; last edit to curve): total=%.1f save=%.1f "
+			"queue=%.1f init=%.1f processing=%.1f panel=%.1f ms\n",
+			sample.totalMs, sample.saveWaitMs, sample.queueWaitMs,
+			sample.initializationMs, sample.processingMs, sample.panelMs);
+		finish(0);
+	};
+
+	window.showNormal();
+	dock->show();
+	const QString deviceSubstring = probeOptionValue(arguments,
+		QStringLiteral("--analysis-latency-device"), QString());
+	int selectedDevice = -1;
+	if (!deviceSubstring.isEmpty())
+	{
+		for (int i = 0; i < window.deviceComboBox->count(); i++)
+		{
+			if (window.deviceComboBox->itemData(i).isValid()
+				&& window.deviceComboBox->itemText(i).contains(deviceSubstring, Qt::CaseInsensitive))
+			{
+				selectedDevice = i;
+				break;
+			}
+		}
+	}
+	if (selectedDevice < 0)
+	{
+		for (int i = 0; i < window.deviceComboBox->count(); i++)
+		{
+			if (window.deviceComboBox->itemData(i).isValid())
+			{
+				selectedDevice = i;
+				break;
+			}
+		}
+		if (!deviceSubstring.isEmpty())
+			fprintf(stderr, "Analysis latency: device containing '%s' not found; using first real entry\n",
+				qPrintable(deviceSubstring));
+	}
+	if (selectedDevice < 0)
+	{
+		fprintf(stderr, "Analysis latency: no real device entry is available\n");
+		finish(1);
+		return true;
+	}
+	window.deviceComboBox->setCurrentIndex(selectedDevice);
+	Q_EMIT window.deviceComboBox->activated(selectedDevice);
+	fprintf(stderr, "Analysis latency: device='%s'\n",
+		qPrintable(window.deviceComboBox->currentText()));
+
+	QComboBox* startFrom = nullptr;
+	if (QWidget* controls = window.findChild<QWidget*>(QStringLiteral("analysisControlBar")))
+	{
+		for (QComboBox* combo : controls->findChildren<QComboBox*>())
+		{
+			if (combo->count() == 2 && combo->itemText(0) == QStringLiteral("config.txt"))
+			{
+				startFrom = combo;
+				break;
+			}
+		}
+	}
+	if (startFrom == nullptr)
+	{
+		fprintf(stderr, "Analysis latency: analysis source control is missing\n");
+		finish(1);
+		return true;
+	}
+	startFrom->setCurrentIndex(1);
+	Q_EMIT startFrom->activated(1);
+	window.instantModeCheckBox->setChecked(true);
+	window.startAnalysis();
+
+	QTimer::singleShot(180000, &window, [state, finish]() {
+		if (!state->finished)
+		{
+			fprintf(stderr, "Analysis latency: timed out\n");
+			finish(1);
+		}
 	});
 	return true;
 }

@@ -190,6 +190,8 @@ void AnalysisThread::run()
 		setup.connectionName = device->getConnectionName();
 		setup.deviceGuid = device->getDeviceGuid();
 		engine.initialize(setup);
+		if (!requestFence.isCurrent(ticket))
+			return;
 		engine.setLoadTraceSink(nullptr);
 		if (quit.load(std::memory_order_relaxed))
 			return;
@@ -243,6 +245,8 @@ void AnalysisThread::run()
 		while (processedFrames < 10 * sampleRate)
 		{
 			if (quit.load(std::memory_order_relaxed))
+				return;
+			if (!requestFence.isCurrent(ticket))
 				return;
 
 			qint64 startTime = timer.nsecsElapsed();

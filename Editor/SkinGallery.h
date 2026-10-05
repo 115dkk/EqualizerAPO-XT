@@ -112,6 +112,10 @@ bool armSkinMetricsProbe(MainWindow& window);
 // skin choice before exiting.
 bool armWindowShotProbe(MainWindow& window, const QStringList& arguments);
 
+// Entry point behind --analysis-latency-test: measures the live edit-to-curve
+// path over a loaded configuration, reports each phase and restores the file.
+bool armAnalysisLatencyProbe(MainWindow& window, const QStringList& arguments);
+
 // Entry point behind --knob-specimen <outDir> (diagnostic): paints a
 // skin's knob for staged states at 3x and 1x, dark and light.
 int runKnobSpecimen(const QStringList& arguments);
