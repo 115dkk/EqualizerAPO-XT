@@ -14,6 +14,16 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The analysis graph redraws about twice as fast after an edit.** With a
+  VST3 upmixer and eight convolution lines at an analysis resolution of
+  262144, the time from an edit to the new curve dropped from about 1.8 s
+  to 0.9 s. A save no longer waits a second debounce before the analysis
+  starts, a run that a newer edit made obsolete stops early, and the
+  analysis now feeds the chain 16384-frame blocks instead of two blocks as
+  long as the resolution, so it processes only the latency plus the
+  resolution. The drawn response is the same
+  ([#412](https://github.com/115dkk/EqualizerAPO-XT/pull/412)).
+
 ## v2.57.1 — 2026-10-04
 
 - **ASIO games can pick 64 or 128 on a device whose fastest exclusive
