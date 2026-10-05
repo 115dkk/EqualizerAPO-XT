@@ -19,7 +19,8 @@
 namespace
 {
 constexpr unsigned kSampleRate = 48000;
-constexpr int kFrameCount = 256;
+constexpr int kResponseFrames = 256;
+constexpr int kBlockFrames = 64;
 constexpr unsigned kChannelCount = 2;
 constexpr int kChannelIndex = 1;
 
@@ -77,23 +78,25 @@ struct MeasurementRun
 // The loop AnalysisThread::run() drives: a one-frame impulse on every channel,
 // then silence, block by block until the measurement completes or ten seconds
 // of audio have gone by.
-MeasurementRun measure(FakeProcessor& processor)
+MeasurementRun measure(FakeProcessor& processor, int responseFrames = kResponseFrames,
+	int blockFrames = kBlockFrames)
 {
 	MeasurementRun run;
-	run.aligned.assign(kFrameCount, 0.0);
-	std::vector<double> input(static_cast<size_t>(kFrameCount) * kChannelCount, 0.0);
+	run.aligned.assign(responseFrames, 0.0);
+	std::vector<double> input(static_cast<size_t>(blockFrames) * kChannelCount, 0.0);
 	std::vector<double> output(input.size(), 0.0);
 	for (unsigned i = 0; i < kChannelCount; i++)
 		input[i] = 1.0;
 
-	ImpulseMeasurement measurement(kChannelCount, kChannelIndex, kFrameCount, run.aligned.data());
+	ImpulseMeasurement measurement(
+		kChannelCount, kChannelIndex, responseFrames, blockFrames, run.aligned.data());
 	while (run.processedFrames < 10 * kSampleRate)
 	{
-		processor.process(output.data(), input.data(), kFrameCount);
-		run.processedFrames += kFrameCount;
+		processor.process(output.data(), input.data(), blockFrames);
+		run.processedFrames += blockFrames;
 		if (measurement.addBlock(output.data()))
 			break;
-		if (run.processedFrames == static_cast<unsigned>(kFrameCount))
+		if (run.processedFrames == static_cast<unsigned>(blockFrames))
 		{
 			for (unsigned i = 0; i < kChannelCount; i++)
 				input[i] = 0.0;
@@ -166,38 +169,68 @@ void testAnalysisRequestFence()
 	expectEqual(secondPublished, 1, "the newest ticket runs its action once");
 }
 
-// Delay: 10 ms at 48 kHz is 480 frames. With 256-frame blocks the impulse
-// starts at frame 224 of the second block, so the aligned response is the
-// tail of block two followed by the head of block three.
+// The response is four processing blocks long. A start in the first block must
+// keep copying until all 256 response samples are present.
 void testImpulseMeasurementFindsTheDelay()
 {
-	FakeProcessor processor(480, 1.0, 40, 0.25);
-	const MeasurementRun run = measure(processor);
+	{
+		FakeProcessor processor(16, 1.0, 104, 0.25);
+		const MeasurementRun run = measure(processor);
 
-	requireTrue(run.found, "the delayed impulse is found");
-	expectEqual(run.latencyFrames, 480, "a 10 ms delay at 48 kHz measures 480 frames");
-	expectEqual(run.startFrame, 224, "the impulse starts at frame 224 of its block");
-	expectEqual(static_cast<int>(run.processedFrames), 3 * kFrameCount,
-		"the block after the start completes the measurement");
+		requireTrue(run.found, "the delayed impulse is found in the first sub-block");
+		expectEqual(run.latencyFrames, 16, "the absolute latency includes the first-block offset");
+		expectEqual(run.startFrame, 16, "the block-relative start stays meaningful");
+		expectEqual(static_cast<int>(run.processedFrames), 5 * kBlockFrames,
+			"the response spans the tail of the first block and four later blocks");
 
-	expectTrue(run.aligned[0] == 1.0, "the aligned response begins at the impulse");
-	expectTrue(run.aligned[40] == 0.25,
-		"the second tap, which arrived in the following block, lands 40 frames in");
-	int nonZero = 0;
-	for (double sample : run.aligned)
-		nonZero += sample != 0.0 ? 1 : 0;
-	expectEqual(nonZero, 2, "nothing else lands in the aligned response");
+		expectTrue(run.aligned[0] == 1.0, "the aligned response begins at the impulse");
+		expectTrue(run.aligned[104] == 0.25,
+			"a later tap lands at its response-relative frame across sub-blocks");
+		int nonZero = 0;
+		for (double sample : run.aligned)
+			nonZero += sample != 0.0 ? 1 : 0;
+		expectEqual(nonZero, 2, "nothing else lands in the aligned response");
+	}
+
+	{
+		FakeProcessor processor(2 * kBlockFrames + 7, 1.0);
+		const MeasurementRun run = measure(processor);
+
+		requireTrue(run.found, "the impulse is found after two silent sub-blocks");
+		expectEqual(run.startFrame, 7, "the later start keeps its block-relative offset");
+		expectEqual(run.latencyFrames, 2 * kBlockFrames + 7,
+			"latency counts every preceding silent sub-block");
+		expectEqual(static_cast<int>(run.processedFrames), 7 * kBlockFrames,
+			"later discovery still collects a full response");
+	}
 }
 
 void testImpulseMeasurementAtTheBlockStart()
 {
-	FakeProcessor processor(0, 1.0);
-	const MeasurementRun run = measure(processor);
+	{
+		FakeProcessor processor(2 * kBlockFrames, 1.0);
+		const MeasurementRun run = measure(processor);
 
-	requireTrue(run.found, "an undelayed impulse is found");
-	expectEqual(run.latencyFrames, 0, "an undelayed impulse measures no latency");
-	expectEqual(static_cast<int>(run.processedFrames), kFrameCount,
-		"an impulse at frame 0 completes in its own block");
+		requireTrue(run.found, "an impulse exactly on a later block boundary is found");
+		expectEqual(run.startFrame, 0, "a boundary start has no within-block offset");
+		expectEqual(run.latencyFrames, 2 * kBlockFrames,
+			"a boundary start reports the absolute output frame");
+		expectEqual(static_cast<int>(run.processedFrames), 6 * kBlockFrames,
+			"four response blocks follow the two silent blocks");
+	}
+
+	{
+		FakeProcessor processor(480, 1.0, 40, 0.25);
+		const MeasurementRun run = measure(processor, kResponseFrames, kResponseFrames);
+
+		requireTrue(run.found, "the old whole-block measurement still finds the delay");
+		expectEqual(run.latencyFrames, 480, "the whole-block latency stays unchanged");
+		expectEqual(run.startFrame, 224, "the whole-block start stays unchanged");
+		expectEqual(static_cast<int>(run.processedFrames), 3 * kResponseFrames,
+			"the old block after the start still completes the response");
+		expectTrue(run.aligned[0] == 1.0, "the whole-block response begins at the impulse");
+		expectTrue(run.aligned[40] == 0.25, "the whole-block response keeps the later tap");
+	}
 }
 
 void testImpulseMeasurementWithoutAnImpulse()

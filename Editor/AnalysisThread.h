@@ -69,6 +69,11 @@ public:
 		QMutexLocker<QMutex> locker;
 	};
 
+	// Keep plug-in work independent of the FFT response length: a delayed
+	// impulse then needs only enough fixed blocks to fill that response. 16384
+	// was the fastest of the measured 4096, 16384 and 65536 frame sizes.
+	static constexpr int kAnalysisBlockFrames = 16384;
+
 	AnalysisThread();
 	~AnalysisThread();
 	void setParameters(std::shared_ptr<AbstractAPOInfo> device, int channelMask, int channelIndex, const QString& configPath, int frameCount);
@@ -104,7 +109,8 @@ private:
 	std::vector<ConfigLoadTraceEntry> resultLoadTrace;
 
 	// internal (not protected by mutex)
-	int lastFrameCount = -1;
+	int lastResponseFrames = -1;
+	int lastBlockFrames = -1;
 	int lastChannelCount = -1;
 	std::vector<double> buf;
 	std::vector<double> buf2;

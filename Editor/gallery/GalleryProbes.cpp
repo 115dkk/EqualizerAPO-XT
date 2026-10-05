@@ -844,6 +844,11 @@ bool SkinGallery::armAnalysisLatencyProbe(MainWindow& window, const QStringList&
 	window.noSavePreferences = true;
 	window.noSaveFilePreferences = true;
 
+	QSpinBox* resolution = window.findChild<QSpinBox*>(QStringLiteral("AnalysisFormSpin"));
+	fprintf(stderr, "Analysis latency: resolution=%d block=%d\n",
+		resolution != nullptr ? resolution->value() : -1,
+		AnalysisThread::kAnalysisBlockFrames);
+
 	auto finish = [state](int requestedExitCode) {
 		if (state->finished)
 			return;
