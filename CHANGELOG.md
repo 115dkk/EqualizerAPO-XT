@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.57.3 — 2026-10-06
+
 - **Fewer lights that mean nothing, and one light colour per part.** The
   card fold button no longer lights up on every open card. In the dark
   Rack skin, buttons under the pointer, pressed, latched or focused now
