@@ -91,14 +91,13 @@ void MatrixFilterPickerView::galleryShowcase(GalleryShowcase kind)
 		return;
 	}
 
-	// HoverFirstEntry: stage the crosspoint pre-light. The cursor already
-	// engages the first cell when the board opens, and an engaged cell shows
-	// no hover band, so the staged hover sits on the first cell the cursor
-	// is not holding - plus the next answering bus, so both pre-light
-	// treatments (entry cell, bus cell) are in the same shot.
+	// HoverFirstEntry: the pointer rests on the second entry cell, which the
+	// pointer engages exactly as the arrow keys would, and the next answering
+	// bus shows the rail's pre-light (the rail stays pre-light only: a
+	// diagonal sweep across it toward a cell must not switch buses).
 	query.clear();
 	applyQuery();
-	hoverRow = visibleRows(activeBus).size() > 1 ? 1 : 0;
+	cursorRow = visibleRows(activeBus).size() > 1 ? 1 : 0;
 	hoverBus = -1;
 	for (int b = 0; b < buses.size(); b++)
 	{
@@ -168,7 +167,6 @@ void MatrixFilterPickerView::rebuildBuses(const QList<FilterPickerEntry>& entrie
 	}
 	cursorRow = buses.isEmpty() ? -1 : 0;
 	hoverBus = -1;
-	hoverRow = -1;
 }
 
 void MatrixFilterPickerView::computeMetrics()
@@ -534,16 +532,12 @@ void MatrixFilterPickerView::paintEvent(QPaintEvent* event)
 	{
 		const Cell& cell = buses[activeBus].cells[rows[r]];
 		const QRect cellRect = entryCellRect(r);
+		// The pointer engages a cell the way the arrow keys do (mouseMoveEvent),
+		// so an entry cell has no pre-light of its own.
 		const bool engaged = r == cursorRow;
-		const bool hovered = r == hoverRow && !engaged;
 
 		if (engaged)
 			painter.fillRect(cellRect, withAlpha(accent, 56));
-		else if (hovered)
-			// Pre-light alpha (see the bus-rail note): below the engaged fill
-			// (56 + accent rule + patch trace) so pre-light never reads as
-			// engagement.
-			painter.fillRect(cellRect, withAlpha(accent, 40));
 		painter.setPen(QPen(border, 1));
 		painter.drawLine(cellRect.left(), cellRect.bottom(), cellRect.right(), cellRect.bottom());
 		if (engaged)
@@ -693,23 +687,28 @@ void MatrixFilterPickerView::mouseMoveEvent(QMouseEvent* event)
 {
 	const QPoint pos = event->pos();
 	int newHoverBus = -1;
-	int newHoverRow = -1;
 	if (railRect().contains(pos))
 	{
 		const int b = (pos.y() - railRect().top()) / qMax(1, cellH);
 		if (b >= 0 && b < buses.size())
 			newHoverBus = b;
 	}
-	else if (entriesRect().contains(pos))
+	else if (entriesRect().contains(pos) && event->globalPosition() != lastPointer)
 	{
+		// The pointer engages the entry cell under it, the same cursor the
+		// arrow keys move, so the board shows one crosspoint Return will
+		// patch. Only a pointer that really moved takes it.
 		const int r = (pos.y() - entriesRect().top()) / qMax(1, cellH);
-		if (r >= 0 && r < visibleRows(activeBus).size())
-			newHoverRow = r;
+		if (r >= 0 && r < visibleRows(activeBus).size() && r != cursorRow)
+		{
+			cursorRow = r;
+			update();
+		}
 	}
-	if (newHoverBus != hoverBus || newHoverRow != hoverRow)
+	lastPointer = event->globalPosition();
+	if (newHoverBus != hoverBus)
 	{
 		hoverBus = newHoverBus;
-		hoverRow = newHoverRow;
 		update();
 	}
 	FilterPickerView::mouseMoveEvent(event);
@@ -749,10 +748,9 @@ void MatrixFilterPickerView::mousePressEvent(QMouseEvent* event)
 
 void MatrixFilterPickerView::leaveEvent(QEvent* event)
 {
-	if (hoverBus != -1 || hoverRow != -1)
+	if (hoverBus != -1)
 	{
 		hoverBus = -1;
-		hoverRow = -1;
 		update();
 	}
 	FilterPickerView::leaveEvent(event);

@@ -697,7 +697,8 @@ void RackSkin::paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailStat
 	paintRackBusCap(painter, cap, down, state.enabled, tokens, dark);
 	if (state.enabled && (state.latchHovered || state.latchFocused))
 	{
-		painter.setPen(QPen(withAlpha(amber, state.latchFocused ? 220 : 140), 1));
+		const QColor edge(dark ? RackSkinDetail::darkEngagedFrame() : tokens.accent);
+		painter.setPen(QPen(withAlpha(edge, state.latchFocused ? 220 : 140), 1));
 		painter.setBrush(Qt::NoBrush);
 		painter.drawRoundedRect(cap, 2.0, 2.0);
 	}

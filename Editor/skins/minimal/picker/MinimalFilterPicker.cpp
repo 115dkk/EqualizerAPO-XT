@@ -71,7 +71,6 @@ void MinimalPickerIndexList::setRows(const QList<Row>& rows)
 	// Inside a widgetResizable scroll area the minimum height is what makes
 	// the viewport scroll instead of squashing the rows.
 	setMinimumHeight(contentHeight);
-	hoverRow = -1;
 	updateGeometry();
 	update();
 }
@@ -170,10 +169,6 @@ void MinimalPickerIndexList::paintEvent(QPaintEvent* event)
 				// Inverted block: the line trades foreground for background.
 				painter.fillRect(r, QColor(t.text));
 			}
-			else if (i == hoverRow)
-			{
-				painter.fillRect(r, QColor(t.cardHover));
-			}
 
 			painter.setFont(entryFont);
 			QColor numberColor = selected ? QColor(t.background) : QColor(t.mutedText);
@@ -209,38 +204,28 @@ void MinimalPickerIndexList::mousePressEvent(QMouseEvent* event)
 
 void MinimalPickerIndexList::mouseMoveEvent(QMouseEvent* event)
 {
-	int row = rowAt(event->pos());
-	if (row >= 0 && rowList[row].entryIndex < 0)
-		row = -1;
-	if (row != hoverRow)
-	{
-		hoverRow = row;
-		update();
-	}
-}
-
-void MinimalPickerIndexList::leaveEvent(QEvent* event)
-{
-	Q_UNUSED(event);
-	if (hoverRow != -1)
-	{
-		hoverRow = -1;
-		update();
-	}
+	// The pointer moves the cursor block, the same block the arrow keys move,
+	// so the terminal shows one line Return will insert. Only a pointer that
+	// really moved takes it: the list scrolling under a resting pointer
+	// (arrow keys at the edge) must not hand the line back to the mouse.
+	if (event->globalPosition() == lastPointer)
+		return;
+	lastPointer = event->globalPosition();
+	const int row = rowAt(event->pos());
+	if (row >= 0 && rowList[row].entryIndex >= 0)
+		setSelectedEntry(rowList[row].entryIndex);
 }
 
 void MinimalPickerIndexList::hoverFirstEntryForGallery()
 {
-	// The offscreen gallery cannot move a real cursor, so the hover state is
-	// staged directly. The selection block usually sits on the first line;
-	// hovering it would vanish under the inverted fill, so take the first
-	// line that is not the cursor.
+	// The offscreen gallery cannot move a real cursor, so the pointer's
+	// effect is staged directly: the block moves to the first line that is
+	// not already the cursor.
 	for (int i = 0; i < rowList.size(); i++)
 	{
 		if (rowList[i].entryIndex >= 0 && rowList[i].entryIndex != selectedEntryIndex)
 		{
-			hoverRow = i;
-			update();
+			setSelectedEntry(rowList[i].entryIndex);
 			return;
 		}
 	}

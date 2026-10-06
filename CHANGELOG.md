@@ -14,6 +14,25 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Fewer lights that mean nothing, and one light colour per part.** The
+  card fold button no longer lights up on every open card. In the dark
+  Rack skin, buttons under the pointer, pressed, latched or focused now
+  light in the same bronze as the selected unit frame; amber stays on the
+  lamps. In Studio, a lit card's edge now runs round all four sides, a
+  selected card no longer dims under the pointer, a focused band row keeps
+  its own colour, and the dark knob shows its track instead of a floating
+  arc. Light mode greys now carry their skin's colour temperature, and the
+  graph rulers and GraphicEQ nodes follow the editor's light or dark
+  choice instead of the Windows setting ([#414](https://github.com/115dkk/EqualizerAPO-XT/pull/414)).
+- **The card picker has one highlight, and the pointer moves it.** Moving
+  the pointer onto an entry selects it the same way the arrow keys do, in
+  every skin ([#414](https://github.com/115dkk/EqualizerAPO-XT/pull/414)).
+- **Focus and the scroll position stay put.** Clicking inside a tall card,
+  folding a card, undo, paste, removing a card and closing the card picker
+  no longer jump the list or send keyboard focus to another card or the
+  first control. Scrolling the list with the wheel no longer takes focus
+  from a field being typed in ([#414](https://github.com/115dkk/EqualizerAPO-XT/pull/414)).
+
 ## v2.57.2 — 2026-10-05
 
 - **The analysis graph redraws about twice as fast after an edit.** With a

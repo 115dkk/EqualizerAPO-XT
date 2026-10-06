@@ -7,6 +7,7 @@
 #include "FilterCardRow.h"
 
 #include <QAbstractButton>
+#include <QApplication>
 #include <QEvent>
 #include <QIcon>
 #include <QMenu>
@@ -81,13 +82,16 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	headerLayout->setContentsMargins(8, 2, 8, 2);
 	headerLayout->setSpacing(8);
 
+	// Not checkable: an open card is where a card rests, not something
+	// switched on, and a checked cap lights in the accent in four skins. That
+	// put a lit button on every open card. The glyph already says open or
+	// closed.
 	expandButton = new QToolButton(headerWidget);
 	expandButton->setObjectName(QStringLiteral("FilterCardIconButton"));
-	expandButton->setCheckable(true);
-	expandButton->setChecked(gui != nullptr);
-	expandButton->setText(expandButton->isChecked() ? QStringLiteral("v") : QStringLiteral(">"));
+	expanded = gui != nullptr;
+	expandButton->setText(expanded ? QStringLiteral("v") : QStringLiteral(">"));
 	expandButton->setToolTip(tr("Expand filter card"));
-	connect(expandButton, SIGNAL(toggled(bool)), this, SLOT(expandedToggled(bool)));
+	connect(expandButton, &QToolButton::clicked, this, [this]() { setExpanded(!expanded); });
 	headerLayout->addWidget(expandButton);
 
 	numberLabel = new QLabel(QString::number(number), headerWidget);
@@ -239,7 +243,7 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 
 		// The expand default above keys off the gui the body shows; routing
 		// rows are their own editor and start open.
-		expandButton->setChecked(true);
+		setExpanded(true);
 	}
 	else if (gui != nullptr)
 	{
@@ -284,7 +288,7 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 		bodyStack->setCurrentWidget(rawContainer);
 	}
 
-	bodyStack->setVisible(expandButton->isChecked());
+	bodyStack->setVisible(expanded);
 	connect(SkinManager::instance(), &SkinManager::skinChanged, this, [this](const SkinTokens&) {
 		syncVisualState();
 		update();
@@ -745,10 +749,17 @@ void FilterCardRow::applyDescriptor()
 	// scope-rail painting still works for indented blocks) but is collapsed
 	// to a small fixed height by sizeHint() / minimumSizeHint() below.
 	const bool isSpacer = descriptor.type == QStringLiteral("spacer");
+	// Hiding the focused subtree would tab to another card and scroll it into
+	// view. The table keeps keyboard navigation at the current selection.
+	QWidget* focused = QApplication::focusWidget();
+	if (table != nullptr && focused != nullptr
+		&& ((isSpacer && isAncestorOf(focused))
+			|| (!expanded && bodyStack != nullptr && bodyStack->isAncestorOf(focused))))
+		table->setFocus(Qt::OtherFocusReason);
 	if (headerWidget != nullptr)
 		headerWidget->setVisible(!isSpacer);
 	if (bodyStack != nullptr)
-		bodyStack->setVisible(!isSpacer && expandButton != nullptr && expandButton->isChecked());
+		bodyStack->setVisible(!isSpacer && expanded);
 	if (isSpacer)
 	{
 		syncVisualState();
@@ -873,13 +884,20 @@ void FilterCardRow::routingEdited()
 void FilterCardRow::addAbove()
 {
 	FilterTemplate filterTemplate;
-	if (table->chooseFilterTemplate(&filterTemplate, addButton->mapToGlobal(QPoint(0, addButton->height()))))
+	// A raw edit can replace this row while the picker runs its event loop.
+	// Keep the document anchor, not members of the possibly deleted widget.
+	FilterTable* targetTable = table;
+	FilterTable::Item* targetItem = item;
+	if (targetTable->chooseFilterTemplate(&filterTemplate,
+		addButton->mapToGlobal(QPoint(0, addButton->height())), this)
+		&& targetTable->documentItems().contains(targetItem))
 	{
 		// A card header's + belongs to that card's leading edge: insertLine
 		// takes an insert-before anchor, so this row itself is the desired
 		// anchor. Only the new card is built; this row and every other one
 		// stay put, and with them the scroll position.
-		table->insertLine(filterTemplate.getLine(), item);
+		targetTable->insertLine(filterTemplate.getLine(), targetItem);
+		targetTable->setFocus(Qt::OtherFocusReason);
 	}
 }
 
@@ -905,8 +923,7 @@ void FilterCardRow::setEditing(bool editing)
 	{
 		lineEdit->setText(item->text);
 		bodyStack->setCurrentWidget(lineEdit);
-		bodyStack->setVisible(true);
-		expandButton->setChecked(true);
+		setExpanded(true);
 		lineEdit->setFocus();
 		lineEdit->selectAll();
 	}
@@ -979,10 +996,13 @@ void FilterCardRow::enabledToggled(bool checked)
 	});
 }
 
-void FilterCardRow::expandedToggled(bool checked)
+void FilterCardRow::setExpanded(bool open)
 {
-	expandButton->setText(checked ? QStringLiteral("v") : QStringLiteral(">"));
-	bodyStack->setVisible(checked);
+	expanded = open;
+	expandButton->setText(open ? QStringLiteral("v") : QStringLiteral(">"));
+	if (!open && table != nullptr && bodyStack->isAncestorOf(QApplication::focusWidget()))
+		table->setFocus(Qt::OtherFocusReason);
+	bodyStack->setVisible(open);
 }
 
 void FilterCardRow::syncVisualState()

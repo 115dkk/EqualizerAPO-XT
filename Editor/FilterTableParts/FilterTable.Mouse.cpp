@@ -52,10 +52,11 @@ void FilterTable::selectOnlyFromCard(Item* item)
 		&& model.focused() == item && model.selectionStart() == item)
 		return;
 
+	// Pointer targets are already visible. Revealing the whole row here makes
+	// a card taller than the viewport jump between its top and bottom.
 	model.selectOnly(item);
 	model.setFocused(item);
 	model.setSelectionStart(item);
-	ensureRowVisible(row);
 	updateRowWidgets();
 }
 
@@ -90,7 +91,6 @@ void FilterTable::mousePressEvent(QMouseEvent* event)
 				model.setSelectionStart(item);
 			}
 			model.setFocused(item);
-			ensureRowVisible(row);
 			updateRowWidgets();
 
 			dragStartPos = event->pos();
@@ -121,7 +121,6 @@ void FilterTable::mouseReleaseEvent(QMouseEvent* event)
 				if (model.isSelected(item) && model.selectionStart() == item)
 					model.selectOnly(item);
 			}
-			ensureRowVisible(row);
 			updateRowWidgets();
 		}
 	}

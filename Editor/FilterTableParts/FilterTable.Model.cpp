@@ -27,6 +27,7 @@
 #include <QLineEdit>
 #include <QListWidget>
 #include <QRegularExpression>
+#include <QPointer>
 #include <QScreen>
 #include <QSettings>
 #include <QVBoxLayout>
@@ -515,7 +516,7 @@ protected:
 };
 }
 
-bool FilterTable::chooseFilterTemplate(FilterTemplate* selectedTemplate, const QPoint& globalPos)
+bool FilterTable::chooseFilterTemplate(FilterTemplate* selectedTemplate, const QPoint& globalPos, QWidget* anchor)
 {
 	if (selectedTemplate == nullptr)
 		return false;
@@ -528,6 +529,7 @@ bool FilterTable::chooseFilterTemplate(FilterTemplate* selectedTemplate, const Q
 
 	// The picker itself comes from the active skin so the control matches the
 	// skin's design language; this host only provides dropdown behaviour.
+	const QPointer<QWidget> focusAnchor(anchor);
 	FilterPickerPopup popup(this);
 	popup.setObjectName(QStringLiteral("FilterPickerPopup"));
 	popup.setAttribute(Qt::WA_StyledBackground, true);
@@ -561,8 +563,16 @@ bool FilterTable::chooseFilterTemplate(FilterTemplate* selectedTemplate, const Q
 	view->setFocus();
 	loop.exec();
 	popup.onHide = nullptr;
+	popup.hide();
 
-	if (chosenIndex < 0 || chosenIndex >= templates.size())
+	const bool chosen = chosenIndex >= 0 && chosenIndex < templates.size();
+	// Raw edits can replace the anchor during the nested event loop. Never
+	// restore to the old editor or ask the scroll area to reveal a target.
+	QWidget* focusTarget = !chosen && focusAnchor != nullptr
+		&& focusAnchor->isVisible() && focusAnchor->isEnabled() ? focusAnchor.data() : this;
+	focusTarget->setFocus(Qt::OtherFocusReason);
+
+	if (!chosen)
 		return false;
 
 	*selectedTemplate = templates[chosenIndex];

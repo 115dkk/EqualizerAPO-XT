@@ -7,8 +7,10 @@
 #include "Editor/skins/studio/picker/StudioFilterPicker.h"
 #include "Editor/skins/shared/SkinPaint.h"
 
+#include <QApplication>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
 #include <QRegularExpression>
@@ -25,15 +27,12 @@ namespace
 // Item data roles. EntryIndexRole carries the ORIGINAL index into the
 // entries list handed to setEntries; captions and notes carry -1.
 // SecondaryRole holds the parenthetical description split off the template
-// name; ShowcaseHoverRole stages the gallery's hover shot - the delegate
-// ORs it into its hover test because the offscreen renderer cannot move a
-// real cursor over a popup.
+// name.
 constexpr int EntryIndexRole = Qt::UserRole;
 constexpr int CaptionRole = Qt::UserRole + 1;
 constexpr int FirstCaptionRole = Qt::UserRole + 2;
 constexpr int EmptyNoteRole = Qt::UserRole + 3;
 constexpr int SecondaryRole = Qt::UserRole + 4;
-constexpr int ShowcaseHoverRole = Qt::UserRole + 5;
 
 // A small magnifier glyph for the search field, drawn in token colours so
 // both modes stay intentional without shipping an icon asset.
@@ -139,9 +138,9 @@ private:
 
 	void paintEntry(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
 	{
+		// The pointer moves the selection (FilterPickerView::followPointer),
+		// so there is one lit entry and no hover pool beside it.
 		const bool selected = option.state.testFlag(QStyle::State_Selected);
-		const bool hovered = option.state.testFlag(QStyle::State_MouseOver)
-			|| index.data(ShowcaseHoverRole).toBool();
 		const QRectF rect = QRectF(option.rect).adjusted(2.0, 1.0, -2.0, -1.0);
 		const double radius = 8.0;
 
@@ -182,16 +181,6 @@ private:
 			painter->fillRect(QRectF(rect.left() + 1.0, y0, 2.0, segment), lamp);
 			painter->restore();
 		}
-		else if (hovered)
-		{
-			// Light pooling under the cursor: a faint sheen plus a radial
-			// accent wash that brightens the middle of the strip.
-			painter->fillPath(path, QColor(255, 255, 255, dark ? 8 : 90));
-			QRadialGradient pool(rect.center(), rect.width() * 0.46);
-			pool.setColorAt(0.0, withAlpha(t.accent, dark ? 40 : 30));
-			pool.setColorAt(1.0, withAlpha(t.accent, 0));
-			painter->fillPath(path, pool);
-		}
 
 		QFont font(t.fontFamily);
 		font.setPointSizeF(10.4);
@@ -199,7 +188,7 @@ private:
 			font.setWeight(QFont::DemiBold);
 		painter->setFont(font);
 		QColor textColor(t.text);
-		if (!selected && !hovered)
+		if (!selected)
 			textColor = mixColor(QColor(t.text), QColor(t.mutedText), 0.18);
 		painter->setPen(textColor);
 		const QRectF textRect = rect.adjusted(12, 0, -8, 0);
@@ -219,7 +208,7 @@ private:
 			captionFont.setPointSizeF(9.1);
 			painter->setFont(captionFont);
 			QColor captionColor(t.mutedText);
-			if (selected || hovered)
+			if (selected)
 				captionColor.setAlpha(dark ? 220 : 240);
 			else
 				captionColor.setAlpha(dark ? 170 : 205);
@@ -393,15 +382,21 @@ void StudioFilterPickerView::galleryShowcase(GalleryShowcase kind)
 {
 	if (kind == GalleryShowcase::HoverFirstEntry)
 	{
-		// Pool the light under the first selectable entry that is not the
-		// preselected one, so the shot shows the selection glow and the
-		// hover pool side by side.
+		// Rest the pointer on the first selectable entry that is not the
+		// preselected one; the selection glow follows it there. The pointer
+		// is driven by real mouse events, so feed the viewport a synthetic
+		// move.
 		for (int row = 0; row < listWidget->count(); row++)
 		{
 			QListWidgetItem* item = listWidget->item(row);
 			if ((item->flags() & Qt::ItemIsSelectable) && row != listWidget->currentRow())
 			{
-				item->setData(ShowcaseHoverRole, true);
+				listWidget->viewport()->setAttribute(Qt::WA_UnderMouse, true);
+				const QPointF center = listWidget->visualItemRect(item).center();
+				QMouseEvent moveEvent(QEvent::MouseMove, center,
+					listWidget->viewport()->mapToGlobal(center),
+					Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+				QApplication::sendEvent(listWidget->viewport(), &moveEvent);
 				listWidget->viewport()->update();
 				break;
 			}

@@ -17,6 +17,7 @@
 #include <functional>
 
 #include <QList>
+#include <QPointF>
 #include <QString>
 #include <QStringList>
 #include <QWidget>
@@ -83,6 +84,10 @@ protected:
 		int originalIndexRole,
 		std::function<void()> rebuildList);
 	void selectFirstListEntry();
+	// Makes the selectable row under the pointer the current row, the same
+	// state the arrow keys move. Used by the bound list and by pickers that
+	// paint their own rows with a QListWidget behind them.
+	bool followPointer(const QPointF& globalPos);
 	bool eventFilter(QObject* watched, QEvent* event) override;
 
 signals:
@@ -96,6 +101,7 @@ private:
 	QLineEdit* boundSearchEdit = nullptr;
 	QListWidget* boundListWidget = nullptr;
 	int boundOriginalIndexRole = Qt::UserRole;
+	QPointF lastPointer;
 };
 
 // Neutral default, used by skins without a picker of their own: a search

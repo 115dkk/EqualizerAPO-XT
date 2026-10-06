@@ -114,12 +114,12 @@ private:
 	}
 
 	// A labeled slot: panel LED left of the printed label. Selection lights
-	// the LED amber and backlights the slot; hover is a faint lamp glow on
-	// the slot and leaves the LED dark, so a lit LED still means selected.
+	// the LED amber and backlights the slot. The pointer moves the selection
+	// (FilterPickerView::followPointer), so there is no separate hover look:
+	// one lit slot, the one Return will install.
 	void paintEntry(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index, const SkinTokens& tokens, bool dark) const
 	{
 		const bool selected = option.state & QStyle::State_Selected;
-		const bool hovered = option.state & QStyle::State_MouseOver;
 		const QRectF slot = QRectF(option.rect).adjusted(2, 1, -2, -1);
 		const QColor accent(tokens.accent);
 
@@ -132,15 +132,6 @@ private:
 			backlight.setColorAt(1.0, withAlpha(accent, dark ? 12 : 16));
 			painter->setPen(QPen(withAlpha(accent, 130), 1));
 			painter->setBrush(backlight);
-			painter->drawRoundedRect(slot, 2, 2);
-		}
-		else if (hovered)
-		{
-			QLinearGradient lamp(slot.topLeft(), slot.topRight());
-			lamp.setColorAt(0.0, withAlpha(accent, dark ? 44 : 48));
-			lamp.setColorAt(1.0, withAlpha(accent, 0));
-			painter->setPen(Qt::NoPen);
-			painter->setBrush(lamp);
 			painter->drawRoundedRect(slot, 2, 2);
 		}
 
@@ -241,11 +232,9 @@ void RackFilterPickerView::galleryShowcase(GalleryShowcase kind)
 		return;
 	}
 
-	// HoverFirstEntry: warm a lamp without stealing the selection shot. The
-	// first selectable slot is already selected (lit amber), so the lamp
-	// pre-heat is staged on the next slot - the capture then shows both
-	// states of the light grammar at once. Hover is driven by real mouse
-	// events, so feed the viewport a synthetic move.
+	// HoverFirstEntry: rest the pointer on the second slot. The pointer
+	// moves the selection, so the capture shows the lit slot following it
+	// off the preselected first one. Feed the viewport a synthetic move.
 	searchEdit->clear();
 	int selectableSeen = 0;
 	for (int row = 0; row < listWidget->count(); row++)

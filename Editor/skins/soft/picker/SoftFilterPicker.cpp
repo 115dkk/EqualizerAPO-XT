@@ -276,24 +276,16 @@ private:
 		QRectF row(option.rect);
 		row.adjust(0, 2, 0, -2);
 
-		// The hovered row lifts one value step; the current row gets the
-		// fully rounded stadium in the selection tint, the same silhouette as
-		// the skin's chips. Calm: no fill change beyond one step, no glow.
+		// The current row gets the fully rounded stadium in the selection
+		// tint, the same silhouette as the skin's chips. The pointer moves
+		// the current row (FilterPickerView::followPointer), so hover has no
+		// look of its own: one stadium, the one Return will add.
 		const bool selected = option.state.testFlag(QStyle::State_Selected);
-		const bool hovered = option.state.testFlag(QStyle::State_MouseOver);
-		if (selected || hovered)
+		if (selected)
 		{
 			const qreal radius = row.height() / 2.0;
-			if (selected)
-			{
-				painter->setPen(QPen(withAlpha(QColor(t.accent), dark ? 120 : 110), 1));
-				painter->setBrush(QColor(t.cardSelected));
-			}
-			else
-			{
-				painter->setPen(Qt::NoPen);
-				painter->setBrush(QColor(t.cardHover));
-			}
+			painter->setPen(QPen(withAlpha(QColor(t.accent), dark ? 120 : 110), 1));
+			painter->setBrush(QColor(t.cardSelected));
 			painter->drawRoundedRect(row.adjusted(0.5, 0.5, -0.5, -0.5), radius, radius);
 		}
 
@@ -429,10 +421,8 @@ void SoftFilterPickerView::galleryShowcase(GalleryShowcase kind)
 	}
 
 	searchEdit->clear();
-	// The first selectable row is already the preselected stadium highlight;
-	// parking the cursor there would photograph the selected style twice. The
-	// cursor rests on the entry after it instead, so one frame shows both the
-	// stadium selection and the one-value-step hover lift, each readable.
+	// The first selectable row is already the preselected stadium; the
+	// pointer rests on the entry after it, and the stadium follows it there.
 	QListWidgetItem* target = nullptr;
 	int selectableSeen = 0;
 	for (int row = 0; row < listWidget->count(); row++)
@@ -447,9 +437,8 @@ void SoftFilterPickerView::galleryShowcase(GalleryShowcase kind)
 	if (target == nullptr)
 		return;
 
-	// Hover is driven by real mouse events (the view keeps a hover index
-	// updated from MouseMove); feed it a synthetic move over the target so
-	// the offscreen render shows the hover styling.
+	// The pointer is driven by real mouse events; feed the viewport a
+	// synthetic move over the target so the offscreen render follows it.
 	listWidget->viewport()->setAttribute(Qt::WA_UnderMouse, true);
 	const QPointF center = listWidget->visualItemRect(target).center();
 	QMouseEvent moveEvent(QEvent::MouseMove, center,

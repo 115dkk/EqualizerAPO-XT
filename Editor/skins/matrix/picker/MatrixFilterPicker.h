@@ -83,7 +83,7 @@ private:
 	int activeBus = -1;
 	int cursorRow = -1; // index into visibleRows(activeBus)
 	int hoverBus = -1;  // bus cell under the mouse, -1 when none
-	int hoverRow = -1;  // visible entry row under the mouse, -1 when none
+	QPointF lastPointer; // where the last mouse move landed (global)
 
 	// Scaled metrics, computed per entry set.
 	int headerH = 0;

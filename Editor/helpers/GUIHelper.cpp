@@ -48,6 +48,14 @@
 
 bool GUIHelper::isDarkMode()
 {
+	// The graph rulers, the GraphicEQ nodes and the legacy row frames used to
+	// read the system scheme here, so a light skin on a dark Windows drew
+	// white rulers on a light graph.
+	return SkinManager::instance()->isDark();
+}
+
+bool GUIHelper::isSystemDarkMode()
+{
 	return QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark;
 }
 

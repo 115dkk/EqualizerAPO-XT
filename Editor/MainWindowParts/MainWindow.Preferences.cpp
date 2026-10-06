@@ -69,7 +69,7 @@ const int kWindowStateVersion = 1;
 void MainWindow::loadPreferences()
 {
 	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
-	const EditorSettings::SkinChoice choice = EditorSettings::readSkinChoice(settings, GUIHelper::isDarkMode());
+	const EditorSettings::SkinChoice choice = EditorSettings::readSkinChoice(settings, GUIHelper::isSystemDarkMode());
 	skinId = choice.id;
 	skinDark = choice.dark;
 	currentRenderMode = settings.value(QLatin1String(EditorSettings::Keys::LegacyRows), false).toBool() ? FilterTable::LegacyRows : FilterTable::ModernCards;
