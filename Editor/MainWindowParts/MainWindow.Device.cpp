@@ -127,7 +127,7 @@ FilterTable* MainWindow::addTab(QString title, QString tooltip, QString configPa
 		this, [this]() { startAnalysis(); });
 	scrollArea->setWidget(filterTable);
 	filterTable->setAcceptDrops(true);
-	filterTable->setFocusPolicy(Qt::WheelFocus);
+	filterTable->setFocusPolicy(Qt::StrongFocus);
 
 	shared_ptr<AbstractAPOInfo> selectedDevice;
 	int channelMask;

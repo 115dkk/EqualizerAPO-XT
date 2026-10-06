@@ -32,6 +32,7 @@
 #include <QDial>
 #include <QJsonDocument>
 #include <QSettings>
+#include <QSignalBlocker>
 
 #include <utility>
 
@@ -121,6 +122,18 @@ void FilterTable::updateDeviceAndChannelMask(shared_ptr<AbstractAPOInfo> selecte
 		updateGuis();
 }
 
+void FilterTable::releaseRowFocus(QWidget* row)
+{
+	QWidget* focused = QApplication::focusWidget();
+	if (focused != nullptr && (focused == row || row->isAncestorOf(focused)))
+	{
+		// The row is going away. Do not let focus-out commit a raw editor whose
+		// document item may already have been removed or replaced by undo.
+		const QSignalBlocker blocker(focused);
+		setFocus(Qt::OtherFocusReason);
+	}
+}
+
 void FilterTable::clearRows()
 {
 	// The view stays where it was across a rebuild. Deleting every row
@@ -158,7 +171,10 @@ void FilterTable::clearRows()
 			if (QWidget* widget = child->widget())
 			{
 				if (widget != insertArrow)
+				{
+					releaseRowFocus(widget);
 					delete widget;
+				}
 			}
 			delete child;
 		}
@@ -341,8 +357,11 @@ void FilterTable::addRowActivated(AddCardRow* addCardRow)
 	// Picker under the row, append, splice one widget into the grid.
 	FilterTemplate filterTemplate;
 	const QPoint anchor = addCardRow->mapToGlobal(QPoint(8, addCardRow->height() - 4));
-	if (chooseFilterTemplate(&filterTemplate, anchor))
+	if (chooseFilterTemplate(&filterTemplate, anchor, addCardRow))
+	{
 		insertLine(filterTemplate.getLine(), nullptr);
+		setFocus(Qt::OtherFocusReason);
+	}
 }
 
 void FilterTable::insertSeamActivated()
@@ -352,10 +371,11 @@ void FilterTable::insertSeamActivated()
 
 	FilterTemplate filterTemplate;
 	const QPoint anchor = insertSeam->mapToGlobal(QPoint(8, insertSeam->height()));
-	if (chooseFilterTemplate(&filterTemplate, anchor))
+	if (chooseFilterTemplate(&filterTemplate, anchor, insertSeam))
 	{
 		Item* first = model.items().isEmpty() ? nullptr : model.items().first();
 		insertLine(filterTemplate.getLine(), first);
+		setFocus(Qt::OtherFocusReason);
 	}
 }
 
@@ -499,6 +519,9 @@ void FilterTable::updateSingleRowGui(Item* item)
 	}
 
 	QWidget* oldRow = slot->widget();
+	// Card frames have no focus policy. Keep keyboard navigation on the table
+	// rather than handing focus to the next card when this row is deleted.
+	releaseRowFocus(oldRow);
 	gridLayout->removeWidget(oldRow);
 	oldRow->deleteLater();
 
@@ -705,6 +728,7 @@ void FilterTable::removeRowAt(int index)
 		updateGuis();
 		return;
 	}
+	releaseRowFocus(oldRow);
 	gridLayout->removeWidget(oldRow);
 	// Delete synchronously (the clearRows() precedent), not via deleteLater():
 	// the model already freed the Item this row points at, and a deferred

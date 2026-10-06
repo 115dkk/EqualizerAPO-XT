@@ -133,7 +133,7 @@ public:
 	// chosen index against the same list.
 	QList<FilterTemplate> pickerFilterTemplates() const;
 	QList<FilterPickerEntry> filterPickerEntries() const;
-	bool chooseFilterTemplate(FilterTemplate* selectedTemplate, const QPoint& globalPos = QPoint());
+	bool chooseFilterTemplate(FilterTemplate* selectedTemplate, const QPoint& globalPos = QPoint(), QWidget* anchor = nullptr);
 	void cut();
 	void copy();
 	void paste();
@@ -214,6 +214,7 @@ protected:
 	void showEvent(QShowEvent*) override;
 
 private:
+	void releaseRowFocus(QWidget* row);
 	void ensureRowVisible(int row);
 	int rowForPos(QPoint pos, bool insert);
 	QRectF rowRect(int row);

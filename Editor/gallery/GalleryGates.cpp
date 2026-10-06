@@ -961,6 +961,149 @@ int runCardSelectionTest(const QStringList& arguments)
 				}
 			}
 
+			// Keep enough rows below the subject that folding cannot clamp the
+			// scrollbar merely because the document became shorter.
+			QList<QString> focusLines;
+			for (int i = 0; i < 16; i++)
+				focusLines.append(QStringLiteral("Preamp: -1 dB"));
+			QScrollArea focusArea;
+			focusArea.resize(960, 320);
+			QList<FilterCardRow*> focusRows = buildRows(focusArea, configPath, focusLines);
+			FilterTable* focusTable = qobject_cast<FilterTable*>(focusArea.widget());
+			focusTable->setFocusPolicy(Qt::StrongFocus);
+			focusArea.activateWindow();
+			QApplication::processEvents();
+			QScrollBar* bar = focusArea.verticalScrollBar();
+			FilterCardRow* subject = focusRows[2];
+			subject->editText();
+			QLineEdit* focusEditor = subject->findChild<QLineEdit*>(QStringLiteral("FilterCardRawEditor"));
+			focusEditor->setMinimumHeight(900);
+			subject->setMinimumHeight(900);
+			QApplication::processEvents();
+			focusTable->layout()->activate();
+			QApplication::processEvents();
+			bar->setValue(subject->y() + 100);
+			const int clickScroll = bar->value();
+			focusTable->selectOnlyFromCard(focusTable->documentItems().first());
+			click(focusEditor, QPoint(30, 120));
+			const bool bodyClickStable = bar->value() == clickScroll;
+			click(focusTable, subject->mapTo(focusTable, QPoint(2, 190)));
+			const bool tableClickStable = bar->value() == clickScroll;
+			const bool tallClick = subject->height() > focusArea.viewport()->height()
+				&& clickScroll > 0 && bodyClickStable && tableClickStable;
+			if (!tallClick)
+				failures++;
+
+			focusEditor->setMinimumHeight(0);
+			subject->setMinimumHeight(0);
+			subject->editText();
+			QApplication::processEvents();
+			focusEditor->setFocus(Qt::OtherFocusReason);
+			bar->setValue(subject->y());
+			const int foldScroll = bar->value();
+			const bool hadBodyFocus = QApplication::focusWidget() == focusEditor;
+			QMetaObject::invokeMethod(subject, "setExpanded", Qt::DirectConnection, Q_ARG(bool, false));
+			QApplication::processEvents();
+			const bool foldStable = hadBodyFocus && foldScroll > 0
+				&& bar->value() == foldScroll && QApplication::focusWidget() == focusTable;
+			if (!foldStable)
+				failures++;
+
+			subject->editText();
+			QApplication::processEvents();
+			focusEditor->setFocus(Qt::OtherFocusReason);
+			bar->setValue(subject->y());
+			const int replaceScroll = bar->value();
+			const bool hadReplaceFocus = QApplication::focusWidget() == focusEditor;
+			focusTable->updateSingleRowGui(focusTable->documentItems().at(2));
+			QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+			QApplication::processEvents();
+			const bool replaceStable = hadReplaceFocus && QApplication::focusWidget() == focusTable
+				&& bar->value() == replaceScroll;
+			if (!replaceStable)
+				failures++;
+
+			// Dismissal must return to the requesting row, not a raw editor that
+			// happened to have focus before the popup opened.
+			QPointer<FilterCardRow> pickerAnchor = focusTable->findChildren<FilterCardRow*>(
+				QString(), Qt::FindDirectChildrenOnly).first();
+			QTimer::singleShot(0, focusTable, []() {
+				if (QWidget* popup = QApplication::activePopupWidget())
+					popup->hide();
+			});
+			FilterTemplate ignoredTemplate;
+			const int pickerScroll = bar->value();
+			const bool pickerChosen = focusTable->chooseFilterTemplate(&ignoredTemplate,
+				focusArea.mapToGlobal(QPoint(20, 20)), pickerAnchor);
+			QApplication::processEvents();
+			// The offscreen plugin does not reactivate the owner after a popup.
+			// Simulate activation, without choosing its focus widget for it.
+			focusArea.activateWindow();
+			QApplication::processEvents();
+			const bool dismissStable = !pickerChosen && QApplication::focusWidget() == pickerAnchor
+				&& bar->value() == pickerScroll;
+			if (!dismissStable)
+			{
+				qWarning("CardSelectionTest: dismiss chosen=%d focus=%s anchor=%d scroll=%d/%d active=%d",
+					pickerChosen, QApplication::focusWidget() != nullptr ? QApplication::focusWidget()->metaObject()->className() : "null",
+					QApplication::focusWidget() == pickerAnchor, bar->value(), pickerScroll, focusArea.isActiveWindow());
+				failures++;
+			}
+
+			focusTable->updateGuis();
+			QApplication::processEvents();
+			const bool rebuildStable = QApplication::focusWidget() == focusTable
+				&& bar->value() == pickerScroll;
+			if (!rebuildStable)
+				failures++;
+			QPointer<FilterCardRow> editedAnchor = focusTable->findChildren<FilterCardRow*>(
+				QString(), Qt::FindDirectChildrenOnly).at(2);
+			editedAnchor->editText();
+			QApplication::processEvents();
+			QLineEdit* pendingEditor = editedAnchor->findChild<QLineEdit*>(QStringLiteral("FilterCardRawEditor"));
+			pendingEditor->selectAll();
+			pendingEditor->insert(QStringLiteral("Preamp: -7 dB"));
+			bool anchorReplacedInPopup = false;
+			QTimer::singleShot(30, focusTable, [&]() {
+				anchorReplacedInPopup = editedAnchor.isNull();
+				if (QWidget* popup = QApplication::activePopupWidget())
+				{
+					FilterPickerView* picker = popup->findChild<FilterPickerView*>();
+					if (picker != nullptr)
+						emit picker->entryChosen(0);
+					else
+						popup->hide();
+				}
+			});
+			QMetaObject::invokeMethod(editedAnchor, "addAbove", Qt::DirectConnection);
+			QApplication::processEvents();
+			focusArea.activateWindow();
+			QApplication::processEvents();
+			const bool rawPickerStable = anchorReplacedInPopup
+				&& focusTable->documentItems().size() == focusLines.size() + 1
+				&& focusTable->documentItems().at(3)->text == QStringLiteral("Preamp: -7 dB")
+				&& QApplication::focusWidget() == focusTable;
+			if (!rawPickerStable)
+				failures++;
+
+			QGridLayout* focusGrid = qobject_cast<QGridLayout*>(focusTable->layout());
+			FilterCardRow* removedRow = qobject_cast<FilterCardRow*>(focusGrid->itemAtPosition(3, 0)->widget());
+			removedRow->editText();
+			QApplication::processEvents();
+			QLineEdit* removedEditor = removedRow->findChild<QLineEdit*>(QStringLiteral("FilterCardRawEditor"));
+			removedEditor->selectAll();
+			removedEditor->insert(QStringLiteral("Preamp: -9 dB"));
+			bar->setValue(removedRow->y());
+			const int removeScroll = bar->value();
+			focusTable->removeLine(focusTable->documentItems().at(3));
+			QApplication::processEvents();
+			const bool removeStable = QApplication::focusWidget() == focusTable
+				&& bar->value() == removeScroll && focusTable->documentItems().size() == focusLines.size();
+			if (!removeStable)
+				failures++;
+			qWarning("CardSelectionTest: %s focus tall-click=%d fold=%d replace=%d dismiss=%d rebuild=%d raw-picker=%d remove=%d",
+				qPrintable(scene), tallClick, foldStable, replaceStable, dismissStable, rebuildStable, rawPickerStable, removeStable);
+
 			qWarning("CardSelectionTest: %s complete", qPrintable(scene));
 			scenes++;
 		}

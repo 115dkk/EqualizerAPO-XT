@@ -7,6 +7,7 @@
 #include "FilterCardRow.h"
 
 #include <QAbstractButton>
+#include <QApplication>
 #include <QEvent>
 #include <QIcon>
 #include <QMenu>
@@ -748,6 +749,13 @@ void FilterCardRow::applyDescriptor()
 	// scope-rail painting still works for indented blocks) but is collapsed
 	// to a small fixed height by sizeHint() / minimumSizeHint() below.
 	const bool isSpacer = descriptor.type == QStringLiteral("spacer");
+	// Hiding the focused subtree would tab to another card and scroll it into
+	// view. The table keeps keyboard navigation at the current selection.
+	QWidget* focused = QApplication::focusWidget();
+	if (table != nullptr && focused != nullptr
+		&& ((isSpacer && isAncestorOf(focused))
+			|| (!expanded && bodyStack != nullptr && bodyStack->isAncestorOf(focused))))
+		table->setFocus(Qt::OtherFocusReason);
 	if (headerWidget != nullptr)
 		headerWidget->setVisible(!isSpacer);
 	if (bodyStack != nullptr)
@@ -876,13 +884,20 @@ void FilterCardRow::routingEdited()
 void FilterCardRow::addAbove()
 {
 	FilterTemplate filterTemplate;
-	if (table->chooseFilterTemplate(&filterTemplate, addButton->mapToGlobal(QPoint(0, addButton->height()))))
+	// A raw edit can replace this row while the picker runs its event loop.
+	// Keep the document anchor, not members of the possibly deleted widget.
+	FilterTable* targetTable = table;
+	FilterTable::Item* targetItem = item;
+	if (targetTable->chooseFilterTemplate(&filterTemplate,
+		addButton->mapToGlobal(QPoint(0, addButton->height())), this)
+		&& targetTable->documentItems().contains(targetItem))
 	{
 		// A card header's + belongs to that card's leading edge: insertLine
 		// takes an insert-before anchor, so this row itself is the desired
 		// anchor. Only the new card is built; this row and every other one
 		// stay put, and with them the scroll position.
-		table->insertLine(filterTemplate.getLine(), item);
+		targetTable->insertLine(filterTemplate.getLine(), targetItem);
+		targetTable->setFocus(Qt::OtherFocusReason);
 	}
 }
 
@@ -985,6 +1000,8 @@ void FilterCardRow::setExpanded(bool open)
 {
 	expanded = open;
 	expandButton->setText(open ? QStringLiteral("v") : QStringLiteral(">"));
+	if (!open && table != nullptr && bodyStack->isAncestorOf(QApplication::focusWidget()))
+		table->setFocus(Qt::OtherFocusReason);
 	bodyStack->setVisible(open);
 }
 
