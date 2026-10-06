@@ -17,6 +17,7 @@
 #include <functional>
 
 #include <QList>
+#include <QPointF>
 #include <QVector>
 
 #include "Editor/widgets/FilterPickerView.h"
@@ -50,9 +51,8 @@ public:
 	int rowOfEntry(int entryIndex) const;
 	QRect rowRect(int row) const;
 
-	// Offscreen gallery staging: hover the first line that is not the
-	// selection block, so one shot shows both vocabularies (the inverted
-	// cursor and the one-step hover) side by side.
+	// Offscreen gallery staging: rest the pointer on the first line that is
+	// not the selection block; the block follows it there.
 	void hoverFirstEntryForGallery();
 
 	// One click inserts (dropdown semantics, same as the neutral picker).
@@ -64,7 +64,6 @@ protected:
 	void paintEvent(QPaintEvent* event) override;
 	void mousePressEvent(QMouseEvent* event) override;
 	void mouseMoveEvent(QMouseEvent* event) override;
-	void leaveEvent(QEvent* event) override;
 
 private:
 	const SkinTokens skinTokens;
@@ -74,7 +73,7 @@ private:
 	QVector<int> rowTops;
 	int contentHeight = 0;
 	int selectedEntryIndex = -1;
-	int hoverRow = -1;
+	QPointF lastPointer;
 };
 
 class MinimalFilterPickerView : public FilterPickerView

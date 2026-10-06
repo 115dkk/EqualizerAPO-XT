@@ -94,6 +94,15 @@ void FilterPickerView::bindListPicker(
 	boundListWidget = listWidget;
 	boundOriginalIndexRole = originalIndexRole;
 	boundSearchEdit->installEventFilter(this);
+	// The pointer moves the current row, so hover and the arrow keys share one
+	// highlight: whichever input moved last owns it. A second, weaker hover
+	// look beside the current row showed two candidates for Return.
+	boundListWidget->setMouseTracking(true);
+	boundListWidget->viewport()->setMouseTracking(true);
+	boundListWidget->viewport()->installEventFilter(this);
+	// The host focuses the view after showing the popup; typing belongs in
+	// the search field, which forwards the arrow keys to the list.
+	setFocusProxy(boundSearchEdit);
 
 	connect(boundSearchEdit, &QLineEdit::textChanged, this,
 		[this, rebuildList](const QString& query) {
@@ -125,6 +134,31 @@ void FilterPickerView::selectFirstListEntry()
 	}
 }
 
+bool FilterPickerView::followPointer(const QPointF& globalPos)
+{
+	// Only a pointer that really moved takes the row. Scrolling the list
+	// under a resting pointer (arrow keys at the edge, the wheel) must leave
+	// the keyboard's row alone, and Windows replays the last position after
+	// content scrolls.
+	if (globalPos == lastPointer)
+		return false;
+	lastPointer = globalPos;
+	if (boundListWidget == nullptr)
+		return false;
+	QListWidgetItem* item = boundListWidget->itemAt(
+		boundListWidget->viewport()->mapFromGlobal(globalPos.toPoint()));
+	if (item == nullptr || !(item->flags() & Qt::ItemIsSelectable) || item == boundListWidget->currentItem())
+		return false;
+	// The row is under the pointer, so it is on screen; without this, a row
+	// cut by the viewport edge would scroll into full view and slide another
+	// row under the pointer.
+	const bool autoScroll = boundListWidget->hasAutoScroll();
+	boundListWidget->setAutoScroll(false);
+	boundListWidget->setCurrentItem(item);
+	boundListWidget->setAutoScroll(autoScroll);
+	return true;
+}
+
 void FilterPickerView::activateListItem(QListWidgetItem* item)
 {
 	if (item == nullptr || !(item->flags() & Qt::ItemIsSelectable))
@@ -154,6 +188,11 @@ bool FilterPickerView::eventFilter(QObject* watched, QEvent* event)
 		default:
 			break;
 		}
+	}
+	if (boundListWidget != nullptr && watched == boundListWidget->viewport()
+		&& event->type() == QEvent::MouseMove)
+	{
+		followPointer(static_cast<QMouseEvent*>(event)->globalPosition());
 	}
 	return QWidget::eventFilter(watched, event);
 }
