@@ -65,7 +65,7 @@ private slots:
 	void editTextToggled(bool checked);
 	void lineEditingFinished();
 	void enabledToggled(bool checked);
-	void expandedToggled(bool checked);
+	void setExpanded(bool open);
 	void routingEdited();
 
 private:
@@ -120,4 +120,5 @@ private:
 	// or not), so a device change redraws them.
 	std::vector<std::wstring> renderedBadgeDeviceChannels;
 	bool editingDone = false;
+	bool expanded = false;
 };

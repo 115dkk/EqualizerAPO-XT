@@ -81,13 +81,16 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	headerLayout->setContentsMargins(8, 2, 8, 2);
 	headerLayout->setSpacing(8);
 
+	// Not checkable: an open card is where a card rests, not something
+	// switched on, and a checked cap lights in the accent in four skins. That
+	// put a lit button on every open card. The glyph already says open or
+	// closed.
 	expandButton = new QToolButton(headerWidget);
 	expandButton->setObjectName(QStringLiteral("FilterCardIconButton"));
-	expandButton->setCheckable(true);
-	expandButton->setChecked(gui != nullptr);
-	expandButton->setText(expandButton->isChecked() ? QStringLiteral("v") : QStringLiteral(">"));
+	expanded = gui != nullptr;
+	expandButton->setText(expanded ? QStringLiteral("v") : QStringLiteral(">"));
 	expandButton->setToolTip(tr("Expand filter card"));
-	connect(expandButton, SIGNAL(toggled(bool)), this, SLOT(expandedToggled(bool)));
+	connect(expandButton, &QToolButton::clicked, this, [this]() { setExpanded(!expanded); });
 	headerLayout->addWidget(expandButton);
 
 	numberLabel = new QLabel(QString::number(number), headerWidget);
@@ -239,7 +242,7 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 
 		// The expand default above keys off the gui the body shows; routing
 		// rows are their own editor and start open.
-		expandButton->setChecked(true);
+		setExpanded(true);
 	}
 	else if (gui != nullptr)
 	{
@@ -284,7 +287,7 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 		bodyStack->setCurrentWidget(rawContainer);
 	}
 
-	bodyStack->setVisible(expandButton->isChecked());
+	bodyStack->setVisible(expanded);
 	connect(SkinManager::instance(), &SkinManager::skinChanged, this, [this](const SkinTokens&) {
 		syncVisualState();
 		update();
@@ -748,7 +751,7 @@ void FilterCardRow::applyDescriptor()
 	if (headerWidget != nullptr)
 		headerWidget->setVisible(!isSpacer);
 	if (bodyStack != nullptr)
-		bodyStack->setVisible(!isSpacer && expandButton != nullptr && expandButton->isChecked());
+		bodyStack->setVisible(!isSpacer && expanded);
 	if (isSpacer)
 	{
 		syncVisualState();
@@ -905,8 +908,7 @@ void FilterCardRow::setEditing(bool editing)
 	{
 		lineEdit->setText(item->text);
 		bodyStack->setCurrentWidget(lineEdit);
-		bodyStack->setVisible(true);
-		expandButton->setChecked(true);
+		setExpanded(true);
 		lineEdit->setFocus();
 		lineEdit->selectAll();
 	}
@@ -979,10 +981,11 @@ void FilterCardRow::enabledToggled(bool checked)
 	});
 }
 
-void FilterCardRow::expandedToggled(bool checked)
+void FilterCardRow::setExpanded(bool open)
 {
-	expandButton->setText(checked ? QStringLiteral("v") : QStringLiteral(">"));
-	bodyStack->setVisible(checked);
+	expanded = open;
+	expandButton->setText(open ? QStringLiteral("v") : QStringLiteral(">"));
+	bodyStack->setVisible(open);
 }
 
 void FilterCardRow::syncVisualState()
