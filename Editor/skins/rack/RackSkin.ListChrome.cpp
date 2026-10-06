@@ -94,18 +94,21 @@ void RackSkin::paintAddRow(QPainter& painter, const QRect& rect, const ListChrom
 	painter.setFont(stencilFont);
 	QColor stencilInk;
 	if (warm)
-		stencilInk = withAlpha(QColor(tokens.accent), state.pressed ? 255 : 225);
+		stencilInk = withAlpha(QColor(dark ? RackSkinDetail::darkEngagedFrame() : tokens.accent), state.pressed ? 255 : 225);
 	else
 		stencilInk = RackPalette::BayStencil(dark);
 	const QRectF stencilRect = r.adjusted(RackSkinDetail::EarWidth + 6, 0, -RackSkinDetail::EarWidth - 6, 0);
 	RackSkinDetail::engraveText(painter, stencilRect, Qt::AlignCenter,
 		warm ? QStringLiteral("INSTALL MODULE") : QStringLiteral("EMPTY BAY"), stencilInk, true);
 
-	// Hover pre-heat: the bay's bezel warms amber, brightening under the
-	// pressed finger - a lamp answer, not a button lift.
+	// Hover pre-heat: the bay's bezel warms, brightening under the pressed
+	// finger - a lamp answer, not a button lift. The dark finish warms to the
+	// bronze of an engaged unit frame, so the bay and the units around it
+	// answer the pointer in one colour.
 	if (warm)
 	{
-		painter.setPen(QPen(withAlpha(QColor(tokens.accent), state.pressed ? 190 : 120), 1));
+		const QColor heat(dark ? RackSkinDetail::darkEngagedFrame() : tokens.accent);
+		painter.setPen(QPen(withAlpha(heat, state.pressed ? 190 : 120), 1));
 		painter.setBrush(Qt::NoBrush);
 		painter.drawRoundedRect(r, radius, radius);
 	}
@@ -113,7 +116,7 @@ void RackSkin::paintAddRow(QPainter& painter, const QRect& rect, const ListChrom
 	// Keyboard focus: the thin service ring just inside the opening.
 	if (state.focused)
 	{
-		painter.setPen(QPen(withAlpha(QColor(tokens.focusRing), 190), 1));
+		painter.setPen(QPen(withAlpha(QColor(dark ? RackSkinDetail::darkEngagedFrame() : tokens.focusRing), 190), 1));
 		painter.setBrush(Qt::NoBrush);
 		painter.drawRoundedRect(r.adjusted(1.5, 1.5, -1.5, -1.5), radius - 1, radius - 1);
 	}

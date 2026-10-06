@@ -19,7 +19,9 @@ namespace RackSkinDetail
 {
 // The dark-mode engaged (selected / focused) unit frame: a warm neutral
 // instead of the amber accent (brightness round 2, issue #301: the amber
-// frame both popped and glared). Used by the QSS border and the bezel.
+// frame both popped and glared). Used by the QSS border and the bezel, and
+// by every cap that answers the pointer, latches or holds focus, so a unit
+// carries one glow colour; rack_dark.qss spells it for the stylesheet caps.
 inline QString darkEngagedFrame()
 {
 	return QStringLiteral("#8C8578");
