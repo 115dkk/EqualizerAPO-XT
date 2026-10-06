@@ -29,7 +29,12 @@ class QFileDialog;
 class GUIHelper
 {
 public:
-    static bool isDarkMode();
+	// The mode the editor is drawn in: the skin's dark/light choice (always
+	// light for the heritage rows). Painters ask this one.
+	static bool isDarkMode();
+	// The operating system's colour scheme. Only the first-run default for
+	// the skin choice reads it; the user's choice overrides it from then on.
+	static bool isSystemDarkMode();
 	// Render a monochrome resource icon (SVG silhouette) recoloured to the given
 	// skin colour. The artwork's own colour is ignored: only its alpha mask is
 	// kept, so the same icon adapts to any dark/light skin without per-theme

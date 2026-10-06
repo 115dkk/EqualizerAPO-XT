@@ -487,7 +487,7 @@ int main(int argc, char* argv[])
 		}
 		else
 		{
-			const EditorSettings::SkinChoice choice = EditorSettings::readSkinChoice(settings, GUIHelper::isDarkMode());
+			const EditorSettings::SkinChoice choice = EditorSettings::readSkinChoice(settings, GUIHelper::isSystemDarkMode());
 			// applySkin also derives the application palette from the tokens.
 			SkinManager::instance()->applySkin(choice.id, choice.dark);
 		}
