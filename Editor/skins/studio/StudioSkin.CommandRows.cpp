@@ -41,7 +41,6 @@ QString StudioSkin::cardFrameStyle(const CommandRowInfo& info, const SkinTokens&
 	const QString background = cssRgba(info.selected ? tokens.cardSelected : tokens.card, 0.88);
 	const QString hoverBackground = cssRgba(info.selected ? tokens.cardSelected : tokens.cardHover, 0.94);
 	const QString topEdge = dark ? QStringLiteral("rgba(255, 255, 255, 0.10)") : QStringLiteral("rgba(255, 255, 255, 0.95)");
-	const QString topEdgeHover = dark ? QStringLiteral("rgba(255, 255, 255, 0.17)") : QStringLiteral("#FFFFFF");
 
 	if (info.type == QStringLiteral("vst"))
 	{
@@ -49,8 +48,11 @@ QString StudioSkin::cardFrameStyle(const CommandRowInfo& info, const SkinTokens&
 		const QString gradient = QStringLiteral("qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %1, stop:1 %2)")
 			.arg(cssRgba(tokens.accent, info.focused || info.selected ? 0.95 : 0.70),
 				cssRgba(tokens.accent, info.focused || info.selected ? 0.45 : 0.22));
+		// Hover never dims a lit card: the lower stop keeps the selected
+		// strength when the card is already engaged.
 		const QString hoverGradient = QStringLiteral("qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %1, stop:1 %2)")
-			.arg(cssRgba(tokens.accent, 0.95), cssRgba(tokens.accent, 0.40));
+			.arg(cssRgba(tokens.accent, 0.95),
+				cssRgba(tokens.accent, info.focused || info.selected ? 0.45 : 0.40));
 		return QStringLiteral(
 			"QFrame#FilterCardRow { background: %1; border: 1px solid %2; border-radius: 8px; }"
 			" QFrame#FilterCardRow:hover { background: %3; border-color: %4; }")
@@ -59,29 +61,40 @@ QString StudioSkin::cardFrameStyle(const CommandRowInfo& info, const SkinTokens&
 
 	const QString borderStyle = info.type == QStringLiteral("include")
 		? QStringLiteral("dashed") : QStringLiteral("solid");
-	const QString borderBrush = info.focused
-		? tokens.focusRing
-		: (info.selected ? cssRgba(tokens.accent, 0.65) : cssRgba(tokens.border, 0.90));
-	const QString hoverBorderBrush = info.focused ? tokens.focusRing : cssRgba(tokens.accent, 0.45);
 
-	QString style = QStringLiteral(
-		"QFrame#FilterCardRow { background: %1; border: 1px %2 %3; border-top-color: %4; border-radius: 8px; }"
-		" QFrame#FilterCardRow:hover { background: %5; border-color: %6; border-top-color: %7; }")
-		.arg(background, borderStyle, borderBrush, topEdge, hoverBackground, hoverBorderBrush, topEdgeHover);
+	// The lit edge runs round all four sides. The white top edge is the glass
+	// catching the room light at rest; on a lit card it used to stay white and
+	// leave the light a three-sided U with its top missing. Hover never dims
+	// a lit card either: it used to drop a selected card's edge from 0.65 to
+	// 0.45 while the glass brightened, so the light flickered down under the
+	// pointer. Selected under the pointer brightens one step instead.
+	const auto litStyle = [&](const QString& selector, const QColor& light) {
+		const QString rest = info.focused ? light.name()
+			: (info.selected ? cssRgba(light, 0.65) : cssRgba(tokens.border, 0.90));
+		const QString restTop = info.focused || info.selected ? rest : topEdge;
+		const QString hover = info.focused ? light.name()
+			: cssRgba(light, info.selected ? 0.80 : 0.45);
+		return QStringLiteral(
+			"%1 { background: %2; border: 1px %3 %4; border-top-color: %5; border-radius: 8px; }"
+			" %1:hover { background: %6; border-color: %7; border-top-color: %7; }")
+			.arg(selector, background, borderStyle, rest, restTop, hoverBackground, hover);
+	};
+
+	// Keyboard focus lights the edge at full strength in the row's own
+	// colour. The focus ring used to stay accent blue on a band row, so a
+	// focused mint or rose row carried two lights, against rule 1.
+	QString style = litStyle(QStringLiteral("QFrame#FilterCardRow"), QColor(tokens.accent));
 
 	// A tagged BiQuad row's border light follows its band colour.
 	// Attribute selectors outrank the base rules, and untagged rows can
-	// never match them; keyboard focus keeps the neutral focus ring.
-	if (info.type == QStringLiteral("biquad") && !info.focused)
+	// never match them.
+	if (info.type == QStringLiteral("biquad"))
 	{
 		for (const char* family : studioBandFamilies)
 		{
-			const QString band = studioBandHex(QLatin1String(family), dark);
-			if (info.selected)
-				style += QStringLiteral(" QFrame#FilterCardRow[studioBand=\"%1\"] { border-color: %2; border-top-color: %3; }")
-					.arg(QLatin1String(family), cssRgba(band, 0.65), topEdge);
-			style += QStringLiteral(" QFrame#FilterCardRow[studioBand=\"%1\"]:hover { border-color: %2; border-top-color: %3; }")
-				.arg(QLatin1String(family), cssRgba(band, 0.45), topEdgeHover);
+			const QColor band(studioBandHex(QLatin1String(family), dark));
+			style += QLatin1Char(' ')
+				+ litStyle(QStringLiteral("QFrame#FilterCardRow[studioBand=\"%1\"]").arg(QLatin1String(family)), band);
 		}
 	}
 	return style;
