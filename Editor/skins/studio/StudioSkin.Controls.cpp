@@ -37,9 +37,15 @@ void StudioSkin::paintKnob(QPainter& painter, const QRect& rect, const KnobState
 
 	const QColor accent = studioBandPaintColor(painter, tokens);
 
-	// Track: the full range geometry as a thin circle segment.
+	// Track: the full range geometry as a thin circle segment. The dark
+	// border token is 1.09:1 against the card glass, so the lit arc floated
+	// as a fragment with no knob round it. A fifth of the muted ink brings the
+	// dark track to 1.55:1, level with the light track (1.49:1 measured).
+	const QColor trackColor = skinIsDark(tokens)
+		? mixColor(QColor(tokens.border), QColor(tokens.mutedText), 0.2)
+		: QColor(tokens.border);
 	painter.setBrush(Qt::NoBrush);
-	painter.setPen(QPen(QColor(tokens.border), 2.0, Qt::SolidLine, Qt::RoundCap));
+	painter.setPen(QPen(trackColor, 2.0, Qt::SolidLine, Qt::RoundCap));
 	painter.drawArc(track, qRound(-start * 16), qRound(-span * 16));
 
 	double arcFrom = start;
