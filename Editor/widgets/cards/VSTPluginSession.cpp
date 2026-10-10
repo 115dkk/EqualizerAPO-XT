@@ -141,6 +141,9 @@ void VSTPluginSession::initPlugin()
 		}
 		else
 		{
+			// The Editor's own load site; the AnalysisThread's engine goes
+			// through VSTPluginFilterFactory, which retains on its own.
+			VSTPluginLibrary::retainIfKeepingLoaded(pluginLibrary);
 			effect = std::make_unique<VSTPluginInstance>(pluginLibrary, 1);
 			if (effect->initialize())
 			{

@@ -26,8 +26,11 @@
 	There is no idle timeout, because every release would re-arm the stall at
 	a moment nobody can predict.
 
-	Only the long-lived engine processes turn it on: the APO DLL in audiodg
-	and EqualizerAPOHost. The Editor and the tests keep the old behaviour.
+	The APO DLL in audiodg and EqualizerAPOHost turn it on, and so does the
+	Editor: it rebuilds every row on a skin switch, undo or device change,
+	and each rebuild used to reload every plugin in the config. There the
+	cost is a plugin file that stays in use until the Editor closes. The
+	in-process ASIO processor and the tests keep the old behaviour.
 	The two functions are declared apart from VSTPluginLibrary.h so those
 	processes need not see the VST3 SDK headers to set it. The implementation
 	lives in VSTPluginLibrary.cpp.

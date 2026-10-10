@@ -588,6 +588,7 @@ HEADERS  += \
 	../devices/VoicemeeterAPOInfo.h \
 	../vst/AbstractLibrary.h \
 	../vst/VSTPluginLibrary.h \
+	../vst/PluginResidency.h \
 	guis/VSTPluginFilterGUI.h \
 	guis/VSTPluginFilterGUIFactory.h \
 	guis/VSTPluginFilterGUIDialog.h \
