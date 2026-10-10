@@ -23,6 +23,11 @@
 	    state through readFromEffect/writeToEffect, which (per the engine) use the
 	    chunk path whenever the programChunks flag is set.
 
+	A copy whose file name contains SlowLoad followed immediately by decimal
+	digits becomes the loader-lock timing persona. For example,
+	TestVst2Plugin.SlowLoad4000.dll sleeps for 4 seconds while loading. The
+	ordinary TestVst2Plugin.dll has no added delay.
+
 	No engine headers, no Qt, no CRT surprises: just <cstring>/<cstdint> and the
 	ABI header. The exported entry point is VSTPluginMain (the symbol
 	VSTPluginLibrary::loadFunctions resolves), with a legacy `main` alias for
@@ -36,6 +41,40 @@
 #include <windows.h>
 
 #include "vst/aeffectx.h"
+
+BOOL WINAPI DllMain(HINSTANCE hModule, DWORD reason, LPVOID)
+{
+	if (reason == DLL_PROCESS_ATTACH)
+	{
+		DisableThreadLibraryCalls(hModule);
+		wchar_t path[MAX_PATH] = {};
+		const DWORD length = GetModuleFileNameW(hModule, path, MAX_PATH);
+		if (length > 0 && length < MAX_PATH)
+		{
+			const wchar_t* fileName = wcsrchr(path, L'\\');
+			fileName = fileName != nullptr ? fileName + 1 : path;
+			const wchar_t* marker = fileName;
+			while ((marker = wcsstr(marker, L"SlowLoad")) != nullptr)
+			{
+				marker += 8;
+				if (*marker < L'0' || *marker > L'9')
+					continue;
+				DWORD milliseconds = 0;
+				while (*marker >= L'0' && *marker <= L'9')
+				{
+					const DWORD digit = static_cast<DWORD>(*marker - L'0');
+					milliseconds = milliseconds > (60000 - digit) / 10 ? 60000 : milliseconds * 10 + digit;
+					marker++;
+				}
+				// This sleep deliberately holds the loader lock to imitate a plugin
+				// whose process-attach work blocks every loader-dependent thread.
+				Sleep(milliseconds);
+				break;
+			}
+		}
+	}
+	return TRUE;
+}
 
 namespace
 {

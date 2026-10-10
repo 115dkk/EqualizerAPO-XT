@@ -31,6 +31,8 @@
       uninstall       DeviceSelector --uninstall-endpoint, then the cable is at
                       unity again and the endpoint's effect chain holds no EQ
                       CLSID
+      plugin-load     three capture opens while another process repeatedly opens
+                      the render endpoint, recorded as loader-lock evidence only
 
     The install/measure/uninstall round runs once per install mode: first
     the mode the product picks on its own for this endpoint (a virtual
@@ -58,6 +60,9 @@ param(
     [string] $SnapshotDirectory,
     [string] $VbCableUrl = "https://download.vb-audio.com/Download_CABLE/VBCABLE_Driver_Pack43.zip",
     [string] $VbCableSha256 = "66FD0A4D9F4896FF41632B7E3D53892C085C4561F53E8AE8D0F0BC10EEDD1CDD",
+    [string] $RealPluginInstallerUrl,
+    [string] $RealPluginInstallerSha256,
+    [int] $SlowLoadMilliseconds = 4000,
     [double] $PreampDb = -20.0,
     [double] $ToleranceDb = 1.0,
     # Seconds to wait after an --uninstall-endpoint before measuring.
@@ -128,6 +133,14 @@ $asioEntryFrames = @(256, 64, 1024, 2048)
 # the phase lists the runner's active playback endpoints either way and is
 # skipped, saying so, without one.
 $sendRound = [pscustomobject]@{ Name = "send-round"; ExpectGainDb = 0.0; ToleranceDb = 0.5; Required = $true; Note = "a Send line hands the sender's tone to the receiving instance" }
+$pluginLoad = [pscustomobject]@{
+    Name = "plugin-load"
+    SlowLoadMilliseconds = $SlowLoadMilliseconds
+    RealPluginInstallerUrl = $RealPluginInstallerUrl
+    RealPluginInstallerSha256 = $RealPluginInstallerSha256
+    Required = $false
+    Note = "loader-lock timing evidence from repeated capture opens and concurrent render opens"
+}
 
 $plan = [pscustomobject]@{
     VbCableUrl = $VbCableUrl
@@ -141,6 +154,7 @@ $plan = [pscustomobject]@{
     AsioEntry = $asioEntryMeasurement
     AsioEntryFrames = $asioEntryFrames
     SendRound = $sendRound
+    PluginLoad = $pluginLoad
     StageRoot = $StageRoot
 }
 if ($PlanOnly) { return $plan }
@@ -165,6 +179,7 @@ $summary = [ordered]@{
     renderEndpoints = @()
     sendRound = $null
     rounds = @()
+    pluginLoad = $null
     lowLatency = $null
     asioEntry = $null
     measurements = @()
@@ -330,6 +345,121 @@ function Copy-Logs([string] $phase) {
 # now blocks the release.
 function Wait-GraphSettle {
     Start-Sleep -Seconds $GraphSettleSeconds
+}
+
+function Get-PluginOpenRecord([string] $name, $run) {
+    $json = $null
+    if ($run.StdOut) {
+        $line = ($run.StdOut -split "`n" | Where-Object { $_.Trim().StartsWith("{") } | Select-Object -Last 1)
+        if ($line) {
+            try { $json = $line | ConvertFrom-Json } catch { Write-Warning "$name returned invalid JSON: $($_.Exception.Message)" }
+        }
+    }
+    $activateMs = Get-JsonField $json "activateMs"
+    $initializeMs = Get-JsonField $json "initializeMs"
+    $startMs = Get-JsonField $json "startMs"
+    $openMs = if ($null -ne $activateMs -and $null -ne $initializeMs -and $null -ne $startMs) {
+        [double]$activateMs + [double]$initializeMs + [double]$startMs
+    } else { $null }
+    return [pscustomobject][ordered]@{
+        name = $name
+        exitCode = $run.ExitCode
+        gainDb = Get-JsonField $json "gainDb"
+        activateMs = $activateMs
+        initializeMs = $initializeMs
+        startMs = $startMs
+        firstPacketMs = Get-JsonField $json "firstPacketMs"
+        openStartUnixMs = Get-JsonField $json "openStartUnixMs"
+        openMs = $openMs
+    }
+}
+
+function Invoke-PluginCaptureOpen([string] $name, [switch] $Communications) {
+    $arguments = @("--capture-id", $endpoints.Capture, "--render-id", $endpoints.Render,
+        "--seconds", "1", "--settle", "0.5", "--json")
+    if ($Communications) { $arguments += @("--category", "communications") }
+    $run = Invoke-Program $captureProbe $arguments 120
+    return Get-PluginOpenRecord $name $run
+}
+
+function Get-OverlappingSlowCount($watchJson, $open) {
+    if ($null -eq $watchJson -or $null -eq $open.openStartUnixMs -or $null -eq $open.openMs) { return $null }
+    $start = [double]$open.openStartUnixMs
+    $end = $start + [double]$open.openMs + 1000.0
+    $count = 0
+    foreach ($slow in @($watchJson.slow)) {
+        if ($null -ne $slow -and $slow.Count -ge 2) {
+            $slowStart = [double]$slow[0]
+            if ($slowStart -ge $start -and $slowStart -le $end) { $count++ }
+        }
+    }
+    return $count
+}
+
+function Invoke-PluginLoadMeasurement([string] $label) {
+    # The opens of a real plugin can take tens of seconds each, so the watcher
+    # gets a generous ceiling and is stopped through a file after the third open.
+    $watchSeconds = 600
+    $safeLabel = $label -replace '[^A-Za-z0-9_.-]', '_'
+    $watchOut = Join-Path $SnapshotDirectory "plugin-load-$safeLabel-watch.json"
+    $watchErr = Join-Path $SnapshotDirectory "plugin-load-$safeLabel-watch.stderr.txt"
+    $watchStop = Join-Path $StageRoot "plugin-load-$safeLabel-watch.stop"
+    if (Test-Path -LiteralPath $watchStop) { Remove-Item -LiteralPath $watchStop -Force }
+    $watchProcess = $null
+    $opens = @()
+    try {
+        $watchProcess = Start-Process -FilePath $captureProbe -ArgumentList @("--render-id", $endpoints.Render, "--watch-render-opens", "$watchSeconds", "--stop-file", "`"$watchStop`"") `
+            -PassThru -NoNewWindow -RedirectStandardOutput $watchOut -RedirectStandardError $watchErr
+        Start-Sleep -Seconds 1
+        $opens += Invoke-PluginCaptureOpen "open1"
+        Start-Sleep -Seconds ($GraphSettleSeconds + 2)
+        $opens += Invoke-PluginCaptureOpen "open2"
+        Start-Sleep -Seconds ($GraphSettleSeconds + 2)
+        $opens += Invoke-PluginCaptureOpen "open3" -Communications
+        Start-Sleep -Seconds 2
+        Set-Content -LiteralPath $watchStop -Value "stop"
+        $watchExited = $watchProcess.WaitForExit(60000)
+        if (-not $watchExited) {
+            Write-Warning "plugin-load/$label render-open watcher did not stop within 60 seconds of its stop file"
+            try { $watchProcess.Kill() } catch {}
+            $watchProcess.WaitForExit(5000) | Out-Null
+        }
+    }
+    finally {
+        if ($watchProcess -and -not $watchProcess.HasExited) {
+            try { $watchProcess.Kill() } catch {}
+            $watchProcess.WaitForExit(5000) | Out-Null
+        }
+    }
+
+    $watchText = Get-Content -LiteralPath $watchOut -Raw -ErrorAction SilentlyContinue
+    $watchError = Get-Content -LiteralPath $watchErr -Raw -ErrorAction SilentlyContinue
+    if ($watchError) { Write-Host ($watchError.TrimEnd()) }
+    $watchJson = $null
+    if ($watchText) {
+        $watchLine = ($watchText -split "`n" | Where-Object { $_.Trim().StartsWith("{") } | Select-Object -Last 1)
+        if ($watchLine) {
+            try { $watchJson = $watchLine | ConvertFrom-Json } catch { Write-Warning "plugin-load/$label watcher returned invalid JSON: $($_.Exception.Message)" }
+        }
+    }
+
+    $watcher = [pscustomobject][ordered]@{
+        exitCode = if ($watchProcess -and $watchProcess.HasExited) { $watchProcess.ExitCode } else { -1 }
+        cycles = Get-JsonField $watchJson "cycles"
+        failed = Get-JsonField $watchJson "failed"
+        medianMs = Get-JsonField $watchJson "medianMs"
+        worstMs = Get-JsonField $watchJson "worstMs"
+        worstAtUnixMs = Get-JsonField $watchJson "worstAtUnixMs"
+        open1Slow = if ($opens.Count -ge 1) { Get-OverlappingSlowCount $watchJson $opens[0] } else { $null }
+        open2Slow = if ($opens.Count -ge 2) { Get-OverlappingSlowCount $watchJson $opens[1] } else { $null }
+        open3Slow = if ($opens.Count -ge 3) { Get-OverlappingSlowCount $watchJson $opens[2] } else { $null }
+    }
+    Write-Host "plugin-load/$label capture opens:"
+    $opens | Format-Table -AutoSize name, exitCode, gainDb, activateMs, initializeMs, startMs, firstPacketMs, openMs | Out-String | Write-Host
+    Write-Host ("plugin-load/{0} watcher: cycles {1}, failed {2}, median {3} ms, worst {4} ms at {5}; overlapping slow cycles {6}/{7}/{8}" -f `
+        $label, $watcher.cycles, $watcher.failed, $watcher.medianMs, $watcher.worstMs, $watcher.worstAtUnixMs,
+        $watcher.open1Slow, $watcher.open2Slow, $watcher.open3Slow)
+    return [pscustomobject][ordered]@{ label = $label; opens = $opens; watcher = $watcher }
 }
 
 function Measure-Cable($measurement, [string] $round = "") {
@@ -618,6 +748,155 @@ foreach ($mode in $installModes) {
 $roundRequired = $true
 
 # ---------------------------------------------------------------------------
+Write-Phase "plugin-load: a plugin that holds the loader lock while it loads, on the recording endpoint"
+$pluginLoadRecord = [ordered]@{
+    verdict = "recorded"
+    reason = $null
+    fixture = $null
+    realPlugin = @()
+    install = $null
+    uninstall = $null
+}
+$fixtureSource = Join-Path $ProbeDirectory "TestVst2Plugin.dll"
+if (-not (Test-Path -LiteralPath $fixtureSource)) {
+    $pluginLoadRecord.verdict = "skipped"
+    $pluginLoadRecord.reason = "TestVst2Plugin.dll is not in the probe directory"
+    $pluginLoadRecord.fixture = [ordered]@{ verdict = "skipped"; reason = $pluginLoadRecord.reason }
+    Write-Host "plugin-load skipped: TestVst2Plugin.dll is not in the probe directory"
+}
+else {
+    $originalConfig = $null
+    $installAttempted = $false
+    try {
+        $pluginDirectory = Join-Path $StageRoot "plugins"
+        New-Item -ItemType Directory -Force -Path $pluginDirectory | Out-Null
+        $fixturePath = Join-Path $pluginDirectory "TestVst2Plugin.SlowLoad$SlowLoadMilliseconds.dll"
+        Copy-Item -LiteralPath $fixtureSource -Destination $fixturePath -Force
+
+        $installAttempted = $true
+        $install = Invoke-Program (Join-Path $current "DeviceSelector.exe") @("--install-endpoint", $endpoints.Capture) 300 $current
+        $pluginLoadRecord.install = [ordered]@{ exitCode = $install.ExitCode; timedOut = $install.TimedOut }
+        Save-EndpointSnapshot $endpoints.Capture "90-plugin-load-installed"
+        if ($install.ExitCode -ne 0) {
+            Write-Warning "plugin-load/install: DeviceSelector --install-endpoint exited with $($install.ExitCode); recording evidence without failing the gate"
+        }
+
+        $originalConfig = [System.IO.File]::ReadAllText($configFile)
+        $fixtureConfig = "Preamp: -20 dB`r`nVSTPlugin: Library `"$fixturePath`"`r`n"
+        [System.IO.File]::WriteAllText($configFile, $fixtureConfig, (New-Object System.Text.UTF8Encoding($false)))
+        Wait-GraphSettle
+        try {
+            $pluginLoadRecord.fixture = Invoke-PluginLoadMeasurement "fixture"
+        }
+        catch {
+            $pluginLoadRecord.fixture = [ordered]@{ verdict = "failed"; reason = $_.Exception.Message }
+            Write-Warning "plugin-load/fixture failed: $($_.Exception.Message)"
+        }
+
+        if ([string]::IsNullOrWhiteSpace($RealPluginInstallerUrl)) {
+            $pluginLoadRecord.realPlugin += [pscustomobject][ordered]@{ verdict = "skipped"; reason = "no real plugin installer URL was supplied" }
+        }
+        else {
+            $realPluginDirectory = Join-Path $StageRoot "real-plugin"
+            New-Item -ItemType Directory -Force -Path $realPluginDirectory | Out-Null
+            $installer = Join-Path $realPluginDirectory "installer.exe"
+            try {
+                Invoke-WebRequest -Uri $RealPluginInstallerUrl -OutFile $installer -UseBasicParsing -TimeoutSec 300
+                $installerHash = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash
+                if ([string]::IsNullOrWhiteSpace($RealPluginInstallerSha256) -or $installerHash -ne $RealPluginInstallerSha256.ToUpperInvariant()) {
+                    $pluginLoadRecord.realPlugin += [pscustomobject][ordered]@{
+                        verdict = "skipped"
+                        reason = "installer hash changed"
+                        actualSha256 = $installerHash
+                        expectedSha256 = $RealPluginInstallerSha256
+                    }
+                    Write-Warning "plugin-load/real-plugin skipped: installer hash changed"
+                }
+                else {
+                    $installerRun = Invoke-Program $installer @("/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-") 300 $realPluginDirectory
+                    $pluginLoadRecord.realPlugin += [pscustomobject][ordered]@{
+                        label = "installer"
+                        exitCode = $installerRun.ExitCode
+                        timedOut = $installerRun.TimedOut
+                    }
+                    if ($installerRun.ExitCode -ne 0) {
+                        Write-Warning "plugin-load/real-plugin installer exited with $($installerRun.ExitCode); recording evidence without failing the gate"
+                    }
+                    foreach ($plugin in @(
+                        [pscustomobject]@{ Label = "clear-vst2"; Name = "Clear.dll" },
+                        [pscustomobject]@{ Label = "clear-vst3"; Name = "Clear.vst3" }
+                    )) {
+                        try {
+                            $found = Get-ChildItem -LiteralPath "C:\Program Files" -Recurse -Depth 5 -Filter $plugin.Name -ErrorAction SilentlyContinue | Select-Object -First 1
+                            if (-not $found) {
+                                $pluginLoadRecord.realPlugin += [pscustomobject][ordered]@{ label = $plugin.Label; verdict = "skipped"; reason = "$($plugin.Name) was not found under C:\Program Files" }
+                                Write-Warning "plugin-load/$($plugin.Label) skipped: $($plugin.Name) was not found"
+                                continue
+                            }
+                            $realConfig = "Preamp: -20 dB`r`nVSTPlugin: Library `"$($found.FullName)`"`r`n"
+                            [System.IO.File]::WriteAllText($configFile, $realConfig, (New-Object System.Text.UTF8Encoding($false)))
+                            Wait-GraphSettle
+                            $pluginLoadRecord.realPlugin += Invoke-PluginLoadMeasurement $plugin.Label
+                        }
+                        catch {
+                            $pluginLoadRecord.realPlugin += [pscustomobject][ordered]@{ label = $plugin.Label; verdict = "failed"; reason = $_.Exception.Message }
+                            Write-Warning "plugin-load/$($plugin.Label) failed: $($_.Exception.Message)"
+                        }
+                    }
+                }
+            }
+            catch {
+                $pluginLoadRecord.realPlugin += [pscustomobject][ordered]@{ verdict = "failed"; reason = $_.Exception.Message }
+                Write-Warning "plugin-load/real-plugin failed: $($_.Exception.Message)"
+            }
+        }
+    }
+    catch {
+        $pluginLoadRecord.verdict = "failed"
+        $pluginLoadRecord.reason = $_.Exception.Message
+        if ($null -eq $pluginLoadRecord.fixture) {
+            $pluginLoadRecord.fixture = [ordered]@{ verdict = "failed"; reason = $_.Exception.Message }
+        }
+        Write-Warning "plugin-load failed: $($_.Exception.Message)"
+    }
+    finally {
+        try { Copy-Logs "90-plugin-load" } catch { Write-Warning "plugin-load could not copy logs: $($_.Exception.Message)" }
+        if ($null -ne $originalConfig) {
+            try {
+                [System.IO.File]::WriteAllText($configFile, $originalConfig, (New-Object System.Text.UTF8Encoding($false)))
+            }
+            catch {
+                $pluginLoadRecord.verdict = "failed"
+                $pluginLoadRecord.reason = "config.txt could not be restored: $($_.Exception.Message)"
+                Write-Warning "plugin-load could not restore config.txt: $($_.Exception.Message)"
+            }
+        }
+        if ($installAttempted) {
+            try {
+                $uninstall = Invoke-Program (Join-Path $current "DeviceSelector.exe") @("--uninstall-endpoint", $endpoints.Capture) 180 $current
+                $pluginLoadRecord.uninstall = [ordered]@{ exitCode = $uninstall.ExitCode; timedOut = $uninstall.TimedOut }
+                if ($uninstall.ExitCode -ne 0) {
+                    $pluginLoadRecord.verdict = "failed"
+                    $pluginLoadRecord.reason = "capture endpoint uninstall exited with $($uninstall.ExitCode)"
+                    Write-Warning "plugin-load/uninstall: DeviceSelector --uninstall-endpoint exited with $($uninstall.ExitCode); recording evidence without failing the gate"
+                }
+            }
+            catch {
+                $pluginLoadRecord.verdict = "failed"
+                $pluginLoadRecord.reason = "capture endpoint could not be uninstalled: $($_.Exception.Message)"
+                $pluginLoadRecord.uninstall = [ordered]@{ exitCode = $null; error = $_.Exception.Message }
+                Write-Warning "plugin-load/uninstall failed: $($_.Exception.Message)"
+            }
+            finally {
+                try { Wait-GraphSettle } catch { Write-Warning "plugin-load could not wait after uninstall: $($_.Exception.Message)" }
+                try { Save-EndpointSnapshot $endpoints.Capture "90-plugin-load-uninstalled" } catch { Write-Warning "plugin-load could not save the uninstall snapshot: $($_.Exception.Message)" }
+            }
+        }
+    }
+}
+$summary.pluginLoad = [pscustomobject]$pluginLoadRecord
+
+# ---------------------------------------------------------------------------
 Write-Phase "low-latency: the playback endpoint, a convolution, the engine's smallest period"
 $baseline = $summary.measurements | Where-Object { $_.name -eq "baseline" } | Select-Object -First 1
 $impulseRate = if ($baseline -and $baseline.rate) { [int]$baseline.rate } else { 48000 }
@@ -774,7 +1053,7 @@ $summary.asioEntry = [pscustomobject]$asioEntry
 # ---------------------------------------------------------------------------
 Write-Phase "summary"
 $summaryPath = Join-Path $SnapshotDirectory "capture-gate.json"
-[pscustomobject]$summary | ConvertTo-Json -Depth 6 | Out-File -FilePath $summaryPath -Encoding utf8
+[pscustomobject]$summary | ConvertTo-Json -Depth 8 | Out-File -FilePath $summaryPath -Encoding utf8
 $summary.rounds | Format-Table -AutoSize mode, installMode | Out-String | Write-Host
 $summary.measurements | Format-Table -AutoSize name, category, raw, period, enginePeriodFrames, expectGainDb, gainDb, passed, required | Out-String | Write-Host
 if ($summary.failures.Count -gt 0) {

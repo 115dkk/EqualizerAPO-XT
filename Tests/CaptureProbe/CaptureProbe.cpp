@@ -15,7 +15,17 @@
 
 	The stream category (--category communications) and raw mode (--raw)
 	select the signal processing mode the engine picks for the stream, which
-	is how voice-chat apps differ from a plain recorder.
+	is how voice-chat apps differ from a plain recorder. Each capture result
+	also reports the time spent activating, initializing and starting the
+	capture client, plus the wait for its first packet.
+
+	The --watch-render-opens mode repeatedly opens and closes a silent shared
+	render stream. It records slow cycles with wall-clock timestamps so a
+	capture open that blocks the process loader lock can be matched to render
+	opens delayed at the same time. --stop-file ends the watch early once a
+	file appears, for a caller that cannot tell in advance how long its opens
+	will take. This mode uses no capture endpoint and exits
+	0 when at least one cycle ran, or 1 when none ran.
 
 	Exit codes: 0 measured (or within --expect-gain-db), 1 usage or a failed
 	call, 2 the measured gain missed the expectation.
@@ -31,6 +41,7 @@
 #include <ks.h>
 #include <ksmedia.h>
 
+#include <algorithm>
 #include <atomic>
 #include <cmath>
 #include <numbers>
@@ -60,6 +71,9 @@ struct Options
 	bool json = false;
 	bool list = false;
 	bool noRender = false;
+	bool watchRenderOpensSet = false;
+	double watchRenderOpens = 0.0;
+	std::wstring stopFile;          // --watch-render-opens ends early once this file exists
 	std::wstring period;            // "", "default", "min" or a frame count: the playback stream's engine period
 	bool holdDefault = false;       // hold a silent default-period playback stream open before --period opens
 	bool haveExpectation = false;
@@ -73,6 +87,8 @@ void usage()
 		L"CaptureProbe [--render <name-substring>|--render-id <id>|--no-render]\n"
 		L"             [--capture <name-substring>|--capture-id <id>] [options]\n"
 		L"  --list                    print the active endpoints and exit\n"
+		L"  --watch-render-opens S    repeatedly open the selected render endpoint for S seconds; exit 0 if a cycle ran\n"
+		L"  --stop-file PATH          with --watch-render-opens: stop as soon as PATH exists\n"
 		L"  --seconds S --settle S    measure S seconds after S seconds of settling (2.0, 0.7)\n"
 		L"  --tone Hz --amp A         the sine played into the playback endpoint (1000, 0.5)\n"
 		L"  --category NAME           other|communications|speech|media|game-chat (stream category)\n"
@@ -103,6 +119,13 @@ bool parse(int argc, wchar_t** argv, Options& o)
 			o.renderId = v;
 		else if (a == L"--no-render")
 			o.noRender = true;
+		else if (a == L"--watch-render-opens" && next(v))
+		{
+			o.watchRenderOpensSet = true;
+			o.watchRenderOpens = _wtof(v.c_str());
+		}
+		else if (a == L"--stop-file" && next(v))
+			o.stopFile = v;
 		else if (a == L"--capture" && next(v))
 			o.captureName = v;
 		else if (a == L"--capture-id" && next(v))
@@ -157,7 +180,7 @@ bool parse(int argc, wchar_t** argv, Options& o)
 			return false;
 		}
 	}
-	return o.seconds > 0.0 && o.settle >= 0.0;
+	return o.seconds > 0.0 && o.settle >= 0.0 && (!o.watchRenderOpensSet || o.watchRenderOpens > 0.0);
 }
 
 template<typename T>
@@ -170,6 +193,60 @@ struct ComRelease
 			p->Release();
 	}
 };
+
+double elapsedMs(const LARGE_INTEGER& start, const LARGE_INTEGER& end)
+{
+	LARGE_INTEGER frequency;
+	QueryPerformanceFrequency(&frequency);
+	return 1000.0 * static_cast<double>(end.QuadPart - start.QuadPart) / static_cast<double>(frequency.QuadPart);
+}
+
+long long unixMs()
+{
+	FILETIME fileTime;
+	GetSystemTimePreciseAsFileTime(&fileTime);
+	ULARGE_INTEGER ticks;
+	ticks.LowPart = fileTime.dwLowDateTime;
+	ticks.HighPart = fileTime.dwHighDateTime;
+	return static_cast<long long>(ticks.QuadPart / 10000ULL - 11644473600000ULL);
+}
+
+std::string jsonEscape(const std::wstring& text)
+{
+	if (text.empty())
+		return {};
+	const int byteCount = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, text.data(), static_cast<int>(text.size()), nullptr, 0, nullptr, nullptr);
+	if (byteCount <= 0)
+		return "?";
+	std::string utf8(static_cast<size_t>(byteCount), '\0');
+	WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, text.data(), static_cast<int>(text.size()), utf8.data(), byteCount, nullptr, nullptr);
+	std::string escaped;
+	for (unsigned char c : utf8)
+	{
+		switch (c)
+		{
+		case '"': escaped += "\\\""; break;
+		case '\\': escaped += "\\\\"; break;
+		case '\b': escaped += "\\b"; break;
+		case '\f': escaped += "\\f"; break;
+		case '\n': escaped += "\\n"; break;
+		case '\r': escaped += "\\r"; break;
+		case '\t': escaped += "\\t"; break;
+		default:
+			if (c < 0x20)
+			{
+				char encoded[7] = {};
+				sprintf_s(encoded, "\\u%04X", static_cast<unsigned>(c));
+				escaped += encoded;
+			}
+			else
+			{
+				escaped += static_cast<char>(c);
+			}
+		}
+	}
+	return escaped;
+}
 
 std::wstring lower(std::wstring s)
 {
@@ -279,6 +356,107 @@ WAVEFORMATEXTENSIBLE floatFormatLike(const WAVEFORMATEX* mix)
 		fmt.dwChannelMask = mix->nChannels == 1 ? SPEAKER_FRONT_CENTER : (SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT);
 	fmt.SubFormat = KSDATAFORMAT_SUBTYPE_IEEE_FLOAT;
 	return fmt;
+}
+
+struct OpenCycle
+{
+	long long startUnixMs = 0;
+	double elapsedMs = 0.0;
+	HRESULT hr = S_OK;
+};
+
+OpenCycle openRenderCycle(IMMDevice* device)
+{
+	OpenCycle cycle;
+	cycle.startUnixMs = unixMs();
+	LARGE_INTEGER start, end;
+	QueryPerformanceCounter(&start);
+	{
+		ComRelease<IAudioClient> client;
+		WAVEFORMATEX* mix = nullptr;
+		cycle.hr = device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, reinterpret_cast<void**>(&client.p));
+		if (SUCCEEDED(cycle.hr))
+			cycle.hr = client.p->GetMixFormat(&mix);
+		if (SUCCEEDED(cycle.hr))
+		{
+			const WAVEFORMATEXTENSIBLE fmt = floatFormatLike(mix);
+			cycle.hr = client.p->Initialize(AUDCLNT_SHAREMODE_SHARED,
+				AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM | AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY,
+				2000000, 0, &fmt.Format, nullptr);
+		}
+		if (SUCCEEDED(cycle.hr))
+			cycle.hr = client.p->Start();
+		if (SUCCEEDED(cycle.hr))
+			cycle.hr = client.p->Stop();
+		if (mix)
+			CoTaskMemFree(mix);
+	}
+	QueryPerformanceCounter(&end);
+	cycle.elapsedMs = elapsedMs(start, end);
+	return cycle;
+}
+
+int watchRenderOpens(IMMDevice* device, const std::wstring& label, double seconds, const std::wstring& stopFile)
+{
+	const long long startedUnixMs = unixMs();
+	LARGE_INTEGER watchStart, now;
+	QueryPerformanceCounter(&watchStart);
+	std::vector<OpenCycle> cycles;
+	while (true)
+	{
+		QueryPerformanceCounter(&now);
+		if (elapsedMs(watchStart, now) >= seconds * 1000.0)
+			break;
+		// The caller does not know in advance how long its opens will take (a
+		// plugin may load for seconds or for tens of seconds), so it gives a
+		// generous S and ends the watch by creating this file.
+		if (!stopFile.empty() && GetFileAttributesW(stopFile.c_str()) != INVALID_FILE_ATTRIBUTES)
+			break;
+		OpenCycle cycle = openRenderCycle(device);
+		cycles.push_back(cycle);
+		if (FAILED(cycle.hr))
+			fwprintf(stderr, L"render open cycle failed: 0x%08X\n", static_cast<unsigned>(cycle.hr));
+		Sleep(100);
+	}
+	const long long endedUnixMs = unixMs();
+	if (cycles.empty())
+	{
+		printf("{\"watch\":\"%s\",\"startedUnixMs\":%lld,\"endedUnixMs\":%lld,\"cycles\":0,\"failed\":0,\"medianMs\":0.0,\"worstMs\":0.0,\"worstAtUnixMs\":0,\"slow\":[]}\n",
+			jsonEscape(label).c_str(), startedUnixMs, endedUnixMs);
+		return 1;
+	}
+
+	std::vector<double> durations;
+	durations.reserve(cycles.size());
+	int failed = 0;
+	const OpenCycle* worst = &cycles[0];
+	for (const OpenCycle& cycle : cycles)
+	{
+		durations.push_back(cycle.elapsedMs);
+		if (FAILED(cycle.hr))
+			failed++;
+		if (cycle.elapsedMs > worst->elapsedMs)
+			worst = &cycle;
+	}
+	std::sort(durations.begin(), durations.end());
+	const size_t middle = durations.size() / 2;
+	const double median = durations.size() % 2 != 0
+		? durations[middle]
+		: (durations[middle - 1] + durations[middle]) / 2.0;
+
+	printf("{\"watch\":\"%s\",\"startedUnixMs\":%lld,\"endedUnixMs\":%lld,\"cycles\":%zu,\"failed\":%d,\"medianMs\":%.1f,\"worstMs\":%.1f,\"worstAtUnixMs\":%lld,\"slow\":[",
+		jsonEscape(label).c_str(), startedUnixMs, endedUnixMs, cycles.size(), failed, median, worst->elapsedMs, worst->startUnixMs);
+	int slowCount = 0;
+	for (const OpenCycle& cycle : cycles)
+	{
+		if (cycle.elapsedMs > 250.0 && slowCount < 200)
+		{
+			printf("%s[%lld,%.1f]", slowCount == 0 ? "" : ",", cycle.startUnixMs, cycle.elapsedMs);
+			slowCount++;
+		}
+	}
+	printf("]}\n");
+	return 0;
 }
 
 struct RenderJob
@@ -602,6 +780,20 @@ int wmain(int argc, wchar_t** argv)
 			CoUninitialize();
 			return 0;
 		}
+		if (o.watchRenderOpensSet)
+		{
+			ComRelease<IMMDevice> watchedRender;
+			watchedRender.p = findEndpoint(enumerator.p, eRender, o.renderName, o.renderId);
+			if (watchedRender.p == nullptr)
+			{
+				fwprintf(stderr, L"no active render endpoint matches\n");
+				CoUninitialize();
+				return 1;
+			}
+			result = watchRenderOpens(watchedRender.p, friendlyName(watchedRender.p), o.watchRenderOpens, o.stopFile);
+			CoUninitialize();
+			return result;
+		}
 
 		ComRelease<IMMDevice> capture;
 		capture.p = findEndpoint(enumerator.p, eCapture, o.captureName, o.captureId);
@@ -628,8 +820,13 @@ int wmain(int argc, wchar_t** argv)
 
 		// The capture stream first, so the APO chain is in place before the
 		// tone starts; the settling time absorbs both start-ups.
+		const long long openStartUnixMs = unixMs();
+		LARGE_INTEGER callStart, callEnd;
 		ComRelease<IAudioClient> client;
+		QueryPerformanceCounter(&callStart);
 		hr = capture.p->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, reinterpret_cast<void**>(&client.p));
+		QueryPerformanceCounter(&callEnd);
+		const double activateMs = elapsedMs(callStart, callEnd);
 		if (FAILED(hr))
 		{
 			fwprintf(stderr, L"Activate(capture) failed: 0x%08X\n", hr);
@@ -676,9 +873,12 @@ int wmain(int argc, wchar_t** argv)
 		CoTaskMemFree(mix);
 		const unsigned rate = fmt.Format.nSamplesPerSec;
 		const unsigned channels = fmt.Format.nChannels;
+		QueryPerformanceCounter(&callStart);
 		hr = client.p->Initialize(AUDCLNT_SHAREMODE_SHARED,
 			AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM | AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY,
 			2000000, 0, &fmt.Format, nullptr);
+		QueryPerformanceCounter(&callEnd);
+		const double initializeMs = elapsedMs(callStart, callEnd);
 		if (FAILED(hr))
 		{
 			fwprintf(stderr, L"Initialize(capture) failed: 0x%08X\n", hr);
@@ -693,7 +893,11 @@ int wmain(int argc, wchar_t** argv)
 			CoUninitialize();
 			return 1;
 		}
+		QueryPerformanceCounter(&callStart);
 		hr = client.p->Start();
+		QueryPerformanceCounter(&callEnd);
+		const double startMs = elapsedMs(callStart, callEnd);
+		const LARGE_INTEGER firstPacketStart = callEnd;
 		if (FAILED(hr))
 		{
 			fwprintf(stderr, L"Start(capture) failed: 0x%08X\n", hr);
@@ -730,6 +934,7 @@ int wmain(int argc, wchar_t** argv)
 		const unsigned long long measureFrames = (unsigned long long)(o.seconds * rate);
 		std::vector<double> sumSquares(channels, 0.0);
 		unsigned long long seen = 0, counted = 0, silentPackets = 0;
+		double firstPacketMs = -1.0;
 		const double coeff = 2.0 * std::cos(2.0 * std::numbers::pi_v<double> * o.tone / (double)rate);
 		double s1 = 0.0, s2 = 0.0;
 		const DWORD deadline = GetTickCount() + (DWORD)((o.settle + o.seconds) * 1000.0) + 3000;
@@ -753,6 +958,12 @@ int wmain(int argc, wchar_t** argv)
 			{
 				captureError = hr;
 				break;
+			}
+			if (packet > 0 && firstPacketMs < 0.0)
+			{
+				LARGE_INTEGER firstPacketEnd;
+				QueryPerformanceCounter(&firstPacketEnd);
+				firstPacketMs = elapsedMs(firstPacketStart, firstPacketEnd);
 			}
 			while (packet > 0 && counted < measureFrames)
 			{
@@ -793,6 +1004,12 @@ int wmain(int argc, wchar_t** argv)
 					captureError = hr;
 					break;
 				}
+				if (packet > 0 && firstPacketMs < 0.0)
+				{
+					LARGE_INTEGER firstPacketEnd;
+					QueryPerformanceCounter(&firstPacketEnd);
+					firstPacketMs = elapsedMs(firstPacketStart, firstPacketEnd);
+				}
 			}
 			if (FAILED(captureError))
 				break;
@@ -830,10 +1047,12 @@ int wmain(int argc, wchar_t** argv)
 				printf("{\"capture\":\"%ls\",\"render\":\"%ls\",\"category\":\"%ls\",\"raw\":%s,\"rate\":%u,\"channels\":%u,"
 					"\"frames\":%llu,\"requestedFrames\":%llu,\"silentPackets\":%llu,"
 					"\"renderRate\":%u,\"renderPeriodFrames\":%u,\"engineDefaultPeriodFrames\":%u,\"engineMinPeriodFrames\":%u,"
-					"\"enginePeriodFrames\":%u,\"holdEnginePeriodFrames\":%u,\"rmsDb\":[",
+					"\"enginePeriodFrames\":%u,\"holdEnginePeriodFrames\":%u,"
+					"\"activateMs\":%.1f,\"initializeMs\":%.1f,\"startMs\":%.1f,\"firstPacketMs\":%.1f,\"openStartUnixMs\":%lld,\"rmsDb\":[",
 					captureLabel.c_str(), renderLabel.c_str(), o.categoryName.c_str(), o.raw ? "true" : "false",
 					rate, channels, counted, measureFrames, silentPackets,
-					job.rate, job.requestedPeriod, job.defaultPeriod, job.minPeriod, job.enginePeriod, job.holdEnginePeriod);
+					job.rate, job.requestedPeriod, job.defaultPeriod, job.minPeriod, job.enginePeriod, job.holdEnginePeriod,
+					activateMs, initializeMs, startMs, firstPacketMs, openStartUnixMs);
 				for (unsigned c = 0; c < channels; c++)
 					printf("%s%.2f", c ? "," : "", rmsDb[c]);
 				printf("],\"toneDb\":%.2f,\"expectedToneDb\":%.2f,\"gainDb\":%.2f}\n", toneDb, expectedToneDb, gainDb);
@@ -842,6 +1061,8 @@ int wmain(int argc, wchar_t** argv)
 			{
 				printf("capture %ls <- render %ls (%ls%s) %u Hz %u ch, %llu frames, %llu silent packets\n",
 					captureLabel.c_str(), renderLabel.c_str(), o.categoryName.c_str(), o.raw ? ", raw" : "", rate, channels, counted, silentPackets);
+				printf("open: activate %.1f ms, initialize %.1f ms, start %.1f ms, first packet %.1f ms\n",
+					activateMs, initializeMs, startMs, firstPacketMs);
 				printf("rms dBFS:");
 				for (unsigned c = 0; c < channels; c++)
 					printf(" %.2f", rmsDb[c]);

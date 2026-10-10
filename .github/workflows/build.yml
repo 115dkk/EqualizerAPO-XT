@@ -338,6 +338,7 @@ jobs:
           Tests/ApoHostProbe/${{ matrix.platform }}/Release/ApoHostProbe.exe
           Tests/CaptureProbe/${{ matrix.platform }}/Release/CaptureProbe.exe
           Tests/AsioProbe/${{ matrix.platform }}/Release/AsioProbe.exe
+          Tests/TestVst2Plugin/${{ matrix.platform }}/Release/TestVst2Plugin.dll
         if-no-files-found: error
         retention-days: 14
 
@@ -891,10 +892,11 @@ jobs:
         name: capture-probes
         path: artifacts/capture-probes
 
+    # The real-plugin arguments are temporary evidence for this investigation and are removed before the change merges.
     - name: Run the capture gate
       shell: pwsh
       run: |
-        $probes = Get-ChildItem -Path "${{ github.workspace }}\artifacts\capture-probes" -Recurse -Filter "*.exe"
+        $probes = Get-ChildItem -Path "${{ github.workspace }}\artifacts\capture-probes" -Recurse -Include "*.exe", "*.dll"
         $probeDir = Join-Path "${{ github.workspace }}" "artifacts\capture-probes-flat"
         New-Item -ItemType Directory -Force -Path $probeDir | Out-Null
         foreach ($probe in $probes) { Copy-Item -LiteralPath $probe.FullName -Destination $probeDir -Force }
@@ -902,7 +904,9 @@ jobs:
           -WorkspaceRoot "${{ github.workspace }}" `
           -ArtifactPath "${{ github.workspace }}\artifacts\${{ needs.prepare-matrix.outputs.primary_artifact }}" `
           -ProbeDirectory $probeDir `
-          -SnapshotDirectory "${{ runner.temp }}\capture-gate"
+          -SnapshotDirectory "${{ runner.temp }}\capture-gate" `
+          -RealPluginInstallerUrl "https://clear.api.supertone.ai/api/installer?platform=windows&arch=x86_64" `
+          -RealPluginInstallerSha256 "220FFB87B430C3970A1EFFE2CF144EEEA3520DE2422DAD86B93FDC535517338B"
 
     - name: Upload capture gate snapshots
       if: always()

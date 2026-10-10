@@ -87,6 +87,26 @@ bool isFloat32Format(const WAVEFORMATEX* format)
 // The calls into third-party plugin code, isolated behind SEH so a crash is
 // reported as a probe verdict instead of a process abort. Kept free of
 // objects requiring stack unwinding (MSVC C2712).
+// Wall time of one host step, so a slow plugin load shows which call it
+// spent its time in (LoadLibrary and InitDll, instance creation, setup).
+class StepClock
+{
+public:
+	StepClock() { QueryPerformanceFrequency(&frequency); QueryPerformanceCounter(&start); }
+
+	void lap(const wchar_t* step)
+	{
+		LARGE_INTEGER now;
+		QueryPerformanceCounter(&now);
+		wprintf(L"TIME: %-28s %9.1f ms\n", step, (now.QuadPart - start.QuadPart) * 1000.0 / frequency.QuadPart);
+		start = now;
+	}
+
+private:
+	LARGE_INTEGER frequency{};
+	LARGE_INTEGER start{};
+};
+
 bool processFloatGuarded(VSTPluginInstance* instance, float** input, float** output, int frames) noexcept
 {
 	__try
@@ -115,8 +135,10 @@ bool processDoubleGuarded(VSTPluginInstance* instance, double** input, double** 
 
 int runPluginProbe(const std::wstring& pluginPath, double seconds, float sampleRate, bool expectNonsilent)
 {
+	StepClock clock;
 	std::shared_ptr<VSTPluginLibrary> library = VSTPluginLibrary::getInstance(pluginPath);
 	const int libraryResult = library->initialize();
+	clock.lap(L"library initialize");
 	if (libraryResult < 0)
 	{
 		wprintf(L"FAIL: library initialize returned %d for %s\n", libraryResult, pluginPath.c_str());
@@ -129,9 +151,11 @@ int runPluginProbe(const std::wstring& pluginPath, double seconds, float sampleR
 		wprintf(L"FAIL: plugin instance initialize failed\n");
 		return 2;
 	}
+	clock.lap(L"instance initialize");
 	wprintf(L"INFO: loaded '%s' (%hs)\n", instance.getName().c_str(), instance.isVST3() ? "VST3" : "VST2");
 
 	instance.negotiateChannelCount(2, {});
+	clock.lap(L"negotiate channels");
 	const int inputChannelCount = instance.numInputs();
 	const int outputChannelCount = instance.numOutputs();
 	wprintf(L"INFO: negotiated %d in / %d out\n", inputChannelCount, outputChannelCount);
@@ -148,7 +172,9 @@ int runPluginProbe(const std::wstring& pluginPath, double seconds, float sampleR
 	wprintf(L"INFO: processing width %hs\n", useDouble ? "double64" : "float32");
 
 	instance.prepareForProcessing(sampleRate, blockFrames);
+	clock.lap(L"prepare for processing");
 	instance.startProcessing();
+	clock.lap(L"start processing");
 
 	std::vector<std::vector<double>> inputDouble(inputChannelCount, std::vector<double>(blockFrames));
 	std::vector<std::vector<double>> outputDouble(outputChannelCount, std::vector<double>(blockFrames));
@@ -206,12 +232,15 @@ int runPluginProbe(const std::wstring& pluginPath, double seconds, float sampleR
 		}
 		position += blockFrames;
 	}
+	clock.lap(L"process");
 
 	instance.stopProcessing();
+	clock.lap(L"stop processing");
 
 	std::wstring chunkData;
 	std::unordered_map<std::wstring, float> paramMap;
 	instance.readFromEffect(chunkData, paramMap);
+	clock.lap(L"read state");
 	wprintf(L"INFO: processed %lld frames, output peak %.6f, state chunk %zu chars, %zu named params\n",
 		position, outputPeak, chunkData.size(), paramMap.size());
 
