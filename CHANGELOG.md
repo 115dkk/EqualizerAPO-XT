@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.57.5 — 2026-10-10
+
 - **The Editor no longer stops responding while a slow plugin loads.** With a
   plugin such as Supertone Clear in the config, which takes 3 to 18 seconds
   to load, the Editor stopped responding for that long when it opened and
