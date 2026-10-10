@@ -493,6 +493,9 @@ function Test-PluginLoadReuse($record) {
         }
     }
     $loadFloorMs = 0.8 * $SlowLoadMilliseconds
+    # Opens 2 and 3 test reuse only if the pipeline was really torn down in
+    # between (GraphSettleSeconds + 2 s). On windows-2022 it was: before the
+    # fix every open paid the full 4 s again.
     $reuseCeilingMs = 0.25 * $SlowLoadMilliseconds
     if ([double]$opens[0].openMs -lt $loadFloorMs) {
         Add-Failure "plugin-load/fixture/open1: opened in $($opens[0].openMs) ms, under the fixture's $SlowLoadMilliseconds ms load, so the audio engine did not load the plugin"
@@ -822,6 +825,11 @@ else {
         if ($install.ExitCode -ne 0) {
             Add-Failure "plugin-load/install: DeviceSelector --install-endpoint exited with $($install.ExitCode)"
         }
+        # The install's device test builds a pipeline with the old config. If it
+        # were still up when the fixture config lands, the APO's config watcher
+        # would load (and keep) the plugin before open1, and open1 would read as
+        # "the engine never loaded it".
+        Wait-GraphSettle
 
         $originalConfig = [System.IO.File]::ReadAllText($configFile)
         $fixtureConfig = "Preamp: -20 dB`r`nVSTPlugin: Library `"$fixturePath`"`r`n"
