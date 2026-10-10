@@ -51,6 +51,12 @@ bool AbstractLibrary::isLoaded() const
 	return static_cast<bool>(module);
 }
 
+bool AbstractLibrary::isLoadedNow() const
+{
+	std::unique_lock<std::mutex> lock(initMutex, std::try_to_lock);
+	return lock.owns_lock() && static_cast<bool>(module);
+}
+
 int AbstractLibrary::initialize(const JudgedPath& path)
 {
 	std::lock_guard<std::mutex> lock(initMutex);

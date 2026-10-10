@@ -4961,6 +4961,11 @@ Change the file permissions or copy the files to the config directory.</source>
 %0
 Modifiez les autorisations des fichiers ou copiez les fichiers dans le dossier de configuration.</translation>
     </message>
+    <message>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="507"/>
+        <source>Loading plugin...</source>
+        <translation>Chargement du plugin...</translation>
+    </message>
 </context>
 <context>
     <name>VSTPluginFilterGUI</name>
@@ -5111,6 +5116,11 @@ Change the file permissions or copy the files to the config directory.</source>
         <translation>Le plugin accède apparemment à ces fichiers non lisibles par le service audio :
 %0
 Modifiez les autorisations des fichiers ou copiez les fichiers dans le dossier de configuration.</translation>
+    </message>
+    <message>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="403"/>
+        <source>Loading plugin...</source>
+        <translation>Chargement du plugin...</translation>
     </message>
 </context>
 <context>

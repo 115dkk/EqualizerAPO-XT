@@ -113,6 +113,64 @@
 #include "Editor/widgets/cards/SubwooferRoutingCardEditor.h"
 #include "Editor/widgets/routing/IRoutingRenderer.h"
 
+bool SkinGallery::armPluginLoadProbe(MainWindow& window)
+{
+	struct ProbeState
+	{
+		QElapsedTimer elapsed;
+		qint64 lastTickMs = 0;
+		qint64 maxUiGapMs = 0;
+	};
+	auto state = std::make_shared<ProbeState>();
+	state->elapsed.start();
+
+	QTimer* tickTimer = new QTimer(&window);
+	tickTimer->setInterval(20);
+	QObject::connect(tickTimer, &QTimer::timeout, &window, [state]() {
+		const qint64 now = state->elapsed.elapsed();
+		state->maxUiGapMs = qMax(state->maxUiGapMs, now - state->lastTickMs);
+		state->lastTickMs = now;
+	});
+	tickTimer->start();
+
+	QTimer* checkTimer = new QTimer(&window);
+	checkTimer->setInterval(100);
+	QObject::connect(checkTimer, &QTimer::timeout, &window, [&window, state, tickTimer, checkTimer]() {
+		const qint64 elapsedMs = state->elapsed.elapsed();
+		QList<VSTCardEditor*> cards;
+		bool rowsExist = false;
+		for (FilterTable* table : window.findChildren<FilterTable*>())
+		{
+			rowsExist = rowsExist || !table->findChildren<FilterCardRow*>(
+				QString(), Qt::FindDirectChildrenOnly).isEmpty();
+			cards.append(table->findChildren<VSTCardEditor*>());
+		}
+		if ((!rowsExist || VSTPluginSession::pendingLoads() != 0) && elapsedMs < 60000)
+			return;
+
+		const qint64 finalGap = elapsedMs - state->lastTickMs;
+		state->maxUiGapMs = qMax(state->maxUiGapMs, finalGap);
+		int loaded = 0;
+		for (VSTCardEditor* card : cards)
+			if (card->pluginSession()->instance() != nullptr)
+				loaded++;
+		bool limitOk = false;
+		int limitMs = qEnvironmentVariableIntValue("EAPO_PLUGIN_LOAD_GAP_LIMIT_MS", &limitOk);
+		if (!limitOk || limitMs <= 0)
+			limitMs = 2000;
+		fprintf(stderr, "PLUGIN_LOAD_RESULT {\"maxUiGapMs\":%lld,\"elapsedMs\":%lld,\"cards\":%d,\"loaded\":%d}\n",
+			static_cast<long long>(state->maxUiGapMs), static_cast<long long>(elapsedMs),
+			int(cards.size()), loaded);
+		std::fflush(stderr);
+		tickTimer->stop();
+		checkTimer->stop();
+		QCoreApplication::exit(!cards.isEmpty() && loaded == cards.size()
+			&& state->maxUiGapMs < limitMs ? 0 : 1);
+	});
+	checkTimer->start();
+	return true;
+}
+
 bool SkinGallery::armAnalysisLayoutProbe(MainWindow& window, const QString& screenshotPath)
 {
 	QDockWidget* dock = window.findChild<QDockWidget*>(QStringLiteral("analysisDockWidget"));
@@ -248,6 +306,7 @@ bool SkinGallery::armVstPanelFeedProbe(MainWindow& window, const QString& durati
 			std::fflush(nullptr);
 			std::_Exit(1);
 		}
+		VSTPluginSession::waitForPendingLoads(30000);
 		if (!QMetaObject::invokeMethod(card, "embedToggled", Qt::DirectConnection, Q_ARG(bool, true)))
 		{
 			fprintf(stderr, "VstPanelFeedProbe: embed request failed\n");

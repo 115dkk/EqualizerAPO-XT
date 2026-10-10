@@ -4950,6 +4950,11 @@ Change the file permissions or copy the files to the config directory.</source>
 %0
 请更改文件权限，或将这些文件复制到配置目录。</translation>
     </message>
+    <message>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="507"/>
+        <source>Loading plugin...</source>
+        <translation>正在加载插件...</translation>
+    </message>
 </context>
 <context>
     <name>VSTPluginFilterGUI</name>
@@ -5100,6 +5105,11 @@ Change the file permissions or copy the files to the config directory.</source>
         <translation>该插件似乎访问了音频服务无法读取的这些文件：
 %0
 更改文件权限或将文件复制到配置目录。</translation>
+    </message>
+    <message>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="403"/>
+        <source>Loading plugin...</source>
+        <translation>正在加载插件...</translation>
     </message>
 </context>
 <context>

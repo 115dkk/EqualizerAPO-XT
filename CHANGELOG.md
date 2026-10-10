@@ -14,6 +14,19 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The Editor no longer stops responding while a slow plugin loads.** With a
+  plugin such as Supertone Clear in the config, which takes 3 to 18 seconds
+  to load, the Editor stopped responding for that long when it opened and
+  whenever a plugin path was changed. The plugin now loads in the
+  background: the window opens at once, the plugin's card reads "Loading
+  plugin..." until the load ends, and the panel button waits until then.
+  With a test plugin that takes 4 seconds to load, the window kept answering
+  within about 30 ms the whole time. Not measured: a plugin that is also slow
+  to create its instance after loading (that step still runs on the window's
+  thread), and a machine where a screen reader or a similar tool talks to the
+  Editor window in a way not seen here; either can still freeze the window
+  ([#417](https://github.com/115dkk/EqualizerAPO-XT/issues/417)).
+
 - **The Editor no longer loads a slow plugin again on every skin switch,
   undo or device change.** Changing the skin or dark mode, undo and redo,
   pasting several lines, changing the device and the knob range all rebuild

@@ -484,6 +484,14 @@ jobs:
         & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
           -WorkspaceRoot "${{ github.workspace }}" -Gate analysis-layout
 
+    - name: Run plug-in load responsiveness test (offscreen)
+      if: matrix.primary == true
+      timeout-minutes: 5
+      shell: pwsh
+      run: |
+        & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
+          -WorkspaceRoot "${{ github.workspace }}" -Gate plugin-load -Platform "${{ matrix.platform }}"
+
     - name: Run card move test (offscreen)
       if: matrix.primary == true
       timeout-minutes: 10

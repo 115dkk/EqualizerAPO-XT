@@ -489,6 +489,7 @@ QList<FilterCardRow*> buildRows(QScrollArea& scrollArea, const QString& configPa
 	// the registry; the gallery only reads prefs, never saves them.
 	table->setLines(configPath, lines);
 	table->updateGuis();
+	VSTPluginSession::waitForPendingLoads(30000);
 	scrollArea.show();
 	// Flush the posted polish/layout events, then force the grid to assign row
 	// geometry before grabbing.

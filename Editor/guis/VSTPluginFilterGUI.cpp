@@ -113,6 +113,7 @@ VSTPluginFilterGUI::VSTPluginFilterGUI(std::shared_ptr<VSTPluginLibrary> library
 	SkinManager::instance()->prepareCommandRow(rowInfo, nullptr, nullptr, this);
 
 	connect(session.get(), &VSTPluginSession::statusChanged, this, &VSTPluginFilterGUI::showStatus);
+	connect(session.get(), &VSTPluginSession::loadFinished, this, &VSTPluginFilterGUI::pluginLoadFinished);
 	connect(session.get(), &VSTPluginSession::stateChanged, this, &VSTPluginFilterGUI::pluginStateChanged);
 	connect(session.get(), &VSTPluginSession::automated, this, &VSTPluginFilterGUI::pluginStateChanged);
 	connect(session.get(), &VSTPluginSession::sizeRequested, this, [this](int w, int h) {
@@ -320,10 +321,10 @@ void VSTPluginFilterGUI::loadPreferences(const QVariantMap& prefs)
 	}
 
 	if (prefs.value("embed").toBool())
-		// will also call initPlugin
+		// The toggle requests the load before embedding.
 		ui->embedAction->setChecked(true);
 	else
-		session->initPlugin();
+		session->requestPlugin();
 }
 
 void VSTPluginFilterGUI::storePreferences(QVariantMap& prefs)
@@ -344,8 +345,42 @@ void VSTPluginFilterGUI::on_openPanelButton_clicked()
 		return;
 	}
 
-	session->initPlugin();
+	if (session->instance() == nullptr)
+	{
+		openWhenLoaded = true;
+		session->requestPlugin();
+		return;
+	}
 	session->openDialog(this);
+}
+
+void VSTPluginFilterGUI::pluginLoadFinished()
+{
+	if (replacementAwaitingModel)
+	{
+		replacementAwaitingModel = false;
+		updateModel();
+		updatePermissionWarning();
+	}
+
+	// A failed load must not request another load through the panel actions.
+	if (embedWhenLoaded)
+	{
+		embedWhenLoaded = false;
+		if (ui->embedAction->isChecked())
+		{
+			if (session->instance() != nullptr)
+				on_embedAction_toggled(true);
+			else
+				ui->embedAction->setChecked(false);
+		}
+	}
+	if (openWhenLoaded)
+	{
+		openWhenLoaded = false;
+		if (session->instance() != nullptr && !session->embedded())
+			session->openDialog(this);
+	}
 }
 
 void VSTPluginFilterGUI::pluginStateChanged()
@@ -360,12 +395,13 @@ void VSTPluginFilterGUI::pluginStateChanged()
 void VSTPluginFilterGUI::showStatus()
 {
 	const VSTPluginSession::Status& status = session->status();
-	const QColor color = status.critical ? QColor(Qt::red) : QColor(Qt::black);
+	const QColor color = status.critical && !status.loading ? QColor(Qt::red) : QColor(Qt::black);
 	QPalette palette = ui->statusLabel->palette();
 	palette.setColor(QPalette::Active, QPalette::WindowText, color);
 	palette.setColor(QPalette::Inactive, QPalette::WindowText, color);
 	ui->statusLabel->setPalette(palette);
-	ui->statusLabel->setText(status.text);
+	ui->statusLabel->setText(status.loading ? tr("Loading plugin...") : status.text);
+	ui->openPanelButton->setEnabled(!session->loading());
 	updateBusControls();
 }
 
@@ -375,10 +411,8 @@ void VSTPluginFilterGUI::on_pathLineEdit_editingFinished()
 	{
 		if (session->instance() != nullptr && ui->embedAction->isChecked())
 			on_embedAction_toggled(false);
+		replacementAwaitingModel = true;
 		session->replaceLibrary(ui->pathLineEdit->text());
-
-		updateModel();
-		updatePermissionWarning();
 
 		if (ui->embedAction->isChecked())
 			on_embedAction_toggled(true);
@@ -416,7 +450,18 @@ void VSTPluginFilterGUI::on_selectButton_clicked()
 
 void VSTPluginFilterGUI::on_embedAction_toggled(bool checked)
 {
-	session->initPlugin();
+	if (!checked)
+		embedWhenLoaded = false;
+	else if (session->instance() == nullptr)
+	{
+		session->requestPlugin();
+		if (session->loading())
+		{
+			// Keep the saved embed preference while the library is still loading.
+			embedWhenLoaded = true;
+			return;
+		}
+	}
 
 	const bool enable = checked && session->instance() != nullptr;
 	if (enable != session->embedded())

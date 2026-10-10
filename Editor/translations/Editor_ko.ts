@@ -4956,6 +4956,11 @@ Change the file permissions or copy the files to the config directory.</source>
 %0
 파일 권한을 바꾸거나 구성 디렉터리로 파일을 복사하세요.</translation>
     </message>
+    <message>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="507"/>
+        <source>Loading plugin...</source>
+        <translation>플러그인을 불러오는 중...</translation>
+    </message>
 </context>
 <context>
     <name>VSTPluginFilterGUI</name>
@@ -5106,6 +5111,11 @@ Change the file permissions or copy the files to the config directory.</source>
         <translation>플러그인이 오디오 서비스가 읽을 수 없는 다음 파일에 접근하는 것으로 보입니다:
 %0
 파일 권한을 바꾸거나 구성 디렉터리로 파일을 복사하세요.</translation>
+    </message>
+    <message>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="403"/>
+        <source>Loading plugin...</source>
+        <translation>플러그인을 불러오는 중...</translation>
     </message>
 </context>
 <context>

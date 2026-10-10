@@ -5,6 +5,8 @@
 #-------------------------------------------------
 
 QT       += core gui
+# QGuiApplicationPrivate::qtGuiThreadPool (helpers/PluginLoadQueue.cpp).
+QT       += gui-private
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -128,6 +130,7 @@ SOURCES += main.cpp\
 	helpers/GUIHelper.cpp \
 	helpers/PanelFeedEngine.cpp \
 	helpers/PanelPreviewFeeder.cpp \
+	helpers/PluginLoadQueue.cpp \
 	../platform/qt/QtAppBootstrap.cpp \
 	helpers/VstChunkScan.cpp \
 	widgets/ResizingLineEdit.cpp \
@@ -415,6 +418,7 @@ HEADERS  += \
 	helpers/PanelFeedEngine.h \
 	helpers/PanelMonitorGate.h \
 	helpers/PanelPreviewFeeder.h \
+	helpers/PluginLoadQueue.h \
 	helpers/WindowFrameHitTest.h \
 	../platform/qt/QtAppBootstrap.h \
 	helpers/VstChunkScan.h \
@@ -808,7 +812,7 @@ contains(QT_ARCH, arm64) {
 }
 
 INCLUDEPATH += $$PWD/.. $$PWD/../SubwooferRoutingCore/include $$LIBSNDFILE_INCLUDE $$FFTW_INCLUDE $$MUPARSERX_INCLUDE $$VELOPACK_INCLUDE $$VST3_SDK $$HIGHWAY_INCLUDE
-LIBS += user32.lib advapi32.lib version.lib ole32.lib Shlwapi.lib authz.lib crypt32.lib dbghelp.lib winmm.lib sndfile.lib libfftw3.lib $$VELOPACK_IMPORT_LIB
+LIBS += user32.lib advapi32.lib version.lib ole32.lib Shlwapi.lib authz.lib crypt32.lib dbghelp.lib winmm.lib uiautomationcore.lib sndfile.lib libfftw3.lib $$VELOPACK_IMPORT_LIB
 
 build_pass:CONFIG(debug, debug|release) {
 	LIBS += muparserxd.lib

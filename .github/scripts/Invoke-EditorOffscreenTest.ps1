@@ -21,7 +21,7 @@
 param(
     [Parameter(Mandatory)] [string] $WorkspaceRoot,
     [Parameter(Mandatory)]
-    [ValidateSet("selftest-vst", "skin-gallery", "skin-switch", "analysis-layout", "card-move", "card-selection", "power-toggle", "routing-edit")]
+    [ValidateSet("selftest-vst", "skin-gallery", "skin-switch", "analysis-layout", "plugin-load", "card-move", "card-selection", "power-toggle", "routing-edit")]
     [string] $Gate,
     [string] $Platform = "x64",
     [switch] $PlanOnly
@@ -75,6 +75,15 @@ $gates = @{
         LogPath    = Join-Path $WorkspaceRoot "analysis-layout\analysis-layout-test.log"
         PostChecks = @("analysis-screenshot")
     }
+    "plugin-load" = [pscustomobject]@{
+        Arguments  = @("--plugin-load-test", (Join-Path $WorkspaceRoot "plugin-load\config.txt"))
+        ExtraEnv   = @{
+            QT_FORCE_STDERR_LOGGING         = "1"
+            EAPO_PLUGIN_LOAD_GAP_LIMIT_MS   = "2000"
+        }
+        LogPath    = Join-Path $WorkspaceRoot "plugin-load\plugin-load-test.log"
+        PostChecks = @()
+    }
     "card-move" = [pscustomobject]@{
         Arguments  = @("--card-move-test")
         # The limit sits below the measured full-rebuild cost on the hosted
@@ -127,6 +136,19 @@ if ($PlanOnly) {
 
 if (-not (Test-Path $editorExe)) {
     throw "Editor executable not found at $editorExe"
+}
+
+if ($Gate -eq "plugin-load") {
+    $pluginLoadDir = Join-Path $WorkspaceRoot "plugin-load"
+    New-Item -ItemType Directory -Force -Path $pluginLoadDir | Out-Null
+    $fixture = Join-Path $WorkspaceRoot "Tests\TestVst2Plugin\$Platform\Release\TestVst2Plugin.dll"
+    if (-not (Test-Path $fixture)) {
+        throw "VST load fixture not found: $fixture"
+    }
+    $slowPlugin = Join-Path $pluginLoadDir "TestVst2Plugin.SlowLoad4000.dll"
+    Copy-Item $fixture -Destination $slowPlugin -Force
+    Set-Content -LiteralPath (Join-Path $pluginLoadDir "config.txt") `
+        -Value "VSTPlugin: Library `"$slowPlugin`"" -Encoding utf8NoBOM
 }
 
 Copy-Item $plan.VelopackDllSource -Destination (Join-Path $buildDir "velopack_libc.dll") -Force
