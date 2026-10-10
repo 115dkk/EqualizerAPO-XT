@@ -211,3 +211,20 @@ ASIO is a trademark and software of Steinberg Media Technologies GmbH.
 ## Special Thanks
 
 - **Mephistos (DCinside)** - diagnosed why VST3 plugin panels showed no live meters or graphs in the Editor, built and shared a working WASAPI-loopback patch under the GPL, and provided the Open-XTC plugin used to verify the fix. The panel preview feed (`Editor/helpers/PanelPreviewFeeder`) is derived from that contribution.
+
+## Begging
+
+The developer needs money.\
+If you like this program, spare a coin...
+
+**Current goal:** one EV certificate, $359, once. It lets the driver of a new
+app (personal-BRIR Dolby Atmos on headphones) be signed by Microsoft, so the
+app installs without turning off Secure Boot. ($0 / $359)
+
+**Anything beyond that goes to:**
+
+- AI subscriptions
+- The hardware keys AI companies keep asking for
+- A tiny dent in the developer's mortgage
+
+[GitHub Sponsors](https://github.com/sponsors/115dkk)
