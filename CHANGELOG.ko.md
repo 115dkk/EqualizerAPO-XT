@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.57.4 — 2026-10-10
+
 - **불러오는 데 몇 초씩 걸리는 플러그인이 스트림을 시작할 때마다 소리를
   멈추게 하던 문제를 고쳤습니다.** Supertone(현 Antinode) Clear 같은 일부
   플러그인은 불러오는 데 3~18초가 걸리고, 그동안 Windows 오디오 엔진은 어느

@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.57.4 — 2026-10-10
+
 - **A plugin that takes seconds to load no longer freezes audio every time
   a stream starts.** Some plugins, such as Supertone (now Antinode) Clear,
   spend 3 to 18 seconds loading, and while one loads, the Windows audio
