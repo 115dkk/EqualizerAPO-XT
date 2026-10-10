@@ -892,7 +892,6 @@ jobs:
         name: capture-probes
         path: artifacts/capture-probes
 
-    # The real-plugin arguments are temporary evidence for this investigation and are removed before the change merges.
     - name: Run the capture gate
       shell: pwsh
       run: |
@@ -904,9 +903,7 @@ jobs:
           -WorkspaceRoot "${{ github.workspace }}" `
           -ArtifactPath "${{ github.workspace }}\artifacts\${{ needs.prepare-matrix.outputs.primary_artifact }}" `
           -ProbeDirectory $probeDir `
-          -SnapshotDirectory "${{ runner.temp }}\capture-gate" `
-          -RealPluginInstallerUrl "https://clear.api.supertone.ai/api/installer?platform=windows&arch=x86_64" `
-          -RealPluginInstallerSha256 "220FFB87B430C3970A1EFFE2CF144EEEA3520DE2422DAD86B93FDC535517338B"
+          -SnapshotDirectory "${{ runner.temp }}\capture-gate"
 
     - name: Upload capture gate snapshots
       if: always()
