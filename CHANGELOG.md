@@ -14,6 +14,16 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The Editor no longer loads a slow plugin again on every skin switch,
+  undo or device change.** Changing the skin or dark mode, undo and redo,
+  pasting several lines, changing the device and the knob range all rebuild
+  the card list, and each rebuild loaded every plugin in the config again;
+  with a plugin such as Supertone Clear, which takes 3 to 18 seconds to
+  load, the window froze that long each time. The Editor now keeps a plugin
+  loaded once it has loaded it. While the Editor is open, the plugin's file
+  stays in use, so a plugin installer cannot replace it until the Editor is
+  closed ([#417](https://github.com/115dkk/EqualizerAPO-XT/issues/417)).
+
 ## v2.57.4 — 2026-10-10
 
 - **A plugin that takes seconds to load no longer freezes audio every time

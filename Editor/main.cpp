@@ -61,6 +61,7 @@
 #include "guis/VSTPluginFilterGUI.h"
 #include "vst/VSTPluginInstance.h"
 #include "vst/VSTPluginLibrary.h"
+#include "vst/PluginResidency.h"
 #include "services/logging/Logging.h"
 #include "services/logging/TaggedLogger.h"
 #include "platform/windows/CommandLineQuoting.h"
@@ -313,6 +314,12 @@ int main(int argc, char* argv[])
 	int hookResult = handleVelopackHook(argc, argv);
 	if (hookResult >= 0)
 		return hookResult;
+
+	// Every full row rebuild (skin or dark switch, undo, device change, paste)
+	// destroys the rows that held a plugin, and a plugin that does seconds of
+	// work while loading would then freeze the window again for each one. See
+	// PluginResidency.h.
+	PluginResidency::keepLoadedForProcessLifetime(true);
 
 	// --diagnose before anything is built, so the report can be produced on a
 	// machine where starting the Editor proper is part of the problem.
