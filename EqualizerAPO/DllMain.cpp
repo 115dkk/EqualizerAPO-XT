@@ -28,6 +28,7 @@
 #include "EqualizerAPO.h"
 #include "ClassFactory.h"
 #include "../services/registry/ClsidRegistration.h"
+#include "../vst/PluginResidency.h"
 #include "../services/registry/WindowsRegistry.h"
 #include "../services/logging/Logging.h"
 
@@ -40,14 +41,19 @@ static HINSTANCE hModule;
 BOOL WINAPI DllMain(HINSTANCE hModule, DWORD dwReason, void* lpReserved)
 {
 	if (dwReason == DLL_PROCESS_ATTACH)
+	{
 		::hModule = hModule;
+		PluginResidency::keepLoadedForProcessLifetime(true);
+	}
 
 	return TRUE;
 }
 
 STDAPI DllCanUnloadNow()
 {
-	if (EqualizerAPO::instCount == 0 && ClassFactory::lockCount == 0)
+	// Retained plugin objects execute code from this DLL, so it must stay mapped.
+	if (EqualizerAPO::instCount == 0 && ClassFactory::lockCount == 0
+		&& !PluginResidency::holdsLoadedModules())
 		return S_OK;
 	else
 		return S_FALSE;

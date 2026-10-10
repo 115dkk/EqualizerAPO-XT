@@ -434,6 +434,7 @@
     <ClInclude Include="vst\VSTChunkBase64.h" />
     <ClInclude Include="vst\VSTFormatInstance.h" />
     <ClInclude Include="vst\VSTPluginLibrary.h" />
+    <ClInclude Include="vst\PluginResidency.h" />
     <ClInclude Include="engine\IFilter.h" />
     <ClInclude Include="engine\IFilterFactory.h" />
     <ClInclude Include="libHybridConv-0.1.1\libHybridConv_eapo.h" />

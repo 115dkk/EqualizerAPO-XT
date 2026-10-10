@@ -47,6 +47,7 @@
 #include <wincrypt.h>
 
 #include "vst/VSTPluginLibrary.h"
+#include "vst/PluginResidency.h"
 #include "vst/VSTPluginInstance.h"
 #include "filters/VSTPluginCommand.h"
 #include "filters/VSTPluginFilter.h"
@@ -322,6 +323,73 @@ void testLoadHold(const wstring& dir, const wstring& dllPath)
 	DeleteFileW(plugin.c_str());
 	RemoveDirectoryW(folder.c_str());
 }
+
+void copyResidencyTestPlugin(const wstring& source, const wstring& destination, const std::string& label)
+{
+	if (CopyFileW(source.c_str(), destination.c_str(), FALSE) == FALSE)
+		harness.fail(label + " (error " + std::to_string(GetLastError()) + ")");
+}
+
+void testProcessLifetimeResidency(const wstring& dir, const wstring& dllPath)
+{
+	const wstring unloadPath = dir + L"\\TestVst2Plugin.Unload.dll";
+	const wstring residentPath = dir + L"\\TestVst2Plugin.Resident.dll";
+	copyResidencyTestPlugin(dllPath, unloadPath, "copy the unload-policy test plugin");
+	copyResidencyTestPlugin(dllPath, residentPath, "copy the process-resident test plugin");
+
+	{
+		VSTPluginFilterFactory factory;
+		wstring command = L"VSTPlugin";
+		wstring parameters = L"Library \"" + unloadPath + L"\"";
+		FilterVector filters = factory.createFilter(L"test-vst-unload.txt", command, parameters);
+		harness.requireEqual(filters.size(), (size_t)1,
+			"the factory creates a filter while process-lifetime retention is off");
+		harness.require(GetModuleHandleW(unloadPath.c_str()) != nullptr,
+			"the unload-policy test module is loaded while its filter exists");
+	}
+	const bool unloaded = GetModuleHandleW(unloadPath.c_str()) == nullptr;
+	harness.expectTrue(unloaded, "the default policy unloads the module after the last filter reference");
+	if (unloaded)
+		std::printf("VST residency policy off: module unloaded after filter destruction\n");
+
+	PluginResidency::keepLoadedForProcessLifetime(true);
+	HMODULE loadedModule = nullptr;
+	{
+		VSTPluginFilterFactory factory;
+		wstring command = L"VSTPlugin";
+		wstring parameters = L"Library \"" + residentPath + L"\"";
+		FilterVector filters = factory.createFilter(L"test-vst-resident.txt", command, parameters);
+		harness.requireEqual(filters.size(), (size_t)1,
+			"the factory creates a filter while process-lifetime retention is on");
+		loadedModule = GetModuleHandleW(residentPath.c_str());
+		harness.require(loadedModule != nullptr,
+			"the resident test module is loaded while its filter exists");
+	}
+
+	HMODULE retainedModule = GetModuleHandleW(residentPath.c_str());
+	const bool retainedAfterFilter = retainedModule != nullptr && retainedModule == loadedModule;
+	harness.expectTrue(retainedAfterFilter,
+		"the resident module remains loaded with the same handle after filter destruction");
+	harness.expectTrue(PluginResidency::holdsLoadedModules(),
+		"the process-lifetime registry reports its retained module");
+
+	const auto judgedResident = ConfigFileReference::library(L"", residentPath, L"");
+	harness.require(judgedResident.refusal.empty() && judgedResident.path.leaf() != nullptr,
+		"the retained plugin path is judged for the repeat initialization");
+	shared_ptr<VSTPluginLibrary> retainedLibrary = VSTPluginLibrary::getInstance(residentPath);
+	const int repeatResult = retainedLibrary->initialize(judgedResident.path);
+	harness.expectEqual(repeatResult, 0, "the retained library reports that it is already loaded");
+	const bool reusedHandle = GetModuleHandleW(residentPath.c_str()) == loadedModule;
+	harness.expectTrue(reusedHandle, "repeat initialization reuses the retained module handle");
+	retainedLibrary.reset();
+	PluginResidency::keepLoadedForProcessLifetime(false);
+
+	if (retainedAfterFilter && repeatResult == 0 && reusedHandle && PluginResidency::holdsLoadedModules())
+		std::printf("VST residency policy on: module retained and repeat initialization reused its handle\n");
+
+	harness.expectTrue(DeleteFileW(unloadPath.c_str()) != FALSE,
+		"the unloaded test plugin copy is deleted at the end of the test");
+}
 } // namespace
 
 void runVstHostTests()
@@ -355,6 +423,7 @@ void runVstHostTests()
 	}
 
 	testLoadHold(dir, dllPath);
+	testProcessLifetimeResidency(dir, dllPath);
 
 	// A failed subclass initialization must roll the DLL load back completely.
 	// Otherwise the second call sees a non-null module and returns 0 (already

@@ -19,10 +19,14 @@
 
 #include "stdafx.h"
 #include "services/registry/RegistryPaths.h"
+#include <algorithm>
+#include <atomic>
 #include <mutex>
+#include <vector>
 #include "services/registry/WindowsRegistry.h"
 #include "services/logging/Logging.h"
 #include "VSTPluginLibrary.h"
+#include "PluginResidency.h"
 #include "VST3HostObjects.h"
 #include "VST3RefCounted.h"
 #include "platform/windows/Win32Resource.h"
@@ -94,6 +98,46 @@ static std::mutex& instanceMapMutex()
 {
 	static std::mutex mutex;
 	return mutex;
+}
+
+// The policy and the registry behind PluginResidency.h. The registry is
+// guarded by instanceMapMutex and is created on first use and never
+// destroyed: emptying it at process exit would run ExitDll and FreeLibrary
+// from static destruction, under the loader lock.
+static std::atomic<bool> keepPluginsLoaded{false};
+
+static std::vector<std::shared_ptr<VSTPluginLibrary>>& retainedLibraries()
+{
+	static auto* libraries = new std::vector<std::shared_ptr<VSTPluginLibrary>>();
+	return *libraries;
+}
+
+void PluginResidency::keepLoadedForProcessLifetime(bool keep)
+{
+	keepPluginsLoaded.store(keep);
+}
+
+bool PluginResidency::holdsLoadedModules()
+{
+	lock_guard<mutex> lock(instanceMapMutex());
+	return !retainedLibraries().empty();
+}
+
+void VSTPluginLibrary::retainIfKeepingLoaded(const shared_ptr<VSTPluginLibrary>& library)
+{
+	// isLoaded takes the library's own initMutex; it is released again before
+	// instanceMapMutex is taken, so the two locks are never held together.
+	if (!keepPluginsLoaded.load() || library == nullptr || !library->isLoaded())
+		return;
+
+	{
+		lock_guard<mutex> lock(instanceMapMutex());
+		vector<shared_ptr<VSTPluginLibrary>>& retained = retainedLibraries();
+		if (find(retained.begin(), retained.end(), library) != retained.end())
+			return;
+		retained.push_back(library);
+	}
+	TraceFStatic(L"Keeping %s loaded for the life of this process", library->libPath.c_str());
 }
 
 std::shared_ptr<VSTPluginLibrary> VSTPluginLibrary::getInstance(const wstring& libPath)

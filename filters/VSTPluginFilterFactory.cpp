@@ -80,6 +80,8 @@ FilterVector VSTPluginFilterFactory::createFilter(const wstring& configPath, wst
 						+ L"\" is built for the other architecture; a " + bitDepth + L"-bit plugin is needed here");
 				return reportParseError(command, L"the plugin \"" + library->getLibPath() + L"\" could not be initialised");
 			}
+			// This factory is the engine's only plugin load site.
+			VSTPluginLibrary::retainIfKeepingLoaded(library);
 			create = true;
 		}
 

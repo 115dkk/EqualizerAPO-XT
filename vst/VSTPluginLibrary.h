@@ -38,6 +38,11 @@ public:
 
 	static std::shared_ptr<VSTPluginLibrary> getInstance(const std::wstring& libPath);
 	static std::wstring getDefaultPluginPath();
+	// Holds a loaded library for the rest of the process when
+	// PluginResidency::keepLoadedForProcessLifetime is on; a no-op otherwise,
+	// and for a library whose module is not loaded. Called on every config
+	// load, so it retains each library once.
+	static void retainIfKeepingLoaded(const std::shared_ptr<VSTPluginLibrary>& library);
 
 	std::wstring getLibPath() override;
 	std::wstring getLoadPath() override;
