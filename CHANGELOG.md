@@ -14,6 +14,19 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **A plugin that takes seconds to load no longer freezes audio every time
+  a stream starts.** Some plugins, such as Supertone (now Antinode) Clear,
+  spend 3 to 18 seconds loading, and while one loads, the Windows audio
+  engine cannot start a stream on any device. Equalizer APO unloaded a
+  plugin when the last stream using it ended and loaded it again for the
+  next one, so joining a voice chat or opening the Recording tab of the
+  Sound control panel froze audio each time. The audio engine now keeps a
+  plugin loaded once it has loaded it, so only the first stream after the
+  audio service starts waits. Because the plugin file stays in use, a
+  plugin update now needs a restart of the Windows Audio service or of the
+  PC before its installer can replace the file
+  ([#416](https://github.com/115dkk/EqualizerAPO-XT/pull/416)).
+
 ## v2.57.3 — 2026-10-06
 
 - **Fewer lights that mean nothing, and one light colour per part.** The

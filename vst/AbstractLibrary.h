@@ -37,6 +37,7 @@ public:
 
 	int initialize();
 	int initialize(const JudgedPath& path);
+	bool isLoaded() const;
 	virtual std::wstring getLibPath() = 0;
 	virtual std::wstring getLoadPath();
 
@@ -60,5 +61,5 @@ private:
 	// shared (via getInstance) between the GUI thread and the AnalysisThread,
 	// and both call initialize(); without this guard they would race on the
 	// module handle and the LoadLibrary/loadFunctions sequence.
-	std::mutex initMutex;
+	mutable std::mutex initMutex;
 };

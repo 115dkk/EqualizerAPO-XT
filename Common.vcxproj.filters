@@ -291,6 +291,9 @@
     <ClInclude Include="vst\VSTPluginLibrary.h">
       <Filter>vst</Filter>
     </ClInclude>
+    <ClInclude Include="vst\PluginResidency.h">
+      <Filter>vst</Filter>
+    </ClInclude>
     <ClInclude Include="libHybridConv-0.1.1\libHybridConv_eapo.h">
       <Filter>libHybridConv-0.1.1</Filter>
     </ClInclude>

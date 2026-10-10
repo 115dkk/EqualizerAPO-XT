@@ -35,6 +35,7 @@
 #include "runtime/ipc/StreamRing.h"
 #include "services/logging/Logging.h"
 #include "services/registry/WindowsRegistry.h"
+#include "vst/PluginResidency.h"
 
 // After windows.h (through the ring header): shellapi.h needs its types.
 #include <shellapi.h>
@@ -335,6 +336,8 @@ namespace
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 {
+	PluginResidency::keepLoadedForProcessLifetime(true);
+
 	int argc = 0;
 	wchar_t** argv = CommandLineToArgvW(GetCommandLineW(), &argc);
 	Server server;

@@ -31,8 +31,15 @@
       uninstall       DeviceSelector --uninstall-endpoint, then the cable is at
                       unity again and the endpoint's effect chain holds no EQ
                       CLSID
-      plugin-load     three capture opens while another process repeatedly opens
-                      the render endpoint, recorded as loader-lock evidence only
+      plugin-load     a plugin that holds the loader lock for 4 s while it
+                      loads (TestVst2Plugin.SlowLoad4000.dll) in the recording
+                      endpoint's config; the endpoint is opened three times
+                      and its pipeline torn down in between. The first open
+                      must take the 4 s (the engine really loaded it), the
+                      second and third must not: the engine keeps a plugin it
+                      has loaded. A watcher opening the playback side
+                      meanwhile records how long other streams waited
+                      (evidence, not gated)
 
     The install/measure/uninstall round runs once per install mode: first
     the mode the product picks on its own for this endpoint (a virtual
@@ -138,8 +145,8 @@ $pluginLoad = [pscustomobject]@{
     SlowLoadMilliseconds = $SlowLoadMilliseconds
     RealPluginInstallerUrl = $RealPluginInstallerUrl
     RealPluginInstallerSha256 = $RealPluginInstallerSha256
-    Required = $false
-    Note = "loader-lock timing evidence from repeated capture opens and concurrent render opens"
+    Required = $true
+    Note = "a rebuilt capture pipeline reuses the plugin the engine kept loaded"
 }
 
 $plan = [pscustomobject]@{
@@ -464,6 +471,35 @@ function Invoke-PluginLoadMeasurement([string] $label) {
     return [pscustomobject][ordered]@{ label = $label; opens = $opens; watcher = $watcher }
 }
 
+# The fixture's verdict. Open 1 must take the fixture's load time, or the
+# audio engine never loaded the plugin and the later opens prove nothing.
+# Opens 2 and 3 come after the pipeline was torn down; before the engine kept
+# plugins loaded, each of them paid the whole load again (measured on this
+# runner: 4.0 s for every open).
+function Test-PluginLoadReuse($record) {
+    $opens = @($record.opens)
+    if ($opens.Count -lt 3) {
+        Add-Failure "plugin-load/fixture: only $($opens.Count) of the 3 capture opens ran"
+        return
+    }
+    foreach ($open in $opens) {
+        if ($open.exitCode -ne 0 -or $null -eq $open.openMs) {
+            Add-Failure "plugin-load/fixture/$($open.name): the capture open failed (exit $($open.exitCode))"
+            return
+        }
+    }
+    $loadFloorMs = 0.8 * $SlowLoadMilliseconds
+    $reuseCeilingMs = 0.25 * $SlowLoadMilliseconds
+    if ([double]$opens[0].openMs -lt $loadFloorMs) {
+        Add-Failure "plugin-load/fixture/open1: opened in $($opens[0].openMs) ms, under the fixture's $SlowLoadMilliseconds ms load, so the audio engine did not load the plugin"
+    }
+    foreach ($open in $opens[1..2]) {
+        if ([double]$open.openMs -gt $reuseCeilingMs) {
+            Add-Failure "plugin-load/fixture/$($open.name): opened in $($open.openMs) ms; a rebuilt pipeline must reuse the plugin the engine kept loaded (limit $reuseCeilingMs ms)"
+        }
+    }
+}
+
 function Measure-Cable($measurement, [string] $round = "") {
     $noRender = $measurement.PSObject.Properties["NoRender"] -and $measurement.NoRender
     $arguments = @("--capture", $captureConnection, "--json",
@@ -764,7 +800,7 @@ if (-not (Test-Path -LiteralPath $fixtureSource)) {
     $pluginLoadRecord.verdict = "skipped"
     $pluginLoadRecord.reason = "TestVst2Plugin.dll is not in the probe directory"
     $pluginLoadRecord.fixture = [ordered]@{ verdict = "skipped"; reason = $pluginLoadRecord.reason }
-    Write-Host "plugin-load skipped: TestVst2Plugin.dll is not in the probe directory"
+    Add-Failure "plugin-load: TestVst2Plugin.dll is not in the probe directory (the capture-probes artifact lost it)"
 }
 else {
     $originalConfig = $null
@@ -780,7 +816,7 @@ else {
         $pluginLoadRecord.install = [ordered]@{ exitCode = $install.ExitCode; timedOut = $install.TimedOut }
         Save-EndpointSnapshot $endpoints.Capture "90-plugin-load-installed"
         if ($install.ExitCode -ne 0) {
-            Write-Warning "plugin-load/install: DeviceSelector --install-endpoint exited with $($install.ExitCode); recording evidence without failing the gate"
+            Add-Failure "plugin-load/install: DeviceSelector --install-endpoint exited with $($install.ExitCode)"
         }
 
         $originalConfig = [System.IO.File]::ReadAllText($configFile)
@@ -789,10 +825,11 @@ else {
         Wait-GraphSettle
         try {
             $pluginLoadRecord.fixture = Invoke-PluginLoadMeasurement "fixture"
+            Test-PluginLoadReuse $pluginLoadRecord.fixture
         }
         catch {
             $pluginLoadRecord.fixture = [ordered]@{ verdict = "failed"; reason = $_.Exception.Message }
-            Write-Warning "plugin-load/fixture failed: $($_.Exception.Message)"
+            Add-Failure "plugin-load/fixture: the measurement did not run: $($_.Exception.Message)"
         }
 
         if ([string]::IsNullOrWhiteSpace($RealPluginInstallerUrl)) {
@@ -859,7 +896,7 @@ else {
         if ($null -eq $pluginLoadRecord.fixture) {
             $pluginLoadRecord.fixture = [ordered]@{ verdict = "failed"; reason = $_.Exception.Message }
         }
-        Write-Warning "plugin-load failed: $($_.Exception.Message)"
+        Add-Failure "plugin-load: $($_.Exception.Message)"
     }
     finally {
         try { Copy-Logs "90-plugin-load" } catch { Write-Warning "plugin-load could not copy logs: $($_.Exception.Message)" }
@@ -870,7 +907,7 @@ else {
             catch {
                 $pluginLoadRecord.verdict = "failed"
                 $pluginLoadRecord.reason = "config.txt could not be restored: $($_.Exception.Message)"
-                Write-Warning "plugin-load could not restore config.txt: $($_.Exception.Message)"
+                Add-Failure "plugin-load: config.txt could not be restored: $($_.Exception.Message)"
             }
         }
         if ($installAttempted) {
@@ -880,14 +917,14 @@ else {
                 if ($uninstall.ExitCode -ne 0) {
                     $pluginLoadRecord.verdict = "failed"
                     $pluginLoadRecord.reason = "capture endpoint uninstall exited with $($uninstall.ExitCode)"
-                    Write-Warning "plugin-load/uninstall: DeviceSelector --uninstall-endpoint exited with $($uninstall.ExitCode); recording evidence without failing the gate"
+                    Add-Failure "plugin-load/uninstall: DeviceSelector --uninstall-endpoint exited with $($uninstall.ExitCode)"
                 }
             }
             catch {
                 $pluginLoadRecord.verdict = "failed"
                 $pluginLoadRecord.reason = "capture endpoint could not be uninstalled: $($_.Exception.Message)"
                 $pluginLoadRecord.uninstall = [ordered]@{ exitCode = $null; error = $_.Exception.Message }
-                Write-Warning "plugin-load/uninstall failed: $($_.Exception.Message)"
+                Add-Failure "plugin-load/uninstall: $($_.Exception.Message)"
             }
             finally {
                 try { Wait-GraphSettle } catch { Write-Warning "plugin-load could not wait after uninstall: $($_.Exception.Message)" }
