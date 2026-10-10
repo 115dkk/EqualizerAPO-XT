@@ -18,7 +18,7 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   인스턴스를 만드는 단계까지 느린 플러그인은 그 단계가 여전히 창의 스레드에서
   돌고, 화면 낭독기처럼 Editor 창과 통신하는 프로그램이 여기서 보지 못한
   방식으로 움직이면 창이 다시 멈출 수 있습니다
-  ([#417](https://github.com/115dkk/EqualizerAPO-XT/issues/417)).
+  ([#419](https://github.com/115dkk/EqualizerAPO-XT/pull/419)).
 
 - **Editor에서 스킨을 바꾸거나 수정 취소를 할 때마다 느린 플러그인을 다시
   불러오던 문제를 고쳤습니다.** 스킨이나 다크 모드 전환, 수정 취소와 다시
@@ -28,7 +28,7 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   멈췄습니다. 이제 Editor는 한 번 불러온 플러그인을 내리지 않습니다. 대신
   Editor가 열려 있는 동안에는 플러그인 파일이 계속 쓰이는 상태이므로, 플러그인
   설치 파일이 그 파일을 바꾸려면 Editor를 먼저 닫아야 합니다
-  ([#417](https://github.com/115dkk/EqualizerAPO-XT/issues/417)).
+  ([#419](https://github.com/115dkk/EqualizerAPO-XT/pull/419)).
 
 ## v2.57.4 — 2026-10-10
 

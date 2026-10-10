@@ -25,7 +25,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   to create its instance after loading (that step still runs on the window's
   thread), and a machine where a screen reader or a similar tool talks to the
   Editor window in a way not seen here; either can still freeze the window
-  ([#417](https://github.com/115dkk/EqualizerAPO-XT/issues/417)).
+  ([#419](https://github.com/115dkk/EqualizerAPO-XT/pull/419)).
 
 - **The Editor no longer loads a slow plugin again on every skin switch,
   undo or device change.** Changing the skin or dark mode, undo and redo,
@@ -35,7 +35,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   load, the window froze that long each time. The Editor now keeps a plugin
   loaded once it has loaded it. While the Editor is open, the plugin's file
   stays in use, so a plugin installer cannot replace it until the Editor is
-  closed ([#417](https://github.com/115dkk/EqualizerAPO-XT/issues/417)).
+  closed ([#419](https://github.com/115dkk/EqualizerAPO-XT/pull/419)).
 
 ## v2.57.4 — 2026-10-10
 
