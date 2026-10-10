@@ -782,15 +782,21 @@ int wmain(int argc, wchar_t** argv)
 		}
 		if (o.watchRenderOpensSet)
 		{
-			ComRelease<IMMDevice> watchedRender;
-			watchedRender.p = findEndpoint(enumerator.p, eRender, o.renderName, o.renderId);
-			if (watchedRender.p == nullptr)
+			IMMDevice* watchedRender = findEndpoint(enumerator.p, eRender, o.renderName, o.renderId);
+			if (watchedRender == nullptr)
 			{
 				fwprintf(stderr, L"no active render endpoint matches\n");
-				CoUninitialize();
-				return 1;
 			}
-			result = watchRenderOpens(watchedRender.p, friendlyName(watchedRender.p), o.watchRenderOpens, o.stopFile);
+			else
+			{
+				result = watchRenderOpens(watchedRender, friendlyName(watchedRender), o.watchRenderOpens, o.stopFile);
+				watchedRender->Release();
+			}
+			// Released before CoUninitialize: the enumerator's ComRelease would
+			// otherwise run after it, on the way out of this scope, and turn a
+			// run that only failed to find its endpoint into an access violation.
+			enumerator.p->Release();
+			enumerator.p = nullptr;
 			CoUninitialize();
 			return result;
 		}
