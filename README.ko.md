@@ -192,3 +192,18 @@ ASIO is a trademark and software of Steinberg Media Technologies GmbH.
 ## Special Thanks
 
 - **Mephistos (DCinside)** - Editor의 VST3 플러그인 패널에서 레벨 미터와 그래프가 살아나지 않는 원인을 진단하고, 동작하는 WASAPI 루프백 패치를 GPL로 공개했으며, 수정 검증에 쓰인 Open-XTC 플러그인을 제공해 주셨습니다. 패널 프리뷰 피드(`Editor/helpers/PanelPreviewFeeder`)는 이 기여에서 파생되었습니다.
+
+## 구걸
+
+개발자는 돈이 필요합니다.\
+이 프로그램이 좋다고 생각하시면 한 푼만 주십시오...
+
+**지금 모으는 돈:** EV 인증서, 딱 한 번 $359. 개인 BRIR로 헤드폰에서 Dolby Atmos를 듣는 새 앱의 드라이버를 Microsoft 서명으로 내기 위한 비용입니다. 이게 있으면 Secure Boot를 끄지 않고 설치되는 앱을 낼 수 있습니다. (현재 $0 / $359)
+
+**초과분은 이렇게 씁니다:**
+
+- AI 구독료
+- AI 개발사들이 요구하는 하드웨어 키 비용
+- 개발자의 집값 대출 상환에 보탬
+
+[GitHub Sponsors](https://github.com/sponsors/115dkk)
