@@ -67,6 +67,10 @@ param(
     [string] $SnapshotDirectory,
     [string] $VbCableUrl = "https://download.vb-audio.com/Download_CABLE/VBCABLE_Driver_Pack43.zip",
     [string] $VbCableSha256 = "66FD0A4D9F4896FF41632B7E3D53892C085C4561F53E8AE8D0F0BC10EEDD1CDD",
+    # Optional, for a manual run: a plugin vendor's installer (pinned by
+    # SHA-256) whose Clear.dll and Clear.vst3 the plugin-load phase then
+    # measures too, as evidence only. CI does not pass these; PR #416 used
+    # them to measure Supertone Clear before and after the fix.
     [string] $RealPluginInstallerUrl,
     [string] $RealPluginInstallerSha256,
     [int] $SlowLoadMilliseconds = 4000,
