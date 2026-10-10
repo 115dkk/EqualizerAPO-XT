@@ -528,6 +528,7 @@ int SkinGallery::runVstFillSelfTest()
 			lines.append(vstLine);
 			table->setLines(QString(), lines);
 			table->updateGuis();
+			VSTPluginSession::waitForPendingLoads(30000);
 			scrollArea.show();
 			QApplication::processEvents();
 

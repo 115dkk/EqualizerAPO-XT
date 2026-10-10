@@ -60,6 +60,7 @@ private slots:
 	void busLayoutPicked();
 	void fillToggleClicked(bool checked);
 	void pluginStateChanged();
+	void pluginLoadFinished();
 	void showStatus();
 
 private:
@@ -77,6 +78,9 @@ private:
 	// dropdowns and the plain combo rows below them.
 	VSTRowDocument document;
 	std::unique_ptr<VSTPluginSession> session;
+	bool embedWhenLoaded = false;
+	bool openWhenLoaded = false;
+	bool replacementAwaitingModel = false;
 	bool fillCollapsed = false;
 	bool fillCollapsedFromPrefs = false;
 	QWidget* inputFillRow = nullptr;

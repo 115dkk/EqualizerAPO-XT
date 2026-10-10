@@ -101,6 +101,10 @@ int runScrollBench();
 // dock is missing, in which case the caller exits 1 immediately.
 bool armAnalysisLayoutProbe(MainWindow& window, const QString& screenshotPath);
 
+// Entry point behind --plugin-load-test: measures the largest UI timer gap
+// while a positional config loads its VST cards, then exits with the verdict.
+bool armPluginLoadProbe(MainWindow& window);
+
 // Entry point behind --skin-metrics-probe (diagnostic): shrinks the analysis
 // dock, walks the five skins on the live MainWindow and reports dock
 // minimums plus the physical font face serving Korean chrome text.

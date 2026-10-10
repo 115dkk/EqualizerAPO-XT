@@ -15,10 +15,13 @@
 #include <QCheckBox>
 #include <QCoreApplication>
 #include <QDir>
+#include <QEventLoop>
 #include <QFileInfo>
 #include <QLocale>
+#include <QPointer>
 #include <QPushButton>
 #include <QStringList>
+#include <QThread>
 #include <QWidget>
 
 #define WIN32_LEAN_AND_MEAN
@@ -26,6 +29,7 @@
 
 #include "services/security/AudioEngineAccess.h"
 #include "Editor/guis/VSTPluginFilterGUIDialog.h"
+#include "Editor/helpers/PluginLoadQueue.h"
 #include "Editor/helpers/VstChunkScan.h"
 
 using std::unordered_map;
@@ -84,87 +88,152 @@ void VSTPluginSession::setAutoApplyDialog(bool value)
 	autoApply = value;
 }
 
+bool VSTPluginSession::loading() const
+{
+	return currentStatus.loading;
+}
+
 void VSTPluginSession::initPlugin()
 {
-	if (effect != nullptr)
+	if (effect != nullptr || loading())
 		return;
 
-	// Each text keeps the translation context of the row it was written for;
-	// the card shows a missing library as a state, not as text.
-	const bool card = row == Row::Card;
-	currentStatus = Status();
-	if (pluginLibrary->getLibPath() == L"")
+	if (pluginLibrary->getLibPath().empty())
 	{
+		// Each text keeps the translation context of the row it was written for;
+		// the card shows a missing library as a state, not as text.
+		currentStatus = Status();
 		currentStatus.libraryMissing = true;
 		currentStatus.critical = true;
-		if (!card)
+		if (row == Row::Legacy)
 			currentStatus.text = QCoreApplication::translate("VSTPluginFilterGUI", "No file selected.");
+		emit statusChanged();
+		finishPendingReplacement();
+		return;
+	}
+
+	applyLoadResult(pluginLibrary->initialize());
+}
+
+void VSTPluginSession::requestPlugin()
+{
+	if (effect != nullptr || loading())
+		return;
+
+	if (pluginLibrary->getLibPath().empty())
+	{
+		initPlugin();
+		emit loadFinished();
+		return;
+	}
+
+	const bool pending = PluginLoadQueue::isPending(pluginLibrary.get());
+	if (!pending && (pluginLibrary->isLoadedNow()
+		|| GetFileAttributesW(pluginLibrary->getLoadPath().c_str()) == INVALID_FILE_ATTRIBUTES))
+	{
+		initPlugin();
+		emit loadFinished();
+		return;
+	}
+
+	currentStatus = Status();
+	currentStatus.loading = true;
+	emit statusChanged();
+
+	const unsigned generation = loadGeneration;
+	QPointer<VSTPluginSession> guard(this);
+	PluginLoadQueue::enqueue(pluginLibrary, [guard, generation](int result) {
+		if (guard.isNull() || guard->loadGeneration != generation)
+			return;
+		guard->currentStatus.loading = false;
+		guard->applyLoadResult(result);
+		emit guard->loadFinished();
+	});
+}
+
+int VSTPluginSession::pendingLoads()
+{
+	return PluginLoadQueue::pendingCount();
+}
+
+bool VSTPluginSession::waitForPendingLoads(int timeoutMs)
+{
+	QElapsedTimer timer;
+	timer.start();
+	while (pendingLoads() != 0)
+	{
+		QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
+		if (pendingLoads() == 0 || timer.elapsed() >= timeoutMs)
+			break;
+		QThread::msleep(1);
+	}
+	return pendingLoads() == 0;
+}
+
+void VSTPluginSession::applyLoadResult(int result)
+{
+	const bool card = row == Row::Card;
+	currentStatus = Status();
+	if (result < 0)
+	{
+		currentStatus.critical = true;
+
+		switch (result)
+		{
+		case AbstractLibrary::FILE_NOT_FOUND:
+			currentStatus.libraryMissing = true;
+			if (!card)
+				currentStatus.text = QCoreApplication::translate("VSTPluginFilterGUI", "File not found.");
+			break;
+		case AbstractLibrary::LOADING_FAILED:
+			currentStatus.text = card
+				? QCoreApplication::translate("VSTCardEditor", "Library could not be loaded.")
+				: QCoreApplication::translate("VSTPluginFilterGUI", "Library could not be loaded.");
+			break;
+		case AbstractLibrary::FUNCTIONS_MISSING:
+			currentStatus.text = card
+				? QCoreApplication::translate("VSTCardEditor", "Library does not contain needed functions.")
+				: QCoreApplication::translate("VSTPluginFilterGUI", "Library does not contain needed functions.");
+			break;
+		case AbstractLibrary::WRONG_ARCHITECTURE:
+		{
+#ifdef _WIN64
+			int bitDepth = 64;
+#else
+			int bitDepth = 32;
+#endif
+			currentStatus.text = (card
+				? QCoreApplication::translate("VSTCardEditor", "Library has the wrong architecture. Only %1-bit libraries are supported.")
+				: QCoreApplication::translate("VSTPluginFilterGUI", "Library has the wrong architecture. Only %1-bit libraries are supported."))
+				.arg(bitDepth);
+			break;
+		}
+		}
 	}
 	else
 	{
-		int result = pluginLibrary->initialize();
-		if (result < 0)
+		// The Editor's own load site; the AnalysisThread's engine goes through
+		// VSTPluginFilterFactory, which retains on its own.
+		VSTPluginLibrary::retainIfKeepingLoaded(pluginLibrary);
+		effect = std::make_unique<VSTPluginInstance>(pluginLibrary, 1);
+		if (effect->initialize())
 		{
-			currentStatus.critical = true;
-
-			switch (result)
-			{
-			case AbstractLibrary::FILE_NOT_FOUND:
-				currentStatus.libraryMissing = true;
-				if (!card)
-					currentStatus.text = QCoreApplication::translate("VSTPluginFilterGUI", "File not found.");
-				break;
-			case AbstractLibrary::LOADING_FAILED:
-				currentStatus.text = card
-					? QCoreApplication::translate("VSTCardEditor", "Library could not be loaded.")
-					: QCoreApplication::translate("VSTPluginFilterGUI", "Library could not be loaded.");
-				break;
-			case AbstractLibrary::FUNCTIONS_MISSING:
-				currentStatus.text = card
-					? QCoreApplication::translate("VSTCardEditor", "Library does not contain needed functions.")
-					: QCoreApplication::translate("VSTPluginFilterGUI", "Library does not contain needed functions.");
-				break;
-			case AbstractLibrary::WRONG_ARCHITECTURE:
-			{
-#ifdef _WIN64
-				int bitDepth = 64;
-#else
-				int bitDepth = 32;
-#endif
-				currentStatus.text = (card
-					? QCoreApplication::translate("VSTCardEditor", "Library has the wrong architecture. Only %1-bit libraries are supported.")
-					: QCoreApplication::translate("VSTPluginFilterGUI", "Library has the wrong architecture. Only %1-bit libraries are supported."))
-					.arg(bitDepth);
-				break;
-			}
-			}
+			effect->setLanguage(QLocale().language() == QLocale::German ? 2 : 1);
+			effect->setAutomateFunc([this]() { onAutomate(); });
+			currentStatus.text = QString::fromStdWString(effect->getName());
 		}
 		else
 		{
-			// The Editor's own load site; the AnalysisThread's engine goes
-			// through VSTPluginFilterFactory, which retains on its own.
-			VSTPluginLibrary::retainIfKeepingLoaded(pluginLibrary);
-			effect = std::make_unique<VSTPluginInstance>(pluginLibrary, 1);
-			if (effect->initialize())
-			{
-				effect->setLanguage(QLocale().language() == QLocale::German ? 2 : 1);
-				effect->setAutomateFunc([this]() { onAutomate(); });
-
-				currentStatus.text = QString::fromStdWString(effect->getName());
-			}
-			else
-			{
-				effect.reset();
-
-				currentStatus.critical = true;
-				currentStatus.text = card
-					? QCoreApplication::translate("VSTCardEditor", "Plugin crashed during initialization.")
-					: QCoreApplication::translate("VSTPluginFilterGUI", "Plugin crashed during initialization.");
-			}
+			effect.reset();
+			currentStatus.critical = true;
+			currentStatus.text = card
+				? QCoreApplication::translate("VSTCardEditor", "Plugin crashed during initialization.")
+				: QCoreApplication::translate("VSTPluginFilterGUI", "Plugin crashed during initialization.");
 		}
 	}
 
 	emit statusChanged();
+	finishPendingReplacement();
 }
 
 bool VSTPluginSession::libraryDiffers(const QString& writtenPath) const
@@ -174,25 +243,34 @@ bool VSTPluginSession::libraryDiffers(const QString& writtenPath) const
 
 void VSTPluginSession::replaceLibrary(const QString& writtenPath)
 {
-	int oldId = 0;
-	if (effect != nullptr)
-	{
-		oldId = effect->uniqueID();
-		effect.reset();
-	}
+	// A replacement that lands before the previous one finished compares
+	// against the plug-in the row started from, not the one never loaded.
+	if (!replacementPending)
+		replacementOldId = effect != nullptr ? effect->uniqueID() : 0;
+	effect.reset();
+	replacementPending = true;
 
 	QDir pluginsDir(QString::fromStdWString(VSTPluginLibrary::getDefaultPluginPath()));
 	QString path = writtenPath;
 	if (path.length() > 0)
 		path = QDir::toNativeSeparators(QFileInfo(pluginsDir, writtenPath).absoluteFilePath());
 	pluginLibrary = VSTPluginLibrary::getInstance(path.toStdWString());
-	initPlugin();
+	loadGeneration++;
+	currentStatus = Status();
+	requestPlugin();
+}
 
-	if (effect == nullptr || oldId == 0 || effect->uniqueID() != oldId)
+void VSTPluginSession::finishPendingReplacement()
+{
+	if (!replacementPending)
+		return;
+	replacementPending = false;
+	if (effect == nullptr || replacementOldId == 0 || effect->uniqueID() != replacementOldId)
 	{
-		currentChunkData = L"";
+		currentChunkData.clear();
 		currentParamMap.clear();
 	}
+	replacementOldId = 0;
 }
 
 void VSTPluginSession::openDialog(QWidget* dialogParent)

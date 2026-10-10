@@ -56,6 +56,9 @@ public:
 		bool critical = false;
 		// No library selected, or the file is not there.
 		bool libraryMissing = false;
+		// The library is being loaded on the loader thread. The text stays empty;
+		// the row decides how to present the transient state.
+		bool loading = false;
 	};
 
 	VSTPluginSession(Row row, std::shared_ptr<VSTPluginLibrary> library, std::wstring chunkData,
@@ -63,7 +66,7 @@ public:
 	~VSTPluginSession() override;
 
 	const std::shared_ptr<VSTPluginLibrary>& library() const;
-	// The Editor's own plug-in instance; nullptr until initPlugin succeeds.
+	// The Editor's own plug-in instance; nullptr until a load succeeds.
 	VSTPluginInstance* instance() const;
 	const std::wstring& chunkData() const;
 	const std::unordered_map<std::wstring, float>& paramMap() const;
@@ -71,10 +74,19 @@ public:
 	bool embedded() const;
 	bool autoApplyDialog() const;
 	void setAutoApplyDialog(bool autoApply);
+	bool loading() const;
 
 	// Loads the library and creates the instance unless one exists; emits
-	// statusChanged after every attempt.
+	// statusChanged after every attempt. This synchronous entry point remains
+	// for callers that deliberately need the old behaviour.
 	void initPlugin();
+	// Requests the library load without blocking the UI thread, then creates the
+	// instance on the UI thread. loadFinished is emitted for synchronous and
+	// asynchronous completion alike.
+	void requestPlugin();
+	// Requests whose completion callbacks have not yet run on the UI thread.
+	static int pendingLoads();
+	static bool waitForPendingLoads(int timeoutMs);
 	// True when writtenPath (the path as the row shows it) differs from the
 	// loaded library's path.
 	bool libraryDiffers(const QString& writtenPath) const;
@@ -84,7 +96,7 @@ public:
 	// closes an embedded panel first.
 	void replaceLibrary(const QString& writtenPath);
 	// Opens the plug-in's own dialog, modal, over dialogParent. Requires a
-	// loaded instance (initPlugin). Emits stateChanged when the dialog is
+	// loaded instance. Emits stateChanged when the dialog is
 	// applied or accepted; reports a panel that could not open through the
 	// status.
 	void openDialog(QWidget* dialogParent);
@@ -104,6 +116,8 @@ public:
 signals:
 	// status() changed.
 	void statusChanged();
+	// A requested load finished, including a synchronous fast path.
+	void loadFinished();
 	// The plug-in state changed (dialog applied or accepted, the idle
 	// read-back found a change); the row must store its line again.
 	void stateChanged();
@@ -118,6 +132,8 @@ private slots:
 	void onIdle();
 
 private:
+	void applyLoadResult(int result);
+	void finishPendingReplacement();
 	void onAutomate();
 	bool embedPlugin(QWidget* host);
 	void acquirePanelProcessing();
@@ -133,6 +149,9 @@ private:
 	bool isEmbedded = false;
 	bool ownsPanelProcessing = false;
 	bool autoApply = true;
+	unsigned loadGeneration = 0;
+	bool replacementPending = false;
+	int replacementOldId = 0;
 	QElapsedTimer lastReadTimer;
 	// Declared after effect on purpose: reverse member destruction stops the
 	// pump before the instance it feeds goes away.

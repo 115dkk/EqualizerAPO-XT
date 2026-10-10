@@ -198,6 +198,7 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 	// The card draws what the session reports; the session never touches
 	// the card's widgets beyond the embed host it is handed.
 	connect(session.get(), &VSTPluginSession::statusChanged, this, &VSTCardEditor::updateReferenceState);
+	connect(session.get(), &VSTPluginSession::loadFinished, this, &VSTCardEditor::pluginLoadFinished);
 	connect(session.get(), &VSTPluginSession::stateChanged, this, &VSTCardEditor::pluginStateChanged);
 	connect(session.get(), &VSTPluginSession::automated, this, &VSTCardEditor::pluginStateChanged);
 	connect(session.get(), &VSTPluginSession::sizeRequested, this, [this](int w, int h) {
@@ -352,9 +353,9 @@ void VSTCardEditor::loadPreferences(const QVariantMap& prefs)
 	}
 
 	if (prefs.value("embed").toBool())
-		embedAction->setChecked(true);   // will also call initPlugin via embedToggled
+		embedAction->setChecked(true);   // embedToggled requests the load before embedding.
 	else
-		session->initPlugin();
+		session->requestPlugin();
 	updateBusControls();
 	updateReferenceState();
 }
@@ -369,6 +370,11 @@ void VSTCardEditor::storePreferences(QVariantMap& prefs)
 		prefs.insert("slotFillCollapsed", fillCollapsed);
 }
 
+const VSTPluginSession* VSTCardEditor::pluginSession() const
+{
+	return session.get();
+}
+
 void VSTCardEditor::openPanel()
 {
 	// The panel is already on screen inside the card; opening the dialog on
@@ -377,11 +383,47 @@ void VSTCardEditor::openPanel()
 	if (session->embedded())
 		return;
 
-	session->initPlugin();
+	if (session->instance() == nullptr)
+	{
+		openWhenLoaded = true;
+		session->requestPlugin();
+		updateBusControls();
+		updateReferenceState();
+		return;
+	}
+
+	session->openDialog(this);
+}
+
+void VSTCardEditor::pluginLoadFinished()
+{
+	if (replacementAwaitingModel)
+	{
+		replacementAwaitingModel = false;
+		updateModel();
+		updatePermissionWarning();
+	}
 	updateBusControls();
 	updateReferenceState();
 
-	session->openDialog(this);
+	// A failed load must not request another load through the panel actions.
+	if (embedWhenLoaded)
+	{
+		embedWhenLoaded = false;
+		if (embedAction->isChecked())
+		{
+			if (session->instance() != nullptr)
+				embedToggled(true);
+			else
+				embedAction->setChecked(false);
+		}
+	}
+	if (openWhenLoaded)
+	{
+		openWhenLoaded = false;
+		if (session->instance() != nullptr && !session->embedded())
+			session->openDialog(this);
+	}
 }
 
 void VSTCardEditor::pluginStateChanged()
@@ -419,9 +461,8 @@ void VSTCardEditor::updateReferenceState()
 		}
 		else if (!state.missing)
 		{
-			// Library present but not (yet) loaded: clicking the name still
-			// attempts the panel, which surfaces the load error honestly.
-			state.nameClickable = true;
+			// A present library can be retried once the pending load finishes.
+			state.nameClickable = !status.loading;
 			if (status.critical && !status.text.isEmpty())
 			{
 				state.statusText = status.text;
@@ -461,10 +502,16 @@ void VSTCardEditor::updateReferenceState()
 		state.statusSeverity = busStatusSeverity;
 	}
 
+	if (state.statusText.isEmpty() && status.loading)
+	{
+		state.statusText = tr("Loading plugin...");
+		state.statusSeverity = ReferenceCardState::Severity::None;
+	}
+
 	const bool locate = state.missing && !reference->writtenPath().isEmpty();
 	selectButton->setText(locate ? tr("Locate...") : QString());
 	selectButton->setToolTip(locate ? tr("Locate the missing plugin library") : tr("Select VST plugin"));
-	openPanelButton->setEnabled(!state.missing && !reference->writtenPath().isEmpty());
+	openPanelButton->setEnabled(!state.missing && !reference->writtenPath().isEmpty() && !session->loading());
 
 	// Post the loaded ABI for the row chrome (CommandRowFrame samples the
 	// property at paint time): rack engraves it into the brass nameplate.
@@ -607,10 +654,8 @@ void VSTCardEditor::pathCommitted(const QString& text)
 	{
 		if (session->instance() != nullptr && embedAction->isChecked())
 			embedToggled(false);
+		replacementAwaitingModel = true;
 		session->replaceLibrary(text);
-
-		updateModel();
-		updatePermissionWarning();
 
 		if (embedAction->isChecked())
 			embedToggled(true);
@@ -673,7 +718,19 @@ void VSTCardEditor::panelButtonClicked()
 
 void VSTCardEditor::embedToggled(bool checked)
 {
-	session->initPlugin();
+	if (!checked)
+		embedWhenLoaded = false;
+	else if (session->instance() == nullptr)
+	{
+		session->requestPlugin();
+		if (session->loading())
+		{
+			// Keep the saved embed preference while the library is still loading.
+			embedWhenLoaded = true;
+			updateReferenceState();
+			return;
+		}
+	}
 	updateReferenceState();
 
 	const bool enable = checked && session->instance() != nullptr;

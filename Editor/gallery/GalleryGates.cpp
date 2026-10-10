@@ -392,6 +392,7 @@ int runSwitchTest(const QStringList& arguments)
 					SkinManager::instance()->applySkin(skin->id(), dark);
 					applyMs = timer.restart();
 					table->updateGuis();
+					VSTPluginSession::waitForPendingLoads(30000);
 					QApplication::processEvents();
 					// The live editor returns to the event loop between switches,
 					// which is when deleteLater victims (combo popup containers,
@@ -616,6 +617,7 @@ int runCardMoveTest(const QStringList& arguments)
 			table->clearRows();
 			SkinManager::instance()->applySkin(skin->id(), dark);
 			table->updateGuis();
+			VSTPluginSession::waitForPendingLoads(30000);
 			QApplication::processEvents();
 			QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
 			QApplication::processEvents();
@@ -763,6 +765,7 @@ int runCardMoveTest(const QStringList& arguments)
 			check("header remove", before, settle());
 			before = bar->value();
 			table->updateGuis();
+			VSTPluginSession::waitForPendingLoads(30000);
 			check("full rebuild", before, settle());
 			// The live skin switch tears down first and rebuilds after the
 			// stylesheet swap (MainWindow::skinSelected); the position must
@@ -771,6 +774,7 @@ int runCardMoveTest(const QStringList& arguments)
 			table->clearRows();
 			SkinManager::instance()->applySkin(Skins::all().first()->id(), false);
 			table->updateGuis();
+			VSTPluginSession::waitForPendingLoads(30000);
 			check("skin switch", before, settle());
 		}
 	}
@@ -1051,6 +1055,7 @@ int runCardSelectionTest(const QStringList& arguments)
 			}
 
 			focusTable->updateGuis();
+			VSTPluginSession::waitForPendingLoads(30000);
 			QApplication::processEvents();
 			const bool rebuildStable = QApplication::focusWidget() == focusTable
 				&& bar->value() == pickerScroll;

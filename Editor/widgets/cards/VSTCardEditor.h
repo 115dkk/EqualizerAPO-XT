@@ -63,11 +63,13 @@ public:
 	void setChannelFlow(const ChannelFlowAtLine& flow) override;
 	void loadPreferences(const QVariantMap& prefs) override;
 	void storePreferences(QVariantMap& prefs) override;
+	const VSTPluginSession* pluginSession() const;
 
 private slots:
 	void openPanel();
 	void panelButtonClicked();
 	void pluginStateChanged();
+	void pluginLoadFinished();
 	void pathCommitted(const QString& text);
 	void selectFile();
 	void importToConfig();
@@ -89,6 +91,9 @@ private:
 	// setChannelFlow delivers.
 	VSTRowDocument document;
 	std::unique_ptr<VSTPluginSession> session;
+	bool embedWhenLoaded = false;
+	bool openWhenLoaded = false;
+	bool replacementAwaitingModel = false;
 	// The fold state of the two rails (only meaningful while both exist).
 	// Persisted per row; defaults to collapsed while both sides are still
 	// implicit so untouched contract cards keep their height.

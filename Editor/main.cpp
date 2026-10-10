@@ -79,6 +79,7 @@
 #include "platform/qt/QtAppBootstrap.h"
 #include "Editor/helpers/CrashHandler.h"
 #include "Editor/helpers/GUIHelper.h"
+#include "Editor/helpers/PluginLoadQueue.h"
 #include "services/settings/EditorSettings.h"
 #include "Editor/skins/SkinThemeData.h"
 
@@ -427,6 +428,8 @@ int main(int argc, char* argv[])
 		}
 
 		QApplication application(argc, argv);
+		// Before anything can load a plug-in; see PluginLoadQueue.h.
+		PluginLoadQueue::prepareUiThread();
 		if (!legacyRowsMode)
 		{
 			application.setStyle(new CustomStyle(QStyleFactory::create(QStringLiteral("Fusion"))));
@@ -523,9 +526,15 @@ int main(int argc, char* argv[])
 		const bool analysisLayoutTestRequested =
 			application.arguments().contains(QStringLiteral("--analysis-layout-test"))
 			|| application.arguments().contains(QStringLiteral("--analysis-latency-test"))
+			|| application.arguments().contains(QStringLiteral("--plugin-load-test"))
 			|| application.arguments().contains(QStringLiteral("--window-shot"));
+		// The constructor reopens tabs and queues their plug-ins; the loader
+		// waits until the shown window has UI Automation running.
+		PluginLoadQueue::holdLoads();
 		MainWindow w(configDir, updateSession.get(), nullptr, analysisLayoutTestRequested);
 		w.show();
+		PluginLoadQueue::startUiAutomation(w.winId());
+		PluginLoadQueue::releaseLoads();
 
 		// One-time notice after the install hook migrated a config tree; a
 		// no-op for everyone else.
@@ -552,6 +561,9 @@ int main(int argc, char* argv[])
 		analysisLatencyDeviceOption.setValueName(QStringLiteral("substring"));
 		analysisLatencyDeviceOption.setFlags(QCommandLineOption::HiddenFromHelp);
 		parser.addOption(analysisLatencyDeviceOption);
+		QCommandLineOption pluginLoadOption(QStringLiteral("plugin-load-test"));
+		pluginLoadOption.setFlags(QCommandLineOption::HiddenFromHelp);
+		parser.addOption(pluginLoadOption);
 		// Real-window A/B probe for the panel preview feed (SkinGallery::
 		// armVstPanelFeedProbe); pair it with EAPO_DISABLE_PANEL_FEED=1 for
 		// the control run.
@@ -581,11 +593,19 @@ int main(int argc, char* argv[])
 		if (!analysisLayoutTestRequested && args.isEmpty() && w.isEmpty())
 			args = QStringList("config.txt");
 
+		if (parser.isSet(pluginLoadOption) && !SkinGallery::armPluginLoadProbe(w))
+			return 1;
 		for (const QString& arg : args)
 			w.load(configDir.absoluteFilePath(arg));
 
 		const bool firstRun = !firstRunHandled && VelopackBootstrap::isFirstRun();
-		if (parser.isSet(analysisLayoutOption))
+		if (parser.isSet(pluginLoadOption))
+		{
+			// Armed above, before the positional load, so a library load made
+			// before the event loop starts still counts as a UI gap. Skips
+			// doChecks like the other probes: a modal warning would stall them.
+		}
+		else if (parser.isSet(analysisLayoutOption))
 		{
 			// The probe itself lives with the other offscreen gates in
 			// Editor/gallery/GalleryProbes.cpp (audit #275 B7); it arms the timers and later
@@ -642,6 +662,11 @@ int main(int argc, char* argv[])
 		restart = w.shouldRestart();
 	}
 	while (restart);
+
+	// A plug-in load may still be running on the loader thread (closing the
+	// Editor during a slow first load). Let it finish before static
+	// destruction instead of racing it.
+	PluginLoadQueue::shutdown();
 
 	// The session owns the download worker. Join it before inspecting staged state so
 	// neither process shutdown nor static destruction can race with its publication.
