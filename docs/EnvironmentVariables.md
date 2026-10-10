@@ -22,6 +22,10 @@ them unset.
 - `EAPO_MOVE_LIMIT_MS` / `EAPO_MOVE_WARN_MS` — the same budget for the
   `--card-move-test` gate (a card move must not rebuild the whole list);
   `Invoke-EditorOffscreenTest.ps1` passes CI's values.
+- `EAPO_PLUGIN_LOAD_GAP_LIMIT_MS` — the longest pause of the UI thread's
+  20 ms timer the `--plugin-load-test` gate accepts while a slow fixture
+  plug-in loads (default 2000); `Invoke-EditorOffscreenTest.ps1` passes CI's
+  value.
 - `EAPO_STALL_SAMPLE_MS` — when a timed operation of the skin-switch or
   card-move gate runs longer than this many milliseconds, the gate samples
   the GUI thread's call stack until it ends and prints a `StallWatch:` report
