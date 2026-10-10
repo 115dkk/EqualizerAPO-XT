@@ -375,7 +375,9 @@ function Get-PluginOpenRecord([string] $name, $run) {
 }
 
 function Invoke-PluginCaptureOpen([string] $name, [switch] $Communications) {
-    $arguments = @("--capture-id", $endpoints.Capture, "--render-id", $endpoints.Render,
+    # By connection name, as Measure-Cable does: $endpoints holds bare GUIDs,
+    # and IMMDeviceEnumerator::GetDevice wants the full endpoint ID.
+    $arguments = @("--capture", $captureConnection, "--render", $renderConnection,
         "--seconds", "1", "--settle", "0.5", "--json")
     if ($Communications) { $arguments += @("--category", "communications") }
     $run = Invoke-Program $captureProbe $arguments 120
@@ -408,7 +410,7 @@ function Invoke-PluginLoadMeasurement([string] $label) {
     $watchProcess = $null
     $opens = @()
     try {
-        $watchProcess = Start-Process -FilePath $captureProbe -ArgumentList @("--render-id", $endpoints.Render, "--watch-render-opens", "$watchSeconds", "--stop-file", "`"$watchStop`"") `
+        $watchProcess = Start-Process -FilePath $captureProbe -ArgumentList @("--render", "`"$renderConnection`"", "--watch-render-opens", "$watchSeconds", "--stop-file", "`"$watchStop`"") `
             -PassThru -NoNewWindow -RedirectStandardOutput $watchOut -RedirectStandardError $watchErr
         Start-Sleep -Seconds 1
         $opens += Invoke-PluginCaptureOpen "open1"
