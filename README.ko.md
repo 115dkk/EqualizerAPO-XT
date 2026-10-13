@@ -200,6 +200,8 @@ ASIO is a trademark and software of Steinberg Media Technologies GmbH.
 
 **지금 모으는 돈:** EV 인증서, 딱 한 번 $359. 개인 BRIR로 헤드폰에서 Dolby Atmos를 듣는 새 앱의 드라이버를 Microsoft 서명으로 내기 위한 비용입니다. 이게 있으면 Secure Boot를 끄지 않고 설치되는 앱을 낼 수 있습니다. (현재 $0 / $359)
 
+**그 앱은 지금 개발 중입니다:** [spatial-audio-softreceiver](https://github.com/115dkk/spatial-audio-softreceiver)
+
 **초과분은 이렇게 씁니다:**
 
 - AI 구독료
