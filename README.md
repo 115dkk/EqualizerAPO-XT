@@ -221,6 +221,8 @@ If you like this program, spare a coin...
 app (personal-BRIR Dolby Atmos on headphones) be signed by Microsoft, so the
 app installs without turning off Secure Boot. ($0 / $359)
 
+**That app is in development right now:** [spatial-audio-softreceiver](https://github.com/115dkk/spatial-audio-softreceiver)
+
 **Anything beyond that goes to:**
 
 - AI subscriptions
