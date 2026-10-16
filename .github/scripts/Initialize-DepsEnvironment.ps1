@@ -76,7 +76,10 @@ foreach ($dependency in @(
 }
 
 foreach ($pair in $environment.GetEnumerator()) {
-    "$($pair.Key)=$($pair.Value)" >> $env:GITHUB_ENV
+    # Audit #422 TD-06: outside Actions there is no GITHUB_ENV; the variables
+    # are set on this process instead, so a local build can call the scripts.
+    if ($env:GITHUB_ENV) { "$($pair.Key)=$($pair.Value)" >> $env:GITHUB_ENV }
+    Set-Item -Path "env:$($pair.Key)" -Value $pair.Value
     Write-Host "$($pair.Key)=$($pair.Value)"
 }
 Write-Host "`nAll dependency paths configured successfully"

@@ -94,7 +94,7 @@ function Resolve-QtRoot {
 }
 
 $qtRoot = Resolve-QtRoot
-"QT_ROOT=$qtRoot" >> $env:GITHUB_ENV
+if ($env:GITHUB_ENV) { "QT_ROOT=$qtRoot" >> $env:GITHUB_ENV }
 $msbuildPath = (Get-Command msbuild).Source
 if ($Platform -eq "ARM64" -and $msbuildPath -notmatch '\\arm64\\') {
     throw "Expected native arm64 MSBuild, got $msbuildPath"
