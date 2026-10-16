@@ -186,7 +186,7 @@ ClientBin/
 node_modules/
 orleans.codegen.cs
 deps/
-Qt/
+/Qt/
 build-*/
 DeviceSelector/translations/DeviceSelector_*.qm
 
