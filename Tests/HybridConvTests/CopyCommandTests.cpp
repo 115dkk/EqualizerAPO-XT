@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "filters/CopyFilter.h"
+#include "platform/windows/TextEncoding.h"
 #include "Tests/TestHarness.h"
 
 using std::vector;
@@ -130,13 +131,13 @@ void expectRoundTrip(const wstring& parameters, const wstring& expected)
 	vector<Assignment> assignments = parseCopyAssignments(parameters);
 	wstring serialized = serializeCopyAssignments(assignments);
 	harness.expectTrue(serialized == expected,
-		"serialize(parse(\"" + std::string(parameters.begin(), parameters.end()) + "\")) mismatch");
+		"serialize(parse(\"" + wintext::toNarrowString(parameters, 65001u) + "\")) mismatch");
 
 	// A second parse/serialize cycle must be stable (the canonical form is a fixed
 	// point of the parser/serializer pair).
 	vector<Assignment> reparsed = parseCopyAssignments(serialized);
 	harness.expectTrue(serializeCopyAssignments(reparsed) == expected,
-		"second round-trip of \"" + std::string(parameters.begin(), parameters.end()) + "\" is not stable");
+		"second round-trip of \"" + wintext::toNarrowString(parameters, 65001u) + "\" is not stable");
 }
 
 void testSerializeRoundTrip()

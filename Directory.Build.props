@@ -46,6 +46,19 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <!--
+        Audit #422 TD-46: warnings fail the build in every MSBuild project,
+        products and suites alike. Headers under the dependency roots are
+        compiled as external and their warnings are switched off, so /WX
+        covers only the code this repository owns. A project that compiles a
+        dependency's .cpp directly turns /WX off for that one file.
+        /utf-8 makes the compiler read sources as UTF-8 whatever the build
+        machine's code page is; without it a Korean-locale build stops on
+        C4819 and a CI build turns a non-ASCII wide literal into mojibake.
+      -->
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <AdditionalOptions>/utf-8 /external:I "$(FFTW_INCLUDE)" /external:I "$(LIBSNDFILE_INCLUDE)" /external:I "$(MUPARSERX_INCLUDE)" /external:I "$(TCLAP_ROOT)" /external:I "$(VST3_SDK)" /external:I "$(HIGHWAY_INCLUDE)" /external:I "$(ASIO_SDK)" %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
   <!--

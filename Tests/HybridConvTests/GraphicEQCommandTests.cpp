@@ -18,6 +18,7 @@
 #include <string>
 
 #include "filters/GraphicEQCommand.h"
+#include "platform/windows/TextEncoding.h"
 #include "Tests/TestHarness.h"
 
 using std::wstring;
@@ -111,7 +112,7 @@ void expectRoundTrip(const wstring& parameters, const wstring& expected)
 {
 	GraphicEQCommand cmd = parse(parameters);
 	harness.expectTrue(cmd.serialize() == expected,
-		"serialize(parse(\"" + std::string(parameters.begin(), parameters.end()) + "\")) mismatch");
+		"serialize(parse(\"" + wintext::toNarrowString(parameters, 65001u) + "\")) mismatch");
 }
 
 void testSerializeRoundTrip()

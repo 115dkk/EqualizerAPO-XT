@@ -25,6 +25,7 @@
 #include <unordered_map>
 
 #include "filters/VSTPluginCommand.h"
+#include "platform/windows/TextEncoding.h"
 #include "Tests/TestHarness.h"
 
 using std::unordered_map;
@@ -164,11 +165,11 @@ void expectBodyRoundTrip(const wstring& parameters, const wstring& expectedBody)
 	VSTPluginCommand cmd = VSTPluginCommand::parse(L"", parameters);
 	wstring body = cmd.serialize();
 	harness.expectTrue(body == expectedBody,
-		"serialize(parse(...)) body mismatch for: " + std::string(parameters.begin(), parameters.end()));
+		"serialize(parse(...)) body mismatch for: " + wintext::toNarrowString(parameters, 65001u));
 
 	VSTPluginCommand reparsed = VSTPluginCommand::parse(L"", L"Library C:\\plugins\\reverb.dll" + body);
 	harness.expectTrue(reparsed.serialize() == expectedBody,
-		"second round trip not stable for: " + std::string(parameters.begin(), parameters.end()));
+		"second round trip not stable for: " + wintext::toNarrowString(parameters, 65001u));
 }
 
 void testSerializeRoundTrip()

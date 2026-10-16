@@ -106,8 +106,8 @@ int main(int argc, char** argv)
 		testAnalysisWorkerRecovery();
 		testFilterCardDescriptors();
 		testCardEditsKeepSwitchedOffLinesOff();
-	testSubwooferRoutingDescriptors();
-	testSubwooferRoutingCrossoverRecipes();
+		testSubwooferRoutingDescriptors();
+		testSubwooferRoutingCrossoverRecipes();
 		testFilterCardDepths();
 		testRowGuiPolicyRoutesEachLineShape();
 		testFilterCardBuildPlans();
