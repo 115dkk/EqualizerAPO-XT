@@ -7,16 +7,16 @@
 /*
 	Push button whose pixels belong to the active skin's DeviceSkinPainter.
 	The widget owns the feel that is common law across skins: interruptible
-	hover progress (150ms in / 110ms out, OutCubic) and the 0.96 press scale
-	painted about the centre - painters only decide what a button looks like,
-	not how it moves.
+	hover progress (150ms in / 110ms out, OutCubic; HoverProgress) and the
+	0.96 press scale painted about the centre - painters only decide what a
+	button looks like, not how it moves.
 */
 
 #pragma once
 
 #include <QPushButton>
 
-class QVariantAnimation;
+class HoverProgress;
 
 class SkinButton : public QPushButton
 {
@@ -33,9 +33,6 @@ protected:
 	void leaveEvent(QEvent* event) override;
 
 private:
-	void animateHover(double target, int duration);
-
 	bool primary;
-	double hoverValue = 0.0;
-	QVariantAnimation* hoverAnimation = nullptr;
+	HoverProgress* hover = nullptr;
 };

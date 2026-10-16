@@ -5,8 +5,8 @@
 */
 
 /*
-	See RackFilterPicker.h. The screw, the engraved printing and the panel
-	LEDs are the card chrome's own painters (RackSkinDetail).
+	See RackFilterPicker.h. The screw, the engraved printing, the panel LEDs
+	and the brushing grain are the card chrome's own painters (RackSkinDetail).
 */
 
 #include "RackFilterPicker.h"
@@ -40,9 +40,10 @@ enum RowKind
 	SectionRow = 1
 };
 
-// The engraved faceplate printing, the slotted screw and the panel LED are
-// the card chrome's own painters (RackSkinDetail).
+// The engraved faceplate printing, the slotted screw, the panel LED and the
+// brushing grain are the card chrome's own painters (RackSkinDetail).
 using RackSkinDetail::engraveText;
+using RackSkinDetail::paintBrushing;
 using RackSkinDetail::paintLed;
 using RackSkinDetail::paintScrew;
 
@@ -336,22 +337,10 @@ void RackFilterPickerView::paintEvent(QPaintEvent* event)
 	painter.setBrush(sheen);
 	painter.drawRoundedRect(r, radius, radius);
 
-	// Horizontal brushing grain (same construction as the card faceplates'):
-	// per-line ink variation with sparse polish lines, in logical coordinates
-	// so DPI scales the grain.
-	{
-		const uint seed = uint(qHash(QStringLiteral("module-select-brush")));
-		const int baseAlpha = 5;
-		QColor grain = RackPalette::BrushingGrain(dark);
-		for (qreal y = r.top() + 2; y < r.bottom() - 1; y += 2)
-		{
-			const uint h = (seed ^ uint(qRound(y * 7.0))) * 2654435761u;
-			const bool polish = (h >> 8) % 11u == 0;
-			grain.setAlpha(baseAlpha + int(h % 7u) + (polish ? 6 : 0));
-			painter.setPen(QPen(grain, 1));
-			painter.drawLine(QPointF(r.left() + 2, y), QPointF(r.right() - 2, y));
-		}
-	}
+	// Horizontal brushing grain, the card faceplates' own, at the picker's
+	// base alpha of 5 in both finishes.
+	paintBrushing(painter, r, RackPalette::BrushingGrain(dark), 5,
+		uint(qHash(QStringLiteral("module-select-brush"))));
 
 	// Machined plate edge: dark outline, lit top bezel, shadowed bottom.
 	painter.setBrush(Qt::NoBrush);

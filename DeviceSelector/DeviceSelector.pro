@@ -20,7 +20,9 @@ PRECOMPILED_HEADER = stdafx.h
 
 SOURCES += \
 	../platform/qt/QtAppBootstrap.cpp \
+	../platform/qt/HoverProgress.cpp \
 	../Editor/skins/SkinThemeData.cpp \
+	../Editor/skins/rack/RackSkinDetail.cpp \
 	main.cpp \
 	DeviceListDelegate.cpp \
 	DeviceSelector.cpp \
@@ -47,7 +49,11 @@ SOURCES += \
 
 HEADERS += \
 	../platform/qt/QtAppBootstrap.h \
+	../platform/qt/HoverProgress.h \
+	../platform/qt/ScrollBarPolicy.h \
 	../Editor/skins/SkinThemeData.h \
+	../Editor/skins/rack/RackSkinDetail.h \
+	../Editor/skins/rack/RackPalette.h \
 	DeviceListDelegate.h \
 	DeviceSelector.h \
 	DeviceTestDialog.h \

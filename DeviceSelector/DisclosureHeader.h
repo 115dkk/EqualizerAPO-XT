@@ -15,7 +15,7 @@
 
 #include <QWidget>
 
-class QVariantAnimation;
+class HoverProgress;
 
 class DisclosureHeader : public QWidget
 {
@@ -42,10 +42,7 @@ protected:
 	void leaveEvent(QEvent* event) override;
 
 private:
-	void animateHover(double target, int duration);
-
 	QString title;
 	bool open = false;
-	double hoverValue = 0.0;
-	QVariantAnimation* hoverAnimation = nullptr;
+	HoverProgress* hover = nullptr;
 };

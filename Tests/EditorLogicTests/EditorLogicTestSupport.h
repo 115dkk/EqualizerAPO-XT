@@ -141,3 +141,4 @@ void testAutoInstallerChecksumParsing();
 void testAutoInstallerFlagScan();
 void testInstallerUiModelStepTransitions();
 void testInstallerUiModelFormatting();
+void testHoverProgressSettlesAndRetargetsInPlace();

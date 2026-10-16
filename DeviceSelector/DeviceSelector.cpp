@@ -24,6 +24,7 @@
 #include <services/windows/WindowsService.h>
 #include "services/install/ApoRegistration.h"
 #include <platform/windows/Win32Resource.h>
+#include "platform/qt/ScrollBarPolicy.h"
 #include <QDir>
 #include <QPropertyAnimation>
 #include <QScreen>
@@ -195,9 +196,7 @@ void DeviceSelector::finishSetup()
 		wanted = wanted.boundedTo(onScreen->availableGeometry().size() - QSize(40, 80));
 	resize(wanted);
 
-	// workaround for Qt 6 to not initially have scrollbars despite correct dialog size
-	ui.deviceTreeWidget->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-	QTimer::singleShot(0, [&] {ui.deviceTreeWidget->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded); });
+	deferScrollBarPolicy(ui.deviceTreeWidget);
 }
 
 void DeviceSelector::addDevices(const std::vector<std::shared_ptr<AbstractAPOInfo>>& devices, QTreeWidgetItem* parentNode)

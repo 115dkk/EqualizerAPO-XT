@@ -123,6 +123,8 @@
     <ClCompile Include="AnalysisMeasurementTests.cpp" />
     <ClCompile Include="SubwooferRoutingDefaultsTests.cpp" />
     <ClCompile Include="FilterLineCardTests.cpp" />
+    <ClCompile Include="HoverProgressTests.cpp" />
+    <ClCompile Include="..\..\platform\qt\HoverProgress.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\FilterLineCard.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\FilterCardEditorRegistry.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\FilterCardEditorFactory.cpp" />
@@ -224,6 +226,7 @@
     <ClInclude Include="..\..\filters\BiQuad.h" />
     <ClInclude Include="..\..\filters\DeviceCommand.h" />
     <ClInclude Include="..\..\platform\windows\TextEncoding.h" />
+    <ClInclude Include="..\..\platform\qt\HoverProgress.h" />
     <ClInclude Include="..\..\services\update\UpdateSession.h" />
     <ClInclude Include="..\..\filters\BiQuadCommand.h" />
     <ClInclude Include="..\..\filters\ChannelCommand.h" />

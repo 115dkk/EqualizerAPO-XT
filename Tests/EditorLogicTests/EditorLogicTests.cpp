@@ -220,6 +220,7 @@ int main(int argc, char** argv)
 		testAutoInstallerFlagScan();
 		testInstallerUiModelStepTransitions();
 		testInstallerUiModelFormatting();
+		testHoverProgressSettlesAndRetargetsInPlace();
 
 		harness.report();
 		if (test::reportAlignedMemoryBalance("EditorLogicTests") != 0)
