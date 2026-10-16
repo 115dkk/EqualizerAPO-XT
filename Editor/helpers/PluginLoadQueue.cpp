@@ -16,7 +16,6 @@
 #include <vector>
 
 #include <QCoreApplication>
-#include <QElapsedTimer>
 #include <QEventLoop>
 #include <QMetaObject>
 #include <QObject>
@@ -265,12 +264,16 @@ bool PluginLoadQueue::waitForPendingLoads(int timeoutMs)
 	// posted by the loader thread wakes it, and the deadline timer bounds the
 	// wait) instead of polling with short sleeps. processEvents, not a nested
 	// QEventLoop, so deferred deletions behave as they did for the callers.
-	QElapsedTimer elapsed;
-	elapsed.start();
+	// The loop ends on the timer's own timeout: comparing a clock instead
+	// could see the single-shot fire just before the clock reaches the limit
+	// and then block with nothing left to wake it.
+	bool expired = false;
 	QTimer deadline;
 	deadline.setSingleShot(true);
+	deadline.setTimerType(Qt::PreciseTimer);
+	QObject::connect(&deadline, &QTimer::timeout, [&expired]() { expired = true; });
 	deadline.start(timeoutMs);
-	while (pendingCount() != 0 && elapsed.elapsed() < timeoutMs)
+	while (pendingCount() != 0 && !expired)
 		QCoreApplication::processEvents(QEventLoop::AllEvents | QEventLoop::WaitForMoreEvents);
 	return pendingCount() == 0;
 }

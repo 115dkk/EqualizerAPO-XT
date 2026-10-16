@@ -307,8 +307,16 @@ bool SkinGallery::armVstPanelFeedProbe(MainWindow& window, const QString& durati
 			std::fflush(nullptr);
 			std::_Exit(1);
 		}
-		VSTPluginSession::waitForPendingLoads(30000);
-		if (!QMetaObject::invokeMethod(card, "embedToggled", Qt::DirectConnection, Q_ARG(bool, true)))
+		// The wait pumps events, so anything that rebuilds the rows meanwhile
+		// (a skin switch) deletes the card found above.
+		const QPointer<VSTCardEditor> probedCard = card;
+		if (!VSTPluginSession::waitForPendingLoads(30000) || probedCard.isNull())
+		{
+			fprintf(stderr, "VstPanelFeedProbe: the plug-in load did not finish or its card went away\n");
+			std::fflush(nullptr);
+			std::_Exit(1);
+		}
+		if (!QMetaObject::invokeMethod(probedCard.data(), "embedToggled", Qt::DirectConnection, Q_ARG(bool, true)))
 		{
 			fprintf(stderr, "VstPanelFeedProbe: embed request failed\n");
 			std::fflush(nullptr);
