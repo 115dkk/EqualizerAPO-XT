@@ -855,6 +855,11 @@ namespace
 			link.close(std::move(producer));
 		}
 		harness.expectEqual(server.lingerMs(), eapo::asio::maxHostLingerMs, "a client linger is clamped to the documented maximum");
+		// The server counts a handoff after it finishes a connection, which
+		// can be after this thread's close returns; wait for the second one.
+		const ULONGLONG handoffDeadline = GetTickCount64() + 5000;
+		while (server.instanceHandoffs() < 2 && GetTickCount64() < handoffDeadline)
+			Sleep(1);
 		harness.expect(server.instanceHandoffs() >= 2, "each next pipe instance existed before the connected one closed");
 		server.requestStop();
 		serverThread.join();
