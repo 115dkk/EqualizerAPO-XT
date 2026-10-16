@@ -168,23 +168,14 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $toolset = if ("${{ inputs.runner }}" -eq "windows-2022") { "v143" } else { "v145" }
-          $buildParams = @(
-            "/m", "/p:Configuration=Release", "/p:Platform=x64", "/t:rebuild",
-            "/p:LIBSNDFILE_INCLUDE=$env:LIBSNDFILE_INCLUDE", "/p:LIBSNDFILE_LIB=$env:LIBSNDFILE_LIB",
-            "/p:FFTW_INCLUDE=$env:FFTW_INCLUDE", "/p:FFTW_LIB=$env:FFTW_LIB",
-            "/p:MUPARSERX_INCLUDE=$env:MUPARSERX_INCLUDE", "/p:MUPARSERX_LIB=$env:MUPARSERX_LIB",
-            "/p:TCLAP_ROOT=$env:TCLAP_ROOT", "/p:VST3_SDK=$env:VST3_SDK",
-            "/p:HIGHWAY_INCLUDE=$env:HIGHWAY_INCLUDE", "/p:PlatformToolset=$toolset",
-            "/p:PreferredToolArchitecture=x64"
-          )
-          foreach ($project in @(
-              "SubwooferRoutingCore\SubwooferRoutingCore.vcxproj",
-              "Common.vcxproj",
-              "Tests\TestVst3Plugin\TestVst3Plugin.vcxproj",
-              "Tests\VstPreviewProbe\VstPreviewProbe.vcxproj")) {
-            msbuild $project @buildParams
-            if ($LASTEXITCODE -ne 0) { throw "Build failed for $project" }
-          }
+          Import-Module "${{ github.workspace }}\.github\scripts\BuildModel.psm1" -Force
+          $projects = @(Get-EapoProjectGraph -Tag engine | ForEach-Object Path) +
+            @(Get-EapoProjectGraph -Name TestVst3Plugin, VstPreviewProbe | ForEach-Object Path)
+          $buildParams = Get-EapoMsBuildArguments -Platform x64 -PlatformToolset $toolset `
+            -ToolArchitecture x64 -Only @(
+              "LIBSNDFILE_INCLUDE", "LIBSNDFILE_LIB", "FFTW_INCLUDE", "FFTW_LIB",
+              "MUPARSERX_INCLUDE", "MUPARSERX_LIB", "TCLAP_ROOT", "VST3_SDK", "HIGHWAY_INCLUDE")
+          Invoke-EapoMsBuild -Project $projects -Arguments $buildParams
 
       # TestVst3Plugin selects its scenario by module filename; the two copies
       # are the monitor discriminator's fixtures.

@@ -16,6 +16,7 @@
 
 BeforeAll {
     $script:ScriptPath = (Resolve-Path (Join-Path $PSScriptRoot '..' 'Test-SourceSync.ps1')).Path
+    $script:SolutionPath = (Resolve-Path (Join-Path $PSScriptRoot '..' '..' '..' 'EqualizerAPO.sln')).Path
     $script:PwshExe = (Get-Process -Id $PID).Path
     $script:TempRoots = [System.Collections.Generic.List[string]]::new()
 
@@ -35,6 +36,9 @@ BeforeAll {
         $root = Join-Path ([System.IO.Path]::GetTempPath()) ("sourcesync-" + [guid]::NewGuid().ToString('N'))
         $script:TempRoots.Add($root)
         New-Item -ItemType Directory -Path (Join-Path $root 'Editor') -Force | Out-Null
+        # The solution check compares against BuildModel.psm1 beside the
+        # script, so the fixture carries the real solution file.
+        Copy-Item -LiteralPath $script:SolutionPath -Destination (Join-Path $root 'EqualizerAPO.sln')
 
         $allCommon = @($CommonSources)
         if (-not $SkipKnownOmissions) { $allCommon += $script:KnownOmissions }
@@ -307,6 +311,19 @@ Describe "Test-SourceSync.ps1" {
         $result = Invoke-SourceSync -RepoRoot $root
         $result.ExitCode | Should -Be 0
         $result.Output | Should -Match "at most one licence header and one SPDX licence"
+    }
+
+    It "fails when the solution and the build model list different projects" {
+        $root = New-FixtureRepo -CommonSources @('FilterEngine.cpp') -EditorSources @('../FilterEngine.cpp')
+        $solution = Join-Path $root 'EqualizerAPO.sln'
+        $text = [System.IO.File]::ReadAllText($solution)
+        $text = $text -replace '"Benchmark\\Benchmark\.vcxproj"', '"Tools\Renamed\Renamed.vcxproj"'
+        [System.IO.File]::WriteAllText($solution, $text)
+        $result = Invoke-SourceSync -RepoRoot $root
+
+        $result.ExitCode | Should -Not -Be 0
+        $result.Output | Should -Match ([regex]::Escape("Tools\Renamed\Renamed.vcxproj is in the solution but not in"))
+        $result.Output | Should -Match ([regex]::Escape("Benchmark\Benchmark.vcxproj is in the build model but not in EqualizerAPO.sln"))
     }
 
     It "refuses to pass when it could not read any ClCompile entry" {

@@ -305,3 +305,27 @@ if ($headerProblems.Count -gt 0) {
   throw "A source file carries a duplicated licence header or more than one SPDX licence."
 }
 Write-Host "All $($headerSources.Count) C++ sources carry at most one licence header and one SPDX licence."
+
+# Audit #422 T1/TD-47: EqualizerAPO.sln is kept for Visual Studio, but it
+# is a third list of the MSBuild projects. It must name exactly the projects
+# BuildModel.psm1 knows, or a project added to one silently misses the other.
+Import-Module (Join-Path $PSScriptRoot "BuildModel.psm1") -Force
+$solutionPath = Join-Path $RepoRoot "EqualizerAPO.sln"
+$solutionProjects = @([regex]::Matches((Get-Content -LiteralPath $solutionPath -Raw),
+    'Project\("\{[^}]+\}"\) = "[^"]+", "([^"]+\.vcxproj)"') | ForEach-Object { $_.Groups[1].Value })
+$modelProjects = @(Get-EapoProjectGraph | ForEach-Object Path)
+if ($solutionProjects.Count -eq 0) {
+  throw "No projects found in $solutionPath, so this lint checked nothing."
+}
+$onlyInSolution = @($solutionProjects | Where-Object { $modelProjects -notcontains $_ })
+$onlyInModel = @($modelProjects | Where-Object { $solutionProjects -notcontains $_ })
+foreach ($path in $onlyInSolution) {
+  Write-Host "::error file=EqualizerAPO.sln::$path is in the solution but not in .github/scripts/BuildModel.psm1."
+}
+foreach ($path in $onlyInModel) {
+  Write-Host "::error file=.github/scripts/BuildModel.psm1::$path is in the build model but not in EqualizerAPO.sln."
+}
+if ($onlyInSolution.Count -gt 0 -or $onlyInModel.Count -gt 0) {
+  throw "EqualizerAPO.sln and BuildModel.psm1 list different projects."
+}
+Write-Host "EqualizerAPO.sln and BuildModel.psm1 list the same $($modelProjects.Count) projects."
