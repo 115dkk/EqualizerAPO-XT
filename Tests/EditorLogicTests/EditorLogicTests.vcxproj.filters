@@ -101,6 +101,12 @@
     <ClCompile Include="FilterListModelTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CommandRowFactsTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Editor\widgets\CommandRowFacts.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="ChannelFlowTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

@@ -64,6 +64,12 @@
 #include "filters/DeviceCommand.h"
 #include "services/registry/WindowsRegistry.h"
 #include "FilterTable.h"
+#include "FilterTemplate.h"
+#include "IFilterGUI.h"
+#include "IFilterGUIFactory.h"
+#include "devices/DeviceAPOInfo.h"
+#include "Editor/widgets/FilterCardModel.h"
+#include "Editor/widgets/FilterPickerView.h"
 #include "Editor/widgets/FilterCardRow.h"
 #include "Editor/widgets/subwooferrouting/SubwooferRoutingDefaults.h"
 
@@ -85,6 +91,11 @@ vector<wstring> FilterTable::getChannelNames() const
 		channelNames = ChannelLayout::getChannelNames(selectedDevice->getChannelCount(), selectedChannelMask);
 
 	return channelNames;
+}
+
+unsigned FilterTable::deviceSampleRate() const
+{
+	return selectedDevice == nullptr ? 0 : selectedDevice->getSampleRate();
 }
 
 void FilterTable::propagateChannels()
@@ -580,9 +591,27 @@ bool FilterTable::chooseFilterTemplate(FilterTemplate* selectedTemplate, const Q
 }
 
 
-void FilterTable::updateModel()
+void FilterTable::notifyLineEdited()
 {
 	emit linesChanged();
+}
+
+void FilterTable::setLineText(Item* item, const QString& text)
+{
+	if (model.setText(item, text))
+		emit linesChanged();
+}
+
+void FilterTable::setLineEnabled(Item* item, bool enabled)
+{
+	if (model.setEnabled(item, enabled))
+		emit linesChanged();
+}
+
+void FilterTable::replaceLineCommand(Item* item, const QString& command, const QString& parameters)
+{
+	if (model.replaceCommand(item, command, parameters))
+		emit linesChanged();
 }
 
 void FilterTable::updateChannels()

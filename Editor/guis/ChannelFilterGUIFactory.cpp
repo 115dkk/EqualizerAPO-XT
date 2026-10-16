@@ -33,13 +33,6 @@ void ChannelFilterGUIFactory::initialize(FilterTable* filterTable)
 	this->filterTable = filterTable;
 }
 
-QList<FilterTemplate> ChannelFilterGUIFactory::createFilterTemplates()
-{
-	QList<FilterTemplate> list;
-	list.append(FilterTemplate(tr("Channel (Select channels)"), "Channel: all", QStringList(tr("Control"))));
-	return list;
-}
-
 IFilterGUI* ChannelFilterGUIFactory::createFilterGUI(QString& command, QString& parameters)
 {
 	ChannelFilterGUI* result = nullptr;

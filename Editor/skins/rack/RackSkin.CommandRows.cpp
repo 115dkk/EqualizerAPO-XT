@@ -42,84 +42,84 @@ QString unitLabel(const CommandRowInfo& info)
 
 QString RackSkin::cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const
 {
-		// QSS only provides the machined base plate and the hover brightening;
-		// the faceplate texture, ears, screws and LEDs are painted on top by
-		// paintCardChrome (the sheen overlays are translucent, so
-		// the hover state shines through them). The resting border is the dark
-		// seam of the rack opening rather than the token border, so stacked
-		// units separate physically; focus and selection keep their signal
-		// colours.
-		const bool dark = skinIsDark(tokens);
-		const QString seam = RackPalette::Seam.hex(dark);
-		// The engaged frame (selected or focused unit). In dark mode the full
-		// amber both popped and glared (maintainer, brightness round 2:
-		// "the border colour is the problem"); the judged replacement is a
-		// warm neutral - lamps, checked buttons and knob markers keep the
-		// accent. Light mode was not judged and keeps its accent frame.
-		const QString engaged = dark ? RackSkinDetail::darkEngagedFrame()
-			: (info.focused ? tokens.focusRing : tokens.accent);
-		const QString borderColor = info.focused || info.selected ? engaged : seam;
-		const QString background = info.selected ? tokens.cardSelected : tokens.card;
-		return QStringLiteral(
-			"QFrame#FilterCardRow { background: %1; border: 1px solid %2; border-radius: %3px; }"
-			"QFrame#FilterCardRow:hover { background: %4; }")
-			.arg(background, borderColor)
-			.arg(tokens.borderRadius)
-			.arg(info.selected ? tokens.cardSelected : tokens.cardHover);
-	}
+	// QSS only provides the machined base plate and the hover brightening;
+	// the faceplate texture, ears, screws and LEDs are painted on top by
+	// paintCardChrome (the sheen overlays are translucent, so
+	// the hover state shines through them). The resting border is the dark
+	// seam of the rack opening rather than the token border, so stacked
+	// units separate physically; focus and selection keep their signal
+	// colours.
+	const bool dark = skinIsDark(tokens);
+	const QString seam = RackPalette::Seam.hex(dark);
+	// The engaged frame (selected or focused unit). In dark mode the full
+	// amber both popped and glared (maintainer, brightness round 2:
+	// "the border colour is the problem"); the judged replacement is a
+	// warm neutral - lamps, checked buttons and knob markers keep the
+	// accent. Light mode was not judged and keeps its accent frame.
+	const QString engaged = dark ? RackSkinDetail::darkEngagedFrame()
+		: (info.focused ? tokens.focusRing : tokens.accent);
+	const QString borderColor = info.focused || info.selected ? engaged : seam;
+	const QString background = info.selected ? tokens.cardSelected : tokens.card;
+	return QStringLiteral(
+		"QFrame#FilterCardRow { background: %1; border: 1px solid %2; border-radius: %3px; }"
+		"QFrame#FilterCardRow:hover { background: %4; }")
+		.arg(background, borderColor)
+		.arg(tokens.borderRadius)
+		.arg(info.selected ? tokens.cardSelected : tokens.cardHover);
+}
 
 QString RackSkin::cardHeaderStyle(const CommandRowInfo&, const SkinTokens&) const
 {
-		// The header strip is part of the painted faceplate; a transparent
-		// background lets the brushed metal, ears and LEDs show through.
-		return QStringLiteral("QWidget#FilterCardHeader { background: transparent; }");
-	}
+	// The header strip is part of the painted faceplate; a transparent
+	// background lets the brushed metal, ears and LEDs show through.
+	return QStringLiteral("QWidget#FilterCardHeader { background: transparent; }");
+}
 
 void RackSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body,
 		const SkinTokens& tokens) const
 {
-		// Reserve the rack-ear zones along the faceplate edges so the painted
-		// chrome (screws, LEDs, patchbay jacks, the VST nameplate) never
-		// collides with row content. Rows are rebuilt on every skin switch, so
-		// this only ever runs while the rack skin is active.
-		if (header != nullptr && header->layout() != nullptr)
-		{
-			const int right = RackSkinDetail::EarWidth + 6
-				+ (info.type == QStringLiteral("vst") ? int(RackSkinDetail::NameplateWidth) + 14 : 0);
-			header->layout()->setContentsMargins(RackSkinDetail::EarWidth + 6, 4, right, 4);
-		}
-		// Only the modern card's body stack is inset; body-only consultations
-		// (Include/VST editors, legacy rows) already sit inside that stack.
-		if (card != nullptr && body != nullptr)
-			body->setContentsMargins(RackSkinDetail::EarWidth + 4, 0, RackSkinDetail::EarWidth + 4, 6);
+	// Reserve the rack-ear zones along the faceplate edges so the painted
+	// chrome (screws, LEDs, patchbay jacks, the VST nameplate) never
+	// collides with row content. Rows are rebuilt on every skin switch, so
+	// this only ever runs while the rack skin is active.
+	if (header != nullptr && header->layout() != nullptr)
+	{
+		const int right = RackSkinDetail::EarWidth + 6
+			+ (info.type == QStringLiteral("vst") ? int(RackSkinDetail::NameplateWidth) + 14 : 0);
+		header->layout()->setContentsMargins(RackSkinDetail::EarWidth + 6, 4, right, 4);
+	}
+	// Only the modern card's body stack is inset; body-only consultations
+	// (Include/VST editors, legacy rows) already sit inside that stack.
+	if (card != nullptr && body != nullptr)
+		body->setContentsMargins(RackSkinDetail::EarWidth + 4, 0, RackSkinDetail::EarWidth + 4, 6);
 
-		// Unparsed lines (bare text, programmatic commands like If) are the
-		// AUX unit's programming LCD: the as-written line burns in green
-		// segments in a dark recessed well, in both finishes - displays never
-		// follow the panel finish. The row widget seeds this label with an
-		// inline token style QSS cannot beat, so the display law is applied
-		// here, and a powered-down unit dims its segments at the same time
-		// (rows are rebuilt whenever the line's state changes).
-		if (FilterCardModel::hostsSharedRawBody(info.type, info.dynamicLine) && body != nullptr)
+	// Unparsed lines (bare text, programmatic commands like If) are the
+	// AUX unit's programming LCD: the as-written line burns in green
+	// segments in a dark recessed well, in both finishes - displays never
+	// follow the panel finish. The row widget seeds this label with an
+	// inline token style QSS cannot beat, so the display law is applied
+	// here, and a powered-down unit dims its segments at the same time
+	// (rows are rebuilt whenever the line's state changes).
+	if (FilterCardModel::hostsSharedRawBody(info.type, info.dynamicLine) && body != nullptr)
+	{
+		if (QLabel* raw = body->findChild<QLabel*>(QStringLiteral("FilterCardRawText")))
 		{
-			if (QLabel* raw = body->findChild<QLabel*>(QStringLiteral("FilterCardRawText")))
-			{
-				const SkinTokens& tk = tokens;
-				const bool dark = skinIsDark(tk);
-				const QString glass = RackPalette::LcdWindowGlass.hex(dark);
-				const QString segments = !info.enabled
-					? RackPalette::SegmentOff.hex(dark)
-					: RackPalette::SegmentBright.hex(dark);
-				const QString bezel = RackPalette::GlassBezel.hex(dark);
-				const QString lowerLip = RackPalette::GlassBezelLip.hex(dark);
-				raw->setStyleSheet(QStringLiteral(
-					"QLabel#FilterCardRawText { background:%1; color:%2;"
-					" border:1px solid %3; border-bottom-color:%4; border-radius:2px;"
-					" padding:6px 10px; font-family:\"%5\"; font-weight:700; }")
-					.arg(glass, segments, bezel, lowerLip, tk.monoFontFamily));
-			}
+			const SkinTokens& tk = tokens;
+			const bool dark = skinIsDark(tk);
+			const QString glass = RackPalette::LcdWindowGlass.hex(dark);
+			const QString segments = !info.enabled
+				? RackPalette::SegmentOff.hex(dark)
+				: RackPalette::SegmentBright.hex(dark);
+			const QString bezel = RackPalette::GlassBezel.hex(dark);
+			const QString lowerLip = RackPalette::GlassBezelLip.hex(dark);
+			raw->setStyleSheet(QStringLiteral(
+				"QLabel#FilterCardRawText { background:%1; color:%2;"
+				" border:1px solid %3; border-bottom-color:%4; border-radius:2px;"
+				" padding:6px 10px; font-family:\"%5\"; font-weight:700; }")
+				.arg(glass, segments, bezel, lowerLip, tk.monoFontFamily));
 		}
 	}
+}
 
 void RackSkin::paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info, const SkinTokens& tokens) const
 {
@@ -344,20 +344,18 @@ void RackSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Comma
 
 bool RackSkin::paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info, const SkinTokens& tokens) const
 {
-	const bool ifFamily = info.type == QStringLiteral("if");
-	const bool headRow = ifFamily && info.command == QStringLiteral("if");
-	const bool branchRow = ifFamily && (info.command == QStringLiteral("elseif") || info.command == QStringLiteral("else"));
-	const bool tailRow = ifFamily && info.command == QStringLiteral("endif");
+	const bool headRow = info.scopeRole == CommandRowInfo::ScopeRole::Head;
+	const bool branchRow = info.scopeRole == CommandRowInfo::ScopeRole::Branch;
+	const bool tailRow = info.scopeRole == CommandRowInfo::ScopeRole::Tail;
 	const int logic = info.logicDepth;
-	if (!headRow && logic <= 0)
+	if (info.scopeRole == CommandRowInfo::ScopeRole::None)
 		return false;
 
 	const bool dark = skinIsDark(tokens);
-	// Lane geometry from the row widget; see CommandRowInfo. The branch/tail
-	// rows' extra indent unit is already in laneCount.
+	// Lane and scope geometry from the row widget; see CommandRowInfo. The
+	// branch/tail rows' extra indent unit is already in laneCount.
 	const int h = size.height();
-	const int junctionY = 4 + tokens.rowHeight / 2;
-	const int indentUnits = info.laneCount;
+	const int junctionY = static_cast<int>(info.headerCenterY);
 	const int cardLeft = info.cardLeft;
 
 	// The gutter is machined hardware: the bus casing is the rack opening's
@@ -414,8 +412,7 @@ bool RackSkin::paintScopeGutter(QPainter& painter, const QSize& size, const Comm
 		painter.setPen(Qt::NoPen);
 	};
 
-	const int ifLevels = headRow ? logic : (branchRow || tailRow) ? logic - 1 : logic;
-	const int channelLevels = qMax(0, indentUnits - ifLevels - ((branchRow || tailRow) ? 1 : 0));
+	const int channelLevels = info.channelLaneCount;
 	for (int level = 0; level < channelLevels; level++)
 		channelRail(level);
 
@@ -465,8 +462,3 @@ bool RackSkin::paintScopeGutter(QPainter& painter, const QSize& size, const Comm
 	}
 	return true;
 }
-
-bool RackSkin::logicSiblingsIndentAsMembers() const
-{
-		return true;
-	}

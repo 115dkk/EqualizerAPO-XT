@@ -30,13 +30,6 @@ using std::list;
 using std::unordered_map;
 using std::wstring;
 
-QList<FilterTemplate> VSTPluginFilterGUIFactory::createFilterTemplates()
-{
-	QList<FilterTemplate> list;
-	list.append(FilterTemplate(tr("VST plugin"), "VSTPlugin:", QStringList(tr("Plugins"))));
-	return list;
-}
-
 IFilterGUI* VSTPluginFilterGUIFactory::createFilterGUI(QString& command, QString& parameters)
 {
 	VSTPluginFilterGUI* result = nullptr;

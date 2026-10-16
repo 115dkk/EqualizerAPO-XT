@@ -35,7 +35,6 @@ public:
 	~LoudnessCorrectionFilterGUIFactory() override;
 
 	void initialize(FilterTable* filterTable) override;
-	QList<FilterTemplate> createFilterTemplates() override;
 	IFilterGUI* createFilterGUI(QString& command, QString& parameters) override;
 
 private slots:

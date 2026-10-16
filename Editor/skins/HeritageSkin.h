@@ -35,6 +35,8 @@ public:
 	// Native toolbar and platform file dialog: the skin adds nothing.
 	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override;
 	void styleFileDialog(QFileDialog* dialog, const SkinTokens& tokens) const override;
+	// Native rows draw no scope lanes: branch rows align with their If head.
+	bool logicSiblingsIndentAsMembers() const override;
 };
 
 // The one instance, like the per-skin accessors in Skins.cpp.

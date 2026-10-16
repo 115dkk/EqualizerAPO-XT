@@ -941,9 +941,8 @@ bool SkinGallery::armAnalysisLatencyProbe(MainWindow& window, const QStringList&
 			return;
 		}
 		state->lowValue = !state->lowValue;
-		state->probeItem->text = state->lowValue
-			? QStringLiteral("Preamp: -0.1 dB") : QStringLiteral("Preamp: -0.2 dB");
-		state->table->updateModel();
+		state->table->setLineText(state->probeItem, state->lowValue
+			? QStringLiteral("Preamp: -0.1 dB") : QStringLiteral("Preamp: -0.2 dB"));
 	};
 
 	auto printSummary = [state]() {

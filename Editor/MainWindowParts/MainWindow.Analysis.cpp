@@ -42,6 +42,7 @@
 #include "FilterTable.h"
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
+#include "devices/DeviceAPOInfo.h"
 
 using std::find;
 using std::list;

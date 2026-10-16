@@ -357,6 +357,7 @@ SOURCES += main.cpp\
 	widgets/SegmentedControl.cpp \
 	widgets/FilterCardModel.cpp \
 	widgets/FilterRowGuiPolicy.cpp \
+	widgets/CommandRowFacts.cpp \
 	widgets/FilterCommandCatalog.cpp \
 	widgets/FilterCardRow.cpp \
 	widgets/ChannelFlow.cpp \
@@ -694,6 +695,8 @@ HEADERS  += \
 	widgets/SegmentedControl.h \
 	widgets/FilterCardModel.h \
 	widgets/FilterRowGuiPolicy.h \
+	widgets/CommandRowFacts.h \
+	widgets/CommandRowInfo.h \
 	widgets/FilterCommandCatalog.h \
 	widgets/FilterCardRow.h \
 	widgets/ChannelFlow.h \

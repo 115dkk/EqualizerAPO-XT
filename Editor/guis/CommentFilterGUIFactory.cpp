@@ -29,13 +29,6 @@ CommentFilterGUIFactory::CommentFilterGUIFactory()
 {
 }
 
-QList<FilterTemplate> CommentFilterGUIFactory::createFilterTemplates()
-{
-	QList<FilterTemplate> list;
-	list.append(FilterTemplate(tr("Comment"), "# ", QStringList()));
-	return list;
-}
-
 IFilterGUI* CommentFilterGUIFactory::createFilterGUI(QString& command, QString& parameters)
 {
 	lastWasComment = command.length() > 0 && command[0] == '#';

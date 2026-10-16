@@ -33,13 +33,6 @@ void CopyFilterGUIFactory::initialize(FilterTable* filterTable)
 	this->filterTable = filterTable;
 }
 
-QList<FilterTemplate> CopyFilterGUIFactory::createFilterTemplates()
-{
-	QList<FilterTemplate> list;
-	list.append(FilterTemplate(tr("Copy (Copy between channels)"), "Copy: ", QStringList(tr("Basic filters"))));
-	return list;
-}
-
 IFilterGUI* CopyFilterGUIFactory::createFilterGUI(QString& command, QString& parameters)
 {
 	CopyFilterGUI* result = nullptr;

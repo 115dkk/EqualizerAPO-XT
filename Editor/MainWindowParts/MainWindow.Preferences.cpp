@@ -41,6 +41,7 @@
 #include "SkinManager.h"
 #include "skins/SkinThemeData.h"
 #include "ui_MainWindow.h"
+#include "devices/DeviceAPOInfo.h"
 
 using std::find;
 using std::list;

@@ -26,6 +26,7 @@
 #include "Editor/widgets/ValueScrubBox.h"
 #include "FilterCardEditorRegistry.h"
 #include "filters/GraphicEQCommand.h"
+#include "Editor/widgets/FilterCardModel.h"
 
 using std::sort;
 using std::vector;

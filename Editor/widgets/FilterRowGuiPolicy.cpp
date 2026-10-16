@@ -33,12 +33,26 @@ RowGuiDecision decideRowGui(bool modernCards, const QString& line,
 
 	// Card editors take precedence over the legacy chain, so constructing a
 	// legacy GUI only to replace and delete it never happens for card-covered
-	// commands. Commented lines ("# ...") are not card-available under their
-	// written key and take the chain, where CommentFilterGUIFactory strips
-	// the '#'; the post-chain card retry then gives them the same card editor
-	// as their active form (a construction mechanic, not a decision).
+	// commands. The caller asks the card registry with rowGuiCardKey, so a
+	// commented line ("# Include: a.txt") is card-available exactly when its
+	// active form is, and the chain never runs for it.
 	if (modernCards && cardEditorAvailable)
 		return RowGuiDecision::CardEditor;
 
 	return RowGuiDecision::LegacyChain;
+}
+
+RowGuiCardKey rowGuiCardKey(bool modernCards, const QString& line)
+{
+	RowGuiCardKey key;
+	const int pos = line.indexOf(':');
+	if (pos == -1)
+		return key;
+
+	key.hasColon = true;
+	key.command = line.mid(0, pos).trimmed();
+	key.parameters = line.mid(pos + 1);
+	if (modernCards && key.command.startsWith('#'))
+		key.command = key.command.mid(1).trimmed();
+	return key;
 }

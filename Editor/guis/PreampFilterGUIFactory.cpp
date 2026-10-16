@@ -24,13 +24,6 @@
 
 REGISTER_FILTER_GUI_FACTORY(FilterGUIFactoryOrder::Preamp, PreampFilterGUIFactory)
 
-QList<FilterTemplate> PreampFilterGUIFactory::createFilterTemplates()
-{
-	QList<FilterTemplate> list;
-	list.append(FilterTemplate(tr("Preamp (Preamplification)"), "Preamp: 0 dB", QStringList(tr("Basic filters"))));
-	return list;
-}
-
 IFilterGUI* PreampFilterGUIFactory::createFilterGUI(QString& command, QString& parameters)
 {
 	PreampFilterGUI* result = nullptr;

@@ -102,6 +102,32 @@ public:
 	// drops focus/anchor if they pointed at a deleted item.
 	void deleteSelected();
 
+	// --- one line's text ---
+	//
+	// "This line's text changed" has one mutation: setText. Every edit of a
+	// single line (a card editor's store, the Copy routing view, the raw line
+	// editor, the enable toggle) arrives here, so the rules below are the
+	// document's and not three widgets'. A line nobody edits is never
+	// rewritten: hand-written 1.4.2 lines keep their spelling through
+	// open/save. Each returns false (mutating nothing) for an item outside
+	// the document. Selection state is not changed.
+
+	// Replaces the item's text verbatim (the raw line editor's write-back).
+	bool setText(FilterListItem* item, const QString& text);
+
+	// Switches the line on or off. Off prepends "# " to the line as written
+	// (indentation included); on removes the leading '#' and one following
+	// space, keeping any indentation before it. A line already in the asked
+	// state is left alone.
+	bool setEnabled(FilterListItem* item, bool enabled);
+
+	// Writes the line a card editor stored: FilterCardModel::assembleLine,
+	// which keeps a switched-off line off.
+	bool replaceCommand(FilterListItem* item, const QString& command, const QString& parameters);
+
+	// The text setEnabled writes, for a line as given.
+	static QString lineWithEnabled(const QString& line, bool enabled);
+
 	// --- selection ---
 
 	const QSet<FilterListItem*>& selected() const

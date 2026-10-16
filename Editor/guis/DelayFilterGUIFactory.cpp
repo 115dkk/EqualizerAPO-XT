@@ -28,17 +28,6 @@ DelayFilterGUIFactory::DelayFilterGUIFactory()
 {
 }
 
-QList<FilterTemplate> DelayFilterGUIFactory::createFilterTemplates()
-{
-	QList<FilterTemplate> list;
-	// Grouped with the all-pass rather than with the basic filters: a delay and
-	// an all-pass are the two commands that change when sound arrives without
-	// changing how loud it is, and they are what a user reaches for together
-	// when aligning drivers or correcting a crossover.
-	list.append(FilterTemplate(tr("Delay"), "Delay: 0 ms", QStringList(tr("Phase & Time"))));
-	return list;
-}
-
 IFilterGUI* DelayFilterGUIFactory::createFilterGUI(QString& command, QString& parameters)
 {
 	DelayFilterGUI* result = nullptr;

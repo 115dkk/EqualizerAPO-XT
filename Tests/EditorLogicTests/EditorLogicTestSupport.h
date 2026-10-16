@@ -30,6 +30,8 @@ void testCardEditsKeepSwitchedOffLinesOff();
 void testSubwooferRoutingDescriptors();
 void testSubwooferRoutingCrossoverRecipes();
 void testFilterCardDepths();
+void testCommandRowFacts();
+void testFilterListModelEditsOneLine();
 void testRowGuiPolicyRoutesEachLineShape();
 void testFilterCardBuildPlans();
 void testConfigImport();

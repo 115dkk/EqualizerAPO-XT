@@ -256,6 +256,55 @@ void testFilterListModel()
 
 // FilterListUndo: the widget-free undo/redo history FilterTable commits to on
 // every linesChanged tick.
+// D1 (audit #422): the single-line mutations every row edit goes through.
+void testFilterListModelEditsOneLine()
+{
+	FilterListModel model;
+	model.setLines(QList<QString>() << "Preamp:  -6   dB" << "\t# Preamp: -3 dB" << "#Preamp: x"
+		<< "\tPreamp: x" << "# Filter: ON PK Fc 100 Hz Gain 0 dB Q 1" << "Include: a.txt");
+	const QList<FilterListItem*> items = model.items();
+
+	// setText writes the text exactly as given; an untouched line keeps its
+	// hand-written spelling.
+	expectTrue(model.setText(items[5], "Include:   b.txt  "), "setText accepts a document item");
+	expectEqual(items[5]->text, "Include:   b.txt  ", "setText stores the text verbatim");
+	expectEqual(items[0]->text, "Preamp:  -6   dB", "a line nobody edited keeps its spelling");
+
+	// Switching on removes the '#' and one following space, keeping the
+	// indentation in front of it.
+	expectTrue(model.setEnabled(items[1], true), "setEnabled accepts a document item");
+	expectEqual(items[1]->text, "\tPreamp: -3 dB", "switching on keeps the indentation");
+	model.setEnabled(items[2], true);
+	expectEqual(items[2]->text, "Preamp: x", "switching on works without a space after '#'");
+	// Switching off prepends "# " to the line as written, indentation
+	// included (the spelling the toggle has always written).
+	model.setEnabled(items[3], false);
+	expectEqual(items[3]->text, "# \tPreamp: x", "switching off prepends '# ' before the indentation");
+	// A line already in the asked state is left alone.
+	model.setEnabled(items[0], true);
+	expectEqual(items[0]->text, "Preamp:  -6   dB", "switching on an active line changes nothing");
+	model.setEnabled(items[4], false);
+	expectEqual(items[4]->text, "# Filter: ON PK Fc 100 Hz Gain 0 dB Q 1", "switching off a commented line changes nothing");
+	expectEqual(FilterListModel::lineWithEnabled("# Delay: 5 ms", true), "Delay: 5 ms",
+		"lineWithEnabled is the rule setEnabled writes");
+	expectEqual(FilterListModel::lineWithEnabled(FilterListModel::lineWithEnabled("Delay: 5 ms", false), true),
+		"Delay: 5 ms", "off then on round-trips");
+
+	// A card edit keeps a switched-off line off.
+	model.replaceCommand(items[4], "Filter", "ON PK Fc 200 Hz Gain 1 dB Q 1");
+	expectEqual(items[4]->text, "# Filter: ON PK Fc 200 Hz Gain 1 dB Q 1", "a card edit of a switched-off line stays off");
+	model.replaceCommand(items[0], "Preamp", "-4 dB");
+	expectEqual(items[0]->text, "Preamp: -4 dB", "a card edit of an active line is assembled");
+
+	// An item outside the document is refused and nothing changes.
+	FilterListItem stranger("Preamp: 0 dB");
+	expectFalse(model.setText(&stranger, "Preamp: 1 dB"), "setText refuses an item outside the document");
+	expectFalse(model.setEnabled(&stranger, false), "setEnabled refuses an item outside the document");
+	expectFalse(model.replaceCommand(&stranger, "Preamp", "1 dB"), "replaceCommand refuses an item outside the document");
+	expectEqual(stranger.text, "Preamp: 0 dB", "a refused edit leaves the item alone");
+	requireFilterListModelInvariants(model, "single-line edits");
+}
+
 void testFilterListUndo()
 {
 	FilterListUndo history;

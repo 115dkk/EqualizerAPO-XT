@@ -40,6 +40,11 @@ void HeritageSkin::styleFileDialog(QFileDialog* dialog, const SkinTokens& tokens
 	Q_UNUSED(tokens);
 }
 
+bool HeritageSkin::logicSiblingsIndentAsMembers() const
+{
+	return false;
+}
+
 ISkin* heritageSkin()
 {
 	static HeritageSkin instance;

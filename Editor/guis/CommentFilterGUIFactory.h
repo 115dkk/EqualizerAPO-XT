@@ -28,7 +28,6 @@ class CommentFilterGUIFactory : public IFilterGUIFactory
 public:
 	CommentFilterGUIFactory();
 
-	QList<FilterTemplate> createFilterTemplates() override;
 
 	IFilterGUI* createFilterGUI(QString& command, QString& parameters) override;
 	IFilterGUI* decorateFilterGUI(IFilterGUI* gui) override;

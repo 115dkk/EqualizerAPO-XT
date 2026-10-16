@@ -11,8 +11,10 @@
 #include <vector>
 
 #include <QHash>
+#include <QRegularExpression>
 
 #include "FilterListModel.h"
+#include "FilterCardModel.h"
 
 // The mutation/selection semantics below mirror their FilterTable call sites
 // (FilterTable.Clipboard.cpp / FilterTable.Model.cpp / FilterTable.Mouse.cpp)
@@ -284,6 +286,47 @@ void FilterListModel::deleteSelected()
 	std::erase_if(ownedItems, [&removedItems](const auto& ownedItem) {
 		return removedItems.contains(ownedItem.get());
 	});
+}
+
+bool FilterListModel::setText(FilterListItem* item, const QString& text)
+{
+	if (item == nullptr || !itemList.contains(item))
+		return false;
+
+	item->text = text;
+	return true;
+}
+
+QString FilterListModel::lineWithEnabled(const QString& line, bool enabled)
+{
+	const bool commented = line.trimmed().startsWith('#');
+	if (enabled && commented)
+	{
+		static const QRegularExpression commentPrefix(QStringLiteral("^(\\s*)#\\s?"));
+		const QRegularExpressionMatch match = commentPrefix.match(line);
+		if (match.hasMatch())
+			return match.captured(1) + line.mid(match.capturedEnd(0));
+		return line;
+	}
+	if (!enabled && !commented)
+		return QStringLiteral("# ") + line;
+	return line;
+}
+
+bool FilterListModel::setEnabled(FilterListItem* item, bool enabled)
+{
+	if (item == nullptr || !itemList.contains(item))
+		return false;
+
+	return setText(item, lineWithEnabled(item->text, enabled));
+}
+
+bool FilterListModel::replaceCommand(FilterListItem* item, const QString& command, const QString& parameters)
+{
+	if (item == nullptr || !itemList.contains(item))
+		return false;
+
+	return setText(item, FilterCardModel::assembleLine(command, parameters, item->text));
 }
 
 void FilterListModel::selectOnly(FilterListItem* item)

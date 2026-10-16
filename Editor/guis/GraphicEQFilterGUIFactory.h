@@ -30,7 +30,6 @@ public:
 
 	void initialize(FilterTable* filterTable) override;
 
-	QList<FilterTemplate> createFilterTemplates() override;
 
 	void startOfFile(const QString& configPath) override;
 	IFilterGUI* createFilterGUI(QString& command, QString& parameters) override;

@@ -240,11 +240,10 @@ void SoftSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWid
 // innermost logicDepth bands after the depth-logicDepth channel bands.
 bool SoftSkin::paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info, const SkinTokens& tokens) const
 {
-	const bool ifFamily = info.type == QStringLiteral("if");
-	const bool headRow = ifFamily && info.command == QStringLiteral("if");
-	const bool tailRow = ifFamily && info.command == QStringLiteral("endif");
+	const bool headRow = info.scopeRole == CommandRowInfo::ScopeRole::Head;
+	const bool tailRow = info.scopeRole == CommandRowInfo::ScopeRole::Tail;
 	const int logic = info.logicDepth;
-	if (!headRow && logic <= 0)
+	if (info.scopeRole == CommandRowInfo::ScopeRole::None)
 		return false;
 
 	const QColor card(tokens.card);
@@ -254,13 +253,12 @@ bool SoftSkin::paintScopeGutter(QPainter& painter, const QSize& size, const Comm
 	const QColor arm = mixColor(accent, card, 0.25);
 	const QColor armResting = mixColor(accent, card, 0.78);
 
-	// Lane geometry from the row widget; see CommandRowInfo. The extra indent
-	// unit branch/tail rows mount with is already in laneCount, so the arm
-	// passes them instead of dying behind their full-width faces.
+	// Lane and scope geometry from the row widget; see CommandRowInfo. The
+	// extra indent unit branch/tail rows mount with is already in laneCount,
+	// so the arm passes them instead of dying behind their full-width faces.
 	const int unit = info.laneUnit;
 	const int h = size.height();
-	const int indentUnits = info.laneCount;
-	const int channelLevels = qMax(0, indentUnits - logic);
+	const int channelLevels = info.channelLaneCount;
 	const bool resting = !info.enabled || info.lineSkipped;
 
 	painter.setRenderHint(QPainter::Antialiasing);
@@ -312,7 +310,7 @@ bool SoftSkin::paintScopeGutter(QPainter& painter, const QSize& size, const Comm
 	{
 		// The arm ends here: the bar falls to the row's centre line and
 		// closes with its stadium cap.
-		const qreal capY = 4.0 + tokens.rowHeight / 2.0;
+		const qreal capY = info.headerCenterY;
 		painter.setBrush(resting ? armResting : arm);
 		painter.drawRoundedRect(QRectF(laneX(ownLevel), -4.0, 4.0, capY + 4.0), 2.0, 2.0);
 	}
@@ -322,13 +320,5 @@ bool SoftSkin::paintScopeGutter(QPainter& painter, const QSize& size, const Comm
 		// swallowed line relaxes only its own stretch.
 		runBar(ownLevel, resting ? armResting : arm);
 	}
-	return true;
-}
-
-// ElseIf/Else/EndIf mount one indent unit past their head, with the
-// members, so the pastel arm passes them instead of dying behind their
-// full-width faces.
-bool SoftSkin::logicSiblingsIndentAsMembers() const
-{
 	return true;
 }

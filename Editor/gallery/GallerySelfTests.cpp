@@ -120,6 +120,7 @@
 #include "Editor/widgets/subwooferrouting/SubwooferRoutingEditorDialog.h"
 #include "Editor/widgets/cards/SubwooferRoutingCardEditor.h"
 #include "Editor/widgets/routing/IRoutingRenderer.h"
+#include "devices/DeviceAPOInfo.h"
 
 using namespace SkinGalleryDetail;
 

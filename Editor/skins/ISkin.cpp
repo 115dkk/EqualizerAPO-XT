@@ -163,8 +163,10 @@ bool ISkin::paintScopeGutter(QPainter&, const QSize&, const CommandRowInfo&, con
 
 bool ISkin::logicSiblingsIndentAsMembers() const
 {
-	// Neutral default: ElseIf/Else/EndIf align with their If head.
-	return false;
+	// Default: ElseIf/Else/EndIf indent with the block members, so a scope
+	// lane in the gutter passes them (Rack, Studio, Matrix, Soft). Minimal
+	// and Heritage answer false.
+	return true;
 }
 
 void ISkin::paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const

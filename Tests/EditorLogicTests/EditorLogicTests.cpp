@@ -195,6 +195,8 @@ int main(int argc, char** argv)
 		testPanelMonitorGateClosesAndRearms();
 		testPanelMonitorGateInterruptedArmStartsOver();
 		testFilterListModel();
+		testFilterListModelEditsOneLine();
+		testCommandRowFacts();
 		testFilterListUndo();
 		testFilterCommandCatalogRoster();
 		testFilterCommandCatalogIconsExistOnDisk();

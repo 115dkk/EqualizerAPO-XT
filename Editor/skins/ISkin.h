@@ -24,6 +24,7 @@
 
 #include "Editor/SkinTokens.h"
 #include "Editor/analysis/AnalysisMetric.h"
+#include "Editor/widgets/CommandRowInfo.h"
 
 class FilterPickerView;
 class IRoutingRenderer;
@@ -33,92 +34,6 @@ class QToolBar;
 class QWidget;
 class ReferenceCardView;
 class SubwooferRoutingCardView;
-
-// Identifies a command row for per-command-type chrome decisions.
-struct CommandRowInfo
-{
-	// FilterCardModel descriptor type ("biquad", "include", "vst", "copy", ...).
-	QString type;
-	// Lower-cased command token ("filter 1", "include", "vstplugin", ...);
-	// matches the "filterKind" dynamic property the card row already sets.
-	QString command;
-	// True when the consulting widget belongs to the frozen legacy row path
-	// (FilterTableRow and the .ui-based filter GUIs it hosts).
-	bool legacyRow = false;
-	bool enabled = true;
-	bool selected = false;
-	bool focused = false;
-	// True while the cursor is over the row. Populated at paint time by
-	// CommandRowFrame for ISkin::paintCardChrome; the construction-time hooks
-	// (prepareCommandRow) always see false.
-	bool hovered = false;
-	int depth = 0;
-	// Number of If scopes the row lives inside (FilterCardRowScope::logic):
-	// ElseIf/Else/EndIf rows count the scope they branch/close, the If head
-	// counts only the scopes above its own. Lets a skin draw If-block rails
-	// through branch rows and terminate them on the EndIf row, independent of
-	// the channel-group indent that depth carries.
-	int logicDepth = 0;
-	// LANE GEOMETRY, resolved by the row widget that owns the layout.
-	//
-	// Four skins used to recompute the same three expressions from depth,
-	// logicDepth and tokens.channelGroupIndent - the card's left edge, the centre
-	// of an indent band, and the "branch and tail rows mount one unit deeper"
-	// rule. The arithmetic is not a design decision, and having it in four places
-	// meant a change to the indent could move the card face without moving the
-	// lanes drawn beside it. A skin now answers what a lane looks like; where it
-	// is comes with the row.
-	//
-	// laneUnit is one indent band's width, laneCount how many bands are drawn to
-	// the left of the card face, and cardLeft the x the face starts at. All in
-	// row-widget coordinates, which is the space paintScopeGutter paints in.
-	int laneUnit = 0;
-	int laneCount = 0;
-	int cardLeft = 0;
-
-	// Centre of the given indent band, 0-based from the outermost. What a rail or
-	// a scope lane is drawn on.
-	int laneCenter(int level) const
-	{
-		return cardLeft - (laneCount - level) * laneUnit + laneUnit / 2;
-	}
-	// Facts from the analysis engine's most recent configuration load
-	// (ConfigLoadTrace), advisory only - they go stale between an edit and
-	// the next analysis run. branchState applies to If-family rows:
-	// -1 = unknown (no analysis yet), 0 = condition false / dead branch,
-	// 1 = branch taken, 2 = not evaluated (chain already satisfied),
-	// 3 = evaluation error.
-	int branchState = -1;
-	// True when a false branch swallowed this line on the last load.
-	bool lineSkipped = false;
-	// Eval result or the substituted inline-expression parameter text
-	// (empty when unknown); valueError marks a parser failure.
-	QString evalText;
-	bool valueError = false;
-	// Why the last analysis run could not use this line's parameters, straight
-	// from the factory that owns the command, or empty when it was fine. A row
-	// with this set is one the engine skipped, which until now looked exactly
-	// like a note somebody typed.
-	//
-	// No skin paints it yet: a per-skin treatment for it is a design decision and
-	// belongs in a round with the gallery gate. The card carries it as a tooltip
-	// in the meantime, which is not a skin surface.
-	QString parseError;
-	// The engine could not prepare this line's filter (it threw while being set
-	// up), so the whole configuration was not applied and the previous one keeps
-	// playing. Like parseError, the card carries it as a tooltip for now.
-	bool setupFailed = false;
-	// True when the line's parameters carry inline `expression` segments, so
-	// its numbers are decided at load time. Rows without a dynamic-capable
-	// editor host the shared raw body; skins extend their raw-body styling
-	// to these rows through this flag.
-	bool dynamicLine = false;
-	// A short fact the body editor posts for the chrome once it has loaded
-	// its subject: the VST card posts the loaded ABI ("VST3"/"VST2") through
-	// the row's rowFormatTag dynamic property, and CommandRowFrame samples
-	// it at paint time (like hovered). Empty until the subject loaded.
-	QString formatTag;
-};
 
 // One value object owns both halves of the type-badge treatment.  Keeping the
 // stylesheet and pictogram ink together prevents a skin from changing one
@@ -511,8 +426,10 @@ public:
 	// Layout policy for the If family's branch/tail rows (ElseIf/Else/EndIf):
 	// true indents them with the block members (logicDepth) instead of at
 	// their head's level, so a painted scope lane in the gutter passes them
-	// visibly instead of dying behind their full-width faces. Default:
-	// false - semantic indentation, branch rows align with their If head.
+	// visibly instead of dying behind their full-width faces. Default: true,
+	// the answer of every skin that draws scope lanes; a skin that keeps
+	// semantic indentation (branch rows aligned with their If head) answers
+	// false.
 	virtual bool logicSiblingsIndentAsMembers() const;
 
 	// The persistent "add card" row at the end of the filter list (shared

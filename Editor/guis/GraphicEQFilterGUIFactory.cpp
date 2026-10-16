@@ -34,26 +34,6 @@ void GraphicEQFilterGUIFactory::initialize(FilterTable* filterTable)
 	this->filterTable = filterTable;
 }
 
-QList<FilterTemplate> GraphicEQFilterGUIFactory::createFilterTemplates()
-{
-	// Audit #250 F023: the ISO band standards used to exist twice - as the
-	// plot's data vectors and as hand-typed template strings - with nothing
-	// checking they agree. Generate the templates from the one band table.
-	auto bandTemplate = [](const std::vector<double>& bands)
-	{
-		QStringList terms;
-		for (const double frequency : bands)
-			terms.append(QStringLiteral("%1 0").arg(frequency));
-		return QStringLiteral("GraphicEQ: ") + terms.join(QStringLiteral("; "));
-	};
-
-	QList<FilterTemplate> list;
-	list.append(FilterTemplate(tr("15-band graphic equalizer"), bandTemplate(FrequencyPlotScene::getBands(15)), QStringList(tr("Graphic equalizers"))));
-	list.append(FilterTemplate(tr("31-band graphic equalizer"), bandTemplate(FrequencyPlotScene::getBands(31)), QStringList(tr("Graphic equalizers"))));
-	list.append(FilterTemplate(tr("Graphic equalizer with variable bands"), "GraphicEQ: ", QStringList(tr("Graphic equalizers"))));
-	return list;
-}
-
 void GraphicEQFilterGUIFactory::startOfFile(const QString& configPath)
 {
 	this->configPath = configPath;

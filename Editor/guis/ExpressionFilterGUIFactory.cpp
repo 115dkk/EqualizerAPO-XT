@@ -22,24 +22,6 @@
 
 REGISTER_FILTER_GUI_FACTORY(FilterGUIFactoryOrder::Expression, ExpressionFilterGUIFactory)
 
-QList<FilterTemplate> ExpressionFilterGUIFactory::createFilterTemplates()
-{
-	// The programmatic vocabulary the expression parser owns. Eval files
-	// under Control next to Include and Channel; the If family gets its own
-	// Branching section, which closes the catalog after Control - the
-	// listing order here (Eval before the If family) is what puts Control
-	// ahead of Branching among the trailing sections, so keep it.
-	QStringList controlPath(tr("Control"));
-	QStringList branchingPath(tr("Branching"));
-	QList<FilterTemplate> list;
-	list.append(FilterTemplate(tr("Eval (Evaluate expression)"), "Eval: ", controlPath));
-	list.append(FilterTemplate(tr("If (Begin conditional section)"), "If: ", branchingPath));
-	list.append(FilterTemplate(tr("ElseIf (Alternative condition)"), "ElseIf: ", branchingPath));
-	list.append(FilterTemplate(tr("Else (Fallback section)"), "Else:", branchingPath));
-	list.append(FilterTemplate(tr("EndIf (End conditional section)"), "EndIf:", branchingPath));
-	return list;
-}
-
 IFilterGUI* ExpressionFilterGUIFactory::createFilterGUI(QString& command, QString& parameters)
 {
 	// do not create a gui if parameters contain expressions

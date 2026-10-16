@@ -31,9 +31,7 @@ namespace
 {
 unsigned tableSampleRate(FilterTable* table)
 {
-	const std::shared_ptr<AbstractAPOInfo> device =
-		table == nullptr ? nullptr : table->getSelectedDevice();
-	const unsigned value = device == nullptr ? 0 : device->getSampleRate();
+	const unsigned value = table == nullptr ? 0 : table->deviceSampleRate();
 	return value == 0 ? 48000 : value;
 }
 

@@ -113,6 +113,7 @@
 #include "Editor/widgets/subwooferrouting/SubwooferRoutingEditorDialog.h"
 #include "Editor/widgets/cards/SubwooferRoutingCardEditor.h"
 #include "Editor/widgets/routing/IRoutingRenderer.h"
+#include "Editor/FilterTemplate.h"
 
 using namespace SkinGalleryDetail;
 

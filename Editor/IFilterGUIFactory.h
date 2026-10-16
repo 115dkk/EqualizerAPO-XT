@@ -19,7 +19,6 @@
 
 #pragma once
 
-#include "FilterTemplate.h"
 #include "IFilterGUI.h"
 
 class FilterTable;
@@ -32,23 +31,6 @@ public:
 	virtual ~IFilterGUIFactory();
 
 	virtual void initialize(FilterTable* filterTable) {}
-
-	virtual QList<FilterTemplate> createFilterTemplates()
-	{
-		return QList<FilterTemplate>();
-	}
-
-	// Catalog ordering hint: true sends this factory's template sections to
-	// the END of the picker/menu, together with every template sharing their
-	// categories; among the demoted sections the factory's own listing order
-	// decides (Control before Branching). The Expression factory uses it so
-	// the programmatic vocabulary does not lead the catalog just because its
-	// factory order (0, load-bearing for the backtick suppression) runs
-	// first - processing filters come first, structure last.
-	virtual bool templatesSortLast() const
-	{
-		return false;
-	}
 
 	virtual void startOfFile(const QString& configPath) {}
 	virtual IFilterGUI* createFilterGUI(QString& command, QString& parameters) = 0;

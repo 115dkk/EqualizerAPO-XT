@@ -23,13 +23,6 @@
 
 REGISTER_FILTER_GUI_FACTORY(FilterGUIFactoryOrder::Stage, StageFilterGUIFactory)
 
-QList<FilterTemplate> StageFilterGUIFactory::createFilterTemplates()
-{
-	QList<FilterTemplate> list;
-	list.append(FilterTemplate(tr("Stage (Select processing stage)"), "Stage: post-mix", QStringList(tr("Control"))));
-	return list;
-}
-
 IFilterGUI* StageFilterGUIFactory::createFilterGUI(QString& command, QString& parameters)
 {
 	StageFilterGUI* result = nullptr;

@@ -32,21 +32,27 @@
 #include <QJsonObject>
 #include <QVector>
 
+// Complete types only where FilterTable holds them by value: the load-trace
+// map, the document model and its undo history. Everything else this header
+// names goes by pointer, reference or return type and is declared below, so
+// the card editors that take a FilterTable* do not compile the card model,
+// the picker, the device classes and the legacy factory interfaces.
 #include "engine/ConfigLoadTrace.h"
 #include "Editor/helpers/DisableWheelFilter.h"
-#include "Editor/widgets/FilterCardModel.h"
 #include "Editor/widgets/FilterListModel.h"
 #include "Editor/widgets/FilterListUndo.h"
-#include "Editor/widgets/FilterPickerView.h"
-#include "devices/DeviceAPOInfo.h"
-#include "FilterTemplate.h"
-#include "IFilterGUI.h"
-#include "IFilterGUIFactory.h"
 
+class AbstractAPOInfo;
 class AddCardRow;
 class FilterInsertSeam;
+class FilterTemplate;
+class IFilterGUI;
+class IFilterGUIFactory;
 class MainWindow;
 class QMimeData;
+struct FilterCardDescriptor;
+struct FilterCardRowScope;
+struct FilterPickerEntry;
 
 // FilterTable's implementation is split across several translation units (all
 // listed in Editor.pro SOURCES). When looking for a method, check the matching
@@ -100,6 +106,12 @@ public:
 	// Empty when no device is selected. Used both to configure the legacy filter
 	// GUIs and to seed the modern card routing editors with the real channel set.
 	std::vector<std::wstring> getChannelNames() const;
+	// The selected device's sample rate in Hz, or 0 when no device is selected
+	// or the device does not report one. Each consumer keeps its own answer
+	// for 0 (the Hilbert latency readout assumes 48 kHz, the subwoofer
+	// routing card skips its device checks, the convolution card skips the
+	// rate comparison).
+	unsigned deviceSampleRate() const;
 	QList<QString> getLines();
 	void setLines(const QString& configPath, const QList<QString>& lines);
 	// The document items in order. The offscreen gates drive moveRows through
@@ -124,6 +136,13 @@ public:
 	// themselves through addLine's insert-before contract.
 	Item* itemAfter(Item* item) const;
 	void removeItem(Item* item);
+	// One line's text changed: the document's single-line mutations
+	// (FilterListModel::setText and the two rules built on it), each followed
+	// by linesChanged. A row widget forwards its edit here instead of writing
+	// item->text itself; deferring its own rebuild stays the row's business.
+	void setLineText(Item* item, const QString& text);
+	void setLineEnabled(Item* item, bool enabled);
+	void replaceLineCommand(Item* item, const QString& command, const QString& parameters);
 	QMenu* createAddPopupMenu();
 	// Every insertable template flattened from the factories and grouped by
 	// category (first-seen order; factory order within a category, matching
@@ -195,7 +214,10 @@ signals:
 	void analysisUpdateRequested();
 
 public slots:
-	void updateModel();
+	// Announces an edit already written into the document (linesChanged).
+	// The legacy filter GUIs' updateModel signal lands here after their row
+	// stored the line.
+	void notifyLineEdited();
 	void updateChannels();
 	void addActionTriggered();
 
@@ -225,6 +247,19 @@ private:
 	// decorator gating). Shared by updateGuis() and updateSingleRowGui() so
 	// policy edits happen once.
 	IFilterGUI* createRowGui(const QString& line, const FilterCardDescriptor* preparedDescriptor = nullptr);
+	// Where updateGuis spends its row time, for its trace line.
+	struct RowBuildTiming
+	{
+		qint64 guiNs = 0;
+		qint64 rowCtorNs = 0;
+		qint64 addNs = 0;
+	};
+	// Builds the row for the document item at index into grid row index: the
+	// row GUI (createRowGui), the row widget for the render mode, the item's
+	// GUI preferences and the GUI's signal connections. The one construction
+	// updateGuis, updateSingleRowGui and insertRowAt share; descriptor is the
+	// card row's presentation (unused in LegacyRows).
+	QWidget* buildRow(int index, Item* item, FilterCardDescriptor descriptor, RowBuildTiming* timing = nullptr);
 	// Inserts the mime data's lines at dropRow and makes them the selection.
 	// Shared by paste() and dropEvent(). Returns the number of inserted lines
 	// so the callers can take the incremental single-row path.

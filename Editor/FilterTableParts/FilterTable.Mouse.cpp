@@ -29,6 +29,12 @@
 #include "audio/ChannelLayout.h"
 #include "services/registry/WindowsRegistry.h"
 #include "FilterTable.h"
+#include "FilterTemplate.h"
+#include "IFilterGUI.h"
+#include "IFilterGUIFactory.h"
+#include "devices/DeviceAPOInfo.h"
+#include "Editor/widgets/FilterCardModel.h"
+#include "Editor/widgets/FilterPickerView.h"
 #include "Editor/widgets/FilterCardRow.h"
 
 using std::list;
