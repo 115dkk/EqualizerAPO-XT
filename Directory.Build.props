@@ -42,7 +42,12 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <!-- The C++ standard mode is set once here for every MSBuild project. -->
+      <!--
+        The C++ standard mode is set once here for every MSBuild project.
+        /std:c++20 also turns on /permissive- (MSVC 16.11 and later), so no
+        project sets ConformanceMode; Test-VariantSync.ps1 fails on one that
+        does (audit #422 TD-05).
+      -->
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>

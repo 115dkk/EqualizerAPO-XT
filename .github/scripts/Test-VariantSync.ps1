@@ -73,7 +73,7 @@ Write-Host "The other $($otherInstallerSources.Count) installer sources name onl
 # silently beats both, which is how a Debug|x64 Benchmark once ignored every
 # /p: override. Fail on any such literal.
 $projectFiles = @(Get-ChildItem -Path $RepoRoot -Recurse -Filter *.vcxproj -File |
-  Where-Object { $_.FullName -notmatch '[\\/](deps|build-[^\\/]+|\.claude|\.codex-worktrees)[\\/]' })
+  Where-Object { $_.FullName -notmatch '[\\/](deps|_deps|build|build-[^\\/]+|\.claude|\.codex-worktrees)[\\/]' })
 $offenders = @()
 foreach ($project in $projectFiles) {
   $content = Get-Content -Path $project.FullName -Raw
@@ -117,3 +117,37 @@ if ($contractOffenders.Count -gt 0) {
 }
 
 Write-Host "No project file outside Common.vcxproj copies the engine link contract of EngineConsumer.props."
+
+# Audit #422 TD-05: a project states its compile and link settings once per
+# configuration. The six '$(Configuration)|$(Platform)' copies Visual Studio
+# writes had drifted (conformance mode in four of Common.vcxproj's six groups,
+# SDLCheck missing from the APO's Debug|ARM64); a real platform difference goes
+# in a delta group conditioned on '$(Platform)'. The language mode has one owner
+# too: /std:c++20 from Directory.Build.props, which also turns on /permissive-,
+# so a per-project ConformanceMode or C standard only restates or overrides it.
+# A single ClCompile item may still pin its own LanguageStandard
+# (EngineOrchestrationTests' SampleIoTests.cpp does, for a calibrated bar).
+$configPlatformGroup = '<ItemDefinitionGroup Condition="''$(Configuration)|$(Platform)''=='
+$languageLiterals = @('<ConformanceMode>', '<LanguageStandard_C>', '<LanguageStandard>')
+$shapeOffenders = @()
+foreach ($project in $projectFiles) {
+  $content = [regex]::Replace((Get-Content -Path $project.FullName -Raw), '<!--.*?-->', '',
+    [System.Text.RegularExpressions.RegexOptions]::Singleline)
+  $outsideItems = [regex]::Replace($content, '<ClCompile Include="[^"]*">.*?</ClCompile>', '',
+    [System.Text.RegularExpressions.RegexOptions]::Singleline)
+  $found = @()
+  if ($content.Contains($configPlatformGroup)) { $found += 'a per-configuration-and-platform ItemDefinitionGroup' }
+  $found += @($languageLiterals | Where-Object { $outsideItems.Contains($_) })
+  if ($found.Count -gt 0) {
+    $relative = $project.FullName.Substring($RepoRoot.Length).TrimStart('\', '/')
+    $shapeOffenders += "$relative ($($found -join ', '))"
+  }
+}
+if ($shapeOffenders.Count -gt 0) {
+  foreach ($offender in $shapeOffenders) {
+    Write-Host "::error file=$($offender.Split(' ')[0])::Project setting shape: $offender. Write one ItemDefinitionGroup per configuration, put platform differences in a '`$(Platform)' delta group, and leave the language mode to Directory.Build.props."
+  }
+  throw "Project files repeat settings per configuration and platform or restate the language mode."
+}
+
+Write-Host "Every project states its settings per configuration and leaves the language mode to Directory.Build.props."

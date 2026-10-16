@@ -132,4 +132,31 @@ Describe "Test-VariantSync.ps1" {
         $result.ExitCode | Should -Not -Be 0
         $result.Output | Should -Match "Engine link contract spelled in a project file"
     }
+
+    It "fails on a per-configuration-and-platform ItemDefinitionGroup" {
+        $root = New-VariantFixture $script:Channels
+        New-Item -ItemType Directory -Force -Path (Join-Path $root "Tool") | Out-Null
+        Set-Content -LiteralPath (Join-Path $root "Tool" "Tool.vcxproj") -Value "<Project><ItemDefinitionGroup Condition=`"'`$(Configuration)|`$(Platform)'=='Release|x64'`"><ClCompile /></ItemDefinitionGroup></Project>"
+        $result = Invoke-VariantSync $root
+        $result.ExitCode | Should -Not -Be 0
+        $result.Output | Should -Match "a per-configuration-and-platform ItemDefinitionGroup"
+    }
+
+    It "fails on a project-wide ConformanceMode" {
+        $root = New-VariantFixture $script:Channels
+        New-Item -ItemType Directory -Force -Path (Join-Path $root "Tool") | Out-Null
+        Set-Content -LiteralPath (Join-Path $root "Tool" "Tool.vcxproj") -Value "<Project><ItemDefinitionGroup Condition=`"'`$(Configuration)'=='Release'`"><ClCompile><ConformanceMode>true</ConformanceMode></ClCompile></ItemDefinitionGroup></Project>"
+        $result = Invoke-VariantSync $root
+        $result.ExitCode | Should -Not -Be 0
+        $result.Output | Should -Match "Project setting shape: Tool.Tool\.vcxproj \(<ConformanceMode>\)"
+    }
+
+    It "passes a LanguageStandard pinned on one ClCompile item and a platform delta group" {
+        $root = New-VariantFixture $script:Channels
+        New-Item -ItemType Directory -Force -Path (Join-Path $root "Tool") | Out-Null
+        Set-Content -LiteralPath (Join-Path $root "Tool" "Tool.vcxproj") -Value "<Project><ItemDefinitionGroup Condition=`"'`$(Configuration)'=='Release' And '`$(Platform)'=='ARM64'`"><ClCompile /></ItemDefinitionGroup><ItemGroup><ClCompile Include=`"Slow.cpp`"><LanguageStandard>stdcpp17</LanguageStandard></ClCompile></ItemGroup></Project>"
+        $result = Invoke-VariantSync $root
+        $result.ExitCode | Should -Be 0
+        $result.Output | Should -Match "Every project states its settings per configuration"
+    }
 }
