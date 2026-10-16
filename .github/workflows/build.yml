@@ -33,6 +33,11 @@ permissions:
 
 env:
   BUILD_CONFIGURATION: Release
+  # Audit #422 TD-16: tool versions the jobs below pin, stated once.
+  PYTHON_VERSION: '3.12'
+  CPPCHECK_VERSION: '2.21.0'
+  PESTER_VERSION: '5.6.1'
+  NUMPY_VERSION: '2.3.2'
 
 jobs:
   version-bump:
@@ -288,7 +293,7 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
       with:
-        python-version: '3.12'
+        python-version: ${{ env.PYTHON_VERSION }}
 
     # Install Qt for Editor and DeviceSelector. The aqt install
     # (concurrency 1: parallel extraction raced intermittently) lives in
@@ -598,12 +603,12 @@ jobs:
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/cppcheck-install
-        key: cppcheck-2.21.0-${{ runner.os }}
+        key: cppcheck-${{ env.CPPCHECK_VERSION }}-${{ runner.os }}
 
-    - name: Build cppcheck 2.21.0
+    - name: Build cppcheck ${{ env.CPPCHECK_VERSION }}
       if: steps.cache-cppcheck.outputs.cache-hit != 'true'
       run: |
-        git clone --depth 1 --branch 2.21.0 https://github.com/danmar/cppcheck.git "$HOME/cppcheck-src"
+        git clone --depth 1 --branch "$CPPCHECK_VERSION" https://github.com/danmar/cppcheck.git "$HOME/cppcheck-src"
         cmake -S "$HOME/cppcheck-src" -B "$HOME/cppcheck-build" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$HOME/cppcheck-install"
         cmake --build "$HOME/cppcheck-build" -j"$(nproc)"
         cmake --install "$HOME/cppcheck-build"
@@ -736,7 +741,7 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
       with:
-        python-version: '3.12'
+        python-version: ${{ env.PYTHON_VERSION }}
 
     # EditorLogicTests links Qt6Core/Gui/Widgets; the other suites are Qt-free.
     - name: Install Qt
@@ -788,7 +793,7 @@ jobs:
         # back to PowerShellGet with the repository re-registered, and give
         # the pair three rounds before failing the gate.
         $ErrorActionPreference = "Stop"
-        $version = "5.6.1"
+        $version = $env:PESTER_VERSION
         $installers = @(
           @{ Name = "PSResourceGet"; Run = {
             Install-PSResource Pester -Version $version -Repository PSGallery -TrustRepository -Scope CurrentUser -Reinstall -Quiet -ErrorAction Stop
@@ -827,7 +832,7 @@ jobs:
       shell: pwsh
       run: |
         $ErrorActionPreference = "Stop"
-        Import-Module Pester -RequiredVersion 5.6.1
+        Import-Module Pester -RequiredVersion $env:PESTER_VERSION
         $config = New-PesterConfiguration
         $config.Run.Path = ".github/scripts/Tests"
         $config.Run.Exit = $true
@@ -869,7 +874,7 @@ jobs:
 
     - name: Install numpy
       # Audit #250 F060: pinned like the rest of the toolchain.
-      run: python3 -m pip install --quiet numpy==2.3.2
+      run: python3 -m pip install --quiet "numpy==$NUMPY_VERSION"
 
     - name: Compare SIMD variants
       env:
