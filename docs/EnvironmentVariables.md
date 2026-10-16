@@ -79,6 +79,11 @@ Both are kill switches for the field and the control arms of the
 - `EAPO_TEST_VST_METADATA` — makes `TestVst2Plugin` report the synthetic
   metadata variant named by the value, so `HybridConvTests` can exercise
   host-side metadata handling.
+- `EAPO_TEST_VST_HOST_CALLBACKS` — set by `HybridConvTests`
+  (`VstHostTests.cpp`) while it loads `TestVst2Plugin`: the fixture then
+  calls the host's PRODUCT_NAME and SUPPORTS callbacks with null and valid
+  pointers at load and refuses to load if any answer is wrong. Not meant to
+  be set by hand.
 - `EAPO_XT_TEST_IMPORT_DIR` / `EAPO_XT_TEST_INCLUDE_DIR` — set by
   `EditorLogicTests` (`ConfigImportTests.cpp`) and `EngineOrchestrationTests`
   (`ConfigLoadTests.cpp`) themselves, so a test config can write
