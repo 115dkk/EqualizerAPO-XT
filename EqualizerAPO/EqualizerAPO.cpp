@@ -22,6 +22,8 @@
 #include "platform/windows/TextEncoding.h"
 #include "platform/windows/Win32Error.h"
 #include "platform/windows/GuidText.h"
+#include "platform/windows/ComError.h"
+#include "runtime/errors/WideError.h"
 #include "services/registry/RegistryPaths.h"
 #include <exception>
 #include <new>
@@ -153,7 +155,7 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 	{
 		TraceF(L"APO GUID: %s", winutil::guidToString(apoGuid).c_str());
 	}
-	catch (const RegistryError&)
+	catch (const ComError&)
 	{
 		LogF(L"Could not convert apo guid to guid string");
 	}
@@ -211,7 +213,7 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 			allowSilentBufferModification = facts->allowSilentBufferModification;
 		}
 	}
-	catch (const RegistryError& e)
+	catch (const WideError& e)
 	{
 		LogF(L"Could not read endpoint device info because of: %s", e.getMessage().c_str());
 	}

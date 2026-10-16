@@ -10,18 +10,16 @@
 #include "platform/windows/GuidText.h"
 #include "services/registry/RegistryPaths.h"
 #include <mmdeviceapi.h>
-#include <audioclient.h>
 #include <mmreg.h>
-#include <shellapi.h>
-#include <comdef.h>
 
 #include "DeviceAPOInfo.h"
 #include "VoicemeeterAPOInfo.h"
 #include "DeviceAPOInfoKeys.h"
 #include "ReportedOperation.h"
+#include "AsioEntryWriter.h"
 
 #include "services/logging/Logging.h"
-#include "services/registry/WindowsRegistry.h"
+#include "services/registry/RegistryError.h"
 #include "asio/AsioRegistration.h"
 #include "asio/WrapperRecord.h"
 
@@ -104,14 +102,13 @@ std::vector<wstring> processingModesFor(bool input)
 
 void DeviceAPOInfo::applyAsioEntry(RegistryTransaction& plan)
 {
-	removeAsioEntry(plan);
 	if (!selectedInstallState.asioEntry || (!selectedInstallState.installPreMix && !selectedInstallState.installPostMix))
+	{
+		removeAsioEntry(plan);
 		return;
+	}
 
-	// The wrapper DLL beside the product; the value the install hook writes.
-	const wstring installPath = plan.valueExists(APP_REGPATH, L"InstallPath") ? plan.readValue(APP_REGPATH, L"InstallPath") : L"";
-	if (installPath.empty())
-		throw DeviceException(L"The ASIO entry needs the InstallPath value under HKEY_LOCAL_MACHINE\\SOFTWARE\\EqualizerAPO");
+	const wstring installPath = AsioEntryWriter::installDirectory(plan, AsioEntryWriter::DirectoryRequirement::Required);
 
 	const eapo::asio::AsioTarget target = eapo::asio::AsioRegistration::endpointTarget(deviceGuid, connectionName, deviceName);
 	eapo::asio::WrapperRecord record;
@@ -125,30 +122,24 @@ void DeviceAPOInfo::applyAsioEntry(RegistryTransaction& plan)
 		record.renderEndpoint = deviceGuid;
 	record.options.processOutput = !input;
 	record.options.processInput = input;
-	eapo::asio::WrapperRecords::setEntryOptions(record, selectedInstallState.asioEntryOptions);
-	eapo::asio::WrapperRecords::write(plan, record);
-	// The 32-bit view only when asked for and when the x86 wrapper is there
-	// to point at, the same rule as an ASIO driver row's.
-	eapo::asio::AsioRegistration::registerWrapper(plan, target, eapo::asio::AsioRegistration::wrapperDllPath(installPath),
-		record.register32 && eapo::asio::AsioRegistration::wrapper32Shipped(installPath)
-			? eapo::asio::AsioRegistration::wrapper32DllPath(installPath) : L"");
-	eapo::asio::AsioRegistration::refreshAutoStart(plan, installPath);
+	AsioEntryWriter::writeEntry(plan, target, record, selectedInstallState.asioEntryOptions, installPath);
 	lastOperationReport.asioEntry = eapo::asio::AsioRegistration::entryNameFor(target.name);
 }
 
 void DeviceAPOInfo::removeAsioEntry(RegistryTransaction& plan)
 {
 	const eapo::asio::AsioTarget target = eapo::asio::AsioRegistration::endpointTarget(deviceGuid, connectionName, deviceName);
-	eapo::asio::AsioRegistration::unregisterWrapper(plan, target);
-	eapo::asio::WrapperRecords::remove(plan, eapo::asio::AsioRegistration::wrapperClsidFor(deviceGuid));
-	// The entry may have been the last one asking for the host at boot.
-	const wstring installPath = plan.valueExists(APP_REGPATH, L"InstallPath") ? plan.readValue(APP_REGPATH, L"InstallPath") : L"";
-	eapo::asio::AsioRegistration::refreshAutoStart(plan, installPath);
+	eapo::asio::WrapperRecord record;
+	record.wrapperClsid = eapo::asio::AsioRegistration::wrapperClsidFor(deviceGuid);
+	record.options.processInput = false;
+	record.options.processOutput = false;
+	AsioEntryWriter::removeEntry(plan, target, record,
+		AsioEntryWriter::installDirectory(plan, AsioEntryWriter::DirectoryRequirement::Optional));
 }
 
 bool DeviceAPOInfo::canHostAsio32() const
 {
-	const wstring installPath = registry.valueExists(APP_REGPATH, L"InstallPath") ? registry.readValue(APP_REGPATH, L"InstallPath") : L"";
+	const wstring installPath = AsioEntryWriter::installDirectory(registry, AsioEntryWriter::DirectoryRequirement::Optional);
 	return eapo::asio::AsioRegistration::wrapper32Shipped(installPath);
 }
 
@@ -319,3 +310,85 @@ void DeviceAPOInfo::installWithin(RegistryTransaction& plan)
 	if (plan.valueExists(keyPath + L"\\FxProperties", disableEnhancementsValueName))
 		plan.deleteValue(keyPath + L"\\FxProperties", disableEnhancementsValueName);
 }
+
+void DeviceAPOInfo::uninstall()
+{
+	runReported(DeviceInstallReport::Operation::Uninstall, [this](RegistryTransaction& plan) {
+		uninstallWithin(plan);
+		removeAsioEntry(plan);
+	});
+}
+
+void DeviceAPOInfo::uninstallWithin(RegistryTransaction& plan)
+{
+	wstring keyPath;
+	if (!input)
+		keyPath = renderKeyPath L"\\" + deviceGuid;
+	else
+		keyPath = captureKeyPath L"\\" + deviceGuid;
+
+	if (originalApoGuids[0] == APOGUID_NOKEY)
+	{
+		// This installation created FxProperties, but since Windows 11 24H2
+		// (build 26100) the OS puts its own subkeys below it, and
+		// RegDeleteKeyExW refuses to delete a key that has subkeys - a
+		// whole-key delete therefore throws on such systems and the uninstall
+		// leaves the EQ CLSIDs dangling (issue #189). Delete the values this
+		// installation wrote and remove the key itself only when nothing else
+		// lives in it.
+		wstring fxPath = keyPath + L"\\FxProperties";
+		if (plan.keyExists(fxPath))
+		{
+			for (const wchar_t* valueName : ownedFxValueNames)
+			{
+				if (plan.valueExists(fxPath, valueName))
+					plan.deleteValue(fxPath, valueName);
+			}
+
+			if (plan.keyEmpty(fxPath))
+				plan.deleteKey(fxPath);
+		}
+	}
+	else
+	{
+		for (int i = 0; i < allGuidValueNameCount; i++)
+		{
+			if (originalApoGuids[i] == APOGUID_NOVALUE)
+			{
+				if (plan.valueExists(keyPath + L"\\FxProperties", allGuidValueNames[i]))
+					plan.deleteValue(keyPath + L"\\FxProperties", allGuidValueNames[i]);
+			}
+			else if (originalApoGuids[i] != L"")
+			{
+				plan.writeValue(keyPath + L"\\FxProperties", allGuidValueNames[i], originalApoGuids[i]);
+			}
+		}
+	}
+
+	if (plan.keyExists(childApoPath) && plan.valueExists(childApoPath, deviceGuid))
+		plan.deleteValue(childApoPath, deviceGuid);
+
+	if (plan.keyExists(childApoPath L"\\" + deviceGuid))
+		plan.deleteKey(childApoPath L"\\" + deviceGuid);
+
+	if (plan.keyExists(childApoPath) && plan.keyEmpty(childApoPath))
+		plan.deleteKey(childApoPath);
+}
+
+void DeviceAPOInfo::reinstall()
+{
+	// One transaction over all three steps. The reload in the middle is what
+	// makes this more than uninstall-then-install: install() needs the original
+	// APO GUIDs as the driver has them, and uninstall() has just put them back.
+	// load() only reads, but it throws on an installation this build cannot
+	// describe, and before this it threw with the device already uninstalled.
+	runReported(DeviceInstallReport::Operation::Reinstall, [this](RegistryTransaction& plan) {
+		uninstallWithin(plan);
+		const bool wasDefault = defaultDevice;
+		loadFromRegistry(deviceGuid);
+		defaultDevice = wasDefault;
+		installWithin(plan);
+		applyAsioEntry(plan);
+	});
+}
+

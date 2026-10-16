@@ -122,3 +122,11 @@ void runInstallDiagnosticsTests(test::Harness& harness);
 void runApoRegistrationTests(test::Harness& harness);
 void runChannelInheritanceTests(test::Harness& harness);
 void runCaptureEngineTests(test::Harness& harness);
+
+void testTakeOwnershipPrivilegeRestoresAfterThrow(test::Harness& harness);
+
+void testVoicemeeterShortcutRoundTripAndFailures(test::Harness& harness);
+
+void testServiceWaitUsesOneDeadline(test::Harness& harness);
+
+void testEnvironmentReadAndUserLogPathAreNotTruncated(test::Harness& harness);

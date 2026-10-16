@@ -26,6 +26,7 @@
 */
 
 #include "services/security/AudioEngineAccess.h"
+#include "services/install/InstallWaitBudget.h"
 
 #include <vector>
 
@@ -39,21 +40,12 @@
 
 #include "services/logging/TaggedLogger.h"
 #include "platform/windows/Win32Resource.h"
+#include "platform/windows/WellKnownSids.h"
 #include "platform/windows/WindowsPath.h"
 #include "services/security/ConfigDirectoryHandles.h"
 
 namespace
 {
-// THE TABLE. Every principal this program cares about, the SID literal icacls
-// takes, and the RID the AuthZ check needs. Both directions read from here, so a
-// grant and the check that verifies it cannot drift apart.
-//
-// LOCAL SERVICE (S-1-5-19) is the account audiodg.exe runs under, and
-// BUILTIN\Users (S-1-5-32-545) is what covers a non-administrator running the
-// Editor or Device Selector.
-constexpr wchar_t kLocalServiceSid[] = L"*S-1-5-19";
-constexpr wchar_t kUsersSid[] = L"*S-1-5-32-545";
-
 // icacls exit codes: 0 is complete success, and anything else means at least one
 // file was refused. It prints the count of failures, which is why a non-zero code
 // is reported as a partial application rather than as a total failure - the
@@ -99,6 +91,7 @@ int runToCompletion(const std::wstring& executable, const std::wstring& argument
 		return -1;
 	}
 
+	timeoutMs = installwait::remaining(timeoutMs);
 	DWORD waitResult = WaitForSingleObject(processInfo.process(), timeoutMs);
 	DWORD exitCode = static_cast<DWORD>(-1);
 	if (waitResult == WAIT_OBJECT_0)
@@ -118,24 +111,7 @@ int runToCompletion(const std::wstring& executable, const std::wstring& argument
 // operation: it asks what a principal would be granted on a *file*, and its
 // presence in WindowsRegistry.h is part of why that header has to pull in the
 // Win32 headers for every translation unit that wants to read a registry value.
-// Sub-authorities of one well-known SID. Two are needed because the accounts
-// this module asks about are not the same shape: LOCAL SERVICE is S-1-5-19, one
-// sub-authority under NT AUTHORITY, while BUILTIN\Users is S-1-5-32-545, an alias
-// inside the built-in domain. Building the second one with a single
-// sub-authority would silently produce S-1-5-545, a SID that exists nowhere and
-// would therefore be granted nothing - the check would report every path as
-// closed to normal users.
-struct WellKnownSid
-{
-	BYTE subAuthorityCount;
-	DWORD first;
-	DWORD second;
-};
-
-constexpr WellKnownSid kLocalService = {1, SECURITY_LOCAL_SERVICE_RID, 0};
-constexpr WellKnownSid kUsers = {2, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_USERS};
-
-unsigned long accessForSid(const std::wstring& path, const WellKnownSid& principal)
+unsigned long accessForSid(const std::wstring& path, const wchar_t* principal)
 {
 	winutil::UniqueLocalPtr<void> securityDescriptor;
 	if (GetNamedSecurityInfoW(path.c_str(), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION | OWNER_SECURITY_INFORMATION
@@ -146,11 +122,9 @@ unsigned long accessForSid(const std::wstring& path, const WellKnownSid& princip
 	if (!AuthzInitializeResourceManager(AUTHZ_RM_FLAG_NO_AUDIT, nullptr, nullptr, nullptr, nullptr, manager.put()))
 		throw AccessQueryException(L"Error in AuthzInitializeResourceManager for " + path);
 
-	winutil::UniqueSid sid;
-	SID_IDENTIFIER_AUTHORITY authority = SECURITY_NT_AUTHORITY;
-	if (!AllocateAndInitializeSid(&authority, principal.subAuthorityCount,
-			principal.first, principal.second, 0, 0, 0, 0, 0, 0, sid.put()))
-		throw AccessQueryException(L"Error in AllocateAndInitializeSid for " + path);
+	auto sid = winutil::sids::sidFromSddl(principal);
+	if (!sid)
+		throw AccessQueryException(L"Error in ConvertStringSidToSid for " + path);
 
 	LUID unusedId = {0};
 	winutil::UniqueAuthzContext context;
@@ -232,12 +206,12 @@ bool isElevated()
 
 unsigned long accessForAudioEngine(const std::wstring& path)
 {
-	return accessForSid(path, kLocalService);
+	return accessForSid(path, winutil::sids::localService);
 }
 
 unsigned long accessForUsers(const std::wstring& path)
 {
-	return accessForSid(path, kUsers);
+	return accessForSid(path, winutil::sids::users);
 }
 
 bool isReadableByAudioEngine(const std::wstring& path)
@@ -272,8 +246,8 @@ Grant grantEngineAccess(const std::wstring& installRoot)
 	// Read+execute for both: audiodg maps EqualizerAPO.dll out of this tree, and
 	// a non-administrator has to be able to start the Editor from it.
 	const std::wstring grants =
-		L"/grant " + std::wstring(kLocalServiceSid) + L":(OI)(CI)RX "
-		L"/grant " + std::wstring(kUsersSid) + L":(OI)(CI)RX";
+		L"/grant " + (L"*" + std::wstring(winutil::sids::localService)) + L":(OI)(CI)RX "
+		L"/grant " + (L"*" + std::wstring(winutil::sids::users)) + L":(OI)(CI)RX";
 	return applyGrant(installRoot, grants);
 }
 
@@ -288,8 +262,8 @@ Grant grantConfigAccess(const std::wstring& configDir)
 	// and cut LOCAL SERVICE's read, silencing the whole APO. M covers every
 	// operation config editing actually needs.
 	const std::wstring grants =
-		L"/grant " + std::wstring(kUsersSid) + L":(OI)(CI)M "
-		L"/grant " + std::wstring(kLocalServiceSid) + L":(OI)(CI)M";
+		L"/grant " + (L"*" + std::wstring(winutil::sids::users)) + L":(OI)(CI)M "
+		L"/grant " + (L"*" + std::wstring(winutil::sids::localService)) + L":(OI)(CI)M";
 	return applyGrant(configDir, grants);
 }
 
@@ -322,11 +296,9 @@ Grant grantOwnedDirectoryAccess(const std::wstring& configDir, DWORD permissions
 		return Grant::Failed;
 	}
 
-	winutil::UniqueLocalPtr<void> users;
-	winutil::UniqueLocalPtr<void> service;
-	// Skip icacls's leading '*'; retain the one SID vocabulary above.
-	if (!ConvertStringSidToSidW(kUsersSid + 1, users.put())
-		|| !ConvertStringSidToSidW(kLocalServiceSid + 1, service.put()))
+	auto users = winutil::sids::sidFromSddl(winutil::sids::users);
+	auto service = winutil::sids::sidFromSddl(winutil::sids::localService);
+	if (!users || !service)
 		return Grant::Failed;
 	EXPLICIT_ACCESSW entries[2] = {};
 	entries[0].Trustee.ptstrName = static_cast<LPWSTR>(users.get());

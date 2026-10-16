@@ -169,6 +169,10 @@ int runEngineOrchestrationTests()
 	testWeakValueCacheKeepsEntriesExactlyAsLongAsSomeoneUsesThem(harness);
 	testVoicemeeterPrependInfosMapsEditionToOutputCount(harness);
 	testVoicemeeterStripVocabulary(harness);
+	testTakeOwnershipPrivilegeRestoresAfterThrow(harness);
+	testVoicemeeterShortcutRoundTripAndFailures(harness);
+	testServiceWaitUsesOneDeadline(harness);
+	testEnvironmentReadAndUserLogPathAreNotTruncated(harness);
 	testProcessSearchLeavesTheTokenAsItWas(harness);
 	testParseErrorsAreReportedPerLineAndProseIsNot(harness);
 	testFactoryInitializationHookKeepsParseReporting(harness);

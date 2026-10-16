@@ -206,6 +206,7 @@ install without reinstalling, run from an ELEVATED PowerShell:
 
 That script applies the same ACL grants the install hook would apply on a
 clean install, then restarts Audiosrv so audiodg picks up the change.
+Then run Editor.exe --diagnose to check the result.
 "@
 } else {
     "No obvious ACL problems detected. If Device Selector still reports access denied, capture an ETW trace (logman) or ProcMon trace filtered to audiodg.exe and Path containing EqualizerAPO."

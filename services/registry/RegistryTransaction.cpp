@@ -30,7 +30,6 @@ RegistryTransaction::~RegistryTransaction()
 
 void RegistryTransaction::commit()
 {
-	committed = true;
 	journal.clear();
 }
 

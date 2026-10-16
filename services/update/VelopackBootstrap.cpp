@@ -15,6 +15,7 @@
 #include "services/security/AudioEngineAccess.h"
 #include "services/logging/TaggedLogger.h"
 #include "platform/windows/WindowsPath.h"
+#include "platform/windows/ElevatedLaunch.h"
 
 #include <memory>
 #include <optional>
@@ -45,19 +46,6 @@ Velopack::UpdateOptions updateOptions(const std::string& channel)
 	if (!channel.empty())
 		options.ExplicitChannel = channel;
 	return options;
-}
-
-std::wstring envVar(const wchar_t* name)
-{
-	DWORD needed = GetEnvironmentVariableW(name, nullptr, 0);
-	if (needed == 0)
-		return std::wstring();
-	std::wstring value(needed, L'\0');
-	DWORD length = GetEnvironmentVariableW(name, value.data(), needed);
-	if (length == 0 || length >= needed)
-		return std::wstring();
-	value.resize(length);
-	return value;
 }
 
 class VelopackUpdateClient final : public IUpdateClient
@@ -127,12 +115,12 @@ private:
 
 bool VelopackBootstrap::isFirstRun()
 {
-	return !envVar(L"VELOPACK_FIRSTRUN").empty();
+	return !pathutil::environmentVariable(L"VELOPACK_FIRSTRUN").empty();
 }
 
 bool VelopackBootstrap::isRestartingAfterUpdate()
 {
-	return !envVar(L"VELOPACK_RESTART").empty();
+	return !pathutil::environmentVariable(L"VELOPACK_RESTART").empty();
 }
 
 std::wstring VelopackBootstrap::currentBinDir()
@@ -186,20 +174,10 @@ bool VelopackBootstrap::launchElevatedUpdateCoordinator()
 		return false;
 	}
 
-	SHELLEXECUTEINFOW info{};
-	info.cbSize = sizeof(info);
-	info.fMask = SEE_MASK_NOASYNC;
-	info.lpVerb = L"runas";
-	info.lpFile = editorPath.c_str();
-	info.lpParameters = kElevatedCoordinatorArgumentW;
-	info.nShow = SW_HIDE;
-
-	if (ShellExecuteExW(&info))
+	const auto launch = winutil::launchElevated(editorPath, kElevatedCoordinatorArgumentW, false);
+	if (launch.started)
 		return true;
-
-	logLine(L"ERR",
-		L"update elevation was not started (gle=%lu)",
-		GetLastError());
+	logLine(L"ERR", L"update elevation was not started (gle=%lu)", launch.error);
 	return false;
 }
 

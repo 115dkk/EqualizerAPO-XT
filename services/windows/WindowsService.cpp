@@ -24,6 +24,7 @@
 
 #include "diagnostics/performance/PrecisionTimer.h"
 #include "services/windows/WindowsService.h"
+#include "services/windows/ServiceWait.h"
 #include "platform/windows/Win32Resource.h"
 
 using std::make_shared;
@@ -31,83 +32,94 @@ using std::shared_ptr;
 using std::vector;
 using std::wstring;
 
-void WindowsServiceControl::restart(const wstring& serviceName)
+namespace
 {
-	winutil::UniqueServiceHandle scManager(OpenSCManagerW(nullptr, nullptr, SC_MANAGER_ALL_ACCESS));
-	if (!scManager)
+winutil::UniqueServiceHandle openManager()
+{
+	winutil::UniqueServiceHandle manager(OpenSCManagerW(nullptr, nullptr, SC_MANAGER_CONNECT));
+	if (!manager)
 		throw WindowsServiceError(L"OpenSCManager failed (" + win32::errorMessage(GetLastError()) + L")");
-
-	vector<shared_ptr<WindowsService>> services;
-	shared_ptr<WindowsService> mainService = make_shared<WindowsService>(scManager.get(), serviceName, true);
-	services.push_back(mainService);
-
-	DWORD mainState = mainService->getState();
-	if (mainState == SERVICE_RUNNING)
-	{
-		vector<wstring> dependentServices = mainService->getActiveDependentServices();
-		for (const wstring& dependentServiceName : dependentServices)
-		{
-			shared_ptr<WindowsService> dependentService = make_shared<WindowsService>(scManager.get(), dependentServiceName.c_str(), false);
-			services.insert(prev(services.end()), dependentService);
-		}
-	}
-
-	PrecisionTimer timer;
-	timer.start();
-	for (shared_ptr<WindowsService> service : services)
-	{
-		DWORD state = service->getState();
-		if (state == SERVICE_RUNNING)
-			state = service->stop();
-
-		while (state != SERVICE_STOPPED)
-		{
-			if (timer.stop() > 30)
-				throw WindowsServiceError(L"Service stop timed out on service \"" + service->getServiceName() + L"\"");
-
-			Sleep(100);
-
-			state = service->getState();
-		}
-	}
-
-	// all services should be stopped now, so start them again
-
-	for (auto it = services.rbegin(); it != services.rend(); it++)
-	{
-		shared_ptr<WindowsService> service = *it;
-		service->start();
-
-		DWORD state = service->getState();
-		double retryDelay = 5;
-		while (state != SERVICE_RUNNING)
-		{
-			double time = timer.stop();
-			if (time > 30)
-				throw WindowsServiceError(L"Service start timed out on service \"" + service->getServiceName() + L"\"");
-			if (time > retryDelay)
-			{
-				// sometimes, the service won't start on the first try
-				service->start();
-				retryDelay = time + 5;
-			}
-
-			Sleep(100);
-
-			state = service->getState();
-		}
-	}
+	return manager;
 }
 
-WindowsService::WindowsService(SC_HANDLE scManager, const std::wstring& serviceName, bool allowEnumerate)
+void stopAndWait(WindowsService& service, ULONGLONG deadline)
+{
+	DWORD state = service.getState();
+	if (state == SERVICE_START_PENDING)
+	{
+		service.waitFor(SERVICE_RUNNING, deadline);
+		state = SERVICE_RUNNING;
+	}
+	if (state != SERVICE_STOPPED && state != SERVICE_STOP_PENDING)
+		service.stop();
+	service.waitFor(SERVICE_STOPPED, deadline);
+}
+
+void startAndWait(WindowsService& service, ULONGLONG deadline)
+{
+	DWORD state = service.getState();
+	if (state == SERVICE_STOP_PENDING)
+	{
+		service.waitFor(SERVICE_STOPPED, deadline);
+		state = SERVICE_STOPPED;
+	}
+	if (state != SERVICE_RUNNING && state != SERVICE_START_PENDING)
+		service.start();
+	service.waitFor(SERVICE_RUNNING, deadline);
+}
+}
+
+bool WindowsServiceControl::stop(const wstring& serviceName, unsigned timeoutMs, bool* wasActive)
+{
+	auto manager = openManager();
+	WindowsService service(manager.get(), serviceName, SERVICE_STOP | SERVICE_QUERY_STATUS);
+	const bool active = service.getState() != SERVICE_STOPPED;
+	if (wasActive != nullptr)
+		*wasActive = active;
+	stopAndWait(service, GetTickCount64() + timeoutMs);
+	return active;
+}
+
+void WindowsServiceControl::start(const wstring& serviceName, unsigned timeoutMs)
+{
+	auto manager = openManager();
+	WindowsService service(manager.get(), serviceName, SERVICE_START | SERVICE_QUERY_STATUS);
+	startAndWait(service, GetTickCount64() + timeoutMs);
+}
+
+void WindowsServiceControl::restart(const wstring& serviceName, unsigned timeoutMs)
+{
+	auto manager = openManager();
+	const ULONGLONG deadline = GetTickCount64() + timeoutMs;
+	vector<shared_ptr<WindowsService>> services;
+	auto mainService = make_shared<WindowsService>(manager.get(), serviceName,
+		SERVICE_START | SERVICE_STOP | SERVICE_QUERY_STATUS | SERVICE_ENUMERATE_DEPENDENTS);
+	services.push_back(mainService);
+	if (mainService->getState() == SERVICE_RUNNING)
+	{
+		for (const auto& name : mainService->getActiveDependentServices())
+			services.insert(prev(services.end()), make_shared<WindowsService>(manager.get(), name,
+				SERVICE_START | SERVICE_STOP | SERVICE_QUERY_STATUS));
+	}
+	for (const auto& service : services)
+		stopAndWait(*service, deadline);
+	for (auto it = services.rbegin(); it != services.rend(); ++it)
+		startAndWait(**it, deadline);
+}
+
+WindowsService::WindowsService(SC_HANDLE scManager, const std::wstring& serviceName, DWORD desiredAccess)
 	: serviceName(serviceName)
 {
-	DWORD desiredAccess = SERVICE_START | SERVICE_STOP | SERVICE_QUERY_STATUS;
-	if (allowEnumerate)
-		desiredAccess |= SERVICE_ENUMERATE_DEPENDENTS;
 	serviceHandle.reset(OpenServiceW(scManager, serviceName.c_str(), desiredAccess));
 	if (!serviceHandle)
 		fail(L"OpenService", GetLastError());
+}
+
+void WindowsService::waitFor(DWORD state, ULONGLONG deadline)
+{
+	if (!servicecontrol::waitFor(state, deadline, [this] {return getState();},
+		[] {return GetTickCount64();}, [](ULONGLONG delay) {Sleep(static_cast<DWORD>(delay));}))
+		throw WindowsServiceError(L"Service transition timed out on service \"" + serviceName + L"\"");
 }
 
 const std::wstring& WindowsService::getServiceName()

@@ -25,6 +25,7 @@
 #include <memory>
 #include "AbstractAPOInfo.h"
 #include "DeviceException.h"
+#include "EndpointProbe.h"
 #include "asio/EntryOptions.h"
 #include "services/registry/IRegistry.h"
 #include "services/registry/RegistryTransaction.h"
@@ -92,14 +93,10 @@ public:
 	// Editor, ApoRegistration, the APO DLL) keep compiling unchanged and keep
 	// talking to the real HKLM; a test hands in an in-memory fake instead.
 	// getDefaultDevice takes none because it reads the endpoint through COM.
-	explicit DeviceAPOInfo(IRegistry& registry = systemRegistry());
+	explicit DeviceAPOInfo(IRegistry& registry = systemRegistry(), const EndpointProbe& probe = systemEndpointProbe());
 
 	static std::vector<std::shared_ptr<AbstractAPOInfo>> loadAllInfos(bool input, IRegistry& registry = systemRegistry());
 	static std::wstring getDefaultDevice(bool input, int role = 1);
-	static bool checkProtectedAudioDG(bool fix, IRegistry& registry = systemRegistry());
-	// const because the fix branch registers the COM server by calling the DLL's
-	// own DllRegisterServer, and never writes through the port.
-	static bool checkAPORegistration(bool fix, const IRegistry& registry = systemRegistry());
 	bool load(const std::wstring& deviceGuid, std::wstring defaultDeviceGuid = L"");
 	// load() without the default-endpoint lookup, which goes through the
 	// MMDevice enumerator: everything it reads comes through the registry
@@ -176,8 +173,6 @@ public:
 	void testAPOInstallation();
 
 private:
-	void fail(const std::wstring& functionName, HRESULT hr);
-
 	// The bodies of install() and uninstall(), performing every registry change
 	// through the transaction they are given rather than through the member port.
 	// reinstall() calls both inside one transaction, which is the only reason they
@@ -185,8 +180,8 @@ private:
 	void installWithin(RegistryTransaction& plan);
 	void uninstallWithin(RegistryTransaction& plan);
 	// The ASIO entry: applyAsioEntry writes the wrapper record and the
-	// registration when the selection asks for one (after removing any
-	// earlier one), removeAsioEntry takes both away. Both run inside the
+	// registration when the selection asks for one; removeAsioEntry takes
+	// both away. Both run inside the
 	// operation's transaction.
 	void applyAsioEntry(RegistryTransaction& plan);
 	void removeAsioEntry(RegistryTransaction& plan);
@@ -232,6 +227,7 @@ private:
 	// DeviceAPOInfo in the tree is constructed in place and used through a
 	// shared_ptr or as a local.
 	IRegistry& registry;
+	const EndpointProbe& probe;
 };
 
 

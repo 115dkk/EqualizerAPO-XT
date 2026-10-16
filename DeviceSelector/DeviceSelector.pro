@@ -105,3 +105,15 @@ build_pass:CONFIG(debug, debug|release) {
 QMAKE_LFLAGS += /MANIFESTUAC:\"level=\'requireAdministrator\' uiAccess=\'false\'\"
 
 RC_FILE = DeviceSelector.rc
+
+HEADERS += \
+	../devices/AsioEntryWriter.h \
+	../devices/EndpointProbe.h \
+	../platform/windows/TokenPrivilege.h \
+	../platform/windows/WellKnownSids.h \
+	../platform/windows/ComError.h \
+	../platform/windows/ConsoleOutput.h \
+	../platform/windows/ElevatedLaunch.h \
+	../platform/windows/TimeStamp.h \
+	../services/windows/ServiceWait.h \
+	../services/install/InstallWaitBudget.h

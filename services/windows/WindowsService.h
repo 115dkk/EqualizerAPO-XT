@@ -28,16 +28,19 @@
 class WindowsServiceControl
 {
 public:
-	static void restart(const std::wstring& serviceName);
+	static void restart(const std::wstring& serviceName, unsigned timeoutMs = 30000);
+	static bool stop(const std::wstring& serviceName, unsigned timeoutMs, bool* wasActive = nullptr);
+	static void start(const std::wstring& serviceName, unsigned timeoutMs);
 };
 
 class WindowsService
 {
 public:
-	WindowsService(SC_HANDLE scManager, const std::wstring& serviceName, bool allowEnumerate);
+	WindowsService(SC_HANDLE scManager, const std::wstring& serviceName, DWORD desiredAccess);
 	virtual ~WindowsService() = default;
 	const std::wstring& getServiceName();
 	DWORD getState();
+	void waitFor(DWORD state, ULONGLONG deadline);
 	void start();
 	DWORD stop();
 	std::vector<std::wstring> getActiveDependentServices();

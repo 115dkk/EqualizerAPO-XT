@@ -24,10 +24,16 @@
 #include <windows.h>
 
 #include "platform/windows/ComBoundary.h"
+#include "platform/windows/ComError.h"
+#include "devices/DeviceException.h"
 #include "runtime/WeakValueCache.h"
 #include "runtime/concurrency/ParallelExecutor.h"
 #include "runtime/concurrency/SynchronizedState.h"
 #include "services/logging/Logging.h"
+#include "platform/windows/WindowsPath.h"
+#include "runtime/lifetime/ScopeExit.h"
+#include "services/windows/ServiceWait.h"
+#include "services/install/InstallWaitBudget.h"
 #include "services/registry/WindowsRegistry.h"
 
 #include "EngineOrchestrationTestSupport.h"
@@ -56,6 +62,12 @@ void testComBoundaryMapsExceptions(test::Harness& harness)
 	{
 		harness.fail("unexpected exception escaped the COM boundary");
 	}
+	harness.expect(ComBoundary::invoke([]() -> HRESULT {
+		throw ComError(L"injected GUID conversion failure");
+	}) == E_UNEXPECTED, "COM boundary catches the COM-specific wide error");
+	harness.expect(ComBoundary::invoke([]() -> HRESULT {
+		throw DeviceException(L"injected unsupported installation version");
+	}) == E_UNEXPECTED, "COM boundary catches device-specific wide errors");
 	harness.expect(ComBoundary::invoke([] { return S_FALSE; }) == S_FALSE,
 		"COM boundary preserves callback HRESULT");
 }
@@ -210,4 +222,41 @@ void testWeakValueCacheKeepsEntriesExactlyAsLongAsSomeoneUsesThem(test::Harness&
 	auto replacement = std::make_shared<const std::vector<double>>(3, 4.0);
 	cache.store(1, replacement);
 	harness.expect(cache.find(1) == replacement, "storing an existing key replaces its entry");
+}
+
+void testServiceWaitUsesOneDeadline(test::Harness& harness)
+{
+	harness.expectEqual(installwait::remaining(30000), DWORD(30000), "ordinary operations keep their timeout");
+	{
+		installwait::Budget outer(12000);
+		harness.expect(installwait::remaining(30000) <= 12000, "hook budget caps subprocess waits");
+		{
+			installwait::Budget exhausted(0);
+			harness.expectEqual(installwait::remaining(30000), DWORD(0), "expired nested budget cannot wait");
+		}
+		harness.expect(installwait::remaining(30000) <= 12000, "nested scope restores the outer deadline");
+	}
+	harness.expectEqual(installwait::remaining(30000), DWORD(30000), "hook scope restores normal timeout policy");
+	unsigned long long tick = 0;
+	unsigned queries = 0;
+	const auto clock = [&] {return tick;};
+	const auto pause = [&](unsigned long long delay) {tick += delay;};
+	harness.expect(servicecontrol::waitFor(1, 250ull, [&] {return ++queries == 3 ? 1 : 0;}, clock, pause),
+		"pending service reaches target before deadline");
+	harness.expectEqual(tick, 200ull, "polling only waits while pending");
+	harness.expectFalse(servicecontrol::waitFor(1, 250ull, [] {return 0;}, clock, pause),
+		"next transition shares the remaining budget");
+	harness.expectEqual(tick, 250ull, "last pause is capped to deadline");
+	harness.expect(servicecontrol::waitFor(1, 250ull, [] {return 1;}, clock, pause),
+		"already-completed transition needs no wait");
+}
+
+void testEnvironmentReadAndUserLogPathAreNotTruncated(test::Harness& harness)
+{
+	const auto previous = pathutil::environmentVariable(L"LOCALAPPDATA");
+	SCOPE_EXIT{ SetEnvironmentVariableW(L"LOCALAPPDATA", previous.empty() ? nullptr : previous.c_str()); };
+	const std::wstring longRoot = L"C:\\" + std::wstring(600, L'a');
+	harness.require(SetEnvironmentVariableW(L"LOCALAPPDATA", longRoot.c_str()) != FALSE, "set fixture environment");
+	harness.expect(pathutil::environmentVariable(L"LOCALAPPDATA") == longRoot, "environment read exceeds MAX_PATH without truncation");
+	harness.expect(Logging::userLogDirectory() == longRoot + L"\\EqualizerAPO\\logs", "logs use the complete environment value");
 }

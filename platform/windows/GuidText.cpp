@@ -13,12 +13,12 @@
 
 #include "platform/windows/GuidText.h"
 #include "platform/windows/Win32Resource.h"
-#include "services/registry/RegistryError.h"
+#include "platform/windows/ComError.h"
 
 std::wstring winutil::guidToString(REFGUID guid)
 {
 	UniqueCoTaskMemPtr<wchar_t> text;
 	if (FAILED(StringFromCLSID(guid, text.put())))
-		throw RegistryError(L"Could not convert GUID to string");
+		throw ComError(L"Could not convert GUID to string");
 	return text.get();
 }

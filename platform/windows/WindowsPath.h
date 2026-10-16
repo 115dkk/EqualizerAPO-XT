@@ -21,6 +21,24 @@
 namespace pathutil
 {
 
+// Retry if another thread changes the environment between the size and read calls.
+inline std::wstring environmentVariable(const wchar_t* name)
+{
+	DWORD size = GetEnvironmentVariableW(name, nullptr, 0);
+	while (size != 0)
+	{
+		std::wstring value(size, L'\0');
+		const DWORD length = GetEnvironmentVariableW(name, value.data(), size);
+		if (length < size)
+		{
+			value.resize(length);
+			return value;
+		}
+		size = length;
+	}
+	return {};
+}
+
 inline std::wstring joinPath(const std::wstring& directory,
 	const std::wstring& leaf)
 {

@@ -62,17 +62,4 @@ Version current()
 	return cached;
 }
 
-bool isAtLeast(unsigned major, unsigned minor)
-{
-	// Compare the fields, not a packed integer. The version this replaced packed
-	// each decimal digit into its own nibble, which made 10 come out as 0x10 while
-	// kernel32 reports it as 0x0A - so isAtLeast(10, 0) answered false on Windows
-	// 10 and 11. Nothing had asked it that yet: the only caller in the tree asks
-	// for 6.3, where a per-nibble packing and the real one happen to agree.
-	const Version version = current();
-	if (version.major != major)
-		return version.major > major;
-	return version.minor >= minor;
-}
-
 } // namespace WindowsVersion

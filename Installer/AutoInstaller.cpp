@@ -43,6 +43,7 @@
 #include "../platform/windows/ComPtr.h"
 #include "../release/ReleaseAssetNames.h"
 #include "../platform/windows/Win32Resource.h"
+#include "../platform/windows/ConsoleOutput.h"
 #include "../version.h"
 #include "AutoInstallerLogic.h"
 #include "InstallerUiModel.h"
@@ -457,6 +458,8 @@ bool verifySetupChecksum(const std::wstring& setupFile, const std::wstring& setu
     if (outActualHash != nullptr)
         *outActualHash = actual;
 
+    // SHA256SUMS.txt comes from the same release: this checks integrity, not
+    // authenticity. This is the ceiling until the installers are signed.
     if (actual != expected)
     {
         error = L"The downloaded installer failed its integrity check.";
@@ -543,16 +546,10 @@ int reportDetection(const std::wstring& channel, const std::wstring& url,
 {
     const std::wstring text = channel + L"\n" + url + L"\n";
 
-    if (AttachConsole(ATTACH_PARENT_PROCESS))
+    winutil::ParentConsole console;
+    if (console)
     {
-        winutil::UniqueHandle conout(CreateFileW(L"CONOUT$", GENERIC_WRITE,
-            FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr));
-        if (conout)
-        {
-            DWORD written = 0;
-            WriteConsoleW(conout.get(), text.c_str(), static_cast<DWORD>(text.size()), &written, nullptr);
-        }
-        FreeConsole();
+        console.write(text);
     }
     else
     {

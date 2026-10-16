@@ -18,6 +18,8 @@
 */
 
 #include "stdafx.h"
+#include "platform/windows/TokenPrivilege.h"
+#include "platform/windows/WellKnownSids.h"
 #include "text/WideString.h"
 #include "platform/windows/Win32Error.h"
 #include <fstream>
@@ -284,11 +286,9 @@ void WindowsRegistry::makeWritable(const wstring& key)
 	if (!GetSecurityDescriptorDacl(oldSd.get(), &aclPresent, &oldAcl, &aclDefaulted))
 		throw RegistryError(L"Error in GetSecurityDescriptorDacl while ensuring writability");
 
-	winutil::UniqueSid sid;
-	SID_IDENTIFIER_AUTHORITY authority = SECURITY_NT_AUTHORITY;
-	if (!AllocateAndInitializeSid(&authority, 2, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS,
-		0, 0, 0, 0, 0, 0, sid.put()))
-		throw RegistryError(L"Error in AllocateAndInitializeSid while ensuring writability");
+	auto sid = winutil::sids::sidFromSddl(winutil::sids::administrators);
+	if (!sid)
+		throw RegistryError(L"Error in ConvertStringSidToSid while ensuring writability");
 
 	EXPLICIT_ACCESS ea;
 	ea.grfAccessPermissions = KEY_ALL_ACCESS;
@@ -319,21 +319,7 @@ void WindowsRegistry::makeWritable(const wstring& key)
 
 void WindowsRegistry::takeOwnership(const wstring& key)
 {
-	winutil::UniqueHandle tokenHandle;
-	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, tokenHandle.put()))
-		throw RegistryError(L"Error in OpenProcessToken while taking ownership");
-
-	LUID luid;
-	if (!LookupPrivilegeValue(nullptr, SE_TAKE_OWNERSHIP_NAME, &luid))
-		throw RegistryError(L"Error in LookupPrivilegeValue while taking ownership");
-
-	TOKEN_PRIVILEGES tp;
-	tp.PrivilegeCount = 1;
-	tp.Privileges[0].Luid = luid;
-	tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-
-	if (!AdjustTokenPrivileges(tokenHandle.get(), FALSE, &tp, sizeof(TOKEN_PRIVILEGES), nullptr, nullptr))
-		throw RegistryError(L"Error in AdjustTokenPrivileges while taking ownership");
+	winutil::PrivilegeScope privilege(SE_TAKE_OWNERSHIP_NAME);
 
 	winutil::UniqueRegistryKey keyHandle(openKey(key, WRITE_OWNER | KEY_WOW64_64KEY));
 
@@ -344,11 +330,9 @@ void WindowsRegistry::takeOwnership(const wstring& key)
 	if (!InitializeSecurityDescriptor(sd.get(), SECURITY_DESCRIPTOR_REVISION))
 		throw RegistryError(L"Error in InitializeSecurityDescriptor while taking ownership");
 
-	winutil::UniqueSid sid;
-	SID_IDENTIFIER_AUTHORITY authority = SECURITY_NT_AUTHORITY;
-	if (!AllocateAndInitializeSid(&authority, 2, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS,
-		0, 0, 0, 0, 0, 0, sid.put()))
-		throw RegistryError(L"Error in AllocateAndInitializeSid while taking ownership");
+	auto sid = winutil::sids::sidFromSddl(winutil::sids::administrators);
+	if (!sid)
+		throw RegistryError(L"Error in ConvertStringSidToSid while taking ownership");
 
 	if (!SetSecurityDescriptorOwner(sd.get(), sid.get(), FALSE))
 		throw RegistryError(L"Error in SetSecurityDescriptorOwner while taking ownership");
@@ -357,10 +341,6 @@ void WindowsRegistry::takeOwnership(const wstring& key)
 	if (status != ERROR_SUCCESS)
 		throw RegistryError(L"Error while setting security information for registry key " + key + L": " + win32::errorMessage(status));
 
-	tp.Privileges[0].Attributes = 0;
-
-	if (!AdjustTokenPrivileges(tokenHandle.get(), FALSE, &tp, sizeof(TOKEN_PRIVILEGES), nullptr, nullptr))
-		throw RegistryError(L"Error in AdjustTokenPrivileges while taking ownership");
 }
 
 bool WindowsRegistry::keyExists(const wstring& key) const

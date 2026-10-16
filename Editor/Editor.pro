@@ -81,12 +81,10 @@ SOURCES += main.cpp\
 	guis/DeviceFilterGUI.cpp \
 	guis/DeviceFilterGUIFactory.cpp \
 	../devices/DeviceAPOInfo.cpp \
-	../devices/DeviceAPOInfo.Install.cpp \
+	../devices/DeviceAPOInfo.Change.cpp \
 	../devices/ApoRuntimeFacts.cpp \
 	../devices/ReceiverEndpoints.cpp \
-	../devices/DeviceAPOInfo.Load.cpp \
-	../devices/DeviceAPOInfo.State.cpp \
-	../devices/DeviceAPOInfo.Uninstall.cpp \
+	../devices/EndpointProbe.cpp \
 	../devices/DeviceInstallReport.cpp \
 	../devices/DevicePlan.cpp \
 	../devices/DeviceTestPlan.cpp \
@@ -849,3 +847,15 @@ TRANSLATIONS += translations/Editor_de.ts \
 RC_FILE = Editor.rc
 
 DISTFILES += ../uncrustify.cfg
+
+HEADERS += \
+	../devices/AsioEntryWriter.h \
+	../devices/EndpointProbe.h \
+	../platform/windows/TokenPrivilege.h \
+	../platform/windows/WellKnownSids.h \
+	../platform/windows/ComError.h \
+	../platform/windows/ConsoleOutput.h \
+	../platform/windows/ElevatedLaunch.h \
+	../platform/windows/TimeStamp.h \
+	../services/windows/ServiceWait.h \
+	../services/install/InstallWaitBudget.h

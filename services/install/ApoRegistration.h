@@ -23,6 +23,7 @@
 #include <string>
 
 #include "services/registry/IRegistry.h"
+#include "devices/EndpointProbe.h"
 
 class ApoRegistration
 {
@@ -44,7 +45,9 @@ public:
 	// restarts, ACL grants, COM self-registration and shortcut writing are
 	// outside the port by design; tests judge the registry role through the
 	// two functions below and the device sweep, not the whole hook.
-	static Result install(const std::wstring& installDir,
+	// Empty configDir defers ConfigPath to the migration step; do not publish
+	// a disposable packaged root before the caller's trusted root is chosen.
+	static Result install(const std::wstring& installDir, const std::wstring& configDir,
 		IRegistry& registry = systemRegistry(), bool installGrantsPrepared = false);
 	// A prepared hand-off only removes privileged work; it grants no authority.
 	static constexpr bool shouldGrantInstallAccess(bool installGrantsPrepared = false)
@@ -55,9 +58,8 @@ public:
 		IRegistry& registry = systemRegistry());
 	using DeviceUninstallErrorSink = std::function<void(const std::wstring&)>;
 	// The default endpoint (render or capture) the device sweep hands to each
-	// endpoint's load(). Empty means DeviceAPOInfo::getDefaultDevice, which
-	// asks COM; tests pass a fixed answer so the sweep runs on a fake registry.
-	using DefaultDeviceLookup = std::function<std::wstring(bool input)>;
+	// endpoint's load(). The system probe asks COM; tests supply a probe
+	// with fixed answers so the sweep runs on a fake registry.
 	// Removes the APO from every endpoint, Voicemeeter strip and ASIO entry.
 	// A failure on one item (an endpoint whose values cannot be read, an
 	// enumeration that throws) is reported through errorSink and the sweep
@@ -67,7 +69,7 @@ public:
 	// with AudioSrv still stopped).
 	static Result uninstallAllDeviceApos(const DeviceUninstallErrorSink& errorSink,
 		IRegistry& registry = systemRegistry(),
-		const DefaultDeviceLookup& defaultDeviceLookup = {});
+		const EndpointProbe& probe = systemEndpointProbe());
 
 	// The registry role of install()/uninstall(), named and callable on its
 	// own: writes (or cleans) the HKLM app vocabulary - InstallPath, the
@@ -77,7 +79,21 @@ public:
 	// not exist). cleanup deletes the app key only once it is empty.
 	static Result writeAppInstallRegistry(const std::wstring& installDir,
 		const std::wstring& configDir, IRegistry& registry = systemRegistry());
+	// After migration only: preserve its result (including unreadable values),
+	// or publish the packaged default if no ConfigPath was published at all.
+	static Result writeMissingConfigFallback(const std::wstring& installDir,
+		IRegistry& registry = systemRegistry());
 	static void cleanupAppRegistry(IRegistry& registry = systemRegistry());
+
+	struct Verification
+	{
+		bool protectedAudioDG = false;
+		bool registration = false;
+		Result repairResult = Result::Success;
+		bool valid() const {return protectedAudioDG && registration;}
+	};
+	static Verification verify(IRegistry& registry, bool fix, bool refreshRegistration = false);
+	static bool checkProtectedAudioDG(bool fix, IRegistry& registry = systemRegistry());
 
 	static bool stopAudioService();
 	static bool startAudioService();

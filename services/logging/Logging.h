@@ -48,6 +48,7 @@ public:
 	// tell the user where to look: an error dialog that says what went wrong but
 	// not where the detail is leaves the user with nothing to send.
 	static std::wstring currentPath();
+	static std::wstring userLogDirectory();
 
 private:
 	// First log() call may race between RT, worker, and GUI threads: the

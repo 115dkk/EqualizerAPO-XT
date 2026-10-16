@@ -6,6 +6,7 @@
 
 #include "stdafx.h"
 #include "devices/AsioAPOInfo.h"
+#include "devices/AsioEntryWriter.h"
 
 #include "asio/StreamFacts.h"
 #include "asio/WrapperRecord.h"
@@ -108,35 +109,9 @@ bool AsioAPOInfo::isInstalled() const
 	return installed;
 }
 
-bool AsioAPOInfo::canBeUpgraded() const
-{
-	return false;
-}
-
 bool AsioAPOInfo::hasChanges() const
 {
 	return installed && selected != current;
-}
-
-bool AsioAPOInfo::isEnhancementsDisabled() const
-{
-	return false;
-}
-
-bool AsioAPOInfo::isDefaultDevice() const
-{
-	// Decision 3: no group of its own and no default of its own.
-	return false;
-}
-
-bool AsioAPOInfo::isDisabled() const
-{
-	return false;
-}
-
-bool AsioAPOInfo::isUnplugged() const
-{
-	return false;
 }
 
 std::wstring AsioAPOInfo::getTransportLabel() const
@@ -144,22 +119,10 @@ std::wstring AsioAPOInfo::getTransportLabel() const
 	return L"ASIO";
 }
 
-std::wstring AsioAPOInfo::requiredInstallDirectory(const IRegistry& from)
-{
-	if (!from.valueExists(APP_REGPATH, L"InstallPath"))
-		throw DeviceException(L"The ASIO entry needs the InstallPath value under HKEY_LOCAL_MACHINE\\SOFTWARE\\EqualizerAPO");
-	return from.readValue(APP_REGPATH, L"InstallPath");
-}
-
-std::wstring AsioAPOInfo::optionalInstallDirectory(const IRegistry& from)
-{
-	return from.valueExists(APP_REGPATH, L"InstallPath") ? from.readValue(APP_REGPATH, L"InstallPath") : std::wstring();
-}
-
 bool AsioAPOInfo::canHost32() const
 {
 	// A build without the x86 wrapper (ARM64) cannot serve 32-bit hosts.
-	return eapo::asio::AsioRegistration::wrapper32Shipped(optionalInstallDirectory(registry));
+	return eapo::asio::AsioRegistration::wrapper32Shipped(AsioEntryWriter::installDirectory(registry, AsioEntryWriter::DirectoryRequirement::Optional));
 }
 
 void AsioAPOInfo::beginReport(DeviceInstallReport::Operation operation)
@@ -177,7 +140,7 @@ void AsioAPOInfo::beginReport(DeviceInstallReport::Operation operation)
 
 void AsioAPOInfo::installWithin(RegistryTransaction& plan)
 {
-	const std::wstring directory = requiredInstallDirectory(plan);
+	const std::wstring directory = AsioEntryWriter::installDirectory(plan, AsioEntryWriter::DirectoryRequirement::Required);
 	const std::wstring wrapperClsid = wrapperClsidFor(target.clsid);
 	WrapperRecord record;
 	const bool fresh = !WrapperRecords::read(plan, wrapperClsid, record);
@@ -204,23 +167,14 @@ void AsioAPOInfo::installWithin(RegistryTransaction& plan)
 		options.autoStart = selected.autoStart;
 	if (selected.host32 != current.host32)
 		options.host32 = selected.host32;
-	WrapperRecords::setEntryOptions(record, options);
-	WrapperRecords::write(plan, record);
-
-	// The 32-bit view only when asked for, and only when the x86 wrapper
-	// is there to point at.
-	eapo::asio::AsioRegistration::registerWrapper(plan, target,
-		eapo::asio::AsioRegistration::wrapperDllPath(directory),
-		record.register32 && eapo::asio::AsioRegistration::wrapper32Shipped(directory)
-			? eapo::asio::AsioRegistration::wrapper32DllPath(directory) : std::wstring());
-	eapo::asio::AsioRegistration::refreshAutoStart(plan, directory);
+	AsioEntryWriter::writeEntry(plan, target, record, options, directory);
 }
 
 void AsioAPOInfo::uninstallWithin(RegistryTransaction& plan)
 {
 	// Removing needs no install directory: the Run value only has to be
 	// rewritten when another entry still asks for it, and then it is kept.
-	const std::wstring directory = optionalInstallDirectory(plan);
+	const std::wstring directory = AsioEntryWriter::installDirectory(plan, AsioEntryWriter::DirectoryRequirement::Optional);
 	const std::wstring wrapperClsid = wrapperClsidFor(target.clsid);
 	WrapperRecord record;
 	if (WrapperRecords::read(plan, wrapperClsid, record))
@@ -229,16 +183,14 @@ void AsioAPOInfo::uninstallWithin(RegistryTransaction& plan)
 			record.options.processInput = false;
 		else
 			record.options.processOutput = false;
-		if (record.options.processInput || record.options.processOutput)
-		{
-			WrapperRecords::write(plan, record);
-			eapo::asio::AsioRegistration::refreshAutoStart(plan, directory);
-			return;
-		}
-		WrapperRecords::remove(plan, wrapperClsid);
 	}
-	eapo::asio::AsioRegistration::unregisterWrapper(plan, target);
-	eapo::asio::AsioRegistration::refreshAutoStart(plan, directory);
+	else
+	{
+		record.wrapperClsid = wrapperClsid;
+		record.options.processInput = false;
+		record.options.processOutput = false;
+	}
+	AsioEntryWriter::removeEntry(plan, target, record, directory);
 }
 
 void AsioAPOInfo::install()

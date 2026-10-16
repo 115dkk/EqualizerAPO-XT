@@ -34,7 +34,8 @@ public:
 	// port; the startup-shortcut and process work stays on the Win32 calls.
 	static void prependInfos(std::vector<std::shared_ptr<AbstractAPOInfo>>& list, IRegistry& registry = systemRegistry());
 
-	VoicemeeterAPOInfo(const std::wstring& connectionName, bool voicemeeterInstalled, IRegistry& registry = systemRegistry());
+	VoicemeeterAPOInfo(const std::wstring& connectionName, bool voicemeeterInstalled, IRegistry& registry = systemRegistry(),
+		std::wstring startupPath = {});
 
 	std::wstring getConnectionName() const override;
 	std::wstring getDeviceName() const override;
@@ -45,12 +46,9 @@ public:
 	unsigned long getChannelMask() const override;
 	bool isInput() const override;
 	bool isInstalled() const override;
-	bool canBeUpgraded() const override;
 	bool hasChanges() const override;
-	bool isEnhancementsDisabled() const override;
 	bool isDefaultDevice() const override;
-	bool isDisabled() const override;
-	bool isUnplugged() const override;
+	std::wstring stateNote() const override;
 	bool isVoicemeeterInstalled() const;
 	void install() override;
 	void uninstall() override;
@@ -66,6 +64,7 @@ private:
 	static std::vector<std::wstring> splitArgs(const std::wstring& argString);
 	static std::wstring joinArgs(const std::vector<std::wstring>& args);
 
+	std::wstring startupPath;
 	std::wstring connectionName;
 	unsigned sampleRate;
 	bool installed;

@@ -381,7 +381,7 @@ void testLoadRejectsAnInstallationFromANewerBuild(test::Harness& harness)
 	{
 		info.load(testDeviceGuid, otherDeviceGuid);
 	}
-	catch (const RegistryError&)
+	catch (const DeviceException&)
 	{
 		refused = true;
 	}
@@ -1136,21 +1136,45 @@ void testUninstallPutsTheInstallationBackWhenItCannotFinish(test::Harness& harne
 		"and it reads as installed, which is what it still is");
 }
 
+void testReinstallDoesNotProbeAnEndpoint(test::Harness& harness)
+{
+	class RejectingProbe final : public EndpointProbe
+	{
+	public:
+		std::wstring defaultEndpointGuid(bool, int) const override
+		{
+			throw DeviceException(L"unexpected default endpoint query");
+		}
+		void probeEndpoint(const std::wstring&, bool, const std::wstring&) const override
+		{
+			throw DeviceException(L"unexpected endpoint activation");
+		}
+	};
+	FakeRegistry registry;
+	installOverVendorApos(harness, registry);
+	const RejectingProbe probe;
+	DeviceAPOInfo info(registry, probe);
+	harness.require(info.load(testDeviceGuid, testDeviceGuid), "load with an explicit default never queries COM");
+	info.getSelectedInstallState() = info.getCurrentInstallState();
+	info.reinstall();
+	harness.expect(info.isDefaultDevice(), "registry-only reload retains the known default endpoint");
+}
+
 void testCheckProtectedAudioDGReportsAndFixesTheDisabledFlag(test::Harness& harness)
 {
 	FakeRegistry registry;
 	registry.seedKey(protectedDGKeyPath);
 
-	harness.expectFalse(DeviceAPOInfo::checkProtectedAudioDG(false, registry),
+	harness.expectFalse(ApoRegistration::checkProtectedAudioDG(false, registry),
 		"with the value absent the protected audio path is still on, and no APO of ours would ever be loaded");
 	harness.expectFalse(registry.valueExists(protectedDGKeyPath, protectedDGValueName),
 		"asking without fix must not write anything, because the Editor calls it on every start just to warn");
 
-	harness.expectFalse(DeviceAPOInfo::checkProtectedAudioDG(true, registry),
+	harness.expectFalse(ApoRegistration::checkProtectedAudioDG(true, registry),
 		"the fixing call still reports the state it found, so the caller can tell the user something was changed");
 	harness.expectEqual(registry.readDWORDValue(protectedDGKeyPath, protectedDGValueName), 1ul,
 		"fixing writes the flag that disables the protected audio path");
-	harness.expect(DeviceAPOInfo::checkProtectedAudioDG(false, registry),
+	harness.expect(ApoRegistration::checkProtectedAudioDG(false, registry),
 		"once the flag is set the check passes and stops nagging");
 }
 // Audit #348 TD-02: the package uninstall hook stops AudioSrv and then sweeps
@@ -1171,11 +1195,18 @@ void testUninstallSweepSurvivesAnUnreadableEndpoint(test::Harness& harness)
 	registry.seedString(brokenKey + L"\\Properties", connectionValueName, connectionName);
 	registry.denyRead(brokenKey + L"\\Properties");
 
+	class TestEndpointProbe final : public EndpointProbe
+	{
+	public:
+		std::wstring defaultEndpointGuid(bool, int) const override {return otherDeviceGuid;}
+		void probeEndpoint(const std::wstring&, bool, const std::wstring&) const override {}
+	};
+	const TestEndpointProbe probe;
 	std::vector<std::wstring> errors;
 	const ApoRegistration::Result result = ApoRegistration::uninstallAllDeviceApos(
 		[&](const std::wstring& message) { errors.push_back(message); },
 		registry,
-		[](bool) { return otherDeviceGuid; });
+		probe);
 
 	harness.expect(result == ApoRegistration::Result::DeviceUninstallFailed,
 		"the sweep reports that one endpoint could not be handled");
@@ -1263,6 +1294,7 @@ void runDeviceApoInfoTests(test::Harness& harness)
 	testInstallTakesOwnershipWhenFxPropertiesCannotBeCreated(harness);
 	testInstallLeavesTheEndpointAloneWhenAMidwaySlotWriteFails(harness);
 	testUninstallPutsTheInstallationBackWhenItCannotFinish(harness);
+	testReinstallDoesNotProbeAnEndpoint(harness);
 	testCheckProtectedAudioDGReportsAndFixesTheDisabledFlag(harness);
 	testUninstallSweepSurvivesAnUnreadableEndpoint(harness);
 	testLoadAllInfosSkipsAnUnreadableEndpoint(harness);

@@ -50,6 +50,7 @@
 #include "version.h"
 #include "FilterTable.h"
 #include "MainWindow.h"
+#include "services/install/ApoRegistration.h"
 #include "SkinManager.h"
 #include "ui_MainWindow.h"
 
@@ -282,7 +283,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::doChecks()
 {
-	if (!DeviceAPOInfo::checkProtectedAudioDG(false) || !DeviceAPOInfo::checkAPORegistration(false))
+	if (!ApoRegistration::verify(systemRegistry(), false).valid())
 	{
 		if (QMessageBox::warning(this, tr("Registry problem"), tr("A registry value that is required for the operation of Equalizer APO is not set correctly.\nDo you want to run the Device Selector application to fix the problem?"), QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes)
 		{

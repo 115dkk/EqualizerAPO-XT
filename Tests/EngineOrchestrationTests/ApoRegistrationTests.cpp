@@ -177,6 +177,56 @@ void testClsidTreeFailuresReachTheCallerForRollback(test::Harness& harness)
 }
 }
 
+
+void testMissingMigrationRootGetsOnePackagedDefault(test::Harness& harness)
+{
+	class CountingRegistry final : public FakeRegistry
+	{
+	public:
+		void writeValue(const std::wstring& key, const std::wstring& name, const std::wstring& value) override
+		{
+			FakeRegistry::writeValue(key, name, value);
+			if (key == appKey && name == L"ConfigPath")
+				++configWrites;
+		}
+		unsigned configWrites = 0;
+	};
+	const auto directory = testDirectory() + L"\\aporeg-fallback";
+	const auto config = directory + L"\\config";
+	CountingRegistry registry;
+	registry.seedKey(audioKey);
+	harness.require(ApoRegistration::writeAppInstallRegistry(directory, L"", registry) == ApoRegistration::Result::Success,
+		"install can defer the migration-owned config root");
+	harness.expectEqual(registry.configWrites, 0u, "install has not written ConfigPath");
+	// Migration returned without publishing a root (missing environment or failed handoff).
+	harness.expect(ApoRegistration::writeMissingConfigFallback(directory, registry) == ApoRegistration::Result::Success,
+		"an absent migration result gets the packaged default");
+	harness.expect(registry.readValue(appKey, L"ConfigPath") == config, "fallback is the install's packaged config directory");
+	harness.expect(pathutil::directoryExists(config), "fallback directory exists before success");
+	harness.expectEqual(registry.configWrites, 1u, "fallback publishes ConfigPath once");
+	ApoRegistration::writeMissingConfigFallback(directory, registry);
+	harness.expectEqual(registry.configWrites, 1u, "repeating fallback does not write the value again");
+
+	CountingRegistry existing;
+	existing.seedString(appKey, L"ConfigPath", L"D:\\My Configs");
+	harness.expect(ApoRegistration::writeMissingConfigFallback(directory, existing) == ApoRegistration::Result::Success,
+		"an existing migration or custom result needs no fallback");
+	harness.expect(existing.readValue(appKey, L"ConfigPath") == L"D:\\My Configs", "existing root is untouched");
+	harness.expectEqual(existing.configWrites, 0u, "existing root is not rewritten");
+	existing.denyRead(appKey);
+	harness.expect(ApoRegistration::writeMissingConfigFallback(directory, existing) == ApoRegistration::Result::RegistryFailed,
+		"an unreadable value is not treated as absent");
+	harness.expectEqual(existing.configWrites, 0u, "unreadable root is not overwritten");
+
+	CountingRegistry wrongType;
+	wrongType.seedDword(appKey, L"ConfigPath", 7);
+	ApoRegistration::writeMissingConfigFallback(directory, wrongType);
+	harness.expectEqual(wrongType.readDWORDValue(appKey, L"ConfigPath"), 7ul, "a value of an unreadable type is retained");
+	harness.expectEqual(wrongType.configWrites, 0u, "a wrong-type value is not replaced");
+	RemoveDirectoryW(config.c_str());
+	RemoveDirectoryW(directory.c_str());
+}
+
 void runApoRegistrationTests(test::Harness& harness)
 {
 	harness.expect(ApoRegistration::shouldGrantInstallAccess(),
@@ -185,6 +235,18 @@ void runApoRegistrationTests(test::Harness& harness)
 		"failed or absent preparation keeps both legacy grants");
 	harness.expectFalse(ApoRegistration::shouldGrantInstallAccess(true),
 		"prepared install skips both elevated recursive grants");
+	test::FakeRegistry unchecked;
+	unchecked.seedKey(audioKey);
+	const auto missing = ApoRegistration::verify(unchecked, false);
+	harness.expectFalse(missing.valid(), "verification reports missing protection and registration");
+	harness.expectFalse(unchecked.valueExists(audioKey, L"DisableProtectedAudioDG"), "read-only verification does not repair the registry");
+	test::FakeRegistry deferred;
+	deferred.seedKey(audioKey);
+	harness.expect(ApoRegistration::writeAppInstallRegistry(L"C:\\Install", L"", deferred) == ApoRegistration::Result::Success,
+		"migration-owned config root can be deferred");
+	harness.expectFalse(deferred.valueExists(appKey, L"ConfigPath"),
+		"install does not publish a disposable ConfigPath before migration chooses the root");
+	testMissingMigrationRootGetsOnePackagedDefault(harness);
 	testInstallRegistryWritesTheAppVocabulary(harness);
 	testInstallRegistryNeverOverwritesUserValues(harness);
 	testCleanupRemovesTheFlagButOnlyEmptyKeys(harness);
