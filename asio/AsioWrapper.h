@@ -123,6 +123,9 @@ namespace eapo::asio
 
 		ASIOError prepareChannels(ASIOBufferInfo* bufferInfos, long numChannels, long bufferSize);
 		void releaseChannels() noexcept;
+		void detachHostBufferInfos() noexcept;
+		ASIOError finishBufferCleanup(bool disposeTarget, bool closeProcessor) noexcept;
+		void deferBufferCleanup(bool disposeTarget, bool closeProcessor) noexcept;
 		// Unbinds the callback slot and waits up to two seconds for a
 		// callback already inside to leave. False when one is still inside;
 		// the caller must then not free what that callback may touch.
@@ -160,6 +163,8 @@ namespace eapo::asio
 		long frames_ = 0;
 		ASIOCallbacks* trampolines_ = nullptr;
 		ASIOCallbacks* quarantinedCallbacks_ = nullptr;
+		bool quarantineDisposesTarget_ = false;
+		bool quarantineClosesProcessor_ = false;
 
 		StreamFormat format_;
 		uint32_t extraLatencyFrames_ = 0;

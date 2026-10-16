@@ -36,6 +36,7 @@ struct FakeAsioConfig
 	long inputLatency = 0;
 	long outputLatency = 0;
 	long failInit = 0;              // 1 = init() answers ASIOFalse
+	long failCreateAfterCallbacks = 0; // 1 = createBuffers() starts callbacks, then fails
 };
 
 struct FakeAsioCounters

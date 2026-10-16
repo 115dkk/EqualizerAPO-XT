@@ -319,9 +319,9 @@ namespace eapo::asio
 		if (!CallbackTrampolines::drained(quarantinedCallbacks_))
 			return false;
 		quarantinedCallbacks_ = nullptr;
-		processor_->close();
-		releaseChannels();
-		host_.clear();
+		finishBufferCleanup(quarantineDisposesTarget_, quarantineClosesProcessor_);
+		quarantineDisposesTarget_ = false;
+		quarantineClosesProcessor_ = false;
 		return true;
 	}
 
@@ -344,6 +344,38 @@ namespace eapo::asio
 		targetInfos_.clear();
 		inputCount_ = 0;
 		outputCount_ = 0;
+	}
+
+	void AsioWrapper::detachHostBufferInfos() noexcept
+	{
+		for (Channel& channel : channels_)
+		{
+			if (channel.hostInfo != nullptr)
+			{
+				channel.hostInfo->buffers[0] = nullptr;
+				channel.hostInfo->buffers[1] = nullptr;
+				channel.hostInfo = nullptr;
+			}
+		}
+	}
+
+	ASIOError AsioWrapper::finishBufferCleanup(bool disposeTarget, bool closeProcessor) noexcept
+	{
+		const ASIOError error = disposeTarget ? target_->disposeBuffers() : ASE_OK;
+		if (closeProcessor)
+			processor_->close();
+		releaseChannels();
+		host_.clear();
+		return error;
+	}
+
+	void AsioWrapper::deferBufferCleanup(bool disposeTarget, bool closeProcessor) noexcept
+	{
+		// The caller still owns its ASIOBufferInfo array. Return its pointers now
+		// and retain only wrapper-owned storage while the callback drains.
+		detachHostBufferInfos();
+		quarantineDisposesTarget_ = disposeTarget;
+		quarantineClosesProcessor_ = closeProcessor;
 	}
 
 	bool AsioWrapper::fillFormat(long bufferSize)
@@ -404,9 +436,15 @@ namespace eapo::asio
 		error = target_->createBuffers(targetInfos_.data(), static_cast<long>(targetInfos_.size()), bufferSize, trampolines_);
 		if (error != ASE_OK)
 		{
-			CallbackTrampolines::release(this);
-			trampolines_ = nullptr;
-			releaseChannels();
+			if (retireCallbacks("a failed target createBuffers"))
+			{
+				releaseChannels();
+				host_.clear();
+			}
+			else
+			{
+				deferBufferCleanup(false, false);
+			}
 			return error;
 		}
 
@@ -421,15 +459,16 @@ namespace eapo::asio
 			}
 		}
 
-		auto unwind = [this]() noexcept {
-			target_->disposeBuffers();
+		auto unwind = [this](bool closeProcessor) noexcept {
 			if (retireCallbacks("a failed createBuffers"))
-				releaseChannels();
+				finishBufferCleanup(true, closeProcessor);
+			else
+				deferBufferCleanup(true, closeProcessor);
 		};
 
 		if (!fillFormat(bufferSize))
 		{
-			unwind();
+			unwind(false);
 			return ASE_HWMalfunction;
 		}
 
@@ -445,7 +484,7 @@ namespace eapo::asio
 		}
 		if (report.status != OpenReport::Status::Ok)
 		{
-			unwind();
+			unwind(true);
 			setError(report.message[0] != '\0' ? report.message : "EQ APO XT engine host is not available");
 			return report.status == OpenReport::Status::Rejected ? ASE_InvalidMode : ASE_HWMalfunction;
 		}
@@ -469,20 +508,13 @@ namespace eapo::asio
 		if (state() != State::Prepared)
 			return ASE_InvalidMode;
 
-		// Refuse new switches first, then take the target down, then wait for
-		// a switch that was already inside the wrapper to leave.
+		// Refuse new switches first, then retire callbacks. The target and
+		// processor buffers stay alive until a switch already inside leaves.
 		state_.store(State::Initialized, std::memory_order_release);
-		const ASIOError error = target_->disposeBuffers();
-		// A callback that did not leave may still be in the processor or in
-		// the channel buffers, so neither is torn down under it: the
-		// processor closes on the next open, and the buffers stay allocated.
 		if (retireCallbacks("disposeBuffers"))
-		{
-			processor_->close();
-			releaseChannels();
-			host_.clear();
-		}
-		return error;
+			return finishBufferCleanup(true, true);
+		deferBufferCleanup(true, true);
+		return ASE_OK;
 	}
 
 	ASIOError AsioWrapper::start()

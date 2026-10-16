@@ -76,6 +76,7 @@ namespace eapo::asio
 			lane.consecutiveLate = 0;
 			lane.publishable = false;
 			lane.prepared = false;
+			lane.firstBlock = true;
 			lane.gone = false;
 			lane.scratch.assign(lane.samples, 0.0f);
 			lane.heldInput.assign(mode_ == Mode::Pipelined ? lane.samples : 0, 0.0f);
@@ -174,8 +175,9 @@ namespace eapo::asio
 			return Outcome::LateDropped;
 		}
 
-		if (seq == 1)
+		if (lane.firstBlock)
 		{
+			lane.firstBlock = false;
 			pointPlanes(lane, lane.silence.data());
 			return Outcome::Processed;
 		}
@@ -227,6 +229,7 @@ namespace eapo::asio
 			lane.consecutiveLate = 0;
 			lane.publishable = false;
 			lane.prepared = false;
+			lane.firstBlock = true;
 			lane.gone = false;
 		}
 		open_ = false;

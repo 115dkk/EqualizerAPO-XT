@@ -312,11 +312,18 @@ ASIOError FakeAsioDriver::createBuffers(ASIOBufferInfo* bufferInfos, long numCha
 
 	callbacks_ = *callbacks;
 	callbackSet_ = callbacks;
+	if (createBuffersHook_ != nullptr)
+		createBuffersHook_(callbackSet_);
 	bufferSize_ = bufferSize;
 	hostSupportsTimeInfo_ = callbacks_.asioMessage != nullptr && callbacks_.bufferSwitchTimeInfo != nullptr
 		&& callbacks_.asioMessage(kAsioSelectorSupported, kAsioSupportsTimeInfo, nullptr, nullptr) == 1
 		&& callbacks_.asioMessage(kAsioSupportsTimeInfo, 0, nullptr, nullptr) == 1;
 	counters_.hostSupportsTimeInfo = hostSupportsTimeInfo_ ? 1 : 0;
+	if (config_.failCreateAfterCallbacks != 0)
+	{
+		channels_.clear();
+		return ASE_HWMalfunction;
+	}
 	buffersCreated_ = true;
 	samplePosition_ = 0;
 	// A reopened driver starts like a fresh one: its input stream begins at

@@ -16,6 +16,7 @@
 #include <exception>
 #include <fstream>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -68,6 +69,10 @@ namespace
 		std::vector<Outcome> script;           // consumed per process() call, any direction
 		OpenReport::Status openStatus = OpenReport::Status::Ok;
 		uint32_t extraLatency = 0;
+		bool throwOnOpen = false;
+		FakeAsioDriver* enterCallbackFrom = nullptr;
+		ASIOCallbacks* enteredCallback = nullptr;
+		bool callbackEntered = false;
 		unsigned opens = 0, closes = 0, calls = 0;
 		StreamFormat openedWith;
 
@@ -75,6 +80,13 @@ namespace
 		{
 			opens++;
 			openedWith = format;
+			if (enterCallbackFrom != nullptr)
+			{
+				enteredCallback = enterCallbackFrom->callbackSetForTesting();
+				callbackEntered = eapo::asio::CallbackTrampolines::testEnter(enteredCallback);
+			}
+			if (throwOnOpen)
+				throw std::runtime_error("scripted open exception");
 			OpenReport report;
 			report.status = openStatus;
 			if (openStatus != OpenReport::Status::Ok)
@@ -161,6 +173,17 @@ namespace
 			return c;
 		}
 	};
+
+	std::vector<ASIOBufferInfo> outputInfos(long count)
+	{
+		std::vector<ASIOBufferInfo> infos(static_cast<size_t>(count));
+		for (long i = 0; i < count; i++)
+		{
+			infos[static_cast<size_t>(i)].isInput = ASIOFalse;
+			infos[static_cast<size_t>(i)].channelNum = i;
+		}
+		return infos;
+	}
 
 	std::vector<float> decode(const SampleCodec& codec, const std::vector<unsigned char>& bytes)
 	{
@@ -818,6 +841,15 @@ namespace
 			release(&sink);
 	}
 
+	ASIOCallbacks* failedCreateEnteredCallback = nullptr;
+	bool failedCreateCallbackEntered = false;
+
+	void enterFailedCreateCallback(ASIOCallbacks* callbacks)
+	{
+		failedCreateEnteredCallback = callbacks;
+		failedCreateCallbackEntered = eapo::asio::CallbackTrampolines::testEnter(callbacks);
+	}
+
 	// ---- wrapper: state machine ----
 
 	void testStateMachineOrdering()
@@ -871,25 +903,111 @@ namespace
 		harness.expect(std::string(name) == "FakeAsio (EQ APO XT)", std::string("the driver name carries the suffix: ") + name);
 	}
 
-	void testQuarantinedCallbackRefusesReopen()
+	void testQuarantinedCallbackDetachesHostArrayAndDefersTargetDispose()
 	{
 		FakeAsioConfig config;
 		StreamOptions options;
 		Rig rig(config, options, asiotest::HostStub::Options());
-		rig.host->openChannels(0, 2);
+		std::vector<ASIOBufferInfo> oldInfos = outputInfos(2);
+		std::vector<ASIOBufferInfo> newInfos = outputInfos(2);
 		harness.requireEqual(rig.wrapper->init(nullptr), ASIOTrue, "the quarantine fixture initializes");
-		harness.requireEqual(rig.host->createBuffers(rig.wrapper, 64), ASE_OK, "the quarantine fixture opens buffers");
+		harness.requireEqual(rig.wrapper->createBuffers(oldInfos.data(), static_cast<long>(oldInfos.size()), 64, rig.host->callbacks()),
+			ASE_OK, "the quarantine fixture opens buffers");
 		ASIOCallbacks* callbacks = rig.fake->callbackSetForTesting();
 		harness.require(eapo::asio::CallbackTrampolines::testEnter(callbacks), "a target callback is held in flight");
 		const MMRESULT timer = timeBeginPeriod(1);
 		harness.expectEqual(rig.wrapper->disposeBuffers(), ASE_OK, "dispose returns after the bounded quarantine wait");
 		if (timer == TIMERR_NOERROR)
 			timeEndPeriod(1);
-		harness.expectEqual(rig.host->createBuffers(rig.wrapper, 64), ASE_InvalidMode,
-			"createBuffers refuses to overwrite the host callback snapshot while the old callback is quarantined");
+		harness.expect(oldInfos[0].buffers[0] == nullptr && oldInfos[0].buffers[1] == nullptr,
+			"dispose returns the old host buffer pointers before the array can expire");
+		harness.expectEqual(rig.counters().disposeBuffersCalls, 0ul, "the target buffers remain alive while its callback is in flight");
+		harness.expectEqual(rig.processor->closes, 0u, "the processor remains open while its callback is in flight");
+		std::memset(oldInfos.data(), 0xA5, oldInfos.size() * sizeof(ASIOBufferInfo));
+		const std::vector<unsigned char> sentinel(oldInfos.size() * sizeof(ASIOBufferInfo), 0xA5);
+		harness.expectEqual(rig.wrapper->createBuffers(newInfos.data(), static_cast<long>(newInfos.size()), 64, rig.host->callbacks()),
+			ASE_InvalidMode, "createBuffers refuses to overwrite the host callback snapshot while the old callback is quarantined");
 		eapo::asio::CallbackTrampolines::testLeave(callbacks);
-		harness.expectEqual(rig.host->createBuffers(rig.wrapper, 64), ASE_OK, "the drained quarantine permits a fresh callback snapshot");
+		harness.expectEqual(rig.wrapper->createBuffers(newInfos.data(), static_cast<long>(newInfos.size()), 64, rig.host->callbacks()),
+			ASE_OK, "the drained quarantine permits a fresh callback snapshot");
+		harness.expectEqual(rig.counters().disposeBuffersCalls, 1ul, "the old target buffers are disposed only after the callback drains");
+		harness.expectEqual(rig.processor->closes, 1u, "the old processor closes only after the callback drains");
+		harness.expect(std::memcmp(oldInfos.data(), sentinel.data(), sentinel.size()) == 0,
+			"releasing the quarantine never writes through the expired host array");
 		harness.expectEqual(rig.wrapper->disposeBuffers(), ASE_OK, "the reopened stream disposes normally");
+	}
+
+	void testFailedProcessorOpenQuarantineDetachesHostArray()
+	{
+		FakeAsioConfig config;
+		StreamOptions options;
+		Rig rig(config, options, asiotest::HostStub::Options());
+		std::vector<ASIOBufferInfo> oldInfos = outputInfos(2);
+		std::vector<ASIOBufferInfo> newInfos = outputInfos(2);
+		rig.processor->openStatus = OpenReport::Status::Unavailable;
+		rig.processor->enterCallbackFrom = rig.fake;
+		harness.requireEqual(rig.wrapper->init(nullptr), ASIOTrue, "the failed-open quarantine fixture initializes");
+		const MMRESULT timer = timeBeginPeriod(1);
+		harness.expectEqual(rig.wrapper->createBuffers(oldInfos.data(), static_cast<long>(oldInfos.size()), 64, rig.host->callbacks()),
+			ASE_HWMalfunction, "a processor failure returns after the bounded quarantine wait");
+		if (timer == TIMERR_NOERROR)
+			timeEndPeriod(1);
+		harness.require(rig.processor->callbackEntered, "the processor failure left a target callback in flight");
+		harness.expect(oldInfos[0].buffers[0] == nullptr && oldInfos[0].buffers[1] == nullptr,
+			"the failed create returns the old host buffer pointers before the array can expire");
+		harness.expectEqual(rig.counters().disposeBuffersCalls, 0ul, "failed-create target buffers remain alive while the callback is in flight");
+		harness.expectEqual(rig.processor->closes, 0u, "a partially opened processor remains alive while the callback is in flight");
+		std::memset(oldInfos.data(), 0xA5, oldInfos.size() * sizeof(ASIOBufferInfo));
+		const std::vector<unsigned char> sentinel(oldInfos.size() * sizeof(ASIOBufferInfo), 0xA5);
+		harness.expectEqual(rig.wrapper->createBuffers(newInfos.data(), static_cast<long>(newInfos.size()), 64, rig.host->callbacks()),
+			ASE_InvalidMode, "the failed create cannot replace callbacks before the old one drains");
+		eapo::asio::CallbackTrampolines::testLeave(rig.processor->enteredCallback);
+		rig.processor->enterCallbackFrom = nullptr;
+		rig.processor->openStatus = OpenReport::Status::Ok;
+		harness.expectEqual(rig.wrapper->createBuffers(newInfos.data(), static_cast<long>(newInfos.size()), 64, rig.host->callbacks()),
+			ASE_OK, "the failed create can reopen after its callback drains");
+		harness.expectEqual(rig.counters().disposeBuffersCalls, 1ul, "the failed create disposes target buffers after the callback drains");
+		harness.expectEqual(rig.processor->closes, 1u, "the partial processor open closes after the callback drains");
+		harness.expect(std::memcmp(oldInfos.data(), sentinel.data(), sentinel.size()) == 0,
+			"the failed-create cleanup never writes through the expired host array");
+		harness.expectEqual(rig.wrapper->disposeBuffers(), ASE_OK, "the recovered stream disposes normally");
+	}
+
+	void testFailedTargetCreateQuarantinesNotificationCallback()
+	{
+		FakeAsioConfig config;
+		config.failCreateAfterCallbacks = 1;
+		StreamOptions options;
+		Rig rig(config, options, asiotest::HostStub::Options());
+		std::vector<ASIOBufferInfo> oldInfos = outputInfos(2);
+		std::vector<ASIOBufferInfo> newInfos = outputInfos(2);
+		failedCreateEnteredCallback = nullptr;
+		failedCreateCallbackEntered = false;
+		rig.fake->setCreateBuffersHookForTesting(&enterFailedCreateCallback);
+		harness.requireEqual(rig.wrapper->init(nullptr), ASIOTrue, "the target-failure quarantine fixture initializes");
+		const MMRESULT timer = timeBeginPeriod(1);
+		harness.expectEqual(rig.wrapper->createBuffers(oldInfos.data(), static_cast<long>(oldInfos.size()), 64, rig.host->callbacks()),
+			ASE_HWMalfunction, "a target failure returns after the bounded notification quarantine wait");
+		if (timer == TIMERR_NOERROR)
+			timeEndPeriod(1);
+		harness.require(failedCreateCallbackEntered, "the target started a notification callback before returning failure");
+		harness.expectEqual(rig.processor->opens, 0u, "the processor never opens after the target create fails");
+		std::memset(oldInfos.data(), 0xA5, oldInfos.size() * sizeof(ASIOBufferInfo));
+		const std::vector<unsigned char> sentinel(oldInfos.size() * sizeof(ASIOBufferInfo), 0xA5);
+		harness.expectEqual(rig.wrapper->createBuffers(newInfos.data(), static_cast<long>(newInfos.size()), 64, rig.host->callbacks()),
+			ASE_InvalidMode, "a target failure cannot replace the host snapshot before its notification drains");
+		eapo::asio::CallbackTrampolines::testLeave(failedCreateEnteredCallback);
+		rig.fake->setCreateBuffersHookForTesting(nullptr);
+		config.failCreateAfterCallbacks = 0;
+		harness.requireEqual(rig.fake->configure(&config), S_OK, "the fake target is allowed to recover");
+		harness.expectEqual(rig.wrapper->createBuffers(newInfos.data(), static_cast<long>(newInfos.size()), 64, rig.host->callbacks()),
+			ASE_OK, "the target can reopen after its notification drains");
+		harness.expectEqual(rig.processor->closes, 0u, "releasing a failed target create does not close an unopened processor");
+		harness.expect(std::memcmp(oldInfos.data(), sentinel.data(), sentinel.size()) == 0,
+			"target-failure cleanup never writes through the expired host array");
+		harness.expectEqual(rig.wrapper->disposeBuffers(), ASE_OK, "the recovered target stream disposes normally");
+		failedCreateEnteredCallback = nullptr;
+		failedCreateCallbackEntered = false;
 	}
 
 	// ---- wrapper: data flow ----
@@ -1221,6 +1339,7 @@ namespace
 			harness.expectEqual(rig.host->createBuffers(w, 64), ASE_HWMalfunction, "an unavailable engine host fails createBuffers loudly");
 			harness.expectEqual(rig.counters().createBuffersCalls, 1ul, "the target's buffers were created");
 			harness.expectEqual(rig.counters().disposeBuffersCalls, 1ul, "and disposed again on the failure");
+			harness.expectEqual(rig.processor->closes, 1u, "a failed processor open is closed immediately after callbacks drain");
 			char message[124] = {};
 			w->getErrorMessage(message);
 			harness.expect(std::string(message) == "scripted failure", std::string("the processor's message is reported: ") + message);
@@ -1228,6 +1347,12 @@ namespace
 			harness.expect(rig.host->infos()[0].buffers[0] == nullptr, "the host's buffer pointers are cleared");
 			rig.processor->openStatus = OpenReport::Status::Rejected;
 			harness.expectEqual(rig.host->createBuffers(w, 64), ASE_InvalidMode, "a rejected format answers ASE_InvalidMode");
+			harness.expectEqual(rig.processor->closes, 2u, "a rejected processor open is closed too");
+			rig.processor->openStatus = OpenReport::Status::Ok;
+			rig.processor->throwOnOpen = true;
+			harness.expectEqual(rig.host->createBuffers(w, 64), ASE_HWMalfunction, "an exception from processor open fails createBuffers loudly");
+			harness.expectEqual(rig.processor->closes, 3u, "a throwing processor open is closed after unwinding");
+			harness.expectEqual(rig.counters().disposeBuffersCalls, 3ul, "each attempted processor open disposes the target buffers");
 		}
 		{
 			FakeAsioConfig config;
@@ -1474,7 +1599,9 @@ namespace
 		testCodecBytePatterns();
 		testTrampolines();
 		testStateMachineOrdering();
-		testQuarantinedCallbackRefusesReopen();
+		testQuarantinedCallbackDetachesHostArrayAndDefersTargetDispose();
+		testFailedProcessorOpenQuarantineDetachesHostArray();
+		testFailedTargetCreateQuarantinesNotificationCallback();
 		testOutputAndInputAreProcessed();
 		testFirstBlockIsAlreadyProcessed();
 		testLateAndOffPassThrough();

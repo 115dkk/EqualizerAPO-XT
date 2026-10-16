@@ -16,6 +16,7 @@
 #include <atomic>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <cstring>
 #include <fstream>
 #include <limits>
@@ -43,11 +44,31 @@
 #include "Tests/TestDirectory.h"
 #include "Tests/TestHarness.h"
 
+namespace eapo::asio
+{
+	struct DaemonProcessorTestAccess
+	{
+		static void seedSequence(DaemonProcessor& processor, Direction direction, uint32_t sequence) noexcept
+		{
+			DaemonProcessor::Lane& lane = processor.lanes_[slotOf(direction)];
+			lane.sequence = sequence;
+			lane.preparedSequence = sequence;
+			lane.publishable = false;
+			lane.prepared = false;
+		}
+	};
+}
+
 using eapo::asio::AsioWrapper;
 using eapo::asio::DaemonProcessor;
+using eapo::asio::Direction;
+using eapo::asio::IHostLink;
 using eapo::asio::IStreamProcessor;
 using eapo::asio::Mode;
+using eapo::asio::OpenReport;
+using eapo::asio::Outcome;
 using eapo::asio::SampleCodec;
+using eapo::asio::StreamFormat;
 using eapo::asio::StreamOptions;
 using eapo::asio::ThreadHostLink;
 
@@ -66,6 +87,45 @@ namespace
 		long outputLatency = 0;
 		eapo::asio::StreamStats stats;
 		bool started = false;
+	};
+
+	struct SeededRingState
+	{
+		std::vector<unsigned char> storage;
+		eapo::ipc::RingHeader* header = nullptr;
+	};
+
+	class SeededHostLink final : public IHostLink
+	{
+	public:
+		explicit SeededHostLink(std::shared_ptr<SeededRingState> state)
+			: state_(std::move(state))
+		{
+		}
+
+		std::unique_ptr<eapo::ipc::RingProducer> open(const StreamFormat& format, const StreamOptions&, OpenReport& report) override
+		{
+			state_->storage.assign(eapo::ipc::RingGeometry::totalBytes(format) + eapo::ipc::ringAlignment, 0);
+			uintptr_t address = reinterpret_cast<uintptr_t>(state_->storage.data());
+			address = (address + eapo::ipc::ringAlignment - 1) & ~static_cast<uintptr_t>(eapo::ipc::ringAlignment - 1);
+			state_->header = reinterpret_cast<eapo::ipc::RingHeader*>(address);
+			eapo::ipc::RingSync sync;
+			auto producer = std::make_unique<eapo::ipc::RingProducer>(state_->header, format, GetCurrentProcessId(), sync);
+			WriteRelease(&state_->header->state, static_cast<LONG>(eapo::ipc::RingState::Ready));
+			report.status = OpenReport::Status::Ok;
+			return producer;
+		}
+
+		void close(std::unique_ptr<eapo::ipc::RingProducer> producer) noexcept override
+		{
+			if (producer != nullptr)
+				producer->close();
+			producer.reset();
+			state_->header = nullptr;
+		}
+
+	private:
+		std::shared_ptr<SeededRingState> state_;
 	};
 
 	// Runs one stream over `processor` and returns what reached the fake's
@@ -198,6 +258,70 @@ namespace
 		harness.expect(firstSilent, "the first pipelined block is silence");
 		harness.expect(shifted, "every later block is the sync result one period late");
 		directory.removeAll();
+	}
+
+	void testPipelinedWrapDoesNotInsertSecondSilentBlock()
+	{
+		auto state = std::make_shared<SeededRingState>();
+		DaemonProcessor processor(std::make_unique<SeededHostLink>(state));
+		StreamFormat format;
+		format.sampleRate = 48000.0;
+		format.frames = 4;
+		format.channels[static_cast<unsigned>(Direction::Output)] = 1;
+		StreamOptions options;
+		options.mode = Mode::Pipelined;
+		options.processInput = false;
+		OpenReport report = processor.open(format, options);
+		harness.require(report.status == OpenReport::Status::Ok, "the seeded pipelined processor opens");
+		harness.require(state->header != nullptr, "the seeded host exposes its ring header");
+
+		const auto fill = [&format](float* samples, float value) {
+			for (uint32_t frame = 0; frame < format.frames; frame++)
+				samples[frame] = value;
+		};
+		const auto planeIs = [&format](const float* samples, float value) {
+			for (uint32_t frame = 0; frame < format.frames; frame++)
+			{
+				if (samples[frame] != value)
+					return false;
+			}
+			return true;
+		};
+
+		float** planes = processor.planes(Direction::Output);
+		harness.require(planes != nullptr, "the first pipelined block has a plane");
+		fill(planes[0], 1.0f);
+		harness.expect(processor.process(Direction::Output) == Outcome::Processed, "the first pipelined block is accepted");
+		harness.expect(planeIs(planes[0], 0.0f), "the first block of the open is silence");
+
+		constexpr uint32_t seeded = 0xfffffffeu;
+		eapo::asio::DaemonProcessorTestAccess::seedSequence(processor, Direction::Output, seeded);
+		eapo::ipc::RingLane& lane = state->header->lanes[static_cast<unsigned>(Direction::Output)];
+		WriteRelease(&lane.sequence, static_cast<LONG>(seeded));
+		WriteRelease(&lane.completed, static_cast<LONG>(seeded));
+		auto slot = [header = state->header, &lane](uint32_t sequence) {
+			return reinterpret_cast<float*>(reinterpret_cast<unsigned char*>(header) + lane.slotOffset[sequence & 1]);
+		};
+		fill(slot(seeded), 0.25f);
+		planes = processor.planes(Direction::Output);
+		fill(planes[0], 2.0f);
+		harness.expect(processor.process(Direction::Output) == Outcome::Processed, "sequence 0xffffffff returns its predecessor");
+		harness.expect(planeIs(planes[0], 0.25f), "sequence 0xffffffff returns non-silent audio");
+
+		WriteRelease(&lane.completed, static_cast<LONG>(0xffffffffu));
+		fill(slot(0xffffffffu), 0.5f);
+		planes = processor.planes(Direction::Output);
+		fill(planes[0], 3.0f);
+		harness.expect(processor.process(Direction::Output) == Outcome::Processed, "wrapped sequence 0 returns its predecessor");
+		harness.expect(planeIs(planes[0], 0.5f), "wrapped sequence 0 returns non-silent audio");
+
+		WriteRelease(&lane.completed, 0);
+		fill(slot(0u), 0.75f);
+		planes = processor.planes(Direction::Output);
+		fill(planes[0], 4.0f);
+		harness.expect(processor.process(Direction::Output) == Outcome::Processed, "wrapped sequence 1 returns its predecessor");
+		harness.expect(planeIs(planes[0], 0.75f), "wrapped sequence 1 does not insert another silent block");
+		processor.close();
 	}
 
 	eapo::asio::StreamFormat smallFormat();
@@ -724,6 +848,7 @@ int runDaemonTests()
 {
 	testDaemonMatchesInProc();
 	testPipelinedShape();
+	testPipelinedWrapDoesNotInsertSecondSilentBlock();
 	testPipelinedLateHeldKeepsTheDelay();
 	testHostDeathIsGoneThenReopens();
 	testServeLoopPublishesTheFacts();

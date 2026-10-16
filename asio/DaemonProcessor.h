@@ -26,6 +26,8 @@
 
 namespace eapo::asio
 {
+	struct DaemonProcessorTestAccess;
+
 	class DaemonProcessor final : public IStreamProcessor
 	{
 	public:
@@ -45,6 +47,8 @@ namespace eapo::asio
 		uint32_t deadlineUs() const noexcept {return deadlineUs_;}
 
 	private:
+		friend struct DaemonProcessorTestAccess;
+
 		struct Lane
 		{
 			// Scratch receives a block when its ring slot is still busy. In
@@ -60,6 +64,7 @@ namespace eapo::asio
 			size_t samples = 0;
 			bool publishable = false;
 			bool prepared = false;
+			bool firstBlock = true;
 			bool gone = false;
 		};
 
