@@ -624,8 +624,11 @@ jobs:
     #   exception types, filters) are intentionally implicit upstream.
     # - LocalAllocCalled: LocalAlloc/LocalFree pairs are mandated by the
     #   Win32 security APIs used (SetEntriesInAcl, GetNamedSecurityInfoW).
-    # - unknownMacro on the VST3 host files: QUERY_INTERFACE comes from
-    #   the VST3 SDK under deps/, which is excluded from analysis.
+    # - information is enabled so a stale inline suppression surfaces as
+    #   unmatchedSuppression (audit #422 TD-42); the two information ids
+    #   that are not findings are switched off: normalCheckLevelMaxBranches
+    #   only notes that --check-level=exhaustive would follow more branches,
+    #   and checkersReport is the run's checker count.
     # - unusedStructMember on FilterEngine.Process.cpp: the IoTraits label and
     #   I/O members are consumed inside the processImpl member template;
     #   cppcheck does not analyze template instantiations, so it reports every
@@ -640,13 +643,13 @@ jobs:
     - name: Run cppcheck
       run: |
         "$HOME/cppcheck-install/bin/cppcheck" \
-          --enable=warning,style,performance,portability \
+          --enable=warning,style,performance,portability,information \
           --inline-suppr \
           --library=qt \
           --library=windows \
-          --suppress=missingIncludeSystem \
+          --suppress=normalCheckLevelMaxBranches \
+          --suppress=checkersReport \
           --suppress=unusedFunction \
-          --suppress=unmatchedSuppression \
           --suppress=cstyleCast \
           --suppress=shadowFunction \
           --suppress=shadowVariable \
@@ -655,7 +658,6 @@ jobs:
           --suppress=postfixOperator \
           --suppress=noExplicitConstructor \
           --suppress=LocalAllocCalled \
-          --suppress=unknownMacro:vst/VSTPluginLibrary.cpp \
           --suppress=unusedStructMember:engine/FilterEngine.Process.cpp \
           --suppress=uninitMemberVarNoCtor:libHybridConv-0.1.1/* \
           --suppress=*:deps/* \

@@ -232,7 +232,6 @@ namespace
 	constexpr GUID probeWrapperClsid = {0x5c2b9e10, 0x8d4f, 0x4a7b, {0xb3, 0xe6, 0x0f, 0x1a, 0x2c, 0x3d, 0x4e, 0x5f}};
 }
 
-// cppcheck-suppress constParameterPointer ; the signature is fixed by the Win32 DllMain contract
 BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, void*)
 {
 	if (reason == DLL_PROCESS_ATTACH)
