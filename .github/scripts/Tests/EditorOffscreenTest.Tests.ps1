@@ -43,6 +43,12 @@ Describe "Invoke-EditorOffscreenTest.ps1 planning" {
         $plan.PostChecks | Should -Contain "analysis-screenshot"
     }
 
+    It "refuses an empty card selection proof directory" {
+        $plan = PlanFor "card-selection"
+        $plan.Arguments[1] | Should -Be "C:\ws\card-selection"
+        $plan.PostChecks | Should -Contain "card-selection-shots"
+    }
+
     It "captures stderr for the GUI-subsystem gates that log through qWarning" {
         foreach ($gate in @("skin-switch", "analysis-layout", "card-move", "card-selection", "power-toggle", "routing-edit")) {
             $plan = PlanFor $gate

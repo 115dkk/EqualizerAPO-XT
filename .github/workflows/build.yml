@@ -438,7 +438,7 @@ jobs:
       shell: pwsh
       run: |
         & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
-          -WorkspaceRoot "${{ github.workspace }}" -Gate selftest-vst
+          -WorkspaceRoot "${{ github.workspace }}" -Gate selftest-vst -Platform "${{ matrix.platform }}"
 
     # The header power toggle and the row-editor construction policy: every
     # valid line keeps a real editor through load and an off/on round trip
@@ -450,7 +450,7 @@ jobs:
       shell: pwsh
       run: |
         & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
-          -WorkspaceRoot "${{ github.workspace }}" -Gate power-toggle
+          -WorkspaceRoot "${{ github.workspace }}" -Gate power-toggle -Platform "${{ matrix.platform }}"
 
     # The routing views' inline edits and the ALL chips: the minimal step
     # list must keep its source hint after a source is added, open a source
@@ -464,7 +464,7 @@ jobs:
       shell: pwsh
       run: |
         & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
-          -WorkspaceRoot "${{ github.workspace }}" -Gate routing-edit
+          -WorkspaceRoot "${{ github.workspace }}" -Gate routing-edit -Platform "${{ matrix.platform }}"
 
     # A hard step timeout on every gate: if the Editor ever blocks on a
     # fatal-error dialog again, the job must fail in minutes, not hang for
@@ -483,7 +483,7 @@ jobs:
       shell: pwsh
       run: |
         & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
-          -WorkspaceRoot "${{ github.workspace }}" -Gate skin-switch
+          -WorkspaceRoot "${{ github.workspace }}" -Gate skin-switch -Platform "${{ matrix.platform }}"
 
     - name: Run analysis dock layout test (offscreen)
       if: matrix.primary == true
@@ -491,7 +491,7 @@ jobs:
       shell: pwsh
       run: |
         & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
-          -WorkspaceRoot "${{ github.workspace }}" -Gate analysis-layout
+          -WorkspaceRoot "${{ github.workspace }}" -Gate analysis-layout -Platform "${{ matrix.platform }}"
 
     - name: Run plug-in load responsiveness test (offscreen)
       if: matrix.primary == true
@@ -507,7 +507,7 @@ jobs:
       shell: pwsh
       run: |
         & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
-          -WorkspaceRoot "${{ github.workspace }}" -Gate card-move
+          -WorkspaceRoot "${{ github.workspace }}" -Gate card-move -Platform "${{ matrix.platform }}"
 
     - name: Run card selection test (offscreen)
       if: matrix.primary == true
@@ -515,7 +515,7 @@ jobs:
       shell: pwsh
       run: |
         & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
-          -WorkspaceRoot "${{ github.workspace }}" -Gate card-selection
+          -WorkspaceRoot "${{ github.workspace }}" -Gate card-selection -Platform "${{ matrix.platform }}"
 
     - name: Upload skin gallery
       if: matrix.primary == true
@@ -523,6 +523,7 @@ jobs:
       with:
         name: skin-gallery
         path: skin-gallery/*.png
+        if-no-files-found: error
 
     - name: Upload analysis dock layout proof
       if: matrix.primary == true
@@ -530,6 +531,7 @@ jobs:
       with:
         name: analysis-layout
         path: analysis-layout/*
+        if-no-files-found: error
 
     - name: Upload card selection proof
       if: matrix.primary == true
@@ -537,6 +539,7 @@ jobs:
       with:
         name: card-selection
         path: card-selection/*
+        if-no-files-found: error
 
     # Keep the debug symbols of every shipped program as a run artifact:
     # field crash minidumps can only be symbolized against the PDB of the
@@ -820,7 +823,7 @@ jobs:
         }
         if (-not $installed) { throw "Pester $version could not be installed from the PowerShell Gallery" }
 
-    - name: Run Bump-Version tests
+    - name: Run the build-script tests (Pester)
       shell: pwsh
       run: |
         $ErrorActionPreference = "Stop"

@@ -101,7 +101,7 @@ $gates = @{
         Arguments  = @("--card-selection-test", (Join-Path $WorkspaceRoot "card-selection"))
         ExtraEnv   = @{ QT_FORCE_STDERR_LOGGING = "1" }
         LogPath    = Join-Path $WorkspaceRoot "card-selection\card-selection-test.log"
-        PostChecks = @()
+        PostChecks = @("card-selection-shots")
     }
     "power-toggle" = [pscustomobject]@{
         Arguments  = @("--power-toggle-test")
@@ -217,6 +217,16 @@ foreach ($check in $plan.PostChecks) {
             $shot = $plan.Arguments[1]
             if (-not (Test-Path $shot)) {
                 throw "Analysis dock layout test produced no screenshot"
+            }
+        }
+        "card-selection-shots" {
+            # Audit #422 TD-41: the gate exits 0 after its own checks, but an
+            # empty proof directory must not pass as a proof.
+            $outDir = $plan.Arguments[1]
+            $pngs = @(Get-ChildItem $outDir -Filter *_card-selection.png -ErrorAction SilentlyContinue)
+            Write-Host "Card selection wrote $($pngs.Count) PNGs"
+            if ($pngs.Count -lt 1) {
+                throw "Card selection test produced no screenshots"
             }
         }
     }
