@@ -61,14 +61,8 @@ Describe "Invoke-EditorOffscreenTest.ps1 planning" {
 Describe "New-ReleaseChecksums.ps1" {
     BeforeAll {
         $scriptPath = Join-Path $PSScriptRoot "..\New-ReleaseChecksums.ps1"
-        # Dot-source in a scriptblock cannot reach an advanced script's inner
-        # functions; instead run -PlanOnly for the surface, and reproduce the
-        # writer contract through a real invocation of Format-ChecksumLines by
-        # loading the script text's function into scope.
-        $scriptText = Get-Content $scriptPath -Raw
-        $functionText = [regex]::Match($scriptText,
-            'function Format-ChecksumLines \{[\s\S]*?\n\}').Value
-        Invoke-Expression $functionText
+        # The writer lives in ReleaseAssets.psm1, the module the script uses.
+        Import-Module (Join-Path $PSScriptRoot "..\ReleaseAssets.psm1") -Force
     }
 
     It "plans the grammar-derived checksum asset" {
