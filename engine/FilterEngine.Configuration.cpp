@@ -66,6 +66,13 @@ const vector<wstring>& FilterEngine::loadingChannelNames() const
 
 bool FilterEngine::loadConfig(const wstring& customPath)
 {
+	// One producer may own the pending slot until the audio thread completes
+	// its transition. Keeping the permit here makes every caller obey the same
+	// publication rule and prevents a later load from replacing an unconsumed
+	// configuration.
+	if (!configChannel.acquirePublishPermit())
+		return false;
+
 	lock_guard<mutex> lock(loadMutex);
 	timer.start();
 
@@ -121,6 +128,8 @@ bool FilterEngine::loadConfig(const wstring& customPath)
 		TraceF(L"Finished loading configuration after %lf milliseconds", loadTime * 1000.0);
 
 		configChannel.publish(move(config));
+		// The pending configuration now owns the permit. completeTransition()
+		// returns it on the audio thread after promoting the pending slot.
 		// Release: publish the fully-constructed FilterConfiguration to the RT
 		// thread. Pairs with the acquire loads in process()/finishTransitionIfReady.
 		return true;
@@ -133,12 +142,14 @@ bool FilterEngine::loadConfig(const wstring& customPath)
 			? L" (line " + std::to_wstring(load.traceLine) + L" of " + load.traceFile + L")" : wstring();
 		rollback();
 		timer.stop();
+		configChannel.releasePublishPermit();
 		LogF(L"Configuration load failed; keeping the active configuration: %S%s", e.what(), where.c_str());
 	}
 	catch (...)
 	{
 		rollback();
 		timer.stop();
+		configChannel.releasePublishPermit();
 		LogF(L"Configuration load failed with an unknown exception; keeping the active configuration");
 	}
 	return false;

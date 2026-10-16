@@ -51,10 +51,12 @@ void arm(WatchedKey& watched, HANDLE event)
 
 ConfigWatcher::ConfigWatcher(HANDLE shutdownEvent,
 	SnapshotProvider snapshotProvider,
-	ChangeCallback changeCallback)
+	ChangeCallback changeCallback,
+	DWORD retryIntervalMilliseconds)
 	: shutdownEvent(shutdownEvent),
 	snapshotProvider(std::move(snapshotProvider)),
-	changeCallback(std::move(changeCallback))
+	changeCallback(std::move(changeCallback)),
+	retryIntervalMilliseconds((std::max)(DWORD(1), retryIntervalMilliseconds))
 {
 }
 
@@ -153,7 +155,7 @@ void ConfigWatcher::run()
 
 		const DWORD waitResult = WaitForMultipleObjects(
 			handleCount, handles, false,
-			1000);
+			retryIntervalMilliseconds);
 		if (waitResult == WAIT_OBJECT_0)
 			break;
 		if (waitResult == WAIT_TIMEOUT)
@@ -166,7 +168,7 @@ void ConfigWatcher::run()
 					win32::errorMessage(GetLastError()).c_str());
 				waitFailureLogged = true;
 			}
-			if (WaitForSingleObject(shutdownEvent, 1000) == WAIT_OBJECT_0)
+			if (WaitForSingleObject(shutdownEvent, retryIntervalMilliseconds) == WAIT_OBJECT_0)
 				break;
 			continue;
 		}

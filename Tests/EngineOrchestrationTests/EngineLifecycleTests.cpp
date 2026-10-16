@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <cmath>
 #include <memory>
 #include <string>
@@ -28,6 +29,22 @@
 #include "runtime/memory/AlignedMemory.h"
 
 #include "EngineOrchestrationTestSupport.h"
+
+namespace
+{
+template<typename Predicate>
+bool waitForCondition(Predicate&& predicate, std::chrono::milliseconds timeout)
+{
+	const auto deadline = std::chrono::steady_clock::now() + timeout;
+	while (std::chrono::steady_clock::now() < deadline)
+	{
+		if (predicate())
+			return true;
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	}
+	return predicate();
+}
+}
 
 // process() can arrive before initialize(), and initialize() can finish
 // without loading any configuration (unreadable ConfigPath and no custom
@@ -115,6 +132,37 @@ void testConfigSwapChannelPermitRoundTrip(test::Harness& harness)
 	channel.releasePublishPermit();
 }
 
+// Audit #422 E5: loadConfig owns the publication permit. A second producer
+// waits until the audio thread consumes the pending initial configuration
+// instead of replacing that slot.
+void testLoadConfigOwnsPublicationPermit(test::Harness& harness)
+{
+	const std::wstring configA = writeConfig(harness, L"permit-a.txt", "Preamp: -3 dB\n");
+	const std::wstring configB = writeConfig(harness, L"permit-b.txt", "Preamp: -9 dB\n");
+	FilterEngine engine;
+	initializeEngine(engine, 48000, 2, 16, configA);
+
+	Win32Event reloadStarted(true, false);
+	Win32Event reloadCompleted(true, false);
+	std::atomic<bool> loaded = false;
+	std::thread reload([&] {
+		reloadStarted.set();
+		loaded.store(engine.loadConfig(configB));
+		reloadCompleted.set();
+	});
+	harness.require(WaitForSingleObject(reloadStarted.get(), 2000) == WAIT_OBJECT_0,
+		"the second configuration loader starts");
+	harness.expect(WaitForSingleObject(reloadCompleted.get(), 20) == WAIT_TIMEOUT,
+		"the second configuration waits while the initial publication is pending");
+
+	processDcBlock(engine, 1.0f, 1.0f, 16);
+	const bool completed = WaitForSingleObject(reloadCompleted.get(), 2000) == WAIT_OBJECT_0;
+	harness.expect(completed,
+		"consuming the initial publication releases the second configuration loader");
+	reload.join();
+	harness.expect(loaded.load(), "the waiting configuration load publishes successfully");
+}
+
 // Windows may give a render APO fewer input channels than the endpoint output
 // layout (for example, a stereo application stream feeding an 8-channel
 // endpoint). An empty configuration is still responsible for adapting that
@@ -166,6 +214,59 @@ void testEmptyConfigurationExpandsRenderChannels(test::Harness& harness)
 	std::copy_n(input, frames * 2, inPlace);
 	engine.process(inPlace, inPlace, frames);
 	expectExpanded(inPlace, "in-place empty config");
+}
+
+// Audit #422 E2/TD-01: the seed and loaded configurations use one channel
+// count rule. Both asymmetric shapes accepted by the APO must survive their
+// first block, when the pending initial load still reads and writes the seed.
+void testSeedConfigurationSupportsAsymmetricChannels(test::Harness& harness)
+{
+	const std::wstring configPath = writeConfig(harness, L"empty-asymmetric.txt",
+		"# All filters are disabled\n");
+
+	auto processShape = [&](bool capture, unsigned realChannels,
+		unsigned outputChannels, const char* label) {
+		FilterEngine engine;
+		EngineSetup setup;
+		setup.inputChannelCount = realChannels;
+		setup.realChannelCount = realChannels;
+		setup.outputChannelCount = outputChannels;
+		setup.maxFrameCount = 16;
+		setup.customPath = configPath;
+		setup.capture = capture;
+		setup.deviceName = L"EngineOrchestrationTests";
+		setup.connectionName = L"File";
+		engine.initialize(setup);
+
+		constexpr unsigned frames = 4;
+		std::vector<float> input(static_cast<size_t>(frames) * realChannels);
+		std::vector<float> output(static_cast<size_t>(frames) * outputChannels, -1.0f);
+		for (unsigned frame = 0; frame < frames; ++frame)
+			for (unsigned channel = 0; channel < realChannels; ++channel)
+				input[static_cast<size_t>(frame) * realChannels + channel]
+					= static_cast<float>(10 * frame + channel + 1);
+		engine.process(output.data(), input.data(), frames);
+
+		for (unsigned frame = 0; frame < frames; ++frame)
+		{
+			for (unsigned channel = 0; channel < outputChannels; ++channel)
+			{
+				const bool monoUpmix = realChannels == 1 && outputChannels >= 2
+					&& channel == 1;
+				const float expected = channel < realChannels || monoUpmix
+					? input[static_cast<size_t>(frame) * realChannels]
+					: 0.0f;
+				harness.expectEqual(
+					output[static_cast<size_t>(frame) * outputChannels + channel],
+					expected, label);
+			}
+		}
+	};
+
+	processShape(false, 2, 1,
+		"render 2-in/1-out seed preserves the output channel");
+	processShape(true, 1, 2,
+		"capture 1-in/2-out seed preserves the engine's mono-to-stereo upmix");
 }
 
 // Loading a new config while processing must crossfade smoothly from the old
@@ -286,13 +387,16 @@ void testConfigWatcherBackoffAndPathRefresh(test::Harness& harness)
 			++callbackCount;
 			changed.set();
 			return true;
-		});
+		},
+		20);
 	std::thread worker([&] { watcher.run(); });
 
-	Sleep(120);
-	// Audit #250 F054: the bound exists to catch a hot loop (thousands of
-	// snapshots in the window), not to pin the backoff interval - a modest
-	// interval change must not fail this, so the cap is generous.
+	const bool observedBackoffTicks = waitForCondition(
+		[&] {return snapshotCount.load() >= 3;}, std::chrono::milliseconds(500));
+	harness.expect(observedBackoffTicks,
+		"unavailable config watch keeps retrying at the configured interval");
+	// Audit #250 F054: the bound catches a hot loop rather than pinning a wall
+	// clock delay. Reaching three snapshot passes is the synchronization point.
 	harness.expect(snapshotCount.load() < 50,
 		"unavailable config watch uses backoff instead of hot-looping");
 
@@ -354,11 +458,13 @@ void testConfigWatcherRegistryKeyIsQuietUntilChanged(test::Harness& harness)
 	RegCloseKey(created);
 
 	std::atomic<int> callbackCount = 0;
+	std::atomic<int> snapshotCount = 0;
 	Win32Event shutdown(true, false);
 	Win32Event changed(true, false);
 	ConfigWatcher watcher(
 		shutdown.get(),
 		[&] {
+			++snapshotCount;
 			ConfigWatcher::Snapshot snapshot;
 			snapshot.registryKeys.push_back(fullKey);
 			return snapshot;
@@ -367,11 +473,15 @@ void testConfigWatcherRegistryKeyIsQuietUntilChanged(test::Harness& harness)
 			++callbackCount;
 			changed.set();
 			return true;
-		});
+		},
+		20);
 	std::thread worker([&] { watcher.run(); });
 
-	// Three backoff ticks with no change must stay silent.
-	Sleep(3200);
+	// Three retry passes with no change must stay silent.
+	const bool quietPassesCompleted = waitForCondition(
+		[&] {return snapshotCount.load() >= 3;}, std::chrono::milliseconds(500));
+	harness.expect(quietPassesCompleted,
+		"the registry watcher completes three quiet retry passes");
 	harness.expect(callbackCount.load() == 0,
 		"a watched registry key without changes does not trigger reloads");
 
@@ -380,8 +490,13 @@ void testConfigWatcherRegistryKeyIsQuietUntilChanged(test::Harness& harness)
 	RegSetKeyValueW(HKEY_CURRENT_USER, subKey.c_str(), L"Probe", REG_DWORD,
 		&value, sizeof(value));
 	const bool observed = WaitForSingleObject(changed.get(), 2000) == WAIT_OBJECT_0;
-	Sleep(1500);
+	const int snapshotsAfterChange = snapshotCount.load();
+	const bool rearmedPassesCompleted = waitForCondition(
+		[&] {return snapshotCount.load() >= snapshotsAfterChange + 3;},
+		std::chrono::milliseconds(500));
 	harness.expect(observed, "a registry value change triggers a reload");
+	harness.expect(rearmedPassesCompleted,
+		"the registry watcher stays armed for three passes after the change");
 	harness.expect(callbackCount.load() == 1,
 		"one registry value change triggers exactly one reload");
 

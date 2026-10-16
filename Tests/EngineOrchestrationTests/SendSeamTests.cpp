@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <string>
 #include <thread>
@@ -188,11 +189,13 @@ void testConfigWatcherNamedEventTriggersReload(test::Harness& harness)
 		harness.fail("could not create the named event for ConfigWatcher");
 
 	std::atomic<int> callbackCount = 0;
+	std::atomic<int> snapshotCount = 0;
 	Win32Event shutdown(true, false);
 	Win32Event changed(true, false);
 	ConfigWatcher watcher(
 		shutdown.get(),
 		[&] {
+			++snapshotCount;
 			ConfigWatcher::Snapshot snapshot;
 			snapshot.eventNames.push_back(eventName);
 			return snapshot;
@@ -201,13 +204,22 @@ void testConfigWatcherNamedEventTriggersReload(test::Harness& harness)
 			++callbackCount;
 			changed.set();
 			return true;
-		});
+		},
+		20);
 	std::thread worker([&] { watcher.run(); });
 
 	SetEvent(watchedEvent.get());
 	const bool observed = WaitForSingleObject(changed.get(), 2000) == WAIT_OBJECT_0;
-	Sleep(1200);
+	const int snapshotsAfterChange = snapshotCount.load();
+	const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(500);
+	while (snapshotCount.load() < snapshotsAfterChange + 3
+		&& std::chrono::steady_clock::now() < deadline)
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	}
 	harness.expect(observed, "setting a watched named event triggers a reload callback");
+	harness.expect(snapshotCount.load() >= snapshotsAfterChange + 3,
+		"the named-event watcher completes three passes after the callback");
 	harness.expectEqual(callbackCount.load(), 1,
 		"the watcher resets a named event before taking the reload path");
 

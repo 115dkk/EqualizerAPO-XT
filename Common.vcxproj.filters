@@ -183,6 +183,9 @@
     <ClInclude Include="filters\ConvolverMuteDiagnostics.h">
       <Filter>filters</Filter>
     </ClInclude>
+    <ClInclude Include="filters\ConvolverArray.h">
+      <Filter>filters</Filter>
+    </ClInclude>
     <ClInclude Include="filters\ConvolverBank.h">
       <Filter>filters</Filter>
     </ClInclude>

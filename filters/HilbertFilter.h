@@ -12,7 +12,6 @@
 #include "engine/IFilter.h"
 #include "filters/ConvolverBank.h"
 #include "filters/HilbertCommand.h"
-#include "filters/IrCache.h"
 
 constexpr unsigned HilbertTapCount = 1025;
 constexpr unsigned HilbertLatencySamples = (HilbertTapCount - 1) / 2;

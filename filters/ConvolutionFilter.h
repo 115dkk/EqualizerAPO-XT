@@ -62,7 +62,5 @@ private:
 	void cleanup();
 
 	JudgedPath filename;
-	ConvolverMuteDiagnostics* muteDiagnostics;
-	const wchar_t* muteLogPrefix;
 };
 #pragma AVRT_VTABLES_END

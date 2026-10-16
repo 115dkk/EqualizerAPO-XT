@@ -145,15 +145,17 @@ void FilterEngine::initialize(const EngineSetup& setup)
 
 		this->channelMask = channelMask;
 
-		vector<wstring> channelNames = ChannelLayout::getChannelNames(deviceChannelCount, channelMask);
-		TraceF(L"%d channels for this device: %s", deviceChannelCount, text::join(channelNames, L" ").c_str());
+		vector<wstring> channelNames = deviceChannelNames();
+		TraceF(L"%d channels for this device: %s", (int)channelNames.size(),
+			text::join(channelNames, L" ").c_str());
 
-		// The RT thread always starts from a valid empty configuration. Every
-		// loaded file, including the initial one, is then published through the
-		// same release/acquire handoff as a later reload.
+		// The RT thread always starts from a valid empty configuration. Use the
+		// same channel-name source as a loaded configuration so the seed can read
+		// every real input and write every output even when their counts differ.
 		configChannel.reset(FilterConfigurationPtr(
 			AlignedMemory::construct<FilterConfiguration>(
-				streamFormat(), vector<std::unique_ptr<FilterInfo>>(), deviceChannelCount)));
+				streamFormat(), vector<std::unique_ptr<FilterInfo>>(),
+				static_cast<unsigned>(channelNames.size()))));
 
 		try
 		{

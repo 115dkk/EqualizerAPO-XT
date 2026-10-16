@@ -147,6 +147,9 @@ void testConfigLoadTrace(test::Harness& harness)
 	// exactly what the downstream factories saw.
 	harness.expect(collector.entries[8].text == L" -5 dB", "inline substitution reports the resolved parameters");
 
+	// Consume the initial publication before asking the single-slot channel to
+	// publish another configuration.
+	processDcBlock(engine, 0.0f, 0.0f, 512);
 	// A second load without a sink must not crash and must add nothing.
 	engine.setLoadTraceSink(nullptr);
 	engine.loadConfig(configPath);
@@ -203,6 +206,7 @@ void testParseErrorsAreReportedPerLineAndProseIsNot(test::Harness& harness)
 	// The load kept going: half a configuration is still worth running, and a
 	// broken line must not take the working ones below it with it. loadConfig
 	// answers false only when the whole load failed.
+	processDcBlock(engine, 0.0f, 0.0f, 512);
 	harness.expect(engine.loadConfig(configPath),
 		"a configuration with eight unusable lines still loads, because the working lines below them have to run");
 }
@@ -237,6 +241,7 @@ void testFilterSetupFailureNamesItsLine(test::Harness& harness)
 
 	FilterEngine engine;
 	initializeEngine(engine, 48000, 2, 480, good);
+	processDcBlock(engine, 0.0f, 0.0f, 480);
 	TraceCollector collector;
 	engine.setLoadTraceSink(&collector);
 
@@ -344,6 +349,7 @@ void testConfigReferencedRemotePathsAreRefused(test::Harness& harness)
 			"a remote path refusal identifies the network-share policy");
 	}
 
+	processDcBlock(engine, 0.0f, 0.0f, 512);
 	harness.expect(engine.loadConfig(configPath),
 		"a configuration with refused remote references and working local lines still loads");
 }
@@ -435,6 +441,7 @@ void testAnalysisFreezesDynamicVelvetAndLabelsTheSnapshot(test::Harness& harness
 	initializeEngine(analysis, 48000, 2, 256, dynamicPath);
 	harness.expect(analysis.usedFrozenDynamicAnalysis(),
 		"analysis freezes Dynamic Velvet to one deterministic kernel and labels the response");
+	processDcBlock(analysis, 0.0f, 0.0f, 256);
 	harness.expect(analysis.loadConfig(staticPath),
 		"analysis can reload a static Velvet configuration");
 	harness.expect(!analysis.usedFrozenDynamicAnalysis(),

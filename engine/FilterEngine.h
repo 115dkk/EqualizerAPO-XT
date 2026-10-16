@@ -97,9 +97,10 @@ public:
 	// setup supplied a fake. Consumed by the ConfigPath read and the config
 	// language's readRegString/readRegDWORD.
 	IRegistry& registryAccess() const;
-	// Builds a complete configuration before publishing it. A failed load keeps
-	// the active configuration and returns false; no initialization exception is
-	// allowed to escape the configuration-loading boundary.
+	// Waits for the previous publication to be consumed, then builds and
+	// publishes one complete configuration. A failed load keeps the active
+	// configuration and returns false; no initialization exception is allowed to
+	// escape the configuration-loading boundary.
 	bool loadConfig(const std::wstring& customPath = L"");
 	void loadConfigFile(const JudgedPath& path);
 	ConfigFileReference::Target judgeIncludedFile(const std::wstring& configPath, const std::wstring& written);

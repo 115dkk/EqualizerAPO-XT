@@ -231,7 +231,7 @@ namespace eapo::ipc::send
 		writeWord(&header_->state, static_cast<uint32_t>(State::Closing));
 	}
 
-	AttachPlan prepareAttach(const void* region, double ownSampleRate, uint32_t ownMaxFrameCount,
+	AttachPlan prepareAttach(void* region, double ownSampleRate, uint32_t ownMaxFrameCount,
 		const std::vector<std::wstring>& deviceChannels, int64_t nowQpc)
 	{
 		AttachPlan plan;
@@ -241,7 +241,7 @@ namespace eapo::ipc::send
 			return plan;
 		}
 
-		const auto* header = static_cast<const Header*>(region);
+		const auto* header = static_cast<Header*>(region);
 		if (readWord(&header->magic) != magic)
 		{
 			plan.reason = L"ring magic mismatch";
@@ -337,10 +337,9 @@ namespace eapo::ipc::send
 		return plan;
 	}
 
-	SendReaderCore::SendReaderCore(const void* region, const AttachPlan& plan, double sampleRate,
+	SendReaderCore::SendReaderCore(void* region, const AttachPlan& plan, double sampleRate,
 		uint32_t ownMaxFrameCount)
-		: header_(static_cast<const Header*>(region)),
-		  diagnostics_(const_cast<Header*>(static_cast<const Header*>(region))),
+		: header_(static_cast<Header*>(region)),
 		  senderId_(plan.senderId),
 		  generation_(plan.generation),
 		  mixMode_(plan.mixMode),
@@ -355,12 +354,12 @@ namespace eapo::ipc::send
 		assert(region != nullptr);
 		assert(plan.ok);
 		std::copy_n(plan.targetIndex, maxChannels, targetIndex_);
-		if (diagnostics_ != nullptr)
+		if (header_ != nullptr)
 		{
-			writeSigned64(&diagnostics_->readPos, readPos_);
-			writeWord64(&diagnostics_->underruns, 0);
-			writeWord64(&diagnostics_->driftSteps, 0);
-			writeWord64(&diagnostics_->attachedSenderId, senderId_);
+			writeSigned64(&header_->readPos, readPos_);
+			writeWord64(&header_->underruns, 0);
+			writeWord64(&header_->driftSteps, 0);
+			writeWord64(&header_->attachedSenderId, senderId_);
 		}
 	}
 
@@ -477,21 +476,21 @@ namespace eapo::ipc::send
 		readPos_ += frameCount;
 		if (underrun)
 			underruns_++;
-		writeSigned64(&diagnostics_->readPos, readPos_);
-		writeWord64(&diagnostics_->underruns, underruns_);
-		writeWord64(&diagnostics_->driftSteps, driftSteps_);
-		writeWord64(&diagnostics_->attachedSenderId, senderId_);
+		writeSigned64(&header_->readPos, readPos_);
+		writeWord64(&header_->underruns, underruns_);
+		writeWord64(&header_->driftSteps, driftSteps_);
+		writeWord64(&header_->attachedSenderId, senderId_);
 		return underrun ? Status::Underrun : Status::Delivered;
 	}
 	#pragma AVRT_CODE_END
 
 	uint64_t SendReaderCore::underruns() const
 	{
-		return diagnostics_ == nullptr ? 0 : readWord64(&diagnostics_->underruns);
+		return header_ == nullptr ? 0 : readWord64(&header_->underruns);
 	}
 
 	uint64_t SendReaderCore::driftSteps() const
 	{
-		return diagnostics_ == nullptr ? 0 : readWord64(&diagnostics_->driftSteps);
+		return header_ == nullptr ? 0 : readWord64(&header_->driftSteps);
 	}
 }

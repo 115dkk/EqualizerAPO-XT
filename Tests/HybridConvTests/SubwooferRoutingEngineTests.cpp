@@ -587,6 +587,13 @@ void testInvalidStateDoesNotMute(const SuiteFixture& fixture)
 		kFiveChannels,
 		kFiveChannelMask);
 
+	std::vector<double> warmInput =
+		makeNoise(kFiveChannels, kBlockFrames);
+	std::vector<double> warmOutput(warmInput.size(), 0.0);
+	// Consume initialize()'s pending publication before the single-slot channel
+	// accepts the explicit reload below.
+	engine.process(warmOutput.data(), warmInput.data(), kBlockFrames);
+
 	const bool loaded = engine.loadConfig(fixture.invalidStatePath());
 	harness.expectTrue(
 		loaded,
@@ -595,9 +602,6 @@ void testInvalidStateDoesNotMute(const SuiteFixture& fixture)
 	// A reload can publish through the engine's normal transition channel.
 	// Drive one complete block before the measured run so the 480-sample
 	// transition has completed. There are no filters on either side.
-	std::vector<double> warmInput =
-		makeNoise(kFiveChannels, kBlockFrames);
-	std::vector<double> warmOutput(warmInput.size(), 0.0);
 	engine.process(
 		warmOutput.data(),
 		warmInput.data(),

@@ -83,7 +83,10 @@ struct FilterInfo
 class FilterConfiguration
 {
 public:
-	FilterConfiguration(const EngineStreamFormat& format, std::vector<std::unique_ptr<FilterInfo>> filterInfos, unsigned allChannelCount);
+	// configuredChannelCount includes virtual channels from the parsed graph.
+	// The stream's real/output counts are the lower bound, so every caller gets
+	// storage that both read() and write() can address.
+	FilterConfiguration(const EngineStreamFormat& format, std::vector<std::unique_ptr<FilterInfo>> filterInfos, unsigned configuredChannelCount);
 	~FilterConfiguration();
 
 	void read(double* input, unsigned frameCount);

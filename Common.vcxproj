@@ -391,6 +391,7 @@
     <ClInclude Include="platform\windows\FileSharingRetry.h" />
     <ClInclude Include="filters\graphicEq\GainCurveIterator.h" />
     <ClInclude Include="filters\ConvolverMuteDiagnostics.h" />
+    <ClInclude Include="filters\ConvolverArray.h" />
     <ClInclude Include="filters\ConvolverBank.h" />
     <ClInclude Include="services\registry\ClsidRegistration.h" />
     <ClInclude Include="services\registry\IRegistry.h" />

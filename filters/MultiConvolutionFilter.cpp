@@ -18,19 +18,13 @@
 
 #include "stdafx.h"
 #include <algorithm>
-#include <atomic>
 #include <cmath>
 #include <cstring>
 #include <limits>
 #include <utility>
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <fftw3.h>
 
 #include "audio/ChannelLayout.h"
 #include "services/logging/Logging.h"
-#include "runtime/memory/AlignedMemory.h"
-#include "runtime/concurrency/ParallelExecutor.h"
 #include "diagnostics/performance/PerfProfile.h"
 #include "MultiConvolutionFilter.h"
 
@@ -45,12 +39,11 @@ namespace
 	ConvolverMuteDiagnostics muteDiagnostics;
 }
 
-MultiConvolutionFilter::MultiConvolutionFilter(const vector<MultiConvolutionCommand::Mapping>& mappings, JudgedPath filename)
+MultiConvolutionFilter::MultiConvolutionFilter(
+	const vector<MultiConvolutionCommand::Mapping>& mappingSpecs, JudgedPath filename)
+	: mappings(mappingSpecs), filename(std::move(filename)), sampleRate(0.0f),
+	  bank(muteDiagnostics, kFrameCountMismatchLogPrefix), unitCount(0)
 {
-	this->mappings = mappings;
-	this->filename = std::move(filename);
-	sampleRate = 0.0f;
-	unitCount = 0;
 }
 
 MultiConvolutionFilter::~MultiConvolutionFilter()
@@ -60,9 +53,7 @@ MultiConvolutionFilter::~MultiConvolutionFilter()
 
 vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned maxFrameCount, vector<wstring> channelNames)
 {
-	auto previousIr = irEntry;
 	cleanup();
-	irEntry = std::move(previousIr);
 
 	this->sampleRate = sampleRate;
 
@@ -92,7 +83,7 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 	// to channel-major buffers, and lets a config reload (or another filter on
 	// the same IR) skip the disk read entirely.
 	const wstring displayPath = filename.path();
-	auto ir = filename.empty() ? irEntry : loadIrCached(filename, sampleRate);
+	auto ir = loadIrCached(filename, sampleRate);
 	filename = JudgedPath{};
 	if (!ir)
 		return outChannelNames;
@@ -187,7 +178,7 @@ void MultiConvolutionFilter::process(double** output, double** input, unsigned f
 	// written (silence), never left uninitialized. admit() records a
 	// block-size mismatch; the deferred report is written by cleanup()
 	// through bank.finishAndReport(), nothing is logged on the audio thread.
-	const bool usable = bank.admit(muteDiagnostics, frameCount);
+	const bool usable = bank.admit(frameCount);
 
 	for (const MappingPlan& plan : plans)
 	{
@@ -225,7 +216,7 @@ void MultiConvolutionFilter::cleanup()
 {
 	// Deferred report of the mute path that process() took on the audio
 	// thread, then disarm and release the units (close-then-free), in one call.
-	bank.finishAndReport(muteDiagnostics, kFrameCountMismatchLogPrefix, __FILE__, __LINE__, this);
+	bank.finishAndReport();
 	// Release this filter's hold on the cached IR; the weak-ptr cache frees the
 	// entry once the last user drops it.
 	irEntry.reset();

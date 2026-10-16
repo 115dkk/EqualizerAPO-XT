@@ -28,7 +28,8 @@ public:
 
 	ConfigWatcher(HANDLE shutdownEvent,
 		SnapshotProvider snapshotProvider,
-		ChangeCallback changeCallback);
+		ChangeCallback changeCallback,
+		DWORD retryIntervalMilliseconds = 1000);
 
 	void run();
 
@@ -36,4 +37,5 @@ private:
 	HANDLE shutdownEvent;
 	SnapshotProvider snapshotProvider;
 	ChangeCallback changeCallback;
+	DWORD retryIntervalMilliseconds;
 };

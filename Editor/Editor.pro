@@ -564,6 +564,7 @@ HEADERS  += \
 	../filters/ConvolutionCommand.h \
 	../filters/ConvolutionFilter.h \
 	../filters/IrCache.h \
+	../filters/ConvolverArray.h \
 	../filters/ConvolverBank.h \
 	../filters/subwooferRouting/SubwooferRoutingCommand.h \
 	../filters/subwooferRouting/SubwooferRoutingFilter.h \

@@ -22,8 +22,6 @@
 
 #include "VolumeController.h"
 
-#include <chrono>
-
 #include <math.h>
 #include <numbers>
 
@@ -47,11 +45,7 @@ LoudnessCorrectionFilter::~LoudnessCorrectionFilter()
 
 void LoudnessCorrectionFilter::stopParameterUpdateThread()
 {
-	{
-		std::lock_guard<std::mutex> lock(_parameterUpdateThreadMutex);
-		_stopParameterUpdateThread = true;
-	}
-	_parameterUpdateThreadCv.notify_all();
+	_parameterUpdateStopEvent.set();
 	if (_parameterUpdateThread.joinable())
 		_parameterUpdateThread.join();
 }
@@ -71,24 +65,26 @@ std::vector<std::wstring> LoudnessCorrectionFilter::initialize(float sampleRate,
 	_attFactor = 1.0;
 	_neutral = true;
 
-	double freqLS = 75, qLS = 1, gainLS = 0;
-	double freqHS = 10000, qHS = 1, gainHS = 0;
-	VolumeController VolumeController;
-	double vol;
-	HRESULT res = VolumeController.getVolume(vol);
-	if (res == S_OK)
+	LowShelf lowShelf;
+	lowShelf.q = 1.0;
+	HighShelf highShelf;
+	highShelf.q = 1.0;
+	_initialVolume = _parameters.referenceLevel;
+	VolumeController volumeController;
+	if (volumeController.getVolume(_initialVolume) == S_OK)
 	{
-		double preAmp = 0.0;
-		getLShelfParamter(vol, freqLS, qLS, gainLS, preAmp);
-		_attFactor = exp(preAmp / 6 * log(2));
-		getHShelfParamter(vol + preAmp, freqHS, qHS, gainHS);
-		_neutral = std::max<double>(std::abs(gainLS), std::abs(gainHS)) < 0.2 ? true : false;
+		lowShelf = lowShelfFor(_parameters, _initialVolume);
+		highShelf = highShelfFor(_parameters, _initialVolume + lowShelf.preAmp);
+		_attFactor = exp(lowShelf.preAmp / 6 * log(2));
+		_neutral = (std::max)(std::abs(lowShelf.gain), std::abs(highShelf.gain)) < 0.2;
 	}
 
 	for (unsigned i = 0; i < _channelCount; i++)
 	{
-		_lowShelfBiquads[i] = BiQuad(BiQuad::LOW_SHELF, gainLS, freqLS, _sampleRate, qLS, false);
-		_highShelfBiquads[i] = BiQuad(BiQuad::HIGH_SHELF, gainHS, freqHS, _sampleRate, qHS, false);
+		_lowShelfBiquads[i] = BiQuad(BiQuad::LOW_SHELF, lowShelf.gain,
+			lowShelf.frequency, _sampleRate, lowShelf.q, false);
+		_highShelfBiquads[i] = BiQuad(BiQuad::HIGH_SHELF, highShelf.gain,
+			highShelf.frequency, _sampleRate, highShelf.q, false);
 	}
 
 	// Seed both slots before the update thread starts. process() only copies a
@@ -101,10 +97,8 @@ std::vector<std::wstring> LoudnessCorrectionFilter::initialize(float sampleRate,
 	_coefficientSlots[1] = seed;
 	_publishedSlot.store(0, std::memory_order_relaxed);
 
-	{
-		std::lock_guard<std::mutex> lock(_parameterUpdateThreadMutex);
-		_stopParameterUpdateThread = false;
-	}
+	_parameterUpdateStopEvent.reset();
+	_coefficientConsumedEvent.reset();
 	_parameterChanged.store(false);
 	_parameterUpdateThread = std::thread(parameterUpdateThread, this);
 
@@ -131,80 +125,79 @@ LoudnessCorrectionFilter::LowShelf LoudnessCorrectionFilter::lowShelfFor(const F
 	return shelf;
 }
 
-void LoudnessCorrectionFilter::getLShelfParamter(const double& volume, double& frequence, double& q, double& gain, double& preAmp)
+LoudnessCorrectionFilter::HighShelf LoudnessCorrectionFilter::highShelfFor(
+	const FilterParameters& parameters, double volume)
 {
-	const LowShelf shelf = lowShelfFor(_parameters, volume);
-	frequence = shelf.frequency;
-	q = shelf.q;
-	gain = shelf.gain;
-	preAmp = shelf.preAmp;
-}
-void LoudnessCorrectionFilter::getHShelfParamter(const double& volume, double& frequence, double& q, double& gain)
-{
-	frequence = 10000;
-	q = 0.9;
-	double volDiff = _parameters.referenceLevel - _parameters.referenceOffset - volume;
+	HighShelf shelf;
+	const double volDiff = parameters.referenceLevel - parameters.referenceOffset - volume;
 	if (volDiff > 0)
-	{
-		gain = volDiff * 0.225 * exp(-volDiff / 100.0) * _parameters.attenuation;
-	}
+		shelf.gain = volDiff * 0.225 * exp(-volDiff / 100.0) * parameters.attenuation;
 	else if (volDiff < 0)
-	{
-		gain = volDiff * 0.175 * exp(volDiff / 80.0) * _parameters.attenuation;
-	}
-	else
-	{
-		gain = 0;
-	}
+		shelf.gain = volDiff * 0.175 * exp(volDiff / 80.0) * parameters.attenuation;
+	return shelf;
+}
+
+void LoudnessCorrectionFilter::publishCoefficientSet(double volume)
+{
+	const LowShelf lowShelf = lowShelfFor(_parameters, volume);
+	const HighShelf highShelf = highShelfFor(_parameters, volume + lowShelf.preAmp);
+
+	// Fill the slot process() is not reading. The notification waiter does not
+	// publish again until process() signals that it copied the previous slot.
+	const unsigned nextSlot = 1u - _publishedSlot.load(std::memory_order_relaxed);
+	CoefficientSet& target = _coefficientSlots[nextSlot];
+	target.attFactor = exp(lowShelf.preAmp / 6 * log(2));
+	upDateBiquadCoefficients(target, highShelf.frequency, highShelf.q, highShelf.gain, true);
+	upDateBiquadCoefficients(target, lowShelf.frequency, lowShelf.q, lowShelf.gain, false);
+	target.neutral = (std::max)(std::abs(lowShelf.gain), std::abs(highShelf.gain)) < 0.2;
+	_publishedSlot.store(nextSlot, std::memory_order_release);
+	_parameterChanged.store(true, std::memory_order_release);
 }
 
 void LoudnessCorrectionFilter::parameterUpdateThread(LoudnessCorrectionFilter* lCorrection)
 {
 	VolumeController volumeController;
-	double volOld(lCorrection->_parameters.referenceLevel);
-	double vol(lCorrection->_parameters.referenceLevel);
-	double freqLS = 0.0, qLS = 0.0, gainLS = 0.0, preAmp = 0.0;
-	double freqHS, qHS, gainHS;
-	HRESULT res;
+	if (FAILED(volumeController.startNotifications()))
+		return;
+
+	double previousVolume = lCorrection->_initialVolume;
+	double currentVolume = previousVolume;
+	if (volumeController.getVolume(currentVolume) == S_OK && currentVolume != previousVolume)
+	{
+		lCorrection->publishCoefficientSet(currentVolume);
+		previousVolume = currentVolume;
+	}
+
+	HANDLE changeHandles[2] = {
+		lCorrection->_parameterUpdateStopEvent.get(),
+		volumeController.notificationHandle()
+	};
+	HANDLE consumedHandles[2] = {
+		lCorrection->_parameterUpdateStopEvent.get(),
+		lCorrection->_coefficientConsumedEvent.get()
+	};
 	while (true)
 	{
+		const DWORD changed = Win32Event::waitAny(2, changeHandles);
+		if (changed == WAIT_OBJECT_0 || changed == WAIT_FAILED)
+			break;
+		if (changed != WAIT_OBJECT_0 + 1)
+			continue;
+
+		while (lCorrection->_parameterChanged.load(std::memory_order_acquire))
 		{
-			std::unique_lock<std::mutex> lock(lCorrection->_parameterUpdateThreadMutex);
-			if (lCorrection->_parameterUpdateThreadCv.wait_for(lock, std::chrono::milliseconds(10), [lCorrection] {return lCorrection->_stopParameterUpdateThread; }))
-				break;
+			const DWORD consumed = Win32Event::waitAny(2, consumedHandles);
+			if (consumed == WAIT_OBJECT_0 || consumed == WAIT_FAILED)
+				return;
 		}
 
-		// Skip while a published set is still unconsumed. This is also what keeps
-		// two slots sufficient: the next fill cannot start until process() has
-		// cleared the flag for the previous one.
-		if (!lCorrection->_parameterChanged.load())
+		// Coalesce notifications that arrived while the previous coefficient set
+		// was waiting for the audio thread by reading the endpoint once now.
+		if (volumeController.getVolume(currentVolume) == S_OK
+			&& currentVolume != previousVolume)
 		{
-			res = volumeController.getVolume(vol);
-			if (res == S_OK)
-			{
-				if (vol != volOld)
-				{
-					lCorrection->getLShelfParamter(vol, freqLS, qLS, gainLS, preAmp);
-					lCorrection->getHShelfParamter(vol + preAmp, freqHS, qHS, gainHS);
-
-					// Fill the slot process() is not reading. Only this thread
-					// writes _publishedSlot, so the load can be relaxed.
-					const unsigned nextSlot = 1u - lCorrection->_publishedSlot.load(std::memory_order_relaxed);
-					CoefficientSet& target = lCorrection->_coefficientSlots[nextSlot];
-					target.attFactor = exp(preAmp / 6 * log(2));
-					lCorrection->upDateBiquadCoefficients(target, freqHS, qHS, gainHS, true);
-					lCorrection->upDateBiquadCoefficients(target, freqLS, qLS, gainLS, false);
-					target.neutral = std::max<double>(std::abs(gainLS), std::abs(gainHS)) < 0.2 ? true : false;
-					// Release: makes the writes above visible to the acquire load
-					// in process(). Everything after this point must not touch the
-					// slot again.
-					lCorrection->_publishedSlot.store(nextSlot, std::memory_order_release);
-
-					volOld = vol;
-
-					lCorrection->_parameterChanged.store(true);
-				}
-			}
+			lCorrection->publishCoefficientSet(currentVolume);
+			previousVolume = currentVolume;
 		}
 	}
 }
@@ -225,10 +218,9 @@ void LoudnessCorrectionFilter::process(double** output, double** input, unsigned
 	}
 	if (_parameterChanged.exchange(false))
 	{
-		// Acquire: pairs with the release store in parameterUpdateThread() and
-		// makes that slot's coefficients visible here. No lock, so this cannot
-		// wait on the normal-priority thread that calls COM through
-		// VolumeController.
+		// Acquire: pairs with the notification waiter's release publication and
+		// makes that slot's coefficients visible here. No lock is taken on the
+		// audio thread; the consumed event is signalled after the copy.
 		const CoefficientSet& published = _coefficientSlots[_publishedSlot.load(std::memory_order_acquire)];
 		_attFactor = published.attFactor;
 		for (unsigned i = 0; i < _channelCount; i++)
@@ -237,6 +229,7 @@ void LoudnessCorrectionFilter::process(double** output, double** input, unsigned
 			_highShelfBiquads[i].setCoefficients(published.aHS, published.a0HS);
 		}
 		_neutral = published.neutral;
+		_coefficientConsumedEvent.set();
 	}
 	for (unsigned i = 0; i < _channelCount; i++)
 	{

@@ -30,11 +30,12 @@
 
 namespace hn = hwy::HWY_NAMESPACE;
 
-FilterConfiguration::FilterConfiguration(const EngineStreamFormat& format, std::vector<std::unique_ptr<FilterInfo>> filterInfos, unsigned allChannelCount)
+FilterConfiguration::FilterConfiguration(const EngineStreamFormat& format, std::vector<std::unique_ptr<FilterInfo>> filterInfos, unsigned configuredChannelCount)
 {
-	this->allChannelCount = allChannelCount;
 	realChannelCount = format.realChannelCount;
 	outputChannelCount = format.outputChannelCount;
+	allChannelCount = (std::max)(configuredChannelCount,
+		(std::max)(realChannelCount, outputChannelCount));
 	unsigned maxFrameCount = format.maxFrameCount;
 
 	allSamplesData.resize(static_cast<size_t>(allChannelCount) * maxFrameCount);

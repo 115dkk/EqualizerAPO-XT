@@ -137,13 +137,13 @@ namespace eapo::ipc::send
 		std::vector<std::wstring> ignoredNames;
 	};
 
-	AttachPlan prepareAttach(const void* region, double ownSampleRate, uint32_t ownMaxFrameCount,
+	AttachPlan prepareAttach(void* region, double ownSampleRate, uint32_t ownMaxFrameCount,
 		const std::vector<std::wstring>& deviceChannels, int64_t nowQpc);
 
 	class SendReaderCore
 	{
 	public:
-		SendReaderCore(const void* region, const AttachPlan& plan, double sampleRate,
+		SendReaderCore(void* region, const AttachPlan& plan, double sampleRate,
 			uint32_t ownMaxFrameCount);
 
 		enum class Status
@@ -162,8 +162,7 @@ namespace eapo::ipc::send
 		uint64_t driftSteps() const;
 
 	private:
-		const Header* header_;
-		Header* diagnostics_;
+		Header* header_;
 		uint64_t senderId_;
 		uint32_t generation_;
 		MixMode mixMode_;

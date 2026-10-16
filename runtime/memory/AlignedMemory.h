@@ -32,11 +32,24 @@
 
 #ifdef USE_WINDDK
 #include <BaseAudioProcessingObject.h>
+#endif
+
+// The APO SDK defines these section pragmas only for projects that include its
+// base class. Common and the Qt Editor compile the same realtime engine without
+// USE_WINDDK, so spell the MSVC pragmas here as well. Keeping the fallback empty
+// lets non-MSVC tooling parse the shared headers.
+#ifndef AVRT_CODE_BEGIN
+#ifdef _MSC_VER
+#define AVRT_VTABLES_BEGIN const_seg(push, "RT_CONST")
+#define AVRT_VTABLES_END const_seg(pop)
+#define AVRT_CODE_BEGIN code_seg(push, "RT_CODE")
+#define AVRT_CODE_END code_seg(pop)
 #else
 #define AVRT_VTABLES_BEGIN
 #define AVRT_VTABLES_END
 #define AVRT_CODE_BEGIN
 #define AVRT_CODE_END
+#endif
 #endif
 
 class AlignedMemory

@@ -146,7 +146,9 @@ int runEngineOrchestrationTests()
 	testProcessWithoutConfigurationDoesNotCrash(harness);
 	testInitialLoadUsesPublicationChannel(harness);
 	testConfigSwapChannelPermitRoundTrip(harness);
+	testLoadConfigOwnsPublicationPermit(harness);
 	testEmptyConfigurationExpandsRenderChannels(harness);
+	testSeedConfigurationSupportsAsymmetricChannels(harness);
 	testParallelExecutor(harness);
 	testConfigWatcherBackoffAndPathRefresh(harness);
 	testConfigWatcherRegistryKeyIsQuietUntilChanged(harness);

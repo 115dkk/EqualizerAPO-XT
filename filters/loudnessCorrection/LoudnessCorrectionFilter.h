@@ -23,10 +23,10 @@
 #include <filters/BiQuad.h>
 
 #include <atomic>
-#include <condition_variable>
-#include <mutex>
 #include <sstream>
 #include <thread>
+
+#include "platform/windows/Win32Event.h"
 
 #pragma AVRT_VTABLES_BEGIN
 class LoudnessCorrectionFilter : public IFilter
@@ -53,6 +53,13 @@ public:
 		double preAmp = 0.0;
 	};
 	static LowShelf lowShelfFor(const FilterParameters& parameters, double volume);
+	struct HighShelf
+	{
+		double frequency = 10000;
+		double q = 0.9;
+		double gain = 0.0;
+	};
+	static HighShelf highShelfFor(const FilterParameters& parameters, double volume);
 
 	LoudnessCorrectionFilter(const FilterParameters& fParameters);
 	virtual ~LoudnessCorrectionFilter();
@@ -74,39 +81,31 @@ private:
 		bool neutral = true;
 	};
 
-	void getLShelfParamter(const double& volume, double& frequence, double& q, double& gain, double& preAmp);
-	void getHShelfParamter(const double& volume, double& frequence, double& q, double& gain);
+	void publishCoefficientSet(double volume);
 	void upDateBiquadCoefficients(CoefficientSet& target, const double& freq, const double& bandwidthOrQOrS, const double& dbGain, bool highshelf);
 
 	std::thread _parameterUpdateThread;
 	static void parameterUpdateThread(LoudnessCorrectionFilter* filter);
-	// Stops and joins the update thread if one runs; the destructor and a
+	// Stops and joins the notification waiter if one runs; the destructor and a
 	// repeated initialize() both need it.
 	void stopParameterUpdateThread();
-	// Guards the stop flag and the 10 ms sleep of the parameter update thread
-	// only. The audio thread never touches this mutex; do not reuse it for the
-	// coefficient hand-off, which is what _coefficientSlots is for.
-	std::mutex _parameterUpdateThreadMutex;
-	std::condition_variable _parameterUpdateThreadCv;
-	bool _stopParameterUpdateThread = false;
+	Win32Event _parameterUpdateStopEvent{true, false};
+	Win32Event _coefficientConsumedEvent{false, false};
 	std::atomic_bool _parameterChanged = false;
 
 	// Double-buffered hand-off, published with a release store and read with an
 	// acquire load, so the audio thread never blocks on a thread that calls COM
 	// through VolumeController.
 	//
-	// Two slots are provably enough, not merely likely enough. The update thread
-	// only starts a new set once it observes _parameterChanged == false, and only
-	// process() clears that flag. So between two consecutive writes to the same
-	// slot there must be two clears, i.e. two process() calls. process() finishes
-	// copying a slot before it returns, and the audio thread calls process()
-	// sequentially, so the write to slot N+2 cannot start before the read of slot
-	// N has finished. A single buffer would not be safe: process() clears the flag
-	// before it copies, which already lets the update thread start the next set.
+	// Two slots are enough because the notification waiter publishes one set and
+	// then waits for _coefficientConsumedEvent. process() signals that event only
+	// after copying the published slot, so the waiter cannot write slot N+2 while
+	// the audio thread still reads slot N.
 	CoefficientSet _coefficientSlots[2];
 	std::atomic<unsigned> _publishedSlot = 0;
 
 	FilterParameters _parameters;
+	double _initialVolume = 0.0;
 	size_t _channelCount = 0;
 	float _sampleRate = 0.0f;
 	double _attFactor = 1.0;
