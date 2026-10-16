@@ -323,7 +323,7 @@ void runSubwooferRoutingVst3Tests()
 	shared_ptr<VSTPluginLibrary> library = VSTPluginLibrary::getInstance(bundle);
 	harness.require(library != nullptr, "Subwoofer Routing bundle resolves");
 	harness.expectTrue(library->isVST3(), "library is recognized as VST3");
-	harness.expectTrue(library->initialize() >= 0, "module initializes");
+	harness.expectTrue(VSTPluginLibrary::load(library->getLibPath()).status >= 0, "module initializes");
 	harness.require(library->getFactory() != nullptr, "factory is available");
 
 	TUID componentIid;
@@ -354,7 +354,8 @@ void runSubwooferRoutingVst3Tests()
 	if (directComponent != nullptr)
 		directComponent->release();
 
-	VSTPluginInstance instance(library, 2);
+	auto instanceOwner = VSTPluginInstance::create(library, 2);
+	VSTPluginInstance& instance = *instanceOwner;
 	harness.require(instance.initialize(), "plugin instance initializes");
 	harness.expectTrue(instance.canDoubleReplacing(), "host negotiates double processing");
 

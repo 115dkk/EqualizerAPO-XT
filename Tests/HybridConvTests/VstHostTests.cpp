@@ -5,8 +5,7 @@
 
 	Self-contained runtime test for the VST2 hosting path of the engine's VST
 	host classes - VSTPluginLibrary (LoadLibrary + GetProcAddress(VSTPluginMain))
-	and VSTPluginInstance (the facade in VSTPluginInstance.cpp and the VST2
-	implementation behind it in VST2Instance.cpp).
+	and VSTPluginInstance (implemented by VST2Instance.cpp).
 	It loads the companion TestVst2Plugin.dll (built
 	from Tests/TestVst2Plugin from our own source, so it always matches the host
 	architecture) and round-trips state plus audio through the engine's public
@@ -301,7 +300,7 @@ void testLoadHold(const wstring& dir, const wstring& dllPath)
 		harness.expectEqual(AbstractLibrary::holdForLoad(judged.path.leaf(), held), DWORD(ERROR_SHARING_VIOLATION),
 			"a plugin another program is writing is not held");
 		shared_ptr<VSTPluginLibrary> library = VSTPluginLibrary::getInstance(plugin);
-		harness.expectEqual(library->initialize(judged.path), AbstractLibrary::LOADING_FAILED,
+		harness.expectEqual(VSTPluginLibrary::load(library->getLibPath(), &judged.path).status, AbstractLibrary::LOADING_FAILED,
 			"and not loaded, as LoadLibraryW would have refused it too");
 	}
 	{
@@ -316,7 +315,7 @@ void testLoadHold(const wstring& dir, const wstring& dllPath)
 		harness.expectEqual(AbstractLibrary::holdForLoad(judged.path.leaf(), held), DWORD(ERROR_BAD_EXE_FORMAT),
 			"an empty file, the one file that can become a link, is refused");
 		shared_ptr<VSTPluginLibrary> library = VSTPluginLibrary::getInstance(empty);
-		harness.expectEqual(library->initialize(judged.path), AbstractLibrary::LOADING_FAILED,
+		harness.expectEqual(VSTPluginLibrary::load(library->getLibPath(), &judged.path).status, AbstractLibrary::LOADING_FAILED,
 			"an empty file fails to load as it did before");
 	}
 	DeleteFileW(empty.c_str());
@@ -328,6 +327,56 @@ void copyResidencyTestPlugin(const wstring& source, const wstring& destination, 
 {
 	if (CopyFileW(source.c_str(), destination.c_str(), FALSE) == FALSE)
 		harness.fail(label + " (error " + std::to_string(GetLastError()) + ")");
+}
+
+void testExpiredLibraryCache(const wstring& dir)
+{
+	const size_t baseline = VSTPluginLibrary::cachedLibraryCountForTesting();
+	for (int i = 0; i < 16; i++)
+	{
+		const wstring path = dir + L"\\missing-cache-plugin-" + std::to_wstring(i) + L".dll";
+		{
+			auto library = VSTPluginLibrary::getInstance(path);
+			harness.expectEqual(VSTPluginLibrary::cachedLibraryCountForTesting(), baseline + 1,
+				"a live metadata library occupies one cache entry");
+			auto second = VSTPluginLibrary::getInstance(path);
+			harness.expectEqual(second.use_count(), 2L,
+				"metadata lookups share the live library");
+		}
+		harness.expectEqual(VSTPluginLibrary::cachedLibraryCountForTesting(), baseline,
+			"destroying the last library reference erases its expired key");
+	}
+	PluginResidency::keepLoadedForProcessLifetime(true);
+	{
+		auto failed = VSTPluginLibrary::load(dir + L"\\missing-cache-plugin.dll");
+		harness.expectTrue(failed.status < 0, "a missing library fails through load");
+	}
+	PluginResidency::keepLoadedForProcessLifetime(false);
+	harness.expectEqual(VSTPluginLibrary::cachedLibraryCountForTesting(), baseline,
+		"failed loads are not retained by the process-lifetime policy");
+}
+
+void testVst2CallbacksAndEditorDefaults(const shared_ptr<VSTPluginLibrary>& library)
+{
+	SetEnvironmentVariableW(L"EAPO_TEST_VST_HOST_CALLBACKS", L"1");
+	auto instance = VSTPluginInstance::create(library, 2);
+	const bool initialized = instance->initialize();
+	SetEnvironmentVariableW(L"EAPO_TEST_VST_HOST_CALLBACKS", nullptr);
+	harness.require(initialized, "null host product/canDo pointers are refused and valid requests succeed");
+	short width = 0;
+	short height = 0;
+	harness.expectFalse(instance->startEditing(nullptr, &width, &height, 2.0),
+		"the editorless fixture refuses editing");
+	harness.expectEqual(width, short(200), "failed editor open keeps the scaled default width");
+	harness.expectEqual(height, short(150), "failed editor open keeps the scaled default height");
+	instance->startEditing(nullptr, &width, &height, 0.0);
+	harness.expectEqual(width, short(400), "an invalid editor scale is normalized");
+	harness.expectEqual(height, short(300), "normalized scale preserves the default height");
+	int callbacks = 0;
+	instance->setAutomateFunc([&callbacks]() { callbacks++; });
+	instance->setSizeWindowFunc([&callbacks](int, int) { callbacks++; });
+	instance.reset();
+	harness.expectEqual(callbacks, 0, "VST2 teardown cannot invoke caller closures");
 }
 
 void testProcessLifetimeResidency(const wstring& dir, const wstring& dllPath)
@@ -366,6 +415,16 @@ void testProcessLifetimeResidency(const wstring& dir, const wstring& dllPath)
 			"the resident test module is loaded while its filter exists");
 	}
 
+	const wstring workerPath = dir + L"\\TestVst2Plugin.WorkerResident.dll";
+	copyResidencyTestPlugin(dllPath, workerPath, "copy the worker-resident test plugin");
+	int workerResult = AbstractLibrary::LOADING_FAILED;
+	std::thread loader([&]() {
+		workerResult = VSTPluginLibrary::load(workerPath).status;
+	});
+	loader.join();
+	harness.expectTrue(workerResult >= 0 && GetModuleHandleW(workerPath.c_str()) != nullptr,
+		"a worker load retains the module without any completion callback");
+
 	HMODULE retainedModule = GetModuleHandleW(residentPath.c_str());
 	const bool retainedAfterFilter = retainedModule != nullptr && retainedModule == loadedModule;
 	harness.expectTrue(retainedAfterFilter,
@@ -377,7 +436,7 @@ void testProcessLifetimeResidency(const wstring& dir, const wstring& dllPath)
 	harness.require(judgedResident.refusal.empty() && judgedResident.path.leaf() != nullptr,
 		"the retained plugin path is judged for the repeat initialization");
 	shared_ptr<VSTPluginLibrary> retainedLibrary = VSTPluginLibrary::getInstance(residentPath);
-	const int repeatResult = retainedLibrary->initialize(judgedResident.path);
+	const int repeatResult = VSTPluginLibrary::load(retainedLibrary->getLibPath(), &judgedResident.path).status;
 	harness.expectEqual(repeatResult, 0, "the retained library reports that it is already loaded");
 	const bool reusedHandle = GetModuleHandleW(residentPath.c_str()) == loadedModule;
 	harness.expectTrue(reusedHandle, "repeat initialization reuses the retained module handle");
@@ -423,6 +482,7 @@ void runVstHostTests()
 	}
 
 	testLoadHold(dir, dllPath);
+	testExpiredLibraryCache(dir);
 	testProcessLifetimeResidency(dir, dllPath);
 
 	// A failed subclass initialization must roll the DLL load back completely.
@@ -452,7 +512,7 @@ void runVstHostTests()
 	const auto judgedLibrary = ConfigFileReference::library(dir, L"TestVst2Plugin.dll", L"");
 	harness.require(judgedLibrary.refusal.empty() && judgedLibrary.path.leaf() != nullptr,
 		"VST2 library reference retains a readable pinned leaf");
-	int loadResult = library->initialize(judgedLibrary.path);
+	int loadResult = VSTPluginLibrary::load(library->getLibPath(), &judgedLibrary.path).status;
 	harness.expectTrue(loadResult >= 0, "library initialize did not return an error code");
 	harness.expectTrue(library->VSTPluginMain != nullptr, "VSTPluginMain symbol resolved");
 
@@ -460,7 +520,7 @@ void runVstHostTests()
 	if (CopyFileW(dllPath.c_str(), disguisedVst2Path.c_str(), FALSE) != FALSE)
 	{
 		shared_ptr<VSTPluginLibrary> disguisedLibrary = VSTPluginLibrary::getInstance(disguisedVst2Path);
-		harness.expectTrue(disguisedLibrary->initialize() >= 0 && !disguisedLibrary->isVST3(),
+		harness.expectTrue(VSTPluginLibrary::load(disguisedLibrary->getLibPath()).status >= 0 && !disguisedLibrary->isVST3(),
 			"loaded module ABI recognizes VST2 even when the file extension is .vst3");
 
 		VSTPluginFilterFactory factory;
@@ -484,6 +544,8 @@ void runVstHostTests()
 	else
 		harness.expectTrue(false, "VST2 disguised-extension copy is available for ABI detection");
 
+	testVst2CallbacksAndEditorDefaults(library);
+
 	expectRejectedMetadataPassesThrough(library, L"huge-inputs", "unrealistic input count");
 	expectRejectedMetadataPassesThrough(library, L"negative-inputs", "negative input count");
 	expectRejectedMetadataPassesThrough(library, L"huge-outputs", "unrealistic output count");
@@ -494,7 +556,7 @@ void runVstHostTests()
 
 	// Construct and initialize the instance the way the engine does (heap
 	// allocated, owned here). processLevel mirrors a realtime audio thread.
-	auto instance = std::make_unique<VSTPluginInstance>(library, 2);
+	auto instance = VSTPluginInstance::create(library, 2);
 	bool initialized = instance->initialize();
 	harness.expectTrue(initialized, "VSTPluginInstance initialize succeeded");
 

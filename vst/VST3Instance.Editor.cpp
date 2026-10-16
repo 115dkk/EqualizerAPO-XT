@@ -52,7 +52,7 @@ static void registerVST3EditorHostWindowClass()
 	registered = true;
 }
 
-bool VST3Instance::startEditing(HWND hWnd, short* width, short* height, double scaleFactor)
+bool VST3Instance::startEditingImpl(HWND hWnd, short* width, short* height, double scaleFactor)
 {
 	// VST3 ViewRect sizes are in physical pixels, but the Qt frame that hosts the
 	// plugin lives in logical (device-independent) pixels. Keep them apart: the
@@ -63,12 +63,8 @@ bool VST3Instance::startEditing(HWND hWnd, short* width, short* height, double s
 	// conversion below a no-op, so nothing changes there.
 	editorScaleFactor = scaleFactor;
 
-	auto toLogical = [scaleFactor](int physical) -> short {
-		return (short)max(1, (int)(physical / scaleFactor + 0.5));
-	};
-
-	int physWidth = 400;
-	int physHeight = 300;
+	int physWidth = defaultEditorWidth;
+	int physHeight = defaultEditorHeight;
 
 	if (vst3Controller == NULL)
 		return false;
@@ -99,9 +95,9 @@ bool VST3Instance::startEditing(HWND hWnd, short* width, short* height, double s
 		physWidth = max<int32>(1, rect.getWidth());
 		physHeight = max<int32>(1, rect.getHeight());
 		if (width != NULL)
-			*width = toLogical(physWidth);
+			*width = logicalEditorSize(physWidth, scaleFactor);
 		if (height != NULL)
-			*height = toLogical(physHeight);
+			*height = logicalEditorSize(physHeight, scaleFactor);
 	}
 	tresult platformResult = vst3View->isPlatformTypeSupported(kPlatformTypeHWND);
 	if (platformResult != kResultOk && platformResult != kNotImplemented)
@@ -131,9 +127,9 @@ bool VST3Instance::startEditing(HWND hWnd, short* width, short* height, double s
 		physWidth = max<int32>(1, rect.getWidth());
 		physHeight = max<int32>(1, rect.getHeight());
 		if (width != NULL)
-			*width = toLogical(physWidth);
+			*width = logicalEditorSize(physWidth, scaleFactor);
 		if (height != NULL)
-			*height = toLogical(physHeight);
+			*height = logicalEditorSize(physHeight, scaleFactor);
 	}
 	// Size the host window first, then let the view lay out against the
 	// final geometry. A view that could not report a size before attach

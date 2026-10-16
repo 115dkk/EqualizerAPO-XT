@@ -434,7 +434,6 @@
     <ClInclude Include="vst\VST3Instance.h" />
     <ClInclude Include="vst\VST3MemoryStream.h" />
     <ClInclude Include="vst\VSTChunkBase64.h" />
-    <ClInclude Include="vst\VSTFormatInstance.h" />
     <ClInclude Include="vst\VSTPluginLibrary.h" />
     <ClInclude Include="vst\PluginResidency.h" />
     <ClInclude Include="engine\IFilter.h" />

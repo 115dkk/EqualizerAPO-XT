@@ -36,10 +36,6 @@
 #include "pluginterfaces/vst/ivsthostapplication.h"
 #include "pluginterfaces/vst/ivstpluginterfacesupport.h"
 
-// The same using-directives every consuming translation unit has at file scope.
-using namespace Steinberg;
-using namespace Steinberg::Vst;
-
 class VST3HostContext : public VST3RefCounted<Steinberg::Vst::IHostApplication,
 	Steinberg::Vst::IComponentHandler, Steinberg::Vst::IComponentHandler2,
 	Steinberg::IPlugFrame, Steinberg::Vst::IPlugInterfaceSupport>
@@ -59,79 +55,79 @@ public:
 		instance.store(nullptr, std::memory_order_release);
 	}
 
-	tresult PLUGIN_API getName(String128 name) override
+	Steinberg::tresult PLUGIN_API getName(Steinberg::Vst::String128 name) override
 	{
 		wcsncpy_s((wchar_t*)name, 128, L"Equalizer APO", _TRUNCATE);
-		return kResultOk;
+		return Steinberg::kResultOk;
 	}
 
-	tresult PLUGIN_API createInstance(TUID cid, TUID iid, void** obj) override
+	Steinberg::tresult PLUGIN_API createInstance(Steinberg::TUID cid, Steinberg::TUID iid, void** obj) override
 	{
 		// IMessage/IAttributeList for the component<->controller connection;
 		// everything else stays unavailable (VST3HostObjects).
 		return VST3HostObjects::createInstance(cid, iid, obj);
 	}
 
-	tresult PLUGIN_API beginEdit(ParamID) override { return attachedResult(); }
-	tresult PLUGIN_API performEdit(ParamID id, ParamValue value) override
+	Steinberg::tresult PLUGIN_API beginEdit(Steinberg::Vst::ParamID) override { return attachedResult(); }
+	Steinberg::tresult PLUGIN_API performEdit(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue value) override
 	{
 		// A GUI edit only lives in the controller until the host feeds it to
 		// the processor through IParameterChanges; the instance queues it for
 		// the next process block (or flushes immediately while idle).
 		VST3Instance* target = attachedInstance();
 		if (target == NULL)
-			return kResultFalse;
+			return Steinberg::kResultFalse;
 		target->onVST3ParameterEdit(id, value);
-		return kResultOk;
+		return Steinberg::kResultOk;
 	}
-	tresult PLUGIN_API endEdit(ParamID) override { return attachedResult(); }
+	Steinberg::tresult PLUGIN_API endEdit(Steinberg::Vst::ParamID) override { return attachedResult(); }
 	// Honest answer: this host does not re-read parameter layout / latency on
-	// request. Claiming kResultOk here made plug-ins assume a refresh
+	// request. Claiming Steinberg::kResultOk here made plug-ins assume a refresh
 	// happened.
-	tresult PLUGIN_API restartComponent(int32) override { return kNotImplemented; }
+	Steinberg::tresult PLUGIN_API restartComponent(Steinberg::int32) override { return Steinberg::kNotImplemented; }
 
-	tresult PLUGIN_API setDirty(TBool state) override
+	Steinberg::tresult PLUGIN_API setDirty(Steinberg::TBool state) override
 	{
 		VST3Instance* target = attachedInstance();
 		if (target == NULL)
-			return kResultFalse;
+			return Steinberg::kResultFalse;
 		if (state)
 			target->onAutomate();
-		return kResultOk;
+		return Steinberg::kResultOk;
 	}
-	tresult PLUGIN_API requestOpenEditor(FIDString name) override
+	Steinberg::tresult PLUGIN_API requestOpenEditor(Steinberg::FIDString name) override
 	{
 		// The host opens editors on user action only; unknown view types are
 		// refused outright.
-		return name == nullptr || strcmp(name, ViewType::kEditor) == 0 ? kNotImplemented : kResultFalse;
+		return name == nullptr || strcmp(name, Steinberg::Vst::ViewType::kEditor) == 0 ? Steinberg::kNotImplemented : Steinberg::kResultFalse;
 	}
-	tresult PLUGIN_API startGroupEdit() override { return attachedResult(); }
-	tresult PLUGIN_API finishGroupEdit() override { return attachedResult(); }
+	Steinberg::tresult PLUGIN_API startGroupEdit() override { return attachedResult(); }
+	Steinberg::tresult PLUGIN_API finishGroupEdit() override { return attachedResult(); }
 
-	tresult PLUGIN_API isPlugInterfaceSupported(const TUID iid) override
+	Steinberg::tresult PLUGIN_API isPlugInterfaceSupported(const Steinberg::TUID iid) override
 	{
-		return FUnknownPrivate::iidEqual(iid, IComponent::iid)
-			|| FUnknownPrivate::iidEqual(iid, IAudioProcessor::iid)
-			|| FUnknownPrivate::iidEqual(iid, IEditController::iid)
-			|| FUnknownPrivate::iidEqual(iid, Steinberg::Vst::IConnectionPoint::iid)
-			|| FUnknownPrivate::iidEqual(iid, IPlugView::iid)
-			|| FUnknownPrivate::iidEqual(iid, IPlugViewContentScaleSupport::iid)
-			? kResultTrue : kResultFalse;
+		return Steinberg::FUnknownPrivate::iidEqual(iid, Steinberg::Vst::IComponent::iid)
+			|| Steinberg::FUnknownPrivate::iidEqual(iid, Steinberg::Vst::IAudioProcessor::iid)
+			|| Steinberg::FUnknownPrivate::iidEqual(iid, Steinberg::Vst::IEditController::iid)
+			|| Steinberg::FUnknownPrivate::iidEqual(iid, Steinberg::Vst::IConnectionPoint::iid)
+			|| Steinberg::FUnknownPrivate::iidEqual(iid, Steinberg::IPlugView::iid)
+			|| Steinberg::FUnknownPrivate::iidEqual(iid, Steinberg::IPlugViewContentScaleSupport::iid)
+			? Steinberg::kResultTrue : Steinberg::kResultFalse;
 	}
 
-	tresult PLUGIN_API resizeView(IPlugView* view, ViewRect* newSize) override
+	Steinberg::tresult PLUGIN_API resizeView(Steinberg::IPlugView* view, Steinberg::ViewRect* newSize) override
 	{
 		if (view != NULL && newSize != NULL)
 		{
 			VST3Instance* target = attachedInstance();
 			if (target == NULL)
-				return kResultFalse;
+				return Steinberg::kResultFalse;
 			// Resize the host windows first so the view lays out against its
 			// final geometry, and forward the view's own verdict.
 			target->onSizeWindow(newSize->getWidth(), newSize->getHeight());
 			return view->onSize(newSize);
 		}
-		return kInvalidArgument;
+		return Steinberg::kInvalidArgument;
 	}
 
 private:
@@ -140,9 +136,9 @@ private:
 		return instance.load(std::memory_order_acquire);
 	}
 
-	tresult attachedResult() const noexcept
+	Steinberg::tresult attachedResult() const noexcept
 	{
-		return attachedInstance() != NULL ? kResultOk : kResultFalse;
+		return attachedInstance() != NULL ? Steinberg::kResultOk : Steinberg::kResultFalse;
 	}
 
 	std::atomic<VST3Instance*> instance;

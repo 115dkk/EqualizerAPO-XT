@@ -38,11 +38,16 @@ public:
 
 	static std::shared_ptr<VSTPluginLibrary> getInstance(const std::wstring& libPath);
 	static std::wstring getDefaultPluginPath();
-	// Holds a loaded library for the rest of the process when
-	// PluginResidency::keepLoadedForProcessLifetime is on; a no-op otherwise,
-	// and for a library whose module is not loaded. Called on every config
-	// load, so it retains each library once.
-	static void retainIfKeepingLoaded(const std::shared_ptr<VSTPluginLibrary>& library);
+	static size_t cachedLibraryCountForTesting();
+	struct LoadResult
+	{
+		std::shared_ptr<VSTPluginLibrary> library;
+		int status = LOADING_FAILED;
+	};
+	// Gets the shared library, initializes it and retains a successful load
+	// according to PluginResidency. A supplied judgment stays pinned by the
+	// caller; otherwise the path is judged here, on the loading thread.
+	static LoadResult load(const std::wstring& libPath, const JudgedPath* path = nullptr);
 
 	std::wstring getLibPath() override;
 	std::wstring getLoadPath() override;
@@ -66,6 +71,9 @@ protected:
 	void customUninitialize() noexcept override;
 
 private:
+	using AbstractLibrary::initialize;
+	static void retainIfKeepingLoaded(const std::shared_ptr<VSTPluginLibrary>& library);
+
 	struct FactoryDeleter
 	{
 		void operator()(Steinberg::IPluginFactory* value) const noexcept
@@ -81,10 +89,9 @@ private:
 	static std::unordered_map<std::wstring, std::weak_ptr<VSTPluginLibrary>> instanceMap;
 	static std::wstring defaultPluginPath;
 	std::wstring libPath;
-	std::wstring loadPath;
-	// The extension is used only to resolve a standard .vst3 bundle. Once the
-	// module is loaded, `vst3` is set from its exported ABI entry points.
-	bool vst3PathHint = false;
+	// Before loading this is only an extension hint for metadata callers;
+	// loadFunctions replaces it with the module's exported ABI. Bundle
+	// discovery is done by ConfigFileReference, independently of this hint.
 	bool vst3 = false;
 	std::unique_ptr<Steinberg::IPluginFactory, FactoryDeleter> factory;
 	// The factory-level host context handed to IPluginFactory3::setHostContext

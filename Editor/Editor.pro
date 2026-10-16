@@ -604,7 +604,6 @@ HEADERS  += \
 	../filters/VSTPluginFilter.h \
 	../filters/VSTPluginFilterFactory.h \
 	../vst/VSTPluginInstance.h \
-	../vst/VSTFormatInstance.h \
 	../vst/VST3Instance.h \
 	../vst/VST3HostContext.h \
 	../vst/VST3MemoryStream.h \

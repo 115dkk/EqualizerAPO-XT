@@ -157,7 +157,7 @@ private:
 			int result = AbstractLibrary::LOADING_FAILED;
 			try
 			{
-				result = request->library->initialize();
+				result = VSTPluginLibrary::load(request->library->getLibPath()).status;
 			}
 			catch (...)
 			{

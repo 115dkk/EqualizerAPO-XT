@@ -112,7 +112,7 @@ void VSTPluginSession::initPlugin()
 		return;
 	}
 
-	applyLoadResult(pluginLibrary->initialize());
+	applyLoadResult(VSTPluginLibrary::load(pluginLibrary->getLibPath()).status);
 }
 
 void VSTPluginSession::requestPlugin()
@@ -212,10 +212,7 @@ void VSTPluginSession::applyLoadResult(int result)
 	}
 	else
 	{
-		// The Editor's own load site; the AnalysisThread's engine goes through
-		// VSTPluginFilterFactory, which retains on its own.
-		VSTPluginLibrary::retainIfKeepingLoaded(pluginLibrary);
-		effect = std::make_unique<VSTPluginInstance>(pluginLibrary, 1);
+		effect = VSTPluginInstance::create(pluginLibrary, 1);
 		if (effect->initialize())
 		{
 			effect->setLanguage(QLocale().language() == QLocale::German ? 2 : 1);

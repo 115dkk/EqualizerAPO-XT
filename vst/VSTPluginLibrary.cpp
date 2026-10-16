@@ -140,26 +140,50 @@ void VSTPluginLibrary::retainIfKeepingLoaded(const shared_ptr<VSTPluginLibrary>&
 	TraceFStatic(L"Keeping %s loaded for the life of this process", library->libPath.c_str());
 }
 
+VSTPluginLibrary::LoadResult VSTPluginLibrary::load(const wstring& libPath, const JudgedPath* path)
+{
+	auto library = getInstance(libPath);
+	const int status = path != nullptr ? library->initialize(*path) : library->initialize();
+	if (status >= 0)
+		retainIfKeepingLoaded(library);
+	return {std::move(library), status};
+}
+
 std::shared_ptr<VSTPluginLibrary> VSTPluginLibrary::getInstance(const wstring& libPath)
 {
-	lock_guard<mutex> lock(instanceMapMutex());
-
+	// These owners outlive the lock even when cache insertion throws.
 	shared_ptr<VSTPluginLibrary> ptr;
+	shared_ptr<VSTPluginLibrary> candidate;
+	unique_lock<mutex> lock(instanceMapMutex());
 
 	auto it = instanceMap.find(libPath);
 	if (it != instanceMap.end())
-	{
-		weak_ptr<VSTPluginLibrary> instance = it->second;
-		ptr = instance.lock();
-	}
+		ptr = it->second.lock();
 
-	if (ptr == NULL)
+	if (ptr == nullptr)
 	{
-		ptr = shared_ptr<VSTPluginLibrary>(new VSTPluginLibrary(libPath));
-		instanceMap[libPath] = ptr;
+		// shared_ptr construction can delete its argument if allocation of its
+		// control block fails. That destructor also takes instanceMapMutex.
+		lock.unlock();
+		candidate = shared_ptr<VSTPluginLibrary>(new VSTPluginLibrary(libPath));
+		lock.lock();
+		it = instanceMap.find(libPath);
+		if (it != instanceMap.end())
+			ptr = it->second.lock();
+		if (ptr == nullptr)
+		{
+			ptr = candidate;
+			instanceMap[libPath] = ptr;
+		}
 	}
 
 	return ptr;
+}
+
+size_t VSTPluginLibrary::cachedLibraryCountForTesting()
+{
+	lock_guard<mutex> lock(instanceMapMutex());
+	return instanceMap.size();
 }
 
 wstring VSTPluginLibrary::getDefaultPluginPath()
@@ -327,15 +351,20 @@ VSTPluginLibrary::~VSTPluginLibrary()
 	// destructor returns. Release module-owned VST3 objects while their code is
 	// still resident.
 	releasePluginFactory();
+
+	lock_guard<mutex> lock(instanceMapMutex());
+	const auto it = instanceMap.find(libPath);
+	// A concurrent getInstance may already have replaced this expired entry.
+	if (it != instanceMap.end() && it->second.expired())
+		instanceMap.erase(it);
 }
 
 VSTPluginLibrary::VSTPluginLibrary(const wstring& libPath)
-	: libPath(libPath), loadPath(libPath)
+	: libPath(libPath)
 {
 	wchar_t extension[_MAX_EXT];
 	_wsplitpath_s(libPath.c_str(), NULL, 0, NULL, 0, NULL, 0, extension, _MAX_EXT);
-	vst3PathHint = _wcsicmp(extension, L".vst3") == 0;
-	vst3 = vst3PathHint;
+	vst3 = _wcsicmp(extension, L".vst3") == 0;
 	// Bundle discovery happens only inside the judged, handle-relative walk.
 }
 

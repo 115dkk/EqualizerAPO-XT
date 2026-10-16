@@ -36,12 +36,12 @@
 #include "pluginterfaces/vst/ivstparameterchanges.h"
 #include "pluginterfaces/vst/ivstprocesscontext.h"
 #include "platform/windows/Win32Resource.h"
-#include "VSTFormatInstance.h"
+#include "VSTPluginInstance.h"
 #include "VST3Lifecycle.h"
 
 class VST3HostContext;
 
-class VST3Instance final : public VSTFormatInstance
+class VST3Instance final : public VSTPluginInstance
 {
 public:
 	VST3Instance(const std::shared_ptr<VSTPluginLibrary>& library, int processLevel);
@@ -59,8 +59,8 @@ public:
 	bool negotiateBusLayouts(VST3BusLayout inputLayout, VST3BusLayout outputLayout,
 		int automaticChannelCount, const std::vector<std::wstring>& inputChannelNames,
 		const std::vector<std::wstring>& outputChannelNames) override;
-	std::optional<VST3BusLayout> negotiatedInputLayout() const override;
-	std::optional<VST3BusLayout> negotiatedOutputLayout() const override;
+	std::optional<VST3BusLayout> getNegotiatedVST3InputLayout() const override;
+	std::optional<VST3BusLayout> getNegotiatedVST3OutputLayout() const override;
 	bool canProcessNow() const override;
 	int uniqueID() const override;
 	std::wstring getName() const override;
@@ -78,7 +78,7 @@ public:
 	void process(float** inputArray, float** outputArray, int frameCount) override;
 	void stopProcessing() override;
 
-	bool startEditing(HWND hWnd, short* width, short* height, double scaleFactor) override;
+	bool startEditingImpl(HWND hWnd, short* width, short* height, double scaleFactor) override;
 	void doIdle() override;
 	void stopEditing() override;
 	// w/h arrive in physical pixels from the view's resizeView request.

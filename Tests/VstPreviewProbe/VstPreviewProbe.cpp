@@ -137,7 +137,7 @@ int runPluginProbe(const std::wstring& pluginPath, double seconds, float sampleR
 {
 	StepClock clock;
 	std::shared_ptr<VSTPluginLibrary> library = VSTPluginLibrary::getInstance(pluginPath);
-	const int libraryResult = library->initialize();
+	const int libraryResult = VSTPluginLibrary::load(library->getLibPath()).status;
 	clock.lap(L"library initialize");
 	if (libraryResult < 0)
 	{
@@ -145,7 +145,8 @@ int runPluginProbe(const std::wstring& pluginPath, double seconds, float sampleR
 		return 2;
 	}
 
-	VSTPluginInstance instance(library, 1);
+	auto instanceOwner = VSTPluginInstance::create(library, 1);
+	VSTPluginInstance& instance = *instanceOwner;
 	if (!instance.initialize())
 	{
 		wprintf(L"FAIL: plugin instance initialize failed\n");
@@ -535,13 +536,14 @@ constexpr double audiblePeak = 0.01;
 int runMonitorProbe(const std::wstring& pluginPath, double seconds, bool expectLive)
 {
 	std::shared_ptr<VSTPluginLibrary> library = VSTPluginLibrary::getInstance(pluginPath);
-	const int libraryResult = library->initialize();
+	const int libraryResult = VSTPluginLibrary::load(library->getLibPath()).status;
 	if (libraryResult < 0)
 	{
 		wprintf(L"FAIL: library initialize returned %d for %s\n", libraryResult, pluginPath.c_str());
 		return 2;
 	}
-	VSTPluginInstance instance(library, 1);
+	auto instanceOwner = VSTPluginInstance::create(library, 1);
+	VSTPluginInstance& instance = *instanceOwner;
 	if (!instance.initialize())
 	{
 		wprintf(L"FAIL: plugin instance initialize failed\n");

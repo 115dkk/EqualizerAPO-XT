@@ -57,7 +57,7 @@ LineOutcome VSTPluginFilterFactory::createFilter(const wstring& configPath, wstr
 		{
 			create = false;
 			TraceF(L"Adding VST plugin %s", library->getLibPath().c_str());
-			int res = library->initialize(target.path);
+			int res = VSTPluginLibrary::load(pluginCommand.libraryPath, &target.path).status;
 			if (res < 0)
 			{
 				// These four were already diagnosed, but only into the log. They
@@ -80,8 +80,6 @@ LineOutcome VSTPluginFilterFactory::createFilter(const wstring& configPath, wstr
 						+ L"\" is built for the other architecture; a " + bitDepth + L"-bit plugin is needed here");
 				return LineOutcome::malformed(L"the plugin \"" + library->getLibPath() + L"\" could not be initialised");
 			}
-			// This factory is the engine's only plugin load site.
-			VSTPluginLibrary::retainIfKeepingLoaded(library);
 			create = true;
 		}
 

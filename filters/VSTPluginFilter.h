@@ -58,7 +58,7 @@ private:
 	// What initialize() carries from one step to the next.
 	struct InitContext
 	{
-		AlignedMemory::UniqueObject<VSTPluginInstance> firstEffect;
+		std::unique_ptr<VSTPluginInstance> firstEffect;
 		bool upmixerLayout = false;
 		int reportedInputCount = 0;
 		int reportedOutputCount = 0;
@@ -95,7 +95,7 @@ private:
 	unsigned effectInputCount = 0;
 	unsigned effectOutputCount = 0;
 	unsigned effectChannelCount = 0;
-	std::vector<AlignedMemory::UniqueObject<VSTPluginInstance>> effects;
+	std::vector<std::unique_ptr<VSTPluginInstance>> effects;
 	std::vector<AlignedMemory::UniqueAllocation<double>> emptyChannels;
 	std::vector<double*> inputArray;
 	std::vector<double*> outputArray;

@@ -167,8 +167,7 @@ bool VST3Instance::initialize()
 
 void VST3Instance::releaseVST3()
 {
-	automateFunc = nullptr;
-	sizeWindowFunc = nullptr;
+	clearCallbacks();
 	stopEditing();
 	stopProcessingSafely();
 
@@ -458,12 +457,12 @@ bool VST3Instance::acceptedVST3BusMetadataIsConsistent() const
 		&& vst3BusChannelCount(kOutput) == outputArrangementChannels;
 }
 
-std::optional<VST3BusLayout> VST3Instance::negotiatedInputLayout() const
+std::optional<VST3BusLayout> VST3Instance::getNegotiatedVST3InputLayout() const
 {
 	return vst3speakers::layoutOfArrangement(vst3InputArrangement);
 }
 
-std::optional<VST3BusLayout> VST3Instance::negotiatedOutputLayout() const
+std::optional<VST3BusLayout> VST3Instance::getNegotiatedVST3OutputLayout() const
 {
 	return vst3speakers::layoutOfArrangement(vst3OutputArrangement);
 }

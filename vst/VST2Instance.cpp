@@ -23,14 +23,15 @@
 // and chunk/parameter state.
 
 #include "stdafx.h"
-#include <inttypes.h>
+#include <array>
+#include <atomic>
 #include "../Version.h"
 #include "text/WideString.h"
 #include "platform/windows/TextEncoding.h"
 #include "services/logging/Logging.h"
 #include "aeffectx.h"
 #include "VSTPluginLibrary.h"
-#include "VSTFormatInstance.h"
+#include "VSTPluginInstance.h"
 #include "VSTChunkBase64.h"
 
 using namespace std;
@@ -41,6 +42,77 @@ using vstchunk::encodeBase64;
 
 namespace
 {
+#ifdef _DEBUG
+// The audioMaster can run on any plug-in thread. Copy bounded records without
+// waiting or allocating; control-thread calls drain them through Logging.
+class CallbackLog
+{
+public:
+	void enqueue(vst_effect_t* effect, int32_t opcode, int32_t index, int64_t value, const char* ptr, float opt)
+	{
+		if (busy.test_and_set(std::memory_order_acquire))
+			return;
+		if (count < records.size())
+		{
+			Record& record = records[count++];
+			record = {};
+			record.effect = effect;
+			record.opcode = opcode;
+			record.index = index;
+			record.value = value;
+			record.ptr = ptr;
+			record.opt = opt;
+			record.host = effect != nullptr ? effect->host_internal : nullptr;
+			if (opcode == VST_HOST_OPCODE_SUPPORTS && ptr != nullptr)
+			{
+				for (size_t i = 0; i + 1 < record.canDo.size() && ptr[i] != '\0'; i++)
+					record.canDo[i] = ptr[i];
+			}
+		}
+		busy.clear(std::memory_order_release);
+	}
+
+	void drain()
+	{
+		std::array<Record, capacity> pending;
+		if (busy.test_and_set(std::memory_order_acquire))
+			return;
+		const size_t pendingCount = count;
+		for (size_t i = 0; i < pendingCount; i++)
+			pending[i] = records[i];
+		count = 0;
+		busy.clear(std::memory_order_release);
+		for (size_t i = 0; i < pendingCount; i++)
+		{
+			const Record& record = pending[i];
+			TraceFStatic(L"vst: %p opcode: %d index: %d value: %lld ptr: %p opt: %f host_internal: %p",
+				record.effect, record.opcode, record.index, static_cast<long long>(record.value), record.ptr, record.opt, record.host);
+			if (record.opcode == VST_HOST_OPCODE_SUPPORTS)
+				TraceFStatic(L"VST canDo: %hs", record.canDo.data());
+		}
+	}
+
+private:
+	struct Record
+	{
+		vst_effect_t* effect = nullptr;
+		int32_t opcode = 0;
+		int32_t index = 0;
+		int64_t value = 0;
+		const char* ptr = nullptr;
+		float opt = 0.0f;
+		void* host = nullptr;
+		std::array<char, 64> canDo{};
+	};
+	static constexpr size_t capacity = 32;
+	std::atomic_flag busy = ATOMIC_FLAG_INIT;
+	std::array<Record, capacity> records{};
+	size_t count = 0;
+};
+
+CallbackLog callbackLog;
+#endif
+
 struct VST2EffectDeleter
 {
 	void operator()(vst_effect_t* effect) const noexcept
@@ -62,11 +134,11 @@ struct VST2EffectDeleter
 
 using VST2EffectPtr = std::unique_ptr<vst_effect_t, VST2EffectDeleter>;
 
-class VST2Instance final : public VSTFormatInstance
+class VST2Instance final : public VSTPluginInstance
 {
 public:
 	VST2Instance(const std::shared_ptr<VSTPluginLibrary>& library, int processLevel)
-		: VSTFormatInstance(library, processLevel)
+		: VSTPluginInstance(library, processLevel)
 	{
 	}
 
@@ -74,9 +146,11 @@ public:
 	{
 		// The effect may still call back while it is destroyed; nothing it
 		// reaches through the callback may run a caller's closure any more.
-		automateFunc = nullptr;
-		sizeWindowFunc = nullptr;
+		clearCallbacks();
 		effect.reset();
+#ifdef _DEBUG
+		callbackLog.drain();
+#endif
 	}
 
 	bool initialize() override;
@@ -117,8 +191,8 @@ public:
 		return false;
 	}
 
-	optional<VST3BusLayout> negotiatedInputLayout() const override { return nullopt; }
-	optional<VST3BusLayout> negotiatedOutputLayout() const override { return nullopt; }
+	optional<VST3BusLayout> getNegotiatedVST3InputLayout() const override { return nullopt; }
+	optional<VST3BusLayout> getNegotiatedVST3OutputLayout() const override { return nullopt; }
 
 	bool canProcessNow() const override { return vst2Processing; }
 
@@ -208,9 +282,12 @@ public:
 		effect->control(effect.get(), VST_EFFECT_OPCODE_PROCESS_END, 0, 0, NULL, 0.0f);
 		effect->control(effect.get(), VST_EFFECT_OPCODE_SUSPEND, 0, 0, NULL, 0.0f);
 		vst2Processing = false;
+#ifdef _DEBUG
+		callbackLog.drain();
+#endif
 	}
 
-	bool startEditing(HWND hWnd, short* width, short* height, double scaleFactor) override;
+	bool startEditingImpl(HWND hWnd, short* width, short* height, double scaleFactor) override;
 
 	void doIdle() override
 	{
@@ -218,6 +295,9 @@ public:
 			return;
 
 		effect->control(effect.get(), VST_EFFECT_OPCODE_EDITOR_KEEP_ALIVE, 0, 0, NULL, 0.0f);
+#ifdef _DEBUG
+		callbackLog.drain();
+#endif
 	}
 
 	void stopEditing() override
@@ -274,9 +354,7 @@ intptr_t callback(struct vst_effect_t* effect, int32_t opcode, int32_t index, in
 {
 	VST2Instance* instance = effect != NULL ? (VST2Instance*)effect->host_internal : NULL;
 #ifdef _DEBUG
-	printf("vst: %p opcode: %d index: %d value: %" PRIdPTR " ptr: %p opt: %f host_internal: %p\n",
-		effect, opcode, index, value, ptr, opt, effect != NULL ? effect->host_internal : NULL);
-	fflush(stdout);
+	callbackLog.enqueue(effect, opcode, index, value, ptr, opt);
 #endif
 
 	switch (opcode)
@@ -294,6 +372,8 @@ intptr_t callback(struct vst_effect_t* effect, int32_t opcode, int32_t index, in
 	// dereference it inside audiodg. The host product/vendor queries are
 	// 0x21/0x22.
 	case VST_HOST_OPCODE_PRODUCT_NAME:
+		if (ptr == nullptr)
+			return 0;
 		strcpy_s((char*) ptr, 64, "Equalizer APO");
 		return 1;
 
@@ -352,10 +432,8 @@ intptr_t callback(struct vst_effect_t* effect, int32_t opcode, int32_t index, in
 	case VST_HOST_OPCODE_SUPPORTS:
 		{
 			const char* s = (const char*)ptr;
-#ifdef _DEBUG
-			printf("VST canDo: %s\n", s);
-			fflush(stdout);
-#endif
+			if (s == nullptr)
+				return 0;
 			if (strcmp(s, "startStopProcess") == 0 ||
 				strcmp(s, "sizeWindow") == 0)
 				return 1;
@@ -417,6 +495,9 @@ bool VST2Instance::initialize()
 	// Audit #250 F040: the loader now reports which of its three failure
 	// modes happened instead of blaming every one on "an exception".
 	const LoadResult result = load();
+#ifdef _DEBUG
+	callbackLog.drain();
+#endif
 	refreshSampleWidths();
 	switch (result)
 	{
@@ -435,7 +516,7 @@ bool VST2Instance::initialize()
 	}
 }
 
-bool VST2Instance::startEditing(HWND hWnd, short* width, short* height, double)
+bool VST2Instance::startEditingImpl(HWND hWnd, short* width, short* height, double)
 {
 	if (effect == NULL)
 		return false;
@@ -523,7 +604,7 @@ void VST2Instance::readFromEffect(wstring& chunkData, unordered_map<wstring, flo
 }
 }
 
-std::unique_ptr<VSTFormatInstance> createVST2Instance(
+std::unique_ptr<VSTPluginInstance> createVST2Instance(
 	const std::shared_ptr<VSTPluginLibrary>& library, int processLevel)
 {
 	return std::make_unique<VST2Instance>(library, processLevel);
