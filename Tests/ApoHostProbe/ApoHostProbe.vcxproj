@@ -51,7 +51,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(IncludePath)</IncludePath>
+    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(TCLAP_ROOT)\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
@@ -91,6 +91,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\services\registry\RegistryPaths.h" />
+    <ClInclude Include="..\ProbeSupport\CommandLine.h" />
+    <ClInclude Include="..\ProbeSupport\JsonLine.h" />
+    <ClInclude Include="..\ProbeSupport\ToneMeter.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

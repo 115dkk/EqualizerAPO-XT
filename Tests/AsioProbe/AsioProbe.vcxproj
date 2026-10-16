@@ -57,7 +57,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(ASIO_SDK)\common;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(IncludePath)</IncludePath>
+    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(ASIO_SDK)\common;$(TCLAP_ROOT)\include;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
@@ -84,9 +84,11 @@ if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"</
   <ItemGroup>
     <ClInclude Include="..\AsioSupport\HostStub.h" />
     <ClInclude Include="..\AsioSupport\LatencyMatch.h" />
-    <ClInclude Include="..\AsioSupport\Sha256.h" />
     <ClInclude Include="..\FakeAsioDriver\FakeAsio.h" />
     <ClInclude Include="..\FakeAsioDriver\FakeAsioControl.h" />
+    <ClInclude Include="..\ProbeSupport\CommandLine.h" />
+    <ClInclude Include="..\ProbeSupport\Sha256.h" />
+    <ClInclude Include="..\ProbeSupport\WasapiEndpoint.h" />
   </ItemGroup>
   <Import Project="..\..\asio\AsioCoreSources.props" />
   <Import Project="..\..\asio\AsioInProcSources.props" />

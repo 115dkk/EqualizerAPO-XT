@@ -88,6 +88,7 @@ xcopy /Y /I /E "$(ProjectDir)configs" "$(OutDir)configs\"</Command>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\engine\FilterEngine.h" />
+    <ClInclude Include="..\ProbeSupport\Sha256.h" />
   </ItemGroup>
   <ItemGroup>
     <!-- Wildcard on purpose (audit #275 TD-19): a hand-kept list had drifted

@@ -56,6 +56,20 @@ namespace eapo::asio
 			lane.publishable = false;
 			lane.prepared = false;
 		}
+
+		static bool waitUntilCompleted(DaemonProcessor& processor, Direction direction, uint32_t sequence,
+			DWORD timeoutMs) noexcept
+		{
+			const ULONGLONG deadline = GetTickCount64() + timeoutMs;
+			for (;;)
+			{
+				if (processor.producer_ != nullptr && processor.producer_->completed(direction, sequence))
+					return true;
+				if (GetTickCount64() >= deadline)
+					return false;
+				Sleep(1);
+			}
+		}
 	};
 }
 
@@ -342,8 +356,9 @@ namespace
 
 		constexpr long frames = 64;
 		auto control = std::make_shared<eapo::asio::ThreadHostControl>();
-		std::unique_ptr<IStreamProcessor> processor = std::make_unique<DaemonProcessor>(
+		auto processor = std::make_unique<DaemonProcessor>(
 			std::make_unique<ThreadHostLink>(false, 0, control));
+		DaemonProcessor* const observedProcessor = processor.get();
 		FakeAsioConfig config;
 		config.sampleType = ASIOSTInt32LSB;
 		config.outputChannels = 1;
@@ -360,13 +375,17 @@ namespace
 		harness.requireEqual(host.createBuffers(wrapper, frames), ASE_OK, "createBuffers over the thread host");
 		harness.requireEqual(wrapper->start(), ASE_OK, "start");
 
-		// One period at a time with room for the host in between, so only the
-		// held periods can be late.
+		// One period at a time after the host completed its sequence, so only
+		// the deliberately held periods can be late.
+		uint32_t nextSequence = 1;
 		const auto pumpServed = [&](long periods) {
 			for (long p = 0; p < periods; p++)
 			{
 				fake->pump(1);
-				Sleep(50);
+				harness.require(eapo::asio::DaemonProcessorTestAccess::waitUntilCompleted(
+					*observedProcessor, Direction::Output, nextSequence, 5000),
+					"the thread host completes sequence " + std::to_string(nextSequence));
+				nextSequence++;
 			}
 		};
 		pumpServed(6);           // periods 0-5: silence, then each previous block processed
@@ -375,7 +394,9 @@ namespace
 		fake->pump(1);           // period 7: seq 8 published, seq 7 held: Late
 		fake->pump(1);           // period 8: seq 9 cannot be published (seq 7 not done): Late
 		control->holdHost(false);
-		Sleep(100);
+		harness.require(eapo::asio::DaemonProcessorTestAccess::waitUntilCompleted(
+			*observedProcessor, Direction::Output, 8, 5000), "the released host completes the held sequences");
+		nextSequence = 9;
 		pumpServed(3);           // periods 9-11
 		wrapper->stop();
 		const eapo::asio::StreamStats stats = wrapper->stats();
@@ -453,6 +474,7 @@ namespace
 			events[i] = CreateEventW(nullptr, eapo::asio::RingEvents::table[i].manualReset ? TRUE : FALSE, FALSE, nullptr);
 		HANDLE hostGone = CreateEventW(nullptr, TRUE, FALSE, nullptr);
 		HANDLE producerGone = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+		HANDLE hostEntered = CreateEventW(nullptr, TRUE, FALSE, nullptr);
 
 		test::FakeRegistry registry;
 		eapo::asio::ServeOptions serve;
@@ -463,10 +485,12 @@ namespace
 		// Started before the producer formats the header, as the real host
 		// is: the attach procedure waits for Announced.
 		std::thread host([&] {
+			SetEvent(hostEntered);
 			eapo::asio::EngineHostCore::attachAndServe(region, bytes, eapo::asio::RingEvents::toSync(events, producerGone), serve, 4242);
 			SetEvent(hostGone);
 		});
-		Sleep(20);
+		harness.requireEqual(WaitForSingleObject(hostEntered, 5000), static_cast<DWORD>(WAIT_OBJECT_0),
+			"the host thread enters the attach procedure before the producer formats the ring");
 		{
 			eapo::ipc::RingProducer producer(region, format, GetCurrentProcessId(), eapo::asio::RingEvents::toSync(events, hostGone));
 			harness.expect(producer.waitReady(20000) == eapo::ipc::RingState::Ready, "the serving loop attaches and becomes Ready");
@@ -493,6 +517,7 @@ namespace
 			CloseHandle(event);
 		CloseHandle(hostGone);
 		CloseHandle(producerGone);
+		CloseHandle(hostEntered);
 		_aligned_free(region);
 		directory.removeAll();
 	}
@@ -607,7 +632,8 @@ namespace
 			: pipe_(CreateNamedPipeW(eapo::asio::HostNames::pipe(endpoint).c_str(), PIPE_ACCESS_DUPLEX,
 				PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, PIPE_UNLIMITED_INSTANCES,
 				sizeof(eapo::asio::HostOpenReply), sizeof(eapo::asio::HostOpenRequest), 0, nullptr)),
-			release_(CreateEventW(nullptr, TRUE, FALSE, nullptr))
+			release_(CreateEventW(nullptr, TRUE, FALSE, nullptr)),
+			doneEvent_(CreateEventW(nullptr, TRUE, FALSE, nullptr))
 		{
 			thread_ = std::thread([this] {
 				const bool connected = ConnectNamedPipe(pipe_, nullptr) || GetLastError() == ERROR_PIPE_CONNECTED;
@@ -618,21 +644,26 @@ namespace
 					requestRead_ = ReadFile(pipe_, &request, sizeof(request), &read, nullptr) && read == sizeof(request);
 					WaitForSingleObject(release_, 30000);
 				}
-				done_ = true;
+				SetEvent(doneEvent_);
 			});
 		}
 
 		~PipeSquatter()
 		{
 			SetEvent(release_);
-			while (!done_)
+			const ULONGLONG deadline = GetTickCount64() + 30000;
+			DWORD completion = WAIT_TIMEOUT;
+			while (completion == WAIT_TIMEOUT && GetTickCount64() < deadline)
 			{
 				CancelSynchronousIo(thread_.native_handle());
-				Sleep(10);
+				completion = WaitForSingleObject(doneEvent_, 10);
 			}
+			harness.requireEqual(completion, static_cast<DWORD>(WAIT_OBJECT_0),
+				"the stand-in pipe server stops before its deadline");
 			thread_.join();
 			CloseHandle(pipe_);
 			CloseHandle(release_);
+			CloseHandle(doneEvent_);
 		}
 
 		PipeSquatter(const PipeSquatter&) = delete;
@@ -651,8 +682,8 @@ namespace
 	private:
 		HANDLE pipe_;
 		HANDLE release_;
+		HANDLE doneEvent_;
 		std::thread thread_;
-		std::atomic<bool> done_ = false;
 		std::atomic<bool> requestRead_ = false;
 	};
 
@@ -784,13 +815,15 @@ namespace
 	bool waitForPipe(const std::wstring& endpoint)
 	{
 		const std::wstring pipe = eapo::asio::HostNames::pipe(endpoint);
-		for (unsigned attempt = 0; attempt < 100; attempt++)
+		const ULONGLONG deadline = GetTickCount64() + 3000;
+		do
 		{
 			if (WaitNamedPipeW(pipe.c_str(), 20))
 				return true;
+			if (GetTickCount64() >= deadline)
+				return false;
 			Sleep(10);
-		}
-		return false;
+		} while (true);
 	}
 
 	void testHostControlServerWithWin32Client()

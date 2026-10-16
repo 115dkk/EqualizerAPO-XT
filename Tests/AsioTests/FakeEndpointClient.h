@@ -19,7 +19,8 @@ namespace asiotest
 	public:
 		explicit FakeEndpointClient(DWORD cadenceMs, unsigned invalidateAfterReleases = 0)
 			: cadenceMs_(cadenceMs), invalidateAfterReleases_(invalidateAfterReleases),
-			event_(CreateEventW(nullptr, FALSE, FALSE, nullptr)), stop_(CreateEventW(nullptr, TRUE, FALSE, nullptr))
+			event_(CreateEventW(nullptr, FALSE, FALSE, nullptr)), stop_(CreateEventW(nullptr, TRUE, FALSE, nullptr)),
+			timer_(CreateWaitableTimerExW(nullptr, nullptr, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS))
 		{
 		}
 
@@ -58,14 +59,7 @@ namespace asiotest
 			ResetEvent(stop_.get());
 			try
 			{
-				ticker_ = std::thread([this] {
-					for (;;)
-					{
-						if (WaitForSingleObject(stop_.get(), cadenceMs_) == WAIT_OBJECT_0)
-							break;
-						SetEvent(event_.get());
-					}
-				});
+				ticker_ = std::thread([this] {runTicker();});
 			}
 			catch (...)
 			{
@@ -117,10 +111,46 @@ namespace asiotest
 		unsigned releaseCalls() const noexcept {return releaseCalls_.load(std::memory_order_relaxed);}
 
 	private:
+		void runTicker() noexcept
+		{
+			if (timer_ && cadenceMs_ > 0)
+			{
+				LARGE_INTEGER dueTime;
+				dueTime.QuadPart = -static_cast<LONGLONG>(cadenceMs_) * 10000;
+				if (SetWaitableTimer(timer_.get(), &dueTime, static_cast<LONG>(cadenceMs_), nullptr, nullptr, FALSE))
+				{
+					const HANDLE waits[] = {stop_.get(), timer_.get()};
+					for (;;)
+					{
+						const DWORD waited = WaitForMultipleObjects(2, waits, FALSE, INFINITE);
+						if (waited == WAIT_OBJECT_0)
+						{
+							CancelWaitableTimer(timer_.get());
+							return;
+						}
+						if (waited != WAIT_OBJECT_0 + 1)
+							break;
+						SetEvent(event_.get());
+					}
+					CancelWaitableTimer(timer_.get());
+				}
+			}
+
+			// CREATE_WAITABLE_TIMER_HIGH_RESOLUTION is unsupported before Windows
+			// 10 version 1803. Keep the fixture usable if creation or arming fails.
+			for (;;)
+			{
+				if (WaitForSingleObject(stop_.get(), cadenceMs_) == WAIT_OBJECT_0)
+					return;
+				SetEvent(event_.get());
+			}
+		}
+
 		DWORD cadenceMs_;
 		unsigned invalidateAfterReleases_;
 		winutil::UniqueHandle event_;
 		winutil::UniqueHandle stop_;
+		winutil::UniqueHandle timer_;
 		std::thread ticker_;
 		std::vector<BYTE> buffer_;
 		std::atomic<unsigned> initializeCalls_{0};

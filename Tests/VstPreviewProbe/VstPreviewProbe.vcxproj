@@ -58,7 +58,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(VST3_SDK);$(IncludePath)</IncludePath>
+    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(TCLAP_ROOT)\include;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(VST3_SDK);$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
@@ -93,6 +93,9 @@ if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"</
     <ClInclude Include="..\..\vst\VSTPluginInstance.h" />
     <ClInclude Include="..\..\vst\VSTPluginLibrary.h" />
     <ClInclude Include="..\..\platform\windows\ComPtr.h" />
+    <ClInclude Include="..\ProbeSupport\CommandLine.h" />
+    <ClInclude Include="..\ProbeSupport\ToneMeter.h" />
+    <ClInclude Include="..\ProbeSupport\WasapiEndpoint.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

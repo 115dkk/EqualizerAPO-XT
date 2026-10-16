@@ -67,8 +67,10 @@
 #include "services/logging/Logging.h"
 #include "Tests/AsioSupport/HostStub.h"
 #include "Tests/AsioSupport/LatencyMatch.h"
-#include "Tests/AsioSupport/Sha256.h"
 #include "Tests/FakeAsioDriver/FakeAsio.h"
+#include "Tests/ProbeSupport/CommandLine.h"
+#include "Tests/ProbeSupport/Sha256.h"
+#include "Tests/ProbeSupport/WasapiEndpoint.h"
 
 using eapo::asio::AsioWrapper;
 using eapo::asio::Direction;
@@ -147,76 +149,136 @@ namespace
 
 	bool parse(int argc, wchar_t** argv, Arguments& a)
 	{
-		for (int i = 1; i < argc; i++)
+		probesupport::CommandLine commandLine;
+		TCLAP::CmdLine& parser = commandLine.parser();
+		TCLAP::MultiArg<std::string> targetArg("", "target", "", false, "value", parser);
+		TCLAP::MultiArg<std::string> clsidArg("", "clsid", "", false, "value", parser);
+		TCLAP::MultiArg<std::string> wrapperArg("", "wrapper", "", false, "value", parser);
+		TCLAP::MultiArg<std::string> processorArg("", "processor", "", false, "value", parser);
+		TCLAP::MultiArg<std::string> configArg("", "config", "", false, "value", parser);
+		TCLAP::MultiArg<std::string> modeArg("", "mode", "", false, "value", parser);
+		TCLAP::MultiArg<std::string> framesArg("", "frames", "", false, "value", parser);
+		TCLAP::MultiArg<std::string> rateArg("", "rate", "", false, "value", parser);
+		TCLAP::MultiArg<std::string> periodsArg("", "periods", "", false, "value", parser);
+		TCLAP::MultiArg<std::string> paceArg("", "pace-us", "", false, "value", parser);
+		TCLAP::MultiArg<std::string> burstArg("", "burst", "", false, "value", parser);
+		TCLAP::MultiArg<std::string> secondsArg("", "seconds", "", false, "value", parser);
+		TCLAP::MultiArg<std::string> seedArg("", "seed", "", false, "value", parser);
+		TCLAP::MultiArg<std::string> hostSeedArg("", "host-seed", "", false, "value", parser);
+		TCLAP::MultiArg<std::string> maxLateArg("", "max-late", "", false, "value", parser);
+		TCLAP::MultiArg<std::string> traceSlowArg("", "trace-slow", "", false, "value", parser);
+		TCLAP::MultiArg<std::string> daemonArg("", "daemon", "", false, "value", parser);
+		TCLAP::MultiArg<std::string> endpointArg("", "endpoint", "", false, "value", parser);
+		TCLAP::MultiArg<std::string> deadlineArg("", "deadline-us", "", false, "value", parser);
+		TCLAP::MultiArg<std::string> latencyCaptureArg("", "latency-capture", "", false, "value", parser);
+		TCLAP::MultiArg<std::string> clickIntervalArg("", "click-interval-ms", "", false, "value", parser);
+		TCLAP::MultiArg<std::string> latencyCsvArg("", "latency-csv", "", false, "value", parser);
+		TCLAP::MultiArg<std::string> channelsArg("", "channels", "", false, "value", parser);
+		TCLAP::MultiArg<std::string> sampleTypeArg("", "sample-type", "", false, "value", parser);
+		TCLAP::MultiArg<std::string> expectShaArg("", "expect-sha256", "", false, "value", parser);
+		TCLAP::MultiArg<std::string> expectFirstShaArg("", "expect-first-sha256", "", false, "value", parser);
+		TCLAP::MultiArg<std::string> expectInputShaArg("", "expect-input-sha256", "", false, "value", parser);
+		TCLAP::MultiSwitchArg noInputArg("", "no-input", "", parser);
+		TCLAP::MultiSwitchArg noOutputArg("", "no-output", "", parser);
+		TCLAP::MultiSwitchArg outputReadyArg("", "output-ready", "", parser);
+		TCLAP::MultiSwitchArg noReferenceArg("", "no-reference", "", parser);
+		TCLAP::MultiSwitchArg toneArg("", "tone", "", parser);
+		TCLAP::MultiArg<std::string> sineArg("", "sine", "", false, "value", parser);
+		if (!commandLine.parse(argc, argv))
+			return false;
+
+		if (targetArg.isSet())
+			a.target = probesupport::lastWide(targetArg);
+		if (clsidArg.isSet())
+			a.targetDllClsid = probesupport::lastWide(clsidArg);
+		if (wrapperArg.isSet())
+			a.wrapper = probesupport::lastWide(wrapperArg);
+		if (processorArg.isSet())
+			a.processor = probesupport::lastWide(processorArg);
+		if (configArg.isSet())
+			a.config = probesupport::lastWide(configArg);
+		if (modeArg.isSet())
+			a.mode = probesupport::lastWide(modeArg);
+		if (framesArg.isSet())
+			a.frames = std::wcstol(probesupport::lastWide(framesArg).c_str(), nullptr, 10);
+		if (rateArg.isSet())
 		{
-			const std::wstring key = argv[i];
-			auto value = [&](std::wstring& out) {
-				if (i + 1 >= argc)
-					return false;
-				out = argv[++i];
-				return true;
-			};
-			std::wstring v;
-			if (key == L"--target" && value(v)) a.target = v;
-			else if (key == L"--clsid" && value(v)) a.targetDllClsid = v;
-			else if (key == L"--wrapper" && value(v)) a.wrapper = v;
-			else if (key == L"--processor" && value(v)) a.processor = v;
-			else if (key == L"--config" && value(v)) a.config = v;
-			else if (key == L"--mode" && value(v)) a.mode = v;
-			else if (key == L"--frames" && value(v)) a.frames = std::wcstol(v.c_str(), nullptr, 10);
-			else if (key == L"--rate" && value(v))
-			{
-				a.rate = std::wcstod(v.c_str(), nullptr);
-				a.rateGiven = true;
-			}
-			else if (key == L"--periods" && value(v)) a.periods = std::wcstol(v.c_str(), nullptr, 10);
-			else if (key == L"--pace-us" && value(v)) a.paceUs = std::wcstol(v.c_str(), nullptr, 10);
-			else if (key == L"--burst" && value(v)) a.burst = std::wcstol(v.c_str(), nullptr, 10);
-			else if (key == L"--seconds" && value(v)) a.seconds = std::wcstod(v.c_str(), nullptr);
-			else if (key == L"--seed" && value(v)) a.seed = static_cast<unsigned>(std::wcstoul(v.c_str(), nullptr, 10));
-			else if (key == L"--host-seed" && value(v)) a.hostSeed = static_cast<unsigned>(std::wcstoul(v.c_str(), nullptr, 10));
-			else if (key == L"--max-late" && value(v)) a.maxLate = std::wcstol(v.c_str(), nullptr, 10);
-			else if (key == L"--trace-slow" && value(v)) a.traceSlowUs = std::wcstol(v.c_str(), nullptr, 10);
-			else if (key == L"--daemon" && value(v)) a.daemonExe = v;
-			else if (key == L"--endpoint" && value(v)) a.endpoint = v;
-			else if (key == L"--deadline-us" && value(v)) a.deadlineUs = static_cast<uint32_t>(std::wcstoul(v.c_str(), nullptr, 10));
-			else if (key == L"--latency-capture" && value(v)) a.latencyCapture = v;
-			else if (key == L"--click-interval-ms" && value(v))
-			{
-				wchar_t* end = nullptr;
-				const unsigned long long interval = std::wcstoull(v.c_str(), &end, 10);
-				if (v.empty() || v.front() == L'-' || end == v.c_str() || *end != L'\0' || interval > UINT_MAX)
-					return false;
-				a.clickIntervalMs = static_cast<unsigned>(interval);
-			}
-			else if (key == L"--latency-csv" && value(v)) a.latencyCsv = v;
-			else if (key == L"--channels" && value(v))
-			{
-				const size_t comma = v.find(L',');
-				if (comma == std::wstring::npos)
-					return false;
-				a.inputs = std::wcstol(v.substr(0, comma).c_str(), nullptr, 10);
-				a.outputs = std::wcstol(v.substr(comma + 1).c_str(), nullptr, 10);
-			}
-			else if (key == L"--sample-type" && value(v))
-			{
-				if (v == L"int16") a.sampleType = ASIOSTInt16LSB;
-				else if (v == L"int24") a.sampleType = ASIOSTInt24LSB;
-				else if (v == L"int32") a.sampleType = ASIOSTInt32LSB;
-				else if (v == L"float32") a.sampleType = ASIOSTFloat32LSB;
-				else return false;
-			}
-			else if (key == L"--expect-sha256" && value(v)) a.expectSha = narrow(v);
-			else if (key == L"--expect-first-sha256" && value(v)) a.expectFirstSha = narrow(v);
-			else if (key == L"--expect-input-sha256" && value(v)) a.expectInputSha = narrow(v);
-			else if (key == L"--no-input") a.processInput = false;
-			else if (key == L"--no-output") a.processOutput = false;
-			else if (key == L"--output-ready") a.callOutputReady = true;
-			else if (key == L"--no-reference") a.reference = false;
-			else if (key == L"--tone") a.tone = true;
-			else if (key == L"--sine" && value(v)) a.sineHz = std::wcstod(v.c_str(), nullptr);
-			else return false;
+			a.rate = std::wcstod(probesupport::lastWide(rateArg).c_str(), nullptr);
+			a.rateGiven = true;
 		}
+		if (periodsArg.isSet())
+			a.periods = std::wcstol(probesupport::lastWide(periodsArg).c_str(), nullptr, 10);
+		if (paceArg.isSet())
+			a.paceUs = std::wcstol(probesupport::lastWide(paceArg).c_str(), nullptr, 10);
+		if (burstArg.isSet())
+			a.burst = std::wcstol(probesupport::lastWide(burstArg).c_str(), nullptr, 10);
+		if (secondsArg.isSet())
+			a.seconds = std::wcstod(probesupport::lastWide(secondsArg).c_str(), nullptr);
+		if (seedArg.isSet())
+			a.seed = static_cast<unsigned>(std::wcstoul(probesupport::lastWide(seedArg).c_str(), nullptr, 10));
+		if (hostSeedArg.isSet())
+			a.hostSeed = static_cast<unsigned>(std::wcstoul(probesupport::lastWide(hostSeedArg).c_str(), nullptr, 10));
+		if (maxLateArg.isSet())
+			a.maxLate = std::wcstol(probesupport::lastWide(maxLateArg).c_str(), nullptr, 10);
+		if (traceSlowArg.isSet())
+			a.traceSlowUs = std::wcstol(probesupport::lastWide(traceSlowArg).c_str(), nullptr, 10);
+		if (daemonArg.isSet())
+			a.daemonExe = probesupport::lastWide(daemonArg);
+		if (endpointArg.isSet())
+			a.endpoint = probesupport::lastWide(endpointArg);
+		if (deadlineArg.isSet())
+			a.deadlineUs = static_cast<uint32_t>(std::wcstoul(probesupport::lastWide(deadlineArg).c_str(), nullptr, 10));
+		if (latencyCaptureArg.isSet())
+			a.latencyCapture = probesupport::lastWide(latencyCaptureArg);
+		for (const std::string& intervalText : clickIntervalArg.getValue())
+		{
+			const std::wstring intervalValue = probesupport::utf16(intervalText);
+			wchar_t* end = nullptr;
+			const unsigned long long interval = std::wcstoull(intervalValue.c_str(), &end, 10);
+			if (intervalValue.empty() || intervalValue.front() == L'-' || end == intervalValue.c_str()
+				|| *end != L'\0' || interval > UINT_MAX)
+				return false;
+			a.clickIntervalMs = static_cast<unsigned>(interval);
+		}
+		if (latencyCsvArg.isSet())
+			a.latencyCsv = probesupport::lastWide(latencyCsvArg);
+		for (const std::string& channelsText : channelsArg.getValue())
+		{
+			const std::wstring channels = probesupport::utf16(channelsText);
+			const size_t comma = channels.find(L',');
+			if (comma == std::wstring::npos)
+				return false;
+			a.inputs = std::wcstol(channels.substr(0, comma).c_str(), nullptr, 10);
+			a.outputs = std::wcstol(channels.substr(comma + 1).c_str(), nullptr, 10);
+		}
+		for (const std::string& typeText : sampleTypeArg.getValue())
+		{
+			const std::wstring type = probesupport::utf16(typeText);
+			if (type == L"int16")
+				a.sampleType = ASIOSTInt16LSB;
+			else if (type == L"int24")
+				a.sampleType = ASIOSTInt24LSB;
+			else if (type == L"int32")
+				a.sampleType = ASIOSTInt32LSB;
+			else if (type == L"float32")
+				a.sampleType = ASIOSTFloat32LSB;
+			else
+				return false;
+		}
+		if (expectShaArg.isSet())
+			a.expectSha = narrow(probesupport::lastWide(expectShaArg));
+		if (expectFirstShaArg.isSet())
+			a.expectFirstSha = narrow(probesupport::lastWide(expectFirstShaArg));
+		if (expectInputShaArg.isSet())
+			a.expectInputSha = narrow(probesupport::lastWide(expectInputShaArg));
+		a.processInput = noInputArg.getValue() == 0;
+		a.processOutput = noOutputArg.getValue() == 0;
+		a.callOutputReady = outputReadyArg.getValue() != 0;
+		a.reference = noReferenceArg.getValue() == 0;
+		a.tone = toneArg.getValue() != 0;
+		if (sineArg.isSet())
+			a.sineHz = std::wcstod(probesupport::lastWide(sineArg).c_str(), nullptr);
+
 		const bool dllTarget = a.target.starts_with(L"dll:");
 		const bool liveTarget = a.target.starts_with(L"clsid:") || a.target.starts_with(L"wasapi:")
 			|| (dllTarget && !a.targetDllClsid.empty());
@@ -396,7 +458,7 @@ namespace
 		std::vector<unsigned char> all;
 		for (const std::vector<unsigned char>& record : records)
 			all.insert(all.end(), record.begin(), record.end());
-		return asiotest::sha256Hex(all);
+		return probesupport::sha256Hex(all);
 	}
 
 	void printProfile(const AsioWrapper* staticWrapper)
@@ -543,7 +605,7 @@ namespace
 			inputs[static_cast<size_t>(c)] = host.inputRecord(static_cast<size_t>(c));
 
 		const std::string outputSha = hashOf(outputs);
-		const std::string firstSha = asiotest::sha256Hex(firstPeriod);
+		const std::string firstSha = probesupport::sha256Hex(firstPeriod);
 		const std::string inputSha = hashOf(inputs);
 		std::printf("output-sha256 %s\nfirst-period-sha256 %s\ninput-sha256 %s\n", outputSha.c_str(), firstSha.c_str(), inputSha.c_str());
 		std::printf("latency input=%ld output=%ld frames\n", inputLatency, outputLatency);
@@ -564,7 +626,7 @@ namespace
 			computeReference(a, codec, host, false, outputShift, referenceOutputs, referenceFirst);
 			computeReference(a, codec, host, true, inputShift, referenceInputs, referenceFirstInput);
 			const std::string referenceOutputSha = hashOf(referenceOutputs);
-			const std::string referenceFirstSha = asiotest::sha256Hex(referenceFirst);
+			const std::string referenceFirstSha = probesupport::sha256Hex(referenceFirst);
 			const std::string referenceInputSha = hashOf(referenceInputs);
 			std::printf("reference-output-sha256 %s\nreference-first-period-sha256 %s\nreference-input-sha256 %s\n",
 				referenceOutputSha.c_str(), referenceFirstSha.c_str(), referenceInputSha.c_str());
@@ -707,8 +769,7 @@ namespace
 				return;
 			}
 			ComPtr<IMMDeviceEnumerator> enumerator;
-			HRESULT hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_INPROC_SERVER,
-				__uuidof(IMMDeviceEnumerator), reinterpret_cast<void**>(enumerator.put()));
+			HRESULT hr = probesupport::wasapi::createEnumerator(enumerator);
 			if (FAILED(hr) || !enumerator)
 			{
 				fail(L"device enumerator", hr);
@@ -716,15 +777,14 @@ namespace
 			}
 			ComPtr<IMMDevice> device;
 			const std::wstring deviceId = eapo::asio::wasapi::endpointId(true, endpointGuid);
-			hr = enumerator->GetDevice(deviceId.c_str(), device.put());
+			hr = probesupport::wasapi::endpointById(enumerator.get(), deviceId, device);
 			if (FAILED(hr) || !device)
 			{
 				fail(L"capture endpoint", hr);
 				return;
 			}
 			ComPtr<IAudioClient> client;
-			hr = device->Activate(__uuidof(IAudioClient), CLSCTX_INPROC_SERVER, nullptr,
-				reinterpret_cast<void**>(client.put()));
+			hr = probesupport::wasapi::activateAudioClient(device.get(), client);
 			if (FAILED(hr) || !client)
 			{
 				fail(L"IAudioClient activation", hr);

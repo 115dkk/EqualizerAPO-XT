@@ -16,9 +16,9 @@
 #include <windows.h>
 #include <bcrypt.h>
 
-namespace asiotest
+namespace probesupport
 {
-	inline std::string sha256Hex(const unsigned char* data, size_t bytes)
+	inline std::string sha256Hex(const void* data, size_t bytes)
 	{
 		BCRYPT_ALG_HANDLE algorithm = nullptr;
 		BCRYPT_HASH_HANDLE hash = nullptr;
@@ -28,7 +28,7 @@ namespace asiotest
 			return hex;
 		if (BCryptCreateHash(algorithm, &hash, nullptr, 0, nullptr, 0, 0) == 0)
 		{
-			if (BCryptHashData(hash, const_cast<unsigned char*>(data), static_cast<ULONG>(bytes), 0) == 0
+			if (BCryptHashData(hash, static_cast<PUCHAR>(const_cast<void*>(data)), static_cast<ULONG>(bytes), 0) == 0
 				&& BCryptFinishHash(hash, digest, sizeof(digest), 0) == 0)
 			{
 				static const char* const digits = "0123456789abcdef";

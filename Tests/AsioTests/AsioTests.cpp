@@ -57,6 +57,20 @@ namespace
 {
 	test::Harness harness("AsioTests");
 
+	template<typename Predicate>
+	bool waitUntil(Predicate predicate, DWORD timeoutMs)
+	{
+		const ULONGLONG deadline = GetTickCount64() + timeoutMs;
+		for (;;)
+		{
+			if (predicate())
+				return true;
+			if (GetTickCount64() >= deadline)
+				return false;
+			Sleep(1);
+		}
+	}
+
 	// {C0FFEE00-1111-4222-8333-444455556666}: the CLSID the tests build wrappers under.
 	constexpr GUID testWrapperClsid = {0xc0ffee00, 0x1111, 0x4222, {0x83, 0x33, 0x44, 0x44, 0x55, 0x55, 0x66, 0x66}};
 	const wchar_t* const testTargetClsid = L"{B7E3A9F4-52C1-4D0B-8A6E-1F9C3D5E7B21}";
@@ -640,9 +654,10 @@ namespace
 			harness.requireEqual(target.init(nullptr), ASIOTrue, "the cadence-controlled endpoint initializes");
 			harness.requireEqual(host.createBuffers(&target, 256), ASE_OK, "its stream buffers open");
 			harness.requireEqual(target.start(), ASE_OK, "its stream starts");
-			Sleep(120);
+			const bool enoughEvents = waitUntil([&host] {return host.switches() >= 12;}, 5000);
 			target.stop();
 			const eapo::asio::WasapiExclusiveTarget::Counters counters = target.counters();
+			harness.expect(enoughEvents, "the stream thread reaches the calibration event count before the deadline");
 			harness.expectEqual(observed->initializeCalls(), 1u, "events at the requested cadence do not reopen the endpoint");
 			harness.expectEqual(counters.bridge, 1ull, "calibration keeps a one-period bridge");
 			harness.expect(counters.periods >= 12, "the stream thread observed enough events to calibrate");
@@ -658,9 +673,12 @@ namespace
 			harness.requireEqual(target.init(nullptr), ASIOTrue, "the slow endpoint initializes");
 			harness.requireEqual(host.createBuffers(&target, 64), ASE_OK, "the slow endpoint opens at 64 frames");
 			harness.requireEqual(target.start(), ASE_OK, "the slow endpoint starts");
-			Sleep(350);
+			const bool recalibrated = waitUntil([observed, &host] {
+				return observed->initializeCalls() >= 2 && host.latencyChanges() >= 1;
+			}, 5000);
 			target.stop();
 			const eapo::asio::WasapiExclusiveTarget::Counters counters = target.counters();
+			harness.expect(recalibrated, "the slow endpoint finishes recalibration before the deadline");
 			harness.expect(observed->initializeCalls() >= 2, "calibration reopens a slow endpoint with a larger device period");
 			harness.expect(counters.bridge > 1, "the reopened stream reports the calibrated bridge");
 			harness.expect(host.latencyChanges() >= 1, "the host is told that rebridge changed latency");
@@ -681,8 +699,11 @@ namespace
 		harness.requireEqual(target.init(nullptr), ASIOTrue, "the device-loss endpoint initializes");
 		harness.requireEqual(host.createBuffers(&target, 64), ASE_OK, "its stream buffers open");
 		harness.requireEqual(target.start(), ASE_OK, "its stream starts");
-		Sleep(100);
+		const bool resetRequested = waitUntil([observed, &host] {
+			return observed->releaseCalls() >= 4 && host.resetRequests() >= 1;
+		}, 5000);
 		target.stop();
+		harness.expect(resetRequested, "device loss requests a reset before the deadline");
 		harness.expect(observed->releaseCalls() >= 4, "the fake invalidated a render release");
 		harness.expectEqual(host.resetRequests(), 1ul, "device loss asks the ASIO host to reset once");
 		char message[eapo::asio::errorMessageBytes] = {};

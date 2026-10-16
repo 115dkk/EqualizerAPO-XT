@@ -47,7 +47,6 @@
 #include <audiomediatype.h>
 
 #include <cmath>
-#include <numbers>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -55,6 +54,9 @@
 #include <vector>
 
 #include "services/registry/RegistryPaths.h"
+#include "Tests/ProbeSupport/CommandLine.h"
+#include "Tests/ProbeSupport/JsonLine.h"
+#include "Tests/ProbeSupport/ToneMeter.h"
 
 namespace
 {
@@ -98,61 +100,69 @@ void usage()
 
 bool parse(int argc, wchar_t** argv, Options& o)
 {
-	for (int i = 1; i < argc; i++)
+	probesupport::CommandLine commandLine;
+	TCLAP::CmdLine& parser = commandLine.parser();
+	TCLAP::MultiArg<std::string> dllArg("", "dll", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> endpointArg("", "endpoint", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> sendToArg("", "send-to", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> stageArg("", "stage", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> rateArg("", "rate", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> inputArg("", "in", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> outputArg("", "out", "", false, "value", parser);
+	TCLAP::MultiSwitchArg float64Arg("", "float64", "", parser);
+	TCLAP::MultiArg<std::string> framesArg("", "frames", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> blocksArg("", "blocks", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> skipArg("", "skip", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> toneArg("", "tone", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> amplitudeArg("", "amp", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> expectationArg("", "expect-gain-db", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> toleranceArg("", "tolerance-db", "", false, "value", parser);
+	TCLAP::MultiSwitchArg jsonArg("", "json", "", parser);
+	if (!commandLine.parse(argc, argv))
 	{
-		std::wstring a = argv[i];
-		auto next = [&](std::wstring& into) {
-			if (i + 1 >= argc)
-				return false;
-			into = argv[++i];
-			return true;
-		};
-		std::wstring v;
-		if (a == L"--dll" && next(v))
-			o.dllPath = v;
-		else if (a == L"--endpoint" && next(v))
-			o.endpointGuid = v;
-		else if (a == L"--send-to" && next(v))
-		{
-			if (v.empty())
-				return false;
-			o.receiverEndpointGuid = v;
-		}
-		else if (a == L"--stage" && next(v))
-			o.preMix = (v != L"postmix");
-		else if (a == L"--rate" && next(v))
-			o.sampleRate = (unsigned)_wtoi(v.c_str());
-		else if (a == L"--in" && next(v))
-			o.inputChannels = (unsigned)_wtoi(v.c_str());
-		else if (a == L"--out" && next(v))
-			o.outputChannels = (unsigned)_wtoi(v.c_str());
-		else if (a == L"--float64")
-			o.float64 = true;
-		else if (a == L"--frames" && next(v))
-			o.frames = (unsigned)_wtoi(v.c_str());
-		else if (a == L"--blocks" && next(v))
-			o.blocks = (unsigned)_wtoi(v.c_str());
-		else if (a == L"--skip" && next(v))
-			o.skipBlocks = (unsigned)_wtoi(v.c_str());
-		else if (a == L"--tone" && next(v))
-			o.tone = _wtof(v.c_str());
-		else if (a == L"--amp" && next(v))
-			o.amplitude = _wtof(v.c_str());
-		else if (a == L"--expect-gain-db" && next(v))
-		{
-			o.haveExpectation = true;
-			o.expectGainDb = _wtof(v.c_str());
-		}
-		else if (a == L"--tolerance-db" && next(v))
-			o.toleranceDb = _wtof(v.c_str());
-		else if (a == L"--json")
-			o.json = true;
-		else
-		{
-			fwprintf(stderr, L"unknown or incomplete argument: %s\n", a.c_str());
-			return false;
-		}
+		const std::wstring& bad = commandLine.badArgument();
+		fwprintf(stderr, L"unknown or incomplete argument: %s\n", bad.empty() ? argv[argc - 1] : bad.c_str());
+		return false;
 	}
+
+	if (dllArg.isSet())
+		o.dllPath = probesupport::lastWide(dllArg);
+	if (endpointArg.isSet())
+		o.endpointGuid = probesupport::lastWide(endpointArg);
+	if (sendToArg.isSet())
+	{
+		o.receiverEndpointGuid = probesupport::lastWide(sendToArg);
+		if (o.receiverEndpointGuid.empty())
+			return false;
+	}
+	if (stageArg.isSet())
+		o.preMix = probesupport::lastWide(stageArg) != L"postmix";
+	if (rateArg.isSet())
+		o.sampleRate = static_cast<unsigned>(_wtoi(probesupport::lastWide(rateArg).c_str()));
+	if (inputArg.isSet())
+		o.inputChannels = static_cast<unsigned>(_wtoi(probesupport::lastWide(inputArg).c_str()));
+	if (outputArg.isSet())
+		o.outputChannels = static_cast<unsigned>(_wtoi(probesupport::lastWide(outputArg).c_str()));
+	o.float64 = float64Arg.getValue() != 0;
+	if (framesArg.isSet())
+		o.frames = static_cast<unsigned>(_wtoi(probesupport::lastWide(framesArg).c_str()));
+	if (blocksArg.isSet())
+		o.blocks = static_cast<unsigned>(_wtoi(probesupport::lastWide(blocksArg).c_str()));
+	if (skipArg.isSet())
+		o.skipBlocks = static_cast<unsigned>(_wtoi(probesupport::lastWide(skipArg).c_str()));
+	if (toneArg.isSet())
+		o.tone = _wtof(probesupport::lastWide(toneArg).c_str());
+	if (amplitudeArg.isSet())
+		o.amplitude = _wtof(probesupport::lastWide(amplitudeArg).c_str());
+	if (expectationArg.isSet())
+	{
+		o.haveExpectation = true;
+		o.expectGainDb = _wtof(probesupport::lastWide(expectationArg).c_str());
+	}
+	if (toleranceArg.isSet())
+		o.toleranceDb = _wtof(probesupport::lastWide(toleranceArg).c_str());
+	o.json = jsonArg.getValue() != 0;
+
 	if (!o.receiverEndpointGuid.empty())
 	{
 		GUID sender = {}, receiver = {};
@@ -319,13 +329,6 @@ void printLogTail(const std::wstring& path, long long from)
 	}
 }
 
-double toDb(double ratio)
-{
-	if (ratio <= 0.0)
-		return -200.0;
-	return 20.0 * std::log10(ratio);
-}
-
 HRESULT makeMediaType(const Options& o, unsigned channels, IAudioMediaType** type)
 {
 	UNCOMPRESSEDAUDIOFORMAT format = {};
@@ -348,15 +351,11 @@ int run(const Options& o, IAudioProcessingObjectRT* rt,
 {
 	double sumIn = 0.0, sumOut = 0.0, sumDiff = 0.0, sumReceiver = 0.0;
 	unsigned long long counted = 0;
-	unsigned long long sampleIndex = 0;
+	uint64_t sampleIndex = 0;
 	for (unsigned block = 0; block < o.blocks; block++)
 	{
-		for (unsigned f = 0; f < o.frames; f++, sampleIndex++)
-		{
-			const double value = o.amplitude * std::sin(2.0 * std::numbers::pi_v<double> * o.tone * (double)sampleIndex / (double)o.sampleRate);
-			for (unsigned c = 0; c < o.inputChannels; c++)
-				input[(size_t)f * o.inputChannels + c] = (SampleT)value;
-		}
+		probesupport::fillInterleavedSine(input, o.frames, o.inputChannels, sampleIndex,
+			o.sampleRate, o.tone, o.amplitude);
 		memset(output, 0, (size_t)o.frames * o.outputChannels * sizeof(SampleT));
 		inProp->u32ValidFrameCount = o.frames;
 		inProp->u32BufferFlags = BUFFER_VALID;
@@ -415,10 +414,10 @@ int run(const Options& o, IAudioProcessingObjectRT* rt,
 	}
 	rmsIn = std::sqrt(sumIn / (double)counted);
 	rmsOut = std::sqrt(sumOut / (double)counted);
-	gainDb = toDb(rmsOut / rmsIn);
-	residualDb = toDb(std::sqrt(sumDiff / (double)counted) / rmsIn);
+	gainDb = probesupport::amplitudeToDb(rmsOut / rmsIn);
+	residualDb = probesupport::amplitudeToDb(std::sqrt(sumDiff / (double)counted) / rmsIn);
 	if (receiverRt != nullptr)
-		receiverGainDb = toDb(std::sqrt(sumReceiver / (double)counted) / rmsIn);
+		receiverGainDb = probesupport::amplitudeToDb(std::sqrt(sumReceiver / (double)counted) / rmsIn);
 	return 0;
 }
 
@@ -690,14 +689,16 @@ int wmain(int argc, wchar_t** argv)
 			const bool changed = residualDb > -120.0;
 			if (o.json)
 			{
-				printf("{\"endpoint\":\"%ls\",\"stage\":\"%s\",\"rate\":%u,\"in\":%u,\"out\":%u,\"format\":\"%s\","
+				probesupport::JsonLine line;
+				line.append("{\"endpoint\":\"%ls\",\"stage\":\"%s\",\"rate\":%u,\"in\":%u,\"out\":%u,\"format\":\"%s\","
 					"\"rmsIn\":%.6f,\"rmsOut\":%.6f,\"gainDb\":%.3f,\"residualDb\":%.1f,\"changed\":%s",
 					o.endpointGuid.c_str(), o.preMix ? "premix" : "postmix", o.sampleRate, o.inputChannels, o.outputChannels,
 					o.float64 ? "float64" : "float32", rmsIn, rmsOut, gainDb, residualDb, changed ? "true" : "false");
 				if (!o.receiverEndpointGuid.empty())
-					printf(",\"mode\":\"send\",\"receiverEndpoint\":\"%ls\",\"receiverGainDb\":%.3f",
+					line.append(",\"mode\":\"send\",\"receiverEndpoint\":\"%ls\",\"receiverGainDb\":%.3f",
 						o.receiverEndpointGuid.c_str(), receiverGainDb);
-				printf("}\n");
+				line.append("}");
+				line.write();
 			}
 			else
 			{

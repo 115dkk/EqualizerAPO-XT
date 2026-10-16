@@ -10,6 +10,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\engine\FilterEngine.h" />
+    <ClInclude Include="..\ProbeSupport\Sha256.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="configs\preamp_minus6.txt">

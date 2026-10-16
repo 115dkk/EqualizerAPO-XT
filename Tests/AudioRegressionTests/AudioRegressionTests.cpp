@@ -34,6 +34,7 @@
 #include "platform/windows/Win32Resource.h"
 #include "platform/windows/WindowsPath.h"
 #include "Tests/AlignedMemoryGate.h"
+#include "Tests/ProbeSupport/Sha256.h"
 #include "Tests/TestHarness.h"
 #include "Tests/WavFixtures.h"
 
@@ -41,25 +42,6 @@
 
 namespace
 {
-
-struct BCryptAlgorithmTraits
-{
-	using resource_type = BCRYPT_ALG_HANDLE;
-	static resource_type invalid() noexcept { return nullptr; }
-	static bool isValid(resource_type value) noexcept { return value != nullptr; }
-	static void close(resource_type value) noexcept { BCryptCloseAlgorithmProvider(value, 0); }
-};
-
-struct BCryptHashTraits
-{
-	using resource_type = BCRYPT_HASH_HANDLE;
-	static resource_type invalid() noexcept { return nullptr; }
-	static bool isValid(resource_type value) noexcept { return value != nullptr; }
-	static void close(resource_type value) noexcept { BCryptDestroyHash(value); }
-};
-
-using UniqueBCryptAlgorithm = winutil::UniqueResource<BCryptAlgorithmTraits>;
-using UniqueBCryptHash = winutil::UniqueResource<BCryptHashTraits>;
 
 enum class SignalType
 {
@@ -469,29 +451,6 @@ CompareResult compareBuffers(const std::vector<float>& out, const std::vector<fl
 // deterministic synthetic impulse responses (2 and 8 channels); --equiv-ir
 // adds real files (e.g. an Impulcifer hrir.wav) on top.
 
-std::string sha256Hex(const void* data, size_t size)
-{
-	UniqueBCryptAlgorithm algorithm;
-	UniqueBCryptHash hash;
-	UCHAR digest[32] = {};
-	std::string hex;
-	if (BCryptOpenAlgorithmProvider(algorithm.put(), BCRYPT_SHA256_ALGORITHM, nullptr, 0) == 0)
-	{
-		if (BCryptCreateHash(algorithm.get(), hash.put(), nullptr, 0, nullptr, 0, 0) == 0)
-		{
-			BCryptHashData(hash.get(), (PUCHAR)data, (ULONG)size, 0);
-			BCryptFinishHash(hash.get(), digest, sizeof(digest), 0);
-			char buf[3];
-			for (UCHAR b : digest)
-			{
-				snprintf(buf, sizeof(buf), "%02x", b);
-				hex += buf;
-			}
-		}
-	}
-	return hex;
-}
-
 // Deterministic decaying noise per channel, seeded by the channel index, so
 // every run and every SIMD variant sees the same impulse responses.
 std::vector<std::vector<double>> makeSyntheticIr(unsigned channels, unsigned frames)
@@ -701,8 +660,8 @@ bool runEquivalenceCase(const EquivSpec& spec, const std::string& irLabel, const
 		maxAbs = std::max(maxAbs, std::fabs((double)outManual[f]));
 	const bool audible = maxAbs > 1.0e-9;
 
-	const std::string hashManual = sha256Hex(outManual.data(), outManual.size() * sizeof(float));
-	const std::string hashMulti = sha256Hex(outMulti.data(), outMulti.size() * sizeof(float));
+	const std::string hashManual = probesupport::sha256Hex(outManual.data(), outManual.size() * sizeof(float));
+	const std::string hashMulti = probesupport::sha256Hex(outMulti.data(), outMulti.size() * sizeof(float));
 	const bool identical = !hashManual.empty() && hashManual == hashMulti;
 
 	printf("  manual    SHA-256 %s\n", hashManual.c_str());
