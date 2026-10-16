@@ -21,8 +21,6 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
-#include "Editor/SkinManager.h"
-
 namespace
 {
 // Engraved function caption over the label strip, per reference kind.

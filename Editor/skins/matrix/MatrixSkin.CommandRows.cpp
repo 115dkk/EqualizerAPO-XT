@@ -14,7 +14,6 @@
 #include <QWidget>
 #include <QtMath>
 
-#include "Editor/SkinManager.h"
 #include "Editor/skins/shared/SkinPaint.h"
 #include "Editor/skins/shared/SkinSupport.h"
 #include "Editor/widgets/FilterCardModel.h"

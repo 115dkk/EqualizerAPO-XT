@@ -16,16 +16,9 @@
 
 #pragma once
 
-#include <QLineEdit>
-#include <QStringList>
-#include <QVector>
+#include "Editor/widgets/routing/SumRoutingViewBase.h"
 
-#include "Editor/widgets/routing/IRoutingRenderer.h"
-#include "Editor/widgets/routing/RoutingFold.h"
-#include "filters/CopyCommand.h"
-#include "Editor/SkinTokens.h"
-
-class BlockChipView : public RoutingView
+class BlockChipView : public SumRoutingViewBase
 {
 	Q_OBJECT
 
@@ -34,56 +27,15 @@ public:
 		const std::vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
 		QWidget* parent, const SkinTokens& tokens);
 
-	std::vector<Assignment> assignments() const override;
-	void galleryShowcase(const QString& state) override;
 	QSize sizeHint() const override;
-	QSize minimumSizeHint() const override;
 
 protected:
 	void paintEvent(QPaintEvent*) override;
-	void mousePressEvent(QMouseEvent* event) override;
-	void mouseMoveEvent(QMouseEvent* event) override;
-	void mouseDoubleClickEvent(QMouseEvent* event) override;
-	void leaveEvent(QEvent* event) override;
+	int slotAt(const QPoint& pos) const override;
+	QRect summandEditorRect(const QRect& span, int minimumWidth) const override;
+	QRect channelEditorRect() const override;
 
 private:
-	const SkinTokens skinTokens;
-	struct Hit { int row = 0; int summand = 0; QRect rect; };
-	struct AddHit { int row = 0; QRect rect; };
-	void refold();
-	void commitEditor();
-	void showAddMenu(int row, const QPoint& globalPos);
-	void openChannelEditor();
-	void commitChannelEditor();
-
-	std::vector<Assignment> workingAssignments;
-	// Device channel layout, offered by the per-block [+] chip menu.
-	std::vector<std::wstring> deviceChannels;
-	// Fixed-source mode (MultiConvolution): the [+] menu offers only
-	// portModel.fixedSources and factors are locked to unity (a double-click
-	// removes the chip instead of editing a gain). The fixed sources stay
-	// available while the target blocks use the shared channel fold.
-	RoutingPortModel portModel;
-
-	// Channel fold: only fold.visibleRows get an equation block; pinned
-	// channels keep their block while their sum is empty.
-	bool channelsExpanded = false;
-	QStringList pinnedChannels;
-	RoutingFold::Fold fold;
-
-	QVector<Hit> hits;
-	QVector<AddHit> addHits;
-	QVector<AddHit> removeHits; // hovered virtual dest × targets
-	QRect revealRect;           // "show more / show fewer" pill
-	QRect addChannelRect;       // dashed "add channel" chip
-	int hoveredControl = 0;     // 0 none, 1 reveal, 2 add channel
-	int hoveredRow = -1;        // assignment index under the pointer
-
-	QLineEdit* editor = nullptr;
-	int editRow = -1;
-	int editSummand = -1;
-	QLineEdit* channelEditor = nullptr;
-
 	int blockH = 46;
 	int gap = 8;
 	int controlH = 30;

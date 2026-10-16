@@ -326,6 +326,25 @@ Describe "Test-SourceSync.ps1" {
         $result.Output | Should -Match ([regex]::Escape("Benchmark\Benchmark.vcxproj is in the build model but not in EqualizerAPO.sln"))
     }
 
+    It "fails when a skin source includes SkinManager.h, except SkinChromeOverlay.h" {
+        $root = New-FixtureRepo -CommonSources @('FilterEngine.cpp') -EditorSources @('../FilterEngine.cpp')
+        $skins = Join-Path $root 'Editor' 'skins'
+        New-Item -ItemType Directory -Path (Join-Path $skins 'shared'), (Join-Path $skins 'rack' 'cards') -Force | Out-Null
+        [System.IO.File]::WriteAllText((Join-Path $skins 'shared' 'SkinChromeOverlay.h'), "#include `"Editor/SkinManager.h`"`n")
+        [System.IO.File]::WriteAllText((Join-Path $skins 'rack' 'cards' 'RackCard.cpp'), "#include `"Editor/SkinTokens.h`"`n")
+        $result = Invoke-SourceSync -RepoRoot $root
+
+        $result.ExitCode | Should -Be 0
+        $result.Output | Should -Match "None of the 2 sources under Editor/skins includes SkinManager.h"
+
+        [System.IO.File]::WriteAllText((Join-Path $skins 'rack' 'cards' 'RackCard.cpp'), "#include `"Editor/SkinTokens.h`"`n#include `"Editor/SkinManager.h`"`n")
+        $result = Invoke-SourceSync -RepoRoot $root
+
+        $result.ExitCode | Should -Not -Be 0
+        $result.Output | Should -Match ([regex]::Escape("::error file=Editor/skins/rack/cards/RackCard.cpp::includes SkinManager.h"))
+        $result.Output | Should -Not -Match ([regex]::Escape("file=Editor/skins/shared/SkinChromeOverlay.h"))
+    }
+
     It "refuses to pass when it could not read any ClCompile entry" {
         $root = New-FixtureRepo -SkipKnownOmissions -CommonSources @() -EditorSources @('../FilterEngine.cpp')
         $result = Invoke-SourceSync -RepoRoot $root

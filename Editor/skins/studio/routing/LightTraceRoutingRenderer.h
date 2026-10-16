@@ -26,6 +26,7 @@
 #include <QVector>
 
 #include "Editor/widgets/routing/IRoutingRenderer.h"
+#include "Editor/widgets/routing/RoutingChannelEditor.h"
 #include "Editor/widgets/routing/RoutingFold.h"
 #include "Editor/widgets/routing/RoutingGridModel.h"
 #include "Editor/SkinTokens.h"
@@ -116,7 +117,7 @@ private:
 
 	QLineEdit* factorEditor = nullptr;
 	int factorEditorTrace = -1;
-	QLineEdit* channelEditor = nullptr;
+	RoutingChannelEditor channelEditor{ QStringLiteral("StudioRoutingChannelEditor"), true };
 };
 
 class LightTraceRoutingRenderer : public IRoutingRenderer

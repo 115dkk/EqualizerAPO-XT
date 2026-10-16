@@ -306,6 +306,34 @@ if ($headerProblems.Count -gt 0) {
 }
 Write-Host "All $($headerSources.Count) C++ sources carry at most one licence header and one SPDX licence."
 
+# Audit #422 TD-49: audit #275 B1 took the SkinManager singleton out of the
+# skins' paint code, but eighteen skin sources kept including its header,
+# which leaves the way back open. Skin code receives its tokens from its
+# caller. Only SkinChromeOverlay.h may include the header: an overlay
+# persists across skin switches on the real toolbar and asks which skin is
+# current. The Pester fixtures have no Editor/skins, so the check skips them.
+$skinsRoot = Join-Path $RepoRoot "Editor" "skins"
+if (Test-Path -LiteralPath $skinsRoot) {
+  $allowedSkinManagerIncludes = @("Editor/skins/shared/SkinChromeOverlay.h")
+  $skinSources = @(Get-ChildItem -LiteralPath $skinsRoot -Recurse -File -Include '*.cpp', '*.h')
+  $skinManagerIncludes = @()
+  foreach ($file in $skinSources) {
+    $relative = [System.IO.Path]::GetRelativePath($RepoRoot, $file.FullName) -replace '\\', '/'
+    if ($allowedSkinManagerIncludes -contains $relative) { continue }
+    $text = Get-Content -LiteralPath $file.FullName -Raw
+    if ($null -ne $text -and $text -match '(?m)^\s*#\s*include\s*[<"](?:[^">]*/)?SkinManager\.h[">]') {
+      $skinManagerIncludes += $relative
+    }
+  }
+  foreach ($relative in $skinManagerIncludes) {
+    Write-Host "::error file=$relative::includes SkinManager.h. Skin code receives its tokens from its caller (audit #275 B1); only Editor/skins/shared/SkinChromeOverlay.h may include it."
+  }
+  if ($skinManagerIncludes.Count -gt 0) {
+    throw "A source under Editor/skins includes SkinManager.h."
+  }
+  Write-Host "None of the $($skinSources.Count) sources under Editor/skins includes SkinManager.h, apart from SkinChromeOverlay.h."
+}
+
 # Audit #422 T1/TD-47: EqualizerAPO.sln is kept for Visual Studio, but it
 # is a third list of the MSBuild projects. It must name exactly the projects
 # BuildModel.psm1 knows, or a project added to one silently misses the other.

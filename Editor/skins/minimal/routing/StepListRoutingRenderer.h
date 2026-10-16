@@ -25,19 +25,9 @@
 
 #pragma once
 
-#include <QLineEdit>
-#include <QStringList>
-#include <QVector>
+#include "Editor/widgets/routing/SumRoutingViewBase.h"
 
-class QCompleter;
-class QStringListModel;
-
-#include "Editor/widgets/routing/IRoutingRenderer.h"
-#include "Editor/widgets/routing/RoutingFold.h"
-#include "filters/CopyCommand.h"
-#include "Editor/SkinTokens.h"
-
-class StepListView : public RoutingView
+class StepListView : public SumRoutingViewBase
 {
 	Q_OBJECT
 
@@ -46,66 +36,15 @@ public:
 		const std::vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
 		QWidget* parent, const SkinTokens& tokens);
 
-	std::vector<Assignment> assignments() const override;
-	void galleryShowcase(const QString& state) override;
-	QStringList sourceCandidates(const QString& target) const override;
-	bool connectSource(const QString& target, const QString& source) override;
 	QSize sizeHint() const override;
-	QSize minimumSizeHint() const override;
 
 protected:
 	void paintEvent(QPaintEvent*) override;
-	void mousePressEvent(QMouseEvent* event) override;
-	void mouseMoveEvent(QMouseEvent* event) override;
-	void mouseDoubleClickEvent(QMouseEvent* event) override;
-	void leaveEvent(QEvent* event) override;
+	int slotAt(const QPoint& pos) const override;
+	QRect summandEditorRect(const QRect& span, int minimumWidth) const override;
+	QRect channelEditorRect() const override;
 
 private:
-	const SkinTokens skinTokens;
-	struct Hit { int row = 0; int summand = 0; QRect rect; };
-	struct AddHit { int row = 0; QRect rect; };
-
-	void refold();
-	QStringList sourceCandidatesForRow(int row) const;
-	bool addSourceToRow(int row, const QString& channel);
-	void showAddMenu(int row, const QPoint& globalPos);
-	void openSourceEditor(int row, int summand);
-	void commitSourceEditor();
-	void openChannelEditor();
-	void commitChannelEditor();
-
-	std::vector<Assignment> workingAssignments;
-	// Device channel layout, offered by the per-row [+] source menu.
-	std::vector<std::wstring> deviceChannels;
-	// Fixed-source mode (MultiConvolution): the [+] menu offers only
-	// portModel.fixedSources and the source editor reads a bare integer as
-	// a port. The fixed sources stay available while the target steps use
-	// the shared channel fold.
-	RoutingPortModel portModel;
-
-	// Channel fold: the listing shows fold.visibleRows only; pinned channels
-	// stay listed while their sum is empty.
-	bool channelsExpanded = false;
-	QStringList pinnedChannels;
-	RoutingFold::Fold fold;
-
-	QVector<Hit> hits;       // factor / channel chip hit-rects, rebuilt each paint
-	QVector<AddHit> addHits; // per-row [+] hit-rects, rebuilt each paint
-	QVector<AddHit> removeHits; // hovered virtual dest [x] targets
-	QRect foldRect;          // the fold line's bracket target
-	QRect promptRect;        // the prompt line (add-channel entry)
-	int hoveredControl = 0;  // 0 none, 1 fold bracket, 2 prompt
-	int hoveredRow = -1;     // display row under the pointer (assignment index)
-
-	// The inline source editor (one summand as a line token) and its
-	// channel-name completer, fed per opening from the step's candidates.
-	QLineEdit* sourceEditor = nullptr;
-	QCompleter* sourceCompleter = nullptr;
-	QStringListModel* sourceCompletions = nullptr;
-	int editRow = -1;
-	int editSummand = -1;
-	QLineEdit* channelEditor = nullptr;
-
 	int rowH = 30;
 	int headerH = 22;
 };

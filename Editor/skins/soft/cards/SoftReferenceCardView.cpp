@@ -14,7 +14,6 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
-#include "Editor/SkinManager.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/skins/shared/SkinPaint.h"
 #include "Editor/widgets/ElidedLabel.h"

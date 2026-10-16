@@ -18,6 +18,7 @@
 #include <QPainterPath>
 
 #include "Editor/skins/shared/SkinPaint.h"
+#include "services/logging/Logging.h"
 
 const DeviceSkinPainter* studioDeviceSkinPainter();
 const DeviceSkinPainter* minimalDeviceSkinPainter();
@@ -30,7 +31,8 @@ const DeviceSkinPainter* DeviceSkinPainter::forSkin(const QString& skinId)
 	// The id is already alias-resolved to one of SkinThemeData::roster(), so this
 	// only has to answer which painter implements it. A roster id with no painter
 	// here falls back to Studio, which is the same shape as the Editor's ISkin
-	// lookup and the one place this executable can be behind the roster.
+	// lookup and the one place this executable can be behind the roster; the
+	// fallback is logged the way Skins::all() logs a missing ISkin.
 	const QString id = SkinThemeData::resolveId(skinId);
 	if (id == QStringLiteral("minimal"))
 		return minimalDeviceSkinPainter();
@@ -40,6 +42,9 @@ const DeviceSkinPainter* DeviceSkinPainter::forSkin(const QString& skinId)
 		return rackDeviceSkinPainter();
 	if (id == QStringLiteral("matrix"))
 		return matrixDeviceSkinPainter();
+	if (id != QStringLiteral("studio"))
+		LogFStatic(L"skin \"%s\" is in the roster but has no DeviceSkinPainter implementation; drawing it as studio",
+			id.toStdWString().c_str());
 	return studioDeviceSkinPainter();
 }
 

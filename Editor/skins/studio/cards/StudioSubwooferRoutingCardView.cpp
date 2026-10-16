@@ -28,7 +28,6 @@
 #include <QVBoxLayout>
 #include <QVariant>
 
-#include "Editor/SkinManager.h"
 #include "Editor/widgets/ElidedLabel.h"
 
 namespace

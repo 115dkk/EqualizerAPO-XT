@@ -96,6 +96,7 @@
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/skins/ISkin.h"
 #include "Editor/skins/Skins.h"
+#include "Editor/skins/SkinThemeData.h"
 #include "Editor/widgets/AddCardRow.h"
 #include "Editor/widgets/EqGraphView.h"
 #include "Editor/widgets/SegmentedControl.h"
@@ -577,8 +578,10 @@ bool SkinGallery::armSkinMetricsProbe(MainWindow& window)
 		window.resizeDocks({ dock }, { vertical ? 170 : 330 }, vertical ? Qt::Vertical : Qt::Horizontal);
 		settle();
 		fprintf(stderr, "  after shrink: dock=%dx%d\n", dock->width(), dock->height());
-		for (const QString& skinId : { QStringLiteral("studio"), QStringLiteral("minimal"),
-			QStringLiteral("soft"), QStringLiteral("rack"), QStringLiteral("matrix"), QStringLiteral("studio") })
+		// Every roster skin, then the first one again after the round trip.
+		QStringList walk = SkinThemeData::ids();
+		walk.append(walk.first());
+		for (const QString& skinId : walk)
 		{
 			QAction* action = findSkinAction(window, skinId);
 			if (action == nullptr)
@@ -604,8 +607,7 @@ bool SkinGallery::armSkinMetricsProbe(MainWindow& window)
 		settle();
 		fprintf(stderr, "  right dock after shrink: dock=%dx%d area=%d\n", dock->width(), dock->height(),
 			int(window.dockWidgetArea(dock)));
-		for (const QString& skinId : { QStringLiteral("studio"), QStringLiteral("minimal"),
-			QStringLiteral("soft"), QStringLiteral("rack"), QStringLiteral("matrix"), QStringLiteral("studio") })
+		for (const QString& skinId : walk)
 		{
 			QAction* action = findSkinAction(window, skinId);
 			if (action == nullptr)
@@ -691,7 +693,7 @@ bool SkinGallery::armWindowShotProbe(MainWindow& window, const QStringList& argu
 		return false;
 	}
 	const QStringList skins = probeOptionValue(arguments, QStringLiteral("--window-shot-skins"),
-		QStringLiteral("studio,minimal,soft,rack,matrix")).split(QLatin1Char(','), Qt::SkipEmptyParts);
+		SkinThemeData::ids().join(QLatin1Char(','))).split(QLatin1Char(','), Qt::SkipEmptyParts);
 	const QStringList modes = probeOptionValue(arguments, QStringLiteral("--window-shot-modes"),
 		QStringLiteral("dark,light")).split(QLatin1Char(','), Qt::SkipEmptyParts);
 	const bool dockRight = probeOptionValue(arguments, QStringLiteral("--window-shot-dock"),

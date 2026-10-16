@@ -27,7 +27,6 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
-#include "Editor/SkinManager.h"
 #include "Editor/skins/shared/SkinPaint.h"
 #include "RackSubwooferRoutingDetail.h"
 

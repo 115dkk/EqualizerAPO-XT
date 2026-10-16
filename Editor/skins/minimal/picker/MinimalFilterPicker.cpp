@@ -17,8 +17,6 @@
 #include <QScrollArea>
 #include <QVBoxLayout>
 
-#include "Editor/SkinManager.h"
-
 namespace
 {
 // Dense terminal metrics: a 20px entry line at 9pt mono, captions slightly

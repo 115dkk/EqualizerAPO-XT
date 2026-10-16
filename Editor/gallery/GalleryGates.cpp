@@ -96,6 +96,7 @@
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/skins/ISkin.h"
 #include "Editor/skins/Skins.h"
+#include "Editor/skins/SkinThemeData.h"
 #include "Editor/widgets/AddCardRow.h"
 #include "Editor/widgets/EqGraphView.h"
 #include "Editor/widgets/SegmentedControl.h"
@@ -142,6 +143,18 @@ int runSwitchTest(const QStringList& arguments)
 	qWarning("SkinSwitchTest: starting");
 	// What else ran on the machine during the gate, printed before the verdict.
 	const GalleryLoadSummary load("SkinSwitchTest");
+
+	// Skins::all() leaves out (and logs) a roster id with no ISkin, so this
+	// gate would switch through fewer skins than the preferences offer while
+	// the missing one paints as Studio.
+	const int rosterSize = int(SkinThemeData::ids().size());
+	const int implemented = int(Skins::all().size());
+	if (implemented != rosterSize)
+	{
+		qWarning("SkinSwitchTest: only %d of the %d roster skins have an ISkin implementation (Skins.cpp)",
+			implemented, rosterSize);
+		return 1;
+	}
 
 	FilterInsertSeam accessibilitySeam;
 	int seamActivations = 0;

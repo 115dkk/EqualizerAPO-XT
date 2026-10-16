@@ -5,15 +5,12 @@
 */
 
 #include "BlockChipRoutingRenderer.h"
+#include "Editor/skins/shared/SkinPaint.h"
 
-#include <QMenu>
 #include <QPainter>
 #include <QPainterPath>
-#include <QMouseEvent>
 #include <QFontMetrics>
 
-#include "Editor/SkinManager.h"
-#include "Editor/widgets/routing/RoutingGridModel.h"
 #include "Editor/widgets/routing/CopyRoutingAdapter.h"
 
 using std::vector;
@@ -21,50 +18,10 @@ using std::vector;
 BlockChipView::BlockChipView(const vector<Assignment>& assignments,
 	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
 	QWidget* parent, const SkinTokens& tokens)
-	: RoutingView(parent), skinTokens(tokens),
-	// Seed every device channel as an equation block so an emptied Copy can be
-	// refilled from the GUI; blocks whose source sum stays empty are skipped by
-	// the serializer and never reach the config line. The fold decides which
-	// seeded blocks are actually shown.
-	workingAssignments(CopyRoutingAdapter::seedTargets(assignments, channelNames)),
-	deviceChannels(channelNames),
-	portModel(portModel),
-	// Targets the command referenced keep their block for the whole session,
-	// even if their last source chip is removed.
-	pinnedChannels(RoutingFold::referencedTargets(assignments))
+	: SumRoutingViewBase(assignments, channelNames, portModel, parent, tokens,
+		SummandEditor::Factor, QStringLiteral("BlockFactorEditor"), QStringLiteral("BlockChannelEditor"))
 {
-	setMouseTracking(true);
-	setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
-	setMinimumSize(0, 0);
 	refold();
-}
-
-std::vector<Assignment> BlockChipView::assignments() const
-{
-	return workingAssignments;
-}
-
-void BlockChipView::refold()
-{
-	fold = RoutingFold::fold(workingAssignments, deviceChannels, pinnedChannels,
-		channelsExpanded, portModel.fixedSources);
-	syncSizeToHint();
-	update();
-}
-
-void BlockChipView::galleryShowcase(const QString& state)
-{
-	if (state == QLatin1String("expanded"))
-	{
-		channelsExpanded = true;
-		refold();
-	}
-	else if (state == QLatin1String("addChannel"))
-	{
-		openChannelEditor();
-		if (channelEditor != nullptr)
-			channelEditor->setText(QStringLiteral("VS"));
-	}
 }
 
 static QFont uiFont(const SkinTokens& tokens, int px)
@@ -91,13 +48,6 @@ QSize BlockChipView::sizeHint() const
 	h += controlH + gap;
 	return QSize(maxW + 24, h);
 }
-
-QSize BlockChipView::minimumSizeHint() const
-{
-	return sizeHint();
-}
-
-static QColor alpha(const QColor& c, int a) { QColor r = c; r.setAlpha(a); return r; }
 
 void BlockChipView::paintEvent(QPaintEvent*)
 {
@@ -126,7 +76,7 @@ void BlockChipView::paintEvent(QPaintEvent*)
 		QPainterPath path;
 		path.addRoundedRect(block, radius, radius);
 		p.fillPath(path, card);
-		p.setPen(QPen(alpha(accent, 70), 1.5));
+		p.setPen(QPen(withAlpha(accent, 70), 1.5));
 		p.drawPath(path);
 
 		const QString dest = QString::fromStdWString(a.targetChannel);
@@ -192,8 +142,8 @@ void BlockChipView::paintEvent(QPaintEvent*)
 			const int cw = fm.horizontalAdvance(ch);
 			const int chipW = fw + cw + 18;
 			const QRect chip(x, y + (blockH - 26) / 2, chipW, 26);
-			p.setPen(virt ? QPen(alpha(col, 180), 1, Qt::DashLine) : QPen(alpha(col, 120), 1));
-			p.setBrush(alpha(col, virt ? 22 : 40));
+			p.setPen(virt ? QPen(withAlpha(col, 180), 1, Qt::DashLine) : QPen(withAlpha(col, 120), 1));
+			p.setBrush(withAlpha(col, virt ? 22 : 40));
 			p.drawRoundedRect(chip, 13, 13);
 
 			int cx = chip.left() + 9;
@@ -223,10 +173,10 @@ void BlockChipView::paintEvent(QPaintEvent*)
 		// Soft [+] chip per block: adds a source channel to this equation. This
 		// is what makes an emptied Copy refillable from the GUI.
 		const QRect addChip(x, y + (blockH - 26) / 2, 32, 26);
-		p.setPen(QPen(alpha(accent, 140), 1, Qt::DashLine));
-		p.setBrush(alpha(accent, 24));
+		p.setPen(QPen(withAlpha(accent, 140), 1, Qt::DashLine));
+		p.setBrush(withAlpha(accent, 24));
 		p.drawRoundedRect(addChip, 13, 13);
-		p.setPen(alpha(accent, 220));
+		p.setPen(withAlpha(accent, 220));
 		p.drawText(addChip, Qt::AlignCenter, QStringLiteral("+"));
 		addHits.append({ r, addChip });
 		x += 40;
@@ -237,10 +187,10 @@ void BlockChipView::paintEvent(QPaintEvent*)
 		if (portModel.isVirtualChannel(dest) && hoveredRow == r)
 		{
 			const QRect xChip(x, y + (blockH - 22) / 2, 22, 22);
-			p.setPen(QPen(alpha(muted, 140), 1));
-			p.setBrush(alpha(muted, 26));
+			p.setPen(QPen(withAlpha(muted, 140), 1));
+			p.setBrush(withAlpha(muted, 26));
 			p.drawEllipse(xChip);
-			p.setPen(alpha(muted, 230));
+			p.setPen(withAlpha(muted, 230));
 			p.drawText(xChip, Qt::AlignCenter, QStringLiteral("×"));
 			removeHits.append({ r, xChip });
 		}
@@ -264,8 +214,8 @@ void BlockChipView::paintEvent(QPaintEvent*)
 		const int w = fm.horizontalAdvance(caption) + 24;
 		revealRect = QRect(x, y, w, controlH - 4);
 		const bool hovered = hoveredControl == 1;
-		p.setPen(QPen(alpha(border, 160), 1));
-		p.setBrush(hovered ? alpha(border, 60) : alpha(border, 30));
+		p.setPen(QPen(withAlpha(border, 160), 1));
+		p.setBrush(hovered ? withAlpha(border, 60) : withAlpha(border, 30));
 		p.drawRoundedRect(revealRect, (controlH - 4) / 2, (controlH - 4) / 2);
 		p.setPen(hovered ? text : muted);
 		p.drawText(revealRect, Qt::AlignCenter, caption);
@@ -277,228 +227,35 @@ void BlockChipView::paintEvent(QPaintEvent*)
 		const int w = fm.horizontalAdvance(caption) + 24;
 		addChannelRect = QRect(x, y, w, controlH - 4);
 		const bool hovered = hoveredControl == 2;
-		p.setPen(QPen(alpha(accent, hovered ? 220 : 140), 1, Qt::DashLine));
-		p.setBrush(alpha(accent, hovered ? 40 : 24));
+		p.setPen(QPen(withAlpha(accent, hovered ? 220 : 140), 1, Qt::DashLine));
+		p.setBrush(withAlpha(accent, hovered ? 40 : 24));
 		p.drawRoundedRect(addChannelRect, (controlH - 4) / 2, (controlH - 4) / 2);
-		p.setPen(alpha(accent, hovered ? 255 : 220));
+		p.setPen(withAlpha(accent, hovered ? 255 : 220));
 		p.drawText(addChannelRect, Qt::AlignCenter, caption);
 	}
 }
 
-void BlockChipView::mousePressEvent(QMouseEvent* event)
+int BlockChipView::slotAt(const QPoint& pos) const
 {
-	for (const AddHit& h : removeHits)
-	{
-		if (h.rect.contains(event->pos()))
-		{
-			const QString channel = QString::fromStdWString(workingAssignments[h.row].targetChannel);
-			const bool changed = RoutingGridModel::removeChannel(workingAssignments, pinnedChannels, channel);
-			refold();
-			if (changed)
-				emit routingChanged();
-			return;
-		}
-	}
-	for (const AddHit& h : addHits)
-	{
-		if (h.rect.contains(event->pos()))
-		{
-			showAddMenu(h.row, mapToGlobal(h.rect.bottomLeft()));
-			return;
-		}
-	}
-	if (!revealRect.isNull() && revealRect.contains(event->pos()))
-	{
-		channelsExpanded = !channelsExpanded;
-		refold();
-		return;
-	}
-	if (!addChannelRect.isNull() && addChannelRect.contains(event->pos()))
-	{
-		openChannelEditor();
-		return;
-	}
-	RoutingView::mousePressEvent(event);
+	if (pos.y() < gap)
+		return -1;
+	return (pos.y() - gap) / (blockH + gap);
 }
 
-void BlockChipView::mouseMoveEvent(QMouseEvent* event)
+QRect BlockChipView::summandEditorRect(const QRect& span, int minimumWidth) const
 {
-	int control = 0;
-	if (!revealRect.isNull() && revealRect.contains(event->pos()))
-		control = 1;
-	else if (!addChannelRect.isNull() && addChannelRect.contains(event->pos()))
-		control = 2;
-
-	int row = -1;
-	const int slot = (event->pos().y() - gap) / (blockH + gap);
-	if (event->pos().y() >= gap && slot >= 0 && slot < fold.visibleRows.size())
-		row = fold.visibleRows[slot];
-
-	if (control != hoveredControl || row != hoveredRow)
-	{
-		hoveredControl = control;
-		hoveredRow = row;
-		setCursor(control != 0 ? Qt::PointingHandCursor : Qt::ArrowCursor);
-		update();
-	}
-	RoutingView::mouseMoveEvent(event);
+	// The gain field covers the chip's factor portion (the whole chip for a
+	// unity summand), widened to the right.
+	Q_UNUSED(minimumWidth);
+	return span.adjusted(-3, 0, 28, 0);
 }
 
-void BlockChipView::leaveEvent(QEvent* event)
+QRect BlockChipView::channelEditorRect() const
 {
-	if (hoveredControl != 0 || hoveredRow >= 0)
-	{
-		hoveredControl = 0;
-		hoveredRow = -1;
-		update();
-	}
-	RoutingView::leaveEvent(event);
-}
-
-void BlockChipView::showAddMenu(int row, const QPoint& globalPos)
-{
-	if (row < 0 || row >= (int)workingAssignments.size())
-		return;
-
-	auto inSum = [this, row](const QString& channel) {
-		for (const Assignment::Summand& s : workingAssignments[row].sourceSum)
-			if (QString::fromStdWString(s.channel).compare(channel, Qt::CaseInsensitive) == 0)
-				return true;
-		return false;
-	};
-
-	QStringList candidates;
-	auto addCandidate = [&](const QString& channel) {
-		if (channel.isEmpty() || channel == QLatin1String(" ")
-			|| inSum(channel) || candidates.contains(channel, Qt::CaseInsensitive))
-			return;
-		candidates.append(channel);
-	};
-	if (portModel.fixedSourceMode())
-	{
-		// Fixed sources (IR file channels): the port list is the whole menu.
-		for (const QString& port : portModel.fixedSources)
-			addCandidate(port);
-	}
-	else
-	{
-		for (const std::wstring& name : deviceChannels)
-			addCandidate(QString::fromStdWString(name));
-		// Channels the command references elsewhere (e.g. virtual channels) stay
-		// available even when the device layout is unknown.
-		for (const Assignment& other : workingAssignments)
-		{
-			addCandidate(QString::fromStdWString(other.targetChannel));
-			for (const Assignment::Summand& s : other.sourceSum)
-				addCandidate(QString::fromStdWString(s.channel));
-		}
-	}
-	if (candidates.isEmpty())
-		return;
-
-	QMenu menu(this);
-	for (const QString& channel : candidates)
-		menu.addAction(channel);
-	const QAction* chosen = menu.exec(globalPos);
-	if (chosen == nullptr)
-		return;
-
-	Assignment::Summand s;
-	s.factor = 1.0;
-	s.isDecibel = false;
-	s.channel = chosen->text().toStdWString();
-	workingAssignments[row].sourceSum.push_back(s);
-	refold();
-	emit routingChanged();
-}
-
-void BlockChipView::mouseDoubleClickEvent(QMouseEvent* event)
-{
-	int row = -1, summand = -1;
-	for (const Hit& h : hits)
-		if (h.rect.contains(event->pos())) { row = h.row; summand = h.summand; break; }
-	if (row < 0)
-		return;
-
-	if (!portModel.allowFactors)
-	{
-		// Without factors the only chip edit is removal.
-		Assignment& a = workingAssignments[row];
-		if (summand >= 0 && summand < (int)a.sourceSum.size())
-		{
-			a.sourceSum.erase(a.sourceSum.begin() + summand);
-			refold();
-			emit routingChanged();
-		}
-		return;
-	}
-
-	commitEditor();
-	editRow = row;
-	editSummand = summand;
-
-	const Assignment::Summand& s = workingAssignments[row].sourceSum[summand];
-	const QString textValue = s.isDecibel ? QStringLiteral("%1dB").arg(s.factor) : QString::number(s.factor);
-
-	if (editor == nullptr)
-	{
-		editor = new QLineEdit(this);
-		editor->setObjectName(QStringLiteral("BlockFactorEditor"));
-		editor->setAlignment(Qt::AlignCenter);
-		connect(editor, &QLineEdit::editingFinished, this, &BlockChipView::commitEditor);
-	}
-	for (const Hit& h : hits)
-		if (h.row == row && h.summand == summand)
-			editor->setGeometry(h.rect.adjusted(-3, 0, 28, 0));
-	editor->setText(textValue);
-	editor->show();
-	editor->setFocus();
-	editor->selectAll();
-}
-
-void BlockChipView::commitEditor()
-{
-	if (editor == nullptr || !editor->isVisible() || editRow < 0)
-		return;
-
-	const int row = editRow, si = editSummand;
-	editRow = editSummand = -1;
-	QString raw = editor->text().trimmed();
-	editor->hide();
-
-	if (!RoutingGridModel::commitChip(workingAssignments, row, si, raw,
-		RoutingGridModel::sourceChannels(workingAssignments, deviceChannels, portModel.fixedSources)))
-		return;
-	refold();
-	emit routingChanged();
-}
-
-void BlockChipView::openChannelEditor()
-{
-	if (channelEditor == nullptr)
-	{
-		channelEditor = new QLineEdit(this);
-		channelEditor->setObjectName(QStringLiteral("BlockChannelEditor"));
-		connect(channelEditor, &QLineEdit::editingFinished, this, &BlockChipView::commitChannelEditor);
-	}
 	const QRect anchor = addChannelRect.isNull()
 		? QRect(8, gap + fold.visibleRows.size() * (blockH + gap), 120, controlH - 4)
 		: addChannelRect;
-	channelEditor->setGeometry(anchor.adjusted(0, 0, 40, 0));
-	channelEditor->setText(QString());
-	channelEditor->show();
-	channelEditor->setFocus();
-}
-
-void BlockChipView::commitChannelEditor()
-{
-	if (channelEditor == nullptr || !channelEditor->isVisible())
-		return;
-
-	const QString name = channelEditor->text().trimmed();
-	channelEditor->hide();
-	if (RoutingGridModel::addChannel(workingAssignments, pinnedChannels, name))
-		refold();
+	return anchor.adjusted(0, 0, 40, 0);
 }
 
 RoutingView* BlockChipRoutingRenderer::create(const vector<Assignment>& assignments,

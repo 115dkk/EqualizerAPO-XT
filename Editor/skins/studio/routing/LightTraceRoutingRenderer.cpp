@@ -16,7 +16,6 @@
 #include <QPainter>
 #include <QPainterPathStroker>
 
-#include "Editor/SkinManager.h"
 #include "Editor/widgets/routing/CopyRoutingAdapter.h"
 
 using std::vector;
@@ -65,8 +64,7 @@ void StudioRoutingView::galleryShowcase(const QString& state)
 	else if (state == QLatin1String("addChannel"))
 	{
 		openChannelEditor();
-		if (channelEditor != nullptr)
-			channelEditor->setText(QStringLiteral("VS"));
+		channelEditor.setText(QStringLiteral("VS"));
 	}
 }
 
@@ -874,26 +872,14 @@ void StudioRoutingView::commitFactorEditor()
 
 void StudioRoutingView::openChannelEditor()
 {
-	if (channelEditor == nullptr)
-	{
-		channelEditor = new QLineEdit(this);
-		channelEditor->setObjectName(QStringLiteral("StudioRoutingChannelEditor"));
-		channelEditor->setAlignment(Qt::AlignCenter);
-		connect(channelEditor, &QLineEdit::editingFinished, this, &StudioRoutingView::commitChannelEditor);
-	}
-	channelEditor->setGeometry(ghostRect.adjusted(0, 0, sc(40), 0));
-	channelEditor->setText(QString());
-	channelEditor->show();
-	channelEditor->setFocus();
+	channelEditor.open(this, &StudioRoutingView::commitChannelEditor, ghostRect.adjusted(0, 0, sc(40), 0));
 }
 
 void StudioRoutingView::commitChannelEditor()
 {
-	if (channelEditor == nullptr || !channelEditor->isVisible())
+	QString name;
+	if (!channelEditor.take(name))
 		return;
-
-	const QString name = channelEditor->text().trimmed();
-	channelEditor->hide();
 	if (model.addChannel(pinnedChannels, name))
 		relayout();
 }

@@ -27,8 +27,6 @@
 #include <QVBoxLayout>
 #include <QVariant>
 
-#include "Editor/SkinManager.h"
-
 namespace
 {
 void repolish(QWidget* widget)

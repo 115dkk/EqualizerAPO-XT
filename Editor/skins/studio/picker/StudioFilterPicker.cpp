@@ -17,8 +17,6 @@
 #include <QStyledItemDelegate>
 #include <QVBoxLayout>
 
-#include "Editor/SkinManager.h"
-
 namespace
 {
 // Studio's glow rule: light is faked with layered strokes and gradients,
