@@ -40,13 +40,15 @@
 
 #include "asio/AsioSdk.h"
 #include "asio/CallbackTrampolines.h"
+#include "asio/ComObject.h"
+#include "asio/HostCallbacks.h"
 #include "asio/SampleCodec.h"
 #include "asio/StreamProcessor.h"
 #include "platform/windows/ComPtr.h"
 
 namespace eapo::asio
 {
-	class AsioWrapper final : public IASIO, public ITargetCallbackSink
+	class AsioWrapper final : public ComObject<AsioWrapper, IASIO>, public ITargetCallbackSink
 	{
 	public:
 		enum class State : uint32_t
@@ -69,8 +71,6 @@ namespace eapo::asio
 
 		// IUnknown
 		HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** object) override;
-		ULONG STDMETHODCALLTYPE AddRef() override;
-		ULONG STDMETHODCALLTYPE Release() override;
 
 		// IASIO
 		ASIOBool init(void* sysHandle) override;
@@ -127,9 +127,8 @@ namespace eapo::asio
 		// callback already inside to leave. False when one is still inside;
 		// the caller must then not free what that callback may touch.
 		bool retireCallbacks(const char* during) noexcept;
-		// Whether a process() outcome leaves audio in the planes to write:
-		// always for Processed, and for Late from an adapter that pipelines.
 		bool planesCarryAudio(Outcome outcome) const noexcept;
+		bool releaseQuarantine() noexcept;
 		bool fillFormat(long bufferSize);
 		void setError(const char* message) noexcept;
 
@@ -139,7 +138,6 @@ namespace eapo::asio
 		void account(Direction direction, Outcome outcome, uint64_t startTick) noexcept;
 		bool processorEnabled(Direction direction) const noexcept;
 
-		std::atomic<long> refCount_{1};
 		winutil::ComPtr<IASIO> target_;
 		GUID wrapperClsid_;
 		std::wstring targetClsid_;
@@ -149,10 +147,7 @@ namespace eapo::asio
 		std::atomic<State> state_{State::Loaded};
 		char errorMessage_[errorMessageBytes] = {};
 
-		ASIOCallbacks host_ = {};
-		bool hostPresent_ = false;
-		bool hostSupportsTimeInfo_ = false;
-		bool hostSupportsResetRequest_ = false;
+		HostCallbacks host_;
 		std::atomic<bool> hostUsesOutputReady_{false};
 		std::atomic<long> pendingOutputIndex_{-1};
 		std::atomic<bool> formatStale_{false};
@@ -164,11 +159,10 @@ namespace eapo::asio
 		long outputCount_ = 0;
 		long frames_ = 0;
 		ASIOCallbacks* trampolines_ = nullptr;
+		ASIOCallbacks* quarantinedCallbacks_ = nullptr;
 
 		StreamFormat format_;
-		float** planes_[directionCount] = {nullptr, nullptr};
 		uint32_t extraLatencyFrames_ = 0;
 		StreamStats stats_;
-		double tickToMicros_ = 0.0;
 	};
 }

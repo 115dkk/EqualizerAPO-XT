@@ -311,6 +311,7 @@ ASIOError FakeAsioDriver::createBuffers(ASIOBufferInfo* bufferInfos, long numCha
 	}
 
 	callbacks_ = *callbacks;
+	callbackSet_ = callbacks;
 	bufferSize_ = bufferSize;
 	hostSupportsTimeInfo_ = callbacks_.asioMessage != nullptr && callbacks_.bufferSwitchTimeInfo != nullptr
 		&& callbacks_.asioMessage(kAsioSelectorSupported, kAsioSupportsTimeInfo, nullptr, nullptr) == 1

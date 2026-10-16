@@ -42,6 +42,8 @@
 #include <vector>
 
 #include "asio/AsioSdk.h"
+#include "asio/ComObject.h"
+#include "asio/HostCallbacks.h"
 #include "platform/windows/ComPtr.h"
 #include "platform/windows/Win32Resource.h"
 #include <mmdeviceapi.h>
@@ -64,6 +66,39 @@ namespace eapo::asio
 			bool isFloat = false;
 
 			unsigned bytes() const noexcept {return bits / 8;}
+		};
+
+		// The device calls used from stream setup and the real-time stream
+		// thread. The production adapter owns IAudioClient and its render or
+		// capture service. Tests provide a cadence-controlled adapter with the
+		// same event and buffer contract.
+		class IEndpointClient
+		{
+		public:
+			virtual ~IEndpointClient() = default;
+			virtual HRESULT isFormatSupported(const WAVEFORMATEX* format) noexcept = 0;
+			virtual HRESULT initialize(const WAVEFORMATEX* format, REFERENCE_TIME period, UINT32 expectedFrames,
+				UINT32& actualFrames, REFERENCE_TIME& latency) noexcept = 0;
+			virtual void close() noexcept = 0;
+			virtual HRESULT start() noexcept = 0;
+			virtual HRESULT stop() noexcept = 0;
+			virtual HANDLE event() const noexcept = 0;
+			virtual HRESULT getRenderBuffer(UINT32 frames, BYTE** data) noexcept = 0;
+			virtual HRESULT releaseRenderBuffer(UINT32 frames, DWORD flags) noexcept = 0;
+			virtual HRESULT getNextPacketSize(UINT32* frames) noexcept = 0;
+			virtual HRESULT getCaptureBuffer(BYTE** data, UINT32* frames, DWORD* flags) noexcept = 0;
+			virtual HRESULT releaseCaptureBuffer(UINT32 frames) noexcept = 0;
+		};
+
+		struct EndpointSetup
+		{
+			std::unique_ptr<IEndpointClient> client;
+			std::wstring friendlyName;
+			unsigned channels = 0;
+			unsigned long channelMask = 0;
+			unsigned sampleRate = 0;
+			REFERENCE_TIME minPeriodHns = 0;
+			Container container;
 		};
 
 		// The containers in the order they are tried at a sample rate: the
@@ -242,20 +277,21 @@ namespace eapo::asio
 		};
 	}
 
-	class WasapiExclusiveTarget final : public IASIO
+	class WasapiExclusiveTarget final : public ComObject<WasapiExclusiveTarget, IASIO>
 	{
 	public:
 		// Either GUID may be empty; not both. The GUIDs are the endpoint
 		// GUIDs the Device Selector knows ({...}), not full MMDevice ids.
 		WasapiExclusiveTarget(std::wstring renderEndpointGuid, std::wstring captureEndpointGuid);
+		// Adapter constructor used by deterministic stream-thread tests. An empty
+		// setup disables that direction; no MMDevice is opened.
+		WasapiExclusiveTarget(wasapi::EndpointSetup render, wasapi::EndpointSetup capture);
 		~WasapiExclusiveTarget();
 		WasapiExclusiveTarget(const WasapiExclusiveTarget&) = delete;
 		WasapiExclusiveTarget& operator=(const WasapiExclusiveTarget&) = delete;
 
 		// IUnknown
 		HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** object) override;
-		ULONG STDMETHODCALLTYPE AddRef() override;
-		ULONG STDMETHODCALLTYPE Release() override;
 
 		// IASIO
 		ASIOBool init(void* sysHandle) override;
@@ -311,10 +347,7 @@ namespace eapo::asio
 			std::wstring endpointGuid;
 			std::wstring friendlyName;
 			winutil::ComPtr<IMMDevice> device;
-			winutil::ComPtr<IAudioClient> client;
-			winutil::ComPtr<IAudioRenderClient> render;
-			winutil::ComPtr<IAudioCaptureClient> captureClient;
-			winutil::UniqueHandle event;
+			std::unique_ptr<wasapi::IEndpointClient> endpoint;
 			std::vector<unsigned char> deviceFormat;   // WAVEFORMATEX blob, PKEY_AudioEngine_DeviceFormat
 			unsigned channels = 0;
 			unsigned long channelMask = 0;
@@ -354,8 +387,8 @@ namespace eapo::asio
 		void setError(const char* message) noexcept;
 		void fillTimeInfo(ASIOTime& time) const noexcept;
 
-		std::atomic<long> refCount_{1};
 		Port ports_[2];                   // [0] playback (outputs), [1] recording (inputs)
+		bool injectedEndpoints_ = false;
 		bool initialized_ = false;
 		bool prepared_ = false;
 		std::atomic<bool> running_{false};
@@ -367,8 +400,7 @@ namespace eapo::asio
 		winutil::UniqueHandle stopEvent_;
 		winutil::UniqueHandle startAckEvent_;
 		std::atomic<long> startResult_{ASE_OK};
-		ASIOCallbacks callbacks_ = {};
-		bool hostSupportsTimeInfo_ = false;
+		HostCallbacks host_;
 		long frames_ = 0;
 		unsigned rate_ = 0;
 		std::atomic<long> pendingHalf_{-1};  // the half whose output has not been committed yet

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- StreamRing stays under runtime/ipc but is owned by the ASIO source lists. -->
+<Project>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\runtime\ipc\StreamRing.h" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\runtime\ipc\StreamRing.cpp" />
+  </ItemGroup>
+</Project>

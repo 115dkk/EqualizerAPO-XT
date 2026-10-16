@@ -82,20 +82,8 @@ if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"</
     <ClCompile Include="..\FakeAsioDriver\FakeAsio.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\asio\AsioSdk.h" />
-    <ClInclude Include="..\..\asio\AsioWrapper.h" />
-    <ClInclude Include="..\..\asio\DriverNameText.h" />
-    <ClInclude Include="..\..\asio\InProcProcessor.h" />
-    <ClInclude Include="..\..\asio\StreamProcessor.h" />
-    <ClInclude Include="..\..\asio\DaemonProcessor.h" />
-    <ClInclude Include="..\..\asio\EngineHostCore.h" />
-    <ClInclude Include="..\..\asio\HostLink.h" />
-    <ClInclude Include="..\..\asio\HostProtocol.h" />
-    <ClInclude Include="..\..\asio\ThreadHostLink.h" />
-    <ClInclude Include="..\..\asio\Win32HostLink.h" />
     <ClInclude Include="..\AsioSupport\HostStub.h" />
     <ClInclude Include="..\AsioSupport\LatencyMatch.h" />
-    <ClInclude Include="..\..\runtime\ipc\StreamRing.h" />
     <ClInclude Include="..\AsioSupport\Sha256.h" />
     <ClInclude Include="..\FakeAsioDriver\FakeAsio.h" />
     <ClInclude Include="..\FakeAsioDriver\FakeAsioControl.h" />

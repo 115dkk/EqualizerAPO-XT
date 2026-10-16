@@ -5,17 +5,34 @@
   host link and the WASAPI exclusive target. EqualizerAPOAsio builds the
   shipped DLL from them, and AsioTests and AsioProbe compile the same files to
   test that DLL's behaviour, so the list is written once (audit #348 F13).
-  AsioInProcSources.props has the three files only the tests add.
+  AsioInProcSources.props adds the adapters that link the engine.
 -->
 <Project>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)AsioConstants.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)AsioSdk.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)AsioWrapper.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)CallbackTrampolines.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Clock.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)ComObject.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)DaemonProcessor.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)DriverNameText.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)EntryOptions.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)HostCallbacks.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)HostLink.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)HostProtocol.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)SampleCodec.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)StreamProcessor.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)WasapiExclusiveTarget.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)WaveFormat.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Win32HostLink.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)WrapperRecord.h" />
     <ClCompile Include="$(MSBuildThisFileDirectory)AsioWrapper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CallbackTrampolines.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SampleCodec.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)DaemonProcessor.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Win32HostLink.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasapiExclusiveTarget.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)..\runtime\ipc\StreamRing.cpp" />
   </ItemGroup>
+  <Import Project="$(MSBuildThisFileDirectory)AsioRingSources.props" />
 </Project>

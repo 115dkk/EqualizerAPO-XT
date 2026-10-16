@@ -5,6 +5,7 @@
 */
 
 #include "asio/AsioWrapper.h"
+#include "asio/Clock.h"
 #include "asio/DriverNameText.h"
 #include "services/logging/Logging.h"
 
@@ -20,24 +21,12 @@ namespace eapo::asio
 		constexpr unsigned outputSlot = static_cast<unsigned>(Direction::Output);
 		constexpr unsigned inputSlot = static_cast<unsigned>(Direction::Input);
 
-		inline unsigned slotOf(Direction direction) noexcept
-		{
-			return static_cast<unsigned>(direction);
-		}
-
 		// Driver names are in the ANSI code page of this (the DAW's) process;
 		// the WASAPI target narrowed its endpoint name with CP_ACP in this same
 		// process, so CP_ACP widens it back exactly.
 		void widen(const char* source, wchar_t* destination, size_t capacity) noexcept
 		{
 			drivername::widen(source, destination, capacity, CP_ACP);
-		}
-
-		inline uint64_t tickNow() noexcept
-		{
-			LARGE_INTEGER counter;
-			QueryPerformanceCounter(&counter);
-			return static_cast<uint64_t>(counter.QuadPart);
 		}
 
 		const char* const driverSuffix = " (EQ APO XT)";
@@ -50,9 +39,6 @@ namespace eapo::asio
 	{
 		target->AddRef();
 		*target_.put() = target;
-		LARGE_INTEGER frequency;
-		QueryPerformanceFrequency(&frequency);
-		tickToMicros_ = frequency.QuadPart > 0 ? 1000000.0 / static_cast<double>(frequency.QuadPart) : 0.0;
 		instances.fetch_add(1, std::memory_order_acq_rel);
 	}
 
@@ -64,6 +50,8 @@ namespace eapo::asio
 			stop();
 		if (state() == State::Prepared)
 			disposeBuffers();
+		if (state() == State::Initialized)
+			releaseQuarantine();
 		target_.reset();
 		instances.fetch_sub(1, std::memory_order_acq_rel);
 	}
@@ -90,30 +78,11 @@ namespace eapo::asio
 		return E_NOINTERFACE;
 	}
 
-	ULONG STDMETHODCALLTYPE AsioWrapper::AddRef()
-	{
-		return static_cast<ULONG>(refCount_.fetch_add(1, std::memory_order_acq_rel) + 1);
-	}
-
-	ULONG STDMETHODCALLTYPE AsioWrapper::Release()
-	{
-		const long remaining = refCount_.fetch_sub(1, std::memory_order_acq_rel) - 1;
-		if (remaining == 0)
-		{
-			delete this;
-			return 0;
-		}
-		return static_cast<ULONG>(remaining);
-	}
-
 	// ---- control surface ----
 
 	void AsioWrapper::setError(const char* message) noexcept
 	{
-		size_t i = 0;
-		for (; i + 1 < sizeof(errorMessage_) && message[i] != '\0'; i++)
-			errorMessage_[i] = message[i];
-		errorMessage_[i] = '\0';
+		copyErrorMessage(errorMessage_, message);
 	}
 
 	ASIOBool AsioWrapper::init(void* sysHandle)
@@ -323,19 +292,37 @@ namespace eapo::asio
 
 	bool AsioWrapper::retireCallbacks(const char* during) noexcept
 	{
+		ASIOCallbacks* retired = trampolines_;
 		CallbackTrampolines::release(this);
-		bool drained = CallbackTrampolines::drained(trampolines_);
+		bool drained = CallbackTrampolines::drained(retired);
 		for (int i = 0; i < 2000 && !drained; i++)
 		{
 			Sleep(1);
-			drained = CallbackTrampolines::drained(trampolines_);
+			drained = CallbackTrampolines::drained(retired);
 		}
-		// A timed-out slot remains closed with entrants and is quarantined:
-		// claim cannot reuse it until the stalled callbacks leave.
 		trampolines_ = nullptr;
 		if (!drained)
+		{
+			// Keep both the buffers and the host callback snapshot immutable
+			// until the quarantined callback leaves. createBuffers refuses to
+			// publish another snapshot while this pointer is live.
+			quarantinedCallbacks_ = retired;
 			LogFStatic(L"ASIO wrapper: a callback from the driver was still running 2 s after %S; its buffers are kept, not freed", during);
+		}
 		return drained;
+	}
+
+	bool AsioWrapper::releaseQuarantine() noexcept
+	{
+		if (quarantinedCallbacks_ == nullptr)
+			return true;
+		if (!CallbackTrampolines::drained(quarantinedCallbacks_))
+			return false;
+		quarantinedCallbacks_ = nullptr;
+		processor_->close();
+		releaseChannels();
+		host_.clear();
+		return true;
 	}
 
 	void AsioWrapper::releaseChannels() noexcept
@@ -394,14 +381,13 @@ namespace eapo::asio
 			return ASE_InvalidMode;
 		if (bufferInfos == nullptr || numChannels <= 0 || bufferSize <= 0 || callbacks == nullptr)
 			return ASE_InvalidParameter;
+		if (!releaseQuarantine())
+		{
+			setError("The wrapped driver still has a callback from the previous stream running");
+			return ASE_InvalidMode;
+		}
 
-		host_ = *callbacks;
-		hostPresent_ = true;
-		hostSupportsTimeInfo_ = host_.bufferSwitchTimeInfo != nullptr && host_.asioMessage != nullptr
-			&& host_.asioMessage(kAsioSelectorSupported, kAsioSupportsTimeInfo, nullptr, nullptr) == 1
-			&& host_.asioMessage(kAsioSupportsTimeInfo, 0, nullptr, nullptr) == 1;
-		hostSupportsResetRequest_ = host_.asioMessage != nullptr
-			&& host_.asioMessage(kAsioSelectorSupported, kAsioResetRequest, nullptr, nullptr) == 1;
+		host_.set(*callbacks);
 
 		ASIOError error = prepareChannels(bufferInfos, numChannels, bufferSize);
 		if (error != ASE_OK)
@@ -455,7 +441,7 @@ namespace eapo::asio
 		catch (...)
 		{
 			report.status = OpenReport::Status::Unavailable;
-			std::memcpy(report.message, "EQ APO XT engine host failed while opening the stream", 54);
+			copyErrorMessage(report.message, "EQ APO XT engine host failed while opening the stream");
 		}
 		if (report.status != OpenReport::Status::Ok)
 		{
@@ -464,8 +450,6 @@ namespace eapo::asio
 			return report.status == OpenReport::Status::Rejected ? ASE_InvalidMode : ASE_HWMalfunction;
 		}
 
-		planes_[outputSlot] = format_.channels[outputSlot] > 0 ? report.planes[outputSlot] : nullptr;
-		planes_[inputSlot] = format_.channels[inputSlot] > 0 ? report.planes[inputSlot] : nullptr;
 		extraLatencyFrames_ = report.extraLatencyFrames;
 		stats_ = StreamStats();
 		frames_ = bufferSize;
@@ -494,12 +478,10 @@ namespace eapo::asio
 		// processor closes on the next open, and the buffers stay allocated.
 		if (retireCallbacks("disposeBuffers"))
 		{
-			processor_->close(stats_);
-			planes_[outputSlot] = nullptr;
-			planes_[inputSlot] = nullptr;
+			processor_->close();
 			releaseChannels();
+			host_.clear();
 		}
-		hostPresent_ = false;
 		return error;
 	}
 
@@ -542,12 +524,12 @@ namespace eapo::asio
 
 	bool AsioWrapper::processorEnabled(Direction direction) const noexcept
 	{
-		return planes_[slotOf(direction)] != nullptr && format_.channelCount(direction) > 0;
+		return format_.channelCount(direction) > 0;
 	}
 
 	bool AsioWrapper::planesCarryAudio(Outcome outcome) const noexcept
 	{
-		return outcome == Outcome::Processed || (outcome == Outcome::Late && extraLatencyFrames_ != 0);
+		return outcome == Outcome::Processed || outcome == Outcome::LateHeld;
 	}
 
 	void AsioWrapper::onBufferSwitch(long doubleBufferIndex, ASIOBool directProcess) noexcept
@@ -569,7 +551,7 @@ namespace eapo::asio
 		runInput(index);
 
 		pendingOutputIndex_.store(index, std::memory_order_release);
-		if (hostSupportsTimeInfo_)
+		if (host_.supportsTimeInfo)
 		{
 			ASIOTime local = {};
 			ASIOTime* forwarded = time;
@@ -583,11 +565,11 @@ namespace eapo::asio
 				local.timeInfo.flags |= kSampleRateValid;
 				forwarded = &local;
 			}
-			host_.bufferSwitchTimeInfo(forwarded, index, direct);
+			host_.calls.bufferSwitchTimeInfo(forwarded, index, direct);
 		}
-		else if (host_.bufferSwitch != nullptr)
+		else if (host_.calls.bufferSwitch != nullptr)
 		{
-			host_.bufferSwitch(index, direct);
+			host_.calls.bufferSwitch(index, direct);
 		}
 
 		if (!hostUsesOutputReady_.load(std::memory_order_acquire))
@@ -601,13 +583,12 @@ namespace eapo::asio
 	void AsioWrapper::account(Direction direction, Outcome outcome, uint64_t startTick) noexcept
 	{
 		const unsigned slot = slotOf(direction);
-		const double micros = static_cast<double>(tickNow() - startTick) * tickToMicros_;
-		const uint32_t elapsed = micros > 4294967295.0 ? 4294967295u : static_cast<uint32_t>(micros);
+		const uint32_t elapsed = Clock::microseconds(static_cast<int64_t>(startTick), Clock::ticks());
 		stats_.blocks[slot]++;
 		stats_.lastProcessUs[slot] = elapsed;
 		if (elapsed > stats_.maxProcessUs[slot])
 			stats_.maxProcessUs[slot] = elapsed;
-		if (outcome == Outcome::Late)
+		if (outcome == Outcome::LateHeld || outcome == Outcome::LateDropped)
 			stats_.late[slot]++;
 		else if (outcome == Outcome::Gone)
 		{
@@ -632,20 +613,23 @@ namespace eapo::asio
 			}
 			else
 			{
-				float** planes = planes_[inputSlot];
-				for (size_t i = first; i < end; i++)
-					channels_[i].codec.toFloat(channels_[i].targetBuffers[index], planes[i], static_cast<unsigned>(frames_));
-				const uint64_t started = tickNow();
-				const Outcome outcome = processor_->process(Direction::Input);
-				account(Direction::Input, outcome, started);
-				if (planesCarryAudio(outcome))
+				float** planes = processor_->planes(Direction::Input);
+				if (planes != nullptr)
 				{
 					for (size_t i = first; i < end; i++)
+						channels_[i].codec.toFloat(channels_[i].targetBuffers[index], planes[i], static_cast<unsigned>(frames_));
+					const uint64_t started = static_cast<uint64_t>(Clock::ticks());
+					const Outcome outcome = processor_->process(Direction::Input);
+					account(Direction::Input, outcome, started);
+					if (planesCarryAudio(outcome))
 					{
-						if (channels_[i].hostBuffers[index] != nullptr)
-							channels_[i].codec.fromFloat(planes[i], channels_[i].hostBuffers[index], static_cast<unsigned>(frames_));
+						for (size_t i = first; i < end; i++)
+						{
+							if (channels_[i].hostBuffers[index] != nullptr)
+								channels_[i].codec.fromFloat(planes[i], channels_[i].hostBuffers[index], static_cast<unsigned>(frames_));
+						}
+						processed = true;
 					}
-					processed = true;
 				}
 			}
 		}
@@ -679,23 +663,26 @@ namespace eapo::asio
 			}
 			else
 			{
-				float** planes = planes_[outputSlot];
-				for (size_t i = first; i < end; i++)
-				{
-					float* plane = planes[i - first];
-					if (channels_[i].hostBuffers[index] != nullptr)
-						channels_[i].codec.toFloat(channels_[i].hostBuffers[index], plane, static_cast<unsigned>(frames_));
-					else
-						std::memset(plane, 0, sizeof(float) * static_cast<size_t>(frames_));
-				}
-				const uint64_t started = tickNow();
-				const Outcome outcome = processor_->process(Direction::Output);
-				account(Direction::Output, outcome, started);
-				if (planesCarryAudio(outcome))
+				float** planes = processor_->planes(Direction::Output);
+				if (planes != nullptr)
 				{
 					for (size_t i = first; i < end; i++)
-						channels_[i].codec.fromFloat(planes[i - first], channels_[i].targetBuffers[index], static_cast<unsigned>(frames_));
-					processed = true;
+					{
+						float* plane = planes[i - first];
+						if (channels_[i].hostBuffers[index] != nullptr)
+							channels_[i].codec.toFloat(channels_[i].hostBuffers[index], plane, static_cast<unsigned>(frames_));
+						else
+							std::memset(plane, 0, sizeof(float) * static_cast<size_t>(frames_));
+					}
+					const uint64_t started = static_cast<uint64_t>(Clock::ticks());
+					const Outcome outcome = processor_->process(Direction::Output);
+					account(Direction::Output, outcome, started);
+					if (planesCarryAudio(outcome))
+					{
+						for (size_t i = first; i < end; i++)
+							channels_[i].codec.fromFloat(planes[i - first], channels_[i].targetBuffers[index], static_cast<unsigned>(frames_));
+						processed = true;
+					}
 				}
 			}
 		}
@@ -726,10 +713,10 @@ namespace eapo::asio
 			formatStale_.store(true, std::memory_order_release);
 			askForReset = true;
 		}
-		if (hostPresent_ && host_.sampleRateDidChange != nullptr)
-			host_.sampleRateDidChange(rate);
-		if (askForReset && hostPresent_ && hostSupportsResetRequest_)
-			host_.asioMessage(kAsioResetRequest, 0, nullptr, nullptr);
+		if (host_.present && host_.calls.sampleRateDidChange != nullptr)
+			host_.calls.sampleRateDidChange(rate);
+		if (askForReset && host_.present && host_.supportsResetRequest)
+			host_.calls.asioMessage(kAsioResetRequest, 0, nullptr, nullptr);
 	}
 
 	long AsioWrapper::onAsioMessage(long selector, long value, void* message, double* opt) noexcept
@@ -738,21 +725,21 @@ namespace eapo::asio
 		{
 		case kAsioSelectorSupported:
 			if (value == kAsioSupportsTimeInfo)
-				return hostSupportsTimeInfo_ ? 1 : 0;
+				return host_.supportsTimeInfo ? 1 : 0;
 			break;
 		case kAsioSupportsTimeInfo:
 			// Answered from what the DAW told us at createBuffers, which is
 			// why the DAW is asked before the target's createBuffers runs.
-			return hostSupportsTimeInfo_ ? 1 : 0;
+			return host_.supportsTimeInfo ? 1 : 0;
 		case kAsioEngineVersion:
-			if (!hostPresent_ || host_.asioMessage == nullptr)
+			if (!host_.present || host_.calls.asioMessage == nullptr)
 				return 2;
 			break;
 		default:
 			break;
 		}
-		if (hostPresent_ && host_.asioMessage != nullptr)
-			return host_.asioMessage(selector, value, message, opt);
+		if (host_.present && host_.calls.asioMessage != nullptr)
+			return host_.calls.asioMessage(selector, value, message, opt);
 		return 0;
 	}
 }

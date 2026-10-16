@@ -23,27 +23,36 @@
 
 namespace eapo::asio
 {
+	// Test-side controls are kept separately from the link so a test that gives
+	// the link to a unique_ptr never keeps a raw alias to it.
+	class ThreadHostControl
+	{
+	public:
+		void killHost() noexcept;
+		void holdHost(bool held) noexcept;
+
+	private:
+		friend class ThreadHostLink;
+		std::atomic<bool> kill_{false};
+		std::atomic<bool> held_{false};
+		std::atomic<HANDLE> thread_{nullptr};
+	};
+
 	class ThreadHostLink final : public IHostLink
 	{
 	public:
 		// proAudio lifts the serving thread to the MMCSS Pro Audio class,
 		// as the real host does; traceSlowUs is a probe-only diagnostic.
-		explicit ThreadHostLink(bool proAudio = false, uint32_t traceSlowUs = 0);
+		explicit ThreadHostLink(bool proAudio = false, uint32_t traceSlowUs = 0,
+			std::shared_ptr<ThreadHostControl> control = {});
 		~ThreadHostLink() override;
 
 		ThreadHostLink(const ThreadHostLink&) = delete;
 		ThreadHostLink& operator=(const ThreadHostLink&) = delete;
 
-		bool open(const StreamFormat& format, const StreamOptions& options, HostSession& session, std::string& error) override;
-		void close(HostSession& session) noexcept override;
-
-		// Makes the serving thread leave without releasing what it holds,
-		// the way a crashed host would. For the tests.
-		void killHost() noexcept;
-		// While held, the serving thread keeps the next block it picks up
-		// without completing it, the way a host the scheduler stalled would;
-		// releasing it resumes in order. For the tests.
-		void holdHost(bool held) noexcept;
+		std::unique_ptr<eapo::ipc::RingProducer> open(const StreamFormat& format, const StreamOptions& options,
+			OpenReport& report) override;
+		void close(std::unique_ptr<eapo::ipc::RingProducer> producer) noexcept override;
 
 	private:
 		void* region_ = nullptr;
@@ -51,8 +60,8 @@ namespace eapo::asio
 		winutil::UniqueHandle hostGone_;        // producer's peer: set when the thread leaves
 		winutil::UniqueHandle producerGone_;    // consumer's peer: set by close()
 		std::thread thread_;
-		std::atomic<bool> kill_{false};
-		std::atomic<bool> hold_{false};
+		std::shared_ptr<ThreadHostControl> control_;
+		HostSession session_;
 		bool proAudio_;
 		uint32_t traceSlowUs_;
 	};

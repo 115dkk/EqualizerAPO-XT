@@ -29,7 +29,7 @@
 namespace eapo::asio::drivername
 {
 	// The largest n <= maxBytes such that text[0, n) ends on a character
-	// boundary of `codePage` (a lead byte is never the last byte kept).
+	// boundary of `codePage` (neither a DBCS nor UTF-8 sequence is split).
 	inline size_t characterBoundary(const char* text, size_t length, size_t maxBytes, unsigned codePage) noexcept
 	{
 		if (length <= maxBytes)
@@ -37,7 +37,26 @@ namespace eapo::asio::drivername
 		size_t i = 0;
 		while (i < length)
 		{
-			const size_t step = (i + 1 < length && IsDBCSLeadByteEx(codePage, static_cast<BYTE>(text[i]))) ? 2 : 1;
+			size_t step = 1;
+			const unsigned char lead = static_cast<unsigned char>(text[i]);
+			if (codePage == CP_UTF8)
+			{
+				if ((lead & 0xe0u) == 0xc0u)
+					step = 2;
+				else if ((lead & 0xf0u) == 0xe0u)
+					step = 3;
+				else if ((lead & 0xf8u) == 0xf0u)
+					step = 4;
+				if (i + step > length)
+					step = 1;
+				for (size_t continuation = 1; continuation < step; continuation++)
+					if ((static_cast<unsigned char>(text[i + continuation]) & 0xc0u) != 0x80u)
+						step = 1;
+			}
+			else if (i + 1 < length && IsDBCSLeadByteEx(codePage, static_cast<BYTE>(text[i])))
+			{
+				step = 2;
+			}
 			if (i + step > maxBytes)
 				break;
 			i += step;

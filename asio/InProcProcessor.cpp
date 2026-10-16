@@ -14,28 +14,17 @@
 
 namespace eapo::asio
 {
-	namespace
-	{
-		void copyMessage(char (&destination)[errorMessageBytes], const char* source) noexcept
-		{
-			size_t i = 0;
-			for (; i + 1 < sizeof(destination) && source[i] != '\0'; i++)
-				destination[i] = source[i];
-			destination[i] = '\0';
-		}
-	}
-
 	InProcProcessor::InProcProcessor() = default;
 
 	InProcProcessor::~InProcProcessor()
 	{
-		close(StreamStats());
+		close();
 	}
 
 	OpenReport InProcProcessor::open(const StreamFormat& format, const StreamOptions& options)
 	{
 		OpenReport report;
-		close(StreamStats());
+		close();
 
 		for (unsigned slot = 0; slot < directionCount; slot++)
 		{
@@ -58,19 +47,18 @@ namespace eapo::asio
 			}
 			catch (const std::exception& e)
 			{
-				close(StreamStats());
+				close();
 				report.status = OpenReport::Status::Rejected;
-				copyMessage(report.message, e.what());
+				copyErrorMessage(report.message, e.what());
 				return report;
 			}
 			catch (...)
 			{
-				close(StreamStats());
+				close();
 				report.status = OpenReport::Status::Rejected;
-				copyMessage(report.message, "the in-process engine could not be initialized");
+				copyErrorMessage(report.message, "the in-process engine could not be initialized");
 				return report;
 			}
-			report.planes[slot] = lane.planes.data();
 		}
 
 		report.status = OpenReport::Status::Ok;
@@ -78,18 +66,23 @@ namespace eapo::asio
 		return report;
 	}
 
+	float** InProcProcessor::planes(Direction direction) noexcept
+	{
+		Lane& lane = lanes_[slotOf(direction)];
+		return lane.engine != nullptr ? lane.planes.data() : nullptr;
+	}
+
 	Outcome InProcProcessor::process(Direction direction) noexcept
 	{
-		Lane& lane = lanes_[static_cast<unsigned>(direction)];
+		Lane& lane = lanes_[slotOf(direction)];
 		if (lane.engine == nullptr)
 			return Outcome::Off;
 		lane.engine->process(lane.planes.data(), lane.planes.data(), lane.frames);
 		return Outcome::Processed;
 	}
 
-	void InProcProcessor::close(const StreamStats& stats) noexcept
+	void InProcProcessor::close() noexcept
 	{
-		lastStats_ = stats;
 		for (Lane& lane : lanes_)
 		{
 			lane.engine.reset();

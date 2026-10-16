@@ -22,6 +22,7 @@
 #include <string>
 
 #include "asio/AsioWrapper.h"
+#include "asio/ComObject.h"
 #include "asio/DaemonProcessor.h"
 #include "asio/WasapiExclusiveTarget.h"
 #include "asio/Win32HostLink.h"
@@ -64,7 +65,7 @@ namespace
 		return std::make_unique<eapo::asio::DaemonProcessor>(std::make_unique<eapo::asio::Win32HostLink>());
 	}
 
-	class WrapperClassFactory final : public IClassFactory
+	class WrapperClassFactory final : public eapo::asio::ComObject<WrapperClassFactory, IClassFactory>
 	{
 	public:
 		explicit WrapperClassFactory(const CLSID& clsid, WrapperRecord record)
@@ -93,22 +94,6 @@ namespace
 			}
 			*object = nullptr;
 			return E_NOINTERFACE;
-		}
-
-		ULONG STDMETHODCALLTYPE AddRef() override
-		{
-			return static_cast<ULONG>(InterlockedIncrement(&refCount_));
-		}
-
-		ULONG STDMETHODCALLTYPE Release() override
-		{
-			const LONG remaining = InterlockedDecrement(&refCount_);
-			if (remaining == 0)
-			{
-				delete this;
-				return 0;
-			}
-			return static_cast<ULONG>(remaining);
 		}
 
 		HRESULT STDMETHODCALLTYPE CreateInstance(IUnknown* outer, REFIID riid, void** object) override
@@ -181,7 +166,6 @@ namespace
 		}
 
 	private:
-		LONG refCount_ = 1;
 		CLSID clsid_;
 		WrapperRecord record_;
 	};

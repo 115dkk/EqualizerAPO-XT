@@ -3,35 +3,21 @@
 	Copyright (C) 2026 115dkk
 	SPDX-License-Identifier: GPL-2.0-or-later
 
-	The daemon adapter at the processor seam: the wrapper's planes are
-	private staging buffers, and every process() copies them into the ring
-	slot, publishes, waits, and copies the result back. Two shapes:
+	The daemon adapter at the processor seam. planes() points the wrapper's
+	conversion directly at the ring slot for the block, so process() publishes
+	and receives without a staging-to-ring or ring-to-staging copy.
 
-	  Sync       publish(seq), wait(seq, deadline). Done -> Processed;
-	             the deadline passing -> Late (the wrapper writes the
-	             original audio for that block, the host still processes it
-	             in order); the host gone -> Gone for the rest of the stream.
-	  Pipelined  publish(seq), then take seq - 1, which is normally complete
-	             already. One block of extra latency, no per-block deadline;
-	             a host that stops answering for eight periods or 20 ms,
-	             whichever is longer, is Gone (so at 64 frames and 48 kHz,
-	             sixteen late blocks in a row).
-
-	A slot the host may still be reading (two behind) is never overwritten:
-	that block is dropped and reported Late without touching the ring.
-
-	A pipelined Late block keeps the one-block delay: the planes then hold
-	the previous block's original audio, which is what would have gone out
-	processed had the host answered, and the wrapper writes the planes
-	(StreamProcessor.h, Outcome::Late). Writing the current block's original
-	audio instead would move the output a block earlier for that block and
-	back again after it.
+	Sync publishes and waits to the deadline. A timeout is LateDropped because
+	the consumer may still own the slot. Pipelined publishes this block and
+	returns the preceding slot. A late pipelined result is LateHeld and returns
+	the preceding block's original audio, preserving the reported one-block
+	latency. The one copy retained in that mode saves the current original
+	before the host processes its ring slot in place.
 */
 
 #pragma once
 
 #include <memory>
-#include <string>
 #include <vector>
 
 #include "asio/HostLink.h"
@@ -50,45 +36,39 @@ namespace eapo::asio
 		DaemonProcessor& operator=(const DaemonProcessor&) = delete;
 
 		OpenReport open(const StreamFormat& format, const StreamOptions& options) override;
+		float** planes(Direction direction) noexcept override;
 		Outcome process(Direction direction) noexcept override;
-		void close(const StreamStats& stats) noexcept override;
+		void close() noexcept override;
+		const HandoffProfile* profile() const noexcept override {return &profile_;}
 
 		// The deadline the last open() settled on, for the probe's report.
 		uint32_t deadlineUs() const noexcept {return deadlineUs_;}
-		const StreamStats& lastStats() const noexcept {return lastStats_;}
-
-		// Where the handoff time went, over every completed block since
-		// open(): the worst of each leg and a histogram of the whole round
-		// trip. What the maintainer reads against the buffer period.
-		struct HandoffProfile
-		{
-			uint32_t maxDispatchUs = 0;
-			uint32_t maxServiceUs = 0;
-			uint32_t maxReturnUs = 0;
-			uint64_t roundTripBuckets[6] = {0, 0, 0, 0, 0, 0};   // <100, <200, <500, <1000, <2000, >=2000 us
-			uint64_t completed = 0;
-		};
-		const HandoffProfile& profile() const noexcept {return profile_;}
 
 	private:
 		struct Lane
 		{
-			std::vector<float> staging;
-			// Pipelined only: the original audio of the last block process()
-			// was given, which a Late block puts out in its place.
-			std::vector<float> previousInput;
+			// Scratch receives a block when its ring slot is still busy. In
+			// pipelined mode scratch and heldInput swap ownership to hold the
+			// preceding original without another copy.
+			std::vector<float> scratch;
+			std::vector<float> heldInput;
+			std::vector<float> silence;
 			std::vector<float*> planes;
-			uint32_t sequence = 0;      // last published
+			uint32_t sequence = 0;          // last published
+			uint32_t preparedSequence = 0;  // the sequence planes() selected
 			uint32_t consecutiveLate = 0;
 			size_t samples = 0;
+			bool publishable = false;
+			bool prepared = false;
 			bool gone = false;
 		};
 
 		void teardown() noexcept;
-		static void holdTimeline(Lane& lane) noexcept;
+		void pointPlanes(Lane& lane, float* samples) noexcept;
+		void holdTimeline(Lane& lane) noexcept;
+		void record(Direction direction) noexcept;
 
 		std::unique_ptr<IHostLink> link_;
-		HostSession session_;
 		std::unique_ptr<eapo::ipc::RingProducer> producer_;
 		Lane lanes_[directionCount];
 		StreamFormat format_;
@@ -97,9 +77,6 @@ namespace eapo::asio
 		uint32_t pipelineSpinUs_ = 0;
 		uint32_t hangLateCount_ = 0;
 		bool open_ = false;
-		StreamStats lastStats_;
 		HandoffProfile profile_;
-
-		void record(Direction direction) noexcept;
 	};
 }

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The production control-pipe server, compiled by the host and AsioTests. -->
+<Project>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)HostControlServer.h" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)HostControlServer.cpp" />
+  </ItemGroup>
+</Project>

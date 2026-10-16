@@ -54,10 +54,6 @@ namespace eapo::asio
 		// leaves within idleWaitMs. The host sets it to stop its streams on
 		// shutdown; the tests set it to stand in for a crashed host.
 		const std::atomic<bool>* abandon = nullptr;
-		// Test hook: while set and true, the loop keeps the next block it
-		// acquires without processing or releasing it, the way a host stalled
-		// by the scheduler would. Clearing it resumes in order.
-		const std::atomic<bool>* hold = nullptr;
 	};
 
 	struct ServeReport

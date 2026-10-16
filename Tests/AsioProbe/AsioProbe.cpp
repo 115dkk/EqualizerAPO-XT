@@ -401,13 +401,12 @@ namespace
 
 	void printProfile(const AsioWrapper* staticWrapper)
 	{
-		const eapo::asio::DaemonProcessor* daemon = staticWrapper != nullptr
-			? dynamic_cast<const eapo::asio::DaemonProcessor*>(staticWrapper->processor()) : nullptr;
-		if (daemon == nullptr)
+		const eapo::asio::HandoffProfile* profile = staticWrapper != nullptr ? staticWrapper->processor()->profile() : nullptr;
+		if (profile == nullptr)
 			return;
-		const eapo::asio::DaemonProcessor::HandoffProfile& p = daemon->profile();
+		const eapo::asio::HandoffProfile& p = *profile;
 		std::printf("handoff deadline=%u us; max dispatch=%u service=%u return=%u us over %llu completed\n",
-			daemon->deadlineUs(), p.maxDispatchUs, p.maxServiceUs, p.maxReturnUs, static_cast<unsigned long long>(p.completed));
+			p.deadlineUs, p.maxDispatchUs, p.maxServiceUs, p.maxReturnUs, static_cast<unsigned long long>(p.completed));
 		std::printf("round-trip <100us=%llu <200=%llu <500=%llu <1000=%llu <2000=%llu >=2000=%llu\n",
 			static_cast<unsigned long long>(p.roundTripBuckets[0]), static_cast<unsigned long long>(p.roundTripBuckets[1]),
 			static_cast<unsigned long long>(p.roundTripBuckets[2]), static_cast<unsigned long long>(p.roundTripBuckets[3]),

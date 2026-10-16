@@ -126,21 +126,6 @@
     <ClCompile Include="..\text\WideString.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\asio\AsioSdk.h" />
-    <ClInclude Include="..\asio\AsioWrapper.h" />
-    <ClInclude Include="..\asio\DriverNameText.h" />
-    <ClInclude Include="..\asio\CallbackTrampolines.h" />
-    <ClInclude Include="..\asio\SampleCodec.h" />
-    <ClInclude Include="..\asio\StreamProcessor.h" />
-    <ClInclude Include="..\asio\EntryOptions.h" />
-    <ClInclude Include="..\asio\WrapperRecord.h" />
-    <ClInclude Include="..\asio\DaemonProcessor.h" />
-    <ClInclude Include="..\asio\HostLink.h" />
-    <ClInclude Include="..\asio\HostProtocol.h" />
-    <ClInclude Include="..\asio\Win32HostLink.h" />
-    <ClInclude Include="..\runtime\ipc\StreamRing.h" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="EqualizerAPOAsio.def" />
   </ItemGroup>
   <Import Project="..\asio\AsioCoreSources.props" />

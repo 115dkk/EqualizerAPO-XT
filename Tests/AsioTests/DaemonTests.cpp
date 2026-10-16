@@ -18,6 +18,7 @@
 #include <cmath>
 #include <cstring>
 #include <fstream>
+#include <limits>
 #include <memory>
 #include <string>
 #include <thread>
@@ -28,6 +29,7 @@
 #include "asio/AsioWrapper.h"
 #include "asio/DaemonProcessor.h"
 #include "asio/EngineHostCore.h"
+#include "asio/HostControlServer.h"
 #include "asio/HostProtocol.h"
 #include "asio/InProcProcessor.h"
 #include "asio/SampleCodec.h"
@@ -205,7 +207,7 @@ namespace
 	// one cannot even be published) used to put out its own original audio,
 	// one block earlier than everything around it. It now puts out the
 	// previous block's original audio, so the one-block delay holds.
-	void testPipelinedLateKeepsTheDelay()
+	void testPipelinedLateHeldKeepsTheDelay()
 	{
 		test::TestDirectory directory(L"DaemonTests");
 		const std::wstring configPath = writeConfig(directory, "Preamp: -6.0206 dB\n");
@@ -215,8 +217,9 @@ namespace
 		options.mode = Mode::Pipelined;
 
 		constexpr long frames = 64;
-		ThreadHostLink* link = new ThreadHostLink();
-		std::unique_ptr<IStreamProcessor> processor(new DaemonProcessor(std::unique_ptr<eapo::asio::IHostLink>(link)));
+		auto control = std::make_shared<eapo::asio::ThreadHostControl>();
+		std::unique_ptr<IStreamProcessor> processor = std::make_unique<DaemonProcessor>(
+			std::make_unique<ThreadHostLink>(false, 0, control));
 		FakeAsioConfig config;
 		config.sampleType = ASIOSTInt32LSB;
 		config.outputChannels = 1;
@@ -243,11 +246,11 @@ namespace
 			}
 		};
 		pumpServed(6);           // periods 0-5: silence, then each previous block processed
-		link->holdHost(true);    // the host has served seq 6 (period 5) and keeps the next one
+		control->holdHost(true);    // the host has served seq 6 (period 5) and keeps the next one
 		fake->pump(1);           // period 6: seq 7 published (and held), seq 6 is back: processed
 		fake->pump(1);           // period 7: seq 8 published, seq 7 held: Late
 		fake->pump(1);           // period 8: seq 9 cannot be published (seq 7 not done): Late
-		link->holdHost(false);
+		control->holdHost(false);
 		Sleep(100);
 		pumpServed(3);           // periods 9-11
 		wrapper->stop();
@@ -380,8 +383,9 @@ namespace
 		options.deadlineUs = 2000000;
 		options.mode = Mode::Sync;
 
-		ThreadHostLink* link = new ThreadHostLink();
-		std::unique_ptr<IStreamProcessor> processor(new DaemonProcessor(std::unique_ptr<eapo::asio::IHostLink>(link)));
+		auto control = std::make_shared<eapo::asio::ThreadHostControl>();
+		std::unique_ptr<IStreamProcessor> processor = std::make_unique<DaemonProcessor>(
+			std::make_unique<ThreadHostLink>(false, 0, control));
 		FakeAsioConfig config;
 		config.outputChannels = 1;
 		config.inputChannels = 0;
@@ -397,7 +401,7 @@ namespace
 		harness.requireEqual(host.createBuffers(wrapper, 32), ASE_OK, "createBuffers over the thread host");
 		harness.requireEqual(wrapper->start(), ASE_OK, "start");
 		fake->pump(3);
-		link->killHost();
+		control->killHost();
 		fake->pump(3);
 		wrapper->stop();
 		const eapo::asio::StreamStats stats = wrapper->stats();
@@ -549,13 +553,13 @@ namespace
 		options.daemonExePath = L"C:\\definitely\\not\\here\\EqualizerAPOHost.exe";
 		options.readyTimeoutMs = 3000;
 		eapo::asio::Win32HostLink link;
-		eapo::asio::HostSession session;
-		std::string error;
-		const bool opened = link.open(smallFormat(), options, session, error);
-		harness.expectFalse(opened, "the link does not use a pipe served by a program other than the host");
+		eapo::asio::OpenReport report;
+		std::unique_ptr<eapo::ipc::RingProducer> producer = link.open(smallFormat(), options, report);
+		harness.expect(producer == nullptr, "the link does not use a pipe served by a program other than the host");
+		const std::string error(report.message);
 		harness.expect(error.find("held by another program") != std::string::npos, "and says so: " + error);
 		harness.expectFalse(squatter.requestRead(), "the stand-in never receives the stream request");
-		link.close(session);
+		link.close(std::move(producer));
 	}
 
 	void testASilentServerTimesOut()
@@ -573,16 +577,146 @@ namespace
 		options.daemonExePath = self;
 		options.readyTimeoutMs = 200;
 		eapo::asio::Win32HostLink link;
-		eapo::asio::HostSession session;
-		std::string error;
+		eapo::asio::OpenReport report;
 		const auto started = std::chrono::steady_clock::now();
-		const bool opened = link.open(smallFormat(), options, session, error);
+		std::unique_ptr<eapo::ipc::RingProducer> producer = link.open(smallFormat(), options, report);
 		const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - started).count();
-		harness.expectFalse(opened, "a server that never replies does not hang the open call");
+		const std::string error(report.message);
+		harness.expect(producer == nullptr, "a server that never replies does not hang the open call");
 		harness.expect(error.find("in time") != std::string::npos, "the error says the host did not answer in time: " + error);
 		harness.expect(elapsed < 10000, "and the call gives up within seconds (" + std::to_string(elapsed) + " ms)");
 		harness.expect(squatter.requestRead(), "the request itself was delivered");
-		link.close(session);
+		link.close(std::move(producer));
+	}
+
+	class ControlRingHost
+	{
+	public:
+		explicit ControlRingHost(eapo::asio::HostActivity& activity)
+			: activity_(activity)
+		{
+		}
+
+		eapo::asio::HostOpenReply open(eapo::asio::HostOpenRequest request)
+		{
+			auto worker = std::make_unique<Worker>();
+			worker->mapping.reset(OpenFileMappingW(FILE_MAP_ALL_ACCESS, FALSE, request.ringName));
+			worker->base.reset(worker->mapping ? MapViewOfFile(worker->mapping.get(), FILE_MAP_ALL_ACCESS, 0, 0, request.ringBytes) : nullptr);
+			bool ok = static_cast<bool>(worker->base);
+			for (unsigned i = 0; ok && i < eapo::asio::RingEvents::count; i++)
+			{
+				worker->events[i].reset(OpenEventW(EVENT_MODIFY_STATE | SYNCHRONIZE, FALSE,
+					eapo::asio::HostNames::event(request.ringName, eapo::asio::RingEvents::table[i].suffix).c_str()));
+				ok = static_cast<bool>(worker->events[i]);
+			}
+			worker->producer.reset(OpenProcess(SYNCHRONIZE, FALSE, request.producerPid));
+			eapo::asio::HostOpenReply reply;
+			reply.hostPid = GetCurrentProcessId();
+			if (!ok)
+			{
+				reply.status = static_cast<uint32_t>(eapo::asio::HostOpenStatus::BadRing);
+				return reply;
+			}
+			Worker* raw = worker.get();
+			activity_.started();
+			raw->thread = std::jthread([this, raw, request] {
+				const auto* header = static_cast<const eapo::ipc::RingHeader*>(raw->base.get());
+				const ULONGLONG deadline = GetTickCount64() + 5000;
+				while (ReadAcquire(&header->state) == static_cast<LONG>(eapo::ipc::RingState::Empty)
+					&& GetTickCount64() < deadline)
+					Sleep(1);
+				eapo::ipc::RingConsumer consumer(raw->base.get(), request.ringBytes,
+					eapo::asio::RingEvents::toSync(raw->events, raw->producer.get()));
+				if (consumer.valid())
+				{
+					consumer.setConsumerPid(GetCurrentProcessId());
+					consumer.setState(eapo::ipc::RingState::Ready);
+					eapo::ipc::RingConsumer::Acquired acquired;
+					while (consumer.state() == eapo::ipc::RingState::Ready && !consumer.peerGone())
+						if (consumer.acquire(acquired, 50))
+							consumer.release(acquired);
+				}
+				activity_.finished();
+			});
+			workers_.push_back(std::move(worker));
+			reply.status = static_cast<uint32_t>(eapo::asio::HostOpenStatus::Accepted);
+			return reply;
+		}
+
+	private:
+		struct Worker
+		{
+			winutil::UniqueHandle mapping;
+			winutil::UniqueMappedView base;
+			winutil::UniqueHandle events[eapo::asio::RingEvents::count];
+			winutil::UniqueHandle producer;
+			std::jthread thread;
+		};
+
+		eapo::asio::HostActivity& activity_;
+		std::vector<std::unique_ptr<Worker>> workers_;
+	};
+
+	bool waitForPipe(const std::wstring& endpoint)
+	{
+		const std::wstring pipe = eapo::asio::HostNames::pipe(endpoint);
+		for (unsigned attempt = 0; attempt < 100; attempt++)
+		{
+			if (WaitNamedPipeW(pipe.c_str(), 20))
+				return true;
+			Sleep(10);
+		}
+		return false;
+	}
+
+	void testHostControlServerWithWin32Client()
+	{
+		const std::wstring endpoint = L"EAPO.ASIO.test.control." + std::to_wstring(GetCurrentProcessId());
+		eapo::asio::HostActivity activity;
+		ControlRingHost rings(activity);
+		eapo::asio::HostControlOptions serverOptions;
+		serverOptions.endpoint = endpoint;
+		serverOptions.resident = true;
+		eapo::asio::HostControlServer server(serverOptions, activity,
+			[&rings](eapo::asio::HostOpenRequest request) {return rings.open(request);});
+		std::thread serverThread([&server] {server.run();});
+		harness.require(waitForPipe(endpoint), "the real host control server starts listening");
+
+		wchar_t self[MAX_PATH] = {};
+		GetModuleFileNameW(nullptr, self, MAX_PATH);
+		StreamOptions options;
+		options.daemonEndpoint = endpoint;
+		options.daemonExePath = self;
+		options.readyTimeoutMs = 3000;
+		options.lingerMs = (std::numeric_limits<uint32_t>::max)();
+		for (unsigned attempt = 0; attempt < 2; attempt++)
+		{
+			eapo::asio::Win32HostLink link;
+			eapo::asio::OpenReport report;
+			std::unique_ptr<eapo::ipc::RingProducer> producer = link.open(smallFormat(), options, report);
+			harness.require(producer != nullptr, "Win32HostLink receives an accepted request and Ready ring");
+			link.close(std::move(producer));
+		}
+		harness.expectEqual(server.lingerMs(), eapo::asio::maxHostLingerMs, "a client linger is clamped to the documented maximum");
+		harness.expect(server.instanceHandoffs() >= 2, "each next pipe instance existed before the connected one closed");
+		server.requestStop();
+		serverThread.join();
+	}
+
+	void testHostControlServerLinger()
+	{
+		const std::wstring endpoint = L"EAPO.ASIO.test.linger." + std::to_wstring(GetCurrentProcessId());
+		eapo::asio::HostActivity activity;
+		eapo::asio::HostControlOptions options;
+		options.endpoint = endpoint;
+		options.lingerMs = 20;
+		eapo::asio::HostControlServer server(options, activity,
+			[](eapo::asio::HostOpenRequest) {return eapo::asio::HostOpenReply();});
+		const auto started = std::chrono::steady_clock::now();
+		std::thread serverThread([&server] {server.run();});
+		serverThread.join();
+		const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - started).count();
+		harness.expect(elapsed < 3000, "an idle control server leaves after its linger interval (" + std::to_string(elapsed) + " ms)");
 	}
 }
 
@@ -590,13 +724,15 @@ int runDaemonTests()
 {
 	testDaemonMatchesInProc();
 	testPipelinedShape();
-	testPipelinedLateKeepsTheDelay();
+	testPipelinedLateHeldKeepsTheDelay();
 	testHostDeathIsGoneThenReopens();
 	testServeLoopPublishesTheFacts();
 	testMissingHostExecutableFailsLoudly();
 	testHostExecutableFallsBackToTheParentFolder();
 	testAnotherProgramOnTheControlPipeIsRefused();
 	testASilentServerTimesOut();
+	testHostControlServerWithWin32Client();
+	testHostControlServerLinger();
 	harness.report();
 	return 0;
 }

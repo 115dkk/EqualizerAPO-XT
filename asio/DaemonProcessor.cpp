@@ -6,29 +6,13 @@
 
 #include "asio/DaemonProcessor.h"
 
-#include <algorithm>
 #include <cstring>
+#include <utility>
 
 namespace eapo::asio
 {
-	namespace
-	{
-		using eapo::ipc::RingState;
-		using eapo::ipc::RingWait;
-
-		void copyMessage(char (&destination)[errorMessageBytes], const std::string& source) noexcept
-		{
-			size_t i = 0;
-			for (; i + 1 < sizeof(destination) && i < source.size(); i++)
-				destination[i] = source[i];
-			destination[i] = '\0';
-		}
-
-		inline unsigned slotOf(Direction direction) noexcept
-		{
-			return static_cast<unsigned>(direction);
-		}
-	}
+	using eapo::ipc::RingState;
+	using eapo::ipc::RingWait;
 
 	DaemonProcessor::DaemonProcessor(std::unique_ptr<IHostLink> link)
 		: link_(std::move(link))
@@ -63,7 +47,7 @@ namespace eapo::asio
 		if (!eapo::ipc::RingGeometry::validFormat(format))
 		{
 			report.status = OpenReport::Status::Rejected;
-			copyMessage(report.message, "EQ APO XT cannot serve this channel count or buffer size");
+			copyErrorMessage(report.message, "EQ APO XT cannot serve this channel count or buffer size");
 			return report;
 		}
 
@@ -71,11 +55,10 @@ namespace eapo::asio
 		mode_ = options.mode;
 		const double period = periodUs(format);
 		deadlineUs_ = syncDeadlineUs(format, options);
+		profile_.deadlineUs = deadlineUs_;
 		pipelineSpinUs_ = static_cast<uint32_t>(period * 0.1);
 		if (pipelineSpinUs_ > 500)
 			pipelineSpinUs_ = 500;
-		// Gone after eight periods of lateness or 20 ms, whichever is longer,
-		// counted in blocks.
 		uint32_t hangBoundUs = static_cast<uint32_t>(period * 8.0);
 		if (hangBoundUs < 20000)
 			hangBoundUs = 20000;
@@ -89,42 +72,23 @@ namespace eapo::asio
 			const uint32_t channels = format.channels[slot];
 			lane.samples = static_cast<size_t>(channels) * format.frames;
 			lane.sequence = 0;
+			lane.preparedSequence = 0;
 			lane.consecutiveLate = 0;
+			lane.publishable = false;
+			lane.prepared = false;
 			lane.gone = false;
-			lane.staging.assign(lane.samples, 0.0f);
-			lane.previousInput.assign(mode_ == Mode::Pipelined ? lane.samples : 0, 0.0f);
+			lane.scratch.assign(lane.samples, 0.0f);
+			lane.heldInput.assign(mode_ == Mode::Pipelined ? lane.samples : 0, 0.0f);
+			lane.silence.assign(mode_ == Mode::Pipelined ? lane.samples : 0, 0.0f);
 			lane.planes.resize(channels);
-			for (uint32_t c = 0; c < channels; c++)
-				lane.planes[c] = lane.staging.data() + static_cast<size_t>(c) * format.frames;
+			pointPlanes(lane, lane.scratch.data());
 		}
 
-		std::string error;
-		if (!link_->open(format, options, session_, error))
+		producer_ = link_->open(format, options, report);
+		if (producer_ == nullptr)
 		{
-			report.status = OpenReport::Status::Unavailable;
-			copyMessage(report.message, error.empty() ? "EQ APO XT engine host could not be reached" : error);
-			teardown();
-			return report;
-		}
-
-		producer_ = std::make_unique<eapo::ipc::RingProducer>(session_.ringBase, format, GetCurrentProcessId(), session_.sync);
-		const RingState state = producer_->waitReady(options.readyTimeoutMs);
-		if (state != RingState::Ready)
-		{
-			if (state == RingState::Fault)
-			{
-				report.status = producer_->fault() == eapo::ipc::RingFault::LayoutMismatch
-					? OpenReport::Status::Rejected : OpenReport::Status::Unavailable;
-				copyMessage(report.message, producer_->fault() == eapo::ipc::RingFault::LayoutMismatch
-					? "EQ APO XT engine host does not understand this wrapper's stream layout"
-					: "EQ APO XT engine host could not load the configuration for this stream");
-			}
-			else
-			{
-				report.status = OpenReport::Status::Unavailable;
-				copyMessage(report.message, "EQ APO XT engine host did not become ready in time");
-			}
-			producer_->close();
+			if (report.message[0] == '\0')
+				copyErrorMessage(report.message, "EQ APO XT engine host could not be reached");
 			teardown();
 			return report;
 		}
@@ -132,21 +96,39 @@ namespace eapo::asio
 		open_ = true;
 		report.status = OpenReport::Status::Ok;
 		report.extraLatencyFrames = mode_ == Mode::Pipelined ? format.frames : 0;
-		for (unsigned slot = 0; slot < directionCount; slot++)
-			report.planes[slot] = format.channels[slot] > 0 ? lanes_[slot].planes.data() : nullptr;
 		return report;
+	}
+
+	void DaemonProcessor::pointPlanes(Lane& lane, float* samples) noexcept
+	{
+		for (size_t c = 0; c < lane.planes.size(); c++)
+			lane.planes[c] = samples + c * format_.frames;
+	}
+
+	float** DaemonProcessor::planes(Direction direction) noexcept
+	{
+		Lane& lane = lanes_[slotOf(direction)];
+		if (!open_ || lane.samples == 0)
+			return nullptr;
+		lane.preparedSequence = lane.sequence + 1;
+		lane.publishable = !lane.gone && producer_->canPublish(direction, lane.preparedSequence);
+		lane.prepared = true;
+		float* samples = lane.publishable ? producer_->slot(direction, lane.preparedSequence) : lane.scratch.data();
+		pointPlanes(lane, samples);
+		return lane.planes.data();
 	}
 
 	Outcome DaemonProcessor::process(Direction direction) noexcept
 	{
 		Lane& lane = lanes_[slotOf(direction)];
-		if (!open_ || lane.samples == 0)
+		if (!open_ || lane.samples == 0 || !lane.prepared)
 			return Outcome::Off;
+		lane.prepared = false;
 		if (lane.gone)
 			return Outcome::Gone;
 
-		const uint32_t seq = lane.sequence + 1;
-		if (!producer_->canPublish(direction, seq))
+		const uint32_t seq = lane.preparedSequence;
+		if (!lane.publishable)
 		{
 			if (producer_->peerGone() || producer_->state() != RingState::Ready)
 			{
@@ -159,11 +141,21 @@ namespace eapo::asio
 				return Outcome::Gone;
 			}
 			if (mode_ == Mode::Pipelined)
+			{
 				holdTimeline(lane);
-			return Outcome::Late;      // the host is two blocks behind; drop this one
+				return Outcome::LateHeld;
+			}
+			return Outcome::LateDropped;
 		}
+
 		lane.sequence = seq;
-		std::memcpy(producer_->slot(direction, seq), lane.staging.data(), lane.samples * sizeof(float));
+		if (mode_ == Mode::Pipelined)
+		{
+			// Preserve this block's original before publish wakes the consumer,
+			// which processes the ring slot in place.
+			std::memcpy(lane.scratch.data(), producer_->slot(direction, seq), lane.samples * sizeof(float));
+			std::swap(lane.scratch, lane.heldInput);
+		}
 		producer_->publish(direction, seq);
 
 		if (mode_ == Mode::Sync)
@@ -172,7 +164,6 @@ namespace eapo::asio
 			if (waited == RingWait::Done)
 			{
 				record(direction);
-				std::memcpy(lane.staging.data(), producer_->slot(direction, seq), lane.samples * sizeof(float));
 				return Outcome::Processed;
 			}
 			if (waited == RingWait::Gone)
@@ -180,14 +171,12 @@ namespace eapo::asio
 				lane.gone = true;
 				return Outcome::Gone;
 			}
-			return Outcome::Late;
+			return Outcome::LateDropped;
 		}
 
-		// Pipelined: the block before this one is what goes out now.
 		if (seq == 1)
 		{
-			std::memcpy(lane.previousInput.data(), lane.staging.data(), lane.samples * sizeof(float));
-			std::memset(lane.staging.data(), 0, lane.samples * sizeof(float));
+			pointPlanes(lane, lane.silence.data());
 			return Outcome::Processed;
 		}
 		const RingWait waited = producer_->poll(direction, seq - 1, pipelineSpinUs_);
@@ -195,8 +184,7 @@ namespace eapo::asio
 		{
 			lane.consecutiveLate = 0;
 			record(direction);
-			std::memcpy(lane.previousInput.data(), lane.staging.data(), lane.samples * sizeof(float));
-			std::memcpy(lane.staging.data(), producer_->slot(direction, seq - 1), lane.samples * sizeof(float));
+			pointPlanes(lane, producer_->slot(direction, seq - 1));
 			return Outcome::Processed;
 		}
 		if (waited == RingWait::Gone)
@@ -209,42 +197,36 @@ namespace eapo::asio
 			lane.gone = true;
 			return Outcome::Gone;
 		}
-		holdTimeline(lane);
-		return Outcome::Late;
+		pointPlanes(lane, lane.scratch.data());
+		return Outcome::LateHeld;
 	}
 
 	void DaemonProcessor::holdTimeline(Lane& lane) noexcept
 	{
-		// The planes take the previous block's original audio and the
-		// current block's becomes the previous one, in one pass and without
-		// a third buffer.
-		std::swap_ranges(lane.staging.begin(), lane.staging.end(), lane.previousInput.begin());
+		std::swap(lane.scratch, lane.heldInput);
+		pointPlanes(lane, lane.scratch.data());
 	}
 
-	void DaemonProcessor::close(const StreamStats& stats) noexcept
+	void DaemonProcessor::close() noexcept
 	{
-		lastStats_ = stats;
 		teardown();
 	}
 
 	void DaemonProcessor::teardown() noexcept
 	{
-		if (producer_ != nullptr)
-		{
-			producer_->close();
-			producer_.reset();
-		}
-		if (session_.ringBase != nullptr)
-			link_->close(session_);
-		session_ = HostSession();
+		link_->close(std::move(producer_));
 		for (Lane& lane : lanes_)
 		{
-			lane.staging.clear();
-			lane.previousInput.clear();
+			lane.scratch.clear();
+			lane.heldInput.clear();
+			lane.silence.clear();
 			lane.planes.clear();
 			lane.samples = 0;
 			lane.sequence = 0;
+			lane.preparedSequence = 0;
 			lane.consecutiveLate = 0;
+			lane.publishable = false;
+			lane.prepared = false;
 			lane.gone = false;
 		}
 		open_ = false;
