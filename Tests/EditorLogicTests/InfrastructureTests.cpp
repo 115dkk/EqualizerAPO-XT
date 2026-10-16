@@ -198,6 +198,37 @@ void testFileReferenceControllerOwnsPathState()
 	const QString farSelection = root.filePath(QStringLiteral("outside/plugin.dll"));
 	expectPath(FileReferenceController::displayPathForBaseDirectory(
 		baseDirectory, farSelection), farSelection);
+
+	// A picked file becomes the reference by the same rule (the card's VST
+	// chooser and chooseExistingFile both go through it).
+	reference.adoptChosenFile(farSelection, baseDirectory);
+	expectEqual(reference.writtenPath(), QDir::toNativeSeparators(farSelection),
+		"a far pick is written absolute");
+	expectEqual(reference.resolvedPath(), QDir::toNativeSeparators(farSelection),
+		"a pick resolves to the picked file");
+	reference.adoptChosenFile(impulsePath, root.filePath(QStringLiteral("config")));
+	expectEqual(reference.writtenPath(), QDir::toNativeSeparators(QStringLiteral("irs/room.wav")),
+		"a pick beneath the base directory is written relative");
+	reference.adoptChosenFile(impulsePath, QString());
+	expectEqual(reference.writtenPath(), QDir::toNativeSeparators(impulsePath),
+		"a pick without a base directory is written as picked");
+
+	// Both VST rows show a loaded library by one rule (audit #422 TD-56): the
+	// cards' climb rule against the VSTPlugins directory, with the absolute
+	// fallback keeping the library's own spelling.
+	const QString pluginsDirectory = QStringLiteral("C:/Program Files/EqualizerAPO/VSTPlugins");
+	expectEqual(FileReferenceController::displayPathForLibrary(
+		QStringLiteral("C:\\Program Files\\EqualizerAPO\\VSTPlugins\\Comp\\comp.dll"), pluginsDirectory),
+		QStringLiteral("Comp\\comp.dll"), "a library beneath VSTPlugins is shown relative");
+	expectEqual(FileReferenceController::displayPathForLibrary(
+		QStringLiteral("C:\\Program Files\\EqualizerAPO\\Shared\\comp.dll"), pluginsDirectory),
+		QStringLiteral("..\\Shared\\comp.dll"), "one level above VSTPlugins is still relative");
+	expectEqual(FileReferenceController::displayPathForLibrary(
+		QStringLiteral("C:/Program Files/Common Files/VST3/comp.vst3"), pluginsDirectory),
+		QStringLiteral("C:/Program Files/Common Files/VST3/comp.vst3"),
+		"a far library keeps its own spelling");
+	expectEqual(FileReferenceController::displayPathForLibrary(QString(), pluginsDirectory), QString(),
+		"no library shows no path");
 }
 
 void testAnalysisWorkerRecovery()

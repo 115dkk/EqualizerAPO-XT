@@ -107,7 +107,7 @@ void DeviceFilterGUI::load(const QString& parameters)
 		{
 			QStringList values;
 			values.append("");
-			values.append(tr("No device matched") + " \"" + pattern.trimmed() + "\"");
+			values.append(tr("No device matched \"%1\"").arg(pattern.trimmed()));
 			values.append("");
 
 			QTreeWidgetItem* item = new QTreeWidgetItem(ui->treeWidget, values);

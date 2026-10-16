@@ -130,6 +130,7 @@ SOURCES += main.cpp\
 	helpers/PanelFeedEngine.cpp \
 	helpers/PanelPreviewFeeder.cpp \
 	helpers/PluginLoadQueue.cpp \
+	helpers/BackgroundProbe.cpp \
 	../platform/qt/QtAppBootstrap.cpp \
 	helpers/VstChunkScan.cpp \
 	widgets/ResizingLineEdit.cpp \
@@ -161,7 +162,6 @@ SOURCES += main.cpp\
 	guis/MultiConvolutionFilterGUI.cpp \
 	guis/SpatialFilterGUIFactory.cpp \
 	guis/SubwooferRoutingFilterGUIFactory.cpp \
-	helpers/ConvolutionPathHelper.cpp \
 	helpers/DisableWheelFilter.cpp \
 	widgets/EscapableLineEdit.cpp \
 	MainWindow.cpp \
@@ -172,7 +172,9 @@ SOURCES += main.cpp\
 	MainWindowParts/MainWindow.FileIO.cpp \
 	MainWindowParts/MainWindow.Frame.cpp \
 	MainWindowParts/MainWindow.Preferences.cpp \
+	MainWindowParts/MainWindow.Probe.cpp \
 	MainWindowParts/MainWindow.ViewActions.cpp \
+	MainWindowParts/OpenDocument.cpp \
 	diagnostics/SkinSwitchStorm.cpp \
 	ConfigFileCodec.cpp \
 	guis/StageFilterGUI.cpp \
@@ -336,6 +338,7 @@ SOURCES += main.cpp\
 	widgets/cards/FilterCardEditorRouter.cpp \
 	widgets/cards/FilterLineCard.cpp \
 	analysis/AnalysisViewController.cpp \
+	analysis/AnalysisPanelState.cpp \
 	widgets/cards/IncludeCardEditor.cpp \
 	widgets/cards/PreampCardEditor.cpp \
 	widgets/cards/ScalarKnobCardEditor.cpp \
@@ -343,11 +346,13 @@ SOURCES += main.cpp\
 	widgets/cards/ReferenceCardState.cpp \
 	widgets/cards/DefaultReferenceCardView.cpp \
 	widgets/cards/VSTBusModel.cpp \
+	widgets/cards/VSTBusVerdict.cpp \
 	widgets/cards/VSTBusStrip.cpp \
 	widgets/cards/VSTSlotFillModel.cpp \
 	widgets/cards/VSTSlotFillRail.cpp \
 	widgets/cards/VSTRowDocument.cpp \
 	widgets/cards/VSTPluginSession.cpp \
+	widgets/cards/VSTPanelIntent.cpp \
 	widgets/cards/VSTCardEditor.cpp \
 	widgets/ElidedLabel.cpp \
 	widgets/EditableValue.cpp \
@@ -367,6 +372,7 @@ SOURCES += main.cpp\
 	widgets/FilterPickerView.cpp \
 	widgets/UpdateToast.cpp \
 	widgets/MainToolbarKit.cpp \
+	widgets/DeviceFormatBadgeState.cpp \
 	widgets/ValueScrubBox.cpp \
 	widgets/DialogChrome.cpp \
 	widgets/TitleBar.cpp \
@@ -419,6 +425,7 @@ HEADERS  += \
 	helpers/PanelMonitorGate.h \
 	helpers/PanelPreviewFeeder.h \
 	helpers/PluginLoadQueue.h \
+	helpers/BackgroundProbe.h \
 	helpers/WindowFrameHitTest.h \
 	../platform/qt/QtAppBootstrap.h \
 	helpers/VstChunkScan.h \
@@ -519,12 +526,13 @@ HEADERS  += \
 	guis/SpatialFilterGUIFactory.h \
 	guis/SubwooferRoutingFilterGUIFactory.h \
 	helpers/AnalysisWorkerRecovery.h \
-	helpers/ConvolutionPathHelper.h \
 	helpers/DisableWheelFilter.h \
 	widgets/EscapableLineEdit.h \
 	../version.h \
 	../stdafx.h \
 	MainWindow.h \
+	MainWindowProbe.h \
+	MainWindowParts/OpenDocument.h \
 	ConfigFileCodec.h \
 	guis/StageFilterGUI.h \
 	guis/StageFilterGUIFactory.h \
@@ -675,17 +683,20 @@ HEADERS  += \
 	widgets/cards/HilbertCardEditor.h \
 	widgets/cards/VelvetCardEditor.h \
 	analysis/AnalysisViewController.h \
+	analysis/AnalysisPanelState.h \
 	widgets/cards/IncludeCardEditor.h \
 	widgets/cards/PreampCardEditor.h \
 	widgets/cards/ScalarKnobCardEditor.h \
 	widgets/cards/ReferenceCardView.h \
 	widgets/cards/DefaultReferenceCardView.h \
 	widgets/cards/VSTBusModel.h \
+	widgets/cards/VSTBusVerdict.h \
 	widgets/cards/VSTBusStrip.h \
 	widgets/cards/VSTSlotFillModel.h \
 	widgets/cards/VSTSlotFillRail.h \
 	widgets/cards/VSTRowDocument.h \
 	widgets/cards/VSTPluginSession.h \
+	widgets/cards/VSTPanelIntent.h \
 	widgets/cards/VSTCardEditor.h \
 	widgets/ElidedLabel.h \
 	widgets/EditableValue.h \
@@ -706,6 +717,7 @@ HEADERS  += \
 	widgets/FilterPickerView.h \
 	widgets/UpdateToast.h \
 	widgets/MainToolbarKit.h \
+	widgets/DeviceFormatBadgeState.h \
 	widgets/ValueScrubBox.h \
 	widgets/DialogChrome.h \
 	widgets/TitleBar.h \

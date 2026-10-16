@@ -53,9 +53,6 @@
     <ClCompile Include="..\..\Editor\analysis\ResponseCurveBuilder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Editor\helpers\ConvolutionPathHelper.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\Editor\import\ConfigDependencyScanner.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -167,18 +164,54 @@
     <ClCompile Include="VSTRowDocumentTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="VSTPanelIntentTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VSTBusVerdictTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MainWindowStateTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Editor\widgets\cards\VSTPanelIntent.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Editor\widgets\cards\VSTBusVerdict.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Editor\analysis\AnalysisPanelState.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Editor\widgets\DeviceFormatBadgeState.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Editor\MainWindowParts\OpenDocument.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Editor\widgets\routing\RoutingGridModel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Editor\widgets\cards\VSTPanelIntent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Editor\widgets\cards\VSTBusVerdict.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Editor\analysis\AnalysisPanelState.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Editor\widgets\DeviceFormatBadgeState.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Editor\MainWindowParts\OpenDocument.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Editor\widgets\routing\CopyRoutingAdapter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Benchmark\BatchPlan.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Editor\helpers\ConvolutionPathHelper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Editor\import\ConfigDependencyScanner.h">

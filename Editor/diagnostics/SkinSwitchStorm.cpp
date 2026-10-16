@@ -57,6 +57,7 @@ using std::vector;
 using std::wstring;
 #include "Editor/diagnostics/ToolbarPixelProbe.h"
 #include "Editor/diagnostics/SkinSwitchStorm.h"
+#include "Editor/MainWindowProbe.h"
 #include "Editor/widgets/MainToolbarKit.h"
 
 void MainWindow::startSkinSwitchStorm()
@@ -331,5 +332,5 @@ void MainWindow::startSkinSwitchStorm()
 
 void SkinSwitchStorm::run(MainWindow& window)
 {
-	window.startSkinSwitchStorm();
+	window.probe().startSkinSwitchStorm();
 }

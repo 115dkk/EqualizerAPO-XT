@@ -20,6 +20,8 @@
 #include <optional>
 #include <vector>
 
+#include <QCoreApplication>
+
 class QWidget;
 class IRegistry;
 
@@ -29,6 +31,8 @@ namespace CallerProfileCheck { class FileSystem; }
 
 class LegacyMigration
 {
+    Q_DECLARE_TR_FUNCTIONS(LegacyMigration)
+
 public:
     // %LOCALAPPDATA%\EqualizerAPO-XT\config for the current user; empty when
     // the environment variable is missing.

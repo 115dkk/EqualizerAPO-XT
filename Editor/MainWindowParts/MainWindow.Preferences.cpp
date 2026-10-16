@@ -38,6 +38,7 @@
 #include "Editor/widgets/TitleBar.h"
 #include "FilterTable.h"
 #include "MainWindow.h"
+#include "Editor/MainWindowParts/OpenDocument.h"
 #include "SkinManager.h"
 #include "skins/SkinThemeData.h"
 #include "ui_MainWindow.h"
@@ -519,6 +520,41 @@ FilterTable* MainWindow::filterTableForTab(int tabIndex) const
 FilterTable* MainWindow::currentFilterTable() const
 {
 	return filterTableForTab(ui->tabWidget->currentIndex());
+}
+
+OpenDocument* MainWindow::documentForTab(int tabIndex) const
+{
+	QWidget* page = ui->tabWidget->widget(tabIndex);
+	if (page == nullptr)
+		return nullptr;
+	for (const std::unique_ptr<OpenDocument>& document : documents)
+	{
+		if (document->page == page)
+			return document.get();
+	}
+	return nullptr;
+}
+
+OpenDocument* MainWindow::documentForTable(const FilterTable* table) const
+{
+	for (const std::unique_ptr<OpenDocument>& document : documents)
+	{
+		if (document->table == table)
+			return document.get();
+	}
+	return nullptr;
+}
+
+void MainWindow::showDocumentTitle(const OpenDocument& document)
+{
+	const int tabIndex = ui->tabWidget->indexOf(document.page);
+	if (tabIndex < 0)
+		return;
+	const QString text = document.state.tabText();
+	if (ui->tabWidget->tabText(tabIndex) != text)
+		ui->tabWidget->setTabText(tabIndex, text);
+	if (ui->tabWidget->tabToolTip(tabIndex) != document.state.path())
+		ui->tabWidget->setTabToolTip(tabIndex, document.state.path());
 }
 
 void MainWindow::forEachFilterTable(const std::function<void(int, FilterTable*)>& visitor) const

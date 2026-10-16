@@ -23,7 +23,7 @@ void expectEqual(const QStringList& actual, const QStringList& expected, const Q
 void requireTrue(bool value, const QString& message);
 void requireEqual(int actual, int expected, const QString& message);
 
-void testConvolutionPathHelper();
+void testLegacyConvolutionPathRules();
 void testAnalysisWorkerRecovery();
 void testFilterCardDescriptors();
 void testCardEditsKeepSwitchedOffLinesOff();
@@ -118,6 +118,12 @@ void testPanelMonitorGateArmDelayOutlivesReverbTails();
 void testPanelMonitorGateClosesAndRearms();
 void testPanelMonitorGateInterruptedArmStartsOver();
 void testFilterListModel();
+void testVSTPanelIntentCompletesWishesOnLoad();
+void testVSTBusVerdictCoversEveryRow();
+void testAnalysisPanelStateCoversEveryOutcome();
+void testDeviceFormatBadgeCoversEveryRow();
+void testDocumentStateOwnsTitleAndDirtyFlag();
+void testRecentFilesRule();
 void testFilterListUndo();
 void testFilterCommandCatalogRoster();
 void testFilterCommandCatalogIconsExistOnDisk();

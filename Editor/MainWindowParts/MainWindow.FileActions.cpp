@@ -31,6 +31,7 @@
 #include "version.h"
 #include "FilterTable.h"
 #include "MainWindow.h"
+#include "Editor/MainWindowParts/OpenDocument.h"
 #include "ui_MainWindow.h"
 
 using std::find;
@@ -126,8 +127,11 @@ void MainWindow::on_actionSaveAs_triggered()
 		filterTable->setConfigPath(QDir::toNativeSeparators(savePath));
 
 		QFileInfo fileInfo(savePath);
-		ui->tabWidget->setTabText(ui->tabWidget->currentIndex(), fileInfo.fileName());
-		ui->tabWidget->setTabToolTip(ui->tabWidget->currentIndex(), QDir::toNativeSeparators(fileInfo.absoluteFilePath()));
+		if (OpenDocument* document = documentForTab(ui->tabWidget->currentIndex()))
+		{
+			document->state.savedAs(fileInfo.fileName(), QDir::toNativeSeparators(fileInfo.absoluteFilePath()));
+			showDocumentTitle(*document);
+		}
 		updateDirtyStatus();
 	}
 }
@@ -152,10 +156,11 @@ bool MainWindow::askForClose(int tabIndex)
 {
 	flushPendingInstantSave(tabIndex);
 	bool discarded = false;
-	if (ui->tabWidget->tabText(tabIndex).endsWith('*'))
+	const OpenDocument* document = documentForTab(tabIndex);
+	if (document != nullptr && document->state.dirty())
 	{
 		ui->tabWidget->setCurrentIndex(tabIndex);
-		QString configPath = ui->tabWidget->tabToolTip(tabIndex);
+		QString configPath = document->state.path();
 		QMessageBox messageBox;
 		messageBox.setWindowTitle(tr("Unsaved changes"));
 		messageBox.setText(tr("The configuration file %0 has unsaved changes.").arg(configPath));
@@ -171,7 +176,7 @@ bool MainWindow::askForClose(int tabIndex)
 		{
 		case QMessageBox::Save:
 			ui->actionSave->trigger();
-			if (ui->tabWidget->tabText(tabIndex).endsWith('*'))
+			if (document->state.dirty())
 				// saving was canceled
 				return false;
 			break;

@@ -15,11 +15,16 @@
 
 namespace PluginLoadQueue
 {
-// Call these on the UI thread while a QCoreApplication exists.
+// Call these on the UI thread while a QCoreApplication exists. A request made
+// after shutdown completes as AbstractLibrary::LOADING_FAILED.
 void enqueue(const std::shared_ptr<VSTPluginLibrary>& library,
 	std::function<void(int result)> onDoneOnUiThread);
 bool isPending(const VSTPluginLibrary* library);
 int pendingCount();
+// Handles events until every pending completion has run, or until timeoutMs
+// passed; true when none is left. The offscreen gates use it before they
+// capture.
+bool waitForPendingLoads(int timeoutMs);
 // A plug-in's DLL entry point holds the process loader lock for the whole
 // load, and the UI thread stops whenever it waits for a thread that has yet to
 // start or for a DLL that has yet to load. These do that work before the

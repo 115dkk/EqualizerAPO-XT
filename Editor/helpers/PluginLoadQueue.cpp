@@ -16,10 +16,13 @@
 #include <vector>
 
 #include <QCoreApplication>
+#include <QElapsedTimer>
+#include <QEventLoop>
 #include <QMetaObject>
 #include <QObject>
 #include <QSemaphore>
 #include <QThreadPool>
+#include <QTimer>
 #include <QtGui/private/qguiapplication_p.h>
 
 #define WIN32_LEAN_AND_MEAN
@@ -66,6 +69,21 @@ public:
 			std::lock_guard<std::mutex> lock(mutex);
 			if (receiver == nullptr)
 				receiver = new Receiver(*this);
+
+			if (stopping)
+			{
+				// The loader thread has ended, so this load would never run and
+				// the row would keep saying "Loading plugin..." for good. It
+				// completes as a failed load instead, through the receiver like
+				// every other completion.
+				pendingDeliveries++;
+				QMetaObject::invokeMethod(receiver, [this, callback = std::move(callback)]() {
+					callback(AbstractLibrary::LOADING_FAILED);
+					std::lock_guard<std::mutex> deliveryLock(mutex);
+					pendingDeliveries--;
+				}, Qt::QueuedConnection);
+				return;
+			}
 
 			auto found = requests.find(library.get());
 			if (found != requests.end())
@@ -236,6 +254,25 @@ bool PluginLoadQueue::isPending(const VSTPluginLibrary* library)
 int PluginLoadQueue::pendingCount()
 {
 	return queue().pendingCount();
+}
+
+bool PluginLoadQueue::waitForPendingLoads(int timeoutMs)
+{
+	if (pendingCount() == 0)
+		return true;
+
+	// Blocks in the event dispatcher until something arrives (a completion
+	// posted by the loader thread wakes it, and the deadline timer bounds the
+	// wait) instead of polling with short sleeps. processEvents, not a nested
+	// QEventLoop, so deferred deletions behave as they did for the callers.
+	QElapsedTimer elapsed;
+	elapsed.start();
+	QTimer deadline;
+	deadline.setSingleShot(true);
+	deadline.start(timeoutMs);
+	while (pendingCount() != 0 && elapsed.elapsed() < timeoutMs)
+		QCoreApplication::processEvents(QEventLoop::AllEvents | QEventLoop::WaitForMoreEvents);
+	return pendingCount() == 0;
 }
 
 void PluginLoadQueue::holdLoads()

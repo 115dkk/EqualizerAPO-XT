@@ -44,12 +44,14 @@
 #include "services/audio/AudioFormatProbe.h"
 #include "services/update/UpdateSession.h"
 #include "Editor/widgets/UpdateToast.h"
+#include "Editor/helpers/BackgroundProbe.h"
 #include "Editor/helpers/GUIChannelHelper.h"
 #include "Editor/widgets/SkinComboBox.h"
 #include "Editor/widgets/MainToolbarKit.h"
 #include "version.h"
 #include "FilterTable.h"
 #include "MainWindow.h"
+#include "Editor/MainWindowParts/OpenDocument.h"
 #include "services/install/ApoRegistration.h"
 #include "SkinManager.h"
 #include "ui_MainWindow.h"
@@ -134,7 +136,8 @@ MainWindow::MainWindow(QDir configDir, const UpdateSession* updateSession, QWidg
 
 	QStandardItemModel* model = qobject_cast<QStandardItemModel*>(deviceComboBox->model());
 	if (defaultOutputDevice != nullptr)
-		deviceComboBox->addItem(tr("Default") + " (" + QString::fromStdWString(defaultOutputDevice->getConnectionName()) + " - " + QString::fromStdWString(defaultOutputDevice->getDeviceName()) + ")", QVariant::fromValue(shared_ptr<AbstractAPOInfo>()));
+		deviceComboBox->addItem(tr("Default (%1 - %2)").arg(QString::fromStdWString(defaultOutputDevice->getConnectionName()),
+			QString::fromStdWString(defaultOutputDevice->getDeviceName())), QVariant::fromValue(shared_ptr<AbstractAPOInfo>()));
 
 	deviceComboBox->addItem(tr("Playback devices:"));
 	QStandardItem* item = model->item(model->rowCount() - 1);
@@ -228,13 +231,13 @@ MainWindow::MainWindow(QDir configDir, const UpdateSession* updateSession, QWidg
 		autoLocale = QLocale("en");
 	for (QLocale::Language language : languages)
 	{
-		QString languageName;
-		if (language == QLocale::AnyLanguage)
-			languageName = autoLocale.nativeLanguageName();
-		else
-			languageName = QLocale(language).nativeLanguageName();
-		if (languageName == "American English")
-			languageName = "English";
+		const QLocale locale = language == QLocale::AnyLanguage ? autoLocale : QLocale(language);
+		// US English names itself "American English"; the menu calls the
+		// source language plain English. Other English locales keep their
+		// own names.
+		QString languageName = locale.nativeLanguageName();
+		if (locale.language() == QLocale::English && locale.territory() == QLocale::UnitedStates)
+			languageName = QStringLiteral("English");
 		QString text;
 		if (language == QLocale::AnyLanguage)
 			text = tr("Automatic (%0)").arg(languageName);
@@ -306,38 +309,64 @@ void MainWindow::doChecks()
 	// uses a stream format we cannot process natively. The APO still passes
 	// audio through in that case, but no filters are applied — without this
 	// warning the user would just see "EQ has no effect" with no explanation.
+	// The probes go through COM and the audio service, which can stall on a
+	// slow or unplugged device, so they run off the UI thread (audit #422
+	// TD-04); the window is usable meanwhile, and the remaining check follows
+	// the warning in the order the two always had.
+	struct ProbeTarget
 	{
-		QStringList passthroughDevices;
-		auto inspect = [&passthroughDevices](const QList<shared_ptr<AbstractAPOInfo>>& list)
+		std::wstring deviceGuid;
+		QString name;
+	};
+	std::vector<ProbeTarget> targets;
+	auto collect = [&targets](const QList<shared_ptr<AbstractAPOInfo>>& list)
+	{
+		for (const shared_ptr<AbstractAPOInfo>& info : list)
 		{
-			for (const shared_ptr<AbstractAPOInfo>& info : list)
+			if (info == nullptr || !info->isInstalled())
+				continue;
+			targets.push_back({ info->getDeviceGuid(), QString::fromStdWString(info->getConnectionName())
+				+ " - " + QString::fromStdWString(info->getDeviceName()) });
+		}
+	};
+	collect(outputDevices);
+	collect(inputDevices);
+	BackgroundProbe::runFor(this,
+		[targets]() {
+			std::vector<AudioFormatProbe::Result> results;
+			results.reserve(targets.size());
+			for (const ProbeTarget& target : targets)
+				results.push_back(AudioFormatProbe::probe(target.deviceGuid));
+			return results;
+		},
+		[this, targets](const std::vector<AudioFormatProbe::Result>& results) {
+			QStringList passthroughDevices;
+			for (size_t i = 0; i < targets.size() && i < results.size(); i++)
 			{
-				if (info == nullptr || !info->isInstalled())
-					continue;
-				AudioFormatProbe::Result r = AudioFormatProbe::probe(info->getDeviceGuid());
+				const AudioFormatProbe::Result& r = results[i];
 				if (AudioFormatProbe::isPassthrough(r.status))
 				{
-					QString label = QString::fromStdWString(info->getConnectionName())
-						+ " - " + QString::fromStdWString(info->getDeviceName())
+					QString label = targets[i].name
 						+ "  (" + QString::fromStdWString(r.subtypeDescription)
 						+ ", " + QString::number(r.containerBytes * 8) + "-bit)";
 					passthroughDevices.append(label);
 				}
 			}
-		};
-		inspect(outputDevices);
-		inspect(inputDevices);
-		if (!passthroughDevices.isEmpty())
-		{
-			QMessageBox::warning(this,
-				tr("EQ inactive on some devices"),
-				tr("EqualizerAPO can only process IEEE_FLOAT 32/64-bit streams natively. The following installed devices currently use a different format, "
-				   "so audio passes through them without any filter being applied:\n\n%0\n\nThis is not a crash — sound still reaches the device, but no EQ. "
-				   "Switch the device's default format to a 32-bit IEEE_FLOAT one in Sound Settings if you need filtering on them.")
-				.arg(passthroughDevices.join('\n')));
-		}
-	}
+			if (!passthroughDevices.isEmpty())
+			{
+				QMessageBox::warning(this,
+					tr("EQ inactive on some devices"),
+					tr("EqualizerAPO can only process IEEE_FLOAT 32/64-bit streams natively. The following installed devices currently use a different format, "
+					   "so audio passes through them without any filter being applied:\n\n%0\n\nThis is not a crash — sound still reaches the device, but no EQ. "
+					   "Switch the device's default format to a 32-bit IEEE_FLOAT one in Sound Settings if you need filtering on them.")
+					.arg(passthroughDevices.join('\n')));
+			}
+			checkAudioEnhancements();
+		});
+}
 
+void MainWindow::checkAudioEnhancements()
+{
 	AbstractAPOInfo* disabledApoInfo = nullptr;
 	for (shared_ptr<AbstractAPOInfo>& apoInfo : outputDevices)
 	{

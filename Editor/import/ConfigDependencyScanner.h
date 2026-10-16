@@ -16,6 +16,7 @@
 
 #include "ImportManifest.h"
 
+#include <QCoreApplication>
 #include <QString>
 
 namespace EqAPO::Import
@@ -36,6 +37,8 @@ enum class DestLayout
 
 class ConfigDependencyScanner
 {
+    Q_DECLARE_TR_FUNCTIONS(ConfigDependencyScanner)
+
 public:
     // Kept equal to the engine's file-local RECURSION_LIMIT.
     static constexpr int kRecursionLimit = 100;

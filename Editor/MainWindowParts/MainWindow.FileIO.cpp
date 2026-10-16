@@ -33,6 +33,7 @@
 #include "FilterTable.h"
 #include "ConfigFileCodec.h"
 #include "MainWindow.h"
+#include "Editor/MainWindowParts/OpenDocument.h"
 #include "ui_MainWindow.h"
 
 using std::find;
@@ -81,10 +82,7 @@ void MainWindow::load(QString path)
 	ui->tabWidget->setCurrentIndex(ui->tabWidget->count() - 1);
 	updateDirtyStatus();
 
-	recentFiles.removeAll(path);
-	recentFiles.prepend(path);
-	if (recentFiles.size() > 10)
-		recentFiles.removeLast();
+	RecentFiles::remember(recentFiles, path);
 	updateRecentFiles();
 }
 
@@ -124,26 +122,21 @@ bool MainWindow::save(FilterTable* filterTable, QString path)
 
 void MainWindow::setTabDirty(int tabIndex, bool dirty)
 {
-	if (tabIndex < 0 || tabIndex >= ui->tabWidget->count())
+	OpenDocument* document = documentForTab(tabIndex);
+	if (document == nullptr)
 		return;
-	const QString tabText = ui->tabWidget->tabText(tabIndex);
-	if (dirty && !tabText.endsWith('*'))
-		ui->tabWidget->setTabText(tabIndex, tabText + '*');
-	else if (!dirty && tabText.endsWith('*'))
-		ui->tabWidget->setTabText(tabIndex, tabText.left(tabText.length() - 1));
+	document->state.setDirty(dirty);
+	showDocumentTitle(*document);
 }
 
 void MainWindow::flushPendingInstantSave(int tabIndex)
 {
-	FilterTable* filterTable = filterTableForTab(tabIndex);
-	if (filterTable == nullptr)
+	OpenDocument* document = documentForTab(tabIndex);
+	if (document == nullptr || !document->saveTimer.isActive())
 		return;
-	QTimer* timer = filterTable->findChild<QTimer*>(QStringLiteral("__instantModeSaveTimer"), Qt::FindDirectChildrenOnly);
-	if (timer == nullptr || !timer->isActive())
-		return;
-	timer->stop();
-	const QString path = filterTable->getConfigPath();
-	if (path.length() > 0 && !save(filterTable, path))
+	document->saveTimer.stop();
+	const QString path = document->table->getConfigPath();
+	if (path.length() > 0 && !save(document->table, path))
 		setTabDirty(tabIndex, true);
 	updateDirtyStatus();
 }

@@ -102,7 +102,7 @@ int main(int argc, char** argv)
 	{
 		QCoreApplication app(argc, argv);
 
-		testConvolutionPathHelper();
+		testLegacyConvolutionPathRules();
 		testAnalysisWorkerRecovery();
 		testFilterCardDescriptors();
 		testCardEditsKeepSwitchedOffLinesOff();
@@ -190,6 +190,12 @@ int main(int argc, char** argv)
 		testVSTSlotFillModel();
 		testChannelFlow();
 		testVSTRowDocument();
+		testVSTPanelIntentCompletesWishesOnLoad();
+		testVSTBusVerdictCoversEveryRow();
+		testAnalysisPanelStateCoversEveryOutcome();
+		testDeviceFormatBadgeCoversEveryRow();
+		testDocumentStateOwnsTitleAndDirtyFlag();
+		testRecentFilesRule();
 		testPanelMonitorGateOpensOnlyForSelfGeneratedAudio();
 		testPanelMonitorGateArmDelayOutlivesReverbTails();
 		testPanelMonitorGateClosesAndRearms();

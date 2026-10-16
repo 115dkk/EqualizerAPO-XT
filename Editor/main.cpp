@@ -81,6 +81,7 @@
 #include "platform/qt/QtAppBootstrap.h"
 #include "Editor/helpers/CrashHandler.h"
 #include "Editor/helpers/GUIHelper.h"
+#include "Editor/helpers/BackgroundProbe.h"
 #include "Editor/helpers/PluginLoadQueue.h"
 #include "services/settings/EditorSettings.h"
 #include "Editor/skins/SkinThemeData.h"
@@ -665,6 +666,8 @@ int main(int argc, char* argv[])
 	// Editor during a slow first load). Let it finish before static
 	// destruction instead of racing it.
 	PluginLoadQueue::shutdown();
+	// The same for an endpoint format probe still running.
+	BackgroundProbe::shutdown();
 
 	// The session owns the download worker. Join it before inspecting staged state so
 	// neither process shutdown nor static destruction can race with its publication.

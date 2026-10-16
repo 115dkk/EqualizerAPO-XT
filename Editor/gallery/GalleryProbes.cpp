@@ -28,6 +28,7 @@
 #include "widgets/cards/VSTCardEditor.h"
 #include "widgets/cards/VSTSlotFillRail.h"
 #include "MainWindow.h"
+#include "Editor/MainWindowProbe.h"
 #include "diagnostics/ToolbarPixelProbe.h"
 #include "widgets/MainToolbarKit.h"
 #include "SubwooferRouting/Preset.h"
@@ -857,6 +858,7 @@ bool SkinGallery::armAnalysisLatencyProbe(MainWindow& window, const QStringList&
 	struct State
 	{
 		MainWindow* window = nullptr;
+		QCheckBox* instantMode = nullptr;
 		FilterTable* table = nullptr;
 		FilterTable::Item* probeItem = nullptr;
 		QString configPath;
@@ -878,9 +880,12 @@ bool SkinGallery::armAnalysisLatencyProbe(MainWindow& window, const QStringList&
 	if (!iterationsOk || iterations <= 0)
 		iterations = 10;
 
-	FilterTable* table = window.currentFilterTable();
+	MainWindow::Probe probe = window.probe();
+	FilterTable* table = probe.currentFilterTable();
 	QDockWidget* dock = window.findChild<QDockWidget*>(QStringLiteral("analysisDockWidget"));
-	if (table == nullptr || dock == nullptr || window.instantModeCheckBox == nullptr)
+	QCheckBox* instantMode = probe.instantModeControl();
+	QComboBox* deviceCombo = probe.deviceControl();
+	if (table == nullptr || dock == nullptr || instantMode == nullptr)
 	{
 		fprintf(stderr, "Analysis latency: loaded table, analysis dock, or instant-mode control is missing\n");
 		return false;
@@ -899,9 +904,9 @@ bool SkinGallery::armAnalysisLatencyProbe(MainWindow& window, const QStringList&
 	state->configPath = table->getConfigPath();
 	state->originalBytes = source.readAll();
 	state->iterations = iterations;
-	state->originalInstantMode = window.instantModeCheckBox->isChecked();
-	window.noSavePreferences = true;
-	window.noSaveFilePreferences = true;
+	state->instantMode = instantMode;
+	state->originalInstantMode = instantMode->isChecked();
+	probe.suppressPreferenceWrites();
 
 	QSpinBox* resolution = window.findChild<QSpinBox*>(QStringLiteral("AnalysisFormSpin"));
 	fprintf(stderr, "Analysis latency: resolution=%d block=%d\n",
@@ -913,7 +918,7 @@ bool SkinGallery::armAnalysisLatencyProbe(MainWindow& window, const QStringList&
 			return;
 		state->finished = true;
 		state->phase = Phase::Done;
-		state->window->instantModeCheckBox->setChecked(state->originalInstantMode);
+		state->instantMode->setChecked(state->originalInstantMode);
 
 		int exitCode = requestedExitCode;
 		QFile restore(state->configPath);
@@ -1000,14 +1005,14 @@ bool SkinGallery::armAnalysisLatencyProbe(MainWindow& window, const QStringList&
 		}
 	};
 
-	window.analysisProbeSaveStarted = [state]() {
+	probe.onSaveStarted([state]() {
 		if ((state->phase == Phase::Regular || state->phase == Phase::Burst)
 			&& state->current.saveWaitMs < 0.0)
 		{
 			state->current.saveWaitMs = state->timer.nsecsElapsed() / 1e6;
 		}
-	};
-	window.analysisProbeParametersSet = [state]() {
+	});
+	probe.onAnalysisParametersSet([state]() {
 		if (state->phase == Phase::Warmup)
 		{
 			state->paramsSeen = true;
@@ -1019,8 +1024,8 @@ bool SkinGallery::armAnalysisLatencyProbe(MainWindow& window, const QStringList&
 		state->current.queueWaitMs = state->current.saveWaitMs >= 0.0
 			? nowMs - state->current.saveWaitMs : nowMs;
 		state->paramsSeen = true;
-	};
-	window.analysisProbePanelUpdated = [state, beginRegular, beginBurst, printSummary, finish](
+	});
+	probe.onAnalysisPanelUpdated([state, beginRegular, beginBurst, printSummary, finish](
 		double initializationMs, double processingMs, double panelMs) {
 		if (state->phase == Phase::Warmup)
 		{
@@ -1064,7 +1069,7 @@ bool SkinGallery::armAnalysisLatencyProbe(MainWindow& window, const QStringList&
 			sample.totalMs, sample.saveWaitMs, sample.queueWaitMs,
 			sample.initializationMs, sample.processingMs, sample.panelMs);
 		finish(0);
-	};
+	});
 
 	window.showNormal();
 	dock->show();
@@ -1073,10 +1078,10 @@ bool SkinGallery::armAnalysisLatencyProbe(MainWindow& window, const QStringList&
 	int selectedDevice = -1;
 	if (!deviceSubstring.isEmpty())
 	{
-		for (int i = 0; i < window.deviceComboBox->count(); i++)
+		for (int i = 0; i < deviceCombo->count(); i++)
 		{
-			if (window.deviceComboBox->itemData(i).isValid()
-				&& window.deviceComboBox->itemText(i).contains(deviceSubstring, Qt::CaseInsensitive))
+			if (deviceCombo->itemData(i).isValid()
+				&& deviceCombo->itemText(i).contains(deviceSubstring, Qt::CaseInsensitive))
 			{
 				selectedDevice = i;
 				break;
@@ -1085,9 +1090,9 @@ bool SkinGallery::armAnalysisLatencyProbe(MainWindow& window, const QStringList&
 	}
 	if (selectedDevice < 0)
 	{
-		for (int i = 0; i < window.deviceComboBox->count(); i++)
+		for (int i = 0; i < deviceCombo->count(); i++)
 		{
-			if (window.deviceComboBox->itemData(i).isValid())
+			if (deviceCombo->itemData(i).isValid())
 			{
 				selectedDevice = i;
 				break;
@@ -1103,10 +1108,10 @@ bool SkinGallery::armAnalysisLatencyProbe(MainWindow& window, const QStringList&
 		finish(1);
 		return true;
 	}
-	window.deviceComboBox->setCurrentIndex(selectedDevice);
-	Q_EMIT window.deviceComboBox->activated(selectedDevice);
+	deviceCombo->setCurrentIndex(selectedDevice);
+	Q_EMIT deviceCombo->activated(selectedDevice);
 	fprintf(stderr, "Analysis latency: device='%s'\n",
-		qPrintable(window.deviceComboBox->currentText()));
+		qPrintable(deviceCombo->currentText()));
 
 	QComboBox* startFrom = nullptr;
 	if (QWidget* controls = window.findChild<QWidget*>(QStringLiteral("analysisControlBar")))
@@ -1128,7 +1133,7 @@ bool SkinGallery::armAnalysisLatencyProbe(MainWindow& window, const QStringList&
 	}
 	startFrom->setCurrentIndex(1);
 	Q_EMIT startFrom->activated(1);
-	window.instantModeCheckBox->setChecked(true);
+	instantMode->setChecked(true);
 	window.startAnalysis();
 
 	QTimer::singleShot(180000, &window, [state, finish]() {

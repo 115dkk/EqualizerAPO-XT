@@ -28,6 +28,7 @@
 #include <shellapi.h>
 
 #include "Editor/analysis/AnalysisMetric.h"
+#include "Editor/analysis/AnalysisPanelState.h"
 #include "Editor/analysis/AnalysisViewController.h"
 #include "services/settings/EditorSettings.h"
 #include "services/registry/RegistryPaths.h"
@@ -229,19 +230,9 @@ void MainWindow::updateAnalysisPanel()
 	panelTimer.start();
 	auto result = analysisThread->lockResult();
 	const std::shared_ptr<const AnalysisResponse> response = result.response();
-	const int sampleRate = static_cast<int>(response->sampleRate);
-	const int latency = response->latencyFrames;
-	const QString errorText = result.errorText();
-	const auto finishProbe = [&]() {
-		if (analysisProbePanelUpdated)
-			analysisProbePanelUpdated(result.initializationTime(), result.processingTime(),
-				panelTimer.nsecsElapsed() / 1e6);
-	};
 
-	// A line whose filter could not be set up rolled the whole load back: the
-	// audio service keeps playing the previous configuration, and the response
-	// the analysis still published was computed without this one. The first
-	// such entry is the line that stopped the load.
+	// A line whose filter could not be set up rolled the whole load back. The
+	// first such entry is the line that stopped the load.
 	const ConfigLoadTraceEntry* setupError = nullptr;
 	for (const ConfigLoadTraceEntry& entry : result.loadTrace())
 	{
@@ -252,10 +243,24 @@ void MainWindow::updateAnalysisPanel()
 		}
 	}
 
-	// No curve for a configuration that does not play: an empty response clears
-	// the graph, as the failed-analysis path does.
+	AnalysisPanelFacts facts;
+	if (setupError != nullptr)
+	{
+		facts.setupFailed = true;
+		facts.setupErrorLine = setupError->line;
+		facts.setupErrorFileName = QFileInfo(QString::fromStdWString(setupError->file)).fileName();
+	}
+	facts.errorText = result.errorText();
+	facts.peakGain = result.peakGain();
+	facts.processedFrames = static_cast<int>(result.processedFrames());
+	facts.sampleRate = static_cast<int>(response->sampleRate);
+	facts.latencyFrames = response->latencyFrames;
+	facts.initializationTime = result.initializationTime();
+	facts.processingTime = result.processingTime();
+	const AnalysisPanelState panel = AnalysisPanelState::describe(facts);
+
 	if (eqGraphView != nullptr)
-		eqGraphView->setResponse(setupError != nullptr ? std::make_shared<AnalysisResponse>() : response,
+		eqGraphView->setResponse(panel.clearGraph ? std::make_shared<AnalysisResponse>() : response,
 			ui->analysisChannelComboBox->currentText());
 
 	// Hand the engine's per-line load facts to every open tab whose file took
@@ -281,91 +286,42 @@ void MainWindow::updateAnalysisPanel()
 
 	// The window-level notice. It stays until the user closes it or a result
 	// without a setup error arrives; closing it does not stop the next result
-	// that still has one from bringing it back. The exception text stays in the
-	// log, which the engine already writes.
-	QString setupNotice;
-	if (setupError != nullptr)
+	// that still has one from bringing it back.
+	if (!panel.notice.isEmpty())
 	{
-		setupNotice = tr("This configuration was not applied: the filter on line %1 of %2 could not be prepared. Equalizer APO keeps playing the previous settings.")
-			.arg(setupError->line)
-			.arg(QFileInfo(QString::fromStdWString(setupError->file)).fileName());
 		if (loadNotice == nullptr)
 			loadNotice = new UpdateToast(centralWidget());
-		loadNotice->showMessage(setupNotice, 0);
+		loadNotice->showMessage(panel.notice, 0);
 	}
 	else if (loadNotice != nullptr)
 	{
 		loadNotice->hideMessage();
 	}
 
-	auto setSeverity = [](QLabel* label, const char* severity)
+	auto setSeverity = [](QLabel* label, AnalysisPanelState::Severity severity)
 	{
-		if (label->property("severity").toString() == QLatin1String(severity))
+		const char* name = AnalysisPanelState::severityName(severity);
+		if (label->property("severity").toString() == QLatin1String(name))
 			return;
-		label->setProperty("severity", QString::fromLatin1(severity));
+		label->setProperty("severity", QString::fromLatin1(name));
 		label->style()->unpolish(label);
 		label->style()->polish(label);
 		label->update();
 	};
 
-	if (setupError != nullptr)
-	{
-		ui->peakGainValueLabel->setText(tr("Not applied"));
-		ui->peakGainValueLabel->setToolTip(setupNotice);
-		setSeverity(ui->peakGainValueLabel, "critical");
-		const QString unavailable = QString::fromUtf8("\xE2\x80\x94");
-		ui->latencyValueLabel->setText(unavailable);
-		ui->initTimeValueLabel->setText(unavailable);
-		ui->cpuUsageValueLabel->setText(unavailable);
-		setSeverity(ui->cpuUsageValueLabel, "normal");
-		finishProbe();
-		return;
-	}
-	if (!errorText.isEmpty())
-	{
-		ui->peakGainValueLabel->setText(tr("Analysis failed"));
-		ui->peakGainValueLabel->setToolTip(errorText);
-		setSeverity(ui->peakGainValueLabel, "critical");
-		const QString unavailable = QString::fromUtf8("\xE2\x80\x94");
-		ui->latencyValueLabel->setText(unavailable);
-		ui->initTimeValueLabel->setText(unavailable);
-		ui->cpuUsageValueLabel->setText(unavailable);
-		setSeverity(ui->cpuUsageValueLabel, "normal");
-		finishProbe();
-		return;
-	}
-	ui->peakGainValueLabel->setToolTip(QString());
+	ui->peakGainValueLabel->setToolTip(panel.peakToolTip);
+	ui->peakGainValueLabel->setText(panel.peakText);
+	setSeverity(ui->peakGainValueLabel, panel.peakSeverity);
+	ui->latencyValueLabel->setText(panel.latencyText);
+	if (panel.latencyToolTip)
+		ui->latencyChip->setToolTip(*panel.latencyToolTip);
+	ui->initTimeValueLabel->setText(panel.initializationText);
+	ui->cpuUsageValueLabel->setText(panel.cpuText);
+	setSeverity(ui->cpuUsageValueLabel, panel.cpuSeverity);
 
-	double peakGain = result.peakGain();
-	ui->peakGainValueLabel->setText(tr("%0 dB").arg(peakGain, 0, 'f', 1));
-	setSeverity(ui->peakGainValueLabel, peakGain > 0 ? "critical" : "normal");
-
-	int processedFrames = result.processedFrames();
-	if (sampleRate <= 0 || processedFrames <= 0)
-	{
-		ui->latencyValueLabel->setText(QString::fromUtf8("\xE2\x80\x94"));
-		ui->cpuUsageValueLabel->setText(QString::fromUtf8("\xE2\x80\x94"));
-		setSeverity(ui->cpuUsageValueLabel, "normal");
-		ui->initTimeValueLabel->setText(tr("%0 ms").arg(result.initializationTime(), 0, 'f', 1));
-		finishProbe();
-		return;
-	}
-
-	// Milliseconds only. The frame count moved to the tooltip when the metric
-	// switch and the base-delay option joined this bar: two readouts now share
-	// a row, and "0.0 ms (0 s.)" does not fit beside another one inside the
-	// bar's analysisControlBarWidth cap.
-	ui->latencyValueLabel->setText(tr("%0 ms").arg(latency * 1000.0 / sampleRate, 0, 'f', 1));
-	ui->latencyChip->setToolTip(tr("%0 ms (%1 samples) of latency the analyzer removed before measuring")
-		.arg(latency * 1000.0 / sampleRate, 0, 'f', 1).arg(latency));
-
-	ui->initTimeValueLabel->setText(tr("%0 ms").arg(result.initializationTime(), 0, 'f', 1));
-
-	double cpuUsage = result.processingTime() * 100.0 / (processedFrames * 1000.0 / sampleRate);
-	ui->cpuUsageValueLabel->setText(tr("%0 %").arg(cpuUsage, 0, 'f', 1));
-	setSeverity(ui->cpuUsageValueLabel, cpuUsage >= 50 ? "critical" : (cpuUsage >= 20 ? "warning" : "normal"));
-
-	finishProbe();
+	if (analysisProbePanelUpdated)
+		analysisProbePanelUpdated(result.initializationTime(), result.processingTime(),
+			panelTimer.nsecsElapsed() / 1e6);
 }
 
 

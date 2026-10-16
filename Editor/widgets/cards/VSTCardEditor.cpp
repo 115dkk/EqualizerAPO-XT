@@ -13,21 +13,18 @@
 */
 
 #include "VSTCardEditor.h"
-#include "services/registry/RegistryPaths.h"
 
 #include <algorithm>
 
 #include <QAction>
 #include <QDir>
-#include <QFileDialog>
-#include <QFileInfo>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QMenu>
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QRegularExpression>
-#include <QSettings>
+#include <QSignalBlocker>
 #include <QToolButton>
 #include <QVBoxLayout>
 
@@ -42,6 +39,7 @@
 #include "ReferenceCardView.h"
 #include "FileReferenceController.h"
 #include "VSTBusStrip.h"
+#include "VSTBusVerdict.h"
 #include "VSTSlotFillRail.h"
 
 using std::shared_ptr;
@@ -50,21 +48,9 @@ using std::wstring;
 
 namespace
 {
-// Display form of the library path: relative to the default VSTPlugins
-// directory when it lives beneath it, absolute otherwise.
-QString displayPathForLibrary(const wstring& libPath)
+QString defaultPluginsDirectory()
 {
-	QString absolutePath = QString::fromStdWString(libPath);
-	QDir pluginsDir(QString::fromStdWString(VSTPluginLibrary::getDefaultPluginPath()));
-	QString relativePath = QDir::toNativeSeparators(pluginsDir.relativeFilePath(absolutePath));
-	if (relativePath.startsWith(QDir::toNativeSeparators("../../")))
-		relativePath = absolutePath;
-	return relativePath;
-}
-
-QString layoutName(VST3BusLayout layout)
-{
-	return QString::fromWCharArray(vst3BusLayoutName(layout));
+	return QString::fromStdWString(VSTPluginLibrary::getDefaultPluginPath());
 }
 }
 
@@ -185,8 +171,9 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 	warningTextEdit->setVisible(false);
 	root->addWidget(warningTextEdit);
 
-	reference = new FileReferenceController(
-		QStringLiteral("vst"), displayPathForLibrary(library->getLibPath()), this);
+	reference = new FileReferenceController(QStringLiteral("vst"),
+		FileReferenceController::displayPathForLibrary(QString::fromStdWString(library->getLibPath()),
+			defaultPluginsDirectory()), this);
 
 	// Let the active skin decorate this VST body (the row is recreated on
 	// skin switches, so construction is the only moment needed).
@@ -201,9 +188,11 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 	connect(session.get(), &VSTPluginSession::loadFinished, this, &VSTCardEditor::pluginLoadFinished);
 	connect(session.get(), &VSTPluginSession::stateChanged, this, &VSTCardEditor::pluginStateChanged);
 	connect(session.get(), &VSTPluginSession::automated, this, &VSTCardEditor::pluginStateChanged);
+	connect(session.get(), &VSTPluginSession::embedStateChanged, this, &VSTCardEditor::embedStateChanged);
 	connect(session.get(), &VSTPluginSession::sizeRequested, this, [this](int w, int h) {
 		frame->setFixedSize(w, h);
 	});
+	session->setEmbedHost(frame, [this](bool shown) { frame->setVisible(shown); });
 
 	updateBusControls();
 	updateFillRails();
@@ -213,11 +202,8 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 
 VSTCardEditor::~VSTCardEditor()
 {
-	if (session->instance() != nullptr)
-	{
-		if (session->embedded())
-			embedToggled(false);
-	}
+	if (session->instance() != nullptr && session->embedded())
+		embedToggled(false);
 }
 
 void VSTCardEditor::store(QString& command, QString& parameters)
@@ -377,53 +363,19 @@ const VSTPluginSession* VSTCardEditor::pluginSession() const
 
 void VSTCardEditor::openPanel()
 {
-	// The panel is already on screen inside the card; opening the dialog on
-	// top would steal the embedded view's window (startEditing recreates the
-	// view for the dialog and the card frame would keep showing nothing).
-	if (session->embedded())
-		return;
-
-	if (session->instance() == nullptr)
+	// A dialog that waits for the library's load leaves the card showing the
+	// loading state meanwhile.
+	if (session->requestPanel(this))
 	{
-		openWhenLoaded = true;
-		session->requestPlugin();
 		updateBusControls();
 		updateReferenceState();
-		return;
 	}
-
-	session->openDialog(this);
 }
 
 void VSTCardEditor::pluginLoadFinished()
 {
-	if (replacementAwaitingModel)
-	{
-		replacementAwaitingModel = false;
-		updateModel();
-		updatePermissionWarning();
-	}
 	updateBusControls();
 	updateReferenceState();
-
-	// A failed load must not request another load through the panel actions.
-	if (embedWhenLoaded)
-	{
-		embedWhenLoaded = false;
-		if (embedAction->isChecked())
-		{
-			if (session->instance() != nullptr)
-				embedToggled(true);
-			else
-				embedAction->setChecked(false);
-		}
-	}
-	if (openWhenLoaded)
-	{
-		openWhenLoaded = false;
-		if (session->instance() != nullptr && !session->embedded())
-			session->openDialog(this);
-	}
 }
 
 void VSTCardEditor::pluginStateChanged()
@@ -496,10 +448,10 @@ void VSTCardEditor::updateReferenceState()
 
 	// The bus contract's long-form message rides the card's status line;
 	// a load error already occupying it stays the more urgent fact.
-	if (state.statusText.isEmpty() && !busStatusText.isEmpty())
+	if (state.statusText.isEmpty() && !busVerdict.statusText.isEmpty())
 	{
-		state.statusText = busStatusText;
-		state.statusSeverity = busStatusSeverity;
+		state.statusText = busVerdict.statusText;
+		state.statusSeverity = busVerdict.statusSeverity;
 	}
 
 	if (state.statusText.isEmpty() && status.loading)
@@ -533,158 +485,96 @@ void VSTCardEditor::updateReferenceState()
 	view->setState(state);
 }
 
-// The bus instrument's semantics in one place: when the strip shows, when
-// its selectors may act, what the compact verdict says, and which long-form
-// message the card's status line carries. Call before updateReferenceState -
+namespace
+{
+VstBusFrameState::Tone frameTone(VSTBusVerdict::Tone tone)
+{
+	switch (tone)
+	{
+	case VSTBusVerdict::Tone::Success:
+		return VstBusFrameState::Tone::Success;
+	case VSTBusVerdict::Tone::Warning:
+		return VstBusFrameState::Tone::Warning;
+	case VSTBusVerdict::Tone::Critical:
+		return VstBusFrameState::Tone::Critical;
+	case VSTBusVerdict::Tone::Neutral:
+		break;
+	}
+	return VstBusFrameState::Tone::Neutral;
+}
+}
+
+// The bus instrument: gathers the facts VSTBusVerdict decides on (probing
+// the negotiation on the editor's own instance where the table needs it)
+// and draws the verdict on the strip. Call before updateReferenceState -
 // the status line and the strip's visibility feed the view's state pass.
 void VSTCardEditor::updateBusControls()
 {
 	const VSTBusModel& busModel = document.bus();
 	VSTPluginInstance* effect = session->instance();
-	const std::shared_ptr<VSTPluginLibrary>& library = session->library();
-	const bool embedded = session->embedded();
 
-	busStatusText.clear();
-	busStatusSeverity = ReferenceCardState::Severity::None;
 	removeBusAction->setEnabled(busModel.contract().has_value());
 	busStrip->setBusLayouts(busModel.input(), busModel.output());
 
-	// No loaded plugin and no saved contract: nothing to show or protect.
-	// A saved contract stays visible (though locked) even while the library
-	// is missing, so reopening a config never hides data it still carries.
-	const bool showStrip = effect != nullptr || busModel.contract().has_value();
-	busStrip->setVisible(showStrip);
-	if (!showStrip)
-		return;
-
-	if (effect == nullptr)
+	VSTBusFacts facts;
+	facts.hasContract = busModel.contract().has_value();
+	facts.requestedInput = busModel.input();
+	facts.requestedOutput = busModel.output();
+	facts.migratedLegacyStereoInput = busModel.migratedLegacyStereoInput();
+	facts.instanceLoaded = effect != nullptr;
+	facts.isVST3 = effect != nullptr && session->library()->isVST3();
+	facts.embedded = session->embedded();
+	if (facts.negotiates())
 	{
-		busStrip->setSelectorsEnabled(false, tr("The bus layout can be changed after the plugin loads."));
-		busStrip->setVerdict(QString(), VstBusFrameState::Tone::Neutral);
-		return;
-	}
-
-	if (!library->isVST3())
-	{
-		// The loaded ABI decides: VST2 ignores the layout keys (issue #216).
-		busStrip->setSelectorsEnabled(false, tr("Input and Output layouts are only supported for VST3 plugins."));
-		if (busModel.contract())
+		// The same call the engine makes, so the verdict states what playback
+		// will actually do.
+		const std::vector<std::wstring> inputHints = vst3speakers::channelNamesForLayout(
+			facts.requestedInput, deviceChannelNames);
+		const std::vector<std::wstring> outputHints = vst3speakers::channelNamesForLayout(
+			facts.requestedOutput, deviceChannelNames);
+		const int automaticChannelCount = !deviceChannelNames.empty()
+			? static_cast<int>(deviceChannelNames.size())
+			: std::max({2, effect->numInputs(), effect->numOutputs()});
+		facts.accepted = effect->negotiateBusLayouts(facts.requestedInput, facts.requestedOutput,
+			automaticChannelCount, inputHints, outputHints);
+		if (facts.accepted && facts.anyAuto())
 		{
-			busStrip->setVerdict(QStringLiteral("VST2"), VstBusFrameState::Tone::Warning);
-			busStatusText = tr("This module loaded as VST2 and ignores the saved Input/Output layouts. Remove them via Options.");
-			busStatusSeverity = ReferenceCardState::Severity::Warning;
+			facts.negotiatedInput = effect->getNegotiatedVST3InputLayout();
+			facts.negotiatedOutput = effect->getNegotiatedVST3OutputLayout();
+			facts.negotiatedInputChannels = effect->numInputs();
+			facts.negotiatedOutputChannels = effect->numOutputs();
 		}
-		else
-		{
-			busStrip->setVerdict(QStringLiteral("VST2"), VstBusFrameState::Tone::Neutral);
-		}
+	}
+
+	busVerdict = VSTBusVerdict::describe(facts);
+	busStrip->setVisible(busVerdict.stripVisible);
+	if (!busVerdict.stripVisible)
 		return;
-	}
-
-	if (embedded)
-	{
-		// Renegotiating would tear the processor state out from under the
-		// open panel; the last verdict stays on display.
-		busStrip->setSelectorsEnabled(false, tr("Close the plugin panel to change the bus layout."));
-		return;
-	}
-
-	busStrip->setSelectorsEnabled(true);
-
-	// Probe the negotiation on the editor's own instance - the same call the
-	// engine makes, so the verdict states what playback will actually do.
-	const VST3BusLayout requestedInput = busModel.input();
-	const VST3BusLayout requestedOutput = busModel.output();
-	const std::vector<std::wstring> inputHints = vst3speakers::channelNamesForLayout(
-		requestedInput, deviceChannelNames);
-	const std::vector<std::wstring> outputHints = vst3speakers::channelNamesForLayout(
-		requestedOutput, deviceChannelNames);
-	const int automaticChannelCount = !deviceChannelNames.empty()
-		? static_cast<int>(deviceChannelNames.size())
-		: std::max({2, effect->numInputs(), effect->numOutputs()});
-	const bool accepted = effect->negotiateBusLayouts(requestedInput, requestedOutput,
-		automaticChannelCount, inputHints, outputHints);
-
-	if (!accepted)
-	{
-		// Lamp-only, like the accepted verdict: a danger lamp beside the
-		// selectors says it, and the sentence belongs to the status line.
-		// A "Rejected" word in the strip restated the lamp (maintainer
-		// judgement, r2: 사족).
-		busStrip->setVerdict(QString(), VstBusFrameState::Tone::Critical);
-		// One short sentence: the fact and its consequence. The full escape
-		// routes (change or remove the layouts) are the selectors sitting
-		// right there - prose walking through them read as a wall (r3).
-		busStatusText = tr("The plugin rejected %1 in / %2 out. Audio passes through unchanged.")
-			.arg(layoutName(requestedInput), layoutName(requestedOutput));
-		busStatusSeverity = ReferenceCardState::Severity::Critical;
-		return;
-	}
-
-	// An accepted all-explicit contract needs no words - the selectors print
-	// the pair, the lamp says it engaged. Any Auto direction makes the
-	// negotiated result the informative fact, so the verdict prints what
-	// actually engaged; an arrangement outside the config grammar honestly
-	// reads as a channel count.
-	const bool anyAuto = requestedInput == VST3BusLayout::Auto
-		|| requestedOutput == VST3BusLayout::Auto;
-	if (anyAuto)
-	{
-		const std::optional<VST3BusLayout> activeInput = effect->getNegotiatedVST3InputLayout();
-		const std::optional<VST3BusLayout> activeOutput = effect->getNegotiatedVST3OutputLayout();
-		const QString inputText = activeInput
-			? layoutName(*activeInput) : tr("%1 ch").arg(effect->numInputs());
-		const QString outputText = activeOutput
-			? layoutName(*activeOutput) : tr("%1 ch").arg(effect->numOutputs());
-		busStrip->setVerdictPair(inputText, outputText,
-			busModel.contract() ? VstBusFrameState::Tone::Success : VstBusFrameState::Tone::Neutral);
-	}
-	else
-	{
-		busStrip->setVerdict(QString(), VstBusFrameState::Tone::Success);
-	}
-	if (busModel.migratedLegacyStereoInput())
-		busStatusText = tr("The legacy Stereo input option now reads as Input Stereo, Output Auto and will be saved that way.");
+	busStrip->setSelectorsEnabled(busVerdict.selectorsEnabled, busVerdict.selectorsDisabledReason);
+	if (busVerdict.readout == VSTBusVerdict::Readout::Single)
+		busStrip->setVerdict(busVerdict.verdictText, frameTone(busVerdict.tone));
+	else if (busVerdict.readout == VSTBusVerdict::Readout::Pair)
+		busStrip->setVerdictPair(busVerdict.verdictInput, busVerdict.verdictOutput, frameTone(busVerdict.tone));
 }
 
 void VSTCardEditor::pathCommitted(const QString& text)
 {
 	reference->setWrittenPath(text);
 	if (session->libraryDiffers(text))
-	{
-		if (session->instance() != nullptr && embedAction->isChecked())
-			embedToggled(false);
-		replacementAwaitingModel = true;
 		session->replaceLibrary(text);
-
-		if (embedAction->isChecked())
-			embedToggled(true);
-	}
 	updateBusControls();
 	updateReferenceState();
 }
 
 void VSTCardEditor::selectFile()
 {
-	QDir pluginsDir(QString::fromStdWString(VSTPluginLibrary::getDefaultPluginPath()));
-
-	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
-	QString lastDir = settings.value("vst/lastDir", "").toString();
-	if (lastDir == "")
-		lastDir = pluginsDir.absolutePath();
-
-	QFileInfo fileInfo(lastDir);
-	if (!reference->writtenPath().isEmpty())
-		fileInfo.setFile(pluginsDir, reference->writtenPath());
-
-	const QString absolutePath = reference->chooseExistingFile(
-		this, tr("Select VST plugin"), fileInfo.absoluteFilePath(),
-		tr("VST plugins (*.dll *.vst3)"), pluginsDir.absolutePath(),
-		reference->writtenPath().isEmpty() ? QString() : fileInfo.fileName(),
-		/*selectVst3Bundles=*/ true);
+	const QString pluginsDirectory = defaultPluginsDirectory();
+	const QString absolutePath = FileReferenceController::chooseVstLibrary(this,
+		tr("Select VST plugin"), tr("VST plugins (*.dll *.vst3)"), reference->writtenPath(),
+		pluginsDirectory, /*skinned=*/ true);
 	if (!absolutePath.isEmpty())
 	{
-		settings.setValue("vst/lastDir", QDir::toNativeSeparators(QFileInfo(absolutePath).absolutePath()));
+		reference->adoptChosenFile(absolutePath, QDir(pluginsDirectory).absolutePath());
 		pathCommitted(reference->writtenPath());
 	}
 }
@@ -718,37 +608,20 @@ void VSTCardEditor::panelButtonClicked()
 
 void VSTCardEditor::embedToggled(bool checked)
 {
-	if (!checked)
-		embedWhenLoaded = false;
-	else if (session->instance() == nullptr)
-	{
-		session->requestPlugin();
-		if (session->loading())
-		{
-			// Keep the saved embed preference while the library is still loading.
-			embedWhenLoaded = true;
-			updateReferenceState();
-			return;
-		}
-	}
-	updateReferenceState();
+	session->requestEmbed(checked);
+}
 
-	const bool enable = checked && session->instance() != nullptr;
-	if (enable != session->embedded())
+void VSTCardEditor::embedStateChanged()
+{
+	// A checked action without a live or waiting embed (plugin missing, or
+	// crashed while opening the panel) would leave the card claiming a panel
+	// it does not show; drop the check so the button reads "Open panel"
+	// again.
+	if (embedAction->isChecked() && !session->embedded() && !session->embedPending())
 	{
-		// The host is shown before the session embeds into it, and hidden
-		// again when embedding failed (reported through the status).
-		frame->setVisible(enable);
-		if (!session->setEmbedded(enable, frame))
-			frame->setVisible(false);
-	}
-
-	// A checked action without a live embed (plugin missing or crashed while
-	// opening the panel) would leave the card claiming a panel it does not
-	// show; drop the check so the button reads "Open panel" again. The
-	// recursive toggle is a no-op: embedded already matches.
-	if (checked && !session->embedded() && embedAction->isChecked())
+		const QSignalBlocker blocker(embedAction);
 		embedAction->setChecked(false);
+	}
 
 	// The button stays visible while embedded - it is the way out. Hiding it
 	// left the embed removable only through the options menu, which read as

@@ -34,6 +34,10 @@ public:
 		const QString& referenceBaseDirectory,
 		const QString& selectedFile = QString(),
 		bool selectVst3Bundles = false);
+	// Takes a file the user picked as this reference: written relative to
+	// referenceBaseDirectory by displayPathForBaseDirectory (as picked when
+	// that is empty), resolved to the picked file.
+	void adoptChosenFile(const QString& selectedPath, const QString& referenceBaseDirectory);
 	ReferenceCardState describe(const QString& emptyName) const;
 	// Why the audio service will not open absolutePath, or an empty string
 	// when it will: first the engine's own rule for where a line's file may
@@ -49,6 +53,28 @@ public:
 	// decision 2026-09-25, audit #348 open question 2).
 	static QString displayPathForBaseDirectory(
 		const QString& baseDirectory, const QString& selectedPath);
+	// How both VST rows show and write a loaded library's path: the same rule
+	// against the default VSTPlugins directory (pluginsDirectory), except that
+	// the absolute fallback keeps the library path exactly as given.
+	static QString displayPathForLibrary(const QString& libraryPath, const QString& pluginsDirectory);
+	// The legacy convolution rows' resolution of a written path: the file the
+	// engine opens for path in configPath's line (ConfigFileReference), with
+	// '/' separators; empty when path names nothing.
+	static QString absolutePathForConfig(const QString& configPath, const QString& path);
+	// How a legacy convolution row writes a chosen file: resolved like
+	// absolutePathForConfig, then written by displayPathForBaseDirectory
+	// against the configuration's folder.
+	static QString displayPathForConfigSelection(const QString& configPath, const QString& selectedPath);
+
+	// The plug-in library chooser both VST rows open. It starts at the written
+	// path (read against pluginsDirectory) or else in the folder the last
+	// library was picked from (vst/lastDir, falling back to pluginsDirectory),
+	// lets *.vst3 bundles be picked like files, and remembers the picked
+	// file's folder. skinned dresses the dialog in the active skin (the card);
+	// the frozen legacy row keeps the stock dialog. Returns the picked file,
+	// or an empty string when the dialog was cancelled.
+	static QString chooseVstLibrary(QWidget* parent, const QString& title, const QString& nameFilter,
+		const QString& writtenPath, const QString& pluginsDirectory, bool skinned);
 
 private:
 	QString referenceKind;

@@ -104,6 +104,9 @@
     <ClCompile Include="VSTBusModelTests.cpp" />
     <ClCompile Include="VSTSlotFillModelTests.cpp" />
     <ClCompile Include="VSTRowDocumentTests.cpp" />
+    <ClCompile Include="VSTPanelIntentTests.cpp" />
+    <ClCompile Include="VSTBusVerdictTests.cpp" />
+    <ClCompile Include="MainWindowStateTests.cpp" />
     <ClCompile Include="PanelMonitorGateTests.cpp" />
     <ClCompile Include="InfrastructureTests.cpp" />
     <ClCompile Include="FilterCardModelTests.cpp" />
@@ -136,7 +139,6 @@
     <ClCompile Include="..\..\Editor\analysis\ImpulseMeasurement.cpp" />
     <ClCompile Include="..\..\Editor\analysis\ResponseCurveBuilder.cpp" />
     <ClCompile Include="..\..\Editor\guis\BiQuadWidthConversion.cpp" />
-    <ClCompile Include="..\..\Editor\helpers\ConvolutionPathHelper.cpp" />
     <ClCompile Include="..\..\Editor\import\ConfigDependencyScanner.cpp" />
     <ClCompile Include="..\..\Editor\import\ImportExecutor.cpp" />
     <ClCompile Include="..\..\Editor\import\LegacyMigrationPolicy.cpp" />
@@ -169,6 +171,11 @@
     <ClCompile Include="..\..\Editor\widgets\cards\VSTBusModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\VSTSlotFillModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\VSTRowDocument.cpp" />
+    <ClCompile Include="..\..\Editor\widgets\cards\VSTPanelIntent.cpp" />
+    <ClCompile Include="..\..\Editor\widgets\cards\VSTBusVerdict.cpp" />
+    <ClCompile Include="..\..\Editor\analysis\AnalysisPanelState.cpp" />
+    <ClCompile Include="..\..\Editor\widgets\DeviceFormatBadgeState.cpp" />
+    <ClCompile Include="..\..\Editor\MainWindowParts\OpenDocument.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\StageSelectionModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\NewChannelListModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\SendCardModel.cpp" />
@@ -187,7 +194,6 @@
     <ClInclude Include="..\..\Editor\widgets\routing\RoutingGridModel.h" />
     <ClInclude Include="..\..\Editor\widgets\routing\CopyRoutingAdapter.h" />
     <ClInclude Include="..\..\Benchmark\BatchPlan.h" />
-    <ClInclude Include="..\..\Editor\helpers\ConvolutionPathHelper.h" />
     <ClInclude Include="..\..\Editor\import\ConfigDependencyScanner.h" />
     <ClInclude Include="..\..\Editor\import\ImportExecutor.h" />
     <ClInclude Include="..\..\Editor\import\LegacyMigrationPolicy.h" />
@@ -210,6 +216,11 @@
     <ClInclude Include="..\..\Editor\widgets\cards\ChannelSelectionModel.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\DeviceSelectionModel.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\FileReferenceController.h" />
+    <ClInclude Include="..\..\Editor\widgets\cards\VSTPanelIntent.h" />
+    <ClInclude Include="..\..\Editor\widgets\cards\VSTBusVerdict.h" />
+    <ClInclude Include="..\..\Editor\analysis\AnalysisPanelState.h" />
+    <ClInclude Include="..\..\Editor\widgets\DeviceFormatBadgeState.h" />
+    <ClInclude Include="..\..\Editor\MainWindowParts\OpenDocument.h" />
     <ClInclude Include="..\..\filters\BiQuad.h" />
     <ClInclude Include="..\..\filters\DeviceCommand.h" />
     <ClInclude Include="..\..\platform\windows\TextEncoding.h" />

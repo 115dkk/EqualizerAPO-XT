@@ -563,8 +563,8 @@ void LegacyMigration::maybeShowStartupNotice(QWidget* parent)
 
     const QString from = readRegistryString(systemRegistry(), L"MigratedFrom").value_or(QString());
     const QString root = stableConfigRoot();
-    QMessageBox::information(parent, QObject::tr("Configuration folder moved"),
-        QObject::tr("Your Equalizer APO configuration was imported into the EqualizerAPO-XT "
+    QMessageBox::information(parent, tr("Configuration folder moved"),
+        tr("Your Equalizer APO configuration was imported into the EqualizerAPO-XT "
                     "configuration folder:\n\n%1\n\nThis folder is now the one the audio "
                     "pipeline reads. The previous folder is no longer used:\n\n%2")
         .arg(QDir::toNativeSeparators(root), QDir::toNativeSeparators(from)));
