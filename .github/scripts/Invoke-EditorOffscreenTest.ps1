@@ -24,10 +24,14 @@ param(
     [ValidateSet("selftest-vst", "skin-gallery", "skin-switch", "analysis-layout", "plugin-load", "card-move", "card-selection", "power-toggle", "routing-edit")]
     [string] $Gate,
     [string] $Platform = "x64",
+    # Where deps\ lives; a git worktree has none of its own. Defaults to the
+    # workspace root, which is the layout CI and setup-build.ps1 create.
+    [string] $DepsRoot,
     [switch] $PlanOnly
 )
 
 $ErrorActionPreference = "Stop"
+if (-not $DepsRoot) { $DepsRoot = $WorkspaceRoot }
 
 $buildDir = Join-Path $WorkspaceRoot "build-Editor-$Platform\release"
 $editorExe = Join-Path $buildDir "Editor.exe"
@@ -128,7 +132,7 @@ $plan = [pscustomobject]@{
     # The import lib embeds the SONAME velopack_libc.dll (see Package-
     # Artifacts); the gates run from the build dir, so the renamed DLL must
     # sit next to Editor.exe. Idempotent, so every gate does it.
-    VelopackDllSource = Join-Path $WorkspaceRoot "deps\velopack_libc\lib\velopack_libc_win_${Platform}_msvc.dll".ToLowerInvariant()
+    VelopackDllSource = Join-Path $DepsRoot "deps\velopack_libc\lib\velopack_libc_win_${Platform}_msvc.dll".ToLowerInvariant()
 }
 if ($PlanOnly) {
     return $plan

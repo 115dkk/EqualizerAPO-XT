@@ -43,6 +43,12 @@ Describe "Invoke-EditorOffscreenTest.ps1 planning" {
         $plan.PostChecks | Should -Contain "analysis-screenshot"
     }
 
+    It "takes the velopack DLL from -DepsRoot when a worktree has no deps of its own" {
+        $plan = & $scriptPath -WorkspaceRoot "C:\wt" -DepsRoot "C:\ws" -Gate selftest-vst -Platform x64 -PlanOnly
+        $plan.EditorExe | Should -Be "C:\wt\build-Editor-x64\release\Editor.exe"
+        $plan.VelopackDllSource | Should -Be "C:\ws\deps\velopack_libc\lib\velopack_libc_win_x64_msvc.dll"
+    }
+
     It "refuses an empty card selection proof directory" {
         $plan = PlanFor "card-selection"
         $plan.Arguments[1] | Should -Be "C:\ws\card-selection"
