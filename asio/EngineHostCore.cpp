@@ -171,7 +171,7 @@ namespace eapo::asio
 			Entry entries[capacity] = {};
 			unsigned count = 0;
 			uint64_t dropped = 0;
-			uint32_t micros(LONGLONG from, LONGLONG to) const noexcept
+			static uint32_t micros(LONGLONG from, LONGLONG to) noexcept
 			{
 				return Clock::microseconds(from, to);
 			}

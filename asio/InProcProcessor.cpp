@@ -33,9 +33,9 @@ namespace eapo::asio
 			if (channels == 0)
 				continue;
 
-			Lane& lane = lanes_[slot];
 			try
 			{
+				Lane& lane = lanes_[slot];
 				lane.frames = format.frames;
 				lane.storage.assign(static_cast<size_t>(channels) * format.frames, 0.0f);
 				lane.planes.resize(channels);

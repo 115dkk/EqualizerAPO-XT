@@ -183,6 +183,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 	controlOptions.lingerMs = arguments.lingerMs;
 	controlOptions.resident = arguments.resident;
 	eapo::asio::HostControlServer server(controlOptions, activity,
+		// cppcheck-suppress throwInEntryPoint ; HostControlServer calls this handler inside catch (...) and answers the client with a failure reply
 		[&streams](eapo::asio::HostOpenRequest request) {return streams.open(request);});
 
 	int result;
