@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM64">
@@ -48,22 +48,7 @@
   <Import Project="..\Tests.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+  <ImportGroup Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
@@ -74,25 +59,17 @@
   <PropertyGroup>
     <IncludePath>$(MSBuildThisFileDirectory)..\..;$(MSBuildThisFileDirectory)..\..\SubwooferRoutingCore\include;$(QT_ROOT)\include;$(QT_ROOT)\include\QtCore;$(QT_ROOT)\include\QtGui;$(QT_ROOT)\include\QtWidgets;$(IncludePath)</IncludePath>
     <ExternalIncludePath>$(QT_ROOT)\include;$(ExternalIncludePath)</ExternalIncludePath>
-    <LibraryPath>$(QT_ROOT)\lib;$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(QT_ROOT)\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <!-- The common compile/link scaffolding lives in ..\Tests.props
        (audit #275 D1/TD-20); only the Qt-specific pieces remain here. -->
   <ItemDefinitionGroup>
     <ClCompile>
       <PreprocessorDefinitions>UNICODE;_UNICODE;QT_CORE_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalOptions>/permissive- /Zc:__cplusplus /utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Qt6Core.lib;Qt6Gui.lib;Qt6Widgets.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
-      <Command>if exist "$(QT_ROOT)\bin\Qt6Core.dll" copy /Y "$(QT_ROOT)\bin\Qt6Core.dll" "$(OutDir)"
-if exist "$(QT_ROOT)\bin\Qt6Gui.dll" copy /Y "$(QT_ROOT)\bin\Qt6Gui.dll" "$(OutDir)"
-if exist "$(QT_ROOT)\bin\Qt6Widgets.dll" copy /Y "$(QT_ROOT)\bin\Qt6Widgets.dll" "$(OutDir)"
-if exist "$(FFTW_LIB)\*.dll" copy /Y "$(FFTW_LIB)\*.dll" "$(OutDir)"
-if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <!-- Tests.props turns SDLCheck on for every suite. This one includes Qt's
        widget headers, and SDLCheck makes C4996 an error: Qt 6.10 marks
@@ -105,6 +82,12 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
       <SDLCheck>false</SDLCheck>
     </ClCompile>
   </ItemDefinitionGroup>
+  <!-- Copied next to the binary by Tests.props after the build. -->
+  <ItemGroup>
+    <EapoRuntimeFile Include="$(QT_ROOT)\bin\Qt6Core.dll" />
+    <EapoRuntimeFile Include="$(QT_ROOT)\bin\Qt6Gui.dll" />
+    <EapoRuntimeFile Include="$(QT_ROOT)\bin\Qt6Widgets.dll" />
+  </ItemGroup>
   <ItemGroup>
     <ClCompile Include="EditorLogicTests.cpp" />
     <ClCompile Include="AnalysisResponseTests.cpp" />

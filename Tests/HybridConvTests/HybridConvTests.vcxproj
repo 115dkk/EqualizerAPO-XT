@@ -66,22 +66,16 @@
     <ClCompile>
       <PreprocessorDefinitions>WIN32;_CONSOLE;UNICODE;_UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
-    <PostBuildEvent>
-      <Command>if exist "$(FFTW_LIB)\*.dll" copy /Y "$(FFTW_LIB)\*.dll" "$(OutDir)"
-if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
-if exist "$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configuration)\TestVst2Plugin.dll" copy /Y "$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configuration)\TestVst2Plugin.dll" "$(OutDir)"</Command>
-    </PostBuildEvent>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
-    <ClCompile>
-      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-    </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
   </ItemDefinitionGroup>
+  <!-- Copied next to the binary by Tests.props after the build. -->
+  <ItemGroup>
+    <EapoRuntimeFile Include="$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configuration)\TestVst2Plugin.dll" />
+  </ItemGroup>
   <ItemGroup>
     <ClCompile Include="HybridConvTests.cpp" />
     <ClCompile Include="AllPassTests.cpp" />

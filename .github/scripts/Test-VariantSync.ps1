@@ -127,8 +127,11 @@ Write-Host "No project file outside Common.vcxproj copies the engine link contra
 # so a per-project ConformanceMode or C standard only restates or overrides it.
 # A single ClCompile item may still pin its own LanguageStandard
 # (EngineOrchestrationTests' SampleIoTests.cpp does, for a calibrated bar).
+# NOMINMAX, /Zc:__cplusplus and /utf-8 have the same owner; seven test
+# projects had re-added NOMINMAX and EditorLogicTests the switches (TD-39).
 $configPlatformGroup = '<ItemDefinitionGroup Condition="''$(Configuration)|$(Platform)''=='
-$languageLiterals = @('<ConformanceMode>', '<LanguageStandard_C>', '<LanguageStandard>')
+$languageLiterals = @('<ConformanceMode>', '<LanguageStandard_C>', '<LanguageStandard>',
+  'NOMINMAX', '/Zc:__cplusplus', '/utf-8', '/permissive')
 $shapeOffenders = @()
 foreach ($project in $projectFiles) {
   $content = [regex]::Replace((Get-Content -Path $project.FullName -Raw), '<!--.*?-->', '',
@@ -145,9 +148,9 @@ foreach ($project in $projectFiles) {
 }
 if ($shapeOffenders.Count -gt 0) {
   foreach ($offender in $shapeOffenders) {
-    Write-Host "::error file=$($offender.Split(' ')[0])::Project setting shape: $offender. Write one ItemDefinitionGroup per configuration, put platform differences in a '`$(Platform)' delta group, and leave the language mode to Directory.Build.props."
+    Write-Host "::error file=$($offender.Split(' ')[0])::Project setting shape: $offender. Write one ItemDefinitionGroup per configuration, put platform differences in a '`$(Platform)' delta group, and leave the language mode and the shared defines to Directory.Build.props."
   }
-  throw "Project files repeat settings per configuration and platform or restate the language mode."
+  throw "Project files repeat settings per configuration and platform or restate what Directory.Build.props owns."
 }
 
-Write-Host "Every project states its settings per configuration and leaves the language mode to Directory.Build.props."
+Write-Host "Every project states its settings per configuration and leaves the language mode and the shared defines to Directory.Build.props."

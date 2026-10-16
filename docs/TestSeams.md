@@ -49,7 +49,9 @@ Precedents: `FilterListModel` (signal-free from the start) and
 
 - **HybridConvTests / EngineOrchestrationTests / AudioRegressionTests** are
   Qt-free consoles linking `Common.lib` whole-archive; shared scaffolding
-  lives in `Tests/Tests.props`.
+  lives in `Tests/Tests.props`. The test projects that link no engine (the
+  capture and APO-host probes, FakeAsioDriver, the two VST fixtures) import
+  only `Tests/TestScaffold.props`, the compile, link and hardening half.
 - **Widget-level behavior** (anything that genuinely needs moc or a live
   QApplication) is exercised by the Editor's own offscreen gates
   (`SkinGallery` and the `--*-test` flags), not by these suites.
