@@ -31,15 +31,14 @@ REGISTER_FILTER_FACTORY(FilterFactoryPriority::Stage, StageFilterFactory, L"Stag
 using std::vector;
 using std::wstring;
 
-void StageFilterFactory::initialize(FilterEngine* engine)
+void StageFilterFactory::onInitialize(FilterEngine& engine)
 {
-	ParseReportingFactory::initialize(engine);
-	enginePreMix = engine->isPreMix();
-	engineCapture = engine->isCapture();
-	enginePostMixInstalled = engine->isPostMixInstalled();
+	enginePreMix = engine.isPreMix();
+	engineCapture = engine.isCapture();
+	enginePostMixInstalled = engine.isPostMixInstalled();
 
-	engine->getParser()->defineConst(L"stage",
-		engine->isCapture() ? L"capture" : engine->isPreMix() ? L"pre-mix" : L"post-mix");
+	engine.getParser()->defineConst(L"stage",
+		engine.isCapture() ? L"capture" : engine.isPreMix() ? L"pre-mix" : L"post-mix");
 }
 
 FilterVector StageFilterFactory::startOfConfiguration()
@@ -58,7 +57,7 @@ FilterVector StageFilterFactory::startOfFile(const std::wstring& configPath)
 	return {};
 }
 
-FilterVector StageFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+LineOutcome StageFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	StageCommand cmd;
 	if (StageCommand::parse(command, parameters, cmd))
@@ -71,10 +70,10 @@ FilterVector StageFilterFactory::createFilter(const wstring& configPath, wstring
 		{
 			if (!StageCommand::isKnownStage(part))
 			{
-				// On the load trace, so the Editor can show it on the line (audit
-				// #348 TD-18); it used to reach only the log. The other parts of
-				// the line still count.
-				reportParseError(command, L"unknown stage \"" + part + L"\"; the stages are pre-mix, post-mix and capture");
+				// Unknown parts are reported separately while known parts still
+				// determine whether this stage applies.
+				engine()->reportParseError(command, L"unknown stage \"" + part
+					+ L"\"; the stages are pre-mix, post-mix and capture");
 			}
 		}
 
@@ -84,13 +83,13 @@ FilterVector StageFilterFactory::createFilter(const wstring& configPath, wstring
 			// Log the author's text (trimmed, lower-cased) rather than the
 			// canonical serialization, which would collapse repeated spaces.
 			TraceF(L"Not matching stage set \"%s\"", text::toLower(text::trim(parameters)).c_str());
+		return LineOutcome::consumed();
 	}
 
 	if (!stageMatches)
-		// skip line for further factories
-		command = L"";
+		return LineOutcome::consumed();
 
-	return {};
+	return LineOutcome::notMine();
 }
 
 FilterVector StageFilterFactory::endOfFile(const std::wstring& configPath)

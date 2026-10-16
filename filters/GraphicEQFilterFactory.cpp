@@ -31,7 +31,7 @@ REGISTER_FILTER_FACTORY(FilterFactoryPriority::GraphicEQ, GraphicEQFilterFactory
 using std::vector;
 using std::wstring;
 
-FilterVector GraphicEQFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+LineOutcome GraphicEQFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	if (command == L"GraphicEQ")
 	{
@@ -41,11 +41,11 @@ FilterVector GraphicEQFilterFactory::createFilter(const wstring& configPath, wst
 		cmd.parse(parameters);
 
 		if (cmd.nodes.empty())
-			return reportParseError(command, L"expected frequency/gain pairs, as in \"25 -6; 50 -3; 100 0\"");
+			return LineOutcome::malformed(L"expected frequency/gain pairs, as in \"25 -6; 50 -3; 100 0\"");
 
 		TraceF(L"Graphic equalizer with %u nodes", static_cast<unsigned>(cmd.nodes.size()));
 
-		return singleFilter(makeFilter<GraphicEQFilter>(cmd.nodes, 16384));
+		return LineOutcome::produced(singleFilter(makeFilter<GraphicEQFilter>(cmd.nodes, 16384)));
 	}
 
 	return {};

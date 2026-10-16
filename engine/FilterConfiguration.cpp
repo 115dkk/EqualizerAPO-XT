@@ -502,7 +502,7 @@ void FilterConfiguration::writeFloatPlanar(float* const* output, unsigned frameC
 
 #pragma AVRT_CODE_END
 
-bool FilterConfiguration::isEmpty()
+bool FilterConfiguration::isEmpty() const
 {
 	return filterInfos.empty();
 }

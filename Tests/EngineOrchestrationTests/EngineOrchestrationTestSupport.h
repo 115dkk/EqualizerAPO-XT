@@ -97,6 +97,7 @@ void runNewChannelTests(test::Harness& harness);
 // ConfigLoadTests.cpp
 void testConfigLoadTrace(test::Harness& harness);
 void testParseErrorsAreReportedPerLineAndProseIsNot(test::Harness& harness);
+void testFactoryInitializationHookKeepsParseReporting(test::Harness& harness);
 void testFilterSetupFailureNamesItsLine(test::Harness& harness);
 void testControlFlowAndStageMistakesAreReported(test::Harness& harness);
 void testIncludeRecursionLimitIsReported(test::Harness& harness);

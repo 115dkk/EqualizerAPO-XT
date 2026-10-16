@@ -69,6 +69,9 @@
     <ClInclude Include="filters\VelvetFilter.h"><Filter>filters</Filter></ClInclude>
     <ClInclude Include="filters\VelvetFilterFactory.h"><Filter>filters</Filter></ClInclude>
     <ClInclude Include="filters\velvet\VelvetProcessor.h"><Filter>filters\velvet</Filter></ClInclude>
+    <ClInclude Include="filters\CopyCommand.h">
+      <Filter>filters</Filter>
+    </ClInclude>
     <ClInclude Include="filters\CopyFilter.h">
       <Filter>filters</Filter>
     </ClInclude>
@@ -419,6 +422,9 @@
     <ClCompile Include="filters\VelvetFilter.cpp"><Filter>filters</Filter></ClCompile>
     <ClCompile Include="filters\VelvetFilterFactory.cpp"><Filter>filters</Filter></ClCompile>
     <ClCompile Include="filters\velvet\VelvetProcessor.cpp"><Filter>filters\velvet</Filter></ClCompile>
+    <ClCompile Include="filters\CopyCommand.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="filters\CopyFilter.cpp">
       <Filter>filters</Filter>
     </ClCompile>

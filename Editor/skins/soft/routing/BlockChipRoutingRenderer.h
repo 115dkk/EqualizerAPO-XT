@@ -22,7 +22,7 @@
 
 #include "Editor/widgets/routing/IRoutingRenderer.h"
 #include "Editor/widgets/routing/RoutingFold.h"
-#include "filters/CopyFilter.h"
+#include "filters/CopyCommand.h"
 #include "Editor/SkinTokens.h"
 
 class BlockChipView : public RoutingView

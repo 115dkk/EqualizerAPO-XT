@@ -20,6 +20,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "stdafx.h"
 #include "runtime/memory/AlignedMemory.h"
 #include "services/logging/Logging.h"
+#include "CopyCommand.h"
 #include "CopyFilter.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "CopyFilterFactory.h"
@@ -30,7 +31,7 @@ using std::find;
 using std::vector;
 using std::wstring;
 
-FilterVector CopyFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+LineOutcome CopyFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	if (command == L"Copy")
 	{
@@ -39,9 +40,9 @@ FilterVector CopyFilterFactory::createFilter(const wstring& configPath, wstring&
 		vector<Assignment> assignments = parseCopyAssignments(parameters);
 
 		if (assignments.empty())
-			return reportParseError(command, L"expected at least one assignment, as in \"L=R\" or \"L=0.5*L+0.5*R\"");
+			return LineOutcome::malformed(L"expected at least one assignment, as in \"L=R\" or \"L=0.5*L+0.5*R\"");
 
-		return singleFilter(makeFilter<CopyFilter>(assignments));
+		return LineOutcome::produced(singleFilter(makeFilter<CopyFilter>(assignments)));
 	}
 
 	return {};

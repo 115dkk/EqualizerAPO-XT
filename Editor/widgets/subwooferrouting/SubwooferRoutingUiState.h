@@ -25,7 +25,7 @@
 #include "SubwooferRouting/Compiler.h"
 #include "SubwooferRouting/Crossover.h"
 #include "SubwooferRouting/State.h"
-#include "filters/CopyFilter.h"
+#include "filters/CopyCommand.h"
 
 // The signal-free core of the subwoofer routing editor state: mutation
 // setters, dirty tracking, validation refresh and the headroom trim readout.

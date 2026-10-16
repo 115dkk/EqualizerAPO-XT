@@ -36,13 +36,13 @@
 #include <vector>
 #include <tclap/CmdLine.h>
 
-#include "../version.h"
-#include "../engine/FilterEngine.h"
-#include "../services/logging/Logging.h"
-#include "../diagnostics/performance/PrecisionTimer.h"
-#include "../runtime/memory/AlignedMemory.h"
-#include "../diagnostics/performance/PerfProfile.h"
-#include "../audio/io/SndfileRAII.h"
+#include "version.h"
+#include "engine/FilterEngine.h"
+#include "services/logging/Logging.h"
+#include "diagnostics/performance/PrecisionTimer.h"
+#include "runtime/memory/AlignedMemory.h"
+#include "diagnostics/performance/PerfProfile.h"
+#include "audio/io/SndfileRAII.h"
 #include "BatchPlan.h"
 
 using std::cerr;

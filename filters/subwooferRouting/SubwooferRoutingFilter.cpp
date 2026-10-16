@@ -17,8 +17,6 @@
 */
 
 #include "stdafx.h"
-#include "text/WideString.h"
-#include "platform/windows/TextEncoding.h"
 #include "SubwooferRoutingFilter.h"
 
 #include <algorithm>
@@ -34,27 +32,10 @@
 
 namespace
 {
-constexpr unsigned Utf8CodePage = 65001;
-
-std::wstring fromUtf8(const std::string& text)
-{
-	return wintext::toWideString(text, Utf8CodePage);
-}
-
-const subroute::ValidationDiagnostic* firstValidationError(
-	const subroute::ValidationResult& result)
-{
-	for (const subroute::ValidationDiagnostic& diagnostic : result.diagnostics)
-	{
-		if (diagnostic.severity == subroute::DiagnosticSeverity::Error)
-			return &diagnostic;
-	}
-	return nullptr;
-}
-
 void logValidationError(const subroute::ValidationDiagnostic& diagnostic)
 {
-	LogFStatic(L"SubwooferRouting: %s", fromUtf8(diagnostic.message).c_str());
+	LogFStatic(L"SubwooferRouting: %s",
+		subwooferRoutingFromUtf8(diagnostic.message).c_str());
 }
 }
 
@@ -96,7 +77,7 @@ std::vector<std::wstring> SubwooferRoutingFilter::initialize(float sampleRate,
 	const subroute::ValidationResult validation =
 		subroute::validate(state, spec);
 	const subroute::ValidationDiagnostic* validationError =
-		firstValidationError(validation);
+		firstSubwooferRoutingValidationError(validation);
 	if (validationError != nullptr)
 	{
 		logValidationError(*validationError);
@@ -107,7 +88,7 @@ std::vector<std::wstring> SubwooferRoutingFilter::initialize(float sampleRate,
 	if (!compiled.graph.has_value())
 	{
 		const subroute::ValidationDiagnostic* compileError =
-			firstValidationError(compiled.validation);
+			firstSubwooferRoutingValidationError(compiled.validation);
 		if (compileError != nullptr)
 			logValidationError(*compileError);
 		else
@@ -123,7 +104,7 @@ std::vector<std::wstring> SubwooferRoutingFilter::initialize(float sampleRate,
 	catch (const std::exception& exception)
 	{
 		LogF(L"SubwooferRouting: processor preparation failed: %s",
-			fromUtf8(exception.what()).c_str());
+			subwooferRoutingFromUtf8(exception.what()).c_str());
 		return channelNames;
 	}
 

@@ -32,22 +32,22 @@ REGISTER_FILTER_FACTORY(FilterFactoryPriority::Convolution, MultiConvolutionFilt
 using std::vector;
 using std::wstring;
 
-FilterVector MultiConvolutionFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+LineOutcome MultiConvolutionFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	MultiConvolutionCommand cmd;
 	if (command != L"MultiConvolution")
 		return {};
 	if (!MultiConvolutionCommand::parse(command, parameters, cmd))
-		return reportParseError(command, L"expected channel mappings followed by the path of an impulse response file");
+		return LineOutcome::malformed(L"expected channel mappings followed by the path of an impulse response file");
 
 	if (cmd.path.empty())
-		return reportParseError(command, L"expected the path of an impulse response file after the mappings");
+		return LineOutcome::malformed(L"expected the path of an impulse response file after the mappings");
 
 	ConfigFileReference::Target file = ConfigFileReference::target(configPath, cmd.path);
 	if (!file.refusal.empty())
-		return reportParseError(command, file.refusal);
+		return LineOutcome::malformed(file.refusal);
 	if (file.path.empty())
-		return reportParseError(command, L"the impulse response file \"" + cmd.path + L"\" was not found");
+		return LineOutcome::malformed(L"the impulse response file \"" + cmd.path + L"\" was not found");
 
-	return singleFilter(makeFilter<MultiConvolutionFilter>(cmd.mappings, std::move(file.path)));
+	return LineOutcome::produced(singleFilter(makeFilter<MultiConvolutionFilter>(cmd.mappings, std::move(file.path))));
 }

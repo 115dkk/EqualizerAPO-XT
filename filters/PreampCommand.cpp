@@ -21,7 +21,29 @@
 
 #include "PreampCommand.h"
 
+#include <cmath>
 #include <cstdio>
+
+#include "parser/NumericText.h"
+
+bool PreampCommand::parse(const std::wstring& command,
+	const std::wstring& parameters, PreampCommand& out)
+{
+	out = PreampCommand();
+	if (command != L"Preamp")
+		return false;
+
+	const std::wstring value = numeric_text::normalizeDecimalComma(parameters);
+	double preampDb;
+	const int matched = swscanf_s(value.c_str(), L" %lf dB", &preampDb);
+	if (matched == 1 && std::isfinite(preampDb))
+	{
+		out.valid = true;
+		out.dbGain = preampDb;
+		out.noOp = std::abs(preampDb) < 1e-9;
+	}
+	return true;
+}
 
 std::wstring PreampCommand::serialize() const
 {

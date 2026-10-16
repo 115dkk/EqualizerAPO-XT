@@ -32,64 +32,30 @@ REGISTER_FILTER_FACTORY(FilterFactoryPriority::Preamp, PreampFilterFactory, L"Pr
 using std::vector;
 using std::wstring;
 
-bool PreampFilterFactory::parseCommand(const wstring& command, const wstring& parameters, PreampCommand& out)
+bool PreampFilterFactory::parseCommand(const wstring& command,
+	const wstring& parameters, PreampCommand& out)
 {
-	out = PreampCommand();
-
-	if (command != L"Preamp")
-		return false;
-
-	// Conversion to period as decimal mark, if needed
-	wstring value = numeric_text::normalizeDecimalComma(parameters);
-
-	double preamp_dB;
-	int matched = swscanf_s(value.c_str(), L" %lf dB", &preamp_dB);
-	if (matched == 1 && std::isfinite(preamp_dB))
-	{
-		out.valid = true;
-		out.dbGain = preamp_dB;
-		// A 0 dB preamp is a no-op: createFilter skips the allocation so the
-		// filter chain avoids one virtual call and one pointer setup per block.
-		out.noOp = std::abs(preamp_dB) < 1e-9;
-	}
-	else
-	{
-		// Malformed parameter: leave out.valid == false. The warning is
-		// emitted by createFilter (the engine owns the log line); the
-		// Editor path simply discards the GUI for this line.
-	}
-
-	return true;
+	return PreampCommand::parse(command, parameters, out);
 }
 
-FilterVector PreampFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+LineOutcome PreampFilterFactory::createFilter(const wstring& configPath,
+	wstring& command, wstring& parameters)
 {
-	FilterPtr filter;
-
 	PreampCommand cmd;
-	if (parseCommand(command, parameters, cmd))
+	if (!PreampCommand::parse(command, parameters, cmd))
+		return LineOutcome::notMine();
+	if (!cmd.valid)
 	{
-		if (cmd.valid)
-		{
-			if (cmd.noOp)
-			{
-				TraceF(L"Skipping no-op preamp (%g dB)", cmd.dbGain);
-			}
-			else
-			{
-				TraceF(L"Adjusting preamp by %g dB", cmd.dbGain);
-
-				filter = makeFilter<PreampFilter>(cmd.dbGain);
-			}
-		}
-		else
-		{
-			return reportParseError(command,
-				L"could not parse the preamp value \"" + text::trim(parameters) + L"\"; no preamp was applied");
-		}
+		return LineOutcome::malformed(
+			L"could not parse the preamp value \"" + text::trim(parameters)
+			+ L"\"; no preamp was applied");
+	}
+	if (cmd.noOp)
+	{
+		TraceF(L"Skipping no-op preamp (%g dB)", cmd.dbGain);
+		return LineOutcome::consumed();
 	}
 
-	if (filter == nullptr)
-		return {};
-	return singleFilter(std::move(filter));
+	TraceF(L"Adjusting preamp by %g dB", cmd.dbGain);
+	return LineOutcome::produced(singleFilter(makeFilter<PreampFilter>(cmd.dbGain)));
 }

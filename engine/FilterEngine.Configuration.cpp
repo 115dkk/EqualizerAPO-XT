@@ -197,19 +197,15 @@ void FilterEngine::loadConfigStream(const wstring& path, stringstream inputStrea
 			// allow to use indentation
 			key = text::trim(key);
 
-			// No verdict is reached here about a line that produced nothing. A
-			// factory that recognised the command and could not use it says so
-			// itself, through reportParseError, at the point where it knows what
-			// was wrong. What is left over here is a line no factory claimed:
-			// prose, a comment, a note, an unknown key - and that is not an error.
+			// Factories may normalize parameters in place before returning NotMine;
+			// later factories deliberately receive that rewritten text.
 			for (auto it = factories.cbegin(); it != factories.cend(); it++)
 			{
 				IFilterFactory* factory = it->get();
-
-				FilterVector newFilters;
+				LineOutcome outcome = LineOutcome::notMine();
 				try
 				{
-					newFilters = factory->createFilter(path, key, value);
+					outcome = factory->createFilter(path, key, value);
 				}
 				catch (const exception& e)
 				{
@@ -219,13 +215,13 @@ void FilterEngine::loadConfigStream(const wstring& path, stringstream inputStrea
 					LogF(L"%S (line %d of %s)", e.what(), load.traceLine, load.traceFile.c_str());
 				}
 
-				if (key == L"")
-					break;
-				if (!newFilters.empty())
-				{
-					addFilters(move(newFilters));
-					break;
-				}
+				if (outcome.kind == LineOutcome::Kind::NotMine)
+					continue;
+				if (outcome.kind == LineOutcome::Kind::Malformed)
+					reportParseError(key, outcome.reason);
+				else if (outcome.kind == LineOutcome::Kind::Produced)
+					addFilters(move(outcome.filters));
+				break;
 			}
 		}
 	}

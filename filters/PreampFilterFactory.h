@@ -25,17 +25,12 @@
 #include "engine/IFilter.h"
 #include "PreampCommand.h"
 
-class PreampFilterFactory : public ParseReportingFactory
+class PreampFilterFactory : public IFilterFactory
 {
 public:
-	FilterVector createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
+	LineOutcome createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
 
-	// Parses a "Preamp:" config line into a PreampCommand. This is the single
-	// owner of the preamp grammar: createFilter() uses it to decide whether to
-	// build a PreampFilter (and with which gain), and the Editor uses it to
-	// populate the preamp GUI without constructing a throwaway PreampFilter.
-	// Returns true when the command keyword was "Preamp"; the out struct's
-	// valid/noOp flags then describe the parse outcome. The number parsing and
-	// defaulting are kept byte-identical to the previous inline code.
-	static bool parseCommand(const std::wstring& command, const std::wstring& parameters, PreampCommand& out);
+	// Audit #422 E1: Editor call sites move to the codec; remove once they do.
+	static bool parseCommand(const std::wstring& command, const std::wstring& parameters,
+		PreampCommand& out);
 };

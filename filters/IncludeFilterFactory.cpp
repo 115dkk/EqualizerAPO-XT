@@ -33,12 +33,6 @@ using std::wstring;
 
 const int RECURSION_LIMIT = 100;
 
-void IncludeFilterFactory::initialize(FilterEngine* engine)
-{
-	ParseReportingFactory::initialize(engine);
-	this->engine = engine;
-}
-
 FilterVector IncludeFilterFactory::startOfConfiguration()
 {
 	recursionDepth = -1;
@@ -53,27 +47,25 @@ FilterVector IncludeFilterFactory::startOfFile(const wstring& configPath)
 	return {};
 }
 
-FilterVector IncludeFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+LineOutcome IncludeFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	IncludeCommand cmd;
-	if (IncludeCommand::parse(command, parameters, cmd))
-	{
-		// Read by the rule every file a line names shares (audit #348 A1):
-		// relative to the including config file, quotes and %VARIABLES% taken
-		// the way Convolution always took them.
-		const ConfigFileReference::Target file = engine->judgeIncludedFile(configPath, cmd.path);
-		if (!file.refusal.empty())
-			reportParseError(command, file.refusal);
-		else if (file.path.empty())
-			reportParseError(command, L"expected the path of a configuration file");
-		else if (recursionDepth >= RECURSION_LIMIT)
-			reportParseError(command, L"not included: includes are nested more than " + std::to_wstring(RECURSION_LIMIT) + L" deep");
-		else
-			engine->loadConfigFile(file.path);
-		command = L"";
-	}
+	if (!IncludeCommand::parse(command, parameters, cmd))
+		return LineOutcome::notMine();
 
-	return {};
+	// Read by the rule every file a line names shares (audit #348 A1):
+	// relative to the including config file, quotes and %VARIABLES% taken
+	// the way Convolution always took them.
+	const ConfigFileReference::Target file = engine()->judgeIncludedFile(configPath, cmd.path);
+	if (!file.refusal.empty())
+		return LineOutcome::malformed(file.refusal);
+	if (file.path.empty())
+		return LineOutcome::malformed(L"expected the path of a configuration file");
+	if (recursionDepth >= RECURSION_LIMIT)
+		return LineOutcome::malformed(L"not included: includes are nested more than " + std::to_wstring(RECURSION_LIMIT) + L" deep");
+
+	engine()->loadConfigFile(file.path);
+	return LineOutcome::consumed();
 }
 
 FilterVector IncludeFilterFactory::endOfFile(const wstring& configPath)

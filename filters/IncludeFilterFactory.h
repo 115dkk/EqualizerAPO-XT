@@ -24,17 +24,14 @@
 #include "engine/IFilterFactory.h"
 #include "engine/IFilter.h"
 
-class IncludeFilterFactory : public ParseReportingFactory
+class IncludeFilterFactory : public IFilterFactory
 {
 public:
-	void initialize(FilterEngine* engine) override;
-
 	FilterVector startOfConfiguration() override;
 	FilterVector startOfFile(const std::wstring& configPath) override;
-	FilterVector createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
+	LineOutcome createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
 	FilterVector endOfFile(const std::wstring& configPath) override;
 
 private:
-	FilterEngine* engine = nullptr;
 	int recursionDepth = -1;
 };

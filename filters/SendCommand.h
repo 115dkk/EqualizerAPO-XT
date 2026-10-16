@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-#include "filters/CopyFilter.h"
+#include "filters/CopyCommand.h"
 
 struct SendCommand
 {

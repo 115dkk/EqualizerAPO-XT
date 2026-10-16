@@ -17,7 +17,7 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include "filters/CopyFilter.h"
+#include "filters/CopyCommand.h"
 #include "CopyFilterGUI.h"
 #include "CopyFilterGUIFactory.h"
 #include "../FilterGUIFactoryRegistry.h"

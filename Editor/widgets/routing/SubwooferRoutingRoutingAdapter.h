@@ -23,7 +23,7 @@
 #include <QStringList>
 
 #include "SubwooferRouting/State.h"
-#include "filters/CopyFilter.h"
+#include "filters/CopyCommand.h"
 
 class SubwooferRoutingRoutingAdapter
 {

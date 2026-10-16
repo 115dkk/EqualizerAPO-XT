@@ -27,7 +27,7 @@
 #include <QStringList>
 #include <QVector>
 
-#include "filters/CopyFilter.h"
+#include "filters/CopyCommand.h"
 
 namespace RoutingFold
 {

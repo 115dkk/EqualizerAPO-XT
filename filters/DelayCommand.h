@@ -43,9 +43,8 @@ struct DelayCommand
 	std::wstring serialize() const;
 
 	// Parses the "<delay> ms|samples" parameter text (decimal comma tolerated).
-	// Accepts a zero delay: the engine's no-op gate lives in
-	// DelayFilterFactory::parseCommand on top of this, while the Editor GUIs
-	// parse here directly so a written "Delay: 0 ms" still opens its editor
-	// instead of dropping the row to the raw body.
+	// Accepts a zero delay: DelayFilterFactory applies the engine's no-op gate,
+	// while the Editor GUIs parse here directly so a written "Delay: 0 ms" still
+	// opens its editor instead of dropping the row to the raw body.
 	static bool parse(const std::wstring& parameters, DelayCommand& out);
 };

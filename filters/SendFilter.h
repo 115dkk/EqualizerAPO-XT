@@ -11,7 +11,7 @@
 
 #include "dsp/DelayLine.h"
 #include "engine/IFilter.h"
-#include "filters/CopyFilter.h"
+#include "filters/CopyCommand.h"
 
 class FilterEngine;
 class SendWriter;

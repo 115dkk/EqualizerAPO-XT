@@ -24,17 +24,15 @@
 #include "FilterEngine.h"
 #include "IFilterFactory.h"
 
-// Defined here rather than in IFilterFactory.h because the reporting path needs
-// FilterEngine, and every filter's header includes IFilterFactory.h - pulling the
-// engine into all of them would be a real compile-time cost for two functions.
-void ParseReportingFactory::initialize(FilterEngine* engine)
+void IFilterFactory::initialize(FilterEngine& engine)
 {
-	reportingEngine = engine;
+	initializedEngine = &engine;
+	onInitialize(engine);
 }
 
-FilterVector ParseReportingFactory::reportParseError(const std::wstring& command, const std::wstring& reason, int line) const
+void IFilterFactory::initialize(FilterEngine* engine)
 {
-	if (reportingEngine != nullptr)
-		reportingEngine->reportParseError(command, reason, line);
-	return {};
+	initializedEngine = engine;
+	if (engine != nullptr)
+		onInitialize(*engine);
 }

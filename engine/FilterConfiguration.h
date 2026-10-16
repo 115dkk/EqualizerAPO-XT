@@ -107,7 +107,7 @@ public:
 	void writeFloatInterleaved(float* output, unsigned frameCount);
 	void writeFloatPlanar(float* const* output, unsigned frameCount);
 	double** getOutputSamples() {return allSamples.data();}
-	bool isEmpty();
+	bool isEmpty() const;
 	// True if every filter in this configuration guarantees silent output for
 	// silent input (no cross-block state, no tail). Cached at construction.
 	bool isAllStateless() const { return allStateless; }

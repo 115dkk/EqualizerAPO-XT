@@ -29,6 +29,7 @@
 #define INITGUID
 #include <mmdeviceapi.h>
 #include <mmreg.h>
+#include <Ks.h>
 #include <ksmedia.h>
 
 #include "../services/logging/Logging.h"

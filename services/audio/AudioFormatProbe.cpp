@@ -16,6 +16,7 @@
 #include <mmdeviceapi.h>
 #include <Audioclient.h>
 #include <mmreg.h>
+#include <Ks.h>
 #include <ksmedia.h>
 
 #include "audio/SampleFormat.h"

@@ -21,7 +21,7 @@
 #include <QString>
 #include <QStringList>
 
-#include "filters/CopyFilter.h"
+#include "filters/CopyCommand.h"
 #include "filters/MultiConvolutionCommand.h"
 
 class MultiConvolutionRoutingAdapter

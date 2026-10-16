@@ -264,7 +264,7 @@ void runVst3HostTests()
 		wstring rawCommand = L"VSTPlugin";
 		wstring rawParameters = L"Library \"" + rawVst3Module
 			+ L"\" Input Stereo Output Stereo";
-		harness.expectEqual(rawFactory.createFilter(L"raw-vst3.txt", rawCommand, rawParameters).size(),
+		harness.expectEqual(rawFactory.createFilter(L"raw-vst3.txt", rawCommand, rawParameters).filters.size(),
 			(size_t)1, "VSTPlugin Input/Output accepts a loaded raw .dll VST3 module");
 	}
 	else

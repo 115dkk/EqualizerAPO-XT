@@ -4,7 +4,7 @@
 	SPDX-License-Identifier: GPL-2.0-or-later
 
 	Round-trip tests for the shared Copy config-line parser/serializer
-	(parseCopyAssignments + serializeCopyAssignments in filters/CopyFilter.cpp).
+	(parseCopyAssignments + serializeCopyAssignments in filters/CopyCommand.cpp).
 	They confirm that representative "Copy:" lines - simple identity routing,
 	crossfeed with factors, summands, dB factors, constant values and virtual
 	channels - parse to the expected std::vector<Assignment> (the type a
@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 
+#include "filters/CopyCommand.h"
 #include "filters/CopyFilter.h"
 #include "platform/windows/TextEncoding.h"
 #include "Tests/TestHarness.h"

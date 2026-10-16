@@ -44,15 +44,41 @@ public:
 class ThrowingSetupFactory : public IFilterFactory
 {
 public:
-	FilterVector createFilter(const std::wstring&, std::wstring& command, std::wstring&) override
+	LineOutcome createFilter(const std::wstring&, std::wstring& command,
+		std::wstring&) override
 	{
 		if (command != L"EapoTestThrowOnSetup")
-			return {};
-		return singleFilter(makeFilter<ThrowingSetupFilter>());
+			return LineOutcome::notMine();
+		return LineOutcome::produced(singleFilter(makeFilter<ThrowingSetupFilter>()));
 	}
 };
 
 REGISTER_FILTER_FACTORY(1000, ThrowingSetupFactory, L"EapoTestThrowOnSetup")
+
+class HookedMalformedFactory : public IFilterFactory
+{
+public:
+	LineOutcome createFilter(const std::wstring&, std::wstring& command,
+		std::wstring&) override
+	{
+		if (command != L"EapoTestHookedMalformed")
+			return LineOutcome::notMine();
+		if (!initialized)
+			return LineOutcome::consumed();
+		return LineOutcome::malformed(L"onInitialize ran before parsing");
+	}
+
+protected:
+	void onInitialize(FilterEngine&) override
+	{
+		initialized = true;
+	}
+
+private:
+	bool initialized = false;
+};
+
+REGISTER_FILTER_FACTORY(1001, HookedMalformedFactory, L"EapoTestHookedMalformed")
 
 struct TraceCollector : ConfigLoadTraceSink
 {
@@ -179,6 +205,25 @@ void testParseErrorsAreReportedPerLineAndProseIsNot(test::Harness& harness)
 	// answers false only when the whole load failed.
 	harness.expect(engine.loadConfig(configPath),
 		"a configuration with eight unusable lines still loads, because the working lines below them have to run");
+}
+
+void testFactoryInitializationHookKeepsParseReporting(test::Harness& harness)
+{
+	const std::wstring configPath = writeConfig(harness, L"hooked-malformed.txt",
+		"EapoTestHookedMalformed: bad\n");
+	TraceCollector collector;
+	FilterEngine engine;
+	engine.setLoadTraceSink(&collector);
+	initializeEngine(engine, 48000, 2, 512, configPath);
+
+	harness.requireEqual(collector.entries.size(), size_t(1),
+		"a factory with onInitialize still reports its malformed line once");
+	harness.expect(collector.entries[0].kind == ConfigLoadTraceEntry::Kind::ParseError,
+		"the hooked factory outcome becomes a parse error");
+	harness.expect(collector.entries[0].text == L"onInitialize ran before parsing",
+		"onInitialize ran before the factory parsed its line");
+	harness.expectEqual(collector.entries[0].line, 1,
+		"the hooked factory error is stamped on its line");
 }
 
 // Audit #348 TD-18: a filter that throws while being set up rolls the whole

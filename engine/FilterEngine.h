@@ -21,24 +21,21 @@
 
 #include <atomic>
 #include <cstdint>
-#include <string>
-#include <sstream>
-#include "filters/ConfigFileReference.h"
-#include <vector>
+#include <iosfwd>
 #include <memory>
-#include <unordered_set>
 #include <mutex>
+#include <string>
 #include <thread>
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+#include <unordered_set>
+#include <vector>
 
+#include "filters/ConfigFileReference.h"
 #include "IFilterFactory.h"
 #include "ChannelRoutingPlan.h"
 #include "FilterConfiguration.h"
 #include "ConfigSwapChannel.h"
 #include "parser/EngineParser.h"
 #include "diagnostics/performance/PrecisionTimer.h"
-#include "runtime/memory/AlignedMemory.h"
 
 struct ConfigLoadTraceEntry;
 class ConfigLoadTraceSink;
@@ -169,9 +166,8 @@ public:
 	void traceLoadEvent(ConfigLoadTraceEntry entry);
 	// A factory saying "this line was mine and its parameters are wrong". Stamps
 	// the current file and line, logs it, and passes it to the trace sink so the
-	// Editor can mark the row. See ParseReportingFactory in IFilterFactory.h for
-	// why the factories report this rather than the engine inferring it. A
-	// nonzero line stamps that line of the current file instead: an If that
+	// Editor can mark the row. The dispatch loop calls this for a Malformed
+	// LineOutcome. A nonzero line stamps that line of the current file instead: an If that
 	// the end of its file shows to be unclosed is reported on its own line.
 	void reportParseError(const std::wstring& command, const std::wstring& reason, int line = 0);
 	// The 1-based line of the current file the load is at, for a factory that

@@ -16,7 +16,7 @@
 REGISTER_FILTER_FACTORY(FilterFactoryPriority::Hilbert,
 	HilbertFilterFactory, L"Hilbert")
 
-FilterVector HilbertFilterFactory::createFilter(const std::wstring& configPath,
+LineOutcome HilbertFilterFactory::createFilter(const std::wstring& configPath,
 	std::wstring& command, std::wstring& parameters)
 {
 	(void)configPath;
@@ -25,6 +25,6 @@ FilterVector HilbertFilterFactory::createFilter(const std::wstring& configPath,
 	HilbertCommand parsed;
 	std::wstring error;
 	if (!HilbertCommand::parse(command, parameters, parsed, &error))
-		return reportParseError(command, error);
-	return singleFilter(makeFilter<HilbertFilter>(parsed));
+		return LineOutcome::malformed(error);
+	return LineOutcome::produced(singleFilter(makeFilter<HilbertFilter>(parsed)));
 }

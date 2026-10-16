@@ -33,11 +33,9 @@ using std::vector;
 using std::wstring;
 using namespace mup;
 
-void IfFilterFactory::initialize(FilterEngine* engine)
+void IfFilterFactory::onInitialize(FilterEngine& engine)
 {
-	ParseReportingFactory::initialize(engine);
-	parser = engine->getParser();
-	this->engine = engine;
+	parser = engine.getParser();
 }
 
 FilterVector IfFilterFactory::startOfConfiguration()
@@ -69,11 +67,12 @@ FilterVector IfFilterFactory::startOfFile(const std::wstring& configPath)
 	return {};
 }
 
-FilterVector IfFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+LineOutcome IfFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	IfCommand cmd;
 	bool isIfFamily = IfCommand::parse(command, parameters, cmd);
 	const wstring& expression = cmd.expression;
+	wstring malformedReason;
 
 	// Load-trace reporting: the Editor echoes
 	// branch decisions next to the config rows. Every reported line sets
@@ -85,13 +84,13 @@ FilterVector IfFilterFactory::createFilter(const wstring& configPath, wstring& c
 		entry.kind = kind;
 		entry.result = result;
 		entry.active = active;
-		engine->traceLoadEvent(entry);
+		engine()->traceLoadEvent(entry);
 		traced = true;
 	};
 
 	if (isIfFamily && cmd.kind == IfCommand::Kind::If)
 	{
-		openIfLines.push_back(engine->loadTraceLine());
+		openIfLines.push_back(engine()->loadTraceLine());
 		if (falseCount == 0)
 		{
 			try
@@ -133,7 +132,7 @@ FilterVector IfFilterFactory::createFilter(const wstring& configPath, wstring& c
 		{
 			if (trueCount == 0)
 			{
-				reportParseError(command, L"ElseIf without an If before it");
+				malformedReason = L"ElseIf without an If before it";
 				traceBranch(ConfigLoadTraceEntry::Kind::Condition, ConfigLoadTraceEntry::Result::NotEvaluated, false);
 			}
 			else
@@ -184,7 +183,7 @@ FilterVector IfFilterFactory::createFilter(const wstring& configPath, wstring& c
 		{
 			if (trueCount == 0)
 			{
-				reportParseError(command, L"Else without an If before it");
+				malformedReason = L"Else without an If before it";
 				traceBranch(ConfigLoadTraceEntry::Kind::ElseBranch, ConfigLoadTraceEntry::Result::NotEvaluated, false);
 			}
 			else
@@ -212,7 +211,7 @@ FilterVector IfFilterFactory::createFilter(const wstring& configPath, wstring& c
 		{
 			if (trueCount == 0)
 			{
-				reportParseError(command, L"EndIf without an If before it");
+				malformedReason = L"EndIf without an If before it";
 			}
 			else
 			{
@@ -239,11 +238,13 @@ FilterVector IfFilterFactory::createFilter(const wstring& configPath, wstring& c
 		// (they would not have executed anyway).
 		if (!traced && !command.empty() && command[0] != L'#')
 			traceBranch(ConfigLoadTraceEntry::Kind::SkippedLine, ConfigLoadTraceEntry::Result::NotEvaluated, false);
-		// skip line for further factories
-		command = L"";
 	}
 
-	return {};
+	if (!malformedReason.empty())
+		return LineOutcome::malformed(std::move(malformedReason));
+	if (isIfFamily || falseCount > 0)
+		return LineOutcome::consumed();
+	return LineOutcome::notMine();
 }
 
 FilterVector IfFilterFactory::endOfFile(const std::wstring& configPath)
@@ -251,7 +252,7 @@ FilterVector IfFilterFactory::endOfFile(const std::wstring& configPath)
 	if (trueCount != 0 || falseCount != 0)
 	{
 		for (int line : openIfLines)
-			reportParseError(L"If", L"this If has no EndIf before the end of its file", line);
+			engine()->reportParseError(L"If", L"this If has no EndIf before the end of its file", line);
 		falseCount = 0;
 	}
 	trueCount = trueCountStack.top();

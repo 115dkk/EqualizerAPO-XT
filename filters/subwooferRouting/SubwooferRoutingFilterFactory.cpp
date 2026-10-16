@@ -17,8 +17,6 @@
 */
 
 #include "stdafx.h"
-#include "text/WideString.h"
-#include "platform/windows/TextEncoding.h"
 #include "SubwooferRoutingFilterFactory.h"
 
 #include <string>
@@ -26,6 +24,7 @@
 
 #include "SubwooferRouting/Compiler.h"
 #include "SubwooferRouting/StateCodec.h"
+#include "engine/ConfigurationFileReader.h"
 #include "filters/ConfigFileReference.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "SubwooferRoutingCommand.h"
@@ -33,13 +32,6 @@
 
 namespace
 {
-constexpr unsigned Utf8CodePage = 65001;
-
-std::wstring fromUtf8(const std::string& text)
-{
-	return wintext::toWideString(text, Utf8CodePage);
-}
-
 std::wstring codecErrorMessage(const subroute::StateDecodeResult& result)
 {
 	if (result.errors.empty())
@@ -49,18 +41,7 @@ std::wstring codecErrorMessage(const subroute::StateDecodeResult& result)
 	std::string message = error.message;
 	if (!error.jsonPointer.empty())
 		message = error.jsonPointer + ": " + message;
-	return fromUtf8(message);
-}
-
-const subroute::ValidationDiagnostic* firstValidationError(
-	const subroute::ValidationResult& result)
-{
-	for (const subroute::ValidationDiagnostic& diagnostic : result.diagnostics)
-	{
-		if (diagnostic.severity == subroute::DiagnosticSeverity::Error)
-			return &diagnostic;
-	}
-	return nullptr;
+	return subwooferRoutingFromUtf8(message);
 }
 
 std::wstring validationErrorMessage(
@@ -69,25 +50,7 @@ std::wstring validationErrorMessage(
 	std::string message = diagnostic.message;
 	if (!diagnostic.entityId.empty())
 		message = diagnostic.entityId + ": " + message;
-	return fromUtf8(message);
-}
-
-bool readProfile(const JudgedPath& path, std::string& text)
-{
-	HANDLE file = path.leaf();
-	LARGE_INTEGER zero = {};
-	if (file == nullptr || !SetFilePointerEx(file, zero, nullptr, FILE_BEGIN))
-		return false;
-	char buffer[8192];
-	for (;;)
-	{
-		DWORD count = 0;
-		if (!ReadFile(file, buffer, sizeof(buffer), &count, nullptr))
-			return false;
-		if (count == 0)
-			return true;
-		text.append(buffer, count);
-	}
+	return subwooferRoutingFromUtf8(message);
 }
 }
 
@@ -95,7 +58,7 @@ bool readProfile(const JudgedPath& path, std::string& text)
 // cppcheck-suppress unknownMacro
 REGISTER_FILTER_FACTORY(FilterFactoryPriority::SubwooferRouting, SubwooferRoutingFilterFactory, L"SubwooferRouting")
 
-FilterVector SubwooferRoutingFilterFactory::createFilter(
+LineOutcome SubwooferRoutingFilterFactory::createFilter(
 	const std::wstring& configPath, std::wstring& command,
 	std::wstring& parameters)
 {
@@ -105,7 +68,7 @@ FilterVector SubwooferRoutingFilterFactory::createFilter(
 	SubwooferRoutingCommand parsed;
 	std::wstring error;
 	if (!SubwooferRoutingCommand::parse(command, parameters, parsed, &error))
-		return reportParseError(command, error);
+		return LineOutcome::malformed(error);
 
 	std::string utf8Text;
 	if (parsed.form == SubwooferRoutingCommand::Form::Profile)
@@ -113,15 +76,15 @@ FilterVector SubwooferRoutingFilterFactory::createFilter(
 		const ConfigFileReference::Target profile =
 			ConfigFileReference::target(configPath, parsed.payload);
 		if (!profile.refusal.empty())
-			return reportParseError(command, profile.refusal);
+			return LineOutcome::malformed(profile.refusal);
 		if (profile.path.empty())
-			return reportParseError(command,
+			return LineOutcome::malformed(
 				L"expected the path of a profile file");
 		const std::wstring& resolvedPath = profile.path.path();
 
-		if (!readProfile(profile.path, utf8Text))
+		if (!ConfigurationFileReader::readBytes(profile.path, utf8Text))
 		{
-			return reportParseError(command,
+			return LineOutcome::malformed(
 				L"could not read profile file \"" + resolvedPath + L"\"");
 		}
 
@@ -140,15 +103,15 @@ FilterVector SubwooferRoutingFilterFactory::createFilter(
 
 	subroute::StateDecodeResult decoded = subroute::decodeState(utf8Text);
 	if (!decoded.state.has_value())
-		return reportParseError(command, codecErrorMessage(decoded));
+		return LineOutcome::malformed(codecErrorMessage(decoded));
 
 	subroute::SubwooferRoutingState state = std::move(*decoded.state);
 	const subroute::ValidationResult validation = subroute::validate(state);
 	const subroute::ValidationDiagnostic* diagnostic =
-		firstValidationError(validation);
+		firstSubwooferRoutingValidationError(validation);
 	if (diagnostic != nullptr)
-		return reportParseError(command, validationErrorMessage(*diagnostic));
+		return LineOutcome::malformed(validationErrorMessage(*diagnostic));
 
-	return singleFilter(
-		makeFilter<SubwooferRoutingFilter>(std::move(state)));
+	return LineOutcome::produced(singleFilter(
+		makeFilter<SubwooferRoutingFilter>(std::move(state))));
 }

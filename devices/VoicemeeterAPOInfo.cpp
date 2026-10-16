@@ -23,6 +23,7 @@
 #include <ShlObj.h>
 #include <fstream>
 #include <algorithm>
+#include <Ks.h>
 #include <KsMedia.h>
 #include <shellapi.h>
 #include "platform/windows/ComPtr.h"

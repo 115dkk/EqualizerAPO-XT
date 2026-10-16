@@ -65,7 +65,7 @@ void testBiQuadRejectsNonPositiveParameters()
 		std::wstring parameters(text);
 		BiQuadCommand command;
 		std::wstring error;
-		harness.expectFalse(BiQuadFilterFactory::parseCommand(L"Filter", parameters, command, &error),
+		harness.expectFalse(BiQuadCommand::parse(L"Filter", parameters, command, error),
 			"BiQuad rejects a non-positive frequency, Q, bandwidth or slope");
 		harness.expectFalse(error.empty(), "the rejection carries a reason for the trace");
 	}

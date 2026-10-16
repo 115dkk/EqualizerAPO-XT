@@ -4,8 +4,7 @@
 	SPDX-License-Identifier: GPL-2.0-or-later
 
 	Round-trip tests for the shared Delay config-line parser/serializer
-	(DelayCommand::parse + DelayCommand::serialize, with the engine's no-op
-	gate in DelayFilterFactory::parseCommand on top). They confirm that
+	(DelayCommand::parse + DelayCommand::serialize). They confirm that
 	"Delay:" lines parse to the expected delay value and unit, that the cases
 	which build no filter (zero delay, unknown unit, negative value) are
 	rejected exactly as the engine factory decides, that the codec itself still
@@ -20,7 +19,6 @@
 #include <string>
 
 #include "filters/DelayCommand.h"
-#include "filters/DelayFilterFactory.h"
 #include "platform/windows/TextEncoding.h"
 #include "Tests/TestHarness.h"
 
@@ -35,7 +33,7 @@ test::Harness harness("DelayCommandTests");
 bool parseDelay(const wstring& parameters, double& outValue, bool& outIsMs)
 {
 	DelayCommand cmd;
-	if (!DelayFilterFactory::parseCommand(L"Delay", parameters, cmd))
+	if (!DelayCommand::parse(parameters, cmd) || cmd.delay == 0.0)
 		return false;
 	outValue = cmd.delay;
 	outIsMs = cmd.isMs;
@@ -91,7 +89,7 @@ void testRejectedCommands()
 }
 
 // The codec itself accepts a zero delay: the engine's no-op gate lives in the
-// factory wrapper only, so the Editor can still open a knob card for the
+// factory, so the Editor can still open a knob card for the
 // insert template's own "Delay: 0 ms" instead of dropping the row to raw text.
 void testCodecAcceptsZero()
 {
@@ -115,7 +113,7 @@ void testCodecAcceptsZero()
 void expectRoundTrip(const wstring& parameters, const wstring& expected)
 {
 	DelayCommand cmd;
-	harness.expectTrue(DelayFilterFactory::parseCommand(L"Delay", parameters, cmd),
+	harness.expectTrue(DelayCommand::parse(parameters, cmd),
 		"round-trip input should parse");
 	harness.expectTrue(cmd.serialize() == expected,
 		"serialize(parse(\"" + wintext::toNarrowString(parameters, 65001u) + "\")) mismatch");
@@ -143,7 +141,7 @@ void testSerializeRoundTrip()
 	harness.expectTrue(serialized == L"250 ms", "hand-built command should serialize to '250 ms'");
 
 	DelayCommand reparsed;
-	harness.expectTrue(DelayFilterFactory::parseCommand(L"Delay", serialized, reparsed),
+	harness.expectTrue(DelayCommand::parse(serialized, reparsed),
 		"serialized command should parse back");
 	harness.expectEqual(reparsed.delay, built.delay, "round-trip delay value");
 	harness.expectTrue(reparsed.isMs == built.isMs, "round-trip unit flag");

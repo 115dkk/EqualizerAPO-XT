@@ -169,6 +169,7 @@ int runEngineOrchestrationTests()
 	testVoicemeeterStripVocabulary(harness);
 	testProcessSearchLeavesTheTokenAsItWas(harness);
 	testParseErrorsAreReportedPerLineAndProseIsNot(harness);
+	testFactoryInitializationHookKeepsParseReporting(harness);
 	testFilterSetupFailureNamesItsLine(harness);
 	testControlFlowAndStageMistakesAreReported(harness);
 	testIncludeRecursionLimitIsReported(harness);

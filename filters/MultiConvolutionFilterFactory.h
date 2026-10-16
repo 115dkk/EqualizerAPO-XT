@@ -23,8 +23,8 @@
 #include "engine/IFilterFactory.h"
 #include "engine/IFilter.h"
 
-class MultiConvolutionFilterFactory : public ParseReportingFactory
+class MultiConvolutionFilterFactory : public IFilterFactory
 {
 public:
-	FilterVector createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
+	LineOutcome createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
 };

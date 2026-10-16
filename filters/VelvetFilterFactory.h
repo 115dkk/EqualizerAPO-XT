@@ -8,13 +8,9 @@
 
 #include "engine/IFilterFactory.h"
 
-class VelvetFilterFactory : public ParseReportingFactory
+class VelvetFilterFactory : public IFilterFactory
 {
 public:
-	void initialize(FilterEngine* engine) override;
-	FilterVector createFilter(const std::wstring& configPath,
+	LineOutcome createFilter(const std::wstring& configPath,
 		std::wstring& command, std::wstring& parameters) override;
-
-private:
-	FilterEngine* engine = nullptr;
 };

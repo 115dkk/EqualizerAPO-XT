@@ -20,7 +20,7 @@
 #include <QVector>
 #include <QHash>
 
-#include "filters/CopyFilter.h"
+#include "filters/CopyCommand.h"
 
 class CopyRoutingAdapter
 {

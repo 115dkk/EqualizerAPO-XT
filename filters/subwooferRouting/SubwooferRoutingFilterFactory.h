@@ -20,9 +20,9 @@
 
 #include "engine/IFilterFactory.h"
 
-class SubwooferRoutingFilterFactory : public ParseReportingFactory
+class SubwooferRoutingFilterFactory : public IFilterFactory
 {
 public:
-	FilterVector createFilter(const std::wstring& configPath,
+	LineOutcome createFilter(const std::wstring& configPath,
 		std::wstring& command, std::wstring& parameters) override;
 };

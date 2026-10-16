@@ -108,6 +108,7 @@ SOURCES += main.cpp\
 	guis/CopyFilterGUI.cpp \
 	guis/CopyFilterGUIConnectionItem.cpp \
 	guis/CopyFilterGUIChannelItem.cpp \
+	../filters/CopyCommand.cpp \
 	../filters/CopyFilter.cpp \
 	../filters/CopyFilterFactory.cpp \
 	../filters/SendCommand.cpp \
@@ -465,6 +466,7 @@ HEADERS  += \
 	guis/CopyFilterGUI.h \
 	guis/CopyFilterGUIConnectionItem.h \
 	guis/CopyFilterGUIChannelItem.h \
+	../filters/CopyCommand.h \
 	../filters/CopyFilter.h \
 	../filters/SendCommand.h \
 	../filters/SendFilter.h \

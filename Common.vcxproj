@@ -334,6 +334,7 @@
     <ClInclude Include="filters\VelvetFilter.h" />
     <ClInclude Include="filters\VelvetFilterFactory.h" />
     <ClInclude Include="filters\velvet\VelvetProcessor.h" />
+    <ClInclude Include="filters\CopyCommand.h" />
     <ClInclude Include="filters\CopyFilter.h" />
     <ClInclude Include="filters\CopyFilterFactory.h" />
     <ClInclude Include="filters\SendCommand.h" />
@@ -502,6 +503,7 @@
     <ClCompile Include="filters\VelvetFilter.cpp" />
     <ClCompile Include="filters\VelvetFilterFactory.cpp" />
     <ClCompile Include="filters\velvet\VelvetProcessor.cpp" />
+    <ClCompile Include="filters\CopyCommand.cpp" />
     <ClCompile Include="filters\CopyFilter.cpp" />
     <ClCompile Include="filters\CopyFilterFactory.cpp" />
     <ClCompile Include="filters\SendCommand.cpp" />

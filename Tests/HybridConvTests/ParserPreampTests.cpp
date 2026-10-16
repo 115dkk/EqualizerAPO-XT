@@ -4,7 +4,7 @@
 	SPDX-License-Identifier: GPL-2.0-or-later
 
 	Round-trip tests for the "Preamp:" config-line grammar. These exercise the
-	single owning parse routine PreampFilterFactory::parseCommand (which both the
+	single owning parse routine PreampCommand::parse (which both the
 	engine factory and the Editor GUI now share) and serializePreampCommand, the
 	canonical "<dB> dB" serializer that PreampFilterGUI::store() routes through.
 
@@ -28,7 +28,6 @@
 #include "text/WideString.h"
 #include "parser/NumericText.h"
 
-#include "filters/PreampFilterFactory.h"
 #include "filters/PreampCommand.h"
 #include "Tests/TestHarness.h"
 
@@ -47,7 +46,7 @@ PreampCommand parsePreamp(const wstring& parameters)
 	PreampCommand cmd;
 	// The keyword is recognized, so parseCommand returns true; the valid/noOp
 	// flags then describe the parse outcome.
-	bool recognized = PreampFilterFactory::parseCommand(command, parameters, cmd);
+	bool recognized = PreampCommand::parse(command, parameters, cmd);
 	harness.expectTrue(recognized, "Preamp keyword should be recognized by parseCommand");
 	return cmd;
 }
@@ -164,7 +163,7 @@ void runParserPreampTests()
 		wstring command = L"Delay";
 		wstring parameters = L"5 ms";
 		PreampCommand cmd;
-		harness.expectFalse(PreampFilterFactory::parseCommand(command, parameters, cmd),
+		harness.expectFalse(PreampCommand::parse(command, parameters, cmd),
 			"parseCommand should reject a non-Preamp command");
 		harness.expectFalse(cmd.valid, "a rejected command leaves the struct invalid");
 	}

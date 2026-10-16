@@ -23,6 +23,7 @@
 
 #include <cwctype>
 
+#include "SubwooferRouting/Compiler.h"
 
 namespace
 {
@@ -46,6 +47,22 @@ size_t skipWhitespace(const std::wstring& text, size_t position)
 std::string subwooferRoutingToUtf8(const std::wstring& text)
 {
 	return wintext::toNarrowString(text, Utf8CodePage);
+}
+
+std::wstring subwooferRoutingFromUtf8(const std::string& text)
+{
+	return wintext::toWideString(text, Utf8CodePage);
+}
+
+const subroute::ValidationDiagnostic* firstSubwooferRoutingValidationError(
+	const subroute::ValidationResult& result)
+{
+	for (const subroute::ValidationDiagnostic& diagnostic : result.diagnostics)
+	{
+		if (diagnostic.severity == subroute::DiagnosticSeverity::Error)
+			return &diagnostic;
+	}
+	return nullptr;
 }
 
 bool SubwooferRoutingCommand::parse(const std::wstring& command,

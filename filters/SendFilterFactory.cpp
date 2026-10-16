@@ -45,17 +45,14 @@ namespace
 
 }
 
-void SendFilterFactory::initialize(FilterEngine* engine)
+void SendFilterFactory::onInitialize(FilterEngine& engine)
 {
-	ParseReportingFactory::initialize(engine);
 	if (engine_ != nullptr)
 		engine_->setInputTap(nullptr);
 	receiverInstalled_ = false;
 	receiver_.reset();
-	engine_ = engine;
+	engine_ = &engine;
 	ownGuid_.clear();
-	if (engine_ == nullptr)
-		return;
 
 	engine_->setInputTap(nullptr);
 	ownGuid_ = SendCommand::canonicalEndpoint(engine_->getDeviceGuid());
@@ -125,33 +122,32 @@ void SendFilterFactory::reportReceiverNews(const SendReceiverNews& news)
 			static_cast<unsigned long long>(news.underruns));
 }
 
-FilterVector SendFilterFactory::createFilter(const std::wstring& configPath,
+LineOutcome SendFilterFactory::createFilter(const std::wstring& configPath,
 	std::wstring& command, std::wstring& parameters)
 {
 	if (command != L"Send")
-		return {};
+		return LineOutcome::notMine();
 
 	SendCommand parsed;
 	std::wstring error;
 	if (!SendCommand::parse(command, parameters, parsed, &error))
-		return reportParseError(command, error);
+		return LineOutcome::malformed(error);
 	if (engine_ == nullptr)
-		return {};
+		return LineOutcome::consumed();
 	if (engine_->getHost() != EngineHost::Apo)
 	{
 		TraceF(L"Send is inactive outside the audio service");
-		// Processing factories must leave command set when they produce no filter.
-		return {};
+		return LineOutcome::consumed();
 	}
 	if (engine_->isCapture())
-		return reportParseError(command, L"Send is not available on recording endpoints");
+		return LineOutcome::malformed(L"Send is not available on recording endpoints");
 	if (engine_->isPreMix())
-		return reportParseError(command, L"Send requires the post-mix stage to be installed on this endpoint");
+		return LineOutcome::malformed(L"Send requires the post-mix stage to be installed on this endpoint");
 	if (parsed.endpoint == ownGuid_)
-		return reportParseError(command, L"Send cannot target its own endpoint");
+		return LineOutcome::malformed(L"Send cannot target its own endpoint");
 	if (targetsInLoad_.count(parsed.endpoint) != 0)
 	{
-		return reportParseError(command,
+		return LineOutcome::malformed(
 			L"Another Send line in this configuration already feeds " + parsed.endpoint);
 	}
 
@@ -170,7 +166,7 @@ FilterVector SendFilterFactory::createFilter(const std::wstring& configPath,
 		std::wostringstream reason;
 		reason << L"Latency of " << std::fixed << std::setprecision(0) << delayFrameValue
 			<< L" frames is too large for the Send ring";
-		return reportParseError(command, reason.str());
+		return LineOutcome::malformed(reason.str());
 	}
 	const uint32_t delayFrames = static_cast<uint32_t>(delayFrameValue);
 
@@ -184,7 +180,7 @@ FilterVector SendFilterFactory::createFilter(const std::wstring& configPath,
 			if (ChannelLayout::getChannelIndex(summand.channel,
 				engine_->loadingChannelNames(), true) == -1)
 			{
-				reportParseError(command, L"Send source channel " + summand.channel
+				engine_->reportParseError(command, L"Send source channel " + summand.channel
 					+ L" does not exist here");
 				valid = false;
 			}
@@ -193,7 +189,7 @@ FilterVector SendFilterFactory::createFilter(const std::wstring& configPath,
 			assignments.push_back(std::move(assignment));
 	}
 	if (assignments.empty())
-		return {};
+		return LineOutcome::consumed();
 
 	auto writerIt = writers_.find(parsed.endpoint);
 	if (writerIt == writers_.end())
@@ -207,14 +203,14 @@ FilterVector SendFilterFactory::createFilter(const std::wstring& configPath,
 		}
 		catch (const std::exception& e)
 		{
-			return reportParseError(command, L"Could not open the Send ring for " + parsed.endpoint
+			return LineOutcome::malformed(L"Could not open the Send ring for " + parsed.endpoint
 				+ L": " + wintext::toWideString(e.what(), CP_UTF8));
 		}
 		writerIt = writers_.emplace(parsed.endpoint, std::move(writer)).first;
 	}
 	SendWriter* const writer = writerIt->second.get();
 	if (writer->otherSenderLive())
-		return reportParseError(command, L"Another sender already feeds " + parsed.endpoint);
+		return LineOutcome::malformed(L"Another sender already feeds " + parsed.endpoint);
 	targetsInLoad_.insert(parsed.endpoint);
 
 	SendParams params;
@@ -234,7 +230,7 @@ FilterVector SendFilterFactory::createFilter(const std::wstring& configPath,
 		parsed.endpoint.c_str(), static_cast<unsigned>(assignments.size()), delayFrames,
 		1000.0 * delayFrames / engine_->getSampleRate(),
 		parsed.compensate ? engine_->getOutputChannelCount() : 0);
-	return singleFilter(makeFilter<SendFilter>(engine_, writer, assignments));
+	return LineOutcome::produced(singleFilter(makeFilter<SendFilter>(engine_, writer, assignments)));
 }
 
 FilterVector SendFilterFactory::endOfConfiguration()

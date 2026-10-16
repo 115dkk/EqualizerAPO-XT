@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <stack>
 #include <string>
 #include <vector>
 #include "engine/IFilterFactory.h"
@@ -27,18 +28,19 @@
 class EngineParser;
 namespace mup { class Value; }
 
-class IfFilterFactory : public ParseReportingFactory
+class IfFilterFactory : public IFilterFactory
 {
 public:
-	void initialize(FilterEngine* engine) override;
 	FilterVector startOfConfiguration() override;
 	FilterVector startOfFile(const std::wstring& configPath) override;
-	FilterVector createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
+	LineOutcome createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
 	FilterVector endOfFile(const std::wstring& configPath) override;
+
+protected:
+	void onInitialize(FilterEngine& engine) override;
 
 private:
 	EngineParser* parser = nullptr;
-	FilterEngine* engine = nullptr;
 
 	unsigned trueCount = 0;
 	unsigned falseCount = 0;
