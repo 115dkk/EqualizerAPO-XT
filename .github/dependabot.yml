@@ -1,0 +1,16 @@
+# Audit #422 TD-15: every action in .github/workflows is pinned to a commit
+# SHA with its release tag in a trailing comment. Dependabot reads that
+# comment, so it moves the SHA and the tag together. Updates arrive once a
+# month as a single grouped PR.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: ci

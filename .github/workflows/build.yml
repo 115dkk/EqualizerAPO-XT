@@ -60,7 +60,7 @@ jobs:
       bumped: ${{ steps.commit.outputs.bumped }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
       with:
         fetch-depth: 0
         # Persist the credentials so the bump push uses GITHUB_TOKEN as expected.
@@ -105,11 +105,18 @@ jobs:
           # automates (CLAUDE.md).
           $releaseDate = [DateTime]::UtcNow.ToString('yyyy-MM-dd')
           .\.github\scripts\Update-Changelog.ps1 -Version $baseVersion -Date $releaseDate
+          # Audit #422 TD-03: each git call is checked. A rejected push used to
+          # leave bumped=true with a SHA that existed only on this runner, so
+          # the build job failed later on an unrelated checkout error and the
+          # version.h/CHANGELOG edits were lost.
           git add version.h CHANGELOG.md CHANGELOG.ko.md
+          if ($LASTEXITCODE -ne 0) { throw "git add of the version bump failed" }
           # [skip ci] keeps any future GitHub change from triggering a second run on
           # this commit; the current workflow keeps going regardless.
           git commit -m "chore(version): bump version [skip ci]"
+          if ($LASTEXITCODE -ne 0) { throw "git commit of the version bump failed" }
           git push
+          if ($LASTEXITCODE -ne 0) { throw "git push of the version bump failed" }
           "bumped=true" >> $env:GITHUB_OUTPUT
         }
         else {
@@ -118,6 +125,7 @@ jobs:
         }
 
         $sha = (& git rev-parse HEAD).Trim()
+        if ($LASTEXITCODE -ne 0) { throw "git rev-parse HEAD failed" }
 
         Write-Host "Bumped HEAD: $sha"
         Write-Host "Base version: $baseVersion"
@@ -148,7 +156,7 @@ jobs:
       primary_artifact: ${{ steps.gen.outputs.primary_artifact }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
     - name: Lint variant consumers against the manifest
       shell: pwsh
@@ -194,7 +202,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
       with:
         # On main, the bump job pushed a new commit using GITHUB_TOKEN which does
         # not retrigger workflows. Pulling that commit explicitly ensures the
@@ -203,7 +211,7 @@ jobs:
         ref: ${{ needs.version-bump.outputs.bumped_sha || github.sha }}
 
     - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@v3
+      uses: microsoft/setup-msbuild@30375c66a4eea26614e0d39710365f22f8b0af57 # v3.0.0
       with:
         # setup-msbuild compares this input CASE-SENSITIVELY against 'x64'/'arm64'
         # and silently falls back to the 32-bit x86 MSBuild on any other value.
@@ -278,7 +286,7 @@ jobs:
         .\.github\scripts\Initialize-DepsEnvironment.ps1 -DepsPath "${{ github.workspace }}\deps"
 
     - name: Setup Python
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
       with:
         python-version: '3.12'
 
@@ -331,7 +339,7 @@ jobs:
     # test tools, not product, so they travel as their own artifact.
     - name: Upload capture probes (primary variant)
       if: matrix.primary == true
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: capture-probes
         path: |
@@ -372,7 +380,7 @@ jobs:
 
     - name: Upload audio regression outputs
       if: matrix.can_execute == true
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: audio-regression-output-${{ matrix.simd_variant }}
         path: Tests/AudioRegressionTests/output
@@ -381,7 +389,7 @@ jobs:
 
     - name: Upload audio regression references (primary variant)
       if: matrix.primary == true
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: audio-regression-references
         path: Tests/AudioRegressionTests/references
@@ -510,21 +518,21 @@ jobs:
 
     - name: Upload skin gallery
       if: matrix.primary == true
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: skin-gallery
         path: skin-gallery/*.png
 
     - name: Upload analysis dock layout proof
       if: matrix.primary == true
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: analysis-layout
         path: analysis-layout/*
 
     - name: Upload card selection proof
       if: matrix.primary == true
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: card-selection
         path: card-selection/*
@@ -542,7 +550,7 @@ jobs:
           -SimdVariant "${{ matrix.simd_variant }}"
 
     - name: Upload debug symbols
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: symbols-${{ matrix.platform }}-${{ matrix.simd_variant }}
         path: symbols/
@@ -564,7 +572,7 @@ jobs:
     # second folder list here is how generic/ and networkinformation/ went
     # silently missing from releases (audit #275 TD-11).
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}
         path: ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}\
@@ -575,7 +583,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
     # cppcheck is built from a pinned release tag instead of apt because the
     # apt package version drifts with the runner image and the finding set
@@ -583,7 +591,7 @@ jobs:
     # against the same version developers run locally.
     - name: Cache cppcheck
       id: cache-cppcheck
-      uses: actions/cache@v6
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/cppcheck-install
         key: cppcheck-2.21.0-${{ runner.os }}
@@ -658,7 +666,7 @@ jobs:
 
     - name: Upload cppcheck report
       if: always()
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: cppcheck-report
         path: cppcheck-report.txt
@@ -681,10 +689,10 @@ jobs:
     runs-on: windows-2025-vs2026
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
     - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@v3
+      uses: microsoft/setup-msbuild@30375c66a4eea26614e0d39710365f22f8b0af57 # v3.0.0
       with:
         msbuild-architecture: x64
 
@@ -722,7 +730,7 @@ jobs:
         .\.github\scripts\Initialize-DepsEnvironment.ps1 -DepsPath "${{ github.workspace }}\deps"
 
     - name: Setup Python
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
       with:
         python-version: '3.12'
 
@@ -761,7 +769,7 @@ jobs:
     runs-on: windows-2025-vs2026
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
     - name: Install Pester 5
       shell: pwsh
@@ -826,7 +834,7 @@ jobs:
 
     - name: Upload Pester results
       if: always()
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: pester-results
         path: pester-results.xml
@@ -847,10 +855,10 @@ jobs:
     if: always() && needs.build.result == 'success' && github.event_name != 'pull_request'
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
     - name: Download per-variant audio outputs
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
       with:
         pattern: audio-regression-output-*
         path: artifacts
@@ -886,16 +894,16 @@ jobs:
     timeout-minutes: 30
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
     - name: Download the primary build artifact
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
       with:
         name: ${{ needs.prepare-matrix.outputs.primary_artifact }}
         path: artifacts/${{ needs.prepare-matrix.outputs.primary_artifact }}
 
     - name: Download the capture probes
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
       with:
         name: capture-probes
         path: artifacts/capture-probes
@@ -915,7 +923,7 @@ jobs:
 
     - name: Upload capture gate snapshots
       if: always()
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: capture-gate-snapshots
         path: ${{ runner.temp }}\capture-gate
@@ -943,13 +951,13 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
       with:
         # Pick up the bumped version.h, not the pre-bump SHA that triggered the run.
         ref: ${{ needs.version-bump.outputs.bumped_sha || github.sha }}
 
     - name: Download build artifacts
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
       with:
         pattern: EqualizerAPO-*
         path: ${{ github.workspace }}\release-input
@@ -958,7 +966,7 @@ jobs:
     # builds the per-variant binaries; this front-door installer is a single
     # architecture-agnostic binary built once here).
     - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@v3
+      uses: microsoft/setup-msbuild@30375c66a4eea26614e0d39710365f22f8b0af57 # v3.0.0
 
     - name: Resolve release version
       id: version
