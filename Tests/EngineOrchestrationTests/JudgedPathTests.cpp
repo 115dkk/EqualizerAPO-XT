@@ -90,6 +90,55 @@ private:
 	SECURITY_DESCRIPTOR_CONTROL control = 0;
 };
 
+// Audit #422 TD-13: an impersonation copy of the process token for this
+// thread only, with privileges switched off on it. SeBackupPrivilege, when the
+// test user holds it enabled (an elevated developer shell does; the CI runner
+// token does not), lets a FILE_FLAG_BACKUP_SEMANTICS open walk past the deny
+// ACE the fixture installs, so the deny checks would fail for a reason that
+// has nothing to do with the code under test. The process token and the
+// worker threads keep their privileges. Declared after the DACL scope, it
+// reverts before the DACL is restored.
+class ThreadPrivilegeScope
+{
+public:
+	ThreadPrivilegeScope()
+	{
+		if (!ImpersonateSelf(SecurityImpersonation))
+			throw std::runtime_error("could not create test thread token");
+		if (!OpenThreadToken(GetCurrentThread(), TOKEN_QUERY | TOKEN_ADJUST_PRIVILEGES, TRUE, token.put()))
+		{
+			RevertToSelf();
+			throw std::runtime_error("could not open test thread token");
+		}
+	}
+	~ThreadPrivilegeScope()
+	{
+		if (!RevertToSelf())
+			std::abort();
+	}
+	ThreadPrivilegeScope(const ThreadPrivilegeScope&) = delete;
+	ThreadPrivilegeScope& operator=(const ThreadPrivilegeScope&) = delete;
+
+	// Returns whether the privilege was enabled before. A privilege the token
+	// does not hold at all is already off and returns false.
+	bool disable(const wchar_t* name)
+	{
+		TOKEN_PRIVILEGES change = {};
+		change.PrivilegeCount = 1;
+		if (!LookupPrivilegeValueW(nullptr, name, &change.Privileges[0].Luid))
+			throw std::runtime_error("could not look up a privilege");
+		TOKEN_PRIVILEGES previous = {};
+		DWORD returned = 0;
+		if (!AdjustTokenPrivileges(token.get(), FALSE, &change, sizeof(previous), &previous, &returned))
+			throw std::runtime_error("could not adjust a privilege");
+		if (GetLastError() == ERROR_NOT_ALL_ASSIGNED)
+			return false;
+		return previous.PrivilegeCount == 1 && (previous.Privileges[0].Attributes & SE_PRIVILEGE_ENABLED) != 0;
+	}
+private:
+	winutil::UniqueHandle token;
+};
+
 // SetFileInformationByHandle(FileRenameInfoEx) with POSIX semantics, which a
 // hostile local user could use instead of MoveFileW. The buffer is laid out
 // here because FILE_RENAME_INFO::Flags needs _WIN32_WINNT_WIN10_RS1 headers.
@@ -156,6 +205,9 @@ void testJudgedPathAttributesOnlyAncestor(test::Harness& harness)
 	{
 		DirectoryDaclScope dacl(middle);
 		dacl.denyTraversal(sid);
+		ThreadPrivilegeScope privileges;
+		if (privileges.disable(SE_BACKUP_NAME))
+			std::printf("A1b: SeBackupPrivilege was enabled on this token; switched off for the deny-ACE checks\n");
 		// The deny ACE is explicit and non-inheritable; config and file.txt
 		// inherit only the grant.
 		const winutil::UniqueHandle list(CreateFileW(middle.c_str(), FILE_LIST_DIRECTORY | SYNCHRONIZE,
@@ -197,24 +249,8 @@ void testJudgedPathAttributesOnlyAncestor(test::Harness& harness)
 		harness.expectTrue(posixRenamed, "POSIX rename succeeds once the judged path is released");
 		if (posixRenamed)
 			harness.expectTrue(MoveFileW(moved.c_str(), middle.c_str()) != FALSE, "rename back once the judged path is released");
-		// Only this thread's copied token changes; the process token and its
-		// worker threads keep their privileges. Revert before restoring the ACL.
-		if (!ImpersonateSelf(SecurityImpersonation))
-			throw std::runtime_error("could not create traversal test thread token");
-		struct RevertScope { ~RevertScope() { if (!RevertToSelf()) std::abort(); } } revert;
-		winutil::UniqueHandle threadToken;
-		if (!OpenThreadToken(GetCurrentThread(), TOKEN_QUERY | TOKEN_ADJUST_PRIVILEGES, TRUE, threadToken.put()))
-			throw std::runtime_error("could not open traversal test thread token");
-		TOKEN_PRIVILEGES change = {};
-		change.PrivilegeCount = 1;
-		if (!LookupPrivilegeValueW(nullptr, SE_CHANGE_NOTIFY_NAME, &change.Privileges[0].Luid))
-			throw std::runtime_error("could not find bypass-traverse privilege");
-		TOKEN_PRIVILEGES previous = {};
-		DWORD returned = 0;
-		if (!AdjustTokenPrivileges(threadToken.get(), FALSE, &change, sizeof(previous), &previous, &returned)
-			|| GetLastError() != ERROR_SUCCESS)
-			throw std::runtime_error("could not disable bypass-traverse privilege");
-		harness.expectTrue(previous.PrivilegeCount == 1 && (previous.Privileges[0].Attributes & SE_PRIVILEGE_ENABLED) != 0,
+		// The same thread token, with bypass-traverse switched off as well.
+		harness.expectTrue(privileges.disable(SE_CHANGE_NOTIFY_NAME),
 			"normal token initially has bypass-traverse enabled");
 		const auto denied = ConfigFileReference::target(L"", file);
 		std::printf("A1b attributes-only ancestor: enabled privilege reads child; disabled privilege error %lu, leaf %s\n",
@@ -227,6 +263,8 @@ void testJudgedPathAttributesOnlyAncestor(test::Harness& harness)
 		// refused, never handed to a reader as an attributes-only handle.
 		DirectoryDaclScope dacl(file);
 		dacl.denyTraversal(sid);
+		ThreadPrivilegeScope privileges;
+		privileges.disable(SE_BACKUP_NAME);
 		const auto unreadable = ConfigFileReference::target(L"", file);
 		harness.expectTrue(unreadable.path.empty() && unreadable.error == ERROR_ACCESS_DENIED && !unreadable.refusal.empty(),
 			"an unreadable leaf is refused rather than held attributes-only");
