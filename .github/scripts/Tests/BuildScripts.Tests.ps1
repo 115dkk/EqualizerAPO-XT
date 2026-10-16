@@ -100,6 +100,10 @@ Describe "extracted build script decisions" {
 
     It "plans the capture gate over a pinned virtual cable with the preamp measured three ways" {
         $plan = & (Join-Path $PSScriptRoot "..\Invoke-CaptureGate.ps1") -WorkspaceRoot $root -PlanOnly
+        # CI runs every measured phase; -Phases narrows a manual run.
+        $plan.Phases | Should -Be @("rounds", "plugin-load", "low-latency", "asio-entry")
+        (& (Join-Path $PSScriptRoot "..\Invoke-CaptureGate.ps1") -WorkspaceRoot $root -Phases plugin-load -PlanOnly).Phases |
+            Should -Be @("plugin-load")
         $plan.VbCableSha256 | Should -Match "^[0-9A-F]{64}$"
         $plan.VbCableUrl | Should -Match "^https://download\.vb-audio\.com/"
         $plan.RenderConnection | Should -Be "CABLE Input"

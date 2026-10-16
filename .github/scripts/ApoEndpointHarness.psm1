@@ -91,5 +91,44 @@ function Test-ApoEqClsid {
     return $false
 }
 
-Export-ModuleMember -Function Get-ApoEndpointContract, Export-ApoEndpointContract, Get-ApoFxValueNames, `
+# Audit #422 T4: shared by the gate scripts of this family.
+# Runs a program, waits (with a deadline), and returns exit code and output.
+# GUI-subsystem programs (DeviceSelector) print to the console they attach
+# to and to their log; their stdout here is often empty, and their exit code
+# is the verdict.
+function Invoke-ExternalProgram([string] $file, [string[]] $arguments, [int] $timeoutSeconds, [string] $workingDirectory) {
+    $stdout = [System.IO.Path]::GetTempFileName()
+    $stderr = [System.IO.Path]::GetTempFileName()
+    $quoted = @($arguments | ForEach-Object {
+        if ($_ -match '[\s"]') { '"' + ($_ -replace '"', '\"') + '"' } else { $_ }
+    })
+    $startArgs = @{
+        FilePath = $file
+        ArgumentList = $quoted
+        PassThru = $true
+        NoNewWindow = $true
+        RedirectStandardOutput = $stdout
+        RedirectStandardError = $stderr
+    }
+    if ($workingDirectory) { $startArgs.WorkingDirectory = $workingDirectory }
+    $process = Start-Process @startArgs
+    $exited = $process.WaitForExit($timeoutSeconds * 1000)
+    if (-not $exited) {
+        Write-Warning "$file did not exit within ${timeoutSeconds}s; killing it"
+        try { $process.Kill() } catch {}
+        $process.WaitForExit(5000) | Out-Null
+    }
+    $result = [pscustomobject]@{
+        ExitCode = if ($exited) { $process.ExitCode } else { -1 }
+        StdOut = (Get-Content -LiteralPath $stdout -Raw -ErrorAction SilentlyContinue)
+        StdErr = (Get-Content -LiteralPath $stderr -Raw -ErrorAction SilentlyContinue)
+        TimedOut = -not $exited
+    }
+    Remove-Item -LiteralPath $stdout, $stderr -Force -ErrorAction SilentlyContinue
+    if ($result.StdErr) { Write-Host ($result.StdErr.TrimEnd()) }
+    if ($result.StdOut) { Write-Host ($result.StdOut.TrimEnd()) }
+    return $result
+}
+
+Export-ModuleMember -Function Invoke-ExternalProgram, Get-ApoEndpointContract, Export-ApoEndpointContract, Get-ApoFxValueNames, `
     Get-ApoFxSlots, Get-ApoFxProperties, Format-ApoEffectChain, Test-ApoEqClsid
