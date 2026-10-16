@@ -421,7 +421,7 @@ int SkinGallery::runVstRoundTripSelfTest()
 		VSTPluginFilterFactory factory;
 		std::wstring command = L"VSTPlugin";
 		std::wstring params = c.params;
-		FilterVector filters = factory.createFilter(L"", command, params);
+		FilterVector filters = factory.createFilter(L"", command, params).filters;
 		if (filters.empty())
 		{
 			fprintf(stderr, "[VST selftest] %ls: parse produced no filter\n", c.name);
@@ -442,7 +442,7 @@ int SkinGallery::runVstRoundTripSelfTest()
 
 		std::wstring command2 = outCommand.toStdWString();
 		std::wstring params2 = outParams.toStdWString();
-		FilterVector filters2 = factory.createFilter(L"", command2, params2);
+		FilterVector filters2 = factory.createFilter(L"", command2, params2).filters;
 		if (filters2.empty())
 		{
 			fprintf(stderr, "[VST selftest] %ls: re-parse produced no filter (params='%ls')\n", c.name, params2.c_str());

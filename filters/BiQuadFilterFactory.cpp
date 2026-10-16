@@ -31,13 +31,6 @@ BiQuadFilterFactory::BiQuadFilterFactory()
 {
 }
 
-bool BiQuadFilterFactory::parseCommand(const wstring& command,
-	wstring& parameters, BiQuadCommand& out)
-{
-	return BiQuadCommand::parse(command, parameters, out);
-}
-
-
 LineOutcome BiQuadFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	BiQuadCommand cmd;

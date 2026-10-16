@@ -333,7 +333,7 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		// The custom-coefficient IIR grammar ("ON IIR Order N Coefficients ...")
 		// keeps the biquad card type so every skin's biquad styling applies;
 		// only the badge and title say IIR. The engine
-		// (IIRFilterFactory::parseCommand) stays the single grammar owner.
+		// (IIRCommand::parse) stays the single grammar owner.
 		static const QRegularExpression iirExpression(QStringLiteral("^\\s*(ON|OFF)\\s+IIR\\b"));
 		const QRegularExpressionMatch iirMatch = iirExpression.match(parameters);
 		if (iirMatch.hasMatch())

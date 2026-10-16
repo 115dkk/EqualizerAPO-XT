@@ -390,7 +390,7 @@ void testProcessLifetimeResidency(const wstring& dir, const wstring& dllPath)
 		VSTPluginFilterFactory factory;
 		wstring command = L"VSTPlugin";
 		wstring parameters = L"Library \"" + unloadPath + L"\"";
-		FilterVector filters = factory.createFilter(L"test-vst-unload.txt", command, parameters);
+		FilterVector filters = factory.createFilter(L"test-vst-unload.txt", command, parameters).filters;
 		harness.requireEqual(filters.size(), (size_t)1,
 			"the factory creates a filter while process-lifetime retention is off");
 		harness.require(GetModuleHandleW(unloadPath.c_str()) != nullptr,
@@ -407,7 +407,7 @@ void testProcessLifetimeResidency(const wstring& dir, const wstring& dllPath)
 		VSTPluginFilterFactory factory;
 		wstring command = L"VSTPlugin";
 		wstring parameters = L"Library \"" + residentPath + L"\"";
-		FilterVector filters = factory.createFilter(L"test-vst-resident.txt", command, parameters);
+		FilterVector filters = factory.createFilter(L"test-vst-resident.txt", command, parameters).filters;
 		harness.requireEqual(filters.size(), (size_t)1,
 			"the factory creates a filter while process-lifetime retention is on");
 		loadedModule = GetModuleHandleW(residentPath.c_str());
@@ -527,7 +527,7 @@ void runVstHostTests()
 		wstring busCommand = L"VSTPlugin";
 		wstring busParameters = L"Library \"" + disguisedVst2Path
 			+ L"\" Input Stereo Output 7.1";
-		FilterVector accepted = factory.createFilter(L"test-vst2-layout-ignore.txt", busCommand, busParameters);
+		FilterVector accepted = factory.createFilter(L"test-vst2-layout-ignore.txt", busCommand, busParameters).filters;
 		harness.expectEqual(accepted.size(), (size_t)1,
 			"VSTPlugin accepts Input/Output syntax for a loaded VST2 module");
 		if (!accepted.empty())

@@ -32,12 +32,6 @@ REGISTER_FILTER_FACTORY(FilterFactoryPriority::Preamp, PreampFilterFactory, L"Pr
 using std::vector;
 using std::wstring;
 
-bool PreampFilterFactory::parseCommand(const wstring& command,
-	const wstring& parameters, PreampCommand& out)
-{
-	return PreampCommand::parse(command, parameters, out);
-}
-
 LineOutcome PreampFilterFactory::createFilter(const wstring& configPath,
 	wstring& command, wstring& parameters)
 {

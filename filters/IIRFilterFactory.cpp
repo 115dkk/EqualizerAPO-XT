@@ -35,12 +35,6 @@ IIRFilterFactory::IIRFilterFactory()
 {
 }
 
-bool IIRFilterFactory::parseCommand(const wstring& command,
-	const wstring& parameters, IIRCommand& out)
-{
-	return IIRCommand::parse(command, parameters, out);
-}
-
 LineOutcome IIRFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	IIRCommand cmd;

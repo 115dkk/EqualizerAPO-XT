@@ -13,9 +13,7 @@
 #include "FilterLineCard.h"
 #include "IIRCardEditor.h"
 #include "filters/BiQuadCommand.h"
-#include "filters/BiQuadFilterFactory.h"
 #include "filters/IIRCommand.h"
-#include "filters/IIRFilterFactory.h"
 
 // "Filter" is the one command keyword with more than one card behind it: IIR
 // coefficients, an all-pass, and everything else that falls through to the
@@ -44,7 +42,7 @@ bool acceptsFilterLine(const QString& command, const QString& parameters)
 IFilterGUI* createFilterCard(FilterTable*, const QString& command, const QString& parameters)
 {
 	const std::wstring wideCommand = command.toStdWString();
-	// parseCommand rewrites its parameters argument as it consumes tokens, so
+	// The codec's parse rewrites its parameters argument as it consumes tokens, so
 	// each parse needs its own copy of the original text.
 	std::wstring wideParameters = parameters.toStdWString();
 	switch (filterLineCard(command, parameters))
@@ -52,7 +50,7 @@ IFilterGUI* createFilterCard(FilterTable*, const QString& command, const QString
 	case FilterLineCard::IirCoefficients:
 	{
 		IIRCommand cmd;
-		if (IIRFilterFactory::parseCommand(wideCommand, wideParameters, cmd))
+		if (IIRCommand::parse(wideCommand, wideParameters, cmd))
 			return new IIRCardEditor(cmd.order, cmd.coefficients);
 		break;
 	}
@@ -61,7 +59,7 @@ IFilterGUI* createFilterCard(FilterTable*, const QString& command, const QString
 		BiQuadCommand cmd;
 		// The command name is carried through verbatim so that editing
 		// "Filter 99:" saves "Filter 99:" and not "Filter:".
-		if (BiQuadFilterFactory::parseCommand(wideCommand, wideParameters, cmd))
+		if (BiQuadCommand::parse(wideCommand, wideParameters, cmd))
 			return new AllPassCardEditor(cmd, command);
 		break;
 	}

@@ -11,9 +11,7 @@
 #include <QString>
 
 #include "filters/BiQuadCommand.h"
-#include "filters/BiQuadFilterFactory.h"
 #include "filters/IIRCommand.h"
-#include "filters/IIRFilterFactory.h"
 
 FilterLineCard filterLineCard(const QString& command, const QString& parameters)
 {
@@ -22,16 +20,16 @@ FilterLineCard filterLineCard(const QString& command, const QString& parameters)
 	{
 		IIRCommand cmd;
 		std::wstring wideParameters = parameters.toStdWString();
-		if (IIRFilterFactory::parseCommand(wideCommand, wideParameters, cmd))
+		if (IIRCommand::parse(wideCommand, wideParameters, cmd))
 			return FilterLineCard::IirCoefficients;
 	}
 
 	{
 		BiQuadCommand cmd;
-		// parseCommand rewrites its parameters argument as it consumes tokens,
+		// The codec's parse rewrites its parameters argument as it consumes tokens,
 		// so each attempt needs its own copy of the original text.
 		std::wstring wideParameters = parameters.toStdWString();
-		if (BiQuadFilterFactory::parseCommand(wideCommand, wideParameters, cmd)
+		if (BiQuadCommand::parse(wideCommand, wideParameters, cmd)
 			&& (cmd.type == BiQuad::ALL_PASS || cmd.type == BiQuad::ALL_PASS_1))
 			return FilterLineCard::AllPass;
 	}

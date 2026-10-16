@@ -44,7 +44,7 @@ void testBiQuadRejectsNonFiniteParameters()
 	{
 		std::wstring parameters(text);
 		BiQuadCommand command;
-		harness.expectFalse(BiQuadFilterFactory::parseCommand(L"Filter", parameters, command),
+		harness.expectFalse(BiQuadCommand::parse(L"Filter", parameters, command),
 			"BiQuad rejects a non-finite numeric parameter");
 	}
 }
@@ -72,7 +72,7 @@ void testBiQuadRejectsNonPositiveParameters()
 
 	std::wstring valid(L"ON PK Fc 1000 Hz Gain 3 dB Q 1");
 	BiQuadCommand command;
-	harness.expectTrue(BiQuadFilterFactory::parseCommand(L"Filter", valid, command),
+	harness.expectTrue(BiQuadCommand::parse(L"Filter", valid, command),
 		"a positive peaking band still parses");
 }
 

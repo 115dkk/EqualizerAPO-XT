@@ -38,7 +38,7 @@
 
 #include "filters/BiQuad.h"
 #include "filters/BiQuadFilter.h"
-#include "filters/BiQuadFilterFactory.h"
+#include "filters/BiQuadCommand.h"
 #include "Tests/TestHarness.h"
 
 using std::vector;
@@ -386,7 +386,7 @@ void testAcceptsBandwidth()
 {
 	wstring parameters = L"ON AP Fc 80 Hz BW Oct 1";
 	BiQuadCommand command;
-	harness.require(BiQuadFilterFactory::parseCommand(L"Filter", parameters, command),
+	harness.require(BiQuadCommand::parse(L"Filter", parameters, command),
 		"the parser accepts BW Oct for an all-pass");
 	harness.expectEqual(static_cast<int>(command.type), static_cast<int>(BiQuad::ALL_PASS),
 		"BW Oct line parses as an all-pass");
@@ -528,7 +528,7 @@ void testOrderParsing()
 {
 	auto parse = [](const wchar_t* text, BiQuadCommand& out) {
 		std::wstring parameters(text);
-		return BiQuadFilterFactory::parseCommand(L"Filter", parameters, out);
+		return BiQuadCommand::parse(L"Filter", parameters, out);
 	};
 
 	BiQuadCommand command;
@@ -582,7 +582,7 @@ void testWidthIsMandatory()
 {
 	wstring parameters = L"ON AP Fc 100 Hz";
 	BiQuadCommand command;
-	harness.expectFalse(BiQuadFilterFactory::parseCommand(L"Filter", parameters, command),
+	harness.expectFalse(BiQuadCommand::parse(L"Filter", parameters, command),
 		"an all-pass without Q or BW is rejected");
 }
 
@@ -593,8 +593,8 @@ void testGainIsIgnored()
 	wstring withGain = L"ON AP Fc 100 Hz Gain 6 dB Q 0.707";
 	wstring withoutGain = L"ON AP Fc 100 Hz Q 0.707";
 	BiQuadCommand a, b;
-	harness.require(BiQuadFilterFactory::parseCommand(L"Filter", withGain, a), "gain-carrying all-pass parses");
-	harness.require(BiQuadFilterFactory::parseCommand(L"Filter", withoutGain, b), "plain all-pass parses");
+	harness.require(BiQuadCommand::parse(L"Filter", withGain, a), "gain-carrying all-pass parses");
+	harness.require(BiQuadCommand::parse(L"Filter", withoutGain, b), "plain all-pass parses");
 	harness.expect(a.dbGain == 0.0, "the all-pass gain token is discarded");
 	harness.expect(a.dbGain == b.dbGain && a.freq == b.freq && a.bandwidthOrQOrS == b.bandwidthOrQOrS,
 		"a gain token does not change the all-pass filter");

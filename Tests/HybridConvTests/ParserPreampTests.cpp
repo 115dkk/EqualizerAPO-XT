@@ -9,7 +9,7 @@
 	canonical "<dB> dB" serializer that PreampFilterGUI::store() routes through.
 
 	The tests assert three things:
-	  - parseCommand fills the PreampCommand with the expected dB value and the
+	  - PreampCommand::parse fills the PreampCommand with the expected dB value and the
 	    valid / noOp flags the engine relies on (0 dB is a valid no-op; a
 	    malformed parameter is not valid at all),
 	  - serialize(parse(line)) reproduces the canonical parameter string, so a
@@ -39,15 +39,15 @@ test::Harness harness("ParserPreampTests");
 
 // Parses a single "Preamp:" line. The command keyword is always "Preamp" here;
 // the factory splits command from parameters at the ':' before calling
-// parseCommand, so the test passes them already separated.
+// PreampCommand::parse, so the test passes them already separated.
 PreampCommand parsePreamp(const wstring& parameters)
 {
 	wstring command = L"Preamp";
 	PreampCommand cmd;
-	// The keyword is recognized, so parseCommand returns true; the valid/noOp
+	// The keyword is recognized, so PreampCommand::parse returns true; the valid/noOp
 	// flags then describe the parse outcome.
 	bool recognized = PreampCommand::parse(command, parameters, cmd);
-	harness.expectTrue(recognized, "Preamp keyword should be recognized by parseCommand");
+	harness.expectTrue(recognized, "Preamp keyword should be recognized by PreampCommand::parse");
 	return cmd;
 }
 
@@ -164,7 +164,7 @@ void runParserPreampTests()
 		wstring parameters = L"5 ms";
 		PreampCommand cmd;
 		harness.expectFalse(PreampCommand::parse(command, parameters, cmd),
-			"parseCommand should reject a non-Preamp command");
+			"PreampCommand::parse should reject a non-Preamp command");
 		harness.expectFalse(cmd.valid, "a rejected command leaves the struct invalid");
 	}
 

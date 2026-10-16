@@ -30,8 +30,4 @@ class IIRFilterFactory : public IFilterFactory
 public:
 	IIRFilterFactory();
 	LineOutcome createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
-
-	// Audit #422 E1: Editor call sites move to the codec; remove once they do.
-	static bool parseCommand(const std::wstring& command, const std::wstring& parameters,
-		IIRCommand& out);
 };

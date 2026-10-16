@@ -19,7 +19,7 @@
 
 #include "BiQuadFilterGUI.h"
 #include "BiQuadFilterGUIFactory.h"
-#include <filters/BiQuadFilterFactory.h>
+#include <filters/BiQuadCommand.h>
 #include "../FilterGUIFactoryRegistry.h"
 
 REGISTER_FILTER_GUI_FACTORY(FilterGUIFactoryOrder::BiQuad, BiQuadFilterGUIFactory)
@@ -69,7 +69,7 @@ IFilterGUI* BiQuadFilterGUIFactory::createFilterGUI(QString& command, QString& p
 		std::wstring commandWStr = command.toStdWString();
 		std::wstring paramWStr = parameters.toStdWString();
 		BiQuadCommand cmd;
-		if (BiQuadFilterFactory::parseCommand(commandWStr, paramWStr, cmd))
+		if (BiQuadCommand::parse(commandWStr, paramWStr, cmd))
 			result = new BiQuadFilterGUI(cmd);
 	}
 

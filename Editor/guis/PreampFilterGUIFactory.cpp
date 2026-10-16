@@ -18,7 +18,7 @@
 */
 
 #include "PreampFilterGUI.h"
-#include <filters/PreampFilterFactory.h>
+#include <filters/PreampCommand.h>
 #include "PreampFilterGUIFactory.h"
 #include "../FilterGUIFactoryRegistry.h"
 
@@ -48,7 +48,7 @@ IFilterGUI* PreampFilterGUIFactory::createFilterGUI(QString& command, QString& p
 		// parameter (cmd.valid == false) yields no GUI. (Going through the
 		// engine's filter creation instead would drop 0 dB - the engine skips
 		// the no-op filter - leaving that line without a preamp editor.)
-		if (PreampFilterFactory::parseCommand(commandWStr, paramWStr, cmd) && cmd.valid)
+		if (PreampCommand::parse(commandWStr, paramWStr, cmd) && cmd.valid)
 			result = new PreampFilterGUI(cmd.dbGain);
 	}
 

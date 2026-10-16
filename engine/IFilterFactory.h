@@ -68,14 +68,6 @@ struct LineOutcome
 		outcome.filters = std::move(filters);
 		return outcome;
 	}
-
-	// Audit #422 E1: Editor gallery callers still assign the result directly to
-	// FilterVector. Remove this compatibility conversion when those callers use
-	// the outcome explicitly.
-	operator FilterVector() &&
-	{
-		return std::move(filters);
-	}
 };
 
 #pragma AVRT_VTABLES_BEGIN
