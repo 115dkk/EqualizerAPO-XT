@@ -4,7 +4,7 @@ This pass turns the initial "prepare the codebase before serious builds" TODO in
 
 - Audio regression tests exist (today in `Tests/AudioRegressionTests`; at the time of this baseline they started inside `Tests/HybridConvTests`) and are wired into the solution and CI.
 - GUI/update logic tests exist in `Tests/EditorLogicTests` and cover non-audio helper behavior without launching Qt dialogs.
-- Convolution path handling is isolated in `ConvolutionFilePath` and `ConvolutionPathHelper` instead of being duplicated in parser and GUI code.
+- Convolution path handling is isolated in `ConvolutionFilePath` and `FileReferenceController` (which absorbed the former `ConvolutionPathHelper`, audit #422 TD-56) instead of being duplicated in parser and GUI code.
 - Update release-note formatting is isolated in `UpdateInfoFormatter`, making escaping and skip-version behavior testable.
 - Velopack/GitHub release feed parsing is isolated in `VelopackUpdateInfo`, keeping network I/O in `main.cpp` and pure update selection in tests.
 - SIMD build expectations, runnable test policy, and channel names are documented in `docs/SimdBuildMatrix.md`.
