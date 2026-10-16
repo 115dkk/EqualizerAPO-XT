@@ -118,7 +118,9 @@ qmake ..\Editor\Editor.pro -r "CONFIG+=release" "EAPO_UPDATE_CHANNEL=x64-avx2" "
 nmake
 ```
 
-`DeviceSelector`도 같은 절차로 빌드합니다.
+`DeviceSelector`도 같은 절차로 빌드합니다. 위 절차는 빠른 반복용이고, CI가 배포하는 것과 같은 Editor(`CONFIG+=force_debug_info`, `windeployqt` 포함)가 필요하면 `setup-build.ps1`이 마지막에 출력하는 `Build-Solution.ps1`과 `Build-QtApps.ps1` 호출을 그대로 씁니다.
+
+MSBuild 제품과 스위트는 경고를 오류로 다룹니다(`Directory.Build.props`의 `/WX`). 의존성 헤더는 external로 컴파일해 경고를 끄므로, 새 경고는 이 저장소의 코드에서 나온 것입니다.
 
 ### 테스트 실행
 
