@@ -151,6 +151,18 @@ Describe "Test-VariantSync.ps1" {
         $result.Output | Should -Match "Project setting shape: Tool.Tool\.vcxproj \(<ConformanceMode>\)"
     }
 
+    It "lints the projects of a checkout that itself lives under .claude" {
+        $outer = New-VariantFixture $script:Channels
+        $root = Join-Path $outer ".claude" "worktrees" "wt"
+        New-Item -ItemType Directory -Force -Path $root | Out-Null
+        Get-ChildItem -LiteralPath $outer -Force | Where-Object Name -ne ".claude" | Move-Item -Destination $root
+        New-Item -ItemType Directory -Force -Path (Join-Path $root "Tool") | Out-Null
+        Set-Content -LiteralPath (Join-Path $root "Tool" "Tool.vcxproj") -Value "<Project><ClCompile><PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions></ClCompile></Project>"
+        $result = Invoke-VariantSync $root
+        $result.ExitCode | Should -Not -Be 0
+        $result.Output | Should -Match "Project setting shape: Tool.Tool\.vcxproj \(NOMINMAX\)"
+    }
+
     It "passes a LanguageStandard pinned on one ClCompile item and a platform delta group" {
         $root = New-VariantFixture $script:Channels
         New-Item -ItemType Directory -Force -Path (Join-Path $root "Tool") | Out-Null

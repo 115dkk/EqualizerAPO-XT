@@ -16,6 +16,8 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+# A full path without "..", so the relative paths below cut at the right place.
+$RepoRoot = (Resolve-Path -LiteralPath $RepoRoot).Path.TrimEnd('\', '/')
 
 $manifestPath = Join-Path $RepoRoot ".github" "simd-variants.psd1"
 $manifest = Import-PowerShellDataFile -Path $manifestPath
@@ -72,8 +74,10 @@ Write-Host "The other $($otherInstallerSources.Count) installer sources name onl
 # EnableEnhancedInstructionSet in a project file is a second mechanism that
 # silently beats both, which is how a Debug|x64 Benchmark once ignored every
 # /p: override. Fail on any such literal.
+# The exclusions match below the repository root only: a checkout that itself
+# lives under .claude\worktrees must still lint its own projects.
 $projectFiles = @(Get-ChildItem -Path $RepoRoot -Recurse -Filter *.vcxproj -File |
-  Where-Object { $_.FullName -notmatch '[\\/](deps|_deps|build|build-[^\\/]+|\.claude|\.codex-worktrees)[\\/]' })
+  Where-Object { $_.FullName.Substring($RepoRoot.Length) -notmatch '[\\/](deps|_deps|build|build-[^\\/]+|\.claude|\.codex-worktrees)[\\/]' })
 $offenders = @()
 foreach ($project in $projectFiles) {
   $content = Get-Content -Path $project.FullName -Raw
