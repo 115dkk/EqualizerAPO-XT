@@ -306,7 +306,8 @@ jobs:
         echo "$qtRoot\bin" >> $env:GITHUB_PATH
         Write-Host "QT_ROOT=$qtRoot"
 
-    # Build the solution (excluding Qt VS Tools projects which will be built separately)
+    # The MSBuild projects; the Qt apps are qmake projects and build in the
+    # next steps.
     - name: Build solution
       shell: pwsh
       run: |
@@ -935,6 +936,8 @@ jobs:
   # gate, cppcheck or Pester run from publishing installers and a Velopack
   # feed. New-ReleaseNotes.ps1 reads this list to say what the release waited
   # for. The cross-variant comparison is not a gate; it runs alongside.
+  # Keep `needs:` a one-line [a, b] list at this indent: New-ReleaseNotes.ps1
+  # finds it with a regex, and a block list or a moved key fails the release.
   create-release:
     needs: [build, version-bump, memcheck, capture-gate, cppcheck, pester]
     runs-on: windows-2025-vs2026

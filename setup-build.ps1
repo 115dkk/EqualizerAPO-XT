@@ -7,7 +7,7 @@
     This script:
     1. Downloads FFTW, muparserx, libsndfile from their GitHub release pages
     2. Clones the TCLAP header-only library and the VST3 SDK pluginterfaces
-    3. Installs Qt 6.10.1 via aqtinstall (Python)
+    3. Installs Qt (the manifest's Shared.QtVersion) via aqtinstall (Python)
 
     All sources match the project's CI workflow (.github/workflows/build.yml).
 
@@ -15,7 +15,7 @@
     Skip Qt installation (useful if Qt is already installed).
 
 .PARAMETER QtVersion
-    Qt version to install. Default: 6.10.1
+    Qt version to install. Default: Shared.QtVersion in .github/simd-variants.psd1
 
 .PARAMETER SimdVariant
     SIMD variant for dependencies. Default: avx2

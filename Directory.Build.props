@@ -34,8 +34,8 @@
   <!--
     Audit #250 F064: the platform toolset default, once. Every project used to
     hard-code v145 per configuration (62 copies), so a toolset upgrade meant a
-    62-line sweep. CI still overrides per leg (/p:PlatformToolset=v143 on the
-    ARM64 runner, v145 elsewhere); a bare local msbuild gets v145 as before.
+    62-line sweep. Every CI leg, ARM64 included, builds with v145 now; the
+    scripts that still pass /p:PlatformToolset pass the same value.
   -->
   <PropertyGroup>
     <PlatformToolset Condition="'$(PlatformToolset)'==''">v145</PlatformToolset>

@@ -1,8 +1,7 @@
 #-------------------------------------------------
 #
-# DeviceSelector qmake project for CI builds
-# This allows building DeviceSelector with qmake in CI
-# while keeping the .vcxproj for local Visual Studio development
+# DeviceSelector qmake project. This is the only build description for
+# DeviceSelector, locally and in CI.
 #
 #-------------------------------------------------
 
