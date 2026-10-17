@@ -32,6 +32,8 @@ void HoverProgress::animateTo(double target, int durationMs)
 		animation = new QVariantAnimation(this);
 		animation->setEasingCurve(QEasingCurve::OutCubic);
 		connect(animation, &QVariantAnimation::valueChanged, this, [this](const QVariant& step) {
+			if (retargeting)
+				return;
 			current = step.toDouble();
 			if (changed)
 				changed();
@@ -41,16 +43,20 @@ void HoverProgress::animateTo(double target, int durationMs)
 				finished();
 		});
 	}
-	// Interruptible: retarget from the current value, never restart from 0.
-	// When the duration changes mid-flight, setDuration first re-evaluates
-	// the running curve at the elapsed time over the new duration and
-	// reports that value, so the retarget starts there instead: a 150 ms
-	// fade-in left at 0.51 fades out from 0.64 over 110 ms (measured). The
-	// three copies this replaced did the same (audit #422 TD-53 moved the
-	// code without changing a frame).
+	// Interruptible: an interrupted animation restarts from the value it had
+	// reached, never from 0. The value is read before the animation is
+	// touched, and the reconfiguration's own reports are ignored: setDuration,
+	// setStartValue and setEndValue each re-evaluate the old curve at the
+	// elapsed time and report that value, and with a new duration it lies
+	// further along (a 150 ms fade-in left at 0.51 reported 0.64 to a 110 ms
+	// fade-out, which then started there). start() reports the start value,
+	// so the owner sees the curve continue from where it stopped.
+	const double from = current;
+	retargeting = true;
 	animation->stop();
 	animation->setDuration(durationMs);
-	animation->setStartValue(current);
+	animation->setStartValue(from);
 	animation->setEndValue(target);
+	retargeting = false;
 	animation->start();
 }

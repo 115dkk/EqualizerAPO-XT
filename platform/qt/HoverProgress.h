@@ -15,10 +15,9 @@ class QVariantAnimation;
 // The hover feel DeviceSelector's painted controls share (the dialog buttons,
 // the troubleshooting disclosure and every device row): a progress from 0 at
 // rest to 1 under the pointer, eased OutCubic. A retarget eases on from the
-// current value instead of restarting from 0, so a pointer that leaves
-// halfway does not snap the control back to rest (animateTo notes the one
-// case where the start moves). The owner picks the durations and repaints
-// in the change callback; the painters read value().
+// value reached so far, whatever the new duration, so a pointer that leaves
+// halfway fades back from halfway instead of jumping. The owner picks the
+// durations and repaints in the change callback; the painters read value().
 class HoverProgress : public QObject
 {
 public:
@@ -35,6 +34,9 @@ public:
 private:
 	QVariantAnimation* animation = nullptr;
 	double current = 0.0;
+	// Set while animateTo reconfigures the animation, whose reports in that
+	// span are not on the new curve.
+	bool retargeting = false;
 	std::function<void()> changed;
 	std::function<void()> finished;
 };

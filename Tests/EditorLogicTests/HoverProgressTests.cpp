@@ -4,6 +4,7 @@
 	SPDX-License-Identifier: GPL-2.0-or-later
 */
 
+#include <algorithm>
 #include <cmath>
 #include <functional>
 
@@ -33,21 +34,49 @@ bool waitFor(const std::function<bool()>& condition, int timeoutMs)
 	}
 	return true;
 }
+
+// The values the change callback reported once recording was switched on:
+// the first one and the highest one.
+struct ReportedValues
+{
+	bool recording = false;
+	bool any = false;
+	double first = 0.0;
+	double highest = 0.0;
+
+	void add(double value)
+	{
+		if (!recording)
+			return;
+		if (!any)
+		{
+			any = true;
+			first = value;
+			highest = value;
+			return;
+		}
+		highest = std::max(highest, value);
+	}
+};
 }
 
 // DeviceSelector's buttons, troubleshooting disclosure and device rows share
 // one hover progress (audit #422 TD-53). What their painters rely on: it
-// rests at 0, settles on each target, a retarget at the same duration starts
-// from the value reached instead of jumping, an interrupted animation is not
-// a finished one, and a completed fade-out ends at exactly 0 (the device list
+// rests at 0, settles on each target, a retarget starts from the value
+// reached instead of jumping (also when the new duration differs, as the
+// 150 ms in / 110 ms out hover does), an interrupted animation is not a
+// finished one, and a completed fade-out ends at exactly 0 (the device list
 // drops a row's progress on that).
 void testHoverProgressSettlesAndRetargetsInPlace()
 {
 	QObject owner;
 	int changes = 0;
 	int finishes = 0;
-	HoverProgress* hover = new HoverProgress(&owner, [&changes]() {
+	ReportedValues reported;
+	HoverProgress* hover = nullptr;
+	hover = new HoverProgress(&owner, [&changes, &reported, &hover]() {
 		changes++;
+		reported.add(hover->value());
 	});
 	hover->setFinishedHandler([&finishes]() {
 		finishes++;
@@ -74,4 +103,19 @@ void testHoverProgressSettlesAndRetargetsInPlace()
 	hover->animateTo(0.0, durationMs);
 	requireTrue(waitFor([&finishes]() { return finishes == 3; }, 10000), "the fade-out finishes");
 	expectTrue(hover->value() == 0.0, QString("a finished fade-out ends at exactly 0, got %1").arg(hover->value()));
+
+	// A retarget with another duration, left around the middle: the fade-out
+	// starts where the fade-in stopped and only falls from there.
+	hover->animateTo(1.0, durationMs);
+	requireTrue(waitFor([hover]() { return hover->value() >= 0.5; }, 10000), "the second fade-in reaches the middle");
+	const double middle = hover->value();
+	reported.recording = true;
+	hover->animateTo(0.0, 700);
+	requireTrue(reported.any, "the retarget reports its starting value");
+	expectTrue(reported.first <= middle + 1e-9,
+		QString("the shorter fade-out starts at or below %1, got %2").arg(middle).arg(reported.first));
+	requireTrue(waitFor([&finishes]() { return finishes == 4; }, 10000), "the shorter fade-out finishes");
+	expectTrue(reported.highest <= middle + 1e-9,
+		QString("the shorter fade-out never rises above %1, got %2").arg(middle).arg(reported.highest));
+	expectTrue(hover->value() == 0.0, QString("the shorter fade-out settles on 0, got %1").arg(hover->value()));
 }
