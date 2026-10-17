@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.57.6 — 2026-10-17
+
 - **A switched-off Send, NewChannel, expression Preamp or IIR line keeps its
   card.** In card mode a line you switch off stays a card, so you can edit it
   and switch it back on in place. These four commands (seven line shapes in
