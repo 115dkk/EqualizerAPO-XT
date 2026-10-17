@@ -12,16 +12,19 @@
 
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <string>
 
 #include <QDir>
 #include <QList>
 #include <QString>
+#include <QTemporaryDir>
 
 #include "devices/AbstractAPOInfo.h"
 
 class FilterCardRow;
+class ISkin;
 class QScrollArea;
 class QToolBar;
 class QWidget;
@@ -176,6 +179,36 @@ QToolBar* buildToolbarReplica(QWidget* parent);
 // it; returns the card rows in line order.
 QList<FilterCardRow*> buildRows(QScrollArea& scrollArea, const QString& configPath, const QList<QString>& lines,
 	std::shared_ptr<AbstractAPOInfo> device = nullptr, unsigned long channelMask = 0);
+
+// What every offscreen gate over gallery-built rows stands on: a scratch
+// directory holding the synthetic reference targets (buildReferenceFiles) and
+// EAPO_SKIN_GALLERY set, so the reference cards resolve like the gallery's.
+// The scratch directory lives as long as the fixture.
+class GalleryFixture
+{
+public:
+	// gate names the caller in the failure messages, e.g. "CardMoveTest".
+	explicit GalleryFixture(const char* gate);
+	GalleryFixture(const GalleryFixture&) = delete;
+	GalleryFixture& operator=(const GalleryFixture&) = delete;
+
+	// False when the scratch directory or a reference file could not be
+	// written; the constructor has said which, and the gate returns 2.
+	bool isValid() const;
+	// The synthetic config file the rows resolve their references against.
+	const QString& configPath() const;
+	// Ends a finished gate with status without unwinding (GallerySupport.cpp).
+	[[noreturn]] static void finish(int status);
+
+private:
+	QTemporaryDir scratch;
+	QString config;
+};
+
+// Calls fn for every skin of the roster (Skins::all(), in SkinThemeData's
+// order), dark first and then light: the walk the gates make.
+void forEachSkinMode(const std::function<void(ISkin* skin, bool dark)>& fn);
+
 // The rack engraved label's width contract: given the width its size hint
 // asked for, an elidable label prints its whole text, and squeezed below it,
 // it still elides. Returns the number of failing texts (GallerySelfTests.cpp).

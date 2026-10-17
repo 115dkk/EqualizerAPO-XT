@@ -12,61 +12,27 @@
 
 #include "SkinGallery.h"
 #include "Editor/gallery/GallerySupport.h"
-#include <numbers>
-// For the two gates moved out of main.cpp (audit #275 B7): the VST
-// round-trip self test and the analysis layout probe.
+
+#include <algorithm>
+#include <climits>
+#include <cstdio>
+#include <memory>
+#include <string>
+#include <vector>
+
+// For the VST round-trip self test, which moved here from main.cpp (audit
+// #275 B7).
 #include <optional>
 #include <unordered_map>
-#include <QBoxLayout>
-#include <QDockWidget>
-#include <QFileInfo>
-#include <QLocale>
-#include <QStyle>
-#include <QTimer>
 #include "filters/VSTPluginFilter.h"
 #include "filters/VSTPluginFilterFactory.h"
-#include "guis/VSTPluginFilterGUI.h"
-#include "widgets/cards/VSTCardEditor.h"
-#include "widgets/cards/VSTSlotFillRail.h"
-#include "vst/VST3BusLayout.h"
-#include "MainWindow.h"
-#include "diagnostics/ToolbarPixelProbe.h"
-#include "widgets/MainToolbarKit.h"
-#include "SubwooferRouting/Preset.h"
-#include "SubwooferRouting/StateCodec.h"
-#include "widgets/subwooferrouting/SubwooferRoutingDefaults.h"
-
-#include <climits>
-#include <cmath>
-#include <complex>
-#include <cstdio>
-#include <cstdlib>
-#include <memory>
 
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
-#include <QDataStream>
-#include <QDir>
 #include <QElapsedTimer>
-#include <QEnterEvent>
-#include <QEventLoop>
-#include <QFile>
-#include <QFileDialog>
-#include <QFileInfo>
-#include <QFrame>
-#include <QGraphicsScene>
-#include <QGraphicsView>
-#include <QGridLayout>
-#include <QHBoxLayout>
-#include <QImage>
 #include <QKeyEvent>
-#include <QLabel>
 #include <QLineEdit>
-#include <QLocale>
-#include <QMainWindow>
-#include <QMenu>
-#include <QMenuBar>
 #include <QMouseEvent>
 #include <QPaintDevice>
 #include <QPaintEngine>
@@ -74,53 +40,23 @@
 #include <QPainterPath>
 #include <QPixmap>
 #include <QPolygonF>
-#include <QPointer>
-#include <QRadioButton>
-#include <QToolButton>
 #include <QScrollArea>
 #include <QScrollBar>
-#include <QScreen>
-#include <QSpinBox>
-#include <QString>
 #include <QStringList>
-#include <QTemporaryDir>
-#include <QTimer>
-#include <QToolBar>
-#include <QTranslator>
-#include <QTreeView>
-#include <QUrl>
-
-#define WIN32_LEAN_AND_MEAN
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
+#include <QToolButton>
+#include <QTransform>
 
 #include "Editor/FilterTable.h"
 #include "Editor/SkinManager.h"
-#include "Editor/guis/CopyFilterGUI.h"
-#include "Editor/helpers/GUIHelper.h"
+#include "Editor/guis/VSTPluginFilterGUI.h"
 #include "Editor/skins/ISkin.h"
 #include "Editor/skins/Skins.h"
-#include "Editor/widgets/AddCardRow.h"
-#include "Editor/widgets/EqGraphView.h"
-#include "Editor/widgets/SegmentedControl.h"
-#include "Editor/analysis/AnalysisMetric.h"
-#include "Editor/analysis/AnalysisResponse.h"
-#include "filters/BiQuad.h"
-#include "Editor/skins/shared/SkinFileIcons.h"
 #include "Editor/skins/rack/cards/RackReferenceCardView.h"
 #include "Editor/widgets/FilterCardRow.h"
-#include "Editor/widgets/CommandRowFrame.h"
-#include "Editor/widgets/FilterInsertSeam.h"
-#include "Editor/widgets/FilterPickerView.h"
-#include "Editor/widgets/SkinComboBox.h"
-#include "Editor/widgets/TitleBar.h"
-#include "Editor/widgets/UpdateToast.h"
-#include "Editor/widgets/subwooferrouting/SubwooferRoutingEditorDialog.h"
-#include "Editor/widgets/cards/SubwooferRoutingCardEditor.h"
+#include "Editor/widgets/cards/VSTPluginSession.h"
+#include "Editor/widgets/cards/VSTSlotFillRail.h"
 #include "Editor/widgets/routing/IRoutingRenderer.h"
-#include "devices/DeviceAPOInfo.h"
+#include "vst/VST3BusLayout.h"
 
 using namespace SkinGalleryDetail;
 
@@ -606,19 +542,10 @@ int SkinGallery::runVstFillSelfTest()
 int SkinGallery::runRoutingEditTest()
 {
 	qWarning("RoutingEditTest: starting");
-	QTemporaryDir scratch;
-	if (!scratch.isValid())
-	{
-		qWarning("RoutingEditTest: cannot create a scratch directory");
+	const GalleryFixture fixture("RoutingEditTest");
+	if (!fixture.isValid())
 		return 2;
-	}
-	qputenv("EAPO_SKIN_GALLERY", "1");
-	const QString configPath = buildReferenceFiles(QDir(scratch.path()));
-	if (configPath.isEmpty())
-	{
-		qWarning("RoutingEditTest: cannot write reference target files");
-		return 2;
-	}
+	const QString& configPath = fixture.configPath();
 
 	int failures = 0;
 	const auto settle = []() {
@@ -948,20 +875,14 @@ int SkinGallery::runRoutingEditTest()
 	}
 
 	qWarning("RoutingEditTest: %s (%d failure(s))", failures == 0 ? "PASS" : "FAIL", failures);
-	const int status = failures == 0 ? 0 : 1;
-	std::fflush(nullptr);
-	std::_Exit(status);
+	GalleryFixture::finish(failures == 0 ? 0 : 1);
 }
 
 int SkinGallery::runScrollBench()
 {
 	qWarning("ScrollBench: starting");
-	QTemporaryDir scratch;
-	if (!scratch.isValid())
-		return 2;
-	qputenv("EAPO_SKIN_GALLERY", "1");
-	const QString configPath = buildReferenceFiles(QDir(scratch.path()));
-	if (configPath.isEmpty())
+	const GalleryFixture fixture("ScrollBench");
+	if (!fixture.isValid())
 		return 2;
 
 	QList<QString> lines;
@@ -975,7 +896,7 @@ int SkinGallery::runScrollBench()
 		// A maximized QHD editor: the card column is ~2500 px wide.
 		scrollArea.resize(2560, 1300);
 		SkinManager::instance()->applySkin(skin->id(), true);
-		buildRows(scrollArea, configPath, lines);
+		buildRows(scrollArea, fixture.configPath(), lines);
 		FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
 		if (table == nullptr)
 			continue;
@@ -1001,26 +922,15 @@ int SkinGallery::runScrollBench()
 			qPrintable(skin->id()), steps, static_cast<long long>(elapsed),
 			steps > 0 ? double(elapsed) / steps : 0.0);
 	}
-	std::fflush(nullptr);
-	std::_Exit(0);
+	GalleryFixture::finish(0);
 }
 
 int SkinGallery::runPowerToggleTest()
 {
 	qWarning("PowerToggleTest: starting");
-	QTemporaryDir scratch;
-	if (!scratch.isValid())
-	{
-		qWarning("PowerToggleTest: cannot create a scratch directory");
+	const GalleryFixture fixture("PowerToggleTest");
+	if (!fixture.isValid())
 		return 2;
-	}
-	qputenv("EAPO_SKIN_GALLERY", "1");
-	const QString configPath = buildReferenceFiles(QDir(scratch.path()));
-	if (configPath.isEmpty())
-	{
-		qWarning("PowerToggleTest: cannot write reference target files");
-		return 2;
-	}
 
 	// Gain-less biquads (the field report) and full-grammar controls must
 	// keep a real editor through load and an off/on round trip; a peaking
@@ -1049,7 +959,7 @@ int SkinGallery::runPowerToggleTest()
 		QScrollArea scrollArea;
 		scrollArea.resize(960, 720);
 		SkinManager::instance()->applySkin(skin->id(), true);
-		buildRows(scrollArea, configPath, lines);
+		buildRows(scrollArea, fixture.configPath(), lines);
 		FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
 		if (table == nullptr)
 		{
@@ -1130,7 +1040,5 @@ int SkinGallery::runPowerToggleTest()
 		}
 	}
 	qWarning("PowerToggleTest: %s (%d failure(s))", failures == 0 ? "PASS" : "FAIL", failures);
-	const int status = failures == 0 ? 0 : 1;
-	std::fflush(nullptr);
-	std::_Exit(status);
+	GalleryFixture::finish(failures == 0 ? 0 : 1);
 }
