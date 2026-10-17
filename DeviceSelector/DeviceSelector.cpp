@@ -22,7 +22,9 @@
 #include <services/logging/Logging.h>
 #include <services/registry/WindowsRegistry.h>
 #include <services/windows/WindowsService.h>
+#include "services/install/ApoRegistration.h"
 #include <platform/windows/Win32Resource.h>
+#include "platform/qt/ScrollBarPolicy.h"
 #include <QDir>
 #include <QPropertyAnimation>
 #include <QScreen>
@@ -81,8 +83,9 @@ DeviceSelector::DeviceSelector(QWidget* parent)
 
 	finishSetup();
 
-	bool fixedAudioDG = !DeviceAPOInfo::checkProtectedAudioDG(true);
-	bool fixedRegistration = !DeviceAPOInfo::checkAPORegistration(true);
+	const auto verification = ApoRegistration::verify(systemRegistry(), true);
+	bool fixedAudioDG = !verification.protectedAudioDG;
+	bool fixedRegistration = !verification.registration;
 	if (fixedAudioDG || fixedRegistration)
 	{
 		QMessageBox::information(this, tr("Info"), tr("A registry value that is required for the operation of Equalizer APO was not set correctly. "
@@ -193,20 +196,17 @@ void DeviceSelector::finishSetup()
 		wanted = wanted.boundedTo(onScreen->availableGeometry().size() - QSize(40, 80));
 	resize(wanted);
 
-	// workaround for Qt 6 to not initially have scrollbars despite correct dialog size
-	ui.deviceTreeWidget->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-	QTimer::singleShot(0, [&] {ui.deviceTreeWidget->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded); });
+	deferScrollBarPolicy(ui.deviceTreeWidget);
 }
 
 void DeviceSelector::addDevices(const std::vector<std::shared_ptr<AbstractAPOInfo>>& devices, QTreeWidgetItem* parentNode)
 {
 	for (const std::shared_ptr<AbstractAPOInfo>& apoInfo : devices)
 	{
-		VoicemeeterAPOInfo* voicemeeterInfo = dynamic_cast<VoicemeeterAPOInfo*>(apoInfo.get());
 		bool checked = false;
 		if (apoInfo->isInstalled())
 		{
-			if (voicemeeterInfo != nullptr && !voicemeeterInfo->isVoicemeeterInstalled())
+			if (apoInfo->stateNote() == L"Voicemeeter was uninstalled")
 				checked = false;
 			else
 				checked = true;
@@ -412,14 +412,14 @@ void DeviceSelector::onDialogAccepted()
 		}
 	}
 
-	// Process enumeration behind this throws std::runtime_error.
+	// Process inspection and launch errors use the same wide error contract.
 	try
 	{
 		VoicemeeterAPOInfo::ensureVoicemeeterClientRunning();
 	}
-	catch (const std::exception& e)
+	catch (const WideError& e)
 	{
-		LogFStatic(L"Could not start the Voicemeeter client: %S", e.what());
+		LogFStatic(L"Could not start the Voicemeeter client: %s", e.getMessage().c_str());
 	}
 
 	finish(deviceUpdated);
@@ -824,8 +824,7 @@ QString DeviceSelector::getStateText(const std::shared_ptr<AbstractAPOInfo>& apo
 		break;
 	}
 
-	VoicemeeterAPOInfo* voicemeeterInfo = dynamic_cast<VoicemeeterAPOInfo*>(apoInfo.get());
-	if (voicemeeterInfo != nullptr && !voicemeeterInfo->isVoicemeeterInstalled())
+	if (apoInfo->stateNote() == L"Voicemeeter was uninstalled")
 		state += ", " + tr("Voicemeeter was uninstalled");
 	else if (apoInfo->isDefaultDevice())
 		state += ", " + tr("Default device");

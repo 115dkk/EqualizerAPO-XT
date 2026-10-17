@@ -293,7 +293,7 @@ SDK는 저장소에 넣지 않고 `vst3_pluginterfaces`처럼 빌드 시점에 �
 
 | 쟁점 | 안들 | 채택 |
 |---|---|---|
-| 시임 크기 | 3개(open/process/close) 대 6개(+hot-swap 슬롯, 통계, 이름) 대 submit/collect 분리 | **3개.** 핫스왑과 채널 마스크는 지금 어댑터가 둘 이상 없으니 가설 시임이다. 통계는 close에 넘긴다 |
+| 시임 크기 | open/process/close 대 블록별 평면 전달 추가 대 submit/collect 분리 | **블록별 평면 전달 추가.** `planes()`가 이번 블록의 버퍼를 내주므로 데몬 어댑터는 링 슬롯을 직접 넘기며, `process()`는 결과 종류를 반환한다. 통계는 래퍼가 보관하고 데몬 전달 시간은 선택적인 `profile()`로 조회한다 |
 | 재구성 | `reconfigure(sampleRate)` 제공 대 "없음: 모든 변경은 close+open" | **없음.** 첫 open과 이후 open이 같은 코드 경로라 순서 버그 한 종류가 통째로 사라진다 |
 | 블록 배치 | 인터리브 대 평면(planar) | **평면.** ASIO 원형이 평면이고 엔진에 `process(float**, float**)`가 있다(VoicemeeterClient가 쓰는 오버로드). 제자리 처리는 읽기가 먼저 끝나므로 안전(`FilterEngine.Process.cpp:235-259`) |
 | DAW에 보이는 샘플 형식 | 항상 Float32LSB(DAW 버퍼가 곧 스테이징) 대 대상 드라이버 값 그대로 | **그대로.** 변환 한 번 더가 붙지만 DAW가 보는 장치가 바뀌지 않는다("세상 조용하게") |
@@ -324,9 +324,9 @@ struct StreamFormat
     // connectionName은 상수 u"ASIO". Device: 줄은 "ASIO <name> {clsid}"와 매칭
 };
 
-enum class Outcome : uint32_t { Processed, Late, Gone, Off };
+enum class Outcome : uint32_t { Processed, LateHeld, LateDropped, Gone, Off };
 
-struct StreamStats            // 콜백 스레드만 쓴다. close()로 넘겨 게시
+struct StreamStats            // 콜백 스레드만 쓰고 래퍼가 보관한다
 {
     uint64_t blocks[2], late[2], gone[2];
     uint32_t maxWaitUs[2], lastWaitUs[2];
@@ -336,7 +336,6 @@ struct StreamStats            // 콜백 스레드만 쓴다. close()로 넘겨 �
 struct OpenReport
 {
     enum class Status : uint32_t { Ok, Unavailable, Rejected } status;
-    float**  planes[2];       // 방향별 채널 포인터 배열, frames 길이 float32. open~close 사이 유효
     uint32_t extraLatencyFrames;   // Sync 0, Pipelined frames. getLatencies에 방향별로 더한다
     char     message[124];    // Ok가 아닐 때 getErrorMessage로 나간다
 };
@@ -349,13 +348,15 @@ public:
     // (준비 장벽) 또는 포기할 때까지 막는다. init() 단계에서는 절대 부르지 않는다
     // (DAW는 목록만 보려고 모든 드라이버를 init한다).
     virtual OpenReport open(const StreamFormat& format, const StreamOptions& options) = 0;
-    // 대상 드라이버의 bufferSwitch 스레드. 방향당 한 번. planes[d]를 제자리에서 바꾼다.
-    //   Processed -> planes[d]에 쓸 소리가 있다(Pipelined: 직전 블록의 결과)
-    //   Late/Gone/Off -> 내용 미정. 호출자는 원본을 그대로 쓴다(=통과)
+    // 대상 드라이버의 bufferSwitch 스레드. 이번 블록을 쓸 평면 배열을 먼저 받는다.
+    // process()는 같은 포인터 배열을 다른 버퍼로 바꿔 결과를 복사 없이 돌려줄 수 있다.
+    // Processed/LateHeld이면 평면에 쓸 소리가 있고, LateDropped/Gone/Off면 원본을 통과시킨다.
     // 할당, C++ 락, 예외 금지. 커널 객체 대기는 마감 안에서 허용.
+    virtual float** planes(Direction d) noexcept = 0;
     virtual Outcome process(Direction d) noexcept = 0;
     // 제어 스레드. 대상의 disposeBuffers()가 돌아온 뒤(콜백이 더 올 수 없음). 멱등.
-    virtual void close(const StreamStats& stats) noexcept = 0;
+    virtual void close() noexcept = 0;
+    virtual const HandoffProfile* profile() const noexcept { return nullptr; }
 };
 
 struct StreamOptions          // 레지스트리(HKLM\SOFTWARE\EqualizerAPO\ASIO\{ourClsid})와 argv가 같은 값을 채운다
@@ -389,9 +390,9 @@ public:
 
 **상태 기계(제어 스레드).** `Loaded → init → Initialized → createBuffers → Prepared → start → Running → stop → Prepared → disposeBuffers → Initialized`. 순서 밖의 호출은 `ASE_InvalidMode`이고 대상에 전달하지 않는다. `createBuffers`는 대상의 `createBuffers`를 먼저 성공시켜 채널 수, 레이트, 버퍼 크기를 확정한 뒤 `open()`을 부르고, 실패하면 대상 버퍼를 해제하고 `ASE_HWMalfunction`을 돌려준다. `start()`는 `open` 뒤 데몬이 죽었는지 다시 확인한다.
 
-**주기당 순서(콜백 스레드, Sync).** 대상 입력 버퍼[i] → float 평면 → `process(Input)` → DAW 입력 버퍼[i] → DAW `bufferSwitch(i)` → DAW 출력 버퍼[i] → 평면 → `process(Output)` → 대상 출력 버퍼[i] → (DAW가 우리 `outputReady`를 불렀으면) 대상 `outputReady()`. 양방향이면 왕복 둘, 출력만이면 하나. Pipelined는 이번 블록을 먼저 넘긴 뒤 직전 블록의 완료를 주기의 10%(최대 500 us) 동안 커널 대기 없이 확인한다. 콜백은 호스트의 응답을 기다리며 커널에서 멈추지 않는다. 방향당 정확히 `frames`의 지연이 붙고 `getLatencies`가 그렇게 보고한다. 완료되지 않은 블록은 `Late`로 통과시키며, 약 8주기 동안 연속으로 완료되지 않으면 `Gone`을 고정한다.
+**주기당 순서(콜백 스레드, Sync).** 대상 입력 버퍼[i] → float 평면 → `process(Input)` → DAW 입력 버퍼[i] → DAW `bufferSwitch(i)` → DAW 출력 버퍼[i] → 평면 → `process(Output)` → 대상 출력 버퍼[i] → (DAW가 우리 `outputReady`를 불렀으면) 대상 `outputReady()`. 양방향이면 왕복 둘, 출력만이면 하나. Pipelined는 이번 블록을 먼저 넘긴 뒤 직전 블록의 완료를 주기의 10%(최대 500 us) 동안 커널 대기 없이 확인한다. 콜백은 호스트의 응답을 기다리며 커널에서 멈추지 않는다. 방향당 정확히 `frames`의 지연이 붙고 `getLatencies`가 그렇게 보고한다. 완료되지 않은 블록은 파이프라인 지연을 유지하는 `LateHeld`로 처리하며, 약 8주기 동안 연속으로 완료되지 않으면 `Gone`을 고정한다.
 
-**실패 모드.** `Late`/`Gone`이면 평면을 버리고 원본을 그대로 옮긴다(=통과). `Gone`은 다음 `createBuffers`까지 고정이며 콜백 스레드는 재접속을 시도하지 않는다. `sampleRateDidChange`는 전달한 뒤 래퍼가 `kAsioResetRequest`를 보내고, DAW가 재시작할 때까지의 블록은 `staleBlocks`로 세며 통과시킨다. `kAsioResetRequest`/`kAsioLatenciesChanged`/`kAsioResyncRequest`/`kAsioOverload`는 그대로 전달, `kAsioSupportsTimeInfo`는 DAW의 답을 그대로 돌려주어 `bufferSwitch`/`bufferSwitchTimeInfo` 선택이 DAW를 따른다. DSD 샘플 형식은 `createBuffers`에서 `ASE_InvalidMode`.
+**실패 모드.** 동기 처리에서 늦으면 `LateDropped`로 현재 원본을 통과시킨다. 파이프라인 처리에서 늦으면 `LateHeld`로 앞 블록의 원본을 내보내 한 블록 지연을 유지한다. `Gone`이면 현재 원본을 통과시키며 다음 `createBuffers`까지 고정하고, 콜백 스레드는 재접속을 시도하지 않는다. `sampleRateDidChange`는 전달한 뒤 래퍼가 `kAsioResetRequest`를 보내고, DAW가 재시작할 때까지의 블록은 `staleBlocks`로 세며 통과시킨다. `kAsioResetRequest`/`kAsioLatenciesChanged`/`kAsioResyncRequest`/`kAsioOverload`는 그대로 전달, `kAsioSupportsTimeInfo`는 DAW의 답을 그대로 돌려주어 `bufferSwitch`/`bufferSwitchTimeInfo` 선택이 DAW를 따른다. DSD 샘플 형식은 `createBuffers`에서 `ASE_InvalidMode`.
 
 **스레드 규칙.**
 
@@ -404,7 +405,7 @@ public:
 
 ### 10.2 데몬 쪽: StreamRing과 EngineHostCore
 
-`DaemonProcessor::open()`은 `IHostLink`(어댑터 둘: `Win32HostLink`=실제 exe 찾기/띄우기 + 이름 있는 매핑과 이벤트, `ThreadHostLink`=같은 프로세스의 스레드에서 `EngineHostCore` 구동)로 링을 만들고 헤더에 `StreamFormat`을 적은 뒤 `Ready`를 기다린다.
+`DaemonProcessor::open()`은 `IHostLink`(어댑터 둘: `Win32HostLink`=실제 exe 찾기/띄우기 + 이름 있는 매핑과 이벤트, `ThreadHostLink`=같은 프로세스의 스레드에서 `EngineHostCore` 구동)에서 `Ready` 확인을 마친 `RingProducer`를 받는다. 링크가 생산자를 만들고 `RingFault`를 열기 결과로 바꾸며, 닫을 때도 생산자를 먼저 `Closing`으로 바꾼 뒤 매핑과 이벤트를 해제한다.
 
 ```cpp
 // runtime/ipc/StreamRing.h  - 양쪽이 같은 소스로 컴파일. Win32/x64/ARM64 바이트 동일
@@ -430,7 +431,7 @@ struct alignas(64) RingHeader
 
 | 게이트 | 내용 | 시점 |
 |---|---|---|
-| 코어 단위 | FakeAsio 클래스를 정적 링크해 상태 기계, 리셋, `outputReady` 두 경로, DSD 거부, `Late`/`Gone` 통과를 스레드 없이 검사 | 모든 PR |
+| 코어 단위 | FakeAsio 클래스를 정적 링크해 상태 기계, 리셋, `outputReady` 두 경로, DSD 거부, `LateHeld`/`LateDropped`/`Gone` 처리를 스레드 없이 검사 | 모든 PR |
 | 링 단위 | `ThreadHostLink`로 `Done`/`Late`/`Gone`/슬롯 재사용을 스레드 둘로 검사 | 모든 PR |
 | 프로브 결정적 | in-proc, daemon-pipelined, daemon-sync(마감 1초)의 세 모드가 같은 설정에서 같은 SHA-256, 늦은 블록 0, **첫 블록만의 SHA-256**도 일치(준비 장벽 증명) | 모든 PR (x64), Win32 래퍼는 daemon 두 모드 |
 | 프로브 타이밍 | daemon-sync 자동 마감으로 64/128/256프레임 N초, 늦은 블록 수와 대기 분포 기록 | dispatch, 정보성 |

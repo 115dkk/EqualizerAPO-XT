@@ -36,7 +36,7 @@
 #include <string>
 
 #include "filters/FilterFactoryRegistry.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 using std::set;
 using std::string;
@@ -44,7 +44,7 @@ using std::wstring;
 
 namespace
 {
-test::Harness harness("FilterFactoryRegistryTests");
+test::HarnessAccess harness;
 
 // The harness builds its diagnostics in a narrow ostringstream, which cannot
 // take a wstring. Every key this suite feeds canonicalCommand is ASCII, so a
@@ -70,7 +70,7 @@ void expectCanonical(const wstring& key, const wstring& expected, const string& 
 		+ "\" but was \"" + narrow(actual) + "\"; " + why);
 }
 
-void testExactSpellingIsItsOwnCanonicalForm()
+TEST_CASE(FilterFactoryRegistryTests, testExactSpellingIsItsOwnCanonicalForm)
 {
 	expectCanonical(L"Preamp", L"Preamp", "an exactly spelled keyword canonicalizes to itself");
 	expectCanonical(L"Copy", L"Copy", "an exactly spelled keyword canonicalizes to itself");
@@ -80,7 +80,7 @@ void testExactSpellingIsItsOwnCanonicalForm()
 	expectCanonical(L"EndIf", L"EndIf", "control-flow keywords are classified like any other command");
 }
 
-void testCasingDecidesCommandVersusProse()
+TEST_CASE(FilterFactoryRegistryTests, testCasingDecidesCommandVersusProse)
 {
 	// This is the 1.4.2 compatibility rule. A user's config may contain a line
 	// like "copy: swapped the left and right cables" that has always been inert
@@ -97,7 +97,7 @@ void testCasingDecidesCommandVersusProse()
 	expectCanonical(L"GraphicEq", wstring(), "\"GraphicEq\" is not the registered spelling \"GraphicEQ\"");
 }
 
-void testTrailingTokenBelongsToTheFactory()
+TEST_CASE(FilterFactoryRegistryTests, testTrailingTokenBelongsToTheFactory)
 {
 	expectCanonical(L"Filter 1", L"Filter", "the filter number is the factory's business, not part of the keyword");
 	expectCanonical(L"Filter  12", L"Filter", "repeated separators before the trailing token do not change the keyword");
@@ -113,7 +113,7 @@ void testTrailingTokenBelongsToTheFactory()
 	expectCanonical(L"Device 2", wstring(), "\"Device 2\" is not the Device command either");
 }
 
-void testSurroundingWhitespaceIsIgnored()
+TEST_CASE(FilterFactoryRegistryTests, testSurroundingWhitespaceIsIgnored)
 {
 	// FilterEngine::loadConfigFile trims the key before calling, but the Editor
 	// side hands over text straight from the line, so the function has to
@@ -124,7 +124,7 @@ void testSurroundingWhitespaceIsIgnored()
 	expectCanonical(L"  Filter 1  ", L"Filter", "trimming and the first-token rule compose");
 }
 
-void testPrefixMatchingFollowsTheFactories()
+TEST_CASE(FilterFactoryRegistryTests, testPrefixMatchingFollowsTheFactories)
 {
 	// The Filter family really is prefix-matched in the engine: BiQuadFilterFactory
 	// and IIRFilterFactory both test rfind(L"Filter", 0) == 0, and IIRCommandTests
@@ -140,7 +140,7 @@ void testPrefixMatchingFollowsTheFactories()
 	expectCanonical(L"Pre", wstring(), "a proper prefix of a keyword is not a command either");
 }
 
-void testEmptyAndUnregisteredKeys()
+TEST_CASE(FilterFactoryRegistryTests, testEmptyAndUnregisteredKeys)
 {
 	expectCanonical(wstring(), wstring(), "an empty key claims no command");
 	expectCanonical(L"   ", wstring(), "a whitespace-only key has no first token, so it claims no command");
@@ -152,7 +152,7 @@ void testEmptyAndUnregisteredKeys()
 
 // Sweeps the whole registered vocabulary so a filter added later inherits this
 // coverage without anyone remembering to extend the case list above.
-void testEveryRegisteredKeywordRoundTrips()
+TEST_CASE(FilterFactoryRegistryTests, testEveryRegisteredKeywordRoundTrips)
 {
 	const set<wstring>& commands = FilterFactoryRegistry::knownConfigCommands();
 
@@ -194,17 +194,4 @@ void testEveryRegisteredKeywordRoundTrips()
 	}
 }
 
-}
-
-void runFilterFactoryRegistryTests()
-{
-	testExactSpellingIsItsOwnCanonicalForm();
-	testCasingDecidesCommandVersusProse();
-	testTrailingTokenBelongsToTheFactory();
-	testSurroundingWhitespaceIsIgnored();
-	testPrefixMatchingFollowsTheFactories();
-	testEmptyAndUnregisteredKeys();
-	testEveryRegisteredKeywordRoundTrips();
-
-	harness.report();
 }

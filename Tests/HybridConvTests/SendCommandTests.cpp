@@ -7,11 +7,11 @@
 #include <string>
 
 #include "filters/SendCommand.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 namespace
 {
-	test::Harness harness("SendCommandTests");
+	test::HarnessAccess harness;
 	const std::wstring endpointUpper = L"{A6974EEF-CBB1-4BD4-8E75-3F7D86F44E2F}";
 	const std::wstring endpointLower = L"{a6974eef-cbb1-4bd4-8e75-3f7d86f44e2f}";
 
@@ -30,7 +30,7 @@ namespace
 			label + " names the reason");
 	}
 
-	void testCommandAndEndpoint()
+	TEST_CASE(SendCommandTests, testCommandAndEndpoint)
 	{
 		SendCommand command;
 		std::wstring error = L"stale";
@@ -50,7 +50,7 @@ namespace
 		expectRejected(L"not-a-guid L=R", L"brace-wrapped GUID", "invalid endpoint GUID");
 	}
 
-	void testAssignments()
+	TEST_CASE(SendCommandTests, testAssignments)
 	{
 		SendCommand command;
 		std::wstring error;
@@ -84,7 +84,7 @@ namespace
 			"target duplicate comparison is case-sensitive");
 	}
 
-	void testLatency()
+	TEST_CASE(SendCommandTests, testLatency)
 	{
 		SendCommand command;
 		std::wstring error;
@@ -116,7 +116,7 @@ namespace
 			"millisecond suffix matching is case-insensitive");
 	}
 
-	void testOptions()
+	TEST_CASE(SendCommandTests, testOptions)
 	{
 		SendCommand command;
 		std::wstring error;
@@ -139,7 +139,7 @@ namespace
 			"duplicate mode");
 	}
 
-	void testSerializeRoundTrip()
+	TEST_CASE(SendCommandTests, testSerializeRoundTrip)
 	{
 		SendCommand command;
 		std::wstring error;
@@ -171,14 +171,4 @@ namespace
 		harness.expectTrue(command.serialize() == endpointLower + L" L=R",
 			"default latency, compensate, and mode are omitted");
 	}
-}
-
-void runSendCommandTests()
-{
-	testCommandAndEndpoint();
-	testAssignments();
-	testLatency();
-	testOptions();
-	testSerializeRoundTrip();
-	harness.report();
 }

@@ -31,6 +31,7 @@
 #include "runtime/memory/AlignedMemory.h"
 #include "runtime/concurrency/ParallelExecutor.h"
 #include "audio/io/SndfileRAII.h"
+#include "ConvolverArray.h"
 #include "IrCache.h"
 
 using std::abs;

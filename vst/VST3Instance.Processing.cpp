@@ -174,14 +174,14 @@ private:
 	int32 count = 0;
 };
 
-std::unique_ptr<VSTFormatInstance> createVST3Instance(
+std::unique_ptr<VSTPluginInstance> createVST3Instance(
 	const std::shared_ptr<VSTPluginLibrary>& library, int processLevel)
 {
 	return std::make_unique<VST3Instance>(library, processLevel);
 }
 
 VST3Instance::VST3Instance(const std::shared_ptr<VSTPluginLibrary>& library, int processLevel)
-	: VSTFormatInstance(library, processLevel), vst3InputParameterChanges(new VST3ParameterChanges())
+	: VSTPluginInstance(library, processLevel), vst3InputParameterChanges(new VST3ParameterChanges())
 {
 }
 

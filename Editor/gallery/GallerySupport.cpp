@@ -7,81 +7,22 @@
 /*
 	Shared scaffolding of the skin gallery and the offscreen gates: the
 	representative rows, the synthetic audio endpoints, the fixture files,
-	the toolbar replica and the FilterTable host (GallerySupport.h).
+	the toolbar replica, the FilterTable host, the gate fixture and the skin
+	walk (GallerySupport.h).
 */
 
-#include "SkinGallery.h"
 #include "Editor/gallery/GallerySupport.h"
-#include <numbers>
-// For the two gates moved out of main.cpp (audit #275 B7): the VST
-// round-trip self test and the analysis layout probe.
-#include <optional>
-#include <unordered_map>
-#include <QBoxLayout>
-#include <QDockWidget>
-#include <QFileInfo>
-#include <QLocale>
-#include <QStyle>
-#include <QTimer>
-#include "filters/VSTPluginFilter.h"
-#include "filters/VSTPluginFilterFactory.h"
-#include "guis/VSTPluginFilterGUI.h"
-#include "widgets/cards/VSTCardEditor.h"
-#include "widgets/cards/VSTSlotFillRail.h"
-#include "MainWindow.h"
-#include "diagnostics/ToolbarPixelProbe.h"
-#include "widgets/MainToolbarKit.h"
-#include "SubwooferRouting/Preset.h"
-#include "SubwooferRouting/StateCodec.h"
-#include "widgets/subwooferrouting/SubwooferRoutingDefaults.h"
 
-#include <cmath>
-#include <complex>
 #include <cstdio>
 #include <cstdlib>
-#include <memory>
 
 #include <QApplication>
-#include <QCheckBox>
-#include <QComboBox>
 #include <QDataStream>
-#include <QDir>
-#include <QElapsedTimer>
-#include <QEnterEvent>
-#include <QEventLoop>
 #include <QFile>
-#include <QFileDialog>
 #include <QFileInfo>
-#include <QFrame>
-#include <QGraphicsScene>
-#include <QGraphicsView>
-#include <QGridLayout>
-#include <QHBoxLayout>
-#include <QImage>
-#include <QKeyEvent>
-#include <QLabel>
-#include <QLineEdit>
-#include <QLocale>
-#include <QMainWindow>
-#include <QMenu>
-#include <QMenuBar>
-#include <QMouseEvent>
-#include <QPixmap>
-#include <QPointer>
-#include <QRadioButton>
-#include <QToolButton>
+#include <QLayout>
 #include <QScrollArea>
-#include <QScrollBar>
-#include <QScreen>
-#include <QSpinBox>
-#include <QString>
-#include <QStringList>
-#include <QTemporaryDir>
-#include <QTimer>
 #include <QToolBar>
-#include <QTranslator>
-#include <QTreeView>
-#include <QUrl>
 
 #define WIN32_LEAN_AND_MEAN
 #ifndef NOMINMAX
@@ -91,27 +32,12 @@
 
 #include "Editor/FilterTable.h"
 #include "Editor/SkinManager.h"
-#include "Editor/guis/CopyFilterGUI.h"
-#include "Editor/helpers/GUIHelper.h"
-#include "Editor/skins/ISkin.h"
 #include "Editor/skins/Skins.h"
-#include "Editor/widgets/AddCardRow.h"
-#include "Editor/widgets/EqGraphView.h"
-#include "Editor/widgets/SegmentedControl.h"
-#include "Editor/analysis/AnalysisMetric.h"
-#include "Editor/analysis/AnalysisResponse.h"
-#include "filters/BiQuad.h"
-#include "Editor/skins/shared/SkinFileIcons.h"
 #include "Editor/widgets/FilterCardRow.h"
-#include "Editor/widgets/CommandRowFrame.h"
-#include "Editor/widgets/FilterInsertSeam.h"
-#include "Editor/widgets/FilterPickerView.h"
-#include "Editor/widgets/SkinComboBox.h"
-#include "Editor/widgets/TitleBar.h"
-#include "Editor/widgets/UpdateToast.h"
-#include "Editor/widgets/subwooferrouting/SubwooferRoutingEditorDialog.h"
-#include "Editor/widgets/cards/SubwooferRoutingCardEditor.h"
-#include "Editor/widgets/routing/IRoutingRenderer.h"
+#include "Editor/widgets/MainToolbarKit.h"
+#include "Editor/widgets/cards/VSTPluginSession.h"
+#include "SubwooferRouting/Preset.h"
+#include "SubwooferRouting/StateCodec.h"
 
 namespace SkinGalleryDetail
 {
@@ -498,5 +424,51 @@ QList<FilterCardRow*> buildRows(QScrollArea& scrollArea, const QString& configPa
 		table->layout()->activate();
 	QApplication::processEvents();
 	return table->findChildren<FilterCardRow*>(QString(), Qt::FindDirectChildrenOnly);
+}
+
+GalleryFixture::GalleryFixture(const char* gate)
+{
+	if (!scratch.isValid())
+	{
+		qWarning("%s: cannot create a scratch directory", gate);
+		return;
+	}
+	// EAPO_SKIN_GALLERY also makes the reference cards skip the audio-service
+	// ACL probe, which has no meaningful answer for freshly written scratch
+	// files.
+	qputenv("EAPO_SKIN_GALLERY", "1");
+	config = buildReferenceFiles(QDir(scratch.path()));
+	if (config.isEmpty())
+		qWarning("%s: cannot write reference target files", gate);
+}
+
+bool GalleryFixture::isValid() const
+{
+	return !config.isEmpty();
+}
+
+const QString& GalleryFixture::configPath() const
+{
+	return config;
+}
+
+// A gate is a headless one-shot: when it finishes, every verdict has been
+// printed. Returning would unwind into the QApplication and global teardown,
+// which on the offscreen platform can hang the process on a leftover
+// background resource, so flush the diagnostic streams and exit at once. The
+// scratch directory stays behind, since nothing unwinds to remove it.
+void GalleryFixture::finish(int status)
+{
+	std::fflush(nullptr);
+	std::_Exit(status);
+}
+
+void forEachSkinMode(const std::function<void(ISkin* skin, bool dark)>& fn)
+{
+	for (ISkin* skin : Skins::all())
+	{
+		for (const bool dark : { true, false })
+			fn(skin, dark);
+	}
 }
 }

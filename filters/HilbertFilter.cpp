@@ -100,7 +100,7 @@ std::vector<double> designHilbertFir(int directionDegrees)
 }
 
 HilbertFilter::HilbertFilter(const HilbertCommand& command)
-	: command(command)
+	: command(command), bank(muteDiagnostics, kFrameCountMismatchLogPrefix)
 {
 }
 
@@ -108,14 +108,14 @@ HilbertFilter::~HilbertFilter()
 {
 	// Deferred report of the mute path process() took on the audio thread,
 	// like the other convolvers' cleanup(); only for instances that muted.
-	bank.finishAndReport(muteDiagnostics, kFrameCountMismatchLogPrefix, __FILE__, __LINE__, this);
+	bank.finishAndReport();
 }
 
 std::vector<std::wstring> HilbertFilter::initialize(float sampleRate,
 	unsigned maxFrameCount, std::vector<std::wstring> channelNames)
 {
 	(void)sampleRate;
-	bank.finishAndReport(muteDiagnostics, kFrameCountMismatchLogPrefix, __FILE__, __LINE__, this);
+	bank.finishAndReport();
 	channelCount = static_cast<unsigned>(channelNames.size());
 	alignedDelay.release();
 	shifted = resolve(command.shiftedChannels, channelNames, true);
@@ -161,7 +161,7 @@ void HilbertFilter::process(double** output, double** input, unsigned frameCount
 	// the destructor writes the deferred report through
 	// bank.finishAndReport(), like the other convolvers (audit #250 A4 -
 	// this mute used to be silent).
-	const bool convolverReady = bank.admit(muteDiagnostics, frameCount);
+	const bool convolverReady = bank.admit(frameCount);
 	for (size_t unit = 0; unit < shifted.size(); ++unit)
 	{
 		double* out = output[shifted[unit]];

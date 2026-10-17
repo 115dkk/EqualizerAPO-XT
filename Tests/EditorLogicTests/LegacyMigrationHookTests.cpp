@@ -115,7 +115,7 @@ private:
 };
 }
 
-void testCallerProfileCheckRejectsUnsafePaths()
+TEST_CASE(EditorLogicTests, testCallerProfileCheckRejectsUnsafePaths)
 {
 	using EqAPO::Import::CallerProfileCheck::verify;
 	ProfileTable table;
@@ -153,7 +153,7 @@ void testCallerProfileCheckRejectsUnsafePaths()
 	std::puts("CallerProfileCheck: normalized path table passed");
 }
 
-void testLegacyMigrationHookUsesVerifiedCallerOrFallsBack()
+TEST_CASE(EditorLogicTests, testLegacyMigrationHookUsesVerifiedCallerOrFallsBack)
 {
 	using Migration = EqAPO::Import::LegacyMigration;
 	QTemporaryDir temp;
@@ -348,7 +348,7 @@ void testLegacyMigrationHookUsesVerifiedCallerOrFallsBack()
 	std::puts("LegacyMigration: prepare, record, hand-off and validated breadcrumbs passed");
 }
 
-void testConfigHandleGrantRejectsJunctionsAndPreservesChildren()
+TEST_CASE(EditorLogicTests, testConfigHandleGrantRejectsJunctionsAndPreservesChildren)
 {
 	using AudioEngineAccess::Grant;
 	QTemporaryDir temp;
@@ -408,7 +408,7 @@ void testConfigHandleGrantRejectsJunctionsAndPreservesChildren()
 // bypass the port (static WindowsRegistry calls), so the only machine they
 // could ever be observed on was a real one. Through the port they run against
 // a fake here.
-void testLegacyMigrationHookAdoptsStableRootThroughThePort()
+TEST_CASE(EditorLogicTests, testLegacyMigrationHookAdoptsStableRootThroughThePort)
 {
 	QTemporaryDir tempRoot;
 	requireTrue(tempRoot.isValid(), QStringLiteral("temp LOCALAPPDATA root created"));
@@ -442,7 +442,7 @@ void testLegacyMigrationHookAdoptsStableRootThroughThePort()
 // an empty string, which the policy takes for "no ConfigPath" and answers by
 // adopting the stable root - overwriting a value that may be a folder the user
 // chose. A DWORD under the name makes valueExists true and readValue throw.
-void testLegacyMigrationHookLeavesAnUnreadableConfigPathAlone()
+TEST_CASE(EditorLogicTests, testLegacyMigrationHookLeavesAnUnreadableConfigPathAlone)
 {
 	QTemporaryDir tempRoot;
 	requireTrue(tempRoot.isValid(), QStringLiteral("temp LOCALAPPDATA root created"));
@@ -466,7 +466,7 @@ void testLegacyMigrationHookLeavesAnUnreadableConfigPathAlone()
 		QStringLiteral("a ConfigPath that could not be read leaves no migration breadcrumbs"));
 }
 
-void testLegacyMigrationHookRescuesVolatileTreeAndLeavesBreadcrumbs()
+TEST_CASE(EditorLogicTests, testLegacyMigrationHookRescuesVolatileTreeAndLeavesBreadcrumbs)
 {
 	QTemporaryDir tempRoot;
 	requireTrue(tempRoot.isValid(), QStringLiteral("temp LOCALAPPDATA root created"));

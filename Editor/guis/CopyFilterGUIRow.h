@@ -23,7 +23,7 @@
 
 #include <QWidget>
 
-#include "filters/CopyFilter.h"
+#include "filters/CopyCommand.h"
 
 namespace Ui {
 class CopyFilterGUIRow;

@@ -160,8 +160,9 @@ namespace eapo::ipc
 		const RingLane& lane = header_->lanes[laneOf(direction)];
 		const uint32_t done = static_cast<uint32_t>(ReadAcquire(&lane.completed));
 		// The slot seq & 1 was last used by seq - 2; it is free once that one
-		// completed. seq 1 and 2 never wait.
-		return seq <= 2 || sequenceAtLeast(done, seq - 2);
+		// completed. The wrap-aware comparison also admits the initial seq 1
+		// and 2 against the completed value 0.
+		return sequenceAtLeast(done, seq - 2);
 	}
 
 	float* RingProducer::slot(Direction direction, uint32_t seq) noexcept

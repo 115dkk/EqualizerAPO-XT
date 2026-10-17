@@ -20,12 +20,55 @@
 #pragma once
 
 #include <string>
+#include <utility>
 #include <vector>
 
-#include "runtime/memory/AlignedMemory.h"
 #include "IFilter.h"
 
 class FilterEngine;
+
+struct LineOutcome
+{
+	enum class Kind
+	{
+		NotMine,
+		Consumed,
+		Malformed,
+		Produced
+	};
+
+	Kind kind = Kind::NotMine;
+	std::wstring reason;
+	FilterVector filters;
+
+	static LineOutcome notMine()
+	{
+		return {};
+	}
+
+	static LineOutcome consumed()
+	{
+		LineOutcome outcome;
+		outcome.kind = Kind::Consumed;
+		return outcome;
+	}
+
+	static LineOutcome malformed(std::wstring reason)
+	{
+		LineOutcome outcome;
+		outcome.kind = Kind::Malformed;
+		outcome.reason = std::move(reason);
+		return outcome;
+	}
+
+	static LineOutcome produced(FilterVector filters)
+	{
+		LineOutcome outcome;
+		outcome.kind = Kind::Produced;
+		outcome.filters = std::move(filters);
+		return outcome;
+	}
+};
 
 #pragma AVRT_VTABLES_BEGIN
 class IFilterFactory
@@ -33,54 +76,23 @@ class IFilterFactory
 public:
 	virtual ~IFilterFactory() {}
 
-	virtual void initialize(FilterEngine* engine) {}
+	void initialize(FilterEngine& engine);
+	void initialize(FilterEngine* engine);
 	virtual FilterVector startOfConfiguration() {return {};}
 	virtual FilterVector startOfFile(const std::wstring& configPath) {return {};}
-	// Contract (see the dispatch loop in engine/FilterEngine.Configuration.cpp):
-	// the engine offers each config line to every factory in priority order.
-	// - Returning one or more filters consumes the line; iteration stops.
-	// - Clearing `command` to L"" also consumes the line without producing a
-	//   filter. Only control-flow factories (Device/If/Else/EndIf/Eval/Include/
-	//   Stage) use this signal; processing factories leave `command` untouched.
-	// - Leaving `command` set and returning no filters passes the line on to
-	//   the next factory.
-	// `parameters` may be normalized in place (e.g. decimal-comma fixes); the
-	// engine does not read it back after the call.
-	virtual FilterVector createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) = 0;
+	// The engine offers each config line to every factory in priority order.
+	// Consumed and Produced stop dispatch, Malformed stops dispatch and gives the
+	// engine one reason to report, and NotMine advances to the next factory.
+	// `parameters` may be normalized in place for a later factory.
+	virtual LineOutcome createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) = 0;
 	virtual FilterVector endOfFile(const std::wstring& configPath) {return {};}
 	virtual FilterVector endOfConfiguration() {return {};}
-};
-#pragma AVRT_VTABLES_END
-
-// Base for the factories that can tell a malformed line from one that is not
-// theirs.
-//
-// The engine cannot make that distinction: from outside a factory, "recognised
-// the command and produced no filter" covers both a broken parameter list and a
-// command that legitimately produces nothing (Preamp 0 dB, a disabled Filter, and
-// every control-flow command). It used to guess, with a hand-maintained list of
-// the commands to excuse, so the diagnosis lived in the one place that cannot
-// know why a parse failed and a new no-op filter became a false warning until
-// somebody remembered the list.
-//
-// A factory that inherits this says it itself, at the point where it knows:
-//
-//     if (!ConvolutionCommand::parse(command, parameters, cmd))
-//         return reportParseError(command, L"expected a file path");
-//
-// reportParseError returns an empty FilterVector, so the failure path stays one
-// line, and the report reaches both the log and the Editor's per-line trace.
-class ParseReportingFactory : public IFilterFactory
-{
-public:
-	// Factories with their own initialize() must call this one from it.
-	void initialize(FilterEngine* engine) override;
 
 protected:
-	// Always returns {}. Does nothing when no engine has been handed over, which
-	// is the case in the unit tests that construct a factory directly.
-	FilterVector reportParseError(const std::wstring& command, const std::wstring& reason, int line = 0) const;
+	virtual void onInitialize(FilterEngine&) {}
+	FilterEngine* engine() const {return initializedEngine;}
 
 private:
-	FilterEngine* reportingEngine = nullptr;
+	FilterEngine* initializedEngine = nullptr;
 };
+#pragma AVRT_VTABLES_END

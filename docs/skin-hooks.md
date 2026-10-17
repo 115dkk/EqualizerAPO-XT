@@ -75,16 +75,17 @@ Rows are recreated on every skin/dark switch (`FilterTable::updateGuis()`), so
 per-row chrome is built at construction time. `CommandRowInfo`
 (`Editor/skins/ISkin.h`) identifies a row: descriptor `type` (`"biquad"`,
 `"include"`, `"vst"`, `"copy"`, ...), lower-cased `command`, a `legacyRow`
-flag, and `enabled/selected/focused/depth`. Four hooks, all with
-appearance-preserving defaults:
+flag, and `enabled/selected/focused/depth`. Four hooks; every skin must
+answer the first two, the last two default to doing nothing:
 
 - `cardFrameStyle(info, tokens)` / `cardHeaderStyle(info, tokens)` — the
   inline stylesheets for `QFrame#FilterCardRow` and
   `QWidget#FilterCardHeader`, re-evaluated whenever the row's
-  selected/focused/enabled state changes. The defaults are the shared
+  selected/focused/enabled state changes. Both are pure virtual: each skin
+  gives command types its own frame/header treatment. The shared
   token-driven strings every skin used before (including the
-  `tokens.cardRailWidth` accent rail). Override these to give command types
-  their own frame/header treatment.
+  `tokens.cardRailWidth` accent rail) now live in `HeritageSkin` (audit #422
+  S3).
 - `prepareCommandRow(info, card, header, body)` — called once per
   construction. For modern card rows `card`/`header`/`body` are the
   `CommandRowFrame`, the header strip and the body stack. The Include/VST
@@ -146,16 +147,17 @@ delegates every pixel:
 
 ```cpp
 // ISkin (Editor/skins/ISkin.h)
-virtual void paintGraphicEqPlot(QPainter&, const GraphicEQPlotState&, const SkinTokens&) const;
+virtual void paintGraphicEqPlot(QPainter&, const GraphicEQPlotState&, const SkinTokens&) const = 0;
 ```
 
 `GraphicEQPlotState` hands the skin pre-mapped pixel geometry: the widget
 rect and inner `plotRect`, the sampled response `curve`, `zeroY`,
 `nodePositions` with selection/hover/focus indices, labelled grid lines,
 `bandLocked` (15/31 layouts, where stems/bars are a legitimate reading) and
-the cursor readout text. The default implementation is a quiet token-driven
-instrument; each shipped skin overrides it wholesale (form in paint code,
-QSS only tints the stock controls around it). Precise entry rides the
+the cursor readout text. The hook is pure virtual: each shipped skin draws
+the plot wholesale (form in paint code, QSS only tints the stock controls
+around it), and `HeritageSkin` keeps the quiet token-driven instrument the
+old default drew. Precise entry rides the
 selected-band readout strip under the plot — `GraphicEQReadout`,
 `GraphicEQBandCaption`, `GraphicEQReadoutLabel`, `GraphicEQFreqBox`/
 `GraphicEQGainBox` (X1 value-scrub grammar) — plus `GraphicEQModeCombo`

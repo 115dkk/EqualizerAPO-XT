@@ -126,7 +126,7 @@ void appendItem(ImportManifest& manifest,
     {
         item.exists = false;
         manifest.hasErrors = true;
-        manifest.warnings.append(QObject::tr("Missing file: %1").arg(sourceAbs));
+        manifest.warnings.append(ConfigDependencyScanner::tr("Missing file: %1").arg(sourceAbs));
     }
 
     manifest.items.append(item);
@@ -141,7 +141,7 @@ void scanConfigFile(ImportManifest& manifest,
 {
     if (depth >= ConfigDependencyScanner::kRecursionLimit)
     {
-        manifest.warnings.append(QObject::tr("Recursion limit reached at %1; nested references were not followed.").arg(sourceTxtAbs));
+        manifest.warnings.append(ConfigDependencyScanner::tr("Recursion limit reached at %1; nested references were not followed.").arg(sourceTxtAbs));
         manifest.hasErrors = true;
         return;
     }
@@ -153,7 +153,7 @@ void scanConfigFile(ImportManifest& manifest,
     const ConfigFileCodec::ReadResult readResult = ConfigFileCodec::readConfig(sourceTxtAbs);
     if (!readResult.ok)
     {
-        manifest.warnings.append(QObject::tr("Cannot open %1 for scanning.").arg(sourceTxtAbs));
+        manifest.warnings.append(ConfigDependencyScanner::tr("Cannot open %1 for scanning.").arg(sourceTxtAbs));
         manifest.hasErrors = true;
         return;
     }
@@ -176,7 +176,7 @@ void scanConfigFile(ImportManifest& manifest,
         {
             if (reference.isEmpty())
             {
-                manifest.warnings.append(QObject::tr(
+                manifest.warnings.append(ConfigDependencyScanner::tr(
                     "VSTPlugin line has no Library reference: %1 (in %2)")
                     .arg(parameters, sourceTxtAbs));
                 manifest.hasErrors = true;
@@ -196,7 +196,7 @@ void scanConfigFile(ImportManifest& manifest,
         QString rel = relativeToRoot(refAbs, rootSourceDir);
         if (rel.isEmpty())
         {
-            manifest.warnings.append(QObject::tr("Reference outside the source folder will be skipped: %1 (in %2)")
+            manifest.warnings.append(ConfigDependencyScanner::tr("Reference outside the source folder will be skipped: %1 (in %2)")
                 .arg(parameters, sourceTxtAbs));
             manifest.hasErrors = true;
             continue;
@@ -223,7 +223,7 @@ ImportManifest ConfigDependencyScanner::scan(const QString& rootSource, const QS
     QFileInfo rootInfo(manifest.rootSource);
     if (!rootInfo.exists())
     {
-        manifest.warnings.append(QObject::tr("Root file does not exist: %1").arg(manifest.rootSource));
+        manifest.warnings.append(ConfigDependencyScanner::tr("Root file does not exist: %1").arg(manifest.rootSource));
         manifest.hasErrors = true;
         return manifest;
     }

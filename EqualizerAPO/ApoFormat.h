@@ -10,8 +10,11 @@
 
 #pragma once
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <cstring>
+#include <utility>
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -73,9 +76,9 @@ inline bool isBlockSilent(const SampleT* samples, size_t sampleCount)
 	return true;
 }
 
-// What APOProcess does with one block (audit #348 F20). The choice used to be
-// nested ifs in the COM method, where no test could reach it, and a wrong
-// branch there is how an endpoint goes mute or plays unprocessed audio.
+// What APOProcess does with one block. The value and executor live together in
+// this ATL-free header so tests cover the entire decision, including the
+// zero-input and output-flag rules that used to remain in the COM class.
 enum class BlockAction
 {
 	// Flags other than BUFFER_VALID and BUFFER_SILENT: leave the connection alone.
@@ -109,6 +112,26 @@ struct BlockFacts
 	bool inPlace = false;
 };
 
+enum class OutputFlagRule
+{
+	Preserve,
+	Silent,
+	Valid,
+	InspectProcessedOutput,
+	CopyInput
+};
+
+struct BlockPlan
+{
+	BlockAction action = BlockAction::Ignore;
+	unsigned frameCount = 0;
+	size_t outputBytesPerSample = 0;
+	bool zeroInputFirst = false;
+	bool processChildFirst = false;
+	OutputFlagRule outputFlagRule = OutputFlagRule::Preserve;
+	APO_BUFFER_FLAGS inputFlags = BUFFER_INVALID;
+};
+
 inline BlockAction chooseBlockAction(const BlockFacts& facts)
 {
 	if (facts.inputFlags != BUFFER_VALID && facts.inputFlags != BUFFER_SILENT)
@@ -132,6 +155,125 @@ inline BlockAction chooseBlockAction(const BlockFacts& facts)
 		return BlockAction::ProcessFloat32;
 
 	return facts.inPlace ? BlockAction::PassThroughInPlace : BlockAction::SilenceDistinctBuffers;
+}
+
+inline BlockPlan makeBlockPlan(const BlockFacts& facts, unsigned frameCount)
+{
+	BlockPlan plan;
+	plan.action = chooseBlockAction(facts);
+	plan.frameCount = frameCount;
+	plan.outputBytesPerSample = bytesPerSample(facts.outputFormat);
+	plan.inputFlags = facts.inputFlags;
+
+	switch (plan.action)
+	{
+	case BlockAction::Ignore:
+		plan.outputFlagRule = OutputFlagRule::Preserve;
+		break;
+	case BlockAction::SilentFastPath:
+	case BlockAction::SilenceDistinctBuffers:
+		plan.outputFlagRule = OutputFlagRule::Silent;
+		break;
+	case BlockAction::PassThroughInPlace:
+		plan.outputFlagRule = OutputFlagRule::CopyInput;
+		break;
+	case BlockAction::ProcessFloat32:
+	case BlockAction::ProcessFloat64:
+		plan.zeroInputFirst = facts.inputFlags == BUFFER_SILENT;
+		plan.processChildFirst = facts.hasChildApo;
+		if (facts.inputFlags != BUFFER_SILENT)
+			plan.outputFlagRule = OutputFlagRule::Valid;
+		else if (facts.allowSilentBufferModification)
+			plan.outputFlagRule = OutputFlagRule::InspectProcessedOutput;
+		else
+			plan.outputFlagRule = OutputFlagRule::Silent;
+		break;
+	}
+	return plan;
+}
+
+struct BlockResult
+{
+	bool updateOutputProperties = false;
+	unsigned validFrameCount = 0;
+	APO_BUFFER_FLAGS outputFlags = BUFFER_INVALID;
+};
+
+template<typename SampleT, typename EngineLike, typename ChildProcessor>
+inline BlockResult processBlock(const BlockPlan& plan,
+	SampleT* inputFrames, SampleT* outputFrames,
+	unsigned inputChannelCount, unsigned outputChannelCount,
+	EngineLike& engine, ChildProcessor&& processChild)
+{
+	if (plan.action == BlockAction::Ignore)
+		return {};
+
+	if (plan.action == BlockAction::SilentFastPath
+		|| plan.action == BlockAction::SilenceDistinctBuffers)
+	{
+		if (plan.outputBytesPerSample > 0)
+		{
+			std::memset(static_cast<void*>(outputFrames), 0,
+				static_cast<size_t>(plan.frameCount) * outputChannelCount
+					* plan.outputBytesPerSample);
+		}
+	}
+	else if (plan.action == BlockAction::ProcessFloat32
+		|| plan.action == BlockAction::ProcessFloat64)
+	{
+		if (plan.zeroInputFirst)
+		{
+			std::fill_n(inputFrames,
+				static_cast<size_t>(plan.frameCount) * inputChannelCount,
+				static_cast<SampleT>(0));
+		}
+
+		if (plan.processChildFirst)
+		{
+			std::forward<ChildProcessor>(processChild)();
+			engine.process(outputFrames, outputFrames, plan.frameCount);
+		}
+		else
+		{
+			engine.process(outputFrames, inputFrames, plan.frameCount);
+		}
+	}
+
+	BlockResult result;
+	result.updateOutputProperties = true;
+	result.validFrameCount = plan.frameCount;
+	switch (plan.outputFlagRule)
+	{
+	case OutputFlagRule::Preserve:
+		result.updateOutputProperties = false;
+		break;
+	case OutputFlagRule::Silent:
+		// A processed silent block may contain filter output that the host does
+		// not permit us to expose. The two non-processing silence actions were
+		// already cleared byte-for-byte above using their actual container size.
+		if (plan.action == BlockAction::ProcessFloat32
+			|| plan.action == BlockAction::ProcessFloat64)
+		{
+			std::fill_n(outputFrames,
+				static_cast<size_t>(plan.frameCount) * outputChannelCount,
+				static_cast<SampleT>(0));
+		}
+		result.outputFlags = BUFFER_SILENT;
+		break;
+	case OutputFlagRule::Valid:
+		result.outputFlags = BUFFER_VALID;
+		break;
+	case OutputFlagRule::InspectProcessedOutput:
+		result.outputFlags = isBlockSilent(outputFrames,
+			static_cast<size_t>(plan.frameCount) * outputChannelCount)
+			? BUFFER_SILENT : BUFFER_VALID;
+		break;
+	case OutputFlagRule::CopyInput:
+		result.outputFlags = plan.inputFlags == BUFFER_SILENT
+			? BUFFER_SILENT : BUFFER_VALID;
+		break;
+	}
+	return result;
 }
 
 // The endpoint's channel mask, taken from the connection this instance

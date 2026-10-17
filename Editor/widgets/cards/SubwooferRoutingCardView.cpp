@@ -66,6 +66,36 @@ QString SubwooferRoutingCardView::crossoverSummary(
 		: parts.join(QStringLiteral(" / "));
 }
 
+SubwooferRoutingCardView::Severity SubwooferRoutingCardView::severity(
+	const SubwooferRoutingCardState& state)
+{
+	if (!state.errorText.isEmpty() || !state.valid)
+		return Severity::Error;
+	if (!state.warningText.isEmpty())
+		return Severity::Warning;
+	return Severity::Valid;
+}
+
+QString SubwooferRoutingCardView::profileText(
+	const SubwooferRoutingCardState& state,
+	const QString& linkedFallback, const QString& embeddedFallback)
+{
+	if (!state.profileName.isEmpty())
+		return state.profileName;
+	return state.linkedProfile ? linkedFallback : embeddedFallback;
+}
+
+QString SubwooferRoutingCardView::headroomText(
+	const SubwooferRoutingCardState& state,
+	const QString& autoFormat, const QString& manualFormat,
+	const QString& autoText, const QString& manualText)
+{
+	if (!std::isfinite(state.headroomTrimDb))
+		return state.headroomAuto ? autoText : manualText;
+	return (state.headroomAuto ? autoFormat : manualFormat)
+		.arg(QString::number(state.headroomTrimDb, 'f', 1));
+}
+
 void SubwooferRoutingCardView::mouseDoubleClickEvent(
 	QMouseEvent* event)
 {

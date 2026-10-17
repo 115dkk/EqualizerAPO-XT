@@ -14,7 +14,9 @@ Describe "repair script ACL grants" {
     It "grants the config directory to Users with the same right as the product" {
         $body = $cpp.Substring($cpp.IndexOf("Grant grantConfigAccess("))
         $body = $body.Substring(0, $body.IndexOf("return applyGrant"))
-        $productMatch = [regex]::Match($body, 'kUsersSid\) \+ L":\(OI\)\(CI\)([A-Z]+) ')
+        # The Users SID comes from platform/windows/WellKnownSids.h (audit #422
+        # TD-25); icacls takes it with a leading '*'.
+        $productMatch = [regex]::Match($body, 'sids::users\)\) \+ L":\(OI\)\(CI\)([A-Z]+) ')
         $productMatch.Success | Should -BeTrue
         $scriptMatch = [regex]::Match($script, "'\*S-1-5-32-545:\(OI\)\(CI\)([A-Z]+)',\s*'\*S-1-5-19:\(OI\)\(CI\)M'")
         $scriptMatch.Success | Should -BeTrue

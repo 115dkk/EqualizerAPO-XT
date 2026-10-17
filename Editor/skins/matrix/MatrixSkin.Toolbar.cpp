@@ -138,24 +138,24 @@ private:
 
 void MatrixSkin::styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const
 {
-		if (toolBar == nullptr)
-			return;
+	if (toolBar == nullptr)
+		return;
 
-		// Shared modern stroke icons, tinted with the text token.
-		ISkin::styleMainToolbar(toolBar, tokens);
-		toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
+	// Shared modern stroke icons, tinted with the text token.
+	ISkin::styleMainToolbar(toolBar, tokens);
+	toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
 
-		// Painted board layers: created once per toolbar, re-tinted on every
-		// call (dark/light switches reuse the same instances).
-		auto boardLayer = [toolBar](const QString& name, MatrixToolbarBoard::Layer layer)
-		{
-			QWidget* existing = toolBar->findChild<QWidget*>(name, Qt::FindDirectChildrenOnly);
-			MatrixToolbarBoard* board = existing != nullptr
-				? static_cast<MatrixToolbarBoard*>(existing)
-				: new MatrixToolbarBoard(toolBar, layer);
-			board->refreshOverlay();
-			return board;
-		};
-		boardLayer(QStringLiteral("MatrixToolbarBoardUnder"), MatrixToolbarBoard::UnderCells)->setBoardTokens(tokens);
-		boardLayer(QStringLiteral("MatrixToolbarBoardOver"), MatrixToolbarBoard::OverCells)->setBoardTokens(tokens);
-	}
+	// Painted board layers: created once per toolbar, re-tinted on every
+	// call (dark/light switches reuse the same instances).
+	auto boardLayer = [toolBar](const QString& name, MatrixToolbarBoard::Layer layer)
+	{
+		QWidget* existing = toolBar->findChild<QWidget*>(name, Qt::FindDirectChildrenOnly);
+		MatrixToolbarBoard* board = existing != nullptr
+			? static_cast<MatrixToolbarBoard*>(existing)
+			: new MatrixToolbarBoard(toolBar, layer);
+		board->refreshOverlay();
+		return board;
+	};
+	boardLayer(QStringLiteral("MatrixToolbarBoardUnder"), MatrixToolbarBoard::UnderCells)->setBoardTokens(tokens);
+	boardLayer(QStringLiteral("MatrixToolbarBoardOver"), MatrixToolbarBoard::OverCells)->setBoardTokens(tokens);
+}

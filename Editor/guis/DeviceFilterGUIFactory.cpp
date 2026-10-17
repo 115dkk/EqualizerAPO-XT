@@ -21,6 +21,7 @@
 #include "DeviceFilterGUI.h"
 #include "DeviceFilterGUIFactory.h"
 #include "../FilterGUIFactoryRegistry.h"
+#include "devices/DeviceAPOInfo.h"
 
 REGISTER_FILTER_GUI_FACTORY(FilterGUIFactoryOrder::Device, DeviceFilterGUIFactory)
 
@@ -35,13 +36,6 @@ void DeviceFilterGUIFactory::initialize(FilterTable* filterTable)
 {
 	devices.append(filterTable->getOutputDevices());
 	devices.append(filterTable->getInputDevices());
-}
-
-QList<FilterTemplate> DeviceFilterGUIFactory::createFilterTemplates()
-{
-	QList<FilterTemplate> list;
-	list.append(FilterTemplate(tr("Device (Select device)"), "Device: all", QStringList(tr("Control"))));
-	return list;
 }
 
 IFilterGUI* DeviceFilterGUIFactory::createFilterGUI(QString& command, QString& parameters)

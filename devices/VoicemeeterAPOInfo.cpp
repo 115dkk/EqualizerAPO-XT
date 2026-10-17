@@ -23,6 +23,7 @@
 #include <ShlObj.h>
 #include <fstream>
 #include <algorithm>
+#include <Ks.h>
 #include <KsMedia.h>
 #include <shellapi.h>
 #include "platform/windows/ComPtr.h"
@@ -30,19 +31,18 @@
 #include "platform/windows/ProcessCommandLine.h"
 #include "platform/windows/ShellLink.h"
 #include "services/logging/Logging.h"
-#include "services/registry/WindowsRegistry.h"
+#include "services/registry/RegistryError.h"
 #include "platform/windows/Win32Resource.h"
 #include "platform/windows/WindowsPath.h"
 #include "VoicemeeterAPOInfo.h"
+#include "DeviceException.h"
+#include "platform/windows/Win32Error.h"
 
-using std::exception;
 using std::find;
-using std::list;
 using std::make_shared;
 using std::shared_ptr;
 using std::sort;
 using std::vector;
-using std::wstringstream;
 using std::wstring;
 using winutil::ComPtr;
 using winutil::CoTaskMem;
@@ -126,10 +126,10 @@ void VoicemeeterAPOInfo::prependInfos(vector<shared_ptr<AbstractAPOInfo>>& list,
 	}
 }
 
-VoicemeeterAPOInfo::VoicemeeterAPOInfo(const wstring& connectionName, bool voicemeeterInstalled, IRegistry& registry)
-	: connectionName(connectionName), voicemeeterInstalled(voicemeeterInstalled), registry(registry)
+VoicemeeterAPOInfo::VoicemeeterAPOInfo(const wstring& connectionName, bool voicemeeterInstalled, IRegistry& registry, wstring startupPath)
+	: startupPath(startupPath.empty() ? getStartupPath() : std::move(startupPath)), connectionName(connectionName), voicemeeterInstalled(voicemeeterInstalled), registry(registry)
 {
-	wstring startupFilePath = getStartupPath();
+	const wstring& startupFilePath = this->startupPath;
 	wstring path;
 	wstring argString = getLinkArgs(startupFilePath, &path);
 	vector<wstring> args = splitArgs(argString);
@@ -195,19 +195,9 @@ bool VoicemeeterAPOInfo::isInstalled() const
 	return installed;
 }
 
-bool VoicemeeterAPOInfo::canBeUpgraded() const
-{
-	return false;
-}
-
 bool VoicemeeterAPOInfo::hasChanges() const
 {
 	return changes;
-}
-
-bool VoicemeeterAPOInfo::isEnhancementsDisabled() const
-{
-	return false;
 }
 
 bool VoicemeeterAPOInfo::isDefaultDevice() const
@@ -215,14 +205,9 @@ bool VoicemeeterAPOInfo::isDefaultDevice() const
 	return defaultDevice;
 }
 
-bool VoicemeeterAPOInfo::isDisabled() const
+wstring VoicemeeterAPOInfo::stateNote() const
 {
-	return false;
-}
-
-bool VoicemeeterAPOInfo::isUnplugged() const
-{
-	return false;
+	return voicemeeterInstalled ? L"" : L"Voicemeeter was uninstalled";
 }
 
 bool VoicemeeterAPOInfo::isVoicemeeterInstalled() const
@@ -232,7 +217,7 @@ bool VoicemeeterAPOInfo::isVoicemeeterInstalled() const
 
 void VoicemeeterAPOInfo::install()
 {
-	wstring startupFilePath = getStartupPath();
+	const wstring& startupFilePath = this->startupPath;
 	wstring argString = getLinkArgs(startupFilePath);
 	vector<wstring> args = splitArgs(argString);
 	vector<wstring>::iterator it = find(args.begin(), args.end(), connectionName);
@@ -248,7 +233,7 @@ void VoicemeeterAPOInfo::install()
 
 void VoicemeeterAPOInfo::uninstall()
 {
-	wstring startupFilePath = getStartupPath();
+	const wstring& startupFilePath = this->startupPath;
 	wstring argString = getLinkArgs(startupFilePath);
 	vector<wstring> args = splitArgs(argString);
 	vector<wstring>::iterator it = find(args.begin(), args.end(), connectionName);
@@ -263,7 +248,12 @@ void VoicemeeterAPOInfo::uninstall()
 	}
 	else
 	{
-		DeleteFileW(startupFilePath.c_str());
+		if (!DeleteFileW(startupFilePath.c_str()))
+		{
+			const DWORD error = GetLastError();
+			if (error != ERROR_FILE_NOT_FOUND && error != ERROR_PATH_NOT_FOUND)
+				throw DeviceException(L"Could not remove startup link: " + win32::errorMessage(error));
+		}
 	}
 }
 
@@ -298,14 +288,10 @@ wstring VoicemeeterAPOInfo::getClientPath()
 
 void VoicemeeterAPOInfo::createLink(const wstring& lnkPath, const wstring& path, const wstring& args)
 {
-	// Audit #250 F035: every HRESULT here used to be discarded, so a failed
-	// startup link (the thing that keeps the client running after reboot)
-	// left no trace at all. Still best-effort, but now it says so. The
-	// IShellLink choreography itself is winutil::writeShellLink (audit #275 C5).
 	const HRESULT hr = winutil::writeShellLink(
 		path, std::wstring(), args, std::wstring(), std::wstring(), 0, lnkPath);
 	if (FAILED(hr))
-		LogFStatic(L"Could not create link %s (HRESULT 0x%08X)", lnkPath.c_str(), hr);
+		throw DeviceException(L"Could not create startup link " + lnkPath + L": " + win32::errorMessage(hr));
 }
 
 wstring VoicemeeterAPOInfo::getLinkArgs(const wstring& lnkPath, wstring* path)
@@ -324,7 +310,7 @@ wstring VoicemeeterAPOInfo::getLinkArgs(const wstring& lnkPath, wstring* path)
 			hr = persistFile->Load(lnkPath.c_str(), STGM_READ);
 			if (SUCCEEDED(hr))
 			{
-				wchar_t buf[MAX_PATH];
+				wchar_t buf[32768] = {};
 				hr = shellLink->GetArguments(buf, ARRAYSIZE(buf));
 				if (SUCCEEDED(hr))
 					result = buf;
@@ -399,7 +385,9 @@ void VoicemeeterAPOInfo::ensureVoicemeeterClientRunning()
 
 	if (!matchingProcessExists && !args.empty())
 	{
-		ShellExecuteW(nullptr, nullptr, clientPath.c_str(), argString.c_str(), nullptr, SW_SHOWDEFAULT);
+		const auto result = ShellExecuteW(nullptr, nullptr, clientPath.c_str(), argString.c_str(), nullptr, SW_SHOWDEFAULT);
+		if (reinterpret_cast<INT_PTR>(result) <= 32)
+			throw DeviceException(L"Could not start the Voicemeeter client: " + win32::errorMessage(GetLastError()));
 	}
 }
 

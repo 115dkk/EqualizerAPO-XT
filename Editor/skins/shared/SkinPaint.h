@@ -19,10 +19,13 @@
 
 #pragma once
 
+#include <array>
+
 #include <QColor>
 #include <QPointF>
 #include <QRectF>
 #include <QString>
+#include <QStyle>
 #include <QWidget>
 #include <QtMath>
 
@@ -35,6 +38,41 @@
 inline void configurePaintOnlyChrome(QWidget* widget)
 {
 	widget->setAttribute(Qt::WA_NoSystemBackground, true);
+}
+
+// Re-evaluate a widget's stylesheet after one of its dynamic properties
+// changed. Rules keyed on a widget's own property re-resolve only when it is
+// polished again, and the skin views' base classes repolish only the view
+// itself, not the children whose properties applyState sets.
+inline void repolish(QWidget* widget)
+{
+	if (widget == nullptr)
+		return;
+
+	widget->style()->unpolish(widget);
+	widget->style()->polish(widget);
+	widget->update();
+}
+
+// QFileDialog's six navigation tool buttons, by Qt's internal object names,
+// with the shared modern stroke icon each one wears unless a skin swaps it
+// (ISkin::styleFileDialog). Every skin that touches the row walks this list.
+struct SkinFileDialogNavButton
+{
+	const char* name;
+	const char* resource;
+};
+
+inline constexpr std::array<SkinFileDialogNavButton, 6> fileDialogNavButtons()
+{
+	return { {
+		{ "backButton", ":/icons/modern/nav-back.svg" },
+		{ "forwardButton", ":/icons/modern/nav-forward.svg" },
+		{ "toParentButton", ":/icons/modern/folder-up.svg" },
+		{ "newFolderButton", ":/icons/modern/folder-new.svg" },
+		{ "listModeButton", ":/icons/modern/view-list.svg" },
+		{ "detailModeButton", ":/icons/modern/view-detail.svg" },
+	} };
 }
 
 inline bool skinColorIsDark(const QColor& color)

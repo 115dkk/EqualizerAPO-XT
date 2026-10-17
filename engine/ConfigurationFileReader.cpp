@@ -23,27 +23,37 @@ std::stringstream makeFailedStream()
 	return stream;
 }
 
-std::stringstream readHandle(HANDLE file, const std::wstring& path)
+bool readBytesHandle(HANDLE file, std::string& bytes)
 {
 	LARGE_INTEGER zero = {};
 	if (file == nullptr || !SetFilePointerEx(file, zero, nullptr, FILE_BEGIN))
-		return makeFailedStream();
-	std::stringstream inputStream;
-	char buf[8192];
+		return false;
+
+	bytes.clear();
+	char buffer[8192];
 	for (;;)
 	{
 		DWORD bytesRead = 0;
-		if (!ReadFile(file, buf, sizeof(buf), &bytesRead, nullptr))
-		{
-			const DWORD error = GetLastError();
-			LogFStatic(L"Error while reading configuration file %s: %s", path.c_str(), win32::errorMessage(error).c_str());
-			return makeFailedStream();
-		}
+		if (!ReadFile(file, buffer, sizeof(buffer), &bytesRead, nullptr))
+			return false;
 		if (bytesRead == 0)
-			break;
-		inputStream.write(buf, bytesRead);
+			return true;
+		bytes.append(buffer, bytesRead);
+	}
+}
+
+std::stringstream readHandle(HANDLE file, const std::wstring& path)
+{
+	std::string bytes;
+	if (!readBytesHandle(file, bytes))
+	{
+		const DWORD error = GetLastError();
+		LogFStatic(L"Error while reading configuration file %s: %s", path.c_str(), win32::errorMessage(error).c_str());
+		return makeFailedStream();
 	}
 
+	std::stringstream inputStream;
+	inputStream.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
 	inputStream.seekg(0);
 	return inputStream;
 }
@@ -65,9 +75,26 @@ std::stringstream ConfigurationFileReader::readWithRetry(
 	return readHandle(file.get(), path);
 }
 
+bool ConfigurationFileReader::readBytes(const JudgedPath& path, std::string& bytes)
+{
+	return readBytesHandle(path.leaf(), bytes);
+}
+
 std::stringstream ConfigurationFileReader::read(const JudgedPath& path)
 {
-	return readHandle(path.leaf(), path.path());
+	std::string bytes;
+	if (!readBytes(path, bytes))
+	{
+		const DWORD error = GetLastError();
+		LogFStatic(L"Error while reading configuration file %s: %s",
+			path.path().c_str(), win32::errorMessage(error).c_str());
+		return makeFailedStream();
+	}
+
+	std::stringstream inputStream;
+	inputStream.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
+	inputStream.seekg(0);
+	return inputStream;
 }
 
 ConfigFileReference::Target ConfigurationFileReader::judgeWithRetry(const std::wstring& configPath,

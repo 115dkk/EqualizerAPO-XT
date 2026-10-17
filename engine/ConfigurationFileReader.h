@@ -22,6 +22,7 @@
 class ConfigurationFileReader
 {
 public:
+	static bool readBytes(const JudgedPath& path, std::string& bytes);
 	static std::stringstream read(const JudgedPath& path);
 	static ConfigFileReference::Target judgeWithRetry(const std::wstring& configPath, const std::wstring& written,
 		HANDLE cancel = nullptr, DWORD deadlineMilliseconds = 10000);

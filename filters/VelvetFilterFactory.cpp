@@ -17,13 +17,7 @@
 REGISTER_FILTER_FACTORY(FilterFactoryPriority::Velvet,
 	VelvetFilterFactory, L"Velvet")
 
-void VelvetFilterFactory::initialize(FilterEngine* engine)
-{
-	ParseReportingFactory::initialize(engine);
-	this->engine = engine;
-}
-
-FilterVector VelvetFilterFactory::createFilter(const std::wstring& configPath,
+LineOutcome VelvetFilterFactory::createFilter(const std::wstring& configPath,
 	std::wstring& command, std::wstring& parameters)
 {
 	(void)configPath;
@@ -33,13 +27,13 @@ FilterVector VelvetFilterFactory::createFilter(const std::wstring& configPath,
 	VelvetCommand parsed;
 	std::wstring error;
 	if (!VelvetCommand::parse(command, parameters, parsed, &error))
-		return reportParseError(command, error);
+		return LineOutcome::malformed(error);
 
-	if (engine != nullptr && engine->isAnalysisMode()
+	if (engine() != nullptr && engine()->isAnalysisMode()
 		&& parsed.parameters.dynamic)
 	{
 		parsed.parameters.dynamic = false;
-		engine->markFrozenDynamicAnalysis();
+		engine()->markFrozenDynamicAnalysis();
 	}
-	return singleFilter(makeFilter<VelvetFilter>(parsed.parameters));
+	return LineOutcome::produced(singleFilter(makeFilter<VelvetFilter>(parsed.parameters)));
 }

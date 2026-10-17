@@ -19,7 +19,60 @@
 
 #include "stdafx.h"
 #include "VolumeController.h"
+
+#include <atomic>
+#include <new>
+#include <system_error>
+
 #include <mmdeviceapi.h>
+
+#include "platform/windows/Win32Event.h"
+
+class VolumeController::NotificationCallback final : public IAudioEndpointVolumeCallback
+{
+public:
+	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID interfaceId, void** object) override
+	{
+		if (object == nullptr)
+			return E_POINTER;
+		*object = nullptr;
+		if (interfaceId == __uuidof(IUnknown)
+			|| interfaceId == __uuidof(IAudioEndpointVolumeCallback))
+		{
+			*object = static_cast<IAudioEndpointVolumeCallback*>(this);
+			AddRef();
+			return S_OK;
+		}
+		return E_NOINTERFACE;
+	}
+
+	ULONG STDMETHODCALLTYPE AddRef() override
+	{
+		return referenceCount.fetch_add(1, std::memory_order_relaxed) + 1;
+	}
+
+	ULONG STDMETHODCALLTYPE Release() override
+	{
+		const ULONG remaining = referenceCount.fetch_sub(1, std::memory_order_acq_rel) - 1;
+		if (remaining == 0)
+			delete this;
+		return remaining;
+	}
+
+	HRESULT STDMETHODCALLTYPE OnNotify(PAUDIO_VOLUME_NOTIFICATION_DATA notification) override
+	{
+		if (notification == nullptr)
+			return E_INVALIDARG;
+		changed.set();
+		return S_OK;
+	}
+
+	HANDLE handle() const noexcept {return changed.get();}
+
+private:
+	std::atomic<ULONG> referenceCount{1};
+	Win32Event changed{false, false};
+};
 
 VolumeController::VolumeController()
 {
@@ -42,8 +95,52 @@ VolumeController::VolumeController()
 	if (FAILED(hr) || !_endpointVolume)
 		return;
 
-	float inkrement;
-	_endpointVolume->GetVolumeRange(&_minVol, &_maxVol, &inkrement);
+	float increment;
+	_endpointVolume->GetVolumeRange(&_minVol, &_maxVol, &increment);
+}
+
+VolumeController::~VolumeController()
+{
+	if (_notificationsRegistered && _endpointVolume && _notificationCallback != nullptr)
+		_endpointVolume->UnregisterControlChangeNotify(_notificationCallback);
+	if (_notificationCallback != nullptr)
+		_notificationCallback->Release();
+}
+
+HRESULT VolumeController::startNotifications()
+{
+	if (!_endpointVolume)
+		return E_POINTER;
+	if (_notificationsRegistered)
+		return S_OK;
+	if (_notificationCallback == nullptr)
+	{
+		try
+		{
+			_notificationCallback = new NotificationCallback();
+		}
+		catch (const std::bad_alloc&)
+		{
+			return E_OUTOFMEMORY;
+		}
+		catch (const std::system_error& error)
+		{
+			return HRESULT_FROM_WIN32(static_cast<unsigned long>(error.code().value()));
+		}
+		catch (...)
+		{
+			return E_FAIL;
+		}
+	}
+	const HRESULT result = _endpointVolume->RegisterControlChangeNotify(_notificationCallback);
+	if (SUCCEEDED(result))
+		_notificationsRegistered = true;
+	return result;
+}
+
+HANDLE VolumeController::notificationHandle() const
+{
+	return _notificationCallback == nullptr ? nullptr : _notificationCallback->handle();
 }
 
 HRESULT VolumeController::getVolume(double& currentVolume)

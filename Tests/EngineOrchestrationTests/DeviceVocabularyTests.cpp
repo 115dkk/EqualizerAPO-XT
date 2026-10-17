@@ -26,11 +26,13 @@
 #include "devices/VoicemeeterDetection.h"
 #include "platform/windows/ProcessCommandLine.h"
 #include "platform/windows/Win32Resource.h"
+#include "platform/windows/TokenPrivilege.h"
+#include "platform/windows/ComPtr.h"
 #include "Tests/FakeRegistry.h"
 
 #include "EngineOrchestrationTestSupport.h"
 
-void testDeviceApoRegistryVocabulary(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testDeviceApoRegistryVocabulary)
 {
 	harness.expectEqual(allGuidValueNameCount, 5u,
 		"the five legacy APO slots stay in their indexed order");
@@ -48,7 +50,7 @@ void testDeviceApoRegistryVocabulary(test::Harness& harness)
 	}
 }
 
-void testDeviceTestPipeNameAllowList(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testDeviceTestPipeNameAllowList)
 {
 	// The literal DeviceTestThread writes must survive untouched, or the
 	// device test silently never gets an answer from the APO.
@@ -71,7 +73,7 @@ void testDeviceTestPipeNameAllowList(test::Harness& harness)
 		"128 characters is the longest accepted pipe name");
 }
 
-void testInstallStateComparisonIgnoresPadding(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testInstallStateComparisonIgnoresPadding)
 {
 	using InstallState = DeviceAPOInfo::InstallState;
 	alignas(InstallState) unsigned char leftStorage[sizeof(InstallState)];
@@ -95,7 +97,7 @@ void testInstallStateComparisonIgnoresPadding(test::Harness& harness)
 // port, yet no test file mentioned Voicemeeter at all. The cheapest starting
 // point is the edition -> output-count mapping of prependInfos, which decides
 // how many Output A* strips the device list offers.
-void testVoicemeeterPrependInfosMapsEditionToOutputCount(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testVoicemeeterPrependInfosMapsEditionToOutputCount)
 {
 	struct EditionCase
 	{
@@ -139,7 +141,7 @@ void testVoicemeeterPrependInfosMapsEditionToOutputCount(test::Harness& harness)
 }
 
 // Audit #348 E5: the vocabulary the install side and the client now share.
-void testVoicemeeterStripVocabulary(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testVoicemeeterStripVocabulary)
 {
 	harness.expectEqual(voicemeeterOutputCount(1), 1u, "standard Voicemeeter has one strip");
 	harness.expectEqual(voicemeeterOutputCount(2), 3u, "Banana has three");
@@ -179,7 +181,7 @@ std::optional<bool> debugPrivilegeEnabled()
 
 // Audit #348 TD-51: the Voicemeeter client check enabled SeDebugPrivilege on
 // every apply, with or without a client to look at, and never turned it off.
-void testProcessSearchLeavesTheTokenAsItWas(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testProcessSearchLeavesTheTokenAsItWas)
 {
 	const std::optional<bool> before = debugPrivilegeEnabled();
 
@@ -197,4 +199,79 @@ void testProcessSearchLeavesTheTokenAsItWas(test::Harness& harness)
 		foundSelf = foundSelf || process.processId == GetCurrentProcessId();
 	harness.expect(foundSelf, "this test process is found by its own name, in any case");
 	harness.expect(debugPrivilegeEnabled() == before, "and after inspecting it the token is back as it was");
+}
+
+// No real registry mutation: exercise the token guard itself across unwinding.
+TEST_CASE(EngineOrchestrationTests, testTakeOwnershipPrivilegeRestoresAfterThrow)
+{
+	const auto state = [&]() -> std::optional<DWORD> {
+		winutil::UniqueHandle token;
+		harness.require(OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, token.put()) != FALSE, "read process token");
+		LUID luid;
+		harness.require(LookupPrivilegeValueW(nullptr, SE_TAKE_OWNERSHIP_NAME, &luid) != FALSE, "resolve ownership privilege");
+		DWORD size = 0;
+		GetTokenInformation(token.get(), TokenPrivileges, nullptr, 0, &size);
+		std::vector<unsigned char> buffer(size);
+		harness.require(size != 0 && GetTokenInformation(token.get(), TokenPrivileges, buffer.data(), size, &size) != FALSE,
+			"read token privileges");
+		const auto* privileges = reinterpret_cast<const TOKEN_PRIVILEGES*>(buffer.data());
+		for (DWORD i = 0; i < privileges->PrivilegeCount; ++i)
+		{
+			const auto& entry = privileges->Privileges[i];
+			if (entry.Luid.LowPart == luid.LowPart && entry.Luid.HighPart == luid.HighPart)
+				return entry.Attributes;
+		}
+		return std::nullopt;
+	};
+	const auto before = state();
+	bool caught = false;
+	try
+	{
+		winutil::PrivilegeScope privilege(SE_TAKE_OWNERSHIP_NAME);
+		harness.expect(privilege.isHeld() == before.has_value(), "scope reports whether this token holds the privilege");
+		const auto enabled = state();
+		harness.expect(before ? enabled.has_value() && ((*enabled & SE_PRIVILEGE_ENABLED) != 0) : !enabled,
+			"held privilege enabled; missing privilege changes nothing");
+		try
+		{
+			winutil::PrivilegeScope nested(SE_TAKE_OWNERSHIP_NAME);
+			throw DeviceException(L"injected nested failure");
+		}
+		catch (const DeviceException&) {}
+		harness.expect(state() == enabled, "nested scope restores an already-enabled privilege");
+		throw DeviceException(L"injected ownership failure");
+	}
+	catch (const DeviceException&) {caught = true;}
+	harness.expect(caught, "throw path was exercised");
+	harness.expect(state() == before, "scope restores exact original attributes after a throw");
+}
+
+TEST_CASE(EngineOrchestrationTests, testVoicemeeterShortcutRoundTripAndFailures)
+{
+	winutil::ComApartment apartment;
+	harness.require(apartment.isUsable(), "COM is available for the shortcut fixture");
+	test::FakeRegistry registry;
+	const std::wstring link = testDirectory() + L"\\Voicemeeter-test.lnk";
+	trackWrittenFile(link);
+	VoicemeeterAPOInfo first(L"A1", true, registry, link);
+	harness.expect(first.stateNote().empty(), "installed Voicemeeter has no state suffix");
+	first.install();
+	VoicemeeterAPOInfo installed(L"A1", false, registry, link);
+	harness.expect(installed.isInstalled(), "startup link reload finds the installed strip");
+	harness.expect(installed.stateNote() == L"Voicemeeter was uninstalled", "missing Voicemeeter reports its state note");
+	harness.require(SetFileAttributesW(link.c_str(), FILE_ATTRIBUTE_READONLY) != FALSE, "make fixture link read-only");
+	bool refused = false;
+	try {installed.uninstall();}
+	catch (const DeviceException&) {refused = true;}
+	SetFileAttributesW(link.c_str(), FILE_ATTRIBUTE_NORMAL);
+	harness.expect(refused, "failed shortcut deletion reaches caller");
+	installed.uninstall();
+	VoicemeeterAPOInfo removed(L"A1", true, registry, link);
+	harness.expectFalse(removed.isInstalled(), "uninstall removes the last strip's shortcut");
+	removed.uninstall(); // Missing link is idempotent.
+	VoicemeeterAPOInfo invalid(L"A1", true, registry, testDirectory() + L"\\missing-startup\\client.lnk");
+	refused = false;
+	try {invalid.install();}
+	catch (const DeviceException&) {refused = true;}
+	harness.expect(refused, "failed shortcut save reaches caller");
 }

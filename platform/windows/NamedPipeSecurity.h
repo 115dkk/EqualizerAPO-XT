@@ -31,6 +31,7 @@
 #include <sddl.h>
 
 #include "platform/windows/Win32Resource.h"
+#include "platform/windows/WellKnownSids.h"
 
 namespace winutil::pipes
 {
@@ -45,7 +46,8 @@ namespace winutil::pipes
 	// that would receive what was meant for the Device Selector, nor change
 	// who else may. NamedPipeSecurityTests checks the instance part against
 	// Windows.
-	inline constexpr wchar_t kDeviceTestServerSddl[] = L"D:P(A;;GA;;;SY)(A;;GA;;;BA)(A;;0x12019b;;;LS)";
+	inline const std::wstring kDeviceTestServerSddl = std::wstring(L"D:P(A;;GA;;;") + sids::system
+		+ L")(A;;GA;;;" + sids::administrators + L")(A;;0x12019b;;;" + sids::localService + L")";
 
 	// What a device test client asks for: the one right it uses. CreateFileW
 	// adds SYNCHRONIZE and FILE_READ_ATTRIBUTES on its own; both are inside
@@ -66,7 +68,7 @@ namespace winutil::pipes
 	// The wrapper runs in the same user's DAW, elevated or not.
 	inline std::wstring userOnlySddl(const std::wstring& userSid)
 	{
-		return L"D:P(A;;GA;;;" + userSid + L")(A;;GA;;;SY)";
+		return L"D:P(A;;GA;;;" + userSid + L")(A;;GA;;;" + sids::system + L")";
 	}
 
 	// The SID of the user this process runs as, as text; empty when the token

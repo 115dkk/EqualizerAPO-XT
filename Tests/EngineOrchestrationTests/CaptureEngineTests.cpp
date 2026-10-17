@@ -19,7 +19,7 @@
 #include <vector>
 
 #include "engine/FilterEngine.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 #include "EngineOrchestrationTestSupport.h"
 
@@ -61,7 +61,7 @@ std::vector<float> processDc(FilterEngine& engine, unsigned inputChannels, unsig
 const char* const halfPreamp = "Preamp: -6.0206 dB\n";
 
 // A configuration that names no stage applies to a capture endpoint - once.
-void testUnstagedLinesApplyOnCapture(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testUnstagedLinesApplyOnCapture)
 {
 	std::wstring config = writeConfig(harness, L"capture_unstaged.txt", halfPreamp);
 	FilterEngine engine;
@@ -76,7 +76,7 @@ void testUnstagedLinesApplyOnCapture(test::Harness& harness)
 
 // Stage: capture selects, Stage: pre-mix and Stage: post-mix deselect, and
 // a set naming capture among others selects again.
-void testStageSelectionOnCapture(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testStageSelectionOnCapture)
 {
 	std::wstring config = writeConfig(harness, L"capture_stages.txt",
 			"Stage: post-mix\n"
@@ -97,7 +97,7 @@ void testStageSelectionOnCapture(test::Harness& harness)
 
 // The parser constant the documentation lists: stage == "capture" on an
 // input device, so If: blocks can tell the two directions apart.
-void testStageConstantIsCapture(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testStageConstantIsCapture)
 {
 	std::wstring config = writeConfig(harness, L"capture_if.txt",
 			"If: stage == \"capture\"\n"
@@ -116,7 +116,7 @@ void testStageConstantIsCapture(test::Harness& harness)
 
 // Device: matches the capture endpoint's connection name, device name and
 // GUID the same way it matches a playback endpoint.
-void testDeviceMatchingOnCapture(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testDeviceMatchingOnCapture)
 {
 	std::wstring config = writeConfig(harness, L"capture_device.txt",
 			"Device: CABLE Input VB-Audio Virtual Cable\n"
@@ -138,7 +138,7 @@ void testDeviceMatchingOnCapture(test::Harness& harness)
 // A mono microphone: one input channel, one output channel, a channel mask
 // the engine has to invent. The preamp must still land, and a Channel line
 // naming the mono channel must resolve.
-void testMonoCaptureEndpoint(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testMonoCaptureEndpoint)
 {
 	std::wstring config = writeConfig(harness, L"capture_mono.txt", halfPreamp);
 	FilterEngine engine;
@@ -154,7 +154,7 @@ void testMonoCaptureEndpoint(test::Harness& harness)
 // INPUT count on capture (FilterEngine::initialize), because that is the
 // device side of a capture stream. A 2-in/1-out capture stream (an app that
 // asked for mono from a stereo microphone) must still process.
-void testCaptureUsesInputChannelsForTheDevice(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testCaptureUsesInputChannelsForTheDevice)
 {
 	std::wstring config = writeConfig(harness, L"capture_2in1out.txt",
 			"Channel: L\n"
@@ -167,14 +167,4 @@ void testCaptureUsesInputChannelsForTheDevice(test::Harness& harness)
 	harness.expectNear(out[0], 0.5f, 1e-3f,
 		"the first output channel carries the processed left input when the app takes fewer channels than the device");
 }
-}
-
-void runCaptureEngineTests(test::Harness& harness)
-{
-	testUnstagedLinesApplyOnCapture(harness);
-	testStageSelectionOnCapture(harness);
-	testStageConstantIsCapture(harness);
-	testDeviceMatchingOnCapture(harness);
-	testMonoCaptureEndpoint(harness);
-	testCaptureUsesInputChannelsForTheDevice(harness);
 }

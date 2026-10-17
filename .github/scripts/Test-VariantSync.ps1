@@ -16,6 +16,8 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+# A full path without "..", so the relative paths below cut at the right place.
+$RepoRoot = (Resolve-Path -LiteralPath $RepoRoot).Path.TrimEnd('\', '/')
 
 $manifestPath = Join-Path $RepoRoot ".github" "simd-variants.psd1"
 $manifest = Import-PowerShellDataFile -Path $manifestPath
@@ -72,8 +74,10 @@ Write-Host "The other $($otherInstallerSources.Count) installer sources name onl
 # EnableEnhancedInstructionSet in a project file is a second mechanism that
 # silently beats both, which is how a Debug|x64 Benchmark once ignored every
 # /p: override. Fail on any such literal.
+# The exclusions match below the repository root only: a checkout that itself
+# lives under .claude\worktrees must still lint its own projects.
 $projectFiles = @(Get-ChildItem -Path $RepoRoot -Recurse -Filter *.vcxproj -File |
-  Where-Object { $_.FullName -notmatch '[\\/](deps|build-[^\\/]+|\.claude|\.codex-worktrees)[\\/]' })
+  Where-Object { $_.FullName.Substring($RepoRoot.Length) -notmatch '[\\/](deps|_deps|build|build-[^\\/]+|\.claude|\.codex-worktrees)[\\/]' })
 $offenders = @()
 foreach ($project in $projectFiles) {
   $content = Get-Content -Path $project.FullName -Raw
@@ -117,3 +121,40 @@ if ($contractOffenders.Count -gt 0) {
 }
 
 Write-Host "No project file outside Common.vcxproj copies the engine link contract of EngineConsumer.props."
+
+# Audit #422 TD-05: a project states its compile and link settings once per
+# configuration. The six '$(Configuration)|$(Platform)' copies Visual Studio
+# writes had drifted (conformance mode in four of Common.vcxproj's six groups,
+# SDLCheck missing from the APO's Debug|ARM64); a real platform difference goes
+# in a delta group conditioned on '$(Platform)'. The language mode has one owner
+# too: /std:c++20 from Directory.Build.props, which also turns on /permissive-,
+# so a per-project ConformanceMode or C standard only restates or overrides it.
+# A single ClCompile item may still pin its own LanguageStandard
+# (EngineOrchestrationTests' SampleIoTests.cpp does, for a calibrated bar).
+# NOMINMAX, /Zc:__cplusplus and /utf-8 have the same owner; seven test
+# projects had re-added NOMINMAX and EditorLogicTests the switches (TD-39).
+$configPlatformGroup = '<ItemDefinitionGroup Condition="''$(Configuration)|$(Platform)''=='
+$languageLiterals = @('<ConformanceMode>', '<LanguageStandard_C>', '<LanguageStandard>',
+  'NOMINMAX', '/Zc:__cplusplus', '/utf-8', '/permissive')
+$shapeOffenders = @()
+foreach ($project in $projectFiles) {
+  $content = [regex]::Replace((Get-Content -Path $project.FullName -Raw), '<!--.*?-->', '',
+    [System.Text.RegularExpressions.RegexOptions]::Singleline)
+  $outsideItems = [regex]::Replace($content, '<ClCompile Include="[^"]*">.*?</ClCompile>', '',
+    [System.Text.RegularExpressions.RegexOptions]::Singleline)
+  $found = @()
+  if ($content.Contains($configPlatformGroup)) { $found += 'a per-configuration-and-platform ItemDefinitionGroup' }
+  $found += @($languageLiterals | Where-Object { $outsideItems.Contains($_) })
+  if ($found.Count -gt 0) {
+    $relative = $project.FullName.Substring($RepoRoot.Length).TrimStart('\', '/')
+    $shapeOffenders += "$relative ($($found -join ', '))"
+  }
+}
+if ($shapeOffenders.Count -gt 0) {
+  foreach ($offender in $shapeOffenders) {
+    Write-Host "::error file=$($offender.Split(' ')[0])::Project setting shape: $offender. Write one ItemDefinitionGroup per configuration, put platform differences in a '`$(Platform)' delta group, and leave the language mode and the shared defines to Directory.Build.props."
+  }
+  throw "Project files repeat settings per configuration and platform or restate what Directory.Build.props owns."
+}
+
+Write-Host "Every project states its settings per configuration and leaves the language mode and the shared defines to Directory.Build.props."

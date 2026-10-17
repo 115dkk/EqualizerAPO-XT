@@ -229,9 +229,14 @@ void MinimalSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Co
 // The If-block scope in the gutter is a code editor's indent guide:
 // one crisp 1px border-ink hairline per scope level, antialiasing off.
 // The channel-group level is drawn by the same rule. Branch rows keep
-// their semantic indentation (logicSiblingsIndentAsMembers stays
+// their semantic indentation (logicSiblingsIndentAsMembers answers
 // false), so the innermost guide pauses on their line the way an
 // editor's guides do.
+bool MinimalSkin::logicSiblingsIndentAsMembers() const
+{
+	return false;
+}
+
 bool MinimalSkin::paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info, const SkinTokens& tokens) const
 {
 	// An unindented row has no gutter; leave the (empty) default path.

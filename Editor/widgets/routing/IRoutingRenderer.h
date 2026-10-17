@@ -22,7 +22,7 @@
 #include <QStringList>
 #include <QWidget>
 
-#include "filters/CopyFilter.h"
+#include "filters/CopyCommand.h"
 #include "Editor/widgets/routing/ChannelIdentity.h"
 
 struct SkinTokens;

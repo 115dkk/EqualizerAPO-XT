@@ -10,6 +10,7 @@
 	endpoints had zero direct tests (audit #275 A8/TD-28).
 */
 
+#include <algorithm>
 #include <cstddef>
 #include <vector>
 
@@ -17,7 +18,7 @@
 #define NOMINMAX
 #endif
 #include "EqualizerAPO/ApoFormat.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 namespace
 {
@@ -34,7 +35,7 @@ UNCOMPRESSEDAUDIOFORMAT makeFormat(const GUID& formatType, unsigned containerByt
 	return format;
 }
 
-void testFormatDetection(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testFormatDetection)
 {
 	harness.expect(apo::detectSampleFormat(makeFormat(apo::kIeeeFloatSubtype, 4, 32))
 		== apo::SampleFormat::Float32, "a 4-byte IEEE float container is Float32");
@@ -61,7 +62,7 @@ void testFormatDetection(test::Harness& harness)
 		"an unsupported format has no sample size");
 }
 
-void testSilenceVerdict(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testSilenceVerdict)
 {
 	std::vector<double> block(256, 0.0);
 	harness.expectTrue(apo::isBlockSilent(block.data(), block.size()),
@@ -81,7 +82,7 @@ void testSilenceVerdict(test::Harness& harness)
 		"a negative sample's magnitude counts");
 }
 
-void testChannelMaskFallback(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testChannelMaskFallback)
 {
 	// Render prefers the output mask, capture the input mask.
 	harness.expectEqual(apo::resolveChannelMask(false, 0x3F, 6, 0x3, 2), 0x3u,
@@ -100,7 +101,7 @@ void testChannelMaskFallback(test::Harness& harness)
 
 // Audit #348 F20: every branch of APOProcess, one fact changed at a time
 // from a block that takes the silent fast path.
-void testBlockActionTable(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testBlockActionTable)
 {
 	using apo::BlockAction;
 	using apo::SampleFormat;
@@ -162,13 +163,138 @@ void testBlockActionTable(test::Harness& harness)
 		"an unsupported in-place block is passed through, not muted");
 }
 
+struct FakeBlockEngine
+{
+	unsigned sampleCount = 0;
+	int processCalls = 0;
+	bool inputWasOutput = false;
+	bool inputWasZero = false;
+	bool doubleInput = false;
+	float generatedValue = 0.0f;
+
+	void process(float* output, float* input, unsigned)
+	{
+		processCalls++;
+		inputWasOutput = output == input;
+		inputWasZero = std::all_of(input, input + sampleCount,
+			[](float sample) {return sample == 0.0f;});
+		if (doubleInput)
+		{
+			for (unsigned i = 0; i < sampleCount; ++i)
+				output[i] = input[i] * 2.0f;
+		}
+		else
+		{
+			std::fill_n(output, sampleCount, generatedValue);
+		}
+	}
+};
+
+// Audit #422 E4: drive the complete block plan through an engine-like object.
+// This pins the zero-input rule, child ordering, post-process silence policy and
+// the non-processing actions without constructing an APO COM object.
+TEST_CASE(EngineOrchestrationTests, testBlockPlanExecution)
+{
+	using apo::BlockAction;
+	using apo::OutputFlagRule;
+	using apo::SampleFormat;
+
+	apo::BlockFacts facts;
+	facts.inputFlags = BUFFER_SILENT;
+	facts.inputFormat = SampleFormat::Float32;
+	facts.outputFormat = SampleFormat::Float32;
+	facts.inPlace = false;
+	facts.engineHasStatefulOrTailFilters = true;
+	facts.allowSilentBufferModification = true;
+
+	constexpr unsigned frames = 4;
+	constexpr unsigned channels = 2;
+	float input[frames * channels];
+	float output[frames * channels];
+	std::fill_n(input, frames * channels, 3.0f);
+	std::fill_n(output, frames * channels, -1.0f);
+	FakeBlockEngine engine;
+	engine.sampleCount = frames * channels;
+	engine.generatedValue = 0.25f;
+	int childCalls = 0;
+	auto child = [&] {childCalls++;};
+
+	const apo::BlockPlan audiblePlan = apo::makeBlockPlan(facts, frames);
+	harness.expect(audiblePlan.action == BlockAction::ProcessFloat32,
+		"a stateful engine processes silent float input");
+	harness.expect(audiblePlan.zeroInputFirst,
+		"the plan zeroes nominally silent input before processing");
+	harness.expect(audiblePlan.outputFlagRule == OutputFlagRule::InspectProcessedOutput,
+		"a modifiable silent buffer is inspected after processing");
+	const apo::BlockResult audible = apo::processBlock(audiblePlan,
+		input, output, channels, channels, engine, child);
+	harness.expect(engine.inputWasZero, "the fake engine receives zeros for silent input");
+	harness.expectEqual(childCalls, 0, "a plan without a child does not call one");
+	harness.expect(audible.outputFlags == BUFFER_VALID,
+		"audible output synthesized from silence is marked valid");
+
+	facts.allowSilentBufferModification = false;
+	const apo::BlockPlan forcedSilentPlan = apo::makeBlockPlan(facts, frames);
+	std::fill_n(input, frames * channels, 3.0f);
+	std::fill_n(output, frames * channels, -1.0f);
+	const apo::BlockResult forcedSilent = apo::processBlock(forcedSilentPlan,
+		input, output, channels, channels, engine, child);
+	harness.expect(forcedSilent.outputFlags == BUFFER_SILENT,
+		"an unmodifiable silent input remains marked silent");
+	harness.expect(std::all_of(output, output + frames * channels,
+		[](float sample) {return sample == 0.0f;}),
+		"an unmodifiable silent input discards synthesized output");
+
+	facts.inputFlags = BUFFER_VALID;
+	facts.hasChildApo = true;
+	facts.allowSilentBufferModification = false;
+	const apo::BlockPlan childPlan = apo::makeBlockPlan(facts, frames);
+	std::fill_n(output, frames * channels, -1.0f);
+	engine.doubleInput = true;
+	auto producingChild = [&] {
+		childCalls++;
+		std::fill_n(output, frames * channels, 0.5f);
+	};
+	const apo::BlockResult childResult = apo::processBlock(childPlan,
+		input, output, channels, channels, engine, producingChild);
+	harness.expect(engine.inputWasOutput,
+		"after a child APO the engine processes the child output in place");
+	harness.expectEqual(childCalls, 1, "the child runs once before the engine");
+	harness.expect(std::all_of(output, output + frames * channels,
+		[](float sample) {return sample == 1.0f;}),
+		"the fake engine receives and transforms the child output");
+	harness.expect(childResult.outputFlags == BUFFER_VALID,
+		"a valid processed block remains valid");
+
+	facts.inputFlags = BUFFER_SILENT;
+	facts.hasChildApo = false;
+	facts.engineHasStatefulOrTailFilters = false;
+	const apo::BlockPlan fastPlan = apo::makeBlockPlan(facts, frames);
+	std::fill_n(output, frames * channels, -1.0f);
+	const int callsBeforeFastPath = engine.processCalls;
+	const apo::BlockResult fast = apo::processBlock(fastPlan,
+		input, output, channels, channels, engine, child);
+	harness.expectEqual(engine.processCalls, callsBeforeFastPath,
+		"the silent fast path skips the engine");
+	harness.expect(fast.outputFlags == BUFFER_SILENT
+		&& std::all_of(output, output + frames * channels,
+			[](float sample) {return sample == 0.0f;}),
+		"the silent fast path clears and marks the output");
+
+	facts.inputFlags = BUFFER_VALID;
+	facts.inputFormat = SampleFormat::Float64;
+	facts.outputFormat = SampleFormat::Float32;
+	facts.inPlace = true;
+	const apo::BlockPlan passPlan = apo::makeBlockPlan(facts, frames);
+	std::fill_n(output, frames * channels, 7.0f);
+	const apo::BlockResult pass = apo::processBlock(passPlan,
+		output, output, channels, channels, engine, child);
+	harness.expect(pass.outputFlags == BUFFER_VALID
+		&& std::all_of(output, output + frames * channels,
+			[](float sample) {return sample == 7.0f;}),
+		"an in-place format mismatch preserves samples and input validity");
+}
+
 } // namespace
 
 // Called from the suite's main() in EngineOrchestrationTests.cpp.
-void runApoFormatTests(test::Harness& harness)
-{
-	testFormatDetection(harness);
-	testSilenceVerdict(harness);
-	testChannelMaskFallback(harness);
-	testBlockActionTable(harness);
-}

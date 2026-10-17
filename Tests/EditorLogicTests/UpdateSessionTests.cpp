@@ -68,7 +68,7 @@ private:
 };
 }
 
-void testUpdateCoordinatorAppliesPendingRestartThroughAdapter()
+TEST_CASE(EditorLogicTests, testUpdateCoordinatorAppliesPendingRestartThroughAdapter)
 {
 	auto state = std::make_shared<FakeUpdateState>();
 	state->pendingRestartAvailable = true;
@@ -85,7 +85,7 @@ void testUpdateCoordinatorAppliesPendingRestartThroughAdapter()
 		QStringLiteral("the coordinator reopens the staged package through its adapter"));
 }
 
-void testUpdateSessionReportsUpToDateAndStartsOnlyOnce()
+TEST_CASE(EditorLogicTests, testUpdateSessionReportsUpToDateAndStartsOnlyOnce)
 {
 	auto state = std::make_shared<FakeUpdateState>();
 	state->availableVersion.reset();
@@ -110,7 +110,7 @@ void testUpdateSessionReportsUpToDateAndStartsOnlyOnce()
 	expectEqual(coordinatorLaunches, 0, QStringLiteral("no staged update means no elevation prompt"));
 }
 
-void testUpdateSessionAppliesDirectlyWhenAlreadyElevated()
+TEST_CASE(EditorLogicTests, testUpdateSessionAppliesDirectlyWhenAlreadyElevated)
 {
 	auto state = std::make_shared<FakeUpdateState>();
 	UpdateSession session(std::make_unique<FakeUpdateClient>(state));
@@ -130,7 +130,7 @@ void testUpdateSessionAppliesDirectlyWhenAlreadyElevated()
 	expectEqual(coordinatorLaunches, 0, QStringLiteral("an elevated Editor does not request another prompt"));
 }
 
-void testUpdateSessionContainsApplyFailure()
+TEST_CASE(EditorLogicTests, testUpdateSessionContainsApplyFailure)
 {
 	auto state = std::make_shared<FakeUpdateState>();
 	state->throwDuringApply = true;
@@ -146,7 +146,7 @@ void testUpdateSessionContainsApplyFailure()
 	expectEqual(state->applyCalls, 1, QStringLiteral("the failing apply is attempted once"));
 }
 
-void testUpdateSessionKeepsPendingUpdateWhenElevationIsCancelled()
+TEST_CASE(EditorLogicTests, testUpdateSessionKeepsPendingUpdateWhenElevationIsCancelled)
 {
 	auto state = std::make_shared<FakeUpdateState>();
 	UpdateSession session(std::make_unique<FakeUpdateClient>(state));
@@ -162,7 +162,7 @@ void testUpdateSessionKeepsPendingUpdateWhenElevationIsCancelled()
 	expectEqual(state->applyCalls, 0, QStringLiteral("cancellation never invokes the SDK apply path"));
 }
 
-void testUpdateCoordinatorReportsNoPendingRestart()
+TEST_CASE(EditorLogicTests, testUpdateCoordinatorReportsNoPendingRestart)
 {
 	auto state = std::make_shared<FakeUpdateState>();
 	FakeUpdateClient client(state);
@@ -175,7 +175,7 @@ void testUpdateCoordinatorReportsNoPendingRestart()
 	expectEqual(state->pendingRestartApplyCalls, 1, QStringLiteral("the pending package is probed once"));
 }
 
-void testUpdateCoordinatorContainsAdapterFailure()
+TEST_CASE(EditorLogicTests, testUpdateCoordinatorContainsAdapterFailure)
 {
 	auto state = std::make_shared<FakeUpdateState>();
 	state->throwDuringPendingRestartApply = true;
@@ -195,7 +195,7 @@ void testUpdateCoordinatorContainsAdapterFailure()
 		QStringLiteral("the coordinator failure's message reaches the injected reporter"));
 }
 
-void testUpdateSessionContainsBackgroundFailure()
+TEST_CASE(EditorLogicTests, testUpdateSessionContainsBackgroundFailure)
 {
 	auto state = std::make_shared<FakeUpdateState>();
 	state->throwDuringStage = true;
@@ -217,7 +217,7 @@ void testUpdateSessionContainsBackgroundFailure()
 		QStringLiteral("the background failure reaches the injected diagnostic reporter"));
 }
 
-void testUpdateSessionLaunchesElevatedCoordinatorWithoutApplyingDirectly()
+TEST_CASE(EditorLogicTests, testUpdateSessionLaunchesElevatedCoordinatorWithoutApplyingDirectly)
 {
 	auto state = std::make_shared<FakeUpdateState>();
 	UpdateSession session(std::make_unique<FakeUpdateClient>(state));
@@ -237,7 +237,7 @@ void testUpdateSessionLaunchesElevatedCoordinatorWithoutApplyingDirectly()
 	expectEqual(state->applyCalls, 0, QStringLiteral("the unelevated process never applies directly"));
 }
 
-void testUpdateSessionPublishesStagedVersionAfterJoin()
+TEST_CASE(EditorLogicTests, testUpdateSessionPublishesStagedVersionAfterJoin)
 {
 	auto state = std::make_shared<FakeUpdateState>();
 	UpdateSession session(std::make_unique<FakeUpdateClient>(state));
@@ -253,7 +253,7 @@ void testUpdateSessionPublishesStagedVersionAfterJoin()
 		QStringLiteral("the staged version survives worker shutdown"));
 }
 
-void testVelopackInstallRootFollowsTheCurrentLeafRule()
+TEST_CASE(EditorLogicTests, testVelopackInstallRootFollowsTheCurrentLeafRule)
 {
 	// Audit #275 TD-29: the 'leaf "current" means its parent is the install
 	// root' rule is pure string logic; pin it here so the Velopack layout
@@ -284,7 +284,7 @@ void testVelopackInstallRootFollowsTheCurrentLeafRule()
 		QStringLiteral("an empty bin dir resolves to an empty root"));
 }
 
-void testElevatedCoordinatorArgumentHasOneSpelling()
+TEST_CASE(EditorLogicTests, testElevatedCoordinatorArgumentHasOneSpelling)
 {
 	// Audit #275 TD-02: the parse side reads the narrow constant and the
 	// ShellExecuteExW side passes the wide one; both must be the same text.

@@ -6,15 +6,15 @@
 	The port between the daemon adapter and whatever runs the engine host:
 	a real process reached through the control pipe (Win32HostLink), or a
 	thread inside the calling process for the tests and the probe
-	(ThreadHostLink). Both hand back the same thing: a mapped ring region,
-	the kernel objects the ring needs, and a handle that signals when the
-	host is gone.
+	(ThreadHostLink). Both keep their mapped region and kernel objects private
+	and hand back a RingProducer only after the host reaches Ready.
 */
 
 #pragma once
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
 
 #include "asio/StreamProcessor.h"
@@ -30,18 +30,45 @@ namespace eapo::asio
 		uint32_t hostPid = 0;
 	};
 
+	// Completes the common half of both links. The peer handle must already be
+	// present in session.sync: no producer is exposed before the host answers.
+	inline std::unique_ptr<eapo::ipc::RingProducer> readyProducer(HostSession& session, const StreamFormat& format,
+		uint32_t readyTimeoutMs, OpenReport& report)
+	{
+		auto producer = std::make_unique<eapo::ipc::RingProducer>(session.ringBase, format, GetCurrentProcessId(), session.sync);
+		const eapo::ipc::RingState state = producer->waitReady(readyTimeoutMs);
+		if (state == eapo::ipc::RingState::Ready)
+			return producer;
+		if (state == eapo::ipc::RingState::Fault)
+		{
+			report.status = producer->fault() == eapo::ipc::RingFault::LayoutMismatch
+				? OpenReport::Status::Rejected : OpenReport::Status::Unavailable;
+			copyErrorMessage(report.message, producer->fault() == eapo::ipc::RingFault::LayoutMismatch
+				? "EQ APO XT engine host does not understand this wrapper's stream layout"
+				: "EQ APO XT engine host could not load the configuration for this stream");
+		}
+		else
+		{
+			report.status = OpenReport::Status::Unavailable;
+			copyErrorMessage(report.message, "EQ APO XT engine host did not become ready in time");
+		}
+		producer->close();
+		return nullptr;
+	}
+
 	class IHostLink
 	{
 	public:
 		virtual ~IHostLink() = default;
 
-		// Creates the region and its objects, reaches (or starts) the host and
-		// asks it to serve `format` from `options.configPath`. On return the
-		// host has been told; readiness is then waited for on the ring. False
-		// with `error` filled when the host could not be reached at all.
-		virtual bool open(const StreamFormat& format, const StreamOptions& options, HostSession& session, std::string& error) = 0;
+		// Creates the region and its objects, reaches (or starts) the host, and
+		// returns a producer that has passed the Ready barrier. Failure is mapped
+		// to report, including RingFault. The link keeps the backing objects.
+		virtual std::unique_ptr<eapo::ipc::RingProducer> open(const StreamFormat& format, const StreamOptions& options,
+			OpenReport& report) = 0;
 
-		// Releases everything open() created. The ring must already be Closing.
-		virtual void close(HostSession& session) noexcept = 0;
+		// Closes the producer before releasing its mapped region and handles. The
+		// producer is passed by value so callers cannot reverse that order.
+		virtual void close(std::unique_ptr<eapo::ipc::RingProducer> producer) noexcept = 0;
 	};
 }

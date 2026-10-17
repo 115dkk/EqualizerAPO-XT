@@ -10,8 +10,8 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QTreeWidget>
-#include <QVariantAnimation>
 
+#include "platform/qt/HoverProgress.h"
 #include "skins/DeviceSkinPainter.h"
 
 DeviceListDelegate::DeviceListDelegate(QTreeWidget* treeWidget)
@@ -161,40 +161,32 @@ double DeviceListDelegate::hoverProgress(const QModelIndex& index) const
 	const QPersistentModelIndex key(index);
 	if (forcedHover.isValid() && key == forcedHover)
 		return 1.0;
-	return hoverValues.value(key, 0.0);
+	const HoverProgress* hover = hovers.value(key, nullptr);
+	return hover != nullptr ? hover->value() : 0.0;
 }
 
 void DeviceListDelegate::animateHover(const QPersistentModelIndex& index, double target, int duration)
 {
 	if (!index.isValid())
 		return;
-	QVariantAnimation*& animation = hoverAnimations[index];
-	if (animation == nullptr)
+	HoverProgress*& hover = hovers[index];
+	if (hover == nullptr)
 	{
-		animation = new QVariantAnimation(this);
-		animation->setEasingCurve(QEasingCurve::OutCubic);
-		connect(animation, &QVariantAnimation::valueChanged, this, [this, index](const QVariant& value) {
-			hoverValues[index] = value.toDouble();
+		hover = new HoverProgress(this, [this, index]() {
 			repaintRow(index);
 		});
-		connect(animation, &QVariantAnimation::finished, this, [this, index]() {
-			// Fully faded-out rows drop their bookkeeping so the maps do not
+		hover->setFinishedHandler([this, index]() {
+			// Fully faded-out rows drop their bookkeeping so the map does not
 			// accumulate an entry per row ever hovered.
-			if (hoverValues.value(index, 0.0) <= 0.0)
+			HoverProgress* done = hovers.value(index, nullptr);
+			if (done != nullptr && done->value() <= 0.0)
 			{
-				hoverValues.remove(index);
-				QVariantAnimation* done = hoverAnimations.take(index);
-				if (done != nullptr)
-					done->deleteLater();
+				hovers.remove(index);
+				done->deleteLater();
 			}
 		});
 	}
-	// Interruptible: retarget from the current value, never restart from 0.
-	animation->stop();
-	animation->setDuration(duration);
-	animation->setStartValue(hoverValues.value(index, 0.0));
-	animation->setEndValue(target);
-	animation->start();
+	hover->animateTo(target, duration);
 }
 
 void DeviceListDelegate::setHoveredIndex(const QModelIndex& index)

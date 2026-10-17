@@ -17,8 +17,8 @@ The gating variant list is derived from .github/simd-variants.psd1 (the
 x64 variants with RunnerCanExecute) by .github/scripts/New-BuildMatrix.ps1
 and passed in through the RUNNER_EXECUTABLE_VARIANTS environment variable
 (a JSON array; see the cross-variant-compare job in build.yml). When the
-variable is absent (e.g. a local run), the script falls back to
-FALLBACK_VARIANTS with a warning.
+variable is absent in a local run, the script falls back to
+FALLBACK_VARIANTS with a warning; in GitHub Actions it fails instead.
 """
 
 import json
@@ -48,6 +48,11 @@ def compare(a: np.ndarray, b: np.ndarray):
 
 def resolve_variants() -> list:
     raw = os.environ.get("RUNNER_EXECUTABLE_VARIANTS", "").strip()
+    if not raw and os.environ.get("GITHUB_ACTIONS") == "true":
+        # Audit #422 TD-41: in CI the list must come from the manifest; a
+        # missing variable means the workflow wiring broke, not a local run.
+        print("ERROR: RUNNER_EXECUTABLE_VARIANTS is not set in CI.")
+        sys.exit(1)
     if not raw:
         print(
             "WARNING: RUNNER_EXECUTABLE_VARIANTS is not set; falling back to the "

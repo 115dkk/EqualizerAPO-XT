@@ -14,7 +14,6 @@
 #include <QWidget>
 #include <QtMath>
 
-#include "Editor/SkinManager.h"
 #include "Editor/skins/shared/SkinPaint.h"
 #include "Editor/skins/shared/SkinSupport.h"
 #include "Editor/widgets/FilterCardModel.h"
@@ -65,91 +64,91 @@ QString matrixBusLetter(const QString& type)
 
 QString MatrixSkin::cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const
 {
-		const bool remark = info.type == QStringLiteral("comment");
-		const bool cancelled = !remark && info.enabled && info.lineSkipped;
-		const QString railColor = remark || cancelled ? tokens.border : (info.enabled ? tokens.success : tokens.warning);
-		const QString borderColor = info.focused ? tokens.focusRing : (info.selected ? tokens.accent : tokens.border);
-		const QString backgroundColor = info.selected ? tokens.cardSelected : tokens.card;
-		const QString borderStyle = ((info.enabled && !cancelled) || remark) ? QStringLiteral("solid") : QStringLiteral("dashed");
-		QString style = QStringLiteral(
-			"QFrame#FilterCardRow { background: %1; border: 1px %2 %3; border-left: 3px solid %4; border-radius: 0px; }")
-			.arg(backgroundColor, borderStyle, borderColor, railColor);
-		// The :hover rule both signals the row crosspoint and makes Qt repaint
-		// the frame on enter/leave, which drives the painted column band.
-		style += QStringLiteral(
-			" QFrame#FilterCardRow:hover { border: 1px %1 %2; border-left: 3px solid %3; }")
-			.arg(borderStyle, tokens.accent, railColor);
-		return style;
-	}
+	const bool remark = info.type == QStringLiteral("comment");
+	const bool cancelled = !remark && info.enabled && info.lineSkipped;
+	const QString railColor = remark || cancelled ? tokens.border : (info.enabled ? tokens.success : tokens.warning);
+	const QString borderColor = info.focused ? tokens.focusRing : (info.selected ? tokens.accent : tokens.border);
+	const QString backgroundColor = info.selected ? tokens.cardSelected : tokens.card;
+	const QString borderStyle = ((info.enabled && !cancelled) || remark) ? QStringLiteral("solid") : QStringLiteral("dashed");
+	QString style = QStringLiteral(
+		"QFrame#FilterCardRow { background: %1; border: 1px %2 %3; border-left: 3px solid %4; border-radius: 0px; }")
+		.arg(backgroundColor, borderStyle, borderColor, railColor);
+	// The :hover rule both signals the row crosspoint and makes Qt repaint
+	// the frame on enter/leave, which drives the painted column band.
+	style += QStringLiteral(
+		" QFrame#FilterCardRow:hover { border: 1px %1 %2; border-left: 3px solid %3; }")
+		.arg(borderStyle, tokens.accent, railColor);
+	return style;
+}
 
 QString MatrixSkin::cardHeaderStyle(const CommandRowInfo& info, const SkinTokens& tokens) const
 {
-		Q_UNUSED(info);
-		Q_UNUSED(tokens);
-		return QStringLiteral("QWidget#FilterCardHeader { background: transparent; border-radius: 0px; }");
-	}
+	Q_UNUSED(info);
+	Q_UNUSED(tokens);
+	return QStringLiteral("QWidget#FilterCardHeader { background: transparent; border-radius: 0px; }");
+}
 
 BadgeTreatment MatrixSkin::badgeTreatment(const CommandRowInfo& info, const QString& typeColor,
 		const QString& badgeToken, const SkinTokens& tokens) const
 {
-		Q_UNUSED(typeColor);
-		Q_UNUSED(badgeToken);
-		const QString ink = info.enabled ? tokens.text : tokens.mutedText;
-		return {
-			QStringLiteral("color:%1; border-color:%2; background-color:transparent;")
-				.arg(ink, tokens.border),
-			QColor(ink)
-		};
-	}
+	Q_UNUSED(typeColor);
+	Q_UNUSED(badgeToken);
+	const QString ink = info.enabled ? tokens.text : tokens.mutedText;
+	return {
+		QStringLiteral("color:%1; border-color:%2; background-color:transparent;")
+			.arg(ink, tokens.border),
+		QColor(ink)
+	};
+}
 
 void MatrixSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body,
 		const SkinTokens& tokens) const
 {
-		if (info.legacyRow)
-			return;
+	if (info.legacyRow)
+		return;
 
-		// The plain line number becomes a board coordinate: the type's bus
-		// letter ahead of the stable line position ("B3"). Spacer rows are
-		// blank board lines and carry no coordinate.
-		if (card != nullptr && header != nullptr && info.type != QStringLiteral("spacer"))
+	// The plain line number becomes a board coordinate: the type's bus
+	// letter ahead of the stable line position ("B3"). Spacer rows are
+	// blank board lines and carry no coordinate.
+	if (card != nullptr && header != nullptr && info.type != QStringLiteral("spacer"))
+	{
+		QLabel* coordinateCell = header->findChild<QLabel*>(QStringLiteral("FilterCardNumber"));
+		if (coordinateCell != nullptr)
 		{
-			QLabel* coordinateCell = header->findChild<QLabel*>(QStringLiteral("FilterCardNumber"));
-			if (coordinateCell != nullptr)
-			{
-				bool plainNumber = false;
-				const int line = coordinateCell->text().toInt(&plainNumber);
-				if (plainNumber)
-					coordinateCell->setText(matrixBusLetter(info.type) + QString::number(line));
-			}
+			bool plainNumber = false;
+			const int line = coordinateCell->text().toInt(&plainNumber);
+			if (plainNumber)
+				coordinateCell->setText(matrixBusLetter(info.type) + QString::number(line));
 		}
-
-		// Bare/unmodelled lines (TXT, the If/EndIf/Eval vocabulary) live in
-		// cells. The shared raw card lays inline styles on its two labels,
-		// so the board answer must be inline too: the ">_" scan glyph
-		// becomes a sunken mono designation cell and the raw line a sunken
-		// mono line cell.
-		if (FilterCardModel::hostsSharedRawBody(info.type, info.dynamicLine) && body != nullptr)
-		{
-			if (QLabel* glyph = body->findChild<QLabel*>(QStringLiteral("FilterCardRawGlyph")))
-			{
-				glyph->setStyleSheet(QStringLiteral(
-					"QLabel#FilterCardRawGlyph { background:%1; color:%2; border:1px solid %3;"
-					" border-radius:0; padding:2px 7px; font-family:\"%4\"; font-weight:700; font-size:9pt; }")
-					.arg(tokens.surfaceSunken, tokens.mutedText, tokens.border, tokens.monoFontFamily));
-			}
-			if (QLabel* raw = body->findChild<QLabel*>(QStringLiteral("FilterCardRawText")))
-			{
-				raw->setStyleSheet(QStringLiteral(
-					"QLabel#FilterCardRawText { background:%1; color:%2; border:1px solid %3;"
-					" border-radius:0; padding:4px 8px; font-family:\"%4\"; font-size:9pt; }")
-					.arg(tokens.surfaceSunken, tokens.text, tokens.border, tokens.monoFontFamily));
-			}
-		}
-
-		// The reference bodies build their own board grammar in
-		// MatrixReferenceCardView; no per-type body decoration here.
-		Q_UNUSED(body);
 	}
+
+	// Bare/unmodelled lines (TXT, the If/EndIf/Eval vocabulary) live in
+	// cells. The shared raw card lays inline styles on its two labels,
+	// so the board answer must be inline too: the ">_" scan glyph
+	// becomes a sunken mono designation cell and the raw line a sunken
+	// mono line cell.
+	if (FilterCardModel::hostsSharedRawBody(info.type, info.dynamicLine) && body != nullptr)
+	{
+		if (QLabel* glyph = body->findChild<QLabel*>(QStringLiteral("FilterCardRawGlyph")))
+		{
+			glyph->setStyleSheet(QStringLiteral(
+				"QLabel#FilterCardRawGlyph { background:%1; color:%2; border:1px solid %3;"
+				" border-radius:0; padding:2px 7px; font-family:\"%4\"; font-weight:700; font-size:9pt; }")
+				.arg(tokens.surfaceSunken, tokens.mutedText, tokens.border, tokens.monoFontFamily));
+		}
+		if (QLabel* raw = body->findChild<QLabel*>(QStringLiteral("FilterCardRawText")))
+		{
+			raw->setStyleSheet(QStringLiteral(
+				"QLabel#FilterCardRawText { background:%1; color:%2; border:1px solid %3;"
+				" border-radius:0; padding:4px 8px; font-family:\"%4\"; font-size:9pt; }")
+				.arg(tokens.surfaceSunken, tokens.text, tokens.border, tokens.monoFontFamily));
+		}
+	}
+
+	// The reference bodies build their own board grammar in
+	// MatrixReferenceCardView; no per-type body decoration here.
+	Q_UNUSED(body);
+}
 
 void MatrixSkin::paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info, const SkinTokens& tokens) const
 {
@@ -308,69 +307,61 @@ void MatrixSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Com
 
 bool MatrixSkin::paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info, const SkinTokens& tokens) const
 {
-		const bool ifFamily = info.type == QStringLiteral("if");
-		const bool headRow = ifFamily && info.command == QStringLiteral("if");
-		const bool branchOrTail = ifFamily && !headRow;
-		const bool tailRow = ifFamily && info.command == QStringLiteral("endif");
-		const int logic = info.logicDepth;
-		if (!headRow && logic <= 0)
-			return false;
+	const bool headRow = info.scopeRole == CommandRowInfo::ScopeRole::Head;
+	const bool tailRow = info.scopeRole == CommandRowInfo::ScopeRole::Tail;
+	const int logic = info.logicDepth;
+	if (info.scopeRole == CommandRowInfo::ScopeRole::None)
+		return false;
 
-		painter.setRenderHint(QPainter::Antialiasing, false);
+	painter.setRenderHint(QPainter::Antialiasing, false);
 
-		// Lane geometry from the row widget: the indent unit, how many bands are
-		// drawn, where the card face starts, and where a band's centre is. The
-		// branch/tail rows' extra unit (logicSiblingsIndentAsMembers) is already
-		// folded into laneCount, because the same call sets the row's own margin.
-		const int h = size.height();
-		const int indentUnits = info.laneCount;
-		const int cardLeft = info.cardLeft;
-		// Rules sit on the centres of the existing indent bands; the bracket
-		// claims no positions of its own.
-		const auto bandCenter = [&info](int level) { return info.laneCenter(level); };
+	// Lane and scope geometry from the row widget: the indent unit, how many
+	// bands are drawn, where the card face starts, where a band's centre is
+	// and how many bands are channel groups. The branch/tail rows' extra unit
+	// (logicSiblingsIndentAsMembers) is already folded into laneCount,
+	// because the same call sets the row's own margin.
+	const int h = size.height();
+	const int cardLeft = info.cardLeft;
+	// Rules sit on the centres of the existing indent bands; the bracket
+	// claims no positions of its own.
+	const auto bandCenter = [&info](int level) { return info.laneCenter(level); };
 
-		// The innermost logicDepth bands are If lanes; any bands outside them
-		// are channel groups and keep a quiet 1px border-ink rule, one ink
-		// rank below the bracket, so scope reads above grouping.
-		const int ifLevels = headRow ? logic : branchOrTail ? logic - 1 : logic;
-		const int channelLevels = qMax(0, indentUnits - ifLevels - (branchOrTail ? 1 : 0));
-		painter.setPen(QPen(QColor(tokens.border), 1));
-		for (int level = 0; level < channelLevels; level++)
+	// The innermost logicDepth bands are If lanes; any bands outside them
+	// are channel groups and keep a quiet 1px border-ink rule, one ink
+	// rank below the bracket, so scope reads above grouping.
+	const int channelLevels = info.channelLaneCount;
+	painter.setPen(QPen(QColor(tokens.border), 1));
+	for (int level = 0; level < channelLevels; level++)
+		painter.drawLine(bandCenter(level), 0, bandCenter(level), h);
+
+	painter.setPen(QPen(QColor(tokens.mutedText), 1));
+	const int junctionY = static_cast<int>(info.headerCenterY);
+	if (headRow)
+	{
+		for (int level = channelLevels; level < channelLevels + logic; level++)
 			painter.drawLine(bandCenter(level), 0, bandCenter(level), h);
-
-		painter.setPen(QPen(QColor(tokens.mutedText), 1));
-		const int junctionY = 4 + tokens.rowHeight / 2;
-		if (headRow)
-		{
-			for (int level = channelLevels; level < channelLevels + logic; level++)
-				painter.drawLine(bandCenter(level), 0, bandCenter(level), h);
-			// The bracket opens under the head: its rule first shows in the
-			// margin below the gate's full-width cell.
-			const int own = bandCenter(channelLevels + logic);
-			painter.drawLine(own, h - 4, own, h);
-		}
-		else if (tailRow)
-		{
-			for (int level = channelLevels; level + 1 < channelLevels + logic; level++)
-				painter.drawLine(bandCenter(level), 0, bandCenter(level), h);
-			// The closing L-corner: down to the tail's centre line, then a
-			// half-pitch tick to the EndIf cell's edge.
-			const int own = bandCenter(channelLevels + logic - 1);
-			painter.drawLine(own, 0, own, junctionY);
-			painter.drawLine(own, junctionY, cardLeft - 1, junctionY);
-		}
-		else
-		{
-			// Members and branch rows: every open bracket passes straight
-			// through. ElseIf/Else post their state on their own cells (the
-			// gate lamp), not on the bracket.
-			for (int level = channelLevels; level < channelLevels + logic; level++)
-				painter.drawLine(bandCenter(level), 0, bandCenter(level), h);
-		}
-		return true;
+		// The bracket opens under the head: its rule first shows in the
+		// margin below the gate's full-width cell.
+		const int own = bandCenter(channelLevels + logic);
+		painter.drawLine(own, h - 4, own, h);
 	}
-
-bool MatrixSkin::logicSiblingsIndentAsMembers() const
-{
-		return true;
+	else if (tailRow)
+	{
+		for (int level = channelLevels; level + 1 < channelLevels + logic; level++)
+			painter.drawLine(bandCenter(level), 0, bandCenter(level), h);
+		// The closing L-corner: down to the tail's centre line, then a
+		// half-pitch tick to the EndIf cell's edge.
+		const int own = bandCenter(channelLevels + logic - 1);
+		painter.drawLine(own, 0, own, junctionY);
+		painter.drawLine(own, junctionY, cardLeft - 1, junctionY);
 	}
+	else
+	{
+		// Members and branch rows: every open bracket passes straight
+		// through. ElseIf/Else post their state on their own cells (the
+		// gate lamp), not on the bracket.
+		for (int level = channelLevels; level < channelLevels + logic; level++)
+			painter.drawLine(bandCenter(level), 0, bandCenter(level), h);
+	}
+	return true;
+}

@@ -24,8 +24,8 @@
 #include "engine/IFilterFactory.h"
 #include "engine/IFilter.h"
 
-class CopyFilterFactory : public ParseReportingFactory
+class CopyFilterFactory : public IFilterFactory
 {
 public:
-	FilterVector createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
+	LineOutcome createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
 };

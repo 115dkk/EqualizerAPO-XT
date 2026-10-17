@@ -20,7 +20,7 @@
 
 #include "services/registry/WindowsRegistry.h"
 #include "services/registry/RegistryTransaction.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 #include "Tests/FakeRegistry.h"
 
@@ -32,7 +32,7 @@ const std::wstring rootKey = L"HKEY_LOCAL_MACHINE\\SOFTWARE\\EqualizerAPO";
 const std::wstring branchKey = rootKey + L"\\Transaction Test";
 const std::wstring leafKey = branchKey + L"\\Leaf";
 
-void testCommitKeepsEverythingAndEmptiesTheJournal(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testCommitKeepsEverythingAndEmptiesTheJournal)
 {
 	FakeRegistry registry;
 	registry.seedKey(rootKey);
@@ -65,7 +65,7 @@ void testCommitKeepsEverythingAndEmptiesTheJournal(test::Harness& harness)
 		"the value a committed transaction wrote survives too");
 }
 
-void testLeavingScopeWithoutCommitUndoesEveryStep(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testLeavingScopeWithoutCommitUndoesEveryStep)
 {
 	FakeRegistry registry;
 	registry.seedKey(rootKey);
@@ -89,7 +89,7 @@ void testLeavingScopeWithoutCommitUndoesEveryStep(test::Harness& harness)
 		"an overwritten value goes back to what it held, which is the difference between a rollback and a cleanup");
 }
 
-void testRollbackRestoresValueTypesRatherThanJustText(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testRollbackRestoresValueTypesRatherThanJustText)
 {
 	FakeRegistry registry;
 	registry.seedKey(rootKey);
@@ -113,7 +113,7 @@ void testRollbackRestoresValueTypesRatherThanJustText(test::Harness& harness)
 		"the strings come back in order and verbatim");
 }
 
-void testRollbackRebuildsADeletedKeyWithItsValues(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testRollbackRebuildsADeletedKeyWithItsValues)
 {
 	FakeRegistry registry;
 	registry.seedString(leafKey, L"Version", L"2");
@@ -134,7 +134,7 @@ void testRollbackRebuildsADeletedKeyWithItsValues(test::Harness& harness)
 		"including their types");
 }
 
-void testAValueItCannotRestoreIsRefusedBeforeAnythingChanges(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testAValueItCannotRestoreIsRefusedBeforeAnythingChanges)
 {
 	FakeRegistry registry;
 	registry.seedKey(rootKey);
@@ -162,7 +162,7 @@ void testAValueItCannotRestoreIsRefusedBeforeAnythingChanges(test::Harness& harn
 		"and its contents are exactly what they were");
 }
 
-void testRollbackLeavesAKeySomethingElseMovedInto(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testRollbackLeavesAKeySomethingElseMovedInto)
 {
 	FakeRegistry registry;
 	registry.seedKey(rootKey);
@@ -181,7 +181,7 @@ void testRollbackLeavesAKeySomethingElseMovedInto(test::Harness& harness)
 		"and the foreign subkey survives, which is the point of not deleting the parent");
 }
 
-void testAFailedUndoStepIsRecordedAndTheRestStillRuns(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testAFailedUndoStepIsRecordedAndTheRestStillRuns)
 {
 	FakeRegistry registry;
 	registry.seedKey(rootKey);
@@ -205,7 +205,7 @@ void testAFailedUndoStepIsRecordedAndTheRestStillRuns(test::Harness& harness)
 		"the steps that can still run do run; one unrestorable value must not abandon the rest of the rollback");
 }
 
-void testAWriteThatWasRefusedLeavesNoUndoStep(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testAWriteThatWasRefusedLeavesNoUndoStep)
 {
 	FakeRegistry registry;
 	registry.seedKey(rootKey);
@@ -234,7 +234,7 @@ void testAWriteThatWasRefusedLeavesNoUndoStep(test::Harness& harness)
 		"the value is what it was");
 }
 
-void testPermissionChangesAreReportedAsIrreversible(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testPermissionChangesAreReportedAsIrreversible)
 {
 	FakeRegistry registry;
 	registry.seedKey(rootKey);
@@ -248,16 +248,3 @@ void testPermissionChangesAreReportedAsIrreversible(test::Harness& harness)
 	plan.commit();
 }
 } // namespace
-
-void runRegistryTransactionTests(test::Harness& harness)
-{
-	testCommitKeepsEverythingAndEmptiesTheJournal(harness);
-	testLeavingScopeWithoutCommitUndoesEveryStep(harness);
-	testRollbackRestoresValueTypesRatherThanJustText(harness);
-	testRollbackRebuildsADeletedKeyWithItsValues(harness);
-	testAValueItCannotRestoreIsRefusedBeforeAnythingChanges(harness);
-	testRollbackLeavesAKeySomethingElseMovedInto(harness);
-	testAFailedUndoStepIsRecordedAndTheRestStillRuns(harness);
-	testAWriteThatWasRefusedLeavesNoUndoStep(harness);
-	testPermissionChangesAreReportedAsIrreversible(harness);
-}

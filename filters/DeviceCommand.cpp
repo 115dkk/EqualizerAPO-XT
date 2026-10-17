@@ -29,10 +29,9 @@ using std::vector;
 using std::wregex;
 using std::wstring;
 
-static wregex regexGuid(L"\\{[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\\}");
-
 bool DeviceCommand::matches(const wstring& deviceString) const
 {
+	static const wregex regexGuid(L"\\{[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\\}");
 	wstring deviceStringNoGuid = regex_replace(deviceString, regexGuid, L"");
 
 	// Matching loop preserved from the engine factory: every word of a pattern

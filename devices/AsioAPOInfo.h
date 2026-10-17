@@ -52,12 +52,7 @@ public:
 	unsigned long getChannelMask() const override;
 	bool isInput() const override;
 	bool isInstalled() const override;
-	bool canBeUpgraded() const override;
 	bool hasChanges() const override;
-	bool isEnhancementsDisabled() const override;
-	bool isDefaultDevice() const override;
-	bool isDisabled() const override;
-	bool isUnplugged() const override;
 	std::wstring getTransportLabel() const override;
 	void install() override;
 	void uninstall() override;
@@ -94,11 +89,6 @@ public:
 
 private:
 	void loadState();
-	// The product's install directory (the InstallPath value its install hook
-	// writes). The required form throws DeviceException when the value is
-	// missing, as the endpoint adapter does; the optional form answers empty.
-	static std::wstring requiredInstallDirectory(const IRegistry& from);
-	static std::wstring optionalInstallDirectory(const IRegistry& from);
 	// The bodies of the three operations, each inside the transaction
 	// ReportedOperation::run opens (audit #348 C2/TD-31).
 	void beginReport(DeviceInstallReport::Operation operation);

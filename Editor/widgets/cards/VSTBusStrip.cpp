@@ -364,6 +364,27 @@ VstBusFrameState VSTBusStrip::frameState() const
 	state.verdictOutputText = verdictOutputText;
 	state.tone = verdictTone;
 	state.enabled = inputSelector->isEnabled();
+
+	state.pairVerdict = !state.verdictInputText.isEmpty() || !state.verdictOutputText.isEmpty();
+	state.hasText = state.pairVerdict || !state.verdictText.isEmpty();
+	state.showVerdict = !state.verdictRect.isEmpty()
+		&& (state.hasText || state.tone != VstBusFrameState::Tone::Neutral);
+	state.lit = state.enabled && state.tone != VstBusFrameState::Tone::Neutral;
+	switch (state.tone)
+	{
+	case VstBusFrameState::Tone::Success:
+		state.toneToken = &SkinTokens::success;
+		break;
+	case VstBusFrameState::Tone::Warning:
+		state.toneToken = &SkinTokens::warning;
+		break;
+	case VstBusFrameState::Tone::Critical:
+		state.toneToken = &SkinTokens::danger;
+		break;
+	case VstBusFrameState::Tone::Neutral:
+		state.toneToken = &SkinTokens::mutedText;
+		break;
+	}
 	return state;
 }
 

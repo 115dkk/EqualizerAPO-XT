@@ -6,50 +6,23 @@
 
 #include "HardwarePatchbayRoutingRenderer.h"
 #include "Editor/skins/rack/RackPalette.h"
+#include "Editor/skins/shared/SkinPaint.h"
 
 #include <QPainter>
-#include <QMouseEvent>
 #include <QFontMetrics>
-
-#include "Editor/SkinManager.h"
-#include "Editor/widgets/routing/RoutingGridModel.h"
 
 using std::vector;
 
 HardwarePatchbayView::HardwarePatchbayView(const vector<Assignment>& assignments,
 	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
 	QWidget* parent, const SkinTokens& tokens)
-	: RoutingView(parent), skinTokens(tokens),
-	// Seed every device channel as a row so an emptied Copy can be refilled
-	// from the GUI; empty rows are skipped by the serializer. The fold below
-	// decides which seeded rows are actually mounted on the panel.
-	workingAssignments(CopyRoutingAdapter::seedTargets(assignments, channelNames)),
-	deviceChannels(channelNames),
-	portModel(portModel),
-	// Targets the command referenced stay mounted for the whole session,
-	// even if their last source is toggled away.
-	pinnedChannels(RoutingFold::referencedTargets(assignments))
+	: GridRoutingViewBase(assignments, channelNames, portModel, parent, tokens,
+		// Widened to the engraved labels in updateMetrics(); the defaults fit
+		// a Copy row's short device names.
+		{ .rowHeaderWidth = 60, .colHeaderHeight = 34, .cellW = 56, .cellH = 50 },
+		QStringLiteral("PatchbayEditor"), QStringLiteral("PatchbayChannelEditor"))
 {
-	// Match the stable painted-routing-view size contract (StepList / BlockChip).
-	setMouseTracking(true);
-	setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
-	setMinimumSize(0, 0);
 	rebuildMatrix();
-}
-
-void HardwarePatchbayView::rebuildMatrix()
-{
-	fold = RoutingFold::fold(workingAssignments, deviceChannels, pinnedChannels,
-		channelsExpanded, portModel.fixedSources);
-	rowMap = fold.visibleRows;
-	vector<Assignment> visible;
-	visible.reserve(rowMap.size());
-	for (int row : rowMap)
-		visible.push_back(workingAssignments[row]);
-	matrix = CopyRoutingAdapter::buildMatrix(visible, fold.inputs);
-	updateMetrics();
-	syncSizeToHint();
-	update();
 }
 
 void HardwarePatchbayView::updateMetrics()
@@ -77,43 +50,9 @@ void HardwarePatchbayView::updateMetrics()
 	rowHeaderWidth = qMax(60, longestOutput + 17);
 }
 
-std::vector<Assignment> HardwarePatchbayView::assignments() const
-{
-	return workingAssignments;
-}
-
-void HardwarePatchbayView::galleryShowcase(const QString& state)
-{
-	if (state == QLatin1String("expanded"))
-	{
-		channelsExpanded = true;
-		rebuildMatrix();
-	}
-	else if (state == QLatin1String("addChannel"))
-	{
-		openChannelEditor();
-		if (channelEditor != nullptr)
-			channelEditor->setText(QStringLiteral("VS"));
-	}
-}
-
-QRect HardwarePatchbayView::cellRect(int outRow, int inCol) const
-{
-	return QRect(rowHeaderWidth + inCol * cellW, colHeaderHeight + outRow * cellH, cellW, cellH);
-}
-
 QRect HardwarePatchbayView::stripRect() const
 {
 	return QRect(0, colHeaderHeight + matrix.outputs.size() * cellH + 10, width(), stripH);
-}
-
-bool HardwarePatchbayView::hitTest(const QPoint& pos, int& outRow, int& inCol) const
-{
-	if (pos.x() < rowHeaderWidth || pos.y() < colHeaderHeight)
-		return false;
-	inCol = (pos.x() - rowHeaderWidth) / cellW;
-	outRow = (pos.y() - colHeaderHeight) / cellH;
-	return outRow >= 0 && outRow < matrix.outputs.size() && inCol >= 0 && inCol < matrix.inputs.size();
 }
 
 QSize HardwarePatchbayView::sizeHint() const
@@ -124,13 +63,6 @@ QSize HardwarePatchbayView::sizeHint() const
 	w = qMax(w, 240);
 	return QSize(w, h);
 }
-
-QSize HardwarePatchbayView::minimumSizeHint() const
-{
-	return sizeHint();
-}
-
-static QColor a8(const QColor& c, int a) { QColor r = c; r.setAlpha(a); return r; }
 
 void HardwarePatchbayView::paintEvent(QPaintEvent*)
 {
@@ -243,7 +175,7 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 		if (portModel.isVirtualChannel(out) && hoveredRow == r)
 		{
 			const QRect xr(labelRect.right() - 12, labelRect.center().y() + 8, 14, 14);
-			p.setPen(a8(col, 230));
+			p.setPen(withAlpha(col, 230));
 			p.drawText(xr, Qt::AlignCenter, QStringLiteral("x"));
 			removeRects[r] = xr;
 		}
@@ -338,9 +270,9 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 				// ring as the letter O.
 				const QPointF lampCenter(cap.center().x() + 0.5, cap.center().y() + 0.5);
 				p.setPen(Qt::NoPen);
-				p.setBrush(a8(ink, 70));
+				p.setBrush(withAlpha(ink, 70));
 				p.drawEllipse(lampCenter, 5.5, 5.5);
-				p.setBrush(a8(ink, 235));
+				p.setBrush(withAlpha(ink, 235));
 				p.drawEllipse(lampCenter, 3.0, 3.0);
 			}
 		}
@@ -364,7 +296,7 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 		drawCap(revealRect, channelsExpanded, capText, hoveredControl == 1);
 		// Tracked engraving under the cap's right shoulder names the bank.
 		p.setFont(label);
-		p.setPen(a8(QColor(t.mutedText), 220));
+		p.setPen(withAlpha(QColor(t.mutedText), 220));
 		const QString engrave = QStringLiteral("CHANNELS");
 		p.drawText(QRect(x + 52, strip.top(), fm.horizontalAdvance(engrave) + 8, 30),
 			Qt::AlignVCenter | Qt::AlignLeft, engrave);
@@ -375,172 +307,17 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 	drawCap(addRect, false, QStringLiteral("ADD"), hoveredControl == 2);
 }
 
-void HardwarePatchbayView::mousePressEvent(QMouseEvent* event)
+QRect HardwarePatchbayView::factorEditorRect(int outRow, int inCol) const
 {
-	for (int r = 0; r < removeRects.size(); ++r)
-	{
-		if (!removeRects[r].isNull() && removeRects[r].contains(event->pos()))
-		{
-			const QString channel = matrix.outputs[r];
-			const bool changed = RoutingGridModel::removeChannel(workingAssignments, pinnedChannels, channel);
-			rebuildMatrix();
-			if (changed)
-				emit routingChanged();
-			return;
-		}
-	}
-	if (!revealRect.isNull() && revealRect.contains(event->pos()))
-	{
-		channelsExpanded = !channelsExpanded;
-		rebuildMatrix();
-		return;
-	}
-	if (!addRect.isNull() && addRect.contains(event->pos()))
-	{
-		openChannelEditor();
-		return;
-	}
-
-	int outRow = -1, inCol = -1;
-	if (!hitTest(event->pos(), outRow, inCol))
-		return;
-
-	const QString channel = matrix.inputs[inCol];
-	const int idx = RoutingGridModel::summandIndex(workingAssignments[rowMap[outRow]], channel);
-	Assignment& a = workingAssignments[rowMap[outRow]];
-	if (idx >= 0)
-		a.sourceSum.erase(a.sourceSum.begin() + idx);
-	else
-	{
-		Assignment::Summand s;
-		s.factor = 1.0;
-		s.isDecibel = false;
-		s.channel = channel.toStdWString();
-		a.sourceSum.push_back(s);
-	}
-	rebuildMatrix();
-	emit routingChanged();
-}
-
-void HardwarePatchbayView::mouseMoveEvent(QMouseEvent* event)
-{
-	int control = 0;
-	if (!revealRect.isNull() && revealRect.contains(event->pos()))
-		control = 1;
-	else if (!addRect.isNull() && addRect.contains(event->pos()))
-		control = 2;
-
-	int row = -1;
-	if (event->pos().x() < rowHeaderWidth && event->pos().y() >= colHeaderHeight)
-	{
-		const int r = (event->pos().y() - colHeaderHeight) / cellH;
-		if (r >= 0 && r < matrix.outputs.size())
-			row = r;
-	}
-
-	if (control != hoveredControl || row != hoveredRow)
-	{
-		hoveredControl = control;
-		hoveredRow = row;
-		bool removable = false;
-		if (row >= 0 && !removeRects.value(row).isNull()
-			&& removeRects[row].contains(event->pos()))
-			removable = true;
-		setCursor(control != 0 || removable ? Qt::PointingHandCursor : Qt::ArrowCursor);
-		update();
-	}
-	RoutingView::mouseMoveEvent(event);
-}
-
-void HardwarePatchbayView::leaveEvent(QEvent* event)
-{
-	if (hoveredControl != 0 || hoveredRow >= 0)
-	{
-		hoveredControl = 0;
-		hoveredRow = -1;
-		update();
-	}
-	RoutingView::leaveEvent(event);
-}
-
-void HardwarePatchbayView::mouseDoubleClickEvent(QMouseEvent* event)
-{
-	// Without factors there is nothing to edit; the press that preceded this
-	// double-click already toggled the patch point.
-	if (!portModel.allowFactors)
-		return;
-
-	int outRow = -1, inCol = -1;
-	if (!hitTest(event->pos(), outRow, inCol))
-		return;
-
-	commitEditor();
-	editRow = outRow;
-	editCol = inCol;
-
-	const CopyRoutingAdapter::Cell cell = matrix.cell(outRow, inCol);
-	const QString textValue = cell.present
-		? (cell.isDecibel ? QStringLiteral("%1dB").arg(cell.factor) : QString::number(cell.factor))
-		: QStringLiteral("1");
-
-	if (editor == nullptr)
-	{
-		editor = new QLineEdit(this);
-		editor->setObjectName(QStringLiteral("PatchbayEditor"));
-		editor->setAlignment(Qt::AlignCenter);
-		connect(editor, &QLineEdit::editingFinished, this, &HardwarePatchbayView::commitEditor);
-	}
 	const QRect cr = cellRect(outRow, inCol);
-	editor->setGeometry(QRect(cr.left() + 6, cr.center().y() - 10, cr.width() - 12, 20));
-	editor->setText(textValue);
-	editor->show();
-	editor->setFocus();
-	editor->selectAll();
+	return QRect(cr.left() + 6, cr.center().y() - 10, cr.width() - 12, 20);
 }
 
-void HardwarePatchbayView::commitEditor()
+QRect HardwarePatchbayView::channelEditorRect() const
 {
-	if (editor == nullptr || !editor->isVisible() || editRow < 0)
-		return;
-
-	const int outRow = editRow;
-	const QString channel = matrix.inputs.value(editCol);
-	editRow = editCol = -1;
-	QString raw = editor->text().trimmed();
-	editor->hide();
-	if (!RoutingGridModel::commitFactor(workingAssignments, rowMap.value(outRow, -1),
-		channel, raw, portModel.allowFactors))
-		return;
-	rebuildMatrix();
-	emit routingChanged();
-}
-
-void HardwarePatchbayView::openChannelEditor()
-{
-	if (channelEditor == nullptr)
-	{
-		channelEditor = new QLineEdit(this);
-		channelEditor->setObjectName(QStringLiteral("PatchbayChannelEditor"));
-		channelEditor->setAlignment(Qt::AlignCenter);
-		connect(channelEditor, &QLineEdit::editingFinished, this, &HardwarePatchbayView::commitChannelEditor);
-	}
-	channelEditor->setGeometry(addRect.isNull()
+	return addRect.isNull()
 		? QRect(6, stripRect().top() + 4, 110, 24)
-		: QRect(addRect.right() + 10, addRect.top() + 3, 110, 24));
-	channelEditor->setText(QString());
-	channelEditor->show();
-	channelEditor->setFocus();
-}
-
-void HardwarePatchbayView::commitChannelEditor()
-{
-	if (channelEditor == nullptr || !channelEditor->isVisible())
-		return;
-
-	const QString name = channelEditor->text().trimmed();
-	channelEditor->hide();
-	if (RoutingGridModel::addChannel(workingAssignments, pinnedChannels, name))
-		rebuildMatrix();
+		: QRect(addRect.right() + 10, addRect.top() + 3, 110, 24);
 }
 
 RoutingView* HardwarePatchbayRoutingRenderer::create(const vector<Assignment>& assignments,

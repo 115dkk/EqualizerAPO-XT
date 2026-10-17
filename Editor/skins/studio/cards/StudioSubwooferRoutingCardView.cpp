@@ -14,8 +14,6 @@
 
 #include "Editor/skins/studio/cards/StudioSubwooferRoutingCardView.h"
 
-#include <cmath>
-
 #include <QAbstractButton>
 #include <QColor>
 #include <QHBoxLayout>
@@ -23,22 +21,12 @@
 #include <QPaintEvent>
 #include <QPainter>
 #include <QPen>
-#include <QStyle>
 #include <QToolButton>
 #include <QVBoxLayout>
 #include <QVariant>
 
-#include "Editor/SkinManager.h"
+#include "Editor/skins/shared/SkinPaint.h"
 #include "Editor/widgets/ElidedLabel.h"
-
-namespace
-{
-void repolish(QWidget* widget)
-{
-	widget->style()->unpolish(widget);
-	widget->style()->polish(widget);
-}
-}
 
 StudioSubwooferRoutingCardView::StudioSubwooferRoutingCardView(
 	const SkinTokens& tokens, QWidget* parent)
@@ -173,16 +161,14 @@ void StudioSubwooferRoutingCardView::addActionButton(
 void StudioSubwooferRoutingCardView::applyState(
 	const SubwooferRoutingCardState& state)
 {
-	const bool hasError = !state.errorText.isEmpty();
-	const bool hasWarning = !state.warningText.isEmpty();
-
-	if (hasError || !state.valid)
+	const Severity health = severity(state);
+	if (health == Severity::Error)
 	{
 		validityChip->setText(tr("ERROR"));
 		validityChip->setProperty("severity",
 			QStringLiteral("invalid"));
 	}
-	else if (hasWarning)
+	else if (health == Severity::Warning)
 	{
 		validityChip->setText(tr("WARNING"));
 		validityChip->setProperty("severity",
@@ -200,19 +186,9 @@ void StudioSubwooferRoutingCardView::applyState(
 		? tr("Layout unknown")
 		: tr("Layout %1").arg(state.layoutLabel));
 
-	QString profileText;
-	if (state.linkedProfile)
-	{
-		profileText = state.profileName.isEmpty()
-			? tr("Linked profile")
-			: state.profileName;
-	}
-	else if (!state.profileName.isEmpty())
-	{
-		profileText = state.profileName;
-	}
-	profileLabel->setFullText(profileText);
-	profileLabel->setVisible(!profileText.isEmpty());
+	const QString profile = profileText(state, tr("Linked profile"));
+	profileLabel->setFullText(profile);
+	profileLabel->setVisible(!profile.isEmpty());
 
 	crossoverValue->setText(crossoverSummary(state));
 
@@ -221,39 +197,28 @@ void StudioSubwooferRoutingCardView::applyState(
 			QString::number(state.sourceLfeGainDb, 'f', 1))
 		: tr("Off"));
 
-	if (std::isfinite(state.headroomTrimDb))
-	{
-		headroomValue->setText(state.headroomAuto
-			? tr("Auto %1 dB").arg(
-				QString::number(state.headroomTrimDb, 'f', 1))
-			: tr("Manual %1 dB").arg(
-				QString::number(state.headroomTrimDb, 'f', 1)));
-	}
-	else
-	{
-		headroomValue->setText(state.headroomAuto
-			? tr("Auto")
-			: tr("Manual"));
-	}
+	headroomValue->setText(headroomText(state,
+		tr("Auto %1 dB"), tr("Manual %1 dB"), tr("Auto"), tr("Manual")));
 
 	// One line, error first - the contract forbids stacking synthesized
-	// duplicates of the same fact.
+	// duplicates of the same fact. The line carries the sentences
+	// themselves, so it keys on them rather than on the verdict.
 	QString statusText;
-	QString severity = QStringLiteral("normal");
-	if (hasError)
+	QString statusSeverity = QStringLiteral("normal");
+	if (!state.errorText.isEmpty())
 	{
 		statusText = state.errorText;
-		severity = QStringLiteral("invalid");
+		statusSeverity = QStringLiteral("invalid");
 	}
-	else if (hasWarning)
+	else if (!state.warningText.isEmpty())
 	{
 		statusText = state.warningText;
-		severity = QStringLiteral("warning");
+		statusSeverity = QStringLiteral("warning");
 	}
 	statusLabel->setText(statusText);
 	statusLabel->setToolTip(statusText);
 	statusLabel->setVisible(!statusText.isEmpty());
-	statusLabel->setProperty("severity", severity);
+	statusLabel->setProperty("severity", statusSeverity);
 	repolish(statusLabel);
 }
 

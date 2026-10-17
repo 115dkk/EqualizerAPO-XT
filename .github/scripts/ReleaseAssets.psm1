@@ -53,6 +53,22 @@ function Select-PreviousReleaseTag {
     return $null
 }
 
+# The SHA256SUMS.txt body Installer/AutoInstaller.cpp parses:
+# sha256sum-compatible lines (lowercase hex, two spaces, name), LF, sorted
+# by name, with a final LF. Audit #422 TD-43 moved it here from
+# New-ReleaseChecksums.ps1 so Pester can import it instead of cutting it out
+# of the script's source.
+function Format-ChecksumLines {
+    param(
+        # Hashtable of asset name -> SHA-256 hex (any case).
+        [Parameter(Mandatory)] [hashtable] $Hashes
+    )
+    $lines = foreach ($name in ($Hashes.Keys | Sort-Object)) {
+        "$($Hashes[$name].ToLowerInvariant())  $name"
+    }
+    (($lines -join "`n") + "`n")
+}
+
 Export-ModuleMember -Function Get-VelopackPackId, Get-SetupAssetName,
 Get-UniversalSetupAssetName, Get-FeedAssetName, Get-SourceZipAssetName,
-Get-ChecksumsAssetName, Select-PreviousReleaseTag
+Get-ChecksumsAssetName, Select-PreviousReleaseTag, Format-ChecksumLines

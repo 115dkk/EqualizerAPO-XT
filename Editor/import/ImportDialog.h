@@ -30,6 +30,7 @@ public:
 
 private:
     void buildUi();
+    static QString formatSize(qint64 bytes);
 
     ImportManifest manifest_;
     QString configDir_;

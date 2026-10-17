@@ -47,7 +47,8 @@ namespace eapo::ipc::send
 		if (bytes == nullptr)
 			return;
 		const unsigned char firstValue = bytes[headerBytes];
-		// cppcheck-suppress redundantAssignment ; the volatile write deliberately preserves live ring data while faulting in the page
+		// The volatile write deliberately preserves live ring data while
+		// faulting in the page.
 		bytes[headerBytes] = firstValue;
 		for (size_t offset = (headerBytes + 4095) & ~size_t(4095);
 			offset < regionBytes; offset += 4096)

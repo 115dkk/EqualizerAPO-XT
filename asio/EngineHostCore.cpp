@@ -12,6 +12,7 @@
 
 #include <avrt.h>
 
+#include "asio/Clock.h"
 #include "asio/StreamEngineSetup.h"
 #include "asio/StreamFacts.h"
 #include "engine/FilterEngine.h"
@@ -170,18 +171,9 @@ namespace eapo::asio
 			Entry entries[capacity] = {};
 			unsigned count = 0;
 			uint64_t dropped = 0;
-			double ticksPerMicro = 0.0;
-
-			SlowTrace()
+			static uint32_t micros(LONGLONG from, LONGLONG to) noexcept
 			{
-				LARGE_INTEGER frequency;
-				QueryPerformanceFrequency(&frequency);
-				ticksPerMicro = static_cast<double>(frequency.QuadPart) / 1000000.0;
-			}
-
-			uint32_t micros(LONGLONG from, LONGLONG to) const noexcept
-			{
-				return to > from && ticksPerMicro > 0.0 ? static_cast<uint32_t>(static_cast<double>(to - from) / ticksPerMicro) : 0;
+				return Clock::microseconds(from, to);
 			}
 
 			void note(uint32_t thresholdUs, const RingConsumer::Acquired& acquired, LONGLONG woke, LONGLONG started, LONGLONG done) noexcept
@@ -213,13 +205,6 @@ namespace eapo::asio
 					LogFStatic(L"ASIO host: %llu more slow blocks not listed", static_cast<unsigned long long>(dropped));
 			}
 		};
-
-		inline LONGLONG tickNow() noexcept
-		{
-			LARGE_INTEGER counter;
-			QueryPerformanceCounter(&counter);
-			return counter.QuadPart;
-		}
 	}
 
 	namespace EngineHostCore
@@ -279,17 +264,15 @@ namespace eapo::asio
 						break;
 					continue;
 				}
-				const LONGLONG woke = slow != nullptr ? tickNow() : 0;
+				const LONGLONG woke = slow != nullptr ? Clock::ticks() : 0;
 				avoidance.keepOff(consumer.producerCpu());
-				while (options.hold != nullptr && options.hold->load() && !abandoned(options))
-					Sleep(1);
 				if (abandoned(options))
 				{
 					report.peerGone = false;
 					return report;
 				}
 				Lane& lane = lanes[static_cast<unsigned>(acquired.direction)];
-				const LONGLONG started = slow != nullptr ? tickNow() : 0;
+				const LONGLONG started = slow != nullptr ? Clock::ticks() : 0;
 				if (lane.engine != nullptr)
 				{
 					for (size_t c = 0; c < lane.planes.size(); c++)
@@ -297,7 +280,7 @@ namespace eapo::asio
 					lane.engine->process(lane.planes.data(), lane.planes.data(), format.frames);
 				}
 				if (slow != nullptr)
-					slow->note(options.traceSlowUs, acquired, woke, started, tickNow());
+					slow->note(options.traceSlowUs, acquired, woke, started, Clock::ticks());
 				report.blocks[static_cast<unsigned>(acquired.direction)]++;
 				consumer.release(acquired);
 			}

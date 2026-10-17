@@ -9,39 +9,12 @@ param(
     [switch] $PlanOnly
 )
 
-$projects = @(
-    "SubwooferRoutingCore\SubwooferRoutingCore.vcxproj",
-    "Common.vcxproj",
-    "Tests\TestVst2Plugin\TestVst2Plugin.vcxproj",
-    "VST3\SubwooferRouting\SubwooferRoutingVst3.vcxproj",
-    "Tests\HybridConvTests\HybridConvTests.vcxproj",
-    "Tests\EditorLogicTests\EditorLogicTests.vcxproj",
-    "Tests\EngineOrchestrationTests\EngineOrchestrationTests.vcxproj",
-    "Tests\AudioRegressionTests\AudioRegressionTests.vcxproj",
-    "EqualizerAPO\EqualizerAPO.vcxproj",
-    "Benchmark\Benchmark.vcxproj",
-    "VoicemeeterClient\VoicemeeterClient.vcxproj",
-    # Built (not run) on every leg so the probe cannot rot; the
-    # vst3-preview-probe workflow is what actually executes it.
-    "Tests\VstPreviewProbe\VstPreviewProbe.vcxproj",
-    # ASIO (docs/architecture/asio-host-study.md): the wrapper DLL a DAW
-    # loads, the fake driver the probe wraps, the unit suite over the fake,
-    # and the probe that compares the wrapped stream with the engine's direct
-    # output. The probe is executed by build.yml's "ASIO probe" step on the
-    # legs that can run the variant.
-    "EqualizerAPOAsio\EqualizerAPOAsio.vcxproj",
-    "EqualizerAPOHost\EqualizerAPOHost.vcxproj",
-    "Tests\FakeAsioDriver\FakeAsioDriver.vcxproj",
-    "Tests\AsioTests\AsioTests.vcxproj",
-    "Tests\AsioProbe\AsioProbe.vcxproj",
-    # Capture (docs/features/capture.md): the probe that hosts the APO DLL
-    # for one endpoint without the audio service, and the WASAPI probe that
-    # measures a capture endpoint the way a recording app hears it. Built
-    # on every leg; the capture gate job executes them on a runner with a
-    # virtual cable.
-    "Tests\ApoHostProbe\ApoHostProbe.vcxproj",
-    "Tests\CaptureProbe\CaptureProbe.vcxproj"
-)
+# Audit #422 T1: the ordered list lives in BuildModel.psm1, tagged "solution".
+# ASIO (docs/architecture/asio-host-study.md) and capture
+# (docs/features/capture.md) probes are built on every leg so they cannot
+# rot; their own gates execute them.
+Import-Module (Join-Path $PSScriptRoot "BuildModel.psm1") -Force
+$projects = @(Get-EapoProjectGraph -Tag solution | ForEach-Object Path)
 # Both runner images ship VS 2026. The ARM64 image (windows-11-arm, which moved
 # to windows-11-vs2026-arm64 in September 2026) keeps the v143 ARM64 compilers
 # but carries ATL for ARM64 only for the default v145 toolset, so a v143 build
@@ -61,7 +34,7 @@ if ($CanExecute) { $runtimeTests += @("EditorLogicTests", "HybridConvTests", "En
 # covers every variant. The avx2 leg builds it so a PR that breaks it fails
 # in CI instead of on release day (audit #250 F056); the other legs skip the
 # duplicate work, and create-release still builds its own copy to publish.
-$installerProject = if ($Platform -eq "x64" -and $SimdVariant -eq "avx2") { "Installer\Installer.vcxproj" } else { $null }
+$installerProject = if ($Platform -eq "x64" -and $SimdVariant -eq "avx2") { (Get-EapoProjectGraph -Tag installer).Path } else { $null }
 $plan = [pscustomobject]@{
     Projects = $projects
     PlatformToolset = $platformToolset
@@ -94,35 +67,20 @@ function Resolve-QtRoot {
 }
 
 $qtRoot = Resolve-QtRoot
-"QT_ROOT=$qtRoot" >> $env:GITHUB_ENV
+if ($env:GITHUB_ENV) { "QT_ROOT=$qtRoot" >> $env:GITHUB_ENV }
 $msbuildPath = (Get-Command msbuild).Source
 if ($Platform -eq "ARM64" -and $msbuildPath -notmatch '\\arm64\\') {
     throw "Expected native arm64 MSBuild, got $msbuildPath"
 }
-$buildParams = @(
-    "/m", "/p:Configuration=$Configuration", "/p:Platform=$Platform", "/t:rebuild",
-    "/p:LIBSNDFILE_INCLUDE=$env:LIBSNDFILE_INCLUDE", "/p:LIBSNDFILE_LIB=$env:LIBSNDFILE_LIB",
-    "/p:FFTW_INCLUDE=$env:FFTW_INCLUDE", "/p:FFTW_LIB=$env:FFTW_LIB",
-    "/p:MUPARSERX_INCLUDE=$env:MUPARSERX_INCLUDE", "/p:MUPARSERX_LIB=$env:MUPARSERX_LIB",
-    "/p:TCLAP_ROOT=$env:TCLAP_ROOT", "/p:VST3_SDK=$env:VST3_SDK",
-    "/p:HIGHWAY_INCLUDE=$env:HIGHWAY_INCLUDE", "/p:ASIO_SDK=$env:ASIO_SDK",
-    "/p:PlatformToolset=$platformToolset",
-    "/p:PreferredToolArchitecture=$toolArchitecture", "/p:QT_ROOT=$qtRoot"
-)
-if ($Platform -eq "x64") { $buildParams += "/p:EnableEnhancedInstructionSet=$ArchFlag" }
-foreach ($project in $projects) {
-    msbuild $project @buildParams
-    if ($LASTEXITCODE -ne 0) { throw "Build failed for $project" }
-}
+$env:QT_ROOT = $qtRoot
+$buildParams = Get-EapoMsBuildArguments -Platform $Platform -Configuration $Configuration `
+    -ArchFlag $ArchFlag -PlatformToolset $platformToolset -ToolArchitecture $toolArchitecture
+Invoke-EapoMsBuild -Project $projects -Arguments $buildParams
 
 if ($installerProject) {
-    $installerParams = @(
-        "/m", "/p:Configuration=$Configuration", "/p:Platform=Win32", "/t:rebuild",
-        "/p:PlatformToolset=$platformToolset",
-        "/p:PreferredToolArchitecture=$toolArchitecture"
-    )
-    msbuild $installerProject @installerParams
-    if ($LASTEXITCODE -ne 0) { throw "Build failed for $installerProject" }
+    $installerParams = Get-EapoMsBuildArguments -Platform Win32 -Configuration $Configuration `
+        -PlatformToolset $platformToolset -ToolArchitecture $toolArchitecture -Dependencies None
+    Invoke-EapoMsBuild -Project $installerProject -Arguments $installerParams
 }
 
 $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$qtRoot\bin;$env:PATH"

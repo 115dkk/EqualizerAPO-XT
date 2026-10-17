@@ -4,12 +4,12 @@
 	SPDX-License-Identifier: GPL-2.0-or-later
 
 	Round-trip tests for the "Preamp:" config-line grammar. These exercise the
-	single owning parse routine PreampFilterFactory::parseCommand (which both the
+	single owning parse routine PreampCommand::parse (which both the
 	engine factory and the Editor GUI now share) and serializePreampCommand, the
 	canonical "<dB> dB" serializer that PreampFilterGUI::store() routes through.
 
 	The tests assert three things:
-	  - parseCommand fills the PreampCommand with the expected dB value and the
+	  - PreampCommand::parse fills the PreampCommand with the expected dB value and the
 	    valid / noOp flags the engine relies on (0 dB is a valid no-op; a
 	    malformed parameter is not valid at all),
 	  - serialize(parse(line)) reproduces the canonical parameter string, so a
@@ -28,27 +28,26 @@
 #include "text/WideString.h"
 #include "parser/NumericText.h"
 
-#include "filters/PreampFilterFactory.h"
 #include "filters/PreampCommand.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 using std::wstring;
 
 namespace
 {
-test::Harness harness("ParserPreampTests");
+test::HarnessAccess harness;
 
 // Parses a single "Preamp:" line. The command keyword is always "Preamp" here;
 // the factory splits command from parameters at the ':' before calling
-// parseCommand, so the test passes them already separated.
+// PreampCommand::parse, so the test passes them already separated.
 PreampCommand parsePreamp(const wstring& parameters)
 {
 	wstring command = L"Preamp";
 	PreampCommand cmd;
-	// The keyword is recognized, so parseCommand returns true; the valid/noOp
+	// The keyword is recognized, so PreampCommand::parse returns true; the valid/noOp
 	// flags then describe the parse outcome.
-	bool recognized = PreampFilterFactory::parseCommand(command, parameters, cmd);
-	harness.expectTrue(recognized, "Preamp keyword should be recognized by parseCommand");
+	bool recognized = PreampCommand::parse(command, parameters, cmd);
+	harness.expectTrue(recognized, "Preamp keyword should be recognized by PreampCommand::parse");
 	return cmd;
 }
 
@@ -82,7 +81,7 @@ void expectSerializeIsIdempotent(const wstring& parameters)
 }
 }
 
-void runParserPreampTests()
+TEST_CASE(ParserPreampTests, runParserPreampTests)
 {
 	// Canonical lines: serialize reproduces the input parameter exactly.
 	expectRoundTrip(L"0 dB", 0.0, L"0 dB");
@@ -164,10 +163,8 @@ void runParserPreampTests()
 		wstring command = L"Delay";
 		wstring parameters = L"5 ms";
 		PreampCommand cmd;
-		harness.expectFalse(PreampFilterFactory::parseCommand(command, parameters, cmd),
-			"parseCommand should reject a non-Preamp command");
+		harness.expectFalse(PreampCommand::parse(command, parameters, cmd),
+			"PreampCommand::parse should reject a non-Preamp command");
 		harness.expectFalse(cmd.valid, "a rejected command leaves the struct invalid");
 	}
-
-	harness.report();
 }

@@ -12,13 +12,13 @@
 #include <vector>
 
 #include "filters/DeviceCommand.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 using std::wstring;
 
 namespace
 {
-test::Harness harness("DeviceCommandTests");
+test::HarnessAccess harness;
 
 const wstring speakers = L"Speakers Realtek High Definition Audio {f47ee3f7-1111-2222-3333-25c0ddd38222}";
 const wstring headphones = L"Headphones USB Audio Device {0a1b2c3d-4444-5555-6666-25c0ddd38222}";
@@ -31,7 +31,7 @@ DeviceCommand parsePatterns(const wstring& parameters)
 	return cmd;
 }
 
-void testTokenization()
+TEST_CASE(DeviceCommandTests, testTokenization)
 {
 	DeviceCommand cmd = parsePatterns(L"Speakers Realtek; USB Audio");
 	harness.requireEqual(cmd.patterns.size(), (size_t)2, "two patterns are split on ';'");
@@ -48,14 +48,14 @@ void testTokenization()
 	harness.expectEqual(cmd.patterns.size(), (size_t)0, "blank parameters give no patterns");
 }
 
-void testCommandRecognition()
+TEST_CASE(DeviceCommandTests, testCommandRecognition)
 {
 	DeviceCommand cmd;
 	harness.expectFalse(DeviceCommand::parse(L"Preamp", L"all", cmd), "'Preamp' must not parse as Device");
 	harness.expectFalse(DeviceCommand::parse(L"device", L"all", cmd), "command match is case-sensitive");
 }
 
-void testMatching()
+TEST_CASE(DeviceCommandTests, testMatching)
 {
 	// "all" matches every device.
 	harness.expectTrue(parsePatterns(L"all").matches(speakers), "'all' matches speakers");
@@ -77,7 +77,7 @@ void testMatching()
 	harness.expectFalse(parsePatterns(L"").matches(speakers), "empty pattern list matches nothing");
 }
 
-void testRoundTrip()
+TEST_CASE(DeviceCommandTests, testRoundTrip)
 {
 	const wstring cases[] = {
 		L"all",
@@ -99,14 +99,4 @@ void testRoundTrip()
 		harness.expectTrue(second.serialize() == serialized, "second serialization is identical");
 	}
 }
-}
-
-void runDeviceCommandTests()
-{
-	testTokenization();
-	testCommandRecognition();
-	testMatching();
-	testRoundTrip();
-
-	harness.report();
 }

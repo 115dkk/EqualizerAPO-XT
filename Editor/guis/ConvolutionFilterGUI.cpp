@@ -19,7 +19,7 @@
 
 #include <QFileDialog>
 
-#include "Editor/helpers/ConvolutionPathHelper.h"
+#include "Editor/widgets/cards/FileReferenceController.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "filters/ConvolutionCommand.h"
 #include "services/security/AudioEngineAccess.h"
@@ -61,7 +61,7 @@ void ConvolutionFilterGUI::on_selectFileToolButton_clicked()
 	QFileInfo fileInfo(configPath);
 	QDir configDir = fileInfo.absoluteDir();
 	QString path = ui->pathLineEdit->text();
-	QString absolutePath = ConvolutionPathHelper::absolutePathForConfig(configPath, path);
+	QString absolutePath = FileReferenceController::absolutePathForConfig(configPath, path);
 	if (!absolutePath.isEmpty())
 		fileInfo.setFile(absolutePath);
 
@@ -73,7 +73,7 @@ void ConvolutionFilterGUI::on_selectFileToolButton_clicked()
 	if (dialog.exec() == QDialog::Accepted)
 	{
 		QString selectedPath = dialog.selectedFiles().first();
-		ui->pathLineEdit->setText(ConvolutionPathHelper::displayPathForSelection(configPath, selectedPath));
+		ui->pathLineEdit->setText(FileReferenceController::displayPathForConfigSelection(configPath, selectedPath));
 		updateFileInfo();
 
 		emit updateModel();
@@ -100,7 +100,7 @@ void ConvolutionFilterGUI::updateFileInfo()
 	}
 	else
 	{
-		QFileInfo fileInfo(ConvolutionPathHelper::absolutePathForConfig(configPath, path));
+		QFileInfo fileInfo(FileReferenceController::absolutePathForConfig(configPath, path));
 		if (!fileInfo.exists())
 		{
 			error = tr("File not found");

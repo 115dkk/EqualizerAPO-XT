@@ -19,8 +19,8 @@ using FilterFactoryCreator = std::unique_ptr<IFilterFactory>(*)();
 // configuration line. Factories are sorted by ascending priority (lower runs
 // first) in FilterFactoryRegistry::createFactories(); the order is significant:
 //
-//   - Control-flow factories run first because they may blank the command to
-//     skip the rest of the line (Device/If/Stage/Eval/Include).
+//   - Control-flow factories run first because Consumed stops dispatch before
+//     processing factories see a skipped line (Device/If/Stage/Eval/Include).
 //   - Channel selection runs before the processing filters.
 //   - The processing filters run last, each matching its own command keyword.
 //
@@ -94,10 +94,8 @@ public:
 // hand-maintained central list.
 //
 // There used to be a third parameter saying whether a recognised line that
-// produces no filter is legitimate, because the engine warned about the ones that
-// were not. It is gone: a factory that cannot use its own line now says so itself
-// through ParseReportingFactory::reportParseError, which knows what was wrong
-// instead of inferring that something was.
+// produces no filter is legitimate. LineOutcome now carries that verdict from
+// the factory to the dispatch loop without a separate command list.
 #define REGISTER_FILTER_FACTORY(priority, factoryType, ...) \
 	namespace \
 	{ \

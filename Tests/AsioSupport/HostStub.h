@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <atomic>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -164,10 +165,10 @@ namespace asiotest
 			return inputRecords_[openedInput];
 		}
 
-		unsigned long switches() const noexcept {return switches_;}
+		unsigned long switches() const noexcept {return switches_.load(std::memory_order_relaxed);}
 		unsigned long timeInfoSwitches() const noexcept {return timeInfoSwitches_;}
-		unsigned long resetRequests() const noexcept {return resetRequests_;}
-		unsigned long latencyChanges() const noexcept {return latencyChanges_;}
+		unsigned long resetRequests() const noexcept {return resetRequests_.load(std::memory_order_relaxed);}
+		unsigned long latencyChanges() const noexcept {return latencyChanges_.load(std::memory_order_relaxed);}
 		double lastRateChange() const noexcept {return lastRateChange_;}
 		unsigned long rateChanges() const noexcept {return rateChanges_;}
 		const std::vector<ASIOBufferInfo>& infos() const noexcept {return infos_;}
@@ -230,10 +231,10 @@ namespace asiotest
 			case kAsioSupportsTimeInfo:
 				return options_.supportsTimeInfo ? 1 : 0;
 			case kAsioResetRequest:
-				resetRequests_++;
+				resetRequests_.fetch_add(1, std::memory_order_relaxed);
 				return options_.supportsResetRequest ? 1 : 0;
 			case kAsioLatenciesChanged:
-				latencyChanges_++;
+				latencyChanges_.fetch_add(1, std::memory_order_relaxed);
 				return 1;
 			default:
 				return 0;
@@ -257,10 +258,10 @@ namespace asiotest
 					switchLogOverflow_++;
 				}
 			}
-			switches_++;
+			const unsigned long switchCount = switches_.fetch_add(1, std::memory_order_relaxed) + 1;
 			if (timeInfo)
 				timeInfoSwitches_++;
-			if (options_.proAudioCallback && switches_ == 1)
+			if (options_.proAudioCallback && switchCount == 1)
 			{
 				DWORD taskIndex = 0;
 				HANDLE task = AvSetMmThreadCharacteristicsW(L"Pro Audio", &taskIndex);
@@ -317,10 +318,10 @@ namespace asiotest
 		size_t switchLogOverflow_ = 0;
 		int64_t qpcFrequency_ = 0;
 		uint64_t outputPosition_ = 0;
-		unsigned long switches_ = 0;
+		std::atomic<unsigned long> switches_{0};
 		unsigned long timeInfoSwitches_ = 0;
-		unsigned long resetRequests_ = 0;
-		unsigned long latencyChanges_ = 0;
+		std::atomic<unsigned long> resetRequests_{0};
+		std::atomic<unsigned long> latencyChanges_{0};
 		unsigned long rateChanges_ = 0;
 		double lastRateChange_ = 0.0;
 	};

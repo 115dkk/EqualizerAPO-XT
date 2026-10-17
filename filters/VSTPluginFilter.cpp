@@ -149,7 +149,7 @@ bool VSTPluginFilter::createFirstInstance(InitContext& context, const std::vecto
 {
 	try
 	{
-		context.firstEffect = AlignedMemory::constructUnique<VSTPluginInstance>(library, 2);
+		context.firstEffect = VSTPluginInstance::create(library, 2);
 	}
 	catch (const std::bad_alloc&)
 	{
@@ -274,7 +274,7 @@ bool VSTPluginFilter::createRemainingInstances(InitContext& context, const std::
 	{
 		try
 		{
-			effects.push_back(AlignedMemory::constructUnique<VSTPluginInstance>(library, 2));
+			effects.push_back(VSTPluginInstance::create(library, 2));
 		}
 		catch (const std::bad_alloc&)
 		{

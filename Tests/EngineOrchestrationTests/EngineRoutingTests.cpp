@@ -43,7 +43,7 @@ std::wstring writeStereoDeltaIr(test::Harness& harness, const std::wstring& file
 
 // Reads a stereo IR file into two channel-major buffers. Fails the harness if
 // the file is missing or not stereo.
-void readStereoIr(test::Harness& harness, const std::wstring& path, std::vector<double>& ch0, std::vector<double>& ch1)
+void readStereoIr(const test::Harness& harness, const std::wstring& path, std::vector<double>& ch0, std::vector<double>& ch1)
 {
 	SF_INFO info = {};
 	sndfile::Handle file(sf_wchar_open(path.c_str(), SFM_READ, &info));
@@ -118,7 +118,7 @@ double energyOf(const std::vector<float>& sig)
 // A Channel selector must route the following filter to the named channel
 // only. This pins down the channel-name -> channel-index resolution in
 // FilterEngine::addFilters.
-void testChannelSelectorRouting(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testChannelSelectorRouting)
 {
 	std::wstring config = writeConfig(harness, L"channel_selector.txt",
 			"Channel: L\n"
@@ -132,13 +132,13 @@ void testChannelSelectorRouting(test::Harness& harness)
 	// -6.0206 dB is a gain of 10^(-6.0206/20) ~= 0.49999
 	float left = output[(size_t)478 * 2 + 0];
 	float right = output[(size_t)478 * 2 + 1];
-	harness.expect(std::fabs(left - 0.5f) < 1e-3f, "left channel was not attenuated by the selected preamp");
+	harness.expectNear(left, 0.5f, 1e-3f, "left channel was not attenuated by the selected preamp");
 	harness.expect(right == 1.0f, "right channel was modified although only L was selected");
 }
 
 // Copy assignments read from the input snapshot, so a simultaneous swap must
 // not see partially written data.
-void testCopySwapsChannels(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testCopySwapsChannels)
 {
 	std::wstring config = writeConfig(harness, L"copy_swap.txt",
 			"Copy: L=R R=L\n");
@@ -150,8 +150,8 @@ void testCopySwapsChannels(test::Harness& harness)
 
 	float left = output[(size_t)478 * 2 + 0];
 	float right = output[(size_t)478 * 2 + 1];
-	harness.expect(std::fabs(left - 0.25f) < 1e-6f, "Copy did not route R into L");
-	harness.expect(std::fabs(right - 0.75f) < 1e-6f, "Copy did not route L into R");
+	harness.expectNear(left, 0.25f, 1e-6f, "Copy did not route R into L");
+	harness.expectNear(right, 0.75f, 1e-6f, "Copy did not route L into R");
 }
 
 // MultiConvolution must convolve the mapping target's OWN signal with its
@@ -160,7 +160,7 @@ void testCopySwapsChannels(test::Harness& harness)
 // change the result, under the mapping semantics it must not. With a stereo
 // delta IR (pass-through) and L = 0.3, "L=0+1" folds L's own signal in twice
 // (0.6), while R (not a mapping target) passes through unchanged.
-void testMultiConvolutionIgnoresChannelSelection(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testMultiConvolutionIgnoresChannelSelection)
 {
 	std::wstring irPath = writeStereoDeltaIr(harness, L"mc_delta.wav");
 	std::string irNarrow = toNarrow(irPath);
@@ -175,8 +175,8 @@ void testMultiConvolutionIgnoresChannelSelection(test::Harness& harness)
 	std::vector<float> output = processDcBlock(engine, 0.3f, 0.5f, 480);
 	float left = output[(size_t)478 * 2 + 0];
 	float right = output[(size_t)478 * 2 + 1];
-	harness.expect(std::fabs(left - 0.6f) < 1e-3f, "L must be its own signal convolved with both mapped IR channels");
-	harness.expect(std::fabs(right - 0.5f) < 1e-3f, "R must pass through unchanged (it is not a mapping target)");
+	harness.expectNear(left, 0.6f, 1e-3f, "L must be its own signal convolved with both mapped IR channels");
+	harness.expectNear(right, 0.5f, 1e-3f, "R must pass through unchanged (it is not a mapping target)");
 }
 
 // Diagnostic: with a real BRIR set, MultiConvolution must produce genuine
@@ -185,7 +185,7 @@ void testMultiConvolutionIgnoresChannelSelection(test::Harness& harness)
 // Runs only when EAPO_XT_BRIR_DIR points at a folder holding Thead400FL.wav and
 // Thead400FR.wav (both stereo, [left-ear, right-ear]); otherwise it skips so CI
 // stays green without the data files.
-void testRealBrirCrossfeed(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testRealBrirCrossfeed)
 {
 	wchar_t* dirBuf = nullptr;
 	size_t dirLen = 0;
@@ -259,9 +259,9 @@ void testRealBrirCrossfeed(test::Harness& harness)
 	harness.expect(aRenergy > 1e-6, "MultiConvolution BRIR produced no crossfeed to the right ear");
 	// ...matching the left speaker's contralateral response (FL right-ear channel,
 	// peak ~0.0188 around sample 184).
-	harness.expect(std::fabs(aRpeak - 0.0188) < 5e-3, "right-ear crossfeed peak does not match the contralateral IR");
+	harness.expectNear(aRpeak, 0.0188, 5e-3, "right-ear crossfeed peak does not match the contralateral IR");
 	harness.expect(aRpos > 120 && aRpos < 260, "right-ear crossfeed peak is not at the expected contralateral delay");
 	// The 1:1 path leaves the right ear essentially silent (no crossfeed).
-	harness.expect(bRenergy < 1e-6, "1:1 Convolution unexpectedly produced right-ear output");
+	harness.expectNear(bRenergy, 0.0, 1e-6, "1:1 Convolution unexpectedly produced right-ear output");
 	harness.expect(aRenergy > bRenergy * 1000.0, "MultiConvolution crossfeed is not dramatically larger than the 1:1 path");
 }

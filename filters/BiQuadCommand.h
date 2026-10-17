@@ -28,8 +28,7 @@
 // feeds into the BiQuadFilter constructor, so a BiQuadCommand fully determines
 // the engine filter without going through a throwaway BiQuadFilter instance.
 //
-// The engine (BiQuadFilterFactory) and the Editor GUI share one parse routine
-// that fills this struct.
+// The engine factory and the Editor GUI share the parse routines on this struct.
 struct BiQuadCommand
 {
 	BiQuad::Type type = BiQuad::PEAKING;
@@ -47,6 +46,11 @@ struct BiQuadCommand
 	// The grammar currently only accepts lines beginning with "ON"; OFF lines do
 	// not parse. The flag is carried so callers do not have to re-derive it.
 	bool enabled = true;
+
+	static bool parse(const std::wstring& command, std::wstring& parameters,
+		BiQuadCommand& out, std::wstring& error);
+	static bool parse(const std::wstring& command, std::wstring& parameters,
+		BiQuadCommand& out);
 };
 
 // There is deliberately no BiQuadCommand::serialize() counterpart to the

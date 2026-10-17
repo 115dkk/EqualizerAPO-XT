@@ -208,6 +208,5 @@ private:
 	std::vector<Entry> journal;
 	std::vector<std::wstring> applied;
 	std::vector<std::wstring> failures;
-	bool committed = false;
 	bool fullyReversible = true;
 };

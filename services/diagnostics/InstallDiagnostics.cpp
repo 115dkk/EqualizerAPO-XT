@@ -29,6 +29,10 @@
 #include "services/registry/WindowsRegistry.h"
 #include "platform/windows/WindowsVersion.h"
 #include "platform/windows/WindowsPath.h"
+#include "platform/windows/ComError.h"
+#include "platform/windows/ConsoleOutput.h"
+#include "platform/windows/TimeStamp.h"
+#include "services/logging/Logging.h"
 #include "devices/DeviceAPOInfoKeys.h"
 
 using std::vector;
@@ -70,15 +74,6 @@ wstring dwordOrNote(const IRegistry& registry, const wstring& key, const wstring
 
 // The shared helper answers false for an empty path as well (audit #348 TD-54).
 using pathutil::pathExists;
-
-wstring environmentValue(const wchar_t* name)
-{
-	wchar_t buffer[MAX_PATH] = {};
-	DWORD length = GetEnvironmentVariableW(name, buffer, MAX_PATH);
-	if (length == 0 || length >= MAX_PATH)
-		return wstring();
-	return wstring(buffer, length);
-}
 
 bool startsWithNoCase(const wstring& text, const wstring& prefix)
 {
@@ -128,7 +123,7 @@ void appendComRegistration(vector<wstring>& lines, const IRegistry& registry,
 	{
 		guidString = winutil::guidToString(clsid);
 	}
-	catch (const RegistryError&)
+	catch (const ComError&)
 	{
 		lines.push_back(wstring(label) + L": the CLSID could not be formatted");
 		return;
@@ -161,7 +156,7 @@ vector<wstring> attachedEndpoints(const IRegistry& registry)
 		preMix = winutil::guidToString(EQUALIZERAPO_PRE_MIX_GUID);
 		postMix = winutil::guidToString(EQUALIZERAPO_POST_MIX_GUID);
 	}
-	catch (const RegistryError&)
+	catch (const ComError&)
 	{
 		lines.push_back(L"the APO CLSIDs could not be formatted, so no endpoint could be checked");
 		return lines;
@@ -246,12 +241,7 @@ vector<wstring> collect(const IRegistry& registry)
 	vector<wstring> lines;
 
 	appendSection(lines, L"Environment");
-	SYSTEMTIME now;
-	GetLocalTime(&now);
-	wchar_t stamp[32];
-	swprintf_s(stamp, L"%04d-%02d-%02d %02d:%02d:%02d",
-		now.wYear, now.wMonth, now.wDay, now.wHour, now.wMinute, now.wSecond);
-	lines.push_back(wstring(L"time:          ") + stamp);
+	lines.push_back(L"time:          " + winutil::localTimeStamp());
 	lines.push_back(wstring(L"elevated:      ") + (AudioEngineAccess::isElevated() ? L"yes" : L"no"));
 	const WindowsVersion::Version version = WindowsVersion::current();
 	lines.push_back(L"windows:       " + std::to_wstring(version.major) + L"."
@@ -287,8 +277,8 @@ vector<wstring> collect(const IRegistry& registry)
 	appendComRegistration(lines, registry, L"post-mix", EQUALIZERAPO_POST_MIX_GUID);
 
 	appendSection(lines, L"Install location");
-	const wstring profile = environmentValue(L"USERPROFILE");
-	const wstring localAppData = environmentValue(L"LOCALAPPDATA");
+	const wstring profile = pathutil::environmentVariable(L"USERPROFILE");
+	const wstring localAppData = pathutil::environmentVariable(L"LOCALAPPDATA");
 	if (startsWithNoCase(installPath, profile) || startsWithNoCase(installPath, localAppData))
 	{
 		lines.push_back(L"the install lives under the installing user's profile, which is where Velopack puts it.");
@@ -320,8 +310,8 @@ vector<wstring> collect(const IRegistry& registry)
 	}
 	else if (!AudioEngineAccess::isReadableByAudioEngine(installPath))
 	{
-		lines.push_back(L"Run Device Selector once from the Start menu and accept the elevation prompt;");
-		lines.push_back(L"the install hook applies the missing grant. If that does not help, reinstall.");
+		lines.push_back(L"Run tools\\Repair-EqualizerAPO.ps1 as administrator, then Editor.exe --diagnose.");
+		lines.push_back(L"If that does not help, reinstall.");
 	}
 	else
 	{
@@ -345,18 +335,12 @@ wstring writeReport()
 	// The same directory Logging::useUserFile writes into, so a user asked for
 	// "the logs folder" finds the report there too.
 	wstring path;
-	const wstring localAppData = environmentValue(L"LOCALAPPDATA");
-	if (!localAppData.empty())
+	const wstring directory = Logging::userLogDirectory();
+	if (!directory.empty())
 	{
-		const wstring directory = localAppData + L"\\EqualizerAPO\\logs";
 		if (pathutil::createDirectoryRecursive(directory))
 		{
-			SYSTEMTIME now;
-			GetLocalTime(&now);
-			wchar_t stamp[32];
-			swprintf_s(stamp, L"%04d%02d%02d-%02d%02d%02d",
-				now.wYear, now.wMonth, now.wDay, now.wHour, now.wMinute, now.wSecond);
-			const wstring candidate = directory + L"\\diagnose-" + stamp + L".txt";
+			const wstring candidate = directory + L"\\diagnose-" + winutil::localTimeStamp(true) + L".txt";
 
 			FILE* file = nullptr;
 			if (_wfopen_s(&file, candidate.c_str(), L"wt, ccs=UTF-8") == 0 && file != nullptr)
@@ -369,20 +353,13 @@ wstring writeReport()
 		}
 	}
 
-	if (AttachConsole(ATTACH_PARENT_PROCESS))
+	winutil::ParentConsole console;
+	if (console)
 	{
-		// Reopening the CRT's stdout onto the freshly attached console is what
-		// makes this reach it; the handle the process started with goes nowhere.
-		FILE* consoleOut = nullptr;
-		if (freopen_s(&consoleOut, "CONOUT$", "w", stdout) == 0)
-		{
-			for (const wstring& line : lines)
-				wprintf(L"%ls\n", line.c_str());
-			if (!path.empty())
-				wprintf(L"\nwritten to %ls\n", path.c_str());
-			fflush(stdout);
-		}
-		FreeConsole();
+		for (const wstring& line : lines)
+			console.write(line + L"\n");
+		if (!path.empty())
+			console.write(L"\nwritten to " + path + L"\n");
 	}
 
 	return path;

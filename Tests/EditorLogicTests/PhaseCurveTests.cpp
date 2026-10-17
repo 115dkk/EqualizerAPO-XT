@@ -103,7 +103,7 @@ double valueNearest(const AnalysisCurve& curve, const AnalysisCurveRequest& requ
 }
 }
 
-void testPhaseAndGroupDelayOfAUnityResponse()
+TEST_CASE(EditorLogicTests, testPhaseAndGroupDelayOfAUnityResponse)
 {
 	auto response = emptyResponse();
 
@@ -112,7 +112,7 @@ void testPhaseAndGroupDelayOfAUnityResponse()
 	double worst = 0.0;
 	for (double value : curve.values)
 		worst = std::max(worst, std::abs(value));
-	expectTrue(worst < 1e-9, QStringLiteral("a unity response has no phase (worst %1 deg)").arg(worst));
+	expectNear(worst, 0.0, 1e-9, QStringLiteral("a unity response has no phase (worst %1 deg)").arg(worst));
 	expectEqual(curve.unit, QString::fromUtf8("\xC2\xB0"), QStringLiteral("phase is in degrees"));
 
 	request = requestFor(AnalysisMetric::GroupDelayMs);
@@ -120,14 +120,14 @@ void testPhaseAndGroupDelayOfAUnityResponse()
 	worst = 0.0;
 	for (double value : curve.values)
 		worst = std::max(worst, std::abs(value));
-	expectTrue(worst < 1e-9, QStringLiteral("a unity response has no group delay (worst %1 ms)").arg(worst));
+	expectNear(worst, 0.0, 1e-9, QStringLiteral("a unity response has no group delay (worst %1 ms)").arg(worst));
 	expectEqual(curve.unit, QStringLiteral("ms"), QStringLiteral("group delay is in milliseconds"));
 	// The axis keeps zero in view even though every reading sits on it.
 	expectTrue(curve.minimum <= 0.0 && curve.maximum >= 0.0,
 		QStringLiteral("the group-delay axis contains zero"));
 }
 
-void testPhaseAndGroupDelayOfAPureDelay()
+TEST_CASE(EditorLogicTests, testPhaseAndGroupDelayOfAPureDelay)
 {
 	// What the analyzer hands over for a config that is nothing but a delay:
 	// it strips the silence, so the bins are unity, and reports the frames it
@@ -141,7 +141,7 @@ void testPhaseAndGroupDelayOfAPureDelay()
 	double worst = 0.0;
 	for (double value : curve.values)
 		worst = std::max(worst, std::abs(value));
-	expectTrue(worst < 1e-9,
+	expectNear(worst, 0.0, 1e-9,
 		QStringLiteral("with the base delay excluded a pure delay is invisible (worst %1 ms)").arg(worst));
 
 	request = requestFor(AnalysisMetric::GroupDelayMs, true);
@@ -149,7 +149,7 @@ void testPhaseAndGroupDelayOfAPureDelay()
 	worst = 0.0;
 	for (double value : curve.values)
 		worst = std::max(worst, std::abs(value - 10.0));
-	expectTrue(worst < 1e-6,
+	expectNear(worst, 0.0, 1e-6,
 		QStringLiteral("with it included the group delay is the delay itself, 10 ms (worst error %1 ms)").arg(worst));
 
 	// The same switch on the phase view: a delay is a linear phase, and at
@@ -160,7 +160,7 @@ void testPhaseAndGroupDelayOfAPureDelay()
 	const double columnHz = analysisColumnFrequency(request, column);
 	const double at1k = curve.values[column];
 	const double expected = -360.0 * columnHz * 0.01;
-	expectTrue(std::abs(at1k - expected) < 0.5,
+	expectNear(at1k, expected, 0.5,
 		QStringLiteral("a 10 ms delay is a linear phase: %1 deg expected at %2 Hz, got %3")
 			.arg(expected, 0, 'f', 1).arg(columnHz, 0, 'f', 2).arg(at1k, 0, 'f', 1));
 
@@ -169,10 +169,10 @@ void testPhaseAndGroupDelayOfAPureDelay()
 	worst = 0.0;
 	for (double value : curve.values)
 		worst = std::max(worst, std::abs(value));
-	expectTrue(worst < 1e-9, QStringLiteral("with the base delay excluded the phase is flat"));
+	expectNear(worst, 0.0, 1e-9, QStringLiteral("with the base delay excluded the phase is flat"));
 }
 
-void testPhaseAndGroupDelayOfAnAllPass()
+TEST_CASE(EditorLogicTests, testPhaseAndGroupDelayOfAnAllPass)
 {
 	// The filter this whole reform exists for. Flat in magnitude, so the only
 	// view that can see it at all is one of these two.
@@ -183,7 +183,7 @@ void testPhaseAndGroupDelayOfAnAllPass()
 	double worstDb = 0.0;
 	for (double value : magnitude.values)
 		worstDb = std::max(worstDb, std::abs(value));
-	expectTrue(worstDb < 1e-9,
+	expectNear(worstDb, 0.0, 1e-9,
 		QStringLiteral("an all-pass is a flat line in magnitude (worst %1 dB)").arg(worstDb));
 	expectFalse(magnitude.clipping, QStringLiteral("a flat response does not clip"));
 
@@ -197,7 +197,7 @@ void testPhaseAndGroupDelayOfAnAllPass()
 	// A 2nd-order all-pass passes -180 degrees at Fc and keeps turning the
 	// same way. The unwrap is what makes that readable instead of a sawtooth.
 	const double atFc = valueNearest(phase, request, 1000.0);
-	expectTrue(std::abs(atFc + 180.0) < 2.0,
+	expectNear(atFc, -180.0, 2.0,
 		QStringLiteral("all-pass phase is -180 deg at Fc (got %1)").arg(atFc, 0, 'f', 1));
 	expectTrue(valueNearest(phase, request, 20.0) > -5.0,
 		QStringLiteral("it starts near zero at the bottom of the band"));
@@ -220,7 +220,7 @@ void testPhaseAndGroupDelayOfAnAllPass()
 	// 4Q / sin(w0) samples at Fc, converted to milliseconds.
 	const double omega0 = 2.0 * std::numbers::pi_v<double> * 1000.0 / SampleRate;
 	const double expectedWide = 4.0 * 0.707 / std::sin(omega0) / SampleRate * 1000.0;
-	expectTrue(std::abs(widePeak - expectedWide) < expectedWide * 0.02,
+	expectNear(widePeak, expectedWide, expectedWide * 0.02,
 		QStringLiteral("group delay at Fc matches 4Q/sin(w0) (expected %1 ms, got %2 ms)")
 			.arg(expectedWide, 0, 'f', 3).arg(widePeak, 0, 'f', 3));
 	expectTrue(sharpPeak > widePeak * 4.0,
@@ -230,7 +230,7 @@ void testPhaseAndGroupDelayOfAnAllPass()
 		QStringLiteral("and the peak is narrow - a decade below Fc it has fallen away"));
 }
 
-void testPhaseBreaksWhereTheResponseIsDead()
+TEST_CASE(EditorLogicTests, testPhaseBreaksWhereTheResponseIsDead)
 {
 	// Total cancellation, which "Copy: L=L-L" produces. There is no phase to
 	// report anywhere, and the graph must say so rather than draw a line
@@ -290,7 +290,7 @@ void testPhaseBreaksWhereTheResponseIsDead()
 		QStringLiteral("and the group-delay axis stays finite"));
 }
 
-void testPhaseAndGroupDelayAxisCaptions()
+TEST_CASE(EditorLogicTests, testPhaseAndGroupDelayAxisCaptions)
 {
 	auto response = biquadResponse(BiQuad::ALL_PASS, 1000.0, 0.707);
 
@@ -306,9 +306,9 @@ void testPhaseAndGroupDelayAxisCaptions()
 	// The axis lands on landmark angles: a quarter turn has to be a tick.
 	requireTrue(phase.ticks.size() >= 3, QStringLiteral("the phase axis has ticks"));
 	const double step = phase.ticks[1].value - phase.ticks[0].value;
-	expectTrue(std::abs(std::fmod(step, 15.0)) < 1e-9,
+	expectNear(std::fmod(step, 15.0), 0.0, 1e-9,
 		QStringLiteral("the phase step is a whole number of 15-degree landmarks (got %1)").arg(step));
-	expectTrue(std::abs(std::fmod(phase.minimum, step)) < 1e-9,
+	expectNear(std::fmod(phase.minimum, step), 0.0, 1e-9,
 		QStringLiteral("and the axis ends land on the step"));
 
 	AnalysisCurve delay = buildAnalysisCurve(*response, requestFor(AnalysisMetric::GroupDelayMs));

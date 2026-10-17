@@ -6,7 +6,6 @@
 
 #include "MinimalSkin.h"
 
-#include <QFileDialog>
 #include <QIcon>
 #include <QPainter>
 #include <QPen>
@@ -95,9 +94,9 @@ protected:
 };
 }
 
-void MinimalSkin::installFileIconProvider(QFileDialog* dialog, const SkinTokens& tokens)
+QAbstractFileIconProvider* MinimalSkin::fileIconProvider(const SkinTokens& tokens) const
 {
 	static MinimalFileIconProvider iconProvider;
 	iconProvider.updateTokens(tokens);
-	dialog->setIconProvider(&iconProvider);
+	return &iconProvider;
 }

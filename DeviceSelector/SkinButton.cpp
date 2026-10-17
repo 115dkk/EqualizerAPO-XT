@@ -7,14 +7,17 @@
 #include "SkinButton.h"
 
 #include <QPainter>
-#include <QVariantAnimation>
 
+#include "platform/qt/HoverProgress.h"
 #include "skins/DeviceSkinPainter.h"
 
 SkinButton::SkinButton(const QString& text, bool primaryButton, QWidget* parent)
 	: QPushButton(text, parent), primary(primaryButton)
 {
 	setCursor(Qt::PointingHandCursor);
+	hover = new HoverProgress(this, [this]() {
+		update();
+	});
 }
 
 QSize SkinButton::sizeHint() const
@@ -44,37 +47,18 @@ void SkinButton::paintEvent(QPaintEvent*)
 	state.enabled = isEnabled();
 	state.pressed = isDown();
 	state.focused = hasFocus();
-	state.hover = isEnabled() ? hoverValue : 0.0;
+	state.hover = isEnabled() ? hover->value() : 0.0;
 	DeviceSkinPainter::active()->paintButton(painter, rect(), state, DeviceSkinPainter::activeTokens());
 }
 
 void SkinButton::enterEvent(QEnterEvent* event)
 {
-	animateHover(1.0, 150);
+	hover->animateTo(1.0, 150);
 	QPushButton::enterEvent(event);
 }
 
 void SkinButton::leaveEvent(QEvent* event)
 {
-	animateHover(0.0, 110);
+	hover->animateTo(0.0, 110);
 	QPushButton::leaveEvent(event);
-}
-
-void SkinButton::animateHover(double target, int duration)
-{
-	if (hoverAnimation == nullptr)
-	{
-		hoverAnimation = new QVariantAnimation(this);
-		hoverAnimation->setEasingCurve(QEasingCurve::OutCubic);
-		connect(hoverAnimation, &QVariantAnimation::valueChanged, this, [this](const QVariant& value) {
-			hoverValue = value.toDouble();
-			update();
-		});
-	}
-	// Interruptible: retarget from the current value.
-	hoverAnimation->stop();
-	hoverAnimation->setDuration(duration);
-	hoverAnimation->setStartValue(hoverValue);
-	hoverAnimation->setEndValue(target);
-	hoverAnimation->start();
 }

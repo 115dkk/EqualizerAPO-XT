@@ -57,48 +57,28 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(ASIO_SDK)\common;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(IncludePath)</IncludePath>
+    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(ASIO_SDK)\common;$(TCLAP_ROOT)\include;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;_CONSOLE;UNICODE;_UNICODE;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_CONSOLE;UNICODE;_UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ole32.lib;uuid.lib;avrt.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
-      <Command>if exist "$(FFTW_LIB)\*.dll" copy /Y "$(FFTW_LIB)\*.dll" "$(OutDir)"
-if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
-if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"</Command>
-    </PostBuildEvent>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
-    <ClCompile>
-      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-    </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AsioProbe.cpp" />
     <ClCompile Include="..\FakeAsioDriver\FakeAsio.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\asio\AsioSdk.h" />
-    <ClInclude Include="..\..\asio\AsioWrapper.h" />
-    <ClInclude Include="..\..\asio\DriverNameText.h" />
-    <ClInclude Include="..\..\asio\InProcProcessor.h" />
-    <ClInclude Include="..\..\asio\StreamProcessor.h" />
-    <ClInclude Include="..\..\asio\DaemonProcessor.h" />
-    <ClInclude Include="..\..\asio\EngineHostCore.h" />
-    <ClInclude Include="..\..\asio\HostLink.h" />
-    <ClInclude Include="..\..\asio\HostProtocol.h" />
-    <ClInclude Include="..\..\asio\ThreadHostLink.h" />
-    <ClInclude Include="..\..\asio\Win32HostLink.h" />
     <ClInclude Include="..\AsioSupport\HostStub.h" />
     <ClInclude Include="..\AsioSupport\LatencyMatch.h" />
-    <ClInclude Include="..\..\runtime\ipc\StreamRing.h" />
-    <ClInclude Include="..\AsioSupport\Sha256.h" />
     <ClInclude Include="..\FakeAsioDriver\FakeAsio.h" />
     <ClInclude Include="..\FakeAsioDriver\FakeAsioControl.h" />
+    <ClInclude Include="..\ProbeSupport\CommandLine.h" />
+    <ClInclude Include="..\ProbeSupport\Sha256.h" />
+    <ClInclude Include="..\ProbeSupport\WasapiEndpoint.h" />
   </ItemGroup>
   <Import Project="..\..\asio\AsioCoreSources.props" />
   <Import Project="..\..\asio\AsioInProcSources.props" />

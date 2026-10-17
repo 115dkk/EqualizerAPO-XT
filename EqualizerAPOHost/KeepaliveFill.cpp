@@ -8,43 +8,22 @@
 
 #include <cmath>
 #include <cstring>
-#include <ks.h>
-#include <ksmedia.h>
+
+#include "asio/WaveFormat.h"
 
 namespace
 {
-	struct SampleFormat
-	{
-		bool floating = false;
-		unsigned validBits = 0;
-	};
+	using SampleFormat = eapo::asio::waveformat::Container;
 
 	bool describe(const WAVEFORMATEX& format, SampleFormat& sample)
 	{
-		sample.validBits = format.wBitsPerSample;
-		if (format.wFormatTag == WAVE_FORMAT_EXTENSIBLE)
-		{
-			if (format.cbSize < sizeof(WAVEFORMATEXTENSIBLE) - sizeof(WAVEFORMATEX))
-				return false;
-			const auto& ext = reinterpret_cast<const WAVEFORMATEXTENSIBLE&>(format);
-			if (ext.SubFormat == KSDATAFORMAT_SUBTYPE_IEEE_FLOAT)
-				sample.floating = true;
-			else if (ext.SubFormat != KSDATAFORMAT_SUBTYPE_PCM)
-				return false;
-			if (ext.Samples.wValidBitsPerSample != 0)
-				sample.validBits = ext.Samples.wValidBitsPerSample;
-		}
-		else if (format.wFormatTag == WAVE_FORMAT_IEEE_FLOAT)
-			sample.floating = true;
-		else if (format.wFormatTag != WAVE_FORMAT_PCM)
+		if (!eapo::asio::waveformat::containerOf(&format, sample))
 			return false;
-
-		if (sample.floating ? (format.wBitsPerSample != 32 || sample.validBits != 32)
-			: (format.wBitsPerSample != 16 && format.wBitsPerSample != 24 && format.wBitsPerSample != 32))
+		if (sample.floating ? (sample.bits != 32 || sample.validBits != 32)
+			: (sample.bits != 16 && sample.bits != 24 && sample.bits != 32))
 			return false;
-		return sample.validBits > 0 && sample.validBits <= format.wBitsPerSample
-			&& format.nChannels != 0 && format.nSamplesPerSec != 0
-			&& format.nBlockAlign == static_cast<unsigned>(format.nChannels) * (format.wBitsPerSample / 8);
+		return format.nChannels != 0 && format.nSamplesPerSec != 0
+			&& format.nBlockAlign == static_cast<unsigned>(format.nChannels) * (sample.bits / 8);
 	}
 
 	double uniform(uint32_t& state)

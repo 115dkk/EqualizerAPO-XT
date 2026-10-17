@@ -96,8 +96,7 @@ void DeviceFilterGUI::load(const QString& parameters)
 					state = tr("APO installed");
 				else
 					state = tr("APO not installed");
-				VoicemeeterAPOInfo* voicemeeterInfo = dynamic_cast<VoicemeeterAPOInfo*>(apoInfo.get());
-				if (voicemeeterInfo != nullptr && !voicemeeterInfo->isVoicemeeterInstalled())
+				if (apoInfo->stateNote() == L"Voicemeeter was uninstalled")
 					state += ", " + tr("Voicemeeter was uninstalled");
 				values.append(state);
 				lastItem = new QTreeWidgetItem(ui->treeWidget, values);
@@ -108,7 +107,7 @@ void DeviceFilterGUI::load(const QString& parameters)
 		{
 			QStringList values;
 			values.append("");
-			values.append(tr("No device matched") + " \"" + pattern.trimmed() + "\"");
+			values.append(tr("No device matched \"%1\"").arg(pattern.trimmed()));
 			values.append("");
 
 			QTreeWidgetItem* item = new QTreeWidgetItem(ui->treeWidget, values);

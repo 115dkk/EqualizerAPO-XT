@@ -15,7 +15,7 @@
 
 #include "EditorLogicTestSupport.h"
 
-void testKnobTravelLaw()
+TEST_CASE(EditorLogicTests, testKnobTravelLaw)
 {
 	// The preamp knob: +-20 dB in 0.1 dB steps is 400 units, so RangePixels
 	// of travel is the whole range and one pixel is two units.

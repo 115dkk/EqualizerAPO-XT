@@ -14,9 +14,8 @@
     Then restarts Audiosrv so the audio engine reloads the APO with the
     corrected ACL.
 
-    Must be run elevated. If the install hook on a fresh install already
-    applies these grants (as of the v0.3 fix), this script is only needed
-    for installs that predate that fix.
+    Must be run elevated. Use this when diagnosis reports missing grants,
+    regardless of when the application was installed.
 
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File .\Repair-EqualizerAPO.ps1

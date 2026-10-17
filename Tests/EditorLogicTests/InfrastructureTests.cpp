@@ -28,7 +28,7 @@
 // Missing a skin used to be silent: resolveId() falls back to Studio, so a skin
 // that was registered but forgotten in one of eighteen places was drawn as Studio
 // with no error anywhere.
-void testTheSkinRosterIsTheOneList()
+TEST_CASE(EditorLogicTests, testTheSkinRosterIsTheOneList)
 {
 	const QVector<SkinThemeData::SkinEntry>& roster = SkinThemeData::roster();
 	requireTrue(roster.size() >= 5, "the roster carries the five built-in skins");
@@ -66,7 +66,7 @@ void testTheSkinRosterIsTheOneList()
 		"an unknown id falls back to the first entry rather than producing no skin at all");
 }
 
-void testSkinTokensCarryExplicitMode()
+TEST_CASE(EditorLogicTests, testSkinTokensCarryExplicitMode)
 {
 	const QStringList skinIds = SkinThemeData::ids();
 	for (const QString& skinId : skinIds)
@@ -81,7 +81,7 @@ void testSkinTokensCarryExplicitMode()
 // The alpha form a sheet needs to hold a token at partial opacity. QSS has no
 // variables and its rgba() takes three numbers, so without this a sheet had to
 // write the palette value out by hand and a token change stopped reaching it.
-void testTokenSubstitutionOffersAnAlphaForm()
+TEST_CASE(EditorLogicTests, testTokenSubstitutionOffersAnAlphaForm)
 {
 	const SkinTokens tokens = SkinThemeData::tokens(QStringLiteral("studio"), true);
 	const QColor accent(tokens.accent);
@@ -106,7 +106,7 @@ void testTokenSubstitutionOffersAnAlphaForm()
 	expectTrue(fontSheet.contains(tokens.fontFamily), "the font token still resolves");
 }
 
-void testEverySkinSheetResolvesAllThemeTokens()
+TEST_CASE(EditorLogicTests, testEverySkinSheetResolvesAllThemeTokens)
 {
 	QDir repoRoot(QFileInfo(QString::fromUtf8(__FILE__)).absolutePath());
 	requireTrue(repoRoot.cdUp(), "skin-token test reaches the tests directory");
@@ -132,21 +132,21 @@ void testEverySkinSheetResolvesAllThemeTokens()
 	}
 }
 
-void testEditableValueTextUsesDisplayedDecimalFormatFirst()
+TEST_CASE(EditorLogicTests, testEditableValueTextUsesDisplayedDecimalFormatFirst)
 {
 	const QLocale german(QLocale::German, QLocale::Germany);
 	double value = 0.0;
 	expectTrue(parseEditableValueText(QStringLiteral("12.345"), german, &value),
 		"dot-decimal text parses under a grouping-dot locale");
-	expectTrue(qAbs(value - 12.345) < 0.000001,
+	expectNear(value, 12.345, 0.000001,
 		"dot-decimal text keeps the displayed C-locale meaning");
 	expectTrue(parseEditableValueText(QStringLiteral("12,5"), german, &value),
 		"system-locale decimal text remains accepted as a fallback");
-	expectTrue(qAbs(value - 12.5) < 0.000001,
+	expectNear(value, 12.5, 0.000001,
 		"system-locale fallback keeps its decimal meaning");
 }
 
-void testBenchmarkBatchPlanUsesOnlyComparableFullBatches()
+TEST_CASE(EditorLogicTests, testBenchmarkBatchPlanUsesOnlyComparableFullBatches)
 {
 	const BenchmarkBatchPlan partial = planBenchmarkBatches(1000, 480);
 	expectEqual(partial.processedFrames, 960u,
@@ -161,7 +161,7 @@ void testBenchmarkBatchPlanUsesOnlyComparableFullBatches()
 		"batch-aligned benchmark lengths trim nothing");
 }
 
-void testFileReferenceControllerOwnsPathState()
+TEST_CASE(EditorLogicTests, testFileReferenceControllerOwnsPathState)
 {
 	QTemporaryDir temp;
 	requireTrue(temp.isValid(), "file-reference test creates a temporary root");
@@ -198,9 +198,40 @@ void testFileReferenceControllerOwnsPathState()
 	const QString farSelection = root.filePath(QStringLiteral("outside/plugin.dll"));
 	expectPath(FileReferenceController::displayPathForBaseDirectory(
 		baseDirectory, farSelection), farSelection);
+
+	// A picked file becomes the reference by the same rule (the card's VST
+	// chooser and chooseExistingFile both go through it).
+	reference.adoptChosenFile(farSelection, baseDirectory);
+	expectEqual(reference.writtenPath(), QDir::toNativeSeparators(farSelection),
+		"a far pick is written absolute");
+	expectEqual(reference.resolvedPath(), QDir::toNativeSeparators(farSelection),
+		"a pick resolves to the picked file");
+	reference.adoptChosenFile(impulsePath, root.filePath(QStringLiteral("config")));
+	expectEqual(reference.writtenPath(), QDir::toNativeSeparators(QStringLiteral("irs/room.wav")),
+		"a pick beneath the base directory is written relative");
+	reference.adoptChosenFile(impulsePath, QString());
+	expectEqual(reference.writtenPath(), QDir::toNativeSeparators(impulsePath),
+		"a pick without a base directory is written as picked");
+
+	// Both VST rows show a loaded library by one rule (audit #422 TD-56): the
+	// cards' climb rule against the VSTPlugins directory, with the absolute
+	// fallback keeping the library's own spelling.
+	const QString pluginsDirectory = QStringLiteral("C:/Program Files/EqualizerAPO/VSTPlugins");
+	expectEqual(FileReferenceController::displayPathForLibrary(
+		QStringLiteral("C:\\Program Files\\EqualizerAPO\\VSTPlugins\\Comp\\comp.dll"), pluginsDirectory),
+		QStringLiteral("Comp\\comp.dll"), "a library beneath VSTPlugins is shown relative");
+	expectEqual(FileReferenceController::displayPathForLibrary(
+		QStringLiteral("C:\\Program Files\\EqualizerAPO\\Shared\\comp.dll"), pluginsDirectory),
+		QStringLiteral("..\\Shared\\comp.dll"), "one level above VSTPlugins is still relative");
+	expectEqual(FileReferenceController::displayPathForLibrary(
+		QStringLiteral("C:/Program Files/Common Files/VST3/comp.vst3"), pluginsDirectory),
+		QStringLiteral("C:/Program Files/Common Files/VST3/comp.vst3"),
+		"a far library keeps its own spelling");
+	expectEqual(FileReferenceController::displayPathForLibrary(QString(), pluginsDirectory), QString(),
+		"no library shows no path");
 }
 
-void testAnalysisWorkerRecovery()
+TEST_CASE(EditorLogicTests, testAnalysisWorkerRecovery)
 {
 	bool failurePublished = false;
 	try
@@ -224,7 +255,7 @@ void testAnalysisWorkerRecovery()
 	expectTrue(nextIterationRan, "analysis worker did not accept work after a failure");
 }
 
-void testMemoryHelperConstructReleasesStorageWhenConstructorThrows()
+TEST_CASE(EditorLogicTests, testMemoryHelperConstructReleasesStorageWhenConstructorThrows)
 {
 	struct ThrowingConstructor
 	{

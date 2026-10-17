@@ -57,6 +57,9 @@
 
 #include "Editor/helpers/PanelFeedEngine.h"
 #include "platform/windows/ComPtr.h"
+#include "Tests/ProbeSupport/CommandLine.h"
+#include "Tests/ProbeSupport/ToneMeter.h"
+#include "Tests/ProbeSupport/WasapiEndpoint.h"
 #include "vst/VSTPluginInstance.h"
 #include "vst/VSTPluginLibrary.h"
 
@@ -137,7 +140,7 @@ int runPluginProbe(const std::wstring& pluginPath, double seconds, float sampleR
 {
 	StepClock clock;
 	std::shared_ptr<VSTPluginLibrary> library = VSTPluginLibrary::getInstance(pluginPath);
-	const int libraryResult = library->initialize();
+	const int libraryResult = VSTPluginLibrary::load(library->getLibPath()).status;
 	clock.lap(L"library initialize");
 	if (libraryResult < 0)
 	{
@@ -145,7 +148,8 @@ int runPluginProbe(const std::wstring& pluginPath, double seconds, float sampleR
 		return 2;
 	}
 
-	VSTPluginInstance instance(library, 1);
+	auto instanceOwner = VSTPluginInstance::create(library, 1);
+	VSTPluginInstance& instance = *instanceOwner;
 	if (!instance.initialize())
 	{
 		wprintf(L"FAIL: plugin instance initialize failed\n");
@@ -197,18 +201,12 @@ int runPluginProbe(const std::wstring& pluginPath, double seconds, float sampleR
 	long long position = 0;
 	while (position < totalFrames)
 	{
-		for (int channel = 0; channel < inputChannelCount; channel++)
-		{
-			for (int i = 0; i < blockFrames; i++)
-			{
-				const double sample = sineAmplitude
-					* std::sin(2.0 * std::numbers::pi_v<double> * sineFrequency * (position + i) / sampleRate);
-				if (useDouble)
-					inputDouble[channel][i] = sample;
-				else
-					inputFloat[channel][i] = static_cast<float>(sample);
-			}
-		}
+		if (useDouble)
+			probesupport::fillPlanarSine(inputDoublePointers.data(), static_cast<size_t>(inputChannelCount), blockFrames,
+				static_cast<uint64_t>(position), sampleRate, sineFrequency, sineAmplitude);
+		else
+			probesupport::fillPlanarSine(inputFloatPointers.data(), static_cast<size_t>(inputChannelCount), blockFrames,
+				static_cast<uint64_t>(position), sampleRate, sineFrequency, sineAmplitude);
 
 		const bool survived = useDouble
 			? processDoubleGuarded(&instance, inputDoublePointers.data(), outputDoublePointers.data(), blockFrames)
@@ -261,9 +259,7 @@ int runPluginProbe(const std::wstring& pluginPath, double seconds, float sampleR
 int runLoopbackProbe(double seconds)
 {
 	ComPtr<IMMDeviceEnumerator> enumerator;
-	HRESULT hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr,
-		CLSCTX_INPROC_SERVER, __uuidof(IMMDeviceEnumerator),
-		reinterpret_cast<void**>(enumerator.put()));
+	HRESULT hr = probesupport::wasapi::createEnumerator(enumerator);
 	if (FAILED(hr) || !enumerator)
 	{
 		wprintf(L"FAIL: device enumerator (hr=0x%08lx)\n", hr);
@@ -271,7 +267,7 @@ int runLoopbackProbe(double seconds)
 	}
 
 	ComPtr<IMMDevice> device;
-	hr = enumerator->GetDefaultAudioEndpoint(eRender, eConsole, device.put());
+	hr = probesupport::wasapi::defaultEndpoint(enumerator.get(), eRender, device);
 	if (FAILED(hr) || !device)
 	{
 		wprintf(L"FAIL: no default render endpoint (hr=0x%08lx)\n", hr);
@@ -279,8 +275,7 @@ int runLoopbackProbe(double seconds)
 	}
 
 	ComPtr<IAudioClient> renderClient;
-	hr = device->Activate(__uuidof(IAudioClient), CLSCTX_INPROC_SERVER, nullptr,
-		reinterpret_cast<void**>(renderClient.put()));
+	hr = probesupport::wasapi::activateAudioClient(device.get(), renderClient);
 	if (FAILED(hr) || !renderClient)
 	{
 		wprintf(L"FAIL: render IAudioClient (hr=0x%08lx)\n", hr);
@@ -323,8 +318,7 @@ int runLoopbackProbe(double seconds)
 	renderClient->GetBufferSize(&renderBufferFrames);
 
 	ComPtr<IAudioClient> captureClient;
-	hr = device->Activate(__uuidof(IAudioClient), CLSCTX_INPROC_SERVER, nullptr,
-		reinterpret_cast<void**>(captureClient.put()));
+	hr = probesupport::wasapi::activateAudioClient(device.get(), captureClient);
 	if (FAILED(hr) || !captureClient)
 	{
 		wprintf(L"FAIL: capture IAudioClient (hr=0x%08lx)\n", hr);
@@ -385,8 +379,8 @@ int runLoopbackProbe(double seconds)
 						// the panel-feed A/B keys on meter movement.
 						const double t = (renderedFrames + i) / sampleRate;
 						const double envelope = std::pow(std::sin(2.0 * std::numbers::pi_v<double> * 1.5 * t / 2.0), 2.0);
-						const float value = static_cast<float>(sineAmplitude * envelope
-							* std::sin(2.0 * std::numbers::pi_v<double> * sineFrequency * t));
+						const float value = static_cast<float>(probesupport::sineSample(
+							sineFrequency, sineAmplitude * envelope, static_cast<uint64_t>(renderedFrames + i), sampleRate));
 						for (UINT32 channel = 0; channel < channelCount; channel++)
 							samples[i * channelCount + channel] = value;
 					}
@@ -458,7 +452,7 @@ struct LoopbackTap
 			return false;
 		}
 		ComPtr<IMMDevice> device;
-		hr = enumerator->GetDefaultAudioEndpoint(eRender, eConsole, device.put());
+		hr = probesupport::wasapi::defaultEndpoint(enumerator.get(), eRender, device);
 		if (FAILED(hr) || !device)
 		{
 			wprintf(L"FAIL: tap has no default render endpoint (hr=0x%08lx)\n", hr);
@@ -535,13 +529,14 @@ constexpr double audiblePeak = 0.01;
 int runMonitorProbe(const std::wstring& pluginPath, double seconds, bool expectLive)
 {
 	std::shared_ptr<VSTPluginLibrary> library = VSTPluginLibrary::getInstance(pluginPath);
-	const int libraryResult = library->initialize();
+	const int libraryResult = VSTPluginLibrary::load(library->getLibPath()).status;
 	if (libraryResult < 0)
 	{
 		wprintf(L"FAIL: library initialize returned %d for %s\n", libraryResult, pluginPath.c_str());
 		return 2;
 	}
-	VSTPluginInstance instance(library, 1);
+	auto instanceOwner = VSTPluginInstance::create(library, 1);
+	VSTPluginInstance& instance = *instanceOwner;
 	if (!instance.initialize())
 	{
 		wprintf(L"FAIL: plugin instance initialize failed\n");
@@ -663,37 +658,40 @@ int wmain(int argc, wchar_t* argv[])
 		L"                       [--monitor <path.vst3|path.dll>] [--expect-live | --expect-static]\n"
 		L"                       [--capture-only] [--expect-audio | --expect-silence]\n";
 
-	for (int i = 1; i < argc; i++)
+	probesupport::CommandLine commandLine;
+	TCLAP::CmdLine& parser = commandLine.parser();
+	probesupport::SetBoolVisitor expectLiveVisitor(expectLive, true);
+	probesupport::SetBoolVisitor expectStaticVisitor(expectLive, false);
+	probesupport::SetBoolVisitor expectAudioVisitor(expectAudio, true);
+	probesupport::SetBoolVisitor expectSilenceVisitor(expectAudio, false);
+	TCLAP::MultiArg<std::string> pluginArg("", "plugin", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> monitorArg("", "monitor", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> secondsArg("", "seconds", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> rateArg("", "rate", "", false, "value", parser);
+	TCLAP::MultiSwitchArg expectNonsilentArg("", "expect-nonsilent", "", parser);
+	TCLAP::MultiSwitchArg expectLiveArg("", "expect-live", "", parser, 0, &expectLiveVisitor);
+	TCLAP::MultiSwitchArg expectStaticArg("", "expect-static", "", parser, 0, &expectStaticVisitor);
+	TCLAP::MultiSwitchArg expectAudioArg("", "expect-audio", "", parser, 0, &expectAudioVisitor);
+	TCLAP::MultiSwitchArg expectSilenceArg("", "expect-silence", "", parser, 0, &expectSilenceVisitor);
+	TCLAP::MultiSwitchArg loopbackArg("", "loopback", "", parser);
+	TCLAP::MultiSwitchArg captureOnlyArg("", "capture-only", "", parser);
+	if (!commandLine.parse(argc, argv))
 	{
-		const std::wstring argument = argv[i];
-		if (argument == L"--plugin" && i + 1 < argc)
-			pluginPath = argv[++i];
-		else if (argument == L"--monitor" && i + 1 < argc)
-			monitorPluginPath = argv[++i];
-		else if (argument == L"--seconds" && i + 1 < argc)
-			seconds = _wtof(argv[++i]);
-		else if (argument == L"--rate" && i + 1 < argc)
-			sampleRate = static_cast<float>(_wtof(argv[++i]));
-		else if (argument == L"--expect-nonsilent")
-			expectNonsilent = true;
-		else if (argument == L"--expect-live")
-			expectLive = true;
-		else if (argument == L"--expect-static")
-			expectLive = false;
-		else if (argument == L"--expect-audio")
-			expectAudio = true;
-		else if (argument == L"--expect-silence")
-			expectAudio = false;
-		else if (argument == L"--loopback")
-			loopback = true;
-		else if (argument == L"--capture-only")
-			captureOnly = true;
-		else
-		{
-			wprintf(L"%s", usage);
-			return 1;
-		}
+		wprintf(L"%s", usage);
+		return 1;
 	}
+
+	if (pluginArg.isSet())
+		pluginPath = probesupport::lastWide(pluginArg);
+	if (monitorArg.isSet())
+		monitorPluginPath = probesupport::lastWide(monitorArg);
+	if (secondsArg.isSet())
+		seconds = _wtof(probesupport::lastWide(secondsArg).c_str());
+	if (rateArg.isSet())
+		sampleRate = static_cast<float>(_wtof(probesupport::lastWide(rateArg).c_str()));
+	expectNonsilent = expectNonsilentArg.getValue() != 0;
+	loopback = loopbackArg.getValue() != 0;
+	captureOnly = captureOnlyArg.getValue() != 0;
 	if (pluginPath.empty() && monitorPluginPath.empty() && !loopback && !captureOnly)
 	{
 		wprintf(L"%s", usage);

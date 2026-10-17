@@ -24,10 +24,14 @@ param(
     [ValidateSet("selftest-vst", "skin-gallery", "skin-switch", "analysis-layout", "plugin-load", "card-move", "card-selection", "power-toggle", "routing-edit")]
     [string] $Gate,
     [string] $Platform = "x64",
+    # Where deps\ lives; a git worktree has none of its own. Defaults to the
+    # workspace root, which is the layout CI and setup-build.ps1 create.
+    [string] $DepsRoot,
     [switch] $PlanOnly
 )
 
 $ErrorActionPreference = "Stop"
+if (-not $DepsRoot) { $DepsRoot = $WorkspaceRoot }
 
 $buildDir = Join-Path $WorkspaceRoot "build-Editor-$Platform\release"
 $editorExe = Join-Path $buildDir "Editor.exe"
@@ -101,7 +105,7 @@ $gates = @{
         Arguments  = @("--card-selection-test", (Join-Path $WorkspaceRoot "card-selection"))
         ExtraEnv   = @{ QT_FORCE_STDERR_LOGGING = "1" }
         LogPath    = Join-Path $WorkspaceRoot "card-selection\card-selection-test.log"
-        PostChecks = @()
+        PostChecks = @("card-selection-shots")
     }
     "power-toggle" = [pscustomobject]@{
         Arguments  = @("--power-toggle-test")
@@ -128,7 +132,7 @@ $plan = [pscustomobject]@{
     # The import lib embeds the SONAME velopack_libc.dll (see Package-
     # Artifacts); the gates run from the build dir, so the renamed DLL must
     # sit next to Editor.exe. Idempotent, so every gate does it.
-    VelopackDllSource = Join-Path $WorkspaceRoot "deps\velopack_libc\lib\velopack_libc_win_${Platform}_msvc.dll".ToLowerInvariant()
+    VelopackDllSource = Join-Path $DepsRoot "deps\velopack_libc\lib\velopack_libc_win_${Platform}_msvc.dll".ToLowerInvariant()
 }
 if ($PlanOnly) {
     return $plan
@@ -217,6 +221,16 @@ foreach ($check in $plan.PostChecks) {
             $shot = $plan.Arguments[1]
             if (-not (Test-Path $shot)) {
                 throw "Analysis dock layout test produced no screenshot"
+            }
+        }
+        "card-selection-shots" {
+            # Audit #422 TD-41: the gate exits 0 after its own checks, but an
+            # empty proof directory must not pass as a proof.
+            $outDir = $plan.Arguments[1]
+            $pngs = @(Get-ChildItem $outDir -Filter *_card-selection.png -ErrorAction SilentlyContinue)
+            Write-Host "Card selection wrote $($pngs.Count) PNGs"
+            if ($pngs.Count -lt 1) {
+                throw "Card selection test produced no screenshots"
             }
         }
     }

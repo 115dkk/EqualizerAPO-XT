@@ -11,24 +11,14 @@
 #include <QFileInfo>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QStyle>
 #include <QToolButton>
 #include <QVBoxLayout>
 
+#include "Editor/skins/shared/SkinPaint.h"
 #include "Editor/widgets/ElidedLabel.h"
 
 namespace
 {
-// Re-evaluate a widget's stylesheet after one of its dynamic properties
-// changed. The base class only repolishes the view itself, so children whose
-// QSS keys off their own properties are refreshed here, deterministically.
-void repolishWidget(QWidget* widget)
-{
-	widget->style()->unpolish(widget);
-	widget->style()->polish(widget);
-	widget->update();
-}
-
 // A chip in the type badge's lit-glass grammar (studio.md: colored ink over
 // a translucent same-color fill; an unlit chip is quiet data ink). Role and
 // lit-ness are dynamic properties the studio sheets select on.
@@ -175,14 +165,14 @@ void StudioReferenceCardView::applyState(const ReferenceCardState& state)
 		nameLabel->setToolTip(state.fullPath);
 	nameLabel->setProperty("refMissing", state.missing);
 	nameLabel->setProperty("refClickable", state.nameClickable && !state.missing);
-	repolishWidget(nameLabel);
+	repolish(nameLabel);
 
 	// One light per row: while the reference is broken the danger chip is
 	// the only lit chip; the format chip falls back to unlit data ink.
 	formatChip->setText(state.formatBadge);
 	formatChip->setVisible(!state.formatBadge.isEmpty());
 	formatChip->setProperty("chipLit", !state.missing);
-	repolishWidget(formatChip);
+	repolish(formatChip);
 
 	absChip->setVisible(state.absolutePath && !state.missing);
 	// An empty reference is unconfigured, not broken: the muted "No file
@@ -227,7 +217,7 @@ void StudioReferenceCardView::applyState(const ReferenceCardState& state)
 	statusRow->setVisible(!state.statusText.isEmpty());
 	statusLabel->setText(state.statusText);
 	statusLamp->setProperty("lampSeverity", referenceCardSeverityName(state.statusSeverity));
-	repolishWidget(statusLamp);
+	repolish(statusLamp);
 
 	// A labelled action shows its words - the host swaps Browse to
 	// "Locate..." while the reference is broken - and the Browse button
@@ -243,6 +233,6 @@ void StudioReferenceCardView::applyState(const ReferenceCardState& state)
 	if (QAbstractButton* browse = actionButton(ActionRole::Browse))
 	{
 		browse->setProperty("studioLocate", locateMode());
-		repolishWidget(browse);
+		repolish(browse);
 	}
 }

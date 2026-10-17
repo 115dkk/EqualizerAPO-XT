@@ -50,7 +50,7 @@ public:
 	static constexpr const wchar_t* kFrameCountMismatchLogPrefix =
 		L"MultiConvolutionFilter: frameCount";
 
-	MultiConvolutionFilter(const std::vector<MultiConvolutionCommand::Mapping>& mappings, JudgedPath filename);
+	MultiConvolutionFilter(const std::vector<MultiConvolutionCommand::Mapping>& mappingSpecs, JudgedPath filename);
 	virtual ~MultiConvolutionFilter();
 	bool getAllChannels() override {return true;}
 	bool getInPlace() override {return false;}

@@ -18,17 +18,19 @@
 
 class FilterEngine;
 
-class SendFilterFactory : public ParseReportingFactory
+class SendFilterFactory : public IFilterFactory
 {
 public:
 	SendFilterFactory() = default;
 	~SendFilterFactory() override = default;
 
-	void initialize(FilterEngine* engine) override;
 	FilterVector startOfConfiguration() override;
-	FilterVector createFilter(const std::wstring& configPath, std::wstring& command,
+	LineOutcome createFilter(const std::wstring& configPath, std::wstring& command,
 		std::wstring& parameters) override;
 	FilterVector endOfConfiguration() override;
+
+protected:
+	void onInitialize(FilterEngine& engine) override;
 
 private:
 	void reportReceiverNews(const SendReceiverNews& news);

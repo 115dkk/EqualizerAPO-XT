@@ -1,8 +1,7 @@
 #-------------------------------------------------
 #
-# DeviceSelector qmake project for CI builds
-# This allows building DeviceSelector with qmake in CI
-# while keeping the .vcxproj for local Visual Studio development
+# DeviceSelector qmake project. This is the only build description for
+# DeviceSelector, locally and in CI.
 #
 #-------------------------------------------------
 
@@ -21,7 +20,9 @@ PRECOMPILED_HEADER = stdafx.h
 
 SOURCES += \
 	../platform/qt/QtAppBootstrap.cpp \
+	../platform/qt/HoverProgress.cpp \
 	../Editor/skins/SkinThemeData.cpp \
+	../Editor/skins/rack/RackSkinDetail.cpp \
 	main.cpp \
 	DeviceListDelegate.cpp \
 	DeviceSelector.cpp \
@@ -48,7 +49,11 @@ SOURCES += \
 
 HEADERS += \
 	../platform/qt/QtAppBootstrap.h \
+	../platform/qt/HoverProgress.h \
+	../platform/qt/ScrollBarPolicy.h \
 	../Editor/skins/SkinThemeData.h \
+	../Editor/skins/rack/RackSkinDetail.h \
+	../Editor/skins/rack/RackPalette.h \
 	DeviceListDelegate.h \
 	DeviceSelector.h \
 	DeviceTestDialog.h \
@@ -106,3 +111,15 @@ build_pass:CONFIG(debug, debug|release) {
 QMAKE_LFLAGS += /MANIFESTUAC:\"level=\'requireAdministrator\' uiAccess=\'false\'\"
 
 RC_FILE = DeviceSelector.rc
+
+HEADERS += \
+	../devices/AsioEntryWriter.h \
+	../devices/EndpointProbe.h \
+	../platform/windows/TokenPrivilege.h \
+	../platform/windows/WellKnownSids.h \
+	../platform/windows/ComError.h \
+	../platform/windows/ConsoleOutput.h \
+	../platform/windows/ElevatedLaunch.h \
+	../platform/windows/TimeStamp.h \
+	../services/windows/ServiceWait.h \
+	../services/install/InstallWaitBudget.h

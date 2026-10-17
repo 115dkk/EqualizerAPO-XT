@@ -23,11 +23,11 @@
 #include "services/logging/Logging.h"
 #include "filters/VelvetCommand.h"
 #include "filters/velvet/VelvetProcessor.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 namespace
 {
-test::Harness harness("HilbertVelvetTests");
+test::HarnessAccess harness;
 
 std::complex<double> responseAt(const std::vector<double>& taps, double omega)
 {
@@ -38,7 +38,7 @@ std::complex<double> responseAt(const std::vector<double>& taps, double omega)
 	return response;
 }
 
-void testHilbertCommandContract()
+TEST_CASE(HilbertVelvetTests, testHilbertCommandContract)
 {
 	HilbertCommand command;
 	std::wstring error;
@@ -67,14 +67,14 @@ void testHilbertCommandContract()
 		"Hilbert accepts only the two implemented phase directions");
 }
 
-void testHilbertFirContract()
+TEST_CASE(HilbertVelvetTests, testHilbertFirContract)
 {
 	const std::vector<double> minus = designHilbertFir(-90);
 	const std::vector<double> plus = designHilbertFir(90);
 	harness.requireEqual(minus.size(),
 		static_cast<std::size_t>(HilbertTapCount),
 		"Hilbert FIR has the documented odd tap count");
-	harness.expectTrue(std::abs(minus[HilbertLatencySamples]) < 1.0e-15,
+	harness.expectNear(minus[HilbertLatencySamples], 0.0, 1.0e-15,
 		"Hilbert Type III FIR has a zero centre tap");
 
 	double maximumMirrorError = 0.0;
@@ -86,14 +86,14 @@ void testHilbertFirContract()
 		maximumDirectionError = std::max(maximumDirectionError,
 			std::abs(minus[i] + plus[i]));
 	}
-	harness.expectTrue(maximumMirrorError < 1.0e-14,
+	harness.expectNear(maximumMirrorError, 0.0, 1.0e-14,
 		"Hilbert FIR remains antisymmetric");
-	harness.expectTrue(maximumDirectionError < 1.0e-14,
+	harness.expectNear(maximumDirectionError, 0.0, 1.0e-14,
 		"the two phase directions are exact sign inverses");
 
 	const std::complex<double> minusMid = responseAt(minus, std::numbers::pi_v<double> * 0.5);
 	const std::complex<double> plusMid = responseAt(plus, std::numbers::pi_v<double> * 0.5);
-	harness.expectTrue(std::abs(std::abs(minusMid) - 1.0) < 1.0e-12,
+	harness.expectNear(std::abs(minusMid), 1.0, 1.0e-12,
 		"Hilbert mid-band magnitude is normalized to 0 dB");
 	harness.expectTrue(minusMid.imag() < -0.999999999
 		&& std::abs(minusMid.real()) < 1.0e-10,
@@ -103,7 +103,7 @@ void testHilbertFirContract()
 		"Direction=+90 produces the positive-quadrature response");
 }
 
-void testVelvetCommandContract()
+TEST_CASE(HilbertVelvetTests, testVelvetCommandContract)
 {
 	VelvetCommand command;
 	std::wstring error;
@@ -114,7 +114,7 @@ void testVelvetCommandContract()
 		"Velvet accepts every documented parameter");
 	harness.expectFalse(command.parameters.dynamic,
 		"Velvet preserves Static mode");
-	harness.expectTrue(std::abs(command.parameters.amount - 0.75) < 1.0e-12,
+	harness.expectNear(command.parameters.amount, 0.75, 1.0e-12,
 		"Velvet parses Amount as a linear mix");
 
 	VelvetCommand roundTrip;
@@ -136,7 +136,7 @@ void testVelvetCommandContract()
 		"Velvet rejects the reserved zero variation");
 }
 
-void testVelvetIsNormalizedAndDecorrelated()
+TEST_CASE(HilbertVelvetTests, testVelvetIsNormalizedAndDecorrelated)
 {
 	velvet::Processor processor;
 	harness.require(processor.prepare(48000.0, 4),
@@ -161,7 +161,7 @@ void testVelvetIsNormalizedAndDecorrelated()
 		"independent channel kernels remain decorrelated");
 }
 
-void testVelvetStreamIsBlockSizeInvariant()
+TEST_CASE(HilbertVelvetTests, testVelvetStreamIsBlockSizeInvariant)
 {
 	velvet::Parameters parameters;
 	parameters.seed = 123456789;
@@ -218,11 +218,11 @@ void testVelvetStreamIsBlockSizeInvariant()
 		maximumDifference = std::max(maximumDifference,
 			std::abs(wholeRight[i] - splitRight[i]));
 	}
-	harness.expectTrue(maximumDifference < 1.0e-12,
+	harness.expectNear(maximumDifference, 0.0, 1.0e-12,
 		"Velvet output does not depend on host block boundaries");
 }
 
-void testVelvetDynamicRenewalIsFiniteAndSmooth()
+TEST_CASE(HilbertVelvetTests, testVelvetDynamicRenewalIsFiniteAndSmooth)
 {
 	velvet::Processor processor;
 	harness.require(processor.prepare(48000.0, 1),
@@ -256,7 +256,7 @@ void testVelvetDynamicRenewalIsFiniteAndSmooth()
 // Audit #250 A4: a mismatched block used to mute Hilbert's shifted channels
 // with no diagnostics at all; the shared convolver bookkeeping now reports
 // it on destruction like the other convolvers' cleanup().
-void testHilbertMismatchIsLoggedOnDestruction()
+TEST_CASE(HilbertVelvetTests, testHilbertMismatchIsLoggedOnDestruction)
 {
 	FILE* logFile = nullptr;
 	if (tmpfile_s(&logFile) != 0 || logFile == nullptr)
@@ -296,16 +296,4 @@ void testHilbertMismatchIsLoggedOnDestruction()
 	harness.expectTrue(log.find(marker) != std::wstring::npos,
 		"Hilbert frame-count mismatch is logged on destruction");
 }
-}
-
-void runHilbertVelvetTests()
-{
-	testHilbertCommandContract();
-	testHilbertFirContract();
-	testVelvetCommandContract();
-	testVelvetIsNormalizedAndDecorrelated();
-	testVelvetStreamIsBlockSizeInvariant();
-	testVelvetDynamicRenewalIsFiniteAndSmooth();
-	testHilbertMismatchIsLoggedOnDestruction();
-	harness.report();
 }

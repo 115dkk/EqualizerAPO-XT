@@ -22,15 +22,10 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$projects = @(
-    "EqualizerAPOAsio\EqualizerAPOAsio.vcxproj",
-    "Tests\FakeAsioDriver\FakeAsioDriver.vcxproj"
-)
-$buildParams = @(
-    "/m", "/p:Configuration=$Configuration", "/p:Platform=Win32", "/t:rebuild",
-    "/p:PlatformToolset=$PlatformToolset", "/p:PreferredToolArchitecture=x64",
-    "/p:ASIO_SDK=$env:ASIO_SDK"
-)
+Import-Module (Join-Path $PSScriptRoot "BuildModel.psm1") -Force
+$projects = @(Get-EapoProjectGraph -Tag win32 | ForEach-Object Path)
+$buildParams = Get-EapoMsBuildArguments -Platform Win32 -Configuration $Configuration `
+    -PlatformToolset $PlatformToolset -ToolArchitecture x64 -Only ASIO_SDK
 $plan = [pscustomobject]@{
     Projects = $projects
     BuildParams = $buildParams
@@ -42,10 +37,7 @@ $plan = [pscustomobject]@{
 if ($PlanOnly) { return $plan }
 
 Set-Location $WorkspaceRoot
-foreach ($project in $projects) {
-    msbuild $project @buildParams
-    if ($LASTEXITCODE -ne 0) { throw "Win32 build failed for $project" }
-}
+Invoke-EapoMsBuild -Project $projects -Arguments $buildParams -FailureLabel "Win32 build"
 foreach ($output in $plan.Outputs) {
     if (-not (Test-Path -LiteralPath $output)) { throw "Win32 build produced no $output" }
 }

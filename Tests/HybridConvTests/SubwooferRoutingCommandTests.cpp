@@ -17,13 +17,13 @@
 */
 
 #include "filters/subwooferRouting/SubwooferRoutingCommand.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 namespace
 {
-test::Harness harness("SubwooferRoutingCommandTests");
+test::HarnessAccess harness;
 
-void testStateRoundTrip()
+TEST_CASE(SubwooferRoutingCommandTests, testStateRoundTrip)
 {
 	const std::wstring payload =
 		L"{ \"schema\": \"equalizerapo.xt.subwoofer-routing\", "
@@ -44,7 +44,7 @@ void testStateRoundTrip()
 		"State serialization should preserve the JSON payload");
 }
 
-void testQuotedProfile()
+TEST_CASE(SubwooferRoutingCommandTests, testQuotedProfile)
 {
 	const std::wstring payload =
 		L"\"SubwooferRouting\\Living Room.swxt.json\"";
@@ -63,7 +63,7 @@ void testQuotedProfile()
 		"quoted Profile serialization should preserve its relative path");
 }
 
-void testUnquotedProfile()
+TEST_CASE(SubwooferRoutingCommandTests, testUnquotedProfile)
 {
 	const std::wstring payload =
 		L"SubwooferRouting\\LivingRoom.swxt.json";
@@ -78,7 +78,7 @@ void testUnquotedProfile()
 		"unquoted Profile serialization should preserve its relative path");
 }
 
-void testWrongTagError()
+TEST_CASE(SubwooferRoutingCommandTests, testWrongTagError)
 {
 	SubwooferRoutingCommand command;
 	std::wstring error;
@@ -90,7 +90,7 @@ void testWrongTagError()
 		"unknown tag should report the expected forms");
 }
 
-void testEmptyParametersError()
+TEST_CASE(SubwooferRoutingCommandTests, testEmptyParametersError)
 {
 	SubwooferRoutingCommand command;
 	std::wstring error;
@@ -102,7 +102,7 @@ void testEmptyParametersError()
 		"empty parameters should report the expected forms");
 }
 
-void testTagWithoutPayloadError()
+TEST_CASE(SubwooferRoutingCommandTests, testTagWithoutPayloadError)
 {
 	SubwooferRoutingCommand command;
 	std::wstring error;
@@ -114,7 +114,7 @@ void testTagWithoutPayloadError()
 		"tag without a payload should report the expected forms");
 }
 
-void testLowercaseStateRejected()
+TEST_CASE(SubwooferRoutingCommandTests, testLowercaseStateRejected)
 {
 	SubwooferRoutingCommand command;
 	std::wstring error;
@@ -126,7 +126,7 @@ void testLowercaseStateRejected()
 		"lowercase state tag should report the expected forms");
 }
 
-void testSerializeRoundTrips()
+TEST_CASE(SubwooferRoutingCommandTests, testSerializeRoundTrips)
 {
 	SubwooferRoutingCommand state;
 	state.form = SubwooferRoutingCommand::Form::State;
@@ -158,17 +158,4 @@ void testSerializeRoundTrips()
 	harness.expectTrue(parsedProfile.payload == profile.payload,
 		"serialized Profile form should retain its payload");
 }
-}
-
-void runSubwooferRoutingCommandTests()
-{
-	testStateRoundTrip();
-	testQuotedProfile();
-	testUnquotedProfile();
-	testWrongTagError();
-	testEmptyParametersError();
-	testTagWithoutPayloadError();
-	testLowercaseStateRejected();
-	testSerializeRoundTrips();
-	harness.report();
 }

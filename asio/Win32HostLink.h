@@ -30,8 +30,9 @@ namespace eapo::asio
 	public:
 		Win32HostLink() = default;
 
-		bool open(const StreamFormat& format, const StreamOptions& options, HostSession& session, std::string& error) override;
-		void close(HostSession& session) noexcept override;
+		std::unique_ptr<eapo::ipc::RingProducer> open(const StreamFormat& format, const StreamOptions& options,
+			OpenReport& report) override;
+		void close(std::unique_ptr<eapo::ipc::RingProducer> producer) noexcept override;
 
 		// Where the wrapper DLL (or the probe) lives; the host exe is looked
 		// for there when the options carry no path.
@@ -57,5 +58,6 @@ namespace eapo::asio
 		static bool spawnHost(const std::wstring& endpoint, const StreamOptions& options, std::string& error);
 
 		Objects objects_;
+		HostSession session_;
 	};
 }

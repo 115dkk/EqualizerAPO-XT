@@ -14,7 +14,7 @@
 
 #include "pluginterfaces/vst/vstspeaker.h"
 #include "vst/VST3SpeakerMapping.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 using namespace Steinberg::Vst;
 using std::string;
@@ -23,14 +23,13 @@ using std::wstring;
 
 namespace
 {
-	test::Harness harness("VST3SpeakerMappingTests");
+	test::HarnessAccess harness;
 
 	void expectArrangements(const vector<SpeakerArrangement>& actual,
 		const vector<SpeakerArrangement>& expected, const string& label)
 	{
 		harness.expectEqual(actual.size(), expected.size(), label + ": candidate count");
-		const size_t count = (std::min)(actual.size(), expected.size());
-		for (size_t i = 0; i < count; i++)
+		for (size_t i = 0; i < actual.size() && i < expected.size(); i++)
 			harness.expectEqual(actual[i], expected[i], label + ": candidate order");
 	}
 
@@ -46,7 +45,7 @@ namespace
 			harness.expectEqual(mapping[i], expected[i], label + ": slot");
 	}
 
-	void testLayoutCandidates()
+	TEST_CASE(VST3SpeakerMappingTests, testLayoutCandidates)
 	{
 		const struct
 		{
@@ -73,7 +72,7 @@ namespace
 		}
 	}
 
-	void testChannelCountCandidates()
+	TEST_CASE(VST3SpeakerMappingTests, testChannelCountCandidates)
 	{
 		const struct
 		{
@@ -108,7 +107,7 @@ namespace
 	// array without a bound. The widest Auto list - two semantic, two
 	// count-based and the plug-in's current arrangement - has five entries,
 	// and every one of them must reach the plug-in in order.
-	void testCandidatesBeyondFourSlots()
+	TEST_CASE(VST3SpeakerMappingTests, testCandidatesBeyondFourSlots)
 	{
 		const vector<wstring> surround712 = {L"L", L"R", L"C", L"LFE", L"RL", L"RR",
 			L"SL", L"SR", L"TSL", L"TSR"};
@@ -121,7 +120,7 @@ namespace
 
 	// Audit #348 TD-48: names, widths, parsing and the arrangement lists all
 	// come from the two layout tables; this walks both, row by row.
-	void testLayoutTable()
+	TEST_CASE(VST3SpeakerMappingTests, testLayoutTable)
 	{
 		const struct
 		{
@@ -183,7 +182,7 @@ namespace
 			{}, "5.1 has no side spelling");
 	}
 
-	void testAutomaticNames()
+	TEST_CASE(VST3SpeakerMappingTests, testAutomaticNames)
 	{
 		const vector<wstring> deviceNames = {L"L", L"R", L"LFE", L"RL", L"RR"};
 		harness.expectTrue(vst3speakers::channelNamesForLayout(
@@ -194,7 +193,7 @@ namespace
 			"an explicit layout uses its own channel names");
 	}
 
-	void testMappings()
+	TEST_CASE(VST3SpeakerMappingTests, testMappings)
 	{
 		expectMapping(SpeakerArr::k51,
 			{L"L", L"R", L"C", L"LFE", L"RL", L"RR"},
@@ -216,7 +215,7 @@ namespace
 			{0, 1, 2, 3}, "side-only channels use Ls/Rs");
 	}
 
-	void testUnplaceableNames()
+	TEST_CASE(VST3SpeakerMappingTests, testUnplaceableNames)
 	{
 		vector<int> mapping;
 		harness.expectFalse(vst3speakers::buildChannelMapping(SpeakerArr::k40Music,
@@ -229,16 +228,4 @@ namespace
 			{L"L", L"R", L"C", L"LFE", L"RL", L"RR", L"SL", L"SR"}, mapping),
 			"names cannot claim speakers absent from the accepted arrangement");
 	}
-}
-
-void runVST3SpeakerMappingTests()
-{
-	testLayoutCandidates();
-	testChannelCountCandidates();
-	testCandidatesBeyondFourSlots();
-	testLayoutTable();
-	testAutomaticNames();
-	testMappings();
-	testUnplaceableNames();
-	harness.report();
 }

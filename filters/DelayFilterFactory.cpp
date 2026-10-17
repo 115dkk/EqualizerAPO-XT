@@ -21,6 +21,7 @@
 
 #include "runtime/memory/AlignedMemory.h"
 #include "services/logging/Logging.h"
+#include "DelayCommand.h"
 #include "DelayFilter.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "DelayFilterFactory.h"
@@ -30,47 +31,25 @@ REGISTER_FILTER_FACTORY(FilterFactoryPriority::Delay, DelayFilterFactory, L"Dela
 using std::vector;
 using std::wstring;
 
-bool DelayFilterFactory::parseCommand(const wstring& command, const wstring& parameters, DelayCommand& out,
-	bool* malformed)
+LineOutcome DelayFilterFactory::createFilter(const wstring& configPath,
+	wstring& command, wstring& parameters)
 {
-	if (malformed != nullptr)
-		*malformed = false;
 	if (command != L"Delay")
-		return false;
+		return LineOutcome::notMine();
 
-	// The codec owns the grammar (and accepts zero, so the Editor can still
-	// open a card for a no-op line); the engine-only decisions below are the
-	// trace and the no-op gate.
-	if (!DelayCommand::parse(parameters, out))
-	{
-		if (malformed != nullptr)
-			*malformed = true;
-		return false;
-	}
-
-	// A 0-length delay is a no-op: it produces no filter so the chain avoids one
-	// virtual call and one ring-buffer update per block. Report it in the trace
-	// and reject the command so no DelayFilter is built.
-	if (out.delay == 0.0)
-	{
-		TraceFStatic(L"Skipping no-op delay (0 %s)", out.isMs ? L"ms" : L"samples");
-		return false;
-	}
-
-	TraceFStatic(L"Delaying by %g %s", out.delay, out.isMs ? L"ms" : L"samples");
-	return true;
-}
-
-FilterVector DelayFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
-{
 	DelayCommand cmd;
-	bool malformed = false;
-	if (!parseCommand(command, parameters, cmd, &malformed))
+	if (!DelayCommand::parse(parameters, cmd))
 	{
-		if (malformed)
-			return reportParseError(command, L"expected a delay like \"3.5 ms\" or \"160 samples\"");
-		return {};
+		return LineOutcome::malformed(
+			L"expected a delay like \"3.5 ms\" or \"160 samples\"");
+	}
+	if (cmd.delay == 0.0)
+	{
+		TraceF(L"Skipping no-op delay (0 %s)", cmd.isMs ? L"ms" : L"samples");
+		return LineOutcome::consumed();
 	}
 
-	return singleFilter(makeFilter<DelayFilter>(cmd.delay, cmd.isMs));
+	TraceF(L"Delaying by %g %s", cmd.delay, cmd.isMs ? L"ms" : L"samples");
+	return LineOutcome::produced(singleFilter(
+		makeFilter<DelayFilter>(cmd.delay, cmd.isMs)));
 }

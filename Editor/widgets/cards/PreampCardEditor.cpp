@@ -15,7 +15,6 @@
 #include "Editor/widgets/AudioKnob.h"
 #include "Editor/widgets/EditableValue.h"
 #include "filters/PreampCommand.h"
-#include "filters/PreampFilterFactory.h"
 
 namespace
 {
@@ -132,7 +131,7 @@ REGISTER_DYNAMIC_FILTER_CARD_EDITOR(Preamp, [](FilterTable*, const QString& comm
 	std::wstring wideCommand = command.toStdWString();
 	std::wstring wideParameters = parameters.toStdWString();
 	PreampCommand cmd;
-	if (!PreampFilterFactory::parseCommand(wideCommand, wideParameters, cmd) || !cmd.valid)
+	if (!PreampCommand::parse(wideCommand, wideParameters, cmd) || !cmd.valid)
 		return nullptr;
 	return new PreampCardEditor(cmd.dbGain);
 })

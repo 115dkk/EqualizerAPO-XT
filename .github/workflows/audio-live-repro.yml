@@ -121,7 +121,7 @@ jobs:
       # Checkout (for the diagnosis script) + a snapshot directory.
       # -----------------------------------------------------------------------
       - name: Checkout (for the diagnosis script)
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
       - name: Load shared APO endpoint contract
         shell: pwsh
@@ -154,152 +154,18 @@ jobs:
           Add-Content -Path $env:GITHUB_PATH -Value $dir
 
       # -----------------------------------------------------------------------
-      # STEP 1: Install Scream as a REAL active virtual render endpoint.
-      #
-      #   GitHub-hosted runners have Secure Boot OFF, so a self-signed kernel
-      #   driver is accepted with NO test-signing mode and NO reboot. The recipe:
-      #     - download + expand the pinned Scream release,
-      #     - generate a self-signed code-signing cert (openssl),
-      #     - sign Scream.cat with it (signtool),
-      #     - trust the cert in LocalMachine\root AND \TrustedPublisher,
-      #     - install the INF with the bundled devcon,
-      #     - start the audio services and confirm a real ACTIVE render endpoint.
-      #
-      #   This installs a genuine kernel audio device, so audiodg.exe will load
-      #   the EQ APO chain for it later - which is exactly what the fake-seed
-      #   sibling workflow cannot do.
+      # STEP 1: Install Scream as a REAL active virtual render endpoint
+      # (.github/scripts/Install-ScreamDriver.ps1). This installs a genuine
+      # kernel audio device, so audiodg.exe will load the EQ APO chain for it
+      # later - which is exactly what the fake-seed sibling workflow cannot do.
       # -----------------------------------------------------------------------
       - name: Install Scream virtual audio driver (10)
         shell: pwsh
         run: |
-          $ErrorActionPreference = "Stop"
-          $work = Join-Path $env:RUNNER_TEMP "scream"
-          New-Item -ItemType Directory -Force -Path $work | Out-Null
-          $log = Join-Path $env:SNAP_DIR "10-scream-install.log"
-          function Log($m) { $line = "[scream] $m"; Write-Host $line; Add-Content -Path $log -Value $line }
-
-          $zip = Join-Path $work "Scream.zip"
-          Log "Downloading Scream $env:SCREAM_VERSION from $env:SCREAM_URL"
-          Invoke-WebRequest -Uri $env:SCREAM_URL -OutFile $zip
-          $hash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash
-          if ($hash -ne $env:SCREAM_SHA256) { throw "Scream download hash $hash does not match the pinned $env:SCREAM_SHA256" }
-          Expand-Archive -Path $zip -DestinationPath $work -Force
-
-          # Scream4.0.zip extracts to <work>\Install\... (NOT <work>\Scream\Install).
-          # The x64 catalog is lower-case scream.cat (Scream.inf names it as
-          # CatalogFile=scream.cat). Windows paths are case-insensitive, but we
-          # spell it exactly so the layout assertion is unambiguous.
-          $driverDir = Join-Path $work "Install\driver\x64"
-          $inf = Join-Path $driverDir "Scream.inf"
-          $cat = Join-Path $driverDir "scream.cat"
-          $devcon = Join-Path $work "Install\helpers\devcon-x64.exe"
-          foreach ($f in @($inf, $cat, $devcon)) {
-              if (-not (Test-Path $f)) { Log "MISSING expected file: $f"; throw "Scream layout unexpected: $f not found" }
-          }
-
-          # --- Self-signed code-signing cert (PowerShell-native) --------------
-          # New-SelfSignedCertificate -Type CodeSigningCert guarantees the
-          # codeSigning EKU, so the re-signed catalog is a valid driver-package
-          # signature once the cert is trusted. We re-sign the EXISTING catalog:
-          # its embedded hashes for Scream.sys/.inf stay valid (we do not touch
-          # those files); we only add a signature that chains to a root we trust
-          # below. This avoids any openssl.cnf / EKU uncertainty.
-          Log "Creating a self-signed code-signing certificate"
-          $cert = New-SelfSignedCertificate -Type CodeSigningCert `
-              -Subject "CN=EqualizerAPO-XT Scream Test Signing" `
-              -CertStoreLocation Cert:\CurrentUser\My `
-              -KeyUsage DigitalSignature -KeyExportPolicy Exportable
-          $cer = Join-Path $work "ScreamTestSigning.cer"
-          Export-Certificate -Cert $cert -FilePath $cer | Out-Null
-
-          # --- Sign the catalog so the INF install trusts the package ----------
-          Log "Signing $cat with thumbprint $($cert.Thumbprint)"
-          & signtool sign /v /fd SHA256 /sha1 $cert.Thumbprint $cat
-          if ($LASTEXITCODE -ne 0) { throw "signtool sign failed ($LASTEXITCODE)" }
-
-          # --- Trust the cert: Root (chain) + TrustedPublisher (silent install)
-          Log "Importing the cert into LocalMachine\Root and LocalMachine\TrustedPublisher"
-          Import-Certificate -FilePath $cer -CertStoreLocation Cert:\LocalMachine\Root | Out-Null
-          Import-Certificate -FilePath $cer -CertStoreLocation Cert:\LocalMachine\TrustedPublisher | Out-Null
-
-          # --- Install the driver via the bundled devcon ----------------------
-          # Mirror Install-x64.bat exactly: cd driver\x64 ; devcon install
-          # Scream.inf *Scream (devcon resolves the catalog relative to the INF).
-          Log "Installing the driver: devcon install Scream.inf *Scream (cwd=$driverDir)"
-          Push-Location $driverDir
-          try {
-              & $devcon install "Scream.inf" "*Scream"
-              $devconRc = $LASTEXITCODE
-          } finally {
-              Pop-Location
-          }
-          Log "devcon exited with $devconRc"
-          # devcon returns 0 on success and 1 when a reboot is required; anything
-          # else is a real install failure. Assert HERE, and never let devcon's
-          # code linger in $LASTEXITCODE: GitHub's pwsh wrapper appends
-          # "exit $LASTEXITCODE" to the script, so a stale native exit code
-          # becomes a silent step failure at the end.
-          if ($devconRc -ne 0 -and $devconRc -ne 1) {
-              Write-Error "devcon install failed (rc=$devconRc)"; exit 1
-          }
-
-          # --- Make sure the audio services are up after the device add --------
-          # Start them, then force an AudioEndpointBuilder restart so the freshly
-          # installed Scream device is enumerated into the live endpoint graph
-          # (this is SETUP, not the bug under test - the uninstall is what must
-          # never restart AudioEndpointBuilder).
-          # NOTE: this must NOT shell out to "net start audiosrv". On images where
-          # AudioSrv is already running (windows-2025 starts it; windows-2022 does
-          # not) net exits non-zero for the benign "already been started" case,
-          # and that code leaks into the appended "exit $LASTEXITCODE" wrapper -
-          # the step then fails after all the real work succeeded, with no error
-          # text. Start-Service is idempotent and sets no native exit code.
-          Log "Ensuring AudioEndpointBuilder + AudioSrv are running"
-          try { Start-Service AudioEndpointBuilder -ErrorAction Stop } catch { Log "Start AudioEndpointBuilder: $($_.Exception.Message)" }
-          try { Start-Service AudioSrv -ErrorAction Stop } catch { Log "Start AudioSrv: $($_.Exception.Message)" }
-          Log "Forcing AudioEndpointBuilder restart to enumerate the new device"
-          try { Restart-Service -Force AudioEndpointBuilder -ErrorAction Stop } catch { Log "Restart AudioEndpointBuilder: $($_.Exception.Message)" }
-          try { Start-Service AudioSrv -ErrorAction Stop } catch { Log "Start AudioSrv: $($_.Exception.Message)" }
-
-          # Give the endpoint graph a moment to enumerate the new device.
-          $deadline = (Get-Date).AddSeconds(30)
-          do {
-              Start-Sleep -Milliseconds 1500
-              $render = @()
-              if (Test-Path "Registry::$env:MMDEVICES_ROOT\Render") {
-                  $render = Get-ChildItem "Registry::$env:MMDEVICES_ROOT\Render" -ErrorAction SilentlyContinue
-              }
-              $screamSeen = $false
-              foreach ($k in $render) {
-                  $propPath = "$($k.PSPath)\Properties"
-                  if (Test-Path $propPath) {
-                      $name = (Get-ItemProperty -Path $propPath -Name $env:DEVICE_FRIENDLY_VALUE -ErrorAction SilentlyContinue)."$($env:DEVICE_FRIENDLY_VALUE)"
-                      if ($name -and $name -match 'Scream') { $screamSeen = $true; break }
-                  }
-              }
-          } while (-not $screamSeen -and (Get-Date) -lt $deadline)
-          Log "Scream endpoint visible in MMDevices: $screamSeen"
-
-          # Forensic enumeration into the log (best effort - never fails the step).
-          Log "Win32_SoundDevice:"
-          try {
-              Get-CimInstance Win32_SoundDevice -ErrorAction Stop | Select-Object Name, Status, StatusInfo |
-                  Format-Table -AutoSize | Out-String | ForEach-Object { Add-Content -Path $log -Value $_ }
-          } catch { Log "Get-CimInstance failed: $($_.Exception.Message)" }
-          Log "Get-PnpDevice -Class AudioEndpoint:"
-          try {
-              Get-PnpDevice -Class AudioEndpoint -ErrorAction Stop | Select-Object Status, FriendlyName, InstanceId |
-                  Format-Table -AutoSize | Out-String | ForEach-Object { Add-Content -Path $log -Value $_ }
-          } catch { Log "Get-PnpDevice failed: $($_.Exception.Message)" }
-
-          # Deterministic step verdict: the endpoint must have appeared. Exit
-          # explicitly so no stale $LASTEXITCODE from a native tool above can
-          # decide this step's outcome via the appended wrapper.
-          if (-not $screamSeen) {
-              Write-Error "Scream endpoint never appeared in MMDevices within the wait window"
-              exit 1
-          }
-          exit 0
+          & .\.github\scripts\Install-ScreamDriver.ps1 -Url $env:SCREAM_URL -Sha256 $env:SCREAM_SHA256 `
+            -WorkDir (Join-Path $env:RUNNER_TEMP "scream") `
+            -MmDevicesRoot $env:MMDEVICES_ROOT -FriendlyNameValue $env:DEVICE_FRIENDLY_VALUE `
+            -LogPath (Join-Path $env:SNAP_DIR "10-scream-install.log")
 
       # -----------------------------------------------------------------------
       # STEP 2: Discover the Scream Render endpoint's GUID at runtime.
@@ -363,177 +229,7 @@ jobs:
       - name: Write snapshot helper (live)
         shell: pwsh
         run: |
-          $helper = @'
-          [CmdletBinding()]
-          param(
-              [Parameter(Mandatory=$true)][string]$Phase,
-              [Parameter(Mandatory=$true)][string]$SnapshotDir,
-              [Parameter(Mandatory=$true)][string]$ScreamGuid,
-              [Parameter(Mandatory=$true)][string]$MMDevicesRoot,
-              [Parameter(Mandatory=$true)][string]$PreMixGuid,
-              [Parameter(Mandatory=$true)][string]$PostMixGuid
-          )
-          $ErrorActionPreference = "Stop"
-
-          # 1) Full MMDevices\Audio tree as a .reg export (forensic record).
-          $regFile = Join-Path $SnapshotDir "$Phase-mmdevices.reg"
-          reg export $MMDevicesRoot $regFile /y | Out-Null
-
-          $renderPath = "$MMDevicesRoot\Render"
-          $epKeyPS = "Registry::$renderPath\$ScreamGuid"
-          $fxKeyPS = "$epKeyPS\FxProperties"
-
-          $endpointKeyPresent = Test-Path $epKeyPS
-          $fxPresent = Test-Path $fxKeyPS
-
-          # MMDevices DeviceState DWORD (registry view of activeness; 1 == ACTIVE).
-          $mmState = $null
-          if ($endpointKeyPresent) {
-              $mmState = (Get-ItemProperty -Path $epKeyPS -Name DeviceState -ErrorAction SilentlyContinue).DeviceState
-          }
-
-          # FxProperties APO GUID values + whether any names an EQ APO GUID.
-          $preMix = $PreMixGuid.Trim().ToUpperInvariant()
-          $postMix = $PostMixGuid.Trim().ToUpperInvariant()
-          $fxValues = [ordered]@{}
-          $pointsAtEq = $false
-          if ($fxPresent) {
-              $item = Get-Item $fxKeyPS
-              foreach ($name in $item.GetValueNames()) {
-                  if ($name -like '{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},*') {
-                      $v = [string](Get-ItemProperty -Path $fxKeyPS -Name $name)."$name"
-                      $fxValues[$name] = $v
-                      if (-not [string]::IsNullOrWhiteSpace($v)) {
-                          $n = $v.Trim().ToUpperInvariant()
-                          if ($n -eq $preMix -or $n -eq $postMix) { $pointsAtEq = $true }
-                      }
-                  }
-              }
-          }
-          # "Registry clean" = endpoint present AND no EQ GUID dangling in FxProperties.
-          $registryClean = ($endpointKeyPresent -and -not $pointsAtEq)
-
-          # 2) LIVE endpoint state via IMMDeviceEnumerator (the kernel-graph view).
-          #    activeRenderCount = number of DEVICE_STATE_ACTIVE render endpoints.
-          #    screamEndpointState = IMMDevice::GetState for the Scream endpoint, or
-          #    "NOTFOUND" when it no longer enumerates.
-          Add-Type -Language CSharp -TypeDefinition @"
-          using System;
-          using System.Runtime.InteropServices;
-          public static class MMLive {
-              [ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")] class MMDeviceEnumerator {}
-              [Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-              interface IMMDeviceEnumerator {
-                  int EnumAudioEndpoints(int dataFlow, int stateMask, out IMMDeviceCollection devices);
-                  int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice ep);
-                  int GetDevice([MarshalAs(UnmanagedType.LPWStr)] string id, out IMMDevice dev);
-              }
-              [Guid("0BD7A1BE-7A1A-44DB-8397-CC5392387B5E"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-              interface IMMDeviceCollection { int GetCount(out int count); int Item(int n, out IMMDevice dev); }
-              [Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-              interface IMMDevice {
-                  int Activate(ref Guid id, int ctx, IntPtr p, [MarshalAs(UnmanagedType.IUnknown)] out object o);
-                  int OpenPropertyStore(int access, out IntPtr store);
-                  int GetId([MarshalAs(UnmanagedType.LPWStr)] out string id);
-                  int GetState(out int state);
-              }
-              const int eRender = 0;
-              const int DEVICE_STATE_ACTIVE = 0x1;
-              const int DEVICE_STATEMASK_ALL = 0x0000000F;
-              public static int ActiveRenderCount() {
-                  var e = (IMMDeviceEnumerator)(new MMDeviceEnumerator());
-                  IMMDeviceCollection col; e.EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE, out col);
-                  int n; col.GetCount(out n); return n;
-              }
-              // Returns the GetState bitmask for the endpoint id, or -1 if not found.
-              public static int EndpointState(string id) {
-                  var e = (IMMDeviceEnumerator)(new MMDeviceEnumerator());
-                  IMMDevice d;
-                  int hr = e.GetDevice(id, out d);
-                  if (hr != 0 || d == null) return -1;
-                  int st; if (d.GetState(out st) != 0) return -1; return st;
-              }
-          }
-          "@
-
-          # Retry the enumerator until it is HEALTHY. Right after a WASAPI Stop()
-          # or a service restart the COM layer can throw transiently (the first
-          # run saw activeRender=-1 at one phase even though the same call worked
-          # seconds earlier). Treating that transient throw as "endpoint gone"
-          # was a false negative. So we poll ActiveRenderCount until it returns a
-          # non-negative count (enumerator healthy) and only THEN read the
-          # endpoint state, so a -1 from EndpointState genuinely means not-found.
-          $activeRenderCount = -1
-          $enumHealthy = $false
-          for ($attempt = 0; $attempt -lt 10; $attempt++) {
-              try { $activeRenderCount = [MMLive]::ActiveRenderCount(); $enumHealthy = $true; break }
-              catch { Start-Sleep -Milliseconds 1000 }
-          }
-
-          # IMMDevice ids for render endpoints are "{0.0.0.00000000}.<guid>"
-          # (DeviceAPOInfo.Uninstall.cpp:208). Map the GetState bitmask to a label.
-          $screamId = "{0.0.0.00000000}.$ScreamGuid"
-          $stateBits = -1
-          if ($enumHealthy) {
-              try { $stateBits = [MMLive]::EndpointState($screamId) } catch { $stateBits = -1 }
-          }
-          $screamEndpointState =
-              if (-not $enumHealthy) { 'ENUM_FAILED' }   # transient COM failure, NOT a device-loss signal
-              else {
-                  switch ($stateBits) {
-                      1   { 'ACTIVE' }
-                      2   { 'DISABLED' }
-                      4   { 'NOTPRESENT' }
-                      8   { 'UNPLUGGED' }
-                      -1  { 'NOTFOUND' }
-                      default { "OTHER($stateBits)" }
-                  }
-              }
-
-          # Win32_SoundDevice status strings (coarse OS-level view).
-          $win32 = @()
-          try {
-              $win32 = Get-CimInstance Win32_SoundDevice -ErrorAction Stop |
-                  Select-Object Name, Status, StatusInfo
-          } catch { }
-
-          # audiodg.exe identity. audiodg (Windows Audio Device Graph Isolation)
-          # is spawned by AudioEndpointBuilder and hosts the APO chain. Its PID is
-          # the cleanest signal for "did this restart actually rebuild the graph":
-          # an AudioSrv-only restart leaves audiodg running (same PID) so APO
-          # FxProperties changes do NOT take effect, whereas an AudioEndpointBuilder
-          # restart recycles audiodg (new PID) so changes apply. (audiodg is a
-          # protected process; .Id is always readable, .StartTime may be denied.)
-          $audiodg = @()
-          foreach ($p in (Get-Process -Name audiodg -ErrorAction SilentlyContinue)) {
-              $st = $null
-              try { $st = $p.StartTime.ToString('o') } catch { }
-              $audiodg += [ordered]@{ id = $p.Id; start = $st }
-          }
-          $audiodgIds = ($audiodg | ForEach-Object { $_.id }) -join ','
-
-          $obj = [ordered]@{
-              phase                  = $Phase
-              screamGuid             = $ScreamGuid
-              endpointKeyPresent     = $endpointKeyPresent
-              fxPropertiesPresent    = $fxPresent
-              fxValues               = $fxValues
-              screamFxPointsAtEq     = $pointsAtEq
-              registryClean          = $registryClean
-              screamDeviceStateMM    = $mmState
-              activeRenderCount      = $activeRenderCount
-              screamEndpointState    = $screamEndpointState
-              audiodgProcs           = $audiodg
-              audiodgIds             = $audiodgIds
-              win32SoundDeviceStatus = $win32
-          }
-          $obj | ConvertTo-Json -Depth 6 |
-              Out-File -FilePath (Join-Path $SnapshotDir "$Phase-live.json") -Encoding utf8
-          Write-Host "[$Phase] epState=$screamEndpointState mmState=$mmState activeRender=$activeRenderCount fxPointsAtEq=$pointsAtEq registryClean=$registryClean audiodg=[$audiodgIds]"
-          '@
-          $path = Join-Path $env:RUNNER_TEMP "snapshot-live.ps1"
-          $helper | Out-File -FilePath $path -Encoding utf8
-          "SNAP_SCRIPT=$path" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "SNAP_SCRIPT=${{ github.workspace }}\.github\scripts\Save-LiveEndpointSnapshot.ps1" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Snapshot baseline-live (20)
         shell: pwsh
@@ -1023,7 +719,7 @@ jobs:
       # -----------------------------------------------------------------------
       - name: Upload snapshots
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: audio-live-snapshots
           path: ${{ env.SNAP_DIR }}/**

@@ -30,7 +30,7 @@ AnalysisResponse makeResponse(unsigned sampleRate, size_t fftSize)
 }
 }
 
-void testAnalysisResponseBinArithmetic()
+TEST_CASE(EditorLogicTests, testAnalysisResponseBinArithmetic)
 {
 	// A real-to-complex transform of N samples produces N/2 + 1 bins: DC, the
 	// N/2 - 1 interior bins, and Nyquist. This is the count the analysis thread
@@ -48,11 +48,11 @@ void testAnalysisResponseBinArithmetic()
 		"the response carries one bin per transform output");
 
 	expectTrue(response.frequencyOf(0) == 0.0, "bin 0 is DC");
-	expectTrue(std::abs(response.frequencyOf(response.binCount() - 1) - 24000.0) < 1e-9,
+	expectNear(response.frequencyOf(response.binCount() - 1), 24000.0, 1e-9,
 		"the last bin is Nyquist");
-	expectTrue(std::abs(response.nyquist() - 24000.0) < 1e-9, "Nyquist is half the sample rate");
+	expectNear(response.nyquist(), 24000.0, 1e-9, "Nyquist is half the sample rate");
 	// Bin spacing at 48 kHz / 65536 is 0.732421875 Hz exactly.
-	expectTrue(std::abs(response.frequencyOf(1) - 48000.0 / 65536.0) < 1e-12,
+	expectNear(response.frequencyOf(1), 48000.0 / 65536.0, 1e-12,
 		"bin spacing is sampleRate / fftSize");
 
 	// nearestBin rounds rather than truncating, so a frequency sitting between
@@ -60,7 +60,7 @@ void testAnalysisResponseBinArithmetic()
 	expectEqual(static_cast<int>(response.nearestBin(0.0)), 0, "DC maps to bin 0");
 	expectEqual(static_cast<int>(response.nearestBin(1000.0)), 1365,
 		"1 kHz maps to the nearest bin, not the one below it");
-	expectTrue(std::abs(response.frequencyOf(response.nearestBin(1000.0)) - 1000.0) < 0.4,
+	expectNear(response.frequencyOf(response.nearestBin(1000.0)), 1000.0, 0.4,
 		"the bin nearest 1 kHz is within half a bin of it");
 
 	// Out-of-range inputs clamp rather than indexing past the end. The graph
@@ -74,7 +74,7 @@ void testAnalysisResponseBinArithmetic()
 		"a non-finite frequency clamps to DC rather than indexing wildly");
 }
 
-void testAnalysisResponseEmptyAndLatency()
+TEST_CASE(EditorLogicTests, testAnalysisResponseEmptyAndLatency)
 {
 	// Three ways to be empty, all of which the graph has to survive: before
 	// the first analysis, after a failed one, and the degenerate case of a
@@ -103,7 +103,7 @@ void testAnalysisResponseEmptyAndLatency()
 	// bins describe the config with its bulk delay removed. A view that wants
 	// the delay back needs this converted to time.
 	populated.latencyFrames = 480;
-	expectTrue(std::abs(populated.latencySeconds() - 0.01) < 1e-12,
+	expectNear(populated.latencySeconds(), 0.01, 1e-12,
 		"480 frames at 48 kHz is 10 ms of stripped latency");
 	populated.latencyFrames = 0;
 	expectTrue(populated.latencySeconds() == 0.0, "no stripped frames means no latency to reapply");

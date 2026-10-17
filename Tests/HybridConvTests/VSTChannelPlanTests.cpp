@@ -11,7 +11,7 @@
 	VSTPluginFilter::initialize.
 
 	These tests link against the same Common.lib as HybridConvTests and run from
-	its main() via runVSTChannelPlanTests().
+	the binary through TestHarness registration.
 */
 
 #include <algorithm>
@@ -20,7 +20,7 @@
 
 #include "filters/NewChannelCommand.h"
 #include "filters/VSTChannelPlan.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 using std::string;
 using std::vector;
@@ -28,7 +28,7 @@ using std::wstring;
 
 namespace
 {
-test::Harness harness("VSTChannelPlanTests");
+test::HarnessAccess harness;
 
 using Refusal = VSTChannelPlan::Refusal;
 
@@ -84,7 +84,7 @@ void checkCase(const PlanCase& testCase)
 }
 }
 
-void runVSTChannelPlanTests()
+TEST_CASE(VSTChannelPlanTests, runVSTChannelPlanTests)
 {
 	const vector<wstring> stereo = {L"L", L"R"};
 	const vector<wstring> threeChannels = {L"L", L"R", L"C"};
@@ -142,6 +142,4 @@ void runVSTChannelPlanTests()
 		"OutputChannels accepts a channel declared by the preceding NewChannel line");
 	harness.expectTrue(withDeclaration.resolvedOutputChannels == vector<int>({0, 2}),
 		"the declared virtual output resolves to its appended channel index");
-
-	harness.report();
 }

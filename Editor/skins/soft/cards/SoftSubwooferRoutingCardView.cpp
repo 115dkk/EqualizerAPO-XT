@@ -14,8 +14,6 @@
 
 #include "SoftSubwooferRoutingCardView.h"
 
-#include <cmath>
-
 #include <QAbstractButton>
 #include <QColor>
 #include <QHBoxLayout>
@@ -23,20 +21,13 @@
 #include <QPaintEvent>
 #include <QPainter>
 #include <QPen>
-#include <QStyle>
 #include <QVBoxLayout>
 #include <QVariant>
 
-#include "Editor/SkinManager.h"
+#include "Editor/skins/shared/SkinPaint.h"
 
 namespace
 {
-void repolish(QWidget* widget)
-{
-	widget->style()->unpolish(widget);
-	widget->style()->polish(widget);
-}
-
 QString decibels(double value)
 {
 	return QString::number(value, 'f', 1);
@@ -124,8 +115,7 @@ void SoftSubwooferRoutingCardView::addActionButton(
 void SoftSubwooferRoutingCardView::applyState(
 	const SubwooferRoutingCardState& state)
 {
-	const bool hasError = !state.errorText.isEmpty() || !state.valid;
-	const bool hasWarning = !state.warningText.isEmpty();
+	const Severity health = severity(state);
 	const bool hasCrossover =
 		state.highPassHz > 0.0 || state.lowPassHz > 0.0;
 
@@ -133,13 +123,13 @@ void SoftSubwooferRoutingCardView::applyState(
 	// carries the one detail (or the one worry) that matters next.
 	QString headline;
 	QString caption;
-	QString severity = QStringLiteral("normal");
+	QString captionSeverity = QStringLiteral("normal");
 
-	if (hasError)
+	if (health == Severity::Error)
 	{
 		headline = tr("This bass setup needs attention.");
 		caption = state.errorText;
-		severity = QStringLiteral("danger");
+		captionSeverity = QStringLiteral("danger");
 	}
 	else if (!hasCrossover)
 	{
@@ -153,10 +143,10 @@ void SoftSubwooferRoutingCardView::applyState(
 		// repeating it here would make the sentence a dressed-up HP/LP
 		// readout (review round 3). The sentence states the outcome.
 		headline = tr("Bass plays on the subwoofer.");
-		if (hasWarning)
+		if (health == Severity::Warning)
 		{
 			caption = state.warningText;
-			severity = QStringLiteral("warning");
+			captionSeverity = QStringLiteral("warning");
 		}
 		else if (state.sourceLfePreserved)
 		{
@@ -173,7 +163,7 @@ void SoftSubwooferRoutingCardView::applyState(
 	captionLabel->setText(caption);
 	captionLabel->setToolTip(caption);
 	captionLabel->setVisible(!caption.isEmpty());
-	captionLabel->setProperty("severity", severity);
+	captionLabel->setProperty("severity", captionSeverity);
 	repolish(captionLabel);
 
 	layoutPill->setText(state.layoutLabel.isEmpty()
@@ -185,34 +175,16 @@ void SoftSubwooferRoutingCardView::applyState(
 		.arg(decibels(state.sourceLfeGainDb)));
 	lfePill->setVisible(state.sourceLfePreserved);
 
-	if (std::isfinite(state.headroomTrimDb))
-	{
-		headroomPill->setText(state.headroomAuto
-			? tr("Auto trim %1 dB")
-				.arg(decibels(state.headroomTrimDb))
-			: tr("Trim %1 dB")
-				.arg(decibels(state.headroomTrimDb)));
-		headroomPill->setVisible(true);
-	}
-	else
-	{
-		headroomPill->setVisible(false);
-	}
+	// No trim to print: the pill leaves rather than saying nothing.
+	const QString headroom = headroomText(state,
+		tr("Auto trim %1 dB"), tr("Trim %1 dB"), QString(), QString());
+	headroomPill->setText(headroom);
+	headroomPill->setVisible(!headroom.isEmpty());
 
-	QString profileText;
-	if (state.linkedProfile)
-	{
-		profileText = state.profileName.isEmpty()
-			? tr("Linked profile")
-			: state.profileName;
-	}
-	else if (!state.profileName.isEmpty())
-	{
-		profileText = state.profileName;
-	}
-	profilePill->setText(profileText);
-	profilePill->setToolTip(profileText);
-	profilePill->setVisible(!profileText.isEmpty());
+	const QString profile = profileText(state, tr("Linked profile"));
+	profilePill->setText(profile);
+	profilePill->setToolTip(profile);
+	profilePill->setVisible(!profile.isEmpty());
 }
 
 void SoftSubwooferRoutingCardView::paintEvent(QPaintEvent* event)

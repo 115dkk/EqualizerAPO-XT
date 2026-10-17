@@ -31,7 +31,7 @@
 #include "devices/DeviceAPOInfoKeys.h"
 #include "services/diagnostics/InstallDiagnostics.h"
 #include "services/registry/WindowsRegistry.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 #include "Tests/FakeRegistry.h"
 
@@ -62,7 +62,7 @@ void seedEndpoint(FakeRegistry& registry, const wchar_t* root, const std::wstrin
 	registry.seedString(deviceKey + L"\\Properties", connectionValueName, connectionName);
 }
 
-void testTheScanNamesEveryEndpointHoldingOurApos(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testTheScanNamesEveryEndpointHoldingOurApos)
 {
 	FakeRegistry registry;
 	const std::wstring preMix = winutil::guidToString(EQUALIZERAPO_PRE_MIX_GUID);
@@ -87,7 +87,7 @@ void testTheScanNamesEveryEndpointHoldingOurApos(test::Harness& harness)
 		"capture endpoints are scanned too, and marked, because an input device with our APO attached looks identical otherwise");
 }
 
-void testTheScanIgnoresEndpointsWithSomebodyElsesApos(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testTheScanIgnoresEndpointsWithSomebodyElsesApos)
 {
 	FakeRegistry registry;
 	seedEndpoint(registry, renderKeyPath, renderGuid, L"Vendor Speakers", L"Speakers");
@@ -101,7 +101,7 @@ void testTheScanIgnoresEndpointsWithSomebodyElsesApos(test::Harness& harness)
 		"and that line says it plainly rather than leaving the section empty, which would read as a failed scan");
 }
 
-void testTheScanKeepsGoingPastAnEndpointItCannotRead(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testTheScanKeepsGoingPastAnEndpointItCannotRead)
 {
 	FakeRegistry registry;
 	const std::wstring preMix = winutil::guidToString(EQUALIZERAPO_PRE_MIX_GUID);
@@ -123,7 +123,7 @@ void testTheScanKeepsGoingPastAnEndpointItCannotRead(test::Harness& harness)
 		"and the scan continues to the endpoints after it, which is the whole reason it catches per device");
 }
 
-void testTheScanSurvivesAMachineWithNoAudioTree(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testTheScanSurvivesAMachineWithNoAudioTree)
 {
 	FakeRegistry registry;
 
@@ -135,11 +135,3 @@ void testTheScanSurvivesAMachineWithNoAudioTree(test::Harness& harness)
 		"a missing MMDevices tree reads the same way as one with nothing attached, which is what it means");
 }
 } // namespace
-
-void runInstallDiagnosticsTests(test::Harness& harness)
-{
-	testTheScanNamesEveryEndpointHoldingOurApos(harness);
-	testTheScanIgnoresEndpointsWithSomebodyElsesApos(harness);
-	testTheScanKeepsGoingPastAnEndpointItCannotRead(harness);
-	testTheScanSurvivesAMachineWithNoAudioTree(harness);
-}

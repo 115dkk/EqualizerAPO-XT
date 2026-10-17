@@ -37,7 +37,7 @@
 #include <sddl.h>
 
 #include "services/registry/WindowsRegistry.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 #include "Tests/FakeRegistry.h"
 
@@ -404,7 +404,7 @@ private:
 	bool created_ = false;
 };
 
-void testFakeRegistryConforms(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testFakeRegistryConforms)
 {
 	FakeRegistry registry;
 	const std::wstring root = hkcuPrefix + sandboxParent + L"\\Fake";
@@ -425,7 +425,7 @@ void testFakeRegistryConforms(test::Harness& harness)
 	runBattery(harness, under);
 }
 
-void testWindowsRegistryConforms(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testWindowsRegistryConforms)
 {
 	Sandbox sandbox;
 	if (!sandbox.created())
@@ -446,9 +446,3 @@ void testWindowsRegistryConforms(test::Harness& harness)
 	runBattery(harness, under);
 }
 } // namespace
-
-void runRegistryConformanceTests(test::Harness& harness)
-{
-	testFakeRegistryConforms(harness);
-	testWindowsRegistryConforms(harness);
-}

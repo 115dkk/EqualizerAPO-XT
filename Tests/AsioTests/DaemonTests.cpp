@@ -16,8 +16,10 @@
 #include <atomic>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <cstring>
 #include <fstream>
+#include <limits>
 #include <memory>
 #include <string>
 #include <thread>
@@ -28,6 +30,7 @@
 #include "asio/AsioWrapper.h"
 #include "asio/DaemonProcessor.h"
 #include "asio/EngineHostCore.h"
+#include "asio/HostControlServer.h"
 #include "asio/HostProtocol.h"
 #include "asio/InProcProcessor.h"
 #include "asio/SampleCodec.h"
@@ -39,19 +42,53 @@
 #include "Tests/FakeAsioDriver/FakeAsio.h"
 #include "Tests/FakeRegistry.h"
 #include "Tests/TestDirectory.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
+
+namespace eapo::asio
+{
+	struct DaemonProcessorTestAccess
+	{
+		static void seedSequence(DaemonProcessor& processor, Direction direction, uint32_t sequence) noexcept
+		{
+			DaemonProcessor::Lane& lane = processor.lanes_[slotOf(direction)];
+			lane.sequence = sequence;
+			lane.preparedSequence = sequence;
+			lane.publishable = false;
+			lane.prepared = false;
+		}
+
+		static bool waitUntilCompleted(DaemonProcessor& processor, Direction direction, uint32_t sequence,
+			DWORD timeoutMs) noexcept
+		{
+			const ULONGLONG deadline = GetTickCount64() + timeoutMs;
+			for (;;)
+			{
+				if (processor.producer_ != nullptr && processor.producer_->completed(direction, sequence))
+					return true;
+				if (GetTickCount64() >= deadline)
+					return false;
+				Sleep(1);
+			}
+		}
+	};
+}
 
 using eapo::asio::AsioWrapper;
 using eapo::asio::DaemonProcessor;
+using eapo::asio::Direction;
+using eapo::asio::IHostLink;
 using eapo::asio::IStreamProcessor;
 using eapo::asio::Mode;
+using eapo::asio::OpenReport;
+using eapo::asio::Outcome;
 using eapo::asio::SampleCodec;
+using eapo::asio::StreamFormat;
 using eapo::asio::StreamOptions;
 using eapo::asio::ThreadHostLink;
 
 namespace
 {
-	test::Harness harness("DaemonTests");
+	test::HarnessAccess harness;
 
 	constexpr GUID testWrapperClsid = {0xc0ffee01, 0x1111, 0x4222, {0x83, 0x33, 0x44, 0x44, 0x55, 0x55, 0x66, 0x66}};
 	const wchar_t* const testTargetClsid = L"{B7E3A9F4-52C1-4D0B-8A6E-1F9C3D5E7B21}";
@@ -64,6 +101,45 @@ namespace
 		long outputLatency = 0;
 		eapo::asio::StreamStats stats;
 		bool started = false;
+	};
+
+	struct SeededRingState
+	{
+		std::vector<unsigned char> storage;
+		eapo::ipc::RingHeader* header = nullptr;
+	};
+
+	class SeededHostLink final : public IHostLink
+	{
+	public:
+		explicit SeededHostLink(std::shared_ptr<SeededRingState> state)
+			: state_(std::move(state))
+		{
+		}
+
+		std::unique_ptr<eapo::ipc::RingProducer> open(const StreamFormat& format, const StreamOptions&, OpenReport& report) override
+		{
+			state_->storage.assign(eapo::ipc::RingGeometry::totalBytes(format) + eapo::ipc::ringAlignment, 0);
+			uintptr_t address = reinterpret_cast<uintptr_t>(state_->storage.data());
+			address = (address + eapo::ipc::ringAlignment - 1) & ~static_cast<uintptr_t>(eapo::ipc::ringAlignment - 1);
+			state_->header = reinterpret_cast<eapo::ipc::RingHeader*>(address);
+			eapo::ipc::RingSync sync;
+			auto producer = std::make_unique<eapo::ipc::RingProducer>(state_->header, format, GetCurrentProcessId(), sync);
+			WriteRelease(&state_->header->state, static_cast<LONG>(eapo::ipc::RingState::Ready));
+			report.status = OpenReport::Status::Ok;
+			return producer;
+		}
+
+		void close(std::unique_ptr<eapo::ipc::RingProducer> producer) noexcept override
+		{
+			if (producer != nullptr)
+				producer->close();
+			producer.reset();
+			state_->header = nullptr;
+		}
+
+	private:
+		std::shared_ptr<SeededRingState> state_;
 	};
 
 	// Runs one stream over `processor` and returns what reached the fake's
@@ -136,7 +212,7 @@ namespace
 		return path;
 	}
 
-	void testDaemonMatchesInProc()
+	TEST_CASE(DaemonTests, testDaemonMatchesInProc)
 	{
 		test::TestDirectory directory(L"DaemonTests");
 		const std::wstring configPath = writeConfig(directory,
@@ -161,7 +237,7 @@ namespace
 		directory.removeAll();
 	}
 
-	void testPipelinedShape()
+	TEST_CASE(DaemonTests, testPipelinedShape)
 	{
 		test::TestDirectory directory(L"DaemonTests");
 		const std::wstring configPath = writeConfig(directory, "Preamp: -6.0206 dB\n");
@@ -198,6 +274,70 @@ namespace
 		directory.removeAll();
 	}
 
+	TEST_CASE(DaemonTests, testPipelinedWrapDoesNotInsertSecondSilentBlock)
+	{
+		auto state = std::make_shared<SeededRingState>();
+		DaemonProcessor processor(std::make_unique<SeededHostLink>(state));
+		StreamFormat format;
+		format.sampleRate = 48000.0;
+		format.frames = 4;
+		format.channels[static_cast<unsigned>(Direction::Output)] = 1;
+		StreamOptions options;
+		options.mode = Mode::Pipelined;
+		options.processInput = false;
+		OpenReport report = processor.open(format, options);
+		harness.require(report.status == OpenReport::Status::Ok, "the seeded pipelined processor opens");
+		harness.require(state->header != nullptr, "the seeded host exposes its ring header");
+
+		const auto fill = [&format](float* samples, float value) {
+			for (uint32_t frame = 0; frame < format.frames; frame++)
+				samples[frame] = value;
+		};
+		const auto planeIs = [&format](const float* samples, float value) {
+			for (uint32_t frame = 0; frame < format.frames; frame++)
+			{
+				if (samples[frame] != value)
+					return false;
+			}
+			return true;
+		};
+
+		float** planes = processor.planes(Direction::Output);
+		harness.require(planes != nullptr, "the first pipelined block has a plane");
+		fill(planes[0], 1.0f);
+		harness.expect(processor.process(Direction::Output) == Outcome::Processed, "the first pipelined block is accepted");
+		harness.expect(planeIs(planes[0], 0.0f), "the first block of the open is silence");
+
+		constexpr uint32_t seeded = 0xfffffffeu;
+		eapo::asio::DaemonProcessorTestAccess::seedSequence(processor, Direction::Output, seeded);
+		eapo::ipc::RingLane& lane = state->header->lanes[static_cast<unsigned>(Direction::Output)];
+		WriteRelease(&lane.sequence, static_cast<LONG>(seeded));
+		WriteRelease(&lane.completed, static_cast<LONG>(seeded));
+		auto slot = [header = state->header, &lane](uint32_t sequence) {
+			return reinterpret_cast<float*>(reinterpret_cast<unsigned char*>(header) + lane.slotOffset[sequence & 1]);
+		};
+		fill(slot(seeded), 0.25f);
+		planes = processor.planes(Direction::Output);
+		fill(planes[0], 2.0f);
+		harness.expect(processor.process(Direction::Output) == Outcome::Processed, "sequence 0xffffffff returns its predecessor");
+		harness.expect(planeIs(planes[0], 0.25f), "sequence 0xffffffff returns non-silent audio");
+
+		WriteRelease(&lane.completed, static_cast<LONG>(0xffffffffu));
+		fill(slot(0xffffffffu), 0.5f);
+		planes = processor.planes(Direction::Output);
+		fill(planes[0], 3.0f);
+		harness.expect(processor.process(Direction::Output) == Outcome::Processed, "wrapped sequence 0 returns its predecessor");
+		harness.expect(planeIs(planes[0], 0.5f), "wrapped sequence 0 returns non-silent audio");
+
+		WriteRelease(&lane.completed, 0);
+		fill(slot(0u), 0.75f);
+		planes = processor.planes(Direction::Output);
+		fill(planes[0], 4.0f);
+		harness.expect(processor.process(Direction::Output) == Outcome::Processed, "wrapped sequence 1 returns its predecessor");
+		harness.expect(planeIs(planes[0], 0.75f), "wrapped sequence 1 does not insert another silent block");
+		processor.close();
+	}
+
 	eapo::asio::StreamFormat smallFormat();
 
 	// Audit #348, maintainer decision: a pipelined block that is late (the
@@ -205,7 +345,7 @@ namespace
 	// one cannot even be published) used to put out its own original audio,
 	// one block earlier than everything around it. It now puts out the
 	// previous block's original audio, so the one-block delay holds.
-	void testPipelinedLateKeepsTheDelay()
+	TEST_CASE(DaemonTests, testPipelinedLateHeldKeepsTheDelay)
 	{
 		test::TestDirectory directory(L"DaemonTests");
 		const std::wstring configPath = writeConfig(directory, "Preamp: -6.0206 dB\n");
@@ -215,8 +355,10 @@ namespace
 		options.mode = Mode::Pipelined;
 
 		constexpr long frames = 64;
-		ThreadHostLink* link = new ThreadHostLink();
-		std::unique_ptr<IStreamProcessor> processor(new DaemonProcessor(std::unique_ptr<eapo::asio::IHostLink>(link)));
+		auto control = std::make_shared<eapo::asio::ThreadHostControl>();
+		auto processor = std::make_unique<DaemonProcessor>(
+			std::make_unique<ThreadHostLink>(false, 0, control));
+		DaemonProcessor* const observedProcessor = processor.get();
 		FakeAsioConfig config;
 		config.sampleType = ASIOSTInt32LSB;
 		config.outputChannels = 1;
@@ -233,22 +375,28 @@ namespace
 		harness.requireEqual(host.createBuffers(wrapper, frames), ASE_OK, "createBuffers over the thread host");
 		harness.requireEqual(wrapper->start(), ASE_OK, "start");
 
-		// One period at a time with room for the host in between, so only the
-		// held periods can be late.
+		// One period at a time after the host completed its sequence, so only
+		// the deliberately held periods can be late.
+		uint32_t nextSequence = 1;
 		const auto pumpServed = [&](long periods) {
 			for (long p = 0; p < periods; p++)
 			{
 				fake->pump(1);
-				Sleep(50);
+				harness.require(eapo::asio::DaemonProcessorTestAccess::waitUntilCompleted(
+					*observedProcessor, Direction::Output, nextSequence, 5000),
+					"the thread host completes sequence " + std::to_string(nextSequence));
+				nextSequence++;
 			}
 		};
 		pumpServed(6);           // periods 0-5: silence, then each previous block processed
-		link->holdHost(true);    // the host has served seq 6 (period 5) and keeps the next one
+		control->holdHost(true);    // the host has served seq 6 (period 5) and keeps the next one
 		fake->pump(1);           // period 6: seq 7 published (and held), seq 6 is back: processed
 		fake->pump(1);           // period 7: seq 8 published, seq 7 held: Late
 		fake->pump(1);           // period 8: seq 9 cannot be published (seq 7 not done): Late
-		link->holdHost(false);
-		Sleep(100);
+		control->holdHost(false);
+		harness.require(eapo::asio::DaemonProcessorTestAccess::waitUntilCompleted(
+			*observedProcessor, Direction::Output, 8, 5000), "the released host completes the held sequences");
+		nextSequence = 9;
 		pumpServed(3);           // periods 9-11
 		wrapper->stop();
 		const eapo::asio::StreamStats stats = wrapper->stats();
@@ -304,7 +452,7 @@ namespace
 	// The serving loop writes the facts the device record reads: the one
 	// attach procedure the host runs, over a heap ring, publishing into a
 	// fake registry that AsioAPOInfo then reads (audit #348 C7).
-	void testServeLoopPublishesTheFacts()
+	TEST_CASE(DaemonTests, testServeLoopPublishesTheFacts)
 	{
 		test::TestDirectory directory(L"DaemonTests");
 		const std::wstring configPath = writeConfig(directory, "Preamp: 0 dB\n");
@@ -326,6 +474,7 @@ namespace
 			events[i] = CreateEventW(nullptr, eapo::asio::RingEvents::table[i].manualReset ? TRUE : FALSE, FALSE, nullptr);
 		HANDLE hostGone = CreateEventW(nullptr, TRUE, FALSE, nullptr);
 		HANDLE producerGone = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+		HANDLE hostEntered = CreateEventW(nullptr, TRUE, FALSE, nullptr);
 
 		test::FakeRegistry registry;
 		eapo::asio::ServeOptions serve;
@@ -336,10 +485,12 @@ namespace
 		// Started before the producer formats the header, as the real host
 		// is: the attach procedure waits for Announced.
 		std::thread host([&] {
+			SetEvent(hostEntered);
 			eapo::asio::EngineHostCore::attachAndServe(region, bytes, eapo::asio::RingEvents::toSync(events, producerGone), serve, 4242);
 			SetEvent(hostGone);
 		});
-		Sleep(20);
+		harness.requireEqual(WaitForSingleObject(hostEntered, 5000), static_cast<DWORD>(WAIT_OBJECT_0),
+			"the host thread enters the attach procedure before the producer formats the ring");
 		{
 			eapo::ipc::RingProducer producer(region, format, GetCurrentProcessId(), eapo::asio::RingEvents::toSync(events, hostGone));
 			harness.expect(producer.waitReady(20000) == eapo::ipc::RingState::Ready, "the serving loop attaches and becomes Ready");
@@ -366,11 +517,12 @@ namespace
 			CloseHandle(event);
 		CloseHandle(hostGone);
 		CloseHandle(producerGone);
+		CloseHandle(hostEntered);
 		_aligned_free(region);
 		directory.removeAll();
 	}
 
-	void testHostDeathIsGoneThenReopens()
+	TEST_CASE(DaemonTests, testHostDeathIsGoneThenReopens)
 	{
 		test::TestDirectory directory(L"DaemonTests");
 		const std::wstring configPath = writeConfig(directory, "Preamp: -6.0206 dB\n");
@@ -380,8 +532,9 @@ namespace
 		options.deadlineUs = 2000000;
 		options.mode = Mode::Sync;
 
-		ThreadHostLink* link = new ThreadHostLink();
-		std::unique_ptr<IStreamProcessor> processor(new DaemonProcessor(std::unique_ptr<eapo::asio::IHostLink>(link)));
+		auto control = std::make_shared<eapo::asio::ThreadHostControl>();
+		std::unique_ptr<IStreamProcessor> processor = std::make_unique<DaemonProcessor>(
+			std::make_unique<ThreadHostLink>(false, 0, control));
 		FakeAsioConfig config;
 		config.outputChannels = 1;
 		config.inputChannels = 0;
@@ -397,7 +550,7 @@ namespace
 		harness.requireEqual(host.createBuffers(wrapper, 32), ASE_OK, "createBuffers over the thread host");
 		harness.requireEqual(wrapper->start(), ASE_OK, "start");
 		fake->pump(3);
-		link->killHost();
+		control->killHost();
 		fake->pump(3);
 		wrapper->stop();
 		const eapo::asio::StreamStats stats = wrapper->stats();
@@ -415,7 +568,7 @@ namespace
 		directory.removeAll();
 	}
 
-	void testMissingHostExecutableFailsLoudly()
+	TEST_CASE(DaemonTests, testMissingHostExecutableFailsLoudly)
 	{
 		StreamOptions options;
 		options.daemonEndpoint = L"EAPO.ASIO.test.missing";
@@ -443,11 +596,10 @@ namespace
 
 	// Audit #348 TD-46: the 32-bit wrapper ships alone in the x86 folder and
 	// looked for the host beside itself, so it could not start one.
-	void testHostExecutableFallsBackToTheParentFolder()
+	TEST_CASE(DaemonTests, testHostExecutableFallsBackToTheParentFolder)
 	{
 		test::TestDirectory directory(L"DaemonTests-host");
-		const std::wstring x86 = directory.path() + L"\\x86";
-		CreateDirectoryW(x86.c_str(), nullptr);
+		const std::wstring x86 = directory.subdirectory(L"x86");
 		const std::wstring parentHost = directory.path() + L"\\EqualizerAPOHost.exe";
 		const std::wstring besideHost = x86 + L"\\EqualizerAPOHost.exe";
 		HANDLE file = CreateFileW(parentHost.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, 0, nullptr);
@@ -479,7 +631,8 @@ namespace
 			: pipe_(CreateNamedPipeW(eapo::asio::HostNames::pipe(endpoint).c_str(), PIPE_ACCESS_DUPLEX,
 				PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, PIPE_UNLIMITED_INSTANCES,
 				sizeof(eapo::asio::HostOpenReply), sizeof(eapo::asio::HostOpenRequest), 0, nullptr)),
-			release_(CreateEventW(nullptr, TRUE, FALSE, nullptr))
+			release_(CreateEventW(nullptr, TRUE, FALSE, nullptr)),
+			doneEvent_(CreateEventW(nullptr, TRUE, FALSE, nullptr))
 		{
 			thread_ = std::thread([this] {
 				const bool connected = ConnectNamedPipe(pipe_, nullptr) || GetLastError() == ERROR_PIPE_CONNECTED;
@@ -490,21 +643,26 @@ namespace
 					requestRead_ = ReadFile(pipe_, &request, sizeof(request), &read, nullptr) && read == sizeof(request);
 					WaitForSingleObject(release_, 30000);
 				}
-				done_ = true;
+				SetEvent(doneEvent_);
 			});
 		}
 
 		~PipeSquatter()
 		{
 			SetEvent(release_);
-			while (!done_)
+			const ULONGLONG deadline = GetTickCount64() + 30000;
+			DWORD completion = WAIT_TIMEOUT;
+			while (completion == WAIT_TIMEOUT && GetTickCount64() < deadline)
 			{
 				CancelSynchronousIo(thread_.native_handle());
-				Sleep(10);
+				completion = WaitForSingleObject(doneEvent_, 10);
 			}
+			harness.requireEqual(completion, static_cast<DWORD>(WAIT_OBJECT_0),
+				"the stand-in pipe server stops before its deadline");
 			thread_.join();
 			CloseHandle(pipe_);
 			CloseHandle(release_);
+			CloseHandle(doneEvent_);
 		}
 
 		PipeSquatter(const PipeSquatter&) = delete;
@@ -523,8 +681,8 @@ namespace
 	private:
 		HANDLE pipe_;
 		HANDLE release_;
+		HANDLE doneEvent_;
 		std::thread thread_;
-		std::atomic<bool> done_ = false;
 		std::atomic<bool> requestRead_ = false;
 	};
 
@@ -538,7 +696,7 @@ namespace
 		return format;
 	}
 
-	void testAnotherProgramOnTheControlPipeIsRefused()
+	TEST_CASE(DaemonTests, testAnotherProgramOnTheControlPipeIsRefused)
 	{
 		const std::wstring endpoint = L"EAPO.ASIO.test.squat." + std::to_wstring(GetCurrentProcessId());
 		PipeSquatter squatter(endpoint);
@@ -549,16 +707,16 @@ namespace
 		options.daemonExePath = L"C:\\definitely\\not\\here\\EqualizerAPOHost.exe";
 		options.readyTimeoutMs = 3000;
 		eapo::asio::Win32HostLink link;
-		eapo::asio::HostSession session;
-		std::string error;
-		const bool opened = link.open(smallFormat(), options, session, error);
-		harness.expectFalse(opened, "the link does not use a pipe served by a program other than the host");
+		eapo::asio::OpenReport report;
+		std::unique_ptr<eapo::ipc::RingProducer> producer = link.open(smallFormat(), options, report);
+		harness.expect(producer == nullptr, "the link does not use a pipe served by a program other than the host");
+		const std::string error(report.message);
 		harness.expect(error.find("held by another program") != std::string::npos, "and says so: " + error);
 		harness.expectFalse(squatter.requestRead(), "the stand-in never receives the stream request");
-		link.close(session);
+		link.close(std::move(producer));
 	}
 
-	void testASilentServerTimesOut()
+	TEST_CASE(DaemonTests, testASilentServerTimesOut)
 	{
 		const std::wstring endpoint = L"EAPO.ASIO.test.silent." + std::to_wstring(GetCurrentProcessId());
 		PipeSquatter squatter(endpoint);
@@ -573,30 +731,152 @@ namespace
 		options.daemonExePath = self;
 		options.readyTimeoutMs = 200;
 		eapo::asio::Win32HostLink link;
-		eapo::asio::HostSession session;
-		std::string error;
+		eapo::asio::OpenReport report;
 		const auto started = std::chrono::steady_clock::now();
-		const bool opened = link.open(smallFormat(), options, session, error);
+		std::unique_ptr<eapo::ipc::RingProducer> producer = link.open(smallFormat(), options, report);
 		const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - started).count();
-		harness.expectFalse(opened, "a server that never replies does not hang the open call");
+		const std::string error(report.message);
+		harness.expect(producer == nullptr, "a server that never replies does not hang the open call");
 		harness.expect(error.find("in time") != std::string::npos, "the error says the host did not answer in time: " + error);
 		harness.expect(elapsed < 10000, "and the call gives up within seconds (" + std::to_string(elapsed) + " ms)");
 		harness.expect(squatter.requestRead(), "the request itself was delivered");
-		link.close(session);
+		link.close(std::move(producer));
 	}
-}
 
-int runDaemonTests()
-{
-	testDaemonMatchesInProc();
-	testPipelinedShape();
-	testPipelinedLateKeepsTheDelay();
-	testHostDeathIsGoneThenReopens();
-	testServeLoopPublishesTheFacts();
-	testMissingHostExecutableFailsLoudly();
-	testHostExecutableFallsBackToTheParentFolder();
-	testAnotherProgramOnTheControlPipeIsRefused();
-	testASilentServerTimesOut();
-	harness.report();
-	return 0;
+	class ControlRingHost
+	{
+	public:
+		explicit ControlRingHost(eapo::asio::HostActivity& activity)
+			: activity_(activity)
+		{
+		}
+
+		eapo::asio::HostOpenReply open(eapo::asio::HostOpenRequest request)
+		{
+			auto worker = std::make_unique<Worker>();
+			worker->mapping.reset(OpenFileMappingW(FILE_MAP_ALL_ACCESS, FALSE, request.ringName));
+			worker->base.reset(worker->mapping ? MapViewOfFile(worker->mapping.get(), FILE_MAP_ALL_ACCESS, 0, 0, request.ringBytes) : nullptr);
+			bool ok = static_cast<bool>(worker->base);
+			for (unsigned i = 0; ok && i < eapo::asio::RingEvents::count; i++)
+			{
+				worker->events[i].reset(OpenEventW(EVENT_MODIFY_STATE | SYNCHRONIZE, FALSE,
+					eapo::asio::HostNames::event(request.ringName, eapo::asio::RingEvents::table[i].suffix).c_str()));
+				ok = static_cast<bool>(worker->events[i]);
+			}
+			worker->producer.reset(OpenProcess(SYNCHRONIZE, FALSE, request.producerPid));
+			eapo::asio::HostOpenReply reply;
+			reply.hostPid = GetCurrentProcessId();
+			if (!ok)
+			{
+				reply.status = static_cast<uint32_t>(eapo::asio::HostOpenStatus::BadRing);
+				return reply;
+			}
+			Worker* raw = worker.get();
+			activity_.started();
+			raw->thread = std::jthread([this, raw, request] {
+				const auto* header = static_cast<const eapo::ipc::RingHeader*>(raw->base.get());
+				const ULONGLONG deadline = GetTickCount64() + 5000;
+				while (ReadAcquire(&header->state) == static_cast<LONG>(eapo::ipc::RingState::Empty)
+					&& GetTickCount64() < deadline)
+					Sleep(1);
+				eapo::ipc::RingConsumer consumer(raw->base.get(), request.ringBytes,
+					eapo::asio::RingEvents::toSync(raw->events, raw->producer.get()));
+				if (consumer.valid())
+				{
+					consumer.setConsumerPid(GetCurrentProcessId());
+					consumer.setState(eapo::ipc::RingState::Ready);
+					eapo::ipc::RingConsumer::Acquired acquired;
+					while (consumer.state() == eapo::ipc::RingState::Ready && !consumer.peerGone())
+						if (consumer.acquire(acquired, 50))
+							consumer.release(acquired);
+				}
+				activity_.finished();
+			});
+			workers_.push_back(std::move(worker));
+			reply.status = static_cast<uint32_t>(eapo::asio::HostOpenStatus::Accepted);
+			return reply;
+		}
+
+	private:
+		struct Worker
+		{
+			winutil::UniqueHandle mapping;
+			winutil::UniqueMappedView base;
+			winutil::UniqueHandle events[eapo::asio::RingEvents::count];
+			winutil::UniqueHandle producer;
+			std::jthread thread;
+		};
+
+		eapo::asio::HostActivity& activity_;
+		std::vector<std::unique_ptr<Worker>> workers_;
+	};
+
+	bool waitForPipe(const std::wstring& endpoint)
+	{
+		const std::wstring pipe = eapo::asio::HostNames::pipe(endpoint);
+		const ULONGLONG deadline = GetTickCount64() + 3000;
+		do
+		{
+			if (WaitNamedPipeW(pipe.c_str(), 20))
+				return true;
+			if (GetTickCount64() >= deadline)
+				return false;
+			Sleep(10);
+		} while (true);
+	}
+
+	TEST_CASE(DaemonTests, testHostControlServerWithWin32Client)
+	{
+		const std::wstring endpoint = L"EAPO.ASIO.test.control." + std::to_wstring(GetCurrentProcessId());
+		eapo::asio::HostActivity activity;
+		ControlRingHost rings(activity);
+		eapo::asio::HostControlOptions serverOptions;
+		serverOptions.endpoint = endpoint;
+		serverOptions.resident = true;
+		eapo::asio::HostControlServer server(serverOptions, activity,
+			[&rings](eapo::asio::HostOpenRequest request) {return rings.open(request);});
+		std::thread serverThread([&server] {server.run();});
+		harness.require(waitForPipe(endpoint), "the real host control server starts listening");
+
+		wchar_t self[MAX_PATH] = {};
+		GetModuleFileNameW(nullptr, self, MAX_PATH);
+		StreamOptions options;
+		options.daemonEndpoint = endpoint;
+		options.daemonExePath = self;
+		options.readyTimeoutMs = 3000;
+		options.lingerMs = (std::numeric_limits<uint32_t>::max)();
+		for (unsigned attempt = 0; attempt < 2; attempt++)
+		{
+			eapo::asio::Win32HostLink link;
+			eapo::asio::OpenReport report;
+			std::unique_ptr<eapo::ipc::RingProducer> producer = link.open(smallFormat(), options, report);
+			harness.require(producer != nullptr, "Win32HostLink receives an accepted request and Ready ring");
+			link.close(std::move(producer));
+		}
+		harness.expectEqual(server.lingerMs(), eapo::asio::maxHostLingerMs, "a client linger is clamped to the documented maximum");
+		// The server counts a handoff after it finishes a connection, which
+		// can be after this thread's close returns; wait for the second one.
+		const ULONGLONG handoffDeadline = GetTickCount64() + 5000;
+		while (server.instanceHandoffs() < 2 && GetTickCount64() < handoffDeadline)
+			Sleep(1);
+		harness.expect(server.instanceHandoffs() >= 2, "each next pipe instance existed before the connected one closed");
+		server.requestStop();
+		serverThread.join();
+	}
+
+	TEST_CASE(DaemonTests, testHostControlServerLinger)
+	{
+		const std::wstring endpoint = L"EAPO.ASIO.test.linger." + std::to_wstring(GetCurrentProcessId());
+		eapo::asio::HostActivity activity;
+		eapo::asio::HostControlOptions options;
+		options.endpoint = endpoint;
+		options.lingerMs = 20;
+		eapo::asio::HostControlServer server(options, activity,
+			[](eapo::asio::HostOpenRequest) {return eapo::asio::HostOpenReply();});
+		const auto started = std::chrono::steady_clock::now();
+		std::thread serverThread([&server] {server.run();});
+		serverThread.join();
+		const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - started).count();
+		harness.expect(elapsed < 3000, "an idle control server leaves after its linger interval (" + std::to_string(elapsed) + " ms)");
+	}
 }

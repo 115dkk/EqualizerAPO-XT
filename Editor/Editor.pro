@@ -81,12 +81,10 @@ SOURCES += main.cpp\
 	guis/DeviceFilterGUI.cpp \
 	guis/DeviceFilterGUIFactory.cpp \
 	../devices/DeviceAPOInfo.cpp \
-	../devices/DeviceAPOInfo.Install.cpp \
+	../devices/DeviceAPOInfo.Change.cpp \
 	../devices/ApoRuntimeFacts.cpp \
 	../devices/ReceiverEndpoints.cpp \
-	../devices/DeviceAPOInfo.Load.cpp \
-	../devices/DeviceAPOInfo.State.cpp \
-	../devices/DeviceAPOInfo.Uninstall.cpp \
+	../devices/EndpointProbe.cpp \
 	../devices/DeviceInstallReport.cpp \
 	../devices/DevicePlan.cpp \
 	../devices/DeviceTestPlan.cpp \
@@ -108,6 +106,7 @@ SOURCES += main.cpp\
 	guis/CopyFilterGUI.cpp \
 	guis/CopyFilterGUIConnectionItem.cpp \
 	guis/CopyFilterGUIChannelItem.cpp \
+	../filters/CopyCommand.cpp \
 	../filters/CopyFilter.cpp \
 	../filters/CopyFilterFactory.cpp \
 	../filters/SendCommand.cpp \
@@ -131,6 +130,7 @@ SOURCES += main.cpp\
 	helpers/PanelFeedEngine.cpp \
 	helpers/PanelPreviewFeeder.cpp \
 	helpers/PluginLoadQueue.cpp \
+	helpers/BackgroundProbe.cpp \
 	../platform/qt/QtAppBootstrap.cpp \
 	helpers/VstChunkScan.cpp \
 	widgets/ResizingLineEdit.cpp \
@@ -162,7 +162,6 @@ SOURCES += main.cpp\
 	guis/MultiConvolutionFilterGUI.cpp \
 	guis/SpatialFilterGUIFactory.cpp \
 	guis/SubwooferRoutingFilterGUIFactory.cpp \
-	helpers/ConvolutionPathHelper.cpp \
 	helpers/DisableWheelFilter.cpp \
 	widgets/EscapableLineEdit.cpp \
 	MainWindow.cpp \
@@ -173,7 +172,9 @@ SOURCES += main.cpp\
 	MainWindowParts/MainWindow.FileIO.cpp \
 	MainWindowParts/MainWindow.Frame.cpp \
 	MainWindowParts/MainWindow.Preferences.cpp \
+	MainWindowParts/MainWindow.Probe.cpp \
 	MainWindowParts/MainWindow.ViewActions.cpp \
+	MainWindowParts/OpenDocument.cpp \
 	diagnostics/SkinSwitchStorm.cpp \
 	ConfigFileCodec.cpp \
 	guis/StageFilterGUI.cpp \
@@ -337,6 +338,7 @@ SOURCES += main.cpp\
 	widgets/cards/FilterCardEditorRouter.cpp \
 	widgets/cards/FilterLineCard.cpp \
 	analysis/AnalysisViewController.cpp \
+	analysis/AnalysisPanelState.cpp \
 	widgets/cards/IncludeCardEditor.cpp \
 	widgets/cards/PreampCardEditor.cpp \
 	widgets/cards/ScalarKnobCardEditor.cpp \
@@ -344,11 +346,13 @@ SOURCES += main.cpp\
 	widgets/cards/ReferenceCardState.cpp \
 	widgets/cards/DefaultReferenceCardView.cpp \
 	widgets/cards/VSTBusModel.cpp \
+	widgets/cards/VSTBusVerdict.cpp \
 	widgets/cards/VSTBusStrip.cpp \
 	widgets/cards/VSTSlotFillModel.cpp \
 	widgets/cards/VSTSlotFillRail.cpp \
 	widgets/cards/VSTRowDocument.cpp \
 	widgets/cards/VSTPluginSession.cpp \
+	widgets/cards/VSTPanelIntent.cpp \
 	widgets/cards/VSTCardEditor.cpp \
 	widgets/ElidedLabel.cpp \
 	widgets/EditableValue.cpp \
@@ -358,6 +362,7 @@ SOURCES += main.cpp\
 	widgets/SegmentedControl.cpp \
 	widgets/FilterCardModel.cpp \
 	widgets/FilterRowGuiPolicy.cpp \
+	widgets/CommandRowFacts.cpp \
 	widgets/FilterCommandCatalog.cpp \
 	widgets/FilterCardRow.cpp \
 	widgets/ChannelFlow.cpp \
@@ -367,6 +372,7 @@ SOURCES += main.cpp\
 	widgets/FilterPickerView.cpp \
 	widgets/UpdateToast.cpp \
 	widgets/MainToolbarKit.cpp \
+	widgets/DeviceFormatBadgeState.cpp \
 	widgets/ValueScrubBox.cpp \
 	widgets/DialogChrome.cpp \
 	widgets/TitleBar.cpp \
@@ -374,6 +380,8 @@ SOURCES += main.cpp\
 	widgets/routing/RoutingFold.cpp \
 	widgets/routing/MultiConvolutionRoutingAdapter.cpp \
 	widgets/routing/RoutingGridModel.cpp \
+	widgets/routing/GridRoutingViewBase.cpp \
+	widgets/routing/SumRoutingViewBase.cpp \
 	widgets/MiddleClickTabWidget.cpp \
 	import/ConfigDependencyScanner.cpp \
 	import/ImportDialog.cpp \
@@ -419,6 +427,7 @@ HEADERS  += \
 	helpers/PanelMonitorGate.h \
 	helpers/PanelPreviewFeeder.h \
 	helpers/PluginLoadQueue.h \
+	helpers/BackgroundProbe.h \
 	helpers/WindowFrameHitTest.h \
 	../platform/qt/QtAppBootstrap.h \
 	helpers/VstChunkScan.h \
@@ -465,6 +474,7 @@ HEADERS  += \
 	guis/CopyFilterGUI.h \
 	guis/CopyFilterGUIConnectionItem.h \
 	guis/CopyFilterGUIChannelItem.h \
+	../filters/CopyCommand.h \
 	../filters/CopyFilter.h \
 	../filters/SendCommand.h \
 	../filters/SendFilter.h \
@@ -518,12 +528,13 @@ HEADERS  += \
 	guis/SpatialFilterGUIFactory.h \
 	guis/SubwooferRoutingFilterGUIFactory.h \
 	helpers/AnalysisWorkerRecovery.h \
-	helpers/ConvolutionPathHelper.h \
 	helpers/DisableWheelFilter.h \
 	widgets/EscapableLineEdit.h \
 	../version.h \
 	../stdafx.h \
 	MainWindow.h \
+	MainWindowProbe.h \
+	MainWindowParts/OpenDocument.h \
 	ConfigFileCodec.h \
 	guis/StageFilterGUI.h \
 	guis/StageFilterGUIFactory.h \
@@ -562,6 +573,7 @@ HEADERS  += \
 	../filters/ConvolutionCommand.h \
 	../filters/ConvolutionFilter.h \
 	../filters/IrCache.h \
+	../filters/ConvolverArray.h \
 	../filters/ConvolverBank.h \
 	../filters/subwooferRouting/SubwooferRoutingCommand.h \
 	../filters/subwooferRouting/SubwooferRoutingFilter.h \
@@ -601,7 +613,6 @@ HEADERS  += \
 	../filters/VSTPluginFilter.h \
 	../filters/VSTPluginFilterFactory.h \
 	../vst/VSTPluginInstance.h \
-	../vst/VSTFormatInstance.h \
 	../vst/VST3Instance.h \
 	../vst/VST3HostContext.h \
 	../vst/VST3MemoryStream.h \
@@ -674,17 +685,20 @@ HEADERS  += \
 	widgets/cards/HilbertCardEditor.h \
 	widgets/cards/VelvetCardEditor.h \
 	analysis/AnalysisViewController.h \
+	analysis/AnalysisPanelState.h \
 	widgets/cards/IncludeCardEditor.h \
 	widgets/cards/PreampCardEditor.h \
 	widgets/cards/ScalarKnobCardEditor.h \
 	widgets/cards/ReferenceCardView.h \
 	widgets/cards/DefaultReferenceCardView.h \
 	widgets/cards/VSTBusModel.h \
+	widgets/cards/VSTBusVerdict.h \
 	widgets/cards/VSTBusStrip.h \
 	widgets/cards/VSTSlotFillModel.h \
 	widgets/cards/VSTSlotFillRail.h \
 	widgets/cards/VSTRowDocument.h \
 	widgets/cards/VSTPluginSession.h \
+	widgets/cards/VSTPanelIntent.h \
 	widgets/cards/VSTCardEditor.h \
 	widgets/ElidedLabel.h \
 	widgets/EditableValue.h \
@@ -694,6 +708,8 @@ HEADERS  += \
 	widgets/SegmentedControl.h \
 	widgets/FilterCardModel.h \
 	widgets/FilterRowGuiPolicy.h \
+	widgets/CommandRowFacts.h \
+	widgets/CommandRowInfo.h \
 	widgets/FilterCommandCatalog.h \
 	widgets/FilterCardRow.h \
 	widgets/ChannelFlow.h \
@@ -703,6 +719,7 @@ HEADERS  += \
 	widgets/FilterPickerView.h \
 	widgets/UpdateToast.h \
 	widgets/MainToolbarKit.h \
+	widgets/DeviceFormatBadgeState.h \
 	widgets/ValueScrubBox.h \
 	widgets/DialogChrome.h \
 	widgets/TitleBar.h \
@@ -712,6 +729,9 @@ HEADERS  += \
 	widgets/routing/MultiConvolutionRoutingAdapter.h \
 	widgets/routing/IRoutingRenderer.h \
 	widgets/routing/RoutingGridModel.h \
+	widgets/routing/RoutingChannelEditor.h \
+	widgets/routing/GridRoutingViewBase.h \
+	widgets/routing/SumRoutingViewBase.h \
 	widgets/MiddleClickTabWidget.h \
 	import/ConfigDependencyScanner.h \
 	import/ImportDialog.h \
@@ -847,3 +867,15 @@ TRANSLATIONS += translations/Editor_de.ts \
 RC_FILE = Editor.rc
 
 DISTFILES += ../uncrustify.cfg
+
+HEADERS += \
+	../devices/AsioEntryWriter.h \
+	../devices/EndpointProbe.h \
+	../platform/windows/TokenPrivilege.h \
+	../platform/windows/WellKnownSids.h \
+	../platform/windows/ComError.h \
+	../platform/windows/ConsoleOutput.h \
+	../platform/windows/ElevatedLaunch.h \
+	../platform/windows/TimeStamp.h \
+	../services/windows/ServiceWait.h \
+	../services/install/InstallWaitBudget.h

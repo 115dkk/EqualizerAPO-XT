@@ -16,6 +16,7 @@
 
 BeforeAll {
     $script:ScriptPath = (Resolve-Path (Join-Path $PSScriptRoot '..' 'Test-SourceSync.ps1')).Path
+    $script:SolutionPath = (Resolve-Path (Join-Path $PSScriptRoot '..' '..' '..' 'EqualizerAPO.sln')).Path
     $script:PwshExe = (Get-Process -Id $PID).Path
     $script:TempRoots = [System.Collections.Generic.List[string]]::new()
 
@@ -35,6 +36,9 @@ BeforeAll {
         $root = Join-Path ([System.IO.Path]::GetTempPath()) ("sourcesync-" + [guid]::NewGuid().ToString('N'))
         $script:TempRoots.Add($root)
         New-Item -ItemType Directory -Path (Join-Path $root 'Editor') -Force | Out-Null
+        # The solution check compares against BuildModel.psm1 beside the
+        # script, so the fixture carries the real solution file.
+        Copy-Item -LiteralPath $script:SolutionPath -Destination (Join-Path $root 'EqualizerAPO.sln')
 
         $allCommon = @($CommonSources)
         if (-not $SkipKnownOmissions) { $allCommon += $script:KnownOmissions }
@@ -207,7 +211,7 @@ Describe "Test-SourceSync.ps1" {
             -EditorSources @('../FilterEngine.cpp')
         $projectDir = Join-Path $root 'Tests' 'HybridConvTests'
         New-Item -ItemType Directory -Path $projectDir -Force | Out-Null
-        [System.IO.File]::WriteAllText((Join-Path $projectDir 'Suite.cpp'), '')
+        [System.IO.File]::WriteAllText((Join-Path $projectDir 'Suite.cpp'), "TEST_CASE(HybridConvTests, testPresent)`n{`n}`n")
         $testProject = @"
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
@@ -273,6 +277,31 @@ Describe "Test-SourceSync.ps1" {
         $result.Output | Should -Match "list only their projects' entries"
     }
 
+    It "accepts tests declared through the self-registration seam" {
+        $root = New-FixtureRepo -CommonSources @('FilterEngine.cpp') -EditorSources @('../FilterEngine.cpp')
+        $suiteDir = Join-Path $root 'Tests' 'EditorLogicTests'
+        New-Item -ItemType Directory -Path $suiteDir -Force | Out-Null
+        [System.IO.File]::WriteAllText((Join-Path $suiteDir 'Registered.cpp'),
+            "TEST_CASE(EditorLogicTests, testRegistered)`n{`n}`n")
+        $result = Invoke-SourceSync -RepoRoot $root
+
+        $result.ExitCode | Should -Be 0
+        $result.Output | Should -Match "All 1 tests in the self-registering suites use TEST_CASE"
+    }
+
+    It "rejects a no-argument test function outside TEST_CASE" {
+        $root = New-FixtureRepo -CommonSources @('FilterEngine.cpp') -EditorSources @('../FilterEngine.cpp')
+        $suiteDir = Join-Path $root 'Tests' 'EngineOrchestrationTests'
+        New-Item -ItemType Directory -Path $suiteDir -Force | Out-Null
+        [System.IO.File]::WriteAllText((Join-Path $suiteDir 'Forgotten.cpp'),
+            "TEST_CASE(EngineOrchestrationTests, testRegistered)`n{`n}`nstatic void testForgotten()`n{`n}`n")
+        $result = Invoke-SourceSync -RepoRoot $root
+
+        $result.ExitCode | Should -Not -Be 0
+        $result.Output | Should -Match "testForgotten is a plain test function"
+        $result.Output | Should -Match "defines a test outside TEST_CASE"
+    }
+
     It "requires every EAPO_ variable the code reads to be in the environment variable list" {
         $root = New-FixtureRepo -CommonSources @('FilterEngine.cpp') -EditorSources @('../FilterEngine.cpp')
         New-Item -ItemType Directory -Path (Join-Path $root 'docs') -Force | Out-Null
@@ -307,6 +336,38 @@ Describe "Test-SourceSync.ps1" {
         $result = Invoke-SourceSync -RepoRoot $root
         $result.ExitCode | Should -Be 0
         $result.Output | Should -Match "at most one licence header and one SPDX licence"
+    }
+
+    It "fails when the solution and the build model list different projects" {
+        $root = New-FixtureRepo -CommonSources @('FilterEngine.cpp') -EditorSources @('../FilterEngine.cpp')
+        $solution = Join-Path $root 'EqualizerAPO.sln'
+        $text = [System.IO.File]::ReadAllText($solution)
+        $text = $text -replace '"Benchmark\\Benchmark\.vcxproj"', '"Tools\Renamed\Renamed.vcxproj"'
+        [System.IO.File]::WriteAllText($solution, $text)
+        $result = Invoke-SourceSync -RepoRoot $root
+
+        $result.ExitCode | Should -Not -Be 0
+        $result.Output | Should -Match ([regex]::Escape("Tools\Renamed\Renamed.vcxproj is in the solution but not in"))
+        $result.Output | Should -Match ([regex]::Escape("Benchmark\Benchmark.vcxproj is in the build model but not in EqualizerAPO.sln"))
+    }
+
+    It "fails when a skin source includes SkinManager.h, except SkinChromeOverlay.h" {
+        $root = New-FixtureRepo -CommonSources @('FilterEngine.cpp') -EditorSources @('../FilterEngine.cpp')
+        $skins = Join-Path $root 'Editor' 'skins'
+        New-Item -ItemType Directory -Path (Join-Path $skins 'shared'), (Join-Path $skins 'rack' 'cards') -Force | Out-Null
+        [System.IO.File]::WriteAllText((Join-Path $skins 'shared' 'SkinChromeOverlay.h'), "#include `"Editor/SkinManager.h`"`n")
+        [System.IO.File]::WriteAllText((Join-Path $skins 'rack' 'cards' 'RackCard.cpp'), "#include `"Editor/SkinTokens.h`"`n")
+        $result = Invoke-SourceSync -RepoRoot $root
+
+        $result.ExitCode | Should -Be 0
+        $result.Output | Should -Match "None of the 2 sources under Editor/skins includes SkinManager.h"
+
+        [System.IO.File]::WriteAllText((Join-Path $skins 'rack' 'cards' 'RackCard.cpp'), "#include `"Editor/SkinTokens.h`"`n#include `"Editor/SkinManager.h`"`n")
+        $result = Invoke-SourceSync -RepoRoot $root
+
+        $result.ExitCode | Should -Not -Be 0
+        $result.Output | Should -Match ([regex]::Escape("::error file=Editor/skins/rack/cards/RackCard.cpp::includes SkinManager.h"))
+        $result.Output | Should -Not -Match ([regex]::Escape("file=Editor/skins/shared/SkinChromeOverlay.h"))
     }
 
     It "refuses to pass when it could not read any ClCompile entry" {

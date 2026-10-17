@@ -190,53 +190,41 @@ Write-Host "The $($entriesByProject.Count) project files' $checkedEntries listed
 # Audit #348 TD-29 deleted the .vcxproj files (and UpdateChecker itself), so
 # DeviceSelector builds from its .pro alone and there is no second list.
 
-# Audit #348 TD-23: TestHarness's "zero checks" backstop fires per harness, so
-# it only catches a forgotten call in HybridConvTests, where every sub-suite
-# owns a harness. EditorLogicTests shares one harness across every test
-# function and EngineOrchestrationTests hands one to all its runners: there a
-# test function that is defined but never called leaves the suite green. Every
-# test function must be called somewhere in its suite besides its definition.
-$sharedHarnessSuites = @(
-  @{ Name = "EditorLogicTests"; Pattern = '(?m)^void (test\w+)\(\)\s*$' },
-  @{ Name = "EngineOrchestrationTests"; Pattern = '(?m)^void ((?:test|run)\w+)\(test::Harness&\s*\w*\)\s*$' }
+# Audit #422 T2: these suites self-register each no-argument test through
+# TEST_CASE. A plain function can compile without entering the registry, so
+# reject that spelling before it can silently return.
+$selfRegisteringSuites = @(
+  "HybridConvTests",
+  "EngineOrchestrationTests",
+  "EditorLogicTests",
+  "AsioTests"
 )
-$uncalled = @()
-$checkedTestFunctions = 0
+$plainTests = @()
+$registeredCases = 0
 $checkedSuites = 0
-foreach ($suite in $sharedHarnessSuites) {
-  $suiteDir = Join-Path $RepoRoot "Tests" $suite.Name
+foreach ($suite in $selfRegisteringSuites) {
+  $suiteDir = Join-Path $RepoRoot "Tests" $suite
   # The Pester cases run this script against a minimal fake tree.
   if (-not (Test-Path -LiteralPath $suiteDir)) { continue }
   $checkedSuites++
-  $files = @(Get-ChildItem -LiteralPath $suiteDir -Filter "*.cpp" -File)
-  $texts = @{}
-  foreach ($file in $files) { $texts[$file.Name] = Get-Content -LiteralPath $file.FullName -Raw }
-  foreach ($file in $files) {
-    foreach ($match in [regex]::Matches($texts[$file.Name], $suite.Pattern)) {
-      $name = $match.Groups[1].Value
-      $checkedTestFunctions++
-      $callPattern = '(?<![\w:])' + [regex]::Escape($name) + '\s*\((?!\s*\)\s*$)'
-      $called = $false
-      foreach ($other in $files) {
-        $text = $texts[$other.Name]
-        # The definition line itself matches the pattern too; count calls only.
-        $calls = [regex]::Matches($text, '(?m)^(?!void ).*' + $callPattern)
-        if ($calls.Count -gt 0) { $called = $true; break }
-      }
-      if (-not $called) { $uncalled += "$($suite.Name): $name is defined in $($file.Name) but never called" }
+  foreach ($file in @(Get-ChildItem -LiteralPath $suiteDir -Filter "*.cpp" -File)) {
+    $text = Get-Content -LiteralPath $file.FullName -Raw
+    $registeredCases += [regex]::Matches($text, '(?m)^\s*TEST_CASE\s*\(').Count
+    foreach ($match in [regex]::Matches($text, '(?m)^\s*(?:static\s+)?void\s+(test\w+)\s*\(\s*\)\s*(?:\r?\n\s*)?\{')) {
+      $plainTests += "$suite/$($file.Name): $($match.Groups[1].Value) is a plain test function; define it with TEST_CASE"
     }
   }
 }
-if ($checkedSuites -gt 0 -and $checkedTestFunctions -eq 0) {
-  throw "No test functions found in the shared-harness suites, so this lint checked nothing."
+if ($checkedSuites -gt 0 -and $registeredCases -eq 0) {
+  throw "No TEST_CASE registrations found in the self-registering suites, so this lint checked nothing."
 }
-foreach ($entry in $uncalled) {
+foreach ($entry in $plainTests) {
   Write-Host "::error::$entry"
 }
-if ($uncalled.Count -gt 0) {
-  throw "A test function in a shared-harness suite is never called."
+if ($plainTests.Count -gt 0) {
+  throw "A self-registering suite defines a test outside TEST_CASE."
 }
-Write-Host "All $checkedTestFunctions test functions of the shared-harness suites are called."
+Write-Host "All $registeredCases tests in the self-registering suites use TEST_CASE."
 
 # Audit #348 TD-80: docs/EnvironmentVariables.md calls itself the one list of
 # EAPO_* variables, and ten the code reads were missing from it. Every EAPO_*
@@ -305,3 +293,55 @@ if ($headerProblems.Count -gt 0) {
   throw "A source file carries a duplicated licence header or more than one SPDX licence."
 }
 Write-Host "All $($headerSources.Count) C++ sources carry at most one licence header and one SPDX licence."
+
+# Audit #422 TD-49: audit #275 B1 took the SkinManager singleton out of the
+# skins' paint code, but eighteen skin sources kept including its header,
+# which leaves the way back open. Skin code receives its tokens from its
+# caller. Only SkinChromeOverlay.h may include the header: an overlay
+# persists across skin switches on the real toolbar and asks which skin is
+# current. The Pester fixtures have no Editor/skins, so the check skips them.
+$skinsRoot = Join-Path $RepoRoot "Editor" "skins"
+if (Test-Path -LiteralPath $skinsRoot) {
+  $allowedSkinManagerIncludes = @("Editor/skins/shared/SkinChromeOverlay.h")
+  $skinSources = @(Get-ChildItem -LiteralPath $skinsRoot -Recurse -File -Include '*.cpp', '*.h')
+  $skinManagerIncludes = @()
+  foreach ($file in $skinSources) {
+    $relative = [System.IO.Path]::GetRelativePath($RepoRoot, $file.FullName) -replace '\\', '/'
+    if ($allowedSkinManagerIncludes -contains $relative) { continue }
+    $text = Get-Content -LiteralPath $file.FullName -Raw
+    if ($null -ne $text -and $text -match '(?m)^\s*#\s*include\s*[<"](?:[^">]*/)?SkinManager\.h[">]') {
+      $skinManagerIncludes += $relative
+    }
+  }
+  foreach ($relative in $skinManagerIncludes) {
+    Write-Host "::error file=$relative::includes SkinManager.h. Skin code receives its tokens from its caller (audit #275 B1); only Editor/skins/shared/SkinChromeOverlay.h may include it."
+  }
+  if ($skinManagerIncludes.Count -gt 0) {
+    throw "A source under Editor/skins includes SkinManager.h."
+  }
+  Write-Host "None of the $($skinSources.Count) sources under Editor/skins includes SkinManager.h, apart from SkinChromeOverlay.h."
+}
+
+# Audit #422 T1/TD-47: EqualizerAPO.sln is kept for Visual Studio, but it
+# is a third list of the MSBuild projects. It must name exactly the projects
+# BuildModel.psm1 knows, or a project added to one silently misses the other.
+Import-Module (Join-Path $PSScriptRoot "BuildModel.psm1") -Force
+$solutionPath = Join-Path $RepoRoot "EqualizerAPO.sln"
+$solutionProjects = @([regex]::Matches((Get-Content -LiteralPath $solutionPath -Raw),
+    'Project\("\{[^}]+\}"\) = "[^"]+", "([^"]+\.vcxproj)"') | ForEach-Object { $_.Groups[1].Value })
+$modelProjects = @(Get-EapoProjectGraph | ForEach-Object Path)
+if ($solutionProjects.Count -eq 0) {
+  throw "No projects found in $solutionPath, so this lint checked nothing."
+}
+$onlyInSolution = @($solutionProjects | Where-Object { $modelProjects -notcontains $_ })
+$onlyInModel = @($modelProjects | Where-Object { $solutionProjects -notcontains $_ })
+foreach ($path in $onlyInSolution) {
+  Write-Host "::error file=EqualizerAPO.sln::$path is in the solution but not in .github/scripts/BuildModel.psm1."
+}
+foreach ($path in $onlyInModel) {
+  Write-Host "::error file=.github/scripts/BuildModel.psm1::$path is in the build model but not in EqualizerAPO.sln."
+}
+if ($onlyInSolution.Count -gt 0 -or $onlyInModel.Count -gt 0) {
+  throw "EqualizerAPO.sln and BuildModel.psm1 list different projects."
+}
+Write-Host "EqualizerAPO.sln and BuildModel.psm1 list the same $($modelProjects.Count) projects."

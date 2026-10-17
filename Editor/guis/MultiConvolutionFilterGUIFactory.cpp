@@ -30,13 +30,6 @@ MultiConvolutionFilterGUIFactory::MultiConvolutionFilterGUIFactory()
 {
 }
 
-QList<FilterTemplate> MultiConvolutionFilterGUIFactory::createFilterTemplates()
-{
-	QList<FilterTemplate> list;
-	list.append(FilterTemplate(tr("MultiConvolution (BRIR / multi-input synthesis convolution)"), "MultiConvolution:", QStringList(tr("Advanced filters"))));
-	return list;
-}
-
 void MultiConvolutionFilterGUIFactory::startOfFile(const QString& configPath)
 {
 	this->configPath = configPath;

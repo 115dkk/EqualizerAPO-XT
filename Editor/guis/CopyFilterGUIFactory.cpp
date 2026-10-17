@@ -17,7 +17,7 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include "filters/CopyFilter.h"
+#include "filters/CopyCommand.h"
 #include "CopyFilterGUI.h"
 #include "CopyFilterGUIFactory.h"
 #include "../FilterGUIFactoryRegistry.h"
@@ -31,13 +31,6 @@ CopyFilterGUIFactory::CopyFilterGUIFactory()
 void CopyFilterGUIFactory::initialize(FilterTable* filterTable)
 {
 	this->filterTable = filterTable;
-}
-
-QList<FilterTemplate> CopyFilterGUIFactory::createFilterTemplates()
-{
-	QList<FilterTemplate> list;
-	list.append(FilterTemplate(tr("Copy (Copy between channels)"), "Copy: ", QStringList(tr("Basic filters"))));
-	return list;
 }
 
 IFilterGUI* CopyFilterGUIFactory::createFilterGUI(QString& command, QString& parameters)

@@ -17,20 +17,15 @@
 namespace EqAPO::Import
 {
 
-namespace
-{
-
-QString formatSize(qint64 bytes)
+QString ImportDialog::formatSize(qint64 bytes)
 {
     if (bytes <= 0)
-        return QObject::tr("0 B");
+        return tr("0 B");
     if (bytes < 1024)
-        return QObject::tr("%1 B").arg(bytes);
+        return tr("%1 B").arg(bytes);
     if (bytes < 1024 * 1024)
-        return QObject::tr("%1 KB").arg(bytes / 1024.0, 0, 'f', 1);
-    return QObject::tr("%1 MB").arg(bytes / (1024.0 * 1024.0), 0, 'f', 2);
-}
-
+        return tr("%1 KB").arg(bytes / 1024.0, 0, 'f', 1);
+    return tr("%1 MB").arg(bytes / (1024.0 * 1024.0), 0, 'f', 2);
 }
 
 ImportDialog::ImportDialog(const ImportManifest& manifest, const QString& configDir, QWidget* parent)

@@ -32,7 +32,7 @@ REGISTER_FILTER_FACTORY(FilterFactoryPriority::VSTPlugin, VSTPluginFilterFactory
 using std::shared_ptr;
 using std::wstring;
 
-FilterVector VSTPluginFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+LineOutcome VSTPluginFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	FilterPtr filter;
 
@@ -40,24 +40,24 @@ FilterVector VSTPluginFilterFactory::createFilter(const wstring& configPath, wst
 	{
 		const VSTPluginCommand pluginCommand = VSTPluginCommand::parse(configPath, parameters);
 		if (!pluginCommand.valid)
-			return reportParseError(command, pluginCommand.error);
+			return LineOutcome::malformed(pluginCommand.error);
 
 		const auto target = ConfigFileReference::library(L"", pluginCommand.libraryPath, configPath);
 		if (!target.refusal.empty())
-			return reportParseError(command, target.refusal);
+			return LineOutcome::malformed(target.refusal);
 
 		shared_ptr<VSTPluginLibrary> library = pluginCommand.libraryPath.empty()
 			? nullptr : VSTPluginLibrary::getInstance(pluginCommand.libraryPath);
 
 		if (library == nullptr)
-			return reportParseError(command, L"expected Library followed by the path of a plugin");
+			return LineOutcome::malformed(L"expected Library followed by the path of a plugin");
 
 		bool create = true;
 		if (configPath != L"")
 		{
 			create = false;
 			TraceF(L"Adding VST plugin %s", library->getLibPath().c_str());
-			int res = library->initialize(target.path);
+			int res = VSTPluginLibrary::load(pluginCommand.libraryPath, &target.path).status;
 			if (res < 0)
 			{
 				// These four were already diagnosed, but only into the log. They
@@ -65,23 +65,21 @@ FilterVector VSTPluginFilterFactory::createFilter(const wstring& configPath, wst
 				// the wrong architecture is the single most common VST mistake,
 				// and it is invisible on screen.
 				if (res == AbstractLibrary::FILE_NOT_FOUND)
-					return reportParseError(command, L"the plugin \"" + library->getLibPath() + L"\" was not found");
+					return LineOutcome::malformed(L"the plugin \"" + library->getLibPath() + L"\" was not found");
 				if (res == AbstractLibrary::LOADING_FAILED)
-					return reportParseError(command, L"the plugin \"" + library->getLibPath() + L"\" could not be loaded");
+					return LineOutcome::malformed(L"the plugin \"" + library->getLibPath() + L"\" could not be loaded");
 				if (res == AbstractLibrary::FUNCTIONS_MISSING)
-					return reportParseError(command, L"\"" + library->getLibPath() + L"\" is not a VST plugin: it does not export the entry points");
+					return LineOutcome::malformed(L"\"" + library->getLibPath() + L"\" is not a VST plugin: it does not export the entry points");
 #ifdef _WIN64
 				const wstring bitDepth = L"64";
 #else
 				const wstring bitDepth = L"32";
 #endif
 				if (res == AbstractLibrary::WRONG_ARCHITECTURE)
-					return reportParseError(command, L"the plugin \"" + library->getLibPath()
+					return LineOutcome::malformed(L"the plugin \"" + library->getLibPath()
 						+ L"\" is built for the other architecture; a " + bitDepth + L"-bit plugin is needed here");
-				return reportParseError(command, L"the plugin \"" + library->getLibPath() + L"\" could not be initialised");
+				return LineOutcome::malformed(L"the plugin \"" + library->getLibPath() + L"\" could not be initialised");
 			}
-			// This factory is the engine's only plugin load site.
-			VSTPluginLibrary::retainIfKeepingLoaded(library);
 			create = true;
 		}
 
@@ -103,5 +101,5 @@ FilterVector VSTPluginFilterFactory::createFilter(const wstring& configPath, wst
 
 	if (filter == nullptr)
 		return {};
-	return singleFilter(std::move(filter));
+	return LineOutcome::produced(singleFilter(std::move(filter)));
 }

@@ -26,25 +26,16 @@
 #include <QList>
 #include <QResizeEvent>
 #include <QSizePolicy>
-#include <QStyle>
 #include <QTimer>
 #include <QToolButton>
 #include <QVariant>
 #include <QVBoxLayout>
 
+#include "Editor/skins/shared/SkinPaint.h"
+
 namespace
 {
 const char fullTextProperty[] = "minimalBassFullText";
-
-void repolishChild(QWidget* widget)
-{
-	if (widget == nullptr)
-		return;
-
-	widget->style()->unpolish(widget);
-	widget->style()->polish(widget);
-	widget->update();
-}
 
 void configureElidedLabel(QLabel* label)
 {
@@ -258,7 +249,7 @@ void MinimalSubwooferRoutingCardView::addActionButton(
 	++actionButtonCount;
 
 	actionRow->setVisible(true);
-	repolishChild(button);
+	repolish(button);
 	actionLayout->invalidate();
 	actionRow->updateGeometry();
 	updateGeometry();
@@ -310,7 +301,7 @@ void MinimalSubwooferRoutingCardView::applyState(
 	validityLabel->setToolTip(validityToolTip);
 	validityLabel->setProperty(
 		"severity", validitySeverity);
-	repolishChild(validityLabel);
+	repolish(validityLabel);
 
 	QString profileText;
 	QString profileToolTip;
@@ -365,7 +356,7 @@ void MinimalSubwooferRoutingCardView::applyState(
 		profileLabel,
 		profileText,
 		tr("%1\n%2").arg(profileToolTip, profileText));
-	repolishChild(profileLabel);
+	repolish(profileLabel);
 
 	const QString layoutText = state.layoutLabel.isEmpty()
 		? tr("UNKNOWN")
@@ -441,7 +432,7 @@ void MinimalSubwooferRoutingCardView::applyState(
 
 	diagnosticLabel->setVisible(
 		!diagnosticText.isEmpty());
-	repolishChild(diagnosticLabel);
+	repolish(diagnosticLabel);
 
 	diagnosticLabel->updateGeometry();
 	refreshElisions();

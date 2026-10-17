@@ -23,7 +23,7 @@
 #include <QWidget>
 #include <QGridLayout>
 
-#include "filters/CopyFilter.h"
+#include "filters/CopyCommand.h"
 
 class CopyFilterGUIForm : public QWidget
 {

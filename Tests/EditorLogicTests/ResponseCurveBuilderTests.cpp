@@ -78,7 +78,7 @@ std::vector<FilterNode> legacyNodes(const AnalysisResponse& response)
 }
 }
 
-void testResponseCurveMatchesTheLegacyMagnitudePath()
+TEST_CASE(EditorLogicTests, testResponseCurveMatchesTheLegacyMagnitudePath)
 {
 	auto response = makeSyntheticResponse();
 
@@ -130,7 +130,7 @@ void testResponseCurveMatchesTheLegacyMagnitudePath()
 	expectTrue(curve.metric == AnalysisMetric::MagnitudeDb, QStringLiteral("the curve reports its metric"));
 }
 
-void testResponseCurveFitsAndLabelsTheValueAxis()
+TEST_CASE(EditorLogicTests, testResponseCurveFitsAndLabelsTheValueAxis)
 {
 	// A quiet response never fits tighter than +/-12 dB, so the axis does not
 	// magnify noise into a mountain range.
@@ -177,7 +177,7 @@ void testResponseCurveFitsAndLabelsTheValueAxis()
 		QStringLiteral("the range stops opening at +/-60 dB"));
 }
 
-void testResponseCurveHandlesEmptyAndDegenerateRequests()
+TEST_CASE(EditorLogicTests, testResponseCurveHandlesEmptyAndDegenerateRequests)
 {
 	AnalysisResponse empty;
 	AnalysisCurveRequest request;
@@ -200,18 +200,18 @@ void testResponseCurveHandlesEmptyAndDegenerateRequests()
 		QStringLiteral("a collapsed frequency window produces no curve"));
 }
 
-void testResponseCurveFrequencyAxis()
+TEST_CASE(EditorLogicTests, testResponseCurveFrequencyAxis)
 {
 	AnalysisCurveRequest request;
 	request.columnCount = 3;
 	request.minHz = 20.0;
 	request.maxHz = 20000.0;
 	// Logarithmic: the middle column of three sits at the geometric mean.
-	expectTrue(std::abs(analysisColumnFrequency(request, 0) - 20.0) < 1e-9,
+	expectNear(analysisColumnFrequency(request, 0), 20.0, 1e-9,
 		QStringLiteral("the first column is the lower limit"));
-	expectTrue(std::abs(analysisColumnFrequency(request, 1) - std::sqrt(20.0 * 20000.0)) < 1e-6,
+	expectNear(analysisColumnFrequency(request, 1), std::sqrt(20.0 * 20000.0), 1e-6,
 		QStringLiteral("the middle column is the geometric mean"));
-	expectTrue(std::abs(analysisColumnFrequency(request, 2) - 20000.0) < 1e-6,
+	expectNear(analysisColumnFrequency(request, 2), 20000.0, 1e-6,
 		QStringLiteral("the last column is the upper limit"));
 
 	request.columnCount = 1;
@@ -236,7 +236,7 @@ void testResponseCurveFrequencyAxis()
 		QStringLiteral("with no response the axis keeps its full window"));
 }
 
-void testResponseCurveSegmentsBreakWhereTheValueIsMissing()
+TEST_CASE(EditorLogicTests, testResponseCurveSegmentsBreakWhereTheValueIsMissing)
 {
 	const QRectF plot(10.0, 0.0, 100.0, 100.0);
 	const double nan = std::numeric_limits<double>::quiet_NaN();

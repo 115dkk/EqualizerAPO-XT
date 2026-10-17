@@ -12,107 +12,55 @@
 #include "SkinGallery.h"
 #include "Editor/gallery/GallerySupport.h"
 #include "Editor/gallery/GalleryStallWatch.h"
+
 #include <algorithm>
-#include <numbers>
-// For the two gates moved out of main.cpp (audit #275 B7): the VST
-// round-trip self test and the analysis layout probe.
-#include <optional>
-#include <unordered_map>
-#include <QBoxLayout>
-#include <QDockWidget>
-#include <QFileInfo>
-#include <QLocale>
-#include <QStyle>
-#include <QTimer>
-#include "filters/VSTPluginFilter.h"
-#include "filters/VSTPluginFilterFactory.h"
-#include "guis/VSTPluginFilterGUI.h"
-#include "widgets/cards/VSTCardEditor.h"
-#include "widgets/cards/VSTSlotFillRail.h"
-#include "MainWindow.h"
-#include "diagnostics/ToolbarPixelProbe.h"
-#include "widgets/MainToolbarKit.h"
-#include "SubwooferRouting/Preset.h"
-#include "SubwooferRouting/StateCodec.h"
-#include "widgets/subwooferrouting/SubwooferRoutingDefaults.h"
-
-#include <cmath>
-#include <complex>
-#include <cstdio>
 #include <cstdlib>
-#include <memory>
 
+#include <QAction>
 #include <QApplication>
-#include <QCheckBox>
-#include <QComboBox>
-#include <QDataStream>
+#include <QColor>
 #include <QDir>
 #include <QElapsedTimer>
-#include <QEnterEvent>
-#include <QEventLoop>
-#include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
-#include <QFrame>
 #include <QGraphicsScene>
 #include <QGraphicsView>
 #include <QGridLayout>
-#include <QHBoxLayout>
+#include <QHash>
 #include <QImage>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
 #include <QLocale>
 #include <QMainWindow>
-#include <QMenu>
-#include <QMenuBar>
 #include <QMouseEvent>
-#include <QPixmap>
 #include <QPointer>
-#include <QRadioButton>
-#include <QToolButton>
+#include <QScreen>
 #include <QScrollArea>
 #include <QScrollBar>
-#include <QScreen>
-#include <QSpinBox>
-#include <QString>
-#include <QStringList>
-#include <QTemporaryDir>
+#include <QSet>
+#include <QStyle>
 #include <QTimer>
 #include <QToolBar>
-#include <QTranslator>
-#include <QTreeView>
-#include <QUrl>
-
-#define WIN32_LEAN_AND_MEAN
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
+#include <QToolButton>
 
 #include "Editor/FilterTable.h"
+#include "Editor/FilterTemplate.h"
 #include "Editor/SkinManager.h"
+#include "Editor/diagnostics/ToolbarPixelProbe.h"
 #include "Editor/guis/CopyFilterGUI.h"
-#include "Editor/helpers/GUIHelper.h"
 #include "Editor/skins/ISkin.h"
+#include "Editor/skins/SkinThemeData.h"
 #include "Editor/skins/Skins.h"
-#include "Editor/widgets/AddCardRow.h"
-#include "Editor/widgets/EqGraphView.h"
-#include "Editor/widgets/SegmentedControl.h"
-#include "Editor/analysis/AnalysisMetric.h"
-#include "Editor/analysis/AnalysisResponse.h"
-#include "filters/BiQuad.h"
 #include "Editor/skins/shared/SkinFileIcons.h"
-#include "Editor/widgets/FilterCardRow.h"
 #include "Editor/widgets/CommandRowFrame.h"
+#include "Editor/widgets/FilterCardRow.h"
 #include "Editor/widgets/FilterInsertSeam.h"
 #include "Editor/widgets/FilterPickerView.h"
-#include "Editor/widgets/SkinComboBox.h"
+#include "Editor/widgets/MainToolbarKit.h"
 #include "Editor/widgets/TitleBar.h"
 #include "Editor/widgets/UpdateToast.h"
-#include "Editor/widgets/subwooferrouting/SubwooferRoutingEditorDialog.h"
-#include "Editor/widgets/cards/SubwooferRoutingCardEditor.h"
-#include "Editor/widgets/routing/IRoutingRenderer.h"
+#include "Editor/widgets/cards/VSTPluginSession.h"
 
 using namespace SkinGalleryDetail;
 
@@ -141,6 +89,18 @@ int runSwitchTest(const QStringList& arguments)
 	qWarning("SkinSwitchTest: starting");
 	// What else ran on the machine during the gate, printed before the verdict.
 	const GalleryLoadSummary load("SkinSwitchTest");
+
+	// Skins::all() leaves out (and logs) a roster id with no ISkin, so this
+	// gate would switch through fewer skins than the preferences offer while
+	// the missing one paints as Studio.
+	const int rosterSize = int(SkinThemeData::ids().size());
+	const int implemented = int(Skins::all().size());
+	if (implemented != rosterSize)
+	{
+		qWarning("SkinSwitchTest: only %d of the %d roster skins have an ISkin implementation (Skins.cpp)",
+			implemented, rosterSize);
+		return 1;
+	}
 
 	FilterInsertSeam accessibilitySeam;
 	int seamActivations = 0;
@@ -171,21 +131,9 @@ int runSwitchTest(const QStringList& arguments)
 		return 1;
 	}
 
-	// Scratch reference targets so the reference cards resolve like the
-	// gallery's; EAPO_SKIN_GALLERY also skips the audio-service ACL probe.
-	QTemporaryDir scratch;
-	if (!scratch.isValid())
-	{
-		qWarning("SkinSwitchTest: cannot create a scratch directory");
+	const GalleryFixture fixture("SkinSwitchTest");
+	if (!fixture.isValid())
 		return 2;
-	}
-	qputenv("EAPO_SKIN_GALLERY", "1");
-	const QString configPath = buildReferenceFiles(QDir(scratch.path()));
-	if (configPath.isEmpty())
-	{
-		qWarning("SkinSwitchTest: cannot write reference target files");
-		return 2;
-	}
 
 	// A config heavy enough for the historical failure mode: the field crash
 	// and the seconds-per-switch regression both needed a loaded document,
@@ -198,7 +146,7 @@ int runSwitchTest(const QStringList& arguments)
 
 	QScrollArea scrollArea;
 	scrollArea.resize(960, 720);
-	buildRows(scrollArea, configPath, lines);
+	buildRows(scrollArea, fixture.configPath(), lines);
 	FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
 	if (table == nullptr)
 	{
@@ -367,139 +315,134 @@ int runSwitchTest(const QStringList& arguments)
 	const int rounds = 3;
 	for (int round = 1; round <= rounds; round++)
 	{
-		for (ISkin* skin : Skins::all())
-		{
-			for (int darkIndex = 0; darkIndex < 2; darkIndex++)
+		forEachSkinMode([&](ISkin* skin, bool dark) {
+			const QString name = QStringLiteral("%1/%2").arg(skin->id(), dark ? QStringLiteral("dark") : QStringLiteral("light"));
+
+			QElapsedTimer timer;
+			timer.start();
+			qint64 clearMs = 0;
+			qint64 applyMs = 0;
+			qint64 rebuildMs = 0;
 			{
-				const bool dark = darkIndex == 0;
-				const QString name = QStringLiteral("%1/%2").arg(skin->id(), dark ? QStringLiteral("dark") : QStringLiteral("light"));
+				// Prints the GUI thread's stacks when the switch runs long.
+				const GalleryStallWatch watch("SkinSwitchTest",
+					name + QStringLiteral(" round %1").arg(round),
+					stallThreshold(switchTimes, warningMs > 0 ? warningMs : limitMs / 2, 1.5));
+				// MainWindow::skinSelected's exact live sequence: tear the
+				// rows down BEFORE the global stylesheet swap (which also
+				// re-derives the palette), rebuild after.
+				table->clearRows();
+				clearMs = timer.restart();
+				SkinManager::instance()->applySkin(skin->id(), dark);
+				applyMs = timer.restart();
+				table->updateGuis();
+				VSTPluginSession::waitForPendingLoads(30000);
+				QApplication::processEvents();
+				// The live editor returns to the event loop between switches,
+				// which is when deleteLater victims (combo popup containers,
+				// editor internals) actually die; a bare processEvents() does
+				// not deliver DeferredDelete, and without this the harness
+				// accumulates a dead generation per switch that the real app
+				// never keeps.
+				QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+				QApplication::processEvents();
+				rebuildMs = timer.elapsed();
+			}
+			const qint64 elapsed = clearMs + applyMs + rebuildMs;
+			switchTimes.append(elapsed);
 
-				QElapsedTimer timer;
-				timer.start();
-				qint64 clearMs = 0;
-				qint64 applyMs = 0;
-				qint64 rebuildMs = 0;
+			if (SkinManager::instance()->currentSkinId() != skin->id())
+			{
+				qWarning("SkinSwitchTest: switch to %s resolved to %s",
+					qPrintable(name), qPrintable(SkinManager::instance()->currentSkinId()));
+				failures++;
+			}
+			if (skin->id() == QLatin1String("soft"))
+				checkPaintOnlyChrome(QStringLiteral("SoftReferenceTile"));
+			{
+				// Caption ink check. tintedIcon paints every covered pixel
+				// in the ink colour, so the strongest-coverage pixel must
+				// sit on the active skin's text colour. Tolerance, not
+				// equality: the thin minimize stroke has no fully opaque
+				// pixel at 14 px and unpremultiply rounding shifts channels
+				// by a few counts - a stale light/dark ink is off by ~100+.
+				const QColor ink(SkinManager::instance()->tokens().text);
+				const QImage glyph = captionButton->icon()
+					.pixmap(QSize(14, 14)).toImage().convertToFormat(QImage::Format_ARGB32);
+				int bestAlpha = 0;
+				QColor bestPixel;
+				for (int y = 0; y < glyph.height(); y++)
+					for (int x = 0; x < glyph.width(); x++)
+					{
+						const QColor pixel = glyph.pixelColor(x, y);
+						if (pixel.alpha() > bestAlpha)
+						{
+							bestAlpha = pixel.alpha();
+							bestPixel = pixel;
+						}
+					}
+				const bool inkMatched = bestAlpha > 0
+					&& qAbs(bestPixel.red() - ink.red()) <= 8
+					&& qAbs(bestPixel.green() - ink.green()) <= 8
+					&& qAbs(bestPixel.blue() - ink.blue()) <= 8;
+				if (!inkMatched)
 				{
-					// Prints the GUI thread's stacks when the switch runs long.
-					const GalleryStallWatch watch("SkinSwitchTest",
-						name + QStringLiteral(" round %1").arg(round),
-						stallThreshold(switchTimes, warningMs > 0 ? warningMs : limitMs / 2, 1.5));
-					// MainWindow::skinSelected's exact live sequence: tear the
-					// rows down BEFORE the global stylesheet swap (which also
-					// re-derives the palette), rebuild after.
-					table->clearRows();
-					clearMs = timer.restart();
-					SkinManager::instance()->applySkin(skin->id(), dark);
-					applyMs = timer.restart();
-					table->updateGuis();
-					VSTPluginSession::waitForPendingLoads(30000);
-					QApplication::processEvents();
-					// The live editor returns to the event loop between switches,
-					// which is when deleteLater victims (combo popup containers,
-					// editor internals) actually die; a bare processEvents() does
-					// not deliver DeferredDelete, and without this the harness
-					// accumulates a dead generation per switch that the real app
-					// never keeps.
-					QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
-					QApplication::processEvents();
-					rebuildMs = timer.elapsed();
-				}
-				const qint64 elapsed = clearMs + applyMs + rebuildMs;
-				switchTimes.append(elapsed);
-
-				if (SkinManager::instance()->currentSkinId() != skin->id())
-				{
-					qWarning("SkinSwitchTest: switch to %s resolved to %s",
-						qPrintable(name), qPrintable(SkinManager::instance()->currentSkinId()));
+					qWarning("SkinSwitchTest: caption icon did not follow the switch to %s (ink %s, glyph %s a%d)",
+						qPrintable(name), qPrintable(ink.name()), qPrintable(bestPixel.name()), bestAlpha);
 					failures++;
 				}
-				if (skin->id() == QLatin1String("soft"))
-					checkPaintOnlyChrome(QStringLiteral("SoftReferenceTile"));
+			}
+			failures += checkToolbar(name);
+			if (round == 1 && dark)
+			{
+				// The skinned file dialog's icon provider must serve the
+				// drive glyph for both drive spellings: the real root
+				// ("C:/") and the slash-less shell name ("C:") that
+				// QFileSystemModel stores drive nodes under and rebuilds
+				// node icons from on setIconProvider. The bare spelling
+				// is neither isRoot() nor a file, which dressed every
+				// sidebar drive with the folder pictogram in the field.
+				QFileDialog probeDialog;
+				probeDialog.setOption(QFileDialog::DontUseNativeDialog);
+				SkinManager::instance()->styleFileDialog(&probeDialog);
+				if (SkinFileIconProvider* provider
+					= dynamic_cast<SkinFileIconProvider*>(probeDialog.iconProvider()))
 				{
-					// Caption ink check. tintedIcon paints every covered pixel
-					// in the ink colour, so the strongest-coverage pixel must
-					// sit on the active skin's text colour. Tolerance, not
-					// equality: the thin minimize stroke has no fully opaque
-					// pixel at 14 px and unpremultiply rounding shifts channels
-					// by a few counts - a stale light/dark ink is off by ~100+.
-					const QColor ink(SkinManager::instance()->tokens().text);
-					const QImage glyph = captionButton->icon()
-						.pixmap(QSize(14, 14)).toImage().convertToFormat(QImage::Format_ARGB32);
-					int bestAlpha = 0;
-					QColor bestPixel;
-					for (int y = 0; y < glyph.height(); y++)
-						for (int x = 0; x < glyph.width(); x++)
-						{
-							const QColor pixel = glyph.pixelColor(x, y);
-							if (pixel.alpha() > bestAlpha)
-							{
-								bestAlpha = pixel.alpha();
-								bestPixel = pixel;
-							}
-						}
-					const bool inkMatched = bestAlpha > 0
-						&& qAbs(bestPixel.red() - ink.red()) <= 8
-						&& qAbs(bestPixel.green() - ink.green()) <= 8
-						&& qAbs(bestPixel.blue() - ink.blue()) <= 8;
-					if (!inkMatched)
+					const qint64 driveKey
+						= provider->icon(QAbstractFileIconProvider::Drive).cacheKey();
+					const qint64 folderKey
+						= provider->icon(QAbstractFileIconProvider::Folder).cacheKey();
+					if (driveKey == folderKey
+						|| provider->icon(QFileInfo(QStringLiteral("C:"))).cacheKey() != driveKey
+						|| provider->icon(QFileInfo(QStringLiteral("C:/"))).cacheKey() != driveKey)
 					{
-						qWarning("SkinSwitchTest: caption icon did not follow the switch to %s (ink %s, glyph %s a%d)",
-							qPrintable(name), qPrintable(ink.name()), qPrintable(bestPixel.name()), bestAlpha);
+						qWarning("SkinSwitchTest: %s file-dialog provider does not classify a drive root as the drive glyph",
+							qPrintable(skin->id()));
 						failures++;
 					}
 				}
-				failures += checkToolbar(name);
-				if (round == 1 && darkIndex == 0)
-				{
-					// The skinned file dialog's icon provider must serve the
-					// drive glyph for both drive spellings: the real root
-					// ("C:/") and the slash-less shell name ("C:") that
-					// QFileSystemModel stores drive nodes under and rebuilds
-					// node icons from on setIconProvider. The bare spelling
-					// is neither isRoot() nor a file, which dressed every
-					// sidebar drive with the folder pictogram in the field.
-					QFileDialog probeDialog;
-					probeDialog.setOption(QFileDialog::DontUseNativeDialog);
-					SkinManager::instance()->styleFileDialog(&probeDialog);
-					if (SkinFileIconProvider* provider
-						= dynamic_cast<SkinFileIconProvider*>(probeDialog.iconProvider()))
-					{
-						const qint64 driveKey
-							= provider->icon(QAbstractFileIconProvider::Drive).cacheKey();
-						const qint64 folderKey
-							= provider->icon(QAbstractFileIconProvider::Folder).cacheKey();
-						if (driveKey == folderKey
-							|| provider->icon(QFileInfo(QStringLiteral("C:"))).cacheKey() != driveKey
-							|| provider->icon(QFileInfo(QStringLiteral("C:/"))).cacheKey() != driveKey)
-						{
-							qWarning("SkinSwitchTest: %s file-dialog provider does not classify a drive root as the drive glyph",
-								qPrintable(skin->id()));
-							failures++;
-						}
-					}
-				}
-				if (elapsed > limitMs)
-				{
-					qWarning("SkinSwitchTest: switch to %s took %lld ms (limit %d ms)",
-						qPrintable(name), static_cast<long long>(elapsed), limitMs);
-					failures++;
-				}
-				else if (warningMs > 0 && elapsed > warningMs)
-				{
-					qWarning("SkinSwitchTest: switch to %s took %lld ms (warning %d ms; hard limit %d ms)",
-						qPrintable(name), static_cast<long long>(elapsed), warningMs, limitMs);
-				}
-				if (elapsed > worstMs)
-				{
-					worstMs = elapsed;
-					worstName = name;
-				}
-				qWarning("SkinSwitchTest: round %d %s: %lld ms (clear %lld, apply %lld, rebuild %lld, widgets %lld)",
-					round, qPrintable(name), static_cast<long long>(elapsed),
-					static_cast<long long>(clearMs), static_cast<long long>(applyMs), static_cast<long long>(rebuildMs),
-					static_cast<long long>(QApplication::allWidgets().size()));
 			}
-		}
+			if (elapsed > limitMs)
+			{
+				qWarning("SkinSwitchTest: switch to %s took %lld ms (limit %d ms)",
+					qPrintable(name), static_cast<long long>(elapsed), limitMs);
+				failures++;
+			}
+			else if (warningMs > 0 && elapsed > warningMs)
+			{
+				qWarning("SkinSwitchTest: switch to %s took %lld ms (warning %d ms; hard limit %d ms)",
+					qPrintable(name), static_cast<long long>(elapsed), warningMs, limitMs);
+			}
+			if (elapsed > worstMs)
+			{
+				worstMs = elapsed;
+				worstName = name;
+			}
+			qWarning("SkinSwitchTest: round %d %s: %lld ms (clear %lld, apply %lld, rebuild %lld, widgets %lld)",
+				round, qPrintable(name), static_cast<long long>(elapsed),
+				static_cast<long long>(clearMs), static_cast<long long>(applyMs), static_cast<long long>(rebuildMs),
+				static_cast<long long>(QApplication::allWidgets().size()));
+		});
 	}
 
 	{
@@ -534,11 +477,7 @@ int runSwitchTest(const QStringList& arguments)
 		rounds * int(Skins::all().size()) * 2, int(lines.size()), static_cast<long long>(worstMs),
 		qPrintable(worstName), warningMs, limitMs, failures);
 
-	// Same no-teardown exit as run(): everything is flushed, and unwinding
-	// the offscreen QApplication can hang the process on a leftover resource.
-	const int status = failures == 0 ? 0 : 1;
-	std::fflush(nullptr);
-	std::_Exit(status);
+	GalleryFixture::finish(failures == 0 ? 0 : 1);
 }
 
 int runCardMoveTest(const QStringList& arguments)
@@ -549,21 +488,9 @@ int runCardMoveTest(const QStringList& arguments)
 	// What else ran on the machine during the gate, printed before the verdict.
 	const GalleryLoadSummary load("CardMoveTest");
 
-	// Scratch reference targets so the reference cards resolve like the
-	// gallery's; EAPO_SKIN_GALLERY also skips the audio-service ACL probe.
-	QTemporaryDir scratch;
-	if (!scratch.isValid())
-	{
-		qWarning("CardMoveTest: cannot create a scratch directory");
+	const GalleryFixture fixture("CardMoveTest");
+	if (!fixture.isValid())
 		return 2;
-	}
-	qputenv("EAPO_SKIN_GALLERY", "1");
-	const QString configPath = buildReferenceFiles(QDir(scratch.path()));
-	if (configPath.isEmpty())
-	{
-		qWarning("CardMoveTest: cannot write reference target files");
-		return 2;
-	}
 
 	// The same 100+ row document as the switch test: the field lag needs a
 	// loaded document, and six copies of the representative rows exercise
@@ -575,7 +502,7 @@ int runCardMoveTest(const QStringList& arguments)
 
 	QScrollArea scrollArea;
 	scrollArea.resize(960, 720);
-	buildRows(scrollArea, configPath, lines);
+	buildRows(scrollArea, fixture.configPath(), lines);
 	FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
 	if (table == nullptr)
 	{
@@ -604,110 +531,105 @@ int runCardMoveTest(const QStringList& arguments)
 	qint64 worstMs = 0;
 	QString worstName;
 	QList<qint64> moveTimes;
-	for (ISkin* skin : Skins::all())
-	{
-		for (int darkIndex = 0; darkIndex < 2; darkIndex++)
+	forEachSkinMode([&](ISkin* skin, bool dark) {
+		const QString name = QStringLiteral("%1/%2").arg(skin->id(),
+			dark ? QStringLiteral("dark") : QStringLiteral("light"));
+
+		// Fresh rows under this skin, in the live switch order (tear down
+		// before the stylesheet swap, rebuild after).
+		table->clearRows();
+		SkinManager::instance()->applySkin(skin->id(), dark);
+		table->updateGuis();
+		VSTPluginSession::waitForPendingLoads(30000);
+		QApplication::processEvents();
+		QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+		QApplication::processEvents();
+
+		const int rowCount = int(table->documentItems().count());
+		if (rowCount != lines.size())
 		{
-			const bool dark = darkIndex == 0;
-			const QString name = QStringLiteral("%1/%2").arg(skin->id(),
-				dark ? QStringLiteral("dark") : QStringLiteral("light"));
-
-			// Fresh rows under this skin, in the live switch order (tear down
-			// before the stylesheet swap, rebuild after).
-			table->clearRows();
-			SkinManager::instance()->applySkin(skin->id(), dark);
-			table->updateGuis();
-			VSTPluginSession::waitForPendingLoads(30000);
-			QApplication::processEvents();
-			QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
-			QApplication::processEvents();
-
-			const int rowCount = int(table->documentItems().count());
-			if (rowCount != lines.size())
-			{
-				qWarning("CardMoveTest: %s expected %lld rows, found %d",
-					qPrintable(name), static_cast<long long>(lines.size()), rowCount);
-				failures++;
-				continue;
-			}
-
-			// One card moved down one row, then back up: two timed commits of
-			// the drag-move path per scene, and the document leaves the scene
-			// in its original order.
-			const int from = rowCount / 2;
-			for (int pass = 0; pass < 2; pass++)
-			{
-				const QList<QString> before = table->getLines();
-				const int sourceRow = pass == 0 ? from : from + 1;
-				const int targetRow = pass == 0 ? from + 1 : from;
-				const int dropRow = pass == 0 ? from + 2 : from;
-				FilterTable::Item* moved = table->documentItems().at(sourceRow);
-
-				QElapsedTimer timer;
-				timer.start();
-				qint64 elapsed = 0;
-				{
-					// Prints the GUI thread's stacks when the move runs long.
-					const GalleryStallWatch watch("CardMoveTest",
-						name + QStringLiteral(" move %1").arg(pass + 1),
-						stallThreshold(moveTimes, warningMs > 0 ? warningMs : limitMs / 2, 2.0));
-					table->moveRows({ moved }, dropRow);
-					QApplication::processEvents();
-					elapsed = timer.elapsed();
-				}
-				moves++;
-				moveTimes.append(elapsed);
-
-				QList<QString> expected = before;
-				expected.move(sourceRow, targetRow);
-				if (table->getLines() != expected)
-				{
-					qWarning("CardMoveTest: %s move %d produced a wrong document order",
-						qPrintable(name), pass + 1);
-					failures++;
-				}
-				// The moved line must stay the (only) selection, at its new
-				// row - by position, not pointer, so both the copy-splice and
-				// the item-preserving implementations of the move pass.
-				const QSet<FilterTable::Item*>& selectedItems = table->getSelectedItems();
-				if (selectedItems.size() != 1
-					|| table->documentItems().indexOf(*selectedItems.cbegin()) != targetRow)
-				{
-					qWarning("CardMoveTest: %s move %d did not leave the moved row selected",
-						qPrintable(name), pass + 1);
-					failures++;
-				}
-				const int rowWidgets = int(table->findChildren<FilterCardRow*>(
-					QString(), Qt::FindDirectChildrenOnly).count());
-				if (rowWidgets != rowCount)
-				{
-					qWarning("CardMoveTest: %s move %d left %d row widgets for %d rows",
-						qPrintable(name), pass + 1, rowWidgets, rowCount);
-					failures++;
-				}
-
-				if (elapsed > limitMs)
-				{
-					qWarning("CardMoveTest: %s move %d took %lld ms (limit %d ms)",
-						qPrintable(name), pass + 1, static_cast<long long>(elapsed), limitMs);
-					failures++;
-				}
-				else if (warningMs > 0 && elapsed > warningMs)
-				{
-					qWarning("CardMoveTest: %s move %d took %lld ms (warning %d ms; hard limit %d ms)",
-						qPrintable(name), pass + 1, static_cast<long long>(elapsed), warningMs, limitMs);
-				}
-				if (elapsed > worstMs)
-				{
-					worstMs = elapsed;
-					worstName = name;
-				}
-				qWarning("CardMoveTest: %s move %d: %lld ms (rows %d, widgets %lld)",
-					qPrintable(name), pass + 1, static_cast<long long>(elapsed), rowCount,
-					static_cast<long long>(QApplication::allWidgets().size()));
-			}
+			qWarning("CardMoveTest: %s expected %lld rows, found %d",
+				qPrintable(name), static_cast<long long>(lines.size()), rowCount);
+			failures++;
+			return;
 		}
-	}
+
+		// One card moved down one row, then back up: two timed commits of
+		// the drag-move path per scene, and the document leaves the scene
+		// in its original order.
+		const int from = rowCount / 2;
+		for (int pass = 0; pass < 2; pass++)
+		{
+			const QList<QString> before = table->getLines();
+			const int sourceRow = pass == 0 ? from : from + 1;
+			const int targetRow = pass == 0 ? from + 1 : from;
+			const int dropRow = pass == 0 ? from + 2 : from;
+			FilterTable::Item* moved = table->documentItems().at(sourceRow);
+
+			QElapsedTimer timer;
+			timer.start();
+			qint64 elapsed = 0;
+			{
+				// Prints the GUI thread's stacks when the move runs long.
+				const GalleryStallWatch watch("CardMoveTest",
+					name + QStringLiteral(" move %1").arg(pass + 1),
+					stallThreshold(moveTimes, warningMs > 0 ? warningMs : limitMs / 2, 2.0));
+				table->moveRows({ moved }, dropRow);
+				QApplication::processEvents();
+				elapsed = timer.elapsed();
+			}
+			moves++;
+			moveTimes.append(elapsed);
+
+			QList<QString> expected = before;
+			expected.move(sourceRow, targetRow);
+			if (table->getLines() != expected)
+			{
+				qWarning("CardMoveTest: %s move %d produced a wrong document order",
+					qPrintable(name), pass + 1);
+				failures++;
+			}
+			// The moved line must stay the (only) selection, at its new
+			// row - by position, not pointer, so both the copy-splice and
+			// the item-preserving implementations of the move pass.
+			const QSet<FilterTable::Item*>& selectedItems = table->getSelectedItems();
+			if (selectedItems.size() != 1
+				|| table->documentItems().indexOf(*selectedItems.cbegin()) != targetRow)
+			{
+				qWarning("CardMoveTest: %s move %d did not leave the moved row selected",
+					qPrintable(name), pass + 1);
+				failures++;
+			}
+			const int rowWidgets = int(table->findChildren<FilterCardRow*>(
+				QString(), Qt::FindDirectChildrenOnly).count());
+			if (rowWidgets != rowCount)
+			{
+				qWarning("CardMoveTest: %s move %d left %d row widgets for %d rows",
+					qPrintable(name), pass + 1, rowWidgets, rowCount);
+				failures++;
+			}
+
+			if (elapsed > limitMs)
+			{
+				qWarning("CardMoveTest: %s move %d took %lld ms (limit %d ms)",
+					qPrintable(name), pass + 1, static_cast<long long>(elapsed), limitMs);
+				failures++;
+			}
+			else if (warningMs > 0 && elapsed > warningMs)
+			{
+				qWarning("CardMoveTest: %s move %d took %lld ms (warning %d ms; hard limit %d ms)",
+					qPrintable(name), pass + 1, static_cast<long long>(elapsed), warningMs, limitMs);
+			}
+			if (elapsed > worstMs)
+			{
+				worstMs = elapsed;
+				worstName = name;
+			}
+			qWarning("CardMoveTest: %s move %d: %lld ms (rows %d, widgets %lld)",
+				qPrintable(name), pass + 1, static_cast<long long>(elapsed), rowCount,
+				static_cast<long long>(QApplication::allWidgets().size()));
+		}
+	});
 
 	load.report();
 	qWarning("CardMoveTest: %d moves over %lld rows, worst %lld ms (%s), warning %d ms, limit %d ms, failures %d",
@@ -779,10 +701,7 @@ int runCardMoveTest(const QStringList& arguments)
 		}
 	}
 
-	// Same no-teardown exit as run().
-	const int status = failures == 0 ? 0 : 1;
-	std::fflush(nullptr);
-	std::_Exit(status);
+	GalleryFixture::finish(failures == 0 ? 0 : 1);
 }
 
 int runCardSelectionTest(const QStringList& arguments)
@@ -809,19 +728,10 @@ int runCardSelectionTest(const QStringList& arguments)
 		}
 	}
 
-	QTemporaryDir scratch;
-	if (!scratch.isValid())
-	{
-		qWarning("CardSelectionTest: cannot create a scratch directory");
+	const GalleryFixture fixture("CardSelectionTest");
+	if (!fixture.isValid())
 		return 2;
-	}
-	qputenv("EAPO_SKIN_GALLERY", "1");
-	const QString configPath = buildReferenceFiles(QDir(scratch.path()));
-	if (configPath.isEmpty())
-	{
-		qWarning("CardSelectionTest: cannot write reference target files");
-		return 2;
-	}
+	const QString& configPath = fixture.configPath();
 
 	const auto click = [](QWidget* target, const QPoint& localPos) {
 		const QPoint globalPos = target->mapToGlobal(localPos);
@@ -843,280 +753,273 @@ int runCardSelectionTest(const QStringList& arguments)
 
 	int failures = 0;
 	int scenes = 0;
-	for (ISkin* skin : Skins::all())
-	{
-		for (int darkIndex = 0; darkIndex < 2; darkIndex++)
+	forEachSkinMode([&](ISkin* skin, bool dark) {
+		const QString mode = dark ? QStringLiteral("dark") : QStringLiteral("light");
+		const QString scene = QStringLiteral("%1/%2").arg(skin->id(), mode);
+		SkinManager::instance()->applySkin(skin->id(), dark);
+
+		QScrollArea scrollArea;
+		scrollArea.resize(960, 720);
+		QList<FilterCardRow*> rows = buildRows(scrollArea, configPath, {
+			QStringLiteral("Preamp: -1 dB"),
+			QStringLiteral("Preamp: -2 dB"),
+			QStringLiteral("Preamp: -3 dB")
+		});
+		FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
+		if (table == nullptr || rows.size() != 3)
 		{
-			const bool dark = darkIndex == 0;
-			const QString mode = dark ? QStringLiteral("dark") : QStringLiteral("light");
-			const QString scene = QStringLiteral("%1/%2").arg(skin->id(), mode);
-			SkinManager::instance()->applySkin(skin->id(), dark);
-
-			QScrollArea scrollArea;
-			scrollArea.resize(960, 720);
-			QList<FilterCardRow*> rows = buildRows(scrollArea, configPath, {
-				QStringLiteral("Preamp: -1 dB"),
-				QStringLiteral("Preamp: -2 dB"),
-				QStringLiteral("Preamp: -3 dB")
-			});
-			FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
-			if (table == nullptr || rows.size() != 3)
-			{
-				qWarning("CardSelectionTest: %s table construction failed", qPrintable(scene));
-				failures++;
-				continue;
-			}
-
-			const auto visualState = [&rows](const char* property, int expectedIndex) {
-				int count = 0;
-				bool expected = false;
-				for (int i = 0; i < rows.size(); i++)
-				{
-					CommandRowFrame* frame = rows[i]->findChild<CommandRowFrame*>(
-						QString(), Qt::FindDirectChildrenOnly);
-					const bool active = frame != nullptr && frame->property(property).toBool();
-					if (active)
-						count++;
-					if (i == expectedIndex)
-						expected = active;
-				}
-				return qMakePair(count, expected);
-			};
-
-			// Drive the exact FilterTable pointer path, then compare the model
-			// answer with the dynamic properties the skin actually renders.
-			const QPoint secondHeader = rows[1]->mapTo(table, rows[1]->getHeaderRect().center());
-			click(table, secondHeader);
-			const bool headerModel = table->getSelectedItems().size() == 1
-				&& table->getSelectedItems().contains(table->documentItems().at(1))
-				&& table->getFocusedItem() == table->documentItems().at(1);
-			const QPair<int, bool> headerSelected = visualState("selected", 1);
-			const QPair<int, bool> headerFocused = visualState("focused", 1);
-			const bool headerVisual = headerSelected.first == 1 && headerSelected.second
-				&& headerFocused.first == 1 && headerFocused.second;
-			if (!headerModel || !headerVisual)
-			{
-				qWarning("CardSelectionTest: %s header click model=%d visual=%d selectedFrames=%d focusedFrames=%d",
-					qPrintable(scene), headerModel ? 1 : 0, headerVisual ? 1 : 0,
-					headerSelected.first, headerFocused.first);
-				failures++;
-			}
-
-			// Keyboard navigation is the closest regression path: it uses the
-			// same state synchronizer but must retain the list's existing arrow
-			// behavior after pointer clicks become card-aware.
-			pressKey(table, Qt::Key_Up);
-			const bool keyboardModel = table->getSelectedItems().size() == 1
-				&& table->getSelectedItems().contains(table->documentItems().at(0))
-				&& table->getFocusedItem() == table->documentItems().at(0);
-			const QPair<int, bool> keyboardSelected = visualState("selected", 0);
-			const QPair<int, bool> keyboardFocused = visualState("focused", 0);
-			const bool keyboardVisual = keyboardSelected.first == 1 && keyboardSelected.second
-				&& keyboardFocused.first == 1 && keyboardFocused.second;
-			if (!keyboardModel || !keyboardVisual)
-			{
-				qWarning("CardSelectionTest: %s keyboard move model=%d visual=%d selectedFrames=%d focusedFrames=%d",
-					qPrintable(scene), keyboardModel ? 1 : 0, keyboardVisual ? 1 : 0,
-					keyboardSelected.first, keyboardFocused.first);
-				failures++;
-			}
-
-			// QLineEdit consumes its own press. A plain click there must still
-			// focus/select its owning card and collapse an old multi-selection.
-			rows[2]->editText();
-			QApplication::processEvents();
-			table->selectAll();
-			QApplication::processEvents();
-			QLineEdit* rawEditor = rows[2]->findChild<QLineEdit*>(
-				QStringLiteral("FilterCardRawEditor"));
-			if (rawEditor == nullptr || !rawEditor->isVisible())
-			{
-				qWarning("CardSelectionTest: %s raw editor is unavailable", qPrintable(scene));
-				failures++;
-			}
-			else
-			{
-				click(rawEditor, rawEditor->rect().center());
-				const bool editorModel = table->getSelectedItems().size() == 1
-					&& table->getSelectedItems().contains(table->documentItems().at(2))
-					&& table->getFocusedItem() == table->documentItems().at(2);
-				const QPair<int, bool> editorSelected = visualState("selected", 2);
-				const QPair<int, bool> editorFocused = visualState("focused", 2);
-				const bool editorVisual = editorSelected.first == 1 && editorSelected.second
-					&& editorFocused.first == 1 && editorFocused.second;
-				if (!editorModel || !editorVisual)
-				{
-					qWarning("CardSelectionTest: %s editor click model=%d visual=%d selectedFrames=%d focusedFrames=%d",
-						qPrintable(scene), editorModel ? 1 : 0, editorVisual ? 1 : 0,
-						editorSelected.first, editorFocused.first);
-					failures++;
-				}
-			}
-
-			if (captureRequested)
-			{
-				const QString shot = outputDir.filePath(QStringLiteral("%1_%2_card-selection.png")
-					.arg(skin->id(), mode));
-				if (!table->grab().save(shot, "PNG"))
-				{
-					qWarning("CardSelectionTest: %s could not write %s",
-						qPrintable(scene), qPrintable(shot));
-					failures++;
-				}
-			}
-
-			// Keep enough rows below the subject that folding cannot clamp the
-			// scrollbar merely because the document became shorter.
-			QList<QString> focusLines;
-			for (int i = 0; i < 16; i++)
-				focusLines.append(QStringLiteral("Preamp: -1 dB"));
-			QScrollArea focusArea;
-			focusArea.resize(960, 320);
-			QList<FilterCardRow*> focusRows = buildRows(focusArea, configPath, focusLines);
-			FilterTable* focusTable = qobject_cast<FilterTable*>(focusArea.widget());
-			focusTable->setFocusPolicy(Qt::StrongFocus);
-			focusArea.activateWindow();
-			QApplication::processEvents();
-			QScrollBar* bar = focusArea.verticalScrollBar();
-			FilterCardRow* subject = focusRows[2];
-			subject->editText();
-			QLineEdit* focusEditor = subject->findChild<QLineEdit*>(QStringLiteral("FilterCardRawEditor"));
-			focusEditor->setMinimumHeight(900);
-			subject->setMinimumHeight(900);
-			QApplication::processEvents();
-			focusTable->layout()->activate();
-			QApplication::processEvents();
-			bar->setValue(subject->y() + 100);
-			const int clickScroll = bar->value();
-			focusTable->selectOnlyFromCard(focusTable->documentItems().first());
-			click(focusEditor, QPoint(30, 120));
-			const bool bodyClickStable = bar->value() == clickScroll;
-			click(focusTable, subject->mapTo(focusTable, QPoint(2, 190)));
-			const bool tableClickStable = bar->value() == clickScroll;
-			const bool tallClick = subject->height() > focusArea.viewport()->height()
-				&& clickScroll > 0 && bodyClickStable && tableClickStable;
-			if (!tallClick)
-				failures++;
-
-			focusEditor->setMinimumHeight(0);
-			subject->setMinimumHeight(0);
-			subject->editText();
-			QApplication::processEvents();
-			focusEditor->setFocus(Qt::OtherFocusReason);
-			bar->setValue(subject->y());
-			const int foldScroll = bar->value();
-			const bool hadBodyFocus = QApplication::focusWidget() == focusEditor;
-			QMetaObject::invokeMethod(subject, "setExpanded", Qt::DirectConnection, Q_ARG(bool, false));
-			QApplication::processEvents();
-			const bool foldStable = hadBodyFocus && foldScroll > 0
-				&& bar->value() == foldScroll && QApplication::focusWidget() == focusTable;
-			if (!foldStable)
-				failures++;
-
-			subject->editText();
-			QApplication::processEvents();
-			focusEditor->setFocus(Qt::OtherFocusReason);
-			bar->setValue(subject->y());
-			const int replaceScroll = bar->value();
-			const bool hadReplaceFocus = QApplication::focusWidget() == focusEditor;
-			focusTable->updateSingleRowGui(focusTable->documentItems().at(2));
-			QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
-			QApplication::processEvents();
-			const bool replaceStable = hadReplaceFocus && QApplication::focusWidget() == focusTable
-				&& bar->value() == replaceScroll;
-			if (!replaceStable)
-				failures++;
-
-			// Dismissal must return to the requesting row, not a raw editor that
-			// happened to have focus before the popup opened.
-			QPointer<FilterCardRow> pickerAnchor = focusTable->findChildren<FilterCardRow*>(
-				QString(), Qt::FindDirectChildrenOnly).first();
-			QTimer::singleShot(0, focusTable, []() {
-				if (QWidget* popup = QApplication::activePopupWidget())
-					popup->hide();
-			});
-			FilterTemplate ignoredTemplate;
-			const int pickerScroll = bar->value();
-			const bool pickerChosen = focusTable->chooseFilterTemplate(&ignoredTemplate,
-				focusArea.mapToGlobal(QPoint(20, 20)), pickerAnchor);
-			QApplication::processEvents();
-			// The offscreen plugin does not reactivate the owner after a popup.
-			// Simulate activation, without choosing its focus widget for it.
-			focusArea.activateWindow();
-			QApplication::processEvents();
-			const bool dismissStable = !pickerChosen && QApplication::focusWidget() == pickerAnchor
-				&& bar->value() == pickerScroll;
-			if (!dismissStable)
-			{
-				qWarning("CardSelectionTest: dismiss chosen=%d focus=%s anchor=%d scroll=%d/%d active=%d",
-					pickerChosen, QApplication::focusWidget() != nullptr ? QApplication::focusWidget()->metaObject()->className() : "null",
-					QApplication::focusWidget() == pickerAnchor, bar->value(), pickerScroll, focusArea.isActiveWindow());
-				failures++;
-			}
-
-			focusTable->updateGuis();
-			VSTPluginSession::waitForPendingLoads(30000);
-			QApplication::processEvents();
-			const bool rebuildStable = QApplication::focusWidget() == focusTable
-				&& bar->value() == pickerScroll;
-			if (!rebuildStable)
-				failures++;
-			QPointer<FilterCardRow> editedAnchor = focusTable->findChildren<FilterCardRow*>(
-				QString(), Qt::FindDirectChildrenOnly).at(2);
-			editedAnchor->editText();
-			QApplication::processEvents();
-			QLineEdit* pendingEditor = editedAnchor->findChild<QLineEdit*>(QStringLiteral("FilterCardRawEditor"));
-			pendingEditor->selectAll();
-			pendingEditor->insert(QStringLiteral("Preamp: -7 dB"));
-			bool anchorReplacedInPopup = false;
-			QTimer::singleShot(30, focusTable, [&]() {
-				anchorReplacedInPopup = editedAnchor.isNull();
-				if (QWidget* popup = QApplication::activePopupWidget())
-				{
-					FilterPickerView* picker = popup->findChild<FilterPickerView*>();
-					if (picker != nullptr)
-						emit picker->entryChosen(0);
-					else
-						popup->hide();
-				}
-			});
-			QMetaObject::invokeMethod(editedAnchor, "addAbove", Qt::DirectConnection);
-			QApplication::processEvents();
-			focusArea.activateWindow();
-			QApplication::processEvents();
-			const bool rawPickerStable = anchorReplacedInPopup
-				&& focusTable->documentItems().size() == focusLines.size() + 1
-				&& focusTable->documentItems().at(3)->text == QStringLiteral("Preamp: -7 dB")
-				&& QApplication::focusWidget() == focusTable;
-			if (!rawPickerStable)
-				failures++;
-
-			QGridLayout* focusGrid = qobject_cast<QGridLayout*>(focusTable->layout());
-			FilterCardRow* removedRow = qobject_cast<FilterCardRow*>(focusGrid->itemAtPosition(3, 0)->widget());
-			removedRow->editText();
-			QApplication::processEvents();
-			QLineEdit* removedEditor = removedRow->findChild<QLineEdit*>(QStringLiteral("FilterCardRawEditor"));
-			removedEditor->selectAll();
-			removedEditor->insert(QStringLiteral("Preamp: -9 dB"));
-			bar->setValue(removedRow->y());
-			const int removeScroll = bar->value();
-			focusTable->removeLine(focusTable->documentItems().at(3));
-			QApplication::processEvents();
-			const bool removeStable = QApplication::focusWidget() == focusTable
-				&& bar->value() == removeScroll && focusTable->documentItems().size() == focusLines.size();
-			if (!removeStable)
-				failures++;
-			qWarning("CardSelectionTest: %s focus tall-click=%d fold=%d replace=%d dismiss=%d rebuild=%d raw-picker=%d remove=%d",
-				qPrintable(scene), tallClick, foldStable, replaceStable, dismissStable, rebuildStable, rawPickerStable, removeStable);
-
-			qWarning("CardSelectionTest: %s complete", qPrintable(scene));
-			scenes++;
+			qWarning("CardSelectionTest: %s table construction failed", qPrintable(scene));
+			failures++;
+			return;
 		}
-	}
+
+		const auto visualState = [&rows](const char* property, int expectedIndex) {
+			int count = 0;
+			bool expected = false;
+			for (int i = 0; i < rows.size(); i++)
+			{
+				CommandRowFrame* frame = rows[i]->findChild<CommandRowFrame*>(
+					QString(), Qt::FindDirectChildrenOnly);
+				const bool active = frame != nullptr && frame->property(property).toBool();
+				if (active)
+					count++;
+				if (i == expectedIndex)
+					expected = active;
+			}
+			return qMakePair(count, expected);
+		};
+
+		// Drive the exact FilterTable pointer path, then compare the model
+		// answer with the dynamic properties the skin actually renders.
+		const QPoint secondHeader = rows[1]->mapTo(table, rows[1]->getHeaderRect().center());
+		click(table, secondHeader);
+		const bool headerModel = table->getSelectedItems().size() == 1
+			&& table->getSelectedItems().contains(table->documentItems().at(1))
+			&& table->getFocusedItem() == table->documentItems().at(1);
+		const QPair<int, bool> headerSelected = visualState("selected", 1);
+		const QPair<int, bool> headerFocused = visualState("focused", 1);
+		const bool headerVisual = headerSelected.first == 1 && headerSelected.second
+			&& headerFocused.first == 1 && headerFocused.second;
+		if (!headerModel || !headerVisual)
+		{
+			qWarning("CardSelectionTest: %s header click model=%d visual=%d selectedFrames=%d focusedFrames=%d",
+				qPrintable(scene), headerModel ? 1 : 0, headerVisual ? 1 : 0,
+				headerSelected.first, headerFocused.first);
+			failures++;
+		}
+
+		// Keyboard navigation is the closest regression path: it uses the
+		// same state synchronizer but must retain the list's existing arrow
+		// behavior after pointer clicks become card-aware.
+		pressKey(table, Qt::Key_Up);
+		const bool keyboardModel = table->getSelectedItems().size() == 1
+			&& table->getSelectedItems().contains(table->documentItems().at(0))
+			&& table->getFocusedItem() == table->documentItems().at(0);
+		const QPair<int, bool> keyboardSelected = visualState("selected", 0);
+		const QPair<int, bool> keyboardFocused = visualState("focused", 0);
+		const bool keyboardVisual = keyboardSelected.first == 1 && keyboardSelected.second
+			&& keyboardFocused.first == 1 && keyboardFocused.second;
+		if (!keyboardModel || !keyboardVisual)
+		{
+			qWarning("CardSelectionTest: %s keyboard move model=%d visual=%d selectedFrames=%d focusedFrames=%d",
+				qPrintable(scene), keyboardModel ? 1 : 0, keyboardVisual ? 1 : 0,
+				keyboardSelected.first, keyboardFocused.first);
+			failures++;
+		}
+
+		// QLineEdit consumes its own press. A plain click there must still
+		// focus/select its owning card and collapse an old multi-selection.
+		rows[2]->editText();
+		QApplication::processEvents();
+		table->selectAll();
+		QApplication::processEvents();
+		QLineEdit* rawEditor = rows[2]->findChild<QLineEdit*>(
+			QStringLiteral("FilterCardRawEditor"));
+		if (rawEditor == nullptr || !rawEditor->isVisible())
+		{
+			qWarning("CardSelectionTest: %s raw editor is unavailable", qPrintable(scene));
+			failures++;
+		}
+		else
+		{
+			click(rawEditor, rawEditor->rect().center());
+			const bool editorModel = table->getSelectedItems().size() == 1
+				&& table->getSelectedItems().contains(table->documentItems().at(2))
+				&& table->getFocusedItem() == table->documentItems().at(2);
+			const QPair<int, bool> editorSelected = visualState("selected", 2);
+			const QPair<int, bool> editorFocused = visualState("focused", 2);
+			const bool editorVisual = editorSelected.first == 1 && editorSelected.second
+				&& editorFocused.first == 1 && editorFocused.second;
+			if (!editorModel || !editorVisual)
+			{
+				qWarning("CardSelectionTest: %s editor click model=%d visual=%d selectedFrames=%d focusedFrames=%d",
+					qPrintable(scene), editorModel ? 1 : 0, editorVisual ? 1 : 0,
+					editorSelected.first, editorFocused.first);
+				failures++;
+			}
+		}
+
+		if (captureRequested)
+		{
+			const QString shot = outputDir.filePath(QStringLiteral("%1_%2_card-selection.png")
+				.arg(skin->id(), mode));
+			if (!table->grab().save(shot, "PNG"))
+			{
+				qWarning("CardSelectionTest: %s could not write %s",
+					qPrintable(scene), qPrintable(shot));
+				failures++;
+			}
+		}
+
+		// Keep enough rows below the subject that folding cannot clamp the
+		// scrollbar merely because the document became shorter.
+		QList<QString> focusLines;
+		for (int i = 0; i < 16; i++)
+			focusLines.append(QStringLiteral("Preamp: -1 dB"));
+		QScrollArea focusArea;
+		focusArea.resize(960, 320);
+		QList<FilterCardRow*> focusRows = buildRows(focusArea, configPath, focusLines);
+		FilterTable* focusTable = qobject_cast<FilterTable*>(focusArea.widget());
+		focusTable->setFocusPolicy(Qt::StrongFocus);
+		focusArea.activateWindow();
+		QApplication::processEvents();
+		QScrollBar* bar = focusArea.verticalScrollBar();
+		FilterCardRow* subject = focusRows[2];
+		subject->editText();
+		QLineEdit* focusEditor = subject->findChild<QLineEdit*>(QStringLiteral("FilterCardRawEditor"));
+		focusEditor->setMinimumHeight(900);
+		subject->setMinimumHeight(900);
+		QApplication::processEvents();
+		focusTable->layout()->activate();
+		QApplication::processEvents();
+		bar->setValue(subject->y() + 100);
+		const int clickScroll = bar->value();
+		focusTable->selectOnlyFromCard(focusTable->documentItems().first());
+		click(focusEditor, QPoint(30, 120));
+		const bool bodyClickStable = bar->value() == clickScroll;
+		click(focusTable, subject->mapTo(focusTable, QPoint(2, 190)));
+		const bool tableClickStable = bar->value() == clickScroll;
+		const bool tallClick = subject->height() > focusArea.viewport()->height()
+			&& clickScroll > 0 && bodyClickStable && tableClickStable;
+		if (!tallClick)
+			failures++;
+
+		focusEditor->setMinimumHeight(0);
+		subject->setMinimumHeight(0);
+		subject->editText();
+		QApplication::processEvents();
+		focusEditor->setFocus(Qt::OtherFocusReason);
+		bar->setValue(subject->y());
+		const int foldScroll = bar->value();
+		const bool hadBodyFocus = QApplication::focusWidget() == focusEditor;
+		QMetaObject::invokeMethod(subject, "setExpanded", Qt::DirectConnection, Q_ARG(bool, false));
+		QApplication::processEvents();
+		const bool foldStable = hadBodyFocus && foldScroll > 0
+			&& bar->value() == foldScroll && QApplication::focusWidget() == focusTable;
+		if (!foldStable)
+			failures++;
+
+		subject->editText();
+		QApplication::processEvents();
+		focusEditor->setFocus(Qt::OtherFocusReason);
+		bar->setValue(subject->y());
+		const int replaceScroll = bar->value();
+		const bool hadReplaceFocus = QApplication::focusWidget() == focusEditor;
+		focusTable->updateSingleRowGui(focusTable->documentItems().at(2));
+		QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+		QApplication::processEvents();
+		const bool replaceStable = hadReplaceFocus && QApplication::focusWidget() == focusTable
+			&& bar->value() == replaceScroll;
+		if (!replaceStable)
+			failures++;
+
+		// Dismissal must return to the requesting row, not a raw editor that
+		// happened to have focus before the popup opened.
+		QPointer<FilterCardRow> pickerAnchor = focusTable->findChildren<FilterCardRow*>(
+			QString(), Qt::FindDirectChildrenOnly).first();
+		QTimer::singleShot(0, focusTable, []() {
+			if (QWidget* popup = QApplication::activePopupWidget())
+				popup->hide();
+		});
+		FilterTemplate ignoredTemplate;
+		const int pickerScroll = bar->value();
+		const bool pickerChosen = focusTable->chooseFilterTemplate(&ignoredTemplate,
+			focusArea.mapToGlobal(QPoint(20, 20)), pickerAnchor);
+		QApplication::processEvents();
+		// The offscreen plugin does not reactivate the owner after a popup.
+		// Simulate activation, without choosing its focus widget for it.
+		focusArea.activateWindow();
+		QApplication::processEvents();
+		const bool dismissStable = !pickerChosen && QApplication::focusWidget() == pickerAnchor
+			&& bar->value() == pickerScroll;
+		if (!dismissStable)
+		{
+			qWarning("CardSelectionTest: dismiss chosen=%d focus=%s anchor=%d scroll=%d/%d active=%d",
+				pickerChosen, QApplication::focusWidget() != nullptr ? QApplication::focusWidget()->metaObject()->className() : "null",
+				QApplication::focusWidget() == pickerAnchor, bar->value(), pickerScroll, focusArea.isActiveWindow());
+			failures++;
+		}
+
+		focusTable->updateGuis();
+		VSTPluginSession::waitForPendingLoads(30000);
+		QApplication::processEvents();
+		const bool rebuildStable = QApplication::focusWidget() == focusTable
+			&& bar->value() == pickerScroll;
+		if (!rebuildStable)
+			failures++;
+		QPointer<FilterCardRow> editedAnchor = focusTable->findChildren<FilterCardRow*>(
+			QString(), Qt::FindDirectChildrenOnly).at(2);
+		editedAnchor->editText();
+		QApplication::processEvents();
+		QLineEdit* pendingEditor = editedAnchor->findChild<QLineEdit*>(QStringLiteral("FilterCardRawEditor"));
+		pendingEditor->selectAll();
+		pendingEditor->insert(QStringLiteral("Preamp: -7 dB"));
+		bool anchorReplacedInPopup = false;
+		QTimer::singleShot(30, focusTable, [&]() {
+			anchorReplacedInPopup = editedAnchor.isNull();
+			if (QWidget* popup = QApplication::activePopupWidget())
+			{
+				FilterPickerView* picker = popup->findChild<FilterPickerView*>();
+				if (picker != nullptr)
+					emit picker->entryChosen(0);
+				else
+					popup->hide();
+			}
+		});
+		QMetaObject::invokeMethod(editedAnchor, "addAbove", Qt::DirectConnection);
+		QApplication::processEvents();
+		focusArea.activateWindow();
+		QApplication::processEvents();
+		const bool rawPickerStable = anchorReplacedInPopup
+			&& focusTable->documentItems().size() == focusLines.size() + 1
+			&& focusTable->documentItems().at(3)->text == QStringLiteral("Preamp: -7 dB")
+			&& QApplication::focusWidget() == focusTable;
+		if (!rawPickerStable)
+			failures++;
+
+		QGridLayout* focusGrid = qobject_cast<QGridLayout*>(focusTable->layout());
+		FilterCardRow* removedRow = qobject_cast<FilterCardRow*>(focusGrid->itemAtPosition(3, 0)->widget());
+		removedRow->editText();
+		QApplication::processEvents();
+		QLineEdit* removedEditor = removedRow->findChild<QLineEdit*>(QStringLiteral("FilterCardRawEditor"));
+		removedEditor->selectAll();
+		removedEditor->insert(QStringLiteral("Preamp: -9 dB"));
+		bar->setValue(removedRow->y());
+		const int removeScroll = bar->value();
+		focusTable->removeLine(focusTable->documentItems().at(3));
+		QApplication::processEvents();
+		const bool removeStable = QApplication::focusWidget() == focusTable
+			&& bar->value() == removeScroll && focusTable->documentItems().size() == focusLines.size();
+		if (!removeStable)
+			failures++;
+		qWarning("CardSelectionTest: %s focus tall-click=%d fold=%d replace=%d dismiss=%d rebuild=%d raw-picker=%d remove=%d",
+			qPrintable(scene), tallClick, foldStable, replaceStable, dismissStable, rebuildStable, rawPickerStable, removeStable);
+
+		qWarning("CardSelectionTest: %s complete", qPrintable(scene));
+		scenes++;
+	});
 
 	qWarning("CardSelectionTest: %d scenes, failures %d", scenes, failures);
-	const int status = failures == 0 ? 0 : 1;
-	std::fflush(nullptr);
-	std::_Exit(status);
+	GalleryFixture::finish(failures == 0 ? 0 : 1);
 }
 }

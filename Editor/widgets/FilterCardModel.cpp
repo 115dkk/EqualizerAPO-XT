@@ -333,7 +333,7 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		// The custom-coefficient IIR grammar ("ON IIR Order N Coefficients ...")
 		// keeps the biquad card type so every skin's biquad styling applies;
 		// only the badge and title say IIR. The engine
-		// (IIRFilterFactory::parseCommand) stays the single grammar owner.
+		// (IIRCommand::parse) stays the single grammar owner.
 		static const QRegularExpression iirExpression(QStringLiteral("^\\s*(ON|OFF)\\s+IIR\\b"));
 		const QRegularExpressionMatch iirMatch = iirExpression.match(parameters);
 		if (iirMatch.hasMatch())
@@ -455,6 +455,29 @@ QVector<FilterCardRowScope> FilterCardModel::calculateScopes(const QList<QString
 	return scopes;
 }
 
+void FilterCardModel::applyScope(FilterCardDescriptor& descriptor, const FilterCardRowScope& scope)
+{
+	descriptor.depth = scope.indent;
+	descriptor.logicDepth = scope.logic;
+	descriptor.scopeChannels = scope.channels;
+}
+
+FilterCardDescriptor FilterCardModel::describeRow(const QString& line, const FilterCardRowScope& scope)
+{
+	FilterCardDescriptor descriptor = describeLine(line);
+	applyScope(descriptor, scope);
+	return descriptor;
+}
+
+FilterCardRowScope FilterCardModel::scopeOf(const FilterCardDescriptor& descriptor)
+{
+	FilterCardRowScope scope;
+	scope.indent = descriptor.depth;
+	scope.logic = descriptor.logicDepth;
+	scope.channels = descriptor.scopeChannels;
+	return scope;
+}
+
 QVector<FilterCardBuildPlan> FilterCardModel::prepareRows(const QList<QString>& lines)
 {
 	QVector<FilterCardBuildPlan> plans;
@@ -466,24 +489,14 @@ QVector<FilterCardBuildPlan> FilterCardModel::prepareRows(const QList<QString>& 
 	for (const QString& line : lines)
 	{
 		FilterCardBuildPlan plan;
+		// describeRow, split so the scope pass reads the descriptor's own
+		// channel list instead of parsing the line a second time.
 		plan.descriptor = describeLine(line);
 		plan.scope = advanceScope(plan.descriptor.enabled,
 			canonicalCommand(plan.descriptor.command), plan.descriptor.channelBadges,
 			activeChannels, channelDepth, ifDepth);
-		plan.descriptor.depth = plan.scope.indent;
-		plan.descriptor.logicDepth = plan.scope.logic;
-		plan.descriptor.scopeChannels = plan.scope.channels;
+		applyScope(plan.descriptor, plan.scope);
 		plans.append(std::move(plan));
 	}
 	return plans;
-}
-
-QVector<int> FilterCardModel::calculateDepths(const QList<QString>& lines)
-{
-	const QVector<FilterCardRowScope> scopes = calculateScopes(lines);
-	QVector<int> depths;
-	depths.reserve(scopes.size());
-	for (const FilterCardRowScope& scope : scopes)
-		depths.append(scope.indent);
-	return depths;
 }

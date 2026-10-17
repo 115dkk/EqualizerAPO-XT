@@ -19,6 +19,7 @@
 
 #include "stdafx.h"
 #include "platform/windows/GuidText.h"
+#include "runtime/errors/WideError.h"
 #include "services/registry/RegistryPaths.h"
 #include <new>
 #include <string>
@@ -124,7 +125,7 @@ STDAPI DllRegisterServer()
 			winutil::guidToString(EQUALIZERAPO_PRE_MIX_GUID),
 			L"EqualizerAPO Pre-Mix Class", filename);
 	}
-	catch (const RegistryError& e)
+	catch (const WideError& e)
 	{
 		LogFStatic(L"Could not register the APO class keys: %s", e.getMessage().c_str());
 		UnregisterAPO(EQUALIZERAPO_POST_MIX_GUID);
@@ -144,7 +145,7 @@ STDAPI DllUnregisterServer()
 		ClsidRegistration::unregisterClsidTree(systemRegistry(),
 			winutil::guidToString(EQUALIZERAPO_PRE_MIX_GUID));
 	}
-	catch (const RegistryError& e)
+	catch (const WideError& e)
 	{
 		LogFStatic(L"Could not remove the APO class keys: %s", e.getMessage().c_str());
 		return E_FAIL;

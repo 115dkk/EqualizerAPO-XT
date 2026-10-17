@@ -11,7 +11,7 @@
 
 #include "stdafx.h"
 
-#include <stdexcept>
+#include "platform/windows/TokenPrivilege.h"
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -31,49 +31,6 @@ typedef NTSTATUS (NTAPI* pfnNtQueryInformationProcess)(
 	OUT PULONG ReturnLength OPTIONAL
 	);
 
-// SeDebugPrivilege for as long as this lives. The token's previous state is
-// kept and put back, so a privilege that was off is off again afterwards; a
-// token that does not hold the privilege is left as it is (AdjustTokenPrivileges
-// then succeeds with ERROR_NOT_ALL_ASSIGNED and changes nothing).
-class DebugPrivilegeScope
-{
-public:
-	DebugPrivilegeScope()
-	{
-		if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, token.put()))
-			throw std::runtime_error("Error in OpenProcessToken while enabling SeDebugPrivilege for process inspection");
-
-		LUID luid;
-		if (!LookupPrivilegeValue(nullptr, SE_DEBUG_NAME, &luid))
-			throw std::runtime_error("Error in LookupPrivilegeValue while enabling SeDebugPrivilege for process inspection");
-
-		TOKEN_PRIVILEGES enable;
-		enable.PrivilegeCount = 1;
-		enable.Privileges[0].Luid = luid;
-		enable.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-
-		DWORD previousSize = 0;
-		if (!AdjustTokenPrivileges(token.get(), FALSE, &enable, sizeof(previous), &previous, &previousSize))
-			throw std::runtime_error("Error in AdjustTokenPrivileges while enabling SeDebugPrivilege for process inspection");
-		adjusted = true;
-	}
-
-	~DebugPrivilegeScope()
-	{
-		// previous lists only what the call above changed, so restoring it is
-		// a no-op for a privilege that was already on.
-		if (adjusted)
-			AdjustTokenPrivileges(token.get(), FALSE, &previous, 0, nullptr, nullptr);
-	}
-
-	DebugPrivilegeScope(const DebugPrivilegeScope&) = delete;
-	DebugPrivilegeScope& operator=(const DebugPrivilegeScope&) = delete;
-
-private:
-	winutil::UniqueHandle token;
-	TOKEN_PRIVILEGES previous = {};
-	bool adjusted = false;
-};
 }
 
 namespace winutil
@@ -86,7 +43,7 @@ std::vector<ProcessWithCommandLine> findProcessesByExeName(const wchar_t* exeFil
 	{
 		winutil::UniqueHandle snapshotHandle(CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0));
 		if (!snapshotHandle)
-			throw std::runtime_error("Could not take a snapshot of all processes");
+			throw WideError(L"Could not take a snapshot of all processes");
 		PROCESSENTRY32W entry;
 		entry.dwSize = sizeof(PROCESSENTRY32W);
 		for (bool loop = Process32FirstW(snapshotHandle.get(), &entry) != 0; loop;
@@ -99,16 +56,16 @@ std::vector<ProcessWithCommandLine> findProcessesByExeName(const wchar_t* exeFil
 	if (matches.empty())
 		return {};
 
-	DebugPrivilegeScope privilege;
+	PrivilegeScope privilege(SE_DEBUG_NAME);
 
 	winutil::UniqueModule module(LoadLibraryW(L"ntdll.dll"));
 	if (!module)
-		throw std::runtime_error("Could not load ntdll.dll");
+		throw WideError(L"Could not load ntdll.dll");
 
 	pfnNtQueryInformationProcess NtQueryInformationProcess =
 		reinterpret_cast<pfnNtQueryInformationProcess>(GetProcAddress(module.get(), "NtQueryInformationProcess"));
 	if (NtQueryInformationProcess == nullptr)
-		throw std::runtime_error("Function NtQueryInformationProcess not found in ntdll.dll");
+		throw WideError(L"Function NtQueryInformationProcess not found in ntdll.dll");
 
 	std::vector<ProcessWithCommandLine> result;
 	for (const DWORD processId : matches)
@@ -117,28 +74,28 @@ std::vector<ProcessWithCommandLine> findProcessesByExeName(const wchar_t* exeFil
 			PROCESS_QUERY_INFORMATION | PROCESS_VM_READ | PROCESS_TERMINATE,
 			FALSE, processId));
 		if (!processHandle)
-			throw std::runtime_error("Could not open process");
+			throw WideError(L"Could not open process");
 
 		PROCESS_BASIC_INFORMATION basicInformation;
 		NTSTATUS status = NtQueryInformationProcess(processHandle.get(), ProcessBasicInformation,
 			&basicInformation, sizeof(basicInformation), nullptr);
 		if (status < 0)
-			throw std::runtime_error("Could not query process information");
+			throw WideError(L"Could not query process information");
 
 		_PEB peb;
 		if (!ReadProcessMemory(processHandle.get(), basicInformation.PebBaseAddress,
 			&peb, sizeof(peb), nullptr))
-			throw std::runtime_error("Could not read peb from process memory");
+			throw WideError(L"Could not read peb from process memory");
 
 		RTL_USER_PROCESS_PARAMETERS processParams;
 		if (!ReadProcessMemory(processHandle.get(), peb.ProcessParameters,
 			&processParams, sizeof(processParams), nullptr))
-			throw std::runtime_error("Could not read process parameters from process memory");
+			throw WideError(L"Could not read process parameters from process memory");
 
 		std::vector<wchar_t> cmdLineBuf(processParams.CommandLine.Length / sizeof(wchar_t));
 		if (!ReadProcessMemory(processHandle.get(), processParams.CommandLine.Buffer,
 			cmdLineBuf.data(), processParams.CommandLine.Length, nullptr))
-			throw std::runtime_error("Could not read command line from process memory");
+			throw WideError(L"Could not read command line from process memory");
 
 		ProcessWithCommandLine found;
 		found.processId = processId;
@@ -153,7 +110,7 @@ void requestProcessClose(unsigned long processId)
 {
 	winutil::UniqueHandle snapshotHandle(CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0));
 	if (!snapshotHandle)
-		throw std::runtime_error("Could not take a snapshot of all processes");
+		throw WideError(L"Could not take a snapshot of all processes");
 
 	THREADENTRY32 entry;
 	entry.dwSize = sizeof(THREADENTRY32);

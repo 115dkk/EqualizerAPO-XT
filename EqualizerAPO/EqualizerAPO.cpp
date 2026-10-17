@@ -22,6 +22,8 @@
 #include "platform/windows/TextEncoding.h"
 #include "platform/windows/Win32Error.h"
 #include "platform/windows/GuidText.h"
+#include "platform/windows/ComError.h"
+#include "runtime/errors/WideError.h"
 #include "services/registry/RegistryPaths.h"
 #include <exception>
 #include <new>
@@ -29,6 +31,7 @@
 #define INITGUID
 #include <mmdeviceapi.h>
 #include <mmreg.h>
+#include <Ks.h>
 #include <ksmedia.h>
 
 #include "../services/logging/Logging.h"
@@ -45,62 +48,9 @@
 
 namespace
 {
-	// detectSampleFormat and bytesPerSample live in ApoFormat.h (audit #275
-	// A8/TD-28), where EngineOrchestrationTests pins them.
+	// Format detection lives in ApoFormat.h, where EngineOrchestrationTests
+	// drives the full block plan without constructing the COM class.
 	using apo::detectSampleFormat;
-	using apo::bytesPerSample;
-
-	// Shared block processing parameterized on the connection sample type. The
-	// FilterEngine has overloads for both float* and double* so the same body
-	// works for either path. APO_FLAG_BITSPERSAMPLE_MUST_MATCH guarantees the
-	// input and output sides share the same SampleT.
-	template<typename SampleT>
-	inline void processBlock(
-		SampleT* inputFrames, SampleT* outputFrames,
-		unsigned frameCount,
-		unsigned inputChannelCount, unsigned outputChannelCount,
-		bool isSilentInput, bool allowSilentBufferModification,
-		IAudioProcessingObjectRT* childRT, FilterEngine& engine,
-		UINT32 u32NumInputConnections, APO_CONNECTION_PROPERTY** ppInputConnections,
-		UINT32 u32NumOutputConnections, APO_CONNECTION_PROPERTY** ppOutputConnections)
-	{
-		if (isSilentInput)
-			std::fill_n(inputFrames, frameCount * inputChannelCount, static_cast<SampleT>(0));
-
-		if (childRT)
-		{
-			childRT->APOProcess(u32NumInputConnections, ppInputConnections, u32NumOutputConnections, ppOutputConnections);
-			engine.process(outputFrames, outputFrames, frameCount);
-		}
-		else
-		{
-			engine.process(outputFrames, inputFrames, frameCount);
-		}
-
-		ppOutputConnections[0]->u32ValidFrameCount = frameCount;
-
-		if (isSilentInput)
-		{
-			if (allowSilentBufferModification)
-			{
-				// BUFFER_SILENT seems to be important for some sound card drivers,
-				// so only use BUFFER_VALID if there really is audio. The verdict
-				// itself is apo::isBlockSilent (ApoFormat.h), pinned by tests.
-				const bool silent = apo::isBlockSilent(outputFrames,
-					(size_t)frameCount * outputChannelCount);
-				ppOutputConnections[0]->u32BufferFlags = silent ? BUFFER_SILENT : BUFFER_VALID;
-			}
-			else
-			{
-				std::fill_n(outputFrames, frameCount * outputChannelCount, static_cast<SampleT>(0));
-				ppOutputConnections[0]->u32BufferFlags = BUFFER_SILENT;
-			}
-		}
-		else
-		{
-			ppOutputConnections[0]->u32BufferFlags = BUFFER_VALID;
-		}
-	}
 }
 
 using std::abs;
@@ -205,7 +155,7 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 	{
 		TraceF(L"APO GUID: %s", winutil::guidToString(apoGuid).c_str());
 	}
-	catch (const RegistryError&)
+	catch (const ComError&)
 	{
 		LogF(L"Could not convert apo guid to guid string");
 	}
@@ -263,7 +213,7 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 			allowSilentBufferModification = facts->allowSilentBufferModification;
 		}
 	}
-	catch (const RegistryError& e)
+	catch (const WideError& e)
 	{
 		LogF(L"Could not read endpoint device info because of: %s", e.getMessage().c_str());
 	}
@@ -615,8 +565,6 @@ void EqualizerAPO::APOProcess(UINT32 u32NumInputConnections,
 	APO_CONNECTION_PROPERTY* const input = ppInputConnections[0];
 	APO_CONNECTION_PROPERTY* const output = ppOutputConnections[0];
 
-	// Which of the six things to do with this block is decided in ApoFormat.h,
-	// where EngineOrchestrationTests can pin every case (audit #348 F20).
 	apo::BlockFacts facts;
 	facts.inputFlags = input->u32BufferFlags;
 	facts.allowSilentBufferModification = allowSilentBufferModification;
@@ -626,48 +574,35 @@ void EqualizerAPO::APOProcess(UINT32 u32NumInputConnections,
 	facts.outputFormat = outputSampleFormat;
 	facts.inPlace = input->pBuffer == output->pBuffer;
 
-	const unsigned frameCount = input->u32ValidFrameCount;
-	const bool isSilentInput = input->u32BufferFlags == BUFFER_SILENT;
+	const apo::BlockPlan plan = apo::makeBlockPlan(facts, input->u32ValidFrameCount);
 	const unsigned outputChannelCount = engine.getOutputChannelCount();
 	const unsigned inputChannelCount = engine.getInputChannelCount();
+	auto processChild = [&] {
+		childRT->APOProcess(u32NumInputConnections, ppInputConnections,
+			u32NumOutputConnections, ppOutputConnections);
+	};
 
-	switch (apo::chooseBlockAction(facts))
+	apo::BlockResult result;
+	if (plan.action == apo::BlockAction::ProcessFloat64)
 	{
-	case apo::BlockAction::Ignore:
-		break;
-	case apo::BlockAction::SilentFastPath:
-	case apo::BlockAction::SilenceDistinctBuffers:
-	{
-		const size_t outBytes = bytesPerSample(outputSampleFormat);
-		if (outBytes > 0)
-		{
-			memset(reinterpret_cast<void*>(output->pBuffer), 0,
-				static_cast<size_t>(frameCount) * outputChannelCount * outBytes);
-		}
-		output->u32ValidFrameCount = frameCount;
-		output->u32BufferFlags = BUFFER_SILENT;
-		break;
+		result = apo::processBlock(plan,
+			reinterpret_cast<double*>(input->pBuffer),
+			reinterpret_cast<double*>(output->pBuffer),
+			inputChannelCount, outputChannelCount, engine, processChild);
 	}
-	case apo::BlockAction::ProcessFloat64:
-		processBlock<double>(reinterpret_cast<double*>(input->pBuffer), reinterpret_cast<double*>(output->pBuffer),
-			frameCount, inputChannelCount, outputChannelCount,
-			isSilentInput, allowSilentBufferModification,
-			childRT, engine,
-			u32NumInputConnections, ppInputConnections,
-			u32NumOutputConnections, ppOutputConnections);
-		break;
-	case apo::BlockAction::ProcessFloat32:
-		processBlock<float>(reinterpret_cast<float*>(input->pBuffer), reinterpret_cast<float*>(output->pBuffer),
-			frameCount, inputChannelCount, outputChannelCount,
-			isSilentInput, allowSilentBufferModification,
-			childRT, engine,
-			u32NumInputConnections, ppInputConnections,
-			u32NumOutputConnections, ppOutputConnections);
-		break;
-	case apo::BlockAction::PassThroughInPlace:
-		output->u32ValidFrameCount = frameCount;
-		output->u32BufferFlags = isSilentInput ? BUFFER_SILENT : BUFFER_VALID;
-		break;
+	else
+	{
+		// Every non-processing action is byte-oriented or leaves the samples
+		// alone, so float is only a placeholder when the format is unsupported.
+		result = apo::processBlock(plan,
+			reinterpret_cast<float*>(input->pBuffer),
+			reinterpret_cast<float*>(output->pBuffer),
+			inputChannelCount, outputChannelCount, engine, processChild);
+	}
+	if (result.updateOutputProperties)
+	{
+		output->u32ValidFrameCount = result.validFrameCount;
+		output->u32BufferFlags = result.outputFlags;
 	}
 }
 #pragma AVRT_CODE_END

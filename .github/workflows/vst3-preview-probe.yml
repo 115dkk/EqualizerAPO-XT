@@ -122,10 +122,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
       - name: Add MSBuild to PATH
-        uses: microsoft/setup-msbuild@v3
+        uses: microsoft/setup-msbuild@30375c66a4eea26614e0d39710365f22f8b0af57 # v3.0.0
         with:
           msbuild-architecture: x64
 
@@ -168,23 +168,14 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $toolset = if ("${{ inputs.runner }}" -eq "windows-2022") { "v143" } else { "v145" }
-          $buildParams = @(
-            "/m", "/p:Configuration=Release", "/p:Platform=x64", "/t:rebuild",
-            "/p:LIBSNDFILE_INCLUDE=$env:LIBSNDFILE_INCLUDE", "/p:LIBSNDFILE_LIB=$env:LIBSNDFILE_LIB",
-            "/p:FFTW_INCLUDE=$env:FFTW_INCLUDE", "/p:FFTW_LIB=$env:FFTW_LIB",
-            "/p:MUPARSERX_INCLUDE=$env:MUPARSERX_INCLUDE", "/p:MUPARSERX_LIB=$env:MUPARSERX_LIB",
-            "/p:TCLAP_ROOT=$env:TCLAP_ROOT", "/p:VST3_SDK=$env:VST3_SDK",
-            "/p:HIGHWAY_INCLUDE=$env:HIGHWAY_INCLUDE", "/p:PlatformToolset=$toolset",
-            "/p:PreferredToolArchitecture=x64"
-          )
-          foreach ($project in @(
-              "SubwooferRoutingCore\SubwooferRoutingCore.vcxproj",
-              "Common.vcxproj",
-              "Tests\TestVst3Plugin\TestVst3Plugin.vcxproj",
-              "Tests\VstPreviewProbe\VstPreviewProbe.vcxproj")) {
-            msbuild $project @buildParams
-            if ($LASTEXITCODE -ne 0) { throw "Build failed for $project" }
-          }
+          Import-Module "${{ github.workspace }}\.github\scripts\BuildModel.psm1" -Force
+          $projects = @(Get-EapoProjectGraph -Tag engine | ForEach-Object Path) +
+            @(Get-EapoProjectGraph -Name TestVst3Plugin, VstPreviewProbe | ForEach-Object Path)
+          $buildParams = Get-EapoMsBuildArguments -Platform x64 -PlatformToolset $toolset `
+            -ToolArchitecture x64 -Only @(
+              "LIBSNDFILE_INCLUDE", "LIBSNDFILE_LIB", "FFTW_INCLUDE", "FFTW_LIB",
+              "MUPARSERX_INCLUDE", "MUPARSERX_LIB", "TCLAP_ROOT", "VST3_SDK", "HIGHWAY_INCLUDE")
+          Invoke-EapoMsBuild -Project $projects -Arguments $buildParams
 
       # TestVst3Plugin selects its scenario by module filename; the two copies
       # are the monitor discriminator's fixtures.
@@ -215,80 +206,15 @@ jobs:
           if (-not $signtool) { throw "signtool.exe not found in the Windows SDK" }
           Add-Content -Path $env:GITHUB_PATH -Value (Split-Path $signtool.FullName)
 
-      # The proven audio-live-repro.yml recipe: hosted runners have Secure
-      # Boot OFF, so a self-signed kernel driver installs with no test-signing
-      # mode and no reboot. This gives the runner a REAL active render
-      # endpoint for the loopback premise.
+      # Hosted runners have Secure Boot off, so a self-signed kernel driver
+      # installs with no test-signing mode and no reboot. This gives the
+      # runner a REAL active render endpoint for the loopback premise.
       - name: Install Scream virtual audio driver
         shell: pwsh
         run: |
-          $ErrorActionPreference = "Stop"
-          $work = Join-Path $env:RUNNER_TEMP "scream"
-          New-Item -ItemType Directory -Force -Path $work | Out-Null
-
-          $zip = Join-Path $work "Scream.zip"
-          Invoke-WebRequest -Uri $env:SCREAM_URL -OutFile $zip
-          $hash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash
-          if ($hash -ne $env:SCREAM_SHA256) { throw "Scream download hash $hash does not match the pinned $env:SCREAM_SHA256" }
-          Expand-Archive -Path $zip -DestinationPath $work -Force
-
-          $driverDir = Join-Path $work "Install\driver\x64"
-          $inf = Join-Path $driverDir "Scream.inf"
-          $cat = Join-Path $driverDir "scream.cat"
-          $devcon = Join-Path $work "Install\helpers\devcon-x64.exe"
-          foreach ($f in @($inf, $cat, $devcon)) {
-              if (-not (Test-Path $f)) { throw "Scream layout unexpected: $f not found" }
-          }
-
-          $cert = New-SelfSignedCertificate -Type CodeSigningCert `
-              -Subject "CN=EqualizerAPO-XT Scream Test Signing" `
-              -CertStoreLocation Cert:\CurrentUser\My `
-              -KeyUsage DigitalSignature -KeyExportPolicy Exportable
-          $cer = Join-Path $work "ScreamTestSigning.cer"
-          Export-Certificate -Cert $cert -FilePath $cer | Out-Null
-
-          & signtool sign /v /fd SHA256 /sha1 $cert.Thumbprint $cat
-          if ($LASTEXITCODE -ne 0) { throw "signtool sign failed ($LASTEXITCODE)" }
-
-          Import-Certificate -FilePath $cer -CertStoreLocation Cert:\LocalMachine\Root | Out-Null
-          Import-Certificate -FilePath $cer -CertStoreLocation Cert:\LocalMachine\TrustedPublisher | Out-Null
-
-          Push-Location $driverDir
-          try {
-              & $devcon install "Scream.inf" "*Scream"
-              $devconRc = $LASTEXITCODE
-          } finally {
-              Pop-Location
-          }
-          # devcon: 0 = ok, 1 = ok-but-reboot-suggested; never let the native
-          # code leak into the pwsh wrapper's appended "exit $LASTEXITCODE".
-          if ($devconRc -ne 0 -and $devconRc -ne 1) {
-              Write-Error "devcon install failed (rc=$devconRc)"; exit 1
-          }
-
-          try { Start-Service AudioEndpointBuilder -ErrorAction Stop } catch { Write-Host "Start AudioEndpointBuilder: $($_.Exception.Message)" }
-          try { Start-Service AudioSrv -ErrorAction Stop } catch { Write-Host "Start AudioSrv: $($_.Exception.Message)" }
-          try { Restart-Service -Force AudioEndpointBuilder -ErrorAction Stop } catch { Write-Host "Restart AudioEndpointBuilder: $($_.Exception.Message)" }
-          try { Start-Service AudioSrv -ErrorAction Stop } catch { Write-Host "Start AudioSrv: $($_.Exception.Message)" }
-
-          $deadline = (Get-Date).AddSeconds(30)
-          $screamSeen = $false
-          do {
-              Start-Sleep -Milliseconds 1500
-              $render = @()
-              if (Test-Path "Registry::$env:MMDEVICES_ROOT\Render") {
-                  $render = Get-ChildItem "Registry::$env:MMDEVICES_ROOT\Render" -ErrorAction SilentlyContinue
-              }
-              foreach ($k in $render) {
-                  $propPath = "$($k.PSPath)\Properties"
-                  if (Test-Path $propPath) {
-                      $name = (Get-ItemProperty -Path $propPath -Name $env:DEVICE_FRIENDLY_VALUE -ErrorAction SilentlyContinue)."$($env:DEVICE_FRIENDLY_VALUE)"
-                      if ($name -and $name -match 'Scream') { $screamSeen = $true; break }
-                  }
-              }
-          } while (-not $screamSeen -and (Get-Date) -lt $deadline)
-          if (-not $screamSeen) { throw "Scream endpoint did not appear in MMDevices" }
-          Write-Host "Scream endpoint is visible"
+          & .\.github\scripts\Install-ScreamDriver.ps1 -Url $env:SCREAM_URL -Sha256 $env:SCREAM_SHA256 `
+            -WorkDir (Join-Path $env:RUNNER_TEMP "scream") `
+            -MmDevicesRoot $env:MMDEVICES_ROOT -FriendlyNameValue $env:DEVICE_FRIENDLY_VALUE
 
       # Runtime fetch of the fixture: the >100 MB file sits behind Google
       # Drive's virus-scan interstitial, so a first HTML response is answered

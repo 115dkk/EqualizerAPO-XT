@@ -9,8 +9,8 @@
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QPainter>
-#include <QVariantAnimation>
 
+#include "platform/qt/HoverProgress.h"
 #include "skins/DeviceSkinPainter.h"
 
 DisclosureHeader::DisclosureHeader(QWidget* parent)
@@ -19,6 +19,9 @@ DisclosureHeader::DisclosureHeader(QWidget* parent)
 	setCursor(Qt::PointingHandCursor);
 	setFocusPolicy(Qt::TabFocus);
 	setAttribute(Qt::WA_Hover, true);
+	hover = new HoverProgress(this, [this]() {
+		update();
+	});
 }
 
 void DisclosureHeader::setTitle(const QString& text)
@@ -61,7 +64,7 @@ void DisclosureHeader::paintEvent(QPaintEvent*)
 	DeviceDisclosureState state;
 	state.title = title;
 	state.open = open;
-	state.hover = hoverValue;
+	state.hover = hover->value();
 	DeviceSkinPainter::active()->paintDisclosure(painter, rect(), state, DeviceSkinPainter::activeTokens());
 }
 
@@ -89,31 +92,12 @@ void DisclosureHeader::keyPressEvent(QKeyEvent* event)
 
 void DisclosureHeader::enterEvent(QEnterEvent* event)
 {
-	animateHover(1.0, 150);
+	hover->animateTo(1.0, 150);
 	QWidget::enterEvent(event);
 }
 
 void DisclosureHeader::leaveEvent(QEvent* event)
 {
-	animateHover(0.0, 110);
+	hover->animateTo(0.0, 110);
 	QWidget::leaveEvent(event);
-}
-
-void DisclosureHeader::animateHover(double target, int duration)
-{
-	if (hoverAnimation == nullptr)
-	{
-		hoverAnimation = new QVariantAnimation(this);
-		hoverAnimation->setEasingCurve(QEasingCurve::OutCubic);
-		connect(hoverAnimation, &QVariantAnimation::valueChanged, this, [this](const QVariant& value) {
-			hoverValue = value.toDouble();
-			update();
-		});
-	}
-	// Interruptible: retarget from the current value.
-	hoverAnimation->stop();
-	hoverAnimation->setDuration(duration);
-	hoverAnimation->setStartValue(hoverValue);
-	hoverAnimation->setEndValue(target);
-	hoverAnimation->start();
 }

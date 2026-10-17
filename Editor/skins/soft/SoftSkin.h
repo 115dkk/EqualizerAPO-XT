@@ -29,7 +29,6 @@ public:
 		const SkinTokens& tokens) const override;
 	bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info,
 		const SkinTokens& tokens) const override;
-	bool logicSiblingsIndentAsMembers() const override;
 
 	void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state,
 		const SkinTokens& tokens) const override;
@@ -56,8 +55,8 @@ public:
 
 	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override;
 	void styleFileDialog(QFileDialog* dialog, const SkinTokens& tokens) const override;
+	QAbstractFileIconProvider* fileIconProvider(const SkinTokens& tokens) const override;
 
 private:
 	static QIcon softTileIcon(const QString& resource, const QColor& tile);
-	static void installFileIconProvider(QFileDialog* dialog, const SkinTokens& tokens);
 };

@@ -6,10 +6,12 @@
 
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <cstdio>
 #include <iterator>
 #include <memory>
 #include <string>
+#include <thread>
 #include <vector>
 
 #define WIN32_LEAN_AND_MEAN
@@ -202,7 +204,20 @@ namespace
 		harness.expect(delivered,
 			"a receiver attached before the first sender block delivers after interleaved processing");
 
-		Sleep(1'100);
+		RingView idleRing(mappingName(sendPrefix, receiverGuid));
+		harness.require(idleRing.valid(), "idle test can inspect the sender timestamp");
+		const int64_t qpcFrequency = load64(&idleRing.header()->qpcFrequency);
+		const auto idleDeadline = std::chrono::steady_clock::now() + std::chrono::seconds(3);
+		bool senderIsStale = false;
+		while (std::chrono::steady_clock::now() < idleDeadline && !senderIsStale)
+		{
+			LARGE_INTEGER now = {};
+			QueryPerformanceCounter(&now);
+			senderIsStale = now.QuadPart - load64(&idleRing.header()->writeQpc) >= qpcFrequency;
+			if (!senderIsStale)
+				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+		}
+		harness.require(senderIsStale, "sender reaches the ring's one-second idle condition");
 		const std::vector<float> idle = processBlock(receiver, stereoBlock(1.0f, 4.0f));
 		harness.expectEqual(idle[0], 1.0f, "an idle sender contributes no stale audio");
 		harness.expectTrue(receiver.hasStatefulOrTailFilters(),
@@ -580,7 +595,7 @@ namespace
 	}
 }
 
-void runSendTests(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, runSendTests)
 {
 	checkAttachBeforeFirstProcessAndIdleResume(harness);
 	checkRoutingAndReceiverState(harness);

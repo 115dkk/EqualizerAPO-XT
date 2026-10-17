@@ -26,14 +26,14 @@
 #include <sddl.h>
 #include <winioctl.h>
 #include "Tests/TestDirectory.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 using std::wstring;
 using Kind = ConfigPathPolicy::Entry::Kind;
 
 namespace
 {
-test::Harness harness("ConfigPathPolicyTests");
+test::HarnessAccess harness;
 
 // The real-filesystem cases (junctions, pins, reparse points) each build
 // their tree in a folder of this directory and remove it themselves.
@@ -53,7 +53,7 @@ void expectRoot(const wstring& path, const wstring& expected, const char* messag
 	harness.expectTrue(ConfigPathPolicy::remoteRoot(path) == expected, message);
 }
 
-void testRemoteRoot()
+TEST_CASE(ConfigPathPolicyTests, testRemoteRoot)
 {
 	expectRoot(L"\\\\srv\\share\\x.txt", L"\\\\srv\\share", "UNC root keeps the server and share");
 	expectRoot(L"//SRV/Share/x", L"\\\\srv\\share", "forward slashes are normalized and case-folded");
@@ -90,7 +90,7 @@ void expectRefused(const wstring& path, const wstring& configPath, const char* m
 	harness.expectTrue(contains(reason, L"network share"), "the refusal reason names a network share");
 }
 
-void testLocalConfigPolicy()
+TEST_CASE(ConfigPathPolicyTests, testLocalConfigPolicy)
 {
 	const wstring configPath = L"C:\\cfg\\config.txt";
 	expectAllowed(L"C:\\cfg\\a.txt", configPath, "same-drive absolute path is allowed");
@@ -109,7 +109,7 @@ void testLocalConfigPolicy()
 		"object-manager path to the network redirector is refused");
 }
 
-void testSameShareExemption()
+TEST_CASE(ConfigPathPolicyTests, testSameShareExemption)
 {
 	const wstring configPath = L"\\\\srv\\share\\config.txt";
 	expectAllowed(L"\\\\srv\\share\\sub\\a.txt", configPath, "same-share subpath is allowed");
@@ -123,7 +123,7 @@ void testSameShareExemption()
 	expectRefused(L"\\\\?\\UNC\\srv\\other\\a.txt", configPath, "a verbatim spelling of another share is refused");
 }
 
-void testEmptyConfigPath()
+TEST_CASE(ConfigPathPolicyTests, testEmptyConfigPath)
 {
 	expectAllowed(L"C:\\a.txt", L"", "local path is allowed without a config path");
 	expectRefused(L"\\\\srv\\share\\a.txt", L"", "remote path is refused without a config path");
@@ -220,7 +220,7 @@ bool allows(const TableFileSystem& fileSystem, const wstring& path, const wstrin
 
 const wstring kLocalConfig = L"C:\\cfg\\config.txt";
 
-void testLinkToShareIsRefusedBeforeReachingIt()
+TEST_CASE(ConfigPathPolicyTests, testLinkToShareIsRefusedBeforeReachingIt)
 {
 	TableFileSystem fileSystem;
 	fileSystem.link(L"C:\\irs\\nas", L"\\??\\UNC\\nas\\eq");
@@ -233,7 +233,7 @@ void testLinkToShareIsRefusedBeforeReachingIt()
 	harness.expectTrue(fileSystem.opened.empty(), "and nothing is opened through the link");
 }
 
-void testWalkContinuesThroughLocalLinks()
+TEST_CASE(ConfigPathPolicyTests, testWalkContinuesThroughLocalLinks)
 {
 	TableFileSystem fileSystem;
 	fileSystem.link(L"C:\\irs\\j", L"\\??\\D:\\real");
@@ -249,7 +249,7 @@ void testWalkContinuesThroughLocalLinks()
 		"the refusal names the second link as a plain drive path");
 }
 
-void testRelativeLinks()
+TEST_CASE(ConfigPathPolicyTests, testRelativeLinks)
 {
 	TableFileSystem fileSystem;
 	fileSystem.link(L"C:\\a\\b\\rel", L"..\\sibling", true);
@@ -266,7 +266,7 @@ void testRelativeLinks()
 	harness.expectTrue(contains(reason, L"C:\\far"), "the refusal names the link that left the drive");
 }
 
-void testFoldingComesBeforeTheWalk()
+TEST_CASE(ConfigPathPolicyTests, testFoldingComesBeforeTheWalk)
 {
 	TableFileSystem fileSystem;
 	fileSystem.link(L"C:\\link", L"\\??\\UNC\\nas\\eq");
@@ -276,7 +276,7 @@ void testFoldingComesBeforeTheWalk()
 	harness.expectFalse(fileSystem.readAnything(L"C:\\link"), "and the link it folds away is never read");
 }
 
-void testMissingComponentEndsTheWalk()
+TEST_CASE(ConfigPathPolicyTests, testMissingComponentEndsTheWalk)
 {
 	TableFileSystem fileSystem;
 	fileSystem.mark(L"C:\\gone", Kind::Missing);
@@ -287,7 +287,7 @@ void testMissingComponentEndsTheWalk()
 	harness.expectTrue(fileSystem.read.size() == 1, "nothing past the missing component is read");
 }
 
-void testUnexaminableComponentFallsBackToTheFinalPath()
+TEST_CASE(ConfigPathPolicyTests, testUnexaminableComponentFallsBackToTheFinalPath)
 {
 	TableFileSystem fileSystem;
 	fileSystem.mark(L"C:\\Users\\me", Kind::Unexaminable);
@@ -311,7 +311,7 @@ void testUnexaminableComponentFallsBackToTheFinalPath()
 // The real walk reports PassedOffLocal at the first component it could open
 // after passing folders it could not, when that open arrived off the local
 // drives (testServiceReadsBelowFoldersItMayNotOpen covers the local arrival).
-void testPassedFoldersThatLeaveTheDrives()
+TEST_CASE(ConfigPathPolicyTests, testPassedFoldersThatLeaveTheDrives)
 {
 	TableFileSystem fileSystem;
 	fileSystem.mark(L"C:\\Users\\me\\AppData\\cfg", Kind::PassedOffLocal, L"C:\\Users\\me\\AppData");
@@ -322,7 +322,7 @@ void testPassedFoldersThatLeaveTheDrives()
 		&& contains(reason, L"network share"), "naming the first folder passed");
 }
 
-void testOtherLinksAndLoops()
+TEST_CASE(ConfigPathPolicyTests, testOtherLinksAndLoops)
 {
 	TableFileSystem fileSystem;
 	fileSystem.mark(L"C:\\wsl", Kind::OtherLink);
@@ -336,7 +336,7 @@ void testOtherLinksAndLoops()
 	harness.expectTrue(contains(reason, L"more than 63 links"), "as too many links");
 }
 
-void testNetworkDrive()
+TEST_CASE(ConfigPathPolicyTests, testNetworkDrive)
 {
 	TableFileSystem fileSystem;
 	fileSystem.networkDrives.insert(L'Z');
@@ -349,7 +349,7 @@ void testNetworkDrive()
 	harness.expectFalse(fileSystem.readAnything(L"Z:"), "a network drive is not walked");
 }
 
-void testConfigReachedThroughALink()
+TEST_CASE(ConfigPathPolicyTests, testConfigReachedThroughALink)
 {
 	TableFileSystem fileSystem;
 	fileSystem.link(L"C:\\cfglink", L"\\??\\UNC\\nas\\eq");
@@ -363,7 +363,7 @@ void testConfigReachedThroughALink()
 		"but not another share");
 }
 
-void testSharePathsAreNotWalked()
+TEST_CASE(ConfigPathPolicyTests, testSharePathsAreNotWalked)
 {
 	TableFileSystem fileSystem;
 	wstring reason;
@@ -376,8 +376,12 @@ void testSharePathsAreNotWalked()
 // reparse data names substitute.
 bool makeJunction(const wstring& linkPath, const wstring& substitute, bool existingDirectory = false)
 {
-	if (!existingDirectory && !CreateDirectoryW(linkPath.c_str(), nullptr))
-		return false;
+	if (!existingDirectory)
+	{
+		if (!CreateDirectoryW(linkPath.c_str(), nullptr))
+			return false;
+		scratchDirectory().trackDirectory(linkPath);
+	}
 	const winutil::UniqueHandle directory(CreateFileW(linkPath.c_str(), GENERIC_WRITE,
 		FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
 		FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT, nullptr));
@@ -405,15 +409,12 @@ bool makeJunction(const wstring& linkPath, const wstring& substitute, bool exist
 
 // Audit #348 A1b: a no-delete-sharing directory handle does not keep its
 // children alive. The revised walk pins the leaf too, preventing emptying.
-void testPinnedDirectoryCanBecomeJunction()
+TEST_CASE(ConfigPathPolicyTests, testPinnedDirectoryCanBecomeJunction)
 {
-	const wstring root = scratchDirectory().path() + L"\\pin-race";
-	const wstring folder = root + L"\\pinned";
-	const wstring target = root + L"\\target";
+	const wstring root = scratchDirectory().subdirectory(L"pin-race");
+	const wstring folder = scratchDirectory().subdirectory(L"pin-race\\pinned");
+	const wstring target = scratchDirectory().subdirectory(L"pin-race\\target");
 	const wstring file = folder + L"\\payload.txt";
-	CreateDirectoryW(root.c_str(), nullptr);
-	CreateDirectoryW(folder.c_str(), nullptr);
-	CreateDirectoryW(target.c_str(), nullptr);
 	{
 		const winutil::UniqueHandle original(CreateFileW(file.c_str(), GENERIC_WRITE, 0, nullptr,
 			CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
@@ -548,7 +549,7 @@ std::string readLeaf(const JudgedPath& path)
 // config.txt itself, read by name, still loaded. The fixture has the same
 // shape: profile and AppData grant only the user and SYSTEM, the config
 // folders grant LOCAL SERVICE the installer's modify right.
-void testServiceReadsBelowFoldersItMayNotOpen()
+TEST_CASE(ConfigPathPolicyTests, testServiceReadsBelowFoldersItMayNotOpen)
 {
 	const wstring root = scratchDirectory().path() + L"\\service-view";
 	const wstring profile = root + L"\\profile";
@@ -559,7 +560,10 @@ void testServiceReadsBelowFoldersItMayNotOpen()
 	const wstring junction = appData + L"\\linked";
 	const wstring configFile = config + L"\\config.txt";
 	for (const wstring& directory : {root, profile, appData, config, elsewhere, elsewhereConfig})
+	{
 		harness.require(CreateDirectoryW(directory.c_str(), nullptr) != FALSE, "create the service-view fixture");
+		scratchDirectory().trackDirectory(directory);
+	}
 	writeFile(configFile, "Include: include.txt\r\n");
 	writeFile(config + L"\\include.txt", "service include");
 	writeFile(config + L"\\private.txt", "user only");
@@ -637,10 +641,9 @@ void testServiceReadsBelowFoldersItMayNotOpen()
 		RemoveDirectoryW(directory.c_str());
 }
 
-void testPinnedLeafSymlinkResidual()
+TEST_CASE(ConfigPathPolicyTests, testPinnedLeafSymlinkResidual)
 {
-	const wstring root = scratchDirectory().path() + L"\\leaf-reparse";
-	CreateDirectoryW(root.c_str(), nullptr);
+	const wstring root = scratchDirectory().subdirectory(L"leaf-reparse");
 	const wstring file = root + L"\\leaf.txt";
 	{
 		const winutil::UniqueHandle created(CreateFileW(file.c_str(), GENERIC_WRITE, 0, nullptr,
@@ -680,11 +683,10 @@ void testPinnedLeafSymlinkResidual()
 	RemoveDirectoryW(root.c_str());
 }
 
-void testRealJunctions()
+TEST_CASE(ConfigPathPolicyTests, testRealJunctions)
 {
-	const wstring root = scratchDirectory().path() + L"\\configpath";
-	CreateDirectoryW(root.c_str(), nullptr);
-	CreateDirectoryW((root + L"\\real").c_str(), nullptr);
+	const wstring root = scratchDirectory().subdirectory(L"configpath");
+	scratchDirectory().subdirectory(L"configpath\\real");
 	const wstring file = root + L"\\real\\ir.wav";
 	CloseHandle(CreateFileW(file.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
 	const wstring configPath = root + L"\\config.txt";
@@ -722,28 +724,7 @@ void testRealJunctions()
 }
 }
 
-void runConfigPathPolicyTests()
+TEST_SUITE_CLEANUP(ConfigPathPolicyTests, cleanupConfigPathPolicyTests)
 {
-	testRemoteRoot();
-	testLocalConfigPolicy();
-	testSameShareExemption();
-	testEmptyConfigPath();
-	testLinkToShareIsRefusedBeforeReachingIt();
-	testWalkContinuesThroughLocalLinks();
-	testRelativeLinks();
-	testFoldingComesBeforeTheWalk();
-	testMissingComponentEndsTheWalk();
-	testUnexaminableComponentFallsBackToTheFinalPath();
-	testPassedFoldersThatLeaveTheDrives();
-	testOtherLinksAndLoops();
-	testNetworkDrive();
-	testConfigReachedThroughALink();
-	testSharePathsAreNotWalked();
-	testPinnedLeafSymlinkResidual();
-	testRealJunctions();
-	testPinnedDirectoryCanBecomeJunction();
-	testServiceReadsBelowFoldersItMayNotOpen();
-
 	scratchDirectory().removeAll();
-	harness.report();
 }

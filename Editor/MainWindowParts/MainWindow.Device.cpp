@@ -28,12 +28,16 @@
 #include "services/logging/Logging.h"
 #include "audio/ChannelLayout.h"
 #include "services/audio/AudioFormatProbe.h"
+#include "Editor/helpers/BackgroundProbe.h"
 #include "Editor/helpers/GUIChannelHelper.h"
 #include "Editor/helpers/GUIHelper.h"
+#include "Editor/widgets/DeviceFormatBadgeState.h"
 #include "version.h"
 #include "FilterTable.h"
 #include "MainWindow.h"
+#include "Editor/MainWindowParts/OpenDocument.h"
 #include "ui_MainWindow.h"
+#include "devices/DeviceAPOInfo.h"
 
 using std::find;
 using std::list;
@@ -70,15 +74,15 @@ void MainWindow::deviceSelected(int index)
 		}
 
 		if (selectedInfo != nullptr)
-			channelConfigurationComboBox->addItem(tr("From device") + " (" + selectedInfo->name + ")", 0);
+			channelConfigurationComboBox->addItem(tr("From device (%1)").arg(selectedInfo->name), 0);
 		else if (apoInfo->getChannelCount() != 0)
-			channelConfigurationComboBox->addItem((tr("From device") + " (%1 channels)").arg(apoInfo->getChannelCount()), 0);
+			channelConfigurationComboBox->addItem(tr("From device (%1 channels)").arg(apoInfo->getChannelCount()), 0);
 		else
-			channelConfigurationComboBox->addItem(tr("From device") + " (? channels)", 0);
+			channelConfigurationComboBox->addItem(tr("From device (? channels)"), 0);
 	}
 	else
 	{
-		channelConfigurationComboBox->addItem(tr("From device") + " (?)", 0);
+		channelConfigurationComboBox->addItem(tr("From device (?)"), 0);
 	}
 
 	for (const GUIChannelHelper::ChannelConfigurationInfo& info : infos)
@@ -138,14 +142,35 @@ FilterTable* MainWindow::addTab(QString title, QString tooltip, QString configPa
 	const qint64 setupNs = phaseTimer.nsecsElapsed();
 	phaseTimer.start();
 
+	// The document is registered before its tab exists: inserting the tab
+	// fires currentChanged, whose dirty badge reads it.
+	documents.push_back(std::make_unique<OpenDocument>(scrollArea, filterTable, DocumentState(title, tooltip)));
+	OpenDocument* document = documents.back().get();
+	connect(&document->saveTimer, &QTimer::timeout, this, [this, document]() {
+		// Re-resolve the path on fire: the table's config path can change
+		// while the debounce is pending.
+		const QString currentPath = document->table->getConfigPath();
+		if (currentPath.length() > 0)
+		{
+			// Instant mode shows no '*'; a save that failed puts it back so
+			// the tab asks before it is closed.
+			if (!save(document->table, currentPath))
+			{
+				document->state.setDirty(true);
+				showDocumentTitle(*document);
+			}
+			updateDirtyStatus();
+		}
+	});
+
 	// Insert the still-empty scroll area into the tab widget BEFORE building
 	// the rows. Adding it afterwards reparents the finished table under the
 	// tab stack, and the app stylesheet then re-resolves against every card
 	// widget a second time - over a second on a 300-row config. The insert
 	// fires currentChanged for the first tab; its handlers (dirty badge,
 	// debounced analysis kick) are the same ones every tab switch runs.
-	int tabIndex = ui->tabWidget->addTab(scrollArea, title);
-	ui->tabWidget->setTabToolTip(tabIndex, tooltip);
+	int tabIndex = ui->tabWidget->addTab(scrollArea, document->state.tabText());
+	ui->tabWidget->setTabToolTip(tabIndex, document->state.path());
 	const qint64 insertNs = phaseTimer.nsecsElapsed();
 	phaseTimer.start();
 
@@ -161,77 +186,59 @@ void MainWindow::updateDeviceFormatBadge(const shared_ptr<AbstractAPOInfo>& apoI
 	if (deviceFormatBadge == nullptr)
 		return;
 
-	if (apoInfo == nullptr)
+	// A later selection supersedes a probe still running for an earlier one.
+	const unsigned generation = ++deviceFormatGeneration;
+	DeviceFormatFacts facts;
+	facts.deviceSelected = apoInfo != nullptr;
+	if (apoInfo != nullptr && apoInfo->getTransportLabel() == L"ASIO")
+	{
+		// An ASIO target is not an endpoint: the format probe cannot reach it.
+		// What is known is what the engine host published after the last stream.
+		facts.asio = true;
+		facts.asioSampleRate = apoInfo->getSampleRate();
+		facts.asioChannelCount = apoInfo->getChannelCount();
+		facts.asioDeviceName = QString::fromStdWString(apoInfo->getDeviceName());
+	}
+	else if (apoInfo != nullptr)
+	{
+		// The endpoint probe goes through COM and the audio service, which can
+		// stall on a slow or unplugged device, so it runs off the UI thread
+		// (audit #422 TD-04). Until the result arrives the badge keeps what it
+		// shows for this same endpoint, and shows nothing for another one.
+		const QString endpoint = QString::fromStdWString(apoInfo->getDeviceGuid());
+		if (const std::optional<DeviceFormatBadgeState> pending =
+			DeviceFormatBadgeState::whileProbing(deviceFormatEndpoint, endpoint))
+		{
+			applyDeviceFormatBadge(*pending);
+			deviceFormatEndpoint.clear();
+		}
+		BackgroundProbe::runFor(this,
+			[deviceGuid = apoInfo->getDeviceGuid()]() { return AudioFormatProbe::probe(deviceGuid); },
+			[this, generation, facts, endpoint](const AudioFormatProbe::Result& result) mutable {
+				if (generation != deviceFormatGeneration)
+					return;
+				facts.probe = result;
+				applyDeviceFormatBadge(DeviceFormatBadgeState::describe(facts));
+				deviceFormatEndpoint = endpoint;
+			});
+		return;
+	}
+	applyDeviceFormatBadge(DeviceFormatBadgeState::describe(facts));
+	deviceFormatEndpoint.clear();
+}
+
+void MainWindow::applyDeviceFormatBadge(const DeviceFormatBadgeState& badge)
+{
+	if (!badge.visible)
 	{
 		deviceFormatBadge->setVisible(false);
 		deviceFormatBadge->setText(QString());
 		return;
 	}
 
-	QString label;
-	QString severity = QStringLiteral("normal");
-	QString tooltip;
-
-	// An ASIO target is not an endpoint: the format probe cannot reach it.
-	// What is known is what the engine host published after the last stream.
-	if (apoInfo->getTransportLabel() == L"ASIO")
-	{
-		if (apoInfo->getSampleRate() > 0 && apoInfo->getChannelCount() > 0)
-		{
-			label = tr("ASIO · %0 Hz · %1 ch").arg(apoInfo->getSampleRate()).arg(apoInfo->getChannelCount());
-			tooltip = tr("The last ASIO stream on this interface ran at %0 Hz with %1 channels in this direction; "
-				"the engine host processes it in a separate process.")
-				.arg(apoInfo->getSampleRate()).arg(apoInfo->getChannelCount());
-		}
-		else
-		{
-			label = tr("ASIO · no stream yet");
-			tooltip = tr("No ASIO application has opened this interface through EqualizerAPO yet. "
-				"Pick \"%0 (EQ APO XT)\" as the ASIO driver in the application.")
-				.arg(QString::fromStdWString(apoInfo->getDeviceName()));
-		}
-		deviceFormatBadge->setText(label);
-		deviceFormatBadge->setToolTip(tooltip);
-		deviceFormatBadge->setProperty("severity", severity);
-		deviceFormatBadge->style()->unpolish(deviceFormatBadge);
-		deviceFormatBadge->style()->polish(deviceFormatBadge);
-		deviceFormatBadge->setVisible(true);
-		return;
-	}
-
-	AudioFormatProbe::Result r = AudioFormatProbe::probe(apoInfo->getDeviceGuid());
-	switch (r.status)
-	{
-	case AudioFormatProbe::Status::ActiveFloat32:
-		label = tr("EQ active · 32-bit float");
-		severity = QStringLiteral("normal");
-		tooltip = tr("EqualizerAPO is processing this stream natively (IEEE_FLOAT 32-bit, %0 Hz, %1 ch).")
-			.arg(r.sampleRate).arg(r.channelCount);
-		break;
-	case AudioFormatProbe::Status::ActiveFloat64:
-		label = tr("EQ active · 64-bit float");
-		severity = QStringLiteral("normal");
-		tooltip = tr("EqualizerAPO is processing this stream natively (IEEE_FLOAT 64-bit, %0 Hz, %1 ch).")
-			.arg(r.sampleRate).arg(r.channelCount);
-		break;
-	case AudioFormatProbe::Status::Passthrough:
-		label = tr("Passthrough · EQ inactive");
-		severity = QStringLiteral("warning");
-		tooltip = tr("This device's stream format is %0 (%1-bit container). EqualizerAPO only processes IEEE_FLOAT 32/64-bit streams natively, "
-			"so audio is forwarded without any filter being applied. Switch the device's default format to a 32-bit IEEE_FLOAT one in "
-			"Sound Settings if you need filtering on this device.")
-			.arg(QString::fromStdWString(r.subtypeDescription)).arg(r.containerBytes * 8);
-		break;
-	case AudioFormatProbe::Status::Unknown:
-	default:
-		deviceFormatBadge->setVisible(false);
-		deviceFormatBadge->setText(QString());
-		return;
-	}
-
-	deviceFormatBadge->setText(label);
-	deviceFormatBadge->setToolTip(tooltip);
-	deviceFormatBadge->setProperty("severity", severity);
+	deviceFormatBadge->setText(badge.text);
+	deviceFormatBadge->setToolTip(badge.toolTip);
+	deviceFormatBadge->setProperty("severity", badge.severity);
 	deviceFormatBadge->style()->unpolish(deviceFormatBadge);
 	deviceFormatBadge->style()->polish(deviceFormatBadge);
 	deviceFormatBadge->setVisible(true);

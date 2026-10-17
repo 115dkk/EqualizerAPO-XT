@@ -29,50 +29,12 @@
 #include "runtime/memory/AlignedMemory.h"
 #include "libHybridConv-0.1.1/libHybridConv_eapo.h"
 #include "Tests/TestDirectory.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 #include "Tests/WavFixtures.h"
 #include "Tests/AlignedMemoryGate.h"
 
-// Forward declarations for the additional suites that share this binary's
-// main(); each runXxxTests() is defined in the correspondingly named
-// XxxTests.cpp next to this file.
-void runAllPassTests();
-void runSubwooferRoutingCodecTests();
-void runSubwooferRoutingCommandTests();
-void runSubwooferRoutingCompilerTests();
-void runSubwooferRoutingEngineTests();
-void runSubwooferRoutingVst3Tests();
-void runSubwooferRoutingJsonTests();
-void runSubwooferRoutingProcessorTests();
-void runBiQuadKernelTests();
-void runChannelCommandTests();
-void runCommonLogicTests();
-void runConfigPathPolicyTests();
-void runConvolutionCommandTests();
-void runCopyCommandTests();
-void runSendCommandTests();
-void runDelayCommandTests();
-void runDeviceCommandTests();
-void runExpressionCommandTests();
-void runFilterFactoryRegistryTests();
-void runGraphicEQCommandTests();
-void runHilbertVelvetTests();
-void runIfCommandTests();
-void runIIRCommandTests();
-void runIncludeCommandTests();
-void runLoudnessCorrectionCommandTests();
-void runStageCommandTests();
-void runVSTPluginCommandTests();
-void runVST3SpeakerMappingTests();
-void runVST3LifecycleTests();
-void runVSTChannelPlanTests();
-void runVstHostTests();
-void runVst3HostTests();
-void runParserTests();
-void runParserPreampTests();
-void runNumericTextTests();
-void runMultiConvolutionTests();
-
+// Additional suites in this binary register their TEST_CASE definitions from
+// the correspondingly named XxxTests.cpp files.
 using std::string;
 using std::vector;
 using std::wstring;
@@ -83,7 +45,7 @@ constexpr int frameLength = 480;
 constexpr int sampleRate = 48000;
 constexpr double tolerance = 1.0e-8;
 
-test::Harness harness("HybridConvTests");
+test::HarnessAccess harness;
 
 test::TestDirectory& scratchDirectory()
 {
@@ -94,13 +56,12 @@ test::TestDirectory& scratchDirectory()
 wstring wisdomTestDirectory;
 wstring previousLocalAppData;
 
-void assertFftwWisdomIsExported()
+TEST_CASE(HybridConvTests, assertFftwWisdomIsExported)
 {
-	wisdomTestDirectory = scratchDirectory().path() + L"\\wisdom";
-	// The scratch directory is named after the process id; a leftover from an
-	// earlier run with a reused id already holds this folder.
-	harness.expectTrue(CreateDirectoryW(wisdomTestDirectory.c_str(), nullptr) != FALSE
-			|| GetLastError() == ERROR_ALREADY_EXISTS,
+	wisdomTestDirectory = scratchDirectory().subdirectory(L"wisdom");
+	const DWORD directoryAttributes = GetFileAttributesW(wisdomTestDirectory.c_str());
+	harness.expectTrue(directoryAttributes != INVALID_FILE_ATTRIBUTES
+			&& (directoryAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0,
 		"FFTW wisdom test creates its stand-in LOCALAPPDATA directory");
 
 	wchar_t oldLocalAppData[MAX_PATH] = {};
@@ -188,7 +149,7 @@ wstring createImpulseResponseFile(const vector<double>& impulseResponse)
 	return filename;
 }
 
-void assertJudgedIrCacheReuse()
+TEST_CASE(HybridConvTests, assertJudgedIrCacheReuse)
 {
 	const wstring filename = createImpulseResponseFile({1.0, 0.5, 0.25});
 	_wputenv_s(L"EAPO_XT_JUDGED_IR", filename.c_str());
@@ -259,7 +220,7 @@ void assertSparseImpulseResponseSurvivesPastOneSecond(int leadingSilentFrames)
 		expectClose(rendered[(size_t)impulseStart + tap.sample], tap.value, impulseStart + tap.sample);
 }
 
-void assertConvolutionFilterRecoversFromInitialShortFrame()
+TEST_CASE(HybridConvTests, assertConvolutionFilterRecoversFromInitialShortFrame)
 {
 	vector<double> impulseResponse((size_t)sampleRate * 2 + frameLength, 0.0);
 	impulseResponse[0] = 0.5;
@@ -313,7 +274,7 @@ void expectSlabLayout(const double* const* real, const double* const* imag, int 
 // and one mix plane per partition. With per-plane heap allocations that sweep
 // crosses hundreds of scattered pages (DTLB pressure, prefetcher restarts);
 // the layout contract pins the single-slab arrangement instead.
-void assertPartitionBuffersFormOneSlab()
+TEST_CASE(HybridConvTests, assertPartitionBuffersFormOneSlab)
 {
 	vector<double> impulseResponse((size_t)sampleRate * 2, 0.0);
 	impulseResponse[0] = 1.0;
@@ -333,7 +294,7 @@ void assertPartitionBuffersFormOneSlab()
 	hcCloseSingle(&filter);
 }
 
-void assertEmptyConvolverCloseIsIdempotent()
+TEST_CASE(HybridConvTests, assertEmptyConvolverCloseIsIdempotent)
 {
 	HConvSingle filter = {};
 	hcCloseSingle(nullptr);
@@ -346,7 +307,7 @@ void assertEmptyConvolverCloseIsIdempotent()
 	harness.expect(filter.storage == nullptr, "closing an empty convolver should preserve its empty state");
 }
 
-void assertSharedFilterBankKeepsIndependentRuntimeState()
+TEST_CASE(HybridConvTests, assertSharedFilterBankKeepsIndependentRuntimeState)
 {
 	vector<double> impulseResponse((size_t)frameLength * 2, 0.0);
 	impulseResponse[0] = 0.5;
@@ -388,7 +349,7 @@ void assertSharedFilterBankKeepsIndependentRuntimeState()
 	hcCloseSingle(&sibling);
 }
 
-void assertInvalidConvolverArgumentsLeaveEmptyOutput()
+TEST_CASE(HybridConvTests, assertInvalidConvolverArgumentsLeaveEmptyOutput)
 {
 	vector<double> impulseResponse(1, 1.0);
 	HConvSingle filter = {};
@@ -418,7 +379,7 @@ void assertInvalidConvolverArgumentsLeaveEmptyOutput()
 	harness.expect(rejected, "hcInitSingle should reject a frame length that overflows FFTW's transform size");
 }
 
-void assertConvolverArraySupportsOutOfOrderInitialization()
+TEST_CASE(HybridConvTests, assertConvolverArraySupportsOutOfOrderInitialization)
 {
 	constexpr unsigned slotCount = 2;
 	auto slots = AlignedMemory::allocateArray<HConvSingle>(slotCount);
@@ -442,7 +403,7 @@ void assertConvolverArraySupportsOutOfOrderInitialization()
 	owner.reset();
 }
 
-void assertConvolutionPathParsing()
+TEST_CASE(HybridConvTests, assertConvolutionPathParsing)
 {
 	_wputenv_s(L"EAPO_XT_TEST_IR_DIR", L"C:\\Impulse Responses");
 
@@ -486,91 +447,24 @@ void assertConvolutionPathParsing()
 
 }
 
-int runHybridConvTests()
+TEST_CASE(HybridConvTests, testSparseImpulseResponseSurvivesPastOneSecond)
 {
-	Logging::set(stdout, true, true, false);
-
-	assertJudgedIrCacheReuse();
-	assertFftwWisdomIsExported();
 	assertSparseImpulseResponseSurvivesPastOneSecond(0);
 	assertSparseImpulseResponseSurvivesPastOneSecond(137);
-	assertConvolutionFilterRecoversFromInitialShortFrame();
-	assertPartitionBuffersFormOneSlab();
-	assertSharedFilterBankKeepsIndependentRuntimeState();
-	assertEmptyConvolverCloseIsIdempotent();
-	assertInvalidConvolverArgumentsLeaveEmptyOutput();
-	assertConvolverArraySupportsOutOfOrderInitialization();
-	assertConvolutionPathParsing();
+}
 
-	// Pure-logic helper, command-codec and parser-extension coverage that also
-	// lives in this console binary (one XxxTests.cpp per suite).
-	// All-pass DSP invariants plus the characterizations the reform in issue
-	// #228 has to preserve or is about to change deliberately.
-	runAllPassTests();
-	// Subwoofer Routing shared core (MIT SubwooferRoutingCore) plus its JSON codec:
-	// pure-logic suites, no engine or device dependency.
-	runSubwooferRoutingJsonTests();
-	runSubwooferRoutingCodecTests();
-	runSubwooferRoutingCommandTests();
-	runSubwooferRoutingCompilerTests();
-	// Engine-level integration: original issue #246 chain vs the preset,
-	// Profile-form equivalence, invalid-state pass-through.
-	runSubwooferRoutingEngineTests();
-	runSubwooferRoutingProcessorTests();
-	runBiQuadKernelTests();
-	runChannelCommandTests();
-	runCommonLogicTests();
-	runConfigPathPolicyTests();
-	runConvolutionCommandTests();
-	runCopyCommandTests();
-	runSendCommandTests();
-	runDelayCommandTests();
-	runDeviceCommandTests();
-	runExpressionCommandTests();
-	// Command-classification contract shared by the engine and the Editor
-	// (FilterFactoryRegistry::canonicalCommand and the two keyword sets).
-	runFilterFactoryRegistryTests();
-	runGraphicEQCommandTests();
-	runHilbertVelvetTests();
-	runIfCommandTests();
-	runIIRCommandTests();
-	runIncludeCommandTests();
-	runLoudnessCorrectionCommandTests();
-	runStageCommandTests();
-	runVSTPluginCommandTests();
-	// Pure VST3 speaker-layout and lifecycle state-machine contracts.
-	runVST3SpeakerMappingTests();
-	runVST3LifecycleTests();
-	// Channel-to-instance plan of a VSTPlugin line, judged without a plug-in.
-	runVSTChannelPlanTests();
-	// Runtime VST2 host load/state/audio test. Soft-skips if the
-	// companion TestVst2Plugin.dll is not next to this executable.
-	runVstHostTests();
-	// Runtime VST3 host contract test against the deterministic companion
-	// module (bundle resolution, module lifecycle, host services, editor,
-	// state, parameter flush). Unlike the VST2 suite above this one does not
-	// soft-skip: a missing module fails the run, because the module is built
-	// from this repository and its absence is a build problem.
-	runVst3HostTests();
-	// Native/VST3 parity for the Subwoofer Routing plugin, loaded through the
-	// same host path as the companion-module suites above.
-	runSubwooferRoutingVst3Tests();
-	runParserTests();
-	runParserPreampTests();
-	runNumericTextTests();
-	runMultiConvolutionTests();
-
+void cleanupHybridConvTests()
+{
 	cleanupFftwWisdomTest();
 	scratchDirectory().removeAll();
-	harness.report();
-	return test::reportAlignedMemoryBalance("HybridConvTests");
 }
 
 int main()
 {
+	Logging::set(stdout, true, true, false);
 	try
 	{
-		return runHybridConvTests();
+		return test::runAll("HybridConvTests", {}, cleanupHybridConvTests);
 	}
 	catch (const std::exception& error)
 	{

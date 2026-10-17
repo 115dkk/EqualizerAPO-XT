@@ -11,13 +11,13 @@
 #include <string>
 
 #include "filters/ConvolutionCommand.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 using std::wstring;
 
 namespace
 {
-test::Harness harness("ConvolutionCommandTests");
+test::HarnessAccess harness;
 
 wstring parsePath(const wstring& parameters)
 {
@@ -27,7 +27,7 @@ wstring parsePath(const wstring& parameters)
 	return cmd.path;
 }
 
-void testParse()
+TEST_CASE(ConvolutionCommandTests, testParse)
 {
 	harness.expectTrue(parsePath(L" ir.wav") == L"ir.wav", "leading whitespace is trimmed");
 	harness.expectTrue(parsePath(L"sub dir\\room ir.wav ") == L"sub dir\\room ir.wav",
@@ -47,7 +47,7 @@ void testParse()
 		"'Channel' must not parse as Convolution");
 }
 
-void testRoundTrip()
+TEST_CASE(ConvolutionCommandTests, testRoundTrip)
 {
 	const wstring cases[] = {
 		L"ir.wav",
@@ -68,12 +68,4 @@ void testRoundTrip()
 		harness.expectTrue(second.serialize() == serialized, "second serialization is identical");
 	}
 }
-}
-
-void runConvolutionCommandTests()
-{
-	testParse();
-	testRoundTrip();
-
-	harness.report();
 }

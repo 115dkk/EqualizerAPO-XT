@@ -9,7 +9,7 @@
 */
 
 #include "devices/DevicePlan.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 namespace
 {
@@ -23,7 +23,7 @@ DeviceFacts facts(bool installed, bool upgrade = false, bool changes = false, bo
 	return result;
 }
 
-void testPlanTable(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testPlanTable)
 {
 	harness.expect(planFor(true, facts(false)).action == DeviceAction::Install, "a checked, uninstalled device is installed");
 	harness.expect(planFor(false, facts(true)).action == DeviceAction::Uninstall, "an unchecked, installed device is uninstalled");
@@ -49,7 +49,7 @@ void testPlanTable(test::Harness& harness)
 	harness.expect(enhancements.isUpgrade(), "and turning them back on is offered like an upgrade");
 }
 
-void testHeadlessInstall(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testHeadlessInstall)
 {
 	harness.expect(planForHeadlessInstall(facts(false)).action == DeviceAction::Install, "--install-endpoint installs");
 	const DevicePlan again = planForHeadlessInstall(facts(true));
@@ -57,10 +57,4 @@ void testHeadlessInstall(test::Harness& harness)
 		"and reinstalls an installed device even with nothing to change, so the requested mode applies");
 	harness.expectFalse(again.isUpgrade(), "a requested reinstall is not an upgrade");
 }
-}
-
-void runDevicePlanTests(test::Harness& harness)
-{
-	testPlanTable(harness);
-	testHeadlessInstall(harness);
 }

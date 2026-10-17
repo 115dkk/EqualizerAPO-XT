@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The engine-serving loop shared by EqualizerAPOHost and in-process tests. -->
+<Project>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)EngineHostCore.h" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)EngineHostCore.cpp" />
+  </ItemGroup>
+</Project>

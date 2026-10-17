@@ -137,11 +137,7 @@ QString ConvolutionCardEditor::resolvedAbsolutePath() const
 
 unsigned ConvolutionCardEditor::currentDeviceSampleRate() const
 {
-	if (filterTable == nullptr)
-		return 0;
-
-	std::shared_ptr<AbstractAPOInfo> device = filterTable->getSelectedDevice();
-	return device != nullptr ? device->getSampleRate() : 0;
+	return filterTable == nullptr ? 0 : filterTable->deviceSampleRate();
 }
 
 void ConvolutionCardEditor::updateFileInfo()

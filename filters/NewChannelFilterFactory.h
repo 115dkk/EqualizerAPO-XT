@@ -12,13 +12,9 @@
 
 class FilterEngine;
 
-class NewChannelFilterFactory : public ParseReportingFactory
+class NewChannelFilterFactory : public IFilterFactory
 {
 public:
-	void initialize(FilterEngine* engine) override;
-	FilterVector createFilter(const std::wstring& configPath, std::wstring& command,
+	LineOutcome createFilter(const std::wstring& configPath, std::wstring& command,
 		std::wstring& parameters) override;
-
-private:
-	FilterEngine* engine = nullptr;
 };

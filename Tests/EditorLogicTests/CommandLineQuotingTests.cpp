@@ -37,7 +37,7 @@ std::vector<std::wstring> splitAfterProgramName(const std::wstring& arguments)
 }
 }
 
-void testCommandLineQuotingRoundTripsThroughCommandLineToArgvW()
+TEST_CASE(EditorLogicTests, testCommandLineQuotingRoundTripsThroughCommandLineToArgvW)
 {
 	const std::vector<std::wstring> cases = {
 		L"plain",

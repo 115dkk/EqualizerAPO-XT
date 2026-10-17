@@ -19,17 +19,10 @@
 
 #include "stdafx.h"
 #include <algorithm>
-#include <atomic>
-#include <cmath>
-#include <memory>
+#include <cstring>
 #include <utility>
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <fftw3.h>
 
 #include "services/logging/Logging.h"
-#include "runtime/memory/AlignedMemory.h"
-#include "runtime/concurrency/ParallelExecutor.h"
 #include "ConvolutionFilter.h"
 #include "diagnostics/performance/PerfProfile.h"
 
@@ -52,9 +45,8 @@ ConvolutionFilter::ConvolutionFilter(JudgedPath filename)
 
 ConvolutionFilter::ConvolutionFilter(JudgedPath filename, ConvolverMuteDiagnostics& muteDiagnostics,
 	const wchar_t* muteLogPrefix)
-	: muteDiagnostics(&muteDiagnostics), muteLogPrefix(muteLogPrefix)
+	: bank(muteDiagnostics, muteLogPrefix), filename(std::move(filename))
 {
-	this->filename = std::move(filename);
 }
 
 ConvolutionFilter::~ConvolutionFilter()
@@ -64,9 +56,7 @@ ConvolutionFilter::~ConvolutionFilter()
 
 vector<wstring> ConvolutionFilter::initialize(float sampleRate, unsigned maxFrameCount, vector<wstring> channelNames)
 {
-	auto previousIr = irEntry;
 	cleanup();
-	irEntry = std::move(previousIr);
 
 	this->sampleRate = sampleRate;
 	channelCount = (unsigned)channelNames.size();
@@ -89,7 +79,7 @@ void ConvolutionFilter::process(double** output, double** input, unsigned frameC
 	// audio 콜백 중 재초기화는 파일 I/O, FFTW plan, malloc/free를 일으키므로 금지한다.
 	// mismatch가 들어오면 무음으로 빠지고, 진단은 원자 카운터에만 남긴다. 정상
 	// stream에서는 LockForProcess가 frameCount를 고정하므로 이 분기는 거의 들어오지 않는다.
-	if (!bank.admit(*muteDiagnostics, frameCount))
+	if (!bank.admit(frameCount))
 	{
 		// admit() recorded the mute; the deferred report is written by
 		// cleanup() through bank.finishAndReport(), nothing is logged on the
@@ -116,7 +106,7 @@ void ConvolutionFilter::cleanup()
 {
 	// Deferred report of the mute path that process() took on the audio
 	// thread, then disarm and release the units (close-then-free), in one call.
-	bank.finishAndReport(*muteDiagnostics, muteLogPrefix, __FILE__, __LINE__, this);
+	bank.finishAndReport();
 	// Release this filter's hold on the cached IR. With the cache holding only weak
 	// references, dropping the last shared_ptr frees the entry.
 	irEntry.reset();
@@ -125,7 +115,7 @@ void ConvolutionFilter::cleanup()
 void ConvolutionFilter::initializeFilters(unsigned frameCount)
 {
 	const wstring displayPath = filename.path();
-	auto ir = filename.empty() ? irEntry : loadIrCached(filename, sampleRate);
+	auto ir = loadIrCached(filename, sampleRate);
 	filename = JudgedPath{};
 	if (!ir)
 		return;

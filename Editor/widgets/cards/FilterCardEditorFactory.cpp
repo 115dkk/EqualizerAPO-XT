@@ -52,7 +52,7 @@ IFilterGUI* FilterCardEditorFactory::create(FilterTable* filterTable, const QStr
 	FilterCardEditorCreator creator = FilterCardEditorRegistry::find(
 		FilterCardModel::canonicalCommand(command));
 	// The creator still sees the key as written, because the Filter entry is
-	// shared: IIRCardEditor hands it to IIRFilterFactory::parseCommand, which is
+	// shared: IIRCardEditor hands it to IIRCommand::parse, which is
 	// what tells "Filter 1: ON IIR ..." apart from an ordinary BiQuad line and
 	// lets the latter fall through to the legacy knob GUI.
 	return creator(filterTable, command, parameters);

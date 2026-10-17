@@ -4,9 +4,9 @@
 	SPDX-License-Identifier: GPL-2.0-or-later
 
 	The processor seam of the ASIO wrapper (docs/architecture/asio-host-study.md,
-	section 10). Everything an adapter must implement is three calls: open the
-	stream for a fixed format, transform one direction's planes in place per
-	buffer switch, close it. The seam knows nothing about ASIO, COM, or Qt, so
+	section 10). An adapter opens a fixed format, supplies each block's plane
+	array, processes that block, and closes the stream. The seam knows nothing
+	about ASIO, COM, or Qt, so
 	the same interface serves the in-process engine adapter the probe measures
 	with, the passthrough adapter, and the daemon adapter that ships.
 
@@ -67,15 +67,23 @@ namespace eapo::asio
 	// protocol cannot go unnoticed on the other.
 	static_assert(sizeof(StreamFormat) == 240, "StreamFormat must stay fixed-width; it is copied into the daemon session header");
 
+	// Optional timing information a processor may expose to diagnostics. The
+	// wrapper does not inspect it; adapters that have no handoff return nullptr.
+	struct HandoffProfile
+	{
+		uint32_t deadlineUs = 0;
+		uint32_t maxDispatchUs = 0;
+		uint32_t maxServiceUs = 0;
+		uint32_t maxReturnUs = 0;
+		uint64_t roundTripBuckets[6] = {0, 0, 0, 0, 0, 0};   // <100, <200, <500, <1000, <2000, >=2000 us
+		uint64_t completed = 0;
+	};
+
 	enum class Outcome : uint32_t
 	{
-		Processed,      // the planes hold the audio to write back
-		// The deadline passed. The caller writes the original audio, except
-		// after an adapter that reported extraLatencyFrames: that one leaves
-		// the previous block's original audio in the planes, so the added
-		// latency holds through the late block, and the caller writes the
-		// planes.
-		Late,
+		Processed,      // the planes hold processed audio to write back
+		LateHeld,       // the planes hold delayed original audio; keep the adapter's latency
+		LateDropped,    // no result is safe to read; write the current original audio
 		Gone,           // the processor is dead for the rest of the stream; original audio
 		Off             // this direction is not processed by this adapter; original audio
 	};
@@ -103,11 +111,6 @@ namespace eapo::asio
 		};
 
 		Status status = Status::Unavailable;
-		// Per direction: an array of channelCount(direction) pointers to
-		// `frames` float32 samples each, valid from open() until close().
-		// nullptr means the adapter does not process that direction; the
-		// wrapper then copies the original samples without conversion.
-		float** planes[directionCount] = {nullptr, nullptr};
 		uint32_t extraLatencyFrames = 0;  // 0 for Sync, frames for Pipelined
 		char message[errorMessageBytes] = {};           // reported through getErrorMessage when status != Ok
 	};
@@ -166,17 +169,27 @@ namespace eapo::asio
 		// hosts init every listed driver just to enumerate them.
 		virtual OpenReport open(const StreamFormat& format, const StreamOptions& options) = 0;
 
-		// The target driver's buffer-switch thread. Once per enabled direction
-		// per switch. Transforms planes[direction] in place. No allocation, no
-		// C++ locks, no exceptions; waiting on a kernel object inside the
-		// deadline is allowed. After anything but Processed (or a pipelined
-		// Late, see Outcome) the plane contents are unspecified and the caller
-		// writes the original audio instead.
+		// The target driver's buffer-switch thread asks for the planes of this
+		// block before converting into them. The returned array and every plane
+		// stay valid through process(); process() may change the pointers in the
+		// array to hand a different buffer back without copying samples. No
+		// allocation, C++ locks or exceptions in either call.
+		virtual float** planes(Direction direction) noexcept = 0;
+
+		// Once per enabled direction per switch, after planes() was filled.
+		// Waiting on a kernel object inside the deadline is allowed. Processed
+		// and LateHeld leave output in that same pointer array; every other
+		// outcome makes the caller use the current original audio.
 		virtual Outcome process(Direction direction) noexcept = 0;
 
 		// Control thread, after the target's disposeBuffers() returned so no
 		// buffer switch can arrive. Idempotent.
-		virtual void close(const StreamStats& stats) noexcept = 0;
+		virtual void close() noexcept = 0;
+
+		virtual const HandoffProfile* profile() const noexcept
+		{
+			return nullptr;
+		}
 	};
 
 	// The adapter used when neither direction is processed, and the floor
@@ -191,12 +204,17 @@ namespace eapo::asio
 			return report;
 		}
 
+		float** planes(Direction) noexcept override
+		{
+			return nullptr;
+		}
+
 		Outcome process(Direction) noexcept override
 		{
 			return Outcome::Off;
 		}
 
-		void close(const StreamStats&) noexcept override
+		void close() noexcept override
 		{
 		}
 	};

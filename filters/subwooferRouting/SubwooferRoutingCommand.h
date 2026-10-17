@@ -20,6 +20,12 @@
 
 #include <string>
 
+namespace subroute
+{
+struct ValidationDiagnostic;
+struct ValidationResult;
+}
+
 struct SubwooferRoutingCommand
 {
 	enum class Form
@@ -36,5 +42,9 @@ struct SubwooferRoutingCommand
 	std::wstring serialize() const;
 };
 
-// Shared UTF-16-to-UTF-8 conversion for command payloads and device channel IDs.
+// Shared text conversion and validation helpers used while decoding and
+// preparing a SubwooferRouting command.
 std::string subwooferRoutingToUtf8(const std::wstring& text);
+std::wstring subwooferRoutingFromUtf8(const std::string& text);
+const subroute::ValidationDiagnostic* firstSubwooferRoutingValidationError(
+	const subroute::ValidationResult& result);

@@ -35,19 +35,18 @@ using std::vector;
 using std::wstring;
 using namespace mup;
 
-void ExpressionFilterFactory::initialize(FilterEngine* engine)
+void ExpressionFilterFactory::onInitialize(FilterEngine& engine)
 {
-	parser = engine->getParser();
-	this->engine = engine;
-	parser->defineConst(L"inputChannelCount", mup::int_type(engine->getInputChannelCount()));
-	parser->defineConst(L"outputChannelCount", mup::int_type(engine->getOutputChannelCount()));
-	parser->defineConst(L"sampleRate", mup::float_type(engine->getSampleRate()));
+	parser = engine.getParser();
+	parser->defineConst(L"inputChannelCount", mup::int_type(engine.getInputChannelCount()));
+	parser->defineConst(L"outputChannelCount", mup::int_type(engine.getOutputChannelCount()));
+	parser->defineConst(L"sampleRate", mup::float_type(engine.getSampleRate()));
 
-	parser->defineFunction(new ReadRegStringFunction(engine));
-	parser->defineFunction(new ReadRegDWORDFunction(engine));
+	parser->defineFunction(new ReadRegStringFunction(&engine));
+	parser->defineFunction(new ReadRegDWORDFunction(&engine));
 }
 
-FilterVector ExpressionFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+LineOutcome ExpressionFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	if (command.length() > 0 && command[0] == L'#')
 		return {};
@@ -94,7 +93,7 @@ FilterVector ExpressionFilterFactory::createFilter(const wstring& configPath, ws
 		entry.kind = ConfigLoadTraceEntry::Kind::InlineValue;
 		entry.text = output;
 		entry.error = inlineError;
-		engine->traceLoadEvent(std::move(entry));
+		engine()->traceLoadEvent(std::move(entry));
 	}
 
 	EvalCommand evalCmd;
@@ -119,11 +118,9 @@ FilterVector ExpressionFilterFactory::createFilter(const wstring& configPath, ws
 			entry.text = e.GetMsg();
 			entry.error = true;
 		}
-		engine->traceLoadEvent(std::move(entry));
-
-		// command has been handled
-		command = L"";
+		engine()->traceLoadEvent(std::move(entry));
+		return LineOutcome::consumed();
 	}
 
-	return {};
+	return LineOutcome::notMine();
 }

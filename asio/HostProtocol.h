@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 #include <string>
 #include <type_traits>
@@ -68,6 +69,36 @@ namespace eapo::asio
 	static_assert(std::is_standard_layout_v<HostOpenReply> && std::is_trivially_copyable_v<HostOpenReply>,
 		"HostOpenReply must remain a plain wire type");
 	static_assert(sizeof(HostOpenReply) == 8, "HostOpenReply must stay fixed-width");
+
+	// One complete fixed-size pipe message, bounded by an absolute GetTickCount64
+	// deadline. A timeout cancels and drains the OVERLAPPED before returning, so
+	// neither its event nor stack storage can outlive pending I/O.
+	inline DWORD pipeTransfer(HANDLE pipe, bool write, void* buffer, DWORD bytes, ULONGLONG deadline) noexcept
+	{
+		winutil::UniqueHandle event(CreateEventW(nullptr, TRUE, FALSE, nullptr));
+		if (!event)
+			return GetLastError();
+		OVERLAPPED overlapped = {};
+		overlapped.hEvent = event.get();
+		const BOOL started = write ? WriteFile(pipe, buffer, bytes, nullptr, &overlapped)
+			: ReadFile(pipe, buffer, bytes, nullptr, &overlapped);
+		if (!started && GetLastError() != ERROR_IO_PENDING)
+			return GetLastError();
+		const ULONGLONG now = GetTickCount64();
+		const DWORD waitMs = now >= deadline ? 0 : static_cast<DWORD>((std::min<ULONGLONG>)(deadline - now, INFINITE - 1));
+		const DWORD waited = WaitForSingleObject(event.get(), waitMs);
+		DWORD transferred = 0;
+		if (waited != WAIT_OBJECT_0)
+		{
+			const DWORD error = waited == WAIT_FAILED ? GetLastError() : ERROR_TIMEOUT;
+			CancelIoEx(pipe, &overlapped);
+			GetOverlappedResult(pipe, &overlapped, &transferred, TRUE);
+			return error;
+		}
+		if (!GetOverlappedResult(pipe, &overlapped, &transferred, FALSE))
+			return GetLastError();
+		return transferred == bytes ? ERROR_SUCCESS : ERROR_INVALID_DATA;
+	}
 
 	namespace HostNames
 	{

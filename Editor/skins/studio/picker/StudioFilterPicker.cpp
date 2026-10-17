@@ -17,8 +17,6 @@
 #include <QStyledItemDelegate>
 #include <QVBoxLayout>
 
-#include "Editor/SkinManager.h"
-
 namespace
 {
 // Studio's glow rule: light is faked with layered strokes and gradients,
@@ -224,10 +222,10 @@ private:
 }
 
 StudioFilterPickerView::StudioFilterPickerView(const SkinTokens& tokens, QWidget* parent)
-	: FilterPickerView(parent)
+	: FilterPickerView(parent),
+	  skinTokens(tokens)
 {
 	setObjectName(QStringLiteral("StudioFilterPicker"));
-	skinTokens = tokens;
 	dark = skinIsDark(skinTokens);
 
 	const int glow = 13;

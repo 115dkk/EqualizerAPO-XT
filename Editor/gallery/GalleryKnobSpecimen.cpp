@@ -9,107 +9,15 @@
 */
 
 #include "SkinGallery.h"
-#include "Editor/gallery/GallerySupport.h"
-#include <numbers>
-// For the two gates moved out of main.cpp (audit #275 B7): the VST
-// round-trip self test and the analysis layout probe.
-#include <optional>
-#include <unordered_map>
-#include <QBoxLayout>
-#include <QDockWidget>
-#include <QFileInfo>
-#include <QLocale>
-#include <QStyle>
-#include <QTimer>
-#include "filters/VSTPluginFilter.h"
-#include "filters/VSTPluginFilterFactory.h"
-#include "guis/VSTPluginFilterGUI.h"
-#include "widgets/cards/VSTCardEditor.h"
-#include "widgets/cards/VSTSlotFillRail.h"
-#include "MainWindow.h"
-#include "diagnostics/ToolbarPixelProbe.h"
-#include "widgets/MainToolbarKit.h"
-#include "SubwooferRouting/Preset.h"
-#include "SubwooferRouting/StateCodec.h"
-#include "widgets/subwooferrouting/SubwooferRoutingDefaults.h"
 
-#include <cmath>
-#include <complex>
-#include <cstdio>
-#include <cstdlib>
-#include <memory>
-
-#include <QApplication>
-#include <QCheckBox>
-#include <QComboBox>
-#include <QDataStream>
+#include <QColor>
 #include <QDir>
-#include <QElapsedTimer>
-#include <QEnterEvent>
-#include <QEventLoop>
-#include <QFile>
-#include <QFileDialog>
-#include <QFileInfo>
-#include <QFrame>
-#include <QGraphicsScene>
-#include <QGraphicsView>
-#include <QGridLayout>
-#include <QHBoxLayout>
+#include <QFont>
 #include <QImage>
-#include <QKeyEvent>
-#include <QLabel>
-#include <QLineEdit>
-#include <QLocale>
-#include <QMainWindow>
-#include <QMenu>
-#include <QMenuBar>
-#include <QMouseEvent>
-#include <QPixmap>
-#include <QPointer>
-#include <QRadioButton>
-#include <QToolButton>
-#include <QScrollArea>
-#include <QScrollBar>
-#include <QScreen>
-#include <QSpinBox>
-#include <QString>
-#include <QStringList>
-#include <QTemporaryDir>
-#include <QTimer>
-#include <QToolBar>
-#include <QTranslator>
-#include <QTreeView>
-#include <QUrl>
+#include <QPainter>
 
-#define WIN32_LEAN_AND_MEAN
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-
-#include "Editor/FilterTable.h"
 #include "Editor/SkinManager.h"
-#include "Editor/guis/CopyFilterGUI.h"
-#include "Editor/helpers/GUIHelper.h"
 #include "Editor/skins/ISkin.h"
-#include "Editor/skins/Skins.h"
-#include "Editor/widgets/AddCardRow.h"
-#include "Editor/widgets/EqGraphView.h"
-#include "Editor/widgets/SegmentedControl.h"
-#include "Editor/analysis/AnalysisMetric.h"
-#include "Editor/analysis/AnalysisResponse.h"
-#include "filters/BiQuad.h"
-#include "Editor/skins/shared/SkinFileIcons.h"
-#include "Editor/widgets/FilterCardRow.h"
-#include "Editor/widgets/CommandRowFrame.h"
-#include "Editor/widgets/FilterInsertSeam.h"
-#include "Editor/widgets/FilterPickerView.h"
-#include "Editor/widgets/SkinComboBox.h"
-#include "Editor/widgets/TitleBar.h"
-#include "Editor/widgets/UpdateToast.h"
-#include "Editor/widgets/subwooferrouting/SubwooferRoutingEditorDialog.h"
-#include "Editor/widgets/cards/SubwooferRoutingCardEditor.h"
-#include "Editor/widgets/routing/IRoutingRenderer.h"
 
 // ---------------------------------------------------------------------------
 // --knob-specimen <outDir> [--knob-specimen-skins id,id,...] (diagnostic):
@@ -121,8 +29,6 @@
 // only ever shows the BiQuad dials folded. Judging material for knob rework
 // (the minimal drum, issue #338), not a gate. Defaults to minimal.
 // ---------------------------------------------------------------------------
-
-#include <QImage>
 
 namespace
 {

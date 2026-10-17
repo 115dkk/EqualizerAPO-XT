@@ -19,42 +19,13 @@
 
 #include "BiQuadFilterGUI.h"
 #include "BiQuadFilterGUIFactory.h"
-#include <filters/BiQuadFilterFactory.h>
+#include <filters/BiQuadCommand.h>
 #include "../FilterGUIFactoryRegistry.h"
 
 REGISTER_FILTER_GUI_FACTORY(FilterGUIFactoryOrder::BiQuad, BiQuadFilterGUIFactory)
 
 BiQuadFilterGUIFactory::BiQuadFilterGUIFactory()
 {
-}
-
-QList<FilterTemplate> BiQuadFilterGUIFactory::createFilterTemplates()
-{
-	QStringList path(tr("Parametric filters"));
-
-	QList<FilterTemplate> list;
-	list.append(FilterTemplate(tr("Peaking filter"), "Filter: ON PK Fc 100 Hz Gain 0 dB Q 10", path));
-	list.append(FilterTemplate(tr("Low-pass filter"), "Filter: ON LP Fc 100 Hz", path));
-	list.append(FilterTemplate(tr("High-pass filter"), "Filter: ON HP Fc 100 Hz", path));
-	list.append(FilterTemplate(tr("Band-pass filter"), "Filter: ON BP Fc 100 Hz Q 10", path));
-	list.append(FilterTemplate(tr("Low-shelf filter"), "Filter: ON LS Fc 100 Hz Gain 0 dB", path));
-	list.append(FilterTemplate(tr("High-shelf filter"), "Filter: ON HS Fc 100 Hz Gain 0 dB", path));
-	list.append(FilterTemplate(tr("Notch filter"), "Filter: ON NO Fc 100 Hz", path));
-
-	// The all-pass sits under Phase & Time, not among the parametric filters.
-	// Every other entry in that group changes a level; this one cannot. Listing
-	// it beside them is a large part of why it read as a filter that does
-	// nothing - a user looking for a level control finds it, tries it, and
-	// hears no difference at all.
-	//
-	// Q 0.707 rather than the 10 this template used to create: Q 10 at 100 Hz
-	// concentrates a third of a second of group delay into a narrow band, which
-	// is a strange filter to hand someone as a starting point. Existing
-	// configurations keep whatever they were written with.
-	QStringList phasePath(tr("Phase & Time"));
-	list.append(FilterTemplate(tr("1st-order all-pass"), "Filter: ON AP Fc 100 Hz Order 1", phasePath));
-	list.append(FilterTemplate(tr("2nd-order all-pass"), "Filter: ON AP Fc 100 Hz Q 0.707 Order 2", phasePath));
-	return list;
 }
 
 IFilterGUI* BiQuadFilterGUIFactory::createFilterGUI(QString& command, QString& parameters)
@@ -69,7 +40,7 @@ IFilterGUI* BiQuadFilterGUIFactory::createFilterGUI(QString& command, QString& p
 		std::wstring commandWStr = command.toStdWString();
 		std::wstring paramWStr = parameters.toStdWString();
 		BiQuadCommand cmd;
-		if (BiQuadFilterFactory::parseCommand(commandWStr, paramWStr, cmd))
+		if (BiQuadCommand::parse(commandWStr, paramWStr, cmd))
 			result = new BiQuadFilterGUI(cmd);
 	}
 

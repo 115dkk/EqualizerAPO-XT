@@ -83,7 +83,6 @@ namespace
 	};
 }
 
-// cppcheck-suppress constParameterPointer ; the signature is fixed by the Win32 DllMain contract
 BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, void*)
 {
 	if (reason == DLL_PROCESS_ATTACH)

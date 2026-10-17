@@ -6,51 +6,54 @@
 
 /*
 	The convolver units of one filter together with their mute bookkeeping
-	(audit #348 F3). ConvolutionFilter, MultiConvolutionFilter and
-	HilbertFilter each owned an HConvSingleArray and a ConvolverMuteState
-	side by side and kept the arm / judge / report / release order by hand.
-	The bank keeps that order itself: install() arms with the block size the
-	array was built for, admit() judges a block on the audio thread and
-	records a mismatch, and finishAndReport() writes the deferred report,
-	disarms and releases the units in one call.
-
-	The ConvolverMuteDiagnostics instance and the log prefix stay with each
-	filter class and are passed in, so the counts and the report keep the
-	filter's own name.
+	(audit #422 E3). ConvolutionFilter, MultiConvolutionFilter and HilbertFilter
+	each used to carry a second state object and pass diagnostics through every
+	bank call. The bank now owns the complete arm / judge / report / release
+	state machine; only the process-wide counters remain external.
 */
 
 #pragma once
 
+#include <source_location>
 #include <utility>
 
+#include "ConvolverArray.h"
 #include "ConvolverMuteDiagnostics.h"
-#include "IrCache.h"
 
 class ConvolverBank
 {
 public:
-	// Takes the units built for frameCount-sample blocks. A null array (the
+	ConvolverBank(ConvolverMuteDiagnostics& diagnostics, const wchar_t* logPrefix)
+		: diagnostics(diagnostics), logPrefix(logPrefix)
+	{
+	}
+
+	// Takes the units built for frameCount-sample blocks. An empty array (the
 	// build found nothing to convolve) leaves the bank empty and unarmed.
 	void install(HConvSingleArray builtUnits, unsigned frameCount)
 	{
 		units = std::move(builtUnits);
-		if (units != nullptr)
-			muteState.arm(frameCount);
+		if (units)
+		{
+			initializedFrameCount = frameCount;
+			mismatchSeen = false;
+		}
 	}
 
-	bool installed() const noexcept {return units != nullptr;}
+	bool installed() const noexcept {return static_cast<bool>(units);}
 
 	// Audio thread: whether a block of frameCount samples can be fed to the
-	// units. When units are installed but the block size is not the one they
-	// were built for, the mute is recorded for the deferred report. RT-safe:
-	// relaxed atomics, no I/O.
-	bool admit(ConvolverMuteDiagnostics& diagnostics, unsigned frameCount) noexcept
+	// units. A mismatch is recorded for the deferred report. RT-safe: relaxed
+	// atomics and no I/O.
+	bool admit(unsigned frameCount) noexcept
 	{
-		if (units == nullptr)
+		if (!units)
 			return false;
-		if (muteState.shouldMute(frameCount))
+		if (frameCount != initializedFrameCount)
 		{
-			muteState.recordMute(diagnostics, frameCount);
+			const bool firstMismatch = !mismatchSeen;
+			mismatchSeen = true;
+			diagnostics.recordMute(frameCount, firstMismatch);
 			return false;
 		}
 		return true;
@@ -59,18 +62,29 @@ public:
 	// The unit for hcPutSingle/hcProcessSingle/hcGetSingle.
 	HConvSingle* unit(unsigned i) const noexcept {return &units[i];}
 
-	// Deferred report through the owning filter's log context, then disarm,
-	// then release the units (HConvSingleArray runs the close-then-free
-	// sequence). Call from cleanup()/the destructor:
-	//   bank.finishAndReport(muteDiagnostics, kPrefix, __FILE__, __LINE__, this);
-	void finishAndReport(ConvolverMuteDiagnostics& diagnostics, const wchar_t* logPrefix,
-		const char* file, int line, const void* logContext)
+	// Deferred report through the bank's owning filter context, then disarm and
+	// release the units. source_location keeps the calling filter's file and line
+	// in the diagnostic without making every call carry protocol arguments.
+	void finishAndReport(
+		const std::source_location& location = std::source_location::current())
 	{
-		muteState.finishAndReport(diagnostics, logPrefix, file, line, logContext);
-		units = nullptr;
+		if (mismatchSeen)
+		{
+			Logging::log(location.file_name(), static_cast<int>(location.line()), this,
+				false, kConvolverMuteReportFormat, logPrefix,
+				diagnostics.firstMuteFrameCount.load(std::memory_order_relaxed),
+				initializedFrameCount,
+				diagnostics.muteCallCount.load(std::memory_order_relaxed));
+		}
+		mismatchSeen = false;
+		initializedFrameCount = 0;
+		units.reset();
 	}
 
 private:
+	ConvolverMuteDiagnostics& diagnostics;
+	const wchar_t* logPrefix;
 	HConvSingleArray units;
-	ConvolverMuteState muteState;
+	unsigned initializedFrameCount = 0;
+	bool mismatchSeen = false;
 };

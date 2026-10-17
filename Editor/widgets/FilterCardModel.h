@@ -81,6 +81,16 @@ class FilterCardModel
 
 public:
 	static FilterCardDescriptor describeLine(const QString& line, int depth = 0);
+	// One row's presentation: the line's own descriptor with the scope its
+	// neighbours put it in (calculateScopes) applied. The single entry every
+	// row build goes through - prepareRows for a whole rebuild, the
+	// incremental single-row paths and a card's own summary rebuild - so a
+	// row built one way cannot come out different from the same row built
+	// another way.
+	static FilterCardDescriptor describeRow(const QString& line, const FilterCardRowScope& scope);
+	// The scope a descriptor was built under (the inverse of the scope half
+	// of describeRow), for a row that re-derives its own line in place.
+	static FilterCardRowScope scopeOf(const FilterCardDescriptor& descriptor);
 	static QVector<FilterCardBuildPlan> prepareRows(const QList<QString>& lines);
 	// The modern stroke pictogram for a card's type badge, keyed by the
 	// descriptor (matching the picker tiles). Biquad rows split by their type
@@ -98,9 +108,6 @@ public:
 	// and the If-nesting count. Commented-out lines never open or close scopes,
 	// matching the engine (a '#' line is a comment to the parser too).
 	static QVector<FilterCardRowScope> calculateScopes(const QList<QString>& lines);
-	// Indent-only projection of calculateScopes(), kept for callers and tests
-	// that only need the margin depth.
-	static QVector<int> calculateDepths(const QList<QString>& lines);
 	static QString commandForLine(const QString& line, QString* parameters);
 	// The engine's own answer to "is this key a command the engine runs, and
 	// which one": FilterFactoryRegistry::canonicalCommand brought across the Qt
@@ -158,6 +165,7 @@ public:
 		const QString& replacedLine);
 
 private:
+	static void applyScope(FilterCardDescriptor& descriptor, const FilterCardRowScope& scope);
 	static QStringList parseChannelList(const QString& text);
 	static QString compactWhitespace(const QString& text);
 	static bool isDisabledCommandLine(const QString& line);

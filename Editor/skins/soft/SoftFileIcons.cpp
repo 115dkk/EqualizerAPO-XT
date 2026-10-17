@@ -6,7 +6,6 @@
 
 #include "SoftSkin.h"
 
-#include <QFileDialog>
 #include <QIcon>
 #include <QPainter>
 #include <QPainterPath>
@@ -154,9 +153,9 @@ QIcon SoftSkin::softTileIcon(const QString& resource, const QColor& tile)
 	return icon;
 }
 
-void SoftSkin::installFileIconProvider(QFileDialog* dialog, const SkinTokens& tokens)
+QAbstractFileIconProvider* SoftSkin::fileIconProvider(const SkinTokens& tokens) const
 {
 	static SoftFileIconProvider iconProvider;
 	iconProvider.updateTokens(tokens);
-	dialog->setIconProvider(&iconProvider);
+	return &iconProvider;
 }

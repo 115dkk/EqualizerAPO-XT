@@ -60,7 +60,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;UNICODE;_UNICODE;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;UNICODE;_UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -100,17 +100,14 @@ if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"</
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Keepalive.cpp" />
     <ClCompile Include="KeepaliveFill.cpp" />
-    <ClCompile Include="..\asio\EngineHostCore.cpp" />
-    <ClCompile Include="..\runtime\ipc\StreamRing.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Keepalive.h" />
     <ClInclude Include="KeepaliveFill.h" />
-    <ClInclude Include="..\asio\EngineHostCore.h" />
-    <ClInclude Include="..\asio\HostProtocol.h" />
-    <ClInclude Include="..\asio\StreamProcessor.h" />
-    <ClInclude Include="..\runtime\ipc\StreamRing.h" />
   </ItemGroup>
+  <Import Project="..\asio\AsioEngineHostSources.props" />
+  <Import Project="..\asio\AsioHostControlSources.props" />
+  <Import Project="..\asio\AsioRingSources.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

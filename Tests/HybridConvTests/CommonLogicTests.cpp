@@ -7,7 +7,7 @@
 	exercise only string manipulation and channel-name /
 	channel-mask parsing, none of which needs a real audio device, registry
 	access, or filter-engine setup. They link against the same Common.lib as
-	HybridConvTests and run from its main() via runCommonLogicTests().
+	HybridConvTests and self-register with TestHarness.
 */
 
 #include <string>
@@ -17,14 +17,14 @@
 
 #include "engine/IFilter.h"
 #include "audio/ChannelLayout.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 using std::wstring;
 using std::vector;
 
 namespace
 {
-test::Harness harness("CommonLogicTests");
+test::HarnessAccess harness;
 
 class LifetimeProbeFilter : public IFilter
 {
@@ -52,7 +52,7 @@ private:
 	bool* destroyed;
 };
 
-void testOwningFilterPointer()
+TEST_CASE(CommonLogicTests, testOwningFilterPointer)
 {
 	bool destroyed = false;
 	{
@@ -62,7 +62,7 @@ void testOwningFilterPointer()
 	harness.expectTrue(destroyed, "FilterPtr should destroy and release the filter when ownership ends");
 }
 
-void testWideString()
+TEST_CASE(CommonLogicTests, testWideString)
 {
 	// trim removes leading/trailing whitespace, keeps interior, and collapses
 	// an all-whitespace string to empty.
@@ -114,7 +114,7 @@ void testWideString()
 	harness.expectTrue(quoted[1] == L"b c", "quoted span must survive splitQuoted as one token");
 }
 
-void testChannelLayout()
+TEST_CASE(CommonLogicTests, testChannelLayout)
 {
 	// A stereo default mask must name exactly the front-left/right pair.
 	int stereoMask = ChannelLayout::getDefaultChannelMask(2);
@@ -166,12 +166,4 @@ void testChannelLayout()
 	harness.expectTrue(unknown.channelCount == 8 && unknown.channelMask == ChannelLayout::getDefaultChannelMask(8),
 		"a device with no channel count analyses as 7.1");
 }
-}
-
-void runCommonLogicTests()
-{
-	testOwningFilterPointer();
-	testWideString();
-	testChannelLayout();
-	harness.report();
 }

@@ -12,6 +12,7 @@
 
 #include <string>
 #include <vector>
+#include "runtime/errors/WideError.h"
 
 // Process inspection utilities (audit #275 C5): reading another process's
 // command line means enabling SeDebugPrivilege and walking its PEB, which is
@@ -32,12 +33,12 @@ namespace winutil
 	// line read from its PEB. When a process of that name runs, enables
 	// SeDebugPrivilege on the calling process's token for the inspection and
 	// puts the token back as it was afterwards; with none, the token is not
-	// touched (audit #348 TD-51). Throws std::runtime_error when the token
+	// touched (audit #348 TD-51). Throws WideError when the token
 	// cannot be adjusted or a matching process refuses inspection.
 	std::vector<ProcessWithCommandLine> findProcessesByExeName(const wchar_t* exeFileName);
 
 	// Asks a process to close by posting WM_QUIT to each of its threads
 	// (threads without a message queue simply ignore it). Throws
-	// std::runtime_error when the thread snapshot cannot be taken.
+	// WideError when the thread snapshot cannot be taken.
 	void requestProcessClose(unsigned long processId);
 }

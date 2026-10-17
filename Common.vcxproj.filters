@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <ClInclude Include="devices\AsioEntryWriter.h" />
+    <ClInclude Include="devices\EndpointProbe.h" />
+    <ClInclude Include="platform\windows\TokenPrivilege.h" />
+    <ClInclude Include="platform\windows\WellKnownSids.h" />
+    <ClInclude Include="platform\windows\ComError.h" />
+    <ClInclude Include="platform\windows\ConsoleOutput.h" />
+    <ClInclude Include="platform\windows\ElevatedLaunch.h" />
+    <ClInclude Include="platform\windows\TimeStamp.h" />
+    <ClInclude Include="services\windows\ServiceWait.h" />
+    <ClInclude Include="services\install\InstallWaitBudget.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="filters\BiQuad.h">
       <Filter>filters</Filter>
@@ -69,6 +79,9 @@
     <ClInclude Include="filters\VelvetFilter.h"><Filter>filters</Filter></ClInclude>
     <ClInclude Include="filters\VelvetFilterFactory.h"><Filter>filters</Filter></ClInclude>
     <ClInclude Include="filters\velvet\VelvetProcessor.h"><Filter>filters\velvet</Filter></ClInclude>
+    <ClInclude Include="filters\CopyCommand.h">
+      <Filter>filters</Filter>
+    </ClInclude>
     <ClInclude Include="filters\CopyFilter.h">
       <Filter>filters</Filter>
     </ClInclude>
@@ -180,6 +193,9 @@
     <ClInclude Include="filters\ConvolverMuteDiagnostics.h">
       <Filter>filters</Filter>
     </ClInclude>
+    <ClInclude Include="filters\ConvolverArray.h">
+      <Filter>filters</Filter>
+    </ClInclude>
     <ClInclude Include="filters\ConvolverBank.h">
       <Filter>filters</Filter>
     </ClInclude>
@@ -283,9 +299,6 @@
       <Filter>vst</Filter>
     </ClInclude>
     <ClInclude Include="vst\VSTChunkBase64.h">
-      <Filter>vst</Filter>
-    </ClInclude>
-    <ClInclude Include="vst\VSTFormatInstance.h">
       <Filter>vst</Filter>
     </ClInclude>
     <ClInclude Include="vst\VSTPluginLibrary.h">
@@ -419,6 +432,9 @@
     <ClCompile Include="filters\VelvetFilter.cpp"><Filter>filters</Filter></ClCompile>
     <ClCompile Include="filters\VelvetFilterFactory.cpp"><Filter>filters</Filter></ClCompile>
     <ClCompile Include="filters\velvet\VelvetProcessor.cpp"><Filter>filters\velvet</Filter></ClCompile>
+    <ClCompile Include="filters\CopyCommand.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="filters\CopyFilter.cpp">
       <Filter>filters</Filter>
     </ClCompile>
@@ -629,10 +645,8 @@
     <ClCompile Include="devices\ApoRuntimeFacts.cpp" />
     <ClCompile Include="devices\ReceiverEndpoints.cpp" />
     <ClCompile Include="devices\DeviceAPOInfo.cpp" />
-    <ClCompile Include="devices\DeviceAPOInfo.Install.cpp" />
-    <ClCompile Include="devices\DeviceAPOInfo.Load.cpp" />
-    <ClCompile Include="devices\DeviceAPOInfo.State.cpp" />
-    <ClCompile Include="devices\DeviceAPOInfo.Uninstall.cpp" />
+    <ClCompile Include="devices\DeviceAPOInfo.Change.cpp" />
+    <ClCompile Include="devices\EndpointProbe.cpp" />
     <ClCompile Include="devices\DeviceInstallReport.cpp" />
     <ClCompile Include="devices\DevicePlan.cpp" />
     <ClCompile Include="devices\DeviceTestPlan.cpp" />

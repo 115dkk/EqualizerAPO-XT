@@ -248,20 +248,18 @@ void StudioSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Com
 
 bool StudioSkin::paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info, const SkinTokens& tokens) const
 {
-	const bool ifFamily = info.type == QStringLiteral("if");
-	const bool headRow = ifFamily && info.command == QStringLiteral("if");
-	const bool branchRow = ifFamily && (info.command == QStringLiteral("elseif") || info.command == QStringLiteral("else"));
-	const bool tailRow = ifFamily && info.command == QStringLiteral("endif");
+	const bool headRow = info.scopeRole == CommandRowInfo::ScopeRole::Head;
+	const bool branchRow = info.scopeRole == CommandRowInfo::ScopeRole::Branch;
+	const bool tailRow = info.scopeRole == CommandRowInfo::ScopeRole::Tail;
 	const int logic = info.logicDepth;
-	if (!headRow && logic <= 0)
+	if (info.scopeRole == CommandRowInfo::ScopeRole::None)
 		return false;
 
-	// Lane geometry from the row widget; see CommandRowInfo. The branch/tail
-	// rows' extra indent unit is already in laneCount.
+	// Lane and scope geometry from the row widget; see CommandRowInfo. The
+	// branch/tail rows' extra indent unit is already in laneCount.
 	const int unit = info.laneUnit;
 	const double h = size.height();
-	const double junctionY = 4.0 + tokens.rowHeight / 2.0;
-	const int indentUnits = info.laneCount;
+	const double junctionY = info.headerCenterY;
 
 	const QColor beam(tokens.accent);
 	const bool live = info.enabled && !info.lineSkipped;
@@ -331,11 +329,10 @@ bool StudioSkin::paintScopeGutter(QPainter& painter, const QSize& size, const Co
 		QLinearGradient bar(0, 0, 0, h);
 		bar.setColorAt(0.0, withAlpha(tokens.border, 70));
 		bar.setColorAt(1.0, withAlpha(tokens.border, 16));
-		painter.fillRect(QRectF(8.0 + level * unit + 7.0, 0.0, 3.0, h), bar);
+		painter.fillRect(QRectF(info.laneOrigin() + level * unit + 7.0, 0.0, 3.0, h), bar);
 	};
 
-	const int ifLevels = headRow ? logic : (branchRow || tailRow) ? logic - 1 : logic;
-	const int channelLevels = qMax(0, indentUnits - ifLevels - ((branchRow || tailRow) ? 1 : 0));
+	const int channelLevels = info.channelLaneCount;
 	for (int level = 0; level < channelLevels; level++)
 		channelRail(level);
 
@@ -377,11 +374,6 @@ bool StudioSkin::paintScopeGutter(QPainter& painter, const QSize& size, const Co
 			beamRun(level, 0.0, h, true, false);
 		beamRun(channelLevels + logic - 1, 0.0, h, live, false);
 	}
-	return true;
-}
-
-bool StudioSkin::logicSiblingsIndentAsMembers() const
-{
 	return true;
 }
 

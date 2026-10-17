@@ -21,14 +21,14 @@ ExecutionResult ImportExecutor::execute(const ImportManifest& manifest, const QS
     if (configDir.isEmpty())
     {
         result.success = false;
-        result.errors.append(QObject::tr("Import target directory is empty."));
+        result.errors.append(tr("Import target directory is empty."));
         return result;
     }
 
     if (!QDir().mkpath(configDir))
     {
         result.success = false;
-        result.errors.append(QObject::tr("Could not create config directory %1.").arg(configDir));
+        result.errors.append(tr("Could not create config directory %1.").arg(configDir));
         return result;
     }
 
@@ -37,7 +37,7 @@ ExecutionResult ImportExecutor::execute(const ImportManifest& manifest, const QS
         if (!item.exists)
         {
             result.success = false;
-            result.errors.append(QObject::tr("Source missing, skipped: %1").arg(item.sourceAbsolute));
+            result.errors.append(tr("Source missing, skipped: %1").arg(item.sourceAbsolute));
             continue;
         }
 
@@ -47,7 +47,7 @@ ExecutionResult ImportExecutor::execute(const ImportManifest& manifest, const QS
         if (!QDir().mkpath(destDir))
         {
             result.success = false;
-            result.errors.append(QObject::tr("Could not create %1.").arg(destDir));
+            result.errors.append(tr("Could not create %1.").arg(destDir));
             continue;
         }
 
@@ -56,7 +56,7 @@ ExecutionResult ImportExecutor::execute(const ImportManifest& manifest, const QS
             if (!QFile::remove(destAbs))
             {
                 result.success = false;
-                result.errors.append(QObject::tr("Could not overwrite %1.").arg(destAbs));
+                result.errors.append(tr("Could not overwrite %1.").arg(destAbs));
                 continue;
             }
         }
@@ -64,7 +64,7 @@ ExecutionResult ImportExecutor::execute(const ImportManifest& manifest, const QS
         if (!QFile::copy(item.sourceAbsolute, destAbs))
         {
             result.success = false;
-            result.errors.append(QObject::tr("Failed to copy %1 to %2.").arg(item.sourceAbsolute, destAbs));
+            result.errors.append(tr("Failed to copy %1 to %2.").arg(item.sourceAbsolute, destAbs));
             continue;
         }
 

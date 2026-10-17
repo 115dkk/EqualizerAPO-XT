@@ -10,6 +10,7 @@
 
 #include "RackReferenceCardView.h"
 #include "Editor/skins/rack/RackPalette.h"
+#include "Editor/skins/rack/RackSkinDetail.h"
 #include "Editor/skins/shared/SkinPaint.h"
 
 #include <QAbstractButton>
@@ -20,8 +21,6 @@
 #include <QStyle>
 #include <QToolButton>
 #include <QVBoxLayout>
-
-#include "Editor/SkinManager.h"
 
 namespace
 {
@@ -262,10 +261,7 @@ void RackEngravedLabel::paintEvent(QPaintEvent*)
 	QColor recess = RackPalette::EngraveRelief(dark);
 	if (!isEnabled())
 		recess.setAlpha(recess.alpha() / 2);
-	painter.setPen(recess);
-	painter.drawText(textRect.translated(0, 1), flags, shown);
-	painter.setPen(bodyInk);
-	painter.drawText(textRect, flags, shown);
+	RackSkinDetail::engraveText(painter, textRect, flags, shown, bodyInk, recess);
 }
 
 void RackEngravedLabel::enterEvent(QEnterEvent* event)
@@ -310,40 +306,10 @@ void RackStatusLamp::paintEvent(QPaintEvent*)
 	// Disabled row = powered-down unit: the lamp is off, the hardware stays.
 	const bool on = lit && isEnabled();
 
-	// Rack's panel-lamp grammar: bezel ring, halo while lit, gradient
-	// dome, specular dot.
-	painter.setPen(QPen(RackPalette::LedBezel(dark), 1));
-	painter.setBrush(Qt::NoBrush);
-	painter.drawEllipse(center, radius + 1.2, radius + 1.2);
-
-	if (on)
-	{
-		const qreal haloRadius = qMin(width(), height()) / 2.0 - 0.5;
-		QRadialGradient halo(center, haloRadius);
-		halo.setColorAt(0.0, withAlpha(litColor, 110));
-		halo.setColorAt(1.0, withAlpha(litColor, 0));
-		painter.setPen(Qt::NoPen);
-		painter.setBrush(halo);
-		painter.drawEllipse(center, haloRadius, haloRadius);
-	}
-
-	QRadialGradient dome(center - QPointF(radius * 0.3, radius * 0.3), radius * 1.6);
-	if (on)
-	{
-		dome.setColorAt(0.0, litColor.lighter(150));
-		dome.setColorAt(1.0, litColor.darker(125));
-	}
-	else
-	{
-		const QColor off = litColor.darker(330);
-		dome.setColorAt(0.0, off.lighter(140));
-		dome.setColorAt(1.0, off);
-	}
-	painter.setPen(Qt::NoPen);
-	painter.setBrush(dome);
-	painter.drawEllipse(center, radius, radius);
-	painter.setBrush(RackPalette::light(on ? 170 : (dark ? 28 : 60)));
-	painter.drawEllipse(center - QPointF(radius * 0.35, radius * 0.35), radius * 0.3, radius * 0.3);
+	// Rack's panel lamp (bezel ring, halo while lit, gradient dome,
+	// specular dot), its halo kept inside the widget.
+	const qreal haloRadius = qMin(width(), height()) / 2.0 - 0.5;
+	RackSkinDetail::paintLed(painter, center, radius, haloRadius, litColor, on, dark);
 }
 
 // ---- RackLcdWindow ---------------------------------------------------------

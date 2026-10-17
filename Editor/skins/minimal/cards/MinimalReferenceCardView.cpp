@@ -10,23 +10,13 @@
 #include <QHBoxLayout>
 #include <QIcon>
 #include <QLabel>
-#include <QStyle>
 #include <QToolButton>
 
+#include "Editor/skins/shared/SkinPaint.h"
 #include "Editor/widgets/ElidedLabel.h"
 
 namespace
 {
-// Re-evaluate one child's QSS after one of its dynamic properties changed.
-// The base class repolishes only the view itself after setState, which does
-// not re-resolve property-dependent rules on descendants.
-void repolishChild(QWidget* widget)
-{
-	widget->style()->unpolish(widget);
-	widget->style()->polish(widget);
-	widget->update();
-}
-
 // The engraved command token for a host action: uppercase mono words are the
 // terminal's grammar, so they stay untranslated; the host's tooltips carry
 // the translated explanation. Browse's LOCATE recovery swap happens in
@@ -151,7 +141,7 @@ void MinimalReferenceCardView::placeActionButton(ActionRole role, QAbstractButto
 	// but packed to the left with the rest of the print instead of flushed
 	// to the terminal's right edge.
 	lineLayout->insertWidget(lineLayout->count() - 1, button, 0, Qt::AlignVCenter);
-	repolishChild(button);
+	repolish(button);
 }
 
 void MinimalReferenceCardView::placeBusStrip(QWidget* strip)
@@ -173,7 +163,7 @@ void MinimalReferenceCardView::addLeadingWidget(QWidget* widget)
 	widget->setProperty("minimalRefSelector", true);
 	lineLayout->insertWidget(leadingIndex, widget, 0, Qt::AlignVCenter);
 	++leadingIndex;
-	repolishChild(widget);
+	repolish(widget);
 }
 
 void MinimalReferenceCardView::applyState(const ReferenceCardState& state)
@@ -185,7 +175,7 @@ void MinimalReferenceCardView::applyState(const ReferenceCardState& state)
 	// so its ink drops to secondary and the inverted MISSING block carries
 	// the emphasis - state as ink, not decoration.
 	nameLabel->setProperty("refMissing", state.missing);
-	repolishChild(nameLabel);
+	repolish(nameLabel);
 
 	missingToken->setVisible(state.missing);
 
@@ -214,7 +204,7 @@ void MinimalReferenceCardView::applyState(const ReferenceCardState& state)
 		statusLabel->setFullText(marker + QLatin1Char(' ') + state.statusText);
 	}
 	statusLabel->setProperty("severity", referenceCardSeverityName(state.statusSeverity));
-	repolishChild(statusLabel);
+	repolish(statusLabel);
 
 	// The Browse command doubles as the Locate recovery entry while the
 	// reference is broken. Same condition the hosts use for their translated

@@ -21,7 +21,7 @@
 
 #include <memory>
 
-#include "filters/CopyFilter.h"
+#include "filters/CopyCommand.h"
 #include "Editor/IFilterGUI.h"
 #include "CopyFilterGUIScene.h"
 #include "Editor/FilterTable.h"

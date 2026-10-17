@@ -14,6 +14,7 @@
 
 #include "Editor/skins/shared/SkinPaint.h"
 #include "Editor/widgets/KnobTravel.h"
+#include "Editor/widgets/cards/VSTSlotFillRail.h"
 
 namespace
 {
@@ -427,20 +428,10 @@ void MinimalSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& st
 	painter.setPen(withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150));
 	painter.drawText(QRectF(state.jointRect), Qt::AlignCenter, QStringLiteral("->"));
 
-	const bool pairVerdict = !state.verdictInputText.isEmpty() || !state.verdictOutputText.isEmpty();
-	const bool hasText = pairVerdict || !state.verdictText.isEmpty();
-	if (state.verdictRect.isEmpty()
-		|| (!hasText && state.tone == VstBusFrameState::Tone::Neutral))
+	if (!state.showVerdict)
 		return;
 
-	QColor ink(tokens.mutedText);
-	switch (state.tone)
-	{
-	case VstBusFrameState::Tone::Success: ink = QColor(tokens.success); break;
-	case VstBusFrameState::Tone::Warning: ink = QColor(tokens.warning); break;
-	case VstBusFrameState::Tone::Critical: ink = QColor(tokens.danger); break;
-	case VstBusFrameState::Tone::Neutral: break;
-	}
+	QColor ink(tokens.*state.toneToken);
 	if (!state.enabled)
 		ink = withAlpha(ink, 150);
 
@@ -449,9 +440,9 @@ void MinimalSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& st
 	painter.setFont(verdictFont);
 	painter.setPen(ink);
 	QString text;
-	if (pairVerdict)
+	if (state.pairVerdict)
 		text = state.verdictInputText + QStringLiteral("->") + state.verdictOutputText;
-	else if (hasText)
+	else if (state.hasText)
 		text = state.verdictText;
 	else if (state.tone == VstBusFrameState::Tone::Success)
 		text = QStringLiteral("ok");
@@ -489,7 +480,7 @@ QSize MinimalSkin::vstSlotFillCellSize(const QString& role, const QString& value
 	// 5-wide caret, and the same 3 of margin after it.
 	const qreal roleWidth = QFontMetricsF(minimalFillRoleFont(tokens)).horizontalAdvance(role.toLower());
 	const qreal valueWidth = QFontMetricsF(minimalFillValueFont(tokens)).horizontalAdvance(value);
-	return QSize(qCeil(3.0 + roleWidth + 5.0 + valueWidth + 4.0 + 5.0 + 3.0), 20);
+	return QSize(qCeil(3.0 + roleWidth + 5.0 + valueWidth + 4.0 + 5.0 + 3.0), VSTSlotFillRail::cellHeight());
 }
 
 void MinimalSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state, const SkinTokens& tokens) const

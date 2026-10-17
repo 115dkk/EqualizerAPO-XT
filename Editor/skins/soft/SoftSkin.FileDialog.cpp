@@ -22,26 +22,27 @@ void SoftSkin::styleFileDialog(QFileDialog* dialog, const SkinTokens& tokens) co
 	// tint and actionNew's accent, and the view toggles stay muted so
 	// they read as mode switches, not actions.
 	const QColor card(tokens.card);
-	// The default initializers keep cppcheck's uninitMemberVarNoCtor happy:
-	// the QColor member gives this aggregate a non-trivial flavor its
-	// heuristic mistakes for a constructor-less class.
-	const struct { const char* name = nullptr; const char* resource = nullptr; QColor tile; } buttons[] = {
-		{ "backButton", ":/icons/modern/nav-back.svg", mixColor(QColor(tokens.accent2), card, 0.15) },
-		{ "forwardButton", ":/icons/modern/nav-forward.svg", mixColor(QColor(tokens.accent2), card, 0.15) },
-		{ "toParentButton", ":/icons/modern/folder-up.svg", mixColor(QColor(tokens.warning), card, 0.15) },
-		{ "newFolderButton", ":/icons/modern/folder-new.svg", mixColor(QColor(tokens.accent), card, 0.15) },
-		{ "listModeButton", ":/icons/modern/view-list.svg", mixColor(QColor(tokens.mutedText), card, 0.15) },
-		{ "detailModeButton", ":/icons/modern/view-detail.svg", mixColor(QColor(tokens.mutedText), card, 0.15) },
+	// One tile per button, in fileDialogNavButtons() order: back, forward,
+	// to parent, new folder, list mode, detail mode.
+	const QColor tiles[] = {
+		mixColor(QColor(tokens.accent2), card, 0.15),
+		mixColor(QColor(tokens.accent2), card, 0.15),
+		mixColor(QColor(tokens.warning), card, 0.15),
+		mixColor(QColor(tokens.accent), card, 0.15),
+		mixColor(QColor(tokens.mutedText), card, 0.15),
+		mixColor(QColor(tokens.mutedText), card, 0.15),
 	};
-	for (const auto& button : buttons)
+	constexpr auto buttons = fileDialogNavButtons();
+	static_assert(std::size(tiles) == buttons.size());
+	for (std::size_t i = 0; i < buttons.size(); i++)
 	{
-		QToolButton* toolButton = dialog->findChild<QToolButton*>(QLatin1String(button.name));
+		QToolButton* toolButton = dialog->findChild<QToolButton*>(QLatin1String(buttons[i].name));
 		if (toolButton != nullptr)
 		{
-			toolButton->setIcon(softTileIcon(QLatin1String(button.resource), button.tile));
+			toolButton->setIcon(softTileIcon(QLatin1String(buttons[i].resource), tiles[i]));
 			toolButton->setIconSize(QSize(22, 22));
 		}
 	}
-	// The entry pictograms answer in the same tile language, smaller.
-	installFileIconProvider(dialog, tokens);
+	// The entry pictograms answer in the same tile language, smaller;
+	// SkinManager installs them from fileIconProvider.
 }

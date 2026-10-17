@@ -27,7 +27,7 @@
 #include <QToolButton>
 
 #include "filters/MultiConvolutionCommand.h"
-#include "Editor/helpers/ConvolutionPathHelper.h"
+#include "Editor/widgets/cards/FileReferenceController.h"
 
 MultiConvolutionFilterGUI::MultiConvolutionFilterGUI(const QString& configPath, const QString& mappingsText, const QString& path)
 	: configPath(configPath)
@@ -76,7 +76,7 @@ void MultiConvolutionFilterGUI::selectFile()
 {
 	QFileInfo fileInfo(configPath);
 	const QString path = pathEdit->text();
-	const QString absolutePath = ConvolutionPathHelper::absolutePathForConfig(configPath, path);
+	const QString absolutePath = FileReferenceController::absolutePathForConfig(configPath, path);
 	if (!absolutePath.isEmpty())
 		fileInfo.setFile(absolutePath);
 
@@ -88,7 +88,7 @@ void MultiConvolutionFilterGUI::selectFile()
 	if (dialog.exec() == QDialog::Accepted)
 	{
 		const QString selectedPath = dialog.selectedFiles().first();
-		pathEdit->setText(ConvolutionPathHelper::displayPathForSelection(configPath, selectedPath));
+		pathEdit->setText(FileReferenceController::displayPathForConfigSelection(configPath, selectedPath));
 		emit updateModel();
 	}
 }

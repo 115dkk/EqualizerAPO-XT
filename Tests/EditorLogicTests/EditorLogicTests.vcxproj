@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM64">
@@ -48,22 +48,7 @@
   <Import Project="..\Tests.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+  <ImportGroup Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
@@ -73,25 +58,18 @@
   </PropertyGroup>
   <PropertyGroup>
     <IncludePath>$(MSBuildThisFileDirectory)..\..;$(MSBuildThisFileDirectory)..\..\SubwooferRoutingCore\include;$(QT_ROOT)\include;$(QT_ROOT)\include\QtCore;$(QT_ROOT)\include\QtGui;$(QT_ROOT)\include\QtWidgets;$(IncludePath)</IncludePath>
-    <LibraryPath>$(QT_ROOT)\lib;$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
+    <ExternalIncludePath>$(QT_ROOT)\include;$(ExternalIncludePath)</ExternalIncludePath>
+    <LibraryPath>$(QT_ROOT)\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <!-- The common compile/link scaffolding lives in ..\Tests.props
        (audit #275 D1/TD-20); only the Qt-specific pieces remain here. -->
   <ItemDefinitionGroup>
     <ClCompile>
       <PreprocessorDefinitions>UNICODE;_UNICODE;QT_CORE_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalOptions>/permissive- /Zc:__cplusplus /utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Qt6Core.lib;Qt6Gui.lib;Qt6Widgets.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
-      <Command>if exist "$(QT_ROOT)\bin\Qt6Core.dll" copy /Y "$(QT_ROOT)\bin\Qt6Core.dll" "$(OutDir)"
-if exist "$(QT_ROOT)\bin\Qt6Gui.dll" copy /Y "$(QT_ROOT)\bin\Qt6Gui.dll" "$(OutDir)"
-if exist "$(QT_ROOT)\bin\Qt6Widgets.dll" copy /Y "$(QT_ROOT)\bin\Qt6Widgets.dll" "$(OutDir)"
-if exist "$(FFTW_LIB)\*.dll" copy /Y "$(FFTW_LIB)\*.dll" "$(OutDir)"
-if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <!-- Tests.props turns SDLCheck on for every suite. This one includes Qt's
        widget headers, and SDLCheck makes C4996 an error: Qt 6.10 marks
@@ -104,6 +82,12 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
       <SDLCheck>false</SDLCheck>
     </ClCompile>
   </ItemDefinitionGroup>
+  <!-- Copied next to the binary by Tests.props after the build. -->
+  <ItemGroup>
+    <EapoRuntimeFile Include="$(QT_ROOT)\bin\Qt6Core.dll" />
+    <EapoRuntimeFile Include="$(QT_ROOT)\bin\Qt6Gui.dll" />
+    <EapoRuntimeFile Include="$(QT_ROOT)\bin\Qt6Widgets.dll" />
+  </ItemGroup>
   <ItemGroup>
     <ClCompile Include="EditorLogicTests.cpp" />
     <ClCompile Include="AnalysisResponseTests.cpp" />
@@ -120,10 +104,14 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClCompile Include="VSTBusModelTests.cpp" />
     <ClCompile Include="VSTSlotFillModelTests.cpp" />
     <ClCompile Include="VSTRowDocumentTests.cpp" />
+    <ClCompile Include="VSTPanelIntentTests.cpp" />
+    <ClCompile Include="VSTBusVerdictTests.cpp" />
+    <ClCompile Include="MainWindowStateTests.cpp" />
     <ClCompile Include="PanelMonitorGateTests.cpp" />
     <ClCompile Include="InfrastructureTests.cpp" />
     <ClCompile Include="FilterCardModelTests.cpp" />
     <ClCompile Include="FilterListModelTests.cpp" />
+    <ClCompile Include="CommandRowFactsTests.cpp" />
     <ClCompile Include="ChannelFlowTests.cpp" />
     <ClCompile Include="ConfigImportTests.cpp" />
     <ClCompile Include="SelectionModelTests.cpp" />
@@ -135,6 +123,8 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClCompile Include="AnalysisMeasurementTests.cpp" />
     <ClCompile Include="SubwooferRoutingDefaultsTests.cpp" />
     <ClCompile Include="FilterLineCardTests.cpp" />
+    <ClCompile Include="HoverProgressTests.cpp" />
+    <ClCompile Include="..\..\platform\qt\HoverProgress.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\FilterLineCard.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\FilterCardEditorRegistry.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\FilterCardEditorFactory.cpp" />
@@ -151,7 +141,6 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClCompile Include="..\..\Editor\analysis\ImpulseMeasurement.cpp" />
     <ClCompile Include="..\..\Editor\analysis\ResponseCurveBuilder.cpp" />
     <ClCompile Include="..\..\Editor\guis\BiQuadWidthConversion.cpp" />
-    <ClCompile Include="..\..\Editor\helpers\ConvolutionPathHelper.cpp" />
     <ClCompile Include="..\..\Editor\import\ConfigDependencyScanner.cpp" />
     <ClCompile Include="..\..\Editor\import\ImportExecutor.cpp" />
     <ClCompile Include="..\..\Editor\import\LegacyMigrationPolicy.cpp" />
@@ -170,6 +159,7 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClCompile Include="..\..\Editor\helpers\VstChunkScan.cpp" />
     <ClCompile Include="..\..\Editor\widgets\FilterCardModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\FilterRowGuiPolicy.cpp" />
+    <ClCompile Include="..\..\Editor\widgets\CommandRowFacts.cpp" />
     <ClCompile Include="..\..\Editor\widgets\FilterCommandCatalog.cpp" />
     <ClCompile Include="..\..\Editor\widgets\FilterPickerModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\EditableValueText.cpp" />
@@ -183,6 +173,11 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClCompile Include="..\..\Editor\widgets\cards\VSTBusModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\VSTSlotFillModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\VSTRowDocument.cpp" />
+    <ClCompile Include="..\..\Editor\widgets\cards\VSTPanelIntent.cpp" />
+    <ClCompile Include="..\..\Editor\widgets\cards\VSTBusVerdict.cpp" />
+    <ClCompile Include="..\..\Editor\analysis\AnalysisPanelState.cpp" />
+    <ClCompile Include="..\..\Editor\widgets\DeviceFormatBadgeState.cpp" />
+    <ClCompile Include="..\..\Editor\MainWindowParts\OpenDocument.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\StageSelectionModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\NewChannelListModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\SendCardModel.cpp" />
@@ -201,7 +196,6 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClInclude Include="..\..\Editor\widgets\routing\RoutingGridModel.h" />
     <ClInclude Include="..\..\Editor\widgets\routing\CopyRoutingAdapter.h" />
     <ClInclude Include="..\..\Benchmark\BatchPlan.h" />
-    <ClInclude Include="..\..\Editor\helpers\ConvolutionPathHelper.h" />
     <ClInclude Include="..\..\Editor\import\ConfigDependencyScanner.h" />
     <ClInclude Include="..\..\Editor\import\ImportExecutor.h" />
     <ClInclude Include="..\..\Editor\import\LegacyMigrationPolicy.h" />
@@ -218,13 +212,21 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClInclude Include="..\..\Editor\widgets\EditableValueText.h" />
     <ClInclude Include="..\..\Editor\widgets\ChannelFlow.h" />
     <ClInclude Include="..\..\Editor\widgets\FilterListModel.h" />
+    <ClInclude Include="..\..\Editor\widgets\CommandRowFacts.h" />
+    <ClInclude Include="..\..\Editor\widgets\CommandRowInfo.h" />
     <ClInclude Include="..\..\Editor\widgets\FilterListUndo.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\ChannelSelectionModel.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\DeviceSelectionModel.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\FileReferenceController.h" />
+    <ClInclude Include="..\..\Editor\widgets\cards\VSTPanelIntent.h" />
+    <ClInclude Include="..\..\Editor\widgets\cards\VSTBusVerdict.h" />
+    <ClInclude Include="..\..\Editor\analysis\AnalysisPanelState.h" />
+    <ClInclude Include="..\..\Editor\widgets\DeviceFormatBadgeState.h" />
+    <ClInclude Include="..\..\Editor\MainWindowParts\OpenDocument.h" />
     <ClInclude Include="..\..\filters\BiQuad.h" />
     <ClInclude Include="..\..\filters\DeviceCommand.h" />
     <ClInclude Include="..\..\platform\windows\TextEncoding.h" />
+    <ClInclude Include="..\..\platform\qt\HoverProgress.h" />
     <ClInclude Include="..\..\services\update\UpdateSession.h" />
     <ClInclude Include="..\..\filters\BiQuadCommand.h" />
     <ClInclude Include="..\..\filters\ChannelCommand.h" />

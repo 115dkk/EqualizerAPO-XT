@@ -81,6 +81,12 @@ param(
     # Exit code for "the gate could not run" (the driver download), kept apart
     # from 1 = "the product failed the gate".
     [int] $InfrastructureExitCode = 3,
+    # Audit #422 T4: the measured phases to run after the shared setup
+    # (driver, stage, APO host, Send receiver). A maintainer iterating on
+    # one phase passes just that one instead of sitting through the four
+    # install/measure/uninstall rounds first. CI runs all of them.
+    [ValidateSet("rounds", "plugin-load", "low-latency", "asio-entry")]
+    [string[]] $Phases = @("rounds", "plugin-load", "low-latency", "asio-entry"),
     [switch] $SkipDriverInstall,
     [switch] $PlanOnly
 )
@@ -167,6 +173,7 @@ $plan = [pscustomobject]@{
     SendRound = $sendRound
     PluginLoad = $pluginLoad
     StageRoot = $StageRoot
+    Phases = $Phases
 }
 if ($PlanOnly) { return $plan }
 
@@ -199,6 +206,13 @@ $summary = [ordered]@{
 
 $roundRequired = $true
 
+# The engine reads config.txt as UTF-8; a BOM-less write keeps the bytes
+# the gate compares with what the APO logs. $configFile is set by the
+# stage phase before any caller runs.
+function Set-GateConfig([string] $text) {
+    [System.IO.File]::WriteAllText($configFile, $text, (New-Object System.Text.UTF8Encoding($false)))
+}
+
 function Write-Phase([string] $title) {
     Write-Host ""
     Write-Host "== $title"
@@ -209,43 +223,6 @@ function Add-Failure([string] $what) {
     Write-Host "::error::$what"
 }
 
-# Runs a program, waits (with a deadline), and returns exit code and output.
-# GUI-subsystem programs (DeviceSelector) print to the console they attach
-# to and to their log; their stdout here is often empty, and their exit code
-# is the verdict.
-function Invoke-Program([string] $file, [string[]] $arguments, [int] $timeoutSeconds, [string] $workingDirectory) {
-    $stdout = [System.IO.Path]::GetTempFileName()
-    $stderr = [System.IO.Path]::GetTempFileName()
-    $quoted = @($arguments | ForEach-Object {
-        if ($_ -match '[\s"]') { '"' + ($_ -replace '"', '\"') + '"' } else { $_ }
-    })
-    $startArgs = @{
-        FilePath = $file
-        ArgumentList = $quoted
-        PassThru = $true
-        NoNewWindow = $true
-        RedirectStandardOutput = $stdout
-        RedirectStandardError = $stderr
-    }
-    if ($workingDirectory) { $startArgs.WorkingDirectory = $workingDirectory }
-    $process = Start-Process @startArgs
-    $exited = $process.WaitForExit($timeoutSeconds * 1000)
-    if (-not $exited) {
-        Write-Warning "$file did not exit within ${timeoutSeconds}s; killing it"
-        try { $process.Kill() } catch {}
-        $process.WaitForExit(5000) | Out-Null
-    }
-    $result = [pscustomobject]@{
-        ExitCode = if ($exited) { $process.ExitCode } else { -1 }
-        StdOut = (Get-Content -LiteralPath $stdout -Raw -ErrorAction SilentlyContinue)
-        StdErr = (Get-Content -LiteralPath $stderr -Raw -ErrorAction SilentlyContinue)
-        TimedOut = -not $exited
-    }
-    Remove-Item -LiteralPath $stdout, $stderr -Force -ErrorAction SilentlyContinue
-    if ($result.StdErr) { Write-Host ($result.StdErr.TrimEnd()) }
-    if ($result.StdOut) { Write-Host ($result.StdOut.TrimEnd()) }
-    return $result
-}
 
 function Get-EndpointGuid([string] $flow, [string] $connectionName) {
     $root = "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\$flow"
@@ -391,7 +368,7 @@ function Invoke-PluginCaptureOpen([string] $name, [switch] $Communications) {
     $arguments = @("--capture", $captureConnection, "--render", $renderConnection,
         "--seconds", "1", "--settle", "0.5", "--json")
     if ($Communications) { $arguments += @("--category", "communications") }
-    $run = Invoke-Program $captureProbe $arguments 120
+    $run = Invoke-ExternalProgram $captureProbe $arguments 120
     return Get-PluginOpenRecord $name $run
 }
 
@@ -520,7 +497,7 @@ function Measure-Cable($measurement, [string] $round = "") {
     $period = if ($measurement.PSObject.Properties["Period"]) { [string]$measurement.Period } else { "" }
     if ($period) { $arguments += @("--period", $period) }
     if ($measurement.PSObject.Properties["HoldDefault"] -and $measurement.HoldDefault) { $arguments += "--hold-default" }
-    $run = Invoke-Program $captureProbe $arguments 60
+    $run = Invoke-ExternalProgram $captureProbe $arguments 60
     $json = $null
     if ($run.StdOut) {
         $line = ($run.StdOut -split "`n" | Where-Object { $_.Trim().StartsWith("{") } | Select-Object -Last 1)
@@ -657,7 +634,7 @@ if ($endpoints) {
     $setup = Get-ChildItem -LiteralPath $unpacked -Filter "VBCABLE_Setup_x64.exe" -Recurse | Select-Object -First 1
     if (-not $setup) { throw "VBCABLE_Setup_x64.exe not found in the pack" }
     Write-Host "running $($setup.FullName) -i -h"
-    $setupRun = Invoke-Program $setup.FullName @("-i", "-h") 240 $setup.DirectoryName
+    $setupRun = Invoke-ExternalProgram $setup.FullName @("-i", "-h") 240 $setup.DirectoryName
     Write-Host "setup exit code $($setupRun.ExitCode)$(if ($setupRun.TimedOut) { ' (timed out)' })"
 
     foreach ($service in @("AudioEndpointBuilder", "AudioSrv")) {
@@ -689,7 +666,7 @@ foreach ($file in @("EqualizerAPO.dll", "Editor.exe", "DeviceSelector.exe")) {
 }
 # The product's own install hook: HKLM vocabulary, DisableProtectedAudioDG,
 # the ACL the audio engine needs on the tree, DllRegisterServer.
-$hook = Invoke-Program (Join-Path $current "Editor.exe") @("--veloapp-install") 180 $current
+$hook = Invoke-ExternalProgram (Join-Path $current "Editor.exe") @("--veloapp-install") 180 $current
 if ($hook.ExitCode -ne 0) { throw "Editor.exe --veloapp-install exited with $($hook.ExitCode)" }
 $app = Get-ItemProperty -Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO"
 $configDir = $app.ConfigPath
@@ -697,7 +674,7 @@ if (-not $configDir) { throw "the install hook left no ConfigPath" }
 New-Item -ItemType Directory -Force -Path $configDir | Out-Null
 $configFile = Join-Path $configDir "config.txt"
 $config = "Preamp: $($PreampDb.ToString([cultureinfo]::InvariantCulture)) dB`r`n"
-[System.IO.File]::WriteAllText($configFile, $config, (New-Object System.Text.UTF8Encoding($false)))
+Set-GateConfig $config
 # The audio engine's copy of the DLL writes its trace to its own temp; that
 # file is what tells a capture failure apart from a silent success.
 & reg add "HKLM\SOFTWARE\EqualizerAPO" /v EnableTrace /t REG_SZ /d true /f | Out-Null
@@ -711,7 +688,7 @@ Measure-Cable $measurements[0] | Out-Null
 
 # ---------------------------------------------------------------------------
 Write-Phase "the DLL hosted for the capture endpoint (no audio engine)"
-$hostRun = Invoke-Program $apoHostProbe @("--dll", (Join-Path $current "EqualizerAPO.dll"),
+$hostRun = Invoke-ExternalProgram $apoHostProbe @("--dll", (Join-Path $current "EqualizerAPO.dll"),
     "--endpoint", $endpoints.Capture, "--json",
     "--expect-gain-db", $PreampDb.ToString([cultureinfo]::InvariantCulture), "--tolerance-db", "0.5") 60
 $summary.apoHost = [ordered]@{ exitCode = $hostRun.ExitCode; output = ($hostRun.StdOut + $hostRun.StdErr) }
@@ -733,15 +710,15 @@ else {
     # Device: keeps the Send line to the sending instance; the receiver loads
     # the same file and must not try to send to itself.
     $sendConfig = "Device: $($endpoints.Render)`r`nSend: $($receiver.Guid) L=L R=R Compensate=false`r`n"
-    [System.IO.File]::WriteAllText($configFile, $sendConfig, (New-Object System.Text.UTF8Encoding($false)))
+    Set-GateConfig $sendConfig
     try {
-        $sendRun = Invoke-Program $apoHostProbe @("--dll", (Join-Path $current "EqualizerAPO.dll"),
+        $sendRun = Invoke-ExternalProgram $apoHostProbe @("--dll", (Join-Path $current "EqualizerAPO.dll"),
             "--endpoint", $endpoints.Render, "--stage", "postmix", "--send-to", $receiver.Guid, "--json",
             "--expect-gain-db", $sendRound.ExpectGainDb.ToString([cultureinfo]::InvariantCulture),
             "--tolerance-db", $sendRound.ToleranceDb.ToString([cultureinfo]::InvariantCulture)) 60
     }
     finally {
-        [System.IO.File]::WriteAllText($configFile, $config, (New-Object System.Text.UTF8Encoding($false)))
+        Set-GateConfig $config
     }
     $summary.sendRound = [ordered]@{
         verdict = if ($sendRun.ExitCode -eq 0) { "passed" } else { "failed" }
@@ -755,351 +732,371 @@ else {
     }
 }
 
-# ---------------------------------------------------------------------------
-foreach ($mode in $installModes) {
-    $round = $mode.Name
-    $roundRequired = $mode.Required
-    $roundRecord = [ordered]@{ mode = $round; install = $null; installMode = $null; uninstall = $null }
+if ($Phases -contains "rounds") {
+    # ---------------------------------------------------------------------------
+    foreach ($mode in $installModes) {
+        $round = $mode.Name
+        $roundRequired = $mode.Required
+        $roundRecord = [ordered]@{ mode = $round; install = $null; installMode = $null; uninstall = $null }
 
-    Write-Phase "install the APO on the recording endpoint ($round)"
-    $install = Invoke-Program (Join-Path $current "DeviceSelector.exe") (@("--install-endpoint", $endpoints.Capture) + $mode.Arguments) 300 $current
-    $roundRecord.install = [ordered]@{ exitCode = $install.ExitCode; timedOut = $install.TimedOut }
-    Save-EndpointSnapshot $endpoints.Capture "30-$round-installed"
-    $roundRecord.installMode = Get-EffectChain "Capture" $endpoints.Capture
-    if ($null -ne $roundRecord.installMode) { Write-Host "effect chain now: $($roundRecord.installMode)" }
-    if ($install.ExitCode -ne 0 -and $roundRequired) {
-        Add-Failure "$round/install: DeviceSelector --install-endpoint exited with $($install.ExitCode) (the device test did not see the APO come up)"
-    }
-    Copy-Logs "30-$round-installed"
-
-    Write-Phase "measure with the APO ($round)"
-    Measure-Cable $measurements[1] $round | Out-Null
-    Measure-Cable $measurements[2] $round | Out-Null
-    Measure-Cable $measurements[3] $round | Out-Null
-    Copy-Logs "40-$round-measured"
-
-    Write-Phase "uninstall ($round)"
-    $uninstall = Invoke-Program (Join-Path $current "DeviceSelector.exe") @("--uninstall-endpoint", $endpoints.Capture) 180 $current
-    $eqLeft = Test-EqClsidLeft "Capture" $endpoints.Capture
-    $roundRecord.uninstall = [ordered]@{ exitCode = $uninstall.ExitCode; eqClsidLeft = $eqLeft }
-    Save-EndpointSnapshot $endpoints.Capture "50-$round-uninstalled"
-    if ($uninstall.ExitCode -ne 0) { Add-Failure "$round/uninstall: DeviceSelector --uninstall-endpoint exited with $($uninstall.ExitCode)" }
-    if ($eqLeft) { Add-Failure "$round/uninstall: the endpoint's FxProperties still names an EQ APO CLSID" }
-    Wait-GraphSettle
-    Measure-Cable $measurements[4] $round | Out-Null
-    Copy-Logs "50-$round-uninstalled"
-    $summary.rounds += [pscustomobject]$roundRecord
-}
-$roundRequired = $true
-
-# ---------------------------------------------------------------------------
-Write-Phase "plugin-load: a plugin that holds the loader lock while it loads, on the recording endpoint"
-$pluginLoadRecord = [ordered]@{
-    verdict = "recorded"
-    reason = $null
-    fixture = $null
-    realPlugin = @()
-    install = $null
-    uninstall = $null
-}
-$fixtureSource = Join-Path $ProbeDirectory "TestVst2Plugin.dll"
-if (-not (Test-Path -LiteralPath $fixtureSource)) {
-    $pluginLoadRecord.verdict = "skipped"
-    $pluginLoadRecord.reason = "TestVst2Plugin.dll is not in the probe directory"
-    $pluginLoadRecord.fixture = [ordered]@{ verdict = "skipped"; reason = $pluginLoadRecord.reason }
-    Add-Failure "plugin-load: TestVst2Plugin.dll is not in the probe directory (the capture-probes artifact lost it)"
-}
-else {
-    $originalConfig = $null
-    $installAttempted = $false
-    try {
-        $pluginDirectory = Join-Path $StageRoot "plugins"
-        New-Item -ItemType Directory -Force -Path $pluginDirectory | Out-Null
-        $fixturePath = Join-Path $pluginDirectory "TestVst2Plugin.SlowLoad$SlowLoadMilliseconds.dll"
-        Copy-Item -LiteralPath $fixtureSource -Destination $fixturePath -Force
-
-        $installAttempted = $true
-        $install = Invoke-Program (Join-Path $current "DeviceSelector.exe") @("--install-endpoint", $endpoints.Capture) 300 $current
-        $pluginLoadRecord.install = [ordered]@{ exitCode = $install.ExitCode; timedOut = $install.TimedOut }
-        Save-EndpointSnapshot $endpoints.Capture "90-plugin-load-installed"
-        if ($install.ExitCode -ne 0) {
-            Add-Failure "plugin-load/install: DeviceSelector --install-endpoint exited with $($install.ExitCode)"
+        Write-Phase "install the APO on the recording endpoint ($round)"
+        $install = Invoke-ExternalProgram (Join-Path $current "DeviceSelector.exe") (@("--install-endpoint", $endpoints.Capture) + $mode.Arguments) 300 $current
+        $roundRecord.install = [ordered]@{ exitCode = $install.ExitCode; timedOut = $install.TimedOut }
+        Save-EndpointSnapshot $endpoints.Capture "30-$round-installed"
+        $roundRecord.installMode = Get-EffectChain "Capture" $endpoints.Capture
+        if ($null -ne $roundRecord.installMode) { Write-Host "effect chain now: $($roundRecord.installMode)" }
+        if ($install.ExitCode -ne 0 -and $roundRequired) {
+            Add-Failure "$round/install: DeviceSelector --install-endpoint exited with $($install.ExitCode) (the device test did not see the APO come up)"
         }
-        # The install's device test builds a pipeline with the old config. If it
-        # were still up when the fixture config lands, the APO's config watcher
-        # would load (and keep) the plugin before open1, and open1 would read as
-        # "the engine never loaded it".
-        Wait-GraphSettle
+        Copy-Logs "30-$round-installed"
 
-        $originalConfig = [System.IO.File]::ReadAllText($configFile)
-        $fixtureConfig = "Preamp: -20 dB`r`nVSTPlugin: Library `"$fixturePath`"`r`n"
-        [System.IO.File]::WriteAllText($configFile, $fixtureConfig, (New-Object System.Text.UTF8Encoding($false)))
+        Write-Phase "measure with the APO ($round)"
+        Measure-Cable $measurements[1] $round | Out-Null
+        Measure-Cable $measurements[2] $round | Out-Null
+        Measure-Cable $measurements[3] $round | Out-Null
+        Copy-Logs "40-$round-measured"
+
+        Write-Phase "uninstall ($round)"
+        $uninstall = Invoke-ExternalProgram (Join-Path $current "DeviceSelector.exe") @("--uninstall-endpoint", $endpoints.Capture) 180 $current
+        $eqLeft = Test-EqClsidLeft "Capture" $endpoints.Capture
+        $roundRecord.uninstall = [ordered]@{ exitCode = $uninstall.ExitCode; eqClsidLeft = $eqLeft }
+        Save-EndpointSnapshot $endpoints.Capture "50-$round-uninstalled"
+        if ($uninstall.ExitCode -ne 0) { Add-Failure "$round/uninstall: DeviceSelector --uninstall-endpoint exited with $($uninstall.ExitCode)" }
+        if ($eqLeft) { Add-Failure "$round/uninstall: the endpoint's FxProperties still names an EQ APO CLSID" }
         Wait-GraphSettle
+        Measure-Cable $measurements[4] $round | Out-Null
+        Copy-Logs "50-$round-uninstalled"
+        $summary.rounds += [pscustomobject]$roundRecord
+    }
+    $roundRequired = $true
+} else {
+    Write-Phase "rounds: skipped (-Phases)"
+    $summary.rounds = @()
+}
+
+# ---------------------------------------------------------------------------
+if ($Phases -contains "plugin-load") {
+    Write-Phase "plugin-load: a plugin that holds the loader lock while it loads, on the recording endpoint"
+    $pluginLoadRecord = [ordered]@{
+        verdict = "recorded"
+        reason = $null
+        fixture = $null
+        realPlugin = @()
+        install = $null
+        uninstall = $null
+    }
+    $fixtureSource = Join-Path $ProbeDirectory "TestVst2Plugin.dll"
+    if (-not (Test-Path -LiteralPath $fixtureSource)) {
+        $pluginLoadRecord.verdict = "skipped"
+        $pluginLoadRecord.reason = "TestVst2Plugin.dll is not in the probe directory"
+        $pluginLoadRecord.fixture = [ordered]@{ verdict = "skipped"; reason = $pluginLoadRecord.reason }
+        Add-Failure "plugin-load: TestVst2Plugin.dll is not in the probe directory (the capture-probes artifact lost it)"
+    }
+    else {
+        $originalConfig = $null
+        $installAttempted = $false
         try {
-            $pluginLoadRecord.fixture = Invoke-PluginLoadMeasurement "fixture"
-            Test-PluginLoadReuse $pluginLoadRecord.fixture
+            $pluginDirectory = Join-Path $StageRoot "plugins"
+            New-Item -ItemType Directory -Force -Path $pluginDirectory | Out-Null
+            $fixturePath = Join-Path $pluginDirectory "TestVst2Plugin.SlowLoad$SlowLoadMilliseconds.dll"
+            Copy-Item -LiteralPath $fixtureSource -Destination $fixturePath -Force
+
+            $installAttempted = $true
+            $install = Invoke-ExternalProgram (Join-Path $current "DeviceSelector.exe") @("--install-endpoint", $endpoints.Capture) 300 $current
+            $pluginLoadRecord.install = [ordered]@{ exitCode = $install.ExitCode; timedOut = $install.TimedOut }
+            Save-EndpointSnapshot $endpoints.Capture "90-plugin-load-installed"
+            if ($install.ExitCode -ne 0) {
+                Add-Failure "plugin-load/install: DeviceSelector --install-endpoint exited with $($install.ExitCode)"
+            }
+            # The install's device test builds a pipeline with the old config. If it
+            # were still up when the fixture config lands, the APO's config watcher
+            # would load (and keep) the plugin before open1, and open1 would read as
+            # "the engine never loaded it".
+            Wait-GraphSettle
+
+            $originalConfig = [System.IO.File]::ReadAllText($configFile)
+            $fixtureConfig = "Preamp: -20 dB`r`nVSTPlugin: Library `"$fixturePath`"`r`n"
+            Set-GateConfig $fixtureConfig
+            Wait-GraphSettle
+            try {
+                $pluginLoadRecord.fixture = Invoke-PluginLoadMeasurement "fixture"
+                Test-PluginLoadReuse $pluginLoadRecord.fixture
+            }
+            catch {
+                $pluginLoadRecord.fixture = [ordered]@{ verdict = "failed"; reason = $_.Exception.Message }
+                Add-Failure "plugin-load/fixture: the measurement did not run: $($_.Exception.Message)"
+            }
+
+            if ([string]::IsNullOrWhiteSpace($RealPluginInstallerUrl)) {
+                $pluginLoadRecord.realPlugin += [pscustomobject][ordered]@{ verdict = "skipped"; reason = "no real plugin installer URL was supplied" }
+            }
+            else {
+                $realPluginDirectory = Join-Path $StageRoot "real-plugin"
+                New-Item -ItemType Directory -Force -Path $realPluginDirectory | Out-Null
+                $installer = Join-Path $realPluginDirectory "installer.exe"
+                try {
+                    Invoke-WebRequest -Uri $RealPluginInstallerUrl -OutFile $installer -UseBasicParsing -TimeoutSec 300
+                    $installerHash = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash
+                    if ([string]::IsNullOrWhiteSpace($RealPluginInstallerSha256) -or $installerHash -ne $RealPluginInstallerSha256.ToUpperInvariant()) {
+                        $pluginLoadRecord.realPlugin += [pscustomobject][ordered]@{
+                            verdict = "skipped"
+                            reason = "installer hash changed"
+                            actualSha256 = $installerHash
+                            expectedSha256 = $RealPluginInstallerSha256
+                        }
+                        Write-Warning "plugin-load/real-plugin skipped: installer hash changed"
+                    }
+                    else {
+                        $installerRun = Invoke-ExternalProgram $installer @("/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-") 300 $realPluginDirectory
+                        $pluginLoadRecord.realPlugin += [pscustomobject][ordered]@{
+                            label = "installer"
+                            exitCode = $installerRun.ExitCode
+                            timedOut = $installerRun.TimedOut
+                        }
+                        if ($installerRun.ExitCode -ne 0) {
+                            Write-Warning "plugin-load/real-plugin installer exited with $($installerRun.ExitCode); recording evidence without failing the gate"
+                        }
+                        foreach ($plugin in @(
+                            [pscustomobject]@{ Label = "clear-vst2"; Name = "Clear.dll" },
+                            [pscustomobject]@{ Label = "clear-vst3"; Name = "Clear.vst3" }
+                        )) {
+                            try {
+                                $found = Get-ChildItem -LiteralPath "C:\Program Files" -Recurse -Depth 5 -Filter $plugin.Name -ErrorAction SilentlyContinue | Select-Object -First 1
+                                if (-not $found) {
+                                    $pluginLoadRecord.realPlugin += [pscustomobject][ordered]@{ label = $plugin.Label; verdict = "skipped"; reason = "$($plugin.Name) was not found under C:\Program Files" }
+                                    Write-Warning "plugin-load/$($plugin.Label) skipped: $($plugin.Name) was not found"
+                                    continue
+                                }
+                                $realConfig = "Preamp: -20 dB`r`nVSTPlugin: Library `"$($found.FullName)`"`r`n"
+                                Set-GateConfig $realConfig
+                                Wait-GraphSettle
+                                $pluginLoadRecord.realPlugin += Invoke-PluginLoadMeasurement $plugin.Label
+                            }
+                            catch {
+                                $pluginLoadRecord.realPlugin += [pscustomobject][ordered]@{ label = $plugin.Label; verdict = "failed"; reason = $_.Exception.Message }
+                                Write-Warning "plugin-load/$($plugin.Label) failed: $($_.Exception.Message)"
+                            }
+                        }
+                    }
+                }
+                catch {
+                    $pluginLoadRecord.realPlugin += [pscustomobject][ordered]@{ verdict = "failed"; reason = $_.Exception.Message }
+                    Write-Warning "plugin-load/real-plugin failed: $($_.Exception.Message)"
+                }
+            }
         }
         catch {
-            $pluginLoadRecord.fixture = [ordered]@{ verdict = "failed"; reason = $_.Exception.Message }
-            Add-Failure "plugin-load/fixture: the measurement did not run: $($_.Exception.Message)"
+            $pluginLoadRecord.verdict = "failed"
+            $pluginLoadRecord.reason = $_.Exception.Message
+            if ($null -eq $pluginLoadRecord.fixture) {
+                $pluginLoadRecord.fixture = [ordered]@{ verdict = "failed"; reason = $_.Exception.Message }
+            }
+            Add-Failure "plugin-load: $($_.Exception.Message)"
         }
-
-        if ([string]::IsNullOrWhiteSpace($RealPluginInstallerUrl)) {
-            $pluginLoadRecord.realPlugin += [pscustomobject][ordered]@{ verdict = "skipped"; reason = "no real plugin installer URL was supplied" }
-        }
-        else {
-            $realPluginDirectory = Join-Path $StageRoot "real-plugin"
-            New-Item -ItemType Directory -Force -Path $realPluginDirectory | Out-Null
-            $installer = Join-Path $realPluginDirectory "installer.exe"
-            try {
-                Invoke-WebRequest -Uri $RealPluginInstallerUrl -OutFile $installer -UseBasicParsing -TimeoutSec 300
-                $installerHash = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash
-                if ([string]::IsNullOrWhiteSpace($RealPluginInstallerSha256) -or $installerHash -ne $RealPluginInstallerSha256.ToUpperInvariant()) {
-                    $pluginLoadRecord.realPlugin += [pscustomobject][ordered]@{
-                        verdict = "skipped"
-                        reason = "installer hash changed"
-                        actualSha256 = $installerHash
-                        expectedSha256 = $RealPluginInstallerSha256
-                    }
-                    Write-Warning "plugin-load/real-plugin skipped: installer hash changed"
+        finally {
+            try { Copy-Logs "90-plugin-load" } catch { Write-Warning "plugin-load could not copy logs: $($_.Exception.Message)" }
+            if ($null -ne $originalConfig) {
+                try {
+                    Set-GateConfig $originalConfig
                 }
-                else {
-                    $installerRun = Invoke-Program $installer @("/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-") 300 $realPluginDirectory
-                    $pluginLoadRecord.realPlugin += [pscustomobject][ordered]@{
-                        label = "installer"
-                        exitCode = $installerRun.ExitCode
-                        timedOut = $installerRun.TimedOut
-                    }
-                    if ($installerRun.ExitCode -ne 0) {
-                        Write-Warning "plugin-load/real-plugin installer exited with $($installerRun.ExitCode); recording evidence without failing the gate"
-                    }
-                    foreach ($plugin in @(
-                        [pscustomobject]@{ Label = "clear-vst2"; Name = "Clear.dll" },
-                        [pscustomobject]@{ Label = "clear-vst3"; Name = "Clear.vst3" }
-                    )) {
-                        try {
-                            $found = Get-ChildItem -LiteralPath "C:\Program Files" -Recurse -Depth 5 -Filter $plugin.Name -ErrorAction SilentlyContinue | Select-Object -First 1
-                            if (-not $found) {
-                                $pluginLoadRecord.realPlugin += [pscustomobject][ordered]@{ label = $plugin.Label; verdict = "skipped"; reason = "$($plugin.Name) was not found under C:\Program Files" }
-                                Write-Warning "plugin-load/$($plugin.Label) skipped: $($plugin.Name) was not found"
-                                continue
-                            }
-                            $realConfig = "Preamp: -20 dB`r`nVSTPlugin: Library `"$($found.FullName)`"`r`n"
-                            [System.IO.File]::WriteAllText($configFile, $realConfig, (New-Object System.Text.UTF8Encoding($false)))
-                            Wait-GraphSettle
-                            $pluginLoadRecord.realPlugin += Invoke-PluginLoadMeasurement $plugin.Label
-                        }
-                        catch {
-                            $pluginLoadRecord.realPlugin += [pscustomobject][ordered]@{ label = $plugin.Label; verdict = "failed"; reason = $_.Exception.Message }
-                            Write-Warning "plugin-load/$($plugin.Label) failed: $($_.Exception.Message)"
-                        }
-                    }
-                }
-            }
-            catch {
-                $pluginLoadRecord.realPlugin += [pscustomobject][ordered]@{ verdict = "failed"; reason = $_.Exception.Message }
-                Write-Warning "plugin-load/real-plugin failed: $($_.Exception.Message)"
-            }
-        }
-    }
-    catch {
-        $pluginLoadRecord.verdict = "failed"
-        $pluginLoadRecord.reason = $_.Exception.Message
-        if ($null -eq $pluginLoadRecord.fixture) {
-            $pluginLoadRecord.fixture = [ordered]@{ verdict = "failed"; reason = $_.Exception.Message }
-        }
-        Add-Failure "plugin-load: $($_.Exception.Message)"
-    }
-    finally {
-        try { Copy-Logs "90-plugin-load" } catch { Write-Warning "plugin-load could not copy logs: $($_.Exception.Message)" }
-        if ($null -ne $originalConfig) {
-            try {
-                [System.IO.File]::WriteAllText($configFile, $originalConfig, (New-Object System.Text.UTF8Encoding($false)))
-            }
-            catch {
-                $pluginLoadRecord.verdict = "failed"
-                $pluginLoadRecord.reason = "config.txt could not be restored: $($_.Exception.Message)"
-                Add-Failure "plugin-load: config.txt could not be restored: $($_.Exception.Message)"
-            }
-        }
-        if ($installAttempted) {
-            try {
-                $uninstall = Invoke-Program (Join-Path $current "DeviceSelector.exe") @("--uninstall-endpoint", $endpoints.Capture) 180 $current
-                $pluginLoadRecord.uninstall = [ordered]@{ exitCode = $uninstall.ExitCode; timedOut = $uninstall.TimedOut }
-                if ($uninstall.ExitCode -ne 0) {
+                catch {
                     $pluginLoadRecord.verdict = "failed"
-                    $pluginLoadRecord.reason = "capture endpoint uninstall exited with $($uninstall.ExitCode)"
-                    Add-Failure "plugin-load/uninstall: DeviceSelector --uninstall-endpoint exited with $($uninstall.ExitCode)"
+                    $pluginLoadRecord.reason = "config.txt could not be restored: $($_.Exception.Message)"
+                    Add-Failure "plugin-load: config.txt could not be restored: $($_.Exception.Message)"
                 }
             }
-            catch {
-                $pluginLoadRecord.verdict = "failed"
-                $pluginLoadRecord.reason = "capture endpoint could not be uninstalled: $($_.Exception.Message)"
-                $pluginLoadRecord.uninstall = [ordered]@{ exitCode = $null; error = $_.Exception.Message }
-                Add-Failure "plugin-load/uninstall: $($_.Exception.Message)"
-            }
-            finally {
-                try { Wait-GraphSettle } catch { Write-Warning "plugin-load could not wait after uninstall: $($_.Exception.Message)" }
-                try { Save-EndpointSnapshot $endpoints.Capture "90-plugin-load-uninstalled" } catch { Write-Warning "plugin-load could not save the uninstall snapshot: $($_.Exception.Message)" }
+            if ($installAttempted) {
+                try {
+                    $uninstall = Invoke-ExternalProgram (Join-Path $current "DeviceSelector.exe") @("--uninstall-endpoint", $endpoints.Capture) 180 $current
+                    $pluginLoadRecord.uninstall = [ordered]@{ exitCode = $uninstall.ExitCode; timedOut = $uninstall.TimedOut }
+                    if ($uninstall.ExitCode -ne 0) {
+                        $pluginLoadRecord.verdict = "failed"
+                        $pluginLoadRecord.reason = "capture endpoint uninstall exited with $($uninstall.ExitCode)"
+                        Add-Failure "plugin-load/uninstall: DeviceSelector --uninstall-endpoint exited with $($uninstall.ExitCode)"
+                    }
+                }
+                catch {
+                    $pluginLoadRecord.verdict = "failed"
+                    $pluginLoadRecord.reason = "capture endpoint could not be uninstalled: $($_.Exception.Message)"
+                    $pluginLoadRecord.uninstall = [ordered]@{ exitCode = $null; error = $_.Exception.Message }
+                    Add-Failure "plugin-load/uninstall: $($_.Exception.Message)"
+                }
+                finally {
+                    try { Wait-GraphSettle } catch { Write-Warning "plugin-load could not wait after uninstall: $($_.Exception.Message)" }
+                    try { Save-EndpointSnapshot $endpoints.Capture "90-plugin-load-uninstalled" } catch { Write-Warning "plugin-load could not save the uninstall snapshot: $($_.Exception.Message)" }
+                }
             }
         }
     }
-}
-$summary.pluginLoad = [pscustomobject]$pluginLoadRecord
-
-# ---------------------------------------------------------------------------
-Write-Phase "low-latency: the playback endpoint, a convolution, the engine's smallest period"
-$baseline = $summary.measurements | Where-Object { $_.name -eq "baseline" } | Select-Object -First 1
-$impulseRate = if ($baseline -and $baseline.rate) { [int]$baseline.rate } else { 48000 }
-$impulse = Join-Path $configDir "gate-impulse.wav"
-Write-ImpulseWav $impulse $impulseRate 4096
-$lowLatencyConfig = "Preamp: $($PreampDb.ToString([cultureinfo]::InvariantCulture)) dB`r`nConvolution: gate-impulse.wav`r`n"
-[System.IO.File]::WriteAllText($configFile, $lowLatencyConfig, (New-Object System.Text.UTF8Encoding($false)))
-$lowLatency = [ordered]@{
-    config = $lowLatencyConfig.Trim()
-    impulseRate = $impulseRate
-    install = $null
-    installMode = $null
-    uninstall = $null
-    lockFrameCounts = @()
-    smallPeriodAvailable = $null
-}
-Write-Host "config now: $($lowLatencyConfig.Trim() -replace "`r`n", ' | ') (impulse at $impulseRate Hz)"
-
-$install = Invoke-Program (Join-Path $current "DeviceSelector.exe") @("--install-endpoint", $endpoints.Render) 300 $current
-$lowLatency.install = [ordered]@{ exitCode = $install.ExitCode; timedOut = $install.TimedOut }
-Save-EndpointSnapshot $endpoints.Render "60-low-latency-installed" "Render"
-$lowLatency.installMode = Get-EffectChain "Render" $endpoints.Render
-Write-Host "effect chain now (playback): $($lowLatency.installMode)"
-if ($install.ExitCode -ne 0) {
-    Add-Failure "low-latency/install: DeviceSelector --install-endpoint on the playback endpoint exited with $($install.ExitCode)"
-}
-Copy-Logs "60-low-latency-installed"
-
-Measure-Cable $lowLatencyMeasurements[0] "low-latency" | Out-Null
-Measure-Cable $lowLatencyMeasurements[1] "low-latency" | Out-Null
-Measure-Cable $lowLatencyMeasurements[2] "low-latency" | Out-Null
-Copy-Logs "70-low-latency-measured"
-# Every frame count the audio engine locked the DLL with, in order: the last
-# field of the trace line LockForProcess writes for its input connection.
-$apoLog = "C:\Windows\ServiceProfiles\LocalService\AppData\Local\Temp\EqualizerAPO.log"
-if (Test-Path -LiteralPath $apoLog) {
-    $lowLatency.lockFrameCounts = @(Select-String -LiteralPath $apoLog -Pattern "Input format in LockForProcess = \{.*, (\d+) \}" |
-        ForEach-Object { [int]$_.Matches[0].Groups[1].Value })
-}
-Write-Host "LockForProcess max frame counts, whole run: $($lowLatency.lockFrameCounts -join ' ')"
-$minRecord = $summary.measurements | Where-Object { $_.name -eq "low-latency/ll-min" } | Select-Object -First 1
-if ($minRecord) { $lowLatency.smallPeriodAvailable = $minRecord.smallPeriodAvailable }
-
-$uninstall = Invoke-Program (Join-Path $current "DeviceSelector.exe") @("--uninstall-endpoint", $endpoints.Render) 180 $current
-$eqLeftRender = Test-EqClsidLeft "Render" $endpoints.Render
-$lowLatency.uninstall = [ordered]@{ exitCode = $uninstall.ExitCode; eqClsidLeft = $eqLeftRender }
-Save-EndpointSnapshot $endpoints.Render "80-low-latency-uninstalled" "Render"
-if ($uninstall.ExitCode -ne 0) { Add-Failure "low-latency/uninstall: DeviceSelector --uninstall-endpoint on the playback endpoint exited with $($uninstall.ExitCode)" }
-if ($eqLeftRender) { Add-Failure "low-latency/uninstall: the playback endpoint's FxProperties still names an EQ APO CLSID" }
-Wait-GraphSettle
-Measure-Cable $lowLatencyMeasurements[3] "low-latency" | Out-Null
-Copy-Logs "80-low-latency-uninstalled"
-[System.IO.File]::WriteAllText($configFile, $config, (New-Object System.Text.UTF8Encoding($false)))
-$summary.lowLatency = [pscustomobject]$lowLatency
-
-# ---------------------------------------------------------------------------
-Write-Phase "asio-entry: the playback endpoint offered to ASIO applications"
-$asioProbe = Join-Path $ProbeDirectory "AsioProbe.exe"
-$asioRoot = "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\ASIO"
-$asioEntry = [ordered]@{ install = $null; entryName = $null; wrapperClsid = $null; probes = @(); uninstall = $null; entryLeft = $null; recordLeft = $null }
-function Get-EqApoAsioEntries {
-    if (-not (Test-Path $asioRoot)) { return @() }
-    return @(Get-ChildItem $asioRoot -ErrorAction SilentlyContinue | Where-Object { $_.PSChildName -like "* (EQ APO XT)" })
-}
-if (-not (Test-Path -LiteralPath $asioProbe)) {
-    Add-Failure "asio-entry: AsioProbe.exe is not in the probe directory"
+    $summary.pluginLoad = [pscustomobject]$pluginLoadRecord
 } else {
-    $install = Invoke-Program (Join-Path $current "DeviceSelector.exe") @("--install-endpoint", $endpoints.Render, "--asio-entry") 300 $current
-    $asioEntry.install = [ordered]@{ exitCode = $install.ExitCode; timedOut = $install.TimedOut }
-    if ($install.ExitCode -ne 0) { Add-Failure "asio-entry/install: DeviceSelector --install-endpoint --asio-entry exited with $($install.ExitCode)" }
-    & reg export "HKLM\SOFTWARE\ASIO" (Join-Path $SnapshotDirectory "90-asio-entry-installed-asio.reg") /y 2>$null | Out-Null
-    & reg export "HKLM\SOFTWARE\EqualizerAPO\ASIO" (Join-Path $SnapshotDirectory "90-asio-entry-installed-records.reg") /y 2>$null | Out-Null
-    $global:LASTEXITCODE = 0
-    $entries = @(Get-EqApoAsioEntries)
-    if ($entries.Count -ne 1) {
-        Add-Failure "asio-entry/install: expected one '(EQ APO XT)' entry under HKLM\SOFTWARE\ASIO, found $($entries.Count)"
-    } else {
-        $asioEntry.entryName = $entries[0].PSChildName
-        $asioEntry.wrapperClsid = (Get-ItemProperty -Path $entries[0].PSPath).CLSID
-        Write-Host "ASIO entry: $($asioEntry.entryName) -> $($asioEntry.wrapperClsid)"
-        # The probe stands in for the DAW: it activates the registered CLSID
-        # through COM, which loads the wrapper DLL from the class tree, which
-        # reads its record, opens the cable in exclusive mode and starts the
-        # engine host. A sine at -6 dBFS for fourteen seconds; the far side is
-        # measured once the stream has been running (the engine host starts
-        # cold, config load included, before the device opens).
-        #
-        # Three buffer sizes, the small one gated. The runner's cable used to
-        # signal every 15.9 ms against a 5.8 ms period: the system timer's
-        # default 15.6 ms resolution, which nothing on a hosted runner raises.
-        # The target asks for 1 ms while it streams, as DAWs do; the larger
-        # sizes are recorded as evidence of how this driver behaves.
-        # The probe asks for the cable's own rate, the one the recording side
-        # runs at; the entry's default is the endpoint's device format.
-        # --wrapper none: the entry is driven as the DAW would drive it. A
-        # probe wrapper around it (passthrough) used to report its own late
-        # and gone counts, not the product's (audit #348 F14).
-        $env:PATH = "$current;$env:PATH"
-        $asioEntry.probes = @()
-        foreach ($frames in $asioEntryFrames) {
-            $required = $frames -eq $asioEntryFrames[0]
-            $name = if ($required) { $asioEntryMeasurement.Name } else { "$($asioEntryMeasurement.Name)-$frames" }
-            Write-Host "-- $frames frames"
-            $probeOut = [System.IO.Path]::GetTempFileName()
-            $probeErr = [System.IO.Path]::GetTempFileName()
-            $probeProcess = Start-Process -FilePath $asioProbe -ArgumentList @("--target", "clsid:$($asioEntry.wrapperClsid)", "--wrapper", "none", "--seconds", "25", "--sine", "1000", "--rate", "$impulseRate", "--frames", "$frames") -PassThru -NoNewWindow -RedirectStandardOutput $probeOut -RedirectStandardError $probeErr -WorkingDirectory $current
-            # Measure only once the stream runs: the probe prints its latency
-            # line after createBuffers and start succeeded. The first probe
-            # starts the engine host cold, which on a busy runner took long
-            # enough for a fixed wait to open the window before the tone
-            # (-23.6 dB read once for that reason, 2405 switches all the same).
-            $deadline = (Get-Date).AddSeconds(40)
-            $streaming = $false
-            while ((Get-Date) -lt $deadline -and -not $probeProcess.HasExited) {
-                $soFar = Get-Content -LiteralPath $probeOut -Raw -ErrorAction SilentlyContinue
-                if ($soFar -and $soFar -match "latency input=") { $streaming = $true; break }
-                Start-Sleep -Milliseconds 250
-            }
-            if (-not $streaming) { Write-Host "the probe did not report a running stream within 40 s" }
-            # The bridge calibration (a dozen events) and its reopen, then settle.
-            Start-Sleep -Seconds 2
-            $record = Measure-Cable ([pscustomobject]@{ Name = $name; Category = "default"; Raw = $false; ExpectGainDb = $asioEntryMeasurement.ExpectGainDb; ToleranceDb = $asioEntryMeasurement.ToleranceDb; Required = $required; Note = "$($asioEntryMeasurement.Note) ($frames frames)"; NoRender = $true }) "asio-entry"
-            $probeProcess.WaitForExit(45000) | Out-Null
-            if (-not $probeProcess.HasExited) { try { $probeProcess.Kill() } catch {} }
-            $probeText = (Get-Content -LiteralPath $probeOut -Raw -ErrorAction SilentlyContinue) + (Get-Content -LiteralPath $probeErr -Raw -ErrorAction SilentlyContinue)
-            Remove-Item -LiteralPath $probeOut, $probeErr -Force -ErrorAction SilentlyContinue
-            if ($probeText) { Write-Host ($probeText.TrimEnd()) }
-            $asioEntry.probes += [pscustomobject]@{ frames = $frames; exitCode = $probeProcess.ExitCode; output = $probeText }
-            if ($probeProcess.ExitCode -ne 0 -and $required) { Add-Failure "asio-entry/probe: AsioProbe over the registered entry exited with $($probeProcess.ExitCode) at $frames frames" }
-        }
-        # Diagnosis: the same target opened directly (no registration, no
-        # engine), which prints the driver's real event interval and how
-        # long each period took to serve. Recorded, never gated.
-        foreach ($frames in $asioEntryFrames) {
-            Write-Host "-- direct target, $frames frames (diagnosis)"
-            $diag = Invoke-Program $asioProbe @("--target", "wasapi:$($endpoints.Render)", "--wrapper", "static", "--processor", "passthrough", "--seconds", "6", "--sine", "1000", "--rate", "$impulseRate", "--frames", "$frames") 40 $current
-            $asioEntry.probes += [pscustomobject]@{ frames = $frames; direct = $true; exitCode = $diag.ExitCode; output = ($diag.StdOut + $diag.StdErr) }
-        }
-    }
-    Copy-Logs "90-asio-entry-measured"
-
-    $uninstall = Invoke-Program (Join-Path $current "DeviceSelector.exe") @("--uninstall-endpoint", $endpoints.Render) 180 $current
-    $asioEntry.uninstall = [ordered]@{ exitCode = $uninstall.ExitCode }
-    if ($uninstall.ExitCode -ne 0) { Add-Failure "asio-entry/uninstall: DeviceSelector --uninstall-endpoint exited with $($uninstall.ExitCode)" }
-    $asioEntry.entryLeft = @(Get-EqApoAsioEntries).Count
-    $recordRoot = "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO\ASIO"
-    $asioEntry.recordLeft = if (Test-Path $recordRoot) { @(Get-ChildItem $recordRoot -ErrorAction SilentlyContinue).Count } else { 0 }
-    if ($asioEntry.entryLeft -ne 0) { Add-Failure "asio-entry/uninstall: $($asioEntry.entryLeft) '(EQ APO XT)' entries remain under HKLM\SOFTWARE\ASIO" }
-    if ($asioEntry.recordLeft -ne 0) { Add-Failure "asio-entry/uninstall: $($asioEntry.recordLeft) wrapper records remain" }
-    Copy-Logs "95-asio-entry-uninstalled"
+    Write-Phase "plugin-load: skipped (-Phases)"
+    $summary.pluginLoad = [pscustomobject]@{ verdict = "skipped"; reason = "not in -Phases" }
 }
-$summary.asioEntry = [pscustomobject]$asioEntry
+
+# ---------------------------------------------------------------------------
+if ($Phases -contains "low-latency") {
+    Write-Phase "low-latency: the playback endpoint, a convolution, the engine's smallest period"
+    $baseline = $summary.measurements | Where-Object { $_.name -eq "baseline" } | Select-Object -First 1
+    $impulseRate = if ($baseline -and $baseline.rate) { [int]$baseline.rate } else { 48000 }
+    $impulse = Join-Path $configDir "gate-impulse.wav"
+    Write-ImpulseWav $impulse $impulseRate 4096
+    $lowLatencyConfig = "Preamp: $($PreampDb.ToString([cultureinfo]::InvariantCulture)) dB`r`nConvolution: gate-impulse.wav`r`n"
+    Set-GateConfig $lowLatencyConfig
+    $lowLatency = [ordered]@{
+        config = $lowLatencyConfig.Trim()
+        impulseRate = $impulseRate
+        install = $null
+        installMode = $null
+        uninstall = $null
+        lockFrameCounts = @()
+        smallPeriodAvailable = $null
+    }
+    Write-Host "config now: $($lowLatencyConfig.Trim() -replace "`r`n", ' | ') (impulse at $impulseRate Hz)"
+
+    $install = Invoke-ExternalProgram (Join-Path $current "DeviceSelector.exe") @("--install-endpoint", $endpoints.Render) 300 $current
+    $lowLatency.install = [ordered]@{ exitCode = $install.ExitCode; timedOut = $install.TimedOut }
+    Save-EndpointSnapshot $endpoints.Render "60-low-latency-installed" "Render"
+    $lowLatency.installMode = Get-EffectChain "Render" $endpoints.Render
+    Write-Host "effect chain now (playback): $($lowLatency.installMode)"
+    if ($install.ExitCode -ne 0) {
+        Add-Failure "low-latency/install: DeviceSelector --install-endpoint on the playback endpoint exited with $($install.ExitCode)"
+    }
+    Copy-Logs "60-low-latency-installed"
+
+    Measure-Cable $lowLatencyMeasurements[0] "low-latency" | Out-Null
+    Measure-Cable $lowLatencyMeasurements[1] "low-latency" | Out-Null
+    Measure-Cable $lowLatencyMeasurements[2] "low-latency" | Out-Null
+    Copy-Logs "70-low-latency-measured"
+    # Every frame count the audio engine locked the DLL with, in order: the last
+    # field of the trace line LockForProcess writes for its input connection.
+    $apoLog = "C:\Windows\ServiceProfiles\LocalService\AppData\Local\Temp\EqualizerAPO.log"
+    if (Test-Path -LiteralPath $apoLog) {
+        $lowLatency.lockFrameCounts = @(Select-String -LiteralPath $apoLog -Pattern "Input format in LockForProcess = \{.*, (\d+) \}" |
+            ForEach-Object { [int]$_.Matches[0].Groups[1].Value })
+    }
+    Write-Host "LockForProcess max frame counts, whole run: $($lowLatency.lockFrameCounts -join ' ')"
+    $minRecord = $summary.measurements | Where-Object { $_.name -eq "low-latency/ll-min" } | Select-Object -First 1
+    if ($minRecord) { $lowLatency.smallPeriodAvailable = $minRecord.smallPeriodAvailable }
+
+    $uninstall = Invoke-ExternalProgram (Join-Path $current "DeviceSelector.exe") @("--uninstall-endpoint", $endpoints.Render) 180 $current
+    $eqLeftRender = Test-EqClsidLeft "Render" $endpoints.Render
+    $lowLatency.uninstall = [ordered]@{ exitCode = $uninstall.ExitCode; eqClsidLeft = $eqLeftRender }
+    Save-EndpointSnapshot $endpoints.Render "80-low-latency-uninstalled" "Render"
+    if ($uninstall.ExitCode -ne 0) { Add-Failure "low-latency/uninstall: DeviceSelector --uninstall-endpoint on the playback endpoint exited with $($uninstall.ExitCode)" }
+    if ($eqLeftRender) { Add-Failure "low-latency/uninstall: the playback endpoint's FxProperties still names an EQ APO CLSID" }
+    Wait-GraphSettle
+    Measure-Cable $lowLatencyMeasurements[3] "low-latency" | Out-Null
+    Copy-Logs "80-low-latency-uninstalled"
+    Set-GateConfig $config
+    $summary.lowLatency = [pscustomobject]$lowLatency
+} else {
+    Write-Phase "low-latency: skipped (-Phases)"
+    $summary.lowLatency = [pscustomobject]@{ verdict = "skipped"; reason = "not in -Phases" }
+}
+
+# ---------------------------------------------------------------------------
+if ($Phases -contains "asio-entry") {
+    Write-Phase "asio-entry: the playback endpoint offered to ASIO applications"
+    $asioProbe = Join-Path $ProbeDirectory "AsioProbe.exe"
+    $asioRoot = "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\ASIO"
+    $asioEntry = [ordered]@{ install = $null; entryName = $null; wrapperClsid = $null; probes = @(); uninstall = $null; entryLeft = $null; recordLeft = $null }
+    function Get-EqApoAsioEntries {
+        if (-not (Test-Path $asioRoot)) { return @() }
+        return @(Get-ChildItem $asioRoot -ErrorAction SilentlyContinue | Where-Object { $_.PSChildName -like "* (EQ APO XT)" })
+    }
+    if (-not (Test-Path -LiteralPath $asioProbe)) {
+        Add-Failure "asio-entry: AsioProbe.exe is not in the probe directory"
+    } else {
+        $install = Invoke-ExternalProgram (Join-Path $current "DeviceSelector.exe") @("--install-endpoint", $endpoints.Render, "--asio-entry") 300 $current
+        $asioEntry.install = [ordered]@{ exitCode = $install.ExitCode; timedOut = $install.TimedOut }
+        if ($install.ExitCode -ne 0) { Add-Failure "asio-entry/install: DeviceSelector --install-endpoint --asio-entry exited with $($install.ExitCode)" }
+        & reg export "HKLM\SOFTWARE\ASIO" (Join-Path $SnapshotDirectory "90-asio-entry-installed-asio.reg") /y 2>$null | Out-Null
+        & reg export "HKLM\SOFTWARE\EqualizerAPO\ASIO" (Join-Path $SnapshotDirectory "90-asio-entry-installed-records.reg") /y 2>$null | Out-Null
+        $global:LASTEXITCODE = 0
+        $entries = @(Get-EqApoAsioEntries)
+        if ($entries.Count -ne 1) {
+            Add-Failure "asio-entry/install: expected one '(EQ APO XT)' entry under HKLM\SOFTWARE\ASIO, found $($entries.Count)"
+        } else {
+            $asioEntry.entryName = $entries[0].PSChildName
+            $asioEntry.wrapperClsid = (Get-ItemProperty -Path $entries[0].PSPath).CLSID
+            Write-Host "ASIO entry: $($asioEntry.entryName) -> $($asioEntry.wrapperClsid)"
+            # The probe stands in for the DAW: it activates the registered CLSID
+            # through COM, which loads the wrapper DLL from the class tree, which
+            # reads its record, opens the cable in exclusive mode and starts the
+            # engine host. A sine at -6 dBFS for fourteen seconds; the far side is
+            # measured once the stream has been running (the engine host starts
+            # cold, config load included, before the device opens).
+            #
+            # Three buffer sizes, the small one gated. The runner's cable used to
+            # signal every 15.9 ms against a 5.8 ms period: the system timer's
+            # default 15.6 ms resolution, which nothing on a hosted runner raises.
+            # The target asks for 1 ms while it streams, as DAWs do; the larger
+            # sizes are recorded as evidence of how this driver behaves.
+            # The probe asks for the cable's own rate, the one the recording side
+            # runs at; the entry's default is the endpoint's device format.
+            # --wrapper none: the entry is driven as the DAW would drive it. A
+            # probe wrapper around it (passthrough) used to report its own late
+            # and gone counts, not the product's (audit #348 F14).
+            $env:PATH = "$current;$env:PATH"
+            $asioEntry.probes = @()
+            foreach ($frames in $asioEntryFrames) {
+                $required = $frames -eq $asioEntryFrames[0]
+                $name = if ($required) { $asioEntryMeasurement.Name } else { "$($asioEntryMeasurement.Name)-$frames" }
+                Write-Host "-- $frames frames"
+                $probeOut = [System.IO.Path]::GetTempFileName()
+                $probeErr = [System.IO.Path]::GetTempFileName()
+                $probeProcess = Start-Process -FilePath $asioProbe -ArgumentList @("--target", "clsid:$($asioEntry.wrapperClsid)", "--wrapper", "none", "--seconds", "25", "--sine", "1000", "--rate", "$impulseRate", "--frames", "$frames") -PassThru -NoNewWindow -RedirectStandardOutput $probeOut -RedirectStandardError $probeErr -WorkingDirectory $current
+                # Measure only once the stream runs: the probe prints its latency
+                # line after createBuffers and start succeeded. The first probe
+                # starts the engine host cold, which on a busy runner took long
+                # enough for a fixed wait to open the window before the tone
+                # (-23.6 dB read once for that reason, 2405 switches all the same).
+                $deadline = (Get-Date).AddSeconds(40)
+                $streaming = $false
+                while ((Get-Date) -lt $deadline -and -not $probeProcess.HasExited) {
+                    $soFar = Get-Content -LiteralPath $probeOut -Raw -ErrorAction SilentlyContinue
+                    if ($soFar -and $soFar -match "latency input=") { $streaming = $true; break }
+                    Start-Sleep -Milliseconds 250
+                }
+                if (-not $streaming) { Write-Host "the probe did not report a running stream within 40 s" }
+                # The bridge calibration (a dozen events) and its reopen, then settle.
+                Start-Sleep -Seconds 2
+                $record = Measure-Cable ([pscustomobject]@{ Name = $name; Category = "default"; Raw = $false; ExpectGainDb = $asioEntryMeasurement.ExpectGainDb; ToleranceDb = $asioEntryMeasurement.ToleranceDb; Required = $required; Note = "$($asioEntryMeasurement.Note) ($frames frames)"; NoRender = $true }) "asio-entry"
+                $probeProcess.WaitForExit(45000) | Out-Null
+                if (-not $probeProcess.HasExited) { try { $probeProcess.Kill() } catch {} }
+                $probeText = (Get-Content -LiteralPath $probeOut -Raw -ErrorAction SilentlyContinue) + (Get-Content -LiteralPath $probeErr -Raw -ErrorAction SilentlyContinue)
+                Remove-Item -LiteralPath $probeOut, $probeErr -Force -ErrorAction SilentlyContinue
+                if ($probeText) { Write-Host ($probeText.TrimEnd()) }
+                $asioEntry.probes += [pscustomobject]@{ frames = $frames; exitCode = $probeProcess.ExitCode; output = $probeText }
+                if ($probeProcess.ExitCode -ne 0 -and $required) { Add-Failure "asio-entry/probe: AsioProbe over the registered entry exited with $($probeProcess.ExitCode) at $frames frames" }
+            }
+            # Diagnosis: the same target opened directly (no registration, no
+            # engine), which prints the driver's real event interval and how
+            # long each period took to serve. Recorded, never gated.
+            foreach ($frames in $asioEntryFrames) {
+                Write-Host "-- direct target, $frames frames (diagnosis)"
+                $diag = Invoke-ExternalProgram $asioProbe @("--target", "wasapi:$($endpoints.Render)", "--wrapper", "static", "--processor", "passthrough", "--seconds", "6", "--sine", "1000", "--rate", "$impulseRate", "--frames", "$frames") 40 $current
+                $asioEntry.probes += [pscustomobject]@{ frames = $frames; direct = $true; exitCode = $diag.ExitCode; output = ($diag.StdOut + $diag.StdErr) }
+            }
+        }
+        Copy-Logs "90-asio-entry-measured"
+
+        $uninstall = Invoke-ExternalProgram (Join-Path $current "DeviceSelector.exe") @("--uninstall-endpoint", $endpoints.Render) 180 $current
+        $asioEntry.uninstall = [ordered]@{ exitCode = $uninstall.ExitCode }
+        if ($uninstall.ExitCode -ne 0) { Add-Failure "asio-entry/uninstall: DeviceSelector --uninstall-endpoint exited with $($uninstall.ExitCode)" }
+        $asioEntry.entryLeft = @(Get-EqApoAsioEntries).Count
+        $recordRoot = "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO\ASIO"
+        $asioEntry.recordLeft = if (Test-Path $recordRoot) { @(Get-ChildItem $recordRoot -ErrorAction SilentlyContinue).Count } else { 0 }
+        if ($asioEntry.entryLeft -ne 0) { Add-Failure "asio-entry/uninstall: $($asioEntry.entryLeft) '(EQ APO XT)' entries remain under HKLM\SOFTWARE\ASIO" }
+        if ($asioEntry.recordLeft -ne 0) { Add-Failure "asio-entry/uninstall: $($asioEntry.recordLeft) wrapper records remain" }
+        Copy-Logs "95-asio-entry-uninstalled"
+    }
+    $summary.asioEntry = [pscustomobject]$asioEntry
+} else {
+    Write-Phase "asio-entry: skipped (-Phases)"
+    $summary.asioEntry = [pscustomobject]@{ verdict = "skipped"; reason = "not in -Phases" }
+}
 
 # ---------------------------------------------------------------------------
 Write-Phase "summary"

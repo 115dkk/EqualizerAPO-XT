@@ -5,55 +5,21 @@
 */
 
 #include "CrosspointMatrixRoutingRenderer.h"
+#include "Editor/skins/shared/SkinPaint.h"
 
 #include <QPainter>
-#include <QMouseEvent>
 #include <QFontMetrics>
-
-#include "Editor/SkinManager.h"
-#include "Editor/widgets/routing/RoutingGridModel.h"
 
 using std::vector;
 
 CrosspointMatrixView::CrosspointMatrixView(const vector<Assignment>& assignments,
 	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
 	QWidget* parent, const SkinTokens& tokens)
-	: RoutingView(parent), skinTokens(tokens),
-	// Seeding every device channel as a row keeps the grid editable even when
-	// the command references few (or no) channels; without it an emptied Copy
-	// could never be refilled from the GUI. Empty rows are skipped by the
-	// serializer, so the config line is unaffected. The fold below decides
-	// which seeded rows actually reach the board.
-	workingAssignments(CopyRoutingAdapter::seedTargets(assignments, channelNames)),
-	deviceChannels(channelNames),
-	portModel(portModel),
-	// Targets the command referenced stay on the board for the whole session,
-	// even if their last source is toggled away.
-	pinnedChannels(RoutingFold::referencedTargets(assignments))
+	: GridRoutingViewBase(assignments, channelNames, portModel, parent, tokens,
+		{ .rowHeaderWidth = 64, .colHeaderHeight = 30, .cellW = 52, .cellH = 26 },
+		QStringLiteral("CrosspointEditor"), QStringLiteral("CrosspointChannelEditor"))
 {
-	setMouseTracking(true);
-	// Match the stable painted-routing-view size contract (StepList / BlockChip):
-	// horizontal policy Ignored + minimumSizeHint == sizeHint. Deviating from
-	// this (Preferred + zero minimum) made Qt's layout geometry pass crash flakily
-	// on the maximized initial show.
-	setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
-	setMinimumSize(0, 0);
 	rebuildMatrix();
-}
-
-void CrosspointMatrixView::rebuildMatrix()
-{
-	fold = RoutingFold::fold(workingAssignments, deviceChannels, pinnedChannels,
-		channelsExpanded, portModel.fixedSources);
-	rowMap = fold.visibleRows;
-	vector<Assignment> visible;
-	visible.reserve(rowMap.size());
-	for (int row : rowMap)
-		visible.push_back(workingAssignments[row]);
-	matrix = CopyRoutingAdapter::buildMatrix(visible, fold.inputs);
-	updateMetrics();
-	syncSizeToHint();
-	update();
 }
 
 void CrosspointMatrixView::updateMetrics()
@@ -80,43 +46,9 @@ void CrosspointMatrixView::updateMetrics()
 	rowHeaderWidth = qMax(64, longestOutput + 22);
 }
 
-std::vector<Assignment> CrosspointMatrixView::assignments() const
-{
-	return workingAssignments;
-}
-
-void CrosspointMatrixView::galleryShowcase(const QString& state)
-{
-	if (state == QLatin1String("expanded"))
-	{
-		channelsExpanded = true;
-		rebuildMatrix();
-	}
-	else if (state == QLatin1String("addChannel"))
-	{
-		openChannelEditor();
-		if (channelEditor != nullptr)
-			channelEditor->setText(QStringLiteral("VS"));
-	}
-}
-
-QRect CrosspointMatrixView::cellRect(int outRow, int inCol) const
-{
-	return QRect(rowHeaderWidth + inCol * cellW, colHeaderHeight + outRow * cellH, cellW, cellH);
-}
-
 QRect CrosspointMatrixView::footerRect() const
 {
 	return QRect(0, colHeaderHeight + matrix.outputs.size() * cellH + 4, width(), footerH);
-}
-
-bool CrosspointMatrixView::hitTest(const QPoint& pos, int& outRow, int& inCol) const
-{
-	if (pos.x() < rowHeaderWidth || pos.y() < colHeaderHeight)
-		return false;
-	inCol = (pos.x() - rowHeaderWidth) / cellW;
-	outRow = (pos.y() - colHeaderHeight) / cellH;
-	return outRow >= 0 && outRow < matrix.outputs.size() && inCol >= 0 && inCol < matrix.inputs.size();
 }
 
 QSize CrosspointMatrixView::sizeHint() const
@@ -128,21 +60,6 @@ QSize CrosspointMatrixView::sizeHint() const
 	h += 4 + footerH;
 	w = qMax(w, 220);
 	return QSize(w, h);
-}
-
-QSize CrosspointMatrixView::minimumSizeHint() const
-{
-	// Same as the stable StepList/BlockChip views: report the full content size.
-	// The host QScrollArea (its own minimum pinned to 0) isolates this, so the
-	// FilterTable grid column is not inflated.
-	return sizeHint();
-}
-
-static QColor mix(const QColor& c, int alpha)
-{
-	QColor r = c;
-	r.setAlpha(alpha);
-	return r;
 }
 
 void CrosspointMatrixView::paintEvent(QPaintEvent*)
@@ -178,8 +95,8 @@ void CrosspointMatrixView::paintEvent(QPaintEvent*)
 		QRect pill = hr.adjusted(6, 6, -6, -8);
 		if (virt)
 		{
-			p.setPen(QPen(mix(col, 170), 1, Qt::DashLine));
-			p.setBrush(mix(col, 28));
+			p.setPen(QPen(withAlpha(col, 170), 1, Qt::DashLine));
+			p.setBrush(withAlpha(col, 28));
 		}
 		else
 		{
@@ -201,8 +118,8 @@ void CrosspointMatrixView::paintEvent(QPaintEvent*)
 		QRect pill = rr.adjusted(6, 4, -8, -4);
 		if (virt)
 		{
-			p.setPen(QPen(mix(col, 170), 1, Qt::DashLine));
-			p.setBrush(mix(col, 28));
+			p.setPen(QPen(withAlpha(col, 170), 1, Qt::DashLine));
+			p.setBrush(withAlpha(col, 28));
 		}
 		else
 		{
@@ -219,7 +136,7 @@ void CrosspointMatrixView::paintEvent(QPaintEvent*)
 		if (virt && hoveredRow == r)
 		{
 			const QRect xr(pill.right() - 14, pill.top(), 14, pill.height());
-			p.setPen(mix(col, 220));
+			p.setPen(withAlpha(col, 220));
 			p.drawText(xr, Qt::AlignCenter, QStringLiteral("x"));
 			removeRects[r] = xr;
 		}
@@ -233,7 +150,7 @@ void CrosspointMatrixView::paintEvent(QPaintEvent*)
 			p.setPen(QPen(border, 1));
 			if (!cell.present)
 			{
-				p.setBrush(mix(border, 18));
+				p.setBrush(withAlpha(border, 18));
 				p.drawRect(cr);
 				continue;
 			}
@@ -264,8 +181,8 @@ void CrosspointMatrixView::paintEvent(QPaintEvent*)
 				label = cell.isDecibel ? QStringLiteral("%1dB").arg(cell.factor) : QString::number(cell.factor);
 			}
 
-			p.setBrush(mix(fill, 60));
-			p.setPen(QPen(mix(fill, 200), 1));
+			p.setBrush(withAlpha(fill, 60));
+			p.setPen(QPen(withAlpha(fill, 200), 1));
 			p.drawRect(cr);
 			p.setPen(text);
 			p.drawText(cr, Qt::AlignCenter, label);
@@ -291,13 +208,13 @@ void CrosspointMatrixView::paintEvent(QPaintEvent*)
 		const QRect cell = cr.adjusted(0, 1, -1, -2);
 		if (hovered)
 		{
-			p.setPen(QPen(mix(accent, 200), 1));
-			p.setBrush(mix(accent, 24));
+			p.setPen(QPen(withAlpha(accent, 200), 1));
+			p.setBrush(withAlpha(accent, 24));
 		}
 		else
 		{
 			p.setPen(QPen(border, 1));
-			p.setBrush(mix(border, 18));
+			p.setBrush(withAlpha(border, 18));
 		}
 		p.drawRect(cell);
 		p.setPen(hovered ? text : muted);
@@ -316,178 +233,16 @@ void CrosspointMatrixView::paintEvent(QPaintEvent*)
 	addRect = captionCell(QStringLiteral("+BUS"), hoveredControl == 2);
 }
 
-void CrosspointMatrixView::mousePressEvent(QMouseEvent* event)
+QRect CrosspointMatrixView::factorEditorRect(int outRow, int inCol) const
 {
-	for (int r = 0; r < removeRects.size(); ++r)
-	{
-		if (!removeRects[r].isNull() && removeRects[r].contains(event->pos()))
-		{
-			const QString channel = matrix.outputs[r];
-			const bool changed = RoutingGridModel::removeChannel(workingAssignments, pinnedChannels, channel);
-			rebuildMatrix();
-			if (changed)
-				emit routingChanged();
-			return;
-		}
-	}
-	if (!revealRect.isNull() && revealRect.contains(event->pos()))
-	{
-		channelsExpanded = !channelsExpanded;
-		rebuildMatrix();
-		return;
-	}
-	if (!addRect.isNull() && addRect.contains(event->pos()))
-	{
-		openChannelEditor();
-		return;
-	}
-
-	int outRow = -1, inCol = -1;
-	if (!hitTest(event->pos(), outRow, inCol))
-		return;
-
-	const QString channel = matrix.inputs[inCol];
-	const int idx = RoutingGridModel::summandIndex(workingAssignments[rowMap[outRow]], channel);
-	Assignment& a = workingAssignments[rowMap[outRow]];
-	if (idx >= 0)
-	{
-		// Toggle off.
-		a.sourceSum.erase(a.sourceSum.begin() + idx);
-	}
-	else
-	{
-		// Toggle on at unity gain.
-		Assignment::Summand s;
-		s.factor = 1.0;
-		s.isDecibel = false;
-		s.channel = channel.toStdWString();
-		a.sourceSum.push_back(s);
-	}
-	rebuildMatrix();
-	emit routingChanged();
+	return cellRect(outRow, inCol);
 }
 
-void CrosspointMatrixView::mouseMoveEvent(QMouseEvent* event)
+QRect CrosspointMatrixView::channelEditorRect() const
 {
-	int control = 0;
-	if (!revealRect.isNull() && revealRect.contains(event->pos()))
-		control = 1;
-	else if (!addRect.isNull() && addRect.contains(event->pos()))
-		control = 2;
-
-	int row = -1;
-	if (event->pos().x() < rowHeaderWidth && event->pos().y() >= colHeaderHeight)
-	{
-		const int r = (event->pos().y() - colHeaderHeight) / cellH;
-		if (r >= 0 && r < matrix.outputs.size())
-			row = r;
-	}
-
-	if (control != hoveredControl || row != hoveredRow)
-	{
-		hoveredControl = control;
-		hoveredRow = row;
-		bool removable = false;
-		if (row >= 0 && !removeRects.value(row).isNull()
-			&& removeRects[row].contains(event->pos()))
-			removable = true;
-		setCursor(control != 0 || removable ? Qt::PointingHandCursor : Qt::ArrowCursor);
-		update();
-	}
-	RoutingView::mouseMoveEvent(event);
-}
-
-void CrosspointMatrixView::leaveEvent(QEvent* event)
-{
-	if (hoveredControl != 0 || hoveredRow >= 0)
-	{
-		hoveredControl = 0;
-		hoveredRow = -1;
-		update();
-	}
-	RoutingView::leaveEvent(event);
-}
-
-void CrosspointMatrixView::mouseDoubleClickEvent(QMouseEvent* event)
-{
-	// Without factors there is nothing to edit; the press that preceded this
-	// double-click already toggled the crosspoint.
-	if (!portModel.allowFactors)
-		return;
-
-	int outRow = -1, inCol = -1;
-	if (!hitTest(event->pos(), outRow, inCol))
-		return;
-
-	commitEditor();
-	editRow = outRow;
-	editCol = inCol;
-
-	const CopyRoutingAdapter::Cell cell = matrix.cell(outRow, inCol);
-	QString textValue;
-	if (cell.present)
-		textValue = cell.isDecibel ? QStringLiteral("%1dB").arg(cell.factor) : QString::number(cell.factor);
-	else
-		textValue = QStringLiteral("1");
-
-	if (editor == nullptr)
-	{
-		editor = new QLineEdit(this);
-		editor->setObjectName(QStringLiteral("CrosspointEditor"));
-		editor->setAlignment(Qt::AlignCenter);
-		connect(editor, &QLineEdit::editingFinished, this, &CrosspointMatrixView::commitEditor);
-	}
-	editor->setGeometry(cellRect(outRow, inCol));
-	editor->setText(textValue);
-	editor->show();
-	editor->setFocus();
-	editor->selectAll();
-}
-
-void CrosspointMatrixView::commitEditor()
-{
-	if (editor == nullptr || !editor->isVisible() || editRow < 0)
-		return;
-
-	const int outRow = editRow;
-	const QString channel = matrix.inputs.value(editCol);
-	editRow = editCol = -1;
-	QString raw = editor->text().trimmed();
-	editor->hide();
-
-	if (!RoutingGridModel::commitFactor(workingAssignments, rowMap.value(outRow, -1),
-		channel, raw, portModel.allowFactors))
-		return;
-	rebuildMatrix();
-	emit routingChanged();
-}
-
-void CrosspointMatrixView::openChannelEditor()
-{
-	if (channelEditor == nullptr)
-	{
-		channelEditor = new QLineEdit(this);
-		channelEditor->setObjectName(QStringLiteral("CrosspointChannelEditor"));
-		channelEditor->setAlignment(Qt::AlignCenter);
-		connect(channelEditor, &QLineEdit::editingFinished, this, &CrosspointMatrixView::commitChannelEditor);
-	}
-	channelEditor->setGeometry(addRect.isNull()
+	return addRect.isNull()
 		? QRect(4, footerRect().top(), 96, footerH)
-		: addRect.adjusted(0, 0, 64, 0));
-	channelEditor->setText(QString());
-	channelEditor->show();
-	channelEditor->setFocus();
-}
-
-void CrosspointMatrixView::commitChannelEditor()
-{
-	if (channelEditor == nullptr || !channelEditor->isVisible())
-		return;
-
-	const QString name = channelEditor->text().trimmed();
-	channelEditor->hide();
-	if (RoutingGridModel::addChannel(workingAssignments, pinnedChannels, name))
-		rebuildMatrix();
+		: addRect.adjusted(0, 0, 64, 0);
 }
 
 RoutingView* CrosspointMatrixRoutingRenderer::create(const vector<Assignment>& assignments,

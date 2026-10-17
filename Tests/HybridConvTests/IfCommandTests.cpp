@@ -10,15 +10,15 @@
 #include <string>
 
 #include "filters/IfCommand.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 using std::wstring;
 
 namespace
 {
-test::Harness harness("IfCommandTests");
+test::HarnessAccess harness;
 
-void testCommandRecognition()
+TEST_CASE(IfCommandTests, testCommandRecognition)
 {
 	IfCommand cmd;
 
@@ -42,7 +42,7 @@ void testCommandRecognition()
 	harness.expectFalse(IfCommand::parse(L"Endif", L"", cmd), "'Endif' casing must not parse");
 }
 
-void testRoundTrip()
+TEST_CASE(IfCommandTests, testRoundTrip)
 {
 	const wstring commands[] = {L"If", L"ElseIf", L"Else", L"EndIf"};
 	const wstring cases[] = {
@@ -67,12 +67,4 @@ void testRoundTrip()
 		}
 	}
 }
-}
-
-void runIfCommandTests()
-{
-	testCommandRecognition();
-	testRoundTrip();
-
-	harness.report();
 }

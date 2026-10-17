@@ -18,21 +18,22 @@
 	verbatim instead of resolving against the default plugin directory.
 
 	These tests link against the same Common.lib as HybridConvTests and run from
-	its main() via runVSTPluginCommandTests().
+	the binary through TestHarness registration.
 */
 
 #include <string>
 #include <unordered_map>
 
 #include "filters/VSTPluginCommand.h"
-#include "Tests/TestHarness.h"
+#include "platform/windows/TextEncoding.h"
+#include "../TestHarness.h"
 
 using std::unordered_map;
 using std::wstring;
 
 namespace
 {
-test::Harness harness("VSTPluginCommandTests");
+test::HarnessAccess harness;
 
 // paramMap lookup folded into the harness so a missing key fails loudly instead
 // of default-inserting a 0.0f and silently passing.
@@ -45,7 +46,7 @@ float paramValue(const unordered_map<wstring, float>& paramMap, const wstring& n
 	return it->second;
 }
 
-void testLibraryOnly()
+TEST_CASE(VSTPluginCommandTests, testLibraryOnly)
 {
 	// Bare library reference: no chunk, no params. getInstance keeps the absolute
 	// path as-is, and the serialized body is empty (store() emits only the Library
@@ -58,7 +59,7 @@ void testLibraryOnly()
 	harness.expectTrue(cmd.serialize() == L"", "library-only: empty body");
 }
 
-void testQuotedPath()
+TEST_CASE(VSTPluginCommandTests, testQuotedPath)
 {
 	// A path containing spaces is given quoted; splitQuoted strips the quotes and
 	// keeps the spaces, and the parser keeps the absolute path verbatim.
@@ -68,7 +69,7 @@ void testQuotedPath()
 	harness.expectTrue(cmd.chunkData == L"", "quoted-path: no chunk data");
 }
 
-void testChunkData()
+TEST_CASE(VSTPluginCommandTests, testChunkData)
 {
 	// Library + ChunkData are mutually exclusive with the param list. The chunk is
 	// stored verbatim and round-trips through ChunkData "...".
@@ -79,7 +80,7 @@ void testChunkData()
 	harness.expectTrue(cmd.serialize() == L" ChunkData \"QUJDRA==\"", "chunk: serialized body");
 }
 
-void testNamedParams()
+TEST_CASE(VSTPluginCommandTests, testNamedParams)
 {
 	// Named parameters: each pair is "<name> <numeric value>". The value's first
 	// character is a digit, so the parser takes the isdigit branch that maps the
@@ -99,7 +100,7 @@ void testNamedParams()
 		0.5f, "named-params: reserved-looking Output value");
 }
 
-void testQuotedName()
+TEST_CASE(VSTPluginCommandTests, testQuotedName)
 {
 	// A parameter name containing a space is quoted; splitQuoted reassembles it as
 	// a single key, and the numeric value still takes the isdigit branch.
@@ -108,7 +109,7 @@ void testQuotedName()
 	harness.expectEqual(paramValue(cmd.paramMap, L"Dry Wet", "quoted-name value"), 0.75f, "quoted-name: value");
 }
 
-void testIdParams()
+TEST_CASE(VSTPluginCommandTests, testIdParams)
 {
 	// Parameters addressed by numeric id behave the same as named ones: the id is
 	// the key, the following numeric token is the value.
@@ -118,7 +119,7 @@ void testIdParams()
 	harness.expectEqual(paramValue(cmd.paramMap, L"12", "id-params 12"), 0.9f, "id-params: id 12 value");
 }
 
-void testNonNumericValueBranch()
+TEST_CASE(VSTPluginCommandTests, testNonNumericValueBranch)
 {
 	// Covers the other side of the isdigit branch verbatim: when a value token is
 	// not numeric, the parser treats that token as the parameter name and reads the
@@ -136,7 +137,7 @@ void testNonNumericValueBranch()
 		0.25f, "non-ASCII parameter name is classified safely");
 }
 
-void testSignedAndFractionalValuesAreNumbers()
+TEST_CASE(VSTPluginCommandTests, testSignedAndFractionalValuesAreNumbers)
 {
 	// A value that starts with a sign or a decimal point is still a number
 	// (audit #348): the first-digit test sent "-0.5" and ".5" down the name
@@ -164,14 +165,14 @@ void expectBodyRoundTrip(const wstring& parameters, const wstring& expectedBody)
 	VSTPluginCommand cmd = VSTPluginCommand::parse(L"", parameters);
 	wstring body = cmd.serialize();
 	harness.expectTrue(body == expectedBody,
-		"serialize(parse(...)) body mismatch for: " + std::string(parameters.begin(), parameters.end()));
+		"serialize(parse(...)) body mismatch for: " + wintext::toNarrowString(parameters, 65001u));
 
 	VSTPluginCommand reparsed = VSTPluginCommand::parse(L"", L"Library C:\\plugins\\reverb.dll" + body);
 	harness.expectTrue(reparsed.serialize() == expectedBody,
-		"second round trip not stable for: " + std::string(parameters.begin(), parameters.end()));
+		"second round trip not stable for: " + wintext::toNarrowString(parameters, 65001u));
 }
 
-void testSerializeRoundTrip()
+TEST_CASE(VSTPluginCommandTests, testSerializeRoundTrip)
 {
 	// Library-only -> empty body. ChunkData and single-param forms round-trip to
 	// themselves. Multi-param maps are checked for stability separately because
@@ -203,7 +204,7 @@ void testSerializeRoundTrip()
 	VSTPluginCommand builtReparsed = VSTPluginCommand::parse(L"", L"Library C:\\plugins\\reverb.dll" + builtBody);
 	harness.expectEqual(paramValue(builtReparsed.paramMap, L"Feedback", "hand-built Feedback"), 0.6f, "hand-built round trip");
 }
-void testStereoInput()
+TEST_CASE(VSTPluginCommandTests, testStereoInput)
 {
 	// "StereoInput 1" is a reserved key, not a plugin parameter: it sets the
 	// flag, stays out of the param map, and serializes back as the leading
@@ -232,7 +233,7 @@ void expectInvalidBusContract(const wstring& parameters, const wchar_t* expected
 		"VSTPlugin bus-contract error identifies the invalid field");
 }
 
-void testVSTPluginBusContract()
+TEST_CASE(VSTPluginCommandTests, testVSTPluginBusContract)
 {
 	const wstring source = L"Library \"C:\\Program Files\\VST3\\Height Expander.vst3\" "
 		L"Input Stereo Output 7.1.4 ChunkData \"QUJDRA==\"";
@@ -304,7 +305,7 @@ void testVSTPluginBusContract()
 		L"cannot be combined");
 }
 
-void testVSTPluginChannelFill()
+TEST_CASE(VSTPluginCommandTests, testVSTPluginChannelFill)
 {
 	// Per-slot fill: one selector per negotiated bus slot, "-" for a silent
 	// input slot or a discarded output slot. Selectors stay verbatim because
@@ -367,21 +368,4 @@ void testVSTPluginChannelFill()
 	harness.expectEqual(paramValue(legacy.paramMap, L"InputChannels", "legacy InputChannels"), 0.5f,
 		"channel-fill: legacy InputChannels stays a plugin parameter");
 }
-}
-
-void runVSTPluginCommandTests()
-{
-	testLibraryOnly();
-	testQuotedPath();
-	testChunkData();
-	testNamedParams();
-	testQuotedName();
-	testIdParams();
-	testNonNumericValueBranch();
-	testSignedAndFractionalValuesAreNumbers();
-	testSerializeRoundTrip();
-	testStereoInput();
-	testVSTPluginBusContract();
-	testVSTPluginChannelFill();
-	harness.report();
 }

@@ -55,6 +55,41 @@ QString FileReferenceController::displayPathForBaseDirectory(
 	return QDir::toNativeSeparators(relative);
 }
 
+QString FileReferenceController::displayPathForLibrary(const QString& libraryPath, const QString& pluginsDirectory)
+{
+	const QString relative = QDir::toNativeSeparators(QDir(pluginsDirectory).relativeFilePath(libraryPath));
+	if (relative.startsWith(QDir::toNativeSeparators(QStringLiteral("../../"))))
+		return libraryPath;
+	return relative;
+}
+
+QString FileReferenceController::absolutePathForConfig(const QString& configPath, const QString& path)
+{
+	const std::wstring resolvedPath = ConfigFileReference::resolve(
+		configPath.toStdWString(), path.toStdWString());
+	if (resolvedPath.empty())
+		return QString();
+	return QDir::cleanPath(QString::fromStdWString(resolvedPath));
+}
+
+QString FileReferenceController::displayPathForConfigSelection(const QString& configPath, const QString& selectedPath)
+{
+	const QString absolutePath = absolutePathForConfig(configPath, selectedPath);
+	if (absolutePath.isEmpty())
+		return QString();
+
+	// The cards' rule, so a legacy row writes a chosen file the way a card does.
+	return displayPathForBaseDirectory(QFileInfo(configPath).absoluteDir().absolutePath(), absolutePath);
+}
+
+void FileReferenceController::adoptChosenFile(const QString& selectedPath, const QString& referenceBaseDirectory)
+{
+	written = referenceBaseDirectory.isEmpty()
+		? QDir::toNativeSeparators(selectedPath)
+		: displayPathForBaseDirectory(referenceBaseDirectory, selectedPath);
+	resolved = QDir::toNativeSeparators(selectedPath);
+}
+
 ReferenceCardState FileReferenceController::describe(const QString& emptyName) const
 {
 	ReferenceCardState state;

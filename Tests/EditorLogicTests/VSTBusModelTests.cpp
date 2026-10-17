@@ -12,7 +12,7 @@
 
 #include "Editor/widgets/cards/VSTBusModel.h"
 
-void testVSTBusModelMigratesAndEdits()
+TEST_CASE(EditorLogicTests, testVSTBusModelMigratesAndEdits)
 {
 	// A bare line: no contract, both directions read Auto.
 	VSTBusModel bare;

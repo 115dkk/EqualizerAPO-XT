@@ -100,6 +100,10 @@ Describe "extracted build script decisions" {
 
     It "plans the capture gate over a pinned virtual cable with the preamp measured three ways" {
         $plan = & (Join-Path $PSScriptRoot "..\Invoke-CaptureGate.ps1") -WorkspaceRoot $root -PlanOnly
+        # CI runs every measured phase; -Phases narrows a manual run.
+        $plan.Phases | Should -Be @("rounds", "plugin-load", "low-latency", "asio-entry")
+        (& (Join-Path $PSScriptRoot "..\Invoke-CaptureGate.ps1") -WorkspaceRoot $root -Phases plugin-load -PlanOnly).Phases |
+            Should -Be @("plugin-load")
         $plan.VbCableSha256 | Should -Match "^[0-9A-F]{64}$"
         $plan.VbCableUrl | Should -Match "^https://download\.vb-audio\.com/"
         $plan.RenderConnection | Should -Be "CABLE Input"
@@ -257,5 +261,62 @@ Describe "extracted build script decisions" {
 
         $variant = & $script -WorkspaceRoot $workspace -Platform x64 -SimdVariant sse2 -Regenerate -PlanOnly
         $variant.Mode | Should -Be "RecordVariant"
+    }
+}
+
+Describe "BuildModel.psm1" {
+    BeforeAll {
+        Import-Module (Join-Path $PSScriptRoot "..\BuildModel.psm1") -Force
+        $script:root = Join-Path $PSScriptRoot "..\..\.."
+    }
+
+    It "lists every project once, and every listed project exists" {
+        $graph = @(Get-EapoProjectGraph)
+        ($graph.Path | Select-Object -Unique).Count | Should -Be $graph.Count
+        foreach ($project in $graph) {
+            Join-Path $script:root $project.Path | Should -Exist
+        }
+    }
+
+    It "orders each project after the projects it references" {
+        $graph = @(Get-EapoProjectGraph)
+        $position = @{}
+        for ($i = 0; $i -lt $graph.Count; $i++) { $position[$graph[$i].Path] = $i }
+        foreach ($project in $graph) {
+            $file = Join-Path $script:root $project.Path
+            $xml = [xml](Get-Content -LiteralPath $file -Raw)
+            $refs = @($xml.Project.ItemGroup.ProjectReference | Where-Object { $_ } | ForEach-Object { $_.Include })
+            foreach ($ref in $refs) {
+                $full = [System.IO.Path]::GetFullPath((Join-Path (Split-Path $file -Parent) $ref))
+                $relative = [System.IO.Path]::GetRelativePath([System.IO.Path]::GetFullPath($script:root), $full)
+                if ($position.ContainsKey($relative)) {
+                    $position[$relative] | Should -BeLessThan $position[$project.Path] -Because "$($project.Name) references $relative"
+                }
+            }
+        }
+    }
+
+    It "selects by tag in graph order" {
+        @(Get-EapoProjectGraph -Tag engine).Name | Should -Be @("SubwooferRoutingCore", "Common")
+        @(Get-EapoProjectGraph -Tag win32).Name | Should -Be @("EqualizerAPOAsio", "FakeAsioDriver")
+        @(Get-EapoProjectGraph -Tag installer).Path | Should -Be @("Installer\Installer.vcxproj")
+    }
+
+    It "passes a dependency path only when its variable is set" {
+        $saved = $env:VST3_SDK
+        try {
+            $env:VST3_SDK = ""
+            Get-EapoMsBuildArguments -Platform x64 | Where-Object { $_ -like "/p:VST3_SDK=*" } | Should -BeNullOrEmpty
+            $env:VST3_SDK = "C:\deps\vst3sdk"
+            Get-EapoMsBuildArguments -Platform x64 | Should -Contain "/p:VST3_SDK=C:\deps\vst3sdk"
+            Get-EapoMsBuildArguments -Platform x64 -Dependencies None | Where-Object { $_ -like "/p:VST3_SDK=*" } | Should -BeNullOrEmpty
+        } finally { $env:VST3_SDK = $saved }
+    }
+
+    It "adds the arch flag on x64 only" {
+        Get-EapoMsBuildArguments -Platform x64 -ArchFlag AdvancedVectorExtensions2 |
+            Should -Contain "/p:EnableEnhancedInstructionSet=AdvancedVectorExtensions2"
+        Get-EapoMsBuildArguments -Platform ARM64 -ArchFlag AdvancedVectorExtensions2 |
+            Where-Object { $_ -like "/p:EnableEnhancedInstructionSet=*" } | Should -BeNullOrEmpty
     }
 }

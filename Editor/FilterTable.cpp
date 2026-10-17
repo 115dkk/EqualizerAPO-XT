@@ -45,9 +45,14 @@
 #include "audio/ChannelLayout.h"
 #include "services/registry/WindowsRegistry.h"
 #include "FilterTable.h"
+#include "FilterTemplate.h"
+#include "IFilterGUI.h"
+#include "IFilterGUIFactory.h"
+#include "devices/DeviceAPOInfo.h"
+#include "Editor/widgets/FilterCardModel.h"
+#include "Editor/widgets/FilterPickerView.h"
 #include "Editor/widgets/AddCardRow.h"
 #include "Editor/widgets/FilterInsertSeam.h"
-#include "Editor/widgets/FilterCardModel.h"
 #include "Editor/widgets/FilterRowGuiPolicy.h"
 #include "Editor/widgets/FilterCardRow.h"
 #include "Editor/widgets/cards/CommentCardEditor.h"
@@ -212,7 +217,8 @@ void FilterTable::updateGuis()
 	// a profiler build.
 	QElapsedTimer phaseTimer;
 	phaseTimer.start();
-	qint64 prepareNs = 0, guiNs = 0, rowCtorNs = 0, addNs = 0, channelsNs = 0;
+	qint64 prepareNs = 0, channelsNs = 0;
+	RowBuildTiming timing;
 
 	const QVector<FilterCardBuildPlan> rowPlans = renderMode == ModernCards
 		? FilterCardModel::prepareRows(getLines()) : QVector<FilterCardBuildPlan>();
@@ -225,37 +231,7 @@ void FilterTable::updateGuis()
 			descriptor = row < rowPlans.size()
 				? rowPlans[row].descriptor
 				: FilterCardModel::describeLine(item->text);
-		phaseTimer.start();
-		IFilterGUI* gui = createRowGui(item->text,
-			renderMode == ModernCards ? &descriptor : nullptr);
-		guiNs += phaseTimer.nsecsElapsed();
-
-		// LegacyRows is a frozen fallback that must not be extended; see the
-		// RenderMode enum and docs/FilterListUiPolicy.md.
-		// Parent the card here instead of letting addWidget() reparent it: moving
-		// a finished ~40-widget card under the stylesheet-dressed table forces a
-		// style re-resolution of the whole subtree (measured ~3 ms per card).
-		// With the parent fixed up front, addWidget() only places the item.
-		phaseTimer.start();
-		QWidget* rowWidget = renderMode == ModernCards
-			? static_cast<QWidget*>(new FilterCardRow(this, row + 1, item, gui, std::move(descriptor), this))
-			: static_cast<QWidget*>(new FilterTableRow(this, row + 1, item, gui));
-		rowCtorNs += phaseTimer.nsecsElapsed();
-		phaseTimer.start();
-		gridLayout->addWidget(rowWidget, row, 0);
-		addNs += phaseTimer.nsecsElapsed();
-
-		item->gui = gui;
-
-		if (gui != nullptr)
-		{
-			gui->loadPreferences(item->prefs);
-
-			if (renderMode != ModernCards)
-				connect(gui, SIGNAL(updateModel()), this, SLOT(updateModel()));
-			connect(gui, SIGNAL(updateChannels()), this, SLOT(updateChannels()));
-		}
-
+		buildRow(row, item, std::move(descriptor), &timing);
 		row++;
 	}
 
@@ -330,8 +306,8 @@ void FilterTable::updateGuis()
 	setUpdatesEnabled(updatesWereEnabled);
 
 	TraceF(L"Create took %d ms (prepare %d, editor guis %d, card rows %d, add %d, channels %d, rows %d)",
-		int(timer.elapsed()), int(prepareNs / 1000000), int(guiNs / 1000000),
-		int(rowCtorNs / 1000000), int(addNs / 1000000), int(channelsNs / 1000000), row);
+		int(timer.elapsed()), int(prepareNs / 1000000), int(timing.guiNs / 1000000),
+		int(timing.rowCtorNs / 1000000), int(timing.addNs / 1000000), int(channelsNs / 1000000), row);
 	update();
 }
 
@@ -409,6 +385,45 @@ void FilterTable::resizeEvent(QResizeEvent* event)
 		insertSeam->setGeometry(0, 0, width(), 10);
 }
 
+QWidget* FilterTable::buildRow(int index, Item* item, FilterCardDescriptor descriptor, RowBuildTiming* timing)
+{
+	QElapsedTimer phaseTimer;
+	phaseTimer.start();
+	IFilterGUI* gui = createRowGui(item->text,
+		renderMode == ModernCards ? &descriptor : nullptr);
+	if (timing != nullptr)
+		timing->guiNs += phaseTimer.nsecsElapsed();
+
+	// LegacyRows is a frozen fallback that must not be extended; see the
+	// RenderMode enum and docs/FilterListUiPolicy.md.
+	// Parent the card here instead of letting addWidget() reparent it: moving
+	// a finished ~40-widget card under the stylesheet-dressed table forces a
+	// style re-resolution of the whole subtree (measured ~3 ms per card).
+	// With the parent fixed up front, addWidget() only places the item.
+	phaseTimer.start();
+	QWidget* rowWidget = renderMode == ModernCards
+		? static_cast<QWidget*>(new FilterCardRow(this, index + 1, item, gui, std::move(descriptor), this))
+		: static_cast<QWidget*>(new FilterTableRow(this, index + 1, item, gui));
+	if (timing != nullptr)
+		timing->rowCtorNs += phaseTimer.nsecsElapsed();
+	phaseTimer.start();
+	gridLayout->addWidget(rowWidget, index, 0);
+	if (timing != nullptr)
+		timing->addNs += phaseTimer.nsecsElapsed();
+
+	item->gui = gui;
+	if (gui != nullptr)
+	{
+		gui->loadPreferences(item->prefs);
+		// A card row writes its line through the document itself
+		// (FilterCardRow), so only the legacy GUIs announce their edit here.
+		if (renderMode != ModernCards)
+			connect(gui, SIGNAL(updateModel()), this, SLOT(notifyLineEdited()));
+		connect(gui, SIGNAL(updateChannels()), this, SLOT(updateChannels()));
+	}
+	return rowWidget;
+}
+
 IFilterGUI* FilterTable::createRowGui(const QString& line, const FilterCardDescriptor* preparedDescriptor)
 {
 	FilterCardDescriptor derivedDescriptor;
@@ -418,18 +433,16 @@ IFilterGUI* FilterTable::createRowGui(const QString& line, const FilterCardDescr
 		preparedDescriptor = &derivedDescriptor;
 	}
 
-	int pos = line.indexOf(':');
-	// allow to use indentation
-	QString factoryKey = pos == -1 ? QString() : line.mid(0, pos).trimmed();
-	QString factoryValue = pos == -1 ? QString() : line.mid(pos + 1);
-
 	// The decision itself is pure and pinned by EditorLogicTests
 	// (FilterRowGuiPolicy, audit #275 B4); this function only constructs
-	// what was decided.
+	// what was decided. In card mode the card lookup judges a commented
+	// command line by its uncommented form (rowGuiCardKey), so the decision
+	// is made once and no legacy GUI is built only to be replaced.
+	const RowGuiCardKey cardKey = rowGuiCardKey(renderMode == ModernCards, line);
 	const RowGuiDecision decision = decideRowGui(renderMode == ModernCards, line,
 		preparedDescriptor,
 		SkinManager::instance()->routingRenderer() != nullptr,
-		pos != -1 && FilterCardEditorFactory::available(factoryKey, factoryValue));
+		cardKey.hasColon && FilterCardEditorFactory::available(cardKey.command, cardKey.parameters));
 
 	switch (decision)
 	{
@@ -443,7 +456,7 @@ IFilterGUI* FilterTable::createRowGui(const QString& line, const FilterCardDescr
 		return nullptr;
 	case RowGuiDecision::CardEditor:
 	{
-		IFilterGUI* cardGui = FilterCardEditorFactory::create(this, factoryKey, factoryValue);
+		IFilterGUI* cardGui = FilterCardEditorFactory::create(this, cardKey.command, cardKey.parameters);
 		if (cardGui != nullptr)
 			return cardGui;
 		// available() answers per line since audit #348 TD-57, so an
@@ -457,40 +470,32 @@ IFilterGUI* FilterTable::createRowGui(const QString& line, const FilterCardDescr
 		break;
 	}
 
-	// Factory results are parentless until the selected row adopts them. Keep
-	// the temporary legacy GUI scoped while card-mode replacement is decided,
-	// so a card constructor failure cannot strand it.
-	std::unique_ptr<IFilterGUI> gui;
+	// The legacy factory chain, with the key as written: its transformers
+	// (ExpressionFilterGUIFactory blanking a dynamic line, then
+	// CommentFilterGUIFactory stripping a leading '#') run first and rewrite
+	// the key in place for the factories after them.
+	const int pos = line.indexOf(':');
+	// allow to use indentation
+	QString factoryKey = pos == -1 ? QString() : line.mid(0, pos).trimmed();
+	QString factoryValue = pos == -1 ? QString() : line.mid(pos + 1);
+	IFilterGUI* gui = nullptr;
 	for (const auto& factory : factories)
 	{
-		gui.reset(factory->createFilterGUI(factoryKey, factoryValue));
+		gui = factory->createFilterGUI(factoryKey, factoryValue);
 		if (gui != nullptr || factoryKey == "")
 			break;
 	}
 
-	if (gui == nullptr)
-		return nullptr;
-
-	if (renderMode == ModernCards)
-	{
-		// factoryKey is the command after CommentFilterGUIFactory strips a
-		// leading '#', so "# Include: a.txt" reaches the card factory with the
-		// same key as "Include: a.txt". Without this, only the active line
-		// would receive the modern card editor and the commented line would
-		// fall back to the legacy GUI.
-		IFilterGUI* cardGui = FilterCardEditorFactory::create(this, factoryKey, factoryValue);
-		if (cardGui != nullptr)
-			return cardGui;
-		// In Modern Cards we skip the legacy CommentFilterGUI decorator on
-		// purpose: the card row already owns the enable/disable affordance
-		// and a second power toolbar inside the body editor only produces
-		// rules that disagree with the card header.
-		return gui.release();
-	}
+	// In Modern Cards the chain's GUI is the row's editor as it stands: the
+	// card question was answered above. The legacy CommentFilterGUI
+	// decorator is skipped on purpose: the card row already owns the
+	// enable/disable affordance and a second power toolbar inside the body
+	// editor only produces rules that disagree with the card header.
+	if (gui == nullptr || renderMode == ModernCards)
+		return gui;
 
 	// The legacy decorator Interface accepts and may adopt a raw child pointer.
-	// Release at that established ownership-transfer seam.
-	IFilterGUI* decoratedGui = gui.release();
+	IFilterGUI* decoratedGui = gui;
 	for (const auto& factory : factories)
 		decoratedGui = factory->decorateFilterGUI(decoratedGui);
 	return decoratedGui;
@@ -535,27 +540,10 @@ void FilterTable::updateSingleRowGui(Item* item)
 	if (renderMode == ModernCards)
 	{
 		rowScopes = FilterCardModel::calculateScopes(getLines());
-		const FilterCardRowScope scope = rowIndex < rowScopes.size() ? rowScopes[rowIndex] : FilterCardRowScope();
-		descriptor = FilterCardModel::describeLine(item->text, scope.indent);
-		descriptor.logicDepth = scope.logic;
-		descriptor.scopeChannels = scope.channels;
+		descriptor = FilterCardModel::describeRow(item->text,
+			rowIndex < rowScopes.size() ? rowScopes[rowIndex] : FilterCardRowScope());
 	}
-	IFilterGUI* gui = createRowGui(item->text,
-		renderMode == ModernCards ? &descriptor : nullptr);
-	// Same render-mode and parenting policy as updateGuis().
-	QWidget* rowWidget = renderMode == ModernCards
-		? static_cast<QWidget*>(new FilterCardRow(this, rowIndex + 1, item, gui, std::move(descriptor), this))
-		: static_cast<QWidget*>(new FilterTableRow(this, rowIndex + 1, item, gui));
-	gridLayout->addWidget(rowWidget, rowIndex, 0);
-
-	item->gui = gui;
-	if (gui != nullptr)
-	{
-		gui->loadPreferences(item->prefs);
-		if (renderMode != ModernCards)
-			connect(gui, SIGNAL(updateModel()), this, SLOT(updateModel()));
-		connect(gui, SIGNAL(updateChannels()), this, SLOT(updateChannels()));
-	}
+	buildRow(rowIndex, item, std::move(descriptor));
 
 	// The edited row may be a scope head (a Channel: or If: line whose enable
 	// state just flipped): the indent and channel scope of every row below it
@@ -671,21 +659,8 @@ void FilterTable::insertRowAt(int index)
 	// not change.
 	Item* item = model.items().at(index);
 	QVector<FilterCardRowScope> rowScopes = FilterCardModel::calculateScopes(getLines());
-	FilterCardRowScope scope = index < rowScopes.size() ? rowScopes[index] : FilterCardRowScope();
-	FilterCardDescriptor descriptor = FilterCardModel::describeLine(item->text, scope.indent);
-	descriptor.logicDepth = scope.logic;
-	descriptor.scopeChannels = scope.channels;
-	IFilterGUI* gui = createRowGui(item->text, &descriptor);
-	QWidget* rowWidget = new FilterCardRow(this, index + 1, item, gui, std::move(descriptor), this);
-	gridLayout->addWidget(rowWidget, index, 0);
-
-	item->gui = gui;
-	if (gui != nullptr)
-	{
-		gui->loadPreferences(item->prefs);
-		// Card mode never connects updateModel here, matching updateGuis().
-		connect(gui, SIGNAL(updateChannels()), this, SLOT(updateChannels()));
-	}
+	buildRow(index, item, FilterCardModel::describeRow(item->text,
+		index < rowScopes.size() ? rowScopes[index] : FilterCardRowScope()));
 
 	// Rows below the insertion point keep their widgets, but their 1-based
 	// number and possibly their channel/If scope changed.

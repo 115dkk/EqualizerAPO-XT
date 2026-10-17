@@ -30,15 +30,6 @@ using std::wregex;
 using std::wsmatch;
 using std::wstring;
 
-// Regexes preserved from FilterParameters::deSerialize. ReferenceLevel and
-// ReferenceOffset only accept integers; Attenuation only accepts values
-// between 0 and 1, with a decimal point or comma like every other command.
-// (wcstod used to stop at the comma and read "0,5" as 0; audit #348 TD-42.)
-static wregex regexState(L"\\s*State\\s+(0|1)");
-static wregex regexReferenceLevel(L"\\s*ReferenceLevel\\s+([-+0-9]+)");
-static wregex regexReferenceOffset(L"\\s*ReferenceOffset\\s+([-+0-9]+)");
-static wregex regexAttenuation(L"\\s*Attenuation\\s+((1((\\.|,)0+)?)|(0((\\.|,)[0-9]+)?))");
-
 wstring LoudnessCorrectionCommand::serialize() const
 {
 	wstring result = L"State " + std::to_wstring(state ? 1 : 0)
@@ -58,6 +49,14 @@ wstring LoudnessCorrectionCommand::serialize() const
 
 bool LoudnessCorrectionCommand::parse(const wstring& command, const wstring& parameters, LoudnessCorrectionCommand& out)
 {
+	// Regexes preserved from FilterParameters::deSerialize. ReferenceLevel and
+	// ReferenceOffset only accept integers; Attenuation only accepts values
+	// between 0 and 1, with a decimal point or comma like every other command.
+	static const wregex regexState(L"\\s*State\\s+(0|1)");
+	static const wregex regexReferenceLevel(L"\\s*ReferenceLevel\\s+([-+0-9]+)");
+	static const wregex regexReferenceOffset(L"\\s*ReferenceOffset\\s+([-+0-9]+)");
+	static const wregex regexAttenuation(L"\\s*Attenuation\\s+((1((\\.|,)0+)?)|(0((\\.|,)[0-9]+)?))");
+
 	if (command != L"LoudnessCorrection")
 		return false;
 

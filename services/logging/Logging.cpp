@@ -26,6 +26,7 @@
 
 #include "services/registry/WindowsRegistry.h"
 #include "services/logging/Logging.h"
+#include "platform/windows/WindowsPath.h"
 
 using std::log;
 using std::wstring;
@@ -193,22 +194,18 @@ void Logging::useFile(const std::wstring& path, bool traceEnabled, bool compactO
 	initialized.store(true, std::memory_order_release);
 }
 
+std::wstring Logging::userLogDirectory()
+{
+	const auto local = pathutil::environmentVariable(L"LOCALAPPDATA");
+	return local.empty() ? std::wstring() : pathutil::joinPath(local, L"EqualizerAPO\\logs");
+}
+
 bool Logging::useUserFile(const std::wstring& fileName, bool traceEnabled, bool compactOutput, bool consoleColors)
 {
-	wchar_t localAppData[MAX_PATH] = {};
-	DWORD length = GetEnvironmentVariableW(L"LOCALAPPDATA", localAppData, MAX_PATH);
-	if (length == 0 || length >= MAX_PATH || fileName.empty())
+	const auto directory = userLogDirectory();
+	if (directory.empty() || fileName.empty() || !pathutil::createDirectoryRecursive(directory))
 		return false;
-
-	std::wstring productDirectory = std::wstring(localAppData, length) + L"\\EqualizerAPO";
-	if (!CreateDirectoryW(productDirectory.c_str(), nullptr) && GetLastError() != ERROR_ALREADY_EXISTS)
-		return false;
-
-	std::wstring logDirectory = productDirectory + L"\\logs";
-	if (!CreateDirectoryW(logDirectory.c_str(), nullptr) && GetLastError() != ERROR_ALREADY_EXISTS)
-		return false;
-
-	useFile(logDirectory + L"\\" + fileName, traceEnabled, compactOutput, consoleColors);
+	useFile(pathutil::joinPath(directory, fileName), traceEnabled, compactOutput, consoleColors);
 	return true;
 }
 

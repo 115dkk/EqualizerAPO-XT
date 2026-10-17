@@ -3,7 +3,7 @@
 #include "SubwooferRouting/Json.h"
 #include "SubwooferRouting/State.h"
 #include "SubwooferRouting/StateCodec.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 #include <cstddef>
 #include <string>
@@ -12,7 +12,7 @@
 namespace
 {
 
-test::Harness harness("SubwooferRoutingCodecTests");
+test::HarnessAccess harness;
 
 subroute::SubwooferRoutingState makeCompleteState()
 {
@@ -140,7 +140,7 @@ bool hasError(
 	return false;
 }
 
-void testCanonicalRoundTrip()
+TEST_CASE(SubwooferRoutingCodecTests, testCanonicalRoundTrip)
 {
 	const subroute::StateEncodeResult firstEncoding =
 		subroute::encodeStateCanonical(makeCompleteState());
@@ -177,7 +177,7 @@ void testCanonicalRoundTrip()
 		"Encode-decode-encode must be byte-identical");
 }
 
-void testMissingMemberPointer()
+TEST_CASE(SubwooferRoutingCodecTests, testMissingMemberPointer)
 {
 	subroute::Json document = parseEncodedState();
 	document.at("metadata").asObject().erase("profileName");
@@ -196,7 +196,7 @@ void testMissingMemberPointer()
 		"Missing member must report its exact JSON pointer");
 }
 
-void testUnknownMemberRejected()
+TEST_CASE(SubwooferRoutingCodecTests, testUnknownMemberRejected)
 {
 	subroute::Json document = parseEncodedState();
 	document.at("paths")
@@ -218,7 +218,7 @@ void testUnknownMemberRejected()
 		"Unknown member must report UnexpectedMember");
 }
 
-void testBadEnumValue()
+TEST_CASE(SubwooferRoutingCodecTests, testBadEnumValue)
 {
 	subroute::Json document = parseEncodedState();
 	document.at("paths").at(1).at("kind") =
@@ -238,7 +238,7 @@ void testBadEnumValue()
 		"Bad enum value must report InvalidEnumValue");
 }
 
-void testNewerVersionRejected()
+TEST_CASE(SubwooferRoutingCodecTests, testNewerVersionRejected)
 {
 	subroute::Json document = parseEncodedState();
 	document.at("version") = subroute::Json(2.0);
@@ -257,7 +257,7 @@ void testNewerVersionRejected()
 		"Version 2 must report UnsupportedNewerVersion");
 }
 
-void testOlderVersionRejected()
+TEST_CASE(SubwooferRoutingCodecTests, testOlderVersionRejected)
 {
 	subroute::Json document = parseEncodedState();
 	document.at("version") = subroute::Json(0.0);
@@ -276,7 +276,7 @@ void testOlderVersionRejected()
 		"Version 0 must report UnsupportedOlderVersion");
 }
 
-void testWrongSchemaRejected()
+TEST_CASE(SubwooferRoutingCodecTests, testWrongSchemaRejected)
 {
 	subroute::Json document = parseEncodedState();
 	document.at("schema") = subroute::Json("wrong.schema");
@@ -295,7 +295,7 @@ void testWrongSchemaRejected()
 		"Wrong schema must report InvalidSchema");
 }
 
-void testAllStageVariantsRoundTrip()
+TEST_CASE(SubwooferRoutingCodecTests, testAllStageVariantsRoundTrip)
 {
 	const subroute::StateEncodeResult encoded =
 		subroute::encodeStateCanonical(makeCompleteState());
@@ -346,7 +346,7 @@ void testAllStageVariantsRoundTrip()
 		"Fifth stage must remain EqualizerSlotsStage");
 }
 
-void testEmptyEqSlotsPreserved()
+TEST_CASE(SubwooferRoutingCodecTests, testEmptyEqSlotsPreserved)
 {
 	const subroute::StateEncodeResult encoded =
 		subroute::encodeStateCanonical(makeCompleteState());
@@ -385,18 +385,4 @@ void testEmptyEqSlotsPreserved()
 		"Empty eqSlots filters array must remain empty");
 }
 
-}
-
-void runSubwooferRoutingCodecTests()
-{
-	testCanonicalRoundTrip();
-	testMissingMemberPointer();
-	testUnknownMemberRejected();
-	testBadEnumValue();
-	testNewerVersionRejected();
-	testOlderVersionRejected();
-	testWrongSchemaRejected();
-	testAllStageVariantsRoundTrip();
-	testEmptyEqSlotsPreserved();
-	harness.report();
 }

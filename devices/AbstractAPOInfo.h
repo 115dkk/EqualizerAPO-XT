@@ -36,17 +36,18 @@ public:
 	virtual unsigned long getChannelMask() const = 0;
 	virtual bool isInput() const = 0;
 	virtual bool isInstalled() const = 0;
-	virtual bool canBeUpgraded() const = 0;
+	virtual bool canBeUpgraded() const {return false;}
 	virtual bool hasChanges() const = 0;
-	virtual bool isEnhancementsDisabled() const = 0;
-	virtual bool isDefaultDevice() const = 0;
-	virtual bool isDisabled() const = 0;
-	virtual bool isUnplugged() const = 0;
+	virtual bool isEnhancementsDisabled() const {return false;}
+	virtual bool isDefaultDevice() const {return false;}
+	virtual bool isDisabled() const {return false;}
+	virtual bool isUnplugged() const {return false;}
 	// All three throw only exceptions derived from WideError
 	// (runtime/errors/WideError.h): RegistryError when the registry refuses
 	// a read or write, DeviceException for any other device error (a missing
 	// InstallPath, an endpoint that is gone). A caller that does not care
 	// which catches `const WideError&` (audit #348 C1/TD-32).
+	virtual std::wstring stateNote() const {return {};}
 	virtual void install() = 0;
 	virtual void uninstall() = 0;
 	virtual void reinstall() = 0;

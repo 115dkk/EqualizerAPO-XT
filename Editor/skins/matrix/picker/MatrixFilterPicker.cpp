@@ -13,7 +13,6 @@
 #include <QMouseEvent>
 #include <QPainter>
 
-#include "Editor/SkinManager.h"
 #include "Editor/helpers/GUIHelper.h"
 
 namespace

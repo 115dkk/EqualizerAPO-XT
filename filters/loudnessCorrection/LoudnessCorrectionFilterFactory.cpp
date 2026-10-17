@@ -39,12 +39,10 @@ LoudnessCorrectionFilterFactory::LoudnessCorrectionFilterFactory()
 {
 }
 
-FilterVector LoudnessCorrectionFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+LineOutcome LoudnessCorrectionFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
-	FilterVector allFilters;
-
 	if (command != L"LoudnessCorrection")
-		return allFilters;
+		return LineOutcome::notMine();
 
 	LoudnessCorrectionCommand cmd;
 	if (!LoudnessCorrectionCommand::parse(command, parameters, cmd))
@@ -52,20 +50,17 @@ FilterVector LoudnessCorrectionFilterFactory::createFilter(const wstring& config
 		// The parser wants all three of State, ReferenceLevel and
 		// ReferenceOffset; a line missing any of them produced nothing at all and
 		// said nothing about which.
-		return reportParseError(command,
+		return LineOutcome::malformed(
 			L"expected State, ReferenceLevel and ReferenceOffset, as in "
 			L"\"State 1 ReferenceLevel 75 ReferenceOffset 0\"");
 	}
 
-	{
-		TraceF(L"Adding loudness correction filter");
-		LoudnessCorrectionFilter::FilterParameters filterParameters;
-		filterParameters.state = cmd.state;
-		filterParameters.referenceLevel = cmd.referenceLevel;
-		filterParameters.referenceOffset = cmd.referenceOffset;
-		filterParameters.attenuation = cmd.attenuation;
-		allFilters.push_back(makeFilter<LoudnessCorrectionFilter>(filterParameters));
-	}
-
-	return allFilters;
+	TraceF(L"Adding loudness correction filter");
+	LoudnessCorrectionFilter::FilterParameters filterParameters;
+	filterParameters.state = cmd.state;
+	filterParameters.referenceLevel = cmd.referenceLevel;
+	filterParameters.referenceOffset = cmd.referenceOffset;
+	filterParameters.attenuation = cmd.attenuation;
+	return LineOutcome::produced(singleFilter(
+		makeFilter<LoudnessCorrectionFilter>(filterParameters)));
 }

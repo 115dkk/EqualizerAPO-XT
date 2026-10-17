@@ -12,15 +12,15 @@
 
 #include "filters/loudnessCorrection/LoudnessCorrectionCommand.h"
 #include "filters/loudnessCorrection/LoudnessCorrectionFilter.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 using std::wstring;
 
 namespace
 {
-test::Harness harness("LoudnessCorrectionCommandTests");
+test::HarnessAccess harness;
 
-void testCommandRecognition()
+TEST_CASE(LoudnessCorrectionCommandTests, testCommandRecognition)
 {
 	LoudnessCorrectionCommand cmd;
 
@@ -40,7 +40,7 @@ void testCommandRecognition()
 		"command match is case-sensitive");
 }
 
-void testParameterValidation()
+TEST_CASE(LoudnessCorrectionCommandTests, testParameterValidation)
 {
 	LoudnessCorrectionCommand cmd;
 
@@ -77,7 +77,7 @@ void testParameterValidation()
 	harness.expectTrue(cmd.attenuation == 0.5f, "and reads as 0.5, not 0");
 }
 
-void testSerialization()
+TEST_CASE(LoudnessCorrectionCommandTests, testSerialization)
 {
 	LoudnessCorrectionCommand cmd;
 	cmd.state = true;
@@ -94,7 +94,7 @@ void testSerialization()
 		"fractional attenuation uses the shortest form");
 }
 
-void testRoundTrip()
+TEST_CASE(LoudnessCorrectionCommandTests, testRoundTrip)
 {
 	const wstring cases[] = {
 		L"State 1 ReferenceLevel -20 ReferenceOffset 5 Attenuation 0.5",
@@ -121,7 +121,7 @@ void testRoundTrip()
 // Audit #348 TD-03: at the reference point the preamp was left unwritten, so
 // initialize() derived the attenuation from an uninitialised double. The
 // three volume regions are pinned here through the pure low-shelf function.
-void testLowShelfRegions()
+TEST_CASE(LoudnessCorrectionCommandTests, testLowShelfRegions)
 {
 	LoudnessCorrectionFilter::FilterParameters parameters;
 	parameters.state = true;
@@ -153,7 +153,7 @@ void testLowShelfRegions()
 // initialize() assigned a new update thread over the running one, which is
 // std::terminate. It now stops the first thread and starts over, so the
 // second call's channel count is the one process() uses.
-void testInitializeTwice()
+TEST_CASE(LoudnessCorrectionCommandTests, testInitializeTwice)
 {
 	LoudnessCorrectionFilter::FilterParameters parameters;
 	// State 0: process() copies input to output over _channelCount channels,
@@ -186,16 +186,4 @@ void testInitializeTwice()
 			unchanged = unchanged && output[c][n] == input[c][n];
 	harness.expectTrue(unchanged, "after the second initialize all three channels are processed");
 }
-}
-
-void runLoudnessCorrectionCommandTests()
-{
-	testCommandRecognition();
-	testParameterValidation();
-	testSerialization();
-	testRoundTrip();
-	testLowShelfRegions();
-	testInitializeTwice();
-
-	harness.report();
 }

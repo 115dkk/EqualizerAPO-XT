@@ -83,7 +83,10 @@ struct FilterInfo
 class FilterConfiguration
 {
 public:
-	FilterConfiguration(const EngineStreamFormat& format, std::vector<std::unique_ptr<FilterInfo>> filterInfos, unsigned allChannelCount);
+	// configuredChannelCount includes virtual channels from the parsed graph.
+	// The stream's real/output counts are the lower bound, so every caller gets
+	// storage that both read() and write() can address.
+	FilterConfiguration(const EngineStreamFormat& format, std::vector<std::unique_ptr<FilterInfo>> filterInfos, unsigned configuredChannelCount);
 	~FilterConfiguration();
 
 	void read(double* input, unsigned frameCount);
@@ -107,7 +110,7 @@ public:
 	void writeFloatInterleaved(float* output, unsigned frameCount);
 	void writeFloatPlanar(float* const* output, unsigned frameCount);
 	double** getOutputSamples() {return allSamples.data();}
-	bool isEmpty();
+	bool isEmpty() const;
 	// True if every filter in this configuration guarantees silent output for
 	// silent input (no cross-block state, no tail). Cached at construction.
 	bool isAllStateless() const { return allStateless; }

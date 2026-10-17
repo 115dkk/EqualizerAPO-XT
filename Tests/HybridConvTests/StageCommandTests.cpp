@@ -12,13 +12,13 @@
 #include <vector>
 
 #include "filters/StageCommand.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 using std::wstring;
 
 namespace
 {
-test::Harness harness("StageCommandTests");
+test::HarnessAccess harness;
 
 StageCommand parseStages(const wstring& parameters)
 {
@@ -28,7 +28,7 @@ StageCommand parseStages(const wstring& parameters)
 	return cmd;
 }
 
-void testTokenization()
+TEST_CASE(StageCommandTests, testTokenization)
 {
 	StageCommand cmd = parseStages(L" pre-mix post-mix ");
 	harness.requireEqual(cmd.stages.size(), (size_t)2, "'pre-mix post-mix' selector count");
@@ -55,7 +55,7 @@ void testTokenization()
 	harness.expectEqual(cmd.stages.size(), (size_t)0, "blank parameters give no selectors");
 }
 
-void testContains()
+TEST_CASE(StageCommandTests, testContains)
 {
 	StageCommand cmd = parseStages(L"post-mix capture");
 	harness.expectTrue(cmd.contains(StageCommand::postMix), "contains post-mix");
@@ -63,14 +63,14 @@ void testContains()
 	harness.expectFalse(cmd.contains(StageCommand::preMix), "does not contain pre-mix");
 }
 
-void testCommandRecognition()
+TEST_CASE(StageCommandTests, testCommandRecognition)
 {
 	StageCommand cmd;
 	harness.expectFalse(StageCommand::parse(L"Preamp", L"pre-mix", cmd), "'Preamp' must not parse as Stage");
 	harness.expectFalse(StageCommand::parse(L"stage", L"pre-mix", cmd), "command match is case-sensitive");
 }
 
-void testRoundTrip()
+TEST_CASE(StageCommandTests, testRoundTrip)
 {
 	const wstring cases[] = {
 		L"pre-mix",
@@ -91,14 +91,4 @@ void testRoundTrip()
 		harness.expectTrue(second.serialize() == serialized, "second serialization is identical");
 	}
 }
-}
-
-void runStageCommandTests()
-{
-	testTokenization();
-	testContains();
-	testCommandRecognition();
-	testRoundTrip();
-
-	harness.report();
 }

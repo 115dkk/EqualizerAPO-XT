@@ -110,8 +110,9 @@ struct ChunkBlob
 // return.
 struct PluginState
 {
-	float params[kNumParams];
-	ChunkBlob chunkScratch;
+	vst_host_callback_t host = nullptr;
+	float params[kNumParams]{};
+	ChunkBlob chunkScratch{};
 };
 
 PluginState* stateOf(vst_effect_t* effect)
@@ -209,6 +210,12 @@ intptr_t VST_FUNCTION_INTERFACE dispatcher(vst_effect_t* effect, int32_t opcode,
 		return 0;
 
 	case VST_EFFECT_OPCODE_DESTROY: // effClose
+		// The host must detach caller closures before entering plug-in teardown.
+		if (state != nullptr && state->host != nullptr)
+		{
+			state->host(effect, VST_HOST_OPCODE_AUTOMATE, 0, 0, nullptr, 0.0f);
+			state->host(effect, VST_HOST_OPCODE_EDITOR_RESIZE, 400, 300, nullptr, 0.0f);
+		}
 		delete state;
 		if (effect != nullptr)
 			effect->effect_internal = nullptr;
@@ -301,9 +308,10 @@ intptr_t VST_FUNCTION_INTERFACE dispatcher(vst_effect_t* effect, int32_t opcode,
 	}
 }
 
-vst_effect_t* createEffect()
+vst_effect_t* createEffect(vst_host_callback_t callback)
 {
 	PluginState* state = new PluginState();
+	state->host = callback;
 	state->params[kParamGain] = 1.0f;
 	state->params[kParamBypass] = 0.0f;
 	std::memset(&state->chunkScratch, 0, sizeof(state->chunkScratch));
@@ -361,8 +369,7 @@ vst_effect_t* createEffect()
 
 // VST 2.x entry point. VSTPluginLibrary::loadFunctions resolves exactly this
 // symbol via GetProcAddress(module, "VSTPluginMain"); the callback lets the
-// plugin query the host but this plugin needs nothing from it, so we ignore it
-// after the create.
+// plugin query the host, including during teardown.
 //
 // The engine's loader only ever looks up "VSTPluginMain", never the legacy
 // `main`/`MAIN` aliases, so no alias export is added here. Adding one would not
@@ -370,6 +377,16 @@ vst_effect_t* createEffect()
 // a DLL is needless surface area.
 extern "C" __declspec(dllexport) vst_effect_t* VST_FUNCTION_INTERFACE VSTPluginMain(vst_host_callback_t callback)
 {
-	(void)callback;
-	return createEffect();
+	wchar_t probe[2] = {};
+	if (GetEnvironmentVariableW(L"EAPO_TEST_VST_HOST_CALLBACKS", probe, 2) != 0)
+	{
+		char product[64] = {};
+		if (callback(nullptr, VST_HOST_OPCODE_PRODUCT_NAME, 0, 0, nullptr, 0.0f) != 0
+			|| callback(nullptr, VST_HOST_OPCODE_PRODUCT_NAME, 0, 0, product, 0.0f) != 1
+			|| strcmp(product, "Equalizer APO") != 0
+			|| callback(nullptr, VST_HOST_OPCODE_SUPPORTS, 0, 0, nullptr, 0.0f) != 0
+			|| callback(nullptr, VST_HOST_OPCODE_SUPPORTS, 0, 0, "sizeWindow", 0.0f) != 1)
+			return nullptr;
+	}
+	return createEffect(callback);
 }

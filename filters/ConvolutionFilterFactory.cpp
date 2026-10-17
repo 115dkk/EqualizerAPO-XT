@@ -32,7 +32,7 @@ REGISTER_FILTER_FACTORY(FilterFactoryPriority::Convolution, ConvolutionFilterFac
 using std::vector;
 using std::wstring;
 
-FilterVector ConvolutionFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+LineOutcome ConvolutionFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	ConvolutionCommand cmd;
 	// parse() answers false only for another command's line, so everything below
@@ -41,13 +41,13 @@ FilterVector ConvolutionFilterFactory::createFilter(const wstring& configPath, w
 		return {};
 
 	if (cmd.path.empty())
-		return reportParseError(command, L"expected the path of an impulse response file");
+		return LineOutcome::malformed(L"expected the path of an impulse response file");
 
 	ConfigFileReference::Target file = ConfigFileReference::target(configPath, cmd.path);
 	if (!file.refusal.empty())
-		return reportParseError(command, file.refusal);
+		return LineOutcome::malformed(file.refusal);
 	if (file.path.empty())
-		return reportParseError(command, L"the impulse response file \"" + cmd.path + L"\" was not found");
+		return LineOutcome::malformed(L"the impulse response file \"" + cmd.path + L"\" was not found");
 
-	return singleFilter(makeFilter<ConvolutionFilter>(std::move(file.path)));
+	return LineOutcome::produced(singleFilter(makeFilter<ConvolutionFilter>(std::move(file.path))));
 }

@@ -8,6 +8,7 @@
 
 #include <QApplication>
 #include <QFile>
+#include <QFileDialog>
 #include <QWidget>
 
 #include "services/logging/Logging.h"
@@ -87,6 +88,13 @@ void SkinManager::applySkin(const QString& newSkinId, bool dark)
 	// three times (main(), loadPreferences() before and after the open-files
 	// restore); the post-restore pass alone re-polished every filter card and
 	// took seconds on a large config.
+	//
+	// This early return is part of ISkin::styleMainToolbar's contract: a
+	// same-skin, same-mode re-apply sets no sheet (so no StyleChange) and
+	// emits no skinChanged, so nothing that listens for either runs.
+	// Emitting skinChanged here instead would rebuild every row on each such
+	// call. Callers that need the toolbar dressed anyway call the hook
+	// themselves (MainWindow::applyRedesignPreferences).
 	if (sheetApplied && !heritageMode && darkMode == dark
 		&& Skins::byId(newSkinId)->id() == skinId)
 	{
@@ -268,4 +276,11 @@ void SkinManager::styleMainToolbar(QToolBar* toolBar) const
 void SkinManager::styleFileDialog(QFileDialog* dialog) const
 {
 	activeSkin->styleFileDialog(dialog, currentTokens);
+	if (dialog == nullptr)
+		return;
+	// The entry pictograms: the skin keeps its provider alive (the dialog
+	// does not own it), and heritage answers nullptr to stay native.
+	QAbstractFileIconProvider* iconProvider = activeSkin->fileIconProvider(currentTokens);
+	if (iconProvider != nullptr)
+		dialog->setIconProvider(iconProvider);
 }

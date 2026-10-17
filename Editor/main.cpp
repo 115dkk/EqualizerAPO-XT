@@ -70,6 +70,8 @@
 #include "services/registry/WindowsRegistry.h"
 #include "platform/windows/Win32Resource.h"
 #include "platform/windows/WindowsPath.h"
+#include "platform/windows/ElevatedLaunch.h"
+#include "services/install/InstallWaitBudget.h"
 #include "services/security/AudioEngineAccess.h"
 #include "services/diagnostics/InstallDiagnostics.h"
 #include "services/update/UpdateSession.h"
@@ -79,6 +81,7 @@
 #include "platform/qt/QtAppBootstrap.h"
 #include "Editor/helpers/CrashHandler.h"
 #include "Editor/helpers/GUIHelper.h"
+#include "Editor/helpers/BackgroundProbe.h"
 #include "Editor/helpers/PluginLoadQueue.h"
 #include "services/settings/EditorSettings.h"
 #include "Editor/skins/SkinThemeData.h"
@@ -163,7 +166,7 @@ int relaunchElevatedAndWait()
 		const auto outcome = EqAPO::Import::LegacyMigration::prepareHookStep(pathutil::exeDirectory(), &details);
 		logLine(L"INFO", L"Unelevated migration preparation: %s", outcome.c_str());
 		arguments.push_back(L"--caller-localappdata");
-		arguments.push_back(qEnvironmentVariable("LOCALAPPDATA").toStdWString());
+		arguments.push_back(pathutil::environmentVariable(L"LOCALAPPDATA"));
 		arguments.push_back(L"--caller-migration-outcome");
 		arguments.push_back(outcome);
 		arguments.push_back(L"--caller-migrated-from");
@@ -175,30 +178,21 @@ int relaunchElevatedAndWait()
 	}
 	std::wstring parameters = winutil::joinCommandLineArguments(arguments);
 
-	SHELLEXECUTEINFOW info;
-	ZeroMemory(&info, sizeof(info));
-	info.cbSize = sizeof(info);
-	info.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_NOASYNC;
-	info.lpVerb = L"runas";
-	info.lpFile = exePath.c_str();
-	info.lpParameters = parameters.c_str();
-	info.nShow = SW_HIDE;
-
-	if (!ShellExecuteExW(&info))
+	auto launch = winutil::launchElevated(exePath, parameters, true);
+	if (!launch.started)
 	{
-		DWORD gle = GetLastError();
-		logLine(L"ERR", L"ShellExecuteEx(runas) failed (gle=%lu)", gle);
-		// ERROR_CANCELLED (1223) means the user declined UAC.
-		return gle == ERROR_CANCELLED ? 1223 : 1;
+		logLine(L"ERR", L"ShellExecuteEx(runas) failed (gle=%lu)", launch.error);
+		return launch.error == ERROR_CANCELLED ? 1223 : 1;
 	}
-
-	if (info.hProcess == nullptr)
+	if (!launch.process)
 		return 1;
-
-	winutil::UniqueHandle process(info.hProcess);
-	WaitForSingleObject(process.get(), INFINITE);
+	if (WaitForSingleObject(launch.process.get(), installwait::remaining(INFINITE)) != WAIT_OBJECT_0)
+	{
+		logLine(L"ERR", L"Elevated install hook wait reached its deadline or failed");
+		return 1;
+	}
 	DWORD exitCode = 1;
-	GetExitCodeProcess(process.get(), &exitCode);
+	GetExitCodeProcess(launch.process.get(), &exitCode);
 	return static_cast<int>(exitCode);
 }
 
@@ -216,6 +210,9 @@ int handleVelopackHook(int argc, char* argv[])
 	if (!hookSeen)
 		return -1;
 
+	// Velopack allows about 15 s. All explicit waits in this hook share
+	// 12 s, including services, ACL subprocesses and elevation completion.
+	installwait::Budget waitBudget(12000);
 	if (!AudioEngineAccess::isElevated())
 		return relaunchElevatedAndWait();
 
@@ -230,7 +227,7 @@ int handleVelopackHook(int argc, char* argv[])
 		std::wstring exeDir = pathutil::exeDirectory();
 		if (matchesHook(arg, "--veloapp-install"))
 		{
-			auto rc = ApoRegistration::install(exeDir, systemRegistry(), callerLocalAppData.installGrantsPrepared);
+			auto rc = ApoRegistration::install(exeDir, L"", systemRegistry(), callerLocalAppData.installGrantsPrepared);
 			// The trusted config root: adopt the stable folder, or migrate a
 			// legacy Equalizer APO / volatile current\config tree into it.
 			if (rc == ApoRegistration::Result::Success)
@@ -240,7 +237,7 @@ int handleVelopackHook(int argc, char* argv[])
 		if (matchesHook(arg, "--veloapp-updated"))
 		{
 			ApoRegistration::stopAudioService();
-			auto rc = ApoRegistration::install(exeDir, systemRegistry(), callerLocalAppData.installGrantsPrepared);
+			auto rc = ApoRegistration::install(exeDir, L"", systemRegistry(), callerLocalAppData.installGrantsPrepared);
 			if (rc == ApoRegistration::Result::Success)
 				EqAPO::Import::LegacyMigration::runElevatedHookStep(exeDir, callerLocalAppData);
 			ApoRegistration::startAudioService();
@@ -248,6 +245,8 @@ int handleVelopackHook(int argc, char* argv[])
 		}
 		if (matchesHook(arg, "--veloapp-obsolete"))
 		{
+			// The old version waits for AudioSrv to stop before Velopack replaces
+			// the DLL. Audio returns in the new version's --veloapp-updated hook.
 			ApoRegistration::stopAudioService();
 			return 0;
 		}
@@ -667,6 +666,8 @@ int main(int argc, char* argv[])
 	// Editor during a slow first load). Let it finish before static
 	// destruction instead of racing it.
 	PluginLoadQueue::shutdown();
+	// The same for an endpoint format probe still running.
+	BackgroundProbe::shutdown();
 
 	// The session owns the download worker. Join it before inspecting staged state so
 	// neither process shutdown nor static destruction can race with its publication.

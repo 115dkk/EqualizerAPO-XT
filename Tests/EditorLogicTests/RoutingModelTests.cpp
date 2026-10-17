@@ -22,7 +22,7 @@
 
 #include "EditorLogicTestSupport.h"
 
-void testMultiConvolutionRoutingAdapter()
+TEST_CASE(EditorLogicTests, testMultiConvolutionRoutingAdapter)
 {
 	// MultiConvolutionRoutingAdapter: mappings <-> the routing views'
 	// Assignment type must round-trip, because the card serializes the
@@ -93,7 +93,7 @@ void testMultiConvolutionRoutingAdapter()
 	expectEqual(portsNoFile.join(','), QString("1,2"), "without a file only referenced indices appear, sorted");
 }
 
-void testRoutingGridModelPorts()
+TEST_CASE(EditorLogicTests, testRoutingGridModelPorts)
 {
 	// RoutingGridModel: the Light Trace view's working model must seed
 	// and resolve exactly like the legacy CopyFilterGUIScene (channel rows,
@@ -226,7 +226,7 @@ void testRoutingGridModelPorts()
 	expectFalse(model.removeChannel("XX"), "removing an unknown channel reports no change");
 }
 
-void testRoutingFold()
+TEST_CASE(EditorLogicTests, testRoutingFold)
 {
 	// RoutingFold: the Copy and MultiConvolution views' target-channel fold.
 	// A collapsed view lists only the channels the command involves; the
@@ -347,7 +347,7 @@ void testRoutingFold()
 	expectEqual((int)seedOnly.size(), (int)emptySeeded.size() - 1, "the seed row itself is still removed");
 }
 
-void testVirtualChannelRule()
+TEST_CASE(EditorLogicTests, testVirtualChannelRule)
 {
 	// ChannelIdentity::isVirtual: the one rule for which channels the views
 	// draw dashed (audit #348 TD-44). A channel is virtual when it names none
@@ -393,7 +393,7 @@ void testVirtualChannelRule()
 	expectFalse(ports.isVirtualChannel("L"), "a stereo port model keeps L real");
 }
 
-void testSourceTokenGrammar()
+TEST_CASE(EditorLogicTests, testSourceTokenGrammar)
 {
 	// RoutingFold::parseSourceToken: the step list's inline source editor
 	// reads the summand as the line writes it. Field report (minimal,

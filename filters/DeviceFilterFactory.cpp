@@ -31,14 +31,14 @@ REGISTER_FILTER_FACTORY(FilterFactoryPriority::Device, DeviceFilterFactory, L"De
 using std::vector;
 using std::wstring;
 
-void DeviceFilterFactory::initialize(FilterEngine* engine)
+void DeviceFilterFactory::onInitialize(FilterEngine& engine)
 {
-	deviceString = engine->getDeviceString();
+	deviceString = engine.getDeviceString();
 
-	EngineParser* parser = engine->getParser();
-	parser->defineConst(L"deviceName", engine->getDeviceName());
-	parser->defineConst(L"connectionName", engine->getConnectionName());
-	parser->defineConst(L"deviceGuid", engine->getDeviceGuid());
+	EngineParser* parser = engine.getParser();
+	parser->defineConst(L"deviceName", engine.getDeviceName());
+	parser->defineConst(L"connectionName", engine.getConnectionName());
+	parser->defineConst(L"deviceGuid", engine.getDeviceGuid());
 }
 
 FilterVector DeviceFilterFactory::startOfConfiguration()
@@ -48,7 +48,7 @@ FilterVector DeviceFilterFactory::startOfConfiguration()
 	return {};
 }
 
-FilterVector DeviceFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+LineOutcome DeviceFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	DeviceCommand cmd;
 	if (DeviceCommand::parse(command, parameters, cmd))
@@ -57,13 +57,13 @@ FilterVector DeviceFilterFactory::createFilter(const wstring& configPath, wstrin
 
 		TraceF(L"%satching pattern \"%s\" with device \"%s\"", matches ? L"M" : L"Not m", text::trim(parameters).c_str(), deviceString.c_str());
 		deviceMatches = matches;
+		return LineOutcome::consumed();
 	}
 
 	if (!deviceMatches)
-		// skip line for further factories
-		command = L"";
+		return LineOutcome::consumed();
 
-	return {};
+	return LineOutcome::notMine();
 }
 
 FilterVector DeviceFilterFactory::endOfFile(const std::wstring& configPath)

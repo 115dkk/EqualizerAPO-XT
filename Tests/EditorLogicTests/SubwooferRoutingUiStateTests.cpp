@@ -30,7 +30,7 @@ SubwooferRoutingUiState makeFixture(unsigned sampleRate)
 // widget-free test seam targets, but it lived behind Q_OBJECT (which this
 // binary cannot moc) and had zero tests while being the largest UI model in
 // the tree. The signal-free core is now pinned here.
-void testSubwooferRoutingUiStateTracksMutationsAndValidation()
+TEST_CASE(EditorLogicTests, testSubwooferRoutingUiStateTracksMutationsAndValidation)
 {
 	SubwooferRoutingUiState state = makeFixture(48000);
 
@@ -53,7 +53,7 @@ void testSubwooferRoutingUiStateTracksMutationsAndValidation()
 	expectTrue(gainApplied, QStringLiteral("the gain reaches the source LFE path"));
 }
 
-void testSubwooferRoutingUiStateRejectsUnknownTargets()
+TEST_CASE(EditorLogicTests, testSubwooferRoutingUiStateRejectsUnknownTargets)
 {
 	SubwooferRoutingUiState state = makeFixture(48000);
 
@@ -67,7 +67,7 @@ void testSubwooferRoutingUiStateRejectsUnknownTargets()
 		QStringLiteral("rejected mutations leave the state clean - the QObject wrapper emits nothing for them"));
 }
 
-void testSubwooferRoutingUiStateHeadroomModes()
+TEST_CASE(EditorLogicTests, testSubwooferRoutingUiStateHeadroomModes)
 {
 	SubwooferRoutingUiState state = makeFixture(48000);
 

@@ -64,19 +64,11 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;_CONSOLE;UNICODE;_UNICODE;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_CONSOLE;UNICODE;_UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <PostBuildEvent>
-      <Command>if exist "$(FFTW_LIB)\*.dll" copy /Y "$(FFTW_LIB)\*.dll" "$(OutDir)"
-if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
-if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"
-xcopy /Y /I /E "$(ProjectDir)configs" "$(OutDir)configs\"</Command>
+      <Command>xcopy /Y /I /E "$(ProjectDir)configs" "$(OutDir)configs\"</Command>
     </PostBuildEvent>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
-    <ClCompile>
-      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-    </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
@@ -88,6 +80,7 @@ xcopy /Y /I /E "$(ProjectDir)configs" "$(OutDir)configs\"</Command>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\engine\FilterEngine.h" />
+    <ClInclude Include="..\ProbeSupport\Sha256.h" />
   </ItemGroup>
   <ItemGroup>
     <!-- Wildcard on purpose (audit #275 TD-19): a hand-kept list had drifted

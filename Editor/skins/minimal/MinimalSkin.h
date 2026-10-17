@@ -21,6 +21,7 @@ public:
 
 	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override;
 	void styleFileDialog(QFileDialog* dialog, const SkinTokens& tokens) const override;
+	QAbstractFileIconProvider* fileIconProvider(const SkinTokens& tokens) const override;
 
 	void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state,
 		const SkinTokens& tokens) const override;
@@ -50,13 +51,11 @@ public:
 		const SkinTokens& tokens) const override;
 	bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info,
 		const SkinTokens& tokens) const override;
+	bool logicSiblingsIndentAsMembers() const override;
 	bool paintChannelBadge(QPainter& painter, const QRect& rect, const QString& channel,
 		bool virtualChannel, const SkinTokens& tokens) const override;
 	void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state,
 		const SkinTokens& tokens) const override;
 	void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state,
 		const SkinTokens& tokens) const override;
-
-private:
-	static void installFileIconProvider(QFileDialog* dialog, const SkinTokens& tokens);
 };

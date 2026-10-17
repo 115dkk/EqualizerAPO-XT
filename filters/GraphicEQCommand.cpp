@@ -36,11 +36,9 @@ using std::wsmatch;
 using std::wsregex_iterator;
 using std::wstring;
 
-// Kept as a static so the (relatively expensive) std::wregex is compiled once.
-static wregex regexNumber(L"[-+0-9.eE]+");
-
 void GraphicEQCommand::parse(const wstring& parameters)
 {
+	static const wregex regexNumber(L"[-+0-9.eE]+");
 	nodes.clear();
 
 	// The graphiceq_15band regression reference pins this parse. When no period

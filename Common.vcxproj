@@ -149,61 +149,23 @@
     <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE);$(MSBuildThisFileDirectory)SubwooferRoutingCore\include</IncludePath>
     <LibraryPath>$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;UNICODE;_UNICODE;MUP_USE_WIDE_STRING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <LanguageStandard_C>stdc11</LanguageStandard_C>
       <ControlFlowGuard>Guard</ControlFlowGuard>
       <SDLCheck>true</SDLCheck>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
-      <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;UNICODE;_UNICODE;MUP_USE_WIDE_STRING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <LanguageStandard_C>stdc11</LanguageStandard_C>
-      <ControlFlowGuard>Guard</ControlFlowGuard>
-      <SDLCheck>true</SDLCheck>
-      <UseStandardPreprocessor>true</UseStandardPreprocessor>
-      <ConformanceMode>true</ConformanceMode>
-    </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
-    <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;UNICODE;_UNICODE;MUP_USE_WIDE_STRING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <LanguageStandard_C>stdc11</LanguageStandard_C>
-      <ControlFlowGuard>Guard</ControlFlowGuard>
-      <SDLCheck>true</SDLCheck>
-      <UseStandardPreprocessor>true</UseStandardPreprocessor>
-      <ConformanceMode>true</ConformanceMode>
-    </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -216,60 +178,6 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
-      <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <ControlFlowGuard>Guard</ControlFlowGuard>
-      <SDLCheck>true</SDLCheck>
-      <UseStandardPreprocessor>true</UseStandardPreprocessor>
-      <StringPooling>true</StringPooling>
-    </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <Optimization>MaxSpeed</Optimization>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;UNICODE;_UNICODE;MUP_USE_WIDE_STRING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
-      <LanguageStandard_C>stdc11</LanguageStandard_C>
-      <ControlFlowGuard>Guard</ControlFlowGuard>
-      <SDLCheck>true</SDLCheck>
-      <UseStandardPreprocessor>true</UseStandardPreprocessor>
-      <StringPooling>true</StringPooling>
-      <ConformanceMode>true</ConformanceMode>
-    </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <Optimization>MaxSpeed</Optimization>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;UNICODE;_UNICODE;MUP_USE_WIDE_STRING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
-      <LanguageStandard_C>stdc17</LanguageStandard_C>
       <ControlFlowGuard>Guard</ControlFlowGuard>
       <SDLCheck>true</SDLCheck>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
@@ -284,6 +192,16 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="devices\AbstractAPOInfo.h" />
+    <ClInclude Include="devices\AsioEntryWriter.h" />
+    <ClInclude Include="devices\EndpointProbe.h" />
+    <ClInclude Include="platform\windows\TokenPrivilege.h" />
+    <ClInclude Include="platform\windows\WellKnownSids.h" />
+    <ClInclude Include="platform\windows\ComError.h" />
+    <ClInclude Include="platform\windows\ConsoleOutput.h" />
+    <ClInclude Include="platform\windows\ElevatedLaunch.h" />
+    <ClInclude Include="platform\windows\TimeStamp.h" />
+    <ClInclude Include="services\windows\ServiceWait.h" />
+    <ClInclude Include="services\install\InstallWaitBudget.h" />
     <ClInclude Include="devices\AsioAPOInfo.h" />
     <ClInclude Include="asio\AsioRegistration.h" />
     <ClInclude Include="asio\EntryOptions.h" />
@@ -334,6 +252,7 @@
     <ClInclude Include="filters\VelvetFilter.h" />
     <ClInclude Include="filters\VelvetFilterFactory.h" />
     <ClInclude Include="filters\velvet\VelvetProcessor.h" />
+    <ClInclude Include="filters\CopyCommand.h" />
     <ClInclude Include="filters\CopyFilter.h" />
     <ClInclude Include="filters\CopyFilterFactory.h" />
     <ClInclude Include="filters\SendCommand.h" />
@@ -390,6 +309,7 @@
     <ClInclude Include="platform\windows\FileSharingRetry.h" />
     <ClInclude Include="filters\graphicEq\GainCurveIterator.h" />
     <ClInclude Include="filters\ConvolverMuteDiagnostics.h" />
+    <ClInclude Include="filters\ConvolverArray.h" />
     <ClInclude Include="filters\ConvolverBank.h" />
     <ClInclude Include="services\registry\ClsidRegistration.h" />
     <ClInclude Include="services\registry\IRegistry.h" />
@@ -432,7 +352,6 @@
     <ClInclude Include="vst\VST3Instance.h" />
     <ClInclude Include="vst\VST3MemoryStream.h" />
     <ClInclude Include="vst\VSTChunkBase64.h" />
-    <ClInclude Include="vst\VSTFormatInstance.h" />
     <ClInclude Include="vst\VSTPluginLibrary.h" />
     <ClInclude Include="vst\PluginResidency.h" />
     <ClInclude Include="engine\IFilter.h" />
@@ -457,10 +376,8 @@
     <ClCompile Include="devices\ApoRuntimeFacts.cpp" />
     <ClCompile Include="devices\ReceiverEndpoints.cpp" />
     <ClCompile Include="devices\DeviceAPOInfo.cpp" />
-    <ClCompile Include="devices\DeviceAPOInfo.Install.cpp" />
-    <ClCompile Include="devices\DeviceAPOInfo.Load.cpp" />
-    <ClCompile Include="devices\DeviceAPOInfo.State.cpp" />
-    <ClCompile Include="devices\DeviceAPOInfo.Uninstall.cpp" />
+    <ClCompile Include="devices\DeviceAPOInfo.Change.cpp" />
+    <ClCompile Include="devices\EndpointProbe.cpp" />
     <ClCompile Include="devices\DeviceInstallReport.cpp" />
     <ClCompile Include="devices\DevicePlan.cpp" />
     <ClCompile Include="devices\DeviceTestPlan.cpp" />
@@ -502,6 +419,7 @@
     <ClCompile Include="filters\VelvetFilter.cpp" />
     <ClCompile Include="filters\VelvetFilterFactory.cpp" />
     <ClCompile Include="filters\velvet\VelvetProcessor.cpp" />
+    <ClCompile Include="filters\CopyCommand.cpp" />
     <ClCompile Include="filters\CopyFilter.cpp" />
     <ClCompile Include="filters\CopyFilterFactory.cpp" />
     <ClCompile Include="filters\SendCommand.cpp" />

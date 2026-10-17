@@ -44,13 +44,21 @@
 #include <algorithm>
 #include <atomic>
 #include <cmath>
-#include <numbers>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <string>
 #include <thread>
 #include <vector>
+
+#include "platform/windows/ComPtr.h"
+#include "Tests/ProbeSupport/CommandLine.h"
+#include "Tests/ProbeSupport/JsonLine.h"
+#include "Tests/ProbeSupport/ToneMeter.h"
+#include "Tests/ProbeSupport/WasapiEndpoint.h"
+
+using winutil::ComApartment;
+using winutil::ComPtr;
 
 namespace
 {
@@ -103,96 +111,93 @@ void usage()
 
 bool parse(int argc, wchar_t** argv, Options& o)
 {
-	for (int i = 1; i < argc; i++)
+	probesupport::CommandLine commandLine;
+	TCLAP::CmdLine& parser = commandLine.parser();
+	TCLAP::MultiArg<std::string> renderArg("", "render", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> renderIdArg("", "render-id", "", false, "value", parser);
+	TCLAP::MultiSwitchArg noRenderArg("", "no-render", "", parser);
+	TCLAP::MultiArg<std::string> watchArg("", "watch-render-opens", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> stopFileArg("", "stop-file", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> captureArg("", "capture", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> captureIdArg("", "capture-id", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> secondsArg("", "seconds", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> settleArg("", "settle", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> toneArg("", "tone", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> amplitudeArg("", "amp", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> categoryArg("", "category", "", false, "value", parser);
+	TCLAP::MultiSwitchArg rawArg("", "raw", "", parser);
+	TCLAP::MultiArg<std::string> periodArg("", "period", "", false, "value", parser);
+	TCLAP::MultiSwitchArg holdDefaultArg("", "hold-default", "", parser);
+	TCLAP::MultiArg<std::string> expectationArg("", "expect-gain-db", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> toleranceArg("", "tolerance-db", "", false, "value", parser);
+	TCLAP::MultiSwitchArg jsonArg("", "json", "", parser);
+	TCLAP::MultiSwitchArg listArg("", "list", "", parser);
+	if (!commandLine.parse(argc, argv))
 	{
-		std::wstring a = argv[i];
-		auto next = [&](std::wstring& into) {
-			if (i + 1 >= argc)
-				return false;
-			into = argv[++i];
-			return true;
-		};
-		std::wstring v;
-		if (a == L"--render" && next(v))
-			o.renderName = v;
-		else if (a == L"--render-id" && next(v))
-			o.renderId = v;
-		else if (a == L"--no-render")
-			o.noRender = true;
-		else if (a == L"--watch-render-opens" && next(v))
-		{
-			o.watchRenderOpensSet = true;
-			o.watchRenderOpens = _wtof(v.c_str());
-		}
-		else if (a == L"--stop-file" && next(v))
-			o.stopFile = v;
-		else if (a == L"--capture" && next(v))
-			o.captureName = v;
-		else if (a == L"--capture-id" && next(v))
-			o.captureId = v;
-		else if (a == L"--seconds" && next(v))
-			o.seconds = _wtof(v.c_str());
-		else if (a == L"--settle" && next(v))
-			o.settle = _wtof(v.c_str());
-		else if (a == L"--tone" && next(v))
-			o.tone = _wtof(v.c_str());
-		else if (a == L"--amp" && next(v))
-			o.amplitude = _wtof(v.c_str());
-		else if (a == L"--category" && next(v))
-		{
-			o.categoryName = v;
-			if (v == L"other")
-				o.category = AudioCategory_Other;
-			else if (v == L"communications")
-				o.category = AudioCategory_Communications;
-			else if (v == L"speech")
-				o.category = AudioCategory_Speech;
-			else if (v == L"media")
-				o.category = AudioCategory_Media;
-			else if (v == L"game-chat")
-				o.category = AudioCategory_GameChat;
-			else
-			{
-				fwprintf(stderr, L"unknown category: %s\n", v.c_str());
-				return false;
-			}
-		}
-		else if (a == L"--raw")
-			o.raw = true;
-		else if (a == L"--period" && next(v))
-			o.period = v;
-		else if (a == L"--hold-default")
-			o.holdDefault = true;
-		else if (a == L"--expect-gain-db" && next(v))
-		{
-			o.haveExpectation = true;
-			o.expectGainDb = _wtof(v.c_str());
-		}
-		else if (a == L"--tolerance-db" && next(v))
-			o.toleranceDb = _wtof(v.c_str());
-		else if (a == L"--json")
-			o.json = true;
-		else if (a == L"--list")
-			o.list = true;
+		const std::wstring& bad = commandLine.badArgument();
+		fwprintf(stderr, L"unknown or incomplete argument: %s\n", bad.empty() ? argv[argc - 1] : bad.c_str());
+		return false;
+	}
+
+	if (renderArg.isSet())
+		o.renderName = probesupport::lastWide(renderArg);
+	if (renderIdArg.isSet())
+		o.renderId = probesupport::lastWide(renderIdArg);
+	o.noRender = noRenderArg.getValue() != 0;
+	if (watchArg.isSet())
+	{
+		o.watchRenderOpensSet = true;
+		o.watchRenderOpens = _wtof(probesupport::lastWide(watchArg).c_str());
+	}
+	if (stopFileArg.isSet())
+		o.stopFile = probesupport::lastWide(stopFileArg);
+	if (captureArg.isSet())
+		o.captureName = probesupport::lastWide(captureArg);
+	if (captureIdArg.isSet())
+		o.captureId = probesupport::lastWide(captureIdArg);
+	if (secondsArg.isSet())
+		o.seconds = _wtof(probesupport::lastWide(secondsArg).c_str());
+	if (settleArg.isSet())
+		o.settle = _wtof(probesupport::lastWide(settleArg).c_str());
+	if (toneArg.isSet())
+		o.tone = _wtof(probesupport::lastWide(toneArg).c_str());
+	if (amplitudeArg.isSet())
+		o.amplitude = _wtof(probesupport::lastWide(amplitudeArg).c_str());
+	for (const std::string& categoryText : categoryArg.getValue())
+	{
+		const std::wstring category = probesupport::utf16(categoryText);
+		o.categoryName = category;
+		if (category == L"other")
+			o.category = AudioCategory_Other;
+		else if (category == L"communications")
+			o.category = AudioCategory_Communications;
+		else if (category == L"speech")
+			o.category = AudioCategory_Speech;
+		else if (category == L"media")
+			o.category = AudioCategory_Media;
+		else if (category == L"game-chat")
+			o.category = AudioCategory_GameChat;
 		else
 		{
-			fwprintf(stderr, L"unknown or incomplete argument: %s\n", a.c_str());
+			fwprintf(stderr, L"unknown category: %s\n", category.c_str());
 			return false;
 		}
 	}
+	o.raw = rawArg.getValue() != 0;
+	if (periodArg.isSet())
+		o.period = probesupport::lastWide(periodArg);
+	o.holdDefault = holdDefaultArg.getValue() != 0;
+	if (expectationArg.isSet())
+	{
+		o.haveExpectation = true;
+		o.expectGainDb = _wtof(probesupport::lastWide(expectationArg).c_str());
+	}
+	if (toleranceArg.isSet())
+		o.toleranceDb = _wtof(probesupport::lastWide(toleranceArg).c_str());
+	o.json = jsonArg.getValue() != 0;
+	o.list = listArg.getValue() != 0;
 	return o.seconds > 0.0 && o.settle >= 0.0 && (!o.watchRenderOpensSet || o.watchRenderOpens > 0.0);
 }
-
-template<typename T>
-struct ComRelease
-{
-	T* p = nullptr;
-	~ComRelease()
-	{
-		if (p)
-			p->Release();
-	}
-};
 
 double elapsedMs(const LARGE_INTEGER& start, const LARGE_INTEGER& end)
 {
@@ -211,129 +216,10 @@ long long unixMs()
 	return static_cast<long long>(ticks.QuadPart / 10000ULL - 11644473600000ULL);
 }
 
-std::string jsonEscape(const std::wstring& text)
-{
-	if (text.empty())
-		return {};
-	const int byteCount = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, text.data(), static_cast<int>(text.size()), nullptr, 0, nullptr, nullptr);
-	if (byteCount <= 0)
-		return "?";
-	std::string utf8(static_cast<size_t>(byteCount), '\0');
-	WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, text.data(), static_cast<int>(text.size()), utf8.data(), byteCount, nullptr, nullptr);
-	std::string escaped;
-	for (unsigned char c : utf8)
-	{
-		switch (c)
-		{
-		case '"': escaped += "\\\""; break;
-		case '\\': escaped += "\\\\"; break;
-		case '\b': escaped += "\\b"; break;
-		case '\f': escaped += "\\f"; break;
-		case '\n': escaped += "\\n"; break;
-		case '\r': escaped += "\\r"; break;
-		case '\t': escaped += "\\t"; break;
-		default:
-			if (c < 0x20)
-			{
-				char encoded[7] = {};
-				sprintf_s(encoded, "\\u%04X", static_cast<unsigned>(c));
-				escaped += encoded;
-			}
-			else
-			{
-				escaped += static_cast<char>(c);
-			}
-		}
-	}
-	return escaped;
-}
-
-std::wstring lower(std::wstring s)
-{
-	for (wchar_t& c : s)
-		c = (wchar_t)towlower(c);
-	return s;
-}
-
-std::wstring friendlyName(IMMDevice* device)
-{
-	ComRelease<IPropertyStore> store;
-	if (FAILED(device->OpenPropertyStore(STGM_READ, &store.p)))
-		return L"?";
-	PROPVARIANT value;
-	PropVariantInit(&value);
-	std::wstring name = L"?";
-	if (SUCCEEDED(store.p->GetValue(PKEY_Device_FriendlyName, &value)) && value.vt == VT_LPWSTR && value.pwszVal)
-		name = value.pwszVal;
-	PropVariantClear(&value);
-	return name;
-}
-
-std::wstring deviceId(IMMDevice* device)
-{
-	LPWSTR id = nullptr;
-	std::wstring result;
-	if (SUCCEEDED(device->GetId(&id)) && id)
-	{
-		result = id;
-		CoTaskMemFree(id);
-	}
-	return result;
-}
-
 void listEndpoints(IMMDeviceEnumerator* enumerator)
 {
-	for (int flow = 0; flow < 2; flow++)
-	{
-		ComRelease<IMMDeviceCollection> collection;
-		if (FAILED(enumerator->EnumAudioEndpoints(flow == 0 ? eRender : eCapture, DEVICE_STATE_ACTIVE, &collection.p)))
-			continue;
-		UINT count = 0;
-		collection.p->GetCount(&count);
-		for (UINT i = 0; i < count; i++)
-		{
-			ComRelease<IMMDevice> device;
-			if (FAILED(collection.p->Item(i, &device.p)))
-				continue;
-			printf("%s\t%ls\t%ls\n", flow == 0 ? "render " : "capture", deviceId(device.p).c_str(), friendlyName(device.p).c_str());
-		}
-	}
-}
-
-// By id, by a case-insensitive substring of the friendly name, or the
-// default endpoint. Only active endpoints qualify.
-IMMDevice* findEndpoint(IMMDeviceEnumerator* enumerator, EDataFlow flow, const std::wstring& name, const std::wstring& id)
-{
-	if (!id.empty())
-	{
-		IMMDevice* device = nullptr;
-		if (SUCCEEDED(enumerator->GetDevice(id.c_str(), &device)))
-			return device;
-		return nullptr;
-	}
-	if (name.empty())
-	{
-		IMMDevice* device = nullptr;
-		if (SUCCEEDED(enumerator->GetDefaultAudioEndpoint(flow, eConsole, &device)))
-			return device;
-		return nullptr;
-	}
-	ComRelease<IMMDeviceCollection> collection;
-	if (FAILED(enumerator->EnumAudioEndpoints(flow, DEVICE_STATE_ACTIVE, &collection.p)))
-		return nullptr;
-	UINT count = 0;
-	collection.p->GetCount(&count);
-	const std::wstring needle = lower(name);
-	for (UINT i = 0; i < count; i++)
-	{
-		IMMDevice* device = nullptr;
-		if (FAILED(collection.p->Item(i, &device)))
-			continue;
-		if (lower(friendlyName(device)).find(needle) != std::wstring::npos)
-			return device;
-		device->Release();
-	}
-	return nullptr;
+	for (const probesupport::wasapi::Endpoint& endpoint : probesupport::wasapi::activeEndpoints(enumerator))
+		printf("%s\t%ls\t%ls\n", endpoint.flow == eRender ? "render " : "capture", endpoint.id.c_str(), endpoint.name.c_str());
 }
 
 // A float32 stream format at the endpoint's mix rate and channel count.
@@ -372,22 +258,22 @@ OpenCycle openRenderCycle(IMMDevice* device)
 	LARGE_INTEGER start, end;
 	QueryPerformanceCounter(&start);
 	{
-		ComRelease<IAudioClient> client;
+		ComPtr<IAudioClient> client;
 		WAVEFORMATEX* mix = nullptr;
-		cycle.hr = device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, reinterpret_cast<void**>(&client.p));
+		cycle.hr = probesupport::wasapi::activateAudioClient(device, client, CLSCTX_ALL);
 		if (SUCCEEDED(cycle.hr))
-			cycle.hr = client.p->GetMixFormat(&mix);
+			cycle.hr = client->GetMixFormat(&mix);
 		if (SUCCEEDED(cycle.hr))
 		{
 			const WAVEFORMATEXTENSIBLE fmt = floatFormatLike(mix);
-			cycle.hr = client.p->Initialize(AUDCLNT_SHAREMODE_SHARED,
+			cycle.hr = client->Initialize(AUDCLNT_SHAREMODE_SHARED,
 				AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM | AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY,
 				2000000, 0, &fmt.Format, nullptr);
 		}
 		if (SUCCEEDED(cycle.hr))
-			cycle.hr = client.p->Start();
+			cycle.hr = client->Start();
 		if (SUCCEEDED(cycle.hr))
-			cycle.hr = client.p->Stop();
+			cycle.hr = client->Stop();
 		if (mix)
 			CoTaskMemFree(mix);
 	}
@@ -421,8 +307,10 @@ int watchRenderOpens(IMMDevice* device, const std::wstring& label, double second
 	const long long endedUnixMs = unixMs();
 	if (cycles.empty())
 	{
-		printf("{\"watch\":\"%s\",\"startedUnixMs\":%lld,\"endedUnixMs\":%lld,\"cycles\":0,\"failed\":0,\"medianMs\":0.0,\"worstMs\":0.0,\"worstAtUnixMs\":0,\"slow\":[]}\n",
-			jsonEscape(label).c_str(), startedUnixMs, endedUnixMs);
+		probesupport::JsonLine line;
+		line.append("{\"watch\":\"%s\",\"startedUnixMs\":%lld,\"endedUnixMs\":%lld,\"cycles\":0,\"failed\":0,\"medianMs\":0.0,\"worstMs\":0.0,\"worstAtUnixMs\":0,\"slow\":[]}",
+			probesupport::jsonEscape(label).c_str(), startedUnixMs, endedUnixMs);
+		line.write();
 		return 1;
 	}
 
@@ -444,18 +332,20 @@ int watchRenderOpens(IMMDevice* device, const std::wstring& label, double second
 		? durations[middle]
 		: (durations[middle - 1] + durations[middle]) / 2.0;
 
-	printf("{\"watch\":\"%s\",\"startedUnixMs\":%lld,\"endedUnixMs\":%lld,\"cycles\":%zu,\"failed\":%d,\"medianMs\":%.1f,\"worstMs\":%.1f,\"worstAtUnixMs\":%lld,\"slow\":[",
-		jsonEscape(label).c_str(), startedUnixMs, endedUnixMs, cycles.size(), failed, median, worst->elapsedMs, worst->startUnixMs);
+	probesupport::JsonLine line;
+	line.append("{\"watch\":\"%s\",\"startedUnixMs\":%lld,\"endedUnixMs\":%lld,\"cycles\":%zu,\"failed\":%d,\"medianMs\":%.1f,\"worstMs\":%.1f,\"worstAtUnixMs\":%lld,\"slow\":[",
+		probesupport::jsonEscape(label).c_str(), startedUnixMs, endedUnixMs, cycles.size(), failed, median, worst->elapsedMs, worst->startUnixMs);
 	int slowCount = 0;
 	for (const OpenCycle& cycle : cycles)
 	{
 		if (cycle.elapsedMs > 250.0 && slowCount < 200)
 		{
-			printf("%s[%lld,%.1f]", slowCount == 0 ? "" : ",", cycle.startUnixMs, cycle.elapsedMs);
+			line.append("%s[%lld,%.1f]", slowCount == 0 ? "" : ",", cycle.startUnixMs, cycle.elapsedMs);
 			slowCount++;
 		}
 	}
-	printf("]}\n");
+	line.append("]}");
+	line.write();
 	return 0;
 }
 
@@ -482,12 +372,12 @@ struct RenderJob
 
 unsigned currentEnginePeriod(IAudioClient* client)
 {
-	ComRelease<IAudioClient3> client3;
-	if (FAILED(client->QueryInterface(__uuidof(IAudioClient3), reinterpret_cast<void**>(&client3.p))))
+	ComPtr<IAudioClient3> client3;
+	if (FAILED(client->QueryInterface(__uuidof(IAudioClient3), reinterpret_cast<void**>(client3.put()))))
 		return 0;
 	WAVEFORMATEX* format = nullptr;
 	UINT32 period = 0;
-	if (FAILED(client3.p->GetCurrentSharedModeEnginePeriod(&format, &period)))
+	if (FAILED(client3->GetCurrentSharedModeEnginePeriod(&format, &period)))
 		return 0;
 	if (format)
 		CoTaskMemFree(format);
@@ -500,19 +390,19 @@ unsigned currentEnginePeriod(IAudioClient* client)
 // locked at the default frame count has to survive.
 struct HeldStream
 {
-	ComRelease<IAudioClient> client;
-	ComRelease<IAudioRenderClient> render;
+	ComPtr<IAudioClient> client;
+	ComPtr<IAudioRenderClient> render;
 	UINT32 bufferFrames = 0;
 
 	bool open(IMMDevice* device, const WAVEFORMATEXTENSIBLE& fmt, HRESULT& hr, std::wstring& failure)
 	{
-		hr = device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, reinterpret_cast<void**>(&client.p));
+		hr = probesupport::wasapi::activateAudioClient(device, client, CLSCTX_ALL);
 		if (FAILED(hr))
 		{
 			failure = L"Activate(hold)";
 			return false;
 		}
-		hr = client.p->Initialize(AUDCLNT_SHAREMODE_SHARED,
+		hr = client->Initialize(AUDCLNT_SHAREMODE_SHARED,
 			AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM | AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY,
 			2000000, 0, &fmt.Format, nullptr);
 		if (FAILED(hr))
@@ -520,15 +410,15 @@ struct HeldStream
 			failure = L"Initialize(hold)";
 			return false;
 		}
-		hr = client.p->GetService(__uuidof(IAudioRenderClient), reinterpret_cast<void**>(&render.p));
+		hr = client->GetService(__uuidof(IAudioRenderClient), reinterpret_cast<void**>(render.put()));
 		if (FAILED(hr))
 		{
 			failure = L"GetService(hold)";
 			return false;
 		}
-		client.p->GetBufferSize(&bufferFrames);
+		client->GetBufferSize(&bufferFrames);
 		topUp();
-		hr = client.p->Start();
+		hr = client->Start();
 		if (FAILED(hr))
 		{
 			failure = L"Start(hold)";
@@ -539,26 +429,27 @@ struct HeldStream
 
 	void topUp()
 	{
-		if (render.p == nullptr)
+		if (!render)
 			return;
 		UINT32 padding = 0;
-		if (FAILED(client.p->GetCurrentPadding(&padding)) || padding >= bufferFrames)
+		if (FAILED(client->GetCurrentPadding(&padding)) || padding >= bufferFrames)
 			return;
 		BYTE* data = nullptr;
-		if (SUCCEEDED(render.p->GetBuffer(bufferFrames - padding, &data)))
-			render.p->ReleaseBuffer(bufferFrames - padding, AUDCLNT_BUFFERFLAGS_SILENT);
+		if (SUCCEEDED(render->GetBuffer(bufferFrames - padding, &data)))
+			render->ReleaseBuffer(bufferFrames - padding, AUDCLNT_BUFFERFLAGS_SILENT);
 	}
 
 	void stop()
 	{
-		if (client.p)
-			client.p->Stop();
+		if (client)
+			client->Stop();
 	}
 };
 
 void renderThread(RenderJob* job)
 {
-	HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+	const ComApartment apartment(COINIT_MULTITHREADED);
+	HRESULT hr = apartment.status();
 	if (FAILED(hr))
 	{
 		job->hr = hr;
@@ -567,26 +458,24 @@ void renderThread(RenderJob* job)
 		return;
 	}
 	{
-		ComRelease<IAudioClient> client;
-		ComRelease<IAudioRenderClient> render;
+		ComPtr<IAudioClient> client;
+		ComPtr<IAudioRenderClient> render;
 		WAVEFORMATEX* mix = nullptr;
 		auto fail = [&](const wchar_t* what, HRESULT code) {
 			job->hr = code;
 			job->failure = what;
 			job->started = true;
 		};
-		hr = job->device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, reinterpret_cast<void**>(&client.p));
+		hr = probesupport::wasapi::activateAudioClient(job->device, client, CLSCTX_ALL);
 		if (FAILED(hr))
 		{
 			fail(L"Activate(render)", hr);
-			CoUninitialize();
 			return;
 		}
-		hr = client.p->GetMixFormat(&mix);
+		hr = client->GetMixFormat(&mix);
 		if (FAILED(hr))
 		{
 			fail(L"GetMixFormat(render)", hr);
-			CoUninitialize();
 			return;
 		}
 		WAVEFORMATEXTENSIBLE fmt = floatFormatLike(mix);
@@ -601,31 +490,28 @@ void renderThread(RenderJob* job)
 			if (!held.open(job->device, fmt, hr, what))
 			{
 				fail(what.c_str(), hr);
-				CoUninitialize();
 				return;
 			}
-			job->holdEnginePeriod = currentEnginePeriod(held.client.p);
+			job->holdEnginePeriod = currentEnginePeriod(held.client.get());
 		}
 
 		HANDLE event = nullptr;
 		if (!job->periodRequest.empty())
 		{
-			ComRelease<IAudioClient3> client3;
-			hr = client.p->QueryInterface(__uuidof(IAudioClient3), reinterpret_cast<void**>(&client3.p));
+			ComPtr<IAudioClient3> client3;
+			hr = client->QueryInterface(__uuidof(IAudioClient3), reinterpret_cast<void**>(client3.put()));
 			if (FAILED(hr))
 			{
 				fail(L"QueryInterface(IAudioClient3)", hr);
 				held.stop();
-				CoUninitialize();
 				return;
 			}
 			UINT32 defaultPeriod = 0, fundamental = 0, minPeriod = 0, maxPeriod = 0;
-			hr = client3.p->GetSharedModeEnginePeriod(&fmt.Format, &defaultPeriod, &fundamental, &minPeriod, &maxPeriod);
+			hr = client3->GetSharedModeEnginePeriod(&fmt.Format, &defaultPeriod, &fundamental, &minPeriod, &maxPeriod);
 			if (FAILED(hr))
 			{
 				fail(L"GetSharedModeEnginePeriod", hr);
 				held.stop();
-				CoUninitialize();
 				return;
 			}
 			job->defaultPeriod = defaultPeriod;
@@ -645,7 +531,7 @@ void renderThread(RenderJob* job)
 					want = ((want + fundamental - 1) / fundamental) * fundamental;
 			}
 			event = CreateEventW(nullptr, FALSE, FALSE, nullptr);
-			hr = client3.p->InitializeSharedAudioStream(AUDCLNT_STREAMFLAGS_EVENTCALLBACK, want, &fmt.Format, nullptr);
+			hr = client3->InitializeSharedAudioStream(AUDCLNT_STREAMFLAGS_EVENTCALLBACK, want, &fmt.Format, nullptr);
 			if (FAILED(hr))
 			{
 				fail(hr == AUDCLNT_E_ENGINE_PERIODICITY_LOCKED
@@ -653,51 +539,44 @@ void renderThread(RenderJob* job)
 					: L"InitializeSharedAudioStream", hr);
 				CloseHandle(event);
 				held.stop();
-				CoUninitialize();
 				return;
 			}
 			job->requestedPeriod = want;
-			client.p->SetEventHandle(event);
+			client->SetEventHandle(event);
 		}
 		else
 		{
-			hr = client.p->Initialize(AUDCLNT_SHAREMODE_SHARED,
+			hr = client->Initialize(AUDCLNT_SHAREMODE_SHARED,
 				AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM | AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY,
 				2000000, 0, &fmt.Format, nullptr);
 			if (FAILED(hr))
 			{
 				fail(L"Initialize(render)", hr);
 				held.stop();
-				CoUninitialize();
 				return;
 			}
 		}
 		UINT32 bufferFrames = 0;
-		client.p->GetBufferSize(&bufferFrames);
-		hr = client.p->GetService(__uuidof(IAudioRenderClient), reinterpret_cast<void**>(&render.p));
+		client->GetBufferSize(&bufferFrames);
+		hr = client->GetService(__uuidof(IAudioRenderClient), reinterpret_cast<void**>(render.put()));
 		if (FAILED(hr))
 		{
 			fail(L"GetService(IAudioRenderClient)", hr);
 			if (event)
 				CloseHandle(event);
 			held.stop();
-			CoUninitialize();
 			return;
 		}
 
-		unsigned long long sampleIndex = 0;
+		uint64_t sampleIndex = 0;
 		auto fill = [&](UINT32 frames) {
 			BYTE* data = nullptr;
-			if (FAILED(render.p->GetBuffer(frames, &data)))
+			if (FAILED(render->GetBuffer(frames, &data)))
 				return false;
 			float* samples = reinterpret_cast<float*>(data);
-			for (UINT32 f = 0; f < frames; f++, sampleIndex++)
-			{
-				const float value = (float)(job->amplitude * std::sin(2.0 * std::numbers::pi_v<double> * job->tone * (double)sampleIndex / (double)job->rate));
-				for (unsigned c = 0; c < job->channels; c++)
-					samples[(size_t)f * job->channels + c] = value;
-			}
-			render.p->ReleaseBuffer(frames, 0);
+			probesupport::fillInterleavedSine(samples, frames, job->channels, sampleIndex,
+				job->rate, job->tone, job->amplitude);
+			render->ReleaseBuffer(frames, 0);
 			return true;
 		};
 
@@ -706,17 +585,16 @@ void renderThread(RenderJob* job)
 		if (event)
 			SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
 		fill(bufferFrames);
-		hr = client.p->Start();
+		hr = client->Start();
 		if (FAILED(hr))
 		{
 			fail(L"Start(render)", hr);
 			if (event)
 				CloseHandle(event);
 			held.stop();
-			CoUninitialize();
 			return;
 		}
-		job->enginePeriod = currentEnginePeriod(client.p);
+		job->enginePeriod = currentEnginePeriod(client.get());
 		job->started = true;
 		while (!job->stop)
 		{
@@ -725,27 +603,20 @@ void renderThread(RenderJob* job)
 			else
 				Sleep(5);
 			UINT32 padding = 0;
-			if (FAILED(client.p->GetCurrentPadding(&padding)))
+			if (FAILED(client->GetCurrentPadding(&padding)))
 				break;
 			const UINT32 available = bufferFrames - padding;
 			if (available > 0 && !fill(available))
 				break;
 			held.topUp();
 		}
-		client.p->Stop();
+		client->Stop();
 		held.stop();
 		if (event)
 			CloseHandle(event);
 	}
-	CoUninitialize();
 }
 
-double toDb(double amplitude)
-{
-	if (amplitude <= 0.0)
-		return -200.0;
-	return 20.0 * std::log10(amplitude);
-}
 }
 
 int wmain(int argc, wchar_t** argv)
@@ -757,7 +628,8 @@ int wmain(int argc, wchar_t** argv)
 		return 1;
 	}
 
-	HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+	const ComApartment apartment(COINIT_MULTITHREADED);
+	HRESULT hr = apartment.status();
 	if (FAILED(hr))
 	{
 		fwprintf(stderr, L"CoInitializeEx failed: 0x%08X\n", hr);
@@ -766,86 +638,75 @@ int wmain(int argc, wchar_t** argv)
 
 	int result = 1;
 	{
-		ComRelease<IMMDeviceEnumerator> enumerator;
-		hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), reinterpret_cast<void**>(&enumerator.p));
+		ComPtr<IMMDeviceEnumerator> enumerator;
+		hr = probesupport::wasapi::createEnumerator(enumerator, CLSCTX_ALL);
 		if (FAILED(hr))
 		{
 			fwprintf(stderr, L"MMDeviceEnumerator failed: 0x%08X\n", hr);
-			CoUninitialize();
 			return 1;
 		}
 		if (o.list)
 		{
-			listEndpoints(enumerator.p);
-			CoUninitialize();
+			listEndpoints(enumerator.get());
 			return 0;
 		}
 		if (o.watchRenderOpensSet)
 		{
-			IMMDevice* watchedRender = findEndpoint(enumerator.p, eRender, o.renderName, o.renderId);
-			if (watchedRender == nullptr)
+			ComPtr<IMMDevice> watchedRender = probesupport::wasapi::findEndpoint(
+				enumerator.get(), eRender, o.renderName, o.renderId);
+			if (!watchedRender)
 			{
 				fwprintf(stderr, L"no active render endpoint matches\n");
 			}
 			else
 			{
-				result = watchRenderOpens(watchedRender, friendlyName(watchedRender), o.watchRenderOpens, o.stopFile);
-				watchedRender->Release();
+				result = watchRenderOpens(watchedRender.get(), probesupport::wasapi::friendlyName(watchedRender.get()),
+					o.watchRenderOpens, o.stopFile);
 			}
-			// Released before CoUninitialize: the enumerator's ComRelease would
-			// otherwise run after it, on the way out of this scope, and turn a
-			// run that only failed to find its endpoint into an access violation.
-			enumerator.p->Release();
-			enumerator.p = nullptr;
-			CoUninitialize();
 			return result;
 		}
 
-		ComRelease<IMMDevice> capture;
-		capture.p = findEndpoint(enumerator.p, eCapture, o.captureName, o.captureId);
-		if (capture.p == nullptr)
+		ComPtr<IMMDevice> capture = probesupport::wasapi::findEndpoint(
+			enumerator.get(), eCapture, o.captureName, o.captureId);
+		if (!capture)
 		{
 			fwprintf(stderr, L"no active capture endpoint matches\n");
-			CoUninitialize();
 			return 1;
 		}
-		ComRelease<IMMDevice> render;
+		ComPtr<IMMDevice> render;
 		if (!o.noRender)
 		{
-			render.p = findEndpoint(enumerator.p, eRender, o.renderName, o.renderId);
-			if (render.p == nullptr)
+			render = probesupport::wasapi::findEndpoint(enumerator.get(), eRender, o.renderName, o.renderId);
+			if (!render)
 			{
 				fwprintf(stderr, L"no active render endpoint matches\n");
-				CoUninitialize();
 				return 1;
 			}
 		}
-		const std::wstring captureLabel = friendlyName(capture.p);
-		const std::wstring renderLabel = render.p ? friendlyName(render.p) : L"(none)";
+		const std::wstring captureLabel = probesupport::wasapi::friendlyName(capture.get());
+		const std::wstring renderLabel = render ? probesupport::wasapi::friendlyName(render.get()) : L"(none)";
 		fwprintf(stderr, L"capture: %s\nrender:  %s\n", captureLabel.c_str(), renderLabel.c_str());
 
 		// The capture stream first, so the APO chain is in place before the
 		// tone starts; the settling time absorbs both start-ups.
 		const long long openStartUnixMs = unixMs();
 		LARGE_INTEGER callStart, callEnd;
-		ComRelease<IAudioClient> client;
+		ComPtr<IAudioClient> client;
 		QueryPerformanceCounter(&callStart);
-		hr = capture.p->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, reinterpret_cast<void**>(&client.p));
+		hr = probesupport::wasapi::activateAudioClient(capture.get(), client, CLSCTX_ALL);
 		QueryPerformanceCounter(&callEnd);
 		const double activateMs = elapsedMs(callStart, callEnd);
 		if (FAILED(hr))
 		{
 			fwprintf(stderr, L"Activate(capture) failed: 0x%08X\n", hr);
-			CoUninitialize();
 			return 1;
 		}
 		if (o.category >= 0 || o.raw)
 		{
-			ComRelease<IAudioClient2> client2;
-			if (FAILED(client.p->QueryInterface(__uuidof(IAudioClient2), reinterpret_cast<void**>(&client2.p))))
+			ComPtr<IAudioClient2> client2;
+			if (FAILED(client->QueryInterface(__uuidof(IAudioClient2), reinterpret_cast<void**>(client2.put()))))
 			{
 				fwprintf(stderr, L"IAudioClient2 is not available; cannot set the stream category\n");
-				CoUninitialize();
 				return 1;
 			}
 			AudioClientProperties props = {};
@@ -853,7 +714,7 @@ int wmain(int argc, wchar_t** argv)
 			props.bIsOffload = FALSE;
 			props.eCategory = o.category >= 0 ? (AUDIO_STREAM_CATEGORY)o.category : AudioCategory_Other;
 			props.Options = o.raw ? AUDCLNT_STREAMOPTIONS_RAW : AUDCLNT_STREAMOPTIONS_NONE;
-			hr = client2.p->SetClientProperties(&props);
+			hr = client2->SetClientProperties(&props);
 			if (FAILED(hr))
 			{
 				// AUDCLNT_E_RAW_MODE_UNSUPPORTED: the driver declares no raw mode
@@ -863,16 +724,14 @@ int wmain(int argc, wchar_t** argv)
 					fwprintf(stderr, L"the endpoint's driver supports no raw mode (AUDCLNT_E_RAW_MODE_UNSUPPORTED)\n");
 				else
 					fwprintf(stderr, L"SetClientProperties failed: 0x%08X\n", hr);
-				CoUninitialize();
 				return 1;
 			}
 		}
 		WAVEFORMATEX* mix = nullptr;
-		hr = client.p->GetMixFormat(&mix);
+		hr = client->GetMixFormat(&mix);
 		if (FAILED(hr))
 		{
 			fwprintf(stderr, L"GetMixFormat(capture) failed: 0x%08X\n", hr);
-			CoUninitialize();
 			return 1;
 		}
 		WAVEFORMATEXTENSIBLE fmt = floatFormatLike(mix);
@@ -880,7 +739,7 @@ int wmain(int argc, wchar_t** argv)
 		const unsigned rate = fmt.Format.nSamplesPerSec;
 		const unsigned channels = fmt.Format.nChannels;
 		QueryPerformanceCounter(&callStart);
-		hr = client.p->Initialize(AUDCLNT_SHAREMODE_SHARED,
+		hr = client->Initialize(AUDCLNT_SHAREMODE_SHARED,
 			AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM | AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY,
 			2000000, 0, &fmt.Format, nullptr);
 		QueryPerformanceCounter(&callEnd);
@@ -888,34 +747,31 @@ int wmain(int argc, wchar_t** argv)
 		if (FAILED(hr))
 		{
 			fwprintf(stderr, L"Initialize(capture) failed: 0x%08X\n", hr);
-			CoUninitialize();
 			return 1;
 		}
-		ComRelease<IAudioCaptureClient> captureClient;
-		hr = client.p->GetService(__uuidof(IAudioCaptureClient), reinterpret_cast<void**>(&captureClient.p));
+		ComPtr<IAudioCaptureClient> captureClient;
+		hr = client->GetService(__uuidof(IAudioCaptureClient), reinterpret_cast<void**>(captureClient.put()));
 		if (FAILED(hr))
 		{
 			fwprintf(stderr, L"GetService(IAudioCaptureClient) failed: 0x%08X\n", hr);
-			CoUninitialize();
 			return 1;
 		}
 		QueryPerformanceCounter(&callStart);
-		hr = client.p->Start();
+		hr = client->Start();
 		QueryPerformanceCounter(&callEnd);
 		const double startMs = elapsedMs(callStart, callEnd);
 		const LARGE_INTEGER firstPacketStart = callEnd;
 		if (FAILED(hr))
 		{
 			fwprintf(stderr, L"Start(capture) failed: 0x%08X\n", hr);
-			CoUninitialize();
 			return 1;
 		}
 
 		RenderJob job;
 		std::thread renderer;
-		if (render.p)
+		if (render)
 		{
-			job.device = render.p;
+			job.device = render.get();
 			job.tone = o.tone;
 			job.amplitude = o.amplitude;
 			job.periodRequest = o.period;
@@ -928,8 +784,7 @@ int wmain(int argc, wchar_t** argv)
 				fwprintf(stderr, L"%s failed: 0x%08X\n", job.failure.c_str(), job.hr);
 				job.stop = true;
 				renderer.join();
-				client.p->Stop();
-				CoUninitialize();
+				client->Stop();
 				return 1;
 			}
 		}
@@ -938,11 +793,9 @@ int wmain(int argc, wchar_t** argv)
 		// the tone on channel 0 so a level reading cannot be faked by noise.
 		const unsigned long long settleFrames = (unsigned long long)(o.settle * rate);
 		const unsigned long long measureFrames = (unsigned long long)(o.seconds * rate);
-		std::vector<double> sumSquares(channels, 0.0);
+		probesupport::ToneLevelMeter meter(channels, rate, o.tone);
 		unsigned long long seen = 0, counted = 0, silentPackets = 0;
 		double firstPacketMs = -1.0;
-		const double coeff = 2.0 * std::cos(2.0 * std::numbers::pi_v<double> * o.tone / (double)rate);
-		double s1 = 0.0, s2 = 0.0;
 		const DWORD deadline = GetTickCount() + (DWORD)((o.settle + o.seconds) * 1000.0) + 3000;
 		HRESULT captureError = S_OK;
 		// A window the deadline cut short fails the run (exit 3) after the
@@ -959,7 +812,7 @@ int wmain(int argc, wchar_t** argv)
 				break;
 			}
 			UINT32 packet = 0;
-			hr = captureClient.p->GetNextPacketSize(&packet);
+			hr = captureClient->GetNextPacketSize(&packet);
 			if (FAILED(hr))
 			{
 				captureError = hr;
@@ -976,7 +829,7 @@ int wmain(int argc, wchar_t** argv)
 				BYTE* data = nullptr;
 				UINT32 frames = 0;
 				DWORD flags = 0;
-				hr = captureClient.p->GetBuffer(&data, &frames, &flags, nullptr, nullptr);
+				hr = captureClient->GetBuffer(&data, &frames, &flags, nullptr, nullptr);
 				if (FAILED(hr))
 				{
 					captureError = hr;
@@ -988,23 +841,13 @@ int wmain(int argc, wchar_t** argv)
 				{
 					if (seen < settleFrames || counted >= measureFrames)
 						continue;
-					for (unsigned c = 0; c < channels; c++)
-					{
-						const double x = silent ? 0.0 : (double)samples[(size_t)f * channels + c];
-						sumSquares[c] += x * x;
-						if (c == 0)
-						{
-							const double s0 = x + coeff * s1 - s2;
-							s2 = s1;
-							s1 = s0;
-						}
-					}
+					meter.addFrame(samples + static_cast<size_t>(f) * channels, silent);
 					counted++;
 				}
 				if (silent && seen > settleFrames)
 					silentPackets++;
-				captureClient.p->ReleaseBuffer(frames);
-				hr = captureClient.p->GetNextPacketSize(&packet);
+				captureClient->ReleaseBuffer(frames);
+				hr = captureClient->GetNextPacketSize(&packet);
 				if (FAILED(hr))
 				{
 					captureError = hr;
@@ -1022,7 +865,7 @@ int wmain(int argc, wchar_t** argv)
 			Sleep(5);
 		}
 
-		client.p->Stop();
+		client->Stop();
 		if (renderer.joinable())
 		{
 			job.stop = true;
@@ -1039,18 +882,15 @@ int wmain(int argc, wchar_t** argv)
 		}
 		else
 		{
-			const double power = s1 * s1 + s2 * s2 - coeff * s1 * s2;
-			const double toneAmplitude = 2.0 * std::sqrt(power < 0.0 ? 0.0 : power) / (double)counted;
-			const double toneDb = toDb(toneAmplitude / std::sqrt(2.0));
-			const double expectedToneDb = toDb(o.amplitude / std::sqrt(2.0));
+			const double toneDb = probesupport::amplitudeToDb(meter.toneAmplitude() / std::sqrt(2.0));
+			const double expectedToneDb = probesupport::amplitudeToDb(o.amplitude / std::sqrt(2.0));
 			const double gainDb = toneDb - expectedToneDb;
-			std::vector<double> rmsDb(channels);
-			for (unsigned c = 0; c < channels; c++)
-				rmsDb[c] = toDb(std::sqrt(sumSquares[c] / (double)counted));
+			const std::vector<double> rmsDb = meter.rmsDb();
 
 			if (o.json)
 			{
-				printf("{\"capture\":\"%ls\",\"render\":\"%ls\",\"category\":\"%ls\",\"raw\":%s,\"rate\":%u,\"channels\":%u,"
+				probesupport::JsonLine line;
+				line.append("{\"capture\":\"%ls\",\"render\":\"%ls\",\"category\":\"%ls\",\"raw\":%s,\"rate\":%u,\"channels\":%u,"
 					"\"frames\":%llu,\"requestedFrames\":%llu,\"silentPackets\":%llu,"
 					"\"renderRate\":%u,\"renderPeriodFrames\":%u,\"engineDefaultPeriodFrames\":%u,\"engineMinPeriodFrames\":%u,"
 					"\"enginePeriodFrames\":%u,\"holdEnginePeriodFrames\":%u,"
@@ -1060,8 +900,9 @@ int wmain(int argc, wchar_t** argv)
 					job.rate, job.requestedPeriod, job.defaultPeriod, job.minPeriod, job.enginePeriod, job.holdEnginePeriod,
 					activateMs, initializeMs, startMs, firstPacketMs, openStartUnixMs);
 				for (unsigned c = 0; c < channels; c++)
-					printf("%s%.2f", c ? "," : "", rmsDb[c]);
-				printf("],\"toneDb\":%.2f,\"expectedToneDb\":%.2f,\"gainDb\":%.2f}\n", toneDb, expectedToneDb, gainDb);
+					line.append("%s%.2f", c ? "," : "", rmsDb[c]);
+				line.append("],\"toneDb\":%.2f,\"expectedToneDb\":%.2f,\"gainDb\":%.2f}", toneDb, expectedToneDb, gainDb);
+				line.write();
 			}
 			else
 			{
@@ -1092,6 +933,5 @@ int wmain(int argc, wchar_t** argv)
 			}
 		}
 	}
-	CoUninitialize();
 	return result;
 }

@@ -46,8 +46,8 @@ class QLabel;
 class TitleBar;
 class UpdateToast;
 class UpdateSession;
-namespace SkinSwitchStorm { void run(MainWindow& window); }
-namespace SkinGallery { bool armAnalysisLatencyProbe(MainWindow& window, const QStringList& arguments); }
+struct DeviceFormatBadgeState;
+struct OpenDocument;
 
 // MainWindow's implementation is split across several translation units (all
 // listed in Editor.pro SOURCES). When looking for a method, check the matching
@@ -60,6 +60,7 @@ namespace SkinGallery { bool armAnalysisLatencyProbe(MainWindow& window, const Q
 //   MainWindowParts/MainWindow.FileIO.cpp      - config load/save
 //   MainWindowParts/MainWindow.Frame.cpp       - custom window chrome / title bar
 //   MainWindowParts/MainWindow.Preferences.cpp - settings load/store
+//   MainWindowParts/MainWindow.Probe.cpp       - the probe interface below
 //   MainWindowParts/MainWindow.ViewActions.cpp - view/skin/reset actions
 class MainWindow : public QMainWindow
 {
@@ -89,6 +90,12 @@ public:
 	// does not touch the analysis thread: which quantity is on screen is a
 	// display choice derived from the response already in hand.
 	void setupAnalysisMetricControls();
+
+	// The narrow interface the offscreen probes and the diagnostic sessions
+	// use to reach inside the live window (Editor/MainWindowProbe.h). It
+	// replaced their friend access to all of MainWindow (audit #422 TD-59).
+	class Probe;
+	Probe probe();
 
 protected:
 	void closeEvent(QCloseEvent* event) override;
@@ -142,14 +149,18 @@ private slots:
 	void on_actionResetAllFileSpecificPreferences_triggered();
 
 private:
-	friend void SkinSwitchStorm::run(MainWindow& window);
-	friend bool SkinGallery::armAnalysisLatencyProbe(MainWindow& window, const QStringList& arguments);
 	void startSkinSwitchStorm();
 	void applySkinAndRebuild();
 	void executeStartAnalysis();
 	FilterTable* addTab(QString title, QString tooltip, QString configPath, QList<QString> lines);
 	void getDeviceAndChannelMask(std::shared_ptr<AbstractAPOInfo>* selectedDevice, int* channelMask);
+	// The badge for apoInfo; an endpoint's format is probed off the UI thread
+	// (DeviceFormatBadgeState::whileProbing says what shows meanwhile).
 	void updateDeviceFormatBadge(const std::shared_ptr<AbstractAPOInfo>& apoInfo);
+	void applyDeviceFormatBadge(const DeviceFormatBadgeState& badge);
+	// The last of doChecks' warnings; it runs once the endpoint format scan
+	// has reported.
+	void checkAudioEnhancements();
 	bool askForClose(int tabIndex);
 	void loadPreferences();
 	void savePreferences();
@@ -170,8 +181,15 @@ private:
 	FilterTable* filterTableForTab(int tabIndex) const;
 	FilterTable* currentFilterTable() const;
 	void forEachFilterTable(const std::function<void(int, FilterTable*)>& visitor) const;
+	// The document of a tab, or of the tab showing table; nullptr when there
+	// is none.
+	OpenDocument* documentForTab(int tabIndex) const;
+	OpenDocument* documentForTable(const FilterTable* table) const;
+	// Writes the document's title (with its unsaved-changes '*') and path
+	// into its tab.
+	void showDocumentTitle(const OpenDocument& document);
 	void updateDirtyStatus();
-	// Adds or removes the tab title's unsaved-changes '*'.
+	// Marks the tab's document saved or unsaved; its title follows.
 	void setTabDirty(int tabIndex, bool dirty);
 	// Runs an instant-mode save that is still waiting out its debounce, so
 	// closing a tab or the window inside that window does not drop the last
@@ -194,6 +212,15 @@ private:
 	QList<std::shared_ptr<AbstractAPOInfo>> outputDevices;
 	QList<std::shared_ptr<AbstractAPOInfo>> inputDevices;
 	std::shared_ptr<AbstractAPOInfo> defaultOutputDevice;
+	// One per open tab, found through the tab's page (tabs can be moved):
+	// what the tab shows and its instant-mode save debounce (audit #422 D5).
+	std::vector<std::unique_ptr<OpenDocument>> documents;
+	// Counts badge requests, so a probe result for an earlier selection is
+	// dropped.
+	unsigned deviceFormatGeneration = 0;
+	// The endpoint whose probed format the badge shows; empty when it shows
+	// none (no device, an ASIO interface, or the empty state).
+	QString deviceFormatEndpoint;
 	EqGraphView* eqGraphView = nullptr;
 	std::unique_ptr<AnalysisThread> analysisThread;
 	QTimer* analysisDebounceTimer = nullptr;

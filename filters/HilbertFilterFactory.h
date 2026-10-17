@@ -8,9 +8,9 @@
 
 #include "engine/IFilterFactory.h"
 
-class HilbertFilterFactory : public ParseReportingFactory
+class HilbertFilterFactory : public IFilterFactory
 {
 public:
-	FilterVector createFilter(const std::wstring& configPath,
+	LineOutcome createFilter(const std::wstring& configPath,
 		std::wstring& command, std::wstring& parameters) override;
 };

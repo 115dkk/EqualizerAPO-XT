@@ -8,7 +8,7 @@
 
 #include "audio/ChannelLayout.h"
 #include "filters/ChannelCommand.h"
-#include "filters/CopyFilter.h"
+#include "filters/CopyCommand.h"
 #include "filters/DeviceCommand.h"
 #include "filters/ExpressionCommand.h"
 #include "filters/FilterFactoryRegistry.h"

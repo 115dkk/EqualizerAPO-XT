@@ -29,11 +29,25 @@ class VolumeController
 {
 public:
 	VolumeController();
+	~VolumeController();
+	VolumeController(const VolumeController&) = delete;
+	VolumeController& operator=(const VolumeController&) = delete;
+
 	HRESULT getVolume(double& currentVolume);
 	HRESULT setVolume(double volume);
+	// Registers one endpoint callback. notificationHandle() is signalled for a
+	// volume or mute notification and remains signalled until a waiter consumes
+	// it; no polling COM call is needed between changes.
+	HRESULT startNotifications();
+	HANDLE notificationHandle() const;
+
 private:
+	class NotificationCallback;
+
 	winutil::ComApartment _comApartment;
 	winutil::ComPtr<IAudioEndpointVolume> _endpointVolume;
+	NotificationCallback* _notificationCallback = nullptr;
+	bool _notificationsRegistered = false;
 	float _minVol = 0.0f;
 	float _maxVol = 0.0f;
 };

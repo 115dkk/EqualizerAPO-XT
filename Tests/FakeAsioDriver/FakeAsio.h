@@ -67,6 +67,9 @@ public:
 	HRESULT STDMETHODCALLTYPE counters(FakeAsioCounters* out) override;
 
 	static long instanceCount() noexcept;
+	ASIOCallbacks* callbackSetForTesting() const noexcept {return callbackSet_;}
+	using CreateBuffersHook = void (*)(ASIOCallbacks*);
+	void setCreateBuffersHookForTesting(CreateBuffersHook hook) noexcept {createBuffersHook_ = hook;}
 
 	// The generator the tests use to predict input contents: channel c,
 	// sample n (counted from the first pump after createBuffers, so a reopen
@@ -104,6 +107,8 @@ private:
 	long bufferSize_ = 0;
 	unsigned bytesPerSample_ = 4;
 	ASIOCallbacks callbacks_ = {};
+	ASIOCallbacks* callbackSet_ = nullptr;
+	CreateBuffersHook createBuffersHook_ = nullptr;
 	bool hostSupportsTimeInfo_ = false;
 	std::vector<Channel> channels_;
 	std::vector<Record> records_;

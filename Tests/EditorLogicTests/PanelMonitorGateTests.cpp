@@ -27,7 +27,7 @@ void advanceFor(PanelMonitorGate& gate, int milliseconds, bool inputQuiet, doubl
 }
 }
 
-void testPanelMonitorGateOpensOnlyForSelfGeneratedAudio()
+TEST_CASE(EditorLogicTests, testPanelMonitorGateOpensOnlyForSelfGeneratedAudio)
 {
 	const PanelMonitorGate::Tuning tuning;
 	PanelMonitorGate gate;
@@ -50,7 +50,7 @@ void testPanelMonitorGateOpensOnlyForSelfGeneratedAudio()
 		QStringLiteral("self-generated output on an armed gate opens it"));
 }
 
-void testPanelMonitorGateArmDelayOutlivesReverbTails()
+TEST_CASE(EditorLogicTests, testPanelMonitorGateArmDelayOutlivesReverbTails)
 {
 	const PanelMonitorGate::Tuning tuning;
 	PanelMonitorGate gate;
@@ -72,7 +72,7 @@ void testPanelMonitorGateArmDelayOutlivesReverbTails()
 		QStringLiteral("output still active past the arm delay counts as self-generated"));
 }
 
-void testPanelMonitorGateClosesAndRearms()
+TEST_CASE(EditorLogicTests, testPanelMonitorGateClosesAndRearms)
 {
 	const PanelMonitorGate::Tuning tuning;
 	PanelMonitorGate gate;
@@ -107,7 +107,7 @@ void testPanelMonitorGateClosesAndRearms()
 		QStringLiteral("after reset the full arm delay applies again"));
 }
 
-void testPanelMonitorGateInterruptedArmStartsOver()
+TEST_CASE(EditorLogicTests, testPanelMonitorGateInterruptedArmStartsOver)
 {
 	const PanelMonitorGate::Tuning tuning;
 	PanelMonitorGate gate;

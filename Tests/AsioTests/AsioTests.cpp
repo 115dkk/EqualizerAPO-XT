@@ -16,8 +16,12 @@
 #include <exception>
 #include <fstream>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
+
+#include <windows.h>
+#include <timeapi.h>
 
 #include "asio/AsioWrapper.h"
 #include "asio/CallbackTrampolines.h"
@@ -31,10 +35,11 @@
 #include "Tests/AlignedMemoryGate.h"
 #include "Tests/AsioSupport/HostStub.h"
 #include "Tests/AsioSupport/LatencyMatch.h"
+#include "Tests/AsioTests/FakeEndpointClient.h"
 #include "Tests/FakeRegistry.h"
 #include "Tests/FakeAsioDriver/FakeAsio.h"
 #include "Tests/TestDirectory.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 using eapo::asio::AsioWrapper;
 using eapo::asio::Direction;
@@ -50,7 +55,21 @@ using eapo::asio::StreamStats;
 
 namespace
 {
-	test::Harness harness("AsioTests");
+	test::HarnessAccess harness;
+
+	template<typename Predicate>
+	bool waitUntil(Predicate predicate, DWORD timeoutMs)
+	{
+		const ULONGLONG deadline = GetTickCount64() + timeoutMs;
+		for (;;)
+		{
+			if (predicate())
+				return true;
+			if (GetTickCount64() >= deadline)
+				return false;
+			Sleep(1);
+		}
+	}
 
 	// {C0FFEE00-1111-4222-8333-444455556666}: the CLSID the tests build wrappers under.
 	constexpr GUID testWrapperClsid = {0xc0ffee00, 0x1111, 0x4222, {0x83, 0x33, 0x44, 0x44, 0x55, 0x55, 0x66, 0x66}};
@@ -64,14 +83,24 @@ namespace
 		std::vector<Outcome> script;           // consumed per process() call, any direction
 		OpenReport::Status openStatus = OpenReport::Status::Ok;
 		uint32_t extraLatency = 0;
+		bool throwOnOpen = false;
+		FakeAsioDriver* enterCallbackFrom = nullptr;
+		ASIOCallbacks* enteredCallback = nullptr;
+		bool callbackEntered = false;
 		unsigned opens = 0, closes = 0, calls = 0;
-		StreamStats closedWith;
 		StreamFormat openedWith;
 
 		OpenReport open(const StreamFormat& format, const StreamOptions&) override
 		{
 			opens++;
 			openedWith = format;
+			if (enterCallbackFrom != nullptr)
+			{
+				enteredCallback = enterCallbackFrom->callbackSetForTesting();
+				callbackEntered = eapo::asio::CallbackTrampolines::testEnter(enteredCallback);
+			}
+			if (throwOnOpen)
+				throw std::runtime_error("scripted open exception");
 			OpenReport report;
 			report.status = openStatus;
 			if (openStatus != OpenReport::Status::Ok)
@@ -86,10 +115,14 @@ namespace
 				planes_[slot].resize(channels);
 				for (unsigned c = 0; c < channels; c++)
 					planes_[slot][c] = storage_[slot].data() + static_cast<size_t>(c) * format.frames;
-				report.planes[slot] = channels > 0 ? planes_[slot].data() : nullptr;
 			}
 			report.extraLatencyFrames = extraLatency;
 			return report;
+		}
+
+		float** planes(Direction direction) noexcept override
+		{
+			return planes_[eapo::asio::slotOf(direction)].empty() ? nullptr : planes_[eapo::asio::slotOf(direction)].data();
 		}
 
 		Outcome process(Direction direction) noexcept override
@@ -103,10 +136,9 @@ namespace
 			return Outcome::Processed;
 		}
 
-		void close(const StreamStats& stats) noexcept override
+		void close() noexcept override
 		{
 			closes++;
-			closedWith = stats;
 		}
 
 	private:
@@ -156,6 +188,17 @@ namespace
 		}
 	};
 
+	std::vector<ASIOBufferInfo> outputInfos(long count)
+	{
+		std::vector<ASIOBufferInfo> infos(static_cast<size_t>(count));
+		for (long i = 0; i < count; i++)
+		{
+			infos[static_cast<size_t>(i)].isInput = ASIOFalse;
+			infos[static_cast<size_t>(i)].channelNum = i;
+		}
+		return infos;
+	}
+
 	std::vector<float> decode(const SampleCodec& codec, const std::vector<unsigned char>& bytes)
 	{
 		std::vector<float> samples(bytes.size() / codec.bytesPerSample);
@@ -192,7 +235,7 @@ namespace
 
 	// ---- codecs ----
 
-	void testCodecRoundTrips()
+	TEST_CASE(AsioTests, testCodecRoundTrips)
 	{
 		const long types[] = {
 			ASIOSTInt16LSB, ASIOSTInt16MSB, ASIOSTInt24LSB, ASIOSTInt24MSB, ASIOSTInt32LSB, ASIOSTInt32MSB,
@@ -236,7 +279,7 @@ namespace
 	// The WASAPI target's pure parts: which containers are tried in which
 	// order, what buffer sizes it offers, and the byte shuffles between the
 	// ASIO planes and the device's interleaved block.
-	void testWasapiTargetPolicy()
+	TEST_CASE(AsioTests, testWasapiTargetPolicy)
 	{
 		namespace wasapi = eapo::asio::wasapi;
 
@@ -394,7 +437,7 @@ namespace
 	// The WASAPI target's stream decisions, taken out of the stream thread:
 	// the bridge calibration, the capture queue, the output staging and the
 	// judgement of a device that went away, fed synthetic numbers.
-	void testWasapiStreamParts()
+	TEST_CASE(AsioTests, testWasapiStreamParts)
 	{
 		namespace wasapi = eapo::asio::wasapi;
 		const uint64_t period = 2666666;     // 128 frames at 48 kHz, in ns
@@ -582,11 +625,98 @@ namespace
 		harness.expectTrue(recovering.judgeWait(true, S_OK) == wasapi::StreamHealth::Retry, "so the next timeout is the first again");
 	}
 
+	eapo::asio::wasapi::EndpointSetup fakeRenderSetup(std::unique_ptr<asiotest::FakeEndpointClient> client,
+		unsigned minPeriodFrames)
+	{
+		eapo::asio::wasapi::EndpointSetup setup;
+		setup.client = std::move(client);
+		setup.friendlyName = L"Deterministic endpoint";
+		setup.channels = 2;
+		setup.channelMask = SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT;
+		setup.sampleRate = 48000;
+		setup.minPeriodHns = eapo::asio::wasapi::hnsFromFrames(minPeriodFrames, setup.sampleRate);
+		setup.container = {ASIOSTFloat32LSB, 32, 32, true};
+		return setup;
+	}
+
+	TEST_CASE(AsioTests, testWasapiEndpointClientCalibration)
+	{
+		asiotest::HostStub::Options hostOptions;
+		hostOptions.sampleType = ASIOSTFloat32LSB;
+		hostOptions.outputSeed = 0;
+
+		{
+			auto endpoint = std::make_unique<asiotest::FakeEndpointClient>(5);
+			asiotest::FakeEndpointClient* observed = endpoint.get();
+			eapo::asio::WasapiExclusiveTarget target(fakeRenderSetup(std::move(endpoint), 256), {});
+			asiotest::HostStub host(hostOptions);
+			host.openChannels(0, 2);
+			harness.requireEqual(target.init(nullptr), ASIOTrue, "the cadence-controlled endpoint initializes");
+			harness.requireEqual(host.createBuffers(&target, 256), ASE_OK, "its stream buffers open");
+			harness.requireEqual(target.start(), ASE_OK, "its stream starts");
+			const bool enoughEvents = waitUntil([&host] {return host.switches() >= 12;}, 5000);
+			target.stop();
+			const eapo::asio::WasapiExclusiveTarget::Counters counters = target.counters();
+			harness.expect(enoughEvents, "the stream thread reaches the calibration event count before the deadline");
+			harness.expectEqual(observed->initializeCalls(), 1u, "events at the requested cadence do not reopen the endpoint");
+			harness.expectEqual(counters.bridge, 1ull, "calibration keeps a one-period bridge");
+			harness.expect(counters.periods >= 12, "the stream thread observed enough events to calibrate");
+			host.disposeBuffers();
+		}
+
+		{
+			auto endpoint = std::make_unique<asiotest::FakeEndpointClient>(10);
+			asiotest::FakeEndpointClient* observed = endpoint.get();
+			eapo::asio::WasapiExclusiveTarget target(fakeRenderSetup(std::move(endpoint), 64), {});
+			asiotest::HostStub host(hostOptions);
+			host.openChannels(0, 2);
+			harness.requireEqual(target.init(nullptr), ASIOTrue, "the slow endpoint initializes");
+			harness.requireEqual(host.createBuffers(&target, 64), ASE_OK, "the slow endpoint opens at 64 frames");
+			harness.requireEqual(target.start(), ASE_OK, "the slow endpoint starts");
+			const bool recalibrated = waitUntil([observed, &host] {
+				return observed->initializeCalls() >= 2 && host.latencyChanges() >= 1;
+			}, 5000);
+			target.stop();
+			const eapo::asio::WasapiExclusiveTarget::Counters counters = target.counters();
+			harness.expect(recalibrated, "the slow endpoint finishes recalibration before the deadline");
+			harness.expect(observed->initializeCalls() >= 2, "calibration reopens a slow endpoint with a larger device period");
+			harness.expect(counters.bridge > 1, "the reopened stream reports the calibrated bridge");
+			harness.expect(host.latencyChanges() >= 1, "the host is told that rebridge changed latency");
+			host.disposeBuffers();
+		}
+	}
+
+	TEST_CASE(AsioTests, testWasapiEndpointClientDeviceLost)
+	{
+		auto endpoint = std::make_unique<asiotest::FakeEndpointClient>(2, 4);
+		asiotest::FakeEndpointClient* observed = endpoint.get();
+		eapo::asio::WasapiExclusiveTarget target(fakeRenderSetup(std::move(endpoint), 64), {});
+		asiotest::HostStub::Options hostOptions;
+		hostOptions.sampleType = ASIOSTFloat32LSB;
+		hostOptions.outputSeed = 0;
+		asiotest::HostStub host(hostOptions);
+		host.openChannels(0, 2);
+		harness.requireEqual(target.init(nullptr), ASIOTrue, "the device-loss endpoint initializes");
+		harness.requireEqual(host.createBuffers(&target, 64), ASE_OK, "its stream buffers open");
+		harness.requireEqual(target.start(), ASE_OK, "its stream starts");
+		const bool resetRequested = waitUntil([observed, &host] {
+			return observed->releaseCalls() >= 4 && host.resetRequests() >= 1;
+		}, 5000);
+		target.stop();
+		harness.expect(resetRequested, "device loss requests a reset before the deadline");
+		harness.expect(observed->releaseCalls() >= 4, "the fake invalidated a render release");
+		harness.expectEqual(host.resetRequests(), 1ul, "device loss asks the ASIO host to reset once");
+		char message[eapo::asio::errorMessageBytes] = {};
+		target.getErrorMessage(message);
+		harness.expect(std::strstr(message, "went away") != nullptr, std::string("the failure names the lost device: ") + message);
+		host.disposeBuffers();
+	}
+
 	// Audit #348 TD-10: a Korean endpoint name, narrowed with the ANSI code
 	// page by the WASAPI target, must widen back to the same text and never be
 	// cut in the middle of a double-byte character. Pinned with code page 949
 	// so the check does not depend on the runner's system locale.
-	void testDriverNameText()
+	TEST_CASE(AsioTests, testDriverNameText)
 	{
 		if (!IsValidCodePage(949))
 		{
@@ -604,6 +734,11 @@ namespace
 			"a cut at 5 bytes drops the lead byte of the second character");
 		harness.expectEqual(eapo::asio::drivername::characterBoundary(korean, 8, 6, 949), static_cast<size_t>(6),
 			"a cut on a boundary keeps it");
+		const char utf8[] = {'A', '\xE2', '\x82', '\xAC', 'B', '\0'};
+		harness.expectEqual(eapo::asio::drivername::characterBoundary(utf8, 5, 3, CP_UTF8), static_cast<size_t>(1),
+			"a UTF-8 sequence is not split at the byte limit");
+		harness.expectEqual(eapo::asio::drivername::characterBoundary(utf8, 5, 4, CP_UTF8), static_cast<size_t>(4),
+			"a complete UTF-8 sequence is retained");
 		harness.expectEqual(eapo::asio::drivername::characterBoundary(korean, 8, 31, 949), static_cast<size_t>(8),
 			"a short name is kept whole");
 
@@ -614,7 +749,7 @@ namespace
 			"widening truncates to the destination and terminates it");
 	}
 
-	void testCodecBytePatterns()
+	TEST_CASE(AsioTests, testCodecBytePatterns)
 	{
 		SampleCodec codec;
 		eapo::asio::findSampleCodec(ASIOSTInt16LSB, codec);
@@ -685,7 +820,7 @@ namespace
 		}
 	};
 
-	void testTrampolines()
+	TEST_CASE(AsioTests, testTrampolines)
 	{
 		using eapo::asio::CallbackTrampolines::claim;
 		using eapo::asio::CallbackTrampolines::release;
@@ -727,9 +862,18 @@ namespace
 			release(&sink);
 	}
 
+	ASIOCallbacks* failedCreateEnteredCallback = nullptr;
+	bool failedCreateCallbackEntered = false;
+
+	void enterFailedCreateCallback(ASIOCallbacks* callbacks)
+	{
+		failedCreateEnteredCallback = callbacks;
+		failedCreateCallbackEntered = eapo::asio::CallbackTrampolines::testEnter(callbacks);
+	}
+
 	// ---- wrapper: state machine ----
 
-	void testStateMachineOrdering()
+	TEST_CASE(AsioTests, testStateMachineOrdering)
 	{
 		FakeAsioConfig config;
 		StreamOptions options;
@@ -780,9 +924,116 @@ namespace
 		harness.expect(std::string(name) == "FakeAsio (EQ APO XT)", std::string("the driver name carries the suffix: ") + name);
 	}
 
+	TEST_CASE(AsioTests, testQuarantinedCallbackDetachesHostArrayAndDefersTargetDispose)
+	{
+		FakeAsioConfig config;
+		StreamOptions options;
+		Rig rig(config, options, asiotest::HostStub::Options());
+		std::vector<ASIOBufferInfo> oldInfos = outputInfos(2);
+		std::vector<ASIOBufferInfo> newInfos = outputInfos(2);
+		harness.requireEqual(rig.wrapper->init(nullptr), ASIOTrue, "the quarantine fixture initializes");
+		harness.requireEqual(rig.wrapper->createBuffers(oldInfos.data(), static_cast<long>(oldInfos.size()), 64, rig.host->callbacks()),
+			ASE_OK, "the quarantine fixture opens buffers");
+		ASIOCallbacks* callbacks = rig.fake->callbackSetForTesting();
+		harness.require(eapo::asio::CallbackTrampolines::testEnter(callbacks), "a target callback is held in flight");
+		const MMRESULT timer = timeBeginPeriod(1);
+		harness.expectEqual(rig.wrapper->disposeBuffers(), ASE_OK, "dispose returns after the bounded quarantine wait");
+		if (timer == TIMERR_NOERROR)
+			timeEndPeriod(1);
+		harness.expect(oldInfos[0].buffers[0] == nullptr && oldInfos[0].buffers[1] == nullptr,
+			"dispose returns the old host buffer pointers before the array can expire");
+		harness.expectEqual(rig.counters().disposeBuffersCalls, 0ul, "the target buffers remain alive while its callback is in flight");
+		harness.expectEqual(rig.processor->closes, 0u, "the processor remains open while its callback is in flight");
+		std::memset(oldInfos.data(), 0xA5, oldInfos.size() * sizeof(ASIOBufferInfo));
+		const std::vector<unsigned char> sentinel(oldInfos.size() * sizeof(ASIOBufferInfo), 0xA5);
+		harness.expectEqual(rig.wrapper->createBuffers(newInfos.data(), static_cast<long>(newInfos.size()), 64, rig.host->callbacks()),
+			ASE_InvalidMode, "createBuffers refuses to overwrite the host callback snapshot while the old callback is quarantined");
+		eapo::asio::CallbackTrampolines::testLeave(callbacks);
+		harness.expectEqual(rig.wrapper->createBuffers(newInfos.data(), static_cast<long>(newInfos.size()), 64, rig.host->callbacks()),
+			ASE_OK, "the drained quarantine permits a fresh callback snapshot");
+		harness.expectEqual(rig.counters().disposeBuffersCalls, 1ul, "the old target buffers are disposed only after the callback drains");
+		harness.expectEqual(rig.processor->closes, 1u, "the old processor closes only after the callback drains");
+		harness.expect(std::memcmp(oldInfos.data(), sentinel.data(), sentinel.size()) == 0,
+			"releasing the quarantine never writes through the expired host array");
+		harness.expectEqual(rig.wrapper->disposeBuffers(), ASE_OK, "the reopened stream disposes normally");
+	}
+
+	TEST_CASE(AsioTests, testFailedProcessorOpenQuarantineDetachesHostArray)
+	{
+		FakeAsioConfig config;
+		StreamOptions options;
+		Rig rig(config, options, asiotest::HostStub::Options());
+		std::vector<ASIOBufferInfo> oldInfos = outputInfos(2);
+		std::vector<ASIOBufferInfo> newInfos = outputInfos(2);
+		rig.processor->openStatus = OpenReport::Status::Unavailable;
+		rig.processor->enterCallbackFrom = rig.fake;
+		harness.requireEqual(rig.wrapper->init(nullptr), ASIOTrue, "the failed-open quarantine fixture initializes");
+		const MMRESULT timer = timeBeginPeriod(1);
+		harness.expectEqual(rig.wrapper->createBuffers(oldInfos.data(), static_cast<long>(oldInfos.size()), 64, rig.host->callbacks()),
+			ASE_HWMalfunction, "a processor failure returns after the bounded quarantine wait");
+		if (timer == TIMERR_NOERROR)
+			timeEndPeriod(1);
+		harness.require(rig.processor->callbackEntered, "the processor failure left a target callback in flight");
+		harness.expect(oldInfos[0].buffers[0] == nullptr && oldInfos[0].buffers[1] == nullptr,
+			"the failed create returns the old host buffer pointers before the array can expire");
+		harness.expectEqual(rig.counters().disposeBuffersCalls, 0ul, "failed-create target buffers remain alive while the callback is in flight");
+		harness.expectEqual(rig.processor->closes, 0u, "a partially opened processor remains alive while the callback is in flight");
+		std::memset(oldInfos.data(), 0xA5, oldInfos.size() * sizeof(ASIOBufferInfo));
+		const std::vector<unsigned char> sentinel(oldInfos.size() * sizeof(ASIOBufferInfo), 0xA5);
+		harness.expectEqual(rig.wrapper->createBuffers(newInfos.data(), static_cast<long>(newInfos.size()), 64, rig.host->callbacks()),
+			ASE_InvalidMode, "the failed create cannot replace callbacks before the old one drains");
+		eapo::asio::CallbackTrampolines::testLeave(rig.processor->enteredCallback);
+		rig.processor->enterCallbackFrom = nullptr;
+		rig.processor->openStatus = OpenReport::Status::Ok;
+		harness.expectEqual(rig.wrapper->createBuffers(newInfos.data(), static_cast<long>(newInfos.size()), 64, rig.host->callbacks()),
+			ASE_OK, "the failed create can reopen after its callback drains");
+		harness.expectEqual(rig.counters().disposeBuffersCalls, 1ul, "the failed create disposes target buffers after the callback drains");
+		harness.expectEqual(rig.processor->closes, 1u, "the partial processor open closes after the callback drains");
+		harness.expect(std::memcmp(oldInfos.data(), sentinel.data(), sentinel.size()) == 0,
+			"the failed-create cleanup never writes through the expired host array");
+		harness.expectEqual(rig.wrapper->disposeBuffers(), ASE_OK, "the recovered stream disposes normally");
+	}
+
+	TEST_CASE(AsioTests, testFailedTargetCreateQuarantinesNotificationCallback)
+	{
+		FakeAsioConfig config;
+		config.failCreateAfterCallbacks = 1;
+		StreamOptions options;
+		Rig rig(config, options, asiotest::HostStub::Options());
+		std::vector<ASIOBufferInfo> oldInfos = outputInfos(2);
+		std::vector<ASIOBufferInfo> newInfos = outputInfos(2);
+		failedCreateEnteredCallback = nullptr;
+		failedCreateCallbackEntered = false;
+		rig.fake->setCreateBuffersHookForTesting(&enterFailedCreateCallback);
+		harness.requireEqual(rig.wrapper->init(nullptr), ASIOTrue, "the target-failure quarantine fixture initializes");
+		const MMRESULT timer = timeBeginPeriod(1);
+		harness.expectEqual(rig.wrapper->createBuffers(oldInfos.data(), static_cast<long>(oldInfos.size()), 64, rig.host->callbacks()),
+			ASE_HWMalfunction, "a target failure returns after the bounded notification quarantine wait");
+		if (timer == TIMERR_NOERROR)
+			timeEndPeriod(1);
+		harness.require(failedCreateCallbackEntered, "the target started a notification callback before returning failure");
+		harness.expectEqual(rig.processor->opens, 0u, "the processor never opens after the target create fails");
+		std::memset(oldInfos.data(), 0xA5, oldInfos.size() * sizeof(ASIOBufferInfo));
+		const std::vector<unsigned char> sentinel(oldInfos.size() * sizeof(ASIOBufferInfo), 0xA5);
+		harness.expectEqual(rig.wrapper->createBuffers(newInfos.data(), static_cast<long>(newInfos.size()), 64, rig.host->callbacks()),
+			ASE_InvalidMode, "a target failure cannot replace the host snapshot before its notification drains");
+		eapo::asio::CallbackTrampolines::testLeave(failedCreateEnteredCallback);
+		rig.fake->setCreateBuffersHookForTesting(nullptr);
+		config.failCreateAfterCallbacks = 0;
+		harness.requireEqual(rig.fake->configure(&config), S_OK, "the fake target is allowed to recover");
+		harness.expectEqual(rig.wrapper->createBuffers(newInfos.data(), static_cast<long>(newInfos.size()), 64, rig.host->callbacks()),
+			ASE_OK, "the target can reopen after its notification drains");
+		harness.expectEqual(rig.processor->closes, 0u, "releasing a failed target create does not close an unopened processor");
+		harness.expect(std::memcmp(oldInfos.data(), sentinel.data(), sentinel.size()) == 0,
+			"target-failure cleanup never writes through the expired host array");
+		harness.expectEqual(rig.wrapper->disposeBuffers(), ASE_OK, "the recovered target stream disposes normally");
+		failedCreateEnteredCallback = nullptr;
+		failedCreateCallbackEntered = false;
+	}
+
 	// ---- wrapper: data flow ----
 
-	void testOutputAndInputAreProcessed()
+	TEST_CASE(AsioTests, testOutputAndInputAreProcessed)
 	{
 		FakeAsioConfig config;
 		config.seed = 11;
@@ -828,14 +1079,14 @@ namespace
 			}
 		}
 		harness.expectEqual(rig.processor->calls, 8u, "process ran once per direction per period");
-		harness.expectEqual(rig.processor->closedWith.blocks[0], 4ull, "output blocks were counted");
-		harness.expectEqual(rig.processor->closedWith.blocks[1], 4ull, "input blocks were counted");
-		harness.expectEqual(rig.processor->closedWith.late[0] + rig.processor->closedWith.late[1], 0ull, "nothing was late");
+		harness.expectEqual(rig.wrapper->stats().blocks[0], 4ull, "output blocks were counted");
+		harness.expectEqual(rig.wrapper->stats().blocks[1], 4ull, "input blocks were counted");
+		harness.expectEqual(rig.wrapper->stats().late[0] + rig.wrapper->stats().late[1], 0ull, "nothing was late");
 		harness.expectEqual(rig.counters().timeInfoSwitches, 4ul, "the target used the time-info switch");
 		harness.expectEqual(rig.host->timeInfoSwitches(), 4ul, "the host received the time-info switch");
 	}
 
-	void testFirstBlockIsAlreadyProcessed()
+	TEST_CASE(AsioTests, testFirstBlockIsAlreadyProcessed)
 	{
 		FakeAsioConfig config;
 		StreamOptions options;
@@ -864,14 +1115,14 @@ namespace
 		harness.expect(allProcessed, "the very first block leaves the wrapper processed");
 	}
 
-	void testLateAndOffPassThrough()
+	TEST_CASE(AsioTests, testLateAndOffPassThrough)
 	{
 		FakeAsioConfig config;
 		StreamOptions options;
 		options.processInput = false;
 		Rig rig(config, options, asiotest::HostStub::Options());
 		rig.processor->gain = 0.5f;
-		rig.processor->script = {Outcome::Processed, Outcome::Late, Outcome::Processed};
+		rig.processor->script = {Outcome::Processed, Outcome::LateDropped, Outcome::Processed};
 		AsioWrapper* w = rig.wrapper;
 		rig.host->openChannels(1, 1);
 		w->init(nullptr);
@@ -899,8 +1150,8 @@ namespace
 		harness.expect(period0, "period 0 was processed");
 		harness.expect(period1, "the late period passed through untouched");
 		harness.expect(period2, "processing resumed after the late period");
-		harness.expectEqual(rig.processor->closedWith.late[0], 1ull, "the late block was counted");
-		harness.expectEqual(rig.processor->closedWith.blocks[1], 0ull, "the disabled input direction was never processed");
+		harness.expectEqual(rig.wrapper->stats().late[0], 1ull, "the late block was counted");
+		harness.expectEqual(rig.wrapper->stats().blocks[1], 0ull, "the disabled input direction was never processed");
 
 		std::vector<float> in = decode(codec, rig.host->inputRecord(0));
 		bool inputRaw = true;
@@ -909,7 +1160,7 @@ namespace
 		harness.expect(inputRaw, "a disabled input direction is copied byte for byte");
 	}
 
-	void testGoneIsStickyUntilReopen()
+	TEST_CASE(AsioTests, testGoneIsStickyUntilReopen)
 	{
 		FakeAsioConfig config;
 		StreamOptions options;
@@ -929,7 +1180,7 @@ namespace
 		w->getErrorMessage(message);
 		harness.expect(std::strstr(message, "went away") != nullptr, std::string("the error names the lost host: ") + message);
 		harness.expectEqual(w->disposeBuffers(), ASE_OK, "dispose after Gone");
-		harness.expectEqual(rig.processor->closedWith.gone[0], 1ull, "the Gone block was counted");
+		harness.expectEqual(rig.wrapper->stats().gone[0], 1ull, "the Gone block was counted");
 		rig.processor->script.clear();
 		harness.expectEqual(rig.host->createBuffers(w, 16), ASE_OK, "reopen after Gone");
 		harness.expectEqual(w->start(), ASE_OK, "start after the reopen works again");
@@ -941,7 +1192,7 @@ namespace
 	// input generator used to carry on from where the previous stream
 	// stopped, so a test that reopened could not predict the input from
 	// sample 0.
-	void testReopenedTargetRestartsItsInput()
+	TEST_CASE(AsioTests, testReopenedTargetRestartsItsInput)
 	{
 		FakeAsioConfig config;
 		config.seed = 5;
@@ -974,7 +1225,7 @@ namespace
 		harness.expect(fromZero, "after the reopen the input starts again at generator sample 0");
 	}
 
-	void testOutputReadyPath()
+	TEST_CASE(AsioTests, testOutputReadyPath)
 	{
 		FakeAsioConfig config;
 		StreamOptions options;
@@ -1004,7 +1255,7 @@ namespace
 		harness.expect(processed, "output committed at outputReady carries the processed audio");
 	}
 
-	void testUnopenedChannelsSeeSilence()
+	TEST_CASE(AsioTests, testUnopenedChannelsSeeSilence)
 	{
 		FakeAsioConfig config;
 		config.outputChannels = 4;
@@ -1038,7 +1289,7 @@ namespace
 		harness.expect(live, "a channel the host opened plays its signal");
 	}
 
-	void testResetAndRateChangePropagate()
+	TEST_CASE(AsioTests, testResetAndRateChangePropagate)
 	{
 		FakeAsioConfig config;
 		StreamOptions options;
@@ -1064,7 +1315,7 @@ namespace
 		harness.expectEqual(rig.processor->calls, 1u, "blocks after the rate change are not processed");
 		w->stop();
 		w->disposeBuffers();
-		harness.expectEqual(rig.processor->closedWith.staleBlocks, 2u, "stale blocks were counted");
+		harness.expectEqual(rig.wrapper->stats().staleBlocks, 2u, "stale blocks were counted");
 
 		SampleCodec codec;
 		eapo::asio::findSampleCodec(config.sampleType, codec);
@@ -1080,7 +1331,7 @@ namespace
 		w->disposeBuffers();
 	}
 
-	void testRejectedFormatsAndOpenFailures()
+	TEST_CASE(AsioTests, testRejectedFormatsAndOpenFailures)
 	{
 		{
 			FakeAsioConfig config;
@@ -1109,6 +1360,7 @@ namespace
 			harness.expectEqual(rig.host->createBuffers(w, 64), ASE_HWMalfunction, "an unavailable engine host fails createBuffers loudly");
 			harness.expectEqual(rig.counters().createBuffersCalls, 1ul, "the target's buffers were created");
 			harness.expectEqual(rig.counters().disposeBuffersCalls, 1ul, "and disposed again on the failure");
+			harness.expectEqual(rig.processor->closes, 1u, "a failed processor open is closed immediately after callbacks drain");
 			char message[124] = {};
 			w->getErrorMessage(message);
 			harness.expect(std::string(message) == "scripted failure", std::string("the processor's message is reported: ") + message);
@@ -1116,6 +1368,12 @@ namespace
 			harness.expect(rig.host->infos()[0].buffers[0] == nullptr, "the host's buffer pointers are cleared");
 			rig.processor->openStatus = OpenReport::Status::Rejected;
 			harness.expectEqual(rig.host->createBuffers(w, 64), ASE_InvalidMode, "a rejected format answers ASE_InvalidMode");
+			harness.expectEqual(rig.processor->closes, 2u, "a rejected processor open is closed too");
+			rig.processor->openStatus = OpenReport::Status::Ok;
+			rig.processor->throwOnOpen = true;
+			harness.expectEqual(rig.host->createBuffers(w, 64), ASE_HWMalfunction, "an exception from processor open fails createBuffers loudly");
+			harness.expectEqual(rig.processor->closes, 3u, "a throwing processor open is closed after unwinding");
+			harness.expectEqual(rig.counters().disposeBuffersCalls, 3ul, "each attempted processor open disposes the target buffers");
 		}
 		{
 			FakeAsioConfig config;
@@ -1131,7 +1389,7 @@ namespace
 		}
 	}
 
-	void testLatenciesAddTheProcessorsShare()
+	TEST_CASE(AsioTests, testLatenciesAddTheProcessorsShare)
 	{
 		FakeAsioConfig config;
 		config.inputLatency = 10;
@@ -1154,7 +1412,7 @@ namespace
 		w->disposeBuffers();
 	}
 
-	void testHostWithoutTimeInfo()
+	TEST_CASE(AsioTests, testHostWithoutTimeInfo)
 	{
 		FakeAsioConfig config;
 		StreamOptions options;
@@ -1177,7 +1435,7 @@ namespace
 
 	// ---- registry record ----
 
-	void testSyncDeadline()
+	TEST_CASE(AsioTests, testSyncDeadline)
 	{
 		StreamFormat format;
 		format.sampleRate = 48000.0;
@@ -1195,7 +1453,7 @@ namespace
 		harness.expectEqual(eapo::asio::syncDeadlineUs(format, options), 0u, "no rate: no deadline");
 	}
 
-	void testWrapperRecordRoundTrip()
+	TEST_CASE(AsioTests, testWrapperRecordRoundTrip)
 	{
 		test::FakeRegistry registry;
 		eapo::asio::WrapperRecord record;
@@ -1256,7 +1514,7 @@ namespace
 
 	// ---- loopback latency matching ----
 
-	void testLatencyMatchingAndSummary()
+	TEST_CASE(AsioTests, testLatencyMatchingAndSummary)
 	{
 		const std::vector<int64_t> emitted = {0, 5000000, 10000000};
 		asiotest::LatencyMatch match = asiotest::matchClicks(emitted, {1200, 5001200, 10001200}, 5000000);
@@ -1299,7 +1557,7 @@ namespace
 
 	// ---- in-process engine adapter ----
 
-	void testInProcProcessorRunsTheEngine()
+	TEST_CASE(AsioTests, testInProcProcessorRunsTheEngine)
 	{
 		test::TestDirectory directory(L"AsioTests");
 		const std::wstring configPath = directory.trackFile(L"config.txt");
@@ -1351,56 +1609,25 @@ namespace
 		directory.removeAll();
 	}
 
-	int runAsioTests()
+	TEST_CASE(AsioTests, testAllInstancesReleased)
 	{
-		testCodecRoundTrips();
-		testWasapiTargetPolicy();
-		testWasapiStreamParts();
-		testDriverNameText();
-		testCodecBytePatterns();
-		testTrampolines();
-		testStateMachineOrdering();
-		testOutputAndInputAreProcessed();
-		testFirstBlockIsAlreadyProcessed();
-		testLateAndOffPassThrough();
-		testGoneIsStickyUntilReopen();
-		testReopenedTargetRestartsItsInput();
-		testOutputReadyPath();
-		testUnopenedChannelsSeeSilence();
-		testResetAndRateChangePropagate();
-		testRejectedFormatsAndOpenFailures();
-		testLatenciesAddTheProcessorsShare();
-		testHostWithoutTimeInfo();
-		testSyncDeadline();
-		testWrapperRecordRoundTrip();
-		testLatencyMatchingAndSummary();
-		testInProcProcessorRunsTheEngine();
 		harness.expectEqual(AsioWrapper::instanceCount(), 0L, "every wrapper was released");
 		harness.expectEqual(FakeAsioDriver::instanceCount(), 0L, "every fake driver was released");
-		harness.report();
-		return test::reportAlignedMemoryBalance("AsioTests");
 	}
 }
-
-int runStreamRingTests();
-int runDaemonTests();
-int runDeviceRecordTests();
-int runReceiverKeepaliveTests();
 
 int main()
 {
 	Logging::set(stderr, false, false, false);
 	try
 	{
-		if (runStreamRingTests() != 0)
-			return 1;
-		if (runDaemonTests() != 0)
-			return 1;
-		if (runDeviceRecordTests() != 0)
-			return 1;
-		if (runReceiverKeepaliveTests() != 0)
-			return 1;
-		return runAsioTests();
+		return test::runAll("AsioTests", {
+			"StreamRingTests",
+			"DaemonTests",
+			"DeviceRecordTests",
+			"ReceiverKeepaliveTests",
+			"AsioTests",
+		});
 	}
 	catch (const std::exception& error)
 	{

@@ -1,53 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Shared scaffolding for the engine test suites (audit #250 F057, audit #275
-  D1/TD-20): the compile and link settings every suite wants, written once so
-  the per-configuration copies cannot drift apart again.
+  Shared scaffolding for the test projects that link the engine (audit #250
+  F057, audit #275 D1/TD-20, audit #422 T3): written once so the
+  per-configuration copies cannot drift apart again.
 
-  The engine link contract itself - library-path defaults, Common.lib and its
-  companions, /WHOLEARCHIVE, muparserx's Debug/Release spelling and
-  MUP_USE_WIDE_STRING - is in the repo root's EngineConsumer.props, which the
-  product executables import too (audit #348 D2). This file imports it and
-  adds what only a test console wants.
+  Three parts, imported or defined here:
+  - TestScaffold.props: the compile and link settings every test binary
+    wants (warning level, subsystem, debug information, Release hardening).
+    The test projects that link no engine import that file alone.
+  - The engine link contract (library-path defaults, Common.lib and its
+    companions, /WHOLEARCHIVE, muparserx's Debug/Release spelling and
+    MUP_USE_WIDE_STRING), in the repo root's EngineConsumer.props, which the
+    product executables import too (audit #348 D2).
+  - The runtime files a suite needs next to its .exe (below).
 
   Import this AFTER $(VCTargetsPath)\Microsoft.Cpp.props, for the same reason
   EngineConsumer.props gives.
-
-  The two test VST plugins (TestVst2Plugin, TestVst3Plugin) do NOT import
-  this file: they link no Common.lib, so the whole-archive rule would break
-  their links.
 -->
 <Project>
+  <Import Project="$(MSBuildThisFileDirectory)TestScaffold.props" />
   <Import Project="$(MSBuildThisFileDirectory)..\EngineConsumer.props" />
-  <ItemDefinitionGroup>
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
-    <ClCompile>
-      <Optimization>Disabled</Optimization>
-    </ClCompile>
-  </ItemDefinitionGroup>
-  <!-- Release hardening every suite builds with (audit #348 TD-74). It was
-       copied into six suites and missing from EditorLogicTests. -->
-  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
-    <ClCompile>
-      <ControlFlowGuard>Guard</ControlFlowGuard>
-      <SDLCheck>true</SDLCheck>
-      <Optimization>MaxSpeed</Optimization>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-    </ClCompile>
-    <Link>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-    </Link>
-  </ItemDefinitionGroup>
+  <!--
+    The dependency DLLs (FFTW, libsndfile, muparserx when it is a DLL) are
+    copied next to the binary after every build, so a suite runs from its
+    output directory without PATH changes (audit #422 TD-39: this was a
+    PostBuildEvent copied into seven projects). A project adds its own files
+    as EapoRuntimeFile items; a file that does not exist is skipped, as the
+    old "if exist" lines did.
+  -->
+  <Target Name="EapoCopyRuntimeFiles" AfterTargets="Build">
+    <ItemGroup>
+      <_EapoRuntimeCandidate Include="$(FFTW_LIB)\*.dll;$(LIBSNDFILE_LIB)\*.dll;$(MUPARSERX_LIB)\*.dll;@(EapoRuntimeFile)" />
+      <_EapoRuntimeFile Include="@(_EapoRuntimeCandidate)" Condition="Exists('%(_EapoRuntimeCandidate.FullPath)')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_EapoRuntimeFile)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

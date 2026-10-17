@@ -27,10 +27,16 @@
 #include <QPolygonF>
 #include <QtMath>
 
+#include "Editor/skins/rack/RackSkinDetail.h"
 #include "Editor/skins/shared/SkinPaint.h"
 
 namespace
 {
+// The engraved printing is the Editor rack's own (RackSkinDetail): a contrast
+// pass offset one pixel down (the recess edge catching the work light), then
+// the body ink on top.
+using RackSkinDetail::engraveText;
+
 // Bay geometry: the rail channel on the list's left edge, the jack field
 // that owns the toggle clicks, and the machined right ear.
 const int kRailWidth = 13;
@@ -54,30 +60,12 @@ QColor metalLo(const SkinTokens& t, bool dark)
 	return dark ? QColor(t.card).darker(165) : mixColor(QColor(t.border), QColor(t.mutedText), 0.55);
 }
 
-// Engraved faceplate printing: a contrast pass offset one pixel down (the
-// recess edge catching the work light), then the body ink on top.
-void engrave(QPainter& painter, const QRectF& rect, int flags, const QString& text, const QColor& body, bool dark)
-{
-	painter.setPen(dark ? QColor(0, 0, 0, 170) : QColor(255, 255, 255, 200));
-	painter.drawText(rect.translated(0, 1), flags, text);
-	painter.setPen(body);
-	painter.drawText(rect, flags, text);
-}
-
-// Horizontal brushing grain (same grammar as RackChrome): per-line ink
-// density varies deterministically with the seed, sparse polish lines mixed in.
+// Horizontal brushing grain: the Editor rack's recipe (RackSkinDetail), in
+// this sheet's token-derived ink on the cream finish.
 void paintGrain(QPainter& painter, const QRectF& r, bool dark, uint seed, const SkinTokens& t)
 {
-	const int baseAlpha = dark ? 4 : 5;
-	QColor ink = dark ? QColor(255, 255, 255) : mixColor(QColor(t.mutedText), QColor(t.text), 0.3);
-	for (qreal y = r.top() + 2; y < r.bottom() - 1; y += 2)
-	{
-		const uint h = (seed ^ uint(qRound(y * 7.0))) * 2654435761u;
-		const bool polish = (h >> 8) % 11u == 0;
-		ink.setAlpha(baseAlpha + int(h % 7u) + (polish ? 6 : 0));
-		painter.setPen(QPen(ink, 1));
-		painter.drawLine(QPointF(r.left() + 2, y), QPointF(r.right() - 2, y));
-	}
+	const QColor ink = dark ? QColor(255, 255, 255) : mixColor(QColor(t.mutedText), QColor(t.text), 0.3);
+	RackSkinDetail::paintBrushing(painter, r, ink, dark ? 4 : 5, seed);
 }
 
 // A slotted machine screw; the slot angle varies per screw so a column of
@@ -154,7 +142,7 @@ void paintStamp(QPainter& painter, const QPointF& topLeft, const QString& letter
 	painter.setPen(QPen(withAlpha(ink, 130), 1));
 	painter.setBrush(Qt::NoBrush);
 	painter.drawRoundedRect(box.adjusted(0.5, 0.5, -0.5, -0.5), 1.5, 1.5);
-	engrave(painter, box, Qt::AlignCenter, letters, withAlpha(ink, 210), dark);
+	engraveText(painter, box, Qt::AlignCenter, letters, withAlpha(ink, 210), dark);
 }
 
 // ── The patch bay parts ─────────────────────────────────────────────────────
@@ -434,7 +422,7 @@ public:
 		// The legend, engraved; a pressed cap drops it one pixel with the
 		// face.
 		const QRectF legendRect = s.pressed ? QRectF(rect).translated(0, 1) : QRectF(rect);
-		engrave(painter, legendRect, Qt::AlignCenter, s.text, ink, dark);
+		engraveText(painter, legendRect, Qt::AlignCenter, s.text, ink, dark);
 
 		// Keyboard focus: the thin amber service ring inside the cap.
 		if (s.focused)
@@ -514,7 +502,7 @@ public:
 		const int textLeft = int(latch.x()) + 18;
 		const int textRight = int(plate.right()) - 22;
 		const QColor titleInk = mixColor(QColor(t.mutedText), QColor(t.text), (s.open ? 0.55 : 0.0) + 0.5 * s.hover);
-		engrave(painter, QRectF(textLeft, plate.top(), textRight - textLeft, plate.height()),
+		engraveText(painter, QRectF(textLeft, plate.top(), textRight - textLeft, plate.height()),
 			Qt::AlignLeft | Qt::AlignVCenter, tfm.elidedText(s.title, Qt::ElideRight, textRight - textLeft), titleInk, dark);
 
 		// The open hatch leaks the service light along its bottom seam.
@@ -582,7 +570,7 @@ private:
 
 		const int textLeft = int(dzus.x()) + 16;
 		const int textRight = int(marksLeft) - 10;
-		engrave(painter, QRectF(textLeft, r.top(), qMax(20, textRight - textLeft), r.height()),
+		engraveText(painter, QRectF(textLeft, r.top(), qMax(20, textRight - textLeft), r.height()),
 			Qt::AlignLeft | Qt::AlignVCenter, tfm.elidedText(s.connection, Qt::ElideRight, qMax(20, textRight - textLeft)), titleInk, dark);
 
 		// Mounting slots along the blank rail between title and printing.
@@ -600,7 +588,7 @@ private:
 		painter.setFont(markFont);
 		QColor markInk(t.mutedText);
 		markInk.setAlpha(dark ? 170 : 200);
-		engrave(painter, QRectF(marksLeft, r.top(), bayWidth + 4, r.height()),
+		engraveText(painter, QRectF(marksLeft, r.top(), bayWidth + 4, r.height()),
 			Qt::AlignLeft | Qt::AlignVCenter, bay, markInk, dark);
 		paintStamp(painter, QPointF(marksLeft + bayWidth + 12, r.center().y() - 5.5), side, QColor(t.mutedText), dark);
 	}
@@ -686,7 +674,7 @@ private:
 		painter.setFont(unitFont);
 		QColor unitInk(t.mutedText);
 		unitInk.setAlpha(dark ? 170 : 200);
-		engrave(painter, QRectF(earLeft, face.top(), kEarWidth, face.height()), Qt::AlignCenter,
+		engraveText(painter, QRectF(earLeft, face.top(), kEarWidth, face.height()), Qt::AlignCenter,
 			QStringLiteral("%1").arg(s.index + 1, 2, 10, QLatin1Char('0')), unitInk, dark);
 
 		// Everything below may leave the plate (the patch cable crosses onto
@@ -761,7 +749,7 @@ private:
 		painter.setFont(nameFont);
 		const QString names = s.connection + QStringLiteral("  ·  ") + s.device;
 		const QString elidedNames = nfm.elidedText(names, Qt::ElideRight, textWidth);
-		engrave(painter, QRectF(textLeft, blockTop, textWidth, nfm.height()),
+		engraveText(painter, QRectF(textLeft, blockTop, textWidth, nfm.height()),
 			Qt::AlignLeft | Qt::AlignVCenter, elidedNames, nameInk, dark);
 
 		// The wireframe stamp after the name: a printed outline, not a colour
@@ -775,7 +763,7 @@ private:
 		if (pending && !s.unavailable)
 			statusInk = amber;
 		painter.setFont(statusFont);
-		engrave(painter, QRectF(textLeft, blockTop + nfm.height() + 3, textWidth, sfm.height()),
+		engraveText(painter, QRectF(textLeft, blockTop + nfm.height() + 3, textWidth, sfm.height()),
 			Qt::AlignLeft | Qt::AlignVCenter, sfm.elidedText(s.state, Qt::ElideRight, textWidth), statusInk, dark);
 
 		// An unavailable endpoint is a powered-down unit: the lamp is off

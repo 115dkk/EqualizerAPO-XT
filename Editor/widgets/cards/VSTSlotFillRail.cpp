@@ -31,11 +31,6 @@ protected:
 	}
 };
 
-int cellHeight()
-{
-	return 20;
-}
-
 int latchWidth()
 {
 	// The rack treatment is the widest: its pilot LED, engraved FILL label and
@@ -426,4 +421,9 @@ void VSTSlotFillRail::relayout()
 int VSTSlotFillRail::railHeight()
 {
 	return 26;
+}
+
+int VSTSlotFillRail::cellHeight()
+{
+	return 20;
 }

@@ -287,7 +287,7 @@ void assertLowerCaseSelection(test::Harness& harness)
 }
 }
 
-void runNewChannelTests(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, runNewChannelTests)
 {
 	assertParser(harness);
 	assertRemixAndSilence(harness);

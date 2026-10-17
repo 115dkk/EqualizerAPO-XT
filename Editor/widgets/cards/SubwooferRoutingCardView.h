@@ -74,6 +74,31 @@ public:
 	static QString formatHz(double hz);
 	static QString crossoverSummary(const SubwooferRoutingCardState& state);
 
+	// Shared readings of the state, so the skins agree on what it says even
+	// though each says it in its own words. The words stay with each view:
+	// they are its translated strings.
+	//
+	// The one health verdict, error first: an error sentence or an invalid
+	// state, then an advisory sentence.
+	enum class Severity
+	{
+		Valid,
+		Warning,
+		Error
+	};
+	static Severity severity(const SubwooferRoutingCardState& state);
+	// The profile the card names: its name when it has one, otherwise
+	// linkedFallback for a linked profile and embeddedFallback for an
+	// embedded one (empty: name nothing).
+	static QString profileText(const SubwooferRoutingCardState& state,
+		const QString& linkedFallback, const QString& embeddedFallback = QString());
+	// The headroom readout: autoFormat or manualFormat with the trim in dB
+	// (one decimal) as %1 while the trim is a number, otherwise autoText or
+	// manualText.
+	static QString headroomText(const SubwooferRoutingCardState& state,
+		const QString& autoFormat, const QString& manualFormat,
+		const QString& autoText, const QString& manualText);
+
 signals:
 	void openEditorRequested();
 

@@ -7,7 +7,7 @@
     This script:
     1. Downloads FFTW, muparserx, libsndfile from their GitHub release pages
     2. Clones the TCLAP header-only library and the VST3 SDK pluginterfaces
-    3. Installs Qt 6.10.1 via aqtinstall (Python)
+    3. Installs Qt (the manifest's Shared.QtVersion) via aqtinstall (Python)
 
     All sources match the project's CI workflow (.github/workflows/build.yml).
 
@@ -15,7 +15,7 @@
     Skip Qt installation (useful if Qt is already installed).
 
 .PARAMETER QtVersion
-    Qt version to install. Default: 6.10.1
+    Qt version to install. Default: Shared.QtVersion in .github/simd-variants.psd1
 
 .PARAMETER SimdVariant
     SIMD variant for dependencies. Default: avx2
@@ -172,48 +172,31 @@ if (-not $SkipQt) {
 if ($allOk) {
     Write-Host "`n=== Setup Complete ===" -ForegroundColor Green
 
-    # The .pro files fail with error() when an x64 build passes neither
-    # EAPO_SIMD_FLAGS nor EAPO_SIMD_BASELINE, so the printed qmake line must
-    # carry the same variant arguments CI passes (build.yml "Build Qt
-    # Applications"): the update channel plus the variant's /arch flag, or the
-    # explicit baseline marker for sse2. ARM64 passes no SIMD argument.
-    $qmakeVariantArgs = "`"EAPO_UPDATE_CHANNEL=$($variantEntry.Channel)`""
-    if ($Platform -eq "x64") {
-        if ($variantEntry.QtArchFlag) {
-            $qmakeVariantArgs += " `"EAPO_SIMD_FLAGS=$($variantEntry.QtArchFlag)`""
-        } else {
-            $qmakeVariantArgs += " `"EAPO_SIMD_BASELINE=1`""
-        }
-    }
+    $qtRoot = Join-Path $workspace "Qt\$QtVersion\$qtArchDir"
+    # Audit #422 TD-47: print the calls CI makes, not a recipe of its own.
+    # The old recipe built EqualizerAPO.sln (a different project graph, with
+    # Debug test projects against libraries deps\ does not ship) and ran
+    # qmake/nmake without the CONFIG+=force_debug_info and windeployqt steps
+    # Build-QtApps.ps1 adds, so a local Editor differed from the shipped one.
+    $archFlag = if ($Platform -eq "x64") { if ($variantEntry.ArchFlag) { $variantEntry.ArchFlag } else { "NotSet" } } else { "" }
+    $msvcDevPlatform = if ($Platform -eq "ARM64") { "arm64" } else { "x64" }
+    $simdArgument = if ($Platform -eq "ARM64") { "neon" } else { $SimdVariant }
 
     Write-Host @"
 
-To build the project, open a VS Developer Command Prompt and run:
+To build exactly what CI builds, open a VS Developer PowerShell (msbuild on
+PATH) in $workspace and run:
 
-  # Set environment variables
-  `$env:FFTW_INCLUDE     = "$depsDir\fftw\include"
-  `$env:FFTW_LIB         = "$depsDir\fftw\Release"
-  `$env:MUPARSERX_INCLUDE = "$depsDir\muparserx\parser"
-  `$env:MUPARSERX_LIB    = "$depsDir\muparserx\build\Release"
-  `$env:LIBSNDFILE_INCLUDE = "$depsDir\libsndfile\include"
-  `$env:LIBSNDFILE_LIB   = "$depsDir\libsndfile\build\Release"
-  `$env:VELOPACK_INCLUDE = "$depsDir\velopack_libc\include"
-  `$env:VELOPACK_LIB     = "$depsDir\velopack_libc\lib"
-  `$env:TCLAP_ROOT       = "$depsDir\tclap"
-  `$env:HIGHWAY_INCLUDE  = "$depsDir\highway"
-  `$env:ASIO_SDK         = "$depsDir\asiosdk\ASIOSDK"
-  `$env:QT_ROOT          = "$qtRoot"
+  .\.github\scripts\Initialize-DepsEnvironment.ps1 -DepsPath "$depsDir"
+  `$env:QT_ROOT = "$qtRoot"
+  .\.github\scripts\Build-Solution.ps1 -WorkspaceRoot "$workspace" ``
+    -Platform $Platform -SimdVariant $simdArgument -ArchFlag "$archFlag"
+  .\.github\scripts\Build-QtApps.ps1 -WorkspaceRoot "$workspace" ``
+    -Platform $Platform -SimdVariant $simdArgument ``
+    -QtArchFlag "$($variantEntry.QtArchFlag)" -MsvcDevPlatform $msvcDevPlatform
 
-  # Build core projects with MSBuild
-  msbuild EqualizerAPO.sln /p:Configuration=Release /p:Platform=$Platform
-
-  # Build Qt apps with qmake (run lrelease first: nmake stalls without the .qm files)
-  mkdir build-Editor-$Platform; cd build-Editor-$Platform
-  lrelease ..\Editor\Editor.pro
-  qmake ..\Editor\Editor.pro -r "CONFIG+=release" $qmakeVariantArgs
-  nmake
-
-  # DeviceSelector builds the same way from its .pro file.
+Build-Solution.ps1 builds every MSBuild project and runs the runtime suites;
+Build-QtApps.ps1 builds the Editor and DeviceSelector with qmake.
 "@
 } else {
     Write-Host "`n=== Setup Incomplete ===" -ForegroundColor Red

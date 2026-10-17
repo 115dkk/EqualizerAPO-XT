@@ -25,7 +25,7 @@
 // Audit #348 TD-04/B7: the Copy routing view (and any card that writes its
 // state back) rebuilt "Copy: ..." without looking at whether the line was
 // switched off, so touching a switched-off Copy row switched it on.
-void testCardEditsKeepSwitchedOffLinesOff()
+TEST_CASE(EditorLogicTests, testCardEditsKeepSwitchedOffLinesOff)
 {
 	expectEqual(FilterCardModel::assembleLine("Copy", "L=R R=L", "# Copy: L=L R=R"),
 		"# Copy: L=R R=L", "editing a switched-off Copy line keeps it switched off");
@@ -47,7 +47,7 @@ void testCardEditsKeepSwitchedOffLinesOff()
 		"the reassembled switched-off line still describes as disabled");
 }
 
-void testFilterCardDescriptors()
+TEST_CASE(EditorLogicTests, testFilterCardDescriptors)
 {
 	// Every classification below runs through FilterCardModel::canonicalCommand,
 	// which asks the engine's registry. The registry is filled by file-scope
@@ -301,9 +301,10 @@ void testFilterCardDescriptors()
 	expectFalse(FilterCardModel::hasInlineExpressions("`unterminated"), "unterminated trailing expression is dropped");
 }
 
-void testFilterCardDepths()
+TEST_CASE(EditorLogicTests, testFilterCardDepths)
 {
-	QVector<int> depths = FilterCardModel::calculateDepths(QList<QString>({
+	// The indent axis of calculateScopes (the margin depth).
+	const QVector<FilterCardRowScope> depthScopes = FilterCardModel::calculateScopes(QList<QString>({
 		"Channel: L R",
 		"Preamp: -6 dB",
 		"Include: nested.txt",
@@ -313,6 +314,9 @@ void testFilterCardDepths()
 		"Channel: ALL",
 		"Filter: ON PK Fc 1000 Hz Gain -3 dB Q 0.71"
 	}));
+	QVector<int> depths;
+	for (const FilterCardRowScope& scope : depthScopes)
+		depths.append(scope.indent);
 	requireEqual(depths.size(), 8, "channel depth count");
 	expectEqual(depths[0], 0, "channel command depth");
 	expectEqual(depths[1], 1, "scoped preamp depth");
@@ -435,7 +439,7 @@ void testFilterCardDepths()
 		"a refused device name is not badged either; the body flags it");
 }
 
-void testFilterCardBuildPlans()
+TEST_CASE(EditorLogicTests, testFilterCardBuildPlans)
 {
 	const QList<QString> lines({
 		"Channel: L R",
@@ -468,6 +472,48 @@ void testFilterCardBuildPlans()
 		"build plan carries the enclosing channel selection");
 	expectEqual(plans[1].descriptor.scopeChannels, QStringList({ "L", "R" }),
 		"if head carries the enclosing channel selection");
+
+	// describeRow is the single-row form of the same build: a row built
+	// alone from its line and its calculateScopes entry is the row the whole
+	// rebuild prepares, and scopeOf gives the scope back for a row that
+	// re-derives its own line in place.
+	const QList<QString> document({
+		"Channel: L R",
+		"Preamp: -3 dB",
+		"If: sampleRate == 48000",
+		"Filter: ON PK Fc 1000 Hz Gain -3 dB Q 0.71",
+		"ElseIf: sampleRate == 44100",
+		"Else:",
+		"# EndIf:",
+		"EndIf:",
+		"NewChannel: SUB",
+		"Copy: SUB=L+R",
+		"",
+		"# just a note",
+		"Channel: ALL"
+	});
+	const QVector<FilterCardBuildPlan> documentPlans = FilterCardModel::prepareRows(document);
+	const QVector<FilterCardRowScope> documentScopes = FilterCardModel::calculateScopes(document);
+	requireEqual(documentPlans.size(), document.size(), "describeRow document plan count");
+	for (int i = 0; i < document.size(); ++i)
+	{
+		const FilterCardDescriptor alone = FilterCardModel::describeRow(document[i], documentScopes[i]);
+		const FilterCardDescriptor& built = documentPlans[i].descriptor;
+		const QString row = QString("describeRow row %1").arg(i);
+		expectEqual(alone.type, built.type, row + " type");
+		expectEqual(alone.title, built.title, row + " title");
+		expectEqual(alone.summary, built.summary, row + " summary");
+		expectEqual(alone.badge, built.badge, row + " badge");
+		expectEqual(alone.depth, built.depth, row + " depth");
+		expectEqual(alone.logicDepth, built.logicDepth, row + " logic depth");
+		expectEqual(alone.scopeChannels, built.scopeChannels, row + " scope channels");
+		expectEqual(alone.channelBadges, built.channelBadges, row + " channel badges");
+
+		const FilterCardRowScope back = FilterCardModel::scopeOf(alone);
+		expectEqual(back.indent, documentScopes[i].indent, row + " scopeOf indent");
+		expectEqual(back.logic, documentScopes[i].logic, row + " scopeOf logic");
+		expectEqual(back.channels, documentScopes[i].channels, row + " scopeOf channels");
+	}
 }
 
 // Audit #275 B4: the row-GUI decision used to live inline in the widget-bound
@@ -475,7 +521,7 @@ void testFilterCardBuildPlans()
 // pure function its policy is pinned here directly; the two environment facts
 // (routing renderer, card editor availability) are injected so every branch
 // is reachable without a skin or the card registry.
-void testRowGuiPolicyRoutesEachLineShape()
+TEST_CASE(EditorLogicTests, testRowGuiPolicyRoutesEachLineShape)
 {
 	const FilterCardDescriptor comment = FilterCardModel::describeLine(
 		QStringLiteral("# just a note to self"));
@@ -518,12 +564,29 @@ void testRowGuiPolicyRoutesEachLineShape()
 		== RowGuiDecision::LegacyChain,
 		QStringLiteral("legacy mode always runs the chain for command lines"));
 
-	// A commented command line is not card-available under its written key;
-	// the chain (which strips the '#') owns it, and the post-chain card retry
-	// is a construction mechanic outside this decision.
+	// A commented command line is asked about under its uncommented key
+	// (rowGuiCardKey), so it gets the decision its active form gets: the card
+	// when one covers the command, the chain when none does. There is no
+	// post-chain retry any more.
 	const FilterCardDescriptor commented = FilterCardModel::describeLine(
 		QStringLiteral("# Preamp: -3 dB"));
+	expectTrue(decideRowGui(true, QStringLiteral("# Preamp: -3 dB"), &commented, true, true)
+		== RowGuiDecision::CardEditor,
+		QStringLiteral("a commented card-covered command goes straight to its card editor"));
 	expectTrue(decideRowGui(true, QStringLiteral("# Preamp: -3 dB"), &commented, true, false)
 		== RowGuiDecision::LegacyChain,
-		QStringLiteral("a commented command line takes the chain toward the comment-stripped retry"));
+		QStringLiteral("a commented uncovered command runs the legacy chain"));
+
+	const RowGuiCardKey commentedKey = rowGuiCardKey(true, QStringLiteral("  # Include: a b.txt"));
+	expectTrue(commentedKey.hasColon, "a command line has a card key");
+	expectEqual(commentedKey.command, "Include", "card mode asks about a commented line under its uncommented key");
+	expectEqual(commentedKey.parameters, " a b.txt", "the card key keeps the parameter text as written");
+	expectEqual(rowGuiCardKey(true, QStringLiteral("#Filter 1: ON IIR")).command, "Filter 1",
+		"the '#' comes off without a following space too");
+	expectEqual(rowGuiCardKey(true, QStringLiteral("Preamp: -3 dB")).command, "Preamp",
+		"an active line keeps its key");
+	expectEqual(rowGuiCardKey(false, QStringLiteral("# Preamp: -3 dB")).command, "# Preamp",
+		"legacy mode keeps the key as written");
+	expectFalse(rowGuiCardKey(true, QStringLiteral("# just a note")).hasColon,
+		"a colon-less line has no card key");
 }

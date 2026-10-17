@@ -31,11 +31,9 @@ namespace eapo::asio
 		InProcProcessor& operator=(const InProcProcessor&) = delete;
 
 		OpenReport open(const StreamFormat& format, const StreamOptions& options) override;
+		float** planes(Direction direction) noexcept override;
 		Outcome process(Direction direction) noexcept override;
-		void close(const StreamStats& stats) noexcept override;
-
-		// What the last close() received; the probe reads it.
-		const StreamStats& lastStats() const noexcept {return lastStats_;}
+		void close() noexcept override;
 
 	private:
 		struct Lane
@@ -47,6 +45,5 @@ namespace eapo::asio
 		};
 
 		Lane lanes_[directionCount];
-		StreamStats lastStats_;
 	};
 }

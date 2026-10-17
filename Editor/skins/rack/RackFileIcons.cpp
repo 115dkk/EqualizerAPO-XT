@@ -4,7 +4,7 @@
 	SPDX-License-Identifier: GPL-2.0-or-later
 */
 
-#include "RackFileIcons.h"
+#include "RackSkin.h"
 #include "Editor/skins/rack/RackPalette.h"
 
 #include <QLinearGradient>
@@ -150,8 +150,10 @@ protected:
 };
 }
 
-QFileIconProvider* rackFileIconProvider(const SkinTokens& tokens)
+QAbstractFileIconProvider* RackSkin::fileIconProvider(const SkinTokens& tokens) const
 {
+	// The shelf objects behind the machine: skeuomorphic folder/file
+	// pictograms.
 	static RackFileIconProvider iconProvider;
 	iconProvider.updateTokens(tokens);
 	return &iconProvider;

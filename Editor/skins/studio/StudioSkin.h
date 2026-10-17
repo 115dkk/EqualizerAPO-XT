@@ -22,12 +22,12 @@ public:
 	void paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& tokens) const override;
 	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override;
 	void styleFileDialog(QFileDialog* dialog, const SkinTokens& tokens) const override;
+	QAbstractFileIconProvider* fileIconProvider(const SkinTokens& tokens) const override;
 	void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens) const override;
 	QString cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override;
 	QString cardHeaderStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override;
 	void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info, const SkinTokens& tokens) const override;
 	bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info, const SkinTokens& tokens) const override;
-	bool logicSiblingsIndentAsMembers() const override;
 	void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override;
 	void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override;
 	void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, const SkinTokens& tokens) const override;
@@ -41,4 +41,9 @@ public:
 		const QString& badgeToken, const SkinTokens& tokens) const override;
 	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body,
 		const SkinTokens& tokens) const override;
+
+private:
+	// tokens with the text ink halfway to the muted ink: the chrome around
+	// the data (toolbar, file dialog) recedes behind it in this ink.
+	static SkinTokens recededTokens(const SkinTokens& tokens);
 };

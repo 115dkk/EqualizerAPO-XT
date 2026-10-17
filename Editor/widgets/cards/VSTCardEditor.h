@@ -30,6 +30,7 @@
 
 #include "Editor/IFilterGUI.h"
 #include "Editor/widgets/cards/ReferenceCardView.h"
+#include "Editor/widgets/cards/VSTBusVerdict.h"
 #include "Editor/widgets/cards/VSTPluginSession.h"
 #include "Editor/widgets/cards/VSTRowDocument.h"
 #include "vst/VSTPluginLibrary.h"
@@ -74,6 +75,7 @@ private slots:
 	void selectFile();
 	void importToConfig();
 	void embedToggled(bool checked);
+	void embedStateChanged();
 	void busLayoutsPicked(VST3BusLayout input, VST3BusLayout output);
 	void removeBusLayouts();
 	void fillSlotPicked(int slot, const QString& value, bool output);
@@ -91,9 +93,6 @@ private:
 	// setChannelFlow delivers.
 	VSTRowDocument document;
 	std::unique_ptr<VSTPluginSession> session;
-	bool embedWhenLoaded = false;
-	bool openWhenLoaded = false;
-	bool replacementAwaitingModel = false;
 	// The fold state of the two rails (only meaningful while both exist).
 	// Persisted per row; defaults to collapsed while both sides are still
 	// implicit so untouched contract cards keep their height.
@@ -102,11 +101,10 @@ private:
 	// The active device's channel names, for Auto-direction negotiation
 	// hints; empty in contexts without a filter table (tests, previews).
 	std::vector<std::wstring> deviceChannelNames;
-	// Long-form bus message for the reference card's status line (the strip
-	// itself only carries the compact verdict). Composed by
-	// updateBusControls, consumed by updateReferenceState.
-	QString busStatusText;
-	ReferenceCardState::Severity busStatusSeverity = ReferenceCardState::Severity::None;
+	// The bus verdict updateBusControls last drew; its long-form message
+	// rides the reference card's status line (the strip itself only carries
+	// the compact verdict), consumed by updateReferenceState.
+	VSTBusVerdict busVerdict;
 
 	FileReferenceController* reference = nullptr;
 	// The filter table owning this row; nullptr in contexts without one

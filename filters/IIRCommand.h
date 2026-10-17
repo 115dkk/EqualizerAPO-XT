@@ -26,15 +26,19 @@
 // Coefficients b0 .. bN a0 .. aN"). It holds exactly what
 // IIRFilterFactory::createFilter feeds into the IIRFilter constructor.
 //
-// Like the BiQuad codec, the parse routine lives on the factory
-// (IIRFilterFactory::parseCommand) because it reports grammar errors through
-// the log helpers; this struct owns the data shape and the serialization.
+// The codec owns parsing and serialization; the factory maps a parse reason to
+// a Malformed LineOutcome.
 struct IIRCommand
 {
 	unsigned order = 0;
 
 	// (order + 1) * 2 values: b0..bN followed by a0..aN, in config-line order.
 	std::vector<double> coefficients;
+
+	static bool parse(const std::wstring& command, const std::wstring& parameters,
+		IIRCommand& out, std::wstring& error);
+	static bool parse(const std::wstring& command, const std::wstring& parameters,
+		IIRCommand& out);
 
 	// Canonical parameter string: "ON IIR Order <order> Coefficients <...>".
 	// Each coefficient is formatted with the C "%g" default (six significant

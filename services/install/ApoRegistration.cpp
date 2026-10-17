@@ -19,6 +19,7 @@
 */
 
 #include "services/install/ApoRegistration.h"
+#include "services/install/InstallWaitBudget.h"
 #include "services/registry/RegistryPaths.h"
 
 #include <cstdio>
@@ -45,6 +46,9 @@
 #include "services/windows/WindowsService.h"
 #include "services/shell/StartMenuShortcuts.h"
 #include "platform/windows/ComSelfRegistration.h"
+#include "platform/windows/GuidText.h"
+
+using std::wstring;
 
 namespace
 {
@@ -63,8 +67,8 @@ constexpr logging::TaggedLogger logLine(L"ApoRegistration");
 
 int ApoRegistration::registerComServer(const std::wstring& dllPath, bool unregister)
 {
-	// Shared with DeviceAPOInfo's recovery branch (audit #275 TD-04); the
-	// helper logs load/lookup/entry failures itself.
+	// Both install and recovery use this helper, which logs load, lookup
+	// and entry-point failures itself.
 	const HRESULT hr = winutil::selfRegisterComServer(L"ApoRegistration", dllPath, unregister);
 	return SUCCEEDED(hr) ? 0 : static_cast<int>(hr);
 }
@@ -88,13 +92,13 @@ ApoRegistration::Result ApoRegistration::writeAppInstallRegistry(
 			return Result::RegistryFailed;
 		}
 
-		if (!registry.valueExists(kRegPath, L"ConfigPath"))
+		if (!configDir.empty() && !registry.valueExists(kRegPath, L"ConfigPath"))
 			registry.writeValue(kRegPath, L"ConfigPath", configDir);
 
 		if (!registry.valueExists(kRegPath, L"EnableTrace"))
 			registry.writeValue(kRegPath, L"EnableTrace", L"false");
 
-		registry.writeDWORDValue(protectedDGKeyPath, protectedDGValueName, 1);
+		checkProtectedAudioDG(true, registry);
 	}
 	catch (const RegistryError& e)
 	{
@@ -102,6 +106,25 @@ ApoRegistration::Result ApoRegistration::writeAppInstallRegistry(
 		return Result::RegistryFailed;
 	}
 	return Result::Success;
+}
+
+ApoRegistration::Result ApoRegistration::writeMissingConfigFallback(const std::wstring& installDir,
+	IRegistry& registry)
+{
+	try
+	{
+		if (registry.keyExists(kRegPath) && registry.valueExists(kRegPath, L"ConfigPath"))
+			return Result::Success;
+	}
+	catch (const RegistryError& e)
+	{
+		// An unreadable value is not evidence that it is absent.
+		logLine(L"ERR", L"Could not check ConfigPath after migration: %s", e.getMessage().c_str());
+		return Result::RegistryFailed;
+	}
+	// The existing role checks absence again before writing. No caller-supplied
+	// profile directory enters this fallback.
+	return writeAppInstallRegistry(installDir, joinPath(installDir, L"config"), registry);
 }
 
 void ApoRegistration::cleanupAppRegistry(IRegistry& registry)
@@ -127,7 +150,7 @@ void ApoRegistration::cleanupAppRegistry(IRegistry& registry)
 	}
 }
 
-ApoRegistration::Result ApoRegistration::install(const std::wstring& installDir,
+ApoRegistration::Result ApoRegistration::install(const std::wstring& installDir, const std::wstring& configDir,
 	IRegistry& registry, bool installGrantsPrepared)
 {
 	// Both hooks write HKLM and rewrite ACLs on the install tree, so they only
@@ -147,7 +170,7 @@ ApoRegistration::Result ApoRegistration::install(const std::wstring& installDir,
 	}
 
 	const Result registryResult = writeAppInstallRegistry(installDir,
-		joinPath(installDir, L"config"), registry);
+		configDir, registry);
 	if (registryResult != Result::Success)
 		return registryResult;
 
@@ -169,12 +192,11 @@ ApoRegistration::Result ApoRegistration::install(const std::wstring& installDir,
 			logLine(L"WARN", L"Install root access grant %s, continuing", AudioEngineAccess::describe(installGrant));
 	}
 
-	int rc = registerComServer(dllPath, false);
-	if (rc != 0)
-	{
-		logLine(L"ERR", L"DllRegisterServer returned 0x%08X", rc);
-		return Result::RegistrationFailed;
-	}
+	// Refresh even an existing registration: a new DLL may publish new COM
+	// metadata while keeping the same file path and CLSIDs.
+	const auto verification = verify(registry, true, true);
+	if (verification.repairResult != Result::Success)
+		return verification.repairResult;
 
 	// secureConfigDir already logs which grant failed.
 	if (shouldGrantInstallAccess(installGrantsPrepared))
@@ -213,7 +235,7 @@ ApoRegistration::Result ApoRegistration::uninstall(const std::wstring& installDi
 			// been cleaned.
 			try
 			{
-				WindowsServiceControl::restart(kAudioEndpointBuilderServiceName);
+				WindowsServiceControl::restart(kAudioEndpointBuilderServiceName, installwait::remaining(4000));
 			}
 			catch (const WindowsServiceError& e)
 			{
@@ -248,7 +270,7 @@ ApoRegistration::Result ApoRegistration::uninstall(const std::wstring& installDi
 }
 
 ApoRegistration::Result ApoRegistration::uninstallAllDeviceApos(const DeviceUninstallErrorSink& errorSink,
-	IRegistry& registry, const DefaultDeviceLookup& defaultDeviceLookup)
+	IRegistry& registry, const EndpointProbe& probe)
 {
 	Result result = Result::Success;
 	auto report = [&](const std::wstring& message) {
@@ -267,11 +289,6 @@ ApoRegistration::Result ApoRegistration::uninstallAllDeviceApos(const DeviceUnin
 		{
 			report(what.empty() ? e.getMessage() : what + L": " + e.getMessage());
 		}
-		catch (const std::exception& e)
-		{
-			report((what.empty() ? std::wstring() : what + L": ") + L"unexpected error: "
-				+ std::wstring(e.what(), e.what() + strlen(e.what())));
-		}
 	};
 	auto uninstallInfo = [&](const std::wstring& what, AbstractAPOInfo& info) {
 		guarded(what, [&] {
@@ -283,9 +300,7 @@ ApoRegistration::Result ApoRegistration::uninstallAllDeviceApos(const DeviceUnin
 	for (int inputPass = 0; inputPass <= 1; inputPass++)
 	{
 		const bool input = inputPass == 1;
-		const std::wstring defaultDeviceGuid = defaultDeviceLookup
-			? defaultDeviceLookup(input)
-			: DeviceAPOInfo::getDefaultDevice(input);
+		const std::wstring defaultDeviceGuid = probe.defaultEndpointGuid(input);
 
 		// A direction with no endpoint key at all has nothing to clean.
 		const std::wstring endpointRoot = input ? captureKeyPath : renderKeyPath;
@@ -297,7 +312,7 @@ ApoRegistration::Result ApoRegistration::uninstallAllDeviceApos(const DeviceUnin
 		for (const std::wstring& endpointGuid : endpointGuids)
 		{
 			guarded(endpointGuid, [&] {
-				DeviceAPOInfo info(registry);
+				DeviceAPOInfo info(registry, probe);
 				if (info.load(endpointGuid, defaultDeviceGuid))
 				{
 					// As loadAllInfos does: the selection starts as what is
@@ -318,54 +333,34 @@ ApoRegistration::Result ApoRegistration::uninstallAllDeviceApos(const DeviceUnin
 	return result;
 }
 
+// Velopack allows about 15 seconds per hook. Service waits use at most
+// 3 s (AudioSrv stop) + 4 s (uninstall's endpoint-builder restart) + 3 s
+// (AudioSrv start) = 10 s. Updated uses 6 s; obsolete uses 3 s. Do not
+// give each service in a restart its own deadline. The hook's shared 12 s
+// budget also caps these waits when ACL subprocesses already used time.
 bool ApoRegistration::stopAudioService()
 {
-	winutil::UniqueServiceHandle manager(OpenSCManagerW(nullptr, nullptr, SC_MANAGER_CONNECT));
-	if (!manager)
-	{
-		logLine(L"ERR", L"OpenSCManager failed: %lu", GetLastError());
-		return false;
-	}
-
+	bool active = false;
 	try
 	{
-		WindowsService service(manager.get(), audioServiceName, true);
-		DWORD state = service.getState();
-		if (state == SERVICE_RUNNING)
-		{
-			service.stop();
-			logLine(L"INFO", L"Stopped AudioSrv");
-			return true;
-		}
-		return false;
+		WindowsServiceControl::stop(audioServiceName, installwait::remaining(3000), &active);
+		logLine(L"INFO", L"Stopped AudioSrv");
+		return active;
 	}
 	catch (const WindowsServiceError& e)
 	{
 		logLine(L"ERR", L"Failed to stop AudioSrv: %s", e.getMessage().c_str());
-		return false;
+		return active;
 	}
 }
 
 bool ApoRegistration::startAudioService()
 {
-	winutil::UniqueServiceHandle manager(OpenSCManagerW(nullptr, nullptr, SC_MANAGER_CONNECT));
-	if (!manager)
-	{
-		logLine(L"ERR", L"OpenSCManager failed: %lu", GetLastError());
-		return false;
-	}
-
 	try
 	{
-		WindowsService service(manager.get(), audioServiceName, true);
-		DWORD state = service.getState();
-		if (state == SERVICE_STOPPED)
-		{
-			service.start();
-			logLine(L"INFO", L"Started AudioSrv");
-			return true;
-		}
-		return state == SERVICE_RUNNING;
+		WindowsServiceControl::start(audioServiceName, installwait::remaining(3000));
+		logLine(L"INFO", L"Started AudioSrv");
+		return true;
 	}
 	catch (const WindowsServiceError& e)
 	{
@@ -384,3 +379,45 @@ bool ApoRegistration::secureConfigDir(const std::wstring& configDir)
 	return grant == AudioEngineAccess::Grant::Applied;
 }
 
+
+bool ApoRegistration::checkProtectedAudioDG(bool fix, IRegistry& registry)
+{
+	bool result = true;
+
+	if (!registry.valueExists(protectedDGKeyPath, protectedDGValueName) || registry.readDWORDValue(protectedDGKeyPath, protectedDGValueName) != 1)
+	{
+		result = false;
+
+		if (fix)
+			registry.writeDWORDValue(protectedDGKeyPath, protectedDGValueName, 1);
+	}
+
+	return result;
+}
+
+ApoRegistration::Verification ApoRegistration::verify(IRegistry& registry, bool fix, bool refreshRegistration)
+{
+	Verification result;
+	result.protectedAudioDG = checkProtectedAudioDG(fix, registry);
+	const auto pre = winutil::guidToString(EQUALIZERAPO_PRE_MIX_GUID);
+	const auto post = winutil::guidToString(EQUALIZERAPO_POST_MIX_GUID);
+	result.registration = registry.keyExists(apoRegistrationKeyPath L"\\" + pre)
+		&& registry.keyExists(apoRegistrationKeyPath L"\\" + post)
+		&& registry.keyExists(clsidKeyPath L"\\" + pre)
+		&& registry.keyExists(clsidKeyPath L"\\" + post);
+	if (fix && (!result.registration || refreshRegistration))
+	{
+		const auto directory = registry.valueExists(APP_REGPATH, L"InstallPath")
+			? registry.readValue(APP_REGPATH, L"InstallPath") : pathutil::exeDirectory();
+		if (directory.empty())
+		{
+			logLine(L"ERR", L"Could not resolve the APO installation directory");
+			result.repairResult = Result::DllNotFound;
+		}
+		else if (registerComServer(joinPath(directory, L"EqualizerAPO.dll"), false) != 0)
+			result.repairResult = Result::RegistrationFailed;
+	}
+	// The flags describe the state found, so recovery callers retain their
+	// existing notification behavior. repairResult records a failed repair.
+	return result;
+}

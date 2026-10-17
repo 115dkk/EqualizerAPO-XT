@@ -60,12 +60,9 @@ $suiteArguments = @{
 }
 # The suite exes plus everything they load: the companion VST modules must be
 # part of the same ASan build so their objects agree with the host's.
-$projects = @(
-    "SubwooferRoutingCore\SubwooferRoutingCore.vcxproj",
-    "Common.vcxproj",
-    "Tests\TestVst2Plugin\TestVst2Plugin.vcxproj",
-    "VST3\SubwooferRouting\SubwooferRoutingVst3.vcxproj"
-) + @($suites | ForEach-Object { "Tests\$_\$_.vcxproj" })
+Import-Module (Join-Path $PSScriptRoot "BuildModel.psm1") -Force
+$projects = @(Get-EapoProjectGraph -Tag engine | ForEach-Object Path) +
+    @(Get-EapoProjectGraph -Name (@("TestVst2Plugin", "SubwooferRoutingVst3") + $suites) | ForEach-Object Path)
 $plan = [pscustomobject]@{
     Projects = $projects
     Suites = $suites
@@ -79,23 +76,9 @@ $libPaths = @($env:LIBSNDFILE_LIB, $env:MUPARSERX_LIB, $env:FFTW_LIB)
 $env:LIB = if ($env:LIB) { ($libPaths + $env:LIB) -join ";" } else { $libPaths -join ";" }
 $env:CL = "/D_DISABLE_STRING_ANNOTATION /D_DISABLE_VECTOR_ANNOTATION"
 
-$buildParams = @(
-    "/m", "/p:Configuration=Release", "/p:Platform=x64", "/t:rebuild",
-    "/p:EnableASAN=true", "/p:WholeProgramOptimization=false",
-    "/p:EnableEnhancedInstructionSet=AdvancedVectorExtensions2",
-    "/p:PlatformToolset=v145",
-    "/p:LIBSNDFILE_INCLUDE=$env:LIBSNDFILE_INCLUDE", "/p:LIBSNDFILE_LIB=$env:LIBSNDFILE_LIB",
-    "/p:FFTW_INCLUDE=$env:FFTW_INCLUDE", "/p:FFTW_LIB=$env:FFTW_LIB",
-    "/p:MUPARSERX_INCLUDE=$env:MUPARSERX_INCLUDE", "/p:MUPARSERX_LIB=$env:MUPARSERX_LIB",
-    "/p:TCLAP_ROOT=$env:TCLAP_ROOT", "/p:VST3_SDK=$env:VST3_SDK",
-    "/p:HIGHWAY_INCLUDE=$env:HIGHWAY_INCLUDE", "/p:ASIO_SDK=$env:ASIO_SDK",
-    "/p:QT_ROOT=$env:QT_ROOT"
-)
-
-foreach ($project in $projects) {
-    msbuild $project @buildParams
-    if ($LASTEXITCODE -ne 0) { throw "ASan build failed for $project" }
-}
+$buildParams = @(Get-EapoMsBuildArguments -Platform x64 -ArchFlag AdvancedVectorExtensions2) +
+    @("/p:EnableASAN=true", "/p:WholeProgramOptimization=false")
+Invoke-EapoMsBuild -Project $projects -Arguments $buildParams -FailureLabel "ASan build"
 Remove-Item Env:CL
 
 $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:MUPARSERX_LIB;$env:QT_ROOT\bin;$env:PATH"

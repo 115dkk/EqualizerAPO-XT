@@ -16,9 +16,9 @@
 #                                            DependencyReleases into download specs)
 #   - setup-build.ps1                       (dependency download + pinned tags/hashes,
 #                                            via Provisioning.psm1)
-#   - .github/workflows/build.yml           ("Resolve pinned dependency tags" step +
-#                                            dependency download verification,
-#                                            via Provisioning.psm1)
+#   - .github/workflows/build.yml           ("Download dependency release assets"
+#                                            and "Clone pinned source dependencies"
+#                                            steps, via Provisioning.psm1)
 #   - .github/scripts/New-BuildMatrix.ps1   (expands Variants into the build.yml
 #                                            job matrix — the matrix is no longer
 #                                            hand-written in YAML)

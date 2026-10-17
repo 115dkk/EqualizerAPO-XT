@@ -37,7 +37,6 @@ public:
 		const SkinTokens& tokens) const override;
 	bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info,
 		const SkinTokens& tokens) const override;
-	bool logicSiblingsIndentAsMembers() const override;
 
 	void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state,
 		const SkinTokens& tokens) const override;
@@ -52,6 +51,7 @@ public:
 		const SkinTokens& tokens) const override;
 	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override;
 	void styleFileDialog(QFileDialog* dialog, const SkinTokens& tokens) const override;
+	QAbstractFileIconProvider* fileIconProvider(const SkinTokens& tokens) const override;
 
 	FilterPickerView* createFilterPicker(QWidget* parent, const SkinTokens& tokens) const override;
 	ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent,

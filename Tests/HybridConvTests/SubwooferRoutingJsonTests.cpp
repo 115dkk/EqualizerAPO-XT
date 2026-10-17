@@ -4,7 +4,7 @@
 #include "SubwooferRouting/Json.h"
 #include "SubwooferRouting/Preset.h"
 #include "SubwooferRouting/StateCodec.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 #include <cmath>
 #include <cstddef>
@@ -15,9 +15,9 @@
 namespace
 {
 
-test::Harness harness("SubwooferRoutingJsonTests");
+test::HarnessAccess harness;
 
-void testLiteralsNestingAndEscapes()
+TEST_CASE(SubwooferRoutingJsonTests, testLiteralsNestingAndEscapes)
 {
 	// The non-BMP musical symbol U+1D11E is spelled as an escaped surrogate
 	// pair so this source file stays pure ASCII (the test binary compiles
@@ -66,7 +66,7 @@ bool hasInvalidUtf8Diagnostic(
 	return false;
 }
 
-void testInvalidUtf8Rejected()
+TEST_CASE(SubwooferRoutingJsonTests, testInvalidUtf8Rejected)
 {
 	std::vector<std::string> malformed;
 	malformed.emplace_back("\xC3(", 2);
@@ -160,7 +160,7 @@ void testInvalidUtf8Rejected()
 		"UTF-8 error should identify the invalid continuation byte");
 }
 
-void testDuplicateKeyRejected()
+TEST_CASE(SubwooferRoutingJsonTests, testDuplicateKeyRejected)
 {
 	const auto result = subroute::parseJson(R"({"a":1,"a":2})");
 	harness.expectFalse(result.succeeded(), "duplicate object key should be rejected");
@@ -174,7 +174,7 @@ void testDuplicateKeyRejected()
 		"duplicate-key offset should identify the second key");
 }
 
-void testTrailingContentRejected()
+TEST_CASE(SubwooferRoutingJsonTests, testTrailingContentRejected)
 {
 	const auto result = subroute::parseJson("null false");
 	harness.expectFalse(result.succeeded(), "trailing content should be rejected");
@@ -188,7 +188,7 @@ void testTrailingContentRejected()
 		"trailing-content offset should identify the next token");
 }
 
-void testTrailingCommaOffset()
+TEST_CASE(SubwooferRoutingJsonTests, testTrailingCommaOffset)
 {
 	const auto result = subroute::parseJson("[0,]");
 	harness.expectFalse(result.succeeded(), "trailing array comma should be rejected");
@@ -202,7 +202,7 @@ void testTrailingCommaOffset()
 		"trailing-comma offset should identify the closing bracket");
 }
 
-void testDepthLimit()
+TEST_CASE(SubwooferRoutingJsonTests, testDepthLimit)
 {
 	subroute::JsonParseOptions options;
 	options.maximumDepth = 2;
@@ -228,7 +228,7 @@ void testDepthLimit()
 		"depth-limit offset should identify the excessive container");
 }
 
-void testDoubleRoundTrips()
+TEST_CASE(SubwooferRoutingJsonTests, testDoubleRoundTrips)
 {
 	const double values[] = {
 		0.1,
@@ -267,7 +267,7 @@ void testDoubleRoundTrips()
 	}
 }
 
-void testCanonicalKeyOrdering()
+TEST_CASE(SubwooferRoutingJsonTests, testCanonicalKeyOrdering)
 {
 	subroute::Json::Object object;
 	object.emplace("z", subroute::Json(1.0));
@@ -283,7 +283,7 @@ void testCanonicalKeyOrdering()
 		"object keys should serialize in lexicographic order");
 }
 
-void testMixedDocumentRoundTrip()
+TEST_CASE(SubwooferRoutingJsonTests, testMixedDocumentRoundTrip)
 {
 	const auto original = subroute::parseJson(
 		R"({"z":[null,true,0.1,"text"],"a":{"nested":false,"unicode":"\u20AC"},"n":-12.5e2})");
@@ -299,18 +299,4 @@ void testMixedDocumentRoundTrip()
 		"parse-serialize-parse should preserve a mixed document");
 }
 
-}
-
-void runSubwooferRoutingJsonTests()
-{
-	testLiteralsNestingAndEscapes();
-	testInvalidUtf8Rejected();
-	testDuplicateKeyRejected();
-	testTrailingContentRejected();
-	testTrailingCommaOffset();
-	testDepthLimit();
-	testDoubleRoundTrips();
-	testCanonicalKeyOrdering();
-	testMixedDocumentRoundTrip();
-	harness.report();
 }

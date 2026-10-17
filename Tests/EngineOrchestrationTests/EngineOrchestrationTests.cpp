@@ -13,9 +13,8 @@
 	deterministic.
 
 	This file holds the fixtures every source of the executable shares
-	(declared in EngineOrchestrationTestSupport.h) and main(), which runs the
-	tests in one fixed order. The tests live in the topic files named in the
-	support header.
+	(declared in EngineOrchestrationTestSupport.h) and main(). The tests live
+	in topic files and register themselves with TestHarness.
 */
 
 #include <cstdio>
@@ -48,9 +47,19 @@ std::wstring testDirectory()
 	return testDirectoryFixture().path();
 }
 
+std::wstring testSubdirectory(const std::wstring& name)
+{
+	return testDirectoryFixture().subdirectory(name);
+}
+
 void trackWrittenFile(const std::wstring& path)
 {
 	testDirectoryFixture().track(path);
+}
+
+void trackTestSubdirectory(const std::wstring& path)
+{
+	testDirectoryFixture().trackDirectory(path);
 }
 
 void removeTestDirectory()
@@ -58,7 +67,7 @@ void removeTestDirectory()
 	testDirectoryFixture().removeAll();
 }
 
-std::wstring writeConfig(test::Harness& harness, const std::wstring& fileName, const std::string& content)
+std::wstring writeConfig(const test::Harness& harness, const std::wstring& fileName, const std::string& content)
 {
 	const std::wstring path = testDirectoryFixture().trackFile(fileName);
 	std::ofstream stream(path, std::ios::binary | std::ios::trunc);
@@ -117,76 +126,12 @@ std::string toNarrow(const std::wstring& w)
 	return s;
 }
 
-int runEngineOrchestrationTests()
-{
-	Logging::set(stderr, false, false, false);
-
-	test::Harness harness("EngineOrchestrationTests");
-
-	testComBoundaryMapsExceptions(harness);
-	testLogHelperFileDestination(harness);
-	testLogHelperUserDestination(harness);
-	testRegistryExportHeaderPreservesQualifiedRoot(harness);
-	testSynchronizedStateSerializesReplacement(harness);
-	testJudgedPathAttributesOnlyAncestor(harness);
-	testJudgedPathLifetime(harness);
-	testDeviceApoRegistryVocabulary(harness);
-	testDeviceTestPipeNameAllowList(harness);
-	testInstallStateComparisonIgnoresPadding(harness);
-	runRegistryTransactionTests(harness);
-	runNamedPipeSecurityTests(harness);
-	runRegistryConformanceTests(harness);
-	runDevicePlanTests(harness);
-	runDeviceTestPlanTests(harness);
-	runDeviceApoInfoTests(harness);
-	runInstallDiagnosticsTests(harness);
-	runApoRegistrationTests(harness);
-	runChannelInheritanceTests(harness);
-	runCaptureEngineTests(harness);
-	testProcessWithoutConfigurationDoesNotCrash(harness);
-	testInitialLoadUsesPublicationChannel(harness);
-	testConfigSwapChannelPermitRoundTrip(harness);
-	testEmptyConfigurationExpandsRenderChannels(harness);
-	testParallelExecutor(harness);
-	testConfigWatcherBackoffAndPathRefresh(harness);
-	testConfigWatcherRegistryKeyIsQuietUntilChanged(harness);
-	runSendSeamTests(harness);
-	runSendRingTests(harness);
-	runSendTests(harness);
-	runConfigurationFileReaderTests(harness);
-	runSampleIoTests(harness);
-	runApoFormatTests(harness);
-	testChannelSelectorRouting(harness);
-	testCopySwapsChannels(harness);
-	runNewChannelTests(harness);
-	testMultiConvolutionIgnoresChannelSelection(harness);
-	testConfigSwapCrossfades(harness);
-	testFailedConfigLoadKeepsActiveConfiguration(harness);
-	testRealBrirCrossfeed(harness);
-	testConfigLoadTrace(harness);
-	testWeakValueCacheKeepsEntriesExactlyAsLongAsSomeoneUsesThem(harness);
-	testVoicemeeterPrependInfosMapsEditionToOutputCount(harness);
-	testVoicemeeterStripVocabulary(harness);
-	testProcessSearchLeavesTheTokenAsItWas(harness);
-	testParseErrorsAreReportedPerLineAndProseIsNot(harness);
-	testFilterSetupFailureNamesItsLine(harness);
-	testControlFlowAndStageMistakesAreReported(harness);
-	testIncludeRecursionLimitIsReported(harness);
-	testConfigReferencedRemotePathsAreRefused(harness);
-	testIncludeTakesQuotesAndVariables(harness);
-	testConfigRegistryReadsGoThroughThePort(harness);
-	testAnalysisFreezesDynamicVelvetAndLabelsTheSnapshot(harness);
-
-	removeTestDirectory();
-	harness.report();
-	return test::reportAlignedMemoryBalance("EngineOrchestrationTests");
-}
-
 int main()
 {
+	Logging::set(stderr, false, false, false);
 	try
 	{
-		return runEngineOrchestrationTests();
+		return test::runAll("EngineOrchestrationTests", {}, removeTestDirectory);
 	}
 	catch (const std::exception& error)
 	{

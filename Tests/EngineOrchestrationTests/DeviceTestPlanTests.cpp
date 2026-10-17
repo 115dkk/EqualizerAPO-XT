@@ -16,7 +16,7 @@
 
 #include "devices/DeviceTestPlan.h"
 #include "devices/DeviceTestWire.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 namespace
 {
@@ -30,7 +30,7 @@ DeviceTestSelection selectionOf(DeviceTestMode mode, bool autoAdjust)
 	return selection;
 }
 
-void testLadder(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testLadder)
 {
 	struct Case
 	{
@@ -61,7 +61,7 @@ void testLadder(test::Harness& harness)
 		"starting an attempt removes the mode it runs in");
 }
 
-void testSatisfaction(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testSatisfaction)
 {
 	struct Case
 	{
@@ -119,7 +119,7 @@ void testSatisfaction(test::Harness& harness)
 		"a stage without a chained APO completes on its own Initialize");
 }
 
-void testItemStatus(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testItemStatus)
 {
 	struct Case
 	{
@@ -166,7 +166,7 @@ void testItemStatus(test::Harness& harness)
 		"a capture endpoint shows a pre-mix row only");
 }
 
-void testFallback(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testFallback)
 {
 	// Three rounds on an automatically adjusted device that never satisfies:
 	// the post-mix APO alone in SFX/EFX, the pre-mix one alone in SFX/MFX,
@@ -202,7 +202,7 @@ void testFallback(test::Harness& harness)
 	harness.expect(step.givesUp && step.mode == DeviceTestMode::LfxGfx, "a fixed mode gives up after its one attempt, in that mode");
 }
 
-void testOriginalApoAfterSwitch(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testOriginalApoAfterSwitch)
 {
 	struct Case
 	{
@@ -231,7 +231,7 @@ void testOriginalApoAfterSwitch(test::Harness& harness)
 	}
 }
 
-void testWireVocabulary(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testWireVocabulary)
 {
 	harness.expect(deviceTestStageFromWire(devicetest::wire::kStagePreMix) == DeviceTestStage::PreMix, "PreMix reads back");
 	harness.expect(deviceTestStageFromWire(devicetest::wire::kStagePostMix) == DeviceTestStage::PostMix, "PostMix reads back");
@@ -255,14 +255,4 @@ void testWireVocabulary(test::Harness& harness)
 		&& std::string(deviceTestModeName(DeviceTestMode::SfxEfx)) == "SFX/EFX",
 		"the log names each mode as before");
 }
-}
-
-void runDeviceTestPlanTests(test::Harness& harness)
-{
-	testLadder(harness);
-	testSatisfaction(harness);
-	testItemStatus(harness);
-	testFallback(harness);
-	testOriginalApoAfterSwitch(harness);
-	testWireVocabulary(harness);
 }

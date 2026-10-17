@@ -6,8 +6,10 @@
 
 #pragma once
 
-#include <QFileIconProvider>
+#include "runtime/errors/WideError.h"
 
-struct SkinTokens;
-
-QFileIconProvider* rackFileIconProvider(const SkinTokens& tokens);
+class ComError : public WideError
+{
+public:
+	using WideError::WideError;
+};

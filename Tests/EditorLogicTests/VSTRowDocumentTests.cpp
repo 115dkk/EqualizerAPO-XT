@@ -12,7 +12,7 @@
 
 #include "Editor/widgets/cards/VSTRowDocument.h"
 
-void testVSTRowDocument()
+TEST_CASE(EditorLogicTests, testVSTRowDocument)
 {
 	const std::vector<std::wstring> stereoFill = {L"L", L"R"};
 	const std::vector<std::wstring> surroundFill = {L"L", L"R", L"C", L"LFE", L"RL", L"RR"};

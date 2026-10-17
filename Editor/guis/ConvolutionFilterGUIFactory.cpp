@@ -42,13 +42,6 @@ void ConvolutionFilterGUIFactory::initialize(FilterTable* filterTable)
 		deviceSampleRate = 0;
 }
 
-QList<FilterTemplate> ConvolutionFilterGUIFactory::createFilterTemplates()
-{
-	QList<FilterTemplate> list;
-	list.append(FilterTemplate(tr("Convolution (Convolution with impulse response)"), "Convolution:", QStringList(tr("Advanced filters"))));
-	return list;
-}
-
 void ConvolutionFilterGUIFactory::startOfFile(const QString& configPath)
 {
 	this->configPath = configPath;

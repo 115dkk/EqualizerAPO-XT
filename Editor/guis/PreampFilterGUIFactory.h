@@ -26,6 +26,5 @@ class PreampFilterGUIFactory : public IFilterGUIFactory
 	Q_OBJECT
 
 public:
-	QList<FilterTemplate> createFilterTemplates() override;
 	IFilterGUI* createFilterGUI(QString& command, QString& parameters) override;
 };

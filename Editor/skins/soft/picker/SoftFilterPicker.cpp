@@ -18,7 +18,6 @@
 #include <QStyledItemDelegate>
 #include <QVBoxLayout>
 
-#include "Editor/SkinManager.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/FilterCardModel.h"
 

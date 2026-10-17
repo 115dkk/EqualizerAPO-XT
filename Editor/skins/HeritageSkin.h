@@ -14,6 +14,11 @@
 	place, so the forwarders forward uniformly and adding a hook no longer
 	means asking "and what does heritage do?" inside SkinManager.
 
+	Since audit #422 S3 the hooks every skin must answer are pure virtual in
+	ISkin, and their neutral rendering lives here rather than in the base;
+	the defaults that product skins still reach (the knob, the analysis
+	graph, the segmented control) stay in ISkin.
+
 	Deliberately not in SkinThemeData's roster: heritage is not a selectable
 	skin program, it is what the legacy-rows preference renders as. It has no
 	constitution under docs/skins/ for the same reason.
@@ -35,6 +40,23 @@ public:
 	// Native toolbar and platform file dialog: the skin adds nothing.
 	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override;
 	void styleFileDialog(QFileDialog* dialog, const SkinTokens& tokens) const override;
+	// No provider: the native dialog keeps Qt's own pictograms.
+	QAbstractFileIconProvider* fileIconProvider(const SkinTokens& tokens) const override;
+	// Native rows draw no scope lanes: branch rows align with their If head.
+	bool logicSiblingsIndentAsMembers() const override;
+
+	// The neutral token-driven answers to the hooks every skin must give.
+	// Heritage never constructs the modern cards, the list chrome, the
+	// GraphicEQ plot or the VST card that call them.
+	QString cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override;
+	QString cardHeaderStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override;
+	void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override;
+	void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override;
+	void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, const SkinTokens& tokens) const override;
+	void paintVstBusSelector(QPainter& painter, const VstBusSelectorState& state, const SkinTokens& tokens) const override;
+	void paintVstBusFrame(QPainter& painter, const VstBusFrameState& state, const SkinTokens& tokens) const override;
+	void paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state, const SkinTokens& tokens) const override;
+	void paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state, const SkinTokens& tokens) const override;
 };
 
 // The one instance, like the per-skin accessors in Skins.cpp.

@@ -19,8 +19,8 @@
 #include <QPersistentModelIndex>
 #include <QStyledItemDelegate>
 
+class HoverProgress;
 class QTreeWidget;
-class QVariantAnimation;
 
 class DeviceListDelegate : public QStyledItemDelegate
 {
@@ -60,6 +60,5 @@ private:
 	QPersistentModelIndex hoveredIndex;
 	QPersistentModelIndex pressedIndex;
 	QPersistentModelIndex forcedHover;
-	QHash<QPersistentModelIndex, double> hoverValues;
-	QHash<QPersistentModelIndex, QVariantAnimation*> hoverAnimations;
+	QHash<QPersistentModelIndex, HoverProgress*> hovers;
 };

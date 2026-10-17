@@ -25,14 +25,16 @@
 #include "engine/IFilterFactory.h"
 #include "engine/IFilter.h"
 
-class StageFilterFactory : public ParseReportingFactory
+class StageFilterFactory : public IFilterFactory
 {
 public:
-	void initialize(FilterEngine* engine) override;
 	FilterVector startOfConfiguration() override;
 	FilterVector startOfFile(const std::wstring& configPath) override;
-	FilterVector createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
+	LineOutcome createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
 	FilterVector endOfFile(const std::wstring& configPath) override;
+
+protected:
+	void onInitialize(FilterEngine& engine) override;
 
 private:
 	// Named with an engine prefix so they cannot be confused with the

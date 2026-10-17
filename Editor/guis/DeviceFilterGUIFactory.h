@@ -31,7 +31,6 @@ public:
 
 	void initialize(FilterTable* filterTable) override;
 
-	QList<FilterTemplate> createFilterTemplates() override;
 	IFilterGUI* createFilterGUI(QString& command, QString& parameters) override;
 
 	const QList<std::shared_ptr<AbstractAPOInfo>>& getDevices() const;

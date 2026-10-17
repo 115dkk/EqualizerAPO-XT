@@ -33,13 +33,6 @@ void IncludeFilterGUIFactory::initialize(FilterTable* filterTable)
 	this->filterTable = filterTable;
 }
 
-QList<FilterTemplate> IncludeFilterGUIFactory::createFilterTemplates()
-{
-	QList<FilterTemplate> list;
-	list.append(FilterTemplate(tr("Include (Include configuration file)"), "Include:", QStringList(tr("Control"))));
-	return list;
-}
-
 IFilterGUI* IncludeFilterGUIFactory::createFilterGUI(QString& command, QString& parameters)
 {
 	IncludeFilterGUI* result = nullptr;

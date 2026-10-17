@@ -30,7 +30,7 @@ REGISTER_FILTER_FACTORY(FilterFactoryPriority::Channel, ChannelFilterFactory, L"
 using std::vector;
 using std::wstring;
 
-FilterVector ChannelFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+LineOutcome ChannelFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	ChannelCommand cmd;
 	if (!ChannelCommand::parse(command, parameters, cmd))
@@ -40,7 +40,7 @@ FilterVector ChannelFilterFactory::createFilter(const wstring& configPath, wstri
 	// filter below it is applied to nothing. The engine used to infer this from
 	// the outside; the line itself says it better.
 	if (cmd.channels.empty())
-		return reportParseError(command, L"expected at least one channel name or number");
+		return LineOutcome::malformed(L"expected at least one channel name or number");
 
-	return singleFilter(makeFilter<ChannelFilter>(cmd.channels));
+	return LineOutcome::produced(singleFilter(makeFilter<ChannelFilter>(cmd.channels)));
 }

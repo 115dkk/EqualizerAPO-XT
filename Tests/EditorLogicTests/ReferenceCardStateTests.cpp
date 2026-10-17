@@ -12,7 +12,7 @@
 
 #include "Editor/widgets/cards/ReferenceCardView.h"
 
-void testReferenceCardDerivesSharedPresentationState()
+TEST_CASE(EditorLogicTests, testReferenceCardDerivesSharedPresentationState)
 {
 	ReferenceCardState state;
 	state.missing = true;

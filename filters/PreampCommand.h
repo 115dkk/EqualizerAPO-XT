@@ -36,6 +36,9 @@ struct PreampCommand
 	bool valid = false;
 	bool noOp = false;
 
+	static bool parse(const std::wstring& command, const std::wstring& parameters,
+		PreampCommand& out);
+
 	// Serializes this PreampCommand back into the canonical "<dB> dB" parameter
 	// string, the same form PreampFilterGUI::store() emits and that the factory
 	// parser accepts. Qt-free so both the Editor GUI and the round-trip tests can

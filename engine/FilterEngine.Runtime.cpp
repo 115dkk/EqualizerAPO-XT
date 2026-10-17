@@ -57,12 +57,7 @@ void FilterEngine::notificationThread(FilterEngine* engine)
 				return snapshot;
 			},
 			[engine] {
-				if (!engine->configChannel.acquirePublishPermit())
-					return false;
-
-				const bool loaded = engine->loadConfig();
-				if (!loaded)
-					engine->configChannel.releasePublishPermit();
+				engine->loadConfig();
 				return true;
 			});
 		watcher.run();

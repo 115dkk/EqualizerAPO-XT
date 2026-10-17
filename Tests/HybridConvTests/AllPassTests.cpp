@@ -38,15 +38,15 @@
 
 #include "filters/BiQuad.h"
 #include "filters/BiQuadFilter.h"
-#include "filters/BiQuadFilterFactory.h"
-#include "Tests/TestHarness.h"
+#include "filters/BiQuadCommand.h"
+#include "../TestHarness.h"
 
 using std::vector;
 using std::wstring;
 
 namespace
 {
-test::Harness harness("AllPassTests");
+test::HarnessAccess harness;
 
 // The reform document's grid (section 12.1).
 const double kSampleRates[] = {44100.0, 48000.0, 96000.0, 192000.0};
@@ -130,7 +130,7 @@ std::string describe(double srate, double q)
 // numerator is the reverse of the denominator, so |H| is exactly 1 at every
 // frequency. A magnitude that drifts means the coefficient derivation broke,
 // not that the tolerance was too tight.
-void testMagnitudeIsFlatAcrossTheBand()
+TEST_CASE(AllPassTests, testMagnitudeIsFlatAcrossTheBand)
 {
 	for (double srate : kSampleRates)
 	{
@@ -153,7 +153,7 @@ void testMagnitudeIsFlatAcrossTheBand()
 			std::ostringstream oss;
 			oss << "all-pass magnitude stays at 0 dB (" << describe(srate, q)
 				<< ", worst " << worst << " dB at " << worstHz << " Hz)";
-			harness.expect(worst < 1e-9, oss.str());
+			harness.expectNear(worst, 0.0, 1e-9, oss.str());
 		}
 	}
 }
@@ -161,7 +161,7 @@ void testMagnitudeIsFlatAcrossTheBand()
 // The mirror-image structure itself, checked directly. b2 is exactly 1 and the
 // numerator is the denominator read backwards; this is the property the flat
 // magnitude follows from, so pinning it says more than pinning the magnitude.
-void testCoefficientsAreFiniteAndMirrored()
+TEST_CASE(AllPassTests, testCoefficientsAreFiniteAndMirrored)
 {
 	for (double srate : kSampleRates)
 	{
@@ -169,11 +169,11 @@ void testCoefficientsAreFiniteAndMirrored()
 		{
 			const Coefficients c = coefficientsOf(makeAllPass(1000.0, srate, q, false));
 			harness.expect(allFinite(c), "all-pass coefficients are finite, " + describe(srate, q));
-			harness.expect(std::abs(c.b2 - 1.0) < 1e-12,
+			harness.expectNear(c.b2, 1.0, 1e-12,
 				"all-pass b2 is 1, " + describe(srate, q));
-			harness.expect(std::abs(c.b1 - c.a1) < 1e-12,
+			harness.expectNear(c.b1, c.a1, 1e-12,
 				"all-pass b1 mirrors a1, " + describe(srate, q));
-			harness.expect(std::abs(c.b0 - c.a2) < 1e-12,
+			harness.expectNear(c.b0, c.a2, 1e-12,
 				"all-pass b0 mirrors a2, " + describe(srate, q));
 			// Stability: both poles inside the unit circle. For a real biquad
 			// that is |a2| < 1 and |a1| < 1 + a2.
@@ -186,7 +186,7 @@ void testCoefficientsAreFiniteAndMirrored()
 // A 2nd-order all-pass turns a full circle: 0 degrees at DC, -180 at Fc,
 // -360 approaching Nyquist. The middle value is what a user sets Fc for, so
 // it is the one worth pinning.
-void testPhaseAtCenterIsHalfATurn()
+TEST_CASE(AllPassTests, testPhaseAtCenterIsHalfATurn)
 {
 	for (double srate : kSampleRates)
 	{
@@ -199,9 +199,9 @@ void testPhaseAtCenterIsHalfATurn()
 			std::ostringstream oss;
 			oss << "all-pass phase at Fc is -180 deg (" << describe(srate, q)
 				<< ", got " << atCenter << ")";
-			harness.expect(std::abs(std::abs(atCenter) - 180.0) < 1e-6, oss.str());
+			harness.expectNear(std::abs(atCenter), 180.0, 1e-6, oss.str());
 
-			harness.expect(std::abs(phaseDegreesAt(c, 1.0, srate)) < 1.0,
+			harness.expectNear(phaseDegreesAt(c, 1.0, srate), 0.0, 1.0,
 				"all-pass phase approaches 0 deg at DC, " + describe(srate, q));
 		}
 	}
@@ -211,7 +211,7 @@ void testPhaseAtCenterIsHalfATurn()
 // 2Q / (pi * Fc) seconds is the w0 << 1 limit of that and drifts upward as Fc
 // climbs, so the exact form is what gets asserted; the approximation is only
 // checked where it is meant to hold.
-void testGroupDelayAtCenterMatchesTheClosedForm()
+TEST_CASE(AllPassTests, testGroupDelayAtCenterMatchesTheClosedForm)
 {
 	for (double srate : kSampleRates)
 	{
@@ -226,12 +226,12 @@ void testGroupDelayAtCenterMatchesTheClosedForm()
 			std::ostringstream oss;
 			oss << "all-pass group delay at Fc is 4Q/sin(w0) samples (" << describe(srate, q)
 				<< ", expected " << expected << ", measured " << measured << ")";
-			harness.expect(std::abs(measured - expected) < expected * 1e-6, oss.str());
+			harness.expectNear(measured, expected, expected * 1e-6, oss.str());
 
 			// The textbook 2Q/(pi*Fc) seconds only holds while w0 is small;
 			// at 200 Hz it is within a part in 10^4 at every rate here.
 			const double approxSeconds = 2.0 * q / (std::numbers::pi_v<double> * fc);
-			harness.expect(std::abs(measured / srate - approxSeconds) < approxSeconds * 1e-3,
+			harness.expectNear(measured / srate, approxSeconds, approxSeconds * 1e-3,
 				"the 2Q/(pi*Fc) approximation holds at low Fc, " + describe(srate, q));
 		}
 	}
@@ -267,7 +267,7 @@ void renderInBlocks(BiQuadFilter& filter, unsigned totalFrames, unsigned blockFr
 // not ours to choose. An all-pass carries two samples of state across the
 // boundary, so a different block size has to produce the same stream bit for
 // bit.
-void testOutputIsBlockSizeInvariant()
+TEST_CASE(AllPassTests, testOutputIsBlockSizeInvariant)
 {
 	const unsigned totalFrames = 4096;
 	vector<double> reference;
@@ -294,7 +294,7 @@ void testOutputIsBlockSizeInvariant()
 // repeats the equivalence for an all-pass, whose numerator is the only part
 // that differs and whose coefficients are the least well conditioned of the
 // family at high Q.
-void testKernelsAgreeForAllPass()
+TEST_CASE(AllPassTests, testKernelsAgreeForAllPass)
 {
 	const wstring names[] = {L"C0", L"C1", L"C2", L"C3", L"C4", L"C5", L"C6", L"C7"};
 	const unsigned frames = 480;
@@ -353,7 +353,7 @@ void testKernelsAgreeForAllPass()
 // Fc pushed against either end of the band. The poles approach the unit circle
 // there, which is where a filter stops being usable if it ever does; the
 // output still has to be finite and the magnitude still has to be flat.
-void testExtremeCenterFrequenciesStayStable()
+TEST_CASE(AllPassTests, testExtremeCenterFrequenciesStayStable)
 {
 	const double srate = 48000.0;
 	for (double fc : {1.0, 10.0, 20.0, 20000.0, 23000.0, 23990.0})
@@ -382,16 +382,16 @@ void testExtremeCenterFrequenciesStayStable()
 // branch for bandwidth does not look at the filter type at all. Only the
 // Editor used to refuse it, and the fix went there; this keeps the engine side
 // of that fact pinned.
-void testAcceptsBandwidth()
+TEST_CASE(AllPassTests, testAcceptsBandwidth)
 {
 	wstring parameters = L"ON AP Fc 80 Hz BW Oct 1";
 	BiQuadCommand command;
-	harness.require(BiQuadFilterFactory::parseCommand(L"Filter", parameters, command),
+	harness.require(BiQuadCommand::parse(L"Filter", parameters, command),
 		"the parser accepts BW Oct for an all-pass");
 	harness.expectEqual(static_cast<int>(command.type), static_cast<int>(BiQuad::ALL_PASS),
 		"BW Oct line parses as an all-pass");
 	harness.expectTrue(command.isBandwidthOrS, "the all-pass width is flagged as a bandwidth");
-	harness.expect(std::abs(command.bandwidthOrQOrS - 1.0) < 1e-12, "the bandwidth value survives the parse");
+	harness.expectNear(command.bandwidthOrQOrS, 1.0, 1e-12, "the bandwidth value survives the parse");
 }
 
 // What the Editor's old silent rewrite cost. Opening "BW Oct 1" and saving
@@ -399,7 +399,7 @@ void testAcceptsBandwidth()
 // all-pass no second entry to restore; the editors now offer it. The two are
 // not the same filter, and the gap is large enough to hear: this records how
 // large.
-void testBandwidthIsNotTheSameNumberAsQ()
+TEST_CASE(AllPassTests, testBandwidthIsNotTheSameNumberAsQ)
 {
 	const double srate = 48000.0;
 	const double fc = 80.0;
@@ -417,7 +417,7 @@ void testBandwidthIsNotTheSameNumberAsQ()
 		/ groupDelaySamplesAt(asQ, fc, srate);
 	std::ostringstream oss;
 	oss << "rewriting BW Oct 1 as Q 1 changes the group delay at Fc by about 41% (ratio " << ratio << ")";
-	harness.expect(std::abs(ratio - std::numbers::sqrt2_v<double>) < 0.01, oss.str());
+	harness.expectNear(ratio, std::numbers::sqrt2_v<double>, 0.01, oss.str());
 }
 
 // Two 1st-order sections at the same frequency, in series, are exactly one
@@ -429,7 +429,7 @@ void testBandwidthIsNotTheSameNumberAsQ()
 // bilinear derivation or in the prewarping shows up here, tied to a filter
 // whose behaviour is already pinned by every test above. If it fails, the
 // derivation is wrong; do not go adjusting the other 1st-order tests.
-void testTwoFirstOrderSectionsEqualOneSecondOrderAtQHalf()
+TEST_CASE(AllPassTests, testTwoFirstOrderSectionsEqualOneSecondOrderAtQHalf)
 {
 	for (double srate : kSampleRates)
 	{
@@ -447,14 +447,14 @@ void testTwoFirstOrderSectionsEqualOneSecondOrderAtQHalf()
 			// The cascade's transfer function is the square of the section's:
 			// (c + z^-1)^2 / (1 + c z^-1)^2.
 			const double c = first.b0;
-			harness.expect(std::abs(first.b1 - 1.0) < 1e-12, "the 1st-order numerator is c + z^-1, " + label.str());
+			harness.expectNear(first.b1, 1.0, 1e-12, "the 1st-order numerator is c + z^-1, " + label.str());
 			harness.expect(first.b2 == 0.0 && first.a2 == 0.0,
 				"the 1st-order section leaves the second-order taps at exactly zero, " + label.str());
-			harness.expect(std::abs(first.a1 - c) < 1e-12, "the 1st-order denominator mirrors it, " + label.str());
+			harness.expectNear(first.a1, c, 1e-12, "the 1st-order denominator mirrors it, " + label.str());
 
-			harness.expect(std::abs(second.a1 - 2.0 * c) < 1e-12,
+			harness.expectNear(second.a1, 2.0 * c, 1e-12,
 				"two 1st-order sections give the Q 0.5 first-order term, " + label.str());
-			harness.expect(std::abs(second.a2 - c * c) < 1e-12,
+			harness.expectNear(second.a2, c * c, 1e-12,
 				"and its second-order term, " + label.str());
 
 			// The same statement as a response check, at a frequency where the
@@ -468,7 +468,7 @@ void testTwoFirstOrderSectionsEqualOneSecondOrderAtQHalf()
 			const double probe = fc * 1.7;
 			const std::complex<double> cascade = responseAt(first, probe, srate) * responseAt(first, probe, srate);
 			const std::complex<double> single = responseAt(second, probe, srate);
-			harness.expect(std::abs(cascade - single) < 1e-9,
+			harness.expectNear(std::abs(cascade - single), 0.0, 1e-9,
 				"the cascade's response equals the Q 0.5 section's, " + label.str());
 		}
 	}
@@ -477,7 +477,7 @@ void testTwoFirstOrderSectionsEqualOneSecondOrderAtQHalf()
 // A 1st-order section turns half as far as a 2nd-order one and passes -90
 // degrees at Fc rather than -180. That half turn is what no cascade of
 // 2nd-order sections can produce, and the whole reason the order exists.
-void testFirstOrderAllPassBehaviour()
+TEST_CASE(AllPassTests, testFirstOrderAllPassBehaviour)
 {
 	for (double srate : kSampleRates)
 	{
@@ -494,18 +494,18 @@ void testFirstOrderAllPassBehaviour()
 			double worst = 0.0;
 			for (double hz = 20.0; hz < srate * 0.499; hz *= 1.1)
 				worst = std::max(worst, std::abs(magnitude.gainAt(hz, srate)));
-			harness.expect(worst < 1e-9, "1st-order magnitude stays at 0 dB, " + label.str());
+			harness.expectNear(worst, 0.0, 1e-9, "1st-order magnitude stays at 0 dB, " + label.str());
 
 			const double atCenter = phaseDegreesAt(c, fc, srate);
 			std::ostringstream oss;
 			oss << "1st-order phase at Fc is -90 deg (" << label.str() << ", got " << atCenter << ")";
-			harness.expect(std::abs(atCenter + 90.0) < 1e-6, oss.str());
+			harness.expectNear(atCenter, -90.0, 1e-6, oss.str());
 
 			// Probed relative to Fc rather than at a fixed 1 Hz: a 1st-order
 			// section turns gradually, so at 1 Hz a filter centred on 20 Hz is
 			// already several degrees along. Four decades below Fc the phase is
 			// about -0.01 degrees.
-			harness.expect(std::abs(phaseDegreesAt(c, fc * 1e-4, srate)) < 0.1,
+			harness.expectNear(phaseDegreesAt(c, fc * 1e-4, srate), 0.0, 0.1,
 				"1st-order phase approaches 0 deg well below Fc, " + label.str());
 			const double nearNyquist = phaseDegreesAt(c, srate * 0.4999, srate);
 			harness.expect(nearNyquist < -175.0 && nearNyquist >= -180.0,
@@ -518,17 +518,17 @@ void testFirstOrderAllPassBehaviour()
 			std::ostringstream gd;
 			gd << "1st-order group delay at Fc is (1+K^2)/(2K) samples (" << label.str()
 				<< ", expected " << expected << ", measured " << measured << ")";
-			harness.expect(std::abs(measured - expected) < expected * 1e-6, gd.str());
+			harness.expectNear(measured, expected, expected * 1e-6, gd.str());
 		}
 	}
 }
 
 // The grammar the order arrives in.
-void testOrderParsing()
+TEST_CASE(AllPassTests, testOrderParsing)
 {
 	auto parse = [](const wchar_t* text, BiQuadCommand& out) {
 		std::wstring parameters(text);
-		return BiQuadFilterFactory::parseCommand(L"Filter", parameters, out);
+		return BiQuadCommand::parse(L"Filter", parameters, out);
 	};
 
 	BiQuadCommand command;
@@ -578,45 +578,25 @@ void testOrderParsing()
 // An all-pass with no width is an error, unlike LP/HP/BP/NO which fall back to
 // a default. The reform keeps that for Order 2 and relaxes it only for Order 1,
 // where the parameter does not exist.
-void testWidthIsMandatory()
+TEST_CASE(AllPassTests, testWidthIsMandatory)
 {
 	wstring parameters = L"ON AP Fc 100 Hz";
 	BiQuadCommand command;
-	harness.expectFalse(BiQuadFilterFactory::parseCommand(L"Filter", parameters, command),
+	harness.expectFalse(BiQuadCommand::parse(L"Filter", parameters, command),
 		"an all-pass without Q or BW is rejected");
 }
 
 // Gain is meaningless for a filter that is flat by construction, and the
 // parser says so in the trace rather than applying it.
-void testGainIsIgnored()
+TEST_CASE(AllPassTests, testGainIsIgnored)
 {
 	wstring withGain = L"ON AP Fc 100 Hz Gain 6 dB Q 0.707";
 	wstring withoutGain = L"ON AP Fc 100 Hz Q 0.707";
 	BiQuadCommand a, b;
-	harness.require(BiQuadFilterFactory::parseCommand(L"Filter", withGain, a), "gain-carrying all-pass parses");
-	harness.require(BiQuadFilterFactory::parseCommand(L"Filter", withoutGain, b), "plain all-pass parses");
+	harness.require(BiQuadCommand::parse(L"Filter", withGain, a), "gain-carrying all-pass parses");
+	harness.require(BiQuadCommand::parse(L"Filter", withoutGain, b), "plain all-pass parses");
 	harness.expect(a.dbGain == 0.0, "the all-pass gain token is discarded");
 	harness.expect(a.dbGain == b.dbGain && a.freq == b.freq && a.bandwidthOrQOrS == b.bandwidthOrQOrS,
 		"a gain token does not change the all-pass filter");
 }
-}
-
-void runAllPassTests()
-{
-	testMagnitudeIsFlatAcrossTheBand();
-	testCoefficientsAreFiniteAndMirrored();
-	testPhaseAtCenterIsHalfATurn();
-	testGroupDelayAtCenterMatchesTheClosedForm();
-	testOutputIsBlockSizeInvariant();
-	testKernelsAgreeForAllPass();
-	testExtremeCenterFrequenciesStayStable();
-	testTwoFirstOrderSectionsEqualOneSecondOrderAtQHalf();
-	testFirstOrderAllPassBehaviour();
-	testOrderParsing();
-	testAcceptsBandwidth();
-	testBandwidthIsNotTheSameNumberAsQ();
-	testWidthIsMandatory();
-	testGainIsIgnored();
-
-	harness.report();
 }

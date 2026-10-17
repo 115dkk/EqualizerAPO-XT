@@ -13,6 +13,7 @@
 
 #include "ImportManifest.h"
 
+#include <QCoreApplication>
 #include <QString>
 #include <QStringList>
 
@@ -31,6 +32,8 @@ struct ExecutionResult
 
 class ImportExecutor
 {
+    Q_DECLARE_TR_FUNCTIONS(ImportExecutor)
+
 public:
     // Apply the manifest to configDir. Items whose source is missing are
     // skipped and reported as errors. Returns success only if every

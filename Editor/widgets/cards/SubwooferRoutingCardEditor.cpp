@@ -103,9 +103,7 @@ QString layoutLabel(const subroute::SubwooferRoutingState& state)
 
 unsigned tableSampleRate(FilterTable* table)
 {
-	const std::shared_ptr<AbstractAPOInfo> device =
-		table == nullptr ? nullptr : table->getSelectedDevice();
-	return device == nullptr ? 0 : device->getSampleRate();
+	return table == nullptr ? 0 : table->deviceSampleRate();
 }
 }
 

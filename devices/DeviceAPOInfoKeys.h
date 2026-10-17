@@ -8,7 +8,6 @@
 
 #include <string>
 
-#include "services/registry/WindowsRegistry.h"
 #include "services/registry/RegistryPaths.h"
 
 // Registry vocabulary shared by DeviceAPOInfo's split implementation. Keeping

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "SubwooferRouting/Compiler.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 #include <cmath>
 #include <numbers>
@@ -12,7 +12,7 @@
 namespace
 {
 
-test::Harness harness("SubwooferRoutingCompilerTests");
+test::HarnessAccess harness;
 
 subroute::Path makePath(
 	const std::string& id,
@@ -157,7 +157,7 @@ double evaluateMagnitudeDb(
 	return 20.0 * std::log10(std::abs(numerator / denominator));
 }
 
-void testValidStateCompiles()
+TEST_CASE(SubwooferRoutingCompilerTests, testValidStateCompiles)
 {
 	const subroute::CompileResult result =
 		subroute::compile(makeValidState(), makePrepareSpec());
@@ -172,7 +172,7 @@ void testValidStateCompiles()
 		"valid state should produce headroom analysis");
 }
 
-void testRepresentativeDiagnostics()
+TEST_CASE(SubwooferRoutingCompilerTests, testRepresentativeDiagnostics)
 {
 	{
 		subroute::SubwooferRoutingState state = makeValidState();
@@ -287,7 +287,7 @@ void testRepresentativeDiagnostics()
 	}
 }
 
-void testHighPassCoefficients()
+TEST_CASE(SubwooferRoutingCompilerTests, testHighPassCoefficients)
 {
 	subroute::SubwooferRoutingState state = makeValidState();
 	subroute::BiquadFilter filter;
@@ -314,15 +314,15 @@ void testHighPassCoefficients()
 	const double atTenTimesCutoff =
 		evaluateMagnitudeDb(stage->biquad, 10000.0, 48000.0);
 
-	harness.expectTrue(
-		std::abs(atCutoff - (-3.01)) <= 0.1,
+	harness.expectNear(
+		atCutoff, -3.01, 0.1,
 		"high-pass response at cutoff should be approximately -3.01 dB");
-	harness.expectTrue(
-		std::abs(atTenTimesCutoff) <= 0.2,
+	harness.expectNear(
+		atTenTimesCutoff, 0.0, 0.2,
 		"high-pass response at ten times cutoff should be approximately 0 dB");
 }
 
-void testDelayLowering()
+TEST_CASE(SubwooferRoutingCompilerTests, testDelayLowering)
 {
 	subroute::SubwooferRoutingState state = makeValidState();
 	auto* delay =
@@ -344,12 +344,12 @@ void testDelayLowering()
 		stage->integerDelaySamples,
 		static_cast<std::size_t>(120),
 		"2.5 ms at 48 kHz should produce 120 integer samples");
-	harness.expectTrue(
-		std::abs(stage->fractionalDelaySamples) <= 1.0e-12,
+	harness.expectNear(
+		stage->fractionalDelaySamples, 0.0, 1.0e-12,
 		"2.5 ms at 48 kHz should have no fractional sample");
 }
 
-void testAutomaticHeadroomForTwoUnityTerms()
+TEST_CASE(SubwooferRoutingCompilerTests, testAutomaticHeadroomForTwoUnityTerms)
 {
 	subroute::PrepareSpec spec;
 	spec.sampleRate = 48000.0;
@@ -360,17 +360,15 @@ void testAutomaticHeadroomForTwoUnityTerms()
 		subroute::compile(makeTwoTermHeadroomState(), spec);
 
 	harness.require(result.headroom.has_value(), "headroom analysis should exist");
-	harness.expectTrue(
-		std::abs(result.headroom->appliedTrimDb - (-6.020599913279624))
-			<= 0.05,
+	harness.expectNear(
+		result.headroom->appliedTrimDb, -6.020599913279624, 0.05,
 		"two unity terms should require approximately -6.02 dB trim");
-	harness.expectTrue(
-		std::abs(result.headroom->predictedPeakLinearBeforeTrim - 2.0)
-			<= 1.0e-9,
+	harness.expectNear(
+		result.headroom->predictedPeakLinearBeforeTrim, 2.0, 1.0e-9,
 		"two independent unity inputs should predict a peak of two");
 }
 
-void testManualHeadroomPassThrough()
+TEST_CASE(SubwooferRoutingCompilerTests, testManualHeadroomPassThrough)
 {
 	subroute::SubwooferRoutingState state = makeTwoTermHeadroomState();
 	state.headroom.mode = subroute::HeadroomMode::Manual;
@@ -384,25 +382,12 @@ void testManualHeadroomPassThrough()
 	const subroute::CompileResult result = subroute::compile(state, spec);
 
 	harness.require(result.headroom.has_value(), "manual headroom analysis should exist");
-	harness.expectTrue(
-		std::abs(result.headroom->appliedTrimDb - (-4.5)) <= 1.0e-12,
+	harness.expectNear(
+		result.headroom->appliedTrimDb, -4.5, 1.0e-12,
 		"manual trim should pass through unchanged");
 	harness.expectTrue(
 		result.headroom->mode == subroute::HeadroomMode::Manual,
 		"manual mode should be retained in the analysis");
 }
 
-}
-
-void runSubwooferRoutingCompilerTests();
-
-void runSubwooferRoutingCompilerTests()
-{
-	testValidStateCompiles();
-	testRepresentativeDiagnostics();
-	testHighPassCoefficients();
-	testDelayLowering();
-	testAutomaticHeadroomForTwoUnityTerms();
-	testManualHeadroomPassThrough();
-	harness.report();
 }

@@ -42,7 +42,7 @@ ChannelFlowContext surroundContext()
 }
 }
 
-void testChannelFlow()
+TEST_CASE(EditorLogicTests, testChannelFlow)
 {
 	const QStringList all = {QStringLiteral("L"), QStringLiteral("R"), QStringLiteral("C"),
 		QStringLiteral("LFE"), QStringLiteral("RL"), QStringLiteral("RR")};

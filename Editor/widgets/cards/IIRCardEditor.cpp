@@ -37,7 +37,7 @@ IIRCardEditor::IIRCardEditor(unsigned order, const std::vector<double>& coeffici
 	setObjectName(QStringLiteral("IIRCardEditor"));
 	setAttribute(Qt::WA_StyledBackground, true);
 
-	// parseCommand guarantees (order + 1) * 2 values: b0..bN, then a0..aN.
+	// IIRCommand::parse guarantees (order + 1) * 2 values: b0..bN, then a0..aN.
 	const std::vector<double>::const_iterator split = coefficients.begin() + static_cast<int>(order) + 1;
 	feedforward.assign(coefficients.begin(), split);
 	feedback.assign(split, coefficients.end());

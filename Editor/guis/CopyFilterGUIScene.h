@@ -23,7 +23,7 @@
 #include <QGraphicsScene>
 
 #include "Editor/widgets/ChannelGraphScene.h"
-#include "filters/CopyFilter.h"
+#include "filters/CopyCommand.h"
 
 class CopyFilterGUIScene : public ChannelGraphScene
 {

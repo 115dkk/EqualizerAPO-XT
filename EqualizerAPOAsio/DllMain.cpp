@@ -22,6 +22,7 @@
 #include <string>
 
 #include "asio/AsioWrapper.h"
+#include "asio/ComObject.h"
 #include "asio/DaemonProcessor.h"
 #include "asio/WasapiExclusiveTarget.h"
 #include "asio/Win32HostLink.h"
@@ -64,7 +65,7 @@ namespace
 		return std::make_unique<eapo::asio::DaemonProcessor>(std::make_unique<eapo::asio::Win32HostLink>());
 	}
 
-	class WrapperClassFactory final : public IClassFactory
+	class WrapperClassFactory final : public eapo::asio::ComObject<WrapperClassFactory, IClassFactory>
 	{
 	public:
 		explicit WrapperClassFactory(const CLSID& clsid, WrapperRecord record)
@@ -93,22 +94,6 @@ namespace
 			}
 			*object = nullptr;
 			return E_NOINTERFACE;
-		}
-
-		ULONG STDMETHODCALLTYPE AddRef() override
-		{
-			return static_cast<ULONG>(InterlockedIncrement(&refCount_));
-		}
-
-		ULONG STDMETHODCALLTYPE Release() override
-		{
-			const LONG remaining = InterlockedDecrement(&refCount_);
-			if (remaining == 0)
-			{
-				delete this;
-				return 0;
-			}
-			return static_cast<ULONG>(remaining);
 		}
 
 		HRESULT STDMETHODCALLTYPE CreateInstance(IUnknown* outer, REFIID riid, void** object) override
@@ -181,7 +166,6 @@ namespace
 		}
 
 	private:
-		LONG refCount_ = 1;
 		CLSID clsid_;
 		WrapperRecord record_;
 	};
@@ -232,7 +216,6 @@ namespace
 	constexpr GUID probeWrapperClsid = {0x5c2b9e10, 0x8d4f, 0x4a7b, {0xb3, 0xe6, 0x0f, 0x1a, 0x2c, 0x3d, 0x4e, 0x5f}};
 }
 
-// cppcheck-suppress constParameterPointer ; the signature is fixed by the Win32 DllMain contract
 BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, void*)
 {
 	if (reason == DLL_PROCESS_ATTACH)

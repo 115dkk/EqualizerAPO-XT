@@ -17,6 +17,8 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+#pragma once
+
 #include <cmath>
 #include <numbers>
 #include <climits>
@@ -30,12 +32,9 @@
 #include <exception>
 #include <unordered_map>
 #include <unordered_set>
-#include <regex>
 #define WIN32_LEAN_AND_MEAN
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
 #include <windows.h>
 #include <Shlwapi.h>
-#include <Ks.h>
-#include <KsMedia.h>
