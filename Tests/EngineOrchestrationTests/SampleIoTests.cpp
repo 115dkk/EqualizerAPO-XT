@@ -44,10 +44,11 @@ class GuardedInputPages
 {
 public:
 	explicit GuardedInputPages(size_t pageSize)
-		: allocation_(VirtualAlloc(nullptr, pageSize * 2, MEM_RESERVE, PAGE_NOACCESS))
+		: allocation_(VirtualAlloc(nullptr, pageSize * 2, MEM_RESERVE | MEM_COMMIT, PAGE_NOACCESS))
 	{
+		DWORD previousProtection = 0;
 		if (allocation_ != nullptr &&
-			VirtualAlloc(allocation_, pageSize, MEM_COMMIT, PAGE_READWRITE) == nullptr)
+			!VirtualProtect(allocation_, pageSize, PAGE_READWRITE, &previousProtection))
 		{
 			VirtualFree(allocation_, 0, MEM_RELEASE);
 			allocation_ = nullptr;
@@ -63,9 +64,9 @@ public:
 	GuardedInputPages(const GuardedInputPages&) = delete;
 	GuardedInputPages& operator=(const GuardedInputPages&) = delete;
 
-	unsigned char* firstPage() const
+	void* firstPage() const
 	{
-		return static_cast<unsigned char*>(allocation_);
+		return allocation_;
 	}
 
 private:
@@ -199,7 +200,7 @@ TEST_CASE(EngineOrchestrationTests, testConversionsMatchScalarReferenceBitExactl
 
 // Pin the stereo kernel's boundary behavior separately from the broad format
 // matrix above. The exact-end placement makes any input read past the requested
-// frames touch an uncommitted page. Moving the input four bytes earlier leaves
+// frames touch a PAGE_NOACCESS page. Moving the input four bytes earlier leaves
 // one trailing float and exercises the other common SIMD alignment. For zero
 // frames, the exact-end input points at the protected page itself.
 TEST_CASE(EngineOrchestrationTests, testStereoFloatReadIsBitExactAtTailsAndGuardPage)
@@ -231,7 +232,7 @@ TEST_CASE(EngineOrchestrationTests, testStereoFloatReadIsBitExactAtTailsAndGuard
 	const size_t pageSize = systemInfo.dwPageSize;
 	GuardedInputPages pages(pageSize);
 	harness.expect(pages.firstPage() != nullptr,
-		"stereo guarded input: VirtualAlloc failed to reserve two pages and commit the first");
+		"stereo guarded input: failed to allocate two pages and make the first writable");
 	if (pages.firstPage() == nullptr)
 		return;
 
@@ -253,7 +254,7 @@ TEST_CASE(EngineOrchestrationTests, testStereoFloatReadIsBitExactAtTailsAndGuard
 			const size_t inputSampleCount = static_cast<size_t>(frames) * 2;
 			const size_t inputByteCount = (inputSampleCount + trailingFloats) * sizeof(float);
 			const size_t inputByteOffset = pageSize - inputByteCount;
-			float* input = reinterpret_cast<float*>(pages.firstPage() + inputByteOffset);
+			float* input = static_cast<float*>(pages.firstPage()) + inputByteOffset / sizeof(float);
 			const size_t inputMod16 = reinterpret_cast<uintptr_t>(input) & 15u;
 
 			// Make a different pattern finish each case. Across the length/alignment
