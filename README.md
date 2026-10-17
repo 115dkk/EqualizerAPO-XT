@@ -20,7 +20,13 @@ Current work areas:
    ([#423](https://github.com/115dkk/EqualizerAPO-XT/pull/423)): compiler
    warnings now fail the build, copies of the same rule scattered through the
    engine, ASIO, VST and Editor code now live in one place each, and the rack
-   skin's three brushing recipes are now one.
+   skin's three brushing recipes are now one. The stereo-read follow-up reduces
+   the SSE2 conversion from 217 ns to 120 ns for 480 frames on a local i5-12600KF.
+   ARM64 CI passed the new boundary tests and measured 141–142 ns, compared with
+   277 ns in an earlier CI run; this was not a controlled same-machine comparison. The matching DLL/PDB confirms native NEON
+   deinterleaving without the old stack-based lane assembly. Other SIMD variants
+   keep their existing read kernels
+   ([#425](https://github.com/115dkk/EqualizerAPO-XT/pull/425)).
 2. Refining the Editor skins from community feedback rounds. The five concrete
    skins now have guarded per-skin modules so visual work stays local while
    behavior remains shared. The latest pass gives a right-docked analysis graph

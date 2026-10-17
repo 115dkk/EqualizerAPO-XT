@@ -20,6 +20,9 @@
 #include "stdafx.h"
 #include <algorithm>
 #include <typeinfo>
+#ifdef _M_ARM64
+#include <arm_neon.h>
+#endif
 
 #include "FilterConfiguration.h"
 #include "IInputTap.h"
@@ -80,8 +83,8 @@ namespace
 {
 // Fused format conversions between the APO-facing interleaved buffers and the
 // engine's planar double storage (the plain promote/demote kernel itself
-// lives in dsp/SampleConversion.h), one explicit Highway kernel per channel
-// count the interleaved load/store family supports (2/3/4). PromoteTo is
+// lives in dsp/SampleConversion.h), with Highway kernels for the interleaved
+// channel counts it supports (2/3/4) and a native ARM64 stereo read. PromoteTo is
 // exact, DemoteTo rounds to nearest-even like static_cast<float>, and the
 // interleaved shuffles only move bits, so each kernel is bit-identical to the
 // scalar loop it replaces; SampleIoTests pins that equality. 6/8/arbitrary
@@ -90,10 +93,44 @@ namespace
 
 void readFloat2(double* d0, double* d1, const float* input, size_t frameCount)
 {
+	size_t i = 0;
+#ifdef _M_ARM64
+	// The shipped ARM64 kernel selected Highway's EMU128 backend. Its
+	// deinterleave wrote lane pairs to the stack and reloaded them before
+	// widening. Use native deinterleaving here instead.
+	for (; i + 4 <= frameCount; i += 4)
+	{
+		const float32x4x2_t samples = vld2q_f32(input + i * 2);
+		vst1q_f64(d0 + i, vcvt_f64_f32(vget_low_f32(samples.val[0])));
+		vst1q_f64(d0 + i + 2, vcvt_high_f64_f32(samples.val[0]));
+		vst1q_f64(d1 + i, vcvt_f64_f32(vget_low_f32(samples.val[1])));
+		vst1q_f64(d1 + i + 2, vcvt_high_f64_f32(samples.val[1]));
+	}
+	if (i + 2 <= frameCount)
+	{
+		const float32x2x2_t samples = vld2_f32(input + i * 2);
+		vst1q_f64(d0 + i, vcvt_f64_f32(samples.val[0]));
+		vst1q_f64(d1 + i, vcvt_f64_f32(samples.val[1]));
+		i += 2;
+	}
+#elif HWY_TARGET == HWY_SSE2
+	// A full load avoids the masks and shifts in SSE2's half-width
+	// LoadInterleaved2. Two shuffles separate the two stereo frames.
+	const hn::ScalableTag<double> dd;
+	const hn::ScalableTag<float> df;
+	const hn::Half<decltype(df)> dfh;
+	for (; i + 2 <= frameCount; i += 2)
+	{
+		const auto samples = hn::LoadU(df, input + i * 2);
+		const auto f0 = hn::LowerHalf(dfh, hn::ConcatEven(df, samples, samples));
+		const auto f1 = hn::LowerHalf(dfh, hn::ConcatOdd(df, samples, samples));
+		hn::StoreU(hn::PromoteTo(dd, f0), dd, d0 + i);
+		hn::StoreU(hn::PromoteTo(dd, f1), dd, d1 + i);
+	}
+#else
 	const hn::ScalableTag<double> dd;
 	const hn::Rebind<float, decltype(dd)> df;
 	const size_t N = hn::Lanes(dd);
-	size_t i = 0;
 	for (; i + N <= frameCount; i += N)
 	{
 		hn::Vec<decltype(df)> f0, f1;
@@ -101,6 +138,7 @@ void readFloat2(double* d0, double* d1, const float* input, size_t frameCount)
 		hn::StoreU(hn::PromoteTo(dd, f0), dd, d0 + i);
 		hn::StoreU(hn::PromoteTo(dd, f1), dd, d1 + i);
 	}
+#endif
 	for (; i < frameCount; i++)
 	{
 		d0[i] = static_cast<double>(input[i * 2 + 0]);
@@ -156,12 +194,12 @@ void readFloat4(double* d0, double* d1, double* d2, double* d3, const float* inp
 
 // The write direction is per-target. On x86 the kernels demote two double
 // vectors per channel and Combine them into one full-width float vector
-// before the interleaved store (measured 5.1x the naive loop on AVX2, 2.8x
-// on SSE2). On MSVC ARM64, Highway's interleaved STORES lower below scalar
-// speed in every shape we measured on the CI runner (half-width 0.99x,
-// full-width Combine 0.47x), so the write kernels keep the plain scalar
-// loop there — identical to the pre-vectorization behavior. Interleaved
-// LOADS are fine on ARM64 (2.7x), so the read kernels stay portable.
+// before the interleaved store. Historical CI measurements of the shipped
+// implementation found 5.1x the old naive reference on AVX2 and 2.8x on SSE2.
+// ARM64 write candidates measured 0.99x (half-width) and 0.47x (full-width
+// Combine) against that reference, so the write kernels kept the plain loop.
+// Those measurements did not establish that Highway selected native NEON;
+// the inspected ARM64 stereo read used EMU128 instead.
 // DemoteTo rounds each lane exactly like static_cast<float>, so output bits
 // are identical on every path.
 #ifndef _M_ARM64
