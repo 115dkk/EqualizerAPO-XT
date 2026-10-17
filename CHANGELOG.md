@@ -14,6 +14,15 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Stereo float input takes less time to convert in the SSE2 build.** A local
+  i5-12600KF measurement of the product's 480-frame conversion fell from 217 ns
+  to 120 ns across three runs. This measures format conversion, not total audio
+  processing. ARM64 replaces the old Highway EMU128 lane assembly with native
+  NEON intrinsics; ARM64 compilation, correctness and performance verification
+  are still pending. Other SIMD read kernels and all write kernels are unchanged.
+  New tests check input boundaries, unaligned buffers, short blocks, output
+  bounds, signed zero and quiet NaN payloads against a scalar conversion.
+
 ## v2.57.6 — 2026-10-17
 
 - **A switched-off Send, NewChannel, expression Preamp or IIR line keeps its
