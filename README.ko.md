@@ -16,12 +16,10 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
 
 1. 격주 자동 코드 감사가 찾아낸 문제를 처리합니다. 2026-10-15 감사
    ([#422](https://github.com/115dkk/EqualizerAPO-XT/issues/422))는 PR 하나
-   ([#423](https://github.com/115dkk/EqualizerAPO-XT/pull/423))에서 처리하고
-   있습니다. 컴파일러 경고가 있으면 빌드가 실패하도록 바꿨고, 엔진, ASIO, VST,
-   Editor 코드에 흩어져 있던 같은 규칙의 사본을 한 곳으로 모았으며, 랙 스킨의
-   브러시 레시피는 하나로 합친 뒤 갤러리 심사
-   ([#424](https://github.com/115dkk/EqualizerAPO-XT/issues/424))를 기다리고
-   있습니다.
+   ([#423](https://github.com/115dkk/EqualizerAPO-XT/pull/423))에서
+   처리했습니다. 컴파일러 경고가 있으면 빌드가 실패하도록 바꿨고, 엔진, ASIO,
+   VST, Editor 코드에 흩어져 있던 같은 규칙의 사본을 한 곳으로 모았으며, 랙
+   스킨의 브러시 레시피를 하나로 합쳤습니다.
 2. 커뮤니티 피드백 라운드를 반영해 Editor 스킨을 다듬습니다. 다섯 스킨은
    공용 동작을 유지하면서 시각 작업이 각 스킨 안에 머물도록 전용 모듈과 자동
    경계 검사를 갖췄습니다. 최근 작업에서는 오른쪽 분석 그래프의 처음 너비를

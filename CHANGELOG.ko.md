@@ -60,6 +60,12 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   사라졌습니다. 이제 그때의 밝기에서 사라집니다
   ([#423](https://github.com/115dkk/EqualizerAPO-XT/pull/423)).
 
+- **랙 스킨: Device Selector의 장치 판에 Editor 랙 카드와 같은 브러시 결이
+  생깁니다.** 결의 가는 선이 두 픽셀 줄에 걸쳐 흐려져 판이 거의 평평해
+  보였는데, 이제 카드와 같은 2 px 간격으로 또렷하게 보입니다. Editor 랙 필터
+  피커 뒤의 결은 한 줄씩 자리를 옮겼습니다. 다른 화면은 바뀌지 않았습니다
+  ([#423](https://github.com/115dkk/EqualizerAPO-XT/pull/423)).
+
 ## v2.57.5 — 2026-10-10
 
 - **느린 플러그인을 불러오는 동안 Editor가 응답하지 않던 문제를 고쳤습니다.**

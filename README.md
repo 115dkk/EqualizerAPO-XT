@@ -15,13 +15,12 @@ The original fork goals are complete: the convolution tail bug is fixed, the eng
 Current work areas:
 
 1. Acting on findings from the biweekly automated code audit. The 2026-10-15
-   audit ([#422](https://github.com/115dkk/EqualizerAPO-XT/issues/422)) is
-   being worked through in one pull request
+   audit ([#422](https://github.com/115dkk/EqualizerAPO-XT/issues/422)) was
+   handled in one pull request
    ([#423](https://github.com/115dkk/EqualizerAPO-XT/pull/423)): compiler
    warnings now fail the build, copies of the same rule scattered through the
    engine, ASIO, VST and Editor code now live in one place each, and the rack
-   skin's brushing recipe is merged, pending a
-   gallery review ([#424](https://github.com/115dkk/EqualizerAPO-XT/issues/424)).
+   skin's three brushing recipes are now one.
 2. Refining the Editor skins from community feedback rounds. The five concrete
    skins now have guarded per-skin modules so visual work stays local while
    behavior remains shared. The latest pass gives a right-docked analysis graph

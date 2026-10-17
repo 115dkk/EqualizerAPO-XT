@@ -71,6 +71,13 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   out. It now fades out from where it was
   ([#423](https://github.com/115dkk/EqualizerAPO-XT/pull/423)).
 
+- **Rack skin: Device Selector's device plates show the same brushed grain
+  as the Editor's rack cards.** Their fine grain lines blurred across two
+  pixel rows, so the plates looked almost flat; the lines are now crisp at
+  the cards' 2 px spacing. The grain behind the Editor's rack filter picker
+  moved by one row. No other screen changed
+  ([#423](https://github.com/115dkk/EqualizerAPO-XT/pull/423)).
+
 ## v2.57.5 — 2026-10-10
 
 - **The Editor no longer stops responding while a slow plugin loads.** With a
