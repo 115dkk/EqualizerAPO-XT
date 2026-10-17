@@ -15,6 +15,7 @@
 #include <QtMath>
 
 #include "Editor/skins/shared/SkinPaint.h"
+#include "Editor/widgets/cards/VSTSlotFillRail.h"
 #include "RackSkinDetail.h"
 
 void RackSkin::paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens) const
@@ -539,28 +540,15 @@ void RackSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& state
 	painter.drawLine(head, head + QPointF(-3.0, -3.0));
 	painter.drawLine(head, head + QPointF(-3.0, 3.0));
 
-	const bool pairVerdict = !state.verdictInputText.isEmpty() || !state.verdictOutputText.isEmpty();
-	const bool hasText = pairVerdict || !state.verdictText.isEmpty();
-	if (state.verdictRect.isEmpty()
-		|| (!hasText && state.tone == VstBusFrameState::Tone::Neutral))
+	if (!state.showVerdict)
 		return;
 
-	QColor led(tokens.mutedText);
-	bool lit = true;
-	switch (state.tone)
-	{
-	case VstBusFrameState::Tone::Success: led = QColor(tokens.success); break;
-	case VstBusFrameState::Tone::Warning: led = QColor(tokens.accent); break;
-	case VstBusFrameState::Tone::Critical: led = QColor(tokens.danger); break;
-	case VstBusFrameState::Tone::Neutral: lit = false; break;
-	}
-	if (!state.enabled)
-		lit = false;
-
+	// The warning tone lights in the accent rather than the warning token.
+	const QColor led(state.tone == VstBusFrameState::Tone::Warning ? tokens.accent : tokens.*state.toneToken);
 	const QPointF ledCenter(state.verdictRect.left() + 4.0, state.verdictRect.center().y() + 0.5);
-	RackSkinDetail::paintLed(painter, ledCenter, 3.2, led, lit, dark);
+	RackSkinDetail::paintLed(painter, ledCenter, 3.2, led, state.lit, dark);
 
-	if (!hasText)
+	if (!state.hasText)
 		return;
 
 	QFont engraveFont(tokens.monoFontFamily);
@@ -572,7 +560,7 @@ void RackSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& state
 	QRectF textRect(state.verdictRect);
 	textRect.setLeft(ledCenter.x() + 9.0);
 	QString text;
-	if (pairVerdict)
+	if (state.pairVerdict)
 		text = state.verdictInputText + QStringLiteral(" - ") + state.verdictOutputText;
 	else
 		text = state.verdictText;
@@ -608,7 +596,7 @@ QSize RackSkin::vstSlotFillCellSize(const QString& role, const QString& value, c
 	// ends 0.5 short of the cell). The cap has no caret.
 	const qreal roleWidth = QFontMetricsF(rackFillRoleFont(tokens)).horizontalAdvance(role);
 	const qreal valueWidth = QFontMetricsF(rackFillValueFont(tokens)).horizontalAdvance(value);
-	return QSize(qCeil(roleWidth + 5.0 + 6.0 + valueWidth + 5.0 + 0.5), 20);
+	return QSize(qCeil(roleWidth + 5.0 + 6.0 + valueWidth + 5.0 + 0.5), VSTSlotFillRail::cellHeight());
 }
 
 void RackSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state, const SkinTokens& tokens) const

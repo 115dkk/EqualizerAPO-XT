@@ -21,6 +21,7 @@ public:
 
 	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override;
 	void styleFileDialog(QFileDialog* dialog, const SkinTokens& tokens) const override;
+	QAbstractFileIconProvider* createFileIconProvider(const SkinTokens& tokens) const override;
 
 	void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state,
 		const SkinTokens& tokens) const override;
@@ -57,7 +58,4 @@ public:
 		const SkinTokens& tokens) const override;
 	void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state,
 		const SkinTokens& tokens) const override;
-
-private:
-	static void installFileIconProvider(QFileDialog* dialog, const SkinTokens& tokens);
 };

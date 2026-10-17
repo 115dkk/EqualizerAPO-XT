@@ -101,9 +101,9 @@ public:
 	void paintSegmentedControl(QPainter& painter, const SegmentedControlState& state) const;
 
 	// The VST bus strip's format selectors and surrounding frame
-	// (ISkin::paintVstBusSelector / ISkin::paintVstBusFrame). Heritage mode
-	// never builds the modern VST card, so no heritage fallback is needed;
-	// the neutral base answers for skins without an override.
+	// (ISkin::paintVstBusSelector / ISkin::paintVstBusFrame). Every skin
+	// answers both; heritage mode never builds the modern VST card, so
+	// HeritageSkin's neutral answer is never reached.
 	void paintVstBusSelector(QPainter& painter, const VstBusSelectorState& state) const;
 	void paintVstBusFrame(QPainter& painter, const VstBusFrameState& state) const;
 
@@ -127,8 +127,10 @@ public:
 	void styleMainToolbar(QToolBar* toolBar) const;
 
 	// Navigation chrome of a non-native file dialog for the active skin
-	// (ISkin::styleFileDialog). No-op in heritage mode; the shared dialog
-	// setup (GUIHelper::prepareFileDialog) keeps the dialog native there.
+	// (ISkin::styleFileDialog), then the skin's entry pictograms
+	// (ISkin::createFileIconProvider). No-op in heritage mode; the shared
+	// dialog setup (GUIHelper::prepareFileDialog) keeps the dialog native
+	// there.
 	void styleFileDialog(QFileDialog* dialog) const;
 
 	// Painted title-bar decoration for the active skin (ISkin::paintTitleBarChrome).

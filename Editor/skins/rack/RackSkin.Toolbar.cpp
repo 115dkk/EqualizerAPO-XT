@@ -159,9 +159,9 @@ public:
 	}
 
 	// The StyleChange filter below hides the ears when another skin's sheet
-	// arrives, but a same-skin re-apply is skipped upstream and delivers no
-	// StyleChange - the reuse path calls this so the zones come back with
-	// the chrome regardless of how the hook was reached.
+	// arrives. A re-apply reaches styleMainToolbar with no StyleChange
+	// before it (ISkin::styleMainToolbar's contract), so the reuse path
+	// calls this to bring the zones back with the chrome.
 	void showEarZones()
 	{
 		if (leftEarAction != nullptr)

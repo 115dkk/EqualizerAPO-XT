@@ -14,6 +14,7 @@
 
 #include "Editor/skins/shared/SkinPaint.h"
 #include "Editor/skins/shared/SkinSupport.h"
+#include "Editor/widgets/cards/VSTSlotFillRail.h"
 #include "MatrixSkinDetail.h"
 
 namespace
@@ -453,23 +454,10 @@ void MatrixSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& sta
 	painter.setPen(withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150));
 	painter.drawText(QRectF(state.jointRect), Qt::AlignCenter, QStringLiteral(">"));
 
-	const bool pairVerdict = !state.verdictInputText.isEmpty() || !state.verdictOutputText.isEmpty();
-	const bool hasText = pairVerdict || !state.verdictText.isEmpty();
-	if (state.verdictRect.isEmpty()
-		|| (!hasText && state.tone == VstBusFrameState::Tone::Neutral))
+	if (!state.showVerdict)
 		return;
 
-	QColor led(tokens.mutedText);
-	bool lit = true;
-	switch (state.tone)
-	{
-	case VstBusFrameState::Tone::Success: led = QColor(tokens.success); break;
-	case VstBusFrameState::Tone::Warning: led = QColor(tokens.warning); break;
-	case VstBusFrameState::Tone::Critical: led = QColor(tokens.danger); break;
-	case VstBusFrameState::Tone::Neutral: lit = false; break;
-	}
-	if (!state.enabled)
-		lit = false;
+	const QColor led(tokens.*state.toneToken);
 
 	// The verdict beacon: a control-room segment stack - three crisp bars
 	// with 1px air, lit solid in the rationed tone, dim when unlit - and no
@@ -486,14 +474,14 @@ void MatrixSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& sta
 	for (int i = 0; i < segCount; i++)
 	{
 		const QRect segment(beaconLeft, beaconTop + i * (segHeight + segGap), segWidth, segHeight);
-		painter.fillRect(segment, lit ? led : withAlpha(QColor(tokens.mutedText), 70));
+		painter.fillRect(segment, state.lit ? led : withAlpha(QColor(tokens.mutedText), 70));
 	}
 
 	// The remark speaks only for a negotiated pair. Word verdicts stay
 	// beacon-only: the port strip's device engraving already posts the ABI
 	// ("EXTERNAL DEVICE · VST2"), so a VST2 remark here restated the board
 	// one cell over (maintainer judgement, r3).
-	if (!pairVerdict)
+	if (!state.pairVerdict)
 		return;
 
 	QFont remarkFont(tokens.monoFontFamily);
@@ -534,7 +522,7 @@ QSize MatrixSkin::vstSlotFillCellSize(const QString& role, const QString& value,
 	// the cell (its tip sits 5 in from the inset edge, 2 wide each side).
 	const qreal roleWidth = QFontMetricsF(matrixFillRoleFont(tokens)).horizontalAdvance(role);
 	const qreal valueWidth = QFontMetricsF(matrixFillValueFont(tokens)).horizontalAdvance(value);
-	return QSize(qCeil(0.5 + 4.0 + roleWidth + 5.0 + valueWidth + 3.0 + 7.5), 20);
+	return QSize(qCeil(0.5 + 4.0 + roleWidth + 5.0 + valueWidth + 3.0 + 7.5), VSTSlotFillRail::cellHeight());
 }
 
 void MatrixSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state, const SkinTokens& tokens) const

@@ -37,7 +37,7 @@ protected:
 private:
 	void rebuildList();
 
-	SkinTokens skinTokens;
+	const SkinTokens skinTokens;
 	bool dark = true;
 	QLineEdit* searchEdit = nullptr;
 	QListWidget* listWidget = nullptr;

@@ -4,7 +4,7 @@
 	SPDX-License-Identifier: GPL-2.0-or-later
 */
 
-#include "MatrixFileIcons.h"
+#include "MatrixSkin.h"
 
 #include <QPainter>
 #include <QPainterPath>
@@ -96,7 +96,7 @@ protected:
 
 }
 
-QFileIconProvider* matrixFileIconProvider(const SkinTokens& tokens)
+QAbstractFileIconProvider* MatrixSkin::createFileIconProvider(const SkinTokens& tokens) const
 {
 	static MatrixFileIconProvider iconProvider;
 	iconProvider.updateTokens(tokens);

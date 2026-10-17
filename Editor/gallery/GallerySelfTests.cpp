@@ -49,6 +49,7 @@
 #include "Editor/FilterTable.h"
 #include "Editor/SkinManager.h"
 #include "Editor/guis/VSTPluginFilterGUI.h"
+#include "Editor/skins/HeritageSkin.h"
 #include "Editor/skins/ISkin.h"
 #include "Editor/skins/Skins.h"
 #include "Editor/skins/rack/cards/RackReferenceCardView.h"
@@ -143,6 +144,11 @@ private:
 // the text its own painter draws: the role and the channel inside the cell,
 // the role before the channel, and the channel clear of the caret (any small
 // filled shape the painter adds). Returns the number of failing skins.
+//
+// Heritage is checked with the five: its cell painter is the former ISkin
+// default (audit #422 S3), measured by the ISkin default sizer that Studio
+// also answers through, so the pair stays honest although heritage never
+// builds the VST card.
 int checkFillCellFit()
 {
 	QStringList roles;
@@ -159,8 +165,10 @@ int checkFillCellFit()
 			QStringLiteral("FLC"), QStringLiteral("FRC"), QStringLiteral("VSL"), QStringLiteral("12") })
 		values.append(extra);
 
+	QList<ISkin*> skins = Skins::all();
+	skins.append(heritageSkin());
 	int failures = 0;
-	for (ISkin* skin : Skins::all())
+	for (ISkin* skin : skins)
 	{
 		const SkinTokens tokens = skin->tokens(true);
 		QString problem;

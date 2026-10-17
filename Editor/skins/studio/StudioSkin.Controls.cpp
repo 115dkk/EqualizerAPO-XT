@@ -406,26 +406,12 @@ void StudioSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& sta
 	painter.drawLine(head, head + QPointF(-3.5, -3.5));
 	painter.drawLine(head, head + QPointF(-3.5, 3.5));
 
-	const bool pairVerdict = !state.verdictInputText.isEmpty() || !state.verdictOutputText.isEmpty();
-	const bool hasText = pairVerdict || !state.verdictText.isEmpty();
-	if (state.verdictRect.isEmpty()
-		|| (!hasText && state.tone == VstBusFrameState::Tone::Neutral))
+	if (!state.showVerdict)
 		return;
 
-	QColor lamp(tokens.mutedText);
-	bool lit = true;
-	switch (state.tone)
-	{
-	case VstBusFrameState::Tone::Success: lamp = QColor(tokens.success); break;
-	case VstBusFrameState::Tone::Warning: lamp = QColor(tokens.warning); break;
-	case VstBusFrameState::Tone::Critical: lamp = QColor(tokens.danger); break;
-	case VstBusFrameState::Tone::Neutral: lit = false; break;
-	}
-	if (!state.enabled)
-		lit = false;
-
+	const QColor lamp(tokens.*state.toneToken);
 	const QPointF lampCenter(state.verdictRect.left() + 3.0, state.verdictRect.center().y() + 0.5);
-	if (lit)
+	if (state.lit)
 	{
 		// Faked glow: two stroke rings losing wattage outward.
 		painter.setPen(QPen(withAlpha(lamp, 60), 3.0));
@@ -433,10 +419,10 @@ void StudioSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& sta
 		painter.drawEllipse(lampCenter, 3.6, 3.6);
 	}
 	painter.setPen(Qt::NoPen);
-	painter.setBrush(lit ? lamp : withAlpha(QColor(tokens.mutedText), 110));
+	painter.setBrush(state.lit ? lamp : withAlpha(QColor(tokens.mutedText), 110));
 	painter.drawEllipse(lampCenter, 2.4, 2.4);
 
-	if (!hasText)
+	if (!state.hasText)
 		return;
 
 	QFont verdictFont(tokens.monoFontFamily);
@@ -447,7 +433,7 @@ void StudioSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& sta
 	painter.setPen(ink);
 	QRectF textRect(state.verdictRect);
 	textRect.setLeft(lampCenter.x() + 8.0);
-	if (pairVerdict)
+	if (state.pairVerdict)
 	{
 		const QFontMetricsF metrics(verdictFont);
 		painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, state.verdictInputText);

@@ -28,6 +28,7 @@
 
 class FilterPickerView;
 class IRoutingRenderer;
+class QAbstractFileIconProvider;
 class QFileDialog;
 class QPainter;
 class QToolBar;
@@ -248,6 +249,22 @@ struct VstBusFrameState
 	};
 	Tone tone = Tone::Neutral;
 	bool enabled = true;
+	// What the fields above mean for the readout, resolved where the state
+	// is built (VSTBusStrip::frameState) so the skins read the verdict
+	// instead of re-deriving it. pairVerdict: the readout carries the
+	// negotiated pair. hasText: it carries any words. showVerdict: there is
+	// a readout area and something to show in it (words, or a tone alone:
+	// the lamp-only verdict of an accepted explicit contract). lit: the
+	// tone's lamp is on, a non-neutral tone on an enabled strip. toneToken:
+	// the colour token the tone wears (success, warning, danger; mutedText
+	// while Neutral), as a SkinTokens member so a skin reads it from the
+	// tokens it was handed (tokens.*state.toneToken). A skin may still dress
+	// a tone in another token; that choice is the skin's design.
+	bool pairVerdict = false;
+	bool hasText = false;
+	bool showVerdict = false;
+	bool lit = false;
+	QString SkinTokens::* toneToken = &SkinTokens::mutedText;
 };
 
 // One slot cell of the VST channel-fill rails (VSTSlotFillRail): the
@@ -347,7 +364,11 @@ public:
 	// so they do not override this. An override reaches the painters and
 	// skinChanged only: the application's QSS and palette are built by
 	// SkinThemeData::applyToApplication from the table's tokens for id(), so
-	// they never see it.
+	// they never see it. HeritageSkin is the one override, and the one skin
+	// that may: SkinManager::applyHeritage sets no sheet and the platform
+	// palette, so nothing reads the table for it. It stays virtual because
+	// heritage is outside the roster that table is keyed on (audit #422
+	// TD-51).
 	virtual SkinTokens tokens(bool dark) const;
 
 	// The Copy routing renderer that matches this skin's philosophy. May be
@@ -367,15 +388,23 @@ public:
 	// then also rests a vertical-arrow cursor on it.
 	virtual KnobGesture knobGesture() const;
 
+	// THE HOOKS EVERY SKIN ANSWERS. cardFrameStyle/cardHeaderStyle,
+	// paintAddRow, paintInsertSeam, paintGraphicEqPlot, paintVstBusSelector,
+	// paintVstBusFrame, paintVstSlotFillCell and paintVstSlotFillRail are pure
+	// virtual (audit #422 S3): the surfaces that call them exist only in a
+	// skinned session, so a neutral default was a painter no skin ever
+	// reached. HeritageSkin keeps that neutral rendering; heritage mode never
+	// builds those surfaces, so it never runs either.
+
 	// Inline stylesheet for the modern card's frame (QFrame#FilterCardRow),
-	// re-evaluated whenever the row's state changes. The default reproduces
-	// the shared token-driven chrome (uniform 1px border, plus the accent rail
-	// when tokens.cardRailWidth > 0). Skins override to give command types
-	// their own frame treatment.
-	virtual QString cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const;
+	// re-evaluated whenever the row's state changes. Each skin gives command
+	// types its own frame treatment; the neutral answer (HeritageSkin) is
+	// the shared token-driven chrome (uniform 1px border, plus the accent
+	// rail when tokens.cardRailWidth > 0).
+	virtual QString cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const = 0;
 
 	// Inline stylesheet for the card's header strip (QWidget#FilterCardHeader).
-	virtual QString cardHeaderStyle(const CommandRowInfo& info, const SkinTokens& tokens) const;
+	virtual QString cardHeaderStyle(const CommandRowInfo& info, const SkinTokens& tokens) const = 0;
 
 	// Inline stylesheet for the header's type badge (QLabel#FilterTypeBadge).
 	// typeColor is the per-command-type colour from FilterCardModel. The
@@ -435,25 +464,25 @@ public:
 	// The persistent "add card" row at the end of the filter list (shared
 	// insertion contract, docs/skins/README.md). The AddCardRow widget owns
 	// input (click / Enter opens the filter picker anchored under the row) and
-	// delegates all painting here. The default is a neutral token-driven ghost
-	// row: dashed border, muted "+ <label>" caption, accent on hover. Skins
-	// override to answer with their own philosophy.
-	virtual void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const;
+	// delegates all painting here; each skin answers with its own philosophy.
+	// The neutral answer (HeritageSkin) is a token-driven ghost row: dashed
+	// border, muted "+ <label>" caption, accent on hover.
+	virtual void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const = 0;
 
 	// The hover-only insertion seam above the FIRST card: a direct alternative
 	// to that card header's "+" (both insert at the leading edge). The widget
 	// is invisible at rest and only paints while hovered, so this hook never
-	// changes a skin's at-rest gallery. The default is a thin accent line with
-	// a small "+" disc at the left edge.
-	virtual void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const;
+	// changes a skin's at-rest gallery. The neutral answer (HeritageSkin) is a
+	// thin accent line with a small "+" disc at the left edge.
+	virtual void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const = 0;
 
 	// The GraphicEQ card's response plot (GraphicEQPlotWidget) - the clean
 	// install's first impression. The widget owns the model and all input;
 	// the skin paints everything: ground, grid, labels, the response curve,
-	// the node handles and the cursor readout. The default is a neutral
-	// token-driven rendering; each shipped skin answers with its own
-	// instrument (form decided in paint code, not QSS).
-	virtual void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, const SkinTokens& tokens) const;
+	// the node handles and the cursor readout. Each shipped skin answers with
+	// its own instrument (form decided in paint code, not QSS); the neutral
+	// answer (HeritageSkin) is a quiet token-driven rendering.
+	virtual void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, const SkinTokens& tokens) const = 0;
 
 	// The analysis dock's response graph (EqGraphView): the whole config's
 	// measured response. The widget owns sampling, axis fitting and cursor
@@ -482,40 +511,41 @@ public:
 	// One format selector of the VST bus strip (VSTBusStrip): the interactive
 	// cell that names the input or output layout of a VST3 main-bus contract.
 	// The widget owns the popup menu, keyboard and focus handling and hands
-	// over a finished state; the skin only draws. The default (ISkin.cpp) is
-	// a neutral token-driven strip: muted role caption, the layout token in
-	// data ink, a channel count and a caret. Skins override to answer with
-	// their own instrument (glass strip, terminal caption, pill chip, latch
-	// cap, board cell).
-	virtual void paintVstBusSelector(QPainter& painter, const VstBusSelectorState& state, const SkinTokens& tokens) const;
+	// over a finished state; the skin only draws, each with its own
+	// instrument (glass strip, terminal caption, pill chip, latch cap, board
+	// cell). The neutral answer (HeritageSkin) is a token-driven strip: muted
+	// role caption, the layout token in data ink, a channel count and a caret.
+	virtual void paintVstBusSelector(QPainter& painter, const VstBusSelectorState& state, const SkinTokens& tokens) const = 0;
 
 	// The strip around the two selectors: ground panel (if the skin mounts
 	// one), the direction mark in the joint, and the compact negotiation
-	// verdict readout. Runs before the selector children paint. The default
-	// is a painted arrow in muted ink plus the verdict text behind a small
-	// tone lamp.
-	virtual void paintVstBusFrame(QPainter& painter, const VstBusFrameState& state, const SkinTokens& tokens) const;
+	// verdict readout. Runs before the selector children paint. The neutral
+	// answer (HeritageSkin) is a painted arrow in muted ink plus the verdict
+	// text behind a small tone lamp.
+	virtual void paintVstBusFrame(QPainter& painter, const VstBusFrameState& state, const SkinTokens& tokens) const = 0;
 
 	// The size one slot cell needs for its role token and channel, measured
 	// with the fonts and paddings this skin's paintVstSlotFillCell draws
-	// with, so the drawn text fits the cell the rail lays out. The default
-	// measures the default painter's fonts; a skin whose cell fonts or
-	// paddings differ answers for itself.
+	// with, so the drawn text fits the cell the rail lays out. The height is
+	// the rail's (VSTSlotFillRail::cellHeight). The default measures a 10px
+	// role in the body face and a 12px channel in the mono face, the fonts of
+	// Studio's cell and of the neutral cell (HeritageSkin); a skin whose cell
+	// fonts or paddings differ answers for itself.
 	virtual QSize vstSlotFillCellSize(const QString& role, const QString& value, const SkinTokens& tokens) const;
 
 	// One slot cell of the VST channel-fill rails: role engraving, the
 	// assigned channel, and the dropdown cue, in a cell the widget sizes
-	// through vstSlotFillCellSize. The default is a neutral cell that
-	// reads visibly different from paintVstBusSelector (no channel-count
-	// suffix, silent slots in muted strike ink, missing channels in the
-	// danger tone).
-	virtual void paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state, const SkinTokens& tokens) const;
+	// through vstSlotFillCellSize. Each skin's cell reads visibly different
+	// from its paintVstBusSelector; the neutral answer (HeritageSkin) has no
+	// channel-count suffix, silent slots in muted strike ink and missing
+	// channels in the danger tone.
+	virtual void paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state, const SkinTokens& tokens) const = 0;
 
 	// The rail under a row of slot cells plus the fold latch. The latch is
 	// the feature's on/off fold and must be a different affordance than the
-	// channel cells (the default draws a small labelled toggle, not another
-	// dropdown).
-	virtual void paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state, const SkinTokens& tokens) const;
+	// channel cells (the neutral answer, HeritageSkin, draws a small labelled
+	// toggle, not another dropdown).
+	virtual void paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state, const SkinTokens& tokens) const = 0;
 
 	// The "add filter" picker that matches this skin's philosophy. The caller
 	// (FilterTable::chooseFilterTemplate) hosts the returned view in a
@@ -555,8 +585,13 @@ public:
 	virtual void paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& tokens) const;
 
 	// Dress the main toolbar in this skin's language. Called from
-	// applyRedesignPreferences at startup and again on every skin/dark
-	// switch, so implementations must be idempotent. The default replaces the
+	// applyRedesignPreferences at startup and again on every skin or dark
+	// switch, so implementations must be idempotent. A re-apply of the active
+	// skin in the same mode is not a switch: SkinManager::applySkin returns
+	// early, so it sets no sheet (no StyleChange reaches the toolbar or its
+	// children) and emits no skinChanged, yet applyRedesignPreferences still
+	// calls this hook. Whatever an implementation hides on a StyleChange it
+	// must therefore restore here, not in that event. The default replaces the
 	// legacy .ico action icons (the 2005-era document set) with the shared
 	// modern stroke icons tinted by the text token and sets a scaled icon
 	// size; skins override to re-tint, swap the icon language, set dynamic
@@ -575,6 +610,17 @@ public:
 	// newFolderButton, listModeButton, detailModeButton). The default is the
 	// shared modern stroke set tinted with the text token; skins override to
 	// re-tint or swap the icon language, mirroring their styleMainToolbar
-	// answer. Never called in heritage mode (the dialog stays native there).
+	// answer. The entry pictograms are not set here: SkinManager installs
+	// createFileIconProvider's answer right after this hook. Never called in
+	// heritage mode (the dialog stays native there).
 	virtual void styleFileDialog(QFileDialog* dialog, const SkinTokens& tokens) const;
+
+	// The skin's provider for the file dialog's folder/file pictograms (a
+	// SkinFileIconProvider), refreshed to tokens. The skin owns it and keeps
+	// it for the life of the process: QFileDialog::setIconProvider stores the
+	// pointer without taking ownership (QFileInfoGatherer holds it raw beside
+	// its own default provider), so a provider that died with the call would
+	// dangle in the dialog. The caller must not delete it. nullptr keeps Qt's
+	// own provider, which is HeritageSkin's answer.
+	virtual QAbstractFileIconProvider* createFileIconProvider(const SkinTokens& tokens) const = 0;
 };

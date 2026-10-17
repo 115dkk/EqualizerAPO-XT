@@ -103,6 +103,11 @@ public:
 	QSize sizeHint() const override;
 	QSize minimumSizeHint() const override;
 
+	// The height of every slot cell and of the fold latch. The rail owns it:
+	// each skin's vstSlotFillCellSize answers the width its fonts need and
+	// takes the height from here.
+	static int cellHeight();
+
 signals:
 	void slotPicked(int slot, const QString& value);
 	void latchToggled();

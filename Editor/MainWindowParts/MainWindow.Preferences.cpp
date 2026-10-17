@@ -386,11 +386,12 @@ void MainWindow::applyRedesignPreferences()
 		SkinManager::instance()->applySkin(skinId, skinDark);
 		skinId = SkinManager::instance()->currentSkinId();
 		// The toolbar/menu dressing must not depend on applySkin actually
-		// running: a same-skin re-apply is skipped (no skinChanged signal),
-		// which used to leave the toolbar on the .ui's legacy .ico icons and
-		// without the skin's chrome (rack's rail/LED) in every session that
-		// never switched skins - the "default icons appear sometimes" report.
-		// dressSkinChrome is idempotent and cheap, so run it directly.
+		// running: a same-skin re-apply emits no skinChanged (see
+		// ISkin::styleMainToolbar's contract), which used to leave the
+		// toolbar on the .ui's legacy .ico icons and without the skin's
+		// chrome in every session that never switched skins - the "default
+		// icons appear sometimes" report. dressSkinChrome is idempotent and
+		// cheap, so run it directly.
 		dressSkinChrome();
 	}
 

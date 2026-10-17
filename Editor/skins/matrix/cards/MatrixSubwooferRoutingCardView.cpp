@@ -22,20 +22,14 @@
 #include <QPaintEvent>
 #include <QPainter>
 #include <QPen>
-#include <QStyle>
 #include <QVBoxLayout>
 #include <QVariant>
 
+#include "Editor/skins/shared/SkinPaint.h"
 #include "Editor/widgets/ElidedLabel.h"
 
 namespace
 {
-void repolish(QWidget* widget)
-{
-	widget->style()->unpolish(widget);
-	widget->style()->polish(widget);
-}
-
 // Crisp 1px focus brackets (invariant rule 7: hairlines are drawn with AA
 // off and snapped to the pixel grid).
 qreal crispCoordinate(qreal logical, qreal devicePixelRatio)
@@ -163,17 +157,16 @@ void MatrixSubwooferRoutingCardView::addActionButton(
 void MatrixSubwooferRoutingCardView::applyState(
 	const SubwooferRoutingCardState& state)
 {
-	const bool hasError = !state.errorText.isEmpty() || !state.valid;
-	const bool hasWarning = !state.warningText.isEmpty();
+	const Severity health = severity(state);
 
 	// The one place the ration book allows colour: green = in service,
 	// amber = caution, red = fault.
-	if (hasError)
+	if (health == Severity::Error)
 	{
 		stateCell->setText(tr("FAULT"));
 		stateCell->setProperty("tone", QStringLiteral("danger"));
 	}
-	else if (hasWarning)
+	else if (health == Severity::Warning)
 	{
 		stateCell->setText(tr("CHECK"));
 		stateCell->setProperty("tone", QStringLiteral("warning"));
@@ -199,47 +192,22 @@ void MatrixSubwooferRoutingCardView::applyState(
 			QString::number(state.sourceLfeGainDb, 'f', 1))
 		: tr("OFF"));
 
-	if (std::isfinite(state.headroomTrimDb))
-	{
-		trimCell->setText(state.headroomAuto
-			? tr("AUTO %1 dB").arg(
-				QString::number(state.headroomTrimDb, 'f', 1))
-			: tr("%1 dB").arg(
-				QString::number(state.headroomTrimDb, 'f', 1)));
-	}
-	else
-	{
-		trimCell->setText(state.headroomAuto
-			? tr("AUTO")
-			: QStringLiteral("--"));
-	}
+	trimCell->setText(headroomText(state,
+		tr("AUTO %1 dB"), tr("%1 dB"), tr("AUTO"), QStringLiteral("--")));
 
-	QString profileText;
-	if (state.linkedProfile)
-	{
-		profileText = state.profileName.isEmpty()
-			? tr("LINKED")
-			: state.profileName;
-	}
-	else
-	{
-		profileText = state.profileName.isEmpty()
-			? tr("EMBEDDED")
-			: state.profileName;
-	}
-	profileCell->setFullText(profileText);
+	profileCell->setFullText(profileText(state, tr("LINKED"), tr("EMBEDDED")));
 
 	// One remark, highest severity first - a board posts a fault once.
 	QString remark;
 	QString tone = QStringLiteral("normal");
-	if (hasError)
+	if (health == Severity::Error)
 	{
 		remark = tr("! FAULT: %1").arg(state.errorText.isEmpty()
 			? tr("State is invalid")
 			: state.errorText);
 		tone = QStringLiteral("danger");
 	}
-	else if (hasWarning)
+	else if (health == Severity::Warning)
 	{
 		remark = tr("! CHECK: %1").arg(state.warningText);
 		tone = QStringLiteral("warning");

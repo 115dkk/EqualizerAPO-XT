@@ -222,10 +222,10 @@ private:
 }
 
 StudioFilterPickerView::StudioFilterPickerView(const SkinTokens& tokens, QWidget* parent)
-	: FilterPickerView(parent)
+	: FilterPickerView(parent),
+	  skinTokens(tokens)
 {
 	setObjectName(QStringLiteral("StudioFilterPicker"));
-	skinTokens = tokens;
 	dark = skinIsDark(skinTokens);
 
 	const int glow = 13;

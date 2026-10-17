@@ -12,6 +12,7 @@
 #include <QtMath>
 
 #include "Editor/skins/shared/SkinPaint.h"
+#include "Editor/widgets/cards/VSTSlotFillRail.h"
 
 // A row of mutually exclusive choices, in the grammar this skin already
 // owns for "pick one of these": the matched bank of equal-width stadium
@@ -379,31 +380,26 @@ void SoftSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& state
 	painter.drawLine(head, head + QPointF(-3.5, -3.5));
 	painter.drawLine(head, head + QPointF(-3.5, 3.5));
 
-	const bool pairVerdict = !state.verdictInputText.isEmpty() || !state.verdictOutputText.isEmpty();
-	const bool hasText = pairVerdict || !state.verdictText.isEmpty();
-	if (state.verdictRect.isEmpty()
-		|| (!hasText && state.tone == VstBusFrameState::Tone::Neutral))
+	if (!state.showVerdict)
 		return;
 
 	// A wordless danger verdict draws nothing here: on this skin the
 	// problem lives in the reference tile (the stroke "!" transition), and
 	// a red dot floating beside the chips read as a second, disorienting
 	// alarm (r3 judging). The caption below explains; the chips stay calm.
-	if (!hasText && state.tone == VstBusFrameState::Tone::Critical)
+	if (!state.hasText && state.tone == VstBusFrameState::Tone::Critical)
 		return;
 
 	const bool dark = skinIsDark(tokens);
-	QColor dot(tokens.mutedText);
+	QColor dot(tokens.*state.toneToken);
 	switch (state.tone)
 	{
 	case VstBusFrameState::Tone::Success:
-		dot = mixColor(QColor(tokens.success), QColor(tokens.text), 0.20);
+		dot = mixColor(dot, QColor(tokens.text), 0.20);
 		break;
 	case VstBusFrameState::Tone::Warning:
-		dot = mixColor(QColor(tokens.warning), QColor(tokens.text), dark ? 0.30 : 0.20);
-		break;
 	case VstBusFrameState::Tone::Critical:
-		dot = mixColor(QColor(tokens.danger), QColor(tokens.text), dark ? 0.30 : 0.20);
+		dot = mixColor(dot, QColor(tokens.text), dark ? 0.30 : 0.20);
 		break;
 	case VstBusFrameState::Tone::Neutral:
 		dot = withAlpha(dot, 130);
@@ -417,7 +413,7 @@ void SoftSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& state
 	painter.setBrush(dot);
 	painter.drawEllipse(dotCenter, 3.0, 3.0);
 
-	if (!hasText)
+	if (!state.hasText)
 		return;
 
 	QFont captionFont(tokens.fontFamily);
@@ -429,7 +425,7 @@ void SoftSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& state
 	painter.setPen(withAlpha(ink, state.enabled ? 255 : 160));
 	QRectF textRect(state.verdictRect);
 	textRect.setLeft(dotCenter.x() + 8.0);
-	if (pairVerdict)
+	if (state.pairVerdict)
 	{
 		const QFontMetricsF metrics(captionFont);
 		painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, state.verdictInputText);
@@ -479,7 +475,7 @@ QSize SoftSkin::vstSlotFillCellSize(const QString& role, const QString& value, c
 	// short of the text edge so it ends before the caret.
 	const qreal roleWidth = QFontMetricsF(softFillRoleFont(tokens)).horizontalAdvance(role);
 	const qreal valueWidth = QFontMetricsF(softFillValueFont(tokens)).horizontalAdvance(value);
-	return QSize(qCeil(1.0 + 8.0 + roleWidth + 5.0 + valueWidth + 8.0 + 6.0), 20);
+	return QSize(qCeil(1.0 + 8.0 + roleWidth + 5.0 + valueWidth + 8.0 + 6.0), VSTSlotFillRail::cellHeight());
 }
 
 void SoftSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state, const SkinTokens& tokens) const

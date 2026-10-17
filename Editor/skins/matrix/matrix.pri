@@ -17,7 +17,6 @@ SOURCES += \
 HEADERS += \
 	$$PWD/MatrixSkin.h \
 	$$PWD/MatrixSkinDetail.h \
-	$$PWD/MatrixFileIcons.h \
 	$$PWD/picker/MatrixFilterPicker.h \
 	$$PWD/cards/MatrixReferenceCardView.h \
 	$$PWD/cards/MatrixSubwooferRoutingCardView.h \

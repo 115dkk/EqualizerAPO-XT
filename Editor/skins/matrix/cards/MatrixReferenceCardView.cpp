@@ -9,25 +9,14 @@
 #include <QAbstractButton>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QStyle>
 #include <QToolButton>
 #include <QVBoxLayout>
 
+#include "Editor/skins/shared/SkinPaint.h"
 #include "Editor/widgets/ElidedLabel.h"
 
 namespace
 {
-// Re-evaluate a widget's stylesheet after one of its dynamic properties
-// changed. applyState repolishes the affected children itself: the base class
-// only repolishes the view, and rules keyed on a child's own property need
-// the child repolished.
-void repolishCell(QWidget* widget)
-{
-	widget->style()->unpolish(widget);
-	widget->style()->polish(widget);
-	widget->update();
-}
-
 // Board designation of a feed kind: the untranslated mono token the marker
 // cell posts while the reference resolves. ASCII ">" - DM Mono has no glyph
 // for U+25B8 and the offscreen platform renders tofu.
@@ -185,14 +174,14 @@ void MatrixReferenceCardView::applyState(const ReferenceCardState& state)
 		markerCell->setText(feedDesignation(cardKind));
 	markerCell->setProperty("feedState",
 		state.missing ? QStringLiteral("missing") : QStringLiteral("live"));
-	repolishCell(markerCell);
+	repolish(markerCell);
 
 	// Payload: the name is data - brightest mono ink, never coloured. Accent
 	// appears only as the hover pre-light of the click affordance.
 	nameCell->setFullText(state.name);
 	nameCell->setToolTip(state.fullPath.isEmpty() ? state.name : state.fullPath);
 	nameCell->setProperty("nameClickable", state.nameClickable && !state.missing);
-	repolishCell(nameCell);
+	repolish(nameCell);
 
 	// ABS: a hollow amber token - an absolute reference is a portability
 	// hazard, and amber is the rationed caution ink (hollow, per the bypass
@@ -247,7 +236,7 @@ void MatrixReferenceCardView::applyState(const ReferenceCardState& state)
 	statusLine->setText(state.statusText.isEmpty()
 		? QString() : QStringLiteral("! ") + state.statusText);
 	statusLine->setProperty("severity", referenceCardSeverityName(state.statusSeverity));
-	repolishCell(statusLine);
+	repolish(statusLine);
 
 	// Browse doubles as the recovery entry while the reference is broken.
 	// The host's translated "Locate..." text is re-spoken as the board's
@@ -261,6 +250,6 @@ void MatrixReferenceCardView::applyState(const ReferenceCardState& state)
 		if (QToolButton* toolButton = qobject_cast<QToolButton*>(browse))
 			toolButton->setToolButtonStyle(locate
 				? Qt::ToolButtonTextBesideIcon : Qt::ToolButtonIconOnly);
-		repolishCell(browse);
+		repolish(browse);
 	}
 }
