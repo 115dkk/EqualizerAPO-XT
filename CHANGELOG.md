@@ -14,6 +14,63 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **A switched-off Send, NewChannel, expression Preamp or IIR line keeps its
+  card.** In card mode a line you switch off stays a card, so you can edit it
+  and switch it back on in place. These four commands (seven line shapes in
+  all) fell back to a collapsed row with no editor instead. They now show
+  their card, switched off, like every other filter
+  ([#423](https://github.com/115dkk/EqualizerAPO-XT/pull/423)).
+
+- **The Editor no longer stalls while it reads the audio devices.** Reading
+  each device's format, when the Editor opens and whenever you pick a device,
+  ran on the window's thread, so a slow or unplugged device held the window
+  until it answered. It now runs in the background. While a newly picked
+  device is being read, the format badge is empty instead of showing the
+  previous device's format. A plugin file that does not exist now shows
+  "Loading plugin..." for a moment before "File not found.", as any plugin
+  load does. Not tested here: a device that takes seconds to answer
+  ([#423](https://github.com/115dkk/EqualizerAPO-XT/pull/423)).
+
+- **Closing a tab that was never saved no longer adds a blank entry to the
+  recent files list**
+  ([#423](https://github.com/115dkk/EqualizerAPO-XT/pull/423)).
+
+- **Updates wait for the audio service before registering the equalizer
+  again.** The update steps stopped and started the Windows audio service
+  without waiting for it, so the equalizer could be registered again while
+  the audio engine was still stopping. Each step now waits for the service
+  with a deadline (12 seconds in all, inside the updater's limit) and logs a
+  missed deadline. Device Selector also reports a failed Voicemeeter
+  startup-shortcut change or client launch instead of showing success. Not
+  tested here: a real update with the service changing state
+  ([#423](https://github.com/115dkk/EqualizerAPO-XT/pull/423)).
+
+- **The equalizer no longer addresses buffers it did not allocate on the
+  first block of a stream whose input and output channel counts differ** (for
+  example two inputs and one output). The first configuration took its
+  channel count from a different formula than every later one. New tests
+  cover such first blocks; no crash from this was reported
+  ([#423](https://github.com/115dkk/EqualizerAPO-XT/pull/423)).
+
+- **ASIO wrapper fixes from a code review.** When a driver callback was still
+  running while the host freed its buffers, the wrapper could later write
+  into the host's freed buffer list; it now lets go of that list before it
+  returns. After about 66 days of continuous playback (48 kHz, 64-frame
+  blocks) the block counter wraps, and the wrapper could then hand out a
+  ring slot that was still in use; the counter is now compared across the
+  wrap ([#423](https://github.com/115dkk/EqualizerAPO-XT/pull/423)).
+
+- **Loudness correction hears volume changes from Windows instead of
+  checking every 10 ms.** It no longer wakes a thread a hundred times a
+  second to read the system volume. Not tested here: real hardware volume
+  changes ([#423](https://github.com/115dkk/EqualizerAPO-XT/pull/423)).
+
+- **Device Selector: a highlight no longer jumps when the pointer leaves
+  early.** Moving the pointer off a button, a section header or a device row
+  before its highlight had faded in made it jump brighter before it faded
+  out. It now fades out from where it was
+  ([#423](https://github.com/115dkk/EqualizerAPO-XT/pull/423)).
+
 ## v2.57.5 — 2026-10-10
 
 - **The Editor no longer stops responding while a slow plugin loads.** With a
