@@ -211,8 +211,20 @@ double minBatchSeconds(Fn&& fn, int samples, int batch)
 // product code. #pragma loop(no_vector) did not restore the naive shape.
 // Only this TU is pinned; the product code under test is not. Revisit if the
 // bars are ever recalibrated for C++20.
+//
+// The pin alone did not hold once this test became a static function
+// registered by pointer (audit #422 T2): the ARM64 compiler then turned the
+// constant-stride reference into interleaved loads (CI runner, read reference
+// 775 -> 350 ns, write 744 -> 350 ns, candidate unchanged). So the reference
+// loops also read their stride at run time, as the conversions they stand for
+// did, which no inlining or linkage decision can fold back into a constant.
 TEST_CASE(EngineOrchestrationTests, testStereoFloatConversionBeatsScalarReference)
 {
+	// Timing contracts are meaningless under AddressSanitizer: the
+	// instrumentation cost lands on the vectorized candidate, not on the
+	// reference loop shape, so the ratio inverts regardless of the code under
+	// test. The memcheck CI leg builds with /fsanitize=address and still runs
+	// the bit-exactness test above.
 #ifdef __SANITIZE_ADDRESS__
 	return;
 #endif
@@ -246,21 +258,25 @@ TEST_CASE(EngineOrchestrationTests, testStereoFloatConversionBeatsScalarReferenc
 			refPlanar[c][i] = static_cast<double>(in[i * channels + c]);
 
 	auto referenceRead = [&]() {
+		volatile size_t strideSource = channels;
+		const size_t stride = strideSource;
 		for (size_t c = 0; c < channels; c++)
 		{
 			double* sampleChannel = refPlanar[c];
 			const float* src = in + c;
 			for (size_t i = 0; i < frames; i++)
-				sampleChannel[i] = static_cast<double>(src[i * channels]);
+				sampleChannel[i] = static_cast<double>(src[i * stride]);
 		}
 	};
 	auto referenceWrite = [&]() {
+		volatile size_t strideSource = channels;
+		const size_t stride = strideSource;
 		for (size_t c = 0; c < channels; c++)
 		{
 			const double* sampleChannel = refPlanar[c];
 			float* dst = out + c;
 			for (size_t i = 0; i < frames; i++)
-				dst[i * channels] = static_cast<float>(sampleChannel[i]);
+				dst[i * stride] = static_cast<float>(sampleChannel[i]);
 		}
 	};
 	auto candidateRead = [&]() {
