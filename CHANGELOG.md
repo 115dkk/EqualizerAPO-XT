@@ -14,14 +14,17 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
-- **Stereo float input takes less time to convert in the SSE2 build.** A local
-  i5-12600KF measurement of the product's 480-frame conversion fell from 217 ns
-  to 120 ns across three runs. This measures format conversion, not total audio
-  processing. ARM64 replaces the old Highway EMU128 lane assembly with native
-  NEON intrinsics; ARM64 compilation, correctness and performance verification
-  are still pending. Other SIMD read kernels and all write kernels are unchanged.
-  New tests check input boundaries, unaligned buffers, short blocks, output
-  bounds, signed zero and quiet NaN payloads against a scalar conversion.
+- **Stereo float input takes less time to convert in the SSE2 and ARM64 builds.**
+  A local i5-12600KF measurement of the product's 480-frame SSE2 conversion fell
+  from 217 ns to 120 ns across three runs. ARM64 CI measured 141–142 ns, versus
+  277 ns in an earlier run; the reference was 331 ns in both, but this was not
+  a controlled same-machine comparison. These measurements cover format
+  conversion, not total audio processing. ARM64 now uses native NEON instead
+  of Highway EMU128's stack-based lane assembly, confirmed in the product DLL.
+  Other SIMD read kernels and all write kernels are unchanged. New tests passed
+  on SSE2, AVX2 and ARM64, checking input boundaries, unaligned buffers, short
+  blocks, output bounds, signed zero and quiet NaN payloads against a scalar
+  conversion ([#425](https://github.com/115dkk/EqualizerAPO-XT/pull/425)).
 
 ## v2.57.6 — 2026-10-17
 
