@@ -55,7 +55,7 @@ public:
 
 	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override;
 	void styleFileDialog(QFileDialog* dialog, const SkinTokens& tokens) const override;
-	QAbstractFileIconProvider* createFileIconProvider(const SkinTokens& tokens) const override;
+	QAbstractFileIconProvider* fileIconProvider(const SkinTokens& tokens) const override;
 
 private:
 	static QIcon softTileIcon(const QString& resource, const QColor& tile);

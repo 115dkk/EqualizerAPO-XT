@@ -150,7 +150,7 @@ protected:
 };
 }
 
-QAbstractFileIconProvider* RackSkin::createFileIconProvider(const SkinTokens& tokens) const
+QAbstractFileIconProvider* RackSkin::fileIconProvider(const SkinTokens& tokens) const
 {
 	// The shelf objects behind the machine: skeuomorphic folder/file
 	// pictograms.

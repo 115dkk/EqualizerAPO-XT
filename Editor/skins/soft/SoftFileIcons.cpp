@@ -153,7 +153,7 @@ QIcon SoftSkin::softTileIcon(const QString& resource, const QColor& tile)
 	return icon;
 }
 
-QAbstractFileIconProvider* SoftSkin::createFileIconProvider(const SkinTokens& tokens) const
+QAbstractFileIconProvider* SoftSkin::fileIconProvider(const SkinTokens& tokens) const
 {
 	static SoftFileIconProvider iconProvider;
 	iconProvider.updateTokens(tokens);

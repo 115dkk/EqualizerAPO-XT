@@ -611,7 +611,7 @@ public:
 	// shared modern stroke set tinted with the text token; skins override to
 	// re-tint or swap the icon language, mirroring their styleMainToolbar
 	// answer. The entry pictograms are not set here: SkinManager installs
-	// createFileIconProvider's answer right after this hook. Never called in
+	// fileIconProvider's answer right after this hook. Never called in
 	// heritage mode (the dialog stays native there).
 	virtual void styleFileDialog(QFileDialog* dialog, const SkinTokens& tokens) const;
 
@@ -622,5 +622,5 @@ public:
 	// its own default provider), so a provider that died with the call would
 	// dangle in the dialog. The caller must not delete it. nullptr keeps Qt's
 	// own provider, which is HeritageSkin's answer.
-	virtual QAbstractFileIconProvider* createFileIconProvider(const SkinTokens& tokens) const = 0;
+	virtual QAbstractFileIconProvider* fileIconProvider(const SkinTokens& tokens) const = 0;
 };

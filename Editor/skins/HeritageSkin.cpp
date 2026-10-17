@@ -44,7 +44,7 @@ void HeritageSkin::styleFileDialog(QFileDialog* dialog, const SkinTokens& tokens
 	Q_UNUSED(tokens);
 }
 
-QAbstractFileIconProvider* HeritageSkin::createFileIconProvider(const SkinTokens& tokens) const
+QAbstractFileIconProvider* HeritageSkin::fileIconProvider(const SkinTokens& tokens) const
 {
 	Q_UNUSED(tokens);
 	return nullptr;

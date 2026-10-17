@@ -128,7 +128,7 @@ public:
 
 	// Navigation chrome of a non-native file dialog for the active skin
 	// (ISkin::styleFileDialog), then the skin's entry pictograms
-	// (ISkin::createFileIconProvider). No-op in heritage mode; the shared
+	// (ISkin::fileIconProvider). No-op in heritage mode; the shared
 	// dialog setup (GUIHelper::prepareFileDialog) keeps the dialog native
 	// there.
 	void styleFileDialog(QFileDialog* dialog) const;

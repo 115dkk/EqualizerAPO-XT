@@ -96,7 +96,7 @@ protected:
 
 }
 
-QAbstractFileIconProvider* MatrixSkin::createFileIconProvider(const SkinTokens& tokens) const
+QAbstractFileIconProvider* MatrixSkin::fileIconProvider(const SkinTokens& tokens) const
 {
 	static MatrixFileIconProvider iconProvider;
 	iconProvider.updateTokens(tokens);

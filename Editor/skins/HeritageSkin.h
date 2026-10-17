@@ -41,7 +41,7 @@ public:
 	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override;
 	void styleFileDialog(QFileDialog* dialog, const SkinTokens& tokens) const override;
 	// No provider: the native dialog keeps Qt's own pictograms.
-	QAbstractFileIconProvider* createFileIconProvider(const SkinTokens& tokens) const override;
+	QAbstractFileIconProvider* fileIconProvider(const SkinTokens& tokens) const override;
 	// Native rows draw no scope lanes: branch rows align with their If head.
 	bool logicSiblingsIndentAsMembers() const override;
 

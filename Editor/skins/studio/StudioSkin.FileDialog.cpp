@@ -19,7 +19,7 @@ void StudioSkin::styleFileDialog(QFileDialog* dialog, const SkinTokens& tokens) 
 	ISkin::styleFileDialog(dialog, recededTokens(tokens));
 }
 
-QAbstractFileIconProvider* StudioSkin::createFileIconProvider(const SkinTokens& tokens) const
+QAbstractFileIconProvider* StudioSkin::fileIconProvider(const SkinTokens& tokens) const
 {
 	// The folder/file pictograms are engravings in the dialog chrome's
 	// receded ink.

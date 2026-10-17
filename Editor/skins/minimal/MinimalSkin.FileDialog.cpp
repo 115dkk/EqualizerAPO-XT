@@ -12,6 +12,6 @@ void MinimalSkin::styleFileDialog(QFileDialog* dialog, const SkinTokens& tokens)
 {
 	// Navigation keeps the shared stroke set in body ink; the entry
 	// pictograms switch to the terminal's hairline provider
-	// (createFileIconProvider).
+	// (fileIconProvider).
 	ISkin::styleFileDialog(dialog, tokens);
 }

@@ -22,7 +22,7 @@ public:
 	void paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& tokens) const override;
 	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override;
 	void styleFileDialog(QFileDialog* dialog, const SkinTokens& tokens) const override;
-	QAbstractFileIconProvider* createFileIconProvider(const SkinTokens& tokens) const override;
+	QAbstractFileIconProvider* fileIconProvider(const SkinTokens& tokens) const override;
 	void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens) const override;
 	QString cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override;
 	QString cardHeaderStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override;

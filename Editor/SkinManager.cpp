@@ -280,7 +280,7 @@ void SkinManager::styleFileDialog(QFileDialog* dialog) const
 		return;
 	// The entry pictograms: the skin keeps its provider alive (the dialog
 	// does not own it), and heritage answers nullptr to stay native.
-	QAbstractFileIconProvider* iconProvider = activeSkin->createFileIconProvider(currentTokens);
+	QAbstractFileIconProvider* iconProvider = activeSkin->fileIconProvider(currentTokens);
 	if (iconProvider != nullptr)
 		dialog->setIconProvider(iconProvider);
 }

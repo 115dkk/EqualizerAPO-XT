@@ -44,5 +44,5 @@ void SoftSkin::styleFileDialog(QFileDialog* dialog, const SkinTokens& tokens) co
 		}
 	}
 	// The entry pictograms answer in the same tile language, smaller;
-	// SkinManager installs them from createFileIconProvider.
+	// SkinManager installs them from fileIconProvider.
 }

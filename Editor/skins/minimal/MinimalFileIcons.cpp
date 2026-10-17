@@ -94,7 +94,7 @@ protected:
 };
 }
 
-QAbstractFileIconProvider* MinimalSkin::createFileIconProvider(const SkinTokens& tokens) const
+QAbstractFileIconProvider* MinimalSkin::fileIconProvider(const SkinTokens& tokens) const
 {
 	static MinimalFileIconProvider iconProvider;
 	iconProvider.updateTokens(tokens);
