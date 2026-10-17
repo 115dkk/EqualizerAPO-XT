@@ -32,7 +32,7 @@
 
 #include "EngineOrchestrationTestSupport.h"
 
-void testDeviceApoRegistryVocabulary(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testDeviceApoRegistryVocabulary)
 {
 	harness.expectEqual(allGuidValueNameCount, 5u,
 		"the five legacy APO slots stay in their indexed order");
@@ -50,7 +50,7 @@ void testDeviceApoRegistryVocabulary(test::Harness& harness)
 	}
 }
 
-void testDeviceTestPipeNameAllowList(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testDeviceTestPipeNameAllowList)
 {
 	// The literal DeviceTestThread writes must survive untouched, or the
 	// device test silently never gets an answer from the APO.
@@ -73,7 +73,7 @@ void testDeviceTestPipeNameAllowList(test::Harness& harness)
 		"128 characters is the longest accepted pipe name");
 }
 
-void testInstallStateComparisonIgnoresPadding(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testInstallStateComparisonIgnoresPadding)
 {
 	using InstallState = DeviceAPOInfo::InstallState;
 	alignas(InstallState) unsigned char leftStorage[sizeof(InstallState)];
@@ -97,7 +97,7 @@ void testInstallStateComparisonIgnoresPadding(test::Harness& harness)
 // port, yet no test file mentioned Voicemeeter at all. The cheapest starting
 // point is the edition -> output-count mapping of prependInfos, which decides
 // how many Output A* strips the device list offers.
-void testVoicemeeterPrependInfosMapsEditionToOutputCount(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testVoicemeeterPrependInfosMapsEditionToOutputCount)
 {
 	struct EditionCase
 	{
@@ -141,7 +141,7 @@ void testVoicemeeterPrependInfosMapsEditionToOutputCount(test::Harness& harness)
 }
 
 // Audit #348 E5: the vocabulary the install side and the client now share.
-void testVoicemeeterStripVocabulary(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testVoicemeeterStripVocabulary)
 {
 	harness.expectEqual(voicemeeterOutputCount(1), 1u, "standard Voicemeeter has one strip");
 	harness.expectEqual(voicemeeterOutputCount(2), 3u, "Banana has three");
@@ -181,7 +181,7 @@ std::optional<bool> debugPrivilegeEnabled()
 
 // Audit #348 TD-51: the Voicemeeter client check enabled SeDebugPrivilege on
 // every apply, with or without a client to look at, and never turned it off.
-void testProcessSearchLeavesTheTokenAsItWas(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testProcessSearchLeavesTheTokenAsItWas)
 {
 	const std::optional<bool> before = debugPrivilegeEnabled();
 
@@ -202,7 +202,7 @@ void testProcessSearchLeavesTheTokenAsItWas(test::Harness& harness)
 }
 
 // No real registry mutation: exercise the token guard itself across unwinding.
-void testTakeOwnershipPrivilegeRestoresAfterThrow(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testTakeOwnershipPrivilegeRestoresAfterThrow)
 {
 	const auto state = [&]() -> std::optional<DWORD> {
 		winutil::UniqueHandle token;
@@ -246,7 +246,7 @@ void testTakeOwnershipPrivilegeRestoresAfterThrow(test::Harness& harness)
 	harness.expect(state() == before, "scope restores exact original attributes after a throw");
 }
 
-void testVoicemeeterShortcutRoundTripAndFailures(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testVoicemeeterShortcutRoundTripAndFailures)
 {
 	winutil::ComApartment apartment;
 	harness.require(apartment.isUsable(), "COM is available for the shortcut fixture");

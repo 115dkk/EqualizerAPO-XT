@@ -21,7 +21,7 @@
 #include <sddl.h>
 
 #include "platform/windows/NamedPipeSecurity.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 namespace
 {
@@ -51,7 +51,7 @@ bool aceIsFor(const ACCESS_ALLOWED_ACE* ace, WELL_KNOWN_SID_TYPE type)
 	return CreateWellKnownSid(type, nullptr, sid, &size) && EqualSid(const_cast<DWORD*>(&ace->SidStart), sid);
 }
 
-void testDeviceTestDescriptorGrantsLocalServiceOnlyAWrite(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testDeviceTestDescriptorGrantsLocalServiceOnlyAWrite)
 {
 	pipes::PipeSecurity security(pipes::kDeviceTestServerSddl);
 	harness.require(security.valid(), "the device test pipe's SDDL parses");
@@ -70,7 +70,7 @@ void testDeviceTestDescriptorGrantsLocalServiceOnlyAWrite(test::Harness& harness
 	harness.expect((localService->Mask & (WRITE_DAC | WRITE_OWNER)) == 0, "LOCAL SERVICE may not change who else may");
 }
 
-void testControlPipeDescriptorNamesTheUserAndSystem(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testControlPipeDescriptorNamesTheUserAndSystem)
 {
 	const std::wstring sid = pipes::currentUserSid();
 	harness.require(!sid.empty(), "the test process can read its own user SID");
@@ -94,7 +94,7 @@ void testControlPipeDescriptorNamesTheUserAndSystem(test::Harness& harness)
 
 // The current user stands in for LOCAL SERVICE: the pipe grants it exactly
 // the LOCAL SERVICE mask of the device test descriptor and nothing else.
-void testTheNarrowGrantIsEnoughToSendAndNoMore(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testTheNarrowGrantIsEnoughToSendAndNoMore)
 {
 	const std::wstring name = L"\\\\.\\pipe\\EngineOrchestrationTests-narrow-" + std::to_wstring(GetCurrentProcessId());
 	pipes::PipeSecurity security(L"D:P(A;;0x12019b;;;" + pipes::currentUserSid() + L")");
@@ -142,7 +142,7 @@ void testTheNarrowGrantIsEnoughToSendAndNoMore(test::Harness& harness)
 	harness.expect(received == "hello", "the server reads the message");
 }
 
-void testTheFirstInstanceFlagFindsATakenName(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testTheFirstInstanceFlagFindsATakenName)
 {
 	const std::wstring name = L"\\\\.\\pipe\\EngineOrchestrationTests-taken-" + std::to_wstring(GetCurrentProcessId());
 	winutil::UniqueHandle squatter(CreateNamedPipeW(name.c_str(), PIPE_ACCESS_INBOUND,
@@ -156,11 +156,3 @@ void testTheFirstInstanceFlagFindsATakenName(test::Harness& harness)
 		"FILE_FLAG_FIRST_PIPE_INSTANCE fails with ERROR_ACCESS_DENIED when the name already has an instance");
 }
 } // namespace
-
-void runNamedPipeSecurityTests(test::Harness& harness)
-{
-	testDeviceTestDescriptorGrantsLocalServiceOnlyAWrite(harness);
-	testControlPipeDescriptorNamesTheUserAndSystem(harness);
-	testTheNarrowGrantIsEnoughToSendAndNoMore(harness);
-	testTheFirstInstanceFlagFindsATakenName(harness);
-}

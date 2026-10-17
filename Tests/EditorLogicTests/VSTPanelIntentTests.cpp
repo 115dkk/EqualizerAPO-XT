@@ -11,7 +11,7 @@
 // Audit #422 D3: what the user asked of the panel while the library loaded,
 // and what each VST row does once the load lands. Both rows used to carry a
 // copy of this; VSTPluginSession now drives the one machine.
-void testVSTPanelIntentCompletesWishesOnLoad()
+TEST_CASE(EditorLogicTests, testVSTPanelIntentCompletesWishesOnLoad)
 {
 	{
 		VSTPanelIntent intent;

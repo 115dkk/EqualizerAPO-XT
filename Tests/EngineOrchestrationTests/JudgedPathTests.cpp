@@ -173,7 +173,7 @@ bool posixRename(const std::wstring& directory, const std::wstring& newName, DWO
 }
 }
 
-void testJudgedPathAttributesOnlyAncestor(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testJudgedPathAttributesOnlyAncestor)
 {
 	const std::wstring parent = testDirectory() + L"\\acl-parent";
 	const std::wstring middle = parent + L"\\middle";
@@ -181,7 +181,10 @@ void testJudgedPathAttributesOnlyAncestor(test::Harness& harness)
 	const std::wstring config = middle + L"\\config";
 	const std::wstring file = config + L"\\file.txt";
 	for (const auto& directory : {parent, middle, config})
+	{
 		harness.require(CreateDirectoryW(directory.c_str(), nullptr) != FALSE, "create ACL traversal fixture");
+		trackTestSubdirectory(directory);
+	}
 	{
 		std::ofstream stream(file);
 		stream << "granted child";
@@ -275,11 +278,10 @@ void testJudgedPathAttributesOnlyAncestor(test::Harness& harness)
 	harness.expectTrue(RemoveDirectoryW(parent.c_str()) != FALSE, "remove ACL fixture parent");
 }
 
-void testJudgedPathLifetime(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testJudgedPathLifetime)
 {
-	const std::wstring folder = testDirectory() + L"\\judged";
+	const std::wstring folder = testSubdirectory(L"judged");
 	const std::wstring renamed = folder + L"-renamed";
-	CreateDirectoryW(folder.c_str(), nullptr);
 	const std::wstring file = folder + L"\\leaf.txt";
 	{
 		std::ofstream stream(file);

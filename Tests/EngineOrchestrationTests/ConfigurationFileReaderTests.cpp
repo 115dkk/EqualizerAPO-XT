@@ -20,12 +20,12 @@
 #include <windows.h>
 
 #include "engine/ConfigurationFileReader.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 #include "platform/windows/Win32Resource.h"
 
 #include "EngineOrchestrationTestSupport.h"
 
-void runConfigurationFileReaderTests(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, runConfigurationFileReaderTests)
 {
 	const std::vector<std::wstring> mixed = ConfigurationFileReader::decodeLines(
 		std::string("Preamp: -6 dB\r\nInclude: a.txt\nlast"));

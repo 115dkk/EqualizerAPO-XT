@@ -103,7 +103,7 @@ double valueNearest(const AnalysisCurve& curve, const AnalysisCurveRequest& requ
 }
 }
 
-void testPhaseAndGroupDelayOfAUnityResponse()
+TEST_CASE(EditorLogicTests, testPhaseAndGroupDelayOfAUnityResponse)
 {
 	auto response = emptyResponse();
 
@@ -127,7 +127,7 @@ void testPhaseAndGroupDelayOfAUnityResponse()
 		QStringLiteral("the group-delay axis contains zero"));
 }
 
-void testPhaseAndGroupDelayOfAPureDelay()
+TEST_CASE(EditorLogicTests, testPhaseAndGroupDelayOfAPureDelay)
 {
 	// What the analyzer hands over for a config that is nothing but a delay:
 	// it strips the silence, so the bins are unity, and reports the frames it
@@ -172,7 +172,7 @@ void testPhaseAndGroupDelayOfAPureDelay()
 	expectTrue(worst < 1e-9, QStringLiteral("with the base delay excluded the phase is flat"));
 }
 
-void testPhaseAndGroupDelayOfAnAllPass()
+TEST_CASE(EditorLogicTests, testPhaseAndGroupDelayOfAnAllPass)
 {
 	// The filter this whole reform exists for. Flat in magnitude, so the only
 	// view that can see it at all is one of these two.
@@ -230,7 +230,7 @@ void testPhaseAndGroupDelayOfAnAllPass()
 		QStringLiteral("and the peak is narrow - a decade below Fc it has fallen away"));
 }
 
-void testPhaseBreaksWhereTheResponseIsDead()
+TEST_CASE(EditorLogicTests, testPhaseBreaksWhereTheResponseIsDead)
 {
 	// Total cancellation, which "Copy: L=L-L" produces. There is no phase to
 	// report anywhere, and the graph must say so rather than draw a line
@@ -290,7 +290,7 @@ void testPhaseBreaksWhereTheResponseIsDead()
 		QStringLiteral("and the group-delay axis stays finite"));
 }
 
-void testPhaseAndGroupDelayAxisCaptions()
+TEST_CASE(EditorLogicTests, testPhaseAndGroupDelayAxisCaptions)
 {
 	auto response = biquadResponse(BiQuad::ALL_PASS, 1000.0, 0.707);
 

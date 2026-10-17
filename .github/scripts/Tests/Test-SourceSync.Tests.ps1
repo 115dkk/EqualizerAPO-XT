@@ -211,7 +211,7 @@ Describe "Test-SourceSync.ps1" {
             -EditorSources @('../FilterEngine.cpp')
         $projectDir = Join-Path $root 'Tests' 'HybridConvTests'
         New-Item -ItemType Directory -Path $projectDir -Force | Out-Null
-        [System.IO.File]::WriteAllText((Join-Path $projectDir 'Suite.cpp'), '')
+        [System.IO.File]::WriteAllText((Join-Path $projectDir 'Suite.cpp'), "TEST_CASE(HybridConvTests, testPresent)`n{`n}`n")
         $testProject = @"
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
@@ -275,6 +275,31 @@ Describe "Test-SourceSync.ps1" {
 
         $result.ExitCode | Should -Be 0
         $result.Output | Should -Match "list only their projects' entries"
+    }
+
+    It "accepts tests declared through the self-registration seam" {
+        $root = New-FixtureRepo -CommonSources @('FilterEngine.cpp') -EditorSources @('../FilterEngine.cpp')
+        $suiteDir = Join-Path $root 'Tests' 'EditorLogicTests'
+        New-Item -ItemType Directory -Path $suiteDir -Force | Out-Null
+        [System.IO.File]::WriteAllText((Join-Path $suiteDir 'Registered.cpp'),
+            "TEST_CASE(EditorLogicTests, testRegistered)`n{`n}`n")
+        $result = Invoke-SourceSync -RepoRoot $root
+
+        $result.ExitCode | Should -Be 0
+        $result.Output | Should -Match "All 1 tests in the self-registering suites use TEST_CASE"
+    }
+
+    It "rejects a no-argument test function outside TEST_CASE" {
+        $root = New-FixtureRepo -CommonSources @('FilterEngine.cpp') -EditorSources @('../FilterEngine.cpp')
+        $suiteDir = Join-Path $root 'Tests' 'EngineOrchestrationTests'
+        New-Item -ItemType Directory -Path $suiteDir -Force | Out-Null
+        [System.IO.File]::WriteAllText((Join-Path $suiteDir 'Forgotten.cpp'),
+            "TEST_CASE(EngineOrchestrationTests, testRegistered)`n{`n}`nstatic void testForgotten()`n{`n}`n")
+        $result = Invoke-SourceSync -RepoRoot $root
+
+        $result.ExitCode | Should -Not -Be 0
+        $result.Output | Should -Match "testForgotten is a plain test function"
+        $result.Output | Should -Match "defines a test outside TEST_CASE"
     }
 
     It "requires every EAPO_ variable the code reads to be in the environment variable list" {

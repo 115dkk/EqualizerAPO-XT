@@ -11,13 +11,13 @@
 #include <string>
 
 #include "filters/IncludeCommand.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 using std::wstring;
 
 namespace
 {
-test::Harness harness("IncludeCommandTests");
+test::HarnessAccess harness;
 
 wstring parsePath(const wstring& parameters)
 {
@@ -27,7 +27,7 @@ wstring parsePath(const wstring& parameters)
 	return cmd.path;
 }
 
-void testPathExtraction()
+TEST_CASE(IncludeCommandTests, testPathExtraction)
 {
 	harness.expectTrue(parsePath(L"  config.txt") == L"config.txt", "leading whitespace is stripped");
 	harness.expectTrue(parsePath(L"my config.txt") == L"my config.txt", "embedded spaces are part of the path");
@@ -41,14 +41,14 @@ void testPathExtraction()
 	harness.expectTrue(parsePath(L"   ") == L"", "blank parameters give an empty path");
 }
 
-void testCommandRecognition()
+TEST_CASE(IncludeCommandTests, testCommandRecognition)
 {
 	IncludeCommand cmd;
 	harness.expectFalse(IncludeCommand::parse(L"Preamp", L"config.txt", cmd), "'Preamp' must not parse as Include");
 	harness.expectFalse(IncludeCommand::parse(L"include", L"config.txt", cmd), "command match is case-sensitive");
 }
 
-void testRoundTrip()
+TEST_CASE(IncludeCommandTests, testRoundTrip)
 {
 	const wstring cases[] = {
 		L"config.txt",
@@ -69,13 +69,4 @@ void testRoundTrip()
 		harness.expectTrue(second.serialize() == serialized, "second serialization is identical");
 	}
 }
-}
-
-void runIncludeCommandTests()
-{
-	testPathExtraction();
-	testCommandRecognition();
-	testRoundTrip();
-
-	harness.report();
 }

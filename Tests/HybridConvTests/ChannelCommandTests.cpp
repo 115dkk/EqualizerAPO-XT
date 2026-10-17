@@ -20,13 +20,13 @@
 #include "filters/ChannelFilter.h"
 #include "services/logging/Logging.h"
 #include "Tests/TestDirectory.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 using std::wstring;
 
 namespace
 {
-test::Harness harness("ChannelCommandTests");
+test::HarnessAccess harness;
 
 std::vector<wstring> parseChannels(const wstring& parameters)
 {
@@ -36,7 +36,7 @@ std::vector<wstring> parseChannels(const wstring& parameters)
 	return cmd.channels;
 }
 
-void testTokenization()
+TEST_CASE(ChannelCommandTests, testTokenization)
 {
 	std::vector<wstring> channels = parseChannels(L" L R ");
 	harness.requireEqual(channels.size(), (size_t)2, "'L R' selector count");
@@ -61,14 +61,14 @@ void testTokenization()
 	harness.expectEqual(channels.size(), (size_t)0, "blank parameters give no selectors");
 }
 
-void testCommandRecognition()
+TEST_CASE(ChannelCommandTests, testCommandRecognition)
 {
 	ChannelCommand cmd;
 	harness.expectFalse(ChannelCommand::parse(L"Preamp", L"L R", cmd), "'Preamp' must not parse as Channel");
 	harness.expectFalse(ChannelCommand::parse(L"channel", L"L R", cmd), "command match is case-sensitive");
 }
 
-void testRoundTrip()
+TEST_CASE(ChannelCommandTests, testRoundTrip)
 {
 	const wstring cases[] = {
 		L"L R",
@@ -98,7 +98,7 @@ void testRoundTrip()
 	harness.expectTrue(canonical.serialize() == L"C L R", "canonical serialization is single-spaced and upper-cased");
 }
 
-void testResolveSelection()
+TEST_CASE(ChannelCommandTests, testResolveSelection)
 {
 	// The selection ChannelFilter::initialize runs (audit #348 A2): a
 	// subset of channelNames in channelNames order, ALL selecting
@@ -140,7 +140,7 @@ void testResolveSelection()
 // Audit #348 TD-44: the Editor resolves on every channel propagation, so its
 // resolution logs nothing, an out-of-range number included; the engine's
 // ChannelFilter logs each unknown selector, once per load.
-void testSelectionLogsOnlyForTheEngine()
+TEST_CASE(ChannelCommandTests, testSelectionLogsOnlyForTheEngine)
 {
 	test::TestDirectory directory(L"ChannelCommandTests");
 	const wstring logPath = directory.trackFile(L"channel-selection.log");
@@ -165,15 +165,4 @@ void testSelectionLogsOnlyForTheEngine()
 		"the engine's resolution logs both");
 	directory.removeAll();
 }
-}
-
-void runChannelCommandTests()
-{
-	testTokenization();
-	testCommandRecognition();
-	testRoundTrip();
-	testResolveSelection();
-	testSelectionLogsOnlyForTheEngine();
-
-	harness.report();
 }

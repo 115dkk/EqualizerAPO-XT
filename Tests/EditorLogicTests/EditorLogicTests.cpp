@@ -15,18 +15,14 @@
 #include <QStringList>
 
 #include "Tests/AlignedMemoryGate.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 #include "EditorLogicTestSupport.h"
 
 // Generic assertion primitives are shared with the other suites via the
 // header-only harness. The QString helpers below convert at the boundary so
 // EditorLogicTests can keep its Qt-specific checks (expectPath) alongside.
-// The policy argument is left off on purpose: FailurePolicy::Collect is the
-// harness default now, so one broken feature block does not hide the findings
-// of every block after it. The require* wrappers keep the gating checks
-// aborting, and main() always reaches report().
-test::Harness harness("EditorLogicTests");
-
+// runAll() owns the suite harness. The require* wrappers keep gating checks
+// aborting while ordinary expectations collect failures through the full suite.
 std::string toStd(const QString& s)
 {
 	return s.toUtf8().constData();
@@ -80,6 +76,11 @@ void expectEqual(const QStringList& actual, const QStringList& expected, const Q
 		toStd(QString("%1: expected '%2', got '%3'").arg(message, expected.join(' '), actual.join(' '))));
 }
 
+void expectNear(double actual, double expected, double tolerance, const QString& message)
+{
+	harness.expectNear(actual, expected, tolerance, toStd(message));
+}
+
 // require counterparts of the wrappers above: same message format, but they
 // abort on failure regardless of the Collect policy. Use them for checks
 // whose failure would make the following lines unsafe (size checks before
@@ -101,131 +102,7 @@ int main(int argc, char** argv)
 	try
 	{
 		QCoreApplication app(argc, argv);
-
-		testLegacyConvolutionPathRules();
-		testAnalysisWorkerRecovery();
-		testFilterCardDescriptors();
-		testCardEditsKeepSwitchedOffLinesOff();
-		testSubwooferRoutingDescriptors();
-		testSubwooferRoutingCrossoverRecipes();
-		testFilterCardDepths();
-		testRowGuiPolicyRoutesEachLineShape();
-		testFilterCardBuildPlans();
-		testConfigImport();
-		testFileReferencesReadLikeTheEngine();
-		testLegacyMigrationScanAndPolicy();
-		testChannelSelectionModel();
-		testDeviceSelectionModel();
-		testMultiConvolutionRoutingAdapter();
-		testStageSelectionModel();
-		testNewChannelListModel();
-		testSendCardModel();
-		testRoutingGridModelPorts();
-		testRoutingGridModel();
-		testRoutingFold();
-		testVirtualChannelRule();
-		testSourceTokenGrammar();
-		testAnalysisResponseBinArithmetic();
-		testAnalysisResponseEmptyAndLatency();
-		testResponseCurveMatchesTheLegacyMagnitudePath();
-		testResponseCurveFitsAndLabelsTheValueAxis();
-		testResponseCurveHandlesEmptyAndDegenerateRequests();
-		testResponseCurveFrequencyAxis();
-		testResponseCurveSegmentsBreakWhereTheValueIsMissing();
-		testPhaseAndGroupDelayOfAUnityResponse();
-		testPhaseAndGroupDelayOfAPureDelay();
-		testPhaseAndGroupDelayOfAnAllPass();
-		testPhaseBreaksWhereTheResponseIsDead();
-		testPhaseAndGroupDelayAxisCaptions();
-		testBiQuadWidthRoundTripsExactly();
-		testBiQuadWidthModesAndDefaults();
-		testKnobTravelLaw();
-		testConfigFileCodec();
-		testConfigFileCodecRetriesAtomicReplaceAfterReaderCloses();
-		testConfigFileCodecPreservesExistingFileWhenAtomicReplaceFails();
-		testConfigFileCodecRejectsPartialRead();
-		testMemoryHelperConstructReleasesStorageWhenConstructorThrows();
-		testUpdateSessionPublishesStagedVersionAfterJoin();
-		testUpdateSessionLaunchesElevatedCoordinatorWithoutApplyingDirectly();
-		testUpdateSessionContainsBackgroundFailure();
-		testUpdateCoordinatorAppliesPendingRestartThroughAdapter();
-		testUpdateSessionReportsUpToDateAndStartsOnlyOnce();
-		testUpdateSessionAppliesDirectlyWhenAlreadyElevated();
-		testUpdateSessionContainsApplyFailure();
-		testUpdateSessionKeepsPendingUpdateWhenElevationIsCancelled();
-		testUpdateCoordinatorReportsNoPendingRestart();
-		testUpdateCoordinatorContainsAdapterFailure();
-		testLegacyMigrationHookAdoptsStableRootThroughThePort();
-		testLegacyMigrationHookRescuesVolatileTreeAndLeavesBreadcrumbs();
-		testLegacyMigrationHookLeavesAnUnreadableConfigPathAlone();
-		testCallerProfileCheckRejectsUnsafePaths();
-		testLegacyMigrationHookUsesVerifiedCallerOrFallsBack();
-		testConfigHandleGrantRejectsJunctionsAndPreservesChildren();
-		testCommandLineQuotingRoundTripsThroughCommandLineToArgvW();
-		testSubwooferRoutingUiStateTracksMutationsAndValidation();
-		testSubwooferRoutingDefaultStates();
-		testFilterLineCardDecidesPerLine();
-		testSubwooferRoutingUiStateRejectsUnknownTargets();
-		testSubwooferRoutingUiStateHeadroomModes();
-		testSubwooferRoutingReadsRoundTripEverySetter();
-		testSubwooferRoutingSourceLfeGainReaders();
-		testSubwooferRoutingPreviewRateAndTrim();
-		testSubwooferRoutingPresetDisplayName();
-		testAnalysisRequestFence();
-		testImpulseMeasurementFindsTheDelay();
-		testImpulseMeasurementAtTheBlockStart();
-		testImpulseMeasurementWithoutAnImpulse();
-		testImpulsePeakGain();
-		testVelopackInstallRootFollowsTheCurrentLeafRule();
-		testElevatedCoordinatorArgumentHasOneSpelling();
-		testTheSkinRosterIsTheOneList();
-		testSkinTokensCarryExplicitMode();
-		testTokenSubstitutionOffersAnAlphaForm();
-		testEverySkinSheetResolvesAllThemeTokens();
-		testEditableValueTextUsesDisplayedDecimalFormatFirst();
-		testBenchmarkBatchPlanUsesOnlyComparableFullBatches();
-		testFileReferenceControllerOwnsPathState();
-		testReferenceCardDerivesSharedPresentationState();
-		testVSTBusModelMigratesAndEdits();
-		testVSTSlotFillModel();
-		testChannelFlow();
-		testVSTRowDocument();
-		testVSTPanelIntentCompletesWishesOnLoad();
-		testVSTBusVerdictCoversEveryRow();
-		testAnalysisPanelStateCoversEveryOutcome();
-		testDeviceFormatBadgeCoversEveryRow();
-		testDocumentStateOwnsTitleAndDirtyFlag();
-		testRecentFilesRule();
-		testPanelMonitorGateOpensOnlyForSelfGeneratedAudio();
-		testPanelMonitorGateArmDelayOutlivesReverbTails();
-		testPanelMonitorGateClosesAndRearms();
-		testPanelMonitorGateInterruptedArmStartsOver();
-		testFilterListModel();
-		testFilterListModelEditsOneLine();
-		testCommandRowFacts();
-		testFilterListUndo();
-		testFilterCommandCatalogRoster();
-		testFilterCommandCatalogIconsExistOnDisk();
-		testFilterCommandCatalogTemplateRoster();
-		testFilterCommandCatalogDescriptions();
-		testFilterCommandCatalogChannelSelectionTargets();
-		testFilterPickerModelMatchesTermsAndPreservesCatalogIndices();
-		testFilterPickerModelOwnsSelectionNavigation();
-		testSharedRawBodyAndRoutingViewPredicates();
-		testVstChunkPathCandidates();
-		testAutoInstallerChannelMapping();
-		testAutoInstallerChannelDescriptions();
-		testAutoInstallerAssetGrammar();
-		testAutoInstallerChecksumParsing();
-		testAutoInstallerFlagScan();
-		testInstallerUiModelStepTransitions();
-		testInstallerUiModelFormatting();
-		testHoverProgressSettlesAndRetargetsInPlace();
-
-		harness.report();
-		if (test::reportAlignedMemoryBalance("EditorLogicTests") != 0)
-			return EXIT_FAILURE;
-		return EXIT_SUCCESS;
+		return test::runAll("EditorLogicTests");
 	}
 	catch (const std::exception& error)
 	{

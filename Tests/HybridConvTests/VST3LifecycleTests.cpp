@@ -16,7 +16,7 @@
 
 #include "pluginterfaces/base/funknown.h"
 #include "vst/VST3Lifecycle.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 using namespace Steinberg;
 using namespace Steinberg::Vst;
@@ -25,7 +25,7 @@ using std::vector;
 
 namespace
 {
-	test::Harness harness("VST3LifecycleTests");
+	test::HarnessAccess harness;
 
 	class FakePlugin final : public IComponent, public IAudioProcessor
 	{
@@ -143,7 +143,7 @@ namespace
 		return value;
 	}
 
-	void testSetupNeverRunsWhileActive()
+	TEST_CASE(VST3LifecycleTests, testSetupNeverRunsWhileActive)
 	{
 		FakePlugin plugin;
 		VST3Lifecycle lifecycle;
@@ -156,7 +156,7 @@ namespace
 		lifecycle.deactivate();
 	}
 
-	void testPrepareOnce()
+	TEST_CASE(VST3LifecycleTests, testPrepareOnce)
 	{
 		FakePlugin plugin;
 		VST3Lifecycle lifecycle;
@@ -166,7 +166,7 @@ namespace
 		harness.expectEqual(plugin.setupCalls, 1, "prepare-once calls setup exactly once");
 	}
 
-	void testEditorFlushDoesNotReactivate()
+	TEST_CASE(VST3LifecycleTests, testEditorFlushDoesNotReactivate)
 	{
 		FakePlugin plugin;
 		VST3Lifecycle lifecycle;
@@ -185,7 +185,7 @@ namespace
 		lifecycle.endEditorSession();
 	}
 
-	void testTransitionEditStaysQueued()
+	TEST_CASE(VST3LifecycleTests, testTransitionEditStaysQueued)
 	{
 		FakePlugin plugin;
 		VST3Lifecycle lifecycle;
@@ -216,7 +216,7 @@ namespace
 		lifecycle.endEditorSession();
 	}
 
-	void testCanProcessNow()
+	TEST_CASE(VST3LifecycleTests, testCanProcessNow)
 	{
 		FakePlugin plugin;
 		VST3Lifecycle lifecycle;
@@ -235,14 +235,4 @@ namespace
 		lifecycle.endEditorSession();
 		harness.expectFalse(lifecycle.canProcessNow(), "ended editor session cannot process");
 	}
-}
-
-void runVST3LifecycleTests()
-{
-	testSetupNeverRunsWhileActive();
-	testPrepareOnce();
-	testEditorFlushDoesNotReactivate();
-	testTransitionEditStaysQueued();
-	testCanProcessNow();
-	harness.report();
 }

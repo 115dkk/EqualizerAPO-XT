@@ -96,7 +96,7 @@ struct TraceCollector : ConfigLoadTraceSink
 // This pins the whole grammar over one representative config: an Eval, a
 // taken If with a nested false If inside, a short-circuited ElseIf, a dead
 // Else, inline `expression` substitution, and file/line stamping.
-void testConfigLoadTrace(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testConfigLoadTrace)
 {
 	const std::wstring configPath = writeConfig(harness, L"trace.txt",
 		"Eval: x = 2 + 3\n"          // line 1: Eval -> "5"
@@ -161,7 +161,7 @@ void testConfigLoadTrace(test::Harness& harness)
 // pair of judgements: a factory's own broken line is reported, and a line no
 // factory claimed is not - because prose and notes are how 1.4.2 configurations
 // carry comments, and reporting those would bury the real diagnostics.
-void testParseErrorsAreReportedPerLineAndProseIsNot(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testParseErrorsAreReportedPerLineAndProseIsNot)
 {
 	const std::wstring configPath = writeConfig(harness, L"parse-errors.txt",
 		"Convolution:\n"                    // line 1: its own command, no path
@@ -211,7 +211,7 @@ void testParseErrorsAreReportedPerLineAndProseIsNot(test::Harness& harness)
 		"a configuration with eight unusable lines still loads, because the working lines below them have to run");
 }
 
-void testFactoryInitializationHookKeepsParseReporting(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testFactoryInitializationHookKeepsParseReporting)
 {
 	const std::wstring configPath = writeConfig(harness, L"hooked-malformed.txt",
 		"EapoTestHookedMalformed: bad\n");
@@ -232,7 +232,7 @@ void testFactoryInitializationHookKeepsParseReporting(test::Harness& harness)
 
 // Audit #348 TD-18: a filter that throws while being set up rolls the whole
 // load back, as before, and now names the line it came from.
-void testFilterSetupFailureNamesItsLine(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testFilterSetupFailureNamesItsLine)
 {
 	const std::wstring good = writeConfig(harness, L"setup-good.txt", "Preamp: -6.0206 dB\n");
 	const std::wstring bad = writeConfig(harness, L"setup-bad.txt",
@@ -264,7 +264,7 @@ void testFilterSetupFailureNamesItsLine(test::Harness& harness)
 }
 
 // Audit #348 TD-18: these reached only the log; now they are on the line.
-void testControlFlowAndStageMistakesAreReported(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testControlFlowAndStageMistakesAreReported)
 {
 	const std::wstring configPath = writeConfig(harness, L"control-mistakes.txt",
 		"Stage: pre-mix premix\n"  // line 1: one unknown stage among known ones
@@ -293,7 +293,7 @@ void testControlFlowAndStageMistakesAreReported(test::Harness& harness)
 	harness.expectEqual(lines[4], 5, "the unclosed If on its own line, where the Editor has a row for it");
 }
 
-void testIncludeRecursionLimitIsReported(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testIncludeRecursionLimitIsReported)
 {
 	const std::wstring configPath = writeConfig(harness, L"self-include.txt", "Include: self-include.txt\n");
 
@@ -311,7 +311,7 @@ void testIncludeRecursionLimitIsReported(test::Harness& harness)
 	harness.expectEqual(reports, size_t(1), "the include that hits the nesting limit is reported once");
 }
 
-void testConfigReferencedRemotePathsAreRefused(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testConfigReferencedRemotePathsAreRefused)
 {
 	writeConfig(harness, L"local-included.txt", "Preamp: -1 dB\n");
 	const std::wstring configPath = writeConfig(harness, L"remote-paths.txt",
@@ -358,7 +358,7 @@ void testConfigReferencedRemotePathsAreRefused(test::Harness& harness)
 // line names shares, so the quotes and %VARIABLES% Convolution always took
 // work here too, and an Include with nothing after it is reported rather
 // than loading the configuration's own folder.
-void testIncludeTakesQuotesAndVariables(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testIncludeTakesQuotesAndVariables)
 {
 	writeConfig(harness, L"included with spaces.txt", "Preamp: -6.0206 dB\n");
 	writeConfig(harness, L"included-by-variable.txt", "Preamp: -6.0206 dB\n");
@@ -394,7 +394,7 @@ void testIncludeTakesQuotesAndVariables(test::Harness& harness)
 // readRegDWORD here) goes through the injected port, so a config that reads
 // the registry is deterministic under a fake - previously these functions
 // could only ever see the live machine.
-void testConfigRegistryReadsGoThroughThePort(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testConfigRegistryReadsGoThroughThePort)
 {
 	test::FakeRegistry registry;
 	const std::wstring key = L"HKEY_CURRENT_USER\\Software\\EapoPortTest";
@@ -425,7 +425,7 @@ void testConfigRegistryReadsGoThroughThePort(test::Harness& harness)
 		"readRegDWORD resolves through the injected fake registry");
 }
 
-void testAnalysisFreezesDynamicVelvetAndLabelsTheSnapshot(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testAnalysisFreezesDynamicVelvetAndLabelsTheSnapshot)
 {
 	const std::wstring dynamicPath = writeConfig(harness, L"analysis-velvet-dynamic.txt",
 		"Velvet: Mode=Dynamic Amount=100% Length=27.5625ms "

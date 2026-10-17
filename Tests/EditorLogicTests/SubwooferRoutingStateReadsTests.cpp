@@ -52,7 +52,7 @@ std::string firstBassPathId(const SubwooferRoutingUiState& state)
 // reader the widgets show its value through. Before, the readers lived in the
 // dialog's and the card's anonymous namespaces and nothing tied them to the
 // setters.
-void testSubwooferRoutingReadsRoundTripEverySetter()
+TEST_CASE(EditorLogicTests, testSubwooferRoutingReadsRoundTripEverySetter)
 {
 	SubwooferRoutingUiState state(presetState(), 48000);
 
@@ -133,7 +133,7 @@ void testSubwooferRoutingReadsRoundTripEverySetter()
 // Two readers for two different values (maintainer decision, audit #348):
 // the card's effective gain is the sum of every gain on the path; the
 // dialog's adjustment is the editable preGainDb alone.
-void testSubwooferRoutingSourceLfeGainReaders()
+TEST_CASE(EditorLogicTests, testSubwooferRoutingSourceLfeGainReaders)
 {
 	subroute::Path path;
 	path.kind = subroute::PathKind::SourceLfe;
@@ -162,7 +162,7 @@ void testSubwooferRoutingSourceLfeGainReaders()
 // One preview rule (maintainer decision, audit #348): with no device the
 // preview compiles at 48 kHz, and the trim the UI state reports is that
 // compile's trim.
-void testSubwooferRoutingPreviewRateAndTrim()
+TEST_CASE(EditorLogicTests, testSubwooferRoutingPreviewRateAndTrim)
 {
 	expectTrue(SubwooferRoutingUiState::previewSampleRateFor(44100) == 44100.0,
 		"a device rate is the preview rate");
@@ -189,7 +189,7 @@ void testSubwooferRoutingPreviewRateAndTrim()
 // One preset name (audit #348 open question): the card's preset menu and the
 // dialog's preset list both show presetDisplayName, the descriptor's name,
 // with no "Built-in preset: " prefix.
-void testSubwooferRoutingPresetDisplayName()
+TEST_CASE(EditorLogicTests, testSubwooferRoutingPresetDisplayName)
 {
 	requireTrue(!subroute::builtInPresets().empty(), "there is a built-in preset");
 	for (const subroute::PresetDescriptor& preset : subroute::builtInPresets())

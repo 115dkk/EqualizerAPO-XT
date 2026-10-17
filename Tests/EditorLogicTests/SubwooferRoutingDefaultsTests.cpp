@@ -103,7 +103,7 @@ void expectValid(const subroute::SubwooferRoutingState& state, const QString& la
 }
 }
 
-void testSubwooferRoutingDefaultStates()
+TEST_CASE(EditorLogicTests, testSubwooferRoutingDefaultStates)
 {
 	using subwooferroutingeditor::buildDefaultState;
 

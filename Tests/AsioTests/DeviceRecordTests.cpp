@@ -24,14 +24,14 @@
 #include "services/registry/RegistryPaths.h"
 #include "Tests/FakeRegistry.h"
 #include "Tests/TestDirectory.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 using eapo::asio::AsioTarget;
 namespace AsioRegistration = eapo::asio::AsioRegistration;
 
 namespace
 {
-	test::Harness harness("DeviceRecordTests");
+	test::HarnessAccess harness;
 
 	const wchar_t* const toppingClsid = L"{6D241B5E-CF73-4043-A85F-EF11D4670955}";
 	const wchar_t* const minidspClsid = L"{466A3ACF-0324-46F9-9A38-FB08FFDD208E}";
@@ -60,7 +60,7 @@ namespace
 		registry.seedString(APP_REGPATH, L"InstallPath", installDirectory().path());
 	}
 
-	void testEnumerationAndDerivedIds()
+	TEST_CASE(DeviceRecordTests, testEnumerationAndDerivedIds)
 	{
 		test::FakeRegistry empty;
 		harness.expect(AsioRegistration::enumerateTargets(empty).empty(), "no ASIO key: no targets, no throw");
@@ -90,7 +90,7 @@ namespace
 		harness.expectFalse(AsioRegistration::isWrapperEntry(L"Topping USB Audio Device"), "a target name is not a wrapper entry");
 	}
 
-	void testRegisterAndUnregisterBothViews()
+	TEST_CASE(DeviceRecordTests, testRegisterAndUnregisterBothViews)
 	{
 		test::FakeRegistry registry;
 		seedTargets(registry);
@@ -134,7 +134,7 @@ namespace
 	// and both endpoint GUIDs survive the registry, an old record without
 	// the values reads as a driver record, and the endpoint target names its
 	// entry after the device without characters a key cannot carry.
-	void testWasapiRecordAndEndpointTarget()
+	TEST_CASE(DeviceRecordTests, testWasapiRecordAndEndpointTarget)
 	{
 		test::FakeRegistry registry;
 		const std::wstring endpoint = L"{A6974EEF-CBB1-4E81-B9CA-34B91FFF5279}";
@@ -176,7 +176,7 @@ namespace
 	// friendly name at install time. Removing it after the device was renamed
 	// used to derive the new name, miss the old key, and leave the entry in
 	// every DAW's list. Removal now follows the wrapper CLSID.
-	void testUnregisterFindsAnEntryUnderItsOldName()
+	TEST_CASE(DeviceRecordTests, testUnregisterFindsAnEntryUnderItsOldName)
 	{
 		test::FakeRegistry registry;
 		const std::wstring endpoint = L"{A6974EEF-CBB1-4E81-B9CA-34B91FFF5279}";
@@ -208,7 +208,7 @@ namespace
 		harness.expect(registry.keyExists(L"HKEY_LOCAL_MACHINE\\SOFTWARE\\ASIO\\Other Driver"), "another driver's entry is left alone");
 	}
 
-	void testRecordsShareOneWrapperRecord()
+	TEST_CASE(DeviceRecordTests, testRecordsShareOneWrapperRecord)
 	{
 		test::FakeRegistry registry;
 		seedTargets(registry);
@@ -292,7 +292,7 @@ namespace
 		out->uninstall();
 	}
 
-	void testBootAndHost32Options()
+	TEST_CASE(DeviceRecordTests, testBootAndHost32Options)
 	{
 		test::FakeRegistry registry;
 		seedTargets(registry);
@@ -347,8 +347,7 @@ namespace
 
 		// With the x86 wrapper in the install directory the same record
 		// registers the 32-bit view.
-		const std::wstring x86 = installDirectory().path() + L"\\x86";
-		CreateDirectoryW(x86.c_str(), nullptr);
+		const std::wstring x86 = installDirectory().subdirectory(L"x86");
 		const std::wstring wrapper32 = AsioRegistration::wrapper32DllPath(installDirectory().path());
 		CloseHandle(CreateFileW(wrapper32.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, 0, nullptr));
 		harness.expectTrue(topping->canHost32(), "an x86 wrapper in the install directory makes 32-bit support available");
@@ -362,7 +361,7 @@ namespace
 		harness.expectFalse(eapo::asio::WrapperRecords::read(registry, topping->getWrapperClsid(), record), "the record goes with the last direction");
 	}
 
-	void testReceiverOnlyAutoStart()
+	TEST_CASE(DeviceRecordTests, testReceiverOnlyAutoStart)
 	{
 		test::FakeRegistry registry;
 		const std::wstring receiver = std::wstring(childApoPath) + L"\\" + toppingClsid;
@@ -398,7 +397,7 @@ namespace
 		harness.expectFalse(AsioRegistration::autoStartRegistered(registry), "removing the last receiver option removes autostart");
 	}
 
-	void testFactsFeedTheRecord()
+	TEST_CASE(DeviceRecordTests, testFactsFeedTheRecord)
 	{
 		test::FakeRegistry registry;
 		seedTargets(registry);
@@ -444,7 +443,7 @@ namespace
 	// Audit #348 TD-45: a target CLSID that is not a GUID derived an empty
 	// wrapper CLSID, and registering it wrote the class values into the
 	// CLSID root itself.
-	void testNonGuidTargetIsRefused()
+	TEST_CASE(DeviceRecordTests, testNonGuidTargetIsRefused)
 	{
 		test::FakeRegistry registry;
 		seedTargets(registry);
@@ -493,7 +492,7 @@ namespace
 	// midway left a record with no entry, and nothing was logged or
 	// reported. The three operations now run in one transaction with a
 	// report, like the endpoint adapter's.
-	void testOperationsAreTransactionalAndReported()
+	TEST_CASE(DeviceRecordTests, testOperationsAreTransactionalAndReported)
 	{
 		const std::wstring entryKey = AsioRegistration::asioRoot(false) + L"\\"
 			+ AsioRegistration::entryNameFor(L"Topping USB Audio Device");
@@ -594,19 +593,7 @@ namespace
 	}
 }
 
-int runDeviceRecordTests()
+TEST_SUITE_CLEANUP(DeviceRecordTests, cleanupDeviceRecordTests)
 {
-	testEnumerationAndDerivedIds();
-	testRegisterAndUnregisterBothViews();
-	testWasapiRecordAndEndpointTarget();
-	testUnregisterFindsAnEntryUnderItsOldName();
-	testRecordsShareOneWrapperRecord();
-	testBootAndHost32Options();
-	testReceiverOnlyAutoStart();
-	testFactsFeedTheRecord();
-	testNonGuidTargetIsRefused();
-	testOperationsAreTransactionalAndReported();
 	installDirectory().removeAll();
-	harness.report();
-	return 0;
 }

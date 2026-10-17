@@ -26,7 +26,7 @@
 #include "pluginterfaces/vst/ivsteditcontroller.h"
 #include "pluginterfaces/vst/ivsthostapplication.h"
 #include "pluginterfaces/vst/ivstmessage.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 #include "Tests/Vst3Bundle.h"
 #include "VST3/SubwooferRouting/parameter_table.h"
 #include "platform/windows/WindowsPath.h"
@@ -38,7 +38,7 @@ using std::wstring;
 namespace
 {
 
-test::Harness harness("SubwooferRoutingVst3Tests");
+test::HarnessAccess harness;
 
 using pathutil::exeDirectory;
 
@@ -125,7 +125,7 @@ bool below(const double output[5][64], double threshold)
 	return true;
 }
 
-void testParameterTable()
+TEST_CASE(SubwooferRoutingVst3Tests, testParameterTable)
 {
 	using namespace eapoxt::subwooferrouting::vst3;
 	using namespace subroute;
@@ -227,7 +227,7 @@ void testParameterTable()
 		"moving trim away from the automatic value switches to Manual");
 }
 
-void testStateFrame()
+TEST_CASE(SubwooferRoutingVst3Tests, testStateFrame)
 {
 	using namespace eapoxt::subwooferrouting::vst3;
 
@@ -294,12 +294,8 @@ void testStateFrame()
 
 }
 
-void runSubwooferRoutingVst3Tests()
-{
-	testParameterTable();
-	testStateFrame();
-
-	using namespace subroute;
+TEST_CASE(SubwooferRoutingVst3Tests, runSubwooferRoutingVst3Tests)
+{	using namespace subroute;
 	using namespace Steinberg;
 	using namespace Steinberg::Vst;
 	using namespace eapoxt::subwooferrouting::vst3;
@@ -316,8 +312,7 @@ void runSubwooferRoutingVst3Tests()
 	if (bundle.empty())
 	{
 		harness.expectFalse(bundle.empty(), "Subwoofer Routing VST3 module is staged");
-		harness.report();
-		return;
+return;
 	}
 
 	shared_ptr<VSTPluginLibrary> library = VSTPluginLibrary::getInstance(bundle);
@@ -546,6 +541,4 @@ void runSubwooferRoutingVst3Tests()
 		controller->terminate();
 		component->terminate();
 	}
-
-	harness.report();
 }

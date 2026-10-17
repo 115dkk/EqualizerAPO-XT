@@ -57,7 +57,7 @@ FilterCardDescriptor scoped(const QString& line, int depth, int logicDepth)
 }
 }
 
-void testCommandRowFacts()
+TEST_CASE(EditorLogicTests, testCommandRowFacts)
 {
 	// Branch truth: True, False, Error and any other result (not evaluated)
 	// map to 1, 0, 3 and 2; no fact leaves it unknown.

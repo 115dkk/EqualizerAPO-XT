@@ -22,7 +22,7 @@
 
 #include "engine/ChannelRoutingPlan.h"
 #include "engine/FilterConfiguration.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 namespace
 {
@@ -96,7 +96,7 @@ RoutedFilter route(ChannelRoutingPlan& plan, bool inPlace, bool allChannels = fa
 	return routed;
 }
 
-void runChannelRoutingPlanTests(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, runChannelRoutingPlanTests)
 {
 	const Names stereo = { L"L", L"R" };
 
@@ -202,7 +202,7 @@ void runChannelRoutingPlanTests(test::Harness& harness)
 }
 }
 
-void runChannelInheritanceTests(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, runChannelInheritanceTests)
 {
 	// An in-place successor with empty vectors sees exactly the pointer set
 	// its predecessor saw - inheritance, not recomputation.
@@ -250,6 +250,4 @@ void runChannelInheritanceTests(test::Harness& harness)
 		harness.expect(second->seenInput == first->seenOutput,
 			"after the rotation the successor reads the predecessor's output buffers");
 	}
-
-	runChannelRoutingPlanTests(harness);
 }

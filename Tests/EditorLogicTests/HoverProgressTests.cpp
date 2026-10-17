@@ -67,7 +67,7 @@ struct ReportedValues
 // 150 ms in / 110 ms out hover does), an interrupted animation is not a
 // finished one, and a completed fade-out ends at exactly 0 (the device list
 // drops a row's progress on that).
-void testHoverProgressSettlesAndRetargetsInPlace()
+TEST_CASE(EditorLogicTests, testHoverProgressSettlesAndRetargetsInPlace)
 {
 	QObject owner;
 	int changes = 0;

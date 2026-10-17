@@ -24,12 +24,12 @@
 #include "SubwooferRouting/Preset.h"
 #include "SubwooferRouting/StateCodec.h"
 #include "SubwooferRouting/State.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 namespace
 {
 
-test::Harness harness("SubwooferRoutingEngineTests");
+test::HarnessAccess harness;
 
 constexpr unsigned kSampleRate = 48000;
 constexpr unsigned kBlockFrames = 512;
@@ -351,7 +351,7 @@ private:
 	std::wstring invalidStatePath_;
 };
 
-void testCommandRecognition()
+TEST_CASE(SubwooferRoutingEngineTests, testCommandRecognition)
 {
 	harness.expectTrue(
 		FilterFactoryRegistry::canonicalCommand(L"SubwooferRouting")
@@ -537,14 +537,14 @@ void testSourceLfePreservation(const SuiteFixture& fixture)
 		foundLfe,
 		"an LFE-only impulse must reach the LFE output");
 
-	harness.expect(
-		std::fabs(leftMagnitude - sourceLfeToMain) <= tolerance,
+	harness.expectNear(
+		leftMagnitude, sourceLfeToMain, tolerance,
 		"L output must preserve the SourceLFE +10 dB pure-gain impulse");
-	harness.expect(
-		std::fabs(rightMagnitude - sourceLfeToMain) <= tolerance,
+	harness.expectNear(
+		rightMagnitude, sourceLfeToMain, tolerance,
 		"R output must preserve the SourceLFE +10 dB pure-gain impulse");
-	harness.expect(
-		std::fabs(lfeMagnitude - sourceLfeToLfe) <= tolerance,
+	harness.expectNear(
+		lfeMagnitude, sourceLfeToLfe, tolerance,
 		"LFE output must preserve the SourceLFE net -4 dB impulse");
 	harness.expectEqual(
 		leftFrame,
@@ -684,15 +684,10 @@ void testNonParticipatingChannelPassThrough(
 
 }
 
-void runSubwooferRoutingEngineTests();
-
-void runSubwooferRoutingEngineTests()
+TEST_CASE(SubwooferRoutingEngineTests, runSubwooferRoutingEngineTests)
 {
 	{
 		SuiteFixture fixture;
-
-		testCommandRecognition();
-
 		const std::vector<double> input =
 			makeNoise(kFiveChannels, kNoiseFrames);
 		const std::vector<double> stateOutput =
@@ -706,6 +701,4 @@ void runSubwooferRoutingEngineTests()
 		testInvalidStateDoesNotMute(fixture);
 		testNonParticipatingChannelPassThrough(fixture);
 	}
-
-	harness.report();
 }

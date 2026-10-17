@@ -23,11 +23,11 @@
 #include "services/logging/Logging.h"
 #include "filters/VelvetCommand.h"
 #include "filters/velvet/VelvetProcessor.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 namespace
 {
-test::Harness harness("HilbertVelvetTests");
+test::HarnessAccess harness;
 
 std::complex<double> responseAt(const std::vector<double>& taps, double omega)
 {
@@ -38,7 +38,7 @@ std::complex<double> responseAt(const std::vector<double>& taps, double omega)
 	return response;
 }
 
-void testHilbertCommandContract()
+TEST_CASE(HilbertVelvetTests, testHilbertCommandContract)
 {
 	HilbertCommand command;
 	std::wstring error;
@@ -67,7 +67,7 @@ void testHilbertCommandContract()
 		"Hilbert accepts only the two implemented phase directions");
 }
 
-void testHilbertFirContract()
+TEST_CASE(HilbertVelvetTests, testHilbertFirContract)
 {
 	const std::vector<double> minus = designHilbertFir(-90);
 	const std::vector<double> plus = designHilbertFir(90);
@@ -103,7 +103,7 @@ void testHilbertFirContract()
 		"Direction=+90 produces the positive-quadrature response");
 }
 
-void testVelvetCommandContract()
+TEST_CASE(HilbertVelvetTests, testVelvetCommandContract)
 {
 	VelvetCommand command;
 	std::wstring error;
@@ -136,7 +136,7 @@ void testVelvetCommandContract()
 		"Velvet rejects the reserved zero variation");
 }
 
-void testVelvetIsNormalizedAndDecorrelated()
+TEST_CASE(HilbertVelvetTests, testVelvetIsNormalizedAndDecorrelated)
 {
 	velvet::Processor processor;
 	harness.require(processor.prepare(48000.0, 4),
@@ -161,7 +161,7 @@ void testVelvetIsNormalizedAndDecorrelated()
 		"independent channel kernels remain decorrelated");
 }
 
-void testVelvetStreamIsBlockSizeInvariant()
+TEST_CASE(HilbertVelvetTests, testVelvetStreamIsBlockSizeInvariant)
 {
 	velvet::Parameters parameters;
 	parameters.seed = 123456789;
@@ -222,7 +222,7 @@ void testVelvetStreamIsBlockSizeInvariant()
 		"Velvet output does not depend on host block boundaries");
 }
 
-void testVelvetDynamicRenewalIsFiniteAndSmooth()
+TEST_CASE(HilbertVelvetTests, testVelvetDynamicRenewalIsFiniteAndSmooth)
 {
 	velvet::Processor processor;
 	harness.require(processor.prepare(48000.0, 1),
@@ -256,7 +256,7 @@ void testVelvetDynamicRenewalIsFiniteAndSmooth()
 // Audit #250 A4: a mismatched block used to mute Hilbert's shifted channels
 // with no diagnostics at all; the shared convolver bookkeeping now reports
 // it on destruction like the other convolvers' cleanup().
-void testHilbertMismatchIsLoggedOnDestruction()
+TEST_CASE(HilbertVelvetTests, testHilbertMismatchIsLoggedOnDestruction)
 {
 	FILE* logFile = nullptr;
 	if (tmpfile_s(&logFile) != 0 || logFile == nullptr)
@@ -296,16 +296,4 @@ void testHilbertMismatchIsLoggedOnDestruction()
 	harness.expectTrue(log.find(marker) != std::wstring::npos,
 		"Hilbert frame-count mismatch is logged on destruction");
 }
-}
-
-void runHilbertVelvetTests()
-{
-	testHilbertCommandContract();
-	testHilbertFirContract();
-	testVelvetCommandContract();
-	testVelvetIsNormalizedAndDecorrelated();
-	testVelvetStreamIsBlockSizeInvariant();
-	testVelvetDynamicRenewalIsFiniteAndSmooth();
-	testHilbertMismatchIsLoggedOnDestruction();
-	harness.report();
 }

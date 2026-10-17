@@ -52,7 +52,8 @@
 #include "filters/VSTPluginFilter.h"
 #include "filters/VSTPluginFilterFactory.h"
 #include "filters/loudnessCorrection/VolumeController.h"
-#include "Tests/TestHarness.h"
+#include "Tests/TestDirectory.h"
+#include "../TestHarness.h"
 #include "platform/windows/WindowsPath.h"
 
 using std::shared_ptr;
@@ -62,7 +63,7 @@ using std::wstring;
 
 namespace
 {
-test::Harness harness("VstHostTests");
+test::HarnessAccess harness;
 
 class RejectingLibrary : public AbstractLibrary
 {
@@ -245,7 +246,7 @@ void expectLatencyCompensationGolden(const shared_ptr<VSTPluginLibrary>& library
 	SetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", nullptr);
 }
 
-void testVolumeControllerBalancesComInitialization()
+TEST_CASE(VstHostTests, testVolumeControllerBalancesComInitialization)
 {
 	bool threadStartedUninitialized = false;
 	bool threadEndedUninitialized = false;
@@ -266,12 +267,12 @@ void testVolumeControllerBalancesComInitialization()
 // The DLL is held against writers from the judgment to LoadLibraryW, the
 // window in which an emptied leaf could otherwise be given reparse data
 // (AbstractLibrary::holdForLoad). The hold must not stop the loader itself.
-void testLoadHold(const wstring& dir, const wstring& dllPath)
+void testLoadHold(const wstring& dllPath)
 {
-	const wstring folder = dir + L"\\load-hold";
+	test::TestDirectory directory(L"VstHostTests-load");
+	const wstring folder = directory.subdirectory(L"load-hold");
 	const wstring plugin = folder + L"\\plugin.dll";
 	const wstring empty = folder + L"\\empty.dll";
-	CreateDirectoryW(folder.c_str(), nullptr);
 	harness.require(CopyFileW(dllPath.c_str(), plugin.c_str(), FALSE) != FALSE, "copy the test plugin for the hold test");
 	{
 		const auto judged = ConfigFileReference::library(L"", plugin, L"");
@@ -321,6 +322,7 @@ void testLoadHold(const wstring& dir, const wstring& dllPath)
 	DeleteFileW(empty.c_str());
 	DeleteFileW(plugin.c_str());
 	RemoveDirectoryW(folder.c_str());
+	directory.removeAll();
 }
 
 void copyResidencyTestPlugin(const wstring& source, const wstring& destination, const std::string& label)
@@ -451,19 +453,15 @@ void testProcessLifetimeResidency(const wstring& dir, const wstring& dllPath)
 }
 } // namespace
 
-void runVstHostTests()
-{
-	testVolumeControllerBalancesComInitialization();
-
-	// Both early returns (the skip below and the missing-DLL failure after it)
+TEST_CASE(VstHostTests, runVstHostTests)
+{	// Both early returns (the skip below and the missing-DLL failure after it)
 	// report first: under the harness default (Collect) a failure recorded
 	// above only fails the build through report().
 	const wstring dir = exeDirectory();
 	if (dir.empty())
 	{
 		std::printf("VstHostTests skipped: could not resolve test executable directory\n");
-		harness.report();
-		return;
+return;
 	}
 
 	const wstring dllPath = dir + L"\\TestVst2Plugin.dll";
@@ -477,11 +475,10 @@ void runVstHostTests()
 		harness.expectTrue(false,
 			"TestVst2Plugin.dll is present next to the test executable "
 			"(missing = build/copy problem, the suite cannot run)");
-		harness.report();
-		return;
+return;
 	}
 
-	testLoadHold(dir, dllPath);
+	testLoadHold(dllPath);
 	testExpiredLibraryCache(dir);
 	testProcessLifetimeResidency(dir, dllPath);
 
@@ -668,6 +665,4 @@ void runVstHostTests()
 
 	// The owning pointer mirrors the engine and sends effClose on every exit,
 	// including an unexpected exception from a later assertion.
-
-	harness.report();
 }

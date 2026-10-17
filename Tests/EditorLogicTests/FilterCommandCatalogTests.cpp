@@ -45,7 +45,7 @@ QString commandWordOfTemplate(const FilterCommandCatalog::TemplateEntry& entry)
 }
 }
 
-void testFilterCommandCatalogRoster()
+TEST_CASE(EditorLogicTests, testFilterCommandCatalogRoster)
 {
 	const QList<FilterCommandCatalog::CommandEntry>& entries = FilterCommandCatalog::commands();
 	requireEqual(int(entries.size()), 24, "the catalog covers every decorated command");
@@ -96,7 +96,7 @@ void testFilterCommandCatalogRoster()
 	}
 }
 
-void testFilterCommandCatalogIconsExistOnDisk()
+TEST_CASE(EditorLogicTests, testFilterCommandCatalogIconsExistOnDisk)
 {
 	// Resource paths are asserted as strings elsewhere; this pins that every
 	// named SVG exists in the icon set and is listed in Editor.qrc. The Editor
@@ -134,7 +134,7 @@ void testFilterCommandCatalogIconsExistOnDisk()
 		expectIconFile(curve.icon);
 }
 
-void testFilterCommandCatalogTemplateRoster()
+TEST_CASE(EditorLogicTests, testFilterCommandCatalogTemplateRoster)
 {
 	const QList<FilterCommandCatalog::TemplateEntry>& templates = FilterCommandCatalog::pickerTemplates();
 	requireEqual(int(templates.size()), 34, "the picker roster holds every template");
@@ -189,7 +189,7 @@ void testFilterCommandCatalogTemplateRoster()
 		"sections appear grouped and in the intended order");
 }
 
-void testFilterCommandCatalogDescriptions()
+TEST_CASE(EditorLogicTests, testFilterCommandCatalogDescriptions)
 {
 	// Commands shipping without a per-command picker description: only
 	// Filter, which describes per response curve instead. Every other
@@ -218,7 +218,7 @@ void testFilterCommandCatalogDescriptions()
 		"the first-order all-pass has its dedicated wording");
 }
 
-void testFilterCommandCatalogChannelSelectionTargets()
+TEST_CASE(EditorLogicTests, testFilterCommandCatalogChannelSelectionTargets)
 {
 	// The commands the engine narrows to the enclosing Channel: selection,
 	// which is what lets a card inherit the selection's channel badges.
@@ -256,7 +256,7 @@ void testFilterCommandCatalogChannelSelectionTargets()
 		"raw text keeps its monogram");
 }
 
-void testSharedRawBodyAndRoutingViewPredicates()
+TEST_CASE(EditorLogicTests, testSharedRawBodyAndRoutingViewPredicates)
 {
 	// The raw-body eligibility rule the five skins used to restate.
 	expectTrue(FilterCardModel::hostsSharedRawBody(QStringLiteral("text"), false), "raw text hosts the raw body");
@@ -277,7 +277,7 @@ void testSharedRawBodyAndRoutingViewPredicates()
 	expectFalse(FilterCardModel::opensRoutingView(channel), "only Copy opens the routing view");
 }
 
-void testVstChunkPathCandidates()
+TEST_CASE(EditorLogicTests, testVstChunkPathCandidates)
 {
 	// The scan decodes base64 state text and lifts absolute path spellings;
 	// candidates keep duplicates and match order (dedup happens at the

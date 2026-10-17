@@ -33,7 +33,7 @@
 // After VSTPluginLibrary.h: the VST3 SDK defines a VST_VERSION macro that
 // would otherwise break the enum of the same name in the VST2 aeffectx.h.
 #include "pluginterfaces/vst/vstspeaker.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 #include "Tests/Vst3Bundle.h"
 #include "platform/windows/WindowsPath.h"
 #include "Tests/TestVst3Plugin/TestVst3Protocol.h"
@@ -44,7 +44,7 @@ using std::wstring;
 
 namespace
 {
-test::Harness harness("Vst3HostTests");
+test::HarnessAccess harness;
 
 using testvst3::PluginState;
 
@@ -105,7 +105,7 @@ struct CombinedStateParameter
 // Audit #348 TD-48: the stream a plug-in reads and writes its state through
 // takes positions from the plug-in, so a wild one must not turn into an
 // allocation or a copy past the plug-in's buffer.
-void testMemoryStreamBounds()
+TEST_CASE(Vst3HostTests, testMemoryStreamBounds)
 {
 	using Steinberg::IBStream;
 	using Steinberg::int32;
@@ -233,15 +233,14 @@ void testHostContextDetach(const wstring& directory)
 }
 }
 
-void runVst3HostTests()
+TEST_CASE(Vst3HostTests, runVst3HostTests)
 {
 	const wstring directory = exeDirectory();
 	const wstring bundle = directory.empty() ? wstring() : prepareBundle(directory);
 	if (bundle.empty())
 	{
 		harness.expectFalse(bundle.empty(), "companion VST3 module is available");
-		harness.report();
-		return;
+return;
 	}
 
 	shared_ptr<VSTPluginLibrary> library = VSTPluginLibrary::getInstance(bundle);
@@ -1110,10 +1109,6 @@ void runVst3HostTests()
 		harness.expectTrue(fallbackPassedThrough,
 			"4.1 names fall back cleanly through the default stereo-only component");
 	}
-
-	testMemoryStreamBounds();
 	testRestoreBeyondEditRing(directory);
 	testHostContextDetach(directory);
-
-	harness.report();
 }

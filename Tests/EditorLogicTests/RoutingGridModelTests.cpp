@@ -8,7 +8,7 @@
 #include "Editor/widgets/routing/RoutingGridModel.h"
 #include "EditorLogicTestSupport.h"
 
-void testRoutingGridModel()
+TEST_CASE(EditorLogicTests, testRoutingGridModel)
 {
 	using Model = RoutingGridModel;
 	using Adapter = CopyRoutingAdapter;

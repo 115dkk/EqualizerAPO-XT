@@ -42,7 +42,7 @@
 #include "Tests/FakeAsioDriver/FakeAsio.h"
 #include "Tests/FakeRegistry.h"
 #include "Tests/TestDirectory.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 namespace eapo::asio
 {
@@ -88,7 +88,7 @@ using eapo::asio::ThreadHostLink;
 
 namespace
 {
-	test::Harness harness("DaemonTests");
+	test::HarnessAccess harness;
 
 	constexpr GUID testWrapperClsid = {0xc0ffee01, 0x1111, 0x4222, {0x83, 0x33, 0x44, 0x44, 0x55, 0x55, 0x66, 0x66}};
 	const wchar_t* const testTargetClsid = L"{B7E3A9F4-52C1-4D0B-8A6E-1F9C3D5E7B21}";
@@ -212,7 +212,7 @@ namespace
 		return path;
 	}
 
-	void testDaemonMatchesInProc()
+	TEST_CASE(DaemonTests, testDaemonMatchesInProc)
 	{
 		test::TestDirectory directory(L"DaemonTests");
 		const std::wstring configPath = writeConfig(directory,
@@ -237,7 +237,7 @@ namespace
 		directory.removeAll();
 	}
 
-	void testPipelinedShape()
+	TEST_CASE(DaemonTests, testPipelinedShape)
 	{
 		test::TestDirectory directory(L"DaemonTests");
 		const std::wstring configPath = writeConfig(directory, "Preamp: -6.0206 dB\n");
@@ -274,7 +274,7 @@ namespace
 		directory.removeAll();
 	}
 
-	void testPipelinedWrapDoesNotInsertSecondSilentBlock()
+	TEST_CASE(DaemonTests, testPipelinedWrapDoesNotInsertSecondSilentBlock)
 	{
 		auto state = std::make_shared<SeededRingState>();
 		DaemonProcessor processor(std::make_unique<SeededHostLink>(state));
@@ -345,7 +345,7 @@ namespace
 	// one cannot even be published) used to put out its own original audio,
 	// one block earlier than everything around it. It now puts out the
 	// previous block's original audio, so the one-block delay holds.
-	void testPipelinedLateHeldKeepsTheDelay()
+	TEST_CASE(DaemonTests, testPipelinedLateHeldKeepsTheDelay)
 	{
 		test::TestDirectory directory(L"DaemonTests");
 		const std::wstring configPath = writeConfig(directory, "Preamp: -6.0206 dB\n");
@@ -452,7 +452,7 @@ namespace
 	// The serving loop writes the facts the device record reads: the one
 	// attach procedure the host runs, over a heap ring, publishing into a
 	// fake registry that AsioAPOInfo then reads (audit #348 C7).
-	void testServeLoopPublishesTheFacts()
+	TEST_CASE(DaemonTests, testServeLoopPublishesTheFacts)
 	{
 		test::TestDirectory directory(L"DaemonTests");
 		const std::wstring configPath = writeConfig(directory, "Preamp: 0 dB\n");
@@ -522,7 +522,7 @@ namespace
 		directory.removeAll();
 	}
 
-	void testHostDeathIsGoneThenReopens()
+	TEST_CASE(DaemonTests, testHostDeathIsGoneThenReopens)
 	{
 		test::TestDirectory directory(L"DaemonTests");
 		const std::wstring configPath = writeConfig(directory, "Preamp: -6.0206 dB\n");
@@ -568,7 +568,7 @@ namespace
 		directory.removeAll();
 	}
 
-	void testMissingHostExecutableFailsLoudly()
+	TEST_CASE(DaemonTests, testMissingHostExecutableFailsLoudly)
 	{
 		StreamOptions options;
 		options.daemonEndpoint = L"EAPO.ASIO.test.missing";
@@ -596,11 +596,10 @@ namespace
 
 	// Audit #348 TD-46: the 32-bit wrapper ships alone in the x86 folder and
 	// looked for the host beside itself, so it could not start one.
-	void testHostExecutableFallsBackToTheParentFolder()
+	TEST_CASE(DaemonTests, testHostExecutableFallsBackToTheParentFolder)
 	{
 		test::TestDirectory directory(L"DaemonTests-host");
-		const std::wstring x86 = directory.path() + L"\\x86";
-		CreateDirectoryW(x86.c_str(), nullptr);
+		const std::wstring x86 = directory.subdirectory(L"x86");
 		const std::wstring parentHost = directory.path() + L"\\EqualizerAPOHost.exe";
 		const std::wstring besideHost = x86 + L"\\EqualizerAPOHost.exe";
 		HANDLE file = CreateFileW(parentHost.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, 0, nullptr);
@@ -697,7 +696,7 @@ namespace
 		return format;
 	}
 
-	void testAnotherProgramOnTheControlPipeIsRefused()
+	TEST_CASE(DaemonTests, testAnotherProgramOnTheControlPipeIsRefused)
 	{
 		const std::wstring endpoint = L"EAPO.ASIO.test.squat." + std::to_wstring(GetCurrentProcessId());
 		PipeSquatter squatter(endpoint);
@@ -717,7 +716,7 @@ namespace
 		link.close(std::move(producer));
 	}
 
-	void testASilentServerTimesOut()
+	TEST_CASE(DaemonTests, testASilentServerTimesOut)
 	{
 		const std::wstring endpoint = L"EAPO.ASIO.test.silent." + std::to_wstring(GetCurrentProcessId());
 		PipeSquatter squatter(endpoint);
@@ -826,7 +825,7 @@ namespace
 		} while (true);
 	}
 
-	void testHostControlServerWithWin32Client()
+	TEST_CASE(DaemonTests, testHostControlServerWithWin32Client)
 	{
 		const std::wstring endpoint = L"EAPO.ASIO.test.control." + std::to_wstring(GetCurrentProcessId());
 		eapo::asio::HostActivity activity;
@@ -865,7 +864,7 @@ namespace
 		serverThread.join();
 	}
 
-	void testHostControlServerLinger()
+	TEST_CASE(DaemonTests, testHostControlServerLinger)
 	{
 		const std::wstring endpoint = L"EAPO.ASIO.test.linger." + std::to_wstring(GetCurrentProcessId());
 		eapo::asio::HostActivity activity;
@@ -880,22 +879,4 @@ namespace
 		const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - started).count();
 		harness.expect(elapsed < 3000, "an idle control server leaves after its linger interval (" + std::to_string(elapsed) + " ms)");
 	}
-}
-
-int runDaemonTests()
-{
-	testDaemonMatchesInProc();
-	testPipelinedShape();
-	testPipelinedWrapDoesNotInsertSecondSilentBlock();
-	testPipelinedLateHeldKeepsTheDelay();
-	testHostDeathIsGoneThenReopens();
-	testServeLoopPublishesTheFacts();
-	testMissingHostExecutableFailsLoudly();
-	testHostExecutableFallsBackToTheParentFolder();
-	testAnotherProgramOnTheControlPipeIsRefused();
-	testASilentServerTimesOut();
-	testHostControlServerWithWin32Client();
-	testHostControlServerLinger();
-	harness.report();
-	return 0;
 }

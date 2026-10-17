@@ -29,7 +29,7 @@ VSTBusFacts loadedVst3(VST3BusLayout input, VST3BusLayout output)
 
 // Audit #422 D4: the modern VST card's bus table, row by row. The VST2 and
 // stale-keys rows were field bugs (issue #216).
-void testVSTBusVerdictCoversEveryRow()
+TEST_CASE(EditorLogicTests, testVSTBusVerdictCoversEveryRow)
 {
 	using Severity = ReferenceCardState::Severity;
 	using Tone = VSTBusVerdict::Tone;

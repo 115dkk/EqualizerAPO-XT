@@ -30,7 +30,7 @@
 #endif
 #define WIN32_LEAN_AND_MEAN
 #include "engine/FilterConfiguration.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 namespace
 {
@@ -56,7 +56,7 @@ EngineStreamFormat formatFor(unsigned channels)
 }
 
 // Every conversion path must match the naive scalar loop bit for bit.
-void testConversionsMatchScalarReferenceBitExactly(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testConversionsMatchScalarReferenceBitExactly)
 {
 	for (unsigned channels : {1u, 2u, 3u, 4u, 6u, 8u})
 	{
@@ -211,8 +211,11 @@ double minBatchSeconds(Fn&& fn, int samples, int batch)
 // product code. #pragma loop(no_vector) did not restore the naive shape.
 // Only this TU is pinned; the product code under test is not. Revisit if the
 // bars are ever recalibrated for C++20.
-void testStereoFloatConversionBeatsScalarReference(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testStereoFloatConversionBeatsScalarReference)
 {
+#ifdef __SANITIZE_ADDRESS__
+	return;
+#endif
 	constexpr unsigned channels = 2;
 	constexpr unsigned frames = maxFrames;
 #ifdef _M_ARM64
@@ -310,7 +313,7 @@ void testStereoFloatConversionBeatsScalarReference(test::Harness& harness)
 // stereo device) it used to stop after channel 0 and leave channel 1 holding
 // whatever the caller's buffer held; with more inputs than outputs it wrote
 // past the caller's pointer array.
-void testFloatPlanarWriteCoversEveryOutputChannel(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testFloatPlanarWriteCoversEveryOutputChannel)
 {
 	constexpr unsigned frames = 64;
 	const EngineStreamFormat monoToStereo{ 1, 2, maxFrames };
@@ -336,18 +339,4 @@ void testFloatPlanarWriteCoversEveryOutputChannel(test::Harness& harness)
 	}
 	harness.expect(leftCopied, "writeFloatPlanar mono->stereo: channel 0 carries the input");
 	harness.expect(rightWritten, "writeFloatPlanar mono->stereo: channel 1 is written, not left untouched");
-}
-
-void runSampleIoTests(test::Harness& harness)
-{
-	testConversionsMatchScalarReferenceBitExactly(harness);
-	testFloatPlanarWriteCoversEveryOutputChannel(harness);
-	// Timing contracts are meaningless under AddressSanitizer: the
-	// instrumentation cost lands on the vectorized candidate, not on the
-	// reference loop shape, so the ratio inverts regardless of the code
-	// under test. The memcheck CI leg builds with /fsanitize=address and
-	// still runs the bit-exactness half above.
-#ifndef __SANITIZE_ADDRESS__
-	testStereoFloatConversionBeatsScalarReference(harness);
-#endif
 }

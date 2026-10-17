@@ -12,18 +12,18 @@
 #include <vector>
 
 #include "filters/ExpressionCommand.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 using std::vector;
 using std::wstring;
 
 namespace
 {
-test::Harness harness("ExpressionCommandTests");
+test::HarnessAccess harness;
 
 typedef InlineExpression::Segment Segment;
 
-void testEvalCommand()
+TEST_CASE(ExpressionCommandTests, testEvalCommand)
 {
 	EvalCommand cmd;
 	harness.expectTrue(EvalCommand::parse(L"Eval", L"  x = 1  ", cmd), "'Eval' is recognized");
@@ -34,7 +34,7 @@ void testEvalCommand()
 	harness.expectFalse(EvalCommand::parse(L"eval", L"x = 1", cmd), "command match is case-sensitive");
 }
 
-void testInlineSplit()
+TEST_CASE(ExpressionCommandTests, testInlineSplit)
 {
 	// Plain text gives one literal segment; empty text gives none.
 	vector<Segment> segments = InlineExpression::split(L"plain text");
@@ -81,7 +81,7 @@ void testInlineSplit()
 	harness.expectTrue(segments[0] == Segment{false, L"a"}, "literal before unterminated expression survives");
 }
 
-void testInlineJoinRoundTrip()
+TEST_CASE(ExpressionCommandTests, testInlineJoinRoundTrip)
 {
 	// split(join(split(x))) must reproduce split(x) for representative inputs.
 	const wstring cases[] = {
@@ -107,13 +107,4 @@ void testInlineJoinRoundTrip()
 	vector<Segment> segments = {{false, L"a`b"}, {true, L"x`y"}};
 	harness.expectTrue(InlineExpression::join(segments) == L"a\\`b`x\\`y`", "join re-escapes backticks");
 }
-}
-
-void runExpressionCommandTests()
-{
-	testEvalCommand();
-	testInlineSplit();
-	testInlineJoinRoundTrip();
-
-	harness.report();
 }

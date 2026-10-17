@@ -12,7 +12,7 @@
 
 #include "Editor/widgets/FilterPickerModel.h"
 
-void testFilterPickerModelMatchesTermsAndPreservesCatalogIndices()
+TEST_CASE(EditorLogicTests, testFilterPickerModelMatchesTermsAndPreservesCatalogIndices)
 {
 	QList<FilterPickerEntry> entries;
 	entries.append({ { QStringLiteral("Basic") }, QStringLiteral("Gain"), QStringLiteral("Preamp: 0 dB"), QString() });
@@ -29,7 +29,7 @@ void testFilterPickerModelMatchesTermsAndPreservesCatalogIndices()
 	expectEqual(matches.first().section, QStringLiteral("Phase & Time"), QStringLiteral("the match carries its section"));
 }
 
-void testFilterPickerModelOwnsSelectionNavigation()
+TEST_CASE(EditorLogicTests, testFilterPickerModelOwnsSelectionNavigation)
 {
 	QList<FilterPickerEntry> entries;
 	entries.append({ { QStringLiteral("Basic") }, QStringLiteral("Gain"), QStringLiteral("Preamp: 0 dB"), QString() });

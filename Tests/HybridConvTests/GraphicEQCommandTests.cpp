@@ -12,20 +12,20 @@
 	reproduces the canonical "<freq> <gain>; ..." parameter string.
 
 	These tests link against the same Common.lib as HybridConvTests and run from
-	its main() via runGraphicEQCommandTests().
+	the binary through TestHarness registration.
 */
 
 #include <string>
 
 #include "filters/GraphicEQCommand.h"
 #include "platform/windows/TextEncoding.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 using std::wstring;
 
 namespace
 {
-test::Harness harness("GraphicEQCommandTests");
+test::HarnessAccess harness;
 
 // Parses a "GraphicEQ:" parameter string into a command, the same way the engine
 // factory and the Editor GUI factory do.
@@ -43,7 +43,7 @@ void expectNode(const GraphicEQCommand& cmd, size_t index, double freq, double g
 	harness.expectEqual(cmd.nodes[index].dbGain, gain, label + " gain");
 }
 
-void testBasicParse()
+TEST_CASE(GraphicEQCommandTests, testBasicParse)
 {
 	// A small list with integer frequencies and signed integer / decimal gains.
 	GraphicEQCommand cmd = parse(L"25 -3; 100 0; 1000 6; 16000 -1.5");
@@ -54,7 +54,7 @@ void testBasicParse()
 	expectNode(cmd, 3, 16000.0, -1.5, "node 3");
 }
 
-void testManyBands()
+TEST_CASE(GraphicEQCommandTests, testManyBands)
 {
 	// The 15-band template line. All gains are zero; frequencies span 25..16000.
 	GraphicEQCommand cmd = parse(L"25 0; 40 0; 63 0; 100 0; 160 0; 250 0; 400 0; 630 0; 1000 0; 1600 0; 2500 0; 4000 0; 6300 0; 10000 0; 16000 0");
@@ -69,7 +69,7 @@ void testManyBands()
 	expectNode(wide, 30, 20000.0, 0.0, "31-band last");
 }
 
-void testDecimalsAndSorting()
+TEST_CASE(GraphicEQCommandTests, testDecimalsAndSorting)
 {
 	// Decimal frequencies and gains with two decimal places, given out of order:
 	// the parser must sort the nodes by frequency.
@@ -81,7 +81,7 @@ void testDecimalsAndSorting()
 	expectNode(cmd, 3, 1000.0, -2.25, "sorted node 3");
 }
 
-void testUnpairedAndComma()
+TEST_CASE(GraphicEQCommandTests, testUnpairedAndComma)
 {
 	// A trailing frequency with no matching gain is dropped (matches the factory's
 	// freq/gain pairing).
@@ -115,7 +115,7 @@ void expectRoundTrip(const wstring& parameters, const wstring& expected)
 		"serialize(parse(\"" + wintext::toNarrowString(parameters, 65001u) + "\")) mismatch");
 }
 
-void testSerializeRoundTrip()
+TEST_CASE(GraphicEQCommandTests, testSerializeRoundTrip)
 {
 	// Canonical forms serialize back to themselves.
 	expectRoundTrip(L"25 0; 100 6; 16000 -1.5", L"25 0; 100 6; 16000 -1.5");
@@ -144,14 +144,4 @@ void testSerializeRoundTrip()
 	expectNode(reparsed, 0, 63.0, -4.0, "round-trip node 0");
 	expectNode(reparsed, 1, 2500.0, 2.5, "round-trip node 1");
 }
-}
-
-void runGraphicEQCommandTests()
-{
-	testBasicParse();
-	testManyBands();
-	testDecimalsAndSorting();
-	testUnpairedAndComma();
-	testSerializeRoundTrip();
-	harness.report();
 }

@@ -135,7 +135,7 @@ std::vector<std::complex<double>> spectrum(const std::vector<double>& samples)
 // they shared, so deleting any one of them stayed green. The thread's three
 // publish points (the result, the failure, the finished signal) are modelled
 // as three publishIf() calls here.
-void testAnalysisRequestFence()
+TEST_CASE(EditorLogicTests, testAnalysisRequestFence)
 {
 	AnalysisRequestFence fence;
 
@@ -171,7 +171,7 @@ void testAnalysisRequestFence()
 
 // The response is four processing blocks long. A start in the first block must
 // keep copying until all 256 response samples are present.
-void testImpulseMeasurementFindsTheDelay()
+TEST_CASE(EditorLogicTests, testImpulseMeasurementFindsTheDelay)
 {
 	{
 		FakeProcessor processor(16, 1.0, 104, 0.25);
@@ -205,7 +205,7 @@ void testImpulseMeasurementFindsTheDelay()
 	}
 }
 
-void testImpulseMeasurementAtTheBlockStart()
+TEST_CASE(EditorLogicTests, testImpulseMeasurementAtTheBlockStart)
 {
 	{
 		FakeProcessor processor(2 * kBlockFrames, 1.0);
@@ -233,7 +233,7 @@ void testImpulseMeasurementAtTheBlockStart()
 	}
 }
 
-void testImpulseMeasurementWithoutAnImpulse()
+TEST_CASE(EditorLogicTests, testImpulseMeasurementWithoutAnImpulse)
 {
 	FakeProcessor processor(0, 0.0);
 	const MeasurementRun run = measure(processor);
@@ -246,7 +246,7 @@ void testImpulseMeasurementWithoutAnImpulse()
 
 // A gain of one half: the -6.02 dB of a "-6 dB" preamp in the classic sense.
 // The peak includes the Nyquist bin, as the graph does (audit #348).
-void testImpulsePeakGain()
+TEST_CASE(EditorLogicTests, testImpulsePeakGain)
 {
 	FakeProcessor processor(480, 0.5);
 	const MeasurementRun run = measure(processor);

@@ -24,16 +24,16 @@
 #include "filters/BiQuadFilterFactory.h"
 #include "filters/BiQuadKernelPlan.h"
 #include "dsp/MxcsrGuard.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 using std::vector;
 using std::wstring;
 
 namespace
 {
-test::Harness harness("BiQuadKernelTests");
+test::HarnessAccess harness;
 
-void testBiQuadRejectsNonFiniteParameters()
+TEST_CASE(BiQuadKernelTests, testBiQuadRejectsNonFiniteParameters)
 {
 	const wchar_t* cases[] = {
 		L"ON PK Fc 1e999 Hz Gain 3 dB Q 1",
@@ -51,7 +51,7 @@ void testBiQuadRejectsNonFiniteParameters()
 
 // Audit #348 TD-13: only finiteness was checked, so a zero or negative
 // frequency, Q or bandwidth reached the coefficient formulas.
-void testBiQuadRejectsNonPositiveParameters()
+TEST_CASE(BiQuadKernelTests, testBiQuadRejectsNonPositiveParameters)
 {
 	const wchar_t* cases[] = {
 		L"ON PK Fc 0 Hz Gain 3 dB Q 1",
@@ -79,7 +79,7 @@ void testBiQuadRejectsNonPositiveParameters()
 // A band exactly at Nyquist puts both poles on the unit circle; the section
 // must pass the signal through instead of ringing forever. A band above
 // Nyquist folds back and stays stable, as it always has, and must stay finite.
-void testBiQuadAtNyquistPassesThrough()
+TEST_CASE(BiQuadKernelTests, testBiQuadAtNyquistPassesThrough)
 {
 	constexpr unsigned length = 4096;
 	for (BiQuad::Type type : {BiQuad::PEAKING, BiQuad::LOW_PASS})
@@ -128,7 +128,7 @@ double nextSample(unsigned long long& state)
 // and the SIMD group keeps its historical assignment: the SIMD kernel uses
 // FMA where the scalar kernels do not, so moving a channel across that
 // boundary changes the variant's audio regression references.
-void testPlanCoversEveryChannelOnce()
+TEST_CASE(BiQuadKernelTests, testPlanCoversEveryChannelOnce)
 {
 	for (unsigned width : {2u, 4u, 8u})
 	{
@@ -152,7 +152,7 @@ void testPlanCoversEveryChannelOnce()
 // so it is latency-bound; any two channels it serves could instead overlap
 // their chains. At most one leftover channel may land there. This is the
 // stereo-on-wide-SIMD gap: floor dispatch left ch=2 width=4/8 fully single.
-void testPlanDoesNotSerializePairableChannels()
+TEST_CASE(BiQuadKernelTests, testPlanDoesNotSerializePairableChannels)
 {
 	for (unsigned width : {2u, 4u, 8u})
 	{
@@ -229,7 +229,7 @@ void renderMultiAndMono(unsigned channelCount, vector<double>& multiOut, vector<
 // targets wider than 2 lanes, and on 2-lane targets Highway MulAdd lowers to
 // unfused mul+add matching the scalar expression, so exact equality holds on
 // every CI-executed variant, before and after any remainder-kernel change.
-void testMultiChannelMatchesMonoBitExactly()
+TEST_CASE(BiQuadKernelTests, testMultiChannelMatchesMonoBitExactly)
 {
 	for (unsigned channelCount : {2u, 3u})
 	{
@@ -250,7 +250,7 @@ void testMultiChannelMatchesMonoBitExactly()
 // (audit #348). Both flush a subnormal operand and a subnormal result, and
 // the caller's mode comes back when the scope ends. The ARM64 leg of CI runs
 // this on an ARM64 runner.
-void testDenormalGuardFlushesAndRestores()
+TEST_CASE(BiQuadKernelTests, testDenormalGuardFlushesAndRestores)
 {
 	volatile double subnormal = 4.9e-320;
 	volatile double one = 1.0;
@@ -265,17 +265,4 @@ void testDenormalGuardFlushesAndRestores()
 	const double kept = subnormal * one;
 	harness.expect(kept != 0.0, "the caller's floating-point mode comes back when the guard ends");
 }
-}
-
-void runBiQuadKernelTests()
-{
-	testBiQuadRejectsNonFiniteParameters();
-	testBiQuadRejectsNonPositiveParameters();
-	testBiQuadAtNyquistPassesThrough();
-	testPlanCoversEveryChannelOnce();
-	testPlanDoesNotSerializePairableChannels();
-	testMultiChannelMatchesMonoBitExactly();
-	testDenormalGuardFlushesAndRestores();
-
-	harness.report();
 }

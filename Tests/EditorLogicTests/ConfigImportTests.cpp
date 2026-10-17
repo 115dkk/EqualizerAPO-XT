@@ -35,7 +35,7 @@
 
 #include "EditorLogicTestSupport.h"
 
-void testLegacyConvolutionPathRules()
+TEST_CASE(EditorLogicTests, testLegacyConvolutionPathRules)
 {
 	const QString configPath = "C:/EqualizerAPO/config/config.txt";
 	qputenv("EAPO_XT_TEST_IR_DIR", "C:\\Impulse Responses");
@@ -75,7 +75,7 @@ void testLegacyConvolutionPathRules()
 // the engine does (ConfigFileReference), so a quoted Include or one through a
 // variable names the same file in all three; and the card's verdict applies
 // the engine's location rule before the ACL.
-void testFileReferencesReadLikeTheEngine()
+TEST_CASE(EditorLogicTests, testFileReferencesReadLikeTheEngine)
 {
 	QTemporaryDir tempDir;
 	requireTrue(tempDir.isValid(), "QTemporaryDir must be valid");
@@ -127,7 +127,7 @@ void testFileReferencesReadLikeTheEngine()
 	qunsetenv("EAPO_XT_TEST_IMPORT_DIR");
 }
 
-void testConfigImport()
+TEST_CASE(EditorLogicTests, testConfigImport)
 {
 	QTemporaryDir tempDir;
 	requireTrue(tempDir.isValid(), "QTemporaryDir must be valid");
@@ -316,7 +316,7 @@ void testConfigImport()
 	expectTrue(QFile::exists(vstConfigDest + "/Surround/TestPlugin.dll"), "dll missing after single-file import");
 }
 
-void testLegacyMigrationScanAndPolicy()
+TEST_CASE(EditorLogicTests, testLegacyMigrationScanAndPolicy)
 {
 	QTemporaryDir tempDir;
 	requireTrue(tempDir.isValid(), "QTemporaryDir must be valid");

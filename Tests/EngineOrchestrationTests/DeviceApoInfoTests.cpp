@@ -56,7 +56,7 @@
 #include "services/security/AudioEngineAccess.h"
 #include "services/windows/WindowsService.h"
 #include "services/registry/WindowsRegistry.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 #include "Tests/FakeRegistry.h"
 
@@ -116,7 +116,7 @@ std::wstring ourPostMixGuid()
 	return winutil::guidToString(EQUALIZERAPO_POST_MIX_GUID);
 }
 
-void testLoadWithoutFxPropertiesReportsNoDriverEffectChain(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testLoadWithoutFxPropertiesReportsNoDriverEffectChain)
 {
 	FakeRegistry registry;
 	seedRenderDevice(registry);
@@ -160,7 +160,7 @@ void testLoadWithoutFxPropertiesReportsNoDriverEffectChain(test::Harness& harnes
 		"a device with no FxProperties key keeps LFX/GFX: the audio engine feeds a mode-unaware driver through the legacy slots only (the capture gate measured an SFX registration on such a device as never loaded)");
 }
 
-void testLoadSkipsDevicesTheDriverReportsAsNotPresent(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testLoadSkipsDevicesTheDriverReportsAsNotPresent)
 {
 	FakeRegistry registry;
 	seedRenderDevice(registry, DEVICE_STATE_NOTPRESENT);
@@ -170,7 +170,7 @@ void testLoadSkipsDevicesTheDriverReportsAsNotPresent(test::Harness& harness)
 		"a not-present endpoint is rejected by load, which is how loadAllInfos keeps unplugged-and-forgotten hardware out of the device list");
 }
 
-void testLoadTreatsTheUndocumentedDisabledFlagAsDisabled(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testLoadTreatsTheUndocumentedDisabledFlagAsDisabled)
 {
 	FakeRegistry registry;
 	// Disabled endpoints do not carry DEVICE_STATE_DISABLED in the registry;
@@ -186,7 +186,7 @@ void testLoadTreatsTheUndocumentedDisabledFlagAsDisabled(test::Harness& harness)
 		"the disabled bit must not be mistaken for the unplugged one");
 }
 
-void testLoadWithForeignApoGuidsReportsNotInstalled(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testLoadWithForeignApoGuidsReportsNotInstalled)
 {
 	FakeRegistry registry;
 	seedRenderDevice(registry);
@@ -215,7 +215,7 @@ void testLoadWithForeignApoGuidsReportsNotInstalled(test::Harness& harness)
 		"a driver that supplies SFX/MFX gets the SFX/EFX mode");
 }
 
-void testLoadInfersLfxGfxWhenTheDriverSuppliesOnlyLegacySlots(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testLoadInfersLfxGfxWhenTheDriverSuppliesOnlyLegacySlots)
 {
 	FakeRegistry registry;
 	seedRenderDevice(registry);
@@ -230,7 +230,7 @@ void testLoadInfersLfxGfxWhenTheDriverSuppliesOnlyLegacySlots(test::Harness& har
 		"when the driver populated only the legacy LFX/GFX slots, installing into SFX/EFX would bypass its effects, so the legacy mode is kept");
 }
 
-void testLoadInfersSfxMfxForACombinedBluetoothDevice(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testLoadInfersSfxMfxForACombinedBluetoothDevice)
 {
 	FakeRegistry registry;
 	seedRenderDevice(registry);
@@ -247,7 +247,7 @@ void testLoadInfersSfxMfxForACombinedBluetoothDevice(test::Harness& harness)
 		"a combined Bluetooth endpoint falls back to SFX/MFX because its EFX slot is never reached");
 }
 
-void testLoadDetectsOurApoAndRecoversTheInstallState(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testLoadDetectsOurApoAndRecoversTheInstallState)
 {
 	FakeRegistry registry;
 	seedRenderDevice(registry);
@@ -300,7 +300,7 @@ void seedInstalledWithChildApos(FakeRegistry& registry)
 
 // Audit #348 F11/TD-47: what EqualizerAPO::Initialize reads about its
 // endpoint, through the port and without the default-endpoint lookup.
-void testApoRuntimeFactsComeFromTheInstallRecord(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testApoRuntimeFactsComeFromTheInstallRecord)
 {
 	FakeRegistry registry;
 	seedInstalledWithChildApos(registry);
@@ -320,7 +320,7 @@ void testApoRuntimeFactsComeFromTheInstallRecord(test::Harness& harness)
 	harness.expectEqual(narrow(postMix->childApoGuid), narrow(vendorPostMixGuid), "the post-mix instance wraps the driver's post-mix APO");
 }
 
-void testApoRuntimeFactsDropTheInstallSentinels(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testApoRuntimeFactsDropTheInstallSentinels)
 {
 	harness.expectFalse(isChildApoGuid(L""), "no child recorded");
 	harness.expectFalse(isChildApoGuid(APOGUID_NULL), "the NULL sentinel is not an APO");
@@ -336,7 +336,7 @@ void testApoRuntimeFactsDropTheInstallSentinels(test::Harness& harness)
 	harness.expect(facts->childApoGuid.empty(), "a sentinel in the record means there is no child APO to create");
 }
 
-void testApoRuntimeFactsSkipAnAbsentEndpoint(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testApoRuntimeFactsSkipAnAbsentEndpoint)
 {
 	FakeRegistry registry;
 	seedRenderDevice(registry, DEVICE_STATE_NOTPRESENT);
@@ -346,7 +346,7 @@ void testApoRuntimeFactsSkipAnAbsentEndpoint(test::Harness& harness)
 
 // A failing ASIO record read used to throw out of load() and take the child
 // APO and the capture flag with it.
-void testApoRuntimeFactsSurviveAnUnreadableAsioRecord(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testApoRuntimeFactsSurviveAnUnreadableAsioRecord)
 {
 	FakeRegistry registry;
 	seedInstalledWithChildApos(registry);
@@ -368,7 +368,7 @@ void testApoRuntimeFactsSurviveAnUnreadableAsioRecord(test::Harness& harness)
 	harness.expect(facts.has_value() && facts->childApoGuid == vendorPreMixGuid, "the child APO is still found");
 }
 
-void testLoadRejectsAnInstallationFromANewerBuild(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testLoadRejectsAnInstallationFromANewerBuild)
 {
 	FakeRegistry registry;
 	seedRenderDevice(registry);
@@ -390,7 +390,7 @@ void testLoadRejectsAnInstallationFromANewerBuild(test::Harness& harness)
 		"a stored version this build does not know means a newer Equalizer APO owns the device; load refuses rather than rewriting an installation it cannot describe");
 }
 
-void testLoadTreatsAVersionlessInstallationAsUpgradable(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testLoadTreatsAVersionlessInstallationAsUpgradable)
 {
 	FakeRegistry registry;
 	seedRenderDevice(registry);
@@ -441,7 +441,7 @@ DeviceAPOInfo::InstallState installOnBareDevice(test::Harness& harness, FakeRegi
 	return requested;
 }
 
-void testInstallWithReceiveWritesAndLoadsTheStateAndReport(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testInstallWithReceiveWritesAndLoadsTheStateAndReport)
 {
 	FakeRegistry registry;
 	seedRenderDevice(registry);
@@ -475,7 +475,7 @@ void testInstallWithReceiveWritesAndLoadsTheStateAndReport(test::Harness& harnes
 		"the AbstractAPOInfo query exposes the loaded receiver state");
 }
 
-void testReceiveWithoutPostMixWritesNoReceiverValue(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testReceiveWithoutPostMixWritesNoReceiverValue)
 {
 	FakeRegistry registry;
 	seedRenderDevice(registry);
@@ -495,7 +495,7 @@ void testReceiveWithoutPostMixWritesNoReceiverValue(test::Harness& harness)
 		"the report records the effective state rather than the invalid request");
 }
 
-void testReceiveOnCaptureWritesNoReceiverValue(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testReceiveOnCaptureWritesNoReceiverValue)
 {
 	FakeRegistry registry;
 	const std::wstring captureDeviceKey = captureKeyPath L"\\" + testDeviceGuid;
@@ -525,7 +525,7 @@ void testReceiveOnCaptureWritesNoReceiverValue(test::Harness& harness)
 		"the abstract receiver query is false for capture too");
 }
 
-void testInstallingWithReceiveOffDeletesTheReceiverValue(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testInstallingWithReceiveOffDeletesTheReceiverValue)
 {
 	FakeRegistry registry;
 	registry.seedString(APP_REGPATH, L"InstallPath", L"C:\\eapo");
@@ -556,7 +556,7 @@ void testInstallingWithReceiveOffDeletesTheReceiverValue(test::Harness& harness)
 		"refreshAutoStart sees the value deletion before the transaction commits");
 }
 
-void testReceiveAutoStartFollowsInstallAndUninstall(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testReceiveAutoStartFollowsInstallAndUninstall)
 {
 	FakeRegistry registry;
 	const std::wstring installPath = L"C:\\eapo";
@@ -590,7 +590,7 @@ void testReceiveAutoStartFollowsInstallAndUninstall(test::Harness& harness)
 		"refreshAutoStart sees the key deletion and removes the Run value when no ASIO entry remains");
 }
 
-void testInstallThenLoadRoundTripsTheInstallState(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testInstallThenLoadRoundTripsTheInstallState)
 {
 	FakeRegistry registry;
 	const DeviceAPOInfo::InstallState requested = installOnBareDevice(harness, registry);
@@ -622,7 +622,7 @@ void testInstallThenLoadRoundTripsTheInstallState(test::Harness& harness)
 // voice-chat app tags its stream Communications and, on a driver that
 // declares that mode, would otherwise stream past an SFX listed for Default
 // only - the "EQ works in Audacity but not in Discord" shape.
-void testInstallRegistersEveryModeOfTheDirection(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testInstallRegistersEveryModeOfTheDirection)
 {
 	FakeRegistry registry;
 	installOnBareDevice(harness, registry);
@@ -641,7 +641,7 @@ void testInstallRegistersEveryModeOfTheDirection(test::Harness& harness)
 
 // A recording endpoint carries the pre-mix APO alone, in the stream slot,
 // registered for the capture modes (Default, Communications, Speech).
-void testInstallOnACaptureDeviceFillsTheStreamSlotForTheCaptureModes(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testInstallOnACaptureDeviceFillsTheStreamSlotForTheCaptureModes)
 {
 	FakeRegistry registry;
 	const std::wstring captureDeviceKey = captureKeyPath L"\\" + testDeviceGuid;
@@ -689,7 +689,7 @@ void testInstallOnACaptureDeviceFillsTheStreamSlotForTheCaptureModes(test::Harne
 // The ASIO entry is part of the installation: install with it ticked writes
 // the wrapper record and the driver-list entry for the endpoint, a reload
 // sees the tick, and the uninstall takes both away with the APO.
-void testInstallWithTheAsioEntryRegistersTheWrapperAndUninstallRemovesIt(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testInstallWithTheAsioEntryRegistersTheWrapperAndUninstallRemovesIt)
 {
 	FakeRegistry registry;
 	registry.seedString(APP_REGPATH, L"InstallPath", L"C:\\eapo");
@@ -742,7 +742,7 @@ void testInstallWithTheAsioEntryRegistersTheWrapperAndUninstallRemovesIt(test::H
 // stream mode and its wait, the host at boot, and the 32-bit registration.
 // They reach the record, a reload reads them back, and the one Run value
 // follows every entry that asks for it, whichever kind the entry is.
-void testAsioEntryCarriesTheDriverEntryOptions(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testAsioEntryCarriesTheDriverEntryOptions)
 {
 	// A product directory with the x86 wrapper in it, so the 32-bit
 	// registration has a file to point at.
@@ -831,7 +831,7 @@ void testAsioEntryCarriesTheDriverEntryOptions(test::Harness& harness)
 // did not derive from std::exception, so every call site picked its own set
 // of catch clauses and some missed a type. They share WideError now, whose
 // what() is the message in UTF-8.
-void testWideErrorsShareOneBase(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testWideErrorsShareOneBase)
 {
 	auto caughtAsWideError = [](auto thrower) {
 		try
@@ -865,7 +865,7 @@ void testWideErrorsShareOneBase(test::Harness& harness)
 	harness.expectTrue(endpoint.changesNeedAudioRestart(), "an endpoint change needs the audio service restarted");
 }
 
-void testUninstallRemovesTheFxPropertiesKeyItCreated(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testUninstallRemovesTheFxPropertiesKeyItCreated)
 {
 	FakeRegistry registry;
 	installOnBareDevice(harness, registry);
@@ -884,7 +884,7 @@ void testUninstallRemovesTheFxPropertiesKeyItCreated(test::Harness& harness)
 		"uninstall touches nothing the audio driver owns; the endpoint's own Properties key has to survive");
 }
 
-void testUninstallKeepsFxPropertiesWhenWindowsPutItsOwnSubkeysThere(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testUninstallKeepsFxPropertiesWhenWindowsPutItsOwnSubkeysThere)
 {
 	FakeRegistry registry;
 	installOnBareDevice(harness, registry);
@@ -945,7 +945,7 @@ void installOverVendorApos(test::Harness& harness, FakeRegistry& registry)
 	info.install();
 }
 
-void testInstallExportsTheDriverValuesBeforeOverwritingThem(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testInstallExportsTheDriverValuesBeforeOverwritingThem)
 {
 	FakeRegistry registry;
 	installOverVendorApos(harness, registry);
@@ -977,7 +977,7 @@ void testInstallExportsTheDriverValuesBeforeOverwritingThem(test::Harness& harne
 		"our pre-mix APO takes the LFX slot the driver used to hold");
 }
 
-void testUninstallRestoresTheDriverApoGuids(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testUninstallRestoresTheDriverApoGuids)
 {
 	FakeRegistry registry;
 	installOverVendorApos(harness, registry);
@@ -998,7 +998,7 @@ void testUninstallRestoresTheDriverApoGuids(test::Harness& harness)
 		"the bookkeeping key is removed once its contents have been used");
 }
 
-void testInstallTakesOwnershipWhenFxPropertiesCannotBeCreated(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testInstallTakesOwnershipWhenFxPropertiesCannotBeCreated)
 {
 	FakeRegistry registry;
 	seedRenderDevice(registry);
@@ -1029,7 +1029,7 @@ void testInstallTakesOwnershipWhenFxPropertiesCannotBeCreated(test::Harness& har
 // reported it as installed, because finding either CLSID is what installed
 // means. Nobody, including this program, could describe that endpoint's audio
 // chain afterwards.
-void testInstallLeavesTheEndpointAloneWhenAMidwaySlotWriteFails(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testInstallLeavesTheEndpointAloneWhenAMidwaySlotWriteFails)
 {
 	FakeRegistry registry;
 	seedRenderDevice(registry);
@@ -1099,7 +1099,7 @@ void testInstallLeavesTheEndpointAloneWhenAMidwaySlotWriteFails(test::Harness& h
 		"the export happened before the failure, so its path is in the report - it is the file a user needs to restore the driver's chain by hand");
 }
 
-void testUninstallPutsTheInstallationBackWhenItCannotFinish(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testUninstallPutsTheInstallationBackWhenItCannotFinish)
 {
 	FakeRegistry registry;
 	installOverVendorApos(harness, registry);
@@ -1136,7 +1136,7 @@ void testUninstallPutsTheInstallationBackWhenItCannotFinish(test::Harness& harne
 		"and it reads as installed, which is what it still is");
 }
 
-void testReinstallDoesNotProbeAnEndpoint(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testReinstallDoesNotProbeAnEndpoint)
 {
 	class RejectingProbe final : public EndpointProbe
 	{
@@ -1160,7 +1160,7 @@ void testReinstallDoesNotProbeAnEndpoint(test::Harness& harness)
 	harness.expect(info.isDefaultDevice(), "registry-only reload retains the known default endpoint");
 }
 
-void testCheckProtectedAudioDGReportsAndFixesTheDisabledFlag(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testCheckProtectedAudioDGReportsAndFixesTheDisabledFlag)
 {
 	FakeRegistry registry;
 	registry.seedKey(protectedDGKeyPath);
@@ -1183,7 +1183,7 @@ void testCheckProtectedAudioDGReportsAndFixesTheDisabledFlag(test::Harness& harn
 // hook before any device was cleaned, the DLL was unregistered or the
 // service restarted. It now isolates each endpoint: the broken one is
 // reported, the healthy one is still cleaned.
-void testUninstallSweepSurvivesAnUnreadableEndpoint(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testUninstallSweepSurvivesAnUnreadableEndpoint)
 {
 	FakeRegistry registry;
 	installOnBareDevice(harness, registry);
@@ -1225,7 +1225,7 @@ void testUninstallSweepSurvivesAnUnreadableEndpoint(test::Harness& harness)
 // instead of loading as one without a driver chain. loadAllInfos has to drop
 // that endpoint and keep the rest, because the Editor builds its device list
 // without a try and the Device Selector would show an empty one.
-void testLoadAllInfosSkipsAnUnreadableEndpoint(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testLoadAllInfosSkipsAnUnreadableEndpoint)
 {
 	FakeRegistry registry;
 	seedRenderDevice(registry);
@@ -1260,42 +1260,3 @@ void testLoadAllInfosSkipsAnUnreadableEndpoint(test::Harness& harness)
 		"the locked endpoint is left out rather than offered as one without a driver chain");
 }
 } // namespace
-
-void runDeviceApoInfoTests(test::Harness& harness)
-{
-	testLoadWithoutFxPropertiesReportsNoDriverEffectChain(harness);
-	testLoadSkipsDevicesTheDriverReportsAsNotPresent(harness);
-	testLoadTreatsTheUndocumentedDisabledFlagAsDisabled(harness);
-	testLoadWithForeignApoGuidsReportsNotInstalled(harness);
-	testLoadInfersLfxGfxWhenTheDriverSuppliesOnlyLegacySlots(harness);
-	testLoadInfersSfxMfxForACombinedBluetoothDevice(harness);
-	testLoadDetectsOurApoAndRecoversTheInstallState(harness);
-	testLoadRejectsAnInstallationFromANewerBuild(harness);
-	testApoRuntimeFactsComeFromTheInstallRecord(harness);
-	testApoRuntimeFactsDropTheInstallSentinels(harness);
-	testApoRuntimeFactsSkipAnAbsentEndpoint(harness);
-	testApoRuntimeFactsSurviveAnUnreadableAsioRecord(harness);
-	testLoadTreatsAVersionlessInstallationAsUpgradable(harness);
-	testInstallWithReceiveWritesAndLoadsTheStateAndReport(harness);
-	testReceiveWithoutPostMixWritesNoReceiverValue(harness);
-	testReceiveOnCaptureWritesNoReceiverValue(harness);
-	testInstallingWithReceiveOffDeletesTheReceiverValue(harness);
-	testReceiveAutoStartFollowsInstallAndUninstall(harness);
-	testInstallThenLoadRoundTripsTheInstallState(harness);
-	testInstallRegistersEveryModeOfTheDirection(harness);
-	testInstallOnACaptureDeviceFillsTheStreamSlotForTheCaptureModes(harness);
-	testInstallWithTheAsioEntryRegistersTheWrapperAndUninstallRemovesIt(harness);
-	testAsioEntryCarriesTheDriverEntryOptions(harness);
-	testWideErrorsShareOneBase(harness);
-	testUninstallRemovesTheFxPropertiesKeyItCreated(harness);
-	testUninstallKeepsFxPropertiesWhenWindowsPutItsOwnSubkeysThere(harness);
-	testInstallExportsTheDriverValuesBeforeOverwritingThem(harness);
-	testUninstallRestoresTheDriverApoGuids(harness);
-	testInstallTakesOwnershipWhenFxPropertiesCannotBeCreated(harness);
-	testInstallLeavesTheEndpointAloneWhenAMidwaySlotWriteFails(harness);
-	testUninstallPutsTheInstallationBackWhenItCannotFinish(harness);
-	testReinstallDoesNotProbeAnEndpoint(harness);
-	testCheckProtectedAudioDGReportsAndFixesTheDisabledFlag(harness);
-	testUninstallSweepSurvivesAnUnreadableEndpoint(harness);
-	testLoadAllInfosSkipsAnUnreadableEndpoint(harness);
-}

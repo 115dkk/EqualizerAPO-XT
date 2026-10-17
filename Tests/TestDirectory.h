@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -56,20 +57,46 @@ public:
 		files_.push_back(fullPath);
 	}
 
-	// Deletes every tracked file, then the directory (which only succeeds if
-	// nothing untracked was left behind - deliberate, so leaks show up as a
-	// leftover directory instead of disappearing).
+	// Creates and tracks a directory below this fixture. A name may itself have
+	// parent components that the caller created through earlier subdirectory()
+	// calls.
+	std::wstring subdirectory(const std::wstring& name)
+	{
+		std::wstring full = path_ + L"\\" + name;
+		CreateDirectoryW(full.c_str(), nullptr);
+		directories_.push_back(full);
+		return full;
+	}
+
+	// Tracks a directory whose creation must stay at the call site, such as an
+	// ACL or reparse-point fixture.
+	void trackDirectory(const std::wstring& fullPath)
+	{
+		directories_.push_back(fullPath);
+	}
+
+	// Deletes every tracked file, then tracked directories from deepest to
+	// shallowest, then the fixture root. The final removal only succeeds if
+	// nothing untracked was left behind, so leaks remain visible on disk.
 	void removeAll()
 	{
 		for (const std::wstring& file : files_)
 			DeleteFileW(file.c_str());
 		files_.clear();
+		std::stable_sort(directories_.begin(), directories_.end(),
+			[](const std::wstring& left, const std::wstring& right) {
+				return left.size() > right.size();
+			});
+		for (const std::wstring& directory : directories_)
+			RemoveDirectoryW(directory.c_str());
+		directories_.clear();
 		RemoveDirectoryW(path_.c_str());
 	}
 
 private:
 	std::wstring path_;
 	std::vector<std::wstring> files_;
+	std::vector<std::wstring> directories_;
 };
 
 } // namespace test

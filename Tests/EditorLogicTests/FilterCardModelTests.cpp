@@ -25,7 +25,7 @@
 // Audit #348 TD-04/B7: the Copy routing view (and any card that writes its
 // state back) rebuilt "Copy: ..." without looking at whether the line was
 // switched off, so touching a switched-off Copy row switched it on.
-void testCardEditsKeepSwitchedOffLinesOff()
+TEST_CASE(EditorLogicTests, testCardEditsKeepSwitchedOffLinesOff)
 {
 	expectEqual(FilterCardModel::assembleLine("Copy", "L=R R=L", "# Copy: L=L R=R"),
 		"# Copy: L=R R=L", "editing a switched-off Copy line keeps it switched off");
@@ -47,7 +47,7 @@ void testCardEditsKeepSwitchedOffLinesOff()
 		"the reassembled switched-off line still describes as disabled");
 }
 
-void testFilterCardDescriptors()
+TEST_CASE(EditorLogicTests, testFilterCardDescriptors)
 {
 	// Every classification below runs through FilterCardModel::canonicalCommand,
 	// which asks the engine's registry. The registry is filled by file-scope
@@ -301,7 +301,7 @@ void testFilterCardDescriptors()
 	expectFalse(FilterCardModel::hasInlineExpressions("`unterminated"), "unterminated trailing expression is dropped");
 }
 
-void testFilterCardDepths()
+TEST_CASE(EditorLogicTests, testFilterCardDepths)
 {
 	// The indent axis of calculateScopes (the margin depth).
 	const QVector<FilterCardRowScope> depthScopes = FilterCardModel::calculateScopes(QList<QString>({
@@ -439,7 +439,7 @@ void testFilterCardDepths()
 		"a refused device name is not badged either; the body flags it");
 }
 
-void testFilterCardBuildPlans()
+TEST_CASE(EditorLogicTests, testFilterCardBuildPlans)
 {
 	const QList<QString> lines({
 		"Channel: L R",
@@ -521,7 +521,7 @@ void testFilterCardBuildPlans()
 // pure function its policy is pinned here directly; the two environment facts
 // (routing renderer, card editor availability) are injected so every branch
 // is reachable without a skin or the card registry.
-void testRowGuiPolicyRoutesEachLineShape()
+TEST_CASE(EditorLogicTests, testRowGuiPolicyRoutesEachLineShape)
 {
 	const FilterCardDescriptor comment = FilterCardModel::describeLine(
 		QStringLiteral("# just a note to self"));

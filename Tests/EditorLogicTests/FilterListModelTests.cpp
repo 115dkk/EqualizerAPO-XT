@@ -45,7 +45,7 @@ static void requireFilterListModelInvariants(const FilterListModel& model, const
 		throw std::runtime_error(std::string("FilterListModel anchor invariant failed after ") + stage);
 }
 
-void testFilterListModel()
+TEST_CASE(EditorLogicTests, testFilterListModel)
 {
 	FilterListModel model;
 
@@ -257,7 +257,7 @@ void testFilterListModel()
 // FilterListUndo: the widget-free undo/redo history FilterTable commits to on
 // every linesChanged tick.
 // D1 (audit #422): the single-line mutations every row edit goes through.
-void testFilterListModelEditsOneLine()
+TEST_CASE(EditorLogicTests, testFilterListModelEditsOneLine)
 {
 	FilterListModel model;
 	model.setLines(QList<QString>() << "Preamp:  -6   dB" << "\t# Preamp: -3 dB" << "#Preamp: x"
@@ -305,7 +305,7 @@ void testFilterListModelEditsOneLine()
 	requireFilterListModelInvariants(model, "single-line edits");
 }
 
-void testFilterListUndo()
+TEST_CASE(EditorLogicTests, testFilterListUndo)
 {
 	FilterListUndo history;
 	QList<QString> doc = QList<QString>() << "Preamp: -6 dB" << "Include: a.txt";

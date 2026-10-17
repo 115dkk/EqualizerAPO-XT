@@ -30,7 +30,7 @@ AnalysisResponse makeResponse(unsigned sampleRate, size_t fftSize)
 }
 }
 
-void testAnalysisResponseBinArithmetic()
+TEST_CASE(EditorLogicTests, testAnalysisResponseBinArithmetic)
 {
 	// A real-to-complex transform of N samples produces N/2 + 1 bins: DC, the
 	// N/2 - 1 interior bins, and Nyquist. This is the count the analysis thread
@@ -74,7 +74,7 @@ void testAnalysisResponseBinArithmetic()
 		"a non-finite frequency clamps to DC rather than indexing wildly");
 }
 
-void testAnalysisResponseEmptyAndLatency()
+TEST_CASE(EditorLogicTests, testAnalysisResponseEmptyAndLatency)
 {
 	// Three ways to be empty, all of which the graph has to survive: before
 	// the first analysis, after a failed one, and the degenerate case of a

@@ -595,7 +595,7 @@ namespace
 	}
 }
 
-void runSendTests(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, runSendTests)
 {
 	checkAttachBeforeFirstProcessAndIdleResume(harness);
 	checkRoutingAndReceiverState(harness);

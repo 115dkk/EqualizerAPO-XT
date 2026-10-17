@@ -28,7 +28,7 @@
 #include "services/registry/ClsidRegistration.h"
 #include "platform/windows/WindowsPath.h"
 #include "services/registry/WindowsRegistry.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 #include "Tests/FakeRegistry.h"
 
@@ -55,7 +55,7 @@ void removeScratchDir(const std::wstring& dir)
 		RemoveDirectoryW(dir.c_str());
 }
 
-void testInstallRegistryWritesTheAppVocabulary(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testInstallRegistryWritesTheAppVocabulary)
 {
 	FakeRegistry registry;
 	registry.seedKey(audioKey);
@@ -83,7 +83,7 @@ void testInstallRegistryWritesTheAppVocabulary(test::Harness& harness)
 	removeScratchDir(configDir);
 }
 
-void testInstallRegistryNeverOverwritesUserValues(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testInstallRegistryNeverOverwritesUserValues)
 {
 	FakeRegistry registry;
 	registry.seedKey(audioKey);
@@ -106,7 +106,7 @@ void testInstallRegistryNeverOverwritesUserValues(test::Harness& harness)
 	removeScratchDir(configDir);
 }
 
-void testCleanupRemovesTheFlagButOnlyEmptyKeys(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testCleanupRemovesTheFlagButOnlyEmptyKeys)
 {
 	FakeRegistry registry;
 	registry.seedKey(audioKey);
@@ -129,7 +129,7 @@ void testCleanupRemovesTheFlagButOnlyEmptyKeys(test::Harness& harness)
 		"an empty app key is removed");
 }
 
-void testClsidTreeRoundTrip(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testClsidTreeRoundTrip)
 {
 	FakeRegistry registry;
 	const std::wstring clsid = L"{11111111-2222-3333-4444-555555555555}";
@@ -153,7 +153,7 @@ void testClsidTreeRoundTrip(test::Harness& harness)
 		"unregister removes the whole class tree");
 }
 
-void testClsidTreeFailuresReachTheCallerForRollback(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testClsidTreeFailuresReachTheCallerForRollback)
 {
 	// DllRegisterServer's rollback (unregister both APO GUIDs) only runs if
 	// a failed write escapes as an exception; a swallowed failure would leave
@@ -178,7 +178,7 @@ void testClsidTreeFailuresReachTheCallerForRollback(test::Harness& harness)
 }
 
 
-void testMissingMigrationRootGetsOnePackagedDefault(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testMissingMigrationRootGetsOnePackagedDefault)
 {
 	class CountingRegistry final : public FakeRegistry
 	{
@@ -227,7 +227,7 @@ void testMissingMigrationRootGetsOnePackagedDefault(test::Harness& harness)
 	RemoveDirectoryW(directory.c_str());
 }
 
-void runApoRegistrationTests(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, runApoRegistrationTests)
 {
 	harness.expect(ApoRegistration::shouldGrantInstallAccess(),
 		"already-elevated install with no hand-off keeps both legacy grants");
@@ -246,10 +246,4 @@ void runApoRegistrationTests(test::Harness& harness)
 		"migration-owned config root can be deferred");
 	harness.expectFalse(deferred.valueExists(appKey, L"ConfigPath"),
 		"install does not publish a disposable ConfigPath before migration chooses the root");
-	testMissingMigrationRootGetsOnePackagedDefault(harness);
-	testInstallRegistryWritesTheAppVocabulary(harness);
-	testInstallRegistryNeverOverwritesUserValues(harness);
-	testCleanupRemovesTheFlagButOnlyEmptyKeys(harness);
-	testClsidTreeRoundTrip(harness);
-	testClsidTreeFailuresReachTheCallerForRollback(harness);
 }

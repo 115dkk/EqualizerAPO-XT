@@ -18,7 +18,7 @@
 #define NOMINMAX
 #endif
 #include "EqualizerAPO/ApoFormat.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 namespace
 {
@@ -35,7 +35,7 @@ UNCOMPRESSEDAUDIOFORMAT makeFormat(const GUID& formatType, unsigned containerByt
 	return format;
 }
 
-void testFormatDetection(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testFormatDetection)
 {
 	harness.expect(apo::detectSampleFormat(makeFormat(apo::kIeeeFloatSubtype, 4, 32))
 		== apo::SampleFormat::Float32, "a 4-byte IEEE float container is Float32");
@@ -62,7 +62,7 @@ void testFormatDetection(test::Harness& harness)
 		"an unsupported format has no sample size");
 }
 
-void testSilenceVerdict(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testSilenceVerdict)
 {
 	std::vector<double> block(256, 0.0);
 	harness.expectTrue(apo::isBlockSilent(block.data(), block.size()),
@@ -82,7 +82,7 @@ void testSilenceVerdict(test::Harness& harness)
 		"a negative sample's magnitude counts");
 }
 
-void testChannelMaskFallback(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testChannelMaskFallback)
 {
 	// Render prefers the output mask, capture the input mask.
 	harness.expectEqual(apo::resolveChannelMask(false, 0x3F, 6, 0x3, 2), 0x3u,
@@ -101,7 +101,7 @@ void testChannelMaskFallback(test::Harness& harness)
 
 // Audit #348 F20: every branch of APOProcess, one fact changed at a time
 // from a block that takes the silent fast path.
-void testBlockActionTable(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testBlockActionTable)
 {
 	using apo::BlockAction;
 	using apo::SampleFormat;
@@ -193,7 +193,7 @@ struct FakeBlockEngine
 // Audit #422 E4: drive the complete block plan through an engine-like object.
 // This pins the zero-input rule, child ordering, post-process silence policy and
 // the non-processing actions without constructing an APO COM object.
-void testBlockPlanExecution(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testBlockPlanExecution)
 {
 	using apo::BlockAction;
 	using apo::OutputFlagRule;
@@ -298,11 +298,3 @@ void testBlockPlanExecution(test::Harness& harness)
 } // namespace
 
 // Called from the suite's main() in EngineOrchestrationTests.cpp.
-void runApoFormatTests(test::Harness& harness)
-{
-	testFormatDetection(harness);
-	testSilenceVerdict(harness);
-	testChannelMaskFallback(harness);
-	testBlockActionTable(harness);
-	testBlockPlanExecution(harness);
-}

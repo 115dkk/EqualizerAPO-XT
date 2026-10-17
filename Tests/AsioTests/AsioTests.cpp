@@ -39,7 +39,7 @@
 #include "Tests/FakeRegistry.h"
 #include "Tests/FakeAsioDriver/FakeAsio.h"
 #include "Tests/TestDirectory.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 using eapo::asio::AsioWrapper;
 using eapo::asio::Direction;
@@ -55,7 +55,7 @@ using eapo::asio::StreamStats;
 
 namespace
 {
-	test::Harness harness("AsioTests");
+	test::HarnessAccess harness;
 
 	template<typename Predicate>
 	bool waitUntil(Predicate predicate, DWORD timeoutMs)
@@ -235,7 +235,7 @@ namespace
 
 	// ---- codecs ----
 
-	void testCodecRoundTrips()
+	TEST_CASE(AsioTests, testCodecRoundTrips)
 	{
 		const long types[] = {
 			ASIOSTInt16LSB, ASIOSTInt16MSB, ASIOSTInt24LSB, ASIOSTInt24MSB, ASIOSTInt32LSB, ASIOSTInt32MSB,
@@ -279,7 +279,7 @@ namespace
 	// The WASAPI target's pure parts: which containers are tried in which
 	// order, what buffer sizes it offers, and the byte shuffles between the
 	// ASIO planes and the device's interleaved block.
-	void testWasapiTargetPolicy()
+	TEST_CASE(AsioTests, testWasapiTargetPolicy)
 	{
 		namespace wasapi = eapo::asio::wasapi;
 
@@ -437,7 +437,7 @@ namespace
 	// The WASAPI target's stream decisions, taken out of the stream thread:
 	// the bridge calibration, the capture queue, the output staging and the
 	// judgement of a device that went away, fed synthetic numbers.
-	void testWasapiStreamParts()
+	TEST_CASE(AsioTests, testWasapiStreamParts)
 	{
 		namespace wasapi = eapo::asio::wasapi;
 		const uint64_t period = 2666666;     // 128 frames at 48 kHz, in ns
@@ -639,7 +639,7 @@ namespace
 		return setup;
 	}
 
-	void testWasapiEndpointClientCalibration()
+	TEST_CASE(AsioTests, testWasapiEndpointClientCalibration)
 	{
 		asiotest::HostStub::Options hostOptions;
 		hostOptions.sampleType = ASIOSTFloat32LSB;
@@ -686,7 +686,7 @@ namespace
 		}
 	}
 
-	void testWasapiEndpointClientDeviceLost()
+	TEST_CASE(AsioTests, testWasapiEndpointClientDeviceLost)
 	{
 		auto endpoint = std::make_unique<asiotest::FakeEndpointClient>(2, 4);
 		asiotest::FakeEndpointClient* observed = endpoint.get();
@@ -716,7 +716,7 @@ namespace
 	// page by the WASAPI target, must widen back to the same text and never be
 	// cut in the middle of a double-byte character. Pinned with code page 949
 	// so the check does not depend on the runner's system locale.
-	void testDriverNameText()
+	TEST_CASE(AsioTests, testDriverNameText)
 	{
 		if (!IsValidCodePage(949))
 		{
@@ -749,7 +749,7 @@ namespace
 			"widening truncates to the destination and terminates it");
 	}
 
-	void testCodecBytePatterns()
+	TEST_CASE(AsioTests, testCodecBytePatterns)
 	{
 		SampleCodec codec;
 		eapo::asio::findSampleCodec(ASIOSTInt16LSB, codec);
@@ -820,7 +820,7 @@ namespace
 		}
 	};
 
-	void testTrampolines()
+	TEST_CASE(AsioTests, testTrampolines)
 	{
 		using eapo::asio::CallbackTrampolines::claim;
 		using eapo::asio::CallbackTrampolines::release;
@@ -873,7 +873,7 @@ namespace
 
 	// ---- wrapper: state machine ----
 
-	void testStateMachineOrdering()
+	TEST_CASE(AsioTests, testStateMachineOrdering)
 	{
 		FakeAsioConfig config;
 		StreamOptions options;
@@ -924,7 +924,7 @@ namespace
 		harness.expect(std::string(name) == "FakeAsio (EQ APO XT)", std::string("the driver name carries the suffix: ") + name);
 	}
 
-	void testQuarantinedCallbackDetachesHostArrayAndDefersTargetDispose()
+	TEST_CASE(AsioTests, testQuarantinedCallbackDetachesHostArrayAndDefersTargetDispose)
 	{
 		FakeAsioConfig config;
 		StreamOptions options;
@@ -958,7 +958,7 @@ namespace
 		harness.expectEqual(rig.wrapper->disposeBuffers(), ASE_OK, "the reopened stream disposes normally");
 	}
 
-	void testFailedProcessorOpenQuarantineDetachesHostArray()
+	TEST_CASE(AsioTests, testFailedProcessorOpenQuarantineDetachesHostArray)
 	{
 		FakeAsioConfig config;
 		StreamOptions options;
@@ -994,7 +994,7 @@ namespace
 		harness.expectEqual(rig.wrapper->disposeBuffers(), ASE_OK, "the recovered stream disposes normally");
 	}
 
-	void testFailedTargetCreateQuarantinesNotificationCallback()
+	TEST_CASE(AsioTests, testFailedTargetCreateQuarantinesNotificationCallback)
 	{
 		FakeAsioConfig config;
 		config.failCreateAfterCallbacks = 1;
@@ -1033,7 +1033,7 @@ namespace
 
 	// ---- wrapper: data flow ----
 
-	void testOutputAndInputAreProcessed()
+	TEST_CASE(AsioTests, testOutputAndInputAreProcessed)
 	{
 		FakeAsioConfig config;
 		config.seed = 11;
@@ -1086,7 +1086,7 @@ namespace
 		harness.expectEqual(rig.host->timeInfoSwitches(), 4ul, "the host received the time-info switch");
 	}
 
-	void testFirstBlockIsAlreadyProcessed()
+	TEST_CASE(AsioTests, testFirstBlockIsAlreadyProcessed)
 	{
 		FakeAsioConfig config;
 		StreamOptions options;
@@ -1115,7 +1115,7 @@ namespace
 		harness.expect(allProcessed, "the very first block leaves the wrapper processed");
 	}
 
-	void testLateAndOffPassThrough()
+	TEST_CASE(AsioTests, testLateAndOffPassThrough)
 	{
 		FakeAsioConfig config;
 		StreamOptions options;
@@ -1160,7 +1160,7 @@ namespace
 		harness.expect(inputRaw, "a disabled input direction is copied byte for byte");
 	}
 
-	void testGoneIsStickyUntilReopen()
+	TEST_CASE(AsioTests, testGoneIsStickyUntilReopen)
 	{
 		FakeAsioConfig config;
 		StreamOptions options;
@@ -1192,7 +1192,7 @@ namespace
 	// input generator used to carry on from where the previous stream
 	// stopped, so a test that reopened could not predict the input from
 	// sample 0.
-	void testReopenedTargetRestartsItsInput()
+	TEST_CASE(AsioTests, testReopenedTargetRestartsItsInput)
 	{
 		FakeAsioConfig config;
 		config.seed = 5;
@@ -1225,7 +1225,7 @@ namespace
 		harness.expect(fromZero, "after the reopen the input starts again at generator sample 0");
 	}
 
-	void testOutputReadyPath()
+	TEST_CASE(AsioTests, testOutputReadyPath)
 	{
 		FakeAsioConfig config;
 		StreamOptions options;
@@ -1255,7 +1255,7 @@ namespace
 		harness.expect(processed, "output committed at outputReady carries the processed audio");
 	}
 
-	void testUnopenedChannelsSeeSilence()
+	TEST_CASE(AsioTests, testUnopenedChannelsSeeSilence)
 	{
 		FakeAsioConfig config;
 		config.outputChannels = 4;
@@ -1289,7 +1289,7 @@ namespace
 		harness.expect(live, "a channel the host opened plays its signal");
 	}
 
-	void testResetAndRateChangePropagate()
+	TEST_CASE(AsioTests, testResetAndRateChangePropagate)
 	{
 		FakeAsioConfig config;
 		StreamOptions options;
@@ -1331,7 +1331,7 @@ namespace
 		w->disposeBuffers();
 	}
 
-	void testRejectedFormatsAndOpenFailures()
+	TEST_CASE(AsioTests, testRejectedFormatsAndOpenFailures)
 	{
 		{
 			FakeAsioConfig config;
@@ -1389,7 +1389,7 @@ namespace
 		}
 	}
 
-	void testLatenciesAddTheProcessorsShare()
+	TEST_CASE(AsioTests, testLatenciesAddTheProcessorsShare)
 	{
 		FakeAsioConfig config;
 		config.inputLatency = 10;
@@ -1412,7 +1412,7 @@ namespace
 		w->disposeBuffers();
 	}
 
-	void testHostWithoutTimeInfo()
+	TEST_CASE(AsioTests, testHostWithoutTimeInfo)
 	{
 		FakeAsioConfig config;
 		StreamOptions options;
@@ -1435,7 +1435,7 @@ namespace
 
 	// ---- registry record ----
 
-	void testSyncDeadline()
+	TEST_CASE(AsioTests, testSyncDeadline)
 	{
 		StreamFormat format;
 		format.sampleRate = 48000.0;
@@ -1453,7 +1453,7 @@ namespace
 		harness.expectEqual(eapo::asio::syncDeadlineUs(format, options), 0u, "no rate: no deadline");
 	}
 
-	void testWrapperRecordRoundTrip()
+	TEST_CASE(AsioTests, testWrapperRecordRoundTrip)
 	{
 		test::FakeRegistry registry;
 		eapo::asio::WrapperRecord record;
@@ -1514,7 +1514,7 @@ namespace
 
 	// ---- loopback latency matching ----
 
-	void testLatencyMatchingAndSummary()
+	TEST_CASE(AsioTests, testLatencyMatchingAndSummary)
 	{
 		const std::vector<int64_t> emitted = {0, 5000000, 10000000};
 		asiotest::LatencyMatch match = asiotest::matchClicks(emitted, {1200, 5001200, 10001200}, 5000000);
@@ -1557,7 +1557,7 @@ namespace
 
 	// ---- in-process engine adapter ----
 
-	void testInProcProcessorRunsTheEngine()
+	TEST_CASE(AsioTests, testInProcProcessorRunsTheEngine)
 	{
 		test::TestDirectory directory(L"AsioTests");
 		const std::wstring configPath = directory.trackFile(L"config.txt");
@@ -1609,61 +1609,25 @@ namespace
 		directory.removeAll();
 	}
 
-	int runAsioTests()
+	TEST_CASE(AsioTests, testAllInstancesReleased)
 	{
-		testCodecRoundTrips();
-		testWasapiTargetPolicy();
-		testWasapiStreamParts();
-		testWasapiEndpointClientCalibration();
-		testWasapiEndpointClientDeviceLost();
-		testDriverNameText();
-		testCodecBytePatterns();
-		testTrampolines();
-		testStateMachineOrdering();
-		testQuarantinedCallbackDetachesHostArrayAndDefersTargetDispose();
-		testFailedProcessorOpenQuarantineDetachesHostArray();
-		testFailedTargetCreateQuarantinesNotificationCallback();
-		testOutputAndInputAreProcessed();
-		testFirstBlockIsAlreadyProcessed();
-		testLateAndOffPassThrough();
-		testGoneIsStickyUntilReopen();
-		testReopenedTargetRestartsItsInput();
-		testOutputReadyPath();
-		testUnopenedChannelsSeeSilence();
-		testResetAndRateChangePropagate();
-		testRejectedFormatsAndOpenFailures();
-		testLatenciesAddTheProcessorsShare();
-		testHostWithoutTimeInfo();
-		testSyncDeadline();
-		testWrapperRecordRoundTrip();
-		testLatencyMatchingAndSummary();
-		testInProcProcessorRunsTheEngine();
 		harness.expectEqual(AsioWrapper::instanceCount(), 0L, "every wrapper was released");
 		harness.expectEqual(FakeAsioDriver::instanceCount(), 0L, "every fake driver was released");
-		harness.report();
-		return test::reportAlignedMemoryBalance("AsioTests");
 	}
 }
-
-int runStreamRingTests();
-int runDaemonTests();
-int runDeviceRecordTests();
-int runReceiverKeepaliveTests();
 
 int main()
 {
 	Logging::set(stderr, false, false, false);
 	try
 	{
-		if (runStreamRingTests() != 0)
-			return 1;
-		if (runDaemonTests() != 0)
-			return 1;
-		if (runDeviceRecordTests() != 0)
-			return 1;
-		if (runReceiverKeepaliveTests() != 0)
-			return 1;
-		return runAsioTests();
+		return test::runAll("AsioTests", {
+			"StreamRingTests",
+			"DaemonTests",
+			"DeviceRecordTests",
+			"ReceiverKeepaliveTests",
+			"AsioTests",
+		});
 	}
 	catch (const std::exception& error)
 	{

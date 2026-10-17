@@ -13,20 +13,20 @@
 	parameter string.
 
 	These tests link against the same Common.lib as HybridConvTests and run from
-	its main() via runDelayCommandTests().
+	the binary through TestHarness registration.
 */
 
 #include <string>
 
 #include "filters/DelayCommand.h"
 #include "platform/windows/TextEncoding.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 using std::wstring;
 
 namespace
 {
-test::Harness harness("DelayCommandTests");
+test::HarnessAccess harness;
 
 // Parses "Delay: <parameters>" the way the engine does. Returns whether a
 // DelayFilter would be built and, when it would, fills outValue and outIsMs.
@@ -40,7 +40,7 @@ bool parseDelay(const wstring& parameters, double& outValue, bool& outIsMs)
 	return true;
 }
 
-void testValueAndUnit()
+TEST_CASE(DelayCommandTests, testValueAndUnit)
 {
 	double value = -1.0;
 	bool isMs = false;
@@ -69,7 +69,7 @@ void testValueAndUnit()
 	harness.expectFalse(isMs, "'512 SAMPLES' should be samples");
 }
 
-void testRejectedCommands()
+TEST_CASE(DelayCommandTests, testRejectedCommands)
 {
 	double value = -1.0;
 	bool isMs = false;
@@ -91,7 +91,7 @@ void testRejectedCommands()
 // The codec itself accepts a zero delay: the engine's no-op gate lives in the
 // factory, so the Editor can still open a knob card for the
 // insert template's own "Delay: 0 ms" instead of dropping the row to raw text.
-void testCodecAcceptsZero()
+TEST_CASE(DelayCommandTests, testCodecAcceptsZero)
 {
 	DelayCommand cmd;
 	harness.expectTrue(DelayCommand::parse(L"0 ms", cmd), "codec should accept '0 ms'");
@@ -119,7 +119,7 @@ void expectRoundTrip(const wstring& parameters, const wstring& expected)
 		"serialize(parse(\"" + wintext::toNarrowString(parameters, 65001u) + "\")) mismatch");
 }
 
-void testSerializeRoundTrip()
+TEST_CASE(DelayCommandTests, testSerializeRoundTrip)
 {
 	// The canonical forms serialize back to themselves.
 	expectRoundTrip(L"100 ms", L"100 ms");
@@ -146,13 +146,4 @@ void testSerializeRoundTrip()
 	harness.expectEqual(reparsed.delay, built.delay, "round-trip delay value");
 	harness.expectTrue(reparsed.isMs == built.isMs, "round-trip unit flag");
 }
-}
-
-void runDelayCommandTests()
-{
-	testValueAndUnit();
-	testRejectedCommands();
-	testCodecAcceptsZero();
-	testSerializeRoundTrip();
-	harness.report();
 }

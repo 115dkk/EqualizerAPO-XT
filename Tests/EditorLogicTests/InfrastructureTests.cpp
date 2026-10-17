@@ -28,7 +28,7 @@
 // Missing a skin used to be silent: resolveId() falls back to Studio, so a skin
 // that was registered but forgotten in one of eighteen places was drawn as Studio
 // with no error anywhere.
-void testTheSkinRosterIsTheOneList()
+TEST_CASE(EditorLogicTests, testTheSkinRosterIsTheOneList)
 {
 	const QVector<SkinThemeData::SkinEntry>& roster = SkinThemeData::roster();
 	requireTrue(roster.size() >= 5, "the roster carries the five built-in skins");
@@ -66,7 +66,7 @@ void testTheSkinRosterIsTheOneList()
 		"an unknown id falls back to the first entry rather than producing no skin at all");
 }
 
-void testSkinTokensCarryExplicitMode()
+TEST_CASE(EditorLogicTests, testSkinTokensCarryExplicitMode)
 {
 	const QStringList skinIds = SkinThemeData::ids();
 	for (const QString& skinId : skinIds)
@@ -81,7 +81,7 @@ void testSkinTokensCarryExplicitMode()
 // The alpha form a sheet needs to hold a token at partial opacity. QSS has no
 // variables and its rgba() takes three numbers, so without this a sheet had to
 // write the palette value out by hand and a token change stopped reaching it.
-void testTokenSubstitutionOffersAnAlphaForm()
+TEST_CASE(EditorLogicTests, testTokenSubstitutionOffersAnAlphaForm)
 {
 	const SkinTokens tokens = SkinThemeData::tokens(QStringLiteral("studio"), true);
 	const QColor accent(tokens.accent);
@@ -106,7 +106,7 @@ void testTokenSubstitutionOffersAnAlphaForm()
 	expectTrue(fontSheet.contains(tokens.fontFamily), "the font token still resolves");
 }
 
-void testEverySkinSheetResolvesAllThemeTokens()
+TEST_CASE(EditorLogicTests, testEverySkinSheetResolvesAllThemeTokens)
 {
 	QDir repoRoot(QFileInfo(QString::fromUtf8(__FILE__)).absolutePath());
 	requireTrue(repoRoot.cdUp(), "skin-token test reaches the tests directory");
@@ -132,7 +132,7 @@ void testEverySkinSheetResolvesAllThemeTokens()
 	}
 }
 
-void testEditableValueTextUsesDisplayedDecimalFormatFirst()
+TEST_CASE(EditorLogicTests, testEditableValueTextUsesDisplayedDecimalFormatFirst)
 {
 	const QLocale german(QLocale::German, QLocale::Germany);
 	double value = 0.0;
@@ -146,7 +146,7 @@ void testEditableValueTextUsesDisplayedDecimalFormatFirst()
 		"system-locale fallback keeps its decimal meaning");
 }
 
-void testBenchmarkBatchPlanUsesOnlyComparableFullBatches()
+TEST_CASE(EditorLogicTests, testBenchmarkBatchPlanUsesOnlyComparableFullBatches)
 {
 	const BenchmarkBatchPlan partial = planBenchmarkBatches(1000, 480);
 	expectEqual(partial.processedFrames, 960u,
@@ -161,7 +161,7 @@ void testBenchmarkBatchPlanUsesOnlyComparableFullBatches()
 		"batch-aligned benchmark lengths trim nothing");
 }
 
-void testFileReferenceControllerOwnsPathState()
+TEST_CASE(EditorLogicTests, testFileReferenceControllerOwnsPathState)
 {
 	QTemporaryDir temp;
 	requireTrue(temp.isValid(), "file-reference test creates a temporary root");
@@ -231,7 +231,7 @@ void testFileReferenceControllerOwnsPathState()
 		"no library shows no path");
 }
 
-void testAnalysisWorkerRecovery()
+TEST_CASE(EditorLogicTests, testAnalysisWorkerRecovery)
 {
 	bool failurePublished = false;
 	try
@@ -255,7 +255,7 @@ void testAnalysisWorkerRecovery()
 	expectTrue(nextIterationRan, "analysis worker did not accept work after a failure");
 }
 
-void testMemoryHelperConstructReleasesStorageWhenConstructorThrows()
+TEST_CASE(EditorLogicTests, testMemoryHelperConstructReleasesStorageWhenConstructorThrows)
 {
 	struct ThrowingConstructor
 	{

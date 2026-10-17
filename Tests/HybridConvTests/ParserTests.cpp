@@ -21,14 +21,14 @@
 
 #include <mpParser.h>
 #include "parser/EngineParser.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 using std::wstring;
 using namespace mup;
 
 namespace
 {
-test::Harness harness("ParserTests");
+test::HarnessAccess harness;
 
 double evalFloat(EngineParser& parser, const wstring& expr)
 {
@@ -47,7 +47,7 @@ bool evalBool(EngineParser& parser, const wstring& expr)
 }
 }
 
-void runParserTests()
+TEST_CASE(ParserTests, runParserTests)
 {
 	// Guard the whole sequence: a wrong expectation must surface as a reported
 	// test failure, never as an uncaught exception that aborts the process.
@@ -103,8 +103,6 @@ void runParserTests()
 		std::cerr << "ParserTests: unexpected exception: " << e.what() << std::endl;
 		harness.expectTrue(false, "unexpected std::exception during parser tests (see stderr)");
 	}
-
-	harness.report();
 }
 
 // Deferred: readRegString / readRegDWORD (parser/RegistryFunctions.cpp) are not

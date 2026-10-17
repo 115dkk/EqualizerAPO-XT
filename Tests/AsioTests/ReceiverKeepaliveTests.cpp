@@ -14,16 +14,16 @@
 #include "devices/DeviceAPOInfoKeys.h"
 #include "devices/ReceiverEndpoints.h"
 #include "Tests/FakeRegistry.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 #include <ks.h>
 #include <ksmedia.h>
 
 namespace
 {
-	test::Harness harness("ReceiverKeepaliveTests");
+	test::HarnessAccess harness;
 
-	void testReceivingEndpoints()
+	TEST_CASE(ReceiverKeepaliveTests, testReceivingEndpoints)
 	{
 		test::FakeRegistry registry;
 		harness.expect(receivingEndpoints(registry).empty(), "missing Child APOs is empty");
@@ -131,7 +131,7 @@ namespace
 		harness.expect(aligned, "unused extensible PCM low bits remain zero");
 	}
 
-	void testKeepaliveZeroFill()
+	TEST_CASE(ReceiverKeepaliveTests, testKeepaliveZeroFill)
 	{
 		for (bool extensible : {false, true})
 		{
@@ -141,7 +141,7 @@ namespace
 		}
 	}
 
-	void testKeepaliveDitherFill()
+	TEST_CASE(ReceiverKeepaliveTests, testKeepaliveDitherFill)
 	{
 		for (bool extensible : {false, true})
 		{
@@ -153,7 +153,7 @@ namespace
 		checkFill(makeFormat(24, false, true, 20), false, true);
 	}
 
-	void testKeepaliveEmptyAndUnsupportedFill()
+	TEST_CASE(ReceiverKeepaliveTests, testKeepaliveEmptyAndUnsupportedFill)
 	{
 		WAVEFORMATEXTENSIBLE format = makeFormat(32, true, true);
 		BYTE guard = 0xa5;
@@ -170,14 +170,4 @@ namespace
 		format.Format.nBlockAlign--;
 		harness.expectFalse(keepaliveFormatSupported(format.Format), "bad block alignment is refused");
 	}
-}
-
-int runReceiverKeepaliveTests()
-{
-	testReceivingEndpoints();
-	testKeepaliveZeroFill();
-	testKeepaliveDitherFill();
-	testKeepaliveEmptyAndUnsupportedFill();
-	harness.report();
-	return 0;
 }

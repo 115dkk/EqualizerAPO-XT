@@ -50,7 +50,7 @@ bool waitForCondition(Predicate&& predicate, std::chrono::milliseconds timeout)
 // without loading any configuration (unreadable ConfigPath and no custom
 // path). Both leave currentConfig null; every overload must pass audio
 // through instead of dereferencing it inside audiodg.exe.
-void testProcessWithoutConfigurationDoesNotCrash(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testProcessWithoutConfigurationDoesNotCrash)
 {
 	FilterEngine engine;
 
@@ -81,7 +81,7 @@ void testProcessWithoutConfigurationDoesNotCrash(test::Harness& harness)
 // the first audio block consumes it, the public state query must conservatively
 // report the pending transition instead of treating the config as directly
 // installed.
-void testInitialLoadUsesPublicationChannel(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testInitialLoadUsesPublicationChannel)
 {
 	const std::wstring configPath = writeConfig(harness, L"initial-publication.txt",
 		"Preamp: -6.0206 dB\n");
@@ -102,7 +102,7 @@ void testInitialLoadUsesPublicationChannel(test::Harness& harness)
 		"initial configuration bypassed the worker-to-RT publication channel");
 }
 
-void testConfigSwapChannelPermitRoundTrip(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testConfigSwapChannelPermitRoundTrip)
 {
 	using TestChannel = ConfigSwapChannel<std::unique_ptr<int>>;
 
@@ -135,7 +135,7 @@ void testConfigSwapChannelPermitRoundTrip(test::Harness& harness)
 // Audit #422 E5: loadConfig owns the publication permit. A second producer
 // waits until the audio thread consumes the pending initial configuration
 // instead of replacing that slot.
-void testLoadConfigOwnsPublicationPermit(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testLoadConfigOwnsPublicationPermit)
 {
 	const std::wstring configA = writeConfig(harness, L"permit-a.txt", "Preamp: -3 dB\n");
 	const std::wstring configB = writeConfig(harness, L"permit-b.txt", "Preamp: -9 dB\n");
@@ -167,7 +167,7 @@ void testLoadConfigOwnsPublicationPermit(test::Harness& harness)
 // layout (for example, a stereo application stream feeding an 8-channel
 // endpoint). An empty configuration is still responsible for adapting that
 // connection: preserve the real input channels and silence the extra outputs.
-void testEmptyConfigurationExpandsRenderChannels(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testEmptyConfigurationExpandsRenderChannels)
 {
 	const std::wstring configPath = writeConfig(harness, L"empty-channel-expansion.txt",
 		"# All filters are disabled\n");
@@ -219,7 +219,7 @@ void testEmptyConfigurationExpandsRenderChannels(test::Harness& harness)
 // Audit #422 E2/TD-01: the seed and loaded configurations use one channel
 // count rule. Both asymmetric shapes accepted by the APO must survive their
 // first block, when the pending initial load still reads and writes the seed.
-void testSeedConfigurationSupportsAsymmetricChannels(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testSeedConfigurationSupportsAsymmetricChannels)
 {
 	const std::wstring configPath = writeConfig(harness, L"empty-asymmetric.txt",
 		"# All filters are disabled\n");
@@ -273,7 +273,7 @@ void testSeedConfigurationSupportsAsymmetricChannels(test::Harness& harness)
 // configuration to the new one (transitionLength = sampleRate / 100 samples),
 // not step. Drives DC through a -6.0206 dB config, swaps to -20 dB, and
 // checks continuity, bounds, progress, and convergence.
-void testConfigSwapCrossfades(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testConfigSwapCrossfades)
 {
 	const unsigned sampleRate = 48000;
 	const unsigned blockFrames = 120;
@@ -338,7 +338,7 @@ void testConfigSwapCrossfades(test::Harness& harness)
 // initialized, but the active configuration must not change unless the final
 // FilterConfiguration allocation also succeeds. This injects failure at that
 // exact allocation (one PreampFilter allocation succeeds first).
-void testFailedConfigLoadKeepsActiveConfiguration(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testFailedConfigLoadKeepsActiveConfiguration)
 {
 	std::wstring configA = writeConfig(harness, L"transaction_a.txt", "Preamp: -6.0206 dB\n");
 	std::wstring configB = writeConfig(harness, L"transaction_b.txt", "Preamp: -20 dB\n");
@@ -358,12 +358,10 @@ void testFailedConfigLoadKeepsActiveConfiguration(test::Harness& harness)
 		"failed reload replaced or damaged the active configuration");
 }
 
-void testConfigWatcherBackoffAndPathRefresh(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testConfigWatcherBackoffAndPathRefresh)
 {
-	const std::wstring firstDirectory = testDirectory() + L"\\watch-a";
-	const std::wstring secondDirectory = testDirectory() + L"\\watch-b";
-	CreateDirectoryW(firstDirectory.c_str(), nullptr);
-	CreateDirectoryW(secondDirectory.c_str(), nullptr);
+	const std::wstring firstDirectory = testSubdirectory(L"watch-a");
+	const std::wstring secondDirectory = testSubdirectory(L"watch-b");
 
 	std::atomic<int> selectedPath = 0;
 	std::atomic<int> snapshotCount = 0;
@@ -439,7 +437,7 @@ void testConfigWatcherBackoffAndPathRefresh(test::Harness& harness)
 // it (measured on Windows 11 22621), so it never looped. This pins the
 // property either way: no reload without a change, exactly one per change.
 // The key lives under the HKCU test sandbox and is removed on every path.
-void testConfigWatcherRegistryKeyIsQuietUntilChanged(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testConfigWatcherRegistryKeyIsQuietUntilChanged)
 {
 	GUID guid = {};
 	CoCreateGuid(&guid);

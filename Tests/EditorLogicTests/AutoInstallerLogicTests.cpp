@@ -26,7 +26,7 @@ QString wide(const std::wstring& text)
 }
 }
 
-void testAutoInstallerChannelMapping()
+TEST_CASE(EditorLogicTests, testAutoInstallerChannelMapping)
 {
 	// Most specific / newest first; ARM64 outranks everything; the exit-code
 	// channel index rides along for --detect-only consumers.
@@ -56,7 +56,7 @@ void testAutoInstallerChannelMapping()
 	expectEqual(index, int(kArm64), "arm64 index");
 }
 
-void testAutoInstallerChannelDescriptions()
+TEST_CASE(EditorLogicTests, testAutoInstallerChannelDescriptions)
 {
 	// The window's "detected" line reads the same table channelForCpu does
 	// (audit #348 F18): every channel the mapping can return has its own
@@ -81,7 +81,7 @@ void testAutoInstallerChannelDescriptions()
 	expectEqual(wide(describeChannel(L"riscv64-v")), QStringLiteral("riscv64-v"), "an unknown channel comes back verbatim");
 }
 
-void testAutoInstallerAssetGrammar()
+TEST_CASE(EditorLogicTests, testAutoInstallerAssetGrammar)
 {
 	expectEqual(wide(assetName(L"x64-avx2")),
 		QStringLiteral("EqualizerAPO-XT-x64-avx2-x64-avx2-Setup.exe"),
@@ -94,7 +94,7 @@ void testAutoInstallerAssetGrammar()
 		"download URL uses the always-latest redirect path");
 }
 
-void testAutoInstallerChecksumParsing()
+TEST_CASE(EditorLogicTests, testAutoInstallerChecksumParsing)
 {
 	const std::string hash(64, 'A');
 	const std::string other(64, '2');
@@ -122,7 +122,7 @@ void testAutoInstallerChecksumParsing()
 	expectTrue(expectedHashFromChecksums(std::string(), name).empty(), "empty text yields empty");
 }
 
-void testAutoInstallerFlagScan()
+TEST_CASE(EditorLogicTests, testAutoInstallerFlagScan)
 {
 	wchar_t exe[] = L"setup.exe";
 	wchar_t silent[] = L"/silent";

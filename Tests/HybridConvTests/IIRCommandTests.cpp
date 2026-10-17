@@ -11,15 +11,15 @@
 #include <vector>
 
 #include "filters/IIRCommand.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 using std::wstring;
 
 namespace
 {
-test::Harness harness("IIRCommandTests");
+test::HarnessAccess harness;
 
-void testCommandRecognition()
+TEST_CASE(IIRCommandTests, testCommandRecognition)
 {
 	IIRCommand cmd;
 
@@ -41,7 +41,7 @@ void testCommandRecognition()
 		"a line without 'ON IIR' must not parse");
 }
 
-void testParameterValidation()
+TEST_CASE(IIRCommandTests, testParameterValidation)
 {
 	IIRCommand cmd;
 
@@ -72,7 +72,7 @@ void testParameterValidation()
 		"non-finite coefficients are rejected");
 }
 
-void testRoundTrip()
+TEST_CASE(IIRCommandTests, testRoundTrip)
 {
 	const wstring cases[] = {
 		L"ON IIR Order 1 Coefficients 1 0 0.5 0",
@@ -93,13 +93,4 @@ void testRoundTrip()
 		harness.expectTrue(second.serialize() == serialized, "second serialization is identical");
 	}
 }
-}
-
-void runIIRCommandTests()
-{
-	testCommandRecognition();
-	testParameterValidation();
-	testRoundTrip();
-
-	harness.report();
 }

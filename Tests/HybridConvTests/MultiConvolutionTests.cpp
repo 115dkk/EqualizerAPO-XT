@@ -26,7 +26,7 @@
 #include "services/logging/Logging.h"
 #include "diagnostics/performance/PerfProfile.h"
 #include "Tests/TestDirectory.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 #include "Tests/WavFixtures.h"
 
 using std::vector;
@@ -40,7 +40,7 @@ constexpr int frameLength = 480;
 constexpr int sampleRate = 48000;
 constexpr double tolerance = 1.0e-8;
 
-test::Harness harness("MultiConvolutionTests");
+test::HarnessAccess harness;
 
 test::TestDirectory& scratchDirectory()
 {
@@ -59,7 +59,7 @@ wstring createMultiChannelIr(const vector<vector<double>>& channels)
 	return filename;
 }
 
-void assertMismatchIsLoggedAndProfiled()
+TEST_CASE(MultiConvolutionTests, assertMismatchIsLoggedAndProfiled)
 {
 	FILE* logFile = nullptr;
 	if (tmpfile_s(&logFile) != 0 || logFile == nullptr)
@@ -117,7 +117,7 @@ void assertMismatchIsLoggedAndProfiled()
 // fixture and log-capture pattern (audit #250 A4: one shared diagnostics type
 // now covers all three convolvers, and each filter's prefix constant is its
 // observable contract).
-void assertConvolutionMismatchIsLogged()
+TEST_CASE(MultiConvolutionTests, assertConvolutionMismatchIsLogged)
 {
 	FILE* logFile = nullptr;
 	if (tmpfile_s(&logFile) != 0 || logFile == nullptr)
@@ -165,7 +165,7 @@ void assertConvolutionMismatchIsLogged()
 // GraphicEQFilter derives from ConvolutionFilter but counts and reports its
 // mutes under its own prefix (audit #348 F3): before, a GraphicEQ mute was
 // logged as Convolution's, which the second assertion rules out.
-void assertGraphicEQMismatchIsLoggedAsGraphicEQ()
+TEST_CASE(MultiConvolutionTests, assertGraphicEQMismatchIsLoggedAsGraphicEQ)
 {
 	FILE* logFile = nullptr;
 	if (tmpfile_s(&logFile) != 0 || logFile == nullptr)
@@ -213,7 +213,7 @@ void assertGraphicEQMismatchIsLoggedAsGraphicEQ()
 // giving 0.1*(2+3) = 0.5. The other channel (R = 0.7) must not take part; the
 // old selection-based pairing would have produced 0.1*2 + 0.7*3 = 2.3, so this
 // value discriminates the two semantics.
-void assertMappingConvolvesTargetsOwnSignal()
+TEST_CASE(MultiConvolutionTests, assertMappingConvolvesTargetsOwnSignal)
 {
 	vector<double> ir0(frameLength, 0.0);
 	ir0[0] = 2.0;
@@ -240,13 +240,13 @@ void assertMappingConvolvesTargetsOwnSignal()
 	filter.process(output, input, frameLength);
 
 	for (int f = 0; f < frameLength; f++)
-		harness.expectTrue(fabs(out[f] - 0.5) <= tolerance, "a mapping convolves the target's own signal with its listed IR channels");
+		harness.expectNear(out[f], 0.5, tolerance, "a mapping convolves the target's own signal with its listed IR channels");
 }
 
 // Two mappings write two independent outputs: "L=0 R=1" gives L = 0.1*2 and
 // R = 0.7*3. Each target reads its own pre-command signal and only its listed
 // IR channel.
-void assertEachMappingWritesItsOwnOutput()
+TEST_CASE(MultiConvolutionTests, assertEachMappingWritesItsOwnOutput)
 {
 	vector<double> ir0(frameLength, 0.0);
 	ir0[0] = 2.0;
@@ -271,8 +271,8 @@ void assertEachMappingWritesItsOwnOutput()
 
 	for (int f = 0; f < frameLength; f++)
 	{
-		harness.expectTrue(fabs(outL[f] - 0.2) <= tolerance, "the first mapping feeds only its own target");
-		harness.expectTrue(fabs(outR[f] - 2.1) <= tolerance, "the second mapping feeds only its own target");
+		harness.expectNear(outL[f], 0.2, tolerance, "the first mapping feeds only its own target");
+		harness.expectNear(outR[f], 2.1, tolerance, "the second mapping feeds only its own target");
 	}
 }
 
@@ -280,7 +280,7 @@ void assertEachMappingWritesItsOwnOutput()
 // with a 2-channel IR (2x, 3x) the target L = 0.1 becomes 0.1*(2+3) = 0.5,
 // using only L's own signal. This is the released one-liner's meaning without
 // the Channel command.
-void assertSimpleFormUsesEveryIrChannel()
+TEST_CASE(MultiConvolutionTests, assertSimpleFormUsesEveryIrChannel)
 {
 	vector<double> ir0(frameLength, 0.0);
 	ir0[0] = 2.0;
@@ -303,14 +303,14 @@ void assertSimpleFormUsesEveryIrChannel()
 	filter.process(output, input, frameLength);
 
 	for (int f = 0; f < frameLength; f++)
-		harness.expectTrue(fabs(out[f] - 0.5) <= tolerance, "the simple form sums every IR channel over the target's own signal");
+		harness.expectNear(out[f], 0.5, tolerance, "the simple form sums every IR channel over the target's own signal");
 }
 
 // A target that does not exist yet is declared as a new (virtual) output
 // channel but reads silence, and an IR channel reference beyond the file's
 // channel count contributes silence instead of failing the line. A duplicated
 // target behaves like Copy: the later mapping overwrites the earlier one.
-void assertMissingSourcesAndDuplicatesDegradeGracefully()
+TEST_CASE(MultiConvolutionTests, assertMissingSourcesAndDuplicatesDegradeGracefully)
 {
 	vector<double> ir0(frameLength, 0.0);
 	ir0[0] = 2.0;
@@ -353,7 +353,7 @@ void assertMissingSourcesAndDuplicatesDegradeGracefully()
 		filter.process(output, input, frameLength);
 
 		for (int f = 0; f < frameLength; f++)
-			harness.expectTrue(fabs(out[f] - 0.2) <= tolerance, "an out-of-range IR channel contributes silence");
+			harness.expectNear(out[f], 0.2, tolerance, "an out-of-range IR channel contributes silence");
 	}
 
 	{
@@ -373,7 +373,7 @@ void assertMissingSourcesAndDuplicatesDegradeGracefully()
 		filter.process(output, input, frameLength);
 
 		for (int f = 0; f < frameLength; f++)
-			harness.expectTrue(fabs(out[f] - 0.3) <= tolerance, "the later duplicate mapping overwrites the earlier one");
+			harness.expectNear(out[f], 0.3, tolerance, "the later duplicate mapping overwrites the earlier one");
 	}
 }
 
@@ -381,7 +381,7 @@ void assertMissingSourcesAndDuplicatesDegradeGracefully()
 // channel list (= every channel of the file). The channel is the first token;
 // the rest (trimmed) is the path and keeps its inner spaces. A non-matching
 // command or a line without a path is rejected.
-void assertCommandParsesChannelAndPath()
+TEST_CASE(MultiConvolutionTests, assertCommandParsesChannelAndPath)
 {
 	MultiConvolutionCommand cmd;
 	harness.expectTrue(MultiConvolutionCommand::parse(L"MultiConvolution", L"Mixed room.wav", cmd), "valid MultiConvolution line parses");
@@ -404,7 +404,7 @@ void assertCommandParsesChannelAndPath()
 // The mapping form assigns explicit 0-based IR channels to each output channel:
 // "L=0+1 R=2+3 brir.wav". Whitespace around '=' and '+' must not change the
 // result, and serialize() writes the compact canonical text back.
-void assertMappingGrammarParses()
+TEST_CASE(MultiConvolutionTests, assertMappingGrammarParses)
 {
 	MultiConvolutionCommand compact;
 	harness.expectTrue(MultiConvolutionCommand::parse(L"MultiConvolution", L"L=0+1 R=2+3 brir.wav", compact), "compact mapping form parses");
@@ -436,7 +436,7 @@ void assertMappingGrammarParses()
 // The path is the raw remainder after the last complete mapping, so file names
 // containing '=', '+', leading digits or inner spaces survive, and a mapping
 // line without any path is rejected.
-void assertPathBoundaryIsRobust()
+TEST_CASE(MultiConvolutionTests, assertPathBoundaryIsRobust)
 {
 	MultiConvolutionCommand equalsPath;
 	harness.expectTrue(MultiConvolutionCommand::parse(L"MultiConvolution", L"L=0+1 a=b.wav", equalsPath), "path containing '=' parses");
@@ -477,7 +477,7 @@ void assertPathBoundaryIsRobust()
 // convolution result, a negative factor inverts the phase, and a dB suffix
 // keeps its raw dB value with the isDecibel marker. Serialization writes the
 // factor back only when it is not unity, and the whole line round-trips.
-void assertFactorGrammarParses()
+TEST_CASE(MultiConvolutionTests, assertFactorGrammarParses)
 {
 	MultiConvolutionCommand factored;
 	harness.expectTrue(MultiConvolutionCommand::parse(L"MultiConvolution", L"L=0.5*0+1 R=-1*2+-0.5*3 brir.wav", factored), "factored mapping form parses");
@@ -515,7 +515,7 @@ void assertFactorGrammarParses()
 // The filter applies each summand's factor to that IR channel's convolution
 // result before the sum: 0.5 halves, -1 inverts, -0.5 does both, and a dB
 // factor converts like Copy (pow(10, dB/20)).
-void assertFactorScalesConvolutionResult()
+TEST_CASE(MultiConvolutionTests, assertFactorScalesConvolutionResult)
 {
 	vector<double> ir0(frameLength, 0.0);
 	ir0[0] = 2.0;
@@ -555,13 +555,13 @@ void assertFactorScalesConvolutionResult()
 		filter.process(output, input, frameLength);
 
 		for (int f = 0; f < frameLength; f++)
-			harness.expectTrue(fabs(out[f] - c.expected) <= tolerance, c.label);
+			harness.expectNear(out[f], c.expected, tolerance, c.label);
 	}
 }
 
 // serialize -> parse round trip is stable, so the Editor can write the line and
 // read it back unchanged (the card and the engine share this one codec).
-void assertCommandSerializeRoundTrips()
+TEST_CASE(MultiConvolutionTests, assertCommandSerializeRoundTrips)
 {
 	struct Case
 	{
@@ -595,7 +595,7 @@ void assertCommandSerializeRoundTrips()
 // from MultiConvolutionCommand::declareChannels. It must give the list the
 // engine builds: the filter's declared outputs appended by name, the way
 // FilterEngine::addFilters appends them.
-void assertEditorDeclaresTheEnginesChannels()
+TEST_CASE(MultiConvolutionTests, assertEditorDeclaresTheEnginesChannels)
 {
 	vector<double> ir0(frameLength, 0.0);
 	ir0[0] = 1.0;
@@ -625,22 +625,7 @@ void assertEditorDeclaresTheEnginesChannels()
 		"new targets are added once, in order; a number and an alias name existing channels");
 }
 
-void runMultiConvolutionTests()
+TEST_SUITE_CLEANUP(MultiConvolutionTests, cleanupMultiConvolutionTests)
 {
-	assertMismatchIsLoggedAndProfiled();
-	assertConvolutionMismatchIsLogged();
-	assertGraphicEQMismatchIsLoggedAsGraphicEQ();
-	assertMappingConvolvesTargetsOwnSignal();
-	assertEachMappingWritesItsOwnOutput();
-	assertSimpleFormUsesEveryIrChannel();
-	assertMissingSourcesAndDuplicatesDegradeGracefully();
-	assertCommandParsesChannelAndPath();
-	assertMappingGrammarParses();
-	assertPathBoundaryIsRobust();
-	assertFactorGrammarParses();
-	assertFactorScalesConvolutionResult();
-	assertCommandSerializeRoundTrips();
-	assertEditorDeclaresTheEnginesChannels();
 	scratchDirectory().removeAll();
-	harness.report();
 }

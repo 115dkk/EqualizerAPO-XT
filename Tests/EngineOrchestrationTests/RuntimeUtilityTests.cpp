@@ -40,7 +40,7 @@
 
 // Allocation failure and any other exception become HRESULTs at the COM
 // boundary instead of unwinding into audiodg.exe.
-void testComBoundaryMapsExceptions(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testComBoundaryMapsExceptions)
 {
 	try
 	{
@@ -72,7 +72,7 @@ void testComBoundaryMapsExceptions(test::Harness& harness)
 		"COM boundary preserves callback HRESULT");
 }
 
-void testLogHelperFileDestination(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testLogHelperFileDestination)
 {
 	const std::wstring path = testDirectory() + L"\\LogHelperDestination.log";
 	DeleteFileW(path.c_str());
@@ -91,13 +91,12 @@ void testLogHelperFileDestination(test::Harness& harness)
 	DeleteFileW(path.c_str());
 }
 
-void testLogHelperUserDestination(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testLogHelperUserDestination)
 {
 	wchar_t previousLocalAppData[MAX_PATH] = {};
 	const DWORD previousLength = GetEnvironmentVariableW(
 		L"LOCALAPPDATA", previousLocalAppData, MAX_PATH);
-	const std::wstring localRoot = testDirectory() + L"\\LocalAppData";
-	CreateDirectoryW(localRoot.c_str(), nullptr);
+	const std::wstring localRoot = testSubdirectory(L"LocalAppData");
 	SetEnvironmentVariableW(L"LOCALAPPDATA", localRoot.c_str());
 
 	harness.expect(Logging::useUserFile(L"Editor.log", true, false, false),
@@ -121,7 +120,7 @@ void testLogHelperUserDestination(test::Harness& harness)
 	RemoveDirectoryW(localRoot.c_str());
 }
 
-void testRegistryExportHeaderPreservesQualifiedRoot(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testRegistryExportHeaderPreservesQualifiedRoot)
 {
 	const std::wstring key = L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Vendor\\Device\\FxProperties";
 	harness.expect(WindowsRegistry::formatExportHeader(key)
@@ -129,7 +128,7 @@ void testRegistryExportHeaderPreservesQualifiedRoot(test::Harness& harness)
 		"registry export writes an already-qualified key exactly once");
 }
 
-void testSynchronizedStateSerializesReplacement(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testSynchronizedStateSerializesReplacement)
 {
 	SynchronizedState<int> state(1);
 	std::promise<void> enteredPromise;
@@ -161,7 +160,7 @@ void testSynchronizedStateSerializesReplacement(test::Harness& harness)
 		"subsequent reader observes the complete replacement");
 }
 
-void testParallelExecutor(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testParallelExecutor)
 {
 	constexpr size_t taskCount = 257;
 	std::vector<std::atomic<unsigned>> visits(taskCount);
@@ -194,7 +193,7 @@ void testParallelExecutor(test::Harness& harness)
 // after the last user drops its reference, expired-slot pruning on store)
 // used to be hand-rolled twice, in IrCache.cpp and GraphicEQFilter.cpp, and
 // tested nowhere; one utility, one test, both consumers covered.
-void testWeakValueCacheKeepsEntriesExactlyAsLongAsSomeoneUsesThem(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testWeakValueCacheKeepsEntriesExactlyAsLongAsSomeoneUsesThem)
 {
 	WeakValueCache<int, const std::vector<double>> cache;
 
@@ -224,7 +223,7 @@ void testWeakValueCacheKeepsEntriesExactlyAsLongAsSomeoneUsesThem(test::Harness&
 	harness.expect(cache.find(1) == replacement, "storing an existing key replaces its entry");
 }
 
-void testServiceWaitUsesOneDeadline(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testServiceWaitUsesOneDeadline)
 {
 	harness.expectEqual(installwait::remaining(30000), DWORD(30000), "ordinary operations keep their timeout");
 	{
@@ -251,7 +250,7 @@ void testServiceWaitUsesOneDeadline(test::Harness& harness)
 		"already-completed transition needs no wait");
 }
 
-void testEnvironmentReadAndUserLogPathAreNotTruncated(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testEnvironmentReadAndUserLogPathAreNotTruncated)
 {
 	const auto previous = pathutil::environmentVariable(L"LOCALAPPDATA");
 	SCOPE_EXIT{ SetEnvironmentVariableW(L"LOCALAPPDATA", previous.empty() ? nullptr : previous.c_str()); };

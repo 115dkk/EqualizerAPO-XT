@@ -5,8 +5,8 @@
 
 	Tiny, header-only, framework-free assertion harness shared by the test
 	suites (HybridConvTests, AudioRegressionTests, EditorLogicTests,
-	EngineOrchestrationTests). It keeps the common assertion primitives in one
-	place so the suites do not each carry their own copy of
+	EngineOrchestrationTests, AsioTests). It keeps the common assertion
+	primitives in one place so the suites do not each carry their own copy of
 	fail()/expect()/expectEqual().
 
 	The harness deliberately avoids Qt and any heavy dependency so it can be
@@ -42,8 +42,13 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <initializer_list>
+#include <memory>
 #include <sstream>
 #include <string>
+#include <vector>
+
+#include "Tests/AlignedMemoryGate.h"
 
 namespace test
 {
@@ -67,8 +72,8 @@ inline bool nearlyEqual(double actual, double expected, double tolerance)
 }
 
 // Counts assertions that passed (and, under Collect, failed) within a single
-// suite and labels failure output with the suite name. One instance is
-// created in each suite's main().
+// suite and labels failure output with the suite name. runAll() creates one
+// instance for every registered suite.
 class Harness
 {
 public:
@@ -79,29 +84,17 @@ public:
 
 	// Backstop for the Collect default. A suite that records failures and then
 	// leaves without report() would exit 0 and turn a broken test green; that
-	// cannot be caught at compile time, so catch it here instead. Suite
-	// harnesses live at namespace scope, so this often runs during static
-	// destruction where std::exit is not allowed - _Exit is, after a manual
-	// flush. aborting_ keeps an in-flight fail() from tripping the sibling
-	// harnesses that never got their turn to report.
+	// cannot be caught at compile time, so catch it here instead. runAll()
+	// owns the harnesses, so this can run during exception unwinding where a
+	// second exception is not allowed. _Exit is safe after a manual flush.
 	//
-	// The zero-check case is a failure too (audit #275 TD-10/D4): the suite
-	// binaries assemble their sub-suites with a hand-maintained
-	// declaration/call list, so a runXxxTests() that is declared, compiled and
-	// linked but never called used to finish green with zero checks. Its
-	// namespace-scope harness still constructs and destructs, which is where
-	// this catches it. Suites that legitimately run nothing (soft skips) call
-	// report(), which keeps them out of this branch.
-	//
-	// This only protects suites whose runner owns its harness, which is
-	// HybridConvTests' sub-suites. EditorLogicTests and
-	// EngineOrchestrationTests share one harness across many test functions,
-	// so a forgotten call there still leaves checks from the others; for those
-	// two, .github/scripts/Test-SourceSync.ps1 checks that every test function
-	// is called (audit #348 TD-23).
+	// The zero-check case is a failure too (audit #275 TD-10/D4). runAll()
+	// owns every registered suite harness, so this backstop now applies to
+	// every suite. Suites that legitimately run nothing (soft skips) still
+	// reach report(), which keeps them out of this branch.
 	~Harness()
 	{
-		if (reported_ || aborting_)
+		if (reported_)
 			return;
 		if (failed_ != 0)
 		{
@@ -112,9 +105,9 @@ public:
 		}
 		if (passed_ == 0)
 		{
-			std::fprintf(stderr, "%s is linked into this binary but ran zero checks and never called report()."
-				" Its runner is probably missing from the suite's main(); a compiled-but-uncalled"
-				" suite must not pass silently.\n", name_.c_str());
+			std::fprintf(stderr, "%s ran zero checks and never called report()."
+				" Its registered cases did not complete; the suite must not pass silently.\n",
+				name_.c_str());
 			std::fflush(nullptr);
 			std::_Exit(1);
 		}
@@ -126,7 +119,6 @@ public:
 	[[noreturn]] void fail(const std::string& message) const
 	{
 		std::fprintf(stderr, "%s failed: %s\n", name_.c_str(), message.c_str());
-		aborting_ = true;
 		std::exit(1);
 	}
 
@@ -227,7 +219,6 @@ public:
 		if (failed_ > 0)
 		{
 			std::fprintf(stderr, "%s FAILED (%u of %u checks failed)\n", name_.c_str(), failed_, passed_ + failed_);
-			aborting_ = true;
 			std::exit(1);
 		}
 		std::printf("%s passed (%u checks)\n", name_.c_str(), passed_);
@@ -250,11 +241,196 @@ private:
 	unsigned passed_;
 	unsigned failed_;
 	bool reported_;
-
-	// Set once the process is already on its way out with a non-zero code, so
-	// the destructor backstop stays quiet for every other harness in the same
-	// binary. Written from the const fail(), hence mutable-by-being-static.
-	static inline bool aborting_ = false;
 };
 
+using TestFunction = void (*)(Harness&);
+using CleanupFunction = void (*)();
+
+struct TestCase
+{
+	const char* name;
+	TestFunction function;
+};
+
+struct TestSuite
+{
+	std::string name;
+	std::vector<TestCase> cases;
+	std::vector<CleanupFunction> cleanups;
+};
+
+inline std::vector<TestSuite>& registeredSuites()
+{
+	static std::vector<TestSuite> suites;
+	return suites;
+}
+
+inline TestSuite& registeredSuite(const char* name)
+{
+	for (TestSuite& suite : registeredSuites())
+	{
+		if (suite.name == name)
+			return suite;
+	}
+	registeredSuites().push_back({name, {}, {}});
+	return registeredSuites().back();
+}
+
+class TestRegistrar
+{
+public:
+	TestRegistrar(const char* suite, const char* name, TestFunction function)
+	{
+		registeredSuite(suite).cases.push_back({name, function});
+	}
+};
+
+class CleanupRegistrar
+{
+public:
+	CleanupRegistrar(const char* suite, CleanupFunction function)
+	{
+		registeredSuite(suite).cleanups.push_back(function);
+	}
+};
+
+inline Harness*& activeHarnessStorage()
+{
+	static Harness* harness = nullptr;
+	return harness;
+}
+
+inline Harness& activeHarness()
+{
+	Harness* harness = activeHarnessStorage();
+	if (harness == nullptr)
+	{
+		std::fputs("A test assertion ran outside test::runAll().\n", stderr);
+		std::fflush(nullptr);
+		std::_Exit(1);
+	}
+	return *harness;
+}
+
+// Lets helpers shared by several TEST_CASE bodies retain the concise
+// harness.expect* spelling. A TEST_CASE parameter shadows this proxy inside the
+// registered body itself; helpers resolve it through activeHarness().
+class HarnessAccess
+{
+public:
+	operator Harness&() const
+	{
+		return activeHarness();
+	}
+
+	[[noreturn]] static void fail(const std::string& message)
+	{
+		activeHarness().fail(message);
+	}
+
+	static void expect(bool condition, const std::string& message)
+	{
+		activeHarness().expect(condition, message);
+	}
+
+	static void expectTrue(bool condition, const std::string& message)
+	{
+		activeHarness().expectTrue(condition, message);
+	}
+
+	static void expectFalse(bool condition, const std::string& message)
+	{
+		activeHarness().expectFalse(condition, message);
+	}
+
+	template<typename A, typename B>
+	static void expectEqual(const A& actual, const B& expected, const std::string& message)
+	{
+		activeHarness().expectEqual(actual, expected, message);
+	}
+
+	static void expectNear(double actual, double expected, double tolerance, const std::string& message)
+	{
+		activeHarness().expectNear(actual, expected, tolerance, message);
+	}
+
+	static void require(bool condition, const std::string& message)
+	{
+		activeHarness().require(condition, message);
+	}
+
+	template<typename A, typename B>
+	static void requireEqual(const A& actual, const B& expected, const std::string& message)
+	{
+		activeHarness().requireEqual(actual, expected, message);
+	}
+};
+
+inline int runAll(const char* binaryName,
+	std::initializer_list<const char*> suiteOrder = {}, CleanupFunction afterAll = nullptr)
+{
+	std::vector<TestSuite*> orderedSuites;
+	if (suiteOrder.size() == 0)
+	{
+		for (TestSuite& suite : registeredSuites())
+			orderedSuites.push_back(&suite);
+	}
+	else
+	{
+		for (const char* name : suiteOrder)
+		{
+			TestSuite* found = nullptr;
+			for (TestSuite& suite : registeredSuites())
+			{
+				if (suite.name == name)
+				{
+					found = &suite;
+					break;
+				}
+			}
+			if (found == nullptr)
+			{
+				std::fprintf(stderr, "%s has no registered suite named %s.\n", binaryName, name);
+				return 1;
+			}
+			orderedSuites.push_back(found);
+		}
+	}
+
+	if (orderedSuites.empty())
+	{
+		std::fprintf(stderr, "%s has no registered tests.\n", binaryName);
+		return 1;
+	}
+
+	std::vector<std::unique_ptr<Harness>> harnesses;
+	for (TestSuite* suite : orderedSuites)
+	{
+		auto harness = std::make_unique<Harness>(suite->name);
+		activeHarnessStorage() = harness.get();
+		for (const TestCase& testCase : suite->cases)
+			testCase.function(*harness);
+		for (CleanupFunction cleanup : suite->cleanups)
+			cleanup();
+		activeHarnessStorage() = nullptr;
+		harnesses.push_back(std::move(harness));
+	}
+
+	if (afterAll != nullptr)
+		afterAll();
+	for (const std::unique_ptr<Harness>& harness : harnesses)
+		harness->report();
+	return reportAlignedMemoryBalance(binaryName);
+}
+
 } // namespace test
+
+#define TEST_CASE(suite, name) \
+	static void name(test::Harness& harness); \
+	static const test::TestRegistrar testRegistrar_##name(#suite, #name, name); \
+	static void name(test::Harness& harness)
+
+#define TEST_SUITE_CLEANUP(suite, name) \
+	static void name(); \
+	static const test::CleanupRegistrar cleanupRegistrar_##name(#suite, name); \
+	static void name()

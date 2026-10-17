@@ -19,7 +19,7 @@
 #include <vector>
 
 #include "runtime/ipc/StreamRing.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 using eapo::asio::Direction;
 using eapo::asio::StreamFormat;
@@ -33,7 +33,7 @@ using eapo::ipc::RingWait;
 
 namespace
 {
-	test::Harness harness("StreamRingTests");
+	test::HarnessAccess harness;
 
 	struct Region
 	{
@@ -188,7 +188,7 @@ namespace
 		return true;
 	}
 
-	void testGeometry()
+	TEST_CASE(StreamRingTests, testGeometry)
 	{
 		StreamFormat format = stereoFormat(64, 0);
 		harness.expect(RingGeometry::validFormat(format), "a normal output format is valid");
@@ -201,7 +201,7 @@ namespace
 		harness.expectEqual(sizeof(eapo::ipc::RingHeader), eapo::ipc::ringHeaderBytes, "the header is 512 bytes");
 	}
 
-	void testInvalidGeometryIsRejected()
+	TEST_CASE(StreamRingTests, testInvalidGeometryIsRejected)
 	{
 		const auto rejectedByConsumer = [](const StreamFormat& invalid) {
 			StreamFormat valid = stereoFormat();
@@ -235,7 +235,7 @@ namespace
 	// and it read neither the strings' termination nor the sample rate. Every
 	// header below keeps frames and channels, so totalBytes still matches and
 	// the rejection comes from the new checks.
-	void testHeaderGeometryAndFieldsAreChecked()
+	TEST_CASE(StreamRingTests, testHeaderGeometryAndFieldsAreChecked)
 	{
 		const auto consumerAccepts = [](const auto& corrupt) {
 			StreamFormat valid = stereoFormat();
@@ -305,7 +305,7 @@ namespace
 
 	// The slot a block lives in comes from the geometry computed at attach,
 	// so a producer that rewrites slotOffset afterwards moves nothing.
-	void testLaterSlotOffsetChangeHasNoEffect()
+	TEST_CASE(StreamRingTests, testLaterSlotOffsetChangeHasNoEffect)
 	{
 		StreamFormat format = stereoFormat(64, 0);
 		Region region(format);
@@ -345,7 +345,7 @@ namespace
 
 	// The serving loop's --trace-slow diagnostic measures a block's wake-up
 	// from the producer's publish time, which acquire hands over with the block.
-	void testAcquiredCarriesThePublishTime()
+	TEST_CASE(StreamRingTests, testAcquiredCarriesThePublishTime)
 	{
 		StreamFormat format = stereoFormat(64, 2);
 		Region region(format);
@@ -381,7 +381,7 @@ namespace
 		producer.close();
 	}
 
-	void testReadinessAndInOrderService()
+	TEST_CASE(StreamRingTests, testReadinessAndInOrderService)
 	{
 		StreamFormat format = stereoFormat();
 		Region region(format);
@@ -414,7 +414,7 @@ namespace
 		harness.expect(consumer.order == std::vector<uint32_t>({1, 2, 3, 4, 5, 1}), "blocks were served in publication order");
 	}
 
-	void testLateThenCatchUp()
+	TEST_CASE(StreamRingTests, testLateThenCatchUp)
 	{
 		StreamFormat format = stereoFormat(64, 0);
 		Region region(format);
@@ -446,7 +446,7 @@ namespace
 		harness.expect(consumer.order == std::vector<uint32_t>({1, 2}), "the consumer never skipped the late block");
 	}
 
-	void testGoneWhenTheConsumerDies()
+	TEST_CASE(StreamRingTests, testGoneWhenTheConsumerDies)
 	{
 		StreamFormat format = stereoFormat(32, 0);
 		Region region(format);
@@ -464,7 +464,7 @@ namespace
 		consumer.join();
 	}
 
-	void testFaultAndClosingReachTheProducer()
+	TEST_CASE(StreamRingTests, testFaultAndClosingReachTheProducer)
 	{
 		{
 			StreamFormat format = stereoFormat(16, 0);
@@ -492,7 +492,7 @@ namespace
 		}
 	}
 
-	void testConsumerSeesProducerDeath()
+	TEST_CASE(StreamRingTests, testConsumerSeesProducerDeath)
 	{
 		StreamFormat format = stereoFormat(16, 0);
 		Region region(format);
@@ -507,7 +507,7 @@ namespace
 		harness.expect(consumer.finished.load(), "the consumer leaves when the producer's process handle signals");
 	}
 
-	void testSequenceWrapKeepsOwnedSlotsBusy()
+	TEST_CASE(StreamRingTests, testSequenceWrapKeepsOwnedSlotsBusy)
 	{
 		StreamFormat format = stereoFormat(16, 0);
 		Region region(format);
@@ -555,7 +555,7 @@ namespace
 		producer.close();
 	}
 
-	void testPipelinedShape()
+	TEST_CASE(StreamRingTests, testPipelinedShape)
 	{
 		// The pipelined adapter publishes seq and then waits for seq - 1: the
 		// wait is on an older sequence that is usually already complete.
@@ -588,22 +588,4 @@ namespace
 		consumer.join();
 		harness.expectEqual(consumer.served.load(), 50u, "all 50 blocks served");
 	}
-}
-
-int runStreamRingTests()
-{
-	testGeometry();
-	testInvalidGeometryIsRejected();
-	testHeaderGeometryAndFieldsAreChecked();
-	testLaterSlotOffsetChangeHasNoEffect();
-	testAcquiredCarriesThePublishTime();
-	testReadinessAndInOrderService();
-	testLateThenCatchUp();
-	testGoneWhenTheConsumerDies();
-	testFaultAndClosingReachTheProducer();
-	testConsumerSeesProducerDeath();
-	testSequenceWrapKeepsOwnedSlotsBusy();
-	testPipelinedShape();
-	harness.report();
-	return 0;
 }

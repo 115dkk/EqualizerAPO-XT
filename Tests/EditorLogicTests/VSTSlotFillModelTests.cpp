@@ -12,7 +12,7 @@
 
 #include "Editor/widgets/cards/VSTSlotFillModel.h"
 
-void testVSTSlotFillModel()
+TEST_CASE(EditorLogicTests, testVSTSlotFillModel)
 {
 	const std::vector<std::wstring> surround = {L"L", L"R", L"C", L"LFE", L"RL", L"RR"};
 

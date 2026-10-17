@@ -21,7 +21,7 @@
 
 #include "EditorLogicTestSupport.h"
 
-void testBiQuadWidthRoundTripsExactly()
+TEST_CASE(EditorLogicTests, testBiQuadWidthRoundTripsExactly)
 {
 	// The pairs the reform document names. Both directions, then back again:
 	// 1/(2q) = sinh(ln2 * n / 2) solves either way, so a round trip has to
@@ -103,7 +103,7 @@ void testBiQuadWidthRoundTripsExactly()
 	}
 }
 
-void testBiQuadWidthModesAndDefaults()
+TEST_CASE(EditorLogicTests, testBiQuadWidthModesAndDefaults)
 {
 	// The two types whose editors offer both spellings. Peaking always had it;
 	// the all-pass is the fix.

@@ -30,7 +30,7 @@ IFilterGUI* noCard(FilterTable*, const QString&, const QString&)
 }
 }
 
-void testFilterLineCardDecidesPerLine()
+TEST_CASE(EditorLogicTests, testFilterLineCardDecidesPerLine)
 {
 	expectTrue(filterLineCard(QStringLiteral("Filter"), QStringLiteral("ON PK Fc 1000 Hz Gain 3 dB Q 1")) == FilterLineCard::None,
 		QStringLiteral("a peaking biquad opens no card"));

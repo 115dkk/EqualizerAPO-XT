@@ -23,7 +23,7 @@ bool isSeverity(AnalysisPanelState::Severity actual, AnalysisPanelState::Severit
 }
 }
 
-void testAnalysisPanelStateCoversEveryOutcome()
+TEST_CASE(EditorLogicTests, testAnalysisPanelStateCoversEveryOutcome)
 {
 	using Severity = AnalysisPanelState::Severity;
 
@@ -116,7 +116,7 @@ void testAnalysisPanelStateCoversEveryOutcome()
 		"the skins style critical");
 }
 
-void testDeviceFormatBadgeCoversEveryRow()
+TEST_CASE(EditorLogicTests, testDeviceFormatBadgeCoversEveryRow)
 {
 	const QString dot = QString::fromUtf8("\xC2\xB7");
 
@@ -203,7 +203,7 @@ void testDeviceFormatBadgeCoversEveryRow()
 	}
 }
 
-void testDocumentStateOwnsTitleAndDirtyFlag()
+TEST_CASE(EditorLogicTests, testDocumentStateOwnsTitleAndDirtyFlag)
 {
 	DocumentState document(QStringLiteral("config.txt"), QStringLiteral("C:\\EqualizerAPO\\config\\config.txt"));
 	expectFalse(document.dirty(), "a loaded document starts saved");
@@ -234,7 +234,7 @@ void testDocumentStateOwnsTitleAndDirtyFlag()
 	expectTrue(DocumentState::instantSaveDebounceMs > 0, "instant saves coalesce edits");
 }
 
-void testRecentFilesRule()
+TEST_CASE(EditorLogicTests, testRecentFilesRule)
 {
 	QStringList recent;
 	for (int i = 0; i < 12; i++)

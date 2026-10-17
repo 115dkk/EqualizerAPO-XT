@@ -24,7 +24,7 @@ QString wide(const std::wstring& text)
 }
 }
 
-void testInstallerUiModelStepTransitions()
+TEST_CASE(EditorLogicTests, testInstallerUiModelStepTransitions)
 {
 	Model model;
 	for (int i = 0; i < kStepCount; i++)
@@ -72,7 +72,7 @@ void testInstallerUiModelStepTransitions()
 	expectTrue(bounds.errorText.empty(), "out-of-range fail records nothing");
 }
 
-void testInstallerUiModelFormatting()
+TEST_CASE(EditorLogicTests, testInstallerUiModelFormatting)
 {
 	expectEqual(wide(formatByteSize(512)), QStringLiteral("512 B"), "bytes render as B");
 	expectEqual(wide(formatByteSize(1536)), QStringLiteral("1.5 KB"), "KB with one decimal");

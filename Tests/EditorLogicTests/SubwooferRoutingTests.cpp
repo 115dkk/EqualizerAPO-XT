@@ -25,7 +25,7 @@
 
 #include "EditorLogicTestSupport.h"
 
-void testSubwooferRoutingDescriptors()
+TEST_CASE(EditorLogicTests, testSubwooferRoutingDescriptors)
 {
 	// The fixture is the built-in preset: card summaries must work for the
 	// exact JSON the engine and the VST3 plugin exchange. Widget-level card
@@ -67,7 +67,7 @@ void testSubwooferRoutingDescriptors()
 		"SubwooferRouting", "subwoofer-routing canonical command");
 }
 
-void testSubwooferRoutingCrossoverRecipes()
+TEST_CASE(EditorLogicTests, testSubwooferRoutingCrossoverRecipes)
 {
 	// The recipe layer names the alignments practitioners dial in (BW/LR at
 	// even orders) over raw biquad chains. The #246 preset is the parity

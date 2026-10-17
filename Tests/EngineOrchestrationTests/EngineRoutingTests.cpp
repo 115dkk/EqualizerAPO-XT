@@ -43,7 +43,7 @@ std::wstring writeStereoDeltaIr(test::Harness& harness, const std::wstring& file
 
 // Reads a stereo IR file into two channel-major buffers. Fails the harness if
 // the file is missing or not stereo.
-void readStereoIr(test::Harness& harness, const std::wstring& path, std::vector<double>& ch0, std::vector<double>& ch1)
+void readStereoIr(const test::Harness& harness, const std::wstring& path, std::vector<double>& ch0, std::vector<double>& ch1)
 {
 	SF_INFO info = {};
 	sndfile::Handle file(sf_wchar_open(path.c_str(), SFM_READ, &info));
@@ -118,7 +118,7 @@ double energyOf(const std::vector<float>& sig)
 // A Channel selector must route the following filter to the named channel
 // only. This pins down the channel-name -> channel-index resolution in
 // FilterEngine::addFilters.
-void testChannelSelectorRouting(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testChannelSelectorRouting)
 {
 	std::wstring config = writeConfig(harness, L"channel_selector.txt",
 			"Channel: L\n"
@@ -138,7 +138,7 @@ void testChannelSelectorRouting(test::Harness& harness)
 
 // Copy assignments read from the input snapshot, so a simultaneous swap must
 // not see partially written data.
-void testCopySwapsChannels(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testCopySwapsChannels)
 {
 	std::wstring config = writeConfig(harness, L"copy_swap.txt",
 			"Copy: L=R R=L\n");
@@ -160,7 +160,7 @@ void testCopySwapsChannels(test::Harness& harness)
 // change the result, under the mapping semantics it must not. With a stereo
 // delta IR (pass-through) and L = 0.3, "L=0+1" folds L's own signal in twice
 // (0.6), while R (not a mapping target) passes through unchanged.
-void testMultiConvolutionIgnoresChannelSelection(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testMultiConvolutionIgnoresChannelSelection)
 {
 	std::wstring irPath = writeStereoDeltaIr(harness, L"mc_delta.wav");
 	std::string irNarrow = toNarrow(irPath);
@@ -185,7 +185,7 @@ void testMultiConvolutionIgnoresChannelSelection(test::Harness& harness)
 // Runs only when EAPO_XT_BRIR_DIR points at a folder holding Thead400FL.wav and
 // Thead400FR.wav (both stereo, [left-ear, right-ear]); otherwise it skips so CI
 // stays green without the data files.
-void testRealBrirCrossfeed(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testRealBrirCrossfeed)
 {
 	wchar_t* dirBuf = nullptr;
 	size_t dirLen = 0;

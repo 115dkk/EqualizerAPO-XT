@@ -14,7 +14,7 @@
 	serialize(parse(line)) round-trips.
 
 	These tests link against the same Common.lib as HybridConvTests and run from
-	its main() via runCopyCommandTests().
+	the binary through TestHarness registration.
 */
 
 #include <string>
@@ -23,14 +23,14 @@
 #include "filters/CopyCommand.h"
 #include "filters/CopyFilter.h"
 #include "platform/windows/TextEncoding.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 using std::vector;
 using std::wstring;
 
 namespace
 {
-test::Harness harness("CopyCommandTests");
+test::HarnessAccess harness;
 
 // Convenience accessor for one summand of one assignment, with bounds checks
 // folded into the harness so a malformed parse fails loudly instead of reading
@@ -51,7 +51,7 @@ void expectSummand(const vector<Assignment>& assignments, size_t a, size_t s,
 	harness.expectTrue(summand.isDecibel == isDecibel, label + " isDecibel");
 }
 
-void testSimpleRouting()
+TEST_CASE(CopyCommandTests, testSimpleRouting)
 {
 	// Plain identity routing: each target reads one source channel at unit gain.
 	vector<Assignment> assignments = parseCopyAssignments(L"L=R C=C");
@@ -63,7 +63,7 @@ void testSimpleRouting()
 	expectSummand(assignments, 1, 0, L"C", 1.0, false, "C=C summand");
 }
 
-void testCrossfeedWithFactors()
+TEST_CASE(CopyCommandTests, testCrossfeedWithFactors)
 {
 	// Mono downmix: both outputs are a weighted sum of L and R.
 	vector<Assignment> assignments = parseCopyAssignments(L"L=0.5*L+0.5*R R=0.5*L+0.5*R");
@@ -75,7 +75,7 @@ void testCrossfeedWithFactors()
 	expectSummand(assignments, 1, 1, L"R", 0.5, false, "R summand 1");
 }
 
-void testNegativeFactorAndVirtualChannel()
+TEST_CASE(CopyCommandTests, testNegativeFactorAndVirtualChannel)
 {
 	// A virtual upmix channel built from a negative-weighted source sum. The
 	// leading "0.866" carries a '.' so it is read as a factor, and "-0.5" is a
@@ -87,7 +87,7 @@ void testNegativeFactorAndVirtualChannel()
 	expectSummand(assignments, 0, 1, L"R", -0.5, false, "VSL summand 1");
 }
 
-void testDecibelFactor()
+TEST_CASE(CopyCommandTests, testDecibelFactor)
 {
 	// A dB-suffixed factor sets the isDecibel flag; the magnitude is the raw dB
 	// number (the engine converts it to a linear gain in CopyFilter::initialize).
@@ -96,7 +96,7 @@ void testDecibelFactor()
 	expectSummand(assignments, 0, 0, L"R", -3.0, true, "dB summand");
 }
 
-void testConstantValue()
+TEST_CASE(CopyCommandTests, testConstantValue)
 {
 	// A lone "0" with no channel is a constant value, not a channel reference.
 	vector<Assignment> assignments = parseCopyAssignments(L"LFE=0");
@@ -107,7 +107,7 @@ void testConstantValue()
 	harness.expectFalse(summand.isDecibel, "constant is not a dB value");
 }
 
-void testMalformedChunkDropped()
+TEST_CASE(CopyCommandTests, testMalformedChunkDropped)
 {
 	// A token with no '=' is not an assignment and is dropped, matching the
 	// engine factory; the well-formed assignments around it survive.
@@ -141,7 +141,7 @@ void expectRoundTrip(const wstring& parameters, const wstring& expected)
 		"second round-trip of \"" + wintext::toNarrowString(parameters, 65001u) + "\" is not stable");
 }
 
-void testSerializeRoundTrip()
+TEST_CASE(CopyCommandTests, testSerializeRoundTrip)
 {
 	// Canonical forms serialize back to themselves.
 	expectRoundTrip(L"L=R C=C", L"L=R C=C");
@@ -183,7 +183,7 @@ void testSerializeRoundTrip()
 	expectSummand(reparsed, 0, 0, L"L", 0.7, false, "round-trip summand");
 }
 
-void testEmptySumAssignmentsSerializeToNothing()
+TEST_CASE(CopyCommandTests, testEmptySumAssignmentsSerializeToNothing)
 {
 	// The Editor's routing views seed one empty assignment per device channel
 	// so an emptied Copy stays editable in the GUI; those seeded rows must
@@ -200,7 +200,7 @@ void testEmptySumAssignmentsSerializeToNothing()
 	harness.expectTrue(serializeCopyAssignments(onlySeeded) == L"",
 		"a lone empty-sum assignment serializes to an empty string");
 }
-void testPropagateChannels()
+TEST_CASE(CopyCommandTests, testPropagateChannels)
 {
 	vector<wstring> channels = {L"L", L"R", L"LFE"};
 	vector<Assignment> assignments = parseCopyAssignments(L"V1=L V2=0 SUB=R");
@@ -231,7 +231,7 @@ void testPropagateChannels()
 		"successive Copy commands expose virtual targets to the commands below them");
 }
 
-void testConstantCopyPreservesTrueSilence()
+TEST_CASE(CopyCommandTests, testConstantCopyPreservesTrueSilence)
 {
 	CopyFilter filter(parseCopyAssignments(L"L=0.5"));
 	filter.initialize(48000.0f, 4, vector<wstring>{ L"L", L"R" });
@@ -255,19 +255,4 @@ void testConstantCopyPreservesTrueSilence()
 		harness.expectEqual(sample, 0.5, "constant Copy remains available when the input carries a signal");
 }
 
-}
-
-void runCopyCommandTests()
-{
-	testSimpleRouting();
-	testCrossfeedWithFactors();
-	testNegativeFactorAndVirtualChannel();
-	testDecibelFactor();
-	testConstantValue();
-	testMalformedChunkDropped();
-	testSerializeRoundTrip();
-	testEmptySumAssignmentsSerializeToNothing();
-	testPropagateChannels();
-	testConstantCopyPreservesTrueSilence();
-	harness.report();
 }

@@ -65,7 +65,7 @@ namespace
 	}
 }
 
-void testSendBlockCounterCoversEveryProcessPath(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testSendBlockCounterCoversEveryProcessPath)
 {
 	FilterEngine engine;
 	float floatSample = 0.0f;
@@ -94,7 +94,7 @@ void testSendBlockCounterCoversEveryProcessPath(test::Harness& harness)
 		"empty-config bypass increments exactly once");
 }
 
-void testSendTapRunsForEmptyConfigurationAndRestoresBypass(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testSendTapRunsForEmptyConfigurationAndRestoresBypass)
 {
 	const std::wstring configPath = writeConfig(harness, L"send-tap-empty.txt", "# empty\n");
 	FilterEngine engine;
@@ -119,7 +119,7 @@ void testSendTapRunsForEmptyConfigurationAndRestoresBypass(test::Harness& harnes
 		harness.expectEqual(sample, 0.0f, "detaching the tap restores empty-config bypass output");
 }
 
-void testSendTapUsesOneTokenAcrossConfigurationSwap(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testSendTapUsesOneTokenAcrossConfigurationSwap)
 {
 	const std::wstring configA = writeConfig(harness, L"send-swap-a.txt", "Preamp: 0 dB\n");
 	const std::wstring configB = writeConfig(harness, L"send-swap-b.txt", "Preamp: -6 dB\n");
@@ -141,7 +141,7 @@ void testSendTapUsesOneTokenAcrossConfigurationSwap(test::Harness& harness)
 		"the tap token is the current process block counter");
 }
 
-void testSendTapOutputChannelSurvivesVirtualZeroFill(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testSendTapOutputChannelSurvivesVirtualZeroFill)
 {
 	const std::wstring configPath = writeConfig(harness, L"send-mono-stereo.txt", "# empty\n");
 	FilterEngine engine;
@@ -162,7 +162,7 @@ void testSendTapOutputChannelSurvivesVirtualZeroFill(test::Harness& harness)
 		"tap target at output index one survives zero fill and follows mono upmix");
 }
 
-void testSendTapControlsSilentFastPathState(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testSendTapControlsSilentFastPathState)
 {
 	const std::wstring configPath = writeConfig(harness, L"send-state-empty.txt", "# empty\n");
 	FilterEngine engine;
@@ -180,7 +180,7 @@ void testSendTapControlsSilentFastPathState(test::Harness& harness)
 		"detaching the tap restores the empty configuration's stateless answer");
 }
 
-void testConfigWatcherNamedEventTriggersReload(test::Harness& harness)
+TEST_CASE(EngineOrchestrationTests, testConfigWatcherNamedEventTriggersReload)
 {
 	const std::wstring eventName = L"Local\\EAPO.Send.ConfigWatcherTest."
 		+ std::to_wstring(GetCurrentProcessId());
@@ -225,14 +225,4 @@ void testConfigWatcherNamedEventTriggersReload(test::Harness& harness)
 
 	shutdown.set();
 	worker.join();
-}
-
-void runSendSeamTests(test::Harness& harness)
-{
-	testSendBlockCounterCoversEveryProcessPath(harness);
-	testSendTapRunsForEmptyConfigurationAndRestoresBypass(harness);
-	testSendTapUsesOneTokenAcrossConfigurationSwap(harness);
-	testSendTapOutputChannelSurvivesVirtualZeroFill(harness);
-	testSendTapControlsSilentFastPathState(harness);
-	testConfigWatcherNamedEventTriggersReload(harness);
 }

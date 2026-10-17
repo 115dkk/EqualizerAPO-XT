@@ -3,7 +3,7 @@
 #include "SubwooferRouting/Compiler.h"
 #include "SubwooferRouting/Preset.h"
 #include "SubwooferRouting/Processor.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 #include <algorithm>
 #include <cmath>
@@ -15,7 +15,7 @@
 namespace
 {
 
-test::Harness harness("SubwooferRoutingProcessorTests");
+test::HarnessAccess harness;
 
 subroute::PrepareSpec makePrepareSpec(
 	std::size_t maximumBlockSize,
@@ -111,7 +111,7 @@ double pathDelayMilliseconds(const subroute::Path& path)
 	return -1.0;
 }
 
-void testLfeOnlyImpulse()
+TEST_CASE(SubwooferRoutingProcessorTests, testLfeOnlyImpulse)
 {
 	const subroute::PrepareSpec spec = makePrepareSpec(64);
 	subroute::CompileResult compiled = compilePreset(spec);
@@ -199,7 +199,7 @@ void testLfeOnlyImpulse()
 		"RR should remain exactly silent for an LFE-only impulse");
 }
 
-void testUntouchedChannelBitExactness()
+TEST_CASE(SubwooferRoutingProcessorTests, testUntouchedChannelBitExactness)
 {
 	constexpr std::size_t frameCount = 257;
 	const subroute::PrepareSpec spec =
@@ -304,7 +304,7 @@ void testUntouchedChannelBitExactness()
 	}
 }
 
-void testBlockSplitContinuity()
+TEST_CASE(SubwooferRoutingProcessorTests, testBlockSplitContinuity)
 {
 	constexpr std::size_t frameCount = 4096;
 	constexpr std::size_t splitSize = 512;
@@ -408,7 +408,7 @@ void testBlockSplitContinuity()
 	}
 }
 
-void testFrontBassPolarity()
+TEST_CASE(SubwooferRoutingProcessorTests, testFrontBassPolarity)
 {
 	constexpr std::size_t frameCount = 256;
 	const subroute::PrepareSpec spec = makePrepareSpec(frameCount);
@@ -469,7 +469,7 @@ void testFrontBassPolarity()
 		"FrontBass's negative L source mix should produce negative low-band polarity");
 }
 
-void testInPlaceAliasing()
+TEST_CASE(SubwooferRoutingProcessorTests, testInPlaceAliasing)
 {
 	constexpr std::size_t frameCount = 1024;
 	const subroute::PrepareSpec spec = makePrepareSpec(frameCount);
@@ -565,7 +565,7 @@ void testInPlaceAliasing()
 	}
 }
 
-void testResetReproducesImpulse()
+TEST_CASE(SubwooferRoutingProcessorTests, testResetReproducesImpulse)
 {
 	constexpr std::size_t frameCount = 512;
 	const subroute::PrepareSpec spec = makePrepareSpec(frameCount);
@@ -645,7 +645,7 @@ void testResetReproducesImpulse()
 	}
 }
 
-void testPresetStructure()
+TEST_CASE(SubwooferRoutingProcessorTests, testPresetStructure)
 {
 	const subroute::PresetCreateResult preset =
 		subroute::createBuiltInPreset(
@@ -784,16 +784,4 @@ void testPresetStructure()
 	}
 }
 
-}
-
-void runSubwooferRoutingProcessorTests()
-{
-	testLfeOnlyImpulse();
-	testUntouchedChannelBitExactness();
-	testBlockSplitContinuity();
-	testFrontBassPolarity();
-	testInPlaceAliasing();
-	testResetReproducesImpulse();
-	testPresetStructure();
-	harness.report();
 }

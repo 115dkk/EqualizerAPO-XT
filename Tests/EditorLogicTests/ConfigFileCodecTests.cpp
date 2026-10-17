@@ -22,7 +22,7 @@
 #include "Editor/ConfigFileCodec.h"
 #include "platform/windows/Win32Resource.h"
 
-void testConfigFileCodec()
+TEST_CASE(EditorLogicTests, testConfigFileCodec)
 {
 	QList<QString> mixed = ConfigFileCodec::decodeLines(std::string("Preamp: -6 dB\r\nInclude: a.txt\nlast"));
 	requireEqual((int)mixed.size(), 3, "decodeLines splits CRLF and LF terminated lines");
@@ -47,7 +47,7 @@ void testConfigFileCodec()
 	expectEqual(roundTrip[1], QString::fromUtf8("caf\xC3\xA9"), "decode(encode(lines)) round-trips non-ASCII text");
 }
 
-void testConfigFileCodecRetriesAtomicReplaceAfterReaderCloses()
+TEST_CASE(EditorLogicTests, testConfigFileCodecRetriesAtomicReplaceAfterReaderCloses)
 {
 	QTemporaryDir dir;
 	requireTrue(dir.isValid(), "atomic-save retry test creates a temporary directory");
@@ -96,7 +96,7 @@ void testConfigFileCodecRetriesAtomicReplaceAfterReaderCloses()
 		"the retry atomically commits the complete replacement");
 }
 
-void testConfigFileCodecPreservesExistingFileWhenAtomicReplaceFails()
+TEST_CASE(EditorLogicTests, testConfigFileCodecPreservesExistingFileWhenAtomicReplaceFails)
 {
 	QTemporaryDir dir;
 	requireTrue(dir.isValid(), "atomic-save test creates a temporary directory");
@@ -129,7 +129,7 @@ void testConfigFileCodecPreservesExistingFileWhenAtomicReplaceFails()
 	expectEqual(QString::fromUtf8(preserved.readAll()), "original", "failed atomic replacement preserves the original contents");
 }
 
-void testConfigFileCodecRejectsPartialRead()
+TEST_CASE(EditorLogicTests, testConfigFileCodecRejectsPartialRead)
 {
 	const std::wstring pipeName = L"\\\\.\\pipe\\EditorLogicTests-ConfigRead-" + std::to_wstring(GetCurrentProcessId());
 	winutil::UniqueHandle pipe(CreateNamedPipeW(

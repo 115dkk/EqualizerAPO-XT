@@ -39,14 +39,14 @@
 #include "filters/BiQuad.h"
 #include "filters/BiQuadFilter.h"
 #include "filters/BiQuadCommand.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 using std::vector;
 using std::wstring;
 
 namespace
 {
-test::Harness harness("AllPassTests");
+test::HarnessAccess harness;
 
 // The reform document's grid (section 12.1).
 const double kSampleRates[] = {44100.0, 48000.0, 96000.0, 192000.0};
@@ -130,7 +130,7 @@ std::string describe(double srate, double q)
 // numerator is the reverse of the denominator, so |H| is exactly 1 at every
 // frequency. A magnitude that drifts means the coefficient derivation broke,
 // not that the tolerance was too tight.
-void testMagnitudeIsFlatAcrossTheBand()
+TEST_CASE(AllPassTests, testMagnitudeIsFlatAcrossTheBand)
 {
 	for (double srate : kSampleRates)
 	{
@@ -161,7 +161,7 @@ void testMagnitudeIsFlatAcrossTheBand()
 // The mirror-image structure itself, checked directly. b2 is exactly 1 and the
 // numerator is the denominator read backwards; this is the property the flat
 // magnitude follows from, so pinning it says more than pinning the magnitude.
-void testCoefficientsAreFiniteAndMirrored()
+TEST_CASE(AllPassTests, testCoefficientsAreFiniteAndMirrored)
 {
 	for (double srate : kSampleRates)
 	{
@@ -186,7 +186,7 @@ void testCoefficientsAreFiniteAndMirrored()
 // A 2nd-order all-pass turns a full circle: 0 degrees at DC, -180 at Fc,
 // -360 approaching Nyquist. The middle value is what a user sets Fc for, so
 // it is the one worth pinning.
-void testPhaseAtCenterIsHalfATurn()
+TEST_CASE(AllPassTests, testPhaseAtCenterIsHalfATurn)
 {
 	for (double srate : kSampleRates)
 	{
@@ -211,7 +211,7 @@ void testPhaseAtCenterIsHalfATurn()
 // 2Q / (pi * Fc) seconds is the w0 << 1 limit of that and drifts upward as Fc
 // climbs, so the exact form is what gets asserted; the approximation is only
 // checked where it is meant to hold.
-void testGroupDelayAtCenterMatchesTheClosedForm()
+TEST_CASE(AllPassTests, testGroupDelayAtCenterMatchesTheClosedForm)
 {
 	for (double srate : kSampleRates)
 	{
@@ -267,7 +267,7 @@ void renderInBlocks(BiQuadFilter& filter, unsigned totalFrames, unsigned blockFr
 // not ours to choose. An all-pass carries two samples of state across the
 // boundary, so a different block size has to produce the same stream bit for
 // bit.
-void testOutputIsBlockSizeInvariant()
+TEST_CASE(AllPassTests, testOutputIsBlockSizeInvariant)
 {
 	const unsigned totalFrames = 4096;
 	vector<double> reference;
@@ -294,7 +294,7 @@ void testOutputIsBlockSizeInvariant()
 // repeats the equivalence for an all-pass, whose numerator is the only part
 // that differs and whose coefficients are the least well conditioned of the
 // family at high Q.
-void testKernelsAgreeForAllPass()
+TEST_CASE(AllPassTests, testKernelsAgreeForAllPass)
 {
 	const wstring names[] = {L"C0", L"C1", L"C2", L"C3", L"C4", L"C5", L"C6", L"C7"};
 	const unsigned frames = 480;
@@ -353,7 +353,7 @@ void testKernelsAgreeForAllPass()
 // Fc pushed against either end of the band. The poles approach the unit circle
 // there, which is where a filter stops being usable if it ever does; the
 // output still has to be finite and the magnitude still has to be flat.
-void testExtremeCenterFrequenciesStayStable()
+TEST_CASE(AllPassTests, testExtremeCenterFrequenciesStayStable)
 {
 	const double srate = 48000.0;
 	for (double fc : {1.0, 10.0, 20.0, 20000.0, 23000.0, 23990.0})
@@ -382,7 +382,7 @@ void testExtremeCenterFrequenciesStayStable()
 // branch for bandwidth does not look at the filter type at all. Only the
 // Editor used to refuse it, and the fix went there; this keeps the engine side
 // of that fact pinned.
-void testAcceptsBandwidth()
+TEST_CASE(AllPassTests, testAcceptsBandwidth)
 {
 	wstring parameters = L"ON AP Fc 80 Hz BW Oct 1";
 	BiQuadCommand command;
@@ -399,7 +399,7 @@ void testAcceptsBandwidth()
 // all-pass no second entry to restore; the editors now offer it. The two are
 // not the same filter, and the gap is large enough to hear: this records how
 // large.
-void testBandwidthIsNotTheSameNumberAsQ()
+TEST_CASE(AllPassTests, testBandwidthIsNotTheSameNumberAsQ)
 {
 	const double srate = 48000.0;
 	const double fc = 80.0;
@@ -429,7 +429,7 @@ void testBandwidthIsNotTheSameNumberAsQ()
 // bilinear derivation or in the prewarping shows up here, tied to a filter
 // whose behaviour is already pinned by every test above. If it fails, the
 // derivation is wrong; do not go adjusting the other 1st-order tests.
-void testTwoFirstOrderSectionsEqualOneSecondOrderAtQHalf()
+TEST_CASE(AllPassTests, testTwoFirstOrderSectionsEqualOneSecondOrderAtQHalf)
 {
 	for (double srate : kSampleRates)
 	{
@@ -477,7 +477,7 @@ void testTwoFirstOrderSectionsEqualOneSecondOrderAtQHalf()
 // A 1st-order section turns half as far as a 2nd-order one and passes -90
 // degrees at Fc rather than -180. That half turn is what no cascade of
 // 2nd-order sections can produce, and the whole reason the order exists.
-void testFirstOrderAllPassBehaviour()
+TEST_CASE(AllPassTests, testFirstOrderAllPassBehaviour)
 {
 	for (double srate : kSampleRates)
 	{
@@ -524,7 +524,7 @@ void testFirstOrderAllPassBehaviour()
 }
 
 // The grammar the order arrives in.
-void testOrderParsing()
+TEST_CASE(AllPassTests, testOrderParsing)
 {
 	auto parse = [](const wchar_t* text, BiQuadCommand& out) {
 		std::wstring parameters(text);
@@ -578,7 +578,7 @@ void testOrderParsing()
 // An all-pass with no width is an error, unlike LP/HP/BP/NO which fall back to
 // a default. The reform keeps that for Order 2 and relaxes it only for Order 1,
 // where the parameter does not exist.
-void testWidthIsMandatory()
+TEST_CASE(AllPassTests, testWidthIsMandatory)
 {
 	wstring parameters = L"ON AP Fc 100 Hz";
 	BiQuadCommand command;
@@ -588,7 +588,7 @@ void testWidthIsMandatory()
 
 // Gain is meaningless for a filter that is flat by construction, and the
 // parser says so in the trace rather than applying it.
-void testGainIsIgnored()
+TEST_CASE(AllPassTests, testGainIsIgnored)
 {
 	wstring withGain = L"ON AP Fc 100 Hz Gain 6 dB Q 0.707";
 	wstring withoutGain = L"ON AP Fc 100 Hz Q 0.707";
@@ -599,24 +599,4 @@ void testGainIsIgnored()
 	harness.expect(a.dbGain == b.dbGain && a.freq == b.freq && a.bandwidthOrQOrS == b.bandwidthOrQOrS,
 		"a gain token does not change the all-pass filter");
 }
-}
-
-void runAllPassTests()
-{
-	testMagnitudeIsFlatAcrossTheBand();
-	testCoefficientsAreFiniteAndMirrored();
-	testPhaseAtCenterIsHalfATurn();
-	testGroupDelayAtCenterMatchesTheClosedForm();
-	testOutputIsBlockSizeInvariant();
-	testKernelsAgreeForAllPass();
-	testExtremeCenterFrequenciesStayStable();
-	testTwoFirstOrderSectionsEqualOneSecondOrderAtQHalf();
-	testFirstOrderAllPassBehaviour();
-	testOrderParsing();
-	testAcceptsBandwidth();
-	testBandwidthIsNotTheSameNumberAsQ();
-	testWidthIsMandatory();
-	testGainIsIgnored();
-
-	harness.report();
 }

@@ -29,13 +29,13 @@
 #include "parser/NumericText.h"
 
 #include "filters/PreampCommand.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 using std::wstring;
 
 namespace
 {
-test::Harness harness("ParserPreampTests");
+test::HarnessAccess harness;
 
 // Parses a single "Preamp:" line. The command keyword is always "Preamp" here;
 // the factory splits command from parameters at the ':' before calling
@@ -81,7 +81,7 @@ void expectSerializeIsIdempotent(const wstring& parameters)
 }
 }
 
-void runParserPreampTests()
+TEST_CASE(ParserPreampTests, runParserPreampTests)
 {
 	// Canonical lines: serialize reproduces the input parameter exactly.
 	expectRoundTrip(L"0 dB", 0.0, L"0 dB");
@@ -167,6 +167,4 @@ void runParserPreampTests()
 			"PreampCommand::parse should reject a non-Preamp command");
 		harness.expectFalse(cmd.valid, "a rejected command leaves the struct invalid");
 	}
-
-	harness.report();
 }

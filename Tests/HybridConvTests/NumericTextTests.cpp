@@ -12,13 +12,13 @@
 #include <string>
 
 #include "parser/NumericText.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 namespace
 {
-test::Harness harness("NumericTextTests");
+test::HarnessAccess harness;
 
-void testReadNumber()
+TEST_CASE(NumericTextTests, testReadNumber)
 {
 	struct Case
 	{
@@ -48,7 +48,7 @@ void testReadNumber()
 	}
 }
 
-void testParseNumber()
+TEST_CASE(NumericTextTests, testParseNumber)
 {
 	harness.expect(numeric_text::parseNumber(L" 0,25 ") == std::optional<double>(0.25), "surrounding whitespace aside, the whole text is the number");
 	harness.expect(numeric_text::parseNumber(L"-6") == std::optional<double>(-6.0), "a negative integer");
@@ -57,11 +57,4 @@ void testParseNumber()
 	harness.expectFalse(numeric_text::parseNumber(L"   ").has_value(), "blank text is not a number");
 	harness.expectFalse(numeric_text::parseNumber(L"inf").has_value(), "inf is refused");
 }
-}
-
-void runNumericTextTests()
-{
-	testReadNumber();
-	testParseNumber();
-	harness.report();
 }
