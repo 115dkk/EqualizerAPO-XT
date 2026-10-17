@@ -260,7 +260,7 @@ TEST_CASE(EngineOrchestrationTests, testFilterSetupFailureNamesItsLine)
 		"carrying the reason the filter gave");
 
 	const std::vector<float> after = processDcBlock(engine, 1.0f, 1.0f, 480);
-	harness.expect(std::fabs(after[0] - 0.5f) < 1e-3f, "and the previous configuration keeps running");
+	harness.expectNear(after[0], 0.5f, 1e-3f, "and the previous configuration keeps running");
 }
 
 // Audit #348 TD-18: these reached only the log; now they are on the line.
@@ -374,7 +374,7 @@ TEST_CASE(EngineOrchestrationTests, testIncludeTakesQuotesAndVariables)
 	engine.setLoadTraceSink(&collector);
 	initializeEngine(engine, 48000, 2, 480, configPath);
 	const std::vector<float> output = processDcBlock(engine, 1.0f, 1.0f, 480);
-	harness.expect(std::fabs(output[(size_t)478 * 2] - 0.25f) < 1e-3f,
+	harness.expectNear(output[(size_t)478 * 2], 0.25f, 1e-3f,
 		"the quoted include and the include through a variable both applied their -6 dB");
 
 	std::vector<const ConfigLoadTraceEntry*> errors;
@@ -421,7 +421,7 @@ TEST_CASE(EngineOrchestrationTests, testConfigRegistryReadsGoThroughThePort)
 
 	const std::vector<float> output = processDcBlock(engine, 1.0f, 1.0f, 16);
 	const float expected = static_cast<float>(std::pow(10.0, -6.0 / 20.0));
-	harness.expect(std::fabs(output[(size_t)15 * 2] - expected) < 1e-4f,
+	harness.expectNear(output[(size_t)15 * 2], expected, 1e-4f,
 		"readRegDWORD resolves through the injected fake registry");
 }
 

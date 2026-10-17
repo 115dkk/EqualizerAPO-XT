@@ -207,11 +207,11 @@ TEST_CASE(EditorLogicTests, testResponseCurveFrequencyAxis)
 	request.minHz = 20.0;
 	request.maxHz = 20000.0;
 	// Logarithmic: the middle column of three sits at the geometric mean.
-	expectTrue(std::abs(analysisColumnFrequency(request, 0) - 20.0) < 1e-9,
+	expectNear(analysisColumnFrequency(request, 0), 20.0, 1e-9,
 		QStringLiteral("the first column is the lower limit"));
-	expectTrue(std::abs(analysisColumnFrequency(request, 1) - std::sqrt(20.0 * 20000.0)) < 1e-6,
+	expectNear(analysisColumnFrequency(request, 1), std::sqrt(20.0 * 20000.0), 1e-6,
 		QStringLiteral("the middle column is the geometric mean"));
-	expectTrue(std::abs(analysisColumnFrequency(request, 2) - 20000.0) < 1e-6,
+	expectNear(analysisColumnFrequency(request, 2), 20000.0, 1e-6,
 		QStringLiteral("the last column is the upper limit"));
 
 	request.columnCount = 1;

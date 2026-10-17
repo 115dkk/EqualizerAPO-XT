@@ -74,7 +74,7 @@ TEST_CASE(HilbertVelvetTests, testHilbertFirContract)
 	harness.requireEqual(minus.size(),
 		static_cast<std::size_t>(HilbertTapCount),
 		"Hilbert FIR has the documented odd tap count");
-	harness.expectTrue(std::abs(minus[HilbertLatencySamples]) < 1.0e-15,
+	harness.expectNear(minus[HilbertLatencySamples], 0.0, 1.0e-15,
 		"Hilbert Type III FIR has a zero centre tap");
 
 	double maximumMirrorError = 0.0;
@@ -86,14 +86,14 @@ TEST_CASE(HilbertVelvetTests, testHilbertFirContract)
 		maximumDirectionError = std::max(maximumDirectionError,
 			std::abs(minus[i] + plus[i]));
 	}
-	harness.expectTrue(maximumMirrorError < 1.0e-14,
+	harness.expectNear(maximumMirrorError, 0.0, 1.0e-14,
 		"Hilbert FIR remains antisymmetric");
-	harness.expectTrue(maximumDirectionError < 1.0e-14,
+	harness.expectNear(maximumDirectionError, 0.0, 1.0e-14,
 		"the two phase directions are exact sign inverses");
 
 	const std::complex<double> minusMid = responseAt(minus, std::numbers::pi_v<double> * 0.5);
 	const std::complex<double> plusMid = responseAt(plus, std::numbers::pi_v<double> * 0.5);
-	harness.expectTrue(std::abs(std::abs(minusMid) - 1.0) < 1.0e-12,
+	harness.expectNear(std::abs(minusMid), 1.0, 1.0e-12,
 		"Hilbert mid-band magnitude is normalized to 0 dB");
 	harness.expectTrue(minusMid.imag() < -0.999999999
 		&& std::abs(minusMid.real()) < 1.0e-10,
@@ -114,7 +114,7 @@ TEST_CASE(HilbertVelvetTests, testVelvetCommandContract)
 		"Velvet accepts every documented parameter");
 	harness.expectFalse(command.parameters.dynamic,
 		"Velvet preserves Static mode");
-	harness.expectTrue(std::abs(command.parameters.amount - 0.75) < 1.0e-12,
+	harness.expectNear(command.parameters.amount, 0.75, 1.0e-12,
 		"Velvet parses Amount as a linear mix");
 
 	VelvetCommand roundTrip;
@@ -218,7 +218,7 @@ TEST_CASE(HilbertVelvetTests, testVelvetStreamIsBlockSizeInvariant)
 		maximumDifference = std::max(maximumDifference,
 			std::abs(wholeRight[i] - splitRight[i]));
 	}
-	harness.expectTrue(maximumDifference < 1.0e-12,
+	harness.expectNear(maximumDifference, 0.0, 1.0e-12,
 		"Velvet output does not depend on host block boundaries");
 }
 

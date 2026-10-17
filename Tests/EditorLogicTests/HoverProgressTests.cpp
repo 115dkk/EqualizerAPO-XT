@@ -93,7 +93,7 @@ TEST_CASE(EditorLogicTests, testHoverProgressSettlesAndRetargetsInPlace)
 	requireTrue(waitFor([hover]() { return hover->value() < 0.9; }, 10000), "the fade-out starts moving");
 	const double reached = hover->value();
 	hover->animateTo(1.0, durationMs);
-	expectTrue(std::abs(hover->value() - reached) < 1e-9,
+	expectNear(hover->value(), reached, 1e-9,
 		QString("the retarget starts from %1, got %2").arg(reached).arg(hover->value()));
 	expectEqual(finishes, 1, "an interrupted fade-out does not count as finished");
 

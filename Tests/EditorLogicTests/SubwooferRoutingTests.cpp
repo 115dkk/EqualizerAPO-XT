@@ -95,7 +95,7 @@ TEST_CASE(EditorLogicTests, testSubwooferRoutingCrossoverRecipes)
 	requireTrue(frontHp.has_value(), "FrontL high-pass recognized");
 	expectEqual(QString::fromStdString(subroute::crossoverRecipeLabel(*frontHp)),
 		"BW2", "FrontL is the original config's single Q 0.707 section");
-	expectTrue(std::abs(frontHp->frequencyHz - 80.0) < 0.01,
+	expectNear(frontHp->frequencyHz, 80.0, 0.01,
 		"FrontL corner is 80 Hz");
 
 	const subroute::Path* frontBass = pathById("FrontBass");
@@ -136,7 +136,7 @@ TEST_CASE(EditorLogicTests, testSubwooferRoutingCrossoverRecipes)
 	requireTrue(readBack.has_value(), "rewritten chain recognized");
 	expectEqual(QString::fromStdString(subroute::crossoverRecipeLabel(*readBack)),
 		"LR8", "round-trip keeps the alignment");
-	expectTrue(std::abs(readBack->frequencyHz - 60.0) < 0.01,
+	expectNear(readBack->frequencyHz, 60.0, 0.01,
 		"round-trip keeps the corner");
 	int delayStages = 0;
 	for (const subroute::PathStage& stage : rewritten.chain)

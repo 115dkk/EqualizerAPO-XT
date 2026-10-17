@@ -132,7 +132,7 @@ TEST_CASE(EngineOrchestrationTests, testChannelSelectorRouting)
 	// -6.0206 dB is a gain of 10^(-6.0206/20) ~= 0.49999
 	float left = output[(size_t)478 * 2 + 0];
 	float right = output[(size_t)478 * 2 + 1];
-	harness.expect(std::fabs(left - 0.5f) < 1e-3f, "left channel was not attenuated by the selected preamp");
+	harness.expectNear(left, 0.5f, 1e-3f, "left channel was not attenuated by the selected preamp");
 	harness.expect(right == 1.0f, "right channel was modified although only L was selected");
 }
 
@@ -150,8 +150,8 @@ TEST_CASE(EngineOrchestrationTests, testCopySwapsChannels)
 
 	float left = output[(size_t)478 * 2 + 0];
 	float right = output[(size_t)478 * 2 + 1];
-	harness.expect(std::fabs(left - 0.25f) < 1e-6f, "Copy did not route R into L");
-	harness.expect(std::fabs(right - 0.75f) < 1e-6f, "Copy did not route L into R");
+	harness.expectNear(left, 0.25f, 1e-6f, "Copy did not route R into L");
+	harness.expectNear(right, 0.75f, 1e-6f, "Copy did not route L into R");
 }
 
 // MultiConvolution must convolve the mapping target's OWN signal with its
@@ -175,8 +175,8 @@ TEST_CASE(EngineOrchestrationTests, testMultiConvolutionIgnoresChannelSelection)
 	std::vector<float> output = processDcBlock(engine, 0.3f, 0.5f, 480);
 	float left = output[(size_t)478 * 2 + 0];
 	float right = output[(size_t)478 * 2 + 1];
-	harness.expect(std::fabs(left - 0.6f) < 1e-3f, "L must be its own signal convolved with both mapped IR channels");
-	harness.expect(std::fabs(right - 0.5f) < 1e-3f, "R must pass through unchanged (it is not a mapping target)");
+	harness.expectNear(left, 0.6f, 1e-3f, "L must be its own signal convolved with both mapped IR channels");
+	harness.expectNear(right, 0.5f, 1e-3f, "R must pass through unchanged (it is not a mapping target)");
 }
 
 // Diagnostic: with a real BRIR set, MultiConvolution must produce genuine
@@ -259,9 +259,9 @@ TEST_CASE(EngineOrchestrationTests, testRealBrirCrossfeed)
 	harness.expect(aRenergy > 1e-6, "MultiConvolution BRIR produced no crossfeed to the right ear");
 	// ...matching the left speaker's contralateral response (FL right-ear channel,
 	// peak ~0.0188 around sample 184).
-	harness.expect(std::fabs(aRpeak - 0.0188) < 5e-3, "right-ear crossfeed peak does not match the contralateral IR");
+	harness.expectNear(aRpeak, 0.0188, 5e-3, "right-ear crossfeed peak does not match the contralateral IR");
 	harness.expect(aRpos > 120 && aRpos < 260, "right-ear crossfeed peak is not at the expected contralateral delay");
 	// The 1:1 path leaves the right ear essentially silent (no crossfeed).
-	harness.expect(bRenergy < 1e-6, "1:1 Convolution unexpectedly produced right-ear output");
+	harness.expectNear(bRenergy, 0.0, 1e-6, "1:1 Convolution unexpectedly produced right-ear output");
 	harness.expect(aRenergy > bRenergy * 1000.0, "MultiConvolution crossfeed is not dramatically larger than the 1:1 path");
 }

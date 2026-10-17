@@ -152,7 +152,7 @@ TEST_CASE(EditorLogicTests, testSubwooferRoutingSourceLfeGainReaders)
 
 	// -3 + 1.5 + 2 - 0.5 = 0, plus 20 log10(0.5) = -6.0205999...
 	const double expected = 20.0 * std::log10(0.5);
-	expectTrue(std::abs(sourceLfeEffectiveGainDb(path) - expected) < 1.0e-12,
+	expectNear(sourceLfeEffectiveGainDb(path), expected, 1.0e-12,
 		QStringLiteral("the effective LFE gain sums every term: expected %1, got %2")
 			.arg(expected, 0, 'f', 9).arg(sourceLfeEffectiveGainDb(path), 0, 'f', 9));
 	expectTrue(sourceLfeAdjustmentDb(path) == -3.0,

@@ -262,7 +262,7 @@ TEST_CASE(EditorLogicTests, testImpulsePeakGain)
 	}
 	const double peakDb = impulsePeakGainDb(
 		reinterpret_cast<const double (*)[2]>(interleaved.data()), bins.size());
-	expectTrue(std::abs(peakDb - (-6.0206)) < 0.01,
+	expectNear(peakDb, (-6.0206), 0.01,
 		QStringLiteral("a gain of 0.5 peaks at -6.02 dB, got %1").arg(peakDb, 0, 'f', 4));
 
 	// Only the Nyquist bin carries the peak: dropping it must lower the result.
@@ -271,6 +271,6 @@ TEST_CASE(EditorLogicTests, testImpulsePeakGain)
 	nyquistOnly[0] = 1.0;
 	const double withNyquist = impulsePeakGainDb(
 		reinterpret_cast<const double (*)[2]>(nyquistOnly.data()), bins.size());
-	expectTrue(std::abs(withNyquist - 20.0 * std::log10(2.0)) < 1.0e-12,
+	expectNear(withNyquist, 20.0 * std::log10(2.0), 1.0e-12,
 		"a peak in the Nyquist bin counts");
 }

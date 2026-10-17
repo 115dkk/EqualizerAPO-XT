@@ -42,17 +42,17 @@ TEST_CASE(EditorLogicTests, testBiQuadWidthRoundTripsExactly)
 	for (const Pair& pair : pairs)
 	{
 		const double octaves = BiQuadWidth::bandwidthFromQ(pair.q);
-		expectTrue(std::abs(octaves - pair.octaves) < 5e-7,
+		expectNear(octaves, pair.octaves, 5e-7,
 			QStringLiteral("Q %1 is %2 octaves (got %3)")
 				.arg(pair.q, 0, 'g', 8).arg(pair.octaves, 0, 'f', 7).arg(octaves, 0, 'f', 7));
 
 		const double q = BiQuadWidth::qFromBandwidth(octaves);
-		expectTrue(std::abs(q - pair.q) < pair.q * 1e-12,
+		expectNear(q, pair.q, pair.q * 1e-12,
 			QStringLiteral("Q %1 -> octaves -> Q returns the same number (got %2)")
 				.arg(pair.q, 0, 'g', 8).arg(q, 0, 'g', 8));
 
 		const double back = BiQuadWidth::bandwidthFromQ(BiQuadWidth::qFromBandwidth(pair.octaves));
-		expectTrue(std::abs(back - pair.octaves) < pair.octaves * 1e-12,
+		expectNear(back, pair.octaves, pair.octaves * 1e-12,
 			QStringLiteral("%1 octaves -> Q -> octaves returns the same number (got %2)")
 				.arg(pair.octaves, 0, 'f', 7).arg(back, 0, 'f', 7));
 	}
@@ -124,7 +124,7 @@ TEST_CASE(EditorLogicTests, testBiQuadWidthModesAndDefaults)
 	// A new all-pass starts at 0.707, not at the 10 the editors used to create.
 	// Q 10 at 1 kHz concentrates about 30 ms of group delay into a narrow band,
 	// which is a strange place to start a phase correction from.
-	expectTrue(std::abs(BiQuadWidth::defaultQ(BiQuad::ALL_PASS) - std::numbers::sqrt2_v<double> / 2.0) < 1e-12,
+	expectNear(BiQuadWidth::defaultQ(BiQuad::ALL_PASS), std::numbers::sqrt2_v<double> / 2.0, 1e-12,
 		QStringLiteral("a new all-pass starts at Q 0.707"));
 	// Peaking keeps its own default: this reform does not touch it.
 	expectTrue(BiQuadWidth::defaultQ(BiQuad::PEAKING) == 10.0,

@@ -443,7 +443,7 @@ return;
 		}
 	}
 
-	harness.expectTrue(maximumDifference <= 1.0e-12,
+	harness.expectNear(maximumDifference, 0.0, 1.0e-12,
 		"VST3 double output matches SubwooferRoutingCore within 1e-12");
 
 	double impulseInput[5][blockSize] = {};

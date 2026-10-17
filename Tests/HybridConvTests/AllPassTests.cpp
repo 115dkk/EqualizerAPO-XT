@@ -153,7 +153,7 @@ TEST_CASE(AllPassTests, testMagnitudeIsFlatAcrossTheBand)
 			std::ostringstream oss;
 			oss << "all-pass magnitude stays at 0 dB (" << describe(srate, q)
 				<< ", worst " << worst << " dB at " << worstHz << " Hz)";
-			harness.expect(worst < 1e-9, oss.str());
+			harness.expectNear(worst, 0.0, 1e-9, oss.str());
 		}
 	}
 }
@@ -169,11 +169,11 @@ TEST_CASE(AllPassTests, testCoefficientsAreFiniteAndMirrored)
 		{
 			const Coefficients c = coefficientsOf(makeAllPass(1000.0, srate, q, false));
 			harness.expect(allFinite(c), "all-pass coefficients are finite, " + describe(srate, q));
-			harness.expect(std::abs(c.b2 - 1.0) < 1e-12,
+			harness.expectNear(c.b2, 1.0, 1e-12,
 				"all-pass b2 is 1, " + describe(srate, q));
-			harness.expect(std::abs(c.b1 - c.a1) < 1e-12,
+			harness.expectNear(c.b1, c.a1, 1e-12,
 				"all-pass b1 mirrors a1, " + describe(srate, q));
-			harness.expect(std::abs(c.b0 - c.a2) < 1e-12,
+			harness.expectNear(c.b0, c.a2, 1e-12,
 				"all-pass b0 mirrors a2, " + describe(srate, q));
 			// Stability: both poles inside the unit circle. For a real biquad
 			// that is |a2| < 1 and |a1| < 1 + a2.
@@ -199,9 +199,9 @@ TEST_CASE(AllPassTests, testPhaseAtCenterIsHalfATurn)
 			std::ostringstream oss;
 			oss << "all-pass phase at Fc is -180 deg (" << describe(srate, q)
 				<< ", got " << atCenter << ")";
-			harness.expect(std::abs(std::abs(atCenter) - 180.0) < 1e-6, oss.str());
+			harness.expectNear(std::abs(atCenter), 180.0, 1e-6, oss.str());
 
-			harness.expect(std::abs(phaseDegreesAt(c, 1.0, srate)) < 1.0,
+			harness.expectNear(phaseDegreesAt(c, 1.0, srate), 0.0, 1.0,
 				"all-pass phase approaches 0 deg at DC, " + describe(srate, q));
 		}
 	}
@@ -226,12 +226,12 @@ TEST_CASE(AllPassTests, testGroupDelayAtCenterMatchesTheClosedForm)
 			std::ostringstream oss;
 			oss << "all-pass group delay at Fc is 4Q/sin(w0) samples (" << describe(srate, q)
 				<< ", expected " << expected << ", measured " << measured << ")";
-			harness.expect(std::abs(measured - expected) < expected * 1e-6, oss.str());
+			harness.expectNear(measured, expected, expected * 1e-6, oss.str());
 
 			// The textbook 2Q/(pi*Fc) seconds only holds while w0 is small;
 			// at 200 Hz it is within a part in 10^4 at every rate here.
 			const double approxSeconds = 2.0 * q / (std::numbers::pi_v<double> * fc);
-			harness.expect(std::abs(measured / srate - approxSeconds) < approxSeconds * 1e-3,
+			harness.expectNear(measured / srate, approxSeconds, approxSeconds * 1e-3,
 				"the 2Q/(pi*Fc) approximation holds at low Fc, " + describe(srate, q));
 		}
 	}
@@ -391,7 +391,7 @@ TEST_CASE(AllPassTests, testAcceptsBandwidth)
 	harness.expectEqual(static_cast<int>(command.type), static_cast<int>(BiQuad::ALL_PASS),
 		"BW Oct line parses as an all-pass");
 	harness.expectTrue(command.isBandwidthOrS, "the all-pass width is flagged as a bandwidth");
-	harness.expect(std::abs(command.bandwidthOrQOrS - 1.0) < 1e-12, "the bandwidth value survives the parse");
+	harness.expectNear(command.bandwidthOrQOrS, 1.0, 1e-12, "the bandwidth value survives the parse");
 }
 
 // What the Editor's old silent rewrite cost. Opening "BW Oct 1" and saving
@@ -417,7 +417,7 @@ TEST_CASE(AllPassTests, testBandwidthIsNotTheSameNumberAsQ)
 		/ groupDelaySamplesAt(asQ, fc, srate);
 	std::ostringstream oss;
 	oss << "rewriting BW Oct 1 as Q 1 changes the group delay at Fc by about 41% (ratio " << ratio << ")";
-	harness.expect(std::abs(ratio - std::numbers::sqrt2_v<double>) < 0.01, oss.str());
+	harness.expectNear(ratio, std::numbers::sqrt2_v<double>, 0.01, oss.str());
 }
 
 // Two 1st-order sections at the same frequency, in series, are exactly one
@@ -447,14 +447,14 @@ TEST_CASE(AllPassTests, testTwoFirstOrderSectionsEqualOneSecondOrderAtQHalf)
 			// The cascade's transfer function is the square of the section's:
 			// (c + z^-1)^2 / (1 + c z^-1)^2.
 			const double c = first.b0;
-			harness.expect(std::abs(first.b1 - 1.0) < 1e-12, "the 1st-order numerator is c + z^-1, " + label.str());
+			harness.expectNear(first.b1, 1.0, 1e-12, "the 1st-order numerator is c + z^-1, " + label.str());
 			harness.expect(first.b2 == 0.0 && first.a2 == 0.0,
 				"the 1st-order section leaves the second-order taps at exactly zero, " + label.str());
-			harness.expect(std::abs(first.a1 - c) < 1e-12, "the 1st-order denominator mirrors it, " + label.str());
+			harness.expectNear(first.a1, c, 1e-12, "the 1st-order denominator mirrors it, " + label.str());
 
-			harness.expect(std::abs(second.a1 - 2.0 * c) < 1e-12,
+			harness.expectNear(second.a1, 2.0 * c, 1e-12,
 				"two 1st-order sections give the Q 0.5 first-order term, " + label.str());
-			harness.expect(std::abs(second.a2 - c * c) < 1e-12,
+			harness.expectNear(second.a2, c * c, 1e-12,
 				"and its second-order term, " + label.str());
 
 			// The same statement as a response check, at a frequency where the
@@ -468,7 +468,7 @@ TEST_CASE(AllPassTests, testTwoFirstOrderSectionsEqualOneSecondOrderAtQHalf)
 			const double probe = fc * 1.7;
 			const std::complex<double> cascade = responseAt(first, probe, srate) * responseAt(first, probe, srate);
 			const std::complex<double> single = responseAt(second, probe, srate);
-			harness.expect(std::abs(cascade - single) < 1e-9,
+			harness.expectNear(std::abs(cascade - single), 0.0, 1e-9,
 				"the cascade's response equals the Q 0.5 section's, " + label.str());
 		}
 	}
@@ -494,18 +494,18 @@ TEST_CASE(AllPassTests, testFirstOrderAllPassBehaviour)
 			double worst = 0.0;
 			for (double hz = 20.0; hz < srate * 0.499; hz *= 1.1)
 				worst = std::max(worst, std::abs(magnitude.gainAt(hz, srate)));
-			harness.expect(worst < 1e-9, "1st-order magnitude stays at 0 dB, " + label.str());
+			harness.expectNear(worst, 0.0, 1e-9, "1st-order magnitude stays at 0 dB, " + label.str());
 
 			const double atCenter = phaseDegreesAt(c, fc, srate);
 			std::ostringstream oss;
 			oss << "1st-order phase at Fc is -90 deg (" << label.str() << ", got " << atCenter << ")";
-			harness.expect(std::abs(atCenter + 90.0) < 1e-6, oss.str());
+			harness.expectNear(atCenter, -90.0, 1e-6, oss.str());
 
 			// Probed relative to Fc rather than at a fixed 1 Hz: a 1st-order
 			// section turns gradually, so at 1 Hz a filter centred on 20 Hz is
 			// already several degrees along. Four decades below Fc the phase is
 			// about -0.01 degrees.
-			harness.expect(std::abs(phaseDegreesAt(c, fc * 1e-4, srate)) < 0.1,
+			harness.expectNear(phaseDegreesAt(c, fc * 1e-4, srate), 0.0, 0.1,
 				"1st-order phase approaches 0 deg well below Fc, " + label.str());
 			const double nearNyquist = phaseDegreesAt(c, srate * 0.4999, srate);
 			harness.expect(nearNyquist < -175.0 && nearNyquist >= -180.0,
@@ -518,7 +518,7 @@ TEST_CASE(AllPassTests, testFirstOrderAllPassBehaviour)
 			std::ostringstream gd;
 			gd << "1st-order group delay at Fc is (1+K^2)/(2K) samples (" << label.str()
 				<< ", expected " << expected << ", measured " << measured << ")";
-			harness.expect(std::abs(measured - expected) < expected * 1e-6, gd.str());
+			harness.expectNear(measured, expected, expected * 1e-6, gd.str());
 		}
 	}
 }

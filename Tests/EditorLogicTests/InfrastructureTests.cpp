@@ -138,11 +138,11 @@ TEST_CASE(EditorLogicTests, testEditableValueTextUsesDisplayedDecimalFormatFirst
 	double value = 0.0;
 	expectTrue(parseEditableValueText(QStringLiteral("12.345"), german, &value),
 		"dot-decimal text parses under a grouping-dot locale");
-	expectTrue(qAbs(value - 12.345) < 0.000001,
+	expectNear(value, 12.345, 0.000001,
 		"dot-decimal text keeps the displayed C-locale meaning");
 	expectTrue(parseEditableValueText(QStringLiteral("12,5"), german, &value),
 		"system-locale decimal text remains accepted as a fallback");
-	expectTrue(qAbs(value - 12.5) < 0.000001,
+	expectNear(value, 12.5, 0.000001,
 		"system-locale fallback keeps its decimal meaning");
 }
 

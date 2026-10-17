@@ -292,7 +292,7 @@ TEST_CASE(EngineOrchestrationTests, testConfigSwapCrossfades)
 
 	// Settle on config A.
 	std::vector<float> settled = processDcBlock(engine, 1.0f, 1.0f, 480);
-	harness.expect(std::fabs(settled[0] - 0.5f) < 1e-3f, "engine did not settle on the initial config");
+	harness.expectNear(settled[0], 0.5f, 1e-3f, "engine did not settle on the initial config");
 
 	// loadConfig with an existing currentConfig installs nextConfig and arms
 	// the transition; process() then plays the crossfade.
@@ -330,8 +330,8 @@ TEST_CASE(EngineOrchestrationTests, testConfigSwapCrossfades)
 	std::vector<float> after = processDcBlock(engine, 1.0f, 1.0f, 480);
 	float finalLeft = after[(size_t)478 * 2 + 0];
 	float finalRight = after[(size_t)478 * 2 + 1];
-	harness.expect(std::fabs(finalLeft - target) < 1e-4f, "left channel did not converge to the new config gain");
-	harness.expect(std::fabs(finalRight - target) < 1e-4f, "right channel did not converge to the new config gain");
+	harness.expectNear(finalLeft, target, 1e-4f, "left channel did not converge to the new config gain");
+	harness.expectNear(finalRight, target, 1e-4f, "right channel did not converge to the new config gain");
 }
 
 // A reload is one transaction: filters may have been constructed and
@@ -346,7 +346,7 @@ TEST_CASE(EngineOrchestrationTests, testFailedConfigLoadKeepsActiveConfiguration
 	FilterEngine engine;
 	initializeEngine(engine, 48000, 2, 480, configA);
 	std::vector<float> before = processDcBlock(engine, 1.0f, 1.0f, 480);
-	harness.expect(std::fabs(before[0] - 0.5f) < 1e-3f, "transaction test did not establish config A");
+	harness.expectNear(before[0], 0.5f, 1e-3f, "transaction test did not establish config A");
 
 	AlignedMemory::failAllocationAfterForTesting(1);
 	bool loaded = engine.loadConfig(configB);
@@ -354,7 +354,7 @@ TEST_CASE(EngineOrchestrationTests, testFailedConfigLoadKeepsActiveConfiguration
 	harness.expectFalse(loaded, "reload reported success after injected FilterConfiguration allocation failure");
 
 	std::vector<float> after = processDcBlock(engine, 1.0f, 1.0f, 480);
-	harness.expect(std::fabs(after[0] - 0.5f) < 1e-3f,
+	harness.expectNear(after[0], 0.5f, 1e-3f,
 		"failed reload replaced or damaged the active configuration");
 }
 
