@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.57.7 — 2026-10-17
+
 - **Stereo float input takes less time to convert in the SSE2 and ARM64 builds.**
   A local i5-12600KF measurement of the product's 480-frame SSE2 conversion fell
   from 217 ns to 120 ns across three runs. ARM64 CI measured 141–142 ns, versus
