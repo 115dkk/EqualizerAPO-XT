@@ -14,6 +14,13 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Legacy semicolon-separated expressions work again.** Configurations such as
+  SECS's `Eval: inL=1;inR=2` failed before the channel mappings were set, leaving
+  FIR and gain correction unapplied. XT now preserves the older Equalizer APO
+  syntax through its shared expression parser. Quoted semicolons, escaping,
+  diagnostic offsets and whole-expression error behavior are preserved.
+  Parser regressions and a real stereo FIR configuration cover the fix.
+
 ## v2.57.7 — 2026-10-17
 
 - **Stereo float input takes less time to convert in the SSE2 and ARM64 builds.**
