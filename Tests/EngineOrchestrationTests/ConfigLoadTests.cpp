@@ -21,6 +21,7 @@
 #include "engine/IFilterFactory.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "Tests/FakeRegistry.h"
+#include "Tests/WavFixtures.h"
 
 #include "EngineOrchestrationTestSupport.h"
 
@@ -155,6 +156,69 @@ TEST_CASE(EngineOrchestrationTests, testConfigLoadTrace)
 	engine.loadConfig(configPath);
 	harness.expectEqual((int)collector.entries.size(), (int)entries.size(),
 		"detached sink receives nothing on a reload");
+}
+
+TEST_CASE(EngineOrchestrationTests, testLegacySemicolonMappingsApplyStereoFir)
+{
+	testSubdirectory(L"legacy-secs");
+	const std::wstring filterDirectory = testSubdirectory(L"legacy-secs\\filters");
+	const std::vector<std::vector<double>> taps = {{0.5, -0.25, 0.125}, {0.25, 0.125, -0.0625}};
+	for (size_t channel = 0; channel < taps.size(); ++channel)
+	{
+		const std::wstring path = filterDirectory + (channel == 0 ? L"\\left.wav" : L"\\right.wav");
+		trackWrittenFile(path);
+		harness.require(test::writeWavFile(path, 48000, taps[channel]), "write the stereo FIR fixtures");
+	}
+	writeConfig(harness, L"legacy-secs\\filters\\filters.txt",
+		"Channel: VML\nConvolution: left.wav\n"
+		"Channel: VMR\nConvolution: right.wav\n");
+	const std::wstring configPath = writeConfig(harness, L"legacy-secs\\config.txt",
+		"Eval: inL=1;inR=2\nEval: outL=1;outR=2\n"
+		"Copy: VML=0.0 VMR=0.0\n"
+		"If: inL >= 1 && inL <= inputChannelCount\nCopy: VML=`inL`\nEndIf:\n"
+		"If: inR >= 1 && inR <= inputChannelCount\nCopy: VMR=`inR`\nEndIf:\n"
+		"Include: filters\\filters.txt\n"
+		"Copy: `inL`=0.0 `inR`=0.0\n"
+		"If: outL >= 1 && outL <= outputChannelCount\nCopy: `outL`=VML\nEndIf:\n"
+		"If: outR >= 1 && outR <= outputChannelCount\nCopy: `outR`=VMR\nEndIf:\n"
+		"Channel: all\n");
+
+	TraceCollector collector;
+	test::FakeRegistry registry;
+	FilterEngine engine;
+	engine.setLoadTraceSink(&collector);
+	EngineSetup setup = testEngineSetup(48000, 2, 2, 128, configPath);
+	setup.registry = &registry;
+	engine.initialize(setup);
+	for (const ConfigLoadTraceEntry& entry : collector.entries)
+		harness.expectFalse(entry.error, "legacy stereo FIR configuration has no load error");
+
+	constexpr unsigned frames = 1024;
+	const unsigned arrivals[] = {256, 640};
+	std::vector<double> input(frames * 2, 0.0);
+	std::vector<double> output(frames * 2, 0.0);
+	for (size_t channel = 0; channel < taps.size(); ++channel)
+		input[arrivals[channel] * 2 + channel] = 1.0;
+	for (unsigned offset = 0; offset < frames; offset += 128)
+		engine.process(output.data() + offset * 2, input.data() + offset * 2, 128);
+
+	double maxError = 0.0;
+	bool allFinite = true;
+	for (unsigned frame = 0; frame < frames; ++frame)
+	{
+		for (size_t channel = 0; channel < taps.size(); ++channel)
+		{
+			const bool inResponse = frame >= arrivals[channel] && frame - arrivals[channel] < taps[channel].size();
+			const double expected = inResponse ? taps[channel][frame - arrivals[channel]] : 0.0;
+			allFinite = allFinite && std::isfinite(output[frame * 2 + channel]);
+			const double error = std::abs(output[frame * 2 + channel] - expected);
+			if (error > maxError)
+				maxError = error;
+		}
+	}
+	harness.expectTrue(allFinite, "every stereo FIR output sample is finite");
+	harness.expectNear(maxError, 0.0, 1e-8,
+		"every stereo output sample follows its own FIR without bypass or channel leakage");
 }
 
 // The parse-error channel that replaced the engine's guess. What matters is the

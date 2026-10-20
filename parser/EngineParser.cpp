@@ -55,6 +55,58 @@ void EngineParser::defineFunction(mup::ICallback* function)
 
 mup::Value EngineParser::evaluate(const std::wstring& expression)
 {
-	parser->SetExpr(expression);
+	if (expression.find(L';') == std::wstring::npos)
+	{
+		parser->SetExpr(expression);
+		return parser->Eval();
+	}
+
+	// Equalizer APO 1.4.2's muparserx 3.0.1 treated ';' as a newline.
+	// Keep one whole-expression parse/evaluation: splitting and evaluating
+	// statements separately would execute assignments before a later syntax
+	// error. Equal-length replacements also preserve diagnostic positions.
+	std::wstring normalized = expression;
+	bool inString = false;
+	bool inComment = false;
+	bool escaped = false;
+	bool replaced = false;
+	for (wchar_t& character : normalized)
+	{
+		if (inComment)
+		{
+			if (character == L'\n')
+				inComment = false;
+			continue;
+		}
+		if (inString)
+		{
+			if (escaped)
+				escaped = false;
+			else if (character == L'\\')
+				escaped = true;
+			else if (character == L'"')
+				inString = false;
+			continue;
+		}
+		if (character == L'"')
+			inString = true;
+		else if (character == L'#')
+			inComment = true;
+		else if (character == L';')
+		{
+			character = L'\n';
+			replaced = true;
+		}
+	}
+
+	// The old lexer skipped spaces and accepted empty newline statements.
+	// Preserve that void result only when this conversion made the script
+	// empty. SetExpr on the original still enforces today's length limit.
+	if (replaced && normalized.find_first_not_of(L" \n") == std::wstring::npos)
+	{
+		parser->SetExpr(expression);
+		return mup::Value();
+	}
+	parser->SetExpr(replaced ? normalized : expression);
 	return parser->Eval();
 }
