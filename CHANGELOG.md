@@ -19,7 +19,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   FIR and gain correction unapplied. XT now preserves the older Equalizer APO
   syntax through its shared expression parser. Quoted semicolons, escaping,
   diagnostic offsets and whole-expression error behavior are preserved.
-  Parser regressions and a real stereo FIR configuration cover the fix.
+  Parser regressions and a real stereo FIR configuration cover the fix
+  ([#426](https://github.com/115dkk/EqualizerAPO-XT/pull/426)).
 
 ## v2.57.7 — 2026-10-17
 

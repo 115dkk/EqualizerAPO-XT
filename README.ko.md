@@ -43,7 +43,8 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
    매핑을 비롯해 원본 Equalizer APO의 구형 파서에 맞춰 작성한 설정과 호환됩니다.
    FIR 샘플레이트는 여전히 장치와 같아야 합니다.
    [재현 결과와 호환 처리](docs/architecture/legacy-expression-separators.md)에
-   확인 범위를 정리했습니다.
+   확인 범위를 정리했습니다
+   ([#426](https://github.com/115dkk/EqualizerAPO-XT/pull/426)).
 5. 서브우퍼 라우팅([#246](https://github.com/115dkk/EqualizerAPO-XT/issues/246)) — 핵심 기능은 완료됐습니다. `SubwooferRouting:` 명령, MIT SubwooferRoutingCore DSP 라이브러리, 독립 실행형 VST3 플러그인, 4.1 호스트 협상 수정, 다섯 스킨 각각의 카드 계기, 그리고 두 라우팅 행렬과 응답 뷰를 갖춘 전체 편집기까지 들어갔습니다. 남은 후속 작업은 연결된 프로필 파일로의 변경 사항 되쓰기(현재는 행을 인라인 상태로 전환), audition/solo 오버라이드, 새 문자열의 한국어 번역, 전용 VST3 편집기 화면(현재는 호스트의 일반 파라미터 화면)입니다.
 6. VST3 버스 레이아웃 명시([#216](https://github.com/115dkk/EqualizerAPO-XT/issues/216)) — 비대칭 입출력, 4.1, 엄격한 실패 처리, VST2에서의 조용한 무시를 포함한 백엔드 `VSTPlugin:` `Input`/`Output` 문법과 결정적 호스트 테스트를 마쳤습니다. Qt Editor에도 플러그인 이름 옆에 Input/Output 선택기가 들어갔습니다. 다섯 스킨이 각자의 시각 언어로 그리고, 판정 램프가 실제 체결된 버스를 알려 주며, VST2 잠금·잔존 키 제거와 구형 `StereoInput` 이전까지 처리합니다([#265](https://github.com/115dkk/EqualizerAPO-XT/pull/265)). 이번 라운드에서는 협상된 슬롯에 임의 설정 채널을 넣는 슬롯별 채널 채우기(`InputChannels`/`OutputChannels`, 지정하지 않은 채널은 그대로 통과)와 레거시 행의 Input/Output 드롭다운이 들어갔고([#290](https://github.com/115dkk/EqualizerAPO-XT/pull/290)), 채우기 목록의 편집기가 모든 스킨에 들어갔습니다. 카드 안의 레일 두 줄이 슬롯별 채널 드롭다운을 들고 라인의 `Channel:`/`Copy:` 흐름을 따르며, 양쪽 레일이 있으면 접기 스위치가 붙고, 레거시 표시에는 콤보 행이 들어갑니다([#292](https://github.com/115dkk/EqualizerAPO-XT/pull/292)).
 7. ASIO([#310](https://github.com/115dkk/EqualizerAPO-XT/issues/310)) —
