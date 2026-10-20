@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.57.8 — 2026-10-20
+
 - **세미콜론으로 나눈 기존 수식을 다시 읽습니다.** SECS의
   `Eval: inL=1;inR=2` 같은 설정은 채널 번호를 정하기 전에 오류가 나서 FIR과
   게인 보정이 적용되지 않았습니다. 공용 수식 파서에서 원본 Equalizer APO의

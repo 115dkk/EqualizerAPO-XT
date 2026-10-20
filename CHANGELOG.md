@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.57.8 — 2026-10-20
+
 - **Legacy semicolon-separated expressions work again.** Configurations such as
   SECS's `Eval: inL=1;inR=2` failed before the channel mappings were set, leaving
   FIR and gain correction unapplied. XT now preserves the older Equalizer APO
