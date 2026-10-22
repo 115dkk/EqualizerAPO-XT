@@ -24,7 +24,9 @@
   .steps .arw { color: var(--muted); }
   .steps .plus { color: var(--success); font-weight: 700; }
   .steps .no { width: 28px; color: var(--muted); border-right: 1px solid var(--border); height: 100%; display: inline-flex; align-items: center; }
-  .steps .tok { font-weight: 700; color: var(--c); }
+  /* the app prints the token in DM Mono Medium and strikes it again half a pixel right (MinimalChannelInk.h);
+     700 would make Chromium fake a heavier bold than the app draws */
+  .steps .tok { font-weight: 500; color: var(--c); text-shadow: 0.5px 0 0 var(--c); }
   .steps .tok.virt { border: 1px dashed var(--c); padding: 0 4px; }
   .steps .fx { background: var(--sunken); padding: 1px 4px; color: var(--text); font-size: 12px; }
   .steps .tgt { border: 1px solid var(--border); padding: 0 5px; color: var(--muted); font-size: 12px; }

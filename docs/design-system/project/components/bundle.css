@@ -171,7 +171,10 @@
 .skin-minimal .crow .tbadge { border: 0; color: var(--t, var(--text)); }
 .skin-minimal .crow .title { text-transform: uppercase; letter-spacing: 1px; font-weight: 500; font-family: var(--mono); }
 .skin-minimal .crow .summary { font-family: var(--mono); }
-.skin-minimal .crow .ch { color: var(--c); padding: 0 2px; border: 0; border-radius: 0; background: none; font-family: var(--mono); font-size: 12.67px; }
+/* minimal header channel tokens: DM Mono Medium overstruck half a pixel right, the same print as the Copy listing
+   (MinimalSkin::paintChannelBadge, drawMinimalChannelText). */
+.skin-minimal .crow .ch { color: var(--c); padding: 0 2px; border: 0; border-radius: 0; background: none; font-family: var(--mono); font-size: 12.67px;
+  font-weight: 500; text-shadow: 0.5px 0 0 var(--c); }
 .skin-minimal .crow .ch.virt { border: 1px dashed var(--c); }
 .skin-minimal .crow .body { background: var(--surface); border-top: 1px solid var(--border); padding-left: 14px; }
 .skin-minimal .crow .vbox { background: var(--input); border: 1px solid var(--border); border-radius: 0; font-weight: 500; }
