@@ -18,7 +18,8 @@ CSS = '''
   .skin-rack .prm .sel { color: var(--muted); font-weight: 600; }
   .skin-rack .prm .cap { color: var(--text); }
   .skin-matrix .prm .cap { text-transform: uppercase; letter-spacing: 1px; font-size: 10.67px; color: var(--muted); }
-  .skin-matrix .fsel { text-transform: none; letter-spacing: 0; font-size: 13px; }
+  /* the template selector is the sunken readout of the engaged entry: sans in the body ink, not the caption register */
+  .skin-matrix .crow .sel.fsel { text-transform: none; letter-spacing: 0; font-size: 13.33px; color: var(--text); background: var(--graph); }
   .kn { display: flex; align-items: center; }
 '''
 PARAMS = [('Center frequency', '1,000.00 Hz', False, 0.566, True), ('Gain', '6.00 dB', True, 0.5, False), ('Q factor', '0.7100', False, 0.34, True)]
@@ -28,7 +29,9 @@ def body(skin):
     ksize = {'studio': 48, 'minimal': 46, 'soft': 54, 'rack': 56, 'matrix': 48}[skin]
     for label, value, bipolar, ratio, selector in PARAMS:
         k = knob(skin, bipolar, ratio, ksize)
-        head = f'<span class="sel">{label} <span class="chev"></span></span>' if selector else f'<span class="cap">{label}</span>'
+        # matrix posts a selector with one mode (Center frequency in the gallery) as a cancelled cell
+        sel = 'sel one' if skin == 'matrix' and label == 'Center frequency' else 'sel'
+        head = f'<span class="{sel}">{label} <span class="chev"></span></span>' if selector else f'<span class="cap">{label}</span>'
         parts.append(f'<div class="grp"><span class="kn">{k}</span><div class="prm">{head}<span class="vbox">{value}</span></div></div>')
     return f'<div class="pbody">{"".join(parts)}</div>'
 

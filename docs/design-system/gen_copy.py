@@ -19,7 +19,9 @@ CSS = '''
   .steps .arw { color: var(--muted); }
   .steps .plus { color: var(--success); font-weight: 700; }
   .steps .no { width: 28px; color: var(--muted); border-right: 1px solid var(--border); height: 100%; display: inline-flex; align-items: center; }
-  .steps .tok { font-weight: 700; color: var(--c); }
+  /* the app prints the token in DM Mono Medium and strikes it again half a pixel right (MinimalChannelInk.h);
+     700 would make Chromium fake a heavier bold than the app draws */
+  .steps .tok { font-weight: 500; color: var(--c); text-shadow: 0.5px 0 0 var(--c); }
   .steps .tok.virt { border: 1px dashed var(--c); padding: 0 4px; }
   .steps .fx { background: var(--sunken); padding: 1px 4px; color: var(--text); font-size: 12px; }
   .steps .tgt { border: 1px solid var(--border); padding: 0 5px; color: var(--muted); font-size: 12px; }
@@ -45,15 +47,20 @@ CSS = '''
   .field .capb .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 5px var(--accent); }
   .field .capb .dimple { width: 3px; height: 3px; border-radius: 50%; background: rgba(0,0,0,.7); box-shadow: 0 1px 0 rgba(255,255,255,.08); }
   .field .addcap { margin-top: 8px; height: 24px; padding: 0 10px; display: inline-flex; align-items: center; border-radius: 3px; background: linear-gradient(180deg, #2c333a, #1b2126); border: 1px solid #11161a; border-top-color: #3e474f; font-size: 11px; letter-spacing: 1px; font-weight: 700; color: var(--text); }
-  /* matrix: the crosspoint grid */
-  .grid { border-collapse: separate; border-spacing: 4px; font-family: var(--mono); font-size: 12px; font-weight: 700; }
-  .grid .hd { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; height: 18px; color: var(--on-accent); background: var(--c); font-size: 12px; letter-spacing: 0; }
-  .grid .hd.virt { background: color-mix(in srgb, var(--c) 10%, transparent); color: var(--c); border: 1px dashed var(--c); }
-  .grid .rh { justify-content: center; }
-  .grid .cell { width: 52px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border); background: var(--graph); color: var(--text); }
-  .grid .cell.acc { border-color: var(--accent); color: var(--accent); }
-  .grid .cell.one { border-color: var(--success); color: var(--success); }
-  .mbus { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border: 1px solid var(--border); background: var(--graph); color: var(--muted); font-family: var(--mono); font-weight: 700; font-size: 10.67px; letter-spacing: 1px; margin-top: 6px; }
+  /* matrix: the crosspoint grid (CrosspointMatrixView: row header 64, column header 30, cell 52x26 drawn 1px in).
+     The axis labels are board coordinates printed in muted bold mono, with no cell and no channel colour; a virtual
+     channel keeps a dashed rule under its name. Colour on the board lives only in the cells: unity green, gains accent,
+     the fill at alpha 60 under a rule at alpha 200. The footer keys wear the empty cell's resting grammar. */
+  .grid { border-collapse: collapse; border-spacing: 0; font-family: var(--mono); font-size: 12px; }
+  .grid td { padding: 0; width: 52px; height: 26px; text-align: center; vertical-align: middle; }
+  .grid tr.cols td { height: 30px; }
+  .grid td.rh { width: 64px; }
+  .grid .hd { color: var(--muted); font-weight: 500; }
+  .grid .hd.virt { text-decoration: underline dashed var(--muted) 1px; text-underline-offset: 3px; }
+  .grid .cell { display: flex; align-items: center; justify-content: center; height: 24px; margin: 1px; border: 1px solid var(--border); background: color-mix(in srgb, var(--border) 7%, transparent); color: var(--text); font-weight: 400; }
+  .grid .cell.acc { border-color: color-mix(in srgb, var(--accent) 78%, transparent); background: color-mix(in srgb, var(--accent) 24%, transparent); }
+  .grid .cell.one { border-color: color-mix(in srgb, var(--success) 78%, transparent); background: color-mix(in srgb, var(--success) 24%, transparent); }
+  .mbus { display: inline-flex; align-items: center; height: 21px; padding: 0 8px; border: 1px solid var(--border); background: color-mix(in srgb, var(--border) 7%, transparent); color: var(--muted); font-family: var(--mono); font-size: 12px; margin: 5px 0 0 4px; }
 '''
 
 def studio():
@@ -97,10 +104,11 @@ def rack():
             f'<span class="addcap">ADD</span></div>')
 
 def matrix():
-    L, R, VC = CHANNEL['L'], CHANNEL['R'], CHANNEL['C']
-    return (f'<table class="grid"><tr><td></td><td><span class="hd" style="--c:{L}">L</span></td><td><span class="hd" style="--c:{R}">R</span></td><td><span class="hd virt" style="--c:{VC}">VC</span></td></tr>'
-            f'<tr><td><span class="hd virt rh" style="--c:{VC}">VC</span></td><td><span class="cell acc">0.5</span></td><td><span class="cell acc">0.5</span></td><td><span class="cell"></span></td></tr>'
-            f'<tr><td><span class="hd rh" style="--c:{R}">R</span></td><td><span class="cell one">1</span></td><td><span class="cell"></span></td><td><span class="cell"></span></td></tr></table>'
+    # the headers carry no channel colour (PR #430): the grid's own rules frame them, and colour is rationed to state
+    hd = lambda ch, virt=False: f'<span class="hd{" virt" if virt else ""}">{ch}</span>'
+    return (f'<table class="grid"><tr class="cols"><td class="rh"></td><td>{hd("L")}</td><td>{hd("R")}</td><td>{hd("VC", True)}</td></tr>'
+            f'<tr><td class="rh">{hd("VC", True)}</td><td><span class="cell acc">0.5</span></td><td><span class="cell acc">0.5</span></td><td><span class="cell"></span></td></tr>'
+            f'<tr><td class="rh">{hd("R")}</td><td><span class="cell one">1</span></td><td><span class="cell"></span></td><td><span class="cell"></span></td></tr></table>'
             f'<span class="mbus">+BUS</span>')
 
 BODY = {'studio': studio, 'minimal': minimal, 'soft': soft, 'rack': rack, 'matrix': matrix}

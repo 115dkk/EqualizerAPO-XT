@@ -12,7 +12,7 @@
 - **minimal:** 1px 헤어라인 박스, 라운드 0, 헤더 판 없음. 행머리의 ASCII 글리프(`~` 필터, `>>` Include, `[]` VST, `->` Copy, `#` 주석)가 종류를 말하고 배지는 외곽선만 남는다. 수치는 chrome 없이 `minimal-ink-bright`로 바로 인쇄하고, 선택기는 캡션 + 1px 밑줄 + 캐럿이다. 채널은 `minimal-ch-*` 맨 잉크.
 - **soft:** `soft-radius-card` 14px 카드, 한 스텝 어두운 받침(`soft-surface`)과 옅은 1px 보더로 고도를 만든다. 헤더 스트립 없음, 제목은 `title` 스타일(16px/600). 타입 칩은 softPastelize로 파스텔 선반에 올린 색 위에 `soft-on-ink`이고, 채널 알약은 파스텔로 바꾸지 않은 채널 식별 색이다. 값은 스타디움 우물.
 - **rack:** 페이스플레이트(`rack-card` + 브러싱 결), 평상시 보더는 `rack-seam`, 랙 이어와 네 나사, paintLed 문법의 상태 LED(`rack-accent2`), 각인 라벨(`engraved`), 값은 LCD 판독창(`rack-graph` 우물 + 녹색 세그먼트 잉크). 이어 존은 콘텐츠 금지.
-- **matrix:** 직각 셀 + 1px 룰, 왼쪽 `matrix-card-rail` 3px 신호등 레일과 5px 상태 램프, 좌표 셀(`coordinate` 스타일, `B3`), 헤더 밴드 뒤의 24px 모눈. 타입은 단색 코드 셀, 본문 밴드는 `matrix-bg`로 통째 채우고 값은 함몰 박스 셀.
+- **matrix:** 직각 셀 + 1px 룰, 왼쪽 `matrix-card-rail` 3px 신호등 레일과 5px 상태 램프, 좌표 셀(`coordinate` 스타일, `B3`), 헤더 밴드 뒤의 24px 모눈. 상자는 카드 한 겹이라 카드 안에서 테두리를 두르는 것은 좌표 셀 하나다. 헤더 액션 열차는 휴지에 글리프만 찍고(전원 켜짐도 체결 칸 없음), 타입은 칸 없는 단색 픽토그램, 채널 범위는 muted 굵은 모노 글자다. 본문 밴드는 `matrix-bg`로 통째 채우고, 값은 룰 없는 함몰 칸, 파라미터 선택기는 캡션 잉크와 화살(모드가 하나면 아래 점선 룰), 템플릿 선택기는 함몰 판독 칸이다.
 
 ## 상태
 
