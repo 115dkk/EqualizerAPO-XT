@@ -53,6 +53,7 @@
 #include "CustomStyle.h"
 #include "MainWindow.h"
 #include "SkinGallery.h"
+#include "diagnostics/FrameHitTestProbe.h"
 #include "diagnostics/SkinSwitchStorm.h"
 #include "SkinManager.h"
 #include "import/LegacyMigration.h"
@@ -526,6 +527,7 @@ int main(int argc, char* argv[])
 			application.arguments().contains(QStringLiteral("--analysis-layout-test"))
 			|| application.arguments().contains(QStringLiteral("--analysis-latency-test"))
 			|| application.arguments().contains(QStringLiteral("--plugin-load-test"))
+			|| application.arguments().contains(QStringLiteral("--frame-hittest-test"))
 			|| application.arguments().contains(QStringLiteral("--window-shot"));
 		// The constructor reopens tabs and queues their plug-ins; the loader
 		// waits until the shown window has UI Automation running.
@@ -563,6 +565,11 @@ int main(int argc, char* argv[])
 		QCommandLineOption pluginLoadOption(QStringLiteral("plugin-load-test"));
 		pluginLoadOption.setFlags(QCommandLineOption::HiddenFromHelp);
 		parser.addOption(pluginLoadOption);
+		// Real-window probe for the custom frame's hit testing under a native
+		// child cascade (diagnostics/FrameHitTestProbe).
+		QCommandLineOption frameHitTestOption(QStringLiteral("frame-hittest-test"));
+		frameHitTestOption.setFlags(QCommandLineOption::HiddenFromHelp);
+		parser.addOption(frameHitTestOption);
 		// Real-window A/B probe for the panel preview feed (SkinGallery::
 		// armVstPanelFeedProbe); pair it with EAPO_DISABLE_PANEL_FEED=1 for
 		// the control run.
@@ -615,6 +622,11 @@ int main(int argc, char* argv[])
 		else if (parser.isSet(analysisLatencyOption))
 		{
 			if (!SkinGallery::armAnalysisLatencyProbe(w, application.arguments()))
+				return 1;
+		}
+		else if (parser.isSet(frameHitTestOption))
+		{
+			if (!FrameHitTestProbe::arm(w))
 				return 1;
 		}
 		else if (parser.isSet(skinMetricsOption))

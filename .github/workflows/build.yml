@@ -471,6 +471,19 @@ jobs:
         & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
           -WorkspaceRoot "${{ github.workspace }}" -Gate routing-edit -Platform "${{ matrix.platform }}"
 
+    # The custom title bar must stay draggable once a native child window
+    # covers it (an embedded VST panel makes Qt turn the chrome host native).
+    # WM_NCHITTEST needs real Win32 windows, so this gate alone runs on the
+    # windows platform plugin; the probe sends the messages itself and never
+    # moves the runner's pointer.
+    - name: Run frame hit-test probe (windows platform)
+      if: matrix.primary == true
+      timeout-minutes: 5
+      shell: pwsh
+      run: |
+        & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
+          -WorkspaceRoot "${{ github.workspace }}" -Gate frame-hittest -Platform "${{ matrix.platform }}"
+
     # A hard step timeout on every gate: if the Editor ever blocks on a
     # fatal-error dialog again, the job must fail in minutes, not hang for
     # hours.

@@ -175,6 +175,7 @@ SOURCES += main.cpp\
 	MainWindowParts/MainWindow.Probe.cpp \
 	MainWindowParts/MainWindow.ViewActions.cpp \
 	MainWindowParts/OpenDocument.cpp \
+	diagnostics/FrameHitTestProbe.cpp \
 	diagnostics/SkinSwitchStorm.cpp \
 	ConfigFileCodec.cpp \
 	guis/StageFilterGUI.cpp \
@@ -628,6 +629,7 @@ HEADERS  += \
 	guis/LoudnessCorrectionFilterGUIDialog.h \
 	helpers/CrashHandler.h \
 	diagnostics/ToolbarPixelProbe.h \
+	diagnostics/FrameHitTestProbe.h \
 	diagnostics/SkinSwitchStorm.h \
 	helpers/QtSndfileHandle.h \
 	SkinGallery.h \

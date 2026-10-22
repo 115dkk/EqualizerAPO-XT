@@ -16,12 +16,17 @@
 
     The plan phase is pure: -PlanOnly answers which arguments, environment
     additions and post-checks a gate would run with, for Pester.
+
+    One gate is not offscreen: frame-hittest asks real Win32 windows for
+    WM_NCHITTEST answers, so it runs on the windows platform plugin (QtPlatform
+    in its entry). It sends the messages itself and never needs the desktop
+    pointer, so other windows on the runner's desktop cannot disturb it.
 #>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)] [string] $WorkspaceRoot,
     [Parameter(Mandatory)]
-    [ValidateSet("selftest-vst", "skin-gallery", "skin-switch", "analysis-layout", "plugin-load", "card-move", "card-selection", "power-toggle", "routing-edit")]
+    [ValidateSet("selftest-vst", "skin-gallery", "skin-switch", "analysis-layout", "plugin-load", "card-move", "card-selection", "power-toggle", "routing-edit", "frame-hittest")]
     [string] $Gate,
     [string] $Platform = "x64",
     # Where deps\ lives; a git worktree has none of its own. Defaults to the
@@ -119,6 +124,16 @@ $gates = @{
         LogPath    = Join-Path $WorkspaceRoot "routing-edit-test.log"
         PostChecks = @()
     }
+    # The custom frame under a native child cascade (an embedded VST panel
+    # turns the chrome host into a child HWND): caption and edges must stay
+    # draggable (diagnostics/FrameHitTestProbe).
+    "frame-hittest" = [pscustomobject]@{
+        Arguments  = @("--frame-hittest-test", (Join-Path $WorkspaceRoot "Setup\config\config.txt"))
+        ExtraEnv   = @{ QT_FORCE_STDERR_LOGGING = "1" }
+        QtPlatform = "windows"
+        LogPath    = Join-Path $WorkspaceRoot "frame-hittest-test.log"
+        PostChecks = @()
+    }
 }
 
 $spec = $gates[$Gate]
@@ -129,6 +144,7 @@ $plan = [pscustomobject]@{
     ExtraEnv   = $spec.ExtraEnv
     LogPath    = $spec.LogPath
     PostChecks = @($spec.PostChecks)
+    QtPlatform = if ($spec.PSObject.Properties["QtPlatform"]) { $spec.QtPlatform } else { "offscreen" }
     # The import lib embeds the SONAME velopack_libc.dll (see Package-
     # Artifacts); the gates run from the build dir, so the renamed DLL must
     # sit next to Editor.exe. Idempotent, so every gate does it.
@@ -163,7 +179,7 @@ Copy-Item $plan.VelopackDllSource -Destination (Join-Path $buildDir "velopack_li
 # plugin fails to load and Qt parks a fatal-error dialog forever.
 $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:QT_ROOT\bin;$env:PATH"
 $env:QT_QPA_PLATFORM_PLUGIN_PATH = "$env:QT_ROOT\plugins\platforms"
-$env:QT_QPA_PLATFORM = "offscreen"
+$env:QT_QPA_PLATFORM = $plan.QtPlatform
 foreach ($name in $spec.ExtraEnv.Keys) {
     Set-Item -Path "env:$name" -Value $spec.ExtraEnv[$name]
 }
