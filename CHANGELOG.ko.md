@@ -14,7 +14,7 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   잉크가 잘 보이지 않았습니다. DM Mono에는 Medium보다 굵은 면이 없어서, 이제
   터미널이 볼드를 만드는 방식대로 반 픽셀 어긋나게 두 번 찍습니다. 늘어나는
   잉크는 Medium에서 SemiBold로 한 단계 올린 만큼입니다. 다른 스킨은 바뀌지
-  않습니다([#PRNUM](https://github.com/115dkk/EqualizerAPO-XT/pull/PRNUM)).
+  않습니다([#431](https://github.com/115dkk/EqualizerAPO-XT/pull/431)).
 
 ## v2.60.0 — 2026-10-22
 

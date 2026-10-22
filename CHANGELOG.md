@@ -20,7 +20,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   colour alone, and at the Medium weight the darker inks were hard to see. DM
   Mono has no weight above Medium, so the tokens are now struck twice, half a
   pixel apart, the way a terminal makes bold text. That adds about as much ink
-  as one step from Medium to SemiBold. Other skins are unchanged ([#PRNUM](https://github.com/115dkk/EqualizerAPO-XT/pull/PRNUM)).
+  as one step from Medium to SemiBold. Other skins are unchanged ([#431](https://github.com/115dkk/EqualizerAPO-XT/pull/431)).
 
 ## v2.60.0 — 2026-10-22
 
