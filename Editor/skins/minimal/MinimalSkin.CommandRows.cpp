@@ -97,13 +97,15 @@ bool MinimalSkin::paintChannelBadge(QPainter& painter, const QRect& rect, const 
 	// channel-scope tokens follow the Copy listing's grammar - the designed
 	// console ink on bare ground, uppercase mono, no pill chrome. Virtual
 	// channels keep the dashed frame (the unverified-token dash grammar).
+	// DM Mono has no bold, so a bold request lands on Medium; the token asks
+	// for Medium and is overstruck like the listing's.
 	const QColor ink = minimalChannelInk(channel, skinIsDark(tokens));
 	QFont font(tokens.monoFontFamily);
 	font.setPointSizeF(9.5);
-	font.setBold(true);
+	font.setWeight(QFont::Medium);
 	painter.setFont(font);
 	painter.setPen(ink);
-	painter.drawText(rect, Qt::AlignCenter, channel);
+	drawMinimalChannelText(painter, rect, channel);
 	if (virtualChannel)
 	{
 		painter.setPen(QPen(ink, 1.0, Qt::DashLine));
