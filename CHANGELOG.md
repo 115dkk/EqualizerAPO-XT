@@ -14,6 +14,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Matrix routing grids no longer paint channels in rainbow colours.** The
+  row and column headers of Matrix's Copy grid (also used by MultiConvolution,
+  Send and the subwoofer routing dialog) were pills filled with a different
+  colour per channel, so colour on the grid no longer meant anything. They now
+  print as plain monospace labels, and colour on the grid is left to the cells
+  (green unity, red inversion, accent gains). Virtual channels keep a dashed
+  underline. Other skins are unchanged ([#430](https://github.com/115dkk/EqualizerAPO-XT/pull/430)).
+
 ## v2.59.0 — 2026-10-22
 
 - **Matrix cards no longer nest boxes inside boxes.** Almost everything on

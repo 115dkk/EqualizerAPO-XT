@@ -40,8 +40,8 @@ void CrosspointMatrixView::updateMetrics()
 	for (const QString& out : matrix.outputs)
 		longestOutput = qMax(longestOutput, fm.horizontalAdvance(out));
 
-	// Column pills inset the header cell by 6+6, row pills by 6+8, and the
-	// caption keeps a little air inside the pill.
+	// Column labels inset the header cell by 6+6, row labels by 6+8, and the
+	// caption keeps a little air inside the label.
 	cellW = qMax(52, longestInput + 20);
 	rowHeaderWidth = qMax(64, longestOutput + 22);
 }
@@ -78,65 +78,59 @@ void CrosspointMatrixView::paintEvent(QPaintEvent*)
 
 	QFont monoFont(t.monoFontFamily);
 	monoFont.setPixelSize(12);
-	p.setFont(monoFont);
+	QFont labelFont(monoFont);
+	labelFont.setBold(true);
+	const QFontMetrics labelMetrics(labelFont);
 
 	removeRects.clear();
 	removeRects.resize(matrix.outputs.size());
 
+	// The axis labels are board coordinates printed in the label ink, with
+	// no cell and no channel colour: the grid's own rules already frame
+	// them, and colour on this board is rationed to state (the cells below
+	// carry it). A virtual channel keeps the dash, as a rule under its name.
+	const auto drawAxisLabel = [&](const QRect& area, const QString& name, bool virt, bool lit) {
+		p.setFont(labelFont);
+		p.setPen(lit ? text : muted);
+		p.drawText(area, Qt::AlignCenter, name);
+		if (virt)
+		{
+			const int w = labelMetrics.horizontalAdvance(name);
+			const int left = area.center().x() - w / 2;
+			const int y = area.center().y() + labelMetrics.ascent() / 2 + 2;
+			p.setPen(QPen(muted, 1, Qt::DashLine));
+			p.drawLine(left, y, left + w - 1, y);
+		}
+	};
+
 	// Column headers (input channels; in fixed-source mode these are the IR
 	// file's channel numbers, which are ports rather than virtual channels, so
-	// they get the solid pill instead of the dashed virtual styling).
+	// they never take the virtual dash).
 	for (int c = 0; c < matrix.inputs.size(); ++c)
 	{
 		const QString ch = matrix.inputs[c];
-		const QColor col(CopyRoutingAdapter::channelColor(ch));
 		const QRect hr(rowHeaderWidth + c * cellW, 0, cellW, colHeaderHeight);
 		const bool virt = !portModel.fixedSourceMode() && portModel.isVirtualChannel(ch);
-		QRect pill = hr.adjusted(6, 6, -6, -8);
-		if (virt)
-		{
-			p.setPen(QPen(withAlpha(col, 170), 1, Qt::DashLine));
-			p.setBrush(withAlpha(col, 28));
-		}
-		else
-		{
-			p.setPen(Qt::NoPen);
-			p.setBrush(col);
-		}
-		p.drawRect(pill);
-		p.setPen(virt ? col : QColor(Qt::white));
-		p.drawText(pill, Qt::AlignCenter, ch);
+		drawAxisLabel(hr.adjusted(6, 6, -6, -8), ch, virt, false);
 	}
 
 	// Rows.
 	for (int r = 0; r < matrix.outputs.size(); ++r)
 	{
 		const QString out = matrix.outputs[r];
-		const QColor col(CopyRoutingAdapter::channelColor(out));
 		const QRect rr(0, colHeaderHeight + r * cellH, rowHeaderWidth, cellH);
 		const bool virt = portModel.isVirtualChannel(out);
-		QRect pill = rr.adjusted(6, 4, -8, -4);
-		if (virt)
-		{
-			p.setPen(QPen(withAlpha(col, 170), 1, Qt::DashLine));
-			p.setBrush(withAlpha(col, 28));
-		}
-		else
-		{
-			p.setPen(Qt::NoPen);
-			p.setBrush(col);
-		}
-		p.drawRect(pill);
-		p.setPen(virt ? col : QColor(Qt::white));
-		p.drawText(pill, Qt::AlignCenter, out);
+		const QRect labelRect = rr.adjusted(6, 4, -8, -4);
+		drawAxisLabel(labelRect, out, virt, hoveredRow == r);
+		p.setFont(monoFont);
 
 		// A virtual bus can leave the board: hovering its row exposes an x
-		// target on the header pill (physical channels fold instead of
+		// target at the end of its label (physical channels fold instead of
 		// leaving, so they never get one).
 		if (virt && hoveredRow == r)
 		{
-			const QRect xr(pill.right() - 14, pill.top(), 14, pill.height());
-			p.setPen(withAlpha(col, 220));
+			const QRect xr(labelRect.right() - 14, labelRect.top(), 14, labelRect.height());
+			p.setPen(text);
 			p.drawText(xr, Qt::AlignCenter, QStringLiteral("x"));
 			removeRects[r] = xr;
 		}
@@ -198,6 +192,7 @@ void CrosspointMatrixView::paintEvent(QPaintEvent*)
 	// bus onto the board.
 	revealRect = QRect();
 	addRect = QRect();
+	p.setFont(monoFont);
 	const QRect footer = footerRect();
 	QFontMetrics fm(monoFont);
 	int x = 4;
