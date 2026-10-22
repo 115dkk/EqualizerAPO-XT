@@ -8,6 +8,13 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **Rack 스킨의 Copy 격자가 다른 버튼처럼 브론즈로 잠깁니다.** 다크 Rack에서는
+  전원 버튼과 픽커 포인터 같은 헤더 버튼이 차분한 브론즈로 잠기는데, Copy
+  격자(MultiConvolution, Send, 서브우퍼 라우팅 대화상자도 같은 격자를 씁니다)의
+  라우팅된 교차점만 캡 전체를 앰버로 밝혔습니다. 이제 같은 브론즈로 잠기고,
+  계수와 램프는 본문 색으로 찍습니다. 음수 게인의 적색 램프와 라이트 테마는
+  그대로입니다([#435](https://github.com/115dkk/EqualizerAPO-XT/pull/435)).
+
 ## v2.60.2 — 2026-10-22
 
 - **Matrix 라이트 테마에서 카드의 전원 스위치가 다시 보입니다.** Matrix가
