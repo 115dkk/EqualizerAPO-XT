@@ -187,6 +187,11 @@ bool SkinManager::paintChannelBadge(QPainter& painter, const QRect& rect, const 
 	return activeSkin->paintChannelBadge(painter, rect, channel, virtualChannel, currentTokens);
 }
 
+QIcon SkinManager::powerToggleIcon(bool enabled) const
+{
+	return activeSkin->powerToggleIcon(enabled, currentTokens);
+}
+
 bool SkinManager::logicSiblingsIndentAsMembers() const
 {
 	return activeSkin->logicSiblingsIndentAsMembers();

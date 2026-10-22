@@ -16,6 +16,7 @@
 #pragma once
 
 #include <QColor>
+#include <QIcon>
 #include <QPolygonF>
 #include <QRect>
 #include <QSet>
@@ -451,6 +452,12 @@ public:
 	// device's (ChannelIdentity::isVirtual): a Copy-created name.
 	virtual bool paintChannelBadge(QPainter& painter, const QRect& rect, const QString& channel,
 		bool virtualChannel, const SkinTokens& tokens) const;
+
+	// The glyph on a card header's power toggle. The shared glyphs were drawn
+	// for an engaged cell: a white disc for "on", a black one for "off".
+	// Return a null icon to keep them; the neutral default does, so every
+	// skin stays pixel-identical until it answers.
+	virtual QIcon powerToggleIcon(bool enabled, const SkinTokens& tokens) const;
 
 	// Layout policy for the If family's branch/tail rows (ElseIf/Else/EndIf):
 	// true indents them with the block members (logicDepth) instead of at
