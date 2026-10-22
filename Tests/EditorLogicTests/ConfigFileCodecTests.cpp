@@ -81,8 +81,10 @@ TEST_CASE(EditorLogicTests, testConfigFileCodecRetriesAtomicReplaceAfterReaderCl
 	// QSaveFile creates a sibling temporary file before attempting the atomic
 	// rename. The directory event proves that attempt began before the reader is
 	// released, while the deadline prevents a regression from hanging the suite.
+	// The wait ends as soon as the event fires, so the deadline only bounds a
+	// failure; two seconds was missed once by a stalled AddressSanitizer runner.
 	const bool temporaryFileObserved = WaitForSingleObject(
-		directoryChanged.get(), 2000) == WAIT_OBJECT_0;
+		directoryChanged.get(), 15000) == WAIT_OBJECT_0;
 	reader.reset();
 	writer.join();
 
