@@ -118,8 +118,8 @@
    after the title and summary. Filled skins (studio, soft) tint it 27 % (19 % light) inside a full-colour line; rack
    tints it 14 % (9 %). A virtual channel, one the device does not have, is dashed. Matrix prints the scope as muted
    bold mono with no chip and no identity colour, and dashes a rule under a virtual name (MatrixSkin::paintChannelBadge).
-   The DM Mono files stop at Medium, so the matrix mirror asks 500 where the code asks bold: the gallery shows Medium,
-   and 700 would make Chromium fake a heavier bold. */
+   EAPO Mono carries SemiBold and Bold faces generated from the DM Mono masters (Editor/fonts/make-mono-weights.py),
+   so 600 and 700 here print the faces the app prints. */
 .crow .chs { display: inline-flex; align-items: center; gap: 5px; margin-left: 24px; }
 .crow .ch { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 16px; padding: 0 5px; box-sizing: border-box; font-family: var(--font);
   font-size: 11.5px; font-weight: 700; line-height: 1; color: var(--c); border: 1px solid var(--c); border-radius: 999px; background: color-mix(in srgb, var(--c) 27%, transparent); }
@@ -171,10 +171,9 @@
 .skin-minimal .crow .tbadge { border: 0; color: var(--t, var(--text)); }
 .skin-minimal .crow .title { text-transform: uppercase; letter-spacing: 1px; font-weight: 500; font-family: var(--mono); }
 .skin-minimal .crow .summary { font-family: var(--mono); }
-/* minimal header channel tokens: DM Mono Medium overstruck half a pixel right, the same print as the Copy listing
-   (MinimalSkin::paintChannelBadge, drawMinimalChannelText). */
+/* minimal header channel tokens: EAPO Mono SemiBold, the same print as the Copy listing (MinimalSkin::paintChannelBadge). */
 .skin-minimal .crow .ch { color: var(--c); padding: 0 2px; border: 0; border-radius: 0; background: none; font-family: var(--mono); font-size: 12.67px;
-  font-weight: 500; text-shadow: 0.5px 0 0 var(--c); }
+  font-weight: 600; }
 .skin-minimal .crow .ch.virt { border: 1px dashed var(--c); }
 .skin-minimal .crow .body { background: var(--surface); border-top: 1px solid var(--border); padding-left: 14px; }
 .skin-minimal .crow .vbox { background: var(--input); border: 1px solid var(--border); border-radius: 0; font-weight: 500; }
@@ -277,7 +276,7 @@
 .skin-matrix .crow .num { border: 1px solid var(--border); background: var(--bg); min-width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; letter-spacing: 1px; font-size: 12px; }
 .skin-matrix .crow .tbadge { border: 0; background: transparent; color: var(--text); border-radius: 0; }
 .skin-matrix .crow .ch, .skin-matrix .crow .ch.virt { min-width: 24px; padding: 0 2px; border: 0; border-radius: 0; background: none; color: var(--muted);
-  font-family: var(--mono); font-size: 12px; font-weight: 500; letter-spacing: .6px; }
+  font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .6px; }
 .skin-matrix .crow .ch.virt { text-decoration: underline dashed var(--muted) 1px; text-underline-offset: 3px; }
 .skin-matrix .crow .body { background: var(--bg); border-top: 1px solid var(--border); padding-left: 22px; }
 .skin-matrix .crow .vbox { background: var(--graph); border: 1px solid transparent; border-radius: 0; }

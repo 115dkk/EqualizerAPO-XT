@@ -18,7 +18,7 @@ for f in sorted(os.listdir(icons_src)):
 print('icons:', len([f for f in os.listdir(icons_dst) if f.endswith('.svg')]))
 
 fonts_dst = os.path.join(project, 'fonts'); os.makedirs(fonts_dst, exist_ok=True)
-for f in ('DMSans-Regular.ttf', 'DMSans-Medium.ttf', 'DMSans-SemiBold.ttf', 'DMSans-Bold.ttf', 'DMMono-Regular.ttf', 'DMMono-Medium.ttf'):
+for f in ('DMSans-Regular.ttf', 'DMSans-Medium.ttf', 'DMSans-SemiBold.ttf', 'DMSans-Bold.ttf', 'DMMono-Regular.ttf', 'DMMono-Medium.ttf', 'DMMono-SemiBold.ttf', 'DMMono-Bold.ttf'):
     shutil.copyfile(os.path.join(fonts_src, f), os.path.join(fonts_dst, f))
 
 # The Korean faces: keep ASCII, Latin-1, general punctuation, the won sign, Hangul compatibility jamo and every
