@@ -90,6 +90,7 @@
         <file>icons/modern/window-max.svg</file>
         <file>icons/modern/window-restore.svg</file>
         <file>icons/modern/window-close.svg</file>
+        <file>icons/modern/tab-close.svg</file>
         <file>icons/modern/matrix-grid-dark.svg</file>
         <file>icons/modern/matrix-grid-light.svg</file>
         <file>icons/modern/logic-if.svg</file>

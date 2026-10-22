@@ -271,8 +271,8 @@ QTabBar::tab {
 QTabBar::tab:hover { color: @TEXT@; background: @SURFACE@; }
 QTabBar::tab:selected { color: #000000; background: @CARD@; border-top: 2px solid @ACCENT@; }
 QTabBar::tab:!selected { border-bottom: 1px solid @BORDER@; }
-QTabBar::close-button { image: none; background: transparent; border-radius: 0; padding: 2px; margin: 2px; subcontrol-position: right; }
-QTabBar::close-button:hover { background: #f4baba; }
+QTabBar QToolButton#TabCloseButton { background: transparent; border: none; border-radius: 0; margin: 0; padding: 0; min-width: 0; min-height: 0; }
+QTabBar QToolButton#TabCloseButton:hover { background: #f4baba; }
 QTabBar QToolButton { background: @CARD@; border: 1px solid @BORDER@; border-radius: 0; margin: 4px 2px; }
 
 QGroupBox {

@@ -383,14 +383,14 @@ SOURCES += main.cpp\
 	widgets/routing/RoutingGridModel.cpp \
 	widgets/routing/GridRoutingViewBase.cpp \
 	widgets/routing/SumRoutingViewBase.cpp \
-	widgets/MiddleClickTabWidget.cpp \
+	widgets/DocumentTabWidget.cpp \
 	import/ConfigDependencyScanner.cpp \
 	import/ImportDialog.cpp \
 	import/ImportExecutor.cpp \
 	import/CallerProfileCheck.cpp \
 	import/LegacyMigration.cpp \
 	import/LegacyMigrationPolicy.cpp \
-	widgets/MiddleClickTabBar.cpp
+	widgets/DocumentTabBar.cpp
 
 HEADERS  += \
 	../platform/windows/FileSharingRetry.h \
@@ -734,7 +734,7 @@ HEADERS  += \
 	widgets/routing/RoutingChannelEditor.h \
 	widgets/routing/GridRoutingViewBase.h \
 	widgets/routing/SumRoutingViewBase.h \
-	widgets/MiddleClickTabWidget.h \
+	widgets/DocumentTabWidget.h \
 	import/ConfigDependencyScanner.h \
 	import/ImportDialog.h \
 	import/ImportExecutor.h \
@@ -743,7 +743,7 @@ HEADERS  += \
 	../services/security/ConfigDirectoryHandles.h \
 	import/LegacyMigration.h \
 	import/LegacyMigrationPolicy.h \
-	widgets/MiddleClickTabBar.h
+	widgets/DocumentTabBar.h
 
 FORMS    += \
 	guis/PreampFilterGUI.ui \
