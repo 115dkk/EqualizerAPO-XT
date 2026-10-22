@@ -14,6 +14,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Rack's Copy grid latches in bronze like the other buttons.** In the dark
+  Rack skin the header buttons (power, the picker's pointer) latch in a calm
+  bronze, but a routed crosspoint in the Copy grid (also used by
+  MultiConvolution, Send and the subwoofer routing dialog) still lit its whole
+  cap amber. It now latches in the same bronze, with its value and lamp in the
+  text colour. Negative gains keep the red lamp, and the light finish is
+  unchanged ([#PRNUM](https://github.com/115dkk/EqualizerAPO-XT/pull/PRNUM)).
+
 ## v2.60.2 — 2026-10-22
 
 - **The power switch on Matrix cards is visible again in the light theme.**

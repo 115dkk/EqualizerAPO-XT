@@ -6,6 +6,7 @@
 
 #include "HardwarePatchbayRoutingRenderer.h"
 #include "Editor/skins/rack/RackPalette.h"
+#include "Editor/skins/rack/RackSkinDetail.h"
 #include "Editor/skins/shared/SkinPaint.h"
 
 #include <QPainter>
@@ -185,9 +186,9 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 			const QRect cr = cellRect(r, c);
 			const CopyRoutingAdapter::Cell cell = matrix.cell(r, c);
 
-			// The crosspoint button cap. Colour values mirror the Device
-			// switch bank in rack_dark.qss / rack_light.qss - one machine,
-			// one latch law.
+			// The crosspoint button cap. A blank cap mirrors the Device
+			// switch bank in rack_dark.qss / rack_light.qss; a routed cap
+			// latches like the header caps (RackPalette).
 			const int capW = qMin(cellW - 10, 46);
 			const int capH = 30;
 			QRect cap(cr.center().x() - capW / 2, cr.center().y() - capH / 2, capW, capH);
@@ -212,8 +213,9 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 			}
 
 			// Routed: the cap sits latched down (shadowed top edge, lit lower
-			// lip, face dropped 1px) with the lamp lit under it - amber for a
-			// routing, the danger lamp for a polarity/negative gain.
+			// lip, face dropped 1px). A routing latches like the header caps -
+			// bronze in dark, amber in light - and a polarity/negative gain lights
+			// the danger lamp.
 			const bool negative = cell.factor < 0;
 			cap.translate(0, 1);
 			QLinearGradient face(cap.topLeft(), cap.bottomLeft());
@@ -231,7 +233,7 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 			{
 				face.setColorAt(0, RackPalette::RoutedCapFaceTop(dark));
 				face.setColorAt(1, RackPalette::RoutedCapFaceBottom(dark));
-				edge = QColor(t.accent);
+				edge = dark ? QColor(RackSkinDetail::darkEngagedFrame()) : QColor(t.accent);
 				bevelTop = RackPalette::RoutedCapBevelTop(dark);
 				bevelBottom = RackPalette::RoutedCapBevelBottom(dark);
 				ink = RackPalette::RoutedCapLegend(dark);
