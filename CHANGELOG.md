@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.60.2 — 2026-10-22
+
 - **The power switch on Matrix cards is visible again in the light theme.**
   Since Matrix stopped drawing a cell around the switch, the "on" glyph was
   white on the light card header and almost disappeared, while "off" printed
