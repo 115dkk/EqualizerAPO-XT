@@ -10,6 +10,8 @@
 
 #include <QVariantAnimation>
 
+#include "MotionPreference.h"
+
 HoverProgress::HoverProgress(QObject* parent, std::function<void()> onChange)
 	: QObject(parent), changed(std::move(onChange))
 {
@@ -54,7 +56,7 @@ void HoverProgress::animateTo(double target, int durationMs)
 	const double from = current;
 	retargeting = true;
 	animation->stop();
-	animation->setDuration(durationMs);
+	animation->setDuration(MotionPreference::duration(durationMs));
 	animation->setStartValue(from);
 	animation->setEndValue(target);
 	retargeting = false;

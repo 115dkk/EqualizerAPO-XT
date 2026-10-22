@@ -42,6 +42,10 @@ namespace Ui {
 class MainWindow;
 }
 
+namespace WindowFrameHitTest {
+class ChildHitForwarder;
+}
+
 class QLabel;
 class TitleBar;
 class UpdateToast;
@@ -251,6 +255,9 @@ private:
 	// interface/nativeTitleBar escape hatch keeps the stock caption.
 	TitleBar* titleBar = nullptr;
 	bool useCustomFrame = true;
+	// Hands caption and edge hit tests from native child windows back to
+	// the frame (WindowFrameHitTest::forwardFromChild).
+	std::unique_ptr<WindowFrameHitTest::ChildHitForwarder> frameChildForwarder;
 	// Bottom-centre notice for the staged auto-update (created on demand).
 	UpdateToast* updateToast = nullptr;
 	// Bottom-centre notice that the last analysis found a line whose filter could

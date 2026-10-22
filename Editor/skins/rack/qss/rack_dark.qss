@@ -395,11 +395,16 @@ QTabBar::tab:selected {
     color: #FFFFFF;
     border-bottom: 2px solid @ACCENT@;
 }
-QTabBar::close-button { image: none; background: transparent; border-radius: 2px; padding: 2px; margin: 2px; subcontrol-position: right; }
-QTabBar::close-button:hover { background: #5A1A1A; }
+QTabBar QToolButton#TabCloseButton { background: transparent; border: none; border-radius: 2px; margin: 0; padding: 0; min-width: 0; min-height: 0; }
+QTabBar QToolButton#TabCloseButton:hover { background: #5A1A1A; }
 QTabBar QToolButton {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2C333A, stop:1 #1B2126);
-    border: 1px solid #11161A; border-top-color: #3E474F; border-radius: 2px; margin: 4px 2px;
+    border: 1px solid #11161A; border-top-color: #3E474F; border-radius: 2px; margin: 4px 2px; padding: 0;
+}
+/* Two 28px scroll buttons: room for the chevrons the tab bar asks the
+   style for (Qt 6.12 SP_TabScroll*Button) inside the margin and border. */
+QTabBar::scroller {
+    width: 56px;
 }
 
 /* Group boxes are sub-module plates with printed designations. */

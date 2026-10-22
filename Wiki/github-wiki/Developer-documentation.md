@@ -7,8 +7,8 @@ XT is a Windows project. The C++ projects target the Visual Studio 2022 / 2026 t
 
 ### Prerequisites
 * **Visual Studio 2022 Build Tools** (or 2026), including the components `Microsoft.VisualStudio.Component.VC.Tools.x86.x64` and `Microsoft.VisualStudio.Component.VC.ATL`. ATL is required — without it the `EqualizerAPO.dll` link step cannot find `atls.lib`. The XT projects build with the VS 2026 toolset `v145`; on a VS 2022 machine pass `/p:PlatformToolset=v143`.
-* **Python 3** — used to install Qt through `aqtinstall`.
-* **Qt 6.10.1 (MSVC 2022 x64)** — installed under `Qt/6.10.1/msvc2022_64/`. Needed by the Configuration Editor, the Device Selector and the Update Checker.
+* **Python 3** — used only to unpack the Qt archives with `py7zr` when `7z` is not on `PATH`.
+* **Qt 6.12.0 (MSVC 2022 x64)** — installed under `Qt/6.12.0/msvc2022_64/` by the setup script, straight from Qt's online repository and checked against pinned SHA-256 hashes. Needed by the Configuration Editor, the Device Selector and the Update Checker.
 * **External libraries** — **not** committed to the repository: [FFTW](https://www.fftw.org/), [libsndfile](https://libsndfile.github.io/libsndfile/), [muParserX](https://github.com/beltoforion/muparserx), [TCLAP](http://tclap.sourceforge.net/), [Google Highway](https://github.com/google/highway), the MIT-licensed Steinberg VST3 *pluginterfaces*, and the Steinberg ASIO SDK 2.3.4 (fetched by SHA-256, taken under the SDK's GPL version 3 option) for the ASIO wrapper. They are placed under `deps/` at build time.
 * **Velopack** (`vpk` CLI, `dotnet tool install -g vpk`) — used only by CI to package the binaries into the `Setup.exe` / `.nupkg` artifacts. Local development does not need it.
 

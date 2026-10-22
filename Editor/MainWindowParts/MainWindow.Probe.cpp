@@ -22,6 +22,9 @@ void MainWindow::Probe::suppressPreferenceWrites()
 {
 	mainWindow.noSavePreferences = true;
 	mainWindow.noSaveFilePreferences = true;
+	// The skin choice is a preference too; probes that walk the skin menu
+	// used to leave the last skin they visited in the registry.
+	mainWindow.skinPersistenceSuppressed = true;
 }
 
 FilterTable* MainWindow::Probe::currentFilterTable() const

@@ -41,6 +41,10 @@ them unset.
 - `EAPO_ANALYSIS_LAYOUT_HOLD_MS` — keeps the Editor open that many
   milliseconds (0 to 30000) after the analysis-dock layout test, so the
   window can be captured.
+- `EAPO_FRAME_PROBE_LINGER` — `1` leaves the window of the
+  `--frame-hittest-test` probe open after its checks, with the native child
+  cascade still in place, so the title bar and the edges can be dragged by
+  hand. Never set in CI.
 - `EAPO_GALLERY_LANG` — renders the gallery with a shipped translation
   (for example `ko`) instead of the default untranslated English, to judge
   translated typography.

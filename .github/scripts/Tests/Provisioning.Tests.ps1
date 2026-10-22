@@ -1,7 +1,7 @@
 # Pester 5 tests for .github/scripts/Provisioning.psm1
 #
 # Provisioning.psm1 is the single implementation of the dependency
-# download+verify loop, the vcpkg dependency build, and the aqt Qt install
+# download+verify loop, the vcpkg dependency build, and the Qt repository install
 # that .github/workflows/build.yml and setup-build.ps1 used to duplicate
 # (audit finding TD015). The download+verify loop is the supply-chain gate:
 # a wrong URL fetches the wrong artifact, and a verification bug lets an
@@ -14,6 +14,11 @@
 # Fixture manifests are written as actual .psd1 files and loaded with
 # Import-PowerShellDataFile, the same restricted-language path production
 # uses for .github/simd-variants.psd1.
+
+BeforeDiscovery {
+    # InModuleScope binds during discovery, before the shared BeforeAll runs.
+    Import-Module (Resolve-Path (Join-Path $PSScriptRoot '..' 'Provisioning.psm1')).Path -Force
+}
 
 BeforeAll {
     $script:ModulePath = (Resolve-Path (Join-Path $PSScriptRoot '..' 'Provisioning.psm1')).Path
@@ -400,6 +405,198 @@ Describe "Provisioning.psm1" {
             Test-Path (Join-Path $depsRoot 'fftw\fftw.zip.txt') | Should -BeTrue
             Test-Path (Join-Path $depsRoot 'libsndfile\snd.zip.txt') | Should -BeTrue
             Test-Path (Join-Path $depsRoot 'velopack_libc\velopack_libc_9.9.9.zip.txt') | Should -BeTrue
+        }
+    }
+
+    InModuleScope Provisioning {
+        Context "Qt repository install" {
+            BeforeAll {
+                $script:QtFixturePackage = 'qt.qt6.6120.win64_msvc2022_64'
+                $script:QtFixtureStamp = '6.12.0-0-202609280346'
+                $script:QtFixtureArchives = @{
+                    qtbase         = 'qtbase-Windows-Windows_11_24H2-MSVC2022-Windows-Windows_11_24H2-X86_64.7z'
+                    qtsvg          = 'qtsvg-Windows-Windows_11_24H2-MSVC2022-Windows-Windows_11_24H2-X86_64.7z'
+                    qttools        = 'qttools-Windows-Windows_11_24H2-MSVC2022-Windows-Windows_11_24H2-X86_64.7z'
+                    qttranslations = 'qttranslations-Windows-Windows_11_24H2-MSVC2022-Windows-Windows_11_24H2-X86_64.7z'
+                }
+                $script:QtFixtureXml = @"
+<Updates>
+  <PackageUpdate>
+    <Name>$($script:QtFixturePackage)</Name>
+    <Version>$($script:QtFixtureStamp)</Version>
+    <DownloadableArchives>$($script:QtFixtureArchives.qtbase), $($script:QtFixtureArchives.qtsvg), qtdeclarative-Windows-X86_64.7z, qtdoc-Windows-X86_64.7z, $($script:QtFixtureArchives.qttools), $($script:QtFixtureArchives.qttranslations), d3dcompiler_47-x64.7z, opengl32sw-X86_64.7z</DownloadableArchives>
+  </PackageUpdate>
+  <PackageUpdate>
+    <Name>qt.qt6.6120.win64_mingw</Name>
+    <Version>6.12.0-0-irrelevant</Version>
+    <DownloadableArchives>qtbase-Windows-MinGW.7z</DownloadableArchives>
+  </PackageUpdate>
+</Updates>
+"@
+            }
+
+            BeforeEach {
+                $script:QtTestRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("qt-provtest-" + [guid]::NewGuid().ToString('N'))
+                New-Item -ItemType Directory -Path $script:QtTestRoot | Out-Null
+            }
+
+            AfterEach {
+                Remove-Item -Path $script:QtTestRoot -Recurse -Force -ErrorAction SilentlyContinue
+            }
+
+            It "constructs repository and package names for <Platform> Qt <QtVersion>" -TestCases @(
+                @{
+                    Platform = 'x64'; QtVersion = '6.12.0'; HostName = 'windows_x86'
+                    Arch = 'win64_msvc2022_64'; ArchDir = 'msvc2022_64'; Compact = '6120'
+                }
+                @{
+                    Platform = 'ARM64'; QtVersion = '6.12.0'; HostName = 'windows_arm64'
+                    Arch = 'win64_msvc2022_arm64'; ArchDir = 'msvc2022_arm64'; Compact = '6120'
+                }
+                @{
+                    Platform = 'x64'; QtVersion = '6.10.1'; HostName = 'windows_x86'
+                    Arch = 'win64_msvc2022_64'; ArchDir = 'msvc2022_64'; Compact = '6101'
+                }
+                @{
+                    Platform = 'ARM64'; QtVersion = '6.10.1'; HostName = 'windows_arm64'
+                    Arch = 'win64_msvc2022_arm64'; ArchDir = 'msvc2022_arm64'; Compact = '6101'
+                }
+            ) {
+                $spec = Get-QtRepositorySpec -QtVersion $QtVersion -Platform $Platform
+                $spec.Host | Should -Be $HostName
+                $spec.Arch | Should -Be $Arch
+                $spec.ArchDir | Should -Be $ArchDir
+                $spec.PackageName | Should -Be "qt.qt6.$Compact.$Arch"
+                $root = "https://download.qt.io/online/qtsdkrepository/$HostName/desktop/qt6_$Compact"
+                $spec.RepositoryUrls | Should -Be @(
+                    "$root/qt6_$($Compact)_$ArchDir"
+                    "$root/qt6_$Compact"
+                ) -Because 'the per-architecture repository must be tried before the shared repository'
+            }
+
+            It "selects exactly the requested module archives and constructs their URLs" {
+                $repository = 'https://download.qt.io/example/qt6_6120_msvc2022_64'
+                $selected = @(Select-QtArchive -UpdatesXml $script:QtFixtureXml `
+                        -PackageName $script:QtFixturePackage -RepositoryUrl $repository `
+                        -Modules @('qtbase', 'qtsvg', 'qttools', 'qttranslations'))
+
+                $selected.Count | Should -Be 4
+                $selected.Module | Should -Be @('qtbase', 'qtsvg', 'qttools', 'qttranslations')
+                foreach ($archive in $selected) {
+                    $archive.Archive | Should -Be $script:QtFixtureArchives[$archive.Module]
+                    $archive.Url | Should -Be "$repository/$($script:QtFixturePackage)/$($script:QtFixtureStamp)$($archive.Archive)"
+                }
+            }
+
+            It "throws with the requested package name when Updates.xml lacks the package" {
+                { Select-QtArchive -UpdatesXml $script:QtFixtureXml `
+                        -PackageName 'qt.qt6.6120.missing_arch' -RepositoryUrl 'https://example.invalid/repo' `
+                        -Modules @('qtbase') } |
+                    Should -Throw '*qt.qt6.6120.missing_arch*was not found*'
+            }
+
+            It "throws when a requested module matches no archive" {
+                { Select-QtArchive -UpdatesXml $script:QtFixtureXml `
+                        -PackageName $script:QtFixturePackage -RepositoryUrl 'https://example.invalid/repo' `
+                        -Modules @('qtnetworkauth') } |
+                    Should -Throw '*Expected one qtnetworkauth archive*found 0*'
+            }
+
+            It "throws when a requested module matches more than one archive" {
+                $duplicateXml = $script:QtFixtureXml.Replace(
+                    "$($script:QtFixtureArchives.qtsvg),",
+                    "$($script:QtFixtureArchives.qtsvg), qtsvg-second-Windows-X86_64.7z,")
+                { Select-QtArchive -UpdatesXml $duplicateXml `
+                        -PackageName $script:QtFixturePackage -RepositoryUrl 'https://example.invalid/repo' `
+                        -Modules @('qtsvg') } |
+                    Should -Throw '*Expected one qtsvg archive*found 2*'
+            }
+
+            It "falls back to the shared repository when the per-architecture fetch fails" {
+                $perArch = 'https://example.invalid/per-arch'
+                $shared = 'https://example.invalid/shared'
+                Mock Invoke-DependencyFetch {
+                    if ($Url.StartsWith($perArch, [System.StringComparison]::Ordinal)) {
+                        throw 'fixture 404'
+                    }
+                    if ($Url.EndsWith('/Updates.xml', [System.StringComparison]::Ordinal)) {
+                        [System.IO.File]::WriteAllText($OutFile, $script:QtFixtureXml, [System.Text.UTF8Encoding]::new($false))
+                    }
+                    else {
+                        $xmlPath = $OutFile.Substring(0, $OutFile.Length - '.sha256'.Length)
+                        $hash = (Get-FileHash -Path $xmlPath -Algorithm SHA256).Hash.ToLowerInvariant()
+                        [System.IO.File]::WriteAllText($OutFile, "$hash Updates.xml", [System.Text.Encoding]::ASCII)
+                    }
+                }
+
+                $metadata = Get-QtRepositoryMetadata -RepositoryUrls @($perArch, $shared) `
+                    -MetadataRoot (Join-Path $script:QtTestRoot 'metadata')
+
+                $metadata.RepositoryUrl | Should -Be $shared
+                $metadata.UpdatesXml | Should -Be $script:QtFixtureXml
+                Should -Invoke Invoke-DependencyFetch -Exactly -Times 1 -ParameterFilter { $Url -eq "$perArch/Updates.xml" }
+                Should -Invoke Invoke-DependencyFetch -Exactly -Times 1 -ParameterFilter { $Url -eq "$shared/Updates.xml" }
+                Should -Invoke Invoke-DependencyFetch -Exactly -Times 1 -ParameterFilter { $Url -eq "$shared/Updates.xml.sha256" }
+            }
+
+            It "throws when the Updates.xml SHA-256 sidecar does not match" {
+                $repository = 'https://example.invalid/repository'
+                Mock Invoke-DependencyFetch {
+                    if ($Url.EndsWith('/Updates.xml', [System.StringComparison]::Ordinal)) {
+                        [System.IO.File]::WriteAllText($OutFile, $script:QtFixtureXml, [System.Text.UTF8Encoding]::new($false))
+                    }
+                    else {
+                        [System.IO.File]::WriteAllText($OutFile, (('0' * 64) + ' Updates.xml'), [System.Text.Encoding]::ASCII)
+                    }
+                }
+
+                { Get-QtRepositoryMetadata -RepositoryUrls @($repository) `
+                        -MetadataRoot (Join-Path $script:QtTestRoot 'metadata') } |
+                    Should -Throw "SHA-256 mismatch for $repository/Updates.xml*"
+            }
+
+            It "removes an archive whose SHA-256 does not match its pin" {
+                $downloadRoot = Join-Path $script:QtTestRoot 'archives'
+                $archiveName = 'qtbase-fixture.7z'
+                $manifest = @{
+                    Shared = @{
+                        QtVersion = '6.12.0'
+                        QtArchiveSha256 = @{ x64 = @{ qtbase = ('f' * 64) } }
+                    }
+                }
+                $archiveSpec = [pscustomobject]@{
+                    Module = 'qtbase'; Archive = $archiveName; Url = 'https://example.invalid/qtbase-fixture.7z'
+                }
+                Mock Invoke-DependencyFetch {
+                    [System.IO.File]::WriteAllBytes($OutFile, [byte[]]@(1, 2, 3, 4))
+                }
+
+                { Get-QtArchive -Archives @($archiveSpec) -DownloadRoot $downloadRoot `
+                        -QtVersion '6.12.0' -Platform 'x64' -Manifest $manifest } |
+                    Should -Throw "SHA-256 mismatch for ${archiveName}: expected $('f' * 64), got *"
+                Test-Path (Join-Path $downloadRoot $archiveName) | Should -BeFalse
+            }
+
+            It "throws with the observed hash when a module has no SHA-256 pin" {
+                $downloadRoot = Join-Path $script:QtTestRoot 'archives'
+                $archiveName = 'qtbase-fixture.7z'
+                $manifest = @{
+                    Shared = @{
+                        QtVersion = '6.12.0'
+                        QtArchiveSha256 = @{ x64 = @{} }
+                    }
+                }
+                $archiveSpec = [pscustomobject]@{
+                    Module = 'qtbase'; Archive = $archiveName; Url = 'https://example.invalid/qtbase-fixture.7z'
+                }
+                Mock Invoke-DependencyFetch {
+                    [System.IO.File]::WriteAllBytes($OutFile, [byte[]]@(5, 6, 7, 8))
+                }
+
+                { Get-QtArchive -Archives @($archiveSpec) -DownloadRoot $downloadRoot `
+                        -QtVersion '6.12.0' -Platform 'x64' -Manifest $manifest } |
+                    Should -Throw 'No SHA-256 pin for Qt 6.12.0 x64 qtbase in simd-variants.psd1 (observed *)'
+            }
         }
     }
 

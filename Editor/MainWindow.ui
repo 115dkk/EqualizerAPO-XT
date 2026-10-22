@@ -28,7 +28,7 @@
      <number>0</number>
     </property>
     <item row="0" column="0">
-     <widget class="MiddleClickTabWidget" name="tabWidget">
+     <widget class="DocumentTabWidget" name="tabWidget">
       <property name="documentMode">
        <bool>true</bool>
       </property>
@@ -660,9 +660,9 @@
    <header>Editor/widgets/ExponentialSpinBox.h</header>
   </customwidget>
   <customwidget>
-   <class>MiddleClickTabWidget</class>
+   <class>DocumentTabWidget</class>
    <extends>QTabWidget</extends>
-   <header>Editor/widgets/MiddleClickTabWidget.h</header>
+   <header>Editor/widgets/DocumentTabWidget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

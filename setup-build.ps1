@@ -7,7 +7,7 @@
     This script:
     1. Downloads FFTW, muparserx, libsndfile from their GitHub release pages
     2. Clones the TCLAP header-only library and the VST3 SDK pluginterfaces
-    3. Installs Qt (the manifest's Shared.QtVersion) via aqtinstall (Python)
+    3. Installs Qt (the manifest's Shared.QtVersion) from Qt's online repository
 
     All sources match the project's CI workflow (.github/workflows/build.yml).
 

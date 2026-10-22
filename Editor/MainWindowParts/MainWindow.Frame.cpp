@@ -61,6 +61,10 @@ void MainWindow::setupWindowChrome()
 	HWND hwnd = reinterpret_cast<HWND>(winId());
 	SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
 		SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+
+	// nativeEvent below only sees this window's own HWND; native children
+	// that cover the caption or the edges hand those points back to it.
+	frameChildForwarder = std::make_unique<WindowFrameHitTest::ChildHitForwarder>(this, titleBar, hwnd);
 }
 
 bool MainWindow::nativeEvent(const QByteArray& eventType, void* message, qintptr* result)

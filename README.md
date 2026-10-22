@@ -159,7 +159,7 @@ User documentation lives in the [GitHub Wiki](https://github.com/115dkk/Equalize
 
 ## Building
 
-The project uses Visual Studio, Qt, Velopack, and a small set of external libraries. Running [setup-build.ps1](setup-build.ps1) provisions all of them for a local build (binary dependencies, header-only checkouts, and Qt 6.10.1). The manual layout is documented in [docs/LocalDependencySetup.md](docs/LocalDependencySetup.md).
+The project uses Visual Studio, Qt, Velopack, and a small set of external libraries. Running [setup-build.ps1](setup-build.ps1) provisions all of them for a local build (binary dependencies, header-only checkouts, and Qt 6.12.0). The manual layout is documented in [docs/LocalDependencySetup.md](docs/LocalDependencySetup.md).
 
 The prebuilt dependencies are downloaded from these repositories, which mirror TheFireKahuna's releases of the same tags byte for byte (`.github/simd-variants.psd1` pins each asset's SHA-256):
 

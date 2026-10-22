@@ -90,8 +90,11 @@ bool DialogChrome::nativeEventFilter(const QByteArray& eventType, void* message,
 		return false;
 
 	MSG* msg = static_cast<MSG*>(message);
-	if (dialog == nullptr || msg->hwnd != reinterpret_cast<HWND>(hostWinId))
+	const HWND host = reinterpret_cast<HWND>(hostWinId);
+	if (dialog == nullptr)
 		return false;
+	if (msg->hwnd != host)
+		return WindowFrameHitTest::forwardFromChild(dialog, titleBar, host, msg, result);
 
 	return WindowFrameHitTest::handle(dialog, titleBar, msg, result);
 }

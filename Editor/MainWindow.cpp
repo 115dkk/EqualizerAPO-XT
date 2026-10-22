@@ -46,6 +46,8 @@
 #include "Editor/widgets/UpdateToast.h"
 #include "Editor/helpers/BackgroundProbe.h"
 #include "Editor/helpers/GUIChannelHelper.h"
+// Complete type for frameChildForwarder's destructor in ~MainWindow.
+#include "Editor/helpers/WindowFrameHitTest.h"
 #include "Editor/widgets/SkinComboBox.h"
 #include "Editor/widgets/MainToolbarKit.h"
 #include "version.h"

@@ -274,7 +274,7 @@ jobs:
             shell.
           - Build dependencies are pre-provisioned: deps/ holds FFTW,
             muparserx, libsndfile, TCLAP, the VST3 pluginterfaces, Highway,
-            and velopack_libc; Qt is at Qt/6.10.1/msvc2022_64. CLAUDE.md
+            and velopack_libc; Qt is at Qt/6.12.0/msvc2022_64. CLAUDE.md
             documents the exact MSBuild/qmake commands and the PATH setup the
             test executables need.
           - You MAY compile projects and run the test suites

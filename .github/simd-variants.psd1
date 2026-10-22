@@ -219,7 +219,25 @@
         # Audit #250 F059: the Qt toolchain version used to default
         # independently in setup-build.ps1 (local) and Provisioning.psm1 (CI);
         # bumping one silently split local from CI. Both read this field now.
-        QtVersion           = '6.10.1'
+        QtVersion           = '6.12.0'
+        # These pins cover the archives Install-QtSdk extracts for QtVersion.
+        # Qt can respin a version under a new build stamp; a mismatch means an
+        # archive changed under the same version and must be reviewed before the
+        # pins are updated. Install-QtSdk prints the observed hashes for that bump.
+        QtArchiveSha256     = @{
+            x64 = @{
+                qtbase         = '219d1b86def3be418e31d704572bc4acc91b2ec373c65595c9fb12b42bf098dc'
+                qtsvg          = 'dfcad02224b71724e3314d0bc3ffc0b862dfa6e02bc4aadd39f1738f6c364c79'
+                qttools        = '73328e361429378df518f391ebe4d82c51e833f4d5a951692768ab5a5a1d7da5'
+                qttranslations = '328321e8879a3dc119775b4404d6e32ec2a361696e73f760540a732921507917'
+            }
+            ARM64 = @{
+                qtbase         = '4734f7292a0b86ac2bf1a084fa864da521b7ef4467ba8af772f5d93903f9e6c1'
+                qtsvg          = '07238e9f0aa1d2422d01d43551300ccdf17fde4eecf030d4ff91e151be293d83'
+                qttools        = '2df8376a2ddec62731890fbac3cc0a96a951f234707692d572f46e981d412f6d'
+                qttranslations = '42f78c36158c978728a905dd1f47852d79db3c19bcee656b226edbd9c6f09406'
+            }
+        }
         # microsoft/vcpkg — commit the sse2/avx dependency builds (FFTW,
         # libsndfile) check out. Pinned so a moving vcpkg HEAD cannot silently
         # change the portfiles those builds compile from; bump deliberately.

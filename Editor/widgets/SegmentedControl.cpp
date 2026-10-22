@@ -11,6 +11,8 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QVariantAnimation>
+
+#include "platform/qt/MotionPreference.h"
 #include <QtMath>
 
 #include "Editor/SkinManager.h"
@@ -142,7 +144,7 @@ void SegmentedControl::animateSelectionTo(int index)
 	// old cell. Clicking through three choices quickly has to look like one
 	// travelling indicator, not three restarts.
 	selectionAnimation->stop();
-	selectionAnimation->setDuration(160);
+	selectionAnimation->setDuration(MotionPreference::duration(160));
 	selectionAnimation->setStartValue(selectionPosition);
 	selectionAnimation->setEndValue(static_cast<double>(index));
 	selectionAnimation->start();
