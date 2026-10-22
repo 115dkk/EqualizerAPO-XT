@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.59.0 — 2026-10-22
+
 - **Matrix cards no longer nest boxes inside boxes.** Almost everything on
   the Matrix board drew its own 1px border: header buttons, the type mark,
   value fields, selectors, reference markers and readouts, device, channel
