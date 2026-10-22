@@ -30,7 +30,9 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   Qt 6.10.1, which is out of support, to Qt 6.12.0. Tab scroll buttons show
   chevrons in the skin's ink instead of empty boxes, and with Windows'
   "Animation effects" turned off, the Editor's and the Device Selector's
-  animations jump straight to their end state. aqtinstall cannot read the 6.12
+  animations jump straight to their end state. Thin dashed outlines (virtual
+  channels, bypassed cards, add-channel fields) now draw as short dashes
+  instead of dots, as Qt 6.12 renders them. aqtinstall cannot read the 6.12
   repository layout, so local setup and CI now download Qt from Qt's own
   repository and check every archive against a pinned SHA-256 ([#427](https://github.com/115dkk/EqualizerAPO-XT/pull/427)).
 

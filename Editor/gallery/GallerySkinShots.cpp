@@ -48,6 +48,7 @@
 #include <QScrollBar>
 #include <QSpinBox>
 #include <QStringList>
+#include <QStyleOption>
 #include <QToolBar>
 #include <QToolButton>
 #include <QTranslator>
@@ -354,6 +355,36 @@ int assertNoHorizontalScrollBar(QWidget* row, const QString& skinId, const QStri
 	return 0;
 }
 
+// Value gate: every spin box must show its text. Qt 6.12.0 collapsed the edit
+// field of a button-less spin box to 1px and started a buttoned one at x = 0
+// under the frame (QTBUG-151308, worked around in SpinBoxEditFieldFix); every
+// value cell rendered empty and the gallery still passed. These are the two
+// signatures, so a Qt bump that brings either back fails here.
+int assertSpinBoxTextVisible(QWidget* row, const QString& skinId, const QString& mode,
+	const QString& rowName, const QString& state)
+{
+	int failures = 0;
+	for (QAbstractSpinBox* box : row->findChildren<QAbstractSpinBox*>())
+	{
+		const QLineEdit* edit = box->findChild<QLineEdit*>();
+		if (!box->isVisible() || edit == nullptr)
+			continue;
+		QStyleOption option;
+		option.initFrom(box);
+		const QRect contents = box->style()->subElementRect(QStyle::SE_FrameContents, &option, box);
+		const bool collapsed = edit->width() <= 1;
+		const bool underFrame = edit->x() == 0 && contents.left() > 0;
+		if (collapsed || underFrame)
+		{
+			qWarning("SkinGallery: spin box %s in row %s_%s_%s_%s hides its text (edit field %d,%d %dx%d, frame contents from x %d)",
+				qPrintable(box->objectName()), qPrintable(skinId), qPrintable(mode), qPrintable(rowName),
+				qPrintable(state), edit->x(), edit->y(), edit->width(), edit->height(), contents.left());
+			failures++;
+		}
+	}
+	return failures;
+}
+
 bool saveGrab(QWidget* row, const QDir& outDir, const QString& skinId, const QString& mode,
 	const QString& rowName, const QString& state)
 {
@@ -404,6 +435,7 @@ int renderStates(const QDir& outDir, const QString& skinId, const QString& mode,
 		}
 
 		failures += assertNoHorizontalScrollBar(row, skinId, mode, rows[i].name, QStringLiteral("normal"));
+		failures += assertSpinBoxTextVisible(row, skinId, mode, rows[i].name, QStringLiteral("normal"));
 		failures += saveGrab(row, outDir, skinId, mode, rows[i].name, QStringLiteral("normal")) ? 0 : 1;
 		setHoverEquivalent(row, true);
 		failures += assertNoHorizontalScrollBar(row, skinId, mode, rows[i].name, QStringLiteral("hover"));

@@ -131,6 +131,7 @@ SOURCES += main.cpp\
 	helpers/PanelPreviewFeeder.cpp \
 	helpers/PluginLoadQueue.cpp \
 	helpers/BackgroundProbe.cpp \
+	helpers/SpinBoxEditFieldFix.cpp \
 	../platform/qt/QtAppBootstrap.cpp \
 	helpers/VstChunkScan.cpp \
 	widgets/ResizingLineEdit.cpp \
@@ -430,6 +431,7 @@ HEADERS  += \
 	helpers/PluginLoadQueue.h \
 	helpers/BackgroundProbe.h \
 	helpers/WindowFrameHitTest.h \
+	helpers/SpinBoxEditFieldFix.h \
 	../platform/qt/QtAppBootstrap.h \
 	../platform/qt/MotionPreference.h \
 	helpers/VstChunkScan.h \
