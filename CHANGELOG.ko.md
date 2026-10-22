@@ -13,7 +13,7 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   격자(MultiConvolution, Send, 서브우퍼 라우팅 대화상자도 같은 격자를 씁니다)의
   라우팅된 교차점만 캡 전체를 앰버로 밝혔습니다. 이제 같은 브론즈로 잠기고,
   계수와 램프는 본문 색으로 찍습니다. 음수 게인의 적색 램프와 라이트 테마는
-  그대로입니다([#PRNUM](https://github.com/115dkk/EqualizerAPO-XT/pull/PRNUM)).
+  그대로입니다([#435](https://github.com/115dkk/EqualizerAPO-XT/pull/435)).
 
 ## v2.60.2 — 2026-10-22
 

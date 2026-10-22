@@ -20,7 +20,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   MultiConvolution, Send and the subwoofer routing dialog) still lit its whole
   cap amber. It now latches in the same bronze, with its value and lamp in the
   text colour. Negative gains keep the red lamp, and the light finish is
-  unchanged ([#PRNUM](https://github.com/115dkk/EqualizerAPO-XT/pull/PRNUM)).
+  unchanged ([#435](https://github.com/115dkk/EqualizerAPO-XT/pull/435)).
 
 ## v2.60.2 — 2026-10-22
 
