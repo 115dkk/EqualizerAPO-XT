@@ -14,6 +14,17 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Matrix cards no longer nest boxes inside boxes.** Almost everything on
+  the Matrix board drew its own 1px border: header buttons, the type mark,
+  value fields, selectors, reference markers and readouts, device, channel
+  and stage chips, comments, the toolbar and the menu bar. A card therefore
+  held two or three layers of boxes. Now the card is the only box; the
+  elements inside it are fills, text or glyphs, and a border appears only
+  on hover, focus or selection. Disabled cells and virtual channels show a
+  dashed underline instead of a dashed box, and channel scopes in a card's
+  header print as monospace text instead of coloured boxes. Other skins are
+  unchanged ([#428](https://github.com/115dkk/EqualizerAPO-XT/pull/428)).
+
 ## v2.58.0 — 2026-10-22
 
 - **The title bar drags the window again after a skin switch.** With a VST

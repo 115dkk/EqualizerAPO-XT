@@ -131,7 +131,9 @@ void MatrixSkin::paintKnob(QPainter& painter, const QRect& rect, const KnobState
 			painter.drawRect(ringRect.toRect().adjusted(-3, -3, 3, 3));
 		}
 
-		// Boxed mono numeric cell: the authoritative reading.
+		// The knob's reading prints under it in mono. The value field beside
+		// the knob is the cell; boxing this copy too put a second box next
+		// to the first.
 		if (!state.valueText.isEmpty())
 		{
 			QFont monoFont(tokens.monoFontFamily);
@@ -141,9 +143,6 @@ void MatrixSkin::paintKnob(QPainter& painter, const QRect& rect, const KnobState
 			const int cellWidth = qMin(rect.width(), metrics.horizontalAdvance(state.valueText) + 12);
 			const QRect cellRect(rect.center().x() - cellWidth / 2,
 				rect.bottom() - MatrixMetrics::knobCellHeight + 1, cellWidth, MatrixMetrics::knobCellHeight - 1);
-			painter.setPen(QPen(state.dragging ? accentColor : borderColor, 1));
-			painter.setBrush(QColor(tokens.surfaceSunken));
-			painter.drawRect(cellRect);
 			painter.setFont(monoFont);
 			if (!state.enabled)
 				painter.setPen(QColor(mutedColor));
@@ -379,22 +378,28 @@ void MatrixSkin::paintVstBusSelector(QPainter& painter, const VstBusSelectorStat
 
 	const QRectF cell = QRectF(state.rect).adjusted(0.5, 0.5, -0.5, -0.5);
 
-	// At rest the cell wears the pressable-cell grammar the board already
-	// taught (the footer caption keys, gate #176: a bare outline does not
-	// read as a button): 1px border rule plus the faint fill. Hover and an
-	// open menu are the accent prelight; a disabled cell is a cancelled
-	// departure, dashed and unfilled.
-	if (state.enabled)
-		painter.fillRect(cell, state.hovered || state.menuOpen
-			? withAlpha(QColor(tokens.accent), 24) : withAlpha(QColor(tokens.border), 18));
-	QPen borderPen(QColor(tokens.border), 1);
+	// At rest the cell is a fill tile on the header band, the faint fill the
+	// board's pressable cells share (gate #176: a bare outline does not read
+	// as a button), with no rule of its own: the card around it is the one
+	// closed box. Hover and an open menu are the accent prelight, which
+	// frames the cell; focus frames it too. A disabled cell is a cancelled
+	// departure: unfilled, with a dashed rule under it.
 	if (!state.enabled)
-		borderPen.setStyle(Qt::DashLine);
-	else if (state.focused || state.menuOpen || state.hovered)
-		borderPen.setColor(withAlpha(QColor(tokens.accent), state.hovered && !state.focused && !state.menuOpen ? 200 : 255));
-	painter.setPen(borderPen);
-	painter.setBrush(Qt::NoBrush);
-	painter.drawRect(cell);
+	{
+		painter.setPen(QPen(QColor(tokens.border), 1, Qt::DashLine));
+		painter.drawLine(QPointF(cell.left(), cell.bottom()), cell.bottomRight());
+	}
+	else
+	{
+		const bool lit = state.hovered || state.menuOpen;
+		painter.fillRect(cell, lit ? withAlpha(QColor(tokens.accent), 24) : withAlpha(QColor(tokens.border), 18));
+		if (lit || state.focused)
+		{
+			painter.setPen(QPen(withAlpha(QColor(tokens.accent), state.hovered && !state.focused && !state.menuOpen ? 200 : 255), 1));
+			painter.setBrush(Qt::NoBrush);
+			painter.drawRect(cell);
+		}
+	}
 
 	QFont roleFont(tokens.monoFontFamily);
 	roleFont.setPixelSize(9);
@@ -592,21 +597,27 @@ void MatrixSkin::paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailSt
 
 	if (state.latchRect.isNull())
 		return;
-	// The fold is a boarding-gate cell: boxed and lit while the strip is
-	// posted, dashed - a cancellation - while it is folded away.
+	// The fold is a boarding-gate cell: a lit fill tile while the strip is
+	// posted, unfilled over a dashed rule - a cancellation - while it is
+	// folded away. Only hover, press and focus frame it; at rest the card
+	// is the one closed box around it.
 	const QRectF gate = QRectF(state.latchRect).adjusted(0.5, 1.5, -0.5, -1.5);
+	const bool lit = state.latchHovered || state.latchPressed;
 	if (!state.collapsed)
-		painter.fillRect(gate, withAlpha(QColor(tokens.accent), state.latchHovered || state.latchPressed ? 34 : 24));
-	else if (state.latchHovered || state.latchPressed)
+		painter.fillRect(gate, withAlpha(QColor(tokens.accent), lit ? 34 : 24));
+	else if (lit)
 		painter.fillRect(gate, withAlpha(QColor(tokens.border), 18));
-	QPen gatePen(state.collapsed ? QColor(tokens.border) : QColor(tokens.accent), 1);
-	if (state.collapsed)
-		gatePen.setStyle(Qt::DashLine);
-	if (state.latchFocused)
-		gatePen.setColor(QColor(tokens.accent));
-	painter.setPen(gatePen);
-	painter.setBrush(Qt::NoBrush);
-	painter.drawRect(gate);
+	if (lit || state.latchFocused)
+	{
+		painter.setPen(QPen(QColor(tokens.accent), 1));
+		painter.setBrush(Qt::NoBrush);
+		painter.drawRect(gate);
+	}
+	else if (state.collapsed)
+	{
+		painter.setPen(QPen(QColor(tokens.border), 1, Qt::DashLine));
+		painter.drawLine(QPointF(gate.left(), gate.bottom()), gate.bottomRight());
+	}
 	QFont gateFont(tokens.monoFontFamily);
 	gateFont.setPixelSize(9);
 	gateFont.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);

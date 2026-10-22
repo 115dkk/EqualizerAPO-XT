@@ -53,7 +53,7 @@ QMenuBar {
 }
 QMenuBar::item {
     background: transparent;
-    border: 1px solid @BORDER@;
+    border: 1px solid transparent;
     border-radius: 0;
     padding: 4px 14px;
     margin: 4px 4px 4px 0;
@@ -61,6 +61,7 @@ QMenuBar::item {
 QMenuBar::item:selected {
     background: rgba(34, 211, 238, 0.10);
     color: @TEXT@;
+    border-color: @BORDER@;
 }
 QMenuBar::item:pressed {
     background: rgba(34, 211, 238, 0.28);
@@ -92,7 +93,7 @@ QMenu::item:selected {
 }
 QMenu::item:disabled {
     color: #4A6470;
-    border: 1px dashed @BORDER@;
+    border: 1px solid transparent;
 }
 QMenu::separator {
     height: 1px;
@@ -181,7 +182,7 @@ QToolBar#MainToolBar {
 QToolBar#MainToolBar QToolButton {
     background: transparent;
     color: @TEXT@;
-    border: 1px solid @BORDER@;
+    border: 1px solid transparent;
     border-radius: 0;
     padding: 2px 13px;
     min-height: 24px;
@@ -189,6 +190,7 @@ QToolBar#MainToolBar QToolButton {
 }
 QToolBar#MainToolBar QToolButton:hover {
     background: rgba(34, 211, 238, 0.10);
+    border-color: @BORDER@;
 }
 QToolBar#MainToolBar QToolButton:pressed,
 QToolBar#MainToolBar QToolButton:checked {
@@ -196,13 +198,13 @@ QToolBar#MainToolBar QToolButton:checked {
     border-color: @ACCENT@;
 }
 QToolBar#MainToolBar QToolButton:disabled {
-    border-style: dashed;
+    border-color: transparent;
 }
 /* Instant mode engage cell. */
 QToolBar#MainToolBar QCheckBox#InstantModeCheckBox, QCheckBox#AnalysisFormCheck {
     background: transparent;
     color: @TEXT@;
-    border: 1px solid @BORDER@;
+    border: 1px solid transparent;
     border-radius: 0;
     padding: 2px 8px;
     spacing: 6px;
@@ -231,7 +233,7 @@ QToolBar#MainToolBar QCheckBox#InstantModeCheckBox::indicator:checked, QCheckBox
 QToolBar#MainToolBar QLabel#DirtyStatusBadge {
     background: transparent;
     color: @TEXT@;
-    border: 1px solid @BORDER@;
+    border: 1px solid transparent;
     border-radius: 0;
     padding: 2px 8px 2px 20px;
     min-height: 24px;
@@ -249,7 +251,7 @@ QToolBar#MainToolBar QLabel#DirtyStatusBadge[dirty="true"] {
 QToolBar#MainToolBar QLabel#ToolBarLabel {
     background: transparent;
     color: @MUTED@;
-    border: 1px solid @BORDER@;
+    border: 1px solid transparent;
     border-radius: 0;
     padding: 2px 6px;
     min-height: 24px;
@@ -263,7 +265,7 @@ QToolBar#MainToolBar QLabel#ToolBarLabel {
    values, so they keep the board's sans type). */
 QToolBar#MainToolBar QComboBox#ToolBarComboBox {
     background: @GRAPH@;
-    border: 1px solid @BORDER@;
+    border: 1px solid transparent;
     border-radius: 0;
     padding: 2px 6px 2px 8px;
     min-height: 24px;
@@ -282,7 +284,7 @@ QToolBar#MainToolBar QComboBox#ToolBarComboBox:on {
 QToolBar#MainToolBar QLabel#DeviceFormatBadge {
     background: @GRAPH@;
     color: @MUTED@;
-    border: 1px solid @BORDER@;
+    border: 1px solid transparent;
     border-radius: 0;
     padding: 2px 8px;
     min-height: 24px;
@@ -402,7 +404,7 @@ QAbstractSpinBox::down-arrow:hover {
 QDoubleSpinBox[valueScrub="true"],
 QSpinBox[valueScrub="true"] {
     background: @GRAPH@;
-    border: 1px solid @BORDER@;
+    border: 1px solid transparent;
     border-radius: 0;
     padding: 2px 6px;
     font-size: 10pt;
@@ -421,7 +423,7 @@ QDoubleSpinBox[valueScrub="true"]:disabled,
 QSpinBox[valueScrub="true"]:disabled {
     color: #4A6470;
     background: #0A1014;
-    border: 1px dashed #1A2933;
+    border: 1px solid transparent;
 }
 
 /* ===== Combo Box ===== */
@@ -481,14 +483,19 @@ QComboBox QAbstractItemView::item:selected {
     color: @TEXT@;
 }
 
-/* Parameter-mode selectors: genuine selects in caption ink; the ruled
-   drop-down zone and arrow stay so the affordance is honest. */
+/* Parameter-mode selectors: genuine selects in caption ink. The arrow
+   stays so the affordance is honest; the cell takes no rule at rest. */
 QComboBox[paramSelector="true"] {
     background: transparent;
     color: @MUTED@;
     font-size: 9pt;
     font-weight: 600;
     text-transform: uppercase;
+    border: 1px solid transparent;
+}
+QComboBox[paramSelector="true"]::drop-down,
+QComboBox[filterSelector="true"]::drop-down {
+    border-left: 0;
 }
 QComboBox[paramSelector="true"]:hover {
     color: @TEXT@;
@@ -499,17 +506,19 @@ QComboBox[paramSelector="true"]:on {
     background: rgba(34, 211, 238, 0.16);
 }
 /* A selector with one mode is disabled by the shared GUI: a choice that is
-   not currently a choice gets the cancelled grammar (dashed rule), never a
-   fake live cell. */
+   not currently a choice gets the cancelled grammar (a dashed rule under
+   it), never a fake live cell. */
 QComboBox[paramSelector="true"]:disabled {
     color: #4A6470;
-    border: 1px dashed #1A2933;
+    border: 1px solid transparent;
+    border-bottom: 1px dashed #1A2933;
 }
 /* The row's template select: the engaged entry readout, a sunken
    destination cell like the toolbar's device readouts. */
 QComboBox[filterSelector="true"] {
     background: @GRAPH@;
     font-weight: 600;
+    border: 1px solid transparent;
 }
 /* The gain caption is honestly a label - gain has no parameter modes - so
    it speaks the caption rank (same ink and size as the selector captions)
@@ -935,9 +944,19 @@ QAbstractSpinBox#AnalysisFormSpin {
     padding-top: 1px;
     padding-bottom: 1px;
 }
+QComboBox#AnalysisFormCombo,
+QAbstractSpinBox#AnalysisFormSpin {
+    border-color: transparent;
+}
+QComboBox#AnalysisFormCombo:hover,
+QComboBox#AnalysisFormCombo:on,
+QAbstractSpinBox#AnalysisFormSpin:hover,
+QAbstractSpinBox#AnalysisFormSpin:focus {
+    border-color: @ACCENT@;
+}
 QFrame#AnalysisStatChip {
     background: @GRAPH@;
-    border: 1px solid @BORDER@;
+    border: 1px solid transparent;
     border-radius: 0;
 }
 QLabel#AnalysisStatLabel {
@@ -983,10 +1002,10 @@ QWidget#FilterCardEditor {
     background: transparent;
     border-radius: 0;
 }
-/* Type cell: a square outlined monospace code; the ink colour is supplied
-   inline by MatrixSkin::typeBadgeStyle. */
+/* Type mark: the pictogram printed on the header band, no cell; the ink
+   colour is supplied inline by MatrixSkin::badgeTreatment. */
 QLabel#FilterTypeBadge {
-    border: 1px solid @BORDER@;
+    border: 1px solid transparent;
     border-radius: 0;
     font-family: @MONO_STACK@;
     font-weight: 700;
@@ -1047,7 +1066,7 @@ QWidget#FilterCardHeader[selected="true"] QLabel#FilterCardNumber {
 QToolButton#FilterCardIconButton {
     background: transparent;
     color: @TEXT@;
-    border: 1px solid @BORDER@;
+    border: 1px solid transparent;
     border-radius: 0;
     min-width: 24px;
     min-height: 24px;
@@ -1062,13 +1081,24 @@ QToolButton#FilterCardIconButton:checked {
     background: rgba(34, 211, 238, 0.25);
     border-color: @ACCENT@;
 }
-/* Cancelled: the action cell keeps its place on the board with a dashed
-   rule and dead ink, and no pre-light (after :hover on purpose - Qt still
-   reports hover on disabled widgets). The LOCATE token inherits this. */
+/* Power on is every live card's resting state, so it engages nothing:
+   the rail and the lamp already post it. The cell frames only under
+   the hover pre-light. */
+QToolButton#FilterCardIconButton[powerToggle="true"]:checked {
+    background: transparent;
+    border-color: transparent;
+}
+QToolButton#FilterCardIconButton[powerToggle="true"]:checked:hover {
+    background: rgba(@ACCENT_RGB@, 0.15);
+    border-color: @ACCENT@;
+}
+/* Cancelled: the action cell keeps its place on the board in dead ink,
+   with no pre-light (after :hover on purpose - Qt still reports hover on
+   disabled widgets). The LOCATE token inherits this. */
 QToolButton#FilterCardIconButton:disabled {
     background: transparent;
     color: #4A6470;
-    border: 1px dashed #1A2933;
+    border: 1px solid transparent;
 }
 QLineEdit#FilterCardRawEditor {
     background: @GRAPH@;
@@ -1106,7 +1136,7 @@ QLabel#PreampCardCaption {
 QLabel#EditableValue {
     background: @GRAPH@;
     color: @TEXT@;
-    border: 1px solid @BORDER@;
+    border: 1px solid transparent;
     border-radius: 0;
     padding: 6px 10px;
     font-family: @MONO_STACK@;
@@ -1137,7 +1167,7 @@ QLineEdit#EditableValueEditor {
    the sheet only owns the strip around it. */
 QToolButton#GraphicEQActionButton {
     background: transparent;
-    border: 1px solid @BORDER@;
+    border: 1px solid transparent;
     border-radius: 0;
     padding: 2px;
     min-width: 24px;
@@ -1153,7 +1183,7 @@ QToolButton#GraphicEQActionButton:pressed {
     border: 1px solid @ACCENT@;
 }
 QToolButton#GraphicEQActionButton:disabled {
-    border: 1px dashed #1A2933;
+    border: 1px solid transparent;
 }
 /* Selected-band readout strip: transparent board surface; the value cells
    are dressed by the shared [valueScrub="true"] grammar. */
@@ -1219,28 +1249,28 @@ QWidget#MultiConvolutionCardEditor {
     background: transparent;
     border: 0;
 }
-/* Feed designation cell: a sunken mono board token in the coordinate cell's
-   grammar - muted at rest, like every resting coordinate on the board. */
+/* Feed designation: a mono board token printed ahead of the payload,
+   muted at rest like every resting coordinate on the board. */
 QLabel#MatrixRefMarker {
-    background: @GRAPH@;
+    background: transparent;
     color: @MUTED@;
-    border: 1px solid @BORDER@;
+    border: 1px solid transparent;
     border-radius: 0;
-    padding: 2px 6px;
+    padding: 2px 0;
     font-family: @MONO_STACK@;
     font-weight: 700;
     font-size: 10pt;
     letter-spacing: 1px;
 }
-/* Broken feed: the marker becomes the danger readout (NO FEED / MISSING).
-   Hollow - a posted deficiency, not an engaged crosspoint. */
+/* Broken feed: the marker becomes the danger readout (NO FEED / MISSING)
+   in danger ink, unfilled - a posted deficiency, not an engaged crosspoint. */
 QLabel#MatrixRefMarker[feedState="missing"] {
     background: transparent;
     color: @DANGER@;
-    border-color: @DANGER@;
+    border-color: transparent;
 }
 QLabel#MatrixRefMarker:disabled {
-    border-style: dashed;
+    border-style: solid;
 }
 /* Payload name: data in the brightest mono ink - never coloured. Accent is
    only the hover pre-light of the click affordance (open target / panel). */
@@ -1268,9 +1298,9 @@ QLabel#MatrixRefLocation {
 QLabel#MatrixRefAbsCell {
     background: transparent;
     color: @WARNING@;
-    border: 1px solid @WARNING@;
+    border: 1px solid transparent;
     border-radius: 0;
-    padding: 1px 5px;
+    padding: 1px 0;
     font-family: @MONO_STACK@;
     font-weight: 700;
     font-size: 8pt;
@@ -1280,20 +1310,20 @@ QLabel#MatrixRefAbsCell {
 QLabel#MatrixRefFormatCell {
     background: transparent;
     color: @TEXT@;
-    border: 1px solid @BORDER@;
+    border: 1px solid transparent;
     border-radius: 0;
-    padding: 1px 5px;
+    padding: 1px 0;
     font-family: @MONO_STACK@;
     font-weight: 700;
     font-size: 8pt;
     letter-spacing: 1px;
 }
-/* Boxed readout cells: authoritative numbers live in boxed sunken mono
-   cells - the knob value cell's grammar for the IR readout. */
+/* Readout cells: authoritative numbers live in sunken mono cells - the
+   value cell's grammar for the IR readout. */
 QLabel#MatrixRefReadoutCell {
     background: @GRAPH@;
     color: @TEXT@;
-    border: 1px solid @BORDER@;
+    border: 1px solid transparent;
     border-radius: 0;
     padding: 2px 8px;
     font-family: @MONO_STACK@;
@@ -1302,7 +1332,7 @@ QLabel#MatrixRefReadoutCell {
 }
 QLabel#MatrixRefReadoutCell:disabled {
     color: @MUTED@;
-    border-style: dashed;
+    border-style: solid;
 }
 /* Status: one mono board remark line; severity speaks through ink alone. */
 QLabel#MatrixRefStatusLine {
@@ -1339,7 +1369,7 @@ QLabel#MatrixRefDeviceLabel {
    sunken mono coordinate cell in the feed line. */
 QComboBox[matrixBusCell="true"] {
     background: @GRAPH@;
-    border: 1px solid @BORDER@;
+    border: 1px solid transparent;
     border-radius: 0;
     padding: 1px 22px 1px 6px;
     min-height: 22px;
@@ -1366,6 +1396,16 @@ QPushButton#VSTCardPanelButton {
     min-height: 22px;
     max-height: 22px;
     font-size: 10pt;
+    background: transparent;
+    border: 1px solid transparent;
+}
+QPushButton#VSTCardPanelButton:hover {
+    background: rgba(@ACCENT_RGB@, 0.15);
+    border-color: @ACCENT@;
+}
+QPushButton#VSTCardPanelButton:disabled {
+    background: transparent;
+    border-color: transparent;
 }
 /* LOCATE: an untranslated mono-caps board token, monochrome at rest; the
    shared icon-button hover supplies the accent pre-light. */
@@ -1417,7 +1457,7 @@ QLabel#TitleBarText {
 }
 QToolButton#TitleBarMin, QToolButton#TitleBarMax, QToolButton#TitleBarClose {
     background: transparent;
-    border: 1px solid @BORDER@;
+    border: 1px solid transparent;
     border-radius: 0;
     margin: 2px 0 4px 0;
 }
@@ -1426,6 +1466,7 @@ QToolButton#TitleBarMin, QToolButton#TitleBarMax {
 }
 QToolButton#TitleBarMin:hover, QToolButton#TitleBarMax:hover {
     background: rgba(34, 211, 238, 0.10);
+    border-color: @BORDER@;
 }
 QToolButton#TitleBarMin:pressed, QToolButton#TitleBarMax:pressed {
     background: rgba(34, 211, 238, 0.28);
@@ -1473,7 +1514,7 @@ QWidget#CommentCardEditor {
 QToolButton#DeviceChip {
     background: @GRAPH@;
     color: @TEXT@;
-    border: 1px solid @BORDER@;
+    border: 1px solid transparent;
     border-radius: 0;
     padding: 2px 8px;
     min-height: 24px;
@@ -1484,7 +1525,7 @@ QToolButton#DeviceChip {
 QToolButton#DeviceChip[deviceInput="true"] {
     background: @GRAPH@;
     color: @TEXT@;
-    border: 1px solid @BORDER@;
+    border: 1px solid transparent;
 }
 /* "All devices": the master cell in the caption register. Before
    :hover/:checked so the engage grammar still wins on it. */
@@ -1507,12 +1548,13 @@ QToolButton#DeviceChip:checked {
 QToolButton#DeviceChip:checked:hover {
     background: rgba(34, 211, 238, 0.32);
 }
-/* APO-not-installed endpoint: dashed rule + muted ink; still posted
-   and still engageable once revealed. */
+/* APO-not-installed endpoint: unfilled, a dashed rule under it, muted
+   ink; still posted and still engageable once revealed. */
 QToolButton#DeviceChip[deviceInstalled="false"] {
     color: @MUTED@;
-    background: @GRAPH@;
-    border: 1px dashed @BORDER@;
+    background: transparent;
+    border: 1px solid transparent;
+    border-bottom: 1px dashed @BORDER@;
 }
 QToolButton#DeviceChip[deviceInstalled="false"]:hover {
     color: @TEXT@;
@@ -1546,7 +1588,7 @@ QToolButton#DeviceChip[deviceInstalled="false"]:disabled,
 QToolButton#DeviceChip[deviceInstalled="false"]:checked:disabled {
     color: #4A6470;
     background: #0A1014;
-    border: 1px dashed #1A2933;
+    border: 1px solid transparent;
 }
 /* The reveal toggle is not an endpoint: a transparent mono caption
    cell whose hidden-count readout ("+N") stands apart from the sunken
@@ -1576,7 +1618,7 @@ QToolButton#DeviceChipMore:disabled,
 QToolButton#DeviceChipMore:checked:disabled {
     color: #4A6470;
     background: transparent;
-    border: 1px dashed #1A2933;
+    border: 1px solid transparent;
 }
 
 /* ----- Channel: seats on the bus as coordinate cells -----
@@ -1587,7 +1629,7 @@ QToolButton#ChannelChip,
 QToolButton#NewChannelChip {
     background: @GRAPH@;
     color: @TEXT@;
-    border: 1px solid @BORDER@;
+    border: 1px solid transparent;
     border-radius: 0;
     padding: 2px 8px;
     min-width: 24px;
@@ -1621,8 +1663,9 @@ QToolButton#ChannelChip:checked:hover {
 QToolButton#ChannelChip[customChannel="true"],
 QToolButton#NewChannelChip {
     color: @MUTED@;
-    background: @GRAPH@;
-    border: 1px dashed @BORDER@;
+    background: transparent;
+    border: 1px solid transparent;
+    border-bottom: 1px dashed @BORDER@;
 }
 QToolButton#ChannelChip[customChannel="true"]:hover,
 QToolButton#NewChannelChip:hover {
@@ -1646,7 +1689,7 @@ QToolButton#ChannelChip[customChannel="true"]:checked:disabled,
 QToolButton#NewChannelChip:disabled {
     color: #4A6470;
     background: #0A1014;
-    border: 1px dashed #1A2933;
+    border: 1px solid transparent;
 }
 /* The add-a-channel entry: a coordinate not yet posted; typing
    engages the scan grammar. */
@@ -1654,12 +1697,13 @@ QLineEdit#ChannelChipAdd,
 QLineEdit#NewChannelAdd {
     background: transparent;
     color: @TEXT@;
-    border: 1px dashed @BORDER@;
+    border: 1px solid transparent;
     border-radius: 0;
     padding: 2px 8px;
     min-height: 24px;
     font-family: @MONO_STACK@;
     font-size: 10pt;
+    border-bottom: 1px dashed @BORDER@;
 }
 QLineEdit#ChannelChipAdd:hover,
 QLineEdit#NewChannelAdd:hover {
@@ -1674,7 +1718,7 @@ QLineEdit#ChannelChipAdd:disabled,
 QLineEdit#NewChannelAdd:disabled {
     color: #4A6470;
     background: transparent;
-    border: 1px dashed #1A2933;
+    border: 1px solid transparent;
 }
 
 /* ----- Stage: path sections as function cells -----
@@ -1683,7 +1727,7 @@ QLineEdit#NewChannelAdd:disabled {
 QToolButton#StageChip {
     background: transparent;
     color: @TEXT@;
-    border: 1px solid @BORDER@;
+    border: 1px solid transparent;
     border-radius: 0;
     padding: 2px 12px;
     min-height: 24px;
@@ -1694,6 +1738,7 @@ QToolButton#StageChip {
 }
 QToolButton#StageChip:hover {
     background: rgba(34, 211, 238, 0.10);
+    border-color: @BORDER@;
 }
 QToolButton#StageChip:checked {
     background: rgba(34, 211, 238, 0.28);
@@ -1706,22 +1751,23 @@ QToolButton#StageChip:disabled,
 QToolButton#StageChip:checked:disabled {
     color: #4A6470;
     background: transparent;
-    border: 1px dashed #1A2933;
+    border: 1px solid transparent;
 }
-/* Unknown selector tokens: hollow amber caution, dashed because the
-   cell is inert. Mono: the token is verbatim config text, so no
+/* Unknown selector tokens: amber caution over a dashed amber rule,
+   dashed because the cell is inert. Mono: the token is verbatim config text, so no
    uppercase transform. */
 QToolButton#StageChipUnknown,
 QToolButton#StageChipUnknown:disabled {
     background: transparent;
     color: @WARNING@;
-    border: 1px dashed @WARNING@;
+    border: 1px solid transparent;
     border-radius: 0;
     padding: 2px 10px;
     min-height: 24px;
     font-family: @MONO_STACK@;
     font-size: 10pt;
     letter-spacing: 1px;
+    border-bottom: 1px dashed @WARNING@;
 }
 /* Lane captions: board section headings in the toolbar caption
    grammar (uppercase, tracked, muted); the chain arrow marks signal
@@ -1734,26 +1780,25 @@ QLabel#StageLaneCaption {
 QLabel#StageChainArrow { background: transparent; color: @MUTED@; }
 
 /* ----- Comment: the board's remark line -----
-   The "#" marker sits in a sunken designation cell and the note in a
-   sunken line cell. The base rule carries its :disabled twin because
+   The "#" marker and the note print on the card in mono, no cells. The base rule carries its :disabled twin because
    the shared row currently disables a comment body (descriptor.enabled
    == false for "#" lines) - the remark must read identically either
    way. */
 QLabel#CommentCardGlyph {
-    background: @GRAPH@;
+    background: transparent;
     color: @MUTED@;
-    border: 1px solid @BORDER@;
+    border: 1px solid transparent;
     border-radius: 0;
-    padding: 2px 7px;
+    padding: 2px 0;
     font-family: @MONO_STACK@;
     font-weight: 700;
     font-size: 11pt;
 }
 QLineEdit#CommentCardText,
 QLineEdit#CommentCardText:disabled {
-    background: @GRAPH@;
+    background: transparent;
     color: @TEXT@;
-    border: 1px solid @BORDER@;
+    border: 1px solid transparent;
     border-radius: 0;
     padding: 2px 6px;
     font-family: @MONO_STACK@;
@@ -1794,7 +1839,7 @@ QLabel#HilbertReadout {
 QLabel#CardValidationMessage { color: @DANGER@; font-weight: 700; }
 QToolButton#VelvetAdvancedToggle {
     min-height: 28px; padding: 0 10px; color: @MUTED@;
-    background: transparent; border: 1px solid @BORDER@;
+    background: transparent; border: 1px solid transparent;
 }
 QToolButton#VelvetAdvancedToggle:hover { color: @TEXT@; border-color: @ACCENT@; }
 
@@ -1820,12 +1865,12 @@ QLabel#MatrixBassCaption {
 }
 QLabel#MatrixBassCaption:disabled { color: rgba(136, 152, 178, 0.45); }
 
-/* The authoritative readout: a boxed sunken mono cell (invariant rule 5).
-   Radius 0, crisp 1px rule, bold mono ink. */
+/* The authoritative readout: a sunken mono cell (invariant rule 5).
+   Radius 0, no rule at rest, bold mono ink. */
 QLabel#MatrixBassValueCell {
     color: @TEXT@;
     background: @SURFACE_SUNKEN@;
-    border: 1px solid @BORDER@;
+    border: 1px solid transparent;
     border-radius: 0;
     padding: 3px 10px;
     min-height: 18px;
@@ -1839,7 +1884,7 @@ QLabel#MatrixBassValueCell[tone="danger"] { color: @DANGER@; }
 QLabel#MatrixBassValueCell:disabled {
     color: @MUTED@;
     background: transparent;
-    border: 1px dashed @BORDER@;
+    border: 1px solid transparent;
 }
 
 /* One remark line: the board posts a fault once, in the fault's ink. */
@@ -1860,7 +1905,7 @@ QLabel#MatrixBassRemark:disabled { color: rgba(136, 152, 178, 0.45); }
 QToolButton#MatrixBassActionButton {
     background: transparent;
     color: @TEXT@;
-    border: 1px solid @BORDER@;
+    border: 1px solid transparent;
     border-radius: 0;
     padding: 5px 11px;
     min-width: 40px;
@@ -1882,7 +1927,7 @@ QToolButton#MatrixBassActionButton:checked:enabled {
 QToolButton#MatrixBassActionButton:disabled {
     background: transparent;
     color: @MUTED@;
-    border: 1px dashed @BORDER@;
+    border: 1px solid transparent;
 }
 QToolButton#MatrixBassActionButton::menu-indicator {
     image: none;

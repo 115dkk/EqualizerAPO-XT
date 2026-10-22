@@ -111,6 +111,9 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	// the right.
 	enabledButton = new QToolButton(headerWidget);
 	enabledButton->setObjectName(QStringLiteral("FilterCardIconButton"));
+	// Skins may treat "on", every live card's resting state, apart from
+	// the engaged look of the other checkable header button.
+	enabledButton->setProperty("powerToggle", true);
 	enabledButton->setCheckable(true);
 	enabledButton->setToolTip(tr("Enable or comment out this command"));
 	enabledButton->setChecked(descriptor.enabled);
