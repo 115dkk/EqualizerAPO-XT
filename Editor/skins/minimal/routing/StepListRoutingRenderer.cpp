@@ -30,9 +30,20 @@ static QFont monoFont(const SkinTokens& tokens)
 	return f;
 }
 
+// Channel tokens take DM Mono Medium, the heaviest cut the bundled face has,
+// by name rather than through the sheet's widget weight, and are overstruck
+// on top of it (MinimalChannelInk.h).
+static QFont channelFont(const SkinTokens& tokens)
+{
+	QFont f = monoFont(tokens);
+	f.setWeight(QFont::Medium);
+	return f;
+}
+
 QSize StepListView::sizeHint() const
 {
 	QFontMetrics fm(monoFont(skinTokens));
+	QFontMetrics tokenMetrics(channelFont(skinTokens));
 	int maxWidth = 220;
 	for (int row : fold.visibleRows)
 	{
@@ -41,7 +52,7 @@ QSize StepListView::sizeHint() const
 		for (const Assignment::Summand& s : a.sourceSum)
 		{
 			const QString ch = QString::fromStdWString(s.channel);
-			w += 18 + fm.horizontalAdvance(ch) + 18 + fm.horizontalAdvance(QStringLiteral("x-0.000")) + 18;
+			w += 18 + tokenMetrics.horizontalAdvance(ch) + 18 + fm.horizontalAdvance(QStringLiteral("x-0.000")) + 18;
 		}
 		maxWidth = qMax(maxWidth, w);
 	}
@@ -63,6 +74,8 @@ void StepListView::paintEvent(QPaintEvent*)
 	const QFont mono = monoFont(skinTokens);
 	p.setFont(mono);
 	QFontMetrics fm(mono);
+	const QFont tokenFont = channelFont(skinTokens);
+	const QFontMetrics tokenMetrics(tokenFont);
 
 	const QColor text(t.text), muted(t.mutedText), border(t.border);
 	const QColor ok(t.success), warn(t.warning);
@@ -97,7 +110,7 @@ void StepListView::paintEvent(QPaintEvent*)
 		// fixed sources (IR file channels) are ports, not virtual channels.
 		const bool virt = (sourceSide && portModel.fixedSourceMode()) ? false : portModel.isVirtualChannel(ch);
 		const QColor ink = minimalChannelInk(ch, t.dark);
-		const int w = fm.horizontalAdvance(ch) + 12;
+		const int w = tokenMetrics.horizontalAdvance(ch) + 12;
 		const QRect pill(x, y + (rowH - h) / 2, w, h);
 		if (virt)
 		{
@@ -105,8 +118,10 @@ void StepListView::paintEvent(QPaintEvent*)
 			p.setBrush(Qt::NoBrush);
 			p.drawRect(pill);
 		}
+		p.setFont(tokenFont);
 		p.setPen(ink);
-		p.drawText(pill, Qt::AlignCenter, ch);
+		drawMinimalChannelText(p, pill, ch);
+		p.setFont(mono);
 		return w;
 	};
 

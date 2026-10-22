@@ -14,6 +14,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Channel names in the minimal skin's Copy listing print heavier.** The
+  channel tokens (also used by MultiConvolution, Send, the subwoofer routing
+  dialog and the channel-scope tokens in card headers) tell channels apart by
+  colour alone, and at the Medium weight the darker inks were hard to see. DM
+  Mono has no weight above Medium, so the tokens are now struck twice, half a
+  pixel apart, the way a terminal makes bold text. That adds about as much ink
+  as one step from Medium to SemiBold. Other skins are unchanged ([#PRNUM](https://github.com/115dkk/EqualizerAPO-XT/pull/PRNUM)).
+
 ## v2.60.0 — 2026-10-22
 
 - **Matrix routing grids no longer paint channels in rainbow colours.** The

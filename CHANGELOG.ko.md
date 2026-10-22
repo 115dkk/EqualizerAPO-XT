@@ -8,6 +8,14 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **minimal 스킨의 Copy 목록에서 채널 이름이 굵어졌습니다.** 채널 토큰은
+  글자 색만으로 채널을 구별하는데(MultiConvolution, Send, 서브우퍼 라우팅
+  대화상자, 카드 헤더의 채널 범위 표시도 같습니다), Medium 굵기에서는 어두운
+  잉크가 잘 보이지 않았습니다. DM Mono에는 Medium보다 굵은 면이 없어서, 이제
+  터미널이 볼드를 만드는 방식대로 반 픽셀 어긋나게 두 번 찍습니다. 늘어나는
+  잉크는 Medium에서 SemiBold로 한 단계 올린 만큼입니다. 다른 스킨은 바뀌지
+  않습니다([#PRNUM](https://github.com/115dkk/EqualizerAPO-XT/pull/PRNUM)).
+
 ## v2.60.0 — 2026-10-22
 
 - **Matrix 스킨의 라우팅 격자가 채널을 무지갯빛으로 칠하지 않습니다.** Matrix의
