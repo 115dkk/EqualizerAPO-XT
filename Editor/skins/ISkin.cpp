@@ -106,6 +106,13 @@ bool ISkin::paintChannelBadge(QPainter& painter, const QRect& rect, const QStrin
 	return false;
 }
 
+QIcon ISkin::powerToggleIcon(bool enabled, const SkinTokens& tokens) const
+{
+	Q_UNUSED(enabled);
+	Q_UNUSED(tokens);
+	return QIcon();
+}
+
 // Outline-style skins ink the badge in the type colour, filled-style skins
 // use the type colour as the pill background.
 BadgeTreatment ISkin::badgeTreatment(const CommandRowInfo& info, const QString& typeColor,

@@ -41,6 +41,7 @@ public:
 		const SkinTokens& tokens) const override;
 	bool paintChannelBadge(QPainter& painter, const QRect& rect, const QString& channel,
 		bool virtualChannel, const SkinTokens& tokens) const override;
+	QIcon powerToggleIcon(bool enabled, const SkinTokens& tokens) const override;
 
 	void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state,
 		const SkinTokens& tokens) const override;

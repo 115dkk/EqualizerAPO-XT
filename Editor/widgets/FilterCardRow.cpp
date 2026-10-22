@@ -35,6 +35,15 @@
 #include "Editor/widgets/routing/CopyRoutingAdapter.h"
 #include "filters/MultiConvolutionCommand.h"
 
+// The power toggle's glyph: the active skin's, or the shared one.
+static QIcon powerToggleIcon(bool enabled)
+{
+	const QIcon skinned = SkinManager::instance()->powerToggleIcon(enabled);
+	if (!skinned.isNull())
+		return skinned;
+	return QIcon(enabled ? QStringLiteral(":/icons/power_on.svg") : QStringLiteral(":/icons/power_off.svg"));
+}
+
 FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* item, IFilterGUI* gui,
 	FilterCardDescriptor preparedDescriptor, QWidget* parent)
 	: QWidget(parent), table(table), item(item), gui(gui), descriptor(std::move(preparedDescriptor)), rowNumber(number)
@@ -117,7 +126,7 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	enabledButton->setCheckable(true);
 	enabledButton->setToolTip(tr("Enable or comment out this command"));
 	enabledButton->setChecked(descriptor.enabled);
-	enabledButton->setIcon(QIcon(descriptor.enabled ? QStringLiteral(":/icons/power_on.svg") : QStringLiteral(":/icons/power_off.svg")));
+	enabledButton->setIcon(powerToggleIcon(descriptor.enabled));
 	connect(enabledButton, &QToolButton::toggled, this, &FilterCardRow::enabledToggled);
 	headerLayout->addWidget(enabledButton);
 
@@ -747,7 +756,7 @@ void FilterCardRow::applyDescriptor()
 		summaryLabel->setToolTip(descriptor.summary);
 	enabledButton->blockSignals(true);
 	enabledButton->setChecked(descriptor.enabled);
-	enabledButton->setIcon(QIcon(descriptor.enabled ? QStringLiteral(":/icons/power_on.svg") : QStringLiteral(":/icons/power_off.svg")));
+	enabledButton->setIcon(powerToggleIcon(descriptor.enabled));
 	enabledButton->blockSignals(false);
 	enabledButton->setVisible(descriptor.canToggleEnabled);
 	// Disable only the body editor when the line is commented out. This keeps
@@ -902,7 +911,7 @@ void FilterCardRow::enabledToggled(bool checked)
 		return;
 
 	if (enabledButton != nullptr)
-		enabledButton->setIcon(QIcon(checked ? QStringLiteral(":/icons/power_on.svg") : QStringLiteral(":/icons/power_off.svg")));
+		enabledButton->setIcon(powerToggleIcon(checked));
 
 	table->setLineEnabled(item, checked);
 	FilterTable* targetTable = table;

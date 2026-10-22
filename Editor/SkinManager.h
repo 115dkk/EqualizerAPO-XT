@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <QIcon>
 #include <QObject>
 #include <QString>
 
@@ -79,6 +80,7 @@ public:
 	bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info) const;
 	bool paintChannelBadge(QPainter& painter, const QRect& rect, const QString& channel,
 		bool virtualChannel) const;
+	QIcon powerToggleIcon(bool enabled) const;
 	bool logicSiblingsIndentAsMembers() const;
 
 	// List-level insertion chrome, delegated to the active skin (see

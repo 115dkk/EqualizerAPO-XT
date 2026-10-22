@@ -14,6 +14,13 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The power switch on Matrix cards is visible again in the light theme.**
+  Since Matrix stopped drawing a cell around the switch, the "on" glyph was
+  white on the light card header and almost disappeared, while "off" printed
+  darker than "on". The glyph now uses the board's ink: the text colour when
+  the card is on, the muted colour when it is commented out, in both themes.
+  Other skins are unchanged ([#432](https://github.com/115dkk/EqualizerAPO-XT/pull/432)).
+
 ## v2.60.1 — 2026-10-22
 
 - **Channel names in the minimal skin's Copy listing print heavier.** The

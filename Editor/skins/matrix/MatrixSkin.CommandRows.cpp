@@ -14,6 +14,7 @@
 #include <QWidget>
 #include <QtMath>
 
+#include "Editor/helpers/GUIHelper.h"
 #include "Editor/skins/shared/SkinPaint.h"
 #include "Editor/skins/shared/SkinSupport.h"
 #include "Editor/widgets/FilterCardModel.h"
@@ -333,6 +334,18 @@ bool MatrixSkin::paintChannelBadge(QPainter& painter, const QRect& rect, const Q
 		painter.drawLine(left, y, left + width - 1, y);
 	}
 	return true;
+}
+
+QIcon MatrixSkin::powerToggleIcon(bool enabled, const SkinTokens& tokens) const
+{
+	// The power cell lost its engaged fill (rule 9), and the shared glyphs
+	// were drawn for one: the white "on" disc vanished on the light board
+	// while the black "off" disc printed louder than it. The glyph is ink
+	// on bare ground like the other header actions, body ink when the card
+	// runs and muted when it is commented out.
+	return GUIHelper::tintedIcon(
+		enabled ? QStringLiteral(":/icons/power_on.svg") : QStringLiteral(":/icons/power_off.svg"),
+		QColor(enabled ? tokens.text : tokens.mutedText), 16);
 }
 
 bool MatrixSkin::paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info, const SkinTokens& tokens) const
