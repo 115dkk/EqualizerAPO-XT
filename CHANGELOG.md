@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.60.0 — 2026-10-22
+
 - **Matrix routing grids no longer paint channels in rainbow colours.** The
   row and column headers of Matrix's Copy grid (also used by MultiConvolution,
   Send and the subwoofer routing dialog) were pills filled with a different

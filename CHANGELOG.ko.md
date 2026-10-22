@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.60.0 — 2026-10-22
+
 - **Matrix 스킨의 라우팅 격자가 채널을 무지갯빛으로 칠하지 않습니다.** Matrix의
   Copy 격자(MultiConvolution, Send, 서브우퍼 라우팅 대화상자도 같은 격자를
   씁니다)는 행·열 헤더를 채널마다 다른 색의 알약으로 칠해, 격자 위의 색이
