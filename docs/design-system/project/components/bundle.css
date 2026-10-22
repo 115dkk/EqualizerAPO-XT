@@ -115,8 +115,11 @@
 .crow .readout { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--muted); }
 .crow .spacer { flex: 1; }
 /* Channel badges (ChBadge): one identity colour per channel (channel-*, ALL and unknown = channel-neutral), a 24x16 chip
-   after the title and summary. Filled skins (studio, soft) tint it 27 % (19 % light) inside a full-colour line; the wire
-   skins (rack, matrix) tint it 14 % (9 %). A virtual channel, one the device does not have, is dashed. */
+   after the title and summary. Filled skins (studio, soft) tint it 27 % (19 % light) inside a full-colour line; rack
+   tints it 14 % (9 %). A virtual channel, one the device does not have, is dashed. Matrix prints the scope as muted
+   bold mono with no chip and no identity colour, and dashes a rule under a virtual name (MatrixSkin::paintChannelBadge).
+   The DM Mono files stop at Medium, so the matrix mirror asks 500 where the code asks bold: the gallery shows Medium,
+   and 700 would make Chromium fake a heavier bold. */
 .crow .chs { display: inline-flex; align-items: center; gap: 5px; margin-left: 24px; }
 .crow .ch { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 16px; padding: 0 5px; box-sizing: border-box; font-family: var(--font);
   font-size: 11.5px; font-weight: 700; line-height: 1; color: var(--c); border: 1px solid var(--c); border-radius: 999px; background: color-mix(in srgb, var(--c) 27%, transparent); }
@@ -229,8 +232,8 @@
 .skin-rack .crow .hb.power { border-color: var(--accent); color: var(--accent); }
 .skin-rack .crow .tbadge { border: 1px solid var(--t, var(--muted)); color: var(--t, var(--muted)); border-radius: 2px; }
 .skin-rack .crow .title { text-transform: uppercase; letter-spacing: 1px; font-size: 12px; font-weight: 700; }
-.skin-rack .crow .ch, .skin-matrix .crow .ch { border-radius: var(--radius); background: color-mix(in srgb, var(--c) 14%, transparent); }
-[data-theme="light"] .skin-rack .crow .ch, [data-theme="light"] .skin-matrix .crow .ch { background: color-mix(in srgb, var(--c) 9%, transparent); }
+.skin-rack .crow .ch { border-radius: var(--radius); background: color-mix(in srgb, var(--c) 14%, transparent); }
+[data-theme="light"] .skin-rack .crow .ch { background: color-mix(in srgb, var(--c) 9%, transparent); }
 .skin-rack .crow .vbox { background: var(--graph); color: var(--accent2); border: 1px solid #0a0c0e; border-radius: 2px; box-shadow: inset 0 1px 2px rgba(0,0,0,.8), 0 1px 0 rgba(255,255,255,.06);
   text-shadow: 0 0 4px color-mix(in srgb, var(--accent2) 60%, transparent); font-weight: 700; }
 /* The display clause: an LCD or a scope glass stays a dark well with lit segments on the cream panel too. The code paints
@@ -251,23 +254,34 @@
   background: linear-gradient(180deg, #c9a45a, #8a6a2c); color: #2b1d08; font-size: 10px; font-weight: 700; letter-spacing: 2.5px; box-shadow: inset 0 1px 0 #ffe7b0, 0 1px 2px rgba(0,0,0,.6); }
 .skin-rack .crow .plate::before, .skin-rack .crow .plate::after { content: ""; width: 3px; height: 3px; border-radius: 50%; background: #5a4418; }
 
-/* Matrix: rectangular cells, the 3px rail and gutter lamp, the coordinate cell, the grid behind the header */
+/* Matrix: the 3px rail and gutter lamp, the coordinate cell, the grid behind the header, and one box per surface
+   (invariant rule 9): the card is the only closed box. Inside it a resting element is a sunken fill tile (values,
+   readouts, destinations), printed mono text (markers, codes, remarks, channel scopes) or a glyph (the header action
+   train); a 1px rule appears only for state (hover prelight, focus, engaged, error/caution), and a disabled or virtual
+   element gets a dashed rule under it. The coordinate number cell is the one boxed element per card. --dead and
+   --dead-rule are the sheets' disabled literals (matrix_dark.qss #4A6470 / #1A2933, matrix_light.qss #9DB4BD / border). */
+.skin-matrix { --dead: #4a6470; --dead-rule: #1a2933; }
+[data-theme="light"] .skin-matrix { --dead: #9db4bd; --dead-rule: var(--border); }
 .skin-matrix .crow { background: var(--card); border: 1px solid var(--border); border-radius: 0; border-left: 0; margin-left: 12px; }
 .skin-matrix .crow::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: var(--rail); background: var(--success); }
 .skin-matrix .crow.remark::before { background: var(--border); }
 .skin-matrix .crow .lampdot { position: absolute; left: 10px; top: 17px; width: 5px; height: 5px; background: var(--success); }
 .skin-matrix .crow .lampdot.off { background: transparent; border: 1px solid var(--muted); box-sizing: border-box; }
 .skin-matrix .crow .hdr { padding-left: 22px; background-image: repeating-linear-gradient(90deg, color-mix(in srgb, var(--border) 60%, transparent) 0 1px, transparent 1px var(--pitch)); background-position: 22px 0; }
-.skin-matrix .crow .hb { background: var(--bg); border: 1px solid var(--border); border-radius: 0; }
-.skin-matrix .crow .hb.expand { background: color-mix(in srgb, var(--accent) 35%, var(--bg)); border-color: var(--accent); }
-.skin-matrix .crow .hb.power { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--bg)); }
+/* the header action train: bare glyphs (a prelight cell only under hover); power on is the live card's resting
+   state, so it engages nothing */
+.skin-matrix .crow .hb { background: transparent; border: 1px solid transparent; border-radius: 0; }
 .skin-matrix .crow .num { border: 1px solid var(--border); background: var(--bg); min-width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; letter-spacing: 1px; font-size: 12px; }
-.skin-matrix .crow .tbadge { border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 0; }
+.skin-matrix .crow .tbadge { border: 0; background: transparent; color: var(--text); border-radius: 0; }
+.skin-matrix .crow .ch, .skin-matrix .crow .ch.virt { min-width: 24px; padding: 0 2px; border: 0; border-radius: 0; background: none; color: var(--muted);
+  font-family: var(--mono); font-size: 12px; font-weight: 500; letter-spacing: .6px; }
+.skin-matrix .crow .ch.virt { text-decoration: underline dashed var(--muted) 1px; text-underline-offset: 3px; }
 .skin-matrix .crow .body { background: var(--bg); border-top: 1px solid var(--border); padding-left: 22px; }
-.skin-matrix .crow .vbox { background: var(--graph); border: 1px solid var(--border); border-radius: 0; }
-.skin-matrix .crow .sel { background: transparent; border: 1px solid var(--border); border-radius: 0; font-family: var(--font); text-transform: uppercase; letter-spacing: 1px; font-size: 10.67px; font-weight: 600; }
-.skin-matrix .crow .btn, .skin-matrix .crow .ibtn { background: var(--graph); border: 1px solid var(--border); border-radius: 0; font-family: var(--mono); font-size: 12px; }
-.skin-matrix .crow .btn.lit { border-color: var(--text); }
-.skin-matrix .crow .well { background: var(--graph); border: 1px solid var(--border); }
-.skin-matrix .crow .chip { display: inline-flex; align-items: center; height: 18px; padding: 0 7px; border: 1px solid var(--k, var(--text)); color: var(--k, var(--text)); background: var(--bg);
+.skin-matrix .crow .vbox { background: var(--graph); border: 1px solid transparent; border-radius: 0; }
+/* a parameter-mode selector: caption ink and the caret, no rule; with one mode it is cancelled (dashed rule under it) */
+.skin-matrix .crow .sel { background: transparent; border: 1px solid transparent; border-radius: 0; font-family: var(--font); text-transform: uppercase; letter-spacing: 1px; font-size: 10.67px; font-weight: 600; }
+.skin-matrix .crow .sel.one { color: var(--dead); border-bottom: 1px dashed var(--dead-rule); }
+.skin-matrix .crow .btn, .skin-matrix .crow .ibtn { background: transparent; border: 1px solid transparent; border-radius: 0; font-family: var(--mono); font-size: 12px; font-weight: 500; }
+.skin-matrix .crow .well { background: var(--graph); border: 1px solid transparent; }
+.skin-matrix .crow .chip { display: inline-flex; align-items: center; height: 18px; padding: 0; border: 0; color: var(--k, var(--text)); background: transparent;
   font-family: var(--mono); font-size: 10.67px; font-weight: 700; letter-spacing: 1px; }

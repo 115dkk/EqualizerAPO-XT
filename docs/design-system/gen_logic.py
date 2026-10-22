@@ -47,7 +47,8 @@ CSS = '''
   .skin-matrix .gate { position: absolute; left: 10px; top: 17px; width: 5px; height: 5px; background: var(--success); }
   .skin-matrix .gate.off { background: transparent; border: 1px solid var(--success); box-sizing: border-box; }
   .skin-matrix .gate.none { background: transparent; border: 1px solid var(--muted); box-sizing: border-box; }
-  .skin-matrix .crow .readout { border: 1px solid var(--border); background: var(--graph); padding: 2px 8px; color: var(--text); font-weight: 700; }
+  .skin-matrix .crow .readout { border: 1px solid transparent; background: var(--graph); padding: 2px 8px; color: var(--text); font-weight: 700; }
+  [data-theme="light"] .skin-matrix .gb .vbox { background: var(--surface); } /* matrix_light.qss EditableValue #EBEBEB */
 '''
 SENT = {'if1': ('outputChannelCount >= 6', 'If outputChannelCount is at least 6'),
         'if2': ('sampleRate > 48000', 'If sampleRate is more than 48000'),

@@ -52,19 +52,23 @@ def svg(pict, size=None, extra=''):
     return f'<svg viewBox="0 0 24 24"{s} fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"{extra}>{PICT[pict]}</svg>'
 
 def chip_ink(skin, ch):
-    # One identity palette (ChannelIdentity.h): the header badges of studio, soft, rack and matrix wear the
-    # routing colours as they are; minimal prints its console inks; ALL and unknown channels are channel-neutral.
+    # One identity palette (ChannelIdentity.h): the header badges of studio, soft and rack wear the routing
+    # colours as they are; minimal prints its console inks; ALL and unknown channels are channel-neutral.
+    # Matrix rations colour to state, so its channel scope is printed in the muted ink (paintChannelBadge).
+    if skin == 'matrix': return None
     if skin == 'minimal': return MINIMAL_INK.get(ch, 'var(--minimal-ch-neutral)')
     return CHANNEL.get(ch, 'var(--channel-neutral)')
 
 def channel_badges(skin, chans, virtual=()):
     """virtual: the channels the device does not have (ChannelIdentity::isVirtual); the previews assume a
-    7.1 device (L R C LFE RL RR SL SR), so VC or SBL is virtual and L is not. Virtual badges are dashed."""
+    7.1 device (L R C LFE RL RR SL SR), so VC or SBL is virtual and L is not. Virtual badges are dashed
+    (matrix: a dashed rule under the name)."""
     out = []
     for c in chans:
-        style = f'--c:{chip_ink(skin, c)}'
+        ink = chip_ink(skin, c)
+        style = f' style="--c:{ink}"' if ink else ''
         cls = 'ch virt' if c in virtual else 'ch'
-        out.append(f'<span class="{cls}" style="{style}">{c}</span>')
+        out.append(f'<span class="{cls}"{style}>{c}</span>')
     return f'<span class="chs">{"".join(out)}</span>' if out else ''
 
 def header(skin, kind, num, title, summary='', chans=(), collapsed=False, readout='', pict=None, cursor=False, enabled=True, extra='', power=True):

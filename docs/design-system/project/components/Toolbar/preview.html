@@ -84,21 +84,23 @@
   .skin-rack .combo { height: 28px; font-size: 12px; min-width: 280px; }
   .skin-rack .pass { display: inline-flex; align-items: center; height: 28px; padding: 0 12px; color: var(--accent); border-color: var(--accent); text-transform: uppercase; letter-spacing: 1px; font-size: 11px; font-weight: 700; margin-left: 6px; }
 
-  /* ===== Matrix: the board's header row on the 24px grid; bordered cells; the saved lamp cell ===== */
+  /* ===== Matrix: the board's header row on the 24px grid. No item is boxed at rest (one box per surface): menu
+     items and tool buttons are bare until hover lays the prelight with a border-ink rule, the instant-mode cell and
+     the DEVICE caption are bare, the saved readout and the device readout are sunken fill tiles ===== */
   .skin-matrix .menubar { height: 38px; background-color: var(--surface); color: var(--text); padding: 0 0 0 4px; border-bottom: 1px solid var(--border);
     background-image: repeating-linear-gradient(90deg, color-mix(in srgb, var(--border) 70%, transparent) 0 1px, transparent 1px var(--pitch)); }
-  .skin-matrix .mi { border: 1px solid var(--border); padding: 4px 14px; margin: 0 4px 0 0; background: var(--surface); }
-  .skin-matrix .mi.on { background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+  .skin-matrix .mi { border: 1px solid transparent; padding: 4px 14px; margin: 0 4px 0 0; background: transparent; }
+  .skin-matrix .mi.on { background: color-mix(in srgb, var(--accent) 10%, transparent); border-color: var(--border); }
   .skin-matrix .toolbar { height: 42px; background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 4px; gap: 4px; }
-  .skin-matrix .tb, .skin-matrix .saved, .skin-matrix .combo, .skin-matrix .devcell, .skin-matrix .imcell { border: 1px solid var(--border); background: var(--bg); color: var(--text); }
+  .skin-matrix .tb, .skin-matrix .saved, .skin-matrix .combo, .skin-matrix .devcell, .skin-matrix .imcell { border: 1px solid transparent; background: transparent; color: var(--text); }
   .skin-matrix .tb { padding: 2px 13px; height: 26px; }
-  .skin-matrix .tb.hov { background: color-mix(in srgb, var(--accent) 10%, transparent); }
-  .skin-matrix .imcell { display: inline-flex; align-items: center; gap: 8px; height: 26px; padding: 0 10px; font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+  .skin-matrix .tb.hov { background: color-mix(in srgb, var(--accent) 10%, transparent); border-color: var(--border); }
+  .skin-matrix .imcell { display: inline-flex; align-items: center; gap: 8px; height: 26px; padding: 0 8px; font-size: 12px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
   .skin-matrix .cb { width: 12px; height: 12px; border-radius: 0; }
-  .skin-matrix .saved { height: 26px; font-family: var(--mono); font-size: 11px; letter-spacing: 1px; gap: 8px; }
+  .skin-matrix .saved { height: 26px; background: var(--graph); font-family: var(--mono); font-size: 12px; letter-spacing: 1px; gap: 8px; text-transform: uppercase; font-weight: 500; }
   .skin-matrix .saved::before { content: ""; width: 7px; height: 7px; background: var(--success); }
-  .skin-matrix .devcell { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; font-family: var(--mono); font-size: 11px; letter-spacing: 1px; color: var(--muted); }
-  .skin-matrix .combo { height: 26px; border-radius: 0; min-width: 260px; }
+  .skin-matrix .devcell { display: inline-flex; align-items: center; height: 26px; padding: 0 6px; font-size: 12px; font-weight: 600; letter-spacing: 1px; color: var(--muted); }
+  .skin-matrix .combo { height: 26px; border-radius: 0; min-width: 260px; background: var(--graph); font-size: 13.33px; }
   .skin-matrix .devl { display: none; }
 </style>
 </head>

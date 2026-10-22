@@ -42,7 +42,7 @@ CSS = '''
   .skin-minimal .latch.off { background: transparent; color: var(--muted); }
   .skin-soft .latch.off .dot { background: transparent; border: 1.5px solid var(--muted); box-sizing: border-box; }
   .skin-rack .latch.off .dot { background: radial-gradient(circle at 40% 35%, #fff4 0 1px, #5a4a2a 2px, #2a2418); box-shadow: 0 0 0 1px #0a0c0e; }
-  .skin-matrix .latch.off { border: 1px dashed var(--border); background: transparent; color: var(--muted); }
+  .skin-matrix .latch.off { border: 1px solid transparent; border-bottom: 1px dashed var(--border); background: transparent; color: var(--muted); }
   .skin-rack .strip .dir { font-family: var(--font); font-size: 11px; color: var(--muted); white-space: nowrap; }
   .skin-matrix .status { color: var(--danger); font-family: var(--mono); font-size: 12.5px; }
   .skin-matrix .rej { width: 10px; height: 8px; border-radius: 0; box-shadow: none; background: repeating-linear-gradient(180deg, var(--danger) 0 2px, transparent 2px 3px); }
@@ -83,15 +83,20 @@ CSS = '''
   .skin-rack .strip .cap { font-size: 9px; letter-spacing: 1.5px; }
   .rlamp { width: 8px; height: 8px; border-radius: 50%; flex: none; box-shadow: 0 0 0 1.5px #0a0c0e, 0 0 0 2.5px #4a5257, 0 0 6px var(--danger);
     background: radial-gradient(circle at 40% 35%, #fff8 0 1px, var(--danger) 2px, color-mix(in srgb, var(--danger) 60%, black)); }
-  /* matrix: postings under a board rule; the gate cell; the port strip */
+  /* matrix: postings under a board rule; the gate cell; the port strip. At rest nothing inside the card is boxed
+     (rule 9): the posted FILL latch is an accent fill tile (alpha 24), the bus cells are faint fill tiles (border ink
+     alpha 18) whose rule comes only with hover, focus or an open menu, and a cancelled cell (folded latch, a bus that
+     cannot negotiate) is unfilled over a dashed rule. The markers print in their ink with no cell. */
   .skin-matrix .rail { border-top: 1px solid var(--border); padding: 0 4px; }
   .skin-matrix .rail .cellv { border-bottom: 1px solid var(--border); border-radius: 0; padding: 0 4px; }
-  .skin-matrix .latch { border: 1px solid var(--accent); color: var(--text); background: color-mix(in srgb, var(--accent) 10%, var(--bg)); font-family: var(--mono); }
+  .skin-matrix .latch { border: 1px solid transparent; color: var(--text); background: color-mix(in srgb, var(--accent) 9%, transparent); font-family: var(--mono); }
   .skin-matrix .latch .dot { display: none; }
-  .skin-matrix .name { font-family: var(--mono); font-weight: 700; }
-  .skin-matrix .bus .bcell { border: 1px solid var(--border); background: var(--graph); }
+  .skin-matrix .name { font-family: var(--mono); font-weight: 500; }
+  .skin-matrix .bus .bcell { border: 1px solid transparent; background: color-mix(in srgb, var(--border) 7%, transparent); }
+  .skin-matrix .bus .bcell.off { background: transparent; border-bottom: 1px dashed var(--border); color: var(--muted); }
   .skin-matrix .port { display: flex; align-items: center; justify-content: space-between; height: 24px; padding: 0 8px; font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: 2px; color: var(--muted); border-bottom: 1px solid var(--border); }
-  .marker { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border: 1px solid var(--danger); background: var(--graph); font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: 1px; color: var(--danger); }
+  .marker { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 2px 0 0; font-family: var(--mono); font-size: 13.33px; font-weight: 500; letter-spacing: 1px; color: var(--danger); }
+  .marker.dev { color: var(--muted); }
 '''
 ARROW = '<svg class="arrow" viewBox="0 0 14 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 5h11"/><path d="M8 1.5L12 5 8 8.5"/></svg>'
 IN_SLOTS = [('L', 'L'), ('R', 'R'), ('C', 'C'), ('LFE', '-'), ('RL', 'SL'), ('RR', 'SR')]
@@ -102,12 +107,14 @@ def rail(skin, slots, latch=None, off=False):
     latch_html = f'<span class="latch{" off" if off else ""}"><span class="dot"></span>{latch}</span>' if latch else ''
     return f'<div class="rail">{latch_html}{cells}</div>'
 
-def bus(skin):
+def bus(skin, off=False):
+    """off: the plug-in is missing, so the busses cannot negotiate; matrix posts them as cancelled cells."""
     if skin == 'minimal':
         return f'<span class="bus"><span class="bcell"><span class="bcap">in</span>5.1<span class="n">:6</span><span class="chev"></span></span><span class="bcap">-&gt; out</span><span class="bcell">5.1<span class="n">:6</span><span class="chev"></span></span></span>'
     sep = ':' if skin == 'matrix' else ' '
-    return (f'<span class="bus"><span class="bcell"><span class="bcap">IN</span>5.1<span class="n">{sep}6</span><span class="chev"></span></span>{ARROW}'
-            f'<span class="bcell"><span class="bcap">OUT</span>5.1<span class="n">{sep}6</span><span class="chev"></span></span></span>')
+    cell = 'bcell off' if off else 'bcell'
+    return (f'<span class="bus"><span class="{cell}"><span class="bcap">IN</span>5.1<span class="n">{sep}6</span><span class="chev"></span></span>{ARROW}'
+            f'<span class="{cell}"><span class="bcap">OUT</span>5.1<span class="n">{sep}6</span><span class="chev"></span></span></span>')
 
 def body(skin):
     ib = lambda label, lit=False, dis=False: f'<span class="btn{" lit" if lit else ""}{" dis" if dis else ""}">{svg("folder") if lit else ""}{label}</span>'
@@ -126,7 +133,7 @@ def body(skin):
         return f'<div class="vb">{rail(skin, IN_SLOTS, "FILL")}{line}{rail(skin, OUT_SLOTS)}</div>'
     if skin == 'matrix':
         port = '<div class="port"><span>&gt; IN</span><span>EXTERNAL DEVICE</span><span>OUT &gt;</span></div>'
-        line = f'<div class="line"><span class="marker">MISSING</span><span class="name">example.vst3</span>{bus(skin)}<span class="btn lit">{svg("folder")}LOCATE</span><span class="btn dis">Open panel</span><span class="btn">...</span></div>'
+        line = f'<div class="line"><span class="marker">MISSING</span><span class="name">example.vst3</span>{bus(skin, off=True)}<span class="btn lit">{svg("folder")}LOCATE</span><span class="btn dis">Open panel</span><span class="btn">...</span></div>'
         return f'<div class="vb">{rail(skin, IN_SLOTS, "FILL")}{port}{line}{rail(skin, OUT_SLOTS)}</div>'
 
 def rbus(skin):
@@ -164,7 +171,7 @@ def rejected(skin):
         return f'<div class="vb">{fill}{line}<div class="status">{REJ}</div></div>'
     if skin == 'matrix':
         port = '<div class="port"><span>&gt; IN</span><span>EXTERNAL DEVICE · VST3</span><span>OUT &gt;</span></div>'
-        line = (f'<div class="line"><span class="marker" style="color:var(--muted);border-color:var(--border)">&gt; DEV</span><span class="path" style="color:var(--text)">C:\\Users\\…\\VST3@</span>'
+        line = (f'<div class="line"><span class="marker dev">&gt; DEV</span><span class="path" style="color:var(--text)">C:\\Users\\…\\VST3@</span>'
                 f'<span class="name">Te…in</span>{rbus(skin)}{ib("folder")}<span class="btn">Open panel</span><span class="btn">...</span></div>')
         return f'<div class="vb">{fill}{port}{line}<div class="status">! {REJ}</div></div>'
 
