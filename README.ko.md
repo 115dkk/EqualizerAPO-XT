@@ -141,7 +141,7 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
 
 ## 빌드
 
-프로젝트는 Visual Studio, Qt, Velopack과 몇 가지 외부 라이브러리를 사용합니다. [setup-build.ps1](setup-build.ps1)을 실행하면 로컬 빌드에 필요한 것(바이너리 의존성, 헤더 전용 체크아웃, Qt 6.10.1)이 모두 준비됩니다. 수동 배치 방법은 [docs/LocalDependencySetup.md](docs/LocalDependencySetup.md)에 있습니다.
+프로젝트는 Visual Studio, Qt, Velopack과 몇 가지 외부 라이브러리를 사용합니다. [setup-build.ps1](setup-build.ps1)을 실행하면 로컬 빌드에 필요한 것(바이너리 의존성, 헤더 전용 체크아웃, Qt 6.12.0)이 모두 준비됩니다. 수동 배치 방법은 [docs/LocalDependencySetup.md](docs/LocalDependencySetup.md)에 있습니다.
 
 미리 빌드된 의존성은 아래 저장소에서 받습니다. 이 저장소들은 TheFireKahuna가 같은 태그로 올린 릴리스를 바이트 단위로 똑같이 옮겨 둔 것이고, 각 파일의 SHA-256은 `.github/simd-variants.psd1`에 고정되어 있습니다.
 

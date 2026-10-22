@@ -39,6 +39,7 @@
 #include "DisclosureHeader.h"
 #include "SkinButton.h"
 #include "DeviceSelector.h"
+#include "platform/qt/MotionPreference.h"
 
 namespace
 {
@@ -515,7 +516,6 @@ void DeviceSelector::onTroubleShootingToggled(bool on)
 	if (troubleshootingSlide == nullptr)
 	{
 		troubleshootingSlide = new QPropertyAnimation(ui.stackedWidget, "maximumHeight", this);
-		troubleshootingSlide->setDuration(160);
 		troubleshootingSlide->setEasingCurve(QEasingCurve::OutCubic);
 		connect(troubleshootingSlide, &QPropertyAnimation::finished, this, [this]() {
 			if (!ui.troubleshootingHeader->isChecked())
@@ -527,6 +527,7 @@ void DeviceSelector::onTroubleShootingToggled(bool on)
 	}
 
 	troubleshootingSlide->stop();
+	troubleshootingSlide->setDuration(MotionPreference::duration(160));
 	if (on)
 	{
 		ui.stackedWidget->setMaximumHeight(0);

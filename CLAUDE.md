@@ -61,7 +61,7 @@ C++ 프로젝트는 Visual Studio 2022/2026 계열 도구와 Windows SDK 10.0을
 다음 의존성이 필요합니다.
 
 - **Visual Studio 2022 Build Tools** (혹은 2026): `Microsoft.VisualStudio.Component.VC.Tools.x86.x64`, `Microsoft.VisualStudio.Component.VC.ATL`을 반드시 포함합니다. ATL이 없으면 `EqualizerAPO.dll` 링크 단계에서 `atls.lib`를 찾지 못해 실패합니다.
-- **Python 3.x**: Qt 설치용 `aqtinstall`을 받기 위해 필요합니다.
+- **Python 3.x**: `7z`가 없는 PC에서 Qt 아카이브를 `py7zr`로 풀 때 씁니다.
 - **외부 라이브러리**: 저장소에 포함되지 않습니다. `deps/` 아래에 다음 구조로 배치합니다.
 
 ```
@@ -81,7 +81,7 @@ deps/
 
 x64 AVX2 변형의 바이너리 자산은 CI에서 사용하는 GitHub Release에서 받아 압축을 풉니다. SSE2/AVX 변형은 vcpkg로 빌드합니다. 자세한 설치 절차와 자동화 스크립트는 [setup-build.ps1](setup-build.ps1)에 있습니다.
 
-- **Qt 6.10.1 (MSVC 2022 x64)**: `Qt/6.10.1/msvc2022_64/`에 설치합니다. `python -m aqt install-qt windows desktop 6.10.1 win64_msvc2022_64 --archives qtbase qttools qtsvg qttranslations`로 받습니다.
+- **Qt 6.12.0 (MSVC 2022 x64)**: `Qt/6.12.0/msvc2022_64/`에 설치합니다. `setup-build.ps1`(내부적으로 `Provisioning.psm1`의 `Install-QtSdk`)이 Qt 온라인 저장소에서 `qtbase`, `qttools`, `qtsvg`, `qttranslations` 아카이브를 받아 `simd-variants.psd1`의 SHA-256 핀과 대조한 뒤 풉니다. aqtinstall은 Qt 6.12의 저장소 구조를 읽지 못해 쓰지 않습니다.
 
 ### 빌드 명령
 
@@ -100,7 +100,7 @@ foreach ($project in $plan.Projects) {
     /p:MUPARSERX_INCLUDE=$root\deps\muparserx\parser /p:MUPARSERX_LIB=$root\deps\muparserx\build\Release `
     /p:LIBSNDFILE_INCLUDE=$root\deps\libsndfile\include /p:LIBSNDFILE_LIB=$root\deps\libsndfile\build\Release `
     /p:TCLAP_ROOT=$root\deps\tclap /p:VST3_SDK=$root\deps\vst3sdk /p:HIGHWAY_INCLUDE=$root\deps\highway `
-    /p:ASIO_SDK=$root\deps\asiosdk\ASIOSDK /p:QT_ROOT=$root\Qt\6.10.1\msvc2022_64
+    /p:ASIO_SDK=$root\deps\asiosdk\ASIOSDK /p:QT_ROOT=$root\Qt\6.12.0\msvc2022_64
   if ($LASTEXITCODE -ne 0) { throw "Build failed for $project" }
 }
 ```
@@ -111,7 +111,7 @@ Qt 프로젝트는 `VsDevCmd.bat`로 환경을 잡은 뒤 빌드합니다. `lrel
 
 ```powershell
 # VS 환경 임포트 후
-$env:PATH = "Qt\6.10.1\msvc2022_64\bin;$env:PATH"
+$env:PATH = "Qt\6.12.0\msvc2022_64\bin;$env:PATH"
 mkdir build-Editor-x64; cd build-Editor-x64
 lrelease ..\Editor\Editor.pro
 qmake ..\Editor\Editor.pro -r "CONFIG+=release" "EAPO_UPDATE_CHANNEL=x64-avx2" "EAPO_SIMD_FLAGS=/arch:AVX2"

@@ -7,8 +7,8 @@ XT는 Windows 프로젝트입니다. C++ 프로젝트는 Visual Studio 2022 / 20
 
 ### 사전 준비물
 * **Visual Studio 2022 빌드 도구**(또는 2026). `Microsoft.VisualStudio.Component.VC.Tools.x86.x64`와 `Microsoft.VisualStudio.Component.VC.ATL`을 반드시 포함합니다. ATL이 필요합니다. 없으면 `EqualizerAPO.dll` 링크 단계에서 `atls.lib`를 찾지 못합니다. XT 프로젝트는 VS 2026 도구 집합 `v145`로 빌드하며, VS 2022 환경에서는 `/p:PlatformToolset=v143`을 넘깁니다.
-* **Python 3** — `aqtinstall`로 Qt를 설치할 때 씁니다.
-* **Qt 6.10.1 (MSVC 2022 x64)** — `Qt/6.10.1/msvc2022_64/`에 설치합니다. 설정 편집기, 장치 선택기, 업데이트 확인기에 필요합니다.
+* **Python 3** — `PATH`에 `7z`가 없을 때 Qt 아카이브를 `py7zr`로 푸는 데만 씁니다.
+* **Qt 6.12.0 (MSVC 2022 x64)** — 설정 스크립트가 Qt 온라인 저장소에서 받아 고정된 SHA-256과 대조한 뒤 `Qt/6.12.0/msvc2022_64/`에 설치합니다. 설정 편집기, 장치 선택기, 업데이트 확인기에 필요합니다.
 * **외부 라이브러리** — 저장소에 **커밋하지 않습니다**: [FFTW](https://www.fftw.org/), [libsndfile](https://libsndfile.github.io/libsndfile/), [muParserX](https://github.com/beltoforion/muparserx), [TCLAP](http://tclap.sourceforge.net/), [Google Highway](https://github.com/google/highway), MIT 라이선스인 Steinberg VST3 *pluginterfaces*, 그리고 ASIO 래퍼용 Steinberg ASIO SDK 2.3.4(SHA-256으로 고정해 받고, SDK의 GPL 버전 3 선택지로 씀)입니다. 빌드 시점에 `deps/` 아래에 배치합니다.
 * **Velopack** (`vpk` CLI, `dotnet tool install -g vpk`) — CI가 바이너리를 `Setup.exe` / `.nupkg` 산출물로 패키징할 때만 씁니다. 로컬 개발에는 필요 없습니다.
 

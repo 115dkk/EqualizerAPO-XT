@@ -431,6 +431,7 @@ HEADERS  += \
 	helpers/BackgroundProbe.h \
 	helpers/WindowFrameHitTest.h \
 	../platform/qt/QtAppBootstrap.h \
+	../platform/qt/MotionPreference.h \
 	helpers/VstChunkScan.h \
 	stable.h \
 	IFilterGUI.h \

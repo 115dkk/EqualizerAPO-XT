@@ -295,9 +295,11 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
 
-    # Install Qt for Editor and DeviceSelector. The aqt install
-    # (concurrency 1: parallel extraction raced intermittently) lives in
-    # .github/scripts/Provisioning.psm1, shared with setup-build.ps1 (TD015).
+    # Install Qt for Editor and DeviceSelector. Install-QtSdk reads Qt's
+    # online repository directly (aqtinstall cannot read the Qt 6.12 layout)
+    # and checks every archive against the SHA-256 pins in simd-variants.psd1;
+    # it lives in .github/scripts/Provisioning.psm1, shared with
+    # setup-build.ps1 (TD015).
     - name: Install Qt
       shell: pwsh
       run: |

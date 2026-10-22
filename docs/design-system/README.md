@@ -38,7 +38,7 @@ python shots.py        # Playwright로 미리보기 전부를 다크·라이트�
 미리보기의 치수는 오프스크린 갤러리에 맞춘다. MacType 데드락을 피하려면 콘솔 서브시스템 사본(`editbin /SUBSYSTEM:CONSOLE`)으로 실행한다.
 
 ```powershell
-$env:QT_QPA_PLATFORM = 'offscreen'; $env:QT_PLUGIN_PATH = 'Qt\6.10.1\msvc2022_64\plugins'
+$env:QT_QPA_PLATFORM = 'offscreen'; $env:QT_PLUGIN_PATH = 'Qt\6.12.0\msvc2022_64\plugins'
 build-Editor-x64\release\EditorConsole-base.exe --skin-gallery <outDir>          # 135장면 x 5스킨 x 2모드
 build-DeviceSelector-x64\release\DeviceSelectorShots.exe --skin-shots <outDir2>  # Device Selector 5스킨 x 2모드 x 5장면
 python docs/design-system/contact.py <outDir> include_normal copy_normal          # 장면당 다섯 스킨을 한 장으로

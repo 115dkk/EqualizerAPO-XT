@@ -13,6 +13,8 @@
 #include <QPainter>
 #include <QVariantAnimation>
 
+#include "platform/qt/MotionPreference.h"
+
 #include "Editor/SkinManager.h"
 #include "Editor/skins/ISkin.h"
 
@@ -169,7 +171,7 @@ void EqGraphView::animateHover(double target, int duration)
 	}
 	// Interruptible: retarget from the current value.
 	hoverAnimation->stop();
-	hoverAnimation->setDuration(duration);
+	hoverAnimation->setDuration(MotionPreference::duration(duration));
 	hoverAnimation->setStartValue(hoverValue);
 	hoverAnimation->setEndValue(target);
 	hoverAnimation->start();

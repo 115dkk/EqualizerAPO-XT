@@ -2,8 +2,8 @@
 .SYNOPSIS
     Shared build-dependency provisioning for CI and local setup: pinned
     release-asset download + SHA-256 verification, the vcpkg-based FFTW /
-    libsndfile / muparserx rebuild for the sse2/avx variants, and the
-    aqt-based Qt install.
+    libsndfile / muparserx rebuild for the sse2/avx variants, and the Qt
+    online-repository install.
 
 .DESCRIPTION
     .github/workflows/build.yml and setup-build.ps1 used to each carry their
@@ -18,7 +18,7 @@
       Get-DependencyDownloadSpec  manifest -> download list (URLs + SHA-256 pins)
       Invoke-DependencyDownload   download / cache-reuse, verify, extract loop
       Build-VcpkgDependencies     vcpkg FFTW+libsndfile build & muparserx rebuild
-      Install-QtSdk               aqt-based Qt install, returns the Qt root
+      Install-QtSdk               Qt repository install, returns the Qt root
       Get-PinnedSourceSpec        the header-only source dependencies with their pinned commits
       Sync-PinnedCheckout         clone at a tag, fail unless it is the pinned commit
       Install-PinnedSourceDependency  every source dependency through Sync-PinnedCheckout
@@ -404,18 +404,241 @@ function Build-VcpkgDependencies {
     }
 }
 
+function Get-QtRepositorySpec {
+    # Internal: maps the public Platform name to Qt repository/package names.
+    # Qt 6.12 introduced a per-architecture repository while older releases
+    # use the shared repository, so callers try both URLs in this order.
+    param(
+        [Parameter(Mandatory)] [string]$QtVersion,
+        [Parameter(Mandatory)] [ValidateSet('x64', 'ARM64')] [string]$Platform
+    )
+
+    $compactVersion = $QtVersion -replace '\.', ''
+    if ($Platform -eq 'ARM64') {
+        $hostName = 'windows_arm64'
+        $archName = 'win64_msvc2022_arm64'
+        $archDir = 'msvc2022_arm64'
+    }
+    else {
+        $hostName = 'windows_x86'
+        $archName = 'win64_msvc2022_64'
+        $archDir = 'msvc2022_64'
+    }
+
+    $repositoryRoot = "https://download.qt.io/online/qtsdkrepository/$hostName/desktop/qt6_$compactVersion"
+    return [pscustomobject]@{
+        Host           = $hostName
+        Arch           = $archName
+        ArchDir        = $archDir
+        PackageName    = "qt.qt6.$compactVersion.$archName"
+        RepositoryUrls = @(
+            "$repositoryRoot/qt6_$($compactVersion)_$archDir"
+            "$repositoryRoot/qt6_$compactVersion"
+        )
+    }
+}
+
+function Select-QtArchive {
+    # Internal and pure: resolves the requested module archives from one
+    # Updates.xml document without touching the network or filesystem.
+    param(
+        [Parameter(Mandatory)] [string]$UpdatesXml,
+        [Parameter(Mandatory)] [string]$PackageName,
+        [Parameter(Mandatory)] [string]$RepositoryUrl,
+        [Parameter(Mandatory)] [string[]]$Modules
+    )
+
+    [xml]$document = $UpdatesXml
+    $packages = @($document.Updates.PackageUpdate | Where-Object { [string]$_.Name -eq $PackageName })
+    if ($packages.Count -eq 0) {
+        throw "Qt package $PackageName was not found in Updates.xml"
+    }
+    if ($packages.Count -ne 1) {
+        throw "Qt package $PackageName appears $($packages.Count) times in Updates.xml"
+    }
+
+    $package = $packages[0]
+    $versionStamp = ([string]$package.Version).Trim()
+    $availableArchives = @(
+        ([string]$package.DownloadableArchives).Split(',') |
+            ForEach-Object { $_.Trim() } |
+            Where-Object { $_ }
+    )
+
+    foreach ($module in $Modules) {
+        $prefix = "$module-"
+        $candidates = @($availableArchives | Where-Object {
+                $_.StartsWith($prefix, [System.StringComparison]::Ordinal)
+            })
+        if ($candidates.Count -ne 1) {
+            throw "Expected one $module archive in Qt package $PackageName, found $($candidates.Count)"
+        }
+
+        $archive = $candidates[0]
+        [pscustomobject]@{
+            Module  = $module
+            Archive = $archive
+            Url     = "$($RepositoryUrl.TrimEnd('/'))/$PackageName/$versionStamp$archive"
+        }
+    }
+}
+
+function Get-QtRepositoryMetadata {
+    # Internal: fetches and verifies Updates.xml. Only a fetch failure falls
+    # through to the next layout; a hash mismatch is a hard failure.
+    param(
+        [Parameter(Mandatory)] [string[]]$RepositoryUrls,
+        [Parameter(Mandatory)] [string]$MetadataRoot
+    )
+
+    New-Item -ItemType Directory -Force -Path $MetadataRoot | Out-Null
+    for ($index = 0; $index -lt $RepositoryUrls.Count; $index++) {
+        $repositoryUrl = $RepositoryUrls[$index].TrimEnd('/')
+        $xmlPath = Join-Path $MetadataRoot "Updates-$index.xml"
+        $shaPath = "$xmlPath.sha256"
+        Remove-Item -Path $xmlPath, $shaPath -Force -ErrorAction SilentlyContinue
+
+        try {
+            Invoke-DependencyFetch -Url "$repositoryUrl/Updates.xml" -OutFile $xmlPath
+            Invoke-DependencyFetch -Url "$repositoryUrl/Updates.xml.sha256" -OutFile $shaPath
+        }
+        catch {
+            Remove-Item -Path $xmlPath, $shaPath -Force -ErrorAction SilentlyContinue
+            continue
+        }
+
+        $shaText = (Get-Content -Path $shaPath -Raw).Trim()
+        $expectedParts = @($shaText -split '\s+')
+        $expected = if ($expectedParts.Count -gt 0) { $expectedParts[0].ToLowerInvariant() } else { '' }
+        $actual = (Get-FileHash -Path $xmlPath -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($expected -notmatch '^[0-9a-f]{64}$' -or $actual -ne $expected) {
+            throw "SHA-256 mismatch for $repositoryUrl/Updates.xml: expected $expected, got $actual"
+        }
+
+        return [pscustomobject]@{
+            RepositoryUrl = $repositoryUrl
+            UpdatesXml    = Get-Content -Path $xmlPath -Raw
+        }
+    }
+
+    throw "Failed to fetch Qt Updates.xml from candidate repositories: $($RepositoryUrls -join ', ')"
+}
+
+function Get-QtArchive {
+    # Internal: downloads or reuses Qt archives and verifies each one before
+    # Install-QtSdk extracts anything. The manifest version uses reviewed
+    # SHA-256 pins; an explicit version override uses Qt's SHA-1 sidecars.
+    param(
+        [Parameter(Mandatory)] [object[]]$Archives,
+        [Parameter(Mandatory)] [string]$DownloadRoot,
+        [Parameter(Mandatory)] [string]$QtVersion,
+        [Parameter(Mandatory)] [ValidateSet('x64', 'ARM64')] [string]$Platform,
+        [Parameter(Mandatory)] [hashtable]$Manifest
+    )
+
+    New-Item -ItemType Directory -Force -Path $DownloadRoot | Out-Null
+    $usePins = $QtVersion -eq [string]$Manifest.Shared.QtVersion
+    $platformPins = $null
+    if ($usePins -and $Manifest.Shared.QtArchiveSha256) {
+        $platformPins = $Manifest.Shared.QtArchiveSha256[$Platform]
+    }
+    if (-not $usePins) {
+        Write-Warning "Qt $QtVersion $Platform archives are not pinned in simd-variants.psd1; verifying Qt repository SHA-1 sidecars."
+    }
+
+    foreach ($archiveSpec in $Archives) {
+        $archivePath = Join-Path $DownloadRoot $archiveSpec.Archive
+        $expected = $null
+        if ($usePins -and $platformPins) {
+            $expected = [string]$platformPins[$archiveSpec.Module]
+            if ($expected) { $expected = $expected.ToLowerInvariant() }
+        }
+
+        if ($usePins) {
+            if ($expected -and (Test-Path $archivePath)) {
+                $cachedHash = (Get-FileHash -Path $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+                if ($cachedHash -eq $expected) {
+                    Write-Host "  [cached] $($archiveSpec.Archive)"
+                    Write-Host "Observed SHA-256 for $($archiveSpec.Archive): $cachedHash"
+                    [pscustomobject]@{
+                        Module  = $archiveSpec.Module
+                        Archive = $archiveSpec.Archive
+                        Path    = $archivePath
+                    }
+                    continue
+                }
+                Remove-Item -Path $archivePath -Force
+            }
+            elseif (Test-Path $archivePath) {
+                # A missing pin must report the bytes currently served, rather
+                # than accepting a cache entry from an earlier invocation.
+                Remove-Item -Path $archivePath -Force
+            }
+
+            Write-Host "Downloading Qt archive $($archiveSpec.Archive)"
+            Invoke-DependencyFetch -Url $archiveSpec.Url -OutFile $archivePath
+            $actual = (Get-FileHash -Path $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+            Write-Host "Observed SHA-256 for $($archiveSpec.Archive): $actual"
+            if (-not $expected) {
+                throw "No SHA-256 pin for Qt $QtVersion $Platform $($archiveSpec.Module) in simd-variants.psd1 (observed $actual)"
+            }
+            if ($actual -ne $expected) {
+                Remove-Item -Path $archivePath -Force
+                throw "SHA-256 mismatch for $($archiveSpec.Archive): expected $expected, got $actual"
+            }
+        }
+        else {
+            $sha1Path = "$archivePath.sha1"
+            Invoke-DependencyFetch -Url "$($archiveSpec.Url).sha1" -OutFile $sha1Path
+            $sha1Text = (Get-Content -Path $sha1Path -Raw).Trim()
+            $sha1Parts = @($sha1Text -split '\s+')
+            $expected = if ($sha1Parts.Count -gt 0) { $sha1Parts[0].ToLowerInvariant() } else { '' }
+            if ($expected -notmatch '^[0-9a-f]{40}$') {
+                throw "Invalid SHA-1 sidecar for $($archiveSpec.Archive): $sha1Text"
+            }
+
+            $cached = $false
+            if (Test-Path $archivePath) {
+                $cachedHash = (Get-FileHash -Path $archivePath -Algorithm SHA1).Hash.ToLowerInvariant()
+                if ($cachedHash -eq $expected) {
+                    Write-Host "  [cached] $($archiveSpec.Archive)"
+                    $cached = $true
+                }
+                else {
+                    Remove-Item -Path $archivePath -Force
+                }
+            }
+            if (-not $cached) {
+                Write-Host "Downloading Qt archive $($archiveSpec.Archive)"
+                Invoke-DependencyFetch -Url $archiveSpec.Url -OutFile $archivePath
+                $actual = (Get-FileHash -Path $archivePath -Algorithm SHA1).Hash.ToLowerInvariant()
+                if ($actual -ne $expected) {
+                    Remove-Item -Path $archivePath -Force
+                    throw "SHA-1 mismatch for $($archiveSpec.Archive): expected $expected, got $actual"
+                }
+            }
+        }
+
+        [pscustomobject]@{
+            Module  = $archiveSpec.Module
+            Archive = $archiveSpec.Archive
+            Path    = $archivePath
+        }
+    }
+}
+
 function Install-QtSdk {
     <#
     .SYNOPSIS
-        Installs Qt via aqtinstall for the given platform and returns the Qt
-        root directory (the folder containing bin\qmake.exe).
+        Installs Qt from Qt's online repository for the given platform and
+        returns the Qt root directory (the folder containing bin\qmake.exe).
 
     .DESCRIPTION
-        Requires python on PATH. Writes aqt-settings.ini under $WorkspaceRoot
-        with concurrency 1 (parallel extraction raced intermittently on CI)
-        and installs the qtbase/qttools/qtsvg/qttranslations archives only.
-        Native tool output is routed to the host so the returned value is just
-        the Qt root path.
+        Reads and verifies Updates.xml, selects the qtbase/qtsvg/qttools/
+        qttranslations archives, verifies their manifest pins, and extracts
+        them directly. aqtinstall is not used because it cannot read the Qt
+        6.12 repository layout. Native tool output is routed to the host so the
+        returned value is just the Qt root path.
     #>
     [CmdletBinding()]
     param(
@@ -424,54 +647,67 @@ function Install-QtSdk {
         [string]$QtVersion
     )
 
+    $manifest = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot "..\simd-variants.psd1")
     # Audit #250 F059: the version default lives in simd-variants.psd1 so the
     # CI path (this module) and the local path (setup-build.ps1) cannot drift.
     if (-not $QtVersion) {
-        $manifest = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot "..\simd-variants.psd1")
         $QtVersion = $manifest.Shared.QtVersion
     }
 
-    $configPath = Join-Path $WorkspaceRoot "aqt-settings.ini"
-    Set-Content -Path $configPath -Encoding ASCII -Value @(
-        "[aqt]",
-        "concurrency: 1"
-    )
+    $repositorySpec = Get-QtRepositorySpec -QtVersion $QtVersion -Platform $Platform
+    $archiveRoot = Join-Path $WorkspaceRoot ("Qt\_archives\$QtVersion-$Platform")
+    $metadata = Get-QtRepositoryMetadata -RepositoryUrls $repositorySpec.RepositoryUrls `
+        -MetadataRoot (Join-Path $archiveRoot '_metadata')
+    $modules = @('qtbase', 'qtsvg', 'qttools', 'qttranslations')
+    $archiveSpecs = @(Select-QtArchive -UpdatesXml $metadata.UpdatesXml `
+            -PackageName $repositorySpec.PackageName -RepositoryUrl $metadata.RepositoryUrl `
+            -Modules $modules)
+    $archives = @(Get-QtArchive -Archives $archiveSpecs -DownloadRoot $archiveRoot `
+            -QtVersion $QtVersion -Platform $Platform -Manifest $manifest)
 
-    # Audit #250 F060: exact pins like every other tool in this pipeline -
-    # a floating minor can change extraction/install behaviour under CI.
-    python -m pip install --upgrade "setuptools==80.9.0" "py7zr==1.0.0" "aqtinstall==3.2.1" | Out-Host
-    if ($LASTEXITCODE -ne 0) {
-        throw "Failed to install aqtinstall"
+    $qtRoot = Join-Path $WorkspaceRoot ("Qt\$QtVersion\$($repositorySpec.ArchDir)")
+    New-Item -ItemType Directory -Force -Path $qtRoot | Out-Null
+    $sevenZip = Get-Command 7z -ErrorAction SilentlyContinue
+    if (-not $sevenZip) {
+        python -m pip install "py7zr==1.0.0" | Out-Host
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to install py7zr"
+        }
     }
 
-    $qtHost = if ($Platform -eq "ARM64") { "windows_arm64" } else { "windows" }
-    $qtArch = if ($Platform -eq "ARM64") { "win64_msvc2022_arm64" } else { "win64_msvc2022_64" }
-    $qtArchDir = if ($Platform -eq "ARM64") { "msvc2022_arm64" } else { "msvc2022_64" }
-    $qtOutput = Join-Path $WorkspaceRoot "Qt"
-
-    # CI runners ship 7z.exe and extraction is faster with it, but local dev
-    # machines often lack it; aqt's bundled py7zr handles extraction fine, so
-    # only request the external tool when it is actually on PATH.
-    $aqtArgs = @(
-        '-c', $configPath, 'install-qt', $qtHost, 'desktop', $QtVersion, $qtArch,
-        '--autodesktop',
-        '--outputdir', $qtOutput,
-        '--archives', 'qtbase', 'qttools', 'qtsvg', 'qttranslations'
-    )
-    if (Get-Command 7z -ErrorAction SilentlyContinue) {
-        $aqtArgs += @('--external', '7z')
-    }
-    python -m aqt @aqtArgs | Out-Host
-    if ($LASTEXITCODE -ne 0) {
-        throw "Qt installation failed"
+    foreach ($archive in $archives) {
+        Write-Host "Extracting $($archive.Archive) -> $qtRoot"
+        if ($sevenZip) {
+            & $sevenZip.Source x -y "-o$qtRoot" $archive.Path | Out-Host
+        }
+        else {
+            python -m py7zr x $archive.Path $qtRoot | Out-Host
+        }
+        if ($LASTEXITCODE -ne 0) {
+            throw "Qt archive extraction failed for $($archive.Archive)"
+        }
     }
 
-    $qtRoot = Join-Path $qtOutput (Join-Path $QtVersion $qtArchDir)
-    if (-not (Test-Path (Join-Path $qtRoot "bin\qmake.exe"))) {
+    $qtConfigPath = Join-Path $qtRoot 'bin\qt.conf'
+    Set-Content -Path $qtConfigPath -Encoding ASCII -Value @('[Paths]', 'Prefix=..')
+
+    $qmakePath = Join-Path $qtRoot "bin\qmake.exe"
+    if (-not (Test-Path $qmakePath)) {
         throw "qmake.exe not found under $qtRoot"
     }
     if (-not (Test-Path (Join-Path $qtRoot "include\QtCore\QCoreApplication"))) {
         throw "QtCore headers not found under $qtRoot"
+    }
+
+    $canRunQmake = $Platform -eq 'x64' -or ($Platform -eq 'ARM64' -and $env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
+    if ($canRunQmake) {
+        $reportedVersion = (& $qmakePath -query QT_VERSION | Out-String).Trim()
+        if ($LASTEXITCODE -ne 0) {
+            throw "qmake.exe version query failed under $qtRoot"
+        }
+        if ($reportedVersion -ne $QtVersion) {
+            throw "qmake.exe under $qtRoot reports Qt $reportedVersion, expected $QtVersion"
+        }
     }
 
     return $qtRoot

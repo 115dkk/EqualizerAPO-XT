@@ -468,7 +468,10 @@ QTabBar QToolButton#TabCloseButton {
 QTabBar QToolButton#TabCloseButton:hover {
     background: rgba(239, 68, 68, 0.25);
 }
-QTabBar QToolButton { background: @CARD@; border: 1px solid @BORDER@; border-radius: 6px; margin: 4px 2px; }
+QTabBar QToolButton { background: @CARD@; border: 1px solid @BORDER@; border-radius: 6px; margin: 4px 2px; padding: 0; }
+/* Two 28px scroll buttons: room for the chevrons the tab bar asks the
+   style for (Qt 6.12 SP_TabScroll*Button) inside the margin and border. */
+QTabBar::scroller { width: 56px; }
 
 QGroupBox {
     background: @CARD@;

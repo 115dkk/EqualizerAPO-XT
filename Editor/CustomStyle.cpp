@@ -18,6 +18,7 @@
 */
 #include "CustomStyle.h"
 #include "SkinManager.h"
+#include "helpers/GUIHelper.h"
 
 CustomStyle::CustomStyle(QStyle* style)
 	: QProxyStyle(style)
@@ -40,6 +41,25 @@ int CustomStyle::pixelMetric(QStyle::PixelMetric metric, const QStyleOption* opt
 
 QIcon CustomStyle::standardIcon(StandardPixmap standardIcon, const QStyleOption *option, const QWidget *widget) const
 {
+	// The tab bar's scroll buttons ask the style for their glyphs since Qt
+	// 6.12 and fall back to the plain arrow primitive without one. The skins'
+	// stroke chevrons in the token ink match the combo and spin arrows; the
+	// tab bar asks again on every relayout, which a skin switch triggers.
+	const char* chevron = nullptr;
+	switch (standardIcon)
+	{
+	case QStyle::SP_TabScrollLeftButton: chevron = "left"; break;
+	case QStyle::SP_TabScrollRightButton: chevron = "right"; break;
+	case QStyle::SP_TabScrollUpButton: chevron = "up"; break;
+	case QStyle::SP_TabScrollDownButton: chevron = "down"; break;
+	default: break;
+	}
+	if (chevron != nullptr)
+	{
+		return GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/chevron-%1.svg").arg(QLatin1String(chevron)),
+			QColor(SkinManager::instance()->tokens().text), 12);
+	}
+
 	// Keyed on the skin's dark flag (CustomStyle only runs in the modern
 	// presentation), not the OS scheme.
 	if(SkinManager::instance()->isDark())

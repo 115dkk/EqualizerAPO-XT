@@ -50,6 +50,7 @@ SOURCES += \
 HEADERS += \
 	../platform/qt/QtAppBootstrap.h \
 	../platform/qt/HoverProgress.h \
+	../platform/qt/MotionPreference.h \
 	../platform/qt/ScrollBarPolicy.h \
 	../Editor/skins/SkinThemeData.h \
 	../Editor/skins/rack/RackSkinDetail.h \
