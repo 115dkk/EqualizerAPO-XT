@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.60.1 — 2026-10-22
+
 - **Channel names in the minimal skin's Copy listing print heavier.** The
   channel tokens (also used by MultiConvolution, Send, the subwoofer routing
   dialog and the channel-scope tokens in card headers) tell channels apart by

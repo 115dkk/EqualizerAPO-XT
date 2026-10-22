@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.60.1 — 2026-10-22
+
 - **minimal 스킨의 Copy 목록에서 채널 이름이 굵어졌습니다.** 채널 토큰은
   글자 색만으로 채널을 구별하는데(MultiConvolution, Send, 서브우퍼 라우팅
   대화상자, 카드 헤더의 채널 범위 표시도 같습니다), Medium 굵기에서는 어두운
