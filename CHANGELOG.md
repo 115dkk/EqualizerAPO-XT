@@ -14,6 +14,26 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The title bar drags the window again after a skin switch.** With a VST
+  panel embedded in a card, Qt turned the window's title strip into a separate
+  native window that took clicks as content, so dragging the title bar did not
+  move the window and the side edges did not resize it. Switching skins rebuilt
+  the rows and embedded the panel again, which is why it appeared after a
+  switch. The frame now hands those clicks back to the window. A real-window
+  probe that reproduces the condition (`--frame-hittest-test`) runs in CI
+  ([#427](https://github.com/115dkk/EqualizerAPO-XT/pull/427)).
+- **Tab close buttons show their X again.** Every skin's style sheet removed
+  Qt's close glyph, so hovering a tab's close button showed only a red square.
+  Each tab now has a close button drawn in the skin's ink, with the skin's own
+  hover shape ([#427](https://github.com/115dkk/EqualizerAPO-XT/pull/427)).
+- **Built on Qt 6.12.0 LTS.** The Editor and the Device Selector move from
+  Qt 6.10.1, which is out of support, to Qt 6.12.0. Tab scroll buttons show
+  chevrons in the skin's ink instead of empty boxes, and with Windows'
+  "Animation effects" turned off, the Editor's and the Device Selector's
+  animations jump straight to their end state. aqtinstall cannot read the 6.12
+  repository layout, so local setup and CI now download Qt from Qt's own
+  repository and check every archive against a pinned SHA-256 ([#427](https://github.com/115dkk/EqualizerAPO-XT/pull/427)).
+
 ## v2.57.8 — 2026-10-20
 
 - **Legacy semicolon-separated expressions work again.** Configurations such as
