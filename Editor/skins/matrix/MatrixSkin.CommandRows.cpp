@@ -93,10 +93,11 @@ BadgeTreatment MatrixSkin::badgeTreatment(const CommandRowInfo& info, const QStr
 {
 	Q_UNUSED(typeColor);
 	Q_UNUSED(badgeToken);
+	// The pictogram prints on the header band; a cell around it was one
+	// more closed box inside the card.
 	const QString ink = info.enabled ? tokens.text : tokens.mutedText;
 	return {
-		QStringLiteral("color:%1; border-color:%2; background-color:transparent;")
-			.arg(ink, tokens.border),
+		QStringLiteral("color:%1; border-color:transparent; background-color:transparent;").arg(ink),
 		QColor(ink)
 	};
 }
@@ -122,26 +123,25 @@ void MatrixSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QW
 		}
 	}
 
-	// Bare/unmodelled lines (TXT, the If/EndIf/Eval vocabulary) live in
-	// cells. The shared raw card lays inline styles on its two labels,
-	// so the board answer must be inline too: the ">_" scan glyph
-	// becomes a sunken mono designation cell and the raw line a sunken
-	// mono line cell.
+	// Bare/unmodelled lines (TXT, the If/EndIf/Eval vocabulary) print on
+	// the board as a remark line: the ">_" scan glyph in muted mono ahead
+	// of the raw line in mono. The shared raw card lays inline styles on
+	// its two labels, so the board answer is inline too.
 	if (FilterCardModel::hostsSharedRawBody(info.type, info.dynamicLine) && body != nullptr)
 	{
 		if (QLabel* glyph = body->findChild<QLabel*>(QStringLiteral("FilterCardRawGlyph")))
 		{
 			glyph->setStyleSheet(QStringLiteral(
-				"QLabel#FilterCardRawGlyph { background:%1; color:%2; border:1px solid %3;"
-				" border-radius:0; padding:2px 7px; font-family:\"%4\"; font-weight:700; font-size:9pt; }")
-				.arg(tokens.surfaceSunken, tokens.mutedText, tokens.border, tokens.monoFontFamily));
+				"QLabel#FilterCardRawGlyph { background:transparent; color:%1; border:0;"
+				" padding:2px 0; font-family:\"%2\"; font-weight:700; font-size:9pt; }")
+				.arg(tokens.mutedText, tokens.monoFontFamily));
 		}
 		if (QLabel* raw = body->findChild<QLabel*>(QStringLiteral("FilterCardRawText")))
 		{
 			raw->setStyleSheet(QStringLiteral(
-				"QLabel#FilterCardRawText { background:%1; color:%2; border:1px solid %3;"
-				" border-radius:0; padding:4px 8px; font-family:\"%4\"; font-size:9pt; }")
-				.arg(tokens.surfaceSunken, tokens.text, tokens.border, tokens.monoFontFamily));
+				"QLabel#FilterCardRawText { background:transparent; color:%1; border:0;"
+				" padding:4px 0; font-family:\"%2\"; font-size:9pt; }")
+				.arg(tokens.text, tokens.monoFontFamily));
 		}
 	}
 
@@ -294,16 +294,46 @@ void MatrixSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Com
 				const QRect cellRect(cellRight - cellWidth,
 					headerBand.top() + (headerBand.height() - MatrixMetrics::knobCellHeight) / 2,
 					cellWidth, MatrixMetrics::knobCellHeight);
-				painter.setPen(QPen(info.valueError ? QColor(tokens.danger) : QColor(tokens.border), 1));
-				painter.setBrush(QColor(tokens.surfaceSunken));
-				painter.drawRect(cellRect.adjusted(0, 0, -1, -1));
-				painter.setBrush(Qt::NoBrush);
+				// A sunken fill is the cell; the card already draws the
+				// one closed box around it.
+				painter.fillRect(cellRect, QColor(tokens.surfaceSunken));
 				painter.setFont(mono);
 				painter.setPen(info.valueError ? QColor(tokens.danger) : QColor(tokens.text));
 				painter.drawText(cellRect, Qt::AlignCenter, elided);
 			}
 		}
 	}
+
+bool MatrixSkin::paintChannelBadge(QPainter& painter, const QRect& rect, const QString& channel,
+	bool virtualChannel, const SkinTokens& tokens) const
+{
+	// A channel scope is an address printed on the header band, in the
+	// coordinate ink: bold mono, muted, no cell. The shared chip boxed it
+	// inside the card's own box and dressed it in the routing palette, a
+	// colour the board reserves for state (rule 1). A virtual channel keeps
+	// the dash, as a rule under the name.
+	QPainterStateGuard guard(&painter);
+	painter.setRenderHint(QPainter::Antialiasing, false);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+	QFont font(tokens.monoFontFamily);
+	font.setPixelSize(12);
+	font.setBold(true);
+	font.setLetterSpacing(QFont::AbsoluteSpacing, 0.6);
+	painter.setFont(font);
+	const QColor ink(tokens.mutedText);
+	painter.setPen(ink);
+	painter.drawText(rect, Qt::AlignCenter, channel);
+	if (virtualChannel)
+	{
+		const QFontMetrics metrics(font);
+		const int width = metrics.horizontalAdvance(channel);
+		const int left = rect.center().x() - width / 2;
+		const int y = rect.center().y() + metrics.ascent() / 2 + 2;
+		painter.setPen(QPen(ink, 1, Qt::DashLine));
+		painter.drawLine(left, y, left + width - 1, y);
+	}
+	return true;
+}
 
 bool MatrixSkin::paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info, const SkinTokens& tokens) const
 {
