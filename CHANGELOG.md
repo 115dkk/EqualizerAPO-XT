@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.58.0 — 2026-10-22
+
 - **The title bar drags the window again after a skin switch.** With a VST
   panel embedded in a card, Qt turned the window's title strip into a separate
   native window that took clicks as content, so dragging the title bar did not
