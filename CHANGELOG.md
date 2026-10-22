@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.60.3 — 2026-10-22
+
 - **Rack's Copy grid latches in bronze like the other buttons.** In the dark
   Rack skin the header buttons (power, the picker's pointer) latch in a calm
   bronze, but a routed crosspoint in the Copy grid (also used by

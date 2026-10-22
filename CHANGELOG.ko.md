@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.60.3 — 2026-10-22
+
 - **Rack 스킨의 Copy 격자가 다른 버튼처럼 브론즈로 잠깁니다.** 다크 Rack에서는
   전원 버튼과 픽커 포인터 같은 헤더 버튼이 차분한 브론즈로 잠기는데, Copy
   격자(MultiConvolution, Send, 서브우퍼 라우팅 대화상자도 같은 격자를 씁니다)의
