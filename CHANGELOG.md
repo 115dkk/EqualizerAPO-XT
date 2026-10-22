@@ -14,6 +14,15 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Bold monospace text is bold again in every skin.** The monospace face
+  (DM Mono) only comes in Light, Regular and Medium, and Qt does not fake a
+  bold for it, so every bold number, readout, card coordinate and caption in
+  monospace printed at the same Medium weight as the text around it. The
+  Editor now bundles SemiBold and Bold faces derived from DM Mono's own design
+  masters, so those places print at the weight each skin asked for. The
+  minimal skin's channel names use the new SemiBold instead of the
+  half-pixel double strike from 2.60.1 ([#434](https://github.com/115dkk/EqualizerAPO-XT/pull/434)).
+
 ## v2.60.3 — 2026-10-22
 
 - **Rack's Copy grid latches in bronze like the other buttons.** In the dark

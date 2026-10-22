@@ -25,6 +25,8 @@
         <file alias="fonts/DMSans-Bold.ttf">../Editor/fonts/DMSans-Bold.ttf</file>
         <file alias="fonts/DMMono-Regular.ttf">../Editor/fonts/DMMono-Regular.ttf</file>
         <file alias="fonts/DMMono-Medium.ttf">../Editor/fonts/DMMono-Medium.ttf</file>
+        <file alias="fonts/DMMono-SemiBold.ttf">../Editor/fonts/DMMono-SemiBold.ttf</file>
+        <file alias="fonts/DMMono-Bold.ttf">../Editor/fonts/DMMono-Bold.ttf</file>
         <file alias="fonts/Pretendard-Regular.otf">../Editor/fonts/Pretendard-Regular.otf</file>
         <file alias="fonts/Pretendard-Medium.otf">../Editor/fonts/Pretendard-Medium.otf</file>
         <file alias="fonts/Pretendard-SemiBold.otf">../Editor/fonts/Pretendard-SemiBold.otf</file>

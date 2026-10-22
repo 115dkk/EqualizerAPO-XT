@@ -24,20 +24,16 @@
 	palette's hex values: keyed by hex, any palette edit silently dropped
 	the edited channel to the computed fallback below.
 
-	The tokens print overstruck. Ink alone tells them apart, so the strokes
-	must be heavy enough to carry a hue, and DM Mono stops at Medium (the
-	weight the sheet gives every widget). A terminal makes the bold its font
-	lacks by striking the glyph again one pixel to the right; half a pixel
-	is the step DM Sans takes from Medium to SemiBold. Measured at 13px the
-	overstrike adds 20% ink against DM Sans' 17%, where a whole pixel adds
-	49% and overshoots Bold (30%).
+	The tokens print in EAPO Mono SemiBold. Ink alone tells them apart, so
+	the strokes must be heavy enough to carry a hue, and the Medium every
+	widget gets from the sheet was too thin for the darker inks
+	(Editor/fonts/make-mono-weights.py builds the SemiBold DM Mono lacks).
 */
 
 #pragma once
 
 #include <QColor>
 #include <QHash>
-#include <QPainter>
 #include <QString>
 
 #include "Editor/widgets/routing/ChannelIdentity.h"
@@ -73,12 +69,4 @@ inline QColor minimalChannelInk(const QString& channel, bool dark)
 	return dark
 		? QColor::fromHslF(h, qMin(s, 0.42f), 0.64f)
 		: QColor::fromHslF(h, qMin(s, 0.52f), 0.38f);
-}
-
-// Prints a channel token centred in rect with the painter's font and pen,
-// overstruck half a pixel to the right (see above).
-inline void drawMinimalChannelText(QPainter& painter, const QRect& rect, const QString& channel)
-{
-	painter.drawText(rect, Qt::AlignCenter, channel);
-	painter.drawText(QRectF(rect).translated(0.5, 0.0), Qt::AlignCenter, channel);
 }

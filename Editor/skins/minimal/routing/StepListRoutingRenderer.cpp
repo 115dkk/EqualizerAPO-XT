@@ -30,13 +30,11 @@ static QFont monoFont(const SkinTokens& tokens)
 	return f;
 }
 
-// Channel tokens take DM Mono Medium, the heaviest cut the bundled face has,
-// by name rather than through the sheet's widget weight, and are overstruck
-// on top of it (MinimalChannelInk.h).
+// Channel tokens print one step above the sheet's Medium (MinimalChannelInk.h).
 static QFont channelFont(const SkinTokens& tokens)
 {
 	QFont f = monoFont(tokens);
-	f.setWeight(QFont::Medium);
+	f.setWeight(QFont::DemiBold);
 	return f;
 }
 
@@ -120,7 +118,7 @@ void StepListView::paintEvent(QPaintEvent*)
 		}
 		p.setFont(tokenFont);
 		p.setPen(ink);
-		drawMinimalChannelText(p, pill, ch);
+		p.drawText(pill, Qt::AlignCenter, ch);
 		p.setFont(mono);
 		return w;
 	};

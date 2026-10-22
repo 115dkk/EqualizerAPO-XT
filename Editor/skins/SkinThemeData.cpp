@@ -341,6 +341,8 @@ void registerBundledFonts(bool includeSarasa)
 			QStringLiteral(":/fonts/DMSans-Bold.ttf"),
 			QStringLiteral(":/fonts/DMMono-Regular.ttf"),
 			QStringLiteral(":/fonts/DMMono-Medium.ttf"),
+			QStringLiteral(":/fonts/DMMono-SemiBold.ttf"),
+			QStringLiteral(":/fonts/DMMono-Bold.ttf"),
 			QStringLiteral(":/fonts/Pretendard-Regular.otf"),
 			QStringLiteral(":/fonts/Pretendard-Medium.otf"),
 			QStringLiteral(":/fonts/Pretendard-SemiBold.otf"),

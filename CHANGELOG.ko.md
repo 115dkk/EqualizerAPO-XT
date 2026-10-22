@@ -8,6 +8,13 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **모든 스킨에서 굵게 지정한 모노 글자가 다시 굵게 나옵니다.** 모노 글꼴(DM
+  Mono)은 Light, Regular, Medium까지만 있고 Qt는 이 글꼴에 가짜 볼드를 만들지
+  않아서, 굵게 지정한 숫자, 판독값, 카드 좌표, 캡션이 모두 주변 글자와 같은
+  Medium으로 찍혔습니다. 이제 Editor에 DM Mono의 디자인 마스터에서 이끌어 낸
+  SemiBold와 Bold를 넣어, 각 스킨이 요청한 굵기로 찍습니다. minimal 스킨의 채널
+  이름도 2.60.1의 반 픽셀 겹쳐 찍기 대신 새 SemiBold를 씁니다([#434](https://github.com/115dkk/EqualizerAPO-XT/pull/434)).
+
 ## v2.60.3 — 2026-10-22
 
 - **Rack 스킨의 Copy 격자가 다른 버튼처럼 브론즈로 잠깁니다.** 다크 Rack에서는
