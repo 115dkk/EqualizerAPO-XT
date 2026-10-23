@@ -14,6 +14,15 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Panel edits of DPF-based VST3 plugins are saved again.** Turning a knob in
+  the panel of a VST3 plugin built with DPF (3 Band EQ, MVerb and the other
+  DPF-Plugins, for example) and pressing OK and Save kept the plugin's
+  previous state in `ChunkData`, so the audio service played the old
+  settings. While no audio runs, the Editor passes a panel edit to the plugin
+  through a process call that DPF ignores. It now passes the edit with one
+  silent frame, which every plugin reads. Saved configurations keep their
+  format ([#437](https://github.com/115dkk/EqualizerAPO-XT/pull/437)).
+
 ## v2.60.3 — 2026-10-22
 
 - **Rack's Copy grid latches in bronze like the other buttons.** In the dark

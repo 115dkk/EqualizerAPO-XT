@@ -72,6 +72,42 @@ struct Vst3SampleTraits<double>
 	static constexpr int32 symbolicSampleSize = kSample64;
 	static void attach(AudioBusBuffers& buffers, double** channels) { buffers.channelBuffers64 = channels; }
 };
+
+// The audio of an idle parameter flush: one silent frame on the main buses,
+// laid out like a process call's. The output frame is scratch.
+template<typename SampleType>
+class SilentFrame
+{
+public:
+	SilentFrame(int32 inputChannels, int32 outputChannels)
+		: samples((size_t)(inputChannels + outputChannels), SampleType()), channels(samples.size())
+	{
+		for (size_t channel = 0; channel < samples.size(); ++channel)
+			channels[channel] = &samples[channel];
+		input.numChannels = inputChannels;
+		output.numChannels = outputChannels;
+		Vst3SampleTraits<SampleType>::attach(input, channels.data());
+		Vst3SampleTraits<SampleType>::attach(output, channels.data() + inputChannels);
+	}
+	SilentFrame(const SilentFrame&) = delete;
+	SilentFrame& operator=(const SilentFrame&) = delete;
+
+	void attach(ProcessData& data, bool hasInputBus, bool hasOutputBus)
+	{
+		data.symbolicSampleSize = Vst3SampleTraits<SampleType>::symbolicSampleSize;
+		data.numSamples = 1;
+		data.numInputs = hasInputBus ? 1 : 0;
+		data.numOutputs = hasOutputBus ? 1 : 0;
+		data.inputs = hasInputBus ? &input : NULL;
+		data.outputs = hasOutputBus ? &output : NULL;
+	}
+
+private:
+	vector<SampleType> samples;
+	vector<SampleType*> channels;
+	AudioBusBuffers input;
+	AudioBusBuffers output;
+};
 }
 
 // The parameter-change list handed to IAudioProcessor::process. Fixed-size
@@ -257,24 +293,37 @@ IParameterChanges* VST3Instance::prepareVST3ParameterChanges()
 
 void VST3Instance::flushVST3ParameterChanges()
 {
-	// An idle processor consumes queued edits through one zero-sample process
-	// call. A running processor drains them with its next audio block.
-	ProcessData data;
-	data.processMode = kRealtime;
-	data.symbolicSampleSize = vst3SupportsDouble ? kSample64 : kSample32;
-	data.numSamples = 0;
-	data.numInputs = 0;
-	data.numOutputs = 0;
-	data.inputs = NULL;
-	data.outputs = NULL;
-	data.inputEvents = &emptyVST3EventList;
-	vst3Lifecycle.flushParameters(data,
-		[this]() {
-			return vst3ParameterEditRead.load(memory_order_acquire)
-				!= vst3ParameterEditWrite.load(memory_order_acquire);
-		},
-		[this]() { return prepareVST3ParameterChanges(); },
-		data.symbolicSampleSize);
+	// An idle processor consumes queued edits through one process call over a
+	// single silent frame. VST3 also defines a zero-sample call for this, but
+	// some plug-ins (every DPF-based one) return from it before reading the
+	// parameter changes; their component state, and so the saved ChunkData,
+	// then kept the value from before the edit. A running processor drains
+	// the edits with its next audio block.
+	const auto hasPendingChanges = [this]() {
+		return vst3ParameterEditRead.load(memory_order_acquire)
+			!= vst3ParameterEditWrite.load(memory_order_acquire);
+	};
+	if (!hasPendingChanges())
+		return;
+	const auto flush = [&](auto& frame) {
+		ProcessData data;
+		data.processMode = kRealtime;
+		frame.attach(data, vst3InputBusCount > 0, vst3OutputBusCount > 0);
+		data.inputEvents = &emptyVST3EventList;
+		vst3Lifecycle.flushParameters(data, hasPendingChanges,
+			[this]() { return prepareVST3ParameterChanges(); },
+			data.symbolicSampleSize);
+	};
+	if (vst3SupportsDouble)
+	{
+		SilentFrame<double> frame(vst3InputChannelCount, vst3OutputChannelCount);
+		flush(frame);
+	}
+	else
+	{
+		SilentFrame<float> frame(vst3InputChannelCount, vst3OutputChannelCount);
+		flush(frame);
+	}
 }
 
 void VST3Instance::beginVST3EditorSession()
