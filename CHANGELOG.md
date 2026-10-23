@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.60.6 — 2026-10-23
+
 - **A configuration saved as "UTF-8 with BOM" no longer loses its first
   command.** Notepad's "UTF-8 with BOM" starts the file with a byte order mark.
   EQ APO XT read the mark as part of the first line, so the first command (a
