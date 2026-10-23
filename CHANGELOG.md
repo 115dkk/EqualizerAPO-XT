@@ -14,6 +14,21 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **VST2 plug-in panels fit high-DPI monitors.** On a monitor scaled above 100%
+  (150%, for example), the frame around a VST2 panel was larger than the
+  plug-in's window by the scale factor, leaving an empty strip on the right and
+  at the bottom, and VST2 plug-ins that can scale themselves (DPF-based ones,
+  for example) were drawn at 100% because they were never told the scale. Such
+  plug-ins now receive the monitor's scale before they lay out, and every VST2
+  panel's frame matches the plug-in's window. Moving the Editor or a panel
+  dialog to a monitor with another scale now re-scales VST2 and VST3 panels
+  ([#441](https://github.com/115dkk/EqualizerAPO-XT/pull/441)).
+- **A VST2 plug-in that reports changed inputs, outputs or latency is no longer
+  answered as if it asked for idle time.** The vendored VST2 interface header
+  gave the idle request the value of the I/O-changed notification, so the host
+  answered that notification by calling back into the plug-in mid-callback
+  ([#441](https://github.com/115dkk/EqualizerAPO-XT/pull/441)).
+
 ## v2.60.6 — 2026-10-23
 
 - **A configuration saved as "UTF-8 with BOM" no longer loses its first
