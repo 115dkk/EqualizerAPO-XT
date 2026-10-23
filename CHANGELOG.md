@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.60.4 — 2026-10-23
+
 - **Panel edits of DPF-based VST3 plugins are saved again.** Turning a knob in
   the panel of a VST3 plugin built with DPF (3 Band EQ, MVerb and the other
   DPF-Plugins, for example) and pressing OK and Save kept the plugin's
