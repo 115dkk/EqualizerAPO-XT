@@ -45,6 +45,14 @@ TEST_CASE(EditorLogicTests, testConfigFileCodec)
 	QList<QString> roundTrip = ConfigFileCodec::decodeLines(std::string(encoded.constData(), (size_t)encoded.size()));
 	requireEqual((int)roundTrip.size(), 2, "encodeLines output decodes back to the same line count");
 	expectEqual(roundTrip[1], QString::fromUtf8("caf\xC3\xA9"), "decode(encode(lines)) round-trips non-ASCII text");
+
+	// A file saved as "UTF-8 with BOM" opens with its first command intact and
+	// is saved back without the mark, the form the audio engine reads.
+	QList<QString> marked = ConfigFileCodec::decodeLines(std::string("\xEF\xBB\xBFPreamp: -6 dB\r\nnext"));
+	requireEqual((int)marked.size(), 2, "decodeLines splits a file that starts with a byte order mark");
+	expectEqual(marked[0], "Preamp: -6 dB", "decodeLines drops the byte order mark that starts the file");
+	expectEqual(QString::fromUtf8(ConfigFileCodec::encodeLines(marked)), QString("Preamp: -6 dB\r\nnext"),
+		"encodeLines writes the file back without a byte order mark");
 }
 
 TEST_CASE(EditorLogicTests, testConfigFileCodecRetriesAtomicReplaceAfterReaderCloses)

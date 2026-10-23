@@ -43,6 +43,15 @@ TEST_CASE(EngineOrchestrationTests, runConfigurationFileReaderTests)
 	harness.expect(unicode[0] == L"# caf\u00e9",
 		"decodeLines decodes valid UTF-8");
 
+	const std::vector<std::wstring> marked = ConfigurationFileReader::decodeLines(
+		std::string("\xEF\xBB\xBFPreamp: -6 dB\r\nInclude: a.txt"));
+	harness.requireEqual(static_cast<int>(marked.size()), 2,
+		"decodeLines splits a file that starts with a byte order mark");
+	harness.expect(marked[0] == L"Preamp: -6 dB",
+		"decodeLines drops the byte order mark that starts the file");
+	harness.expect(marked[1] == L"Include: a.txt",
+		"decodeLines leaves the following lines as they are");
+
 	harness.require(GetFileAttributesW(testDirectory().c_str()) != INVALID_FILE_ATTRIBUTES,
 		"open-failure test has its temporary directory");
 	const std::wstring missingPath = testDirectory() + L"\\MissingConfig.txt";
