@@ -208,6 +208,9 @@ namespace PanelInputGate
                 return null;
             }
             catch (ElementNotAvailableException) { return null; }
+            // A window that is being destroyed (the Editor closing) answers
+            // UI Automation with E_UNEXPECTED; it has no button to find.
+            catch (COMException) { return null; }
         }
 
         public static Rect ScreenRect()
