@@ -351,10 +351,11 @@ namespace PanelInputGate
     // PowerShell pipeline objects. All formats are explicitly little endian.
     public static class Audio
     {
-        public static void WriteSignal(string path, int rate, int channels, int seconds)
+        public static void WriteSignal(string path, int rate, int channels, int frames)
         {
             if (channels != 2) throw new ArgumentException("The seeded signal has two channels");
-            int frames = checked(rate * seconds), size = checked(frames * channels * 4);
+            int size = checked(frames * channels * 4);
+            double seconds = (double)frames / rate;
             uint[] seeds = new uint[] { 0x12345678, 0x9abcdef0 };
             using (BinaryWriter writer = new BinaryWriter(File.Create(path)))
             {
@@ -409,8 +410,10 @@ namespace PanelInputGate
                     }
                     else if (id == "data")
                     {
-                        if (data != null || size != checked(frames * channels * 2))
-                            throw new InvalidDataException("Duplicate data or incorrect WAV frame count");
+                        if (data != null)
+                            throw new InvalidDataException("Duplicate WAV data chunk");
+                        if (size != checked(frames * channels * 2))
+                            throw new InvalidDataException("WAV data holds " + size / (channels * 2) + " frames; expected " + frames);
                         data = reader.ReadBytes((int)size);
                     }
                     reader.BaseStream.Position = padded;

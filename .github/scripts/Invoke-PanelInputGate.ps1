@@ -89,7 +89,9 @@ if ($Cases -and $Cases.Count -gt 0) {
 }
 $plan = [pscustomobject]@{
     Cases = @($selected)
-    Signal = [pscustomobject]@{ SampleRate = 48000; Channels = 2; Seconds = 3; Format = 'float32'; SweepStartHz = 20; SweepEndHz = 20000; SweepDbfs = -18; NoiseDbfs = -30; Seeds = @('12345678', '9abcdef0') }
+    # Benchmark writes whole --batchsize blocks, so the input is a whole number
+    # of them (288 x 512 frames, about 3 s); its output then has the input's length.
+    Signal = [pscustomobject]@{ SampleRate = 48000; Channels = 2; Frames = 288 * 512; Format = 'float32'; SweepStartHz = 20; SweepEndHz = 20000; SweepDbfs = -18; NoiseDbfs = -30; Seeds = @('12345678', '9abcdef0') }
     BenchmarkArguments = @('--config-path', '{configDirectory}', '-i', '{inputWav}', '-o', '{outputWav}', '--batchsize', '512', '--nopause')
     MinEditorPixelsChanged = 100
     MinSoundChangeLsb = 33
@@ -334,8 +336,8 @@ function Invoke-Render([string] $name, [string] $line) {
         Require-Check "$name-benchmark-timeout" 'exit within 120 s' $finished $finished
         $process.WaitForExit()
         Require-Check "$name-benchmark-exit" 0 $process.ExitCode ($process.ExitCode -eq 0)
-        $data = [PanelInputGate.Audio]::ReadPcm16($output, $plan.Signal.SampleRate, $plan.Signal.Channels, ($plan.Signal.SampleRate * $plan.Signal.Seconds))
-        Add-Check "$name-wav" '48000 Hz stereo PCM16, 144000 frames' "$($data.Length) data bytes" $true
+        $data = [PanelInputGate.Audio]::ReadPcm16($output, $plan.Signal.SampleRate, $plan.Signal.Channels, $plan.Signal.Frames)
+        Add-Check "$name-wav" "48000 Hz stereo PCM16, $($plan.Signal.Frames) frames" "$($data.Length) data bytes" $true
         return ,$data
     } finally {
         if ($null -ne $process) {
@@ -350,7 +352,7 @@ function Capture-Failure([string] $name) {
 }
 
 $inputWav = Join-Path $WorkDirectory 'input.wav'
-[PanelInputGate.Audio]::WriteSignal($inputWav, $plan.Signal.SampleRate, $plan.Signal.Channels, $plan.Signal.Seconds)
+[PanelInputGate.Audio]::WriteSignal($inputWav, $plan.Signal.SampleRate, $plan.Signal.Channels, $plan.Signal.Frames)
 Save-Summary
 foreach ($case in $plan.Cases) {
     $caseName = $case.Name

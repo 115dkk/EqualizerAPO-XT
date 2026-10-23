@@ -76,7 +76,9 @@ Describe 'Panel input gate plan' {
     It 'pins the deterministic three-second float input and the thresholds' {
         $plan.Signal.SampleRate | Should -Be 48000
         $plan.Signal.Channels | Should -Be 2
-        $plan.Signal.Seconds | Should -Be 3
+        # A whole number of Benchmark's 512-frame batches, about 3 s.
+        $plan.Signal.Frames | Should -Be 147456
+        ($plan.Signal.Frames % 512) | Should -Be 0
         $plan.Signal.Format | Should -Be 'float32'
         $plan.Signal.SweepStartHz | Should -Be 20
         $plan.Signal.SweepEndHz | Should -Be 20000
