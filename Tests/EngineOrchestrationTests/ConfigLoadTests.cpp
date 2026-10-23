@@ -275,6 +275,19 @@ TEST_CASE(EngineOrchestrationTests, testParseErrorsAreReportedPerLineAndProseIsN
 		"a configuration with eight unusable lines still loads, because the working lines below them have to run");
 }
 
+// Notepad's "UTF-8 with BOM" puts EF BB BF before the first command. The
+// command must run, not fall through as an unclaimed line.
+TEST_CASE(EngineOrchestrationTests, testByteOrderMarkDoesNotHideTheFirstCommand)
+{
+	const std::wstring configPath = writeConfig(harness, L"byte-order-mark.txt",
+		"\xEF\xBB\xBFPreamp: -6.0206 dB\r\n");
+
+	FilterEngine engine;
+	initializeEngine(engine, 48000, 2, 480, configPath);
+	const std::vector<float> out = processDcBlock(engine, 1.0f, 1.0f, 480);
+	harness.expectNear(out[0], 0.5f, 1e-3f, "the first command after a byte order mark applies");
+}
+
 TEST_CASE(EngineOrchestrationTests, testFactoryInitializationHookKeepsParseReporting)
 {
 	const std::wstring configPath = writeConfig(harness, L"hooked-malformed.txt",

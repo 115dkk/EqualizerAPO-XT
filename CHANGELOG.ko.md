@@ -8,6 +8,12 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **'BOM 있는 UTF-8'로 저장한 설정의 첫 명령이 더는 빠지지 않습니다.** 메모장의
+  'BOM 있는 UTF-8'은 파일 맨 앞에 바이트 순서 표시(BOM)를 넣습니다. EQ APO XT는 이
+  표시를 첫 줄의 일부로 읽어, 첫 명령(예를 들어 `Preamp:` 줄)을 오류 없이
+  건너뛰었습니다. 이제 오디오 엔진과 Editor가 이 표시를 무시하고, Editor는 그런
+  파일을 BOM 없이 다시 저장합니다([#440](https://github.com/115dkk/EqualizerAPO-XT/pull/440)).
+
 ## v2.60.5 — 2026-10-23
 
 - **VST2 매개변수 값이 정확히 저장됩니다.** Editor는 VST2 매개변수 값을
