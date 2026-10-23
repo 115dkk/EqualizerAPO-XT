@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.60.5 — 2026-10-23
+
 - **VST2 매개변수 값이 정확히 저장됩니다.** Editor는 VST2 매개변수 값을
   유효숫자 6자리로 적었습니다. 그래서 MVerb의 기본 Size 같은 값은 `config.txt`에서
   75가 아니라 74.99999로 돌아와, 저장한 설정의 소리가 패널과 조금 달랐습니다.

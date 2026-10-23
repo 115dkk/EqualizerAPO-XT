@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.60.5 — 2026-10-23
+
 - **VST2 parameter values are saved exactly.** The Editor wrote each VST2
   parameter value with six significant digits, so a value such as MVerb's
   default Size came back from `config.txt` as 74.99999 instead of 75 and the
