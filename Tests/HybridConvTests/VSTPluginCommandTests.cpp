@@ -100,6 +100,25 @@ TEST_CASE(VSTPluginCommandTests, testNamedParams)
 		0.5f, "named-params: reserved-looking Output value");
 }
 
+TEST_CASE(VSTPluginCommandTests, testParamValuesReadBackExactly)
+{
+	// A saved value must read back as the same float. Six significant digits
+	// turned MVerb's default Size, normalized (75 - 5) / 95, into 74.99999
+	// after a save and a reload; DPF-Plugins' 3 Band EQ's Mid-High Freq,
+	// (2000 - 1000) / 19000, moved the same way.
+	const float size = (75.0f - 5.0f) / 95.0f;
+	const float crossover = (2000.0f - 1000.0f) / 19000.0f;
+	VSTPluginCommand cmd = VSTPluginCommand::parse(L"", L"Library C:\\plugins\\reverb.dll Gain 0.5");
+	cmd.paramMap[L"Size"] = size;
+	cmd.paramMap[L"Mid-High Freq"] = crossover;
+	const wstring body = cmd.serialize();
+	VSTPluginCommand reparsed = VSTPluginCommand::parse(L"", L"Library C:\\plugins\\reverb.dll" + body);
+	harness.expectEqual(paramValue(reparsed.paramMap, L"Size", "exact Size"), size, "a saved value reads back as the same float");
+	harness.expectEqual(paramValue(reparsed.paramMap, L"Mid-High Freq", "exact crossover"), crossover,
+		"a small saved value reads back as the same float");
+	harness.expectTrue(body.find(L" Gain 0.5") != wstring::npos, "a short value keeps its short spelling");
+}
+
 TEST_CASE(VSTPluginCommandTests, testQuotedName)
 {
 	// A parameter name containing a space is quoted; splitQuoted reassembles it as
