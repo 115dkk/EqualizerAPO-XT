@@ -14,6 +14,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **VST2 parameter values are saved exactly.** The Editor wrote each VST2
+  parameter value with six significant digits, so a value such as MVerb's
+  default Size came back from `config.txt` as 74.99999 instead of 75 and the
+  saved configuration sounded slightly different from the panel. Values are
+  now written as the shortest decimal that reads back as the same number.
+  Short values such as 0.5 keep their spelling, and the format is unchanged
+  ([#439](https://github.com/115dkk/EqualizerAPO-XT/pull/439)).
+
 ## v2.60.4 — 2026-10-23
 
 - **Panel edits of DPF-based VST3 plugins are saved again.** Turning a knob in
