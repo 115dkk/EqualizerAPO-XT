@@ -445,7 +445,11 @@ foreach ($case in $plan.Cases) {
         $reopen = Save-Capture $panel.Rect 'P_reopen'
         $toAfter = [PanelInputGate.Desktop]::ChangedPixels($reopen, $after)
         $toBefore = [PanelInputGate.Desktop]::ChangedPixels($reopen, $before)
-        Add-Check 'panel-restore' 'distance to after < distance to before / 4' "after=$toAfter before=$toBefore" ($toAfter -lt ($toBefore / 4.0))
+        # Closer to the edited picture than to the original one. Not pixel
+        # equality: MVerb prints each knob's value as text, and the value it
+        # reads back from the host can round to another digit than the one
+        # it showed while dragging. A panel that lost the edit matches P_before.
+        Add-Check 'panel-restore' 'closer to P_after than to P_before' "after=$toAfter before=$toBefore" ($toAfter -lt $toBefore)
         Close-Panel $panel 'Cancel'
 
         [PanelInputGate.Desktop]::Close($main.Handle)
