@@ -58,12 +58,15 @@ bool busInfoMismatchMode = false;
 bool toneGeneratorMode = false;
 bool latency512Mode = false;
 bool retainHandlerMode = false;
+// IgnoreParameterFlush.vst3 mode: like every DPF-based plug-in, a zero-sample
+// process call returns before the parameter changes are read.
+bool ignoreParameterFlushMode = false;
 std::atomic<int> upmixerComponentCount{0};
 std::atomic<int> upmixerProcessCount{0};
 std::atomic<unsigned long long> surround41AcceptedOutputArrangement{
 	static_cast<unsigned long long>(SpeakerArr::kStereo)
 };
-std::atomic<bool> zeroSampleFlushInProgress{false};
+std::atomic<bool> idleFlushInProgress{false};
 // Every parameter change the processor received, over all process calls.
 std::atomic<int> receivedParameterChangeCount{0};
 // RetainHandler.vst3 mode: the component handler kept past the host's
@@ -472,7 +475,7 @@ public:
 	tresult PLUGIN_API setupProcessing(ProcessSetup& newSetup) override { setup = newSetup; return kResultOk; }
 	tresult PLUGIN_API setProcessing(TBool state) override
 	{
-		if (state != 0 && zeroSampleFlushInProgress.load())
+		if (state != 0 && idleFlushInProgress.load())
 		{
 			HANDLE violation = OpenEventW(EVENT_MODIFY_STATE, FALSE, testvst3::concurrentProcessingEvent);
 			if (violation != nullptr)
@@ -488,6 +491,8 @@ public:
 	{
 		if (!processing.load() || data.symbolicSampleSize != setup.symbolicSampleSize)
 			return kResultFalse;
+		if (ignoreParameterFlushMode && data.numSamples == 0)
+			return kResultOk;
 		if (data.inputParameterChanges != nullptr)
 		{
 			for (int32 parameterIndex = 0; parameterIndex < data.inputParameterChanges->getParameterCount(); ++parameterIndex)
@@ -503,23 +508,26 @@ public:
 					state.gain = value;
 			}
 		}
-		if (data.numSamples == 0 && data.numInputs == 0 && data.numOutputs == 0)
+		// The host's idle parameter flush is the one process call without a
+		// process context; the serialization test holds it here.
+		if (data.processContext == nullptr)
 		{
 			HANDLE entered = OpenEventW(EVENT_MODIFY_STATE, FALSE, testvst3::flushEnteredEvent);
 			HANDLE proceed = OpenEventW(SYNCHRONIZE, FALSE, testvst3::flushContinueEvent);
 			if (entered != nullptr && proceed != nullptr)
 			{
-				zeroSampleFlushInProgress.store(true);
+				idleFlushInProgress.store(true);
 				SetEvent(entered);
 				WaitForSingleObject(proceed, 5000);
-				zeroSampleFlushInProgress.store(false);
+				idleFlushInProgress.store(false);
 			}
 			if (entered != nullptr)
 				CloseHandle(entered);
 			if (proceed != nullptr)
 				CloseHandle(proceed);
-			return kResultOk;
 		}
+		if (data.numSamples == 0 && data.numInputs == 0 && data.numOutputs == 0)
+			return kResultOk;
 		if (data.numInputs != 1 || data.numOutputs != 1 || data.inputs == nullptr || data.outputs == nullptr)
 			return kResultFalse;
 		if (toneGeneratorMode)
@@ -1243,6 +1251,7 @@ extern "C" __declspec(dllexport) bool InitDll()
 	toneGeneratorMode = wcsstr(modulePath, L"ToneGenerator.vst3") != nullptr;
 	latency512Mode = wcsstr(modulePath, L"LatencyUpmixer.vst3") != nullptr;
 	retainHandlerMode = wcsstr(modulePath, L"RetainHandler.vst3") != nullptr;
+	ignoreParameterFlushMode = wcsstr(modulePath, L"IgnoreParameterFlush.vst3") != nullptr;
 	upmixerProcessCount.store(0);
 	surround41AcceptedOutputArrangement.store(
 		static_cast<unsigned long long>(SpeakerArr::kStereo));
@@ -1271,6 +1280,7 @@ extern "C" __declspec(dllexport) bool ExitDll()
 	toneGeneratorMode = false;
 	latency512Mode = false;
 	retainHandlerMode = false;
+	ignoreParameterFlushMode = false;
 	return true;
 }
 
