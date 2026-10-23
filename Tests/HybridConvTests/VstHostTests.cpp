@@ -381,6 +381,76 @@ void testVst2CallbacksAndEditorDefaults(const shared_ptr<VSTPluginLibrary>& libr
 	harness.expectEqual(callbacks, 0, "VST2 teardown cannot invoke caller closures");
 }
 
+void testVst2EditorScaling(const shared_ptr<VSTPluginLibrary>& library)
+{
+	SetEnvironmentVariableW(L"EAPO_TEST_VST_EDITOR", L"scaled");
+	auto scaled = VSTPluginInstance::create(library, 2);
+	const bool scaledInitialized = scaled->initialize();
+	SetEnvironmentVariableW(L"EAPO_TEST_VST_EDITOR", nullptr);
+	harness.require(scaledInitialized, "scaled VST2 editor fixture initializes");
+	short width = 0;
+	short height = 0;
+	harness.expectTrue(scaled->startEditing(nullptr, &width, &height, 1.5),
+		"scaled VST2 editor opens at 150 percent");
+	harness.expectTrue(width == 320 && height == 200,
+		"scaled VST2 editor reports logical dimensions after its pre-layout scale request");
+	int resizedWidth = 0;
+	int resizedHeight = 0;
+	scaled->setSizeWindowFunc([&resizedWidth, &resizedHeight](int w, int h) {
+		resizedWidth = w;
+		resizedHeight = h;
+	});
+	harness.expectTrue(scaled->setEditorScale(2.0), "open scaled VST2 editor accepts a monitor scale change");
+	harness.expectTrue(resizedWidth == 320 && resizedHeight == 200,
+		"scaled VST2 resize callback reports logical dimensions");
+	scaled->stopEditing();
+	harness.expectFalse(scaled->setEditorScale(1.25), "closed VST2 editor refuses a monitor scale change");
+	scaled->setSizeWindowFunc(nullptr);
+	scaled.reset();
+
+	SetEnvironmentVariableW(L"EAPO_TEST_VST_EDITOR", L"fixed");
+	auto fixed = VSTPluginInstance::create(library, 2);
+	const bool fixedInitialized = fixed->initialize();
+	SetEnvironmentVariableW(L"EAPO_TEST_VST_EDITOR", nullptr);
+	harness.require(fixedInitialized, "fixed VST2 editor fixture initializes");
+	width = 0;
+	height = 0;
+	harness.expectTrue(fixed->startEditing(nullptr, &width, &height, 1.5),
+		"fixed VST2 editor opens at 150 percent");
+	harness.expectTrue(width == 213 && height == 133,
+		"fixed VST2 editor physical dimensions are converted to logical dimensions");
+	resizedWidth = 0;
+	resizedHeight = 0;
+	fixed->setSizeWindowFunc([&resizedWidth, &resizedHeight](int w, int h) {
+		resizedWidth = w;
+		resizedHeight = h;
+	});
+	harness.expectTrue(fixed->setEditorScale(2.0), "open fixed VST2 editor accepts a monitor scale change");
+	harness.expectTrue(resizedWidth == 160 && resizedHeight == 100,
+		"fixed VST2 editor is re-reported in the new logical dimensions");
+	fixed->stopEditing();
+	fixed->setSizeWindowFunc(nullptr);
+	fixed.reset();
+
+	// The fixture keeps its last scale across editor sessions, so a session at
+	// 100 percent after one at 150 percent shows whether 1.0 is sent too.
+	SetEnvironmentVariableW(L"EAPO_TEST_VST_EDITOR", L"scaled");
+	auto reopened = VSTPluginInstance::create(library, 2);
+	const bool reopenedInitialized = reopened->initialize();
+	SetEnvironmentVariableW(L"EAPO_TEST_VST_EDITOR", nullptr);
+	harness.require(reopenedInitialized, "reopened scaled VST2 editor fixture initializes");
+	harness.expectTrue(reopened->startEditing(nullptr, &width, &height, 1.5),
+		"scaled VST2 editor opens at 150 percent before reopening");
+	reopened->stopEditing();
+	width = 0;
+	height = 0;
+	harness.expectTrue(reopened->startEditing(nullptr, &width, &height, 1.0),
+		"scaled VST2 editor reopens at 100 percent");
+	harness.expectTrue(width == 320 && height == 200,
+		"a reopened VST2 editor receives the 100 percent content scale request");
+	reopened->stopEditing();
+}
+
 void testProcessLifetimeResidency(const wstring& dir, const wstring& dllPath)
 {
 	const wstring unloadPath = dir + L"\\TestVst2Plugin.Unload.dll";
@@ -542,6 +612,7 @@ return;
 		harness.expectTrue(false, "VST2 disguised-extension copy is available for ABI detection");
 
 	testVst2CallbacksAndEditorDefaults(library);
+	testVst2EditorScaling(library);
 
 	expectRejectedMetadataPassesThrough(library, L"huge-inputs", "unrealistic input count");
 	expectRejectedMetadataPassesThrough(library, L"negative-inputs", "negative input count");

@@ -147,6 +147,36 @@ bool VST3Instance::startEditingImpl(HWND hWnd, short* width, short* height, doub
 	return true;
 }
 
+bool VST3Instance::rescaleEditorImpl(double scaleFactor)
+{
+	if (vst3View == NULL || !vst3ViewAttached || !vst3EditorHostWindow)
+		return false;
+
+	editorScaleFactor = scaleFactor;
+	IPlugViewContentScaleSupport* rawScaleSupport = NULL;
+	const tresult scaleResult = vst3View->queryInterface(
+		IPlugViewContentScaleSupport::iid,
+		(void**)&rawScaleSupport);
+	auto scaleSupport = IPtr<IPlugViewContentScaleSupport>::adopt(rawScaleSupport);
+	if (scaleResult == kResultOk && scaleSupport)
+	{
+		scaleSupport->setContentScaleFactor((IPlugViewContentScaleSupport::ScaleFactor)scaleFactor);
+	}
+
+	ViewRect rect;
+	if (vst3View->getSize(&rect) == kResultOk)
+	{
+		const int physWidth = max<int32>(1, rect.getWidth());
+		const int physHeight = max<int32>(1, rect.getHeight());
+		SetWindowPos(vst3EditorHostWindow.get(), NULL, 0, 0, physWidth, physHeight,
+			SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+		vst3View->onSize(&rect);
+		notifySizeWindow(logicalEditorSize(physWidth, scaleFactor),
+			logicalEditorSize(physHeight, scaleFactor));
+	}
+	return true;
+}
+
 void VST3Instance::doIdle()
 {
 	// No host idle duty exists for VST3: the IPlugView contract gives the

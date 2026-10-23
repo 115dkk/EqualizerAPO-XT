@@ -268,6 +268,14 @@ public:
 	tresult PLUGIN_API setContentScaleFactor(ScaleFactor factor) override
 	{
 		contentScaleFactor = factor;
+		if (window != nullptr)
+		{
+			wchar_t title[96];
+			swprintf_s(title, L"TestVst3Plugin Gain %.2f Scale %.2f Zoom %.2f",
+				state != nullptr ? state->gain : 1.0, contentScaleFactor,
+				privateState != nullptr ? privateState->zoom : 1.0);
+			SetWindowTextW(window, title);
+		}
 		return kResultOk;
 	}
 
