@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.61.0 — 2026-10-23
+
 - **VST2 plug-in panels fit high-DPI monitors.** On a monitor scaled above 100%
   (150%, for example), the frame around a VST2 panel was larger than the
   plug-in's window by the scale factor, leaving an empty strip on the right and
