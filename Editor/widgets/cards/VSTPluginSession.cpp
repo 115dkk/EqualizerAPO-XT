@@ -15,6 +15,7 @@
 #include <QCheckBox>
 #include <QCoreApplication>
 #include <QDir>
+#include <QEvent>
 #include <QFileInfo>
 #include <QLocale>
 #include <QPointer>
@@ -395,6 +396,11 @@ bool VSTPluginSession::setEmbedded(bool enable, QWidget* host)
 		if (embedPlugin(host))
 		{
 			acquirePanelProcessing();
+			// Moving to a display with another scale changes the top-level
+			// window's device pixel ratio; eventFilter re-scales the panel.
+			embeddedScale = host->devicePixelRatioF();
+			scaleWatchWindow = host->window();
+			scaleWatchWindow->installEventFilter(this);
 			effect->setSizeWindowFunc([this](int width, int height) {
 				if (isEmbedded)
 					emit sizeRequested(width, height);
@@ -412,6 +418,9 @@ bool VSTPluginSession::setEmbedded(bool enable, QWidget* host)
 	else
 	{
 		previewFeeder.stop();
+		if (scaleWatchWindow)
+			scaleWatchWindow->removeEventFilter(this);
+		scaleWatchWindow = nullptr;
 		if (effect != nullptr)
 		{
 			releasePanelProcessing();
@@ -422,6 +431,25 @@ bool VSTPluginSession::setEmbedded(bool enable, QWidget* host)
 			this, &VSTPluginSession::onIdle);
 	}
 	return isEmbedded;
+}
+
+bool VSTPluginSession::eventFilter(QObject* watched, QEvent* event)
+{
+	if (event->type() == QEvent::DevicePixelRatioChange && watched == scaleWatchWindow.data()
+		&& isEmbedded && effect != nullptr)
+	{
+		// The window's own ratio: the event reports its change, while the
+		// embedded native child may not have taken the new screen yet.
+		const double scale = scaleWatchWindow->devicePixelRatioF();
+		if (!qFuzzyCompare(scale, embeddedScale))
+		{
+			embeddedScale = scale;
+			// The plug-in lays out again and asks for its new size through
+			// sizeRequested.
+			effect->setEditorScale(scale);
+		}
+	}
+	return QObject::eventFilter(watched, event);
 }
 
 QString VSTPluginSession::libraryPermissionWarning() const

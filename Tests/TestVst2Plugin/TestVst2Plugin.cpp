@@ -16,7 +16,8 @@
 	  - processReplacing / processDoubleReplacing copy input to output scaled by
 	    Gain, unless Bypass >= 0.5 in which case input is passed through unscaled.
 	  - flags advertise canReplacing (float), canDoubleReplacing (double) and
-	    programChunks (chunk-based state).
+	    programChunks (chunk-based state). EAPO_TEST_VST_EDITOR selects a fixed
+	    or DPI-scaled editor persona; unset keeps the plugin editorless.
 	  - The chunk is a fixed little-endian blob: a 4-byte magic 'TVP2', a uint32
 	    version, then the two float parameters. getChunk emits it; setChunk
 	    restores the parameters from it. This lets the host round-trip parameter
@@ -34,6 +35,7 @@
 	hosts that fall back to it.
 */
 
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 
@@ -108,11 +110,25 @@ struct ChunkBlob
 // so a host may (in principle) create more than one instance. The chunk buffer
 // lives here too because effGetChunk hands the host a pointer it reads after we
 // return.
+enum class EditorPersona
+{
+	none,
+	fixed,
+	scaled
+};
+
 struct PluginState
 {
 	vst_host_callback_t host = nullptr;
 	float params[kNumParams]{};
 	ChunkBlob chunkScratch{};
+	vst_rect_t rect{};
+	EditorPersona editorPersona = EditorPersona::none;
+	double scale = 1.0;
+	bool rectQueried = false;
+	bool editorOpen = false;
+	bool dispatcherActive = false;
+	bool editorFailed = false;
 };
 
 PluginState* stateOf(vst_effect_t* effect)
@@ -195,9 +211,12 @@ void copyName(void* dst, const char* text, size_t bufSize)
 
 intptr_t VST_FUNCTION_INTERFACE dispatcher(vst_effect_t* effect, int32_t opcode, int32_t index, intptr_t value, void* ptr, float opt)
 {
-	(void)value;
-	(void)opt;
 	PluginState* state = stateOf(effect);
+	if (state != nullptr && state->dispatcherActive)
+	{
+		state->editorFailed = true;
+		return 0;
+	}
 
 	switch (opcode)
 	{
@@ -269,6 +288,8 @@ intptr_t VST_FUNCTION_INTERFACE dispatcher(vst_effect_t* effect, int32_t opcode,
 		const char* feature = static_cast<const char*>(ptr);
 		if (feature != nullptr && std::strcmp(feature, "bypass") == 0)
 			return 1;
+		if (feature != nullptr && std::strcmp(feature, vst_effect_supports.supportsViewDpiScaling) == 0)
+			return state != nullptr && state->editorPersona == EditorPersona::scaled ? 1 : 0;
 		return 0;
 	}
 
@@ -297,10 +318,89 @@ intptr_t VST_FUNCTION_INTERFACE dispatcher(vst_effect_t* effect, int32_t opcode,
 		return 1;
 	}
 
-	// Editor / GUI opcodes: this plugin has no editor.
+	case VST_EFFECT_OPCODE_CUSTOM:
+		if (state != nullptr && index == VST_EFFECT_CONTENT_SCALE_INDEX
+			&& value == VST_EFFECT_CONTENT_SCALE_VALUE)
+		{
+			if (state->editorPersona == EditorPersona::fixed)
+			{
+				state->editorFailed = true;
+				return 0;
+			}
+			if (state->editorPersona == EditorPersona::scaled
+				&& (!state->rectQueried || state->editorOpen))
+			{
+				const short oldWidth = static_cast<short>(state->rect.right - state->rect.left);
+				const short oldHeight = static_cast<short>(state->rect.bottom - state->rect.top);
+				const double oldScale = state->scale;
+				state->scale = opt;
+				const short newWidth = static_cast<short>(std::lround(320.0 * state->scale));
+				const short newHeight = static_cast<short>(std::lround(200.0 * state->scale));
+				if (state->editorOpen && state->host != nullptr)
+				{
+					state->dispatcherActive = true;
+					const intptr_t accepted = state->host(effect, VST_HOST_OPCODE_EDITOR_RESIZE,
+						newWidth, newHeight, nullptr, 0.0f);
+					state->dispatcherActive = false;
+					if (accepted != 1)
+					{
+						state->scale = oldScale;
+						state->rect.right = oldWidth;
+						state->rect.bottom = oldHeight;
+						return 0;
+					}
+				}
+				state->rect.right = newWidth;
+				state->rect.bottom = newHeight;
+			}
+		}
+		return 0;
+
 	case VST_EFFECT_OPCODE_EDITOR_GET_RECT:
+		if (state == nullptr || ptr == nullptr || state->editorPersona == EditorPersona::none)
+			return 0;
+		state->rect.left = 0;
+		state->rect.top = 0;
+		if (state->editorFailed)
+		{
+			state->rect.right = 1;
+			state->rect.bottom = 1;
+		}
+		else if (state->editorPersona == EditorPersona::fixed)
+		{
+			state->rect.right = 320;
+			state->rect.bottom = 200;
+		}
+		else
+		{
+			state->rect.right = static_cast<short>(std::lround(320.0 * state->scale));
+			state->rect.bottom = static_cast<short>(std::lround(200.0 * state->scale));
+		}
+		*static_cast<vst_rect_t**>(ptr) = &state->rect;
+		state->rectQueried = true;
+		return 1;
+
 	case VST_EFFECT_OPCODE_EDITOR_OPEN:
+		if (state == nullptr || state->editorPersona == EditorPersona::none)
+			return 0;
+		state->editorOpen = true;
+		if (state->editorPersona == EditorPersona::scaled && state->host != nullptr)
+		{
+			state->dispatcherActive = true;
+			const intptr_t modified = state->host(effect, VST_HOST_OPCODE_IO_MODIFIED, 0, 0, nullptr, 0.0f);
+			const intptr_t idle = state->host(effect, VST_HOST_OPCODE_IO_NEED_IDLE, 0, 0, nullptr, 0.0f);
+			state->dispatcherActive = false;
+			if (modified != 0 || idle != 0)
+				state->editorFailed = true;
+		}
+		return 1;
+
 	case VST_EFFECT_OPCODE_EDITOR_CLOSE:
+		if (state != nullptr)
+		{
+			state->editorOpen = false;
+			state->rectQueried = false;
+		}
 		return 0;
 
 	default:
@@ -339,6 +439,18 @@ vst_effect_t* createEffect(vst_host_callback_t callback)
 	effect->version = 1;
 	effect->process_float = &processReplacing;
 	effect->process_double = &processDoubleReplacing;
+
+	wchar_t editorMode[32] = {};
+	if (GetEnvironmentVariableW(L"EAPO_TEST_VST_EDITOR", editorMode,
+		static_cast<DWORD>(sizeof(editorMode) / sizeof(editorMode[0]))) > 0)
+	{
+		if (wcscmp(editorMode, L"fixed") == 0)
+			state->editorPersona = EditorPersona::fixed;
+		else if (wcscmp(editorMode, L"scaled") == 0)
+			state->editorPersona = EditorPersona::scaled;
+		if (state->editorPersona != EditorPersona::none)
+			effect->flags |= VST_EFFECT_FLAG_EDITOR;
+	}
 
 	// Host robustness tests select malformed metadata before creating an
 	// instance. Normal test runs leave the variable unset and retain the fixed

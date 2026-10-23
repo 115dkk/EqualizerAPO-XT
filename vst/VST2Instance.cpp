@@ -288,6 +288,7 @@ public:
 	}
 
 	bool startEditingImpl(HWND hWnd, short* width, short* height, double scaleFactor) override;
+	bool rescaleEditorImpl(double scaleFactor) override;
 
 	void doIdle() override
 	{
@@ -302,14 +303,19 @@ public:
 
 	void stopEditing() override
 	{
+		editorOpen = false;
 		if (effect == NULL)
 			return;
 
 		effect->control(effect.get(), VST_EFFECT_OPCODE_EDITOR_CLOSE, 0, 0, NULL, 0.0f);
 	}
 
-	// A VST2 editor sizes itself in the host frame's own units.
-	void onSizeWindow(int w, int h) override { notifySizeWindow(w, h); }
+	// VST2 editor resize requests use the parent window's physical pixels.
+	void onSizeWindow(int w, int h) override
+	{
+		notifySizeWindow(logicalEditorSize(w, editorScaleFactor),
+			logicalEditorSize(h, editorScaleFactor));
+	}
 
 	// Backing store for VST_HOST_OPCODE_GET_TIME, refreshed and returned per
 	// call. Per instance: plugins in different audio streams process
@@ -333,6 +339,12 @@ private:
 	};
 
 	LoadResult load();
+	void requestContentScale(double scale)
+	{
+		effect->control(effect.get(), VST_EFFECT_OPCODE_CUSTOM,
+			VST_EFFECT_CONTENT_SCALE_INDEX, VST_EFFECT_CONTENT_SCALE_VALUE,
+			NULL, static_cast<float>(scale));
+	}
 
 	// The engine asks for the sample width before every block. The effect's
 	// flags are read here instead, on the control thread (after loading and
@@ -347,6 +359,9 @@ private:
 
 	VST2EffectPtr effect;
 	bool vst2Processing = false;
+	double editorScaleFactor = 1.0;
+	bool editorScaleSupported = false;
+	bool editorOpen = false;
 	vst_time_info vstTime{ 0,0,0,0,0,0,0,0,0,0,{0}, 0xFFFF };
 };
 
@@ -392,8 +407,13 @@ intptr_t callback(struct vst_effect_t* effect, int32_t opcode, int32_t index, in
 		else
 			return 0;
 
+	case VST_HOST_OPCODE_IO_MODIFIED:
+		// The host reads the I/O layout only while loading the plug-in.
+		return 0;
+
 	case VST_HOST_OPCODE_IO_NEED_IDLE:
-		return effect != NULL ? effect->control(effect, VST_HOST_OPCODE_KEEPALIVE_OR_IDLE, 0, 0, NULL, 0.0f) : 0;
+		// The host does not promise periodic idle calls.
+		return 0;
 
 	case VST_HOST_OPCODE_EDITOR_UPDATE:
 		return effect != NULL ? effect->control(effect, VST_EFFECT_OPCODE_EDITOR_KEEP_ALIVE, 0, 0, NULL, 0.0f) : 0;
@@ -422,12 +442,12 @@ intptr_t callback(struct vst_effect_t* effect, int32_t opcode, int32_t index, in
 		return 1;
 
 	case VST_HOST_OPCODE_EDITOR_RESIZE:
-		if (instance != NULL)
+		if (instance != NULL && index > 0 && value > 0)
 		{
 			instance->onSizeWindow((int)index, (int)value);
-			return 0;
+			return 1;
 		}
-		return 1;
+		return 0;
 
 	case VST_HOST_OPCODE_SUPPORTS:
 		{
@@ -516,7 +536,7 @@ bool VST2Instance::initialize()
 	}
 }
 
-bool VST2Instance::startEditingImpl(HWND hWnd, short* width, short* height, double)
+bool VST2Instance::startEditingImpl(HWND hWnd, short* width, short* height, double scaleFactor)
 {
 	if (effect == NULL)
 		return false;
@@ -525,6 +545,13 @@ bool VST2Instance::startEditingImpl(HWND hWnd, short* width, short* height, doub
 	// left rect uninitialised and dereferenced it (audit #348 TD-14).
 	if ((effect->flags & VST_EFFECT_FLAG_EDITOR) == 0)
 		return false;
+
+	editorOpen = false;
+	editorScaleFactor = scaleFactor;
+	editorScaleSupported = effect->control(effect.get(), VST_EFFECT_OPCODE_SUPPORTS,
+		0, 0, (void*)vst_effect_supports.supportsViewDpiScaling, 0.0f) == 1;
+	if (editorScaleSupported)
+		requestContentScale(scaleFactor);
 
 	vst_rect_t* rect = nullptr;
 	effect->control(effect.get(), VST_EFFECT_OPCODE_EDITOR_GET_RECT, 0, 0, &rect, 0.0f);
@@ -540,9 +567,29 @@ bool VST2Instance::startEditingImpl(HWND hWnd, short* width, short* height, doub
 	}
 
 	if (width != NULL)
-		*width = rect->right - rect->left;
+		*width = logicalEditorSize(rect->right - rect->left, scaleFactor);
 	if (height != NULL)
-		*height = rect->bottom - rect->top;
+		*height = logicalEditorSize(rect->bottom - rect->top, scaleFactor);
+	editorOpen = true;
+	return true;
+}
+
+bool VST2Instance::rescaleEditorImpl(double scaleFactor)
+{
+	if (effect == NULL || !editorOpen)
+		return false;
+
+	editorScaleFactor = scaleFactor;
+	if (editorScaleSupported)
+		requestContentScale(scaleFactor);
+
+	vst_rect_t* rect = nullptr;
+	effect->control(effect.get(), VST_EFFECT_OPCODE_EDITOR_GET_RECT, 0, 0, &rect, 0.0f);
+	if (rect != nullptr && rect->right - rect->left > 0 && rect->bottom - rect->top > 0)
+	{
+		notifySizeWindow(logicalEditorSize(rect->right - rect->left, scaleFactor),
+			logicalEditorSize(rect->bottom - rect->top, scaleFactor));
+	}
 	return true;
 }
 

@@ -79,6 +79,7 @@ public:
 	void stopProcessing() override;
 
 	bool startEditingImpl(HWND hWnd, short* width, short* height, double scaleFactor) override;
+	bool rescaleEditorImpl(double scaleFactor) override;
 	void doIdle() override;
 	void stopEditing() override;
 	// w/h arrive in physical pixels from the view's resizeView request.

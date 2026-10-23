@@ -352,6 +352,19 @@ return;
 		"VST3 editor receives restored component state");
 	harness.expectTrue(wstring(editorTitle).find(L"Scale 1.50") != wstring::npos,
 		"VST3 editor receives the host content scale factor");
+	int scaledWidth = 0;
+	int scaledHeight = 0;
+	instance.setSizeWindowFunc([&scaledWidth, &scaledHeight](int w, int h) {
+		scaledWidth = w;
+		scaledHeight = h;
+	});
+	harness.expectTrue(instance.setEditorScale(2.0), "attached VST3 editor accepts a monitor scale change");
+	GetWindowTextW(pluginWindow, editorTitle, 128);
+	harness.expectTrue(scaledWidth == 180 && scaledHeight == 110,
+		"VST3 monitor scale change reports the logical editor size (360x220 / 2)");
+	harness.expectTrue(wstring(editorTitle).find(L"Scale 2.00") != wstring::npos,
+		"attached VST3 editor receives the changed content scale factor");
+	instance.setSizeWindowFunc(nullptr);
 	wstring automatedChunk;
 	int automateCallCount = 0;
 	instance.setAutomateFunc([&instance, &automatedChunk, &automateCallCount]() {
