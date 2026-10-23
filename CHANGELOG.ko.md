@@ -8,6 +8,12 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **VST2 매개변수 값이 정확히 저장됩니다.** Editor는 VST2 매개변수 값을
+  유효숫자 6자리로 적었습니다. 그래서 MVerb의 기본 Size 같은 값은 `config.txt`에서
+  75가 아니라 74.99999로 돌아와, 저장한 설정의 소리가 패널과 조금 달랐습니다.
+  이제 같은 수로 되읽히는 가장 짧은 십진수로 적습니다. 0.5 같은 짧은 값은 같은
+  글자로 남고 형식도 그대로입니다([#439](https://github.com/115dkk/EqualizerAPO-XT/pull/439)).
+
 ## v2.60.4 — 2026-10-23
 
 - **DPF로 만든 VST3 플러그인의 패널 편집이 다시 저장됩니다.** DPF로 만든 VST3
