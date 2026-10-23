@@ -208,6 +208,7 @@ Qt tools are built through qmake in CI and in the documented local setup. The Vi
 - **Suites:** `EditorLogicTests` and `HybridConvTests` (unit tests), `EngineOrchestrationTests` (engine routing, config swap, device and registry behavior), `AudioRegressionTests` (engine output compared against committed references, also run across SIMD variants in CI) and `AsioTests` (the ASIO wrapper, host link and engine host).
 - **Fixtures:** `TestVst2Plugin` and `TestVst3Plugin` (self-built plug-ins that exercise the VST2 and VST3 hosts), `FakeAsioDriver` (an ASIO driver for the wrapper tests) and `AsioSupport` (shared test headers).
 - **Probes:** `VstPreviewProbe` (the `vst3-preview-probe` workflow's check of the panel's live-audio preview on a real endpoint), `AsioProbe` (the ASIO probe gate), and `ApoHostProbe` and `CaptureProbe` (the capture gate on a virtual-cable runner).
+- **Panel input gate:** `.github/scripts/Invoke-PanelInputGate.ps1` opens the panels of DPF-Plugins' 3 Band EQ and MVerb (VST2 and VST3, built from pinned sources by `Build-DpfTestPlugins.ps1`) in the Editor, drags their controls with real mouse input, presses OK and Save, and checks the saved state, the reopened panel and what Benchmark renders from the saved line. CI runs it with the shipped Editor and with an Editor built with AddressSanitizer.
 
 Test policy per variant is part of [docs/SimdBuildMatrix.md](docs/SimdBuildMatrix.md).
 
