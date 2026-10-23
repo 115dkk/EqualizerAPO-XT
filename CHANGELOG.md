@@ -14,6 +14,13 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **A configuration saved as "UTF-8 with BOM" no longer loses its first
+  command.** Notepad's "UTF-8 with BOM" starts the file with a byte order mark.
+  EQ APO XT read the mark as part of the first line, so the first command (a
+  `Preamp:` line, for example) was skipped without an error. The mark is now
+  ignored by the audio engine and the Editor, and the Editor saves such a file
+  back without it ([#440](https://github.com/115dkk/EqualizerAPO-XT/pull/440)).
+
 ## v2.60.5 — 2026-10-23
 
 - **VST2 parameter values are saved exactly.** The Editor wrote each VST2
