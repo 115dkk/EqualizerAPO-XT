@@ -36,6 +36,52 @@ Describe "extracted build script decisions" {
             Should -Be "arm64-neon"
     }
 
+    It "pins the external DPF plugins and software OpenGL inputs" {
+        $plan = & (Join-Path $PSScriptRoot "..\Build-DpfTestPlugins.ps1") `
+            -WorkspaceRoot $root -PlanOnly
+        @($plan.Sources | ForEach-Object Name) | Should -Be @("DPF", "DPF-Plugins")
+        foreach ($source in $plan.Sources) {
+            $source.Commit | Should -Match "^[0-9a-f]{40}$"
+        }
+        $plan.Sources[0].Submodules | Should -Be @("dgl/src/pugl-upstream")
+        $plan.Sources[1].Submodules | Should -BeNullOrEmpty
+        $plan.Mesa.Url | Should -Match "^https://github\.com/pal1000/mesa-dist-win/releases/download/"
+        $plan.Mesa.Sha256 | Should -Match "^[0-9A-F]{64}$"
+        $plan.Mesa.Files | Should -Be @("x64/opengl32.dll", "x64/libgallium_wgl.dll")
+        @($plan.Plugins.Keys) | Should -Be @("EQ_VST2", "EQ_VST3", "MVERB_VST2", "MVERB_VST3")
+        $plan.ManifestName | Should -Be "dpf-plugins.json"
+    }
+
+    It "plans an ASan Editor build without changing the regular Qt app set" {
+        $script = Join-Path $PSScriptRoot "..\Build-QtApps.ps1"
+        $arguments = @{
+            WorkspaceRoot = $root
+            Platform = "x64"
+            SimdVariant = "avx2"
+            QtArchFlag = "/arch:AVX2"
+            MsvcDevPlatform = "amd64"
+            PlanOnly = $true
+        }
+        $regular = & $script @arguments
+        $regular.Apps | Should -Be @("Editor", "DeviceSelector")
+        @($regular.BuildDirectories.Keys) | Should -Be @("Editor", "DeviceSelector")
+        $regular.BuildDirectories.Editor | Should -Be "build-Editor-x64"
+        $regular.BuildDirectories.DeviceSelector | Should -Be "build-DeviceSelector-x64"
+        $regular.ExtraQmakeArguments | Should -BeNullOrEmpty
+
+        $asan = & $script @arguments -AddressSanitizer
+        $asan.Apps | Should -Be @("Editor")
+        @($asan.BuildDirectories.Keys) | Should -Be @("Editor")
+        $asan.BuildDirectories.Editor | Should -Be "build-Editor-x64-asan"
+        $asan.ExtraQmakeArguments | Should -Be @(
+            "QMAKE_CFLAGS+=/fsanitize=address",
+            "QMAKE_CXXFLAGS+=/fsanitize=address",
+            "DEFINES+=_DISABLE_STRING_ANNOTATION",
+            "DEFINES+=_DISABLE_VECTOR_ANNOTATION",
+            "QMAKE_LFLAGS+=/INCREMENTAL:NO"
+        )
+    }
+
     It "runs the ASIO suite where the variant executes and lists the ASIO projects" {
         $avx2 = & (Join-Path $PSScriptRoot "..\Build-Solution.ps1") `
             -WorkspaceRoot $root -Platform x64 -SimdVariant avx2 -ArchFlag AdvancedVectorExtensions2 -PlanOnly

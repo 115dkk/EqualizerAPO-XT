@@ -52,6 +52,7 @@ function Get-VerificationFacts {
   $gatePhrase = [ordered]@{
     'memcheck'     = 'the memory gate (the runtime suites rebuilt with AddressSanitizer and checked for engine-buffer leaks)'
     'capture-gate' = 'the capture gate (the APO measured on a virtual recording device)'
+    'panel-input-gate' = 'the panel input gate (plugin panels edited with real mouse input in the Editor, also built with AddressSanitizer, and the saved state rendered)'
     'cppcheck'     = 'static analysis (cppcheck)'
     'pester'       = 'the build-script tests (Pester)'
   }

@@ -956,21 +956,168 @@ jobs:
         retention-days: 30
         if-no-files-found: warn
 
+  # The panel input gate: a user's path through a VST plugin panel, with real
+  # OS input. Build-DpfTestPlugins.ps1 builds DPF-Plugins' 3 Band EQ and MVerb
+  # (VST2 and VST3) from pinned sources outside the checkout and puts Mesa's
+  # software OpenGL beside them and beside Editor.exe: a hosted runner has no
+  # GPU, and on its GDI OpenGL 1.1 DPF editors draw nothing. Then
+  # Invoke-PanelInputGate.ps1 opens each panel in Editor.exe, drags controls
+  # with SendInput, presses OK and Save, and checks the saved state, a reopened
+  # panel, and what Benchmark renders from the saved line, with a background
+  # drag as the negative control. Until #437 the VST3 cases failed here: the
+  # Editor passed panel edits to an idle DPF processor through a zero-sample
+  # call DPF ignores.
+  # The asan leg runs the same scenario against an Editor compiled with
+  # AddressSanitizer, the memory gate for the Editor's own code on that path
+  # (memcheck rebuilds the MSBuild suites; the Qt app is not among them). Any
+  # ASan report fails it. UI Automation needs Windows PowerShell 5.1, hence
+  # `shell: powershell` for the gate step. create-release waits for both legs.
+  panel-input-gate:
+    needs: [build, prepare-matrix]
+    runs-on: windows-2025-vs2026
+    if: always() && needs.build.result == 'success'
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        editor: [release, asan]
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+    - name: Download the primary build artifact
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+      with:
+        name: ${{ needs.prepare-matrix.outputs.primary_artifact }}
+        path: artifacts/${{ needs.prepare-matrix.outputs.primary_artifact }}
+
+    # The asan leg compiles the Editor itself, with the dependencies and Qt
+    # the memcheck job provisions.
+    - name: Download dependency release assets
+      if: matrix.editor == 'asan'
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+        Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
+
+        $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
+        $downloads = Get-DependencyDownloadSpec -Manifest $manifest `
+          -DepsRoot "${{ github.workspace }}\deps" `
+          -Platform "x64" `
+          -Simd "avx2"
+        Invoke-DependencyDownload -Downloads $downloads `
+          -DownloadRoot "${{ github.workspace }}\deps\_downloads"
+        Invoke-DependencyDownload -Downloads (Get-SdkDownloadSpec -Manifest $manifest -DepsRoot "${{ github.workspace }}\deps") `
+          -DownloadRoot "${{ github.workspace }}\deps\_downloads"
+
+    - name: Clone pinned source dependencies
+      if: matrix.editor == 'asan'
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+        Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
+        $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
+        Install-PinnedSourceDependency -Manifest $manifest -DepsRoot "${{ github.workspace }}\deps"
+
+    - name: Setup dependency structures
+      if: matrix.editor == 'asan'
+      shell: pwsh
+      run: |
+        .\.github\scripts\Initialize-DepsEnvironment.ps1 -DepsPath "${{ github.workspace }}\deps"
+
+    - name: Setup Python
+      if: matrix.editor == 'asan'
+      uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install Qt
+      if: matrix.editor == 'asan'
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+        Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
+
+        $qtRoot = Install-QtSdk -WorkspaceRoot "${{ github.workspace }}" -Platform "x64"
+
+        echo "QT_ROOT=$qtRoot" >> $env:GITHUB_ENV
+        echo "$qtRoot\bin" >> $env:GITHUB_PATH
+
+    - name: Build the Editor with AddressSanitizer
+      if: matrix.editor == 'asan'
+      shell: pwsh
+      run: |
+        & "${{ github.workspace }}\.github\scripts\Build-QtApps.ps1" `
+          -WorkspaceRoot "${{ github.workspace }}" `
+          -Platform "x64" `
+          -SimdVariant "avx2" `
+          -QtArchFlag "/arch:AVX2" `
+          -MsvcDevPlatform "x64" `
+          -UpdateChannel "x64-avx2" `
+          -AddressSanitizer
+
+    # The shipped program folder, with the ASan Editor (and the ASan runtime
+    # Build-QtApps.ps1 put beside it) over the shipped one on the asan leg.
+    - name: Stage the program folder
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+        $artifact = "${{ github.workspace }}\artifacts\${{ needs.prepare-matrix.outputs.primary_artifact }}"
+        $app = Join-Path "${{ runner.temp }}" "panel-input-app"
+        Copy-Item -LiteralPath $artifact -Destination $app -Recurse
+        if ("${{ matrix.editor }}" -eq "asan") {
+          Copy-Item -Path "${{ github.workspace }}\build-Editor-x64-asan\release\*" -Destination $app -Recurse -Force
+        }
+        echo "PANEL_INPUT_APP=$app" >> $env:GITHUB_ENV
+
+    - name: Build the DPF test plugins
+      shell: pwsh
+      run: |
+        & "${{ github.workspace }}\.github\scripts\Build-DpfTestPlugins.ps1" `
+          -WorkspaceRoot "${{ github.workspace }}" `
+          -Root "${{ runner.temp }}\dpf-test-plugins" `
+          -MesaDestination $env:PANEL_INPUT_APP
+
+    - name: Run the panel input gate
+      shell: powershell
+      env:
+        GALLIUM_DRIVER: llvmpipe
+      run: |
+        $asanLogs = if ("${{ matrix.editor }}" -eq "asan") { "${{ runner.temp }}\panel-input-asan" } else { $null }
+        & "${{ github.workspace }}\.github\scripts\Invoke-PanelInputGate.ps1" `
+          -WorkspaceRoot "${{ github.workspace }}" `
+          -AppDirectory $env:PANEL_INPUT_APP `
+          -PluginManifest "${{ runner.temp }}\dpf-test-plugins\dpf-plugins.json" `
+          -WorkDirectory "${{ runner.temp }}\panel-input-work" `
+          -SnapshotDirectory "${{ runner.temp }}\panel-input-gate" `
+          -AsanLogDirectory $asanLogs
+        exit $LASTEXITCODE
+
+    - name: Upload panel input gate snapshots
+      if: always()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: panel-input-gate-${{ matrix.editor }}
+        path: ${{ runner.temp }}\panel-input-gate
+        retention-days: 30
+        if-no-files-found: warn
+
   # The release waits for every blocking gate (audit #348 D5). main has no
   # branch protection, so these needs are what keeps a red memcheck, capture
-  # gate, cppcheck or Pester run from publishing installers and a Velopack
+  # gate, panel input gate, cppcheck or Pester run from publishing installers and a Velopack
   # feed. New-ReleaseNotes.ps1 reads this list to say what the release waited
   # for. The cross-variant comparison is not a gate; it runs alongside.
   # Keep `needs:` a one-line [a, b] list at this indent: New-ReleaseNotes.ps1
   # finds it with a regex, and a block list or a moved key fails the release.
   create-release:
-    needs: [build, version-bump, memcheck, capture-gate, cppcheck, pester]
+    needs: [build, version-bump, memcheck, capture-gate, panel-input-gate, cppcheck, pester]
     runs-on: windows-2025-vs2026
     if: >-
       github.event_name == 'push' && github.ref == 'refs/heads/main'
       && needs.build.result == 'success'
       && needs.memcheck.result == 'success'
       && needs.capture-gate.result == 'success'
+      && needs.panel-input-gate.result == 'success'
       && needs.cppcheck.result == 'success'
       && needs.pester.result == 'success'
     permissions:
