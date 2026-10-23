@@ -392,8 +392,13 @@ intptr_t callback(struct vst_effect_t* effect, int32_t opcode, int32_t index, in
 		else
 			return 0;
 
+	case VST_HOST_OPCODE_IO_MODIFIED:
+		// The host reads the I/O layout only while loading the plug-in.
+		return 0;
+
 	case VST_HOST_OPCODE_IO_NEED_IDLE:
-		return effect != NULL ? effect->control(effect, VST_HOST_OPCODE_KEEPALIVE_OR_IDLE, 0, 0, NULL, 0.0f) : 0;
+		// The host does not promise periodic idle calls.
+		return 0;
 
 	case VST_HOST_OPCODE_EDITOR_UPDATE:
 		return effect != NULL ? effect->control(effect, VST_EFFECT_OPCODE_EDITOR_KEEP_ALIVE, 0, 0, NULL, 0.0f) : 0;
