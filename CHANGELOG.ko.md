@@ -8,6 +8,13 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **DPF로 만든 VST3 플러그인의 패널 편집이 다시 저장됩니다.** DPF로 만든 VST3
+  플러그인(3 Band EQ, MVerb 같은 DPF-Plugins)의 패널에서 손잡이를 돌리고 OK와
+  Save를 눌러도 `ChunkData`에는 이전 상태가 남아, 오디오 서비스는 예전 설정으로
+  소리를 냈습니다. 오디오가 돌지 않을 때 Editor는 패널 편집을 DPF가 무시하는
+  process 호출로 플러그인에 넘겼습니다. 이제 모든 플러그인이 읽는 무음 한
+  프레임과 함께 넘깁니다. 저장된 설정의 형식은 그대로입니다([#437](https://github.com/115dkk/EqualizerAPO-XT/pull/437)).
+
 ## v2.60.3 — 2026-10-22
 
 - **Rack 스킨의 Copy 격자가 다른 버튼처럼 브론즈로 잠깁니다.** 다크 Rack에서는
