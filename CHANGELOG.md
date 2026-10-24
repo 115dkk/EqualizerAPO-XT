@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.61.3 — 2026-10-24
+
 - **Rack's Device and Stage buttons latch in bronze too.** In the dark Rack
   skin a routed device on the Device card lit its whole button amber, and an
   engaged insert point on the Stage card wore an amber bar along its top, while

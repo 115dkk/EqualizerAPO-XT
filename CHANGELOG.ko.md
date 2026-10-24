@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.61.3 — 2026-10-24
+
 - **Rack 스킨의 Device·Stage 버튼도 브론즈로 잠깁니다.** 다크 Rack에서 Device
   카드의 라우팅된 장치는 버튼 전체를 앰버로 밝혔고, Stage 카드의 체결된 삽입
   지점은 위쪽에 앰버 막대를 둘렀습니다. 전원·포인터 버튼과 Copy 격자는 이미
