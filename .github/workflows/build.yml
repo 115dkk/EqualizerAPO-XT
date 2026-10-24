@@ -45,9 +45,10 @@ env:
 jobs:
   version-bump:
     # Run on every main push EXCEPT:
-    #   • pushes the bump job itself made — those carry [skip ci] which already
-    #     stops GitHub from triggering a new workflow, but we guard explicitly
-    #     in case that behaviour ever changes.
+    #   • pushes the bump job itself made — those carry [skip ci], which stops
+    #     GitHub from triggering a new workflow (the push uses a deploy key,
+    #     which would otherwise start one), but we guard explicitly in case
+    #     that behaviour ever changes.
     #   • manual `chore(version):` commits — when a maintainer sets a specific
     #     version we keep their value and just build/release with it.
     if: |
@@ -56,8 +57,10 @@ jobs:
       && !contains(github.event.head_commit.message, '[skip ci]')
       && !startsWith(github.event.head_commit.message, 'chore(version):')
     runs-on: windows-2025-vs2026
+    # The bump push authenticates with the RELEASE_DEPLOY_KEY deploy key, not
+    # the workflow token, so the token only needs to read.
     permissions:
-      contents: write
+      contents: read
     outputs:
       bumped_sha: ${{ steps.commit.outputs.sha }}
       base_version: ${{ steps.commit.outputs.base_version }}
@@ -71,10 +74,15 @@ jobs:
       uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
       with:
         fetch-depth: 0
-        # Persist the credentials so the bump push uses GITHUB_TOKEN as expected.
-        # Note: GITHUB_TOKEN pushes do NOT retrigger workflows, which is why we
-        # do the build/release in the same workflow run (downstream jobs check
+        # The bump is pushed over SSH with this write deploy key: main's
+        # "Required checks" ruleset requires every PR check and lets only
+        # deploy keys through, and the bump commit has no checks of its own
+        # (GitHub does not accept GitHub Actions as a ruleset bypass actor on a
+        # personal repository). A deploy-key push would start workflows, which
+        # the [skip ci] in the bump commit message prevents; the build and
+        # release still run in this same workflow run (downstream jobs check
         # out bumped_sha).
+        ssh-key: ${{ secrets.RELEASE_DEPLOY_KEY }}
         persist-credentials: true
 
     - name: Bump version
@@ -119,7 +127,7 @@ jobs:
           # version.h/CHANGELOG edits were lost.
           git add version.h CHANGELOG.md CHANGELOG.ko.md
           if ($LASTEXITCODE -ne 0) { throw "git add of the version bump failed" }
-          # [skip ci] keeps any future GitHub change from triggering a second run on
+          # [skip ci] keeps the deploy-key push from starting a second run on
           # this commit; the current workflow keeps going regardless.
           git commit -m "chore(version): bump version [skip ci]"
           if ($LASTEXITCODE -ne 0) { throw "git commit of the version bump failed" }
