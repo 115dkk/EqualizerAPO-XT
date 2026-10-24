@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.61.1 — 2026-10-24
+
 - **VST2 plug-ins built with JUCE 6.0.0 to 6.1.2 follow the monitor scale.**
   These plug-ins say they can scale themselves, but they ignore a scale sent
   before their panel exists, so on a 150% monitor they were still drawn at
