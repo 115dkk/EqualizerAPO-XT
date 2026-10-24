@@ -37,6 +37,9 @@ env:
   PYTHON_VERSION: '3.12'
   CPPCHECK_VERSION: '2.21.0'
   PESTER_VERSION: '5.6.1'
+  # SHA-256 of pester.5.6.1.nupkg as the gallery's package CDN serves it;
+  # its module files match a gallery install of 5.6.1 byte for byte.
+  PESTER_NUPKG_SHA256: '37b3749f69accead67c366d81508977f62afc7cbb9c4db88c3a255a1f0b20da5'
   NUMPY_VERSION: '2.3.2'
 
 jobs:
@@ -808,7 +811,10 @@ jobs:
         # '-source'", then "Unable to resolve package source"). So: prefer
         # PSResourceGet, which talks to the gallery without nuget.exe, fall
         # back to PowerShellGet with the repository re-registered, and give
-        # the pair three rounds before failing the gate.
+        # the pair three rounds before failing the gate. The gallery itself
+        # went down on 2026-10-23 (site and API answering 404) while its
+        # package CDN kept serving, so the last resort downloads the package
+        # from the CDN and unpacks it only when it matches the pinned hash.
         $ErrorActionPreference = "Stop"
         $version = $env:PESTER_VERSION
         $installers = @(
@@ -821,6 +827,18 @@ jobs:
             }
             Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
             Install-Module Pester -RequiredVersion $version -Force -SkipPublisherCheck -Scope CurrentUser -ErrorAction Stop
+          } },
+          @{ Name = "Gallery CDN"; Run = {
+            $archive = Join-Path $env:RUNNER_TEMP "pester.$version.zip"
+            Invoke-WebRequest "https://cdn.powershellgallery.com/packages/pester.$version.nupkg" -OutFile $archive -ErrorAction Stop
+            $hash = (Get-FileHash $archive -Algorithm SHA256).Hash
+            if ($hash -ne $env:PESTER_NUPKG_SHA256) { throw "pester.$version.nupkg is $hash, not the pinned $env:PESTER_NUPKG_SHA256" }
+            $target = Join-Path ([Environment]::GetFolderPath("MyDocuments")) "PowerShell\Modules\Pester\$version"
+            Remove-Item -LiteralPath $target -Recurse -Force -ErrorAction SilentlyContinue
+            Expand-Archive -LiteralPath $archive -DestinationPath $target -Force
+            foreach ($packaging in "_rels", "package", "[Content_Types].xml", "Pester.nuspec") {
+              Remove-Item -LiteralPath (Join-Path $target $packaging) -Recurse -Force -ErrorAction SilentlyContinue
+            }
           } }
         )
         $installed = $false
@@ -843,7 +861,7 @@ jobs:
           }
           if (-not $installed -and $round -lt 3) { Start-Sleep -Seconds 30 }
         }
-        if (-not $installed) { throw "Pester $version could not be installed from the PowerShell Gallery" }
+        if (-not $installed) { throw "Pester $version could not be installed from the PowerShell Gallery or its CDN" }
 
     - name: Run the build-script tests (Pester)
       shell: pwsh
