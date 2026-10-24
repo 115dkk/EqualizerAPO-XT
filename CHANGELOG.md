@@ -14,6 +14,12 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **VST2 plug-ins built with JUCE 6.0.0 to 6.1.2 follow the monitor scale.**
+  These plug-ins say they can scale themselves, but they ignore a scale sent
+  before their panel exists, so on a 150% monitor they were still drawn at
+  100%. The scale is now sent again once the panel is open
+  ([#442](https://github.com/115dkk/EqualizerAPO-XT/pull/442)).
+
 ## v2.61.0 — 2026-10-23
 
 - **VST2 plug-in panels fit high-DPI monitors.** On a monitor scaled above 100%
