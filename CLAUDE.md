@@ -44,6 +44,7 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 Equalizer APO 
 - `Setup/`: 설치 시 함께 들어가는 기본 설정 파일입니다.
 - `.github/workflows/build.yml`: CI 빌드와 설치 파일 생성 파이프라인입니다.
 - `version.h`: 릴리스 버전의 기준 파일입니다.
+- `TECH_DEBT_AUDIT.md`: 격주 감사가 끝날 때마다 CI가 커밋하는 최신 기술 부채 감사입니다. 다음 감사가 이 파일을 기준 결과로 읽으므로 손으로 고치지 않습니다.
 - `uncrustify.cfg`, `reformat.bat`: C/C++ 코드 포맷 기준과 실행 스크립트입니다.
 - `Wiki/`: 기존 사용자 문서 자료입니다.
 - `deps/`, `Qt/`, `build-*/`: 로컬 빌드 산출물입니다. `.gitignore`로 제외되므로 커밋하지 않습니다.
