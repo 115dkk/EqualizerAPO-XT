@@ -9,10 +9,12 @@
    Engaged caps (dark only): a cap under the pointer, pressed, latched or
    holding focus edges in the warm-neutral bronze of the selected unit frame
    (#8C8578, RackSkinDetail::darkEngagedFrame), with #787164 as its one
-   step down for pre-light. Amber stays on the lamps: LEDs, routed Device
-   and Stage chips, channel seat lamps, check indicators, the tab keel and
-   the text-entry caret border. Two glow colours on one unit (a bronze
-   frame round amber caps) is what the frame change left behind.
+   step down for pre-light. A routed Device or Stage chip is a latched cap
+   too, so it wears the same bronze latch (face #282319 to #363024, legend
+   in the body ink). Amber stays on the lamps: LEDs, channel seat lamps,
+   check indicators, the tab keel and the text-entry caret border. Two
+   glow colours on one unit (a bronze frame round amber caps) is what the
+   frame change left behind.
    ==================================================================== */
 
 * {
@@ -785,18 +787,19 @@ QToolButton#TitleBarClose:pressed {
 
 /* =====================================================================
    Command cards (Device / Channel / Comment / Stage)
-   One machine, four parts, one lamp law:
-   - Device  = the OUTPUT ROUTING switch bank; a routed endpoint
-               backlights its whole cap amber.
+   One machine, four parts, told apart by where the engaged mark sits:
+   - Device  = the OUTPUT ROUTING switch bank; a routed endpoint latches
+               its whole cap down in the bronze latch.
    - Channel = the CHANNEL ASSIGN key row; a taken seat latches down and
-               lights the lamp window UNDER the cap.
-   - Stage   = the INSERT POINT switches; an engaged path lights the
-               jewel lamp along the cap's TOP edge.
+               lights the amber lamp window UNDER the cap.
+   - Stage   = the INSERT POINT switches; an engaged path edges the cap's
+               TOP in a 2px bronze bar.
    - Comment = embossed label tape stuck to the plate; not a control, so
                it carries no lamp - only the amber service edge while the
                strip is being re-punched (edited).
    Masters (All devices / ALL) light the machine's only green (accent2):
-   green = bus-wide, amber = a single engaged position, everywhere.
+   green = bus-wide. A single engaged position is bronze on a cap and
+   amber only where a real lamp lights (the Channel seat window).
    ===================================================================== */
 
 /* The four card editors sit directly on the brushed plate. The global
@@ -810,20 +813,22 @@ QWidget#StageCardEditor, QWidget#CommentCardEditor { background: transparent; bo
    Each chip is a latching faceplate switch cap (machined gradient, lit
    top bevel, shadowed base, engraved uppercase label). The cap is a real
    mechanism: a press (:pressed) sinks it below the faceplate, and an
-   engaged switch (:checked) stays LATCHED DOWN with the amber routing
-   lamp lit under it - inverted bevel (shadowed top edge, lit lower lip),
-   inverted gradient, label dropped 1px by the padding shift. This is the
-   same latch-down grammar as the Channel assign keys below. Depth still
-   carries type at rest: playback = raised switch, capture = recessed
-   input well, endpoint without the APO = flat blank position. Compact
-   padding so the FlowLayout wraps instead of overflowing the 960px
-   gallery viewport.
+   engaged switch (:checked) stays LATCHED DOWN in the bronze latch of the
+   header caps - inverted bevel (shadowed top edge, lit lower lip),
+   inverted gradient, label dropped 1px by the padding shift. Until
+   2.61.2 the latch backlit the whole cap amber, and a bank of routed
+   endpoints glared next to the calm bronze power and pointer caps. This
+   is the same latch-down grammar as the Channel assign keys below. Depth
+   still carries type at rest: playback = raised switch, capture =
+   recessed input well, endpoint without the APO = flat blank position.
+   Compact padding so the FlowLayout wraps instead of overflowing the
+   960px gallery viewport.
 
    CASCADE NOTE (read before editing): the type attributes
    [deviceInput="true"] and [deviceInstalled="false"] score the same Qt
    specificity (0x111) as the bare pseudo-states :hover, :checked and
    :pressed. On a tie Qt takes the later rule, so a type rule placed
-   after :checked would MASK the lamp. Every state that must survive on a
+   after :checked would MASK the latch. Every state that must survive on a
    typed chip is therefore authored as an explicit combined selector
    (0x121, or 0x131 with two pseudo-states) so it wins by specificity
    regardless of source order. Within the same specificity tier the
@@ -844,13 +849,13 @@ QToolButton#DeviceChip:hover {
     border: 1px solid #787164; border-top-color: #3E474F;
     color: #F2DDB4;
 }
-/* Engaged (bare playback switch): the cap latches down and the amber
-   routing lamp lights under it - inverted gradient, shadowed top edge,
-   lit amber lower lip, label dropped 1px. */
+/* Engaged (bare playback switch): the cap latches down in bronze -
+   inverted gradient, shadowed top edge, lit lower lip, label dropped
+   1px. */
 QToolButton#DeviceChip:checked {
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #241B0C, stop:1 #4A3A1C);
-    border: 1px solid @ACCENT@; border-top-color: #2A2008; border-bottom-color: #6E521E;
-    color: #FFE9C8;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #282319, stop:1 #363024);
+    border: 1px solid #8C8578; border-top-color: #1C1912; border-bottom-color: #4E483B;
+    color: @TEXT@;
     padding: 4px 9px 2px 9px;
 }
 /* Momentary press (bare, authored after :checked so the tie hands a
@@ -864,8 +869,8 @@ QToolButton#DeviceChip:pressed {
 }
 
 /* Capture device = recessed input well: shadowed top, lit lower lip.
-   This is the AT-REST face; its state lamps are restored by the combined
-   rules below. */
+   This is the AT-REST face; its engaged states are restored by the
+   combined rules below. */
 QToolButton#DeviceChip[deviceInput="true"] {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1B2126, stop:1 #2A3036);
     border: 1px solid #11161A; border-top-color: #0C1013; border-bottom-color: #3E474F;
@@ -894,22 +899,22 @@ QToolButton#DeviceChip[deviceInstalled="false"]:hover {
     color: #8C8678;
 }
 
-/* Engaged capture well (0x121) - THE LAMP RULE: a routed input well
-   latches down into the SAME amber lamp as a routed playback switch (a
+/* Engaged capture well (0x121) - THE LATCH RULE: a routed input well
+   latches down into the SAME bronze latch as a routed playback switch (a
    routed switch is a routed switch). The well's depth reads its type
    only at rest. Beats both :checked and [deviceInput="true"] (0x111). */
 QToolButton#DeviceChip[deviceInput="true"]:checked {
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #241B0C, stop:1 #4A3A1C);
-    border: 1px solid @ACCENT@; border-top-color: #2A2008; border-bottom-color: #6E521E;
-    color: #FFE9C8;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #282319, stop:1 #363024);
+    border: 1px solid #8C8578; border-top-color: #1C1912; border-bottom-color: #4E483B;
+    color: @TEXT@;
     padding: 4px 9px 2px 9px;
 }
-/* Routed offline endpoint (0x121): a dimmer amber latch over the blank
-   metal. */
+/* Routed offline endpoint (0x121): a dimmer bronze latch over the blank
+   metal (the face one step down, the legend in the pressed ink). */
 QToolButton#DeviceChip[deviceInstalled="false"]:checked {
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1E170A, stop:1 #3A2F18);
-    border: 1px solid @ACCENT@; border-top-color: #1A1305; border-bottom-color: #5C440F;
-    color: #F2DDB4;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #211D15, stop:1 #2B261C);
+    border: 1px solid #8C8578; border-top-color: #1C1912; border-bottom-color: #423C32;
+    color: #E0D6BC;
     padding: 4px 9px 2px 9px;
 }
 /* Master BUS-ENABLE engaged (0x121): latches down on the green bus lamp,
@@ -956,12 +961,12 @@ QToolButton#DeviceChip:disabled {
     border: 1px solid #22282D; border-top-color: #22282D;
     color: #4E4A40;
 }
-/* Routed but powered down (0x121): faint warm memory of the lamp, still
-   sitting in the latched position. */
+/* Routed but powered down (0x121): a faint memory of the bronze latch,
+   still sitting in the latched position. */
 QToolButton#DeviceChip:checked:disabled {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #211C12, stop:1 #2A2417);
-    border: 1px solid #6B4A10; border-top-color: #40300B;
-    color: #7A6A45;
+    border: 1px solid #4E483B; border-top-color: #363024;
+    color: #7A745F;
     padding: 4px 9px 2px 9px;
 }
 /* Capture/blank powered down (0x121): collapse to the same dark film so
@@ -972,13 +977,13 @@ QToolButton#DeviceChip[deviceInstalled="false"]:disabled {
     border: 1px solid #22282D; border-top-color: #22282D;
     color: #4E4A40;
 }
-/* Routed capture/blank powered down (0x131): the same faint warm memory
-   as any routed switch that loses power, latched position kept. */
+/* Routed capture/blank powered down (0x131): the same faint memory as
+   any routed switch that loses power, latched position kept. */
 QToolButton#DeviceChip[deviceInput="true"]:checked:disabled,
 QToolButton#DeviceChip[deviceInstalled="false"]:checked:disabled {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #211C12, stop:1 #2A2417);
-    border: 1px solid #6B4A10; border-top-color: #40300B;
-    color: #7A6A45;
+    border: 1px solid #4E483B; border-top-color: #363024;
+    color: #7A745F;
     padding: 4px 9px 2px 9px;
 }
 
@@ -1157,13 +1162,15 @@ QLineEdit#CommentCardText:disabled {
 
 /* ── Stage card: the INSERT POINT switches ───────────────────────────────
    Three latching switches choose where the unit sits in the signal path;
-   the legends are engraved path printing. Engaged is a jewel lamp along
-   the cap's TOP edge - the third lamp position on this machine, so a
-   routed endpoint (backlit cap), a taken seat (under-cap lamp) and an
-   engaged insert point (top jewel) never read alike. Capture is the
-   input-side insert and rests as a recessed well, the same input grammar
-   as the Device bank's capture endpoints; once engaged it lights the
-   same jewel (a routed switch is a routed switch - typed combined rules,
+   the legends are engraved path printing. Engaged is a 2px bronze bar
+   along the cap's TOP edge - the third engaged position on this machine,
+   so a routed endpoint (whole cap latched), a taken seat (under-cap
+   lamp) and an engaged insert point (top bar) never read alike. The bar
+   was an amber jewel lamp until 2.61.2; it now wears the bronze of the
+   header caps, like the Device latch. Capture is the input-side insert
+   and rests as a recessed well, the same input grammar as the Device
+   bank's capture endpoints; once engaged it takes the same bar (a routed
+   switch is a routed switch - typed combined rules,
    as on the Device bank). Unknown selectors survive as a wireframe
    service tag printed in warning ink, kept as written (data, not
    engraving). */
@@ -1181,22 +1188,22 @@ QToolButton#StageChip:hover {
     border: 1px solid #787164; border-top-color: #3E474F;
     color: #F2DDB4;
 }
-/* Engaged: warm panel fill + the amber jewel lamp along the top edge. */
+/* Engaged: the bronze latch face + the bronze bar along the top edge. */
 QToolButton#StageChip:checked {
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3F3118, stop:1 #281F0F);
-    border: 1px solid @ACCENT@; border-top: 2px solid @ACCENT@;
-    color: #FFE9C8;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #363024, stop:1 #282319);
+    border: 1px solid #8C8578; border-top: 2px solid #8C8578;
+    color: @TEXT@;
 }
 QToolButton#StageChip:disabled {
     background: #171B1F;
     border: 1px solid #22282D; border-top-color: #22282D;
     color: #4E4A40;
 }
-/* Engaged but powered down: the jewel dims to a warm memory. */
+/* Engaged but powered down: the bar dims to a faint memory. */
 QToolButton#StageChip:checked:disabled {
     background: #211C12;
-    border: 1px solid #4A3A20; border-top: 2px solid #6B4A10;
-    color: #7A6A45;
+    border: 1px solid #363024; border-top: 2px solid #4E483B;
+    color: #7A745F;
 }
 /* Capture inserts on the input side: a recessed well at rest (dark top,
    lit lower lip), exactly like a capture endpoint on the Device bank. */
@@ -1210,12 +1217,12 @@ QToolButton#StageChip[stage="capture"]:hover {
     border: 1px solid #787164; border-top-color: #0C1013; border-bottom-color: #3E474F;
     color: #F2DDB4;
 }
-/* Engaged capture (0x121) - the lamp rule: identical jewel to pre/post;
+/* Engaged capture (0x121) - the latch rule: identical bar to pre/post;
    the well reads its type only at rest. */
 QToolButton#StageChip[stage="capture"]:checked {
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3F3118, stop:1 #281F0F);
-    border: 1px solid @ACCENT@; border-top: 2px solid @ACCENT@;
-    color: #FFE9C8;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #363024, stop:1 #282319);
+    border: 1px solid #8C8578; border-top: 2px solid #8C8578;
+    color: @TEXT@;
 }
 QToolButton#StageChip[stage="capture"]:disabled {
     background: #171B1F;
@@ -1224,8 +1231,8 @@ QToolButton#StageChip[stage="capture"]:disabled {
 }
 QToolButton#StageChip[stage="capture"]:checked:disabled {
     background: #211C12;
-    border: 1px solid #4A3A20; border-top: 2px solid #6B4A10;
-    color: #7A6A45;
+    border: 1px solid #363024; border-top: 2px solid #4E483B;
+    color: #7A745F;
 }
 /* Unknown selectors: not a machinable part, so a service tag printed on
    the panel in warning ink - wireframe, permanently inert, text kept as

@@ -14,6 +14,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Rack's Device and Stage buttons latch in bronze too.** In the dark Rack
+  skin a routed device on the Device card lit its whole button amber, and an
+  engaged insert point on the Stage card wore an amber bar along its top, while
+  the power and pointer buttons and the Copy grid already latch in a calm
+  bronze. Both now latch in the same bronze, with the label in the text colour.
+  The Channel card's seat lamp stays amber, and the light finish is unchanged
+  ([#444](https://github.com/115dkk/EqualizerAPO-XT/pull/444)).
+
 ## v2.61.2 — 2026-10-24
 
 - **Bold monospace text is bold again in every skin.** The monospace face

@@ -135,8 +135,8 @@ inline constexpr Tone BayStencil{ QColor(0x8A, 0x84, 0x78, 170), QColor(0xB8, 0x
 // Patchbay: the crosspoint field and the button caps (raised, latched,
 // routed, negative). Raised and latched caps mirror the Device switch bank
 // in the rack sheets. A routed cap is a latched cap: in dark it wears the
-// bronze latch of the header caps (face #282319 to #363024, legend in the
-// body ink) rather than the Device chip's amber backlight.
+// bronze latch of the header caps and the Device chips (face #282319 to
+// #363024, legend in the body ink).
 inline constexpr Tone PatchFieldShadowEdge{ QColor(0x0C, 0x10, 0x13), QColor(0xB8, 0xAC, 0x92) };
 inline constexpr Tone PatchFieldLitEdge{ QColor(0x3E, 0x47, 0x4F), QColor(0xFF, 0xFF, 0xFF) };
 inline constexpr Tone CapFaceTop{ QColor(0x2C, 0x33, 0x3A), QColor(0xFB, 0xF7, 0xEC) };
