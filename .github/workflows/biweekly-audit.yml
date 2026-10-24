@@ -26,6 +26,14 @@
 #      runs what the maintainer uses; the issue body records the commit it
 #      ran. Both skills are self-contained and model-invocable, so nothing
 #      has to be unlocked before the session can run them.
+#   4. RELEASE_DEPLOY_KEY, the write deploy key the version-bump job already
+#      uses. TECH_DEBT_AUDIT.md is committed to main after every audit and
+#      is the next audit's baseline: tech-debt-audit reads the file in the
+#      repository root as the previous run, keeps its TD-NN IDs and lists
+#      what was resolved since. The commit-baseline job pushes it over SSH
+#      with this key, because main's "Required checks" ruleset lets only
+#      deploy keys through and the commit has no checks of its own. The key
+#      is never given to the audit job, where the Claude session has a shell.
 
 name: Biweekly Audit
 
@@ -242,6 +250,13 @@ jobs:
         run: |
           unset ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN
 
+          # TECH_DEBT_AUDIT.md in the checkout is the previous audit, which
+          # the commit-baseline job committed (requirement 4). The skill reads
+          # it as its baseline and overwrites it, so remember its blob: a
+          # session that never writes a new report must not pass on the old
+          # file.
+          BASELINE_BLOB=$(git hash-object TECH_DEBT_AUDIT.md 2>/dev/null || echo none)
+
           # The audit runs on Mythos 5.1 (#337 pinned it to Fable 5.1, whose
           # safety classifiers could silently re-run a flagged request on
           # Opus 4.8 and keep the session there). availableModels stays
@@ -316,9 +331,11 @@ jobs:
 
           PART 2: Tech Debt Audit
           Run /115dkk-skills:tech-debt-audit.
-          Write the deliverable to TECH_DEBT_AUDIT.md in the
-          repository root as the skill specifies, with severity,
-          effort estimates, and its 'looks bad but is fine' section.
+          TECH_DEBT_AUDIT.md in the repository root, when present, is
+          the previous audit, committed by this workflow: read it as
+          the skill's baseline. Write the new deliverable over it as
+          the skill specifies, with severity, effort estimates, and
+          its 'looks bad but is fine' section.
           " > combined-audit-report.md 2>&1
           CLAUDE_EXIT=$?
           set -e
@@ -346,6 +363,12 @@ jobs:
               exit 1
             fi
           done
+
+          if [ "$(git hash-object TECH_DEBT_AUDIT.md)" = "$BASELINE_BLOB" ]; then
+            echo "::error::The audit session left the baseline TECH_DEBT_AUDIT.md unchanged."
+            cat combined-audit-report.md
+            exit 1
+          fi
 
       - name: Create GitHub Issue or summary
         env:
@@ -492,3 +515,67 @@ jobs:
           git tag "$AUDIT_TAG"
           git push origin "$AUDIT_TAG"
           echo "Tagged: $AUDIT_TAG"
+
+  commit-baseline:
+    # Commits this run's TECH_DEBT_AUDIT.md to main as the next audit's
+    # baseline (requirement 4 in the header). It runs only after the audit
+    # job finished, deliverables checked, issue filed and checkpoint tagged.
+    needs: audit
+    # An audit dispatched on another branch is not main's baseline, and
+    # checking that branch out here would rebase its unmerged commits onto
+    # main and push them with the deploy key. Only a run on main commits, and
+    # the checkout is pinned to main.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # The push authenticates with the RELEASE_DEPLOY_KEY deploy key, so the
+    # token only needs to read.
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: main
+          # Full history, so the rebase onto a main that moved meanwhile has
+          # its merge base.
+          fetch-depth: 0
+          ssh-key: ${{ secrets.RELEASE_DEPLOY_KEY }}
+          persist-credentials: true
+
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: "audit-report-${{ github.run_id }}"
+          path: ${{ runner.temp }}/audit-report
+
+      - name: Commit TECH_DEBT_AUDIT.md as the next baseline
+        run: |
+          set -euo pipefail
+
+          cp "$RUNNER_TEMP/audit-report/TECH_DEBT_AUDIT.md" TECH_DEBT_AUDIT.md
+          if git ls-files --error-unmatch TECH_DEBT_AUDIT.md >/dev/null 2>&1 \
+            && git diff --quiet -- TECH_DEBT_AUDIT.md; then
+            echo "TECH_DEBT_AUDIT.md is unchanged; nothing to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add TECH_DEBT_AUDIT.md
+          # [skip ci] keeps the deploy-key push from starting the build
+          # workflow on a commit that only touches this report. The audit's
+          # own change detection ignores *.md, so it does not trigger the
+          # next audit either.
+          git commit -m "docs: 기술 부채 감사 기준 결과를 갱신 [skip ci]" \
+            -m "격주 감사(실행 ${{ github.run_id }})의 TECH_DEBT_AUDIT.md를 다음 감사의 기준 결과로 커밋합니다."
+
+          for attempt in 1 2 3; do
+            git fetch origin main
+            if git rebase FETCH_HEAD && git push origin HEAD:main; then
+              echo "Committed the baseline as $(git rev-parse HEAD)."
+              exit 0
+            fi
+            git rebase --abort 2>/dev/null || true
+            echo "::warning::Baseline push attempt ${attempt} failed; retrying."
+            sleep 5
+          done
+          echo "::error::Could not push TECH_DEBT_AUDIT.md to main after 3 attempts."
+          exit 1

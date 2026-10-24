@@ -261,10 +261,11 @@ Tests/AudioRegressionTests/output/
 # Local Modern Card variant visual-check sample (Task #32)
 _card_variants_demo.txt
 
-# Tech-debt audit working files (generated at repo root by the audit run)
+# Audit working files (generated at repo root by the audit run).
+# TECH_DEBT_AUDIT.md is not listed: the audit commits it as the next run's
+# baseline (biweekly-audit.yml, commit-baseline job).
 combined-audit-report.md
 change-summary.txt
-TECH_DEBT_AUDIT.md
 
 # Generated benchmark input (Benchmark/scenarios/New-BenchIr.ps1)
 Benchmark/scenarios/*.wav
