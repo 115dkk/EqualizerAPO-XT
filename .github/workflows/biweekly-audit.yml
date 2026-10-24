@@ -521,6 +521,11 @@ jobs:
     # baseline (requirement 4 in the header). It runs only after the audit
     # job finished, deliverables checked, issue filed and checkpoint tagged.
     needs: audit
+    # An audit dispatched on another branch is not main's baseline, and
+    # checking that branch out here would rebase its unmerged commits onto
+    # main and push them with the deploy key. Only a run on main commits, and
+    # the checkout is pinned to main.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     # The push authenticates with the RELEASE_DEPLOY_KEY deploy key, so the
     # token only needs to read.
@@ -529,6 +534,7 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
+          ref: main
           # Full history, so the rebase onto a main that moved meanwhile has
           # its merge base.
           fetch-depth: 0
