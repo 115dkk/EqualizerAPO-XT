@@ -17,13 +17,15 @@
 # Requirements:
 #   1. Add CLAUDE_CODE_OAUTH_TOKEN under repository Actions secrets.
 #   2. Set Actions workflow permissions to "Read and write permissions".
-#   3. Keep the three audit skills vendored under .claude/skills.
-#      improve-codebase-architecture no longer carries its own architecture
-#      glossary: upstream moved the deep-module vocabulary (module, interface,
-#      depth, seam, adapter, leverage, locality, the deletion test) into a
-#      separate codebase-design skill that it reaches through the Skill tool.
-#      Without codebase-design installed, Part 1 still runs but loses the
-#      vocabulary it is supposed to phrase every finding in.
+#   3. No audit skill is vendored. Each run installs the 115dkk-skills
+#      plugin from the default branch of its marketplace, 115dkk/agent-skills
+#      (public, so no token), and the prompt calls
+#      /115dkk-skills:improve-codebase-architecture and
+#      /115dkk-skills:tech-debt-audit. Like the CLI, it is deliberately
+#      unpinned (the plugin manifest pins no version either) so the audit
+#      runs what the maintainer uses; the issue body records the commit it
+#      ran. Both skills are self-contained and model-invocable, so nothing
+#      has to be unlocked before the session can run them.
 
 name: Biweekly Audit
 
@@ -173,42 +175,38 @@ jobs:
         run: ./setup-build.ps1
 
       - name: Install audit skills
+        id: skills
         run: |
-          mkdir -p "$HOME/.claude/skills"
-          cp -R .claude/skills/improve-codebase-architecture "$HOME/.claude/skills/"
-          cp -R .claude/skills/tech-debt-audit "$HOME/.claude/skills/"
-          # improve-codebase-architecture calls this one through the Skill tool
-          # for the architecture vocabulary, so it has to be installed too.
-          cp -R .claude/skills/codebase-design "$HOME/.claude/skills/"
+          set -euo pipefail
 
-          test -f "$HOME/.claude/skills/improve-codebase-architecture/SKILL.md"
-          test -f "$HOME/.claude/skills/tech-debt-audit/SKILL.md"
-          test -f "$HOME/.claude/skills/codebase-design/SKILL.md"
+          # Both audit skills come from the 115dkk-skills plugin, fetched
+          # fresh on every run (requirement 3 in the header).
+          claude plugin marketplace add 115dkk/agent-skills
+          claude plugin install 115dkk-skills@115dkk
+          PLUGIN_PATH=$(claude plugin list --json | jq -er '.[] | select(.id == "115dkk-skills@115dkk" and .enabled) | .installPath')
+          # The CLI reports a Windows path; Git Bash wants its own form.
+          PLUGIN_PATH=$(cygpath -u "$PLUGIN_PATH")
 
-          # Both audit skills are locked with disable-model-invocation so
-          # interactive sessions never trigger a whole-repo audit by accident.
-          # This run's prompt explicitly says "Run /tech-debt-audit" and
-          # "Run /improve-codebase-architecture", and the model can only do
-          # that through the Skill tool, which the lock blocks (the 2026-08-15
-          # audit had to improvise Part 2 without the skill). Unlock the
-          # installed copies only; the copies in the repository stay locked.
-          # codebase-design is deliberately not in this list: it carries no
-          # lock, because the architecture skill has to be able to call it.
-          for locked in tech-debt-audit improve-codebase-architecture; do
-            sed -i '/^disable-model-invocation:/d' "$HOME/.claude/skills/$locked/SKILL.md"
-            if grep -q "disable-model-invocation" "$HOME/.claude/skills/$locked/SKILL.md"; then
-              echo "::error::$locked SKILL.md still carries disable-model-invocation after the unlock"
+          # The prompt tells the model to run both skills, and it can only do
+          # that through the Skill tool. A disable-model-invocation line
+          # arriving with a plugin update would leave that part improvising
+          # without its skill (the 2026-08-15 audit had to improvise Part 2
+          # this way), so stop here instead.
+          for skill in improve-codebase-architecture tech-debt-audit; do
+            SKILL_MD="$PLUGIN_PATH/skills/$skill/SKILL.md"
+            test -f "$SKILL_MD"
+            if grep -q "^disable-model-invocation:" "$SKILL_MD"; then
+              echo "::error::115dkk-skills:$skill carries disable-model-invocation, so the audit cannot invoke it."
               exit 1
             fi
           done
 
-          if grep -q "^disable-model-invocation:" "$HOME/.claude/skills/codebase-design/SKILL.md"; then
-            echo "::error::codebase-design must stay invocable; improve-codebase-architecture calls it."
-            exit 1
-          fi
+          PLUGIN_SHA=$(jq -r '.plugins["115dkk-skills@115dkk"][0].gitCommitSha // "unknown"' \
+            "$HOME/.claude/plugins/installed_plugins.json" 2>/dev/null || echo unknown)
+          echo "plugin_ref=115dkk/agent-skills@${PLUGIN_SHA:0:12}" >> "$GITHUB_OUTPUT"
 
-          echo "Installed Claude audit skills:"
-          find "$HOME/.claude/skills" -maxdepth 2 -name SKILL.md -print
+          echo "Installed audit skills from 115dkk/agent-skills@${PLUGIN_SHA}:"
+          find "$PLUGIN_PATH/skills" -maxdepth 2 -name SKILL.md -print
 
       - name: Verify Claude subscription credentials
         run: |
@@ -295,14 +293,14 @@ jobs:
           - Do not pad categories with filler findings.
 
           PART 1: Architecture Analysis
-          Run /improve-codebase-architecture.
-          That skill holds no glossary of its own any more. It will
-          tell you to call the codebase-design skill for the
-          architecture vocabulary (module, interface, depth, seam,
-          adapter, leverage, locality) and its principles, including
-          the deletion test. Do call it, and phrase every candidate in
-          those exact terms rather than drifting into component,
-          service, API, or boundary.
+          Run /115dkk-skills:improve-codebase-architecture.
+          This is an existing codebase, so use its review report, not
+          the foundation or stack report. The skill carries its own
+          glossary (module, interface, depth, seam, adapter, leverage,
+          locality) and its principles, including the deletion test,
+          in its LANGUAGE.md. Phrase every candidate in those exact
+          terms rather than drifting into component, service, API, or
+          boundary.
           Identify specific consolidation and deepening opportunities.
           Instead of the skill's HTML report, write the full
           deliverable as Markdown to ARCHITECTURE_AUDIT.md in the
@@ -312,17 +310,15 @@ jobs:
           directory and do not open a browser.
           Stop there. The skill's step 3 is a grilling loop that asks
           the user which candidate to pursue, and this session has no
-          user, so do not ask, do not call the grilling or
-          domain-modeling skills, and do not let that step's side
-          effects happen: leave CONTEXT.md and docs/adr/ untouched.
+          user, so do not ask and do not let that step's side effects
+          happen: leave CONTEXT.md and docs/adr/ untouched.
           When the file is complete, proceed immediately to Part 2.
 
           PART 2: Tech Debt Audit
-          Run /tech-debt-audit.
+          Run /115dkk-skills:tech-debt-audit.
           Write the deliverable to TECH_DEBT_AUDIT.md in the
           repository root as the skill specifies, with severity,
-          effort estimates, and the required 'looks bad but is
-          actually fine' section.
+          effort estimates, and its 'looks bad but is fine' section.
           " > combined-audit-report.md 2>&1
           CLAUDE_EXIT=$?
           set -e
@@ -363,6 +359,7 @@ jobs:
             echo ""
             echo "Changed relevant files: **${COUNT}**"
             echo "Model: Mythos 5.1 - Effort: xhigh - 1M context"
+            echo "Audit skills: 115dkk-skills (${{ steps.skills.outputs.plugin_ref }})"
             echo ""
             echo "This issue body corresponds to the generated \`issue-body.md\` artifact."
             echo "The remaining audit outputs are posted in full as file-specific comments below."
