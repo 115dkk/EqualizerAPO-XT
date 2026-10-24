@@ -19,9 +19,8 @@ CSS = '''
   .steps .arw { color: var(--muted); }
   .steps .plus { color: var(--success); font-weight: 700; }
   .steps .no { width: 28px; color: var(--muted); border-right: 1px solid var(--border); height: 100%; display: inline-flex; align-items: center; }
-  /* the app prints the token in DM Mono Medium and strikes it again half a pixel right (MinimalChannelInk.h);
-     700 would make Chromium fake a heavier bold than the app draws */
-  .steps .tok { font-weight: 500; color: var(--c); text-shadow: 0.5px 0 0 var(--c); }
+  /* the app prints the token in EAPO Mono SemiBold (MinimalChannelInk.h) */
+  .steps .tok { font-weight: 600; color: var(--c); }
   .steps .tok.virt { border: 1px dashed var(--c); padding: 0 4px; }
   .steps .fx { background: var(--sunken); padding: 1px 4px; color: var(--text); font-size: 12px; }
   .steps .tgt { border: 1px solid var(--border); padding: 0 5px; color: var(--muted); font-size: 12px; }
@@ -55,7 +54,7 @@ CSS = '''
   .grid td { padding: 0; width: 52px; height: 26px; text-align: center; vertical-align: middle; }
   .grid tr.cols td { height: 30px; }
   .grid td.rh { width: 64px; }
-  .grid .hd { color: var(--muted); font-weight: 500; }
+  .grid .hd { color: var(--muted); font-weight: 700; }
   .grid .hd.virt { text-decoration: underline dashed var(--muted) 1px; text-underline-offset: 3px; }
   .grid .cell { display: flex; align-items: center; justify-content: center; height: 24px; margin: 1px; border: 1px solid var(--border); background: color-mix(in srgb, var(--border) 7%, transparent); color: var(--text); font-weight: 400; }
   .grid .cell.acc { border-color: color-mix(in srgb, var(--accent) 78%, transparent); background: color-mix(in srgb, var(--accent) 24%, transparent); }

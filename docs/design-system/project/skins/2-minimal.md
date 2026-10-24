@@ -28,7 +28,7 @@ hover는 배경 한 스텝 상승, 그게 전부다. selected는 본문 잉크 �
 
 `EAPO Mono` 단일이고 이탤릭은 없다. 캡션은 대문자와 자간으로 구분한다. 강조는 굵기나 밝기로 만들고 크기를 키우지 않는다. 숫자 칼럼은 0패딩으로 폭을 고정하고, 좁은 폭에서 긴 값을 만나면 잘라내지 않고 폰트를 줄인다.
 
-번들 DM Mono의 굵기는 Regular와 Medium뿐이다. 시트가 모든 위젯에 500을 주고, Qt는 이 고정폭 활자에 가짜 볼드를 만들지 않아 700을 요청해도 Medium으로 찍힌다. 채널 토큰(Copy 목록과 헤더의 채널 범위)은 Medium 위에 반 픽셀 오른쪽으로 한 번 더 찍는다. 터미널이 없는 볼드를 만드는 겹쳐 찍기이고, 13px에서 잉크가 20% 늘어 DM Sans의 Medium에서 SemiBold까지 한 단계(17%)와 맞는다. 미리보기는 `font-weight: 500`에 `text-shadow: 0.5px 0 0`으로 같은 인쇄를 흉내 낸다(PR #431).
+`EAPO Mono`의 굵기는 Regular, Medium, SemiBold, Bold 넷이고 시트는 모든 위젯에 500을 준다. 업스트림 DM Mono는 Medium까지라 SemiBold와 Bold는 디자이너의 Light→Medium 방향으로 마스터를 외삽해 만든 면이다(PR #434, `Editor/fonts/make-mono-weights.py`). 13px 잉크는 DM Sans의 Medium→SemiBold(+17%), Medium→Bold(+31%) 단계와 맞춘다. 채널 토큰(Copy 목록과 헤더의 채널 범위)은 SemiBold로 찍는다. 처음에는 Medium을 반 픽셀 겹쳐 찍어 같은 굵기를 냈다(PR #431).
 
 ## 채널 잉크
 
