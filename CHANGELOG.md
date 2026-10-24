@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.61.2 — 2026-10-24
+
 - **Bold monospace text is bold again in every skin.** The monospace face
   (DM Mono) only comes in Light, Regular and Medium, and Qt does not fake a
   bold for it, so every bold number, readout, card coordinate and caption in
