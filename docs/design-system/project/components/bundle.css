@@ -230,8 +230,11 @@
 .skin-rack .crow .body { padding: 12px 26px 16px 34px; }
 .skin-rack .crow .hb { background: linear-gradient(180deg, #2c333a, #1b2126); border: 1px solid #11161a; border-top-color: #3e474f; border-radius: 3px; }
 [data-theme="light"] .skin-rack .crow .hb { background: linear-gradient(180deg, var(--card-hover), var(--card)); border-color: var(--seam); border-top-color: #fff8; }
-.skin-rack .crow .hb.expand { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 35%, #2c333a), color-mix(in srgb, var(--accent) 22%, #1b2126)); border-color: var(--accent); }
-.skin-rack .crow .hb.power { border-color: var(--accent); color: var(--accent); }
+/* The expand key is not a latch (#414), so it wears the plain cap above. The power key latches: in dark the bronze
+   latch of the header caps (rack_dark.qss FilterCardIconButton:checked), in light the amber latch, both with the
+   stock white power glyph. */
+.skin-rack .crow .hb.power { background: linear-gradient(180deg, #282319, #363024); border-color: #8c8578; color: #fff; }
+[data-theme="light"] .skin-rack .crow .hb.power { background: linear-gradient(180deg, #ebcf96, #f7e3b8); border-color: var(--accent); }
 .skin-rack .crow .tbadge { border: 1px solid var(--t, var(--muted)); color: var(--t, var(--muted)); border-radius: 2px; }
 .skin-rack .crow .title { text-transform: uppercase; letter-spacing: 1px; font-size: 12px; font-weight: 700; }
 .skin-rack .crow .ch { border-radius: var(--radius); background: color-mix(in srgb, var(--c) 14%, transparent); }
