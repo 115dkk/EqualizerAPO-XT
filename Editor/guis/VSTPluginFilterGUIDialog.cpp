@@ -17,6 +17,7 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+#include <QEvent>
 #include <QPushButton>
 #include "VSTPluginFilterGUIDialog.h"
 #include "ui_VSTPluginFilterGUIDialog.h"
@@ -40,6 +41,7 @@ VSTPluginFilterGUIDialog::VSTPluginFilterGUIDialog(QWidget* parent, VSTPluginIns
 	// shown, so its device pixel ratio is reliable; the dialog's own is not yet.
 	double scaleFactor = (parent != nullptr) ? parent->devicePixelRatioF() : devicePixelRatioF();
 	editorOpen = effect->startEditing(hwnd, &width, &height, scaleFactor);
+	editorScale = scaleFactor;
 	if (!editorOpen)
 		return;
 
@@ -63,6 +65,18 @@ QPushButton* VSTPluginFilterGUIDialog::getApplyButton()
 QCheckBox* VSTPluginFilterGUIDialog::getAutoApplyCheckBox()
 {
 	return ui->autoApplyCheckBox;
+}
+
+bool VSTPluginFilterGUIDialog::event(QEvent* event)
+{
+	const bool handled = QDialog::event(event);
+	if (event->type() == QEvent::DevicePixelRatioChange && editorOpen
+		&& !qFuzzyCompare(devicePixelRatioF(), editorScale))
+	{
+		editorScale = devicePixelRatioF();
+		effect->setEditorScale(editorScale);
+	}
+	return handled;
 }
 
 void VSTPluginFilterGUIDialog::onSizeWindow(int w, int h)

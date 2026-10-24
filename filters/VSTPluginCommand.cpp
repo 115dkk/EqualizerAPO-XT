@@ -20,6 +20,7 @@
 #include "stdafx.h"
 #include "text/WideString.h"
 
+#include <charconv>
 #include <cstdio>
 #include <cwctype>
 #include <cerrno>
@@ -149,12 +150,15 @@ wstring serializeState(const wstring& chunkData, const std::unordered_map<wstrin
 
 	for (const auto& it : paramMap)
 	{
-		wchar_t buffer[64];
-		swprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), L"%g", (double)it.second);
+		// The shortest decimal that reads back as the same float. "%g" kept six
+		// significant digits, so a value such as MVerb's default Size, normalized
+		// (75 - 5) / 95 = 0.7368421, came back from a saved line as 74.99999.
+		char digits[32];
+		const std::to_chars_result converted = std::to_chars(digits, digits + sizeof(digits), it.second);
 		result += L" ";
 		result += quoteCommandToken(it.first);
 		result += L" ";
-		result += buffer;
+		result.append(digits, converted.ptr);
 	}
 	return result;
 }

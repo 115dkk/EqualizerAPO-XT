@@ -102,6 +102,9 @@ public:
 	}
 
 	bool startEditing(HWND hWnd, short* width, short* height, double scaleFactor = 1.0);
+	// Re-scales an open editor after its host frame moves to a display
+	// with another device pixel ratio. Returns false when no editor is open.
+	bool setEditorScale(double scaleFactor);
 	virtual void doIdle() = 0;
 	virtual void stopEditing() = 0;
 	// A size request from the plug-in's editor, in the units its format uses.
@@ -144,6 +147,7 @@ protected:
 	static constexpr int defaultEditorHeight = 300;
 	static short logicalEditorSize(int physical, double scaleFactor);
 	virtual bool startEditingImpl(HWND hWnd, short* width, short* height, double scaleFactor) = 0;
+	virtual bool rescaleEditorImpl(double scaleFactor) = 0;
 
 	VSTPluginInstance(const std::shared_ptr<VSTPluginLibrary>& library, int processLevel)
 		: library(library), processLevel(processLevel)

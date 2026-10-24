@@ -190,6 +190,7 @@ Qt 도구는 CI에서도, 문서화된 로컬 설정에서도 qmake로 빌드합
 - **스위트:** `EditorLogicTests`와 `HybridConvTests`(단위 테스트), `EngineOrchestrationTests`(엔진 라우팅, 설정 교체, 장치와 레지스트리 동작), `AudioRegressionTests`(엔진 출력을 커밋된 기준값과 비교하며 CI에서는 SIMD 변형끼리도 비교), `AsioTests`(ASIO 래퍼, 호스트 연결, 엔진 호스트)가 있습니다.
 - **픽스처:** `TestVst2Plugin`과 `TestVst3Plugin`(VST2·VST3 호스트를 시험하는 자체 플러그인), `FakeAsioDriver`(래퍼 테스트용 ASIO 드라이버), `AsioSupport`(공용 테스트 헤더)가 있습니다.
 - **프로브:** `VstPreviewProbe`(`vst3-preview-probe` 워크플로가 실제 엔드포인트에서 패널 실시간 미리 듣기를 확인), `AsioProbe`(ASIO 프로브 게이트), 가상 케이블 러너에서 캡처 게이트를 돌리는 `ApoHostProbe`와 `CaptureProbe`가 있습니다.
+- **패널 입력 게이트:** `.github/scripts/Invoke-PanelInputGate.ps1`이 DPF-Plugins의 3 Band EQ와 MVerb(VST2와 VST3, `Build-DpfTestPlugins.ps1`이 고정한 소스에서 빌드) 패널을 Editor에서 열고, 실제 마우스 입력으로 조작부를 끈 뒤 OK와 Save를 누릅니다. 그런 다음 저장된 상태, 다시 연 패널, 저장된 줄로 Benchmark가 낸 소리를 확인합니다. CI는 출시본 Editor와 AddressSanitizer로 빌드한 Editor 두 가지로 돌립니다.
 
 변형별 테스트 정책은 [docs/SimdBuildMatrix.md](docs/SimdBuildMatrix.md)에 있습니다.
 

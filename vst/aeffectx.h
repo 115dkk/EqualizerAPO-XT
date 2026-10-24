@@ -1,12 +1,27 @@
 /* An attempt at an untained clean room reimplementation of the widely popular VST 2.x SDK.
  * Copyright (c) 2020 Xaymar Dirks <info@xaymar.com> (previously known as Michael Fabian Dirks)
- * SPDX-License-Identifier: BSD-2-Clause
+ * SPDX-License-Identifier: BSD-3-Clause
  *
- * EqualizerAPO-XT fork note (audit #250 F062): vendored from the upstream
- * clean-room header and extended in this repository with the
- * double-precision processing surface (process_double and the
- * supports-double effect flag) for the 64-bit engine. Diff against upstream
- * before syncing a newer revision.
+ * EqualizerAPO-XT fork note (audit #250 F062): vendored from include/vst.h of
+ * https://github.com/Xaymar/vst2sdk at v0.4.0
+ * (339d4f31590bf77c0d0d248e09a380ac6285e069), the latest upstream revision
+ * as of 2026-10-23. Upstream's LICENSE has been BSD 3-clause since v0.2.0
+ * while the comment below still carries the two-clause text, so the third
+ * clause applies too:
+ *
+ * 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote
+ *    products derived from this software without specific prior written permission.
+ *
+ * This copy differs from upstream only in:
+ *  - host opcode aliases upstream leaves unnamed (0x04, 0x06, 0x07, 0x0E,
+ *    0x16, 0x18-0x1E) and vst_time_info for VST_HOST_OPCODE_GET_TIME;
+ *  - `inline constexpr` on the two support tables, so C++ translation units
+ *    share one definition;
+ *  - the editor content scale request (VST_EFFECT_CONTENT_SCALE_INDEX/_VALUE)
+ *    and its vst_effect_supports.supportsViewDpiScaling query, which upstream
+ *    does not document;
+ *  - wording in a few comments.
+ * Diff against upstream before syncing a newer revision.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
  * following conditions are met:
@@ -1156,7 +1171,11 @@ enum VST_HOST_OPCODE {
 
 	/** @todo */
 	VST_HOST_OPCODE_0E = 0x0E,
-	VST_HOST_OPCODE_IO_NEED_IDLE = 0x0D,
+	/** @sa VST_HOST_OPCODE_0E
+	 * XT alias. It used to be 0x0D, the value of @ref VST_HOST_OPCODE_IO_MODIFIED, so the host answered
+	 * I/O change notifications as idle requests.
+	 */
+	VST_HOST_OPCODE_IO_NEED_IDLE = 0x0E,
 
 	/** Request that the host changes the size of the containing window.
 	 *
@@ -2481,6 +2500,8 @@ enum VST_EFFECT_OPCODE {
 	 * All parameters are undefined by the standard and left up to the host/plug-in. Use @ref VST_EFFECT_OPCODE_SUPPORTS
 	 * and @ref VST_EFFECT_OPCODE_VENDOR_NAME + @ref VST_EFFECT_OPCODE_VENDOR_VERSION to check if the plug-in is
 	 * compatible with your expected format.
+	 *
+	 * @sa VST_EFFECT_CONTENT_SCALE for the editor content scale request.
 	 */
 	VST_EFFECT_OPCODE_32     = 0x32,
 	/** @sa VST_EFFECT_OPCODE_32 */
@@ -2790,6 +2811,27 @@ enum VST_EFFECT_OPCODE {
 	_VST_EFFECT_OPCODE_PAD = (-1l)
 };
 
+/** Editor content scale request (XT addition, not in upstream).
+ *
+ * Sent as @ref VST_EFFECT_OPCODE_CUSTOM with p_int1 = @ref VST_EFFECT_CONTENT_SCALE_INDEX,
+ * p_int2 = @ref VST_EFFECT_CONTENT_SCALE_VALUE, p_ptr = NULL and p_float = the scale (1.0 at 96 DPI, 1.5 at 144 DPI).
+ * Only plug-ins that answer 1 to @ref VST_EFFECT_OPCODE_SUPPORTS with
+ * @ref vst_effect_supports_t.supportsViewDpiScaling take it. Hosts send it before the first
+ * @ref VST_EFFECT_OPCODE_EDITOR_GET_RECT, because a plug-in may size its editor from the scale it last received, and
+ * again when the editor moves to a display with another scale; an open editor then reports its new size through
+ * @ref VST_HOST_OPCODE_EDITOR_RESIZE. Editor rectangles stay in the parent window's pixels. The request has no
+ * defined return value.
+ *
+ * Checked against DPF (https://github.com/DISTRHO/DPF, b801214e9ce41b56907e1c6c84859b6b4536917d,
+ * distrho/src/DistrhoPluginVST2.cpp), which answers the query and handles the request on Windows and Linux only.
+ */
+enum VST_EFFECT_CONTENT_SCALE {
+	/** 'PreS' */
+	VST_EFFECT_CONTENT_SCALE_INDEX = VST_FOURCC('P', 'r', 'e', 'S'),
+	/** 'AeCs' */
+	VST_EFFECT_CONTENT_SCALE_VALUE = VST_FOURCC('A', 'e', 'C', 's'),
+};
+
 #if (__STDC_VERSION__ >= 199901L) || (__cplusplus >= 202002L)
 /** Host to Plug-in support checks
  *
@@ -2876,6 +2918,13 @@ struct vst_effect_supports_t {
 	const char* _4in8out;
 	const char* _8in4out;
 	const char* _8in8out;
+
+	/** Plug-in takes the editor content scale request (XT addition, not in upstream).
+	 *
+	 * @sa VST_EFFECT_CONTENT_SCALE
+	 * @return 1 if the plug-in takes the request, anything else otherwise.
+	 */
+	const char* supportsViewDpiScaling;
 } /** @private */ inline constexpr vst_effect_supports = {
 	.bypass = "bypass",
 	.sendVstEvents = "sendVstEvents",
@@ -2902,6 +2951,7 @@ struct vst_effect_supports_t {
 	._4in8out = "4in8out",
 	._8in4out = "8in4out",
 	._8in8out = "8in8out",
+	.supportsViewDpiScaling = "supportsViewDpiScaling",
 };
 #endif
 

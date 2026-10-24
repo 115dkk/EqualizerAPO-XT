@@ -198,6 +198,43 @@ void testRestoreBeyondEditRing(const wstring& directory)
 		"the value after the 1023rd restored parameter is applied");
 }
 
+// A DPF-based plug-in returns from a zero-sample process call before it reads
+// the parameter changes. An editor edit must still reach its component before
+// the configuration state is saved, or the saved ChunkData keeps the old value.
+void testEditorEditWithoutZeroSampleFlush(const wstring& directory)
+{
+	const wstring bundle = prepareBundle(directory, L"IgnoreParameterFlushBundle.vst3", L"IgnoreParameterFlush.vst3");
+	shared_ptr<VSTPluginLibrary> library = VSTPluginLibrary::getInstance(bundle);
+	harness.require(!bundle.empty() && VSTPluginLibrary::load(library->getLibPath()).status >= 0,
+		"flush-ignoring VST3 module initializes");
+	auto instanceOwner = VSTPluginInstance::create(library, 2);
+	VSTPluginInstance& instance = *instanceOwner;
+	harness.require(instance.initialize(), "flush-ignoring component initializes");
+	instance.prepareForProcessing(48000.0f, 16);
+
+	HWND parent = CreateWindowExW(0, L"STATIC", L"VST3 flush test parent", WS_OVERLAPPED,
+		0, 0, 640, 480, nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
+	harness.require(parent != nullptr, "flush test parent is created");
+	short width = 0;
+	short height = 0;
+	harness.require(instance.startEditing(parent, &width, &height, 1.0), "flush-ignoring editor attaches");
+	HWND hostWindow = GetWindow(parent, GW_CHILD);
+	HWND pluginWindow = hostWindow != nullptr ? GetWindow(hostWindow, GW_CHILD) : nullptr;
+	harness.require(pluginWindow != nullptr, "flush-ignoring editor creates its child window");
+	wstring automatedChunk;
+	instance.setAutomateFunc([&instance, &automatedChunk]() {
+		std::unordered_map<wstring, float> parameters;
+		instance.readFromEffect(automatedChunk, parameters);
+	});
+	SendMessageW(pluginWindow, WM_APP + 77, 0, 0);
+	PluginState edited;
+	edited.gain = 0.25;
+	harness.expectTrue(automatedChunk == encodeState(edited),
+		"an editor edit reaches a component that ignores zero-sample calls before the state is saved");
+	instance.stopEditing();
+	DestroyWindow(parent);
+}
+
 // Audit #348 TD-48: a plug-in that keeps the host's component handler and
 // calls it after the instance is gone must be refused, not let into freed
 // memory.
@@ -315,6 +352,19 @@ return;
 		"VST3 editor receives restored component state");
 	harness.expectTrue(wstring(editorTitle).find(L"Scale 1.50") != wstring::npos,
 		"VST3 editor receives the host content scale factor");
+	int scaledWidth = 0;
+	int scaledHeight = 0;
+	instance.setSizeWindowFunc([&scaledWidth, &scaledHeight](int w, int h) {
+		scaledWidth = w;
+		scaledHeight = h;
+	});
+	harness.expectTrue(instance.setEditorScale(2.0), "attached VST3 editor accepts a monitor scale change");
+	GetWindowTextW(pluginWindow, editorTitle, 128);
+	harness.expectTrue(scaledWidth == 180 && scaledHeight == 110,
+		"VST3 monitor scale change reports the logical editor size (360x220 / 2)");
+	harness.expectTrue(wstring(editorTitle).find(L"Scale 2.00") != wstring::npos,
+		"attached VST3 editor receives the changed content scale factor");
+	instance.setSizeWindowFunc(nullptr);
 	wstring automatedChunk;
 	int automateCallCount = 0;
 	instance.setAutomateFunc([&instance, &automatedChunk, &automateCallCount]() {
@@ -1111,4 +1161,5 @@ return;
 	}
 	testRestoreBeyondEditRing(directory);
 	testHostContextDetach(directory);
+	testEditorEditWithoutZeroSampleFlush(directory);
 }

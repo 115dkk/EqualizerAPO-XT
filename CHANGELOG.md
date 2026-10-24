@@ -23,6 +23,61 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   minimal skin's channel names use the new SemiBold instead of the
   half-pixel double strike from 2.60.1 ([#434](https://github.com/115dkk/EqualizerAPO-XT/pull/434)).
 
+## v2.61.1 — 2026-10-24
+
+- **VST2 plug-ins built with JUCE 6.0.0 to 6.1.2 follow the monitor scale.**
+  These plug-ins say they can scale themselves, but they ignore a scale sent
+  before their panel exists, so on a 150% monitor they were still drawn at
+  100%. The scale is now sent again once the panel is open
+  ([#442](https://github.com/115dkk/EqualizerAPO-XT/pull/442)).
+
+## v2.61.0 — 2026-10-23
+
+- **VST2 plug-in panels fit high-DPI monitors.** On a monitor scaled above 100%
+  (150%, for example), the frame around a VST2 panel was larger than the
+  plug-in's window by the scale factor, leaving an empty strip on the right and
+  at the bottom, and VST2 plug-ins that can scale themselves (DPF-based ones,
+  for example) were drawn at 100% because they were never told the scale. Such
+  plug-ins now receive the monitor's scale before they lay out, and every VST2
+  panel's frame matches the plug-in's window. Moving the Editor or a panel
+  dialog to a monitor with another scale now re-scales VST2 and VST3 panels
+  ([#441](https://github.com/115dkk/EqualizerAPO-XT/pull/441)).
+- **A VST2 plug-in that reports changed inputs, outputs or latency is no longer
+  answered as if it asked for idle time.** The vendored VST2 interface header
+  gave the idle request the value of the I/O-changed notification, so the host
+  answered that notification by calling back into the plug-in mid-callback
+  ([#441](https://github.com/115dkk/EqualizerAPO-XT/pull/441)).
+
+## v2.60.6 — 2026-10-23
+
+- **A configuration saved as "UTF-8 with BOM" no longer loses its first
+  command.** Notepad's "UTF-8 with BOM" starts the file with a byte order mark.
+  EQ APO XT read the mark as part of the first line, so the first command (a
+  `Preamp:` line, for example) was skipped without an error. The mark is now
+  ignored by the audio engine and the Editor, and the Editor saves such a file
+  back without it ([#440](https://github.com/115dkk/EqualizerAPO-XT/pull/440)).
+
+## v2.60.5 — 2026-10-23
+
+- **VST2 parameter values are saved exactly.** The Editor wrote each VST2
+  parameter value with six significant digits, so a value such as MVerb's
+  default Size came back from `config.txt` as 74.99999 instead of 75 and the
+  saved configuration sounded slightly different from the panel. Values are
+  now written as the shortest decimal that reads back as the same number.
+  Short values such as 0.5 keep their spelling, and the format is unchanged
+  ([#439](https://github.com/115dkk/EqualizerAPO-XT/pull/439)).
+
+## v2.60.4 — 2026-10-23
+
+- **Panel edits of DPF-based VST3 plugins are saved again.** Turning a knob in
+  the panel of a VST3 plugin built with DPF (3 Band EQ, MVerb and the other
+  DPF-Plugins, for example) and pressing OK and Save kept the plugin's
+  previous state in `ChunkData`, so the audio service played the old
+  settings. While no audio runs, the Editor passes a panel edit to the plugin
+  through a process call that DPF ignores. It now passes the edit with one
+  silent frame, which every plugin reads. Saved configurations keep their
+  format ([#437](https://github.com/115dkk/EqualizerAPO-XT/pull/437)).
+
 ## v2.60.3 — 2026-10-22
 
 - **Rack's Copy grid latches in bronze like the other buttons.** In the dark

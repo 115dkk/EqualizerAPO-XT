@@ -156,6 +156,8 @@ cppcheck job은 베이스라인 0 기준의 차단 게이트입니다. CI는 cpp
 
 memcheck job은 동적 메모리 게이트입니다. 런타임 테스트 스위트를 MSVC AddressSanitizer(`/p:EnableASAN=true`, 컨테이너 주석 비활성, WPO 끔)로 재빌드해 실행하며, 힙 위반(use-after-free, 오버플로, 이중 해제)은 ASan 리포트가 프로세스를 중단시켜 Red가 됩니다. 엔진 버퍼 누수는 각 테스트 바이너리가 종료 시 검사하는 AlignedMemory 카나리아(Tests/AlignedMemoryGate.h)가 Red로 만듭니다. Windows MSVC에는 LeakSanitizer가 없어 전체 힙 누수 검출은 제공되지 않습니다. 성능 계약 테스트는 `__SANITIZE_ADDRESS__`에서 스스로 빠집니다. 빌드/실행 절차는 .github/scripts/Invoke-MemcheckTests.ps1에 있고, 로컬 재현도 같은 스크립트로 합니다(플래그 전환 시 /t:rebuild 필수).
 
+panel-input-gate job은 사용자가 플러그인 패널을 조작해 저장하는 흐름을 실제 OS 입력으로 확인하는 게이트입니다. `Build-DpfTestPlugins.ps1`이 DPF-Plugins의 3 Band EQ와 MVerb(VST2, VST3)를 고정 커밋으로 저장소 밖에서 빌드하고, GPU가 없는 러너에서 DPF 편집기가 그려지도록 고정한 Mesa llvmpipe를 플러그인과 Editor 옆에 둡니다. `Invoke-PanelInputGate.ps1`(Windows PowerShell 5.1, UI Automation과 SendInput)은 패널을 열어 조작부를 끌고 OK와 Save를 누른 뒤 저장된 상태, 다시 연 패널의 픽셀, Benchmark 렌더를 확인하며, 배경 끌기가 음성 대조입니다. asan 갈래는 `Build-QtApps.ps1 -AddressSanitizer`로 빌드한 Editor로 같은 시나리오를 돌려, memcheck가 다루지 않는 Qt 앱 코드의 힙 위반을 잡습니다. 결과 그림과 summary.json은 `panel-input-gate-<갈래>` 아티팩트에 남습니다.
+
 테스트를 건너뛰는 판단은 명시적인 이유가 있어야 합니다. GitHub-hosted x64 runner가 AVX-512/AVX10.1 실행을 보장하지 않아 `HybridConvTests` 실행을 건너뛰는 경우처럼, 빌드는 유지하되 런타임 실행만 제한합니다.
 
 회귀가 발견되면 먼저 재현 가능한 테스트나 검증 명령을 추가합니다. 오디오 처리 내부처럼 버그를 잡기 어려운 부분은 더 좁은 테스트를 먼저 만들고, 테스트가 가리키는 범위만 수정합니다.

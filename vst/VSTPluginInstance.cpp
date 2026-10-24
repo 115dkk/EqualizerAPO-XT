@@ -47,11 +47,18 @@ short VSTPluginInstance::logicalEditorSize(int physical, double scaleFactor)
 bool VSTPluginInstance::startEditing(HWND hWnd, short* width, short* height, double scaleFactor)
 {
 	// Defaults are physical pixels; callers receive logical host-frame units.
-	if (scaleFactor <= 0.0)
+	if (!std::isfinite(scaleFactor) || scaleFactor <= 0.0)
 		scaleFactor = 1.0;
 	if (width != nullptr)
 		*width = logicalEditorSize(defaultEditorWidth, scaleFactor);
 	if (height != nullptr)
 		*height = logicalEditorSize(defaultEditorHeight, scaleFactor);
 	return startEditingImpl(hWnd, width, height, scaleFactor);
+}
+
+bool VSTPluginInstance::setEditorScale(double scaleFactor)
+{
+	if (!std::isfinite(scaleFactor) || scaleFactor <= 0.0)
+		scaleFactor = 1.0;
+	return rescaleEditorImpl(scaleFactor);
 }

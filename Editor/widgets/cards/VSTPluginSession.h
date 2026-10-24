@@ -38,6 +38,7 @@
 #include "vst/VSTPluginInstance.h"
 #include "vst/VSTPluginLibrary.h"
 
+class QEvent;
 class QWidget;
 
 class VSTPluginSession : public QObject
@@ -127,6 +128,10 @@ public:
 	// cannot read, as warning text; empty when there are none.
 	QString chunkPermissionWarning() const;
 
+protected:
+	// Follows the embedded panel's window to a display with another scale.
+	bool eventFilter(QObject* watched, QEvent* event) override;
+
 signals:
 	// status() changed.
 	void statusChanged();
@@ -185,6 +190,10 @@ private:
 	unsigned loadGeneration = 0;
 	VSTPanelIntent intent;
 	QWidget* embedHost = nullptr;
+	// The embedded panel's top-level window, watched for scale changes, and
+	// the device pixel ratio the panel was last laid out at.
+	QPointer<QWidget> scaleWatchWindow;
+	double embeddedScale = 1.0;
 	std::function<void(bool shown)> showEmbedHost;
 	QPointer<QWidget> pendingDialogParent;
 	bool replacementPending = false;

@@ -88,6 +88,12 @@ Both are kill switches for the field and the control arms of the
   calls the host's PRODUCT_NAME and SUPPORTS callbacks with null and valid
   pointers at load and refuses to load if any answer is wrong. Not meant to
   be set by hand.
+- `EAPO_TEST_VST_EDITOR` — set by `HybridConvTests` (`VstHostTests.cpp`)
+  while it loads `TestVst2Plugin`: `fixed` gives the fixture a 320x200
+  editor that does not take the content scale request, `scaled` one that
+  does, and `late` one that drops a scale request received before its editor
+  opens, as JUCE 6.0.0 to 6.1.2 do. Unset, the fixture has no editor. Not
+  meant to be set by hand.
 - `EAPO_XT_TEST_IMPORT_DIR` / `EAPO_XT_TEST_INCLUDE_DIR` — set by
   `EditorLogicTests` (`ConfigImportTests.cpp`) and `EngineOrchestrationTests`
   (`ConfigLoadTests.cpp`) themselves, so a test config can write

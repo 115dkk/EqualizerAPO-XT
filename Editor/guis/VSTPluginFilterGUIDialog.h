@@ -46,6 +46,11 @@ public:
 
 	void onSizeWindow(int w, int h);
 
+protected:
+	// Re-scales the plug-in when the dialog moves to a display with
+	// another scale; the frame follows through onSizeWindow.
+	bool event(QEvent* event) override;
+
 private slots:
 	void on_autoApplyCheckBox_clicked(bool checked);
 
@@ -54,4 +59,6 @@ private:
 	// Non-owning: the dialog is stack-bound inside the effect owner's method.
 	VSTPluginInstance* effect;
 	bool editorOpen = false;
+	// The device pixel ratio the plug-in was last laid out at.
+	double editorScale = 1.0;
 };

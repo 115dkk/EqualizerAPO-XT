@@ -38,6 +38,11 @@ public:
 			std::getline(input, encodedLine);
 			if (!encodedLine.empty() && encodedLine.back() == '\r')
 				encodedLine.pop_back();
+			// Notepad's "UTF-8 with BOM" starts the file with EF BB BF. Kept, it decodes
+			// to U+FEFF in front of the first key, which no factory then claims, so the
+			// first command was dropped as prose without a report.
+			if (lines.empty() && encodedLine.starts_with("\xEF\xBB\xBF"))
+				encodedLine.erase(0, 3);
 
 			std::wstring line = wintext::toWideString(encodedLine, CP_UTF8);
 			if (line.find(L'\uFFFD') != std::wstring::npos)

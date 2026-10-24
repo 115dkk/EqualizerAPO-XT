@@ -232,7 +232,7 @@ bool VST3Lifecycle::flushParameters(ProcessData& data,
 		return false;
 
 	// An editor session already holds the component in the Processing state.
-	// Other idle instances use one activation cycle around the zero-sample call.
+	// Other idle instances use one activation cycle around the flush call.
 	const bool sessionFlush = editorSession;
 	bool activatedForFlush = false;
 	if (!sessionFlush)
