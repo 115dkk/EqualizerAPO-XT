@@ -556,6 +556,10 @@ bool VST2Instance::startEditingImpl(HWND hWnd, short* width, short* height, doub
 	vst_rect_t* rect = nullptr;
 	effect->control(effect.get(), VST_EFFECT_OPCODE_EDITOR_GET_RECT, 0, 0, &rect, 0.0f);
 	effect->control(effect.get(), VST_EFFECT_OPCODE_EDITOR_OPEN, 0, 0, hWnd, 0.0f);
+	// JUCE 6.0.0 to 6.1.2 drop a scale received before the editor exists;
+	// repeat it now that the editor is open.
+	if (editorScaleSupported)
+		requestContentScale(scaleFactor);
 	effect->control(effect.get(), VST_EFFECT_OPCODE_EDITOR_GET_RECT, 0, 0, &rect, 0.0f);
 
 	if (rect == nullptr || rect->right - rect->left <= 0 || rect->bottom - rect->top <= 0)
