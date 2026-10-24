@@ -16,8 +16,8 @@
 	  - processReplacing / processDoubleReplacing copy input to output scaled by
 	    Gain, unless Bypass >= 0.5 in which case input is passed through unscaled.
 	  - flags advertise canReplacing (float), canDoubleReplacing (double) and
-	    programChunks (chunk-based state). EAPO_TEST_VST_EDITOR selects a fixed
-	    or DPI-scaled editor persona; unset keeps the plugin editorless.
+	    programChunks (chunk-based state). EAPO_TEST_VST_EDITOR selects a fixed,
+	    DPI-scaled or late-scaling editor persona; unset keeps the plugin editorless.
 	  - The chunk is a fixed little-endian blob: a 4-byte magic 'TVP2', a uint32
 	    version, then the two float parameters. getChunk emits it; setChunk
 	    restores the parameters from it. This lets the host round-trip parameter
@@ -114,7 +114,8 @@ enum class EditorPersona
 {
 	none,
 	fixed,
-	scaled
+	scaled,
+	late
 };
 
 struct PluginState
@@ -289,7 +290,8 @@ intptr_t VST_FUNCTION_INTERFACE dispatcher(vst_effect_t* effect, int32_t opcode,
 		if (feature != nullptr && std::strcmp(feature, "bypass") == 0)
 			return 1;
 		if (feature != nullptr && std::strcmp(feature, vst_effect_supports.supportsViewDpiScaling) == 0)
-			return state != nullptr && state->editorPersona == EditorPersona::scaled ? 1 : 0;
+			return state != nullptr && (state->editorPersona == EditorPersona::scaled
+				|| state->editorPersona == EditorPersona::late) ? 1 : 0;
 		return 0;
 	}
 
@@ -327,7 +329,10 @@ intptr_t VST_FUNCTION_INTERFACE dispatcher(vst_effect_t* effect, int32_t opcode,
 				state->editorFailed = true;
 				return 0;
 			}
-			if (state->editorPersona == EditorPersona::scaled
+			if (state->editorPersona == EditorPersona::late && !state->editorOpen)
+				return 1;
+			if ((state->editorPersona == EditorPersona::scaled
+				|| state->editorPersona == EditorPersona::late)
 				&& (!state->rectQueried || state->editorOpen))
 			{
 				const short oldWidth = static_cast<short>(state->rect.right - state->rect.left);
@@ -384,7 +389,8 @@ intptr_t VST_FUNCTION_INTERFACE dispatcher(vst_effect_t* effect, int32_t opcode,
 		if (state == nullptr || state->editorPersona == EditorPersona::none)
 			return 0;
 		state->editorOpen = true;
-		if (state->editorPersona == EditorPersona::scaled && state->host != nullptr)
+		if ((state->editorPersona == EditorPersona::scaled
+			|| state->editorPersona == EditorPersona::late) && state->host != nullptr)
 		{
 			state->dispatcherActive = true;
 			const intptr_t modified = state->host(effect, VST_HOST_OPCODE_IO_MODIFIED, 0, 0, nullptr, 0.0f);
@@ -448,6 +454,8 @@ vst_effect_t* createEffect(vst_host_callback_t callback)
 			state->editorPersona = EditorPersona::fixed;
 		else if (wcscmp(editorMode, L"scaled") == 0)
 			state->editorPersona = EditorPersona::scaled;
+		else if (wcscmp(editorMode, L"late") == 0)
+			state->editorPersona = EditorPersona::late;
 		if (state->editorPersona != EditorPersona::none)
 			effect->flags |= VST_EFFECT_FLAG_EDITOR;
 	}

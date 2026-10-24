@@ -449,6 +449,20 @@ void testVst2EditorScaling(const shared_ptr<VSTPluginLibrary>& library)
 	harness.expectTrue(width == 320 && height == 200,
 		"a reopened VST2 editor receives the 100 percent content scale request");
 	reopened->stopEditing();
+
+	SetEnvironmentVariableW(L"EAPO_TEST_VST_EDITOR", L"late");
+	auto late = VSTPluginInstance::create(library, 2);
+	const bool lateInitialized = late->initialize();
+	SetEnvironmentVariableW(L"EAPO_TEST_VST_EDITOR", nullptr);
+	harness.require(lateInitialized, "late-scaling VST2 editor fixture initializes");
+	width = 0;
+	height = 0;
+	harness.expectTrue(late->startEditing(nullptr, &width, &height, 1.5),
+		"late-scaling VST2 editor opens at 150 percent");
+	harness.expectTrue(width == 320 && height == 200,
+		"a VST2 editor that drops the pre-open scale receives it again after opening");
+	late->stopEditing();
+	late.reset();
 }
 
 void testProcessLifetimeResidency(const wstring& dir, const wstring& dllPath)
