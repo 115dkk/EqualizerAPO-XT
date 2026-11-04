@@ -18,7 +18,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   open comment card: in the header next to the "Comment" title and again in
   the note editor right below. The header now leaves it out while the card is
   open and shows it only when the card is closed, where it is the only place
-  the note appears.
+  the note appears ([#449](https://github.com/115dkk/EqualizerAPO-XT/pull/449)).
 
 ## v2.61.3 — 2026-10-24
 
