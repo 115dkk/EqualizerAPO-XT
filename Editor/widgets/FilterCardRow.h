@@ -79,6 +79,7 @@ private:
 	void watchEditorScroll(QScrollArea* scroll);
 	void syncEditorScrollHeight(QScrollArea* scroll);
 	void applyDescriptor();
+	void syncSummaryVisibility();
 	void rebuildSummary();
 	void setEditing(bool editing);
 	// deviceChannels is part of the cache key: the same list judges both

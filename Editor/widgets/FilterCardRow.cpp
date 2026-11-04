@@ -742,6 +742,7 @@ void FilterCardRow::applyDescriptor()
 	}
 	titleLabel->setFullText(descriptor.title);
 	summaryLabel->setFullText(descriptor.summary);
+	syncSummaryVisibility();
 	// A line the engine could not use says why on hover. The analysis run is what
 	// produces the reason, so this is empty until one has happened and goes stale
 	// on edit, like every other load fact.
@@ -931,6 +932,15 @@ void FilterCardRow::setExpanded(bool open)
 	if (!open && table != nullptr && bodyStack->isAncestorOf(QApplication::focusWidget()))
 		table->setFocus(Qt::OtherFocusReason);
 	bodyStack->setVisible(open);
+	syncSummaryVisibility();
+}
+
+void FilterCardRow::syncSummaryVisibility()
+{
+	// An open comment card shows its note in the body editor right below, so
+	// the header would only say it twice; a closed one keeps the note as its
+	// one readout.
+	summaryLabel->setVisible(!(expanded && descriptor.type == QStringLiteral("comment")));
 }
 
 void FilterCardRow::syncVisualState()
