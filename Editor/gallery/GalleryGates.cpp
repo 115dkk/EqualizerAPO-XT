@@ -1028,7 +1028,10 @@ int runCardSelectionTest(const QStringList& arguments)
 			QMetaObject::invokeMethod(noteRows.first(), "setExpanded", Qt::DirectConnection, Q_ARG(bool, true));
 			const bool hiddenOpen = noteSummary->isHidden();
 			QMetaObject::invokeMethod(noteRows.first(), "setExpanded", Qt::DirectConnection, Q_ARG(bool, false));
-			noteOnce = hiddenOpen && !noteSummary->isHidden() && !noteSummary->text().isEmpty();
+			// The shown scroll area makes isVisible() the closed-card fact
+			// (and a different expression from the open-card read above).
+			const bool shownClosed = noteSummary->isVisible();
+			noteOnce = hiddenOpen && shownClosed && !noteSummary->text().isEmpty();
 		}
 		if (!noteOnce)
 			failures++;
