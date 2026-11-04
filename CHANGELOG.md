@@ -24,7 +24,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   right edge, Minimal as a second column of the index line, and Soft leaves
   it out of the title because the caption already describes the template.
   Studio drew it this way already; the Chinese names, written with full-width
-  parentheses, now split there too. Searching still matches the description.
+  parentheses, now split there too. Searching still matches the description
+  ([#450](https://github.com/115dkk/EqualizerAPO-XT/pull/450)).
 
 ## v2.61.3 — 2026-10-24
 
