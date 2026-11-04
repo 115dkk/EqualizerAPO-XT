@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.61.4 — 2026-11-04
+
 - **The add-filter picker prints a template's description apart from its
   name in every skin.** Templates named like "Convolution (Convolution with
   impulse response)" printed the parenthetical as part of the name in the
