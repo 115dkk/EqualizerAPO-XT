@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.61.5 — 2026-11-04
+
 - **An open comment card shows its note once.** The note appeared twice on an
   open comment card: in the header next to the "Comment" title and again in
   the note editor right below. The header now leaves it out while the card is
