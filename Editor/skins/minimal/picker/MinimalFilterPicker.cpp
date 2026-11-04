@@ -180,9 +180,21 @@ void MinimalPickerIndexList::paintEvent(QPaintEvent* event)
 			painter.setPen(selected ? QColor(t.background) : QColor(t.text));
 			const int nameLeft = r.left() + pad + numberWidth + numberGap;
 			const int nameWidth = r.right() - pad - nameLeft;
-			painter.drawText(QRect(nameLeft, r.top(), nameWidth, r.height()),
-				Qt::AlignVCenter | Qt::AlignLeft,
+			const QRect nameRect(nameLeft, r.top(), nameWidth, r.height());
+			painter.drawText(nameRect, Qt::AlignVCenter | Qt::AlignLeft,
 				entryMetrics.elidedText(row.text, Qt::ElideRight, nameWidth));
+
+			// The description as the listing's second column, flush right:
+			// the same mono at the same size (one size; the hierarchy is
+			// brightness alone), in the number's secondary ink, so it also
+			// inverts with the block. It yields first when the line is short.
+			const int noteWidth = nameWidth - entryMetrics.horizontalAdvance(row.text) - 16;
+			if (!row.note.isEmpty() && noteWidth > 48)
+			{
+				painter.setPen(numberColor);
+				painter.drawText(nameRect, Qt::AlignVCenter | Qt::AlignRight,
+					entryMetrics.elidedText(row.note, Qt::ElideRight, noteWidth));
+			}
 		}
 	}
 }
@@ -322,6 +334,12 @@ void MinimalFilterPickerView::galleryShowcase(GalleryShowcase kind)
 		queryEdit->setText(QStringLiteral("phase"));
 		return;
 	}
+	if (kind == GalleryShowcase::ControlSearch)
+	{
+		// The lines that print a description in the second column.
+		queryEdit->setText(QStringLiteral("control"));
+		return;
+	}
 	if (kind == GalleryShowcase::EmptySearch)
 	{
 		// A term no template matches: the index prints its NO MATCH line and
@@ -423,8 +441,11 @@ void MinimalFilterPickerView::rebuildIndex()
 		rows.append({ QString(), section.toUpper(), -1 });
 		for (int i : sectionEntries.value(section))
 		{
+			// The line prints the name and its parenthetical apart; the
+			// filter above still searched the full name.
+			const FilterPickerTitleParts parts = filterPickerTitleParts(pickerEntries()[i].name);
 			rows.append({ QStringLiteral("%1").arg(displayNumbers.value(i), digits, 10, QLatin1Char('0')),
-				pickerEntries()[i].name, i });
+				parts.title, i, parts.note });
 			if (firstVisible < 0)
 				firstVisible = i;
 			visibleCount++;

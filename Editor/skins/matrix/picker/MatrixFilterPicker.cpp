@@ -79,6 +79,17 @@ void MatrixFilterPickerView::galleryShowcase(GalleryShowcase kind)
 		return;
 	}
 
+	if (kind == GalleryShowcase::ControlSearch)
+	{
+		// The Control bus: its cells are the ones with a board annotation
+		// beside the name, which the resting board (opened on the densest
+		// bus) never shows.
+		query = QStringLiteral("control");
+		applyQuery();
+		update();
+		return;
+	}
+
 	if (kind == GalleryShowcase::EmptySearch)
 	{
 		// A scan no template answers: every bus count drops to 0, the rail
@@ -134,6 +145,11 @@ void MatrixFilterPickerView::rebuildBuses(const QList<FilterPickerEntry>& entrie
 		Cell cell;
 		cell.entryIndex = i;
 		cell.name = entry.name;
+		// The cell prints the name and, at its right edge, the parenthetical
+		// as a board annotation; the scan still searches the full name.
+		const FilterPickerTitleParts parts = filterPickerTitleParts(entry.name);
+		cell.title = parts.title;
+		cell.note = parts.note;
 		cell.line = entry.line;
 		buses[busIndex].cells.append(cell);
 	}
@@ -176,10 +192,12 @@ void MatrixFilterPickerView::computeMetrics()
 
 	const QFontMetrics busMetrics(monoFont(7.5, true, 0.5));
 	const QFontMetrics nameMetrics(monoFont(8.5, false));
+	const QFontMetrics noteMetrics(monoFont(7.5, false));
 	const QFontMetrics coordMetrics(monoFont(7.0, true));
 
 	int maxLabel = 0;
 	int maxName = 0;
+	int maxNote = 0;
 	int maxCells = 0;
 	QString widestCoordinate = QStringLiteral("A1");
 	for (const Bus& bus : buses)
@@ -188,7 +206,8 @@ void MatrixFilterPickerView::computeMetrics()
 		maxCells = qMax(maxCells, bus.cells.size());
 		for (const Cell& cell : bus.cells)
 		{
-			maxName = qMax(maxName, nameMetrics.horizontalAdvance(cell.name));
+			maxName = qMax(maxName, nameMetrics.horizontalAdvance(cell.title));
+			maxNote = qMax(maxNote, noteMetrics.horizontalAdvance(cell.note));
 			if (cell.coordinate.size() > widestCoordinate.size())
 				widestCoordinate = cell.coordinate;
 		}
@@ -199,8 +218,12 @@ void MatrixFilterPickerView::computeMetrics()
 	railW = qBound(s(Metrics::railMinWidth),
 			s(8.0) + s(16.0) + s(6.0) + maxLabel + s(6.0) + countW + s(8.0),
 			s(Metrics::railMaxWidth));
+	// The widest annotation gets a bounded allowance beside the widest
+	// name; past it the annotation yields at paint time, so no board
+	// widens to the panel limit for the sake of one long note.
+	const int noteAllowance = maxNote > 0 ? s(12.0) + qMin(maxNote, s(140.0)) : 0;
 	entryW = qBound(s(Metrics::entryMinWidth),
-			s(8.0) + coordW + s(8.0) + maxName + s(10.0),
+			s(8.0) + coordW + s(8.0) + maxName + noteAllowance + s(10.0),
 			qMax(s(Metrics::entryMinWidth), s(Metrics::panelMaxWidth) - railW - 3));
 
 	// Both columns share one fixed body height so switching buses never
@@ -527,6 +550,8 @@ void MatrixFilterPickerView::paintEvent(QPaintEvent* event)
 	const QVector<int> rows = visibleRows(activeBus);
 	const QFont nameFont = monoFont(8.5, false);
 	const QFontMetrics nameMetrics(nameFont);
+	const QFont noteFont = monoFont(7.5, false);
+	const QFontMetrics noteMetrics(noteFont);
 	for (int r = 0; r < rows.size(); r++)
 	{
 		const Cell& cell = buses[activeBus].cells[rows[r]];
@@ -559,9 +584,21 @@ void MatrixFilterPickerView::paintEvent(QPaintEvent* event)
 		painter.setPen(textColor);
 		const int nameX = coordBox.right() + s(8.0);
 		const int nameAvail = cellRect.right() - s(8.0) - nameX;
-		painter.drawText(QRect(nameX, cellRect.top(), qMax(0, nameAvail), cellRect.height()),
-			Qt::AlignVCenter | Qt::AlignLeft,
-			nameMetrics.elidedText(cell.name, Qt::ElideRight, qMax(0, nameAvail)));
+		const QRect nameRect(nameX, cellRect.top(), qMax(0, nameAvail), cellRect.height());
+		painter.drawText(nameRect, Qt::AlignVCenter | Qt::AlignLeft,
+			nameMetrics.elidedText(cell.title, Qt::ElideRight, qMax(0, nameAvail)));
+
+		// The board annotation: what the template does, printed at the
+		// cell's right edge in the caption mono the bus rail and footer use,
+		// muted ink. The name keeps the right of way; the annotation yields.
+		const int noteSpace = nameAvail - nameMetrics.horizontalAdvance(cell.title) - s(12.0);
+		if (!cell.note.isEmpty() && noteSpace > s(48.0))
+		{
+			painter.setFont(noteFont);
+			painter.setPen(muted);
+			painter.drawText(nameRect, Qt::AlignVCenter | Qt::AlignRight,
+				noteMetrics.elidedText(cell.note, Qt::ElideRight, noteSpace));
+		}
 	}
 
 	// A fruitless scan never blanks the board: the entry column posts the

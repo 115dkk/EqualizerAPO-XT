@@ -44,7 +44,9 @@ private:
 	{
 		int entryIndex = -1; // original index into the setEntries() list
 		QString coordinate;  // stable board coordinate, e.g. "C4"
-		QString name;
+		QString name;        // the full template name; what the scan searches
+		QString title;       // the name without its parenthetical
+		QString note;        // the parenthetical alone; empty when there is none
 		QString line;
 		bool matches = true; // current scan-query verdict
 	};
