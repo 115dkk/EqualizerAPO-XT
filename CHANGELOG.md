@@ -19,6 +19,9 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   the note editor right below. The header now leaves it out while the card is
   open and shows it only when the card is closed, where it is the only place
   the note appears ([#449](https://github.com/115dkk/EqualizerAPO-XT/pull/449)).
+
+## v2.61.4 — 2026-11-04
+
 - **The add-filter picker prints a template's description apart from its
   name in every skin.** Templates named like "Convolution (Convolution with
   impulse response)" printed the parenthetical as part of the name in the
