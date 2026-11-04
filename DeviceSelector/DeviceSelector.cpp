@@ -34,6 +34,7 @@
 #include <devices/DevicePlan.h>
 #include <devices/VoicemeeterAPOInfo.h>
 #include "DeviceTestDialog.h"
+#include "ResidentHostLauncher.h"
 #include "../version.h"
 #include "DeviceListDelegate.h"
 #include "DisclosureHeader.h"
@@ -423,6 +424,7 @@ void DeviceSelector::onDialogAccepted()
 		LogFStatic(L"Could not start the Voicemeeter client: %s", e.getMessage().c_str());
 	}
 
+	LogFStatic(L"%s", ResidentHostLauncher::ensureStarted().c_str());
 	finish(deviceUpdated);
 }
 

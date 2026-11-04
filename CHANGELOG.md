@@ -14,6 +14,31 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Uninstalling no longer leaves the install folder in the registry, and a
+  config folder that no longer exists is replaced on install.** XT and the
+  original Equalizer APO share `HKLM\SOFTWARE\EqualizerAPO`. After
+  uninstalling XT, `InstallPath` still named the removed XT folder, so the
+  original Equalizer APO's installer took it as its install folder and then
+  failed to register devices. After uninstalling the original, `ConfigPath`
+  could still name its deleted config folder; XT's installer treated that as
+  a folder the user chose, and the Device Selector then failed on every
+  install because it saves its registry backup there. Uninstalling now
+  removes `InstallPath`, the migration breadcrumbs, a `ConfigPath` inside the
+  removed folder and a leftover autostart entry for the engine host, while a
+  config folder that survives the uninstall stays recorded. Installing
+  replaces a `ConfigPath` whose folder is gone with the per-user config root,
+  and the Device Selector names the missing folder if it still meets one.
+  The uninstall log now lists every endpoint the APO was removed from
+  ([#451](https://github.com/115dkk/EqualizerAPO-XT/issues/451)).
+- **The Send keepalive starts as soon as Send is ticked in the Device
+  Selector.** Ticking **Send** on a playback endpoint registered the engine
+  host to start at the next logon but did not start it, so audio routed with
+  `Send:` to that endpoint stayed silent until the user signed out and back
+  in. The Device Selector now starts the host right after applying the
+  change, and any running host, including one an ASIO application started on
+  demand, keeps a stream running on every receiving endpoint and stays while
+  one receives ([#452](https://github.com/115dkk/EqualizerAPO-XT/issues/452)).
+
 ## v2.61.5 — 2026-11-04
 
 - **An open comment card shows its note once.** The note appeared twice on an

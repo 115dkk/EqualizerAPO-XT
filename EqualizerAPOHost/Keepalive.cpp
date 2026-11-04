@@ -221,19 +221,32 @@ namespace
 		}
 	}
 
+	// Each worker counts as one unit of host activity from the moment it is
+	// created until it has been joined, so a host never idles out while it
+	// keeps an endpoint running.
 	struct Workers
 	{
-		std::map<std::wstring, std::jthread> threads;
+		explicit Workers(eapo::asio::HostActivity& hostActivity)
+			: activity(hostActivity)
+		{
+		}
 
 		~Workers()
 		{
 			for (auto& entry : threads)
 				entry.second.request_stop();
-			threads.clear();
+			while (!threads.empty())
+			{
+				threads.erase(threads.begin());
+				activity.finished();
+			}
 		}
+
+		eapo::asio::HostActivity& activity;
+		std::map<std::wstring, std::jthread> threads;
 	};
 
-	void supervise(std::stop_token stop)
+	void supervise(std::stop_token stop, eapo::asio::HostActivity& activity, const IRegistry& registry)
 	{
 		try
 		{
@@ -250,7 +263,7 @@ namespace
 				return;
 			}
 			std::stop_callback onStop(stop, [&] { SetEvent(stopEvent.get()); });
-			Workers workers;
+			Workers workers(activity);
 			while (!stop.stop_requested())
 			{
 				// A fresh key/event pair each pass cancels an outstanding watch
@@ -274,11 +287,14 @@ namespace
 					}
 				}
 
-				const std::vector<std::wstring> wanted = receivingEndpoints(systemRegistry());
+				const std::vector<std::wstring> wanted = receivingEndpoints(registry);
 				for (auto it = workers.threads.begin(); it != workers.threads.end();)
 				{
 					if (std::find(wanted.begin(), wanted.end(), it->first) == wanted.end())
+					{
 						it = workers.threads.erase(it);
+						activity.finished();
+					}
 					else
 						++it;
 				}
@@ -287,7 +303,10 @@ namespace
 					if (stop.stop_requested())
 						break;
 					if (!workers.threads.contains(guid))
+					{
 						workers.threads.emplace(guid, std::jthread([guid](std::stop_token workerStop) { receive(workerStop, guid); }));
+						activity.started();
+					}
 				}
 				const HANDLE events[] = {stopEvent.get(), changed.get()};
 				const DWORD waited = WaitForMultipleObjects(armed ? 2 : 1, events, FALSE, 5000);
@@ -307,11 +326,11 @@ namespace
 	}
 }
 
-std::jthread startKeepalive()
+std::jthread startKeepalive(eapo::asio::HostActivity& activity, const IRegistry& registry)
 {
 	try
 	{
-		return std::jthread(supervise);
+		return std::jthread([&activity, &registry](std::stop_token stop) { supervise(stop, activity, registry); });
 	}
 	catch (const std::exception&)
 	{

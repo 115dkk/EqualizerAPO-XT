@@ -397,16 +397,20 @@ TEST_CASE(EditorLogicTests, testLegacyMigrationScanAndPolicy)
 	expectFalse(Policy::hasLegacyApoFolderName("D:\\my configs"),
 		"unrelated folders carry no legacy name");
 
-	expectTrue(Policy::classify(QString(), stableRoot, false, false) == Policy::Action::AdoptStableRoot,
+	expectTrue(Policy::classify(QString(), stableRoot, false, false, true) == Policy::Action::AdoptStableRoot,
 		"no ConfigPath adopts the stable root");
-	expectTrue(Policy::classify("c:\\users\\me\\appdata\\local\\equalizerapo-xt\\CONFIG", stableRoot, false, false)
+	expectTrue(Policy::classify("c:\\users\\me\\appdata\\local\\equalizerapo-xt\\CONFIG", stableRoot, false, false, false)
 		== Policy::Action::AlreadyOurs, "case-insensitive match on the stable root");
-	expectTrue(Policy::classify("C:\\Program Files\\EqualizerAPO\\config", stableRoot, true, false)
+	expectTrue(Policy::classify("C:\\Program Files\\EqualizerAPO\\config", stableRoot, true, false, true)
 		== Policy::Action::MigrateLegacy, "legacy markers trigger the import");
 	expectTrue(Policy::classify("C:\\Users\\me\\AppData\\Local\\EqualizerAPO-XT-x64-avx2\\current\\config",
-		stableRoot, false, true) == Policy::Action::MigrateVolatileXt, "volatile XT dir is rescued");
-	expectTrue(Policy::classify("D:\\my configs", stableRoot, false, false) == Policy::Action::RespectCustom,
+		stableRoot, false, true, true) == Policy::Action::MigrateVolatileXt, "volatile XT dir is rescued");
+	expectTrue(Policy::classify("D:\\my configs", stableRoot, false, false, true) == Policy::Action::RespectCustom,
 		"a user-chosen folder is left alone");
+	expectTrue(Policy::classify("C:\\Program Files\\EqualizerAPO\\config", stableRoot, true, false, false)
+		== Policy::Action::AdoptStableRoot, "a missing non-empty ConfigPath adopts the stable root");
+	expectTrue(Policy::classify(stableRoot, stableRoot, false, false, false) == Policy::Action::AlreadyOurs,
+		"the stable root remains ours before its directory is created");
 
 	// Saved open/recent file paths remap into the stable root after a
 	// migration; anything outside the migrated folder stays untouched.

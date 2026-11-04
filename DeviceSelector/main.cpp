@@ -38,6 +38,7 @@
 #include <devices/VoicemeeterAPOInfo.h>
 #include <winsock2.h>
 #include "ReceiveThread.h"
+#include "ResidentHostLauncher.h"
 #include "DeviceSelector.h"
 #include "DeviceTestThread.h"
 #include <devices/DeviceAPOInfoKeys.h>
@@ -385,6 +386,8 @@ int runEndpointCommand(QApplication& app, bool install)
 		return 1;
 	}
 	say(L"%s\n", info->getLastOperationReport().toSummaryLine().c_str());
+	if (install)
+		say(L"%s\n", ResidentHostLauncher::ensureStarted().c_str());
 
 	if (!install || args.contains(QStringLiteral("--no-test")))
 	{

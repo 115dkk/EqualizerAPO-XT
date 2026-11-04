@@ -188,10 +188,10 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 
 	int result;
 	{
-		// Held for its lifetime only: the keepalive thread runs while the server
-		// does and is stopped and joined when this scope ends.
+		// Every host keeps receiving endpoints awake, even when started by a DAW.
+		// Held for its lifetime only; scope exit stops and joins the supervisor.
 		// cppcheck-suppress unreadVariable
-		std::jthread keepalive = arguments.resident ? startKeepalive() : std::jthread();
+		std::jthread keepalive = startKeepalive(activity);
 		result = server.run();
 	}
 	streams.stop();

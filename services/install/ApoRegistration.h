@@ -76,14 +76,16 @@ public:
 	// ConfigPath/EnableTrace defaults that never overwrite user values, and
 	// DisableProtectedAudioDG. configDir is created if missing (the F034
 	// contract: Success must not point ConfigPath at a directory that does
-	// not exist). cleanup deletes the app key only once it is empty.
+	// not exist). cleanup forgets values owned by the removed install tree,
+	// preserves user settings, and deletes the app key once it is empty.
 	static Result writeAppInstallRegistry(const std::wstring& installDir,
 		const std::wstring& configDir, IRegistry& registry = systemRegistry());
 	// After migration only: preserve its result (including unreadable values),
 	// or publish the packaged default if no ConfigPath was published at all.
 	static Result writeMissingConfigFallback(const std::wstring& installDir,
 		IRegistry& registry = systemRegistry());
-	static void cleanupAppRegistry(IRegistry& registry = systemRegistry());
+	static void cleanupAppRegistry(const std::wstring& installDir,
+		IRegistry& registry = systemRegistry());
 
 	struct Verification
 	{

@@ -53,7 +53,7 @@ QString LegacyMigrationPolicy::remapUnderRoot(const QString& path, const QString
 }
 
 LegacyMigrationPolicy::Action LegacyMigrationPolicy::classify(const QString& existingConfigPath,
-    const QString& stableRoot, bool legacyMarkersPresent, bool volatileXt)
+    const QString& stableRoot, bool legacyMarkersPresent, bool volatileXt, bool existingDirectoryPresent)
 {
     const QString existing = QDir::cleanPath(QDir::fromNativeSeparators(existingConfigPath.trimmed()));
     if (existing.isEmpty())
@@ -62,6 +62,9 @@ LegacyMigrationPolicy::Action LegacyMigrationPolicy::classify(const QString& exi
     const QString stable = QDir::cleanPath(QDir::fromNativeSeparators(stableRoot));
     if (QString::compare(existing, stable, Qt::CaseInsensitive) == 0)
         return Action::AlreadyOurs;
+
+    if (!existingDirectoryPresent)
+        return Action::AdoptStableRoot;
 
     if (volatileXt)
         return Action::MigrateVolatileXt;

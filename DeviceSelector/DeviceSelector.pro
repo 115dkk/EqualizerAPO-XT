@@ -32,6 +32,7 @@ SOURCES += \
 	OpacityIconEngine.cpp \
 	PreviewDevices.cpp \
 	ReceiveThread.cpp \
+	ResidentHostLauncher.cpp \
 	SkinButton.cpp \
 	skins/DeviceSkinPainter.cpp \
 	skins/StudioDeviceSkin.cpp \
@@ -63,6 +64,7 @@ HEADERS += \
 	OpacityIconEngine.h \
 	PreviewDevices.h \
 	ReceiveThread.h \
+	ResidentHostLauncher.h \
 	SkinButton.h \
 	skins/DeviceSkinPainter.h \
 	../services/windows/WindowsService.h \

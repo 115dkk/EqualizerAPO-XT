@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 
+#include "EqualizerAPOHost/Keepalive.h"
 #include "EqualizerAPOHost/KeepaliveFill.h"
 #include "devices/DeviceAPOInfoKeys.h"
 #include "devices/ReceiverEndpoints.h"
@@ -54,6 +55,41 @@ namespace
 		harness.expectEqual(receivingEndpoints(registry).size(), size_t(1), "an inaccessible subkey is skipped");
 		registry.denyRead(childApoPath);
 		harness.expect(receivingEndpoints(registry).empty(), "an inaccessible root does not throw");
+	}
+
+	TEST_CASE(ReceiverKeepaliveTests, testKeepaliveWorkersCountAsHostActivity)
+	{
+		test::FakeRegistry registry;
+		const std::wstring guid = L"{a6974eef-cbb1-4e81-b9ca-34b91fff5279}";
+		// FakeRegistry has no synchronization: seed before starting the reader,
+		// and exercise removal by stopping the supervisor rather than writing.
+		registry.seedString(std::wstring(childApoPath) + L"\\" + guid, receiveFromEndpointsValueName, L"true");
+		registry.seedKey(std::wstring(renderKeyPath) + L"\\" + guid);
+		eapo::asio::HostActivity activity;
+		std::jthread supervisor = startKeepalive(activity, registry);
+		const ULONGLONG deadline = GetTickCount64() + 3000;
+		while (activity.activeStreams() != 1 && GetTickCount64() < deadline)
+			Sleep(20);
+		harness.expectEqual(activity.activeStreams(), 1, "a receiving endpoint keeps the host active even while opening fails");
+		supervisor.request_stop();
+		if (supervisor.joinable())
+			supervisor.join();
+		harness.expectEqual(activity.activeStreams(), 0, "stopping the supervisor joins workers and balances host activity");
+
+		test::FakeRegistry emptyRegistry;
+		std::jthread emptySupervisor = startKeepalive(activity, emptyRegistry);
+		bool stayedIdle = true;
+		const ULONGLONG idleDeadline = GetTickCount64() + 1000;
+		while (GetTickCount64() < idleDeadline)
+		{
+			stayedIdle = stayedIdle && activity.activeStreams() == 0;
+			Sleep(20);
+		}
+		emptySupervisor.request_stop();
+		if (emptySupervisor.joinable())
+			emptySupervisor.join();
+		harness.expect(stayedIdle, "an empty registry creates no active keepalive workers");
+		harness.expectEqual(activity.activeStreams(), 0, "the empty supervisor leaves activity balanced");
 	}
 
 	WAVEFORMATEXTENSIBLE makeFormat(unsigned bits, bool floating, bool extensible, unsigned validBits = 0)

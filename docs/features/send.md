@@ -149,15 +149,17 @@ Selector's **Send** option on the receiving endpoint therefore:
 2. turns on *Allow silent buffer modification* for it, because the
    keepalive stream's input is silence and without that option the APO
    discards its output on silent input,
-3. makes `EqualizerAPOHost.exe --resident` start at logon (`Run` value),
-   alongside the ASIO wrapper's reason for it.
+3. starts `EqualizerAPOHost.exe --resident` right away after applying changes
+   and at every logon (`Run` value), unless a host already serves the session.
 
-The resident host keeps a shared-mode, event-driven render stream open on
-every such endpoint, at the engine's default period, and submits buffers of
-zeros **without** `AUDCLNT_BUFFERFLAGS_SILENT`.
+Any running host, resident or started on demand by an ASIO application,
+keeps a shared-mode, event-driven render stream open on every receiving
+endpoint, at the engine's default period, and submits buffers of zeros
+**without** `AUDCLNT_BUFFERFLAGS_SILENT`. It picks up newly enabled receivers
+and stays as long as any endpoint receives; `--resident` also prevents idle
+exit when none receives.
 
-Before anyone logs on there is no resident host and therefore no
-receiving.
+Before anyone logs on there is no host and therefore no receiving.
 
 ## Tests
 
