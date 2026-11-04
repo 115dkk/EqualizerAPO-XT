@@ -31,7 +31,10 @@ enum
 	// Original index into the entries list handed to setEntries.
 	OriginalIndexRole = Qt::UserRole,
 	// Row kind: section plate or labeled slot.
-	KindRole = Qt::UserRole + 1
+	KindRole = Qt::UserRole + 1,
+	// The function legend printed beside a slot label (the template name's
+	// parenthetical); empty for plates and for names without one.
+	NoteRole = Qt::UserRole + 2
 };
 
 enum RowKind
@@ -142,10 +145,27 @@ private:
 		labelFont.setPixelSize(13);
 		painter->setFont(labelFont);
 		const QRectF textRect = slot.adjusted(24, 0, -8, 0);
-		const QString label = QFontMetrics(labelFont).elidedText(
-			index.data(Qt::DisplayRole).toString(), Qt::ElideRight, int(textRect.width()));
+		const QFontMetrics labelMetrics(labelFont);
+		const QString title = index.data(Qt::DisplayRole).toString();
 		painter->setPen(withAlpha(QColor(tokens.text), selected ? 255 : 225));
-		painter->drawText(textRect, Qt::AlignVCenter | Qt::AlignLeft, label);
+		painter->drawText(textRect, Qt::AlignVCenter | Qt::AlignLeft,
+			labelMetrics.elidedText(title, Qt::ElideRight, int(textRect.width())));
+
+		// The function legend a panel prints beside a control in smaller type:
+		// muted ink at the slot's right end. Plain print, not engraving, since
+		// it is translated UI text (constitution rule 8). It brightens a step
+		// with the lit slot and yields first when the slot runs out of room.
+		const QString note = index.data(NoteRole).toString();
+		const double noteSpace = textRect.width() - labelMetrics.horizontalAdvance(title) - 16;
+		if (!note.isEmpty() && noteSpace > 56)
+		{
+			QFont noteFont(tokens.fontFamily);
+			noteFont.setPixelSize(11);
+			painter->setFont(noteFont);
+			painter->setPen(withAlpha(QColor(tokens.mutedText), selected ? 230 : 180));
+			painter->drawText(textRect, Qt::AlignVCenter | Qt::AlignRight,
+				QFontMetrics(noteFont).elidedText(note, Qt::ElideRight, int(noteSpace)));
+		}
 	}
 };
 }
@@ -223,6 +243,12 @@ void RackFilterPickerView::galleryShowcase(GalleryShowcase kind)
 		searchEdit->setText(QStringLiteral("PHASE"));
 		return;
 	}
+	if (kind == GalleryShowcase::ControlSearch)
+	{
+		// The slots whose labels carry a function legend.
+		searchEdit->setText(QStringLiteral("CONTROL"));
+		return;
+	}
 	if (kind == GalleryShowcase::EmptySearch)
 	{
 		// A query no module matches: the LCD keeps the dead search term and
@@ -288,9 +314,13 @@ void RackFilterPickerView::rebuildList()
 			sectionCount++;
 		}
 
-		QListWidgetItem* item = new QListWidgetItem(entry.name, listWidget);
+		// The slot prints the name as its label and the parenthetical as the
+		// legend beside it; the search still runs over the full name.
+		const FilterPickerTitleParts parts = filterPickerTitleParts(entry.name);
+		QListWidgetItem* item = new QListWidgetItem(parts.title, listWidget);
 		item->setData(OriginalIndexRole, match.originalIndex);
 		item->setData(KindRole, int(EntryRow));
+		item->setData(NoteRole, parts.note);
 		item->setToolTip(entry.line);
 		entryCount++;
 	}

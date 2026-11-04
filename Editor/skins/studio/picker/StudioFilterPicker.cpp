@@ -13,7 +13,6 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
-#include <QRegularExpression>
 #include <QStyledItemDelegate>
 #include <QVBoxLayout>
 
@@ -343,19 +342,10 @@ void StudioFilterPickerView::rebuildList()
 		// Template names like "Include (Include configuration file)" split
 		// into the name and a dim secondary caption; the search above still
 		// matches the full string.
-		static const QRegularExpression namePattern(QStringLiteral("^(.+?)\\s*\\((.+)\\)$"));
-		QString primary = entry.name;
-		QString secondary;
-		const QRegularExpressionMatch nameMatch = namePattern.match(entry.name);
-		if (nameMatch.hasMatch())
-		{
-			primary = nameMatch.captured(1).trimmed();
-			secondary = nameMatch.captured(2).trimmed();
-		}
-
-		QListWidgetItem* item = new QListWidgetItem(primary, listWidget);
+		const FilterPickerTitleParts parts = filterPickerTitleParts(entry.name);
+		QListWidgetItem* item = new QListWidgetItem(parts.title, listWidget);
 		item->setData(EntryIndexRole, match.originalIndex);
-		item->setData(SecondaryRole, secondary);
+		item->setData(SecondaryRole, parts.note);
 		item->setToolTip(entry.line);
 	}
 
@@ -406,6 +396,12 @@ void StudioFilterPickerView::galleryShowcase(GalleryShowcase kind)
 		// part of what the shared predicate searches, so one term returns
 		// the whole group.
 		searchEdit->setText(QStringLiteral("phase"));
+		return;
+	}
+	else if (kind == GalleryShowcase::ControlSearch)
+	{
+		// The group whose names carry the dim right-hand caption.
+		searchEdit->setText(QStringLiteral("control"));
 		return;
 	}
 	if (kind == GalleryShowcase::EmptySearch)

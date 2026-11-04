@@ -18,6 +18,21 @@ struct FilterPickerEntry
 	QString description;
 };
 
+// A template name of the form "Name (Description)" taken apart for display:
+// the name alone as the title, the parenthetical as a note every skin draws
+// apart from it in its own secondary register (the studio picker's rule,
+// AR1 S5, now skin-wide). A name without the parenthetical keeps its whole
+// text as the title and an empty note. The search keeps matching the full
+// name (filterPickerMatches), so a description term still finds its entry.
+// Full-width parentheses count too: zh_CN writes its names that way.
+struct FilterPickerTitleParts
+{
+	QString title;
+	QString note;
+};
+
+FilterPickerTitleParts filterPickerTitleParts(const QString& name);
+
 QString filterPickerSection(const FilterPickerEntry& entry);
 bool filterPickerMatches(
 	const FilterPickerEntry& entry,

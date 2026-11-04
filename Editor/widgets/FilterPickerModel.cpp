@@ -9,6 +9,17 @@
 #include <QCoreApplication>
 #include <QRegularExpression>
 
+FilterPickerTitleParts filterPickerTitleParts(const QString& name)
+{
+	// U+FF08 / U+FF09 are the full-width parentheses.
+	static const QRegularExpression pattern(
+		QStringLiteral("^(.+?)\\s*[(\\x{FF08}](.+)[)\\x{FF09}]$"));
+	const QRegularExpressionMatch match = pattern.match(name);
+	if (!match.hasMatch())
+		return { name.trimmed(), QString() };
+	return { match.captured(1).trimmed(), match.captured(2).trimmed() };
+}
+
 QString filterPickerSection(const FilterPickerEntry& entry)
 {
 	return entry.path.isEmpty()
