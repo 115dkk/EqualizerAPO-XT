@@ -14,6 +14,12 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **An open comment card shows its note once.** The note appeared twice on an
+  open comment card: in the header next to the "Comment" title and again in
+  the note editor right below. The header now leaves it out while the card is
+  open and shows it only when the card is closed, where it is the only place
+  the note appears.
+
 ## v2.61.3 — 2026-10-24
 
 - **Rack's Device and Stage buttons latch in bronze too.** In the dark Rack

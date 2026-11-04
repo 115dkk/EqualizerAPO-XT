@@ -1015,6 +1015,25 @@ int runCardSelectionTest(const QStringList& arguments)
 		qWarning("CardSelectionTest: %s focus tall-click=%d fold=%d replace=%d dismiss=%d rebuild=%d raw-picker=%d remove=%d",
 			qPrintable(scene), tallClick, foldStable, replaceStable, dismissStable, rebuildStable, rawPickerStable, removeStable);
 
+		// An open comment card shows its note once, in the body editor; the
+		// header carries it only while the card is closed.
+		QScrollArea noteArea;
+		noteArea.resize(960, 240);
+		QList<FilterCardRow*> noteRows = buildRows(noteArea, configPath, { QStringLiteral("# Living room preset") });
+		const QLabel* noteSummary = noteRows.size() == 1
+			? noteRows.first()->findChild<QLabel*>(QStringLiteral("FilterCardSummary")) : nullptr;
+		bool noteOnce = false;
+		if (noteSummary != nullptr)
+		{
+			QMetaObject::invokeMethod(noteRows.first(), "setExpanded", Qt::DirectConnection, Q_ARG(bool, true));
+			const bool hiddenOpen = noteSummary->isHidden();
+			QMetaObject::invokeMethod(noteRows.first(), "setExpanded", Qt::DirectConnection, Q_ARG(bool, false));
+			noteOnce = hiddenOpen && !noteSummary->isHidden() && !noteSummary->text().isEmpty();
+		}
+		if (!noteOnce)
+			failures++;
+		qWarning("CardSelectionTest: %s comment note-once=%d", qPrintable(scene), noteOnce);
+
 		qWarning("CardSelectionTest: %s complete", qPrintable(scene));
 		scenes++;
 	});
