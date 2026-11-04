@@ -39,6 +39,7 @@ public:
 		QString number;       // zero-padded display-order number; empty for captions
 		QString text;         // entry name, or the uppercase caption text
 		int entryIndex = -1;  // original index into the entries list; -1 = caption
+		QString note;         // the name's parenthetical, flush right; empty for captions
 	};
 
 	explicit MinimalPickerIndexList(const SkinTokens& tokens, QWidget* parent = nullptr);

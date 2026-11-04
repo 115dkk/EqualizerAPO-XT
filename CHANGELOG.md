@@ -14,6 +14,18 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The add-filter picker prints a template's description apart from its
+  name in every skin.** Templates named like "Convolution (Convolution with
+  impulse response)" printed the parenthetical as part of the name in the
+  Rack, Matrix and Minimal pickers, and Soft put it in the bold title above
+  its own caption, so long names were cut off. Each picker now prints the
+  name alone and the description in its own secondary type: Rack as a smaller
+  legend at the slot's right end, Matrix as a board annotation at the cell's
+  right edge, Minimal as a second column of the index line, and Soft leaves
+  it out of the title because the caption already describes the template.
+  Studio drew it this way already; the Chinese names, written with full-width
+  parentheses, now split there too. Searching still matches the description.
+
 ## v2.61.3 — 2026-10-24
 
 - **Rack's Device and Stage buttons latch in bronze too.** In the dark Rack

@@ -60,7 +60,13 @@ public:
 		// brings back Delay and both all-pass sections together - which is the
 		// only way a gallery shot can show where those templates went, rather
 		// than only that they left the parametric list.
-		PhaseAndTimeSearch
+		PhaseAndTimeSearch,
+		// A search that lands on the Control group, whose templates are the
+		// ones named "Name (Description)". The shot shows each skin's way of
+		// printing the description apart from the name; the resting shot
+		// reaches such names only in Basic filters, and the Matrix board,
+		// which opens on its densest bus, not at all.
+		ControlSearch
 	};
 
 	explicit FilterPickerView(QWidget* parent = nullptr);

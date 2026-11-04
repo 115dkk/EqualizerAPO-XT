@@ -411,6 +411,12 @@ void SoftFilterPickerView::galleryShowcase(GalleryShowcase kind)
 		searchEdit->setText(QStringLiteral("phase"));
 		return;
 	}
+	if (kind == GalleryShowcase::ControlSearch)
+	{
+		// The names that used to carry a parenthetical in the bold title.
+		searchEdit->setText(QStringLiteral("control"));
+		return;
+	}
 	if (kind == GalleryShowcase::EmptySearch)
 	{
 		// What the user sees after a fruitless search: the friendly
@@ -472,14 +478,21 @@ void SoftFilterPickerView::rebuildList()
 			caption->setData(KindRole, SectionItem);
 		}
 
+		// The name carries the row on its own; its parenthetical description
+		// is what the caption below already says, so the title drops it (the
+		// bold name used to elide at "NewChannel (Create virtual channe...").
+		const FilterPickerTitleParts parts = filterPickerTitleParts(entry.name);
 		QListWidgetItem* item = new QListWidgetItem(listWidget);
 		item->setData(EntryIndexRole, match.originalIndex);
-		item->setData(TitleRole, entry.name);
+		item->setData(TitleRole, parts.title);
 		// A calm sentence about what the filter does, not the raw config line.
-		// The catalog describes every current template; softCaption stays the
-		// fallback so a future, undescribed template still reads kindly.
-		item->setData(CaptionRole,
-			entry.description.isEmpty() ? softCaption(entry.line) : entry.description);
+		// The catalog describes every current template; the name's own note
+		// and then softCaption stay the fallbacks so a future, undescribed
+		// template still reads kindly.
+		QString caption = entry.description;
+		if (caption.isEmpty())
+			caption = parts.note.isEmpty() ? softCaption(entry.line) : parts.note;
+		item->setData(CaptionRole, caption);
 		item->setData(TintRole, tint);
 		item->setData(KindRole, EntryItem);
 		item->setData(GlyphRole, entryMonograms.value(match.originalIndex, entry.name.left(1).toUpper()));

@@ -100,7 +100,7 @@ const QList<GalleryScenario>& galleryScenarios()
 {
 	static const QList<GalleryScenario> scenarios = {
 		{ QStringLiteral("picker"), { QStringLiteral("normal"), QStringLiteral("hover"),
-			QStringLiteral("empty"), QStringLiteral("phasetime") } },
+			QStringLiteral("empty"), QStringLiteral("phasetime"), QStringLiteral("control") } },
 		{ QStringLiteral("srdialog"), { QStringLiteral("default"),
 			QStringLiteral("preset"), QStringLiteral("expanded") } },
 		{ QStringLiteral("toolbar"), { QStringLiteral("normal") } },
@@ -491,6 +491,12 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		picker->galleryShowcase(FilterPickerView::GalleryShowcase::PhaseAndTimeSearch);
 		QApplication::processEvents();
 		failures += saveGrab(picker, outDir, skinId, mode, QStringLiteral("picker"), QStringLiteral("phasetime")) ? 0 : 1;
+		// The Control group: the templates named "Name (Description)", so
+		// the shot judges how the skin prints the description beside the
+		// name (the Matrix board never opens on this bus by itself).
+		picker->galleryShowcase(FilterPickerView::GalleryShowcase::ControlSearch);
+		QApplication::processEvents();
+		failures += saveGrab(picker, outDir, skinId, mode, QStringLiteral("picker"), QStringLiteral("control")) ? 0 : 1;
 		delete picker;
 	}
 

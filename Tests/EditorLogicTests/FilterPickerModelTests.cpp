@@ -29,6 +29,30 @@ TEST_CASE(EditorLogicTests, testFilterPickerModelMatchesTermsAndPreservesCatalog
 	expectEqual(matches.first().section, QStringLiteral("Phase & Time"), QStringLiteral("the match carries its section"));
 }
 
+TEST_CASE(EditorLogicTests, testFilterPickerTitlePartsTakeTheParentheticalApart)
+{
+	const FilterPickerTitleParts split = filterPickerTitleParts(
+		QStringLiteral("Subwoofer routing (crossover + LFE routing)"));
+	expectEqual(split.title, QStringLiteral("Subwoofer routing"), QStringLiteral("the name before the parenthetical is the title"));
+	expectEqual(split.note, QStringLiteral("crossover + LFE routing"), QStringLiteral("the parenthetical is the note, parentheses dropped"));
+
+	const FilterPickerTitleParts plain = filterPickerTitleParts(QStringLiteral("Peaking filter"));
+	expectEqual(plain.title, QStringLiteral("Peaking filter"), QStringLiteral("a name without a parenthetical is the whole title"));
+	expectTrue(plain.note.isEmpty(), QStringLiteral("a name without a parenthetical has no note"));
+
+	// zh_CN writes the names with full-width parentheses and no space.
+	const FilterPickerTitleParts wide = filterPickerTitleParts(
+		QStringLiteral("Include") + QChar(0xFF08) + QStringLiteral("Include configuration file") + QChar(0xFF09));
+	expectEqual(wide.title, QStringLiteral("Include"), QStringLiteral("full-width parentheses split like ASCII ones"));
+	expectEqual(wide.note, QStringLiteral("Include configuration file"), QStringLiteral("the full-width note loses its parentheses too"));
+
+	// Search still runs over the full name, so a description term finds the entry.
+	const FilterPickerEntry entry{ { QStringLiteral("Control") },
+		QStringLiteral("Include (Include configuration file)"), QStringLiteral("Include:"), QString() };
+	expectTrue(filterPickerMatches(entry, QStringLiteral("Control"), QStringLiteral("configuration")),
+		QStringLiteral("a term from the note still matches the entry"));
+}
+
 TEST_CASE(EditorLogicTests, testFilterPickerModelOwnsSelectionNavigation)
 {
 	QList<FilterPickerEntry> entries;
