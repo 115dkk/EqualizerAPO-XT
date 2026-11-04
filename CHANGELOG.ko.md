@@ -20,7 +20,7 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   지워지고, 제거 뒤에도 남는 설정 폴더는 그대로 기록해 둡니다. 설치할 때
   폴더가 없는 `ConfigPath`는 사용자별 설정 루트로 바꾸고, Device Selector가
   그래도 없는 폴더를 만나면 어느 폴더가 없는지 오류 문구에 표시합니다. 제거
-  로그에는 APO를 뗀 엔드포인트가 모두 기록됩니다([#451](https://github.com/115dkk/EqualizerAPO-XT/issues/451)).
+  로그에는 APO를 뗀 엔드포인트가 모두 기록됩니다([#451](https://github.com/115dkk/EqualizerAPO-XT/issues/451), [#453](https://github.com/115dkk/EqualizerAPO-XT/pull/453)).
 - **Device Selector에서 Send를 켜는 즉시 유지 스트림이 시작됩니다.** 재생
   엔드포인트에 **Send**를 켜면 엔진 호스트를 다음 로그온 때 시작하도록
   등록만 하고 지금은 띄우지 않아, `Send:`로 그 엔드포인트에 보낸 소리가
@@ -28,7 +28,7 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   변경을 적용한 직후 호스트를 띄웁니다. 실행 중인 호스트는 상주 호스트든
   ASIO 앱이 필요할 때 띄운 것이든 수신 엔드포인트마다 무음 스트림을 만들어
   두고, 수신하는 엔드포인트가 하나라도 있는 동안은 종료하지
-  않습니다([#452](https://github.com/115dkk/EqualizerAPO-XT/issues/452)).
+  않습니다([#452](https://github.com/115dkk/EqualizerAPO-XT/issues/452), [#453](https://github.com/115dkk/EqualizerAPO-XT/pull/453)).
 
 ## v2.61.5 — 2026-11-04
 

@@ -29,7 +29,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   replaces a `ConfigPath` whose folder is gone with the per-user config root,
   and the Device Selector names the missing folder if it still meets one.
   The uninstall log now lists every endpoint the APO was removed from
-  ([#451](https://github.com/115dkk/EqualizerAPO-XT/issues/451)).
+  ([#451](https://github.com/115dkk/EqualizerAPO-XT/issues/451), [#453](https://github.com/115dkk/EqualizerAPO-XT/pull/453)).
 - **The Send keepalive starts as soon as Send is ticked in the Device
   Selector.** Ticking **Send** on a playback endpoint registered the engine
   host to start at the next logon but did not start it, so audio routed with
@@ -37,7 +37,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   in. The Device Selector now starts the host right after applying the
   change, and any running host, including one an ASIO application started on
   demand, keeps a stream running on every receiving endpoint and stays while
-  one receives ([#452](https://github.com/115dkk/EqualizerAPO-XT/issues/452)).
+  one receives ([#452](https://github.com/115dkk/EqualizerAPO-XT/issues/452), [#453](https://github.com/115dkk/EqualizerAPO-XT/pull/453)).
 
 ## v2.61.5 — 2026-11-04
 
