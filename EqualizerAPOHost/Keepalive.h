@@ -8,8 +8,14 @@
 
 #include <thread>
 
-// Only the resident host, after winning its single-instance mutex, starts this
-// supervisor. Destruction requests stop and joins all endpoint workers. The
-// HKLM Run entry starts at user logon, not at boot: before logon there is no
-// resident host and no Send keepalive. Every COM object stays on its MTA thread.
-std::jthread startKeepalive();
+#include "asio/HostControlServer.h"
+#include "services/registry/WindowsRegistry.h"
+
+class IRegistry;
+
+// Every host starts this supervisor after winning its single-instance mutex.
+// Endpoint workers count as host activity; destruction stops and joins them.
+// Device Selector starts the host now and the HKLM Run entry starts it at logon,
+// not at boot: before logon there is no host and no Send keepalive. Every COM
+// object stays on its MTA thread.
+std::jthread startKeepalive(eapo::asio::HostActivity& activity, const IRegistry& registry = systemRegistry());

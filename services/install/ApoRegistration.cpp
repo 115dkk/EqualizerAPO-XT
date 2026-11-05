@@ -22,8 +22,10 @@
 #include "services/install/InstallWaitBudget.h"
 #include "services/registry/RegistryPaths.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
+#include <cwctype>
 #include <memory>
 #include <vector>
 
@@ -32,6 +34,7 @@
 #include <shellapi.h>
 #include <shlwapi.h>
 
+#include "asio/AsioRegistration.h"
 #include "devices/AbstractAPOInfo.h"
 #include "platform/windows/WindowsPath.h"
 #include "services/security/AudioEngineAccess.h"
@@ -63,6 +66,37 @@ using pathutil::fileExists;
 using pathutil::createDirectoryRecursive;
 
 constexpr logging::TaggedLogger logLine(L"ApoRegistration");
+
+bool equalPathCharacter(wchar_t left, wchar_t right)
+{
+	return std::towlower(left) == std::towlower(right);
+}
+
+std::wstring normalizedPathText(std::wstring value)
+{
+	std::replace(value.begin(), value.end(), L'/', L'\\');
+	while (!value.empty() && value.back() == L'\\')
+		value.pop_back();
+	return value;
+}
+
+bool isPathUnderDirectory(const std::wstring& path, const std::wstring& directory)
+{
+	const std::wstring candidate = normalizedPathText(path);
+	const std::wstring parent = normalizedPathText(directory);
+	if (candidate.size() < parent.size() || parent.empty()
+		|| !std::equal(parent.begin(), parent.end(), candidate.begin(), equalPathCharacter))
+		return false;
+	return candidate.size() == parent.size() || candidate[parent.size()] == L'\\';
+}
+
+bool containsPathText(const std::wstring& value, const std::wstring& path)
+{
+	const std::wstring candidate = normalizedPathText(value);
+	const std::wstring needle = normalizedPathText(path);
+	return !needle.empty() && std::search(candidate.begin(), candidate.end(), needle.begin(), needle.end(),
+		equalPathCharacter) != candidate.end();
+}
 }
 
 int ApoRegistration::registerComServer(const std::wstring& dllPath, bool unregister)
@@ -127,7 +161,7 @@ ApoRegistration::Result ApoRegistration::writeMissingConfigFallback(const std::w
 	return writeAppInstallRegistry(installDir, joinPath(installDir, L"config"), registry);
 }
 
-void ApoRegistration::cleanupAppRegistry(IRegistry& registry)
+void ApoRegistration::cleanupAppRegistry(const std::wstring& installDir, IRegistry& registry)
 {
 	try
 	{
@@ -137,6 +171,48 @@ void ApoRegistration::cleanupAppRegistry(IRegistry& registry)
 	catch (const RegistryError& e)
 	{
 		logLine(L"WARN", L"Failed to clean DisableProtectedAudioDG: %s", e.getMessage().c_str());
+	}
+
+	for (const wchar_t* valueName : {L"InstallPath", L"MigratedFrom", L"MigrationStamp", L"MigratedFiles"})
+	{
+		try
+		{
+			if (registry.keyExists(kRegPath) && registry.valueExists(kRegPath, valueName))
+				registry.deleteValue(kRegPath, valueName);
+		}
+		catch (const RegistryError& e)
+		{
+			logLine(L"WARN", L"Failed to clean %s: %s", valueName, e.getMessage().c_str());
+		}
+	}
+
+	try
+	{
+		if (registry.keyExists(kRegPath) && registry.valueExists(kRegPath, L"ConfigPath"))
+		{
+			const std::wstring configPath = registry.readValue(kRegPath, L"ConfigPath");
+			if (isPathUnderDirectory(configPath, installDir))
+				registry.deleteValue(kRegPath, L"ConfigPath");
+		}
+	}
+	catch (const RegistryError& e)
+	{
+		logLine(L"WARN", L"Failed to clean ConfigPath: %s", e.getMessage().c_str());
+	}
+
+	try
+	{
+		const std::wstring autoStartKey = eapo::asio::AsioRegistration::autoStartKey();
+		const std::wstring autoStartName = eapo::asio::AsioRegistration::autoStartValueName();
+		if (registry.keyExists(autoStartKey) && registry.valueExists(autoStartKey, autoStartName)
+			&& containsPathText(registry.readValue(autoStartKey, autoStartName), installDir))
+		{
+			registry.deleteValue(autoStartKey, autoStartName);
+		}
+	}
+	catch (const RegistryError& e)
+	{
+		logLine(L"WARN", L"Failed to clean the engine host autostart value: %s", e.getMessage().c_str());
 	}
 
 	try
@@ -261,7 +337,7 @@ ApoRegistration::Result ApoRegistration::uninstall(const std::wstring& installDi
 			logLine(L"WARN", L"DllUnregisterServer returned 0x%08X, continuing", rc);
 	}
 
-	cleanupAppRegistry(registry);
+	cleanupAppRegistry(installDir, registry);
 
 	if (!StartMenuShortcuts::remove())
 		logLine(L"WARN", L"Failed to remove start menu shortcuts");
@@ -273,7 +349,10 @@ ApoRegistration::Result ApoRegistration::uninstallAllDeviceApos(const DeviceUnin
 	IRegistry& registry, const EndpointProbe& probe)
 {
 	Result result = Result::Success;
+	unsigned removedItems = 0;
+	unsigned failures = 0;
 	auto report = [&](const std::wstring& message) {
+		++failures;
 		if (errorSink)
 			errorSink(message);
 		result = Result::DeviceUninstallFailed;
@@ -293,7 +372,11 @@ ApoRegistration::Result ApoRegistration::uninstallAllDeviceApos(const DeviceUnin
 	auto uninstallInfo = [&](const std::wstring& what, AbstractAPOInfo& info) {
 		guarded(what, [&] {
 			if (info.isInstalled())
+			{
 				info.uninstall();
+				++removedItems;
+				logLine(L"INFO", L"Uninstall sweep removed APO from %s", what.c_str());
+			}
 		});
 	};
 
@@ -324,12 +407,17 @@ ApoRegistration::Result ApoRegistration::uninstallAllDeviceApos(const DeviceUnin
 		}
 
 		std::vector<std::shared_ptr<AbstractAPOInfo>> others;
+		size_t voicemeeterCount = 0;
 		if (!input)
+		{
 			guarded(L"Voicemeeter", [&] { VoicemeeterAPOInfo::prependInfos(others, registry); });
+			voicemeeterCount = others.size();
+		}
 		guarded(L"ASIO", [&] { AsioAPOInfo::appendInfos(others, input, registry); });
-		for (std::shared_ptr<AbstractAPOInfo>& apoInfo : others)
-			uninstallInfo(L"", *apoInfo);
+		for (size_t i = 0; i < others.size(); ++i)
+			uninstallInfo(i < voicemeeterCount ? L"Voicemeeter" : L"ASIO", *others[i]);
 	}
+	logLine(L"INFO", L"Uninstall sweep removed %u item(s); %u failure(s)", removedItems, failures);
 	return result;
 }
 

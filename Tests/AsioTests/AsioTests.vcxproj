@@ -73,10 +73,12 @@
     <ClCompile Include="DeviceRecordTests.cpp" />
     <ClCompile Include="ReceiverKeepaliveTests.cpp" />
     <ClCompile Include="..\..\EqualizerAPOHost\KeepaliveFill.cpp" />
+    <ClCompile Include="..\..\EqualizerAPOHost\Keepalive.cpp" />
     <ClCompile Include="..\FakeAsioDriver\FakeAsio.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\EqualizerAPOHost\KeepaliveFill.h" />
+    <ClInclude Include="..\..\EqualizerAPOHost\Keepalive.h" />
     <ClInclude Include="FakeEndpointClient.h" />
     <ClInclude Include="..\AsioSupport\HostStub.h" />
     <ClInclude Include="..\AsioSupport\LatencyMatch.h" />

@@ -191,9 +191,12 @@ TEST_CASE(EditorLogicTests, testLegacyMigrationHookUsesVerifiedCallerOrFallsBack
 		requireTrue(dll.open(QIODevice::WriteOnly), QStringLiteral("pre-existing install file created"));
 		dll.write("fixture");
 	}
+	const QString customConfig = install + QStringLiteral("/custom-config");
+	requireTrue(QDir().mkpath(customConfig), QStringLiteral("custom config folder created"));
 	test::FakeRegistry customInstall;
 	customInstall.seedKey(APP_REGPATH);
-	customInstall.seedString(APP_REGPATH, L"ConfigPath", L"D:\\CustomConfig");
+	customInstall.seedString(APP_REGPATH, L"ConfigPath",
+		QDir::toNativeSeparators(customConfig).toStdWString());
 	Migration::Handoff installDetails;
 	expectTrue(Migration::prepareHookStep(install.toStdWString(), customInstall, &installDetails) == L"respect-custom",
 		QStringLiteral("install grants run even when migration respects custom config"));
@@ -240,11 +243,12 @@ TEST_CASE(EditorLogicTests, testLegacyMigrationHookUsesVerifiedCallerOrFallsBack
 	expectFalse(Migration::recordPreparedHookStep({L"\\\\server\\share", L"adopt"}, invalid, &table),
 		QStringLiteral("invalid caller refused without file work"));
 	expectFalse(invalid.valueExists(APP_REGPATH, L"ConfigPath"), QStringLiteral("invalid caller cannot write ConfigPath"));
+	const std::wstring nativeCustomConfig = QDir::toNativeSeparators(customConfig).toStdWString();
 	for (const auto& hint : {L"adopt", L"garbage", L"respect-custom", L"failed"})
 	{
-		invalid.seedString(APP_REGPATH, L"ConfigPath", L"D:\\Custom");
+		invalid.seedString(APP_REGPATH, L"ConfigPath", nativeCustomConfig);
 		Migration::recordPreparedHookStep({nativeCaller, hint}, invalid, &table);
-		expectTrue(invalid.readValue(APP_REGPATH, L"ConfigPath") == L"D:\\Custom",
+		expectTrue(invalid.readValue(APP_REGPATH, L"ConfigPath") == nativeCustomConfig,
 			QStringLiteral("untrusted hint cannot override custom path"));
 	}
 	const auto parsed = Migration::parseHandoff({L"--veloapp-install", L"--caller-localappdata", L"bad",
@@ -436,6 +440,34 @@ TEST_CASE(EditorLogicTests, testLegacyMigrationHookAdoptsStableRootThroughThePor
 	// A fresh adoption is not a migration: no breadcrumbs.
 	expectFalse(registry.valueExists(APP_REGPATH, L"MigratedFrom"),
 		QStringLiteral("adopting an empty ConfigPath leaves no migration breadcrumbs"));
+}
+
+TEST_CASE(EditorLogicTests, testLegacyMigrationHookRepointsADanglingConfigPath)
+{
+	QTemporaryDir tempRoot;
+	requireTrue(tempRoot.isValid(), QStringLiteral("temp LOCALAPPDATA root created"));
+	ScopedLocalAppData scopedEnv(tempRoot.path());
+
+	QTemporaryDir exeDir;
+	requireTrue(exeDir.isValid(), QStringLiteral("temp exe dir created"));
+
+	test::FakeRegistry registry;
+	registry.seedKey(APP_REGPATH);
+	const QString missingConfig = tempRoot.path() + QStringLiteral("/gone/EqualizerAPO/config");
+	registry.seedString(APP_REGPATH, L"ConfigPath",
+		QDir::toNativeSeparators(missingConfig).toStdWString());
+
+	EqAPO::Import::LegacyMigration::runElevatedHookStep(
+		QDir::toNativeSeparators(exeDir.path()).toStdWString(), registry);
+
+	const QString expected = QDir::toNativeSeparators(
+		tempRoot.path() + QStringLiteral("/EqualizerAPO-XT/config"));
+	expectEqual(QString::fromStdWString(registry.readValue(APP_REGPATH, L"ConfigPath")),
+		expected, QStringLiteral("a dangling ConfigPath is replaced by the stable root"));
+	expectTrue(QDir(expected).exists(),
+		QStringLiteral("the replacement stable config root is created"));
+	expectFalse(registry.valueExists(APP_REGPATH, L"MigratedFrom"),
+		QStringLiteral("repointing a missing folder leaves no migration breadcrumbs"));
 }
 
 // Audit #348 TD-49: a ConfigPath the hook could not read used to come back as

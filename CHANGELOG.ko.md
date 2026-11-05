@@ -8,6 +8,28 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **제거할 때 설치 폴더가 레지스트리에 남지 않고, 사라진 설정 폴더는 설치할
+  때 바로잡습니다.** XT와 원본 Equalizer APO는 `HKLM\SOFTWARE\EqualizerAPO`를
+  함께 씁니다. XT를 제거한 뒤에도 `InstallPath`가 지워진 XT 폴더를 가리켜,
+  원본 Equalizer APO 설치기가 그 폴더를 설치 위치로 삼았다가 장치 등록에
+  실패했습니다. 원본을 제거한 뒤에는 `ConfigPath`가 지워진 원본 설정 폴더를
+  가리킨 채 남기도 했는데, XT 설치기는 이를 사용자가 고른 폴더로 보고 그대로
+  두었고, Device Selector는 그 폴더에 레지스트리 백업을 저장하므로 모든
+  설치가 실패했습니다. 이제 제거하면 `InstallPath`, 이전 설정을 옮긴 기록,
+  지워지는 폴더 안의 `ConfigPath`, 엔진 호스트의 자동 시작 항목이 함께
+  지워지고, 제거 뒤에도 남는 설정 폴더는 그대로 기록해 둡니다. 설치할 때
+  폴더가 없는 `ConfigPath`는 사용자별 설정 루트로 바꾸고, Device Selector가
+  그래도 없는 폴더를 만나면 어느 폴더가 없는지 오류 문구에 표시합니다. 제거
+  로그에는 APO를 뗀 엔드포인트가 모두 기록됩니다([#451](https://github.com/115dkk/EqualizerAPO-XT/issues/451), [#453](https://github.com/115dkk/EqualizerAPO-XT/pull/453)).
+- **Device Selector에서 Send를 켜는 즉시 유지 스트림이 시작됩니다.** 재생
+  엔드포인트에 **Send**를 켜면 엔진 호스트를 다음 로그온 때 시작하도록
+  등록만 하고 지금은 띄우지 않아, `Send:`로 그 엔드포인트에 보낸 소리가
+  로그아웃했다 다시 들어오기 전까지 나지 않았습니다. 이제 Device Selector가
+  변경을 적용한 직후 호스트를 띄웁니다. 실행 중인 호스트는 상주 호스트든
+  ASIO 앱이 필요할 때 띄운 것이든 수신 엔드포인트마다 무음 스트림을 만들어
+  두고, 수신하는 엔드포인트가 하나라도 있는 동안은 종료하지
+  않습니다([#452](https://github.com/115dkk/EqualizerAPO-XT/issues/452), [#453](https://github.com/115dkk/EqualizerAPO-XT/pull/453)).
+
 ## v2.61.5 — 2026-11-04
 
 - **펼친 주석 카드가 메모를 한 번만 보여 줍니다.** 펼친 주석 카드는 헤더의

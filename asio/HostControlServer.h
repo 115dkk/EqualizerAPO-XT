@@ -19,9 +19,9 @@
 
 namespace eapo::asio
 {
-	// A normal host may stay around for at most ten minutes after its last
-	// stream. Permanent residency is an explicit --resident choice instead of a
-	// linger value supplied by any same-user client.
+	// A host stays while an HKLM endpoint requests keepalive, then may linger for
+	// at most ten minutes after its last stream. Only --resident disables idle
+	// exit; a linger value supplied by a same-user client cannot do so.
 	inline constexpr uint32_t maxHostLingerMs = 10u * 60u * 1000u;
 
 	class HostActivity

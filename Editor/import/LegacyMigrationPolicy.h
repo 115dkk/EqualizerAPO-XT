@@ -34,6 +34,8 @@ public:
         // then repoint.
         MigrateVolatileXt,
         // ConfigPath points somewhere the user chose on purpose: respect it.
+        // A custom folder on an unmounted drive appears missing during install
+        // and is replaced by the stable root; the user can point it back later.
         RespectCustom
     };
 
@@ -60,9 +62,10 @@ public:
 
     // The classification. legacyMarkersPresent is the caller's on-disk
     // verdict for existingConfigPath's parent (EqualizerAPO.dll or the NSIS
-    // Uninstall.exe next to the config dir).
+    // Uninstall.exe next to the config dir). A missing directory is replaced
+    // with the stable root so ConfigPath never names a folder that is gone.
     static Action classify(const QString& existingConfigPath, const QString& stableRoot,
-        bool legacyMarkersPresent, bool volatileXt);
+        bool legacyMarkersPresent, bool volatileXt, bool existingDirectoryPresent);
 
     // If path lies under fromRoot, the same relative location under toRoot
     // (forward slashes); otherwise an empty string. Case-insensitive,

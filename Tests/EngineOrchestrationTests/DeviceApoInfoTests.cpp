@@ -462,8 +462,8 @@ TEST_CASE(EngineOrchestrationTests, testInstallWithReceiveWritesAndLoadsTheState
 	harness.expectTrue(report.receiveFromEndpoints, "the install report records the effective Send receiver state");
 	const std::vector<std::wstring> lines = report.toLines();
 	harness.expect(std::find(lines.begin(), lines.end(),
-		L"  receives Send audio: yes (EqualizerAPOHost keeps the endpoint running from logon)") != lines.end(),
-		"the detailed report says why EqualizerAPOHost runs from logon");
+		L"  receives Send audio: yes (EqualizerAPOHost keeps the endpoint running: started now and at every logon)") != lines.end(),
+		"the detailed report says why EqualizerAPOHost runs now and from logon");
 
 	DeviceAPOInfo reloaded(registry);
 	harness.require(reloaded.load(testDeviceGuid, otherDeviceGuid), "the receiver reloads after installation");
@@ -529,7 +529,7 @@ TEST_CASE(EngineOrchestrationTests, testInstallingWithReceiveOffDeletesTheReceiv
 {
 	FakeRegistry registry;
 	registry.seedString(APP_REGPATH, L"InstallPath", L"C:\\eapo");
-	registry.seedString(APP_REGPATH, L"ConfigPath", L"C:\\ProgramData\\EqualizerAPO\\config");
+	registry.seedString(APP_REGPATH, L"ConfigPath", testDirectory());
 	seedRenderDevice(registry);
 
 	DeviceAPOInfo info(registry);
@@ -930,7 +930,9 @@ void installOverVendorApos(test::Harness& harness, FakeRegistry& registry)
 	seedRenderDevice(registry);
 	registry.seedString(fxPropertiesKey, lfxGuidValueName, vendorPreMixGuid);
 	registry.seedString(fxPropertiesKey, gfxGuidValueName, vendorPostMixGuid);
-	registry.seedString(APP_REGPATH, L"ConfigPath", L"C:\\ProgramData\\EqualizerAPO\\config");
+	// The install refuses a ConfigPath whose folder is missing (#451), so the
+	// fixture names the suite's real temporary directory.
+	registry.seedString(APP_REGPATH, L"ConfigPath", testDirectory());
 
 	DeviceAPOInfo info(registry);
 	harness.require(info.load(testDeviceGuid, otherDeviceGuid), "the device loads before installing");
@@ -963,7 +965,7 @@ TEST_CASE(EngineOrchestrationTests, testInstallExportsTheDriverValuesBeforeOverw
 		"the exported names are the two slots the driver had filled");
 	harness.expect(exported.values[0] == vendorPreMixGuid && exported.values[1] == vendorPostMixGuid,
 		"the exported contents are the driver's GUIDs as they read before the overwrite");
-	harness.expect(exported.filePath == L"C:\\ProgramData\\EqualizerAPO\\config\\backup_"
+	harness.expect(exported.filePath == testDirectory() + L"\\backup_"
 			+ deviceName + L"_" + connectionName + L".reg",
 		"the backup lands in the configured config directory, named after the device, and the missing trailing separator is supplied rather than concatenated away");
 
@@ -1035,7 +1037,7 @@ TEST_CASE(EngineOrchestrationTests, testInstallLeavesTheEndpointAloneWhenAMidway
 	seedRenderDevice(registry);
 	registry.seedString(fxPropertiesKey, lfxGuidValueName, vendorPreMixGuid);
 	registry.seedString(fxPropertiesKey, gfxGuidValueName, vendorPostMixGuid);
-	registry.seedString(APP_REGPATH, L"ConfigPath", L"C:\\ProgramData\\EqualizerAPO\\config");
+	registry.seedString(APP_REGPATH, L"ConfigPath", testDirectory());
 	// The post-mix slot refuses the write. On a real machine this is an ACL on
 	// that one property, or a driver service holding the key.
 	registry.failValueWrite(fxPropertiesKey, gfxGuidValueName);

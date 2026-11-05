@@ -36,6 +36,11 @@ namespace EqAPO::Import
 namespace
 {
 
+bool configDirectoryPresent(const QString& configPath)
+{
+    return QDir(QDir::cleanPath(configPath)).exists();
+}
+
 // An empty string when the value is absent; nullopt when it is there but could
 // not be read, which is logged here. The two used to be one answer, so a
 // ConfigPath the hook failed to read looked unset and was overwritten with the
@@ -238,7 +243,8 @@ void LegacyMigration::runElevatedHookStep(const std::wstring& exeDir, IRegistry&
     const LegacyMigrationPolicy::Action action = LegacyMigrationPolicy::classify(
         existing, stableRoot,
         looksLikeLegacyApoConfigDir(existing),
-        LegacyMigrationPolicy::isVolatileXtConfigDir(existing));
+        LegacyMigrationPolicy::isVolatileXtConfigDir(existing),
+        configDirectoryPresent(existing));
 
     if (action == LegacyMigrationPolicy::Action::RespectCustom)
     {
@@ -299,7 +305,8 @@ std::wstring LegacyMigration::prepareHookStep(const std::wstring& exeDir, const 
     if (root.isEmpty() || !configured)
         return L"failed";
     const auto action = LegacyMigrationPolicy::classify(*configured, root,
-        looksLikeLegacyApoConfigDir(*configured), LegacyMigrationPolicy::isVolatileXtConfigDir(*configured));
+        looksLikeLegacyApoConfigDir(*configured), LegacyMigrationPolicy::isVolatileXtConfigDir(*configured),
+        configDirectoryPresent(*configured));
     if (action == LegacyMigrationPolicy::Action::RespectCustom)
         return L"respect-custom";
     if (!QDir().mkpath(root)
@@ -405,7 +412,8 @@ bool LegacyMigration::recordPreparedHookStep(const Handoff& handoff, IRegistry& 
     // Always re-derive from HKLM, including for unknown/missing outcomes.
     // A caller-supplied action cannot overwrite a concurrently chosen path.
     const auto action = LegacyMigrationPolicy::classify(*configured, root,
-        looksLikeLegacyApoConfigDir(*configured), LegacyMigrationPolicy::isVolatileXtConfigDir(*configured));
+        looksLikeLegacyApoConfigDir(*configured), LegacyMigrationPolicy::isVolatileXtConfigDir(*configured),
+        configDirectoryPresent(*configured));
     if (action == LegacyMigrationPolicy::Action::RespectCustom
         || action == LegacyMigrationPolicy::Action::AlreadyOurs)
         return true;
@@ -455,7 +463,8 @@ int LegacyMigration::dryRun()
 	const bool volatileXt = LegacyMigrationPolicy::isVolatileXtConfigDir(existing);
 	// The hook leaves a ConfigPath it cannot read alone; report the same.
 	const LegacyMigrationPolicy::Action action = configured
-		? LegacyMigrationPolicy::classify(existing, stableRoot, legacyMarkers, volatileXt)
+		? LegacyMigrationPolicy::classify(existing, stableRoot, legacyMarkers, volatileXt,
+			configDirectoryPresent(existing))
 		: LegacyMigrationPolicy::Action::RespectCustom;
 
 	const char* actionName = "?";
