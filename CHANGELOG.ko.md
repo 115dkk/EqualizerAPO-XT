@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.61.6 — 2026-11-05
+
 - **제거할 때 설치 폴더가 레지스트리에 남지 않고, 사라진 설정 폴더는 설치할
   때 바로잡습니다.** XT와 원본 Equalizer APO는 `HKLM\SOFTWARE\EqualizerAPO`를
   함께 씁니다. XT를 제거한 뒤에도 `InstallPath`가 지워진 XT 폴더를 가리켜,

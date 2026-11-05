@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.61.6 — 2026-11-05
+
 - **Uninstalling no longer leaves the install folder in the registry, and a
   config folder that no longer exists is replaced on install.** XT and the
   original Equalizer APO share `HKLM\SOFTWARE\EqualizerAPO`. After
