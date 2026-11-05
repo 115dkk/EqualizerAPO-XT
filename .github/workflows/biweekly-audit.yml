@@ -266,14 +266,22 @@ jobs:
           # See code.claude.com/docs/en/model-config, "Automatic model
           # fallback" and "Restrict model selection". Availability-based
           # fallback is opt-in (--fallback-model) and stays unset.
+          # CLAUDE_CODE_ENABLE_TASKS and CLAUDE_CODE_ENABLE_TODO_TOOLS turn on
+          # TaskCreate, TaskUpdate and TaskList, which -p sessions leave off, so
+          # the audit can plan its dimensions and work through them in order.
           set +e
-          claude \
+          CLAUDE_CODE_ENABLE_TASKS=1 CLAUDE_CODE_ENABLE_TODO_TOOLS=1 claude \
             --model claude-mythos-5-1 \
             --effort xhigh \
             --settings '{"availableModels": ["claude-mythos-5-1"]}' \
             --permission-mode auto \
-            --max-turns 100 \
+            --max-turns 150 \
             -p "
+          Task tools (TaskCreate, TaskUpdate, TaskList) are available. Before
+          each part, create one task per dimension or step it requires, then
+          mark each one in progress and completed as you work through them,
+          so no dimension is skipped when the session runs long.
+
           You will perform two analyses in sequence within this
           single session. Each part writes its deliverable to its own
           Markdown file in the repository root (do not commit them).
