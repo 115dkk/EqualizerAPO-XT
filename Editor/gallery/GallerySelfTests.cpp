@@ -985,10 +985,12 @@ int SkinGallery::runPowerToggleTest()
 			});
 			return index < rows.size() ? rows[index] : nullptr;
 		};
+		// Found by the property the skins style it by: its tooltip now says
+		// what a click does next, so it changes with the state.
 		const auto powerButton = [](FilterCardRow* row) -> QToolButton* {
 			for (QToolButton* button : row->findChildren<QToolButton*>())
 			{
-				if (button->toolTip() == QStringLiteral("Enable or comment out this command"))
+				if (button->property("powerToggle").toBool())
 					return button;
 			}
 			return nullptr;

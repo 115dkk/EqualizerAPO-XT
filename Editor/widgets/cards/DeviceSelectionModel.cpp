@@ -37,6 +37,17 @@ const QList<DeviceChipInfo>& DeviceSelectionModel::chips() const
 	return chipList;
 }
 
+QString DeviceSelectionModel::chipLabel(const DeviceChipInfo& chip)
+{
+	const QString connection = chip.connection.trimmed();
+	const QString name = chip.name.trimmed();
+	if (connection.isEmpty())
+		return name;
+	if (name.isEmpty() || name.compare(connection, Qt::CaseInsensitive) == 0)
+		return connection;
+	return QStringLiteral("%1 (%2)").arg(connection, name);
+}
+
 bool DeviceSelectionModel::allSelected() const
 {
 	return all;

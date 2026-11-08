@@ -89,9 +89,12 @@ private:
 	static std::unordered_map<std::wstring, std::weak_ptr<VSTPluginLibrary>> instanceMap;
 	static std::wstring defaultPluginPath;
 	std::wstring libPath;
-	// Before loading this is only an extension hint for metadata callers;
-	// loadFunctions replaces it with the module's exported ABI. Bundle
-	// discovery is done by ConfigFileReference, independently of this hint.
+	// Before loading this is an extension hint for metadata callers. A single
+	// exported ABI replaces it; when both entry points exist, .vst3 selects VST3
+	// and every other extension selects VST2. Vendors such as Kilohearts ship one
+	// binary for both products, DAWs treat its .dll as VST2, and configurations
+	// saved before 8cad1bf0 contain VST2 state for those files. Bundle discovery
+	// is done by ConfigFileReference, independently of this hint.
 	bool vst3 = false;
 	std::unique_ptr<Steinberg::IPluginFactory, FactoryDeleter> factory;
 	// The factory-level host context handed to IPluginFactory3::setHostContext

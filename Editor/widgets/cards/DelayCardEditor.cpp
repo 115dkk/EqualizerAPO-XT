@@ -59,6 +59,9 @@ DelayCardEditor::DelayCardEditor(double delay, bool isMs, QWidget* parent)
 		QStringLiteral("DelayCardValueBlock"), unitCombo, editableValue, QString(),
 		false, 0, static_cast<int>(DialSteps));
 	connect(scalarKnob(), SIGNAL(valueChanged(int)), this, SLOT(knobChanged(int)));
+	// A double-click is no delay at all, the template's 0 ms; the knob's
+	// lowest step would write 1 ms.
+	connect(scalarKnob(), &AudioKnob::resetRequested, this, [this]() { setDelay(0.0, true); });
 
 	setDelay(delay, false);
 }

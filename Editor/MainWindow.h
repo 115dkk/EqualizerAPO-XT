@@ -203,6 +203,11 @@ private:
 	// has nothing to step to; without this they always render enabled and
 	// silently no-op, which reads as "undo/redo is gone".
 	void updateUndoRedoActions();
+	// The undo was always in the toolbar and on Ctrl+Z, but nothing said so
+	// at the moment it matters, right after a filter was removed by mistake
+	// (#456). Shows removalNotice with an Undo button for that table.
+	void announceRemoval(FilterTable* filterTable, int count);
+	void dismissRemovalNotice();
 	template<class T> QList<T> toQList(const std::vector<T>& vector);
 
 	std::unique_ptr<Ui::MainWindow> ui;
@@ -263,6 +268,9 @@ private:
 	// Bottom-centre notice that the last analysis found a line whose filter could
 	// not be set up, so the configuration was not applied (created on demand).
 	UpdateToast* loadNotice = nullptr;
+	// Bottom-centre notice after a removal, carrying the undo (created on
+	// demand). Any later edit, undo, redo or tab switch takes it down.
+	UpdateToast* removalNotice = nullptr;
 	QTimer* updateNoticeTimer = nullptr;
 	const UpdateSession* updateSession = nullptr;
 	bool analysisLayoutTestMode = false;

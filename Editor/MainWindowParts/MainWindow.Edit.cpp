@@ -18,7 +18,9 @@
 #include <QScrollArea>
 #include <QFileInfo>
 #include <QFileDialog>
+#include <QKeySequence>
 #include <QMessageBox>
+#include <QPointer>
 #include <QProcess>
 #include <QSettings>
 #include <QTimer>
@@ -35,6 +37,7 @@
 #include "FilterTable.h"
 #include "MainWindow.h"
 #include "Editor/MainWindowParts/OpenDocument.h"
+#include "Editor/widgets/UpdateToast.h"
 #include "SkinManager.h"
 #include "ui_MainWindow.h"
 
@@ -60,6 +63,9 @@ void MainWindow::linesChanged()
 	// Every document edit lands here (undo capture rides the same signal), so
 	// this keeps the Edit-menu undo/redo enabled states current.
 	updateUndoRedoActions();
+	// Its undo would now step back over this edit instead. A removal raises
+	// the notice again right after (FilterTable::linesRemoved follows).
+	dismissRemovalNotice();
 
 	OpenDocument* document = documentForTable(filterTable);
 	if (document == nullptr)
@@ -132,6 +138,7 @@ void MainWindow::on_actionUndo_triggered()
 
 	filterTable->undo();
 	updateUndoRedoActions();
+	dismissRemovalNotice();
 }
 
 void MainWindow::on_actionRedo_triggered()
@@ -142,6 +149,33 @@ void MainWindow::on_actionRedo_triggered()
 
 	filterTable->redo();
 	updateUndoRedoActions();
+	dismissRemovalNotice();
+}
+
+void MainWindow::announceRemoval(FilterTable* filterTable, int count)
+{
+	if (removalNotice == nullptr)
+		removalNotice = new UpdateToast(centralWidget());
+	QPointer<FilterTable> table(filterTable);
+	// Two sources rather than one %n plural: English has no catalogue, so a
+	// plural source would show its "(s)" to every English user.
+	const QString message = count == 1 ? tr("Filter removed.") : tr("%1 filters removed.").arg(count);
+	removalNotice->showMessage(message, 8000,
+		ui->actionUndo->text(), ui->actionUndo->shortcut().toString(QKeySequence::NativeText),
+		[this, table]() {
+			// The same step as the toolbar's undo, for the table the removal
+			// happened in; a tab switch has already taken the notice down.
+			if (table == nullptr || table != currentFilterTable())
+				return;
+			table->undo();
+			updateUndoRedoActions();
+		});
+}
+
+void MainWindow::dismissRemovalNotice()
+{
+	if (removalNotice != nullptr)
+		removalNotice->hideMessage();
 }
 
 void MainWindow::updateUndoRedoActions()

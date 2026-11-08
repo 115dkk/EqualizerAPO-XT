@@ -206,6 +206,11 @@ public:
 
 signals:
 	void linesChanged();
+	// Lines were removed by a card's or row's remove button or the Delete
+	// command, after the linesChanged that committed the removal to the undo
+	// history. Cut and drag-moves do not announce: the lines live on in the
+	// clipboard or at the drop. The window offers an undo on it (#456).
+	void linesRemoved(int count);
 	// The two calls FilterTable used to make through a stored MainWindow*
 	// (audit #275 B6) - the linesChanged shape, applied to the last two
 	// couplings, so the table stands without a MainWindow (offscreen gates,
@@ -271,6 +276,8 @@ private:
 	// rebuild (frozen fallback, docs/FilterListUiPolicy.md).
 	void insertRowAt(int index);
 	void removeRowAt(int index);
+	// deleteSelectedLines without the linesRemoved announcement, for cut.
+	void removeSelectedLines();
 	// Refreshes number/scope of the card rows at document index >= firstRow in
 	// place after an incremental splice. Returns false when a row widget is
 	// not a FilterCardRow (caller falls back to updateGuis).

@@ -176,6 +176,30 @@ TEST_CASE(EditorLogicTests, testDeviceSelectionModel)
 	expectEqual(model.serialize(), devSpeakers + "; " + devHeadphones, "later picks accumulate as before");
 }
 
+TEST_CASE(EditorLogicTests, testDeviceChipLabel)
+{
+	// #456: two interfaces both offer "Speakers" and "Microphone", so the
+	// chip names the device too, the way Windows spells an endpoint.
+	auto chip = [](const QString& connection, const QString& name) {
+		DeviceChipInfo info;
+		info.connection = connection;
+		info.name = name;
+		return info;
+	};
+	expectEqual(DeviceSelectionModel::chipLabel(chip("Speakers", "USB Audio CODEC")),
+		QStringLiteral("Speakers (USB Audio CODEC)"), "connection and device read as Windows names the endpoint");
+	expectEqual(DeviceSelectionModel::chipLabel(chip(QStringLiteral("스피커"), "USB Audio CODEC")),
+		QStringLiteral("스피커 (USB Audio CODEC)"), "a localized connection name keeps the device beside it");
+	expectEqual(DeviceSelectionModel::chipLabel(chip("", "USB Audio CODEC")),
+		QStringLiteral("USB Audio CODEC"), "no connection name: the device alone");
+	expectEqual(DeviceSelectionModel::chipLabel(chip("Speakers", "")),
+		QStringLiteral("Speakers"), "no device name: the connection alone");
+	expectEqual(DeviceSelectionModel::chipLabel(chip("Line Out", "line out")),
+		QStringLiteral("Line Out"), "a device name that repeats the connection is not doubled");
+	expectEqual(DeviceSelectionModel::chipLabel(chip(" Speakers ", " USB Audio CODEC ")),
+		QStringLiteral("Speakers (USB Audio CODEC)"), "stray spaces from the registry do not reach the chip");
+}
+
 TEST_CASE(EditorLogicTests, testStageSelectionModel)
 {
 	// StageSelectionModel serialization identity: known stages come back in

@@ -564,7 +564,6 @@ return;
 
 	testLoadHold(dllPath);
 	testExpiredLibraryCache(dir);
-	testProcessLifetimeResidency(dir, dllPath);
 
 	// A failed subclass initialization must roll the DLL load back completely.
 	// Otherwise the second call sees a non-null module and returns 0 (already
@@ -588,25 +587,28 @@ return;
 	shared_ptr<VSTPluginLibrary> library =
 		VSTPluginLibrary::getInstance(importedCommand.libraryPath);
 	harness.require(library != nullptr, "getInstance returned a library");
-	harness.expectFalse(library->isVST3(), "test plugin is hosted via the VST2 path");
 
 	const auto judgedLibrary = ConfigFileReference::library(dir, L"TestVst2Plugin.dll", L"");
 	harness.require(judgedLibrary.refusal.empty() && judgedLibrary.path.leaf() != nullptr,
 		"VST2 library reference retains a readable pinned leaf");
 	int loadResult = VSTPluginLibrary::load(library->getLibPath(), &judgedLibrary.path).status;
-	harness.expectTrue(loadResult >= 0, "library initialize did not return an error code");
-	harness.expectTrue(library->VSTPluginMain != nullptr, "VSTPluginMain symbol resolved");
+	if (loadResult < 0)
+		std::printf("Dual-export .dll load status: %d\n", loadResult);
+	harness.require(loadResult >= 0,
+		"a .dll exporting both entry points loads as VST2 (#455)");
+	harness.expectFalse(library->isVST3(),
+		"a .dll exporting both entry points is marked as VST2 (#455)");
+	harness.expectTrue(library->VSTPluginMain != nullptr,
+		"a .dll exporting both entry points retains VSTPluginMain (#455)");
+	harness.expectTrue(library->getFactory() == nullptr,
+		"a .dll exporting both entry points does not retain a VST3 factory (#455)");
 
-	const wstring disguisedVst2Path = dir + L"\\TestVst2Disguised.vst3";
-	if (CopyFileW(dllPath.c_str(), disguisedVst2Path.c_str(), FALSE) != FALSE)
+	testProcessLifetimeResidency(dir, dllPath);
+
 	{
-		shared_ptr<VSTPluginLibrary> disguisedLibrary = VSTPluginLibrary::getInstance(disguisedVst2Path);
-		harness.expectTrue(VSTPluginLibrary::load(disguisedLibrary->getLibPath()).status >= 0 && !disguisedLibrary->isVST3(),
-			"loaded module ABI recognizes VST2 even when the file extension is .vst3");
-
 		VSTPluginFilterFactory factory;
 		wstring busCommand = L"VSTPlugin";
-		wstring busParameters = L"Library \"" + disguisedVst2Path
+		wstring busParameters = L"Library \"" + dllPath
 			+ L"\" Input Stereo Output 7.1";
 		FilterVector accepted = factory.createFilter(L"test-vst2-layout-ignore.txt", busCommand, busParameters).filters;
 		harness.expectEqual(accepted.size(), (size_t)1,
@@ -622,8 +624,17 @@ return;
 		harness.expectTrue(busCommand == L"VSTPlugin",
 			"VST2 Input/Output handling keeps the shared VSTPlugin command");
 	}
+
+	const wstring dualExportVst3Path = dir + L"\\TestVst2DualExport.vst3";
+	if (CopyFileW(dllPath.c_str(), dualExportVst3Path.c_str(), FALSE) != FALSE)
+	{
+		shared_ptr<VSTPluginLibrary> dualExportLibrary = VSTPluginLibrary::getInstance(dualExportVst3Path);
+		harness.expectTrue(VSTPluginLibrary::load(dualExportLibrary->getLibPath()).status < 0
+			&& dualExportLibrary->isVST3(),
+			"a dual-export .vst3 uses its VST3 factory even when that factory has no classes");
+	}
 	else
-		harness.expectTrue(false, "VST2 disguised-extension copy is available for ABI detection");
+		harness.expectTrue(false, "dual-export .vst3 copy is available for extension selection");
 
 	testVst2CallbacksAndEditorDefaults(library);
 	testVst2EditorScaling(library);

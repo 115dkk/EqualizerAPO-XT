@@ -10,6 +10,7 @@
 #include <QApplication>
 #include <QEvent>
 #include <QIcon>
+#include <QKeySequence>
 #include <QMenu>
 #include <QMouseEvent>
 #include <QPainter>
@@ -102,7 +103,6 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	expandButton->setObjectName(QStringLiteral("FilterCardIconButton"));
 	expanded = gui != nullptr;
 	expandButton->setText(expanded ? QStringLiteral("v") : QStringLiteral(">"));
-	expandButton->setToolTip(tr("Expand filter card"));
 	connect(expandButton, &QToolButton::clicked, this, [this]() { setExpanded(!expanded); });
 	headerLayout->addWidget(expandButton);
 
@@ -124,7 +124,6 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	// the engaged look of the other checkable header button.
 	enabledButton->setProperty("powerToggle", true);
 	enabledButton->setCheckable(true);
-	enabledButton->setToolTip(tr("Enable or comment out this command"));
 	enabledButton->setChecked(descriptor.enabled);
 	enabledButton->setIcon(powerToggleIcon(descriptor.enabled));
 	connect(enabledButton, &QToolButton::toggled, this, &FilterCardRow::enabledToggled);
@@ -139,8 +138,14 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 
 	removeButton = new QToolButton(headerWidget);
 	removeButton->setObjectName(QStringLiteral("FilterCardIconButton"));
-	removeButton->setText(QStringLiteral("-"));
-	removeButton->setToolTip(tr("Remove filter"));
+	// A bin, not "-": beside "+" a minus reads as one step of something, and
+	// a field report (#456) took it for another control and lost a filter it
+	// meant to keep. Same stroke set, size and ink as the code mark below.
+	removeButton->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/trash.svg"),
+		QColor(SkinManager::instance()->tokens().text), 14));
+	removeButton->setAccessibleName(tr("Remove filter"));
+	removeButton->setToolTip(tr("Remove this filter. %1 brings it back.")
+		.arg(QKeySequence(QKeySequence::Undo).toString(QKeySequence::NativeText)));
 	connect(removeButton, &QToolButton::clicked, this, &FilterCardRow::removeThis);
 	headerLayout->addWidget(removeButton);
 
@@ -561,14 +566,21 @@ bool FilterCardRow::eventFilter(QObject* watched, QEvent* event)
 		break;
 	}
 	case QEvent::MouseButtonPress:
+	case QEvent::MouseButtonDblClick:
 	{
 		QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
-		if (mouseEvent->button() == Qt::LeftButton
+		if (event->type() == QEvent::MouseButtonPress
+			&& mouseEvent->button() == Qt::LeftButton
 			&& mouseEvent->modifiers() == Qt::NoModifier
 			&& table != nullptr && item != nullptr)
 		{
 			table->selectOnlyFromCard(item);
 		}
+		// This press already closed the raw editor by taking its focus
+		// (lineEditingFinished). The toggle must not see it, or its release
+		// switches editing straight back on.
+		if (watched == editButton && editorClosedByFocusLoss && mouseEvent->button() == Qt::LeftButton)
+			return true;
 		break;
 	}
 	case QEvent::Resize:
@@ -760,6 +772,7 @@ void FilterCardRow::applyDescriptor()
 	enabledButton->setIcon(powerToggleIcon(descriptor.enabled));
 	enabledButton->blockSignals(false);
 	enabledButton->setVisible(descriptor.canToggleEnabled);
+	syncHeaderToolTips();
 	// Disable only the body editor when the line is commented out. This keeps
 	// the card frame (and its header buttons - including the enable toggle and
 	// the raw-edit affordance) interactive so the user can flip the line back on.
@@ -886,6 +899,13 @@ void FilterCardRow::lineEditingFinished()
 {
 	if (bodyStack->currentWidget() == lineEdit && !editingDone)
 	{
+		// Qt hands the focus to the nearest click-focus ancestor (the list)
+		// before it delivers a press, so a press on the raw-line toggle closes
+		// the editor here first. The flag lives until the event loop runs
+		// again, long enough for the toggle to see that same press and swallow
+		// it; letting it through reopened the editor on release (#456).
+		editorClosedByFocusLoss = true;
+		QTimer::singleShot(0, this, [this]() { editorClosedByFocusLoss = false; });
 		editingDone = true;
 		if (lineEdit->text() != item->text)
 		{
@@ -913,6 +933,7 @@ void FilterCardRow::enabledToggled(bool checked)
 
 	if (enabledButton != nullptr)
 		enabledButton->setIcon(powerToggleIcon(checked));
+	syncHeaderToolTips();
 
 	table->setLineEnabled(item, checked);
 	FilterTable* targetTable = table;
@@ -933,6 +954,17 @@ void FilterCardRow::setExpanded(bool open)
 		table->setFocus(Qt::OtherFocusReason);
 	bodyStack->setVisible(open);
 	syncSummaryVisibility();
+	syncHeaderToolTips();
+}
+
+void FilterCardRow::syncHeaderToolTips()
+{
+	// Each control says what a click does from here, so the power switch
+	// and the fold arrow follow their state.
+	expandButton->setToolTip(expanded ? tr("Collapse filter card") : tr("Expand filter card"));
+	enabledButton->setToolTip(enabledButton->isChecked()
+		? tr("Switch this line off. It stays in the file as a comment.")
+		: tr("Switch this line back on."));
 }
 
 void FilterCardRow::syncSummaryVisibility()

@@ -50,6 +50,8 @@ PreampCardEditor::PreampCardEditor(double dbGain, QWidget* parent)
 		QStringLiteral("PreampCardValueBlock"), caption, editableValue, QString(), true,
 		gainToKnobValue(-knobRange), gainToKnobValue(knobRange));
 	connect(scalarKnob(), SIGNAL(valueChanged(int)), this, SLOT(knobChanged(int)));
+	// A double-click on the knob is the neutral gain, the template's 0 dB.
+	connect(scalarKnob(), &AudioKnob::resetRequested, this, [this]() { setGain(0.0, true); });
 
 	setGain(dbGain, false);
 }

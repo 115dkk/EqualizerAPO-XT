@@ -129,6 +129,8 @@ FilterTable* MainWindow::addTab(QString title, QString tooltip, QString configPa
 		this, [this](const QString& path) { load(path); });
 	connect(filterTable, &FilterTable::analysisUpdateRequested,
 		this, [this]() { startAnalysis(); });
+	connect(filterTable, &FilterTable::linesRemoved,
+		this, [this, filterTable](int count) { announceRemoval(filterTable, count); });
 	scrollArea->setWidget(filterTable);
 	filterTable->setAcceptDrops(true);
 	filterTable->setFocusPolicy(Qt::StrongFocus);

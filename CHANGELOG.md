@@ -14,6 +14,50 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **A VST2 plug-in whose DLL also carries a VST3 entry point loads again.**
+  Kilohearts ships one binary as both products, so `kHs Delay.dll` exports
+  `VSTPluginMain` and `GetPluginFactory`. Since v2.35.0 the Editor and the
+  engine preferred the VST3 entry point for any such file, and the plug-in's
+  VST3 factory answers "not implemented" when the host offers it a context,
+  so the line failed with "Library could not be loaded" (status -2). When a
+  file exports both, the extension now decides: `.vst3` loads as VST3,
+  `.dll` as VST2, as every DAW treats them. A file with only one entry point
+  still loads by that one, so a VST3 module renamed to `.dll` keeps working.
+  A VST3 factory that declines the host context is no longer refused either;
+  the answer is logged and loading continues
+  ([#455](https://github.com/115dkk/EqualizerAPO-XT/issues/455), [#457](https://github.com/115dkk/EqualizerAPO-XT/pull/457)).
+- **Knobs no longer jump to where you click.** A click on the right edge of
+  the Preamp knob used to set +20 dB at once. A press now grabs the knob
+  where it stands, and the knob turns by the angle you sweep around it, still
+  as a dial and not by dragging up and down. Near the knob a turn through the
+  whole range takes about 200 pixels of hand movement whatever size the knob
+  is drawn at; further out it follows your angle one to one. Hold Shift for
+  a tenth of the speed, and double-click to return to the default (Preamp
+  0 dB, Delay 0 ms, All-pass 100 Hz and Q 0.707). The minimal skin's drum
+  keeps its vertical drag and gains the double-click
+  ([#456](https://github.com/115dkk/EqualizerAPO-XT/issues/456), [#457](https://github.com/115dkk/EqualizerAPO-XT/pull/457)).
+- **The card's remove button is a bin, and a removal offers Undo.** The `-`
+  beside `+` was easy to take for another control. It is now a bin icon, and
+  each header button's tooltip says what a click does from where it stands
+  (the power button tells you a switched-off line stays in the file as a
+  comment). Removing a filter, from the card or with Delete, shows a notice
+  at the bottom of the window with an **Undo** button; undo was always on
+  the toolbar and on Ctrl+Z, but nothing pointed at it when it mattered. Any
+  later edit, undo or tab switch takes the notice down. The power button's
+  shape is unchanged in this round
+  ([#456](https://github.com/115dkk/EqualizerAPO-XT/issues/456), [#457](https://github.com/115dkk/EqualizerAPO-XT/pull/457)).
+- **Device chips name the device as well as the connection.** Two
+  interfaces both offering "Speakers" or "Microphone" looked the same on the
+  Device card. Chips now read the way Windows names an endpoint, for example
+  "Speakers (USB Audio CODEC)"; a very long name ends in an ellipsis and the
+  tooltip shows it whole
+  ([#456](https://github.com/115dkk/EqualizerAPO-XT/issues/456), [#457](https://github.com/115dkk/EqualizerAPO-XT/pull/457)).
+- **One click on `</>` leaves the raw line editor.** Clicking the code
+  button again to go back to the card used to reopen the editor at once:
+  the press closed it by taking the focus away, and the release switched it
+  on again. It now closes on the first click
+  ([#456](https://github.com/115dkk/EqualizerAPO-XT/issues/456), [#457](https://github.com/115dkk/EqualizerAPO-XT/pull/457)).
+
 ## v2.61.6 — 2026-11-05
 
 - **Uninstalling no longer leaves the install folder in the registry, and a
