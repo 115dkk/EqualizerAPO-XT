@@ -374,6 +374,7 @@ void FilterTable::removeItem(FilterTable::Item* item)
 		return;
 
 	emit linesChanged();
+	emit linesRemoved(1);
 }
 
 QMenu* FilterTable::createAddPopupMenu()

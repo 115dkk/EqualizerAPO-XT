@@ -80,6 +80,7 @@ private:
 	void syncEditorScrollHeight(QScrollArea* scroll);
 	void applyDescriptor();
 	void syncSummaryVisibility();
+	void syncHeaderToolTips();
 	void rebuildSummary();
 	void setEditing(bool editing);
 	// deviceChannels is part of the cache key: the same list judges both
@@ -122,5 +123,11 @@ private:
 	// or not), so a device change redraws them.
 	std::vector<std::wstring> renderedBadgeDeviceChannels;
 	bool editingDone = false;
+	// Set while the event that took the raw editor's focus away is still
+	// being delivered (cleared from the event loop right after). A press on
+	// the raw-line toggle reaches the button only after Qt has moved the
+	// focus, so this tells the toggle that its own press already closed the
+	// editor (#456).
+	bool editorClosedByFocusLoss = false;
 	bool expanded = false;
 };

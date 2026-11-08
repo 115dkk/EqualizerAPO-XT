@@ -117,6 +117,9 @@ AllPassCardEditor::AllPassCardEditor(const BiQuadCommand& command, const QString
 	parameterRow->addWidget(buildKnobBlock(this, frequencyKnob,
 		QStringLiteral("AllPassCardFrequencyKnob"), frequencyCaption, frequencyValue));
 	connect(frequencyKnob, SIGNAL(valueChanged(int)), this, SLOT(frequencyKnobChanged(int)));
+	// Double-click defaults are the all-pass templates' (FilterCommandCatalog):
+	// Fc 100 Hz, and the filter's default Q in whichever spelling is shown.
+	connect(frequencyKnob, &AudioKnob::resetRequested, this, [this]() { setFrequency(100.0, true); });
 
 	// The width's caption is its mode selector, following the Delay card, whose
 	// unit combo sits in exactly this position. It is a control, not a readout:
@@ -136,6 +139,10 @@ AllPassCardEditor::AllPassCardEditor(const BiQuadCommand& command, const QString
 		QStringLiteral("AllPassCardWidthKnob"), widthModeCombo, widthValue);
 	parameterRow->addWidget(widthBlock);
 	connect(widthKnob, SIGNAL(valueChanged(int)), this, SLOT(widthKnobChanged(int)));
+	connect(widthKnob, &AudioKnob::resetRequested, this, [this]() {
+		const double q = BiQuadWidth::defaultQ(BiQuad::ALL_PASS);
+		setWidth(bandwidthMode() ? BiQuadWidth::bandwidthFromQ(q) : q, true);
+	});
 	connect(widthModeCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(widthModeChanged(int)));
 
 	// Both mode switches follow the knobs on the same row, captioned alike, so

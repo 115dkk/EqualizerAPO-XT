@@ -30,6 +30,19 @@ UpdateToast::UpdateToast(QWidget* host)
 	label->setObjectName(QStringLiteral("UpdateToastLabel"));
 	layout->addWidget(label);
 
+	actionButton = new QToolButton(this);
+	actionButton->setObjectName(QStringLiteral("UpdateToastAction"));
+	actionButton->setVisible(false);
+	connect(actionButton, &QToolButton::clicked, this, [this]() {
+		// Moved out first: the action may show another message on this toast.
+		std::function<void()> action = std::move(pendingAction);
+		pendingAction = nullptr;
+		hideMessage();
+		if (action)
+			action();
+	});
+	layout->addWidget(actionButton, 0, Qt::AlignVCenter);
+
 	closeButton = new QToolButton(this);
 	closeButton->setObjectName(QStringLiteral("UpdateToastClose"));
 	closeButton->setAutoRaise(true);
@@ -45,15 +58,43 @@ UpdateToast::UpdateToast(QWidget* host)
 
 	host->installEventFilter(this);
 	connect(SkinManager::instance(), &SkinManager::skinChanged, this, [this](const SkinTokens& tokens) {
-		label->setStyleSheet(QStringLiteral("color: %1;").arg(tokens.text));
+		applyTokens(tokens);
 		update();
 	});
-	const SkinTokens& tokens = SkinManager::instance()->tokens();
+	applyTokens(SkinManager::instance()->tokens());
+}
+
+void UpdateToast::applyTokens(const SkinTokens& tokens)
+{
 	label->setStyleSheet(QStringLiteral("color: %1;").arg(tokens.text));
+	// The action is a quiet outlined button in the card's own ink, so the
+	// notice keeps one accent (its keel) and the button still reads as one.
+	const int radius = qMax(2, tokens.borderRadius - 4);
+	actionButton->setStyleSheet(QStringLiteral(
+		"QToolButton#UpdateToastAction { color: %1; background: transparent; border: 1px solid %2;"
+		" border-radius: %3px; padding: 2px 10px; font-weight: 600; }"
+		"QToolButton#UpdateToastAction:hover { background: %4; }")
+		.arg(tokens.text, tokens.border)
+		.arg(radius)
+		.arg(tokens.cardHover));
+}
+
+void UpdateToast::showMessage(const QString& message, int autoHideMs, const QString& actionText,
+	const QString& actionToolTip, std::function<void()> action)
+{
+	showMessage(message, autoHideMs);
+	pendingAction = std::move(action);
+	actionButton->setText(actionText);
+	actionButton->setToolTip(actionToolTip);
+	actionButton->setVisible(static_cast<bool>(pendingAction));
+	fitToHost();
+	reposition();
 }
 
 void UpdateToast::showMessage(const QString& message, int autoHideMs)
 {
+	pendingAction = nullptr;
+	actionButton->setVisible(false);
 	label->setText(message);
 	fitToHost();
 	show();
@@ -87,6 +128,7 @@ void UpdateToast::fitToHost()
 void UpdateToast::hideMessage()
 {
 	autoHideTimer->stop();
+	pendingAction = nullptr;
 	hide();
 	// Lets a toast that sat above this one drop back to the bottom.
 	reposition();

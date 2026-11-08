@@ -14,6 +14,7 @@
 #include "Editor/gallery/GalleryStallWatch.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 
 #include <QAction>
@@ -53,6 +54,8 @@
 #include "Editor/skins/SkinThemeData.h"
 #include "Editor/skins/Skins.h"
 #include "Editor/skins/shared/SkinFileIcons.h"
+#include "Editor/widgets/AudioKnob.h"
+#include "Editor/widgets/KnobTravel.h"
 #include "Editor/widgets/CommandRowFrame.h"
 #include "Editor/widgets/FilterCardRow.h"
 #include "Editor/widgets/FilterInsertSeam.h"
@@ -750,6 +753,33 @@ int runCardSelectionTest(const QStringList& arguments)
 		QApplication::sendEvent(target, &release);
 		QApplication::processEvents();
 	};
+	// What QApplication does before it delivers a real (spontaneous) press:
+	// the focus goes to the nearest enabled widget under the press, the
+	// target or an ancestor, that takes click focus, unless one on the way
+	// already holds it. sendEvent() skips that step, and the #456 double
+	// toggle of the raw-line button lived exactly there.
+	const auto clickWithFocus = [&click](QWidget* target, const QPoint& localPos) {
+		QPoint pos = localPos;
+		for (QWidget* widget = target; widget != nullptr; widget = widget->parentWidget())
+		{
+			if (widget->isEnabled() && widget->rect().contains(pos)
+				&& (widget->focusPolicy() & Qt::ClickFocus) == Qt::ClickFocus)
+			{
+				widget->setFocus(Qt::MouseFocusReason);
+				break;
+			}
+			if (widget->isWindow() || widget->hasFocus())
+				break;
+			pos += widget->pos();
+		}
+		click(target, localPos);
+	};
+	const auto sendMouse = [](QWidget* target, QEvent::Type type, const QPointF& localPos,
+		Qt::MouseButtons buttons, Qt::KeyboardModifiers modifiers = Qt::NoModifier) {
+		const Qt::MouseButton button = type == QEvent::MouseMove ? Qt::NoButton : Qt::LeftButton;
+		QMouseEvent event(type, localPos, target->mapToGlobal(localPos), button, buttons, modifiers);
+		QApplication::sendEvent(target, &event);
+	};
 
 	int failures = 0;
 	int scenes = 0;
@@ -1014,6 +1044,131 @@ int runCardSelectionTest(const QStringList& arguments)
 			failures++;
 		qWarning("CardSelectionTest: %s focus tall-click=%d fold=%d replace=%d dismiss=%d rebuild=%d raw-picker=%d remove=%d",
 			qPrintable(scene), tallClick, foldStable, replaceStable, dismissStable, rebuildStable, rawPickerStable, removeStable);
+
+		// #456: one click on the raw-line toggle (</>) opens the raw editor and
+		// the next one closes it. The press used to hand the focus to the list
+		// first, the raw editor closed itself on losing it, and the release
+		// then switched it straight back on, so the editor could not be left.
+		bool codeToggleOnce = false;
+		{
+			FilterCardRow* codeRow = qobject_cast<FilterCardRow*>(focusGrid->itemAtPosition(0, 0)->widget());
+			QToolButton* toggle = nullptr;
+			if (codeRow != nullptr)
+			{
+				for (QToolButton* button : codeRow->findChildren<QToolButton*>(QStringLiteral("FilterCardIconButton")))
+					if (button->isCheckable() && !button->property("powerToggle").toBool())
+						toggle = button;
+			}
+			QLineEdit* rawEditor = codeRow != nullptr
+				? codeRow->findChild<QLineEdit*>(QStringLiteral("FilterCardRawEditor")) : nullptr;
+			if (toggle != nullptr && rawEditor != nullptr)
+			{
+				const QPoint center = toggle->rect().center();
+				const auto editing = [&]() { return toggle->isChecked() && rawEditor->isVisible(); };
+				const auto idle = [&]() { return !toggle->isChecked() && !rawEditor->isVisible(); };
+				clickWithFocus(toggle, center);
+				const bool opened = editing();
+				clickWithFocus(toggle, center);
+				const bool closed = idle();
+				clickWithFocus(toggle, center);
+				const bool reopened = editing();
+				clickWithFocus(toggle, center);
+				const bool reclosed = idle();
+				codeToggleOnce = opened && closed && reopened && reclosed;
+				if (!codeToggleOnce)
+					qWarning("CardSelectionTest: %s code toggle opened=%d closed=%d reopened=%d reclosed=%d",
+						qPrintable(scene), opened, closed, reopened, reclosed);
+			}
+		}
+		if (!codeToggleOnce)
+			failures++;
+
+		// #456: a press grabs a knob without moving it, wherever on the knob
+		// it lands, an arc knob then turns by the angle the pointer sweeps
+		// around its centre, and a double-click puts the gain back to 0 dB.
+		bool knobGrab = false;
+		bool knobTurn = false;
+		bool knobReset = false;
+		{
+			FilterCardRow* knobRow = qobject_cast<FilterCardRow*>(focusGrid->itemAtPosition(1, 0)->widget());
+			AudioKnob* knob = knobRow != nullptr ? knobRow->findChild<AudioKnob*>(QStringLiteral("PreampCardKnob")) : nullptr;
+			if (knob != nullptr)
+			{
+				const QPointF centre = QRectF(knob->rect()).center();
+				const QPointF rightEdge(knob->width() - 2.0, centre.y());
+				const int before = knob->value();
+				sendMouse(knob, QEvent::MouseButtonPress, rightEdge, Qt::LeftButton);
+				knobGrab = knob->value() == before;
+				sendMouse(knob, QEvent::MouseButtonRelease, rightEdge, Qt::NoButton);
+
+				if (SkinManager::instance()->knobGesture() == KnobGesture::Rotary)
+				{
+					// A quarter turn clockwise well outside the minimum radius
+					// is a third of the range.
+					const double radius = KnobTravel::MinimumRadiusPixels * 2.0;
+					const int grabbed = knob->value();
+					sendMouse(knob, QEvent::MouseButtonPress, centre + QPointF(0.0, -radius), Qt::LeftButton);
+					for (int step = 1; step <= 9; step++)
+					{
+						const double angle = step * 10.0 * 3.14159265358979323846 / 180.0;
+						sendMouse(knob, QEvent::MouseMove,
+							centre + QPointF(std::sin(angle) * radius, -std::cos(angle) * radius), Qt::LeftButton);
+					}
+					const int expected = std::min(knob->maximum(),
+						grabbed + qRound((knob->maximum() - knob->minimum()) / 3.0));
+					knobTurn = std::abs(knob->value() - expected) <= 1;
+					sendMouse(knob, QEvent::MouseButtonRelease, centre + QPointF(radius, 0.0), Qt::NoButton);
+					if (!knobTurn)
+						qWarning("CardSelectionTest: %s knob turn %d -> %d (expected %d)",
+							qPrintable(scene), grabbed, knob->value(), expected);
+
+					// The same quarter turn on the painted knob itself, inside
+					// the minimum radius, where the hand actually is: the value
+					// follows the law's arc-length rate, counter-clockwise here.
+					const double inside = std::min(knob->width(), knob->height()) / 2.0 - 6.0;
+					const int insideGrabbed = knob->value();
+					double law = insideGrabbed;
+					QPointF previous(0.0, -inside);
+					sendMouse(knob, QEvent::MouseButtonPress, centre + previous, Qt::LeftButton);
+					for (int step = 1; step <= 9; step++)
+					{
+						const double angle = -step * 10.0 * 3.14159265358979323846 / 180.0;
+						const QPointF next(std::sin(angle) * inside, -std::cos(angle) * inside);
+						law = KnobTravel::turn(law, KnobTravel::sweptDegrees(previous.x(), previous.y(), next.x(), next.y()),
+							knob->minimum(), knob->maximum(), false);
+						previous = next;
+						sendMouse(knob, QEvent::MouseMove, centre + next, Qt::LeftButton);
+					}
+					sendMouse(knob, QEvent::MouseButtonRelease, centre + previous, Qt::NoButton);
+					const bool insideTurn = knob->value() == qRound(law) && knob->value() < insideGrabbed;
+					if (!insideTurn)
+						qWarning("CardSelectionTest: %s knob turn inside %d -> %d (law %.2f)",
+							qPrintable(scene), insideGrabbed, knob->value(), law);
+					knobTurn = knobTurn && insideTurn;
+				}
+				else
+					knobTurn = true;
+
+				sendMouse(knob, QEvent::MouseButtonPress, rightEdge, Qt::LeftButton);
+				sendMouse(knob, QEvent::MouseButtonRelease, rightEdge, Qt::NoButton);
+				sendMouse(knob, QEvent::MouseButtonDblClick, rightEdge, Qt::LeftButton);
+				// A hand that moves a pixel straight outward before letting go
+				// turns nothing in either gesture; it must not bring back the
+				// value the first press grabbed.
+				sendMouse(knob, QEvent::MouseMove, rightEdge + QPointF(1.0, 0.0), Qt::LeftButton);
+				sendMouse(knob, QEvent::MouseButtonRelease, rightEdge + QPointF(1.0, 0.0), Qt::NoButton);
+				QApplication::processEvents();
+				const QString line = focusTable->documentItems().at(1)->text;
+				knobReset = knob->value() == 0 && line.startsWith(QStringLiteral("Preamp: 0"));
+				if (!knobReset)
+					qWarning("CardSelectionTest: %s knob reset value=%d line=%s",
+						qPrintable(scene), knob->value(), qPrintable(line));
+			}
+		}
+		if (!knobGrab || !knobTurn || !knobReset)
+			failures++;
+		qWarning("CardSelectionTest: %s code-toggle-once=%d knob grab=%d turn=%d reset=%d",
+			qPrintable(scene), codeToggleOnce, knobGrab, knobTurn, knobReset);
 
 		// An open comment card shows its note once, in the body editor; the
 		// header carries it only while the card is closed.

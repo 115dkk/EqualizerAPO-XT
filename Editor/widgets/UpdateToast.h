@@ -6,11 +6,14 @@
 
 #pragma once
 
+#include <functional>
+
 #include <QWidget>
 
 class QLabel;
 class QTimer;
 class QToolButton;
+struct SkinTokens;
 
 // A small, dismissible notice anchored to the bottom centre of the main
 // window. First user: the Velopack auto-update flow, which stages updates
@@ -31,6 +34,11 @@ public:
 	// autoHideMs of 0 or less keeps it up until hideMessage() or the close
 	// button.
 	void showMessage(const QString& message, int autoHideMs = 15000);
+	// The same, with one action button before the close button (#UpdateToastAction).
+	// Clicking it runs the action and hides the notice. A later plain
+	// showMessage() drops the action again.
+	void showMessage(const QString& message, int autoHideMs, const QString& actionText,
+		const QString& actionToolTip, std::function<void()> action);
 	// Hides the notice and stops any pending auto-hide.
 	void hideMessage();
 
@@ -42,6 +50,8 @@ private:
 	// The room a wrapped notice leaves on each side of the host.
 	static constexpr int kHostMargin = 24;
 
+	void applyTokens(const SkinTokens& tokens);
+
 	// Sizes the toast to its message: one line when it fits the host,
 	// wrapped at the host's width less the margins when it does not.
 	void fitToHost();
@@ -50,6 +60,8 @@ private:
 	void reposition();
 
 	QLabel* label = nullptr;
+	QToolButton* actionButton = nullptr;
 	QToolButton* closeButton = nullptr;
 	QTimer* autoHideTimer = nullptr;
+	std::function<void()> pendingAction;
 };

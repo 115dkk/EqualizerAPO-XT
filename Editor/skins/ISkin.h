@@ -342,10 +342,11 @@ struct KnobState
 // How AudioKnob turns pointer motion into value changes. The widget owns
 // both gestures (Editor/widgets/AudioKnob.cpp); a skin only names the one
 // its instrument is built for, and paints the instrument to match: a
-// rotary knob follows the pointer's angle about its centre, a rolling drum
-// follows the pointer's vertical travel (KnobTravel::RangePixels for the
-// whole range, Editor/widgets/KnobTravel.h; a painter that derives its
-// surface travel from the same figure rolls under the pointer one to one).
+// rotary knob turns by the angle the pointer sweeps about its centre, a
+// rolling drum follows the pointer's vertical travel (KnobTravel::RangePixels
+// for the whole range, Editor/widgets/KnobTravel.h; a painter that derives
+// its surface travel from the same figure rolls under the pointer one to
+// one). Neither moves on a press alone.
 enum class KnobGesture
 {
 	Rotary,

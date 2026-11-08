@@ -26,9 +26,9 @@ struct DeviceEntry
 	// apoInfo->getDeviceString(): the engine's match key and the token written
 	// back into the "Device:" line.
 	QString deviceString;
-	// Friendly name (getDeviceName) shown on the chip.
+	// The device the endpoint belongs to (getDeviceName), e.g. "USB Audio CODEC".
 	QString name;
-	// Connection name (getConnectionName), shown in the tooltip.
+	// The endpoint's own name (getConnectionName), e.g. "Speakers".
 	QString connection;
 	bool installed = false;
 	bool isInput = false;
@@ -54,6 +54,13 @@ public:
 
 	const QList<DeviceChipInfo>& chips() const;
 	bool allSelected() const;
+
+	// The chip's text, spelled the way Windows names an endpoint: the
+	// connection with its device in parentheses, "Speakers (USB Audio CODEC)".
+	// The connection alone ("Speakers", "Microphone") could not tell two
+	// interfaces apart (#456). Either part alone when the other is empty or
+	// says the same.
+	static QString chipLabel(const DeviceChipInfo& chip);
 
 	void setAllSelected(bool on);
 	// Flip one chip. While "all" is on, picking a chip narrows the selection

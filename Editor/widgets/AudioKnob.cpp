@@ -6,7 +6,6 @@
 
 #include "AudioKnob.h"
 
-#include <QtMath>
 #include <QMouseEvent>
 #include <QPainter>
 
@@ -77,20 +76,20 @@ void AudioKnob::syncGestureCursor()
 		? Qt::SizeVerCursor : Qt::OpenHandCursor);
 }
 
-void AudioKnob::setValueFromAngle(const QPointF& widgetPos)
+void AudioKnob::setValueFromTurn(const QPointF& widgetPos, Qt::KeyboardModifiers modifiers)
 {
-	// Map the cursor's angle around the knob centre onto the 270-degree value arc
-	// so the indicator turns to follow the mouse like a physical knob. The geometry
-	// matches paintEvent: the arc runs from 135 degrees (minimum, bottom-left)
-	// clockwise to 405 degrees (maximum, bottom-right), with a dead zone across the
-	// bottom. Screen Y grows downward, so a plain atan2 already gives this sweep.
-	const QPointF center = rect().center();
-	const double raw = qRadiansToDegrees(qAtan2(widgetPos.y() - center.y(), widgetPos.x() - center.x()));
-	double angle = (raw < 135.0) ? raw + 360.0 : raw;   // unwrap into 135..495
-	if (angle > 405.0)                                   // inside the bottom dead zone
-		angle = (angle < 450.0) ? 405.0 : 135.0;        // snap to whichever end is nearer
-	const double ratio = (angle - 135.0) / 270.0;
-	setValue(qBound(minimum(), minimum() + static_cast<int>(qRound(ratio * (maximum() - minimum()))), maximum()));
+	// Relative rotary drag: the knob turns by the angle the pointer swept
+	// around its centre since the last move (KnobTravel::sweptDegrees), so a
+	// press alone changes nothing and the indicator turns with the hand from
+	// wherever it stood. The painted arc (135 degrees at the minimum,
+	// clockwise to 405 at the maximum) is the whole range, a tenth of that
+	// rate with Shift, and the value stops at either end.
+	const QPointF to = widgetPos - QRectF(rect()).center();
+	const double degrees = KnobTravel::sweptDegrees(turnFrom.x(), turnFrom.y(), to.x(), to.y());
+	turnFrom = to;
+	travelValue = KnobTravel::turn(travelValue, degrees, minimum(), maximum(),
+		modifiers.testFlag(Qt::ShiftModifier));
+	setValue(qRound(travelValue));
 }
 
 void AudioKnob::setValueFromTravel(const QPointF& widgetPos, Qt::KeyboardModifiers modifiers)
@@ -119,23 +118,40 @@ void AudioKnob::mousePressEvent(QMouseEvent* event)
 		// indicator drift and lurched the value when the button was released.
 		gesture = SkinManager::instance()->knobGesture();
 		setSliderDown(true);
+		// Grab, do not jump, in both gestures: the value only moves with
+		// travel from here.
+		travelValue = value();
 		if (gesture == KnobGesture::VerticalDrag)
 		{
-			// Grab, do not jump: the value only moves with travel from here.
-			travelValue = value();
 			travelY = event->position().y();
 		}
 		else
 		{
-			// Rotary tracking: the knob turns to follow the cursor.
 			setCursor(Qt::ClosedHandCursor);
-			setValueFromAngle(event->position());
+			turnFrom = event->position() - QRectF(rect()).center();
 		}
 		event->accept();
 		return;
 	}
 
 	QDial::mousePressEvent(event);
+}
+
+void AudioKnob::mouseDoubleClickEvent(QMouseEvent* event)
+{
+	// The press that came just before has grabbed the knob without moving it,
+	// so the reset is the only change a double-click makes. The second press
+	// then grabs again at the reset value: a hand that moves while it is
+	// still down would otherwise carry on from the value before the reset
+	// and undo it.
+	if (event->button() == Qt::LeftButton)
+	{
+		emit resetRequested();
+		mousePressEvent(event);
+		return;
+	}
+
+	QDial::mouseDoubleClickEvent(event);
 }
 
 void AudioKnob::mouseMoveEvent(QMouseEvent* event)
@@ -145,7 +161,7 @@ void AudioKnob::mouseMoveEvent(QMouseEvent* event)
 		if (gesture == KnobGesture::VerticalDrag)
 			setValueFromTravel(event->position(), event->modifiers());
 		else
-			setValueFromAngle(event->position());
+			setValueFromTurn(event->position(), event->modifiers());
 		event->accept();
 		return;
 	}

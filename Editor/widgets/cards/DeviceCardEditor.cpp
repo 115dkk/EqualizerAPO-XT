@@ -7,7 +7,7 @@
 #include "DeviceCardEditor.h"
 
 #include <QAbstractButton>
-
+#include <QEvent>
 #include <QToolButton>
 
 #include "Editor/FilterTable.h"
@@ -18,6 +18,43 @@ using std::shared_ptr;
 
 namespace
 {
+// A device chip whose label keeps to a readable width: a long endpoint name
+// ends in an ellipsis and the tooltip carries it whole. The cut is redone on
+// every font change, because the skin sheet sets the chip's font only when
+// the chip is polished.
+class DeviceChipButton : public QToolButton
+{
+public:
+	DeviceChipButton(const QString& label, QWidget* parent)
+		: QToolButton(parent), fullLabel(label)
+	{
+		setText(label);
+	}
+
+protected:
+	bool event(QEvent* event) override
+	{
+		const bool handled = QToolButton::event(event);
+		if (event->type() == QEvent::Polish || event->type() == QEvent::FontChange)
+			fitLabel();
+		return handled;
+	}
+
+private:
+	// Wide enough for "Speakers (USB Audio CODEC)" and most interface names
+	// at every skin's chip font; a row of chips still wraps sensibly.
+	static constexpr int MaximumLabelWidth = 260;
+
+	void fitLabel()
+	{
+		const QString fitted = fontMetrics().elidedText(fullLabel, Qt::ElideRight, MaximumLabelWidth);
+		if (fitted != text())
+			setText(fitted);
+	}
+
+	QString fullLabel;
+};
+
 QList<DeviceEntry> buildEntries(FilterTable* filterTable)
 {
 	QList<DeviceEntry> entries;
@@ -160,16 +197,16 @@ void DeviceCardEditor::reloadChips()
 			continue;
 		}
 
-		QToolButton* button = new QToolButton(this);
+		const QString label = DeviceSelectionModel::chipLabel(chip);
+		QToolButton* button = new DeviceChipButton(label, this);
 		button->setObjectName(QStringLiteral("DeviceChip"));
-		button->setText(chip.connection.isEmpty() ? chip.name : chip.connection);
 		button->setCheckable(true);
 		button->setChecked(chip.selected && !all);
 		// Skins may dim not-installed chips or distinguish capture devices.
 		button->setProperty("deviceInstalled", chip.installed);
 		button->setProperty("deviceInput", chip.isInput);
 		button->setProperty("deviceString", chip.deviceString);
-		QString tip = chip.connection.isEmpty() ? chip.name : chip.connection + " - " + chip.name;
+		QString tip = label;
 		tip += "\n" + (chip.isInput ? tr("Capture") : tr("Playback"));
 		tip += "\n" + (chip.installed ? tr("APO installed") : tr("APO not installed"));
 		button->setToolTip(tip);

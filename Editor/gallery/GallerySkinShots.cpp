@@ -112,6 +112,7 @@ const QList<GalleryScenario>& galleryScenarios()
 		{ QStringLiteral("seam"), { QStringLiteral("hover") } },
 		{ QStringLiteral("toast"), { QStringLiteral("normal") } },
 		{ QStringLiteral("loadnotice"), { QStringLiteral("normal") } },
+		{ QStringLiteral("removalnotice"), { QStringLiteral("normal") } },
 		{ QStringLiteral("filedialog"), { QStringLiteral("normal") } },
 		{ QStringLiteral("graph"), { QStringLiteral("normal"), QStringLiteral("cursor"),
 			QStringLiteral("phase"), QStringLiteral("groupdelay") } },
@@ -754,6 +755,19 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		toast->showMessage(QStringLiteral("This configuration was not applied: the filter on line 12 of room.txt could not be prepared. Equalizer APO keeps playing the previous settings."), 0);
 		QApplication::processEvents();
 		failures += saveGrab(toast, outDir, skinId, mode, QStringLiteral("loadnotice"), QStringLiteral("normal")) ? 0 : 1;
+	}
+
+	// The removal notice (#456): the toast with its one action button, which
+	// takes the Undo action's own label.
+	{
+		QWidget host;
+		host.resize(960, 90);
+		host.setAutoFillBackground(true);
+		UpdateToast* toast = new UpdateToast(&host);
+		host.show();
+		toast->showMessage(QStringLiteral("Filter removed."), 0, QStringLiteral("Undo"), QStringLiteral("Ctrl+Z"), []() {});
+		QApplication::processEvents();
+		failures += saveGrab(toast, outDir, skinId, mode, QStringLiteral("removalnotice"), QStringLiteral("normal")) ? 0 : 1;
 	}
 
 	// Every stateful form control the skins restyle, in every state that has
