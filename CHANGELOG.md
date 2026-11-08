@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.62.0 — 2026-11-08
+
 - **A VST2 plug-in whose DLL also carries a VST3 entry point loads again.**
   Kilohearts ships one binary as both products, so `kHs Delay.dll` exports
   `VSTPluginMain` and `GetPluginFactory`. Since v2.35.0 the Editor and the

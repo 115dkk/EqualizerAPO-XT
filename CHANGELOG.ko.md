@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.62.0 — 2026-11-08
+
 - **VST3 진입점을 함께 담은 VST2 플러그인 DLL을 다시 불러옵니다.** Kilohearts는
   한 바이너리를 두 제품으로 내놓아서 `kHs Delay.dll`에 `VSTPluginMain`과
   `GetPluginFactory`가 모두 들어 있습니다. v2.35.0부터 Editor와 엔진은 이런
