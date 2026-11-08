@@ -250,27 +250,38 @@ const std::string& VSTPluginLibrary::getVST3SubCategories() const
 
 bool VSTPluginLibrary::loadFunctions()
 {
-	// Detect the format from the loaded module, not from its file extension.
-	// A raw VST3 module may be named .dll, and a file named .vst3 is not proof
-	// that it implements the VST3 factory ABI. Prefer VST3 when a module happens
-	// to expose both entry points.
+	// A single exported ABI decides the format, so a raw VST3 module renamed to
+	// .dll still works. When both entry points exist, the product extension is
+	// authoritative: vendors such as Kilohearts ship one binary as both products,
+	// every DAW treats its .dll as VST2, and configurations saved before 8cad1bf0
+	// contain VST2 state for those files.
 	GetPluginFactory = (getPluginFactoryFunc)GetProcAddress(module.get(), "GetPluginFactory");
 	VSTPluginMain = (vstPluginMain)GetProcAddress(module.get(), "VSTPluginMain");
-	if (GetPluginFactory != NULL)
+	const bool hasVst3EntryPoint = GetPluginFactory != nullptr;
+	const bool hasVst2EntryPoint = VSTPluginMain != nullptr;
+	if (hasVst3EntryPoint && hasVst2EntryPoint)
 	{
-		vst3 = true;
+		wchar_t extension[_MAX_EXT];
+		_wsplitpath_s(libPath.c_str(), nullptr, 0, nullptr, 0, nullptr, 0, extension, _MAX_EXT);
+		vst3 = _wcsicmp(extension, L".vst3") == 0;
+	}
+	else
+		vst3 = hasVst3EntryPoint;
+
+	if (vst3)
+	{
 		// InitDll/ExitDll are optional in the module ABI; only
 		// GetPluginFactory is mandatory.
 		InitDll = (vst3ModuleEntryFunc)GetProcAddress(module.get(), "InitDll");
 		ExitDll = (vst3ModuleEntryFunc)GetProcAddress(module.get(), "ExitDll");
 		VSTPluginMain = nullptr;
-		return true;
+		return hasVst3EntryPoint;
 	}
 
-	vst3 = false;
+	GetPluginFactory = nullptr;
 	InitDll = nullptr;
 	ExitDll = nullptr;
-	return VSTPluginMain != NULL;
+	return hasVst2EntryPoint;
 }
 
 int VSTPluginLibrary::customInitialize()
@@ -298,8 +309,12 @@ int VSTPluginLibrary::customInitialize()
 	{
 		vst3FactoryHostContext = Steinberg::IPtr<Steinberg::FUnknown>::adopt(
 			static_cast<Steinberg::Vst::IHostApplication*>(new VST3FactoryHostContext()));
-		if (factory3->setHostContext(vst3FactoryHostContext.get()) != Steinberg::kResultOk)
-			return LOADING_FAILED;
+		const Steinberg::tresult hostContextResult = factory3->setHostContext(vst3FactoryHostContext.get());
+		if (hostContextResult != Steinberg::kResultOk)
+		{
+			LogF(L"IPluginFactory3::setHostContext returned 0x%08X for %s; continuing",
+				static_cast<unsigned int>(hostContextResult), libPath.c_str());
+		}
 	}
 
 	for (Steinberg::int32 i = 0; i < factory->countClasses(); i++)

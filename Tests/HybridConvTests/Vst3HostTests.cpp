@@ -235,6 +235,27 @@ void testEditorEditWithoutZeroSampleFlush(const wstring& directory)
 	DestroyWindow(parent);
 }
 
+// A factory may implement IPluginFactory3 but decline setHostContext, as the
+// Kilohearts factory does. The fixture reads the knob in InitDll, so clear it
+// immediately after the library load and before creating the component.
+void testFactoryHostContextNotImplemented(const wstring& directory)
+{
+	SetEnvironmentVariableW(L"EAPO_TEST_VST3_HOST_CONTEXT", L"notimpl");
+	const wstring bundle = prepareBundle(directory,
+		L"HostContextNotImplBundle.vst3", L"HostContextNotImpl.vst3");
+	shared_ptr<VSTPluginLibrary> library = bundle.empty()
+		? shared_ptr<VSTPluginLibrary>() : VSTPluginLibrary::getInstance(bundle);
+	const int loadStatus = library != nullptr
+		? VSTPluginLibrary::load(library->getLibPath()).status : AbstractLibrary::LOADING_FAILED;
+	SetEnvironmentVariableW(L"EAPO_TEST_VST3_HOST_CONTEXT", nullptr);
+
+	harness.require(loadStatus >= 0,
+		"a VST3 factory may return kNotImplemented from setHostContext (#455)");
+	auto instance = VSTPluginInstance::create(library, 2);
+	harness.expectTrue(instance->initialize(),
+		"a component initializes after its factory declines setHostContext (#455)");
+}
+
 // Audit #348 TD-48: a plug-in that keeps the host's component handler and
 // calls it after the instance is gone must be refused, not let into freed
 // memory.
@@ -279,6 +300,8 @@ TEST_CASE(Vst3HostTests, runVst3HostTests)
 		harness.expectFalse(bundle.empty(), "companion VST3 module is available");
 return;
 	}
+
+	testFactoryHostContextNotImplemented(directory);
 
 	shared_ptr<VSTPluginLibrary> library = VSTPluginLibrary::getInstance(bundle);
 	harness.require(library != nullptr, "bundle resolves to a library");

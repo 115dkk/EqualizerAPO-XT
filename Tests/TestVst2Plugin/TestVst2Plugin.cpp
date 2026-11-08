@@ -1,13 +1,13 @@
 /*
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
-	A minimal, self-contained VST 2.4 plugin built only against the project's
-	vendored VST2 ABI header (vst/aeffectx.h). It exists so VstHostTests
-	(in Tests/HybridConvTests) can drive the engine's VST host classes
-	(VSTPluginLibrary / VSTPluginInstance) against a real
-	binary at runtime. Because it is compiled from our own source for each
-	target, it always matches the host architecture - the load/state test runs
-	on x64 and ARM64 without an architecture skip.
+	A minimal, self-contained VST 2.4 plugin that also exports a zero-class
+	IPluginFactory3. Vendors such as Kilohearts ship the same dual-export binary
+	as their VST2 .dll product, so VstHostTests uses this fixture to keep the
+	engine's format-selection rule covered as well as driving VSTPluginLibrary /
+	VSTPluginInstance against a real binary at runtime. Because it is compiled
+	from our own source for each target, it always matches the host architecture
+	- the load/state test runs on x64 and ARM64 without an architecture skip.
 
 	Behaviour, kept deliberately deterministic so the host test can assert on it:
 	  - 2 inputs / 2 outputs, 2 float parameters (param 0 = "Gain", param 1 =
@@ -29,12 +29,12 @@
 	TestVst2Plugin.SlowLoad4000.dll sleeps for 4 seconds while loading. The
 	ordinary TestVst2Plugin.dll has no added delay.
 
-	No engine headers, no Qt, no CRT surprises: just <cstring>/<cstdint> and the
-	ABI header. The exported entry point is VSTPluginMain (the symbol
-	VSTPluginLibrary::loadFunctions resolves), with a legacy `main` alias for
-	hosts that fall back to it.
+	No engine headers and no Qt are used. The module exports VSTPluginMain for
+	its working VST2 product and GetPluginFactory for the deliberately unusable
+	VST3 side of the dual-export fixture.
 */
 
+#include <atomic>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -43,6 +43,9 @@
 #include <windows.h>
 
 #include "vst/aeffectx.h"
+
+#define INIT_CLASS_IID
+#include "pluginterfaces/base/ipluginbase.h"
 
 BOOL WINAPI DllMain(HINSTANCE hModule, DWORD reason, LPVOID)
 {
@@ -485,16 +488,87 @@ vst_effect_t* createEffect(vst_host_callback_t callback)
 
 	return effect;
 }
+
+// Deliberately advertises no VST3 classes and refuses host-context setup, as
+// Kilohearts' dual-export VST2 DLL does. Selecting this factory instead of
+// VSTPluginMain therefore makes the fixture fail at library initialization.
+class EmptyVst3Factory final : public Steinberg::IPluginFactory3
+{
+public:
+	Steinberg::tresult PLUGIN_API queryInterface(const Steinberg::TUID iid, void** obj) override
+	{
+		if (obj == nullptr)
+			return Steinberg::kInvalidArgument;
+		if (Steinberg::FUnknownPrivate::iidEqual(iid, Steinberg::FUnknown::iid)
+			|| Steinberg::FUnknownPrivate::iidEqual(iid, Steinberg::IPluginFactory::iid))
+			*obj = static_cast<Steinberg::IPluginFactory*>(this);
+		else if (Steinberg::FUnknownPrivate::iidEqual(iid, Steinberg::IPluginFactory2::iid))
+			*obj = static_cast<Steinberg::IPluginFactory2*>(this);
+		else if (Steinberg::FUnknownPrivate::iidEqual(iid, Steinberg::IPluginFactory3::iid))
+			*obj = static_cast<Steinberg::IPluginFactory3*>(this);
+		else
+		{
+			*obj = nullptr;
+			return Steinberg::kNoInterface;
+		}
+		addRef();
+		return Steinberg::kResultOk;
+	}
+
+	Steinberg::uint32 PLUGIN_API addRef() override { return ++refCount; }
+	Steinberg::uint32 PLUGIN_API release() override
+	{
+		const Steinberg::uint32 remaining = --refCount;
+		if (remaining == 0)
+			delete this;
+		return remaining;
+	}
+
+	Steinberg::tresult PLUGIN_API getFactoryInfo(Steinberg::PFactoryInfo* info) override
+	{
+		if (info == nullptr)
+			return Steinberg::kInvalidArgument;
+		*info = Steinberg::PFactoryInfo("EqualizerAPO-XT Tests", "https://example.invalid",
+			"test@example.invalid", Steinberg::PFactoryInfo::kNoFlags);
+		return Steinberg::kResultOk;
+	}
+	Steinberg::int32 PLUGIN_API countClasses() override { return 0; }
+	Steinberg::tresult PLUGIN_API getClassInfo(Steinberg::int32, Steinberg::PClassInfo*) override
+	{
+		return Steinberg::kInvalidArgument;
+	}
+	Steinberg::tresult PLUGIN_API createInstance(Steinberg::FIDString, Steinberg::FIDString, void** obj) override
+	{
+		if (obj != nullptr)
+			*obj = nullptr;
+		return Steinberg::kNotImplemented;
+	}
+	Steinberg::tresult PLUGIN_API getClassInfo2(Steinberg::int32, Steinberg::PClassInfo2*) override
+	{
+		return Steinberg::kInvalidArgument;
+	}
+	Steinberg::tresult PLUGIN_API getClassInfoUnicode(Steinberg::int32, Steinberg::PClassInfoW*) override
+	{
+		return Steinberg::kInvalidArgument;
+	}
+	Steinberg::tresult PLUGIN_API setHostContext(Steinberg::FUnknown*) override
+	{
+		return Steinberg::kNotImplemented;
+	}
+
+private:
+	~EmptyVst3Factory() = default;
+	std::atomic<Steinberg::uint32> refCount{1};
+};
 } // namespace
 
 // VST 2.x entry point. VSTPluginLibrary::loadFunctions resolves exactly this
 // symbol via GetProcAddress(module, "VSTPluginMain"); the callback lets the
 // plugin query the host, including during teardown.
 //
-// The engine's loader only ever looks up "VSTPluginMain", never the legacy
-// `main`/`MAIN` aliases, so no alias export is added here. Adding one would not
-// be reached by this host and exporting a function literally named `main` from
-// a DLL is needless surface area.
+// The dual-export regression fixture also exposes GetPluginFactory below. For
+// a .dll, the host must still choose this working VSTPluginMain entry point.
+// The legacy `main`/`MAIN` aliases are not part of the host's lookup contract.
 extern "C" __declspec(dllexport) vst_effect_t* VST_FUNCTION_INTERFACE VSTPluginMain(vst_host_callback_t callback)
 {
 	wchar_t probe[2] = {};
@@ -509,4 +583,9 @@ extern "C" __declspec(dllexport) vst_effect_t* VST_FUNCTION_INTERFACE VSTPluginM
 			return nullptr;
 	}
 	return createEffect(callback);
+}
+
+extern "C" __declspec(dllexport) Steinberg::IPluginFactory* PLUGIN_API GetPluginFactory()
+{
+	return new EmptyVst3Factory();
 }

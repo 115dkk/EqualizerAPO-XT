@@ -58,6 +58,7 @@ bool busInfoMismatchMode = false;
 bool toneGeneratorMode = false;
 bool latency512Mode = false;
 bool retainHandlerMode = false;
+bool hostContextNotImplementedMode = false;
 // IgnoreParameterFlush.vst3 mode: like every DPF-based plug-in, a zero-sample
 // process call returns before the parameter changes are read.
 bool ignoreParameterFlushMode = false;
@@ -1149,7 +1150,7 @@ public:
 		if (cid == nullptr || iid == nullptr || obj == nullptr)
 			return kInvalidArgument;
 		*obj = nullptr;
-		if (!hostContextSet)
+		if (!hostContextSet && !hostContextNotImplementedMode)
 			return kResultFalse;
 		FUnknown* instance = nullptr;
 		if (FUnknownPrivate::iidEqual(cid, componentCid))
@@ -1210,6 +1211,8 @@ public:
 			hostContextSet = false;
 			return kResultOk;
 		}
+		if (hostContextNotImplementedMode)
+			return kNotImplemented;
 		if (hostContextSetCount++ != 0)
 			return kResultFalse;
 		IHostApplication* host = nullptr;
@@ -1259,6 +1262,10 @@ extern "C" __declspec(dllexport) bool InitDll()
 	toneGeneratorMode = wcsstr(modulePath, L"ToneGenerator.vst3") != nullptr;
 	latency512Mode = wcsstr(modulePath, L"LatencyUpmixer.vst3") != nullptr;
 	retainHandlerMode = wcsstr(modulePath, L"RetainHandler.vst3") != nullptr;
+	wchar_t hostContextMode[32] = {};
+	hostContextNotImplementedMode = GetEnvironmentVariableW(L"EAPO_TEST_VST3_HOST_CONTEXT", hostContextMode,
+		static_cast<DWORD>(sizeof(hostContextMode) / sizeof(hostContextMode[0]))) > 0
+		&& wcscmp(hostContextMode, L"notimpl") == 0;
 	ignoreParameterFlushMode = wcsstr(modulePath, L"IgnoreParameterFlush.vst3") != nullptr;
 	upmixerProcessCount.store(0);
 	surround41AcceptedOutputArrangement.store(
@@ -1288,6 +1295,7 @@ extern "C" __declspec(dllexport) bool ExitDll()
 	toneGeneratorMode = false;
 	latency512Mode = false;
 	retainHandlerMode = false;
+	hostContextNotImplementedMode = false;
 	ignoreParameterFlushMode = false;
 	return true;
 }
