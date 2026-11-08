@@ -974,6 +974,13 @@ QToolButton#FilterCardIconButton {
     padding: 2px 4px;
     font-weight: 700;
 }
+/* #456: the header's actions (fold, add, remove, raw edit) rest as bare
+   glyphs, so the power switch is the one capped control on a card head.
+   The cap comes back with the hover, press and engaged rules below. */
+QToolButton#FilterCardIconButton[headerAction="true"] {
+    background: transparent;
+    border-color: transparent;
+}
 QToolButton#FilterCardIconButton:hover {
     background: rgba(91, 140, 255, 0.20);
     border-color: rgba(91, 140, 255, 0.4);

@@ -338,14 +338,43 @@ bool MatrixSkin::paintChannelBadge(QPainter& painter, const QRect& rect, const Q
 
 QIcon MatrixSkin::powerToggleIcon(bool enabled, const SkinTokens& tokens) const
 {
-	// The power cell lost its engaged fill (rule 9), and the shared glyphs
-	// were drawn for one: the white "on" disc vanished on the light board
-	// while the black "off" disc printed louder than it. The glyph is ink
-	// on bare ground like the other header actions, body ink when the card
-	// runs and muted when it is commented out.
-	return GUIHelper::tintedIcon(
-		enabled ? QStringLiteral(":/icons/power_on.svg") : QStringLiteral(":/icons/power_off.svg"),
-		QColor(enabled ? tokens.text : tokens.mutedText), 16);
+	// The power cell is a processor's ON/OFF key, two grid pitches wide
+	// (#456): every other header action on this board is a bare glyph, so a
+	// power glyph among them read as one more action. ON is mono body ink on
+	// the sunken fill the sheet gives the checked cell; OFF is muted ink over
+	// a dotted rule, the cancellation the board already prints, with no fill.
+	// ON/OFF rather than IN/BYP: IN asks for OUT (maintainer, 2026-11-09).
+	// The legend is painted into the icon so it follows the state change the
+	// row already handles (FilterCardRow sets the icon, not the text).
+	QIcon icon;
+	const QColor ink(enabled ? tokens.text : tokens.mutedText);
+	const QString legend = enabled ? QStringLiteral("ON") : QStringLiteral("OFF");
+	QFont font(tokens.monoFontFamily);
+	font.setPixelSize(11);
+	font.setBold(true);
+	for (const qreal dpr : { 1.0, 2.0 })
+	{
+		QPixmap pixmap(QSize(MatrixMetrics::powerKeyWidth, 16) * dpr);
+		pixmap.setDevicePixelRatio(dpr);
+		pixmap.fill(Qt::transparent);
+		QPainter painter(&pixmap);
+		painter.setRenderHint(QPainter::Antialiasing, false);
+		painter.setFont(font);
+		painter.setPen(ink);
+		painter.drawText(QRect(0, 0, MatrixMetrics::powerKeyWidth, 14), Qt::AlignCenter, legend);
+		if (!enabled)
+		{
+			const int width = QFontMetrics(font).horizontalAdvance(legend);
+			const int left = (MatrixMetrics::powerKeyWidth - width) / 2;
+			QPen rule(ink, 1);
+			rule.setDashPattern({ 2.0, 2.0 });
+			painter.setPen(rule);
+			painter.drawLine(left, 14, left + width - 1, 14);
+		}
+		painter.end();
+		icon.addPixmap(pixmap);
+	}
+	return icon;
 }
 
 bool MatrixSkin::paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info, const SkinTokens& tokens) const

@@ -1081,11 +1081,18 @@ QToolButton#FilterCardIconButton:checked {
     background: rgba(34, 211, 238, 0.25);
     border-color: @ACCENT@;
 }
-/* Power on is every live card's resting state, so it engages nothing:
-   the rail and the lamp already post it. The cell frames only under
-   the hover pre-light. */
+/* The power key (#456): two grid pitches wide for its mono ON/OFF legend
+   (MatrixSkin::powerToggleIcon). ON rests on the sunken fill, the board's
+   standard cell for a fact the card states. It is not engaged, so it takes
+   no accent and no rule; the rail and the lamp still post the running
+   state. OFF has no fill, and its legend carries the dotted cancel rule.
+   The cell frames only under the hover pre-light. */
+QToolButton#FilterCardIconButton[powerToggle="true"] {
+    min-width: 40px;
+    qproperty-iconSize: 40px 16px;
+}
 QToolButton#FilterCardIconButton[powerToggle="true"]:checked {
-    background: transparent;
+    background: @GRAPH@;
     border-color: transparent;
 }
 QToolButton#FilterCardIconButton[powerToggle="true"]:checked:hover {

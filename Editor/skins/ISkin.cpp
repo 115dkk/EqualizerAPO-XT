@@ -108,9 +108,18 @@ bool ISkin::paintChannelBadge(QPainter& painter, const QRect& rect, const QStrin
 
 QIcon ISkin::powerToggleIcon(bool enabled, const SkinTokens& tokens) const
 {
-	Q_UNUSED(enabled);
-	Q_UNUSED(tokens);
-	return QIcon();
+	// Dark boards keep the shared glyphs: the white "on" disc reads on every
+	// dark skin's switched-on cap. On a light board that disc sits on a pale
+	// cap and printed fainter than the black "off" one, so a running line
+	// looked like the switched-off one. Once the power switch became the one
+	// capped control on a card head (#456), that inversion was the first
+	// thing it said. Light boards ink it like the matrix board does: body ink
+	// on, muted off.
+	if (tokens.dark)
+		return QIcon();
+	return GUIHelper::tintedIcon(
+		enabled ? QStringLiteral(":/icons/power_on.svg") : QStringLiteral(":/icons/power_off.svg"),
+		QColor(enabled ? tokens.text : tokens.mutedText), 16);
 }
 
 // Outline-style skins ink the badge in the type colour, filled-style skins

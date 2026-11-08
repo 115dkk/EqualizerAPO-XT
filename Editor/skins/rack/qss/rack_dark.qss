@@ -551,6 +551,16 @@ QToolButton#FilterCardIconButton {
     border: 1px solid #11161A; border-top-color: #3E474F; border-radius: 2px;
     min-width: 24px; min-height: 24px; padding: 2px 4px; font-weight: 700;
 }
+/* #456: the header's actions (fold, add, remove, raw edit) rest as bare
+   glyphs, so the power switch is the one capped control on a card head.
+   The cap comes back with the hover, press and engaged rules below. */
+QToolButton#FilterCardIconButton[headerAction="true"] {
+    background: transparent;
+    border-color: transparent;
+}
+QToolButton#FilterCardIconButton[headerAction="true"]:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2C333A, stop:1 #1B2126);
+}
 QToolButton#FilterCardIconButton:hover { border-color: #787164; border-top-color: #3E474F; }
 QToolButton#FilterCardIconButton:pressed {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #161B1F, stop:1 #242B31);

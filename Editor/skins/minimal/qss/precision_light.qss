@@ -427,6 +427,13 @@ QToolButton#FilterCardIconButton {
     border: 1px solid @BORDER@; border-radius: 0;
     min-width: 24px; min-height: 24px; padding: 2px 4px; font-weight: 700;
 }
+/* #456: the header's actions (fold, add, remove, raw edit) rest as bare
+   glyphs, so the power switch is the one capped control on a card head.
+   The cap comes back with the hover, press and engaged rules below. */
+QToolButton#FilterCardIconButton[headerAction="true"] {
+    background: transparent;
+    border-color: transparent;
+}
 QToolButton#FilterCardIconButton:hover { background: #DADADA; border-color: @ACCENT@; }
 /* Checked is a persistent record, not an activity: an achromatic ground
    step and the body-ink border, no accent (accent only while active;

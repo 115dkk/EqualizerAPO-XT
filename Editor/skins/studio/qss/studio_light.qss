@@ -650,6 +650,13 @@ QToolButton#FilterCardIconButton {
     min-width: 24px; min-height: 24px;
     padding: 2px 4px; font-weight: 700;
 }
+/* #456: the header's actions (fold, add, remove, raw edit) rest as bare
+   glyphs, so the power switch is the one capped control on a card head.
+   The cap comes back with the hover, press and engaged rules below. */
+QToolButton#FilterCardIconButton[headerAction="true"] {
+    background: transparent;
+    border-color: transparent;
+}
 QToolButton#FilterCardIconButton:hover { background: rgba(47, 107, 255, 0.14); border-color: rgba(47, 107, 255, 0.5); }
 QToolButton#FilterCardIconButton:checked { background: rgba(47, 107, 255, 0.22); border-color: @ACCENT@; }
 /* Lights off (rule 4): the glass loses its top reflection and its ink dims

@@ -456,8 +456,8 @@ public:
 
 	// The glyph on a card header's power toggle. The shared glyphs were drawn
 	// for an engaged cell: a white disc for "on", a black one for "off".
-	// Return a null icon to keep them; the neutral default does, so every
-	// skin stays pixel-identical until it answers.
+	// Return a null icon to keep them. The neutral default keeps them on dark
+	// boards and inks the glyph on light ones (body ink on, muted off).
 	virtual QIcon powerToggleIcon(bool enabled, const SkinTokens& tokens) const;
 
 	// Layout policy for the If family's branch/tail rows (ElseIf/Else/EndIf):

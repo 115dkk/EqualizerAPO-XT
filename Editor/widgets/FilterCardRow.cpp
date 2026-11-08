@@ -45,6 +45,7 @@ static QIcon powerToggleIcon(bool enabled)
 	return QIcon(enabled ? QStringLiteral(":/icons/power_on.svg") : QStringLiteral(":/icons/power_off.svg"));
 }
 
+
 FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* item, IFilterGUI* gui,
 	FilterCardDescriptor preparedDescriptor, QWidget* parent)
 	: QWidget(parent), table(table), item(item), gui(gui), descriptor(std::move(preparedDescriptor)), rowNumber(number)
@@ -101,6 +102,11 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	// closed.
 	expandButton = new QToolButton(headerWidget);
 	expandButton->setObjectName(QStringLiteral("FilterCardIconButton"));
+	// The header's actions (fold, add, remove, raw edit) rest as bare glyphs
+	// in every skin's sheet and take their cap only under hover, press or
+	// engagement, so the power switch is the one capped control on a card
+	// head (#456: it was told apart from + and the bin by its icon alone).
+	expandButton->setProperty("headerAction", true);
 	expanded = gui != nullptr;
 	expandButton->setText(expanded ? QStringLiteral("v") : QStringLiteral(">"));
 	connect(expandButton, &QToolButton::clicked, this, [this]() { setExpanded(!expanded); });
@@ -131,6 +137,7 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 
 	addButton = new QToolButton(headerWidget);
 	addButton->setObjectName(QStringLiteral("FilterCardIconButton"));
+	addButton->setProperty("headerAction", true);
 	addButton->setText(QStringLiteral("+"));
 	addButton->setToolTip(tr("Add filter above this card"));
 	connect(addButton, &QToolButton::clicked, this, &FilterCardRow::addAbove);
@@ -138,6 +145,7 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 
 	removeButton = new QToolButton(headerWidget);
 	removeButton->setObjectName(QStringLiteral("FilterCardIconButton"));
+	removeButton->setProperty("headerAction", true);
 	// A bin, not "-": beside "+" a minus reads as one step of something, and
 	// a field report (#456) took it for another control and lost a filter it
 	// meant to keep. Same stroke set, size and ink as the code mark below.
@@ -151,6 +159,7 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 
 	editButton = new QToolButton(headerWidget);
 	editButton->setObjectName(QStringLiteral("FilterCardIconButton"));
+	editButton->setProperty("headerAction", true);
 	editButton->setCheckable(true);
 	// A code mark ("</>"), not "..." and not a pencil: the ellipsis promised
 	// an options menu it never opens, and the pencil collided with the
