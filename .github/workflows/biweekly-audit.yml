@@ -150,6 +150,9 @@ jobs:
         shell: bash
     env:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      # Claude Code knows this model from 2.1.321 on; the CLI install below
+      # is unpinned, so every run gets a release that has it.
+      AUDIT_MODEL: claude-mythos-5-2
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
@@ -257,7 +260,7 @@ jobs:
           # file.
           BASELINE_BLOB=$(git hash-object TECH_DEBT_AUDIT.md 2>/dev/null || echo none)
 
-          # The audit runs on Mythos 5.1 (#337 pinned it to Fable 5.1, whose
+          # The audit runs on Mythos 5.2 (#337 pinned it to Fable 5.1, whose
           # safety classifiers could silently re-run a flagged request on
           # Opus 4.8 and keep the session there). availableModels stays
           # restricted to the audit model so the session can never drift
@@ -271,9 +274,9 @@ jobs:
           # the audit can plan its dimensions and work through them in order.
           set +e
           CLAUDE_CODE_ENABLE_TASKS=1 CLAUDE_CODE_ENABLE_TODO_TOOLS=1 claude \
-            --model claude-mythos-5-1 \
+            --model "$AUDIT_MODEL" \
             --effort xhigh \
-            --settings '{"availableModels": ["claude-mythos-5-1"]}' \
+            --settings "{\"availableModels\": [\"$AUDIT_MODEL\"]}" \
             --permission-mode auto \
             --max-turns 150 \
             -p "
@@ -389,7 +392,7 @@ jobs:
             echo "# Biweekly Audit: ${DATE}"
             echo ""
             echo "Changed relevant files: **${COUNT}**"
-            echo "Model: Mythos 5.1 - Effort: xhigh - 1M context"
+            echo "Model: \`${AUDIT_MODEL}\` - Effort: xhigh - 1M context"
             echo "Audit skills: 115dkk-skills (${{ steps.skills.outputs.plugin_ref }})"
             echo ""
             echo "This issue body corresponds to the generated \`issue-body.md\` artifact."
