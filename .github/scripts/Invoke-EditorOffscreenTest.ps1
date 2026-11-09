@@ -26,7 +26,7 @@
 param(
     [Parameter(Mandatory)] [string] $WorkspaceRoot,
     [Parameter(Mandatory)]
-    [ValidateSet("selftest-vst", "skin-gallery", "skin-switch", "analysis-layout", "plugin-load", "card-move", "card-selection", "power-toggle", "routing-edit", "close-save", "frame-hittest")]
+    [ValidateSet("selftest-vst", "skin-gallery", "skin-switch", "analysis-layout", "plugin-load", "card-move", "card-selection", "power-toggle", "routing-edit", "close-save", "close-save-sweep", "frame-hittest")]
     [string] $Gate,
     [string] $Platform = "x64",
     # Where deps\ lives; a git worktree has none of its own. Defaults to the
@@ -128,6 +128,15 @@ $gates = @{
         Arguments  = @("--close-save-test")
         ExtraEnv   = @{ QT_FORCE_STDERR_LOGGING = "1" }
         LogPath    = Join-Path $WorkspaceRoot "close-save-test.log"
+        PostChecks = @()
+    }
+    # Every gallery card row times every edit its body offers, saved through
+    # the close prompt and through Ctrl+S. Two passes, so a failure that
+    # comes and goes has two chances to show; a pass took 71 s locally.
+    "close-save-sweep" = [pscustomobject]@{
+        Arguments  = @("--close-save-sweep", "2")
+        ExtraEnv   = @{ QT_FORCE_STDERR_LOGGING = "1" }
+        LogPath    = Join-Path $WorkspaceRoot "close-save-sweep.log"
         PostChecks = @()
     }
     # The custom frame under a native child cascade (an embedded VST panel

@@ -26,12 +26,15 @@
 #include <QStyle>
 
 #include <QAbstractButton>
+#include <QAbstractSlider>
+#include <QAbstractSpinBox>
 #include <QAction>
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDir>
 #include <QDockWidget>
+#include <QDoubleSpinBox>
 #include <QElapsedTimer>
 #include <QEventLoop>
 #include <QFile>
@@ -61,6 +64,7 @@
 #include "Editor/MainWindow.h"
 #include "Editor/MainWindowProbe.h"
 #include "Editor/SkinManager.h"
+#include "Editor/gallery/GallerySupport.h"
 #include "Editor/skins/SkinThemeData.h"
 #include "Editor/widgets/AudioKnob.h"
 #include "Editor/widgets/EditableValue.h"
@@ -1356,4 +1360,353 @@ int SkinGallery::runCloseSaveTest()
 
 	qWarning("CloseSaveTest: %s (%d failure(s))", failures == 0 ? "PASS" : "FAIL", failures);
 	return failures == 0 ? 0 : 1;
+}
+
+namespace
+{
+// The sweep drives only a card's body: the header's buttons, the raw-line
+// editor and an EditableValue's own field are reached by other routes.
+bool sweepSkips(const QWidget* widget)
+{
+	return widget->property("headerAction").isValid() || widget->property("powerToggle").isValid()
+		|| widget->objectName() == QStringLiteral("FilterCardRawEditor")
+		|| widget->objectName() == QStringLiteral("EditableValueEditor");
+}
+
+template<typename T>
+QList<T*> sweepBodyWidgets(const FilterCardRow* row)
+{
+	QList<T*> result;
+	for (T* widget : row->findChildren<T*>())
+	{
+		if (!widget->isVisible() || !widget->isEnabled() || sweepSkips(widget))
+			continue;
+		// A spin box's or combo's own line edit is driven through its owner.
+		if (qobject_cast<QAbstractSpinBox*>(widget->parentWidget()) != nullptr
+			|| qobject_cast<QComboBox*>(widget->parentWidget()) != nullptr)
+			continue;
+		result.append(widget);
+	}
+	return result;
+}
+
+void openEditableValue(EditableValue* value)
+{
+	QMouseEvent doubleClick(QEvent::MouseButtonDblClick, QPointF(5, 5), value->mapToGlobal(QPointF(5, 5)),
+		Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+	QApplication::sendEvent(value, &doubleClick);
+}
+
+// A drag's worth of change on the first slider (knob), with the press and
+// release a real drag sends.
+bool turnFirstSlider(const FilterCardRow* row)
+{
+	const QList<QAbstractSlider*> sliders = sweepBodyWidgets<QAbstractSlider>(row);
+	if (sliders.isEmpty())
+		return false;
+	QAbstractSlider* slider = sliders.first();
+	const int step = qMax(1, (slider->maximum() - slider->minimum()) / 10);
+	const int target = slider->value() + step <= slider->maximum() ? slider->value() + step : slider->value() - step;
+	slider->setSliderDown(true);
+	slider->setValue(target);
+	slider->setSliderDown(false);
+	return true;
+}
+
+bool sweepSlider(const FilterCardRow* row)
+{
+	const QList<QAbstractSlider*> sliders = sweepBodyWidgets<QAbstractSlider>(row);
+	if (!sliders.isEmpty() && (sliders.first()->focusPolicy() & Qt::ClickFocus))
+		sliders.first()->setFocus(Qt::MouseFocusReason);
+	return turnFirstSlider(row);
+}
+
+QString spinTargetText(QAbstractSpinBox* spin)
+{
+	if (const QDoubleSpinBox* box = qobject_cast<QDoubleSpinBox*>(spin))
+	{
+		const double step = 3 * qMax(box->singleStep(), 1.0);
+		const double target = box->value() + step <= box->maximum() ? box->value() + step : box->value() - step;
+		return box->locale().toString(target, 'f', box->decimals());
+	}
+	if (const QSpinBox* box = qobject_cast<QSpinBox*>(spin))
+		return box->locale().toString(box->value() + 3 <= box->maximum() ? box->value() + 3 : box->value() - 3);
+	return QString();
+}
+
+bool sweepSpin(const FilterCardRow* row, bool typed, bool enter)
+{
+	const QList<QAbstractSpinBox*> spins = sweepBodyWidgets<QAbstractSpinBox>(row);
+	if (spins.isEmpty())
+		return false;
+	QAbstractSpinBox* spin = spins.first();
+	spin->setFocus(Qt::MouseFocusReason);
+	if (!typed)
+	{
+		spin->stepBy(3);
+		return true;
+	}
+	QLineEdit* edit = spin->findChild<QLineEdit*>();
+	const QString text = spinTargetText(spin);
+	if (edit == nullptr || text.isEmpty())
+		return false;
+	edit->selectAll();
+	typeInto(edit, text);
+	if (enter)
+		pressKey(edit, Qt::Key_Return);
+	return true;
+}
+
+bool sweepCombo(const FilterCardRow* row)
+{
+	for (QComboBox* combo : sweepBodyWidgets<QComboBox>(row))
+	{
+		if (combo->isEditable() || combo->count() < 2)
+			continue;
+		const int index = (combo->currentIndex() + 1) % combo->count();
+		combo->setFocus(Qt::MouseFocusReason);
+		combo->setCurrentIndex(index);
+		Q_EMIT combo->activated(index);
+		return true;
+	}
+	return false;
+}
+
+bool sweepLineEdit(const FilterCardRow* row, bool enter)
+{
+	const QList<QLineEdit*> edits = sweepBodyWidgets<QLineEdit>(row);
+	if (edits.isEmpty())
+		return false;
+	QLineEdit* edit = edits.first();
+	edit->setFocus(Qt::MouseFocusReason);
+	pressKey(edit, Qt::Key_End);
+	typeInto(edit, QStringLiteral("1"));
+	if (enter)
+		pressKey(edit, Qt::Key_Return);
+	return true;
+}
+
+bool sweepEditableValue(const FilterCardRow* row, bool enter)
+{
+	const QList<EditableValue*> values = sweepBodyWidgets<EditableValue>(row);
+	if (values.isEmpty())
+		return false;
+	EditableValue* value = values.first();
+	openEditableValue(value);
+	QLineEdit* field = value->findChild<QLineEdit*>(QStringLiteral("EditableValueEditor"));
+	if (field == nullptr)
+		return false;
+	field->selectAll();
+	typeInto(field, QLocale::c().toString(value->value() + 1.5, 'f', 2));
+	if (enter)
+		pressKey(field, Qt::Key_Return);
+	return true;
+}
+
+bool sweepCheck(const FilterCardRow* row)
+{
+	for (QAbstractButton* button : sweepBodyWidgets<QAbstractButton>(row))
+	{
+		if (!button->isCheckable())
+			continue;
+		button->click();
+		return true;
+	}
+	return false;
+}
+
+// A text field holds the focus without an edit while the knob moves the
+// value: a field that kept the old text then wrote it back when the close
+// prompt took the focus (#459).
+bool sweepFocusedFieldThenSlider(const FilterCardRow* row, bool valueField)
+{
+	if (valueField)
+	{
+		const QList<EditableValue*> values = sweepBodyWidgets<EditableValue>(row);
+		if (values.isEmpty())
+			return false;
+		openEditableValue(values.first());
+	}
+	else
+	{
+		const QList<QAbstractSpinBox*> spins = sweepBodyWidgets<QAbstractSpinBox>(row);
+		const QList<QLineEdit*> edits = sweepBodyWidgets<QLineEdit>(row);
+		QWidget* field = !spins.isEmpty() ? static_cast<QWidget*>(spins.first())
+			: !edits.isEmpty() ? static_cast<QWidget*>(edits.first()) : nullptr;
+		if (field == nullptr)
+			return false;
+		field->setFocus(Qt::MouseFocusReason);
+	}
+	return turnFirstSlider(row);
+}
+
+struct SweepRoute
+{
+	const char* name = "";
+	std::function<bool(const FilterCardRow*)> apply;
+};
+
+QString joinLines(const QStringList& lines)
+{
+	QStringList kept;
+	for (const QString& line : lines)
+	{
+		if (!line.trimmed().isEmpty())
+			kept.append(line.trimmed());
+	}
+	return kept.join(QStringLiteral(" | "));
+}
+
+// The visible card of the first document line.
+FilterCardRow* firstCard(const FilterTable* table)
+{
+	FilterCardRow* first = nullptr;
+	for (FilterCardRow* row : table->findChildren<FilterCardRow*>())
+	{
+		if (row->isVisible() && (first == nullptr || row->y() < first->y()))
+			first = row;
+	}
+	return first;
+}
+}
+
+int SkinGallery::runCloseSaveSweep(const QStringList& arguments)
+{
+	const int repeats = qMax(1, probeOptionValue(arguments, QStringLiteral("--close-save-sweep"), QStringLiteral("1")).toInt());
+	qWarning("CloseSaveSweep: starting (%d repeat(s))", repeats);
+	const QList<SweepRoute> routes = {
+		{ "slider", [](const FilterCardRow* r) { return sweepSlider(r); } },
+		{ "spin-step", [](const FilterCardRow* r) { return sweepSpin(r, false, false); } },
+		{ "spin-typed", [](const FilterCardRow* r) { return sweepSpin(r, true, false); } },
+		{ "spin-typed-enter", [](const FilterCardRow* r) { return sweepSpin(r, true, true); } },
+		{ "combo", [](const FilterCardRow* r) { return sweepCombo(r); } },
+		{ "lineedit-typed", [](const FilterCardRow* r) { return sweepLineEdit(r, false); } },
+		{ "lineedit-enter", [](const FilterCardRow* r) { return sweepLineEdit(r, true); } },
+		{ "value-typed", [](const FilterCardRow* r) { return sweepEditableValue(r, false); } },
+		{ "value-enter", [](const FilterCardRow* r) { return sweepEditableValue(r, true); } },
+		{ "check", [](const FilterCardRow* r) { return sweepCheck(r); } },
+		{ "focused-field-then-slider", [](const FilterCardRow* r) { return sweepFocusedFieldThenSlider(r, false); } },
+		{ "open-value-then-slider", [](const FilterCardRow* r) { return sweepFocusedFieldThenSlider(r, true); } },
+	};
+
+	QTemporaryDir configDir;
+	if (!configDir.isValid())
+	{
+		qWarning("CloseSaveSweep: no temporary directory");
+		return 1;
+	}
+	qApp->setQuitOnLastWindowClosed(false);
+	const QString path = QDir::toNativeSeparators(configDir.filePath(QStringLiteral("sweep.txt")));
+
+	int cases = 0;
+	int unchanged = 0;
+	int problems = 0;
+	for (const SkinGalleryDetail::GalleryRow& galleryRow : SkinGalleryDetail::galleryRows())
+	{
+		for (const SweepRoute& route : routes)
+		{
+			// The close prompt's Save, and Ctrl+S before the close.
+			for (const bool saveAction : { false, true })
+			{
+				for (int repeat = 0; repeat < repeats; repeat++)
+				{
+					{
+						QFile file(path);
+						if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)
+							|| file.write((galleryRow.line + QStringLiteral("\r\nPreamp: -1 dB\r\n")).toUtf8()) < 0)
+						{
+							qWarning("CloseSaveSweep: cannot write %s", qPrintable(path));
+							return 1;
+						}
+					}
+					QStringList before;
+					QStringList edited;
+					QStringList atPrompt;
+					QStringList afterSave;
+					QStringList finalLines;
+					QString diskAfterSave;
+					int prompts = 0;
+					bool applied = false;
+					{
+						MainWindow window(QDir(configDir.path()), nullptr, nullptr, true);
+						MainWindow::Probe probe = window.probe();
+						probe.suppressPreferenceWrites();
+						probe.instantModeControl()->setChecked(false);
+						window.load(path);
+						window.show();
+						window.activateWindow();
+						QCoreApplication::processEvents();
+						FilterTable* table = probe.currentFilterTable();
+						const FilterCardRow* row = table != nullptr ? firstCard(table) : nullptr;
+						if (row != nullptr)
+						{
+							before = table->getLines();
+							applied = route.apply(row);
+							QCoreApplication::processEvents();
+							QCoreApplication::processEvents();
+							edited = table->getLines();
+							if (applied && saveAction)
+							{
+								if (QAction* save = window.findChild<QAction*>(QStringLiteral("actionSave")))
+									save->trigger();
+								afterSave = table->getLines();
+								diskAfterSave = readConfigText(path);
+							}
+						}
+						QTimer answer;
+						answer.setInterval(15);
+						QObject::connect(&answer, &QTimer::timeout, [&prompts, &atPrompt, table]() {
+							QMessageBox* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget());
+							if (box == nullptr)
+								return;
+							++prompts;
+							if (table != nullptr)
+								atPrompt = table->getLines();
+							if (QAbstractButton* save = box->button(QMessageBox::Save))
+								save->click();
+						});
+						answer.start();
+						window.close();
+						answer.stop();
+						if (table != nullptr)
+							finalLines = table->getLines();
+					}
+					QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+					QCoreApplication::processEvents();
+					if (!applied)
+						break;
+
+					cases++;
+					const QString disk = joinLines(readConfigText(path).split(QLatin1Char('\n')));
+					QStringList issues;
+					if (disk != joinLines(finalLines))
+						issues << QStringLiteral("the file differs from the document at exit");
+					if (joinLines(edited) != joinLines(before) && joinLines(finalLines) == joinLines(before))
+						issues << QStringLiteral("the edit was reverted in the document");
+					if (!atPrompt.isEmpty() && joinLines(edited) != joinLines(before) && joinLines(atPrompt) != joinLines(edited))
+						issues << QStringLiteral("the document changed when the prompt opened");
+					if (saveAction && joinLines(diskAfterSave.split(QLatin1Char('\n'))) != joinLines(afterSave))
+						issues << QStringLiteral("the Save action wrote other lines than the document");
+					if (issues.isEmpty())
+					{
+						// A route a card ignores (a field that rejects the
+						// typed text) is not a save problem.
+						if (joinLines(finalLines) == joinLines(before))
+							unchanged++;
+						continue;
+					}
+					problems++;
+					qWarning("CloseSaveSweep: FAIL %s / %s / %s / repeat %d: %s\n  before: %s\n  edited: %s\n"
+						"  at prompt (%d): %s\n  at exit: %s\n  on disk: %s",
+						qPrintable(galleryRow.name), route.name, saveAction ? "Ctrl+S" : "prompt", repeat,
+						qPrintable(issues.join(QStringLiteral("; "))), qPrintable(joinLines(before)),
+						qPrintable(joinLines(edited)), prompts, qPrintable(joinLines(atPrompt)),
+						qPrintable(joinLines(finalLines)), qPrintable(disk));
+				}
+			}
+		}
+	}
+	qWarning("CloseSaveSweep: %s (%d case(s), %d left the line unchanged, %d failure(s))",
+		problems == 0 ? "PASS" : "FAIL", cases, unchanged, problems);
+	return problems == 0 && cases > 0 ? 0 : 1;
 }
