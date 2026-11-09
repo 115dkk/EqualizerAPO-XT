@@ -14,6 +14,17 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **On a card header, the power switch is the one control with a cap.** The
+  fold arrow, `+`, the bin and `</>` now rest as bare glyphs and show their
+  cap only under the pointer, while pressed, or while the raw editor is open,
+  so the power switch no longer looks like one more action in a row of six
+  identical boxes. The Matrix skin, whose header controls never had caps,
+  shows the power switch as an `ON`/`OFF` key two grid cells wide: `ON` on a
+  sunken cell, `OFF` in muted ink over a dotted rule. In the light themes the
+  power glyph of a running line no longer prints fainter than that of a
+  switched-off one
+  ([#456](https://github.com/115dkk/EqualizerAPO-XT/issues/456), [#458](https://github.com/115dkk/EqualizerAPO-XT/pull/458)).
+
 ## v2.62.0 — 2026-11-08
 
 - **A VST2 plug-in whose DLL also carries a VST3 entry point loads again.**

@@ -297,6 +297,13 @@ QToolButton#FilterCardIconButton {
     border: 1px solid @BORDER@; border-radius: 14px;
     min-width: 28px; min-height: 28px; padding: 2px 4px; font-weight: 700;
 }
+/* #456: the header's actions (fold, add, remove, raw edit) rest as bare
+   glyphs, so the power switch is the one capped control on a card head.
+   The cap comes back with the hover, press and engaged rules below. */
+QToolButton#FilterCardIconButton[headerAction="true"] {
+    background: transparent;
+    border-color: transparent;
+}
 QToolButton#FilterCardIconButton:hover { background: @CARD_HOVER@; border-color: rgba(110, 150, 207, 0.65); }
 QToolButton#FilterCardIconButton:checked { background: @ACCENT@; color: #2B251D; border-color: @ACCENT@; }
 /* Asleep (rule 7): dashed outline, sunk to the tray, muted ink. After
