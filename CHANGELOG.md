@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.63.0 — 2026-11-09
+
 - **On a card header, the power switch is the one control with a cap.** The
   fold arrow, `+`, the bin and `</>` now rest as bare glyphs and show their
   cap only under the pointer, while pressed, or while the raw editor is open,
