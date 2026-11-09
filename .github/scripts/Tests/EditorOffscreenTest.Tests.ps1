@@ -11,7 +11,7 @@ Describe "Invoke-EditorOffscreenTest.ps1 planning" {
     }
 
     It "copies the velopack SONAME for every gate" {
-        foreach ($gate in @("selftest-vst", "skin-gallery", "skin-switch", "analysis-layout", "card-move", "card-selection", "power-toggle", "routing-edit", "frame-hittest")) {
+        foreach ($gate in @("selftest-vst", "skin-gallery", "skin-switch", "analysis-layout", "card-move", "card-selection", "power-toggle", "routing-edit", "close-save", "frame-hittest")) {
             (PlanFor $gate).VelopackDllSource |
                 Should -Be "C:\ws\deps\velopack_libc\lib\velopack_libc_win_x64_msvc.dll"
         }
@@ -55,8 +55,12 @@ Describe "Invoke-EditorOffscreenTest.ps1 planning" {
         $plan.PostChecks | Should -Contain "card-selection-shots"
     }
 
+    It "runs the close-and-save gate on its own temporary configurations" {
+        (PlanFor "close-save").Arguments | Should -Be @("--close-save-test")
+    }
+
     It "captures stderr for the GUI-subsystem gates that log through qWarning" {
-        foreach ($gate in @("skin-switch", "analysis-layout", "card-move", "card-selection", "power-toggle", "routing-edit", "frame-hittest")) {
+        foreach ($gate in @("skin-switch", "analysis-layout", "card-move", "card-selection", "power-toggle", "routing-edit", "close-save", "frame-hittest")) {
             $plan = PlanFor $gate
             $plan.LogPath | Should -Not -BeNullOrEmpty
             $plan.ExtraEnv["QT_FORCE_STDERR_LOGGING"] | Should -Be "1"
@@ -67,7 +71,7 @@ Describe "Invoke-EditorOffscreenTest.ps1 planning" {
         $plan = PlanFor "frame-hittest"
         $plan.Arguments | Should -Be @("--frame-hittest-test", "C:\ws\Setup\config\config.txt")
         $plan.QtPlatform | Should -Be "windows"
-        foreach ($gate in @("selftest-vst", "skin-gallery", "skin-switch", "analysis-layout", "plugin-load", "card-move", "card-selection", "power-toggle", "routing-edit")) {
+        foreach ($gate in @("selftest-vst", "skin-gallery", "skin-switch", "analysis-layout", "plugin-load", "card-move", "card-selection", "power-toggle", "routing-edit", "close-save")) {
             (PlanFor $gate).QtPlatform | Should -Be "offscreen"
         }
     }

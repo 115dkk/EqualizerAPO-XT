@@ -86,6 +86,11 @@ public:
 	// instance on the UI thread. loadFinished is emitted for synchronous and
 	// asynchronous completion alike.
 	void requestPlugin();
+	// Reads every embedded panel's plug-in state now and emits stateChanged
+	// where it moved, instead of waiting for the idle read-back (at most once
+	// a second). A save runs this first so the file holds what the panels
+	// show.
+	static void readBackEmbeddedPanels();
 	// Requests whose completion callbacks have not yet run on the UI thread.
 	static int pendingLoads();
 	// Waits for them, handling events meanwhile; false after timeoutMs.
@@ -173,6 +178,9 @@ private:
 	// Shows the host, embeds, and hides the host again when that failed.
 	void applyEmbed(bool enable);
 	void onAutomate();
+	// Reads the instance's state; emits stateChanged when it differs from
+	// the stored one.
+	void readBack();
 	bool embedPlugin(QWidget* host);
 	void acquirePanelProcessing();
 	void releasePanelProcessing();

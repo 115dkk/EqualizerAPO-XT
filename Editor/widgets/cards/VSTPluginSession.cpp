@@ -17,6 +17,7 @@
 #include <QDir>
 #include <QEvent>
 #include <QFileInfo>
+#include <QList>
 #include <QLocale>
 #include <QPointer>
 #include <QPushButton>
@@ -34,17 +35,42 @@
 using std::unordered_map;
 using std::wstring;
 
+namespace
+{
+// The sessions alive on the UI thread, for readBackEmbeddedPanels. The rows
+// own their sessions directly, so nothing else can list them.
+QList<VSTPluginSession*>& liveSessions()
+{
+	static QList<VSTPluginSession*> sessions;
+	return sessions;
+}
+}
+
 VSTPluginSession::VSTPluginSession(Row row, std::shared_ptr<VSTPluginLibrary> library, wstring chunkData,
 	unordered_map<wstring, float> paramMap)
 	: row(row), pluginLibrary(std::move(library)), currentChunkData(std::move(chunkData)),
 	currentParamMap(std::move(paramMap))
 {
+	liveSessions().append(this);
 }
 
 VSTPluginSession::~VSTPluginSession()
 {
+	liveSessions().removeOne(this);
 	previewFeeder.stop();
 	releasePanelProcessing();
+}
+
+void VSTPluginSession::readBackEmbeddedPanels()
+{
+	// A copy: a row that stores its line can rebuild and take a session with
+	// it, which the contains() check then skips.
+	const QList<VSTPluginSession*> sessions = liveSessions();
+	for (VSTPluginSession* session : sessions)
+	{
+		if (liveSessions().contains(session) && session->isEmbedded && session->effect != nullptr)
+			session->readBack();
+	}
 }
 
 const std::shared_ptr<VSTPluginLibrary>& VSTPluginSession::library() const
@@ -493,18 +519,21 @@ void VSTPluginSession::onIdle()
 	if (isEmbedded || autoApply)
 	{
 		if (!lastReadTimer.isValid() || lastReadTimer.elapsed() > 1000)
-		{
-			wstring newChunkData;
-			unordered_map<wstring, float> newParamMap;
-			effect->readFromEffect(newChunkData, newParamMap);
-			if (newChunkData != currentChunkData || newParamMap != currentParamMap)
-			{
-				currentChunkData = newChunkData;
-				currentParamMap = newParamMap;
-				emit stateChanged();
-			}
-			lastReadTimer.restart();
-		}
+			readBack();
+	}
+}
+
+void VSTPluginSession::readBack()
+{
+	wstring newChunkData;
+	unordered_map<wstring, float> newParamMap;
+	effect->readFromEffect(newChunkData, newParamMap);
+	lastReadTimer.restart();
+	if (newChunkData != currentChunkData || newParamMap != currentParamMap)
+	{
+		currentChunkData = std::move(newChunkData);
+		currentParamMap = std::move(newParamMap);
+		emit stateChanged();
 	}
 }
 

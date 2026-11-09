@@ -14,6 +14,18 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **A value still being typed is saved.** A value typed into a card's field
+  or the raw `</>` editor reached the document only on Enter or when the
+  focus left the field. Ctrl+S wrote the file without it, and closing the
+  window found nothing unsaved and dropped it without asking. Save, Save as
+  and closing now take that value in first, so the close prompt asks about it
+  and its Save keeps it. A plug-in panel embedded in a card is read right
+  before a save instead of up to a second later. The Editor log now records
+  each save's file and size and the answer given to the close prompt. The
+  case reported in #459, where the prompt's Save itself did not stick, was
+  not reproduced; the new log lines are there to find it
+  ([#459](https://github.com/115dkk/EqualizerAPO-XT/issues/459)).
+
 ## v2.63.0 — 2026-11-09
 
 - **On a card header, the power switch is the one control with a cap.** The

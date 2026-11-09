@@ -445,6 +445,8 @@ int main(int argc, char* argv[])
 			return SkinGallery::runPowerToggleTest();
 		if (application.arguments().contains(QStringLiteral("--routing-edit-test")))
 			return SkinGallery::runRoutingEditTest();
+		if (application.arguments().contains(QStringLiteral("--close-save-test")))
+			return SkinGallery::runCloseSaveTest();
 		if (application.arguments().contains(QStringLiteral("--selftest-vst")))
 		{
 			// Both halves always run so one log shows every loss at once.

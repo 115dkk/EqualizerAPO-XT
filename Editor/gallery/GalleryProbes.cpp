@@ -25,6 +25,7 @@
 #include <QLocale>
 #include <QStyle>
 
+#include <QAbstractButton>
 #include <QAction>
 #include <QApplication>
 #include <QCheckBox>
@@ -40,7 +41,9 @@
 #include <QImage>
 #include <QKeySequence>
 #include <QLabel>
+#include <QLineEdit>
 #include <QMenuBar>
+#include <QMessageBox>
 #include <QMouseEvent>
 #include <QPixmap>
 #include <QPointer>
@@ -48,7 +51,9 @@
 #include <QScreen>
 #include <QSpinBox>
 #include <QStringList>
+#include <QTemporaryDir>
 #include <QTimer>
+#include <QToolButton>
 #include <QVector>
 
 #include "Editor/AnalysisThread.h"
@@ -57,6 +62,8 @@
 #include "Editor/MainWindowProbe.h"
 #include "Editor/SkinManager.h"
 #include "Editor/skins/SkinThemeData.h"
+#include "Editor/widgets/AudioKnob.h"
+#include "Editor/widgets/EditableValue.h"
 #include "Editor/widgets/FilterCardRow.h"
 #include "Editor/widgets/cards/VSTCardEditor.h"
 #include "Editor/widgets/cards/VSTPluginSession.h"
@@ -1095,4 +1102,224 @@ bool SkinGallery::armAnalysisLatencyProbe(MainWindow& window, const QStringList&
 		}
 	});
 	return true;
+}
+
+namespace
+{
+void typeInto(QWidget* target, const QString& text)
+{
+	for (const QChar ch : text)
+	{
+		QKeyEvent press(QEvent::KeyPress, 0, Qt::NoModifier, QString(ch));
+		QApplication::sendEvent(target, &press);
+		QKeyEvent release(QEvent::KeyRelease, 0, Qt::NoModifier, QString(ch));
+		QApplication::sendEvent(target, &release);
+	}
+}
+
+void pressKey(QWidget* target, int key)
+{
+	QKeyEvent press(QEvent::KeyPress, key, Qt::NoModifier);
+	QApplication::sendEvent(target, &press);
+	QKeyEvent release(QEvent::KeyRelease, key, Qt::NoModifier);
+	QApplication::sendEvent(target, &release);
+}
+
+// How the first card (a Preamp at -3 dB) is changed to -7.5 dB.
+enum class CloseSaveEdit
+{
+	// Turned on the card's knob.
+	Knob,
+	// Typed into the value field or the raw-line editor and confirmed with
+	// Enter.
+	ValueEntered,
+	RawEntered,
+	// Typed into the same editors and left there, still focused: what the
+	// user has when they go straight for the close button or Ctrl+S (#459).
+	ValueTyped,
+	RawTyped
+};
+
+struct CloseSaveCase
+{
+	const char* name;
+	CloseSaveEdit edit;
+	bool instantMode;
+	// Saves with the toolbar's Save action (Ctrl+S) before closing, instead
+	// of answering the close prompt.
+	bool saveAction;
+};
+
+bool applyCloseSaveEdit(FilterTable* table, CloseSaveEdit edit)
+{
+	const QString gain = QStringLiteral("-7.5");
+	switch (edit)
+	{
+	case CloseSaveEdit::Knob:
+		if (AudioKnob* knob = table->findChild<AudioKnob*>(QStringLiteral("PreampCardKnob")))
+		{
+			knob->setValue(-75);
+			return true;
+		}
+		return false;
+	case CloseSaveEdit::ValueEntered:
+	case CloseSaveEdit::ValueTyped:
+		if (EditableValue* value = table->findChild<EditableValue*>(QStringLiteral("PreampCardValue")))
+		{
+			QMouseEvent doubleClick(QEvent::MouseButtonDblClick, QPointF(5, 5), value->mapToGlobal(QPointF(5, 5)),
+				Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+			QApplication::sendEvent(value, &doubleClick);
+			QLineEdit* field = value->findChild<QLineEdit*>(QStringLiteral("EditableValueEditor"));
+			if (field == nullptr || !field->hasFocus())
+				return false;
+			field->selectAll();
+			typeInto(field, gain);
+			if (edit == CloseSaveEdit::ValueEntered)
+				pressKey(field, Qt::Key_Return);
+			return true;
+		}
+		return false;
+	case CloseSaveEdit::RawEntered:
+	case CloseSaveEdit::RawTyped:
+		if (FilterCardRow* row = table->findChild<FilterCardRow*>())
+		{
+			// The raw-line toggle is the header's only checkable action.
+			for (QToolButton* button : row->findChildren<QToolButton*>())
+			{
+				if (button->isCheckable() && button->property("headerAction").toBool())
+					button->click();
+			}
+			QLineEdit* raw = row->findChild<QLineEdit*>(QStringLiteral("FilterCardRawEditor"));
+			if (raw == nullptr || !raw->hasFocus())
+				return false;
+			raw->selectAll();
+			typeInto(raw, QStringLiteral("Preamp: ") + gain + QStringLiteral(" dB"));
+			if (edit == CloseSaveEdit::RawEntered)
+				pressKey(raw, Qt::Key_Return);
+			return true;
+		}
+		return false;
+	}
+	return false;
+}
+
+QString readConfigText(const QString& path)
+{
+	QFile file(path);
+	return file.open(QIODevice::ReadOnly) ? QString::fromUtf8(file.readAll()) : QString();
+}
+}
+
+int SkinGallery::runCloseSaveTest()
+{
+	qWarning("CloseSaveTest: starting");
+	const CloseSaveCase cases[] = {
+		{ "knob", CloseSaveEdit::Knob, false, false },
+		{ "value-entered", CloseSaveEdit::ValueEntered, false, false },
+		{ "raw-entered", CloseSaveEdit::RawEntered, false, false },
+		{ "value-typed", CloseSaveEdit::ValueTyped, false, false },
+		{ "raw-typed", CloseSaveEdit::RawTyped, false, false },
+		{ "value-typed-instant", CloseSaveEdit::ValueTyped, true, false },
+		{ "value-typed-save-action", CloseSaveEdit::ValueTyped, false, true },
+	};
+
+	QTemporaryDir configDir;
+	if (!configDir.isValid())
+	{
+		qWarning("CloseSaveTest: no temporary directory");
+		return 1;
+	}
+	// The windows close one after another; none of them ends the session.
+	qApp->setQuitOnLastWindowClosed(false);
+
+	int failures = 0;
+	for (const CloseSaveCase& testCase : cases)
+	{
+		const QString path = QDir::toNativeSeparators(
+			configDir.filePath(QStringLiteral("%1.txt").arg(QLatin1String(testCase.name))));
+		{
+			QFile file(path);
+			if (!file.open(QIODevice::WriteOnly) || file.write("Preamp: -3 dB\r\nDelay: 1 ms\r\n") < 0)
+			{
+				qWarning("CloseSaveTest: %s cannot write its configuration", testCase.name);
+				failures++;
+				continue;
+			}
+		}
+
+		QStringList problems;
+		int prompts = 0;
+		bool closed = false;
+		QString afterSaveAction;
+		{
+			// The live-window probe mode: no saved geometry, dock layout or
+			// open files are read, and the session writes no preferences.
+			MainWindow window(QDir(configDir.path()), nullptr, nullptr, true);
+			MainWindow::Probe probe = window.probe();
+			probe.suppressPreferenceWrites();
+			probe.instantModeControl()->setChecked(testCase.instantMode);
+			window.load(path);
+			window.show();
+			window.activateWindow();
+			QCoreApplication::processEvents();
+
+			FilterTable* table = probe.currentFilterTable();
+			if (table == nullptr || !applyCloseSaveEdit(table, testCase.edit))
+				problems << QStringLiteral("the Preamp card's control was not found");
+			QCoreApplication::processEvents();
+
+			if (testCase.saveAction)
+			{
+				if (QAction* save = window.findChild<QAction*>(QStringLiteral("actionSave")))
+					save->trigger();
+				afterSaveAction = readConfigText(path);
+			}
+
+			// Answers the unsaved-changes prompt with Save, as the user did.
+			QTimer answer;
+			answer.setInterval(20);
+			QObject::connect(&answer, &QTimer::timeout, [&prompts]() {
+				QMessageBox* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget());
+				if (box == nullptr)
+					return;
+				++prompts;
+				if (QAbstractButton* save = box->button(QMessageBox::Save))
+					save->click();
+			});
+			answer.start();
+			closed = window.close();
+			answer.stop();
+		}
+		QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+		QCoreApplication::processEvents();
+
+		const QString onDisk = readConfigText(path);
+		// Instant mode and the Save action leave nothing unsaved, so only the
+		// other cases are asked about.
+		const int expectedPrompts = testCase.instantMode || testCase.saveAction ? 0 : 1;
+		if (!closed)
+			problems << QStringLiteral("the window refused to close");
+		if (prompts != expectedPrompts)
+			problems << QStringLiteral("%1 unsaved-changes prompt(s), expected %2").arg(prompts).arg(expectedPrompts);
+		if (testCase.saveAction && !afterSaveAction.contains(QStringLiteral("Preamp: -7.5 dB")))
+			problems << QStringLiteral("the Save action wrote the file without the typed value");
+		if (!onDisk.contains(QStringLiteral("Preamp: -7.5 dB")))
+			problems << QStringLiteral("the file on disk lacks the edit");
+		if (!onDisk.contains(QStringLiteral("Delay: 1 ms")))
+			problems << QStringLiteral("the file on disk lost its second line");
+
+		if (problems.isEmpty())
+		{
+			qWarning("CloseSaveTest: %s ok", testCase.name);
+		}
+		else
+		{
+			failures++;
+			qWarning("CloseSaveTest: %s FAIL: %s (file: %s)", testCase.name,
+				qPrintable(problems.join(QStringLiteral("; "))), qPrintable(onDisk.simplified()));
+		}
+	}
+
+	qWarning("CloseSaveTest: %s (%d failure(s))", failures == 0 ? "PASS" : "FAIL", failures);
+	return failures == 0 ? 0 : 1;
 }

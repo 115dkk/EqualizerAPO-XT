@@ -26,7 +26,7 @@
 param(
     [Parameter(Mandatory)] [string] $WorkspaceRoot,
     [Parameter(Mandatory)]
-    [ValidateSet("selftest-vst", "skin-gallery", "skin-switch", "analysis-layout", "plugin-load", "card-move", "card-selection", "power-toggle", "routing-edit", "frame-hittest")]
+    [ValidateSet("selftest-vst", "skin-gallery", "skin-switch", "analysis-layout", "plugin-load", "card-move", "card-selection", "power-toggle", "routing-edit", "close-save", "frame-hittest")]
     [string] $Gate,
     [string] $Platform = "x64",
     # Where deps\ lives; a git worktree has none of its own. Defaults to the
@@ -122,6 +122,12 @@ $gates = @{
         Arguments  = @("--routing-edit-test")
         ExtraEnv   = @{ QT_FORCE_STDERR_LOGGING = "1" }
         LogPath    = Join-Path $WorkspaceRoot "routing-edit-test.log"
+        PostChecks = @()
+    }
+    "close-save" = [pscustomobject]@{
+        Arguments  = @("--close-save-test")
+        ExtraEnv   = @{ QT_FORCE_STDERR_LOGGING = "1" }
+        LogPath    = Join-Path $WorkspaceRoot "close-save-test.log"
         PostChecks = @()
     }
     # The custom frame under a native child cascade (an embedded VST panel
