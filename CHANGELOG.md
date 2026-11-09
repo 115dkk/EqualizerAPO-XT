@@ -21,17 +21,17 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   The close prompt takes the focus, so its Save stored the old value, while
   Ctrl+S, which leaves the focus where it is, stored the new one. The field
   now closes on the knob's value and commits only what was typed into it
-  ([#459](https://github.com/115dkk/EqualizerAPO-XT/issues/459)).
+  ([#459](https://github.com/115dkk/EqualizerAPO-XT/issues/459), [#460](https://github.com/115dkk/EqualizerAPO-XT/pull/460)).
 - **A value still being typed is saved.** A value typed into a card's field
   or the raw `</>` editor but not yet confirmed with Enter was left out by
   Ctrl+S, and closing the window dropped it without asking. Save, Save as and
   closing now take it in first. A plug-in panel embedded in a card is read
   right before a save instead of up to a second later. The Editor log records
   each save's file and size and the answer given to the close prompt
-  ([#459](https://github.com/115dkk/EqualizerAPO-XT/issues/459)).
+  ([#459](https://github.com/115dkk/EqualizerAPO-XT/issues/459), [#460](https://github.com/115dkk/EqualizerAPO-XT/pull/460)).
 - **Adding a channel on the Hilbert card no longer closes the Editor.**
   Typing a channel name into the card's add field and pressing Enter crashed
-  the Editor.
+  the Editor ([#460](https://github.com/115dkk/EqualizerAPO-XT/pull/460)).
 
 ## v2.63.0 — 2026-11-09
 

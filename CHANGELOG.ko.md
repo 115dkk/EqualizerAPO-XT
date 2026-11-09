@@ -14,16 +14,17 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   값을 다시 확정했습니다. 닫기 확인창은 포커스를 가져가므로 그 '저장'은 옛
   값을 저장했고, 포커스를 옮기지 않는 Ctrl+S는 새 값을 저장했습니다. 이제
   노브가 움직이면 칸은 그 값으로 닫히고, 칸에 입력한 것만 확정합니다
-  ([#459](https://github.com/115dkk/EqualizerAPO-XT/issues/459)).
+  ([#459](https://github.com/115dkk/EqualizerAPO-XT/issues/459), [#460](https://github.com/115dkk/EqualizerAPO-XT/pull/460)).
 - **입력 중인 값도 저장합니다.** 카드의 값 칸이나 `</>` 원본 편집기에 입력하고
   Enter로 확정하지 않은 값을 Ctrl+S는 빼고 저장했고, 창을 닫으면 Editor가
   묻지도 않고 그 값을 버렸습니다. 이제 저장, 다른 이름으로 저장, 창 닫기가 그
   값을 먼저 반영합니다. 카드에 넣은 플러그인 패널의 상태는 최대 1초 늦게 읽던
   것을 저장 직전에 바로 읽습니다. Editor 로그에는 저장한 파일과 크기, 닫기
   확인창에서 고른 답이 남습니다
-  ([#459](https://github.com/115dkk/EqualizerAPO-XT/issues/459)).
+  ([#459](https://github.com/115dkk/EqualizerAPO-XT/issues/459), [#460](https://github.com/115dkk/EqualizerAPO-XT/pull/460)).
 - **Hilbert 카드에서 채널을 추가해도 Editor가 꺼지지 않습니다.** 카드의 채널
-  추가 칸에 이름을 입력하고 Enter를 누르면 Editor가 비정상 종료했습니다.
+  추가 칸에 이름을 입력하고 Enter를 누르면 Editor가 비정상 종료했습니다
+  ([#460](https://github.com/115dkk/EqualizerAPO-XT/pull/460)).
 
 ## v2.63.0 — 2026-11-09
 
