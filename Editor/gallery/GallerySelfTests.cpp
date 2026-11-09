@@ -882,6 +882,26 @@ int SkinGallery::runRoutingEditTest()
 		}
 	}
 
+	// Part 4: a channel added with Enter in the Hilbert card's add field. The
+	// field sits among the chips that Enter rebuilds, and the rebuild deleted
+	// it while QLineEdit was still handling the key: the Editor crashed.
+	{
+		SkinManager::instance()->applySkin(QStringLiteral("studio"), true);
+		QScrollArea scrollArea;
+		scrollArea.resize(960, 720);
+		QList<FilterCardRow*> rows = buildRows(scrollArea, configPath,
+			{ QStringLiteral("Hilbert: Shift=L Align=R Direction=-90") }, stereo, 0x3);
+		QLineEdit* add = rows.size() == 1 ? rows[0]->findChild<QLineEdit*>(QStringLiteral("ChannelChipAdd")) : nullptr;
+		if (check(add != nullptr, QStringLiteral("Hilbert card: add-channel field not found")))
+		{
+			add->setText(QStringLiteral("VX"));
+			pressEnter(add);
+			settle();
+			check(lineText(scrollArea, 0).contains(QStringLiteral("VX")),
+				QStringLiteral("Hilbert card: the added channel is missing from '%1'").arg(lineText(scrollArea, 0)));
+		}
+	}
+
 	qWarning("RoutingEditTest: %s (%d failure(s))", failures == 0 ? "PASS" : "FAIL", failures);
 	GalleryFixture::finish(failures == 0 ? 0 : 1);
 }

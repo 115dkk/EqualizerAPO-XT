@@ -486,8 +486,9 @@ jobs:
 
     # A card edit must reach the file whichever way the window is left: the
     # close prompt's Save, instant mode, or Ctrl+S first, also while the
-    # value is still in its editor (#459: it was lost on close, and Ctrl+S
-    # wrote the file without it).
+    # value is still in its editor (#459: an open value field wrote its old
+    # value back when the prompt took the focus, a typed value was lost on
+    # close, and Ctrl+S wrote the file without it).
     - name: Run close and save test (offscreen)
       if: matrix.primary == true
       timeout-minutes: 5

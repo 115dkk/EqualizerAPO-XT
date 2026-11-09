@@ -1106,23 +1106,31 @@ bool SkinGallery::armAnalysisLatencyProbe(MainWindow& window, const QStringList&
 
 namespace
 {
-void typeInto(QWidget* target, const QString& text)
+// A key can make the card rebuild and delete the editor it was typed into,
+// so every event checks that the target still exists.
+void sendKey(const QPointer<QWidget>& target, QEvent::Type type, int key, const QString& text)
 {
+	if (target.isNull())
+		return;
+	QKeyEvent event(type, key, Qt::NoModifier, text);
+	QApplication::sendEvent(target, &event);
+}
+
+void typeInto(QWidget* widget, const QString& text)
+{
+	const QPointer<QWidget> target(widget);
 	for (const QChar ch : text)
 	{
-		QKeyEvent press(QEvent::KeyPress, 0, Qt::NoModifier, QString(ch));
-		QApplication::sendEvent(target, &press);
-		QKeyEvent release(QEvent::KeyRelease, 0, Qt::NoModifier, QString(ch));
-		QApplication::sendEvent(target, &release);
+		sendKey(target, QEvent::KeyPress, 0, QString(ch));
+		sendKey(target, QEvent::KeyRelease, 0, QString(ch));
 	}
 }
 
-void pressKey(QWidget* target, int key)
+void pressKey(QWidget* widget, int key)
 {
-	QKeyEvent press(QEvent::KeyPress, key, Qt::NoModifier);
-	QApplication::sendEvent(target, &press);
-	QKeyEvent release(QEvent::KeyRelease, key, Qt::NoModifier);
-	QApplication::sendEvent(target, &release);
+	const QPointer<QWidget> target(widget);
+	sendKey(target, QEvent::KeyPress, key, QString());
+	sendKey(target, QEvent::KeyRelease, key, QString());
 }
 
 // How the first card (a Preamp at -3 dB) is changed to -7.5 dB.
@@ -1137,7 +1145,12 @@ enum class CloseSaveEdit
 	// Typed into the same editors and left there, still focused: what the
 	// user has when they go straight for the close button or Ctrl+S (#459).
 	ValueTyped,
-	RawTyped
+	RawTyped,
+	// Opened the value field by double-clicking it, left it as it was and
+	// turned the knob. The open field held the old value and wrote it back
+	// when it lost the focus, so the close prompt's Save stored the old
+	// value (#459).
+	ValueOpenedKnob
 };
 
 struct CloseSaveCase
@@ -1199,6 +1212,21 @@ bool applyCloseSaveEdit(FilterTable* table, CloseSaveEdit edit)
 			return true;
 		}
 		return false;
+	case CloseSaveEdit::ValueOpenedKnob:
+	{
+		EditableValue* value = table->findChild<EditableValue*>(QStringLiteral("PreampCardValue"));
+		AudioKnob* knob = table->findChild<AudioKnob*>(QStringLiteral("PreampCardKnob"));
+		if (value == nullptr || knob == nullptr)
+			return false;
+		QMouseEvent doubleClick(QEvent::MouseButtonDblClick, QPointF(5, 5), value->mapToGlobal(QPointF(5, 5)),
+			Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+		QApplication::sendEvent(value, &doubleClick);
+		const QLineEdit* field = value->findChild<QLineEdit*>(QStringLiteral("EditableValueEditor"));
+		if (field == nullptr || !field->hasFocus())
+			return false;
+		knob->setValue(-75);
+		return true;
+	}
 	}
 	return false;
 }
@@ -1221,6 +1249,11 @@ int SkinGallery::runCloseSaveTest()
 		{ "raw-typed", CloseSaveEdit::RawTyped, false, false },
 		{ "value-typed-instant", CloseSaveEdit::ValueTyped, true, false },
 		{ "value-typed-save-action", CloseSaveEdit::ValueTyped, false, true },
+		{ "value-opened-knob", CloseSaveEdit::ValueOpenedKnob, false, false },
+		{ "value-opened-knob-save-action", CloseSaveEdit::ValueOpenedKnob, false, true },
+	};
+	const auto firstLine = [](const QString& text) {
+		return text.section(QLatin1Char('\n'), 0, 0).trimmed();
 	};
 
 	QTemporaryDir configDir;
@@ -1265,7 +1298,7 @@ int SkinGallery::runCloseSaveTest()
 
 			FilterTable* table = probe.currentFilterTable();
 			if (table == nullptr || !applyCloseSaveEdit(table, testCase.edit))
-				problems << QStringLiteral("the Preamp card's control was not found");
+				problems << QStringLiteral("the Preamp card's controls were not found as expected");
 			QCoreApplication::processEvents();
 
 			if (testCase.saveAction)
@@ -1301,10 +1334,11 @@ int SkinGallery::runCloseSaveTest()
 			problems << QStringLiteral("the window refused to close");
 		if (prompts != expectedPrompts)
 			problems << QStringLiteral("%1 unsaved-changes prompt(s), expected %2").arg(prompts).arg(expectedPrompts);
-		if (testCase.saveAction && !afterSaveAction.contains(QStringLiteral("Preamp: -7.5 dB")))
-			problems << QStringLiteral("the Save action wrote the file without the typed value");
-		if (!onDisk.contains(QStringLiteral("Preamp: -7.5 dB")))
-			problems << QStringLiteral("the file on disk lacks the edit");
+		const QString expected = QStringLiteral("Preamp: -7.5 dB");
+		if (testCase.saveAction && firstLine(afterSaveAction) != expected)
+			problems << QStringLiteral("the Save action wrote '%1'").arg(firstLine(afterSaveAction));
+		if (firstLine(onDisk) != expected)
+			problems << QStringLiteral("the file on disk starts '%1', expected '%2'").arg(firstLine(onDisk), expected);
 		if (!onDisk.contains(QStringLiteral("Delay: 1 ms")))
 			problems << QStringLiteral("the file on disk lost its second line");
 

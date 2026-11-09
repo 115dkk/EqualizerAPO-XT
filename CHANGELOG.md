@@ -14,17 +14,24 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
-- **A value still being typed is saved.** A value typed into a card's field
-  or the raw `</>` editor reached the document only on Enter or when the
-  focus left the field. Ctrl+S wrote the file without it, and closing the
-  window found nothing unsaved and dropped it without asking. Save, Save as
-  and closing now take that value in first, so the close prompt asks about it
-  and its Save keeps it. A plug-in panel embedded in a card is read right
-  before a save instead of up to a second later. The Editor log now records
-  each save's file and size and the answer given to the close prompt. The
-  case reported in #459, where the prompt's Save itself did not stick, was
-  not reproduced; the new log lines are there to find it
+- **The close prompt's Save keeps the change.** The value under the knob on
+  the Preamp, Delay and All-pass cards opens for typing on a double-click.
+  When the knob moved while that field was still open, the field kept the
+  value it had opened with and wrote it back as soon as it lost the focus.
+  The close prompt takes the focus, so its Save stored the old value, while
+  Ctrl+S, which leaves the focus where it is, stored the new one. The field
+  now closes on the knob's value and commits only what was typed into it
   ([#459](https://github.com/115dkk/EqualizerAPO-XT/issues/459)).
+- **A value still being typed is saved.** A value typed into a card's field
+  or the raw `</>` editor but not yet confirmed with Enter was left out by
+  Ctrl+S, and closing the window dropped it without asking. Save, Save as and
+  closing now take it in first. A plug-in panel embedded in a card is read
+  right before a save instead of up to a second later. The Editor log records
+  each save's file and size and the answer given to the close prompt
+  ([#459](https://github.com/115dkk/EqualizerAPO-XT/issues/459)).
+- **Adding a channel on the Hilbert card no longer closes the Editor.**
+  Typing a channel name into the card's add field and pressing Enter crashed
+  the Editor.
 
 ## v2.63.0 — 2026-11-09
 

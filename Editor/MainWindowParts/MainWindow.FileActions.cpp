@@ -10,6 +10,7 @@
 #include <QDrag>
 #include <QElapsedTimer>
 #include <QLabel>
+#include <QLineEdit>
 #include <QMimeData>
 #include <QPointer>
 #include <QPushButton>
@@ -169,7 +170,10 @@ void MainWindow::commitPendingEdits()
 	// Taking the focus makes the same commit a click elsewhere makes; an
 	// editor that is still there gets it back.
 	QWidget* focus = QApplication::focusWidget();
-	if (focus != nullptr && isAncestorOf(focus))
+	// A text field that is only open, with nothing typed, holds no edit; it
+	// stays as it is (an open raw-line editor would otherwise close).
+	const QLineEdit* field = qobject_cast<QLineEdit*>(focus);
+	if (focus != nullptr && isAncestorOf(focus) && (field == nullptr || field->isModified()))
 	{
 		// The commit can rebuild the card and delete its editor.
 		const QPointer<QWidget> editor(focus);

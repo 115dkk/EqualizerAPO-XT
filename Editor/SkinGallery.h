@@ -91,11 +91,13 @@ int runPowerToggleTest();
 int runRoutingEditTest();
 
 // Entry point behind --close-save-test: edits a live MainWindow's card (knob,
-// value field, raw line; confirmed with Enter or still being typed), then
-// closes the window and answers the unsaved-changes prompt with Save, or
-// saves first with the Save action. The file on disk must carry the edit
-// every time (#459: a value still in its editor was lost on close, and the
-// Save action wrote the file without it).
+// value field, raw line; confirmed with Enter or still being typed; a value
+// field left open while the knob turns), then closes the window and answers
+// the unsaved-changes prompt with Save, or saves first with the Save action.
+// The file on disk must carry the edit every time (#459: an open value field
+// wrote its old value back when the prompt took the focus, a value still
+// being typed was lost on close, and the Save action wrote the file without
+// it).
 int runCloseSaveTest();
 
 // Entry point behind --scroll-bench: per-skin wall time of wheel-sized
