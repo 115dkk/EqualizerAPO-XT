@@ -29,6 +29,9 @@
     <ClCompile Include="KnobTravelTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="VstChunkStateTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Editor\guis\BiQuadWidthConversion.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -72,6 +75,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Editor\helpers\VstChunkScan.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Editor\helpers\VstChunkState.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="FilterCommandCatalogTests.cpp">
@@ -239,6 +245,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Editor\helpers\VstChunkScan.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Editor\helpers\VstChunkState.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Installer\AutoInstallerLogic.h">

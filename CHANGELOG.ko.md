@@ -25,6 +25,16 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 - **Hilbert 카드에서 채널을 추가해도 Editor가 꺼지지 않습니다.** 카드의 채널
   추가 칸에 이름을 입력하고 Enter를 누르면 Editor가 비정상 종료했습니다
   ([#460](https://github.com/115dkk/EqualizerAPO-XT/pull/460)).
+- **Kilohearts 패널이 저절로 '저장 안 됨'을 만들지 않습니다.** kHs Delay나 kHs
+  Reverb 패널을 카드에 넣거나 패널 창에서 자동 적용을 켜 두면, 아무것도
+  건드리지 않아도 패널이 열리자마자, 그리고 저장할 때마다 1~2초 뒤에 다시
+  저장하지 않은 변경이 있다고 표시했고, 즉시 모드에서는 그만큼 자주 파일을 다시
+  썼습니다. 이 플러그인들은 상태를 읽을 때마다 ZIP 파일을 새로 만들어 ZIP 안
+  파일의 시각만 바뀌었고, VST2 판은 Editor가 저장된 상태를 넘겨주는 도중에도
+  값이 바뀌었다고 알렸습니다. 이제 패널이 바뀌었는지 확인할 때 그 시각은
+  비교하지 않고, 상태를 넘겨주는 도중에 온 알림은 변경으로 치지 않으며, 패널
+  창의 확인과 적용도 상태가 실제로 바뀌었을 때만 저장합니다
+  ([#459](https://github.com/115dkk/EqualizerAPO-XT/issues/459), [#460](https://github.com/115dkk/EqualizerAPO-XT/pull/460)).
 
 ## v2.63.0 — 2026-11-09
 

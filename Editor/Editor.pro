@@ -134,6 +134,7 @@ SOURCES += main.cpp\
 	helpers/SpinBoxEditFieldFix.cpp \
 	../platform/qt/QtAppBootstrap.cpp \
 	helpers/VstChunkScan.cpp \
+	helpers/VstChunkState.cpp \
 	widgets/ResizingLineEdit.cpp \
 	widgets/ChannelGraphScene.cpp \
 	widgets/ChannelGraphItem.cpp \
@@ -435,6 +436,7 @@ HEADERS  += \
 	../platform/qt/QtAppBootstrap.h \
 	../platform/qt/MotionPreference.h \
 	helpers/VstChunkScan.h \
+	helpers/VstChunkState.h \
 	stable.h \
 	IFilterGUI.h \
 	guis/PreampFilterGUI.h \

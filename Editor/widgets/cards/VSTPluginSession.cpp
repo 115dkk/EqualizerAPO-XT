@@ -31,6 +31,7 @@
 #include "Editor/guis/VSTPluginFilterGUIDialog.h"
 #include "Editor/helpers/PluginLoadQueue.h"
 #include "Editor/helpers/VstChunkScan.h"
+#include "Editor/helpers/VstChunkState.h"
 
 using std::unordered_map;
 using std::wstring;
@@ -373,7 +374,9 @@ void VSTPluginSession::openDialog(QWidget* dialogParent)
 	if (effect == nullptr)
 		return;
 
+	writingState = true;
 	effect->writeToEffect(currentChunkData, currentParamMap);
+	writingState = false;
 
 	// Before the dialog's startEditing: the feed prepares the instance for
 	// the loopback mix format, which must happen while the processor is
@@ -394,11 +397,9 @@ void VSTPluginSession::openDialog(QWidget* dialogParent)
 	connect(QAbstractEventDispatcher::instance(), &QAbstractEventDispatcher::aboutToBlock,
 		this, &VSTPluginSession::onIdle);
 
+	// OK and Apply store the state only when it moved, like the read-back.
 	if (dialog.exec() == QDialog::Accepted)
-	{
-		effect->readFromEffect(currentChunkData, currentParamMap);
-		emit stateChanged();
-	}
+		readBack();
 	disconnect(QAbstractEventDispatcher::instance(), &QAbstractEventDispatcher::aboutToBlock,
 		this, &VSTPluginSession::onIdle);
 	previewFeeder.stop();
@@ -505,8 +506,7 @@ QString VSTPluginSession::chunkPermissionWarning() const
 
 void VSTPluginSession::applyDialog()
 {
-	effect->readFromEffect(currentChunkData, currentParamMap);
-	emit stateChanged();
+	readBack();
 }
 
 void VSTPluginSession::onIdle()
@@ -529,7 +529,11 @@ void VSTPluginSession::readBack()
 	unordered_map<wstring, float> newParamMap;
 	effect->readFromEffect(newChunkData, newParamMap);
 	lastReadTimer.restart();
-	if (newChunkData != currentChunkData || newParamMap != currentParamMap)
+	// Some plug-ins (Kilohearts) write their state as a ZIP archive anew on
+	// every read, so only its file times move. Compared byte for byte, that
+	// rewrote the line and marked the document unsaved every second or two
+	// with nothing touched (#459); the stored chunk stays as it was.
+	if (!vstChunksEquivalent(newChunkData, currentChunkData) || newParamMap != currentParamMap)
 	{
 		currentChunkData = std::move(newChunkData);
 		currentParamMap = std::move(newParamMap);
@@ -539,10 +543,26 @@ void VSTPluginSession::readBack()
 
 void VSTPluginSession::onAutomate()
 {
+	// Some plug-ins (Kilohearts) call automate while the state is being
+	// written to them. Nobody edited anything then, and a read in the middle
+	// of the write could store a state that is only half applied; with the
+	// panel embedded, or the dialog opened with auto apply on, that marked
+	// the document unsaved as soon as the panel opened (#459).
+	if (writingState)
+		return;
+
 	if (isEmbedded || autoApply)
 	{
-		effect->readFromEffect(currentChunkData, currentParamMap);
-		emit automated();
+		// Stored and announced only when it moved, like the read-back.
+		wstring newChunkData;
+		unordered_map<wstring, float> newParamMap;
+		effect->readFromEffect(newChunkData, newParamMap);
+		if (!vstChunksEquivalent(newChunkData, currentChunkData) || newParamMap != currentParamMap)
+		{
+			currentChunkData = std::move(newChunkData);
+			currentParamMap = std::move(newParamMap);
+			emit automated();
+		}
 	}
 }
 
@@ -552,7 +572,9 @@ bool VSTPluginSession::embedPlugin(QWidget* host)
 
 	__try
 	{
+		writingState = true;
 		effect->writeToEffect(currentChunkData, currentParamMap);
+		writingState = false;
 
 		HWND hwnd = (HWND)host->winId();
 		short width = 0, height = 0;
@@ -567,6 +589,7 @@ bool VSTPluginSession::embedPlugin(QWidget* host)
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
+		writingState = false;
 		result = false;
 	}
 
