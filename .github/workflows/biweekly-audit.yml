@@ -158,6 +158,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      # The checkpoint tag goes on this commit, not on whatever HEAD is after
+      # the session: a session that commits must not move the tag onto code
+      # nobody reviewed.
+      - name: Record the audited commit
+        id: head
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
       - name: Setup Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
@@ -250,6 +257,8 @@ jobs:
           fi
 
       - name: Run combined audit
+        env:
+          AUDITED_SHA: ${{ steps.head.outputs.sha }}
         run: |
           unset ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN
 
@@ -272,9 +281,18 @@ jobs:
           # CLAUDE_CODE_ENABLE_TASKS and CLAUDE_CODE_ENABLE_TODO_TOOLS turn on
           # TaskCreate, TaskUpdate and TaskList, which -p sessions leave off, so
           # the audit can plan its dimensions and work through them in order.
+          # --append-system-prompt carries the code-ownership sentence from
+          # Anthropic's Fable 5.2 prompting guide ("Say who owns the code"):
+          # without it the 5.2 models add to the existing structure and
+          # report nearby problems instead of judging the design as its
+          # owner would. The same guide notes that the sentence also makes
+          # the model change code nobody asked for, so the prompt tells the
+          # session that only its two reports leave the job and that every
+          # change it would make goes into a finding instead.
           set +e
           CLAUDE_CODE_ENABLE_TASKS=1 CLAUDE_CODE_ENABLE_TODO_TOOLS=1 claude \
             --model "$AUDIT_MODEL" \
+            --append-system-prompt "This codebase is yours: what it's for and how it's built are your call, and you'll keep building on it." \
             --effort xhigh \
             --settings "{\"availableModels\": [\"$AUDIT_MODEL\"]}" \
             --permission-mode auto \
@@ -291,6 +309,15 @@ jobs:
           Print only a short completion summary to stdout: in this
           non-interactive session only the final message reaches
           stdout, so anything not written to a file is lost.
+
+          Only the two report files leave this job. Any other change
+          you make in this checkout is discarded when the job ends, so
+          the repository keeps the code you were given. When you find
+          something you would fix or restructure, write the change into
+          its finding (what to change, where, and why) instead of
+          making it, and judge every finding, including whether an
+          earlier one is resolved, against the code as you were given
+          it. Do not commit.
 
           ENVIRONMENT:
           - You are on a Windows runner (the same image CI builds on) with
@@ -350,6 +377,15 @@ jobs:
           " > combined-audit-report.md 2>&1
           CLAUDE_EXIT=$?
           set -e
+
+          # The prompt asks the session not to commit; say so when it did,
+          # because its reports may then describe code the repository does
+          # not have. The checkpoint tag stays on the audited commit either
+          # way.
+          if [ "$(git rev-parse HEAD)" != "$AUDITED_SHA" ]; then
+            echo "::warning::The audit session committed on top of the audited commit ${AUDITED_SHA}. Check findings marked resolved against that commit."
+            git log --oneline "$AUDITED_SHA..HEAD" || true
+          fi
 
           if [ ! -s combined-audit-report.md ]; then
             echo "Audit produced no output." > combined-audit-report.md
@@ -521,11 +557,13 @@ jobs:
           retention-days: 90
 
       - name: Tag audit checkpoint
+        env:
+          AUDITED_SHA: ${{ steps.head.outputs.sha }}
         run: |
           AUDIT_TAG="audit/$(date +%Y%m%d-%H%M%S)"
-          git tag "$AUDIT_TAG"
-          git push origin "$AUDIT_TAG"
-          echo "Tagged: $AUDIT_TAG"
+          git tag "$AUDIT_TAG" "$AUDITED_SHA"
+          git push origin "refs/tags/$AUDIT_TAG"
+          echo "Tagged $AUDITED_SHA as $AUDIT_TAG."
 
   commit-baseline:
     # Commits this run's TECH_DEBT_AUDIT.md to main as the next audit's
