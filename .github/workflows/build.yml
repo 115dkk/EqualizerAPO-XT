@@ -510,6 +510,19 @@ jobs:
         & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
           -WorkspaceRoot "${{ github.workspace }}" -Gate close-save-sweep -Platform "${{ matrix.platform }}"
 
+    # A plug-in that writes its state as a fresh archive on every read and
+    # calls automate while its state is written back (Kilohearts kHs Delay
+    # and kHs Reverb, #459) marked the file unsaved with nothing touched, as
+    # soon as its panel was embedded or opened with auto apply on. The VST2
+    # fixture plays that plug-in; a real change must still be noticed.
+    - name: Run untouched VST panel test (offscreen)
+      if: matrix.primary == true
+      timeout-minutes: 5
+      shell: pwsh
+      run: |
+        & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
+          -WorkspaceRoot "${{ github.workspace }}" -Gate vst-untouched -Platform "${{ matrix.platform }}"
+
     # The custom title bar must stay draggable once a native child window
     # covers it (an embedded VST panel makes Qt turn the chrome host native).
     # WM_NCHITTEST needs real Win32 windows, so this gate alone runs on the

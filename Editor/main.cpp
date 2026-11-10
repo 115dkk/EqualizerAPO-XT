@@ -449,6 +449,8 @@ int main(int argc, char* argv[])
 			return SkinGallery::runCloseSaveTest();
 		if (application.arguments().contains(QStringLiteral("--close-save-sweep")))
 			return SkinGallery::runCloseSaveSweep(application.arguments());
+		if (application.arguments().contains(QStringLiteral("--vst-untouched-test")))
+			return SkinGallery::runVstUntouchedTest();
 		if (application.arguments().contains(QStringLiteral("--selftest-vst")))
 		{
 			// Both halves always run so one log shows every loss at once.

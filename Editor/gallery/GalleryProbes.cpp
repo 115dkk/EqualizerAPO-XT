@@ -32,6 +32,7 @@
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QDialog>
 #include <QDir>
 #include <QDockWidget>
 #include <QDoubleSpinBox>
@@ -45,11 +46,13 @@
 #include <QKeySequence>
 #include <QLabel>
 #include <QLineEdit>
+#include <QLibrary>
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QMouseEvent>
 #include <QPixmap>
 #include <QPointer>
+#include <QPushButton>
 #include <QRawFont>
 #include <QScreen>
 #include <QSpinBox>
@@ -1709,4 +1712,338 @@ int SkinGallery::runCloseSaveSweep(const QStringList& arguments)
 	qWarning("CloseSaveSweep: %s (%d case(s), %d left the line unchanged, %d failure(s))",
 		problems == 0 ? "PASS" : "FAIL", cases, unchanged, problems);
 	return problems == 0 && cases > 0 ? 0 : 1;
+}
+
+namespace
+{
+enum class VstUntouchedAction
+{
+	LoadedOnly,
+	EmbeddedUntouched,
+	DialogUntouched,
+	EmbeddedMovedSilently,
+	EmbeddedMovedAutomate
+};
+
+struct VstUntouchedCase
+{
+	const char* name;
+	const char* persona;
+	VstUntouchedAction action;
+	int expectedPrompts;
+	bool expectedFileChange;
+};
+
+void idleFor(int milliseconds)
+{
+	// readBack is driven by aboutToBlock, so this loop must let the dispatcher
+	// sleep instead of continuously pumping posted events.
+	QEventLoop loop;
+	QTimer::singleShot(milliseconds, &loop, &QEventLoop::quit);
+	loop.exec();
+}
+
+bool writeConfigText(const QString& path, const QString& text)
+{
+	QFile file(path);
+	if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate))
+		return false;
+	const QByteArray bytes = text.toUtf8();
+	return file.write(bytes) == static_cast<qint64>(bytes.size());
+}
+
+void drainVstTestDeletes()
+{
+	QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+	QCoreApplication::processEvents();
+}
+
+bool waitAfterVstAction(QStringList& problems, const QString& action)
+{
+	const bool completed = VSTPluginSession::waitForPendingLoads(30000);
+	idleFor(200);
+	if (!completed)
+		problems << QStringLiteral("pending plug-in loads after %1 completed was 0, expected 1").arg(action);
+	return completed;
+}
+
+struct VstUntouchedControls
+{
+	VSTCardEditor* card = nullptr;
+	QAction* embedAction = nullptr;
+	QPushButton* panelButton = nullptr;
+};
+
+VstUntouchedControls findVstUntouchedControls(MainWindow::Probe& probe, QStringList& problems)
+{
+	VstUntouchedControls controls;
+	FilterTable* table = probe.currentFilterTable();
+	if (table == nullptr)
+	{
+		problems << QStringLiteral("the current FilterTable pointer was null");
+		return controls;
+	}
+	controls.card = table->findChild<VSTCardEditor*>();
+	if (controls.card == nullptr)
+	{
+		problems << QStringLiteral("the VSTCardEditor pointer was null");
+		return controls;
+	}
+	controls.embedAction = controls.card->findChild<QAction*>(QStringLiteral("VSTCardEmbedAction"));
+	controls.panelButton = controls.card->findChild<QPushButton*>(QStringLiteral("VSTCardPanelButton"));
+	if (controls.embedAction == nullptr)
+		problems << QStringLiteral("the VSTCardEmbedAction pointer was null");
+	if (controls.panelButton == nullptr)
+		problems << QStringLiteral("the VSTCardPanelButton pointer was null");
+	return controls;
+}
+
+bool embedVstPanel(const VstUntouchedControls& controls, QStringList& problems)
+{
+	if (controls.embedAction == nullptr)
+		return false;
+	controls.embedAction->setChecked(true);
+	waitAfterVstAction(problems, QStringLiteral("embedding"));
+	if (!controls.embedAction->isChecked())
+	{
+		problems << QStringLiteral("VSTCardEmbedAction checked was 0 after embedding, expected 1");
+		return false;
+	}
+	return true;
+}
+
+bool closeVstTestWindow(MainWindow& window, QMessageBox::StandardButton answer,
+	int& prompts)
+{
+	QTimer answerTimer;
+	answerTimer.setInterval(20);
+	QObject::connect(&answerTimer, &QTimer::timeout, [&prompts, answer]() {
+		QMessageBox* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget());
+		if (box == nullptr)
+			return;
+		++prompts;
+		if (QAbstractButton* button = box->button(answer))
+			button->click();
+	});
+	answerTimer.start();
+	const bool closed = window.close();
+	answerTimer.stop();
+	return closed;
+}
+}
+
+int SkinGallery::runVstUntouchedTest()
+{
+	const QString fixturePath = qEnvironmentVariable("EAPO_GALLERY_VST2_PLUGIN");
+	if (fixturePath.isEmpty() || !QFileInfo::exists(fixturePath))
+	{
+		qWarning("VstUntouchedTest: setup FAIL: fixture path '%s' exists was 0, expected 1",
+			qPrintable(fixturePath));
+		qWarning("VstUntouchedTest: FAIL (1 failure(s))");
+		return 1;
+	}
+
+	qputenv("EAPO_TEST_VST_EDITOR", "fixed");
+	QLibrary library(fixturePath);
+	if (!library.load())
+	{
+		qWarning("VstUntouchedTest: setup FAIL: loading '%s' returned 0, expected 1 (%s)",
+			qPrintable(fixturePath), qPrintable(library.errorString()));
+		qWarning("VstUntouchedTest: FAIL (1 failure(s))");
+		return 1;
+	}
+	auto moveGain = reinterpret_cast<void (*)(float, int)>(library.resolve("EapoTestVst2MoveGain"));
+	if (moveGain == nullptr)
+	{
+		qWarning("VstUntouchedTest: setup FAIL: EapoTestVst2MoveGain resolved to null");
+		qWarning("VstUntouchedTest: FAIL (1 failure(s))");
+		return 1;
+	}
+
+	qApp->setQuitOnLastWindowClosed(false);
+	QTemporaryDir configDir;
+	if (!configDir.isValid())
+	{
+		qWarning("VstUntouchedTest: setup FAIL: temporary directory valid was 0, expected 1");
+		qWarning("VstUntouchedTest: FAIL (1 failure(s))");
+		return 1;
+	}
+
+	qputenv("EAPO_TEST_VST_STATE", "zip-clock");
+	const QString primedPath = QDir::toNativeSeparators(configDir.filePath(QStringLiteral("primed.txt")));
+	const QString initialText = QStringLiteral("VSTPlugin: Library \"%1\"\r\nPreamp: -3 dB\r\n").arg(fixturePath);
+	if (!writeConfigText(primedPath, initialText))
+	{
+		qWarning("VstUntouchedTest: priming FAIL: writing '%s' returned 0, expected 1",
+			qPrintable(primedPath));
+		qWarning("VstUntouchedTest: FAIL (1 failure(s))");
+		return 1;
+	}
+
+	QStringList primingProblems;
+	{
+		MainWindow window(QDir(configDir.path()), nullptr, nullptr, true);
+		MainWindow::Probe probe = window.probe();
+		probe.suppressPreferenceWrites();
+		probe.instantModeControl()->setChecked(false);
+		window.load(primedPath);
+		window.show();
+		window.activateWindow();
+		waitAfterVstAction(primingProblems, QStringLiteral("the priming load"));
+		VstUntouchedControls controls = findVstUntouchedControls(probe, primingProblems);
+		embedVstPanel(controls, primingProblems);
+		idleFor(1500);
+		if (QAction* save = window.findChild<QAction*>(QStringLiteral("actionSave")))
+			save->trigger();
+		else
+			primingProblems << QStringLiteral("the actionSave pointer was null");
+		int ignoredPrompts = 0;
+		if (!closeVstTestWindow(window, QMessageBox::Discard, ignoredPrompts))
+			primingProblems << QStringLiteral("the priming window close result was 0, expected 1");
+	}
+	drainVstTestDeletes();
+
+	const QString primedText = readConfigText(primedPath);
+	if (!primedText.contains(QStringLiteral("ChunkData")))
+		primingProblems << QStringLiteral("ChunkData occurrence count was 0, expected at least 1");
+	if (!primingProblems.isEmpty())
+	{
+		qWarning("VstUntouchedTest: priming FAIL: %s",
+			qPrintable(primingProblems.join(QStringLiteral("; "))));
+		qWarning("VstUntouchedTest: FAIL (1 failure(s))");
+		return 1;
+	}
+
+	const VstUntouchedCase cases[] = {
+		{ "loaded-only", "zip-clock-automate", VstUntouchedAction::LoadedOnly, 0, false },
+		{ "embedded-untouched", "zip-clock-automate", VstUntouchedAction::EmbeddedUntouched, 0, false },
+		{ "dialog-untouched", "zip-clock-automate", VstUntouchedAction::DialogUntouched, 0, false },
+		{ "embedded-moved-silently", "zip-clock", VstUntouchedAction::EmbeddedMovedSilently, 1, true },
+		{ "embedded-moved-automate", "zip-clock-automate", VstUntouchedAction::EmbeddedMovedAutomate, 1, true },
+	};
+
+	int failures = 0;
+	for (const VstUntouchedCase& testCase : cases)
+	{
+		const QString path = QDir::toNativeSeparators(
+			configDir.filePath(QStringLiteral("%1.txt").arg(QLatin1String(testCase.name))));
+		QStringList problems;
+		if (!writeConfigText(path, primedText))
+		{
+			problems << QStringLiteral("writing the case file returned 0, expected 1");
+		}
+		else
+		{
+			qputenv("EAPO_TEST_VST_STATE", testCase.persona);
+			int prompts = 0;
+			bool closed = false;
+			{
+				MainWindow window(QDir(configDir.path()), nullptr, nullptr, true);
+				MainWindow::Probe probe = window.probe();
+				probe.suppressPreferenceWrites();
+				probe.instantModeControl()->setChecked(false);
+				window.load(path);
+				window.show();
+				window.activateWindow();
+				waitAfterVstAction(problems, QStringLiteral("the case load"));
+				VstUntouchedControls controls = findVstUntouchedControls(probe, problems);
+				idleFor(300);
+
+				switch (testCase.action)
+				{
+				case VstUntouchedAction::LoadedOnly:
+					idleFor(1500);
+					break;
+				case VstUntouchedAction::EmbeddedUntouched:
+					embedVstPanel(controls, problems);
+					idleFor(3300);
+					break;
+				case VstUntouchedAction::DialogUntouched:
+				{
+					bool dialogSeen = false;
+					QString modalProblem;
+					QTimer closeDialog;
+					closeDialog.setSingleShot(true);
+					QObject::connect(&closeDialog, &QTimer::timeout, [&dialogSeen, &modalProblem]() {
+						QWidget* modal = QApplication::activeModalWidget();
+						if (QDialog* dialog = qobject_cast<QDialog*>(modal))
+						{
+							dialogSeen = true;
+							dialog->reject();
+						}
+						else
+						{
+							modalProblem = modal == nullptr
+								? QStringLiteral("active modal widget was null after 3300 ms")
+								: QStringLiteral("active modal widget class was %1, expected QDialog")
+									.arg(QLatin1String(modal->metaObject()->className()));
+							if (modal != nullptr)
+								modal->close();
+						}
+					});
+					closeDialog.start(3300);
+					if (controls.panelButton != nullptr)
+						controls.panelButton->click();
+					else
+						closeDialog.stop();
+					if (closeDialog.isActive())
+						closeDialog.stop();
+					waitAfterVstAction(problems, QStringLiteral("the panel dialog"));
+					if (!dialogSeen)
+						problems << QStringLiteral("dialog seen was 0 after 3300 ms, expected 1");
+					if (!modalProblem.isEmpty())
+						problems << modalProblem;
+					break;
+				}
+				case VstUntouchedAction::EmbeddedMovedSilently:
+					embedVstPanel(controls, problems);
+					idleFor(1200);
+					moveGain(0.5f, 0);
+					idleFor(2500);
+					break;
+				case VstUntouchedAction::EmbeddedMovedAutomate:
+					embedVstPanel(controls, problems);
+					idleFor(300);
+					moveGain(0.25f, 1);
+					idleFor(300);
+					break;
+				}
+
+				closed = closeVstTestWindow(window, QMessageBox::Save, prompts);
+			}
+			drainVstTestDeletes();
+
+			if (!closed)
+				problems << QStringLiteral("the window close result was 0, expected 1");
+			if (prompts != testCase.expectedPrompts)
+				problems << QStringLiteral("%1 unsaved-changes prompt(s), expected %2")
+					.arg(prompts).arg(testCase.expectedPrompts);
+			const bool fileExists = QFileInfo::exists(path);
+			if (!fileExists)
+				problems << QStringLiteral("the case file exists was 0, expected 1");
+			const QString onDisk = readConfigText(path);
+			const bool fileChanged = onDisk != primedText;
+			if (fileChanged != testCase.expectedFileChange)
+			{
+				if (testCase.expectedFileChange)
+					problems << QStringLiteral("the file on disk stayed unchanged (%1 byte(s))")
+						.arg(onDisk.toUtf8().size());
+				else
+					problems << QStringLiteral("the file on disk changed (%1 byte(s), expected %2)")
+						.arg(onDisk.toUtf8().size()).arg(primedText.toUtf8().size());
+			}
+		}
+
+		if (problems.isEmpty())
+			qWarning("VstUntouchedTest: %s ok", testCase.name);
+		else
+		{
+			failures++;
+			qWarning("VstUntouchedTest: %s FAIL: %s", testCase.name,
+				qPrintable(problems.join(QStringLiteral("; "))));
+		}
+	}
+
+	qWarning("VstUntouchedTest: %s (%d failure(s))", failures == 0 ? "PASS" : "FAIL", failures);
+	return failures == 0 ? 0 : 1;
 }

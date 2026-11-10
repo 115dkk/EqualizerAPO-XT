@@ -109,6 +109,12 @@ int runCloseSaveTest();
 // card's add-channel field.
 int runCloseSaveSweep(const QStringList& arguments);
 
+// Entry point behind --vst-untouched-test: a plug-in that rewrites its state
+// archive on every read and calls automate while that state is written must
+// leave the document saved, while a real plug-in state change must dirty it
+// (#459).
+int runVstUntouchedTest();
+
 // Entry point behind --scroll-bench: per-skin wall time of wheel-sized
 // scroll steps on a maximized-width viewport, for the "rack lags when
 // maximized" report. Diagnostic, not a CI gate.

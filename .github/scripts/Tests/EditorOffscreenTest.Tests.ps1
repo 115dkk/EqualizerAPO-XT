@@ -11,7 +11,7 @@ Describe "Invoke-EditorOffscreenTest.ps1 planning" {
     }
 
     It "copies the velopack SONAME for every gate" {
-        foreach ($gate in @("selftest-vst", "skin-gallery", "skin-switch", "analysis-layout", "card-move", "card-selection", "power-toggle", "routing-edit", "close-save", "close-save-sweep", "frame-hittest")) {
+        foreach ($gate in @("selftest-vst", "skin-gallery", "skin-switch", "analysis-layout", "card-move", "card-selection", "power-toggle", "routing-edit", "close-save", "close-save-sweep", "vst-untouched", "frame-hittest")) {
             (PlanFor $gate).VelopackDllSource |
                 Should -Be "C:\ws\deps\velopack_libc\lib\velopack_libc_win_x64_msvc.dll"
         }
@@ -60,8 +60,15 @@ Describe "Invoke-EditorOffscreenTest.ps1 planning" {
         (PlanFor "close-save-sweep").Arguments | Should -Be @("--close-save-sweep", "2")
     }
 
+    It "hands the untouched-panel gate the VST2 fixture" {
+        $plan = PlanFor "vst-untouched"
+        $plan.Arguments | Should -Be @("--vst-untouched-test")
+        $plan.ExtraEnv["EAPO_GALLERY_VST2_PLUGIN"] |
+            Should -Be "C:\ws\Tests\TestVst2Plugin\x64\Release\TestVst2Plugin.dll"
+    }
+
     It "captures stderr for the GUI-subsystem gates that log through qWarning" {
-        foreach ($gate in @("skin-switch", "analysis-layout", "card-move", "card-selection", "power-toggle", "routing-edit", "close-save", "close-save-sweep", "frame-hittest")) {
+        foreach ($gate in @("skin-switch", "analysis-layout", "card-move", "card-selection", "power-toggle", "routing-edit", "close-save", "close-save-sweep", "vst-untouched", "frame-hittest")) {
             $plan = PlanFor $gate
             $plan.LogPath | Should -Not -BeNullOrEmpty
             $plan.ExtraEnv["QT_FORCE_STDERR_LOGGING"] | Should -Be "1"
@@ -72,7 +79,7 @@ Describe "Invoke-EditorOffscreenTest.ps1 planning" {
         $plan = PlanFor "frame-hittest"
         $plan.Arguments | Should -Be @("--frame-hittest-test", "C:\ws\Setup\config\config.txt")
         $plan.QtPlatform | Should -Be "windows"
-        foreach ($gate in @("selftest-vst", "skin-gallery", "skin-switch", "analysis-layout", "plugin-load", "card-move", "card-selection", "power-toggle", "routing-edit", "close-save", "close-save-sweep")) {
+        foreach ($gate in @("selftest-vst", "skin-gallery", "skin-switch", "analysis-layout", "plugin-load", "card-move", "card-selection", "power-toggle", "routing-edit", "close-save", "close-save-sweep", "vst-untouched")) {
             (PlanFor $gate).QtPlatform | Should -Be "offscreen"
         }
     }
