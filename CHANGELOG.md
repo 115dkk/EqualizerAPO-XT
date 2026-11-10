@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.63.1 — 2026-11-10
+
 - **The close prompt's Save keeps the change.** The value under the knob on
   the Preamp, Delay and All-pass cards opens for typing on a double-click.
   When the knob moved while that field was still open, the field kept the
