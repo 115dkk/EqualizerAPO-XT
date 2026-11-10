@@ -131,7 +131,15 @@ private:
 	{
 		while (QLayoutItem* item = flow->takeAt(0))
 		{
-			delete item->widget();
+			// Later, not now: the add field's Enter runs this rebuild, and the
+			// field is one of these widgets. QLineEdit keeps using itself after
+			// its returnPressed handlers return, so deleting it here crashed
+			// the Editor on every channel added that way.
+			if (QWidget* widget = item->widget())
+			{
+				widget->hide();
+				widget->deleteLater();
+			}
 			delete item;
 		}
 		const bool all = allowAll && model.allSelected();

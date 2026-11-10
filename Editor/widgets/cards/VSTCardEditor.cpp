@@ -114,6 +114,7 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 	QMenu* menu = new QMenu(optionsButton);
 	menu->setToolTipsVisible(true);
 	embedAction = menu->addAction(tr("Embed panel in card"));
+	embedAction->setObjectName(QStringLiteral("VSTCardEmbedAction"));
 	embedAction->setCheckable(true);
 	connect(embedAction, SIGNAL(toggled(bool)), this, SLOT(embedToggled(bool)));
 	// The repair affordance for saved layout keys: the way to a bare Auto

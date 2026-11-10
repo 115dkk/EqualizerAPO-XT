@@ -86,6 +86,11 @@ public:
 	// instance on the UI thread. loadFinished is emitted for synchronous and
 	// asynchronous completion alike.
 	void requestPlugin();
+	// Reads every embedded panel's plug-in state now and emits stateChanged
+	// where it moved, instead of waiting for the idle read-back (at most once
+	// a second). A save runs this first so the file holds what the panels
+	// show.
+	static void readBackEmbeddedPanels();
 	// Requests whose completion callbacks have not yet run on the UI thread.
 	static int pendingLoads();
 	// Waits for them, handling events meanwhile; false after timeoutMs.
@@ -116,8 +121,8 @@ public:
 	// Opens the plug-in's own dialog, modal, over dialogParent, now or once a
 	// requested load lands; nothing while the panel is embedded. Returns true
 	// when it requested that load (the row then shows its loading state).
-	// Emits stateChanged when the dialog is applied or accepted; reports a
-	// panel that could not open through the status.
+	// Emits stateChanged when the dialog is applied or accepted with the state
+	// moved; reports a panel that could not open through the status.
 	bool requestPanel(QWidget* dialogParent);
 
 	// The library-readability warning the legacy row shows (the card carries
@@ -145,8 +150,8 @@ signals:
 	// cannot happen: the row brings its embed option and panel button in line
 	// (the option stays on only while the panel is embedded or waits).
 	void embedStateChanged();
-	// The plug-in automated a parameter and the new state was read back; the
-	// row must store its line again.
+	// The plug-in automated a parameter and the state read back differs from
+	// the stored one; the row must store its line again.
 	void automated();
 	// The embedded panel asks for a new size.
 	void sizeRequested(int width, int height);
@@ -173,6 +178,10 @@ private:
 	// Shows the host, embeds, and hides the host again when that failed.
 	void applyEmbed(bool enable);
 	void onAutomate();
+	// Reads the instance's state; stores it and emits stateChanged when it
+	// differs from the stored one (vstChunksEquivalent sets a ZIP state's
+	// file times aside).
+	void readBack();
 	bool embedPlugin(QWidget* host);
 	void acquirePanelProcessing();
 	void releasePanelProcessing();
@@ -187,6 +196,10 @@ private:
 	bool isEmbedded = false;
 	bool ownsPanelProcessing = false;
 	bool autoApply = true;
+	// True while the stored state is being written to the instance; an
+	// automate call that arrives meanwhile is the plug-in answering that
+	// write, not an edit.
+	bool writingState = false;
 	unsigned loadGeneration = 0;
 	VSTPanelIntent intent;
 	QWidget* embedHost = nullptr;

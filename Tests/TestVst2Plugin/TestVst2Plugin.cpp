@@ -18,11 +18,16 @@
 	  - flags advertise canReplacing (float), canDoubleReplacing (double) and
 	    programChunks (chunk-based state). EAPO_TEST_VST_EDITOR selects a fixed,
 	    DPI-scaled or late-scaling editor persona; unset keeps the plugin editorless.
-	  - The chunk is a fixed little-endian blob: a 4-byte magic 'TVP2', a uint32
-	    version, then the two float parameters. getChunk emits it; setChunk
-	    restores the parameters from it. This lets the host round-trip parameter
-	    state through readFromEffect/writeToEffect, which (per the engine) use the
-	    chunk path whenever the programChunks flag is set.
+	  - The normal chunk is a fixed little-endian blob: a 4-byte magic 'TVP2', a
+	    uint32 version, then the two float parameters. EAPO_TEST_VST_STATE selects
+	    a ZIP-clock persona that rewrites its ZIP timestamps on every read, with an
+	    optional automate callback during setChunk, like the Kilohearts plugins.
+	    This lets the host round-trip parameter state through
+	    readFromEffect/writeToEffect, which use the chunk path whenever the
+	    programChunks flag is set.
+	  - EapoTestVst2MoveGain changes every live fixture instance and can send the
+	    matching automate callback, so an Editor gate can distinguish a real state
+	    change from a rewritten archive.
 
 	A copy whose file name contains SlowLoad followed immediately by decimal
 	digits becomes the loader-lock timing persona. For example,
@@ -34,6 +39,7 @@
 	VST3 side of the dual-export fixture.
 */
 
+#include <array>
 #include <atomic>
 #include <cmath>
 #include <cstdint>
@@ -98,6 +104,8 @@ const int32_t kParamBypass = 1;
 // be stable for the round-trip assertion.
 const uint32_t kChunkMagic = 0x32505654u; // 'TVP2' little-endian ('T','V','P','2')
 const uint32_t kChunkVersion = 1u;
+const size_t kZipChunkSize = 148;
+const size_t kZipBlobOffset = 39;
 
 #pragma pack(push, 1)
 struct ChunkBlob
@@ -121,13 +129,23 @@ enum class EditorPersona
 	late
 };
 
+enum class StatePersona
+{
+	plain,
+	zipClock,
+	zipClockAutomate
+};
+
 struct PluginState
 {
 	vst_host_callback_t host = nullptr;
 	float params[kNumParams]{};
 	ChunkBlob chunkScratch{};
+	std::array<uint8_t, kZipChunkSize> zipChunkScratch{};
+	uint16_t zipTime = 0;
 	vst_rect_t rect{};
 	EditorPersona editorPersona = EditorPersona::none;
+	StatePersona statePersona = StatePersona::plain;
 	double scale = 1.0;
 	bool rectQueried = false;
 	bool editorOpen = false;
@@ -138,6 +156,150 @@ struct PluginState
 PluginState* stateOf(vst_effect_t* effect)
 {
 	return effect != nullptr ? static_cast<PluginState*>(effect->effect_internal) : nullptr;
+}
+
+SRWLOCK liveEffectsLock = SRWLOCK_INIT;
+std::array<vst_effect_t*, 32> liveEffects{};
+
+void registerLiveEffect(vst_effect_t* effect)
+{
+	AcquireSRWLockExclusive(&liveEffectsLock);
+	for (vst_effect_t*& entry : liveEffects)
+	{
+		if (entry == nullptr)
+		{
+			entry = effect;
+			break;
+		}
+	}
+	ReleaseSRWLockExclusive(&liveEffectsLock);
+}
+
+void unregisterLiveEffect(const vst_effect_t* effect)
+{
+	AcquireSRWLockExclusive(&liveEffectsLock);
+	for (vst_effect_t*& entry : liveEffects)
+	{
+		if (entry == effect)
+		{
+			entry = nullptr;
+			break;
+		}
+	}
+	ReleaseSRWLockExclusive(&liveEffectsLock);
+}
+
+void moveGainForLiveEffects(float gain, bool automate)
+{
+	struct CallbackTarget
+	{
+		vst_effect_t* effect = nullptr;
+		vst_host_callback_t host = nullptr;
+	};
+	std::array<CallbackTarget, 32> callbacks{};
+	size_t callbackCount = 0;
+
+	AcquireSRWLockExclusive(&liveEffectsLock);
+	for (vst_effect_t* effect : liveEffects)
+	{
+		PluginState* state = stateOf(effect);
+		if (state == nullptr)
+			continue;
+		state->params[kParamGain] = gain;
+		if (automate && state->host != nullptr)
+			callbacks[callbackCount++] = { effect, state->host };
+	}
+	ReleaseSRWLockExclusive(&liveEffectsLock);
+
+	// Host callbacks can re-enter or destroy the fixture, so the registry lock
+	// must not be held here.
+	for (size_t i = 0; i < callbackCount; ++i)
+		callbacks[i].host(callbacks[i].effect, VST_HOST_OPCODE_AUTOMATE,
+			kParamGain, 0, nullptr, gain);
+}
+
+void writeU16(std::array<uint8_t, kZipChunkSize>& buffer, size_t offset, uint16_t value)
+{
+	buffer[offset] = static_cast<uint8_t>(value);
+	buffer[offset + 1] = static_cast<uint8_t>(value >> 8);
+}
+
+void writeU32(std::array<uint8_t, kZipChunkSize>& buffer, size_t offset, uint32_t value)
+{
+	buffer[offset] = static_cast<uint8_t>(value);
+	buffer[offset + 1] = static_cast<uint8_t>(value >> 8);
+	buffer[offset + 2] = static_cast<uint8_t>(value >> 16);
+	buffer[offset + 3] = static_cast<uint8_t>(value >> 24);
+}
+
+uint32_t crc32(const uint8_t* data, size_t size)
+{
+	uint32_t crc = 0xFFFFFFFFu;
+	for (size_t i = 0; i < size; ++i)
+	{
+		crc ^= data[i];
+		for (int bit = 0; bit < 8; ++bit)
+			crc = (crc >> 1) ^ ((crc & 1u) != 0 ? 0xEDB88320u : 0u);
+	}
+	return ~crc;
+}
+
+void buildZipChunk(PluginState* state)
+{
+	std::array<uint8_t, kZipChunkSize>& buffer = state->zipChunkScratch;
+	buffer.fill(0);
+	const uint16_t time = ++state->zipTime;
+	const uint16_t date = 0x5D6Au;
+	const uint8_t* blob = reinterpret_cast<const uint8_t*>(&state->chunkScratch);
+	const uint32_t crc = crc32(blob, sizeof(ChunkBlob));
+	const char name[] = "state.bin";
+
+	writeU32(buffer, 0, 0x04034B50u);
+	writeU16(buffer, 4, 20);
+	writeU16(buffer, 6, 0x0808);
+	writeU16(buffer, 8, 0);
+	writeU16(buffer, 10, time);
+	writeU16(buffer, 12, date);
+	writeU32(buffer, 14, 0);
+	writeU32(buffer, 18, 0);
+	writeU32(buffer, 22, 0);
+	writeU16(buffer, 26, 9);
+	writeU16(buffer, 28, 0);
+	std::memcpy(buffer.data() + 30, name, 9);
+	std::memcpy(buffer.data() + kZipBlobOffset, blob, sizeof(ChunkBlob));
+
+	writeU32(buffer, 55, 0x08074B50u);
+	writeU32(buffer, 59, crc);
+	writeU32(buffer, 63, static_cast<uint32_t>(sizeof(ChunkBlob)));
+	writeU32(buffer, 67, static_cast<uint32_t>(sizeof(ChunkBlob)));
+
+	writeU32(buffer, 71, 0x02014B50u);
+	writeU16(buffer, 75, 20);
+	writeU16(buffer, 77, 20);
+	writeU16(buffer, 79, 0x0808);
+	writeU16(buffer, 81, 0);
+	writeU16(buffer, 83, time);
+	writeU16(buffer, 85, date);
+	writeU32(buffer, 87, crc);
+	writeU32(buffer, 91, static_cast<uint32_t>(sizeof(ChunkBlob)));
+	writeU32(buffer, 95, static_cast<uint32_t>(sizeof(ChunkBlob)));
+	writeU16(buffer, 99, 9);
+	writeU16(buffer, 101, 0);
+	writeU16(buffer, 103, 0);
+	writeU16(buffer, 105, 0);
+	writeU16(buffer, 107, 0);
+	writeU32(buffer, 109, 0);
+	writeU32(buffer, 113, 0);
+	std::memcpy(buffer.data() + 117, name, 9);
+
+	writeU32(buffer, 126, 0x06054B50u);
+	writeU16(buffer, 130, 0);
+	writeU16(buffer, 132, 0);
+	writeU16(buffer, 134, 1);
+	writeU16(buffer, 136, 1);
+	writeU32(buffer, 138, 55);
+	writeU32(buffer, 142, 71);
+	writeU16(buffer, 146, 0);
 }
 
 void VST_FUNCTION_INTERFACE setParameter(vst_effect_t* effect, uint32_t index, float value)
@@ -233,6 +395,7 @@ intptr_t VST_FUNCTION_INTERFACE dispatcher(vst_effect_t* effect, int32_t opcode,
 		return 0;
 
 	case VST_EFFECT_OPCODE_DESTROY: // effClose
+		unregisterLiveEffect(effect);
 		// The host must detach caller closures before entering plug-in teardown.
 		if (state != nullptr && state->host != nullptr)
 		{
@@ -306,20 +469,42 @@ intptr_t VST_FUNCTION_INTERFACE dispatcher(vst_effect_t* effect, int32_t opcode,
 		state->chunkScratch.version = kChunkVersion;
 		state->chunkScratch.gain = state->params[kParamGain];
 		state->chunkScratch.bypass = state->params[kParamBypass];
-		*static_cast<void**>(ptr) = &state->chunkScratch;
-		return static_cast<intptr_t>(sizeof(ChunkBlob));
+		if (state->statePersona == StatePersona::plain)
+		{
+			*static_cast<void**>(ptr) = &state->chunkScratch;
+			return static_cast<intptr_t>(sizeof(ChunkBlob));
+		}
+		buildZipChunk(state);
+		*static_cast<void**>(ptr) = state->zipChunkScratch.data();
+		return static_cast<intptr_t>(kZipChunkSize);
 	}
 
 	case VST_EFFECT_OPCODE_SET_CHUNK_DATA: // effSetChunk
 	{
-		if (state == nullptr || ptr == nullptr || value < static_cast<intptr_t>(sizeof(ChunkBlob)))
+		if (state == nullptr || ptr == nullptr)
 			return 0;
+		const void* blobData = ptr;
+		if (state->statePersona == StatePersona::plain)
+		{
+			if (value < static_cast<intptr_t>(sizeof(ChunkBlob)))
+				return 0;
+		}
+		else if (value == static_cast<intptr_t>(kZipChunkSize))
+			blobData = static_cast<const uint8_t*>(ptr) + kZipBlobOffset;
+		else if (value != static_cast<intptr_t>(sizeof(ChunkBlob)))
+			return 0;
+
 		ChunkBlob blob;
-		std::memcpy(&blob, ptr, sizeof(ChunkBlob));
+		std::memcpy(&blob, blobData, sizeof(ChunkBlob));
 		if (blob.magic != kChunkMagic)
 			return 0;
 		state->params[kParamGain] = blob.gain;
 		state->params[kParamBypass] = blob.bypass;
+		if (state->statePersona == StatePersona::zipClockAutomate && state->host != nullptr)
+		{
+			state->host(effect, VST_HOST_OPCODE_AUTOMATE, kParamGain, 0, nullptr, blob.gain);
+			state->host(effect, VST_HOST_OPCODE_AUTOMATE, kParamGain, 0, nullptr, blob.gain);
+		}
 		return 1;
 	}
 
@@ -463,6 +648,16 @@ vst_effect_t* createEffect(vst_host_callback_t callback)
 			effect->flags |= VST_EFFECT_FLAG_EDITOR;
 	}
 
+	wchar_t stateMode[32] = {};
+	if (GetEnvironmentVariableW(L"EAPO_TEST_VST_STATE", stateMode,
+		static_cast<DWORD>(sizeof(stateMode) / sizeof(stateMode[0]))) > 0)
+	{
+		if (wcscmp(stateMode, L"zip-clock") == 0)
+			state->statePersona = StatePersona::zipClock;
+		else if (wcscmp(stateMode, L"zip-clock-automate") == 0)
+			state->statePersona = StatePersona::zipClockAutomate;
+	}
+
 	// Host robustness tests select malformed metadata before creating an
 	// instance. Normal test runs leave the variable unset and retain the fixed
 	// two-channel contract documented above.
@@ -486,6 +681,7 @@ vst_effect_t* createEffect(vst_host_callback_t callback)
 			effect->delay = 512;
 	}
 
+	registerLiveEffect(effect);
 	return effect;
 }
 
@@ -561,6 +757,11 @@ private:
 	std::atomic<Steinberg::uint32> refCount{1};
 };
 } // namespace
+
+extern "C" __declspec(dllexport) void EapoTestVst2MoveGain(float gain, int automate)
+{
+	moveGainForLiveEffects(gain, automate != 0);
+}
 
 // VST 2.x entry point. VSTPluginLibrary::loadFunctions resolves exactly this
 // symbol via GetProcAddress(module, "VSTPluginMain"); the callback lets the

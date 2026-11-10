@@ -25,12 +25,17 @@
 #include <QLocale>
 #include <QStyle>
 
+#include <QAbstractButton>
+#include <QAbstractSlider>
+#include <QAbstractSpinBox>
 #include <QAction>
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QDialog>
 #include <QDir>
 #include <QDockWidget>
+#include <QDoubleSpinBox>
 #include <QElapsedTimer>
 #include <QEventLoop>
 #include <QFile>
@@ -40,15 +45,21 @@
 #include <QImage>
 #include <QKeySequence>
 #include <QLabel>
+#include <QLineEdit>
+#include <QLibrary>
 #include <QMenuBar>
+#include <QMessageBox>
 #include <QMouseEvent>
 #include <QPixmap>
 #include <QPointer>
+#include <QPushButton>
 #include <QRawFont>
 #include <QScreen>
 #include <QSpinBox>
 #include <QStringList>
+#include <QTemporaryDir>
 #include <QTimer>
+#include <QToolButton>
 #include <QVector>
 
 #include "Editor/AnalysisThread.h"
@@ -56,7 +67,10 @@
 #include "Editor/MainWindow.h"
 #include "Editor/MainWindowProbe.h"
 #include "Editor/SkinManager.h"
+#include "Editor/gallery/GallerySupport.h"
 #include "Editor/skins/SkinThemeData.h"
+#include "Editor/widgets/AudioKnob.h"
+#include "Editor/widgets/EditableValue.h"
 #include "Editor/widgets/FilterCardRow.h"
 #include "Editor/widgets/cards/VSTCardEditor.h"
 #include "Editor/widgets/cards/VSTPluginSession.h"
@@ -1095,4 +1109,941 @@ bool SkinGallery::armAnalysisLatencyProbe(MainWindow& window, const QStringList&
 		}
 	});
 	return true;
+}
+
+namespace
+{
+// A key can make the card rebuild and delete the editor it was typed into,
+// so every event checks that the target still exists.
+void sendKey(const QPointer<QWidget>& target, QEvent::Type type, int key, const QString& text)
+{
+	if (target.isNull())
+		return;
+	QKeyEvent event(type, key, Qt::NoModifier, text);
+	QApplication::sendEvent(target, &event);
+}
+
+void typeInto(QWidget* widget, const QString& text)
+{
+	const QPointer<QWidget> target(widget);
+	for (const QChar ch : text)
+	{
+		sendKey(target, QEvent::KeyPress, 0, QString(ch));
+		sendKey(target, QEvent::KeyRelease, 0, QString(ch));
+	}
+}
+
+void pressKey(QWidget* widget, int key)
+{
+	const QPointer<QWidget> target(widget);
+	sendKey(target, QEvent::KeyPress, key, QString());
+	sendKey(target, QEvent::KeyRelease, key, QString());
+}
+
+// How the first card (a Preamp at -3 dB) is changed to -7.5 dB.
+enum class CloseSaveEdit
+{
+	// Turned on the card's knob.
+	Knob,
+	// Typed into the value field or the raw-line editor and confirmed with
+	// Enter.
+	ValueEntered,
+	RawEntered,
+	// Typed into the same editors and left there, still focused: what the
+	// user has when they go straight for the close button or Ctrl+S (#459).
+	ValueTyped,
+	RawTyped,
+	// Opened the value field by double-clicking it, left it as it was and
+	// turned the knob. The open field held the old value and wrote it back
+	// when it lost the focus, so the close prompt's Save stored the old
+	// value (#459).
+	ValueOpenedKnob
+};
+
+struct CloseSaveCase
+{
+	const char* name;
+	CloseSaveEdit edit;
+	bool instantMode;
+	// Saves with the toolbar's Save action (Ctrl+S) before closing, instead
+	// of answering the close prompt.
+	bool saveAction;
+};
+
+bool applyCloseSaveEdit(FilterTable* table, CloseSaveEdit edit)
+{
+	const QString gain = QStringLiteral("-7.5");
+	switch (edit)
+	{
+	case CloseSaveEdit::Knob:
+		if (AudioKnob* knob = table->findChild<AudioKnob*>(QStringLiteral("PreampCardKnob")))
+		{
+			knob->setValue(-75);
+			return true;
+		}
+		return false;
+	case CloseSaveEdit::ValueEntered:
+	case CloseSaveEdit::ValueTyped:
+		if (EditableValue* value = table->findChild<EditableValue*>(QStringLiteral("PreampCardValue")))
+		{
+			QMouseEvent doubleClick(QEvent::MouseButtonDblClick, QPointF(5, 5), value->mapToGlobal(QPointF(5, 5)),
+				Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+			QApplication::sendEvent(value, &doubleClick);
+			QLineEdit* field = value->findChild<QLineEdit*>(QStringLiteral("EditableValueEditor"));
+			if (field == nullptr || !field->hasFocus())
+				return false;
+			field->selectAll();
+			typeInto(field, gain);
+			if (edit == CloseSaveEdit::ValueEntered)
+				pressKey(field, Qt::Key_Return);
+			return true;
+		}
+		return false;
+	case CloseSaveEdit::RawEntered:
+	case CloseSaveEdit::RawTyped:
+		if (FilterCardRow* row = table->findChild<FilterCardRow*>())
+		{
+			// The raw-line toggle is the header's only checkable action.
+			for (QToolButton* button : row->findChildren<QToolButton*>())
+			{
+				if (button->isCheckable() && button->property("headerAction").toBool())
+					button->click();
+			}
+			QLineEdit* raw = row->findChild<QLineEdit*>(QStringLiteral("FilterCardRawEditor"));
+			if (raw == nullptr || !raw->hasFocus())
+				return false;
+			raw->selectAll();
+			typeInto(raw, QStringLiteral("Preamp: ") + gain + QStringLiteral(" dB"));
+			if (edit == CloseSaveEdit::RawEntered)
+				pressKey(raw, Qt::Key_Return);
+			return true;
+		}
+		return false;
+	case CloseSaveEdit::ValueOpenedKnob:
+	{
+		EditableValue* value = table->findChild<EditableValue*>(QStringLiteral("PreampCardValue"));
+		AudioKnob* knob = table->findChild<AudioKnob*>(QStringLiteral("PreampCardKnob"));
+		if (value == nullptr || knob == nullptr)
+			return false;
+		QMouseEvent doubleClick(QEvent::MouseButtonDblClick, QPointF(5, 5), value->mapToGlobal(QPointF(5, 5)),
+			Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+		QApplication::sendEvent(value, &doubleClick);
+		const QLineEdit* field = value->findChild<QLineEdit*>(QStringLiteral("EditableValueEditor"));
+		if (field == nullptr || !field->hasFocus())
+			return false;
+		knob->setValue(-75);
+		return true;
+	}
+	}
+	return false;
+}
+
+QString readConfigText(const QString& path)
+{
+	QFile file(path);
+	return file.open(QIODevice::ReadOnly) ? QString::fromUtf8(file.readAll()) : QString();
+}
+}
+
+int SkinGallery::runCloseSaveTest()
+{
+	qWarning("CloseSaveTest: starting");
+	const CloseSaveCase cases[] = {
+		{ "knob", CloseSaveEdit::Knob, false, false },
+		{ "value-entered", CloseSaveEdit::ValueEntered, false, false },
+		{ "raw-entered", CloseSaveEdit::RawEntered, false, false },
+		{ "value-typed", CloseSaveEdit::ValueTyped, false, false },
+		{ "raw-typed", CloseSaveEdit::RawTyped, false, false },
+		{ "value-typed-instant", CloseSaveEdit::ValueTyped, true, false },
+		{ "value-typed-save-action", CloseSaveEdit::ValueTyped, false, true },
+		{ "value-opened-knob", CloseSaveEdit::ValueOpenedKnob, false, false },
+		{ "value-opened-knob-save-action", CloseSaveEdit::ValueOpenedKnob, false, true },
+	};
+	const auto firstLine = [](const QString& text) {
+		return text.section(QLatin1Char('\n'), 0, 0).trimmed();
+	};
+
+	QTemporaryDir configDir;
+	if (!configDir.isValid())
+	{
+		qWarning("CloseSaveTest: no temporary directory");
+		return 1;
+	}
+	// The windows close one after another; none of them ends the session.
+	qApp->setQuitOnLastWindowClosed(false);
+
+	int failures = 0;
+	for (const CloseSaveCase& testCase : cases)
+	{
+		const QString path = QDir::toNativeSeparators(
+			configDir.filePath(QStringLiteral("%1.txt").arg(QLatin1String(testCase.name))));
+		{
+			QFile file(path);
+			if (!file.open(QIODevice::WriteOnly) || file.write("Preamp: -3 dB\r\nDelay: 1 ms\r\n") < 0)
+			{
+				qWarning("CloseSaveTest: %s cannot write its configuration", testCase.name);
+				failures++;
+				continue;
+			}
+		}
+
+		QStringList problems;
+		int prompts = 0;
+		bool closed = false;
+		QString afterSaveAction;
+		{
+			// The live-window probe mode: no saved geometry, dock layout or
+			// open files are read, and the session writes no preferences.
+			MainWindow window(QDir(configDir.path()), nullptr, nullptr, true);
+			MainWindow::Probe probe = window.probe();
+			probe.suppressPreferenceWrites();
+			probe.instantModeControl()->setChecked(testCase.instantMode);
+			window.load(path);
+			window.show();
+			window.activateWindow();
+			QCoreApplication::processEvents();
+
+			FilterTable* table = probe.currentFilterTable();
+			if (table == nullptr || !applyCloseSaveEdit(table, testCase.edit))
+				problems << QStringLiteral("the Preamp card's controls were not found as expected");
+			QCoreApplication::processEvents();
+
+			if (testCase.saveAction)
+			{
+				if (QAction* save = window.findChild<QAction*>(QStringLiteral("actionSave")))
+					save->trigger();
+				afterSaveAction = readConfigText(path);
+			}
+
+			// Answers the unsaved-changes prompt with Save, as the user did.
+			QTimer answer;
+			answer.setInterval(20);
+			QObject::connect(&answer, &QTimer::timeout, [&prompts]() {
+				QMessageBox* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget());
+				if (box == nullptr)
+					return;
+				++prompts;
+				if (QAbstractButton* save = box->button(QMessageBox::Save))
+					save->click();
+			});
+			answer.start();
+			closed = window.close();
+			answer.stop();
+		}
+		QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+		QCoreApplication::processEvents();
+
+		const QString onDisk = readConfigText(path);
+		// Instant mode and the Save action leave nothing unsaved, so only the
+		// other cases are asked about.
+		const int expectedPrompts = testCase.instantMode || testCase.saveAction ? 0 : 1;
+		if (!closed)
+			problems << QStringLiteral("the window refused to close");
+		if (prompts != expectedPrompts)
+			problems << QStringLiteral("%1 unsaved-changes prompt(s), expected %2").arg(prompts).arg(expectedPrompts);
+		const QString expected = QStringLiteral("Preamp: -7.5 dB");
+		if (testCase.saveAction && firstLine(afterSaveAction) != expected)
+			problems << QStringLiteral("the Save action wrote '%1'").arg(firstLine(afterSaveAction));
+		if (firstLine(onDisk) != expected)
+			problems << QStringLiteral("the file on disk starts '%1', expected '%2'").arg(firstLine(onDisk), expected);
+		if (!onDisk.contains(QStringLiteral("Delay: 1 ms")))
+			problems << QStringLiteral("the file on disk lost its second line");
+
+		if (problems.isEmpty())
+		{
+			qWarning("CloseSaveTest: %s ok", testCase.name);
+		}
+		else
+		{
+			failures++;
+			qWarning("CloseSaveTest: %s FAIL: %s (file: %s)", testCase.name,
+				qPrintable(problems.join(QStringLiteral("; "))), qPrintable(onDisk.simplified()));
+		}
+	}
+
+	qWarning("CloseSaveTest: %s (%d failure(s))", failures == 0 ? "PASS" : "FAIL", failures);
+	return failures == 0 ? 0 : 1;
+}
+
+namespace
+{
+// The sweep drives only a card's body: the header's buttons, the raw-line
+// editor and an EditableValue's own field are reached by other routes.
+bool sweepSkips(const QWidget* widget)
+{
+	return widget->property("headerAction").isValid() || widget->property("powerToggle").isValid()
+		|| widget->objectName() == QStringLiteral("FilterCardRawEditor")
+		|| widget->objectName() == QStringLiteral("EditableValueEditor");
+}
+
+template<typename T>
+QList<T*> sweepBodyWidgets(const FilterCardRow* row)
+{
+	QList<T*> result;
+	for (T* widget : row->findChildren<T*>())
+	{
+		if (!widget->isVisible() || !widget->isEnabled() || sweepSkips(widget))
+			continue;
+		// A spin box's or combo's own line edit is driven through its owner.
+		if (qobject_cast<QAbstractSpinBox*>(widget->parentWidget()) != nullptr
+			|| qobject_cast<QComboBox*>(widget->parentWidget()) != nullptr)
+			continue;
+		result.append(widget);
+	}
+	return result;
+}
+
+void openEditableValue(EditableValue* value)
+{
+	QMouseEvent doubleClick(QEvent::MouseButtonDblClick, QPointF(5, 5), value->mapToGlobal(QPointF(5, 5)),
+		Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+	QApplication::sendEvent(value, &doubleClick);
+}
+
+// A drag's worth of change on the first slider (knob), with the press and
+// release a real drag sends.
+bool turnFirstSlider(const FilterCardRow* row)
+{
+	const QList<QAbstractSlider*> sliders = sweepBodyWidgets<QAbstractSlider>(row);
+	if (sliders.isEmpty())
+		return false;
+	QAbstractSlider* slider = sliders.first();
+	const int step = qMax(1, (slider->maximum() - slider->minimum()) / 10);
+	const int target = slider->value() + step <= slider->maximum() ? slider->value() + step : slider->value() - step;
+	slider->setSliderDown(true);
+	slider->setValue(target);
+	slider->setSliderDown(false);
+	return true;
+}
+
+bool sweepSlider(const FilterCardRow* row)
+{
+	const QList<QAbstractSlider*> sliders = sweepBodyWidgets<QAbstractSlider>(row);
+	if (!sliders.isEmpty() && (sliders.first()->focusPolicy() & Qt::ClickFocus))
+		sliders.first()->setFocus(Qt::MouseFocusReason);
+	return turnFirstSlider(row);
+}
+
+QString spinTargetText(QAbstractSpinBox* spin)
+{
+	if (const QDoubleSpinBox* box = qobject_cast<QDoubleSpinBox*>(spin))
+	{
+		const double step = 3 * qMax(box->singleStep(), 1.0);
+		const double target = box->value() + step <= box->maximum() ? box->value() + step : box->value() - step;
+		return box->locale().toString(target, 'f', box->decimals());
+	}
+	if (const QSpinBox* box = qobject_cast<QSpinBox*>(spin))
+		return box->locale().toString(box->value() + 3 <= box->maximum() ? box->value() + 3 : box->value() - 3);
+	return QString();
+}
+
+bool sweepSpin(const FilterCardRow* row, bool typed, bool enter)
+{
+	const QList<QAbstractSpinBox*> spins = sweepBodyWidgets<QAbstractSpinBox>(row);
+	if (spins.isEmpty())
+		return false;
+	QAbstractSpinBox* spin = spins.first();
+	spin->setFocus(Qt::MouseFocusReason);
+	if (!typed)
+	{
+		spin->stepBy(3);
+		return true;
+	}
+	QLineEdit* edit = spin->findChild<QLineEdit*>();
+	const QString text = spinTargetText(spin);
+	if (edit == nullptr || text.isEmpty())
+		return false;
+	edit->selectAll();
+	typeInto(edit, text);
+	if (enter)
+		pressKey(edit, Qt::Key_Return);
+	return true;
+}
+
+bool sweepCombo(const FilterCardRow* row)
+{
+	for (QComboBox* combo : sweepBodyWidgets<QComboBox>(row))
+	{
+		if (combo->isEditable() || combo->count() < 2)
+			continue;
+		const int index = (combo->currentIndex() + 1) % combo->count();
+		combo->setFocus(Qt::MouseFocusReason);
+		combo->setCurrentIndex(index);
+		Q_EMIT combo->activated(index);
+		return true;
+	}
+	return false;
+}
+
+bool sweepLineEdit(const FilterCardRow* row, bool enter)
+{
+	const QList<QLineEdit*> edits = sweepBodyWidgets<QLineEdit>(row);
+	if (edits.isEmpty())
+		return false;
+	QLineEdit* edit = edits.first();
+	edit->setFocus(Qt::MouseFocusReason);
+	pressKey(edit, Qt::Key_End);
+	typeInto(edit, QStringLiteral("1"));
+	if (enter)
+		pressKey(edit, Qt::Key_Return);
+	return true;
+}
+
+bool sweepEditableValue(const FilterCardRow* row, bool enter)
+{
+	const QList<EditableValue*> values = sweepBodyWidgets<EditableValue>(row);
+	if (values.isEmpty())
+		return false;
+	EditableValue* value = values.first();
+	openEditableValue(value);
+	QLineEdit* field = value->findChild<QLineEdit*>(QStringLiteral("EditableValueEditor"));
+	if (field == nullptr)
+		return false;
+	field->selectAll();
+	typeInto(field, QLocale::c().toString(value->value() + 1.5, 'f', 2));
+	if (enter)
+		pressKey(field, Qt::Key_Return);
+	return true;
+}
+
+bool sweepCheck(const FilterCardRow* row)
+{
+	for (QAbstractButton* button : sweepBodyWidgets<QAbstractButton>(row))
+	{
+		if (!button->isCheckable())
+			continue;
+		button->click();
+		return true;
+	}
+	return false;
+}
+
+// A text field holds the focus without an edit while the knob moves the
+// value: a field that kept the old text then wrote it back when the close
+// prompt took the focus (#459).
+bool sweepFocusedFieldThenSlider(const FilterCardRow* row, bool valueField)
+{
+	if (valueField)
+	{
+		const QList<EditableValue*> values = sweepBodyWidgets<EditableValue>(row);
+		if (values.isEmpty())
+			return false;
+		openEditableValue(values.first());
+	}
+	else
+	{
+		const QList<QAbstractSpinBox*> spins = sweepBodyWidgets<QAbstractSpinBox>(row);
+		const QList<QLineEdit*> edits = sweepBodyWidgets<QLineEdit>(row);
+		QWidget* field = !spins.isEmpty() ? static_cast<QWidget*>(spins.first())
+			: !edits.isEmpty() ? static_cast<QWidget*>(edits.first()) : nullptr;
+		if (field == nullptr)
+			return false;
+		field->setFocus(Qt::MouseFocusReason);
+	}
+	return turnFirstSlider(row);
+}
+
+struct SweepRoute
+{
+	const char* name = "";
+	std::function<bool(const FilterCardRow*)> apply;
+};
+
+QString joinLines(const QStringList& lines)
+{
+	QStringList kept;
+	for (const QString& line : lines)
+	{
+		if (!line.trimmed().isEmpty())
+			kept.append(line.trimmed());
+	}
+	return kept.join(QStringLiteral(" | "));
+}
+
+// The visible card of the first document line.
+FilterCardRow* firstCard(const FilterTable* table)
+{
+	FilterCardRow* first = nullptr;
+	for (FilterCardRow* row : table->findChildren<FilterCardRow*>())
+	{
+		if (row->isVisible() && (first == nullptr || row->y() < first->y()))
+			first = row;
+	}
+	return first;
+}
+}
+
+int SkinGallery::runCloseSaveSweep(const QStringList& arguments)
+{
+	const int repeats = qMax(1, probeOptionValue(arguments, QStringLiteral("--close-save-sweep"), QStringLiteral("1")).toInt());
+	qWarning("CloseSaveSweep: starting (%d repeat(s))", repeats);
+	const QList<SweepRoute> routes = {
+		{ "slider", [](const FilterCardRow* r) { return sweepSlider(r); } },
+		{ "spin-step", [](const FilterCardRow* r) { return sweepSpin(r, false, false); } },
+		{ "spin-typed", [](const FilterCardRow* r) { return sweepSpin(r, true, false); } },
+		{ "spin-typed-enter", [](const FilterCardRow* r) { return sweepSpin(r, true, true); } },
+		{ "combo", [](const FilterCardRow* r) { return sweepCombo(r); } },
+		{ "lineedit-typed", [](const FilterCardRow* r) { return sweepLineEdit(r, false); } },
+		{ "lineedit-enter", [](const FilterCardRow* r) { return sweepLineEdit(r, true); } },
+		{ "value-typed", [](const FilterCardRow* r) { return sweepEditableValue(r, false); } },
+		{ "value-enter", [](const FilterCardRow* r) { return sweepEditableValue(r, true); } },
+		{ "check", [](const FilterCardRow* r) { return sweepCheck(r); } },
+		{ "focused-field-then-slider", [](const FilterCardRow* r) { return sweepFocusedFieldThenSlider(r, false); } },
+		{ "open-value-then-slider", [](const FilterCardRow* r) { return sweepFocusedFieldThenSlider(r, true); } },
+	};
+
+	QTemporaryDir configDir;
+	if (!configDir.isValid())
+	{
+		qWarning("CloseSaveSweep: no temporary directory");
+		return 1;
+	}
+	qApp->setQuitOnLastWindowClosed(false);
+	const QString path = QDir::toNativeSeparators(configDir.filePath(QStringLiteral("sweep.txt")));
+
+	int cases = 0;
+	int unchanged = 0;
+	int problems = 0;
+	for (const SkinGalleryDetail::GalleryRow& galleryRow : SkinGalleryDetail::galleryRows())
+	{
+		for (const SweepRoute& route : routes)
+		{
+			// The close prompt's Save, and Ctrl+S before the close.
+			for (const bool saveAction : { false, true })
+			{
+				for (int repeat = 0; repeat < repeats; repeat++)
+				{
+					{
+						QFile file(path);
+						if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)
+							|| file.write((galleryRow.line + QStringLiteral("\r\nPreamp: -1 dB\r\n")).toUtf8()) < 0)
+						{
+							qWarning("CloseSaveSweep: cannot write %s", qPrintable(path));
+							return 1;
+						}
+					}
+					QStringList before;
+					QStringList edited;
+					QStringList atPrompt;
+					QStringList afterSave;
+					QStringList finalLines;
+					QString diskAfterSave;
+					int prompts = 0;
+					bool applied = false;
+					{
+						MainWindow window(QDir(configDir.path()), nullptr, nullptr, true);
+						MainWindow::Probe probe = window.probe();
+						probe.suppressPreferenceWrites();
+						probe.instantModeControl()->setChecked(false);
+						window.load(path);
+						window.show();
+						window.activateWindow();
+						QCoreApplication::processEvents();
+						FilterTable* table = probe.currentFilterTable();
+						const FilterCardRow* row = table != nullptr ? firstCard(table) : nullptr;
+						if (row != nullptr)
+						{
+							before = table->getLines();
+							applied = route.apply(row);
+							QCoreApplication::processEvents();
+							QCoreApplication::processEvents();
+							edited = table->getLines();
+							if (applied && saveAction)
+							{
+								if (QAction* save = window.findChild<QAction*>(QStringLiteral("actionSave")))
+									save->trigger();
+								afterSave = table->getLines();
+								diskAfterSave = readConfigText(path);
+							}
+						}
+						QTimer answer;
+						answer.setInterval(15);
+						QObject::connect(&answer, &QTimer::timeout, [&prompts, &atPrompt, table]() {
+							QMessageBox* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget());
+							if (box == nullptr)
+								return;
+							++prompts;
+							if (table != nullptr)
+								atPrompt = table->getLines();
+							if (QAbstractButton* save = box->button(QMessageBox::Save))
+								save->click();
+						});
+						answer.start();
+						window.close();
+						answer.stop();
+						if (table != nullptr)
+							finalLines = table->getLines();
+					}
+					QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+					QCoreApplication::processEvents();
+					if (!applied)
+						break;
+
+					cases++;
+					const QString disk = joinLines(readConfigText(path).split(QLatin1Char('\n')));
+					QStringList issues;
+					if (disk != joinLines(finalLines))
+						issues << QStringLiteral("the file differs from the document at exit");
+					if (joinLines(edited) != joinLines(before) && joinLines(finalLines) == joinLines(before))
+						issues << QStringLiteral("the edit was reverted in the document");
+					if (!atPrompt.isEmpty() && joinLines(edited) != joinLines(before) && joinLines(atPrompt) != joinLines(edited))
+						issues << QStringLiteral("the document changed when the prompt opened");
+					if (saveAction && joinLines(diskAfterSave.split(QLatin1Char('\n'))) != joinLines(afterSave))
+						issues << QStringLiteral("the Save action wrote other lines than the document");
+					if (issues.isEmpty())
+					{
+						// A route a card ignores (a field that rejects the
+						// typed text) is not a save problem.
+						if (joinLines(finalLines) == joinLines(before))
+							unchanged++;
+						continue;
+					}
+					problems++;
+					qWarning("CloseSaveSweep: FAIL %s / %s / %s / repeat %d: %s\n  before: %s\n  edited: %s\n"
+						"  at prompt (%d): %s\n  at exit: %s\n  on disk: %s",
+						qPrintable(galleryRow.name), route.name, saveAction ? "Ctrl+S" : "prompt", repeat,
+						qPrintable(issues.join(QStringLiteral("; "))), qPrintable(joinLines(before)),
+						qPrintable(joinLines(edited)), prompts, qPrintable(joinLines(atPrompt)),
+						qPrintable(joinLines(finalLines)), qPrintable(disk));
+				}
+			}
+		}
+	}
+	qWarning("CloseSaveSweep: %s (%d case(s), %d left the line unchanged, %d failure(s))",
+		problems == 0 ? "PASS" : "FAIL", cases, unchanged, problems);
+	return problems == 0 && cases > 0 ? 0 : 1;
+}
+
+namespace
+{
+enum class VstUntouchedAction
+{
+	LoadedOnly,
+	EmbeddedUntouched,
+	DialogUntouched,
+	EmbeddedMovedSilently,
+	EmbeddedMovedAutomate
+};
+
+struct VstUntouchedCase
+{
+	const char* name;
+	const char* persona;
+	VstUntouchedAction action;
+	int expectedPrompts;
+	bool expectedFileChange;
+};
+
+void idleFor(int milliseconds)
+{
+	// readBack is driven by aboutToBlock, so this loop must let the dispatcher
+	// sleep instead of continuously pumping posted events.
+	QEventLoop loop;
+	QTimer::singleShot(milliseconds, &loop, &QEventLoop::quit);
+	loop.exec();
+}
+
+bool writeConfigText(const QString& path, const QString& text)
+{
+	QFile file(path);
+	if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate))
+		return false;
+	const QByteArray bytes = text.toUtf8();
+	return file.write(bytes) == static_cast<qint64>(bytes.size());
+}
+
+void drainVstTestDeletes()
+{
+	QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+	QCoreApplication::processEvents();
+}
+
+bool waitAfterVstAction(QStringList& problems, const QString& action)
+{
+	const bool completed = VSTPluginSession::waitForPendingLoads(30000);
+	idleFor(200);
+	if (!completed)
+		problems << QStringLiteral("pending plug-in loads after %1 completed was 0, expected 1").arg(action);
+	return completed;
+}
+
+struct VstUntouchedControls
+{
+	VSTCardEditor* card = nullptr;
+	QAction* embedAction = nullptr;
+	QPushButton* panelButton = nullptr;
+};
+
+VstUntouchedControls findVstUntouchedControls(MainWindow::Probe& probe, QStringList& problems)
+{
+	VstUntouchedControls controls;
+	FilterTable* table = probe.currentFilterTable();
+	if (table == nullptr)
+	{
+		problems << QStringLiteral("the current FilterTable pointer was null");
+		return controls;
+	}
+	controls.card = table->findChild<VSTCardEditor*>();
+	if (controls.card == nullptr)
+	{
+		problems << QStringLiteral("the VSTCardEditor pointer was null");
+		return controls;
+	}
+	controls.embedAction = controls.card->findChild<QAction*>(QStringLiteral("VSTCardEmbedAction"));
+	controls.panelButton = controls.card->findChild<QPushButton*>(QStringLiteral("VSTCardPanelButton"));
+	if (controls.embedAction == nullptr)
+		problems << QStringLiteral("the VSTCardEmbedAction pointer was null");
+	if (controls.panelButton == nullptr)
+		problems << QStringLiteral("the VSTCardPanelButton pointer was null");
+	return controls;
+}
+
+bool embedVstPanel(const VstUntouchedControls& controls, QStringList& problems)
+{
+	if (controls.embedAction == nullptr)
+		return false;
+	controls.embedAction->setChecked(true);
+	waitAfterVstAction(problems, QStringLiteral("embedding"));
+	if (!controls.embedAction->isChecked())
+	{
+		problems << QStringLiteral("VSTCardEmbedAction checked was 0 after embedding, expected 1");
+		return false;
+	}
+	return true;
+}
+
+bool closeVstTestWindow(MainWindow& window, QMessageBox::StandardButton answer,
+	int& prompts)
+{
+	QTimer answerTimer;
+	answerTimer.setInterval(20);
+	QObject::connect(&answerTimer, &QTimer::timeout, [&prompts, answer]() {
+		QMessageBox* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget());
+		if (box == nullptr)
+			return;
+		++prompts;
+		if (QAbstractButton* button = box->button(answer))
+			button->click();
+	});
+	answerTimer.start();
+	const bool closed = window.close();
+	answerTimer.stop();
+	return closed;
+}
+}
+
+int SkinGallery::runVstUntouchedTest()
+{
+	const QString fixturePath = qEnvironmentVariable("EAPO_GALLERY_VST2_PLUGIN");
+	if (fixturePath.isEmpty() || !QFileInfo::exists(fixturePath))
+	{
+		qWarning("VstUntouchedTest: setup FAIL: fixture path '%s' exists was 0, expected 1",
+			qPrintable(fixturePath));
+		qWarning("VstUntouchedTest: FAIL (1 failure(s))");
+		return 1;
+	}
+
+	qputenv("EAPO_TEST_VST_EDITOR", "fixed");
+	QLibrary library(fixturePath);
+	if (!library.load())
+	{
+		qWarning("VstUntouchedTest: setup FAIL: loading '%s' returned 0, expected 1 (%s)",
+			qPrintable(fixturePath), qPrintable(library.errorString()));
+		qWarning("VstUntouchedTest: FAIL (1 failure(s))");
+		return 1;
+	}
+	auto moveGain = reinterpret_cast<void (*)(float, int)>(library.resolve("EapoTestVst2MoveGain"));
+	if (moveGain == nullptr)
+	{
+		qWarning("VstUntouchedTest: setup FAIL: EapoTestVst2MoveGain resolved to null");
+		qWarning("VstUntouchedTest: FAIL (1 failure(s))");
+		return 1;
+	}
+
+	qApp->setQuitOnLastWindowClosed(false);
+	QTemporaryDir configDir;
+	if (!configDir.isValid())
+	{
+		qWarning("VstUntouchedTest: setup FAIL: temporary directory valid was 0, expected 1");
+		qWarning("VstUntouchedTest: FAIL (1 failure(s))");
+		return 1;
+	}
+
+	qputenv("EAPO_TEST_VST_STATE", "zip-clock");
+	const QString primedPath = QDir::toNativeSeparators(configDir.filePath(QStringLiteral("primed.txt")));
+	const QString initialText = QStringLiteral("VSTPlugin: Library \"%1\"\r\nPreamp: -3 dB\r\n").arg(fixturePath);
+	if (!writeConfigText(primedPath, initialText))
+	{
+		qWarning("VstUntouchedTest: priming FAIL: writing '%s' returned 0, expected 1",
+			qPrintable(primedPath));
+		qWarning("VstUntouchedTest: FAIL (1 failure(s))");
+		return 1;
+	}
+
+	QStringList primingProblems;
+	{
+		MainWindow window(QDir(configDir.path()), nullptr, nullptr, true);
+		MainWindow::Probe probe = window.probe();
+		probe.suppressPreferenceWrites();
+		probe.instantModeControl()->setChecked(false);
+		window.load(primedPath);
+		window.show();
+		window.activateWindow();
+		waitAfterVstAction(primingProblems, QStringLiteral("the priming load"));
+		VstUntouchedControls controls = findVstUntouchedControls(probe, primingProblems);
+		embedVstPanel(controls, primingProblems);
+		idleFor(1500);
+		if (QAction* save = window.findChild<QAction*>(QStringLiteral("actionSave")))
+			save->trigger();
+		else
+			primingProblems << QStringLiteral("the actionSave pointer was null");
+		int ignoredPrompts = 0;
+		if (!closeVstTestWindow(window, QMessageBox::Discard, ignoredPrompts))
+			primingProblems << QStringLiteral("the priming window close result was 0, expected 1");
+	}
+	drainVstTestDeletes();
+
+	const QString primedText = readConfigText(primedPath);
+	if (!primedText.contains(QStringLiteral("ChunkData")))
+		primingProblems << QStringLiteral("ChunkData occurrence count was 0, expected at least 1");
+	if (!primingProblems.isEmpty())
+	{
+		qWarning("VstUntouchedTest: priming FAIL: %s",
+			qPrintable(primingProblems.join(QStringLiteral("; "))));
+		qWarning("VstUntouchedTest: FAIL (1 failure(s))");
+		return 1;
+	}
+
+	const VstUntouchedCase cases[] = {
+		{ "loaded-only", "zip-clock-automate", VstUntouchedAction::LoadedOnly, 0, false },
+		{ "embedded-untouched", "zip-clock-automate", VstUntouchedAction::EmbeddedUntouched, 0, false },
+		{ "dialog-untouched", "zip-clock-automate", VstUntouchedAction::DialogUntouched, 0, false },
+		{ "embedded-moved-silently", "zip-clock", VstUntouchedAction::EmbeddedMovedSilently, 1, true },
+		{ "embedded-moved-automate", "zip-clock-automate", VstUntouchedAction::EmbeddedMovedAutomate, 1, true },
+	};
+
+	int failures = 0;
+	for (const VstUntouchedCase& testCase : cases)
+	{
+		const QString path = QDir::toNativeSeparators(
+			configDir.filePath(QStringLiteral("%1.txt").arg(QLatin1String(testCase.name))));
+		QStringList problems;
+		if (!writeConfigText(path, primedText))
+		{
+			problems << QStringLiteral("writing the case file returned 0, expected 1");
+		}
+		else
+		{
+			qputenv("EAPO_TEST_VST_STATE", testCase.persona);
+			int prompts = 0;
+			bool closed = false;
+			{
+				MainWindow window(QDir(configDir.path()), nullptr, nullptr, true);
+				MainWindow::Probe probe = window.probe();
+				probe.suppressPreferenceWrites();
+				probe.instantModeControl()->setChecked(false);
+				window.load(path);
+				window.show();
+				window.activateWindow();
+				waitAfterVstAction(problems, QStringLiteral("the case load"));
+				VstUntouchedControls controls = findVstUntouchedControls(probe, problems);
+				idleFor(300);
+
+				switch (testCase.action)
+				{
+				case VstUntouchedAction::LoadedOnly:
+					idleFor(1500);
+					break;
+				case VstUntouchedAction::EmbeddedUntouched:
+					embedVstPanel(controls, problems);
+					idleFor(3300);
+					break;
+				case VstUntouchedAction::DialogUntouched:
+				{
+					bool dialogSeen = false;
+					QString modalProblem;
+					QTimer closeDialog;
+					closeDialog.setSingleShot(true);
+					QObject::connect(&closeDialog, &QTimer::timeout, [&dialogSeen, &modalProblem]() {
+						QWidget* modal = QApplication::activeModalWidget();
+						if (QDialog* dialog = qobject_cast<QDialog*>(modal))
+						{
+							dialogSeen = true;
+							dialog->reject();
+						}
+						else
+						{
+							modalProblem = modal == nullptr
+								? QStringLiteral("active modal widget was null after 3300 ms")
+								: QStringLiteral("active modal widget class was %1, expected QDialog")
+									.arg(QLatin1String(modal->metaObject()->className()));
+							if (modal != nullptr)
+								modal->close();
+						}
+					});
+					closeDialog.start(3300);
+					if (controls.panelButton != nullptr)
+						controls.panelButton->click();
+					else
+						closeDialog.stop();
+					if (closeDialog.isActive())
+						closeDialog.stop();
+					waitAfterVstAction(problems, QStringLiteral("the panel dialog"));
+					if (!dialogSeen)
+						problems << QStringLiteral("dialog seen was 0 after 3300 ms, expected 1");
+					if (!modalProblem.isEmpty())
+						problems << modalProblem;
+					break;
+				}
+				case VstUntouchedAction::EmbeddedMovedSilently:
+					embedVstPanel(controls, problems);
+					idleFor(1200);
+					moveGain(0.5f, 0);
+					idleFor(2500);
+					break;
+				case VstUntouchedAction::EmbeddedMovedAutomate:
+					embedVstPanel(controls, problems);
+					idleFor(300);
+					moveGain(0.25f, 1);
+					idleFor(300);
+					break;
+				}
+
+				closed = closeVstTestWindow(window, QMessageBox::Save, prompts);
+			}
+			drainVstTestDeletes();
+
+			if (!closed)
+				problems << QStringLiteral("the window close result was 0, expected 1");
+			if (prompts != testCase.expectedPrompts)
+				problems << QStringLiteral("%1 unsaved-changes prompt(s), expected %2")
+					.arg(prompts).arg(testCase.expectedPrompts);
+			const bool fileExists = QFileInfo::exists(path);
+			if (!fileExists)
+				problems << QStringLiteral("the case file exists was 0, expected 1");
+			const QString onDisk = readConfigText(path);
+			const bool fileChanged = onDisk != primedText;
+			if (fileChanged != testCase.expectedFileChange)
+			{
+				if (testCase.expectedFileChange)
+					problems << QStringLiteral("the file on disk stayed unchanged (%1 byte(s))")
+						.arg(onDisk.toUtf8().size());
+				else
+					problems << QStringLiteral("the file on disk changed (%1 byte(s), expected %2)")
+						.arg(onDisk.toUtf8().size()).arg(primedText.toUtf8().size());
+			}
+		}
+
+		if (problems.isEmpty())
+			qWarning("VstUntouchedTest: %s ok", testCase.name);
+		else
+		{
+			failures++;
+			qWarning("VstUntouchedTest: %s FAIL: %s", testCase.name,
+				qPrintable(problems.join(QStringLiteral("; "))));
+		}
+	}
+
+	qWarning("VstUntouchedTest: %s (%d failure(s))", failures == 0 ? "PASS" : "FAIL", failures);
+	return failures == 0 ? 0 : 1;
 }

@@ -40,6 +40,17 @@ double EditableValue::value() const
 void EditableValue::setValue(double value)
 {
 	currentValue = value;
+	// The value moved elsewhere (the knob, a reset) while the field was open.
+	// What the field holds is now older than the value, and the field used to
+	// commit it as soon as it lost the focus: the close prompt taking the
+	// focus wrote the old value back over the change, and that prompt's Save
+	// stored it (#459). The field closes on the new value instead, and a
+	// draft typed into it before the change is dropped: the change came later.
+	if (stack->currentWidget() == editField)
+	{
+		editField->setModified(false);
+		stack->setCurrentWidget(displayLabel);
+	}
 	refreshText();
 }
 
@@ -74,8 +85,14 @@ void EditableValue::commitEdit()
 	if (stack->currentWidget() != editField)
 		return;
 
+	// Only what the user typed is a new value. A field opened and left as it
+	// was shows the value rounded to its decimals, and committing that would
+	// change the value without anyone asking. The flag is cleared first:
+	// closing the field takes its focus, which calls this again.
+	const bool typed = editField->isModified();
+	editField->setModified(false);
 	double parsedValue = 0.0;
-	if (parseEditableValueText(editField->text(), QLocale::system(), &parsedValue))
+	if (typed && parseEditableValueText(editField->text(), QLocale::system(), &parsedValue))
 	{
 		currentValue = parsedValue;
 		emit valueChanged(currentValue);

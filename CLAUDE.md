@@ -167,6 +167,13 @@ panel-input-gate job은 사용자가 플러그인 패널을 조작해 저장하�
 
 CI가 만드는 GitHub Release 본문은 `.github/scripts/New-ReleaseNotes.ps1`이 생성합니다. 릴리스 노트에는 각 파일의 용도, 일반 사용자가 받을 설치 파일, 이전 릴리스 대비 변경 사항 링크, CI 실행 링크가 들어가야 합니다.
 
+## PR 머지
+
+PR은 CI가 모두 통과하면 리뷰를 기다리지 않고 squash로 머지합니다(메인테이너 지시, 2026-11-10). 이 저장소는 메인테이너 한 사람이 관리하므로 리뷰가 하던 확인은 CI 게이트가 맡고, 머지 승인을 따로 묻지 않습니다. 지킬 것은 두 가지입니다.
+
+- CI 결과는 머지 전에 직접 읽습니다. 감시와 머지를 한 명령으로 잇지 않고, 감시가 끝난 뒤 결과를 확인하고 따로 머지합니다.
+- 디자인(UI)을 바꾸는 PR은 예외입니다. 사람이 리뷰 게이트를 먼저 봐야 하므로, CI가 통과해도 메인테이너가 심사 자료(갤러리 등)를 보고 판정할 때까지 머지하지 않습니다.
+
 ## 버전 변경 기준
 
 릴리스 기본 버전은 `version.h`의 `MAJOR`, `MINOR`, `REVISION`입니다. `main`에 push되면 CI의 version-bump job(`.github/scripts/Bump-Version.ps1`)이 커밋 메시지의 Conventional Commits 타입을 읽어 `version.h`를 자동으로 올리고, 깨끗한 `vX.Y.Z` 태그로 릴리스를 만듭니다. `version.h`는 손으로 올리지 않습니다.

@@ -51,7 +51,8 @@ them unset.
 - `EAPO_GALLERY_VST2_PLUGIN` / `EAPO_GALLERY_VST3_PLUGIN` /
   `EAPO_GALLERY_VST3_UPMIXER` — the test plug-ins the gallery's VST cards
   load (`TestVst2Plugin`, `TestVst3Plugin`, and a copy of the latter named
-  `Upmixer.vst3`); `Invoke-EditorOffscreenTest.ps1` sets them.
+  `Upmixer.vst3`); `Invoke-EditorOffscreenTest.ps1` sets them. The
+  `--vst-untouched-test` gate loads `EAPO_GALLERY_VST2_PLUGIN` as well.
 
 ## Editor field switches
 
@@ -97,8 +98,15 @@ Both are kill switches for the field and the control arms of the
   while it loads `TestVst2Plugin`: `fixed` gives the fixture a 320x200
   editor that does not take the content scale request, `scaled` one that
   does, and `late` one that drops a scale request received before its editor
-  opens, as JUCE 6.0.0 to 6.1.2 do. Unset, the fixture has no editor. Not
-  meant to be set by hand.
+  opens, as JUCE 6.0.0 to 6.1.2 do. Unset, the fixture has no editor. The
+  Editor's `--vst-untouched-test` gate sets `fixed` too, to embed the
+  fixture's panel under the offscreen platform. Not meant to be set by hand.
+- `EAPO_TEST_VST_STATE` — set by the Editor's `--vst-untouched-test` gate
+  while it loads `TestVst2Plugin`: `zip-clock` makes the fixture hand out its
+  state as a ZIP archive whose file times move on every read, as the
+  Kilohearts plug-ins do (#459), and `zip-clock-automate` also makes it call
+  the host's automate while its state is being written. Unset, the state is
+  the plain 16-byte blob. Not meant to be set by hand.
 - `EAPO_XT_TEST_IMPORT_DIR` / `EAPO_XT_TEST_INCLUDE_DIR` — set by
   `EditorLogicTests` (`ConfigImportTests.cpp`) and `EngineOrchestrationTests`
   (`ConfigLoadTests.cpp`) themselves, so a test config can write

@@ -90,6 +90,31 @@ int runPowerToggleTest();
 // unchecked by hand.
 int runRoutingEditTest();
 
+// Entry point behind --close-save-test: edits a live MainWindow's card (knob,
+// value field, raw line; confirmed with Enter or still being typed; a value
+// field left open while the knob turns), then closes the window and answers
+// the unsaved-changes prompt with Save, or saves first with the Save action.
+// The file on disk must carry the edit every time (#459: an open value field
+// wrote its old value back when the prompt took the focus, a value still
+// being typed was lost on close, and the Save action wrote the file without
+// it).
+int runCloseSaveTest();
+
+// Entry point behind --close-save-sweep [repeats]: the wide form of the test
+// above. Every gallery card row gets every edit its body offers (knob, spin
+// box stepped or typed, combo, check, line edit, value field, a field left
+// focused while the knob turns), saved once through the close prompt and once
+// with Ctrl+S first; the file must equal the document each time. This sweep
+// is what found the open value field of #459 and a crash in the Hilbert
+// card's add-channel field.
+int runCloseSaveSweep(const QStringList& arguments);
+
+// Entry point behind --vst-untouched-test: a plug-in that rewrites its state
+// archive on every read and calls automate while that state is written must
+// leave the document saved, while a real plug-in state change must dirty it
+// (#459).
+int runVstUntouchedTest();
+
 // Entry point behind --scroll-bench: per-skin wall time of wheel-sized
 // scroll steps on a maximized-width viewport, for the "rack lags when
 // maximized" report. Diagnostic, not a CI gate.

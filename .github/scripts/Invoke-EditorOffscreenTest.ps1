@@ -26,7 +26,7 @@
 param(
     [Parameter(Mandatory)] [string] $WorkspaceRoot,
     [Parameter(Mandatory)]
-    [ValidateSet("selftest-vst", "skin-gallery", "skin-switch", "analysis-layout", "plugin-load", "card-move", "card-selection", "power-toggle", "routing-edit", "frame-hittest")]
+    [ValidateSet("selftest-vst", "skin-gallery", "skin-switch", "analysis-layout", "plugin-load", "card-move", "card-selection", "power-toggle", "routing-edit", "close-save", "close-save-sweep", "vst-untouched", "frame-hittest")]
     [string] $Gate,
     [string] $Platform = "x64",
     # Where deps\ lives; a git worktree has none of its own. Defaults to the
@@ -124,6 +124,35 @@ $gates = @{
         LogPath    = Join-Path $WorkspaceRoot "routing-edit-test.log"
         PostChecks = @()
     }
+    "close-save" = [pscustomobject]@{
+        Arguments  = @("--close-save-test")
+        ExtraEnv   = @{ QT_FORCE_STDERR_LOGGING = "1" }
+        LogPath    = Join-Path $WorkspaceRoot "close-save-test.log"
+        PostChecks = @()
+    }
+    # Every gallery card row times every edit its body offers, saved through
+    # the close prompt and through Ctrl+S. Two passes, so a failure that
+    # comes and goes has two chances to show; a pass took 71 s locally.
+    "close-save-sweep" = [pscustomobject]@{
+        Arguments  = @("--close-save-sweep", "2")
+        ExtraEnv   = @{ QT_FORCE_STDERR_LOGGING = "1" }
+        LogPath    = Join-Path $WorkspaceRoot "close-save-sweep.log"
+        PostChecks = @()
+    }
+    # A plug-in that writes its state as a fresh archive on every read and
+    # calls automate while its state is written back (Kilohearts, #459) must
+    # not mark the document unsaved; a real change must still do so. The VST2
+    # fixture plays that plug-in through EAPO_TEST_VST_STATE, which the gate
+    # sets itself for each case.
+    "vst-untouched" = [pscustomobject]@{
+        Arguments  = @("--vst-untouched-test")
+        ExtraEnv   = @{
+            QT_FORCE_STDERR_LOGGING  = "1"
+            EAPO_GALLERY_VST2_PLUGIN = Join-Path $WorkspaceRoot "Tests\TestVst2Plugin\$Platform\Release\TestVst2Plugin.dll"
+        }
+        LogPath    = Join-Path $WorkspaceRoot "vst-untouched-test.log"
+        PostChecks = @()
+    }
     # The custom frame under a native child cascade (an embedded VST panel
     # turns the chrome host into a child HWND): caption and edges must stay
     # draggable (diagnostics/FrameHitTestProbe).
@@ -193,6 +222,10 @@ if ($Gate -eq "skin-gallery") {
     $env:EAPO_GALLERY_VST3_UPMIXER = Join-Path ([System.IO.Path]::GetTempPath()) "Upmixer.vst3"
     if ($env:RUNNER_TEMP) { $env:EAPO_GALLERY_VST3_UPMIXER = Join-Path $env:RUNNER_TEMP "Upmixer.vst3" }
     Copy-Item $env:EAPO_GALLERY_VST3_PLUGIN -Destination $env:EAPO_GALLERY_VST3_UPMIXER -Force
+}
+
+if ($Gate -eq "vst-untouched" -and -not (Test-Path $env:EAPO_GALLERY_VST2_PLUGIN)) {
+    throw "VST fixture not found: $env:EAPO_GALLERY_VST2_PLUGIN"
 }
 
 if ($spec.LogPath) {

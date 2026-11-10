@@ -95,6 +95,7 @@
     <ClCompile Include="PhaseCurveTests.cpp" />
     <ClCompile Include="BiQuadWidthConversionTests.cpp" />
     <ClCompile Include="KnobTravelTests.cpp" />
+    <ClCompile Include="VstChunkStateTests.cpp" />
     <ClCompile Include="ConfigFileCodecTests.cpp" />
     <ClCompile Include="AutoInstallerLogicTests.cpp" />
     <ClCompile Include="InstallerUiModelTests.cpp" />
@@ -157,6 +158,7 @@
          calls it. -->
     <ClCompile Include="..\..\services\security\AudioEngineAccess.cpp" />
     <ClCompile Include="..\..\Editor\helpers\VstChunkScan.cpp" />
+    <ClCompile Include="..\..\Editor\helpers\VstChunkState.cpp" />
     <ClCompile Include="..\..\Editor\widgets\FilterCardModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\FilterRowGuiPolicy.cpp" />
     <ClCompile Include="..\..\Editor\widgets\CommandRowFacts.cpp" />
@@ -204,6 +206,7 @@
     <ClInclude Include="..\..\Editor\skins\SkinThemeData.h" />
     <ClInclude Include="..\..\Editor\import\ImportManifest.h" />
     <ClInclude Include="..\..\Editor\helpers\VstChunkScan.h" />
+    <ClInclude Include="..\..\Editor\helpers\VstChunkState.h" />
     <ClInclude Include="..\..\Installer\AutoInstallerLogic.h" />
     <ClInclude Include="..\..\Installer\InstallerUiModel.h" />
     <ClInclude Include="..\..\Editor\widgets\FilterCardModel.h" />

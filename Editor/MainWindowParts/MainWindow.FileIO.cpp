@@ -108,7 +108,10 @@ bool MainWindow::save(FilterTable* filterTable, QString path)
 		return false;
 	}
 
-	TraceF(L"Saving took %.1f ms", timer.nsecsElapsed() / 1e6);
+	// Path and size: a report that a save did not stick can then tell a write
+	// that never ran from one that wrote other lines than expected (#459).
+	TraceF(L"Saved %s (%lu bytes) in %.1f ms", path.toStdWString().c_str(),
+		writeResult.bytesWritten, timer.nsecsElapsed() / 1e6);
 
 	// An explicit save, including an instant-mode save that already waited out
 	// its edit debounce, should start analysis now. Other UI controls still use

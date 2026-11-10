@@ -6,10 +6,13 @@
 */
 
 #include <sstream>
+#include <QApplication>
 #include <QDrag>
 #include <QElapsedTimer>
 #include <QLabel>
+#include <QLineEdit>
 #include <QMimeData>
+#include <QPointer>
 #include <QPushButton>
 #include <QStandardItemModel>
 #include <QStringBuilder>
@@ -32,6 +35,7 @@
 #include "FilterTable.h"
 #include "MainWindow.h"
 #include "Editor/MainWindowParts/OpenDocument.h"
+#include "Editor/widgets/cards/VSTPluginSession.h"
 #include "ui_MainWindow.h"
 
 using std::find;
@@ -76,6 +80,8 @@ void MainWindow::on_actionSave_triggered()
 	if (filterTable == nullptr)
 		return;
 
+	commitPendingEdits();
+
 	if (filterTable->getConfigPath().length() == 0)
 	{
 		ui->actionSaveAs->trigger();
@@ -93,6 +99,8 @@ void MainWindow::on_actionSaveAs_triggered()
 	FilterTable* filterTable = currentFilterTable();
 	if (filterTable == nullptr)
 		return;
+
+	commitPendingEdits();
 
 	QString path;
 	QString filename;
@@ -152,8 +160,37 @@ void MainWindow::recentFileSelected()
 }
 
 
+void MainWindow::commitPendingEdits()
+{
+	// A value typed into a card's field or raw-line editor reaches the
+	// document only when that editor commits it: on Enter, or when the focus
+	// leaves it. Ctrl+S and the window's close button leave the focus where
+	// it is, so a save wrote the file without the value, and the close found
+	// nothing unsaved and committed it only while the window went away (#459).
+	// Taking the focus makes the same commit a click elsewhere makes; an
+	// editor that is still there gets it back.
+	QWidget* focus = QApplication::focusWidget();
+	// A text field that is only open, with nothing typed, holds no edit; it
+	// stays as it is (an open raw-line editor would otherwise close).
+	const QLineEdit* field = qobject_cast<QLineEdit*>(focus);
+	if (focus != nullptr && isAncestorOf(focus) && (field == nullptr || field->isModified()))
+	{
+		// The commit can rebuild the card and delete its editor.
+		const QPointer<QWidget> editor(focus);
+		focus->clearFocus();
+		if (!editor.isNull() && editor->isVisible())
+			editor->setFocus(Qt::OtherFocusReason);
+	}
+	// An embedded plug-in panel is otherwise read back only when the UI is
+	// idle and at most once a second.
+	VSTPluginSession::readBackEmbeddedPanels();
+}
+
 bool MainWindow::askForClose(int tabIndex)
 {
+	// Before the instant-mode flush: a commit here starts that mode's save
+	// debounce, which the flush then writes at once.
+	commitPendingEdits();
 	flushPendingInstantSave(tabIndex);
 	bool discarded = false;
 	const OpenDocument* document = documentForTab(tabIndex);
@@ -171,6 +208,8 @@ bool MainWindow::askForClose(int tabIndex)
 		messageBox.setEscapeButton(QMessageBox::Cancel);
 		messageBox.setWindowFlags(Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
 		int result = messageBox.exec();
+		TraceF(L"Close prompt for %s answered %s", configPath.toStdWString().c_str(),
+			result == QMessageBox::Save ? L"save" : result == QMessageBox::Discard ? L"discard" : L"cancel");
 
 		switch (result)
 		{

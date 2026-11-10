@@ -165,6 +165,10 @@ private:
 	// The last of doChecks' warnings; it runs once the endpoint format scan
 	// has reported.
 	void checkAudioEnhancements();
+	// Brings what the user has typed or turned but not yet committed into the
+	// documents: the focused editor's text, and the state of embedded plug-in
+	// panels. Every save and the close check run it first (#459).
+	void commitPendingEdits();
 	bool askForClose(int tabIndex);
 	void loadPreferences();
 	void savePreferences();

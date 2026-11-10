@@ -14,6 +14,37 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The close prompt's Save keeps the change.** The value under the knob on
+  the Preamp, Delay and All-pass cards opens for typing on a double-click.
+  When the knob moved while that field was still open, the field kept the
+  value it had opened with and wrote it back as soon as it lost the focus.
+  The close prompt takes the focus, so its Save stored the old value, while
+  Ctrl+S, which leaves the focus where it is, stored the new one. The field
+  now closes on the knob's value and commits only what was typed into it
+  ([#459](https://github.com/115dkk/EqualizerAPO-XT/issues/459), [#460](https://github.com/115dkk/EqualizerAPO-XT/pull/460)).
+- **A value still being typed is saved.** A value typed into a card's field
+  or the raw `</>` editor but not yet confirmed with Enter was left out by
+  Ctrl+S, and closing the window dropped it without asking. Save, Save as and
+  closing now take it in first. A plug-in panel embedded in a card is read
+  right before a save instead of up to a second later. The Editor log records
+  each save's file and size and the answer given to the close prompt
+  ([#459](https://github.com/115dkk/EqualizerAPO-XT/issues/459), [#460](https://github.com/115dkk/EqualizerAPO-XT/pull/460)).
+- **Adding a channel on the Hilbert card no longer closes the Editor.**
+  Typing a channel name into the card's add field and pressing Enter crashed
+  the Editor ([#460](https://github.com/115dkk/EqualizerAPO-XT/pull/460)).
+- **A Kilohearts panel no longer marks the file unsaved on its own.** With
+  kHs Delay or kHs Reverb embedded in a card, or its panel window open with
+  auto-apply on, the Editor showed unsaved changes as soon as the panel opened
+  and again a second or two after every save, without anything being touched;
+  in instant mode it rewrote the file just as often. These plug-ins write
+  their state as a ZIP archive anew on every read, so only the archive's file
+  times changed, and their VST2 versions report a change while the Editor is
+  handing them the saved state. The Editor now sets those times aside when it
+  checks a panel for changes, does not count a report that arrives while it
+  is writing the state, and OK or Apply in the panel window stores the state
+  only when it moved
+  ([#459](https://github.com/115dkk/EqualizerAPO-XT/issues/459), [#460](https://github.com/115dkk/EqualizerAPO-XT/pull/460)).
+
 ## v2.63.0 — 2026-11-09
 
 - **On a card header, the power switch is the one control with a cap.** The
