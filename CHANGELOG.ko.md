@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.63.2 — 2026-11-14
+
 - **zAuro Pro 2D-3D Upmixer에 Input/Output 버스 배치를 지정할 수 있습니다.**
   이 플러그인은 주 버스 옆에 보조 버스(LF2~LF4)를 세 쌍 둡니다. 호스트가 주
   버스의 배치만 전달하면 플러그인은 배치를 바꾸고도 거절로 답했고, 그래서

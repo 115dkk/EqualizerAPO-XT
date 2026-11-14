@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.63.2 — 2026-11-14
+
 - **zAuro Pro 2D-3D Upmixer takes an Input/Output bus layout.** The plug-in
   has three pairs of auxiliary buses (LF2 to LF4) beside its main pair. When
   the host named the main buses alone, the plug-in changed its layout and
