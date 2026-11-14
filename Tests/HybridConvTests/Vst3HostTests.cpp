@@ -269,14 +269,19 @@ void testAuxiliaryBusNegotiation(const wstring& directory)
 		"an explicit Stereo -> 7.1 contract is accepted by a plug-in with auxiliary buses");
 	harness.expectEqual(instance.numInputs(), 2, "explicit contract keeps the main input stereo");
 	harness.expectEqual(instance.numOutputs(), 8, "explicit contract keeps the main output at 8 channels");
-	harness.expectEqual(partialProposalCount(), 0,
+	harness.expectTrue(partialProposalCount != nullptr && partialProposalCount() == 0,
 		"every bus arrangement proposal names the auxiliary buses too");
 
 	// The auxiliary buses stay inactive, so processing still hands over the
 	// main pair only.
 	instance.prepareForProcessing(48000.0f, 4);
 	instance.startProcessing();
-	double inputData[2][4] = {{0.25, 0.25, 0.25, 0.25}, {0.5, 0.5, 0.5, 0.5}};
+	double inputData[2][4] = {};
+	for (int sample = 0; sample < 4; sample++)
+	{
+		inputData[0][sample] = 0.25;
+		inputData[1][sample] = 0.5;
+	}
 	double outputData[8][4] = {};
 	double* inputs[2] = {inputData[0], inputData[1]};
 	double* outputs[8] = {};
