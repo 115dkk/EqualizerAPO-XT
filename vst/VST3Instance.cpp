@@ -253,9 +253,9 @@ void VST3Instance::configureVST3Buses(int requestedInputChannelCount, int reques
 				break;
 			SpeakerArrangement inputArrangement = inputCandidate;
 			SpeakerArrangement outputArrangement = outputCandidate;
-			const tresult result = vst3Processor->setBusArrangements(
-				vst3InputBusCount > 0 ? &inputArrangement : NULL, vst3InputBusCount > 0 ? 1 : 0,
-				vst3OutputBusCount > 0 ? &outputArrangement : NULL, vst3OutputBusCount > 0 ? 1 : 0);
+			const tresult result = proposeVST3MainArrangements(
+				vst3InputBusCount > 0 ? &inputArrangement : NULL,
+				vst3OutputBusCount > 0 ? &outputArrangement : NULL);
 			if (result == kResultTrue)
 			{
 				const bool arrangementsAvailable = refreshAcceptedVST3Arrangements();
@@ -281,11 +281,9 @@ void VST3Instance::configureVST3Buses(int requestedInputChannelCount, int reques
 			vst3Processor->getBusArrangement(kOutput, 0, outputArrangement);
 		if (inputArrangement != SpeakerArr::kEmpty || outputArrangement != SpeakerArr::kEmpty)
 		{
-			const tresult result = vst3Processor->setBusArrangements(
+			const tresult result = proposeVST3MainArrangements(
 				vst3InputBusCount > 0 && inputArrangement != SpeakerArr::kEmpty ? &inputArrangement : NULL,
-				vst3InputBusCount > 0 && inputArrangement != SpeakerArr::kEmpty ? 1 : 0,
-				vst3OutputBusCount > 0 && outputArrangement != SpeakerArr::kEmpty ? &outputArrangement : NULL,
-				vst3OutputBusCount > 0 && outputArrangement != SpeakerArr::kEmpty ? 1 : 0);
+				vst3OutputBusCount > 0 && outputArrangement != SpeakerArr::kEmpty ? &outputArrangement : NULL);
 			if (result == kResultTrue)
 				refreshAcceptedVST3Arrangements();
 		}
@@ -321,6 +319,37 @@ void VST3Instance::applyVST3BusActivation()
 		vst3Component->activateBus(kAudio, kInput, i, i == 0);
 	for (int i = 0; i < vst3OutputBusCount; i++)
 		vst3Component->activateBus(kAudio, kOutput, i, i == 0);
+}
+
+tresult VST3Instance::proposeVST3MainArrangements(
+	const SpeakerArrangement* inputArrangement, const SpeakerArrangement* outputArrangement)
+{
+	// setBusArrangements describes every bus of a direction. A plug-in with
+	// auxiliary buses may answer kResultFalse to a call that names the main
+	// bus alone (zAuro Pro does, while still applying the layout), so each
+	// further bus is passed the arrangement it currently reports. A direction
+	// with nothing to propose stays out of the call, as before.
+	const auto arrangements = [this](BusDirection direction, int busCount,
+		const SpeakerArrangement* mainArrangement)
+	{
+		vector<SpeakerArrangement> result;
+		if (mainArrangement == NULL)
+			return result;
+		result.assign(max(1, busCount), SpeakerArr::kEmpty);
+		result[0] = *mainArrangement;
+		for (int bus = 1; bus < busCount; bus++)
+		{
+			SpeakerArrangement current = SpeakerArr::kEmpty;
+			if (vst3Processor->getBusArrangement(direction, bus, current) == kResultOk)
+				result[bus] = current;
+		}
+		return result;
+	};
+	vector<SpeakerArrangement> inputs = arrangements(kInput, vst3InputBusCount, inputArrangement);
+	vector<SpeakerArrangement> outputs = arrangements(kOutput, vst3OutputBusCount, outputArrangement);
+	return vst3Processor->setBusArrangements(
+		inputs.empty() ? NULL : inputs.data(), static_cast<int32>(inputs.size()),
+		outputs.empty() ? NULL : outputs.data(), static_cast<int32>(outputs.size()));
 }
 
 bool VST3Instance::refreshAcceptedVST3Arrangements()
@@ -417,8 +446,7 @@ bool VST3Instance::negotiateBusLayouts(VST3BusLayout inputLayout, VST3BusLayout 
 		{
 			SpeakerArrangement inputArrangement = inputCandidate;
 			SpeakerArrangement outputArrangement = outputCandidate;
-			if (vst3Processor->setBusArrangements(&inputArrangement, 1,
-				&outputArrangement, 1) != kResultTrue)
+			if (proposeVST3MainArrangements(&inputArrangement, &outputArrangement) != kResultTrue)
 				continue;
 			if (!refreshAcceptedVST3Arrangements())
 				continue;

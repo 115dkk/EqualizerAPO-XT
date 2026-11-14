@@ -62,6 +62,13 @@ bool hostContextNotImplementedMode = false;
 // IgnoreParameterFlush.vst3 mode: like every DPF-based plug-in, a zero-sample
 // process call returns before the parameter changes are read.
 bool ignoreParameterFlushMode = false;
+// AuxBusUpmixer.vst3 mode: the upmixer with three mono auxiliary buses per
+// direction beside its main pair, as zAuro Pro 2D-3D Upmixer 0.3.0 has. Like
+// that plug-in it applies a setBusArrangements call that names the main buses
+// alone and still answers kResultFalse; only a call naming all four buses of
+// each direction is answered kResultOk.
+bool auxBusMode = false;
+std::atomic<int> auxBusPartialProposalCount{0};
 std::atomic<int> upmixerComponentCount{0};
 std::atomic<int> upmixerProcessCount{0};
 std::atomic<unsigned long long> surround41AcceptedOutputArrangement{
@@ -677,14 +684,23 @@ public:
 	tresult PLUGIN_API terminate() override { initialized = false; return kResultOk; }
 	tresult PLUGIN_API getControllerClassId(TUID) override { return kNoInterface; }
 	tresult PLUGIN_API setIoMode(IoMode) override { return kResultOk; }
-	int32 PLUGIN_API getBusCount(MediaType type, BusDirection) override { return type == kAudio ? 1 : 0; }
+	static int32 audioBusCount() { return auxBusMode ? 4 : 1; }
+	int32 PLUGIN_API getBusCount(MediaType type, BusDirection) override { return type == kAudio ? audioBusCount() : 0; }
 	tresult PLUGIN_API getBusInfo(MediaType type, BusDirection direction, int32 index, BusInfo& info) override
 	{
-		if (type != kAudio || index != 0)
+		if (type != kAudio || index < 0 || index >= audioBusCount())
 			return kInvalidArgument;
 		std::memset(&info, 0, sizeof(info));
 		info.mediaType = kAudio;
 		info.direction = direction;
+		if (index > 0)
+		{
+			info.channelCount = 1;
+			info.busType = kAux;
+			info.flags = direction == kOutput ? BusInfo::kDefaultActive : 0;
+			copyString128(info.name, L"LF aux");
+			return kResultOk;
+		}
 		info.channelCount = busInfoMismatchMode && direction == kOutput
 			? 2 : SpeakerArr::getChannelCount(direction == kInput ? inputArrangement : outputArrangement);
 		info.busType = kMain;
@@ -695,7 +711,7 @@ public:
 	tresult PLUGIN_API getRoutingInfo(RoutingInfo&, RoutingInfo&) override { return kNotImplemented; }
 	tresult PLUGIN_API activateBus(MediaType type, BusDirection, int32 index, TBool) override
 	{
-		return type == kAudio && index == 0 ? kResultOk : kInvalidArgument;
+		return type == kAudio && index >= 0 && index < audioBusCount() ? kResultOk : kInvalidArgument;
 	}
 	tresult PLUGIN_API setActive(TBool state) override { active.store(state != 0); return kResultOk; }
 	tresult PLUGIN_API setState(IBStream*) override { return kResultOk; }
@@ -708,8 +724,20 @@ public:
 	tresult PLUGIN_API setBusArrangements(SpeakerArrangement* inputs, int32 numIns,
 		SpeakerArrangement* outputs, int32 numOuts) override
 	{
-		if (numIns != 1 || numOuts != 1 || inputs == nullptr || outputs == nullptr)
+		const int32 busCount = audioBusCount();
+		if (numIns < 1 || numOuts < 1 || numIns > busCount || numOuts > busCount
+			|| inputs == nullptr || outputs == nullptr)
 			return kResultFalse;
+		for (int32 bus = 1; bus < numIns; bus++)
+		{
+			if (inputs[bus] != SpeakerArr::kMono)
+				return kResultFalse;
+		}
+		for (int32 bus = 1; bus < numOuts; bus++)
+		{
+			if (outputs[bus] != SpeakerArr::kMono)
+				return kResultFalse;
+		}
 		const auto isSurround = [](SpeakerArrangement a)
 		{
 			return a == SpeakerArr::k71Music || a == SpeakerArr::k71Cine;
@@ -724,12 +752,22 @@ public:
 			return kResultFalse;
 		inputArrangement = inputs[0];
 		outputArrangement = outputs[0];
+		if (numIns != busCount || numOuts != busCount)
+		{
+			++auxBusPartialProposalCount;
+			return kResultFalse;
+		}
 		return kResultOk;
 	}
 	tresult PLUGIN_API getBusArrangement(BusDirection direction, int32 index, SpeakerArrangement& current) override
 	{
-		if (index != 0)
+		if (index < 0 || index >= audioBusCount())
 			return kInvalidArgument;
+		if (index > 0)
+		{
+			current = SpeakerArr::kMono;
+			return kResultOk;
+		}
 		current = direction == kInput ? inputArrangement : outputArrangement;
 		return kResultOk;
 	}
@@ -1261,6 +1299,8 @@ extern "C" __declspec(dllexport) bool InitDll()
 	surround41Mode = wcsstr(modulePath, L"Surround41.vst3") != nullptr || surround41CineOnlyMode;
 	toneGeneratorMode = wcsstr(modulePath, L"ToneGenerator.vst3") != nullptr;
 	latency512Mode = wcsstr(modulePath, L"LatencyUpmixer.vst3") != nullptr;
+	auxBusMode = wcsstr(modulePath, L"AuxBusUpmixer.vst3") != nullptr;
+	auxBusPartialProposalCount.store(0);
 	retainHandlerMode = wcsstr(modulePath, L"RetainHandler.vst3") != nullptr;
 	wchar_t hostContextMode[32] = {};
 	hostContextNotImplementedMode = GetEnvironmentVariableW(L"EAPO_TEST_VST3_HOST_CONTEXT", hostContextMode,
@@ -1294,6 +1334,7 @@ extern "C" __declspec(dllexport) bool ExitDll()
 	busInfoMismatchMode = false;
 	toneGeneratorMode = false;
 	latency512Mode = false;
+	auxBusMode = false;
 	retainHandlerMode = false;
 	hostContextNotImplementedMode = false;
 	ignoreParameterFlushMode = false;
@@ -1311,6 +1352,13 @@ extern "C" __declspec(dllexport) int GetUpmixerComponentCount()
 extern "C" __declspec(dllexport) int GetUpmixerProcessCount()
 {
 	return upmixerProcessCount.load();
+}
+
+// In-process test hook for AuxBusUpmixer.vst3 mode: how many
+// setBusArrangements calls left the auxiliary buses out.
+extern "C" __declspec(dllexport) int GetAuxBusPartialProposalCount()
+{
+	return auxBusPartialProposalCount.load();
 }
 
 // In-process test hook for Surround41.vst3 mode: returns the speaker mask of

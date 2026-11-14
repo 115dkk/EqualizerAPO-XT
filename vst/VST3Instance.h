@@ -109,6 +109,11 @@ private:
 		const std::vector<std::wstring>& inputChannelNames,
 		const std::vector<std::wstring>& outputChannelNames);
 	void applyVST3BusActivation();
+	// Proposes arrangements for the two main buses. Every other bus is handed
+	// back the arrangement it reports, so the call names all buses.
+	Steinberg::tresult proposeVST3MainArrangements(
+		const Steinberg::Vst::SpeakerArrangement* inputArrangement,
+		const Steinberg::Vst::SpeakerArrangement* outputArrangement);
 	bool acceptedVST3BusMetadataIsConsistent() const;
 	bool refreshAcceptedVST3Arrangements();
 	void updateVST3ChannelMappings();

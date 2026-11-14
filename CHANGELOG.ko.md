@@ -8,6 +8,17 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **zAuro Pro 2D-3D Upmixer에 Input/Output 버스 배치를 지정할 수 있습니다.**
+  이 플러그인은 주 버스 옆에 보조 버스(LF2~LF4)를 세 쌍 둡니다. 호스트가 주
+  버스의 배치만 전달하면 플러그인은 배치를 바꾸고도 거절로 답했고, 그래서
+  `Input Stereo, Output 7.1.4` 같은 지정은 '요청한 버스 계약을 지원하지
+  않는다'는 로그와 함께 통과 처리됐습니다. Input/Output을 지정하지 않은 자동
+  협상은 플러그인이 받은 첫 배치가 아닌, 마지막으로 시도한 배치에 머물렀습니다.
+  이제 호스트는 보조 버스의 배치까지 함께 전달합니다. 확인한 판은 zAuro 0.3.0
+  (Windows x64 VST3)이고, zSonic Upmixer 1.0.1과 MIMO Room Processor
+  0.1.0-beta.11의 협상 결과는 전과 같습니다
+  ([#464](https://github.com/115dkk/EqualizerAPO-XT/pull/464)).
+
 ## v2.63.1 — 2026-11-10
 
 - **닫기 확인창의 '저장'이 바꾼 값을 저장합니다.** Preamp, Delay, All-pass
