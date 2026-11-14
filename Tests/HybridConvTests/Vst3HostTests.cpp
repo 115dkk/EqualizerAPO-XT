@@ -235,6 +235,64 @@ void testEditorEditWithoutZeroSampleFlush(const wstring& directory)
 	DestroyWindow(parent);
 }
 
+// zAuro Pro 2D-3D Upmixer 0.3.0 has three mono auxiliary buses per direction
+// beside its main pair. It answers kResultFalse to a setBusArrangements call
+// that names the main buses alone, so an explicit Input/Output contract was
+// refused and the automatic negotiation kept the last layout it tried rather
+// than the first one the plug-in took.
+void testAuxiliaryBusNegotiation(const wstring& directory)
+{
+	const wstring bundle = prepareBundle(directory, L"AuxBusUpmixerBundle.vst3", L"TestVst3AuxBusUpmixer.vst3");
+	shared_ptr<VSTPluginLibrary> library = VSTPluginLibrary::getInstance(bundle);
+	harness.require(!bundle.empty() && VSTPluginLibrary::load(library->getLibPath()).status >= 0,
+		"auxiliary-bus VST3 module initializes");
+	typedef int (*CountFunc)();
+	HMODULE module = GetModuleHandleW(L"TestVst3AuxBusUpmixer.vst3");
+	CountFunc partialProposalCount = module != nullptr
+		? reinterpret_cast<CountFunc>(GetProcAddress(module, "GetAuxBusPartialProposalCount")) : nullptr;
+	harness.require(partialProposalCount != nullptr, "partial-proposal counter is exported");
+
+	auto instanceOwner = VSTPluginInstance::create(library, 2);
+	VSTPluginInstance& instance = *instanceOwner;
+	harness.require(instance.initialize(), "auxiliary-bus component initializes");
+	const std::vector<wstring> stereoNames = vst3BusLayoutChannelNames(VST3BusLayout::Stereo);
+	const std::vector<wstring> surround71Names = vst3BusLayoutChannelNames(VST3BusLayout::Surround71);
+
+	harness.expectTrue(instance.negotiateChannelCount(8, surround71Names),
+		"a plug-in with auxiliary buses negotiates the device width");
+	harness.expectEqual(instance.numInputs(), 8, "auxiliary-bus plug-in takes an 8-channel main input");
+	harness.expectEqual(instance.numOutputs(), 8, "auxiliary-bus plug-in takes an 8-channel main output");
+	harness.expectTrue(instance.negotiateBusChannelCounts(2, 8, stereoNames, surround71Names),
+		"a plug-in with auxiliary buses accepts the stereo-input/7.1-output layout");
+	harness.expectTrue(instance.negotiateBusLayouts(VST3BusLayout::Stereo, VST3BusLayout::Surround71,
+		8, stereoNames, surround71Names),
+		"an explicit Stereo -> 7.1 contract is accepted by a plug-in with auxiliary buses");
+	harness.expectEqual(instance.numInputs(), 2, "explicit contract keeps the main input stereo");
+	harness.expectEqual(instance.numOutputs(), 8, "explicit contract keeps the main output at 8 channels");
+	harness.expectTrue(partialProposalCount != nullptr && partialProposalCount() == 0,
+		"every bus arrangement proposal names the auxiliary buses too");
+
+	// The auxiliary buses stay inactive, so processing still hands over the
+	// main pair only.
+	instance.prepareForProcessing(48000.0f, 4);
+	instance.startProcessing();
+	double inputData[2][4] = {};
+	for (int sample = 0; sample < 4; sample++)
+	{
+		inputData[0][sample] = 0.25;
+		inputData[1][sample] = 0.5;
+	}
+	double outputData[8][4] = {};
+	double* inputs[2] = {inputData[0], inputData[1]};
+	double* outputs[8] = {};
+	for (int channel = 0; channel < 8; channel++)
+		outputs[channel] = outputData[channel];
+	instance.processDoubleReplacing(inputs, outputs, 4);
+	instance.stopProcessing();
+	harness.expectNear(outputData[2][3], 0.75, 1e-9, "auxiliary-bus upmixer fills the centre from the stereo input");
+	harness.expectNear(outputData[6][3], 0.125, 1e-9, "auxiliary-bus upmixer fills the left side channel");
+}
+
 // A factory may implement IPluginFactory3 but decline setHostContext, as the
 // Kilohearts factory does. The fixture reads the knob in InitDll, so clear it
 // immediately after the library load and before creating the component.
@@ -1185,4 +1243,5 @@ return;
 	testRestoreBeyondEditRing(directory);
 	testHostContextDetach(directory);
 	testEditorEditWithoutZeroSampleFlush(directory);
+	testAuxiliaryBusNegotiation(directory);
 }

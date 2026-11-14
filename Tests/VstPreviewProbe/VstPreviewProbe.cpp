@@ -14,6 +14,12 @@
 	                     uses (initialize, negotiate, prepareForProcessing,
 	                     startProcessing, width-matched process calls), drives
 	                     a sine through it and saves state back.
+	                     --channels N negotiates an N-channel device instead
+	                     of stereo, --stereo-input adds the upmixer layout
+	                     (stereo input bus, N-channel output bus), and
+	                     --input/--output <layout> negotiate an explicit
+	                     VSTPlugin Input/Output contract (Stereo, 5.1, 7.1,
+	                     7.1.4, ...), which fails the probe when refused.
 	  --loopback         verifies that WASAPI loopback capture on the default
 	                     render endpoint delivers float32 frames while this
 	                     process renders a tone (on CI that endpoint is the
@@ -51,6 +57,7 @@
 #include <cstdio>
 #include <cstring>
 #include <cwchar>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -136,7 +143,21 @@ bool processDoubleGuarded(VSTPluginInstance* instance, double** input, double** 
 	}
 }
 
-int runPluginProbe(const std::wstring& pluginPath, double seconds, float sampleRate, bool expectNonsilent)
+struct PluginProbeLayout
+{
+	int channels = 2;
+	bool stereoInput = false;
+	VST3BusLayout input = VST3BusLayout::Auto;
+	VST3BusLayout output = VST3BusLayout::Auto;
+};
+
+const wchar_t* layoutLabel(const std::optional<VST3BusLayout>& layout)
+{
+	return layout ? vst3BusLayoutName(*layout) : L"unnamed";
+}
+
+int runPluginProbe(const std::wstring& pluginPath, double seconds, float sampleRate, bool expectNonsilent,
+	const PluginProbeLayout& layout)
 {
 	StepClock clock;
 	std::shared_ptr<VSTPluginLibrary> library = VSTPluginLibrary::getInstance(pluginPath);
@@ -158,11 +179,31 @@ int runPluginProbe(const std::wstring& pluginPath, double seconds, float sampleR
 	clock.lap(L"instance initialize");
 	wprintf(L"INFO: loaded '%s' (%hs)\n", instance.getName().c_str(), instance.isVST3() ? "VST3" : "VST2");
 
-	instance.negotiateChannelCount(2, {});
+	if (layout.input != VST3BusLayout::Auto || layout.output != VST3BusLayout::Auto)
+	{
+		if (!instance.negotiateBusLayouts(layout.input, layout.output, layout.channels,
+			vst3BusLayoutChannelNames(layout.input), vst3BusLayoutChannelNames(layout.output)))
+		{
+			wprintf(L"FAIL: plugin refused the %s -> %s bus contract\n",
+				vst3BusLayoutName(layout.input), vst3BusLayoutName(layout.output));
+			return 2;
+		}
+	}
+	else
+	{
+		instance.negotiateChannelCount(layout.channels, {});
+		if (layout.stereoInput && layout.channels > 2
+			&& !instance.negotiateBusChannelCounts(2, layout.channels, {L"L", L"R"}, {}))
+		{
+			wprintf(L"INFO: plugin did not take a stereo input bus with %d output channels\n", layout.channels);
+		}
+	}
 	clock.lap(L"negotiate channels");
 	const int inputChannelCount = instance.numInputs();
 	const int outputChannelCount = instance.numOutputs();
-	wprintf(L"INFO: negotiated %d in / %d out\n", inputChannelCount, outputChannelCount);
+	wprintf(L"INFO: negotiated %d in (%s) / %d out (%s)\n",
+		inputChannelCount, layoutLabel(instance.getNegotiatedVST3InputLayout()),
+		outputChannelCount, layoutLabel(instance.getNegotiatedVST3OutputLayout()));
 	if (inputChannelCount <= 0 || outputChannelCount <= 0)
 	{
 		wprintf(L"FAIL: plugin reports no audio buses\n");
@@ -196,6 +237,7 @@ int runPluginProbe(const std::wstring& pluginPath, double seconds, float sampleR
 		outputFloatPointers.push_back(channel.data());
 
 	const long long totalFrames = static_cast<long long>(seconds * sampleRate);
+	std::vector<double> channelPeaks(outputChannelCount, 0.0);
 	double outputPeak = 0.0;
 	bool outputFinite = true;
 	long long position = 0;
@@ -226,6 +268,7 @@ int runPluginProbe(const std::wstring& pluginPath, double seconds, float sampleR
 				if (!std::isfinite(sample))
 					outputFinite = false;
 				outputPeak = std::max(outputPeak, std::fabs(sample));
+				channelPeaks[channel] = std::max(channelPeaks[channel], std::fabs(sample));
 			}
 		}
 		position += blockFrames;
@@ -241,6 +284,10 @@ int runPluginProbe(const std::wstring& pluginPath, double seconds, float sampleR
 	clock.lap(L"read state");
 	wprintf(L"INFO: processed %lld frames, output peak %.6f, state chunk %zu chars, %zu named params\n",
 		position, outputPeak, chunkData.size(), paramMap.size());
+	wprintf(L"INFO: output channel peaks");
+	for (double peak : channelPeaks)
+		wprintf(L" %.4f", peak);
+	wprintf(L"\n");
 
 	if (!outputFinite)
 	{
@@ -654,6 +701,7 @@ int wmain(int argc, wchar_t* argv[])
 
 	const wchar_t* usage =
 		L"Usage: VstPreviewProbe [--plugin <path.vst3|path.dll>] [--seconds N] [--rate N]\n"
+		L"                       [--channels N] [--stereo-input] [--input <layout>] [--output <layout>]\n"
 		L"                       [--expect-nonsilent] [--loopback]\n"
 		L"                       [--monitor <path.vst3|path.dll>] [--expect-live | --expect-static]\n"
 		L"                       [--capture-only] [--expect-audio | --expect-silence]\n";
@@ -668,6 +716,10 @@ int wmain(int argc, wchar_t* argv[])
 	TCLAP::MultiArg<std::string> monitorArg("", "monitor", "", false, "value", parser);
 	TCLAP::MultiArg<std::string> secondsArg("", "seconds", "", false, "value", parser);
 	TCLAP::MultiArg<std::string> rateArg("", "rate", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> channelsArg("", "channels", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> inputLayoutArg("", "input", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> outputLayoutArg("", "output", "", false, "value", parser);
+	TCLAP::MultiSwitchArg stereoInputArg("", "stereo-input", "", parser);
 	TCLAP::MultiSwitchArg expectNonsilentArg("", "expect-nonsilent", "", parser);
 	TCLAP::MultiSwitchArg expectLiveArg("", "expect-live", "", parser, 0, &expectLiveVisitor);
 	TCLAP::MultiSwitchArg expectStaticArg("", "expect-static", "", parser, 0, &expectStaticVisitor);
@@ -690,6 +742,16 @@ int wmain(int argc, wchar_t* argv[])
 	if (rateArg.isSet())
 		sampleRate = static_cast<float>(_wtof(probesupport::lastWide(rateArg).c_str()));
 	expectNonsilent = expectNonsilentArg.getValue() != 0;
+	PluginProbeLayout pluginLayout;
+	if (channelsArg.isSet())
+		pluginLayout.channels = std::max(1, _wtoi(probesupport::lastWide(channelsArg).c_str()));
+	pluginLayout.stereoInput = stereoInputArg.getValue() != 0;
+	if ((inputLayoutArg.isSet() && !parseVST3BusLayout(probesupport::lastWide(inputLayoutArg), pluginLayout.input))
+		|| (outputLayoutArg.isSet() && !parseVST3BusLayout(probesupport::lastWide(outputLayoutArg), pluginLayout.output)))
+	{
+		wprintf(L"%s", usage);
+		return 1;
+	}
 	loopback = loopbackArg.getValue() != 0;
 	captureOnly = captureOnlyArg.getValue() != 0;
 	if (pluginPath.empty() && monitorPluginPath.empty() && !loopback && !captureOnly)
@@ -707,7 +769,7 @@ int wmain(int argc, wchar_t* argv[])
 
 	if (!pluginPath.empty())
 	{
-		const int result = runPluginProbe(pluginPath, seconds, sampleRate, expectNonsilent);
+		const int result = runPluginProbe(pluginPath, seconds, sampleRate, expectNonsilent, pluginLayout);
 		if (result != 0)
 			return result;
 	}

@@ -14,6 +14,18 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **zAuro Pro 2D-3D Upmixer takes an Input/Output bus layout.** The plug-in
+  has three pairs of auxiliary buses (LF2 to LF4) beside its main pair. When
+  the host named the main buses alone, the plug-in changed its layout and
+  still answered with a refusal, so a setting such as
+  `Input Stereo, Output 7.1.4` was logged as an unsupported bus contract and
+  the audio passed through. The automatic negotiation, without Input/Output,
+  stayed on the last layout it tried rather than the first one the plug-in
+  took. The host now names the auxiliary buses in the same call. Checked
+  against zAuro 0.3.0 (Windows x64 VST3); zSonic Upmixer 1.0.1 and MIMO Room
+  Processor 0.1.0-beta.11 negotiate as before
+  ([#464](https://github.com/115dkk/EqualizerAPO-XT/pull/464)).
+
 ## v2.63.1 — 2026-11-10
 
 - **The close prompt's Save keeps the change.** The value under the knob on
