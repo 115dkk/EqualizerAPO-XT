@@ -276,6 +276,12 @@ Describe "extracted build script decisions" {
         $plan = & (Join-Path $PSScriptRoot "..\Package-Artifacts.ps1") `
             -WorkspaceRoot $root -Platform x64 -SimdVariant avx2 -PlanOnly
         $plan.RequiredFiles | Should -Contain "EqualizerAPO\x64\Release\EqualizerAPO.dll"
+        # Editor.exe --diagnose sends the user to this script; it has to be in
+        # the installed folder (audit #467, maintainer question 11).
+        $plan.SupportScripts | Should -Contain "tools\Repair-EqualizerAPO.ps1"
+        foreach ($script in $plan.SupportScripts) {
+            Join-Path $PSScriptRoot "..\..\..\$script" | Should -Exist
+        }
         $plan.ExcludedExtensions | Should -Contain ".pdb"
         $plan.ExcludedExtensions | Should -Contain ".obj"
     }
