@@ -60,21 +60,27 @@ vector<wstring> CopyFilter::initialize(float sampleRate, unsigned maxFrameCount,
 
 		for (const Assignment::Summand& s : a.sourceSum)
 		{
-			int sourceChannel;
-			if (s.channel != L"")
-				sourceChannel = ChannelLayout::getChannelIndex(s.channel, channelNames);
-			else
-				sourceChannel = -1;
-
 			double factor;
 			if (s.isDecibel)
 				factor = pow(10.0, s.factor / 20.0);
 			else
 				factor = s.factor;
 
-			if (sourceChannel == -1 && factor != 0.0)
-				hasNonzeroConstant = true;
-			sourceSum.emplace_back(sourceChannel, factor);
+			if (s.channel.empty())
+			{
+				if (factor != 0.0)
+					hasNonzeroConstant = true;
+				sourceSum.emplace_back(InternalSummand::Kind::Constant, 0, factor);
+				continue;
+			}
+
+			const int sourceChannel = ChannelLayout::getChannelIndex(s.channel, channelNames, true);
+			// The factory reports and removes this case. Keeping the same defence here
+			// makes an unresolved name silence rather than a constant if a caller builds
+			// CopyFilter directly (audit #467 TD-03).
+			if (sourceChannel == -1)
+				continue;
+			sourceSum.emplace_back(InternalSummand::Kind::Channel, sourceChannel, factor);
 		}
 
 		preparedAssignments.emplace_back(targetChannel, std::move(sourceSum));
@@ -93,7 +99,7 @@ vector<wstring> CopyFilter::initialize(float sampleRate, unsigned maxFrameCount,
 			const InternalSummand& is = ia.sourceSum[j];
 			if (j > 0)
 				stream << ", ";
-			if (is.channel != -1)
+			if (is.kind == InternalSummand::Kind::Channel)
 				stream << L"from channel " << channelNames[is.channel].c_str() << L" with factor " << is.factor;
 			else
 				stream << L"value " << is.factor;
@@ -134,13 +140,18 @@ void CopyFilter::process(double** output, double** input, unsigned frameCount)
 
 	for (const InternalAssignment& ia : internalAssignments)
 	{
-		if (ia.targetChannel == -1 || ia.sourceSum.empty())
+		if (ia.targetChannel == -1)
 			continue;
+		if (ia.sourceSum.empty())
+		{
+			std::fill_n(output[ia.targetChannel], frameCount, 0.0);
+			continue;
+		}
 
 		{
 			const InternalSummand& is = ia.sourceSum[0];
 
-			if (is.channel == -1)
+			if (is.kind == InternalSummand::Kind::Constant)
 				for (unsigned f = 0; f < frameCount; f++)
 					output[ia.targetChannel][f] = is.factor;
 			else if (is.factor == 1.0)
@@ -154,7 +165,7 @@ void CopyFilter::process(double** output, double** input, unsigned frameCount)
 		{
 			const InternalSummand& is = ia.sourceSum[j];
 
-			if (is.channel == -1)
+			if (is.kind == InternalSummand::Kind::Constant)
 				for (unsigned f = 0; f < frameCount; f++)
 					output[ia.targetChannel][f] += is.factor;
 			else if (is.factor == 1.0)

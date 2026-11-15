@@ -20,6 +20,7 @@
 #include <sndfile.h>
 
 #include "audio/io/SndfileRAII.h"
+#include "engine/ConfigLoadTrace.h"
 #include "Tests/WavFixtures.h"
 
 #include "EngineOrchestrationTestSupport.h"
@@ -113,6 +114,27 @@ double energyOf(const std::vector<float>& sig)
 		e += (double)s * (double)s;
 	return e;
 }
+
+struct RoutingTraceCollector : ConfigLoadTraceSink
+{
+	std::vector<ConfigLoadTraceEntry> entries;
+
+	void addEntry(const ConfigLoadTraceEntry& entry) override
+	{
+		entries.push_back(entry);
+	}
+
+	std::vector<const ConfigLoadTraceEntry*> parseErrors() const
+	{
+		std::vector<const ConfigLoadTraceEntry*> result;
+		for (const ConfigLoadTraceEntry& entry : entries)
+		{
+			if (entry.kind == ConfigLoadTraceEntry::Kind::ParseError)
+				result.push_back(&entry);
+		}
+		return result;
+	}
+};
 }
 
 // A Channel selector must route the following filter to the named channel
@@ -152,6 +174,51 @@ TEST_CASE(EngineOrchestrationTests, testCopySwapsChannels)
 	float right = output[(size_t)478 * 2 + 1];
 	harness.expectNear(left, 0.25f, 1e-6f, "Copy did not route R into L");
 	harness.expectNear(right, 0.75f, 1e-6f, "Copy did not route L into R");
+}
+
+// Audit #467 TD-03: a named source that the device does not have is not a
+// constant. The bad summand is reported on its Copy line and contributes
+// silence, while valid summands and genuine constants keep their semantics.
+TEST_CASE(EngineOrchestrationTests, testCopyDropsUnavailableSourceChannels)
+{
+	const std::wstring missingOnly = writeConfig(harness, L"copy_missing_only.txt", "Copy: L=C\n");
+	RoutingTraceCollector missingOnlyTrace;
+	FilterEngine missingOnlyEngine;
+	missingOnlyEngine.setLoadTraceSink(&missingOnlyTrace);
+	initializeEngine(missingOnlyEngine, 48000, 2, 480, missingOnly);
+	const std::vector<float> missingOnlyOutput = processDcBlock(missingOnlyEngine, 0.25f, 0.75f, 480);
+	const std::vector<const ConfigLoadTraceEntry*> missingOnlyErrors = missingOnlyTrace.parseErrors();
+	harness.expectNear(missingOnlyOutput[(size_t)478 * 2], 0.0f, 1e-6f,
+		"an unavailable source channel contributed a DC constant instead of silence");
+	harness.requireEqual(missingOnlyErrors.size(), size_t(1),
+		"an unavailable Copy source is reported exactly once");
+	harness.expectEqual(missingOnlyErrors[0]->line, 1,
+		"the unavailable Copy source report is stamped on the Copy line");
+
+	const std::wstring mixed = writeConfig(harness, L"copy_missing_mixed.txt", "Copy: L=L+0.5*C\n");
+	RoutingTraceCollector mixedTrace;
+	FilterEngine mixedEngine;
+	mixedEngine.setLoadTraceSink(&mixedTrace);
+	initializeEngine(mixedEngine, 48000, 2, 480, mixed);
+	const std::vector<float> mixedOutput = processDcBlock(mixedEngine, 0.25f, 0.75f, 480);
+	const std::vector<const ConfigLoadTraceEntry*> mixedErrors = mixedTrace.parseErrors();
+	harness.expectNear(mixedOutput[(size_t)478 * 2], 0.25f, 1e-6f,
+		"dropping an unavailable source also dropped or changed a valid summand");
+	harness.requireEqual(mixedErrors.size(), size_t(1),
+		"a mixed Copy assignment reports its unavailable source exactly once");
+	harness.expectEqual(mixedErrors[0]->line, 1,
+		"the mixed Copy report is stamped on the Copy line");
+
+	const std::wstring constant = writeConfig(harness, L"copy_constant.txt", "Copy: L=0.5\n");
+	RoutingTraceCollector constantTrace;
+	FilterEngine constantEngine;
+	constantEngine.setLoadTraceSink(&constantTrace);
+	initializeEngine(constantEngine, 48000, 2, 480, constant);
+	const std::vector<float> constantOutput = processDcBlock(constantEngine, 0.25f, 0.75f, 480);
+	harness.expectNear(constantOutput[(size_t)478 * 2], 0.5f, 1e-6f,
+		"a genuine Copy constant no longer produces its documented DC value");
+	harness.expectEqual(constantTrace.parseErrors().size(), size_t(0),
+		"a genuine Copy constant was reported as an unavailable channel");
 }
 
 // MultiConvolution must convolve the mapping target's OWN signal with its

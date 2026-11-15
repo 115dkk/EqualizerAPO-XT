@@ -18,8 +18,12 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 
 #include "stdafx.h"
+#include <algorithm>
+
 #include "runtime/memory/AlignedMemory.h"
 #include "services/logging/Logging.h"
+#include "audio/ChannelLayout.h"
+#include "engine/FilterEngine.h"
 #include "CopyCommand.h"
 #include "CopyFilter.h"
 #include "filters/FilterFactoryRegistry.h"
@@ -41,6 +45,25 @@ LineOutcome CopyFilterFactory::createFilter(const wstring& configPath, wstring& 
 
 		if (assignments.empty())
 			return LineOutcome::malformed(L"expected at least one assignment, as in \"L=R\" or \"L=0.5*L+0.5*R\"");
+
+		bool reportedUnavailableSource = false;
+		for (Assignment& assignment : assignments)
+		{
+			auto& sourceSum = assignment.sourceSum;
+			sourceSum.erase(std::remove_if(sourceSum.begin(), sourceSum.end(),
+				[&](const Assignment::Summand& summand) {
+					if (summand.channel.empty()
+						|| ChannelLayout::getChannelIndex(summand.channel, engine()->loadingChannelNames(), true) != -1)
+						return false;
+					if (!reportedUnavailableSource)
+					{
+						engine()->reportParseError(command, L"Copy source channel " + summand.channel
+							+ L" does not exist here");
+						reportedUnavailableSource = true;
+					}
+					return true;
+				}), sourceSum.end());
+		}
 
 		return LineOutcome::produced(singleFilter(makeFilter<CopyFilter>(assignments)));
 	}
