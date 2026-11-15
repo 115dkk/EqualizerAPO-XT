@@ -86,40 +86,33 @@ x64 AVX2 변형의 바이너리 자산은 CI에서 사용하는 GitHub Release�
 
 ### 빌드 명령
 
-MSBuild 프로젝트는 CI와 같은 목록을 같은 속성으로 빌드합니다. 목록은 `.github/scripts/Build-Solution.ps1 -PlanOnly`가 돌려줍니다. msbuild는 `/p:`의 상대 경로를 각 프로젝트 폴더 기준으로 풀기 때문에 경로는 절대 경로로 넘깁니다. `EditorLogicTests`는 Qt 헤더를 쓰므로 `QT_ROOT`가 없으면 빌드되지 않습니다.
+작업 공간 준비와 빌드에는 CI가 부르는 스크립트를 그대로 쓰십시오. 준비는 `setup-build.ps1`이 한 번에 합니다. 이 스크립트는 CI의 모든 job이 쓰는 `.github/scripts/Initialize-Workspace.ps1`을 불러 의존성과 Qt를 받고, 의존성 경로와 `QT_ROOT`를 현재 PowerShell 세션에 내보내고, Qt의 `bin` 폴더를 `PATH` 앞에 넣습니다.
 
 ```powershell
-# VS 환경 임포트 후, 저장소 루트에서
+# 저장소 루트에서. 이미 받은 것은 다시 받지 않습니다.
+.\setup-build.ps1
+```
+
+MSBuild 프로젝트(엔진, DLL, 테스트)와 Qt 앱(Editor, DeviceSelector)은 각각 스크립트 하나가 빌드합니다. 두 스크립트는 arch 플래그, 업데이트 채널, 의존성과 Qt의 위치를 `.github/simd-variants.psd1`과 체크아웃에서 읽으므로, 준비를 마친 체크아웃이면 새 셸에서도 플랫폼과 변형만 주면 됩니다. `-SimdVariant`를 빼면 매니페스트의 기본 변형(avx2)이 빌드됩니다. `msbuild`가 `PATH`에 있어야 하므로 VS Developer PowerShell에서 실행하십시오.
+
+```powershell
+# 저장소 루트에서, VS Developer PowerShell
 $root = (Get-Location).Path
-$env:LIB = "$root\deps\libsndfile\build\Release;$root\deps\muparserx\build\Release;$root\deps\fftw\Release"
-$plan = & .\.github\scripts\Build-Solution.ps1 -WorkspaceRoot $root -Platform x64 -SimdVariant avx2 -PlanOnly
-foreach ($project in $plan.Projects) {
-  msbuild $project /m `
-    /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 `
-    /p:EnableEnhancedInstructionSet=AdvancedVectorExtensions2 `
-    /p:FFTW_INCLUDE=$root\deps\fftw\include /p:FFTW_LIB=$root\deps\fftw\Release `
-    /p:MUPARSERX_INCLUDE=$root\deps\muparserx\parser /p:MUPARSERX_LIB=$root\deps\muparserx\build\Release `
-    /p:LIBSNDFILE_INCLUDE=$root\deps\libsndfile\include /p:LIBSNDFILE_LIB=$root\deps\libsndfile\build\Release `
-    /p:TCLAP_ROOT=$root\deps\tclap /p:VST3_SDK=$root\deps\vst3sdk /p:HIGHWAY_INCLUDE=$root\deps\highway `
-    /p:ASIO_SDK=$root\deps\asiosdk\ASIOSDK /p:QT_ROOT=$root\Qt\6.12.0\msvc2022_64
-  if ($LASTEXITCODE -ne 0) { throw "Build failed for $project" }
-}
+.\.github\scripts\Build-Solution.ps1 -WorkspaceRoot $root -Platform x64 -SimdVariant avx2
+.\.github\scripts\Build-QtApps.ps1 -WorkspaceRoot $root -Platform x64 -SimdVariant avx2
 ```
 
-VS 2022만 있는 환경에서는 `/p:PlatformToolset=v143`으로 바꿉니다. 설치기(`Installer\Installer.vcxproj`)는 Win32 전용이라 `/p:Platform=Win32`로 따로 빌드합니다.
+`Build-Solution.ps1`은 빌드한 뒤 런타임 스위트(EditorLogicTests, HybridConvTests, EngineOrchestrationTests, AsioTests)까지 실행합니다. 빌드만 하려면 `-CanExecute:$false`를, 빌드할 프로젝트 목록만 보려면 `-PlanOnly`를 붙이십시오. `Build-QtApps.ps1`은 `lrelease`, `qmake`, `nmake`, `windeployqt`를 차례로 돌려 CI가 배포하는 것과 같은 Editor와 DeviceSelector를 `build-Editor-x64\release`, `build-DeviceSelector-x64\release`에 만듭니다.
 
-Qt 프로젝트는 `VsDevCmd.bat`로 환경을 잡은 뒤 빌드합니다. `lrelease`를 먼저 돌리지 않으면 `.qm` 파일이 없어 nmake가 멈춥니다.
+프로젝트 하나만 다시 빌드할 때는 `msbuild`를 직접 실행하십시오. `setup-build.ps1`을 돌린 세션이 아니면 먼저 `.\.github\scripts\Initialize-DepsEnvironment.ps1 -DepsPath "$root\deps"`를 실행해 의존성 경로를 환경 변수로 설정하십시오. VS 환경의 `LIB`를 덮어쓰면 표준 라이브러리를 찾지 못하므로 의존성 폴더를 `LIB`의 앞에 붙이십시오. msbuild는 `/p:`의 상대 경로를 각 프로젝트 폴더 기준으로 풀기 때문에 경로는 절대 경로로 넘기십시오.
 
 ```powershell
-# VS 환경 임포트 후
-$env:PATH = "Qt\6.12.0\msvc2022_64\bin;$env:PATH"
-mkdir build-Editor-x64; cd build-Editor-x64
-lrelease ..\Editor\Editor.pro
-qmake ..\Editor\Editor.pro -r "CONFIG+=release" "EAPO_UPDATE_CHANNEL=x64-avx2" "EAPO_SIMD_FLAGS=/arch:AVX2"
-nmake
+$env:LIB = "$env:LIBSNDFILE_LIB;$env:MUPARSERX_LIB;$env:FFTW_LIB;$env:LIB"
+msbuild Common.vcxproj /m /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 `
+  /p:EnableEnhancedInstructionSet=AdvancedVectorExtensions2 /p:QT_ROOT=$root\Qt\6.12.0\msvc2022_64
 ```
 
-`DeviceSelector`도 같은 절차로 빌드합니다. 위 절차는 빠른 반복용이고, CI가 배포하는 것과 같은 Editor(`CONFIG+=force_debug_info`, `windeployqt` 포함)가 필요하면 `setup-build.ps1`이 마지막에 출력하는 `Build-Solution.ps1`과 `Build-QtApps.ps1` 호출을 그대로 씁니다.
+VS 2022만 있는 환경에서는 `/p:PlatformToolset=v143`으로 바꾸십시오. 설치기(`Installer\Installer.vcxproj`)는 Win32 전용이라 `/p:Platform=Win32`로 따로 빌드되며, `Build-Solution.ps1`이 기본 변형을 빌드할 때 함께 빌드합니다.
 
 MSBuild 제품과 스위트는 경고를 오류로 다룹니다(`Directory.Build.props`의 `/WX`). 의존성 헤더는 external로 컴파일해 경고를 끄므로, 새 경고는 이 저장소의 코드에서 나온 것입니다.
 
@@ -128,7 +121,8 @@ MSBuild 제품과 스위트는 경고를 오류로 다룹니다(`Directory.Build
 테스트 실행 파일은 빌드 산출물과 함께 같은 디렉터리에 만들어집니다. FFTW와 libsndfile DLL이 `PATH`에 있어야 합니다.
 
 ```powershell
-$env:PATH = "deps\fftw\Release;deps\libsndfile\build\Release;deps\muparserx\build\Release;$env:PATH"
+$root = (Get-Location).Path
+$env:PATH = "$root\deps\fftw\Release;$root\deps\libsndfile\build\Release;$root\Qt\6.12.0\msvc2022_64\bin;$env:PATH"
 Tests\EditorLogicTests\x64\Release\EditorLogicTests.exe
 Tests\HybridConvTests\x64\Release\HybridConvTests.exe
 ```
