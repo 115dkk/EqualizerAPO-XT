@@ -1,0 +1,4 @@
+# Read line by line by bash (mapfile) in biweekly-audit.yml, also on the
+# Windows runner: a CRLF checkout left a carriage return on every pathspec
+# (TECH_DEBT_AUDIT TD-23, audit #467).
+.github/audit-pathspecs.txt text eol=lf

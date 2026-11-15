@@ -77,7 +77,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          mapfile -t code_pathspecs < .github/audit-pathspecs.txt
+          # tr strips a carriage return a CRLF checkout would leave on every
+          # pathspec (TECH_DEBT_AUDIT TD-23, audit #467).
+          mapfile -t code_pathspecs < <(tr -d '\r' < .github/audit-pathspecs.txt)
 
           if [ "${{ inputs.force_run }}" = "true" ]; then
             echo "Force run requested."
@@ -245,13 +247,22 @@ jobs:
         run: |
           set -euo pipefail
 
-          mapfile -t code_pathspecs < .github/audit-pathspecs.txt
+          # This job runs on Windows, where core.autocrlf checks the pathspec
+          # file out with CRLF. mapfile kept the carriage return on every
+          # pathspec, nothing matched, and the summary was empty on every run
+          # while `2>/dev/null || true` hid it (TECH_DEBT_AUDIT TD-23, audit
+          # #467). .gitattributes now pins the file to LF and tr covers a
+          # checkout that ignores it; a failing diff fails the step.
+          mapfile -t code_pathspecs < <(tr -d '\r' < .github/audit-pathspecs.txt)
 
           LAST_REF="${{ needs.check-changes.outputs.last_audit_ref }}"
           if [ -n "$LAST_REF" ]; then
             echo "## Changed files" > change-summary.txt
             echo "" >> change-summary.txt
-            git diff --stat "$LAST_REF"..HEAD -- "${code_pathspecs[@]}" >> change-summary.txt 2>/dev/null || true
+            git diff --stat "$LAST_REF"..HEAD -- "${code_pathspecs[@]}" >> change-summary.txt
+            if [ "$(wc -l < change-summary.txt)" -le 2 ]; then
+              echo "::warning::The change summary is empty although the change detection found changed files."
+            fi
           else
             echo "Initial audit run." > change-summary.txt
           fi
