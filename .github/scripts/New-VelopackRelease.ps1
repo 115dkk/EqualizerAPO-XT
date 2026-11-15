@@ -31,6 +31,16 @@ param(
     [string[]] $MissingChannels = @(),
     [switch] $NeedsSource,
     [string] $ManifestPath,
+    # Pack builds every channel's installer and feed into velopack-output\ and
+    # uploads nothing; Publish uploads what a Pack run left there. All does
+    # both. The split lets create-release install, update, self-test and
+    # uninstall the packed primary installer before anything is published
+    # (TECH_DEBT_AUDIT TD-04, audit #467): the release used to go out with its
+    # installer and hooks never executed.
+    [ValidateSet("All", "Pack", "Publish")] [string] $Phase = "All",
+    # Pack without downloading the previous release for delta generation: the
+    # installer gate needs no delta and has no release token.
+    [switch] $NoDelta,
     [switch] $PlanOnly
 )
 
@@ -85,6 +95,10 @@ $plan = [pscustomobject]@{
     # Single source: Shared.QtPluginFolders in simd-variants.psd1, shared with
     # the Package-Artifacts.ps1 staging assertion (audit #275 TD-11).
     QtPluginFolders = @($manifest.Shared.QtPluginFolders)
+    Phase           = $Phase
+    Packs           = $Phase -ne "Publish"
+    Publishes       = $Phase -ne "Pack"
+    DownloadsDelta  = ($Phase -ne "Publish") -and -not $NoDelta
 }
 if ($PlanOnly) {
     return $plan
@@ -113,6 +127,7 @@ $qtPluginFolders = $plan.QtPluginFolders
 $mainExe = "Editor.exe"
 
 foreach ($work in $plan.Channels) {
+    if (-not $plan.Packs) { break }
     if ($work.Skipped) {
         Write-Host "Channel $($work.Channel) is already complete on $Tag; skipping."
         continue
@@ -155,14 +170,16 @@ foreach ($work in $plan.Channels) {
         throw "$mainExe not found in $($work.PackDir)"
     }
 
-    vpk download github `
-        --repoUrl $plan.RepoUrl `
-        --token $env:GITHUB_TOKEN `
-        --outputDir $work.OutputDir `
-        --channel $work.Channel
-    if ($LASTEXITCODE -ne 0) {
-        Write-Warning "No previous Velopack release was downloaded for channel $($work.Channel). Continuing with a full package."
-        $global:LASTEXITCODE = 0
+    if ($plan.DownloadsDelta) {
+        vpk download github `
+            --repoUrl $plan.RepoUrl `
+            --token $env:GITHUB_TOKEN `
+            --outputDir $work.OutputDir `
+            --channel $work.Channel
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "No previous Velopack release was downloaded for channel $($work.Channel). Continuing with a full package."
+            $global:LASTEXITCODE = 0
+        }
     }
 
     $packArgs = @(
@@ -200,6 +217,19 @@ foreach ($work in $plan.Channels) {
                 "align the grammar before releasing.")
         }
     }
+}
+
+foreach ($work in $plan.Channels) {
+    if (-not $plan.Publishes) { break }
+    if ($work.Skipped) {
+        if (-not $plan.Packs) { Write-Host "Channel $($work.Channel) is already complete on $Tag; skipping." }
+        continue
+    }
+    # A Publish-only run uploads what an earlier Pack run of this job left in
+    # the output folder; without it there is nothing to publish.
+    if (-not (Test-Path (Join-Path $work.OutputDir (Get-SetupAssetName -Channel $work.Channel)))) {
+        throw "Nothing packed for channel $($work.Channel) in $($work.OutputDir); run the Pack phase first."
+    }
 
     vpk upload github `
         --repoUrl $plan.RepoUrl `
@@ -214,7 +244,7 @@ foreach ($work in $plan.Channels) {
     if ($LASTEXITCODE -ne 0) { throw "vpk upload failed for channel $($work.Channel) with exit code $LASTEXITCODE" }
 }
 
-if ($plan.NeedsSource) {
+if ($plan.NeedsSource -and $plan.Publishes) {
     gh release upload $Tag $plan.SourceZipPath --clobber --repo $Repository
     if ($LASTEXITCODE -ne 0) { throw "Source zip upload failed with exit code $LASTEXITCODE" }
 }

@@ -1043,21 +1043,95 @@ jobs:
         retention-days: 30
         if-no-files-found: warn
 
+  # Installer gate (TECH_DEBT_AUDIT TD-04, audit #467): the product reaches
+  # users through automatic updates, and a release's installer and Velopack
+  # hooks used to run for the first time on a user's machine. This job packs
+  # the primary variant exactly as create-release does and runs the result on
+  # the runner: the latest published release is installed, the new package is
+  # applied over it (--veloapp-obsolete, --veloapp-updated), the installed
+  # Editor self-tests from the packed layout, the app is uninstalled
+  # (--veloapp-uninstall), and the new Setup.exe is installed fresh
+  # (--veloapp-install) and removed again. Details and checks:
+  # .github/scripts/Invoke-InstallerGate.ps1.
+  # It runs on pull requests too, with the next revision as the package
+  # version so the update applies. create-release waits for it and repeats
+  # the same run on the packages it is about to publish.
+  installer-gate:
+    needs: [build, prepare-matrix]
+    runs-on: windows-2025-vs2026
+    if: always() && needs.build.result == 'success'
+    timeout-minutes: 40
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+    - name: Download the primary build artifact
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+      with:
+        name: ${{ needs.prepare-matrix.outputs.primary_artifact }}
+        path: release-input/${{ needs.prepare-matrix.outputs.primary_artifact }}
+
+    - name: Pack the primary channel (nothing is published)
+      id: pack
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+        . .\.github\scripts\Get-VersionPart.ps1
+        # One revision above version.h: newer than any published release, so
+        # the update round has something to apply. The number names only this
+        # job's local package.
+        $packVersion = "{0}.{1}.{2}" -f (Get-VersionPart "MAJOR"), (Get-VersionPart "MINOR"), ([int](Get-VersionPart "REVISION") + 1)
+        "pack_version=$packVersion" >> $env:GITHUB_OUTPUT
+        Import-Module .\.github\scripts\Provisioning.psm1 -Force
+        $channel = (Get-PrimaryVariant -Manifest (Import-PowerShellDataFile .\.github\simd-variants.psd1)).Channel
+        .\.github\scripts\New-VelopackRelease.ps1 `
+          -Repository "${{ github.repository }}" `
+          -Tag "v$packVersion" `
+          -PackVersion $packVersion `
+          -TargetCommit "${{ github.sha }}" `
+          -WorkspaceRoot "${{ github.workspace }}" `
+          -MissingChannels @($channel) `
+          -Phase Pack -NoDelta
+        exit 0
+
+    - name: Install, update, self-test and uninstall the packed installer
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        & "${{ github.workspace }}\.github\scripts\Invoke-InstallerGate.ps1" `
+          -WorkspaceRoot "${{ github.workspace }}" `
+          -PackVersion "${{ steps.pack.outputs.pack_version }}" `
+          -Repository "${{ github.repository }}"
+
+    - name: Upload the installer gate's logs
+      if: always()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: installer-gate
+        path: |
+          ${{ runner.temp }}\EqualizerAPO*.log
+          ~\AppData\Local\EqualizerAPO-XT*\*.log
+          ~\AppData\Local\Temp\EqualizerAPO*.log
+        retention-days: 30
+        if-no-files-found: ignore
+
   # The release waits for every blocking gate (audit #348 D5). main has no
   # branch protection, so these needs are what keeps a red memcheck, capture
-  # gate, panel input gate, cppcheck or Pester run from publishing installers and a Velopack
-  # feed. New-ReleaseNotes.ps1 reads this list to say what the release waited
+  # gate, installer gate, panel input gate, cppcheck or Pester run from
+  # publishing installers and a Velopack feed. New-ReleaseNotes.ps1 reads this list to say what the release waited
   # for. The cross-variant comparison is not a gate; it runs alongside.
   # Keep `needs:` a one-line [a, b] list at this indent: New-ReleaseNotes.ps1
   # finds it with a regex, and a block list or a moved key fails the release.
   create-release:
-    needs: [build, version-bump, memcheck, capture-gate, panel-input-gate, cppcheck, pester]
+    needs: [build, version-bump, memcheck, capture-gate, installer-gate, panel-input-gate, cppcheck, pester]
     runs-on: windows-2025-vs2026
     if: >-
       github.event_name == 'push' && github.ref == 'refs/heads/main'
       && needs.build.result == 'success'
       && needs.memcheck.result == 'success'
       && needs.capture-gate.result == 'success'
+      && needs.installer-gate.result == 'success'
       && needs.panel-input-gate.result == 'success'
       && needs.cppcheck.result == 'success'
       && needs.pester.result == 'success'
@@ -1135,7 +1209,53 @@ jobs:
         }
         Write-Host "Created source archive: $sourceZip"
 
-    - name: Create Velopack release
+    # Pack, run, then publish (TECH_DEBT_AUDIT TD-04, audit #467): the three
+    # steps below replace one that packed and uploaded each channel in turn.
+    # Nothing reaches the release until the primary channel's packed
+    # installer has been installed over the previous release, self-tested,
+    # uninstalled and installed fresh on this runner.
+    - name: Pack the Velopack release
+      if: steps.version.outputs.missing_channels != ''
+      shell: pwsh
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        $missingChannels = @("${{ steps.version.outputs.missing_channels }}".Split(
+          ',', [System.StringSplitOptions]::RemoveEmptyEntries))
+        .\.github\scripts\New-VelopackRelease.ps1 `
+          -Repository "${{ github.repository }}" `
+          -Tag "${{ steps.version.outputs.tag }}" `
+          -PackVersion "${{ steps.version.outputs.pack_version }}" `
+          -TargetCommit "${{ needs.version-bump.outputs.bumped_sha || github.sha }}" `
+          -WorkspaceRoot "${{ github.workspace }}" `
+          -MissingChannels $missingChannels `
+          -Phase Pack
+        exit 0
+
+    # Only when the primary channel is among the channels packed in this run:
+    # a resumed run that already published it has nothing new to try.
+    - name: Run the packed primary installer before publishing
+      if: steps.version.outputs.missing_channels != ''
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        $ErrorActionPreference = "Stop"
+        Import-Module .\.github\scripts\Provisioning.psm1 -Force
+        Import-Module .\.github\scripts\ReleaseAssets.psm1 -Force
+        $channel = (Get-PrimaryVariant -Manifest (Import-PowerShellDataFile .\.github\simd-variants.psd1)).Channel
+        $setup = Join-Path "${{ github.workspace }}\velopack-output\$channel" (Get-SetupAssetName -Channel $channel)
+        if (-not (Test-Path -LiteralPath $setup)) {
+          Write-Host "Channel $channel was not packed in this run (already published); nothing to run."
+          exit 0
+        }
+        & "${{ github.workspace }}\.github\scripts\Invoke-InstallerGate.ps1" `
+          -WorkspaceRoot "${{ github.workspace }}" `
+          -PackVersion "${{ steps.version.outputs.pack_version }}" `
+          -Repository "${{ github.repository }}"
+
+    - name: Publish the Velopack release
       if: steps.version.outputs.missing_channels != '' || steps.version.outputs.needs_source == 'true'
       shell: pwsh
       env:
@@ -1151,7 +1271,9 @@ jobs:
           -TargetCommit "${{ needs.version-bump.outputs.bumped_sha || github.sha }}" `
           -WorkspaceRoot "${{ github.workspace }}" `
           -MissingChannels $missingChannels `
-          -NeedsSource:("${{ steps.version.outputs.needs_source }}" -eq "true")
+          -NeedsSource:("${{ steps.version.outputs.needs_source }}" -eq "true") `
+          -Phase Publish
+        exit 0
 
     - name: Build and publish auto-detect installer
       if: steps.version.outputs.needs_installer == 'true'

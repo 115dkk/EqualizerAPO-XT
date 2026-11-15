@@ -122,6 +122,35 @@ Describe "extracted build script decisions" {
         { Resolve-BuildVariant -Manifest $manifest -Platform x64 -Simd nonsense } | Should -Throw
     }
 
+    It "plans the installer gate: update over the previous release, self-test, remove, fresh install, self-test, remove" {
+        # TECH_DEBT_AUDIT TD-04 (audit #467): every Velopack hook runs on a
+        # runner before a release is published.
+        $script = Join-Path $PSScriptRoot "..\Invoke-InstallerGate.ps1"
+        $plan = & $script -WorkspaceRoot $root -PackVersion 9.9.9 -Repository owner/repo -PlanOnly
+        $plan.Channel | Should -Be "x64-avx2"
+        $plan.Rounds | Should -Be @("update", "selftest", "remove", "fresh", "selftest", "remove")
+        (& $script -WorkspaceRoot $root -PackVersion 9.9.9 -Repository owner/repo -SkipUpdateRound -PlanOnly).Rounds |
+            Should -Be @("fresh", "selftest", "remove")
+
+        Import-Module (Join-Path $PSScriptRoot "..\ReleaseAssets.psm1") -Force
+        $plan.SetupPath | Should -Be (Join-Path $root "velopack-output\x64-avx2\$(Get-SetupAssetName -Channel 'x64-avx2')")
+        $plan.InstallRoot | Should -Be (Join-Path $env:LOCALAPPDATA (Get-VelopackPackId -Channel "x64-avx2"))
+        # What only a packed install has: Qt plugins under qt\, the sample
+        # config, and the repair script the diagnosis points to.
+        $plan.RequiredFiles | Should -Contain "qt\platforms\qwindows.dll"
+        $plan.RequiredFiles | Should -Contain "config\config.txt"
+        $plan.RequiredFiles | Should -Contain "tools\Repair-EqualizerAPO.ps1"
+        # Both APO classes, by the CLSIDs the harness shares with the C++ headers.
+        $plan.ClassKeys | Should -HaveCount 2
+        $plan.ClassKeys | Should -Contain "HKLM:\SOFTWARE\Classes\CLSID\{EACD2258-FCAC-4FF4-B36D-419E924A6D79}\InprocServer32"
+
+        # build.yml runs it as its own job and create-release waits for it.
+        $workflow = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot "..\..\workflows\build.yml")
+        $workflow | Should -Match "(?m)^  installer-gate:"
+        $workflow | Should -Match "needs\.installer-gate\.result == 'success'"
+        ([regex]::Matches($workflow, "Invoke-InstallerGate\.ps1")).Count | Should -BeGreaterOrEqual 2
+    }
+
     It "runs the ASIO suite where the variant executes and lists the ASIO projects" {
         $avx2 = & (Join-Path $PSScriptRoot "..\Build-Solution.ps1") `
             -WorkspaceRoot $root -Platform x64 -SimdVariant avx2 -ArchFlag AdvancedVectorExtensions2 -PlanOnly
