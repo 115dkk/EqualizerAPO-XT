@@ -2,9 +2,13 @@
 param(
     [Parameter(Mandatory)] [string] $WorkspaceRoot,
     [Parameter(Mandatory)] [ValidateSet("x64", "ARM64")] [string] $Platform,
-    [Parameter(Mandatory)] [string] $SimdVariant,
+    # Empty means the manifest's Primary variant; QtArchFlag and
+    # MsvcDevPlatform left out mean "the manifest's value for this variant"
+    # (TECH_DEBT_AUDIT TD-35). CI's build job still passes its matrix values,
+    # which New-BuildMatrix.ps1 expanded from the same manifest.
+    [AllowEmptyString()] [string] $SimdVariant,
     [AllowEmptyString()] [string] $QtArchFlag,
-    [Parameter(Mandatory)] [string] $MsvcDevPlatform,
+    [AllowEmptyString()] [string] $MsvcDevPlatform,
     # Audit #250 F066: CI passes matrix.channel; empty means "look it up in
     # the manifest" (local runs). The old string convention
     # ("x64-" + simd with _ -> -) could silently drift from the manifest's
@@ -14,13 +18,12 @@ param(
     [switch] $PlanOnly
 )
 
-if (-not $UpdateChannel) {
-    $manifest = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot ".." "simd-variants.psd1")
-    $lookupSimd = if ($Platform -eq "ARM64") { "neon" } else { $SimdVariant }
-    $entry = $manifest.Variants | Where-Object { $_.Platform -eq $Platform -and $_.Simd -eq $lookupSimd } | Select-Object -First 1
-    if (-not $entry) { throw "No variant in simd-variants.psd1 for $Platform/$lookupSimd" }
-    $UpdateChannel = $entry.Channel
-}
+Import-Module (Join-Path $PSScriptRoot "Provisioning.psm1") -Force
+$manifest = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot ".." "simd-variants.psd1")
+$variant = Resolve-BuildVariant -Manifest $manifest -Platform $Platform -Simd $SimdVariant
+if (-not $PSBoundParameters.ContainsKey("QtArchFlag")) { $QtArchFlag = $variant.QtArchFlag }
+if (-not $MsvcDevPlatform) { $MsvcDevPlatform = $variant.MsvcDevPlatform }
+if (-not $UpdateChannel) { $UpdateChannel = $variant.Channel }
 $updateChannel = $UpdateChannel
 if ($AddressSanitizer -and $Platform -ne "x64") {
     throw "AddressSanitizer Qt builds support x64 only"
@@ -58,11 +61,19 @@ $ErrorActionPreference = "Stop"
 Set-Location $WorkspaceRoot
 . (Join-Path $WorkspaceRoot ".github\scripts\Import-VsDevEnvironment.ps1")
 Import-VsDevEnvironment $MsvcDevPlatform
+# The .pro files read the dependency paths from the environment. A fresh
+# shell on a prepared checkout has none yet; derive them from deps\.
+if (-not $env:FFTW_LIB -and (Test-Path (Join-Path $WorkspaceRoot "deps"))) {
+    & (Join-Path $PSScriptRoot "Initialize-DepsEnvironment.ps1") -DepsPath (Join-Path $WorkspaceRoot "deps") | Out-Null
+}
 
 function Resolve-QtTool([string] $name) {
     $command = Get-Command $name -ErrorAction SilentlyContinue
     if ($command) { return $command.Source }
-    foreach ($root in @($env:QT_ROOT, $env:Qt6_DIR)) {
+    # The last candidate is where Initialize-Workspace.ps1 installs Qt, so a
+    # fresh shell on a prepared checkout finds qmake without QT_ROOT.
+    $workspaceQt = Join-Path $WorkspaceRoot "Qt\$($manifest.Shared.QtVersion)\$($variant.QtArchDir)"
+    foreach ($root in @($env:QT_ROOT, $env:Qt6_DIR, $workspaceQt)) {
         if ($root) {
             $candidate = Join-Path $root "bin\$name.exe"
             if (Test-Path $candidate) { return $candidate }

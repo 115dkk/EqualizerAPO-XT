@@ -136,11 +136,13 @@ Describe "Provisioning.psm1" {
                 'Build-VcpkgDependencies',
                 'Get-DependencyDownloadSpec',
                 'Get-PinnedSourceSpec',
+                'Get-PrimaryVariant',
                 'Get-SdkDownloadSpec',
                 'Get-SimdVariantEntry',
                 'Install-PinnedSourceDependency',
                 'Install-QtSdk',
                 'Invoke-DependencyDownload',
+                'Resolve-BuildVariant',
                 'Sync-PinnedCheckout'
             )
         }

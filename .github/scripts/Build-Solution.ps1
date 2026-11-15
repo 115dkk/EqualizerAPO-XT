@@ -3,11 +3,20 @@ param(
     [Parameter(Mandatory)] [string] $WorkspaceRoot,
     [Parameter(Mandatory)] [ValidateSet("x64", "ARM64")] [string] $Platform,
     [string] $Configuration = "Release",
+    # Empty means "the manifest's value for this variant". CI passes
+    # matrix.arch_flag, which New-BuildMatrix.ps1 expanded from the same
+    # manifest; a local or gate call names the platform and variant only.
     [AllowEmptyString()] [string] $ArchFlag,
-    [Parameter(Mandatory)] [string] $SimdVariant,
+    # Empty means the manifest's Primary variant (TECH_DEBT_AUDIT TD-35).
+    [AllowEmptyString()] [string] $SimdVariant,
     [bool] $CanExecute = $true,
     [switch] $PlanOnly
 )
+
+Import-Module (Join-Path $PSScriptRoot "Provisioning.psm1") -Force
+$manifest = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot ".." "simd-variants.psd1")
+$variant = Resolve-BuildVariant -Manifest $manifest -Platform $Platform -Simd $SimdVariant
+if (-not $PSBoundParameters.ContainsKey("ArchFlag")) { $ArchFlag = $variant.MsBuildArchFlag }
 
 # Audit #422 T1: the ordered list lives in BuildModel.psm1, tagged "solution".
 # ASIO (docs/architecture/asio-host-study.md) and capture
@@ -31,10 +40,10 @@ $runtimeTests = @()
 if ($CanExecute) { $runtimeTests += @("EditorLogicTests", "HybridConvTests", "EngineOrchestrationTests", "AsioTests") }
 # The auto-detect installer is a Win32-only, CPU-baseline binary: it must run
 # on machines with no AVX at all, so it takes no arch flag, and one build
-# covers every variant. The avx2 leg builds it so a PR that breaks it fails
+# covers every variant. The Primary leg builds it so a PR that breaks it fails
 # in CI instead of on release day (audit #250 F056); the other legs skip the
 # duplicate work, and create-release still builds its own copy to publish.
-$installerProject = if ($Platform -eq "x64" -and $SimdVariant -eq "avx2") { (Get-EapoProjectGraph -Tag installer).Path } else { $null }
+$installerProject = if ($variant.IsPrimary) { (Get-EapoProjectGraph -Tag installer).Path } else { $null }
 $plan = [pscustomobject]@{
     Projects = $projects
     PlatformToolset = $platformToolset
@@ -46,6 +55,12 @@ if ($PlanOnly) { return $plan }
 
 $ErrorActionPreference = "Stop"
 Set-Location $WorkspaceRoot
+# A fresh shell on a prepared checkout has no dependency environment yet
+# (Initialize-Workspace.ps1 exported it to the session that ran it). Derive
+# it from deps\ instead of failing later with empty /p: values.
+if (-not $env:FFTW_LIB -and (Test-Path (Join-Path $WorkspaceRoot "deps"))) {
+    & (Join-Path $PSScriptRoot "Initialize-DepsEnvironment.ps1") -DepsPath (Join-Path $WorkspaceRoot "deps") | Out-Null
+}
 $libPaths = @($env:LIBSNDFILE_LIB, $env:MUPARSERX_LIB, $env:FFTW_LIB)
 $env:LIB = if ($env:LIB) { ($libPaths + $env:LIB) -join ";" } else { $libPaths -join ";" }
 
@@ -54,7 +69,10 @@ function Resolve-QtRoot {
     if ($env:Qt6_DIR) { $candidates += (Join-Path $env:Qt6_DIR "..\..\..") }
     $qmake = Get-Command qmake -ErrorAction SilentlyContinue
     if ($qmake) { $candidates += (Split-Path (Split-Path $qmake.Source -Parent) -Parent) }
-    $candidates += (Join-Path $WorkspaceRoot "Qt")
+    # Where Initialize-Workspace.ps1 / setup-build.ps1 install it. The last
+    # candidate used to be <root>\Qt, which never holds an SDK, so a checkout
+    # prepared by setup-build.ps1 stopped here (TECH_DEBT_AUDIT TD-71).
+    $candidates += (Join-Path $WorkspaceRoot "Qt\$($manifest.Shared.QtVersion)\$($variant.QtArchDir)")
     foreach ($candidate in $candidates) {
         if (-not [string]::IsNullOrWhiteSpace($candidate)) {
             $resolved = [System.IO.Path]::GetFullPath($candidate)

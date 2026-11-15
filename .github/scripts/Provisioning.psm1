@@ -54,6 +54,67 @@ function Get-SimdVariantEntry {
     return $entry
 }
 
+function Get-PrimaryVariant {
+    <#
+    .SYNOPSIS
+        The manifest's Primary variant (the one pull requests build and the
+        gates run), so no caller spells "avx2" (TECH_DEBT_AUDIT TD-35).
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)] [hashtable]$Manifest)
+
+    $primary = @($Manifest.Variants | Where-Object { $_.Primary })
+    if ($primary.Count -ne 1) {
+        throw "simd-variants.psd1 must mark exactly one variant Primary, found $($primary.Count)"
+    }
+    return $primary[0]
+}
+
+function Resolve-BuildVariant {
+    <#
+    .SYNOPSIS
+        Everything a build script needs to know about one variant, read from
+        the manifest: the caller names a platform and optionally a SIMD
+        variant and never restates an arch flag, a channel or a folder name.
+
+    .DESCRIPTION
+        Simd defaults to the Primary variant on x64 and to the platform's
+        only variant on ARM64 (a caller's x64 SIMD name is ignored there, as
+        the build scripts always did). MsBuildArchFlag is what
+        /p:EnableEnhancedInstructionSet takes: "NotSet" for the x64 baseline
+        so a build never falls back to the projects' local AVX2 default, and
+        empty on ARM64, which passes no override.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [hashtable]$Manifest,
+        [Parameter(Mandatory)] [ValidateSet('x64', 'ARM64')] [string]$Platform,
+        [AllowEmptyString()] [string]$Simd
+    )
+
+    if ($Platform -eq 'ARM64') {
+        $entry = @($Manifest.Variants | Where-Object { $_.Platform -eq 'ARM64' }) | Select-Object -First 1
+        if (-not $entry) { throw "simd-variants.psd1 has no ARM64 variant" }
+    }
+    else {
+        if (-not $Simd) { $Simd = (Get-PrimaryVariant -Manifest $Manifest).Simd }
+        $entry = Get-SimdVariantEntry -Manifest $Manifest -Platform $Platform -Simd $Simd
+    }
+    $isArm = $Platform -eq 'ARM64'
+    return [pscustomobject]@{
+        Entry           = $entry
+        Platform        = $Platform
+        Simd            = $entry.Simd
+        IsPrimary       = [bool]$entry.Primary
+        MsBuildArchFlag = if ($isArm) { '' } elseif ($entry.ArchFlag) { $entry.ArchFlag } else { 'NotSet' }
+        QtArchFlag      = if ($entry.QtArchFlag) { $entry.QtArchFlag } else { '' }
+        Channel         = $entry.Channel
+        MsvcDevPlatform = if ($isArm) { 'arm64' } else { 'x64' }
+        UsesVcpkg       = [bool]$entry.UsesVcpkg
+        QtArchDir       = if ($isArm) { 'msvc2022_arm64' } else { 'msvc2022_64' }
+    }
+}
+
 function Get-DependencyDownloadSpec {
     <#
     .SYNOPSIS
@@ -801,4 +862,16 @@ function Install-PinnedSourceDependency {
     }
 }
 
-Export-ModuleMember -Function Get-SimdVariantEntry, Get-DependencyDownloadSpec, Get-SdkDownloadSpec, Invoke-DependencyDownload, Build-VcpkgDependencies, Install-QtSdk, Get-PinnedSourceSpec, Sync-PinnedCheckout, Install-PinnedSourceDependency
+Export-ModuleMember -Function @(
+    'Get-SimdVariantEntry'
+    'Get-PrimaryVariant'
+    'Resolve-BuildVariant'
+    'Get-DependencyDownloadSpec'
+    'Get-SdkDownloadSpec'
+    'Invoke-DependencyDownload'
+    'Build-VcpkgDependencies'
+    'Install-QtSdk'
+    'Get-PinnedSourceSpec'
+    'Sync-PinnedCheckout'
+    'Install-PinnedSourceDependency'
+)

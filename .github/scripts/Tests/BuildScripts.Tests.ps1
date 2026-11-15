@@ -82,6 +82,46 @@ Describe "extracted build script decisions" {
         )
     }
 
+    It "prepares a workspace in one order for every caller, from the manifest's primary variant" {
+        # TECH_DEBT_AUDIT TD-35 (audit #467): the order was written in four
+        # YAML places and setup-build.ps1, each a little different.
+        $script = Join-Path $PSScriptRoot "..\Initialize-Workspace.ps1"
+        $manifest = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot "..\..\simd-variants.psd1")
+        $primary = @($manifest.Variants | Where-Object { $_.Primary })[0]
+
+        $default = & $script -WorkspaceRoot $root -PlanOnly
+        $default.Simd | Should -Be $primary.Simd
+        $default.Steps | Should -Be @("DownloadDependencies", "ClonePinnedSources", "InstallQt", "ExportEnvironment")
+        $default.QtRoot | Should -Be (Join-Path $root "Qt\$($manifest.Shared.QtVersion)\msvc2022_64")
+
+        (& $script -WorkspaceRoot $root -Simd sse2 -PlanOnly).Steps |
+            Should -Be @("DownloadDependencies", "BuildVcpkgDependencies", "ClonePinnedSources", "InstallQt", "ExportEnvironment")
+        (& $script -WorkspaceRoot $root -SkipQt -PlanOnly).Steps |
+            Should -Be @("DownloadDependencies", "ClonePinnedSources", "ExportEnvironment")
+        $arm = & $script -WorkspaceRoot $root -Platform ARM64 -Simd avx2 -PlanOnly
+        $arm.Simd | Should -Be "neon"
+        $arm.QtRoot | Should -BeLike "*msvc2022_arm64"
+    }
+
+    It "reads the arch flags and the channel from the manifest when a caller names only the variant" {
+        $solution = Join-Path $PSScriptRoot "..\Build-Solution.ps1"
+        $qt = Join-Path $PSScriptRoot "..\Build-QtApps.ps1"
+        # No -SimdVariant at all: the primary variant, which owns the installer.
+        (& $solution -WorkspaceRoot $root -Platform x64 -PlanOnly).InstallerProject | Should -Be "Installer\Installer.vcxproj"
+        (& $qt -WorkspaceRoot $root -Platform x64 -PlanOnly).UpdateChannel | Should -Be "x64-avx2"
+        (& $qt -WorkspaceRoot $root -Platform x64 -SimdVariant avx512 -PlanOnly).UpdateChannel | Should -Be "x64-avx512"
+
+        Import-Module (Join-Path $PSScriptRoot "..\Provisioning.psm1") -Force
+        $manifest = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot "..\..\simd-variants.psd1")
+        # The x64 baseline passes NotSet so a build never falls back to the
+        # projects' local AVX2 default; ARM64 passes no override.
+        (Resolve-BuildVariant -Manifest $manifest -Platform x64 -Simd sse2).MsBuildArchFlag | Should -Be "NotSet"
+        (Resolve-BuildVariant -Manifest $manifest -Platform x64 -Simd sse2).QtArchFlag | Should -Be ""
+        (Resolve-BuildVariant -Manifest $manifest -Platform ARM64 -Simd "").MsBuildArchFlag | Should -Be ""
+        (Resolve-BuildVariant -Manifest $manifest -Platform x64 -Simd avx10_1).QtArchFlag | Should -Be "/arch:AVX10.1"
+        { Resolve-BuildVariant -Manifest $manifest -Platform x64 -Simd nonsense } | Should -Throw
+    }
+
     It "runs the ASIO suite where the variant executes and lists the ASIO projects" {
         $avx2 = & (Join-Path $PSScriptRoot "..\Build-Solution.ps1") `
             -WorkspaceRoot $root -Platform x64 -SimdVariant avx2 -ArchFlag AdvancedVectorExtensions2 -PlanOnly

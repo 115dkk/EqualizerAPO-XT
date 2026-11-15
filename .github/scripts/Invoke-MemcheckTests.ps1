@@ -46,13 +46,17 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# The gate runs the manifest's Primary variant; nothing here spells its name
+# or its arch flag (TECH_DEBT_AUDIT TD-35).
+Import-Module (Join-Path $PSScriptRoot "Provisioning.psm1") -Force
+$variant = Resolve-BuildVariant -Platform x64 -Simd "" `
+    -Manifest (Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot ".." "simd-variants.psd1"))
 $solutionPlan = & (Join-Path $PSScriptRoot "Build-Solution.ps1") `
-    -WorkspaceRoot $WorkspaceRoot -Platform x64 -SimdVariant avx2 `
-    -ArchFlag AdvancedVectorExtensions2 -CanExecute $true -PlanOnly
+    -WorkspaceRoot $WorkspaceRoot -Platform x64 -SimdVariant $variant.Simd -CanExecute $true -PlanOnly
 $suites = @($solutionPlan.RuntimeTests) + @("AudioRegressionTests")
 $suiteArguments = @{
     AudioRegressionTests = @(
-        "--variant", "avx2",
+        "--variant", $variant.Simd,
         "--config-dir", (Join-Path $WorkspaceRoot "Tests\AudioRegressionTests\configs"),
         "--ref-dir", (Join-Path $WorkspaceRoot "Tests\AudioRegressionTests\references"),
         "--out-dir", (Join-Path ([System.IO.Path]::GetTempPath()) "eapo-memcheck-regression")
@@ -76,7 +80,7 @@ $libPaths = @($env:LIBSNDFILE_LIB, $env:MUPARSERX_LIB, $env:FFTW_LIB)
 $env:LIB = if ($env:LIB) { ($libPaths + $env:LIB) -join ";" } else { $libPaths -join ";" }
 $env:CL = "/D_DISABLE_STRING_ANNOTATION /D_DISABLE_VECTOR_ANNOTATION"
 
-$buildParams = @(Get-EapoMsBuildArguments -Platform x64 -ArchFlag AdvancedVectorExtensions2) +
+$buildParams = @(Get-EapoMsBuildArguments -Platform x64 -ArchFlag $variant.MsBuildArchFlag) +
     @("/p:EnableASAN=true", "/p:WholeProgramOptimization=false")
 Invoke-EapoMsBuild -Project $projects -Arguments $buildParams -FailureLabel "ASan build"
 Remove-Item Env:CL

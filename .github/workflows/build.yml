@@ -242,91 +242,38 @@ jobs:
         # host-architecture spelling ('x64'/'arm64') for exactly this purpose.
         msbuild-architecture: ${{ matrix.msvcdevplatform }}
 
-    # Supply-chain pins: the prebuilt binary dependencies (and velopack_libc)
-    # are downloaded from a pinned release tag and verified against the SHA-256
-    # recorded in .github/simd-variants.psd1, so a new upload to those personal
-    # forks cannot change what CI links without a reviewed manifest diff. The
-    # download+verify loop lives in .github/scripts/Provisioning.psm1, shared
-    # with setup-build.ps1 (TD015).
-    - name: Download dependency release assets
-      shell: pwsh
-      run: |
-        $ErrorActionPreference = "Stop"
-        Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
-
-        $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
-        $downloads = Get-DependencyDownloadSpec -Manifest $manifest `
-          -DepsRoot "${{ github.workspace }}\deps" `
-          -Platform "${{ matrix.platform }}" `
-          -Simd "${{ matrix.simd_variant }}"
-        Invoke-DependencyDownload -Downloads $downloads `
-          -DownloadRoot "${{ github.workspace }}\deps\_downloads"
-        # The Steinberg ASIO SDK (source zip, GPLv3 dual-licensed), same pin
-        # for every variant; extracts to deps\asiosdk\ASIOSDK.
-        Invoke-DependencyDownload -Downloads (Get-SdkDownloadSpec -Manifest $manifest -DepsRoot "${{ github.workspace }}\deps") `
-          -DownloadRoot "${{ github.workspace }}\deps\_downloads"
-
-    # The vcpkg FFTW/libsndfile build and the muparserx /arch rebuild live in
-    # .github/scripts/Provisioning.psm1, shared with setup-build.ps1 (TD015).
-    - name: Build lower-SIMD dependency binaries
-      if: ${{ matrix.uses_vcpkg == true }}
-      shell: pwsh
-      run: |
-        $ErrorActionPreference = "Stop"
-
-        # Canonical vswhere/VsDevCmd import, shared with the Qt build step below
-        # and setup-build.ps1.
-        . .\.github\scripts\Import-VsDevEnvironment.ps1
-        Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
-
-        Import-VsDevEnvironment "${{ matrix.msvcdevplatform }}"
-
-        $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
-        Build-VcpkgDependencies -DepsRoot "${{ github.workspace }}\deps" `
-          -VcpkgFallbackRoot "${{ github.workspace }}\vcpkg" `
-          -SimdVariant "${{ matrix.simd_variant }}" `
-          -VcpkgCommit $manifest.Shared.VcpkgCommit
-
-    # The header-only source dependencies (TCLAP, VST3 pluginterfaces,
-    # Highway), cloned at the manifest's tags and held to its commits by the
-    # same routine setup-build.ps1 uses: a retargeted upstream tag fails here
-    # instead of changing what ships (audit #348 TD-26).
-    - name: Clone pinned source dependencies
-      shell: pwsh
-      run: |
-        $ErrorActionPreference = "Stop"
-        Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
-        $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
-        Install-PinnedSourceDependency -Manifest $manifest -DepsRoot "${{ github.workspace }}\deps"
-
-    # Setup dependency structures
-    - name: Setup dependency structures
-      shell: pwsh
-      run: |
-        .\.github\scripts\Initialize-DepsEnvironment.ps1 -DepsPath "${{ github.workspace }}\deps"
-
     - name: Setup Python
       uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
       with:
         python-version: ${{ env.PYTHON_VERSION }}
 
-    # Install Qt for Editor and DeviceSelector. Install-QtSdk reads Qt's
-    # online repository directly (aqtinstall cannot read the Qt 6.12 layout)
-    # and checks every archive against the SHA-256 pins in simd-variants.psd1;
-    # it lives in .github/scripts/Provisioning.psm1, shared with
-    # setup-build.ps1 (TD015).
-    - name: Install Qt
+    # One entry point prepares the checkout for every job, the scheduled
+    # audit, CodeQL and a developer's machine (TECH_DEBT_AUDIT TD-35):
+    # .github/scripts/Initialize-Workspace.ps1.
+    # - Supply-chain pins: the prebuilt binary dependencies (and
+    #   velopack_libc) and the ASIO SDK are downloaded from pinned release
+    #   tags and verified against the SHA-256 recorded in
+    #   .github/simd-variants.psd1, so a new upload to those personal forks
+    #   cannot change what CI links without a reviewed manifest diff.
+    # - A variant the manifest marks UsesVcpkg builds FFTW and libsndfile
+    #   with vcpkg and rebuilds muparserx with its /arch.
+    # - The header-only source dependencies (TCLAP, VST3 pluginterfaces,
+    #   Highway) are cloned at the manifest's tags and held to its commits:
+    #   a retargeted upstream tag fails here instead of changing what ships
+    #   (audit #348 TD-26).
+    # - Qt for the Editor and DeviceSelector comes from Qt's online
+    #   repository (aqtinstall cannot read the Qt 6.12 layout), every archive
+    #   checked against the manifest's SHA-256 pins, and its qmake must run
+    #   and report the pinned version.
+    # - The dependency paths, QT_ROOT, Qt6_DIR and Qt's bin folder on PATH
+    #   are exported for the steps below.
+    - name: Prepare the workspace (dependencies, Qt, environment)
       shell: pwsh
       run: |
-        $ErrorActionPreference = "Stop"
-        Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
-
-        $qtRoot = Install-QtSdk -WorkspaceRoot "${{ github.workspace }}" -Platform "${{ matrix.platform }}"
-
-        echo "QT_ROOT=$qtRoot" >> $env:GITHUB_ENV
-        echo "Qt6_DIR=$qtRoot" >> $env:GITHUB_ENV
-        echo "$qtRoot\bin" >> $env:GITHUB_PATH
-        Write-Host "QT_ROOT=$qtRoot"
+        & "${{ github.workspace }}\.github\scripts\Initialize-Workspace.ps1" `
+          -WorkspaceRoot "${{ github.workspace }}" `
+          -Platform "${{ matrix.platform }}" `
+          -Simd "${{ matrix.simd_variant }}"
 
     # The MSBuild projects; the Qt apps are qmake projects and build in the
     # next steps.
@@ -776,55 +723,19 @@ jobs:
       with:
         msbuild-architecture: x64
 
-    - name: Download dependency release assets
-      shell: pwsh
-      run: |
-        $ErrorActionPreference = "Stop"
-        Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
-
-        $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
-        $downloads = Get-DependencyDownloadSpec -Manifest $manifest `
-          -DepsRoot "${{ github.workspace }}\deps" `
-          -Platform "x64" `
-          -Simd "avx2"
-        Invoke-DependencyDownload -Downloads $downloads `
-          -DownloadRoot "${{ github.workspace }}\deps\_downloads"
-        Invoke-DependencyDownload -Downloads (Get-SdkDownloadSpec -Manifest $manifest -DepsRoot "${{ github.workspace }}\deps") `
-          -DownloadRoot "${{ github.workspace }}\deps\_downloads"
-
-    # The header-only source dependencies (TCLAP, VST3 pluginterfaces,
-    # Highway), cloned at the manifest's tags and held to its commits by the
-    # same routine setup-build.ps1 uses: a retargeted upstream tag fails here
-    # instead of changing what ships (audit #348 TD-26).
-    - name: Clone pinned source dependencies
-      shell: pwsh
-      run: |
-        $ErrorActionPreference = "Stop"
-        Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
-        $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
-        Install-PinnedSourceDependency -Manifest $manifest -DepsRoot "${{ github.workspace }}\deps"
-
-    - name: Setup dependency structures
-      shell: pwsh
-      run: |
-        .\.github\scripts\Initialize-DepsEnvironment.ps1 -DepsPath "${{ github.workspace }}\deps"
-
     - name: Setup Python
       uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
       with:
         python-version: ${{ env.PYTHON_VERSION }}
 
-    # EditorLogicTests links Qt6Core/Gui/Widgets; the other suites are Qt-free.
-    - name: Install Qt
+    # The same preparation as the build job, for the manifest's Primary
+    # variant (the script's default). EditorLogicTests links
+    # Qt6Core/Gui/Widgets; the other suites are Qt-free.
+    - name: Prepare the workspace (dependencies, Qt, environment)
       shell: pwsh
       run: |
-        $ErrorActionPreference = "Stop"
-        Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
-
-        $qtRoot = Install-QtSdk -WorkspaceRoot "${{ github.workspace }}" -Platform "x64"
-
-        echo "QT_ROOT=$qtRoot" >> $env:GITHUB_ENV
-        echo "$qtRoot\bin" >> $env:GITHUB_PATH
+        & "${{ github.workspace }}\.github\scripts\Initialize-Workspace.ps1" `
+          -WorkspaceRoot "${{ github.workspace }}"
 
     # Import-VsDevEnvironment puts the VC toolset bin on PATH, which is where
     # the ASan runtime DLL (clang_rt.asan_dynamic-x86_64.dll) lives.
@@ -1062,56 +973,21 @@ jobs:
 
     # The asan leg compiles the Editor itself, with the dependencies and Qt
     # the memcheck job provisions.
-    - name: Download dependency release assets
-      if: matrix.editor == 'asan'
-      shell: pwsh
-      run: |
-        $ErrorActionPreference = "Stop"
-        Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
-
-        $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
-        $downloads = Get-DependencyDownloadSpec -Manifest $manifest `
-          -DepsRoot "${{ github.workspace }}\deps" `
-          -Platform "x64" `
-          -Simd "avx2"
-        Invoke-DependencyDownload -Downloads $downloads `
-          -DownloadRoot "${{ github.workspace }}\deps\_downloads"
-        Invoke-DependencyDownload -Downloads (Get-SdkDownloadSpec -Manifest $manifest -DepsRoot "${{ github.workspace }}\deps") `
-          -DownloadRoot "${{ github.workspace }}\deps\_downloads"
-
-    - name: Clone pinned source dependencies
-      if: matrix.editor == 'asan'
-      shell: pwsh
-      run: |
-        $ErrorActionPreference = "Stop"
-        Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
-        $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
-        Install-PinnedSourceDependency -Manifest $manifest -DepsRoot "${{ github.workspace }}\deps"
-
-    - name: Setup dependency structures
-      if: matrix.editor == 'asan'
-      shell: pwsh
-      run: |
-        .\.github\scripts\Initialize-DepsEnvironment.ps1 -DepsPath "${{ github.workspace }}\deps"
-
     - name: Setup Python
       if: matrix.editor == 'asan'
       uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
       with:
         python-version: ${{ env.PYTHON_VERSION }}
 
-    - name: Install Qt
+    - name: Prepare the workspace (dependencies, Qt, environment)
       if: matrix.editor == 'asan'
       shell: pwsh
       run: |
-        $ErrorActionPreference = "Stop"
-        Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
+        & "${{ github.workspace }}\.github\scripts\Initialize-Workspace.ps1" `
+          -WorkspaceRoot "${{ github.workspace }}"
 
-        $qtRoot = Install-QtSdk -WorkspaceRoot "${{ github.workspace }}" -Platform "x64"
-
-        echo "QT_ROOT=$qtRoot" >> $env:GITHUB_ENV
-        echo "$qtRoot\bin" >> $env:GITHUB_PATH
-
+    # No variant, arch flag or channel is spelled here: Build-QtApps.ps1
+    # reads the Primary variant's from the manifest (TECH_DEBT_AUDIT TD-35).
     - name: Build the Editor with AddressSanitizer
       if: matrix.editor == 'asan'
       shell: pwsh
@@ -1119,10 +995,6 @@ jobs:
         & "${{ github.workspace }}\.github\scripts\Build-QtApps.ps1" `
           -WorkspaceRoot "${{ github.workspace }}" `
           -Platform "x64" `
-          -SimdVariant "avx2" `
-          -QtArchFlag "/arch:AVX2" `
-          -MsvcDevPlatform "x64" `
-          -UpdateChannel "x64-avx2" `
           -AddressSanitizer
 
     # The shipped program folder, with the ASan Editor (and the ASan runtime
