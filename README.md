@@ -236,7 +236,7 @@ If you like this program, spare a coin...
 
 **Current goal:** one EV certificate, $359, once. It lets the driver of a new
 app (personal-BRIR Dolby Atmos on headphones) be signed by Microsoft, so the
-app installs without turning off Secure Boot. ($0 / $359)
+app installs without turning off Secure Boot. ($15 / $359)
 
 **That app is in development right now:** [spatial-audio-softreceiver](https://github.com/115dkk/spatial-audio-softreceiver)
 
