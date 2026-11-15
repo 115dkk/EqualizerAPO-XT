@@ -1,5 +1,9 @@
 # Refactoring Baseline
 
+Historical record of the refactoring pass documented in commit `3ed704ec`
+(2026-05-22), with later path annotations. This is not a description of the
+current architecture or build targets.
+
 This pass turns the initial "prepare the codebase before serious builds" TODO into explicit, reviewable structure. The work is spread across focused commits instead of one broad rewrite, but the baseline is now concrete:
 
 - Audio regression tests exist (today in `Tests/AudioRegressionTests`; at the time of this baseline they started inside `Tests/HybridConvTests`) and are wired into the solution and CI.

@@ -68,13 +68,15 @@ block was guarded out on ARM64 and the audio path fell back to scalar.
 
 ## Test Policy
 
-`EditorLogicTests` runs for every matrix entry because it does not execute SIMD
-audio kernels.
+`EditorLogicTests`, `HybridConvTests`, `EngineOrchestrationTests` and `AsioTests`
+are built for every matrix entry. `Build-Solution.ps1` puts all four behind its
+`CanExecute` gate. CI supplies that value from the manifest's `RunnerCanExecute`:
+SSE2, AVX, AVX2 and ARM64 run them; AVX-512 and AVX10.1 only build them.
 
-`HybridConvTests` is built for every matrix entry. CI runs it for SSE2, AVX,
-AVX2, and ARM64. GitHub-hosted x64 runners do not guarantee AVX-512 or AVX10.1
-at runtime; executing those test binaries on an incompatible runner would fail
-with an illegal instruction before the test can report a useful result.
+`EditorLogicTests` links `Common.lib` whole-archive, so it too can execute the
+variant's instructions during static initialization, before `main`.
+GitHub-hosted x64 runners do not guarantee AVX-512 or AVX10.1; an incompatible
+runner could fail with an illegal instruction before a test reports a result.
 
 `AudioRegressionTests` compares each runnable variant's FilterEngine output to
 committed references within −120 dBFS, and `cross_variant_compare.py` cross-checks

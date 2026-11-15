@@ -4,7 +4,7 @@ EqualizerAPO-XT publishes installers through the Velopack release job in GitHub 
 
 The Editor's in-app Velopack update (below) is the only update path. It reads the channel's feed, `releases.<channel>.json`, from the latest GitHub Release of `115dkk/EqualizerAPO-XT`. The standalone `UpdateChecker.exe`, a notify-only tool that nothing started automatically after the NSIS installer left (audit #250 F073), was removed in audit #348.
 
-The channel is injected by CI with `EAPO_UPDATE_CHANNEL` during qmake builds. Current CI channels are:
+The channel names are the `Channel` values in `.github/simd-variants.psd1`:
 
 - `x64-sse2`
 - `x64-avx`
@@ -13,7 +13,7 @@ The channel is injected by CI with `EAPO_UPDATE_CHANNEL` during qmake builds. Cu
 - `x64-avx10-1`
 - `arm64-neon`
 
-Local builds without an injected channel default to `x64-avx2` on x64 and `arm64-neon` on ARM64.
+There is no hard-coded default update channel in `Editor/Editor.pro`: it defines `EAPO_UPDATE_CHANNEL` only when qmake receives a nonempty value. `.github/scripts/Build-QtApps.ps1` takes `-UpdateChannel`, or reads the selected variant's `Channel` when that argument is empty, and passes it to qmake as `EAPO_UPDATE_CHANNEL`. Use that script for local builds too.
 
 APO installation and device registration run through the Velopack hooks the Editor handles (`--veloapp-install`, `--veloapp-updated`, etc.), which call `ApoRegistration`. The NSIS installer has been removed.
 

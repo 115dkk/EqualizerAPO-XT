@@ -13,12 +13,34 @@ handles every vulnerability report for it.
   hosting code, and the Voicemeeter client.
 - The Configuration Editor, the Device Selector, and the configuration file
   parser.
-- The installer, the setup tools, the Velopack updater and the update checker,
-  and the workflows in this repository that build the release files.
+- The installer, the setup tools, the Editor's Velopack update flow in
+  `services/update/`, and the workflows in this repository that build the
+  release files.
 
 Flaws that XT inherited from Equalizer APO 1.4.2 and still carries are in
 scope. Third-party VST plugins and audio drivers are not; report those to
 their authors.
+
+## Per-user installation and machine-wide registrations
+
+Velopack installs the product per user under the installing user's profile
+(`%LOCALAPPDATA%`). Three machine-wide registrations therefore point into that
+profile:
+
+- The APO COM server that the Windows audio service loads points to
+  `EqualizerAPO.dll` in the installation directory
+  (`services/install/ApoRegistration.cpp`).
+- The all-users Start menu shortcut targets that directory's
+  `DeviceSelector.exe` (`services/shell/StartMenuShortcuts.cpp`).
+- When enabled, the engine host's auto-start entry in
+  `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run` targets
+  that directory's `EqualizerAPOHost.exe` with `--resident`
+  (`asio/AsioRegistration.cpp`).
+
+This is an accepted consequence of the per-user installer: another account on
+the same machine runs the installing user's copy, and the installing user can
+replace those files without elevation. Machines shared between mutually
+untrusting accounts are outside the supported threat model.
 
 ## Supported versions
 
