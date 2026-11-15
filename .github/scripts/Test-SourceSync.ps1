@@ -229,35 +229,87 @@ Write-Host "All $registeredCases tests in the self-registering suites use TEST_C
 # Audit #348 TD-80: docs/EnvironmentVariables.md calls itself the one list of
 # EAPO_* variables, and ten the code reads were missing from it. Every EAPO_*
 # name a C++ source reads from the environment must be written there.
+# Audit #467 TD-74: include CRT, pathutil and script reads, and check the
+# reverse direction too. EAPO_XT_* is included in the EAPO_* prefix.
 $environmentDoc = Join-Path $RepoRoot "docs" "EnvironmentVariables.md"
 if (Test-Path -LiteralPath $environmentDoc) {
   $documented = Get-Content -LiteralPath $environmentDoc -Raw
-  $readPattern = '(?:qEnvironmentVariable\w*|qgetenv|GetEnvironmentVariableW?|_wgetenv|getenv)\(\s*(?:QStringLiteral\()?L?"(EAPO_[A-Z0-9_]+)"'
+  $documentedNames = @([regex]::Matches($documented, '\bEAPO_[A-Z0-9_]+\b') |
+    ForEach-Object { $_.Value } | Sort-Object -Unique)
+  $readPatterns = @(
+    '\b(?:qEnvironmentVariable\w*|qgetenv|GetEnvironmentVariable[AW]?|_wgetenv|getenv|pathutil::environmentVariable)\s*\(\s*(?:QStringLiteral\s*\(\s*)?L?"(?<name>EAPO_[A-Z0-9_]+)"',
+    '\b_w?dupenv_s\s*\(\s*[^,;]+,\s*[^,;]+,\s*L?"(?<name>EAPO_[A-Z0-9_]+)"',
+    # ConfigFileReference expands these literals via ExpandEnvironmentStringsW;
+    # the read is indirect, so matching only environment API calls misses it.
+    '%(?<name>EAPO_[A-Z0-9_]+)%'
+  )
   $sources = @()
   if (Get-Command git -ErrorAction SilentlyContinue) {
-    $sources = @(& git -C $RepoRoot ls-files -- '*.cpp' '*.h' 2>$null)
+    $sources = @(& git -C $RepoRoot ls-files -- '*.cpp' '*.h' '*.ps1' '*.psm1' 2>$null)
     if ($LASTEXITCODE -ne 0) { $sources = @() }
   }
   if ($sources.Count -eq 0) {
-    $sources = @(Get-ChildItem -LiteralPath $RepoRoot -Recurse -File -Include '*.cpp', '*.h' |
+    $sources = @(Get-ChildItem -LiteralPath $RepoRoot -Recurse -File -Include '*.cpp', '*.h', '*.ps1', '*.psm1' |
       ForEach-Object { [System.IO.Path]::GetRelativePath($RepoRoot, $_.FullName) })
   }
   $read = @{}
   foreach ($source in $sources) {
+    $source = $source -replace '\\', '/'
+    $isScript = $source -match '\.ps(m)?1$'
+    if ($isScript -and $source -notmatch '^(?:[^/]+|\.github/scripts/.+)\.ps(m)?1$') { continue }
     $text = Get-Content -LiteralPath (Join-Path $RepoRoot $source) -Raw
     if ($null -eq $text -or $text -notmatch 'EAPO_') { continue }
-    foreach ($match in [regex]::Matches($text, $readPattern)) {
-      $read[$match.Groups[1].Value] = $source -replace '\\', '/'
+    if ($isScript) {
+      # The AST distinguishes reads (including expandable strings) from plain
+      # assignments, comments and single-quoted fixture text in Pester tests.
+      $tokens = $null
+      $parseErrors = $null
+      $ast = [System.Management.Automation.Language.Parser]::ParseInput($text, [ref]$tokens, [ref]$parseErrors)
+      if ($parseErrors.Count -gt 0) { throw "Cannot scan environment reads in ${source}: $($parseErrors[0].Message)" }
+      $variables = $ast.FindAll({ param($node)
+        $node -is [System.Management.Automation.Language.VariableExpressionAst] -and
+          $node.VariablePath.UserPath -match '^env:EAPO_[A-Z0-9_]+$'
+      }, $true)
+      foreach ($variable in $variables) {
+        $parent = $variable.Parent
+        if ($parent -is [System.Management.Automation.Language.AssignmentStatementAst] -and
+            $parent.Left -eq $variable -and $parent.Operator -eq 'Equals') { continue }
+        $read[$variable.VariablePath.UserPath.Substring(4).ToUpperInvariant()] = $source
+      }
+      continue
+    }
+    # Preserve string/character literals while removing comments, so an example
+    # in a comment cannot keep a removed variable in the document indefinitely.
+    $text = [regex]::Replace($text, '(?s)"(?:\\.|[^"\\])*"|''(?:\\.|[^''\\])*''|(?<comment>//[^\r\n]*|/\*.*?\*/)',
+      [System.Text.RegularExpressions.MatchEvaluator]{ param($match)
+        if ($match.Groups['comment'].Success) { return ' ' }
+        return $match.Value
+      })
+    foreach ($pattern in $readPatterns) {
+      foreach ($match in [regex]::Matches($text, $pattern)) {
+        $read[$match.Groups['name'].Value] = $source
+      }
     }
   }
-  $undocumented = @($read.Keys | Where-Object { $documented -notmatch ('\b' + [regex]::Escape($_) + '\b') } | Sort-Object)
+  # The only workflow-only variable in this catalogue. Check its actual read
+  # at its owning location, not assignments or arbitrary mentions in YAML.
+  $codeqlPath = Join-Path $RepoRoot '.github' 'workflows' 'codeql.yml'
+  if ((Test-Path -LiteralPath $codeqlPath) -and
+      (Get-Content -LiteralPath $codeqlPath -Raw) -match '\$\{\{\s*env\.EAPO_CODEQL_MODEL_PACK\s*\}\}') {
+    $read['EAPO_CODEQL_MODEL_PACK'] = '.github/workflows/codeql.yml'
+  }
+  $undocumented = @($read.Keys | Where-Object { $documentedNames -notcontains $_ } | Sort-Object)
+  $unread = @($documentedNames | Where-Object { -not $read.ContainsKey($_) })
   foreach ($name in $undocumented) {
     Write-Host "::error file=docs/EnvironmentVariables.md::$($read[$name]) reads $name from the environment, but docs/EnvironmentVariables.md does not list it."
   }
-  if ($undocumented.Count -gt 0) {
-    throw "An EAPO_* environment variable the code reads is missing from docs/EnvironmentVariables.md."
+  foreach ($name in $unread) {
+    Write-Host "::error file=docs/EnvironmentVariables.md::docs/EnvironmentVariables.md lists $name, but no source or script reads it. Remove the stale entry or add its reader to this lint."
   }
-  Write-Host "All $($read.Count) EAPO_* environment variables the code reads are listed in docs/EnvironmentVariables.md."
+  if ($undocumented.Count -gt 0 -or $unread.Count -gt 0) {
+    throw "EAPO_* environment reads and docs/EnvironmentVariables.md are out of sync."
+  }
+  Write-Host "All $($read.Count) EAPO_* environment variables the code reads are listed in docs/EnvironmentVariables.md, and every listed variable has a reader."
 }
 
 # Audit #348 TD-66: a bulk insert once put a second licence header above
