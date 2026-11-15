@@ -25,11 +25,15 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# The default for every job is to read the repository and nothing else. The
+# workflow used to grant actions, packages and artifact-metadata write to all
+# of them, including the jobs that run downloaded code (cppcheck, Pester,
+# memcheck, the gates), though no step publishes a package or an attestation
+# and artifact upload, download and the cache need no token permission
+# (TECH_DEBT_AUDIT TD-73, audit #467). A job that needs more states it:
+# create-release (contents: write, actions: read).
 permissions:
   contents: read
-  actions: write
-  packages: write
-  artifact-metadata: write
 
 env:
   BUILD_CONFIGURATION: Release
