@@ -158,6 +158,36 @@ TEST_CASE(EngineOrchestrationTests, testConfigLoadTrace)
 		"detached sink receives nothing on a reload");
 }
 
+// Audit #467 TD-08: every condition-evaluation failure makes that condition
+// false and malformed, so its body is skipped and its EndIf still closes it.
+TEST_CASE(EngineOrchestrationTests, testBadRegexIfSkipsItsBodyAndKeepsItsEndIf)
+{
+	const std::wstring configPath = writeConfig(harness, L"bad-regex-if.txt",
+		"If: regexSearch(\"[\", \"abc\") != \"\"\n"
+		"Preamp: -40 dB\n"
+		"EndIf:\n");
+	TraceCollector collector;
+	FilterEngine engine;
+	engine.setLoadTraceSink(&collector);
+	initializeEngine(engine, 48000, 2, 480, configPath);
+
+	std::vector<const ConfigLoadTraceEntry*> errors;
+	for (const ConfigLoadTraceEntry& entry : collector.entries)
+	{
+		if (entry.kind == ConfigLoadTraceEntry::Kind::ParseError)
+			errors.push_back(&entry);
+	}
+	harness.requireEqual(errors.size(), size_t(1),
+		"an If with a bad regular expression reports exactly one parse error");
+	harness.expectEqual(errors[0]->line, 1, "the parse error is attached to the If line");
+	harness.expect(errors[0]->text.find(L"EndIf without an If") == std::wstring::npos,
+		"the matching EndIf was incorrectly reported as orphaned");
+
+	const std::vector<float> output = processDcBlock(engine, 1.0f, 1.0f, 480);
+	harness.expectNear(output[(size_t)478 * 2], 1.0f, 1e-6f,
+		"the body of an If whose condition failed to evaluate was applied");
+}
+
 TEST_CASE(EngineOrchestrationTests, testLegacySemicolonMappingsApplyStereoFir)
 {
 	testSubdirectory(L"legacy-secs");

@@ -92,6 +92,27 @@ TEST_CASE(ParserTests, runParserTests)
 			threw = true;
 		}
 		harness.expectTrue(threw, "regexSearch with non-string arguments should raise a ParserError");
+
+		// Audit #467 TD-08: malformed regular expressions are configuration
+		// errors too. Neither callback may leak std::regex_error past muparserx.
+		for (const wchar_t* expression : {
+			L"regexSearch(\"[\", \"abc\")",
+			L"regexReplace(\"[\", \"abc\", \"x\")"})
+		{
+			bool parserError = false;
+			try
+			{
+				parser.evaluate(expression);
+			}
+			catch (const ParserError&)
+			{
+				parserError = true;
+			}
+			catch (const std::exception&)
+			{
+			}
+			harness.expectTrue(parserError, "a malformed regular expression should raise ParserError");
+		}
 	}
 	catch (const ParserError& e)
 	{

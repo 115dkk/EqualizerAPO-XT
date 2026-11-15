@@ -21,6 +21,7 @@
 #include "services/logging/Logging.h"
 #include "parser/RegexFunctions.h"
 #include "parser/RegistryFunctions.h"
+#include "platform/windows/TextEncoding.h"
 #include "engine/ConfigLoadTrace.h"
 #include "engine/FilterEngine.h"
 #include "filters/FilterFactoryRegistry.h"
@@ -118,7 +119,26 @@ LineOutcome IfFilterFactory::createFilter(const wstring& configPath, wstring& co
 			{
 				LogF(L"Error while evaluating If(%s): %s", expression.c_str(), e.GetMsg().c_str());
 				traceBranch(ConfigLoadTraceEntry::Kind::Condition, ConfigLoadTraceEntry::Result::Error, false);
+				malformedReason = L"condition could not be evaluated: " + e.GetMsg();
 				falseCount++;
+				executeElse = true;
+			}
+			catch (const std::exception& e)
+			{
+				const wstring reason = wintext::toWideString(e.what(), CP_UTF8);
+				LogF(L"Error while evaluating If(%s): %s", expression.c_str(), reason.c_str());
+				traceBranch(ConfigLoadTraceEntry::Kind::Condition, ConfigLoadTraceEntry::Result::Error, false);
+				malformedReason = L"condition could not be evaluated: " + reason;
+				falseCount++;
+				executeElse = true;
+			}
+			catch (...)
+			{
+				LogF(L"Error while evaluating If(%s): unknown exception", expression.c_str());
+				traceBranch(ConfigLoadTraceEntry::Kind::Condition, ConfigLoadTraceEntry::Result::Error, false);
+				malformedReason = L"condition could not be evaluated: unknown exception";
+				falseCount++;
+				executeElse = true;
 			}
 		}
 		else
@@ -168,6 +188,20 @@ LineOutcome IfFilterFactory::createFilter(const wstring& configPath, wstring& co
 			{
 				LogF(L"Error while evaluating ElseIf(%s): %s", expression.c_str(), e.GetMsg().c_str());
 				traceBranch(ConfigLoadTraceEntry::Kind::Condition, ConfigLoadTraceEntry::Result::Error, false);
+				malformedReason = L"condition could not be evaluated: " + e.GetMsg();
+			}
+			catch (const std::exception& e)
+			{
+				const wstring reason = wintext::toWideString(e.what(), CP_UTF8);
+				LogF(L"Error while evaluating ElseIf(%s): %s", expression.c_str(), reason.c_str());
+				traceBranch(ConfigLoadTraceEntry::Kind::Condition, ConfigLoadTraceEntry::Result::Error, false);
+				malformedReason = L"condition could not be evaluated: " + reason;
+			}
+			catch (...)
+			{
+				LogF(L"Error while evaluating ElseIf(%s): unknown exception", expression.c_str());
+				traceBranch(ConfigLoadTraceEntry::Kind::Condition, ConfigLoadTraceEntry::Result::Error, false);
+				malformedReason = L"condition could not be evaluated: unknown exception";
 			}
 		}
 		else if (falseCount == 1)
