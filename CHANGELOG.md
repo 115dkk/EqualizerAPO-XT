@@ -122,6 +122,9 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## v2.61.6 — 2026-11-05
 
+- **v2.61.5 was not published; this release carries its change.** No
+  installer was released under v2.61.5. The comment-card fix listed under
+  v2.61.5 ships in this release.
 - **Uninstalling no longer leaves the install folder in the registry, and a
   config folder that no longer exists is replaced on install.** XT and the
   original Equalizer APO share `HKLM\SOFTWARE\EqualizerAPO`. After
@@ -854,6 +857,9 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## v2.54.13 — 2026-09-25
 
+- **v2.54.12 was not published; this release carries its change.** No
+  installer was released under v2.54.12. The unplugged-device fix listed
+  under v2.54.12 ships in this release.
 - **A VST plug-in that reports latency no longer delays its own output a
   second time.** The latency compensation delayed every channel of the
   filter by the plug-in's reported latency, including the channels the
