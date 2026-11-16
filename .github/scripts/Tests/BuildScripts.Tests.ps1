@@ -217,6 +217,32 @@ Describe "extracted build script decisions" {
             -SuiteTimeoutMinutes 18 -PlanOnly).SuiteTimeoutMinutes | Should -Be 18
     }
 
+    It "builds the APO DLL and its probe under the memory gate and exports them for the capture gate" {
+        # Audit #467 TD-26: the suites compile the engine, not the COM shell,
+        # so the DLL the audio engine loads never ran under the sanitizer.
+        $memcheck = & (Join-Path $PSScriptRoot "..\Invoke-MemcheckTests.ps1") -WorkspaceRoot $root `
+            -ApoExportDirectory "C:\somewhere\asan-apo" -PlanOnly
+        $memcheck.Projects | Should -Contain "EqualizerAPO\EqualizerAPO.vcxproj"
+        $memcheck.Projects | Should -Contain "Tests\ApoHostProbe\ApoHostProbe.vcxproj"
+        # Hosted, never run here: neither is a suite.
+        $memcheck.Suites | Should -Not -Contain "EqualizerAPO"
+        $memcheck.Suites | Should -Not -Contain "ApoHostProbe"
+        $memcheck.ApoExport.Directory | Should -Be "C:\somewhere\asan-apo"
+        @($memcheck.ApoExport.Binaries | ForEach-Object { Split-Path $_ -Leaf }) |
+            Should -Be @("EqualizerAPO.dll", "ApoHostProbe.exe")
+        $memcheck.ApoExport.SanitizerRuntime | Should -Be "clang_rt.asan_dynamic-x86_64.dll"
+        # The names the capture gate looks for in that folder.
+        $gate = Get-Content (Join-Path $PSScriptRoot "..\Invoke-CaptureGate.ps1") -Raw
+        foreach ($binary in $memcheck.ApoExport.Binaries) {
+            $gate | Should -Match ([regex]::Escape('Join-Path $AsanApoDirectory "' + (Split-Path $binary -Leaf) + '"'))
+        }
+        # build.yml hands the folder from the one job to the other.
+        $workflow = Get-Content (Join-Path $PSScriptRoot "..\..\workflows\build.yml") -Raw
+        $workflow | Should -Match '-ApoExportDirectory "\$\{\{ runner\.temp \}\}\\asan-apo"'
+        $workflow | Should -Match '-AsanApoDirectory "\$\{\{ github\.workspace \}\}\\artifacts\\asan-apo"'
+        $workflow | Should -Match 'needs: \[build, prepare-matrix, memcheck\]'
+    }
+
     It "lists the capture probes so every leg builds them" {
         $avx2 = & (Join-Path $PSScriptRoot "..\Build-Solution.ps1") `
             -WorkspaceRoot $root -Platform x64 -SimdVariant avx2 -ArchFlag AdvancedVectorExtensions2 -PlanOnly
@@ -227,7 +253,7 @@ Describe "extracted build script decisions" {
     It "plans the capture gate over a pinned virtual cable with the preamp measured three ways" {
         $plan = & (Join-Path $PSScriptRoot "..\Invoke-CaptureGate.ps1") -WorkspaceRoot $root -PlanOnly
         # CI runs every measured phase; -Phases narrows a manual run.
-        $plan.Phases | Should -Be @("rounds", "plugin-load", "low-latency", "asio-entry")
+        $plan.Phases | Should -Be @("rounds", "child-chain", "plugin-load", "low-latency", "asio-entry")
         (& (Join-Path $PSScriptRoot "..\Invoke-CaptureGate.ps1") -WorkspaceRoot $root -Phases plugin-load -PlanOnly).Phases |
             Should -Be @("plugin-load")
         $plan.VbCableSha256 | Should -Match "^[0-9A-F]{64}$"
@@ -281,6 +307,29 @@ Describe "extracted build script decisions" {
         $plan.AsioEntry.Name | Should -Be "asio-entry"
         $plan.AsioEntry.ExpectGainDb | Should -Be $plan.PreampDb
         $plan.AsioEntry.Required | Should -BeTrue
+    }
+
+    It "plans the child round from the fixture's own header" {
+        # Audit #467 TD-26: the APO in front of a real child effect, hosted
+        # and through the audio engine. The CLSID and the gain are read from
+        # the header the fixture DLL is compiled from, so the gate cannot
+        # expect a gain the DLL does not apply.
+        $plan = & (Join-Path $PSScriptRoot "..\Invoke-CaptureGate.ps1") -WorkspaceRoot $root -PlanOnly
+        $header = Get-Content (Join-Path $PSScriptRoot "..\..\..\Tests\TestChildApo\TestChildApoProtocol.h") -Raw
+        $plan.ChildChain.Clsid | Should -Match '^\{[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\}$'
+        $header | Should -Match ([regex]::Escape($plan.ChildChain.Clsid))
+        $plan.ChildChain.ChildGainDb | Should -BeLessThan 0
+        $plan.ChildChain.ExpectGainDb | Should -Be ($plan.PreampDb + $plan.ChildChain.ChildGainDb)
+        $plan.ChildChain.Required | Should -BeTrue
+        # Far enough from the preamp alone that a child that never ran cannot
+        # pass inside the tolerance.
+        [math]::Abs($plan.ChildChain.ChildGainDb) | Should -BeGreaterThan (3 * $plan.ChildChain.ToleranceDb)
+        # The record value the gate writes is the one the DLL reads.
+        Import-Module (Join-Path $PSScriptRoot "..\ApoEndpointHarness.psm1") -Force
+        (Get-ApoEndpointContract).CHILD_PREMIX_VALUE | Should -Be "PreMixChild"
+        # The probes artifact carries the fixture DLL the phase stages.
+        (Get-Content (Join-Path $PSScriptRoot "..\..\workflows\build.yml") -Raw) |
+            Should -Match 'Tests/TestChildApo/\$\{\{ matrix\.platform \}\}/Release/TestChildApo\.dll'
     }
 
     It "compiles every shipped C++ binary for CodeQL" {

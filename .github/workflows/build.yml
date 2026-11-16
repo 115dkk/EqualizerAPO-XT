@@ -324,6 +324,7 @@ jobs:
         path: |
           Tests/ApoHostProbe/${{ matrix.platform }}/Release/ApoHostProbe.exe
           Tests/CaptureProbe/${{ matrix.platform }}/Release/CaptureProbe.exe
+          Tests/TestChildApo/${{ matrix.platform }}/Release/TestChildApo.dll
           Tests/AsioProbe/${{ matrix.platform }}/Release/AsioProbe.exe
           Tests/TestVst2Plugin/${{ matrix.platform }}/Release/TestVst2Plugin.dll
         if-no-files-found: error
@@ -758,7 +759,20 @@ jobs:
         . .\.github\scripts\Import-VsDevEnvironment.ps1
         Import-VsDevEnvironment "x64"
         & "${{ github.workspace }}\.github\scripts\Invoke-MemcheckTests.ps1" `
-          -WorkspaceRoot "${{ github.workspace }}"
+          -WorkspaceRoot "${{ github.workspace }}" `
+          -ApoExportDirectory "${{ runner.temp }}\asan-apo"
+
+    # EqualizerAPO.dll and its probe, built with AddressSanitizer above. The
+    # capture gate hosts them: it is the one runner with an endpoint record
+    # and a config for the DLL to read (audit #467 TD-26). if-no-files-found
+    # is an error so a gate that then finds nothing fails here, by name.
+    - name: Upload the instrumented APO for the capture gate
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: asan-apo
+        path: ${{ runner.temp }}\asan-apo
+        retention-days: 7
+        if-no-files-found: error
 
   pester:
     # Runs every Pester suite under .github/scripts/Tests: the release-keystone
@@ -917,7 +931,11 @@ jobs:
   # windows-2022 deliberately, like audio-live-repro.yml: the virtual driver
   # recipe is verified there.
   capture-gate:
-    needs: [build, prepare-matrix]
+    # memcheck is needed for its asan-apo artifact only. The gate still runs
+    # when memcheck failed (its other phases are worth having), and then the
+    # download step below fails it by name rather than letting the
+    # instrumented rounds go missing in silence.
+    needs: [build, prepare-matrix, memcheck]
     runs-on: windows-2022
     if: always() && needs.build.result == 'success'
     timeout-minutes: 30
@@ -937,6 +955,12 @@ jobs:
         name: capture-probes
         path: artifacts/capture-probes
 
+    - name: Download the instrumented APO (from memcheck)
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+      with:
+        name: asan-apo
+        path: artifacts/asan-apo
+
     - name: Run the capture gate
       shell: pwsh
       run: |
@@ -948,6 +972,7 @@ jobs:
           -WorkspaceRoot "${{ github.workspace }}" `
           -ArtifactPath "${{ github.workspace }}\artifacts\${{ needs.prepare-matrix.outputs.primary_artifact }}" `
           -ProbeDirectory $probeDir `
+          -AsanApoDirectory "${{ github.workspace }}\artifacts\asan-apo" `
           -SnapshotDirectory "${{ runner.temp }}\capture-gate"
 
     - name: Upload capture gate snapshots

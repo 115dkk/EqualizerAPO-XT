@@ -124,7 +124,7 @@ Describe "Test-SourceSync.ps1" {
     It "checks the real APO endpoint contract without a build" {
         $result = Invoke-SourceSync -RepoRoot (Split-Path -Parent $script:SolutionPath)
         $result.ExitCode | Should -Be 0
-        $result.Output | Should -Match 'All 10 APO endpoint contract values match the C\+\+ headers'
+        $result.Output | Should -Match 'All 11 APO endpoint contract values match the C\+\+ headers'
     }
 
     It "rejects a changed APO contract value <Key>" -ForEach @(

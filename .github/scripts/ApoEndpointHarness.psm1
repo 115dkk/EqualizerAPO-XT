@@ -15,6 +15,7 @@ function Get-ApoEndpointContract {
         DEVICE_FRIENDLY_VALUE = "{b3f8fa53-0004-438e-9003-51a46e139bfc},6"
         MMDEVICES_ROOT        = "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio"
         CHILD_APO_ROOT        = "HKLM\SOFTWARE\EqualizerAPO\Child APOs"
+        CHILD_PREMIX_VALUE    = "PreMixChild"
     }
 }
 

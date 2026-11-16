@@ -422,6 +422,7 @@ if (Test-Path -LiteralPath $apoHarnessPath) {
     FX_MFX = 'mfxGuidValueName'
     FX_EFX = 'efxGuidValueName'
     DEVICE_FRIENDLY_VALUE = 'deviceValueName'
+    CHILD_PREMIX_VALUE = 'preMixChildGuidValueName'
   }
   foreach ($entry in $propertyNames.GetEnumerator()) {
     $expected[$entry.Key] = Get-ContractDeclaration $device $entry.Value '\b@NAME@\s*\[\s*\]\s*=\s*L"(?<value>[^"\r\n]+)"\s*;'
