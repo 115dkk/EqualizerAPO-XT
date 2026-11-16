@@ -74,6 +74,14 @@ bool FilterEngine::loadConfig(const wstring& customPath)
 		return false;
 
 	lock_guard<mutex> lock(loadMutex);
+	const uint64_t observedOversizedBlockCount = oversizedBlockCount.load(std::memory_order_relaxed);
+	if (observedOversizedBlockCount != reportedOversizedBlockCount)
+	{
+		LogF(L"host passed %u frames, more than the %u it announced; block passed through unprocessed",
+			lastOversizedFrameCount.load(std::memory_order_relaxed),
+			lastOversizedMaxFrameCount.load(std::memory_order_relaxed));
+		reportedOversizedBlockCount = observedOversizedBlockCount;
+	}
 	timer.start();
 
 	// The factories build through the engine's load session. Move the previous

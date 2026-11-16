@@ -11,6 +11,7 @@
 */
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <cmath>
@@ -74,6 +75,88 @@ TEST_CASE(EngineOrchestrationTests, testProcessWithoutConfigurationDoesNotCrash)
 	// and the output buffers stay untouched.
 	harness.expect(outputF[0] == -1.0f && outputD[0] == -1.0 && planarFOut[0] == -1.0f,
 		"process() without a configuration wrote output despite zero channel counts");
+}
+
+// Audit #467 TD-10: a host block larger than maxFrameCount must never reach a
+// configuration or filter. Every public layout bypasses it without touching
+// guards, and the next valid block still runs the configured filter.
+TEST_CASE(EngineOrchestrationTests, testOversizedHostBlocksBypassEveryProcessLayout)
+{
+	constexpr unsigned maxFrames = 8;
+	constexpr unsigned oversizedFrames = maxFrames + 1;
+	constexpr unsigned channels = 2;
+	constexpr size_t guardSamples = 4;
+	const std::wstring configPath = writeConfig(harness, L"oversized-block.txt",
+		"Preamp: -6.0206 dB\n");
+	FilterEngine engine;
+	initializeEngine(engine, 48000, channels, maxFrames, configPath);
+
+	const size_t interleavedSamples = static_cast<size_t>(oversizedFrames) * channels;
+	std::vector<float> floatInput(interleavedSamples + guardSamples, -77.0f);
+	std::vector<float> floatOutput(interleavedSamples + guardSamples, -88.0f);
+	for (size_t sample = 0; sample < interleavedSamples; ++sample)
+		floatInput[sample] = static_cast<float>(sample + 1) / 32.0f;
+	engine.process(floatOutput.data(), floatInput.data(), oversizedFrames);
+	for (size_t sample = 0; sample < interleavedSamples; ++sample)
+		harness.expectEqual(floatOutput[sample], floatInput[sample],
+			"oversized float-interleaved block did not pass through unchanged");
+	for (size_t sample = interleavedSamples; sample < floatOutput.size(); ++sample)
+	{
+		harness.expectEqual(floatInput[sample], -77.0f,
+			"oversized float-interleaved processing wrote past its input");
+		harness.expectEqual(floatOutput[sample], -88.0f,
+			"oversized float-interleaved processing wrote past its output");
+	}
+
+	std::vector<double> doubleInput(interleavedSamples + guardSamples, -77.0);
+	std::vector<double> doubleOutput(interleavedSamples + guardSamples, -88.0);
+	for (size_t sample = 0; sample < interleavedSamples; ++sample)
+		doubleInput[sample] = static_cast<double>(sample + 1) / 32.0;
+	engine.process(doubleOutput.data(), doubleInput.data(), oversizedFrames);
+	for (size_t sample = 0; sample < interleavedSamples; ++sample)
+		harness.expectEqual(doubleOutput[sample], doubleInput[sample],
+			"oversized double-interleaved block did not pass through unchanged");
+	for (size_t sample = interleavedSamples; sample < doubleOutput.size(); ++sample)
+	{
+		harness.expectEqual(doubleInput[sample], -77.0,
+			"oversized double-interleaved processing wrote past its input");
+		harness.expectEqual(doubleOutput[sample], -88.0,
+			"oversized double-interleaved processing wrote past its output");
+	}
+
+	std::array<std::vector<float>, channels> planarInput;
+	std::array<std::vector<float>, channels> planarOutput;
+	std::array<float*, channels> planarInputPointers;
+	std::array<float*, channels> planarOutputPointers;
+	for (unsigned channel = 0; channel < channels; ++channel)
+	{
+		planarInput[channel].assign(oversizedFrames + guardSamples, -77.0f);
+		planarOutput[channel].assign(oversizedFrames + guardSamples, -88.0f);
+		for (unsigned frame = 0; frame < oversizedFrames; ++frame)
+			planarInput[channel][frame] = static_cast<float>(channel * 16 + frame + 1) / 32.0f;
+		planarInputPointers[channel] = planarInput[channel].data();
+		planarOutputPointers[channel] = planarOutput[channel].data();
+	}
+	engine.process(planarOutputPointers.data(), planarInputPointers.data(), oversizedFrames);
+	for (unsigned channel = 0; channel < channels; ++channel)
+	{
+		for (unsigned frame = 0; frame < oversizedFrames; ++frame)
+			harness.expectEqual(planarOutput[channel][frame], planarInput[channel][frame],
+				"oversized float-planar block did not pass through unchanged");
+		for (size_t frame = oversizedFrames; frame < planarOutput[channel].size(); ++frame)
+		{
+			harness.expectEqual(planarInput[channel][frame], -77.0f,
+				"oversized float-planar processing wrote past its input");
+			harness.expectEqual(planarOutput[channel][frame], -88.0f,
+				"oversized float-planar processing wrote past its output");
+		}
+	}
+
+	std::vector<float> validInput(static_cast<size_t>(maxFrames) * channels, 1.0f);
+	std::vector<float> validOutput(static_cast<size_t>(maxFrames) * channels, -1.0f);
+	engine.process(validOutput.data(), validInput.data(), maxFrames);
+	harness.expectNear(validOutput[0], 0.5f, 1e-3f,
+		"a valid block after oversized bypass did not run the configured filter");
 }
 
 // initialize() seeds an empty active configuration and publishes the requested

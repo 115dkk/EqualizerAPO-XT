@@ -260,6 +260,10 @@ private:
 
 	ConfigSwapChannel<FilterConfigurationPtr> configChannel;
 	std::atomic<IInputTap*> inputTap{nullptr};
+	std::atomic<uint64_t> oversizedBlockCount{0};
+	std::atomic<unsigned> lastOversizedFrameCount{0};
+	std::atomic<unsigned> lastOversizedMaxFrameCount{0};
+	uint64_t reportedOversizedBlockCount = 0;
 	// Realtime-thread-only token. Incremented once at processImpl entry.
 	uint64_t processBlockCounter = 0;
 
