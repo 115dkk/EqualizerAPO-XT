@@ -7,7 +7,7 @@
 #include "VstChunkState.h"
 
 #include <QByteArray>
-#include <QString>
+#include "vst/VSTChunkBase64.h"
 
 namespace
 {
@@ -99,16 +99,15 @@ bool vstChunksEquivalent(const std::wstring& first, const std::wstring& second)
 	if (first == second)
 		return true;
 
-	auto firstResult = QByteArray::fromBase64Encoding(
-		QString::fromStdWString(first).toLatin1(), QByteArray::AbortOnBase64DecodingErrors);
-	auto secondResult = QByteArray::fromBase64Encoding(
-		QString::fromStdWString(second).toLatin1(), QByteArray::AbortOnBase64DecodingErrors);
-	if (!firstResult || !secondResult)
+	std::vector<char> firstResult, secondResult;
+	if (!vstchunk::decodeBase64(first, firstResult) || !vstchunk::decodeBase64(second, secondResult))
 		return false;
-	if (firstResult.decoded.size() != secondResult.decoded.size())
+	if (firstResult.size() != secondResult.size())
 		return false;
 
-	maskZipTimestamps(firstResult.decoded);
-	maskZipTimestamps(secondResult.decoded);
-	return firstResult.decoded == secondResult.decoded;
+	QByteArray firstBytes(firstResult.data(), static_cast<qsizetype>(firstResult.size()));
+	QByteArray secondBytes(secondResult.data(), static_cast<qsizetype>(secondResult.size()));
+	maskZipTimestamps(firstBytes);
+	maskZipTimestamps(secondBytes);
+	return firstBytes == secondBytes;
 }

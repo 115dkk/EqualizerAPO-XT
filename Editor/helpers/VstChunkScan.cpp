@@ -6,7 +6,7 @@
 
 #include "VstChunkScan.h"
 
-#include <QByteArray>
+#include "vst/VSTChunkBase64.h"
 #include <QFile>
 #include <QRegularExpression>
 #include <QString>
@@ -19,8 +19,10 @@ QStringList vstChunkPathCandidates(const std::wstring& chunkData)
 	if (chunkData == L"" || chunkData.length() >= 100000)
 		return candidates;
 
-	QByteArray bytes = QByteArray::fromBase64(QString::fromStdWString(chunkData).toUtf8());
-	QString chunkText = QString::fromUtf8(bytes.data(), bytes.length());
+	std::vector<char> bytes;
+	if (!vstchunk::decodeBase64(chunkData, bytes))
+		return candidates;
+	QString chunkText = QString::fromUtf8(bytes.data(), static_cast<qsizetype>(bytes.size()));
 	QRegularExpression regexp("[A-Za-z]:(?:\\\\[\\w \\(\\)-]+)+\\.[A-Za-z]{3}");
 	QRegularExpressionMatchIterator it = regexp.globalMatch(chunkText);
 	while (it.hasNext())

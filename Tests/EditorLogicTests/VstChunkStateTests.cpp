@@ -5,6 +5,8 @@
 */
 
 #include "Editor/helpers/VstChunkState.h"
+#include "Editor/helpers/VstChunkScan.h"
+#include "vst/VSTChunkBase64.h"
 
 #include <string>
 
@@ -143,6 +145,52 @@ std::wstring encodeChunk(const QByteArray& bytes)
 	return QString::fromLatin1(bytes.toBase64()).toStdWString();
 }
 } // namespace
+
+TEST_CASE(EditorLogicTests, testVstChunkDecodingMatchesHost)
+{
+	const struct
+	{
+		const wchar_t* encoded;
+		bool accepted;
+		const char* label;
+	} cases[] = {
+		{L"VQ==", true, "padded"},
+		{L"V Q==", true, "space"},
+		{L"VQ==\r\n", true, "CRLF"},
+		{L"V\tQ==", true, "tab"},
+		{L"VQ", true, "unpadded"},
+		{L"VQ=", false, "short padding"},
+		{L"VQ===", true, "extra padding"},
+		{L"V!Q==", false, "invalid digit"},
+		{L"VQ==junk", true, "trailing text"},
+		{L"V", false, "single digit"}
+	};
+	// A complete quantum prefix makes the same tail observable through the
+	// public path scanner, including rejection after a recognizable path.
+	QByteArray path("C:\\Samples\\room.wav\0", 20);
+	while (path.size() % 3 != 0)
+		path.append('\0');
+	const std::wstring prefix = encodeChunk(path);
+	for (const auto& row : cases)
+	{
+		const std::string label = std::string("host base64 ") + row.label;
+		std::vector<char> decoded;
+		const bool accepted = vstchunk::decodeBase64(row.encoded, decoded);
+		harness.expectTrue(accepted == row.accepted, label + ": expected host decision");
+		harness.expectTrue(!accepted || decoded == std::vector<char>{'U'}, label + ": host bytes are 55");
+		harness.expectTrue(vstChunksEquivalent(row.encoded, L"VQ==") == accepted,
+			label + ": state comparison uses the host decision and bytes");
+		harness.expectFalse(vstChunksEquivalent(row.encoded, L""), label + ": not an empty state");
+		harness.expectTrue(vstChunkPathCandidates(row.encoded).isEmpty(), label + ": pathless payload");
+		const std::wstring withPath = prefix + row.encoded;
+		std::vector<char> pathBytes;
+		harness.expectTrue(vstchunk::decodeBase64(withPath, pathBytes) == accepted,
+			label + ": complete prefix preserves the host decision");
+		const QStringList expected = accepted ? QStringList{QStringLiteral("C:\\Samples\\room.wav")} : QStringList{};
+		harness.expectTrue(vstChunkPathCandidates(withPath) == expected,
+			label + ": scanner refuses the same malformed chunks as the host");
+	}
+}
 
 TEST_CASE(EditorLogicTests, testVstChunkStateIdenticalAndEmptyInputs)
 {
