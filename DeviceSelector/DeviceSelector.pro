@@ -121,6 +121,8 @@ HEADERS += \
 	../devices/AsioEntryWriter.h \
 	../devices/EndpointProbe.h \
 	../platform/windows/EndpointId.h \
+	../runtime/ipc/DeviceTestPipe.h \
+	../services/windows/AudioServiceNames.h \
 	../devices/DeviceChange.h \
 	../devices/DeviceEnumeration.h \
 	../platform/windows/TokenPrivilege.h \

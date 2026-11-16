@@ -9,7 +9,7 @@
 
 #include "asio/HostLaunch.h"
 #include "asio/WrapperRecord.h"
-#include "devices/DeviceAPOInfoKeys.h"
+#include "services/registry/RegistryPaths.h"
 #include "devices/ReceiverEndpoints.h"
 #include "platform/windows/GuidText.h"
 #include "runtime/errors/WideError.h"
