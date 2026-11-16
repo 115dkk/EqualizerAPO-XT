@@ -671,7 +671,7 @@ REGISTER_FILTER_CARD_EDITOR(VSTPlugin, [](FilterTable* filterTable, const QStrin
 	// config path policy does not open) still opens an empty card, as it did
 	// when this path went through the factory. The store()/parse round-trip
 	// is verified lossless (--selftest-vst).
-	const VSTPluginCommand cmd = VSTPluginCommand::parse(L"", parameters.toStdWString());
+	const VSTPluginCommand cmd = VSTPluginCommand::parse(parameters.toStdWString());
 	std::wstring refusal;
 	const bool usable = cmd.valid && !cmd.libraryPath.empty()
 		&& ConfigPathPolicy::allowsOpen(cmd.libraryPath, L"", refusal);

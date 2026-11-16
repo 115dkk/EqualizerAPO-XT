@@ -44,7 +44,7 @@ class VST3HostContext;
 class VST3Instance final : public VSTPluginInstance
 {
 public:
-	VST3Instance(const std::shared_ptr<VSTPluginLibrary>& library, int processLevel);
+	VST3Instance(const std::shared_ptr<VSTPluginLibrary>& library, VSTPluginInstance::ProcessLevel processLevel);
 	~VST3Instance() override;
 
 	bool initialize() override;

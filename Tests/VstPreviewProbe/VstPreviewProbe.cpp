@@ -148,15 +148,15 @@ int runPluginProbe(const std::wstring& pluginPath, double seconds, float sampleR
 {
 	StepClock clock;
 	std::shared_ptr<VSTPluginLibrary> library = VSTPluginLibrary::getInstance(pluginPath);
-	const int libraryResult = VSTPluginLibrary::load(library->getLibPath()).status;
+	const auto libraryResult = VSTPluginLibrary::load(library->getLibPath()).status;
 	clock.lap(L"library initialize");
-	if (libraryResult < 0)
+	if (!AbstractLibrary::succeeded(libraryResult))
 	{
-		wprintf(L"FAIL: library initialize returned %d for %s\n", libraryResult, pluginPath.c_str());
+		wprintf(L"FAIL: library initialize returned %d for %s\n", static_cast<int>(libraryResult), pluginPath.c_str());
 		return 2;
 	}
 
-	auto instanceOwner = VSTPluginInstance::create(library, 1);
+	auto instanceOwner = VSTPluginInstance::create(library, VSTPluginInstance::ProcessLevel::User);
 	VSTPluginInstance& instance = *instanceOwner;
 	if (!instance.initialize())
 	{
@@ -545,20 +545,20 @@ constexpr double audiblePeak = 0.01;
 int runMonitorProbe(const std::wstring& pluginPath, double seconds, bool expectLive)
 {
 	std::shared_ptr<VSTPluginLibrary> library = VSTPluginLibrary::getInstance(pluginPath);
-	const int libraryResult = VSTPluginLibrary::load(library->getLibPath()).status;
-	if (libraryResult < 0)
+	const auto libraryResult = VSTPluginLibrary::load(library->getLibPath()).status;
+	if (!AbstractLibrary::succeeded(libraryResult))
 	{
-		wprintf(L"FAIL: library initialize returned %d for %s\n", libraryResult, pluginPath.c_str());
+		wprintf(L"FAIL: library initialize returned %d for %s\n", static_cast<int>(libraryResult), pluginPath.c_str());
 		return 2;
 	}
-	auto instanceOwner = VSTPluginInstance::create(library, 1);
+	auto instanceOwner = VSTPluginInstance::create(library, VSTPluginInstance::ProcessLevel::User);
 	VSTPluginInstance& instance = *instanceOwner;
 	if (!instance.initialize())
 	{
 		wprintf(L"FAIL: plugin instance initialize failed\n");
 		return 2;
 	}
-	instance.negotiateChannelCount(2, {});
+	instance.negotiate({});
 	wprintf(L"INFO: loaded '%s' (%hs), %d in / %d out\n", instance.getName().c_str(),
 		instance.isVST3() ? "VST3" : "VST2", instance.numInputs(), instance.numOutputs());
 

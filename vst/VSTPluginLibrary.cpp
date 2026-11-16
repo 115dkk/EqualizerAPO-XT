@@ -144,8 +144,8 @@ void VSTPluginLibrary::retainIfKeepingLoaded(const shared_ptr<VSTPluginLibrary>&
 VSTPluginLibrary::LoadResult VSTPluginLibrary::load(const wstring& libPath, const JudgedPath* path)
 {
 	auto library = getInstance(libPath);
-	const int status = path != nullptr ? library->initialize(*path) : library->initialize();
-	if (status >= 0)
+	const auto status = path != nullptr ? library->initialize(*path) : library->initialize();
+	if (succeeded(status))
 		retainIfKeepingLoaded(library);
 	return {std::move(library), status};
 }
@@ -285,10 +285,10 @@ bool VSTPluginLibrary::loadFunctions()
 	return hasVst2EntryPoint;
 }
 
-int VSTPluginLibrary::customInitialize()
+AbstractLibrary::InitializeResult VSTPluginLibrary::customInitialize()
 {
 	if (!vst3)
-		return 0;
+		return InitializeResult::AlreadyLoaded;
 
 	// Standard Windows VST3 module lifecycle: InitDll before the factory,
 	// ExitDll after the last release. A module that exports InitDll may
@@ -298,13 +298,13 @@ int VSTPluginLibrary::customInitialize()
 	if (InitDll != nullptr)
 	{
 		if (!InitDll())
-			return LOADING_FAILED;
+			return InitializeResult::LoadingFailed;
 		vst3ModuleInitialized = true;
 	}
 
 	factory.reset(GetPluginFactory());
 	if (!factory)
-		return FUNCTIONS_MISSING;
+		return InitializeResult::FunctionsMissing;
 
 	if (auto factory3 = queryFactory3(factory.get()))
 	{
@@ -336,11 +336,11 @@ int VSTPluginLibrary::customInitialize()
 				if (factory2->getClassInfo2(i, &info2) == Steinberg::kResultOk)
 					vst3SubCategories = vsttext::boundedString(info2.subCategories);
 			}
-			return 0;
+			return InitializeResult::AlreadyLoaded;
 		}
 	}
 
-	return FUNCTIONS_MISSING;
+	return InitializeResult::FunctionsMissing;
 }
 
 void VSTPluginLibrary::customUninitialize() noexcept

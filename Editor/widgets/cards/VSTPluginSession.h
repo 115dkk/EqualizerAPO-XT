@@ -165,7 +165,7 @@ private:
 	// exists; emits statusChanged. Only for a library that needs no file
 	// system work (none selected, or held by this process already).
 	void initPlugin();
-	void applyLoadResult(int result);
+	void applyLoadResult(AbstractLibrary::InitializeResult result);
 	// Runs after every requested load: the row refreshes, then whatever the
 	// user asked for while it loaded happens.
 	void finishLoad();

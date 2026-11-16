@@ -170,7 +170,7 @@ void VSTPluginSession::requestPlugin()
 
 	const unsigned generation = loadGeneration;
 	QPointer<VSTPluginSession> guard(this);
-	PluginLoadQueue::enqueue(pluginLibrary, [guard, generation](int result) {
+	PluginLoadQueue::enqueue(pluginLibrary, [guard, generation](AbstractLibrary::InitializeResult result) {
 		if (guard.isNull() || guard->loadGeneration != generation)
 			return;
 		guard->currentStatus.loading = false;
@@ -189,28 +189,31 @@ bool VSTPluginSession::waitForPendingLoads(int timeoutMs)
 	return PluginLoadQueue::waitForPendingLoads(timeoutMs);
 }
 
-void VSTPluginSession::applyLoadResult(int result)
+void VSTPluginSession::applyLoadResult(AbstractLibrary::InitializeResult result)
 {
 	const bool card = row == Row::Card;
 	currentStatus = Status();
-	if (result < 0)
+	if (!AbstractLibrary::succeeded(result))
 	{
 		currentStatus.critical = true;
 
 		switch (result)
 		{
-		case AbstractLibrary::FILE_NOT_FOUND:
+		case AbstractLibrary::InitializeResult::Loaded:
+		case AbstractLibrary::InitializeResult::AlreadyLoaded:
+			break;
+		case AbstractLibrary::InitializeResult::FileNotFound:
 			currentStatus.libraryMissing = true;
 			if (!card)
 				currentStatus.text = QCoreApplication::translate("VSTPluginFilterGUI", "File not found.");
 			break;
-		case AbstractLibrary::LOADING_FAILED:
+		case AbstractLibrary::InitializeResult::LoadingFailed:
 			currentStatus.text = QCoreApplication::translate("VSTPluginFilterGUI", "Library could not be loaded.");
 			break;
-		case AbstractLibrary::FUNCTIONS_MISSING:
+		case AbstractLibrary::InitializeResult::FunctionsMissing:
 			currentStatus.text = QCoreApplication::translate("VSTPluginFilterGUI", "Library does not contain needed functions.");
 			break;
-		case AbstractLibrary::WRONG_ARCHITECTURE:
+		case AbstractLibrary::InitializeResult::WrongArchitecture:
 		{
 #ifdef _WIN64
 			int bitDepth = 64;
@@ -225,7 +228,7 @@ void VSTPluginSession::applyLoadResult(int result)
 	}
 	else
 	{
-		effect = VSTPluginInstance::create(pluginLibrary, 1);
+		effect = VSTPluginInstance::create(pluginLibrary, VSTPluginInstance::ProcessLevel::User);
 		if (effect->initialize())
 		{
 			effect->setLanguage(QLocale().language() == QLocale::German ? 2 : 1);

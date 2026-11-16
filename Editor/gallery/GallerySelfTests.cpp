@@ -363,7 +363,7 @@ int SkinGallery::runVstRoundTripSelfTest()
 	int failures = 0;
 	for (const Case& c : cases)
 	{
-		VSTPluginFilterFactory factory;
+		VSTPluginFilterFactory factory(VSTPluginFilterFactory::Mode::ParseOnly);
 		std::wstring command = L"VSTPlugin";
 		std::wstring params = c.params;
 		FilterVector filters = factory.createFilter(L"", command, params).filters;

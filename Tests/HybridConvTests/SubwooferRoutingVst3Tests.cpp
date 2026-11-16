@@ -318,7 +318,7 @@ return;
 	shared_ptr<VSTPluginLibrary> library = VSTPluginLibrary::getInstance(bundle);
 	harness.require(library != nullptr, "Subwoofer Routing bundle resolves");
 	harness.expectTrue(library->isVST3(), "library is recognized as VST3");
-	harness.expectTrue(VSTPluginLibrary::load(library->getLibPath()).status >= 0, "module initializes");
+	harness.expectTrue(VSTPluginLibrary::load(library->getLibPath()).succeeded(), "module initializes");
 	harness.require(library->getFactory() != nullptr, "factory is available");
 
 	TUID componentIid;
@@ -349,15 +349,14 @@ return;
 	if (directComponent != nullptr)
 		directComponent->release();
 
-	auto instanceOwner = VSTPluginInstance::create(library, 2);
+	auto instanceOwner = VSTPluginInstance::create(library, VSTPluginInstance::ProcessLevel::Realtime);
 	VSTPluginInstance& instance = *instanceOwner;
 	harness.require(instance.initialize(), "plugin instance initializes");
-	harness.expectTrue(instance.canDoubleReplacing(), "host negotiates double processing");
 
 	const std::vector<wstring> channels = {
 		L"L", L"R", L"LFE", L"RL", L"RR"
 	};
-	harness.require(instance.negotiateChannelCount(5, channels),
+	harness.require(instance.negotiate({std::nullopt, 5, channels}).path == VSTPluginInstance::NegotiationResult::Path::Automatic,
 		"semantic 4.1 channel names negotiate k41Music");
 	harness.expectEqual(instance.numInputs(), 5, "input bus has five channels");
 	harness.expectEqual(instance.numOutputs(), 5, "output bus has five channels");
@@ -390,7 +389,8 @@ return;
 	subroute::Processor reference;
 	reference.prepare(*compiled.graph);
 
-	instance.prepareForProcessing(static_cast<float>(sampleRate), blockSize);
+	harness.expectTrue(instance.prepareForProcessing(static_cast<float>(sampleRate), blockSize),
+		"host prepares double input processing");
 	instance.writeToEffect(chunk, std::unordered_map<wstring, float>());
 	instance.startProcessing();
 
@@ -418,7 +418,7 @@ return;
 				input[channel][sample] = nextNoise(randomState);
 		}
 
-		instance.processDoubleReplacing(
+		instance.processBlock(
 			inputPlanes,
 			pluginPlanes,
 			blockSize);
@@ -457,7 +457,7 @@ return;
 	}
 	// cppcheck-suppress unreadVariable // read through the impulseInputs pointer array
 	impulseInput[0][0] = 1.0;
-	instance.processDoubleReplacing(impulseInputs, impulseOutputs, blockSize);
+	instance.processBlock(impulseInputs, impulseOutputs, blockSize);
 
 	instance.stopProcessing();
 	instance.startProcessing();
@@ -471,7 +471,7 @@ return;
 		silenceInputs[channel] = silenceInput[channel];
 		silenceOutputs[channel] = silenceOutput[channel];
 	}
-	instance.processDoubleReplacing(silenceInputs, silenceOutputs, blockSize);
+	instance.processBlock(silenceInputs, silenceOutputs, blockSize);
 	harness.expectTrue(below(silenceOutput, 1.0e-9),
 		"deactivate/reactivate resets delay and IIR residue");
 

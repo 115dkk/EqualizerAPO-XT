@@ -35,9 +35,10 @@ class VSTPluginLibrary;
 class VSTPluginInstance
 {
 public:
+	enum class ProcessLevel { User = 1, Realtime = 2 };
 	// Picks the format once. This header deliberately includes no VST SDK.
 	static std::unique_ptr<VSTPluginInstance> create(
-		const std::shared_ptr<VSTPluginLibrary>& library, int processLevel);
+		const std::shared_ptr<VSTPluginLibrary>& library, VSTPluginInstance::ProcessLevel processLevel);
 	bool isVST3() const;
 
 	virtual ~VSTPluginInstance() = default;
@@ -48,6 +49,7 @@ public:
 
 	virtual int numInputs() const = 0;
 	virtual int numOutputs() const = 0;
+private:
 	// Proposes a bus layout matching channelCount to the plugin (VST3 only;
 	// VST2 channel counts are fixed by the effect). Returns true when the
 	// plugin afterwards spans at least channelCount channels, so a single
@@ -141,8 +143,8 @@ public:
 		std::unordered_map<std::wstring, float>& paramMap) const = 0;
 
 	virtual bool startProcessing() = 0;
+private:
 	virtual void processDoubleReplacing(double** inputArray, double** outputArray, int frameCount) = 0;
-protected:
 	virtual void processReplacing(float** inputArray, float** outputArray, int frameCount) = 0;
 	virtual void process(float** inputArray, float** outputArray, int frameCount) = 0;
 public:
@@ -168,10 +170,12 @@ public:
 	// A size request from the plug-in's editor, in the units its format uses.
 	virtual void onSizeWindow(int w, int h) = 0;
 
+private:
 	// The sample widths the plug-in takes, recorded by the implementation
 	// when it loads (and, for VST2, refreshed before processing starts).
 	bool canReplacing() const { return floatProcessing; }
 	bool canDoubleReplacing() const { return doubleProcessing; }
+public:
 	// EAPO slot -> plug-in bus slot. Empty for VST2, which keeps the
 	// identity order.
 	const std::vector<int>& getVST3InputChannelMapping() const { return inputMapping; }
@@ -180,7 +184,7 @@ public:
 	int getUsedChannelCount() const { return usedChannelCount; }
 	void setUsedChannelCount(int count) { usedChannelCount = count; }
 	float getSampleRate() const { return sampleRate; }
-	int getProcessLevel() const { return processLevel; }
+	ProcessLevel getProcessLevel() const { return processLevel; }
 	int getLanguage() const { return language; }
 	void setLanguage(int value) { language = value; }
 
@@ -207,7 +211,7 @@ protected:
 	virtual bool startEditingImpl(HWND hWnd, short* width, short* height, double scaleFactor) = 0;
 	virtual bool rescaleEditorImpl(double scaleFactor) = 0;
 
-	VSTPluginInstance(const std::shared_ptr<VSTPluginLibrary>& library, int processLevel)
+	VSTPluginInstance(const std::shared_ptr<VSTPluginLibrary>& library, VSTPluginInstance::ProcessLevel processLevel)
 		: library(library), processLevel(processLevel)
 	{
 	}
@@ -235,6 +239,6 @@ private:
 	int processingInputs = 0;
 	int processingOutputs = 0;
 	unsigned processingFrames = 0;
-	int processLevel = 0;
+	ProcessLevel processLevel = ProcessLevel::User;
 	int language = 1;
 };

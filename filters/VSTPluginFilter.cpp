@@ -121,7 +121,7 @@ bool VSTPluginFilter::createFirstInstance(InitContext& context, const std::vecto
 {
 	try
 	{
-		context.firstEffect = VSTPluginInstance::create(library, 2);
+		context.firstEffect = VSTPluginInstance::create(library, VSTPluginInstance::ProcessLevel::Realtime);
 	}
 	catch (const std::bad_alloc&)
 	{
@@ -233,7 +233,7 @@ bool VSTPluginFilter::createRemainingInstances(InitContext& context, const std::
 	{
 		try
 		{
-			effects.push_back(VSTPluginInstance::create(library, 2));
+			effects.push_back(VSTPluginInstance::create(library, VSTPluginInstance::ProcessLevel::Realtime));
 		}
 		catch (const std::bad_alloc&)
 		{

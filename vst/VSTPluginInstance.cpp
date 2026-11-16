@@ -28,12 +28,12 @@
 // These factories live in separate translation units: the VST2 and VST3
 // SDKs have conflicting VST_VERSION definitions.
 std::unique_ptr<VSTPluginInstance> createVST2Instance(
-	const std::shared_ptr<VSTPluginLibrary>& library, int processLevel);
+	const std::shared_ptr<VSTPluginLibrary>& library, VSTPluginInstance::ProcessLevel processLevel);
 std::unique_ptr<VSTPluginInstance> createVST3Instance(
-	const std::shared_ptr<VSTPluginLibrary>& library, int processLevel);
+	const std::shared_ptr<VSTPluginLibrary>& library, VSTPluginInstance::ProcessLevel processLevel);
 
 std::unique_ptr<VSTPluginInstance> VSTPluginInstance::create(
-	const std::shared_ptr<VSTPluginLibrary>& library, int processLevel)
+	const std::shared_ptr<VSTPluginLibrary>& library, VSTPluginInstance::ProcessLevel processLevel)
 {
 	return library->isVST3() ? createVST3Instance(library, processLevel) : createVST2Instance(library, processLevel);
 }

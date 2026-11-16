@@ -27,5 +27,9 @@
 class VSTPluginFilterFactory : public IFilterFactory
 {
 public:
+	enum class Mode { LoadBinary, ParseOnly };
+	explicit VSTPluginFilterFactory(Mode mode = Mode::LoadBinary) : mode(mode) {}
 	LineOutcome createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
+private:
+	Mode mode;
 };

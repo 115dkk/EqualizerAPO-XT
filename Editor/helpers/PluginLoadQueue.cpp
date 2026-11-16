@@ -33,7 +33,7 @@
 
 namespace
 {
-using Callback = std::function<void(int result)>;
+using Callback = std::function<void(AbstractLibrary::InitializeResult result)>;
 
 class Queue;
 
@@ -78,7 +78,7 @@ public:
 				// every other completion.
 				pendingDeliveries++;
 				QMetaObject::invokeMethod(receiver, [this, callback = std::move(callback)]() {
-					callback(AbstractLibrary::LOADING_FAILED);
+					callback(AbstractLibrary::InitializeResult::LoadingFailed);
 					std::lock_guard<std::mutex> deliveryLock(mutex);
 					pendingDeliveries--;
 				}, Qt::QueuedConnection);
@@ -172,7 +172,7 @@ private:
 			const std::wstring path = request->library->getLoadPath();
 			TraceFStatic(L"Loading plug-in library %s on the plug-in loader thread", path.c_str());
 			const auto started = std::chrono::steady_clock::now();
-			int result = AbstractLibrary::LOADING_FAILED;
+			AbstractLibrary::InitializeResult result = AbstractLibrary::InitializeResult::LoadingFailed;
 			try
 			{
 				CrashHandler::setBreadcrumb(L"loading plug-in " + path);
@@ -180,11 +180,11 @@ private:
 			}
 			catch (...)
 			{
-				result = AbstractLibrary::LOADING_FAILED;
+				result = AbstractLibrary::InitializeResult::LoadingFailed;
 			}
 			const long long elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(
 				std::chrono::steady_clock::now() - started).count();
-			LogFStatic(L"Plug-in library %s loaded in %lld ms, result %d", path.c_str(), elapsedMs, result);
+			LogFStatic(L"Plug-in library %s loaded in %lld ms, result %d", path.c_str(), elapsedMs, static_cast<int>(result));
 
 			// Posting under the lock keeps the receiver alive until the events
 			// are queued: its destructor takes the same lock.
@@ -242,7 +242,7 @@ Queue& queue()
 }
 
 void PluginLoadQueue::enqueue(const std::shared_ptr<VSTPluginLibrary>& library,
-	std::function<void(int result)> onDoneOnUiThread)
+	std::function<void(AbstractLibrary::InitializeResult result)> onDoneOnUiThread)
 {
 	queue().enqueue(library, std::move(onDoneOnUiThread));
 }

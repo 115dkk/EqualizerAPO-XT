@@ -138,7 +138,7 @@ using VST2EffectPtr = std::unique_ptr<vst_effect_t, VST2EffectDeleter>;
 class VST2Instance final : public VSTPluginInstance
 {
 public:
-	VST2Instance(const std::shared_ptr<VSTPluginLibrary>& library, int processLevel)
+	VST2Instance(const std::shared_ptr<VSTPluginLibrary>& library, VSTPluginInstance::ProcessLevel processLevel)
 		: VSTPluginInstance(library, processLevel)
 	{
 	}
@@ -432,7 +432,7 @@ intptr_t callback(struct vst_effect_t* effect, int32_t opcode, int32_t index, in
 
 	case VST_HOST_OPCODE_GET_ACTIVE_THREAD:
 		if (instance != NULL)
-			return instance->getProcessLevel();
+			return static_cast<int>(instance->getProcessLevel());
 		return 0;
 
 	case VST_HOST_OPCODE_LANGUAGE:
@@ -669,7 +669,7 @@ void VST2Instance::readFromEffect(wstring& chunkData, unordered_map<wstring, flo
 }
 
 std::unique_ptr<VSTPluginInstance> createVST2Instance(
-	const std::shared_ptr<VSTPluginLibrary>& library, int processLevel)
+	const std::shared_ptr<VSTPluginLibrary>& library, VSTPluginInstance::ProcessLevel processLevel)
 {
 	return std::make_unique<VST2Instance>(library, processLevel);
 }

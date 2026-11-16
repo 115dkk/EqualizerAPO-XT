@@ -166,12 +166,10 @@ wstring serializeState(const wstring& chunkData, const std::unordered_map<wstrin
 }
 }
 
-VSTPluginCommand VSTPluginCommand::parse(const wstring& /*configPath*/, const wstring& parameters)
+VSTPluginCommand VSTPluginCommand::parse(const wstring& parameters)
 {
-	// configPath is intentionally unused: the parse never looks at it
-	// (configPath only decides whether the factory loads the binary, which
-	// stays in the factory). The engine factory and the Editor GUI share this
-	// one grammar.
+	// The engine factory and the Editor GUI share this grammar; only the
+	// factory loads the binary.
 	VSTPluginCommand cmd;
 	const vector<wstring> parts = text::splitQuoted(parameters, L' ');
 	bool sawInputKey = false;

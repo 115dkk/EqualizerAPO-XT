@@ -37,11 +37,11 @@ AbstractLibrary::~AbstractLibrary()
 	}
 }
 
-int AbstractLibrary::initialize()
+AbstractLibrary::InitializeResult AbstractLibrary::initialize()
 {
 	const auto target = ConfigFileReference::library(L"", getLibPath(), L"");
 	if (!target.refusal.empty())
-		return LOADING_FAILED;
+		return InitializeResult::LoadingFailed;
 	return initialize(target.path);
 }
 
@@ -57,7 +57,7 @@ bool AbstractLibrary::isLoadedNow() const
 	return lock.owns_lock() && static_cast<bool>(module);
 }
 
-int AbstractLibrary::initialize(const JudgedPath& path)
+AbstractLibrary::InitializeResult AbstractLibrary::initialize(const JudgedPath& path)
 {
 	std::lock_guard<std::mutex> lock(initMutex);
 
@@ -66,7 +66,7 @@ int AbstractLibrary::initialize(const JudgedPath& path)
 		const wstring& libPath = path.path();
 		HANDLE file = path.leaf();
 		if (file == nullptr)
-			return FILE_NOT_FOUND;
+			return InitializeResult::FileNotFound;
 		winutil::UniqueHandle held;
 		const DWORD holdError = holdForLoad(file, held);
 		if (holdError != ERROR_SUCCESS)
@@ -74,7 +74,7 @@ int AbstractLibrary::initialize(const JudgedPath& path)
 			LogF(L"Not loading %s: %s (error %lu)", libPath.c_str(), holdError == ERROR_SHARING_VIOLATION
 				? L"another program has it open for writing" : holdError == ERROR_BAD_EXE_FORMAT
 				? L"the file is empty" : L"it could not be held for loading", holdError);
-			return LOADING_FAILED;
+			return InitializeResult::LoadingFailed;
 		}
 		// LoadLibraryW parses the name again rather than using the handles the
 		// judgment holds, so what it opens is the judged file only if no
@@ -106,20 +106,20 @@ int AbstractLibrary::initialize(const JudgedPath& path)
 			const unsigned short expectedArch = IMAGE_FILE_MACHINE_I386;
 #endif
 			if (arch != 0 && arch != expectedArch)
-				return WRONG_ARCHITECTURE;
+				return InitializeResult::WrongArchitecture;
 
-			return LOADING_FAILED;
+			return InitializeResult::LoadingFailed;
 		}
 
 		if (!loadFunctions())
 		{
 			customUninitialize();
 			module.reset();
-			return FUNCTIONS_MISSING;
+			return InitializeResult::FunctionsMissing;
 		}
 
-		int res = customInitialize();
-		if (res < 0)
+		const auto res = customInitialize();
+		if (!succeeded(res))
 		{
 			customUninitialize();
 			module.reset();
@@ -128,16 +128,16 @@ int AbstractLibrary::initialize(const JudgedPath& path)
 
 		TraceF(L"Loaded library %s", libPath.c_str());
 
-		return 1;
+		return InitializeResult::Loaded;
 	}
 
-	return 0;
+	return InitializeResult::AlreadyLoaded;
 }
 
-int AbstractLibrary::customInitialize()
+AbstractLibrary::InitializeResult AbstractLibrary::customInitialize()
 {
 	// overwrite if needed
-	return 0;
+	return InitializeResult::AlreadyLoaded;
 }
 
 void AbstractLibrary::customUninitialize() noexcept

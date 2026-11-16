@@ -16,9 +16,9 @@
 namespace PluginLoadQueue
 {
 // Call these on the UI thread while a QCoreApplication exists. A request made
-// after shutdown completes as AbstractLibrary::LOADING_FAILED.
+// after shutdown completes as AbstractLibrary::InitializeResult::LoadingFailed.
 void enqueue(const std::shared_ptr<VSTPluginLibrary>& library,
-	std::function<void(int result)> onDoneOnUiThread);
+	std::function<void(AbstractLibrary::InitializeResult result)> onDoneOnUiThread);
 bool isPending(const VSTPluginLibrary* library);
 int pendingCount();
 // Handles events until every pending completion has run, or until timeoutMs
