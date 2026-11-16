@@ -697,6 +697,41 @@ namespace
 		return format;
 	}
 
+	// Audit #467 TD-54: a stream mapping name is fresh per link. A mapping
+	// created first by another owner must be refused before the host is started.
+	TEST_CASE(DaemonTests, testPrecreatedStreamMappingIsRefused)
+	{
+		const std::wstring endpoint = L"EAPO.ASIO.test.mapping-squat." + std::to_wstring(GetCurrentProcessId());
+		const uint32_t ringBytes = eapo::ipc::RingGeometry::totalBytes(smallFormat());
+		std::vector<winutil::UniqueHandle> mappings;
+		mappings.reserve(256);
+		bool allCreated = true;
+		for (uint32_t serial = 1; serial <= 256; serial++)
+		{
+			winutil::UniqueHandle mapping(CreateFileMappingW(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, ringBytes,
+				eapo::asio::HostNames::ring(endpoint, GetCurrentProcessId(), serial).c_str()));
+			if (!mapping)
+			{
+				allCreated = false;
+				break;
+			}
+			mappings.push_back(std::move(mapping));
+		}
+		harness.require(allCreated, "the test pre-creates the stream mapping serial range");
+
+		StreamOptions options;
+		options.daemonEndpoint = endpoint;
+		options.daemonExePath = L"C:\\definitely\\not\\here\\EqualizerAPOHost.exe";
+		options.readyTimeoutMs = 3000;
+		eapo::asio::Win32HostLink link;
+		eapo::asio::OpenReport report;
+		std::unique_ptr<eapo::ipc::RingProducer> producer = link.open(smallFormat(), options, report);
+		harness.expect(producer == nullptr, "the link refuses a stream mapping that another owner created first");
+		const std::string error(report.message);
+		harness.expect(error.find("already in use") != std::string::npos, "and reports the pre-created mapping: " + error);
+		link.close(std::move(producer));
+	}
+
 	TEST_CASE(DaemonTests, testAnotherProgramOnTheControlPipeIsRefused)
 	{
 		const std::wstring endpoint = L"EAPO.ASIO.test.squat." + std::to_wstring(GetCurrentProcessId());

@@ -16,6 +16,8 @@
 namespace eapo::ipc::send
 {
 	SendRingWin32::SendRingWin32(const std::wstring& mappingObjectName, const std::wstring& eventObjectName)
+		// The sender and receiver intentionally open the same fixed-size mapping;
+		// whichever arrives first creates it (docs/features/send.md, audit #467 TD-54).
 		: mapping_(CreateFileMappingW(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0,
 			static_cast<DWORD>(regionBytes), mappingObjectName.c_str()))
 	{

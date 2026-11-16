@@ -159,10 +159,17 @@ namespace eapo::asio
 		const std::wstring ringName = HostNames::ring(endpoint, pid, ++ringSerial);
 		const uint32_t ringBytes = eapo::ipc::RingGeometry::totalBytes(format);
 
-		objects_.mapping.reset(CreateFileMappingW(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, ringBytes, ringName.c_str()));
+		const HANDLE mapping = CreateFileMappingW(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, ringBytes, ringName.c_str());
+		const DWORD mappingError = GetLastError();
+		objects_.mapping.reset(mapping);
 		if (!objects_.mapping)
 		{
-			error = describe("the stream ring could not be created", GetLastError());
+			error = describe("the stream ring could not be created", mappingError);
+			return fail();
+		}
+		if (mappingError == ERROR_ALREADY_EXISTS)
+		{
+			error = "the stream ring name is already in use";
 			return fail();
 		}
 		session_.ringBase = MapViewOfFile(objects_.mapping.get(), FILE_MAP_ALL_ACCESS, 0, 0, ringBytes);
