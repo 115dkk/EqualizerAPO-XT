@@ -102,12 +102,15 @@ function Get-RegisteredServer([string] $classKey) {
     return (Get-Item -LiteralPath $classKey).GetValue("")
 }
 
-function Assert-Installed([string] $label) {
+# $files is the plan's list for the version under test. The previous release
+# is only the starting point of the update round: it is held to the files
+# every release has had, since a file this version adds is not in it.
+function Assert-Installed([string] $label, [string[]] $files = $plan.RequiredFiles) {
     $current = Join-Path $plan.InstallRoot "current"
     if (-not (Test-Path -LiteralPath (Join-Path $plan.InstallRoot "Update.exe"))) {
         throw "[$label] Update.exe is missing under $($plan.InstallRoot)"
     }
-    foreach ($relative in $plan.RequiredFiles) {
+    foreach ($relative in $files) {
         if (-not (Test-Path -LiteralPath (Join-Path $current $relative))) {
             throw "[$label] the installed folder lacks $relative"
         }
@@ -209,7 +212,7 @@ foreach ($round in $plan.Rounds) {
                 Write-Warning "[$label] no published release for channel $Channel to update from; the update round is skipped."
                 break
             }
-            Assert-Installed "$label (previous release)"
+            Assert-Installed "$label (previous release)" @("Editor.exe", "EqualizerAPO.dll")
             $before = Get-InstalledVersion
             if ($before -eq $PackVersion) {
                 # A resumed release run: the newest published release already
