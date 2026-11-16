@@ -206,7 +206,7 @@ void HeritageSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotStat
 	if (state.curve.size() >= 2)
 	{
 		QPolygonF fill = state.curve;
-		const double base = qBound(state.plotRect.top(), state.zeroY, state.plotRect.bottom());
+		const double base = state.clampedZeroY();
 		fill.append(QPointF(state.curve.last().x(), base));
 		fill.prepend(QPointF(state.curve.first().x(), base));
 		QColor fillColor(accent);
@@ -227,7 +227,7 @@ void HeritageSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotStat
 		QColor stem(accent);
 		stem.setAlpha(90);
 		painter.setPen(QPen(stem, 2));
-		const double base = qBound(state.plotRect.top(), state.zeroY, state.plotRect.bottom());
+		const double base = state.clampedZeroY();
 		for (const QPointF& node : state.nodePositions)
 			painter.drawLine(QPointF(node.x(), base), node);
 	}

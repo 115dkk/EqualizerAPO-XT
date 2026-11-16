@@ -76,7 +76,7 @@ void MinimalSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState
 	if (state.bandLocked)
 	{
 		painter.setPen(QPen(secondary, 1));
-		const int base = qRound(qBound(state.plotRect.top(), state.zeroY, state.plotRect.bottom()));
+		const int base = qRound(state.clampedZeroY());
 		for (const QPointF& node : state.nodePositions)
 			painter.drawLine(qRound(node.x()), base, qRound(node.x()), qRound(node.y()));
 	}

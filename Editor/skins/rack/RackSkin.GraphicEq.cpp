@@ -126,7 +126,7 @@ void RackSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& s
 
 	if (state.curve.size() >= 2)
 	{
-		const double base = qBound(state.plotRect.top(), state.zeroY, state.plotRect.bottom());
+		const double base = state.clampedZeroY();
 
 		// Afterglow: a faint phosphor wash between the trace and the axis.
 		QPolygonF afterglow = state.curve;

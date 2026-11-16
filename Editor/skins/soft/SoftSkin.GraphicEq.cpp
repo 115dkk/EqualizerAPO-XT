@@ -121,7 +121,7 @@ void SoftSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& s
 		}
 		else
 		{
-			const double base = qBound(state.plotRect.top(), state.zeroY, state.plotRect.bottom());
+			const double base = state.clampedZeroY();
 			QPolygonF fillPoly = state.curve;
 			fillPoly.append(QPointF(state.curve.last().x(), base));
 			fillPoly.prepend(QPointF(state.curve.first().x(), base));
@@ -151,7 +151,7 @@ void SoftSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& s
 	// stems grow from the notch, the console silhouette without bar walls.
 	if (state.bandLocked && state.enabled)
 	{
-		const double base = qBound(state.plotRect.top(), state.zeroY, state.plotRect.bottom());
+		const double base = state.clampedZeroY();
 		for (const QPointF& node : state.nodePositions)
 		{
 			painter.setPen(QPen(withAlpha(node.y() > state.zeroY ? accent2 : accent, 90), 4,

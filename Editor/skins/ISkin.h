@@ -78,6 +78,13 @@ struct GraphicEQPlotState
 	// outside plotRect when the frame is panned away from it).
 	QPolygonF curve;
 	double zeroY = 0;
+	// zeroY held inside plotRect: the base a stem, bar or fill grows from
+	// when 0 dB is panned out of view. Computed here so the skins do not each
+	// restate the clamp (audit #467 TD-49).
+	double clampedZeroY() const
+	{
+		return qBound(plotRect.top(), zeroY, plotRect.bottom());
+	}
 	// Node handles in px, in node order; selection/hover index into this.
 	QVector<QPointF> nodePositions;
 	QSet<int> selectedNodes;
@@ -121,6 +128,13 @@ struct AnalysisGraphState
 	// that never goes negative can push it to the very edge.
 	double zeroY = 0;
 	bool zeroVisible = false;
+	// zeroY held inside plotRect: the base a fill or bar grows from when the
+	// zero lies at or past an edge. Computed here so the skins do not each
+	// restate the clamp (audit #467 TD-49).
+	double clampedZeroY() const
+	{
+		return qBound(plotRect.top(), zeroY, plotRect.bottom());
+	}
 	// The fitted value range, in the metric's own unit.
 	double minimum = 0;
 	double maximum = 0;
