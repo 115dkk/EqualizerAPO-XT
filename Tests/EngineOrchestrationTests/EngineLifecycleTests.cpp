@@ -130,6 +130,19 @@ TEST_CASE(EngineOrchestrationTests, testConfigSwapChannelPermitRoundTrip)
 	harness.require(channel.acquirePublishPermit(0),
 		"reset discarded a pending config without returning its permit");
 	channel.releasePublishPermit();
+
+	// Audit #467 TD-09: reset may return a permit only for a published slot it
+	// discards. A producer that acquired the permit but has not published owns it.
+	harness.require(channel.acquirePublishPermit(0),
+		"config channel did not grant the unpublished producer a permit");
+	channel.reset(std::make_unique<int>(5));
+	harness.expectFalse(channel.acquirePublishPermit(0),
+		"reset returned a permit that belonged to an unpublished producer");
+	channel.publish(std::make_unique<int>(6));
+	channel.completeTransition();
+	harness.require(channel.acquirePublishPermit(0),
+		"publishing after reset leaked the producer permit");
+	channel.releasePublishPermit();
 }
 
 // Audit #422 E5: loadConfig owns the publication permit. A second producer
@@ -161,6 +174,64 @@ TEST_CASE(EngineOrchestrationTests, testLoadConfigOwnsPublicationPermit)
 		"consuming the initial publication releases the second configuration loader");
 	reload.join();
 	harness.expect(loaded.load(), "the waiting configuration load publishes successfully");
+}
+
+// Audit #467 TD-09: re-initializing discards the unconsumed initial slot, but
+// the permit released for that slot may go to only one producer. The other
+// producer must remain blocked until the audio thread consumes the new slot.
+TEST_CASE(EngineOrchestrationTests, testLiveReinitializeKeepsOnePublishPermitOwner)
+{
+	const std::wstring configA = writeConfig(harness, L"reinitialize-permit-a.txt", "Preamp: -3 dB\n");
+	const std::wstring configB = writeConfig(harness, L"reinitialize-permit-b.txt", "Preamp: -9 dB\n");
+	const std::wstring configC = writeConfig(harness, L"reinitialize-permit-c.txt", "Preamp: -12 dB\n");
+	FilterEngine engine;
+	initializeEngine(engine, 1600, 2, 16, configA);
+
+	Win32Event reloadStarted(true, false);
+	Win32Event reloadCompleted(true, false);
+	Win32Event reinitializeStarted(true, false);
+	Win32Event reinitializeCompleted(true, false);
+	std::atomic<bool> reloaded = false;
+	std::atomic<bool> reinitialized = false;
+
+	std::thread reload([&] {
+		reloadStarted.set();
+		reloaded.store(engine.loadConfig(configB));
+		reloadCompleted.set();
+	});
+	harness.require(WaitForSingleObject(reloadStarted.get(), 2000) == WAIT_OBJECT_0,
+		"the loader waiting behind the initial publication starts");
+	harness.expect(WaitForSingleObject(reloadCompleted.get(), 20) == WAIT_TIMEOUT,
+		"the loader is waiting before re-initialization starts");
+
+	const EngineSetup setup = testEngineSetup(1600, 2, 2, 16, configC);
+	std::thread reinitialize([&] {
+		reinitializeStarted.set();
+		engine.initialize(setup);
+		reinitialized.store(true);
+		reinitializeCompleted.set();
+	});
+	harness.require(WaitForSingleObject(reinitializeStarted.get(), 2000) == WAIT_OBJECT_0,
+		"the live engine re-initialization starts");
+
+	HANDLE completions[2] = {reloadCompleted.get(), reinitializeCompleted.get()};
+	const DWORD first = WaitForMultipleObjects(2, completions, FALSE, 2000);
+	harness.require(first == WAIT_OBJECT_0 || first == WAIT_OBJECT_0 + 1,
+		"one producer publishes after re-initialization discards the initial slot");
+	const DWORD otherIndex = first == WAIT_OBJECT_0 ? 1 : 0;
+	const bool otherStayedBlocked = WaitForSingleObject(completions[otherIndex], 50) == WAIT_TIMEOUT;
+	harness.expect(otherStayedBlocked,
+		"both configuration producers published before process consumed either slot");
+
+	processDcBlock(engine, 1.0f, 1.0f, 16);
+	const bool reloadFinished = WaitForSingleObject(reloadCompleted.get(), 2000) == WAIT_OBJECT_0;
+	const bool reinitializeFinished = WaitForSingleObject(reinitializeCompleted.get(), 2000) == WAIT_OBJECT_0;
+	harness.expect(reloadFinished && reinitializeFinished,
+		"consuming the published slot did not release the remaining producer");
+	reload.join();
+	reinitialize.join();
+	harness.expect(reloaded.load(), "the explicit loader eventually publishes successfully");
+	harness.expect(reinitialized.load(), "the live engine re-initialization eventually publishes successfully");
 }
 
 // Windows may give a render APO fewer input channels than the endpoint output
