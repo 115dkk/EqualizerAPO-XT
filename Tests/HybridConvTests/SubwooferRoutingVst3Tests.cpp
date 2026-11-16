@@ -11,7 +11,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include <wincrypt.h>
+#include "vst/VSTChunkBase64.h"
 
 #include "SubwooferRouting/Compiler.h"
 #include "SubwooferRouting/Preset.h"
@@ -58,27 +58,9 @@ wstring encodeChunk(const std::string& json)
 			json.size());
 	}
 
-	DWORD encodedLength = 0;
-	CryptBinaryToStringW(
-		bytes.data(),
-		static_cast<DWORD>(bytes.size()),
-		CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF,
-		nullptr,
-		&encodedLength);
-	if (encodedLength == 0)
-		return {};
-
-	std::vector<wchar_t> encoded(encodedLength);
-	if (CryptBinaryToStringW(
-		bytes.data(),
-		static_cast<DWORD>(bytes.size()),
-		CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF,
-		encoded.data(),
-		&encodedLength) == FALSE)
-	{
-		return {};
-	}
-	return wstring(encoded.data());
+	wstring encoded;
+	vstchunk::encodeBase64(bytes.data(), bytes.size(), encoded);
+	return encoded;
 }
 
 double nextNoise(std::uint32_t& state)

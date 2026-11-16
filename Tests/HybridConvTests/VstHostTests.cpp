@@ -46,6 +46,8 @@
 #include <wincrypt.h>
 
 #include "vst/VSTPluginLibrary.h"
+#include "vst/VSTChunkBase64.h"
+#include "Tests/TestVst2Plugin/TestVst2Protocol.h"
 #include "vst/PluginResidency.h"
 #include "vst/VSTPluginInstance.h"
 #include "filters/VSTPluginCommand.h"
@@ -102,20 +104,9 @@ private:
 	int customInitializeCount = 0;
 };
 
-// Must match TestVst2Plugin.cpp's ChunkBlob layout and magic exactly so we can
-// build a chunk the plugin will accept and predict what it emits.
-const uint32_t kChunkMagic = 0x32505654u; // 'T','V','P','2' little-endian
-const uint32_t kChunkVersion = 1u;
-
-#pragma pack(push, 1)
-struct ChunkBlob
-{
-	uint32_t magic;
-	uint32_t version;
-	float gain;
-	float bypass;
-};
-#pragma pack(pop)
+using testvst2::ChunkBlob;
+using testvst2::kChunkMagic;
+using testvst2::kChunkVersion;
 
 // The plugin DLL is copied next to the running test executable by the
 // HybridConvTests post-build step.
@@ -126,17 +117,9 @@ using pathutil::fileExists;
 // fed straight into VSTPluginInstance::writeToEffect.
 wstring encodeChunk(const ChunkBlob& blob)
 {
-	DWORD stringLength = 0;
-	CryptBinaryToStringW(reinterpret_cast<const BYTE*>(&blob), sizeof(blob),
-		CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, nullptr, &stringLength);
-	if (stringLength == 0)
-		return wstring();
-
-	vector<wchar_t> buffer(stringLength);
-	if (CryptBinaryToStringW(reinterpret_cast<const BYTE*>(&blob), sizeof(blob),
-			CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, buffer.data(), &stringLength) != TRUE)
-		return wstring();
-	return wstring(buffer.data());
+	wstring encoded;
+	vstchunk::encodeBase64(&blob, sizeof(blob), encoded);
+	return encoded;
 }
 
 // Decode a base64 chunk string back into a ChunkBlob. Returns false if the

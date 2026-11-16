@@ -43,6 +43,7 @@
 #include <atomic>
 #include <cmath>
 #include <cstdint>
+#include "TestVst2Protocol.h"
 #include <cstring>
 
 #define WIN32_LEAN_AND_MEAN
@@ -99,23 +100,11 @@ const int32_t kNumParams = 2;
 const int32_t kParamGain = 0;
 const int32_t kParamBypass = 1;
 
-// Chunk blob layout: magic + version + the two float parameters, all
-// little-endian. The host stores this base64-encoded, so its exact bytes must
-// be stable for the round-trip assertion.
-const uint32_t kChunkMagic = 0x32505654u; // 'TVP2' little-endian ('T','V','P','2')
-const uint32_t kChunkVersion = 1u;
+using testvst2::ChunkBlob;
+using testvst2::kChunkMagic;
+using testvst2::kChunkVersion;
 const size_t kZipChunkSize = 148;
 const size_t kZipBlobOffset = 39;
-
-#pragma pack(push, 1)
-struct ChunkBlob
-{
-	uint32_t magic;
-	uint32_t version;
-	float gain;
-	float bypass;
-};
-#pragma pack(pop)
 
 // Per-instance state. We allocate one and stash it in effect->effect_internal
 // so a host may (in principle) create more than one instance. The chunk buffer

@@ -24,7 +24,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include <wincrypt.h>
+#include "vst/VSTChunkBase64.h"
 
 #include "vst/VSTPluginLibrary.h"
 #include "vst/VSTPluginInstance.h"
@@ -82,14 +82,9 @@ bool negotiateStereoInput(VSTPluginInstance& instance, int input, int output,
 
 wstring encodeState(const PluginState& state)
 {
-	DWORD length = 0;
-	CryptBinaryToStringW(reinterpret_cast<const BYTE*>(&state), sizeof(state),
-		CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, nullptr, &length);
-	if (length == 0)
-		return wstring();
-	std::vector<wchar_t> value(length);
-	return CryptBinaryToStringW(reinterpret_cast<const BYTE*>(&state), sizeof(state),
-		CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, value.data(), &length) == TRUE ? wstring(value.data()) : wstring();
+	wstring encoded;
+	vstchunk::encodeBase64(&state, sizeof(state), encoded);
+	return encoded;
 }
 
 using pathutil::exeDirectory;
@@ -258,14 +253,9 @@ TEST_CASE(Vst3HostTests, testProcessingFailureResults)
 
 wstring encodeBytes(const std::vector<char>& bytes)
 {
-	DWORD length = 0;
-	CryptBinaryToStringW(reinterpret_cast<const BYTE*>(bytes.data()), static_cast<DWORD>(bytes.size()),
-		CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, nullptr, &length);
-	if (length == 0)
-		return wstring();
-	std::vector<wchar_t> value(length);
-	return CryptBinaryToStringW(reinterpret_cast<const BYTE*>(bytes.data()), static_cast<DWORD>(bytes.size()),
-		CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, value.data(), &length) == TRUE ? wstring(value.data()) : wstring();
+	wstring encoded;
+	vstchunk::encodeBase64(bytes.data(), bytes.size(), encoded);
+	return encoded;
 }
 
 // The combined state layout VSTPluginInstance writes for a VST3 plug-in
