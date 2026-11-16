@@ -1,13 +1,41 @@
 Describe "Invoke-EditorOffscreenTest.ps1 planning" {
     BeforeAll {
         $scriptPath = Join-Path $PSScriptRoot "..\Invoke-EditorOffscreenTest.ps1"
+        $editorGatesSource = Join-Path $PSScriptRoot "..\..\..\Editor\EditorGates.cpp"
         function PlanFor([string] $gate) {
             & $scriptPath -WorkspaceRoot "C:\ws" -Gate $gate -Platform x64 -PlanOnly
         }
     }
 
     It "targets the qmake build directory's Editor" {
-        (PlanFor "selftest-vst").EditorExe | Should -Be "C:\ws\build-Editor-x64\release\Editor.exe"
+        $plan = PlanFor "selftest-vst"
+        $plan.EditorExe | Should -Be "C:\ws\build-Editor-x64\release\Editor.exe"
+        $plan.EditorFlags | Should -Be @("--selftest-vst")
+    }
+
+    It "declares every script Editor flag in the C++ table" {
+        $scriptText = Get-Content -LiteralPath $scriptPath -Raw
+        $gateNames = @(
+            [regex]::Matches($scriptText, '(?m)^\s+"(?<gate>[a-z0-9-]+)"\s*=\s*\[pscustomobject\]@\{') |
+                ForEach-Object { $_.Groups["gate"].Value }
+        )
+        $gateNames.Count | Should -BeGreaterThan 0
+        $scriptFlags = @(
+            $gateNames | ForEach-Object { (PlanFor $_).EditorFlags } | Sort-Object -Unique
+        )
+
+        $gateSource = Get-Content -LiteralPath $editorGatesSource -Raw
+        $declaredFlags = @(
+            [regex]::Matches($gateSource, '(?m)^\s*"(?<flag>--[a-z0-9-]+)",\s*$') |
+                ForEach-Object { $_.Groups["flag"].Value }
+        )
+        foreach ($flag in $scriptFlags) {
+            $declaredFlags | Should -Contain $flag
+        }
+    }
+
+    It "rejects an unknown gate with the valid names" {
+        { PlanFor "not-a-gate" } | Should -Throw "*Unknown Editor offscreen gate 'not-a-gate'. Valid gates:*"
     }
 
     It "copies the velopack SONAME for every gate" {

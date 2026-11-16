@@ -6,8 +6,10 @@
 
 #include "EditorGates.h"
 
+#include <cstdio>
 #include <utility>
 
+#include <QByteArray>
 #include <QCommandLineOption>
 #include <QCommandLineParser>
 #include <QCoreApplication>
@@ -127,6 +129,17 @@ int runCrashSelfTest(const QStringList&)
 	// cppcheck-suppress nullPointer ; the dereference is the whole point of the self-test
 	*fault = 1; // intentional access violation
 	return 1;
+}
+
+int listGates(const QStringList&)
+{
+	for (const QString& flag : EditorGates::flags())
+	{
+		const QByteArray bytes = flag.toUtf8();
+		std::fprintf(stdout, "%s\n", bytes.constData());
+	}
+	std::fflush(stdout);
+	return 0;
 }
 
 template<typename Function>
@@ -336,6 +349,14 @@ static const GateEntry kGates[] = {
 		nullptr,
 		false,
 		runCrashSelfTest,
+		nullptr
+	},
+	{
+		"--list-gates",
+		Stage::Headless,
+		nullptr,
+		false,
+		listGates,
 		nullptr
 	},
 	{
