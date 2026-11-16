@@ -99,6 +99,36 @@ if ($installerProject) {
     $installerParams = Get-EapoMsBuildArguments -Platform Win32 -Configuration $Configuration `
         -PlatformToolset $platformToolset -ToolArchitecture $toolArchitecture -Dependencies None
     Invoke-EapoMsBuild -Project $installerProject -Arguments $installerParams
+
+    # The installer README sends every user to was built here and never run
+    # (TECH_DEBT_AUDIT TD-25, audit #467). --detect-only runs its CPU
+    # detection and channel choice and stops before downloading: the channel
+    # it names must be one the manifest publishes, and the URL must end in
+    # that channel's Setup asset name, or a renamed asset would only be found
+    # by users. The exit code is the channel index, so it is not checked.
+    if ($CanExecute) {
+        Import-Module (Join-Path $PSScriptRoot "ReleaseAssets.psm1") -Force
+        Import-Module (Join-Path $PSScriptRoot "ApoEndpointHarness.psm1") -Force
+        $installerExe = Join-Path $WorkspaceRoot "Installer\Release\$(Get-UniversalSetupAssetName)"
+        if (-not (Test-Path $installerExe)) { throw "Installer not found: $installerExe" }
+        $detectionFile = Join-Path ([System.IO.Path]::GetTempPath()) "eapo-installer-detection.txt"
+        Remove-Item -LiteralPath $detectionFile -Force -ErrorAction SilentlyContinue
+        $run = Invoke-ExternalProgram $installerExe @("--detect-only", "--out", $detectionFile) 120 $null
+        if ($run.TimedOut) { throw "The installer's --detect-only did not return within 120 s" }
+        if (-not (Test-Path $detectionFile)) { throw "The installer's --detect-only wrote no result (exit $($run.ExitCode))" }
+        $detected = @(Get-Content -LiteralPath $detectionFile | Where-Object { $_.Trim() })
+        $detectedChannel = "$($detected[0])".Trim()
+        $detectedUrl = "$($detected[1])".Trim()
+        $published = @($manifest.Variants | ForEach-Object { $_.Channel })
+        if ($published -notcontains $detectedChannel) {
+            throw "The installer chose channel '$detectedChannel', which simd-variants.psd1 does not publish ($($published -join ', '))"
+        }
+        $expectedAsset = Get-SetupAssetName -Channel $detectedChannel
+        if (-not $detectedUrl.EndsWith("/$expectedAsset")) {
+            throw "The installer would download '$detectedUrl'; the release asset for $detectedChannel is named $expectedAsset"
+        }
+        Write-Host "Installer detection: $detectedChannel -> $detectedUrl"
+    }
 }
 
 $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$qtRoot\bin;$env:PATH"
