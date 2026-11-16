@@ -72,7 +72,7 @@
       <PreprocessorDefinitions>UNICODE;_UNICODE;QT_CORE_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Qt6Core.lib;Qt6Gui.lib;Qt6Widgets.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Dbghelp.lib;Qt6Core.lib;Qt6Gui.lib;Qt6Widgets.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <!-- Tests.props turns SDLCheck on for every suite. This one includes Qt's
@@ -114,6 +114,7 @@
     <ClCompile Include="MainWindowStateTests.cpp" />
     <ClCompile Include="PanelMonitorGateTests.cpp" />
     <ClCompile Include="InfrastructureTests.cpp" />
+    <ClCompile Include="..\..\Editor\helpers\CrashHandler.cpp" />
     <ClCompile Include="FilterCardModelTests.cpp" />
     <ClCompile Include="FilterListModelTests.cpp" />
     <ClCompile Include="CommandRowFactsTests.cpp" />

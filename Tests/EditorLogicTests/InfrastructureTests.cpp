@@ -7,6 +7,10 @@
 #include "EditorLogicTestSupport.h"
 
 #include <new>
+#include <atomic>
+#include <thread>
+#include "Editor/helpers/CrashHandler.h"
+#include "version.h"
 #include <stdexcept>
 
 #include <QDir>
@@ -23,6 +27,54 @@
 #include "Editor/widgets/EditableValueText.h"
 #include "Editor/widgets/cards/FileReferenceController.h"
 #include "runtime/memory/AlignedMemory.h"
+TEST_CASE(EditorLogicTests, testCrashBreadcrumbConcurrentWriters)
+{
+	const std::wstring first(255, L'A');
+	const std::wstring second(255, L'B');
+	CrashHandler::setBreadcrumb(first);
+	std::atomic<bool> go{false};
+	std::atomic<int> finished{0};
+	auto write = [&](const std::wstring& value) {
+		while (!go.load())
+			std::this_thread::yield();
+		for (int i = 0; i < 20000; ++i)
+			CrashHandler::setBreadcrumb(value);
+		++finished;
+	};
+	std::thread one([&] { write(first); });
+	std::thread two([&] { write(second); });
+	go.store(true);
+	bool complete = true;
+	do
+	{
+		wchar_t snapshot[256];
+		CrashHandler::copyBreadcrumb(snapshot);
+		const std::wstring value(snapshot);
+		complete = complete && (value == first || value == second || value == L"(breadcrumb changing)");
+	}
+	while (finished.load() != 2);
+	one.join();
+	two.join();
+	expectTrue(complete, QStringLiteral("concurrent breadcrumb snapshot is never a mixed string"));
+	CrashHandler::setBreadcrumb(L"opening file config.txt");
+	wchar_t snapshot[256];
+	CrashHandler::copyBreadcrumb(snapshot);
+	expectEqual(QString::fromWCharArray(snapshot), QStringLiteral("opening file config.txt"),
+		QStringLiteral("snapshot records the complete last file action"));
+}
+
+TEST_CASE(EditorLogicTests, testCrashArtifactNamesKeepEditorCompatibility)
+{
+	wchar_t name[128];
+	CrashHandler::formatArtifactName(name, L"Editor", 42, 7, L"dmp");
+	const QString suffix = QStringLiteral("-%1.%2.%3-42-7").arg(MAJOR).arg(MINOR).arg(REVISION);
+	expectEqual(QString::fromWCharArray(name), QStringLiteral("Editor") + suffix + ".dmp",
+		QStringLiteral("Editor dump pattern is unchanged"));
+	CrashHandler::formatArtifactName(name, L"DeviceSelector", 42, 7, L"txt");
+	expectEqual(QString::fromWCharArray(name), QStringLiteral("DeviceSelector") + suffix + ".txt",
+		QStringLiteral("DeviceSelector report names its own product"));
+}
+
 // The roster is the one list of which skins exist, so what is worth pinning is
 // that it is complete and that everything derived from it lands on a real skin.
 // Missing a skin used to be silent: resolveId() falls back to Studio, so a skin

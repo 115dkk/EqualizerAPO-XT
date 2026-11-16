@@ -19,6 +19,7 @@ QMAKE_CXXFLAGS_RELEASE += /O2
 PRECOMPILED_HEADER = stdafx.h
 
 SOURCES += \
+	../Editor/helpers/CrashHandler.cpp \
 	../platform/qt/QtAppBootstrap.cpp \
 	../platform/qt/HoverProgress.cpp \
 	../Editor/skins/SkinThemeData.cpp \
@@ -50,6 +51,7 @@ SOURCES += \
 	stdafx.cpp
 
 HEADERS += \
+	../Editor/helpers/CrashHandler.h \
 	../platform/qt/QtAppBootstrap.h \
 	../platform/qt/HoverProgress.h \
 	../platform/qt/MotionPreference.h \
@@ -96,7 +98,7 @@ TRANSLATIONS += \
 INCLUDEPATH += $$PWD/..
 
 # Link against Common library and Windows libraries
-LIBS += Kernel32.lib version.lib Shlwapi.lib authz.lib user32.lib advapi32.lib crypt32.lib
+LIBS += Kernel32.lib version.lib Shlwapi.lib authz.lib user32.lib advapi32.lib crypt32.lib Dbghelp.lib
 
 # Include Common.lib
 LIBS += Common.lib

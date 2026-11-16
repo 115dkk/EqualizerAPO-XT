@@ -52,6 +52,7 @@
 #include "services/install/ApoRegistration.h"
 #include "services/diagnostics/InstallDiagnostics.h"
 #include "services/logging/Logging.h"
+#include "Editor/helpers/CrashHandler.h"
 
 namespace
 {
@@ -434,6 +435,7 @@ int runEndpointCommand(QApplication& app, bool install)
 
 int main(int argc, char* argv[])
 {
+	CrashHandler::install(L"DeviceSelector");
 	int result = 0;
 
 	// Before anything else, because this is the process that performs the APO

@@ -17,6 +17,9 @@
     <ClCompile Include="VcRuntimeTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Editor\helpers\CrashHandler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="EditorLogicTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

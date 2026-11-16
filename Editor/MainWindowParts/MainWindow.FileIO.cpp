@@ -26,6 +26,7 @@
 #include <shellapi.h>
 
 #include "services/logging/Logging.h"
+#include "Editor/helpers/CrashHandler.h"
 #include "audio/ChannelLayout.h"
 #include "Editor/helpers/GUIChannelHelper.h"
 #include "Editor/helpers/GUIHelper.h"
@@ -63,6 +64,7 @@ void MainWindow::load(QString path)
 	QElapsedTimer timer;
 	timer.start();
 
+	CrashHandler::setBreadcrumb(L"opening file " + path.toStdWString());
 	ConfigFileCodec::ReadResult readResult = ConfigFileCodec::readConfig(path);
 	if (!readResult.ok)
 	{

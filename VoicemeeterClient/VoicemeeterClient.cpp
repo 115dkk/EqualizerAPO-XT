@@ -24,6 +24,7 @@
 #include <shellapi.h>
 #include "../services/registry/WindowsRegistry.h"
 #include "VoicemeeterClient.h"
+#include "services/logging/Logging.h"
 #include "../devices/VoicemeeterAPOInfo.h"
 
 #include "../devices/VoicemeeterDetection.h"
@@ -159,6 +160,50 @@ void VoicemeeterClient::run()
 				}
 			}
 			break;
+		}
+	}
+}
+
+void VoicemeeterClient::handleCallback(long nCommand, void* lpData, long nnn) noexcept
+{
+	// FilterEngine initialization/processing (including third-party filters)
+	// must not unwind through Voicemeeter's C callback frame (audit #467 TD-63).
+	// This boundary is build-gated; no live Voicemeeter driver runs in the suites.
+	if (!callbackFailed.load())
+	{
+		try
+		{
+			handle(nCommand, lpData, nnn);
+			return;
+		}
+		catch (...)
+		{
+			if (!callbackFailed.exchange(true))
+			{
+				try
+				{
+					LogF(L"Voicemeeter audio callback failed; bypassing filters until the client restarts");
+				}
+				catch (...)
+				{
+					// Even a logging failure must stay inside the C boundary.
+				}
+			}
+		}
+	}
+	// A failed initialization also bypasses subsequent buffers. Replace every
+	// output written before a processing exception with its original input.
+	if (nCommand == VBVMR_CBCOMMAND_BUFFER_OUT && lpData != nullptr)
+	{
+		const auto* buffer = static_cast<const VBVMR_T_AUDIOBUFFER*>(lpData);
+		const long channels = min(128L, min(buffer->audiobuffer_nbi, buffer->audiobuffer_nbo));
+		if (buffer->audiobuffer_nbs <= 0)
+			return;
+		for (int channel = 0; channel < channels; ++channel)
+		{
+			if (buffer->audiobuffer_r[channel] != nullptr && buffer->audiobuffer_w[channel] != nullptr
+				&& buffer->audiobuffer_r[channel] != buffer->audiobuffer_w[channel])
+				std::copy_n(buffer->audiobuffer_r[channel], buffer->audiobuffer_nbs, buffer->audiobuffer_w[channel]);
 		}
 	}
 }
@@ -414,7 +459,7 @@ bool VoicemeeterClient::isBufferSilent(float** sampleData, long sampleCount)
 static long __stdcall callback(void* lpUser, long nCommand, void* lpData, long nnn)
 {
 	VoicemeeterClient* client = (VoicemeeterClient*)lpUser;
-	client->handle(nCommand, lpData, nnn);
+	client->handleCallback(nCommand, lpData, nnn);
 
 	return 0;
 }

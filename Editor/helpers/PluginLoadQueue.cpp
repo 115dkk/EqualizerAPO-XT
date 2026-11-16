@@ -5,6 +5,7 @@
 */
 
 #include "PluginLoadQueue.h"
+#include "CrashHandler.h"
 
 #include <chrono>
 #include <condition_variable>
@@ -174,6 +175,7 @@ private:
 			int result = AbstractLibrary::LOADING_FAILED;
 			try
 			{
+				CrashHandler::setBreadcrumb(L"loading plug-in " + path);
 				result = VSTPluginLibrary::load(request->library->getLibPath()).status;
 			}
 			catch (...)

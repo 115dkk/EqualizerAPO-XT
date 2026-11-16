@@ -23,38 +23,39 @@
 
 namespace
 {
-// Fixed-size storage only: the handler runs in a crashed process, so it must
-// not allocate. The UI thread writes the inactive breadcrumb slot, then
-// publishes its index. The handler takes a bounded snapshot and retries once
-// if publication changes while it copies.
-wchar_t breadcrumbSlots[2][256] = {L"(none)", L"(none)"};
-std::atomic<int> breadcrumbIndex(0);
+// UI and loader writers serialize with a mutex; the crash handler NEVER
+// takes it (it may have interrupted its owner). Atomic characters avoid C++
+// data races, and an odd/even sequence makes each bounded read either a
+// complete publication or the fixed fallback, not a mix of two actions.
+// seq_cst orders the character copies with both sequence reads. No allocation,
+// lock or unbounded retry in the handler (audit #467 TD-63,
+// testCrashBreadcrumbConcurrentWriters).
+std::mutex breadcrumbWriter;
+std::atomic<wchar_t> breadcrumbText[256] = {L'(', L'n', L'o', L'n', L'e', L')', L'\0'};
+std::atomic<unsigned long long> breadcrumbSequence{0};
+static_assert(std::atomic<wchar_t>::is_always_lock_free);
+static_assert(std::atomic<unsigned long long>::is_always_lock_free);
 wchar_t dumpDirectory[MAX_PATH] = L"";
+wchar_t productName[64] = L"Editor";
 std::atomic<bool> handlingCrash(false);
 
-void copyBreadcrumbSlot(int index, wchar_t (&snapshot)[256])
+const wchar_t* snapshotBreadcrumb(wchar_t (&snapshot)[256]) noexcept
 {
-	for (std::size_t i = 0; i < 255; i++)
+	for (int attempt = 0; attempt < 2; ++attempt)
 	{
-		snapshot[i] = breadcrumbSlots[index][i];
-		if (snapshot[i] == L'\0')
-			return;
+		const auto sequence = breadcrumbSequence.load();
+		if (sequence & 1)
+			continue;
+		for (std::size_t i = 0; i < 255; ++i)
+		{
+			snapshot[i] = breadcrumbText[i].load();
+			if (snapshot[i] == L'\0')
+				break;
+		}
+		snapshot[255] = L'\0';
+		if (breadcrumbSequence.load() == sequence)
+			return snapshot;
 	}
-	snapshot[255] = L'\0';
-}
-
-const wchar_t* snapshotBreadcrumb(wchar_t (&snapshot)[256])
-{
-	int index = breadcrumbIndex.load(std::memory_order_acquire);
-	copyBreadcrumbSlot(index, snapshot);
-	int confirmedIndex = breadcrumbIndex.load(std::memory_order_acquire);
-	if (confirmedIndex == index)
-		return snapshot;
-
-	copyBreadcrumbSlot(confirmedIndex, snapshot);
-	if (breadcrumbIndex.load(std::memory_order_acquire) == confirmedIndex)
-		return snapshot;
-
 	return L"(breadcrumb changing)";
 }
 
@@ -90,9 +91,10 @@ void writeReport(EXCEPTION_POINTERS* pointers, const wchar_t* reason)
 	const DWORD pid = GetCurrentProcessId();
 	const DWORD tick = GetTickCount();
 
+	wchar_t artifactName[128];
+	CrashHandler::formatArtifactName(artifactName, productName, pid, tick, L"dmp");
 	wchar_t dumpPath[MAX_PATH];
-	swprintf_s(dumpPath, L"%s\\Editor-%d.%d.%d-%lu-%lu.dmp", dumpDirectory,
-		MAJOR, MINOR, REVISION, pid, tick);
+	swprintf_s(dumpPath, L"%s\\%s", dumpDirectory, artifactName);
 
 	winutil::UniqueHandle dumpFile(
 		CreateFileW(dumpPath, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
@@ -107,26 +109,26 @@ void writeReport(EXCEPTION_POINTERS* pointers, const wchar_t* reason)
 			pointers != nullptr ? &info : nullptr, nullptr, nullptr);
 	}
 
+	CrashHandler::formatArtifactName(artifactName, productName, pid, tick, L"txt");
 	wchar_t textPath[MAX_PATH];
-	swprintf_s(textPath, L"%s\\Editor-%d.%d.%d-%lu-%lu.txt", dumpDirectory,
-		MAJOR, MINOR, REVISION, pid, tick);
+	swprintf_s(textPath, L"%s\\%s", dumpDirectory, artifactName);
 	winutil::UniqueHandle textFile(
 		CreateFileW(textPath, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
 	if (textFile)
 	{
 		wchar_t line[768];
 		wchar_t breadcrumbSnapshot[256];
-		const wchar_t* breadcrumb = snapshotBreadcrumb(breadcrumbSnapshot);
+		CrashHandler::copyBreadcrumb(breadcrumbSnapshot);
 		const DWORD code = (pointers != nullptr && pointers->ExceptionRecord != nullptr)
 			? pointers->ExceptionRecord->ExceptionCode : 0;
 		const void* address = (pointers != nullptr && pointers->ExceptionRecord != nullptr)
 			? pointers->ExceptionRecord->ExceptionAddress : nullptr;
 		int length = swprintf_s(line,
-			L"EqualizerAPO-XT Editor %d.%d.%d crash report\r\n"
+			L"EqualizerAPO-XT %s %d.%d.%d crash report\r\n"
 			L"reason: %s\r\n"
 			L"exception code: 0x%08lX at %p\r\n"
 			L"last action: %s\r\n",
-			MAJOR, MINOR, REVISION, reason, code, address, breadcrumb);
+			productName, MAJOR, MINOR, REVISION, reason, code, address, breadcrumbSnapshot);
 		if (length > 0)
 		{
 			DWORD written = 0;
@@ -154,8 +156,22 @@ void terminateHandler()
 
 namespace CrashHandler
 {
-void install()
+void copyBreadcrumb(wchar_t (&snapshot)[256]) noexcept
 {
+	const wchar_t* value = snapshotBreadcrumb(snapshot);
+	if (value != snapshot)
+		wcsncpy_s(snapshot, value, _TRUNCATE);
+}
+
+void formatArtifactName(wchar_t (&name)[128], const wchar_t* product,
+	unsigned long pid, unsigned long tick, const wchar_t* extension) noexcept
+{
+	swprintf_s(name, L"%s-%d.%d.%d-%lu-%lu.%s", product, MAJOR, MINOR, REVISION, pid, tick, extension);
+}
+
+void install(const wchar_t* product)
+{
+	wcsncpy_s(productName, product, _TRUNCATE);
 	prepareDumpDirectory();
 	SetUnhandledExceptionFilter(unhandledExceptionFilter);
 	std::set_terminate(terminateHandler);
@@ -167,8 +183,12 @@ void install()
 
 void setBreadcrumb(const std::wstring& text)
 {
-	int inactiveIndex = 1 - breadcrumbIndex.load(std::memory_order_relaxed);
-	wcsncpy_s(breadcrumbSlots[inactiveIndex], text.c_str(), _TRUNCATE);
-	breadcrumbIndex.store(inactiveIndex, std::memory_order_release);
+	std::lock_guard<std::mutex> lock(breadcrumbWriter);
+	breadcrumbSequence.fetch_add(1);
+	const std::size_t length = text.size() < 255 ? text.size() : 255;
+	for (std::size_t i = 0; i < length; ++i)
+		breadcrumbText[i].store(text[i]);
+	breadcrumbText[length].store(L'\0');
+	breadcrumbSequence.fetch_add(1);
 }
 }
