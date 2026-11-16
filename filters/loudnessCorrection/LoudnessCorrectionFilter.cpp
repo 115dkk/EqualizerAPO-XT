@@ -21,9 +21,23 @@
 #include "LoudnessCorrectionFilter.h"
 
 #include "VolumeController.h"
+#include "services/logging/Logging.h"
 
 #include <math.h>
 #include <numbers>
+
+namespace
+{
+void logVolumeFailureOnce(const wchar_t* operation, HRESULT result)
+{
+	static std::atomic_bool logged = false;
+	bool expected = false;
+	if (!logged.compare_exchange_strong(expected, true))
+		return;
+	LogFStatic(L"Loudness correction could not %s (HRESULT 0x%08lX)",
+		operation, static_cast<unsigned long>(result));
+}
+}
 
 LoudnessCorrectionFilter::LoudnessCorrectionFilter(const FilterParameters& fParameters)
 	: _parameters(fParameters)
@@ -59,24 +73,31 @@ std::vector<std::wstring> LoudnessCorrectionFilter::initialize(float sampleRate,
 	stopParameterUpdateThread();
 
 	this->_channelCount = channelNames.size();
-	_lowShelfBiquads.resize(_channelCount);
-	_highShelfBiquads.resize(_channelCount);
 	_sampleRate = sampleRate;
 	_attFactor = 1.0;
 	_neutral = true;
+	if (!_parameters.state)
+		return channelNames;
 
+	_lowShelfBiquads.resize(_channelCount);
+	_highShelfBiquads.resize(_channelCount);
 	LowShelf lowShelf;
 	lowShelf.q = 1.0;
 	HighShelf highShelf;
 	highShelf.q = 1.0;
 	_initialVolume = _parameters.referenceLevel;
 	VolumeController volumeController;
-	if (volumeController.getVolume(_initialVolume) == S_OK)
+	const HRESULT volumeResult = volumeController.getVolume(_initialVolume);
+	if (volumeResult == S_OK)
 	{
 		lowShelf = lowShelfFor(_parameters, _initialVolume);
 		highShelf = highShelfFor(_parameters, _initialVolume + lowShelf.preAmp);
 		_attFactor = exp(lowShelf.preAmp / 6 * log(2));
 		_neutral = (std::max)(std::abs(lowShelf.gain), std::abs(highShelf.gain)) < 0.2;
+	}
+	else
+	{
+		logVolumeFailureOnce(L"read the endpoint volume", volumeResult);
 	}
 
 	for (unsigned i = 0; i < _channelCount; i++)
@@ -157,15 +178,24 @@ void LoudnessCorrectionFilter::publishCoefficientSet(double volume)
 void LoudnessCorrectionFilter::parameterUpdateThread(LoudnessCorrectionFilter* lCorrection)
 {
 	VolumeController volumeController;
-	if (FAILED(volumeController.startNotifications()))
+	const HRESULT notificationResult = volumeController.startNotifications();
+	if (FAILED(notificationResult))
+	{
+		logVolumeFailureOnce(L"start endpoint volume notifications", notificationResult);
 		return;
+	}
 
 	double previousVolume = lCorrection->_initialVolume;
 	double currentVolume = previousVolume;
-	if (volumeController.getVolume(currentVolume) == S_OK && currentVolume != previousVolume)
+	const HRESULT initialVolumeResult = volumeController.getVolume(currentVolume);
+	if (initialVolumeResult == S_OK && currentVolume != previousVolume)
 	{
 		lCorrection->publishCoefficientSet(currentVolume);
 		previousVolume = currentVolume;
+	}
+	else if (initialVolumeResult != S_OK)
+	{
+		logVolumeFailureOnce(L"read the endpoint volume", initialVolumeResult);
 	}
 
 	HANDLE changeHandles[2] = {
@@ -193,11 +223,15 @@ void LoudnessCorrectionFilter::parameterUpdateThread(LoudnessCorrectionFilter* l
 
 		// Coalesce notifications that arrived while the previous coefficient set
 		// was waiting for the audio thread by reading the endpoint once now.
-		if (volumeController.getVolume(currentVolume) == S_OK
-			&& currentVolume != previousVolume)
+		const HRESULT volumeResult = volumeController.getVolume(currentVolume);
+		if (volumeResult == S_OK && currentVolume != previousVolume)
 		{
 			lCorrection->publishCoefficientSet(currentVolume);
 			previousVolume = currentVolume;
+		}
+		else if (volumeResult != S_OK)
+		{
+			logVolumeFailureOnce(L"read the endpoint volume", volumeResult);
 		}
 	}
 }

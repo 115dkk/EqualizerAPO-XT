@@ -156,9 +156,9 @@ TEST_CASE(LoudnessCorrectionCommandTests, testLowShelfRegions)
 TEST_CASE(LoudnessCorrectionCommandTests, testInitializeTwice)
 {
 	LoudnessCorrectionFilter::FilterParameters parameters;
-	// State 0: process() copies input to output over _channelCount channels,
-	// which does not depend on the machine's endpoint volume. The update
-	// thread still starts on each initialize(), which is what terminated.
+	// State 0: process() copies input to output over _channelCount channels and
+	// initialize() starts no volume controller or update thread (audit #467
+	// TD-61). Repeating it still has to replace the channel count.
 	parameters.state = false;
 	parameters.referenceLevel = -20.0f;
 	LoudnessCorrectionFilter filter(parameters);

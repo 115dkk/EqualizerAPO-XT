@@ -58,7 +58,9 @@ wstring previousLocalAppData;
 
 TEST_CASE(HybridConvTests, assertFftwWisdomIsExported)
 {
-	wisdomTestDirectory = scratchDirectory().subdirectory(L"wisdom");
+	// Audit #467 TD-61: the path must survive outside the active ANSI code page.
+	// The universal escape keeps this C++ source ASCII-only.
+	wisdomTestDirectory = scratchDirectory().subdirectory(L"wisdom-☃");
 	const DWORD directoryAttributes = GetFileAttributesW(wisdomTestDirectory.c_str());
 	harness.expectTrue(directoryAttributes != INVALID_FILE_ATTRIBUTES
 			&& (directoryAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0,
