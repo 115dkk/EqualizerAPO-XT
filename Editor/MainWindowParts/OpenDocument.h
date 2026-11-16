@@ -65,15 +65,12 @@ enum class DocumentSaveReason
 enum class DocumentSaveFailure
 {
 	None,
-	WriteError,
-	PartialWrite
+	WriteError
 };
 
 struct DocumentWriteResult
 {
 	bool opened = false;
-	unsigned long bytesWritten = 0;
-	unsigned long totalBytes = 0;
 	QString errorMessage;
 };
 
@@ -85,8 +82,6 @@ struct DocumentSaveTransition
 	bool restartAnalysis = false;
 	DocumentSaveFailure failure = DocumentSaveFailure::None;
 	QString errorMessage;
-	unsigned long bytesWritten = 0;
-	unsigned long totalBytes = 0;
 };
 
 // The widget-free document-save decision (audit #467 TD-44). MainWindow owns

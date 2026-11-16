@@ -290,8 +290,6 @@ TEST_CASE(EditorLogicTests, testDocumentSaveTransitionsCoverEveryReason)
 {
 	DocumentWriteResult success;
 	success.opened = true;
-	success.bytesWritten = 64;
-	success.totalBytes = 64;
 
 	DocumentWriteResult failure;
 	failure.errorMessage = QStringLiteral("access denied");

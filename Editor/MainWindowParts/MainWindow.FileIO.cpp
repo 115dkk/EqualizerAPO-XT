@@ -102,8 +102,6 @@ DocumentSaveTransition MainWindow::saveDocument(OpenDocument& document,
 		path, document.table->getLines());
 	DocumentWriteResult coreWriteResult;
 	coreWriteResult.opened = writeResult.opened;
-	coreWriteResult.bytesWritten = writeResult.bytesWritten;
-	coreWriteResult.totalBytes = writeResult.totalBytes;
 	coreWriteResult.errorMessage = writeResult.errorMessage;
 	const DocumentSaveTransition transition = DocumentSaveCore::transition(
 		document.state, reason, newPath, coreWriteResult);
@@ -112,11 +110,6 @@ DocumentSaveTransition MainWindow::saveDocument(OpenDocument& document,
 	{
 		QMessageBox::critical(this, tr("Error"),
 			tr("Error while writing configuration file: %0").arg(transition.errorMessage));
-	}
-	else if (transition.failure == DocumentSaveFailure::PartialWrite)
-	{
-		QMessageBox::critical(this, tr("Error"), tr("Only %0/%1 bytes have been written!")
-			.arg(transition.bytesWritten).arg(transition.totalBytes));
 	}
 	else
 	{

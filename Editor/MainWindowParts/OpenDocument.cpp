@@ -70,13 +70,9 @@ DocumentSaveTransition DocumentSaveCore::transition(const DocumentState& documen
 	result.path = document.path();
 	result.dirty = document.dirty();
 	result.errorMessage = writeResult.errorMessage;
-	result.bytesWritten = writeResult.bytesWritten;
-	result.totalBytes = writeResult.totalBytes;
 
 	if (!writeResult.opened)
 		result.failure = DocumentSaveFailure::WriteError;
-	else if (writeResult.bytesWritten != writeResult.totalBytes)
-		result.failure = DocumentSaveFailure::PartialWrite;
 
 	if (result.failure != DocumentSaveFailure::None)
 	{
