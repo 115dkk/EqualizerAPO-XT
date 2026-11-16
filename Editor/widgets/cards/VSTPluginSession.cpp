@@ -32,6 +32,7 @@
 #include "Editor/helpers/PluginLoadQueue.h"
 #include "Editor/helpers/VstChunkScan.h"
 #include "Editor/helpers/VstChunkState.h"
+#include "Editor/helpers/VstPanelCall.h"
 
 using std::unordered_map;
 using std::wstring;
@@ -375,8 +376,16 @@ void VSTPluginSession::openDialog(QWidget* dialogParent)
 		return;
 
 	writingState = true;
-	effect->writeToEffect(currentChunkData, currentParamMap);
+	const bool restored = vstPanelCallGuarded([&]() {
+		effect->writeToEffect(currentChunkData, currentParamMap);
+		return true;
+	});
 	writingState = false;
+	if (!restored)
+	{
+		reportPanelCrash();
+		return;
+	}
 
 	// Before the dialog's startEditing: the feed prepares the instance for
 	// the loopback mix format, which must happen while the processor is
@@ -568,31 +577,25 @@ void VSTPluginSession::onAutomate()
 
 bool VSTPluginSession::embedPlugin(QWidget* host)
 {
-	bool result = true;
-
-	__try
-	{
-		writingState = true;
+	writingState = true;
+	const bool restored = vstPanelCallGuarded([&]() {
 		effect->writeToEffect(currentChunkData, currentParamMap);
-		writingState = false;
+		return true;
+	});
+	writingState = false;
+	if (!restored)
+		return false;
 
-		HWND hwnd = (HWND)host->winId();
-		short width = 0, height = 0;
-
-		// startEditing also fails without an exception (no view, attach
-		// refused); unchecked, that embedded its 400x300 placeholder size as
-		// an empty frame and reported the panel as open.
-		result = effect->startEditing(hwnd, &width, &height, host->devicePixelRatioF());
-
-		if (result)
-			host->setFixedSize(width, height);
-	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
-	{
-		writingState = false;
-		result = false;
-	}
-
+	HWND hwnd = (HWND)host->winId();
+	short width = 0, height = 0;
+	// startEditing also fails without an exception (no view, attach
+	// refused); unchecked, that embedded its 400x300 placeholder size as
+	// an empty frame and reported the panel as open.
+	const bool result = vstPanelCallGuarded([&]() {
+		return effect->startEditing(hwnd, &width, &height, host->devicePixelRatioF());
+	});
+	if (result)
+		host->setFixedSize(width, height);
 	return result;
 }
 

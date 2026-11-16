@@ -445,6 +445,7 @@ HEADERS  += \
 	../platform/qt/MotionPreference.h \
 	helpers/VstChunkScan.h \
 	helpers/VstChunkState.h \
+	helpers/VstPanelCall.h \
 	stable.h \
 	IFilterGUI.h \
 	guis/PreampFilterGUI.h \

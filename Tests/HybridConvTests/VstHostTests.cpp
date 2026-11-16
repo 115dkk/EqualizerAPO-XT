@@ -53,6 +53,7 @@
 #include "filters/VSTPluginFilterFactory.h"
 #include "filters/loudnessCorrection/VolumeController.h"
 #include "Tests/TestDirectory.h"
+#include "Editor/helpers/VstPanelCall.h"
 #include "../TestHarness.h"
 #include "platform/windows/WindowsPath.h"
 
@@ -246,6 +247,47 @@ void expectLatencyCompensationGolden(const shared_ptr<VSTPluginLibrary>& library
 	SetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", nullptr);
 }
 
+bool panelFaultEscapes(VSTPluginInstance* instance, bool restore,
+	const wstring& chunk, const unordered_map<wstring, float>& parameters, bool& escaped)
+{
+	__try
+	{
+		return vstPanelCallGuarded([&]() {
+			if (restore)
+			{
+				instance->writeToEffect(chunk, parameters);
+				return true;
+			}
+			short width = 0, height = 0;
+			return instance->startEditing(nullptr, &width, &height);
+		});
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		escaped = true;
+		return false;
+	}
+}
+
+TEST_CASE(VstHostTests, testGuardedPanelFaults)
+{
+	auto library = VSTPluginLibrary::getInstance(exeDirectory() + L"\\TestVst2Plugin.dll");
+	harness.require(VSTPluginLibrary::load(library->getLibPath()).status >= 0, "panel fault fixture loads");
+	for (const wchar_t* mode : {L"state", L"editor"})
+	{
+		SetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", mode);
+		auto instance = VSTPluginInstance::create(library, 1);
+		const bool initialized = instance->initialize();
+		SetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", nullptr);
+		harness.require(initialized, "panel fault fixture initializes");
+		bool escaped = false;
+		const bool opened = panelFaultEscapes(instance.get(), wcscmp(mode, L"state") == 0,
+			encodeChunk({kChunkMagic, kChunkVersion, 0.5f, 0.0f}), {}, escaped);
+		harness.expectFalse(escaped, "panel state/editor AV is contained by the shared guard (audit #467 TD-20)");
+		harness.expectFalse(opened, "a faulted panel operation reports failure");
+	}
+}
+
 TEST_CASE(VstHostTests, testRejectedNegotiationMetadata)
 {
 	auto library = VSTPluginLibrary::getInstance(exeDirectory() + L"\\TestVst2Plugin.dll");
@@ -274,10 +316,10 @@ TEST_CASE(VstHostTests, testProcessBlockWidthsAndLease)
 	harness.require(VSTPluginLibrary::load(library->getLibPath()).status >= 0, "width fixture loads");
 	for (const wchar_t* mode : {L"double", L"float", L"accumulate"})
 	{
-		SetEnvironmentVariableW(L"EAPO_TEST_VST_WIDTH", mode);
+		SetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", mode);
 		auto instance = VSTPluginInstance::create(library, 2);
 		const bool initialized = instance->initialize();
-		SetEnvironmentVariableW(L"EAPO_TEST_VST_WIDTH", nullptr);
+		SetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", nullptr);
 		harness.require(initialized, "width fixture initializes");
 		harness.require(instance->negotiate({}).accepted, "width fixture negotiates");
 		harness.require(instance->prepareForProcessing(48000.0f, 4, VSTPluginInstance::InputWidth::Float),

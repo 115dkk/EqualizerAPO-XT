@@ -151,6 +151,8 @@ struct PluginState
 	bool editorOpen = false;
 	bool dispatcherActive = false;
 	bool editorFailed = false;
+	bool faultState = false;
+	bool faultEditor = false;
 };
 
 PluginState* stateOf(vst_effect_t* effect)
@@ -378,6 +380,12 @@ void copyName(void* dst, const char* text, size_t bufSize)
 intptr_t VST_FUNCTION_INTERFACE dispatcher(vst_effect_t* effect, int32_t opcode, int32_t index, intptr_t value, void* ptr, float opt)
 {
 	PluginState* state = stateOf(effect);
+	// Raise the AV through Windows, not an instrumented invalid pointer write:
+	// SEH containment is the subject, including in MSVC ASan builds.
+	if (state != nullptr
+		&& ((state->faultState && opcode == VST_EFFECT_OPCODE_SET_CHUNK_DATA)
+			|| (state->faultEditor && opcode == VST_EFFECT_OPCODE_EDITOR_OPEN)))
+		RaiseException(EXCEPTION_ACCESS_VIOLATION, 0, 0, nullptr);
 	if (state != nullptr && state->dispatcherActive)
 	{
 		state->editorFailed = true;
@@ -635,7 +643,7 @@ vst_effect_t* createEffect(vst_host_callback_t callback)
 	effect->process_double = &processDoubleReplacing;
 
 	wchar_t widthMode[32] = {};
-	if (GetEnvironmentVariableW(L"EAPO_TEST_VST_WIDTH", widthMode, 32) > 0)
+	if (GetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", widthMode, 32) > 0)
 	{
 		if (wcscmp(widthMode, L"float") == 0 || wcscmp(widthMode, L"accumulate") == 0)
 		{
@@ -646,6 +654,18 @@ vst_effect_t* createEffect(vst_host_callback_t callback)
 		{
 			effect->flags &= ~VST_EFFECT_FLAG_SUPPORTS_FLOAT;
 			effect->process_float = nullptr;
+		}
+	}
+
+	wchar_t faultMode[32] = {};
+	if (GetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", faultMode, 32) > 0)
+	{
+		state->faultState = wcscmp(faultMode, L"state") == 0;
+		state->faultEditor = wcscmp(faultMode, L"editor") == 0;
+		if (state->faultEditor)
+		{
+			state->editorPersona = EditorPersona::fixed;
+			effect->flags |= VST_EFFECT_FLAG_EDITOR;
 		}
 	}
 
