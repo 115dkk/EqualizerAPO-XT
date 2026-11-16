@@ -135,13 +135,6 @@ public:
 	// A line that is a note, not a disabled command; such a line has no
 	// "command: parameters" shape, so FilterTable routes it to the comment card.
 	static bool isPureCommentLine(const QString& line);
-	// True when the parameter text carries inline `expression` segments (the
-	// shared InlineExpression lexer decides, so "\`" escapes and empty
-	// segments follow the engine exactly). Such a line's numbers are decided
-	// at load time; editors that would parse and re-serialize them must stand
-	// down or open in dynamic mode, or a knob turn silently destroys the
-	// expression.
-	static bool hasInlineExpressions(const QString& parameters);
 	// The raw-body eligibility rule the five skins used to restate verbatim:
 	// bare/unmodelled lines (raw text, the If family, Eval) and dynamic lines
 	// host the shared raw editor, so a skin's inline raw styling applies to

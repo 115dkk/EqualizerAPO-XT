@@ -43,15 +43,6 @@ struct IfFrame
 	bool ifBranchEnded = false;
 };
 
-bool hasInlineExpression(const std::wstring& parameters)
-{
-	if (parameters.find(L'`') == std::wstring::npos)
-		return false;
-	for (const InlineExpression::Segment& segment : InlineExpression::split(parameters))
-		if (segment.isExpression)
-			return true;
-	return false;
-}
 }
 
 std::vector<ChannelFlowAtLine> computeChannelFlow(const std::vector<ChannelFlowLine>& lines,
@@ -161,7 +152,7 @@ std::vector<ChannelFlowAtLine> computeChannelFlow(const std::vector<ChannelFlowL
 		// after the engine evaluates them, which the Editor cannot do; it sees
 		// the flow and changes nothing (the card path shows such a line as its
 		// raw text, without a Channel or Copy editor).
-		if (hasInlineExpression(line.parameters))
+		if (InlineExpression::containsExpression(line.parameters))
 			continue;
 
 		if (keyword == L"Stage")

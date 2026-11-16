@@ -19,13 +19,16 @@
 
 #include "ExpressionFilterGUIFactory.h"
 #include "../FilterGUIFactoryRegistry.h"
+#include "filters/ExpressionCommand.h"
 
 REGISTER_FILTER_GUI_FACTORY(FilterGUIFactoryOrder::Expression, ExpressionFilterGUIFactory)
 
 IFilterGUI* ExpressionFilterGUIFactory::createFilterGUI(QString& command, QString& parameters)
 {
-	// do not create a gui if parameters contain expressions
-	if (parameters.contains('`'))
+	// A row is dynamic only when the engine's lexer finds an expression
+	// segment; escaped and unterminated backticks remain legacy-editable
+	// (audit #467 TD-49).
+	if (InlineExpression::containsExpression(parameters.toStdWString()))
 		command = "";
 
 	return nullptr;

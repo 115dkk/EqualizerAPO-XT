@@ -143,19 +143,6 @@ bool FilterCardModel::isPureCommentLine(const QString& line)
 	return trimmed.startsWith('#') && !isDisabledCommandLine(line);
 }
 
-bool FilterCardModel::hasInlineExpressions(const QString& parameters)
-{
-	// Cheap pre-check before the lexer: a line without a backtick can have
-	// no expression segment.
-	if (!parameters.contains(QLatin1Char('`')))
-		return false;
-	const std::vector<InlineExpression::Segment> segments = InlineExpression::split(parameters.toStdWString());
-	for (const InlineExpression::Segment& segment : segments)
-		if (segment.isExpression)
-			return true;
-	return false;
-}
-
 QStringList FilterCardModel::headerChannels(const FilterCardDescriptor& descriptor,
 	const std::vector<std::wstring>& deviceChannels)
 {
@@ -253,7 +240,7 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 	const QString keyword = canonicalCommand(command);
 	descriptor.command = command;
 	descriptor.parameters = parameters;
-	descriptor.dynamicLine = hasInlineExpressions(parameters);
+	descriptor.dynamicLine = InlineExpression::containsExpression(parameters.toStdWString());
 	descriptor.title = command.isEmpty() ? tr("Text") : command;
 	descriptor.summary = compactWhitespace(parameters);
 	descriptor.type = QStringLiteral("text");

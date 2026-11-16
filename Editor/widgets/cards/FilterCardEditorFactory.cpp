@@ -10,6 +10,7 @@
 
 #include "Editor/IFilterGUI.h"
 #include "Editor/widgets/FilterCardModel.h"
+#include "filters/ExpressionCommand.h"
 #include "FilterCardEditorRegistry.h"
 
 bool FilterCardEditorFactory::available(const QString& command, const QString& parameters)
@@ -32,7 +33,7 @@ bool FilterCardEditorFactory::available(const QString& command, const QString& p
 	// else stands down and the line falls to the legacy chain, where the
 	// Expression GUI factory blanks it into the raw body - a guard the
 	// card-first lookup would otherwise bypass.
-	if (FilterCardModel::hasInlineExpressions(parameters))
+	if (InlineExpression::containsExpression(parameters.toStdWString()))
 	{
 		if (!FilterCardEditorRegistry::supportsDynamicParameters(commandKeyword))
 			return false;

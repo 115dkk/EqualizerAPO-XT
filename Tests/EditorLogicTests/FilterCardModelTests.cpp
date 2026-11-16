@@ -18,6 +18,7 @@
 #include "Editor/widgets/FilterCommandCatalog.h"
 #include "Editor/widgets/routing/IRoutingRenderer.h"
 #include "Editor/widgets/FilterRowGuiPolicy.h"
+#include "filters/ExpressionCommand.h"
 #include "filters/FilterFactoryRegistry.h"
 
 #include "EditorLogicTestSupport.h"
@@ -313,19 +314,29 @@ TEST_CASE(EditorLogicTests, testFilterCardDescriptors)
 	FilterCardDescriptor numberedCopy = FilterCardModel::describeLine("Copy 2: L=R");
 	expectEqual(numberedCopy.type, "text", "\"Copy 2:\" must not open the routing view that would rewrite it as \"Copy:\"");
 
-	// Dynamic-value contract: hasInlineExpressions must follow the engine's
+	// Dynamic-value contract: containsExpression must follow the engine's
 	// InlineExpression lexer exactly, because it decides which lines may not
 	// open a parsing editor (a knob turn would serialize the expression
 	// away). Escaped backticks are literal, an empty `` still counts as an
 	// expression (the engine reports its evaluation error), and the content
 	// of an unterminated trailing expression is dropped like the engine
 	// drops it.
-	expectTrue(FilterCardModel::hasInlineExpressions("`bass + 3` dB"), "backtick expression detected");
-	expectTrue(FilterCardModel::hasInlineExpressions("prefix `x` suffix"), "embedded expression detected");
-	expectFalse(FilterCardModel::hasInlineExpressions("-3 dB"), "plain number is not dynamic");
-	expectFalse(FilterCardModel::hasInlineExpressions("\\` literal backtick"), "escaped backtick is literal");
-	expectTrue(FilterCardModel::hasInlineExpressions("``"), "empty expression still counts");
-	expectFalse(FilterCardModel::hasInlineExpressions("`unterminated"), "unterminated trailing expression is dropped");
+	expectTrue(InlineExpression::containsExpression(L"`bass + 3` dB"), "backtick expression detected");
+	expectTrue(InlineExpression::containsExpression(L"prefix `x` suffix"), "embedded expression detected");
+	expectFalse(InlineExpression::containsExpression(L"-3 dB"), "plain number is not dynamic");
+	expectFalse(InlineExpression::containsExpression(L"\\` literal backtick"), "escaped backtick is literal");
+	expectTrue(InlineExpression::containsExpression(L"``"), "empty expression still counts");
+	expectFalse(InlineExpression::containsExpression(L"`unterminated"), "unterminated trailing expression is dropped");
+}
+
+TEST_CASE(EditorLogicTests, testExpressionFactoryDecisionFollowsInlineExpressionLexer)
+{
+	expectFalse(InlineExpression::containsExpression(L"\\` literal backtick"),
+		"escaped-only backticks do not block the legacy GUI");
+	expectFalse(InlineExpression::containsExpression(L"`unterminated"),
+		"an unterminated expression does not block the legacy GUI");
+	expectTrue(InlineExpression::containsExpression(L"prefix `gain + 1` suffix"),
+		"a lexer expression segment blocks the legacy GUI");
 }
 
 TEST_CASE(EditorLogicTests, testFilterCardDepths)
