@@ -733,6 +733,7 @@ HEADERS  += \
 	widgets/FilterRowGuiPolicy.h \
 	widgets/CommandRowFacts.h \
 	widgets/CommandRowInfo.h \
+	widgets/FilterCardKind.h \
 	widgets/FilterCommandCatalog.h \
 	widgets/FilterCardRow.h \
 	widgets/ChannelFlow.h \

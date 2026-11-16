@@ -216,6 +216,7 @@
     <ClInclude Include="..\..\Editor\widgets\FilterListModel.h" />
     <ClInclude Include="..\..\Editor\widgets\CommandRowFacts.h" />
     <ClInclude Include="..\..\Editor\widgets\CommandRowInfo.h" />
+    <ClInclude Include="..\..\Editor\widgets\FilterCardKind.h" />
     <ClInclude Include="..\..\Editor\widgets\FilterListUndo.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\ChannelSelectionModel.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\DeviceSelectionModel.h" />

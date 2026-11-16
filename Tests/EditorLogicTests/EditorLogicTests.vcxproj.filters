@@ -259,6 +259,9 @@
     <ClInclude Include="..\..\Editor\widgets\FilterCardModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Editor\widgets\FilterCardKind.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Editor\widgets\FilterCommandCatalog.h">
       <Filter>Header Files</Filter>
     </ClInclude>

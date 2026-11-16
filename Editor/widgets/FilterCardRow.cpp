@@ -419,7 +419,7 @@ QSize FilterCardRow::sizeHint() const
 {
 	// Blank lines collapse to a thin spacer; no header, no body, just a few
 	// pixels of breathing room so visual grouping in the config survives.
-	if (descriptor.type == QStringLiteral("spacer"))
+	if (descriptor.kind == FilterCardKind::Spacer)
 	{
 		int preferredWidth = table != nullptr ? table->getPreferredWidth() : 0;
 		return QSize(preferredWidth, 10);
@@ -445,7 +445,7 @@ QSize FilterCardRow::minimumSizeHint() const
 {
 	// Spacer rows force a small fixed height so QGridLayout does not promote
 	// them up to the body-driven minimum of neighbouring cards.
-	if (descriptor.type == QStringLiteral("spacer"))
+	if (descriptor.kind == FilterCardKind::Spacer)
 		return QSize(0, 10);
 
 	// Cap the cell's minimum width at a small constant so the QGridLayout in
@@ -719,7 +719,7 @@ void FilterCardRow::applyDescriptor()
 	// The card frame itself stays visible (so its background fills the gap and
 	// scope-rail painting still works for indented blocks) but is collapsed
 	// to a small fixed height by sizeHint() / minimumSizeHint() below.
-	const bool isSpacer = descriptor.type == QStringLiteral("spacer");
+	const bool isSpacer = descriptor.kind == FilterCardKind::Spacer;
 	// Hiding the focused subtree would tab to another card and scroll it into
 	// view. The table keeps keyboard navigation at the current selection.
 	QWidget* focused = QApplication::focusWidget();
@@ -788,7 +788,7 @@ void FilterCardRow::applyDescriptor()
 	// A pure comment row is "disabled" by definition (the line starts with '#'),
 	// but its body IS the note editor - keep it editable.
 	if (gui != nullptr)
-		gui->setEnabled(descriptor.enabled || descriptor.type == QStringLiteral("comment"));
+		gui->setEnabled(descriptor.enabled || descriptor.kind == FilterCardKind::Comment);
 	// The Copy routing view is the body of a Copy row (gui is null there), so
 	// it follows the same rule; before this it stayed live on a switched-off
 	// line (audit #348 TD-04).
@@ -981,7 +981,7 @@ void FilterCardRow::syncSummaryVisibility()
 	// An open comment card shows its note in the body editor right below, so
 	// the header would only say it twice; a closed one keeps the note as its
 	// one readout.
-	summaryLabel->setVisible(!(expanded && descriptor.type == QStringLiteral("comment")));
+	summaryLabel->setVisible(!(expanded && descriptor.kind == FilterCardKind::Comment));
 }
 
 void FilterCardRow::syncVisualState()

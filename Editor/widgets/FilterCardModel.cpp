@@ -21,12 +21,21 @@
 
 namespace
 {
+// The descriptor's type string and its kind are written together, here and in
+// applyCommandIdentity below and nowhere else, so the two cannot disagree.
+void setKind(FilterCardDescriptor& descriptor, FilterCardKind kind)
+{
+	descriptor.kind = kind;
+	descriptor.type = filterCardKindType(kind);
+}
+
 // The catalog states each command's card identity once; describeLine keeps
 // only the per-line badge/title/chip work below.
 void applyCommandIdentity(FilterCardDescriptor& descriptor,
 	const FilterCommandCatalog::CommandEntry& entry)
 {
 	descriptor.type = QLatin1String(entry.type);
+	descriptor.kind = filterCardKindFromType(descriptor.type);
 	descriptor.badge = QLatin1String(entry.badge);
 	descriptor.title = FilterCommandCatalog::title(entry);
 	descriptor.color = QLatin1String(entry.color);
@@ -147,7 +156,7 @@ QStringList FilterCardModel::headerChannels(const FilterCardDescriptor& descript
 	const std::vector<std::wstring>& deviceChannels)
 {
 	QStringList channels;
-	if (descriptor.type == QStringLiteral("newchannel"))
+	if (descriptor.kind == FilterCardKind::NewChannel)
 		return channels;
 	if (descriptor.channelBadgesAreCopyTargets)
 	{
@@ -168,13 +177,14 @@ QStringList FilterCardModel::headerChannels(const FilterCardDescriptor& descript
 
 bool FilterCardModel::hostsSharedRawBody(const QString& type, bool dynamicLine)
 {
-	return type == QStringLiteral("text") || type == QStringLiteral("if")
-		|| type == QStringLiteral("eval") || dynamicLine;
+	const FilterCardKind kind = filterCardKindFromType(type);
+	return kind == FilterCardKind::Text || kind == FilterCardKind::If
+		|| kind == FilterCardKind::Eval || dynamicLine;
 }
 
 bool FilterCardModel::opensRoutingView(const FilterCardDescriptor& descriptor)
 {
-	return descriptor.type == QStringLiteral("copy") && !descriptor.dynamicLine;
+	return descriptor.kind == FilterCardKind::Copy && !descriptor.dynamicLine;
 }
 
 QString FilterCardModel::commandForLine(const QString& line, QString* parameters)
@@ -215,7 +225,7 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 	// widget can render a thin separator instead of a full-height empty card.
 	if (line.trimmed().isEmpty())
 	{
-		descriptor.type = QStringLiteral("spacer");
+		setKind(descriptor, FilterCardKind::Spacer);
 		descriptor.canToggleEnabled = false;
 		return descriptor;
 	}
@@ -243,7 +253,7 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 	descriptor.dynamicLine = InlineExpression::containsExpression(parameters.toStdWString());
 	descriptor.title = command.isEmpty() ? tr("Text") : command;
 	descriptor.summary = compactWhitespace(parameters);
-	descriptor.type = QStringLiteral("text");
+	setKind(descriptor, FilterCardKind::Text);
 	descriptor.badge = QStringLiteral("TXT");
 	descriptor.color = QStringLiteral("#64748b");
 

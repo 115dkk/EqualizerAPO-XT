@@ -24,21 +24,22 @@ namespace
 // kind of line is this"); the colour tag next to it stays the badge token.
 QString minimalTypeGlyph(const QString& type)
 {
-	if (type == QStringLiteral("biquad"))
+	const FilterCardKind kind = filterCardKindFromType(type);
+	if (kind == FilterCardKind::Biquad)
 		return QStringLiteral("~");
-	if (type == QStringLiteral("include"))
+	if (kind == FilterCardKind::Include)
 		return QStringLiteral(">>");
-	if (type == QStringLiteral("vst"))
+	if (kind == FilterCardKind::Vst)
 		return QStringLiteral("[]");
-	if (type == QStringLiteral("copy"))
+	if (kind == FilterCardKind::Copy)
 		return QStringLiteral("->");
-	if (type == QStringLiteral("newchannel"))
+	if (kind == FilterCardKind::NewChannel)
 		return QStringLiteral("+");
-	if (type == QStringLiteral("send"))
+	if (kind == FilterCardKind::Send)
 		return QStringLiteral("=>");
-	if (type == QStringLiteral("comment"))
+	if (kind == FilterCardKind::Comment)
 		return QStringLiteral("#");
-	if (type == QStringLiteral("spacer"))
+	if (kind == FilterCardKind::Spacer)
 		return QString();
 	// Unmapped commands keep the fixed-width column so line heads stay
 	// aligned; the middle dot (U+00B7) deliberately carries no further
@@ -158,7 +159,7 @@ void MinimalSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, Q
 // fresh values (prepareCommandRow would freeze the first, stale ones).
 void MinimalSkin::paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info, const SkinTokens& tokens) const
 {
-	const bool ifFamily = info.type == QStringLiteral("if");
+	const bool ifFamily = info.kind() == FilterCardKind::If;
 	const bool verdictRow = ifFamily && info.command != QStringLiteral("endif");
 	const bool valueRow = !ifFamily && (!info.evalText.isEmpty() || info.valueError);
 	if (!verdictRow && !valueRow)

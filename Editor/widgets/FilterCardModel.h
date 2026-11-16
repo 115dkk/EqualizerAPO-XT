@@ -16,12 +16,16 @@
 #include <vector>
 
 #include "ChannelFlow.h"
+#include "Editor/widgets/FilterCardKind.h"
 
 struct FilterCardDescriptor
 {
 	QString command;
 	QString parameters;
 	QString type;
+	// The kind type names. describeLine writes the two together and is their
+	// only writer; branch on this, pass type on (properties, names, logs).
+	FilterCardKind kind = FilterCardKind::Unknown;
 	QString badge;
 	QString title;
 	QString summary;

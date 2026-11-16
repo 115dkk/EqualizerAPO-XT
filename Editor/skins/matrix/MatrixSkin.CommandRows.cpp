@@ -28,32 +28,33 @@ namespace
 // with the line number.
 QString matrixBusLetter(const QString& type)
 {
-	if (type == QStringLiteral("biquad"))
+	const FilterCardKind kind = filterCardKindFromType(type);
+	if (kind == FilterCardKind::Biquad)
 		return QStringLiteral("B");
-	if (type == QStringLiteral("preamp"))
+	if (kind == FilterCardKind::Preamp)
 		return QStringLiteral("P");
-	if (type == QStringLiteral("delay") || type == QStringLiteral("device"))
+	if (kind == FilterCardKind::Delay || kind == FilterCardKind::Device)
 		return QStringLiteral("D");
-	if (type == QStringLiteral("graphiceq"))
+	if (kind == FilterCardKind::GraphicEq)
 		return QStringLiteral("G");
-	if (type == QStringLiteral("copy") || type == QStringLiteral("channel") || type == QStringLiteral("newchannel")
-		|| type == QStringLiteral("send") || type == QStringLiteral("convolution"))
+	if (kind == FilterCardKind::Copy || kind == FilterCardKind::Channel || kind == FilterCardKind::NewChannel
+		|| kind == FilterCardKind::Send || kind == FilterCardKind::Convolution)
 		return QStringLiteral("C");
-	if (type == QStringLiteral("include"))
+	if (kind == FilterCardKind::Include)
 		return QStringLiteral("I");
-	if (type == QStringLiteral("vst"))
+	if (kind == FilterCardKind::Vst)
 		return QStringLiteral("V");
 	// If/Eval get their own designations so they stay out of the R (remark)
 	// carrier.
-	if (type == QStringLiteral("if"))
+	if (kind == FilterCardKind::If)
 		return QStringLiteral("F");
-	if (type == QStringLiteral("eval"))
+	if (kind == FilterCardKind::Eval)
 		return QStringLiteral("E");
-	if (type == QStringLiteral("stage"))
+	if (kind == FilterCardKind::Stage)
 		return QStringLiteral("S");
-	if (type == QStringLiteral("loudness"))
+	if (kind == FilterCardKind::Loudness)
 		return QStringLiteral("L");
-	if (type == QStringLiteral("comment"))
+	if (kind == FilterCardKind::Comment)
 		return QStringLiteral("#");
 	// Unrecognized raw lines: a remark entry on the board.
 	return QStringLiteral("R");
@@ -65,7 +66,7 @@ QString matrixBusLetter(const QString& type)
 
 QString MatrixSkin::cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const
 {
-	const bool remark = info.type == QStringLiteral("comment");
+	const bool remark = info.kind() == FilterCardKind::Comment;
 	const bool cancelled = !remark && info.enabled && info.lineSkipped;
 	const QString railColor = remark || cancelled ? tokens.border : (info.enabled ? tokens.success : tokens.warning);
 	const QString borderColor = info.focused ? tokens.focusRing : (info.selected ? tokens.accent : tokens.border);
@@ -112,7 +113,7 @@ void MatrixSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QW
 	// The plain line number becomes a board coordinate: the type's bus
 	// letter ahead of the stable line position ("B3"). Spacer rows are
 	// blank board lines and carry no coordinate.
-	if (card != nullptr && header != nullptr && info.type != QStringLiteral("spacer"))
+	if (card != nullptr && header != nullptr && info.kind() != FilterCardKind::Spacer)
 	{
 		QLabel* coordinateCell = header->findChild<QLabel*>(QStringLiteral("FilterCardNumber"));
 		if (coordinateCell != nullptr)
@@ -153,7 +154,7 @@ void MatrixSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QW
 
 void MatrixSkin::paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info, const SkinTokens& tokens) const
 {
-		if (info.type == QStringLiteral("spacer"))
+		if (info.kind() == FilterCardKind::Spacer)
 			return;
 
 		painter.setRenderHint(QPainter::Antialiasing, false);
@@ -182,7 +183,7 @@ void MatrixSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Com
 		// A remark row (pure comment) is addressable but carries no signal
 		// state: full grid ink and hover pre-light like an enabled row, but
 		// no status lamp.
-		const bool remark = info.type == QStringLiteral("comment");
+		const bool remark = info.kind() == FilterCardKind::Comment;
 
 		// Faint column grid, clipped to the header band: the row body stays a
 		// calm opaque panel regardless of editor widget opacity (invariant
@@ -240,7 +241,7 @@ void MatrixSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Com
 			{
 				hollowLamp(QColor(tokens.warning));
 			}
-			else if (info.type == QStringLiteral("if"))
+			else if (info.kind() == FilterCardKind::If)
 			{
 				// Gate lamp: taken = solid success, condition false = hollow
 				// success, evaluation fault = solid danger, unreached or not
@@ -272,7 +273,7 @@ void MatrixSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Com
 		// only by design: the facts go stale between an edit and the next
 		// analysis run, and this cell repaints with them instead of baking
 		// them into a construction-time label.
-		if (!info.evalText.isEmpty() || (info.type == QStringLiteral("eval") && info.valueError))
+		if (!info.evalText.isEmpty() || (info.kind() == FilterCardKind::Eval && info.valueError))
 		{
 			const QString reading = QStringLiteral("= ")
 				+ (info.evalText.isEmpty() ? QStringLiteral("ERR") : info.evalText);
