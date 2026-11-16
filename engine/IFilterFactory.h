@@ -94,7 +94,6 @@ class IFilterFactory
 public:
 	virtual ~IFilterFactory() {}
 
-	void initialize(FilterEngine& engine);
 	void initialize(FilterEngine* engine);
 	virtual FilterVector startOfConfiguration() {return {};}
 	virtual FilterVector startOfFile(const std::wstring& configPath) {return {};}

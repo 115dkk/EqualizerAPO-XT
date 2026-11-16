@@ -34,7 +34,6 @@ namespace eapo::asio
 
 	namespace AsioRegistration
 	{
-		std::wstring entrySuffix();
 		std::wstring asioRoot(bool wow6432);
 		std::wstring classesClsidRoot(bool wow6432);
 

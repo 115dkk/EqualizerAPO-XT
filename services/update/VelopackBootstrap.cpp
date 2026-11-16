@@ -118,16 +118,6 @@ bool VelopackBootstrap::isFirstRun()
 	return !pathutil::environmentVariable(L"VELOPACK_FIRSTRUN").empty();
 }
 
-bool VelopackBootstrap::isRestartingAfterUpdate()
-{
-	return !pathutil::environmentVariable(L"VELOPACK_RESTART").empty();
-}
-
-std::wstring VelopackBootstrap::currentBinDir()
-{
-	return exeDirectory();
-}
-
 std::wstring VelopackBootstrap::installRoot()
 {
 	return installRootFromBinDir(exeDirectory());

@@ -115,25 +115,4 @@ Result probe(const std::wstring& deviceGuid, bool input)
 	return result;
 }
 
-std::wstring describe(const Result& r)
-{
-	switch (r.status)
-	{
-	case Status::ActiveFloat32:
-		return L"EQ active (IEEE_FLOAT 32-bit)";
-	case Status::ActiveFloat64:
-		return L"EQ active (IEEE_FLOAT 64-bit)";
-	case Status::Passthrough:
-	{
-		std::wstring desc = L"Passthrough — EQ inactive (";
-		desc += r.subtypeDescription;
-		desc += L", container " + std::to_wstring(r.containerBytes * 8) + L"-bit)";
-		return desc;
-	}
-	case Status::Unknown:
-	default:
-		return L"";
-	}
-}
-
 }  // namespace AudioFormatProbe

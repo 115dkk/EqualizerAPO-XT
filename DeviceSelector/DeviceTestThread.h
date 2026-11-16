@@ -59,8 +59,6 @@ public:
 	// the headless command (DeviceSelector --install-endpoint) needs it as a
 	// value, and treats Incomplete as a failure.
 	Verdict verdict() const {return verdictValue.load();}
-	// How many devices no install mode worked for; meaningful for Failed.
-	int nonWorkingDeviceCount() const {return nonWorking.load();}
 
 signals:
 	void log(const QString& message);

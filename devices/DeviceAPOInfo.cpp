@@ -557,12 +557,6 @@ const wstring& DeviceAPOInfo::getPostMixChildGuid() const
 	return postMixChildGuid;
 }
 
-
-wstring DeviceAPOInfo::getDefaultDevice(bool input, int role)
-{
-	return systemEndpointProbe().defaultEndpointGuid(input, role);
-}
-
 void DeviceAPOInfo::testAPOInstallation()
 {
 	probe.probeEndpoint(deviceGuid, input, deviceName);

@@ -122,11 +122,6 @@ void WindowsService::waitFor(DWORD state, ULONGLONG deadline)
 		throw WindowsServiceError(L"Service transition timed out on service \"" + serviceName + L"\"");
 }
 
-const std::wstring& WindowsService::getServiceName()
-{
-	return serviceName;
-}
-
 DWORD WindowsService::getState()
 {
 	SERVICE_STATUS_PROCESS ssp;

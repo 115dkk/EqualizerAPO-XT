@@ -47,9 +47,6 @@ namespace AudioFormatProbe
 	// if the endpoint cannot be queried.
 	Result probe(const std::wstring& deviceGuid, bool input);
 
-	// Short one-line description suitable for a status-bar label or tooltip.
-	std::wstring describe(const Result& r);
-
 	// True when the EQ chain is bypassed for this stream.
 	inline bool isPassthrough(Status s) { return s == Status::Passthrough; }
 }

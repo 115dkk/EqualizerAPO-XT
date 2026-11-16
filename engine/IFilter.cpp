@@ -24,12 +24,6 @@
 #include "FilterEngine.h"
 #include "IFilterFactory.h"
 
-void IFilterFactory::initialize(FilterEngine& engine)
-{
-	initializedEngine = &engine;
-	onInitialize(engine);
-}
-
 void IFilterFactory::initialize(FilterEngine* engine)
 {
 	initializedEngine = engine;

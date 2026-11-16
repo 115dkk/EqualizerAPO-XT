@@ -54,11 +54,6 @@ namespace eapo::asio
 
 	namespace AsioRegistration
 	{
-		std::wstring entrySuffix()
-		{
-			return suffix;
-		}
-
 		std::wstring asioRoot(bool wow6432)
 		{
 			return wow6432 ? L"HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\ASIO" : L"HKEY_LOCAL_MACHINE\\SOFTWARE\\ASIO";

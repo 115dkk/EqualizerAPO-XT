@@ -38,7 +38,6 @@ class WindowsService
 public:
 	WindowsService(SC_HANDLE scManager, const std::wstring& serviceName, DWORD desiredAccess);
 	virtual ~WindowsService() = default;
-	const std::wstring& getServiceName();
 	DWORD getState();
 	void waitFor(DWORD state, ULONGLONG deadline);
 	void start();
