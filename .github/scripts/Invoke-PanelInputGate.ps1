@@ -96,7 +96,7 @@ $plan = [pscustomobject]@{
     MinEditorPixelsChanged = 100
     MinSoundChangeLsb = 33
     AsanOptions = if ($AsanLogDirectory) { 'log_path="' + $AsanLogDirectory.TrimEnd('\', '/') + '\asan":halt_on_error=1' } else { $null }
-    Timeouts = [pscustomobject]@{ BenchmarkSeconds = 120; StartupSeconds = 60; StartupDialogsSeconds = 10; PanelSeconds = 10; ButtonSeconds = 15; SettleSeconds = 5; CaptureIntervalMilliseconds = 300; SaveSeconds = 10; ExitSeconds = 30 }
+    Timeouts = [pscustomobject]@{ BenchmarkSeconds = 120; StartupSeconds = 60; StartupDialogsSeconds = 10; PanelSeconds = 10; ButtonSeconds = 15; SettleSeconds = 5; FirstPaintSeconds = 30; PaintedMinimumColors = 16; CaptureIntervalMilliseconds = 300; SaveSeconds = 10; ExitSeconds = 30 }
 }
 if ($PlanOnly) { return $plan }
 
@@ -207,16 +207,27 @@ function Open-Panel([string] $session) {
         }
     }
     [PanelInputGate.Desktop]::BringToFront($editor.Id, $panel.Rect.Left + 1, $panel.Rect.Top + 1)
+    # Settled means painted and still. The plug-in gets FirstPaintSeconds to
+    # draw its first frame (late under AddressSanitizer on the software
+    # renderer); from the first painted capture on, SettleSeconds to hold
+    # still. An unpainted window is flat and equal to itself, which is why
+    # equality alone is not enough (GateVerdicts.psm1, Get-PanelSettleVerdict).
     $previous = [PanelInputGate.Desktop]::Capture($panel.Rect, $null)
     $watch = [Diagnostics.Stopwatch]::StartNew()
-    $stable = $false
+    $paintedAt = $null
+    $settle = $null
     do {
         Start-Sleep -Milliseconds $plan.Timeouts.CaptureIntervalMilliseconds
         $next = [PanelInputGate.Desktop]::Capture($panel.Rect, $null)
-        if ([PanelInputGate.Desktop]::ChangedPixels($previous, $next) -eq 0) { $stable = $true; break }
+        $colors = [PanelInputGate.Desktop]::DistinctColors($next, $plan.Timeouts.PaintedMinimumColors)
+        $settle = Get-PanelSettleVerdict -DistinctColors $colors -MinimumColors $plan.Timeouts.PaintedMinimumColors `
+            -EqualToPrevious ([PanelInputGate.Desktop]::ChangedPixels($previous, $next) -eq 0)
+        if ($settle.Settled) { break }
+        if ($settle.Painted -and $null -eq $paintedAt) { $paintedAt = $watch.Elapsed.TotalSeconds }
         $previous = $next
-    } while ($watch.Elapsed.TotalSeconds -lt $plan.Timeouts.SettleSeconds)
-    Require-Check "$session-settle" 'two equal captures 300 ms apart within 5 s' $stable $stable
+        $deadline = if ($null -eq $paintedAt) { $plan.Timeouts.FirstPaintSeconds } else { $paintedAt + $plan.Timeouts.SettleSeconds }
+    } while ($watch.Elapsed.TotalSeconds -lt $deadline)
+    Require-Check "$session-settle" "painted within $($plan.Timeouts.FirstPaintSeconds) s, then two equal captures 300 ms apart within $($plan.Timeouts.SettleSeconds) s" $settle.Reason $settle.Settled
     return $panel
 }
 function Invoke-Drag($panel, $drag) {
