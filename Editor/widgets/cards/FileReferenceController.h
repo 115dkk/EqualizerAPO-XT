@@ -131,9 +131,23 @@ public:
 	static QString chooseVstLibrary(QWidget* parent, const QString& title, const QString& nameFilter,
 		const QString& writtenPath, const QString& pluginsDirectory, bool skinned);
 
+	// What the file cards decide differently outside the product (audit #467
+	// TD-75: the cards read EAPO_SKIN_GALLERY for this). The default is the
+	// product's behaviour; the offscreen gallery and the gates built on its
+	// fixture install their own at start-up.
+	struct Policy
+	{
+		// Ask whether the audio service may open the file (audioServiceProblem,
+		// askAudioService) and offer to import a file kept outside the config
+		// directory. The gallery's freshly written scratch files have no
+		// meaningful ACL or location story, so it turns this off; its cards
+		// then render without waiting for a background answer.
+		bool checkAudioService = true;
+	};
+	static void installPolicy(const Policy& policy);
+	static bool checksAudioService();
+
 private:
-	// The offscreen gallery's files have no meaningful ACL or location story.
-	static bool skipsAudioServiceCheck();
 
 	ReferenceProbeRequests probes;
 	std::function<void(const QString&)> pendingAnswer;

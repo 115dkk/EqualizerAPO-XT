@@ -182,10 +182,16 @@ QToolBar* buildToolbarReplica(QWidget* parent);
 QList<FilterCardRow*> buildRows(QScrollArea& scrollArea, const QString& configPath, const QList<QString>& lines,
 	std::shared_ptr<AbstractAPOInfo> device = nullptr, unsigned long channelMask = 0);
 
+// Installs the gallery's FileReferenceController::Policy: the reference cards
+// skip the audio-service probe. For the rest of the process, as the
+// environment variable it replaced was.
+void installGalleryFileReferencePolicy();
+
 // What every offscreen gate over gallery-built rows stands on: a scratch
 // directory holding the synthetic reference targets (buildReferenceFiles) and
-// EAPO_SKIN_GALLERY set, so the reference cards resolve like the gallery's.
-// The scratch directory lives as long as the fixture.
+// the gallery's file-reference policy installed, so the reference cards
+// resolve like the gallery's. The scratch directory lives as long as the
+// fixture.
 class GalleryFixture
 {
 public:

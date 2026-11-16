@@ -35,6 +35,7 @@
 #include "Editor/skins/Skins.h"
 #include "Editor/widgets/FilterCardRow.h"
 #include "Editor/widgets/MainToolbarKit.h"
+#include "Editor/widgets/cards/FileReferenceController.h"
 #include "Editor/widgets/cards/VSTPluginSession.h"
 #include "SubwooferRouting/Preset.h"
 #include "SubwooferRouting/StateCodec.h"
@@ -426,6 +427,16 @@ QList<FilterCardRow*> buildRows(QScrollArea& scrollArea, const QString& configPa
 	return table->findChildren<FilterCardRow*>(QString(), Qt::FindDirectChildrenOnly);
 }
 
+void installGalleryFileReferencePolicy()
+{
+	// The reference cards skip the audio-service ACL probe, which has no
+	// meaningful answer for freshly written scratch files (audit #467 TD-75:
+	// this used to be the EAPO_SKIN_GALLERY environment variable).
+	FileReferenceController::Policy policy;
+	policy.checkAudioService = false;
+	FileReferenceController::installPolicy(policy);
+}
+
 GalleryFixture::GalleryFixture(const char* gate)
 {
 	if (!scratch.isValid())
@@ -433,10 +444,7 @@ GalleryFixture::GalleryFixture(const char* gate)
 		qWarning("%s: cannot create a scratch directory", gate);
 		return;
 	}
-	// EAPO_SKIN_GALLERY also makes the reference cards skip the audio-service
-	// ACL probe, which has no meaningful answer for freshly written scratch
-	// files.
-	qputenv("EAPO_SKIN_GALLERY", "1");
+	installGalleryFileReferencePolicy();
 	config = buildReferenceFiles(QDir(scratch.path()));
 	if (config.isEmpty())
 		qWarning("%s: cannot write reference target files", gate);

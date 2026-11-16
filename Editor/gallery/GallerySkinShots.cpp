@@ -1280,9 +1280,9 @@ int run(const QStringList& arguments)
 	}
 
 	// The reference cards probe target files; the gallery provides synthetic
-	// ones and marks itself so the cards skip the audio-service ACL probe,
-	// which has no meaningful answer for freshly written scratch files.
-	qputenv("EAPO_SKIN_GALLERY", "1");
+	// ones and installs its policy so the cards skip the audio-service ACL
+	// probe, which has no meaningful answer for freshly written scratch files.
+	installGalleryFileReferencePolicy();
 	QDir fixtureRoot = galleryFixtureRoot();
 	if (fixtureRoot.exists() && !fixtureRoot.removeRecursively())
 	{

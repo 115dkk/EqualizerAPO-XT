@@ -119,11 +119,13 @@ TEST_CASE(EditorLogicTests, testFileReferencesReadLikeTheEngine)
 		QStringLiteral("\\\\nas\\irs\\room.wav"), sourceDir + "/main.txt"),
 		QStringLiteral("The audio service only opens files on local drives"),
 		"a file on a share is refused by the engine's rule, not reported as an ACL problem");
-	qputenv("EAPO_SKIN_GALLERY", "1");
+	FileReferenceController::Policy galleryPolicy;
+	galleryPolicy.checkAudioService = false;
+	FileReferenceController::installPolicy(galleryPolicy);
 	expectTrue(FileReferenceController::audioServiceProblem(
 		QStringLiteral("\\\\nas\\irs\\room.wav"), sourceDir + "/main.txt").isEmpty(),
-		"the offscreen gallery skips the verdict");
-	qunsetenv("EAPO_SKIN_GALLERY");
+		"the offscreen gallery's policy skips the verdict");
+	FileReferenceController::installPolicy(FileReferenceController::Policy());
 	qunsetenv("EAPO_XT_TEST_IMPORT_DIR");
 }
 

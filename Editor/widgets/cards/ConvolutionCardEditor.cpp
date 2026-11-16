@@ -150,8 +150,8 @@ void ConvolutionCardEditor::updateFileInfo()
 			// a link to one), is offered for import; a readable file that
 			// merely lives elsewhere is offered too, since copying it in keeps the
 			// config self-contained. The offscreen gallery renders synthetic
-			// files with no meaningful ACL story - it skips the probe.
-			if (!qEnvironmentVariableIsSet("EAPO_SKIN_GALLERY"))
+			// files with no meaningful ACL story - its policy skips the probe.
+			if (FileReferenceController::checksAudioService())
 			{
 				// The audio-service verdict arrives later (showAudioServiceProblem);
 				// where the file lives is a path comparison, answered now.

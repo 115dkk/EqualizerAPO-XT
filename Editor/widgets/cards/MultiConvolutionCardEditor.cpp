@@ -313,8 +313,9 @@ void MultiConvolutionCardEditor::updateFileInfo()
 			}
 
 			// See ConvolutionCardEditor: the audio service only holds rights
-			// inside the config directory. The offscreen gallery skips the probe.
-			if (!qEnvironmentVariableIsSet("EAPO_SKIN_GALLERY"))
+			// inside the config directory. The offscreen gallery's policy skips
+			// the probe.
+			if (FileReferenceController::checksAudioService())
 			{
 				// The audio-service verdict arrives later (showAudioServiceProblem).
 				askAudioService = true;

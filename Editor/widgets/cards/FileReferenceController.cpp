@@ -146,7 +146,7 @@ QString FileReferenceController::audioServiceProblem(const QString& absolutePath
 {
 	// The offscreen gallery renders synthetic files with no meaningful ACL or
 	// location story.
-	if (absolutePath.isEmpty() || skipsAudioServiceCheck())
+	if (absolutePath.isEmpty() || !checksAudioService())
 		return {};
 
 	return audioServiceProblemText(audioServiceVerdict(absolutePath, configPath));
@@ -157,9 +157,20 @@ void FileReferenceController::askNothing()
 	probes.clear();
 }
 
-bool FileReferenceController::skipsAudioServiceCheck()
+namespace
 {
-	return qEnvironmentVariableIsSet("EAPO_SKIN_GALLERY");
+// Written at start-up (or by a test) on the UI thread, read there too.
+FileReferenceController::Policy installedPolicy;
+}
+
+void FileReferenceController::installPolicy(const Policy& policy)
+{
+	installedPolicy = policy;
+}
+
+bool FileReferenceController::checksAudioService()
+{
+	return installedPolicy.checkAudioService;
 }
 
 FileReferenceController::AudioServiceVerdict FileReferenceController::audioServiceVerdict(

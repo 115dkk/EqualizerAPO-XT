@@ -17,9 +17,6 @@ variables and do not belong in this list.
 
 ## Editor / skin gallery
 
-- `EAPO_SKIN_GALLERY` — set by the `--skin-gallery` run itself so reference
-  cards skip the audio-service ACL probe against freshly written scratch
-  files. Not meant to be set by hand.
 - `EAPO_GALLERY_LEGACY` — renders the heritage (legacy rows) gallery dumps
   instead of the per-skin card gallery.
 - `EAPO_SWITCH_LIMIT_MS` / `EAPO_SWITCH_WARN_MS` - override the

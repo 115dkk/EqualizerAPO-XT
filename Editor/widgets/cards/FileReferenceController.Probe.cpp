@@ -16,7 +16,7 @@
 bool FileReferenceController::askAudioService(const QString& absolutePath, const QString& configPath,
 	std::function<void(const QString& problem)> answer)
 {
-	if (absolutePath.isEmpty() || skipsAudioServiceCheck())
+	if (absolutePath.isEmpty() || !checksAudioService())
 	{
 		probes.clear();
 		answer(QString());
