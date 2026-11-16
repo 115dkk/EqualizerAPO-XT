@@ -83,7 +83,7 @@ $suiteArguments = @{
 Import-Module (Join-Path $PSScriptRoot "BuildModel.psm1") -Force
 $apoHostedProjects = @("EqualizerAPO", "ApoHostProbe")
 $projects = @(Get-EapoProjectGraph -Tag engine | ForEach-Object Path) +
-    @(Get-EapoProjectGraph -Name (@("TestVst2Plugin", "SubwooferRoutingVst3") + $suites + $apoHostedProjects) | ForEach-Object Path)
+    @(Get-EapoProjectGraph -Name (@("TestVst2Plugin", "TestChildApo", "SubwooferRoutingVst3") + $suites + $apoHostedProjects) | ForEach-Object Path)
 # What the capture gate needs beside each other: the instrumented pair, the
 # sanitizer runtime the toolset ships, and the DLLs EqualizerAPO.dll imports.
 $apoExport = [pscustomobject]@{

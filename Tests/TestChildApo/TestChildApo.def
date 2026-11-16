@@ -1,0 +1,4 @@
+LIBRARY TestChildApo
+EXPORTS
+    DllGetClassObject PRIVATE
+    DllCanUnloadNow PRIVATE

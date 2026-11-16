@@ -207,6 +207,8 @@ Describe "extracted build script decisions" {
             $memcheck.Suites | Should -Contain $suite -Because "memcheck must run every suite Build-Solution runs"
             $memcheck.Projects | Should -Contain "Tests\$suite\$suite.vcxproj"
         }
+        $solution.Projects | Should -Contain "Tests\TestChildApo\TestChildApo.vcxproj"
+        $memcheck.Projects | Should -Contain "Tests\TestChildApo\TestChildApo.vcxproj"
         $memcheck.Suites | Should -Contain "AudioRegressionTests"
         $memcheck.SuiteArguments["AudioRegressionTests"] | Should -Contain "--ref-dir"
         $solution.SuiteTimeoutMinutes | Should -Be 15
