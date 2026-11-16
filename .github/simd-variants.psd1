@@ -249,6 +249,18 @@
         AsioSdkAsset        = 'ASIO-SDK_2.3.4_2025-10-15.zip'
         AsioSdkUrl          = 'https://download.steinberg.net/sdk_downloads/ASIO-SDK_2.3.4_2025-10-15.zip'
         AsioSdkSha256       = 'd5ebf0c20dd2c5f43771fd0c1418f4b361bf52434ee670097cfa6b3a335e2eca'
+        # The static-analysis gate's cppcheck. build.yml's cppcheck job builds
+        # the release tag from source on Linux and holds the clone to
+        # CppcheckCommit (a moved tag fails the job); the scheduled audit and a
+        # developer's machine extract the official Windows installer, held to
+        # CppcheckMsiSha256, so all three run the version the gate runs
+        # (Install-CppcheckTool in Provisioning.psm1). build.yml states the
+        # version and commit in its env block; Provisioning.Tests.ps1 fails
+        # when the two places differ.
+        CppcheckVersion     = '2.22.0'
+        CppcheckCommit      = 'a436ca35ed1887bee789765122b65ed2d7a7e045'
+        CppcheckMsiUrl      = 'https://github.com/cppcheck-opensource/cppcheck/releases/download/2.22.0/cppcheck-2.22.0-x64-Setup.msi'
+        CppcheckMsiSha256   = '3929162BAB7E71D1B9B18708EC054FB0188BFC8EA1660979ED95837F5A9F547B'
     }
 
     # The prebuilt binaries are served from 115dkk-owned forks (audit #146

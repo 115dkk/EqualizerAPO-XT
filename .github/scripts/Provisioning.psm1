@@ -311,6 +311,54 @@ function Invoke-DependencyDownload {
     }
 }
 
+function Install-CppcheckTool {
+    <#
+    .SYNOPSIS
+        Puts the cppcheck the CI gate runs on a Windows machine and returns
+        the path of cppcheck.exe.
+
+    .DESCRIPTION
+        The gate's version lives in the manifest (Shared.Cppcheck*). The
+        official installer is downloaded, held to its pinned SHA-256 and
+        unpacked with an administrative install (msiexec /a), which needs no
+        elevation and registers nothing: the tool lands under
+        <InstallRoot>\cppcheck-<version>. An existing unpack of the same
+        version is reused. Under GitHub Actions the folder is added to
+        GITHUB_PATH, so later steps call `cppcheck` by name.
+
+        The scheduled audit's runner image carries an older cppcheck whose
+        findings cannot be compared with the gate's zero baseline
+        (TECH_DEBT_AUDIT, audit #467).
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [hashtable]$Manifest,
+        [Parameter(Mandatory)] [string]$InstallRoot
+    )
+
+    $version = $Manifest.Shared.CppcheckVersion
+    $target = Join-Path $InstallRoot "cppcheck-$version"
+    $exe = Join-Path $target "PFiles\Cppcheck\cppcheck.exe"
+    if (-not (Test-Path $exe)) {
+        New-Item -ItemType Directory -Force -Path $target | Out-Null
+        $msi = Join-Path $InstallRoot "cppcheck-$version-x64-Setup.msi"
+        Invoke-DependencyFetch -Url $Manifest.Shared.CppcheckMsiUrl -OutFile $msi
+        $actual = (Get-FileHash -Path $msi -Algorithm SHA256).Hash
+        if ($actual -ne $Manifest.Shared.CppcheckMsiSha256) {
+            Remove-Item $msi -Force
+            throw "SHA-256 mismatch for cppcheck $version installer: expected $($Manifest.Shared.CppcheckMsiSha256), got $actual"
+        }
+        $process = Start-Process msiexec -ArgumentList "/a `"$msi`" /qn TARGETDIR=`"$target`"" -Wait -PassThru
+        if ($process.ExitCode -ne 0) { throw "msiexec /a failed for cppcheck $version (exit $($process.ExitCode))" }
+        if (-not (Test-Path $exe)) { throw "cppcheck.exe not found under $target after unpacking" }
+    }
+    $reported = (& $exe --version | Out-String).Trim()
+    if ($reported -ne "Cppcheck $version") { throw "$exe reports '$reported', expected 'Cppcheck $version'" }
+    if ($env:GITHUB_PATH) { (Split-Path $exe -Parent) >> $env:GITHUB_PATH }
+    Write-Host "cppcheck $version at $exe"
+    return $exe
+}
+
 function Copy-RequiredFile {
     # Internal: copies the first file under $SourceRoot matching any of
     # $Patterns (after $Filter) to $Destination, or throws. Used by the vcpkg
@@ -866,6 +914,7 @@ Export-ModuleMember -Function @(
     'Get-SimdVariantEntry'
     'Get-PrimaryVariant'
     'Resolve-BuildVariant'
+    'Install-CppcheckTool'
     'Get-DependencyDownloadSpec'
     'Get-SdkDownloadSpec'
     'Invoke-DependencyDownload'

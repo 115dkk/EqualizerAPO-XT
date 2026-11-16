@@ -39,7 +39,12 @@ env:
   BUILD_CONFIGURATION: Release
   # Audit #422 TD-16: tool versions the jobs below pin, stated once.
   PYTHON_VERSION: '3.12'
-  CPPCHECK_VERSION: '2.21.0'
+  # The cppcheck release tag the gate builds and the commit that tag must
+  # resolve to. .github/simd-variants.psd1 states the same pair for the
+  # Windows installer the scheduled audit and local machines use
+  # (Provisioning.Tests.ps1 compares the two).
+  CPPCHECK_VERSION: '2.22.0'
+  CPPCHECK_COMMIT: 'a436ca35ed1887bee789765122b65ed2d7a7e045'
   PESTER_VERSION: '5.6.1'
   # SHA-256 of pester.5.6.1.nupkg as the gallery's package CDN serves it;
   # its module files match a gallery install of 5.6.1 byte for byte.
@@ -619,12 +624,20 @@ jobs:
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/cppcheck-install
-        key: cppcheck-${{ env.CPPCHECK_VERSION }}-${{ runner.os }}
+        key: cppcheck-${{ env.CPPCHECK_VERSION }}-${{ env.CPPCHECK_COMMIT }}-${{ runner.os }}
 
+    # A tag can be moved upstream; the clone must be the pinned commit or the
+    # job stops before building it (TECH_DEBT_AUDIT TD-69, audit #467).
     - name: Build cppcheck ${{ env.CPPCHECK_VERSION }}
       if: steps.cache-cppcheck.outputs.cache-hit != 'true'
       run: |
-        git clone --depth 1 --branch "$CPPCHECK_VERSION" https://github.com/danmar/cppcheck.git "$HOME/cppcheck-src"
+        set -euo pipefail
+        git clone --depth 1 --branch "$CPPCHECK_VERSION" https://github.com/cppcheck-opensource/cppcheck.git "$HOME/cppcheck-src"
+        actual=$(git -C "$HOME/cppcheck-src" rev-parse HEAD)
+        if [ "$actual" != "$CPPCHECK_COMMIT" ]; then
+          echo "::error::cppcheck tag $CPPCHECK_VERSION resolves to $actual, not the pinned $CPPCHECK_COMMIT."
+          exit 1
+        fi
         cmake -S "$HOME/cppcheck-src" -B "$HOME/cppcheck-build" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$HOME/cppcheck-install"
         cmake --build "$HOME/cppcheck-build" -j"$(nproc)"
         cmake --install "$HOME/cppcheck-build"

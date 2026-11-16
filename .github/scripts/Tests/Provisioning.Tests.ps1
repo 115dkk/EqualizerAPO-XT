@@ -139,12 +139,24 @@ Describe "Provisioning.psm1" {
                 'Get-PrimaryVariant',
                 'Get-SdkDownloadSpec',
                 'Get-SimdVariantEntry',
+                'Install-CppcheckTool',
                 'Install-PinnedSourceDependency',
                 'Install-QtSdk',
                 'Invoke-DependencyDownload',
                 'Resolve-BuildVariant',
                 'Sync-PinnedCheckout'
             )
+        }
+
+        It "states the cppcheck version and commit the same way in the manifest and in build.yml" {
+            # The Linux gate builds the tag named in build.yml's env block; the
+            # audit runner and local machines unpack the manifest's installer.
+            $manifest = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot "..\..\simd-variants.psd1")
+            $workflow = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot "..\..\workflows\build.yml")
+            $workflow | Should -Match "CPPCHECK_VERSION: '$([regex]::Escape($manifest.Shared.CppcheckVersion))'"
+            $workflow | Should -Match "CPPCHECK_COMMIT: '$($manifest.Shared.CppcheckCommit)'"
+            $manifest.Shared.CppcheckMsiUrl | Should -BeLike "*/$($manifest.Shared.CppcheckVersion)/cppcheck-$($manifest.Shared.CppcheckVersion)-x64-Setup.msi"
+            $manifest.Shared.CppcheckMsiSha256 | Should -Match "^[0-9A-F]{64}$"
         }
     }
 

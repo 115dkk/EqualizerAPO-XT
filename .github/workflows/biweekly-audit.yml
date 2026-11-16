@@ -218,6 +218,19 @@ jobs:
           Write-Host "qmake $reported at $qmake; QT_ROOT=$env:QT_ROOT"
           exit 0
 
+      # The runner image's own cppcheck is older than the one build.yml's
+      # gate runs, so its findings could not be compared with the gate's zero
+      # baseline and the 2026-11-15 audit ran none. This puts the gate's
+      # version first on PATH.
+      - name: Install the gate's cppcheck
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Import-Module ".\.github\scripts\Provisioning.psm1" -Force
+          $manifest = Import-PowerShellDataFile -Path ".github\simd-variants.psd1"
+          Install-CppcheckTool -Manifest $manifest -InstallRoot (Join-Path $env:RUNNER_TEMP "tools") | Out-Null
+          exit 0
+
       - name: Install audit skills
         id: skills
         run: |
@@ -368,6 +381,8 @@ jobs:
             pwsh -File .github/scripts/Build-QtApps.ps1 -WorkspaceRoot . -Platform x64
             and the MSBuild projects with
             pwsh -File .github/scripts/Build-Solution.ps1 -WorkspaceRoot . -Platform x64
+          - cppcheck on PATH is the version the CI gate runs; the gate's
+            flags are in the cppcheck job of .github/workflows/build.yml.
           - You MAY compile projects and run the test suites
             (EditorLogicTests, HybridConvTests, EngineOrchestrationTests,
             AsioTests, AudioRegressionTests) to verify findings

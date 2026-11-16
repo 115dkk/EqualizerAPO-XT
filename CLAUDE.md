@@ -147,7 +147,7 @@ CI는 x64 `sse2`, `avx`, `avx2`, `avx512`, `avx10_1`, ARM64 `neon` 조합을 빌
 
 CI annotation도 작업 범위입니다. warning이나 notice가 다음 릴리스에서 사용자에게 혼란을 줄 수 있거나 곧 실패로 바뀔 예정이면 방치하지 않습니다.
 
-cppcheck job은 베이스라인 0 기준의 차단 게이트입니다. CI는 cppcheck 2.21.0을 태그 고정으로 소스 빌드해 쓰므로, 로컬에서도 같은 버전으로 build.yml의 cppcheck 호출 플래그를 그대로 사용하면 결과가 재현됩니다. 새 발견은 코드로 고치는 것이 기본이고, 정당한 거짓 양성만 근거 주석과 함께 inline 또는 job 수준 suppress로 처리합니다. 정책적으로 억제한 규칙(cstyleCast, shadow*, useStlAlgorithm, postfixOperator, noExplicitConstructor, LocalAllocCalled)의 근거는 build.yml의 주석에 있습니다.
+cppcheck job은 베이스라인 0 기준의 차단 게이트입니다. CI는 cppcheck 2.22.0을 태그와 커밋으로 고정해 소스 빌드하므로, 로컬에서도 같은 버전으로 build.yml의 cppcheck 호출 플래그를 그대로 사용하면 결과가 재현됩니다. Windows에서는 `Provisioning.psm1`의 `Install-CppcheckTool`이 같은 버전의 공식 설치 파일을 해시로 확인해 풀어 주며, 버전과 해시는 `.github/simd-variants.psd1`에 있습니다. 새 발견은 코드로 고치는 것이 기본이고, 정당한 거짓 양성만 근거 주석과 함께 inline 또는 job 수준 suppress로 처리합니다. 정책적으로 억제한 규칙(cstyleCast, shadow*, useStlAlgorithm, postfixOperator, noExplicitConstructor, LocalAllocCalled)의 근거는 build.yml의 주석에 있습니다.
 
 memcheck job은 동적 메모리 게이트입니다. 런타임 테스트 스위트를 MSVC AddressSanitizer(`/p:EnableASAN=true`, 컨테이너 주석 비활성, WPO 끔)로 재빌드해 실행하며, 힙 위반(use-after-free, 오버플로, 이중 해제)은 ASan 리포트가 프로세스를 중단시켜 Red가 됩니다. 엔진 버퍼 누수는 각 테스트 바이너리가 종료 시 검사하는 AlignedMemory 카나리아(Tests/AlignedMemoryGate.h)가 Red로 만듭니다. Windows MSVC에는 LeakSanitizer가 없어 전체 힙 누수 검출은 제공되지 않습니다. 성능 계약 테스트는 `__SANITIZE_ADDRESS__`에서 스스로 빠집니다. 빌드/실행 절차는 .github/scripts/Invoke-MemcheckTests.ps1에 있고, 로컬 재현도 같은 스크립트로 합니다(플래그 전환 시 /t:rebuild 필수).
 
