@@ -55,6 +55,8 @@
 #include "MainWindow.h"
 #include "Editor/MainWindowParts/OpenDocument.h"
 #include "services/install/ApoRegistration.h"
+#include "services/windows/WindowsService.h"
+#include "services/windows/AudioServiceNames.h"
 #include "SkinManager.h"
 #include "ui_MainWindow.h"
 #include "devices/DeviceAPOInfo.h"
@@ -289,6 +291,23 @@ MainWindow::~MainWindow()
 
 void MainWindow::doChecks()
 {
+	// Query only: no transition wait on the UI thread (audit #467 TD-13).
+	try
+	{
+		winutil::UniqueServiceHandle manager(OpenSCManagerW(nullptr, nullptr, SC_MANAGER_CONNECT));
+		if (manager)
+		{
+			WindowsService audio(manager.get(), audioServiceName, SERVICE_QUERY_STATUS);
+			if (audio.getState() != SERVICE_RUNNING)
+				QMessageBox::warning(this, tr("Windows audio service"),
+					tr("The Windows audio service is not running. Sound will not play until it is started."));
+		}
+	}
+	catch (const WindowsServiceError& e)
+	{
+		LogF(L"Could not query Windows audio service: %s", e.getMessage().c_str());
+	}
+
 	if (!ApoRegistration::verify(systemRegistry(), false).valid())
 	{
 		if (QMessageBox::warning(this, tr("Registry problem"), tr("A registry value that is required for the operation of Equalizer APO is not set correctly.\nDo you want to run the Device Selector application to fix the problem?"), QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes)

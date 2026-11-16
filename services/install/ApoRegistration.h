@@ -97,6 +97,10 @@ public:
 	static Verification verify(IRegistry& registry, bool fix, bool refreshRegistration = false);
 	static bool checkProtectedAudioDG(bool fix, IRegistry& registry = systemRegistry());
 
+	// The stop callable reports whether this operation owes a restart.
+	static Result runWithAudioStopped(const std::function<bool()>& stop,
+		const std::function<Result()>& step, const std::function<bool()>& start);
+
 	static bool stopAudioService();
 	static bool startAudioService();
 

@@ -10,6 +10,7 @@
 
 #include "EditorLogicTestSupport.h"
 
+#include "services/install/ApoRegistration.h"
 #include "services/update/UpdateSession.h"
 #include "services/update/VelopackBootstrap.h"
 
@@ -66,6 +67,31 @@ public:
 private:
 	std::shared_ptr<FakeUpdateState> state;
 };
+}
+
+TEST_CASE(EditorLogicTests, testUpdateHookRestartsAfterThrow)
+{
+	int starts = 0;
+	bool caught = false;
+	try
+	{
+		ApoRegistration::runWithAudioStopped([] { return true; },
+			[]() -> ApoRegistration::Result { throw std::runtime_error("migration failed"); },
+			[&] { ++starts; return true; });
+	}
+	catch (const std::runtime_error&)
+	{
+		caught = true;
+	}
+	expectTrue(caught, QStringLiteral("hook preserves the step exception"));
+	expectEqual(starts, 1, QStringLiteral("throwing hook still restarts audio once"));
+	starts = 0;
+	ApoRegistration::runWithAudioStopped([] { return false; },
+		[] { return ApoRegistration::Result::Success; }, [&] { ++starts; return true; });
+	expectEqual(starts, 0, QStringLiteral("hook does not start a service it did not stop"));
+	ApoRegistration::runWithAudioStopped([] { return true; },
+		[] { return ApoRegistration::Result::RegistryFailed; }, [&] { ++starts; return true; });
+	expectEqual(starts, 1, QStringLiteral("failed result restarts audio once"));
 }
 
 TEST_CASE(EditorLogicTests, testUpdateCoordinatorAppliesPendingRestartThroughAdapter)

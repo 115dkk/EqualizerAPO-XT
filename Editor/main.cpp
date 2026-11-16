@@ -224,11 +224,17 @@ int handleVelopackHook(int argc, char* argv[])
 		}
 		if (matchesHook(arg, "--veloapp-updated"))
 		{
-			ApoRegistration::stopAudioService();
-			auto rc = ApoRegistration::install(exeDir, L"", systemRegistry(), callerLocalAppData.installGrantsPrepared);
-			if (rc == ApoRegistration::Result::Success)
-				EqAPO::Import::LegacyMigration::runElevatedHookStep(exeDir, callerLocalAppData);
-			ApoRegistration::startAudioService();
+			const auto rc = ApoRegistration::runWithAudioStopped([] {
+				ApoRegistration::stopAudioService();
+				// The obsolete hook in our previous version may already have
+				// stopped it. This update still owes that restart (audit #467 TD-13).
+				return true;
+			}, [&] {
+				const auto result = ApoRegistration::install(exeDir, L"", systemRegistry(), callerLocalAppData.installGrantsPrepared);
+				if (result == ApoRegistration::Result::Success)
+					EqAPO::Import::LegacyMigration::runElevatedHookStep(exeDir, callerLocalAppData);
+				return result;
+			}, ApoRegistration::startAudioService);
 			return rc == ApoRegistration::Result::Success ? 0 : static_cast<int>(rc);
 		}
 		if (matchesHook(arg, "--veloapp-obsolete"))

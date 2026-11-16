@@ -404,6 +404,28 @@ ApoRegistration::Result ApoRegistration::uninstallAllDeviceApos(const DeviceUnin
 // (AudioSrv start) = 10 s. Updated uses 6 s; obsolete uses 3 s. Do not
 // give each service in a restart its own deadline. The hook's shared 12 s
 // budget also caps these waits when ACL subprocesses already used time.
+ApoRegistration::Result ApoRegistration::runWithAudioStopped(const std::function<bool()>& stop,
+	const std::function<Result()>& step, const std::function<bool()>& start)
+{
+	const bool stopped = stop();
+	// A throwing install/migration step must not leave AudioSrv stopped
+	// (audit #467 TD-13, testUpdateHookRestartsAfterThrow).
+	SCOPE_EXIT{
+		if (stopped)
+		{
+			try
+			{
+				start();
+			}
+			catch (...)
+			{
+				logLine(L"ERR", L"Restarting AudioSrv after the update failed");
+			}
+		}
+	};
+	return step();
+}
+
 bool ApoRegistration::stopAudioService()
 {
 	bool active = false;
