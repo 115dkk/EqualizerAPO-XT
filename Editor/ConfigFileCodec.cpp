@@ -109,6 +109,12 @@ ConfigFileCodec::ReadResult ConfigFileCodec::readConfig(const QString& path)
 
 ConfigFileCodec::WriteResult ConfigFileCodec::writeConfig(const QString& path, const QList<QString>& lines)
 {
+	return writeConfig(path, lines, systemFileSharingRetryPolicy());
+}
+
+ConfigFileCodec::WriteResult ConfigFileCodec::writeConfig(
+	const QString& path, const QList<QString>& lines, const FileSharingRetryPolicy& retryPolicy)
+{
 	WriteResult result;
 
 	QByteArray byteArray = encodeLines(lines);
@@ -159,7 +165,7 @@ ConfigFileCodec::WriteResult ConfigFileCodec::writeConfig(const QString& path, c
 		}
 
 		++commitFailures;
-		const ULONGLONG now = GetTickCount64();
+		const ULONGLONG now = retryPolicy.now();
 		if (retryDeadline == 0)
 			retryDeadline = now + atomicCommitRetryWindowMs;
 		else if (now >= retryDeadline)
@@ -167,6 +173,6 @@ ConfigFileCodec::WriteResult ConfigFileCodec::writeConfig(const QString& path, c
 			logWriteFailure(path, L"atomic commit", result.errorMessage);
 			return result;
 		}
-		Sleep(1);
+		retryPolicy.wait(nullptr, 1);
 	}
 }

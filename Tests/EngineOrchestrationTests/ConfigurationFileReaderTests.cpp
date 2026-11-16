@@ -8,7 +8,6 @@
 	the next read fails with ERROR_BROKEN_PIPE.
 */
 
-#include <chrono>
 #include <sstream>
 #include <string>
 #include <thread>
@@ -21,9 +20,38 @@
 
 #include "engine/ConfigurationFileReader.h"
 #include "../TestHarness.h"
+#include "platform/windows/FileSharingRetry.h"
 #include "platform/windows/Win32Resource.h"
 
 #include "EngineOrchestrationTestSupport.h"
+
+namespace
+{
+class CountingRetryPolicy final : public FileSharingRetryPolicy
+{
+public:
+	ULONGLONG now() const override
+	{
+		return elapsedMilliseconds;
+	}
+
+	bool wait(HANDLE cancel, DWORD milliseconds) const override
+	{
+		++waitCount;
+		if (cancel != nullptr && WaitForSingleObject(cancel, 0) == WAIT_OBJECT_0)
+		{
+			cancellationObserved = true;
+			return true;
+		}
+		elapsedMilliseconds += milliseconds;
+		return false;
+	}
+
+	mutable ULONGLONG elapsedMilliseconds = 0;
+	mutable unsigned waitCount = 0;
+	mutable bool cancellationObserved = false;
+};
+}
 
 TEST_CASE(EngineOrchestrationTests, runConfigurationFileReaderTests)
 {
@@ -66,21 +94,25 @@ TEST_CASE(EngineOrchestrationTests, runConfigurationFileReaderTests)
 	winutil::UniqueHandle cancelEvent(CreateEventW(nullptr, TRUE, TRUE, nullptr));
 	harness.require(static_cast<bool>(cancelEvent), "sharing-retry test creates a pre-signaled cancel event");
 
-	const auto cancelStart = std::chrono::steady_clock::now();
-	std::stringstream cancelled = ConfigurationFileReader::readWithRetry(lockedPath, cancelEvent.get());
-	const auto cancelElapsed = std::chrono::steady_clock::now() - cancelStart;
+	CountingRetryPolicy cancelPolicy;
+	std::stringstream cancelled = ConfigurationFileReader::readWithRetry(
+		lockedPath, cancelEvent.get(), 10000, cancelPolicy);
 	harness.expectFalse(cancelled.good(), "readWithRetry cancels a sharing retry");
-	harness.expect(cancelElapsed < std::chrono::milliseconds(100),
-		"readWithRetry observes a pre-signaled cancel event promptly");
+	harness.expectEqual(cancelPolicy.waitCount, 1u,
+		"readWithRetry asks the wait policy once before observing cancellation");
+	harness.expectTrue(cancelPolicy.cancellationObserved,
+		"readWithRetry gives the pre-signaled cancel handle to the wait policy");
+	harness.expectEqual(cancelPolicy.elapsedMilliseconds, ULONGLONG(0),
+		"readWithRetry cancellation consumes no fake-clock time");
 
-	const auto deadlineStart = std::chrono::steady_clock::now();
-	std::stringstream timedOut = ConfigurationFileReader::readWithRetry(lockedPath, nullptr, 100);
-	const auto deadlineElapsed = std::chrono::steady_clock::now() - deadlineStart;
+	CountingRetryPolicy deadlinePolicy;
+	std::stringstream timedOut = ConfigurationFileReader::readWithRetry(
+		lockedPath, nullptr, 100, deadlinePolicy);
 	harness.expectFalse(timedOut.good(), "readWithRetry times out a sharing retry");
-	harness.expect(deadlineElapsed >= std::chrono::milliseconds(80),
-		"readWithRetry waits until roughly the requested deadline");
-	harness.expect(deadlineElapsed < std::chrono::milliseconds(500),
-		"readWithRetry does not exceed the requested deadline excessively");
+	harness.expectEqual(deadlinePolicy.elapsedMilliseconds, ULONGLONG(100),
+		"readWithRetry stops at the injected deadline");
+	harness.expectEqual(deadlinePolicy.waitCount, 9u,
+		"readWithRetry follows the bounded exponential retry schedule");
 	lockedFile.reset();
 	DeleteFileW(lockedPath.c_str());
 

@@ -20,7 +20,45 @@
 #include <QTemporaryDir>
 
 #include "Editor/ConfigFileCodec.h"
+#include "platform/windows/FileSharingRetry.h"
 #include "platform/windows/Win32Resource.h"
+
+namespace
+{
+class SaveRetryPolicy final : public FileSharingRetryPolicy
+{
+public:
+	SaveRetryPolicy(winutil::UniqueHandle* releaseOnWait, ULONGLONG elapsedPerWait = 0)
+		: releaseOnWait_(releaseOnWait), elapsedPerWait_(elapsedPerWait)
+	{
+	}
+
+	ULONGLONG now() const override
+	{
+		return elapsedMilliseconds;
+	}
+
+	bool wait(HANDLE cancel, DWORD milliseconds) const override
+	{
+		++waitCount;
+		lastRequestedWait = milliseconds;
+		cancelHandleWasNull = cancel == nullptr;
+		elapsedMilliseconds += elapsedPerWait_ == 0 ? milliseconds : elapsedPerWait_;
+		if (releaseOnWait_ != nullptr)
+			releaseOnWait_->reset();
+		return false;
+	}
+
+	mutable ULONGLONG elapsedMilliseconds = 0;
+	mutable unsigned waitCount = 0;
+	mutable DWORD lastRequestedWait = 0;
+	mutable bool cancelHandleWasNull = false;
+
+private:
+	winutil::UniqueHandle* releaseOnWait_;
+	ULONGLONG elapsedPerWait_;
+};
+}
 
 TEST_CASE(EditorLogicTests, testConfigFileCodec)
 {
@@ -76,28 +114,16 @@ TEST_CASE(EditorLogicTests, testConfigFileCodecRetriesAtomicReplaceAfterReaderCl
 		nullptr));
 	requireTrue(static_cast<bool>(reader), "atomic-save retry test holds the engine-style read handle");
 
-	winutil::UniqueChangeNotification directoryChanged(FindFirstChangeNotificationW(
-		dir.path().toStdWString().c_str(), FALSE, FILE_NOTIFY_CHANGE_FILE_NAME));
-	requireTrue(static_cast<bool>(directoryChanged),
-		"atomic-save retry test watches temporary-file creation");
+	SaveRetryPolicy retryPolicy(&reader);
+	ConfigFileCodec::WriteResult result = ConfigFileCodec::writeConfig(
+		path, QList<QString>() << "replacement", retryPolicy);
 
-	ConfigFileCodec::WriteResult result;
-	std::thread writer([&] {
-		result = ConfigFileCodec::writeConfig(path, QList<QString>() << "replacement");
-	});
-
-	// QSaveFile creates a sibling temporary file before attempting the atomic
-	// rename. The directory event proves that attempt began before the reader is
-	// released, while the deadline prevents a regression from hanging the suite.
-	// The wait ends as soon as the event fires, so the deadline only bounds a
-	// failure; two seconds was missed once by a stalled AddressSanitizer runner.
-	const bool temporaryFileObserved = WaitForSingleObject(
-		directoryChanged.get(), 15000) == WAIT_OBJECT_0;
-	reader.reset();
-	writer.join();
-
-	expectTrue(temporaryFileObserved,
-		"atomic-save retry test observes temporary-file activity before releasing the reader");
+	expectEqual(retryPolicy.waitCount, 1u,
+		"writeConfig retries once after the held read handle blocks replacement");
+	expectEqual(retryPolicy.lastRequestedWait, DWORD(1),
+		"writeConfig starts its retry backoff at one millisecond");
+	expectTrue(retryPolicy.cancelHandleWasNull,
+		"writeConfig waits without a cancellation handle");
 	expectTrue(result.opened, "writeConfig retries until a short configuration read finishes");
 
 	QFile committed(path);
@@ -129,10 +155,16 @@ TEST_CASE(EditorLogicTests, testConfigFileCodecPreservesExistingFileWhenAtomicRe
 		nullptr));
 	requireTrue(static_cast<bool>(replacementBlocker), "atomic-save test locks replacement of the original file");
 
-	ConfigFileCodec::WriteResult result = ConfigFileCodec::writeConfig(path, QList<QString>() << "replacement");
+	SaveRetryPolicy retryPolicy(nullptr, 250);
+	ConfigFileCodec::WriteResult result = ConfigFileCodec::writeConfig(
+		path, QList<QString>() << "replacement", retryPolicy);
 	replacementBlocker.reset();
 
 	expectFalse(result.opened, "writeConfig reports an atomic replacement failure");
+	expectEqual(retryPolicy.waitCount, 1u,
+		"writeConfig stops retrying when the injected clock reaches its limit");
+	expectEqual(retryPolicy.elapsedMilliseconds, ULONGLONG(250),
+		"writeConfig keeps the 250 millisecond retry window");
 
 	QFile preserved(path);
 	requireTrue(preserved.open(QIODevice::ReadOnly), "atomic-save test reopens the original file");

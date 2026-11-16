@@ -19,6 +19,8 @@
 #include <windows.h>
 
 
+class FileSharingRetryPolicy;
+
 class ConfigurationFileReader
 {
 public:
@@ -28,6 +30,8 @@ public:
 		HANDLE cancel = nullptr, DWORD deadlineMilliseconds = 10000);
 	static std::stringstream readWithRetry(
 		const std::wstring& path, HANDLE cancel = nullptr, DWORD deadlineMilliseconds = 10000);
+	static std::stringstream readWithRetry(const std::wstring& path, HANDLE cancel,
+		DWORD deadlineMilliseconds, const FileSharingRetryPolicy& retryPolicy);
 
 	static std::vector<std::wstring> decodeLines(std::istream& input)
 	{
