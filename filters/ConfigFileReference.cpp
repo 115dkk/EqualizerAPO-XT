@@ -59,11 +59,9 @@ wstring ConfigFileReference::Target::problem(const wchar_t* what) const
 		return L"";
 
 	const DWORD code = error == ERROR_SUCCESS ? ERROR_CANT_ACCESS_FILE : error;
-	wstring message = win32::errorMessage(code);
-	if (message.empty())
-		message = L"Unknown Win32 error";
+	const wstring message = win32::errorMessage(code);
 	return L"The " + wstring(what) + L" \"" + path.path()
-		+ L"\" could not be opened: " + message + L" (error " + std::to_wstring(code) + L")";
+		+ L"\" could not be opened: " + message;
 }
 
 wstring ConfigFileReference::normalize(const wstring& written)

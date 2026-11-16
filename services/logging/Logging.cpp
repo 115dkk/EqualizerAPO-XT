@@ -94,7 +94,10 @@ void Logging::log(const char* file, int line, const void* caller, bool trace, co
 	FILE* fp;
 	if (presetFP == nullptr)
 	{
-		errno_t err = _wfopen_s(&fp, logPath.c_str(), L"at");
+		// Preserve pre-existing ANSI bytes rather than guessing their code page
+		// or rotating from audiodg. New entries use UTF-8; new files get a BOM
+		// (testLogKeepsUnicodeAndWin32ErrorNumbers, audit #467 TD-12).
+		errno_t err = _wfopen_s(&fp, logPath.c_str(), L"at, ccs=UTF-8");
 		if (err != 0)
 			return;
 	}

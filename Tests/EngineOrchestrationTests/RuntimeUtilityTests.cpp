@@ -31,6 +31,7 @@
 #include "runtime/concurrency/SynchronizedState.h"
 #include "services/logging/Logging.h"
 #include "platform/windows/WindowsPath.h"
+#include "platform/windows/Win32Error.h"
 #include "runtime/lifetime/ScopeExit.h"
 #include "services/windows/ServiceWait.h"
 #include "services/install/InstallWaitBudget.h"
@@ -89,6 +90,38 @@ TEST_CASE(EngineOrchestrationTests, testLogHelperFileDestination)
 
 	Logging::useStream(stderr, false, false, false);
 	DeleteFileW(path.c_str());
+}
+
+TEST_CASE(EngineOrchestrationTests, testLogKeepsUnicodeAndWin32ErrorNumbers)
+{
+	for (const bool legacy : {false, true})
+	{
+		const std::wstring path = testDirectory() + (legacy ? L"\\LegacyEncoding.log" : L"\\UnicodeEncoding.log");
+		DeleteFileW(path.c_str());
+		const std::string oldBytes = "legacy \xE9\r\n";
+		if (legacy)
+		{
+			std::ofstream old(path, std::ios::binary);
+			old << oldBytes;
+		}
+		Logging::useFile(path, true, true, false);
+		LogFStatic(L"path: \\%s\\config.txt", L"한글");
+		Logging::useStream(stderr, false, false, false);
+		std::ifstream stream(path, std::ios::binary);
+		const std::string bytes((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+		harness.expect(bytes.find("\xED\x95\x9C\xEA\xB8\x80") != std::string::npos,
+			"file log preserves Korean text as UTF-8 bytes");
+		if (legacy)
+			harness.expect(bytes.starts_with(oldBytes), "appending preserves old ANSI diagnostics byte for byte");
+		else
+			harness.expect(bytes.starts_with("\xEF\xBB\xBF"), "new file declares UTF-8 with a BOM");
+		stream.close();
+		DeleteFileW(path.c_str());
+	}
+	harness.expect(win32::errorMessage(ERROR_ACCESS_DENIED).ends_with(L" (error 5)"),
+		"formatted Win32 errors retain their numeric code");
+	harness.expect(win32::errorMessage(0x7ffffffe).ends_with(L" (error 2147483646)"),
+		"unknown Win32 errors still retain their numeric code");
 }
 
 TEST_CASE(EngineOrchestrationTests, testLogHelperUserDestination)
