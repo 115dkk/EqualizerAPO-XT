@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <cstddef>
+
 #include <mmreg.h>
 #include <ks.h>
 #include <ksmedia.h>
@@ -19,16 +21,17 @@ namespace eapo::asio::waveformat
 		unsigned validBits = 0;
 	};
 
-	inline bool containerOf(const WAVEFORMATEX* format, Container& out) noexcept
+	inline bool containerOf(const WAVEFORMATEX* format, size_t bytes, Container& out) noexcept
 	{
-		if (format == nullptr)
+		if (format == nullptr || bytes < sizeof(WAVEFORMATEX))
 			return false;
 		out = {};
 		out.bits = format->wBitsPerSample;
 		out.validBits = format->wBitsPerSample;
 		if (format->wFormatTag == WAVE_FORMAT_EXTENSIBLE)
 		{
-			if (format->cbSize < sizeof(WAVEFORMATEXTENSIBLE) - sizeof(WAVEFORMATEX))
+			if (bytes < sizeof(WAVEFORMATEXTENSIBLE)
+				|| format->cbSize < sizeof(WAVEFORMATEXTENSIBLE) - sizeof(WAVEFORMATEX))
 				return false;
 			const auto* ext = reinterpret_cast<const WAVEFORMATEXTENSIBLE*>(format);
 			if (ext->SubFormat == KSDATAFORMAT_SUBTYPE_IEEE_FLOAT)

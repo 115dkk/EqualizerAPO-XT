@@ -35,6 +35,7 @@
 #pragma once
 
 #include <atomic>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -106,7 +107,7 @@ namespace eapo::asio
 		// settings show and what an exclusive-mode player would match), then
 		// float, 32, 24-in-32, packed 24 and 16 bit. An unknown device
 		// format contributes nothing and the fixed list stands.
-		std::vector<Container> containerCandidates(const WAVEFORMATEX* deviceFormat);
+		std::vector<Container> containerCandidates(const WAVEFORMATEX* deviceFormat, size_t deviceFormatBytes);
 
 		// The WAVEFORMATEXTENSIBLE for a container at a rate and layout.
 		WAVEFORMATEXTENSIBLE makeFormat(const Container& container, unsigned channels, unsigned rate, unsigned long channelMask);

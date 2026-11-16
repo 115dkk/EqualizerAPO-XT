@@ -30,6 +30,7 @@
 #include "asio/SampleCodec.h"
 #include "asio/StreamProcessor.h"
 #include "asio/WasapiExclusiveTarget.h"
+#include "asio/WaveFormat.h"
 #include "asio/WrapperRecord.h"
 #include "services/logging/Logging.h"
 #include "Tests/AlignedMemoryGate.h"
@@ -285,7 +286,7 @@ namespace
 
 		// The endpoint's own format leads; the fixed list follows without repeats.
 		WAVEFORMATEXTENSIBLE sixteen = wasapi::makeFormat(wasapi::Container{ASIOSTInt16LSB, 16, 16, false}, 2, 48000, 3);
-		std::vector<wasapi::Container> order = wasapi::containerCandidates(&sixteen.Format);
+		std::vector<wasapi::Container> order = wasapi::containerCandidates(&sixteen.Format, sizeof(sixteen));
 		harness.require(order.size() == 5, "five containers are tried for a 16-bit device format");
 		harness.expectEqual(order[0].asioType, static_cast<long>(ASIOSTInt16LSB), "the device's own container comes first");
 		harness.expectEqual(order[1].asioType, static_cast<long>(ASIOSTFloat32LSB), "float follows");
@@ -294,12 +295,12 @@ namespace
 		harness.expectEqual(order[4].asioType, static_cast<long>(ASIOSTInt24LSB), "then packed 24; 16 bit is not repeated");
 
 		WAVEFORMATEXTENSIBLE twentyFour = wasapi::makeFormat(wasapi::Container{ASIOSTInt32LSB24, 32, 24, false}, 2, 96000, 3);
-		order = wasapi::containerCandidates(&twentyFour.Format);
+		order = wasapi::containerCandidates(&twentyFour.Format, sizeof(twentyFour));
 		harness.require(order.size() == 5, "five containers for a 24-in-32 device format");
 		harness.expectEqual(order[0].asioType, static_cast<long>(ASIOSTInt32LSB24), "24 valid bits in 32 is recognised from the extensible header");
 		harness.expectEqual(order[4].asioType, static_cast<long>(ASIOSTInt16LSB), "16 bit closes the list");
 
-		order = wasapi::containerCandidates(nullptr);
+		order = wasapi::containerCandidates(nullptr, 0);
 		harness.expectEqual(order.size(), static_cast<size_t>(5), "no device format: the fixed list alone");
 		harness.expectEqual(order[0].asioType, static_cast<long>(ASIOSTFloat32LSB), "which starts with float");
 
@@ -308,8 +309,20 @@ namespace
 		plain.nChannels = 2;
 		plain.nSamplesPerSec = 44100;
 		plain.wBitsPerSample = 24;
-		order = wasapi::containerCandidates(&plain);
+		order = wasapi::containerCandidates(&plain, sizeof(plain));
 		harness.expectEqual(order[0].asioType, static_cast<long>(ASIOSTInt24LSB), "a plain 24-bit PCM header is packed 24");
+
+		// Audit #467 TD-52: the blob occupies this exact allocation, so reading
+		// any WAVEFORMATEXTENSIBLE field would cross its end under ASan.
+		auto shortBlob = std::make_unique<unsigned char[]>(sizeof(WAVEFORMATEX));
+		std::memset(shortBlob.get(), 0, sizeof(WAVEFORMATEX));
+		auto* shortExtensible = reinterpret_cast<WAVEFORMATEX*>(shortBlob.get());
+		shortExtensible->wFormatTag = WAVE_FORMAT_EXTENSIBLE;
+		shortExtensible->wBitsPerSample = 32;
+		shortExtensible->cbSize = sizeof(WAVEFORMATEXTENSIBLE) - sizeof(WAVEFORMATEX);
+		eapo::asio::waveformat::Container shortDescription;
+		harness.expectFalse(eapo::asio::waveformat::containerOf(shortExtensible, sizeof(WAVEFORMATEX), shortDescription),
+			"an extensible tag in a short blob is rejected without reading extension fields");
 
 		// The extensible format a container becomes.
 		harness.expectEqual(static_cast<int>(twentyFour.Format.nBlockAlign), 8, "24 in 32 on two channels is 8 bytes a frame");
