@@ -211,9 +211,9 @@ wstring VoicemeeterAPOInfo::stateNote() const
 	return voicemeeterInstalled ? L"" : L"Voicemeeter was uninstalled";
 }
 
-bool VoicemeeterAPOInfo::isVoicemeeterInstalled() const
+bool VoicemeeterAPOInfo::isBackingProductMissing() const
 {
-	return voicemeeterInstalled;
+	return !voicemeeterInstalled;
 }
 
 void VoicemeeterAPOInfo::install()

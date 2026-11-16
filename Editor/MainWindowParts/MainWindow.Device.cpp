@@ -192,7 +192,7 @@ void MainWindow::updateDeviceFormatBadge(const shared_ptr<AbstractAPOInfo>& apoI
 	const unsigned generation = ++deviceFormatGeneration;
 	DeviceFormatFacts facts;
 	facts.deviceSelected = apoInfo != nullptr;
-	if (apoInfo != nullptr && apoInfo->getTransportLabel() == L"ASIO")
+	if (apoInfo != nullptr && apoInfo->kind() == AbstractAPOInfo::Kind::Asio)
 	{
 		// An ASIO target is not an endpoint: the format probe cannot reach it.
 		// What is known is what the engine host published after the last stream.

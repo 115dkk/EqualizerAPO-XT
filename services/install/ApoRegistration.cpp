@@ -39,6 +39,7 @@
 #include "platform/windows/WindowsPath.h"
 #include "services/security/AudioEngineAccess.h"
 #include "devices/DeviceAPOInfo.h"
+#include "devices/DeviceEnumeration.h"
 #include "devices/DeviceAPOInfoKeys.h"
 #include "devices/AsioAPOInfo.h"
 #include "devices/VoicemeeterAPOInfo.h"
@@ -357,8 +358,8 @@ ApoRegistration::Result ApoRegistration::uninstallAllDeviceApos(const DeviceUnin
 			errorSink(message);
 		result = Result::DeviceUninstallFailed;
 	};
-	// One item at a time, each in its own try: DeviceAPOInfo::loadAllInfos
-	// would throw for the whole list on the first unreadable endpoint.
+	// Enumeration reports unreadable entries; each uninstall still has its own
+	// guard so a failed operation does not stop the sweep (audit #467 TD-34).
 	auto guarded = [&](const std::wstring& what, const auto& step) {
 		try
 		{
@@ -383,39 +384,16 @@ ApoRegistration::Result ApoRegistration::uninstallAllDeviceApos(const DeviceUnin
 	for (int inputPass = 0; inputPass <= 1; inputPass++)
 	{
 		const bool input = inputPass == 1;
-		const std::wstring defaultDeviceGuid = probe.defaultEndpointGuid(input);
-
-		// A direction with no endpoint key at all has nothing to clean.
-		const std::wstring endpointRoot = input ? captureKeyPath : renderKeyPath;
-		std::vector<std::wstring> endpointGuids;
-		guarded(L"", [&] {
-			if (registry.keyExists(endpointRoot))
-				endpointGuids = registry.enumSubKeys(endpointRoot);
-		});
-		for (const std::wstring& endpointGuid : endpointGuids)
+		const auto enumeration = DeviceEnumeration::enumerate(input, registry, probe,
+			DeviceEnumeration::Unreadable::ReportFailure, DeviceEnumeration::Purpose::Cleanup);
+		for (const auto& failure : enumeration.failures)
+			report(failure);
+		for (const auto& info : enumeration.infos)
 		{
-			guarded(endpointGuid, [&] {
-				DeviceAPOInfo info(registry, probe);
-				if (info.load(endpointGuid, defaultDeviceGuid))
-				{
-					// As loadAllInfos does: the selection starts as what is
-					// installed.
-					info.getSelectedInstallState() = info.getCurrentInstallState();
-					uninstallInfo(endpointGuid, info);
-				}
-			});
+			const std::wstring label = info->kind() == AbstractAPOInfo::Kind::Endpoint ? info->getDeviceGuid()
+				: info->kind() == AbstractAPOInfo::Kind::Voicemeeter ? L"Voicemeeter" : L"ASIO";
+			uninstallInfo(label, *info);
 		}
-
-		std::vector<std::shared_ptr<AbstractAPOInfo>> others;
-		size_t voicemeeterCount = 0;
-		if (!input)
-		{
-			guarded(L"Voicemeeter", [&] { VoicemeeterAPOInfo::prependInfos(others, registry); });
-			voicemeeterCount = others.size();
-		}
-		guarded(L"ASIO", [&] { AsioAPOInfo::appendInfos(others, input, registry); });
-		for (size_t i = 0; i < others.size(); ++i)
-			uninstallInfo(i < voicemeeterCount ? L"Voicemeeter" : L"ASIO", *others[i]);
 	}
 	logLine(L"INFO", L"Uninstall sweep removed %u item(s); %u failure(s)", removedItems, failures);
 	return result;

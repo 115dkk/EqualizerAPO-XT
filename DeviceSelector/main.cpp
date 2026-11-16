@@ -21,6 +21,7 @@
 #include "services/registry/RegistryPaths.h"
 #include <devices/DeviceAPOInfo.h>
 #include <devices/DevicePlan.h>
+#include <devices/DeviceChange.h>
 #include <services/registry/WindowsRegistry.h>
 #include <ObjBase.h>
 #include <QDir>
@@ -320,7 +321,6 @@ int runEndpointCommand(QApplication& app, bool install)
 		info->isInput() ? "capture" : "playback", info->isInstalled() ? "installed" : "not installed");
 
 	DeviceAPOInfo::InstallState& state = info->getSelectedInstallState();
-	state = info->getCurrentInstallState();
 	const int modeIndex = args.indexOf(QStringLiteral("--install-mode"));
 	if (modeIndex >= 0 && modeIndex + 1 < args.size())
 	{
@@ -361,32 +361,22 @@ int runEndpointCommand(QApplication& app, bool install)
 		}
 	}
 
-	try
+	const DevicePlan plan = install ? planForHeadlessInstall(deviceFactsOf(*info)) : planFor(false, deviceFactsOf(*info));
+	const auto applied = DeviceChange::apply({ { plan, info.get() } }, install
+		? DeviceChange::Context::HeadlessInstall : DeviceChange::Context::HeadlessUninstall);
+	const auto& changed = applied.devices.front();
+	if (!changed.error.empty())
 	{
-		if (install)
-		{
-			if (planForHeadlessInstall(deviceFactsOf(*info)).action == DeviceAction::Reinstall)
-				info->reinstall();
-			else
-				info->install();
-		}
-		else
-		{
-			if (!info->isInstalled())
-			{
-				say(L"nothing to uninstall\n");
-				return 0;
-			}
-			info->uninstall();
-		}
-	}
-	catch (const WideError& e)
-	{
-		say(L"%s\n", e.getMessage().c_str());
+		say(L"%s\n", changed.error.c_str());
 		return 1;
 	}
-	say(L"%s\n", info->getLastOperationReport().toSummaryLine().c_str());
-	if (install)
+	if (!install && changed.action == DeviceAction::None)
+	{
+		say(L"nothing to uninstall\n");
+		return 0;
+	}
+	say(L"%s\n", changed.report.toSummaryLine().c_str());
+	if (applied.startResidentHost)
 		say(L"%s\n", ResidentHostLauncher::ensureStarted().c_str());
 
 	if (!install || args.contains(QStringLiteral("--no-test")))
@@ -395,7 +385,8 @@ int runEndpointCommand(QApplication& app, bool install)
 		// graph, which the device test would otherwise do.
 		try
 		{
-			WindowsServiceControl::restart(audioServiceName);
+			if (applied.restartAudio)
+				WindowsServiceControl::restart(audioServiceName);
 		}
 		catch (const WindowsServiceError& e)
 		{

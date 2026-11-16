@@ -13,9 +13,9 @@ class PreviewAPOInfo : public AbstractAPOInfo
 public:
 	PreviewAPOInfo(const std::wstring& connection, const std::wstring& device,
 		bool input, bool installed, bool defaultDev, bool unplugged,
-		const std::wstring& transport = std::wstring())
+		AbstractAPOInfo::Kind kind = AbstractAPOInfo::Kind::Preview)
 		: connection(connection), device(device), input(input), installed(installed),
-		defaultDev(defaultDev), unplugged(unplugged), transport(transport)
+		defaultDev(defaultDev), unplugged(unplugged), deviceKind(kind)
 	{
 	}
 
@@ -34,7 +34,8 @@ public:
 	bool isDefaultDevice() const override { return defaultDev; }
 	bool isDisabled() const override { return false; }
 	bool isUnplugged() const override { return unplugged; }
-	std::wstring getTransportLabel() const override { return transport; }
+	Kind kind() const override { return deviceKind; }
+	std::wstring getTransportLabel() const override { return deviceKind == Kind::Asio ? L"ASIO" : L""; }
 	void install() override {}
 	void uninstall() override {}
 	void reinstall() override {}
@@ -46,14 +47,14 @@ private:
 	bool installed;
 	bool defaultDev;
 	bool unplugged;
-	std::wstring transport;
+	Kind deviceKind;
 };
 
 std::shared_ptr<AbstractAPOInfo> make(const std::wstring& connection, const std::wstring& device,
 	bool input, bool installed, bool defaultDev, bool unplugged,
-	const std::wstring& transport = std::wstring())
+	AbstractAPOInfo::Kind kind = AbstractAPOInfo::Kind::Preview)
 {
-	return std::make_shared<PreviewAPOInfo>(connection, device, input, installed, defaultDev, unplugged, transport);
+	return std::make_shared<PreviewAPOInfo>(connection, device, input, installed, defaultDev, unplugged, kind);
 }
 }
 
@@ -69,8 +70,8 @@ std::vector<std::shared_ptr<AbstractAPOInfo>> playback()
 		// ASIO targets sit in the same group as the endpoints; the leading
 		// word is the one thing that tells them apart
 		// (docs/architecture/asio-host-study.md, 9).
-		make(L"ASIO", L"Topping USB Audio Device", false, true, false, false, L"ASIO"),
-		make(L"ASIO", L"miniDSP ASIO Driver", false, false, false, false, L"ASIO"),
+		make(L"ASIO", L"Topping USB Audio Device", false, true, false, false, AbstractAPOInfo::Kind::Asio),
+		make(L"ASIO", L"miniDSP ASIO Driver", false, false, false, false, AbstractAPOInfo::Kind::Asio),
 	};
 }
 
@@ -79,7 +80,7 @@ std::vector<std::shared_ptr<AbstractAPOInfo>> capture()
 	return {
 		make(L"Microphone", L"USB Audio Device", true, false, true, false),
 		make(L"CABLE Output", L"VB-Audio Virtual Cable", true, false, false, false),
-		make(L"ASIO", L"miniDSP ASIO Driver", true, false, false, false, L"ASIO"),
+		make(L"ASIO", L"miniDSP ASIO Driver", true, false, false, false, AbstractAPOInfo::Kind::Asio),
 	};
 }
 }

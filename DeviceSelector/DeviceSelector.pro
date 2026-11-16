@@ -121,6 +121,8 @@ HEADERS += \
 	../devices/AsioEntryWriter.h \
 	../devices/EndpointProbe.h \
 	../platform/windows/EndpointId.h \
+	../devices/DeviceChange.h \
+	../devices/DeviceEnumeration.h \
 	../platform/windows/TokenPrivilege.h \
 	../platform/windows/WellKnownSids.h \
 	../platform/windows/ComError.h \

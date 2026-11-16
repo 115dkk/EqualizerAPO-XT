@@ -416,6 +416,8 @@ HEADERS  += \
 	../platform/windows/CommandLineQuoting.h \
 	../platform/windows/GuidText.h \
 	../platform/windows/EndpointId.h \
+	../devices/DeviceChange.h \
+	../devices/DeviceEnumeration.h \
 	../services/security/AudioEngineAccess.h \
 	../services/diagnostics/InstallDiagnostics.h \
 	../services/windows/WindowsService.h \

@@ -235,6 +235,12 @@
     <ClInclude Include="platform\windows\Win32Resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="devices\DeviceChange.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="devices\DeviceEnumeration.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="platform\windows\EndpointId.h">
       <Filter>platform</Filter>
     </ClInclude>

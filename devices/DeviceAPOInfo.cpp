@@ -24,6 +24,7 @@
 #include <mmreg.h>
 
 #include "DeviceAPOInfo.h"
+#include "DeviceEnumeration.h"
 #include "AsioAPOInfo.h"
 #include "VoicemeeterAPOInfo.h"
 #include "DeviceAPOInfoKeys.h"
@@ -45,10 +46,32 @@ DeviceAPOInfo::DeviceAPOInfo(IRegistry& registry, const EndpointProbe& probe)
 
 vector<shared_ptr<AbstractAPOInfo>> DeviceAPOInfo::loadAllInfos(bool input, IRegistry& registry)
 {
-	vector<shared_ptr<AbstractAPOInfo>> result;
+	return DeviceEnumeration::enumerate(input, registry, systemEndpointProbe(),
+		DeviceEnumeration::Unreadable::SkipAndLog).infos;
+}
 
-	vector<wstring> deviceGuidStrings = registry.enumSubKeys(input ? captureKeyPath : renderKeyPath);
-	wstring defaultDeviceGuid = systemEndpointProbe().defaultEndpointGuid(input);
+DeviceEnumeration::Result DeviceEnumeration::enumerate(bool input, IRegistry& registry,
+	const EndpointProbe& probe, Unreadable policy, Purpose purpose)
+{
+	Result enumeration;
+	auto& result = enumeration.infos;
+	const auto failure = [&](const wstring& what, const WideError& e) {
+		LogFStatic(L"Skipping %s, its registry keys could not be read: %s", what.c_str(), e.getMessage().c_str());
+		if (policy == Unreadable::ReportFailure)
+			enumeration.failures.push_back(what + L": " + e.getMessage());
+	};
+	vector<wstring> deviceGuidStrings;
+	const wstring root = input ? captureKeyPath : renderKeyPath;
+	try
+	{
+		if (registry.keyExists(root))
+			deviceGuidStrings = registry.enumSubKeys(root);
+	}
+	catch (const WideError& e)
+	{
+		failure(root, e);
+	}
+	wstring defaultDeviceGuid = probe.defaultEndpointGuid(input);
 	for (vector<wstring>::iterator it = deviceGuidStrings.begin(); it != deviceGuidStrings.end(); it++)
 	{
 		wstring deviceGuidString = *it;
@@ -61,17 +84,15 @@ vector<shared_ptr<AbstractAPOInfo>> DeviceAPOInfo::loadAllInfos(bool input, IReg
 		// endpoint without a driver chain.
 		try
 		{
-			shared_ptr<DeviceAPOInfo> info = make_shared<DeviceAPOInfo>(registry);
+			shared_ptr<DeviceAPOInfo> info = make_shared<DeviceAPOInfo>(registry, probe);
 			if (info->load(deviceGuidString, defaultDeviceGuid))
 			{
-				info->selectedInstallState = info->currentInstallState;
 				result.push_back(move(info));
 			}
 		}
 		catch (const WideError& e)
 		{
-			LogFStatic(L"Skipping endpoint %s, its registry keys could not be read: %s",
-				deviceGuidString.c_str(), e.getMessage().c_str());
+			failure(deviceGuidString, e);
 		}
 	}
 
@@ -82,11 +103,17 @@ vector<shared_ptr<AbstractAPOInfo>> DeviceAPOInfo::loadAllInfos(bool input, IReg
 	{
 		try
 		{
-			VoicemeeterAPOInfo::prependInfos(result, registry);
+			vector<shared_ptr<AbstractAPOInfo>> voicemeeter = purpose == Purpose::Cleanup
+				? vector<shared_ptr<AbstractAPOInfo>>() : result;
+			VoicemeeterAPOInfo::prependInfos(voicemeeter, registry);
+			if (purpose == Purpose::Cleanup)
+				result.insert(result.end(), voicemeeter.begin(), voicemeeter.end());
+			else
+				result = move(voicemeeter);
 		}
 		catch (const WideError& e)
 		{
-			LogFStatic(L"Skipping Voicemeeter, its registry keys could not be read: %s", e.getMessage().c_str());
+			failure(L"Voicemeeter", e);
 		}
 	}
 	// One playback and one capture record per ASIO target driver, appended
@@ -97,10 +124,10 @@ vector<shared_ptr<AbstractAPOInfo>> DeviceAPOInfo::loadAllInfos(bool input, IReg
 	}
 	catch (const WideError& e)
 	{
-		LogFStatic(L"Skipping ASIO, its registry keys could not be read: %s", e.getMessage().c_str());
+		failure(L"ASIO", e);
 	}
 
-	return result;
+	return enumeration;
 }
 
 bool DeviceAPOInfo::load(const wstring& deviceGuid, wstring defaultDeviceGuid)
@@ -116,6 +143,7 @@ bool DeviceAPOInfo::load(const wstring& deviceGuid, wstring defaultDeviceGuid)
 		defaultDevice = (guid1 == guid2) != 0;
 	else
 		defaultDevice = false;
+	selectedInstallState = currentInstallState;
 	return true;
 }
 

@@ -103,6 +103,7 @@ public:
 	// port. isDefaultDevice() stays false. The APO reads its endpoint this way
 	// from inside audiodg (ApoRuntimeFacts.h).
 	bool loadFromRegistry(const std::wstring& deviceGuid);
+	Kind kind() const override {return Kind::Endpoint;}
 	bool canBeUpgraded() const override;
 	bool hasChanges() const override;
 	// True when the audio driver published an effect chain (an FxProperties

@@ -57,6 +57,8 @@ public:
 	{
 	}
 
+	Kind kind() const override {return Kind::Gallery;}
+
 	std::wstring getConnectionName() const override
 	{
 		return connection;

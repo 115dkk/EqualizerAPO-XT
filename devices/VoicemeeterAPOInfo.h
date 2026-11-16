@@ -49,7 +49,8 @@ public:
 	bool hasChanges() const override;
 	bool isDefaultDevice() const override;
 	std::wstring stateNote() const override;
-	bool isVoicemeeterInstalled() const;
+	Kind kind() const override {return Kind::Voicemeeter;}
+	bool isBackingProductMissing() const override;
 	void install() override;
 	void uninstall() override;
 	void reinstall() override;
