@@ -316,6 +316,9 @@
     <ClInclude Include="vst\VSTChunkBase64.h">
       <Filter>vst</Filter>
     </ClInclude>
+    <ClInclude Include="vst\VSTBoundedString.h">
+      <Filter>vst</Filter>
+    </ClInclude>
     <ClInclude Include="vst\VSTPluginLibrary.h">
       <Filter>vst</Filter>
     </ClInclude>

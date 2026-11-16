@@ -112,7 +112,7 @@ int main(int argc, char** argv)
 			PrecisionTimer timer;
 			timer.start();
 
-			SF_INFO info;
+			SF_INFO info = {};
 			sndfile::Handle inFile(sf_open(input.c_str(), SFM_READ, &info));
 			if (!inFile)
 			{

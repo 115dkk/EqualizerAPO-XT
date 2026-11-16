@@ -128,6 +128,17 @@ TEST_CASE(Vst3HostTests, testAutomaticUpmixerVerdictMatchesEngine)
 		"automatic upmixer card verdict has the engine output width");
 }
 
+TEST_CASE(Vst3HostTests, testForeignClassName)
+{
+	const wstring bundle = prepareBundle(exeDirectory(), L"FullNameBundle.vst3", testvst3::mode::fullName);
+	auto library = VSTPluginLibrary::getInstance(bundle);
+	harness.require(VSTPluginLibrary::load(bundle).status >= 0, "unterminated class-name fixture loads");
+	auto instance = VSTPluginInstance::create(library, 1);
+	harness.require(instance->initialize(), "unterminated class-name fixture initializes");
+	harness.expectTrue(instance->getName() == wstring(sizeof(library->getVST3ClassInfo().name), L'N'),
+		"an unterminated VST3 class name stops at its array bound (audit #467 TD-52)");
+}
+
 TEST_CASE(Vst3HostTests, testStateRestoreFailureIsReported)
 {
 	for (const wchar_t* mode : {L"NormalRestore.vst3", L"RefuseState.vst3"})

@@ -248,6 +248,31 @@ void expectLatencyCompensationGolden(const shared_ptr<VSTPluginLibrary>& library
 	SetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", nullptr);
 }
 
+TEST_CASE(VstHostTests, testForeignParameterNames)
+{
+	auto library = VSTPluginLibrary::getInstance(exeDirectory() + L"\\TestVst2Plugin.dll");
+	harness.require(VSTPluginLibrary::load(library->getLibPath()).status >= 0, "parameter name fixture loads");
+	for (const wchar_t* mode : {L"untouched-name", L"full-name"})
+	{
+		SetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", mode);
+		auto instance = VSTPluginInstance::create(library, 1);
+		const bool initialized = instance->initialize();
+		SetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", nullptr);
+		harness.require(initialized, "parameter name fixture initializes");
+		wstring chunk;
+		unordered_map<wstring, float> parameters;
+		instance->readFromEffect(chunk, parameters);
+		const wstring gainName = wcscmp(mode, L"full-name") == 0
+			? wstring(VST_BUFFER_SIZE_PARAM_NAME, L'N') : L"Gain";
+		harness.expectTrue(parameters.size() == 2 && parameters.count(L"") == 1 && parameters.count(gainName) == 1,
+			"an untouched parameter name is empty and a full name stops at its bound (audit #467 TD-52)");
+		instance->writeToEffect(L"", {{gainName, 0.25f}, {L"", 1.0f}});
+		instance->readFromEffect(chunk, parameters);
+		harness.expectTrue(parameters.count(L"") == 1 && parameters[L""] == 1.0f,
+			"state restoration zeroes each parameter-name buffer too");
+	}
+}
+
 TEST_CASE(VstHostTests, testZeroStateResult)
 {
 	auto library = VSTPluginLibrary::getInstance(exeDirectory() + L"\\TestVst2Plugin.dll");

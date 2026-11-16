@@ -33,6 +33,7 @@
 #include "VSTPluginLibrary.h"
 #include "VSTPluginInstance.h"
 #include "VSTChunkBase64.h"
+#include "VSTBoundedString.h"
 
 using namespace std;
 using vstchunk::decodeBase64;
@@ -209,12 +210,11 @@ public:
 		if (effect == NULL)
 			return L"";
 
-		char buf[256];
-		memset(buf, 0, sizeof(buf));
+		char buf[256] = {};
 		effect->control(effect.get(), VST_EFFECT_OPCODE_EFFECT_NAME, 0, 0, buf, 0.0f);
 		buf[255] = '\0'; // just to be sure
 
-		return wintext::toWideString(buf, CP_UTF8);
+		return wintext::toWideString(vsttext::boundedString(buf), CP_UTF8);
 	}
 
 	int getInitialDelay() const override
@@ -623,10 +623,12 @@ VSTPluginInstance::StateRestoreResult VST2Instance::writeToEffect(const wstring&
 	{
 		for (int i = 0; i < effect->num_params; i++)
 		{
-			char buf[256];
+			// The plug-in may leave this untouched: testForeignParameterNames
+			// reproduces a stale previous name (audit #467 TD-52).
+			char buf[256] = {};
 			effect->control(effect.get(), VST_EFFECT_OPCODE_PARAM_GET_NAME, i, 0, buf, 0.0f);
 			buf[255] = '\0'; // just to be sure
-			wstring name = wintext::toWideString(buf, CP_UTF8);
+			wstring name = wintext::toWideString(vsttext::boundedString(buf), CP_UTF8);
 			auto it = paramMap.find(name);
 			if (it != paramMap.end())
 				effect->set_parameter(effect.get(), i, it->second);
@@ -654,11 +656,13 @@ void VST2Instance::readFromEffect(wstring& chunkData, unordered_map<wstring, flo
 	{
 		for (int i = 0; i < effect->num_params; i++)
 		{
-			char buf[256];
+			// The plug-in may leave this untouched: testForeignParameterNames
+			// reproduces a stale previous name (audit #467 TD-52).
+			char buf[256] = {};
 			effect->control(effect.get(), VST_EFFECT_OPCODE_PARAM_GET_NAME, i, 0, buf, 0.0f);
 			buf[255] = '\0'; // just to be sure
 			float value = effect->get_parameter(effect.get(), i);
-			paramMap[wintext::toWideString(buf, CP_UTF8)] = value;
+			paramMap[wintext::toWideString(vsttext::boundedString(buf), CP_UTF8)] = value;
 		}
 	}
 }

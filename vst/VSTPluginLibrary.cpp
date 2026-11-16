@@ -29,6 +29,7 @@
 #include "PluginResidency.h"
 #include "VST3HostObjects.h"
 #include "VST3RefCounted.h"
+#include "VSTBoundedString.h"
 #include "platform/windows/Win32Resource.h"
 #include "platform/windows/WindowsPath.h"
 #include "pluginterfaces/base/futils.h"
@@ -319,9 +320,9 @@ int VSTPluginLibrary::customInitialize()
 
 	for (Steinberg::int32 i = 0; i < factory->countClasses(); i++)
 	{
-		Steinberg::PClassInfo info;
+		Steinberg::PClassInfo info = {};
 		if (factory->getClassInfo(i, &info) == Steinberg::kResultOk
-			&& strcmp(info.category, kVstAudioEffectClass) == 0)
+			&& vsttext::boundedString(info.category) == kVstAudioEffectClass)
 		{
 			vst3ClassInfo = info;
 			vst3SubCategories.clear();
@@ -331,9 +332,9 @@ int VSTPluginLibrary::customInitialize()
 			if (factory->queryInterface(factory2Iid, (void**)&rawFactory2) == Steinberg::kResultOk && rawFactory2 != nullptr)
 			{
 				auto factory2 = Steinberg::IPtr<Steinberg::IPluginFactory2>::adopt(rawFactory2);
-				Steinberg::PClassInfo2 info2;
+				Steinberg::PClassInfo2 info2 = {};
 				if (factory2->getClassInfo2(i, &info2) == Steinberg::kResultOk)
-					vst3SubCategories = info2.subCategories;
+					vst3SubCategories = vsttext::boundedString(info2.subCategories);
 			}
 			return 0;
 		}

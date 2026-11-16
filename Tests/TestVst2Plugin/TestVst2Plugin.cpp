@@ -156,6 +156,8 @@ struct PluginState
 	bool faultProcess = false;
 	bool faultPrepare = false;
 	bool zeroStateResult = false;
+	bool untouchedName = false;
+	bool fullName = false;
 };
 
 PluginState* stateOf(vst_effect_t* effect)
@@ -445,6 +447,13 @@ intptr_t VST_FUNCTION_INTERFACE dispatcher(vst_effect_t* effect, int32_t opcode,
 		return 1;
 
 	case VST_EFFECT_OPCODE_PARAM_GET_NAME:
+		if (state != nullptr && state->untouchedName && index == kParamBypass)
+			return 0;
+		if (state != nullptr && state->fullName && index == kParamGain)
+		{
+			std::memset(ptr, 'N', VST_BUFFER_SIZE_PARAM_NAME);
+			return 0;
+		}
 		if (index == kParamGain)
 			copyName(ptr, "Gain", VST_BUFFER_SIZE_PARAM_NAME);
 		else if (index == kParamBypass)
@@ -671,6 +680,10 @@ vst_effect_t* createEffect(vst_host_callback_t callback)
 		state->faultProcess = wcscmp(faultMode, L"process") == 0;
 		state->faultPrepare = wcscmp(faultMode, L"prepare") == 0;
 		state->zeroStateResult = wcscmp(faultMode, L"state-zero-success") == 0;
+		state->fullName = wcscmp(faultMode, L"full-name") == 0;
+		state->untouchedName = state->fullName || wcscmp(faultMode, L"untouched-name") == 0;
+		if (state->untouchedName)
+			effect->flags &= ~VST_EFFECT_FLAG_CHUNKS;
 		if (state->faultEditor)
 		{
 			state->editorPersona = EditorPersona::fixed;

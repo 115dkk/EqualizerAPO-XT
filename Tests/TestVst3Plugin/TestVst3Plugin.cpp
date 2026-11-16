@@ -60,6 +60,7 @@ bool faultProcessMode = false;
 bool faultActiveMode = false;
 bool faultStateMode = false;
 bool refuseStateMode = false;
+bool fullNameMode = false;
 bool surround41Mode = false;
 bool surround41CineOnlyMode = false;
 bool busInfoMismatchMode = false;
@@ -1250,6 +1251,8 @@ public:
 		*info = index == 0
 			? PClassInfo(componentCid, PClassInfo::kManyInstances, kVstAudioEffectClass, "TestVst3Plugin")
 			: PClassInfo(controllerCid, PClassInfo::kManyInstances, kVstComponentControllerClass, "TestVst3Controller");
+		if (fullNameMode)
+			std::memset(info->name, 'N', sizeof(info->name));
 		return kResultOk;
 	}
 	tresult PLUGIN_API createInstance(FIDString cid, FIDString iid, void** obj) override
@@ -1294,7 +1297,7 @@ public:
 		copyTuid(info->cid, basic.cid);
 		info->cardinality = basic.cardinality;
 		strcpy_s(info->category, basic.category);
-		strcpy_s(info->name, basic.name);
+		std::memcpy(info->name, basic.name, sizeof(info->name));
 		strcpy_s(info->subCategories, index == 0 ? (declaredUpmixerMode ? "Fx|Up-Downmix" : "Fx") : "");
 		strcpy_s(info->vendor, "EqualizerAPO-XT Tests");
 		strcpy_s(info->version, "1.0.0");
@@ -1368,6 +1371,7 @@ extern "C" __declspec(dllexport) bool InitDll()
 	faultActiveMode = wcsstr(moduleName, testvst3::mode::faultActive) != nullptr;
 	faultStateMode = wcsstr(moduleName, testvst3::mode::faultState) != nullptr;
 	refuseStateMode = wcsstr(moduleName, testvst3::mode::refuseState) != nullptr;
+	fullNameMode = wcsstr(moduleName, testvst3::mode::fullName) != nullptr;
 	if (wcsstr(moduleName, testvst3::mode::rejectInit) != nullptr)
 		return false;
 	wcscpy_s(loadedModulePath, modulePath);

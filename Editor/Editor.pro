@@ -632,6 +632,7 @@ HEADERS  += \
 	../vst/VST3HostContext.h \
 	../vst/VST3MemoryStream.h \
 	../vst/VSTChunkBase64.h \
+	../vst/VSTBoundedString.h \
 	../vst/VST3Lifecycle.h \
 	../vst/VST3SpeakerMapping.h \
 	guis/LoudnessCorrectionFilterGUI.h \

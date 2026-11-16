@@ -28,7 +28,7 @@ AbstractLibrary::~AbstractLibrary()
 {
 	if (module)
 	{
-		wchar_t path[MAX_PATH];
+		wchar_t path[MAX_PATH] = {};
 		GetModuleFileNameW(module.get(), path, MAX_PATH);
 
 		module.reset();
