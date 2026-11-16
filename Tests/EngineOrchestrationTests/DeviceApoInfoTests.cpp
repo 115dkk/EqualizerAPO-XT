@@ -52,6 +52,7 @@
 #include "devices/ApoRuntimeFacts.h"
 #include "devices/DeviceAPOInfo.h"
 #include "devices/DeviceAPOInfoKeys.h"
+#include "devices/VoicemeeterDetection.h"
 #include "services/install/ApoRegistration.h"
 #include "services/security/AudioEngineAccess.h"
 #include "services/windows/WindowsService.h"
@@ -1260,5 +1261,29 @@ TEST_CASE(EngineOrchestrationTests, testLoadAllInfosSkipsAnUnreadableEndpoint)
 	harness.expectEqual(listed(testDeviceGuid), std::ptrdiff_t(1), "the readable endpoint is listed");
 	harness.expectEqual(listed(lockedGuid), std::ptrdiff_t(0),
 		"the locked endpoint is left out rather than offered as one without a driver chain");
+}
+// A damaged third-party uninstall entry must not abort the Editor's list
+// (audit #467 TD-30).
+TEST_CASE(EngineOrchestrationTests, testLoadAllInfosSurvivesMissingVoicemeeterUninstallString)
+{
+	FakeRegistry registry;
+	seedRenderDevice(registry);
+	registry.seedKey(voicemeeterKeyPath);
+
+	std::vector<std::shared_ptr<AbstractAPOInfo>> infos;
+	bool threw = false;
+	try
+	{
+		infos = DeviceAPOInfo::loadAllInfos(false, registry);
+	}
+	catch (const RegistryError&)
+	{
+		threw = true;
+	}
+
+	harness.expectFalse(threw, "a missing Voicemeeter UninstallString does not throw the device list away");
+	harness.expect(std::any_of(infos.begin(), infos.end(), [](const std::shared_ptr<AbstractAPOInfo>& info) {
+		return info->getDeviceGuid() == testDeviceGuid;
+	}), "the readable endpoint survives the broken Voicemeeter entry");
 }
 } // namespace

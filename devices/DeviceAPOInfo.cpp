@@ -75,11 +75,30 @@ vector<shared_ptr<AbstractAPOInfo>> DeviceAPOInfo::loadAllInfos(bool input, IReg
 		}
 	}
 
+	// Broken third-party registration must not discard the endpoints already
+	// loaded (testLoadAllInfosSurvivesMissingVoicemeeterUninstallString,
+	// audit #467 TD-30).
 	if (!input)
-		VoicemeeterAPOInfo::prependInfos(result, registry);
+	{
+		try
+		{
+			VoicemeeterAPOInfo::prependInfos(result, registry);
+		}
+		catch (const WideError& e)
+		{
+			LogFStatic(L"Skipping Voicemeeter, its registry keys could not be read: %s", e.getMessage().c_str());
+		}
+	}
 	// One playback and one capture record per ASIO target driver, appended
 	// so endpoints keep their order (and the default device stays first).
-	AsioAPOInfo::appendInfos(result, input, registry);
+	try
+	{
+		AsioAPOInfo::appendInfos(result, input, registry);
+	}
+	catch (const WideError& e)
+	{
+		LogFStatic(L"Skipping ASIO, its registry keys could not be read: %s", e.getMessage().c_str());
+	}
 
 	return result;
 }
