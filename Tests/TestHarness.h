@@ -78,7 +78,8 @@ class Harness
 {
 public:
 	explicit Harness(std::string suiteName, FailurePolicy policy = FailurePolicy::Collect)
-		: name_(std::move(suiteName)), policy_(policy), passed_(0), failed_(0), reported_(false)
+		: name_(std::move(suiteName)), policy_(policy), passed_(0), failed_(0), skipped_(0),
+		caseSkipped_(false), reported_(false)
 	{
 	}
 
@@ -203,6 +204,25 @@ public:
 		++passed_;
 	}
 
+	// runAll calls this before each registered case. skip() marks the current
+	// case once, so a case that omits more than one permission-dependent check
+	// still contributes one skipped case to the suite summary.
+	void beginCase()
+	{
+		caseSkipped_ = false;
+	}
+
+	void skip(const std::string& reason)
+	{
+		if (!caseSkipped_)
+		{
+			++skipped_;
+			caseSkipped_ = true;
+		}
+		std::printf("%s skipped: %s\n", name_.c_str(), reason.c_str());
+		std::fflush(stdout);
+	}
+
 	unsigned passed() const
 	{
 		return passed_;
@@ -221,7 +241,10 @@ public:
 			std::fprintf(stderr, "%s FAILED (%u of %u checks failed)\n", name_.c_str(), failed_, passed_ + failed_);
 			std::exit(1);
 		}
-		std::printf("%s passed (%u checks)\n", name_.c_str(), passed_);
+		if (skipped_ == 0)
+			std::printf("%s passed (%u checks)\n", name_.c_str(), passed_);
+		else
+			std::printf("%s passed (%u checks, %u skipped)\n", name_.c_str(), passed_, skipped_);
 	}
 
 private:
@@ -240,6 +263,8 @@ private:
 	FailurePolicy policy_;
 	unsigned passed_;
 	unsigned failed_;
+	unsigned skipped_;
+	bool caseSkipped_;
 	bool reported_;
 };
 
@@ -276,12 +301,81 @@ inline TestSuite& registeredSuite(const char* name)
 	return registeredSuites().back();
 }
 
+inline std::vector<std::string>& executedSuiteNames()
+{
+	static std::vector<std::string> names;
+	return names;
+}
+
+inline std::string& registeredSuiteBinaryName()
+{
+	static std::string name;
+	return name;
+}
+
+inline bool suiteNameWasExecuted(const std::string& name)
+{
+	for (const std::string& executed : executedSuiteNames())
+	{
+		if (executed == name)
+			return true;
+	}
+	return false;
+}
+
+// A hand-written runAll order must not silently omit a newly registered suite.
+// Check at process exit so executables that make more than one runAll call are
+// covered as a whole (audit #467 TD-65).
+inline void verifyEveryRegisteredSuiteRan()
+{
+	bool missing = false;
+	for (const TestSuite& suite : registeredSuites())
+		missing = missing || !suiteNameWasExecuted(suite.name);
+	if (!missing)
+		return;
+
+	const std::string& binaryName = registeredSuiteBinaryName();
+	std::fprintf(stderr, "%s did not run these registered test suites:",
+		binaryName.empty() ? "The test executable" : binaryName.c_str());
+	for (const TestSuite& suite : registeredSuites())
+	{
+		if (!suiteNameWasExecuted(suite.name))
+			std::fprintf(stderr, " %s", suite.name.c_str());
+	}
+	std::fputc('\n', stderr);
+	std::fflush(nullptr);
+	std::_Exit(1);
+}
+
+inline void registerSuiteCoverageCheck()
+{
+	// Construct these before registering the callback so their destructors run
+	// after the callback and its reads remain valid.
+	(void)executedSuiteNames();
+	(void)registeredSuiteBinaryName();
+	static const bool registered = std::atexit(verifyEveryRegisteredSuiteRan) == 0;
+	if (!registered)
+	{
+		std::fputs("Could not register the test-suite coverage check.\n", stderr);
+		std::fflush(nullptr);
+		std::_Exit(1);
+	}
+}
+
+inline void markSuiteExecuted(const char* binaryName, const std::string& suiteName)
+{
+	registeredSuiteBinaryName() = binaryName;
+	if (!suiteNameWasExecuted(suiteName))
+		executedSuiteNames().push_back(suiteName);
+}
+
 class TestRegistrar
 {
 public:
 	TestRegistrar(const char* suite, const char* name, TestFunction function)
 	{
 		registeredSuite(suite).cases.push_back({name, function});
+		registerSuiteCoverageCheck();
 	}
 };
 
@@ -291,6 +385,7 @@ public:
 	CleanupRegistrar(const char* suite, CleanupFunction function)
 	{
 		registeredSuite(suite).cleanups.push_back(function);
+		registerSuiteCoverageCheck();
 	}
 };
 
@@ -354,6 +449,11 @@ public:
 		activeHarness().expectNear(actual, expected, tolerance, message);
 	}
 
+	static void skip(const std::string& reason)
+	{
+		activeHarness().skip(reason);
+	}
+
 	static void require(bool condition, const std::string& message)
 	{
 		activeHarness().require(condition, message);
@@ -406,10 +506,12 @@ inline int runAll(const char* binaryName,
 	std::vector<std::unique_ptr<Harness>> harnesses;
 	for (TestSuite* suite : orderedSuites)
 	{
+		markSuiteExecuted(binaryName, suite->name);
 		auto harness = std::make_unique<Harness>(suite->name);
 		activeHarnessStorage() = harness.get();
 		for (const TestCase& testCase : suite->cases)
 		{
+			harness->beginCase();
 			std::printf("%s::%s\n", suite->name.c_str(), testCase.name);
 			std::fflush(stdout);
 			testCase.function(*harness);

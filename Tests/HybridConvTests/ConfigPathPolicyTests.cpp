@@ -694,7 +694,8 @@ TEST_CASE(ConfigPathPolicyTests, testPinnedLeafSymlinkResidual)
 		if (set)
 			harness.expectTrue(judged.path.leaf() == nullptr, "reader refuses leaf changed to a symlink in place");
 		else
-			std::printf("A1b leaf-symlink mutation unavailable with this token/filesystem (error %lu); successful-mutation assertion skipped\n", error);
+			harness.skip("in-place leaf symlink mutation unavailable with this token or filesystem (error "
+				+ std::to_string(error) + ")");
 	}
 	DeleteFileW(file.c_str());
 	RemoveDirectoryW(root.c_str());

@@ -305,7 +305,8 @@ TEST_CASE(EngineOrchestrationTests, testJudgedPathLifetime)
 				SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE) != FALSE, "held final file cannot be replaced by a symlink");
 		}
 		else
-			std::printf("JudgedPath: symlink replacement half skipped (creation unavailable, error %lu)\n", GetLastError());
+			harness.skip("symlink replacement check unavailable (error "
+				+ std::to_string(GetLastError()) + ")");
 		auto stream = ConfigurationFileReader::read(judged.path);
 		harness.expectEqual(stream.str(), std::string("original"), "held file still supplies original bytes");
 	}

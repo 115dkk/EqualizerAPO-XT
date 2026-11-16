@@ -260,7 +260,7 @@ TEST_CASE(EngineOrchestrationTests, testRealBrirCrossfeed)
 	std::unique_ptr<wchar_t, decltype(&std::free)> dirOwner(dirBuf, &std::free);
 	if (!dirOwner)
 	{
-		std::printf("  [skip] testRealBrirCrossfeed: set EAPO_XT_BRIR_DIR to the BRIR folder to run it\n");
+		harness.skip("set EAPO_XT_BRIR_DIR to a folder containing the external BRIR captures");
 		return;
 	}
 	std::wstring dir(dirOwner.get());
