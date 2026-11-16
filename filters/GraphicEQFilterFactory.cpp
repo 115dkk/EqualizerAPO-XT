@@ -50,5 +50,5 @@ LineOutcome GraphicEQFilterFactory::createFilter(const wstring& configPath, wstr
 		return LineOutcome::produced(singleFilter(makeFilter<GraphicEQFilter>(cmd.nodes, 16384)));
 	}
 
-	return {};
+	return LineOutcome::notMine();
 }

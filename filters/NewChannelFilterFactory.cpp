@@ -25,7 +25,7 @@ LineOutcome NewChannelFilterFactory::createFilter(const wstring& configPath, wst
 {
 	NewChannelCommand cmd;
 	if (!NewChannelCommand::parse(command, parameters, cmd))
-		return {};
+		return LineOutcome::notMine();
 
 	if (cmd.names.empty())
 		return LineOutcome::malformed(L"expected at least one channel name, as in \"NewChannel: VC\"");

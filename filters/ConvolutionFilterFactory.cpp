@@ -39,7 +39,7 @@ LineOutcome ConvolutionFilterFactory::createFilter(const wstring& configPath, ws
 	// parse() answers false only for another command's line, so everything below
 	// is this factory's own line and its failures are this factory's to report.
 	if (!ConvolutionCommand::parse(command, parameters, cmd))
-		return {};
+		return LineOutcome::notMine();
 
 	ConfigFileReference::Target file = ConfigFileReference::target(configPath, cmd.path);
 	if (!file)

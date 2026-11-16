@@ -62,13 +62,14 @@ LineOutcome SubwooferRoutingFilterFactory::createFilter(
 	const std::wstring& configPath, std::wstring& command,
 	std::wstring& parameters)
 {
-	if (command != L"SubwooferRouting")
-		return {};
-
 	SubwooferRoutingCommand parsed;
 	std::wstring error;
 	if (!SubwooferRoutingCommand::parse(command, parameters, parsed, &error))
+	{
+		if (error.empty())
+			return LineOutcome::notMine();
 		return LineOutcome::malformed(error);
+	}
 
 	std::string utf8Text;
 	if (parsed.form == SubwooferRoutingCommand::Form::Profile)

@@ -34,7 +34,7 @@ LineOutcome ChannelFilterFactory::createFilter(const wstring& configPath, wstrin
 {
 	ChannelCommand cmd;
 	if (!ChannelCommand::parse(command, parameters, cmd))
-		return {};
+		return LineOutcome::notMine();
 
 	// "Channel:" with nothing after it selects no channel, which means every
 	// filter below it is applied to nothing. The engine used to infer this from

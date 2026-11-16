@@ -36,10 +36,12 @@ using std::wstring;
 LineOutcome MultiConvolutionFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	MultiConvolutionCommand cmd;
-	if (command != L"MultiConvolution")
-		return {};
 	if (!MultiConvolutionCommand::parse(command, parameters, cmd))
+	{
+		if (command != L"MultiConvolution")
+			return LineOutcome::notMine();
 		return LineOutcome::malformed(L"expected channel mappings followed by the path of an impulse response file");
+	}
 
 	ConfigFileReference::Target file = ConfigFileReference::target(configPath, cmd.path);
 	if (!file)

@@ -68,5 +68,5 @@ LineOutcome CopyFilterFactory::createFilter(const wstring& configPath, wstring& 
 		return LineOutcome::produced(singleFilter(makeFilter<CopyFilter>(assignments)));
 	}
 
-	return {};
+	return LineOutcome::notMine();
 }

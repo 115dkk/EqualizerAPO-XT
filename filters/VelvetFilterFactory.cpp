@@ -21,13 +21,14 @@ LineOutcome VelvetFilterFactory::createFilter(const std::wstring& configPath,
 	std::wstring& command, std::wstring& parameters)
 {
 	(void)configPath;
-	if (command != L"Velvet")
-		return {};
-
 	VelvetCommand parsed;
 	std::wstring error;
 	if (!VelvetCommand::parse(command, parameters, parsed, &error))
+	{
+		if (error.empty())
+			return LineOutcome::notMine();
 		return LineOutcome::malformed(error);
+	}
 
 	if (engine() != nullptr && engine()->isAnalysisMode()
 		&& parsed.parameters.dynamic)

@@ -49,7 +49,7 @@ void ExpressionFilterFactory::onInitialize(FilterEngine& engine)
 LineOutcome ExpressionFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	if (command.length() > 0 && command[0] == L'#')
-		return {};
+		return LineOutcome::notMine();
 
 	// Lex through the shared codec, then evaluate the expression segments in
 	// place so the other factories see the substituted parameter text.

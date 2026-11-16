@@ -41,12 +41,11 @@ LoudnessCorrectionFilterFactory::LoudnessCorrectionFilterFactory()
 
 LineOutcome LoudnessCorrectionFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
-	if (command != L"LoudnessCorrection")
-		return LineOutcome::notMine();
-
 	LoudnessCorrectionCommand cmd;
 	if (!LoudnessCorrectionCommand::parse(command, parameters, cmd))
 	{
+		if (command != L"LoudnessCorrection")
+			return LineOutcome::notMine();
 		// The parser wants all three of State, ReferenceLevel and
 		// ReferenceOffset; a line missing any of them produced nothing at all and
 		// said nothing about which.

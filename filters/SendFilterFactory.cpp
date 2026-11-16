@@ -125,13 +125,14 @@ void SendFilterFactory::reportReceiverNews(const SendReceiverNews& news)
 LineOutcome SendFilterFactory::createFilter(const std::wstring& configPath,
 	std::wstring& command, std::wstring& parameters)
 {
-	if (command != L"Send")
-		return LineOutcome::notMine();
-
 	SendCommand parsed;
 	std::wstring error;
 	if (!SendCommand::parse(command, parameters, parsed, &error))
+	{
+		if (error.empty())
+			return LineOutcome::notMine();
 		return LineOutcome::malformed(error);
+	}
 	if (engine_ == nullptr)
 		return LineOutcome::consumed();
 	if (engine_->getHost() != EngineHost::Apo)
