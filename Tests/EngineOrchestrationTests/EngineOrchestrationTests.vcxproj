@@ -58,6 +58,9 @@
     <ClCompile>
       <PreprocessorDefinitions>WIN32;_CONSOLE;UNICODE;_UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <Link>
+      <AdditionalDependencies>audiomediatypecrt.lib;audioeng.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
@@ -111,6 +114,18 @@
     <ClInclude Include="..\FakeRegistry.h" />
     <ClInclude Include="EngineOrchestrationTestSupport.h" />
   </ItemGroup>
+  <!-- Direct-load child APO tests must never require COM registration (audit #467 TD-26). -->
+  <ItemGroup>
+    <ProjectReference Include="..\TestChildApo\TestChildApo.vcxproj">
+      <Project>{7588BBFF-878B-40E0-BE70-5B21B4315183}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemGroup>
+  <Target Name="CopyTestChildApo" AfterTargets="Build">
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)..\TestChildApo\$(Platform)\$(Configuration)\TestChildApo.dll"
+          DestinationFiles="$(OutDir)TestChildApo.dll" />
+  </Target>
   <Import Project="..\..\services\install\InstallSources.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

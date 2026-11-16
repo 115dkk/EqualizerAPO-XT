@@ -20,7 +20,8 @@ Describe "ApoEndpointHarness" {
         $text | Should -Match "EQ_PREMIX_GUID=\{EACD2258-"
         $text | Should -Match "DEVICE_FRIENDLY_VALUE=\{b3f8fa53-"
         $text | Should -Match "MMDEVICES_ROOT=HKLM\\SOFTWARE\\Microsoft"
-        (Get-Content $environment) | Should -HaveCount 10
+        $text | Should -Match "CHILD_PREMIX_VALUE=PreMixChild"
+        (Get-Content $environment) | Should -HaveCount 11
     }
 
     It "names the slots by their short names in install order" {

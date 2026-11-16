@@ -30,6 +30,7 @@ $script:Graph = @(
     @{ Name = "SubwooferRoutingCore";     Path = "SubwooferRoutingCore\SubwooferRoutingCore.vcxproj";            Tags = @("engine", "solution") }
     @{ Name = "Common";                   Path = "Common.vcxproj";                                               Tags = @("engine", "solution") }
     @{ Name = "TestVst2Plugin";           Path = "Tests\TestVst2Plugin\TestVst2Plugin.vcxproj";                  Tags = @("fixture", "solution") }
+    @{ Name = "TestChildApo";             Path = "Tests\TestChildApo\TestChildApo.vcxproj";                      Tags = @("fixture", "solution") }
     # Built through HybridConvTests' ProjectReference on the solution legs.
     @{ Name = "TestVst3Plugin";           Path = "Tests\TestVst3Plugin\TestVst3Plugin.vcxproj";                  Tags = @("fixture") }
     @{ Name = "SubwooferRoutingVst3";     Path = "VST3\SubwooferRouting\SubwooferRoutingVst3.vcxproj";           Tags = @("plugin", "product", "solution") }

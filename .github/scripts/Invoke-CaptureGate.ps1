@@ -40,6 +40,20 @@
                       has loaded. A watcher opening the playback side
                       meanwhile records how long other streams waited
                       (evidence, not gated)
+      child-chain     the APO with a child effect behind it, the way it sits
+                      in front of a driver's own effect: Tests/TestChildApo
+                      (a real APO, fixed gain) is made the endpoint's child in
+                      the product's own record. The hosted DLL and then the
+                      audio engine must deliver the preamp and the child's
+                      gain together, and the audio engine's copy of the DLL
+                      must log that it created the child. What this does not
+                      cover: the installer reading a driver's chain out of
+                      FxProperties (the cable publishes none; the unit suite
+                      covers that with a fake registry)
+      apo-host-asan   with -AsanApoDirectory: the same hosted rounds against
+                      EqualizerAPO.dll built with AddressSanitizer (the memory
+                      gate builds it). The instrumented DLL is only ever loaded
+                      by the probe, never by the audio engine
 
     The install/measure/uninstall round runs once per install mode: first
     the mode the product picks on its own for this endpoint (a virtual
@@ -85,8 +99,14 @@ param(
     # (driver, stage, APO host, Send receiver). A maintainer iterating on
     # one phase passes just that one instead of sitting through the four
     # install/measure/uninstall rounds first. CI runs all of them.
-    [ValidateSet("rounds", "plugin-load", "low-latency", "asio-entry")]
-    [string[]] $Phases = @("rounds", "plugin-load", "low-latency", "asio-entry"),
+    [ValidateSet("rounds", "child-chain", "plugin-load", "low-latency", "asio-entry")]
+    [string[]] $Phases = @("rounds", "child-chain", "plugin-load", "low-latency", "asio-entry"),
+    # The folder the memory gate exports (Invoke-MemcheckTests.ps1
+    # -ApoExportDirectory): EqualizerAPO.dll and ApoHostProbe.exe built with
+    # AddressSanitizer, with the runtime and the DLL's dependencies beside
+    # them. CI passes it; without it the hosted rounds run on the release
+    # DLL only and the summary says the ASan rounds did not run.
+    [string] $AsanApoDirectory,
     [switch] $SkipDriverInstall,
     [switch] $PlanOnly
 )
@@ -151,6 +171,28 @@ $asioEntryFrames = @(256, 64, 1024, 2048)
 # the phase lists the runner's active playback endpoints either way and is
 # skipped, saying so, without one.
 $sendRound = [pscustomobject]@{ Name = "send-round"; ExpectGainDb = 0.0; ToleranceDb = 0.5; Required = $true; Note = "a Send line hands the sender's tone to the receiving instance" }
+# The child round: the fixture's CLSID and gain come from its own header, the
+# one place the DLL and this gate both read them (audit #467 TD-26). Read
+# beside this script, like the modules above: -WorkspaceRoot is where the gate
+# works, not necessarily where its sources are.
+$childProtocolPath = Join-Path $PSScriptRoot "..\..\Tests\TestChildApo\TestChildApoProtocol.h"
+if (-not (Test-Path -LiteralPath $childProtocolPath)) { throw "child APO fixture header not found: $childProtocolPath" }
+$childProtocol = Get-Content -LiteralPath $childProtocolPath -Raw
+if ($childProtocol -notmatch 'kTestChildApoClsidText\[\]\s*=\s*L"(?<clsid>\{[0-9A-Fa-f-]{36}\})"') { throw "cannot read kTestChildApoClsidText from $childProtocolPath" }
+$childClsid = $Matches.clsid
+if ($childProtocol -notmatch 'kTestChildApoGainDb\s*=\s*(?<gain>-?[0-9]+(\.[0-9]+)?)\s*;') { throw "cannot read kTestChildApoGainDb from $childProtocolPath" }
+$childGainDb = [double]::Parse($Matches.gain, [cultureinfo]::InvariantCulture)
+$childChain = [pscustomobject]@{
+    Name = "child-chain"
+    Clsid = $childClsid
+    ChildGainDb = $childGainDb
+    ExpectGainDb = $PreampDb + $childGainDb
+    ToleranceDb = $ToleranceDb
+    Category = "default"
+    Raw = $false
+    Required = $true
+    Note = "the preamp and the child effect's gain arrive together"
+}
 $pluginLoad = [pscustomobject]@{
     Name = "plugin-load"
     SlowLoadMilliseconds = $SlowLoadMilliseconds
@@ -173,6 +215,8 @@ $plan = [pscustomobject]@{
     AsioEntryFrames = $asioEntryFrames
     SendRound = $sendRound
     PluginLoad = $pluginLoad
+    ChildChain = $childChain
+    AsanApoDirectory = $AsanApoDirectory
     StageRoot = $StageRoot
     Phases = $Phases
 }
@@ -186,7 +230,19 @@ foreach ($required in @("ArtifactPath", "ProbeDirectory", "SnapshotDirectory")) 
 New-Item -ItemType Directory -Force -Path $SnapshotDirectory | Out-Null
 $captureProbe = Join-Path $ProbeDirectory "CaptureProbe.exe"
 $apoHostProbe = Join-Path $ProbeDirectory "ApoHostProbe.exe"
-foreach ($exe in @($captureProbe, $apoHostProbe)) {
+$childApoDll = Join-Path $ProbeDirectory "TestChildApo.dll"
+$requiredProbes = @($captureProbe, $apoHostProbe)
+if ($Phases -contains "child-chain") { $requiredProbes += $childApoDll }
+# The instrumented pair is all or nothing: a folder that lacks one of them
+# would otherwise turn the ASan rounds into rounds on the release DLL.
+$asanProbe = $null
+$asanDll = $null
+if ($AsanApoDirectory) {
+    $asanProbe = Join-Path $AsanApoDirectory "ApoHostProbe.exe"
+    $asanDll = Join-Path $AsanApoDirectory "EqualizerAPO.dll"
+    $requiredProbes += @($asanProbe, $asanDll)
+}
+foreach ($exe in $requiredProbes) {
     $fileVerdict = Get-GateFileVerdict (Test-Path -LiteralPath $exe) "probe not found: $exe"
     if (-not $fileVerdict.Passed) { throw $fileVerdict.Reasons[0] }
 }
@@ -196,6 +252,8 @@ $summary = [ordered]@{
     endpoints = $null
     stage = $null
     apoHost = $null
+    apoHostAsan = @()
+    childChain = $null
     renderEndpoints = @()
     sendRound = $null
     rounds = @()
@@ -306,6 +364,34 @@ function Get-EffectChain([string] $flow, [string] $endpointGuid) {
 
 function Test-EqClsidLeft([string] $flow, [string] $endpointGuid) {
     return Test-ApoEqClsid -FxProperties (Get-ApoFxProperties -Flow $flow -EndpointGuid $endpointGuid)
+}
+
+# One hosted round against the AddressSanitizer build of the DLL. A report
+# from the sanitizer ends the probe with a non-zero exit and its text on
+# stderr, which lands in the summary; a wrong gain fails the same way. The
+# probe runs from the export folder so the runtime and the DLL's
+# dependencies beside it are the ones loaded.
+function Invoke-AsanHostRound([string] $label, [double] $expectGainDb) {
+    if (-not $AsanApoDirectory) {
+        $summary.apoHostAsan += [pscustomobject][ordered]@{ name = $label; verdict = "not run"; reason = "no -AsanApoDirectory" }
+        Write-Host "${label}: not run (no -AsanApoDirectory)"
+        return
+    }
+    $run = Invoke-ExternalProgram $asanProbe @("--dll", $asanDll,
+        "--endpoint", $endpoints.Capture, "--json",
+        "--expect-gain-db", $expectGainDb.ToString([cultureinfo]::InvariantCulture), "--tolerance-db", "0.5") 120 $AsanApoDirectory
+    $summary.apoHostAsan += [pscustomobject][ordered]@{
+        name = $label
+        verdict = if ($run.ExitCode -eq 0) { "passed" } else { "failed" }
+        expectGainDb = $expectGainDb
+        exitCode = $run.ExitCode
+        output = ($run.StdOut + $run.StdErr)
+    }
+    Write-Host "${label}: exit $($run.ExitCode)"
+    if ($run.ExitCode -ne 0) {
+        Write-Host ($run.StdOut + $run.StdErr)
+        Add-Failure "${label}: EqualizerAPO.dll built with AddressSanitizer, hosted for the capture endpoint, exited with $($run.ExitCode) (a sanitizer report or a wrong gain; see the summary)"
+    }
 }
 
 function Get-JsonField($json, [string] $name) {
@@ -669,6 +755,7 @@ $summary.apoHost = [ordered]@{ exitCode = $hostRun.ExitCode; output = ($hostRun.
 if ($hostRun.ExitCode -ne 0) {
     Add-Failure "apo-host: EqualizerAPO.dll hosted for the capture endpoint did not apply the preamp (exit $($hostRun.ExitCode))"
 }
+Invoke-AsanHostRound "apo-host-asan" $PreampDb
 
 # ---------------------------------------------------------------------------
 Write-Phase "the DLL hosted for two playback endpoints, one sending to the other (no audio engine)"
@@ -746,6 +833,83 @@ if ($Phases -contains "rounds") {
 } else {
     Write-Phase "rounds: skipped (-Phases)"
     $summary.rounds = @()
+}
+
+# ---------------------------------------------------------------------------
+if ($Phases -contains "child-chain") {
+    $childRecord = [ordered]@{ clsid = $childChain.Clsid; expectGainDb = $childChain.ExpectGainDb; install = $null; apoHost = $null; engineCreatedChild = $null; uninstall = $null }
+    $childStage = Join-Path $StageRoot "child"
+    $childDll = Join-Path $childStage "TestChildApo.dll"
+    $childClassKey = "HKLM:\SOFTWARE\Classes\CLSID\$($childChain.Clsid)"
+    $childApoRecord = "Registry::" + ((Get-ApoEndpointContract).CHILD_APO_ROOT -replace '^HKLM\\', 'HKEY_LOCAL_MACHINE\') + "\$($endpoints.Capture)"
+    $audiodgLog = "C:\Windows\ServiceProfiles\LocalService\AppData\Local\Temp\EqualizerAPO.log"
+    $createdLine = "Successfully created and initialized child APO"
+    try {
+        Write-Phase "child-chain: register the child effect and install the APO in front of it"
+        New-Item -ItemType Directory -Force -Path $childStage | Out-Null
+        Copy-Item -LiteralPath $childApoDll -Destination $childDll -Force
+        # The fixture has no DllRegisterServer: an in-process COM class needs
+        # only this key for CoCreateInstance, and the child is never named in
+        # FxProperties, so the audio engine's own APO catalogue is not involved.
+        New-Item -Path "$childClassKey\InprocServer32" -Force | Out-Null
+        Set-ItemProperty -Path "$childClassKey\InprocServer32" -Name "(default)" -Value $childDll -Type String
+        Set-ItemProperty -Path "$childClassKey\InprocServer32" -Name "ThreadingModel" -Value "Both" -Type String
+
+        $install = Invoke-ExternalProgram (Join-Path $current "DeviceSelector.exe") @("--install-endpoint", $endpoints.Capture) 300 $current
+        $childRecord.install = [ordered]@{ exitCode = $install.ExitCode; timedOut = $install.TimedOut; effectChain = (Get-EffectChain "Capture" $endpoints.Capture) }
+        if ($install.ExitCode -ne 0) { Add-Failure "child-chain/install: DeviceSelector --install-endpoint exited with $($install.ExitCode)" }
+        # The cable has no driver effect for the installer to find, so the
+        # child goes into the product's own record of the endpoint, the value
+        # the DLL reads at Initialize (readApoRuntimeFacts).
+        if (-not (Test-Path -LiteralPath $childApoRecord)) {
+            Add-Failure "child-chain/install: the install left no record at $childApoRecord"
+        }
+        else {
+            Set-ItemProperty -LiteralPath $childApoRecord -Name (Get-ApoEndpointContract).CHILD_PREMIX_VALUE -Value $childChain.Clsid -Type String
+        }
+        Save-EndpointSnapshot $endpoints.Capture "60-child-chain-installed"
+        # The device test's stream is gone; let the engine drop that graph so
+        # the next stream initializes the APO again and reads the record.
+        Wait-GraphSettle
+        $createdBefore = if (Test-Path -LiteralPath $audiodgLog) { @(Select-String -LiteralPath $audiodgLog -SimpleMatch $createdLine).Count } else { 0 }
+
+        Write-Phase "child-chain: the DLL hosted with its child (no audio engine)"
+        $childHost = Invoke-ExternalProgram $apoHostProbe @("--dll", (Join-Path $current "EqualizerAPO.dll"),
+            "--endpoint", $endpoints.Capture, "--json",
+            "--expect-gain-db", $childChain.ExpectGainDb.ToString([cultureinfo]::InvariantCulture), "--tolerance-db", "0.5") 60
+        $childRecord.apoHost = [ordered]@{ exitCode = $childHost.ExitCode; output = ($childHost.StdOut + $childHost.StdErr) }
+        if ($childHost.ExitCode -ne 0) {
+            Add-Failure "child-chain/apo-host: the hosted DLL did not deliver the preamp and the child's gain, $($childChain.ExpectGainDb) dB (exit $($childHost.ExitCode))"
+        }
+        Invoke-AsanHostRound "child-chain/apo-host-asan" $childChain.ExpectGainDb
+
+        Write-Phase "child-chain: measure through the audio engine"
+        Measure-Cable $childChain "child-chain" | Out-Null
+        Copy-Logs "60-child-chain-measured"
+        $createdAfter = if (Test-Path -LiteralPath $audiodgLog) { @(Select-String -LiteralPath $audiodgLog -SimpleMatch $createdLine).Count } else { 0 }
+        $childRecord.engineCreatedChild = [ordered]@{ log = $audiodgLog; linesBefore = $createdBefore; linesAfter = $createdAfter }
+        if ($createdAfter -le $createdBefore) {
+            Add-Failure "child-chain/engine: the audio engine's copy of the DLL did not log '$createdLine' while the cable was measured"
+        }
+    }
+    finally {
+        Write-Phase "child-chain: uninstall and unregister the child effect"
+        $uninstall = Invoke-ExternalProgram (Join-Path $current "DeviceSelector.exe") @("--uninstall-endpoint", $endpoints.Capture) 180 $current
+        $eqLeft = Test-EqClsidLeft "Capture" $endpoints.Capture
+        $childRecord.uninstall = [ordered]@{ exitCode = $uninstall.ExitCode; eqClsidLeft = $eqLeft; recordLeft = (Test-Path -LiteralPath $childApoRecord) }
+        Save-EndpointSnapshot $endpoints.Capture "60-child-chain-uninstalled"
+        if ($uninstall.ExitCode -ne 0) { Add-Failure "child-chain/uninstall: DeviceSelector --uninstall-endpoint exited with $($uninstall.ExitCode)" }
+        if ($eqLeft) { Add-Failure "child-chain/uninstall: the endpoint's FxProperties still names an EQ APO CLSID" }
+        if ($childRecord.uninstall.recordLeft) { Add-Failure "child-chain/uninstall: the product's record of the endpoint is still there" }
+        Wait-GraphSettle
+        if (Test-Path -LiteralPath $childClassKey) { Remove-Item -LiteralPath $childClassKey -Recurse -Force }
+    }
+    Measure-Cable $measurements[4] "child-chain" | Out-Null
+    Copy-Logs "60-child-chain-uninstalled"
+    $summary.childChain = $childRecord
+} else {
+    Write-Phase "child-chain: skipped (-Phases)"
+    $summary.childChain = [ordered]@{ verdict = "skipped"; reason = "-Phases" }
 }
 
 # ---------------------------------------------------------------------------
