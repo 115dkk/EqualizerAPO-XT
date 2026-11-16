@@ -527,23 +527,22 @@ void VSTCardEditor::updateBusControls()
 	facts.embedded = session->embedded();
 	if (facts.negotiates())
 	{
-		// The same call the engine makes, so the verdict states what playback
-		// will actually do.
-		const std::vector<std::wstring> inputHints = vst3speakers::channelNamesForLayout(
-			facts.requestedInput, deviceChannelNames);
-		const std::vector<std::wstring> outputHints = vst3speakers::channelNamesForLayout(
-			facts.requestedOutput, deviceChannelNames);
-		const int automaticChannelCount = !deviceChannelNames.empty()
+		// An absent contract uses the engine's automatic request, including the
+		// plug-in's declared upmixer role (audit #467 TD-19).
+		VSTPluginInstance::NegotiationRequest request;
+		request.contract = busModel.contract();
+		request.channelNames = deviceChannelNames;
+		request.channelCount = !deviceChannelNames.empty()
 			? static_cast<int>(deviceChannelNames.size())
 			: std::max({2, effect->numInputs(), effect->numOutputs()});
-		facts.accepted = effect->negotiateBusLayouts(facts.requestedInput, facts.requestedOutput,
-			automaticChannelCount, inputHints, outputHints);
+		const auto result = effect->negotiate(request);
+		facts.accepted = result.accepted;
 		if (facts.accepted && facts.anyAuto())
 		{
-			facts.negotiatedInput = effect->getNegotiatedVST3InputLayout();
-			facts.negotiatedOutput = effect->getNegotiatedVST3OutputLayout();
-			facts.negotiatedInputChannels = effect->numInputs();
-			facts.negotiatedOutputChannels = effect->numOutputs();
+			facts.negotiatedInput = result.inputLayout;
+			facts.negotiatedOutput = result.outputLayout;
+			facts.negotiatedInputChannels = result.inputs;
+			facts.negotiatedOutputChannels = result.outputs;
 		}
 	}
 

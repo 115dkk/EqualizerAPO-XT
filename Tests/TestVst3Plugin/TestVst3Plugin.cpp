@@ -52,6 +52,10 @@ bool moduleInitialized = false;
 bool rejectComponentInitialize = false;
 bool componentStateUnavailable = false;
 bool upmixerMode = false;
+bool declaredUpmixerMode = false;
+bool rejectSetupMode = false;
+bool rejectActiveMode = false;
+bool rejectProcessingMode = false;
 bool surround41Mode = false;
 bool surround41CineOnlyMode = false;
 bool busInfoMismatchMode = false;
@@ -463,7 +467,13 @@ public:
 	{
 		return type == kAudio && index == 0 ? kResultOk : kInvalidArgument;
 	}
-	tresult PLUGIN_API setActive(TBool state) override { active.store(state != 0); return kResultOk; }
+	tresult PLUGIN_API setActive(TBool state) override
+	{
+		if (state && rejectActiveMode)
+			return kResultFalse;
+		active.store(state != 0);
+		return kResultOk;
+	}
 	tresult PLUGIN_API setState(IBStream* stream) override { return readState(stream, state) ? kResultOk : kResultFalse; }
 	tresult PLUGIN_API getState(IBStream* stream) override
 	{
@@ -488,9 +498,17 @@ public:
 		return size == kSample32 || (supportsDouble && size == kSample64) ? kResultOk : kResultFalse;
 	}
 	uint32 PLUGIN_API getLatencySamples() override { return 0; }
-	tresult PLUGIN_API setupProcessing(ProcessSetup& newSetup) override { setup = newSetup; return kResultOk; }
+	tresult PLUGIN_API setupProcessing(ProcessSetup& newSetup) override
+	{
+		if (rejectSetupMode)
+			return kResultFalse;
+		setup = newSetup;
+		return kResultOk;
+	}
 	tresult PLUGIN_API setProcessing(TBool state) override
 	{
+		if (state && rejectProcessingMode)
+			return kResultFalse;
 		if (state != 0 && idleFlushInProgress.load())
 		{
 			HANDLE violation = OpenEventW(EVENT_MODIFY_STATE, FALSE, testvst3::concurrentProcessingEvent);
@@ -713,7 +731,13 @@ public:
 	{
 		return type == kAudio && index >= 0 && index < audioBusCount() ? kResultOk : kInvalidArgument;
 	}
-	tresult PLUGIN_API setActive(TBool state) override { active.store(state != 0); return kResultOk; }
+	tresult PLUGIN_API setActive(TBool state) override
+	{
+		if (state && rejectActiveMode)
+			return kResultFalse;
+		active.store(state != 0);
+		return kResultOk;
+	}
 	tresult PLUGIN_API setState(IBStream*) override { return kResultOk; }
 	tresult PLUGIN_API getState(IBStream* stream) override
 	{
@@ -779,9 +803,17 @@ public:
 	// any: the host test sees whether the compensation delays the channels
 	// the plugin did not write, and only those.
 	uint32 PLUGIN_API getLatencySamples() override { return latency512Mode ? 512 : 0; }
-	tresult PLUGIN_API setupProcessing(ProcessSetup& newSetup) override { setup = newSetup; return kResultOk; }
+	tresult PLUGIN_API setupProcessing(ProcessSetup& newSetup) override
+	{
+		if (rejectSetupMode)
+			return kResultFalse;
+		setup = newSetup;
+		return kResultOk;
+	}
 	tresult PLUGIN_API setProcessing(TBool state) override
 	{
+		if (state && rejectProcessingMode)
+			return kResultFalse;
 		processing.store(state != 0);
 		return active.load() ? kResultOk : kResultFalse;
 	}
@@ -902,7 +934,13 @@ public:
 	{
 		return type == kAudio && index == 0 ? kResultOk : kInvalidArgument;
 	}
-	tresult PLUGIN_API setActive(TBool state) override { active.store(state != 0); return kResultOk; }
+	tresult PLUGIN_API setActive(TBool state) override
+	{
+		if (state && rejectActiveMode)
+			return kResultFalse;
+		active.store(state != 0);
+		return kResultOk;
+	}
 	tresult PLUGIN_API setState(IBStream*) override { return kResultOk; }
 	tresult PLUGIN_API getState(IBStream* stream) override
 	{
@@ -939,9 +977,17 @@ public:
 		return size == kSample32 || size == kSample64 ? kResultOk : kResultFalse;
 	}
 	uint32 PLUGIN_API getLatencySamples() override { return 0; }
-	tresult PLUGIN_API setupProcessing(ProcessSetup& newSetup) override { setup = newSetup; return kResultOk; }
+	tresult PLUGIN_API setupProcessing(ProcessSetup& newSetup) override
+	{
+		if (rejectSetupMode)
+			return kResultFalse;
+		setup = newSetup;
+		return kResultOk;
+	}
 	tresult PLUGIN_API setProcessing(TBool state) override
 	{
+		if (state && rejectProcessingMode)
+			return kResultFalse;
 		processing.store(state != 0);
 		return active.load() ? kResultOk : kResultFalse;
 	}
@@ -1226,7 +1272,7 @@ public:
 		info->cardinality = basic.cardinality;
 		strcpy_s(info->category, basic.category);
 		strcpy_s(info->name, basic.name);
-		strcpy_s(info->subCategories, index == 0 ? "Fx" : "");
+		strcpy_s(info->subCategories, index == 0 ? (declaredUpmixerMode ? "Fx|Up-Downmix" : "Fx") : "");
 		strcpy_s(info->vendor, "EqualizerAPO-XT Tests");
 		strcpy_s(info->version, "1.0.0");
 		strcpy_s(info->sdkVersion, "VST 3.8");
@@ -1298,6 +1344,10 @@ extern "C" __declspec(dllexport) bool InitDll()
 	componentStateUnavailable = wcsstr(modulePath, L"ControllerState.vst3") != nullptr;
 	busInfoMismatchMode = wcsstr(modulePath, L"BusInfoMismatch.vst3") != nullptr;
 	upmixerMode = wcsstr(modulePath, L"Upmixer.vst3") != nullptr || busInfoMismatchMode;
+	declaredUpmixerMode = wcsstr(modulePath, L"DeclaredUpmixer.vst3") != nullptr;
+	rejectSetupMode = wcsstr(modulePath, L"RejectSetup.vst3") != nullptr;
+	rejectActiveMode = wcsstr(modulePath, L"RejectActive.vst3") != nullptr;
+	rejectProcessingMode = wcsstr(modulePath, L"RejectProcessing.vst3") != nullptr;
 	surround41CineOnlyMode = wcsstr(modulePath, L"Surround41CineOnly.vst3") != nullptr;
 	surround41Mode = wcsstr(modulePath, L"Surround41.vst3") != nullptr || surround41CineOnlyMode;
 	toneGeneratorMode = wcsstr(modulePath, L"ToneGenerator.vst3") != nullptr;

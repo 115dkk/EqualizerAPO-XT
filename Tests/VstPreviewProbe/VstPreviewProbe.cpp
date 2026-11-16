@@ -121,20 +121,7 @@ bool processFloatGuarded(VSTPluginInstance* instance, float** input, float** out
 {
 	__try
 	{
-		instance->processReplacing(input, output, frames);
-		return true;
-	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
-	{
-		return false;
-	}
-}
-
-bool processDoubleGuarded(VSTPluginInstance* instance, double** input, double** output, int frames) noexcept
-{
-	__try
-	{
-		instance->processDoubleReplacing(input, output, frames);
+		instance->processBlock(input, output, static_cast<unsigned>(frames));
 		return true;
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
@@ -179,28 +166,20 @@ int runPluginProbe(const std::wstring& pluginPath, double seconds, float sampleR
 	clock.lap(L"instance initialize");
 	wprintf(L"INFO: loaded '%s' (%hs)\n", instance.getName().c_str(), instance.isVST3() ? "VST3" : "VST2");
 
+	VSTPluginInstance::NegotiationRequest request;
+	request.channelCount = layout.channels;
+	request.stereoInput = layout.stereoInput;
 	if (layout.input != VST3BusLayout::Auto || layout.output != VST3BusLayout::Auto)
+		request.contract = VST3BusContract{layout.input, layout.output};
+	const auto negotiated = instance.negotiate(request);
+	if (!negotiated.accepted)
 	{
-		if (!instance.negotiateBusLayouts(layout.input, layout.output, layout.channels,
-			vst3BusLayoutChannelNames(layout.input), vst3BusLayoutChannelNames(layout.output)))
-		{
-			wprintf(L"FAIL: plugin refused the %s -> %s bus contract\n",
-				vst3BusLayoutName(layout.input), vst3BusLayoutName(layout.output));
-			return 2;
-		}
-	}
-	else
-	{
-		instance.negotiateChannelCount(layout.channels, {});
-		if (layout.stereoInput && layout.channels > 2
-			&& !instance.negotiateBusChannelCounts(2, layout.channels, {L"L", L"R"}, {}))
-		{
-			wprintf(L"INFO: plugin did not take a stereo input bus with %d output channels\n", layout.channels);
-		}
+		wprintf(L"FAIL: plugin negotiation: %s\n", negotiated.reason.c_str());
+		return 2;
 	}
 	clock.lap(L"negotiate channels");
-	const int inputChannelCount = instance.numInputs();
-	const int outputChannelCount = instance.numOutputs();
+	const int inputChannelCount = negotiated.inputs;
+	const int outputChannelCount = negotiated.outputs;
 	wprintf(L"INFO: negotiated %d in (%s) / %d out (%s)\n",
 		inputChannelCount, layoutLabel(instance.getNegotiatedVST3InputLayout()),
 		outputChannelCount, layoutLabel(instance.getNegotiatedVST3OutputLayout()));
@@ -210,27 +189,24 @@ int runPluginProbe(const std::wstring& pluginPath, double seconds, float sampleR
 		return 2;
 	}
 
-	// The same width rule as the Editor's preview feed: a double-capable
-	// processor was set up with kSample64 by prepareForProcessing and must
-	// be fed doubles.
-	const bool useDouble = instance.canDoubleReplacing();
-	wprintf(L"INFO: processing width %hs\n", useDouble ? "double64" : "float32");
-
-	instance.prepareForProcessing(sampleRate, blockFrames);
+	// The preview supplies floats; the instance selects the plug-in width.
+	if (!instance.prepareForProcessing(sampleRate, blockFrames, VSTPluginInstance::InputWidth::Float))
+	{
+		wprintf(L"FAIL: prepare for processing\n");
+		return 2;
+	}
 	clock.lap(L"prepare for processing");
-	instance.startProcessing();
+	VSTPluginInstance::ProcessingLease processing;
+	if (!processing.acquire(&instance))
+	{
+		wprintf(L"FAIL: start processing\n");
+		return 2;
+	}
 	clock.lap(L"start processing");
 
-	std::vector<std::vector<double>> inputDouble(inputChannelCount, std::vector<double>(blockFrames));
-	std::vector<std::vector<double>> outputDouble(outputChannelCount, std::vector<double>(blockFrames));
 	std::vector<std::vector<float>> inputFloat(inputChannelCount, std::vector<float>(blockFrames));
 	std::vector<std::vector<float>> outputFloat(outputChannelCount, std::vector<float>(blockFrames));
-	std::vector<double*> inputDoublePointers, outputDoublePointers;
 	std::vector<float*> inputFloatPointers, outputFloatPointers;
-	for (std::vector<double>& channel : inputDouble)
-		inputDoublePointers.push_back(channel.data());
-	for (std::vector<double>& channel : outputDouble)
-		outputDoublePointers.push_back(channel.data());
 	for (std::vector<float>& channel : inputFloat)
 		inputFloatPointers.push_back(channel.data());
 	for (std::vector<float>& channel : outputFloat)
@@ -243,16 +219,10 @@ int runPluginProbe(const std::wstring& pluginPath, double seconds, float sampleR
 	long long position = 0;
 	while (position < totalFrames)
 	{
-		if (useDouble)
-			probesupport::fillPlanarSine(inputDoublePointers.data(), static_cast<size_t>(inputChannelCount), blockFrames,
-				static_cast<uint64_t>(position), sampleRate, sineFrequency, sineAmplitude);
-		else
-			probesupport::fillPlanarSine(inputFloatPointers.data(), static_cast<size_t>(inputChannelCount), blockFrames,
-				static_cast<uint64_t>(position), sampleRate, sineFrequency, sineAmplitude);
+		probesupport::fillPlanarSine(inputFloatPointers.data(), static_cast<size_t>(inputChannelCount), blockFrames,
+			static_cast<uint64_t>(position), sampleRate, sineFrequency, sineAmplitude);
 
-		const bool survived = useDouble
-			? processDoubleGuarded(&instance, inputDoublePointers.data(), outputDoublePointers.data(), blockFrames)
-			: processFloatGuarded(&instance, inputFloatPointers.data(), outputFloatPointers.data(), blockFrames);
+		const bool survived = processFloatGuarded(&instance, inputFloatPointers.data(), outputFloatPointers.data(), blockFrames);
 		if (!survived)
 		{
 			wprintf(L"FAIL: plugin crashed inside process\n");
@@ -263,8 +233,7 @@ int runPluginProbe(const std::wstring& pluginPath, double seconds, float sampleR
 		{
 			for (int i = 0; i < blockFrames; i++)
 			{
-				const double sample = useDouble ? outputDouble[channel][i]
-					: static_cast<double>(outputFloat[channel][i]);
+				const double sample = static_cast<double>(outputFloat[channel][i]);
 				if (!std::isfinite(sample))
 					outputFinite = false;
 				outputPeak = std::max(outputPeak, std::fabs(sample));
@@ -275,7 +244,7 @@ int runPluginProbe(const std::wstring& pluginPath, double seconds, float sampleR
 	}
 	clock.lap(L"process");
 
-	instance.stopProcessing();
+	processing.reset();
 	clock.lap(L"stop processing");
 
 	std::wstring chunkData;

@@ -66,13 +66,13 @@ public:
 	std::wstring getName() const override;
 	int getInitialDelay() const override;
 
-	void prepareForProcessing(float sampleRate, int blockSize) override;
+	bool prepareProcessingImpl(float sampleRate, int blockSize) override;
 	void writeToEffect(const std::wstring& chunkData,
 		const std::unordered_map<std::wstring, float>& paramMap) override;
 	void readFromEffect(std::wstring& chunkData,
 		std::unordered_map<std::wstring, float>& paramMap) const override;
 
-	void startProcessing() override;
+	bool startProcessing() override;
 	void processDoubleReplacing(double** inputArray, double** outputArray, int frameCount) override;
 	void processReplacing(float** inputArray, float** outputArray, int frameCount) override;
 	void process(float** inputArray, float** outputArray, int frameCount) override;

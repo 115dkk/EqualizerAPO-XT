@@ -28,6 +28,7 @@
 
 #include "platform/windows/Win32Resource.h"
 #include "VST3BusLayout.h"
+#include "runtime/memory/AlignedMemory.h"
 
 class VSTPluginLibrary;
 
@@ -54,6 +55,7 @@ public:
 	// reflect the negotiated result either way.
 	virtual bool negotiateChannelCount(int channelCount,
 		const std::vector<std::wstring>& channelNames) = 0;
+protected:
 	// Proposes different input and output widths - a stereo input bus feeding
 	// a full-width output bus, the DAW-style layout upmixer plugins key their
 	// engine on. Returns true only when the plugin accepts both widths
@@ -68,6 +70,7 @@ public:
 	virtual bool negotiateBusLayouts(VST3BusLayout inputLayout, VST3BusLayout outputLayout,
 		int automaticChannelCount, const std::vector<std::wstring>& inputChannelNames,
 		const std::vector<std::wstring>& outputChannelNames) = 0;
+public:
 	// Logical names for the VST3 arrangements most recently reported by the
 	// processor. Unknown or vendor-specific arrangements intentionally remain
 	// empty so diagnostics never claim a layout from channel count alone.
@@ -78,16 +81,66 @@ public:
 	virtual std::wstring getName() const = 0;
 	virtual int getInitialDelay() const = 0;
 
-	virtual void prepareForProcessing(float sampleRate, int blockSize) = 0;
+	struct NegotiationRequest
+	{
+		std::optional<VST3BusContract> contract;
+		int channelCount = 2;
+		std::vector<std::wstring> channelNames;
+		bool stereoInput = false;
+	};
+	struct NegotiationResult
+	{
+		enum class Path { Automatic, Preferred, StereoInput, Contract };
+		bool accepted = false;
+		int inputs = 0;
+		int outputs = 0;
+		std::optional<VST3BusLayout> inputLayout;
+		std::optional<VST3BusLayout> outputLayout;
+		Path path = Path::Automatic;
+		std::wstring reason;
+	};
+	NegotiationResult negotiate(const NegotiationRequest& request);
+
+	// Serial split instances share one workspace, as the engine did before
+	// moving conversion here. Concurrent instances must not share it.
+	struct ProcessingWorkspace
+	{
+		std::vector<float*> floatInputs, floatOutputs;
+		AlignedMemory::UniqueAllocation<float> floatInputBuffer, floatOutputBuffer;
+		std::vector<double*> doubleInputs, doubleOutputs;
+		AlignedMemory::UniqueAllocation<double> doubleInputBuffer, doubleOutputBuffer;
+		int inputs = 0, outputs = 0, frames = 0;
+	};
+	enum class InputWidth { Double, Float };
+	bool prepareForProcessing(float sampleRate, int blockSize,
+		InputWidth width = InputWidth::Double,
+		const std::shared_ptr<ProcessingWorkspace>& sharedWorkspace = nullptr);
+	void processBlock(double** input, double** output, unsigned frames);
+	void processBlock(float** input, float** output, unsigned frames);
+
+	class ProcessingLease
+	{
+	public:
+		ProcessingLease() = default;
+		~ProcessingLease() { reset(); }
+		ProcessingLease(const ProcessingLease&) = delete;
+		ProcessingLease& operator=(const ProcessingLease&) = delete;
+		bool acquire(VSTPluginInstance* instance);
+		void reset();
+	private:
+		VSTPluginInstance* owner = nullptr;
+	};
 	virtual void writeToEffect(const std::wstring& chunkData,
 		const std::unordered_map<std::wstring, float>& paramMap) = 0;
 	virtual void readFromEffect(std::wstring& chunkData,
 		std::unordered_map<std::wstring, float>& paramMap) const = 0;
 
-	virtual void startProcessing() = 0;
+	virtual bool startProcessing() = 0;
 	virtual void processDoubleReplacing(double** inputArray, double** outputArray, int frameCount) = 0;
+protected:
 	virtual void processReplacing(float** inputArray, float** outputArray, int frameCount) = 0;
 	virtual void process(float** inputArray, float** outputArray, int frameCount) = 0;
+public:
 	virtual void stopProcessing() = 0;
 	void stopProcessingSafely() noexcept
 	{
@@ -123,7 +176,6 @@ public:
 	void setUsedChannelCount(int count) { usedChannelCount = count; }
 	float getSampleRate() const { return sampleRate; }
 	int getProcessLevel() const { return processLevel; }
-	void setProcessLevel(int value) { processLevel = value; }
 	int getLanguage() const { return language; }
 	void setLanguage(int value) { language = value; }
 
@@ -136,6 +188,7 @@ public:
 	void setSizeWindowFunc(std::function<void(int, int)> func) { sizeWindowFunc = std::move(func); }
 
 protected:
+	virtual bool prepareProcessingImpl(float sampleRate, int blockSize) = 0;
 	// Derived destructors call this before releasing any plug-in object; the
 	// base destructor would be too late to suppress teardown callbacks.
 	void clearCallbacks() noexcept
@@ -172,6 +225,11 @@ protected:
 	std::function<void(int, int)> sizeWindowFunc;
 
 private:
+	bool metadataValid() const;
+	std::shared_ptr<ProcessingWorkspace> workspace;
+	int processingInputs = 0;
+	int processingOutputs = 0;
+	unsigned processingFrames = 0;
 	int processLevel = 0;
 	int language = 1;
 };

@@ -76,8 +76,8 @@ private:
 		const std::vector<std::wstring>& outputChannelNames, bool upmixerLayout);
 	// Creates, initializes and negotiates the full-width first instance.
 	bool createFirstInstance(InitContext& context, const std::vector<std::wstring>& channelNames);
-	// Snapshots and validates the channel and latency metadata it reported.
-	bool readMetadata(InitContext& context);
+	// Snapshots the metadata validated by the instance's negotiation.
+	void readMetadata(InitContext& context);
 	// Maps the channels onto instances (planVstChannels) and keeps the fill.
 	bool planChannels(InitContext& context, const std::vector<std::wstring>& channelNames);
 	// Re-negotiates a split first instance and creates the other instances.
@@ -100,11 +100,8 @@ private:
 	std::vector<double*> inputArray;
 	std::vector<double*> outputArray;
 
-	// Buffers for float conversion
-	std::vector<float*> floatInputs;
-	AlignedMemory::UniqueAllocation<float> floatInputBuffer;
-	std::vector<float*> floatOutputs;
-	AlignedMemory::UniqueAllocation<float> floatOutputBuffer;
+	// Serial instances retain the original single conversion-buffer pair.
+	std::shared_ptr<VSTPluginInstance::ProcessingWorkspace> processingWorkspace;
 
 	// Delay compensation for the latency the plugin reported, on the channels
 	// no plugin output writes; delayedOutputs is sized in initialize().

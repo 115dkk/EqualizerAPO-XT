@@ -246,6 +246,76 @@ void expectLatencyCompensationGolden(const shared_ptr<VSTPluginLibrary>& library
 	SetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", nullptr);
 }
 
+TEST_CASE(VstHostTests, testRejectedNegotiationMetadata)
+{
+	auto library = VSTPluginLibrary::getInstance(exeDirectory() + L"\\TestVst2Plugin.dll");
+	harness.require(VSTPluginLibrary::load(library->getLibPath()).status >= 0, "metadata fixture loads");
+	for (const wchar_t* mode : {L"huge-inputs", L"huge-outputs", L"negative-inputs", L"huge-delay"})
+	{
+		SetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", mode);
+		auto instance = VSTPluginInstance::create(library, 1);
+		const bool initialized = instance->initialize();
+		SetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", nullptr);
+		harness.require(initialized, "malformed metadata fixture initializes");
+		for (int width : {0, 2})
+		{
+			VSTPluginInstance::NegotiationRequest request;
+			request.channelCount = width;
+			const auto result = instance->negotiate(request);
+			harness.expectTrue(!result.accepted && !result.reason.empty(),
+				"engine and preview refuse absurd metadata with a reason");
+		}
+	}
+}
+
+TEST_CASE(VstHostTests, testProcessBlockWidthsAndLease)
+{
+	auto library = VSTPluginLibrary::getInstance(exeDirectory() + L"\\TestVst2Plugin.dll");
+	harness.require(VSTPluginLibrary::load(library->getLibPath()).status >= 0, "width fixture loads");
+	for (const wchar_t* mode : {L"double", L"float", L"accumulate"})
+	{
+		SetEnvironmentVariableW(L"EAPO_TEST_VST_WIDTH", mode);
+		auto instance = VSTPluginInstance::create(library, 2);
+		const bool initialized = instance->initialize();
+		SetEnvironmentVariableW(L"EAPO_TEST_VST_WIDTH", nullptr);
+		harness.require(initialized, "width fixture initializes");
+		harness.require(instance->negotiate({}).accepted, "width fixture negotiates");
+		harness.require(instance->prepareForProcessing(48000.0f, 4, VSTPluginInstance::InputWidth::Float),
+			"width fixture prepares conversion buffers");
+		instance->writeToEffect(encodeChunk({kChunkMagic, kChunkVersion, 0.5f, 0.0f}), {});
+		{
+			VSTPluginInstance::ProcessingLease owner;
+			harness.require(owner.acquire(instance.get()), "lease starts idle processing");
+			{
+				VSTPluginInstance::ProcessingLease borrower;
+				harness.require(borrower.acquire(instance.get()), "lease borrows active processing");
+			}
+			harness.expectTrue(instance->canProcessNow(), "borrower does not stop the owner");
+			double left[] = {0.25, 0.5, 0.75, 1.0}, right[] = {-0.25, -0.5, -0.75, -1.0};
+			double outLeft[4] = {}, outRight[4] = {};
+			double* input[] = {left, right};
+			double* output[] = {outLeft, outRight};
+			for (int block = 0; block < 2; block++)
+			{
+				std::fill_n(outLeft, 4, 9.0);
+				std::fill_n(outRight, 4, 9.0);
+				instance->processBlock(input, output, 4);
+				for (int frame = 0; frame < 4; frame++)
+				{
+					harness.expectNear(outLeft[frame], left[frame] * 0.5, 1e-9, "selected width matches engine left output");
+					harness.expectNear(outRight[frame], right[frame] * 0.5, 1e-9, "selected width matches engine right output");
+				}
+			}
+			float previewIn[] = {0.25f, 0.5f, 0.75f, 1.0f}, previewOut[4] = {}, previewRight[4] = {};
+			float* previewInputs[] = {previewIn, previewIn};
+			float* previewOutputs[] = {previewOut, previewRight};
+			instance->processBlock(previewInputs, previewOutputs, 4);
+			harness.expectNear(previewOut[3], 0.5, 1e-9, "float preview uses the selected plug-in width");
+		}
+		harness.expectFalse(instance->canProcessNow(), "owner stops processing when its scope ends");
+	}
+}
+
 TEST_CASE(VstHostTests, testVolumeControllerBalancesComInitialization)
 {
 	bool threadStartedUninitialized = false;
@@ -724,7 +794,7 @@ return;
 
 	double* inArray[2] = { inLeft.data(), inRight.data() };
 	double* outArray[2] = { outLeft.data(), outRight.data() };
-	instance->processDoubleReplacing(inArray, outArray, frameCount);
+	instance->processBlock(inArray, outArray, frameCount);
 
 	bool audioMatches = true;
 	for (int i = 0; i < frameCount && audioMatches; ++i)
@@ -745,7 +815,7 @@ return;
 
 	vector<double> unityOutLeft(frameCount, 0.0), unityOutRight(frameCount, 0.0);
 	double* unityOutArray[2] = { unityOutLeft.data(), unityOutRight.data() };
-	instance->processDoubleReplacing(inArray, unityOutArray, frameCount);
+	instance->processBlock(inArray, unityOutArray, frameCount);
 
 	bool unityMatches = true;
 	for (int i = 0; i < frameCount && unityMatches; ++i)

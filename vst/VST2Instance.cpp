@@ -225,29 +225,31 @@ public:
 		return effect->delay;
 	}
 
-	void prepareForProcessing(float sampleRate, int blockSize) override
+	bool prepareProcessingImpl(float sampleRate, int blockSize) override
 	{
 		if (effect == NULL)
-			return;
+			return false;
 
 		this->sampleRate = sampleRate;
 		effect->control(effect.get(), VST_EFFECT_OPCODE_SET_SAMPLE_RATE, 0, 0, NULL, sampleRate);
 		effect->control(effect.get(), VST_EFFECT_OPCODE_SET_BLOCK_SIZE, 0, blockSize, NULL, 0.0f);
 		refreshSampleWidths();
+		return true;
 	}
 
 	void writeToEffect(const wstring& chunkData, const unordered_map<wstring, float>& paramMap) override;
 	void readFromEffect(wstring& chunkData, unordered_map<wstring, float>& paramMap) const override;
 
-	void startProcessing() override
+	bool startProcessing() override
 	{
 		if (effect == NULL)
-			return;
+			return false;
 
 		effect->control(effect.get(), VST_EFFECT_OPCODE_SUSPEND, 0, 1, NULL, 0.0f);
 		effect->control(effect.get(), VST_EFFECT_OPCODE_PROCESS_BEGIN, 0, 0, NULL, 0.0f);
 		refreshSampleWidths();
 		vst2Processing = true;
+		return true;
 	}
 
 	void processDoubleReplacing(double** inputArray, double** outputArray, int frameCount) override

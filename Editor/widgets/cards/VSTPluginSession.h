@@ -194,7 +194,7 @@ private:
 	std::unordered_map<std::wstring, float> currentParamMap;
 	Status currentStatus;
 	bool isEmbedded = false;
-	bool ownsPanelProcessing = false;
+	VSTPluginInstance::ProcessingLease panelProcessing;
 	bool autoApply = true;
 	// True while the stored state is being written to the instance; an
 	// automate call that arrives meanwhile is the plug-in answering that

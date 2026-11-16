@@ -634,6 +634,21 @@ vst_effect_t* createEffect(vst_host_callback_t callback)
 	effect->process_float = &processReplacing;
 	effect->process_double = &processDoubleReplacing;
 
+	wchar_t widthMode[32] = {};
+	if (GetEnvironmentVariableW(L"EAPO_TEST_VST_WIDTH", widthMode, 32) > 0)
+	{
+		if (wcscmp(widthMode, L"float") == 0 || wcscmp(widthMode, L"accumulate") == 0)
+		{
+			effect->flags &= ~VST_EFFECT_FLAG_SUPPORTS_DOUBLE;
+			effect->process_double = nullptr;
+		}
+		if (wcscmp(widthMode, L"accumulate") == 0)
+		{
+			effect->flags &= ~VST_EFFECT_FLAG_SUPPORTS_FLOAT;
+			effect->process_float = nullptr;
+		}
+	}
+
 	wchar_t editorMode[32] = {};
 	if (GetEnvironmentVariableW(L"EAPO_TEST_VST_EDITOR", editorMode,
 		static_cast<DWORD>(sizeof(editorMode) / sizeof(editorMode[0]))) > 0)

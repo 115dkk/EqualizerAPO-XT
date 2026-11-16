@@ -598,18 +598,12 @@ bool VSTPluginSession::embedPlugin(QWidget* host)
 
 void VSTPluginSession::acquirePanelProcessing()
 {
-	if (effect == nullptr || effect->canProcessNow())
-		return;
-	effect->startProcessing();
-	ownsPanelProcessing = effect->canProcessNow();
+	panelProcessing.acquire(effect.get());
 }
 
 void VSTPluginSession::releasePanelProcessing()
 {
-	if (!ownsPanelProcessing || effect == nullptr)
-		return;
-	effect->stopProcessingSafely();
-	ownsPanelProcessing = false;
+	panelProcessing.reset();
 }
 
 void VSTPluginSession::reportPanelCrash()
