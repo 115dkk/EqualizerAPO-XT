@@ -7,6 +7,7 @@
 #pragma once
 
 #include <QDir>
+#include <QList>
 #include <QSettings>
 #include <QString>
 
@@ -37,6 +38,19 @@ inline constexpr char KnobGainRange[] = "interface/knobGainRange";
 // migration in MainWindow.Analysis.cpp moves old values over once.
 inline constexpr char AnalysisViewMetric[] = "analysis/viewMetric";
 inline constexpr char AnalysisIncludeLatency[] = "analysis/includeLatency";
+inline constexpr char GraphDockPosition[] = "interface/graphDockPosition";
+inline constexpr char Geometry[] = "geometry";
+inline constexpr char WindowState[] = "windowState";
+inline constexpr char InstantMode[] = "instantMode";
+inline constexpr char SelectedDevice[] = "selectedDevice";
+inline constexpr char SelectedDeviceInput[] = "selectedDeviceInput";
+inline constexpr char SelectedChannelMask[] = "selectedChannelMask";
+inline constexpr char AnalysisStartFrom[] = "analysis/startFrom";
+inline constexpr char AnalysisChannel[] = "analysis/channel";
+inline constexpr char AnalysisResolution[] = "analysis/resolution";
+inline constexpr char OpenFiles[] = "openFiles";
+inline constexpr char TabIndex[] = "tabIndex";
+inline constexpr char RecentFiles[] = "recentFiles";
 }
 
 // The group a configuration file's per-file preferences live under: its
@@ -46,6 +60,52 @@ inline constexpr char AnalysisIncludeLatency[] = "analysis/includeLatency";
 inline QString perFileGroup(const QString& configPath)
 {
 	return QDir::toNativeSeparators(configPath).replace(QLatin1Char('\\'), QLatin1Char('|'));
+}
+
+struct DeviceChoice
+{
+	QString guid;
+	QString name;
+	bool input = false;
+};
+
+inline void writeSelectedDevice(QSettings& settings, const DeviceChoice& choice)
+{
+	// Voicemeeter strips have no endpoint GUID. Keep their name identity;
+	// ASIO playback and capture share a CLSID, so retain direction separately.
+	settings.setValue(QLatin1String(Keys::SelectedDevice), choice.guid.isEmpty() ? choice.name : choice.guid);
+	settings.setValue(QLatin1String(Keys::SelectedDeviceInput), choice.input);
+}
+
+inline int readSelectedDevice(QSettings& settings, const QList<DeviceChoice>& choices)
+{
+	const QString saved = settings.value(QLatin1String(Keys::SelectedDevice)).toString();
+	if (saved.isEmpty())
+		return -1;
+	const QVariant input = settings.value(QLatin1String(Keys::SelectedDeviceInput));
+	bool guidMatched = false;
+	for (int i = 0; i < choices.size(); i++)
+	{
+		if (!choices[i].guid.isEmpty() && choices[i].guid.compare(saved, Qt::CaseInsensitive) == 0)
+		{
+			guidMatched = true;
+			if (!input.isValid() || choices[i].input == input.toBool())
+				return i;
+		}
+	}
+	if (guidMatched)
+		return -1;
+	// A pre-GUID preference contains getDeviceString(), including its connection
+	// name. Migrate only an actual match (audit #467 TD-50).
+	for (int i = 0; i < choices.size(); i++)
+	{
+		if (!choices[i].name.isEmpty() && choices[i].name.compare(saved, Qt::CaseInsensitive) == 0)
+		{
+			writeSelectedDevice(settings, choices[i]);
+			return i;
+		}
+	}
+	return -1;
 }
 
 struct SkinChoice

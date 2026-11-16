@@ -12,6 +12,9 @@
 #include "Editor/MainWindowParts/OpenDocument.h"
 #include "Editor/analysis/AnalysisPanelState.h"
 #include "Editor/widgets/DeviceFormatBadgeState.h"
+#include "services/settings/EditorSettings.h"
+#include <QTemporaryDir>
+#include <utility>
 
 namespace
 {
@@ -21,6 +24,55 @@ bool isSeverity(AnalysisPanelState::Severity actual, AnalysisPanelState::Severit
 {
 	return actual == expected;
 }
+}
+
+TEST_CASE(EditorLogicTests, testSelectedDeviceSettingsMigrateNamesAndSurviveRename)
+{
+	QTemporaryDir temp;
+	requireTrue(temp.isValid(), "temporary settings directory exists");
+	QSettings settings(temp.filePath(QStringLiteral("preferences.ini")), QSettings::IniFormat);
+	QList<EditorSettings::DeviceChoice> devices = {
+		{ QStringLiteral("{aaaaaaaa-0000-0000-0000-000000000001}"), QStringLiteral("Speakers Old Name"), false },
+		{ QStringLiteral("{bbbbbbbb-0000-0000-0000-000000000002}"), QStringLiteral("Microphone"), true }
+	};
+	settings.setValue(QStringLiteral("selectedDevice"), QStringLiteral("speakers old name"));
+	expectEqual(EditorSettings::readSelectedDevice(settings, devices), 0, "legacy display name matches without case sensitivity");
+	expectEqual(settings.value(QStringLiteral("selectedDevice")).toString(), devices[0].guid, "first read migrates the stored name to GUID");
+	devices[0].name = QStringLiteral("Speakers Renamed in Windows");
+	expectEqual(EditorSettings::readSelectedDevice(settings, devices), 0, "renaming the endpoint does not lose selection");
+	EditorSettings::writeSelectedDevice(settings, devices[1]);
+	expectEqual(settings.value(QStringLiteral("selectedDevice")).toString(), devices[1].guid, "writes store the GUID");
+	expectEqual(EditorSettings::readSelectedDevice(settings, devices), 1, "capture selection round trips");
+
+	devices.append({ devices[1].guid, QStringLiteral("Same ASIO driver playback"), false });
+	EditorSettings::writeSelectedDevice(settings, devices[2]);
+	expectEqual(EditorSettings::readSelectedDevice(settings, devices), 2, "ASIO directions sharing a CLSID remain distinct");
+	devices.append({ QString(), QStringLiteral("Output A1 Voicemeeter"), false });
+	EditorSettings::writeSelectedDevice(settings, devices[3]);
+	expectEqual(EditorSettings::readSelectedDevice(settings, devices), 3, "Voicemeeter without a GUID retains its existing name identity");
+	settings.setValue(QStringLiteral("selectedDevice"), QStringLiteral("missing device"));
+	expectEqual(EditorSettings::readSelectedDevice(settings, devices), -1, "unknown selection leaves the caller's default alone");
+	expectEqual(settings.value(QStringLiteral("selectedDevice")).toString(), QStringLiteral("missing device"), "unmatched settings are not rewritten");
+}
+
+TEST_CASE(EditorLogicTests, testPreferenceKeysKeepPersistedSpellings)
+{
+	const std::pair<const char*, const char*> names[] = {
+		{ EditorSettings::Keys::GraphDockPosition, "interface/graphDockPosition" },
+		{ EditorSettings::Keys::Geometry, "geometry" },
+		{ EditorSettings::Keys::WindowState, "windowState" },
+		{ EditorSettings::Keys::InstantMode, "instantMode" },
+		{ EditorSettings::Keys::SelectedDevice, "selectedDevice" },
+		{ EditorSettings::Keys::SelectedChannelMask, "selectedChannelMask" },
+		{ EditorSettings::Keys::AnalysisStartFrom, "analysis/startFrom" },
+		{ EditorSettings::Keys::AnalysisChannel, "analysis/channel" },
+		{ EditorSettings::Keys::AnalysisResolution, "analysis/resolution" },
+		{ EditorSettings::Keys::OpenFiles, "openFiles" },
+		{ EditorSettings::Keys::TabIndex, "tabIndex" },
+		{ EditorSettings::Keys::RecentFiles, "recentFiles" }
+	};
+	for (const auto& name : names)
+		expectEqual(QString::fromLatin1(name.first), QString::fromLatin1(name.second), "named key retains its stored spelling");
 }
 
 TEST_CASE(EditorLogicTests, testAnalysisPanelStateCoversEveryOutcome)

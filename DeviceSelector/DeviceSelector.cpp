@@ -118,6 +118,11 @@ DeviceSelector::DeviceSelector(const std::vector<std::shared_ptr<AbstractAPOInfo
 void DeviceSelector::setupChrome()
 {
 	ui.setupUi(this);
+	// Bind the three labelled .ui rows to their values, not enum ordinals
+	// (audit #467 TD-50).
+	ui.installModeComboBox->setItemData(0, static_cast<int>(DeviceAPOInfo::INSTALL_LFX_GFX));
+	ui.installModeComboBox->setItemData(1, static_cast<int>(DeviceAPOInfo::INSTALL_SFX_MFX));
+	ui.installModeComboBox->setItemData(2, static_cast<int>(DeviceAPOInfo::INSTALL_SFX_EFX));
 
 	setWindowFlags(windowFlags().setFlag(Qt::WindowContextHelpButtonHint, false));
 
@@ -557,7 +562,7 @@ void DeviceSelector::onTroubleShootingOptionChanged()
 			else if (sender == ui.useOriginalAPOPostMixCheckBox)
 				deviceInfo->getSelectedInstallState().useOriginalAPOPostMix = ui.useOriginalAPOPostMixCheckBox->isChecked();
 			else if (sender == ui.installModeComboBox)
-				deviceInfo->getSelectedInstallState().installMode = (DeviceAPOInfo::InstallMode)ui.installModeComboBox->currentIndex();
+				deviceInfo->getSelectedInstallState().installMode = static_cast<DeviceAPOInfo::InstallMode>(ui.installModeComboBox->currentData().toInt());
 			else if (sender == ui.allowSilentBufferCheckBox)
 				deviceInfo->getSelectedInstallState().allowSilentBufferModification = ui.allowSilentBufferCheckBox->isChecked();
 			else if (sender == ui.autoCheckBox)
@@ -710,7 +715,7 @@ void DeviceSelector::updateButtons()
 	ui.useOriginalAPOPreMixCheckBox->setChecked(installState.useOriginalAPOPreMix && hasOriginalAPOPreMix);
 	ui.useOriginalAPOPostMixCheckBox->setChecked(installState.useOriginalAPOPostMix && hasOriginalAPOPostMix);
 
-	ui.installModeComboBox->setCurrentIndex(installState.installMode);
+	ui.installModeComboBox->setCurrentIndex(ui.installModeComboBox->findData(static_cast<int>(installState.installMode)));
 
 	ui.allowSilentBufferCheckBox->setChecked(installState.allowSilentBufferModification);
 	ui.asioEntryCheckBox->setChecked(installState.asioEntry);
