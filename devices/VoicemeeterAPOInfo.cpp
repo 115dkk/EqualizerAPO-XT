@@ -29,6 +29,7 @@
 #include "platform/windows/ComPtr.h"
 #include "platform/windows/CommandLineQuoting.h"
 #include "platform/windows/ProcessCommandLine.h"
+#include "platform/windows/UnelevatedLaunch.h"
 #include "platform/windows/ShellLink.h"
 #include "services/logging/Logging.h"
 #include "services/registry/RegistryError.h"
@@ -385,9 +386,10 @@ void VoicemeeterAPOInfo::ensureVoicemeeterClientRunning()
 
 	if (!matchingProcessExists && !args.empty())
 	{
-		const auto result = ShellExecuteW(nullptr, nullptr, clientPath.c_str(), argString.c_str(), nullptr, SW_SHOWDEFAULT);
-		if (reinterpret_cast<INT_PTR>(result) <= 32)
-			throw DeviceException(L"Could not start the Voicemeeter client: " + win32::errorMessage(GetLastError()));
+		const auto result = winutil::launchUnelevated(clientPath,
+			winutil::joinCommandLineArguments({clientPath}) + L" " + argString);
+		if (result.error != ERROR_SUCCESS)
+			throw DeviceException(L"Could not start the Voicemeeter client: " + win32::errorMessage(result.error));
 	}
 }
 

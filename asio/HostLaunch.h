@@ -52,5 +52,5 @@ namespace eapo::asio::HostLaunch
 	}
 
 	Arguments parseCommandLine(int argc, wchar_t* const* argv);
-	LaunchResult launch(const std::wstring& executable, std::wstring commandLine) noexcept;
+	LaunchResult launch(const std::wstring& executable, std::wstring commandLine, bool unelevated = false) noexcept;
 }

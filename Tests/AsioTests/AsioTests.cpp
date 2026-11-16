@@ -23,6 +23,7 @@
 #include <windows.h>
 #include <timeapi.h>
 
+#include "platform/windows/UnelevatedLaunch.h"
 #include "asio/AsioWrapper.h"
 #include "asio/CallbackTrampolines.h"
 #include "asio/DriverNameText.h"
@@ -235,6 +236,21 @@ namespace
 	}
 
 	// ---- codecs ----
+
+	TEST_CASE(AsioTests, testHelperLaunchDropsTheAdministratorToken)
+	{
+		int shellCalls = 0;
+		int plainCalls = 0;
+		const auto shell = [&]() { ++shellCalls; return false; };
+		const auto plain = [&]() { ++plainCalls; return true; };
+		harness.expectTrue(!winutil::chooseUnelevatedLaunch([]() { return true; }, shell, plain),
+			"elevated helper uses shell launch and propagates failure");
+		harness.expectTrue(shellCalls == 1 && plainCalls == 0,
+			"missing shell never falls back to elevated launch");
+		harness.expectTrue(winutil::chooseUnelevatedLaunch([]() { return false; }, shell, plain),
+			"unelevated helper uses plain launch");
+		harness.expectTrue(shellCalls == 1 && plainCalls == 1, "each launch chooses one token path");
+	}
 
 	TEST_CASE(AsioTests, testCodecRoundTrips)
 	{

@@ -125,6 +125,7 @@ HEADERS += \
 	../platform/windows/ComError.h \
 	../platform/windows/ConsoleOutput.h \
 	../platform/windows/ElevatedLaunch.h \
+	../platform/windows/UnelevatedLaunch.h \
 	../platform/windows/TimeStamp.h \
 	../services/windows/ServiceWait.h \
 	../services/install/InstallWaitBudget.h

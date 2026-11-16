@@ -18,6 +18,7 @@
 
 #include "asio/HostProtocol.h"
 #include "platform/windows/Win32Resource.h"
+#include "platform/windows/UnelevatedLaunch.h"
 
 namespace eapo::asio::HostLaunch
 {
@@ -40,9 +41,13 @@ namespace eapo::asio::HostLaunch
 	}
 
 	// commandLine is taken by value: CreateProcessW may write into the buffer.
-	// cppcheck-suppress passedByValue
-	LaunchResult launch(const std::wstring& executable, std::wstring commandLine) noexcept
+	LaunchResult launch(const std::wstring& executable, std::wstring commandLine, bool unelevated) noexcept
 	{
+		if (unelevated)
+		{
+			const auto result = winutil::launchUnelevated(executable, std::move(commandLine), CREATE_NO_WINDOW);
+			return {result.error, result.processId};
+		}
 		STARTUPINFOW startup = {};
 		startup.cb = sizeof(startup);
 		PROCESS_INFORMATION process = {};

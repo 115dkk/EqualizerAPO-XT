@@ -199,6 +199,7 @@
     <ClInclude Include="platform\windows\ComError.h" />
     <ClInclude Include="platform\windows\ConsoleOutput.h" />
     <ClInclude Include="platform\windows\ElevatedLaunch.h" />
+    <ClInclude Include="platform\windows\UnelevatedLaunch.h" />
     <ClInclude Include="platform\windows\TimeStamp.h" />
     <ClInclude Include="services\windows\ServiceWait.h" />
     <ClInclude Include="services\install\InstallWaitBudget.h" />

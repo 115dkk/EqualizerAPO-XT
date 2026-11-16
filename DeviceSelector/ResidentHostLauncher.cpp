@@ -33,11 +33,10 @@ std::wstring ensureStarted(const IRegistry& registry)
 		if (owner)
 			return L"Send keepalive: a host already serves this session and will pick up the receiver";
 
-		// DeviceSelector requires elevation, so this host inherits it until logoff,
-		// like the Voicemeeter client. The pipe's per-user SDDL still admits a
-		// medium-integrity DAW; the Run entry starts the next host unelevated.
+		// The host loads user-selected plugins, so use the interactive shell's
+		// token, never DeviceSelector's administrator token (audit #467 TD-15).
 		const eapo::asio::HostLaunch::LaunchResult launched = eapo::asio::HostLaunch::launch(exe,
-			eapo::asio::HostLaunch::residentCommandLine(exe));
+			eapo::asio::HostLaunch::residentCommandLine(exe), true);
 		if (!launched)
 			return L"Send keepalive: could not start host (error " + std::to_wstring(launched.error) + L")";
 		return L"Send keepalive: started host (pid " + std::to_wstring(launched.processId) + L")";
