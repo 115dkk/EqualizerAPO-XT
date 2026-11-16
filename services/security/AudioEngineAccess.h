@@ -83,6 +83,9 @@ Grant grantConfigAccess(const std::wstring& configDir);
 // or have WRITE_DAC on the existing directory. SetSecurityInfo propagates
 // inheritable ACEs to eligible existing children; new children inherit Modify.
 Grant grantOwnedConfigAccess(const std::wstring& configDir);
+// Grants LOCAL SERVICE read access to one plain file the unelevated user can
+// re-ACL. Used when a config import finds the selected file already in place.
+Grant grantOwnedFileReadAccess(const std::wstring& filePath);
 // Same unelevated-only contract, granting read+execute on the install tree.
 Grant grantOwnedEngineAccess(const std::wstring& installRoot);
 

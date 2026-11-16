@@ -269,8 +269,54 @@ Grant grantConfigAccess(const std::wstring& configDir)
 
 namespace
 {
-// Only the two owned-directory grants share ACL construction; no public
-// arbitrary-permissions API is needed for installation preparation.
+// The owned directory and single-file grants merge rights into the existing
+// DACL. There is deliberately no public arbitrary-permissions entry point.
+Grant grantOwnedHandleAccess(HANDLE handle, DWORD permissions, DWORD inheritance,
+	bool includeUsers, const wchar_t* objectName)
+{
+	winutil::UniqueLocalPtr<void> descriptor;
+	PACL oldAcl = nullptr;
+	DWORD error = GetSecurityInfo(handle, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION,
+		nullptr, nullptr, &oldAcl, nullptr, descriptor.put());
+	if (error != ERROR_SUCCESS || oldAcl == nullptr)
+	{
+		// Do not replace a null (unrestricted) DACL with a narrower DACL.
+		logLine(L"ERR", L"Cannot read %s DACL (error=%lu, null=%d)",
+			objectName, error, oldAcl == nullptr);
+		return Grant::Failed;
+	}
+
+	auto users = winutil::sids::sidFromSddl(winutil::sids::users);
+	auto service = winutil::sids::sidFromSddl(winutil::sids::localService);
+	if (!users || !service)
+		return Grant::Failed;
+	EXPLICIT_ACCESSW entries[2] = {};
+	const ULONG entryCount = includeUsers ? 2 : 1;
+	entries[0].Trustee.ptstrName = static_cast<LPWSTR>(
+		includeUsers ? users.get() : service.get());
+	if (includeUsers)
+		entries[1].Trustee.ptstrName = static_cast<LPWSTR>(service.get());
+	for (ULONG i = 0; i < entryCount; ++i)
+	{
+		entries[i].grfAccessPermissions = permissions;
+		entries[i].grfAccessMode = GRANT_ACCESS;
+		entries[i].grfInheritance = inheritance;
+		entries[i].Trustee.TrusteeForm = TRUSTEE_IS_SID;
+		entries[i].Trustee.TrusteeType = TRUSTEE_IS_UNKNOWN;
+	}
+	winutil::UniqueLocalPtr<ACL> acl;
+	error = SetEntriesInAclW(entryCount, entries, oldAcl, acl.put());
+	if (error == ERROR_SUCCESS)
+		error = SetSecurityInfo(handle, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION,
+			nullptr, nullptr, acl.get(), nullptr);
+	if (error != ERROR_SUCCESS)
+	{
+		logLine(L"ERR", L"%s handle grant failed (error=%lu)", objectName, error);
+		return Grant::Failed;
+	}
+	return Grant::Applied;
+}
+
 Grant grantOwnedDirectoryAccess(const std::wstring& configDir, DWORD permissions)
 {
 	// This entry point is exclusively for the unelevated prepare step. Even
@@ -285,49 +331,12 @@ Grant grantOwnedDirectoryAccess(const std::wstring& configDir, DWORD permissions
 		logLine(L"ERR", L"Owned config grant refused: %s", reason.c_str());
 		return Grant::Failed;
 	}
-	winutil::UniqueLocalPtr<void> descriptor;
-	PACL oldAcl = nullptr;
-	DWORD error = GetSecurityInfo(handle.get(), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION,
-		nullptr, nullptr, &oldAcl, nullptr, descriptor.put());
-	if (error != ERROR_SUCCESS || oldAcl == nullptr)
-	{
-		// Do not replace a null (unrestricted) DACL with a two-principal DACL.
-		logLine(L"ERR", L"Cannot read config DACL (error=%lu, null=%d)", error, oldAcl == nullptr);
-		return Grant::Failed;
-	}
-
-	auto users = winutil::sids::sidFromSddl(winutil::sids::users);
-	auto service = winutil::sids::sidFromSddl(winutil::sids::localService);
-	if (!users || !service)
-		return Grant::Failed;
-	EXPLICIT_ACCESSW entries[2] = {};
-	entries[0].Trustee.ptstrName = static_cast<LPWSTR>(users.get());
-	entries[1].Trustee.ptstrName = static_cast<LPWSTR>(service.get());
-	for (auto& entry : entries)
-	{
-		entry.grfAccessPermissions = permissions;
-		entry.grfAccessMode = GRANT_ACCESS;
-		entry.grfInheritance = OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE;
-		entry.Trustee.TrusteeForm = TRUSTEE_IS_SID;
-		entry.Trustee.TrusteeType = TRUSTEE_IS_UNKNOWN;
-	}
-	winutil::UniqueLocalPtr<ACL> acl;
-	error = SetEntriesInAclW(2, entries, oldAcl, acl.put());
-	if (error == ERROR_SUCCESS)
-	{
-		// Allow normal inheritance propagation to existing children. This is
-		// deliberately unelevated; neither a link nor a concurrent replacement
-		// gives this operation authority beyond the installing user's token.
-		// Protected child DACLs and inaccessible children need not inherit.
-		error = SetSecurityInfo(handle.get(), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION,
-			nullptr, nullptr, acl.get(), nullptr);
-	}
-	if (error != ERROR_SUCCESS)
-	{
-		logLine(L"ERR", L"Config handle grant failed (error=%lu)", error);
-		return Grant::Failed;
-	}
-	return Grant::Applied;
+	// Allow normal inheritance propagation to existing children. This is
+	// deliberately unelevated; neither a link nor a concurrent replacement
+	// gives this operation authority beyond the installing user's token.
+	// Protected child DACLs and inaccessible children need not inherit.
+	return grantOwnedHandleAccess(handle.get(), permissions,
+		OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE, true, L"config");
 }
 
 } // namespace
@@ -335,6 +344,28 @@ Grant grantOwnedDirectoryAccess(const std::wstring& configDir, DWORD permissions
 Grant grantOwnedConfigAccess(const std::wstring& configDir)
 {
 	return grantOwnedDirectoryAccess(configDir, FILE_GENERIC_READ | FILE_GENERIC_WRITE | FILE_GENERIC_EXECUTE | DELETE);
+}
+
+Grant grantOwnedFileReadAccess(const std::wstring& filePath)
+{
+	if (isElevated())
+		return Grant::Failed;
+	winutil::UniqueHandle handle(CreateFileW(filePath.c_str(), FILE_READ_ATTRIBUTES | READ_CONTROL | WRITE_DAC,
+		FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
+		FILE_FLAG_OPEN_REPARSE_POINT, nullptr));
+	if (!handle)
+	{
+		logLine(L"ERR", L"Owned file grant refused for %s (error=%lu)", filePath.c_str(), GetLastError());
+		return Grant::Failed;
+	}
+	BY_HANDLE_FILE_INFORMATION info = {};
+	if (!GetFileInformationByHandle(handle.get(), &info)
+		|| (info.dwFileAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT)) != 0)
+	{
+		logLine(L"ERR", L"Owned file grant requires a plain file: %s", filePath.c_str());
+		return Grant::Failed;
+	}
+	return grantOwnedHandleAccess(handle.get(), FILE_GENERIC_READ, NO_INHERITANCE, false, L"file");
 }
 
 Grant grantOwnedEngineAccess(const std::wstring& installRoot)

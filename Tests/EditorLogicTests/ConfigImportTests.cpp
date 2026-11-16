@@ -498,6 +498,43 @@ TEST_CASE(EditorLogicTests, testConfigImportKeepsSourcesByDefault)
 	expectTrue(QFile::exists(source), "default import keeps the user's source file");
 }
 
+// Audit #467 TD-02: a card may offer import for a file already below the
+// config directory because LOCAL SERVICE cannot read its ACL. The executor
+// must recognize that the source is already at its destination.
+TEST_CASE(EditorLogicTests, testConfigImportReportsAFileAlreadyInPlace)
+{
+	QTemporaryDir tempDir;
+	requireTrue(tempDir.isValid(), "QTemporaryDir must be valid");
+	const QString configDir = tempDir.path() + QStringLiteral("/config");
+	const QString irDir = configDir + QStringLiteral("/IR");
+	requireTrue(QDir().mkpath(irDir), "failed to create config IR directory");
+	const QString source = irDir + QStringLiteral("/room.wav");
+	QFile sourceFile(source);
+	requireTrue(sourceFile.open(QIODevice::WriteOnly), "failed to create in-place source");
+	const QByteArray original("in-place-bytes");
+	requireTrue(sourceFile.write(original) == original.size(), "failed to write in-place source");
+	sourceFile.close();
+
+	EqAPO::Import::ImportManifest manifest;
+	manifest.rootSourceDir = irDir;
+	EqAPO::Import::ImportItem item;
+	item.sourceAbsolute = source;
+	item.destRelative = QStringLiteral("IR/room.wav");
+	item.sizeBytes = original.size();
+	manifest.items.append(item);
+
+	const auto result = EqAPO::Import::ImportExecutor::execute(manifest, configDir);
+	expectTrue(result.success, "an in-place import succeeds without copying");
+	expectEqual(result.filesAlreadyInPlace, 1, "the in-place file is reported once");
+	expectEqual(result.filesCopied, 0, "the in-place file is not copied");
+	expectTrue(result.errors.isEmpty(), "the in-place file produces no error");
+	expectTrue(QFile::exists(source), "the in-place file remains present");
+	QFile after(source);
+	requireTrue(after.open(QIODevice::ReadOnly), "the in-place file remains readable");
+	expectEqual(QString::fromLatin1(after.readAll()), QString::fromLatin1(original),
+		"the in-place file remains byte-identical");
+}
+
 TEST_CASE(EditorLogicTests, testLegacyMigrationScanAndPolicy)
 {
 	QTemporaryDir tempDir;

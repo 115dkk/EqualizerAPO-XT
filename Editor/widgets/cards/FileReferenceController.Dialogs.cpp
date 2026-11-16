@@ -21,6 +21,7 @@
 #include "Editor/import/ConfigDependencyScanner.h"
 #include "Editor/import/ImportDialog.h"
 #include "Editor/import/ImportExecutor.h"
+#include "services/security/AudioEngineAccess.h"
 
 namespace
 {
@@ -98,8 +99,19 @@ bool FileReferenceController::importIntoConfig(
 	EqAPO::Import::ImportDialog dialog(manifest, configDir, parent);
 	if (dialog.exec() != QDialog::Accepted)
 		return false;
-	const EqAPO::Import::ExecutionResult result =
-		EqAPO::Import::ImportExecutor::execute(manifest, configDir);
+	EqAPO::Import::ExecutionResult result = EqAPO::Import::ImportExecutor::execute(
+		manifest, configDir, EqAPO::Import::Disposition::KeepSources);
+	if (result.success && result.filesAlreadyInPlace > 0)
+	{
+		const QString destination = QDir(configDir).absoluteFilePath(manifest.rootDest);
+		if (AudioEngineAccess::grantOwnedFileReadAccess(
+				QDir::toNativeSeparators(destination).toStdWString()) != AudioEngineAccess::Grant::Applied)
+		{
+			result.success = false;
+			result.errors.append(QCoreApplication::translate("FileReferenceController",
+				"Could not grant audio service access to %1.").arg(destination));
+		}
+	}
 	if (!result.success)
 	{
 		QMessageBox::warning(parent,

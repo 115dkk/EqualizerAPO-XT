@@ -419,6 +419,34 @@ TEST_CASE(EditorLogicTests, testConfigHandleGrantRejectsJunctionsAndPreservesChi
 	std::puts("Config owned grant: junction target unchanged");
 }
 
+TEST_CASE(EditorLogicTests, testOwnedFileGrantGivesTheAudioEngineReadAccess)
+{
+	using AudioEngineAccess::Grant;
+	QTemporaryDir temp;
+	requireTrue(temp.isValid(), QStringLiteral("owned-file grant fixture created"));
+	const QString path = temp.path() + QStringLiteral("/room.wav");
+	{
+		QFile file(path);
+		requireTrue(file.open(QIODevice::WriteOnly), QStringLiteral("owned file created"));
+		file.write("acl-fixture");
+	}
+	const std::wstring native = QDir::toNativeSeparators(path).toStdWString();
+	const Grant result = AudioEngineAccess::grantOwnedFileReadAccess(native);
+	if (AudioEngineAccess::isElevated())
+	{
+		expectTrue(result == Grant::Failed, QStringLiteral("owned-file grant refuses elevated token"));
+		std::puts("SKIP: owned-file grant assertions (process elevated)");
+		return;
+	}
+	expectTrue(result == Grant::Applied, QStringLiteral("unelevated owned-file grant applied"));
+	expectTrue((AudioEngineAccess::accessForAudioEngine(native) & FILE_GENERIC_READ) == FILE_GENERIC_READ,
+		QStringLiteral("LOCAL SERVICE receives file read access"));
+	QFile after(path);
+	requireTrue(after.open(QIODevice::ReadOnly), QStringLiteral("granted file remains readable"));
+	expectEqual(QString::fromLatin1(after.readAll()), QStringLiteral("acl-fixture"),
+		QStringLiteral("ACL repair leaves file bytes unchanged"));
+}
+
 // Audit #275 C1: the migration hook's machine-changing registry writes used to
 // bypass the port (static WindowsRegistry calls), so the only machine they
 // could ever be observed on was a real one. Through the port they run against
