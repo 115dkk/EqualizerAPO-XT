@@ -154,8 +154,11 @@ void DeviceTestDialog::addDevices(const std::vector<std::shared_ptr<DeviceAPOInf
 	}
 }
 
-void DeviceTestDialog::closeEvent(QCloseEvent* event)
+void DeviceTestDialog::stopTestThread()
 {
+	// Esc and done() bypass closeEvent. All exits must release a running child
+	// before the dialog destroys it (audit #467 TD-14). Worker signals are queued;
+	// it never waits for the GUI thread that performs this bounded wait.
 	if (thread != nullptr && thread->isRunning())
 	{
 		thread->requestInterruption();
@@ -169,7 +172,24 @@ void DeviceTestDialog::closeEvent(QCloseEvent* event)
 			thread = nullptr;
 		}
 	}
+}
+
+void DeviceTestDialog::closeEvent(QCloseEvent* event)
+{
+	stopTestThread();
 	QDialog::closeEvent(event);
+}
+
+void DeviceTestDialog::reject()
+{
+	stopTestThread();
+	QDialog::reject();
+}
+
+void DeviceTestDialog::done(int result)
+{
+	stopTestThread();
+	QDialog::done(result);
 }
 
 void DeviceTestDialog::log(const QString& message)
