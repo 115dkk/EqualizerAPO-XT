@@ -24,6 +24,105 @@ QString wide(const std::wstring& text)
 {
 	return QString::fromStdWString(text);
 }
+
+struct InstallFixture
+{
+	struct File final : HeldSetup
+	{
+		explicit File(InstallFixture& fixture) : fixture(fixture) { fixture.alive = true; }
+		~File() override { fixture.alive = false; ++fixture.releases; }
+		bool write(std::string_view bytes, std::wstring& error) override
+		{
+			++fixture.writes;
+			fixture.written.append(bytes);
+			if (fixture.writeFails)
+				error = L"disk write failed";
+			return !fixture.writeFails;
+		}
+		bool sealAndHash(std::wstring& hash, std::wstring& error) override
+		{
+			fixture.sealed = true;
+			if (fixture.hashFails)
+			{
+				error = L"hash failed";
+				return false;
+			}
+			hash = std::wstring(64, fixture.written == "installer bytes" ? L'a' : L'b');
+			return true;
+		}
+		InstallFixture& fixture;
+	};
+
+	InstallOperations operations()
+	{
+		InstallOperations ops;
+		ops.createFile = [&](const std::wstring& name, std::wstring& error) -> std::unique_ptr<HeldSetup>
+		{
+			createdName = name;
+			if (createFails)
+			{
+				error = L"create failed";
+				return nullptr;
+			}
+			auto file = std::make_unique<File>(*this);
+			created = file.get();
+			return file;
+		};
+		ops.transport = [&](const std::wstring& url, const ByteSink& sink, const DownloadProgress& progress)
+		{
+			urls.push_back(wide(url));
+			const bool sums = url.ends_with(L"/SHA256SUMS.txt");
+			DownloadResult result;
+			result.statusCode = sums ? sumsStatus : setupStatus;
+			if (result.statusCode == 200)
+			{
+				const std::string bytes = sums ? checksums : body;
+				if (!sink(bytes, result.error))
+					return result;
+				if (progress)
+					progress(bytes.size(), bytes.size());
+			}
+			return result;
+		};
+		ops.launch = [&](const HeldSetup& file, bool silent)
+		{
+			++launches;
+			expectTrue(alive && sealed, "launcher receives a live sealed file");
+			expectTrue(&file == created, "launcher receives exactly the holder that was hashed");
+			expectTrue(written == "installer bytes", "launcher sees only verified bytes");
+			wasSilent = silent;
+			return LaunchResult{ !launchFails, 37 };
+		};
+		return ops;
+	}
+
+	std::string body = "installer bytes";
+	std::string checksums = std::string(64, 'a') + "  EqualizerAPO-XT-x64-avx2-x64-avx2-Setup.exe\n";
+	unsigned long setupStatus = 200;
+	unsigned long sumsStatus = 200;
+	bool createFails = false;
+	bool writeFails = false;
+	bool hashFails = false;
+	bool launchFails = false;
+	bool alive = false;
+	bool sealed = false;
+	bool wasSilent = false;
+	int writes = 0;
+	int launches = 0;
+	int releases = 0;
+	File* created = nullptr;
+	std::string written;
+	std::wstring createdName;
+	QStringList urls;
+};
+
+CpuFeatures avx2Cpu()
+{
+	CpuFeatures features;
+	features.avx = true;
+	features.avx2 = true;
+	return features;
+}
 }
 
 TEST_CASE(EditorLogicTests, testAutoInstallerChannelMapping)
@@ -120,6 +219,113 @@ TEST_CASE(EditorLogicTests, testAutoInstallerChecksumParsing)
 	text = hash + "  some-other-asset.zip\n";
 	expectTrue(expectedHashFromChecksums(text, name).empty(), "absent asset yields empty");
 	expectTrue(expectedHashFromChecksums(std::string(), name).empty(), "empty text yields empty");
+}
+
+TEST_CASE(EditorLogicTests, testAutoInstallerVerifiedHeldFileFlow)
+{
+	InstallFixture fixture;
+	const InstallResult result = install(avx2Cpu(), true, fixture.operations());
+	expectTrue(result.stage == InstallStage::Complete, "the verified flow completes");
+	expectEqual(static_cast<int>(result.exitCode), 37, "silent mode forwards the child exit code");
+	expectTrue(fixture.wasSilent, "silent mode reaches the launcher");
+	expectEqual(fixture.launches, 1, "the verified file is launched once");
+	expectEqual(fixture.writes, 1, "only the installer body reaches the file, never checksums");
+	expectEqual(fixture.releases, 1, "the held file is released after launch");
+	expectFalse(fixture.alive, "the holder does not leak");
+	expectEqual(wide(fixture.createdName), wide(assetName(L"x64-avx2")), "CPU detection chooses the file");
+	requireEqual(static_cast<int>(fixture.urls.size()), 2, "exactly the installer and checksums are fetched");
+	expectEqual(fixture.urls[0], wide(downloadUrl(L"x64-avx2")), "CPU detection chooses the URL");
+	expectTrue(fixture.urls[1].endsWith(QStringLiteral("/SHA256SUMS.txt")), "checksums use the release asset");
+}
+
+TEST_CASE(EditorLogicTests, testAutoInstallerRejectsTamperedBody)
+{
+	InstallFixture fixture;
+	fixture.body = "substituted installer";
+	const InstallResult result = install(avx2Cpu(), false, fixture.operations());
+	expectTrue(result.stage == InstallStage::Verify, "tampering fails verification");
+	expectEqual(wide(result.error), QStringLiteral("The downloaded installer failed its integrity check."),
+		"tampering reports the integrity error");
+	expectEqual(fixture.launches, 0, "tampered bytes are never launched");
+	expectEqual(fixture.releases, 1, "a rejected file is released for cleanup");
+}
+
+TEST_CASE(EditorLogicTests, testAutoInstallerHttpFailuresStopTheFlow)
+{
+	for (bool checksums : { false, true })
+	{
+		for (unsigned long status : { 404ul, 500ul })
+		{
+			InstallFixture fixture;
+			(checksums ? fixture.sumsStatus : fixture.setupStatus) = status;
+			const InstallResult result = install(avx2Cpu(), false, fixture.operations());
+			expectTrue(result.stage == (checksums ? InstallStage::Verify : InstallStage::Download),
+				"HTTP failure is assigned to the requested asset's step");
+			expectEqual(static_cast<int>(result.httpStatus), static_cast<int>(status), "HTTP status is preserved");
+			expectEqual(wide(result.error), wide(httpFailure(status)), "HTTP failure retains its real status");
+			expectEqual(fixture.launches, 0, "HTTP failures never reach the launcher");
+			expectEqual(fixture.writes, checksums ? 1 : 0, "only HTTP 200 installer bytes reach disk");
+			expectEqual(fixture.releases, 1, "HTTP failure releases the held file");
+		}
+	}
+}
+
+TEST_CASE(EditorLogicTests, testAutoInstallerRejectsMissingAndOversizeChecksums)
+{
+	for (const std::string& text : { std::string(), std::string(1024 * 1024 + 1, 'a'),
+		std::string(64, 'a') + "  other.exe\n" })
+	{
+		InstallFixture fixture;
+		fixture.checksums = text;
+		const InstallResult result = install(avx2Cpu(), false, fixture.operations());
+		expectTrue(result.stage == InstallStage::Verify, "invalid checksums fail verification");
+		expectFalse(result.error.empty(), "invalid checksums report an error");
+		expectEqual(fixture.launches, 0, "invalid checksums never reach the launcher");
+		expectEqual(fixture.writes, 1, "invalid checksums never touch disk");
+		expectFalse(fixture.alive, "invalid checksums release the file");
+	}
+}
+
+TEST_CASE(EditorLogicTests, testAutoInstallerFileAndLaunchFailures)
+{
+	InstallFixture create;
+	create.createFails = true;
+	expectTrue(install(avx2Cpu(), false, create.operations()).stage == InstallStage::Download,
+		"file creation failure stops the download");
+	expectTrue(create.urls.empty(), "no download without a destination");
+
+	InstallFixture write;
+	write.writeFails = true;
+	expectTrue(install(avx2Cpu(), false, write.operations()).stage == InstallStage::Download,
+		"write failure stops the download");
+	expectEqual(write.launches, 0, "write failure never launches");
+	expectFalse(write.alive, "write failure releases the file");
+
+	InstallFixture hash;
+	hash.hashFails = true;
+	expectTrue(install(avx2Cpu(), false, hash.operations()).stage == InstallStage::Verify,
+		"hash failure stops verification");
+	expectEqual(hash.launches, 0, "hash failure never launches");
+	expectFalse(hash.alive, "hash failure releases the file");
+
+	InstallFixture launch;
+	launch.launchFails = true;
+	expectTrue(install(avx2Cpu(), false, launch.operations()).stage == InstallStage::Launch,
+		"launch failure is reported at handoff");
+	expectFalse(launch.alive, "launch failure releases the file");
+
+	InstallFixture interactive;
+	expectEqual(static_cast<int>(install(avx2Cpu(), false, interactive.operations()).exitCode), 0,
+		"interactive success does not forward a child exit code");
+	expectFalse(interactive.wasSilent, "interactive mode reaches the launcher");
+}
+
+TEST_CASE(EditorLogicTests, testAutoInstallerHttpFailure)
+{
+	expectEqual(wide(httpFailure(404)), QStringLiteral("The download server returned HTTP 404."),
+		"HTTP 404 reports its status without assuming which asset was requested");
+	expectEqual(wide(httpFailure(500)), QStringLiteral("The download server returned HTTP 500."),
+		"HTTP 500 is a server failure, not a missing installer");
 }
 
 TEST_CASE(EditorLogicTests, testAutoInstallerFlagScan)

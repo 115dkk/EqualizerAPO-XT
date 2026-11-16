@@ -194,6 +194,93 @@ std::wstring expectedHashFromChecksums(const std::string& text, const std::wstri
 	return std::wstring();
 }
 
+std::wstring httpFailure(unsigned long statusCode)
+{
+	return L"The download server returned HTTP " + std::to_wstring(statusCode) + L".";
+}
+
+InstallResult install(const CpuFeatures& features, bool silent, const InstallOperations& operations)
+{
+	InstallResult result;
+	const auto stage = [&](InstallStage next, const std::wstring& detail = std::wstring())
+	{
+		result.stage = next;
+		if (operations.stageChanged)
+			operations.stageChanged(next, detail);
+	};
+	const auto acceptDownload = [&](const DownloadResult& download)
+	{
+		result.httpStatus = download.statusCode;
+		result.error = download.statusCode != 0 && download.statusCode != 200
+			? httpFailure(download.statusCode) : download.error;
+		return download.statusCode == 200 && result.error.empty();
+	};
+
+	stage(InstallStage::Detect);
+	const std::wstring channel = channelForCpu(features);
+	const std::wstring name = assetName(channel);
+	stage(InstallStage::Download, channel);
+	std::unique_ptr<HeldSetup> file = operations.createFile(name, result.error);
+	if (!file)
+		return result;
+	const DownloadResult setup = operations.transport(downloadUrl(channel),
+		[&](std::string_view bytes, std::wstring& error) { return file->write(bytes, error); },
+		operations.progress);
+	if (!acceptDownload(setup))
+		return result;
+
+	stage(InstallStage::Verify);
+	// Checksums asset that CI publishes to every release, one sha256sum-style
+	// "<lowercase-hex-sha256>  <name>" line per asset. The grammar header keeps
+	// this in step with the upload in .github/workflows/build.yml.
+	std::string checksums;
+	const DownloadResult sums = operations.transport(
+		L"https://github.com" + latestAssetPath(ReleaseAssetNames::checksumsAssetName),
+		[&](std::string_view bytes, std::wstring& error)
+		{
+			// Bound the untrusted response before appending, not after allocating
+			// or writing it to a predictable file (audit #467 TD-56).
+			if (bytes.size() > 1024 * 1024 - checksums.size())
+			{
+				error = L"The integrity checksums file could not be read.";
+				return false;
+			}
+			checksums.append(bytes);
+			return true;
+		}, {});
+	if (!acceptDownload(sums))
+		return result;
+	const std::wstring expected = expectedHashFromChecksums(checksums, name);
+	if (expected.empty())
+	{
+		result.error = L"The release's checksums file does not list the downloaded installer.";
+		return result;
+	}
+	std::wstring actual;
+	if (!file->sealAndHash(actual, result.error))
+		return result;
+	// SHA256SUMS.txt comes from the same release: this checks integrity, not
+	// authenticity. This is the ceiling until the installers are signed.
+	if (actual != expected)
+	{
+		result.error = L"The downloaded installer failed its integrity check.";
+		return result;
+	}
+
+	stage(InstallStage::Launch, actual);
+	// Pass the very same live holder to the launcher. No pathname is reopened
+	// for verification, and the reader outlives CreateProcess (audit #467 TD-56).
+	const LaunchResult launched = operations.launch(*file, silent);
+	if (!launched.started)
+	{
+		result.error = L"The downloaded installer could not be started.";
+		return result;
+	}
+	result.exitCode = silent ? launched.exitCode : 0;
+	stage(InstallStage::Complete);
+	return result;
+}
+
 bool hasFlag(int argc, wchar_t** argv, const wchar_t* flag)
 {
 	for (int i = 1; i < argc; ++i)

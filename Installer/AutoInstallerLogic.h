@@ -18,7 +18,10 @@
 
 #pragma once
 
+#include <functional>
+#include <memory>
 #include <string>
+#include <string_view>
 
 namespace AutoInstallerLogic
 {
@@ -70,6 +73,57 @@ std::wstring downloadUrl(const std::wstring& channel);
 // "<hash> *<name>" is accepted too, and the name comparison ignores ASCII
 // case. Returns an empty string when no line matches.
 std::wstring expectedHashFromChecksums(const std::string& text, const std::wstring& fileName);
+
+std::wstring httpFailure(unsigned long statusCode);
+
+// The transport delivers HTTP 200 bytes to a sink in bounded chunks; it never
+// writes a path itself. This keeps the installer streamed and checksums in
+// memory (audit #467 TD-56/TD-25).
+using ByteSink = std::function<bool(std::string_view, std::wstring&)>;
+using DownloadProgress = std::function<void(unsigned long long, unsigned long long)>;
+struct DownloadResult
+{
+	unsigned long statusCode = 0;
+	std::wstring error;
+};
+
+class HeldSetup
+{
+public:
+	virtual ~HeldSetup() = default;
+	virtual bool write(std::string_view bytes, std::wstring& error) = 0;
+	// Close the writer, deny writes/deletion, then hash through the held reader.
+	// The reader and its directory stay pinned until this object is destroyed.
+	virtual bool sealAndHash(std::wstring& hash, std::wstring& error) = 0;
+};
+
+struct LaunchResult
+{
+	bool started = false;
+	unsigned long exitCode = 0;
+};
+
+enum class InstallStage { Detect, Download, Verify, Launch, Complete };
+struct InstallResult
+{
+	InstallStage stage = InstallStage::Detect;
+	unsigned long exitCode = 0;
+	unsigned long httpStatus = 0;
+	std::wstring error;
+};
+
+struct InstallOperations
+{
+	std::function<DownloadResult(const std::wstring&, const ByteSink&, const DownloadProgress&)> transport;
+	std::function<std::unique_ptr<HeldSetup>(const std::wstring&, std::wstring&)> createFile;
+	std::function<LaunchResult(HeldSetup&, bool)> launch;
+	// Stage starts; detail is the channel for Download and the verified hash
+	// for Launch. Optional, for the existing window's state updates only.
+	std::function<void(InstallStage, const std::wstring&)> stageChanged;
+	DownloadProgress progress;
+};
+
+InstallResult install(const CpuFeatures& features, bool silent, const InstallOperations& operations);
 
 bool hasFlag(int argc, wchar_t** argv, const wchar_t* flag);
 const wchar_t* flagValue(int argc, wchar_t** argv, const wchar_t* flag);
