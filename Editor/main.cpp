@@ -17,29 +17,25 @@
 	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include <cstdio>
-#include "text/WideString.h"
-#include "services/registry/RegistryPaths.h"
+#include <algorithm>
 #include <cstring>
+#include <exception>
 #include <memory>
 #include <optional>
 #include <string>
 #include <vector>
 
-#include <QTranslator>
 #include <QApplication>
-#include <QBoxLayout>
-#include <QDir>
 #include <QCommandLineParser>
-#include <QDockWidget>
-#include <QFileInfo>
-#include <QFont>
-#include <QFontDatabase>
-#include <QPalette>
+#include <QCoreApplication>
+#include <QDir>
+#include <QGuiApplication>
 #include <QSettings>
+#include <QString>
+#include <QStringList>
 #include <QStyleFactory>
-#include <QStyleHints>
 #include <QTimer>
+#include <QTranslator>
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -48,26 +44,15 @@
 // After windows.h so the Velopack C ABI header sees the platform headers in order.
 #include <Velopack.hpp>
 
-#include <fftw3.h>
-
 #include "CustomStyle.h"
 #include "EditorGates.h"
 #include "MainWindow.h"
-#include "SkinGallery.h"
-#include "diagnostics/FrameHitTestProbe.h"
-#include "diagnostics/SkinSwitchStorm.h"
 #include "SkinManager.h"
 #include "import/LegacyMigration.h"
-#include "filters/VSTPluginFilter.h"
-#include "filters/VSTPluginFilterFactory.h"
-#include "guis/VSTPluginFilterGUI.h"
-#include "vst/VSTPluginInstance.h"
-#include "vst/VSTPluginLibrary.h"
 #include "vst/PluginResidency.h"
 #include "services/logging/Logging.h"
 #include "services/logging/TaggedLogger.h"
 #include "platform/windows/CommandLineQuoting.h"
-#include "runtime/memory/AlignedMemory.h"
 #include "services/install/ApoRegistration.h"
 #include "services/registry/WindowsRegistry.h"
 #include "platform/windows/Win32Resource.h"
@@ -92,9 +77,6 @@
 
 namespace
 {
-// The VST round-trip self test lives with the other offscreen gates in
-// Editor/gallery/GallerySelfTests.cpp (audit #275 B7).
-
 bool matchesHook(const char* arg, const char* name)
 {
 	return std::strcmp(arg, name) == 0;
