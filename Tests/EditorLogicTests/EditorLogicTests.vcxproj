@@ -54,7 +54,11 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <QT_ROOT Condition="'$(QT_ROOT)'=='' and '$(Qt6_DIR)'!=''">$(Qt6_DIR)</QT_ROOT>
-    <QT_ROOT Condition="'$(QT_ROOT)'==''">$(MSBuildThisFileDirectory)..\..\Qt</QT_ROOT>
+    <!-- Where setup-build.ps1 installs Qt. The default used to be ..\..\Qt,
+         which never holds an SDK (TECH_DEBT_AUDIT TD-71). The version is
+         Shared.QtVersion in .github/simd-variants.psd1; BuildScripts.Tests.ps1
+         fails when the two differ. -->
+    <QT_ROOT Condition="'$(QT_ROOT)'==''">$(MSBuildThisFileDirectory)..\..\Qt\6.12.0\msvc2022_64</QT_ROOT>
   </PropertyGroup>
   <PropertyGroup>
     <IncludePath>$(MSBuildThisFileDirectory)..\..;$(MSBuildThisFileDirectory)..\..\SubwooferRoutingCore\include;$(QT_ROOT)\include;$(QT_ROOT)\include\QtCore;$(QT_ROOT)\include\QtGui;$(QT_ROOT)\include\QtWidgets;$(IncludePath)</IncludePath>

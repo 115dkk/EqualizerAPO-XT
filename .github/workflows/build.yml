@@ -1320,13 +1320,15 @@ jobs:
           $setupExe = $reusePath
         }
         else {
-          msbuild Installer\Installer.vcxproj `
-            /p:Configuration=Release `
-            /p:Platform=Win32 `
-            /m /v:minimal /nologo
-          if ($LASTEXITCODE -ne 0) {
-            exit $LASTEXITCODE
-          }
+          # Built with the arguments Build-Solution.ps1 gives the same project
+          # on the primary leg, not a hand-written msbuild line: the published
+          # installer used to be built with different properties from the one
+          # pull requests build (TECH_DEBT_AUDIT TD-71, audit #467).
+          Import-Module .\.github\scripts\BuildModel.psm1 -Force
+          $installerPlan = .\.github\scripts\Build-Solution.ps1 -WorkspaceRoot "${{ github.workspace }}" -Platform x64 -PlanOnly
+          $installerParams = Get-EapoMsBuildArguments -Platform Win32 -Configuration Release `
+            -PlatformToolset $installerPlan.PlatformToolset -ToolArchitecture $installerPlan.ToolArchitecture -Dependencies None
+          Invoke-EapoMsBuild -Project $installerPlan.InstallerProject -Arguments $installerParams
           $setupExe = Join-Path "${{ github.workspace }}\Installer\Release" $assetName
         }
 

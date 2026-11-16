@@ -120,6 +120,11 @@ Describe "extracted build script decisions" {
         (Resolve-BuildVariant -Manifest $manifest -Platform ARM64 -Simd "").MsBuildArchFlag | Should -Be ""
         (Resolve-BuildVariant -Manifest $manifest -Platform x64 -Simd avx10_1).QtArchFlag | Should -Be "/arch:AVX10.1"
         { Resolve-BuildVariant -Manifest $manifest -Platform x64 -Simd nonsense } | Should -Throw
+
+        # EditorLogicTests' fallback Qt location is the one setup-build.ps1
+        # installs to (TECH_DEBT_AUDIT TD-71).
+        $project = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot "..\..\..\Tests\EditorLogicTests\EditorLogicTests.vcxproj")
+        $project | Should -Match ([regex]::Escape("..\..\Qt\$($manifest.Shared.QtVersion)\msvc2022_64</QT_ROOT>"))
     }
 
     It "plans the installer gate: update over the previous release, self-test, remove, fresh install, self-test, remove" {
