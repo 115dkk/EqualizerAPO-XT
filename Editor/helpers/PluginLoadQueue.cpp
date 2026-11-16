@@ -8,6 +8,7 @@
 #include "CrashHandler.h"
 #include "platform/windows/ThreadWait.h"
 
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <deque>
@@ -17,6 +18,7 @@
 #include <utility>
 #include <vector>
 
+#include <QAbstractEventDispatcher>
 #include <QCoreApplication>
 #include <QEventLoop>
 #include <QMetaObject>
@@ -55,6 +57,24 @@ private:
 	Queue& owner;
 };
 
+// Ends a waitForPendingLoads that is asleep in processEvents. Delivering a
+// posted completion does not make processEvents(WaitForMoreEvents) return:
+// the dispatcher sends the posted events and then goes on waiting for a
+// native one, which here was the deadline timer 30 s later (the VST
+// self-test waited 30 s per case for loads that had failed in milliseconds,
+// and its CI step timed out; see testVstFill's load-wait check). interrupt()
+// is the dispatcher's documented, thread-safe way to make processEvents
+// return. Nobody waiting: nothing to do, the main loop is left alone.
+std::atomic<int> pendingLoadWaiters{0};
+
+void wakePendingLoadWaiters()
+{
+	if (pendingLoadWaiters.load() == 0)
+		return;
+	if (QAbstractEventDispatcher* dispatcher = QCoreApplication::eventDispatcher())
+		dispatcher->interrupt();
+}
+
 class Queue
 {
 public:
@@ -80,8 +100,11 @@ public:
 				pendingDeliveries++;
 				QMetaObject::invokeMethod(receiver, [this, callback = std::move(callback)]() {
 					callback(AbstractLibrary::InitializeResult::LoadingFailed);
-					std::lock_guard<std::mutex> deliveryLock(mutex);
-					pendingDeliveries--;
+					{
+						std::lock_guard<std::mutex> deliveryLock(mutex);
+						pendingDeliveries--;
+					}
+					wakePendingLoadWaiters();
 				}, Qt::QueuedConnection);
 				return;
 			}
@@ -201,6 +224,7 @@ private:
 			if (receiver == nullptr)
 			{
 				pendingDeliveries--;
+				wakePendingLoadWaiters();
 				continue;
 			}
 			// Every delivery runs on the UI thread, so the count needs no atomic.
@@ -212,8 +236,11 @@ private:
 						callback(result);
 						if (--*remaining == 0)
 						{
-							std::lock_guard<std::mutex> deliveryLock(mutex);
-							pendingDeliveries--;
+							{
+								std::lock_guard<std::mutex> deliveryLock(mutex);
+								pendingDeliveries--;
+							}
+							wakePendingLoadWaiters();
 						}
 					}, Qt::QueuedConnection);
 			}
@@ -284,8 +311,13 @@ bool PluginLoadQueue::waitForPendingLoads(int timeoutMs)
 	deadline.setTimerType(Qt::PreciseTimer);
 	QObject::connect(&deadline, &QTimer::timeout, [&expired]() { expired = true; });
 	deadline.start(timeoutMs);
+	// A completion that brings the count to zero interrupts the dispatcher
+	// while this is set (wakePendingLoadWaiters); the loop then sees the
+	// count and leaves instead of sleeping on to the deadline.
+	pendingLoadWaiters.fetch_add(1);
 	while (pendingCount() != 0 && !expired)
 		QCoreApplication::processEvents(QEventLoop::AllEvents | QEventLoop::WaitForMoreEvents);
+	pendingLoadWaiters.fetch_sub(1);
 	return pendingCount() == 0;
 }
 

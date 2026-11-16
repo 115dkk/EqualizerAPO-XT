@@ -473,7 +473,22 @@ int SkinGallery::runVstFillSelfTest()
 			lines.append(vstLine);
 			table->setLines(QString(), lines);
 			table->updateGuis();
-			VSTPluginSession::waitForPendingLoads(30000);
+			// The library named here does not exist, so the loader answers in
+			// milliseconds. A wait that still runs to its deadline means the
+			// completion did not end it: delivering a posted completion does
+			// not make processEvents(WaitForMoreEvents) return, and the wait
+			// then sleeps until the deadline timer. That made this self-test
+			// take 30 s per case and time its CI step out (PR #469).
+			QElapsedTimer loadWait;
+			loadWait.start();
+			const bool loadsSettled = VSTPluginSession::waitForPendingLoads(30000);
+			const qint64 loadWaitMs = loadWait.elapsed();
+			if (!loadsSettled || loadWaitMs > 5000)
+			{
+				fprintf(stderr, "[VST fill selftest] %s: the wait for a load that fails at once took %lld ms (settled=%d)\n",
+					label.constData(), static_cast<long long>(loadWaitMs), loadsSettled ? 1 : 0);
+				failures++;
+			}
 			scrollArea.show();
 			QApplication::processEvents();
 
