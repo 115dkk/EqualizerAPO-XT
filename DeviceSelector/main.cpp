@@ -447,9 +447,10 @@ int main(int argc, char* argv[])
 	// Shared bootstrap: anchors the plugin path (a security concern for this
 	// elevated process) and, below, applies the language the user picked in
 	// the Editor.
-	QtAppBootstrap::addExecutableRelativePluginPath();
+	QtAppBootstrap::addExecutableRelativePluginPath(true);
 
 	QApplication app(argc, argv);
+	QtAppBootstrap::addExecutableRelativePluginPath(true);
 
 	// Language first, exactly like the live dialog: the Editor's language
 	// choice from the registry, or the system locale when none was made. The
