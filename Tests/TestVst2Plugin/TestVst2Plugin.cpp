@@ -153,6 +153,8 @@ struct PluginState
 	bool editorFailed = false;
 	bool faultState = false;
 	bool faultEditor = false;
+	bool faultProcess = false;
+	bool faultPrepare = false;
 };
 
 PluginState* stateOf(vst_effect_t* effect)
@@ -326,6 +328,8 @@ template<typename Sample>
 void processGeneric(vst_effect_t* effect, const Sample* const* inputs, Sample** outputs, int32_t samples)
 {
 	const PluginState* state = stateOf(effect);
+	if (state != nullptr && state->faultProcess)
+		RaiseException(EXCEPTION_ACCESS_VIOLATION, 0, 0, nullptr);
 	const double gain = state != nullptr ? static_cast<double>(state->params[kParamGain]) : 1.0;
 	const bool bypass = state != nullptr && state->params[kParamBypass] >= 0.5f;
 
@@ -384,7 +388,8 @@ intptr_t VST_FUNCTION_INTERFACE dispatcher(vst_effect_t* effect, int32_t opcode,
 	// SEH containment is the subject, including in MSVC ASan builds.
 	if (state != nullptr
 		&& ((state->faultState && opcode == VST_EFFECT_OPCODE_SET_CHUNK_DATA)
-			|| (state->faultEditor && opcode == VST_EFFECT_OPCODE_EDITOR_OPEN)))
+			|| (state->faultEditor && opcode == VST_EFFECT_OPCODE_EDITOR_OPEN)
+			|| (state->faultPrepare && opcode == VST_EFFECT_OPCODE_SET_SAMPLE_RATE)))
 		RaiseException(EXCEPTION_ACCESS_VIOLATION, 0, 0, nullptr);
 	if (state != nullptr && state->dispatcherActive)
 	{
@@ -662,6 +667,8 @@ vst_effect_t* createEffect(vst_host_callback_t callback)
 	{
 		state->faultState = wcscmp(faultMode, L"state") == 0;
 		state->faultEditor = wcscmp(faultMode, L"editor") == 0;
+		state->faultProcess = wcscmp(faultMode, L"process") == 0;
+		state->faultPrepare = wcscmp(faultMode, L"prepare") == 0;
 		if (state->faultEditor)
 		{
 			state->editorPersona = EditorPersona::fixed;

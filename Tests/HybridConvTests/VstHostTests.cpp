@@ -54,6 +54,7 @@
 #include "filters/loudnessCorrection/VolumeController.h"
 #include "Tests/TestDirectory.h"
 #include "Editor/helpers/VstPanelCall.h"
+#include "services/logging/Logging.h"
 #include "../TestHarness.h"
 #include "platform/windows/WindowsPath.h"
 
@@ -245,6 +246,53 @@ void expectLatencyCompensationGolden(const shared_ptr<VSTPluginLibrary>& library
 		"latency-512: 1024-frame blocks come out 0.5 x input with no extra delay");
 
 	SetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", nullptr);
+}
+
+TEST_CASE(VstHostTests, testEngineFaultContainment)
+{
+	auto library = VSTPluginLibrary::getInstance(exeDirectory() + L"\\TestVst2Plugin.dll");
+	harness.require(VSTPluginLibrary::load(library->getLibPath()).status >= 0, "engine fault fixture loads");
+	for (const wchar_t* mode : {L"process", L"prepare", L"state"})
+	{
+		FILE* logFile = nullptr;
+		harness.require(tmpfile_s(&logFile) == 0 && logFile != nullptr, "fault log capture opens");
+		Logging::useStream(logFile, false, true, false);
+		SetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", mode);
+		{
+			VSTPluginFilter filter(library, encodeChunk({kChunkMagic, kChunkVersion, 0.5f, 0.0f}), {});
+			filter.initialize(48000.0f, 4, {L"L", L"R"});
+			SetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", nullptr);
+			double inLeft[] = {0.25, 0.5, 0.75, 1.0}, inRight[] = {-0.25, -0.5, -0.75, -1.0};
+			double outLeft[4] = {}, outRight[4] = {};
+			double* input[] = {inLeft, inRight};
+			double* output[] = {outLeft, outRight};
+			for (int block = 0; block < 2; block++)
+			{
+				filter.process(output, input, 4);
+				for (int frame = 0; frame < 4; frame++)
+				{
+					harness.expectNear(outLeft[frame], inLeft[frame], 0.0, "faulted VST2 passes the current and later blocks through");
+					harness.expectNear(outRight[frame], inRight[frame], 0.0, "faulted VST2 preserves both input channels");
+				}
+			}
+			if (wcscmp(mode, L"process") == 0)
+				harness.expectEqual(std::ftell(logFile), 0L, "audio-thread crash report is deferred until teardown");
+		}
+		std::fflush(logFile);
+		std::rewind(logFile);
+		wstring log;
+		wchar_t text[1024] = {};
+		while (std::fgetws(text, 1024, logFile) != nullptr)
+			log.append(text);
+		Logging::useStream(stdout, true, true, false);
+		std::fclose(logFile);
+		const wchar_t* marker = wcscmp(mode, L"process") == 0
+			? L"crashed during audio processing" : L"crashed while preparing for processing";
+		const size_t first = log.find(marker);
+		harness.expectTrue(first != wstring::npos && log.find(marker, first + 1) == wstring::npos,
+			"VST2 crash is logged once, with its library path");
+		harness.expectTrue(log.find(library->getLibPath()) != wstring::npos, "VST2 crash log identifies the library");
+	}
 }
 
 bool panelFaultEscapes(VSTPluginInstance* instance, bool restore,

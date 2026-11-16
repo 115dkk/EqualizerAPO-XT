@@ -38,6 +38,7 @@
 #include "platform/windows/WindowsPath.h"
 #include "Tests/TestVst3Plugin/TestVst3Protocol.h"
 #include "vst/VST3MemoryStream.h"
+#include "services/logging/Logging.h"
 
 using std::shared_ptr;
 using std::wstring;
@@ -125,6 +126,61 @@ TEST_CASE(Vst3HostTests, testAutomaticUpmixerVerdictMatchesEngine)
 		"automatic upmixer card verdict has the engine input width (audit #467 TD-19)");
 	harness.expectEqual(card->numOutputs(), engine->numOutputs(),
 		"automatic upmixer card verdict has the engine output width");
+}
+
+TEST_CASE(Vst3HostTests, testModeUsesModuleFilenameOnly)
+{
+	const wstring bundle = prepareBundle(exeDirectory(), L"RejectInit.vst3-parent.vst3", L"Normal.vst3");
+	harness.expectTrue(VSTPluginLibrary::load(bundle).status >= 0,
+		"a parent directory containing a mode name does not select that mode (audit #467 TD-68)");
+}
+
+TEST_CASE(Vst3HostTests, testEngineFaultContainment)
+{
+	for (const wchar_t* mode : {L"FaultProcess.vst3", L"FaultActive.vst3", L"FaultState.vst3"})
+	{
+		const wstring bundle = prepareBundle(exeDirectory(), (wstring(L"Audit-") + mode).c_str(), mode);
+		auto library = VSTPluginLibrary::getInstance(bundle);
+		harness.require(VSTPluginLibrary::load(bundle).status >= 0, "VST3 engine fault fixture loads");
+		FILE* logFile = nullptr;
+		harness.require(tmpfile_s(&logFile) == 0 && logFile != nullptr, "VST3 fault log capture opens");
+		Logging::useStream(logFile, false, true, false);
+		{
+			PluginState state;
+			state.gain = 0.5;
+			VSTPluginFilter filter(library, encodeState(state), {});
+			filter.initialize(48000.0f, 4, {L"L", L"R"});
+			double inLeft[] = {0.25, 0.5, 0.75, 1.0}, inRight[] = {-0.25, -0.5, -0.75, -1.0};
+			double outLeft[4] = {}, outRight[4] = {};
+			double* input[] = {inLeft, inRight};
+			double* output[] = {outLeft, outRight};
+			for (int block = 0; block < 2; block++)
+			{
+				filter.process(output, input, 4);
+				for (int frame = 0; frame < 4; frame++)
+				{
+					harness.expectNear(outLeft[frame], inLeft[frame], 0.0, "faulted VST3 passes the current and later blocks through");
+					harness.expectNear(outRight[frame], inRight[frame], 0.0, "faulted VST3 preserves both input channels");
+				}
+			}
+			if (wcscmp(mode, L"FaultProcess.vst3") == 0)
+				harness.expectEqual(std::ftell(logFile), 0L, "VST3 audio crash report is deferred until teardown");
+		}
+		std::fflush(logFile);
+		std::rewind(logFile);
+		wstring log;
+		wchar_t text[1024] = {};
+		while (std::fgetws(text, 1024, logFile) != nullptr)
+			log.append(text);
+		Logging::useStream(stdout, true, true, false);
+		std::fclose(logFile);
+		const wchar_t* marker = wcscmp(mode, L"FaultProcess.vst3") == 0
+			? L"crashed during audio processing" : L"crashed while preparing for processing";
+		const size_t first = log.find(marker);
+		harness.expectTrue(first != wstring::npos && log.find(marker, first + 1) == wstring::npos,
+			"VST3 crash is logged once");
+		harness.expectTrue(log.find(library->getLibPath()) != wstring::npos, "VST3 crash log identifies the library");
+	}
 }
 
 TEST_CASE(Vst3HostTests, testProcessingFailureResults)

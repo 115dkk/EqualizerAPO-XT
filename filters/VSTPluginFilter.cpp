@@ -321,6 +321,9 @@ bool VSTPluginFilter::allocateDelayCompensation(const InitContext& context, unsi
 
 void VSTPluginFilter::prepareForProcessing(float sampleRate, unsigned maxFrameCount)
 {
+	// TestVst2Plugin's prepare/state and TestVst3Plugin's FaultActive/FaultState
+	// modes raise AVs here. Both testEngineFaultContainment cases require
+	// pass-through and a load-time diagnostic (audit #467 TD-28).
 	__try
 	{
 		for (size_t i = 0; i < effects.size(); i++)
@@ -454,6 +457,9 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
+		// TestVst2Plugin's process and TestVst3Plugin's FaultProcess modes raise
+		// AVs here; both testEngineFaultContainment cases verify this block,
+		// later blocks, and the one deferred report (audit #467 TD-28).
 		// Only arm the report here; cleanup() writes it. Two reasons not to log on
 		// this thread: Logging opens, writes and closes the log file per line
 		// (a file open that a filter driver can stall for milliseconds, on the

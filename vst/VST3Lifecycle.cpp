@@ -146,20 +146,30 @@ void VST3Lifecycle::deactivateLocked()
 
 bool VST3Lifecycle::startProcessing()
 {
-	lock_guard<std::mutex> lock(mutex);
-	if (component == nullptr || processor == nullptr || processing.load(memory_order_acquire))
-		return false;
-
-	// Publish the transition before calling the plug-in. A synchronous
-	// performEdit must leave its change queued instead of starting an idle flush.
-	processing.store(true, memory_order_release);
-	if (!activateLocked() || processor->setProcessing(true) != kResultOk)
+	// FaultActive.vst3 raises an AV in setActive: testEngineFaultContainment
+	// showed that /EHsc leaves a lock_guard locked on that unwind. Release the
+	// lock with SEH cleanup, but leave crash handling at the caller (audit #467 TD-28).
+	mutex.lock();
+	__try
 	{
-		deactivateLocked();
-		processing.store(false, memory_order_release);
-		return false;
+		if (component == nullptr || processor == nullptr || processing.load(memory_order_acquire))
+			return false;
+
+		// Publish the transition before calling the plug-in. A synchronous
+		// performEdit must leave its change queued instead of starting an idle flush.
+		processing.store(true, memory_order_release);
+		if (!activateLocked() || processor->setProcessing(true) != kResultOk)
+		{
+			deactivateLocked();
+			processing.store(false, memory_order_release);
+			return false;
+		}
+		return true;
 	}
-	return true;
+	__finally
+	{
+		mutex.unlock();
+	}
 }
 
 void VST3Lifecycle::stopProcessing()
