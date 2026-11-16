@@ -163,7 +163,8 @@ namespace eapo::ipc
 	{
 	public:
 		// Formats the header for `format` over a region of at least
-		// RingGeometry::totalBytes(format) bytes and marks it Announced.
+		// RingGeometry::totalBytes(format) bytes, validates and copies the slot
+		// layout once, then marks it Announced.
 		RingProducer(void* base, const eapo::asio::StreamFormat& format, uint32_t producerPid, const RingSync& sync) noexcept;
 
 		// Blocks until the consumer writes Ready or Fault, the peer signals,
@@ -203,6 +204,7 @@ namespace eapo::ipc
 	private:
 		RingHeader* header_;
 		RingSync sync_;
+		uint32_t slotOffset_[eapo::asio::directionCount][2] = {};
 		double ticksPerMicro_ = 0.0;
 	};
 

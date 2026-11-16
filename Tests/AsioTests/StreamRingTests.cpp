@@ -303,6 +303,39 @@ namespace
 		}
 	}
 
+	// Audit #467 TD-53: shared layout words are untrusted after attach. The
+	// producer must keep writing the slot it validated at construction even if
+	// another process rewrites the header before a later block.
+	TEST_CASE(StreamRingTests, testProducerKeepsItsSlotLayoutCopy)
+	{
+		StreamFormat format = stereoFormat(1, 0);
+		format.channels[0] = 1;
+		const uint32_t totalBytes = RingGeometry::totalBytes(format);
+		std::vector<unsigned char> storage(totalBytes + 2 * eapo::ipc::ringAlignment, 0xCD);
+		uintptr_t address = reinterpret_cast<uintptr_t>(storage.data());
+		address = (address + eapo::ipc::ringAlignment - 1) & ~static_cast<uintptr_t>(eapo::ipc::ringAlignment - 1);
+		auto* base = reinterpret_cast<unsigned char*>(address);
+		RingSync sync;
+		RingProducer producer(base, format, 1, sync);
+		eapo::ipc::RingHeader* header = reinterpret_cast<eapo::ipc::RingHeader*>(base);
+		const uint32_t originalOffset = header->lanes[0].slotOffset[1];
+		float* const originalSlot = reinterpret_cast<float*>(base + originalOffset);
+
+		header->lanes[0].slotOffset[1] = totalBytes;
+		header->lanes[0].slotBytes = sizeof(float);
+		float* const block = producer.slot(Direction::Output, 1);
+		block[0] = 0.25f;
+		producer.publish(Direction::Output, 1);
+
+		bool guardUntouched = true;
+		for (size_t i = 0; i < eapo::ipc::ringAlignment; i++)
+			guardUntouched = guardUntouched && base[totalBytes + i] == 0xCD;
+		harness.expect(block == originalSlot, "the producer uses the slot offset copied at construction");
+		harness.expect(originalSlot[0] == 0.25f, "the block is written into the original slot");
+		harness.expect(guardUntouched, "bytes outside the ring stay untouched after the shared layout is corrupted");
+		producer.close();
+	}
+
 	// The slot a block lives in comes from the geometry computed at attach,
 	// so a producer that rewrites slotOffset afterwards moves nothing.
 	TEST_CASE(StreamRingTests, testLaterSlotOffsetChangeHasNoEffect)

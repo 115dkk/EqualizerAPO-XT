@@ -57,6 +57,31 @@ namespace eapo::ipc
 			}
 			return false;
 		}
+
+		bool copySlotLayout(const RingHeader* header, size_t bytes, const eapo::asio::StreamFormat& format,
+			uint32_t (&slotOffset)[directionCount][2]) noexcept
+		{
+			const uint32_t wireTotal = header->totalBytes;
+			const uint64_t expectedBytes = RingGeometry::totalBytes(format);
+			if (expectedBytes != wireTotal || expectedBytes > bytes)
+				return false;
+			uint32_t offset = static_cast<uint32_t>(ringHeaderBytes);
+			for (unsigned lane = 0; lane < directionCount; lane++)
+			{
+				const uint32_t slotBytes = RingGeometry::slotBytes(format, static_cast<Direction>(lane));
+				const RingLane& entry = header->lanes[lane];
+				if (entry.slotBytes != slotBytes)
+					return false;
+				for (unsigned slot = 0; slot < 2; slot++)
+				{
+					if (entry.slotOffset[slot] != offset)
+						return false;
+					slotOffset[lane][slot] = offset;
+					offset += slotBytes;
+				}
+			}
+			return true;
+		}
 	}
 
 	namespace RingGeometry
@@ -118,6 +143,8 @@ namespace eapo::ipc
 				offset += entry.slotBytes;
 			}
 		}
+		if (!copySlotLayout(header_, header_->totalBytes, format, slotOffset_))
+			std::memset(slotOffset_, 0, sizeof(slotOffset_));
 		header_->producerCpu = -1;
 		WriteRelease(&header_->faultCode, static_cast<LONG>(RingFault::None));
 		WriteRelease(&header_->state, static_cast<LONG>(RingState::Announced));
@@ -167,8 +194,7 @@ namespace eapo::ipc
 
 	float* RingProducer::slot(Direction direction, uint32_t seq) noexcept
 	{
-		const RingLane& lane = header_->lanes[laneOf(direction)];
-		return reinterpret_cast<float*>(reinterpret_cast<unsigned char*>(header_) + lane.slotOffset[seq & 1]);
+		return reinterpret_cast<float*>(reinterpret_cast<unsigned char*>(header_) + slotOffset_[laneOf(direction)][seq & 1]);
 	}
 
 	void RingProducer::publish(Direction direction, uint32_t seq) noexcept
@@ -293,27 +319,10 @@ namespace eapo::ipc
 		std::memcpy(&format_, &header_->format, sizeof(format_));
 		if (!RingGeometry::validFormat(format_))
 			return;
-		const uint32_t wireTotal = header_->totalBytes;
-		const uint64_t expectedBytes = RingGeometry::totalBytes(format_);
-		if (expectedBytes != wireTotal || expectedBytes > bytes)
-			return;
 		// The layout RingProducer writes: both slots of the output lane, then
 		// both of the input lane, packed after the header.
-		uint32_t offset = static_cast<uint32_t>(ringHeaderBytes);
-		for (unsigned lane = 0; lane < directionCount; lane++)
-		{
-			const uint32_t slotBytes = RingGeometry::slotBytes(format_, static_cast<Direction>(lane));
-			const RingLane& entry = header_->lanes[lane];
-			if (entry.slotBytes != slotBytes)
-				return;
-			for (unsigned slot = 0; slot < 2; slot++)
-			{
-				if (entry.slotOffset[slot] != offset)
-					return;
-				slotOffset_[lane][slot] = offset;
-				offset += slotBytes;
-			}
-		}
+		if (!copySlotLayout(header_, bytes, format_, slotOffset_))
+			return;
 		valid_ = true;
 	}
 
