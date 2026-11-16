@@ -41,13 +41,6 @@ void DeviceFilterFactory::onInitialize(FilterEngine& engine)
 	parser->defineConst(L"deviceGuid", engine.getDeviceGuid());
 }
 
-FilterVector DeviceFilterFactory::startOfConfiguration()
-{
-	deviceMatches = true;
-
-	return {};
-}
-
 LineOutcome DeviceFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	DeviceCommand cmd;
@@ -56,20 +49,9 @@ LineOutcome DeviceFilterFactory::createFilter(const wstring& configPath, wstring
 		bool matches = cmd.matches(deviceString);
 
 		TraceF(L"%satching pattern \"%s\" with device \"%s\"", matches ? L"M" : L"Not m", text::trim(parameters).c_str(), deviceString.c_str());
-		deviceMatches = matches;
+		engine()->setGate(ConfigGateKind::Device, matches);
 		return LineOutcome::consumed();
 	}
 
-	if (!deviceMatches)
-		return LineOutcome::consumed();
-
 	return LineOutcome::notMine();
-}
-
-FilterVector DeviceFilterFactory::endOfFile(const std::wstring& configPath)
-{
-	// in outer file, the device must have matched, otherwise the inner file would not have been included
-	deviceMatches = true;
-
-	return {};
 }

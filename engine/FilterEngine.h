@@ -20,7 +20,9 @@
 #pragma once
 
 #include <atomic>
+#include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <iosfwd>
 #include <memory>
 #include <mutex>
@@ -171,6 +173,20 @@ public:
 	// LineOutcome. A nonzero line stamps that line of the current file instead: an If that
 	// the end of its file shows to be unclosed is reported on its own line.
 	void reportParseError(const std::wstring& command, const std::wstring& reason, int line = 0);
+	// Device, If and Stage keep no load state in their factory objects. These
+	// operations mutate the current LoadSession, so an exception discards every
+	// unfinished gate together with the rest of that load (audit #467 TD-45).
+	void setGate(ConfigGateKind kind, bool open);
+	void pushIfGate(bool open, bool branchTaken);
+	void setIfBranchTaken(bool branchTaken);
+	void popIfGate();
+	bool hasIfGate() const;
+	bool ifGatesOpen() const;
+	bool ifGateParentOpen() const;
+	bool ifBranchTaken() const;
+	// Side effects that must happen only after the complete configuration has
+	// been published. Send uses this for ring metadata and closure.
+	void deferUntilConfigurationCommit(std::function<void()> action);
 	// The 1-based line of the current file the load is at, for a factory that
 	// has to report on a line later (the If family).
 	int loadTraceLine() const
@@ -231,12 +247,32 @@ private:
 	ConfigLoadTraceSink* traceSink = nullptr;
 	bool analysisMode = false;
 
+	struct ConfigGateStack
+	{
+		struct IfGate
+		{
+			bool open = false;
+			bool branchTaken = false;
+			int openingLine = 0;
+		};
+
+		bool deviceOpen = true;
+		bool stageOpen = true;
+		std::vector<IfGate> ifGates;
+		// An included file may see outer active If gates but cannot close them.
+		size_t fileIfBase = 0;
+
+		bool allows(ConfigGateBoundary boundary) const;
+		bool allIfOpen() const;
+		bool parentIfOpen() const;
+		void beginFile();
+		std::vector<int> unclosedIfLines() const;
+	};
+
 	// Everything a configuration load builds through, as one value (audit
-	// #250 A1). loadConfig's transaction is a move of the whole session -
-	// save it aside, build a fresh one, restore on any exception - so a
-	// field added here is transactional by construction instead of by
-	// keeping the save block, the rollback lambda and the member list in
-	// step by hand (frozenDynamicAnalysis once missed exactly that).
+	// #250 A1 and #467 TD-45). loadConfig's transaction is a move of the whole
+	// session, so unfinished filters, gates and deferred commit actions are all
+	// discarded together when a load throws.
 	// The registry keys, named events and frozen-analysis flag are load results
 	// read afterward: the watcher thread snapshots both watch sets under
 	// loadMutex, and the Editor's analysis reads the freeze flag.
@@ -246,11 +282,13 @@ private:
 		// Which channel names each filter sees and where its buffers sit
 		// (audit #348 F1); its lastInPlace carries across loads.
 		ChannelRoutingPlan routing;
+		ConfigGateStack gates;
+		std::vector<std::function<void()>> commitActions;
 		std::unordered_set<std::wstring> watchRegistryKeys;
 		std::unordered_set<std::wstring> watchEvents;
 		// Position of the line loadConfigFile is currently feeding to the
-		// factories; saved/restored across Include recursion like the
-		// channel names. Only meaningful while a sink is attached.
+		// factories; saved/restored across Include recursion together with the
+		// channel names and gates. Only meaningful while a sink is attached.
 		std::wstring traceFile;
 		int traceLine = 0;
 		bool frozenDynamicAnalysis = false;

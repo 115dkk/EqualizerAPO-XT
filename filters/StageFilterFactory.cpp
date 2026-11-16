@@ -43,17 +43,8 @@ void StageFilterFactory::onInitialize(FilterEngine& engine)
 
 FilterVector StageFilterFactory::startOfConfiguration()
 {
-	stageMatches = StageCommand::matchesByDefault(enginePreMix, engineCapture, enginePostMixInstalled);
-	while (!stageMatchesStack.empty())
-		stageMatchesStack.pop();
-
-	return {};
-}
-
-FilterVector StageFilterFactory::startOfFile(const std::wstring& configPath)
-{
-	stageMatchesStack.push(stageMatches);
-
+	engine()->setGate(ConfigGateKind::Stage,
+		StageCommand::matchesByDefault(enginePreMix, engineCapture, enginePostMixInstalled));
 	return {};
 }
 
@@ -63,9 +54,9 @@ LineOutcome StageFilterFactory::createFilter(const wstring& configPath, wstring&
 	if (StageCommand::parse(command, parameters, cmd))
 	{
 		// The rule itself is StageCommand's, shared with the Editor's channel
-		// flow; this factory only keeps the state and the log lines.
+		// flow; this factory only reports the decision to the load session.
 		wstring matchingPart;
-		stageMatches = cmd.matches(enginePreMix, engineCapture, &matchingPart);
+		const bool stageMatches = cmd.matches(enginePreMix, engineCapture, &matchingPart);
 		for (const wstring& part : cmd.stages)
 		{
 			if (!StageCommand::isKnownStage(part))
@@ -76,6 +67,7 @@ LineOutcome StageFilterFactory::createFilter(const wstring& configPath, wstring&
 					+ L"\"; the stages are pre-mix, post-mix and capture");
 			}
 		}
+		engine()->setGate(ConfigGateKind::Stage, stageMatches);
 
 		if (stageMatches)
 			TraceF(L"Matching stage \"%s\"", matchingPart.c_str());
@@ -86,16 +78,5 @@ LineOutcome StageFilterFactory::createFilter(const wstring& configPath, wstring&
 		return LineOutcome::consumed();
 	}
 
-	if (!stageMatches)
-		return LineOutcome::consumed();
-
 	return LineOutcome::notMine();
-}
-
-FilterVector StageFilterFactory::endOfFile(const std::wstring& configPath)
-{
-	stageMatches = stageMatchesStack.top();
-	stageMatchesStack.pop();
-
-	return {};
 }

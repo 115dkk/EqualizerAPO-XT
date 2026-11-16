@@ -19,9 +19,7 @@
 
 #pragma once
 
-#include <stack>
 #include <string>
-#include <vector>
 #include "engine/IFilterFactory.h"
 #include "engine/IFilter.h"
 
@@ -31,27 +29,14 @@ namespace mup { class Value; }
 class IfFilterFactory : public IFilterFactory
 {
 public:
-	FilterVector startOfConfiguration() override;
-	FilterVector startOfFile(const std::wstring& configPath) override;
+	ConfigGateBoundary gateBoundary() const override {return ConfigGateBoundary::Device;}
 	LineOutcome createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
-	FilterVector endOfFile(const std::wstring& configPath) override;
 
 protected:
 	void onInitialize(FilterEngine& engine) override;
 
 private:
 	EngineParser* parser = nullptr;
-
-	unsigned trueCount = 0;
-	unsigned falseCount = 0;
-	bool executeElse = false;
-	std::stack<unsigned> trueCountStack;
-	// The lines of the Ifs in the current file that no EndIf has closed yet,
-	// so an unclosed one is reported on its own line rather than on the end
-	// of the file, where the Editor has no row to show it on. Saved across an
-	// Include like trueCount.
-	std::vector<int> openIfLines;
-	std::stack<std::vector<int>> openIfLinesStack;
 
 	bool toBoolean(const mup::Value& value);
 };

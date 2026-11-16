@@ -158,6 +158,136 @@ TEST_CASE(EngineOrchestrationTests, testConfigLoadTrace)
 		"detached sink receives nothing on a reload");
 }
 
+// Audit #467 TD-45: the load session, rather than three factories, owns the
+// Device/If/Stage gates. Every executable line hidden by one gate is traced.
+TEST_CASE(EngineOrchestrationTests, testNestedDeviceAndIfGatesTraceEverySkippedLine)
+{
+	const std::wstring configPath = writeConfig(harness, L"nested-device-if-gates.txt",
+		"If: 1\n"                         // line 1: open If
+		"Device: never-matches\n"         // line 2: close Device inside If
+		"Preamp: -40 dB\n"                // line 3: skipped by Device
+		"Device: all\n"                   // line 4: reopen Device
+		"EndIf:\n"                        // line 5: close If
+		"Device: never-matches\n"         // line 6: close Device
+		"If: 1\n"                         // line 7: skipped inside Device
+		"Preamp: -40 dB\n"                // line 8: skipped inside Device
+		"Device: all\n"                   // line 9: reopen Device
+		"Preamp: -6.0206 dB\n");          // line 10: executes
+	TraceCollector collector;
+	FilterEngine engine;
+	engine.setLoadTraceSink(&collector);
+	initializeEngine(engine, 48000, 2, 480, configPath);
+
+	std::vector<int> skippedLines;
+	std::vector<int> conditionLines;
+	for (const ConfigLoadTraceEntry& entry : collector.entries)
+	{
+		if (entry.kind == ConfigLoadTraceEntry::Kind::SkippedLine)
+			skippedLines.push_back(entry.line);
+		if (entry.kind == ConfigLoadTraceEntry::Kind::Condition)
+			conditionLines.push_back(entry.line);
+	}
+	harness.requireEqual(skippedLines.size(), size_t(3),
+		"Device and If nesting reports each skipped executable line");
+	harness.expectEqual(skippedLines[0], 3, "Device inside If skips its Preamp line");
+	harness.expectEqual(skippedLines[1], 7, "If inside a closed Device is itself skipped");
+	harness.expectEqual(skippedLines[2], 8, "the body inside the closed Device is skipped");
+	harness.requireEqual(conditionLines.size(), size_t(1),
+		"the If hidden by Device was not evaluated");
+	harness.expectEqual(conditionLines[0], 1, "only the open Device's If is evaluated");
+
+	const std::vector<float> output = processDcBlock(engine, 1.0f, 1.0f, 480);
+	harness.expectNear(output[(size_t)478 * 2], 0.5f, 1e-3f,
+		"only the Preamp below the reopened Device runs");
+}
+
+// An included file gets the caller's gate state, but changes it makes do not
+// leak back. Device's historical end-of-file reset had this exact result.
+TEST_CASE(EngineOrchestrationTests, testIncludedStageAndDeviceGatesAreRestoredAndTraced)
+{
+	const std::wstring stagePath = writeConfig(harness, L"included-stage-gate.txt",
+		"Stage: pre-mix\n"
+		"Preamp: -40 dB\n");
+	const std::wstring devicePath = writeConfig(harness, L"included-device-gate.txt",
+		"Device: never-matches\n"
+		"Preamp: -40 dB\n");
+	const std::wstring configPath = writeConfig(harness, L"included-gates.txt",
+		"Include: included-stage-gate.txt\n"
+		"Include: included-device-gate.txt\n"
+		"Preamp: -6.0206 dB\n");
+	TraceCollector collector;
+	FilterEngine engine;
+	engine.setLoadTraceSink(&collector);
+	initializeEngine(engine, 48000, 2, 480, configPath);
+
+	bool stageSkipped = false;
+	bool deviceSkipped = false;
+	for (const ConfigLoadTraceEntry& entry : collector.entries)
+	{
+		if (entry.kind != ConfigLoadTraceEntry::Kind::SkippedLine || entry.line != 2)
+			continue;
+		stageSkipped = stageSkipped || entry.file == stagePath;
+		deviceSkipped = deviceSkipped || entry.file == devicePath;
+	}
+	harness.expect(stageSkipped, "a line under Stage in an Include is traced as skipped");
+	harness.expect(deviceSkipped, "a line under Device in an Include is traced as skipped");
+
+	const std::vector<float> output = processDcBlock(engine, 1.0f, 1.0f, 480);
+	harness.expectNear(output[(size_t)478 * 2], 0.5f, 1e-3f,
+		"Device and Stage changes inside included files do not affect the outer file");
+}
+
+TEST_CASE(EngineOrchestrationTests, testUnclosedIfInIncludeIsReportedAndDoesNotLeak)
+{
+	const std::wstring includedPath = writeConfig(harness, L"included-unclosed-if.txt",
+		"If: 1\n"
+		"Preamp: -6.0206 dB\n");
+	const std::wstring configPath = writeConfig(harness, L"include-unclosed-if.txt",
+		"Include: included-unclosed-if.txt\n"
+		"Preamp: -6.0206 dB\n");
+	TraceCollector collector;
+	FilterEngine engine;
+	engine.setLoadTraceSink(&collector);
+	initializeEngine(engine, 48000, 2, 480, configPath);
+
+	const ConfigLoadTraceEntry* unclosed = nullptr;
+	for (const ConfigLoadTraceEntry& entry : collector.entries)
+	{
+		if (entry.kind == ConfigLoadTraceEntry::Kind::ParseError
+			&& entry.text.find(L"no EndIf") != std::wstring::npos)
+		{
+			unclosed = &entry;
+		}
+	}
+	harness.require(unclosed != nullptr, "an If left open in an included file is reported");
+	harness.expect(unclosed->file == includedPath, "the unclosed If report names its included file");
+	harness.expectEqual(unclosed->line, 1, "the unclosed If report stays on its opening line");
+
+	const std::vector<float> output = processDcBlock(engine, 1.0f, 1.0f, 480);
+	harness.expectNear(output[(size_t)478 * 2], 0.25f, 1e-3f,
+		"the included If is restored before the outer file continues");
+}
+
+TEST_CASE(EngineOrchestrationTests, testFailedLoadLeavesTheNextLoadWithOpenGates)
+{
+	const std::wstring initial = writeConfig(harness, L"gate-rollback-initial.txt", "# empty\n");
+	const std::wstring failing = writeConfig(harness, L"gate-rollback-failing.txt",
+		"If: 1\n"
+		"EapoTestThrowOnSetup: now\n");
+	const std::wstring next = writeConfig(harness, L"gate-rollback-next.txt",
+		"Preamp: -6.0206 dB\n");
+	FilterEngine engine;
+	initializeEngine(engine, 48000, 2, 480, initial);
+	processDcBlock(engine, 0.0f, 0.0f, 480);
+
+	harness.expectFalse(engine.loadConfig(failing),
+		"a later filter setup failure rolls back the load with an open If");
+	harness.expect(engine.loadConfig(next), "the configuration after the failure loads");
+	const std::vector<float> output = processDcBlock(engine, 1.0f, 1.0f, 480);
+	harness.expectNear(output[(size_t)478 * 2], 0.5f, 1e-3f,
+		"the next load starts with every gate open");
+}
+
 // Audit #467 TD-08: every condition-evaluation failure makes that condition
 // false and malformed, so its body is skipped and its EndIf still closes it.
 TEST_CASE(EngineOrchestrationTests, testBadRegexIfSkipsItsBodyAndKeepsItsEndIf)
