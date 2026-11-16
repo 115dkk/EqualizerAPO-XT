@@ -66,8 +66,8 @@ Describe "New-VelopackRelease.ps1 planning" {
         # are exactly what a "x64- + simd" string convention would get wrong.
         ($plan.Channels | Where-Object Variant -eq "x64-avx10_1").Channel | Should -Be "x64-avx10-1"
         ($plan.Channels | Where-Object Variant -eq "ARM64-neon").Channel | Should -Be "arm64-neon"
-        ($plan.Channels | Where-Object Variant -eq "ARM64-neon").Framework | Should -Be "vcredist143-arm64"
-        ($plan.Channels | Where-Object Variant -eq "x64-avx10_1").Framework | Should -Be "vcredist143-x64"
+        ($plan.Channels | Where-Object Variant -eq "ARM64-neon").Framework | Should -Be "vcredist145-arm64"
+        ($plan.Channels | Where-Object Variant -eq "x64-avx10_1").Framework | Should -Be "vcredist145-x64"
     }
 
     It "packs under the grammar module's pack id" {

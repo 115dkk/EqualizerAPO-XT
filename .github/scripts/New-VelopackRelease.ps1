@@ -79,7 +79,14 @@ foreach ($artifact in $buildArtifacts) {
         Skipped      = $MissingChannels -notcontains $channel
         PackId       = Get-VelopackPackId -Channel $channel
         PackTitle    = $variantEntry.Title
-        Framework    = if ($variant -like "ARM64*" -or $variant -like "arm64*") { "vcredist143-arm64" } else { "vcredist143-x64" }
+        # The binaries are built with the v145 toolset (MSVC 14.5x), so the
+        # installer must require the Visual C++ 2026 runtime (vpk: minimum
+        # 14.50.35719, downloaded from aka.ms/vs/18). vcredist143 was satisfied
+        # by any 14.3x runtime, with which a 14.4x+ build can crash in
+        # std::mutex before its own install hook runs (audit #467, maintainer
+        # question 4). The hook still tops the runtime up to the exact build
+        # version (services/install/VcRuntime.cpp).
+        Framework    = if ($variant -like "ARM64*" -or $variant -like "arm64*") { "vcredist145-arm64" } else { "vcredist145-x64" }
         PackDir      = Join-Path $WorkspaceRoot "velopack-input\$channel"
         OutputDir    = Join-Path $WorkspaceRoot "velopack-output\$channel"
     }
