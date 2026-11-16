@@ -167,7 +167,7 @@ bool FilterTable::eventFilter(QObject* obj, QEvent* event)
 		{
 			QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
 
-			if ((mouseEvent->globalPos() - scrollStartPoint).manhattanLength() > 30)
+			if ((mouseEvent->globalPosition().toPoint() - scrollStartPoint).manhattanLength() > 30)
 			{
 				scrollingNow = false;
 				if (appWheelFilterInstalled)

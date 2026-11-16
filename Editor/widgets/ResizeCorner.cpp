@@ -38,15 +38,16 @@ void ResizeCorner::mousePressEvent(QMouseEvent* event)
 {
 	filterTable->setMinimumHeightHint(filterTable->height());
 	QSize size = getFunc();
-	offsetX = size.width() - event->globalX();
-	offsetY = size.height() - event->globalY();
+	const QPoint globalPoint = event->globalPosition().toPoint();
+	offsetX = size.width() - globalPoint.x();
+	offsetY = size.height() - globalPoint.y();
 }
 
 void ResizeCorner::mouseMoveEvent(QMouseEvent* event)
 {
 	QSize size;
-	size.setWidth(offsetX + event->globalPos().x());
-	size.setHeight(offsetY + event->globalPos().y());
+	size.setWidth(offsetX + event->globalPosition().toPoint().x());
+	size.setHeight(offsetY + event->globalPosition().toPoint().y());
 	size = size.expandedTo(minimumSize);
 	size = size.boundedTo(maximumSize);
 	setFunc(size);

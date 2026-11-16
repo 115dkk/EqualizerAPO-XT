@@ -140,7 +140,8 @@ void FilterTable::selectAll()
 void FilterTable::addActionTriggered()
 {
 	QAction* addAction = qobject_cast<QAction*>(QObject::sender());
-	QToolBar* toolBar = qobject_cast<QToolBar*>(addAction->parentWidget());
+	// QAction::parentWidget() is deprecated; parent() is the same object.
+	QToolBar* toolBar = qobject_cast<QToolBar*>(addAction->parent());
 	QRect rect = toolBar->actionGeometry(addAction);
 	QPoint p = toolBar->mapToGlobal(QPoint(rect.x(), rect.y() + rect.height()));
 	addAction->setChecked(false);

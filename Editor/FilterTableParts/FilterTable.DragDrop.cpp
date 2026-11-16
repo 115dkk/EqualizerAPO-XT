@@ -51,7 +51,7 @@ void FilterTable::dragEnterEvent(QDragEnterEvent* event)
 {
 	if (event->mimeData()->hasText())
 	{
-		if (event->keyboardModifiers() & Qt::ControlModifier)
+		if (event->modifiers() & Qt::ControlModifier)
 			event->setDropAction(Qt::CopyAction);
 		else
 			event->setDropAction(Qt::MoveAction);
@@ -65,12 +65,12 @@ void FilterTable::dragMoveEvent(QDragMoveEvent* event)
 {
 	if (event->mimeData()->hasText())
 	{
-		if (event->keyboardModifiers() & Qt::ControlModifier)
+		if (event->modifiers() & Qt::ControlModifier)
 			event->setDropAction(Qt::CopyAction);
 		else
 			event->setDropAction(Qt::MoveAction);
 
-		int dropRow = rowForPos(event->pos(), true);
+		int dropRow = rowForPos(event->position().toPoint(), true);
 
 		int arrowRow = dropRow == -1 ? gridLayout->rowCount() - 2 : dropRow;
 		QLayoutItem* layoutItem = gridLayout->itemAtPosition(arrowRow, 0);
@@ -101,12 +101,12 @@ void FilterTable::dropEvent(QDropEvent* event)
 	const QMimeData* mimeData = event->mimeData();
 	if (mimeData->hasText())
 	{
-		if (event->keyboardModifiers() & Qt::ControlModifier)
+		if (event->modifiers() & Qt::ControlModifier)
 			event->setDropAction(Qt::CopyAction);
 		else
 			event->setDropAction(Qt::MoveAction);
 
-		int dropRow = rowForPos(event->pos(), true);
+		int dropRow = rowForPos(event->position().toPoint(), true);
 		if (dropRow == -1)
 			dropRow = model.items().size();
 
