@@ -202,6 +202,44 @@ Describe 'Panel measurement verdicts' {
     }
 }
 
+Describe 'Panel settle verdict' {
+    # An unpainted plug-in window is one flat colour and equal to itself. The
+    # gate used to take two equal captures for a settled panel, compared that
+    # blank picture with the edited one, and failed panel-restore on the ASan
+    # leg (main after #468, PR #470).
+    It 'does not take two equal captures of an unpainted window for a settled panel' {
+        $r = Get-PanelSettleVerdict -DistinctColors 1 -MinimumColors 16 -EqualToPrevious $true
+        $r.Painted | Should -BeFalse
+        $r.Settled | Should -BeFalse
+        $r.Reason | Should -Match 'not painted yet'
+    }
+    It 'waits for a painted panel that is still changing' {
+        $r = Get-PanelSettleVerdict -DistinctColors 16 -MinimumColors 16 -EqualToPrevious $false
+        $r.Painted | Should -BeTrue
+        $r.Settled | Should -BeFalse
+        $r.Reason | Should -Be 'still changing'
+    }
+    It 'accepts a painted panel whose two captures are equal' {
+        $r = Get-PanelSettleVerdict -DistinctColors 16 -MinimumColors 16 -EqualToPrevious $true
+        $r.Settled | Should -BeTrue
+    }
+    It 'counts the colours of a capture up to the limit' {
+        # The C# helper needs the desktop assemblies the gate loads; compile it
+        # the way the gate does and feed it synthetic pixels (no screen access).
+        $source = Join-Path $PSScriptRoot '../PanelInputDesktop.cs'
+        $counted = & powershell.exe -NoProfile -Command @"
+Add-Type -Path '$source' -ReferencedAssemblies @('UIAutomationClient', 'UIAutomationTypes', 'WindowsBase', 'System.Drawing')
+`$flat = New-Object byte[] 400
+for (`$i = 0; `$i -lt 400; `$i += 4) { `$flat[`$i] = 7; `$flat[`$i + 1] = 7; `$flat[`$i + 2] = 7; `$flat[`$i + 3] = 255 }
+`$many = New-Object byte[] 400
+for (`$i = 0; `$i -lt 400; `$i += 4) { `$many[`$i] = [byte](`$i / 4); `$many[`$i + 3] = 255 }
+'{0} {1}' -f [PanelInputGate.Desktop]::DistinctColors(`$flat, 16), [PanelInputGate.Desktop]::DistinctColors(`$many, 16)
+"@
+        $LASTEXITCODE | Should -Be 0
+        ($counted | Select-Object -Last 1) | Should -Be '1 16'
+    }
+}
+
 Describe 'Panel state verdict' {
     BeforeEach {
         $case = [pscustomobject]@{ Format = 'VST3'; Expect = [pscustomobject]@{

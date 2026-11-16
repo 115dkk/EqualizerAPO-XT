@@ -100,6 +100,10 @@ Describe 'Panel input gate plan' {
         $plan.Timeouts.PanelSeconds | Should -Be 10
         $plan.Timeouts.ButtonSeconds | Should -Be 15
         $plan.Timeouts.SettleSeconds | Should -Be 5
+        # Longer than the settle window: the first frame of a plug-in drawn by
+        # the software renderer under AddressSanitizer comes late.
+        $plan.Timeouts.FirstPaintSeconds | Should -Be 30
+        $plan.Timeouts.PaintedMinimumColors | Should -Be 16
         $plan.Timeouts.CaptureIntervalMilliseconds | Should -Be 300
         $plan.Timeouts.SaveSeconds | Should -Be 10
         $plan.Timeouts.ExitSeconds | Should -Be 30
