@@ -658,7 +658,8 @@ namespace
 				CancelSynchronousIo(thread_.native_handle());
 				completion = WaitForSingleObject(doneEvent_, 10);
 			}
-			harness.requireEqual(completion, static_cast<DWORD>(WAIT_OBJECT_0),
+			// A case-ending exception cannot escape this destructor (audit #467 TD-66).
+			harness.requireOrDie(completion == WAIT_OBJECT_0,
 				"the stand-in pipe server stops before its deadline");
 			thread_.join();
 			CloseHandle(pipe_);

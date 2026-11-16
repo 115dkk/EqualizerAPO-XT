@@ -31,11 +31,12 @@
 	the backstop: a harness that recorded failures and was never reported kills
 	the process with code 1 rather than letting the run finish green.
 
-	The require*() family always aborts on failure regardless of the policy.
-	It is for gating checks whose failure would make the following code unsafe
-	under Collect: size checks before indexing, null checks before
-	dereferencing, parse-success checks before field access. fail() likewise
-	always aborts.
+	The require*() family ends its current test case on failure regardless of
+	the policy. It is for gating checks whose failure would make the following
+	code unsafe under Collect: size checks before indexing, null checks before
+	dereferencing, parse-success checks before field access. requireOrDie() is
+	reserved for places where an exception cannot leave safely, and fail()
+	likewise always terminates the process.
 */
 
 #pragma once
@@ -53,13 +54,20 @@
 namespace test
 {
 
-// How a failed expect*() is handled; see the file comment. require*() and
-// fail() abort under either policy.
+// How a failed expect*() is handled; see the file comment. fail() and
+// requireOrDie() terminate under either policy; require*() ends its case.
 enum class FailurePolicy
 {
 	Abort,
 	Collect
 };
+
+namespace detail
+{
+struct RequiredAssertionFailure
+{
+};
+}
 
 // Absolute-tolerance comparison behind Harness::expectNear, for the call sites
 // that fold several comparisons into one check (a && b, or a loop that
@@ -179,19 +187,28 @@ public:
 		++passed_;
 	}
 
-	// Gating assertion: aborts on failure regardless of the policy. Use it
-	// when the failure would make the following code unsafe (a size check
-	// before indexing, a null check before dereferencing). On success it
-	// counts as a passed check like the expect family.
+	// Gating assertion: records a failure and ends only the current test case.
+	// Use it when continuing that case would be unsafe (a size check before
+	// indexing, a null check before dereferencing). On success it counts as a
+	// passed check like the expect family.
 	void require(bool condition, const std::string& message)
+	{
+		if (!condition)
+			failCurrentCase(message);
+		++passed_;
+	}
+
+	// A gating assertion for a destructor, noexcept function, worker thread or
+	// C callback where the case-ending exception cannot propagate safely.
+	void requireOrDie(bool condition, const std::string& message)
 	{
 		if (!condition)
 			fail(message);
 		++passed_;
 	}
 
-	// Gating counterpart of expectEqual: same diagnostic format, but aborts
-	// on failure regardless of the policy.
+	// Gating counterpart of expectEqual: same diagnostic format, and ends only
+	// the current test case on failure.
 	template<typename A, typename B>
 	void requireEqual(const A& actual, const B& expected, const std::string& message)
 	{
@@ -199,7 +216,7 @@ public:
 		{
 			std::ostringstream oss;
 			oss << message << ": expected '" << expected << "', got '" << actual << "'";
-			fail(oss.str());
+			failCurrentCase(oss.str());
 		}
 		++passed_;
 	}
@@ -248,6 +265,13 @@ public:
 	}
 
 private:
+	[[noreturn]] void failCurrentCase(const std::string& message)
+	{
+		std::fprintf(stderr, "%s failed: %s\n", name_.c_str(), message.c_str());
+		++failed_;
+		throw detail::RequiredAssertionFailure();
+	}
+
 	// Routes an expect*() failure according to the policy: Abort exits via
 	// fail(), Collect prints the identical stderr line and lets the suite
 	// continue so later findings still surface.
@@ -459,6 +483,11 @@ public:
 		activeHarness().require(condition, message);
 	}
 
+	static void requireOrDie(bool condition, const std::string& message)
+	{
+		activeHarness().requireOrDie(condition, message);
+	}
+
 	template<typename A, typename B>
 	static void requireEqual(const A& actual, const B& expected, const std::string& message)
 	{
@@ -514,7 +543,14 @@ inline int runAll(const char* binaryName,
 			harness->beginCase();
 			std::printf("%s::%s\n", suite->name.c_str(), testCase.name);
 			std::fflush(stdout);
-			testCase.function(*harness);
+			try
+			{
+				testCase.function(*harness);
+			}
+			catch (const detail::RequiredAssertionFailure&)
+			{
+				// failCurrentCase already recorded the failure (audit #467 TD-66).
+			}
 		}
 		for (CleanupFunction cleanup : suite->cleanups)
 			cleanup();
