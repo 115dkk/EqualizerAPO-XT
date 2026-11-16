@@ -78,11 +78,15 @@ every list behavior risks being implemented twice. The rule is therefore:
 
 Several rows show which channels exist and which are selected at their line: a
 Channel row offers the names in scope, a Copy row routes between them, a VST
-row fills its bus slots from the selection. `FilterTable::propagateChannels`
-builds the lines from the document, calls `computeChannelFlow`
-(`Editor/widgets/ChannelFlow.h`) once, and hands each row widget its own line's
-element through `IFilterGUI::setChannelFlow`. Rows only read that element; no
-row changes what the rows below it see. Both render modes use the same flow.
+row fills its bus slots from the selection. `FilterCardModel::prepareDocument`
+builds the flow lines, calls `computeChannelFlow`
+(`Editor/widgets/ChannelFlow.h`) once, and returns both the card scopes and the
+per-line flow. `FilterTable` builds or repositions cards from those scopes and
+hands each row widget its own flow element through `IFilterGUI::setChannelFlow`.
+Rows only read that element; no row changes what the rows below it see. Both
+render modes use the same flow. A card's inherited channel badges come from the
+selection in this result, while a Channel card's own badges show that line's
+selectors through `ChannelCommand`.
 
 The flow follows the engine: `Channel:` replaces the selection
 (`ChannelCommand::resolveSelection`), `Copy:` adds its targets to the names in

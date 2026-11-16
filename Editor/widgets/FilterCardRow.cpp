@@ -706,7 +706,7 @@ static QPixmap badgePictogram(const QString& resource, const QColor& ink, int si
 void FilterCardRow::rebuildSummary()
 {
 	// The line alone cannot tell its scope, so the one the row was built
-	// under (constructor / updateRowPosition, from calculateScopes) carries
+	// under (constructor / updateRowPosition, from the document walk) carries
 	// over.
 	descriptor = FilterCardModel::describeRow(item->text, FilterCardModel::scopeOf(descriptor));
 	applyDescriptor();

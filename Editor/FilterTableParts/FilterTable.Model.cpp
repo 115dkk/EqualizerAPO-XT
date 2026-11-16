@@ -98,10 +98,8 @@ unsigned FilterTable::deviceSampleRate() const
 	return selectedDevice == nullptr ? 0 : selectedDevice->getSampleRate();
 }
 
-void FilterTable::propagateChannels()
+ChannelFlowContext FilterTable::channelFlowContext() const
 {
-	// The engine's channel flow, computed once from the lines themselves
-	// (ChannelFlow); each row widget only reads its own line's element.
 	ChannelFlowContext context;
 	context.deviceChannels = getChannelNames();
 	if (selectedDevice != nullptr)
@@ -113,20 +111,12 @@ void FilterTable::propagateChannels()
 		// with a post-mix APO installed (ChannelFlowContext's defaults).
 		context.capture = selectedDevice->isInput();
 	}
+	return context;
+}
 
-	std::vector<ChannelFlowLine> lines;
-	lines.reserve(size_t(model.items().size()));
-	for (const Item* item : model.items())
-	{
-		ChannelFlowLine line;
-		QString parameters;
-		line.command = FilterCardModel::commandForLine(item->text, &parameters).toStdWString();
-		line.parameters = parameters.toStdWString();
-		line.enabled = !item->text.trimmed().startsWith('#');
-		lines.push_back(std::move(line));
-	}
-	const std::vector<ChannelFlowAtLine> flow = computeChannelFlow(lines, context);
-
+void FilterTable::applyChannelFlow(const std::vector<ChannelFlowAtLine>& flow)
+{
+	// Each row widget only reads its own element of the document walk.
 	const QVector<QWidget*> rowWidgets = renderMode == ModernCards
 		? rowWidgetsByRow() : QVector<QWidget*>();
 	for (int row = 0; row < model.items().size(); row++)
@@ -145,6 +135,13 @@ void FilterTable::propagateChannels()
 		if (item->gui != nullptr)
 			item->gui->setChannelFlow(flow[size_t(row)]);
 	}
+}
+
+void FilterTable::propagateChannels()
+{
+	const FilterCardDocumentPlan document = FilterCardModel::prepareDocument(
+		getLines(), channelFlowContext());
+	applyChannelFlow(document.channelFlow);
 }
 
 QList<QString> FilterTable::getLines()
@@ -227,15 +224,17 @@ void FilterTable::moveRows(const QList<Item*>& itemsInOrder, int dropRow)
 			gridLayout->addWidget(desired[i], i, 0);
 
 	// Every row between the splice points changed its 1-based number and
-	// possibly its channel/If scope.
-	if (!renumberRowsBelow(0, FilterCardModel::calculateScopes(getLines())))
+	// possibly its channel/If scope. The same walk feeds their editors below.
+	const FilterCardDocumentPlan document = FilterCardModel::prepareDocument(
+		getLines(), channelFlowContext());
+	if (!renumberRowsBelow(0, document.rows))
 	{
 		setUpdatesEnabled(updatesWereEnabled);
 		updateGuis();
 		return;
 	}
 
-	propagateChannels();
+	applyChannelFlow(document.channelFlow);
 	// The row widgets read selection/focus state on paint.
 	updateRowWidgets();
 	setUpdatesEnabled(updatesWereEnabled);

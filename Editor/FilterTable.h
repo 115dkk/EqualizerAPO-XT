@@ -50,8 +50,10 @@ class IFilterGUI;
 class IFilterGUIFactory;
 class MainWindow;
 class QMimeData;
+struct ChannelFlowAtLine;
+struct ChannelFlowContext;
+struct FilterCardBuildPlan;
 struct FilterCardDescriptor;
-struct FilterCardRowScope;
 struct FilterPickerEntry;
 
 // FilterTable's implementation is split across several translation units (all
@@ -265,6 +267,10 @@ private:
 	// updateGuis, updateSingleRowGui and insertRowAt share; descriptor is the
 	// card row's presentation (unused in LegacyRows).
 	QWidget* buildRow(int index, Item* item, FilterCardDescriptor descriptor, RowBuildTiming* timing = nullptr);
+	// Device and stage facts for the shared document walk, and the fan-out of
+	// its per-line flow to the row editors.
+	ChannelFlowContext channelFlowContext() const;
+	void applyChannelFlow(const std::vector<ChannelFlowAtLine>& flow);
 	// Inserts the mime data's lines at dropRow and makes them the selection.
 	// Shared by paste() and dropEvent(). Returns the number of inserted lines
 	// so the callers can take the incremental single-row path.
@@ -281,7 +287,7 @@ private:
 	// Refreshes number/scope of the card rows at document index >= firstRow in
 	// place after an incremental splice. Returns false when a row widget is
 	// not a FilterCardRow (caller falls back to updateGuis).
-	bool renumberRowsBelow(int firstRow, const QVector<FilterCardRowScope>& rowScopes);
+	bool renumberRowsBelow(int firstRow, const QVector<FilterCardBuildPlan>& rowPlans);
 	// The grid's row widgets indexed by document row (0..items-1), collected in
 	// one pass over the layout. QGridLayout::itemAtPosition scans linearly, so
 	// per-row lookups in a whole-table loop are quadratic; every such loop
