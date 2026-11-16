@@ -903,7 +903,7 @@ int SkinGallery::runRoutingEditTest()
 	}
 
 	qWarning("RoutingEditTest: %s (%d failure(s))", failures == 0 ? "PASS" : "FAIL", failures);
-	GalleryFixture::finish(failures == 0 ? 0 : 1);
+	return GalleryFixture::finish(failures == 0 ? 0 : 1);
 }
 
 int SkinGallery::runScrollBench()
@@ -950,7 +950,7 @@ int SkinGallery::runScrollBench()
 			qPrintable(skin->id()), steps, static_cast<long long>(elapsed),
 			steps > 0 ? double(elapsed) / steps : 0.0);
 	}
-	GalleryFixture::finish(0);
+	return GalleryFixture::finish(0);
 }
 
 int SkinGallery::runPowerToggleTest()
@@ -1070,5 +1070,5 @@ int SkinGallery::runPowerToggleTest()
 		}
 	}
 	qWarning("PowerToggleTest: %s (%d failure(s))", failures == 0 ? "PASS" : "FAIL", failures);
-	GalleryFixture::finish(failures == 0 ? 0 : 1);
+	return GalleryFixture::finish(failures == 0 ? 0 : 1);
 }

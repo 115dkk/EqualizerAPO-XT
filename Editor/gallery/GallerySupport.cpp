@@ -453,14 +453,12 @@ const QString& GalleryFixture::configPath() const
 }
 
 // A gate is a headless one-shot: when it finishes, every verdict has been
-// printed. Returning would unwind into the QApplication and global teardown,
-// which on the offscreen platform can hang the process on a leftover
-// background resource, so flush the diagnostic streams and exit at once. The
-// scratch directory stays behind, since nothing unwinds to remove it.
-void GalleryFixture::finish(int status)
+// printed. Flush before returning its status to main, which now stops the
+// shared background workers before static destruction (audit #467 TD-33).
+int GalleryFixture::finish(int status)
 {
 	std::fflush(nullptr);
-	std::_Exit(status);
+	return status;
 }
 
 void forEachSkinMode(const std::function<void(ISkin* skin, bool dark)>& fn)

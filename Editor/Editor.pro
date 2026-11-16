@@ -35,6 +35,7 @@ DEFINES += MUP_USE_WIDE_STRING
 DEFINES += NOMINMAX
 
 SOURCES += main.cpp\
+	EditorGates.cpp \
 	../services/logging/Logging.cpp \
 	../text/WideString.cpp \
 	../platform/windows/TextEncoding.cpp \
@@ -637,6 +638,7 @@ HEADERS  += \
 	diagnostics/FrameHitTestProbe.h \
 	diagnostics/SkinSwitchStorm.h \
 	helpers/QtSndfileHandle.h \
+	EditorGates.h \
 	SkinGallery.h \
 	gallery/GalleryStallWatch.h \
 	gallery/GallerySupport.h \

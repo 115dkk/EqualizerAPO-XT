@@ -51,6 +51,7 @@
 #include <fftw3.h>
 
 #include "CustomStyle.h"
+#include "EditorGates.h"
 #include "MainWindow.h"
 #include "SkinGallery.h"
 #include "diagnostics/FrameHitTestProbe.h"
@@ -360,6 +361,7 @@ int main(int argc, char* argv[])
 		configuredUpdateChannel());
 
 	int result = -1;
+	bool headlessGateRan = false;
 #ifdef _DEBUG
 	// _CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 	// _CrtSetBreakAlloc(3318);
@@ -389,7 +391,7 @@ int main(int argc, char* argv[])
 	QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 	QCoreApplication::setAttribute(Qt::AA_Use96Dpi);
 
-	bool restart;
+	bool restart = false;
 	// Velopack reports the first run for the whole process, so an in-process
 	// restart (language or interface-mode switch) of the first session used
 	// to open Device Selector a second time (audit #348).
@@ -439,64 +441,15 @@ int main(int argc, char* argv[])
 			SkinThemeData::registerBundledFonts(true);
 		}
 
-		if (application.arguments().contains(QStringLiteral("--scroll-bench")))
-			return SkinGallery::runScrollBench();
-		if (application.arguments().contains(QStringLiteral("--power-toggle-test")))
-			return SkinGallery::runPowerToggleTest();
-		if (application.arguments().contains(QStringLiteral("--routing-edit-test")))
-			return SkinGallery::runRoutingEditTest();
-		if (application.arguments().contains(QStringLiteral("--close-save-test")))
-			return SkinGallery::runCloseSaveTest();
-		if (application.arguments().contains(QStringLiteral("--close-save-sweep")))
-			return SkinGallery::runCloseSaveSweep(application.arguments());
-		if (application.arguments().contains(QStringLiteral("--vst-untouched-test")))
-			return SkinGallery::runVstUntouchedTest();
-		if (application.arguments().contains(QStringLiteral("--selftest-vst")))
+		// Headless gates run before the registry skin and translator setup on
+		// purpose. The gallery applies each skin itself and renders untranslated
+		// English strings for deterministic output.
+		if (const std::optional<int> gateResult = EditorGates::runHeadless(application.arguments()))
 		{
-			// Both halves always run so one log shows every loss at once.
-			const int roundTrip = SkinGallery::runVstRoundTripSelfTest();
-			const int fill = SkinGallery::runVstFillSelfTest();
-			return (roundTrip != 0 || fill != 0) ? 1 : 0;
-		}
-
-		// Headless screenshot gallery (skin program). Runs before the registry
-		// skin/translator setup on purpose: the gallery applies each skin itself
-		// and renders untranslated English strings for deterministic output.
-		if (application.arguments().contains(QStringLiteral("--skin-gallery")))
-			return SkinGallery::run(application.arguments());
-		if (application.arguments().contains(QStringLiteral("--knob-specimen")))
-			return SkinGallery::runKnobSpecimen(application.arguments());
-
-		// Headless live skin-switch robustness gate (crash + slowness), same
-		// offscreen contract as the gallery.
-		if (application.arguments().contains(QStringLiteral("--skin-switch-test")))
-			return SkinGallery::runSwitchTest(application.arguments());
-
-		// Headless card drag-move latency gate (the internal-drag commit
-		// path), same offscreen contract as the gallery.
-		if (application.arguments().contains(QStringLiteral("--card-move-test")))
-			return SkinGallery::runCardMoveTest(application.arguments());
-
-		// Headless card pointer-selection gate. This exercises both ordinary
-		// header selection and clicks consumed by an editor control inside a
-		// card, then compares the model with the card chrome's live state.
-		if (application.arguments().contains(QStringLiteral("--card-selection-test")))
-			return SkinGallery::runCardSelectionTest(application.arguments());
-
-		// Read-only report of what the install hook's config migration would
-		// do on this machine (classification + manifest); writes nothing.
-		if (application.arguments().contains(QStringLiteral("--migration-dry-run")))
-			return EqAPO::Import::LegacyMigration::dryRun();
-
-		// Diagnostic self-test: crash deliberately so a field machine can verify
-		// that the crash handler leaves a dump + report under
-		// %LOCALAPPDATA%\EqualizerAPO\logs\crash.
-		if (application.arguments().contains(QStringLiteral("--selftest-crash")))
-		{
-			CrashHandler::setBreadcrumb(L"selftest-crash");
-			volatile int* fault = nullptr;
-			// cppcheck-suppress nullPointer ; the dereference is the whole point of the self-test
-			*fault = 1; // intentional access violation
+			result = *gateResult;
+			headlessGateRan = true;
+			restart = false;
+			continue;
 		}
 
 		QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
@@ -530,18 +483,13 @@ int main(int argc, char* argv[])
 		if (!systemRegistry().keyExists(EDITOR_PER_FILE_REGPATH))
 			systemRegistry().createKey(EDITOR_PER_FILE_REGPATH);
 
-		// The live-window probes ignore saved geometry, dock layout and open
-		// files, then load only the positional config.
-		const bool analysisLayoutTestRequested =
-			application.arguments().contains(QStringLiteral("--analysis-layout-test"))
-			|| application.arguments().contains(QStringLiteral("--analysis-latency-test"))
-			|| application.arguments().contains(QStringLiteral("--plugin-load-test"))
-			|| application.arguments().contains(QStringLiteral("--frame-hittest-test"))
-			|| application.arguments().contains(QStringLiteral("--window-shot"));
+		// The live-window probes marked for a test window ignore saved geometry,
+		// dock layout and open files, then load only the positional config.
+		const bool testWindowRequested = EditorGates::wantsTestWindow(application.arguments());
 		// The constructor reopens tabs and queues their plug-ins; the loader
 		// waits until the shown window has UI Automation running.
 		PluginLoadQueue::holdLoads();
-		MainWindow w(configDir, updateSession.get(), nullptr, analysisLayoutTestRequested);
+		MainWindow w(configDir, updateSession.get(), nullptr, testWindowRequested);
 		w.show();
 		PluginLoadQueue::startUiAutomation(w.winId());
 		PluginLoadQueue::releaseLoads();
@@ -551,112 +499,24 @@ int main(int argc, char* argv[])
 		EqAPO::Import::LegacyMigration::maybeShowStartupNotice(&w);
 
 		QCommandLineParser parser;
-		// Diagnostic switch storm (see diagnostics/SkinSwitchStorm);
-		// registered so the parser does not reject it as an unknown option.
-		QCommandLineOption stormOption(QStringLiteral("skin-switch-storm"));
-		stormOption.setFlags(QCommandLineOption::HiddenFromHelp);
-		parser.addOption(stormOption);
-		// Deterministic real-window regression probe for the analysis dock. This
-		// runs the same right/bottom layout path as the position combo, records
-		// the live widget geometry and optionally captures the composed surface.
-		QCommandLineOption analysisLayoutOption(QStringLiteral("analysis-layout-test"));
-		analysisLayoutOption.setValueName(QStringLiteral("screenshot"));
-		analysisLayoutOption.setFlags(QCommandLineOption::HiddenFromHelp);
-		parser.addOption(analysisLayoutOption);
-		QCommandLineOption analysisLatencyOption(QStringLiteral("analysis-latency-test"));
-		analysisLatencyOption.setValueName(QStringLiteral("iterations"));
-		analysisLatencyOption.setFlags(QCommandLineOption::HiddenFromHelp);
-		parser.addOption(analysisLatencyOption);
-		QCommandLineOption analysisLatencyDeviceOption(QStringLiteral("analysis-latency-device"));
-		analysisLatencyDeviceOption.setValueName(QStringLiteral("substring"));
-		analysisLatencyDeviceOption.setFlags(QCommandLineOption::HiddenFromHelp);
-		parser.addOption(analysisLatencyDeviceOption);
-		QCommandLineOption pluginLoadOption(QStringLiteral("plugin-load-test"));
-		pluginLoadOption.setFlags(QCommandLineOption::HiddenFromHelp);
-		parser.addOption(pluginLoadOption);
-		// Real-window probe for the custom frame's hit testing under a native
-		// child cascade (diagnostics/FrameHitTestProbe).
-		QCommandLineOption frameHitTestOption(QStringLiteral("frame-hittest-test"));
-		frameHitTestOption.setFlags(QCommandLineOption::HiddenFromHelp);
-		parser.addOption(frameHitTestOption);
-		// Real-window A/B probe for the panel preview feed (SkinGallery::
-		// armVstPanelFeedProbe); pair it with EAPO_DISABLE_PANEL_FEED=1 for
-		// the control run.
-		QCommandLineOption skinMetricsOption(QStringLiteral("skin-metrics-probe"));
-		skinMetricsOption.setFlags(QCommandLineOption::HiddenFromHelp);
-		parser.addOption(skinMetricsOption);
-		QCommandLineOption vstPanelFeedOption(QStringLiteral("vst-panel-feed-test"));
-		vstPanelFeedOption.setValueName(QStringLiteral("durationMs"));
-		vstPanelFeedOption.setFlags(QCommandLineOption::HiddenFromHelp);
-		parser.addOption(vstPanelFeedOption);
-		// Whole-window captures per skin/mode (SkinGallery::armWindowShotProbe);
-		// the sub-options are registered so the parser accepts them.
-		QCommandLineOption windowShotOption(QStringLiteral("window-shot"));
-		windowShotOption.setValueName(QStringLiteral("outDir"));
-		windowShotOption.setFlags(QCommandLineOption::HiddenFromHelp);
-		parser.addOption(windowShotOption);
-		for (const char* name : { "window-shot-skins", "window-shot-modes", "window-shot-dock",
-			"window-shot-width", "window-shot-height", "window-shot-dock-size", "window-shot-select" })
-		{
-			QCommandLineOption sub(QString::fromLatin1(name));
-			sub.setValueName(QStringLiteral("value"));
-			sub.setFlags(QCommandLineOption::HiddenFromHelp);
-			parser.addOption(sub);
-		}
+		EditorGates::registerOptions(parser);
 		parser.process(application);
 		QStringList args = parser.positionalArguments();
-		if (!analysisLayoutTestRequested && args.isEmpty() && w.isEmpty())
+		if (!testWindowRequested && args.isEmpty() && w.isEmpty())
 			args = QStringList("config.txt");
 
-		if (parser.isSet(pluginLoadOption) && !SkinGallery::armPluginLoadProbe(w))
-			return 1;
+		// The plug-in load probe starts measuring here, before the positional
+		// load. EditorGates defers the other armed probes until that load is done.
+		const bool probeArmed = EditorGates::arm(w, parser);
 		for (const QString& arg : args)
 			w.load(configDir.absoluteFilePath(arg));
 
 		const bool firstRun = !firstRunHandled && VelopackBootstrap::isFirstRun();
-		if (parser.isSet(pluginLoadOption))
+		if (probeArmed)
 		{
-			// Armed above, before the positional load, so a library load made
-			// before the event loop starts still counts as a UI gap. Skips
-			// doChecks like the other probes: a modal warning would stall them.
+			// Probe sessions skip doChecks: a modal warning would stall their
+			// timers.
 		}
-		else if (parser.isSet(analysisLayoutOption))
-		{
-			// The probe itself lives with the other offscreen gates in
-			// Editor/gallery/GalleryProbes.cpp (audit #275 B7); it arms the timers and later
-			// exits the event loop with the verdict.
-			if (!SkinGallery::armAnalysisLayoutProbe(w, parser.value(analysisLayoutOption)))
-				return 1;
-		}
-		else if (parser.isSet(analysisLatencyOption))
-		{
-			if (!SkinGallery::armAnalysisLatencyProbe(w, application.arguments()))
-				return 1;
-		}
-		else if (parser.isSet(frameHitTestOption))
-		{
-			if (!FrameHitTestProbe::arm(w))
-				return 1;
-		}
-		else if (parser.isSet(skinMetricsOption))
-		{
-			if (!SkinGallery::armSkinMetricsProbe(w))
-				return 1;
-		}
-		else if (parser.isSet(windowShotOption))
-		{
-			if (!SkinGallery::armWindowShotProbe(w, application.arguments()))
-				return 1;
-		}
-		else if (parser.isSet(vstPanelFeedOption))
-		{
-			// Skips doChecks like the storm: a modal warning would stall the
-			// probe timers.
-			if (!SkinGallery::armVstPanelFeedProbe(w, parser.value(vstPanelFeedOption)))
-				return 1;
-		}
-		else if (parser.isSet(stormOption))
-			SkinSwitchStorm::run(w);  // storm sessions skip doChecks: its modal warnings would stall the timer
 		else if (firstRun)
 		{
 			launchDeviceSelector(pathutil::exeDirectory());
@@ -694,6 +554,11 @@ int main(int argc, char* argv[])
 	// neither process shutdown nor static destruction can race with its publication.
 	if (updateSession)
 		updateSession->shutdown();
+
+	// Gates keep their original exit code and never apply a previously staged
+	// product update, but they now leave through the shared worker shutdown.
+	if (headlessGateRan)
+		return result;
 
 	// If the background worker staged an update, apply it now. exec() has returned and
 	// the QApplication is destroyed, so no other thread is writing to the install dir.

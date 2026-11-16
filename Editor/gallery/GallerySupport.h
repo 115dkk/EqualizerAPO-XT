@@ -197,8 +197,8 @@ public:
 	bool isValid() const;
 	// The synthetic config file the rows resolve their references against.
 	const QString& configPath() const;
-	// Ends a finished gate with status without unwinding (GallerySupport.cpp).
-	[[noreturn]] static void finish(int status);
+	// Flushes a finished gate's diagnostics and returns its process status.
+	static int finish(int status);
 
 private:
 	QTemporaryDir scratch;
