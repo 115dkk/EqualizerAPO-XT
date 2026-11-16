@@ -59,6 +59,7 @@ bool rejectProcessingMode = false;
 bool faultProcessMode = false;
 bool faultActiveMode = false;
 bool faultStateMode = false;
+bool refuseStateMode = false;
 bool surround41Mode = false;
 bool surround41CineOnlyMode = false;
 bool busInfoMismatchMode = false;
@@ -483,6 +484,8 @@ public:
 	{
 		if (faultStateMode)
 			RaiseException(EXCEPTION_ACCESS_VIOLATION, 0, 0, nullptr);
+		if (refuseStateMode)
+			return kResultFalse;
 		return readState(stream, state) ? kResultOk : kResultFalse;
 	}
 	tresult PLUGIN_API getState(IBStream* stream) override
@@ -1364,6 +1367,7 @@ extern "C" __declspec(dllexport) bool InitDll()
 	faultProcessMode = wcsstr(moduleName, testvst3::mode::faultProcess) != nullptr;
 	faultActiveMode = wcsstr(moduleName, testvst3::mode::faultActive) != nullptr;
 	faultStateMode = wcsstr(moduleName, testvst3::mode::faultState) != nullptr;
+	refuseStateMode = wcsstr(moduleName, testvst3::mode::refuseState) != nullptr;
 	if (wcsstr(moduleName, testvst3::mode::rejectInit) != nullptr)
 		return false;
 	wcscpy_s(loadedModulePath, modulePath);

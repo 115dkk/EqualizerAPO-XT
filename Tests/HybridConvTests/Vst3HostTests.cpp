@@ -128,6 +128,46 @@ TEST_CASE(Vst3HostTests, testAutomaticUpmixerVerdictMatchesEngine)
 		"automatic upmixer card verdict has the engine output width");
 }
 
+TEST_CASE(Vst3HostTests, testStateRestoreFailureIsReported)
+{
+	for (const wchar_t* mode : {L"NormalRestore.vst3", L"RefuseState.vst3"})
+	{
+		const wstring bundle = prepareBundle(exeDirectory(), (wstring(L"Audit-") + mode).c_str(), mode);
+		auto library = VSTPluginLibrary::getInstance(bundle);
+		harness.require(VSTPluginLibrary::load(bundle).status >= 0, "restore refusal fixture loads");
+		PluginState saved;
+		saved.gain = 0.5;
+		const wstring invalidState = wcscmp(mode, L"NormalRestore.vst3") == 0 ? L"V" : encodeState(saved);
+		{
+			auto instance = VSTPluginInstance::create(library, 2);
+			harness.require(instance->initialize(), "restore refusal instance initializes");
+			const auto restored = instance->writeToEffect(invalidState, {});
+			harness.expectTrue(!restored && restored.reason != nullptr, "VST3 failed restore returns a reason");
+		}
+		FILE* logFile = nullptr;
+		harness.require(tmpfile_s(&logFile) == 0 && logFile != nullptr, "restore refusal log opens");
+		Logging::useStream(logFile, false, true, false);
+		{
+			PluginState state;
+			state.gain = 0.5;
+			const wstring chunk = wcscmp(mode, L"NormalRestore.vst3") == 0 ? L"V" : encodeState(state);
+			VSTPluginFilter filter(library, chunk, {});
+			filter.initialize(48000.0f, 4, {L"L", L"R"});
+		}
+		std::fflush(logFile);
+		std::rewind(logFile);
+		wstring log;
+		wchar_t text[1024] = {};
+		while (std::fgetws(text, 1024, logFile) != nullptr)
+			log.append(text);
+		Logging::useStream(stdout, true, true, false);
+		std::fclose(logFile);
+		harness.expectTrue(log.find(L"could not restore its state") != wstring::npos,
+			"VST3 decode failure and plug-in state refusal are logged (audit #467 TD-36)");
+		harness.expectTrue(log.find(library->getLibPath()) != wstring::npos, "VST3 restore log identifies the library");
+	}
+}
+
 TEST_CASE(Vst3HostTests, testModeUsesModuleFilenameOnly)
 {
 	const wstring bundle = prepareBundle(exeDirectory(), L"RejectInit.vst3-parent.vst3", L"Normal.vst3");

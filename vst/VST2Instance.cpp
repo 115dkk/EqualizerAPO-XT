@@ -237,7 +237,7 @@ public:
 		return true;
 	}
 
-	void writeToEffect(const wstring& chunkData, const unordered_map<wstring, float>& paramMap) override;
+	StateRestoreResult writeToEffect(const wstring& chunkData, const unordered_map<wstring, float>& paramMap) override;
 	void readFromEffect(wstring& chunkData, unordered_map<wstring, float>& paramMap) const override;
 
 	bool startProcessing() override
@@ -599,18 +599,24 @@ bool VST2Instance::rescaleEditorImpl(double scaleFactor)
 	return true;
 }
 
-void VST2Instance::writeToEffect(const wstring& chunkData, const unordered_map<wstring, float>& paramMap)
+VSTPluginInstance::StateRestoreResult VST2Instance::writeToEffect(const wstring& chunkData, const unordered_map<wstring, float>& paramMap)
 {
 	if (effect == NULL)
-		return;
+		return {L"The plug-in instance is unavailable"};
 
 	if (effect->flags & VST_EFFECT_FLAG_CHUNKS)
 	{
 		if (chunkData != L"")
 		{
 			vector<char> data;
-			if (decodeBase64(chunkData, data))
-				effect->control(effect.get(), VST_EFFECT_OPCODE_SET_CHUNK_DATA, 1, data.size(), data.data(), 0.0f);
+			// testStateRestoreFailureIsReported truncates a saved chunk; silently
+			// skipping it runs factory defaults without a diagnostic (audit #467 TD-36).
+			if (!decodeBase64(chunkData, data) || data.empty())
+				return {L"ChunkData is not valid base64 state"};
+			// VST2 has no portable success indication for effSetChunk: JUCE's
+			// handleSetData restores state and returns zero. testZeroStateResult
+			// reproduces that behavior; zero must not become a false refusal.
+			effect->control(effect.get(), VST_EFFECT_OPCODE_SET_CHUNK_DATA, 1, data.size(), data.data(), 0.0f);
 		}
 	}
 	else
@@ -626,6 +632,7 @@ void VST2Instance::writeToEffect(const wstring& chunkData, const unordered_map<w
 				effect->set_parameter(effect.get(), i, it->second);
 		}
 	}
+	return {};
 }
 
 void VST2Instance::readFromEffect(wstring& chunkData, unordered_map<wstring, float>& paramMap) const

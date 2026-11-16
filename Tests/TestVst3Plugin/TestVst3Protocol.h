@@ -27,6 +27,7 @@ constexpr wchar_t ignoreParameterFlush[] = L"IgnoreParameterFlush.vst3";
 constexpr wchar_t faultProcess[] = L"FaultProcess.vst3";
 constexpr wchar_t faultActive[] = L"FaultActive.vst3";
 constexpr wchar_t faultState[] = L"FaultState.vst3";
+constexpr wchar_t refuseState[] = L"RefuseState.vst3";
 }
 
 #pragma pack(push, 1)

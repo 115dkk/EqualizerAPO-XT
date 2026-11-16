@@ -326,6 +326,7 @@ void VSTPluginFilter::prepareForProcessing(float sampleRate, unsigned maxFrameCo
 	// pass-through and a load-time diagnostic (audit #467 TD-28).
 	__try
 	{
+		bool restoreFailureReported = false;
 		for (size_t i = 0; i < effects.size(); i++)
 		{
 			VSTPluginInstance* effect = effects[i].get();
@@ -340,7 +341,14 @@ void VSTPluginFilter::prepareForProcessing(float sampleRate, unsigned maxFrameCo
 				passThrough(L"The VST plugin %s could not prepare for processing; passing audio through.");
 				return;
 			}
-			effect->writeToEffect(chunkData, paramMap);
+			const auto restored = effect->writeToEffect(chunkData, paramMap);
+			if (!restored && !restoreFailureReported)
+			{
+				// Split instances restore the same line; testStateRestoreFailureIsReported
+				// requires one load-time report, never a per-block warning (audit #467 TD-36).
+				LogF(L"The VST plugin %s could not restore its state: %s.", libPath.c_str(), restored.reason);
+				restoreFailureReported = true;
+			}
 			if (!effect->startProcessing())
 			{
 				passThrough(L"The VST plugin %s could not start processing; passing audio through.");

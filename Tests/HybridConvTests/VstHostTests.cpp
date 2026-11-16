@@ -248,6 +248,52 @@ void expectLatencyCompensationGolden(const shared_ptr<VSTPluginLibrary>& library
 	SetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", nullptr);
 }
 
+TEST_CASE(VstHostTests, testZeroStateResult)
+{
+	auto library = VSTPluginLibrary::getInstance(exeDirectory() + L"\\TestVst2Plugin.dll");
+	harness.require(VSTPluginLibrary::load(library->getLibPath()).status >= 0, "zero-return state fixture loads");
+	SetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", L"state-zero-success");
+	auto instance = VSTPluginInstance::create(library, 1);
+	const bool initialized = instance->initialize();
+	SetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", nullptr);
+	harness.require(initialized, "zero-return state fixture initializes");
+	const wstring chunk = encodeChunk({kChunkMagic, kChunkVersion, 0.5f, 0.0f});
+	harness.expectTrue(static_cast<bool>(instance->writeToEffect(chunk, {})),
+		"a VST2 zero return is not a portable refusal signal");
+	wstring restored;
+	unordered_map<wstring, float> parameters;
+	instance->readFromEffect(restored, parameters);
+	harness.expectTrue(restored == chunk, "zero-return fixture actually restores its state");
+	const auto truncated = instance->writeToEffect(L"V", {});
+	harness.expectTrue(!truncated && truncated.reason != nullptr, "VST2 truncated state returns a reason");
+}
+
+TEST_CASE(VstHostTests, testStateRestoreFailureIsReported)
+{
+	auto library = VSTPluginLibrary::getInstance(exeDirectory() + L"\\TestVst2Plugin.dll");
+	harness.require(VSTPluginLibrary::load(library->getLibPath()).status >= 0, "restore failure fixture loads");
+	FILE* logFile = nullptr;
+	harness.require(tmpfile_s(&logFile) == 0 && logFile != nullptr, "restore failure log opens");
+	Logging::useStream(logFile, false, true, false);
+	{
+		// A valid saved chunk truncated to its first base64 character.
+		VSTPluginFilter filter(library, L"V", {});
+		filter.initialize(48000.0f, 4, {L"L", L"R", L"RL", L"RR"});
+	}
+	std::fflush(logFile);
+	std::rewind(logFile);
+	wstring log;
+	wchar_t text[1024] = {};
+	while (std::fgetws(text, 1024, logFile) != nullptr)
+		log.append(text);
+	Logging::useStream(stdout, true, true, false);
+	std::fclose(logFile);
+	const size_t first = log.find(L"could not restore its state");
+	harness.expectTrue(first != wstring::npos && log.find(L"could not restore its state", first + 1) == wstring::npos,
+		"a truncated VST2 chunk logs one failure even with split instances (audit #467 TD-36)");
+	harness.expectTrue(log.find(library->getLibPath()) != wstring::npos, "state restore failure includes the library path");
+}
+
 TEST_CASE(VstHostTests, testEngineFaultContainment)
 {
 	auto library = VSTPluginLibrary::getInstance(exeDirectory() + L"\\TestVst2Plugin.dll");

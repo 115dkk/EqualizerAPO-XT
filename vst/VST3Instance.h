@@ -67,7 +67,7 @@ public:
 	int getInitialDelay() const override;
 
 	bool prepareProcessingImpl(float sampleRate, int blockSize) override;
-	void writeToEffect(const std::wstring& chunkData,
+	StateRestoreResult writeToEffect(const std::wstring& chunkData,
 		const std::unordered_map<std::wstring, float>& paramMap) override;
 	void readFromEffect(std::wstring& chunkData,
 		std::unordered_map<std::wstring, float>& paramMap) const override;

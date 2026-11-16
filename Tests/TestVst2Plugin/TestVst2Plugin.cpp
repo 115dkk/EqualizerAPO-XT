@@ -155,6 +155,7 @@ struct PluginState
 	bool faultEditor = false;
 	bool faultProcess = false;
 	bool faultPrepare = false;
+	bool zeroStateResult = false;
 };
 
 PluginState* stateOf(vst_effect_t* effect)
@@ -518,7 +519,7 @@ intptr_t VST_FUNCTION_INTERFACE dispatcher(vst_effect_t* effect, int32_t opcode,
 			state->host(effect, VST_HOST_OPCODE_AUTOMATE, kParamGain, 0, nullptr, blob.gain);
 			state->host(effect, VST_HOST_OPCODE_AUTOMATE, kParamGain, 0, nullptr, blob.gain);
 		}
-		return 1;
+		return state->zeroStateResult ? 0 : 1;
 	}
 
 	case VST_EFFECT_OPCODE_CUSTOM:
@@ -669,6 +670,7 @@ vst_effect_t* createEffect(vst_host_callback_t callback)
 		state->faultEditor = wcscmp(faultMode, L"editor") == 0;
 		state->faultProcess = wcscmp(faultMode, L"process") == 0;
 		state->faultPrepare = wcscmp(faultMode, L"prepare") == 0;
+		state->zeroStateResult = wcscmp(faultMode, L"state-zero-success") == 0;
 		if (state->faultEditor)
 		{
 			state->editorPersona = EditorPersona::fixed;

@@ -130,7 +130,12 @@ public:
 	private:
 		VSTPluginInstance* owner = nullptr;
 	};
-	virtual void writeToEffect(const std::wstring& chunkData,
+	struct StateRestoreResult
+	{
+		const wchar_t* reason = nullptr;
+		explicit operator bool() const { return reason == nullptr; }
+	};
+	virtual StateRestoreResult writeToEffect(const std::wstring& chunkData,
 		const std::unordered_map<std::wstring, float>& paramMap) = 0;
 	virtual void readFromEffect(std::wstring& chunkData,
 		std::unordered_map<std::wstring, float>& paramMap) const = 0;
