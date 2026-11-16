@@ -305,6 +305,74 @@ TEST_CASE(EngineOrchestrationTests, testParseErrorsAreReportedPerLineAndProseIsN
 		"a configuration with eight unusable lines still loads, because the working lines below them have to run");
 }
 
+// Audit #467 TD-11: load-time gains that cannot become finite linear values
+// are malformed, while a runtime IIR overflow silences that block and resets
+// its state so the next block can recover.
+TEST_CASE(EngineOrchestrationTests, testNonFiniteFilterOutputIsRejectedOrRecovered)
+{
+	auto parseErrors = [](const TraceCollector& collector) {
+		std::vector<const ConfigLoadTraceEntry*> result;
+		for (const ConfigLoadTraceEntry& entry : collector.entries)
+		{
+			if (entry.kind == ConfigLoadTraceEntry::Kind::ParseError)
+				result.push_back(&entry);
+		}
+		return result;
+	};
+	auto allFinite = [](const std::vector<float>& samples) {
+		return std::all_of(samples.begin(), samples.end(), [](float sample) {
+			return std::isfinite(sample);
+		});
+	};
+
+	const std::wstring preampPath = writeConfig(harness, L"nonfinite-preamp.txt",
+		"Preamp: 99999 dB\n");
+	TraceCollector preampTrace;
+	FilterEngine preamp;
+	preamp.setLoadTraceSink(&preampTrace);
+	initializeEngine(preamp, 48000, 2, 2048, preampPath);
+	const std::vector<float> preampOutput = processDcBlock(preamp, 1.0f, 1.0f, 2048);
+	const std::vector<const ConfigLoadTraceEntry*> preampErrors = parseErrors(preampTrace);
+	harness.requireEqual(preampErrors.size(), size_t(1),
+		"Preamp outside the accepted dB range reports exactly one parse error");
+	harness.expectEqual(preampErrors[0]->line, 1, "the Preamp parse error is attached to its line");
+	harness.expect(allFinite(preampOutput), "Preamp 99999 dB emitted non-finite samples");
+	harness.expectNear(preampOutput[0], 1.0f, 1e-6f,
+		"a rejected non-finite Preamp changed the signal");
+
+	const std::wstring graphicEqPath = writeConfig(harness, L"nonfinite-graphic-eq.txt",
+		"GraphicEQ: 100 99999; 1000 0\n");
+	TraceCollector graphicEqTrace;
+	FilterEngine graphicEq;
+	graphicEq.setLoadTraceSink(&graphicEqTrace);
+	initializeEngine(graphicEq, 48000, 2, 2048, graphicEqPath);
+	const std::vector<float> graphicEqOutput = processDcBlock(graphicEq, 1.0f, 1.0f, 2048);
+	const std::vector<const ConfigLoadTraceEntry*> graphicEqErrors = parseErrors(graphicEqTrace);
+	harness.requireEqual(graphicEqErrors.size(), size_t(1),
+		"a GraphicEQ gain with non-finite linear value reports exactly one parse error");
+	harness.expectEqual(graphicEqErrors[0]->line, 1,
+		"the GraphicEQ parse error is attached to its line");
+	harness.expect(allFinite(graphicEqOutput), "GraphicEQ with an unbounded gain emitted non-finite samples");
+	harness.expectNear(graphicEqOutput[0], 1.0f, 1e-6f,
+		"a rejected non-finite GraphicEQ changed the signal");
+
+	const std::wstring iirPath = writeConfig(harness, L"nonfinite-iir.txt",
+		"Filter: ON IIR Order 1 Coefficients 1 0 1 -2\n");
+	FilterEngine iir;
+	initializeEngine(iir, 48000, 2, 2048, iirPath);
+	const std::vector<float> overflowingBlock = processDcBlock(iir, 1.0f, 1.0f, 2048);
+	harness.expect(allFinite(overflowingBlock), "an unstable IIR emitted non-finite samples");
+	harness.expect(std::all_of(overflowingBlock.begin(), overflowingBlock.end(), [](float sample) {
+		return sample == 0.0f;
+	}), "the IIR block that overflowed was not replaced with silence");
+
+	const std::vector<float> recoveredBlock = processDcBlock(iir, 0.0f, 0.0f, 16);
+	harness.expect(allFinite(recoveredBlock), "the IIR kept non-finite state after its overflow reset");
+	harness.expect(std::all_of(recoveredBlock.begin(), recoveredBlock.end(), [](float sample) {
+		return sample == 0.0f;
+	}), "the IIR did not recover to finite silence on the next block");
+}
+
 // Notepad's "UTF-8 with BOM" puts EF BB BF before the first command. The
 // command must run, not fall through as an unclaimed line.
 TEST_CASE(EngineOrchestrationTests, testByteOrderMarkDoesNotHideTheFirstCommand)

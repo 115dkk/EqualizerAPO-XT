@@ -36,7 +36,9 @@ bool PreampCommand::parse(const std::wstring& command,
 	const std::wstring value = numeric_text::normalizeDecimalComma(parameters);
 	double preampDb;
 	const int matched = swscanf_s(value.c_str(), L" %lf dB", &preampDb);
-	if (matched == 1 && std::isfinite(preampDb))
+	if (matched == 1 && std::isfinite(preampDb)
+		&& preampDb >= -200.0 && preampDb <= 200.0
+		&& std::isfinite(std::pow(10.0, preampDb / 20.0)))
 	{
 		out.valid = true;
 		out.dbGain = preampDb;

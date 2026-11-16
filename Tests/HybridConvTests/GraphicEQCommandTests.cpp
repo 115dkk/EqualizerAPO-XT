@@ -101,8 +101,10 @@ TEST_CASE(GraphicEQCommandTests, testUnpairedAndComma)
 	harness.expectEqual(empty.nodes.size(), (size_t)0, "empty parameter has no nodes");
 
 	GraphicEQCommand nonFinite = parse(L"100 1e999; 1000 2");
+	harness.expectFalse(nonFinite.valid,
+		"a GraphicEQ gain whose linear value is non-finite invalidates the line");
 	harness.expectEqual(nonFinite.nodes.size(), (size_t)1,
-		"a non-finite GraphicEQ pair is rejected without dropping valid pairs");
+		"an invalid GraphicEQ pair does not erase separately parsed finite pairs");
 	expectNode(nonFinite, 0, 1000.0, 2.0, "finite node after rejected pair");
 }
 

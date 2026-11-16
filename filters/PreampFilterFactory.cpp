@@ -41,8 +41,8 @@ LineOutcome PreampFilterFactory::createFilter(const wstring& configPath,
 	if (!cmd.valid)
 	{
 		return LineOutcome::malformed(
-			L"could not parse the preamp value \"" + text::trim(parameters)
-			+ L"\"; no preamp was applied");
+			L"preamp must be a finite value from -200 to 200 dB; \""
+			+ text::trim(parameters) + L"\" was not applied");
 	}
 	if (cmd.noOp)
 	{

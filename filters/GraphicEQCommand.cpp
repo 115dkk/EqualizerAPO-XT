@@ -40,6 +40,7 @@ void GraphicEQCommand::parse(const wstring& parameters)
 {
 	static const wregex regexNumber(L"[-+0-9.eE]+");
 	nodes.clear();
+	valid = true;
 
 	// The graphiceq_15band regression reference pins this parse. When no period
 	// is present the parameter is assumed to use a comma decimal mark and the
@@ -62,10 +63,17 @@ void GraphicEQCommand::parse(const wstring& parameters)
 		wsmatch gainMatch = *it++;
 		double freq = numeric_text::parseDouble(freqMatch.str(0));
 		double gain = numeric_text::parseDouble(gainMatch.str(0));
-		if (!std::isfinite(freq) || !std::isfinite(gain))
+		if (!std::isfinite(freq))
 		{
-			LogFStatic(L"GraphicEQ frequency and gain must be finite; ignoring pair %s %s",
+			LogFStatic(L"GraphicEQ frequency must be finite; ignoring pair %s %s",
 				freqMatch.str(0).c_str(), gainMatch.str(0).c_str());
+			continue;
+		}
+		if (!std::isfinite(gain) || !std::isfinite(std::pow(10.0, gain / 20.0)))
+		{
+			LogFStatic(L"GraphicEQ gain must produce a finite linear value; rejecting pair %s %s",
+				freqMatch.str(0).c_str(), gainMatch.str(0).c_str());
+			valid = false;
 			continue;
 		}
 		FilterNode node(freq, gain);
