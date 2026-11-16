@@ -196,10 +196,11 @@ int handleVelopackHook(int argc, char* argv[])
 	if (!hookSeen)
 		return -1;
 
-	// Velopack allows about 15 s. All explicit waits in this hook share
-	// 12 s, including services, ACL subprocesses and elevation completion.
-	installwait::Budget waitBudget(12000);
-	if (!AudioEngineAccess::isElevated())
+	// Only the elevated child spends the 12 s service/ACL budget. Time the
+	// user takes to answer UAC must not exhaust it (audit #467 TD-64).
+	const bool elevated = AudioEngineAccess::isElevated();
+	installwait::Budget waitBudget(12000, elevated);
+	if (!elevated)
 		return relaunchElevatedAndWait();
 
 	const auto callerLocalAppData = EqAPO::Import::LegacyMigration::parseHandoff(wideArgumentsAfterProgramName());
@@ -535,8 +536,15 @@ int main(int argc, char* argv[])
 		result = application.exec();
 
 		restart = w.shouldRestart();
+		if (!restart && updateSession)
+			updateSession->cancelPendingDownload();
 	}
 	while (restart);
+
+	// Mark unfinished downloads before any shutdown wait: a slow plug-in or
+	// probe must not let a just-closed window publish an update (audit #467 TD-64).
+	if (updateSession)
+		updateSession->cancelPendingDownload();
 
 	// A plug-in load may still be running on the loader thread (closing the
 	// Editor during a slow first load). Let it finish before static

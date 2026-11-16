@@ -15,6 +15,8 @@
 #include "services/update/VelopackBootstrap.h"
 
 #include <memory>
+#include <future>
+#include "services/install/InstallWaitBudget.h"
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -30,6 +32,7 @@ struct FakeUpdateState
 	bool throwDuringApply = false;
 	bool throwDuringPendingRestartApply = false;
 	bool pendingRestartAvailable = false;
+	std::function<void()> duringStage;
 	std::optional<std::wstring> availableVersion = L"9.9.9";
 };
 
@@ -44,6 +47,8 @@ public:
 	std::optional<std::wstring> stageAvailableUpdate() override
 	{
 		++state->stageCalls;
+		if (state->duringStage)
+			state->duringStage();
 		if (state->throwDuringStage)
 			throw std::runtime_error("stage failed");
 		return state->availableVersion;
@@ -67,6 +72,41 @@ public:
 private:
 	std::shared_ptr<FakeUpdateState> state;
 };
+}
+
+TEST_CASE(EditorLogicTests, testUpdateExitCancelsDownloadBeforePublication)
+{
+	for (const bool elevated : {false, true})
+	{
+		auto state = std::make_shared<FakeUpdateState>();
+		std::promise<void> entered;
+		std::promise<void> resume;
+		auto ready = entered.get_future();
+		auto proceed = resume.get_future();
+		state->duringStage = [&] { entered.set_value(); proceed.wait(); };
+		UpdateSession session(std::make_unique<FakeUpdateClient>(state));
+		session.startDownload();
+		ready.wait();
+		session.cancelPendingDownload();
+		resume.set_value();
+		session.shutdown();
+		int elevations = 0;
+		const auto outcome = session.applyPendingUpdate(elevated, [&] { ++elevations; return true; });
+		expectTrue(outcome == UpdateApplyOutcome::NoUpdate, QStringLiteral("cancelled download never applies"));
+		expectEqual(state->applyCalls, 0, QStringLiteral("cancelled download never calls client apply"));
+		expectEqual(elevations, 0, QStringLiteral("cancelled download never requests elevation"));
+		expectFalse(session.hasPendingUpdate(), QStringLiteral("cancelled download is not published"));
+	}
+}
+
+TEST_CASE(EditorLogicTests, testHookDeadlineExcludesUacTime)
+{
+	const auto parent = installwait::hookDeadline(false, 0, 1000, 12000);
+	expectTrue(parent == 0, QStringLiteral("unelevated hook has no deadline during UAC"));
+	const auto child = installwait::hookDeadline(true, 0, 61000, 12000);
+	expectTrue(child == 73000, QStringLiteral("elevated child starts with full budget after UAC"));
+	expectTrue(installwait::hookDeadline(true, child, 62000, 12000) == child,
+		QStringLiteral("nested budget never extends the elevated deadline"));
 }
 
 TEST_CASE(EditorLogicTests, testUpdateHookRestartsAfterThrow)
@@ -271,6 +311,7 @@ TEST_CASE(EditorLogicTests, testUpdateSessionPublishesStagedVersionAfterJoin)
 	expectTrue(session.startDownload(), QStringLiteral("the update worker starts once"));
 	session.shutdown();
 
+	session.cancelPendingDownload();
 	expectEqual(state->stageCalls, 1, QStringLiteral("the update adapter stages exactly once"));
 	expectTrue(session.hasPendingUpdate(), QStringLiteral("the staged update becomes observable after join"));
 	expectEqual(

@@ -9,19 +9,27 @@
 #include <windows.h>
 
 // Hook-only budget: regular Device Selector operations keep their timeouts.
-// A single absolute deadline includes service waits, ACL helper processes and
-// the elevated child wait. Nested operations do not get a fresh allowance.
+// The elevated child's absolute deadline includes service waits and ACL helper
+// processes. UAC consent is outside it (audit #467 TD-64). Nested operations
+// do not get a fresh allowance.
 namespace installwait
 {
 inline thread_local ULONGLONG deadline = 0;
 
+inline ULONGLONG hookDeadline(bool elevated, ULONGLONG previous, ULONGLONG now, DWORD milliseconds)
+{
+	if (!elevated)
+		return previous;
+	const auto requested = now + milliseconds;
+	return previous == 0 ? requested : (std::min)(previous, requested);
+}
+
 class Budget
 {
 public:
-	explicit Budget(DWORD milliseconds) : previous(deadline)
+	explicit Budget(DWORD milliseconds, bool elevated = true) : previous(deadline)
 	{
-		const auto requested = GetTickCount64() + milliseconds;
-		deadline = previous == 0 ? requested : (std::min)(previous, requested);
+		deadline = hookDeadline(elevated, previous, GetTickCount64(), milliseconds);
 	}
 	~Budget() {deadline = previous;}
 	Budget(const Budget&) = delete;

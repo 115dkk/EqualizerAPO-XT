@@ -41,6 +41,7 @@ enum class UpdateDownloadStatus
 	Running,
 	UpToDate,
 	Staged,
+	Cancelled,
 	Failed
 };
 
@@ -63,6 +64,8 @@ public:
 	~UpdateSession();
 
 	bool startDownload();
+	// Exit cancels an unfinished download, but keeps an already staged update.
+	void cancelPendingDownload();
 	void shutdown();
 	bool hasPendingUpdate() const;
 	std::wstring pendingUpdateVersion() const;
