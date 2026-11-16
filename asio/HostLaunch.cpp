@@ -39,6 +39,8 @@ namespace eapo::asio::HostLaunch
 		return arguments;
 	}
 
+	// commandLine is taken by value: CreateProcessW may write into the buffer.
+	// cppcheck-suppress passedByValue
 	LaunchResult launch(const std::wstring& executable, std::wstring commandLine) noexcept
 	{
 		STARTUPINFOW startup = {};

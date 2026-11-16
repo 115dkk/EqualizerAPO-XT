@@ -319,7 +319,10 @@ namespace
 		RingProducer producer(base, format, 1, sync);
 		eapo::ipc::RingHeader* header = reinterpret_cast<eapo::ipc::RingHeader*>(base);
 		const uint32_t originalOffset = header->lanes[0].slotOffset[1];
-		float* const originalSlot = reinterpret_cast<float*>(base + originalOffset);
+		// The ring stores float blocks in its byte mapping; the slot is
+		// aligned by the ring's own geometry.
+		// cppcheck-suppress invalidPointerCast
+		const float* const originalSlot = reinterpret_cast<const float*>(base + originalOffset);
 
 		header->lanes[0].slotOffset[1] = totalBytes;
 		header->lanes[0].slotBytes = sizeof(float);
