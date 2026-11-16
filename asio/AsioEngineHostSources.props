@@ -3,6 +3,8 @@
 <Project>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)EngineHostCore.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)StreamHost.h" />
     <ClCompile Include="$(MSBuildThisFileDirectory)EngineHostCore.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)StreamHost.cpp" />
   </ItemGroup>
 </Project>
