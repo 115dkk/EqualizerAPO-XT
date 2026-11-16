@@ -25,7 +25,7 @@
 
 using std::shared_ptr;
 
-DeviceFilterGUIDialog::DeviceFilterGUIDialog(DeviceFilterGUI* gui, DeviceFilterGUIFactory* factory, const QString& pattern)
+DeviceFilterGUIDialog::DeviceFilterGUIDialog(DeviceFilterGUI* gui, const DeviceFilterGUIFactory* factory, const QString& pattern)
 	: QDialog(gui),
 	ui(std::make_unique<Ui::DeviceFilterGUIDialog>())
 {

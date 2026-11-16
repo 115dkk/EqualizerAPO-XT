@@ -51,6 +51,8 @@ public:
 		DWORD revision = 0;
 		GetSecurityDescriptorControl(original, &control, &revision);
 	}
+	DirectoryDaclScope(const DirectoryDaclScope&) = delete;
+	DirectoryDaclScope& operator=(const DirectoryDaclScope&) = delete;
 	~DirectoryDaclScope()
 	{
 		if (original != nullptr)

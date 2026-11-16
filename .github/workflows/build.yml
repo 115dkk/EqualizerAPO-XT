@@ -662,10 +662,6 @@ jobs:
     #   that are not findings are switched off: normalCheckLevelMaxBranches
     #   only notes that --check-level=exhaustive would follow more branches,
     #   and checkersReport is the run's checker count.
-    # - unusedStructMember on FilterEngine.Process.cpp: the IoTraits label and
-    #   I/O members are consumed inside the processImpl member template;
-    #   cppcheck does not analyze template instantiations, so it reports every
-    #   trait member as unused (false positive).
     # - libHybridConv-0.1.1 (audit #250 F061/F025): the non-building
     #   "pristine" pair was deleted - it had diverged from its own header and
     #   could no longer serve as a reference (maintainer decision 2026-08-09).
@@ -691,7 +687,6 @@ jobs:
           --suppress=postfixOperator \
           --suppress=noExplicitConstructor \
           --suppress=LocalAllocCalled \
-          --suppress=unusedStructMember:engine/FilterEngine.Process.cpp \
           --suppress=uninitMemberVarNoCtor:libHybridConv-0.1.1/* \
           --suppress=*:deps/* \
           --error-exitcode=1 \

@@ -105,6 +105,9 @@ namespace
 		{
 			for (uint32_t frame = 0; frame < frames; frame++)
 				samples[channel][frame] = rampSample(channel, startPosition + frame);
+			// samples is a vector of vectors: an element, not an offset from
+			// one object (cppcheck 2.22 false positive).
+			// cppcheck-suppress objectIndex
 			planes[channel] = samples[channel].data();
 		}
 		writer.write(planes.data(), channels, frames, nowQpc);

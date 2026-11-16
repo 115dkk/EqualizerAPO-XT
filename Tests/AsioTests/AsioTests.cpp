@@ -394,7 +394,10 @@ namespace
 				for (size_t i = 0; i < planes[c].size(); i++)
 					planes[c][i] = static_cast<unsigned char>(c * 64 + i);
 			std::vector<const void*> in(channels);
+			// planes is a vector of vectors: planes[c] is an element, not an
+			// offset from one object (cppcheck 2.22 false positive).
 			for (unsigned c = 0; c < channels; c++)
+				// cppcheck-suppress objectIndex
 				in[c] = planes[c].data();
 			std::vector<unsigned char> block(static_cast<size_t>(frames) * channels * bytes);
 			wasapi::interleave(in.data(), channels, bytes, frames, block.data());
@@ -407,6 +410,7 @@ namespace
 			std::vector<std::vector<unsigned char>> back(channels, std::vector<unsigned char>(static_cast<size_t>(frames) * bytes));
 			std::vector<void*> out(channels);
 			for (unsigned c = 0; c < channels; c++)
+				// cppcheck-suppress objectIndex
 				out[c] = back[c].data();
 			wasapi::deinterleave(block.data(), channels, bytes, frames, out.data());
 			harness.expectTrue(back == planes, "deinterleave restores the planes at " + std::to_string(bytes) + " bytes");

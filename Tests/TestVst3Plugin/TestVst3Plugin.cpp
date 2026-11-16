@@ -1264,6 +1264,9 @@ public:
 			hostContextSet = hostContextSet
 				&& host->createInstance(messageIid, messageIid, reinterpret_cast<void**>(&message)) == kResultOk
 				&& message != nullptr && message->getAttributes() != nullptr;
+			// createInstance writes message through the void** above, which
+			// cppcheck 2.22 does not follow.
+			// cppcheck-suppress knownConditionTrueFalse
 			if (message != nullptr)
 				message->release();
 			host->release();

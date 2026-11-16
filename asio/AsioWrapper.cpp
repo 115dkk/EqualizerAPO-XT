@@ -666,6 +666,9 @@ namespace eapo::asio
 			}
 		}
 
+		// processed is set inside the branch above; cppcheck 2.22 follows only
+		// its initial value.
+		// cppcheck-suppress knownConditionTrueFalse
 		if (!processed)
 		{
 			for (size_t i = first; i < end; i++)
@@ -719,6 +722,9 @@ namespace eapo::asio
 			}
 		}
 
+		// processed is set inside the branch above; cppcheck 2.22 follows only
+		// its initial value.
+		// cppcheck-suppress knownConditionTrueFalse
 		if (!processed)
 		{
 			for (size_t i = first; i < end; i++)

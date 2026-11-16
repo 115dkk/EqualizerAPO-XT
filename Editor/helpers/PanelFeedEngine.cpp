@@ -127,7 +127,8 @@ struct PlanarBuffers
 		for (size_t channel = 0; channel < input.size(); channel++)
 		{
 			SampleType* planar = input[channel].data();
-			if (silent || captureChannelCount == 0)
+			// A null stream is silence too: processSilence passes none.
+			if (silent || captureChannelCount == 0 || interleaved == nullptr)
 			{
 				std::fill_n(planar, chunk, SampleType(0));
 				continue;

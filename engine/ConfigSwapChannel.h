@@ -26,6 +26,9 @@ class ConfigSwapChannel
 public:
 	ConfigSwapChannel()
 		: shutdownEvent(true, false),
+		  // publishPermit is a winutil::UniqueHandle, which closes the
+		  // semaphore; cppcheck 2.22 sees only the raw CreateSemaphoreW.
+		  // cppcheck-suppress noDestructor
 		  publishPermit(CreateSemaphoreW(nullptr, 1, 1, nullptr))
 	{
 		if (!publishPermit)
