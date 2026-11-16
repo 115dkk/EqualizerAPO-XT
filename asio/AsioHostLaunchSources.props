@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The engine-host process grammar and launcher shared by every caller. -->
+<Project>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)HostLaunch.h" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)HostLaunch.cpp" />
+  </ItemGroup>
+</Project>

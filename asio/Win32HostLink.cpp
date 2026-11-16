@@ -10,6 +10,7 @@
 #include <atomic>
 #include <cstring>
 
+#include "asio/HostLaunch.h"
 #include "asio/HostProtocol.h"
 #include "platform/windows/NamedPipeSecurity.h"
 #include "platform/windows/WindowsPath.h"
@@ -55,13 +56,13 @@ namespace eapo::asio
 	{
 		if (!options.daemonExePath.empty())
 			return options.daemonExePath;
-		const std::wstring beside = moduleDirectory + L"\\EqualizerAPOHost.exe";
+		const std::wstring beside = HostLaunch::executablePath(moduleDirectory);
 		if (pathutil::fileExists(beside))
 			return beside;
 		const size_t slash = moduleDirectory.find_last_of(L"\\/");
 		if (slash != std::wstring::npos)
 		{
-			const std::wstring parent = moduleDirectory.substr(0, slash) + L"\\EqualizerAPOHost.exe";
+			const std::wstring parent = HostLaunch::executablePath(moduleDirectory.substr(0, slash));
 			if (pathutil::fileExists(parent))
 				return parent;
 		}
@@ -76,21 +77,13 @@ namespace eapo::asio
 			error = "EQ APO XT engine host executable is missing";
 			return false;
 		}
-		std::wstring commandLine = L"\"" + exe + L"\" --endpoint \"" + endpoint + L"\" --linger " + std::to_wstring(options.lingerMs);
-		STARTUPINFOW startup = {};
-		startup.cb = sizeof(startup);
-		PROCESS_INFORMATION process = {};
-		// A DAW's own environment and working directory are not the host's
-		// business; only the executable's folder matters for its DLLs.
-		const std::wstring directory = exe.substr(0, exe.find_last_of(L"\\/"));
-		if (!CreateProcessW(exe.c_str(), commandLine.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr,
-			directory.c_str(), &startup, &process))
+		const HostLaunch::LaunchResult launched = HostLaunch::launch(exe,
+			HostLaunch::streamCommandLine(exe, endpoint, options.lingerMs));
+		if (!launched)
 		{
-			error = describe("EQ APO XT engine host could not be started", GetLastError());
+			error = describe("EQ APO XT engine host could not be started", launched.error);
 			return false;
 		}
-		winutil::UniqueHandle threadHandle(process.hThread);
-		winutil::UniqueHandle processHandle(process.hProcess);
 		return true;
 	}
 

@@ -33,6 +33,7 @@ SOURCES += \
 	PreviewDevices.cpp \
 	ReceiveThread.cpp \
 	ResidentHostLauncher.cpp \
+	../asio/HostLaunch.cpp \
 	SkinButton.cpp \
 	skins/DeviceSkinPainter.cpp \
 	skins/StudioDeviceSkin.cpp \
@@ -65,6 +66,7 @@ HEADERS += \
 	PreviewDevices.h \
 	ReceiveThread.h \
 	ResidentHostLauncher.h \
+	../asio/HostLaunch.h \
 	SkinButton.h \
 	skins/DeviceSkinPainter.h \
 	../services/windows/WindowsService.h \

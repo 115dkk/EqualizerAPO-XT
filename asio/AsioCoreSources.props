@@ -34,5 +34,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Win32HostLink.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasapiExclusiveTarget.cpp" />
   </ItemGroup>
+  <Import Project="$(MSBuildThisFileDirectory)AsioHostLaunchSources.props" />
   <Import Project="$(MSBuildThisFileDirectory)AsioRingSources.props" />
 </Project>

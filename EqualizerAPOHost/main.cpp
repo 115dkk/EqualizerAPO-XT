@@ -11,11 +11,11 @@
 	parses the process arguments and assembles those parts.
 */
 
-#include <string>
 #include <thread>
 
 #include "EqualizerAPOHost/Keepalive.h"
 #include "asio/HostControlServer.h"
+#include "asio/HostLaunch.h"
 #include "asio/StreamHost.h"
 #include "services/logging/Logging.h"
 #include "services/registry/WindowsRegistry.h"
@@ -24,41 +24,13 @@
 // After windows.h (through the ring header): shellapi.h needs its types.
 #include <shellapi.h>
 
-namespace
-{
-	struct Arguments
-	{
-		std::wstring endpoint;
-		uint32_t lingerMs = 60000;
-		bool resident = false;
-	};
-
-	Arguments parseArguments(int argc, wchar_t** argv)
-	{
-		Arguments a;
-		for (int i = 1; i < argc; i++)
-		{
-			const std::wstring key = argv[i];
-			if (key == L"--endpoint" && i + 1 < argc)
-				a.endpoint = argv[++i];
-			else if (key == L"--linger" && i + 1 < argc)
-				a.lingerMs = static_cast<uint32_t>(std::wcstoul(argv[++i], nullptr, 10));
-			else if (key == L"--resident")
-				a.resident = true;
-		}
-		if (a.endpoint.empty())
-			a.endpoint = eapo::asio::HostNames::defaultEndpoint();
-		return a;
-	}
-}
-
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 {
 	PluginResidency::keepLoadedForProcessLifetime(true);
 
 	int argc = 0;
 	wchar_t** argv = CommandLineToArgvW(GetCommandLineW(), &argc);
-	const Arguments arguments = parseArguments(argc, argv);
+	const eapo::asio::HostLaunch::Arguments arguments = eapo::asio::HostLaunch::parseCommandLine(argc, argv);
 	if (argv != nullptr)
 		LocalFree(argv);
 	Logging::useUserFile(L"EqualizerAPOHost.log", false, false, false);

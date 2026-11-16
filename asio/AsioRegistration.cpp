@@ -7,6 +7,7 @@
 #include "stdafx.h"
 #include "asio/AsioRegistration.h"
 
+#include "asio/HostLaunch.h"
 #include "asio/WrapperRecord.h"
 #include "devices/DeviceAPOInfoKeys.h"
 #include "devices/ReceiverEndpoints.h"
@@ -218,7 +219,7 @@ namespace eapo::asio
 			{
 				if (!registry.keyExists(runKey))
 					registry.createKey(runKey);
-				registry.writeValue(runKey, runValueName, L"\"" + hostExePath + L"\" --resident");
+				registry.writeValue(runKey, runValueName, HostLaunch::residentCommandLine(hostExePath));
 			}
 			else if (autoStartRegistered(registry))
 			{
@@ -231,7 +232,7 @@ namespace eapo::asio
 			const bool wanted = WrapperRecords::autoStartWanted(registry) || !receivingEndpoints(registry).empty();
 			if (wanted && installDirectory.empty())
 				return;
-			setAutoStart(registry, installDirectory + L"\\EqualizerAPOHost.exe", wanted);
+			setAutoStart(registry, HostLaunch::executablePath(installDirectory), wanted);
 		}
 
 		std::wstring wrapperDllPath(const std::wstring& installDirectory)

@@ -107,6 +107,7 @@ if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"</
   </ItemGroup>
   <Import Project="..\asio\AsioEngineHostSources.props" />
   <Import Project="..\asio\AsioHostControlSources.props" />
+  <Import Project="..\asio\AsioHostLaunchSources.props" />
   <Import Project="..\asio\AsioRingSources.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
