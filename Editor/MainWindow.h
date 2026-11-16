@@ -98,7 +98,37 @@ public:
 	// The narrow interface the offscreen probes and the diagnostic sessions
 	// use to reach inside the live window (Editor/MainWindowProbe.h). It
 	// replaced their friend access to all of MainWindow (audit #422 TD-59).
-	class Probe;
+	class Probe
+	{
+	public:
+		// All injected probe state lives together (audit #467 TD-75).
+		struct State
+		{
+			std::function<void()> saveStarted;
+			std::function<void()> parametersSet;
+			std::function<void(double, double, double)> panelUpdated;
+			bool skinPersistenceSuppressed = false;
+		};
+
+		explicit Probe(MainWindow& owner);
+		// A diagnostic session must not overwrite the user's window and per-file
+		// preferences, even when it ends early.
+		void suppressPreferenceWrites();
+		FilterTable* currentFilterTable() const;
+		QCheckBox* instantModeControl() const;
+		QComboBox* deviceControl() const;
+		// Timing hooks on the save -> analysis path: a save started, the
+		// analysis worker was handed its parameters, the panel showed a result
+		// (initialization, processing and panel time in milliseconds).
+		void onSaveStarted(std::function<void()> hook);
+		void onAnalysisParametersSet(std::function<void()> hook);
+		void onAnalysisPanelUpdated(std::function<void(double, double, double)> hook);
+		// The hidden skin-switch storm (Editor/diagnostics/SkinSwitchStorm.cpp).
+		void startSkinSwitchStorm();
+
+	private:
+		MainWindow& mainWindow;
+	};
 	Probe probe();
 
 protected:
@@ -237,13 +267,16 @@ private:
 	EqGraphView* eqGraphView = nullptr;
 	std::unique_ptr<AnalysisThread> analysisThread;
 	QTimer* analysisDebounceTimer = nullptr;
-	std::function<void()> analysisProbeSaveStarted;
-	std::function<void()> analysisProbeParametersSet;
-	std::function<void(double, double, double)> analysisProbePanelUpdated;
+	Probe::State probeState;
+	// Forwarding aliases keep the separately maintained MainWindowParts callers
+	// source-compatible; the storage belongs to Probe (audit #467 TD-75).
+	std::function<void()>& analysisProbeSaveStarted = probeState.saveStarted;
+	std::function<void()>& analysisProbeParametersSet = probeState.parametersSet;
+	std::function<void(double, double, double)>& analysisProbePanelUpdated = probeState.panelUpdated;
 	bool restart = false;
 	bool noSavePreferences = false;
 	bool noSaveFilePreferences = false;
-	bool skinPersistenceSuppressed = false;
+	bool& skinPersistenceSuppressed = probeState.skinPersistenceSuppressed;
 	QStringList recentFiles;
 	QString skinId = QStringLiteral("studio");
 	bool skinDark = true;

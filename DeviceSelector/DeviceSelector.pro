@@ -32,6 +32,7 @@ SOURCES += \
 	DisclosureHeader.cpp \
 	OpacityIconEngine.cpp \
 	PreviewDevices.cpp \
+	ScreenshotHarness.cpp \
 	ReceiveThread.cpp \
 	ResidentHostLauncher.cpp \
 	../asio/HostLaunch.cpp \
@@ -66,6 +67,7 @@ HEADERS += \
 	DisclosureHeader.h \
 	OpacityIconEngine.h \
 	PreviewDevices.h \
+	ScreenshotHarness.h \
 	ReceiveThread.h \
 	ResidentHostLauncher.h \
 	../asio/HostLaunch.h \

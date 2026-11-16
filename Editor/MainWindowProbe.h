@@ -15,34 +15,6 @@
 
 #pragma once
 
-#include <functional>
-
+// Probe's declaration now includes its stored state and therefore lives with
+// MainWindow. Keep this include for the existing probe clients (audit #467 TD-75).
 #include "Editor/MainWindow.h"
-
-class QCheckBox;
-class QComboBox;
-class FilterTable;
-
-class MainWindow::Probe
-{
-public:
-	explicit Probe(MainWindow& owner);
-
-	// A diagnostic session must not overwrite the user's window and per-file
-	// preferences, even when it ends early.
-	void suppressPreferenceWrites();
-	FilterTable* currentFilterTable() const;
-	QCheckBox* instantModeControl() const;
-	QComboBox* deviceControl() const;
-	// Timing hooks on the save -> analysis path: a save started, the
-	// analysis worker was handed its parameters, the panel showed a result
-	// (initialization, processing and panel time in milliseconds).
-	void onSaveStarted(std::function<void()> hook);
-	void onAnalysisParametersSet(std::function<void()> hook);
-	void onAnalysisPanelUpdated(std::function<void(double, double, double)> hook);
-	// The hidden skin-switch storm (Editor/diagnostics/SkinSwitchStorm.cpp).
-	void startSkinSwitchStorm();
-
-private:
-	MainWindow& mainWindow;
-};
