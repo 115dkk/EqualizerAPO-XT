@@ -96,6 +96,17 @@ $items
         [System.IO.File]::WriteAllText($Path, $xml, (New-Object System.Text.UTF8Encoding($true)))
     }
 
+    function Add-ApoContractFixture {
+        param([string]$Root)
+        $realRoot = Split-Path -Parent $script:SolutionPath
+        foreach ($relative in @('.github/scripts/ApoEndpointHarness.psm1',
+                'services/registry/RegistryPaths.h', 'devices/DeviceAPOInfoKeys.h')) {
+            $destination = Join-Path $Root $relative
+            New-Item -ItemType Directory -Path (Split-Path -Parent $destination) -Force | Out-Null
+            Copy-Item -LiteralPath (Join-Path $realRoot $relative) -Destination $destination
+        }
+    }
+
     function Invoke-SourceSync {
         param([string]$RepoRoot)
         $output = & $script:PwshExe -NoProfile -NonInteractive -Command ". '$script:ScriptPath' -RepoRoot '$RepoRoot'" 2>&1
@@ -110,6 +121,41 @@ AfterAll {
 }
 
 Describe "Test-SourceSync.ps1" {
+    It "checks the real APO endpoint contract without a build" {
+        $result = Invoke-SourceSync -RepoRoot (Split-Path -Parent $script:SolutionPath)
+        $result.ExitCode | Should -Be 0
+        $result.Output | Should -Match 'All 10 APO endpoint contract values match the C\+\+ headers'
+    }
+
+    It "rejects a changed APO contract value <Key>" -ForEach @(
+        @{ Key = 'EQ_PREMIX_GUID'; Before = 'EACD2258'; After = 'EACD2259' }
+        @{ Key = 'FX_SFX'; Before = '},5"'; After = '},99"' }
+        @{ Key = 'MMDEVICES_ROOT'; Before = 'MMDevices'; After = 'ChangedDevices' }
+        @{ Key = 'CHILD_APO_ROOT'; Before = 'Child APOs'; After = 'Changed APOs' }
+    ) {
+        $root = New-FixtureRepo -CommonSources @('FilterEngine.cpp') -EditorSources @('../FilterEngine.cpp')
+        Add-ApoContractFixture -Root $root
+        $module = Join-Path $root '.github/scripts/ApoEndpointHarness.psm1'
+        $text = [System.IO.File]::ReadAllText($module).Replace($Before, $After)
+        [System.IO.File]::WriteAllText($module, $text)
+        $result = Invoke-SourceSync -RepoRoot $root
+
+        $result.ExitCode | Should -Not -Be 0
+        $result.Output | Should -Match ([regex]::Escape("APO endpoint contract $Key differs"))
+    }
+
+    It "rejects a missing C++ APO contract declaration" {
+        $root = New-FixtureRepo -CommonSources @('FilterEngine.cpp') -EditorSources @('../FilterEngine.cpp')
+        Add-ApoContractFixture -Root $root
+        $header = Join-Path $root 'devices/DeviceAPOInfoKeys.h'
+        $text = [System.IO.File]::ReadAllText($header).Replace('sfxGuidValueName', 'renamedGuidValueName')
+        [System.IO.File]::WriteAllText($header, $text)
+        $result = Invoke-SourceSync -RepoRoot $root
+
+        $result.ExitCode | Should -Not -Be 0
+        $result.Output | Should -Match 'Cannot extract APO contract declaration sfxGuidValueName'
+    }
+
     It "passes when Editor.pro carries every engine source Common.vcxproj compiles" {
         $root = New-FixtureRepo `
             -CommonSources @('FilterEngine.cpp', 'filters/BiQuadFilter.cpp', 'services/logging/Logging.cpp') `

@@ -374,6 +374,94 @@ if (Test-Path -LiteralPath $skinsRoot) {
   Write-Host "None of the $($skinSources.Count) sources under Editor/skins includes SkinManager.h, apart from SkinChromeOverlay.h."
 }
 
+# Audit #467 TD-68: the endpoint harness must use the same APO identities,
+# property keys and registry roots as the native installer. Parse literals only;
+# importing the module is unnecessary, and this gate requires no build or registry.
+$apoHarnessPath = Join-Path $RepoRoot '.github' 'scripts' 'ApoEndpointHarness.psm1'
+# Other source-sync fixtures intentionally contain no endpoint harness.
+if (Test-Path -LiteralPath $apoHarnessPath) {
+  function Read-ContractHeader {
+    param([string]$RelativePath)
+    $text = Get-Content -LiteralPath (Join-Path $RepoRoot $RelativePath) -Raw
+    return [regex]::Replace($text, '(?s)"(?:\\.|[^"\\])*"|''(?:\\.|[^''\\])*''|(?<comment>//[^\r\n]*|/\*.*?\*/)',
+      [System.Text.RegularExpressions.MatchEvaluator]{ param($match)
+        if ($match.Groups['comment'].Success) { return ' ' }
+        return $match.Value
+      })
+  }
+
+  function Get-ContractDeclaration {
+    param([string]$Text, [string]$Name, [string]$Pattern)
+    $matches = [regex]::Matches($Text, $Pattern.Replace('@NAME@', [regex]::Escape($Name)))
+    if ($matches.Count -ne 1) { throw "Cannot extract APO contract declaration $Name (expected one declaration)." }
+    return $matches[0].Groups['value'].Value
+  }
+
+  function Get-ContractGuid {
+    param([string]$Text, [string]$Name)
+    $body = Get-ContractDeclaration $Text $Name '(?s)\bGUID\s+@NAME@\s*=\s*\{(?<value>[^;]+)\};'
+    $numbers = @([regex]::Matches($body, '0x[0-9a-fA-F]+') | ForEach-Object {
+      [Convert]::ToUInt32($_.Value.Substring(2), 16)
+    })
+    if ($numbers.Count -ne 11 -or ($body -replace '0x[0-9a-fA-F]+|[\s,{}]', '') -ne '') {
+      throw "Cannot extract APO contract GUID $Name."
+    }
+    return '{' + ('{0:X8}-{1:X4}-{2:X4}-{3:X2}{4:X2}-{5:X2}{6:X2}{7:X2}{8:X2}{9:X2}{10:X2}' -f $numbers) + '}'
+  }
+
+  $registry = Read-ContractHeader 'services/registry/RegistryPaths.h'
+  $device = Read-ContractHeader 'devices/DeviceAPOInfoKeys.h'
+  $expected = [ordered]@{
+    EQ_PREMIX_GUID = Get-ContractGuid $registry 'EQUALIZERAPO_PRE_MIX_GUID'
+    EQ_POSTMIX_GUID = Get-ContractGuid $registry 'EQUALIZERAPO_POST_MIX_GUID'
+  }
+  $propertyNames = [ordered]@{
+    FX_LFX = 'lfxGuidValueName'
+    FX_GFX = 'gfxGuidValueName'
+    FX_SFX = 'sfxGuidValueName'
+    FX_MFX = 'mfxGuidValueName'
+    FX_EFX = 'efxGuidValueName'
+    DEVICE_FRIENDLY_VALUE = 'deviceValueName'
+  }
+  foreach ($entry in $propertyNames.GetEnumerator()) {
+    $expected[$entry.Key] = Get-ContractDeclaration $device $entry.Value '\b@NAME@\s*\[\s*\]\s*=\s*L"(?<value>[^"\r\n]+)"\s*;'
+  }
+  $macroPattern = '(?m)^\s*#define\s+@NAME@\s+L"(?<value>[^"\r\n]+)"\s*$'
+  $commonRoot = Get-ContractDeclaration $device 'commonKeyPath' $macroPattern
+  $appRoot = Get-ContractDeclaration $registry 'APP_REGPATH' $macroPattern
+  $childSuffix = Get-ContractDeclaration $device 'childApoPath' '(?m)^\s*#define\s+@NAME@\s+APP_REGPATH\s+L"(?<value>[^"\r\n]+)"\s*$'
+  $expected['MMDEVICES_ROOT'] = $commonRoot.Replace('\\', '\').Replace('HKEY_LOCAL_MACHINE\', 'HKLM\')
+  $expected['CHILD_APO_ROOT'] = ($appRoot + $childSuffix).Replace('\\', '\').Replace('HKEY_LOCAL_MACHINE\', 'HKLM\')
+
+  $tokens = $null
+  $parseErrors = $null
+  $ast = [System.Management.Automation.Language.Parser]::ParseFile($apoHarnessPath, [ref]$tokens, [ref]$parseErrors)
+  if ($parseErrors.Count -gt 0) { throw "Cannot parse APO endpoint harness: $($parseErrors[0].Message)" }
+  $functions = @($ast.FindAll({ param($node)
+    $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Get-ApoEndpointContract'
+  }, $true))
+  if ($functions.Count -ne 1) { throw 'Cannot find one Get-ApoEndpointContract function in the harness.' }
+  $tables = @($functions[0].Body.FindAll({ param($node)
+    $node -is [System.Management.Automation.Language.HashtableAst]
+  }, $true))
+  if ($tables.Count -ne 1) { throw 'Cannot find one literal APO endpoint contract table in the harness.' }
+  $actual = $tables[0].SafeGetValue()
+  $contractErrors = @()
+  foreach ($entry in $expected.GetEnumerator()) {
+    if (-not $actual.ContainsKey($entry.Key) -or $actual[$entry.Key] -ne $entry.Value) {
+      $contractErrors += "APO endpoint contract $($entry.Key) differs: harness '$($actual[$entry.Key])', C++ '$($entry.Value)'."
+    }
+  }
+  foreach ($key in $actual.Keys) {
+    if (-not $expected.Contains($key)) { $contractErrors += "APO endpoint contract $key has no C++ declaration mapping in this lint." }
+  }
+  foreach ($message in $contractErrors) {
+    Write-Host "::error file=.github/scripts/ApoEndpointHarness.psm1::$message"
+  }
+  if ($contractErrors.Count -gt 0) { throw 'APO endpoint harness and C++ headers are out of sync.' }
+  Write-Host "All $($expected.Count) APO endpoint contract values match the C++ headers."
+}
+
 # Audit #422 T1/TD-47: EqualizerAPO.sln is kept for Visual Studio, but it
 # is a third list of the MSBuild projects. It must name exactly the projects
 # BuildModel.psm1 knows, or a project added to one silently misses the other.
