@@ -114,6 +114,11 @@ std::wstring downloadUrl(const std::wstring& channel)
 	return std::wstring(L"https://github.com") + assetPath(channel);
 }
 
+std::wstring detectionOutput(const std::wstring& channel, const std::wstring& url)
+{
+	return channel + L"\n" + url + L"\n";
+}
+
 std::wstring expectedHashFromChecksums(const std::string& text, const std::wstring& fileName)
 {
 	std::string narrowName;

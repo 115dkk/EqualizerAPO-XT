@@ -68,6 +68,9 @@ std::wstring latestAssetPath(const std::wstring& asset);
 std::wstring assetPath(const std::wstring& channel);
 std::wstring downloadUrl(const std::wstring& channel);
 
+// --detect-only stdout and --out share this exact two-line, LF-terminated text.
+std::wstring detectionOutput(const std::wstring& channel, const std::wstring& url);
+
 // Find fileName in sha256sum-style checksum text and return its digest as
 // lowercase hex. Each line is "<64 hex chars>  <name>"; the binary-mode form
 // "<hash> *<name>" is accepted too, and the name comparison ignores ASCII

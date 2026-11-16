@@ -551,7 +551,7 @@ private:
 int reportDetection(const std::wstring& channel, const std::wstring& url,
     const wchar_t* outPath, int index)
 {
-    const std::wstring text = channel + L"\n" + url + L"\n";
+    const std::wstring text = detectionOutput(channel, url);
 
     winutil::ParentConsole console;
     if (console)
@@ -565,7 +565,7 @@ int reportDetection(const std::wstring& channel, const std::wstring& url,
     }
 
     if (outPath != nullptr)
-        writeTextFile(outPath, channel + L"\n" + url + L"\n");
+        writeTextFile(outPath, text);
 
     return index;
 }

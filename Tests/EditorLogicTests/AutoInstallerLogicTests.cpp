@@ -155,6 +155,31 @@ TEST_CASE(EditorLogicTests, testAutoInstallerChannelMapping)
 	expectEqual(index, int(kArm64), "arm64 index");
 }
 
+TEST_CASE(EditorLogicTests, testAutoInstallerDetectionOutputContract)
+{
+	const wchar_t* channels[] = {
+		L"x64-sse2", L"x64-avx", L"x64-avx2", L"x64-avx512", L"x64-avx10-1", L"arm64-neon"
+	};
+	for (int expectedIndex = 0; expectedIndex < 6; ++expectedIndex)
+	{
+		CpuFeatures features;
+		features.avx = expectedIndex >= 1;
+		features.avx2 = expectedIndex >= 2;
+		features.avx512f = expectedIndex >= 3;
+		features.avx10_1 = expectedIndex >= 4;
+		features.arm64Native = expectedIndex == 5;
+		int index = -1;
+		const std::wstring channel = channelForCpu(features, &index);
+		const QString expectedChannel = QString::fromWCharArray(channels[expectedIndex]);
+		const QString expected = expectedChannel + QStringLiteral("\nhttps://github.com/115dkk/EqualizerAPO-XT/"
+			"releases/latest/download/EqualizerAPO-XT-") + expectedChannel + QLatin1Char('-') +
+			expectedChannel + QStringLiteral("-Setup.exe\n");
+		expectEqual(index, expectedIndex, "detect-only exit code is the published numeric channel index");
+		expectEqual(wide(detectionOutput(channel, downloadUrl(channel))), expected,
+			"detect-only output is channel, LF, absolute URL, LF, with no extra text");
+	}
+}
+
 TEST_CASE(EditorLogicTests, testAutoInstallerChannelDescriptions)
 {
 	// The window's "detected" line reads the same table channelForCpu does
