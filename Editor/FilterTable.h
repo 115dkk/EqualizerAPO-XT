@@ -140,8 +140,10 @@ public:
 	void removeItem(Item* item);
 	// One line's text changed: the document's single-line mutations
 	// (FilterListModel::setText and the two rules built on it), each followed
-	// by linesChanged. A row widget forwards its edit here instead of writing
+	// by linesChanged. A card row forwards its edit here instead of writing
 	// item->text itself; deferring its own rebuild stays the row's business.
+	// The frozen legacy row (FilterTableRow::updateModel) still writes
+	// item->text directly.
 	void setLineText(Item* item, const QString& text);
 	void setLineEnabled(Item* item, bool enabled);
 	void replaceLineCommand(Item* item, const QString& command, const QString& parameters);

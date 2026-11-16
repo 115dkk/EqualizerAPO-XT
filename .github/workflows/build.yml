@@ -233,8 +233,8 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
       with:
-        # On main, the bump job pushed a new commit using GITHUB_TOKEN which does
-        # not retrigger workflows. Pulling that commit explicitly ensures the
+        # On main, the bump job pushed a new commit with the release deploy key
+        # and [skip ci], so no second workflow starts for it. Pulling that commit explicitly ensures the
         # build runs against the bumped version.h instead of the pre-bump SHA
         # that triggered the workflow.
         ref: ${{ needs.version-bump.outputs.bumped_sha || github.sha }}
@@ -390,10 +390,10 @@ jobs:
 
     # The VSTPlugin store()/parse round-trip self-test: opening and saving a
     # line must never lose chunk data, parameters or the bus contract.
-    # The six Editor offscreen gates share one headless preamble (velopack
+    # The Editor offscreen gates below share one headless preamble (velopack
     # SONAME copy, dependency PATH, QT_QPA offscreen setup with the platform-
     # plugin search pointed at the full Qt install, stderr capture for a
-    # GUI-subsystem binary). It lived as six inline YAML copies; it now lives
+    # GUI-subsystem binary). It lived as one inline YAML copy per gate; it now lives
     # once in .github/scripts/Invoke-EditorOffscreenTest.ps1 (audit #275
     # D6/TD-24), with -PlanOnly Pester coverage. Primary avx2 variant only:
     # the gates exercise QSS/QPainter/widget behavior, which does not vary by

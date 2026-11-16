@@ -23,7 +23,7 @@
 #                                            job matrix — the matrix is no longer
 #                                            hand-written in YAML)
 #   - .github/scripts/Test-VariantSync.ps1  (fails CI when the channel strings
-#                                            compiled into Installer/AutoInstaller.cpp
+#                                            compiled into Installer/AutoInstallerLogic.cpp
 #                                            drift from Variants[].Channel)
 #   - .github/scripts/New-ReleaseNotes.ps1  (release-channel guidance/sort table)
 #   - .github/scripts/New-VelopackRelease.ps1 (packs each channel under its
