@@ -96,6 +96,7 @@ Set-StrictMode -Version Latest
 # The FxProperties vocabulary (slots, EQ CLSIDs, registry root) comes from the
 # shared module rather than copies here (audit #348 F23).
 Import-Module (Join-Path $PSScriptRoot "ApoEndpointHarness.psm1") -Force
+Import-Module (Join-Path $PSScriptRoot "GateVerdicts.psm1") -Force
 
 $renderConnection = "CABLE Input"
 $captureConnection = "CABLE Output"
@@ -186,7 +187,8 @@ New-Item -ItemType Directory -Force -Path $SnapshotDirectory | Out-Null
 $captureProbe = Join-Path $ProbeDirectory "CaptureProbe.exe"
 $apoHostProbe = Join-Path $ProbeDirectory "ApoHostProbe.exe"
 foreach ($exe in @($captureProbe, $apoHostProbe)) {
-    if (-not (Test-Path -LiteralPath $exe)) { throw "probe not found: $exe" }
+    $fileVerdict = Get-GateFileVerdict (Test-Path -LiteralPath $exe) "probe not found: $exe"
+    if (-not $fileVerdict.Passed) { throw $fileVerdict.Reasons[0] }
 }
 
 $summary = [ordered]@{
@@ -458,30 +460,8 @@ function Invoke-PluginLoadMeasurement([string] $label) {
 # plugins loaded, each of them paid the whole load again (measured on this
 # runner: 4.0 s for every open).
 function Test-PluginLoadReuse($record) {
-    $opens = @($record.opens)
-    if ($opens.Count -lt 3) {
-        Add-Failure "plugin-load/fixture: only $($opens.Count) of the 3 capture opens ran"
-        return
-    }
-    foreach ($open in $opens) {
-        if ($open.exitCode -ne 0 -or $null -eq $open.openMs) {
-            Add-Failure "plugin-load/fixture/$($open.name): the capture open failed (exit $($open.exitCode))"
-            return
-        }
-    }
-    $loadFloorMs = 0.8 * $SlowLoadMilliseconds
-    # Opens 2 and 3 test reuse only if the pipeline was really torn down in
-    # between (GraphSettleSeconds + 2 s). On windows-2022 it was: before the
-    # fix every open paid the full 4 s again.
-    $reuseCeilingMs = 0.25 * $SlowLoadMilliseconds
-    if ([double]$opens[0].openMs -lt $loadFloorMs) {
-        Add-Failure "plugin-load/fixture/open1: opened in $($opens[0].openMs) ms, under the fixture's $SlowLoadMilliseconds ms load, so the audio engine did not load the plugin"
-    }
-    foreach ($open in $opens[1..2]) {
-        if ([double]$open.openMs -gt $reuseCeilingMs) {
-            Add-Failure "plugin-load/fixture/$($open.name): opened in $($open.openMs) ms; a rebuilt pipeline must reuse the plugin the engine kept loaded (limit $reuseCeilingMs ms)"
-        }
-    }
+    $verdict = Get-PluginLoadReuseVerdict $record $SlowLoadMilliseconds
+    foreach ($reason in $verdict.Reasons) { Add-Failure $reason }
 }
 
 function Measure-Cable($measurement, [string] $round = "") {
@@ -525,26 +505,20 @@ function Measure-Cable($measurement, [string] $round = "") {
         enginePeriodFrames = Get-JsonField $json "enginePeriodFrames"
         holdEnginePeriodFrames = Get-JsonField $json "holdEnginePeriodFrames"
         smallPeriodAvailable = $null
-        passed = ($run.ExitCode -eq 0)
+        passed = $null
         note = $measurement.Note
     }
-    # A "min" request that came back at the default period says the driver
-    # declares no smaller one: nothing to judge, and the summary says so.
-    $noSmallPeriod = $false
-    if ($period -eq "min" -and $null -ne $record.engineMinPeriodFrames -and $null -ne $record.engineDefaultPeriodFrames) {
-        $record.smallPeriodAvailable = ([int]$record.engineMinPeriodFrames -lt [int]$record.engineDefaultPeriodFrames)
-        $noSmallPeriod = -not $record.smallPeriodAvailable
-        if ($noSmallPeriod) { $record.note = "$($measurement.Note); the driver declares no period below the default ($($record.engineDefaultPeriodFrames) frames), nothing to judge" }
-    }
+    $decision = Get-CaptureMeasurementVerdict $record $roundRequired
+    $record.passed = $decision.Passed
+    $record.smallPeriodAvailable = $decision.SmallPeriodAvailable
+    $record.note = $decision.Note
     $summary.measurements += [pscustomobject]$record
-    $verdict = if ($noSmallPeriod) { "skipped (no small period)" } elseif ($record.passed) { "ok" } elseif ($measurement.Required) { "FAILED" } else { "noted" }
+    $verdict = $decision.Label
     Write-Host ("measurement {0}: gain {1} dB (expected {2} +- {3}) -> {4}" -f $label, $record.gainDb, $measurement.ExpectGainDb, $measurement.ToleranceDb, $verdict)
     if ($period) {
         Write-Host ("  playback period {0} frames (engine default {1}, min {2}); engine ran at {3}, held stream at {4}" -f $record.renderPeriodFrames, $record.engineDefaultPeriodFrames, $record.engineMinPeriodFrames, $record.enginePeriodFrames, $record.holdEnginePeriodFrames)
     }
-    if (-not $record.passed -and $measurement.Required -and $roundRequired -and -not $noSmallPeriod) {
-        Add-Failure ("{0}: the tone arrived at {1} dB, expected {2} +- {3} dB ({4})" -f $label, $record.gainDb, $measurement.ExpectGainDb, $measurement.ToleranceDb, $measurement.Note)
-    }
+    foreach ($reason in $decision.Reasons) { Add-Failure $reason }
     return $record
 }
 
@@ -786,11 +760,12 @@ if ($Phases -contains "plugin-load") {
         uninstall = $null
     }
     $fixtureSource = Join-Path $ProbeDirectory "TestVst2Plugin.dll"
-    if (-not (Test-Path -LiteralPath $fixtureSource)) {
+    $fixtureVerdict = Get-GateFileVerdict (Test-Path -LiteralPath $fixtureSource) "plugin-load: TestVst2Plugin.dll is not in the probe directory (the capture-probes artifact lost it)"
+    if (-not $fixtureVerdict.Passed) {
         $pluginLoadRecord.verdict = "skipped"
         $pluginLoadRecord.reason = "TestVst2Plugin.dll is not in the probe directory"
         $pluginLoadRecord.fixture = [ordered]@{ verdict = "skipped"; reason = $pluginLoadRecord.reason }
-        Add-Failure "plugin-load: TestVst2Plugin.dll is not in the probe directory (the capture-probes artifact lost it)"
+        Add-Failure $fixtureVerdict.Reasons[0]
     }
     else {
         $originalConfig = $null
@@ -1005,8 +980,9 @@ if ($Phases -contains "asio-entry") {
         if (-not (Test-Path $asioRoot)) { return @() }
         return @(Get-ChildItem $asioRoot -ErrorAction SilentlyContinue | Where-Object { $_.PSChildName -like "* (EQ APO XT)" })
     }
-    if (-not (Test-Path -LiteralPath $asioProbe)) {
-        Add-Failure "asio-entry: AsioProbe.exe is not in the probe directory"
+    $probeVerdict = Get-GateFileVerdict (Test-Path -LiteralPath $asioProbe) "asio-entry: AsioProbe.exe is not in the probe directory"
+    if (-not $probeVerdict.Passed) {
+        Add-Failure $probeVerdict.Reasons[0]
     } else {
         $install = Invoke-ExternalProgram (Join-Path $current "DeviceSelector.exe") @("--install-endpoint", $endpoints.Render, "--asio-entry") 300 $current
         $asioEntry.install = [ordered]@{ exitCode = $install.ExitCode; timedOut = $install.TimedOut }
@@ -1104,7 +1080,7 @@ $summaryPath = Join-Path $SnapshotDirectory "capture-gate.json"
 [pscustomobject]$summary | ConvertTo-Json -Depth 8 | Out-File -FilePath $summaryPath -Encoding utf8
 $summary.rounds | Format-Table -AutoSize mode, installMode | Out-String | Write-Host
 $summary.measurements | Format-Table -AutoSize name, category, raw, period, enginePeriodFrames, expectGainDb, gainDb, passed, required | Out-String | Write-Host
-if ($summary.failures.Count -gt 0) {
+if (-not (Get-CaptureGateVerdict $summary.failures).Passed) {
     Write-Host "capture gate FAILED:"
     $summary.failures | ForEach-Object { Write-Host "  - $_" }
     exit 1

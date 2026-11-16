@@ -100,6 +100,8 @@ $plan = [pscustomobject]@{
 }
 if ($PlanOnly) { return $plan }
 
+Import-Module (Join-Path $PSScriptRoot 'GateVerdicts.psm1') -Force
+
 foreach ($required in @('AppDirectory', 'PluginManifest', 'WorkDirectory', 'SnapshotDirectory')) {
     if ([string]::IsNullOrWhiteSpace((Get-Variable -Name $required -ValueOnly))) { throw "-$required is required unless -PlanOnly" }
 }
@@ -333,9 +335,9 @@ function Invoke-Render([string] $name, [string] $line) {
         $process = Start-Process -FilePath (Join-Path $AppDirectory 'Benchmark.exe') -WorkingDirectory $AppDirectory -ArgumentList $arguments -PassThru -RedirectStandardOutput (Join-Path $caseSnapshot "$name.stdout.log") -RedirectStandardError (Join-Path $caseSnapshot "$name.stderr.log")
         $null = $process.Handle
         $finished = $process.WaitForExit($plan.Timeouts.BenchmarkSeconds * 1000)
-        Require-Check "$name-benchmark-timeout" 'exit within 120 s' $finished $finished
+        Require-Check "$name-benchmark-timeout" 'exit within 120 s' $finished (Get-PanelMeasurementVerdict 'benchmark-timeout' $finished).Passed
         $process.WaitForExit()
-        Require-Check "$name-benchmark-exit" 0 $process.ExitCode ($process.ExitCode -eq 0)
+        Require-Check "$name-benchmark-exit" 0 $process.ExitCode (Get-PanelMeasurementVerdict 'benchmark-exit' $process.ExitCode).Passed
         $data = [PanelInputGate.Audio]::ReadPcm16($output, $plan.Signal.SampleRate, $plan.Signal.Channels, $plan.Signal.Frames)
         Add-Check "$name-wav" "48000 Hz stereo PCM16, $($plan.Signal.Frames) frames" "$($data.Length) data bytes" $true
         return ,$data
@@ -432,7 +434,7 @@ foreach ($case in $plan.Cases) {
         Start-Sleep -Milliseconds 300
         $after = Save-Capture $panel.Rect 'P_after'
         $pixels = [PanelInputGate.Desktop]::ChangedPixels($before, $after)
-        Add-Check 'editor-pixels' ">= $($plan.MinEditorPixelsChanged)" $pixels ($pixels -ge $plan.MinEditorPixelsChanged)
+        Add-Check 'editor-pixels' ">= $($plan.MinEditorPixelsChanged)" $pixels (Get-PanelMeasurementVerdict 'editor-pixels' $pixels $plan.MinEditorPixelsChanged).Passed
         $apply = [PanelInputGate.Desktop]::FindNamed($panel.Window.Handle, 'Apply', $true)
         if ($null -ne $apply) { Click-Rect $apply; Start-Sleep -Milliseconds 500 }
         Add-Check 'panel-apply' 'click Apply if present' ($null -ne $apply) $true
@@ -449,7 +451,7 @@ foreach ($case in $plan.Cases) {
         # equality: MVerb prints each knob's value as text, and the value it
         # reads back from the host can round to another digit than the one
         # it showed while dragging. A panel that lost the edit matches P_before.
-        Add-Check 'panel-restore' 'closer to P_after than to P_before' "after=$toAfter before=$toBefore" ($toAfter -lt $toBefore)
+        Add-Check 'panel-restore' 'closer to P_after than to P_before' "after=$toAfter before=$toBefore" (Get-PanelMeasurementVerdict 'panel-restore' $toAfter $toBefore).Passed
         Close-Panel $panel 'Cancel'
 
         [PanelInputGate.Desktop]::Close($main.Handle)
@@ -467,29 +469,18 @@ foreach ($case in $plan.Cases) {
             if ($pending) { break }
             Start-Sleep -Milliseconds 100
         }
-        Require-Check 'no-unsaved-prompt' 'no No/Discard dialog after saved config' $pending (-not $pending)
-        Require-Check 'editor-close-timeout' 'exit within 30 s' $editor.HasExited $editor.HasExited
+        Require-Check 'no-unsaved-prompt' 'no No/Discard dialog after saved config' $pending (Get-PanelMeasurementVerdict 'no-unsaved-prompt' $pending).Passed
+        Require-Check 'editor-close-timeout' 'exit within 30 s' $editor.HasExited (Get-PanelMeasurementVerdict 'editor-close-timeout' $editor.HasExited).Passed
         $editor.WaitForExit()
-        Add-Check 'editor-exit' 0 $editor.ExitCode ($editor.ExitCode -eq 0)
+        Add-Check 'editor-exit' 0 $editor.ExitCode (Get-PanelMeasurementVerdict 'editor-exit' $editor.ExitCode).Passed
 
-        $changed = @($state1.Keys | Where-Object { $state1[$_] -ne $state2[$_] })
-        if ($case.Format -eq 'VST3') {
-            Add-Check 'vst3-panel-edit-saved' 'S2 differs from S1' $(if ($changed.Count -eq 0) { 'panel edit was not saved' } else { $changed -join ', ' }) ($changed.Count -gt 0)
-        }
-        Add-Check 'changed-parameters' ">= $($case.Expect.MinChangedParameters)" ($changed -join ', ') ($changed.Count -ge $case.Expect.MinChangedParameters)
-        foreach ($key in $case.Expect.Directions.Keys) {
-            $delta = $state2[$key] - $state1[$key]
-            $direction = $case.Expect.Directions[$key]
-            $pass = if ($direction -eq 'rises') { $delta -gt 0 } else { $delta -lt 0 }
-            Add-Check "parameter-$key" $direction "$($state1[$key]) -> $($state2[$key])" $pass
-        }
-        if ($case.Expect.OthersUnchanged) {
-            $unexpected = @($changed | Where-Object { $case.Expect.Directions.Keys -notcontains $_ })
-            Add-Check 'other-parameters-unchanged' 'only Low and High differ' ($unexpected -join ', ') ($unexpected.Count -eq 0)
+        $stateVerdict = Get-PanelStateVerdict $case $state1 $state2
+        foreach ($check in $stateVerdict.Checks) {
+            Add-Check $check.check $check.expected $check.observed $check.pass
         }
         if ($null -ne $state0) {
             $moved = @($state0.Keys | Where-Object { $state0[$_] -ne $state1[$_] })
-            Add-Check 'background-state' 'S1 equals S0' ($moved -join ', ') ($moved.Count -eq 0)
+            Add-Check 'background-state' 'S1 equals S0' ($moved -join ', ') (Get-PanelMeasurementVerdict 'background-state' $moved.Count).Passed
             $untouchedAudio = Invoke-Render 'S0' $s0
             $savedDifference = [PanelInputGate.Audio]::MaxDifference($defaultAudio, $untouchedAudio)
             Add-Check 'saved-default-sound' 'informational: bare Library line versus the saved untouched state' "max difference $savedDifference LSB" $true
@@ -498,10 +489,10 @@ foreach ($case in $plan.Cases) {
         $editedAudio = Invoke-Render 'S2' $s2
         if ($null -ne $state0) {
             $negativeDifference = [PanelInputGate.Audio]::MaxDifference($untouchedAudio, $baselineAudio)
-            Add-Check 'background-sound' 'S0 and S1 renders identical' "max difference $negativeDifference LSB" ($negativeDifference -eq 0)
+            Add-Check 'background-sound' 'S0 and S1 renders identical' "max difference $negativeDifference LSB" (Get-PanelMeasurementVerdict 'background-sound' $negativeDifference).Passed
         }
         $editDifference = [PanelInputGate.Audio]::MaxDifference($baselineAudio, $editedAudio)
-        Add-Check 'edited-sound' ">= $($plan.MinSoundChangeLsb) LSB" $editDifference ($editDifference -ge $plan.MinSoundChangeLsb)
+        Add-Check 'edited-sound' ">= $($plan.MinSoundChangeLsb) LSB" $editDifference (Get-PanelMeasurementVerdict 'edited-sound' $editDifference $plan.MinSoundChangeLsb).Passed
     } catch {
         Add-Check 'scenario' 'all scenario steps complete' ($_ | Out-String) $false
         Capture-Failure 'failure-screen'
@@ -517,7 +508,7 @@ foreach ($case in $plan.Cases) {
         try {
             if ($AsanLogDirectory) {
                 $asanFiles = @(Get-ChildItem -LiteralPath $AsanLogDirectory -Recurse -File -Force)
-                Add-Check 'asan' 'no ASan files' (($asanFiles | ForEach-Object { $_.FullName }) -join ', ') ($asanFiles.Count -eq 0)
+                Add-Check 'asan' 'no ASan files' (($asanFiles | ForEach-Object { $_.FullName }) -join ', ') (Get-PanelMeasurementVerdict 'asan' $asanFiles.Count).Passed
                 if ($asanFiles.Count -gt 0) {
                     Capture-Failure 'asan-screen'
                     $destination = Join-Path $caseSnapshot 'asan'
@@ -534,7 +525,8 @@ foreach ($case in $plan.Cases) {
         Save-Summary
     }
 }
-$failed = @($summary.checks | Where-Object { -not $_.pass }).Count
+$verdict = Get-PanelGateVerdict $summary.checks
+$failed = $verdict.Reasons.Count
 Write-Host "Panel input gate: $($plan.Cases.Count) cases, $($summary.checks.Count) checks, $failed failed. Summary: $(Join-Path $SnapshotDirectory 'summary.json')"
-if ($failed -gt 0) { exit 1 }
+if (-not $verdict.Passed) { exit 1 }
 exit 0
