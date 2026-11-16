@@ -2580,7 +2580,7 @@ Alexander Walch</translation>
     <message>
         <location filename="../MainWindow.cpp" line="307"/>
         <source>The Windows audio service is not running. Sound will not play until it is started.</source>
-        <translation>Windows 오디오 서비스가 실행 중이 아닙니다. 서비스를 시작해야 소리를 재생할 수 있습니다.</translation>
+        <translation>Windows 오디오 서비스가 실행되지 않았습니다. 서비스를 시작해야 소리를 재생할 수 있습니다.</translation>
     </message>
     <message>
         <location filename="../MainWindow.cpp" line="338"/>
