@@ -61,6 +61,7 @@ bool faultActiveMode = false;
 bool faultStateMode = false;
 bool refuseStateMode = false;
 bool fullNameMode = false;
+bool floatOnlyMode = false;
 bool surround41Mode = false;
 bool surround41CineOnlyMode = false;
 bool busInfoMismatchMode = false;
@@ -1276,7 +1277,7 @@ public:
 					ComponentScenario::combinedDouble,
 					ComponentScenario::splitFloat
 				};
-				instance = static_cast<IComponent*>(new TestComponent(scenarios[componentInstanceCount++ % 3]));
+				instance = static_cast<IComponent*>(new TestComponent(floatOnlyMode ? ComponentScenario::splitFloat : scenarios[componentInstanceCount++ % 3]));
 			}
 		}
 		else if (FUnknownPrivate::iidEqual(cid, controllerCid))
@@ -1372,6 +1373,7 @@ extern "C" __declspec(dllexport) bool InitDll()
 	faultStateMode = wcsstr(moduleName, testvst3::mode::faultState) != nullptr;
 	refuseStateMode = wcsstr(moduleName, testvst3::mode::refuseState) != nullptr;
 	fullNameMode = wcsstr(moduleName, testvst3::mode::fullName) != nullptr;
+	floatOnlyMode = wcsstr(moduleName, testvst3::mode::floatOnly) != nullptr;
 	if (wcsstr(moduleName, testvst3::mode::rejectInit) != nullptr)
 		return false;
 	wcscpy_s(loadedModulePath, modulePath);

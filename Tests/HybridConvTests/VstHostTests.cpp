@@ -213,14 +213,22 @@ bool latencyStreamMatches(const shared_ptr<VSTPluginLibrary>& library, unsigned 
 	return true;
 }
 
+shared_ptr<VSTPluginLibrary> loadScenarioLibrary()
+{
+	auto loaded = VSTPluginLibrary::load(exeDirectory() + L"\\TestVst2Plugin.dll");
+	harness.require(loaded.succeeded(), "scenario VST2 module loads");
+	return loaded.library;
+}
+
 // Audit #348 A10: the plug-in reports 512 samples of latency. The compensation
 // delays only the channels no plug-in output writes (maintainer decision; it
 // used to delay every channel, the processed ones included, which left them
 // twice as late). A VST2 plug-in's instances cover every channel, so nothing
 // is delayed here and no ring is allocated; Vst3HostTests covers a fill that
 // leaves a channel unwritten.
-void expectLatencyCompensationGolden(const shared_ptr<VSTPluginLibrary>& library)
+TEST_CASE(VstHostTests, expectLatencyCompensationGolden)
 {
+	auto library = loadScenarioLibrary();
 	SetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", L"latency-512");
 
 	harness.expectTrue(latencyStreamMatches(library, 128, 0),
@@ -481,8 +489,10 @@ TEST_CASE(VstHostTests, testVolumeControllerBalancesComInitialization)
 // The DLL is held against writers from the judgment to LoadLibraryW, the
 // window in which an emptied leaf could otherwise be given reparse data
 // (AbstractLibrary::holdForLoad). The hold must not stop the loader itself.
-void testLoadHold(const wstring& dllPath)
+TEST_CASE(VstHostTests, testLoadHold)
 {
+	const wstring dllPath = exeDirectory() + L"\\TestVst2Plugin.dll";
+
 	test::TestDirectory directory(L"VstHostTests-load");
 	const wstring folder = directory.subdirectory(L"load-hold");
 	const wstring plugin = folder + L"\\plugin.dll";
@@ -545,8 +555,10 @@ void copyResidencyTestPlugin(const wstring& source, const wstring& destination, 
 		harness.fail(label + " (error " + std::to_string(GetLastError()) + ")");
 }
 
-void testExpiredLibraryCache(const wstring& dir)
+TEST_CASE(VstHostTests, testExpiredLibraryCache)
 {
+	const wstring dir = exeDirectory();
+
 	const size_t baseline = VSTPluginLibrary::cachedLibraryCountForTesting();
 	for (int i = 0; i < 16; i++)
 	{
@@ -572,8 +584,9 @@ void testExpiredLibraryCache(const wstring& dir)
 		"failed loads are not retained by the process-lifetime policy");
 }
 
-void testVst2CallbacksAndEditorDefaults(const shared_ptr<VSTPluginLibrary>& library)
+TEST_CASE(VstHostTests, testVst2CallbacksAndEditorDefaults)
 {
+	auto library = loadScenarioLibrary();
 	SetEnvironmentVariableW(L"EAPO_TEST_VST_HOST_CALLBACKS", L"1");
 	auto instance = VSTPluginInstance::create(library, VSTPluginInstance::ProcessLevel::Realtime);
 	const bool initialized = instance->initialize();
@@ -595,8 +608,9 @@ void testVst2CallbacksAndEditorDefaults(const shared_ptr<VSTPluginLibrary>& libr
 	harness.expectEqual(callbacks, 0, "VST2 teardown cannot invoke caller closures");
 }
 
-void testVst2EditorScaling(const shared_ptr<VSTPluginLibrary>& library)
+TEST_CASE(VstHostTests, testVst2EditorScaling)
 {
+	auto library = loadScenarioLibrary();
 	SetEnvironmentVariableW(L"EAPO_TEST_VST_EDITOR", L"scaled");
 	auto scaled = VSTPluginInstance::create(library, VSTPluginInstance::ProcessLevel::Realtime);
 	const bool scaledInitialized = scaled->initialize();
@@ -679,8 +693,11 @@ void testVst2EditorScaling(const shared_ptr<VSTPluginLibrary>& library)
 	late.reset();
 }
 
-void testProcessLifetimeResidency(const wstring& dir, const wstring& dllPath)
+TEST_CASE(VstHostTests, testProcessLifetimeResidency)
 {
+	const wstring dir = exeDirectory();
+	const wstring dllPath = dir + L"\\TestVst2Plugin.dll";
+
 	const wstring unloadPath = dir + L"\\TestVst2Plugin.Unload.dll";
 	const wstring residentPath = dir + L"\\TestVst2Plugin.Resident.dll";
 	copyResidencyTestPlugin(dllPath, unloadPath, "copy the unload-policy test plugin");
@@ -751,10 +768,8 @@ void testProcessLifetimeResidency(const wstring& dir, const wstring& dllPath)
 }
 } // namespace
 
-TEST_CASE(VstHostTests, runVstHostTests)
-{	// Both early returns (the skip below and the missing-DLL failure after it)
-	// report first: under the harness default (Collect) a failure recorded
-	// above only fails the build through report().
+TEST_CASE(VstHostTests, testCompanionAvailable)
+{
 	const wstring dir = exeDirectory();
 	if (dir.empty())
 	{
@@ -775,10 +790,12 @@ return;
 			"(missing = build/copy problem, the suite cannot run)");
 return;
 	}
+}
 
-	testLoadHold(dllPath);
-	testExpiredLibraryCache(dir);
-
+TEST_CASE(VstHostTests, testInitializationRollback)
+{
+	const wstring dir = exeDirectory();
+	const wstring dllPath = dir + L"\\TestVst2Plugin.dll";
 	// A failed subclass initialization must roll the DLL load back completely.
 	// Otherwise the second call sees a non-null module and returns 0 (already
 	// initialized), turning the original failure into a false success.
@@ -789,7 +806,12 @@ return;
 		"custom initialization failure is reported again after rollback");
 	harness.expectEqual(rejectingLibrary.getCustomInitializeCount(), 2,
 		"custom initialization is retried after rollback");
+}
 
+TEST_CASE(VstHostTests, testModuleDiscoveryAndAbi)
+{
+	const wstring dir = exeDirectory();
+	const wstring dllPath = dir + L"\\TestVst2Plugin.dll";
 	// Load the library through the engine's loader (LoadLibrary +
 	// GetProcAddress(VSTPluginMain)). The typed result distinguishes a new
 	// load, an already-loaded module and the reason for failure.
@@ -815,9 +837,12 @@ return;
 		"a .dll exporting both entry points retains VSTPluginMain (#455)");
 	harness.expectTrue(library->getFactory() == nullptr,
 		"a .dll exporting both entry points does not retain a VST3 factory (#455)");
+}
 
-	testProcessLifetimeResidency(dir, dllPath);
-
+TEST_CASE(VstHostTests, testVst2IgnoresBusContract)
+{
+	const wstring dir = exeDirectory();
+	const wstring dllPath = dir + L"\\TestVst2Plugin.dll";
 	{
 		VSTPluginFilterFactory factory;
 		wstring busCommand = L"VSTPlugin";
@@ -837,7 +862,12 @@ return;
 		harness.expectTrue(busCommand == L"VSTPlugin",
 			"VST2 Input/Output handling keeps the shared VSTPlugin command");
 	}
+}
 
+TEST_CASE(VstHostTests, testDualExportExtensionSelection)
+{
+	const wstring dir = exeDirectory();
+	const wstring dllPath = dir + L"\\TestVst2Plugin.dll";
 	const wstring dualExportVst3Path = dir + L"\\TestVst2DualExport.vst3";
 	if (CopyFileW(dllPath.c_str(), dualExportVst3Path.c_str(), FALSE) != FALSE)
 	{
@@ -848,18 +878,22 @@ return;
 	}
 	else
 		harness.expectTrue(false, "dual-export .vst3 copy is available for extension selection");
+}
 
-	testVst2CallbacksAndEditorDefaults(library);
-	testVst2EditorScaling(library);
-
+TEST_CASE(VstHostTests, testRejectedMetadataPassthrough)
+{
+	auto library = loadScenarioLibrary();
 	expectRejectedMetadataPassesThrough(library, L"huge-inputs", "unrealistic input count");
 	expectRejectedMetadataPassesThrough(library, L"negative-inputs", "negative input count");
 	expectRejectedMetadataPassesThrough(library, L"huge-outputs", "unrealistic output count");
 	expectRejectedMetadataPassesThrough(library, L"negative-outputs", "negative output count");
 	expectRejectedMetadataPassesThrough(library, L"negative-delay", "negative initial delay");
 	expectRejectedMetadataPassesThrough(library, L"huge-delay", "unrealistic initial delay");
-	expectLatencyCompensationGolden(library);
+}
 
+TEST_CASE(VstHostTests, testInstanceMetadataAndLifecycle)
+{
+	auto library = loadScenarioLibrary();
 	// Construct and initialize the instance the way the engine does (heap
 	// allocated, owned here). processLevel mirrors a realtime audio thread.
 	auto instance = VSTPluginInstance::create(library, VSTPluginInstance::ProcessLevel::Realtime);
@@ -886,6 +920,16 @@ return;
 	harness.expectTrue(instance->canProcessNow(),
 		"a started VST2 instance reports that it can process");
 
+	instance->stopProcessing();
+}
+
+TEST_CASE(VstHostTests, testChunkRoundTrip)
+{
+	auto library = loadScenarioLibrary();
+	auto instance = VSTPluginInstance::create(library, VSTPluginInstance::ProcessLevel::Realtime);
+	harness.require(instance->initialize(), "scenario VST2 instance initializes");
+	instance->prepareForProcessing(48000.0f, 512);
+	instance->startProcessing();
 	// --- Chunk round-trip: read default state, then set a known gain and read
 	// it back. The plugin sets the programChunks flag, so the engine routes all
 	// state through the chunk path (writeToEffect/readFromEffect).
@@ -925,6 +969,18 @@ return;
 	instance->readFromEffect(chunkC, paramsC);
 	harness.expectTrue(chunkC == chunkB, "consecutive readFromEffect calls are stable");
 
+	instance->stopProcessing();
+}
+
+TEST_CASE(VstHostTests, testProcessingFollowsState)
+{
+	auto library = loadScenarioLibrary();
+	auto instance = VSTPluginInstance::create(library, VSTPluginInstance::ProcessLevel::Realtime);
+	harness.require(instance->initialize(), "scenario VST2 instance initializes");
+	instance->prepareForProcessing(48000.0f, 512);
+	instance->startProcessing();
+	const float testGain = 0.5f;
+	instance->writeToEffect(encodeChunk({kChunkMagic, kChunkVersion, testGain, 0.0f}), {});
 	// --- Audio: with gain = 0.5, processDoubleReplacing must produce out == in * 0.5.
 	const int frameCount = 256;
 	vector<double> inLeft(frameCount), inRight(frameCount);

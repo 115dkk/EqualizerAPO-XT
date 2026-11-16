@@ -8,6 +8,7 @@ constexpr uint32_t stateMagic = 0x33545354u; // TST3
 
 namespace mode
 {
+constexpr wchar_t floatOnly[] = L"FloatOnly.vst3";
 constexpr wchar_t rejectInit[] = L"RejectInit.vst3";
 constexpr wchar_t rejectComponent[] = L"RejectComponent.vst3";
 constexpr wchar_t controllerState[] = L"ControllerState.vst3";
