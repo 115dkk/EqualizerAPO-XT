@@ -11,6 +11,12 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\EqualizerAPO\ChildApo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ChildApoTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="CaptureEngineTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

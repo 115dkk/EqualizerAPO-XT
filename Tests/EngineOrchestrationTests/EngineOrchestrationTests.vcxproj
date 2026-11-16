@@ -77,6 +77,8 @@
     <ClCompile Include="ApoRegistrationTests.cpp" />
     <ClCompile Include="CaptureEngineTests.cpp" />
     <ClCompile Include="ChannelInheritanceTests.cpp" />
+    <ClCompile Include="ChildApoTests.cpp" />
+    <ClCompile Include="..\..\EqualizerAPO\ChildApo.cpp" />
     <ClCompile Include="ConfigLoadTests.cpp" />
     <ClCompile Include="ConfigurationFileReaderTests.cpp" />
     <ClCompile Include="DeviceApoInfoTests.cpp" />
