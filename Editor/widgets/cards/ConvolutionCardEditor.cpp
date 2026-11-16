@@ -106,6 +106,8 @@ void ConvolutionCardEditor::importToConfig()
 	reference->importIntoConfigDirectory(this);
 }
 
+// The selected device's rate (0 without one): the device the configuration is
+// edited for. MultiConvolutionCardEditor asks the same (audit #467 TD-79).
 unsigned ConvolutionCardEditor::currentDeviceSampleRate() const
 {
 	return filterTable == nullptr ? 0 : filterTable->deviceSampleRate();

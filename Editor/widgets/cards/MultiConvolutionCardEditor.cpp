@@ -248,13 +248,12 @@ void MultiConvolutionCardEditor::importToConfig()
 	reference->importIntoConfigDirectory(this);
 }
 
+// The selected device's rate, from the same call ConvolutionCardEditor makes
+// (audit #467 TD-79: this card read the device by hand, which gave the same
+// number by another route).
 unsigned MultiConvolutionCardEditor::currentDeviceSampleRate() const
 {
-	if (filterTable == nullptr)
-		return 0;
-
-	std::shared_ptr<AbstractAPOInfo> device = filterTable->getSelectedDevice();
-	return device != nullptr ? device->getSampleRate() : 0;
+	return filterTable == nullptr ? 0 : filterTable->deviceSampleRate();
 }
 
 void MultiConvolutionCardEditor::updateFileInfo()
