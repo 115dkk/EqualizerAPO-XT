@@ -40,6 +40,8 @@
 #include <shellapi.h>
 
 #include "services/logging/Logging.h"
+#include "platform/windows/ElevatedLaunch.h"
+#include "platform/windows/Win32Error.h"
 #include "audio/ChannelLayout.h"
 #include "services/audio/AudioFormatProbe.h"
 #include "services/update/UpdateSession.h"
@@ -466,14 +468,21 @@ void MainWindow::runDeviceSelector()
 	// cannot use QProcess::startDetached because of UAC
 	wstring file = (QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/DeviceSelector.exe")).toStdWString();
 	// One UAC ask, decline respected (audit #250 C1, maintainer decision
-	// 2026-08-09). "open" already carries the elevation prompt because
-	// DeviceSelector's manifest requires administrator; the old
-	// SE_ERR_ACCESSDENIED fallback re-asked with "runas" immediately after
-	// a decline, so the user got a second UAC window for saying no. A
-	// decline (or any launch failure) now gets a short notice instead, and
-	// File > APO settings remains the retry path.
-	UINT_PTR result = reinterpret_cast<UINT_PTR>(ShellExecuteW(nullptr, L"open", file.c_str(), nullptr, nullptr, SW_SHOWNORMAL));
-	if (result <= 32)
+	// 2026-08-09). The helper returns GetLastError from ShellExecuteExW, so
+	// only ERROR_CANCELLED is reported as a declined prompt; another launch
+	// failure carries its Windows message (audit #467 TD-62).
+	const auto launch = winutil::launchElevated(file, L"", false, SW_SHOWNORMAL);
+	switch (winutil::elevatedLaunchMessage(launch))
+	{
+	case winutil::ElevatedLaunchMessage::ApprovalDeclined:
 		QMessageBox::information(this, tr("Device Selector"),
 			tr("The Device Selector was not opened. It needs administrator approval to manage audio devices; you can try again anytime via File > APO settings."));
+		break;
+	case winutil::ElevatedLaunchMessage::Failed:
+		QMessageBox::warning(this, tr("Device Selector"), tr("The Device Selector could not be opened:\n%1")
+			.arg(QString::fromStdWString(win32::errorMessage(launch.error))));
+		break;
+	case winutil::ElevatedLaunchMessage::None:
+		break;
+	}
 }

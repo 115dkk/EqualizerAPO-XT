@@ -45,7 +45,13 @@ public:
 	VSTPluginInstance(const VSTPluginInstance&) = delete;
 	VSTPluginInstance& operator=(const VSTPluginInstance&) = delete;
 
+	enum class InitializationFailure
+	{
+		Refused,
+		StructuredException
+	};
 	virtual bool initialize() = 0;
+	virtual InitializationFailure initializationFailure() const {return InitializationFailure::Refused;}
 
 	virtual int numInputs() const = 0;
 	virtual int numOutputs() const = 0;

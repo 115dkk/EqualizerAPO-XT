@@ -86,6 +86,7 @@ namespace
 		OpenReport::Status openStatus = OpenReport::Status::Ok;
 		uint32_t extraLatency = 0;
 		bool throwOnOpen = false;
+		bool throwUnknownOnOpen = false;
 		FakeAsioDriver* enterCallbackFrom = nullptr;
 		ASIOCallbacks* enteredCallback = nullptr;
 		bool callbackEntered = false;
@@ -103,6 +104,8 @@ namespace
 			}
 			if (throwOnOpen)
 				throw std::runtime_error("scripted open exception");
+			if (throwUnknownOnOpen)
+				throw 7;
 			OpenReport report;
 			report.status = openStatus;
 			if (openStatus != OpenReport::Status::Ok)
@@ -1403,10 +1406,30 @@ namespace
 			harness.expectEqual(rig.host->createBuffers(w, 64), ASE_InvalidMode, "a rejected format answers ASE_InvalidMode");
 			harness.expectEqual(rig.processor->closes, 2u, "a rejected processor open is closed too");
 			rig.processor->openStatus = OpenReport::Status::Ok;
+			FILE* logFile = nullptr;
+			harness.require(tmpfile_s(&logFile) == 0 && logFile != nullptr, "processor-open exception log opens");
+			Logging::useStream(logFile, false, true, false);
 			rig.processor->throwOnOpen = true;
 			harness.expectEqual(rig.host->createBuffers(w, 64), ASE_HWMalfunction, "an exception from processor open fails createBuffers loudly");
 			harness.expectEqual(rig.processor->closes, 3u, "a throwing processor open is closed after unwinding");
 			harness.expectEqual(rig.counters().disposeBuffersCalls, 3ul, "each attempted processor open disposes the target buffers");
+			rig.processor->throwOnOpen = false;
+			rig.processor->throwUnknownOnOpen = true;
+			harness.expectEqual(rig.host->createBuffers(w, 64), ASE_HWMalfunction, "an unknown processor-open exception fails createBuffers loudly");
+			harness.expectEqual(rig.processor->closes, 4u, "an unknown throwing processor open is closed after unwinding");
+			harness.expectEqual(rig.counters().disposeBuffersCalls, 4ul, "the unknown exception also disposes target buffers");
+			std::fflush(logFile);
+			std::rewind(logFile);
+			std::wstring log;
+			wchar_t text[1024] = {};
+			while (std::fgetws(text, 1024, logFile) != nullptr)
+				log.append(text);
+			Logging::useStream(stdout, true, true, false);
+			std::fclose(logFile);
+			harness.expect(log.find(L"stream processor open threw a C++ exception: scripted open exception") != std::wstring::npos,
+				"the processor-open C++ exception log names the site and what()");
+			harness.expect(log.find(L"stream processor open threw an exception of unknown type") != std::wstring::npos,
+				"the unknown processor-open exception log names the site");
 		}
 		{
 			FakeAsioConfig config;

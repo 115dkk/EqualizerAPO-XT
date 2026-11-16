@@ -277,6 +277,35 @@ TEST_CASE(Vst3HostTests, testModeUsesModuleFilenameOnly)
 		"a parent directory containing a mode name does not select that mode (audit #467 TD-68)");
 }
 
+TEST_CASE(Vst3HostTests, testInitializationRefusalIsNotReportedAsACrash)
+{
+	const wstring bundle = prepareBundle(exeDirectory(), L"RejectComponentBundle.vst3",
+		testvst3::mode::rejectComponent);
+	auto library = VSTPluginLibrary::getInstance(bundle);
+	harness.require(VSTPluginLibrary::load(bundle).succeeded(), "initialization-refusal fixture loads");
+	FILE* logFile = nullptr;
+	harness.require(tmpfile_s(&logFile) == 0 && logFile != nullptr, "initialization-refusal log opens");
+	Logging::useStream(logFile, false, true, false);
+	{
+		VSTPluginFilter filter(library, wstring(), {});
+		filter.initialize(48000.0f, 4, {L"L", L"R"});
+	}
+	std::fflush(logFile);
+	std::rewind(logFile);
+	wstring log;
+	wchar_t text[1024] = {};
+	while (std::fgetws(text, 1024, logFile) != nullptr)
+		log.append(text);
+	Logging::useStream(stdout, true, true, false);
+	std::fclose(logFile);
+	harness.expectTrue(log.find(L"refused initialization") != wstring::npos,
+		"a VST3 initialization refusal is named as a refusal");
+	harness.expectTrue(log.find(L"crashed during initialization") == wstring::npos,
+		"a VST3 initialization refusal is not called a crash");
+	harness.expectTrue(log.find(library->getLibPath()) != wstring::npos,
+		"the initialization-refusal log identifies the library");
+}
+
 TEST_CASE(Vst3HostTests, testEngineFaultContainment)
 {
 	for (const wchar_t* mode : {L"FaultProcess.vst3", L"FaultActive.vst3", L"FaultState.vst3"})

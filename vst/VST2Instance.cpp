@@ -155,6 +155,7 @@ public:
 	}
 
 	bool initialize() override;
+	InitializationFailure initializationFailure() const override {return lastInitializationFailure;}
 
 	int numInputs() const override
 	{
@@ -340,6 +341,7 @@ private:
 		WrongMagicNumber
 	};
 
+	InitializationFailure lastInitializationFailure = InitializationFailure::Refused;
 	LoadResult load();
 	void requestContentScale(double scale)
 	{
@@ -511,6 +513,7 @@ VST2Instance::LoadResult VST2Instance::load()
 
 bool VST2Instance::initialize()
 {
+	lastInitializationFailure = InitializationFailure::Refused;
 	// load() must stay free of objects requiring stack unwinding because it
 	// uses a __try/__except guard (MSVC C2712), so log its failure reasons here where
 	// constructing the std::wstring temporary from getLibPath is allowed.
@@ -526,7 +529,8 @@ bool VST2Instance::initialize()
 	case LoadResult::Loaded:
 		return true;
 	case LoadResult::Crashed:
-		LogF(L"Loading VST2 plugin %s failed due to an exception.", library->getLibPath().c_str());
+		lastInitializationFailure = InitializationFailure::StructuredException;
+		LogF(L"VST2 plugin %s raised a structured exception during initialization.", library->getLibPath().c_str());
 		return false;
 	case LoadResult::NoEntryPoint:
 		LogF(L"VST2 plugin %s returned no effect from its entry point, not loading it.", library->getLibPath().c_str());

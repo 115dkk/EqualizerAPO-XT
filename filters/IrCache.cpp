@@ -272,13 +272,14 @@ std::shared_ptr<const IrCacheEntry> loadIrCached(const JudgedPath& judged, doubl
 	SNDFILE* opened = sf_open_virtual(&io, SFM_READ, &info, file);
 	if (opened == nullptr)
 	{
-		LogFStatic(L"Error while reading impulse response file: %S", sf_strerror(opened));
+		LogFStatic(L"Error while reading impulse response file %s: %S", filename.c_str(), sf_strerror(opened));
 		return nullptr;
 	}
 	sndfile::Handle in(opened);
 	if (abs(sampleRate - info.samplerate) > 1.0)
 	{
-		LogFStatic(L"Impulse response sample rate (%d Hz) does not match device sample rate (%f Hz)", info.samplerate, sampleRate);
+		LogFStatic(L"Impulse response file %s has sample rate %d Hz, which does not match device sample rate %f Hz",
+			filename.c_str(), info.samplerate, sampleRate);
 		return nullptr;
 	}
 

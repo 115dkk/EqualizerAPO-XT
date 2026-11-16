@@ -87,13 +87,19 @@ DeviceSelector::DeviceSelector(QWidget* parent)
 	finishSetup();
 
 	const auto verification = ApoRegistration::verify(systemRegistry(), true);
-	bool fixedAudioDG = !verification.protectedAudioDG;
-	bool fixedRegistration = !verification.registration;
-	if (fixedAudioDG || fixedRegistration)
+	switch (ApoRegistration::repairNotice(verification))
 	{
+	case ApoRegistration::RepairNotice::Repaired:
 		QMessageBox::information(this, tr("Info"), tr("A registry value that is required for the operation of Equalizer APO was not set correctly. "
 			"This might have been caused by a driver installation or uninstallation. The value has been corrected. A reboot may be required so that the changes can take effect."));
 		askForReboot = true;
+		break;
+	case ApoRegistration::RepairNotice::Failed:
+		QMessageBox::warning(this, tr("Error while accessing the registry"),
+			tr("The registry repair did not finish. Reinstall Equalizer APO or see DeviceSelector.log for details."));
+		break;
+	case ApoRegistration::RepairNotice::None:
+		break;
 	}
 }
 

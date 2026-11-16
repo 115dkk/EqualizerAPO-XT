@@ -18,7 +18,22 @@ struct ElevatedLaunch
 	UniqueHandle process;
 };
 
-inline ElevatedLaunch launchElevated(const std::wstring& executable, const std::wstring& arguments, bool keepProcess)
+enum class ElevatedLaunchMessage
+{
+	None,
+	ApprovalDeclined,
+	Failed
+};
+
+inline ElevatedLaunchMessage elevatedLaunchMessage(const ElevatedLaunch& launch)
+{
+	if (launch.started)
+		return ElevatedLaunchMessage::None;
+	return launch.error == ERROR_CANCELLED ? ElevatedLaunchMessage::ApprovalDeclined : ElevatedLaunchMessage::Failed;
+}
+
+inline ElevatedLaunch launchElevated(const std::wstring& executable, const std::wstring& arguments, bool keepProcess,
+	int show = SW_HIDE)
 {
 	SHELLEXECUTEINFOW info = {};
 	info.cbSize = sizeof(info);
@@ -26,7 +41,7 @@ inline ElevatedLaunch launchElevated(const std::wstring& executable, const std::
 	info.lpVerb = L"runas";
 	info.lpFile = executable.c_str();
 	info.lpParameters = arguments.c_str();
-	info.nShow = SW_HIDE;
+	info.nShow = show;
 	ElevatedLaunch result;
 	result.started = ShellExecuteExW(&info) != FALSE;
 	result.error = result.started ? ERROR_SUCCESS : GetLastError();

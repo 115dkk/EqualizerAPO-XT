@@ -139,6 +139,7 @@
     <ClCompile Include="..\..\Editor\widgets\subwooferrouting\SubwooferRoutingDefaults.cpp" />
     <ClCompile Include="..\..\Editor\widgets\routing\SubwooferRoutingRoutingAdapter.cpp" />
     <ClCompile Include="UpdateSessionTests.cpp" />
+    <ClCompile Include="DiagnosticDecisionTests.cpp" />
     <ClCompile Include="CommandLineQuotingTests.cpp" />
     <ClCompile Include="..\..\services\update\UpdateSession.cpp" />
     <ClCompile Include="..\..\Editor\ConfigFileCodec.cpp" />

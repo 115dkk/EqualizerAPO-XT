@@ -16,11 +16,13 @@
 #include <atomic>
 #include <chrono>
 #include <cmath>
+#include <cstdio>
 #include <cstdint>
 #include <cstring>
 #include <fstream>
 #include <limits>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <thread>
 #include <vector>
@@ -39,6 +41,7 @@
 #include "asio/ThreadHostLink.h"
 #include "asio/Win32HostLink.h"
 #include "devices/AsioAPOInfo.h"
+#include "services/logging/Logging.h"
 #include "Tests/AsioSupport/HostStub.h"
 #include "Tests/FakeAsioDriver/FakeAsio.h"
 #include "Tests/FakeRegistry.h"
@@ -853,6 +856,59 @@ namespace
 		serverThread.join();
 		rings.stop();
 		directory.removeAll();
+	}
+
+	TEST_CASE(DaemonTests, testHostControlServerLogsHandlerExceptions)
+	{
+		FILE* logFile = nullptr;
+		harness.require(tmpfile_s(&logFile) == 0 && logFile != nullptr, "control-handler exception log opens");
+		Logging::useStream(logFile, false, true, false);
+		const auto run = [&](const wchar_t* suffix, bool unknown) {
+			const std::wstring endpoint = L"EAPO.ASIO.test.control-throw."
+				+ std::to_wstring(GetCurrentProcessId()) + suffix;
+			eapo::asio::HostActivity activity;
+			eapo::asio::HostControlOptions serverOptions;
+			serverOptions.endpoint = endpoint;
+			serverOptions.resident = true;
+			eapo::asio::HostControlServer server(serverOptions, activity,
+				[unknown](eapo::asio::HostOpenRequest) -> eapo::asio::HostOpenReply {
+					if (unknown)
+						throw 7;
+					throw std::runtime_error("scripted control exception");
+				});
+			std::thread serverThread([&server] {server.run();});
+			const bool listening = waitForPipe(endpoint);
+			if (listening)
+			{
+				wchar_t self[MAX_PATH] = {};
+				GetModuleFileNameW(nullptr, self, MAX_PATH);
+				StreamOptions options;
+				options.daemonEndpoint = endpoint;
+				options.daemonExePath = self;
+				eapo::asio::Win32HostLink link;
+				eapo::asio::OpenReport report;
+				auto producer = link.open(smallFormat(), options, report);
+				harness.expect(producer == nullptr, "a throwing control handler refuses the stream");
+			}
+			else
+				harness.fail("the throwing control server starts listening");
+			server.requestStop();
+			serverThread.join();
+		};
+		run(L".cpp", false);
+		run(L".unknown", true);
+		std::fflush(logFile);
+		std::rewind(logFile);
+		std::wstring log;
+		wchar_t text[1024] = {};
+		while (std::fgetws(text, 1024, logFile) != nullptr)
+			log.append(text);
+		Logging::useStream(stdout, true, true, false);
+		std::fclose(logFile);
+		harness.expect(log.find(L"control open handler threw a C++ exception: scripted control exception") != std::wstring::npos,
+			"the control-handler C++ exception log names the site and what()");
+		harness.expect(log.find(L"control open handler threw an exception of unknown type") != std::wstring::npos,
+			"the unknown control-handler exception log names the site");
 	}
 
 	TEST_CASE(DaemonTests, testHostControlServerLinger)

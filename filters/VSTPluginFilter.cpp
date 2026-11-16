@@ -20,6 +20,7 @@
 #include "stdafx.h"
 #include <algorithm>
 #include <cctype>
+#include <exception>
 #include <limits>
 #include <new>
 #include "services/logging/Logging.h"
@@ -127,8 +128,23 @@ bool VSTPluginFilter::createFirstInstance(InitContext& context, const std::vecto
 	{
 		return passThrough(L"The VST plugin %s could not allocate its host instance; passing audio through.");
 	}
-	if (!context.firstEffect->initialize())
-		return passThrough(L"The VST plugin %s crashed during initialization.");
+	try
+	{
+		if (!context.firstEffect->initialize())
+		{
+			if (context.firstEffect->initializationFailure() == VSTPluginInstance::InitializationFailure::StructuredException)
+				return passThrough(L"The VST plugin %s raised a structured exception during initialization; passing audio through.");
+			return passThrough(L"The VST plugin %s refused initialization; passing audio through.");
+		}
+	}
+	catch (const std::exception& e)
+	{
+		return passThrough(L"The VST plugin %s threw a C++ exception during initialization: %S; passing audio through.", e.what());
+	}
+	catch (...)
+	{
+		return passThrough(L"The VST plugin %s threw an exception of unknown type during initialization; passing audio through.");
+	}
 
 	// A multichannel-capable plugin must see the full device width before its
 	// channel counts are frozen below. Without this, the stereo probe from

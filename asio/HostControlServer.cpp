@@ -7,6 +7,7 @@
 #include "asio/HostControlServer.h"
 
 #include <algorithm>
+#include <exception>
 #include <utility>
 
 #include "platform/windows/NamedPipeSecurity.h"
@@ -83,8 +84,15 @@ namespace eapo::asio
 				if (reply.hostPid == 0)
 					reply.hostPid = GetCurrentProcessId();
 			}
+			catch (const std::exception& e)
+			{
+				LogFStatic(L"ASIO host: control open handler threw a C++ exception: %S", e.what());
+				reply.status = static_cast<uint32_t>(HostOpenStatus::BadRing);
+				reply.hostPid = GetCurrentProcessId();
+			}
 			catch (...)
 			{
+				LogFStatic(L"ASIO host: control open handler threw an exception of unknown type");
 				reply.status = static_cast<uint32_t>(HostOpenStatus::BadRing);
 				reply.hostPid = GetCurrentProcessId();
 			}

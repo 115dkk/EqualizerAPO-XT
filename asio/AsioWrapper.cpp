@@ -10,6 +10,7 @@
 #include "services/logging/Logging.h"
 
 #include <cstring>
+#include <exception>
 #include <new>
 
 namespace eapo::asio
@@ -477,8 +478,15 @@ namespace eapo::asio
 		{
 			report = processor_->open(format_, options_);
 		}
+		catch (const std::exception& e)
+		{
+			LogFStatic(L"ASIO wrapper: stream processor open threw a C++ exception: %S", e.what());
+			report.status = OpenReport::Status::Unavailable;
+			copyErrorMessage(report.message, "EQ APO XT engine host failed while opening the stream");
+		}
 		catch (...)
 		{
+			LogFStatic(L"ASIO wrapper: stream processor open threw an exception of unknown type");
 			report.status = OpenReport::Status::Unavailable;
 			copyErrorMessage(report.message, "EQ APO XT engine host failed while opening the stream");
 		}

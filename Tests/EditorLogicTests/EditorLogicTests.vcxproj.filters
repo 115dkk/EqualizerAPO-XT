@@ -146,6 +146,9 @@
     <ClCompile Include="UpdateSessionTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="DiagnosticDecisionTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\services\update\UpdateSession.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

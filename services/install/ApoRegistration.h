@@ -94,6 +94,18 @@ public:
 		Result repairResult = Result::Success;
 		bool valid() const {return protectedAudioDG && registration;}
 	};
+	enum class RepairNotice
+	{
+		None,
+		Repaired,
+		Failed
+	};
+	static RepairNotice repairNotice(const Verification& verification)
+	{
+		if (verification.valid())
+			return RepairNotice::None;
+		return verification.repairResult == Result::Success ? RepairNotice::Repaired : RepairNotice::Failed;
+	}
 	static Verification verify(IRegistry& registry, bool fix, bool refreshRegistration = false);
 	static bool checkProtectedAudioDG(bool fix, IRegistry& registry = systemRegistry());
 
