@@ -170,9 +170,7 @@ void setSeverityProperty(QWidget* widget, const QString& severity)
 		return;
 
 	widget->setProperty("severity", severity);
-	widget->style()->unpolish(widget);
-	widget->style()->polish(widget);
-	widget->update();
+	repolish(widget);
 }
 
 bool containsLabelCharacters(const QString& text)

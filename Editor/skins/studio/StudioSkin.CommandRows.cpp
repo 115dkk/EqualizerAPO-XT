@@ -469,9 +469,7 @@ void StudioSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QW
 			if (widget == nullptr || widget->property("studioBand").toString() == family)
 				return;
 			widget->setProperty("studioBand", family);
-			widget->style()->unpolish(widget);
-			widget->style()->polish(widget);
-			widget->update();
+			repolish(widget);
 		};
 		tag(card);
 		if (header != nullptr)
