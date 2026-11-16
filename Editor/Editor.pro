@@ -52,6 +52,7 @@ SOURCES += main.cpp\
 	../services/diagnostics/InstallDiagnostics.cpp \
 	../services/windows/WindowsService.cpp \
 	../services/install/ApoRegistration.cpp \
+	../services/install/VcRuntime.cpp \
 	../services/shell/StartMenuShortcuts.cpp \
 	../services/audio/AudioFormatProbe.cpp \
 	../services/update/UpdateSession.cpp \
@@ -418,6 +419,7 @@ HEADERS  += \
 	../services/diagnostics/InstallDiagnostics.h \
 	../services/windows/WindowsService.h \
 	../services/install/ApoRegistration.h \
+	../services/install/VcRuntime.h \
 	../services/shell/StartMenuShortcuts.h \
 	../services/audio/AudioFormatProbe.h \
 	../services/update/UpdateSession.h \

@@ -153,6 +153,9 @@
     <ClCompile Include="..\..\Editor\import\CallerProfileCheck.cpp" />
     <ClCompile Include="..\..\Editor\import\LegacyMigration.cpp" />
     <ClCompile Include="..\..\services\install\ApoRegistration.cpp" />
+    <ClCompile Include="..\..\services\install\VcRuntime.cpp" />
+    <ClCompile Include="VcRuntimeTests.cpp" />
+    <ClInclude Include="..\..\services\install\VcRuntime.h" />
     <ClCompile Include="..\..\services\windows\WindowsService.cpp" />
     <ClCompile Include="..\..\services\shell\StartMenuShortcuts.cpp" />
     <ClCompile Include="..\..\Editor\skins\SkinThemeData.cpp" />

@@ -59,6 +59,7 @@
 #include "platform/windows/WindowsPath.h"
 #include "platform/windows/ElevatedLaunch.h"
 #include "services/install/InstallWaitBudget.h"
+#include "services/install/VcRuntime.h"
 #include "services/security/AudioEngineAccess.h"
 #include "services/diagnostics/InstallDiagnostics.h"
 #include "services/update/UpdateSession.h"
@@ -210,6 +211,8 @@ int handleVelopackHook(int argc, char* argv[])
 			continue;
 
 		std::wstring exeDir = pathutil::exeDirectory();
+		if (matchesHook(arg, "--veloapp-install") || matchesHook(arg, "--veloapp-updated"))
+			vcruntime::ensureInstalled(exeDir);
 		if (matchesHook(arg, "--veloapp-install"))
 		{
 			auto rc = ApoRegistration::install(exeDir, L"", systemRegistry(), callerLocalAppData.installGrantsPrepared);

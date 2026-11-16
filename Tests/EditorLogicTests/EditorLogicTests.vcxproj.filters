@@ -11,6 +11,12 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\services\install\VcRuntime.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VcRuntimeTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="EditorLogicTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -202,6 +208,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\services\install\VcRuntime.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Editor\widgets\routing\RoutingGridModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
