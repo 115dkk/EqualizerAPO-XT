@@ -153,6 +153,52 @@ TEST_CASE(EngineOrchestrationTests, testLogHelperUserDestination)
 	RemoveDirectoryW(localRoot.c_str());
 }
 
+TEST_CASE(EngineOrchestrationTests, testGuiLogsRotateOnlyAboveFourMiBAtStartup)
+{
+	const auto previous = pathutil::environmentVariable(L"LOCALAPPDATA");
+	const auto root = testSubdirectory(L"LogRotation");
+	SetEnvironmentVariableW(L"LOCALAPPDATA", root.c_str());
+	SCOPE_EXIT{
+		Logging::useStream(stderr, false, false, false);
+		SetEnvironmentVariableW(L"LOCALAPPDATA", previous.empty() ? nullptr : previous.c_str());
+	};
+	constexpr std::streamoff limit = 4 * 1024 * 1024;
+	for (const auto* name : {L"Editor.log", L"DeviceSelector.log"})
+	{
+		harness.require(Logging::useUserFile(name, true, true, false), "rotation fixture directory created");
+		const auto path = Logging::currentPath();
+		const auto backup = path + L".1";
+		for (const std::streamoff size : {limit, limit + 1})
+		{
+			{
+				std::ofstream file(path, std::ios::binary | std::ios::trunc);
+				file.seekp(size - 1);
+				file.put('x');
+			}
+			{
+				std::ofstream oldBackup(backup, std::ios::binary | std::ios::trunc);
+				oldBackup << "old";
+			}
+			harness.require(Logging::useUserFile(name, true, true, false), "GUI logging restarts");
+			std::ifstream old(backup, std::ios::binary | std::ios::ate);
+			harness.expectEqual(static_cast<std::streamoff>(old.tellg()), size > limit ? size : std::streamoff(3),
+				"startup replaces one backup only when the log exceeds 4 MiB");
+			old.close();
+			LogFStatic(L"new session");
+			std::ifstream current(path, std::ios::binary | std::ios::ate);
+			const auto currentSize = static_cast<std::streamoff>(current.tellg());
+			harness.expect(size > limit ? currentSize < 128 : currentSize > limit,
+				"oversized log starts fresh; exact-limit log is kept");
+			current.close();
+			DeleteFileW(path.c_str());
+			DeleteFileW(backup.c_str());
+		}
+	}
+	RemoveDirectoryW((root + L"\\EqualizerAPO\\logs").c_str());
+	RemoveDirectoryW((root + L"\\EqualizerAPO").c_str());
+	RemoveDirectoryW(root.c_str());
+}
+
 TEST_CASE(EngineOrchestrationTests, testRegistryExportHeaderPreservesQualifiedRoot)
 {
 	const std::wstring key = L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Vendor\\Device\\FxProperties";

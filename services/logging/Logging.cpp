@@ -45,6 +45,25 @@ std::mutex& logStateMutex()
 	static std::mutex mutex;
 	return mutex;
 }
+
+DWORD rotateLargeGuiLog(const std::wstring& path)
+{
+	WIN32_FILE_ATTRIBUTE_DATA data{};
+	if (!GetFileAttributesExW(path.c_str(), GetFileExInfoStandard, &data))
+	{
+		const DWORD error = GetLastError();
+		return error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND ? ERROR_SUCCESS : error;
+	}
+	if ((data.dwFileAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT)) != 0)
+		return ERROR_SUCCESS;
+	const ULONGLONG size = (static_cast<ULONGLONG>(data.nFileSizeHigh) << 32) | data.nFileSizeLow;
+	if (size <= 4ULL * 1024 * 1024)
+		return ERROR_SUCCESS;
+	// One rename preserves complete diagnostics without reading a potentially
+	// huge trace file. Only GUI startup calls this (audit #467 TD-60).
+	return MoveFileExW(path.c_str(), (path + L".1").c_str(), MOVEFILE_REPLACE_EXISTING)
+		? ERROR_SUCCESS : GetLastError();
+}
 }
 
 void Logging::log(const char* file, int line, const void* caller, bool trace, const wchar_t* format, ...)
@@ -208,7 +227,13 @@ bool Logging::useUserFile(const std::wstring& fileName, bool traceEnabled, bool 
 	const auto directory = userLogDirectory();
 	if (directory.empty() || fileName.empty() || !pathutil::createDirectoryRecursive(directory))
 		return false;
-	useFile(pathutil::joinPath(directory, fileName), traceEnabled, compactOutput, consoleColors);
+	const auto path = pathutil::joinPath(directory, fileName);
+	// Do not rotate APO/ASIO logs from an audio process or from log().
+	const DWORD rotationError = fileName == L"Editor.log" || fileName == L"DeviceSelector.log"
+		? rotateLargeGuiLog(path) : ERROR_SUCCESS;
+	useFile(path, traceEnabled, compactOutput, consoleColors);
+	if (rotationError != ERROR_SUCCESS)
+		LogFStatic(L"Could not rotate the startup log (error %lu); keeping the existing file", rotationError);
 	return true;
 }
 
