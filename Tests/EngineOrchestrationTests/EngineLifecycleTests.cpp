@@ -15,6 +15,7 @@
 #include <atomic>
 #include <chrono>
 #include <cmath>
+#include <fstream>
 #include <memory>
 #include <string>
 #include <thread>
@@ -28,6 +29,8 @@
 #include "engine/ConfigWatcher.h"
 #include "platform/windows/Win32Event.h"
 #include "runtime/memory/AlignedMemory.h"
+#include "services/registry/RegistryPaths.h"
+#include "Tests/FakeRegistry.h"
 
 #include "EngineOrchestrationTestSupport.h"
 
@@ -510,6 +513,72 @@ TEST_CASE(EngineOrchestrationTests, testFailedConfigLoadKeepsActiveConfiguration
 	std::vector<float> after = processDcBlock(engine, 1.0f, 1.0f, 480);
 	harness.expectNear(after[0], 0.5f, 1e-3f,
 		"failed reload replaced or damaged the active configuration");
+}
+
+// Audit #467 TD-27: exercise the production watcher mode while process() runs.
+// Every older engine test supplied customPath, which disables this thread.
+TEST_CASE(EngineOrchestrationTests, testConfigWatcherReloadsWhileAudioIsProcessing)
+{
+	const std::wstring configDirectory = testSubdirectory(L"live-config-watch");
+	const std::wstring configPath = writeConfig(harness,
+		L"live-config-watch\\config.txt", "Preamp: -6.0206 dB\n");
+
+	test::FakeRegistry registry;
+	registry.seedString(APP_REGPATH, L"ConfigPath", configDirectory);
+
+	FilterEngine engine;
+	EngineSetup setup = testEngineSetup(100, 2, 2, 8, L"");
+	setup.registry = &registry;
+	engine.initialize(setup);
+
+	std::atomic<bool> stopProcessing = false;
+	std::atomic<float> observedLevel = -1.0f;
+	std::thread processThread([&] {
+		std::array<float, 16> input;
+		std::array<float, 16> output;
+		input.fill(1.0f);
+		while (!stopProcessing.load(std::memory_order_acquire))
+		{
+			engine.process(output.data(), input.data(), 8);
+			observedLevel.store(output[0], std::memory_order_release);
+			std::this_thread::yield();
+		}
+	});
+
+	auto waitForLevel = [&](float expected) {
+		const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+		while (std::chrono::steady_clock::now() < deadline)
+		{
+			if (test::nearlyEqual(observedLevel.load(std::memory_order_acquire), expected, 1e-3))
+				return true;
+			std::this_thread::yield();
+		}
+		return test::nearlyEqual(observedLevel.load(std::memory_order_acquire), expected, 1e-3);
+	};
+	auto replaceConfig = [&](const std::wstring& stagingName, const std::string& content) {
+		const std::wstring stagingPath = writeConfig(harness, stagingName, content);
+		return MoveFileExW(stagingPath.c_str(), configPath.c_str(),
+			MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != FALSE;
+	};
+
+	const bool initialObserved = waitForLevel(0.5f);
+	harness.expect(initialObserved,
+		"processing reaches the configuration loaded through registry ConfigPath");
+
+	const bool firstRewrite = replaceConfig(L"live-watch-stage-a.txt", "Preamp: -20 dB\n");
+	harness.expect(firstRewrite, "the first watched config rewrite succeeds");
+	const bool firstReload = firstRewrite && waitForLevel(0.1f);
+	harness.expect(firstReload,
+		"the watcher applies the first config rewrite while process() runs before the deadline");
+
+	const bool secondRewrite = replaceConfig(L"live-watch-stage-b.txt", "Preamp: -6.0206 dB\n");
+	harness.expect(secondRewrite, "the second watched config rewrite succeeds");
+	const bool secondReload = secondRewrite && waitForLevel(0.5f);
+	harness.expect(secondReload,
+		"the watcher applies the second config rewrite while process() runs before the deadline");
+
+	stopProcessing.store(true, std::memory_order_release);
+	processThread.join();
 }
 
 TEST_CASE(EngineOrchestrationTests, testConfigWatcherBackoffAndPathRefresh)
