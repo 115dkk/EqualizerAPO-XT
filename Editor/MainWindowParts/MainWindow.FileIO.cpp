@@ -118,15 +118,6 @@ DocumentSaveTransition MainWindow::saveDocument(OpenDocument& document,
 		TraceF(L"Saved %s (%lu bytes) in %.1f ms", path.toStdWString().c_str(),
 			writeResult.bytesWritten, timer.nsecsElapsed() / 1e6);
 
-		// Preserve the existing order: save() restarted analysis before its
-		// callers updated dirty state or a Save As path. Other UI controls still
-		// use startAnalysis() to coalesce their changes.
-		if (transition.restartAnalysis)
-		{
-			if (analysisDebounceTimer != nullptr)
-				analysisDebounceTimer->stop();
-			executeStartAnalysis();
-		}
 	}
 
 	if (document.state.title() != transition.title || document.state.path() != transition.path)
@@ -134,6 +125,18 @@ DocumentSaveTransition MainWindow::saveDocument(OpenDocument& document,
 	document.state.setDirty(transition.dirty);
 	showDocumentTitle(document);
 	updateDirtyStatus();
+
+	// After the state above: executeStartAnalysis reads the document's path
+	// when the analysis starts from this file, so a Save As has to have its
+	// new path in place first or the graph analyses the old file (audit #467
+	// TD-44). Other UI controls still use startAnalysis() to coalesce their
+	// changes.
+	if (transition.restartAnalysis)
+	{
+		if (analysisDebounceTimer != nullptr)
+			analysisDebounceTimer->stop();
+		executeStartAnalysis();
+	}
 	return transition;
 }
 

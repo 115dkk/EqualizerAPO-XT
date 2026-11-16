@@ -348,7 +348,9 @@ TEST_CASE(EditorLogicTests, testDocumentSaveTransitionsCoverEveryReason)
 		const DocumentSaveTransition transition = DocumentSaveCore::transition(
 			document, DocumentSaveReason::InstantModeFlush, QString(), success);
 		expectEqual(transition.path, document.path(), "instant save success keeps the path");
-		expectTrue(transition.dirty, "instant save success preserves the existing dirty flag");
+		// The whole document was just written: a dirty flag left by an earlier
+		// failed instant save no longer describes it (audit #467 TD-44).
+		expectFalse(transition.dirty, "instant save success leaves the document clean");
 		expectTrue(transition.restartAnalysis, "instant save success restarts analysis");
 		expectTrue(transition.failure == DocumentSaveFailure::None, "instant save success has no failure");
 	}

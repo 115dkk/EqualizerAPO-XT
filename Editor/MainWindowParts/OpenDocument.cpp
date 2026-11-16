@@ -99,8 +99,10 @@ DocumentSaveTransition DocumentSaveCore::transition(const DocumentState& documen
 		break;
 	}
 	case DocumentSaveReason::InstantModeFlush:
-		// Preserve the existing behavior: the debounce starts while the document
-		// is clean, and a successful retry does not clear an earlier failure.
+		// The write covers the whole document, so a dirty flag left by an
+		// earlier failed instant save is cleared: the file now matches, and the
+		// close prompt would ask about nothing (audit #467 TD-44).
+		result.dirty = false;
 		break;
 	}
 	return result;
