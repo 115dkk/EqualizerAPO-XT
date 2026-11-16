@@ -18,6 +18,8 @@
 */
 
 #include <QElapsedTimer>
+#include <QDeadlineTimer>
+#include "platform/windows/ProcessShutdown.h"
 
 #include <algorithm>
 #include <stdexcept>
@@ -40,13 +42,18 @@ AnalysisThread::AnalysisThread()
 
 AnalysisThread::~AnalysisThread()
 {
-	{
-		QMutexLocker locker(&mutex);
+	// Cooperative analysis stops between blocks; five seconds bounds a stuck
+	// third-party filter (testShutdownSequenceTimeoutSkipsApplyAndLaterWaits, audit #467 TD-58).
+	constexpr int kAnalysisShutdownTimeoutMs = 5000;
+	ProcessShutdown::run({{ [] { return L"analysis thread"; }, [this] {
+		QDeadlineTimer deadline(kAnalysisShutdownTimeoutMs);
+		if (!mutex.tryLock(deadline))
+			return false;
 		quit = true;
 		condition.wakeAll();
-	}
-
-	wait();
+		mutex.unlock();
+		return wait(deadline);
+	} }});
 }
 
 void AnalysisThread::setParameters(shared_ptr<AbstractAPOInfo> device, int channelMask, int channelIndex, const QString& configPath, int frameCount)

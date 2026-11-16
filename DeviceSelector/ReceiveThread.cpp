@@ -18,7 +18,9 @@
 */
 
 #include "stdafx.h"
+#include <algorithm>
 #include "platform/windows/Win32Error.h"
+#include "platform/windows/ProcessShutdown.h"
 #include "services/logging/Logging.h"
 #include "platform/windows/Win32Resource.h"
 #include "platform/windows/NamedPipeSecurity.h"
@@ -41,15 +43,35 @@ void ReceiveThread::stop()
 	if (!thread.joinable())
 		return;
 
-	winutil::UniqueHandle pipe = winutil::pipes::openDeviceTestClient(L"\\\\.\\pipe\\" + pipeName);
-	if (pipe)
-	{
-		DWORD bytesWritten;
-		WriteFile(pipe.get(), devicetest::wire::kStopMessage, sizeof(devicetest::wire::kStopMessage) - 1, &bytesWritten, nullptr);
-		FlushFileBuffers(pipe.get());
-	}
-
-	thread.join();
+	// A pipe client can stop sending indefinitely. Five seconds bounds its
+	// cancellation and the receive thread's native teardown (audit #467 TD-58).
+	constexpr DWORD kReceiveShutdownTimeoutMs = 5000;
+	ProcessShutdown::run({{ [this] { return L"DeviceSelector receive thread (" + pipeName + L")"; }, [this] {
+		const ULONGLONG deadline = GetTickCount64() + kReceiveShutdownTimeoutMs;
+		stopping.store(true, std::memory_order_relaxed);
+		for (;;)
+		{
+			// Replace the old stop-message WriteFile/FlushFileBuffers: either
+			// could block on a peer. Cancellation itself does not wait. Retry
+			// because the receiver can enter ReadFile just after a cancellation
+			// finds no pending I/O. A peer ignoring cancellation is handled by
+			// testShutdownSequenceTimeoutSkipsApplyAndLaterWaits, audit #467 TD-58.
+			CancelSynchronousIo(thread.native_handle());
+			const ULONGLONG now = GetTickCount64();
+			if (now >= deadline)
+				return false;
+			constexpr DWORD kCancelRetryMs = 50; // Cover the check/enter-I/O race without spinning.
+			const DWORD remaining = static_cast<DWORD>(deadline - now);
+			const DWORD result = WaitForSingleObject(thread.native_handle(), (std::min)(remaining, kCancelRetryMs));
+			if (result == WAIT_OBJECT_0)
+			{
+				thread.join();
+				return true;
+			}
+			if (result != WAIT_TIMEOUT)
+				return false;
+		}
+	} }});
 }
 
 void ReceiveThread::run()
@@ -84,16 +106,20 @@ void ReceiveThread::run()
 			throw ReceiveException(L"Could not create named pipe: " + win32::errorMessage(error));
 		}
 
-		while (true)
+		while (!stopping.load(std::memory_order_relaxed))
 		{
 			bool connected = ConnectNamedPipe(pipe.get(), nullptr);
 			if (!connected)
 				connected = GetLastError() == ERROR_PIPE_CONNECTED;
+			if (stopping.load(std::memory_order_relaxed))
+				break;
 
 			if (connected)
 			{
 				DWORD bytesRead;
 				bool ok = ReadFile(pipe.get(), buf, sizeof(buf), &bytesRead, nullptr);
+				if (stopping.load(std::memory_order_relaxed))
+					break;
 				if (!ok || bytesRead == 0)
 					throw ReceiveException(L"Could not read from pipe: " + win32::errorMessage(GetLastError()));
 

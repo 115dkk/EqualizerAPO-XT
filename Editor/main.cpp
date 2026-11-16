@@ -53,6 +53,7 @@
 #include "services/logging/Logging.h"
 #include "services/logging/TaggedLogger.h"
 #include "platform/windows/CommandLineQuoting.h"
+#include "platform/windows/ProcessShutdown.h"
 #include "services/install/ApoRegistration.h"
 #include "services/registry/WindowsRegistry.h"
 #include "platform/windows/Win32Resource.h"
@@ -274,6 +275,59 @@ int handleVelopackHook(int argc, char* argv[])
 	return -1;
 }
 
+int shutdownEditor(UpdateSession* updateSession, bool headlessGateRan, int result)
+{
+	// Mark unfinished downloads before any shutdown wait: a slow plug-in or
+	// probe must not let a just-closed window publish an update (audit #467 TD-64).
+	if (updateSession)
+		updateSession->cancelPendingDownload();
+
+	// The SDK cannot cancel a download. Five seconds gives a finishing request
+	// time to return without letting the network keep a closed Editor alive.
+	constexpr unsigned long kUpdateShutdownTimeoutMs = 5000;
+	ProcessShutdown::exitCode.store(result, std::memory_order_relaxed);
+	// A timeout skips apply and leaves a staged package on disk. Startup auto-apply
+	// is disabled; the next normal session retries CheckForUpdates/DownloadUpdates
+	// after 60 s. Velopack 1.1.1 compares against the installed version and reuses
+	// an existing final package, so it can apply on that session's normal exit
+	// if the feed still offers it. This is not an offline startup-apply promise.
+	// testShutdownSequenceTimeoutSkipsApplyAndLaterWaits, audit #467 TD-58.
+	ProcessShutdown::run({
+		// A plug-in load may still be running on the loader thread (closing the
+		// Editor during a slow first load). Let it finish before static
+		// destruction instead of racing it.
+		{ PluginLoadQueue::shutdownWorkName, PluginLoadQueue::shutdown },
+		// The same for an endpoint format probe still running.
+		{ [] { return L"background probe"; }, BackgroundProbe::shutdown },
+		// The session owns the download worker. Join it before inspecting staged state so
+		// neither process shutdown nor static destruction can race with its publication.
+		{ [] { return L"update download worker"; }, [updateSession] {
+			return updateSession == nullptr || updateSession->shutdown(kUpdateShutdownTimeoutMs);
+		} }
+	}, [&] {
+		// Gates keep their original exit code and never apply a previously staged
+		// product update, but they now leave through the shared worker shutdown.
+		if (headlessGateRan)
+			return;
+
+		// If the background worker staged an update, apply it now. exec() has returned and
+		// the QApplication is destroyed, so no other thread is writing to the install dir.
+		// The apply is silent and does not restart; the new version comes up next launch.
+		if (updateSession && updateSession->hasPendingUpdate())
+		{
+			const UpdateApplyOutcome outcome = updateSession->applyPendingUpdate(
+				AudioEngineAccess::isElevated(),
+				[]() { return VelopackBootstrap::launchElevatedUpdateCoordinator(); });
+			if (outcome == UpdateApplyOutcome::CoordinatorLaunched ||
+				outcome == UpdateApplyOutcome::UpdaterLaunched)
+				result = 0;
+			if (outcome == UpdateApplyOutcome::Failed)
+				logLine(L"ERR", L"staged update could not be applied");
+		}
+	});
+	return result;
+}
+
 void launchDeviceSelector(const std::wstring& exeDir)
 {
 	const std::wstring deviceSelector = pathutil::joinPath(exeDir, L"DeviceSelector.exe");
@@ -394,6 +448,7 @@ int main(int argc, char* argv[])
 	bool firstRunHandled = false;
 	do
 	{
+		ProcessShutdown::exitCode.store(1, std::memory_order_relaxed);
 		// LegacyRows is a whole presentation, not just a row widget: the
 		// heritage editor runs with the platform's native widget style, the
 		// stock ClearType font engine, and system fonts. The skinned mode
@@ -443,6 +498,7 @@ int main(int argc, char* argv[])
 		if (const std::optional<int> gateResult = EditorGates::runHeadless(application.arguments()))
 		{
 			result = *gateResult;
+			ProcessShutdown::exitCode.store(result, std::memory_order_relaxed);
 			headlessGateRan = true;
 			restart = false;
 			continue;
@@ -534,6 +590,7 @@ int main(int argc, char* argv[])
 		}
 
 		result = application.exec();
+		ProcessShutdown::exitCode.store(result, std::memory_order_relaxed);
 
 		restart = w.shouldRestart();
 		if (!restart && updateSession)
@@ -541,44 +598,5 @@ int main(int argc, char* argv[])
 	}
 	while (restart);
 
-	// Mark unfinished downloads before any shutdown wait: a slow plug-in or
-	// probe must not let a just-closed window publish an update (audit #467 TD-64).
-	if (updateSession)
-		updateSession->cancelPendingDownload();
-
-	// A plug-in load may still be running on the loader thread (closing the
-	// Editor during a slow first load). Let it finish before static
-	// destruction instead of racing it.
-	PluginLoadQueue::shutdown();
-	// The same for an endpoint format probe still running.
-	BackgroundProbe::shutdown();
-
-	// The session owns the download worker. Join it before inspecting staged state so
-	// neither process shutdown nor static destruction can race with its publication.
-	if (updateSession)
-		updateSession->shutdown();
-
-	// Gates keep their original exit code and never apply a previously staged
-	// product update, but they now leave through the shared worker shutdown.
-	if (headlessGateRan)
-		return result;
-
-	// If the background worker staged an update, apply it now. exec() has returned and
-	// the QApplication is destroyed, so no other thread is writing to the install dir.
-	// The apply is silent and does not restart; the new version comes up next launch.
-	if (updateSession && updateSession->hasPendingUpdate())
-	{
-		const UpdateApplyOutcome outcome = updateSession->applyPendingUpdate(
-			AudioEngineAccess::isElevated(),
-			[]() { return VelopackBootstrap::launchElevatedUpdateCoordinator(); });
-		if (outcome == UpdateApplyOutcome::CoordinatorLaunched ||
-			outcome == UpdateApplyOutcome::UpdaterLaunched)
-		{
-			return 0;
-		}
-		if (outcome == UpdateApplyOutcome::Failed)
-			logLine(L"ERR", L"staged update could not be applied");
-	}
-
-	return result;
+	return shutdownEditor(updateSession.get(), headlessGateRan, result);
 }

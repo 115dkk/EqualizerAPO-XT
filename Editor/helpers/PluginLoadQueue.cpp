@@ -6,6 +6,7 @@
 
 #include "PluginLoadQueue.h"
 #include "CrashHandler.h"
+#include "platform/windows/ThreadWait.h"
 
 #include <chrono>
 #include <condition_variable>
@@ -134,7 +135,7 @@ public:
 		condition.notify_one();
 	}
 
-	void shutdown()
+	bool shutdown()
 	{
 		{
 			std::lock_guard<std::mutex> lock(mutex);
@@ -144,8 +145,13 @@ public:
 			queued.clear();
 		}
 		condition.notify_one();
-		if (worker.joinable())
-			worker.join();
+		return winutil::joinThreadFor(worker, PluginLoadQueue::kShutdownTimeoutMs);
+	}
+
+	std::wstring shutdownWorkName() const
+	{
+		std::lock_guard<std::mutex> lock(mutex);
+		return activePath.empty() ? L"plug-in loader" : L"loading plug-in " + activePath;
 	}
 
 private:
@@ -167,6 +173,7 @@ private:
 					return;
 				request = queued.front();
 				queued.pop_front();
+				activePath = request->library->getLoadPath();
 			}
 
 			const std::wstring path = request->library->getLoadPath();
@@ -221,6 +228,8 @@ private:
 	int pendingDeliveries = 0;
 	bool stopping = false;
 	bool held = false;
+	// Retain the path through native thread teardown as well as load().
+	std::wstring activePath;
 	std::thread worker;
 };
 
@@ -334,8 +343,12 @@ void PluginLoadQueue::prepareUiThread()
 	keepGuiThreadPoolStarted();
 }
 
-void PluginLoadQueue::shutdown()
+bool PluginLoadQueue::shutdown()
 {
-	if (existing != nullptr)
-		existing->shutdown();
+	return existing == nullptr || existing->shutdown();
+}
+
+std::wstring PluginLoadQueue::shutdownWorkName()
+{
+	return existing == nullptr ? L"plug-in loader" : existing->shutdownWorkName();
 }

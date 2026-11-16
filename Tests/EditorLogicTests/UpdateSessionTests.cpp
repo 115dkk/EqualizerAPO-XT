@@ -74,6 +74,39 @@ private:
 };
 }
 
+TEST_CASE(EditorLogicTests, testUpdateShutdownDeadlineKeepsRunningWorkerOwned)
+{
+	auto state = std::make_shared<FakeUpdateState>();
+	std::promise<void> entered;
+	std::promise<void> resume;
+	auto ready = entered.get_future();
+	auto proceed = resume.get_future();
+	state->duringStage = [&] { entered.set_value(); proceed.wait(); };
+	UpdateSession session(std::make_unique<FakeUpdateClient>(state));
+	session.startDownload();
+	ready.wait();
+	session.cancelPendingDownload();
+	const bool finished = session.shutdown(0);
+	// The product hard-exits instead of destroying a timed-out session. Release
+	// the fake before any assertion so this test can still destroy it safely.
+	resume.set_value();
+	const bool joined = session.shutdown(5000);
+	session.shutdown();
+	expectFalse(finished, QStringLiteral("zero shutdown deadline reports the unfinished download"));
+	expectTrue(joined, QStringLiteral("released download joins through the bounded shutdown"));
+	expectEqual(state->stageCalls, 1, QStringLiteral("timed-out worker remains owned until it finishes"));
+	expectEqual(state->applyCalls, 0, QStringLiteral("timed-out shutdown does not apply the package"));
+	expectFalse(session.hasPendingUpdate(), QStringLiteral("cancelled worker never publishes after timeout"));
+	expectTrue(session.shutdown(0), QStringLiteral("already joined session completes with a zero deadline"));
+}
+
+TEST_CASE(EditorLogicTests, testUpdateShutdownDeadlineAcceptsIdleSession)
+{
+	auto state = std::make_shared<FakeUpdateState>();
+	UpdateSession session(std::make_unique<FakeUpdateClient>(state));
+	expectTrue(session.shutdown(0), QStringLiteral("idle session has no worker to wait for"));
+}
+
 TEST_CASE(EditorLogicTests, testUpdateExitCancelsDownloadBeforePublication)
 {
 	for (const bool elevated : {false, true})

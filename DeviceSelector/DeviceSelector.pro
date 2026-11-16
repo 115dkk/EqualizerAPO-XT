@@ -121,6 +121,8 @@ QMAKE_LFLAGS += /MANIFESTUAC:\"level=\'requireAdministrator\' uiAccess=\'false\'
 RC_FILE = DeviceSelector.rc
 
 HEADERS += \
+	../runtime/concurrency/ShutdownSequence.h \
+	../platform/windows/ProcessShutdown.h \
 	../devices/AsioEntryWriter.h \
 	../devices/EndpointProbe.h \
 	../platform/windows/EndpointId.h \

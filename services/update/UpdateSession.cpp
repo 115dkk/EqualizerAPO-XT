@@ -9,6 +9,7 @@
 */
 
 #include "UpdateSession.h"
+#include "platform/windows/ThreadWait.h"
 
 #include <exception>
 #include <utility>
@@ -120,6 +121,13 @@ void UpdateSession::cancelPendingDownload()
 		status = UpdateDownloadStatus::Cancelled;
 		pendingVersion.reset();
 	}
+}
+
+bool UpdateSession::shutdown(unsigned long timeoutMs)
+{
+	// Keep ownership on timeout: the process-exit caller must skip destruction,
+	// not let a live download touch a freed session (audit #467 TD-58).
+	return winutil::joinThreadFor(worker, timeoutMs);
 }
 
 void UpdateSession::shutdown()

@@ -240,6 +240,8 @@
     <ClInclude Include="..\..\platform\windows\TextEncoding.h" />
     <ClInclude Include="..\..\platform\qt\HoverProgress.h" />
     <ClInclude Include="..\..\services\update\UpdateSession.h" />
+    <ClInclude Include="..\..\runtime\concurrency\ShutdownSequence.h" />
+    <ClInclude Include="..\..\platform\windows\ThreadWait.h" />
     <ClInclude Include="..\..\filters\BiQuadCommand.h" />
     <ClInclude Include="..\..\filters\ChannelCommand.h" />
     <ClInclude Include="..\..\filters\FilterFactoryRegistry.h" />

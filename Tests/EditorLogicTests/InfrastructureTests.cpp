@@ -27,6 +27,56 @@
 #include "Editor/widgets/EditableValueText.h"
 #include "Editor/widgets/cards/FileReferenceController.h"
 #include "runtime/memory/AlignedMemory.h"
+#include "runtime/concurrency/ShutdownSequence.h"
+
+TEST_CASE(EditorLogicTests, testShutdownSequenceAppliesOnlyAfterEveryWait)
+{
+	std::vector<std::wstring> calls;
+	const bool finished = ShutdownSequence::run({
+		{ [] { return L"plug-in loader"; }, [&] { calls.push_back(L"loader"); return true; } },
+		{ [] { return L"background probe"; }, [&] { calls.push_back(L"probe"); return true; } },
+		{ [] { return L"update download"; }, [&] { calls.push_back(L"download"); return true; } }
+	}, 17, [&] { calls.push_back(L"apply"); },
+		[&](const std::wstring&) { calls.push_back(L"log"); },
+		[&](int) { calls.push_back(L"exit"); });
+	expectTrue(finished, QStringLiteral("completed shutdown returns normally"));
+	expectTrue(calls == std::vector<std::wstring>{L"loader", L"probe", L"download", L"apply"},
+		QStringLiteral("update applies only after the ordered waits; no timeout log or exit"));
+}
+
+TEST_CASE(EditorLogicTests, testShutdownSequenceTimeoutSkipsApplyAndLaterWaits)
+{
+	for (const int code : {0, 17})
+	{
+		for (int timeoutIndex = 0; timeoutIndex < 3; ++timeoutIndex)
+		{
+			int waits = 0;
+			int exits = 0;
+			int actualCode = -1;
+			int applies = 0;
+			std::vector<std::wstring> logs;
+			std::vector<std::wstring> calls;
+			std::wstring loaderName = L"plug-in loader";
+			const auto wait = [&] { return waits++ != timeoutIndex; };
+			const bool finished = ShutdownSequence::run({
+				{ [&] { return loaderName; }, [&] { loaderName = L"loading plug-in C:/fixture/slow.dll"; return wait(); } },
+				{ [] { return L"background probe"; }, wait },
+				{ [] { return L"update download"; }, wait }
+			}, code, [&] { ++applies; }, [&](const std::wstring& line) { logs.push_back(line); calls.push_back(L"log"); },
+				[&](int value) { ++exits; actualCode = value; calls.push_back(L"exit"); });
+			const std::wstring names[] = {loaderName, L"background probe", L"update download"};
+			expectFalse(finished, QStringLiteral("timed-out shutdown cannot continue normally"));
+			expectEqual(waits, timeoutIndex + 1, QStringLiteral("no later waits run after the first timeout"));
+			expectEqual(applies, 0, QStringLiteral("timeout never applies an update or launches its coordinator"));
+			expectEqual(exits, 1, QStringLiteral("timeout requests hard exit exactly once"));
+			expectEqual(actualCode, code, QStringLiteral("hard exit preserves the decided process code"));
+			expectTrue(logs == std::vector<std::wstring>{L"Shutdown timed out: " + names[timeoutIndex]},
+				QStringLiteral("one timeout line names the running worker or plug-in path"));
+			expectTrue(calls == std::vector<std::wstring>{L"log", L"exit"}, QStringLiteral("timeout logs before hard exit"));
+		}
+	}
+}
+
 TEST_CASE(EditorLogicTests, testCrashBreadcrumbConcurrentWriters)
 {
 	const std::wstring first(255, L'A');

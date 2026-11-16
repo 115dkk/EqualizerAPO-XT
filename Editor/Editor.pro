@@ -892,6 +892,9 @@ RC_FILE = Editor.rc
 DISTFILES += ../uncrustify.cfg
 
 HEADERS += \
+	../runtime/concurrency/ShutdownSequence.h \
+	../platform/windows/ProcessShutdown.h \
+	../platform/windows/ThreadWait.h \
 	../devices/AsioEntryWriter.h \
 	../devices/EndpointProbe.h \
 	../platform/windows/TokenPrivilege.h \
