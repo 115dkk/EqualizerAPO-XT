@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.63.3 — 2026-11-16
+
 Everything below comes from the 2026-11-15 audit
 ([#467](https://github.com/115dkk/EqualizerAPO-XT/issues/467),
 [#468](https://github.com/115dkk/EqualizerAPO-XT/pull/468)).

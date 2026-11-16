@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.63.3 — 2026-11-16
+
 아래 항목은 모두 2026-11-15 감사
 ([#467](https://github.com/115dkk/EqualizerAPO-XT/issues/467),
 [#468](https://github.com/115dkk/EqualizerAPO-XT/pull/468))에서 나왔습니다.
