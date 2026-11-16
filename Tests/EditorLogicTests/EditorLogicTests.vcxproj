@@ -176,6 +176,7 @@
     <ClCompile Include="..\..\Editor\widgets\cards\ChannelSelectionModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\DeviceSelectionModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\FileReferenceController.cpp" />
+    <ClCompile Include="..\..\Editor\widgets\cards\ReferenceProbeRequests.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\GraphicEQCsv.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\ReferenceCardState.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\VSTBusModel.cpp" />
@@ -227,6 +228,7 @@
     <ClInclude Include="..\..\Editor\widgets\cards\ChannelSelectionModel.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\DeviceSelectionModel.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\FileReferenceController.h" />
+    <ClInclude Include="..\..\Editor\widgets\cards\ReferenceProbeRequests.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\GraphicEQCsv.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\VSTPanelIntent.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\VSTBusVerdict.h" />

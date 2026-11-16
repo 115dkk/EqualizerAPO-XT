@@ -12,6 +12,7 @@
 #include <QString>
 
 #include "ReferenceCardView.h"
+#include "ReferenceProbeRequests.h"
 
 class QWidget;
 
@@ -71,6 +72,35 @@ public:
 	static QString audioServiceProblem(const QString& absolutePath, const QString& configPath);
 	bool importIntoConfig(QWidget* parent, const QString& configPath);
 
+	// The two answers audioServiceProblem can give besides "it will", before
+	// they are put into words. audioServiceVerdict touches the file system and
+	// asks Windows for the file's security, which can block for a network
+	// timeout; askAudioService runs it off the UI thread.
+	enum class AudioServiceVerdict
+	{
+		Opens,
+		NotOnLocalDrive,
+		NotReadable
+	};
+	static AudioServiceVerdict audioServiceVerdict(const QString& absolutePath, const QString& configPath);
+	// The verdict in words (empty for Opens); call on the UI thread.
+	static QString audioServiceProblemText(AudioServiceVerdict verdict);
+	// Asks audioServiceProblem's question about absolutePath on the background
+	// probe thread (BackgroundProbe, audit #467 TD-59: a line pointing at a
+	// disconnected network drive stalled the UI each time its row was built)
+	// and calls answer on the UI thread with the problem, empty when there is
+	// none. The answer is dropped when the card has asked about another file
+	// since, or about nothing (askNothing), and when this controller is gone;
+	// the same question asked again while its probe runs is answered by that
+	// probe. Until then the card shows its state without a problem. Returns
+	// true when answer already ran, which happens when there is nothing to
+	// probe (no path, or the audio-service check is off).
+	bool askAudioService(const QString& absolutePath, const QString& configPath,
+		std::function<void(const QString& problem)> answer);
+	// The card shows nothing it asks about: an answer still on its way is
+	// dropped.
+	void askNothing();
+
 	// How the Editor writes a file the user chose, relative to the folder a
 	// relative reference is read from: relative unless that means climbing
 	// more than one level above it (a path starting with ../../), absolute
@@ -102,6 +132,11 @@ public:
 		const QString& writtenPath, const QString& pluginsDirectory, bool skinned);
 
 private:
+	// The offscreen gallery's files have no meaningful ACL or location story.
+	static bool skipsAudioServiceCheck();
+
+	ReferenceProbeRequests probes;
+	std::function<void(const QString&)> pendingAnswer;
 	std::function<QString()> configPathSource;
 	std::function<void()> onCommitted;
 	QString referenceKind;

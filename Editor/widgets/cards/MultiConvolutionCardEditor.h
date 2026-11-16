@@ -22,13 +22,13 @@
 
 #include "Editor/IFilterGUI.h"
 #include "filters/MultiConvolutionCommand.h"
+#include "ReferenceCardView.h"
 
 class FilterTable;
 class FileReferenceController;
 class QLabel;
 class QToolButton;
 class QVBoxLayout;
-class ReferenceCardView;
 class RoutingView;
 
 // Modern card body for a "MultiConvolution:" line. Two stacked parts: the
@@ -62,6 +62,7 @@ private slots:
 private:
 	unsigned currentDeviceSampleRate() const;
 	void updateFileInfo();
+	void showAudioServiceProblem(const QString& problem);
 	void rebuildRoutingView();
 
 	FilterTable* filterTable = nullptr;
@@ -79,6 +80,8 @@ private:
 	int fileChannelCount = 0;
 
 	ReferenceCardView* view = nullptr;
+	// What the view shows, so the audio-service answer can be laid over it.
+	ReferenceCardState shownState;
 	// The whole mapping block (caption, + button, routing view). Hidden while
 	// no readable file is selected: the reference view's own status grammar
 	// already says what is missing, and a mapping that cannot be edited would

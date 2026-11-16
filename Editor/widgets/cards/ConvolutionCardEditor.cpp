@@ -116,6 +116,7 @@ void ConvolutionCardEditor::updateFileInfo()
 	const QString absolute = reference->resolvedAbsolutePath();
 	ReferenceCardState state = reference->describe(tr("No file selected"));
 	bool offerImport = false;
+	bool askAudioService = false;
 	if (!state.missing)
 	{
 		QFileInfo fileInfo(absolute);
@@ -152,21 +153,13 @@ void ConvolutionCardEditor::updateFileInfo()
 			// files with no meaningful ACL story - it skips the probe.
 			if (!qEnvironmentVariableIsSet("EAPO_SKIN_GALLERY"))
 			{
-				const QString problem = FileReferenceController::audioServiceProblem(
-					state.fullPath, filterTable->getConfigPath());
-				if (!problem.isEmpty())
-				{
-					state.statusText = problem;
-					state.statusSeverity = ReferenceCardState::Severity::Critical;
+				// The audio-service verdict arrives later (showAudioServiceProblem);
+				// where the file lives is a path comparison, answered now.
+				askAudioService = true;
+				const QString configDir = QDir::cleanPath(QFileInfo(filterTable->getConfigPath()).absolutePath());
+				const QString fileDir = QDir::cleanPath(fileInfo.absolutePath());
+				if (!configDir.isEmpty() && !fileDir.startsWith(configDir, Qt::CaseInsensitive))
 					offerImport = true;
-				}
-				else
-				{
-					const QString configDir = QDir::cleanPath(QFileInfo(filterTable->getConfigPath()).absolutePath());
-					const QString fileDir = QDir::cleanPath(fileInfo.absolutePath());
-					if (!configDir.isEmpty() && !fileDir.startsWith(configDir, Qt::CaseInsensitive))
-						offerImport = true;
-				}
 			}
 	}
 
@@ -174,8 +167,27 @@ void ConvolutionCardEditor::updateFileInfo()
 	chooseButton->setText(locate ? tr("Locate...") : QString());
 	chooseButton->setToolTip(locate ? tr("Locate the missing file") : tr("Select impulse response file"));
 
+	shownState = state;
 	view->setState(state);
 	importButton->setVisible(offerImport);
+	if (askAudioService)
+		reference->askAudioService(state.fullPath, filterTable->getConfigPath(),
+			[this](const QString& problem) { showAudioServiceProblem(problem); });
+	else
+		reference->askNothing();
+}
+
+// A file the audio service cannot read, or one in a place it does not open,
+// is offered for import (see updateFileInfo); the problem outranks the
+// sample-rate warning on the status line.
+void ConvolutionCardEditor::showAudioServiceProblem(const QString& problem)
+{
+	if (problem.isEmpty())
+		return;
+	shownState.statusText = problem;
+	shownState.statusSeverity = ReferenceCardState::Severity::Critical;
+	view->setState(shownState);
+	importButton->setVisible(true);
 }
 
 #include "FilterCardEditorRegistry.h"

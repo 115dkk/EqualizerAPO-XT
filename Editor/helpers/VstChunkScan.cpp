@@ -32,13 +32,21 @@ QStringList vstChunkPathCandidates(const std::wstring& chunkData)
 
 QStringList vstChunkUnreadablePaths(const std::wstring& chunkData)
 {
+	return vstChunkUnreadablePaths(chunkData,
+		[](const QString& path) { return QFile(path).exists(); },
+		[](const QString& path) { return AudioEngineAccess::isReadableByAudioEngine(path.toStdWString()); });
+}
+
+QStringList vstChunkUnreadablePaths(const std::wstring& chunkData,
+	const std::function<bool(const QString&)>& exists,
+	const std::function<bool(const QString&)>& readableByAudioService)
+{
 	QStringList files;
 	for (const QString& path : vstChunkPathCandidates(chunkData))
 	{
-		QFile file(path);
-		if (file.exists())
+		if (exists(path))
 		{
-			if (!AudioEngineAccess::isReadableByAudioEngine(path.toStdWString()))
+			if (!readableByAudioService(path))
 				files.append(path);
 		}
 	}

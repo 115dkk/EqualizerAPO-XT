@@ -263,6 +263,7 @@ void MultiConvolutionCardEditor::updateFileInfo()
 	ReferenceCardState state = reference->describe(tr("No file selected"));
 	fileChannelCount = 0;
 	bool offerImport = false;
+	bool askAudioService = false;
 	if (!state.missing)
 	{
 		QFileInfo fileInfo(absolute);
@@ -315,21 +316,12 @@ void MultiConvolutionCardEditor::updateFileInfo()
 			// inside the config directory. The offscreen gallery skips the probe.
 			if (!qEnvironmentVariableIsSet("EAPO_SKIN_GALLERY"))
 			{
-				const QString problem = FileReferenceController::audioServiceProblem(
-					state.fullPath, filterTable->getConfigPath());
-				if (!problem.isEmpty())
-				{
-					state.statusText = problem;
-					state.statusSeverity = ReferenceCardState::Severity::Critical;
+				// The audio-service verdict arrives later (showAudioServiceProblem).
+				askAudioService = true;
+				const QString configDir = QDir::cleanPath(QFileInfo(filterTable->getConfigPath()).absolutePath());
+				const QString fileDir = QDir::cleanPath(fileInfo.absolutePath());
+				if (!configDir.isEmpty() && !fileDir.startsWith(configDir, Qt::CaseInsensitive))
 					offerImport = true;
-				}
-				else
-				{
-					const QString configDir = QDir::cleanPath(QFileInfo(filterTable->getConfigPath()).absolutePath());
-					const QString fileDir = QDir::cleanPath(fileInfo.absolutePath());
-					if (!configDir.isEmpty() && !fileDir.startsWith(configDir, Qt::CaseInsensitive))
-						offerImport = true;
-				}
 			}
 	}
 
@@ -337,9 +329,27 @@ void MultiConvolutionCardEditor::updateFileInfo()
 	chooseButton->setText(locate ? tr("Locate...") : QString());
 	chooseButton->setToolTip(locate ? tr("Locate the missing file") : tr("Select impulse response file"));
 
+	shownState = state;
 	view->setState(state);
 	importButton->setVisible(offerImport);
 	rebuildRoutingView();
+	if (askAudioService)
+		reference->askAudioService(state.fullPath, filterTable->getConfigPath(),
+			[this](const QString& problem) { showAudioServiceProblem(problem); });
+	else
+		reference->askNothing();
+}
+
+// See ConvolutionCardEditor: the problem outranks the readout's warnings and
+// offers the import.
+void MultiConvolutionCardEditor::showAudioServiceProblem(const QString& problem)
+{
+	if (problem.isEmpty())
+		return;
+	shownState.statusText = problem;
+	shownState.statusSeverity = ReferenceCardState::Severity::Critical;
+	view->setState(shownState);
+	importButton->setVisible(true);
 }
 
 #include "FilterCardEditorRegistry.h"

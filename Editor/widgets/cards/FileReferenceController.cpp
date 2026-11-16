@@ -146,14 +146,44 @@ QString FileReferenceController::audioServiceProblem(const QString& absolutePath
 {
 	// The offscreen gallery renders synthetic files with no meaningful ACL or
 	// location story.
-	if (absolutePath.isEmpty() || qEnvironmentVariableIsSet("EAPO_SKIN_GALLERY"))
+	if (absolutePath.isEmpty() || skipsAudioServiceCheck())
 		return {};
 
+	return audioServiceProblemText(audioServiceVerdict(absolutePath, configPath));
+}
+
+void FileReferenceController::askNothing()
+{
+	probes.clear();
+}
+
+bool FileReferenceController::skipsAudioServiceCheck()
+{
+	return qEnvironmentVariableIsSet("EAPO_SKIN_GALLERY");
+}
+
+FileReferenceController::AudioServiceVerdict FileReferenceController::audioServiceVerdict(
+	const QString& absolutePath, const QString& configPath)
+{
 	const std::wstring path = QDir::toNativeSeparators(absolutePath).toStdWString();
 	std::wstring reason;
 	if (!ConfigPathPolicy::allowsOpen(path, QDir::toNativeSeparators(configPath).toStdWString(), reason))
-		return QCoreApplication::translate("FileReferenceController", "The audio service only opens files on local drives");
+		return AudioServiceVerdict::NotOnLocalDrive;
 	if (!AudioEngineAccess::isReadableByAudioEngine(path))
+		return AudioServiceVerdict::NotReadable;
+	return AudioServiceVerdict::Opens;
+}
+
+QString FileReferenceController::audioServiceProblemText(AudioServiceVerdict verdict)
+{
+	switch (verdict)
+	{
+	case AudioServiceVerdict::NotOnLocalDrive:
+		return QCoreApplication::translate("FileReferenceController", "The audio service only opens files on local drives");
+	case AudioServiceVerdict::NotReadable:
 		return QCoreApplication::translate("FileReferenceController", "Not readable by the audio service");
+	case AudioServiceVerdict::Opens:
+		break;
+	}
 	return {};
 }

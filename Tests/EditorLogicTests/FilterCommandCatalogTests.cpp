@@ -305,4 +305,11 @@ TEST_CASE(EditorLogicTests, testVstChunkPathCandidates)
 	// disk it stays empty, pinning the exists() gate.
 	expectTrue(vstChunkUnreadablePaths(chunk).isEmpty(),
 		"nonexistent candidates never reach the warning list");
+
+	// The injected questions (audit #467 TD-59) take the file system's place.
+	const QStringList unreadable = vstChunkUnreadablePaths(chunk,
+		[](const QString&) { return true; },
+		[](const QString& path) { return path.endsWith(QStringLiteral(".dll")); });
+	expectEqual(unreadable, QStringList { QStringLiteral("C:\\Samples\\My IR (final).wav") },
+		"an existing unreadable path is listed once, a readable one not at all");
 }
