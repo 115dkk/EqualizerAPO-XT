@@ -209,6 +209,12 @@ Describe "extracted build script decisions" {
         }
         $memcheck.Suites | Should -Contain "AudioRegressionTests"
         $memcheck.SuiteArguments["AudioRegressionTests"] | Should -Contain "--ref-dir"
+        $solution.SuiteTimeoutMinutes | Should -Be 15
+        $memcheck.SuiteTimeoutMinutes | Should -Be 30
+        (& (Join-Path $PSScriptRoot "..\Build-Solution.ps1") -WorkspaceRoot $root -Platform x64 `
+            -SimdVariant avx2 -SuiteTimeoutMinutes 9 -PlanOnly).SuiteTimeoutMinutes | Should -Be 9
+        (& (Join-Path $PSScriptRoot "..\Invoke-MemcheckTests.ps1") -WorkspaceRoot $root `
+            -SuiteTimeoutMinutes 18 -PlanOnly).SuiteTimeoutMinutes | Should -Be 18
     }
 
     It "lists the capture probes so every leg builds them" {

@@ -409,7 +409,11 @@ inline int runAll(const char* binaryName,
 		auto harness = std::make_unique<Harness>(suite->name);
 		activeHarnessStorage() = harness.get();
 		for (const TestCase& testCase : suite->cases)
+		{
+			std::printf("%s::%s\n", suite->name.c_str(), testCase.name);
+			std::fflush(stdout);
 			testCase.function(*harness);
+		}
 		for (CleanupFunction cleanup : suite->cleanups)
 			cleanup();
 		activeHarnessStorage() = nullptr;

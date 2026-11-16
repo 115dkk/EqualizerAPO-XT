@@ -10,6 +10,7 @@ param(
     # Empty means the manifest's Primary variant (TECH_DEBT_AUDIT TD-35).
     [AllowEmptyString()] [string] $SimdVariant,
     [bool] $CanExecute = $true,
+    [ValidateRange(1, 1440)] [int] $SuiteTimeoutMinutes = 15,
     [switch] $PlanOnly
 )
 
@@ -49,6 +50,7 @@ $plan = [pscustomobject]@{
     PlatformToolset = $platformToolset
     ToolArchitecture = $toolArchitecture
     RuntimeTests = $runtimeTests
+    SuiteTimeoutMinutes = $SuiteTimeoutMinutes
     InstallerProject = $installerProject
 }
 if ($PlanOnly) { return $plan }
@@ -132,9 +134,9 @@ if ($installerProject) {
 }
 
 $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$qtRoot\bin;$env:PATH"
+Import-Module (Join-Path $PSScriptRoot "TestExecution.psm1") -Force
 foreach ($name in $runtimeTests) {
     $testExe = Join-Path $WorkspaceRoot "Tests\$name\$Platform\Release\$name.exe"
     if (-not (Test-Path $testExe)) { throw "Test executable not found: $testExe" }
-    & $testExe
-    if ($LASTEXITCODE -ne 0) { throw "$name failed" }
+    Invoke-TestExecutable -Name $name -FilePath $testExe -TimeoutSeconds ($SuiteTimeoutMinutes * 60)
 }

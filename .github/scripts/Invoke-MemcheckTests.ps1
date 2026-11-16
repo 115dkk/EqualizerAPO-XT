@@ -41,6 +41,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)] [string] $WorkspaceRoot,
+    [ValidateRange(1, 1440)] [int] $SuiteTimeoutMinutes = 30,
     [switch] $PlanOnly
 )
 
@@ -71,6 +72,7 @@ $plan = [pscustomobject]@{
     Projects = $projects
     Suites = $suites
     SuiteArguments = $suiteArguments
+    SuiteTimeoutMinutes = $SuiteTimeoutMinutes
 }
 if ($PlanOnly) { return $plan }
 
@@ -86,11 +88,11 @@ Invoke-EapoMsBuild -Project $projects -Arguments $buildParams -FailureLabel "ASa
 Remove-Item Env:CL
 
 $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:MUPARSERX_LIB;$env:QT_ROOT\bin;$env:PATH"
+Import-Module (Join-Path $PSScriptRoot "TestExecution.psm1") -Force
 foreach ($name in $suites) {
     $testExe = Join-Path $WorkspaceRoot "Tests\$name\x64\Release\$name.exe"
     if (-not (Test-Path $testExe)) { throw "Test executable not found: $testExe" }
     Write-Host "== memcheck: $name =="
     $arguments = if ($suiteArguments.ContainsKey($name)) { $suiteArguments[$name] } else { @() }
-    & $testExe @arguments
-    if ($LASTEXITCODE -ne 0) { throw "$name failed under the memory gate" }
+    Invoke-TestExecutable -Name $name -FilePath $testExe -Arguments $arguments -TimeoutSeconds ($SuiteTimeoutMinutes * 60)
 }
