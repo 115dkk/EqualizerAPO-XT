@@ -14,6 +14,81 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+Everything below comes from the 2026-11-15 audit
+([#467](https://github.com/115dkk/EqualizerAPO-XT/issues/467),
+[#468](https://github.com/115dkk/EqualizerAPO-XT/pull/468)).
+
+- **The settings migration no longer deletes a file it could not copy.** When
+  the install step moved an older Equalizer APO configuration into the
+  EqualizerAPO-XT folder, a file whose copy failed could still be removed from
+  the old place. Originals are now removed only after their copy is in place
+  and its size has been checked, and a file that could not be verified stays
+  where it was with a line in the report. Importing a file that already sits
+  below the config folder keeps it there and only repairs its access rights.
+- **Several engine faults that produced wrong sound are fixed.** `Copy` wrote a
+  constant offset (DC) for a source channel the device does not have; it now
+  drops that channel. An `If` whose condition could not be evaluated ran its
+  body; it now skips it. Preamp, GraphicEQ and IIR could emit non-finite
+  samples from non-finite parameters. A block larger than the maximum the
+  audio engine announced is passed through instead of being processed past
+  the buffers.
+- **A configuration line that names a missing or unreadable file says why.**
+  The log and the Editor show the path and the Windows reason instead of
+  treating the line as absent. Impulse responses and configuration files that
+  are too large are refused before they are read.
+- **A plug-in that faults while its panel opens no longer takes the Editor
+  down.** A plug-in state that cannot be restored is reported instead of being
+  dropped silently, a plug-in that refuses to initialise is no longer logged
+  as a crash, and the Editor decodes saved plug-in state with the same decoder
+  as the engine, so both refuse the same malformed data.
+- **The Editor and the Device Selector no longer stay open waiting for work
+  that never ends.** On exit a plug-in load gets 10 seconds, and the analysis,
+  the device probe, the update download and the device-test receiver get 5.
+  When one of them does not finish, the log names what is still running and
+  the process ends; an update that was already downloaded is not applied on
+  that exit, and is found again and applied after a later normal exit. This
+  exit was not exercised with a plug-in that really hangs.
+- **A broken Voicemeeter or ASIO registry entry no longer empties the device
+  list.** The entry is skipped and logged. The Device Selector remembers the
+  selected device by its GUID, closing the device test with Esc waits for the
+  running test, and a registry repair that fails now says so instead of
+  reporting a correction.
+- **The engine host and the Voicemeeter client no longer inherit the
+  administrator token** when the elevated Device Selector starts them. The
+  elevated Device Selector loads Qt plug-ins only from its own folder, and the
+  device-test pipe can no longer be impersonated or blocked by another
+  process.
+- **Installers require the Visual C++ 2026 runtime the binaries are built
+  with,** and the install step brings an older runtime up to date.
+- **An update that fails midway restarts the Windows audio service.** The
+  time a user takes to answer the UAC prompt no longer counts against the
+  update step's deadline. Closing the Editor while an update is still
+  downloading ends that download without applying it; an update that was
+  already downloaded is applied on exit as before.
+- **The Editor warns at start-up when the Windows audio service is stopped,
+  or when it cannot read the installation or config folder.** The install
+  step used to report success when granting that access failed.
+- **Device registry backups move to
+  `%ProgramData%\EqualizerAPO-XT\Backups`,** a folder only administrators can
+  write. Backups already in the config folder are left alone.
+- **`EqualizerAPO-XT-Setup.exe` runs exactly the file it verified** and
+  reports an HTTP failure as an HTTP failure.
+- **Logs keep characters outside the system code page and are trimmed at
+  start-up** (4 MiB). The Device Selector writes crash reports too, crash
+  reports name the last opened file or loading plug-in, and impulse-response
+  errors name the file.
+- **Editor fixes.** After an instant save failed once, the document stayed
+  marked as changed even when a later save succeeded, so closing asked to save
+  a saved file. Save As restarted the analysis on the old file when the
+  analysis starts from the open file. A line whose backticks are all escaped
+  or never closed is no longer treated as an expression row. Cards that point
+  at a file no longer check the audio service's access to it on the UI
+  thread; the check whether the file exists still runs there.
+- **An exception inside the Voicemeeter audio callback is contained.** The
+  client passes audio through unfiltered until it is restarted instead of
+  unwinding into Voicemeeter. This was not exercised against a live
+  Voicemeeter.
+
 ## v2.63.2 — 2026-11-14
 
 - **zAuro Pro 2D-3D Upmixer takes an Input/Output bus layout.** The plug-in
