@@ -28,7 +28,10 @@ Describe "ReleaseAssets grammar module" {
         $header | Should -Match 'checksumsAssetName\[\] = L"SHA256SUMS\.txt";'
         $header | Should -Match ([regex]::Escape('velopackPackId(channel) + L"-" + channel + L"-Setup.exe"'))
         $header | Should -Match ([regex]::Escape('std::wstring(productPrefix) + L"-" + channel'))
-        $header | Should -Match ([regex]::Escape('std::wstring(productPrefix) + L"-Setup.exe"'))
+        # The header no longer spells the universal installer's name: no C++
+        # code asked for it (audit #467 TD-41). Its two real spellings, the
+        # installer project's TargetName and resource block, are pinned by
+        # the next test.
     }
 
     It "stays in step with the installer project's TargetName and resource metadata" {
