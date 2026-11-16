@@ -20,6 +20,28 @@ FileReferenceController::FileReferenceController(const QString& kind,
 {
 }
 
+void FileReferenceController::attach(std::function<QString()> configPath, std::function<void()> committed)
+{
+	configPathSource = std::move(configPath);
+	onCommitted = std::move(committed);
+}
+
+QString FileReferenceController::resolvedAbsolutePath()
+{
+	if (!configPathSource)
+		return QString();
+
+	resolveAgainstConfig(configPathSource());
+	return resolved;
+}
+
+void FileReferenceController::commitWrittenPath(const QString& text)
+{
+	setWrittenPath(text);
+	if (onCommitted)
+		onCommitted();
+}
+
 const QString& FileReferenceController::writtenPath() const
 {
 	return written;

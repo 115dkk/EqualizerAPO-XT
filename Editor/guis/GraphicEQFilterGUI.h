@@ -74,5 +74,4 @@ private:
 	std::unique_ptr<Ui::GraphicEQFilterGUI> ui;
 	GraphicEQFilterGUIScene* scene;
 	QString configPath;
-	static QRegularExpression numberRegEx;
 };

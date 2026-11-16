@@ -26,6 +26,7 @@
 #include "filters/GraphicEQCommand.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/ResizeCorner.h"
+#include "Editor/widgets/cards/GraphicEQCsv.h"
 #include "Editor/FilterTable.h"
 #include "GraphicEQFilterGUIView.h"
 #include "GraphicEQFilterGUI.h"
@@ -34,11 +35,7 @@
 static const double DEFAULT_TABLE_WIDTH = 119;
 static const double DEFAULT_VIEW_HEIGHT = 150;
 
-using std::replace;
-using std::sort;
 using std::vector;
-
-QRegularExpression GraphicEQFilterGUI::numberRegEx("[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?");
 
 GraphicEQFilterGUI::GraphicEQFilterGUI(const std::vector<FilterNode>& nodes, const QString& configPath, FilterTable* filterTable)
 	: ui(std::make_unique<Ui::GraphicEQFilterGUI>()), configPath(configPath)
@@ -311,42 +308,8 @@ void GraphicEQFilterGUI::on_actionImport_triggered()
 	dialog.setNameFilters(nameFilters);
 	if (dialog.exec() == QDialog::Accepted)
 	{
-		vector<FilterNode> newNodes;
-
-		for (QString path : dialog.selectedFiles())
-		{
-			QFile file(path);
-			if (file.open(QFile::ReadOnly))
-			{
-				QTextStream stream(&file);
-				while (!stream.atEnd())
-				{
-					QString text = stream.readLine();
-					if (text.startsWith('*'))
-						continue;
-
-					if (!text.contains('.'))
-						text = text.replace(',', '.');
-					QRegularExpressionMatchIterator it = numberRegEx.globalMatch(text);
-					while (it.hasNext())
-					{
-						QRegularExpressionMatch match = it.next();
-						QString freqString = match.captured();
-						bool ok;
-						double freq = freqString.toDouble(&ok);
-						if (ok && it.hasNext())
-						{
-							match = it.next();
-							QString gainString = match.captured();
-							double gain = gainString.toDouble(&ok);
-							if (ok)
-								newNodes.push_back(FilterNode(freq, gain));
-						}
-					}
-				}
-			}
-		}
-		sort(newNodes.begin(), newNodes.end());
+		// The parsing rule the card shares (GraphicEQCsv, audit #467 TD-40).
+		vector<FilterNode> newNodes = GraphicEQCsv::readNodes(dialog.selectedFiles());
 
 		scene->setNodes(newNodes);
 
@@ -388,26 +351,13 @@ void GraphicEQFilterGUI::on_actionExport_triggered()
 	{
 		QString savePath = dialog.selectedFiles().first();
 
-		QFile file(savePath);
-		if (file.open(QFile::WriteOnly | QFile::Truncate))
-		{
-			QTextStream stream(&file);
-			for (FilterNode node : scene->getNodes())
-			{
-				stream << node.freq << '\t' << node.dbGain << '\n';
-			}
-			stream.flush();
-		}
+		GraphicEQCsv::writeNodesToFile(savePath, scene->getNodes());
 	}
 }
 
 void GraphicEQFilterGUI::on_actionInvertResponse_triggered()
 {
-	vector<FilterNode> newNodes = scene->getNodes();
-	for (FilterNode& node : newNodes)
-		node.dbGain = -node.dbGain;
-
-	scene->setNodes(newNodes);
+	scene->setNodes(GraphicEQCsv::inverted(scene->getNodes()));
 	emit updateModel();
 }
 

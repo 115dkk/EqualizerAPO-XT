@@ -23,9 +23,6 @@
 #include "Editor/SkinManager.h"
 #include "Editor/skins/ISkin.h"
 #include "Editor/helpers/GUIHelper.h"
-#include "Editor/import/ConfigDependencyScanner.h"
-#include "Editor/import/ImportDialog.h"
-#include "Editor/import/ImportExecutor.h"
 #include "ReferenceCardView.h"
 #include "FileReferenceController.h"
 #include "filters/ConvolutionCommand.h"
@@ -38,6 +35,13 @@ ConvolutionCardEditor::ConvolutionCardEditor(FilterTable* filterTable, const QSt
 {
 	setObjectName(QStringLiteral("ConvolutionCardEditor"));
 	setAttribute(Qt::WA_StyledBackground, true);
+	reference->attach(filterTable != nullptr
+			? std::function<QString()>([filterTable]() { return filterTable->getConfigPath(); })
+			: std::function<QString()>(),
+		[this]() {
+			updateFileInfo();
+			emit updateModel();
+		});
 
 	QHBoxLayout* layout = new QHBoxLayout(this);
 	layout->setContentsMargins(0, 0, 0, 0);
@@ -88,51 +92,18 @@ void ConvolutionCardEditor::store(QString& command, QString& parameters)
 
 void ConvolutionCardEditor::chooseFile()
 {
-	if (filterTable == nullptr)
-		return;
-
-	const QString configPath = filterTable->getConfigPath();
-	const QString currentAbsolute = resolvedAbsolutePath();
-	QFileInfo startInfo(currentAbsolute.isEmpty() ? configPath : currentAbsolute);
-
-	const QString selected = reference->chooseExistingFile(
-		this, tr("Select impulse response file"), startInfo.absolutePath(),
-		tr("Impulse response (*.wav *.flac *.ogg)"),
-		QFileInfo(configPath).absolutePath(),
-		reference->writtenPath().isEmpty() ? QString() : startInfo.fileName());
-	if (!selected.isEmpty())
-	{
-		updateFileInfo();
-		emit updateModel();
-	}
+	reference->chooseFile(this, tr("Select impulse response file"),
+		tr("Impulse response (*.wav *.flac *.ogg)"));
 }
 
 void ConvolutionCardEditor::pathCommitted(const QString& text)
 {
-	reference->setWrittenPath(text);
-	updateFileInfo();
-	emit updateModel();
+	reference->commitWrittenPath(text);
 }
 
 void ConvolutionCardEditor::importToConfig()
 {
-	if (filterTable == nullptr)
-		return;
-
-	reference->setResolvedPath(resolvedAbsolutePath());
-	if (!reference->importIntoConfig(this, filterTable->getConfigPath()))
-		return;
-	updateFileInfo();
-	emit updateModel();
-}
-
-QString ConvolutionCardEditor::resolvedAbsolutePath() const
-{
-	if (filterTable == nullptr)
-		return QString();
-
-	reference->resolveAgainstConfig(filterTable->getConfigPath());
-	return reference->resolvedPath();
+	reference->importIntoConfigDirectory(this);
 }
 
 unsigned ConvolutionCardEditor::currentDeviceSampleRate() const
@@ -142,7 +113,7 @@ unsigned ConvolutionCardEditor::currentDeviceSampleRate() const
 
 void ConvolutionCardEditor::updateFileInfo()
 {
-	const QString absolute = resolvedAbsolutePath();
+	const QString absolute = reference->resolvedAbsolutePath();
 	ReferenceCardState state = reference->describe(tr("No file selected"));
 	bool offerImport = false;
 	if (!state.missing)

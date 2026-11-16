@@ -106,6 +106,7 @@
     <ClCompile Include="FilterCommandCatalogTests.cpp" />
     <ClCompile Include="FilterPickerModelTests.cpp" />
     <ClCompile Include="ReferenceCardStateTests.cpp" />
+    <ClCompile Include="GraphicEQCsvTests.cpp" />
     <ClCompile Include="VSTBusModelTests.cpp" />
     <ClCompile Include="VSTSlotFillModelTests.cpp" />
     <ClCompile Include="VSTRowDocumentTests.cpp" />
@@ -175,6 +176,7 @@
     <ClCompile Include="..\..\Editor\widgets\cards\ChannelSelectionModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\DeviceSelectionModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\FileReferenceController.cpp" />
+    <ClCompile Include="..\..\Editor\widgets\cards\GraphicEQCsv.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\ReferenceCardState.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\VSTBusModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\VSTSlotFillModel.cpp" />
@@ -225,6 +227,7 @@
     <ClInclude Include="..\..\Editor\widgets\cards\ChannelSelectionModel.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\DeviceSelectionModel.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\FileReferenceController.h" />
+    <ClInclude Include="..\..\Editor\widgets\cards\GraphicEQCsv.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\VSTPanelIntent.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\VSTBusVerdict.h" />
     <ClInclude Include="..\..\Editor\analysis\AnalysisPanelState.h" />

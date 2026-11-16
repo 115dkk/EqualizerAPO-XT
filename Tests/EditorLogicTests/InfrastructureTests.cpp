@@ -283,6 +283,26 @@ TEST_CASE(EditorLogicTests, testFileReferenceControllerOwnsPathState)
 		"no library shows no path");
 }
 
+// The flow the convolution cards hand to the controller (audit #467 TD-40):
+// typed text commits once, and resolution follows the attached configuration.
+TEST_CASE(EditorLogicTests, testFileReferenceControllerCommitsForItsCard)
+{
+	FileReferenceController reference(QStringLiteral("convolution"), QStringLiteral("irs/room.wav"));
+	expectTrue(reference.resolvedAbsolutePath().isEmpty(), "without a configuration nothing resolves");
+
+	QString configPath = QStringLiteral("C:/EqualizerAPO/config/config.txt");
+	int commits = 0;
+	reference.attach([&configPath]() { return configPath; }, [&commits]() { ++commits; });
+	expectPath(QDir::fromNativeSeparators(reference.resolvedAbsolutePath()),
+		QStringLiteral("C:/EqualizerAPO/config/irs/room.wav"));
+
+	reference.commitWrittenPath(QStringLiteral("  other.wav "));
+	expectEqual(commits, 1, "typed text commits once");
+	expectEqual(reference.writtenPath(), QStringLiteral("other.wav"), "the typed text is trimmed");
+	configPath = QStringLiteral("D:/Other/config.txt");
+	expectPath(QDir::fromNativeSeparators(reference.resolvedAbsolutePath()), QStringLiteral("D:/Other/other.wav"));
+}
+
 TEST_CASE(EditorLogicTests, testAnalysisWorkerRecovery)
 {
 	bool failurePublished = false;

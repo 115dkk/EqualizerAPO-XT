@@ -60,7 +60,6 @@ private slots:
 	void addOutputChannel();
 
 private:
-	QString resolvedAbsolutePath() const;
 	unsigned currentDeviceSampleRate() const;
 	void updateFileInfo();
 	void rebuildRoutingView();

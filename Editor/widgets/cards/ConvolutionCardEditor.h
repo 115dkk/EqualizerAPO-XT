@@ -33,7 +33,6 @@ private slots:
 	void importToConfig();
 
 private:
-	QString resolvedAbsolutePath() const;
 	unsigned currentDeviceSampleRate() const;
 	void updateFileInfo();
 

@@ -59,6 +59,35 @@ QString FileReferenceController::chooseExistingFile(QWidget* parent,
 	return selected;
 }
 
+void FileReferenceController::chooseFile(QWidget* parent, const QString& title, const QString& nameFilter)
+{
+	if (!configPathSource)
+		return;
+
+	const QString configPath = configPathSource();
+	const QString currentAbsolute = resolvedAbsolutePath();
+	QFileInfo startInfo(currentAbsolute.isEmpty() ? configPath : currentAbsolute);
+
+	const QString selected = chooseExistingFile(
+		parent, title, startInfo.absolutePath(), nameFilter,
+		QFileInfo(configPath).absolutePath(),
+		written.isEmpty() ? QString() : startInfo.fileName());
+	if (!selected.isEmpty() && onCommitted)
+		onCommitted();
+}
+
+void FileReferenceController::importIntoConfigDirectory(QWidget* parent)
+{
+	if (!configPathSource)
+		return;
+
+	setResolvedPath(resolvedAbsolutePath());
+	if (!importIntoConfig(parent, configPathSource()))
+		return;
+	if (onCommitted)
+		onCommitted();
+}
+
 QString FileReferenceController::chooseVstLibrary(QWidget* parent, const QString& title,
 	const QString& nameFilter, const QString& writtenPath, const QString& pluginsDirectory, bool skinned)
 {

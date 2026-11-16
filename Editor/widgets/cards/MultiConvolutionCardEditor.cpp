@@ -39,9 +39,6 @@
 #include "Editor/SkinManager.h"
 #include "Editor/skins/ISkin.h"
 #include "Editor/helpers/GUIHelper.h"
-#include "Editor/import/ConfigDependencyScanner.h"
-#include "Editor/import/ImportDialog.h"
-#include "Editor/import/ImportExecutor.h"
 #include "Editor/widgets/routing/IRoutingRenderer.h"
 #include "Editor/widgets/routing/MultiConvolutionRoutingAdapter.h"
 #include "ReferenceCardView.h"
@@ -58,6 +55,13 @@ MultiConvolutionCardEditor::MultiConvolutionCardEditor(FilterTable* filterTable,
 {
 	setObjectName(QStringLiteral("MultiConvolutionCardEditor"));
 	setAttribute(Qt::WA_StyledBackground, true);
+	reference->attach(filterTable != nullptr
+			? std::function<QString()>([filterTable]() { return filterTable->getConfigPath(); })
+			: std::function<QString()>(),
+		[this]() {
+			updateFileInfo();
+			emit updateModel();
+		});
 
 	QVBoxLayout* layout = new QVBoxLayout(this);
 	layout->setContentsMargins(0, 0, 0, 0);
@@ -230,51 +234,18 @@ void MultiConvolutionCardEditor::rebuildRoutingView()
 
 void MultiConvolutionCardEditor::chooseFile()
 {
-	if (filterTable == nullptr)
-		return;
-
-	const QString configPath = filterTable->getConfigPath();
-	const QString currentAbsolute = resolvedAbsolutePath();
-	QFileInfo startInfo(currentAbsolute.isEmpty() ? configPath : currentAbsolute);
-
-	const QString selected = reference->chooseExistingFile(
-		this, tr("Select impulse response file"), startInfo.absolutePath(),
-		tr("Impulse response (*.wav *.flac *.ogg)"),
-		QFileInfo(configPath).absolutePath(),
-		reference->writtenPath().isEmpty() ? QString() : startInfo.fileName());
-	if (!selected.isEmpty())
-	{
-		updateFileInfo();
-		emit updateModel();
-	}
+	reference->chooseFile(this, tr("Select impulse response file"),
+		tr("Impulse response (*.wav *.flac *.ogg)"));
 }
 
 void MultiConvolutionCardEditor::pathCommitted(const QString& text)
 {
-	reference->setWrittenPath(text);
-	updateFileInfo();
-	emit updateModel();
+	reference->commitWrittenPath(text);
 }
 
 void MultiConvolutionCardEditor::importToConfig()
 {
-	if (filterTable == nullptr)
-		return;
-
-	reference->setResolvedPath(resolvedAbsolutePath());
-	if (!reference->importIntoConfig(this, filterTable->getConfigPath()))
-		return;
-	updateFileInfo();
-	emit updateModel();
-}
-
-QString MultiConvolutionCardEditor::resolvedAbsolutePath() const
-{
-	if (filterTable == nullptr)
-		return QString();
-
-	reference->resolveAgainstConfig(filterTable->getConfigPath());
-	return reference->resolvedPath();
+	reference->importIntoConfigDirectory(this);
 }
 
 unsigned MultiConvolutionCardEditor::currentDeviceSampleRate() const
@@ -288,7 +259,7 @@ unsigned MultiConvolutionCardEditor::currentDeviceSampleRate() const
 
 void MultiConvolutionCardEditor::updateFileInfo()
 {
-	const QString absolute = resolvedAbsolutePath();
+	const QString absolute = reference->resolvedAbsolutePath();
 	ReferenceCardState state = reference->describe(tr("No file selected"));
 	fileChannelCount = 0;
 	bool offerImport = false;

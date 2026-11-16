@@ -335,6 +335,7 @@ SOURCES += main.cpp\
 	widgets/cards/FilterCardEditorRegistry.cpp \
 	widgets/cards/FileReferenceController.Dialogs.cpp \
 	widgets/cards/FileReferenceController.cpp \
+	widgets/cards/GraphicEQCsv.cpp \
 	widgets/cards/GraphicEQCardEditor.cpp \
 	widgets/cards/IIRCardEditor.cpp \
 	widgets/cards/AllPassCardEditor.cpp \
@@ -697,6 +698,7 @@ HEADERS  += \
 	widgets/cards/FilterCardEditorRegistry.h \
 	widgets/cards/FilterLineCard.h \
 	widgets/cards/FileReferenceController.h \
+	widgets/cards/GraphicEQCsv.h \
 	widgets/cards/GraphicEQCardEditor.h \
 	widgets/cards/IIRCardEditor.h \
 	widgets/cards/AllPassCardEditor.h \
