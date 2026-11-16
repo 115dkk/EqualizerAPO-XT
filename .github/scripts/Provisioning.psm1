@@ -259,6 +259,28 @@ function Invoke-DependencyFetch {
     }
 }
 
+function Invoke-PinnedFileDownload {
+    <#
+    .SYNOPSIS
+        Downloads one file and refuses it unless its SHA-256 is the pinned one.
+        For tools that are not zip archives to extract (a NuGet tool package).
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [string]$Url,
+        [Parameter(Mandatory)] [string]$OutFile,
+        [Parameter(Mandatory)] [string]$Sha256
+    )
+
+    Invoke-DependencyFetch -Url $Url -OutFile $OutFile
+    $actual = (Get-FileHash -Path $OutFile -Algorithm SHA256).Hash
+    if ($actual -ne $Sha256) {
+        Remove-Item -LiteralPath $OutFile -Force
+        throw "SHA-256 mismatch for $(Split-Path $OutFile -Leaf): expected $Sha256, got $actual"
+    }
+    Write-Host "Verified SHA-256 for $(Split-Path $OutFile -Leaf)"
+}
+
 function Invoke-DependencyDownload {
     <#
     .SYNOPSIS
@@ -918,6 +940,7 @@ Export-ModuleMember -Function @(
     'Get-DependencyDownloadSpec'
     'Get-SdkDownloadSpec'
     'Invoke-DependencyDownload'
+    'Invoke-PinnedFileDownload'
     'Build-VcpkgDependencies'
     'Install-QtSdk'
     'Get-PinnedSourceSpec'

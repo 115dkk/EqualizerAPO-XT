@@ -143,6 +143,7 @@ Describe "Provisioning.psm1" {
                 'Install-PinnedSourceDependency',
                 'Install-QtSdk',
                 'Invoke-DependencyDownload',
+                'Invoke-PinnedFileDownload',
                 'Resolve-BuildVariant',
                 'Sync-PinnedCheckout'
             )

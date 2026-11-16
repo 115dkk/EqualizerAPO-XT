@@ -201,6 +201,11 @@
         # dotnet tool package used to build release assets. Bump together with
         # VelopackLibcVersion after reviewing packer changes.
         VelopackVpkVersion  = '1.1.1'
+        # SHA-256 of vpk.<VelopackVpkVersion>.nupkg as nuget.org serves it. vpk
+        # builds every installer, so New-VelopackRelease.ps1 downloads the
+        # package, checks it against this hash and installs the tool from that
+        # file alone (TECH_DEBT_AUDIT TD-69). Bump with VelopackVpkVersion.
+        VelopackVpkSha256   = '55D50535DA478780CA5B06C5449CF424D0E1A4608D51FB946F1A3E8FED00BB8D'
         # SHA-256 of velopack_libc_<VelopackLibcVersion>.zip, verified like the
         # DependencyReleases assets below. Bump together with VelopackLibcVersion.
         VelopackLibcSha256  = '7b77d378226e4c5b110565dbe1c718cc91eadbf0c4be8b8e6af9ed8ea6202cb1'

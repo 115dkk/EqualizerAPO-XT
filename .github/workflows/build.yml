@@ -50,6 +50,10 @@ env:
   # its module files match a gallery install of 5.6.1 byte for byte.
   PESTER_NUPKG_SHA256: '37b3749f69accead67c366d81508977f62afc7cbb9c4db88c3a255a1f0b20da5'
   NUMPY_VERSION: '2.3.2'
+  # SHA-256 of the numpy wheel the comparison job's interpreter takes
+  # (CPython 3.12, manylinux x86_64, on the ubuntu-24.04 image); pip refuses
+  # any other file (TECH_DEBT_AUDIT TD-69).
+  NUMPY_WHEEL_SHA256: '8145dd6d10df13c559d1e4314df29695613575183fa2e2d11fac4c208c8a1f73'
 
 jobs:
   version-bump:
@@ -166,7 +170,7 @@ jobs:
   # Common.vcxproj. Both drifts otherwise surface only inside a matrix leg, and
   # the source-list one only at the Editor link step twenty minutes in.
   prepare-matrix:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       matrix: ${{ steps.gen.outputs.matrix }}
       # JSON array of the x64 variants hosted runners can execute at runtime
@@ -610,7 +614,7 @@ jobs:
         retention-days: 90
 
   cppcheck:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout repository
       uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
@@ -816,6 +820,12 @@ jobs:
             }
           } }
         )
+        # The CDN download is the one path held to a pinned hash, so it goes
+        # first; the gallery installers stay as fallbacks for a CDN outage and
+        # are named in the log when one of them supplied the module
+        # (TECH_DEBT_AUDIT TD-69).
+        $installers = @($installers | Where-Object { $_.Name -eq "Gallery CDN" }) +
+          @($installers | Where-Object { $_.Name -ne "Gallery CDN" })
         $installed = $false
         for ($round = 1; $round -le 3 -and -not $installed; $round++) {
           foreach ($installer in $installers) {
@@ -826,6 +836,9 @@ jobs:
               & $installer.Run
               if (Get-Module -ListAvailable Pester | Where-Object { $_.Version -eq [version]$version }) {
                 Write-Host "Pester $version installed via $($installer.Name) (round $round)"
+                if ($installer.Name -ne "Gallery CDN") {
+                  Write-Host "::warning::Pester $version came from $($installer.Name), which is not checked against the pinned hash."
+                }
                 $installed = $true
                 break
               }
@@ -864,7 +877,7 @@ jobs:
   # handled by a follow-up change.
   cross-variant-compare:
     needs: [build, prepare-matrix]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # The PR pipeline only builds AVX2, so there is nothing to compare
     # across variants. The always() guard matters on workflow_dispatch runs:
     # version-bump is skipped there, and GitHub propagates a skip through the
@@ -884,7 +897,9 @@ jobs:
 
     - name: Install numpy
       # Audit #250 F060: pinned like the rest of the toolchain.
-      run: python3 -m pip install --quiet "numpy==$NUMPY_VERSION"
+      run: |
+        printf 'numpy==%s --hash=sha256:%s\n' "$NUMPY_VERSION" "$NUMPY_WHEEL_SHA256" > "$RUNNER_TEMP/numpy-requirements.txt"
+        python3 -m pip install --quiet --require-hashes --only-binary :all: -r "$RUNNER_TEMP/numpy-requirements.txt"
 
     - name: Compare SIMD variants
       env:

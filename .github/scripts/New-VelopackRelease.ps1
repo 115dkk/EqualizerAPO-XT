@@ -87,6 +87,8 @@ foreach ($artifact in $buildArtifacts) {
 
 $plan = [pscustomobject]@{
     VpkVersion      = $manifest.Shared.VelopackVpkVersion
+    VpkSha256       = $manifest.Shared.VelopackVpkSha256
+    VpkPackageUrl   = "https://api.nuget.org/v3-flatcontainer/vpk/$($manifest.Shared.VelopackVpkVersion)/vpk.$($manifest.Shared.VelopackVpkVersion).nupkg"
     ReleaseName     = "EqualizerAPO-XT $PackVersion"
     RepoUrl         = "https://github.com/$Repository"
     Channels        = @($channelWork)
@@ -104,7 +106,17 @@ if ($PlanOnly) {
     return $plan
 }
 
-dotnet tool install -g vpk --version $plan.VpkVersion
+# vpk builds every installer. A version number alone would take whatever
+# nuget.org serves under it; the package is downloaded, held to the manifest's
+# SHA-256 and installed from that file alone (TECH_DEBT_AUDIT TD-69).
+Import-Module (Join-Path $PSScriptRoot "Provisioning.psm1") -Force
+$vpkSource = Join-Path $WorkspaceRoot "velopack-tool"
+New-Item -ItemType Directory -Force -Path $vpkSource | Out-Null
+$vpkPackage = Join-Path $vpkSource "vpk.$($plan.VpkVersion).nupkg"
+Invoke-PinnedFileDownload -Url $plan.VpkPackageUrl -OutFile $vpkPackage -Sha256 $plan.VpkSha256
+dotnet tool uninstall -g vpk 2>$null | Out-Null
+$global:LASTEXITCODE = 0
+dotnet tool install -g vpk --version $plan.VpkVersion --source $vpkSource
 if ($LASTEXITCODE -ne 0) { throw "dotnet tool install vpk $($plan.VpkVersion) failed with exit code $LASTEXITCODE" }
 $env:PATH = "$env:USERPROFILE\.dotnet\tools;$env:PATH"
 

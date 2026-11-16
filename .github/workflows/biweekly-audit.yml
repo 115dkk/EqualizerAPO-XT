@@ -60,7 +60,7 @@ env:
 
 jobs:
   check-changes:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       should_audit: ${{ steps.detect.outputs.should_audit }}
       last_audit_ref: ${{ steps.detect.outputs.last_audit_ref }}
@@ -631,7 +631,7 @@ jobs:
     # main and push them with the deploy key. Only a run on main commits, and
     # the checkout is pinned to main.
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # The push authenticates with the RELEASE_DEPLOY_KEY deploy key, so the
     # token only needs to read.
     permissions:
