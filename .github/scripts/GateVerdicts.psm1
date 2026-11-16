@@ -84,6 +84,18 @@ function Get-PanelMeasurementVerdict {
     [pscustomobject]@{ Passed = $passed; Reasons = $reasons }
 }
 
+# A panel capture is usable once the plug-in has painted (more colours than a
+# blank window has) and two captures in a row are equal. The two conditions
+# are judged apart so the gate can say which one a panel never met.
+function Get-PanelSettleVerdict {
+    param([int] $DistinctColors, [int] $MinimumColors, [bool] $EqualToPrevious)
+    $painted = $DistinctColors -ge $MinimumColors
+    $reason = if (-not $painted) { "not painted yet ($DistinctColors colour(s), a painted panel has at least $MinimumColors)" }
+        elseif (-not $EqualToPrevious) { 'still changing' }
+        else { 'painted and still' }
+    [pscustomobject]@{ Painted = $painted; Settled = ($painted -and $EqualToPrevious); Reason = $reason }
+}
+
 function Get-PanelStateVerdict($Case, $State1, $State2) {
     $checks = @()
     $changed = @($State1.Keys | Where-Object { $State1[$_] -ne $State2[$_] })
@@ -111,4 +123,4 @@ function Get-PanelGateVerdict($Checks) {
 }
 
 Export-ModuleMember -Function Get-CaptureGateVerdict, Get-GateFileVerdict, Get-CaptureMeasurementVerdict,
-    Get-PluginLoadReuseVerdict, Get-PanelMeasurementVerdict, Get-PanelStateVerdict, Get-PanelGateVerdict
+    Get-PluginLoadReuseVerdict, Get-PanelMeasurementVerdict, Get-PanelSettleVerdict, Get-PanelStateVerdict, Get-PanelGateVerdict

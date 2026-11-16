@@ -339,6 +339,22 @@ namespace PanelInputGate
             }
         }
 
+        // How many different colours a capture holds, counted up to `limit`.
+        // A plug-in window that has not painted yet is one flat colour, and
+        // two captures of it are equal, so "two equal captures" alone took an
+        // unpainted panel for a settled one (panel-restore then compared a
+        // blank picture with the edited one and failed on the ASan leg, where
+        // the software renderer's first frame comes late).
+        public static int DistinctColors(byte[] capture, int limit)
+        {
+            if (capture.Length % 4 != 0)
+                throw new InvalidDataException("Capture is not 32-bit pixels");
+            HashSet<int> colors = new HashSet<int>();
+            for (int i = 0; i < capture.Length && colors.Count < limit; i += 4)
+                colors.Add(capture[i] | (capture[i + 1] << 8) | (capture[i + 2] << 16));
+            return colors.Count;
+        }
+
         public static int ChangedPixels(byte[] first, byte[] second)
         {
             if (first.Length != second.Length || first.Length % 4 != 0)
