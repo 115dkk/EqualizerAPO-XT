@@ -22,11 +22,20 @@
 namespace EqAPO::Import
 {
 
+enum class Disposition
+{
+    KeepSources,
+    RemoveSourcesAfterCopy
+};
+
 struct ExecutionResult
 {
     bool success = true;
     int filesCopied = 0;
+    int filesAlreadyInPlace = 0;
+    int filesRemovedFromSource = 0;
     qint64 bytesCopied = 0;
+    QStringList warnings;
     QStringList errors;
 };
 
@@ -36,9 +45,11 @@ class ImportExecutor
 
 public:
     // Apply the manifest to configDir. Items whose source is missing are
-    // skipped and reported as errors. Returns success only if every
-    // existing item was copied without trouble.
-    static ExecutionResult execute(const ImportManifest& manifest, const QString& configDir);
+    // skipped and reported as errors. Sources are kept unless the caller
+    // explicitly requests migration move semantics; even then, a source is
+    // removed only after its replacement has been committed and verified.
+    static ExecutionResult execute(const ImportManifest& manifest, const QString& configDir,
+        Disposition disposition = Disposition::KeepSources);
 };
 
 }

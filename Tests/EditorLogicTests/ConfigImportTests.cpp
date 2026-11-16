@@ -316,6 +316,188 @@ TEST_CASE(EditorLogicTests, testConfigImport)
 	expectTrue(QFile::exists(vstConfigDest + "/Surround/TestPlugin.dll"), "dll missing after single-file import");
 }
 
+// Audit #467 TD-01: QDir::relativeFilePath returns an absolute path when
+// source and target are on different drives. Such a reference is outside the
+// import root and must never become a destination.
+TEST_CASE(EditorLogicTests, testConfigImportRejectsAnAbsoluteReferenceOnAnotherDrive)
+{
+	QTemporaryDir tempDir;
+	requireTrue(tempDir.isValid(), "QTemporaryDir must be valid");
+	const QString sourceDir = tempDir.path() + QStringLiteral("/Source");
+	requireTrue(QDir().mkpath(sourceDir), "failed to create source directory");
+
+	const QString sourcePath = QDir::fromNativeSeparators(QFileInfo(sourceDir).absoluteFilePath());
+	requireTrue(sourcePath.size() >= 3 && sourcePath.at(1) == QLatin1Char(':'),
+		"temporary directory must be on a drive-letter path");
+	const QChar otherDrive = sourcePath.at(0).toUpper() == QLatin1Char('C')
+		? QLatin1Char('D') : QLatin1Char('C');
+	const QString outside = QStringLiteral("%1:/IR/room.wav").arg(otherDrive);
+	QFile config(sourceDir + QStringLiteral("/config.txt"));
+	requireTrue(config.open(QIODevice::WriteOnly | QIODevice::Text), "failed to create source config");
+	config.write(QStringLiteral("Convolution: %1\n").arg(outside).toUtf8());
+	config.close();
+
+	const auto manifest = EqAPO::Import::ConfigDependencyScanner::scan(
+		config.fileName(), tempDir.path() + QStringLiteral("/target"),
+		EqAPO::Import::DestLayout::SourceFolderIsRoot);
+	expectEqual(int(manifest.items.size()), 1,
+		"an absolute reference on another drive is excluded from the manifest");
+	bool warnedOutside = false;
+	for (const QString& warning : manifest.warnings)
+		warnedOutside = warnedOutside || warning.contains(QStringLiteral("outside the source folder"));
+	expectTrue(warnedOutside, "the skipped absolute reference produces the outside-folder warning");
+}
+
+// Audit #467 TD-01: an untrusted manifest used to turn an absolute destination
+// into the source path, delete that source, then fail to copy it onto itself.
+TEST_CASE(EditorLogicTests, testConfigImportRejectsAnAbsoluteDestinationWithoutDeletingTheSource)
+{
+	QTemporaryDir tempDir;
+	requireTrue(tempDir.isValid(), "QTemporaryDir must be valid");
+	const QString source = tempDir.path() + QStringLiteral("/room.wav");
+	QFile sourceFile(source);
+	requireTrue(sourceFile.open(QIODevice::WriteOnly), "failed to create source file");
+	const QByteArray original("source-bytes");
+	requireTrue(sourceFile.write(original) == original.size(), "failed to write source file");
+	sourceFile.close();
+
+	EqAPO::Import::ImportManifest manifest;
+	manifest.rootSourceDir = tempDir.path();
+	EqAPO::Import::ImportItem item;
+	item.sourceAbsolute = source;
+	item.destRelative = source;
+	item.sizeBytes = original.size();
+	manifest.items.append(item);
+
+	const auto result = EqAPO::Import::ImportExecutor::execute(
+		manifest, tempDir.path() + QStringLiteral("/config"));
+	expectFalse(result.success, "an absolute destination is reported as an error");
+	expectTrue(!result.errors.isEmpty(), "an absolute destination has an error message");
+	const bool sourceStillExists = QFile::exists(source);
+	expectTrue(sourceStillExists, "an absolute destination must never delete the source file");
+	if (sourceStillExists)
+	{
+		QFile after(source);
+		requireTrue(after.open(QIODevice::ReadOnly), "source file remains readable");
+		expectEqual(QString::fromLatin1(after.readAll()), QString::fromLatin1(original),
+			"an absolute destination leaves the source bytes unchanged");
+	}
+}
+
+// Audit #467 TD-01: replacing a destination must not remove the old file until
+// a complete new copy is ready to commit.
+TEST_CASE(EditorLogicTests, testConfigImportCopyFailurePreservesTheExistingDestination)
+{
+	QTemporaryDir tempDir;
+	requireTrue(tempDir.isValid(), "QTemporaryDir must be valid");
+	const QString source = tempDir.path() + QStringLiteral("/source.wav");
+	QFile sourceFile(source);
+	requireTrue(sourceFile.open(QIODevice::WriteOnly), "failed to create source file");
+	sourceFile.write("new-content");
+	sourceFile.close();
+
+	const QString configDir = tempDir.path() + QStringLiteral("/config");
+	requireTrue(QDir().mkpath(configDir), "failed to create config directory");
+	const QString destination = configDir + QStringLiteral("/room.wav");
+	QFile oldFile(destination);
+	requireTrue(oldFile.open(QIODevice::WriteOnly), "failed to create existing destination");
+	oldFile.write("old-content");
+	oldFile.close();
+
+	EqAPO::Import::ImportManifest manifest;
+	manifest.rootSourceDir = tempDir.path();
+	EqAPO::Import::ImportItem item;
+	item.sourceAbsolute = source;
+	item.destRelative = QStringLiteral("room.wav");
+	item.sizeBytes = QFileInfo(source).size();
+	manifest.items.append(item);
+	requireTrue(QFile::remove(source), "source is removed after the manifest is built");
+
+	const auto result = EqAPO::Import::ImportExecutor::execute(manifest, configDir);
+	expectFalse(result.success, "a source that disappeared is reported as an error");
+	const bool destinationStillExists = QFile::exists(destination);
+	expectTrue(destinationStillExists, "a failed copy preserves the existing destination file");
+	if (destinationStillExists)
+	{
+		QFile after(destination);
+		requireTrue(after.open(QIODevice::ReadOnly), "existing destination remains readable");
+		expectEqual(QString::fromLatin1(after.readAll()), QStringLiteral("old-content"),
+			"a failed copy preserves the existing destination bytes");
+	}
+}
+
+TEST_CASE(EditorLogicTests, testConfigImportRemovesOnlyCommittedSourcesAndPrunesEmptyFolders)
+{
+	QTemporaryDir tempDir;
+	requireTrue(tempDir.isValid(), "QTemporaryDir must be valid");
+	const QString sourceDir = tempDir.path() + QStringLiteral("/source");
+	const QString selectedDir = sourceDir + QStringLiteral("/selected");
+	const QString unrelatedDir = sourceDir + QStringLiteral("/unrelated");
+	requireTrue(QDir().mkpath(selectedDir) && QDir().mkpath(unrelatedDir),
+		"failed to create source tree");
+	QFile config(sourceDir + QStringLiteral("/config.txt"));
+	requireTrue(config.open(QIODevice::WriteOnly | QIODevice::Text), "failed to create source config");
+	config.write("Convolution: selected/room.wav\n");
+	config.close();
+	QFile selected(selectedDir + QStringLiteral("/room.wav"));
+	requireTrue(selected.open(QIODevice::WriteOnly), "failed to create selected source");
+	selected.write("selected-bytes");
+	selected.close();
+	QFile unrelated(unrelatedDir + QStringLiteral("/keep.wav"));
+	requireTrue(unrelated.open(QIODevice::WriteOnly), "failed to create unrelated source");
+	unrelated.write("unrelated-bytes");
+	unrelated.close();
+
+	const QString configDir = tempDir.path() + QStringLiteral("/config");
+	const auto manifest = EqAPO::Import::ConfigDependencyScanner::scan(
+		config.fileName(), configDir, EqAPO::Import::DestLayout::SourceFolderIsRoot);
+	requireEqual(int(manifest.items.size()), 2, "root and referenced IR are selected");
+	const auto result = EqAPO::Import::ImportExecutor::execute(
+		manifest, configDir, EqAPO::Import::Disposition::RemoveSourcesAfterCopy);
+	expectTrue(result.success, "move import succeeds");
+	expectEqual(result.filesCopied, 2, "move import copies both selected files");
+	expectEqual(result.filesRemovedFromSource, 2, "move import removes only committed originals");
+	expectTrue(QFile::exists(configDir + QStringLiteral("/config.txt")),
+		"moved config exists at destination");
+	const QString destinationIr = configDir + QStringLiteral("/selected/room.wav");
+	expectTrue(QFile::exists(destinationIr), "moved IR exists at destination");
+	QFile copied(destinationIr);
+	requireTrue(copied.open(QIODevice::ReadOnly), "moved IR is readable");
+	expectEqual(QString::fromLatin1(copied.readAll()), QStringLiteral("selected-bytes"),
+		"moved IR keeps its bytes");
+	expectFalse(QFile::exists(config.fileName()), "committed config source is removed");
+	expectFalse(QFile::exists(selected.fileName()), "committed IR source is removed");
+	expectFalse(QDir(selectedDir).exists(), "source subfolder emptied by the move is pruned");
+	expectTrue(QFile::exists(unrelated.fileName()), "unselected source file remains");
+	expectTrue(QDir(unrelatedDir).exists(), "folder containing an unselected file remains");
+}
+
+TEST_CASE(EditorLogicTests, testConfigImportKeepsSourcesByDefault)
+{
+	QTemporaryDir tempDir;
+	requireTrue(tempDir.isValid(), "QTemporaryDir must be valid");
+	const QString sourceDir = tempDir.path() + QStringLiteral("/source");
+	requireTrue(QDir().mkpath(sourceDir), "failed to create source directory");
+	const QString source = sourceDir + QStringLiteral("/room.wav");
+	QFile sourceFile(source);
+	requireTrue(sourceFile.open(QIODevice::WriteOnly), "failed to create source file");
+	sourceFile.write("kept");
+	sourceFile.close();
+
+	EqAPO::Import::ImportManifest manifest;
+	manifest.rootSourceDir = sourceDir;
+	EqAPO::Import::ImportItem item;
+	item.sourceAbsolute = source;
+	item.destRelative = QStringLiteral("IR/room.wav");
+	item.sizeBytes = QFileInfo(source).size();
+	manifest.items.append(item);
+
+	const auto result = EqAPO::Import::ImportExecutor::execute(
+		manifest, tempDir.path() + QStringLiteral("/config"));
+	expectTrue(result.success, "default import succeeds");
+	expectTrue(QFile::exists(source), "default import keeps the user's source file");
+}
+
 TEST_CASE(EditorLogicTests, testLegacyMigrationScanAndPolicy)
 {
 	QTemporaryDir tempDir;
