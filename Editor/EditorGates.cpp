@@ -399,13 +399,12 @@ static const GateEntry kGates[] = {
 		nullptr,
 		armFrameHitTest
 	},
-	// not in the test-window list before audit #467 TD-79; behaviour kept;
-	// whether that was intended is unknown.
+	// Every real-window probe uses the test window, never saved user state (audit #467 TD-79).
 	{
 		"--skin-metrics-probe",
 		Stage::Armed,
 		nullptr,
-		false,
+		true,
 		nullptr,
 		armSkinMetrics
 	},
@@ -474,23 +473,19 @@ static const GateEntry kGates[] = {
 		nullptr,
 		nullptr
 	},
-	// not in the test-window list before audit #467 TD-79; behaviour kept;
-	// whether that was intended is unknown.
 	{
 		"--vst-panel-feed-test",
 		Stage::Armed,
 		"durationMs",
-		false,
+		true,
 		nullptr,
 		armVstPanelFeed
 	},
-	// not in the test-window list before audit #467 TD-79; behaviour kept;
-	// whether that was intended is unknown.
 	{
 		"--skin-switch-storm",
 		Stage::Armed,
 		nullptr,
-		false,
+		true,
 		nullptr,
 		armSkinSwitchStorm
 	}
