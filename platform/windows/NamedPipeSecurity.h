@@ -54,13 +54,26 @@ namespace winutil::pipes
 	// the LOCAL SERVICE grant above.
 	inline constexpr DWORD kDeviceTestClientAccess = FILE_WRITE_DATA;
 
-	// Opens the device test pipe to send one message. When every instance is
-	// busy it waits up to a second for one, as both clients always did.
-	inline UniqueHandle openDeviceTestClient(const std::wstring& fullPipeName)
+	// The UI's stop message may wait for an instance; audiodg must not. A
+	// server that never reads must not stall audiodg or impersonate its token
+	// (testTheNarrowGrantIsEnoughToSendAndNoMore, audit #467 TD-55).
+	inline UniqueHandle openDeviceTestClient(const std::wstring& fullPipeName, bool nonBlocking = false)
 	{
-		UniqueHandle pipe(CreateFileW(fullPipeName.c_str(), kDeviceTestClientAccess, 0, nullptr, OPEN_EXISTING, 0, nullptr));
-		if (!pipe && WaitNamedPipeW(fullPipeName.c_str(), 1000))
-			pipe.reset(CreateFileW(fullPipeName.c_str(), kDeviceTestClientAccess, 0, nullptr, OPEN_EXISTING, 0, nullptr));
+		const DWORD access = kDeviceTestClientAccess | (nonBlocking ? FILE_WRITE_ATTRIBUTES : 0);
+		constexpr DWORD flags = SECURITY_SQOS_PRESENT | SECURITY_IDENTIFICATION;
+		UniqueHandle pipe(CreateFileW(fullPipeName.c_str(), access, 0, nullptr, OPEN_EXISTING, flags, nullptr));
+		if (!pipe && !nonBlocking && WaitNamedPipeW(fullPipeName.c_str(), 1000))
+			pipe.reset(CreateFileW(fullPipeName.c_str(), access, 0, nullptr, OPEN_EXISTING, flags, nullptr));
+		if (pipe && nonBlocking)
+		{
+			DWORD mode = PIPE_NOWAIT;
+			if (!SetNamedPipeHandleState(pipe.get(), &mode, nullptr, nullptr))
+			{
+				const DWORD error = GetLastError();
+				pipe.reset();
+				SetLastError(error);
+			}
+		}
 		return pipe;
 	}
 

@@ -86,6 +86,22 @@ void DeviceTestThread::run()
 
 	try
 	{
+		// A crashed test can leave its old pipe name behind. Clear it before
+		// restarting AudioSrv, so newly loaded APOs cannot contact that server
+		// before this run publishes its receiver (audit #467 TD-55).
+		auto& registry = systemRegistry();
+		if (registry.keyExists(APP_REGPATH) && registry.valueExists(APP_REGPATH, deviceTestPipeValueName))
+			registry.deleteValue(APP_REGPATH, deviceTestPipeValueName);
+	}
+	catch (const RegistryError& e)
+	{
+		emit logError(tr("Could not remove the device test registration: %1")
+			.arg(QString::fromStdWString(e.getMessage())));
+		return;
+	}
+
+	try
+	{
 		emit log(tr("Restarting audio service..."));
 		WindowsServiceControl::restart(audioServiceName);
 	}

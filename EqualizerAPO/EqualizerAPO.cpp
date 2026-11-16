@@ -541,14 +541,18 @@ void EqualizerAPO::sendMessage(std::wstring& deviceTestPipeName, const std::wstr
 
 	// Only the right the message needs; who may do what with the pipe is in
 	// NamedPipeSecurity.h.
-	winutil::UniqueHandle pipe = winutil::pipes::openDeviceTestClient(L"\\\\.\\pipe\\" + deviceTestPipeName);
+	winutil::UniqueHandle pipe = winutil::pipes::openDeviceTestClient(L"\\\\.\\pipe\\" + deviceTestPipeName, true);
 	if (pipe)
 	{
-		DWORD bytesWritten;
-		if (!WriteFile(pipe.get(), message.c_str(), static_cast<int>(message.length()), &bytesWritten, nullptr))
-			LogF(L"Could not write to pipe: %s", win32::errorMessage(GetLastError()).c_str());
-
-		FlushFileBuffers(pipe.get());
+		DWORD bytesWritten = 0;
+		if (!WriteFile(pipe.get(), message.c_str(), static_cast<DWORD>(message.length()), &bytesWritten, nullptr)
+			|| bytesWritten != message.length())
+		{
+			LogF(L"Device test message dropped: the pipe is unavailable or full");
+			deviceTestPipeName.clear();
+		}
+		// No flush: a missing or stalled DeviceSelector must not hold audiodg
+		// until its server reads a diagnostic message (audit #467 TD-55).
 	}
 	else
 	{
