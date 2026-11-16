@@ -329,6 +329,7 @@
     <ClInclude Include="runtime\concurrency\ParallelExecutor.h" />
     <ClInclude Include="platform\windows\Win32Resource.h" />
     <ClInclude Include="platform\windows\GuidText.h" />
+    <ClInclude Include="platform\windows\EndpointId.h" />
     <ClInclude Include="diagnostics\performance\PerfProfile.h" />
     <ClInclude Include="diagnostics\performance\PrecisionTimer.h" />
     <ClInclude Include="services\registry\WindowsRegistry.h" />

@@ -8,6 +8,7 @@
 #include "devices/EndpointProbe.h"
 #include "devices/DeviceException.h"
 #include "platform/windows/ComPtr.h"
+#include "platform/windows/EndpointId.h"
 #include "platform/windows/Win32Resource.h"
 #include <mmdeviceapi.h>
 #include <audioclient.h>
@@ -78,7 +79,7 @@ void ComEndpointProbe::probeEndpoint(const wstring& deviceGuid, bool input, cons
 		fail(deviceName, L"CoCreateInstance for IMMDeviceEnumerator", hr);
 
 	hr = enumerator->GetDevice(
-		((input ? L"{0.0.1.00000000}." : L"{0.0.0.00000000}.") + deviceGuid).c_str(),
+		winutil::endpointId(input, deviceGuid).c_str(),
 		device.put());
 	if (FAILED(hr))
 		fail(deviceName, L"GetDevice", hr);

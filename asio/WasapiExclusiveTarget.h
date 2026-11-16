@@ -46,6 +46,7 @@
 #include "asio/ComObject.h"
 #include "asio/HostCallbacks.h"
 #include "platform/windows/ComPtr.h"
+#include "platform/windows/EndpointId.h"
 #include "platform/windows/Win32Resource.h"
 #include <mmdeviceapi.h>
 #include <audioclient.h>
@@ -155,7 +156,7 @@ namespace eapo::asio
 		void deinterleave(const void* block, unsigned channels, unsigned bytesPerSample, unsigned frames, void* const* planes);
 
 		// The MMDevice id of an endpoint GUID ({...}) in one flow.
-		std::wstring endpointId(bool capture, const std::wstring& endpointGuid);
+		using winutil::endpointId;
 
 		// The bridge calibration (f43d797d, docs/features/asio.md): the
 		// spacing of the first events of a stream, their median against the

@@ -120,6 +120,7 @@ RC_FILE = DeviceSelector.rc
 HEADERS += \
 	../devices/AsioEntryWriter.h \
 	../devices/EndpointProbe.h \
+	../platform/windows/EndpointId.h \
 	../platform/windows/TokenPrivilege.h \
 	../platform/windows/WellKnownSids.h \
 	../platform/windows/ComError.h \

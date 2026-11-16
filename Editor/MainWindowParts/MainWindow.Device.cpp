@@ -215,7 +215,7 @@ void MainWindow::updateDeviceFormatBadge(const shared_ptr<AbstractAPOInfo>& apoI
 			deviceFormatEndpoint.clear();
 		}
 		BackgroundProbe::runFor(this,
-			[deviceGuid = apoInfo->getDeviceGuid()]() { return AudioFormatProbe::probe(deviceGuid); },
+			[deviceGuid = apoInfo->getDeviceGuid(), input = apoInfo->isInput()]() { return AudioFormatProbe::probe(deviceGuid, input); },
 			[this, generation, facts, endpoint](const AudioFormatProbe::Result& result) mutable {
 				if (generation != deviceFormatGeneration)
 					return;

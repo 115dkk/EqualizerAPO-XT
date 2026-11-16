@@ -21,6 +21,7 @@
 
 #include "audio/SampleFormat.h"
 #include "platform/windows/ComPtr.h"
+#include "platform/windows/EndpointId.h"
 
 using winutil::ComPtr;
 using winutil::CoTaskMem;
@@ -40,7 +41,7 @@ namespace
 namespace AudioFormatProbe
 {
 
-Result probe(const std::wstring& deviceGuid)
+Result probe(const std::wstring& deviceGuid, bool input)
 {
 	Result result;
 
@@ -55,7 +56,7 @@ Result probe(const std::wstring& deviceGuid)
 		return result;
 
 	ComPtr<IMMDevice> device;
-	hr = enumerator->GetDevice(deviceGuid.c_str(), device.put());
+	hr = enumerator->GetDevice(winutil::endpointId(input, deviceGuid).c_str(), device.put());
 	if (FAILED(hr) || !device)
 		return result;
 

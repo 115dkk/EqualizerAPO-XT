@@ -42,9 +42,10 @@ namespace AudioFormatProbe
 	};
 
 	// Query the given endpoint's current mix format via IMMDevice / IAudioClient.
-	// deviceGuid must be the endpoint ID string ("{...}"). Returns Status::Unknown
+	// deviceGuid is the registry endpoint GUID, with or without braces.
+	// input selects capture rather than render. Returns Status::Unknown
 	// if the endpoint cannot be queried.
-	Result probe(const std::wstring& deviceGuid);
+	Result probe(const std::wstring& deviceGuid, bool input);
 
 	// Short one-line description suitable for a status-bar label or tooltip.
 	std::wstring describe(const Result& r);

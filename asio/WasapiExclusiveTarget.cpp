@@ -215,11 +215,6 @@ namespace eapo::asio
 			}
 		}
 
-		std::wstring endpointId(bool capture, const std::wstring& endpointGuid)
-		{
-			return std::wstring(capture ? L"{0.0.1.00000000}." : L"{0.0.0.00000000}.") + endpointGuid;
-		}
-
 		// ---- BridgeCalibrator ----
 
 		BridgeCalibrator::BridgeCalibrator(uint64_t periodNanos, unsigned currentBridge, int forcedBridge) noexcept

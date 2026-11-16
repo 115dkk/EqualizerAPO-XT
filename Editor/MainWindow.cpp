@@ -319,6 +319,7 @@ void MainWindow::doChecks()
 	{
 		std::wstring deviceGuid;
 		QString name;
+		bool input = false;
 	};
 	std::vector<ProbeTarget> targets;
 	auto collect = [&targets](const QList<shared_ptr<AbstractAPOInfo>>& list)
@@ -328,7 +329,7 @@ void MainWindow::doChecks()
 			if (info == nullptr || !info->isInstalled())
 				continue;
 			targets.push_back({ info->getDeviceGuid(), QString::fromStdWString(info->getConnectionName())
-				+ " - " + QString::fromStdWString(info->getDeviceName()) });
+				+ " - " + QString::fromStdWString(info->getDeviceName()), info->isInput() });
 		}
 	};
 	collect(outputDevices);
@@ -338,7 +339,7 @@ void MainWindow::doChecks()
 			std::vector<AudioFormatProbe::Result> results;
 			results.reserve(targets.size());
 			for (const ProbeTarget& target : targets)
-				results.push_back(AudioFormatProbe::probe(target.deviceGuid));
+				results.push_back(AudioFormatProbe::probe(target.deviceGuid, target.input));
 			return results;
 		},
 		[this, targets](const std::vector<AudioFormatProbe::Result>& results) {
