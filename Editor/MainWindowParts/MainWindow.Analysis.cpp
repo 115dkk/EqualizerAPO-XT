@@ -42,6 +42,7 @@
 #include "version.h"
 #include "FilterTable.h"
 #include "MainWindow.h"
+#include "Editor/MainWindowParts/OpenDocument.h"
 #include "ui_MainWindow.h"
 #include "devices/DeviceAPOInfo.h"
 
@@ -59,14 +60,11 @@ void MainWindow::instantModeEnabled(bool enabled)
 {
 	if (enabled)
 	{
-		forEachFilterTable([&](int i, FilterTable* filterTable) {
-			if (filterTable->getConfigPath().length() > 0)
-			{
-				if (save(filterTable, filterTable->getConfigPath()))
-					setTabDirty(i, false);
-			}
+		forEachFilterTable([&](int, FilterTable* filterTable) {
+			OpenDocument* document = documentForTable(filterTable);
+			if (document != nullptr && !document->state.path().isEmpty())
+				saveDocument(*document, DocumentSaveReason::CurrentPath);
 		});
-		updateDirtyStatus();
 	}
 }
 

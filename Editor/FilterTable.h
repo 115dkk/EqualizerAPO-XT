@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -183,7 +184,10 @@ public:
 	void selectOnlyFromCard(Item* item);
 
 	QString getConfigPath() const;
-	void setConfigPath(const QString& value);
+	// MainWindow's DocumentState owns the path. The table asks for it when a
+	// row editor needs it, so Save As cannot leave two stored paths disagreeing
+	// (audit #467 TD-44).
+	void setConfigPathAccessor(std::function<QString()> accessor);
 
 	void openConfig(QString path);
 
@@ -342,6 +346,9 @@ private:
 	QList<std::shared_ptr<AbstractAPOInfo>> inputDevices;
 	std::shared_ptr<AbstractAPOInfo> selectedDevice;
 	int selectedChannelMask = 0;
+	std::function<QString()> configPathAccessor;
+	// Widget-only gallery fixtures have no OpenDocument. setLines keeps their
+	// synthetic path here; a real document always supplies the accessor above.
 	QString configPath;
 	int minimumHeightHint = 0;
 	// Scroll position captured by clearRows() and restored by updateGuis().

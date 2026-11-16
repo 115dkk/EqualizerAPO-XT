@@ -88,7 +88,8 @@ void MainWindow::load(QString path)
 	updateRecentFiles();
 }
 
-bool MainWindow::save(FilterTable* filterTable, QString path)
+DocumentSaveTransition MainWindow::saveDocument(OpenDocument& document,
+	DocumentSaveReason reason, const QString& newPath)
 {
 	if (analysisProbeSaveStarted)
 		analysisProbeSaveStarted();
@@ -96,42 +97,51 @@ bool MainWindow::save(FilterTable* filterTable, QString path)
 	QElapsedTimer timer;
 	timer.start();
 
-	QList<QString> lines = filterTable->getLines();
+	const QString path = DocumentSaveCore::targetPath(document.state, reason, newPath);
+	const ConfigFileCodec::WriteResult writeResult = ConfigFileCodec::writeConfig(
+		path, document.table->getLines());
+	DocumentWriteResult coreWriteResult;
+	coreWriteResult.opened = writeResult.opened;
+	coreWriteResult.bytesWritten = writeResult.bytesWritten;
+	coreWriteResult.totalBytes = writeResult.totalBytes;
+	coreWriteResult.errorMessage = writeResult.errorMessage;
+	const DocumentSaveTransition transition = DocumentSaveCore::transition(
+		document.state, reason, newPath, coreWriteResult);
 
-	ConfigFileCodec::WriteResult writeResult = ConfigFileCodec::writeConfig(path, lines);
-	if (!writeResult.opened)
+	if (transition.failure == DocumentSaveFailure::WriteError)
 	{
-		QMessageBox::critical(this, tr("Error"), tr("Error while writing configuration file: %0").arg(writeResult.errorMessage));
-		return false;
+		QMessageBox::critical(this, tr("Error"),
+			tr("Error while writing configuration file: %0").arg(transition.errorMessage));
 	}
-	if (writeResult.bytesWritten != writeResult.totalBytes)
+	else if (transition.failure == DocumentSaveFailure::PartialWrite)
 	{
-		QMessageBox::critical(this, tr("Error"), tr("Only %0/%1 bytes have been written!").arg(writeResult.bytesWritten).arg(writeResult.totalBytes));
-		return false;
+		QMessageBox::critical(this, tr("Error"), tr("Only %0/%1 bytes have been written!")
+			.arg(transition.bytesWritten).arg(transition.totalBytes));
+	}
+	else
+	{
+		// Path and size: a report that a save did not stick can then tell a write
+		// that never ran from one that wrote other lines than expected (#459).
+		TraceF(L"Saved %s (%lu bytes) in %.1f ms", path.toStdWString().c_str(),
+			writeResult.bytesWritten, timer.nsecsElapsed() / 1e6);
+
+		// Preserve the existing order: save() restarted analysis before its
+		// callers updated dirty state or a Save As path. Other UI controls still
+		// use startAnalysis() to coalesce their changes.
+		if (transition.restartAnalysis)
+		{
+			if (analysisDebounceTimer != nullptr)
+				analysisDebounceTimer->stop();
+			executeStartAnalysis();
+		}
 	}
 
-	// Path and size: a report that a save did not stick can then tell a write
-	// that never ran from one that wrote other lines than expected (#459).
-	TraceF(L"Saved %s (%lu bytes) in %.1f ms", path.toStdWString().c_str(),
-		writeResult.bytesWritten, timer.nsecsElapsed() / 1e6);
-
-	// An explicit save, including an instant-mode save that already waited out
-	// its edit debounce, should start analysis now. Other UI controls still use
-	// startAnalysis() to coalesce slider, channel, resolution and tab changes.
-	if (analysisDebounceTimer != nullptr)
-		analysisDebounceTimer->stop();
-	executeStartAnalysis();
+	if (document.state.title() != transition.title || document.state.path() != transition.path)
+		document.state.savedAs(transition.title, transition.path);
+	document.state.setDirty(transition.dirty);
+	showDocumentTitle(document);
 	updateDirtyStatus();
-	return true;
-}
-
-void MainWindow::setTabDirty(int tabIndex, bool dirty)
-{
-	OpenDocument* document = documentForTab(tabIndex);
-	if (document == nullptr)
-		return;
-	document->state.setDirty(dirty);
-	showDocumentTitle(*document);
+	return transition;
 }
 
 void MainWindow::flushPendingInstantSave(int tabIndex)
@@ -140,10 +150,10 @@ void MainWindow::flushPendingInstantSave(int tabIndex)
 	if (document == nullptr || !document->saveTimer.isActive())
 		return;
 	document->saveTimer.stop();
-	const QString path = document->table->getConfigPath();
-	if (path.length() > 0 && !save(document->table, path))
-		setTabDirty(tabIndex, true);
-	updateDirtyStatus();
+	if (!document->state.path().isEmpty())
+		saveDocument(*document, DocumentSaveReason::InstantModeFlush);
+	else
+		updateDirtyStatus();
 }
 
 bool MainWindow::isEmpty()

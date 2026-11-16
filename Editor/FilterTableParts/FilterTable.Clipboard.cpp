@@ -180,6 +180,7 @@ void FilterTable::openConfig(QString path)
 
 void FilterTable::savePreferences()
 {
+	const QString configPath = getConfigPath();
 	if (!configPath.isEmpty())
 	{
 		QStringList prefLines;

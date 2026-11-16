@@ -286,6 +286,86 @@ TEST_CASE(EditorLogicTests, testDocumentStateOwnsTitleAndDirtyFlag)
 	expectTrue(DocumentState::instantSaveDebounceMs > 0, "instant saves coalesce edits");
 }
 
+TEST_CASE(EditorLogicTests, testDocumentSaveTransitionsCoverEveryReason)
+{
+	DocumentWriteResult success;
+	success.opened = true;
+	success.bytesWritten = 64;
+	success.totalBytes = 64;
+
+	DocumentWriteResult failure;
+	failure.errorMessage = QStringLiteral("access denied");
+
+	{
+		DocumentState document(QStringLiteral("config.txt"), QStringLiteral("C:\\config\\config.txt"));
+		document.setDirty(true);
+		const DocumentSaveTransition transition = DocumentSaveCore::transition(
+			document, DocumentSaveReason::CurrentPath, QString(), success);
+		expectEqual(transition.title, QStringLiteral("config.txt"), "current-path save keeps the title");
+		expectEqual(transition.path, QStringLiteral("C:\\config\\config.txt"), "current-path save keeps the path");
+		expectFalse(transition.dirty, "current-path save success clears the dirty flag");
+		expectTrue(transition.restartAnalysis, "current-path save success restarts analysis");
+		expectTrue(transition.failure == DocumentSaveFailure::None, "current-path save success has no failure");
+	}
+
+	{
+		DocumentState document(QStringLiteral("config.txt"), QStringLiteral("C:\\config\\config.txt"));
+		document.setDirty(true);
+		const DocumentSaveTransition transition = DocumentSaveCore::transition(
+			document, DocumentSaveReason::CurrentPath, QString(), failure);
+		expectEqual(transition.path, document.path(), "current-path save failure keeps the path");
+		expectTrue(transition.dirty, "current-path save failure keeps the dirty flag");
+		expectFalse(transition.restartAnalysis, "current-path save failure does not restart analysis");
+		expectTrue(transition.failure == DocumentSaveFailure::WriteError, "current-path save failure reports a write error");
+		expectEqual(transition.errorMessage, failure.errorMessage, "current-path save failure keeps the codec error");
+	}
+
+	{
+		DocumentState document(QStringLiteral("config.txt"), QStringLiteral("C:\\config\\config.txt"));
+		document.setDirty(true);
+		const DocumentSaveTransition transition = DocumentSaveCore::transition(
+			document, DocumentSaveReason::NewPath, QStringLiteral("C:\\config\\renamed.txt"), success);
+		expectEqual(transition.title, QStringLiteral("renamed.txt"), "Save As success changes the title");
+		expectEqual(transition.path, QStringLiteral("C:\\config\\renamed.txt"), "Save As success changes the path with the title");
+		expectFalse(transition.dirty, "Save As success clears the dirty flag");
+		expectTrue(transition.restartAnalysis, "Save As success restarts analysis");
+		expectTrue(transition.failure == DocumentSaveFailure::None, "Save As success has no failure");
+	}
+
+	{
+		DocumentState document(QStringLiteral("config.txt"), QStringLiteral("C:\\config\\config.txt"));
+		document.setDirty(true);
+		const DocumentSaveTransition transition = DocumentSaveCore::transition(
+			document, DocumentSaveReason::NewPath, QStringLiteral("C:\\config\\renamed.txt"), failure);
+		expectEqual(transition.title, document.title(), "Save As failure keeps the title");
+		expectEqual(transition.path, document.path(), "Save As failure keeps the old path");
+		expectTrue(transition.dirty, "Save As failure keeps the dirty flag");
+		expectFalse(transition.restartAnalysis, "Save As failure does not restart analysis");
+		expectTrue(transition.failure == DocumentSaveFailure::WriteError, "Save As failure reports a write error");
+	}
+
+	{
+		DocumentState document(QStringLiteral("config.txt"), QStringLiteral("C:\\config\\config.txt"));
+		document.setDirty(true);
+		const DocumentSaveTransition transition = DocumentSaveCore::transition(
+			document, DocumentSaveReason::InstantModeFlush, QString(), success);
+		expectEqual(transition.path, document.path(), "instant save success keeps the path");
+		expectTrue(transition.dirty, "instant save success preserves the existing dirty flag");
+		expectTrue(transition.restartAnalysis, "instant save success restarts analysis");
+		expectTrue(transition.failure == DocumentSaveFailure::None, "instant save success has no failure");
+	}
+
+	{
+		DocumentState document(QStringLiteral("config.txt"), QStringLiteral("C:\\config\\config.txt"));
+		const DocumentSaveTransition transition = DocumentSaveCore::transition(
+			document, DocumentSaveReason::InstantModeFlush, QString(), failure);
+		expectEqual(transition.path, document.path(), "instant save failure keeps the path");
+		expectTrue(transition.dirty, "instant save failure marks the document dirty");
+		expectFalse(transition.restartAnalysis, "instant save failure does not restart analysis");
+		expectTrue(transition.failure == DocumentSaveFailure::WriteError, "instant save failure reports a write error");
+	}
+}
+
 TEST_CASE(EditorLogicTests, testRecentFilesRule)
 {
 	QStringList recent;

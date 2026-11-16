@@ -210,7 +210,7 @@ void FilterTable::updateGuis()
 	gridLayout->setColumnStretch(1, 1);
 
 	for (const auto& factory : factories)
-		factory->startOfFile(configPath);
+		factory->startOfFile(getConfigPath());
 
 	// Phase accounting for the "Create took" log below; large configs spend
 	// seconds here, so the breakdown tells slow-startup reports apart without
@@ -237,7 +237,7 @@ void FilterTable::updateGuis()
 	}
 
 	for (const auto& factory : factories)
-		factory->endOfFile(configPath);
+		factory->endOfFile(getConfigPath());
 
 	phaseTimer.start();
 	applyChannelFlow(documentPlan.channelFlow);

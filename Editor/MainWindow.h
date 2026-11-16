@@ -51,6 +51,8 @@ class TitleBar;
 class UpdateToast;
 class UpdateSession;
 struct DeviceFormatBadgeState;
+enum class DocumentSaveReason;
+struct DocumentSaveTransition;
 struct OpenDocument;
 
 // MainWindow's implementation is split across several translation units (all
@@ -82,10 +84,6 @@ public:
 	void doChecks();
 	void runDeviceSelector();
 	void load(QString path);
-	// Writes the table's lines to path. False when the file could not be
-	// written (the error was shown); callers keep the tab marked unsaved and
-	// its previous path then (audit #348 TD-07).
-	bool save(FilterTable* filterTable, QString path);
 	bool isEmpty();
 	bool shouldRestart();
 	void startAnalysis();
@@ -186,6 +184,10 @@ private:
 	void startSkinSwitchStorm();
 	void applySkinAndRebuild();
 	void executeStartAnalysis();
+	// Writes one document and applies the widget-free transition for its save
+	// reason. Callers do not repair title/path/dirty state themselves.
+	DocumentSaveTransition saveDocument(OpenDocument& document, DocumentSaveReason reason,
+		const QString& newPath = QString());
 	FilterTable* addTab(QString title, QString tooltip, QString configPath, QList<QString> lines);
 	void getDeviceAndChannelMask(std::shared_ptr<AbstractAPOInfo>* selectedDevice, int* channelMask);
 	// The badge for apoInfo; an endpoint's format is probed off the UI thread
@@ -227,8 +229,6 @@ private:
 	// into its tab.
 	void showDocumentTitle(const OpenDocument& document);
 	void updateDirtyStatus();
-	// Marks the tab's document saved or unsaved; its title follows.
-	void setTabDirty(int tabIndex, bool dirty);
 	// Runs an instant-mode save that is still waiting out its debounce, so
 	// closing a tab or the window inside that window does not drop the last
 	// edit. A failed save marks the tab unsaved.

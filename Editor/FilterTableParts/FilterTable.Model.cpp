@@ -231,7 +231,10 @@ void FilterTable::moveRows(const QList<Item*>& itemsInOrder, int dropRow)
 
 void FilterTable::setLines(const QString& configPath, const QList<QString>& lines)
 {
-	this->configPath = configPath;
+	// Gallery fixtures have no OpenDocument to own a path. Real documents set
+	// configPathAccessor before loading and never keep a second copy here.
+	if (!configPathAccessor)
+		this->configPath = configPath;
 
 	// The document reset (including moving focus/anchor to the first line)
 	// lives in the model; the per-file GUI preference restore below stays
