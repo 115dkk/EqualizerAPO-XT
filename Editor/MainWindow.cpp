@@ -57,6 +57,8 @@
 #include "services/install/ApoRegistration.h"
 #include "services/windows/WindowsService.h"
 #include "services/windows/AudioServiceNames.h"
+#include "services/security/AudioEngineAccess.h"
+#include "services/registry/RegistryPaths.h"
 #include "SkinManager.h"
 #include "ui_MainWindow.h"
 #include "devices/DeviceAPOInfo.h"
@@ -307,6 +309,33 @@ void MainWindow::doChecks()
 	{
 		LogF(L"Could not query Windows audio service: %s", e.getMessage().c_str());
 	}
+
+	// AuthZ can resolve account membership: keep it on the same worker as
+	// the slow endpoint probes, not on the UI thread (audit #467 TD-18).
+	BackgroundProbe::runFor(this, [] {
+		QStringList unreadable;
+		for (const wchar_t* value : {installPathValueName, configPathValueName})
+		{
+			try
+			{
+				auto& registry = systemRegistry();
+				if (!registry.valueExists(APP_REGPATH, value))
+					continue;
+				const std::wstring folder = registry.readValue(APP_REGPATH, value);
+				if (!folder.empty() && !AudioEngineAccess::isReadableByAudioEngine(folder))
+					unreadable.append(QString::fromStdWString(folder));
+			}
+			catch (const RegistryError& e)
+			{
+				LogFStatic(L"Could not read startup access-check folder: %s", e.getMessage().c_str());
+			}
+		}
+		return unreadable;
+	}, [this](const QStringList& unreadable) {
+		for (const QString& folder : unreadable)
+			QMessageBox::warning(this, tr("Audio folder access"),
+				tr("The Windows audio service cannot read this folder:\n%0\n\nRun tools\\Repair-EqualizerAPO.ps1 from the installation folder as administrator to repair access.").arg(folder));
+	});
 
 	if (!ApoRegistration::verify(systemRegistry(), false).valid())
 	{

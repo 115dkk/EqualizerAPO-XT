@@ -56,6 +56,28 @@ void removeScratchDir(const std::wstring& dir)
 		RemoveDirectoryW(dir.c_str());
 }
 
+TEST_CASE(EngineOrchestrationTests, testInstallReportsAclAndServiceFailures)
+{
+	using Result = ApoRegistration::Result;
+	FakeRegistry registry;
+	registry.seedKey(audioKey);
+	int finishes = 0;
+	const auto result = ApoRegistration::finishInstallWithAccess([] { return false; }, [&] {
+		++finishes;
+		return ApoRegistration::writeAppInstallRegistry(L"C:\\Install", L"", registry);
+	});
+	harness.expect(result == Result::AclFailed, "failed ACL grant returns AclFailed");
+	harness.expectEqual(finishes, 1, "ACL failure still completes install registry role");
+	harness.expect(registry.valueExists(appKey, installPathValueName), "ACL failure keeps install registry result");
+	harness.expect(ApoRegistration::hookCanComplete(result), "ACL failure is nonfatal to package hook");
+	harness.expect(ApoRegistration::finishInstallWithAccess([] { return false; },
+		[] { return Result::RegistrationFailed; }) == Result::RegistrationFailed,
+		"registration failure takes precedence over ACL warning");
+	harness.expect(ApoRegistration::runWithAudioStopped([] { return true; },
+		[] { return Result::Success; }, [] { return false; }) == Result::ServiceFailed,
+		"failed audio restart returns ServiceFailed");
+}
+
 TEST_CASE(EngineOrchestrationTests, testInstallRegistryWritesTheAppVocabulary)
 {
 	FakeRegistry registry;

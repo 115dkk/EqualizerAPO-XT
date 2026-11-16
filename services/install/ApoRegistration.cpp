@@ -227,6 +227,20 @@ void ApoRegistration::cleanupAppRegistry(const std::wstring& installDir, IRegist
 	}
 }
 
+ApoRegistration::Result ApoRegistration::finishInstallWithAccess(const std::function<bool()>& grantAccess,
+	const std::function<Result()>& finish)
+{
+	const bool accessGranted = grantAccess();
+	const Result result = finish();
+	return result == Result::Success && !accessGranted ? Result::AclFailed : result;
+}
+
+bool ApoRegistration::hookCanComplete(Result result)
+{
+	// Report ACL failures without aborting a package install (audit #467 TD-18).
+	return result == Result::Success || result == Result::AclFailed;
+}
+
 ApoRegistration::Result ApoRegistration::install(const std::wstring& installDir, const std::wstring& configDir,
 	IRegistry& registry, bool installGrantsPrepared)
 {
@@ -262,32 +276,32 @@ ApoRegistration::Result ApoRegistration::install(const std::wstring& installDir,
 	// elevated and installed into that account's own LocalAppData. This assumes
 	// that tree is not writable by another standard user. A prepared hand-off
 	// skips both recursive grants below; its user already applied the ACEs.
-	if (shouldGrantInstallAccess(installGrantsPrepared))
-	{
-		AudioEngineAccess::Grant installGrant = AudioEngineAccess::grantEngineAccess(installDir);
+	return finishInstallWithAccess([&] {
+		if (!shouldGrantInstallAccess(installGrantsPrepared))
+			return true;
+		const AudioEngineAccess::Grant installGrant = AudioEngineAccess::grantEngineAccess(installDir);
 		if (installGrant != AudioEngineAccess::Grant::Applied)
 			logLine(L"WARN", L"Install root access grant %s, continuing", AudioEngineAccess::describe(installGrant));
-	}
+		// secureConfigDir already logs which grant failed. Attempt both grants.
+		const bool configGranted = secureConfigDir(joinPath(installDir, L"config"));
+		return installGrant == AudioEngineAccess::Grant::Applied && configGranted;
+	}, [&] {
+		// Refresh even an existing registration: a new DLL may publish new COM
+		// metadata while keeping the same file path and CLSIDs.
+		const auto verification = verify(registry, true, true);
+		if (verification.repairResult != Result::Success)
+			return verification.repairResult;
 
-	// Refresh even an existing registration: a new DLL may publish new COM
-	// metadata while keeping the same file path and CLSIDs.
-	const auto verification = verify(registry, true, true);
-	if (verification.repairResult != Result::Success)
-		return verification.repairResult;
+		// Velopack's vpk pack only emits a shortcut for --mainExe (Editor.exe).
+		// DeviceSelector is the elevated companion that performs per-device APO
+		// install/uninstall, so it needs its own Start Menu entry. We create it
+		// here in the install hook because the hook runs elevated and can write
+		// to the Public Programs folder.
+		if (!StartMenuShortcuts::create(installDir))
+			logLine(L"WARN", L"Failed to create DeviceSelector start menu shortcut");
 
-	// secureConfigDir already logs which grant failed.
-	if (shouldGrantInstallAccess(installGrantsPrepared))
-		secureConfigDir(joinPath(installDir, L"config"));
-
-	// Velopack's vpk pack only emits a shortcut for --mainExe (Editor.exe).
-	// DeviceSelector is the elevated companion that performs per-device APO
-	// install/uninstall, so it needs its own Start Menu entry. We create it
-	// here in the install hook because the hook runs elevated and can write
-	// to the Public Programs folder.
-	if (!StartMenuShortcuts::create(installDir))
-		logLine(L"WARN", L"Failed to create DeviceSelector start menu shortcut");
-
-	return Result::Success;
+		return Result::Success;
+	});
 }
 
 ApoRegistration::Result ApoRegistration::uninstall(const std::wstring& installDir,
@@ -407,23 +421,27 @@ ApoRegistration::Result ApoRegistration::uninstallAllDeviceApos(const DeviceUnin
 ApoRegistration::Result ApoRegistration::runWithAudioStopped(const std::function<bool()>& stop,
 	const std::function<Result()>& step, const std::function<bool()>& start)
 {
-	const bool stopped = stop();
-	// A throwing install/migration step must not leave AudioSrv stopped
-	// (audit #467 TD-13, testUpdateHookRestartsAfterThrow).
-	SCOPE_EXIT{
-		if (stopped)
+	bool restartOwed = stop();
+	auto restart = [&] {
+		if (!restartOwed)
+			return true;
+		restartOwed = false;
+		try
 		{
-			try
-			{
-				start();
-			}
-			catch (...)
-			{
-				logLine(L"ERR", L"Restarting AudioSrv after the update failed");
-			}
+			return start();
+		}
+		catch (...)
+		{
+			logLine(L"ERR", L"Restarting AudioSrv after the update failed");
+			return false;
 		}
 	};
-	return step();
+	// A throwing install/migration step must not leave AudioSrv stopped
+	// (audit #467 TD-13, testUpdateHookRestartsAfterThrow).
+	SCOPE_EXIT{ restart(); };
+	const Result result = step();
+	const bool restarted = restart();
+	return !restarted && hookCanComplete(result) ? Result::ServiceFailed : result;
 }
 
 bool ApoRegistration::stopAudioService()

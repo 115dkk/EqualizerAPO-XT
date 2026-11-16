@@ -218,9 +218,11 @@ int handleVelopackHook(int argc, char* argv[])
 			auto rc = ApoRegistration::install(exeDir, L"", systemRegistry(), callerLocalAppData.installGrantsPrepared);
 			// The trusted config root: adopt the stable folder, or migrate a
 			// legacy Equalizer APO / volatile current\config tree into it.
-			if (rc == ApoRegistration::Result::Success)
+			if (rc == ApoRegistration::Result::AclFailed)
+				logLine(L"WARN", L"Install completed with an access grant failure");
+			if (ApoRegistration::hookCanComplete(rc))
 				EqAPO::Import::LegacyMigration::runElevatedHookStep(exeDir, callerLocalAppData);
-			return rc == ApoRegistration::Result::Success ? 0 : static_cast<int>(rc);
+			return ApoRegistration::hookCanComplete(rc) ? 0 : static_cast<int>(rc);
 		}
 		if (matchesHook(arg, "--veloapp-updated"))
 		{
@@ -231,11 +233,13 @@ int handleVelopackHook(int argc, char* argv[])
 				return true;
 			}, [&] {
 				const auto result = ApoRegistration::install(exeDir, L"", systemRegistry(), callerLocalAppData.installGrantsPrepared);
-				if (result == ApoRegistration::Result::Success)
+				if (result == ApoRegistration::Result::AclFailed)
+					logLine(L"WARN", L"Update completed with an access grant failure");
+				if (ApoRegistration::hookCanComplete(result))
 					EqAPO::Import::LegacyMigration::runElevatedHookStep(exeDir, callerLocalAppData);
 				return result;
 			}, ApoRegistration::startAudioService);
-			return rc == ApoRegistration::Result::Success ? 0 : static_cast<int>(rc);
+			return ApoRegistration::hookCanComplete(rc) ? 0 : static_cast<int>(rc);
 		}
 		if (matchesHook(arg, "--veloapp-obsolete"))
 		{
@@ -253,7 +257,7 @@ int handleVelopackHook(int argc, char* argv[])
 			try
 			{
 				auto rc = ApoRegistration::uninstall(exeDir);
-				return rc == ApoRegistration::Result::Success ? 0 : static_cast<int>(rc);
+				return ApoRegistration::hookCanComplete(rc) ? 0 : static_cast<int>(rc);
 			}
 			catch (const RegistryError& e)
 			{
