@@ -26,3 +26,11 @@ inline constexpr GUID EQUALIZERAPO_POST_MIX_GUID =
 #define APP_REGPATH L"HKEY_LOCAL_MACHINE\\SOFTWARE\\EqualizerAPO"
 #define USER_REGPATH L"HKEY_CURRENT_USER\\SOFTWARE\\EqualizerAPO"
 #define EDITOR_REGPATH USER_REGPATH L"\\Configuration Editor"
+
+// Persisted value names shared by writers and cleanup (audit #467 TD-47).
+inline constexpr wchar_t installPathValueName[] = L"InstallPath";
+inline constexpr wchar_t configPathValueName[] = L"ConfigPath";
+inline constexpr wchar_t enableTraceValueName[] = L"EnableTrace";
+inline constexpr wchar_t migratedFromValueName[] = L"MigratedFrom";
+inline constexpr wchar_t migrationStampValueName[] = L"MigrationStamp";
+inline constexpr wchar_t migratedFilesValueName[] = L"MigratedFiles";

@@ -95,7 +95,7 @@ void Logging::log(const char* file, int line, const void* caller, bool trace, co
 
 			try
 			{
-				if (systemRegistry().readValue(APP_REGPATH, L"EnableTrace") != L"false")
+				if (systemRegistry().readValue(APP_REGPATH, enableTraceValueName) != L"false")
 					enableTrace = true;
 			}
 			catch (const RegistryError& e)
@@ -172,8 +172,8 @@ void Logging::refreshTrace()
 	bool trace = false;
 	try
 	{
-		if (systemRegistry().valueExists(APP_REGPATH, L"EnableTrace"))
-			trace = systemRegistry().readValue(APP_REGPATH, L"EnableTrace") != L"false";
+		if (systemRegistry().valueExists(APP_REGPATH, enableTraceValueName))
+			trace = systemRegistry().readValue(APP_REGPATH, enableTraceValueName) != L"false";
 	}
 	catch (const RegistryError& e)
 	{

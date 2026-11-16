@@ -115,7 +115,7 @@ ApoRegistration::Result ApoRegistration::writeAppInstallRegistry(
 	try
 	{
 		registry.createKey(kRegPath);
-		registry.writeValue(kRegPath, L"InstallPath", installDir);
+		registry.writeValue(kRegPath, installPathValueName, installDir);
 
 		// Audit #250 F034: an ignored failure here used to report Success
 		// while ConfigPath pointed at a directory that does not exist -
@@ -127,11 +127,11 @@ ApoRegistration::Result ApoRegistration::writeAppInstallRegistry(
 			return Result::RegistryFailed;
 		}
 
-		if (!configDir.empty() && !registry.valueExists(kRegPath, L"ConfigPath"))
-			registry.writeValue(kRegPath, L"ConfigPath", configDir);
+		if (!configDir.empty() && !registry.valueExists(kRegPath, configPathValueName))
+			registry.writeValue(kRegPath, configPathValueName, configDir);
 
-		if (!registry.valueExists(kRegPath, L"EnableTrace"))
-			registry.writeValue(kRegPath, L"EnableTrace", L"false");
+		if (!registry.valueExists(kRegPath, enableTraceValueName))
+			registry.writeValue(kRegPath, enableTraceValueName, L"false");
 
 		checkProtectedAudioDG(true, registry);
 	}
@@ -148,7 +148,7 @@ ApoRegistration::Result ApoRegistration::writeMissingConfigFallback(const std::w
 {
 	try
 	{
-		if (registry.keyExists(kRegPath) && registry.valueExists(kRegPath, L"ConfigPath"))
+		if (registry.keyExists(kRegPath) && registry.valueExists(kRegPath, configPathValueName))
 			return Result::Success;
 	}
 	catch (const RegistryError& e)
@@ -174,7 +174,7 @@ void ApoRegistration::cleanupAppRegistry(const std::wstring& installDir, IRegist
 		logLine(L"WARN", L"Failed to clean DisableProtectedAudioDG: %s", e.getMessage().c_str());
 	}
 
-	for (const wchar_t* valueName : {L"InstallPath", L"MigratedFrom", L"MigrationStamp", L"MigratedFiles"})
+	for (const wchar_t* valueName : {installPathValueName, migratedFromValueName, migrationStampValueName, migratedFilesValueName})
 	{
 		try
 		{
@@ -189,11 +189,11 @@ void ApoRegistration::cleanupAppRegistry(const std::wstring& installDir, IRegist
 
 	try
 	{
-		if (registry.keyExists(kRegPath) && registry.valueExists(kRegPath, L"ConfigPath"))
+		if (registry.keyExists(kRegPath) && registry.valueExists(kRegPath, configPathValueName))
 		{
-			const std::wstring configPath = registry.readValue(kRegPath, L"ConfigPath");
+			const std::wstring configPath = registry.readValue(kRegPath, configPathValueName);
 			if (isPathUnderDirectory(configPath, installDir))
-				registry.deleteValue(kRegPath, L"ConfigPath");
+				registry.deleteValue(kRegPath, configPathValueName);
 		}
 	}
 	catch (const RegistryError& e)
@@ -473,8 +473,8 @@ ApoRegistration::Verification ApoRegistration::verify(IRegistry& registry, bool 
 		&& registry.keyExists(clsidKeyPath L"\\" + post);
 	if (fix && (!result.registration || refreshRegistration))
 	{
-		const auto directory = registry.valueExists(APP_REGPATH, L"InstallPath")
-			? registry.readValue(APP_REGPATH, L"InstallPath") : pathutil::exeDirectory();
+		const auto directory = registry.valueExists(APP_REGPATH, installPathValueName)
+			? registry.readValue(APP_REGPATH, installPathValueName) : pathutil::exeDirectory();
 		if (directory.empty())
 		{
 			logLine(L"ERR", L"Could not resolve the APO installation directory");

@@ -207,7 +207,7 @@ void DeviceAPOInfo::installWithin(RegistryTransaction& plan)
 
 		if (!valuenames.empty())
 		{
-			wstring backupDirectory = plan.readValue(APP_REGPATH, L"ConfigPath");
+			wstring backupDirectory = plan.readValue(APP_REGPATH, configPathValueName);
 			if (backupDirectory.empty())
 				throw RegistryError(L"ConfigPath is empty; refusing to write a registry backup to the process directory");
 			if (!pathutil::directoryExists(backupDirectory))

@@ -256,11 +256,11 @@ vector<wstring> collect(const IRegistry& registry)
 			L"uninstall leaves the key in place and removes only the values it wrote.");
 
 	appendSection(lines, L"EqualizerAPO registry");
-	const wstring installPath = valueOrNote(registry, APP_REGPATH, L"InstallPath");
-	const wstring configPath = valueOrNote(registry, APP_REGPATH, L"ConfigPath");
+	const wstring installPath = valueOrNote(registry, APP_REGPATH, installPathValueName);
+	const wstring configPath = valueOrNote(registry, APP_REGPATH, configPathValueName);
 	lines.push_back(L"InstallPath:             " + installPath);
 	lines.push_back(L"ConfigPath:              " + configPath);
-	lines.push_back(L"EnableTrace:             " + valueOrNote(registry, APP_REGPATH, L"EnableTrace"));
+	lines.push_back(L"EnableTrace:             " + valueOrNote(registry, APP_REGPATH, enableTraceValueName));
 	lines.push_back(L"DisableProtectedAudioDG: " + dwordOrNote(registry, protectedDGKeyPath, protectedDGValueName));
 	if (dwordOrNote(registry, protectedDGKeyPath, protectedDGValueName) != L"1")
 		lines.push_back(L"WARNING: without this set to 1 the audio engine runs protected and loads no APO of ours.");

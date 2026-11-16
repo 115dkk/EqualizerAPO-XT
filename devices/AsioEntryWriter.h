@@ -17,8 +17,8 @@ enum class DirectoryRequirement { Optional, Required };
 
 inline std::wstring installDirectory(const IRegistry& registry, DirectoryRequirement requirement)
 {
-	const auto directory = registry.valueExists(APP_REGPATH, L"InstallPath")
-		? registry.readValue(APP_REGPATH, L"InstallPath") : std::wstring();
+	const auto directory = registry.valueExists(APP_REGPATH, installPathValueName)
+		? registry.readValue(APP_REGPATH, installPathValueName) : std::wstring();
 	if (directory.empty() && requirement == DirectoryRequirement::Required)
 		throw DeviceException(L"The ASIO entry needs the InstallPath value under HKEY_LOCAL_MACHINE\\SOFTWARE\\EqualizerAPO");
 	return directory;
