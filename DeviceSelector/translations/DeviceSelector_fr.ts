@@ -4,36 +4,37 @@
 <context>
     <name>DeviceSelector</name>
     <message>
-        <location filename="../DeviceSelector.cpp" line="+63"/>
-        <location line="+37"/>
+        <location filename="../DeviceSelector.cpp" line="+68"/>
+        <location line="+44"/>
         <source>Playback devices</source>
         <translation>Périphériques de lecture</translation>
     </message>
     <message>
-        <location line="-32"/>
-        <location line="+36"/>
+        <location line="-39"/>
+        <location line="+43"/>
         <source>Capture devices</source>
         <translation>Périphériques de capture</translation>
     </message>
     <message>
-        <location line="-28"/>
-        <location line="+306"/>
+        <location line="-35"/>
+        <location line="+17"/>
+        <location line="+297"/>
         <source>Error while accessing the registry</source>
         <translation>Erreur durant l&apos;accès au registre</translation>
     </message>
     <message>
-        <location line="-294"/>
-        <location line="+365"/>
+        <location line="-302"/>
+        <location line="+357"/>
         <source>Info</source>
         <translation>Information</translation>
     </message>
     <message>
-        <location line="-365"/>
+        <location line="-357"/>
         <source>A registry value that is required for the operation of Equalizer APO was not set correctly. This might have been caused by a driver installation or uninstallation. The value has been corrected. A reboot may be required so that the changes can take effect.</source>
         <translation>Une valeur de registre requise pour le fonctionnement d’Equalizer APO n’a pas été définie correctement. Cela peut être dû à l&apos;installation ou à la désinstallation d&apos;un pilote. La valeur a été corrigée. Un redémarrage peut être nécessaire pour que les modifications puissent prendre effet.</translation>
     </message>
     <message>
-        <location line="+344"/>
+        <location line="+336"/>
         <source>Upgrades available</source>
         <translation>Mise à niveau disponibles</translation>
     </message>
@@ -58,18 +59,23 @@
         <translation>Pour appliquer les modifications, Windows doit être redémarré. Redémarrer maintenant?</translation>
     </message>
     <message>
-        <location line="-314"/>
-        <location line="+490"/>
+        <location line="-294"/>
+        <location line="+470"/>
         <source>Cancel</source>
         <translation>Annuler</translation>
     </message>
     <message>
-        <location line="-491"/>
+        <location line="-533"/>
+        <source>The registry repair did not finish. Reinstall Equalizer APO or see DeviceSelector.log for details.</source>
+        <translation>La réparation du registre n’a pas abouti. Réinstallez Equalizer APO ou consultez DeviceSelector.log pour plus de détails.</translation>
+    </message>
+    <message>
+        <location line="+62"/>
         <source>OK</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+229"/>
+        <location line="+225"/>
         <source>Undoing the change did not finish either, so this device may be left partly changed. Reboot before trying again, and see the log for details.</source>
         <translation>L’annulation de la modification n’a pas non plus abouti. Certaines modifications du périphérique peuvent donc subsister. Redémarrez avant de réessayer et consultez le journal pour plus de détails.</translation>
     </message>
@@ -84,7 +90,7 @@
         <translation>Les détails se trouvent dans %1.</translation>
     </message>
     <message>
-        <location line="+260"/>
+        <location line="+244"/>
         <source>Close</source>
         <translation>Fermer</translation>
     </message>
@@ -124,7 +130,7 @@
         <translation>APO peut être installé</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+5"/>
         <source>Voicemeeter was uninstalled</source>
         <translation>Voicemeeter a été désinstallé</translation>
     </message>
@@ -157,7 +163,7 @@
         <translation>Ajoute `&lt;périphérique&gt; - &lt;point de terminaison&gt; (EQ APO XT)` à la liste des pilotes ASIO. Une application qui la choisit ouvre ce périphérique en mode exclusif WASAPI avec l’égaliseur appliqué.</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="-691"/>
+        <location filename="../DeviceSelector.cpp" line="-670"/>
         <source>Troubleshooting options (only use in case of problems)</source>
         <translation>Options de dépannage (à utiliser uniquement en cas de problèmes)</translation>
     </message>
@@ -319,7 +325,7 @@ ATTENTION: Certains pilotes de carte son peuvent produire des sons indésirables
 <context>
     <name>DeviceTestDialog</name>
     <message>
-        <location filename="../DeviceTestDialog.cpp" line="+43"/>
+        <location filename="../DeviceTestDialog.cpp" line="+45"/>
         <source>Playback devices</source>
         <translation>Périphériques de lecture</translation>
     </message>
@@ -334,7 +340,7 @@ ATTENTION: Certains pilotes de carte son peuvent produire des sons indésirables
         <translation>Erreur durant l&apos;accès au registre</translation>
     </message>
     <message>
-        <location line="+65"/>
+        <location line="+70"/>
         <source>Cannot test APO installation as device is disabled</source>
         <translation>Impossible de tester l&apos;installation d&apos;APO car le périphérique est désactivé</translation>
     </message>
@@ -344,7 +350,7 @@ ATTENTION: Certains pilotes de carte son peuvent produire des sons indésirables
         <translation>Impossible de tester l&apos;installation d&apos;APO car le périphérique est débranché</translation>
     </message>
     <message>
-        <location line="+50"/>
+        <location line="+70"/>
         <location line="+46"/>
         <source>Error</source>
         <translation>Erreur</translation>
@@ -396,7 +402,7 @@ ATTENTION: Certains pilotes de carte son peuvent produire des sons indésirables
         <translation>Échec de l’initialisation de COM (0x%1).</translation>
     </message>
     <message>
-        <location line="+10"/>
+        <location line="+26"/>
         <location line="+177"/>
         <source>Restarting audio service...</source>
         <translation>Redémarrage du service audio...</translation>
@@ -418,7 +424,8 @@ ATTENTION: Certains pilotes de carte son peuvent produire des sons indésirables
         <translation>Impossible de préparer le test du périphérique.</translation>
     </message>
     <message>
-        <location line="+11"/>
+        <location line="-36"/>
+        <location line="+47"/>
         <source>Could not remove the device test registration: %1</source>
         <translation>Impossible de supprimer l’enregistrement du test du périphérique : %1</translation>
     </message>

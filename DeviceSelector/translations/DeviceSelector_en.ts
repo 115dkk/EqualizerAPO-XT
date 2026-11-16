@@ -4,47 +4,53 @@
 <context>
     <name>DeviceSelector</name>
     <message>
-        <location filename="../DeviceSelector.cpp" line="+63"/>
-        <location line="+37"/>
+        <location filename="../DeviceSelector.cpp" line="+68"/>
+        <location line="+44"/>
         <source>Playback devices</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-32"/>
-        <location line="+36"/>
+        <location line="-39"/>
+        <location line="+43"/>
         <source>Capture devices</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-28"/>
-        <location line="+306"/>
+        <location line="-35"/>
+        <location line="+17"/>
+        <location line="+297"/>
         <source>Error while accessing the registry</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-294"/>
-        <location line="+365"/>
+        <location line="-302"/>
+        <location line="+357"/>
         <source>Info</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-365"/>
+        <location line="-357"/>
         <source>A registry value that is required for the operation of Equalizer APO was not set correctly. This might have been caused by a driver installation or uninstallation. The value has been corrected. A reboot may be required so that the changes can take effect.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+56"/>
+        <location line="+6"/>
+        <source>The registry repair did not finish. Reinstall Equalizer APO or see DeviceSelector.log for details.</source>
+        <translation>The registry repair did not finish. Reinstall Equalizer APO or see DeviceSelector.log for details.</translation>
+    </message>
+    <message>
+        <location line="+62"/>
         <source>OK</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+1"/>
-        <location line="+490"/>
+        <location line="+470"/>
         <source>Cancel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-262"/>
+        <location line="-246"/>
         <source>Undoing the change did not finish either, so this device may be left partly changed. Reboot before trying again, and see the log for details.</source>
         <translation>Undoing the change did not finish either, so this device may be left partly changed. Reboot before trying again, and see the log for details.</translation>
     </message>
@@ -59,7 +65,7 @@
         <translation>Details are in %1.</translation>
     </message>
     <message>
-        <location line="+52"/>
+        <location line="+36"/>
         <source>Upgrades available</source>
         <translation type="unfinished"></translation>
     </message>
@@ -124,7 +130,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+5"/>
         <source>Voicemeeter was uninstalled</source>
         <translation type="unfinished"></translation>
     </message>
@@ -297,7 +303,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="-691"/>
+        <location filename="../DeviceSelector.cpp" line="-670"/>
         <source>Troubleshooting options (only use in case of problems)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -305,7 +311,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
 <context>
     <name>DeviceTestDialog</name>
     <message>
-        <location filename="../DeviceTestDialog.cpp" line="+43"/>
+        <location filename="../DeviceTestDialog.cpp" line="+45"/>
         <source>Playback devices</source>
         <translation type="unfinished"></translation>
     </message>
@@ -320,7 +326,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+65"/>
+        <location line="+70"/>
         <source>Cannot test APO installation as device is disabled</source>
         <translation type="unfinished"></translation>
     </message>
@@ -330,7 +336,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+50"/>
+        <location line="+70"/>
         <location line="+46"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
@@ -382,7 +388,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>COM initialization failed (0x%1).</translation>
     </message>
     <message>
-        <location line="+10"/>
+        <location line="+26"/>
         <location line="+177"/>
         <source>Restarting audio service...</source>
         <translation type="unfinished"></translation>
@@ -404,7 +410,8 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>Could not prepare the device test.</translation>
     </message>
     <message>
-        <location line="+11"/>
+        <location line="-36"/>
+        <location line="+47"/>
         <source>Could not remove the device test registration: %1</source>
         <translation>Could not remove the device test registration: %1</translation>
     </message>

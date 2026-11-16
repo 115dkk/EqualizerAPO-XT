@@ -152,40 +152,40 @@
         <translation>올패스 필터</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="224"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="226"/>
         <source>Center frequency</source>
         <translation>중심 주파수</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="226"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="228"/>
         <source>Corner frequency</source>
         <translation>코너 주파수</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="243"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="245"/>
         <source>Fixed Q</source>
         <translation>Q 고정</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="245"/>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="290"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="247"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="292"/>
         <source>Fixed S</source>
         <translation>S 고정</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="247"/>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="291"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="249"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="293"/>
         <source>Slope</source>
         <translation>기울기</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="249"/>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="292"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="251"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="294"/>
         <source>Q factor</source>
         <translation>Q 값</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="256"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="258"/>
         <source>Bandwidth</source>
         <translation>대역폭</translation>
     </message>
@@ -401,7 +401,7 @@
 <context>
     <name>ChannelRoleSelector</name>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="190"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="198"/>
         <source>Add channel</source>
         <translation>채널 추가</translation>
     </message>
@@ -466,38 +466,38 @@
 <context>
     <name>ConvolutionCardEditor</name>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="99"/>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="204"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="95"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="170"/>
         <source>Select impulse response file</source>
         <translation>임펄스 응답 파일 선택</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="62"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="66"/>
         <source>Copy this file into the config directory</source>
         <translation>이 파일을 구성 디렉터리로 복사</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="100"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="96"/>
         <source>Impulse response (*.wav *.flac *.ogg)</source>
         <translation>임펄스 응답 (*.wav *.flac *.ogg)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="146"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="119"/>
         <source>No file selected</source>
         <translation>선택된 파일 없음</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="165"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="139"/>
         <source>%1 ms</source>
         <translation>%1 ms</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="166"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="140"/>
         <source>%1 samples</source>
         <translation>%1 샘플</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="167"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="141"/>
         <source>%1 Hz</source>
         <translation>%1 Hz</translation>
     </message>
@@ -506,22 +506,22 @@
         <translation type="vanished">오디오 서비스가 읽을 수 없습니다</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="203"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="169"/>
         <source>Locate...</source>
         <translation>위치 찾기...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="204"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="170"/>
         <source>Locate the missing file</source>
         <translation>누락된 파일 위치 찾기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="158"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="132"/>
         <source>Unsupported file format</source>
         <translation>지원하지 않는 파일 형식</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="171"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="145"/>
         <source>Sample rate does not match the device (%1 Hz)</source>
         <translation>샘플레이트가 장치와 일치하지 않습니다 (%1 Hz)</translation>
     </message>
@@ -1228,30 +1228,35 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>FileReferenceController</name>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="93"/>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="106"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="123"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="147"/>
         <source>Import</source>
         <translation type="unfinished">가져오기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="94"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="124"/>
         <source>Nothing to import: %1</source>
         <translation type="unfinished">가져올 항목 없음: %1</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="107"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="140"/>
+        <source>Could not grant audio service access to %1.</source>
+        <translation>오디오 서비스에 %1 접근 권한을 부여하지 못했습니다.</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="148"/>
         <source>Some files could not be copied:
 %1</source>
         <translation type="unfinished">일부 파일을 복사하지 못했습니다:
 %1</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.cpp" line="133"/>
+        <location filename="../widgets/cards/FileReferenceController.cpp" line="193"/>
         <source>The audio service only opens files on local drives</source>
         <translation>오디오 서비스는 로컬 드라이브의 파일만 엽니다</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.cpp" line="135"/>
+        <location filename="../widgets/cards/FileReferenceController.cpp" line="195"/>
         <source>Not readable by the audio service</source>
         <translation>오디오 서비스가 읽을 수 없습니다</translation>
     </message>
@@ -1264,7 +1269,7 @@ Select a different file or change the device configuration.</source>
         <translation>주석</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="302"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="244"/>
         <source>Text</source>
         <translation>텍스트</translation>
     </message>
@@ -1289,53 +1294,53 @@ Select a different file or change the device configuration.</source>
         <translation>벨벳 비상관화</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="58"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="59"/>
         <source>Peaking</source>
         <translation>피킹 필터</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="60"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="61"/>
         <source>Low-pass</source>
         <translation>로우패스 필터</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="62"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="63"/>
         <source>High-pass</source>
         <translation>하이패스 필터</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="64"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="65"/>
         <source>Band-pass</source>
         <translation>밴드패스 필터</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="66"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="67"/>
         <source>Low-shelf</source>
         <translation>로우셸프 필터</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="68"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="69"/>
         <source>High-shelf</source>
         <translation>하이셸프 필터</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="70"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="71"/>
         <source>Notch</source>
         <translation>노치 필터</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="72"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="73"/>
         <source>All-pass</source>
         <translation>올패스 필터</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="73"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="74"/>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="41"/>
         <source>Biquad</source>
         <translation>바이쿼드</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="342"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="284"/>
         <source>IIR filter</source>
         <translation>IIR 필터</translation>
     </message>
@@ -1433,7 +1438,7 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>FilterCardRow</name>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="964"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="973"/>
         <source>Expand filter card</source>
         <translation>필터 카드 펼치기</translation>
     </message>
@@ -1442,47 +1447,47 @@ Select a different file or change the device configuration.</source>
         <translation type="vanished">이 명령을 활성화하거나 주석 처리합니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="135"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="142"/>
         <source>Add filter above this card</source>
         <translation>이 카드 위에 필터 추가</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="146"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="154"/>
         <source>Remove filter</source>
         <translation>필터 제거</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="147"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="155"/>
         <source>Remove this filter. %1 brings it back.</source>
         <translation>이 필터를 제거합니다. %1로 되돌릴 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="162"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="171"/>
         <source>Edit raw command</source>
         <translation>원본 명령 편집</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="767"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="776"/>
         <source>This line was not applied: %1</source>
         <translation>이 줄은 적용되지 않았습니다: %1</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="964"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="973"/>
         <source>Collapse filter card</source>
         <translation>필터 카드 접기</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="966"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="975"/>
         <source>Switch this line off. It stays in the file as a comment.</source>
         <translation>이 줄을 끕니다. 파일에는 주석으로 남습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="967"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="976"/>
         <source>Switch this line back on.</source>
         <translation>이 줄을 다시 켭니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="765"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="774"/>
         <source>Equalizer APO could not prepare this filter, so the whole configuration was not applied and the previous settings keep playing. Check the file or plug-in this line uses, or switch the line off.</source>
         <translation>Equalizer APO가 이 필터를 준비하지 못해 설정 전체를 적용하지 않았고, 이전 설정이 계속 재생됩니다. 이 줄이 쓰는 파일이나 플러그인을 확인하거나 이 줄을 끄십시오.</translation>
     </message>
@@ -1676,7 +1681,7 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>FilterTable</name>
     <message>
-        <location filename="../FilterTable.cpp" line="267"/>
+        <location filename="../FilterTable.cpp" line="268"/>
         <source>Add filter</source>
         <translation>필터 추가</translation>
     </message>
@@ -1740,89 +1745,89 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>GraphicEQCardEditor</name>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="74"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="72"/>
         <source>15-band</source>
         <translation>15밴드</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="75"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="73"/>
         <source>31-band</source>
         <translation>31밴드</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="76"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="74"/>
         <source>variable</source>
         <translation>가변</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="77"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="75"/>
         <source>Band layout</source>
         <translation>밴드 구성</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="88"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="86"/>
         <source>Import</source>
         <translation>가져오기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="89"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="87"/>
         <source>Export</source>
         <translation>내보내기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="90"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="88"/>
         <source>Invert response</source>
         <translation>응답 반전</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="91"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="89"/>
         <source>Normalize response</source>
         <translation>응답 정규화</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="92"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="90"/>
         <source>Reset response</source>
         <translation>응답 초기화</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="136"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="134"/>
         <source>Freq.</source>
         <translation>주파수</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="148"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="146"/>
         <source>Gain</source>
         <translation>게인</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="258"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="256"/>
         <source>Band %0 / %1</source>
         <translation>밴드 %0 / %1</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="264"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="262"/>
         <source>No bands</source>
         <translation>밴드 없음</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="316"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="314"/>
         <source>Import frequency response</source>
         <translation>주파수 응답 가져오기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="319"/>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="376"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="317"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="342"/>
         <source>Frequency response (*.csv)</source>
         <translation>주파수 응답 (*.csv)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="320"/>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="377"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="318"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="343"/>
         <source>All files (*.*)</source>
         <translation>모든 파일 (*.*)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="372"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="338"/>
         <source>Export frequency response</source>
         <translation>주파수 응답 내보내기</translation>
     </message>
@@ -1885,24 +1890,24 @@ Select a different file or change the device configuration.</source>
         <translation>응답 초기화</translation>
     </message>
     <message>
-        <location filename="../guis/GraphicEQFilterGUI.cpp" line="306"/>
+        <location filename="../guis/GraphicEQFilterGUI.cpp" line="303"/>
         <source>Import frequency response</source>
         <translation>주파수 응답 가져오기</translation>
     </message>
     <message>
-        <location filename="../guis/GraphicEQFilterGUI.cpp" line="309"/>
-        <location filename="../guis/GraphicEQFilterGUI.cpp" line="382"/>
+        <location filename="../guis/GraphicEQFilterGUI.cpp" line="306"/>
+        <location filename="../guis/GraphicEQFilterGUI.cpp" line="345"/>
         <source>Frequency response (*.csv)</source>
         <translation>주파수 응답 (*.csv)</translation>
     </message>
     <message>
-        <location filename="../guis/GraphicEQFilterGUI.cpp" line="310"/>
-        <location filename="../guis/GraphicEQFilterGUI.cpp" line="383"/>
+        <location filename="../guis/GraphicEQFilterGUI.cpp" line="307"/>
+        <location filename="../guis/GraphicEQFilterGUI.cpp" line="346"/>
         <source>All files (*.*)</source>
         <translation>모든 파일 (*.*)</translation>
     </message>
     <message>
-        <location filename="../guis/GraphicEQFilterGUI.cpp" line="378"/>
+        <location filename="../guis/GraphicEQFilterGUI.cpp" line="341"/>
         <source>Export frequency response</source>
         <translation>주파수 응답 내보내기</translation>
     </message>
@@ -1935,63 +1940,63 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>HilbertCardEditor</name>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="222"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="230"/>
         <source>A fixed 1025-tap linear-phase Hilbert FIR. Shifted channels receive the selected ±90° transform; aligned channels receive only its 512-sample group delay.</source>
         <translation>고정 1025탭 선형 위상 힐베르트 FIR입니다. 위상 변환 채널에는 선택한 ±90° 변환을, 지연 정렬 채널에는 512샘플 그룹 지연만 적용합니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="242"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="250"/>
         <source>Direction</source>
         <translation>방향</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="264"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="272"/>
         <source>Graph</source>
         <translation>그래프</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="270"/>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="283"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="278"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="291"/>
         <source>Phase</source>
         <translation>위상</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="270"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="278"/>
         <source>Group delay</source>
         <translation>그룹 지연</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="294"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="302"/>
         <source>Phase-shifted channels</source>
         <translation>위상 변환 채널</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="296"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="304"/>
         <source>Latency-aligned channels</source>
         <translation>지연 정렬 채널</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="284"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="292"/>
         <source>Latency</source>
         <translation>지연 시간</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="286"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="294"/>
         <source>FIR</source>
         <translation>FIR</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="287"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="295"/>
         <source>%1 taps</source>
         <translation>%1탭</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="289"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="297"/>
         <source>Passband</source>
         <translation>통과 대역</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="357"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="365"/>
         <source>%1 ms · %2 samples</source>
         <translation>%1 ms · %2샘플</translation>
     </message>
@@ -2017,32 +2022,49 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>ImportExecutor</name>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="24"/>
+        <location filename="../import/ImportExecutor.cpp" line="145"/>
         <source>Import target directory is empty.</source>
         <translation>가져오기 대상 디렉터리가 비어 있습니다.</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="31"/>
+        <location filename="../import/ImportExecutor.cpp" line="153"/>
         <source>Could not create config directory %1.</source>
         <translation>구성 디렉터리 %1을(를) 만들 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="40"/>
+        <location filename="../import/ImportExecutor.cpp" line="163"/>
+        <source>Destination outside the config directory, skipped: %1</source>
+        <translation>대상이 구성 디렉터리 밖에 있어 건너뛰었습니다. 대상: %1</translation>
+    </message>
+    <message>
+        <location filename="../import/ImportExecutor.cpp" line="170"/>
         <source>Source missing, skipped: %1</source>
         <translation>원본 없음, 건너뜀: %1</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="50"/>
+        <location filename="../import/ImportExecutor.cpp" line="178"/>
         <source>Could not create %1.</source>
         <translation>%1을(를) 만들 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="59"/>
+        <location filename="../import/ImportExecutor.cpp" line="200"/>
         <source>Could not overwrite %1.</source>
         <translation>%1을(를) 덮어쓸 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="67"/>
+        <location filename="../import/ImportExecutor.cpp" line="233"/>
+        <source>Source kept because the copied file size could not be verified: %1</source>
+        <translation>복사한 파일의 크기를 확인하지 못해 원본을 유지했습니다. 원본: %1</translation>
+    </message>
+    <message>
+        <location filename="../import/ImportExecutor.cpp" line="239"/>
+        <source>Could not remove source after copying: %1</source>
+        <translation>복사 후 원본을 삭제하지 못했습니다. 원본: %1</translation>
+    </message>
+    <message>
+        <location filename="../import/ImportExecutor.cpp" line="194"/>
+        <location filename="../import/ImportExecutor.cpp" line="207"/>
+        <location filename="../import/ImportExecutor.cpp" line="218"/>
         <source>Failed to copy %1 to %2.</source>
         <translation>%1을(를) %2(으)로 복사하지 못했습니다.</translation>
     </message>
@@ -2050,7 +2072,7 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>IncludeCardEditor</name>
     <message>
-        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="169"/>
+        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="157"/>
         <source>Choose include file</source>
         <translation>포함할 파일 선택</translation>
     </message>
@@ -2084,12 +2106,12 @@ Select a different file or change the device configuration.</source>
         <translation type="vanished">오디오 서비스가 읽을 수 없습니다</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="168"/>
+        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="156"/>
         <source>Locate...</source>
         <translation>위치 찾기...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="169"/>
+        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="157"/>
         <source>Locate the missing file</source>
         <translation>누락된 파일 위치 찾기</translation>
     </message>
@@ -2155,12 +2177,12 @@ Change the file permissions or copy the file to the config directory.</source>
 <context>
     <name>LegacyMigration</name>
     <message>
-        <location filename="../import/LegacyMigration.cpp" line="575"/>
+        <location filename="../import/LegacyMigration.cpp" line="594"/>
         <source>Configuration folder moved</source>
         <translation>설정 폴더 이동 안내</translation>
     </message>
     <message>
-        <location filename="../import/LegacyMigration.cpp" line="576"/>
+        <location filename="../import/LegacyMigration.cpp" line="595"/>
         <source>Your Equalizer APO configuration was imported into the EqualizerAPO-XT configuration folder:
 
 %1
@@ -2296,7 +2318,7 @@ Alexander Walch</translation>
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="../MainWindow.cpp" line="107"/>
+        <location filename="../MainWindow.cpp" line="113"/>
         <source>Equalizer APO %0 Configuration Editor</source>
         <translation>Equalizer APO %0 구성 편집기</translation>
     </message>
@@ -2495,92 +2517,118 @@ Alexander Walch</translation>
         <translation>설정</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="122"/>
+        <location filename="../MainWindow.cpp" line="128"/>
         <source>Instant mode</source>
         <translation>즉시 적용 모드</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="126"/>
+        <location filename="../MainWindow.cpp" line="132"/>
         <source>Changes are saved immediately</source>
         <translation>변경 사항을 즉시 저장합니다</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="123"/>
+        <location filename="../MainWindow.cpp" line="129"/>
         <location filename="../MainWindowParts/MainWindow.Edit.cpp" line="94"/>
         <source>Saved</source>
         <translation>저장됨</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="127"/>
+        <location filename="../MainWindow.cpp" line="133"/>
         <source>Current file save state</source>
         <translation>현재 파일 저장 상태</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="124"/>
+        <location filename="../MainWindow.cpp" line="130"/>
         <source>Device</source>
         <translation>장치</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="128"/>
+        <location filename="../MainWindow.cpp" line="134"/>
         <source>Whether EqualizerAPO is processing this device&apos;s stream natively, or forwarding it without applying filters.</source>
         <translation>EqualizerAPO가 이 장치의 스트림을 직접 처리하는지, 필터 없이 그대로 전달하는지 나타냅니다.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="125"/>
+        <location filename="../MainWindow.cpp" line="131"/>
         <source>Channels</source>
         <translation>채널</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="141"/>
+        <location filename="../MainWindow.cpp" line="147"/>
         <source>Default (%1 - %2)</source>
         <translation>기본값 (%1 - %2)</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="245"/>
+        <location filename="../MainWindow.cpp" line="251"/>
         <source>Automatic (%0)</source>
         <translation>자동 (%0)</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="281"/>
+        <location filename="../MainWindow.cpp" line="287"/>
         <source>An update has been downloaded and will be applied when you close the editor.</source>
         <translation>업데이트를 내려받았습니다. 편집기를 닫으면 자동으로 적용됩니다.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="282"/>
+        <location filename="../MainWindow.cpp" line="288"/>
         <source>Update %0 has been downloaded and will be applied when you close the editor.</source>
         <translation>%0 업데이트를 내려받았습니다. 편집기를 닫으면 자동으로 적용됩니다.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="294"/>
+        <location filename="../MainWindow.cpp" line="306"/>
+        <source>Windows audio service</source>
+        <translation>Windows 오디오 서비스</translation>
+    </message>
+    <message>
+        <location filename="../MainWindow.cpp" line="307"/>
+        <source>The Windows audio service is not running. Sound will not play until it is started.</source>
+        <translation>Windows 오디오 서비스가 실행 중이 아닙니다. 서비스를 시작해야 소리를 재생할 수 있습니다.</translation>
+    </message>
+    <message>
+        <location filename="../MainWindow.cpp" line="338"/>
+        <source>Audio folder access</source>
+        <translation>오디오 서비스의 폴더 접근</translation>
+    </message>
+    <message>
+        <location filename="../MainWindow.cpp" line="339"/>
+        <source>The Windows audio service cannot read this folder:
+%0
+
+Run tools\Repair-EqualizerAPO.ps1 from the installation folder as administrator to repair access.</source>
+        <translation>Windows 오디오 서비스가 아래 폴더를 읽을 수 없습니다.
+%0
+
+접근 권한을 복구하려면 설치 폴더에서 tools\Repair-EqualizerAPO.ps1을 관리자 권한으로 실행하십시오.</translation>
+    </message>
+    <message>
+        <location filename="../MainWindow.cpp" line="344"/>
         <source>Registry problem</source>
         <translation>레지스트리 문제</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="294"/>
+        <location filename="../MainWindow.cpp" line="344"/>
         <source>A registry value that is required for the operation of Equalizer APO is not set correctly.
 Do you want to run the Device Selector application to fix the problem?</source>
         <translation>Equalizer APO 작동에 필요한 레지스트리 값이 올바르게 설정되지 않았습니다.
 문제를 해결하기 위해 장치 선택기 앱을 실행하시겠습니까?</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="303"/>
+        <location filename="../MainWindow.cpp" line="353"/>
         <source>APO not installed to device</source>
         <translation>장치에 APO 미설치</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="303"/>
+        <location filename="../MainWindow.cpp" line="353"/>
         <source>Equalizer APO has not been installed to the selected device.
 Do you want to run the Device Selector application to fix the problem?</source>
         <translation>선택한 장치에 Equalizer APO가 설치되지 않았습니다.
 문제를 해결하기 위해 장치 선택기 앱을 실행하시겠습니까?</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="360"/>
+        <location filename="../MainWindow.cpp" line="411"/>
         <source>EQ inactive on some devices</source>
         <translation>일부 장치에서 EQ 비활성</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="361"/>
+        <location filename="../MainWindow.cpp" line="412"/>
         <source>EqualizerAPO can only process IEEE_FLOAT 32/64-bit streams natively. The following installed devices currently use a different format, so audio passes through them without any filter being applied:
 
 %0
@@ -2593,12 +2641,12 @@ This is not a crash — sound still reaches the device, but no EQ. Switch the de
 충돌은 아닙니다. 소리는 장치로 전달되지만 EQ는 적용되지 않습니다. 이 장치에 필터링이 필요하면 소리 설정에서 장치 기본 형식을 32비트 IEEE_FLOAT로 바꾸세요.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="396"/>
+        <location filename="../MainWindow.cpp" line="447"/>
         <source>Audio enhancements disabled</source>
         <translation>오디오 향상 사용 안 함</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="396"/>
+        <location filename="../MainWindow.cpp" line="447"/>
         <source>Audio enhancements are not enabled for the device
 %0 %1.
 Do you want to run the Device Selector application to fix the problem?</source>
@@ -2607,22 +2655,30 @@ Do you want to run the Device Selector application to fix the problem?</source>
 문제를 해결하기 위해 장치 선택기 앱을 실행하시겠습니까?</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="428"/>
+        <location filename="../MainWindow.cpp" line="478"/>
+        <location filename="../MainWindow.cpp" line="482"/>
         <source>Device Selector</source>
         <translation>장치 선택기</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="429"/>
+        <location filename="../MainWindow.cpp" line="479"/>
         <source>The Device Selector was not opened. It needs administrator approval to manage audio devices; you can try again anytime via File &gt; APO settings.</source>
         <translation>장치 선택기를 열지 않았습니다. 오디오 장치를 관리하려면 관리자 승인이 필요하며, 파일 &gt; APO 설정에서 언제든 다시 열 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="144"/>
+        <location filename="../MainWindow.cpp" line="482"/>
+        <source>The Device Selector could not be opened:
+%1</source>
+        <translation>Device Selector를 열지 못했습니다.
+%1</translation>
+    </message>
+    <message>
+        <location filename="../MainWindow.cpp" line="150"/>
         <source>Playback devices:</source>
         <translation>재생 장치:</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="155"/>
+        <location filename="../MainWindow.cpp" line="161"/>
         <source>Capture devices:</source>
         <translation>캡처 장치:</translation>
     </message>
@@ -2632,84 +2688,84 @@ Do you want to run the Device Selector application to fix the problem?</source>
     </message>
     <message>
         <location filename="../MainWindow.ui" line="129"/>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="420"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="417"/>
         <source>Graph</source>
         <translation>그래프</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="238"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="235"/>
         <source>Interface</source>
         <translation>인터페이스</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="242"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="239"/>
         <source>Modern cards</source>
         <translation>모던 카드</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="246"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="243"/>
         <source>Legacy rows</source>
         <translation>레거시 행</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="261"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="258"/>
         <source>Studio Glass</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="262"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="259"/>
         <source>Precision Minimal</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="263"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="260"/>
         <source>Soft Lab</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="264"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="261"/>
         <source>Hardware Rack</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="265"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="262"/>
         <source>Signal Matrix</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="295"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="292"/>
         <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="185"/>
         <source>Knob gain range</source>
         <translation>노브 게인 범위</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="300"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="297"/>
         <source>±%1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="305"/>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="354"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="302"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="351"/>
         <source>Custom...</source>
         <translation>사용자 지정...</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="324"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="321"/>
         <source>Native title bar</source>
         <translation>기본 제목 표시줄</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="355"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="352"/>
         <source>Custom (±%1 dB)...</source>
         <translation>사용자 지정 (±%1 dB)...</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="277"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="274"/>
         <source>Dark theme</source>
         <translation>어두운 테마</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="315"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="312"/>
         <source>Fullscreen graph</source>
         <translation>그래프 전체화면</translation>
     </message>
@@ -2738,7 +2794,7 @@ Do you want to run the Device Selector application to fix the problem?</source>
     </message>
     <message>
         <location filename="../MainWindowParts/MainWindow.Edit.cpp" line="94"/>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="165"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="184"/>
         <source>Unsaved changes</source>
         <translation>저장되지 않은 변경 사항</translation>
     </message>
@@ -2753,58 +2809,58 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <translation>필터 %1개를 제거했습니다.</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="61"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="65"/>
         <source>Open file</source>
         <translation>파일 열기</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="63"/>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="112"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="67"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="116"/>
         <source>E-APO configurations (*.txt)</source>
         <translation>E-APO 구성 (*.txt)</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="109"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="113"/>
         <source>Save file as</source>
         <translation>다른 이름으로 파일 저장</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="141"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="131"/>
         <source>Unsaved</source>
         <translation>저장 안 됨</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="166"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="185"/>
         <source>The configuration file %0 has unsaved changes.</source>
         <translation>구성 파일 %0에 저장되지 않은 변경 사항이 있습니다.</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="167"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="186"/>
         <source>Do you want to save the changes before closing the file?</source>
         <translation>파일을 닫기 전에 변경 사항을 저장하시겠습니까?</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="159"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="157"/>
         <source>Mag</source>
         <translation>크기</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="159"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="157"/>
         <source>Phase</source>
         <translation type="unfinished">위상</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="159"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="157"/>
         <source>GD</source>
         <translation>군지연</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="161"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="159"/>
         <source>What the graph shows: magnitude in dB, phase in degrees, or group delay in ms.</source>
         <translation>그래프가 보여줄 값입니다. 크기(dB), 위상(도), 그룹 지연(ms) 중에서 고릅니다.</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="163"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="161"/>
         <source>The analyzer removes the configuration&apos;s bulk delay before measuring, so a filter&apos;s own phase is readable. Switch this on to put that delay back into the reading.</source>
         <translation>분석기는 측정 전에 설정 전체의 기본 지연을 걷어냅니다. 그래야 필터 자신의 위상이 읽힙니다. 이 항목을 켜면 그 지연을 다시 값에 넣습니다.</translation>
     </message>
@@ -2899,26 +2955,24 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <translation>이 장치의 스트림 형식은 %0(%1비트 컨테이너)입니다. EqualizerAPO는 IEEE_FLOAT 32/64비트 스트림만 직접 처리하므로, 필터가 적용되지 않은 채 오디오가 그대로 전달됩니다. 이 장치에 필터링이 필요하면 소리 설정에서 장치 기본 형식을 32비트 IEEE_FLOAT로 바꾸세요.</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="69"/>
-        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="102"/>
-        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="107"/>
+        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="71"/>
+        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="111"/>
         <source>Error</source>
         <translation>오류</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="69"/>
+        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="71"/>
         <source>Error while reading configuration file: %0</source>
         <translation>구성 파일을 읽는 중 오류가 발생했습니다: %0</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="102"/>
+        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="112"/>
         <source>Error while writing configuration file: %0</source>
         <translation>구성 파일을 쓰는 중 오류가 발생했습니다: %0</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="107"/>
         <source>Only %0/%1 bytes have been written!</source>
-        <translation>%1바이트 중 %0바이트만 기록되었습니다!</translation>
+        <translation type="vanished">%1바이트 중 %0바이트만 기록되었습니다!</translation>
     </message>
     <message>
         <location filename="../MainWindowParts/MainWindow.Device.cpp" line="77"/>
@@ -3363,78 +3417,78 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>MultiConvolutionCardEditor</name>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="82"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="86"/>
         <source>Copy this file into the config directory</source>
         <translation>이 파일을 구성 디렉터리로 복사</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="100"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="104"/>
         <source>Channel mapping</source>
         <translation>채널 매핑</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="107"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="111"/>
         <source>Add an output channel (a new name creates a virtual channel)</source>
         <translation>출력 채널 추가 (새 이름은 가상 채널을 만듭니다)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="166"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="170"/>
         <source>Add output channel</source>
         <translation>출력 채널 추가</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="167"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="171"/>
         <source>Channel name (an unknown name creates a virtual channel):</source>
         <translation>채널 이름 (알 수 없는 이름은 가상 채널을 만듭니다):</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="241"/>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="367"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="237"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="330"/>
         <source>Select impulse response file</source>
         <translation>임펄스 응답 파일 선택</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="242"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="238"/>
         <source>Impulse response (*.wav *.flac *.ogg)</source>
         <translation>임펄스 응답 (*.wav *.flac *.ogg)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="292"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="262"/>
         <source>No file selected</source>
         <translation>선택된 파일 없음</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="302"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="273"/>
         <source>Unsupported file format</source>
         <translation>지원하지 않는 파일 형식</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="311"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="282"/>
         <source>%1 ms</source>
         <translation>%1 ms</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="312"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="283"/>
         <source>%1 samples</source>
         <translation>%1 샘플</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="313"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="284"/>
         <source>%1 Hz</source>
         <translation>%1 Hz</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="314"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="285"/>
         <source>%1 ch</source>
         <translation>%1 ch</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="319"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="290"/>
         <source>Sample rate does not match the device (%1 Hz)</source>
         <translation>샘플레이트가 장치와 일치하지 않습니다 (%1 Hz)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="337"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="308"/>
         <source>Mapping references channel %1, but the file has %2 channels</source>
         <translation>매핑이 채널 %1을(를) 참조하지만 파일에는 채널이 %2개뿐입니다</translation>
     </message>
@@ -3443,12 +3497,12 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <translation type="vanished">오디오 서비스가 읽을 수 없습니다</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="366"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="329"/>
         <source>Locate...</source>
         <translation>위치 찾기...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="367"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="330"/>
         <source>Locate the missing file</source>
         <translation>누락된 파일 위치 찾기</translation>
     </message>
@@ -4890,7 +4944,7 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>VSTCardEditor</name>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="465"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="466"/>
         <location filename="../widgets/cards/VSTCardEditor.cpp" line="573"/>
         <source>Select VST plugin</source>
         <translation>VST 플러그인 선택</translation>
@@ -4912,22 +4966,22 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
         <translation>카드에 패널 삽입</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="121"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="122"/>
         <source>Remove Input/Output layouts</source>
         <translation>Input/Output 레이아웃 제거</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="122"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="123"/>
         <source>Deletes the saved VST3 bus layouts from this line.</source>
         <translation>이 줄에 저장된 VST3 버스 레이아웃을 삭제합니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="128"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="129"/>
         <source>Remove channel fill</source>
         <translation>채널 채우기 제거</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="129"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="130"/>
         <source>Deletes the saved per-slot channel lists from this line.</source>
         <translation>이 라인에 저장된 슬롯별 채널 목록을 지웁니다.</translation>
     </message>
@@ -4948,7 +5002,7 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
         <translation type="vanished">초기화 중 플러그인이 충돌했습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="395"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="396"/>
         <source>No plugin selected</source>
         <translation>선택된 플러그인 없음</translation>
     </message>
@@ -4957,12 +5011,12 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
         <translation type="vanished">오디오 서비스가 읽을 수 없습니다</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="464"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="465"/>
         <source>Locate...</source>
         <translation>위치 찾기...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="465"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="466"/>
         <source>Locate the missing plugin library</source>
         <translation>누락된 플러그인 라이브러리 위치 찾기</translation>
     </message>
@@ -5025,7 +5079,7 @@ Change the file permissions or copy the files to the config directory.</source>
 파일 권한을 바꾸거나 구성 디렉터리로 파일을 복사하세요.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="459"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="460"/>
         <source>Loading plugin...</source>
         <translation>플러그인을 불러오는 중...</translation>
     </message>
@@ -5115,32 +5169,32 @@ Change the file permissions or copy the files to the config directory.</source>
         <translation>입력/출력 레이아웃이 설정된 동안에는 쓸 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTPluginSession.cpp" line="107"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="135"/>
         <source>No file selected.</source>
         <translation>선택된 파일 없음.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTPluginSession.cpp" line="177"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="208"/>
         <source>File not found.</source>
         <translation>파일을 찾을 수 없음.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTPluginSession.cpp" line="180"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="211"/>
         <source>Library could not be loaded.</source>
         <translation>라이브러리를 로드할 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTPluginSession.cpp" line="183"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="214"/>
         <source>Library does not contain needed functions.</source>
         <translation>라이브러리에 필요한 함수가 없습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTPluginSession.cpp" line="192"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="223"/>
         <source>Library has the wrong architecture. Only %1-bit libraries are supported.</source>
         <translation>라이브러리의 아키텍처가 올바르지 않습니다. %1비트 라이브러리만 지원합니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTPluginSession.cpp" line="211"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="242"/>
         <source>Plugin crashed during initialization.</source>
         <translation>초기화 중 플러그인이 충돌했습니다.</translation>
     </message>
@@ -5155,7 +5209,7 @@ Change the file permissions or copy the files to the config directory.</source>
         <translation>VST 플러그인 (*.dll *.vst3)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTPluginSession.cpp" line="567"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="619"/>
         <source>Plugin crashed when opening panel.</source>
         <translation>패널을 여는 중 플러그인이 충돌했습니다.</translation>
     </message>
@@ -5165,14 +5219,14 @@ Change the file permissions or copy the files to the config directory.</source>
         <translation>패널 닫기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTPluginSession.cpp" line="460"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="499"/>
         <source>The library is not readable by the audio service.
 Change the file permissions or copy the file to the VSTPlugins directory.</source>
         <translation>오디오 서비스가 이 라이브러리를 읽을 수 없습니다.
 파일 권한을 바꾸거나 VSTPlugins 디렉터리로 파일을 복사하세요.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTPluginSession.cpp" line="474"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="513"/>
         <source>The plugin seemingly accesses these files not readable by the audio service:
 %0
 Change the file permissions or copy the files to the config directory.</source>
