@@ -62,6 +62,10 @@ public:
 	bool keyEmpty(const std::wstring& key) const override;
 	void saveToFile(const std::wstring& key, const std::vector<std::wstring>& valuenames, const std::wstring& filepath) override;
 
+	static std::wstring deviceBackupDirectory();
+	static std::wstring deviceBackupDirectory(const std::wstring& programData);
+	// Pins an explicitly protected directory until the export has closed.
+	static winutil::UniqueHandle openBackupDirectory(const std::wstring& path);
 	static std::wstring formatExportHeader(const std::wstring& key);
 	static winutil::UniqueRegistryKey openKey(const std::wstring& key, REGSAM samDesired);
 

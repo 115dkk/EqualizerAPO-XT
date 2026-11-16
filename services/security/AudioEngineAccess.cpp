@@ -251,6 +251,26 @@ Grant grantEngineAccess(const std::wstring& installRoot)
 	return applyGrant(installRoot, grants);
 }
 
+Grant grantConfigAccess(const std::wstring& configDir,
+	const std::function<Grant(const std::wstring&)>& runner)
+{
+	try
+	{
+		// The permissive UI predicate treats query failures as readable; use
+		// strict masks too before skipping privileged work (audit #467 TD-17).
+		const DWORD modify = FILE_GENERIC_READ | FILE_GENERIC_WRITE | FILE_GENERIC_EXECUTE | DELETE;
+		if (isReadableByAudioEngine(configDir)
+			&& (accessForAudioEngine(configDir) & modify) == modify
+			&& (accessForUsers(configDir) & modify) == modify)
+			return Grant::Applied;
+	}
+	catch (const AccessQueryException&)
+	{
+		// Unknown access is not proof that both grants are already present.
+	}
+	return runner(configDir);
+}
+
 Grant grantConfigAccess(const std::wstring& configDir)
 {
 	// Modify for Users because this is the directory they edit configs in,
@@ -264,7 +284,9 @@ Grant grantConfigAccess(const std::wstring& configDir)
 	const std::wstring grants =
 		L"/grant " + (L"*" + std::wstring(winutil::sids::users)) + L":(OI)(CI)M "
 		L"/grant " + (L"*" + std::wstring(winutil::sids::localService)) + L":(OI)(CI)M";
-	return applyGrant(configDir, grants);
+	return grantConfigAccess(configDir, [&grants](const std::wstring& path) {
+		return applyGrant(path, grants);
+	});
 }
 
 namespace

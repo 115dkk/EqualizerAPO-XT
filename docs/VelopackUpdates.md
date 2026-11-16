@@ -17,6 +17,13 @@ There is no hard-coded default update channel in `Editor/Editor.pro`: it defines
 
 APO installation and device registration run through the Velopack hooks the Editor handles (`--veloapp-install`, `--veloapp-updated`, etc.), which call `ApoRegistration`. The NSIS installer has been removed.
 
+Device Selector saves the original driver registry values to
+`%ProgramData%\EqualizerAPO-XT\Backups\backup_<device>_<connection>.reg`.
+Only Administrators and SYSTEM can write the backup folders; ordinary users
+can read the files for recovery. The installation report records the full path.
+Older backups already in the config folder are left there, and uninstall keeps
+both locations' files so they remain available for manual recovery.
+
 ## Editor in-app auto-update
 
 The Editor embeds the native Velopack client (`velopack_libc`) and updates itself without sending the user anywhere:

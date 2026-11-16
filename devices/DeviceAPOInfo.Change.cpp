@@ -21,6 +21,7 @@
 
 #include "services/logging/Logging.h"
 #include "services/registry/RegistryError.h"
+#include "services/registry/WindowsRegistry.h"
 #include "asio/AsioRegistration.h"
 #include "asio/WrapperRecord.h"
 
@@ -207,15 +208,9 @@ void DeviceAPOInfo::installWithin(RegistryTransaction& plan)
 
 		if (!valuenames.empty())
 		{
-			wstring backupDirectory = plan.readValue(APP_REGPATH, configPathValueName);
-			if (backupDirectory.empty())
-				throw RegistryError(L"ConfigPath is empty; refusing to write a registry backup to the process directory");
-			if (!pathutil::directoryExists(backupDirectory))
-				throw RegistryError(L"The ConfigPath folder " + backupDirectory
-					+ L" does not exist, so the registry backup for this device cannot be written. Point ConfigPath under HKEY_LOCAL_MACHINE\\SOFTWARE\\EqualizerAPO at an existing folder (reinstalling EqualizerAPO-XT does this) and try again.");
-			if (backupDirectory.back() != L'\\' && backupDirectory.back() != L'/')
-				backupDirectory += L"\\";
-			const wstring backupPath = backupDirectory + L"backup_"
+			// The live export adapter creates and pins this protected folder;
+			// fake registry exports do no file work (audit #467 TD-17).
+			const wstring backupPath = WindowsRegistry::deviceBackupDirectory() + L"\\backup_"
 				+ text::replaceIllegalFilenameCharacters(deviceName)
 				+ L"_" + text::replaceIllegalFilenameCharacters(connectionName) + L".reg";
 			plan.saveToFile(keyPath + L"\\FxProperties", valuenames, backupPath);

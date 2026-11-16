@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <functional>
 #include <string>
 
 #include "runtime/errors/WideError.h"
@@ -78,6 +79,9 @@ Grant grantEngineAccess(const std::wstring& installRoot);
 // cut LOCAL SERVICE off (audit #250 F043). tools/Repair-EqualizerAPO.ps1
 // applies the same grants; a Pester test keeps the two in step.
 Grant grantConfigAccess(const std::wstring& configDir);
+// Tests inject the grant runner; access queries still inspect a real temp folder.
+Grant grantConfigAccess(const std::wstring& configDir,
+	const std::function<Grant(const std::wstring&)>& runner);
 
 // Unelevated preparation only; refuses an elevated token. The user must own
 // or have WRITE_DAC on the existing directory. SetSecurityInfo propagates

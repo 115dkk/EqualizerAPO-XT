@@ -960,9 +960,9 @@ TEST_CASE(EngineOrchestrationTests, testInstallExportsTheDriverValuesBeforeOverw
 		"the exported names are the two slots the driver had filled");
 	harness.expect(exported.values[0] == vendorPreMixGuid && exported.values[1] == vendorPostMixGuid,
 		"the exported contents are the driver's GUIDs as they read before the overwrite");
-	harness.expect(exported.filePath == testDirectory() + L"\\backup_"
+	harness.expect(exported.filePath == WindowsRegistry::deviceBackupDirectory() + L"\\backup_"
 			+ deviceName + L"_" + connectionName + L".reg",
-		"the backup lands in the configured config directory, named after the device, and the missing trailing separator is supplied rather than concatenated away");
+		"the backup lands in the protected ProgramData directory, named after the device");
 
 	harness.expect(registry.readValue(childApoKey, lfxGuidValueName) == vendorPreMixGuid,
 		"the driver's LFX GUID is copied into the Child APOs key, which is what uninstall restores from");
