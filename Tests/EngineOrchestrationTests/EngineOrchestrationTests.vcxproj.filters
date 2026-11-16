@@ -50,12 +50,6 @@
     <ClCompile Include="InstallDiagnosticsTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\services\security\AudioEngineAccess.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\services\diagnostics\InstallDiagnostics.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="SampleIoTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

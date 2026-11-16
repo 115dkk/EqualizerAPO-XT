@@ -383,6 +383,39 @@
     <ClInclude Include="parser\LogicalOperators.h">
       <Filter>parser</Filter>
     </ClInclude>
+    <ClInclude Include="platform\windows\UnelevatedLaunch.h"><Filter>platform</Filter></ClInclude>
+    <ClInclude Include="devices\AsioAPOInfo.h"><Filter>devices</Filter></ClInclude>
+    <ClInclude Include="asio\AsioRegistration.h"><Filter>asio</Filter></ClInclude>
+    <ClInclude Include="asio\EntryOptions.h"><Filter>asio</Filter></ClInclude>
+    <ClInclude Include="asio\WrapperRecord.h"><Filter>asio</Filter></ClInclude>
+    <ClInclude Include="asio\StreamFacts.h"><Filter>asio</Filter></ClInclude>
+    <ClInclude Include="asio\StreamProcessor.h"><Filter>asio</Filter></ClInclude>
+    <ClInclude Include="devices\ApoRuntimeFacts.h"><Filter>devices</Filter></ClInclude>
+    <ClInclude Include="devices\ReceiverEndpoints.h"><Filter>devices</Filter></ClInclude>
+    <ClInclude Include="devices\DevicePlan.h"><Filter>devices</Filter></ClInclude>
+    <ClInclude Include="devices\DeviceTestPlan.h"><Filter>devices</Filter></ClInclude>
+    <ClInclude Include="devices\DeviceTestWire.h"><Filter>devices</Filter></ClInclude>
+    <ClInclude Include="filters\MultiConvolutionCommand.h"><Filter>filters</Filter></ClInclude>
+    <ClInclude Include="filters\MultiConvolutionFilter.h"><Filter>filters</Filter></ClInclude>
+    <ClInclude Include="filters\MultiConvolutionFilterFactory.h"><Filter>filters</Filter></ClInclude>
+    <ClInclude Include="platform\windows\ComPtr.h"><Filter>platform</Filter></ClInclude>
+    <ClInclude Include="dsp\SampleConversion.h"><Filter>dsp</Filter></ClInclude>
+    <ClInclude Include="dsp\MxcsrGuard.h"><Filter>dsp</Filter></ClInclude>
+    <ClInclude Include="platform\windows\Win32Event.h"><Filter>platform</Filter></ClInclude>
+    <ClInclude Include="platform\windows\WindowsPath.h"><Filter>platform</Filter></ClInclude>
+    <ClInclude Include="platform\windows\CommandLineQuoting.h"><Filter>platform</Filter></ClInclude>
+    <ClInclude Include="devices\DeviceAPOInfoKeys.h"><Filter>devices</Filter></ClInclude>
+    <ClInclude Include="devices\DeviceInstallReport.h"><Filter>devices</Filter></ClInclude>
+    <ClInclude Include="devices\ReportedOperation.h"><Filter>devices</Filter></ClInclude>
+    <ClInclude Include="devices\DeviceException.h"><Filter>devices</Filter></ClInclude>
+    <ClInclude Include="devices\VoicemeeterDetection.h"><Filter>devices</Filter></ClInclude>
+    <ClInclude Include="libHybridConv-0.1.1\HcAlignedStorage.h"><Filter>libHybridConv-0.1.1</Filter></ClInclude>
+    <ClInclude Include="services\logging\TaggedLogger.h"><Filter>services</Filter></ClInclude>
+    <ClInclude Include="runtime\errors\WideError.h"><Filter>runtime</Filter></ClInclude>
+    <ClInclude Include="runtime\WeakValueCache.h"><Filter>runtime</Filter></ClInclude>
+    <ClInclude Include="platform\windows\ComSelfRegistration.h"><Filter>platform</Filter></ClInclude>
+    <ClInclude Include="platform\windows\ProcessCommandLine.h"><Filter>platform</Filter></ClInclude>
+    <ClInclude Include="platform\windows\ShellLink.h"><Filter>platform</Filter></ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp" />
@@ -692,12 +725,25 @@
     <ClCompile Include="parser\LogicalOperators.cpp">
       <Filter>parser</Filter>
     </ClCompile>
+    <ClCompile Include="devices\AsioAPOInfo.cpp"><Filter>devices</Filter></ClCompile>
+    <ClCompile Include="asio\AsioRegistration.cpp"><Filter>asio</Filter></ClCompile>
+    <ClCompile Include="asio\WrapperRecord.cpp"><Filter>asio</Filter></ClCompile>
+    <ClCompile Include="asio\StreamFacts.cpp"><Filter>asio</Filter></ClCompile>
+    <ClCompile Include="devices\ReportedOperation.cpp"><Filter>devices</Filter></ClCompile>
+    <ClCompile Include="filters\MultiConvolutionCommand.cpp"><Filter>filters</Filter></ClCompile>
+    <ClCompile Include="filters\MultiConvolutionFilter.cpp"><Filter>filters</Filter></ClCompile>
+    <ClCompile Include="filters\MultiConvolutionFilterFactory.cpp"><Filter>filters</Filter></ClCompile>
+    <ClCompile Include="platform\windows\ComSelfRegistration.cpp"><Filter>platform</Filter></ClCompile>
+    <ClCompile Include="platform\windows\ProcessCommandLine.cpp"><Filter>platform</Filter></ClCompile>
+    <ClCompile Include="platform\windows\ShellLink.cpp"><Filter>platform</Filter></ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="filters">
       <UniqueIdentifier>{b8ae5fab-edba-40a4-b387-18079935b5ba}</UniqueIdentifier>
     </Filter>
     <Filter Include="audio"><UniqueIdentifier>{25ac0a12-b62f-4862-90ba-30f97623714b}</UniqueIdentifier></Filter>
+    <Filter Include="asio"><UniqueIdentifier>{d3a772ee-e795-4d9d-a452-e31fc490d588}</UniqueIdentifier></Filter>
+    <Filter Include="devices"><UniqueIdentifier>{887a0629-a5b4-4b8c-93af-8a2a5c4491ab}</UniqueIdentifier></Filter>
     <Filter Include="diagnostics"><UniqueIdentifier>{6ff0c9ad-0582-4e41-b7a4-76e035ee31ac}</UniqueIdentifier></Filter>
     <Filter Include="dsp"><UniqueIdentifier>{7a7a41cc-6573-4f39-bb5e-e72d716e83f2}</UniqueIdentifier></Filter>
     <Filter Include="filters\graphicEq"><UniqueIdentifier>{945b1799-664f-4d65-a0c7-09096df447c1}</UniqueIdentifier></Filter>

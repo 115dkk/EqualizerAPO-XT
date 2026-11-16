@@ -96,58 +96,22 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LIBSNDFILE_LIB Condition="'$(LIBSNDFILE_LIB)'==''">$(MSBuildThisFileDirectory)deps\libsndfile\build\Debug</LIBSNDFILE_LIB>
-    <FFTW_LIB Condition="'$(FFTW_LIB)'==''">$(MSBuildThisFileDirectory)deps\fftw\Debug</FFTW_LIB>
-    <MUPARSERX_LIB Condition="'$(MUPARSERX_LIB)'==''">$(MSBuildThisFileDirectory)deps\muparserx\build\Debug</MUPARSERX_LIB>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LIBSNDFILE_LIB Condition="'$(LIBSNDFILE_LIB)'==''">$(MSBuildThisFileDirectory)deps\libsndfile\build\Debug</LIBSNDFILE_LIB>
-    <FFTW_LIB Condition="'$(FFTW_LIB)'==''">$(MSBuildThisFileDirectory)deps\fftw\Debug</FFTW_LIB>
-    <MUPARSERX_LIB Condition="'$(MUPARSERX_LIB)'==''">$(MSBuildThisFileDirectory)deps\muparserx\build\Debug</MUPARSERX_LIB>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
-    <LIBSNDFILE_LIB Condition="'$(LIBSNDFILE_LIB)'==''">$(MSBuildThisFileDirectory)deps\libsndfile\build\Debug</LIBSNDFILE_LIB>
-    <FFTW_LIB Condition="'$(FFTW_LIB)'==''">$(MSBuildThisFileDirectory)deps\fftw\Debug</FFTW_LIB>
-    <MUPARSERX_LIB Condition="'$(MUPARSERX_LIB)'==''">$(MSBuildThisFileDirectory)deps\muparserx\build\Debug</MUPARSERX_LIB>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LIBSNDFILE_LIB Condition="'$(LIBSNDFILE_LIB)'==''">$(MSBuildThisFileDirectory)deps\libsndfile\build\Release</LIBSNDFILE_LIB>
-    <FFTW_LIB Condition="'$(FFTW_LIB)'==''">$(MSBuildThisFileDirectory)deps\fftw\Release</FFTW_LIB>
-    <MUPARSERX_LIB Condition="'$(MUPARSERX_LIB)'==''">$(MSBuildThisFileDirectory)deps\muparserx\build\Release</MUPARSERX_LIB>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LIBSNDFILE_LIB Condition="'$(LIBSNDFILE_LIB)'==''">$(MSBuildThisFileDirectory)deps\libsndfile\build\Release</LIBSNDFILE_LIB>
-    <FFTW_LIB Condition="'$(FFTW_LIB)'==''">$(MSBuildThisFileDirectory)deps\fftw\Release</FFTW_LIB>
-    <MUPARSERX_LIB Condition="'$(MUPARSERX_LIB)'==''">$(MSBuildThisFileDirectory)deps\muparserx\build\Release</MUPARSERX_LIB>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
-    <LIBSNDFILE_LIB Condition="'$(LIBSNDFILE_LIB)'==''">$(MSBuildThisFileDirectory)deps\libsndfile\build\Release</LIBSNDFILE_LIB>
-    <FFTW_LIB Condition="'$(FFTW_LIB)'==''">$(MSBuildThisFileDirectory)deps\fftw\Release</FFTW_LIB>
-    <MUPARSERX_LIB Condition="'$(MUPARSERX_LIB)'==''">$(MSBuildThisFileDirectory)deps\muparserx\build\Release</MUPARSERX_LIB>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE);$(MSBuildThisFileDirectory)SubwooferRoutingCore\include</IncludePath>
-    <LibraryPath>$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE);$(MSBuildThisFileDirectory)SubwooferRoutingCore\include</IncludePath>
-    <LibraryPath>$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE);$(MSBuildThisFileDirectory)SubwooferRoutingCore\include</IncludePath>
-    <LibraryPath>$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE);$(MSBuildThisFileDirectory)SubwooferRoutingCore\include</IncludePath>
-    <LibraryPath>$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE);$(MSBuildThisFileDirectory)SubwooferRoutingCore\include</IncludePath>
-    <LibraryPath>$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE);$(MSBuildThisFileDirectory)SubwooferRoutingCore\include</IncludePath>
-    <LibraryPath>$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>

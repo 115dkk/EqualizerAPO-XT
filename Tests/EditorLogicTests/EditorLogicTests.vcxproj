@@ -153,18 +153,13 @@
     <ClCompile Include="LegacyMigrationHookTests.cpp" />
     <ClCompile Include="..\..\Editor\import\CallerProfileCheck.cpp" />
     <ClCompile Include="..\..\Editor\import\LegacyMigration.cpp" />
-    <ClCompile Include="..\..\services\install\ApoRegistration.cpp" />
     <ClCompile Include="..\..\services\install\VcRuntime.cpp" />
     <ClCompile Include="VcRuntimeTests.cpp" />
     <ClInclude Include="..\..\services\install\VcRuntime.h" />
-    <ClCompile Include="..\..\services\windows\WindowsService.cpp" />
-    <ClCompile Include="..\..\services\shell\StartMenuShortcuts.cpp" />
     <ClCompile Include="..\..\Editor\skins\SkinThemeData.cpp" />
-    <!-- Like EngineOrchestrationTests, AudioEngineAccess is compiled here
-         directly: it is an executable-side source (Editor/DeviceSelector), not
-         a Common.lib member, and the chunk-scan helper's readability filter
-         calls it. -->
-    <ClCompile Include="..\..\services\security\AudioEngineAccess.cpp" />
+    <!-- AudioEngineAccess is an executable-side source (Editor/DeviceSelector),
+         not a Common.lib member. InstallSources.props below supplies it because
+         the chunk-scan helper's readability filter calls it. -->
     <ClCompile Include="..\..\Editor\helpers\VstChunkScan.cpp" />
     <ClCompile Include="..\..\Editor\helpers\VstChunkState.cpp" />
     <ClCompile Include="..\..\Editor\widgets\FilterCardModel.cpp" />
@@ -247,6 +242,7 @@
     <ClInclude Include="..\..\Editor\analysis\ImpulseMeasurement.h" />
     <ClInclude Include="..\..\Editor\widgets\subwooferrouting\SubwooferRoutingStateReads.h" />
   </ItemGroup>
+  <Import Project="..\..\services\install\InstallSources.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

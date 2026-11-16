@@ -44,7 +44,6 @@ SOURCES += \
 	skins/RackDeviceSkin.cpp \
 	skins/MatrixDeviceSkin.cpp \
 	../services/windows/WindowsService.cpp \
-	../platform/windows/ComSelfRegistration.cpp \
 	../services/install/ApoRegistration.cpp \
 	../services/shell/StartMenuShortcuts.cpp \
 	../services/security/AudioEngineAccess.cpp \

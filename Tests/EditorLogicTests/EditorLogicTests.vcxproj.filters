@@ -80,9 +80,6 @@
     <ClCompile Include="..\..\Editor\widgets\FilterPickerModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\services\security\AudioEngineAccess.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\Editor\helpers\VstChunkScan.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
