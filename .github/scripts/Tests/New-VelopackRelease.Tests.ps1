@@ -31,6 +31,33 @@ Describe "New-VelopackRelease.ps1 planning" {
         @($plan.QtPluginFolders) | Should -Be $expected
     }
 
+    It "splits packing from publishing so the packed installer can be run in between" {
+        # TECH_DEBT_AUDIT TD-04 (audit #467): one step used to pack and upload
+        # each channel in turn, so nothing could run before it was public.
+        $tree = NewInputRoot @("EqualizerAPO-x64-avx2")
+        $common = @{
+            Repository = "owner/repo"; Tag = "v9.9.9"; PackVersion = "9.9.9"; TargetCommit = "abc123"
+            WorkspaceRoot = $tree.Workspace; InputRoot = $tree.InputRoot; MissingChannels = @("x64-avx2")
+            ManifestPath = $manifestPath; PlanOnly = $true
+        }
+        $all = & $scriptPath @common
+        $all.Packs | Should -BeTrue
+        $all.Publishes | Should -BeTrue
+        $all.DownloadsDelta | Should -BeTrue
+
+        $pack = & $scriptPath @common -Phase Pack
+        $pack.Packs | Should -BeTrue
+        $pack.Publishes | Should -BeFalse
+
+        # The installer gate packs without a release token: no delta download.
+        (& $scriptPath @common -Phase Pack -NoDelta).DownloadsDelta | Should -BeFalse
+
+        $publish = & $scriptPath @common -Phase Publish
+        $publish.Packs | Should -BeFalse
+        $publish.Publishes | Should -BeTrue
+        $publish.DownloadsDelta | Should -BeFalse
+    }
+
     It "resolves channels from the manifest, not a naming convention" {
         $tree = NewInputRoot @("EqualizerAPO-x64-avx10_1", "EqualizerAPO-ARM64-neon")
         $plan = PlanFor $tree @("x64-avx10-1", "arm64-neon")
@@ -39,8 +66,8 @@ Describe "New-VelopackRelease.ps1 planning" {
         # are exactly what a "x64- + simd" string convention would get wrong.
         ($plan.Channels | Where-Object Variant -eq "x64-avx10_1").Channel | Should -Be "x64-avx10-1"
         ($plan.Channels | Where-Object Variant -eq "ARM64-neon").Channel | Should -Be "arm64-neon"
-        ($plan.Channels | Where-Object Variant -eq "ARM64-neon").Framework | Should -Be "vcredist143-arm64"
-        ($plan.Channels | Where-Object Variant -eq "x64-avx10_1").Framework | Should -Be "vcredist143-x64"
+        ($plan.Channels | Where-Object Variant -eq "ARM64-neon").Framework | Should -Be "vcredist145-arm64"
+        ($plan.Channels | Where-Object Variant -eq "x64-avx10_1").Framework | Should -Be "vcredist145-x64"
     }
 
     It "packs under the grammar module's pack id" {

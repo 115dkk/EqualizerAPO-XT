@@ -236,6 +236,7 @@ namespace eapo::asio
 			}
 			catch (...)
 			{
+				LogFStatic(L"ASIO host: engine setup failed for %s: exception type is unknown", format.deviceName);
 				consumer.setState(RingState::Fault, RingFault::EngineFailed);
 				report.faulted = true;
 				return report;

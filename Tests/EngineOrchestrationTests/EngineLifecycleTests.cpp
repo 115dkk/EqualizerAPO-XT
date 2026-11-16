@@ -11,9 +11,11 @@
 */
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <cmath>
+#include <fstream>
 #include <memory>
 #include <string>
 #include <thread>
@@ -27,6 +29,8 @@
 #include "engine/ConfigWatcher.h"
 #include "platform/windows/Win32Event.h"
 #include "runtime/memory/AlignedMemory.h"
+#include "services/registry/RegistryPaths.h"
+#include "Tests/FakeRegistry.h"
 
 #include "EngineOrchestrationTestSupport.h"
 
@@ -74,6 +78,88 @@ TEST_CASE(EngineOrchestrationTests, testProcessWithoutConfigurationDoesNotCrash)
 	// and the output buffers stay untouched.
 	harness.expect(outputF[0] == -1.0f && outputD[0] == -1.0 && planarFOut[0] == -1.0f,
 		"process() without a configuration wrote output despite zero channel counts");
+}
+
+// Audit #467 TD-10: a host block larger than maxFrameCount must never reach a
+// configuration or filter. Every public layout bypasses it without touching
+// guards, and the next valid block still runs the configured filter.
+TEST_CASE(EngineOrchestrationTests, testOversizedHostBlocksBypassEveryProcessLayout)
+{
+	constexpr unsigned maxFrames = 8;
+	constexpr unsigned oversizedFrames = maxFrames + 1;
+	constexpr unsigned channels = 2;
+	constexpr size_t guardSamples = 4;
+	const std::wstring configPath = writeConfig(harness, L"oversized-block.txt",
+		"Preamp: -6.0206 dB\n");
+	FilterEngine engine;
+	initializeEngine(engine, 48000, channels, maxFrames, configPath);
+
+	const size_t interleavedSamples = static_cast<size_t>(oversizedFrames) * channels;
+	std::vector<float> floatInput(interleavedSamples + guardSamples, -77.0f);
+	std::vector<float> floatOutput(interleavedSamples + guardSamples, -88.0f);
+	for (size_t sample = 0; sample < interleavedSamples; ++sample)
+		floatInput[sample] = static_cast<float>(sample + 1) / 32.0f;
+	engine.process(floatOutput.data(), floatInput.data(), oversizedFrames);
+	for (size_t sample = 0; sample < interleavedSamples; ++sample)
+		harness.expectEqual(floatOutput[sample], floatInput[sample],
+			"oversized float-interleaved block did not pass through unchanged");
+	for (size_t sample = interleavedSamples; sample < floatOutput.size(); ++sample)
+	{
+		harness.expectEqual(floatInput[sample], -77.0f,
+			"oversized float-interleaved processing wrote past its input");
+		harness.expectEqual(floatOutput[sample], -88.0f,
+			"oversized float-interleaved processing wrote past its output");
+	}
+
+	std::vector<double> doubleInput(interleavedSamples + guardSamples, -77.0);
+	std::vector<double> doubleOutput(interleavedSamples + guardSamples, -88.0);
+	for (size_t sample = 0; sample < interleavedSamples; ++sample)
+		doubleInput[sample] = static_cast<double>(sample + 1) / 32.0;
+	engine.process(doubleOutput.data(), doubleInput.data(), oversizedFrames);
+	for (size_t sample = 0; sample < interleavedSamples; ++sample)
+		harness.expectEqual(doubleOutput[sample], doubleInput[sample],
+			"oversized double-interleaved block did not pass through unchanged");
+	for (size_t sample = interleavedSamples; sample < doubleOutput.size(); ++sample)
+	{
+		harness.expectEqual(doubleInput[sample], -77.0,
+			"oversized double-interleaved processing wrote past its input");
+		harness.expectEqual(doubleOutput[sample], -88.0,
+			"oversized double-interleaved processing wrote past its output");
+	}
+
+	std::array<std::vector<float>, channels> planarInput;
+	std::array<std::vector<float>, channels> planarOutput;
+	std::array<float*, channels> planarInputPointers;
+	std::array<float*, channels> planarOutputPointers;
+	for (unsigned channel = 0; channel < channels; ++channel)
+	{
+		planarInput[channel].assign(oversizedFrames + guardSamples, -77.0f);
+		planarOutput[channel].assign(oversizedFrames + guardSamples, -88.0f);
+		for (unsigned frame = 0; frame < oversizedFrames; ++frame)
+			planarInput[channel][frame] = static_cast<float>(channel * 16 + frame + 1) / 32.0f;
+		planarInputPointers[channel] = planarInput[channel].data();
+		planarOutputPointers[channel] = planarOutput[channel].data();
+	}
+	engine.process(planarOutputPointers.data(), planarInputPointers.data(), oversizedFrames);
+	for (unsigned channel = 0; channel < channels; ++channel)
+	{
+		for (unsigned frame = 0; frame < oversizedFrames; ++frame)
+			harness.expectEqual(planarOutput[channel][frame], planarInput[channel][frame],
+				"oversized float-planar block did not pass through unchanged");
+		for (size_t frame = oversizedFrames; frame < planarOutput[channel].size(); ++frame)
+		{
+			harness.expectEqual(planarInput[channel][frame], -77.0f,
+				"oversized float-planar processing wrote past its input");
+			harness.expectEqual(planarOutput[channel][frame], -88.0f,
+				"oversized float-planar processing wrote past its output");
+		}
+	}
+
+	std::vector<float> validInput(static_cast<size_t>(maxFrames) * channels, 1.0f);
+	std::vector<float> validOutput(static_cast<size_t>(maxFrames) * channels, -1.0f);
+	engine.process(validOutput.data(), validInput.data(), maxFrames);
+	harness.expectNear(validOutput[0], 0.5f, 1e-3f,
+		"a valid block after oversized bypass did not run the configured filter");
 }
 
 // initialize() seeds an empty active configuration and publishes the requested
@@ -130,6 +216,19 @@ TEST_CASE(EngineOrchestrationTests, testConfigSwapChannelPermitRoundTrip)
 	harness.require(channel.acquirePublishPermit(0),
 		"reset discarded a pending config without returning its permit");
 	channel.releasePublishPermit();
+
+	// Audit #467 TD-09: reset may return a permit only for a published slot it
+	// discards. A producer that acquired the permit but has not published owns it.
+	harness.require(channel.acquirePublishPermit(0),
+		"config channel did not grant the unpublished producer a permit");
+	channel.reset(std::make_unique<int>(5));
+	harness.expectFalse(channel.acquirePublishPermit(0),
+		"reset returned a permit that belonged to an unpublished producer");
+	channel.publish(std::make_unique<int>(6));
+	channel.completeTransition();
+	harness.require(channel.acquirePublishPermit(0),
+		"publishing after reset leaked the producer permit");
+	channel.releasePublishPermit();
 }
 
 // Audit #422 E5: loadConfig owns the publication permit. A second producer
@@ -161,6 +260,64 @@ TEST_CASE(EngineOrchestrationTests, testLoadConfigOwnsPublicationPermit)
 		"consuming the initial publication releases the second configuration loader");
 	reload.join();
 	harness.expect(loaded.load(), "the waiting configuration load publishes successfully");
+}
+
+// Audit #467 TD-09: re-initializing discards the unconsumed initial slot, but
+// the permit released for that slot may go to only one producer. The other
+// producer must remain blocked until the audio thread consumes the new slot.
+TEST_CASE(EngineOrchestrationTests, testLiveReinitializeKeepsOnePublishPermitOwner)
+{
+	const std::wstring configA = writeConfig(harness, L"reinitialize-permit-a.txt", "Preamp: -3 dB\n");
+	const std::wstring configB = writeConfig(harness, L"reinitialize-permit-b.txt", "Preamp: -9 dB\n");
+	const std::wstring configC = writeConfig(harness, L"reinitialize-permit-c.txt", "Preamp: -12 dB\n");
+	FilterEngine engine;
+	initializeEngine(engine, 1600, 2, 16, configA);
+
+	Win32Event reloadStarted(true, false);
+	Win32Event reloadCompleted(true, false);
+	Win32Event reinitializeStarted(true, false);
+	Win32Event reinitializeCompleted(true, false);
+	std::atomic<bool> reloaded = false;
+	std::atomic<bool> reinitialized = false;
+
+	std::thread reload([&] {
+		reloadStarted.set();
+		reloaded.store(engine.loadConfig(configB));
+		reloadCompleted.set();
+	});
+	harness.require(WaitForSingleObject(reloadStarted.get(), 2000) == WAIT_OBJECT_0,
+		"the loader waiting behind the initial publication starts");
+	harness.expect(WaitForSingleObject(reloadCompleted.get(), 20) == WAIT_TIMEOUT,
+		"the loader is waiting before re-initialization starts");
+
+	const EngineSetup setup = testEngineSetup(1600, 2, 2, 16, configC);
+	std::thread reinitialize([&] {
+		reinitializeStarted.set();
+		engine.initialize(setup);
+		reinitialized.store(true);
+		reinitializeCompleted.set();
+	});
+	harness.require(WaitForSingleObject(reinitializeStarted.get(), 2000) == WAIT_OBJECT_0,
+		"the live engine re-initialization starts");
+
+	HANDLE completions[2] = {reloadCompleted.get(), reinitializeCompleted.get()};
+	const DWORD first = WaitForMultipleObjects(2, completions, FALSE, 2000);
+	harness.require(first == WAIT_OBJECT_0 || first == WAIT_OBJECT_0 + 1,
+		"one producer publishes after re-initialization discards the initial slot");
+	const DWORD otherIndex = first == WAIT_OBJECT_0 ? 1 : 0;
+	const bool otherStayedBlocked = WaitForSingleObject(completions[otherIndex], 50) == WAIT_TIMEOUT;
+	harness.expect(otherStayedBlocked,
+		"both configuration producers published before process consumed either slot");
+
+	processDcBlock(engine, 1.0f, 1.0f, 16);
+	const bool reloadFinished = WaitForSingleObject(reloadCompleted.get(), 2000) == WAIT_OBJECT_0;
+	const bool reinitializeFinished = WaitForSingleObject(reinitializeCompleted.get(), 2000) == WAIT_OBJECT_0;
+	harness.expect(reloadFinished && reinitializeFinished,
+		"consuming the published slot did not release the remaining producer");
+	reload.join();
+	reinitialize.join();
+	harness.expect(reloaded.load(), "the explicit loader eventually publishes successfully");
+	harness.expect(reinitialized.load(), "the live engine re-initialization eventually publishes successfully");
 }
 
 // Windows may give a render APO fewer input channels than the endpoint output
@@ -356,6 +513,72 @@ TEST_CASE(EngineOrchestrationTests, testFailedConfigLoadKeepsActiveConfiguration
 	std::vector<float> after = processDcBlock(engine, 1.0f, 1.0f, 480);
 	harness.expectNear(after[0], 0.5f, 1e-3f,
 		"failed reload replaced or damaged the active configuration");
+}
+
+// Audit #467 TD-27: exercise the production watcher mode while process() runs.
+// Every older engine test supplied customPath, which disables this thread.
+TEST_CASE(EngineOrchestrationTests, testConfigWatcherReloadsWhileAudioIsProcessing)
+{
+	const std::wstring configDirectory = testSubdirectory(L"live-config-watch");
+	const std::wstring configPath = writeConfig(harness,
+		L"live-config-watch\\config.txt", "Preamp: -6.0206 dB\n");
+
+	test::FakeRegistry registry;
+	registry.seedString(APP_REGPATH, L"ConfigPath", configDirectory);
+
+	FilterEngine engine;
+	EngineSetup setup = testEngineSetup(100, 2, 2, 8, L"");
+	setup.registry = &registry;
+	engine.initialize(setup);
+
+	std::atomic<bool> stopProcessing = false;
+	std::atomic<float> observedLevel = -1.0f;
+	std::thread processThread([&] {
+		std::array<float, 16> input;
+		std::array<float, 16> output;
+		input.fill(1.0f);
+		while (!stopProcessing.load(std::memory_order_acquire))
+		{
+			engine.process(output.data(), input.data(), 8);
+			observedLevel.store(output[0], std::memory_order_release);
+			std::this_thread::yield();
+		}
+	});
+
+	auto waitForLevel = [&](float expected) {
+		const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+		while (std::chrono::steady_clock::now() < deadline)
+		{
+			if (test::nearlyEqual(observedLevel.load(std::memory_order_acquire), expected, 1e-3))
+				return true;
+			std::this_thread::yield();
+		}
+		return test::nearlyEqual(observedLevel.load(std::memory_order_acquire), expected, 1e-3);
+	};
+	auto replaceConfig = [&](const std::wstring& stagingName, const std::string& content) {
+		const std::wstring stagingPath = writeConfig(harness, stagingName, content);
+		return MoveFileExW(stagingPath.c_str(), configPath.c_str(),
+			MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != FALSE;
+	};
+
+	const bool initialObserved = waitForLevel(0.5f);
+	harness.expect(initialObserved,
+		"processing reaches the configuration loaded through registry ConfigPath");
+
+	const bool firstRewrite = replaceConfig(L"live-watch-stage-a.txt", "Preamp: -20 dB\n");
+	harness.expect(firstRewrite, "the first watched config rewrite succeeds");
+	const bool firstReload = firstRewrite && waitForLevel(0.1f);
+	harness.expect(firstReload,
+		"the watcher applies the first config rewrite while process() runs before the deadline");
+
+	const bool secondRewrite = replaceConfig(L"live-watch-stage-b.txt", "Preamp: -6.0206 dB\n");
+	harness.expect(secondRewrite, "the second watched config rewrite succeeds");
+	const bool secondReload = secondRewrite && waitForLevel(0.5f);
+	harness.expect(secondReload,
+		"the watcher applies the second config rewrite while process() runs before the deadline");
+
+	stopProcessing.store(true, std::memory_order_release);
+	processThread.join();
 }
 
 TEST_CASE(EngineOrchestrationTests, testConfigWatcherBackoffAndPathRefresh)

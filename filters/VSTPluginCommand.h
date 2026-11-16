@@ -74,9 +74,8 @@ struct VSTPluginCommand
 	// Input/Output retain the legacy permissive parameter grammar. If either bus
 	// key is present, both are required and the complete key/value list is parsed
 	// strictly so malformed layout contracts can be reported before loading a
-	// plug-in module. configPath is accepted to match the factory's signature but
-	// is unused here; only the factory loads the binary.
-	static VSTPluginCommand parse(const std::wstring& configPath, const std::wstring& parameters);
+	// plug-in module. Only the factory loads the binary.
+	static VSTPluginCommand parse(const std::wstring& parameters);
 
 	// Re-creates the canonical parameter body after the "Library <path>" token:
 	// the optional Input/Output contract followed by either ChunkData "<base64>"

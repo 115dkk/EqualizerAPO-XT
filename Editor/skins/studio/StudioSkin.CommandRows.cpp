@@ -42,7 +42,7 @@ QString StudioSkin::cardFrameStyle(const CommandRowInfo& info, const SkinTokens&
 	const QString hoverBackground = cssRgba(info.selected ? tokens.cardSelected : tokens.cardHover, 0.94);
 	const QString topEdge = dark ? QStringLiteral("rgba(255, 255, 255, 0.10)") : QStringLiteral("rgba(255, 255, 255, 0.95)");
 
-	if (info.type == QStringLiteral("vst"))
+	if (info.kind() == FilterCardKind::Vst)
 	{
 		// The gradient border is the glow; no separate top edge needed.
 		const QString gradient = QStringLiteral("qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %1, stop:1 %2)")
@@ -59,7 +59,7 @@ QString StudioSkin::cardFrameStyle(const CommandRowInfo& info, const SkinTokens&
 			.arg(background, gradient, hoverBackground, hoverGradient);
 	}
 
-	const QString borderStyle = info.type == QStringLiteral("include")
+	const QString borderStyle = info.kind() == FilterCardKind::Include
 		? QStringLiteral("dashed") : QStringLiteral("solid");
 
 	// The lit edge runs round all four sides. The white top edge is the glass
@@ -88,7 +88,7 @@ QString StudioSkin::cardFrameStyle(const CommandRowInfo& info, const SkinTokens&
 	// A tagged BiQuad row's border light follows its band colour.
 	// Attribute selectors outrank the base rules, and untagged rows can
 	// never match them.
-	if (info.type == QStringLiteral("biquad"))
+	if (info.kind() == FilterCardKind::Biquad)
 	{
 		for (const char* family : studioBandFamilies)
 		{
@@ -117,7 +117,7 @@ QString StudioSkin::cardHeaderStyle(const CommandRowInfo& info, const SkinTokens
 
 void StudioSkin::paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info, const SkinTokens& tokens) const
 {
-	if (!info.enabled || info.type == QStringLiteral("spacer"))
+	if (!info.enabled || info.kind() == FilterCardKind::Spacer)
 		return;
 
 	const bool dark = skinIsDark(tokens);
@@ -160,9 +160,9 @@ void StudioSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Com
 
 	painter.setClipping(false);
 
-	if (info.type == QStringLiteral("comment") || info.type == QStringLiteral("text")
-		|| info.type == QStringLiteral("include")
-		|| info.type == QStringLiteral("if") || info.type == QStringLiteral("eval"))
+	if (info.kind() == FilterCardKind::Comment || info.kind() == FilterCardKind::Text
+		|| info.kind() == FilterCardKind::Include
+		|| info.kind() == FilterCardKind::If || info.kind() == FilterCardKind::Eval)
 	{
 		// Unlit panes: the glass surface only, no lamp. The If/Eval state
 		// lives in the gutter's gate beam (paintScopeGutter), never as a
@@ -175,7 +175,7 @@ void StudioSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Com
 		// runs from the summary label to the header's right edge (the
 		// label itself is only as wide as its text), so a long expression
 		// keeps the right of way and the value yields.
-		if (info.type == QStringLiteral("eval") && !info.evalText.isEmpty() && !info.valueError
+		if (info.kind() == FilterCardKind::Eval && !info.evalText.isEmpty() && !info.valueError
 			&& painter.device() != nullptr && painter.device()->devType() == QInternal::Widget)
 		{
 			const QWidget* frame = static_cast<const QWidget*>(painter.device());
@@ -208,7 +208,7 @@ void StudioSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Com
 		return;
 	}
 
-	if (info.type == QStringLiteral("vst"))
+	if (info.kind() == FilterCardKind::Vst)
 	{
 		// Two strokes hugging the border fake an outer glow; hover turns
 		// the light up a full step.
@@ -392,10 +392,10 @@ BadgeTreatment StudioSkin::badgeTreatment(const CommandRowInfo& info, const QStr
 		};
 	}
 
-	const QString baseInk = info.type == QStringLiteral("biquad") ? tokens.accent : typeColor;
+	const QString baseInk = info.kind() == FilterCardKind::Biquad ? tokens.accent : typeColor;
 	QString style = QStringLiteral("QLabel#FilterTypeBadge { color: %1; background-color: %2; border: 1px solid %3; }")
 		.arg(baseInk, cssRgba(baseInk, dark ? 0.15 : 0.10), cssRgba(baseInk, dark ? 0.42 : 0.45));
-	if (info.type == QStringLiteral("biquad"))
+	if (info.kind() == FilterCardKind::Biquad)
 	{
 		for (const char* family : studioBandFamilies)
 		{
@@ -404,7 +404,7 @@ BadgeTreatment StudioSkin::badgeTreatment(const CommandRowInfo& info, const QStr
 				.arg(QLatin1String(family), band, cssRgba(band, dark ? 0.15 : 0.10), cssRgba(band, dark ? 0.42 : 0.45));
 		}
 	}
-	const QColor ink = info.type == QStringLiteral("biquad")
+	const QColor ink = info.kind() == FilterCardKind::Biquad
 		? QColor(studioBandHex(studioBandFamilyForBadgeToken(badgeToken), dark))
 		: QColor(typeColor);
 	return { style, ink };
@@ -448,7 +448,7 @@ void StudioSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QW
 		return;
 	}
 
-	if (info.type != QStringLiteral("biquad"))
+	if (info.kind() != FilterCardKind::Biquad)
 		return;
 
 	QComboBox* typeCombo = nullptr;
@@ -469,9 +469,7 @@ void StudioSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QW
 			if (widget == nullptr || widget->property("studioBand").toString() == family)
 				return;
 			widget->setProperty("studioBand", family);
-			widget->style()->unpolish(widget);
-			widget->style()->polish(widget);
-			widget->update();
+			repolish(widget);
 		};
 		tag(card);
 		if (header != nullptr)

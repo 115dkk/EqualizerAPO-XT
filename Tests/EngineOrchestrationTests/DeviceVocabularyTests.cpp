@@ -25,12 +25,24 @@
 #include "devices/VoicemeeterAPOInfo.h"
 #include "devices/VoicemeeterDetection.h"
 #include "platform/windows/ProcessCommandLine.h"
+#include "platform/windows/EndpointId.h"
 #include "platform/windows/Win32Resource.h"
 #include "platform/windows/TokenPrivilege.h"
 #include "platform/windows/ComPtr.h"
 #include "Tests/FakeRegistry.h"
 
 #include "EngineOrchestrationTestSupport.h"
+
+TEST_CASE(EngineOrchestrationTests, testEndpointIdIncludesFlowAndBraces)
+{
+	const std::wstring guid = L"11111111-2222-3333-4444-555555555555";
+	for (const bool capture : { false, true })
+	{
+		const std::wstring expected = std::wstring(capture ? L"{0.0.1.00000000}.{" : L"{0.0.0.00000000}.{") + guid + L"}";
+		harness.expect(winutil::endpointId(capture, guid) == expected, "an unbraced GUID becomes a full endpoint ID");
+		harness.expect(winutil::endpointId(capture, L"{" + guid + L"}") == expected, "a braced GUID keeps exactly one pair of braces");
+	}
+}
 
 TEST_CASE(EngineOrchestrationTests, testDeviceApoRegistryVocabulary)
 {

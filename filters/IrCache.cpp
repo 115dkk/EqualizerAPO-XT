@@ -20,6 +20,8 @@
 #include "stdafx.h"
 #include <cmath>
 #include <climits>
+#include <cstdint>
+#include <cstring>
 #include <limits>
 #include <memory>
 #include <mutex>
@@ -39,6 +41,10 @@ using std::abs;
 namespace
 {
 	constexpr unsigned kMaxIrChannels = 1024;
+	// libHybridConv accepts an int impulse length and has no smaller practical
+	// bound. Cap the decoded working set at the audit's fallback of 2^28 samples
+	// before IrCache makes its interleaved and channel-major copies.
+	constexpr uint64_t kMaxIrSamples = uint64_t{1} << 28;
 	constexpr size_t kParallelDeinterleaveMinimumSamples = 1u << 18;
 
 	// Cache of decoded impulse-response PCM, keyed by path + mtime + sample rate.
@@ -113,6 +119,137 @@ namespace
 	sf_count_t writeFile(const void*, sf_count_t, void*) { return 0; }
 	sf_count_t tellFile(void* file) { return seekFile(0, SEEK_CUR, file); }
 
+	uint16_t readLittle16(const unsigned char* bytes)
+	{
+		return static_cast<uint16_t>(bytes[0])
+			| (static_cast<uint16_t>(bytes[1]) << 8);
+	}
+
+	uint32_t readLittle32(const unsigned char* bytes)
+	{
+		return static_cast<uint32_t>(bytes[0])
+			| (static_cast<uint32_t>(bytes[1]) << 8)
+			| (static_cast<uint32_t>(bytes[2]) << 16)
+			| (static_cast<uint32_t>(bytes[3]) << 24);
+	}
+
+	bool readAt(HANDLE file, uint64_t offset, void* buffer, DWORD length)
+	{
+		if (offset > static_cast<uint64_t>((std::numeric_limits<LONGLONG>::max)()))
+			return false;
+		LARGE_INTEGER position = {};
+		position.QuadPart = static_cast<LONGLONG>(offset);
+		if (!SetFilePointerEx(file, position, nullptr, FILE_BEGIN))
+			return false;
+		DWORD received = 0;
+		return ReadFile(file, buffer, length, &received, nullptr) != FALSE
+			&& received == length;
+	}
+
+	std::wstring sampleLimitProblem(const std::wstring& filename, uint64_t samples,
+		uint64_t fileBytes)
+	{
+		return L"The impulse response file \"" + filename + L"\" declares "
+			+ std::to_wstring(samples) + L" samples, above the "
+			+ std::to_wstring(kMaxIrSamples) + L"-sample limit; the file is "
+			+ std::to_wstring(fileBytes) + L" bytes";
+	}
+
+	std::wstring truncatedAudioProblem(const std::wstring& filename,
+		uint64_t declaredAudioBytes, uint64_t availableAudioBytes)
+	{
+		return L"The impulse response file \"" + filename + L"\" declares "
+			+ std::to_wstring(declaredAudioBytes) + L" audio bytes but contains only "
+			+ std::to_wstring(availableAudioBytes) + L" bytes after its data header";
+	}
+
+	// RIFF/WAVE exposes its declared data bytes and block alignment directly.
+	// Check those fields against the held file before libsndfile or IrCache can
+	// trust a crafted declaration (audit #467 TD-57).
+	std::wstring validateWaveDeclaration(HANDLE file, const std::wstring& filename,
+		uint64_t fileBytes)
+	{
+		unsigned char header[12] = {};
+		if (!readAt(file, 0, header, sizeof(header))
+			|| std::memcmp(header, "RIFF", 4) != 0
+			|| std::memcmp(header + 8, "WAVE", 4) != 0)
+		{
+			return L"";
+		}
+
+		uint16_t channels = 0;
+		uint16_t blockAlign = 0;
+		uint64_t offset = sizeof(header);
+		while (offset + 8 <= fileBytes)
+		{
+			unsigned char chunk[8] = {};
+			if (!readAt(file, offset, chunk, sizeof(chunk)))
+				break;
+			const uint64_t payload = offset + sizeof(chunk);
+			const uint64_t chunkBytes = readLittle32(chunk + 4);
+			if (std::memcmp(chunk, "fmt ", 4) == 0 && chunkBytes >= 16)
+			{
+				unsigned char format[16] = {};
+				if (!readAt(file, payload, format, sizeof(format)))
+					break;
+				channels = readLittle16(format + 2);
+				blockAlign = readLittle16(format + 12);
+			}
+			else if (std::memcmp(chunk, "data", 4) == 0)
+			{
+				const uint64_t available = fileBytes > payload ? fileBytes - payload : 0;
+				if (channels != 0 && blockAlign != 0)
+				{
+					const uint64_t frames = chunkBytes / blockAlign;
+					if (frames > (std::numeric_limits<uint64_t>::max)() / channels)
+						return sampleLimitProblem(filename, UINT64_MAX, fileBytes);
+					const uint64_t samples = frames * channels;
+					if (samples > kMaxIrSamples)
+						return sampleLimitProblem(filename, samples, fileBytes);
+				}
+				if (chunkBytes > available)
+					return truncatedAudioProblem(filename, chunkBytes, available);
+				return L"";
+			}
+
+			if (chunkBytes > fileBytes - payload)
+				break;
+			offset = payload + chunkBytes + (chunkBytes & 1u);
+		}
+		return L"";
+	}
+
+}
+
+std::wstring validateIrSize(const JudgedPath& judged)
+{
+	HANDLE file = judged.leaf();
+	const sf_count_t signedLength = fileLength(file);
+	if (file == nullptr || signedLength < 0)
+		return L"";
+	const uint64_t bytes = static_cast<uint64_t>(signedLength);
+	const std::wstring waveProblem = validateWaveDeclaration(file, judged.path(), bytes);
+	if (!waveProblem.empty())
+		return waveProblem;
+
+	SF_INFO info{};
+	if (seekFile(0, SEEK_SET, file) < 0)
+		return L"";
+	SF_VIRTUAL_IO io = {fileLength, seekFile, readFile, writeFile, tellFile};
+	SNDFILE* opened = sf_open_virtual(&io, SFM_READ, &info, file);
+	if (opened == nullptr)
+		return L"";
+	sndfile::Handle in(opened);
+	if (info.frames <= 0 || info.channels <= 0)
+		return L"";
+	const uint64_t frames = static_cast<uint64_t>(info.frames);
+	const uint64_t channels = static_cast<uint64_t>(info.channels);
+	if (frames > (std::numeric_limits<uint64_t>::max)() / channels)
+		return sampleLimitProblem(judged.path(), UINT64_MAX, bytes);
+	const uint64_t samples = frames * channels;
+	if (samples > kMaxIrSamples)
+		return sampleLimitProblem(judged.path(), samples, bytes);
+	return L"";
 }
 
 std::shared_ptr<const IrCacheEntry> loadIrCached(const JudgedPath& judged, double sampleRate)
@@ -135,13 +272,14 @@ std::shared_ptr<const IrCacheEntry> loadIrCached(const JudgedPath& judged, doubl
 	SNDFILE* opened = sf_open_virtual(&io, SFM_READ, &info, file);
 	if (opened == nullptr)
 	{
-		LogFStatic(L"Error while reading impulse response file: %S", sf_strerror(opened));
+		LogFStatic(L"Error while reading impulse response file %s: %S", filename.c_str(), sf_strerror(opened));
 		return nullptr;
 	}
 	sndfile::Handle in(opened);
 	if (abs(sampleRate - info.samplerate) > 1.0)
 	{
-		LogFStatic(L"Impulse response sample rate (%d Hz) does not match device sample rate (%f Hz)", info.samplerate, sampleRate);
+		LogFStatic(L"Impulse response file %s has sample rate %d Hz, which does not match device sample rate %f Hz",
+			filename.c_str(), info.samplerate, sampleRate);
 		return nullptr;
 	}
 
@@ -166,7 +304,15 @@ std::shared_ptr<const IrCacheEntry> loadIrCached(const JudgedPath& judged, doubl
 			frames, channels, filename.c_str());
 		return nullptr;
 	}
-	std::vector<double> interleaved(static_cast<size_t>(frames) * channels);
+	const uint64_t totalSamples = static_cast<uint64_t>(frames) * channels;
+	if (totalSamples > kMaxIrSamples)
+	{
+		const sf_count_t signedBytes = fileLength(file);
+		const uint64_t fileBytes = signedBytes > 0 ? static_cast<uint64_t>(signedBytes) : 0;
+		LogFStatic(L"%s", sampleLimitProblem(filename, totalSamples, fileBytes).c_str());
+		return nullptr;
+	}
+	std::vector<double> interleaved(static_cast<size_t>(totalSamples));
 	sf_count_t numRead = 0;
 	while (numRead < info.frames)
 	{

@@ -27,14 +27,12 @@
 class DeviceFilterFactory : public IFilterFactory
 {
 public:
-	FilterVector startOfConfiguration() override;
+	ConfigGateBoundary gateBoundary() const override {return ConfigGateBoundary::None;}
 	LineOutcome createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
-	FilterVector endOfFile(const std::wstring& configPath) override;
 
 protected:
 	void onInitialize(FilterEngine& engine) override;
 
 private:
-	bool deviceMatches = false;
 	std::wstring deviceString;
 };

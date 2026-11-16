@@ -54,6 +54,67 @@ function Get-SimdVariantEntry {
     return $entry
 }
 
+function Get-PrimaryVariant {
+    <#
+    .SYNOPSIS
+        The manifest's Primary variant (the one pull requests build and the
+        gates run), so no caller spells "avx2" (TECH_DEBT_AUDIT TD-35).
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)] [hashtable]$Manifest)
+
+    $primary = @($Manifest.Variants | Where-Object { $_.Primary })
+    if ($primary.Count -ne 1) {
+        throw "simd-variants.psd1 must mark exactly one variant Primary, found $($primary.Count)"
+    }
+    return $primary[0]
+}
+
+function Resolve-BuildVariant {
+    <#
+    .SYNOPSIS
+        Everything a build script needs to know about one variant, read from
+        the manifest: the caller names a platform and optionally a SIMD
+        variant and never restates an arch flag, a channel or a folder name.
+
+    .DESCRIPTION
+        Simd defaults to the Primary variant on x64 and to the platform's
+        only variant on ARM64 (a caller's x64 SIMD name is ignored there, as
+        the build scripts always did). MsBuildArchFlag is what
+        /p:EnableEnhancedInstructionSet takes: "NotSet" for the x64 baseline
+        so a build never falls back to the projects' local AVX2 default, and
+        empty on ARM64, which passes no override.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [hashtable]$Manifest,
+        [Parameter(Mandatory)] [ValidateSet('x64', 'ARM64')] [string]$Platform,
+        [AllowEmptyString()] [string]$Simd
+    )
+
+    if ($Platform -eq 'ARM64') {
+        $entry = @($Manifest.Variants | Where-Object { $_.Platform -eq 'ARM64' }) | Select-Object -First 1
+        if (-not $entry) { throw "simd-variants.psd1 has no ARM64 variant" }
+    }
+    else {
+        if (-not $Simd) { $Simd = (Get-PrimaryVariant -Manifest $Manifest).Simd }
+        $entry = Get-SimdVariantEntry -Manifest $Manifest -Platform $Platform -Simd $Simd
+    }
+    $isArm = $Platform -eq 'ARM64'
+    return [pscustomobject]@{
+        Entry           = $entry
+        Platform        = $Platform
+        Simd            = $entry.Simd
+        IsPrimary       = [bool]$entry.Primary
+        MsBuildArchFlag = if ($isArm) { '' } elseif ($entry.ArchFlag) { $entry.ArchFlag } else { 'NotSet' }
+        QtArchFlag      = if ($entry.QtArchFlag) { $entry.QtArchFlag } else { '' }
+        Channel         = $entry.Channel
+        MsvcDevPlatform = if ($isArm) { 'arm64' } else { 'x64' }
+        UsesVcpkg       = [bool]$entry.UsesVcpkg
+        QtArchDir       = if ($isArm) { 'msvc2022_arm64' } else { 'msvc2022_64' }
+    }
+}
+
 function Get-DependencyDownloadSpec {
     <#
     .SYNOPSIS
@@ -198,6 +259,28 @@ function Invoke-DependencyFetch {
     }
 }
 
+function Invoke-PinnedFileDownload {
+    <#
+    .SYNOPSIS
+        Downloads one file and refuses it unless its SHA-256 is the pinned one.
+        For tools that are not zip archives to extract (a NuGet tool package).
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [string]$Url,
+        [Parameter(Mandatory)] [string]$OutFile,
+        [Parameter(Mandatory)] [string]$Sha256
+    )
+
+    Invoke-DependencyFetch -Url $Url -OutFile $OutFile
+    $actual = (Get-FileHash -Path $OutFile -Algorithm SHA256).Hash
+    if ($actual -ne $Sha256) {
+        Remove-Item -LiteralPath $OutFile -Force
+        throw "SHA-256 mismatch for $(Split-Path $OutFile -Leaf): expected $Sha256, got $actual"
+    }
+    Write-Host "Verified SHA-256 for $(Split-Path $OutFile -Leaf)"
+}
+
 function Invoke-DependencyDownload {
     <#
     .SYNOPSIS
@@ -248,6 +331,54 @@ function Invoke-DependencyDownload {
         Expand-Archive -Path $zipPath -DestinationPath $download.Destination -Force
         Write-Host "Extracted $($download.Asset) -> $($download.Destination)"
     }
+}
+
+function Install-CppcheckTool {
+    <#
+    .SYNOPSIS
+        Puts the cppcheck the CI gate runs on a Windows machine and returns
+        the path of cppcheck.exe.
+
+    .DESCRIPTION
+        The gate's version lives in the manifest (Shared.Cppcheck*). The
+        official installer is downloaded, held to its pinned SHA-256 and
+        unpacked with an administrative install (msiexec /a), which needs no
+        elevation and registers nothing: the tool lands under
+        <InstallRoot>\cppcheck-<version>. An existing unpack of the same
+        version is reused. Under GitHub Actions the folder is added to
+        GITHUB_PATH, so later steps call `cppcheck` by name.
+
+        The scheduled audit's runner image carries an older cppcheck whose
+        findings cannot be compared with the gate's zero baseline
+        (TECH_DEBT_AUDIT, audit #467).
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [hashtable]$Manifest,
+        [Parameter(Mandatory)] [string]$InstallRoot
+    )
+
+    $version = $Manifest.Shared.CppcheckVersion
+    $target = Join-Path $InstallRoot "cppcheck-$version"
+    $exe = Join-Path $target "PFiles\Cppcheck\cppcheck.exe"
+    if (-not (Test-Path $exe)) {
+        New-Item -ItemType Directory -Force -Path $target | Out-Null
+        $msi = Join-Path $InstallRoot "cppcheck-$version-x64-Setup.msi"
+        Invoke-DependencyFetch -Url $Manifest.Shared.CppcheckMsiUrl -OutFile $msi
+        $actual = (Get-FileHash -Path $msi -Algorithm SHA256).Hash
+        if ($actual -ne $Manifest.Shared.CppcheckMsiSha256) {
+            Remove-Item $msi -Force
+            throw "SHA-256 mismatch for cppcheck $version installer: expected $($Manifest.Shared.CppcheckMsiSha256), got $actual"
+        }
+        $process = Start-Process msiexec -ArgumentList "/a `"$msi`" /qn TARGETDIR=`"$target`"" -Wait -PassThru
+        if ($process.ExitCode -ne 0) { throw "msiexec /a failed for cppcheck $version (exit $($process.ExitCode))" }
+        if (-not (Test-Path $exe)) { throw "cppcheck.exe not found under $target after unpacking" }
+    }
+    $reported = (& $exe --version | Out-String).Trim()
+    if ($reported -ne "Cppcheck $version") { throw "$exe reports '$reported', expected 'Cppcheck $version'" }
+    if ($env:GITHUB_PATH) { (Split-Path $exe -Parent) >> $env:GITHUB_PATH }
+    Write-Host "cppcheck $version at $exe"
+    return $exe
 }
 
 function Copy-RequiredFile {
@@ -801,4 +932,18 @@ function Install-PinnedSourceDependency {
     }
 }
 
-Export-ModuleMember -Function Get-SimdVariantEntry, Get-DependencyDownloadSpec, Get-SdkDownloadSpec, Invoke-DependencyDownload, Build-VcpkgDependencies, Install-QtSdk, Get-PinnedSourceSpec, Sync-PinnedCheckout, Install-PinnedSourceDependency
+Export-ModuleMember -Function @(
+    'Get-SimdVariantEntry'
+    'Get-PrimaryVariant'
+    'Resolve-BuildVariant'
+    'Install-CppcheckTool'
+    'Get-DependencyDownloadSpec'
+    'Get-SdkDownloadSpec'
+    'Invoke-DependencyDownload'
+    'Invoke-PinnedFileDownload'
+    'Build-VcpkgDependencies'
+    'Install-QtSdk'
+    'Get-PinnedSourceSpec'
+    'Sync-PinnedCheckout'
+    'Install-PinnedSourceDependency'
+)

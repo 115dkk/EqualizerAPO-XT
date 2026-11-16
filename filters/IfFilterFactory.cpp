@@ -21,6 +21,7 @@
 #include "services/logging/Logging.h"
 #include "parser/RegexFunctions.h"
 #include "parser/RegistryFunctions.h"
+#include "platform/windows/TextEncoding.h"
 #include "engine/ConfigLoadTrace.h"
 #include "engine/FilterEngine.h"
 #include "filters/FilterFactoryRegistry.h"
@@ -38,229 +39,143 @@ void IfFilterFactory::onInitialize(FilterEngine& engine)
 	parser = engine.getParser();
 }
 
-FilterVector IfFilterFactory::startOfConfiguration()
-{
-	trueCount = 0;
-	falseCount = 0;
-	while (!trueCountStack.empty())
-		trueCountStack.pop();
-	openIfLines.clear();
-	while (!openIfLinesStack.empty())
-		openIfLinesStack.pop();
-
-	return {};
-}
-
-FilterVector IfFilterFactory::startOfFile(const std::wstring& configPath)
-{
-	trueCountStack.push(trueCount);
-	trueCount = 0;
-	openIfLinesStack.push(std::move(openIfLines));
-	openIfLines.clear();
-	executeElse = false;
-	if (falseCount != 0)
-	{
-		LogF(L"File was included inside If that evaluated to false!");
-		falseCount = 0;
-	}
-
-	return {};
-}
-
 LineOutcome IfFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	IfCommand cmd;
-	bool isIfFamily = IfCommand::parse(command, parameters, cmd);
+	if (!IfCommand::parse(command, parameters, cmd))
+		return LineOutcome::notMine();
+
 	const wstring& expression = cmd.expression;
 	wstring malformedReason;
-
-	// Load-trace reporting: the Editor echoes
-	// branch decisions next to the config rows. Every reported line sets
-	// traced so the generic skipped-line report below does not double-count
-	// the line that made the branch false.
-	bool traced = false;
-	auto traceBranch = [&](ConfigLoadTraceEntry::Kind kind, ConfigLoadTraceEntry::Result result, bool active) {
+	auto traceBranch = [&](ConfigLoadTraceEntry::Kind kind,
+		ConfigLoadTraceEntry::Result result, bool active) {
 		ConfigLoadTraceEntry entry;
 		entry.kind = kind;
 		entry.result = result;
 		entry.active = active;
 		engine()->traceLoadEvent(entry);
-		traced = true;
+	};
+	auto traceSkipped = [&] {
+		ConfigLoadTraceEntry entry;
+		entry.kind = ConfigLoadTraceEntry::Kind::SkippedLine;
+		engine()->traceLoadEvent(entry);
+	};
+	auto evaluate = [&](const wchar_t* commandName, bool& value) {
+		try
+		{
+			Value result = parser->evaluate(expression);
+			value = toBoolean(result);
+			if (result.GetType() == L'b')
+				TraceF(L"%s(%s) evaluated to %s", commandName, expression.c_str(), result.ToString().c_str());
+			else
+				TraceF(L"%s(%s) evaluated to %s (%s)", commandName, expression.c_str(),
+					result.ToString().c_str(), value ? L"true" : L"false");
+			traceBranch(ConfigLoadTraceEntry::Kind::Condition,
+				value ? ConfigLoadTraceEntry::Result::True : ConfigLoadTraceEntry::Result::False, value);
+			return true;
+		}
+		catch (const ParserError& e)
+		{
+			LogF(L"Error while evaluating %s(%s): %s", commandName, expression.c_str(), e.GetMsg().c_str());
+			malformedReason = L"condition could not be evaluated: " + e.GetMsg();
+		}
+		catch (const std::exception& e)
+		{
+			const wstring reason = wintext::toWideString(e.what(), CP_UTF8);
+			LogF(L"Error while evaluating %s(%s): %s", commandName, expression.c_str(), reason.c_str());
+			malformedReason = L"condition could not be evaluated: " + reason;
+		}
+		catch (...)
+		{
+			LogF(L"Error while evaluating %s(%s): unknown exception", commandName, expression.c_str());
+			malformedReason = L"condition could not be evaluated: unknown exception";
+		}
+		value = false;
+		traceBranch(ConfigLoadTraceEntry::Kind::Condition, ConfigLoadTraceEntry::Result::Error, false);
+		return false;
 	};
 
-	if (isIfFamily && cmd.kind == IfCommand::Kind::If)
+	if (cmd.kind == IfCommand::Kind::If)
 	{
-		openIfLines.push_back(engine()->loadTraceLine());
-		if (falseCount == 0)
+		if (!engine()->ifGatesOpen())
 		{
-			try
-			{
-				Value result = parser->evaluate(expression);
-				bool isTrue = toBoolean(result);
-				if (result.GetType() == L'b')
-					TraceF(L"If(%s) evaluated to %s", expression.c_str(), result.ToString().c_str());
-				else
-					TraceF(L"If(%s) evaluated to %s (%s)", expression.c_str(), result.ToString().c_str(), isTrue ? L"true" : L"false");
-				traceBranch(ConfigLoadTraceEntry::Kind::Condition,
-					isTrue ? ConfigLoadTraceEntry::Result::True : ConfigLoadTraceEntry::Result::False, isTrue);
-
-				if (isTrue)
-				{
-					trueCount++;
-				}
-				else
-				{
-					falseCount++;
-					executeElse = true;
-				}
-			}
-			catch (const ParserError& e)
-			{
-				LogF(L"Error while evaluating If(%s): %s", expression.c_str(), e.GetMsg().c_str());
-				traceBranch(ConfigLoadTraceEntry::Kind::Condition, ConfigLoadTraceEntry::Result::Error, false);
-				falseCount++;
-			}
+			engine()->pushIfGate(false, false);
+			traceSkipped();
 		}
 		else
 		{
-			falseCount++;
+			bool open = false;
+			evaluate(L"If", open);
+			engine()->pushIfGate(open, open);
 		}
 	}
-	else if (isIfFamily && cmd.kind == IfCommand::Kind::ElseIf)
+	else if (cmd.kind == IfCommand::Kind::ElseIf)
 	{
-		if (falseCount == 0)
+		if (!engine()->hasIfGate())
 		{
-			if (trueCount == 0)
-			{
-				malformedReason = L"ElseIf without an If before it";
-				traceBranch(ConfigLoadTraceEntry::Kind::Condition, ConfigLoadTraceEntry::Result::NotEvaluated, false);
-			}
-			else
-			{
-				// The previous branch is active; the chain is satisfied and
-				// this condition is never looked at.
-				traceBranch(ConfigLoadTraceEntry::Kind::Condition, ConfigLoadTraceEntry::Result::NotEvaluated, false);
-				falseCount++;
-				trueCount--;
-			}
+			malformedReason = L"ElseIf without an If before it";
+			traceBranch(ConfigLoadTraceEntry::Kind::Condition,
+				ConfigLoadTraceEntry::Result::NotEvaluated, false);
 		}
-		else if (falseCount == 1 && executeElse)
+		else if (!engine()->ifGateParentOpen())
 		{
-			try
-			{
-				Value result = parser->evaluate(expression);
-				bool isTrue = toBoolean(result);
-				if (result.GetType() == L'b')
-					TraceF(L"ElseIf(%s) evaluated to %s", expression.c_str(), result.ToString().c_str());
-				else
-					TraceF(L"ElseIf(%s) evaluated to %s (%s)", expression.c_str(), result.ToString().c_str(), isTrue ? L"true" : L"false");
-				traceBranch(ConfigLoadTraceEntry::Kind::Condition,
-					isTrue ? ConfigLoadTraceEntry::Result::True : ConfigLoadTraceEntry::Result::False, isTrue);
-
-				if (isTrue)
-				{
-					falseCount--;
-					trueCount++;
-					executeElse = false;
-				}
-			}
-			catch (const ParserError& e)
-			{
-				LogF(L"Error while evaluating ElseIf(%s): %s", expression.c_str(), e.GetMsg().c_str());
-				traceBranch(ConfigLoadTraceEntry::Kind::Condition, ConfigLoadTraceEntry::Result::Error, false);
-			}
+			traceSkipped();
 		}
-		else if (falseCount == 1)
+		else if (engine()->ifBranchTaken())
 		{
-			// falseCount == 1 without executeElse: an earlier branch of this
-			// chain already ran, so the condition is short-circuited.
-			traceBranch(ConfigLoadTraceEntry::Kind::Condition, ConfigLoadTraceEntry::Result::NotEvaluated, false);
-		}
-	}
-	else if (isIfFamily && cmd.kind == IfCommand::Kind::Else)
-	{
-		if (falseCount == 0)
-		{
-			if (trueCount == 0)
-			{
-				malformedReason = L"Else without an If before it";
-				traceBranch(ConfigLoadTraceEntry::Kind::ElseBranch, ConfigLoadTraceEntry::Result::NotEvaluated, false);
-			}
-			else
-			{
-				traceBranch(ConfigLoadTraceEntry::Kind::ElseBranch, ConfigLoadTraceEntry::Result::NotEvaluated, false);
-				falseCount++;
-				trueCount--;
-			}
-		}
-		else if (falseCount == 1 && executeElse)
-		{
-			traceBranch(ConfigLoadTraceEntry::Kind::ElseBranch, ConfigLoadTraceEntry::Result::NotEvaluated, true);
-			falseCount--;
-			trueCount++;
-			executeElse = false;
-		}
-		else if (falseCount == 1)
-		{
-			traceBranch(ConfigLoadTraceEntry::Kind::ElseBranch, ConfigLoadTraceEntry::Result::NotEvaluated, false);
-		}
-	}
-	else if (isIfFamily && cmd.kind == IfCommand::Kind::EndIf)
-	{
-		if (falseCount == 0)
-		{
-			if (trueCount == 0)
-			{
-				malformedReason = L"EndIf without an If before it";
-			}
-			else
-			{
-				trueCount--;
-				if (!openIfLines.empty())
-					openIfLines.pop_back();
-			}
+			engine()->setGate(ConfigGateKind::If, false);
+			traceBranch(ConfigLoadTraceEntry::Kind::Condition,
+				ConfigLoadTraceEntry::Result::NotEvaluated, false);
 		}
 		else
 		{
-			falseCount--;
-			if (!openIfLines.empty())
-				openIfLines.pop_back();
+			bool open = false;
+			evaluate(L"ElseIf", open);
+			engine()->setGate(ConfigGateKind::If, open);
+			if (open)
+				engine()->setIfBranchTaken(true);
 		}
-
-		if (falseCount == 0)
-			executeElse = false;
 	}
-
-	if (falseCount > 0)
+	else if (cmd.kind == IfCommand::Kind::Else)
 	{
-		// A line inside a false branch. Report it as skipped unless this very
-		// line already carries a branch entry, and never report comments
-		// (they would not have executed anyway).
-		if (!traced && !command.empty() && command[0] != L'#')
-			traceBranch(ConfigLoadTraceEntry::Kind::SkippedLine, ConfigLoadTraceEntry::Result::NotEvaluated, false);
+		if (!engine()->hasIfGate())
+		{
+			malformedReason = L"Else without an If before it";
+			traceBranch(ConfigLoadTraceEntry::Kind::ElseBranch,
+				ConfigLoadTraceEntry::Result::NotEvaluated, false);
+		}
+		else if (!engine()->ifGateParentOpen())
+		{
+			traceSkipped();
+		}
+		else
+		{
+			const bool open = !engine()->ifBranchTaken();
+			engine()->setGate(ConfigGateKind::If, open);
+			if (open)
+				engine()->setIfBranchTaken(true);
+			traceBranch(ConfigLoadTraceEntry::Kind::ElseBranch,
+				ConfigLoadTraceEntry::Result::NotEvaluated, open);
+		}
+	}
+	else
+	{
+		if (!engine()->hasIfGate())
+		{
+			malformedReason = L"EndIf without an If before it";
+		}
+		else
+		{
+			const bool skipped = !engine()->ifGateParentOpen();
+			engine()->popIfGate();
+			if (skipped)
+				traceSkipped();
+		}
 	}
 
 	if (!malformedReason.empty())
 		return LineOutcome::malformed(std::move(malformedReason));
-	if (isIfFamily || falseCount > 0)
-		return LineOutcome::consumed();
-	return LineOutcome::notMine();
-}
-
-FilterVector IfFilterFactory::endOfFile(const std::wstring& configPath)
-{
-	if (trueCount != 0 || falseCount != 0)
-	{
-		for (int line : openIfLines)
-			engine()->reportParseError(L"If", L"this If has no EndIf before the end of its file", line);
-		falseCount = 0;
-	}
-	trueCount = trueCountStack.top();
-	trueCountStack.pop();
-	openIfLines = std::move(openIfLinesStack.top());
-	openIfLinesStack.pop();
-
-	return {};
+	return LineOutcome::consumed();
 }
 
 bool IfFilterFactory::toBoolean(const Value& value)

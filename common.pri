@@ -4,8 +4,28 @@
 # QMAKE_LIBDIR stays in each .pro: the Editor links the dependency lib
 # directories directly while the satellite apps link the MSBuild output tree.
 # (audit #146 TD012)
-# The C++ standard mode is set once here for all three Qt applications.
+# The C++ standard mode is set once here for both Qt applications.
 CONFIG += c++20
+
+# The switches the MSBuild products get from their .vcxproj and
+# Directory.Build.props: control-flow guard, the SDL checks, and warnings as
+# errors. The Qt applications compiled the same engine sources without any of
+# them, although DeviceSelector runs elevated and the Editor runs the elevated
+# install hooks (TECH_DEBT_AUDIT TD-24, audit #467).
+#
+# Qt's and the dependencies' headers are compiled as external with their
+# warnings off, as Directory.Build.props does for the MSBuild projects, so /WX
+# and /sdl judge only the code this repository owns. Without it /sdl stops on
+# Qt's own headers: qguiapplication.h and qapplication.h reference
+# compressEvent, which Qt marks deprecated (C4996).
+QMAKE_CXXFLAGS += /guard:cf /sdl /WX
+QMAKE_CFLAGS += /guard:cf /sdl /WX
+QMAKE_LFLAGS += /guard:cf
+EAPO_EXTERNAL_INCLUDES = $$[QT_INSTALL_HEADERS] $$LIBSNDFILE_INCLUDE $$FFTW_INCLUDE $$MUPARSERX_INCLUDE $$VELOPACK_INCLUDE $$VST3_SDK $$HIGHWAY_INCLUDE
+for(dir, EAPO_EXTERNAL_INCLUDES) {
+	QMAKE_CXXFLAGS += /external:I $$shell_quote($$shell_path($$dir))
+}
+QMAKE_CXXFLAGS += /external:W0
 
 contains(QT_ARCH, arm64) {
 	# ARM64 builds take NEON without an /arch switch.

@@ -57,12 +57,12 @@ roll back, or stop. A named enum makes that branch explicit at the call site
 instead of wrapping the whole sequence in a `catch` that has lost track of which
 step threw.
 
-Auxiliary entry points on the same class do not use the enum because they do not
-need it: simple yes/no helpers such as `stopAudioService` and
-`createStartMenuShortcuts` return `bool`, and `registerComServer` /
-`waitForProcess` return an `int` so the caller sees the real COM `HRESULT` or
-process exit code. The `Result` enum is the model for the staged install/uninstall
-flow specifically.
+Auxiliary entry points use other results: `ApoRegistration::stopAudioService`
+returns `bool`, and `ApoRegistration::registerComServer` returns an `int`
+(zero on success, the COM `HRESULT` on failure). Shortcut creation is separate:
+`StartMenuShortcuts::create` in `services/shell/StartMenuShortcuts.cpp` returns
+`bool`. The `Result` enum is the model for the staged install/uninstall flow
+specifically.
 
 ### VST plugin loading returns `bool`
 
@@ -75,28 +75,25 @@ point in a structured-exception guard and reports the crash as `false`. A plain
 the rest of the filter graph, with no exception crossing the graph-construction
 path. The caller only needs "did it load," not a failure taxonomy.
 
-### Configuration parsing reports per line and never stops the load
+### Configuration parsing reports malformed lines and continues
 
-A configuration file is the one untrusted text this program reads, and it is
-edited by hand. Half of one is still worth running: a broken `Convolution:` line
-must not take the twelve working filters below it with it, because the user would
-then have no sound at all instead of sound without one effect.
+Configuration files can be edited by hand. A malformed filter line is reported
+without discarding the valid lines that follow it.
 
-So a factory that recognises its command and cannot use the parameters calls
-`ParseReportingFactory::reportParseError(command, reason)`. That logs the file and
-line, and hands the same reason to `ConfigLoadTrace` so the Editor can mark the
-row. The load continues with the next line. Nothing throws: `createFilter` runs
-inside the engine's dispatch loop for every line of every file, and an exception
-there would abandon the rest of the configuration.
+A factory that recognises its command but cannot use the parameters returns
+`LineOutcome::malformed(reason)` (`engine/IFilterFactory.h`). The dispatch loop in
+`engine/FilterEngine.Configuration.cpp` calls `FilterEngine::reportParseError`,
+which logs the file and line and sends the reason to `ConfigLoadTrace` so the
+Editor can mark the row. The load continues with the next line. The loop also
+catches and logs `std::exception` from `createFilter`; this is separate from the
+malformed-line result.
 
-Two rules make this honest. **The factory reports, not the engine.** The engine
-cannot tell a broken parameter list from a command that legitimately produces no
-filter - `Preamp: 0 dB` produces none, and so does every control-flow command -
-and it used to guess from the outside with a hand-maintained list of commands to
-excuse, which meant a new no-op filter became a false warning until somebody
-remembered the list. **A line no factory claimed is not an error.** Prose,
-comments and unknown keys are how 1.4.2 configurations carry notes, and reporting
-them would bury the real diagnostics.
+Two rules make this honest. **The factory classifies the line.** `Consumed`
+means the command needs no filter, `Produced` carries filters, `Malformed`
+carries a reason, and `NotMine` offers the line to the next factory. The engine
+does not infer a parse error from an empty filter list. **A line no factory
+claimed is not an error.** Prose, comments and unknown keys are how 1.4.2
+configurations carry notes, and reporting them would bury the real diagnostics.
 
 ### Allocation helpers return `nullptr` by contract
 

@@ -17,7 +17,7 @@ namespace
 
 	bool describe(const WAVEFORMATEX& format, SampleFormat& sample)
 	{
-		if (!eapo::asio::waveformat::containerOf(&format, sample))
+		if (!eapo::asio::waveformat::containerOf(&format, sizeof(WAVEFORMATEX) + format.cbSize, sample))
 			return false;
 		if (sample.floating ? (sample.bits != 32 || sample.validBits != 32)
 			: (sample.bits != 16 && sample.bits != 24 && sample.bits != 32))

@@ -92,17 +92,16 @@ public:
 	// default is the live adapter, so the existing callers (DeviceSelector,
 	// Editor, ApoRegistration, the APO DLL) keep compiling unchanged and keep
 	// talking to the real HKLM; a test hands in an in-memory fake instead.
-	// getDefaultDevice takes none because it reads the endpoint through COM.
 	explicit DeviceAPOInfo(IRegistry& registry = systemRegistry(), const EndpointProbe& probe = systemEndpointProbe());
 
 	static std::vector<std::shared_ptr<AbstractAPOInfo>> loadAllInfos(bool input, IRegistry& registry = systemRegistry());
-	static std::wstring getDefaultDevice(bool input, int role = 1);
 	bool load(const std::wstring& deviceGuid, std::wstring defaultDeviceGuid = L"");
 	// load() without the default-endpoint lookup, which goes through the
 	// MMDevice enumerator: everything it reads comes through the registry
 	// port. isDefaultDevice() stays false. The APO reads its endpoint this way
 	// from inside audiodg (ApoRuntimeFacts.h).
 	bool loadFromRegistry(const std::wstring& deviceGuid);
+	Kind kind() const override {return Kind::Endpoint;}
 	bool canBeUpgraded() const override;
 	bool hasChanges() const override;
 	// True when the audio driver published an effect chain (an FxProperties

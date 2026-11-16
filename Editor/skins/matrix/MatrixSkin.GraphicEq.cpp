@@ -88,7 +88,7 @@ void MatrixSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState&
 
 		// Band-locked layouts: level stems off the 0 dB bus, in the LED
 		// ring's bipolar grammar - boost lights accent, cut lights accent2.
-		const double stemBase = qBound(state.plotRect.top(), state.zeroY, state.plotRect.bottom());
+		const double stemBase = state.clampedZeroY();
 		if (state.bandLocked)
 		{
 			for (const QPointF& node : state.nodePositions)

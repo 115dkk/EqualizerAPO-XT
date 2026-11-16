@@ -96,6 +96,17 @@ $items
         [System.IO.File]::WriteAllText($Path, $xml, (New-Object System.Text.UTF8Encoding($true)))
     }
 
+    function Add-ApoContractFixture {
+        param([string]$Root)
+        $realRoot = Split-Path -Parent $script:SolutionPath
+        foreach ($relative in @('.github/scripts/ApoEndpointHarness.psm1',
+                'services/registry/RegistryPaths.h', 'devices/DeviceAPOInfoKeys.h')) {
+            $destination = Join-Path $Root $relative
+            New-Item -ItemType Directory -Path (Split-Path -Parent $destination) -Force | Out-Null
+            Copy-Item -LiteralPath (Join-Path $realRoot $relative) -Destination $destination
+        }
+    }
+
     function Invoke-SourceSync {
         param([string]$RepoRoot)
         $output = & $script:PwshExe -NoProfile -NonInteractive -Command ". '$script:ScriptPath' -RepoRoot '$RepoRoot'" 2>&1
@@ -110,6 +121,41 @@ AfterAll {
 }
 
 Describe "Test-SourceSync.ps1" {
+    It "checks the real APO endpoint contract without a build" {
+        $result = Invoke-SourceSync -RepoRoot (Split-Path -Parent $script:SolutionPath)
+        $result.ExitCode | Should -Be 0
+        $result.Output | Should -Match 'All 10 APO endpoint contract values match the C\+\+ headers'
+    }
+
+    It "rejects a changed APO contract value <Key>" -ForEach @(
+        @{ Key = 'EQ_PREMIX_GUID'; Before = 'EACD2258'; After = 'EACD2259' }
+        @{ Key = 'FX_SFX'; Before = '},5"'; After = '},99"' }
+        @{ Key = 'MMDEVICES_ROOT'; Before = 'MMDevices'; After = 'ChangedDevices' }
+        @{ Key = 'CHILD_APO_ROOT'; Before = 'Child APOs'; After = 'Changed APOs' }
+    ) {
+        $root = New-FixtureRepo -CommonSources @('FilterEngine.cpp') -EditorSources @('../FilterEngine.cpp')
+        Add-ApoContractFixture -Root $root
+        $module = Join-Path $root '.github/scripts/ApoEndpointHarness.psm1'
+        $text = [System.IO.File]::ReadAllText($module).Replace($Before, $After)
+        [System.IO.File]::WriteAllText($module, $text)
+        $result = Invoke-SourceSync -RepoRoot $root
+
+        $result.ExitCode | Should -Not -Be 0
+        $result.Output | Should -Match ([regex]::Escape("APO endpoint contract $Key differs"))
+    }
+
+    It "rejects a missing C++ APO contract declaration" {
+        $root = New-FixtureRepo -CommonSources @('FilterEngine.cpp') -EditorSources @('../FilterEngine.cpp')
+        Add-ApoContractFixture -Root $root
+        $header = Join-Path $root 'devices/DeviceAPOInfoKeys.h'
+        $text = [System.IO.File]::ReadAllText($header).Replace('sfxGuidValueName', 'renamedGuidValueName')
+        [System.IO.File]::WriteAllText($header, $text)
+        $result = Invoke-SourceSync -RepoRoot $root
+
+        $result.ExitCode | Should -Not -Be 0
+        $result.Output | Should -Match 'Cannot extract APO contract declaration sfxGuidValueName'
+    }
+
     It "passes when Editor.pro carries every engine source Common.vcxproj compiles" {
         $root = New-FixtureRepo `
             -CommonSources @('FilterEngine.cpp', 'filters/BiQuadFilter.cpp', 'services/logging/Logging.cpp') `
@@ -318,6 +364,132 @@ Describe "Test-SourceSync.ps1" {
         $result = Invoke-SourceSync -RepoRoot $root
         $result.ExitCode | Should -Be 0
         $result.Output | Should -Match "All 2 EAPO_\* environment variables"
+    }
+
+    It "recognises the environment read <Read>" -ForEach @(
+        @{ Read = '_wdupenv_s(&buffer, &length, L"EAPO_XT_HIDDEN");' }
+        @{ Read = '_dupenv_s(&buffer, &length, "EAPO_XT_HIDDEN");' }
+        @{ Read = 'GetEnvironmentVariableA("EAPO_XT_HIDDEN", buffer, 32);' }
+        @{ Read = 'GetEnvironmentVariableW(L"EAPO_XT_HIDDEN", buffer, 32);' }
+        @{ Read = 'GetEnvironmentVariable(L"EAPO_XT_HIDDEN", buffer, 32);' }
+        @{ Read = 'pathutil::environmentVariable (L"EAPO_XT_HIDDEN");' }
+        @{ Read = 'qEnvironmentVariable("EAPO_XT_HIDDEN");' }
+        @{ Read = 'qEnvironmentVariableIsSet("EAPO_XT_HIDDEN");' }
+        @{ Read = 'qEnvironmentVariableIsEmpty("EAPO_XT_HIDDEN");' }
+        @{ Read = 'qEnvironmentVariableIntValue("EAPO_XT_HIDDEN", &ok);' }
+        @{ Read = 'qgetenv("EAPO_XT_HIDDEN");' }
+        @{ Read = '_wgetenv(L"EAPO_XT_HIDDEN");' }
+        @{ Read = 'getenv("EAPO_XT_HIDDEN");' }
+        @{ Read = 'ConfigFileReference::target(L"", L"\"%EAPO_XT_HIDDEN%\"");' }
+    ) {
+        $root = New-FixtureRepo -CommonSources @('FilterEngine.cpp') -EditorSources @('../FilterEngine.cpp')
+        New-Item -ItemType Directory -Path (Join-Path $root 'docs') -Force | Out-Null
+        $doc = Join-Path $root 'docs' 'EnvironmentVariables.md'
+        [System.IO.File]::WriteAllText($doc, '# Environment variables')
+        [System.IO.File]::WriteAllText((Join-Path $root 'FilterEngine.cpp'), $Read)
+        $result = Invoke-SourceSync -RepoRoot $root
+
+        $result.ExitCode | Should -Not -Be 0
+        $result.Output | Should -Match 'reads EAPO_XT_HIDDEN'
+
+        [System.IO.File]::WriteAllText($doc, '- `EAPO_XT_HIDDEN` - listed.')
+        $result = Invoke-SourceSync -RepoRoot $root
+        $result.ExitCode | Should -Be 0
+        $result.Output | Should -Match 'All 1 EAPO_\* environment variables'
+    }
+
+    It "checks PowerShell environment reads in <Script>" -ForEach @(
+        @{ Script = 'local.ps1'; Read = '$value = $env:EAPO_SCRIPT_ONLY' }
+        @{ Script = '.github/scripts/Read.ps1'; Read = 'Write-Host "$env:EAPO_SCRIPT_ONLY"' }
+        @{ Script = '.github/scripts/nested/Read.psm1'; Read = '$value = ${env:EAPO_SCRIPT_ONLY}' }
+        @{ Script = '.github/scripts/Read.ps1'; Read = '$env:EAPO_SCRIPT_ONLY += "suffix"' }
+        @{ Script = '.github/scripts/Read.ps1'; Read = '$env:EAPO_SCRIPT_ONLY = $env:EAPO_SCRIPT_ONLY' }
+    ) {
+        $root = New-FixtureRepo -CommonSources @('FilterEngine.cpp') -EditorSources @('../FilterEngine.cpp')
+        New-Item -ItemType Directory -Path (Join-Path $root 'docs') -Force | Out-Null
+        $doc = Join-Path $root 'docs' 'EnvironmentVariables.md'
+        [System.IO.File]::WriteAllText($doc, '# Environment variables')
+        $path = Join-Path $root $Script
+        New-Item -ItemType Directory -Path (Split-Path -Parent $path) -Force | Out-Null
+        [System.IO.File]::WriteAllText($path, $Read)
+        $result = Invoke-SourceSync -RepoRoot $root
+
+        $result.ExitCode | Should -Not -Be 0
+        $result.Output | Should -Match 'reads EAPO_SCRIPT_ONLY'
+
+        [System.IO.File]::WriteAllText($doc, '- `EAPO_SCRIPT_ONLY` - listed.')
+        $result = Invoke-SourceSync -RepoRoot $root
+        $result.ExitCode | Should -Be 0
+    }
+
+    It "does not count assignments, comments, literal strings or standard PowerShell variables as reads" {
+        $root = New-FixtureRepo -CommonSources @('FilterEngine.cpp') -EditorSources @('../FilterEngine.cpp')
+        New-Item -ItemType Directory -Path (Join-Path $root 'docs') -Force | Out-Null
+        [System.IO.File]::WriteAllText((Join-Path $root 'docs' 'EnvironmentVariables.md'), '# Environment variables')
+        [System.IO.File]::WriteAllText((Join-Path $root 'local.ps1'), @'
+$env:EAPO_WRITE_ONLY = 'value'
+# $env:EAPO_COMMENT
+$text = '$env:EAPO_LITERAL'
+$value = "$env:PATH;$env:TEMP;$env:GITHUB_WORKSPACE;$env:RUNNER_TEMP"
+'@)
+        $result = Invoke-SourceSync -RepoRoot $root
+
+        $result.ExitCode | Should -Be 0
+        $result.Output | Should -Match 'All 0 EAPO_\* environment variables'
+    }
+
+    It "rejects a documented variable with no reader even if a script writes it" {
+        $root = New-FixtureRepo -CommonSources @('FilterEngine.cpp') -EditorSources @('../FilterEngine.cpp')
+        New-Item -ItemType Directory -Path (Join-Path $root 'docs') -Force | Out-Null
+        [System.IO.File]::WriteAllText((Join-Path $root 'docs' 'EnvironmentVariables.md'), '- `EAPO_REMOVED` - stale.')
+        [System.IO.File]::WriteAllText((Join-Path $root 'local.ps1'), '$env:EAPO_REMOVED = "value"')
+        $result = Invoke-SourceSync -RepoRoot $root
+
+        $result.ExitCode | Should -Not -Be 0
+        $result.Output | Should -Match 'lists EAPO_REMOVED, but no source or script reads it'
+    }
+
+    It "does not treat C++ setters or commented-out reads as readers" {
+        $root = New-FixtureRepo -CommonSources @('FilterEngine.cpp') -EditorSources @('../FilterEngine.cpp')
+        New-Item -ItemType Directory -Path (Join-Path $root 'docs') -Force | Out-Null
+        [System.IO.File]::WriteAllText((Join-Path $root 'docs' 'EnvironmentVariables.md'), '- `EAPO_REMOVED` - stale.')
+        [System.IO.File]::WriteAllText((Join-Path $root 'FilterEngine.cpp'), @'
+// getenv("EAPO_REMOVED");
+/* ConfigFileReference::target(L"", L"%EAPO_REMOVED%"); */
+SetEnvironmentVariableW(L"EAPO_REMOVED", L"value");
+_wputenv_s(L"EAPO_REMOVED", L"value");
+qputenv("EAPO_REMOVED", "value");
+'@)
+        $result = Invoke-SourceSync -RepoRoot $root
+
+        $result.ExitCode | Should -Not -Be 0
+        $result.Output | Should -Match 'lists EAPO_REMOVED, but no source or script reads it'
+    }
+
+    It "keeps scripts outside the root and .github/scripts out of the scan" {
+        $root = New-FixtureRepo -CommonSources @('FilterEngine.cpp') -EditorSources @('../FilterEngine.cpp')
+        New-Item -ItemType Directory -Path (Join-Path $root 'docs'), (Join-Path $root 'tools') -Force | Out-Null
+        [System.IO.File]::WriteAllText((Join-Path $root 'docs' 'EnvironmentVariables.md'), '# Environment variables')
+        [System.IO.File]::WriteAllText((Join-Path $root 'tools' 'fixture.ps1'), '$value = $env:EAPO_OUTSIDE')
+        $result = Invoke-SourceSync -RepoRoot $root
+
+        $result.ExitCode | Should -Be 0
+        $result.Output | Should -Match 'All 0 EAPO_\* environment variables'
+    }
+
+    It "counts the CodeQL model-pack read only in its owning workflow" {
+        $root = New-FixtureRepo -CommonSources @('FilterEngine.cpp') -EditorSources @('../FilterEngine.cpp')
+        New-Item -ItemType Directory -Path (Join-Path $root 'docs'), (Join-Path $root '.github' 'workflows') -Force | Out-Null
+        [System.IO.File]::WriteAllText((Join-Path $root 'docs' 'EnvironmentVariables.md'), '- `EAPO_CODEQL_MODEL_PACK` - workflow-only.')
+        $workflow = Join-Path $root '.github' 'workflows' 'codeql.yml'
+        [System.IO.File]::WriteAllText($workflow, 'value: "${{ env.EAPO_CODEQL_MODEL_PACK }}"')
+        $result = Invoke-SourceSync -RepoRoot $root
+        $result.ExitCode | Should -Be 0
+
+        [System.IO.File]::WriteAllText($workflow, 'EAPO_CODEQL_MODEL_PACK: set-only')
+        $result = Invoke-SourceSync -RepoRoot $root
+        $result.ExitCode | Should -Not -Be 0
+        $result.Output | Should -Match 'lists EAPO_CODEQL_MODEL_PACK, but no source or script reads it'
     }
 
     It "fails on a second licence header or a second SPDX licence in one source" {

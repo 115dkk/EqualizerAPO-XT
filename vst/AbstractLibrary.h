@@ -28,15 +28,24 @@
 class AbstractLibrary
 {
 public:
-	static const int FILE_NOT_FOUND = -1;
-	static const int LOADING_FAILED = -2;
-	static const int FUNCTIONS_MISSING = -3;
-	static const int WRONG_ARCHITECTURE = -4;
+	enum class InitializeResult
+	{
+		AlreadyLoaded = 0,
+		Loaded = 1,
+		FileNotFound = -1,
+		LoadingFailed = -2,
+		FunctionsMissing = -3,
+		WrongArchitecture = -4
+	};
+	static bool succeeded(InitializeResult result)
+	{
+		return result == InitializeResult::Loaded || result == InitializeResult::AlreadyLoaded;
+	}
 
 	virtual ~AbstractLibrary();
 
-	int initialize();
-	int initialize(const JudgedPath& path);
+	InitializeResult initialize();
+	InitializeResult initialize(const JudgedPath& path);
 	bool isLoaded() const;
 	// The UI thread must never block on initMutex while a worker holds it for
 	// seconds inside a plug-in load.
@@ -52,7 +61,7 @@ public:
 
 protected:
 	virtual bool loadFunctions() = 0;
-	virtual int customInitialize();
+	virtual InitializeResult customInitialize();
 	virtual void customUninitialize() noexcept;
 
 	winutil::UniqueModule module;

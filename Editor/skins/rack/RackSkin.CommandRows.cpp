@@ -85,7 +85,7 @@ void RackSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWid
 	if (header != nullptr && header->layout() != nullptr)
 	{
 		const int right = RackSkinDetail::EarWidth + 6
-			+ (info.type == QStringLiteral("vst") ? int(RackSkinDetail::NameplateWidth) + 14 : 0);
+			+ (info.kind() == FilterCardKind::Vst ? int(RackSkinDetail::NameplateWidth) + 14 : 0);
 		header->layout()->setContentsMargins(RackSkinDetail::EarWidth + 6, 4, right, 4);
 	}
 	// Only the modern card's body stack is inset; body-only consultations
@@ -124,7 +124,7 @@ void RackSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWid
 void RackSkin::paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info, const SkinTokens& tokens) const
 {
 	// Blank lines are gaps in the rack, not units: no faceplate.
-	if (info.type == QLatin1String("spacer"))
+	if (info.kind() == FilterCardKind::Spacer)
 		return;
 
 	const bool dark = skinIsDark(tokens);
@@ -158,9 +158,9 @@ void RackSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Comma
 
 	// Per-type finish: Include units wear patchbay black, VST units a warm
 	// charcoal; filters keep the bare aluminium.
-	if (info.type == QLatin1String("include"))
+	if (info.kind() == FilterCardKind::Include)
 		painter.fillRect(r, RackPalette::shadow(dark ? 64 : 28));
-	else if (info.type == QLatin1String("vst"))
+	else if (info.kind() == FilterCardKind::Vst)
 		painter.fillRect(r, RackPalette::VstUnitFinish(dark));
 
 	// Horizontal brushing grain, seeded per unit so two stacked units never
@@ -227,7 +227,7 @@ void RackSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Comma
 		RackSkinDetail::paintLed(painter, QPointF(r.left() + 10, r.top() + 31.5), 2.4, QColor(tokens.accent), info.selected, dark);
 
 	// Include: patchbay insert jacks on the right ear.
-	if (info.type == QLatin1String("include"))
+	if (info.kind() == FilterCardKind::Include)
 	{
 		RackSkinDetail::paintJack(painter, QPointF(r.right() - 10, r.top() + 21), dark);
 		if (r.height() >= 46)
@@ -236,7 +236,7 @@ void RackSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Comma
 
 	// VST: riveted brass brand nameplate right of the control strip. The
 	// header layout reserves this area (see RackSkin::prepareCommandRow).
-	if (info.type == QLatin1String("vst") && r.width() >= 320)
+	if (info.kind() == FilterCardKind::Vst && r.width() >= 320)
 	{
 		const QRectF plateRect(rightEar.left() - 8 - RackSkinDetail::NameplateWidth,
 			r.top() + (tokens.rowHeight - RackSkinDetail::NameplateHeight) / 2.0, RackSkinDetail::NameplateWidth, RackSkinDetail::NameplateHeight);
@@ -304,7 +304,7 @@ void RackSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Comma
 		// fit, steps the size down, then the tracking. Every other
 		// designation keeps the 9 px face and is left off when it does not
 		// fit.
-		if (info.type == QLatin1String("channel"))
+		if (info.kind() == FilterCardKind::Channel)
 		{
 			earFont.setPixelSize(8);
 			while (QFontMetricsF(earFont).horizontalAdvance(label) > run && earFont.pixelSize() > 5)

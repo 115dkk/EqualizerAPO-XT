@@ -25,9 +25,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)] [string] $WorkspaceRoot,
-    [Parameter(Mandatory)]
-    [ValidateSet("selftest-vst", "skin-gallery", "skin-switch", "analysis-layout", "plugin-load", "card-move", "card-selection", "power-toggle", "routing-edit", "close-save", "close-save-sweep", "vst-untouched", "frame-hittest")]
-    [string] $Gate,
+    [Parameter(Mandatory)] [string] $Gate,
     [string] $Platform = "x64",
     # Where deps\ lives; a git worktree has none of its own. Defaults to the
     # workspace root, which is the layout CI and setup-build.ps1 create.
@@ -165,11 +163,17 @@ $gates = @{
     }
 }
 
+if (-not $gates.ContainsKey($Gate)) {
+    $validGates = @($gates.Keys | Sort-Object)
+    throw "Unknown Editor offscreen gate '$Gate'. Valid gates: $($validGates -join ', ')"
+}
+
 $spec = $gates[$Gate]
 $plan = [pscustomobject]@{
-    Gate       = $Gate
-    EditorExe  = $editorExe
-    Arguments  = @($spec.Arguments)
+    Gate        = $Gate
+    EditorExe   = $editorExe
+    Arguments   = @($spec.Arguments)
+    EditorFlags = @($spec.Arguments | Where-Object { $_ -is [string] -and $_.StartsWith("--") })
     ExtraEnv   = $spec.ExtraEnv
     LogPath    = $spec.LogPath
     PostChecks = @($spec.PostChecks)
@@ -206,6 +210,18 @@ Copy-Item $plan.VelopackDllSource -Destination (Join-Path $buildDir "velopack_li
 # full Qt install: windeployqt deploys only qwindows next to Editor.exe, and
 # the deployed Qt6Core.dll wins the DLL search, so without this the offscreen
 # plugin fails to load and Qt parks a fatal-error dialog forever.
+# A fresh shell on a prepared checkout has neither the dependency paths nor
+# QT_ROOT; without them the Editor exits 0xC0000135 (a DLL it cannot find).
+# Derive both from the checkout, as Build-Solution.ps1 does.
+if (-not $env:FFTW_LIB -and (Test-Path (Join-Path $DepsRoot "deps"))) {
+    & (Join-Path $PSScriptRoot "Initialize-DepsEnvironment.ps1") -DepsPath (Join-Path $DepsRoot "deps") | Out-Null
+}
+if (-not $env:QT_ROOT) {
+    Import-Module (Join-Path $PSScriptRoot "Provisioning.psm1") -Force
+    $gateManifest = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot "..\simd-variants.psd1")
+    $gateVariant = Resolve-BuildVariant -Manifest $gateManifest -Platform $Platform -Simd ""
+    $env:QT_ROOT = Join-Path $DepsRoot "Qt\$($gateManifest.Shared.QtVersion)\$($gateVariant.QtArchDir)"
+}
 $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:QT_ROOT\bin;$env:PATH"
 $env:QT_QPA_PLATFORM_PLUGIN_PATH = "$env:QT_ROOT\plugins\platforms"
 $env:QT_QPA_PLATFORM = $plan.QtPlatform

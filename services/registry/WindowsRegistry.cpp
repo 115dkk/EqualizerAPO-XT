@@ -23,11 +23,16 @@
 #include "text/WideString.h"
 #include "platform/windows/Win32Error.h"
 #include <fstream>
+#include <filesystem>
 #include <sstream>
 #include <vector>
 #include <ObjBase.h>
 #include <aclapi.h>
 #include <authz.h>
+#include <sddl.h>
+#include <shlobj.h>
+#include "platform/windows/WindowsPath.h"
+#include "services/security/ConfigDirectoryHandles.h"
 
 #include "services/registry/WindowsRegistry.h"
 #include "platform/windows/Win32Resource.h"
@@ -439,8 +444,93 @@ bool WindowsRegistry::keyEmpty(const wstring& key) const
 	return keyCount == 0 && valueCount == 0;
 }
 
+std::wstring WindowsRegistry::deviceBackupDirectory(const std::wstring& programData)
+{
+	return pathutil::joinPath(programData, L"EqualizerAPO-XT\\Backups");
+}
+
+std::wstring WindowsRegistry::deviceBackupDirectory()
+{
+	winutil::UniqueCoTaskMemPtr<wchar_t> path;
+	if (FAILED(SHGetKnownFolderPath(FOLDERID_ProgramData, 0, nullptr, path.put())) || !path)
+		throw RegistryError(L"Could not locate ProgramData for the device backup");
+	return deviceBackupDirectory(path.get());
+}
+
+winutil::UniqueHandle WindowsRegistry::openBackupDirectory(const std::wstring& path)
+{
+	// ProgramData permits Users to create children. Supply a protected DACL
+	// at creation, and refuse pre-created writable folders rather than repair
+	// an attacker's tree (audit #467 TD-17, testBackupDirectoryHasOnlyAdministrativeWriters).
+	winutil::UniqueLocalPtr<void> descriptor;
+	if (!ConvertStringSecurityDescriptorToSecurityDescriptorW(
+		L"D:P(A;OICI;FA;;;BA)(A;OICI;FA;;;SY)(A;OICI;FRFX;;;BU)", SDDL_REVISION_1, descriptor.put(), nullptr))
+		throw RegistryError(L"Could not build backup directory security descriptor");
+	SECURITY_ATTRIBUTES attributes = {sizeof(attributes), descriptor.get(), FALSE};
+	const bool created = CreateDirectoryW(path.c_str(), &attributes) != FALSE;
+	if (!created && GetLastError() != ERROR_ALREADY_EXISTS)
+		throw RegistryError(L"Could not create backup directory " + path);
+	std::wstring reason;
+	auto handle = configaccess::openDirectory(path, READ_CONTROL, FILE_SHARE_READ | FILE_SHARE_WRITE, reason);
+	if (!handle)
+		throw RegistryError(L"Unsafe backup directory: " + reason);
+	winutil::UniqueLocalPtr<void> actual;
+	PACL acl = nullptr;
+	PSID owner = nullptr;
+	if (GetSecurityInfo(handle.get(), SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION,
+		&owner, nullptr, &acl, nullptr, actual.put()) != ERROR_SUCCESS || !acl)
+		throw RegistryError(L"Cannot inspect backup directory security: " + path);
+	auto admins = winutil::sids::sidFromSddl(L"S-1-5-32-544");
+	auto system = winutil::sids::sidFromSddl(L"S-1-5-18");
+	auto users = winutil::sids::sidFromSddl(winutil::sids::users);
+	if (!admins || !system || !users || (!created && (!owner
+		|| (!EqualSid(owner, admins.get()) && !EqualSid(owner, system.get())))))
+		throw RegistryError(L"Backup directory has an untrusted owner: " + path);
+	SECURITY_DESCRIPTOR_CONTROL control = 0;
+	DWORD revision = 0;
+	if (!GetSecurityDescriptorControl(actual.get(), &control, &revision) || !(control & SE_DACL_PROTECTED))
+		throw RegistryError(L"Backup directory inherits an untrusted DACL: " + path);
+	for (DWORD i = 0; i < acl->AceCount; ++i)
+	{
+		void* raw = nullptr;
+		if (!GetAce(acl, i, &raw))
+			throw RegistryError(L"Cannot inspect backup directory ACE: " + path);
+		const auto* ace = static_cast<const ACCESS_ALLOWED_ACE*>(raw);
+		if (ace->Header.AceType != ACCESS_ALLOWED_ACE_TYPE
+			|| (!EqualSid(const_cast<DWORD*>(&ace->SidStart), admins.get())
+				&& !EqualSid(const_cast<DWORD*>(&ace->SidStart), system.get())
+				&& !(EqualSid(const_cast<DWORD*>(&ace->SidStart), users.get())
+					&& (ace->Mask & ~(FILE_GENERIC_READ | FILE_GENERIC_EXECUTE)) == 0)))
+			throw RegistryError(L"Backup directory grants write access outside Administrators and SYSTEM: " + path);
+	}
+	return handle;
+}
+
 void WindowsRegistry::saveToFile(const wstring& key, const vector<wstring>& valuenames, const wstring& filepath)
 {
+	// Keep ancestor handles alive until the stream below closes; a smaller
+	// scope would allow a directory replacement during export (audit #467 TD-17).
+	// cppcheck-suppress variableScope
+	std::vector<winutil::UniqueHandle> directoryPins;
+	const auto backupDir = deviceBackupDirectory();
+	if (configaccess::samePath(std::filesystem::path(filepath).parent_path().wstring(), backupDir))
+	{
+		const auto productDir = std::filesystem::path(backupDir).parent_path().wstring();
+		const auto programData = configaccess::fullLocalPath(std::filesystem::path(productDir).parent_path().wstring());
+		if (programData.empty())
+			throw RegistryError(L"Backup directory is not on a local drive");
+		for (const auto& ancestor : configaccess::directoryChain(programData))
+		{
+			std::wstring reason;
+			auto pin = configaccess::openDirectory(ancestor, FILE_READ_ATTRIBUTES,
+				FILE_SHARE_READ | FILE_SHARE_WRITE, reason);
+			if (!pin)
+				throw RegistryError(L"Cannot pin backup ancestor: " + reason);
+			directoryPins.push_back(std::move(pin));
+		}
+		directoryPins.push_back(openBackupDirectory(productDir));
+		directoryPins.push_back(openBackupDirectory(backupDir));
+	}
 	wofstream stream(filepath);
 	if (!stream.good())
 		throw RegistryError(L"Error while opening file " + filepath + L" for writing");

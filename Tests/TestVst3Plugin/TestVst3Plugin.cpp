@@ -52,6 +52,16 @@ bool moduleInitialized = false;
 bool rejectComponentInitialize = false;
 bool componentStateUnavailable = false;
 bool upmixerMode = false;
+bool declaredUpmixerMode = false;
+bool rejectSetupMode = false;
+bool rejectActiveMode = false;
+bool rejectProcessingMode = false;
+bool faultProcessMode = false;
+bool faultActiveMode = false;
+bool faultStateMode = false;
+bool refuseStateMode = false;
+bool fullNameMode = false;
+bool floatOnlyMode = false;
 bool surround41Mode = false;
 bool surround41CineOnlyMode = false;
 bool busInfoMismatchMode = false;
@@ -463,8 +473,23 @@ public:
 	{
 		return type == kAudio && index == 0 ? kResultOk : kInvalidArgument;
 	}
-	tresult PLUGIN_API setActive(TBool state) override { active.store(state != 0); return kResultOk; }
-	tresult PLUGIN_API setState(IBStream* stream) override { return readState(stream, state) ? kResultOk : kResultFalse; }
+	tresult PLUGIN_API setActive(TBool state) override
+	{
+		if (state && faultActiveMode)
+			RaiseException(EXCEPTION_ACCESS_VIOLATION, 0, 0, nullptr);
+		if (state && rejectActiveMode)
+			return kResultFalse;
+		active.store(state != 0);
+		return kResultOk;
+	}
+	tresult PLUGIN_API setState(IBStream* stream) override
+	{
+		if (faultStateMode)
+			RaiseException(EXCEPTION_ACCESS_VIOLATION, 0, 0, nullptr);
+		if (refuseStateMode)
+			return kResultFalse;
+		return readState(stream, state) ? kResultOk : kResultFalse;
+	}
 	tresult PLUGIN_API getState(IBStream* stream) override
 	{
 		return componentStateUnavailable ? kNotImplemented : writeState(stream, state);
@@ -488,9 +513,17 @@ public:
 		return size == kSample32 || (supportsDouble && size == kSample64) ? kResultOk : kResultFalse;
 	}
 	uint32 PLUGIN_API getLatencySamples() override { return 0; }
-	tresult PLUGIN_API setupProcessing(ProcessSetup& newSetup) override { setup = newSetup; return kResultOk; }
+	tresult PLUGIN_API setupProcessing(ProcessSetup& newSetup) override
+	{
+		if (rejectSetupMode)
+			return kResultFalse;
+		setup = newSetup;
+		return kResultOk;
+	}
 	tresult PLUGIN_API setProcessing(TBool state) override
 	{
+		if (state && rejectProcessingMode)
+			return kResultFalse;
 		if (state != 0 && idleFlushInProgress.load())
 		{
 			HANDLE violation = OpenEventW(EVENT_MODIFY_STATE, FALSE, testvst3::concurrentProcessingEvent);
@@ -505,6 +538,8 @@ public:
 	}
 	tresult PLUGIN_API process(ProcessData& data) override
 	{
+		if (faultProcessMode)
+			RaiseException(EXCEPTION_ACCESS_VIOLATION, 0, 0, nullptr);
 		if (!processing.load() || data.symbolicSampleSize != setup.symbolicSampleSize)
 			return kResultFalse;
 		if (ignoreParameterFlushMode && data.numSamples == 0)
@@ -713,7 +748,15 @@ public:
 	{
 		return type == kAudio && index >= 0 && index < audioBusCount() ? kResultOk : kInvalidArgument;
 	}
-	tresult PLUGIN_API setActive(TBool state) override { active.store(state != 0); return kResultOk; }
+	tresult PLUGIN_API setActive(TBool state) override
+	{
+		if (state && faultActiveMode)
+			RaiseException(EXCEPTION_ACCESS_VIOLATION, 0, 0, nullptr);
+		if (state && rejectActiveMode)
+			return kResultFalse;
+		active.store(state != 0);
+		return kResultOk;
+	}
 	tresult PLUGIN_API setState(IBStream*) override { return kResultOk; }
 	tresult PLUGIN_API getState(IBStream* stream) override
 	{
@@ -779,14 +822,24 @@ public:
 	// any: the host test sees whether the compensation delays the channels
 	// the plugin did not write, and only those.
 	uint32 PLUGIN_API getLatencySamples() override { return latency512Mode ? 512 : 0; }
-	tresult PLUGIN_API setupProcessing(ProcessSetup& newSetup) override { setup = newSetup; return kResultOk; }
+	tresult PLUGIN_API setupProcessing(ProcessSetup& newSetup) override
+	{
+		if (rejectSetupMode)
+			return kResultFalse;
+		setup = newSetup;
+		return kResultOk;
+	}
 	tresult PLUGIN_API setProcessing(TBool state) override
 	{
+		if (state && rejectProcessingMode)
+			return kResultFalse;
 		processing.store(state != 0);
 		return active.load() ? kResultOk : kResultFalse;
 	}
 	tresult PLUGIN_API process(ProcessData& data) override
 	{
+		if (faultProcessMode)
+			RaiseException(EXCEPTION_ACCESS_VIOLATION, 0, 0, nullptr);
 		if (data.numSamples == 0 && data.numInputs == 0 && data.numOutputs == 0)
 			return kResultOk;
 		if (!processing.load() || data.symbolicSampleSize != setup.symbolicSampleSize)
@@ -902,7 +955,15 @@ public:
 	{
 		return type == kAudio && index == 0 ? kResultOk : kInvalidArgument;
 	}
-	tresult PLUGIN_API setActive(TBool state) override { active.store(state != 0); return kResultOk; }
+	tresult PLUGIN_API setActive(TBool state) override
+	{
+		if (state && faultActiveMode)
+			RaiseException(EXCEPTION_ACCESS_VIOLATION, 0, 0, nullptr);
+		if (state && rejectActiveMode)
+			return kResultFalse;
+		active.store(state != 0);
+		return kResultOk;
+	}
 	tresult PLUGIN_API setState(IBStream*) override { return kResultOk; }
 	tresult PLUGIN_API getState(IBStream* stream) override
 	{
@@ -939,14 +1000,24 @@ public:
 		return size == kSample32 || size == kSample64 ? kResultOk : kResultFalse;
 	}
 	uint32 PLUGIN_API getLatencySamples() override { return 0; }
-	tresult PLUGIN_API setupProcessing(ProcessSetup& newSetup) override { setup = newSetup; return kResultOk; }
+	tresult PLUGIN_API setupProcessing(ProcessSetup& newSetup) override
+	{
+		if (rejectSetupMode)
+			return kResultFalse;
+		setup = newSetup;
+		return kResultOk;
+	}
 	tresult PLUGIN_API setProcessing(TBool state) override
 	{
+		if (state && rejectProcessingMode)
+			return kResultFalse;
 		processing.store(state != 0);
 		return active.load() ? kResultOk : kResultFalse;
 	}
 	tresult PLUGIN_API process(ProcessData& data) override
 	{
+		if (faultProcessMode)
+			RaiseException(EXCEPTION_ACCESS_VIOLATION, 0, 0, nullptr);
 		if (data.numSamples == 0 && data.numInputs == 0 && data.numOutputs == 0)
 			return kResultOk;
 		if (!processing.load() || data.symbolicSampleSize != setup.symbolicSampleSize)
@@ -1181,6 +1252,8 @@ public:
 		*info = index == 0
 			? PClassInfo(componentCid, PClassInfo::kManyInstances, kVstAudioEffectClass, "TestVst3Plugin")
 			: PClassInfo(controllerCid, PClassInfo::kManyInstances, kVstComponentControllerClass, "TestVst3Controller");
+		if (fullNameMode)
+			std::memset(info->name, 'N', sizeof(info->name));
 		return kResultOk;
 	}
 	tresult PLUGIN_API createInstance(FIDString cid, FIDString iid, void** obj) override
@@ -1204,7 +1277,7 @@ public:
 					ComponentScenario::combinedDouble,
 					ComponentScenario::splitFloat
 				};
-				instance = static_cast<IComponent*>(new TestComponent(scenarios[componentInstanceCount++ % 3]));
+				instance = static_cast<IComponent*>(new TestComponent(floatOnlyMode ? ComponentScenario::splitFloat : scenarios[componentInstanceCount++ % 3]));
 			}
 		}
 		else if (FUnknownPrivate::iidEqual(cid, controllerCid))
@@ -1225,8 +1298,8 @@ public:
 		copyTuid(info->cid, basic.cid);
 		info->cardinality = basic.cardinality;
 		strcpy_s(info->category, basic.category);
-		strcpy_s(info->name, basic.name);
-		strcpy_s(info->subCategories, index == 0 ? "Fx" : "");
+		std::memcpy(info->name, basic.name, sizeof(info->name));
+		strcpy_s(info->subCategories, index == 0 ? (declaredUpmixerMode ? "Fx|Up-Downmix" : "Fx") : "");
 		strcpy_s(info->vendor, "EqualizerAPO-XT Tests");
 		strcpy_s(info->version, "1.0.0");
 		strcpy_s(info->sdkVersion, "VST 3.8");
@@ -1264,6 +1337,9 @@ public:
 			hostContextSet = hostContextSet
 				&& host->createInstance(messageIid, messageIid, reinterpret_cast<void**>(&message)) == kResultOk
 				&& message != nullptr && message->getAttributes() != nullptr;
+			// createInstance writes message through the void** above, which
+			// cppcheck 2.22 does not follow.
+			// cppcheck-suppress knownConditionTrueFalse
 			if (message != nullptr)
 				message->release();
 			host->release();
@@ -1288,25 +1364,39 @@ extern "C" __declspec(dllexport) bool InitDll()
 	if (GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
 		reinterpret_cast<LPCWSTR>(&InitDll), &currentModule) != FALSE)
 		GetModuleFileNameW(currentModule, modulePath, MAX_PATH);
-	if (wcsstr(modulePath, L"RejectInit.vst3") != nullptr)
+	// Parent directory names are not fixture selectors. testModeUsesModuleFilenameOnly
+	// reproduces a RejectInit name in a parent directory (audit #467 TD-68).
+	const wchar_t* separator = wcsrchr(modulePath, L'\\');
+	const wchar_t* moduleName = separator != nullptr ? separator + 1 : modulePath;
+	faultProcessMode = wcsstr(moduleName, testvst3::mode::faultProcess) != nullptr;
+	faultActiveMode = wcsstr(moduleName, testvst3::mode::faultActive) != nullptr;
+	faultStateMode = wcsstr(moduleName, testvst3::mode::faultState) != nullptr;
+	refuseStateMode = wcsstr(moduleName, testvst3::mode::refuseState) != nullptr;
+	fullNameMode = wcsstr(moduleName, testvst3::mode::fullName) != nullptr;
+	floatOnlyMode = wcsstr(moduleName, testvst3::mode::floatOnly) != nullptr;
+	if (wcsstr(moduleName, testvst3::mode::rejectInit) != nullptr)
 		return false;
 	wcscpy_s(loadedModulePath, modulePath);
-	rejectComponentInitialize = wcsstr(modulePath, L"RejectComponent.vst3") != nullptr;
-	componentStateUnavailable = wcsstr(modulePath, L"ControllerState.vst3") != nullptr;
-	busInfoMismatchMode = wcsstr(modulePath, L"BusInfoMismatch.vst3") != nullptr;
-	upmixerMode = wcsstr(modulePath, L"Upmixer.vst3") != nullptr || busInfoMismatchMode;
-	surround41CineOnlyMode = wcsstr(modulePath, L"Surround41CineOnly.vst3") != nullptr;
-	surround41Mode = wcsstr(modulePath, L"Surround41.vst3") != nullptr || surround41CineOnlyMode;
-	toneGeneratorMode = wcsstr(modulePath, L"ToneGenerator.vst3") != nullptr;
-	latency512Mode = wcsstr(modulePath, L"LatencyUpmixer.vst3") != nullptr;
-	auxBusMode = wcsstr(modulePath, L"AuxBusUpmixer.vst3") != nullptr;
+	rejectComponentInitialize = wcsstr(moduleName, testvst3::mode::rejectComponent) != nullptr;
+	componentStateUnavailable = wcsstr(moduleName, testvst3::mode::controllerState) != nullptr;
+	busInfoMismatchMode = wcsstr(moduleName, testvst3::mode::busInfoMismatch) != nullptr;
+	upmixerMode = wcsstr(moduleName, testvst3::mode::upmixer) != nullptr || busInfoMismatchMode;
+	declaredUpmixerMode = wcsstr(moduleName, testvst3::mode::declaredUpmixer) != nullptr;
+	rejectSetupMode = wcsstr(moduleName, testvst3::mode::rejectSetup) != nullptr;
+	rejectActiveMode = wcsstr(moduleName, testvst3::mode::rejectActive) != nullptr;
+	rejectProcessingMode = wcsstr(moduleName, testvst3::mode::rejectProcessing) != nullptr;
+	surround41CineOnlyMode = wcsstr(moduleName, testvst3::mode::surround41CineOnly) != nullptr;
+	surround41Mode = wcsstr(moduleName, testvst3::mode::surround41) != nullptr || surround41CineOnlyMode;
+	toneGeneratorMode = wcsstr(moduleName, testvst3::mode::toneGenerator) != nullptr;
+	latency512Mode = wcsstr(moduleName, testvst3::mode::latencyUpmixer) != nullptr;
+	auxBusMode = wcsstr(moduleName, testvst3::mode::auxBusUpmixer) != nullptr;
 	auxBusPartialProposalCount.store(0);
-	retainHandlerMode = wcsstr(modulePath, L"RetainHandler.vst3") != nullptr;
+	retainHandlerMode = wcsstr(moduleName, testvst3::mode::retainHandler) != nullptr;
 	wchar_t hostContextMode[32] = {};
 	hostContextNotImplementedMode = GetEnvironmentVariableW(L"EAPO_TEST_VST3_HOST_CONTEXT", hostContextMode,
 		static_cast<DWORD>(sizeof(hostContextMode) / sizeof(hostContextMode[0]))) > 0
 		&& wcscmp(hostContextMode, L"notimpl") == 0;
-	ignoreParameterFlushMode = wcsstr(modulePath, L"IgnoreParameterFlush.vst3") != nullptr;
+	ignoreParameterFlushMode = wcsstr(moduleName, testvst3::mode::ignoreParameterFlush) != nullptr;
 	upmixerProcessCount.store(0);
 	surround41AcceptedOutputArrangement.store(
 		static_cast<unsigned long long>(SpeakerArr::kStereo));

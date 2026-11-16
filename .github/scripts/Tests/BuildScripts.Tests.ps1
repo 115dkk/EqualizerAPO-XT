@@ -82,6 +82,80 @@ Describe "extracted build script decisions" {
         )
     }
 
+    It "prepares a workspace in one order for every caller, from the manifest's primary variant" {
+        # TECH_DEBT_AUDIT TD-35 (audit #467): the order was written in four
+        # YAML places and setup-build.ps1, each a little different.
+        $script = Join-Path $PSScriptRoot "..\Initialize-Workspace.ps1"
+        $manifest = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot "..\..\simd-variants.psd1")
+        $primary = @($manifest.Variants | Where-Object { $_.Primary })[0]
+
+        $default = & $script -WorkspaceRoot $root -PlanOnly
+        $default.Simd | Should -Be $primary.Simd
+        $default.Steps | Should -Be @("DownloadDependencies", "ClonePinnedSources", "InstallQt", "ExportEnvironment")
+        $default.QtRoot | Should -Be (Join-Path $root "Qt\$($manifest.Shared.QtVersion)\msvc2022_64")
+
+        (& $script -WorkspaceRoot $root -Simd sse2 -PlanOnly).Steps |
+            Should -Be @("DownloadDependencies", "BuildVcpkgDependencies", "ClonePinnedSources", "InstallQt", "ExportEnvironment")
+        (& $script -WorkspaceRoot $root -SkipQt -PlanOnly).Steps |
+            Should -Be @("DownloadDependencies", "ClonePinnedSources", "ExportEnvironment")
+        $arm = & $script -WorkspaceRoot $root -Platform ARM64 -Simd avx2 -PlanOnly
+        $arm.Simd | Should -Be "neon"
+        $arm.QtRoot | Should -BeLike "*msvc2022_arm64"
+    }
+
+    It "reads the arch flags and the channel from the manifest when a caller names only the variant" {
+        $solution = Join-Path $PSScriptRoot "..\Build-Solution.ps1"
+        $qt = Join-Path $PSScriptRoot "..\Build-QtApps.ps1"
+        # No -SimdVariant at all: the primary variant, which owns the installer.
+        (& $solution -WorkspaceRoot $root -Platform x64 -PlanOnly).InstallerProject | Should -Be "Installer\Installer.vcxproj"
+        (& $qt -WorkspaceRoot $root -Platform x64 -PlanOnly).UpdateChannel | Should -Be "x64-avx2"
+        (& $qt -WorkspaceRoot $root -Platform x64 -SimdVariant avx512 -PlanOnly).UpdateChannel | Should -Be "x64-avx512"
+
+        Import-Module (Join-Path $PSScriptRoot "..\Provisioning.psm1") -Force
+        $manifest = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot "..\..\simd-variants.psd1")
+        # The x64 baseline passes NotSet so a build never falls back to the
+        # projects' local AVX2 default; ARM64 passes no override.
+        (Resolve-BuildVariant -Manifest $manifest -Platform x64 -Simd sse2).MsBuildArchFlag | Should -Be "NotSet"
+        (Resolve-BuildVariant -Manifest $manifest -Platform x64 -Simd sse2).QtArchFlag | Should -Be ""
+        (Resolve-BuildVariant -Manifest $manifest -Platform ARM64 -Simd "").MsBuildArchFlag | Should -Be ""
+        (Resolve-BuildVariant -Manifest $manifest -Platform x64 -Simd avx10_1).QtArchFlag | Should -Be "/arch:AVX10.1"
+        { Resolve-BuildVariant -Manifest $manifest -Platform x64 -Simd nonsense } | Should -Throw
+
+        # EditorLogicTests' fallback Qt location is the one setup-build.ps1
+        # installs to (TECH_DEBT_AUDIT TD-71).
+        $project = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot "..\..\..\Tests\EditorLogicTests\EditorLogicTests.vcxproj")
+        $project | Should -Match ([regex]::Escape("..\..\Qt\$($manifest.Shared.QtVersion)\msvc2022_64</QT_ROOT>"))
+    }
+
+    It "plans the installer gate: update over the previous release, self-test, remove, fresh install, self-test, remove" {
+        # TECH_DEBT_AUDIT TD-04 (audit #467): every Velopack hook runs on a
+        # runner before a release is published.
+        $script = Join-Path $PSScriptRoot "..\Invoke-InstallerGate.ps1"
+        $plan = & $script -WorkspaceRoot $root -PackVersion 9.9.9 -Repository owner/repo -PlanOnly
+        $plan.Channel | Should -Be "x64-avx2"
+        $plan.Rounds | Should -Be @("update", "selftest", "remove", "fresh", "selftest", "remove")
+        (& $script -WorkspaceRoot $root -PackVersion 9.9.9 -Repository owner/repo -SkipUpdateRound -PlanOnly).Rounds |
+            Should -Be @("fresh", "selftest", "remove")
+
+        Import-Module (Join-Path $PSScriptRoot "..\ReleaseAssets.psm1") -Force
+        $plan.SetupPath | Should -Be (Join-Path $root "velopack-output\x64-avx2\$(Get-SetupAssetName -Channel 'x64-avx2')")
+        $plan.InstallRoot | Should -Be (Join-Path $env:LOCALAPPDATA (Get-VelopackPackId -Channel "x64-avx2"))
+        # What only a packed install has: Qt plugins under qt\, the sample
+        # config, and the repair script the diagnosis points to.
+        $plan.RequiredFiles | Should -Contain "qt\platforms\qwindows.dll"
+        $plan.RequiredFiles | Should -Contain "config\config.txt"
+        $plan.RequiredFiles | Should -Contain "tools\Repair-EqualizerAPO.ps1"
+        # Both APO classes, by the CLSIDs the harness shares with the C++ headers.
+        $plan.ClassKeys | Should -HaveCount 2
+        $plan.ClassKeys | Should -Contain "HKLM:\SOFTWARE\Classes\CLSID\{EACD2258-FCAC-4FF4-B36D-419E924A6D79}\InprocServer32"
+
+        # build.yml runs it as its own job and create-release waits for it.
+        $workflow = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot "..\..\workflows\build.yml")
+        $workflow | Should -Match "(?m)^  installer-gate:"
+        $workflow | Should -Match "needs\.installer-gate\.result == 'success'"
+        ([regex]::Matches($workflow, "Invoke-InstallerGate\.ps1")).Count | Should -BeGreaterOrEqual 2
+    }
+
     It "runs the ASIO suite where the variant executes and lists the ASIO projects" {
         $avx2 = & (Join-Path $PSScriptRoot "..\Build-Solution.ps1") `
             -WorkspaceRoot $root -Platform x64 -SimdVariant avx2 -ArchFlag AdvancedVectorExtensions2 -PlanOnly
@@ -135,6 +209,12 @@ Describe "extracted build script decisions" {
         }
         $memcheck.Suites | Should -Contain "AudioRegressionTests"
         $memcheck.SuiteArguments["AudioRegressionTests"] | Should -Contain "--ref-dir"
+        $solution.SuiteTimeoutMinutes | Should -Be 15
+        $memcheck.SuiteTimeoutMinutes | Should -Be 30
+        (& (Join-Path $PSScriptRoot "..\Build-Solution.ps1") -WorkspaceRoot $root -Platform x64 `
+            -SimdVariant avx2 -SuiteTimeoutMinutes 9 -PlanOnly).SuiteTimeoutMinutes | Should -Be 9
+        (& (Join-Path $PSScriptRoot "..\Invoke-MemcheckTests.ps1") -WorkspaceRoot $root `
+            -SuiteTimeoutMinutes 18 -PlanOnly).SuiteTimeoutMinutes | Should -Be 18
     }
 
     It "lists the capture probes so every leg builds them" {
@@ -236,6 +316,12 @@ Describe "extracted build script decisions" {
         $plan = & (Join-Path $PSScriptRoot "..\Package-Artifacts.ps1") `
             -WorkspaceRoot $root -Platform x64 -SimdVariant avx2 -PlanOnly
         $plan.RequiredFiles | Should -Contain "EqualizerAPO\x64\Release\EqualizerAPO.dll"
+        # Editor.exe --diagnose sends the user to this script; it has to be in
+        # the installed folder (audit #467, maintainer question 11).
+        $plan.SupportScripts | Should -Contain "tools\Repair-EqualizerAPO.ps1"
+        foreach ($script in $plan.SupportScripts) {
+            Join-Path $PSScriptRoot "..\..\..\$script" | Should -Exist
+        }
         $plan.ExcludedExtensions | Should -Contain ".pdb"
         $plan.ExcludedExtensions | Should -Contain ".obj"
     }

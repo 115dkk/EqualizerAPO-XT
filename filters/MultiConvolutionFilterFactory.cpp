@@ -22,6 +22,7 @@
 #include "MultiConvolutionCommand.h"
 #include "ConfigFileReference.h"
 #include "MultiConvolutionFilter.h"
+#include "IrCache.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "MultiConvolutionFilterFactory.h"
 
@@ -35,19 +36,19 @@ using std::wstring;
 LineOutcome MultiConvolutionFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	MultiConvolutionCommand cmd;
-	if (command != L"MultiConvolution")
-		return {};
 	if (!MultiConvolutionCommand::parse(command, parameters, cmd))
+	{
+		if (command != L"MultiConvolution")
+			return LineOutcome::notMine();
 		return LineOutcome::malformed(L"expected channel mappings followed by the path of an impulse response file");
-
-	if (cmd.path.empty())
-		return LineOutcome::malformed(L"expected the path of an impulse response file after the mappings");
+	}
 
 	ConfigFileReference::Target file = ConfigFileReference::target(configPath, cmd.path);
-	if (!file.refusal.empty())
-		return LineOutcome::malformed(file.refusal);
-	if (file.path.empty())
-		return LineOutcome::malformed(L"the impulse response file \"" + cmd.path + L"\" was not found");
+	if (!file)
+		return LineOutcome::malformed(file.problem(L"impulse response file"));
+	const wstring sizeProblem = validateIrSize(file.path);
+	if (!sizeProblem.empty())
+		return LineOutcome::malformed(sizeProblem);
 
 	return LineOutcome::produced(singleFilter(makeFilter<MultiConvolutionFilter>(cmd.mappings, std::move(file.path))));
 }

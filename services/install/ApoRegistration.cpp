@@ -39,6 +39,7 @@
 #include "platform/windows/WindowsPath.h"
 #include "services/security/AudioEngineAccess.h"
 #include "devices/DeviceAPOInfo.h"
+#include "devices/DeviceEnumeration.h"
 #include "devices/DeviceAPOInfoKeys.h"
 #include "devices/AsioAPOInfo.h"
 #include "devices/VoicemeeterAPOInfo.h"
@@ -114,7 +115,7 @@ ApoRegistration::Result ApoRegistration::writeAppInstallRegistry(
 	try
 	{
 		registry.createKey(kRegPath);
-		registry.writeValue(kRegPath, L"InstallPath", installDir);
+		registry.writeValue(kRegPath, installPathValueName, installDir);
 
 		// Audit #250 F034: an ignored failure here used to report Success
 		// while ConfigPath pointed at a directory that does not exist -
@@ -126,11 +127,11 @@ ApoRegistration::Result ApoRegistration::writeAppInstallRegistry(
 			return Result::RegistryFailed;
 		}
 
-		if (!configDir.empty() && !registry.valueExists(kRegPath, L"ConfigPath"))
-			registry.writeValue(kRegPath, L"ConfigPath", configDir);
+		if (!configDir.empty() && !registry.valueExists(kRegPath, configPathValueName))
+			registry.writeValue(kRegPath, configPathValueName, configDir);
 
-		if (!registry.valueExists(kRegPath, L"EnableTrace"))
-			registry.writeValue(kRegPath, L"EnableTrace", L"false");
+		if (!registry.valueExists(kRegPath, enableTraceValueName))
+			registry.writeValue(kRegPath, enableTraceValueName, L"false");
 
 		checkProtectedAudioDG(true, registry);
 	}
@@ -147,7 +148,7 @@ ApoRegistration::Result ApoRegistration::writeMissingConfigFallback(const std::w
 {
 	try
 	{
-		if (registry.keyExists(kRegPath) && registry.valueExists(kRegPath, L"ConfigPath"))
+		if (registry.keyExists(kRegPath) && registry.valueExists(kRegPath, configPathValueName))
 			return Result::Success;
 	}
 	catch (const RegistryError& e)
@@ -173,7 +174,7 @@ void ApoRegistration::cleanupAppRegistry(const std::wstring& installDir, IRegist
 		logLine(L"WARN", L"Failed to clean DisableProtectedAudioDG: %s", e.getMessage().c_str());
 	}
 
-	for (const wchar_t* valueName : {L"InstallPath", L"MigratedFrom", L"MigrationStamp", L"MigratedFiles"})
+	for (const wchar_t* valueName : {installPathValueName, migratedFromValueName, migrationStampValueName, migratedFilesValueName})
 	{
 		try
 		{
@@ -188,11 +189,11 @@ void ApoRegistration::cleanupAppRegistry(const std::wstring& installDir, IRegist
 
 	try
 	{
-		if (registry.keyExists(kRegPath) && registry.valueExists(kRegPath, L"ConfigPath"))
+		if (registry.keyExists(kRegPath) && registry.valueExists(kRegPath, configPathValueName))
 		{
-			const std::wstring configPath = registry.readValue(kRegPath, L"ConfigPath");
+			const std::wstring configPath = registry.readValue(kRegPath, configPathValueName);
 			if (isPathUnderDirectory(configPath, installDir))
-				registry.deleteValue(kRegPath, L"ConfigPath");
+				registry.deleteValue(kRegPath, configPathValueName);
 		}
 	}
 	catch (const RegistryError& e)
@@ -224,6 +225,20 @@ void ApoRegistration::cleanupAppRegistry(const std::wstring& installDir, IRegist
 	{
 		logLine(L"WARN", L"Failed to remove EqualizerAPO registry key: %s", e.getMessage().c_str());
 	}
+}
+
+ApoRegistration::Result ApoRegistration::finishInstallWithAccess(const std::function<bool()>& grantAccess,
+	const std::function<Result()>& finish)
+{
+	const bool accessGranted = grantAccess();
+	const Result result = finish();
+	return result == Result::Success && !accessGranted ? Result::AclFailed : result;
+}
+
+bool ApoRegistration::hookCanComplete(Result result)
+{
+	// Report ACL failures without aborting a package install (audit #467 TD-18).
+	return result == Result::Success || result == Result::AclFailed;
 }
 
 ApoRegistration::Result ApoRegistration::install(const std::wstring& installDir, const std::wstring& configDir,
@@ -261,32 +276,32 @@ ApoRegistration::Result ApoRegistration::install(const std::wstring& installDir,
 	// elevated and installed into that account's own LocalAppData. This assumes
 	// that tree is not writable by another standard user. A prepared hand-off
 	// skips both recursive grants below; its user already applied the ACEs.
-	if (shouldGrantInstallAccess(installGrantsPrepared))
-	{
-		AudioEngineAccess::Grant installGrant = AudioEngineAccess::grantEngineAccess(installDir);
+	return finishInstallWithAccess([&] {
+		if (!shouldGrantInstallAccess(installGrantsPrepared))
+			return true;
+		const AudioEngineAccess::Grant installGrant = AudioEngineAccess::grantEngineAccess(installDir);
 		if (installGrant != AudioEngineAccess::Grant::Applied)
 			logLine(L"WARN", L"Install root access grant %s, continuing", AudioEngineAccess::describe(installGrant));
-	}
+		// secureConfigDir already logs which grant failed. Attempt both grants.
+		const bool configGranted = secureConfigDir(joinPath(installDir, L"config"));
+		return installGrant == AudioEngineAccess::Grant::Applied && configGranted;
+	}, [&] {
+		// Refresh even an existing registration: a new DLL may publish new COM
+		// metadata while keeping the same file path and CLSIDs.
+		const auto verification = verify(registry, true, true);
+		if (verification.repairResult != Result::Success)
+			return verification.repairResult;
 
-	// Refresh even an existing registration: a new DLL may publish new COM
-	// metadata while keeping the same file path and CLSIDs.
-	const auto verification = verify(registry, true, true);
-	if (verification.repairResult != Result::Success)
-		return verification.repairResult;
+		// Velopack's vpk pack only emits a shortcut for --mainExe (Editor.exe).
+		// DeviceSelector is the elevated companion that performs per-device APO
+		// install/uninstall, so it needs its own Start Menu entry. We create it
+		// here in the install hook because the hook runs elevated and can write
+		// to the Public Programs folder.
+		if (!StartMenuShortcuts::create(installDir))
+			logLine(L"WARN", L"Failed to create DeviceSelector start menu shortcut");
 
-	// secureConfigDir already logs which grant failed.
-	if (shouldGrantInstallAccess(installGrantsPrepared))
-		secureConfigDir(joinPath(installDir, L"config"));
-
-	// Velopack's vpk pack only emits a shortcut for --mainExe (Editor.exe).
-	// DeviceSelector is the elevated companion that performs per-device APO
-	// install/uninstall, so it needs its own Start Menu entry. We create it
-	// here in the install hook because the hook runs elevated and can write
-	// to the Public Programs folder.
-	if (!StartMenuShortcuts::create(installDir))
-		logLine(L"WARN", L"Failed to create DeviceSelector start menu shortcut");
-
-	return Result::Success;
+		return Result::Success;
+	});
 }
 
 ApoRegistration::Result ApoRegistration::uninstall(const std::wstring& installDir,
@@ -357,8 +372,8 @@ ApoRegistration::Result ApoRegistration::uninstallAllDeviceApos(const DeviceUnin
 			errorSink(message);
 		result = Result::DeviceUninstallFailed;
 	};
-	// One item at a time, each in its own try: DeviceAPOInfo::loadAllInfos
-	// would throw for the whole list on the first unreadable endpoint.
+	// Enumeration reports unreadable entries; each uninstall still has its own
+	// guard so a failed operation does not stop the sweep (audit #467 TD-34).
 	auto guarded = [&](const std::wstring& what, const auto& step) {
 		try
 		{
@@ -383,39 +398,16 @@ ApoRegistration::Result ApoRegistration::uninstallAllDeviceApos(const DeviceUnin
 	for (int inputPass = 0; inputPass <= 1; inputPass++)
 	{
 		const bool input = inputPass == 1;
-		const std::wstring defaultDeviceGuid = probe.defaultEndpointGuid(input);
-
-		// A direction with no endpoint key at all has nothing to clean.
-		const std::wstring endpointRoot = input ? captureKeyPath : renderKeyPath;
-		std::vector<std::wstring> endpointGuids;
-		guarded(L"", [&] {
-			if (registry.keyExists(endpointRoot))
-				endpointGuids = registry.enumSubKeys(endpointRoot);
-		});
-		for (const std::wstring& endpointGuid : endpointGuids)
+		const auto enumeration = DeviceEnumeration::enumerate(input, registry, probe,
+			DeviceEnumeration::Unreadable::ReportFailure, DeviceEnumeration::Purpose::Cleanup);
+		for (const auto& failure : enumeration.failures)
+			report(failure);
+		for (const auto& info : enumeration.infos)
 		{
-			guarded(endpointGuid, [&] {
-				DeviceAPOInfo info(registry, probe);
-				if (info.load(endpointGuid, defaultDeviceGuid))
-				{
-					// As loadAllInfos does: the selection starts as what is
-					// installed.
-					info.getSelectedInstallState() = info.getCurrentInstallState();
-					uninstallInfo(endpointGuid, info);
-				}
-			});
+			const std::wstring label = info->kind() == AbstractAPOInfo::Kind::Endpoint ? info->getDeviceGuid()
+				: info->kind() == AbstractAPOInfo::Kind::Voicemeeter ? L"Voicemeeter" : L"ASIO";
+			uninstallInfo(label, *info);
 		}
-
-		std::vector<std::shared_ptr<AbstractAPOInfo>> others;
-		size_t voicemeeterCount = 0;
-		if (!input)
-		{
-			guarded(L"Voicemeeter", [&] { VoicemeeterAPOInfo::prependInfos(others, registry); });
-			voicemeeterCount = others.size();
-		}
-		guarded(L"ASIO", [&] { AsioAPOInfo::appendInfos(others, input, registry); });
-		for (size_t i = 0; i < others.size(); ++i)
-			uninstallInfo(i < voicemeeterCount ? L"Voicemeeter" : L"ASIO", *others[i]);
 	}
 	logLine(L"INFO", L"Uninstall sweep removed %u item(s); %u failure(s)", removedItems, failures);
 	return result;
@@ -426,6 +418,32 @@ ApoRegistration::Result ApoRegistration::uninstallAllDeviceApos(const DeviceUnin
 // (AudioSrv start) = 10 s. Updated uses 6 s; obsolete uses 3 s. Do not
 // give each service in a restart its own deadline. The hook's shared 12 s
 // budget also caps these waits when ACL subprocesses already used time.
+ApoRegistration::Result ApoRegistration::runWithAudioStopped(const std::function<bool()>& stop,
+	const std::function<Result()>& step, const std::function<bool()>& start)
+{
+	bool restartOwed = stop();
+	auto restart = [&] {
+		if (!restartOwed)
+			return true;
+		restartOwed = false;
+		try
+		{
+			return start();
+		}
+		catch (...)
+		{
+			logLine(L"ERR", L"Restarting AudioSrv after the update failed");
+			return false;
+		}
+	};
+	// A throwing install/migration step must not leave AudioSrv stopped
+	// (audit #467 TD-13, testUpdateHookRestartsAfterThrow).
+	SCOPE_EXIT{ restart(); };
+	const Result result = step();
+	const bool restarted = restart();
+	return !restarted && hookCanComplete(result) ? Result::ServiceFailed : result;
+}
+
 bool ApoRegistration::stopAudioService()
 {
 	bool active = false;
@@ -495,8 +513,8 @@ ApoRegistration::Verification ApoRegistration::verify(IRegistry& registry, bool 
 		&& registry.keyExists(clsidKeyPath L"\\" + post);
 	if (fix && (!result.registration || refreshRegistration))
 	{
-		const auto directory = registry.valueExists(APP_REGPATH, L"InstallPath")
-			? registry.readValue(APP_REGPATH, L"InstallPath") : pathutil::exeDirectory();
+		const auto directory = registry.valueExists(APP_REGPATH, installPathValueName)
+			? registry.readValue(APP_REGPATH, installPathValueName) : pathutil::exeDirectory();
 		if (directory.empty())
 		{
 			logLine(L"ERR", L"Could not resolve the APO installation directory");

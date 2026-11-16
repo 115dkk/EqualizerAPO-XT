@@ -129,35 +129,14 @@ jobs:
         with:
           msbuild-architecture: x64
 
-      - name: Download dependency release assets
+      # The same preparation every other job uses, without Qt: the probe
+      # links only the engine. It used to restate the steps and had dropped
+      # the ASIO SDK along the way (TECH_DEBT_AUDIT TD-35).
+      - name: Prepare the workspace (dependencies, environment)
         shell: pwsh
         run: |
-          $ErrorActionPreference = "Stop"
-          Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
-          $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
-          $downloads = Get-DependencyDownloadSpec -Manifest $manifest `
-            -DepsRoot "${{ github.workspace }}\deps" `
-            -Platform "x64" `
-            -Simd "avx2"
-          Invoke-DependencyDownload -Downloads $downloads `
-            -DownloadRoot "${{ github.workspace }}\deps\_downloads"
-
-      # The header-only source dependencies (TCLAP, VST3 pluginterfaces,
-      # Highway), cloned at the manifest's tags and held to its commits by the
-      # same routine setup-build.ps1 uses: a retargeted upstream tag fails here
-      # instead of changing what ships (audit #348 TD-26).
-      - name: Clone pinned source dependencies
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
-          Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
-          $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
-          Install-PinnedSourceDependency -Manifest $manifest -DepsRoot "${{ github.workspace }}\deps"
-
-      - name: Setup dependency structures
-        shell: pwsh
-        run: |
-          .\.github\scripts\Initialize-DepsEnvironment.ps1 -DepsPath "${{ github.workspace }}\deps"
+          & "${{ github.workspace }}\.github\scripts\Initialize-Workspace.ps1" `
+            -WorkspaceRoot "${{ github.workspace }}" -SkipQt
 
       # Only the engine libraries, the probe, and the in-repo fixture plugin -
       # no Qt, no APO DLL, no installer. The probe project itself is

@@ -12,10 +12,15 @@
 */
 
 #include <cmath>
+#include <cstdint>
 #include <cstdlib>
+#include <fstream>
 #include <stdexcept>
 #include <string>
 #include <vector>
+
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 
 #include "engine/ConfigLoadTrace.h"
 #include "engine/IFilterFactory.h"
@@ -89,6 +94,57 @@ struct TraceCollector : ConfigLoadTraceSink
 		entries.push_back(entry);
 	}
 };
+
+void writeUint32(std::ofstream& stream, uint32_t value)
+{
+	const char bytes[4] = {
+		static_cast<char>(value & 0xff),
+		static_cast<char>((value >> 8) & 0xff),
+		static_cast<char>((value >> 16) & 0xff),
+		static_cast<char>((value >> 24) & 0xff)
+	};
+	stream.write(bytes, sizeof(bytes));
+}
+
+std::wstring writeOversizedWavHeader(test::Harness& harness, const std::wstring& fileName)
+{
+	const std::wstring path = testDirectory() + L"\\" + fileName;
+	trackWrittenFile(path);
+	std::ofstream stream(path, std::ios::binary | std::ios::trunc);
+	stream.write("RIFF", 4);
+	writeUint32(stream, UINT32_MAX);
+	stream.write("WAVEfmt ", 8);
+	writeUint32(stream, 16);
+	const char format[16] = {
+		3, 0, 1, 0,                         // IEEE float, mono
+		static_cast<char>(0x80), static_cast<char>(0xbb), 0, 0, // 48000 Hz
+		0, static_cast<char>(0xdc), 5, 0,   // 48000 * 8 bytes/s
+		8, 0, 64, 0
+	};
+	stream.write(format, sizeof(format));
+	stream.write("data", 4);
+	writeUint32(stream, UINT32_MAX - 7);
+	stream.close();
+	harness.require(static_cast<bool>(stream), "the oversized WAV header is written");
+	return path;
+}
+
+std::wstring writeSparseFile(test::Harness& harness, const std::wstring& fileName,
+	uint64_t size)
+{
+	const std::wstring path = testDirectory() + L"\\" + fileName;
+	trackWrittenFile(path);
+	HANDLE file = CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
+		FILE_ATTRIBUTE_NORMAL, nullptr);
+	harness.require(file != INVALID_HANDLE_VALUE, "the oversized configuration file opens");
+	LARGE_INTEGER end = {};
+	end.QuadPart = static_cast<LONGLONG>(size);
+	const bool sized = SetFilePointerEx(file, end, nullptr, FILE_BEGIN) != FALSE
+		&& SetEndOfFile(file) != FALSE;
+	CloseHandle(file);
+	harness.require(sized, "the oversized configuration file is sized");
+	return path;
+}
 }
 
 // The engine reports per-line facts while loading
@@ -156,6 +212,166 @@ TEST_CASE(EngineOrchestrationTests, testConfigLoadTrace)
 	engine.loadConfig(configPath);
 	harness.expectEqual((int)collector.entries.size(), (int)entries.size(),
 		"detached sink receives nothing on a reload");
+}
+
+// Audit #467 TD-45: the load session, rather than three factories, owns the
+// Device/If/Stage gates. Every executable line hidden by one gate is traced.
+TEST_CASE(EngineOrchestrationTests, testNestedDeviceAndIfGatesTraceEverySkippedLine)
+{
+	const std::wstring configPath = writeConfig(harness, L"nested-device-if-gates.txt",
+		"If: 1\n"                         // line 1: open If
+		"Device: never-matches\n"         // line 2: close Device inside If
+		"Preamp: -40 dB\n"                // line 3: skipped by Device
+		"Device: all\n"                   // line 4: reopen Device
+		"EndIf:\n"                        // line 5: close If
+		"Device: never-matches\n"         // line 6: close Device
+		"If: 1\n"                         // line 7: skipped inside Device
+		"Preamp: -40 dB\n"                // line 8: skipped inside Device
+		"Device: all\n"                   // line 9: reopen Device
+		"Preamp: -6.0206 dB\n");          // line 10: executes
+	TraceCollector collector;
+	FilterEngine engine;
+	engine.setLoadTraceSink(&collector);
+	initializeEngine(engine, 48000, 2, 480, configPath);
+
+	std::vector<int> skippedLines;
+	std::vector<int> conditionLines;
+	for (const ConfigLoadTraceEntry& entry : collector.entries)
+	{
+		if (entry.kind == ConfigLoadTraceEntry::Kind::SkippedLine)
+			skippedLines.push_back(entry.line);
+		if (entry.kind == ConfigLoadTraceEntry::Kind::Condition)
+			conditionLines.push_back(entry.line);
+	}
+	harness.requireEqual(skippedLines.size(), size_t(3),
+		"Device and If nesting reports each skipped executable line");
+	harness.expectEqual(skippedLines[0], 3, "Device inside If skips its Preamp line");
+	harness.expectEqual(skippedLines[1], 7, "If inside a closed Device is itself skipped");
+	harness.expectEqual(skippedLines[2], 8, "the body inside the closed Device is skipped");
+	harness.requireEqual(conditionLines.size(), size_t(1),
+		"the If hidden by Device was not evaluated");
+	harness.expectEqual(conditionLines[0], 1, "only the open Device's If is evaluated");
+
+	const std::vector<float> output = processDcBlock(engine, 1.0f, 1.0f, 480);
+	harness.expectNear(output[(size_t)478 * 2], 0.5f, 1e-3f,
+		"only the Preamp below the reopened Device runs");
+}
+
+// An included file gets the caller's gate state, but changes it makes do not
+// leak back. Device's historical end-of-file reset had this exact result.
+TEST_CASE(EngineOrchestrationTests, testIncludedStageAndDeviceGatesAreRestoredAndTraced)
+{
+	const std::wstring stagePath = writeConfig(harness, L"included-stage-gate.txt",
+		"Stage: pre-mix\n"
+		"Preamp: -40 dB\n");
+	const std::wstring devicePath = writeConfig(harness, L"included-device-gate.txt",
+		"Device: never-matches\n"
+		"Preamp: -40 dB\n");
+	const std::wstring configPath = writeConfig(harness, L"included-gates.txt",
+		"Include: included-stage-gate.txt\n"
+		"Include: included-device-gate.txt\n"
+		"Preamp: -6.0206 dB\n");
+	TraceCollector collector;
+	FilterEngine engine;
+	engine.setLoadTraceSink(&collector);
+	initializeEngine(engine, 48000, 2, 480, configPath);
+
+	bool stageSkipped = false;
+	bool deviceSkipped = false;
+	for (const ConfigLoadTraceEntry& entry : collector.entries)
+	{
+		if (entry.kind != ConfigLoadTraceEntry::Kind::SkippedLine || entry.line != 2)
+			continue;
+		stageSkipped = stageSkipped || entry.file == stagePath;
+		deviceSkipped = deviceSkipped || entry.file == devicePath;
+	}
+	harness.expect(stageSkipped, "a line under Stage in an Include is traced as skipped");
+	harness.expect(deviceSkipped, "a line under Device in an Include is traced as skipped");
+
+	const std::vector<float> output = processDcBlock(engine, 1.0f, 1.0f, 480);
+	harness.expectNear(output[(size_t)478 * 2], 0.5f, 1e-3f,
+		"Device and Stage changes inside included files do not affect the outer file");
+}
+
+TEST_CASE(EngineOrchestrationTests, testUnclosedIfInIncludeIsReportedAndDoesNotLeak)
+{
+	const std::wstring includedPath = writeConfig(harness, L"included-unclosed-if.txt",
+		"If: 1\n"
+		"Preamp: -6.0206 dB\n");
+	const std::wstring configPath = writeConfig(harness, L"include-unclosed-if.txt",
+		"Include: included-unclosed-if.txt\n"
+		"Preamp: -6.0206 dB\n");
+	TraceCollector collector;
+	FilterEngine engine;
+	engine.setLoadTraceSink(&collector);
+	initializeEngine(engine, 48000, 2, 480, configPath);
+
+	const ConfigLoadTraceEntry* unclosed = nullptr;
+	for (const ConfigLoadTraceEntry& entry : collector.entries)
+	{
+		if (entry.kind == ConfigLoadTraceEntry::Kind::ParseError
+			&& entry.text.find(L"no EndIf") != std::wstring::npos)
+		{
+			unclosed = &entry;
+		}
+	}
+	harness.require(unclosed != nullptr, "an If left open in an included file is reported");
+	harness.expect(unclosed->file == includedPath, "the unclosed If report names its included file");
+	harness.expectEqual(unclosed->line, 1, "the unclosed If report stays on its opening line");
+
+	const std::vector<float> output = processDcBlock(engine, 1.0f, 1.0f, 480);
+	harness.expectNear(output[(size_t)478 * 2], 0.25f, 1e-3f,
+		"the included If is restored before the outer file continues");
+}
+
+TEST_CASE(EngineOrchestrationTests, testFailedLoadLeavesTheNextLoadWithOpenGates)
+{
+	const std::wstring initial = writeConfig(harness, L"gate-rollback-initial.txt", "# empty\n");
+	const std::wstring failing = writeConfig(harness, L"gate-rollback-failing.txt",
+		"If: 1\n"
+		"EapoTestThrowOnSetup: now\n");
+	const std::wstring next = writeConfig(harness, L"gate-rollback-next.txt",
+		"Preamp: -6.0206 dB\n");
+	FilterEngine engine;
+	initializeEngine(engine, 48000, 2, 480, initial);
+	processDcBlock(engine, 0.0f, 0.0f, 480);
+
+	harness.expectFalse(engine.loadConfig(failing),
+		"a later filter setup failure rolls back the load with an open If");
+	harness.expect(engine.loadConfig(next), "the configuration after the failure loads");
+	const std::vector<float> output = processDcBlock(engine, 1.0f, 1.0f, 480);
+	harness.expectNear(output[(size_t)478 * 2], 0.5f, 1e-3f,
+		"the next load starts with every gate open");
+}
+
+// Audit #467 TD-08: every condition-evaluation failure makes that condition
+// false and malformed, so its body is skipped and its EndIf still closes it.
+TEST_CASE(EngineOrchestrationTests, testBadRegexIfSkipsItsBodyAndKeepsItsEndIf)
+{
+	const std::wstring configPath = writeConfig(harness, L"bad-regex-if.txt",
+		"If: regexSearch(\"[\", \"abc\") != \"\"\n"
+		"Preamp: -40 dB\n"
+		"EndIf:\n");
+	TraceCollector collector;
+	FilterEngine engine;
+	engine.setLoadTraceSink(&collector);
+	initializeEngine(engine, 48000, 2, 480, configPath);
+
+	std::vector<const ConfigLoadTraceEntry*> errors;
+	for (const ConfigLoadTraceEntry& entry : collector.entries)
+	{
+		if (entry.kind == ConfigLoadTraceEntry::Kind::ParseError)
+			errors.push_back(&entry);
+	}
+	harness.requireEqual(errors.size(), size_t(1),
+		"an If with a bad regular expression reports exactly one parse error");
+	harness.expectEqual(errors[0]->line, 1, "the parse error is attached to the If line");
+	harness.expect(errors[0]->text.find(L"EndIf without an If") == std::wstring::npos,
+		"the matching EndIf was incorrectly reported as orphaned");
+
+	const std::vector<float> output = processDcBlock(engine, 1.0f, 1.0f, 480);
+	harness.expectNear(output[(size_t)478 * 2], 1.0f, 1e-6f,
+		"the body of an If whose condition failed to evaluate was applied");
 }
 
 TEST_CASE(EngineOrchestrationTests, testLegacySemicolonMappingsApplyStereoFir)
@@ -273,6 +489,74 @@ TEST_CASE(EngineOrchestrationTests, testParseErrorsAreReportedPerLineAndProseIsN
 	processDcBlock(engine, 0.0f, 0.0f, 512);
 	harness.expect(engine.loadConfig(configPath),
 		"a configuration with eight unusable lines still loads, because the working lines below them have to run");
+}
+
+// Audit #467 TD-11: load-time gains that cannot become finite linear values
+// are malformed, while a runtime IIR overflow silences that block and resets
+// its state so the next block can recover.
+TEST_CASE(EngineOrchestrationTests, testNonFiniteFilterOutputIsRejectedOrRecovered)
+{
+	auto parseErrors = [](const TraceCollector& collector) {
+		std::vector<const ConfigLoadTraceEntry*> result;
+		for (const ConfigLoadTraceEntry& entry : collector.entries)
+		{
+			if (entry.kind == ConfigLoadTraceEntry::Kind::ParseError)
+				result.push_back(&entry);
+		}
+		return result;
+	};
+	auto allFinite = [](const std::vector<float>& samples) {
+		return std::all_of(samples.begin(), samples.end(), [](float sample) {
+			return std::isfinite(sample);
+		});
+	};
+
+	const std::wstring preampPath = writeConfig(harness, L"nonfinite-preamp.txt",
+		"Preamp: 99999 dB\n");
+	TraceCollector preampTrace;
+	FilterEngine preamp;
+	preamp.setLoadTraceSink(&preampTrace);
+	initializeEngine(preamp, 48000, 2, 2048, preampPath);
+	const std::vector<float> preampOutput = processDcBlock(preamp, 1.0f, 1.0f, 2048);
+	const std::vector<const ConfigLoadTraceEntry*> preampErrors = parseErrors(preampTrace);
+	harness.requireEqual(preampErrors.size(), size_t(1),
+		"Preamp outside the accepted dB range reports exactly one parse error");
+	harness.expectEqual(preampErrors[0]->line, 1, "the Preamp parse error is attached to its line");
+	harness.expect(allFinite(preampOutput), "Preamp 99999 dB emitted non-finite samples");
+	harness.expectNear(preampOutput[0], 1.0f, 1e-6f,
+		"a rejected non-finite Preamp changed the signal");
+
+	const std::wstring graphicEqPath = writeConfig(harness, L"nonfinite-graphic-eq.txt",
+		"GraphicEQ: 100 99999; 1000 0\n");
+	TraceCollector graphicEqTrace;
+	FilterEngine graphicEq;
+	graphicEq.setLoadTraceSink(&graphicEqTrace);
+	initializeEngine(graphicEq, 48000, 2, 2048, graphicEqPath);
+	const std::vector<float> graphicEqOutput = processDcBlock(graphicEq, 1.0f, 1.0f, 2048);
+	const std::vector<const ConfigLoadTraceEntry*> graphicEqErrors = parseErrors(graphicEqTrace);
+	harness.requireEqual(graphicEqErrors.size(), size_t(1),
+		"a GraphicEQ gain with non-finite linear value reports exactly one parse error");
+	harness.expectEqual(graphicEqErrors[0]->line, 1,
+		"the GraphicEQ parse error is attached to its line");
+	harness.expect(allFinite(graphicEqOutput), "GraphicEQ with an unbounded gain emitted non-finite samples");
+	harness.expectNear(graphicEqOutput[0], 1.0f, 1e-6f,
+		"a rejected non-finite GraphicEQ changed the signal");
+
+	const std::wstring iirPath = writeConfig(harness, L"nonfinite-iir.txt",
+		"Filter: ON IIR Order 1 Coefficients 1 0 1 -2\n");
+	FilterEngine iir;
+	initializeEngine(iir, 48000, 2, 2048, iirPath);
+	const std::vector<float> overflowingBlock = processDcBlock(iir, 1.0f, 1.0f, 2048);
+	harness.expect(allFinite(overflowingBlock), "an unstable IIR emitted non-finite samples");
+	harness.expect(std::all_of(overflowingBlock.begin(), overflowingBlock.end(), [](float sample) {
+		return sample == 0.0f;
+	}), "the IIR block that overflowed was not replaced with silence");
+
+	const std::vector<float> recoveredBlock = processDcBlock(iir, 0.0f, 0.0f, 16);
+	harness.expect(allFinite(recoveredBlock), "the IIR kept non-finite state after its overflow reset");
+	harness.expect(std::all_of(recoveredBlock.begin(), recoveredBlock.end(), [](float sample) {
+		return sample == 0.0f;
+	}), "the IIR did not recover to finite silence on the next block");
 }
 
 // Notepad's "UTF-8 with BOM" puts EF BB BF before the first command. The
@@ -431,6 +715,117 @@ TEST_CASE(EngineOrchestrationTests, testConfigReferencedRemotePathsAreRefused)
 		"a configuration with refused remote references and working local lines still loads");
 }
 
+// Audit #467 TD-06/TD-07: a local name that resolves but cannot be opened is
+// malformed on its own line. The rest of the configuration still runs.
+TEST_CASE(EngineOrchestrationTests, testMissingReferencedFilesAreReportedAndLoadingContinues)
+{
+	struct MissingReferenceCase
+	{
+		const wchar_t* configName;
+		const wchar_t* missingName;
+		const char* line;
+	};
+	const MissingReferenceCase cases[] = {
+		{L"missing-convolution.txt", L"missing-convolution.wav",
+			"Convolution: missing-convolution.wav\nPreamp: -6.0206 dB\n"},
+		{L"missing-multiconvolution.txt", L"missing-multiconvolution.wav",
+			"MultiConvolution: L=0 missing-multiconvolution.wav\nPreamp: -6.0206 dB\n"},
+		{L"missing-include.txt", L"missing-included.txt",
+			"Include: missing-included.txt\nPreamp: -6.0206 dB\n"}
+	};
+
+	for (const MissingReferenceCase& item : cases)
+	{
+		const std::wstring configPath = writeConfig(harness, item.configName, item.line);
+		TraceCollector collector;
+		FilterEngine engine;
+		engine.setLoadTraceSink(&collector);
+		initializeEngine(engine, 48000, 2, 480, configPath);
+
+		std::vector<const ConfigLoadTraceEntry*> errors;
+		for (const ConfigLoadTraceEntry& entry : collector.entries)
+		{
+			if (entry.kind == ConfigLoadTraceEntry::Kind::ParseError)
+				errors.push_back(&entry);
+		}
+		harness.expectEqual(errors.size(), size_t(1),
+			"a missing referenced file reports exactly one parse error");
+		if (errors.size() == 1)
+		{
+			harness.expectEqual(errors[0]->line, 1,
+				"the missing-file error is attached to its reference line");
+			harness.expect(errors[0]->text.find(item.missingName) != std::wstring::npos,
+				"the missing-file error names the referenced file");
+			harness.expect(errors[0]->text.find(L"(error 2)") != std::wstring::npos,
+				"the missing-file error includes the Win32 code");
+		}
+
+		const std::vector<float> output = processDcBlock(engine, 1.0f, 1.0f, 480);
+		harness.expectNear(output[(size_t)478 * 2], 0.5f, 1e-3f,
+			"a line after the missing reference did not load and run");
+	}
+}
+
+// Audit #467 TD-57: dimensions and file sizes are refused before either
+// reader reserves memory for the contents, and the owning config line gets the
+// file name and declared size in its parse error.
+TEST_CASE(EngineOrchestrationTests, testOversizedImpulseAndConfigurationAreMalformed)
+{
+	const std::wstring wavName = L"oversized-header.wav";
+	writeOversizedWavHeader(harness, wavName);
+	const std::wstring irConfig = writeConfig(harness, L"oversized-ir-config.txt",
+		"Convolution: oversized-header.wav\n"
+		"Preamp: -6.0206 dB\n");
+	TraceCollector irTrace;
+	FilterEngine irEngine;
+	irEngine.setLoadTraceSink(&irTrace);
+	initializeEngine(irEngine, 48000, 2, 480, irConfig);
+
+	const ConfigLoadTraceEntry* irError = nullptr;
+	for (const ConfigLoadTraceEntry& entry : irTrace.entries)
+	{
+		if (entry.kind == ConfigLoadTraceEntry::Kind::ParseError)
+			irError = &entry;
+	}
+	harness.require(irError != nullptr,
+		"an impulse response whose header claims too many samples is malformed");
+	harness.expectEqual(irError->line, 1, "the oversized impulse error is on its line");
+	harness.expect(irError->text.find(wavName) != std::wstring::npos,
+		"the oversized impulse error names the file");
+	harness.expect(irError->text.find(L"samples") != std::wstring::npos,
+		"the oversized impulse error reports its declared sample size");
+	const std::vector<float> irOutput = processDcBlock(irEngine, 1.0f, 1.0f, 480);
+	harness.expectNear(irOutput[(size_t)478 * 2], 0.5f, 1e-3f,
+		"the line after an oversized impulse response still runs");
+
+	constexpr uint64_t configLimit = 16ull * 1024 * 1024;
+	const std::wstring largeName = L"oversized-included.txt";
+	writeSparseFile(harness, largeName, configLimit + 1);
+	const std::wstring outerConfig = writeConfig(harness, L"oversized-include-config.txt",
+		"Include: oversized-included.txt\n"
+		"Preamp: -6.0206 dB\n");
+	TraceCollector configTrace;
+	FilterEngine configEngine;
+	configEngine.setLoadTraceSink(&configTrace);
+	initializeEngine(configEngine, 48000, 2, 480, outerConfig);
+
+	const ConfigLoadTraceEntry* configError = nullptr;
+	for (const ConfigLoadTraceEntry& entry : configTrace.entries)
+	{
+		if (entry.kind == ConfigLoadTraceEntry::Kind::ParseError)
+			configError = &entry;
+	}
+	harness.require(configError != nullptr, "a configuration larger than 16 MiB is malformed");
+	harness.expectEqual(configError->line, 1, "the oversized Include error is on its line");
+	harness.expect(configError->text.find(largeName) != std::wstring::npos,
+		"the oversized configuration error names the file");
+	harness.expect(configError->text.find(L"16777217") != std::wstring::npos,
+		"the oversized configuration error reports its byte size");
+	const std::vector<float> configOutput = processDcBlock(configEngine, 1.0f, 1.0f, 480);
+	harness.expectNear(configOutput[(size_t)478 * 2], 0.5f, 1e-3f,
+		"the line after an oversized Include still runs");
+}
+
 // Audit #348 A1: Include reads its file argument by the rule every file a
 // line names shares, so the quotes and %VARIABLES% Convolution always took
 // work here too, and an Include with nothing after it is reported rather
@@ -462,7 +857,7 @@ TEST_CASE(EngineOrchestrationTests, testIncludeTakesQuotesAndVariables)
 	}
 	harness.requireEqual(errors.size(), size_t(1), "only the empty include is an error");
 	harness.expectEqual(errors[0]->line, 3, "reported on its own line");
-	harness.expect(errors[0]->text.find(L"expected the path of a configuration file") != std::wstring::npos,
+	harness.expect(errors[0]->text.find(L"No configuration file was given") != std::wstring::npos,
 		"as a missing path");
 	_wputenv_s(L"EAPO_XT_TEST_INCLUDE_DIR", L"");
 }

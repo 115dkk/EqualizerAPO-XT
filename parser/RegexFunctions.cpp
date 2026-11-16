@@ -21,6 +21,7 @@
 #include <memory>
 #include <regex>
 
+#include "platform/windows/TextEncoding.h"
 #include "RegexFunctions.h"
 
 using std::make_unique;
@@ -47,19 +48,26 @@ void RegexSearchFunction::Eval(ptr_val_type& ret, const ptr_val_type* arg, int a
 	wstring regexString = arg[0]->GetString();
 	wstring text = arg[1]->GetString();
 
-	wregex regex(regexString);
-	wsmatch match;
-	bool found = regex_search(text, match, regex);
-
-	vector<Value> result;
-	if (found)
+	try
 	{
-		result.reserve(match.size());
-		for (unsigned i = 0; i < match.size(); i++)
-			result.push_back(match.str(i));
-	}
+		wregex regex(regexString);
+		wsmatch match;
+		bool found = regex_search(text, match, regex);
 
-	*ret = result;
+		vector<Value> result;
+		if (found)
+		{
+			result.reserve(match.size());
+			for (unsigned i = 0; i < match.size(); i++)
+				result.push_back(match.str(i));
+		}
+
+		*ret = result;
+	}
+	catch (const std::regex_error& e)
+	{
+		throw ParserError(wintext::toWideString(e.what(), CP_UTF8));
+	}
 }
 
 const char_type* RegexSearchFunction::GetDesc() const
@@ -90,10 +98,17 @@ void RegexReplaceFunction::Eval(ptr_val_type& ret, const ptr_val_type* arg, int 
 	wstring text = arg[1]->GetString();
 	wstring replacement = arg[2]->GetString();
 
-	wregex regex(regexString);
-	wstring result = regex_replace(text, regex, replacement);
+	try
+	{
+		wregex regex(regexString);
+		wstring result = regex_replace(text, regex, replacement);
 
-	*ret = result;
+		*ret = result;
+	}
+	catch (const std::regex_error& e)
+	{
+		throw ParserError(wintext::toWideString(e.what(), CP_UTF8));
+	}
 }
 
 const char_type* RegexReplaceFunction::GetDesc() const

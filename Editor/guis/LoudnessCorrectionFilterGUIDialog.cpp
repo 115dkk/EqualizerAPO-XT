@@ -49,7 +49,10 @@ void LoudnessCorrectionFilterGUIDialog::on_playButton_clicked()
 		on_stopButton_clicked();
 
 	QFile file(":/sounds/pinkNoise.flac");
-	file.open(QIODevice::ReadOnly);
+	// The noise sample is a compiled-in resource; without it there is
+	// nothing to play.
+	if (!file.open(QIODevice::ReadOnly))
+		return;
 	QtSndfileHandle fileHandle(file, SFM_READ);
 
 	buffer.open(QIODevice::WriteOnly);

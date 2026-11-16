@@ -31,6 +31,12 @@ $vst3BundleArch = if ($Platform -eq "ARM64") { "arm64-win" } else { "x86_64-win"
 # The Qt apps ship from their qmake release folders; Collect-Symbols.ps1 reads
 # this list too.
 $qtApps = @("Editor", "DeviceSelector")
+# Editor.exe --diagnose tells a user whose install folder the audio service
+# cannot read to run tools\Repair-EqualizerAPO.ps1
+# (services/diagnostics/InstallDiagnostics.cpp), and tools\README.md pairs it
+# with the diagnose script. Neither was in the installed program folder
+# (audit #467, maintainer question 11), so they ship under tools\.
+$supportScripts = @("tools\Repair-EqualizerAPO.ps1", "tools\Diagnose-EqualizerAPO.ps1")
 # Everything the Qt build leaves in release\ that is not part of the program:
 # object files and symbols, and the precompiled headers, moc/rcc sources and
 # their headers that qmake writes next to the executable. From v2.38.0 to
@@ -49,6 +55,7 @@ $plan = [pscustomobject]@{
     Win32Wrapper = $win32Wrapper
     Vst3PluginModule = $vst3PluginModule
     QtApps = $qtApps
+    SupportScripts = $supportScripts
     ExcludedExtensions = $excludeExtensions
     QtPluginFolders = $qtPluginFolders
 }
@@ -79,6 +86,12 @@ Copy-Item (Join-Path $WorkspaceRoot "deps\libsndfile\build\Release\*.dll") -Dest
 $velopackArch = if ($Platform -eq "ARM64") { "arm64" } else { "x64" }
 Copy-Item (Join-Path $WorkspaceRoot "deps\velopack_libc\lib\velopack_libc_win_${velopackArch}_msvc.dll") `
     -Destination (Join-Path $artifactPath "velopack_libc.dll") -Force
+New-Item -ItemType Directory -Force -Path (Join-Path $artifactPath "tools") | Out-Null
+foreach ($script in $supportScripts) {
+    $source = Join-Path $WorkspaceRoot $script
+    if (-not (Test-Path $source)) { throw "Required file not found: $script" }
+    Copy-Item $source -Destination (Join-Path $artifactPath "tools") -Force
+}
 
 $vst3Source = Join-Path $WorkspaceRoot $vst3PluginModule
 if (-not (Test-Path $vst3Source)) { throw "Required file not found: $vst3PluginModule" }

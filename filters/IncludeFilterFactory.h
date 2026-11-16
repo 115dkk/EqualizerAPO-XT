@@ -27,6 +27,7 @@
 class IncludeFilterFactory : public IFilterFactory
 {
 public:
+	ConfigGateBoundary gateBoundary() const override {return ConfigGateBoundary::If;}
 	FilterVector startOfConfiguration() override;
 	FilterVector startOfFile(const std::wstring& configPath) override;
 	LineOutcome createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;

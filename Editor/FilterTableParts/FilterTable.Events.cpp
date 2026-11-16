@@ -167,7 +167,7 @@ bool FilterTable::eventFilter(QObject* obj, QEvent* event)
 		{
 			QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
 
-			if ((mouseEvent->globalPos() - scrollStartPoint).manhattanLength() > 30)
+			if ((mouseEvent->globalPosition().toPoint() - scrollStartPoint).manhattanLength() > 30)
 			{
 				scrollingNow = false;
 				if (appWheelFilterInstalled)
@@ -286,12 +286,13 @@ void FilterTable::updateRowWidgets()
 
 QString FilterTable::getConfigPath() const
 {
-	return configPath;
+	return configPathAccessor ? configPathAccessor() : configPath;
 }
 
-void FilterTable::setConfigPath(const QString& value)
+void FilterTable::setConfigPathAccessor(std::function<QString()> accessor)
 {
-	configPath = value;
+	configPathAccessor = std::move(accessor);
+	configPath.clear();
 }
 
 void FilterTable::setLoadTraceFacts(const QVector<ConfigLoadTraceEntry>& facts)

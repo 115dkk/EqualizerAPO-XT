@@ -115,6 +115,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\TestVst2Plugin\TestVst2Protocol.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\filters\ConfigFileReference.h">
       <Filter>Header Files</Filter>
     </ClInclude>

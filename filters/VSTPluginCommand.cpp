@@ -80,12 +80,14 @@ bool parseFloatToken(const wstring& token, float& value)
 // characters.
 bool isLegacyNumber(const wstring& value)
 {
-	size_t at = 0;
-	if (at < value.size() && (value[at] == L'-' || value[at] == L'+'))
+	// c_str() ends in a null, which is neither a sign, a point nor a digit,
+	// so the walk needs no length checks.
+	const wchar_t* at = value.c_str();
+	if (*at == L'-' || *at == L'+')
 		at++;
-	if (at < value.size() && value[at] == L'.')
+	if (*at == L'.')
 		at++;
-	return at < value.size() && std::iswdigit(value[at]);
+	return std::iswdigit(*at) != 0;
 }
 
 bool splitChannelFill(const wstring& value, vector<wstring>& fill)
@@ -164,12 +166,10 @@ wstring serializeState(const wstring& chunkData, const std::unordered_map<wstrin
 }
 }
 
-VSTPluginCommand VSTPluginCommand::parse(const wstring& /*configPath*/, const wstring& parameters)
+VSTPluginCommand VSTPluginCommand::parse(const wstring& parameters)
 {
-	// configPath is intentionally unused: the parse never looks at it
-	// (configPath only decides whether the factory loads the binary, which
-	// stays in the factory). The engine factory and the Editor GUI share this
-	// one grammar.
+	// The engine factory and the Editor GUI share this grammar; only the
+	// factory loads the binary.
 	VSTPluginCommand cmd;
 	const vector<wstring> parts = text::splitQuoted(parameters, L' ');
 	bool sawInputKey = false;

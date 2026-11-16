@@ -26,6 +26,7 @@
 #include "VST3HostContext.h"
 #include "VST3MemoryStream.h"
 #include "VST3SpeakerMapping.h"
+#include "VSTBoundedString.h"
 #include "pluginterfaces/base/futils.h"
 #include "pluginterfaces/base/smartpointer.h"
 #include "pluginterfaces/vst/vstspeaker.h"
@@ -515,7 +516,7 @@ int VST3Instance::uniqueID() const
 
 std::wstring VST3Instance::getName() const
 {
-	return wintext::toWideString(library->getVST3ClassInfo().name, CP_UTF8);
+	return wintext::toWideString(vsttext::boundedString(library->getVST3ClassInfo().name), CP_UTF8);
 }
 
 int VST3Instance::getInitialDelay() const

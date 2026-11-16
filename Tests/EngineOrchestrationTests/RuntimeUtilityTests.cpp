@@ -31,6 +31,7 @@
 #include "runtime/concurrency/SynchronizedState.h"
 #include "services/logging/Logging.h"
 #include "platform/windows/WindowsPath.h"
+#include "platform/windows/Win32Error.h"
 #include "runtime/lifetime/ScopeExit.h"
 #include "services/windows/ServiceWait.h"
 #include "services/install/InstallWaitBudget.h"
@@ -91,6 +92,38 @@ TEST_CASE(EngineOrchestrationTests, testLogHelperFileDestination)
 	DeleteFileW(path.c_str());
 }
 
+TEST_CASE(EngineOrchestrationTests, testLogKeepsUnicodeAndWin32ErrorNumbers)
+{
+	for (const bool legacy : {false, true})
+	{
+		const std::wstring path = testDirectory() + (legacy ? L"\\LegacyEncoding.log" : L"\\UnicodeEncoding.log");
+		DeleteFileW(path.c_str());
+		const std::string oldBytes = "legacy \xE9\r\n";
+		if (legacy)
+		{
+			std::ofstream old(path, std::ios::binary);
+			old << oldBytes;
+		}
+		Logging::useFile(path, true, true, false);
+		LogFStatic(L"path: \\%s\\config.txt", L"한글");
+		Logging::useStream(stderr, false, false, false);
+		std::ifstream stream(path, std::ios::binary);
+		const std::string bytes((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+		harness.expect(bytes.find("\xED\x95\x9C\xEA\xB8\x80") != std::string::npos,
+			"file log preserves Korean text as UTF-8 bytes");
+		if (legacy)
+			harness.expect(bytes.starts_with(oldBytes), "appending preserves old ANSI diagnostics byte for byte");
+		else
+			harness.expect(bytes.starts_with("\xEF\xBB\xBF"), "new file declares UTF-8 with a BOM");
+		stream.close();
+		DeleteFileW(path.c_str());
+	}
+	harness.expect(win32::errorMessage(ERROR_ACCESS_DENIED).ends_with(L" (error 5)"),
+		"formatted Win32 errors retain their numeric code");
+	harness.expect(win32::errorMessage(0x7ffffffe).ends_with(L" (error 2147483646)"),
+		"unknown Win32 errors still retain their numeric code");
+}
+
 TEST_CASE(EngineOrchestrationTests, testLogHelperUserDestination)
 {
 	wchar_t previousLocalAppData[MAX_PATH] = {};
@@ -118,6 +151,52 @@ TEST_CASE(EngineOrchestrationTests, testLogHelperUserDestination)
 	RemoveDirectoryW((localRoot + L"\\EqualizerAPO\\logs").c_str());
 	RemoveDirectoryW((localRoot + L"\\EqualizerAPO").c_str());
 	RemoveDirectoryW(localRoot.c_str());
+}
+
+TEST_CASE(EngineOrchestrationTests, testGuiLogsRotateOnlyAboveFourMiBAtStartup)
+{
+	const auto previous = pathutil::environmentVariable(L"LOCALAPPDATA");
+	const auto root = testSubdirectory(L"LogRotation");
+	SetEnvironmentVariableW(L"LOCALAPPDATA", root.c_str());
+	SCOPE_EXIT{
+		Logging::useStream(stderr, false, false, false);
+		SetEnvironmentVariableW(L"LOCALAPPDATA", previous.empty() ? nullptr : previous.c_str());
+	};
+	constexpr std::streamoff limit = 4 * 1024 * 1024;
+	for (const auto* name : {L"Editor.log", L"DeviceSelector.log"})
+	{
+		harness.require(Logging::useUserFile(name, true, true, false), "rotation fixture directory created");
+		const auto path = Logging::currentPath();
+		const auto backup = path + L".1";
+		for (const std::streamoff size : {limit, limit + 1})
+		{
+			{
+				std::ofstream file(path, std::ios::binary | std::ios::trunc);
+				file.seekp(size - 1);
+				file.put('x');
+			}
+			{
+				std::ofstream oldBackup(backup, std::ios::binary | std::ios::trunc);
+				oldBackup << "old";
+			}
+			harness.require(Logging::useUserFile(name, true, true, false), "GUI logging restarts");
+			std::ifstream old(backup, std::ios::binary | std::ios::ate);
+			harness.expectEqual(static_cast<std::streamoff>(old.tellg()), size > limit ? size : std::streamoff(3),
+				"startup replaces one backup only when the log exceeds 4 MiB");
+			old.close();
+			LogFStatic(L"new session");
+			std::ifstream current(path, std::ios::binary | std::ios::ate);
+			const auto currentSize = static_cast<std::streamoff>(current.tellg());
+			harness.expect(size > limit ? currentSize < 128 : currentSize > limit,
+				"oversized log starts fresh; exact-limit log is kept");
+			current.close();
+			DeleteFileW(path.c_str());
+			DeleteFileW(backup.c_str());
+		}
+	}
+	RemoveDirectoryW((root + L"\\EqualizerAPO\\logs").c_str());
+	RemoveDirectoryW((root + L"\\EqualizerAPO").c_str());
+	RemoveDirectoryW(root.c_str());
 }
 
 TEST_CASE(EngineOrchestrationTests, testRegistryExportHeaderPreservesQualifiedRoot)

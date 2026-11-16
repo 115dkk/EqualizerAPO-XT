@@ -38,13 +38,15 @@ LineOutcome VSTPluginFilterFactory::createFilter(const wstring& configPath, wstr
 
 	if (command == L"VSTPlugin")
 	{
-		const VSTPluginCommand pluginCommand = VSTPluginCommand::parse(configPath, parameters);
+		const VSTPluginCommand pluginCommand = VSTPluginCommand::parse(parameters);
 		if (!pluginCommand.valid)
 			return LineOutcome::malformed(pluginCommand.error);
 
-		const auto target = ConfigFileReference::library(L"", pluginCommand.libraryPath, configPath);
-		if (!target.refusal.empty())
-			return LineOutcome::malformed(target.refusal);
+		const auto file = ConfigFileReference::library(L"", pluginCommand.libraryPath, configPath);
+		// ParseOnly deliberately constructs
+		// the filter description without requiring the binary to be present.
+		if (!file && (mode == Mode::LoadBinary || !file.refusal.empty()))
+			return LineOutcome::malformed(file.problem(L"plug-in library"));
 
 		shared_ptr<VSTPluginLibrary> library = pluginCommand.libraryPath.empty()
 			? nullptr : VSTPluginLibrary::getInstance(pluginCommand.libraryPath);
@@ -53,29 +55,29 @@ LineOutcome VSTPluginFilterFactory::createFilter(const wstring& configPath, wstr
 			return LineOutcome::malformed(L"expected Library followed by the path of a plugin");
 
 		bool create = true;
-		if (configPath != L"")
+		if (mode == Mode::LoadBinary)
 		{
 			create = false;
 			TraceF(L"Adding VST plugin %s", library->getLibPath().c_str());
-			int res = VSTPluginLibrary::load(pluginCommand.libraryPath, &target.path).status;
-			if (res < 0)
+			const auto res = VSTPluginLibrary::load(pluginCommand.libraryPath, &file.path).status;
+			if (!AbstractLibrary::succeeded(res))
 			{
 				// These four were already diagnosed, but only into the log. They
 				// are reported now so the Editor can mark the line: a plugin of
 				// the wrong architecture is the single most common VST mistake,
 				// and it is invisible on screen.
-				if (res == AbstractLibrary::FILE_NOT_FOUND)
+				if (res == AbstractLibrary::InitializeResult::FileNotFound)
 					return LineOutcome::malformed(L"the plugin \"" + library->getLibPath() + L"\" was not found");
-				if (res == AbstractLibrary::LOADING_FAILED)
+				if (res == AbstractLibrary::InitializeResult::LoadingFailed)
 					return LineOutcome::malformed(L"the plugin \"" + library->getLibPath() + L"\" could not be loaded");
-				if (res == AbstractLibrary::FUNCTIONS_MISSING)
+				if (res == AbstractLibrary::InitializeResult::FunctionsMissing)
 					return LineOutcome::malformed(L"\"" + library->getLibPath() + L"\" is not a VST plugin: it does not export the entry points");
 #ifdef _WIN64
 				const wstring bitDepth = L"64";
 #else
 				const wstring bitDepth = L"32";
 #endif
-				if (res == AbstractLibrary::WRONG_ARCHITECTURE)
+				if (res == AbstractLibrary::InitializeResult::WrongArchitecture)
 					return LineOutcome::malformed(L"the plugin \"" + library->getLibPath()
 						+ L"\" is built for the other architecture; a " + bitDepth + L"-bit plugin is needed here");
 				return LineOutcome::malformed(L"the plugin \"" + library->getLibPath() + L"\" could not be initialised");
@@ -89,7 +91,7 @@ LineOutcome VSTPluginFilterFactory::createFilter(const wstring& configPath, wstr
 			// Explicit layouts affect VST3 only; a loaded VST2 module quietly takes
 			// the existing VST2 path. Parser-only callers retain the contract so a
 			// future Editor can inspect it without loading the binary here.
-			if (pluginCommand.hasBusContract && (configPath.empty() || library->isVST3()))
+			if (pluginCommand.hasBusContract && (mode == Mode::ParseOnly || library->isVST3()))
 				filter = makeFilter<VSTPluginFilter>(library, pluginCommand.chunkData,
 					pluginCommand.paramMap, pluginCommand.busContract,
 					pluginCommand.inputChannels, pluginCommand.outputChannels);

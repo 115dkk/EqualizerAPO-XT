@@ -128,13 +128,17 @@ namespace
 	}
 }
 
-void VST3Instance::writeToEffect(const std::wstring& chunkData,
+VSTPluginInstance::StateRestoreResult VST3Instance::writeToEffect(const std::wstring& chunkData,
 	const std::unordered_map<std::wstring, float>& paramMap)
 {
 	if (chunkData != L"")
 	{
 		vector<char> data;
-		if (decodeBase64(chunkData, data) && !data.empty())
+		// Truncated text and a refusing component used to silently keep defaults.
+		// testStateRestoreFailureIsReported uses NormalRestore/RefuseState fixtures
+		// to verify both failures (audit #467 TD-36).
+		if (!decodeBase64(chunkData, data) || data.empty())
+			return {L"ChunkData is not valid base64 state"};
 		{
 			vector<char> componentState;
 			vector<char> controllerState;
@@ -143,19 +147,20 @@ void VST3Instance::writeToEffect(const std::wstring& chunkData,
 			if (!componentState.empty())
 			{
 				auto stream = IPtr<VST3MemoryStream>::adopt(new VST3MemoryStream(componentState));
-				if (vst3Component != NULL)
-					vst3Component->setState(stream.get());
+				if (vst3Component == NULL || vst3Component->setState(stream.get()) != kResultOk)
+					return {L"The plug-in component refused its saved state"};
 				// The controller mirrors the component's state through
 				// setComponentState; setState is reserved for its own
 				// (controller-only) blob below.
 				stream->seek(0, IBStream::kIBSeekSet);
-				if (vst3Controller != NULL)
-					vst3Controller->setComponentState(stream.get());
+				if (vst3Controller != NULL && vst3Controller->setComponentState(stream.get()) != kResultOk)
+					return {L"The plug-in controller refused the component state"};
 			}
 			if (vst3Controller != NULL && !controllerState.empty())
 			{
 				auto stream = IPtr<VST3MemoryStream>::adopt(new VST3MemoryStream(controllerState));
-				vst3Controller->setState(stream.get());
+				if (vst3Controller->setState(stream.get()) != kResultOk)
+					return {L"The plug-in controller refused its saved state"};
 			}
 			// The saved parameter snapshot drives both sides: the
 			// controller for the GUI and the processor via the queue
@@ -200,6 +205,7 @@ void VST3Instance::writeToEffect(const std::wstring& chunkData,
 			flushVST3ParameterChanges();
 		reportDroppedRestoredParameters(dropped);
 	}
+	return {};
 }
 
 void VST3Instance::readFromEffect(std::wstring& chunkData,

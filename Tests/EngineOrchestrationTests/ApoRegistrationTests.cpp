@@ -23,6 +23,9 @@
 #include "services/registry/RegistryPaths.h"
 
 #include <windows.h>
+#include <aclapi.h>
+#include <sddl.h>
+#include "services/security/AudioEngineAccess.h"
 
 #include "asio/AsioRegistration.h"
 #include "services/install/ApoRegistration.h"
@@ -54,6 +57,67 @@ void removeScratchDir(const std::wstring& dir)
 {
 	if (!dir.empty())
 		RemoveDirectoryW(dir.c_str());
+}
+
+TEST_CASE(EngineOrchestrationTests, testConfigGrantSkipsAlreadyGrantedFolder)
+{
+	const auto dir = testDirectory() + L"\\already-granted";
+	winutil::UniqueLocalPtr<void> descriptor;
+	harness.require(ConvertStringSecurityDescriptorToSecurityDescriptorW(
+		L"D:P(A;OICI;FA;;;OW)(A;OICI;0x1301bf;;;BU)(A;OICI;0x1301bf;;;LS)",
+		SDDL_REVISION_1, descriptor.put(), nullptr) != FALSE, "temp grant descriptor");
+	SECURITY_ATTRIBUTES attributes = {sizeof(attributes), descriptor.get(), FALSE};
+	harness.require(CreateDirectoryW(dir.c_str(), &attributes) != FALSE, "create granted temp folder");
+	int calls = 0;
+	const auto result = AudioEngineAccess::grantConfigAccess(dir, [&](const std::wstring&) {
+		++calls;
+		return AudioEngineAccess::Grant::Applied;
+	});
+	harness.expect(result == AudioEngineAccess::Grant::Applied, "existing grants count as applied");
+	harness.expectEqual(calls, 0, "already-granted folder does not invoke grant runner");
+	RemoveDirectoryW(dir.c_str());
+	calls = 0;
+	AudioEngineAccess::grantConfigAccess(dir, [&](const std::wstring&) {
+		++calls;
+		return AudioEngineAccess::Grant::Failed;
+	});
+	harness.expectEqual(calls, 1, "unqueryable access does not skip the runner");
+}
+
+TEST_CASE(EngineOrchestrationTests, testBackupDirectoryHasOnlyAdministrativeWriters)
+{
+	const auto dir = testDirectory() + L"\\admin-backup";
+	{
+		auto pinned = WindowsRegistry::openBackupDirectory(dir);
+		harness.require(static_cast<bool>(pinned), "create and pin temp backup directory");
+		harness.expect((AudioEngineAccess::accessForUsers(dir) & (FILE_WRITE_DATA | FILE_APPEND_DATA | DELETE | WRITE_DAC | WRITE_OWNER)) == 0,
+			"backup DACL gives Users no write permission");
+	}
+	RemoveDirectoryW(dir.c_str());
+	harness.expect(WindowsRegistry::deviceBackupDirectory(testDirectory()) ==
+		testDirectory() + L"\\EqualizerAPO-XT\\Backups", "backup path uses ProgramData product folder");
+}
+
+TEST_CASE(EngineOrchestrationTests, testInstallReportsAclAndServiceFailures)
+{
+	using Result = ApoRegistration::Result;
+	FakeRegistry registry;
+	registry.seedKey(audioKey);
+	int finishes = 0;
+	const auto result = ApoRegistration::finishInstallWithAccess([] { return false; }, [&] {
+		++finishes;
+		return ApoRegistration::writeAppInstallRegistry(L"C:\\Install", L"", registry);
+	});
+	harness.expect(result == Result::AclFailed, "failed ACL grant returns AclFailed");
+	harness.expectEqual(finishes, 1, "ACL failure still completes install registry role");
+	harness.expect(registry.valueExists(appKey, installPathValueName), "ACL failure keeps install registry result");
+	harness.expect(ApoRegistration::hookCanComplete(result), "ACL failure is nonfatal to package hook");
+	harness.expect(ApoRegistration::finishInstallWithAccess([] { return false; },
+		[] { return Result::RegistrationFailed; }) == Result::RegistrationFailed,
+		"registration failure takes precedence over ACL warning");
+	harness.expect(ApoRegistration::runWithAudioStopped([] { return true; },
+		[] { return Result::Success; }, [] { return false; }) == Result::ServiceFailed,
+		"failed audio restart returns ServiceFailed");
 }
 
 TEST_CASE(EngineOrchestrationTests, testInstallRegistryWritesTheAppVocabulary)

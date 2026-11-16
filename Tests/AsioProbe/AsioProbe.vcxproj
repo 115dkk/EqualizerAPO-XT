@@ -82,6 +82,7 @@
   </ItemGroup>
   <Import Project="..\..\asio\AsioCoreSources.props" />
   <Import Project="..\..\asio\AsioInProcSources.props" />
+  <Import Project="..\..\asio\AsioHostControlSources.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

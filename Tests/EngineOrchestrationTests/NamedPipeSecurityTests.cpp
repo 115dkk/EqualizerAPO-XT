@@ -122,11 +122,14 @@ TEST_CASE(EngineOrchestrationTests, testTheNarrowGrantIsEnoughToSendAndNoMore)
 		readerDone = true;
 	});
 
-	winutil::UniqueHandle client = pipes::openDeviceTestClient(name);
+	winutil::UniqueHandle client = pipes::openDeviceTestClient(name, true);
 	const bool opened = static_cast<bool>(client);
 	harness.expect(opened, "the device test client opens the pipe with FILE_WRITE_DATA");
 	if (opened)
 	{
+		DWORD mode = 0;
+		harness.expect(GetNamedPipeHandleStateW(client.get(), &mode, nullptr, nullptr, nullptr, nullptr, 0)
+			&& (mode & PIPE_NOWAIT) != 0, "audiodg pipe client never waits for a reader");
 		DWORD written = 0;
 		harness.expect(WriteFile(client.get(), "hello", 5, &written, nullptr) && written == 5, "and writes its message");
 		harness.expect(FlushFileBuffers(client.get()) != FALSE, "and FlushFileBuffers works without GENERIC_WRITE");

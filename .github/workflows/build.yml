@@ -25,22 +25,35 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# The default for every job is to read the repository and nothing else. The
+# workflow used to grant actions, packages and artifact-metadata write to all
+# of them, including the jobs that run downloaded code (cppcheck, Pester,
+# memcheck, the gates), though no step publishes a package or an attestation
+# and artifact upload, download and the cache need no token permission
+# (TECH_DEBT_AUDIT TD-73, audit #467). A job that needs more states it:
+# create-release (contents: write, actions: read).
 permissions:
   contents: read
-  actions: write
-  packages: write
-  artifact-metadata: write
 
 env:
   BUILD_CONFIGURATION: Release
   # Audit #422 TD-16: tool versions the jobs below pin, stated once.
   PYTHON_VERSION: '3.12'
-  CPPCHECK_VERSION: '2.21.0'
+  # The cppcheck release tag the gate builds and the commit that tag must
+  # resolve to. .github/simd-variants.psd1 states the same pair for the
+  # Windows installer the scheduled audit and local machines use
+  # (Provisioning.Tests.ps1 compares the two).
+  CPPCHECK_VERSION: '2.22.0'
+  CPPCHECK_COMMIT: 'a436ca35ed1887bee789765122b65ed2d7a7e045'
   PESTER_VERSION: '5.6.1'
   # SHA-256 of pester.5.6.1.nupkg as the gallery's package CDN serves it;
   # its module files match a gallery install of 5.6.1 byte for byte.
   PESTER_NUPKG_SHA256: '37b3749f69accead67c366d81508977f62afc7cbb9c4db88c3a255a1f0b20da5'
   NUMPY_VERSION: '2.3.2'
+  # SHA-256 of the numpy wheel the comparison job's interpreter takes
+  # (CPython 3.12, manylinux x86_64, on the ubuntu-24.04 image); pip refuses
+  # any other file (TECH_DEBT_AUDIT TD-69).
+  NUMPY_WHEEL_SHA256: '8145dd6d10df13c559d1e4314df29695613575183fa2e2d11fac4c208c8a1f73'
 
 jobs:
   version-bump:
@@ -157,7 +170,7 @@ jobs:
   # Common.vcxproj. Both drifts otherwise surface only inside a matrix leg, and
   # the source-list one only at the Editor link step twenty minutes in.
   prepare-matrix:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       matrix: ${{ steps.gen.outputs.matrix }}
       # JSON array of the x64 variants hosted runners can execute at runtime
@@ -220,8 +233,8 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
       with:
-        # On main, the bump job pushed a new commit using GITHUB_TOKEN which does
-        # not retrigger workflows. Pulling that commit explicitly ensures the
+        # On main, the bump job pushed a new commit with the release deploy key
+        # and [skip ci], so no second workflow starts for it. Pulling that commit explicitly ensures the
         # build runs against the bumped version.h instead of the pre-bump SHA
         # that triggered the workflow.
         ref: ${{ needs.version-bump.outputs.bumped_sha || github.sha }}
@@ -238,91 +251,38 @@ jobs:
         # host-architecture spelling ('x64'/'arm64') for exactly this purpose.
         msbuild-architecture: ${{ matrix.msvcdevplatform }}
 
-    # Supply-chain pins: the prebuilt binary dependencies (and velopack_libc)
-    # are downloaded from a pinned release tag and verified against the SHA-256
-    # recorded in .github/simd-variants.psd1, so a new upload to those personal
-    # forks cannot change what CI links without a reviewed manifest diff. The
-    # download+verify loop lives in .github/scripts/Provisioning.psm1, shared
-    # with setup-build.ps1 (TD015).
-    - name: Download dependency release assets
-      shell: pwsh
-      run: |
-        $ErrorActionPreference = "Stop"
-        Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
-
-        $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
-        $downloads = Get-DependencyDownloadSpec -Manifest $manifest `
-          -DepsRoot "${{ github.workspace }}\deps" `
-          -Platform "${{ matrix.platform }}" `
-          -Simd "${{ matrix.simd_variant }}"
-        Invoke-DependencyDownload -Downloads $downloads `
-          -DownloadRoot "${{ github.workspace }}\deps\_downloads"
-        # The Steinberg ASIO SDK (source zip, GPLv3 dual-licensed), same pin
-        # for every variant; extracts to deps\asiosdk\ASIOSDK.
-        Invoke-DependencyDownload -Downloads (Get-SdkDownloadSpec -Manifest $manifest -DepsRoot "${{ github.workspace }}\deps") `
-          -DownloadRoot "${{ github.workspace }}\deps\_downloads"
-
-    # The vcpkg FFTW/libsndfile build and the muparserx /arch rebuild live in
-    # .github/scripts/Provisioning.psm1, shared with setup-build.ps1 (TD015).
-    - name: Build lower-SIMD dependency binaries
-      if: ${{ matrix.uses_vcpkg == true }}
-      shell: pwsh
-      run: |
-        $ErrorActionPreference = "Stop"
-
-        # Canonical vswhere/VsDevCmd import, shared with the Qt build step below
-        # and setup-build.ps1.
-        . .\.github\scripts\Import-VsDevEnvironment.ps1
-        Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
-
-        Import-VsDevEnvironment "${{ matrix.msvcdevplatform }}"
-
-        $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
-        Build-VcpkgDependencies -DepsRoot "${{ github.workspace }}\deps" `
-          -VcpkgFallbackRoot "${{ github.workspace }}\vcpkg" `
-          -SimdVariant "${{ matrix.simd_variant }}" `
-          -VcpkgCommit $manifest.Shared.VcpkgCommit
-
-    # The header-only source dependencies (TCLAP, VST3 pluginterfaces,
-    # Highway), cloned at the manifest's tags and held to its commits by the
-    # same routine setup-build.ps1 uses: a retargeted upstream tag fails here
-    # instead of changing what ships (audit #348 TD-26).
-    - name: Clone pinned source dependencies
-      shell: pwsh
-      run: |
-        $ErrorActionPreference = "Stop"
-        Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
-        $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
-        Install-PinnedSourceDependency -Manifest $manifest -DepsRoot "${{ github.workspace }}\deps"
-
-    # Setup dependency structures
-    - name: Setup dependency structures
-      shell: pwsh
-      run: |
-        .\.github\scripts\Initialize-DepsEnvironment.ps1 -DepsPath "${{ github.workspace }}\deps"
-
     - name: Setup Python
       uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
       with:
         python-version: ${{ env.PYTHON_VERSION }}
 
-    # Install Qt for Editor and DeviceSelector. Install-QtSdk reads Qt's
-    # online repository directly (aqtinstall cannot read the Qt 6.12 layout)
-    # and checks every archive against the SHA-256 pins in simd-variants.psd1;
-    # it lives in .github/scripts/Provisioning.psm1, shared with
-    # setup-build.ps1 (TD015).
-    - name: Install Qt
+    # One entry point prepares the checkout for every job, the scheduled
+    # audit, CodeQL and a developer's machine (TECH_DEBT_AUDIT TD-35):
+    # .github/scripts/Initialize-Workspace.ps1.
+    # - Supply-chain pins: the prebuilt binary dependencies (and
+    #   velopack_libc) and the ASIO SDK are downloaded from pinned release
+    #   tags and verified against the SHA-256 recorded in
+    #   .github/simd-variants.psd1, so a new upload to those personal forks
+    #   cannot change what CI links without a reviewed manifest diff.
+    # - A variant the manifest marks UsesVcpkg builds FFTW and libsndfile
+    #   with vcpkg and rebuilds muparserx with its /arch.
+    # - The header-only source dependencies (TCLAP, VST3 pluginterfaces,
+    #   Highway) are cloned at the manifest's tags and held to its commits:
+    #   a retargeted upstream tag fails here instead of changing what ships
+    #   (audit #348 TD-26).
+    # - Qt for the Editor and DeviceSelector comes from Qt's online
+    #   repository (aqtinstall cannot read the Qt 6.12 layout), every archive
+    #   checked against the manifest's SHA-256 pins, and its qmake must run
+    #   and report the pinned version.
+    # - The dependency paths, QT_ROOT, Qt6_DIR and Qt's bin folder on PATH
+    #   are exported for the steps below.
+    - name: Prepare the workspace (dependencies, Qt, environment)
       shell: pwsh
       run: |
-        $ErrorActionPreference = "Stop"
-        Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
-
-        $qtRoot = Install-QtSdk -WorkspaceRoot "${{ github.workspace }}" -Platform "${{ matrix.platform }}"
-
-        echo "QT_ROOT=$qtRoot" >> $env:GITHUB_ENV
-        echo "Qt6_DIR=$qtRoot" >> $env:GITHUB_ENV
-        echo "$qtRoot\bin" >> $env:GITHUB_PATH
-        Write-Host "QT_ROOT=$qtRoot"
+        & "${{ github.workspace }}\.github\scripts\Initialize-Workspace.ps1" `
+          -WorkspaceRoot "${{ github.workspace }}" `
+          -Platform "${{ matrix.platform }}" `
+          -Simd "${{ matrix.simd_variant }}"
 
     # The MSBuild projects; the Qt apps are qmake projects and build in the
     # next steps.
@@ -430,10 +390,10 @@ jobs:
 
     # The VSTPlugin store()/parse round-trip self-test: opening and saving a
     # line must never lose chunk data, parameters or the bus contract.
-    # The six Editor offscreen gates share one headless preamble (velopack
+    # The Editor offscreen gates below share one headless preamble (velopack
     # SONAME copy, dependency PATH, QT_QPA offscreen setup with the platform-
     # plugin search pointed at the full Qt install, stderr capture for a
-    # GUI-subsystem binary). It lived as six inline YAML copies; it now lives
+    # GUI-subsystem binary). It lived as one inline YAML copy per gate; it now lives
     # once in .github/scripts/Invoke-EditorOffscreenTest.ps1 (audit #275
     # D6/TD-24), with -PlanOnly Pester coverage. Primary avx2 variant only:
     # the gates exercise QSS/QPainter/widget behavior, which does not vary by
@@ -654,7 +614,7 @@ jobs:
         retention-days: 90
 
   cppcheck:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout repository
       uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
@@ -668,12 +628,20 @@ jobs:
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/cppcheck-install
-        key: cppcheck-${{ env.CPPCHECK_VERSION }}-${{ runner.os }}
+        key: cppcheck-${{ env.CPPCHECK_VERSION }}-${{ env.CPPCHECK_COMMIT }}-${{ runner.os }}
 
+    # A tag can be moved upstream; the clone must be the pinned commit or the
+    # job stops before building it (TECH_DEBT_AUDIT TD-69, audit #467).
     - name: Build cppcheck ${{ env.CPPCHECK_VERSION }}
       if: steps.cache-cppcheck.outputs.cache-hit != 'true'
       run: |
-        git clone --depth 1 --branch "$CPPCHECK_VERSION" https://github.com/danmar/cppcheck.git "$HOME/cppcheck-src"
+        set -euo pipefail
+        git clone --depth 1 --branch "$CPPCHECK_VERSION" https://github.com/cppcheck-opensource/cppcheck.git "$HOME/cppcheck-src"
+        actual=$(git -C "$HOME/cppcheck-src" rev-parse HEAD)
+        if [ "$actual" != "$CPPCHECK_COMMIT" ]; then
+          echo "::error::cppcheck tag $CPPCHECK_VERSION resolves to $actual, not the pinned $CPPCHECK_COMMIT."
+          exit 1
+        fi
         cmake -S "$HOME/cppcheck-src" -B "$HOME/cppcheck-build" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$HOME/cppcheck-install"
         cmake --build "$HOME/cppcheck-build" -j"$(nproc)"
         cmake --install "$HOME/cppcheck-build"
@@ -694,10 +662,6 @@ jobs:
     #   that are not findings are switched off: normalCheckLevelMaxBranches
     #   only notes that --check-level=exhaustive would follow more branches,
     #   and checkersReport is the run's checker count.
-    # - unusedStructMember on FilterEngine.Process.cpp: the IoTraits label and
-    #   I/O members are consumed inside the processImpl member template;
-    #   cppcheck does not analyze template instantiations, so it reports every
-    #   trait member as unused (false positive).
     # - libHybridConv-0.1.1 (audit #250 F061/F025): the non-building
     #   "pristine" pair was deleted - it had diverged from its own header and
     #   could no longer serve as a reference (maintainer decision 2026-08-09).
@@ -723,7 +687,6 @@ jobs:
           --suppress=postfixOperator \
           --suppress=noExplicitConstructor \
           --suppress=LocalAllocCalled \
-          --suppress=unusedStructMember:engine/FilterEngine.Process.cpp \
           --suppress=uninitMemberVarNoCtor:libHybridConv-0.1.1/* \
           --suppress=*:deps/* \
           --error-exitcode=1 \
@@ -772,55 +735,19 @@ jobs:
       with:
         msbuild-architecture: x64
 
-    - name: Download dependency release assets
-      shell: pwsh
-      run: |
-        $ErrorActionPreference = "Stop"
-        Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
-
-        $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
-        $downloads = Get-DependencyDownloadSpec -Manifest $manifest `
-          -DepsRoot "${{ github.workspace }}\deps" `
-          -Platform "x64" `
-          -Simd "avx2"
-        Invoke-DependencyDownload -Downloads $downloads `
-          -DownloadRoot "${{ github.workspace }}\deps\_downloads"
-        Invoke-DependencyDownload -Downloads (Get-SdkDownloadSpec -Manifest $manifest -DepsRoot "${{ github.workspace }}\deps") `
-          -DownloadRoot "${{ github.workspace }}\deps\_downloads"
-
-    # The header-only source dependencies (TCLAP, VST3 pluginterfaces,
-    # Highway), cloned at the manifest's tags and held to its commits by the
-    # same routine setup-build.ps1 uses: a retargeted upstream tag fails here
-    # instead of changing what ships (audit #348 TD-26).
-    - name: Clone pinned source dependencies
-      shell: pwsh
-      run: |
-        $ErrorActionPreference = "Stop"
-        Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
-        $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
-        Install-PinnedSourceDependency -Manifest $manifest -DepsRoot "${{ github.workspace }}\deps"
-
-    - name: Setup dependency structures
-      shell: pwsh
-      run: |
-        .\.github\scripts\Initialize-DepsEnvironment.ps1 -DepsPath "${{ github.workspace }}\deps"
-
     - name: Setup Python
       uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
       with:
         python-version: ${{ env.PYTHON_VERSION }}
 
-    # EditorLogicTests links Qt6Core/Gui/Widgets; the other suites are Qt-free.
-    - name: Install Qt
+    # The same preparation as the build job, for the manifest's Primary
+    # variant (the script's default). EditorLogicTests links
+    # Qt6Core/Gui/Widgets; the other suites are Qt-free.
+    - name: Prepare the workspace (dependencies, Qt, environment)
       shell: pwsh
       run: |
-        $ErrorActionPreference = "Stop"
-        Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
-
-        $qtRoot = Install-QtSdk -WorkspaceRoot "${{ github.workspace }}" -Platform "x64"
-
-        echo "QT_ROOT=$qtRoot" >> $env:GITHUB_ENV
-        echo "$qtRoot\bin" >> $env:GITHUB_PATH
+        & "${{ github.workspace }}\.github\scripts\Initialize-Workspace.ps1" `
+          -WorkspaceRoot "${{ github.workspace }}"
 
     # Import-VsDevEnvironment puts the VC toolset bin on PATH, which is where
     # the ASan runtime DLL (clang_rt.asan_dynamic-x86_64.dll) lives.
@@ -888,6 +815,12 @@ jobs:
             }
           } }
         )
+        # The CDN download is the one path held to a pinned hash, so it goes
+        # first; the gallery installers stay as fallbacks for a CDN outage and
+        # are named in the log when one of them supplied the module
+        # (TECH_DEBT_AUDIT TD-69).
+        $installers = @($installers | Where-Object { $_.Name -eq "Gallery CDN" }) +
+          @($installers | Where-Object { $_.Name -ne "Gallery CDN" })
         $installed = $false
         for ($round = 1; $round -le 3 -and -not $installed; $round++) {
           foreach ($installer in $installers) {
@@ -898,6 +831,9 @@ jobs:
               & $installer.Run
               if (Get-Module -ListAvailable Pester | Where-Object { $_.Version -eq [version]$version }) {
                 Write-Host "Pester $version installed via $($installer.Name) (round $round)"
+                if ($installer.Name -ne "Gallery CDN") {
+                  Write-Host "::warning::Pester $version came from $($installer.Name), which is not checked against the pinned hash."
+                }
                 $installed = $true
                 break
               }
@@ -936,7 +872,7 @@ jobs:
   # handled by a follow-up change.
   cross-variant-compare:
     needs: [build, prepare-matrix]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # The PR pipeline only builds AVX2, so there is nothing to compare
     # across variants. The always() guard matters on workflow_dispatch runs:
     # version-bump is skipped there, and GitHub propagates a skip through the
@@ -956,7 +892,9 @@ jobs:
 
     - name: Install numpy
       # Audit #250 F060: pinned like the rest of the toolchain.
-      run: python3 -m pip install --quiet "numpy==$NUMPY_VERSION"
+      run: |
+        printf 'numpy==%s --hash=sha256:%s\n' "$NUMPY_VERSION" "$NUMPY_WHEEL_SHA256" > "$RUNNER_TEMP/numpy-requirements.txt"
+        python3 -m pip install --quiet --require-hashes --only-binary :all: -r "$RUNNER_TEMP/numpy-requirements.txt"
 
     - name: Compare SIMD variants
       env:
@@ -1058,56 +996,21 @@ jobs:
 
     # The asan leg compiles the Editor itself, with the dependencies and Qt
     # the memcheck job provisions.
-    - name: Download dependency release assets
-      if: matrix.editor == 'asan'
-      shell: pwsh
-      run: |
-        $ErrorActionPreference = "Stop"
-        Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
-
-        $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
-        $downloads = Get-DependencyDownloadSpec -Manifest $manifest `
-          -DepsRoot "${{ github.workspace }}\deps" `
-          -Platform "x64" `
-          -Simd "avx2"
-        Invoke-DependencyDownload -Downloads $downloads `
-          -DownloadRoot "${{ github.workspace }}\deps\_downloads"
-        Invoke-DependencyDownload -Downloads (Get-SdkDownloadSpec -Manifest $manifest -DepsRoot "${{ github.workspace }}\deps") `
-          -DownloadRoot "${{ github.workspace }}\deps\_downloads"
-
-    - name: Clone pinned source dependencies
-      if: matrix.editor == 'asan'
-      shell: pwsh
-      run: |
-        $ErrorActionPreference = "Stop"
-        Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
-        $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
-        Install-PinnedSourceDependency -Manifest $manifest -DepsRoot "${{ github.workspace }}\deps"
-
-    - name: Setup dependency structures
-      if: matrix.editor == 'asan'
-      shell: pwsh
-      run: |
-        .\.github\scripts\Initialize-DepsEnvironment.ps1 -DepsPath "${{ github.workspace }}\deps"
-
     - name: Setup Python
       if: matrix.editor == 'asan'
       uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
       with:
         python-version: ${{ env.PYTHON_VERSION }}
 
-    - name: Install Qt
+    - name: Prepare the workspace (dependencies, Qt, environment)
       if: matrix.editor == 'asan'
       shell: pwsh
       run: |
-        $ErrorActionPreference = "Stop"
-        Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
+        & "${{ github.workspace }}\.github\scripts\Initialize-Workspace.ps1" `
+          -WorkspaceRoot "${{ github.workspace }}"
 
-        $qtRoot = Install-QtSdk -WorkspaceRoot "${{ github.workspace }}" -Platform "x64"
-
-        echo "QT_ROOT=$qtRoot" >> $env:GITHUB_ENV
-        echo "$qtRoot\bin" >> $env:GITHUB_PATH
-
+    # No variant, arch flag or channel is spelled here: Build-QtApps.ps1
+    # reads the Primary variant's from the manifest (TECH_DEBT_AUDIT TD-35).
     - name: Build the Editor with AddressSanitizer
       if: matrix.editor == 'asan'
       shell: pwsh
@@ -1115,10 +1018,6 @@ jobs:
         & "${{ github.workspace }}\.github\scripts\Build-QtApps.ps1" `
           -WorkspaceRoot "${{ github.workspace }}" `
           -Platform "x64" `
-          -SimdVariant "avx2" `
-          -QtArchFlag "/arch:AVX2" `
-          -MsvcDevPlatform "x64" `
-          -UpdateChannel "x64-avx2" `
           -AddressSanitizer
 
     # The shipped program folder, with the ASan Editor (and the ASan runtime
@@ -1167,21 +1066,95 @@ jobs:
         retention-days: 30
         if-no-files-found: warn
 
+  # Installer gate (TECH_DEBT_AUDIT TD-04, audit #467): the product reaches
+  # users through automatic updates, and a release's installer and Velopack
+  # hooks used to run for the first time on a user's machine. This job packs
+  # the primary variant exactly as create-release does and runs the result on
+  # the runner: the latest published release is installed, the new package is
+  # applied over it (--veloapp-obsolete, --veloapp-updated), the installed
+  # Editor self-tests from the packed layout, the app is uninstalled
+  # (--veloapp-uninstall), and the new Setup.exe is installed fresh
+  # (--veloapp-install) and removed again. Details and checks:
+  # .github/scripts/Invoke-InstallerGate.ps1.
+  # It runs on pull requests too, with the next revision as the package
+  # version so the update applies. create-release waits for it and repeats
+  # the same run on the packages it is about to publish.
+  installer-gate:
+    needs: [build, prepare-matrix]
+    runs-on: windows-2025-vs2026
+    if: always() && needs.build.result == 'success'
+    timeout-minutes: 40
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+    - name: Download the primary build artifact
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+      with:
+        name: ${{ needs.prepare-matrix.outputs.primary_artifact }}
+        path: release-input/${{ needs.prepare-matrix.outputs.primary_artifact }}
+
+    - name: Pack the primary channel (nothing is published)
+      id: pack
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+        . .\.github\scripts\Get-VersionPart.ps1
+        # One revision above version.h: newer than any published release, so
+        # the update round has something to apply. The number names only this
+        # job's local package.
+        $packVersion = "{0}.{1}.{2}" -f (Get-VersionPart "MAJOR"), (Get-VersionPart "MINOR"), ([int](Get-VersionPart "REVISION") + 1)
+        "pack_version=$packVersion" >> $env:GITHUB_OUTPUT
+        Import-Module .\.github\scripts\Provisioning.psm1 -Force
+        $channel = (Get-PrimaryVariant -Manifest (Import-PowerShellDataFile .\.github\simd-variants.psd1)).Channel
+        .\.github\scripts\New-VelopackRelease.ps1 `
+          -Repository "${{ github.repository }}" `
+          -Tag "v$packVersion" `
+          -PackVersion $packVersion `
+          -TargetCommit "${{ github.sha }}" `
+          -WorkspaceRoot "${{ github.workspace }}" `
+          -MissingChannels @($channel) `
+          -Phase Pack -NoDelta
+        exit 0
+
+    - name: Install, update, self-test and uninstall the packed installer
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        & "${{ github.workspace }}\.github\scripts\Invoke-InstallerGate.ps1" `
+          -WorkspaceRoot "${{ github.workspace }}" `
+          -PackVersion "${{ steps.pack.outputs.pack_version }}" `
+          -Repository "${{ github.repository }}"
+
+    - name: Upload the installer gate's logs
+      if: always()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: installer-gate
+        path: |
+          ${{ runner.temp }}\EqualizerAPO*.log
+          ~\AppData\Local\EqualizerAPO-XT*\*.log
+          ~\AppData\Local\Temp\EqualizerAPO*.log
+        retention-days: 30
+        if-no-files-found: ignore
+
   # The release waits for every blocking gate (audit #348 D5). main has no
   # branch protection, so these needs are what keeps a red memcheck, capture
-  # gate, panel input gate, cppcheck or Pester run from publishing installers and a Velopack
-  # feed. New-ReleaseNotes.ps1 reads this list to say what the release waited
+  # gate, installer gate, panel input gate, cppcheck or Pester run from
+  # publishing installers and a Velopack feed. New-ReleaseNotes.ps1 reads this list to say what the release waited
   # for. The cross-variant comparison is not a gate; it runs alongside.
   # Keep `needs:` a one-line [a, b] list at this indent: New-ReleaseNotes.ps1
   # finds it with a regex, and a block list or a moved key fails the release.
   create-release:
-    needs: [build, version-bump, memcheck, capture-gate, panel-input-gate, cppcheck, pester]
+    needs: [build, version-bump, memcheck, capture-gate, installer-gate, panel-input-gate, cppcheck, pester]
     runs-on: windows-2025-vs2026
     if: >-
       github.event_name == 'push' && github.ref == 'refs/heads/main'
       && needs.build.result == 'success'
       && needs.memcheck.result == 'success'
       && needs.capture-gate.result == 'success'
+      && needs.installer-gate.result == 'success'
       && needs.panel-input-gate.result == 'success'
       && needs.cppcheck.result == 'success'
       && needs.pester.result == 'success'
@@ -1259,7 +1232,53 @@ jobs:
         }
         Write-Host "Created source archive: $sourceZip"
 
-    - name: Create Velopack release
+    # Pack, run, then publish (TECH_DEBT_AUDIT TD-04, audit #467): the three
+    # steps below replace one that packed and uploaded each channel in turn.
+    # Nothing reaches the release until the primary channel's packed
+    # installer has been installed over the previous release, self-tested,
+    # uninstalled and installed fresh on this runner.
+    - name: Pack the Velopack release
+      if: steps.version.outputs.missing_channels != ''
+      shell: pwsh
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        $missingChannels = @("${{ steps.version.outputs.missing_channels }}".Split(
+          ',', [System.StringSplitOptions]::RemoveEmptyEntries))
+        .\.github\scripts\New-VelopackRelease.ps1 `
+          -Repository "${{ github.repository }}" `
+          -Tag "${{ steps.version.outputs.tag }}" `
+          -PackVersion "${{ steps.version.outputs.pack_version }}" `
+          -TargetCommit "${{ needs.version-bump.outputs.bumped_sha || github.sha }}" `
+          -WorkspaceRoot "${{ github.workspace }}" `
+          -MissingChannels $missingChannels `
+          -Phase Pack
+        exit 0
+
+    # Only when the primary channel is among the channels packed in this run:
+    # a resumed run that already published it has nothing new to try.
+    - name: Run the packed primary installer before publishing
+      if: steps.version.outputs.missing_channels != ''
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        $ErrorActionPreference = "Stop"
+        Import-Module .\.github\scripts\Provisioning.psm1 -Force
+        Import-Module .\.github\scripts\ReleaseAssets.psm1 -Force
+        $channel = (Get-PrimaryVariant -Manifest (Import-PowerShellDataFile .\.github\simd-variants.psd1)).Channel
+        $setup = Join-Path "${{ github.workspace }}\velopack-output\$channel" (Get-SetupAssetName -Channel $channel)
+        if (-not (Test-Path -LiteralPath $setup)) {
+          Write-Host "Channel $channel was not packed in this run (already published); nothing to run."
+          exit 0
+        }
+        & "${{ github.workspace }}\.github\scripts\Invoke-InstallerGate.ps1" `
+          -WorkspaceRoot "${{ github.workspace }}" `
+          -PackVersion "${{ steps.version.outputs.pack_version }}" `
+          -Repository "${{ github.repository }}"
+
+    - name: Publish the Velopack release
       if: steps.version.outputs.missing_channels != '' || steps.version.outputs.needs_source == 'true'
       shell: pwsh
       env:
@@ -1275,7 +1294,9 @@ jobs:
           -TargetCommit "${{ needs.version-bump.outputs.bumped_sha || github.sha }}" `
           -WorkspaceRoot "${{ github.workspace }}" `
           -MissingChannels $missingChannels `
-          -NeedsSource:("${{ steps.version.outputs.needs_source }}" -eq "true")
+          -NeedsSource:("${{ steps.version.outputs.needs_source }}" -eq "true") `
+          -Phase Publish
+        exit 0
 
     - name: Build and publish auto-detect installer
       if: steps.version.outputs.needs_installer == 'true'
@@ -1322,13 +1343,15 @@ jobs:
           $setupExe = $reusePath
         }
         else {
-          msbuild Installer\Installer.vcxproj `
-            /p:Configuration=Release `
-            /p:Platform=Win32 `
-            /m /v:minimal /nologo
-          if ($LASTEXITCODE -ne 0) {
-            exit $LASTEXITCODE
-          }
+          # Built with the arguments Build-Solution.ps1 gives the same project
+          # on the primary leg, not a hand-written msbuild line: the published
+          # installer used to be built with different properties from the one
+          # pull requests build (TECH_DEBT_AUDIT TD-71, audit #467).
+          Import-Module .\.github\scripts\BuildModel.psm1 -Force
+          $installerPlan = .\.github\scripts\Build-Solution.ps1 -WorkspaceRoot "${{ github.workspace }}" -Platform x64 -PlanOnly
+          $installerParams = Get-EapoMsBuildArguments -Platform Win32 -Configuration Release `
+            -PlatformToolset $installerPlan.PlatformToolset -ToolArchitecture $installerPlan.ToolArchitecture -Dependencies None
+          Invoke-EapoMsBuild -Project $installerPlan.InstallerProject -Arguments $installerParams
           $setupExe = Join-Path "${{ github.workspace }}\Installer\Release" $assetName
         }
 

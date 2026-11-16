@@ -64,6 +64,103 @@ const vector<wstring>& FilterEngine::loadingChannelNames() const
 	return load.routing.allChannelNames();
 }
 
+bool FilterEngine::ConfigGateStack::allIfOpen() const
+{
+	return std::all_of(ifGates.cbegin(), ifGates.cend(), [](const IfGate& gate) {
+		return gate.open;
+	});
+}
+
+bool FilterEngine::ConfigGateStack::parentIfOpen() const
+{
+	if (ifGates.size() <= fileIfBase)
+		return true;
+	return std::all_of(ifGates.cbegin(), ifGates.cend() - 1, [](const IfGate& gate) {
+		return gate.open;
+	});
+}
+
+bool FilterEngine::ConfigGateStack::allows(ConfigGateBoundary boundary) const
+{
+	if (boundary == ConfigGateBoundary::None)
+		return true;
+	if (!deviceOpen)
+		return false;
+	if (boundary == ConfigGateBoundary::Device)
+		return true;
+	if (!allIfOpen())
+		return false;
+	if (boundary == ConfigGateBoundary::If)
+		return true;
+	return stageOpen;
+}
+
+void FilterEngine::ConfigGateStack::beginFile()
+{
+	fileIfBase = ifGates.size();
+}
+
+vector<int> FilterEngine::ConfigGateStack::unclosedIfLines() const
+{
+	vector<int> lines;
+	lines.reserve(ifGates.size() - fileIfBase);
+	for (size_t index = fileIfBase; index < ifGates.size(); ++index)
+		lines.push_back(ifGates[index].openingLine);
+	return lines;
+}
+
+void FilterEngine::setGate(ConfigGateKind kind, bool open)
+{
+	if (kind == ConfigGateKind::Device)
+		load.gates.deviceOpen = open;
+	else if (kind == ConfigGateKind::Stage)
+		load.gates.stageOpen = open;
+	else if (load.gates.ifGates.size() > load.gates.fileIfBase)
+		load.gates.ifGates.back().open = open;
+}
+
+void FilterEngine::pushIfGate(bool open, bool branchTaken)
+{
+	load.gates.ifGates.push_back({open, branchTaken, load.traceLine});
+}
+
+void FilterEngine::setIfBranchTaken(bool branchTaken)
+{
+	if (hasIfGate())
+		load.gates.ifGates.back().branchTaken = branchTaken;
+}
+
+void FilterEngine::popIfGate()
+{
+	if (hasIfGate())
+		load.gates.ifGates.pop_back();
+}
+
+bool FilterEngine::hasIfGate() const
+{
+	return load.gates.ifGates.size() > load.gates.fileIfBase;
+}
+
+bool FilterEngine::ifGatesOpen() const
+{
+	return load.gates.allIfOpen();
+}
+
+bool FilterEngine::ifGateParentOpen() const
+{
+	return load.gates.parentIfOpen();
+}
+
+bool FilterEngine::ifBranchTaken() const
+{
+	return hasIfGate() && load.gates.ifGates.back().branchTaken;
+}
+
+void FilterEngine::deferUntilConfigurationCommit(std::function<void()> action)
+{
+	load.commitActions.push_back(std::move(action));
+}
+
 bool FilterEngine::loadConfig(const wstring& customPath)
 {
 	// One producer may own the pending slot until the audio thread completes
@@ -74,6 +171,14 @@ bool FilterEngine::loadConfig(const wstring& customPath)
 		return false;
 
 	lock_guard<mutex> lock(loadMutex);
+	const uint64_t observedOversizedBlockCount = oversizedBlockCount.load(std::memory_order_relaxed);
+	if (observedOversizedBlockCount != reportedOversizedBlockCount)
+	{
+		LogF(L"host passed %u frames, more than the %u it announced; block passed through unprocessed",
+			lastOversizedFrameCount.load(std::memory_order_relaxed),
+			lastOversizedMaxFrameCount.load(std::memory_order_relaxed));
+		reportedOversizedBlockCount = observedOversizedBlockCount;
+	}
 	timer.start();
 
 	// The factories build through the engine's load session. Move the previous
@@ -127,6 +232,27 @@ bool FilterEngine::loadConfig(const wstring& customPath)
 		double loadTime = timer.stop();
 		TraceF(L"Finished loading configuration after %lf milliseconds", loadTime * 1000.0);
 
+		// Construction is complete and no later load operation can roll back. Run
+		// deferred side effects immediately before publication, so Send metadata is
+		// ready before the audio thread can acquire this configuration and never
+		// describes a load that unwound (audit #467 TD-45).
+		for (const std::function<void()>& action : load.commitActions)
+		{
+			try
+			{
+				action();
+			}
+			catch (const exception& e)
+			{
+				LogF(L"A configuration commit action failed: %S", e.what());
+			}
+			catch (...)
+			{
+				LogF(L"A configuration commit action failed with an unknown exception");
+			}
+		}
+		load.commitActions.clear();
+
 		configChannel.publish(move(config));
 		// The pending configuration now owns the permit. completeTransition()
 		// returns it on the audio thread after promoting the pending slot.
@@ -178,41 +304,62 @@ void FilterEngine::loadConfigStream(const wstring& path, stringstream inputStrea
 		return;
 
 	vector<wstring> savedChannelNames = load.routing.currentChannelNames();
-	// Load-trace position: like the channel names, the position is saved and
-	// restored across the Include recursion so entries reported after a nested
-	// file returns are stamped with the outer file again.
+	ConfigGateStack savedGates = load.gates;
+	// Load-trace position, selected channels and gates are one Include frame.
+	// Restore all three even when setup in the nested file throws.
 	wstring savedTraceFile = move(load.traceFile);
-	int savedTraceLine = load.traceLine;
+	const int savedTraceLine = load.traceLine;
 	load.traceFile = path;
 	load.traceLine = 0;
+	load.gates.beginFile();
 
-	for (auto it = factories.cbegin(); it != factories.cend(); it++)
+	auto restoreIncludeFrame = [&]() {
+		load.routing.setCurrentChannelNames(move(savedChannelNames));
+		load.gates = move(savedGates);
+		load.traceFile = move(savedTraceFile);
+		load.traceLine = savedTraceLine;
+	};
+
+	try
 	{
-		IFilterFactory* factory = it->get();
-		FilterVector newFilters = factory->startOfFile(path);
-		if (!newFilters.empty())
-			addFilters(move(newFilters));
-	}
-
-	const vector<wstring> decodedLines = ConfigurationFileReader::decodeLines(inputStream);
-	for (const wstring& line : decodedLines)
-	{
-		load.traceLine++;
-
-		size_t pos = line.find(L':');
-		if (pos != wstring::npos)
+		for (auto it = factories.cbegin(); it != factories.cend(); it++)
 		{
-			wstring key = line.substr(0, pos);
+			IFilterFactory* factory = it->get();
+			FilterVector newFilters = factory->startOfFile(path);
+			if (!newFilters.empty())
+				addFilters(move(newFilters));
+		}
+
+		const vector<wstring> decodedLines = ConfigurationFileReader::decodeLines(inputStream);
+		for (const wstring& line : decodedLines)
+		{
+			load.traceLine++;
+
+			const size_t pos = line.find(L':');
+			if (pos == wstring::npos)
+				continue;
+
+			wstring key = text::trim(line.substr(0, pos));
 			wstring value = line.substr(pos + 1);
 
-			// allow to use indentation
-			key = text::trim(key);
-
 			// Factories may normalize parameters in place before returning NotMine;
-			// later factories deliberately receive that rewritten text.
+			// later factories deliberately receive that rewritten text. The engine
+			// alone enforces gates at the same boundaries as the historical factory
+			// order and records every executable line it stops (audit #467 TD-45).
 			for (auto it = factories.cbegin(); it != factories.cend(); it++)
 			{
 				IFilterFactory* factory = it->get();
+				if (!load.gates.allows(factory->gateBoundary()))
+				{
+					if (!key.empty() && key[0] != L'#')
+					{
+						ConfigLoadTraceEntry entry;
+						entry.kind = ConfigLoadTraceEntry::Kind::SkippedLine;
+						traceLoadEvent(std::move(entry));
+					}
+					break;
+				}
+
 				LineOutcome outcome = LineOutcome::notMine();
 				try
 				{
@@ -235,20 +382,25 @@ void FilterEngine::loadConfigStream(const wstring& path, stringstream inputStrea
 				break;
 			}
 		}
-	}
 
-	for (auto it = factories.cbegin(); it != factories.cend(); it++)
+		for (auto it = factories.cbegin(); it != factories.cend(); it++)
+		{
+			IFilterFactory* factory = it->get();
+			FilterVector newFilters = factory->endOfFile(path);
+			if (!newFilters.empty())
+				addFilters(move(newFilters));
+		}
+
+		for (const int line : load.gates.unclosedIfLines())
+			reportParseError(L"If", L"this If has no EndIf before the end of its file", line);
+	}
+	catch (...)
 	{
-		IFilterFactory* factory = it->get();
-		FilterVector newFilters = factory->endOfFile(path);
-		if (!newFilters.empty())
-			addFilters(move(newFilters));
+		restoreIncludeFrame();
+		throw;
 	}
 
-	// restore channels selected in outer configuration file
-	load.routing.setCurrentChannelNames(move(savedChannelNames));
-	load.traceFile = move(savedTraceFile);
-	load.traceLine = savedTraceLine;
+	restoreIncludeFrame();
 }
 
 // Load-time graph construction: assigns each new filter its channel index

@@ -19,6 +19,7 @@ QMAKE_CXXFLAGS_RELEASE += /O2
 PRECOMPILED_HEADER = stdafx.h
 
 SOURCES += \
+	../Editor/helpers/CrashHandler.cpp \
 	../platform/qt/QtAppBootstrap.cpp \
 	../platform/qt/HoverProgress.cpp \
 	../Editor/skins/SkinThemeData.cpp \
@@ -31,8 +32,10 @@ SOURCES += \
 	DisclosureHeader.cpp \
 	OpacityIconEngine.cpp \
 	PreviewDevices.cpp \
+	ScreenshotHarness.cpp \
 	ReceiveThread.cpp \
 	ResidentHostLauncher.cpp \
+	../asio/HostLaunch.cpp \
 	SkinButton.cpp \
 	skins/DeviceSkinPainter.cpp \
 	skins/StudioDeviceSkin.cpp \
@@ -41,7 +44,6 @@ SOURCES += \
 	skins/RackDeviceSkin.cpp \
 	skins/MatrixDeviceSkin.cpp \
 	../services/windows/WindowsService.cpp \
-	../platform/windows/ComSelfRegistration.cpp \
 	../services/install/ApoRegistration.cpp \
 	../services/shell/StartMenuShortcuts.cpp \
 	../services/security/AudioEngineAccess.cpp \
@@ -49,6 +51,7 @@ SOURCES += \
 	stdafx.cpp
 
 HEADERS += \
+	../Editor/helpers/CrashHandler.h \
 	../platform/qt/QtAppBootstrap.h \
 	../platform/qt/HoverProgress.h \
 	../platform/qt/MotionPreference.h \
@@ -63,8 +66,10 @@ HEADERS += \
 	DisclosureHeader.h \
 	OpacityIconEngine.h \
 	PreviewDevices.h \
+	ScreenshotHarness.h \
 	ReceiveThread.h \
 	ResidentHostLauncher.h \
+	../asio/HostLaunch.h \
 	SkinButton.h \
 	skins/DeviceSkinPainter.h \
 	../services/windows/WindowsService.h \
@@ -94,7 +99,7 @@ TRANSLATIONS += \
 INCLUDEPATH += $$PWD/..
 
 # Link against Common library and Windows libraries
-LIBS += Kernel32.lib version.lib Shlwapi.lib authz.lib user32.lib advapi32.lib crypt32.lib
+LIBS += Kernel32.lib version.lib Shlwapi.lib authz.lib user32.lib advapi32.lib crypt32.lib Dbghelp.lib
 
 # Include Common.lib
 LIBS += Common.lib
@@ -116,13 +121,21 @@ QMAKE_LFLAGS += /MANIFESTUAC:\"level=\'requireAdministrator\' uiAccess=\'false\'
 RC_FILE = DeviceSelector.rc
 
 HEADERS += \
+	../runtime/concurrency/ShutdownSequence.h \
+	../platform/windows/ProcessShutdown.h \
 	../devices/AsioEntryWriter.h \
 	../devices/EndpointProbe.h \
+	../platform/windows/EndpointId.h \
+	../runtime/ipc/DeviceTestPipe.h \
+	../services/windows/AudioServiceNames.h \
+	../devices/DeviceChange.h \
+	../devices/DeviceEnumeration.h \
 	../platform/windows/TokenPrivilege.h \
 	../platform/windows/WellKnownSids.h \
 	../platform/windows/ComError.h \
 	../platform/windows/ConsoleOutput.h \
 	../platform/windows/ElevatedLaunch.h \
+	../platform/windows/UnelevatedLaunch.h \
 	../platform/windows/TimeStamp.h \
 	../services/windows/ServiceWait.h \
 	../services/install/InstallWaitBudget.h

@@ -51,6 +51,8 @@ class TitleBar;
 class UpdateToast;
 class UpdateSession;
 struct DeviceFormatBadgeState;
+enum class DocumentSaveReason;
+struct DocumentSaveTransition;
 struct OpenDocument;
 
 // MainWindow's implementation is split across several translation units (all
@@ -82,10 +84,6 @@ public:
 	void doChecks();
 	void runDeviceSelector();
 	void load(QString path);
-	// Writes the table's lines to path. False when the file could not be
-	// written (the error was shown); callers keep the tab marked unsaved and
-	// its previous path then (audit #348 TD-07).
-	bool save(FilterTable* filterTable, QString path);
 	bool isEmpty();
 	bool shouldRestart();
 	void startAnalysis();
@@ -98,7 +96,37 @@ public:
 	// The narrow interface the offscreen probes and the diagnostic sessions
 	// use to reach inside the live window (Editor/MainWindowProbe.h). It
 	// replaced their friend access to all of MainWindow (audit #422 TD-59).
-	class Probe;
+	class Probe
+	{
+	public:
+		// All injected probe state lives together (audit #467 TD-75).
+		struct State
+		{
+			std::function<void()> saveStarted;
+			std::function<void()> parametersSet;
+			std::function<void(double, double, double)> panelUpdated;
+			bool skinPersistenceSuppressed = false;
+		};
+
+		explicit Probe(MainWindow& owner);
+		// A diagnostic session must not overwrite the user's window and per-file
+		// preferences, even when it ends early.
+		void suppressPreferenceWrites();
+		FilterTable* currentFilterTable() const;
+		QCheckBox* instantModeControl() const;
+		QComboBox* deviceControl() const;
+		// Timing hooks on the save -> analysis path: a save started, the
+		// analysis worker was handed its parameters, the panel showed a result
+		// (initialization, processing and panel time in milliseconds).
+		void onSaveStarted(std::function<void()> hook);
+		void onAnalysisParametersSet(std::function<void()> hook);
+		void onAnalysisPanelUpdated(std::function<void(double, double, double)> hook);
+		// The hidden skin-switch storm (Editor/diagnostics/SkinSwitchStorm.cpp).
+		void startSkinSwitchStorm();
+
+	private:
+		MainWindow& mainWindow;
+	};
 	Probe probe();
 
 protected:
@@ -156,6 +184,10 @@ private:
 	void startSkinSwitchStorm();
 	void applySkinAndRebuild();
 	void executeStartAnalysis();
+	// Writes one document and applies the widget-free transition for its save
+	// reason. Callers do not repair title/path/dirty state themselves.
+	DocumentSaveTransition saveDocument(OpenDocument& document, DocumentSaveReason reason,
+		const QString& newPath = QString());
 	FilterTable* addTab(QString title, QString tooltip, QString configPath, QList<QString> lines);
 	void getDeviceAndChannelMask(std::shared_ptr<AbstractAPOInfo>* selectedDevice, int* channelMask);
 	// The badge for apoInfo; an endpoint's format is probed off the UI thread
@@ -197,8 +229,6 @@ private:
 	// into its tab.
 	void showDocumentTitle(const OpenDocument& document);
 	void updateDirtyStatus();
-	// Marks the tab's document saved or unsaved; its title follows.
-	void setTabDirty(int tabIndex, bool dirty);
 	// Runs an instant-mode save that is still waiting out its debounce, so
 	// closing a tab or the window inside that window does not drop the last
 	// edit. A failed save marks the tab unsaved.
@@ -237,13 +267,16 @@ private:
 	EqGraphView* eqGraphView = nullptr;
 	std::unique_ptr<AnalysisThread> analysisThread;
 	QTimer* analysisDebounceTimer = nullptr;
-	std::function<void()> analysisProbeSaveStarted;
-	std::function<void()> analysisProbeParametersSet;
-	std::function<void(double, double, double)> analysisProbePanelUpdated;
+	Probe::State probeState;
+	// Forwarding aliases keep the separately maintained MainWindowParts callers
+	// source-compatible; the storage belongs to Probe (audit #467 TD-75).
+	std::function<void()>& analysisProbeSaveStarted = probeState.saveStarted;
+	std::function<void()>& analysisProbeParametersSet = probeState.parametersSet;
+	std::function<void(double, double, double)>& analysisProbePanelUpdated = probeState.panelUpdated;
 	bool restart = false;
 	bool noSavePreferences = false;
 	bool noSaveFilePreferences = false;
-	bool skinPersistenceSuppressed = false;
+	bool& skinPersistenceSuppressed = probeState.skinPersistenceSuppressed;
 	QStringList recentFiles;
 	QString skinId = QStringLiteral("studio");
 	bool skinDark = true;

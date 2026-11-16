@@ -33,6 +33,7 @@
 #include "VSTPluginLibrary.h"
 #include "VSTPluginInstance.h"
 #include "VSTChunkBase64.h"
+#include "VSTBoundedString.h"
 
 using namespace std;
 using vstchunk::decodeBase64;
@@ -137,7 +138,7 @@ using VST2EffectPtr = std::unique_ptr<vst_effect_t, VST2EffectDeleter>;
 class VST2Instance final : public VSTPluginInstance
 {
 public:
-	VST2Instance(const std::shared_ptr<VSTPluginLibrary>& library, int processLevel)
+	VST2Instance(const std::shared_ptr<VSTPluginLibrary>& library, VSTPluginInstance::ProcessLevel processLevel)
 		: VSTPluginInstance(library, processLevel)
 	{
 	}
@@ -154,6 +155,7 @@ public:
 	}
 
 	bool initialize() override;
+	InitializationFailure initializationFailure() const override {return lastInitializationFailure;}
 
 	int numInputs() const override
 	{
@@ -209,12 +211,11 @@ public:
 		if (effect == NULL)
 			return L"";
 
-		char buf[256];
-		memset(buf, 0, sizeof(buf));
+		char buf[256] = {};
 		effect->control(effect.get(), VST_EFFECT_OPCODE_EFFECT_NAME, 0, 0, buf, 0.0f);
 		buf[255] = '\0'; // just to be sure
 
-		return wintext::toWideString(buf, CP_UTF8);
+		return wintext::toWideString(vsttext::boundedString(buf), CP_UTF8);
 	}
 
 	int getInitialDelay() const override
@@ -225,29 +226,31 @@ public:
 		return effect->delay;
 	}
 
-	void prepareForProcessing(float sampleRate, int blockSize) override
+	bool prepareProcessingImpl(float sampleRate, int blockSize) override
 	{
 		if (effect == NULL)
-			return;
+			return false;
 
 		this->sampleRate = sampleRate;
 		effect->control(effect.get(), VST_EFFECT_OPCODE_SET_SAMPLE_RATE, 0, 0, NULL, sampleRate);
 		effect->control(effect.get(), VST_EFFECT_OPCODE_SET_BLOCK_SIZE, 0, blockSize, NULL, 0.0f);
 		refreshSampleWidths();
+		return true;
 	}
 
-	void writeToEffect(const wstring& chunkData, const unordered_map<wstring, float>& paramMap) override;
+	StateRestoreResult writeToEffect(const wstring& chunkData, const unordered_map<wstring, float>& paramMap) override;
 	void readFromEffect(wstring& chunkData, unordered_map<wstring, float>& paramMap) const override;
 
-	void startProcessing() override
+	bool startProcessing() override
 	{
 		if (effect == NULL)
-			return;
+			return false;
 
 		effect->control(effect.get(), VST_EFFECT_OPCODE_SUSPEND, 0, 1, NULL, 0.0f);
 		effect->control(effect.get(), VST_EFFECT_OPCODE_PROCESS_BEGIN, 0, 0, NULL, 0.0f);
 		refreshSampleWidths();
 		vst2Processing = true;
+		return true;
 	}
 
 	void processDoubleReplacing(double** inputArray, double** outputArray, int frameCount) override
@@ -338,6 +341,7 @@ private:
 		WrongMagicNumber
 	};
 
+	InitializationFailure lastInitializationFailure = InitializationFailure::Refused;
 	LoadResult load();
 	void requestContentScale(double scale)
 	{
@@ -430,7 +434,7 @@ intptr_t callback(struct vst_effect_t* effect, int32_t opcode, int32_t index, in
 
 	case VST_HOST_OPCODE_GET_ACTIVE_THREAD:
 		if (instance != NULL)
-			return instance->getProcessLevel();
+			return static_cast<int>(instance->getProcessLevel());
 		return 0;
 
 	case VST_HOST_OPCODE_LANGUAGE:
@@ -509,6 +513,7 @@ VST2Instance::LoadResult VST2Instance::load()
 
 bool VST2Instance::initialize()
 {
+	lastInitializationFailure = InitializationFailure::Refused;
 	// load() must stay free of objects requiring stack unwinding because it
 	// uses a __try/__except guard (MSVC C2712), so log its failure reasons here where
 	// constructing the std::wstring temporary from getLibPath is allowed.
@@ -524,7 +529,8 @@ bool VST2Instance::initialize()
 	case LoadResult::Loaded:
 		return true;
 	case LoadResult::Crashed:
-		LogF(L"Loading VST2 plugin %s failed due to an exception.", library->getLibPath().c_str());
+		lastInitializationFailure = InitializationFailure::StructuredException;
+		LogF(L"VST2 plugin %s raised a structured exception during initialization.", library->getLibPath().c_str());
 		return false;
 	case LoadResult::NoEntryPoint:
 		LogF(L"VST2 plugin %s returned no effect from its entry point, not loading it.", library->getLibPath().c_str());
@@ -597,33 +603,42 @@ bool VST2Instance::rescaleEditorImpl(double scaleFactor)
 	return true;
 }
 
-void VST2Instance::writeToEffect(const wstring& chunkData, const unordered_map<wstring, float>& paramMap)
+VSTPluginInstance::StateRestoreResult VST2Instance::writeToEffect(const wstring& chunkData, const unordered_map<wstring, float>& paramMap)
 {
 	if (effect == NULL)
-		return;
+		return {L"The plug-in instance is unavailable"};
 
 	if (effect->flags & VST_EFFECT_FLAG_CHUNKS)
 	{
 		if (chunkData != L"")
 		{
 			vector<char> data;
-			if (decodeBase64(chunkData, data))
-				effect->control(effect.get(), VST_EFFECT_OPCODE_SET_CHUNK_DATA, 1, data.size(), data.data(), 0.0f);
+			// testStateRestoreFailureIsReported truncates a saved chunk; silently
+			// skipping it runs factory defaults without a diagnostic (audit #467 TD-36).
+			if (!decodeBase64(chunkData, data) || data.empty())
+				return {L"ChunkData is not valid base64 state"};
+			// VST2 has no portable success indication for effSetChunk: JUCE's
+			// handleSetData restores state and returns zero. testZeroStateResult
+			// reproduces that behavior; zero must not become a false refusal.
+			effect->control(effect.get(), VST_EFFECT_OPCODE_SET_CHUNK_DATA, 1, data.size(), data.data(), 0.0f);
 		}
 	}
 	else
 	{
 		for (int i = 0; i < effect->num_params; i++)
 		{
-			char buf[256];
+			// The plug-in may leave this untouched: testForeignParameterNames
+			// reproduces a stale previous name (audit #467 TD-52).
+			char buf[256] = {};
 			effect->control(effect.get(), VST_EFFECT_OPCODE_PARAM_GET_NAME, i, 0, buf, 0.0f);
 			buf[255] = '\0'; // just to be sure
-			wstring name = wintext::toWideString(buf, CP_UTF8);
+			wstring name = wintext::toWideString(vsttext::boundedString(buf), CP_UTF8);
 			auto it = paramMap.find(name);
 			if (it != paramMap.end())
 				effect->set_parameter(effect.get(), i, it->second);
 		}
 	}
+	return {};
 }
 
 void VST2Instance::readFromEffect(wstring& chunkData, unordered_map<wstring, float>& paramMap) const
@@ -645,18 +660,20 @@ void VST2Instance::readFromEffect(wstring& chunkData, unordered_map<wstring, flo
 	{
 		for (int i = 0; i < effect->num_params; i++)
 		{
-			char buf[256];
+			// The plug-in may leave this untouched: testForeignParameterNames
+			// reproduces a stale previous name (audit #467 TD-52).
+			char buf[256] = {};
 			effect->control(effect.get(), VST_EFFECT_OPCODE_PARAM_GET_NAME, i, 0, buf, 0.0f);
 			buf[255] = '\0'; // just to be sure
 			float value = effect->get_parameter(effect.get(), i);
-			paramMap[wintext::toWideString(buf, CP_UTF8)] = value;
+			paramMap[wintext::toWideString(vsttext::boundedString(buf), CP_UTF8)] = value;
 		}
 	}
 }
 }
 
 std::unique_ptr<VSTPluginInstance> createVST2Instance(
-	const std::shared_ptr<VSTPluginLibrary>& library, int processLevel)
+	const std::shared_ptr<VSTPluginLibrary>& library, VSTPluginInstance::ProcessLevel processLevel)
 {
 	return std::make_unique<VST2Instance>(library, processLevel);
 }

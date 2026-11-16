@@ -75,11 +75,12 @@ steps, which `TestDirectory` does not do.
 
 ## EngineOrchestrationTests is one executable of topic files
 
-All sources share one `test::Harness`. `EngineOrchestrationTestSupport.h`
-declares the shared fixtures (the temporary directory, the one `writeConfig`,
-`testEngineSetup`/`initializeEngine`, `processDcBlock`) and every test
-function; `EngineOrchestrationTests.cpp` defines the fixtures and holds
-`main()` with the one call list, in a fixed order. The tests live by topic:
+`EngineOrchestrationTestSupport.h` declares the shared fixtures (the temporary
+directory, `writeConfig`, `testEngineSetup`/`initializeEngine`, `processDcBlock`).
+`EngineOrchestrationTests.cpp` defines them and calls `test::runAll` from `main()`.
+Topic files register tests with `TEST_CASE(suite, name)` from `Tests/TestHarness.h`;
+`runAll` supplies one `test::Harness` per registered suite, runs its cases and
+cleanups, then reports the checks and aligned-memory balance. The tests live by topic:
 
 | File | Topic |
 |------|-------|
@@ -90,8 +91,16 @@ function; `EngineOrchestrationTests.cpp` defines the fixtures and holds
 | `EngineRoutingTests.cpp` | Channel, Copy, MultiConvolution mapping, real BRIR crossfeed |
 | `ConfigLoadTests.cpp` | load trace, parse and setup errors, Include, network paths, registry port, analysis mode |
 
-The older files (`CaptureEngineTests.cpp`, `DeviceApoInfoTests.cpp`,
-`RegistryConformanceTests.cpp` and the rest) keep a `runXxxTests` runner each.
-A new test is declared in the support header and called from `main()`;
-`.github/scripts/Test-SourceSync.ps1` fails the build when a
-`void test...(test::Harness& ...)` function in this folder is never called.
+Add a new case with `TEST_CASE`, not a declaration in the support header or a
+call in `main()`. Add a new topic `.cpp` to the suite's `.vcxproj` as a
+`ClCompile Include` entry, and to its `.vcxproj.filters` if it has one; static
+registration only happens when the file is compiled into the executable.
+
+`.github/scripts/Test-SourceSync.ps1` rejects plain no-argument `void test...()`
+definitions in the four self-registering suites. It also checks the shared
+Common/Editor source lists, project entries and other source contracts; it does
+not check a hand-written test call list. `.github/scripts/Test-VariantSync.ps1`
+checks installer channels against the variant manifest and rejects per-project
+instruction-set literals. Their fixture tests are in
+`.github/scripts/Tests/Test-SourceSync.Tests.ps1` and
+`.github/scripts/Tests/ReleaseScripts.Tests.ps1`, respectively.

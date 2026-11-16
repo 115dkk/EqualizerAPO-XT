@@ -78,32 +78,27 @@ void MainWindow::loadPreferences()
 	// The layout probe starts from a clean, deterministic right dock without
 	// reading or mutating the user's saved window arrangement.
 	graphDockPosition = analysisLayoutTestMode ? 2
-		: qBound(0, settings.value("interface/graphDockPosition", 1).toInt(), 2);
+		: qBound(0, settings.value(QLatin1String(EditorSettings::Keys::GraphDockPosition), 1).toInt(), 2);
 	applyRedesignPreferences();
 
-	QVariant geometryValue = analysisLayoutTestMode ? QVariant() : settings.value("geometry");
+	QVariant geometryValue = analysisLayoutTestMode ? QVariant() : settings.value(QLatin1String(EditorSettings::Keys::Geometry));
 	if (geometryValue.isValid())
 		restoreGeometry(geometryValue.toByteArray());
-	instantModeCheckBox->setChecked(settings.value("instantMode", true).toBool());
-	QString selectedDevice = settings.value("selectedDevice").toString();
-	if (!selectedDevice.isEmpty())
+	instantModeCheckBox->setChecked(settings.value(QLatin1String(EditorSettings::Keys::InstantMode), true).toBool());
+	QList<EditorSettings::DeviceChoice> deviceChoices;
+	for (int i = 0; i < deviceComboBox->count(); i++)
 	{
-		for (int i = 0; i < deviceComboBox->count(); i++)
-		{
-			shared_ptr<AbstractAPOInfo> apoInfo = deviceComboBox->itemData(i).value<shared_ptr<AbstractAPOInfo>>();
-			if (apoInfo != nullptr)
-			{
-				if (QString::fromStdWString(apoInfo->getDeviceString()).compare(selectedDevice, Qt::CaseInsensitive) == 0)
-				{
-					deviceComboBox->setCurrentIndex(i);
-					break;
-				}
-			}
-		}
+		shared_ptr<AbstractAPOInfo> apoInfo = deviceComboBox->itemData(i).value<shared_ptr<AbstractAPOInfo>>();
+		deviceChoices.append(apoInfo != nullptr ? EditorSettings::DeviceChoice{
+			QString::fromStdWString(apoInfo->getDeviceGuid()),
+			QString::fromStdWString(apoInfo->getDeviceString()), apoInfo->isInput() } : EditorSettings::DeviceChoice{});
 	}
+	const int selectedDeviceIndex = EditorSettings::readSelectedDevice(settings, deviceChoices);
+	if (selectedDeviceIndex >= 0)
+		deviceComboBox->setCurrentIndex(selectedDeviceIndex);
 	deviceSelected(deviceComboBox->currentIndex());
 
-	int selectedChannelMask = settings.value("selectedChannelMask").toInt();
+	int selectedChannelMask = settings.value(QLatin1String(EditorSettings::Keys::SelectedChannelMask)).toInt();
 	if (selectedChannelMask != 0)
 	{
 		int index = channelConfigurationComboBox->findData(selectedChannelMask);
@@ -112,12 +107,12 @@ void MainWindow::loadPreferences()
 	}
 	channelConfigurationSelected(channelConfigurationComboBox->currentIndex());
 
-	ui->startFromComboBox->setCurrentIndex(settings.value("analysis/startFrom").toInt());
-	ui->analysisChannelComboBox->setCurrentText(settings.value("analysis/channel").toString());
-	ui->resolutionSpinBox->setValue(settings.value("analysis/resolution", 65536).toInt());
+	ui->startFromComboBox->setCurrentIndex(settings.value(QLatin1String(EditorSettings::Keys::AnalysisStartFrom)).toInt());
+	ui->analysisChannelComboBox->setCurrentText(settings.value(QLatin1String(EditorSettings::Keys::AnalysisChannel)).toString());
+	ui->resolutionSpinBox->setValue(settings.value(QLatin1String(EditorSettings::Keys::AnalysisResolution), 65536).toInt());
 
-	QVariant openFilesValue = analysisLayoutTestMode ? QVariant() : settings.value("openFiles");
-	int tabIndex = settings.value("tabIndex").toInt();
+	QVariant openFilesValue = analysisLayoutTestMode ? QVariant() : settings.value(QLatin1String(EditorSettings::Keys::OpenFiles));
+	int tabIndex = settings.value(QLatin1String(EditorSettings::Keys::TabIndex)).toInt();
 	if (openFilesValue.isValid())
 	{
 		QStringList fileList = openFilesValue.toStringList();
@@ -132,7 +127,7 @@ void MainWindow::loadPreferences()
 		}
 	}
 	ui->tabWidget->setCurrentIndex(tabIndex);
-	recentFiles = settings.value("recentFiles").toStringList();
+	recentFiles = settings.value(QLatin1String(EditorSettings::Keys::RecentFiles)).toStringList();
 	for (QString& recentFile : recentFiles)
 		recentFile = EqAPO::Import::LegacyMigration::adoptMigratedFile(recentFile);
 	recentFiles.removeDuplicates();
@@ -149,7 +144,7 @@ void MainWindow::loadPreferences()
 		action->setChecked(action->data().toInt() == language);
 
 	// load window state after initializing channels as it may trigger on_analysisDockWidget_visibilityChanged when analysis panel is detached
-	QVariant stateValue = analysisLayoutTestMode ? QVariant() : settings.value("windowState");
+	QVariant stateValue = analysisLayoutTestMode ? QVariant() : settings.value(QLatin1String(EditorSettings::Keys::WindowState));
 	if (stateValue.isValid())
 		restoreState(stateValue.toByteArray(), kWindowStateVersion);
 	// The saved window state can carry a hidden main toolbar (e.g. the app
@@ -168,17 +163,19 @@ void MainWindow::savePreferences()
 		return;
 
 	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
-	settings.setValue("geometry", saveGeometry());
-	settings.setValue("windowState", saveState(kWindowStateVersion));
-	settings.setValue("instantMode", instantModeCheckBox->isChecked());
+	settings.setValue(QLatin1String(EditorSettings::Keys::Geometry), saveGeometry());
+	settings.setValue(QLatin1String(EditorSettings::Keys::WindowState), saveState(kWindowStateVersion));
+	settings.setValue(QLatin1String(EditorSettings::Keys::InstantMode), instantModeCheckBox->isChecked());
 	shared_ptr<AbstractAPOInfo> selectedDevice = deviceComboBox->currentData().value<shared_ptr<AbstractAPOInfo>>();
-	settings.setValue("selectedDevice", selectedDevice != nullptr ? QString::fromStdWString(selectedDevice->getDeviceString()) : "");
+	EditorSettings::writeSelectedDevice(settings, selectedDevice != nullptr ? EditorSettings::DeviceChoice{
+		QString::fromStdWString(selectedDevice->getDeviceGuid()),
+		QString::fromStdWString(selectedDevice->getDeviceString()), selectedDevice->isInput() } : EditorSettings::DeviceChoice{});
 	int channelMask = channelConfigurationComboBox->currentData().toInt();
-	settings.setValue("selectedChannelMask", channelMask);
+	settings.setValue(QLatin1String(EditorSettings::Keys::SelectedChannelMask), channelMask);
 
-	settings.setValue("analysis/startFrom", ui->startFromComboBox->currentIndex());
-	settings.setValue("analysis/channel", ui->analysisChannelComboBox->currentText());
-	settings.setValue("analysis/resolution", ui->resolutionSpinBox->value());
+	settings.setValue(QLatin1String(EditorSettings::Keys::AnalysisStartFrom), ui->startFromComboBox->currentIndex());
+	settings.setValue(QLatin1String(EditorSettings::Keys::AnalysisChannel), ui->analysisChannelComboBox->currentText());
+	settings.setValue(QLatin1String(EditorSettings::Keys::AnalysisResolution), ui->resolutionSpinBox->value());
 	// analysis/zoomX/zoomY are intentionally not persisted: the active graph
 	// (EqGraphView) does not expose zoom, and persisting the hidden legacy
 	// view's zoom would only resurrect the bug where reloads applied stale
@@ -189,12 +186,12 @@ void MainWindow::savePreferences()
 		if (filterTable->getConfigPath().length() > 0)
 			fileList.append(filterTable->getConfigPath());
 	});
-	settings.setValue("openFiles", fileList);
-	settings.setValue("tabIndex", ui->tabWidget->currentIndex());
-	settings.setValue("recentFiles", recentFiles);
+	settings.setValue(QLatin1String(EditorSettings::Keys::OpenFiles), fileList);
+	settings.setValue(QLatin1String(EditorSettings::Keys::TabIndex), ui->tabWidget->currentIndex());
+	settings.setValue(QLatin1String(EditorSettings::Keys::RecentFiles), recentFiles);
 	EditorSettings::writeSkinChoice(settings, { skinId, skinDark });
 	settings.setValue(QLatin1String(EditorSettings::Keys::LegacyRows), currentRenderMode == FilterTable::LegacyRows);
-	settings.setValue("interface/graphDockPosition", graphDockPosition);
+	settings.setValue(QLatin1String(EditorSettings::Keys::GraphDockPosition), graphDockPosition);
 
 	settings.sync();
 }

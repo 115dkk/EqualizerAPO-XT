@@ -51,7 +51,7 @@ TEST_CASE(VSTPluginCommandTests, testLibraryOnly)
 	// Bare library reference: no chunk, no params. getInstance keeps the absolute
 	// path as-is, and the serialized body is empty (store() emits only the Library
 	// token in this case).
-	VSTPluginCommand cmd = VSTPluginCommand::parse(L"", L"Library C:\\plugins\\reverb.dll");
+	VSTPluginCommand cmd = VSTPluginCommand::parse(L"Library C:\\plugins\\reverb.dll");
 	harness.expectTrue(!cmd.libraryPath.empty(), "library-only: library resolved");
 	harness.expectTrue(cmd.libraryPath == L"C:\\plugins\\reverb.dll", "library-only: lib path");
 	harness.expectTrue(cmd.chunkData == L"", "library-only: no chunk data");
@@ -63,7 +63,7 @@ TEST_CASE(VSTPluginCommandTests, testQuotedPath)
 {
 	// A path containing spaces is given quoted; splitQuoted strips the quotes and
 	// keeps the spaces, and the parser keeps the absolute path verbatim.
-	VSTPluginCommand cmd = VSTPluginCommand::parse(L"", L"Library \"C:\\Program Files\\My Plugin\\plugin.dll\"");
+	VSTPluginCommand cmd = VSTPluginCommand::parse(L"Library \"C:\\Program Files\\My Plugin\\plugin.dll\"");
 	harness.expectTrue(!cmd.libraryPath.empty(), "quoted-path: library resolved");
 	harness.expectTrue(cmd.libraryPath == L"C:\\Program Files\\My Plugin\\plugin.dll", "quoted-path: lib path with spaces");
 	harness.expectTrue(cmd.chunkData == L"", "quoted-path: no chunk data");
@@ -73,7 +73,7 @@ TEST_CASE(VSTPluginCommandTests, testChunkData)
 {
 	// Library + ChunkData are mutually exclusive with the param list. The chunk is
 	// stored verbatim and round-trips through ChunkData "...".
-	VSTPluginCommand cmd = VSTPluginCommand::parse(L"", L"Library C:\\plugins\\reverb.dll ChunkData \"QUJDRA==\"");
+	VSTPluginCommand cmd = VSTPluginCommand::parse(L"Library C:\\plugins\\reverb.dll ChunkData \"QUJDRA==\"");
 	harness.expectTrue(!cmd.libraryPath.empty(), "chunk: library resolved");
 	harness.expectTrue(cmd.chunkData == L"QUJDRA==", "chunk: chunk data");
 	harness.expectEqual(cmd.paramMap.size(), (size_t)0, "chunk: no params");
@@ -85,7 +85,7 @@ TEST_CASE(VSTPluginCommandTests, testNamedParams)
 	// Named parameters: each pair is "<name> <numeric value>". The value's first
 	// character is a digit, so the parser takes the isdigit branch that maps the
 	// name (the key) to the value.
-	VSTPluginCommand cmd = VSTPluginCommand::parse(L"", L"Library C:\\plugins\\reverb.dll Gain 0.5 Mix 0.25");
+	VSTPluginCommand cmd = VSTPluginCommand::parse(L"Library C:\\plugins\\reverb.dll Gain 0.5 Mix 0.25");
 	harness.expectTrue(!cmd.libraryPath.empty(), "named-params: library resolved");
 	harness.expectTrue(cmd.chunkData == L"", "named-params: no chunk data");
 	harness.expectEqual(cmd.paramMap.size(), (size_t)2, "named-params: two params");
@@ -93,7 +93,7 @@ TEST_CASE(VSTPluginCommandTests, testNamedParams)
 	harness.expectEqual(paramValue(cmd.paramMap, L"Mix", "named-params Mix"), 0.25f, "named-params: Mix value");
 
 	VSTPluginCommand outputParameter = VSTPluginCommand::parse(
-		L"", L"Library C:\\plugins\\reverb.dll Output 0.5");
+		L"Library C:\\plugins\\reverb.dll Output 0.5");
 	harness.expectTrue(outputParameter.valid && !outputParameter.hasBusContract,
 		"legacy numeric Output parameter is not mistaken for a bus contract");
 	harness.expectEqual(paramValue(outputParameter.paramMap, L"Output", "named-params Output"),
@@ -108,11 +108,11 @@ TEST_CASE(VSTPluginCommandTests, testParamValuesReadBackExactly)
 	// (2000 - 1000) / 19000, moved the same way.
 	const float size = (75.0f - 5.0f) / 95.0f;
 	const float crossover = (2000.0f - 1000.0f) / 19000.0f;
-	VSTPluginCommand cmd = VSTPluginCommand::parse(L"", L"Library C:\\plugins\\reverb.dll Gain 0.5");
+	VSTPluginCommand cmd = VSTPluginCommand::parse(L"Library C:\\plugins\\reverb.dll Gain 0.5");
 	cmd.paramMap[L"Size"] = size;
 	cmd.paramMap[L"Mid-High Freq"] = crossover;
 	const wstring body = cmd.serialize();
-	VSTPluginCommand reparsed = VSTPluginCommand::parse(L"", L"Library C:\\plugins\\reverb.dll" + body);
+	VSTPluginCommand reparsed = VSTPluginCommand::parse(L"Library C:\\plugins\\reverb.dll" + body);
 	harness.expectEqual(paramValue(reparsed.paramMap, L"Size", "exact Size"), size, "a saved value reads back as the same float");
 	harness.expectEqual(paramValue(reparsed.paramMap, L"Mid-High Freq", "exact crossover"), crossover,
 		"a small saved value reads back as the same float");
@@ -123,7 +123,7 @@ TEST_CASE(VSTPluginCommandTests, testQuotedName)
 {
 	// A parameter name containing a space is quoted; splitQuoted reassembles it as
 	// a single key, and the numeric value still takes the isdigit branch.
-	VSTPluginCommand cmd = VSTPluginCommand::parse(L"", L"Library C:\\plugins\\reverb.dll \"Dry Wet\" 0.75");
+	VSTPluginCommand cmd = VSTPluginCommand::parse(L"Library C:\\plugins\\reverb.dll \"Dry Wet\" 0.75");
 	harness.expectEqual(cmd.paramMap.size(), (size_t)1, "quoted-name: one param");
 	harness.expectEqual(paramValue(cmd.paramMap, L"Dry Wet", "quoted-name value"), 0.75f, "quoted-name: value");
 }
@@ -132,7 +132,7 @@ TEST_CASE(VSTPluginCommandTests, testIdParams)
 {
 	// Parameters addressed by numeric id behave the same as named ones: the id is
 	// the key, the following numeric token is the value.
-	VSTPluginCommand cmd = VSTPluginCommand::parse(L"", L"Library C:\\plugins\\reverb.dll 0 0.1 12 0.9");
+	VSTPluginCommand cmd = VSTPluginCommand::parse(L"Library C:\\plugins\\reverb.dll 0 0.1 12 0.9");
 	harness.expectEqual(cmd.paramMap.size(), (size_t)2, "id-params: two params");
 	harness.expectEqual(paramValue(cmd.paramMap, L"0", "id-params 0"), 0.1f, "id-params: id 0 value");
 	harness.expectEqual(paramValue(cmd.paramMap, L"12", "id-params 12"), 0.9f, "id-params: id 12 value");
@@ -145,12 +145,12 @@ TEST_CASE(VSTPluginCommandTests, testNonNumericValueBranch)
 	// token two slots further on as its value. This is an edge of the original
 	// grammar, asserted here only to lock the verbatim behaviour (store() never
 	// emits such a line, so it is not part of the round-trip set).
-	VSTPluginCommand cmd = VSTPluginCommand::parse(L"", L"Library C:\\plugins\\reverb.dll ParamName SomeText 0.5");
+	VSTPluginCommand cmd = VSTPluginCommand::parse(L"Library C:\\plugins\\reverb.dll ParamName SomeText 0.5");
 	harness.expectEqual(cmd.paramMap.size(), (size_t)1, "non-numeric: one param");
 	harness.expectEqual(paramValue(cmd.paramMap, L"SomeText", "non-numeric value"), 0.5f, "non-numeric: mapped value");
 
 	VSTPluginCommand unicode = VSTPluginCommand::parse(
-		L"", L"Library C:\\plugins\\reverb.dll ParamName \xD55C\xAE00\xC774\xB984 0.25");
+		L"Library C:\\plugins\\reverb.dll ParamName \xD55C\xAE00\xC774\xB984 0.25");
 	harness.expectEqual(unicode.paramMap.size(), (size_t)1, "non-ASCII name: one param");
 	harness.expectEqual(paramValue(unicode.paramMap, L"\xD55C\xAE00\xC774\xB984", "non-ASCII name value"),
 		0.25f, "non-ASCII parameter name is classified safely");
@@ -162,7 +162,7 @@ TEST_CASE(VSTPluginCommandTests, testSignedAndFractionalValuesAreNumbers)
 	// (audit #348): the first-digit test sent "-0.5" and ".5" down the name
 	// branch above, dropping the parameter.
 	VSTPluginCommand cmd = VSTPluginCommand::parse(
-		L"", L"Library C:\\plugins\\reverb.dll Gain -0.5 Mix .25 Tilt +1 Pan -.5");
+		L"Library C:\\plugins\\reverb.dll Gain -0.5 Mix .25 Tilt +1 Pan -.5");
 	harness.expectEqual(cmd.paramMap.size(), (size_t)4, "signed and fractional values: four params");
 	harness.expectEqual(paramValue(cmd.paramMap, L"Gain", "negative value"), -0.5f, "a negative value stays with its key");
 	harness.expectEqual(paramValue(cmd.paramMap, L"Mix", "leading-point value"), 0.25f, "a value starting with '.' stays with its key");
@@ -171,7 +171,7 @@ TEST_CASE(VSTPluginCommandTests, testSignedAndFractionalValuesAreNumbers)
 
 	// Words that wcstof would read as numbers are names here.
 	VSTPluginCommand named = VSTPluginCommand::parse(
-		L"", L"Library C:\\plugins\\reverb.dll ParamName Input 0.5");
+		L"Library C:\\plugins\\reverb.dll ParamName Input 0.5");
 	harness.expectEqual(paramValue(named.paramMap, L"Input", "inf-prefixed name"), 0.5f, "a name starting with 'Inf' is still a name");
 }
 
@@ -181,12 +181,12 @@ TEST_CASE(VSTPluginCommandTests, testSignedAndFractionalValuesAreNumbers)
 // constant so only the chunk/param body varies.
 void expectBodyRoundTrip(const wstring& parameters, const wstring& expectedBody)
 {
-	VSTPluginCommand cmd = VSTPluginCommand::parse(L"", parameters);
+	VSTPluginCommand cmd = VSTPluginCommand::parse(parameters);
 	wstring body = cmd.serialize();
 	harness.expectTrue(body == expectedBody,
 		"serialize(parse(...)) body mismatch for: " + wintext::toNarrowString(parameters, 65001u));
 
-	VSTPluginCommand reparsed = VSTPluginCommand::parse(L"", L"Library C:\\plugins\\reverb.dll" + body);
+	VSTPluginCommand reparsed = VSTPluginCommand::parse(L"Library C:\\plugins\\reverb.dll" + body);
 	harness.expectTrue(reparsed.serialize() == expectedBody,
 		"second round trip not stable for: " + wintext::toNarrowString(parameters, 65001u));
 }
@@ -206,9 +206,9 @@ TEST_CASE(VSTPluginCommandTests, testSerializeRoundTrip)
 
 	// A multi-param command is not asserted against a fixed string (map order is
 	// unspecified), but parse -> serialize -> parse must preserve the map.
-	VSTPluginCommand cmd = VSTPluginCommand::parse(L"", L"Library C:\\plugins\\reverb.dll Gain 0.5 Mix 0.25");
+	VSTPluginCommand cmd = VSTPluginCommand::parse(L"Library C:\\plugins\\reverb.dll Gain 0.5 Mix 0.25");
 	wstring body = cmd.serialize();
-	VSTPluginCommand reparsed = VSTPluginCommand::parse(L"", L"Library C:\\plugins\\reverb.dll" + body);
+	VSTPluginCommand reparsed = VSTPluginCommand::parse(L"Library C:\\plugins\\reverb.dll" + body);
 	harness.expectEqual(reparsed.paramMap.size(), (size_t)2, "multi-param round trip: size");
 	harness.expectEqual(paramValue(reparsed.paramMap, L"Gain", "multi-param Gain"), 0.5f, "multi-param round trip: Gain");
 	harness.expectEqual(paramValue(reparsed.paramMap, L"Mix", "multi-param Mix"), 0.25f, "multi-param round trip: Mix");
@@ -220,7 +220,7 @@ TEST_CASE(VSTPluginCommandTests, testSerializeRoundTrip)
 	built.paramMap[L"Feedback"] = 0.6f;
 	wstring builtBody = built.serialize();
 	harness.expectTrue(builtBody == L" Feedback 0.6", "hand-built body");
-	VSTPluginCommand builtReparsed = VSTPluginCommand::parse(L"", L"Library C:\\plugins\\reverb.dll" + builtBody);
+	VSTPluginCommand builtReparsed = VSTPluginCommand::parse(L"Library C:\\plugins\\reverb.dll" + builtBody);
 	harness.expectEqual(paramValue(builtReparsed.paramMap, L"Feedback", "hand-built Feedback"), 0.6f, "hand-built round trip");
 }
 TEST_CASE(VSTPluginCommandTests, testStereoInput)
@@ -230,7 +230,7 @@ TEST_CASE(VSTPluginCommandTests, testStereoInput)
 	// body token so the option survives an Editor load/save cycle. Any value
 	// other than 1/true reads as off, and an off flag is not emitted at all
 	// (the config line stays byte-identical for everyone not using it).
-	VSTPluginCommand cmd = VSTPluginCommand::parse(L"", L"Library C:\\plugins\\upmix.vst3 StereoInput 1 ChunkData \"QUJDRA==\"");
+	VSTPluginCommand cmd = VSTPluginCommand::parse(L"Library C:\\plugins\\upmix.vst3 StereoInput 1 ChunkData \"QUJDRA==\"");
 	harness.expectTrue(cmd.stereoInput, "stereo-input: flag set");
 	harness.expectTrue(cmd.chunkData == L"QUJDRA==", "stereo-input: chunk preserved");
 	harness.expectEqual(cmd.paramMap.size(), (size_t)0, "stereo-input: not a plugin parameter");
@@ -239,14 +239,14 @@ TEST_CASE(VSTPluginCommandTests, testStereoInput)
 	expectBodyRoundTrip(L"Library C:\\plugins\\upmix.vst3 StereoInput 1 Gain 0.5",
 		L" StereoInput 1 Gain 0.5");
 
-	VSTPluginCommand off = VSTPluginCommand::parse(L"", L"Library C:\\plugins\\upmix.vst3 StereoInput 0 Gain 0.5");
+	VSTPluginCommand off = VSTPluginCommand::parse(L"Library C:\\plugins\\upmix.vst3 StereoInput 0 Gain 0.5");
 	harness.expectFalse(off.stereoInput, "stereo-input: 0 reads as off");
 	harness.expectTrue(off.serialize() == L" Gain 0.5", "stereo-input: off flag is not emitted");
 }
 
 void expectInvalidBusContract(const wstring& parameters, const wchar_t* expectedErrorPart)
 {
-	const VSTPluginCommand cmd = VSTPluginCommand::parse(L"", parameters);
+	const VSTPluginCommand cmd = VSTPluginCommand::parse(parameters);
 	harness.expectFalse(cmd.valid, "VSTPlugin invalid bus contract is rejected");
 	harness.expectTrue(cmd.error.find(expectedErrorPart) != wstring::npos,
 		"VSTPlugin bus-contract error identifies the invalid field");
@@ -256,7 +256,7 @@ TEST_CASE(VSTPluginCommandTests, testVSTPluginBusContract)
 {
 	const wstring source = L"Library \"C:\\Program Files\\VST3\\Height Expander.vst3\" "
 		L"Input Stereo Output 7.1.4 ChunkData \"QUJDRA==\"";
-	VSTPluginCommand cmd = VSTPluginCommand::parse(L"", source);
+	VSTPluginCommand cmd = VSTPluginCommand::parse(source);
 	harness.expectTrue(cmd.valid, "VSTPlugin explicit bus contract parses");
 	harness.expectTrue(cmd.libraryPath == L"C:\\Program Files\\VST3\\Height Expander.vst3",
 		"VSTPlugin quoted library path is preserved");
@@ -268,13 +268,11 @@ TEST_CASE(VSTPluginCommandTests, testVSTPluginBusContract)
 	harness.expectTrue(cmd.chunkData == L"QUJDRA==", "VSTPlugin chunk data parses");
 
 	const wstring serializedBody = cmd.serialize();
-	VSTPluginCommand reparsed = VSTPluginCommand::parse(L"",
-		L"Library \"C:\\Program Files\\VST3\\Height Expander.vst3\"" + serializedBody);
+	VSTPluginCommand reparsed = VSTPluginCommand::parse(L"Library \"C:\\Program Files\\VST3\\Height Expander.vst3\"" + serializedBody);
 	harness.expectTrue(reparsed.valid && reparsed.serialize() == serializedBody,
 		"VSTPlugin bus-contract parse/serialize round trip is stable");
 
-	VSTPluginCommand autoCommand = VSTPluginCommand::parse(L"",
-		L"Library C:\\plugins\\auto.vst3 Input Auto Output Auto Gain 0.5");
+	VSTPluginCommand autoCommand = VSTPluginCommand::parse(L"Library C:\\plugins\\auto.vst3 Input Auto Output Auto Gain 0.5");
 	harness.expectTrue(autoCommand.valid, "VSTPlugin Auto/Auto with parameters parses");
 	harness.expectTrue(autoCommand.hasBusContract
 		&& autoCommand.busContract.input == VST3BusLayout::Auto
@@ -331,7 +329,7 @@ TEST_CASE(VSTPluginCommandTests, testVSTPluginChannelFill)
 	// the device channel names only exist at engine time.
 	const wstring source = L"Library C:\\plugins\\fill.vst3 Input 5.1 InputChannels L,R,C,-,SL,SR "
 		L"Output 5.1 OutputChannels L,R,C,LFE,RL,RR";
-	VSTPluginCommand cmd = VSTPluginCommand::parse(L"", source);
+	VSTPluginCommand cmd = VSTPluginCommand::parse(source);
 	harness.expectTrue(cmd.valid, "channel-fill: parses");
 	harness.expectEqual(cmd.inputChannels.size(), (size_t)6, "channel-fill: one input selector per slot");
 	harness.expectEqual(cmd.outputChannels.size(), (size_t)6, "channel-fill: one output selector per slot");
@@ -348,12 +346,10 @@ TEST_CASE(VSTPluginCommandTests, testVSTPluginChannelFill)
 	expectBodyRoundTrip(L"Library C:\\plugins\\fill.vst3 Input Stereo Output Stereo OutputChannels 5,6 Gain 0.5",
 		L" Input Stereo Output Stereo OutputChannels 5,6 Gain 0.5");
 
-	VSTPluginCommand repeatedInput = VSTPluginCommand::parse(L"",
-		L"Library C:\\plugins\\fill.vst3 Input Stereo InputChannels C,C Output Stereo");
+	VSTPluginCommand repeatedInput = VSTPluginCommand::parse(L"Library C:\\plugins\\fill.vst3 Input Stereo InputChannels C,C Output Stereo");
 	harness.expectTrue(repeatedInput.valid,
 		"channel-fill: one channel may feed several input slots");
-	VSTPluginCommand discardedOutputs = VSTPluginCommand::parse(L"",
-		L"Library C:\\plugins\\fill.vst3 Input Stereo Output Stereo OutputChannels -,-");
+	VSTPluginCommand discardedOutputs = VSTPluginCommand::parse(L"Library C:\\plugins\\fill.vst3 Input Stereo Output Stereo OutputChannels -,-");
 	harness.expectTrue(discardedOutputs.valid,
 		"channel-fill: several output slots may be discarded");
 
@@ -378,8 +374,7 @@ TEST_CASE(VSTPluginCommandTests, testVSTPluginChannelFill)
 
 	// Without the Input/Output keys the line keeps the legacy grammar, where
 	// InputChannels is an ordinary plugin parameter name.
-	VSTPluginCommand legacy = VSTPluginCommand::parse(L"",
-		L"Library C:\\plugins\\reverb.dll InputChannels 0.5");
+	VSTPluginCommand legacy = VSTPluginCommand::parse(L"Library C:\\plugins\\reverb.dll InputChannels 0.5");
 	harness.expectTrue(legacy.valid && !legacy.hasBusContract,
 		"channel-fill: legacy line without Input/Output keeps the permissive grammar");
 	harness.expectTrue(legacy.inputChannels.empty(),

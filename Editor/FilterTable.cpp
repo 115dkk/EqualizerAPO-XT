@@ -210,7 +210,7 @@ void FilterTable::updateGuis()
 	gridLayout->setColumnStretch(1, 1);
 
 	for (const auto& factory : factories)
-		factory->startOfFile(configPath);
+		factory->startOfFile(getConfigPath());
 
 	// Phase accounting for the "Create took" log below; large configs spend
 	// seconds here, so the breakdown tells slow-startup reports apart without
@@ -220,8 +220,9 @@ void FilterTable::updateGuis()
 	qint64 prepareNs = 0, channelsNs = 0;
 	RowBuildTiming timing;
 
-	const QVector<FilterCardBuildPlan> rowPlans = renderMode == ModernCards
-		? FilterCardModel::prepareRows(getLines()) : QVector<FilterCardBuildPlan>();
+	const FilterCardDocumentPlan documentPlan = FilterCardModel::prepareDocument(
+		getLines(), channelFlowContext());
+	const QVector<FilterCardBuildPlan>& rowPlans = documentPlan.rows;
 	prepareNs = phaseTimer.nsecsElapsed();
 	int row = 0;
 	for (Item* item : model.items())
@@ -236,10 +237,10 @@ void FilterTable::updateGuis()
 	}
 
 	for (const auto& factory : factories)
-		factory->endOfFile(configPath);
+		factory->endOfFile(getConfigPath());
 
 	phaseTimer.start();
-	propagateChannels();
+	applyChannelFlow(documentPlan.channelFlow);
 	channelsNs = phaseTimer.nsecsElapsed();
 
 	if (renderMode == ModernCards)
@@ -535,14 +536,13 @@ void FilterTable::updateSingleRowGui(Item* item)
 	// in-place edit (enabled toggle) does not change the surrounding file's
 	// structural context, so the include/depth state the factories track
 	// stays valid.
+	const FilterCardDocumentPlan documentPlan = FilterCardModel::prepareDocument(
+		getLines(), channelFlowContext());
 	FilterCardDescriptor descriptor;
-	QVector<FilterCardRowScope> rowScopes;
 	if (renderMode == ModernCards)
-	{
-		rowScopes = FilterCardModel::calculateScopes(getLines());
-		descriptor = FilterCardModel::describeRow(item->text,
-			rowIndex < rowScopes.size() ? rowScopes[rowIndex] : FilterCardRowScope());
-	}
+		descriptor = rowIndex < documentPlan.rows.size()
+			? documentPlan.rows[rowIndex].descriptor
+			: FilterCardModel::describeLine(item->text);
 	buildRow(rowIndex, item, std::move(descriptor));
 
 	// The edited row may be a scope head (a Channel: or If: line whose enable
@@ -550,13 +550,13 @@ void FilterTable::updateSingleRowGui(Item* item)
 	// changes with it, which this in-place path used to leave stale until the
 	// next full rebuild. updateRowPosition is cheap (in-place, no widget
 	// rebuild) and only re-applies rows whose scope actually changed.
-	if (renderMode == ModernCards && !renumberRowsBelow(rowIndex + 1, rowScopes))
+	if (renderMode == ModernCards && !renumberRowsBelow(rowIndex + 1, documentPlan.rows))
 	{
 		updateGuis();
 		return;
 	}
 
-	propagateChannels();
+	applyChannelFlow(documentPlan.channelFlow);
 	disableWheelForWidgets();
 	update();
 }
@@ -608,7 +608,7 @@ QVector<QWidget*> FilterTable::rowWidgetsByRow() const
 	return widgets;
 }
 
-bool FilterTable::renumberRowsBelow(int firstRow, const QVector<FilterCardRowScope>& rowScopes)
+bool FilterTable::renumberRowsBelow(int firstRow, const QVector<FilterCardBuildPlan>& rowPlans)
 {
 	const QVector<QWidget*> rowWidgets = rowWidgetsByRow();
 	for (int i = firstRow; i < rowWidgets.size(); i++)
@@ -616,7 +616,8 @@ bool FilterTable::renumberRowsBelow(int firstRow, const QVector<FilterCardRowSco
 		FilterCardRow* cardRow = qobject_cast<FilterCardRow*>(rowWidgets[i]);
 		if (cardRow == nullptr)
 			return false;
-		cardRow->updateRowPosition(i + 1, i < rowScopes.size() ? rowScopes[i] : FilterCardRowScope());
+		cardRow->updateRowPosition(i + 1,
+			i < rowPlans.size() ? rowPlans[i].scope : FilterCardRowScope());
 	}
 	return true;
 }
@@ -658,19 +659,20 @@ void FilterTable::insertRowAt(int index)
 	// cache the config path there, which an edit inside the loaded file does
 	// not change.
 	Item* item = model.items().at(index);
-	QVector<FilterCardRowScope> rowScopes = FilterCardModel::calculateScopes(getLines());
-	buildRow(index, item, FilterCardModel::describeRow(item->text,
-		index < rowScopes.size() ? rowScopes[index] : FilterCardRowScope()));
+	const FilterCardDocumentPlan documentPlan = FilterCardModel::prepareDocument(
+		getLines(), channelFlowContext());
+	buildRow(index, item, index < documentPlan.rows.size()
+		? documentPlan.rows[index].descriptor : FilterCardModel::describeLine(item->text));
 
 	// Rows below the insertion point keep their widgets, but their 1-based
 	// number and possibly their channel/If scope changed.
-	if (!renumberRowsBelow(index + 1, rowScopes))
+	if (!renumberRowsBelow(index + 1, documentPlan.rows))
 	{
 		updateGuis();
 		return;
 	}
 
-	propagateChannels();
+	applyChannelFlow(documentPlan.channelFlow);
 	disableWheelForWidgets();
 	syncListChrome();
 	// The insertion replaced the selection and the row widgets read selection
@@ -728,14 +730,15 @@ void FilterTable::removeRowAt(int index)
 	gridLayout->setRowStretch(oldSpacerRow, 0);
 	gridLayout->setRowStretch(oldSpacerRow - 1, 1);
 
-	QVector<FilterCardRowScope> rowScopes = FilterCardModel::calculateScopes(getLines());
-	if (!renumberRowsBelow(index, rowScopes))
+	const FilterCardDocumentPlan documentPlan = FilterCardModel::prepareDocument(
+		getLines(), channelFlowContext());
+	if (!renumberRowsBelow(index, documentPlan.rows))
 	{
 		updateGuis();
 		return;
 	}
 
-	propagateChannels();
+	applyChannelFlow(documentPlan.channelFlow);
 	syncListChrome();
 	updateRowWidgets();
 

@@ -26,6 +26,41 @@
 
 #include "platform/windows/Win32Resource.h"
 
+// Clock and wait seam for bounded file retries. Production uses the Win32
+// implementation below; tests advance a fake clock without sleeping
+// (audit #467 TD-37).
+class FileSharingRetryPolicy
+{
+public:
+	virtual ~FileSharingRetryPolicy() = default;
+	virtual ULONGLONG now() const = 0;
+	// Returns true only when the optional cancellation handle signaled.
+	virtual bool wait(HANDLE cancel, DWORD milliseconds) const = 0;
+};
+
+class SystemFileSharingRetryPolicy final : public FileSharingRetryPolicy
+{
+public:
+	ULONGLONG now() const override
+	{
+		return GetTickCount64();
+	}
+
+	bool wait(HANDLE cancel, DWORD milliseconds) const override
+	{
+		if (cancel != nullptr)
+			return WaitForSingleObject(cancel, milliseconds) == WAIT_OBJECT_0;
+		Sleep(milliseconds);
+		return false;
+	}
+};
+
+inline const FileSharingRetryPolicy& systemFileSharingRetryPolicy()
+{
+	static const SystemFileSharingRetryPolicy policy;
+	return policy;
+}
+
 // Opens a file, retrying while another process holds it open for writing
 // (ERROR_SHARING_VIOLATION), backing off exponentially (1..20 ms) until the
 // deadline passes or the optional cancel handle signals; both bounded exits
@@ -33,10 +68,10 @@
 // other error returns an empty owning handle with that code in lastError.
 inline winutil::UniqueHandle openFileWithSharingRetry(
 	const wchar_t* path, DWORD desiredAccess, DWORD shareMode, DWORD creationDisposition, DWORD& lastError,
-	HANDLE cancel = nullptr, DWORD deadlineMilliseconds = 10000)
+	HANDLE cancel, DWORD deadlineMilliseconds, const FileSharingRetryPolicy& retryPolicy)
 {
 	lastError = ERROR_SUCCESS;
-	const ULONGLONG start = GetTickCount64();
+	const ULONGLONG start = retryPolicy.now();
 	DWORD backoffMilliseconds = 1;
 
 	for (;;)
@@ -50,21 +85,22 @@ inline winutil::UniqueHandle openFileWithSharingRetry(
 		if (lastError != ERROR_SHARING_VIOLATION)
 			return {};
 
-		const ULONGLONG elapsed = GetTickCount64() - start;
+		const ULONGLONG elapsed = retryPolicy.now() - start;
 		if (elapsed >= deadlineMilliseconds)
 			return {};
 
 		const DWORD waitMilliseconds = static_cast<DWORD>((std::min)(
 			static_cast<ULONGLONG>(backoffMilliseconds), deadlineMilliseconds - elapsed));
-		if (cancel != nullptr)
-		{
-			if (WaitForSingleObject(cancel, waitMilliseconds) == WAIT_OBJECT_0)
-				return {};
-		}
-		else
-		{
-			Sleep(waitMilliseconds);
-		}
+		if (retryPolicy.wait(cancel, waitMilliseconds))
+			return {};
 		backoffMilliseconds = (std::min)(backoffMilliseconds * 2, 20UL);
 	}
+}
+
+inline winutil::UniqueHandle openFileWithSharingRetry(
+	const wchar_t* path, DWORD desiredAccess, DWORD shareMode, DWORD creationDisposition, DWORD& lastError,
+	HANDLE cancel = nullptr, DWORD deadlineMilliseconds = 10000)
+{
+	return openFileWithSharingRetry(path, desiredAccess, shareMode, creationDisposition, lastError,
+		cancel, deadlineMilliseconds, systemFileSharingRetryPolicy());
 }

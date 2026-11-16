@@ -148,21 +148,15 @@ FilterTable* MainWindow::addTab(QString title, QString tooltip, QString configPa
 	// fires currentChanged, whose dirty badge reads it.
 	documents.push_back(std::make_unique<OpenDocument>(scrollArea, filterTable, DocumentState(title, tooltip)));
 	OpenDocument* document = documents.back().get();
+	filterTable->setConfigPathAccessor([this, filterTable]() {
+		const OpenDocument* owner = documentForTable(filterTable);
+		return owner != nullptr ? owner->state.path() : QString();
+	});
 	connect(&document->saveTimer, &QTimer::timeout, this, [this, document]() {
-		// Re-resolve the path on fire: the table's config path can change
-		// while the debounce is pending.
-		const QString currentPath = document->table->getConfigPath();
-		if (currentPath.length() > 0)
-		{
-			// Instant mode shows no '*'; a save that failed puts it back so
-			// the tab asks before it is closed.
-			if (!save(document->table, currentPath))
-			{
-				document->state.setDirty(true);
-				showDocumentTitle(*document);
-			}
-			updateDirtyStatus();
-		}
+		// Re-resolve the document path on fire: Save As can run while the
+		// debounce is pending.
+		if (!document->state.path().isEmpty())
+			saveDocument(*document, DocumentSaveReason::InstantModeFlush);
 	});
 
 	// Insert the still-empty scroll area into the tab widget BEFORE building
@@ -192,7 +186,7 @@ void MainWindow::updateDeviceFormatBadge(const shared_ptr<AbstractAPOInfo>& apoI
 	const unsigned generation = ++deviceFormatGeneration;
 	DeviceFormatFacts facts;
 	facts.deviceSelected = apoInfo != nullptr;
-	if (apoInfo != nullptr && apoInfo->getTransportLabel() == L"ASIO")
+	if (apoInfo != nullptr && apoInfo->kind() == AbstractAPOInfo::Kind::Asio)
 	{
 		// An ASIO target is not an endpoint: the format probe cannot reach it.
 		// What is known is what the engine host published after the last stream.
@@ -215,7 +209,7 @@ void MainWindow::updateDeviceFormatBadge(const shared_ptr<AbstractAPOInfo>& apoI
 			deviceFormatEndpoint.clear();
 		}
 		BackgroundProbe::runFor(this,
-			[deviceGuid = apoInfo->getDeviceGuid()]() { return AudioFormatProbe::probe(deviceGuid); },
+			[deviceGuid = apoInfo->getDeviceGuid(), input = apoInfo->isInput()]() { return AudioFormatProbe::probe(deviceGuid, input); },
 			[this, generation, facts, endpoint](const AudioFormatProbe::Result& result) mutable {
 				if (generation != deviceFormatGeneration)
 					return;

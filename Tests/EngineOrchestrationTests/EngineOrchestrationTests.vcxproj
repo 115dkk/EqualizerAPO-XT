@@ -5,10 +5,6 @@
       <Configuration>Debug</Configuration>
       <Platform>ARM64</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Debug|Win32">
-      <Configuration>Debug</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
@@ -16,10 +12,6 @@
     <ProjectConfiguration Include="Release|ARM64">
       <Configuration>Release</Configuration>
       <Platform>ARM64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|Win32">
-      <Configuration>Release</Configuration>
-      <Platform>Win32</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release|x64">
       <Configuration>Release</Configuration>
@@ -77,6 +69,8 @@
     <ClCompile Include="ApoRegistrationTests.cpp" />
     <ClCompile Include="CaptureEngineTests.cpp" />
     <ClCompile Include="ChannelInheritanceTests.cpp" />
+    <ClCompile Include="ChildApoTests.cpp" />
+    <ClCompile Include="..\..\EqualizerAPO\ChildApo.cpp" />
     <ClCompile Include="ConfigLoadTests.cpp" />
     <ClCompile Include="ConfigurationFileReaderTests.cpp" />
     <ClCompile Include="DeviceApoInfoTests.cpp" />
@@ -96,14 +90,6 @@
     <ClCompile Include="SendRingTests.cpp" />
     <ClCompile Include="SendSeamTests.cpp" />
     <ClCompile Include="SendTests.cpp" />
-    <!-- Executable-side helpers under test, compiled directly like
-         AudioEngineAccess: ApoRegistration is not a Common.lib member, and
-         it links against the service and shortcut units. -->
-    <ClCompile Include="..\..\services\install\ApoRegistration.cpp" />
-    <ClCompile Include="..\..\services\security\AudioEngineAccess.cpp" />
-    <ClCompile Include="..\..\services\diagnostics\InstallDiagnostics.cpp" />
-    <ClCompile Include="..\..\services\windows\WindowsService.cpp" />
-    <ClCompile Include="..\..\services\shell\StartMenuShortcuts.cpp" />
     <!-- Keep the existing C++17 reference build while comparing stereo-read
          kernels. The reference now uses noinline runtime-shape functions,
          not the old lambdas whose timing depended on the language standard.
@@ -115,7 +101,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\engine\FilterEngine.h" />
-    <ClInclude Include="..\..\services\install\ApoRegistration.h" />
     <ClInclude Include="..\..\services\registry\ClsidRegistration.h" />
     <ClInclude Include="..\..\services\registry\IRegistry.h" />
     <ClInclude Include="..\..\services\registry\RegistryTransaction.h" />
@@ -126,6 +111,7 @@
     <ClInclude Include="..\FakeRegistry.h" />
     <ClInclude Include="EngineOrchestrationTestSupport.h" />
   </ItemGroup>
+  <Import Project="..\..\services\install\InstallSources.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

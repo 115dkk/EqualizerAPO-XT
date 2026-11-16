@@ -75,14 +75,21 @@ void installMessageHandler()
 		previousMessageHandler = previous;
 }
 
-void addExecutableRelativePluginPath()
+void addExecutableRelativePluginPath(bool restricted)
 {
 	std::wstring pluginDir = pathutil::exeDirectory();
+	QStringList paths;
 	if (!pluginDir.empty())
 	{
 		pluginDir += L"\\qt";
-		QCoreApplication::addLibraryPath(QString::fromStdWString(pluginDir));
+		paths.append(QString::fromStdWString(pluginDir));
 	}
+	if (restricted)
+		// Do not retain an elevated caller's QT_PLUGIN_PATH, even if resolving
+		// our own directory failed (audit #467 TD-16).
+		QCoreApplication::setLibraryPaths(paths);
+	else if (!paths.empty())
+		QCoreApplication::addLibraryPath(paths.front());
 }
 
 void applyUserLocale()

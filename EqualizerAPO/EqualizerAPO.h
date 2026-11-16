@@ -25,6 +25,7 @@
 #include <BaseAudioProcessingObject.h>
 #include "../engine/FilterEngine.h"
 #include "ApoFormat.h"
+#include "ChildApo.h"
 
 // Identifies the single, user-configurable processing effect that
 // EqualizerAPO represents. Reported through IAudioSystemEffects2::GetEffectsList
@@ -103,12 +104,9 @@ private:
 	EngineSetup engineSetup;
 	bool allowSilentBufferModification;
 
-	void resetChild();
 	void sendMessage(std::wstring& deviceTestPipeName, const std::wstring& deviceGuid, GUID apoGuid, const std::string& phase);
 
-	IAudioProcessingObject* childAPO;
-	IAudioProcessingObjectRT* childRT;
-	IAudioProcessingObjectConfiguration* childCfg;
+	ChildApo child;
 
 	// Resolved during LockForProcess from the connection format. The APO is
 	// registered with APO_FLAG_BITSPERSAMPLE_MUST_MATCH so the two sides always

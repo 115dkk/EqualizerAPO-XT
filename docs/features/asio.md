@@ -129,6 +129,21 @@ The Editor lists an installed ASIO device in its device menu; its toolbar
 badge shows the rate and channel count of the last stream once one has run
 (the host records them then), and says so when none has.
 
+## Channel limit
+
+The stream ring carries at most **64 channels per direction** (64 inputs and
+64 outputs), as defined by `maxRingChannels` in `runtime/ipc/StreamRing.h`.
+The wrapper uses the driver's full channel count for each direction enabled
+for processing, even when the application selects fewer channels. A driver
+exposing more than 64 channels in an enabled direction, such as a MADI or Dante
+interface, cannot open a processed stream through this wrapper.
+
+`RingGeometry::validFormat` in `runtime/ipc/StreamRing.cpp` rejects that format.
+`asio/DaemonProcessor.cpp` reports "EQ APO XT cannot serve this channel count or
+buffer size", and `AsioWrapper::createBuffers` in `asio/AsioWrapper.cpp` returns
+`ASE_InvalidMode`. The application receives a driver error; whether it displays
+that message depends on the application.
+
 ## Latency and the two modes
 
 By default the wrapper hands each buffer to the host and plays the previous

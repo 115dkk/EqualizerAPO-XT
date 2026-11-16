@@ -187,7 +187,7 @@ void StudioSkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState&
 	}
 
 	painter.setRenderHint(QPainter::Antialiasing, true);
-	const double zeroClamped = qBound(plot.top(), state.zeroY, plot.bottom());
+	const double zeroClamped = state.clampedZeroY();
 
 	// Clipping warms the glass above 0 dB: a danger wash dying as it
 	// lands on the anchor.

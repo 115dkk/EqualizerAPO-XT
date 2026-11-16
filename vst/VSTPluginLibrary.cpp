@@ -29,6 +29,7 @@
 #include "PluginResidency.h"
 #include "VST3HostObjects.h"
 #include "VST3RefCounted.h"
+#include "VSTBoundedString.h"
 #include "platform/windows/Win32Resource.h"
 #include "platform/windows/WindowsPath.h"
 #include "pluginterfaces/base/futils.h"
@@ -143,8 +144,8 @@ void VSTPluginLibrary::retainIfKeepingLoaded(const shared_ptr<VSTPluginLibrary>&
 VSTPluginLibrary::LoadResult VSTPluginLibrary::load(const wstring& libPath, const JudgedPath* path)
 {
 	auto library = getInstance(libPath);
-	const int status = path != nullptr ? library->initialize(*path) : library->initialize();
-	if (status >= 0)
+	const auto status = path != nullptr ? library->initialize(*path) : library->initialize();
+	if (succeeded(status))
 		retainIfKeepingLoaded(library);
 	return {std::move(library), status};
 }
@@ -198,7 +199,7 @@ wstring VSTPluginLibrary::getDefaultPluginPath()
 	{
 		try
 		{
-			wstring installPath = systemRegistry().readValue(APP_REGPATH, L"InstallPath");
+			wstring installPath = systemRegistry().readValue(APP_REGPATH, installPathValueName);
 			defaultPluginPath = installPath + L"\\VSTPlugins";
 		}
 		catch (const RegistryError& e)
@@ -284,10 +285,10 @@ bool VSTPluginLibrary::loadFunctions()
 	return hasVst2EntryPoint;
 }
 
-int VSTPluginLibrary::customInitialize()
+AbstractLibrary::InitializeResult VSTPluginLibrary::customInitialize()
 {
 	if (!vst3)
-		return 0;
+		return InitializeResult::AlreadyLoaded;
 
 	// Standard Windows VST3 module lifecycle: InitDll before the factory,
 	// ExitDll after the last release. A module that exports InitDll may
@@ -297,13 +298,13 @@ int VSTPluginLibrary::customInitialize()
 	if (InitDll != nullptr)
 	{
 		if (!InitDll())
-			return LOADING_FAILED;
+			return InitializeResult::LoadingFailed;
 		vst3ModuleInitialized = true;
 	}
 
 	factory.reset(GetPluginFactory());
 	if (!factory)
-		return FUNCTIONS_MISSING;
+		return InitializeResult::FunctionsMissing;
 
 	if (auto factory3 = queryFactory3(factory.get()))
 	{
@@ -319,9 +320,9 @@ int VSTPluginLibrary::customInitialize()
 
 	for (Steinberg::int32 i = 0; i < factory->countClasses(); i++)
 	{
-		Steinberg::PClassInfo info;
+		Steinberg::PClassInfo info = {};
 		if (factory->getClassInfo(i, &info) == Steinberg::kResultOk
-			&& strcmp(info.category, kVstAudioEffectClass) == 0)
+			&& vsttext::boundedString(info.category) == kVstAudioEffectClass)
 		{
 			vst3ClassInfo = info;
 			vst3SubCategories.clear();
@@ -331,15 +332,15 @@ int VSTPluginLibrary::customInitialize()
 			if (factory->queryInterface(factory2Iid, (void**)&rawFactory2) == Steinberg::kResultOk && rawFactory2 != nullptr)
 			{
 				auto factory2 = Steinberg::IPtr<Steinberg::IPluginFactory2>::adopt(rawFactory2);
-				Steinberg::PClassInfo2 info2;
+				Steinberg::PClassInfo2 info2 = {};
 				if (factory2->getClassInfo2(i, &info2) == Steinberg::kResultOk)
-					vst3SubCategories = info2.subCategories;
+					vst3SubCategories = vsttext::boundedString(info2.subCategories);
 			}
-			return 0;
+			return InitializeResult::AlreadyLoaded;
 		}
 	}
 
-	return FUNCTIONS_MISSING;
+	return InitializeResult::FunctionsMissing;
 }
 
 void VSTPluginLibrary::customUninitialize() noexcept

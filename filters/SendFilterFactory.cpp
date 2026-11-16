@@ -125,13 +125,14 @@ void SendFilterFactory::reportReceiverNews(const SendReceiverNews& news)
 LineOutcome SendFilterFactory::createFilter(const std::wstring& configPath,
 	std::wstring& command, std::wstring& parameters)
 {
-	if (command != L"Send")
-		return LineOutcome::notMine();
-
 	SendCommand parsed;
 	std::wstring error;
 	if (!SendCommand::parse(command, parameters, parsed, &error))
+	{
+		if (error.empty())
+			return LineOutcome::notMine();
 		return LineOutcome::malformed(error);
+	}
 	if (engine_ == nullptr)
 		return LineOutcome::consumed();
 	if (engine_->getHost() != EngineHost::Apo)
@@ -221,8 +222,10 @@ LineOutcome SendFilterFactory::createFilter(const std::wstring& configPath,
 	params.mixMode = parsed.mode == SendCommand::Mode::Replace ? MixMode::Replace : MixMode::Mix;
 	for (const Assignment& assignment : assignments)
 		params.targetNames.push_back(assignment.targetChannel);
-	writer->publishIfChanged(params);
 	writer->markUsed();
+	engine_->deferUntilConfigurationCommit([writer, params] {
+		writer->publishIfChanged(params);
+	});
 	if (parsed.compensate)
 		compensationDelays_.push_back(delayFrames);
 
@@ -238,7 +241,10 @@ FilterVector SendFilterFactory::endOfConfiguration()
 	for (auto& entry : writers_)
 	{
 		if (!entry.second->usedInLoad())
-			entry.second->close();
+		{
+			SendWriter* const writer = entry.second.get();
+			engine_->deferUntilConfigurationCommit([writer] {writer->close();});
+		}
 	}
 	if (compensationDelays_.empty() || engine_ == nullptr)
 		return {};

@@ -21,6 +21,7 @@
 #include "services/registry/RegistryPaths.h"
 #include <devices/DeviceAPOInfo.h>
 #include <devices/DevicePlan.h>
+#include <devices/DeviceChange.h>
 #include <services/registry/WindowsRegistry.h>
 #include <ObjBase.h>
 #include <QDir>
@@ -43,7 +44,7 @@
 #include "DeviceTestThread.h"
 #include <devices/DeviceAPOInfoKeys.h>
 #include <services/windows/WindowsService.h>
-#include "PreviewDevices.h"
+#include "ScreenshotHarness.h"
 #include "skins/DeviceSkinPainter.h"
 #include "platform/qt/QtAppBootstrap.h"
 #include "services/settings/EditorSettings.h"
@@ -51,6 +52,7 @@
 #include "services/install/ApoRegistration.h"
 #include "services/diagnostics/InstallDiagnostics.h"
 #include "services/logging/Logging.h"
+#include "Editor/helpers/CrashHandler.h"
 
 namespace
 {
@@ -75,92 +77,6 @@ void applyEditorTheme(QApplication& app)
 	const EditorSettings::SkinChoice choice = EditorSettings::readSkinChoice(settings, systemDark);
 	SkinThemeData::applyToApplication(app, choice.id, choice.dark);
 	DeviceSkinPainter::setActiveTheme(choice.id, choice.dark);
-}
-
-// --skin-shots <outDir>: renders the dialog with canned devices for every
-// skin x dark/light in three states (rest, hovered row, troubleshooting
-// open) on the offscreen platform. The review gate's capture source and the
-// skin work's regression harness - no registry writes, no COM. Renders in
-// the user's language (translators install before the harness runs), so
-// byte-comparison only holds for a fixed language setting.
-int runSkinShots(QApplication& app)
-{
-	const QStringList args = app.arguments();
-	const int flagIndex = args.indexOf(QStringLiteral("--skin-shots"));
-	if (flagIndex < 0 || flagIndex + 1 >= args.size())
-	{
-		fprintf(stderr, "usage: DeviceSelector --skin-shots <outDir>\n");
-		return 2;
-	}
-	QDir outDir(args[flagIndex + 1]);
-	if (!outDir.exists() && !QDir().mkpath(outDir.absolutePath()))
-	{
-		fprintf(stderr, "DeviceSelector shots: cannot create %s\n", qPrintable(outDir.absolutePath()));
-		return 2;
-	}
-
-	int failures = 0;
-	// From the roster, so a new skin appears in the review captures without
-	// anybody remembering this list.
-	const QStringList skins = SkinThemeData::ids();
-	for (const QString& skinId : skins)
-	{
-		for (int darkIndex = 0; darkIndex < 2; darkIndex++)
-		{
-			const bool dark = darkIndex == 0;
-			SkinThemeData::applyToApplication(app, skinId, dark);
-			DeviceSkinPainter::setActiveTheme(skinId, dark);
-
-			DeviceSelector dialog(PreviewDevices::playback(), PreviewDevices::capture());
-			// The size the dialog would open at, before the harness pins its
-			// own: the one number the "opens too narrow" report is about.
-			if (skinId == skins.first() && !dark)
-				fprintf(stderr, "DeviceSelector shots: initial size %dx%d\n", dialog.width(), dialog.height());
-			dialog.resize(760, 700);
-			dialog.show();
-			QApplication::processEvents();
-			// One pending install so the will-install state shows.
-			dialog.previewCheckDevice(0, 1);
-			QApplication::processEvents();
-
-			const QString mode = dark ? QStringLiteral("dark") : QStringLiteral("light");
-			auto save = [&](const QString& state) {
-				const QString file = outDir.filePath(
-					QStringLiteral("devsel_%1_%2_%3.png").arg(skinId, mode, state));
-				if (!dialog.grab().save(file))
-				{
-					fprintf(stderr, "DeviceSelector shots: failed to save %s\n", qPrintable(file));
-					failures++;
-				}
-			};
-
-			save(QStringLiteral("normal"));
-			dialog.previewHoverDevice(0, 2);
-			QApplication::processEvents();
-			save(QStringLiteral("hover"));
-			dialog.previewSelectDevice(0, 0);
-			dialog.previewOpenTroubleshooting();
-			QApplication::processEvents();
-			save(QStringLiteral("options"));
-			// The endpoint's ASIO entry ticked: the same ASIO options unfold
-			// under it.
-			dialog.previewAsioEntry();
-			QApplication::processEvents();
-			save(QStringLiteral("asioentry"));
-			// The ASIO target's own options page (the installed ASIO row of
-			// the preview roster), for the judging material.
-			dialog.previewSelectDevice(0, 4);
-			QApplication::processEvents();
-			save(QStringLiteral("asio"));
-			// Buffer removal ticked: the wait time unfolds beside it.
-			dialog.previewRemoveBuffer();
-			QApplication::processEvents();
-			save(QStringLiteral("asiowait"));
-		}
-	}
-
-	fprintf(stderr, "DeviceSelector shots: %d failures\n", failures);
-	return failures == 0 ? 0 : 1;
 }
 
 // --diagnose: writes the install-path report. Read-only and unelevated, because
@@ -320,7 +236,6 @@ int runEndpointCommand(QApplication& app, bool install)
 		info->isInput() ? "capture" : "playback", info->isInstalled() ? "installed" : "not installed");
 
 	DeviceAPOInfo::InstallState& state = info->getSelectedInstallState();
-	state = info->getCurrentInstallState();
 	const int modeIndex = args.indexOf(QStringLiteral("--install-mode"));
 	if (modeIndex >= 0 && modeIndex + 1 < args.size())
 	{
@@ -361,32 +276,22 @@ int runEndpointCommand(QApplication& app, bool install)
 		}
 	}
 
-	try
+	const DevicePlan plan = install ? planForHeadlessInstall(deviceFactsOf(*info)) : planFor(false, deviceFactsOf(*info));
+	const auto applied = DeviceChange::apply({ { plan, info.get() } }, install
+		? DeviceChange::Context::HeadlessInstall : DeviceChange::Context::HeadlessUninstall);
+	const auto& changed = applied.devices.front();
+	if (!changed.error.empty())
 	{
-		if (install)
-		{
-			if (planForHeadlessInstall(deviceFactsOf(*info)).action == DeviceAction::Reinstall)
-				info->reinstall();
-			else
-				info->install();
-		}
-		else
-		{
-			if (!info->isInstalled())
-			{
-				say(L"nothing to uninstall\n");
-				return 0;
-			}
-			info->uninstall();
-		}
-	}
-	catch (const WideError& e)
-	{
-		say(L"%s\n", e.getMessage().c_str());
+		say(L"%s\n", changed.error.c_str());
 		return 1;
 	}
-	say(L"%s\n", info->getLastOperationReport().toSummaryLine().c_str());
-	if (install)
+	if (!install && changed.action == DeviceAction::None)
+	{
+		say(L"nothing to uninstall\n");
+		return 0;
+	}
+	say(L"%s\n", changed.report.toSummaryLine().c_str());
+	if (applied.startResidentHost)
 		say(L"%s\n", ResidentHostLauncher::ensureStarted().c_str());
 
 	if (!install || args.contains(QStringLiteral("--no-test")))
@@ -395,7 +300,8 @@ int runEndpointCommand(QApplication& app, bool install)
 		// graph, which the device test would otherwise do.
 		try
 		{
-			WindowsServiceControl::restart(audioServiceName);
+			if (applied.restartAudio)
+				WindowsServiceControl::restart(audioServiceName);
 		}
 		catch (const WindowsServiceError& e)
 		{
@@ -443,6 +349,7 @@ int runEndpointCommand(QApplication& app, bool install)
 
 int main(int argc, char* argv[])
 {
+	CrashHandler::install(L"DeviceSelector");
 	int result = 0;
 
 	// Before anything else, because this is the process that performs the APO
@@ -456,9 +363,10 @@ int main(int argc, char* argv[])
 	// Shared bootstrap: anchors the plugin path (a security concern for this
 	// elevated process) and, below, applies the language the user picked in
 	// the Editor.
-	QtAppBootstrap::addExecutableRelativePluginPath();
+	QtAppBootstrap::addExecutableRelativePluginPath(true);
 
 	QApplication app(argc, argv);
+	QtAppBootstrap::addExecutableRelativePluginPath(true);
 
 	// Language first, exactly like the live dialog: the Editor's language
 	// choice from the registry, or the system locale when none was made. The
@@ -470,7 +378,7 @@ int main(int argc, char* argv[])
 	QtAppBootstrap::installTranslators(app, QStringLiteral("DeviceSelector"), qtTranslator, deviceSelectorTranslator);
 
 	if (app.arguments().contains(QStringLiteral("--skin-shots")))
-		return runSkinShots(app);
+		return ScreenshotHarness::runSkinShots(app);
 
 	if (app.arguments().contains(QStringLiteral("--diagnose")))
 		return runDiagnose(app);

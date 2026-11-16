@@ -43,6 +43,7 @@
 #include <atomic>
 #include <cmath>
 #include <cstdint>
+#include "TestVst2Protocol.h"
 #include <cstring>
 
 #define WIN32_LEAN_AND_MEAN
@@ -99,23 +100,11 @@ const int32_t kNumParams = 2;
 const int32_t kParamGain = 0;
 const int32_t kParamBypass = 1;
 
-// Chunk blob layout: magic + version + the two float parameters, all
-// little-endian. The host stores this base64-encoded, so its exact bytes must
-// be stable for the round-trip assertion.
-const uint32_t kChunkMagic = 0x32505654u; // 'TVP2' little-endian ('T','V','P','2')
-const uint32_t kChunkVersion = 1u;
+using testvst2::ChunkBlob;
+using testvst2::kChunkMagic;
+using testvst2::kChunkVersion;
 const size_t kZipChunkSize = 148;
 const size_t kZipBlobOffset = 39;
-
-#pragma pack(push, 1)
-struct ChunkBlob
-{
-	uint32_t magic;
-	uint32_t version;
-	float gain;
-	float bypass;
-};
-#pragma pack(pop)
 
 // Per-instance state. We allocate one and stash it in effect->effect_internal
 // so a host may (in principle) create more than one instance. The chunk buffer
@@ -151,6 +140,13 @@ struct PluginState
 	bool editorOpen = false;
 	bool dispatcherActive = false;
 	bool editorFailed = false;
+	bool faultState = false;
+	bool faultEditor = false;
+	bool faultProcess = false;
+	bool faultPrepare = false;
+	bool zeroStateResult = false;
+	bool untouchedName = false;
+	bool fullName = false;
 };
 
 PluginState* stateOf(vst_effect_t* effect)
@@ -324,6 +320,8 @@ template<typename Sample>
 void processGeneric(vst_effect_t* effect, const Sample* const* inputs, Sample** outputs, int32_t samples)
 {
 	const PluginState* state = stateOf(effect);
+	if (state != nullptr && state->faultProcess)
+		RaiseException(EXCEPTION_ACCESS_VIOLATION, 0, 0, nullptr);
 	const double gain = state != nullptr ? static_cast<double>(state->params[kParamGain]) : 1.0;
 	const bool bypass = state != nullptr && state->params[kParamBypass] >= 0.5f;
 
@@ -378,6 +376,13 @@ void copyName(void* dst, const char* text, size_t bufSize)
 intptr_t VST_FUNCTION_INTERFACE dispatcher(vst_effect_t* effect, int32_t opcode, int32_t index, intptr_t value, void* ptr, float opt)
 {
 	PluginState* state = stateOf(effect);
+	// Raise the AV through Windows, not an instrumented invalid pointer write:
+	// SEH containment is the subject, including in MSVC ASan builds.
+	if (state != nullptr
+		&& ((state->faultState && opcode == VST_EFFECT_OPCODE_SET_CHUNK_DATA)
+			|| (state->faultEditor && opcode == VST_EFFECT_OPCODE_EDITOR_OPEN)
+			|| (state->faultPrepare && opcode == VST_EFFECT_OPCODE_SET_SAMPLE_RATE)))
+		RaiseException(EXCEPTION_ACCESS_VIOLATION, 0, 0, nullptr);
 	if (state != nullptr && state->dispatcherActive)
 	{
 		state->editorFailed = true;
@@ -431,6 +436,13 @@ intptr_t VST_FUNCTION_INTERFACE dispatcher(vst_effect_t* effect, int32_t opcode,
 		return 1;
 
 	case VST_EFFECT_OPCODE_PARAM_GET_NAME:
+		if (state != nullptr && state->untouchedName && index == kParamBypass)
+			return 0;
+		if (state != nullptr && state->fullName && index == kParamGain)
+		{
+			std::memset(ptr, 'N', VST_BUFFER_SIZE_PARAM_NAME);
+			return 0;
+		}
 		if (index == kParamGain)
 			copyName(ptr, "Gain", VST_BUFFER_SIZE_PARAM_NAME);
 		else if (index == kParamBypass)
@@ -505,7 +517,7 @@ intptr_t VST_FUNCTION_INTERFACE dispatcher(vst_effect_t* effect, int32_t opcode,
 			state->host(effect, VST_HOST_OPCODE_AUTOMATE, kParamGain, 0, nullptr, blob.gain);
 			state->host(effect, VST_HOST_OPCODE_AUTOMATE, kParamGain, 0, nullptr, blob.gain);
 		}
-		return 1;
+		return state->zeroStateResult ? 0 : 1;
 	}
 
 	case VST_EFFECT_OPCODE_CUSTOM:
@@ -633,6 +645,40 @@ vst_effect_t* createEffect(vst_host_callback_t callback)
 	effect->version = 1;
 	effect->process_float = &processReplacing;
 	effect->process_double = &processDoubleReplacing;
+
+	wchar_t widthMode[32] = {};
+	if (GetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", widthMode, 32) > 0)
+	{
+		if (wcscmp(widthMode, L"float") == 0 || wcscmp(widthMode, L"accumulate") == 0)
+		{
+			effect->flags &= ~VST_EFFECT_FLAG_SUPPORTS_DOUBLE;
+			effect->process_double = nullptr;
+		}
+		if (wcscmp(widthMode, L"accumulate") == 0)
+		{
+			effect->flags &= ~VST_EFFECT_FLAG_SUPPORTS_FLOAT;
+			effect->process_float = nullptr;
+		}
+	}
+
+	wchar_t faultMode[32] = {};
+	if (GetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", faultMode, 32) > 0)
+	{
+		state->faultState = wcscmp(faultMode, L"state") == 0;
+		state->faultEditor = wcscmp(faultMode, L"editor") == 0;
+		state->faultProcess = wcscmp(faultMode, L"process") == 0;
+		state->faultPrepare = wcscmp(faultMode, L"prepare") == 0;
+		state->zeroStateResult = wcscmp(faultMode, L"state-zero-success") == 0;
+		state->fullName = wcscmp(faultMode, L"full-name") == 0;
+		state->untouchedName = state->fullName || wcscmp(faultMode, L"untouched-name") == 0;
+		if (state->untouchedName)
+			effect->flags &= ~VST_EFFECT_FLAG_CHUNKS;
+		if (state->faultEditor)
+		{
+			state->editorPersona = EditorPersona::fixed;
+			effect->flags |= VST_EFFECT_FLAG_EDITOR;
+		}
+	}
 
 	wchar_t editorMode[32] = {};
 	if (GetEnvironmentVariableW(L"EAPO_TEST_VST_EDITOR", editorMode,

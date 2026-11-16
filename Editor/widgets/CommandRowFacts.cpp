@@ -16,7 +16,7 @@ int CommandRowFacts::indentUnits(const FilterCardDescriptor& descriptor, bool lo
 	// Member level is one unit past the branch/tail row's own semantic level
 	// (depth already carries any enclosing channel group, so +1 keeps mixed
 	// Channel x If nesting aligned with the block members).
-	if (descriptor.type == QStringLiteral("if") && descriptor.badge != QStringLiteral("IF")
+	if (descriptor.kind == FilterCardKind::If && descriptor.badge != QStringLiteral("IF")
 		&& logicSiblingsIndentAsMembers)
 		return descriptor.depth + 1;
 	return descriptor.depth;
@@ -24,7 +24,7 @@ int CommandRowFacts::indentUnits(const FilterCardDescriptor& descriptor, bool lo
 
 CommandRowInfo::ScopeRole CommandRowFacts::scopeRole(const QString& type, const QString& command, int logicDepth)
 {
-	const bool ifFamily = type == QStringLiteral("if");
+	const bool ifFamily = filterCardKindFromType(type) == FilterCardKind::If;
 	if (ifFamily && command == QStringLiteral("if"))
 		return CommandRowInfo::ScopeRole::Head;
 	if (logicDepth <= 0)

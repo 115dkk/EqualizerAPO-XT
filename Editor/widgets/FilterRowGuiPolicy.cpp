@@ -17,7 +17,7 @@ RowGuiDecision decideRowGui(bool modernCards, const QString& line,
 		// A pure comment has no "command: parameters" shape (with or without
 		// an inner colon), so it never reaches the factories. In card mode it
 		// still gets a real editor; the legacy path stays frozen (raw row).
-		if (descriptor->type == QStringLiteral("comment"))
+		if (descriptor->kind == FilterCardKind::Comment)
 			return RowGuiDecision::CommentCard;
 
 		// Copy's maintained card editor is the skin routing view built

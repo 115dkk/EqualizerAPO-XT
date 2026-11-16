@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <atomic>
 #include <string>
 #include <thread>
 #include <mutex>
@@ -80,6 +81,7 @@ private:
 
 	const std::wstring pipeName;
 	std::thread thread;
+	std::atomic<bool> stopping{false};
 	std::list<std::string> answers;
 	std::mutex mutex;
 	std::condition_variable cond;

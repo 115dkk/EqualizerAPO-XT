@@ -20,11 +20,13 @@ LineOutcome HilbertFilterFactory::createFilter(const std::wstring& configPath,
 	std::wstring& command, std::wstring& parameters)
 {
 	(void)configPath;
-	if (command != L"Hilbert")
-		return {};
 	HilbertCommand parsed;
 	std::wstring error;
 	if (!HilbertCommand::parse(command, parameters, parsed, &error))
+	{
+		if (error.empty())
+			return LineOutcome::notMine();
 		return LineOutcome::malformed(error);
+	}
 	return LineOutcome::produced(singleFilter(makeFilter<HilbertFilter>(parsed)));
 }

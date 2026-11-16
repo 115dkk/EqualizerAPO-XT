@@ -103,7 +103,9 @@ BiQuadFilterGUI::BiQuadFilterGUI(const BiQuadCommand& command)
 
 BiQuadFilterGUI::~BiQuadFilterGUI() = default;
 
-// This is the sole BiQuad serializer; the engine only parses. It emits from the
+// This writes every BiQuad line except the all-pass card's
+// (AllPassCardEditor::store, which has its own controls and writes "AP ..."
+// itself; audit #467 TD-77); the engine only parses. It emits from the
 // combo-box mode selectors (Fixed/Q/BW/Slope, centre/corner) rather than from a
 // BiQuadCommand, because those modes are not recoverable from the normalized
 // struct - see BiQuadCommand.h for why there is no BiQuadCommand::serialize().

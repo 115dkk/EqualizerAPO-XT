@@ -17,29 +17,25 @@
 	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include <cstdio>
-#include "text/WideString.h"
-#include "services/registry/RegistryPaths.h"
+#include <algorithm>
 #include <cstring>
+#include <exception>
 #include <memory>
 #include <optional>
 #include <string>
 #include <vector>
 
-#include <QTranslator>
 #include <QApplication>
-#include <QBoxLayout>
-#include <QDir>
 #include <QCommandLineParser>
-#include <QDockWidget>
-#include <QFileInfo>
-#include <QFont>
-#include <QFontDatabase>
-#include <QPalette>
+#include <QCoreApplication>
+#include <QDir>
+#include <QGuiApplication>
 #include <QSettings>
+#include <QString>
+#include <QStringList>
 #include <QStyleFactory>
-#include <QStyleHints>
 #include <QTimer>
+#include <QTranslator>
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -48,31 +44,23 @@
 // After windows.h so the Velopack C ABI header sees the platform headers in order.
 #include <Velopack.hpp>
 
-#include <fftw3.h>
-
 #include "CustomStyle.h"
+#include "EditorGates.h"
 #include "MainWindow.h"
-#include "SkinGallery.h"
-#include "diagnostics/FrameHitTestProbe.h"
-#include "diagnostics/SkinSwitchStorm.h"
 #include "SkinManager.h"
 #include "import/LegacyMigration.h"
-#include "filters/VSTPluginFilter.h"
-#include "filters/VSTPluginFilterFactory.h"
-#include "guis/VSTPluginFilterGUI.h"
-#include "vst/VSTPluginInstance.h"
-#include "vst/VSTPluginLibrary.h"
 #include "vst/PluginResidency.h"
 #include "services/logging/Logging.h"
 #include "services/logging/TaggedLogger.h"
 #include "platform/windows/CommandLineQuoting.h"
-#include "runtime/memory/AlignedMemory.h"
+#include "platform/windows/ProcessShutdown.h"
 #include "services/install/ApoRegistration.h"
 #include "services/registry/WindowsRegistry.h"
 #include "platform/windows/Win32Resource.h"
 #include "platform/windows/WindowsPath.h"
 #include "platform/windows/ElevatedLaunch.h"
 #include "services/install/InstallWaitBudget.h"
+#include "services/install/VcRuntime.h"
 #include "services/security/AudioEngineAccess.h"
 #include "services/diagnostics/InstallDiagnostics.h"
 #include "services/update/UpdateSession.h"
@@ -91,9 +79,6 @@
 
 namespace
 {
-// The VST round-trip self test lives with the other offscreen gates in
-// Editor/gallery/GallerySelfTests.cpp (audit #275 B7).
-
 bool matchesHook(const char* arg, const char* name)
 {
 	return std::strcmp(arg, name) == 0;
@@ -212,10 +197,11 @@ int handleVelopackHook(int argc, char* argv[])
 	if (!hookSeen)
 		return -1;
 
-	// Velopack allows about 15 s. All explicit waits in this hook share
-	// 12 s, including services, ACL subprocesses and elevation completion.
-	installwait::Budget waitBudget(12000);
-	if (!AudioEngineAccess::isElevated())
+	// Only the elevated child spends the 12 s service/ACL budget. Time the
+	// user takes to answer UAC must not exhaust it (audit #467 TD-64).
+	const bool elevated = AudioEngineAccess::isElevated();
+	installwait::Budget waitBudget(12000, elevated);
+	if (!elevated)
 		return relaunchElevatedAndWait();
 
 	const auto callerLocalAppData = EqAPO::Import::LegacyMigration::parseHandoff(wideArgumentsAfterProgramName());
@@ -227,23 +213,35 @@ int handleVelopackHook(int argc, char* argv[])
 			continue;
 
 		std::wstring exeDir = pathutil::exeDirectory();
+		if (matchesHook(arg, "--veloapp-install") || matchesHook(arg, "--veloapp-updated"))
+			vcruntime::ensureInstalled(exeDir);
 		if (matchesHook(arg, "--veloapp-install"))
 		{
 			auto rc = ApoRegistration::install(exeDir, L"", systemRegistry(), callerLocalAppData.installGrantsPrepared);
 			// The trusted config root: adopt the stable folder, or migrate a
 			// legacy Equalizer APO / volatile current\config tree into it.
-			if (rc == ApoRegistration::Result::Success)
+			if (rc == ApoRegistration::Result::AclFailed)
+				logLine(L"WARN", L"Install completed with an access grant failure");
+			if (ApoRegistration::hookCanComplete(rc))
 				EqAPO::Import::LegacyMigration::runElevatedHookStep(exeDir, callerLocalAppData);
-			return rc == ApoRegistration::Result::Success ? 0 : static_cast<int>(rc);
+			return ApoRegistration::hookCanComplete(rc) ? 0 : static_cast<int>(rc);
 		}
 		if (matchesHook(arg, "--veloapp-updated"))
 		{
-			ApoRegistration::stopAudioService();
-			auto rc = ApoRegistration::install(exeDir, L"", systemRegistry(), callerLocalAppData.installGrantsPrepared);
-			if (rc == ApoRegistration::Result::Success)
-				EqAPO::Import::LegacyMigration::runElevatedHookStep(exeDir, callerLocalAppData);
-			ApoRegistration::startAudioService();
-			return rc == ApoRegistration::Result::Success ? 0 : static_cast<int>(rc);
+			const auto rc = ApoRegistration::runWithAudioStopped([] {
+				ApoRegistration::stopAudioService();
+				// The obsolete hook in our previous version may already have
+				// stopped it. This update still owes that restart (audit #467 TD-13).
+				return true;
+			}, [&] {
+				const auto result = ApoRegistration::install(exeDir, L"", systemRegistry(), callerLocalAppData.installGrantsPrepared);
+				if (result == ApoRegistration::Result::AclFailed)
+					logLine(L"WARN", L"Update completed with an access grant failure");
+				if (ApoRegistration::hookCanComplete(result))
+					EqAPO::Import::LegacyMigration::runElevatedHookStep(exeDir, callerLocalAppData);
+				return result;
+			}, ApoRegistration::startAudioService);
+			return ApoRegistration::hookCanComplete(rc) ? 0 : static_cast<int>(rc);
 		}
 		if (matchesHook(arg, "--veloapp-obsolete"))
 		{
@@ -261,7 +259,7 @@ int handleVelopackHook(int argc, char* argv[])
 			try
 			{
 				auto rc = ApoRegistration::uninstall(exeDir);
-				return rc == ApoRegistration::Result::Success ? 0 : static_cast<int>(rc);
+				return ApoRegistration::hookCanComplete(rc) ? 0 : static_cast<int>(rc);
 			}
 			catch (const RegistryError& e)
 			{
@@ -275,6 +273,59 @@ int handleVelopackHook(int argc, char* argv[])
 		}
 	}
 	return -1;
+}
+
+int shutdownEditor(UpdateSession* updateSession, bool headlessGateRan, int result)
+{
+	// Mark unfinished downloads before any shutdown wait: a slow plug-in or
+	// probe must not let a just-closed window publish an update (audit #467 TD-64).
+	if (updateSession)
+		updateSession->cancelPendingDownload();
+
+	// The SDK cannot cancel a download. Five seconds gives a finishing request
+	// time to return without letting the network keep a closed Editor alive.
+	constexpr unsigned long kUpdateShutdownTimeoutMs = 5000;
+	ProcessShutdown::exitCode.store(result, std::memory_order_relaxed);
+	// A timeout skips apply and leaves a staged package on disk. Startup auto-apply
+	// is disabled; the next normal session retries CheckForUpdates/DownloadUpdates
+	// after 60 s. Velopack 1.1.1 compares against the installed version and reuses
+	// an existing final package, so it can apply on that session's normal exit
+	// if the feed still offers it. This is not an offline startup-apply promise.
+	// testShutdownSequenceTimeoutSkipsApplyAndLaterWaits, audit #467 TD-58.
+	ProcessShutdown::run({
+		// A plug-in load may still be running on the loader thread (closing the
+		// Editor during a slow first load). Let it finish before static
+		// destruction instead of racing it.
+		{ PluginLoadQueue::shutdownWorkName, PluginLoadQueue::shutdown },
+		// The same for an endpoint format probe still running.
+		{ [] { return L"background probe"; }, BackgroundProbe::shutdown },
+		// The session owns the download worker. Join it before inspecting staged state so
+		// neither process shutdown nor static destruction can race with its publication.
+		{ [] { return L"update download worker"; }, [updateSession] {
+			return updateSession == nullptr || updateSession->shutdown(kUpdateShutdownTimeoutMs);
+		} }
+	}, [&] {
+		// Gates keep their original exit code and never apply a previously staged
+		// product update, but they now leave through the shared worker shutdown.
+		if (headlessGateRan)
+			return;
+
+		// If the background worker staged an update, apply it now. exec() has returned and
+		// the QApplication is destroyed, so no other thread is writing to the install dir.
+		// The apply is silent and does not restart; the new version comes up next launch.
+		if (updateSession && updateSession->hasPendingUpdate())
+		{
+			const UpdateApplyOutcome outcome = updateSession->applyPendingUpdate(
+				AudioEngineAccess::isElevated(),
+				[]() { return VelopackBootstrap::launchElevatedUpdateCoordinator(); });
+			if (outcome == UpdateApplyOutcome::CoordinatorLaunched ||
+				outcome == UpdateApplyOutcome::UpdaterLaunched)
+				result = 0;
+			if (outcome == UpdateApplyOutcome::Failed)
+				logLine(L"ERR", L"staged update could not be applied");
+		}
+	});
+	return result;
 }
 
 void launchDeviceSelector(const std::wstring& exeDir)
@@ -360,6 +411,7 @@ int main(int argc, char* argv[])
 		configuredUpdateChannel());
 
 	int result = -1;
+	bool headlessGateRan = false;
 #ifdef _DEBUG
 	// _CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 	// _CrtSetBreakAlloc(3318);
@@ -389,13 +441,14 @@ int main(int argc, char* argv[])
 	QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 	QCoreApplication::setAttribute(Qt::AA_Use96Dpi);
 
-	bool restart;
+	bool restart = false;
 	// Velopack reports the first run for the whole process, so an in-process
 	// restart (language or interface-mode switch) of the first session used
 	// to open Device Selector a second time (audit #348).
 	bool firstRunHandled = false;
 	do
 	{
+		ProcessShutdown::exitCode.store(1, std::memory_order_relaxed);
 		// LegacyRows is a whole presentation, not just a row widget: the
 		// heritage editor runs with the platform's native widget style, the
 		// stock ClearType font engine, and system fonts. The skinned mode
@@ -439,64 +492,16 @@ int main(int argc, char* argv[])
 			SkinThemeData::registerBundledFonts(true);
 		}
 
-		if (application.arguments().contains(QStringLiteral("--scroll-bench")))
-			return SkinGallery::runScrollBench();
-		if (application.arguments().contains(QStringLiteral("--power-toggle-test")))
-			return SkinGallery::runPowerToggleTest();
-		if (application.arguments().contains(QStringLiteral("--routing-edit-test")))
-			return SkinGallery::runRoutingEditTest();
-		if (application.arguments().contains(QStringLiteral("--close-save-test")))
-			return SkinGallery::runCloseSaveTest();
-		if (application.arguments().contains(QStringLiteral("--close-save-sweep")))
-			return SkinGallery::runCloseSaveSweep(application.arguments());
-		if (application.arguments().contains(QStringLiteral("--vst-untouched-test")))
-			return SkinGallery::runVstUntouchedTest();
-		if (application.arguments().contains(QStringLiteral("--selftest-vst")))
+		// Headless gates run before the registry skin and translator setup on
+		// purpose. The gallery applies each skin itself and renders untranslated
+		// English strings for deterministic output.
+		if (const std::optional<int> gateResult = EditorGates::runHeadless(application.arguments()))
 		{
-			// Both halves always run so one log shows every loss at once.
-			const int roundTrip = SkinGallery::runVstRoundTripSelfTest();
-			const int fill = SkinGallery::runVstFillSelfTest();
-			return (roundTrip != 0 || fill != 0) ? 1 : 0;
-		}
-
-		// Headless screenshot gallery (skin program). Runs before the registry
-		// skin/translator setup on purpose: the gallery applies each skin itself
-		// and renders untranslated English strings for deterministic output.
-		if (application.arguments().contains(QStringLiteral("--skin-gallery")))
-			return SkinGallery::run(application.arguments());
-		if (application.arguments().contains(QStringLiteral("--knob-specimen")))
-			return SkinGallery::runKnobSpecimen(application.arguments());
-
-		// Headless live skin-switch robustness gate (crash + slowness), same
-		// offscreen contract as the gallery.
-		if (application.arguments().contains(QStringLiteral("--skin-switch-test")))
-			return SkinGallery::runSwitchTest(application.arguments());
-
-		// Headless card drag-move latency gate (the internal-drag commit
-		// path), same offscreen contract as the gallery.
-		if (application.arguments().contains(QStringLiteral("--card-move-test")))
-			return SkinGallery::runCardMoveTest(application.arguments());
-
-		// Headless card pointer-selection gate. This exercises both ordinary
-		// header selection and clicks consumed by an editor control inside a
-		// card, then compares the model with the card chrome's live state.
-		if (application.arguments().contains(QStringLiteral("--card-selection-test")))
-			return SkinGallery::runCardSelectionTest(application.arguments());
-
-		// Read-only report of what the install hook's config migration would
-		// do on this machine (classification + manifest); writes nothing.
-		if (application.arguments().contains(QStringLiteral("--migration-dry-run")))
-			return EqAPO::Import::LegacyMigration::dryRun();
-
-		// Diagnostic self-test: crash deliberately so a field machine can verify
-		// that the crash handler leaves a dump + report under
-		// %LOCALAPPDATA%\EqualizerAPO\logs\crash.
-		if (application.arguments().contains(QStringLiteral("--selftest-crash")))
-		{
-			CrashHandler::setBreadcrumb(L"selftest-crash");
-			volatile int* fault = nullptr;
-			// cppcheck-suppress nullPointer ; the dereference is the whole point of the self-test
-			*fault = 1; // intentional access violation
+			result = *gateResult;
+			ProcessShutdown::exitCode.store(result, std::memory_order_relaxed);
+			headlessGateRan = true;
+			restart = false;
+			continue;
 		}
 
 		QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
@@ -530,18 +535,13 @@ int main(int argc, char* argv[])
 		if (!systemRegistry().keyExists(EDITOR_PER_FILE_REGPATH))
 			systemRegistry().createKey(EDITOR_PER_FILE_REGPATH);
 
-		// The live-window probes ignore saved geometry, dock layout and open
-		// files, then load only the positional config.
-		const bool analysisLayoutTestRequested =
-			application.arguments().contains(QStringLiteral("--analysis-layout-test"))
-			|| application.arguments().contains(QStringLiteral("--analysis-latency-test"))
-			|| application.arguments().contains(QStringLiteral("--plugin-load-test"))
-			|| application.arguments().contains(QStringLiteral("--frame-hittest-test"))
-			|| application.arguments().contains(QStringLiteral("--window-shot"));
+		// The live-window probes marked for a test window ignore saved geometry,
+		// dock layout and open files, then load only the positional config.
+		const bool testWindowRequested = EditorGates::wantsTestWindow(application.arguments());
 		// The constructor reopens tabs and queues their plug-ins; the loader
 		// waits until the shown window has UI Automation running.
 		PluginLoadQueue::holdLoads();
-		MainWindow w(configDir, updateSession.get(), nullptr, analysisLayoutTestRequested);
+		MainWindow w(configDir, updateSession.get(), nullptr, testWindowRequested);
 		w.show();
 		PluginLoadQueue::startUiAutomation(w.winId());
 		PluginLoadQueue::releaseLoads();
@@ -551,112 +551,24 @@ int main(int argc, char* argv[])
 		EqAPO::Import::LegacyMigration::maybeShowStartupNotice(&w);
 
 		QCommandLineParser parser;
-		// Diagnostic switch storm (see diagnostics/SkinSwitchStorm);
-		// registered so the parser does not reject it as an unknown option.
-		QCommandLineOption stormOption(QStringLiteral("skin-switch-storm"));
-		stormOption.setFlags(QCommandLineOption::HiddenFromHelp);
-		parser.addOption(stormOption);
-		// Deterministic real-window regression probe for the analysis dock. This
-		// runs the same right/bottom layout path as the position combo, records
-		// the live widget geometry and optionally captures the composed surface.
-		QCommandLineOption analysisLayoutOption(QStringLiteral("analysis-layout-test"));
-		analysisLayoutOption.setValueName(QStringLiteral("screenshot"));
-		analysisLayoutOption.setFlags(QCommandLineOption::HiddenFromHelp);
-		parser.addOption(analysisLayoutOption);
-		QCommandLineOption analysisLatencyOption(QStringLiteral("analysis-latency-test"));
-		analysisLatencyOption.setValueName(QStringLiteral("iterations"));
-		analysisLatencyOption.setFlags(QCommandLineOption::HiddenFromHelp);
-		parser.addOption(analysisLatencyOption);
-		QCommandLineOption analysisLatencyDeviceOption(QStringLiteral("analysis-latency-device"));
-		analysisLatencyDeviceOption.setValueName(QStringLiteral("substring"));
-		analysisLatencyDeviceOption.setFlags(QCommandLineOption::HiddenFromHelp);
-		parser.addOption(analysisLatencyDeviceOption);
-		QCommandLineOption pluginLoadOption(QStringLiteral("plugin-load-test"));
-		pluginLoadOption.setFlags(QCommandLineOption::HiddenFromHelp);
-		parser.addOption(pluginLoadOption);
-		// Real-window probe for the custom frame's hit testing under a native
-		// child cascade (diagnostics/FrameHitTestProbe).
-		QCommandLineOption frameHitTestOption(QStringLiteral("frame-hittest-test"));
-		frameHitTestOption.setFlags(QCommandLineOption::HiddenFromHelp);
-		parser.addOption(frameHitTestOption);
-		// Real-window A/B probe for the panel preview feed (SkinGallery::
-		// armVstPanelFeedProbe); pair it with EAPO_DISABLE_PANEL_FEED=1 for
-		// the control run.
-		QCommandLineOption skinMetricsOption(QStringLiteral("skin-metrics-probe"));
-		skinMetricsOption.setFlags(QCommandLineOption::HiddenFromHelp);
-		parser.addOption(skinMetricsOption);
-		QCommandLineOption vstPanelFeedOption(QStringLiteral("vst-panel-feed-test"));
-		vstPanelFeedOption.setValueName(QStringLiteral("durationMs"));
-		vstPanelFeedOption.setFlags(QCommandLineOption::HiddenFromHelp);
-		parser.addOption(vstPanelFeedOption);
-		// Whole-window captures per skin/mode (SkinGallery::armWindowShotProbe);
-		// the sub-options are registered so the parser accepts them.
-		QCommandLineOption windowShotOption(QStringLiteral("window-shot"));
-		windowShotOption.setValueName(QStringLiteral("outDir"));
-		windowShotOption.setFlags(QCommandLineOption::HiddenFromHelp);
-		parser.addOption(windowShotOption);
-		for (const char* name : { "window-shot-skins", "window-shot-modes", "window-shot-dock",
-			"window-shot-width", "window-shot-height", "window-shot-dock-size", "window-shot-select" })
-		{
-			QCommandLineOption sub(QString::fromLatin1(name));
-			sub.setValueName(QStringLiteral("value"));
-			sub.setFlags(QCommandLineOption::HiddenFromHelp);
-			parser.addOption(sub);
-		}
+		EditorGates::registerOptions(parser);
 		parser.process(application);
 		QStringList args = parser.positionalArguments();
-		if (!analysisLayoutTestRequested && args.isEmpty() && w.isEmpty())
+		if (!testWindowRequested && args.isEmpty() && w.isEmpty())
 			args = QStringList("config.txt");
 
-		if (parser.isSet(pluginLoadOption) && !SkinGallery::armPluginLoadProbe(w))
-			return 1;
+		// The plug-in load probe starts measuring here, before the positional
+		// load. EditorGates defers the other armed probes until that load is done.
+		const bool probeArmed = EditorGates::arm(w, parser);
 		for (const QString& arg : args)
 			w.load(configDir.absoluteFilePath(arg));
 
 		const bool firstRun = !firstRunHandled && VelopackBootstrap::isFirstRun();
-		if (parser.isSet(pluginLoadOption))
+		if (probeArmed)
 		{
-			// Armed above, before the positional load, so a library load made
-			// before the event loop starts still counts as a UI gap. Skips
-			// doChecks like the other probes: a modal warning would stall them.
+			// Probe sessions skip doChecks: a modal warning would stall their
+			// timers.
 		}
-		else if (parser.isSet(analysisLayoutOption))
-		{
-			// The probe itself lives with the other offscreen gates in
-			// Editor/gallery/GalleryProbes.cpp (audit #275 B7); it arms the timers and later
-			// exits the event loop with the verdict.
-			if (!SkinGallery::armAnalysisLayoutProbe(w, parser.value(analysisLayoutOption)))
-				return 1;
-		}
-		else if (parser.isSet(analysisLatencyOption))
-		{
-			if (!SkinGallery::armAnalysisLatencyProbe(w, application.arguments()))
-				return 1;
-		}
-		else if (parser.isSet(frameHitTestOption))
-		{
-			if (!FrameHitTestProbe::arm(w))
-				return 1;
-		}
-		else if (parser.isSet(skinMetricsOption))
-		{
-			if (!SkinGallery::armSkinMetricsProbe(w))
-				return 1;
-		}
-		else if (parser.isSet(windowShotOption))
-		{
-			if (!SkinGallery::armWindowShotProbe(w, application.arguments()))
-				return 1;
-		}
-		else if (parser.isSet(vstPanelFeedOption))
-		{
-			// Skips doChecks like the storm: a modal warning would stall the
-			// probe timers.
-			if (!SkinGallery::armVstPanelFeedProbe(w, parser.value(vstPanelFeedOption)))
-				return 1;
-		}
-		else if (parser.isSet(stormOption))
-			SkinSwitchStorm::run(w);  // storm sessions skip doChecks: its modal warnings would stall the timer
 		else if (firstRun)
 		{
 			launchDeviceSelector(pathutil::exeDirectory());
@@ -678,39 +590,13 @@ int main(int argc, char* argv[])
 		}
 
 		result = application.exec();
+		ProcessShutdown::exitCode.store(result, std::memory_order_relaxed);
 
 		restart = w.shouldRestart();
+		if (!restart && updateSession)
+			updateSession->cancelPendingDownload();
 	}
 	while (restart);
 
-	// A plug-in load may still be running on the loader thread (closing the
-	// Editor during a slow first load). Let it finish before static
-	// destruction instead of racing it.
-	PluginLoadQueue::shutdown();
-	// The same for an endpoint format probe still running.
-	BackgroundProbe::shutdown();
-
-	// The session owns the download worker. Join it before inspecting staged state so
-	// neither process shutdown nor static destruction can race with its publication.
-	if (updateSession)
-		updateSession->shutdown();
-
-	// If the background worker staged an update, apply it now. exec() has returned and
-	// the QApplication is destroyed, so no other thread is writing to the install dir.
-	// The apply is silent and does not restart; the new version comes up next launch.
-	if (updateSession && updateSession->hasPendingUpdate())
-	{
-		const UpdateApplyOutcome outcome = updateSession->applyPendingUpdate(
-			AudioEngineAccess::isElevated(),
-			[]() { return VelopackBootstrap::launchElevatedUpdateCoordinator(); });
-		if (outcome == UpdateApplyOutcome::CoordinatorLaunched ||
-			outcome == UpdateApplyOutcome::UpdaterLaunched)
-		{
-			return 0;
-		}
-		if (outcome == UpdateApplyOutcome::Failed)
-			logLine(L"ERR", L"staged update could not be applied");
-	}
-
-	return result;
+	return shutdownEditor(updateSession.get(), headlessGateRan, result);
 }

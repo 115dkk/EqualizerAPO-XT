@@ -13,6 +13,7 @@
 #include "filters/ExpressionCommand.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "filters/BiQuadCommand.h"
+#include "filters/ChannelCommand.h"
 #include "filters/HilbertCommand.h"
 #include "filters/NewChannelCommand.h"
 #include "FilterCommandCatalog.h"
@@ -20,12 +21,21 @@
 
 namespace
 {
+// The descriptor's type string and its kind are written together, here and in
+// applyCommandIdentity below and nowhere else, so the two cannot disagree.
+void setKind(FilterCardDescriptor& descriptor, FilterCardKind kind)
+{
+	descriptor.kind = kind;
+	descriptor.type = filterCardKindType(kind);
+}
+
 // The catalog states each command's card identity once; describeLine keeps
 // only the per-line badge/title/chip work below.
 void applyCommandIdentity(FilterCardDescriptor& descriptor,
 	const FilterCommandCatalog::CommandEntry& entry)
 {
 	descriptor.type = QLatin1String(entry.type);
+	descriptor.kind = filterCardKindFromType(descriptor.type);
 	descriptor.badge = QLatin1String(entry.badge);
 	descriptor.title = FilterCommandCatalog::title(entry);
 	descriptor.color = QLatin1String(entry.color);
@@ -73,56 +83,21 @@ QString biquadTypeTitle(const QString& code)
 	return FilterCardModel::tr("Biquad");
 }
 
-// keyword is the engine's canonical command (FilterCardModel::canonicalCommand),
-// so a lowercase "if:" or "channel:" moves neither axis here for the same reason
-// it opens no scope in the engine.
-FilterCardRowScope advanceScope(bool enabled, const QString& keyword,
-	const QStringList& channelBadges, QStringList& activeChannels, int& channelDepth, int& ifDepth)
+QStringList channelNames(const std::vector<std::wstring>& values)
+{
+	QStringList names;
+	for (const std::wstring& value : values)
+		names.append(QString::fromStdWString(value));
+	return names;
+}
+
+FilterCardRowScope scopeFromFlow(const ChannelFlowAtLine& flow)
 {
 	FilterCardRowScope scope;
-	if (enabled && keyword == QStringLiteral("Channel"))
-	{
-		scope.indent = ifDepth;
-		scope.logic = ifDepth;
-		const bool selectsAll = channelBadges.isEmpty() || channelBadges.contains(QStringLiteral("ALL"));
-		channelDepth = selectsAll ? 0 : 1;
-		activeChannels = selectsAll ? QStringList() : channelBadges;
-	}
-	else if (enabled && keyword == QStringLiteral("NewChannel"))
-	{
-		// NewChannel adds its names to the selection. An explicit selection
-		// grows by them; ALL (no names here) stays ALL, which still covers
-		// the device channels the header shows.
-		scope.indent = channelDepth + ifDepth;
-		scope.logic = ifDepth;
-		if (!activeChannels.isEmpty())
-			for (const QString& name : channelBadges)
-				if (!activeChannels.contains(name))
-					activeChannels.append(name);
-	}
-	else if (enabled && keyword == QStringLiteral("If"))
-	{
-		scope.indent = channelDepth + ifDepth;
-		scope.logic = ifDepth;
-		ifDepth++;
-	}
-	else if (enabled && (keyword == QStringLiteral("ElseIf") || keyword == QStringLiteral("Else")))
-	{
-		scope.indent = channelDepth + qMax(0, ifDepth - 1);
-		scope.logic = ifDepth;
-	}
-	else if (enabled && keyword == QStringLiteral("EndIf"))
-	{
-		scope.indent = channelDepth + qMax(0, ifDepth - 1);
-		scope.logic = ifDepth;
-		ifDepth = qMax(0, ifDepth - 1);
-	}
-	else
-	{
-		scope.indent = channelDepth + ifDepth;
-		scope.logic = ifDepth;
-	}
-	scope.channels = activeChannels;
+	scope.indent = flow.indent;
+	scope.logic = flow.logicDepth;
+	if (!flow.selectionIsAll)
+		scope.channels = channelNames(flow.selected);
 	return scope;
 }
 }
@@ -177,24 +152,11 @@ bool FilterCardModel::isPureCommentLine(const QString& line)
 	return trimmed.startsWith('#') && !isDisabledCommandLine(line);
 }
 
-bool FilterCardModel::hasInlineExpressions(const QString& parameters)
-{
-	// Cheap pre-check before the lexer: a line without a backtick can have
-	// no expression segment.
-	if (!parameters.contains(QLatin1Char('`')))
-		return false;
-	const std::vector<InlineExpression::Segment> segments = InlineExpression::split(parameters.toStdWString());
-	for (const InlineExpression::Segment& segment : segments)
-		if (segment.isExpression)
-			return true;
-	return false;
-}
-
 QStringList FilterCardModel::headerChannels(const FilterCardDescriptor& descriptor,
 	const std::vector<std::wstring>& deviceChannels)
 {
 	QStringList channels;
-	if (descriptor.type == QStringLiteral("newchannel"))
+	if (descriptor.kind == FilterCardKind::NewChannel)
 		return channels;
 	if (descriptor.channelBadgesAreCopyTargets)
 	{
@@ -215,13 +177,14 @@ QStringList FilterCardModel::headerChannels(const FilterCardDescriptor& descript
 
 bool FilterCardModel::hostsSharedRawBody(const QString& type, bool dynamicLine)
 {
-	return type == QStringLiteral("text") || type == QStringLiteral("if")
-		|| type == QStringLiteral("eval") || dynamicLine;
+	const FilterCardKind kind = filterCardKindFromType(type);
+	return kind == FilterCardKind::Text || kind == FilterCardKind::If
+		|| kind == FilterCardKind::Eval || dynamicLine;
 }
 
 bool FilterCardModel::opensRoutingView(const FilterCardDescriptor& descriptor)
 {
-	return descriptor.type == QStringLiteral("copy") && !descriptor.dynamicLine;
+	return descriptor.kind == FilterCardKind::Copy && !descriptor.dynamicLine;
 }
 
 QString FilterCardModel::commandForLine(const QString& line, QString* parameters)
@@ -251,17 +214,6 @@ QString FilterCardModel::commandForLine(const QString& line, QString* parameters
 	return trimmed.left(colon).trimmed();
 }
 
-QStringList FilterCardModel::parseChannelList(const QString& text)
-{
-	static const QRegularExpression whitespaceExpression(QStringLiteral("\\s+"));
-	QString normalized = text;
-	normalized.replace(',', ' ');
-	QStringList result = normalized.split(whitespaceExpression, Qt::SkipEmptyParts);
-	for (QString& channel : result)
-		channel = channel.trimmed().toUpper();
-	return result;
-}
-
 FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int depth)
 {
 	FilterCardDescriptor descriptor;
@@ -273,7 +225,7 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 	// widget can render a thin separator instead of a full-height empty card.
 	if (line.trimmed().isEmpty())
 	{
-		descriptor.type = QStringLiteral("spacer");
+		setKind(descriptor, FilterCardKind::Spacer);
 		descriptor.canToggleEnabled = false;
 		return descriptor;
 	}
@@ -298,10 +250,10 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 	const QString keyword = canonicalCommand(command);
 	descriptor.command = command;
 	descriptor.parameters = parameters;
-	descriptor.dynamicLine = hasInlineExpressions(parameters);
+	descriptor.dynamicLine = InlineExpression::containsExpression(parameters.toStdWString());
 	descriptor.title = command.isEmpty() ? tr("Text") : command;
 	descriptor.summary = compactWhitespace(parameters);
-	descriptor.type = QStringLiteral("text");
+	setKind(descriptor, FilterCardKind::Text);
 	descriptor.badge = QStringLiteral("TXT");
 	descriptor.color = QStringLiteral("#64748b");
 
@@ -373,12 +325,14 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 	}
 	else if (keyword == QStringLiteral("Channel"))
 	{
-		descriptor.channelBadges = parseChannelList(parameters);
+		ChannelCommand cmd;
+		ChannelCommand::parse(L"Channel", parameters.toStdWString(), cmd);
+		descriptor.channelBadges = channelNames(cmd.channels);
 	}
 	else if (keyword == QStringLiteral("NewChannel"))
 	{
-		// The declared names, for advanceScope(). headerChannels() badges
-		// none of them: they are virtual, and a name that is not is the
+		// headerChannels() badges none of the declared names: they are virtual,
+		// and a name that is not is the
 		// reason the engine skips the line, which the body's chips show.
 		descriptor.channelBadges = newChannelNames(parameters);
 	}
@@ -429,32 +383,6 @@ QString FilterCardModel::commandIconResource(const QString& command, const QStri
 	return entry == nullptr ? QString() : FilterCommandCatalog::iconResource(entry->icon);
 }
 
-QVector<FilterCardRowScope> FilterCardModel::calculateScopes(const QList<QString>& lines)
-{
-	QVector<FilterCardRowScope> scopes;
-	scopes.reserve(lines.size());
-
-	// The two depth axes are independent: Channel opens a flat 0/1 grouping for
-	// everything after it, If opens a nestable scope that EndIf closes. Only
-	// enabled lines move either axis - a commented-out If/EndIf is a comment to
-	// the engine too. An unbalanced EndIf clamps at zero instead of going
-	// negative, mirroring how the engine just ignores the stray line.
-	QStringList activeChannels;
-	int channelDepth = 0;
-	int ifDepth = 0;
-	for (const QString& line : lines)
-	{
-		const bool enabled = !line.trimmed().startsWith('#');
-		QString parameters;
-		const QString keyword = canonicalCommand(commandForLine(line, &parameters));
-		const QStringList channels = keyword == QStringLiteral("Channel") ? parseChannelList(parameters)
-			: keyword == QStringLiteral("NewChannel") ? newChannelNames(parameters) : QStringList();
-		scopes.append(advanceScope(enabled, keyword, channels, activeChannels, channelDepth, ifDepth));
-	}
-
-	return scopes;
-}
-
 void FilterCardModel::applyScope(FilterCardDescriptor& descriptor, const FilterCardRowScope& scope)
 {
 	descriptor.depth = scope.indent;
@@ -478,25 +406,32 @@ FilterCardRowScope FilterCardModel::scopeOf(const FilterCardDescriptor& descript
 	return scope;
 }
 
-QVector<FilterCardBuildPlan> FilterCardModel::prepareRows(const QList<QString>& lines)
+FilterCardDocumentPlan FilterCardModel::prepareDocument(const QList<QString>& lines,
+	const ChannelFlowContext& context)
 {
-	QVector<FilterCardBuildPlan> plans;
-	plans.reserve(lines.size());
+	FilterCardDocumentPlan document;
+	document.rows.reserve(lines.size());
 
-	QStringList activeChannels;
-	int channelDepth = 0;
-	int ifDepth = 0;
+	std::vector<ChannelFlowLine> flowLines;
+	flowLines.reserve(static_cast<size_t>(lines.size()));
 	for (const QString& line : lines)
 	{
-		FilterCardBuildPlan plan;
-		// describeRow, split so the scope pass reads the descriptor's own
-		// channel list instead of parsing the line a second time.
-		plan.descriptor = describeLine(line);
-		plan.scope = advanceScope(plan.descriptor.enabled,
-			canonicalCommand(plan.descriptor.command), plan.descriptor.channelBadges,
-			activeChannels, channelDepth, ifDepth);
-		applyScope(plan.descriptor, plan.scope);
-		plans.append(std::move(plan));
+		ChannelFlowLine flowLine;
+		QString parameters;
+		flowLine.command = commandForLine(line, &parameters).toStdWString();
+		flowLine.parameters = parameters.toStdWString();
+		flowLine.enabled = !line.trimmed().startsWith('#');
+		flowLines.push_back(std::move(flowLine));
 	}
-	return plans;
+	document.channelFlow = computeChannelFlow(flowLines, context);
+
+	for (qsizetype i = 0; i < lines.size(); i++)
+	{
+		FilterCardBuildPlan row;
+		row.descriptor = describeLine(lines[i]);
+		row.scope = scopeFromFlow(document.channelFlow[static_cast<size_t>(i)]);
+		applyScope(row.descriptor, row.scope);
+		document.rows.append(std::move(row));
+	}
+	return document;
 }

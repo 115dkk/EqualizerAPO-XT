@@ -10,10 +10,13 @@
 
 #include "EditorLogicTestSupport.h"
 
+#include "services/install/ApoRegistration.h"
 #include "services/update/UpdateSession.h"
 #include "services/update/VelopackBootstrap.h"
 
 #include <memory>
+#include <future>
+#include "services/install/InstallWaitBudget.h"
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -29,6 +32,7 @@ struct FakeUpdateState
 	bool throwDuringApply = false;
 	bool throwDuringPendingRestartApply = false;
 	bool pendingRestartAvailable = false;
+	std::function<void()> duringStage;
 	std::optional<std::wstring> availableVersion = L"9.9.9";
 };
 
@@ -43,6 +47,8 @@ public:
 	std::optional<std::wstring> stageAvailableUpdate() override
 	{
 		++state->stageCalls;
+		if (state->duringStage)
+			state->duringStage();
 		if (state->throwDuringStage)
 			throw std::runtime_error("stage failed");
 		return state->availableVersion;
@@ -66,6 +72,99 @@ public:
 private:
 	std::shared_ptr<FakeUpdateState> state;
 };
+}
+
+TEST_CASE(EditorLogicTests, testUpdateShutdownDeadlineKeepsRunningWorkerOwned)
+{
+	auto state = std::make_shared<FakeUpdateState>();
+	std::promise<void> entered;
+	std::promise<void> resume;
+	auto ready = entered.get_future();
+	auto proceed = resume.get_future();
+	state->duringStage = [&] { entered.set_value(); proceed.wait(); };
+	UpdateSession session(std::make_unique<FakeUpdateClient>(state));
+	session.startDownload();
+	ready.wait();
+	session.cancelPendingDownload();
+	const bool finished = session.shutdown(0);
+	// The product hard-exits instead of destroying a timed-out session. Release
+	// the fake before any assertion so this test can still destroy it safely.
+	resume.set_value();
+	const bool joined = session.shutdown(5000);
+	session.shutdown();
+	expectFalse(finished, QStringLiteral("zero shutdown deadline reports the unfinished download"));
+	expectTrue(joined, QStringLiteral("released download joins through the bounded shutdown"));
+	expectEqual(state->stageCalls, 1, QStringLiteral("timed-out worker remains owned until it finishes"));
+	expectEqual(state->applyCalls, 0, QStringLiteral("timed-out shutdown does not apply the package"));
+	expectFalse(session.hasPendingUpdate(), QStringLiteral("cancelled worker never publishes after timeout"));
+	expectTrue(session.shutdown(0), QStringLiteral("already joined session completes with a zero deadline"));
+}
+
+TEST_CASE(EditorLogicTests, testUpdateShutdownDeadlineAcceptsIdleSession)
+{
+	auto state = std::make_shared<FakeUpdateState>();
+	UpdateSession session(std::make_unique<FakeUpdateClient>(state));
+	expectTrue(session.shutdown(0), QStringLiteral("idle session has no worker to wait for"));
+}
+
+TEST_CASE(EditorLogicTests, testUpdateExitCancelsDownloadBeforePublication)
+{
+	for (const bool elevated : {false, true})
+	{
+		auto state = std::make_shared<FakeUpdateState>();
+		std::promise<void> entered;
+		std::promise<void> resume;
+		auto ready = entered.get_future();
+		auto proceed = resume.get_future();
+		state->duringStage = [&] { entered.set_value(); proceed.wait(); };
+		UpdateSession session(std::make_unique<FakeUpdateClient>(state));
+		session.startDownload();
+		ready.wait();
+		session.cancelPendingDownload();
+		resume.set_value();
+		session.shutdown();
+		int elevations = 0;
+		const auto outcome = session.applyPendingUpdate(elevated, [&] { ++elevations; return true; });
+		expectTrue(outcome == UpdateApplyOutcome::NoUpdate, QStringLiteral("cancelled download never applies"));
+		expectEqual(state->applyCalls, 0, QStringLiteral("cancelled download never calls client apply"));
+		expectEqual(elevations, 0, QStringLiteral("cancelled download never requests elevation"));
+		expectFalse(session.hasPendingUpdate(), QStringLiteral("cancelled download is not published"));
+	}
+}
+
+TEST_CASE(EditorLogicTests, testHookDeadlineExcludesUacTime)
+{
+	const auto parent = installwait::hookDeadline(false, 0, 1000, 12000);
+	expectTrue(parent == 0, QStringLiteral("unelevated hook has no deadline during UAC"));
+	const auto child = installwait::hookDeadline(true, 0, 61000, 12000);
+	expectTrue(child == 73000, QStringLiteral("elevated child starts with full budget after UAC"));
+	expectTrue(installwait::hookDeadline(true, child, 62000, 12000) == child,
+		QStringLiteral("nested budget never extends the elevated deadline"));
+}
+
+TEST_CASE(EditorLogicTests, testUpdateHookRestartsAfterThrow)
+{
+	int starts = 0;
+	bool caught = false;
+	try
+	{
+		ApoRegistration::runWithAudioStopped([] { return true; },
+			[]() -> ApoRegistration::Result { throw std::runtime_error("migration failed"); },
+			[&] { ++starts; return true; });
+	}
+	catch (const std::runtime_error&)
+	{
+		caught = true;
+	}
+	expectTrue(caught, QStringLiteral("hook preserves the step exception"));
+	expectEqual(starts, 1, QStringLiteral("throwing hook still restarts audio once"));
+	starts = 0;
+	ApoRegistration::runWithAudioStopped([] { return false; },
+		[] { return ApoRegistration::Result::Success; }, [&] { ++starts; return true; });
+	expectEqual(starts, 0, QStringLiteral("hook does not start a service it did not stop"));
+	ApoRegistration::runWithAudioStopped([] { return true; },
+		[] { return ApoRegistration::Result::RegistryFailed; }, [&] { ++starts; return true; });
+	expectEqual(starts, 1, QStringLiteral("failed result restarts audio once"));
 }
 
 TEST_CASE(EditorLogicTests, testUpdateCoordinatorAppliesPendingRestartThroughAdapter)
@@ -245,6 +344,7 @@ TEST_CASE(EditorLogicTests, testUpdateSessionPublishesStagedVersionAfterJoin)
 	expectTrue(session.startDownload(), QStringLiteral("the update worker starts once"));
 	session.shutdown();
 
+	session.cancelPendingDownload();
 	expectEqual(state->stageCalls, 1, QStringLiteral("the update adapter stages exactly once"));
 	expectTrue(session.hasPendingUpdate(), QStringLiteral("the staged update becomes observable after join"));
 	expectEqual(

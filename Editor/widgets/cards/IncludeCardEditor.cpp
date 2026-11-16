@@ -147,20 +147,8 @@ void IncludeCardEditor::updateFileInfo()
 	const QFileInfo fileInfo = currentFileInfo();
 	reference->setResolvedPath(fileInfo.absoluteFilePath());
 	ReferenceCardState state = reference->describe(tr("No file selected"));
-	bool offerImport = false;
 	if (!state.missing)
-	{
 		state.nameClickable = true;
-		const QString problem = FileReferenceController::audioServiceProblem(state.fullPath,
-			filterTable != nullptr ? filterTable->getConfigPath() : QString());
-		if (!problem.isEmpty())
-		{
-			state.statusText = problem;
-			state.statusSeverity = ReferenceCardState::Severity::Critical;
-			state.nameClickable = false;
-			offerImport = true;
-		}
-	}
 
 	// The Browse button doubles as the Locate recovery entry while the
 	// reference is broken; the label is the affordance.
@@ -172,8 +160,30 @@ void IncludeCardEditor::updateFileInfo()
 	// while broken, recovery (Locate) is the offered action instead.
 	editButton->setEnabled(!state.missing && !reference->writtenPath().isEmpty());
 
+	shownState = state;
 	view->setState(state);
-	importButton->setVisible(offerImport);
+	importButton->setVisible(false);
+	// The audio-service verdict arrives later, off the UI thread (audit #467
+	// TD-59); until then the card shows the file as fine.
+	if (!state.missing)
+		reference->askAudioService(state.fullPath,
+			filterTable != nullptr ? filterTable->getConfigPath() : QString(),
+			[this](const QString& problem) { showAudioServiceProblem(problem); });
+	else
+		reference->askNothing();
+}
+
+// A file the audio service will not open is offered for import, and its name
+// stops being a jump target.
+void IncludeCardEditor::showAudioServiceProblem(const QString& problem)
+{
+	if (problem.isEmpty())
+		return;
+	shownState.statusText = problem;
+	shownState.statusSeverity = ReferenceCardState::Severity::Critical;
+	shownState.nameClickable = false;
+	view->setState(shownState);
+	importButton->setVisible(true);
 }
 
 void IncludeCardEditor::importToConfig()

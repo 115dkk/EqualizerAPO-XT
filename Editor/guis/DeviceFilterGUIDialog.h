@@ -35,7 +35,7 @@ class DeviceFilterGUIDialog : public QDialog
 	Q_OBJECT
 
 public:
-	explicit DeviceFilterGUIDialog(DeviceFilterGUI* gui, DeviceFilterGUIFactory* factory, const QString& pattern);
+	explicit DeviceFilterGUIDialog(DeviceFilterGUI* gui, const DeviceFilterGUIFactory* factory, const QString& pattern);
 	~DeviceFilterGUIDialog();
 
 	QString getPattern();

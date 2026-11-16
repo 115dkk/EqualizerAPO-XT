@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -50,8 +51,10 @@ class IFilterGUI;
 class IFilterGUIFactory;
 class MainWindow;
 class QMimeData;
+struct ChannelFlowAtLine;
+struct ChannelFlowContext;
+struct FilterCardBuildPlan;
 struct FilterCardDescriptor;
-struct FilterCardRowScope;
 struct FilterPickerEntry;
 
 // FilterTable's implementation is split across several translation units (all
@@ -138,8 +141,10 @@ public:
 	void removeItem(Item* item);
 	// One line's text changed: the document's single-line mutations
 	// (FilterListModel::setText and the two rules built on it), each followed
-	// by linesChanged. A row widget forwards its edit here instead of writing
+	// by linesChanged. A card row forwards its edit here instead of writing
 	// item->text itself; deferring its own rebuild stays the row's business.
+	// The frozen legacy row (FilterTableRow::updateModel) still writes
+	// item->text directly.
 	void setLineText(Item* item, const QString& text);
 	void setLineEnabled(Item* item, bool enabled);
 	void replaceLineCommand(Item* item, const QString& command, const QString& parameters);
@@ -179,7 +184,10 @@ public:
 	void selectOnlyFromCard(Item* item);
 
 	QString getConfigPath() const;
-	void setConfigPath(const QString& value);
+	// MainWindow's DocumentState owns the path. The table asks for it when a
+	// row editor needs it, so Save As cannot leave two stored paths disagreeing
+	// (audit #467 TD-44).
+	void setConfigPathAccessor(std::function<QString()> accessor);
 
 	void openConfig(QString path);
 
@@ -265,6 +273,10 @@ private:
 	// updateGuis, updateSingleRowGui and insertRowAt share; descriptor is the
 	// card row's presentation (unused in LegacyRows).
 	QWidget* buildRow(int index, Item* item, FilterCardDescriptor descriptor, RowBuildTiming* timing = nullptr);
+	// Device and stage facts for the shared document walk, and the fan-out of
+	// its per-line flow to the row editors.
+	ChannelFlowContext channelFlowContext() const;
+	void applyChannelFlow(const std::vector<ChannelFlowAtLine>& flow);
 	// Inserts the mime data's lines at dropRow and makes them the selection.
 	// Shared by paste() and dropEvent(). Returns the number of inserted lines
 	// so the callers can take the incremental single-row path.
@@ -281,7 +293,7 @@ private:
 	// Refreshes number/scope of the card rows at document index >= firstRow in
 	// place after an incremental splice. Returns false when a row widget is
 	// not a FilterCardRow (caller falls back to updateGuis).
-	bool renumberRowsBelow(int firstRow, const QVector<FilterCardRowScope>& rowScopes);
+	bool renumberRowsBelow(int firstRow, const QVector<FilterCardBuildPlan>& rowPlans);
 	// The grid's row widgets indexed by document row (0..items-1), collected in
 	// one pass over the layout. QGridLayout::itemAtPosition scans linearly, so
 	// per-row lookups in a whole-table loop are quadratic; every such loop
@@ -334,6 +346,9 @@ private:
 	QList<std::shared_ptr<AbstractAPOInfo>> inputDevices;
 	std::shared_ptr<AbstractAPOInfo> selectedDevice;
 	int selectedChannelMask = 0;
+	std::function<QString()> configPathAccessor;
+	// Widget-only gallery fixtures have no OpenDocument. setLines keeps their
+	// synthetic path here; a real document always supplies the accessor above.
 	QString configPath;
 	int minimumHeightHint = 0;
 	// Scroll position captured by clearRows() and restored by updateGuis().

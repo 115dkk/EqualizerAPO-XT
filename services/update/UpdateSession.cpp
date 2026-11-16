@@ -9,6 +9,7 @@
 */
 
 #include "UpdateSession.h"
+#include "platform/windows/ThreadWait.h"
 
 #include <exception>
 #include <utility>
@@ -66,7 +67,7 @@ UpdateSession::~UpdateSession()
 bool UpdateSession::startDownload()
 {
 	std::lock_guard<std::mutex> lock(mutex);
-	if (started)
+	if (started || status == UpdateDownloadStatus::Cancelled)
 		return false;
 
 	started = true;
@@ -76,6 +77,8 @@ bool UpdateSession::startDownload()
 		{
 			std::optional<std::wstring> stagedVersion = client->stageAvailableUpdate();
 			std::lock_guard<std::mutex> stateLock(mutex);
+			if (status == UpdateDownloadStatus::Cancelled)
+				return;
 			pendingVersion = std::move(stagedVersion);
 			status = pendingVersion.has_value()
 				? UpdateDownloadStatus::Staged
@@ -85,6 +88,8 @@ bool UpdateSession::startDownload()
 		{
 			{
 				std::lock_guard<std::mutex> stateLock(mutex);
+				if (status == UpdateDownloadStatus::Cancelled)
+					return;
 				pendingVersion.reset();
 				status = UpdateDownloadStatus::Failed;
 			}
@@ -94,6 +99,8 @@ bool UpdateSession::startDownload()
 		{
 			{
 				std::lock_guard<std::mutex> stateLock(mutex);
+				if (status == UpdateDownloadStatus::Cancelled)
+					return;
 				pendingVersion.reset();
 				status = UpdateDownloadStatus::Failed;
 			}
@@ -101,6 +108,26 @@ bool UpdateSession::startDownload()
 		}
 	});
 	return true;
+}
+
+void UpdateSession::cancelPendingDownload()
+{
+	std::lock_guard<std::mutex> lock(mutex);
+	if (status == UpdateDownloadStatus::Idle || status == UpdateDownloadStatus::Running)
+	{
+		// Velopack's C progress callback returns void and has no abort contract.
+		// Do not throw across it. Join later, but never publish/apply a download
+		// finishing after exit (audit #467 TD-64, testUpdateExitCancelsDownloadBeforePublication).
+		status = UpdateDownloadStatus::Cancelled;
+		pendingVersion.reset();
+	}
+}
+
+bool UpdateSession::shutdown(unsigned long timeoutMs)
+{
+	// Keep ownership on timeout: the process-exit caller must skip destruction,
+	// not let a live download touch a freed session (audit #467 TD-58).
+	return winutil::joinThreadFor(worker, timeoutMs);
 }
 
 void UpdateSession::shutdown()

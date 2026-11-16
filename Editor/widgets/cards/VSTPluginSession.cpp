@@ -32,6 +32,7 @@
 #include "Editor/helpers/PluginLoadQueue.h"
 #include "Editor/helpers/VstChunkScan.h"
 #include "Editor/helpers/VstChunkState.h"
+#include "Editor/helpers/VstPanelCall.h"
 
 using std::unordered_map;
 using std::wstring;
@@ -169,7 +170,7 @@ void VSTPluginSession::requestPlugin()
 
 	const unsigned generation = loadGeneration;
 	QPointer<VSTPluginSession> guard(this);
-	PluginLoadQueue::enqueue(pluginLibrary, [guard, generation](int result) {
+	PluginLoadQueue::enqueue(pluginLibrary, [guard, generation](AbstractLibrary::InitializeResult result) {
 		if (guard.isNull() || guard->loadGeneration != generation)
 			return;
 		guard->currentStatus.loading = false;
@@ -188,28 +189,31 @@ bool VSTPluginSession::waitForPendingLoads(int timeoutMs)
 	return PluginLoadQueue::waitForPendingLoads(timeoutMs);
 }
 
-void VSTPluginSession::applyLoadResult(int result)
+void VSTPluginSession::applyLoadResult(AbstractLibrary::InitializeResult result)
 {
 	const bool card = row == Row::Card;
 	currentStatus = Status();
-	if (result < 0)
+	if (!AbstractLibrary::succeeded(result))
 	{
 		currentStatus.critical = true;
 
 		switch (result)
 		{
-		case AbstractLibrary::FILE_NOT_FOUND:
+		case AbstractLibrary::InitializeResult::Loaded:
+		case AbstractLibrary::InitializeResult::AlreadyLoaded:
+			break;
+		case AbstractLibrary::InitializeResult::FileNotFound:
 			currentStatus.libraryMissing = true;
 			if (!card)
 				currentStatus.text = QCoreApplication::translate("VSTPluginFilterGUI", "File not found.");
 			break;
-		case AbstractLibrary::LOADING_FAILED:
+		case AbstractLibrary::InitializeResult::LoadingFailed:
 			currentStatus.text = QCoreApplication::translate("VSTPluginFilterGUI", "Library could not be loaded.");
 			break;
-		case AbstractLibrary::FUNCTIONS_MISSING:
+		case AbstractLibrary::InitializeResult::FunctionsMissing:
 			currentStatus.text = QCoreApplication::translate("VSTPluginFilterGUI", "Library does not contain needed functions.");
 			break;
-		case AbstractLibrary::WRONG_ARCHITECTURE:
+		case AbstractLibrary::InitializeResult::WrongArchitecture:
 		{
 #ifdef _WIN64
 			int bitDepth = 64;
@@ -224,7 +228,7 @@ void VSTPluginSession::applyLoadResult(int result)
 	}
 	else
 	{
-		effect = VSTPluginInstance::create(pluginLibrary, 1);
+		effect = VSTPluginInstance::create(pluginLibrary, VSTPluginInstance::ProcessLevel::User);
 		if (effect->initialize())
 		{
 			effect->setLanguage(QLocale().language() == QLocale::German ? 2 : 1);
@@ -375,8 +379,16 @@ void VSTPluginSession::openDialog(QWidget* dialogParent)
 		return;
 
 	writingState = true;
-	effect->writeToEffect(currentChunkData, currentParamMap);
+	const bool restored = vstPanelCallGuarded([&]() {
+		effect->writeToEffect(currentChunkData, currentParamMap);
+		return true;
+	});
 	writingState = false;
+	if (!restored)
+	{
+		reportPanelCrash();
+		return;
+	}
 
 	// Before the dialog's startEditing: the feed prepares the instance for
 	// the loopback mix format, which must happen while the processor is
@@ -568,48 +580,36 @@ void VSTPluginSession::onAutomate()
 
 bool VSTPluginSession::embedPlugin(QWidget* host)
 {
-	bool result = true;
-
-	__try
-	{
-		writingState = true;
+	writingState = true;
+	const bool restored = vstPanelCallGuarded([&]() {
 		effect->writeToEffect(currentChunkData, currentParamMap);
-		writingState = false;
+		return true;
+	});
+	writingState = false;
+	if (!restored)
+		return false;
 
-		HWND hwnd = (HWND)host->winId();
-		short width = 0, height = 0;
-
-		// startEditing also fails without an exception (no view, attach
-		// refused); unchecked, that embedded its 400x300 placeholder size as
-		// an empty frame and reported the panel as open.
-		result = effect->startEditing(hwnd, &width, &height, host->devicePixelRatioF());
-
-		if (result)
-			host->setFixedSize(width, height);
-	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
-	{
-		writingState = false;
-		result = false;
-	}
-
+	HWND hwnd = (HWND)host->winId();
+	short width = 0, height = 0;
+	// startEditing also fails without an exception (no view, attach
+	// refused); unchecked, that embedded its 400x300 placeholder size as
+	// an empty frame and reported the panel as open.
+	const bool result = vstPanelCallGuarded([&]() {
+		return effect->startEditing(hwnd, &width, &height, host->devicePixelRatioF());
+	});
+	if (result)
+		host->setFixedSize(width, height);
 	return result;
 }
 
 void VSTPluginSession::acquirePanelProcessing()
 {
-	if (effect == nullptr || effect->canProcessNow())
-		return;
-	effect->startProcessing();
-	ownsPanelProcessing = effect->canProcessNow();
+	panelProcessing.acquire(effect.get());
 }
 
 void VSTPluginSession::releasePanelProcessing()
 {
-	if (!ownsPanelProcessing || effect == nullptr)
-		return;
-	effect->stopProcessingSafely();
-	ownsPanelProcessing = false;
+	panelProcessing.reset();
 }
 
 void VSTPluginSession::reportPanelCrash()

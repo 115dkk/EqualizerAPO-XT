@@ -21,6 +21,7 @@
 #include <QPushButton>
 #include "VSTPluginFilterGUIDialog.h"
 #include "ui_VSTPluginFilterGUIDialog.h"
+#include "Editor/helpers/VstPanelCall.h"
 
 VSTPluginFilterGUIDialog::VSTPluginFilterGUIDialog(QWidget* parent, VSTPluginInstance* effect, bool autoApply)
 	: QDialog(parent, Qt::WindowCloseButtonHint),
@@ -40,7 +41,9 @@ VSTPluginFilterGUIDialog::VSTPluginFilterGUIDialog(QWidget* parent, VSTPluginIns
 	// Size the plugin for the monitor the dialog opens on. The parent is already
 	// shown, so its device pixel ratio is reliable; the dialog's own is not yet.
 	double scaleFactor = (parent != nullptr) ? parent->devicePixelRatioF() : devicePixelRatioF();
-	editorOpen = effect->startEditing(hwnd, &width, &height, scaleFactor);
+	editorOpen = vstPanelCallGuarded([&]() {
+		return effect->startEditing(hwnd, &width, &height, scaleFactor);
+	});
 	editorScale = scaleFactor;
 	if (!editorOpen)
 		return;

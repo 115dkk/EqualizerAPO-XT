@@ -6,7 +6,7 @@
 
 #include "stdafx.h"
 #include "services/registry/ClsidRegistration.h"
-#include "devices/DeviceAPOInfoKeys.h"
+#include "services/registry/RegistryPaths.h"
 
 namespace ClsidRegistration
 {

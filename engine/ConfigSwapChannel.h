@@ -26,6 +26,9 @@ class ConfigSwapChannel
 public:
 	ConfigSwapChannel()
 		: shutdownEvent(true, false),
+		  // publishPermit is a winutil::UniqueHandle, which closes the
+		  // semaphore; cppcheck 2.22 sees only the raw CreateSemaphoreW.
+		  // cppcheck-suppress noDestructor
 		  publishPermit(CreateSemaphoreW(nullptr, 1, 1, nullptr))
 	{
 		if (!publishPermit)
@@ -92,8 +95,11 @@ public:
 		currentConfig = std::move(seed);
 		pendingConfig = Pointer();
 		previousConfig = Pointer();
-		pendingReady.store(false, std::memory_order_relaxed);
-		releasePublishPermit();
+		// Only a published slot owns a permit that reset may return. A producer
+		// that acquired the permit but has not published still owns it; releasing
+		// that permit here creates two producers (audit #467 TD-09).
+		if (pendingReady.exchange(false, std::memory_order_acq_rel))
+			releasePublishPermit();
 	}
 
 	void shutdown() noexcept

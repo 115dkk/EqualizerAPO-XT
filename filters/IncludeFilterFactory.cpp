@@ -57,10 +57,8 @@ LineOutcome IncludeFilterFactory::createFilter(const wstring& configPath, wstrin
 	// relative to the including config file, quotes and %VARIABLES% taken
 	// the way Convolution always took them.
 	const ConfigFileReference::Target file = engine()->judgeIncludedFile(configPath, cmd.path);
-	if (!file.refusal.empty())
-		return LineOutcome::malformed(file.refusal);
-	if (file.path.empty())
-		return LineOutcome::malformed(L"expected the path of a configuration file");
+	if (!file)
+		return LineOutcome::malformed(file.problem(L"configuration file"));
 	if (recursionDepth >= RECURSION_LIMIT)
 		return LineOutcome::malformed(L"not included: includes are nested more than " + std::to_wstring(RECURSION_LIMIT) + L" deep");
 

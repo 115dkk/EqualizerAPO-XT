@@ -94,8 +94,29 @@ public:
 		Result repairResult = Result::Success;
 		bool valid() const {return protectedAudioDG && registration;}
 	};
+	enum class RepairNotice
+	{
+		None,
+		Repaired,
+		Failed
+	};
+	static RepairNotice repairNotice(const Verification& verification)
+	{
+		if (verification.valid())
+			return RepairNotice::None;
+		return verification.repairResult == Result::Success ? RepairNotice::Repaired : RepairNotice::Failed;
+	}
 	static Verification verify(IRegistry& registry, bool fix, bool refreshRegistration = false);
 	static bool checkProtectedAudioDG(bool fix, IRegistry& registry = systemRegistry());
+
+	// ACL failure is reported after completing registration and shortcuts.
+	static Result finishInstallWithAccess(const std::function<bool()>& grantAccess,
+		const std::function<Result()>& finish);
+	static bool hookCanComplete(Result result);
+
+	// The stop callable reports whether this operation owes a restart.
+	static Result runWithAudioStopped(const std::function<bool()>& stop,
+		const std::function<Result()>& step, const std::function<bool()>& start);
 
 	static bool stopAudioService();
 	static bool startAudioService();

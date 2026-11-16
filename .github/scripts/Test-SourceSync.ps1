@@ -229,35 +229,87 @@ Write-Host "All $registeredCases tests in the self-registering suites use TEST_C
 # Audit #348 TD-80: docs/EnvironmentVariables.md calls itself the one list of
 # EAPO_* variables, and ten the code reads were missing from it. Every EAPO_*
 # name a C++ source reads from the environment must be written there.
+# Audit #467 TD-74: include CRT, pathutil and script reads, and check the
+# reverse direction too. EAPO_XT_* is included in the EAPO_* prefix.
 $environmentDoc = Join-Path $RepoRoot "docs" "EnvironmentVariables.md"
 if (Test-Path -LiteralPath $environmentDoc) {
   $documented = Get-Content -LiteralPath $environmentDoc -Raw
-  $readPattern = '(?:qEnvironmentVariable\w*|qgetenv|GetEnvironmentVariableW?|_wgetenv|getenv)\(\s*(?:QStringLiteral\()?L?"(EAPO_[A-Z0-9_]+)"'
+  $documentedNames = @([regex]::Matches($documented, '\bEAPO_[A-Z0-9_]+\b') |
+    ForEach-Object { $_.Value } | Sort-Object -Unique)
+  $readPatterns = @(
+    '\b(?:qEnvironmentVariable\w*|qgetenv|GetEnvironmentVariable[AW]?|_wgetenv|getenv|pathutil::environmentVariable)\s*\(\s*(?:QStringLiteral\s*\(\s*)?L?"(?<name>EAPO_[A-Z0-9_]+)"',
+    '\b_w?dupenv_s\s*\(\s*[^,;]+,\s*[^,;]+,\s*L?"(?<name>EAPO_[A-Z0-9_]+)"',
+    # ConfigFileReference expands these literals via ExpandEnvironmentStringsW;
+    # the read is indirect, so matching only environment API calls misses it.
+    '%(?<name>EAPO_[A-Z0-9_]+)%'
+  )
   $sources = @()
   if (Get-Command git -ErrorAction SilentlyContinue) {
-    $sources = @(& git -C $RepoRoot ls-files -- '*.cpp' '*.h' 2>$null)
+    $sources = @(& git -C $RepoRoot ls-files -- '*.cpp' '*.h' '*.ps1' '*.psm1' 2>$null)
     if ($LASTEXITCODE -ne 0) { $sources = @() }
   }
   if ($sources.Count -eq 0) {
-    $sources = @(Get-ChildItem -LiteralPath $RepoRoot -Recurse -File -Include '*.cpp', '*.h' |
+    $sources = @(Get-ChildItem -LiteralPath $RepoRoot -Recurse -File -Include '*.cpp', '*.h', '*.ps1', '*.psm1' |
       ForEach-Object { [System.IO.Path]::GetRelativePath($RepoRoot, $_.FullName) })
   }
   $read = @{}
   foreach ($source in $sources) {
+    $source = $source -replace '\\', '/'
+    $isScript = $source -match '\.ps(m)?1$'
+    if ($isScript -and $source -notmatch '^(?:[^/]+|\.github/scripts/.+)\.ps(m)?1$') { continue }
     $text = Get-Content -LiteralPath (Join-Path $RepoRoot $source) -Raw
     if ($null -eq $text -or $text -notmatch 'EAPO_') { continue }
-    foreach ($match in [regex]::Matches($text, $readPattern)) {
-      $read[$match.Groups[1].Value] = $source -replace '\\', '/'
+    if ($isScript) {
+      # The AST distinguishes reads (including expandable strings) from plain
+      # assignments, comments and single-quoted fixture text in Pester tests.
+      $tokens = $null
+      $parseErrors = $null
+      $ast = [System.Management.Automation.Language.Parser]::ParseInput($text, [ref]$tokens, [ref]$parseErrors)
+      if ($parseErrors.Count -gt 0) { throw "Cannot scan environment reads in ${source}: $($parseErrors[0].Message)" }
+      $variables = $ast.FindAll({ param($node)
+        $node -is [System.Management.Automation.Language.VariableExpressionAst] -and
+          $node.VariablePath.UserPath -match '^env:EAPO_[A-Z0-9_]+$'
+      }, $true)
+      foreach ($variable in $variables) {
+        $parent = $variable.Parent
+        if ($parent -is [System.Management.Automation.Language.AssignmentStatementAst] -and
+            $parent.Left -eq $variable -and $parent.Operator -eq 'Equals') { continue }
+        $read[$variable.VariablePath.UserPath.Substring(4).ToUpperInvariant()] = $source
+      }
+      continue
+    }
+    # Preserve string/character literals while removing comments, so an example
+    # in a comment cannot keep a removed variable in the document indefinitely.
+    $text = [regex]::Replace($text, '(?s)"(?:\\.|[^"\\])*"|''(?:\\.|[^''\\])*''|(?<comment>//[^\r\n]*|/\*.*?\*/)',
+      [System.Text.RegularExpressions.MatchEvaluator]{ param($match)
+        if ($match.Groups['comment'].Success) { return ' ' }
+        return $match.Value
+      })
+    foreach ($pattern in $readPatterns) {
+      foreach ($match in [regex]::Matches($text, $pattern)) {
+        $read[$match.Groups['name'].Value] = $source
+      }
     }
   }
-  $undocumented = @($read.Keys | Where-Object { $documented -notmatch ('\b' + [regex]::Escape($_) + '\b') } | Sort-Object)
+  # The only workflow-only variable in this catalogue. Check its actual read
+  # at its owning location, not assignments or arbitrary mentions in YAML.
+  $codeqlPath = Join-Path $RepoRoot '.github' 'workflows' 'codeql.yml'
+  if ((Test-Path -LiteralPath $codeqlPath) -and
+      (Get-Content -LiteralPath $codeqlPath -Raw) -match '\$\{\{\s*env\.EAPO_CODEQL_MODEL_PACK\s*\}\}') {
+    $read['EAPO_CODEQL_MODEL_PACK'] = '.github/workflows/codeql.yml'
+  }
+  $undocumented = @($read.Keys | Where-Object { $documentedNames -notcontains $_ } | Sort-Object)
+  $unread = @($documentedNames | Where-Object { -not $read.ContainsKey($_) })
   foreach ($name in $undocumented) {
     Write-Host "::error file=docs/EnvironmentVariables.md::$($read[$name]) reads $name from the environment, but docs/EnvironmentVariables.md does not list it."
   }
-  if ($undocumented.Count -gt 0) {
-    throw "An EAPO_* environment variable the code reads is missing from docs/EnvironmentVariables.md."
+  foreach ($name in $unread) {
+    Write-Host "::error file=docs/EnvironmentVariables.md::docs/EnvironmentVariables.md lists $name, but no source or script reads it. Remove the stale entry or add its reader to this lint."
   }
-  Write-Host "All $($read.Count) EAPO_* environment variables the code reads are listed in docs/EnvironmentVariables.md."
+  if ($undocumented.Count -gt 0 -or $unread.Count -gt 0) {
+    throw "EAPO_* environment reads and docs/EnvironmentVariables.md are out of sync."
+  }
+  Write-Host "All $($read.Count) EAPO_* environment variables the code reads are listed in docs/EnvironmentVariables.md, and every listed variable has a reader."
 }
 
 # Audit #348 TD-66: a bulk insert once put a second licence header above
@@ -320,6 +372,94 @@ if (Test-Path -LiteralPath $skinsRoot) {
     throw "A source under Editor/skins includes SkinManager.h."
   }
   Write-Host "None of the $($skinSources.Count) sources under Editor/skins includes SkinManager.h, apart from SkinChromeOverlay.h."
+}
+
+# Audit #467 TD-68: the endpoint harness must use the same APO identities,
+# property keys and registry roots as the native installer. Parse literals only;
+# importing the module is unnecessary, and this gate requires no build or registry.
+$apoHarnessPath = Join-Path $RepoRoot '.github' 'scripts' 'ApoEndpointHarness.psm1'
+# Other source-sync fixtures intentionally contain no endpoint harness.
+if (Test-Path -LiteralPath $apoHarnessPath) {
+  function Read-ContractHeader {
+    param([string]$RelativePath)
+    $text = Get-Content -LiteralPath (Join-Path $RepoRoot $RelativePath) -Raw
+    return [regex]::Replace($text, '(?s)"(?:\\.|[^"\\])*"|''(?:\\.|[^''\\])*''|(?<comment>//[^\r\n]*|/\*.*?\*/)',
+      [System.Text.RegularExpressions.MatchEvaluator]{ param($match)
+        if ($match.Groups['comment'].Success) { return ' ' }
+        return $match.Value
+      })
+  }
+
+  function Get-ContractDeclaration {
+    param([string]$Text, [string]$Name, [string]$Pattern)
+    $matches = [regex]::Matches($Text, $Pattern.Replace('@NAME@', [regex]::Escape($Name)))
+    if ($matches.Count -ne 1) { throw "Cannot extract APO contract declaration $Name (expected one declaration)." }
+    return $matches[0].Groups['value'].Value
+  }
+
+  function Get-ContractGuid {
+    param([string]$Text, [string]$Name)
+    $body = Get-ContractDeclaration $Text $Name '(?s)\bGUID\s+@NAME@\s*=\s*\{(?<value>[^;]+)\};'
+    $numbers = @([regex]::Matches($body, '0x[0-9a-fA-F]+') | ForEach-Object {
+      [Convert]::ToUInt32($_.Value.Substring(2), 16)
+    })
+    if ($numbers.Count -ne 11 -or ($body -replace '0x[0-9a-fA-F]+|[\s,{}]', '') -ne '') {
+      throw "Cannot extract APO contract GUID $Name."
+    }
+    return '{' + ('{0:X8}-{1:X4}-{2:X4}-{3:X2}{4:X2}-{5:X2}{6:X2}{7:X2}{8:X2}{9:X2}{10:X2}' -f $numbers) + '}'
+  }
+
+  $registry = Read-ContractHeader 'services/registry/RegistryPaths.h'
+  $device = Read-ContractHeader 'devices/DeviceAPOInfoKeys.h'
+  $expected = [ordered]@{
+    EQ_PREMIX_GUID = Get-ContractGuid $registry 'EQUALIZERAPO_PRE_MIX_GUID'
+    EQ_POSTMIX_GUID = Get-ContractGuid $registry 'EQUALIZERAPO_POST_MIX_GUID'
+  }
+  $propertyNames = [ordered]@{
+    FX_LFX = 'lfxGuidValueName'
+    FX_GFX = 'gfxGuidValueName'
+    FX_SFX = 'sfxGuidValueName'
+    FX_MFX = 'mfxGuidValueName'
+    FX_EFX = 'efxGuidValueName'
+    DEVICE_FRIENDLY_VALUE = 'deviceValueName'
+  }
+  foreach ($entry in $propertyNames.GetEnumerator()) {
+    $expected[$entry.Key] = Get-ContractDeclaration $device $entry.Value '\b@NAME@\s*\[\s*\]\s*=\s*L"(?<value>[^"\r\n]+)"\s*;'
+  }
+  $macroPattern = '(?m)^\s*#define\s+@NAME@\s+L"(?<value>[^"\r\n]+)"\s*$'
+  $commonRoot = Get-ContractDeclaration $device 'commonKeyPath' $macroPattern
+  $appRoot = Get-ContractDeclaration $registry 'APP_REGPATH' $macroPattern
+  $childSuffix = Get-ContractDeclaration $device 'childApoPath' '(?m)^\s*#define\s+@NAME@\s+APP_REGPATH\s+L"(?<value>[^"\r\n]+)"\s*$'
+  $expected['MMDEVICES_ROOT'] = $commonRoot.Replace('\\', '\').Replace('HKEY_LOCAL_MACHINE\', 'HKLM\')
+  $expected['CHILD_APO_ROOT'] = ($appRoot + $childSuffix).Replace('\\', '\').Replace('HKEY_LOCAL_MACHINE\', 'HKLM\')
+
+  $tokens = $null
+  $parseErrors = $null
+  $ast = [System.Management.Automation.Language.Parser]::ParseFile($apoHarnessPath, [ref]$tokens, [ref]$parseErrors)
+  if ($parseErrors.Count -gt 0) { throw "Cannot parse APO endpoint harness: $($parseErrors[0].Message)" }
+  $functions = @($ast.FindAll({ param($node)
+    $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Get-ApoEndpointContract'
+  }, $true))
+  if ($functions.Count -ne 1) { throw 'Cannot find one Get-ApoEndpointContract function in the harness.' }
+  $tables = @($functions[0].Body.FindAll({ param($node)
+    $node -is [System.Management.Automation.Language.HashtableAst]
+  }, $true))
+  if ($tables.Count -ne 1) { throw 'Cannot find one literal APO endpoint contract table in the harness.' }
+  $actual = $tables[0].SafeGetValue()
+  $contractErrors = @()
+  foreach ($entry in $expected.GetEnumerator()) {
+    if (-not $actual.ContainsKey($entry.Key) -or $actual[$entry.Key] -ne $entry.Value) {
+      $contractErrors += "APO endpoint contract $($entry.Key) differs: harness '$($actual[$entry.Key])', C++ '$($entry.Value)'."
+    }
+  }
+  foreach ($key in $actual.Keys) {
+    if (-not $expected.Contains($key)) { $contractErrors += "APO endpoint contract $key has no C++ declaration mapping in this lint." }
+  }
+  foreach ($message in $contractErrors) {
+    Write-Host "::error file=.github/scripts/ApoEndpointHarness.psm1::$message"
+  }
+  if ($contractErrors.Count -gt 0) { throw 'APO endpoint harness and C++ headers are out of sync.' }
+  Write-Host "All $($expected.Count) APO endpoint contract values match the C++ headers."
 }
 
 # Audit #422 T1/TD-47: EqualizerAPO.sln is kept for Visual Studio, but it

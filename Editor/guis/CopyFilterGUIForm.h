@@ -33,7 +33,7 @@ public:
 
 	void load(const std::vector<Assignment>& assignments);
 	void setChannelNames(const std::vector<std::wstring>& channelNames);
-	std::vector<Assignment> buildAssignments(QWidget* pressedButton = nullptr);
+	std::vector<Assignment> buildAssignments(const QWidget* pressedButton = nullptr);
 
 signals:
 	void updateModel();

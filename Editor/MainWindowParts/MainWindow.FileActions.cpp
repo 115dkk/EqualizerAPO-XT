@@ -77,27 +77,23 @@ void MainWindow::on_actionOpen_triggered()
 void MainWindow::on_actionSave_triggered()
 {
 	FilterTable* filterTable = currentFilterTable();
-	if (filterTable == nullptr)
+	OpenDocument* document = documentForTable(filterTable);
+	if (document == nullptr)
 		return;
 
 	commitPendingEdits();
 
-	if (filterTable->getConfigPath().length() == 0)
-	{
+	if (document->state.path().isEmpty())
 		ui->actionSaveAs->trigger();
-	}
 	else
-	{
-		if (save(filterTable, filterTable->getConfigPath()))
-			setTabDirty(ui->tabWidget->currentIndex(), false);
-		updateDirtyStatus();
-	}
+		saveDocument(*document, DocumentSaveReason::CurrentPath);
 }
 
 void MainWindow::on_actionSaveAs_triggered()
 {
 	FilterTable* filterTable = currentFilterTable();
-	if (filterTable == nullptr)
+	OpenDocument* document = documentForTable(filterTable);
+	if (document == nullptr)
 		return;
 
 	commitPendingEdits();
@@ -125,22 +121,8 @@ void MainWindow::on_actionSaveAs_triggered()
 
 	if (dialog.exec() == QDialog::Accepted)
 	{
-		QString savePath = dialog.selectedFiles().at(0);
-		// A failed write keeps the tab on its old path and unsaved.
-		if (!save(filterTable, savePath))
-		{
-			updateDirtyStatus();
-			return;
-		}
-		filterTable->setConfigPath(QDir::toNativeSeparators(savePath));
-
-		QFileInfo fileInfo(savePath);
-		if (OpenDocument* document = documentForTab(ui->tabWidget->currentIndex()))
-		{
-			document->state.savedAs(fileInfo.fileName(), QDir::toNativeSeparators(fileInfo.absoluteFilePath()));
-			showDocumentTitle(*document);
-		}
-		updateDirtyStatus();
+		const QString savePath = dialog.selectedFiles().at(0);
+		saveDocument(*document, DocumentSaveReason::NewPath, savePath);
 	}
 }
 

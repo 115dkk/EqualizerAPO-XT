@@ -14,11 +14,20 @@
 
 #include <QString>
 
+#include "Editor/widgets/FilterCardKind.h"
+
 // Identifies a command row for per-command-type chrome decisions.
 struct CommandRowInfo
 {
 	// FilterCardModel descriptor type ("biquad", "include", "vst", "copy", ...).
 	QString type;
+	// The kind type names, for branching. Derived from type on every call
+	// rather than stored, because nine places write type (the card editors set
+	// it by hand) and a second stored field could disagree with it.
+	FilterCardKind kind() const
+	{
+		return filterCardKindFromType(type);
+	}
 	// Lower-cased command token ("filter 1", "include", "vstplugin", ...);
 	// matches the "filterKind" dynamic property the card row already sets.
 	QString command;

@@ -68,5 +68,4 @@ private:
 	QToolButton* resetButton = nullptr;
 	QString configPath;
 	bool syncingReadout = false;
-	static QRegularExpression numberRegEx;
 };

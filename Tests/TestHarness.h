@@ -31,11 +31,12 @@
 	the backstop: a harness that recorded failures and was never reported kills
 	the process with code 1 rather than letting the run finish green.
 
-	The require*() family always aborts on failure regardless of the policy.
-	It is for gating checks whose failure would make the following code unsafe
-	under Collect: size checks before indexing, null checks before
-	dereferencing, parse-success checks before field access. fail() likewise
-	always aborts.
+	The require*() family ends its current test case on failure regardless of
+	the policy. It is for gating checks whose failure would make the following
+	code unsafe under Collect: size checks before indexing, null checks before
+	dereferencing, parse-success checks before field access. requireOrDie() is
+	reserved for places where an exception cannot leave safely, and fail()
+	likewise always terminates the process.
 */
 
 #pragma once
@@ -53,13 +54,20 @@
 namespace test
 {
 
-// How a failed expect*() is handled; see the file comment. require*() and
-// fail() abort under either policy.
+// How a failed expect*() is handled; see the file comment. fail() and
+// requireOrDie() terminate under either policy; require*() ends its case.
 enum class FailurePolicy
 {
 	Abort,
 	Collect
 };
+
+namespace detail
+{
+struct RequiredAssertionFailure
+{
+};
+}
 
 // Absolute-tolerance comparison behind Harness::expectNear, for the call sites
 // that fold several comparisons into one check (a && b, or a loop that
@@ -78,7 +86,8 @@ class Harness
 {
 public:
 	explicit Harness(std::string suiteName, FailurePolicy policy = FailurePolicy::Collect)
-		: name_(std::move(suiteName)), policy_(policy), passed_(0), failed_(0), reported_(false)
+		: name_(std::move(suiteName)), policy_(policy), passed_(0), failed_(0), skipped_(0),
+		caseSkipped_(false), reported_(false)
 	{
 	}
 
@@ -178,19 +187,28 @@ public:
 		++passed_;
 	}
 
-	// Gating assertion: aborts on failure regardless of the policy. Use it
-	// when the failure would make the following code unsafe (a size check
-	// before indexing, a null check before dereferencing). On success it
-	// counts as a passed check like the expect family.
+	// Gating assertion: records a failure and ends only the current test case.
+	// Use it when continuing that case would be unsafe (a size check before
+	// indexing, a null check before dereferencing). On success it counts as a
+	// passed check like the expect family.
 	void require(bool condition, const std::string& message)
+	{
+		if (!condition)
+			failCurrentCase(message);
+		++passed_;
+	}
+
+	// A gating assertion for a destructor, noexcept function, worker thread or
+	// C callback where the case-ending exception cannot propagate safely.
+	void requireOrDie(bool condition, const std::string& message)
 	{
 		if (!condition)
 			fail(message);
 		++passed_;
 	}
 
-	// Gating counterpart of expectEqual: same diagnostic format, but aborts
-	// on failure regardless of the policy.
+	// Gating counterpart of expectEqual: same diagnostic format, and ends only
+	// the current test case on failure.
 	template<typename A, typename B>
 	void requireEqual(const A& actual, const B& expected, const std::string& message)
 	{
@@ -198,9 +216,28 @@ public:
 		{
 			std::ostringstream oss;
 			oss << message << ": expected '" << expected << "', got '" << actual << "'";
-			fail(oss.str());
+			failCurrentCase(oss.str());
 		}
 		++passed_;
+	}
+
+	// runAll calls this before each registered case. skip() marks the current
+	// case once, so a case that omits more than one permission-dependent check
+	// still contributes one skipped case to the suite summary.
+	void beginCase()
+	{
+		caseSkipped_ = false;
+	}
+
+	void skip(const std::string& reason)
+	{
+		if (!caseSkipped_)
+		{
+			++skipped_;
+			caseSkipped_ = true;
+		}
+		std::printf("%s skipped: %s\n", name_.c_str(), reason.c_str());
+		std::fflush(stdout);
 	}
 
 	unsigned passed() const
@@ -221,10 +258,20 @@ public:
 			std::fprintf(stderr, "%s FAILED (%u of %u checks failed)\n", name_.c_str(), failed_, passed_ + failed_);
 			std::exit(1);
 		}
-		std::printf("%s passed (%u checks)\n", name_.c_str(), passed_);
+		if (skipped_ == 0)
+			std::printf("%s passed (%u checks)\n", name_.c_str(), passed_);
+		else
+			std::printf("%s passed (%u checks, %u skipped)\n", name_.c_str(), passed_, skipped_);
 	}
 
 private:
+	[[noreturn]] void failCurrentCase(const std::string& message)
+	{
+		std::fprintf(stderr, "%s failed: %s\n", name_.c_str(), message.c_str());
+		++failed_;
+		throw detail::RequiredAssertionFailure();
+	}
+
 	// Routes an expect*() failure according to the policy: Abort exits via
 	// fail(), Collect prints the identical stderr line and lets the suite
 	// continue so later findings still surface.
@@ -240,6 +287,8 @@ private:
 	FailurePolicy policy_;
 	unsigned passed_;
 	unsigned failed_;
+	unsigned skipped_;
+	bool caseSkipped_;
 	bool reported_;
 };
 
@@ -276,12 +325,81 @@ inline TestSuite& registeredSuite(const char* name)
 	return registeredSuites().back();
 }
 
+inline std::vector<std::string>& executedSuiteNames()
+{
+	static std::vector<std::string> names;
+	return names;
+}
+
+inline std::string& registeredSuiteBinaryName()
+{
+	static std::string name;
+	return name;
+}
+
+inline bool suiteNameWasExecuted(const std::string& name)
+{
+	for (const std::string& executed : executedSuiteNames())
+	{
+		if (executed == name)
+			return true;
+	}
+	return false;
+}
+
+// A hand-written runAll order must not silently omit a newly registered suite.
+// Check at process exit so executables that make more than one runAll call are
+// covered as a whole (audit #467 TD-65).
+inline void verifyEveryRegisteredSuiteRan()
+{
+	bool missing = false;
+	for (const TestSuite& suite : registeredSuites())
+		missing = missing || !suiteNameWasExecuted(suite.name);
+	if (!missing)
+		return;
+
+	const std::string& binaryName = registeredSuiteBinaryName();
+	std::fprintf(stderr, "%s did not run these registered test suites:",
+		binaryName.empty() ? "The test executable" : binaryName.c_str());
+	for (const TestSuite& suite : registeredSuites())
+	{
+		if (!suiteNameWasExecuted(suite.name))
+			std::fprintf(stderr, " %s", suite.name.c_str());
+	}
+	std::fputc('\n', stderr);
+	std::fflush(nullptr);
+	std::_Exit(1);
+}
+
+inline void registerSuiteCoverageCheck()
+{
+	// Construct these before registering the callback so their destructors run
+	// after the callback and its reads remain valid.
+	(void)executedSuiteNames();
+	(void)registeredSuiteBinaryName();
+	static const bool registered = std::atexit(verifyEveryRegisteredSuiteRan) == 0;
+	if (!registered)
+	{
+		std::fputs("Could not register the test-suite coverage check.\n", stderr);
+		std::fflush(nullptr);
+		std::_Exit(1);
+	}
+}
+
+inline void markSuiteExecuted(const char* binaryName, const std::string& suiteName)
+{
+	registeredSuiteBinaryName() = binaryName;
+	if (!suiteNameWasExecuted(suiteName))
+		executedSuiteNames().push_back(suiteName);
+}
+
 class TestRegistrar
 {
 public:
 	TestRegistrar(const char* suite, const char* name, TestFunction function)
 	{
 		registeredSuite(suite).cases.push_back({name, function});
+		registerSuiteCoverageCheck();
 	}
 };
 
@@ -291,6 +409,7 @@ public:
 	CleanupRegistrar(const char* suite, CleanupFunction function)
 	{
 		registeredSuite(suite).cleanups.push_back(function);
+		registerSuiteCoverageCheck();
 	}
 };
 
@@ -354,9 +473,19 @@ public:
 		activeHarness().expectNear(actual, expected, tolerance, message);
 	}
 
+	static void skip(const std::string& reason)
+	{
+		activeHarness().skip(reason);
+	}
+
 	static void require(bool condition, const std::string& message)
 	{
 		activeHarness().require(condition, message);
+	}
+
+	static void requireOrDie(bool condition, const std::string& message)
+	{
+		activeHarness().requireOrDie(condition, message);
 	}
 
 	template<typename A, typename B>
@@ -406,10 +535,23 @@ inline int runAll(const char* binaryName,
 	std::vector<std::unique_ptr<Harness>> harnesses;
 	for (TestSuite* suite : orderedSuites)
 	{
+		markSuiteExecuted(binaryName, suite->name);
 		auto harness = std::make_unique<Harness>(suite->name);
 		activeHarnessStorage() = harness.get();
 		for (const TestCase& testCase : suite->cases)
-			testCase.function(*harness);
+		{
+			harness->beginCase();
+			std::printf("%s::%s\n", suite->name.c_str(), testCase.name);
+			std::fflush(stdout);
+			try
+			{
+				testCase.function(*harness);
+			}
+			catch (const detail::RequiredAssertionFailure&)
+			{
+				// failCurrentCase already recorded the failure (audit #467 TD-66).
+			}
+		}
 		for (CleanupFunction cleanup : suite->cleanups)
 			cleanup();
 		activeHarnessStorage() = nullptr;

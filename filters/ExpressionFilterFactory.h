@@ -28,6 +28,7 @@ class EngineParser;
 class ExpressionFilterFactory : public IFilterFactory
 {
 public:
+	ConfigGateBoundary gateBoundary() const override {return ConfigGateBoundary::If;}
 	LineOutcome createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
 
 protected:

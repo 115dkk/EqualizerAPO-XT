@@ -8,6 +8,7 @@
 
 #include <functional>
 #include <memory>
+#include <string>
 
 #include <QtGui/qwindowdefs.h>
 
@@ -16,9 +17,9 @@
 namespace PluginLoadQueue
 {
 // Call these on the UI thread while a QCoreApplication exists. A request made
-// after shutdown completes as AbstractLibrary::LOADING_FAILED.
+// after shutdown completes as AbstractLibrary::InitializeResult::LoadingFailed.
 void enqueue(const std::shared_ptr<VSTPluginLibrary>& library,
-	std::function<void(int result)> onDoneOnUiThread);
+	std::function<void(AbstractLibrary::InitializeResult result)> onDoneOnUiThread);
 bool isPending(const VSTPluginLibrary* library);
 int pendingCount();
 // Handles events until every pending completion has run, or until timeoutMs
@@ -49,6 +50,9 @@ void releaseLoads();
 void startUiAutomation(WId shownWindow);
 // Drops queued loads, waits for the one in progress and ends the loader
 // thread. main calls it once the last QApplication is gone, so no plug-in
-// code or log write runs during static destruction.
-void shutdown();
+// code or log write runs during static destruction. False requires hard exit.
+// A normal slow first load takes seconds; ten seconds bounds a broken DllMain.
+inline constexpr unsigned long kShutdownTimeoutMs = 10000;
+bool shutdown();
+std::wstring shutdownWorkName();
 }

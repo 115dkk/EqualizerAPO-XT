@@ -4,21 +4,25 @@ Audit #250 F063/F048: three of these gates existed only in source. This is
 the one list; add new `EAPO_*` variables here in the same change that
 introduces them.
 
-These are development and CI switches. None of them are required (or
-useful) for end users; the released binaries behave identically with all of
-them unset.
+These are development and CI switches, test fixtures and field troubleshooting
+switches. None is required for normal use; unset, the released binaries use
+their normal behavior.
+
+`.github/scripts/Test-SourceSync.ps1` checks this list in both directions. It
+recognises literal environment reads in C++ (including `%NAME%` config-path
+fixtures), PowerShell environment-variable reads in root scripts and under
+`.github/scripts`, and the CodeQL workflow read listed below. It does not trace
+variable names assembled at runtime. Compile-time defines are not environment
+variables and do not belong in this list.
 
 ## Editor / skin gallery
 
-- `EAPO_SKIN_GALLERY` — set by the `--skin-gallery` run itself so reference
-  cards skip the audio-service ACL probe against freshly written scratch
-  files. Not meant to be set by hand.
 - `EAPO_GALLERY_LEGACY` — renders the heritage (legacy rows) gallery dumps
   instead of the per-skin card gallery.
-- `EAPO_SWITCH_LIMIT_MS` / `EAPO_SWITCH_WARN_MS` — override the
-  skin-switch stopwatch gate in the gallery's `--skin-switch-storm`
-  diagnostics (defaults live in `Editor/gallery/GalleryGates.cpp`; CI passes its own
-  values in `build.yml`). Raise them when judging on a loaded machine.
+- `EAPO_SWITCH_LIMIT_MS` / `EAPO_SWITCH_WARN_MS` - override the
+  skin-switch stopwatch gate in `--skin-switch-test` (defaults live in
+  `Editor/gallery/GalleryGates.cpp`; `.github/scripts/Invoke-EditorOffscreenTest.ps1`
+  passes CI's values). Raise them when judging on a loaded machine.
 - `EAPO_MOVE_LIMIT_MS` / `EAPO_MOVE_WARN_MS` — the same budget for the
   `--card-move-test` gate (a card move must not rebuild the whole list);
   `Invoke-EditorOffscreenTest.ps1` passes CI's values.
@@ -78,9 +82,17 @@ Both are kill switches for the field and the control arms of the
   `testRealBrirCrossfeed`. No CI workflow sets it, so that test is a local,
   data-in-hand check; without the variable the test states that it was
   skipped and why.
-- `EAPO_XT_TEST_IR_DIR` / `EAPO_XT_TEST_IMPORT_IR` — impulse-response
-  fixture locations for the convolution regression suites (see
-  `docs/ConvolutionRegressionTests.md`).
+- `EAPO_XT_TEST_IR_DIR` - set by `Tests/HybridConvTests/HybridConvTests.cpp`
+  and `Tests/EditorLogicTests/ConfigImportTests.cpp` to check environment
+  expansion in convolution paths. Not meant to be set by hand.
+- `EAPO_XT_TEST_IMPORT_IR` - set by
+  `Tests/EditorLogicTests/ConfigImportTests.cpp` to check that the import
+  scanner collects an IR referenced through an environment variable.
+  Not meant to be set by hand.
+- `EAPO_XT_JUDGED_IR` - set and cleared by `assertJudgedIrCacheReuse` in
+  `Tests/HybridConvTests/HybridConvTests.cpp`. It names the temporary IR that
+  the test opens twice through a quoted environment-variable path to check
+  decoded-cache reuse. Not meant to be set by hand.
 - `EAPO_TEST_VST_METADATA` — makes `TestVst2Plugin` report the synthetic
   metadata variant named by the value, so `HybridConvTests` can exercise
   host-side metadata handling.
@@ -110,16 +122,11 @@ Both are kill switches for the field and the control arms of the
 - `EAPO_XT_TEST_IMPORT_DIR` / `EAPO_XT_TEST_INCLUDE_DIR` — set by
   `EditorLogicTests` (`ConfigImportTests.cpp`) and `EngineOrchestrationTests`
   (`ConfigLoadTests.cpp`) themselves, so a test config can write
-  `Include: %VAR%ile.txt` and check that the Editor import and the
+  `Include: %VAR%\file.txt` and check that the Editor import and the
   engine expand variables in Include paths. Not meant to be set by hand.
 
 ## Build / release
 
-- `EAPO_UPDATE_CHANNEL` — compile-time define (not an environment variable
-  at runtime): the Velopack channel name baked into each SIMD variant's
-  binaries by the build.
-- `EAPO_REPO_URL` / `EAPO_REPO_SLUG` — compile-time defines from
-  `version.h` naming the canonical GitHub repository.
 - `EAPO_CODEQL_MODEL_PACK` — set by `codeql.yml` to the path of
   `.github/codeql/eapo-models`, so the analyze step can pass the project's
   CodeQL model pack. Used only inside that workflow.

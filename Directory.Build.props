@@ -10,11 +10,9 @@
   i.e. the repo root), which resolves to the same <root>\deps\... that each
   project used via its own deps / ..\deps / ..\..\deps prefix.
 
-  Library (*_LIB) paths are intentionally NOT hoisted here: they diverge per
-  project - the APO/engine/Voicemeeter projects pick Debug vs Release libs per
-  configuration, while the console and test projects pin Release even in Debug -
-  so collapsing them into one block would change effective Debug link paths.
-  They stay in each .vcxproj.
+  Library (*_LIB) paths are not set here: only the projects that link the
+  engine need them, and those import EngineConsumer.props, which spells the
+  defaults once (audit #467 TD-77).
 
   NOMINMAX is shared here so every MSBuild translation unit sees it before any
   direct or transitive inclusion of <windows.h>. The qmake projects mirror this

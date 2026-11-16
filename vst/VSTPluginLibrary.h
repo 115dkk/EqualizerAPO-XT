@@ -42,7 +42,8 @@ public:
 	struct LoadResult
 	{
 		std::shared_ptr<VSTPluginLibrary> library;
-		int status = LOADING_FAILED;
+		InitializeResult status = InitializeResult::LoadingFailed;
+		bool succeeded() const { return AbstractLibrary::succeeded(status); }
 	};
 	// Gets the shared library, initializes it and retains a successful load
 	// according to PluginResidency. A supplied judgment stays pinned by the
@@ -67,7 +68,7 @@ public:
 
 protected:
 	bool loadFunctions() override;
-	int customInitialize() override;
+	InitializeResult customInitialize() override;
 	void customUninitialize() noexcept override;
 
 private:

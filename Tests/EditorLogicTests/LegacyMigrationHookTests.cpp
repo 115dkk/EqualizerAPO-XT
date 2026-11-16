@@ -303,6 +303,9 @@ TEST_CASE(EditorLogicTests, testLegacyMigrationHookUsesVerifiedCallerOrFallsBack
 	prepared.outcome = preparedOutcome;
 	expectTrue(preparedOutcome == L"volatile", QStringLiteral("prepare rescues volatile source unelevated"));
 	expectTrue(QFile::exists(root + QStringLiteral("/rescued.txt")), QStringLiteral("volatile file copied"));
+	expectFalse(QFile::exists(volatileRoot + QStringLiteral("/rescued.txt")),
+		QStringLiteral("committed volatile original removed"));
+	expectFalse(QDir(volatileRoot).exists(), QStringLiteral("emptied volatile config root removed"));
 	expectTrue(registry.readValue(APP_REGPATH, L"ConfigPath") == QDir::toNativeSeparators(volatileRoot).toStdWString(),
 		QStringLiteral("copy does not write HKLM"));
 	const auto parsedDetails = Migration::parseHandoff({L"--caller-localappdata", nativeCaller,
@@ -312,6 +315,14 @@ TEST_CASE(EditorLogicTests, testLegacyMigrationHookUsesVerifiedCallerOrFallsBack
 	test::FakeRegistry fallbackRegistry;
 	fallbackRegistry.seedKey(APP_REGPATH);
 	fallbackRegistry.seedString(APP_REGPATH, L"ConfigPath", QDir::toNativeSeparators(volatileRoot).toStdWString());
+	// The prepared migration moved its source. Recreate the same source path so
+	// the independent elevated fallback exercises the same migration action.
+	requireTrue(QDir().mkpath(volatileRoot), QStringLiteral("fallback volatile source recreated"));
+	{
+		QFile file(volatileRoot + QStringLiteral("/rescued.txt"));
+		requireTrue(file.open(QIODevice::WriteOnly), QStringLiteral("fallback volatile file recreated"));
+		file.write("Preamp: -4 dB\n");
+	}
 	{
 		const QString fallbackRoot = temp.path() + QStringLiteral("/fallback");
 		ScopedLocalAppData fallbackEnvironment(fallbackRoot);
@@ -406,6 +417,34 @@ TEST_CASE(EditorLogicTests, testConfigHandleGrantRejectsJunctionsAndPreservesChi
 	}
 	expectTrue(daclBytes(target) == outsideBefore, QStringLiteral("junction target DACL unchanged"));
 	std::puts("Config owned grant: junction target unchanged");
+}
+
+TEST_CASE(EditorLogicTests, testOwnedFileGrantGivesTheAudioEngineReadAccess)
+{
+	using AudioEngineAccess::Grant;
+	QTemporaryDir temp;
+	requireTrue(temp.isValid(), QStringLiteral("owned-file grant fixture created"));
+	const QString path = temp.path() + QStringLiteral("/room.wav");
+	{
+		QFile file(path);
+		requireTrue(file.open(QIODevice::WriteOnly), QStringLiteral("owned file created"));
+		file.write("acl-fixture");
+	}
+	const std::wstring native = QDir::toNativeSeparators(path).toStdWString();
+	const Grant result = AudioEngineAccess::grantOwnedFileReadAccess(native);
+	if (AudioEngineAccess::isElevated())
+	{
+		expectTrue(result == Grant::Failed, QStringLiteral("owned-file grant refuses elevated token"));
+		std::puts("SKIP: owned-file grant assertions (process elevated)");
+		return;
+	}
+	expectTrue(result == Grant::Applied, QStringLiteral("unelevated owned-file grant applied"));
+	expectTrue((AudioEngineAccess::accessForAudioEngine(native) & FILE_GENERIC_READ) == FILE_GENERIC_READ,
+		QStringLiteral("LOCAL SERVICE receives file read access"));
+	QFile after(path);
+	requireTrue(after.open(QIODevice::ReadOnly), QStringLiteral("granted file remains readable"));
+	expectEqual(QString::fromLatin1(after.readAll()), QStringLiteral("acl-fixture"),
+		QStringLiteral("ACL repair leaves file bytes unchanged"));
 }
 
 // Audit #275 C1: the migration hook's machine-changing registry writes used to
@@ -535,10 +574,69 @@ TEST_CASE(EditorLogicTests, testLegacyMigrationHookRescuesVolatileTreeAndLeavesB
 		QStringLiteral("the volatile tree's ConfigPath is repointed at the stable root"));
 	expectTrue(QFile::exists(stableRoot + QStringLiteral("/config.txt")),
 		QStringLiteral("the volatile tree's files are rescued into the stable root"));
+	expectFalse(QFile::exists(volatileConfig + QStringLiteral("/config.txt")),
+		QStringLiteral("the committed volatile original is removed"));
+	expectFalse(QDir(volatileConfig).exists(),
+		QStringLiteral("the emptied volatile config root is removed"));
 	expectTrue(registry.valueExists(APP_REGPATH, L"MigratedFrom"),
 		QStringLiteral("a rescue leaves the MigratedFrom breadcrumb"));
 	expectTrue(registry.valueExists(APP_REGPATH, L"MigrationStamp"),
 		QStringLiteral("a rescue leaves the MigrationStamp breadcrumb"));
 	expectTrue(registry.valueExists(APP_REGPATH, L"MigratedFiles"),
 		QStringLiteral("a rescue records how many files moved"));
+}
+
+// Audit #467 TD-01: the install-hook migration is a move, but it removes an
+// original only after its selected copy is committed. An absolute reference
+// outside the legacy tree is not selected and remains untouched.
+TEST_CASE(EditorLogicTests, testLegacyMigrationMovesSelectedFilesAndLeavesOutsideReferencesAlone)
+{
+	QTemporaryDir profileRoot;
+	requireTrue(profileRoot.isValid(), QStringLiteral("temp LOCALAPPDATA root created"));
+	ScopedLocalAppData scopedEnv(profileRoot.path());
+
+	QTemporaryDir legacyBase;
+	requireTrue(legacyBase.isValid(), QStringLiteral("legacy fixture root created"));
+	const QString legacyDir = legacyBase.path() + QStringLiteral("/EqualizerAPO/config");
+	const QString irDir = legacyDir + QStringLiteral("/IR");
+	requireTrue(QDir().mkpath(irDir), QStringLiteral("legacy config tree created"));
+	const QString external = legacyBase.path() + QStringLiteral("/outside.wav");
+	{
+		QFile file(external);
+		requireTrue(file.open(QIODevice::WriteOnly), QStringLiteral("external IR created"));
+		file.write("outside");
+	}
+	{
+		QFile file(irDir + QStringLiteral("/room.wav"));
+		requireTrue(file.open(QIODevice::WriteOnly), QStringLiteral("legacy IR created"));
+		file.write("inside");
+	}
+	{
+		QFile file(legacyDir + QStringLiteral("/config.txt"));
+		requireTrue(file.open(QIODevice::WriteOnly | QIODevice::Text), QStringLiteral("legacy config created"));
+		file.write(QStringLiteral("Convolution: IR/room.wav\nConvolution: \"%1\"\n")
+			.arg(QDir::toNativeSeparators(external)).toUtf8());
+	}
+
+	QTemporaryDir exeDir;
+	requireTrue(exeDir.isValid(), QStringLiteral("temp exe dir created"));
+	test::FakeRegistry registry;
+	registry.seedKey(APP_REGPATH);
+	registry.seedString(APP_REGPATH, L"ConfigPath",
+		QDir::toNativeSeparators(legacyDir).toStdWString());
+
+	EqAPO::Import::LegacyMigration::runElevatedHookStep(
+		QDir::toNativeSeparators(exeDir.path()).toStdWString(), registry);
+
+	const QString stable = profileRoot.path() + QStringLiteral("/EqualizerAPO-XT/config");
+	expectTrue(QFile::exists(stable + QStringLiteral("/config.txt")),
+		QStringLiteral("legacy config is copied to the stable root"));
+	expectTrue(QFile::exists(stable + QStringLiteral("/IR/room.wav")),
+		QStringLiteral("referenced legacy IR is copied to the stable root"));
+	expectFalse(QFile::exists(legacyDir + QStringLiteral("/config.txt")),
+		QStringLiteral("committed legacy config original is removed"));
+	expectFalse(QFile::exists(irDir + QStringLiteral("/room.wav")),
+		QStringLiteral("committed legacy IR original is removed"));
+	expectFalse(QDir(irDir).exists(), QStringLiteral("emptied legacy IR folder is removed"));
+	expectTrue(QFile::exists(external), QStringLiteral("outside absolute reference remains untouched"));
 }

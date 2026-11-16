@@ -480,7 +480,7 @@ int runSwitchTest(const QStringList& arguments)
 		rounds * int(Skins::all().size()) * 2, int(lines.size()), static_cast<long long>(worstMs),
 		qPrintable(worstName), warningMs, limitMs, failures);
 
-	GalleryFixture::finish(failures == 0 ? 0 : 1);
+	return GalleryFixture::finish(failures == 0 ? 0 : 1);
 }
 
 int runCardMoveTest(const QStringList& arguments)
@@ -704,7 +704,7 @@ int runCardMoveTest(const QStringList& arguments)
 		}
 	}
 
-	GalleryFixture::finish(failures == 0 ? 0 : 1);
+	return GalleryFixture::finish(failures == 0 ? 0 : 1);
 }
 
 int runCardSelectionTest(const QStringList& arguments)
@@ -1197,6 +1197,6 @@ int runCardSelectionTest(const QStringList& arguments)
 	});
 
 	qWarning("CardSelectionTest: %d scenes, failures %d", scenes, failures);
-	GalleryFixture::finish(failures == 0 ? 0 : 1);
+	return GalleryFixture::finish(failures == 0 ? 0 : 1);
 }
 }

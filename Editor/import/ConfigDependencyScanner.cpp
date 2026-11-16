@@ -85,7 +85,7 @@ QString relativeToRoot(const QString& targetAbs, const QString& rootDir)
 {
     QDir root(rootDir);
     QString rel = root.relativeFilePath(targetAbs);
-    if (rel.isEmpty() || rel.startsWith(QStringLiteral("..")))
+    if (rel.isEmpty() || rel.startsWith(QStringLiteral("..")) || QDir::isAbsolutePath(rel))
         return QString();
     return QDir::fromNativeSeparators(rel);
 }

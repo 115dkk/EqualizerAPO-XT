@@ -35,9 +35,4 @@ inline std::wstring setupAssetName(const std::wstring& channel)
 {
 	return velopackPackId(channel) + L"-" + channel + L"-Setup.exe";
 }
-
-inline std::wstring universalSetupAssetName()
-{
-	return std::wstring(productPrefix) + L"-Setup.exe";
-}
 }

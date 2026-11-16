@@ -58,7 +58,9 @@ wstring previousLocalAppData;
 
 TEST_CASE(HybridConvTests, assertFftwWisdomIsExported)
 {
-	wisdomTestDirectory = scratchDirectory().subdirectory(L"wisdom");
+	// Audit #467 TD-61: the path must survive outside the active ANSI code page.
+	// The universal escape keeps this C++ source ASCII-only.
+	wisdomTestDirectory = scratchDirectory().subdirectory(L"wisdom-☃");
 	const DWORD directoryAttributes = GetFileAttributesW(wisdomTestDirectory.c_str());
 	harness.expectTrue(directoryAttributes != INVALID_FILE_ATTRIBUTES
 			&& (directoryAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0,
@@ -164,6 +166,42 @@ TEST_CASE(HybridConvTests, assertJudgedIrCacheReuse)
 	}
 	_wputenv_s(L"EAPO_XT_JUDGED_IR", L"");
 	DeleteFileW(filename.c_str());
+}
+
+TEST_CASE(HybridConvTests, assertIrReadDiagnosticsNameTheirFiles)
+{
+	const wstring unreadable = scratchDirectory().trackFile(L"not-an-ir.wav");
+	HANDLE raw = CreateFileW(unreadable.c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr,
+		CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+	harness.require(raw != INVALID_HANDLE_VALUE, "invalid IR fixture opens");
+	const char invalid[] = "not an impulse response";
+	DWORD written = 0;
+	const bool wrote = WriteFile(raw, invalid, sizeof(invalid), &written, nullptr) != FALSE
+		&& written == sizeof(invalid);
+	CloseHandle(raw);
+	harness.require(wrote, "invalid IR fixture is written");
+
+	const wstring mismatch = scratchDirectory().trackFile(L"wrong-rate-ir.wav");
+	harness.require(test::writeWavFile(mismatch, 44100, std::vector<double>{1.0}),
+		"sample-rate mismatch IR fixture is written");
+	const auto unreadableTarget = ConfigFileReference::target(L"", unreadable);
+	const auto mismatchTarget = ConfigFileReference::target(L"", mismatch);
+	harness.require(unreadableTarget && mismatchTarget, "IR diagnostic fixtures are judged");
+	FILE* logFile = nullptr;
+	harness.require(tmpfile_s(&logFile) == 0 && logFile != nullptr, "IR diagnostic log opens");
+	Logging::useStream(logFile, false, true, false);
+	loadIrCached(unreadableTarget.path, sampleRate);
+	loadIrCached(mismatchTarget.path, sampleRate);
+	std::fflush(logFile);
+	std::rewind(logFile);
+	wstring log;
+	wchar_t text[1024] = {};
+	while (std::fgetws(text, 1024, logFile) != nullptr)
+		log.append(text);
+	Logging::useStream(stdout, true, true, false);
+	std::fclose(logFile);
+	harness.expectTrue(log.find(unreadable) != wstring::npos, "IR read error names its file");
+	harness.expectTrue(log.find(mismatch) != wstring::npos, "IR sample-rate mismatch names its file");
 }
 
 vector<double> renderConvolutionFilter(const wstring& filename, int firstFrameLength)

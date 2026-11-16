@@ -40,6 +40,8 @@ LineOutcome GraphicEQFilterFactory::createFilter(const wstring& configPath, wstr
 		GraphicEQCommand cmd;
 		cmd.parse(parameters);
 
+		if (!cmd.valid)
+			return LineOutcome::malformed(L"every GraphicEQ gain must produce a finite linear value; no equalizer was applied");
 		if (cmd.nodes.empty())
 			return LineOutcome::malformed(L"expected frequency/gain pairs, as in \"25 -6; 50 -3; 100 0\"");
 
@@ -48,5 +50,5 @@ LineOutcome GraphicEQFilterFactory::createFilter(const wstring& configPath, wstr
 		return LineOutcome::produced(singleFilter(makeFilter<GraphicEQFilter>(cmd.nodes, 16384)));
 	}
 
-	return {};
+	return LineOutcome::notMine();
 }

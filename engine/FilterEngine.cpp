@@ -161,7 +161,7 @@ void FilterEngine::initialize(const EngineSetup& setup)
 		{
 			// Through the port (audit #250 A6/A3): a test or embedded host
 			// that supplies a fake registry no longer touches live HKLM here.
-			configPath = registryAccess().readValue(APP_REGPATH, L"ConfigPath");
+			configPath = registryAccess().readValue(APP_REGPATH, configPathValueName);
 		}
 		catch (const RegistryError& e)
 		{

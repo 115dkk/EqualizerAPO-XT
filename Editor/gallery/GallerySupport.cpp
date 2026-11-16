@@ -35,6 +35,7 @@
 #include "Editor/skins/Skins.h"
 #include "Editor/widgets/FilterCardRow.h"
 #include "Editor/widgets/MainToolbarKit.h"
+#include "Editor/widgets/cards/FileReferenceController.h"
 #include "Editor/widgets/cards/VSTPluginSession.h"
 #include "SubwooferRouting/Preset.h"
 #include "SubwooferRouting/StateCodec.h"
@@ -426,6 +427,16 @@ QList<FilterCardRow*> buildRows(QScrollArea& scrollArea, const QString& configPa
 	return table->findChildren<FilterCardRow*>(QString(), Qt::FindDirectChildrenOnly);
 }
 
+void installGalleryFileReferencePolicy()
+{
+	// The reference cards skip the audio-service ACL probe, which has no
+	// meaningful answer for freshly written scratch files (audit #467 TD-75:
+	// this used to be the EAPO_SKIN_GALLERY environment variable).
+	FileReferenceController::Policy policy;
+	policy.checkAudioService = false;
+	FileReferenceController::installPolicy(policy);
+}
+
 GalleryFixture::GalleryFixture(const char* gate)
 {
 	if (!scratch.isValid())
@@ -433,10 +444,7 @@ GalleryFixture::GalleryFixture(const char* gate)
 		qWarning("%s: cannot create a scratch directory", gate);
 		return;
 	}
-	// EAPO_SKIN_GALLERY also makes the reference cards skip the audio-service
-	// ACL probe, which has no meaningful answer for freshly written scratch
-	// files.
-	qputenv("EAPO_SKIN_GALLERY", "1");
+	installGalleryFileReferencePolicy();
 	config = buildReferenceFiles(QDir(scratch.path()));
 	if (config.isEmpty())
 		qWarning("%s: cannot write reference target files", gate);
@@ -453,14 +461,12 @@ const QString& GalleryFixture::configPath() const
 }
 
 // A gate is a headless one-shot: when it finishes, every verdict has been
-// printed. Returning would unwind into the QApplication and global teardown,
-// which on the offscreen platform can hang the process on a leftover
-// background resource, so flush the diagnostic streams and exit at once. The
-// scratch directory stays behind, since nothing unwinds to remove it.
-void GalleryFixture::finish(int status)
+// printed. Flush before returning its status to main, which now stops the
+// shared background workers before static destruction (audit #467 TD-33).
+int GalleryFixture::finish(int status)
 {
 	std::fflush(nullptr);
-	std::_Exit(status);
+	return status;
 }
 
 void forEachSkinMode(const std::function<void(ISkin* skin, bool dark)>& fn)

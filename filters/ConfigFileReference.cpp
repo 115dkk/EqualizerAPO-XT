@@ -14,6 +14,7 @@
 
 #include "ConfigPathPolicy.h"
 #include "ConfigFileReference.h"
+#include "platform/windows/Win32Error.h"
 
 using std::wstring;
 namespace filesystem = std::filesystem;
@@ -41,6 +42,26 @@ wstring expandEnvironmentStrings(const wstring& value)
 	expanded.resize(writtenLength - 1);
 	return expanded;
 }
+}
+
+ConfigFileReference::Target::operator bool() const
+{
+	return refusal.empty() && path.leaf() != nullptr;
+}
+
+wstring ConfigFileReference::Target::problem(const wchar_t* what) const
+{
+	if (!refusal.empty())
+		return refusal;
+	if (path.empty())
+		return L"No " + wstring(what) + L" was given";
+	if (static_cast<bool>(*this))
+		return L"";
+
+	const DWORD code = error == ERROR_SUCCESS ? ERROR_CANT_ACCESS_FILE : error;
+	const wstring message = win32::errorMessage(code);
+	return L"The " + wstring(what) + L" \"" + path.path()
+		+ L"\" could not be opened: " + message;
 }
 
 wstring ConfigFileReference::normalize(const wstring& written)

@@ -7,6 +7,10 @@
 #include "EditorLogicTestSupport.h"
 
 #include <new>
+#include <atomic>
+#include <thread>
+#include "Editor/helpers/CrashHandler.h"
+#include "version.h"
 #include <stdexcept>
 
 #include <QDir>
@@ -23,6 +27,104 @@
 #include "Editor/widgets/EditableValueText.h"
 #include "Editor/widgets/cards/FileReferenceController.h"
 #include "runtime/memory/AlignedMemory.h"
+#include "runtime/concurrency/ShutdownSequence.h"
+
+TEST_CASE(EditorLogicTests, testShutdownSequenceAppliesOnlyAfterEveryWait)
+{
+	std::vector<std::wstring> calls;
+	const bool finished = ShutdownSequence::run({
+		{ [] { return L"plug-in loader"; }, [&] { calls.push_back(L"loader"); return true; } },
+		{ [] { return L"background probe"; }, [&] { calls.push_back(L"probe"); return true; } },
+		{ [] { return L"update download"; }, [&] { calls.push_back(L"download"); return true; } }
+	}, 17, [&] { calls.push_back(L"apply"); },
+		[&](const std::wstring&) { calls.push_back(L"log"); },
+		[&](int) { calls.push_back(L"exit"); });
+	expectTrue(finished, QStringLiteral("completed shutdown returns normally"));
+	expectTrue(calls == std::vector<std::wstring>{L"loader", L"probe", L"download", L"apply"},
+		QStringLiteral("update applies only after the ordered waits; no timeout log or exit"));
+}
+
+TEST_CASE(EditorLogicTests, testShutdownSequenceTimeoutSkipsApplyAndLaterWaits)
+{
+	for (const int code : {0, 17})
+	{
+		for (int timeoutIndex = 0; timeoutIndex < 3; ++timeoutIndex)
+		{
+			int waits = 0;
+			int exits = 0;
+			int actualCode = -1;
+			int applies = 0;
+			std::vector<std::wstring> logs;
+			std::vector<std::wstring> calls;
+			std::wstring loaderName = L"plug-in loader";
+			const auto wait = [&] { return waits++ != timeoutIndex; };
+			const bool finished = ShutdownSequence::run({
+				{ [&] { return loaderName; }, [&] { loaderName = L"loading plug-in C:/fixture/slow.dll"; return wait(); } },
+				{ [] { return L"background probe"; }, wait },
+				{ [] { return L"update download"; }, wait }
+			}, code, [&] { ++applies; }, [&](const std::wstring& line) { logs.push_back(line); calls.push_back(L"log"); },
+				[&](int value) { ++exits; actualCode = value; calls.push_back(L"exit"); });
+			const std::wstring names[] = {loaderName, L"background probe", L"update download"};
+			expectFalse(finished, QStringLiteral("timed-out shutdown cannot continue normally"));
+			expectEqual(waits, timeoutIndex + 1, QStringLiteral("no later waits run after the first timeout"));
+			expectEqual(applies, 0, QStringLiteral("timeout never applies an update or launches its coordinator"));
+			expectEqual(exits, 1, QStringLiteral("timeout requests hard exit exactly once"));
+			expectEqual(actualCode, code, QStringLiteral("hard exit preserves the decided process code"));
+			expectTrue(logs == std::vector<std::wstring>{L"Shutdown timed out: " + names[timeoutIndex]},
+				QStringLiteral("one timeout line names the running worker or plug-in path"));
+			expectTrue(calls == std::vector<std::wstring>{L"log", L"exit"}, QStringLiteral("timeout logs before hard exit"));
+		}
+	}
+}
+
+TEST_CASE(EditorLogicTests, testCrashBreadcrumbConcurrentWriters)
+{
+	const std::wstring first(255, L'A');
+	const std::wstring second(255, L'B');
+	CrashHandler::setBreadcrumb(first);
+	std::atomic<bool> go{false};
+	std::atomic<int> finished{0};
+	auto write = [&](const std::wstring& value) {
+		while (!go.load())
+			std::this_thread::yield();
+		for (int i = 0; i < 20000; ++i)
+			CrashHandler::setBreadcrumb(value);
+		++finished;
+	};
+	std::thread one([&] { write(first); });
+	std::thread two([&] { write(second); });
+	go.store(true);
+	bool complete = true;
+	do
+	{
+		wchar_t snapshot[256];
+		CrashHandler::copyBreadcrumb(snapshot);
+		const std::wstring value(snapshot);
+		complete = complete && (value == first || value == second || value == L"(breadcrumb changing)");
+	}
+	while (finished.load() != 2);
+	one.join();
+	two.join();
+	expectTrue(complete, QStringLiteral("concurrent breadcrumb snapshot is never a mixed string"));
+	CrashHandler::setBreadcrumb(L"opening file config.txt");
+	wchar_t snapshot[256];
+	CrashHandler::copyBreadcrumb(snapshot);
+	expectEqual(QString::fromWCharArray(snapshot), QStringLiteral("opening file config.txt"),
+		QStringLiteral("snapshot records the complete last file action"));
+}
+
+TEST_CASE(EditorLogicTests, testCrashArtifactNamesKeepEditorCompatibility)
+{
+	wchar_t name[128];
+	CrashHandler::formatArtifactName(name, L"Editor", 42, 7, L"dmp");
+	const QString suffix = QStringLiteral("-%1.%2.%3-42-7").arg(MAJOR).arg(MINOR).arg(REVISION);
+	expectEqual(QString::fromWCharArray(name), QStringLiteral("Editor") + suffix + ".dmp",
+		QStringLiteral("Editor dump pattern is unchanged"));
+	CrashHandler::formatArtifactName(name, L"DeviceSelector", 42, 7, L"txt");
+	expectEqual(QString::fromWCharArray(name), QStringLiteral("DeviceSelector") + suffix + ".txt",
+		QStringLiteral("DeviceSelector report names its own product"));
+}
+
 // The roster is the one list of which skins exist, so what is worth pinning is
 // that it is complete and that everything derived from it lands on a real skin.
 // Missing a skin used to be silent: resolveId() falls back to Studio, so a skin
@@ -229,6 +331,26 @@ TEST_CASE(EditorLogicTests, testFileReferenceControllerOwnsPathState)
 		"a far library keeps its own spelling");
 	expectEqual(FileReferenceController::displayPathForLibrary(QString(), pluginsDirectory), QString(),
 		"no library shows no path");
+}
+
+// The flow the convolution cards hand to the controller (audit #467 TD-40):
+// typed text commits once, and resolution follows the attached configuration.
+TEST_CASE(EditorLogicTests, testFileReferenceControllerCommitsForItsCard)
+{
+	FileReferenceController reference(QStringLiteral("convolution"), QStringLiteral("irs/room.wav"));
+	expectTrue(reference.resolvedAbsolutePath().isEmpty(), "without a configuration nothing resolves");
+
+	QString configPath = QStringLiteral("C:/EqualizerAPO/config/config.txt");
+	int commits = 0;
+	reference.attach([&configPath]() { return configPath; }, [&commits]() { ++commits; });
+	expectPath(QDir::fromNativeSeparators(reference.resolvedAbsolutePath()),
+		QStringLiteral("C:/EqualizerAPO/config/irs/room.wav"));
+
+	reference.commitWrittenPath(QStringLiteral("  other.wav "));
+	expectEqual(commits, 1, "typed text commits once");
+	expectEqual(reference.writtenPath(), QStringLiteral("other.wav"), "the typed text is trimmed");
+	configPath = QStringLiteral("D:/Other/config.txt");
+	expectPath(QDir::fromNativeSeparators(reference.resolvedAbsolutePath()), QStringLiteral("D:/Other/other.wav"));
 }
 
 TEST_CASE(EditorLogicTests, testAnalysisWorkerRecovery)

@@ -4,41 +4,47 @@
 <context>
     <name>DeviceSelector</name>
     <message>
-        <location filename="../DeviceSelector.cpp" line="+63"/>
-        <location line="+37"/>
+        <location filename="../DeviceSelector.cpp" line="+68"/>
+        <location line="+44"/>
         <source>Playback devices</source>
         <translation>播放设备</translation>
     </message>
     <message>
-        <location line="-32"/>
-        <location line="+36"/>
+        <location line="-39"/>
+        <location line="+43"/>
         <source>Capture devices</source>
         <translation>捕获设备</translation>
     </message>
     <message>
-        <location line="-28"/>
-        <location line="+306"/>
+        <location line="-35"/>
+        <location line="+17"/>
+        <location line="+297"/>
         <source>Error while accessing the registry</source>
         <translation>访问注册表时出错</translation>
     </message>
     <message>
-        <location line="-294"/>
-        <location line="+365"/>
+        <location line="-302"/>
+        <location line="+357"/>
         <source>Info</source>
         <translation>信息</translation>
     </message>
     <message>
-        <location line="-365"/>
+        <location line="-357"/>
         <source>A registry value that is required for the operation of Equalizer APO was not set correctly. This might have been caused by a driver installation or uninstallation. The value has been corrected. A reboot may be required so that the changes can take effect.</source>
         <translation>未正确设置 Equalizer APO 操作所需的注册表值。这可能是由驱动程序安装或卸载引起的。该值已更正。可能需要重新启动才能使更改生效。</translation>
     </message>
     <message>
-        <location line="+56"/>
+        <location line="+6"/>
+        <source>The registry repair did not finish. Reinstall Equalizer APO or see DeviceSelector.log for details.</source>
+        <translation>注册表修复未完成。请重新安装 Equalizer APO，或查看 DeviceSelector.log 了解详情。</translation>
+    </message>
+    <message>
+        <location line="+62"/>
         <source>OK</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+229"/>
+        <location line="+225"/>
         <source>Undoing the change did not finish either, so this device may be left partly changed. Reboot before trying again, and see the log for details.</source>
         <translation>撤销更改也未能完成，因此此设备可能仍保留部分更改。请重新启动后再试，详情请查看日志。</translation>
     </message>
@@ -53,7 +59,7 @@
         <translation>详情请查看 %1。</translation>
     </message>
     <message>
-        <location line="+432"/>
+        <location line="+416"/>
         <source>APO will be uninstalled</source>
         <translation>APO 将被卸载</translation>
     </message>
@@ -83,7 +89,7 @@
         <translation>可以安装 APO</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+5"/>
         <source>Voicemeeter was uninstalled</source>
         <translation>Voicemeeter 已卸载</translation>
     </message>
@@ -103,7 +109,7 @@
         <translation>未连接</translation>
     </message>
     <message>
-        <location line="-407"/>
+        <location line="-406"/>
         <source>Upgrades available</source>
         <translation>更新可用</translation>
     </message>
@@ -128,8 +134,8 @@
         <translation>将安装 APO</translation>
     </message>
     <message>
-        <location line="-664"/>
-        <location line="+490"/>
+        <location line="-644"/>
+        <location line="+470"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
@@ -169,7 +175,7 @@
         <translation type="vanished">状态</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="-305"/>
+        <location filename="../DeviceSelector.cpp" line="-285"/>
         <source>Troubleshooting options (only use in case of problems)</source>
         <translation>故障排除选项（仅在出现问题时使用）</translation>
     </message>
@@ -319,7 +325,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
 <context>
     <name>DeviceTestDialog</name>
     <message>
-        <location filename="../DeviceTestDialog.cpp" line="+43"/>
+        <location filename="../DeviceTestDialog.cpp" line="+45"/>
         <source>Playback devices</source>
         <translation>播放设备</translation>
     </message>
@@ -334,7 +340,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>访问注册表时出错</translation>
     </message>
     <message>
-        <location line="+65"/>
+        <location line="+70"/>
         <source>Cannot test APO installation as device is disabled</source>
         <translation>由于设备已被禁用，无法测试 APO 安装</translation>
     </message>
@@ -344,7 +350,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>由于设备未连接，无法测试 APO 安装</translation>
     </message>
     <message>
-        <location line="+50"/>
+        <location line="+70"/>
         <location line="+46"/>
         <source>Error</source>
         <translation>错误</translation>
@@ -396,7 +402,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>COM 初始化失败 (0x%1)。</translation>
     </message>
     <message>
-        <location line="+10"/>
+        <location line="+26"/>
         <location line="+177"/>
         <source>Restarting audio service...</source>
         <translation>正在重新启动音频服务...</translation>
@@ -418,7 +424,8 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>无法准备设备测试。</translation>
     </message>
     <message>
-        <location line="+11"/>
+        <location line="-36"/>
+        <location line="+47"/>
         <source>Could not remove the device test registration: %1</source>
         <translation>无法移除设备测试注册信息：%1</translation>
     </message>

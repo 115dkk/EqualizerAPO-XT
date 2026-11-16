@@ -153,43 +153,43 @@
         <translation>Filtre passe-tout (all-pass)</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="224"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="226"/>
         <source>Center frequency</source>
         <translation>Fréquence centrale</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="226"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="228"/>
         <source>Corner frequency</source>
         <translation>Fréquence de coupure</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="243"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="245"/>
         <source>Fixed Q</source>
         <translatorcomment>I don&apos;t understand</translatorcomment>
         <translation>Q fixé</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="245"/>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="290"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="247"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="292"/>
         <source>Fixed S</source>
         <translatorcomment>I don&apos;t understand</translatorcomment>
         <translation>S fixé</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="247"/>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="291"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="249"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="293"/>
         <source>Slope</source>
         <translation>Pente</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="249"/>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="292"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="251"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="294"/>
         <source>Q factor</source>
         <translatorcomment>Refer to &quot;Fixed Q&quot; ? Translation is ok if the Q letter doesn&apos;t need translation</translatorcomment>
         <translation>Facteur Q</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="256"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="258"/>
         <source>Bandwidth</source>
         <translation>Bande passante</translation>
     </message>
@@ -406,7 +406,7 @@
 <context>
     <name>ChannelRoleSelector</name>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="190"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="198"/>
         <source>Add channel</source>
         <translation type="unfinished">Ajouter un canal</translation>
     </message>
@@ -471,38 +471,38 @@
 <context>
     <name>ConvolutionCardEditor</name>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="99"/>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="204"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="95"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="170"/>
         <source>Select impulse response file</source>
         <translation>Sélectionner le fichier de réponse impulsionnelle</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="62"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="66"/>
         <source>Copy this file into the config directory</source>
         <translation>Copier ce fichier dans le dossier de configuration</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="100"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="96"/>
         <source>Impulse response (*.wav *.flac *.ogg)</source>
         <translation>Réponse impulsionnelle (*.wav *.flac *.ogg)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="146"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="119"/>
         <source>No file selected</source>
         <translation>Aucun fichier sélectionné</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="165"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="139"/>
         <source>%1 ms</source>
         <translation>%1 ms</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="166"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="140"/>
         <source>%1 samples</source>
         <translation>%1 éch.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="167"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="141"/>
         <source>%1 Hz</source>
         <translation>%1 Hz</translation>
     </message>
@@ -511,22 +511,22 @@
         <translation type="vanished">Illisible par le service audio</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="203"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="169"/>
         <source>Locate...</source>
         <translation>Localiser...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="204"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="170"/>
         <source>Locate the missing file</source>
         <translation>Localiser le fichier manquant</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="158"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="132"/>
         <source>Unsupported file format</source>
         <translation>Format de fichier non pris en charge</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="171"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="145"/>
         <source>Sample rate does not match the device (%1 Hz)</source>
         <translation>La fréquence d&apos;échantillonnage ne correspond pas au périphérique (%1 Hz)</translation>
     </message>
@@ -1237,30 +1237,35 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
 <context>
     <name>FileReferenceController</name>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="93"/>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="106"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="123"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="147"/>
         <source>Import</source>
         <translation type="unfinished">Importer</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="94"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="124"/>
         <source>Nothing to import: %1</source>
         <translation type="unfinished">Rien à importer : %1</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="107"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="140"/>
+        <source>Could not grant audio service access to %1.</source>
+        <translation>Impossible d’autoriser le service audio à accéder à %1.</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="148"/>
         <source>Some files could not be copied:
 %1</source>
         <translation type="unfinished">Certains fichiers n&apos;ont pas pu être copiés :
 %1</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.cpp" line="133"/>
+        <location filename="../widgets/cards/FileReferenceController.cpp" line="193"/>
         <source>The audio service only opens files on local drives</source>
         <translation>Le service audio n&apos;ouvre que les fichiers des lecteurs locaux</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.cpp" line="135"/>
+        <location filename="../widgets/cards/FileReferenceController.cpp" line="195"/>
         <source>Not readable by the audio service</source>
         <translation>Illisible par le service audio</translation>
     </message>
@@ -1273,7 +1278,7 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
         <translation>Commentaire</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="302"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="244"/>
         <source>Text</source>
         <translation>Texte</translation>
     </message>
@@ -1298,53 +1303,53 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
         <translation>Décorrélateur Velvet</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="58"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="59"/>
         <source>Peaking</source>
         <translation>Filtre de crête (peak)</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="60"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="61"/>
         <source>Low-pass</source>
         <translation>Filtre passe-bas</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="62"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="63"/>
         <source>High-pass</source>
         <translation>Filtre passe-haut</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="64"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="65"/>
         <source>Band-pass</source>
         <translation>Filtre passe-bande</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="66"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="67"/>
         <source>Low-shelf</source>
         <translation>Filtre en plateau bas</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="68"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="69"/>
         <source>High-shelf</source>
         <translation>Filtre en plateau haut</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="70"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="71"/>
         <source>Notch</source>
         <translation>Filtre coupe-bande (notch)</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="72"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="73"/>
         <source>All-pass</source>
         <translation>Filtre passe-tout (all-pass)</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="73"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="74"/>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="41"/>
         <source>Biquad</source>
         <translation>Biquad</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="342"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="284"/>
         <source>IIR filter</source>
         <translation>Filtre IIR</translation>
     </message>
@@ -1442,7 +1447,7 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
 <context>
     <name>FilterCardRow</name>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="964"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="973"/>
         <source>Expand filter card</source>
         <translation>Développer la carte du filtre</translation>
     </message>
@@ -1451,47 +1456,47 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
         <translation type="vanished">Activer ou commenter cette commande</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="135"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="142"/>
         <source>Add filter above this card</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="146"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="154"/>
         <source>Remove filter</source>
         <translation>Supprimer le filtre</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="147"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="155"/>
         <source>Remove this filter. %1 brings it back.</source>
         <translation>Supprimer ce filtre. %1 permet de le rétablir.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="162"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="171"/>
         <source>Edit raw command</source>
         <translation>Modifier la commande brute</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="767"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="776"/>
         <source>This line was not applied: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="964"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="973"/>
         <source>Collapse filter card</source>
         <translation>Replier la carte du filtre</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="966"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="975"/>
         <source>Switch this line off. It stays in the file as a comment.</source>
         <translation>Désactiver cette ligne. Elle reste dans le fichier sous forme de commentaire.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="967"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="976"/>
         <source>Switch this line back on.</source>
         <translation>Réactiver cette ligne.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="765"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="774"/>
         <source>Equalizer APO could not prepare this filter, so the whole configuration was not applied and the previous settings keep playing. Check the file or plug-in this line uses, or switch the line off.</source>
         <translation>Equalizer APO n’a pas pu préparer ce filtre : la configuration entière n’a donc pas été appliquée et les réglages précédents continuent d’être lus. Vérifiez le fichier ou le plug-in qu’utilise cette ligne, ou désactivez la ligne.</translation>
     </message>
@@ -1685,7 +1690,7 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
 <context>
     <name>FilterTable</name>
     <message>
-        <location filename="../FilterTable.cpp" line="267"/>
+        <location filename="../FilterTable.cpp" line="268"/>
         <source>Add filter</source>
         <translation>Ajouter un filtre</translation>
     </message>
@@ -1749,89 +1754,89 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
 <context>
     <name>GraphicEQCardEditor</name>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="74"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="72"/>
         <source>15-band</source>
         <translation type="unfinished">15 bandes</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="75"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="73"/>
         <source>31-band</source>
         <translation type="unfinished">31 bandes</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="76"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="74"/>
         <source>variable</source>
         <translation type="unfinished">variable</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="77"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="75"/>
         <source>Band layout</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="88"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="86"/>
         <source>Import</source>
         <translation type="unfinished">Importer</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="89"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="87"/>
         <source>Export</source>
         <translation type="unfinished">Exporter</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="90"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="88"/>
         <source>Invert response</source>
         <translation type="unfinished">Inverser la réponse</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="91"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="89"/>
         <source>Normalize response</source>
         <translation type="unfinished">Normaliser la réponse</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="92"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="90"/>
         <source>Reset response</source>
         <translation type="unfinished">Réinitialiser la réponse</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="136"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="134"/>
         <source>Freq.</source>
         <translation type="unfinished">Fréq.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="148"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="146"/>
         <source>Gain</source>
         <translation type="unfinished">Gain</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="258"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="256"/>
         <source>Band %0 / %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="264"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="262"/>
         <source>No bands</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="316"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="314"/>
         <source>Import frequency response</source>
         <translation type="unfinished">Importer une réponse en fréquence</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="319"/>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="376"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="317"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="342"/>
         <source>Frequency response (*.csv)</source>
         <translation type="unfinished">Réponse en fréquence (*.csv)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="320"/>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="377"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="318"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="343"/>
         <source>All files (*.*)</source>
         <translation type="unfinished">Tous les fichiers (*.*)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="372"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="338"/>
         <source>Export frequency response</source>
         <translation type="unfinished">Exporter une réponse en fréquence</translation>
     </message>
@@ -1895,24 +1900,24 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
         <translation>Réinitialiser la réponse</translation>
     </message>
     <message>
-        <location filename="../guis/GraphicEQFilterGUI.cpp" line="306"/>
+        <location filename="../guis/GraphicEQFilterGUI.cpp" line="303"/>
         <source>Import frequency response</source>
         <translation>Importer une réponse en fréquence</translation>
     </message>
     <message>
-        <location filename="../guis/GraphicEQFilterGUI.cpp" line="309"/>
-        <location filename="../guis/GraphicEQFilterGUI.cpp" line="382"/>
+        <location filename="../guis/GraphicEQFilterGUI.cpp" line="306"/>
+        <location filename="../guis/GraphicEQFilterGUI.cpp" line="345"/>
         <source>Frequency response (*.csv)</source>
         <translation>Réponse en fréquence (*.csv)</translation>
     </message>
     <message>
-        <location filename="../guis/GraphicEQFilterGUI.cpp" line="310"/>
-        <location filename="../guis/GraphicEQFilterGUI.cpp" line="383"/>
+        <location filename="../guis/GraphicEQFilterGUI.cpp" line="307"/>
+        <location filename="../guis/GraphicEQFilterGUI.cpp" line="346"/>
         <source>All files (*.*)</source>
         <translation>Tous les fichiers (*.*)</translation>
     </message>
     <message>
-        <location filename="../guis/GraphicEQFilterGUI.cpp" line="378"/>
+        <location filename="../guis/GraphicEQFilterGUI.cpp" line="341"/>
         <source>Export frequency response</source>
         <translation>Exporter une réponse en fréquence</translation>
     </message>
@@ -1945,63 +1950,63 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
 <context>
     <name>HilbertCardEditor</name>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="222"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="230"/>
         <source>A fixed 1025-tap linear-phase Hilbert FIR. Shifted channels receive the selected ±90° transform; aligned channels receive only its 512-sample group delay.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="242"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="250"/>
         <source>Direction</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="264"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="272"/>
         <source>Graph</source>
         <translation type="unfinished">Graphique</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="270"/>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="283"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="278"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="291"/>
         <source>Phase</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="270"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="278"/>
         <source>Group delay</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="294"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="302"/>
         <source>Phase-shifted channels</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="296"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="304"/>
         <source>Latency-aligned channels</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="284"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="292"/>
         <source>Latency</source>
         <translation type="unfinished">Latence</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="286"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="294"/>
         <source>FIR</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="287"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="295"/>
         <source>%1 taps</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="289"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="297"/>
         <source>Passband</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="357"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="365"/>
         <source>%1 ms · %2 samples</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2027,32 +2032,49 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
 <context>
     <name>ImportExecutor</name>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="24"/>
+        <location filename="../import/ImportExecutor.cpp" line="145"/>
         <source>Import target directory is empty.</source>
         <translation>Le dossier cible de l&apos;importation est vide.</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="31"/>
+        <location filename="../import/ImportExecutor.cpp" line="153"/>
         <source>Could not create config directory %1.</source>
         <translation>Impossible de créer le dossier de configuration %1.</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="40"/>
+        <location filename="../import/ImportExecutor.cpp" line="163"/>
+        <source>Destination outside the config directory, skipped: %1</source>
+        <translation>Destination hors du dossier de configuration, ignorée : %1</translation>
+    </message>
+    <message>
+        <location filename="../import/ImportExecutor.cpp" line="170"/>
         <source>Source missing, skipped: %1</source>
         <translation>Source manquante, ignorée : %1</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="50"/>
+        <location filename="../import/ImportExecutor.cpp" line="178"/>
         <source>Could not create %1.</source>
         <translation>Impossible de créer %1.</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="59"/>
+        <location filename="../import/ImportExecutor.cpp" line="200"/>
         <source>Could not overwrite %1.</source>
         <translation>Impossible d&apos;écraser %1.</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="67"/>
+        <location filename="../import/ImportExecutor.cpp" line="233"/>
+        <source>Source kept because the copied file size could not be verified: %1</source>
+        <translation>Source conservée car la taille du fichier copié n’a pas pu être vérifiée : %1</translation>
+    </message>
+    <message>
+        <location filename="../import/ImportExecutor.cpp" line="239"/>
+        <source>Could not remove source after copying: %1</source>
+        <translation>Impossible de supprimer la source après la copie : %1</translation>
+    </message>
+    <message>
+        <location filename="../import/ImportExecutor.cpp" line="194"/>
+        <location filename="../import/ImportExecutor.cpp" line="207"/>
+        <location filename="../import/ImportExecutor.cpp" line="218"/>
         <source>Failed to copy %1 to %2.</source>
         <translation>Échec de la copie de %1 vers %2.</translation>
     </message>
@@ -2060,7 +2082,7 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
 <context>
     <name>IncludeCardEditor</name>
     <message>
-        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="169"/>
+        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="157"/>
         <source>Choose include file</source>
         <translation>Choisir le fichier à inclure</translation>
     </message>
@@ -2094,12 +2116,12 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
         <translation type="vanished">Illisible par le service audio</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="168"/>
+        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="156"/>
         <source>Locate...</source>
         <translation>Localiser...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="169"/>
+        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="157"/>
         <source>Locate the missing file</source>
         <translation>Localiser le fichier manquant</translation>
     </message>
@@ -2165,12 +2187,12 @@ Modifiez les autorisations du fichier ou copiez le fichier dans le répertoire d
 <context>
     <name>LegacyMigration</name>
     <message>
-        <location filename="../import/LegacyMigration.cpp" line="575"/>
+        <location filename="../import/LegacyMigration.cpp" line="594"/>
         <source>Configuration folder moved</source>
         <translation>Dossier de configuration déplacé</translation>
     </message>
     <message>
-        <location filename="../import/LegacyMigration.cpp" line="576"/>
+        <location filename="../import/LegacyMigration.cpp" line="595"/>
         <source>Your Equalizer APO configuration was imported into the EqualizerAPO-XT configuration folder:
 
 %1
@@ -2354,7 +2376,7 @@ Alexander Walch</translation>
     </message>
     <message>
         <location filename="../MainWindow.ui" line="129"/>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="420"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="417"/>
         <source>Graph</source>
         <translation>Graphique</translation>
     </message>
@@ -2507,43 +2529,43 @@ Alexander Walch</translation>
         <translation>Tout sélectionner</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="107"/>
+        <location filename="../MainWindow.cpp" line="113"/>
         <source>Equalizer APO %0 Configuration Editor</source>
         <translation>Equalizer APO %0 Éditeur de configuration</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="122"/>
+        <location filename="../MainWindow.cpp" line="128"/>
         <source>Instant mode</source>
         <translation>Mode instantané</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="126"/>
+        <location filename="../MainWindow.cpp" line="132"/>
         <source>Changes are saved immediately</source>
         <translation>Les modifications sont enregistrées immédiatement</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="123"/>
+        <location filename="../MainWindow.cpp" line="129"/>
         <location filename="../MainWindowParts/MainWindow.Edit.cpp" line="94"/>
         <source>Saved</source>
         <translation>Enregistré</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="127"/>
+        <location filename="../MainWindow.cpp" line="133"/>
         <source>Current file save state</source>
         <translation>État d&apos;enregistrement du fichier actuel</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="124"/>
+        <location filename="../MainWindow.cpp" line="130"/>
         <source>Device</source>
         <translation>Périphérique</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="128"/>
+        <location filename="../MainWindow.cpp" line="134"/>
         <source>Whether EqualizerAPO is processing this device&apos;s stream natively, or forwarding it without applying filters.</source>
         <translation>Indique si EqualizerAPO traite le flux de ce périphérique nativement ou s&apos;il le transfère sans appliquer de filtres.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="125"/>
+        <location filename="../MainWindow.cpp" line="131"/>
         <source>Channels</source>
         <translation>Canaux</translation>
     </message>
@@ -2552,66 +2574,92 @@ Alexander Walch</translation>
         <translation type="vanished">Défaut</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="141"/>
+        <location filename="../MainWindow.cpp" line="147"/>
         <source>Default (%1 - %2)</source>
         <translation>Défaut (%1 - %2)</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="144"/>
+        <location filename="../MainWindow.cpp" line="150"/>
         <source>Playback devices:</source>
         <translation>Périphériques de lecture:</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="155"/>
+        <location filename="../MainWindow.cpp" line="161"/>
         <source>Capture devices:</source>
         <translation>Périphériques de capture:</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="245"/>
+        <location filename="../MainWindow.cpp" line="251"/>
         <source>Automatic (%0)</source>
         <translation>Automatique (%0)</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="281"/>
+        <location filename="../MainWindow.cpp" line="287"/>
         <source>An update has been downloaded and will be applied when you close the editor.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="282"/>
+        <location filename="../MainWindow.cpp" line="288"/>
         <source>Update %0 has been downloaded and will be applied when you close the editor.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="294"/>
+        <location filename="../MainWindow.cpp" line="306"/>
+        <source>Windows audio service</source>
+        <translation>Service audio Windows</translation>
+    </message>
+    <message>
+        <location filename="../MainWindow.cpp" line="307"/>
+        <source>The Windows audio service is not running. Sound will not play until it is started.</source>
+        <translation>Le service audio Windows n’est pas en cours d’exécution. Aucun son ne sera lu tant qu’il n’aura pas été démarré.</translation>
+    </message>
+    <message>
+        <location filename="../MainWindow.cpp" line="338"/>
+        <source>Audio folder access</source>
+        <translation>Accès au dossier pour le service audio</translation>
+    </message>
+    <message>
+        <location filename="../MainWindow.cpp" line="339"/>
+        <source>The Windows audio service cannot read this folder:
+%0
+
+Run tools\Repair-EqualizerAPO.ps1 from the installation folder as administrator to repair access.</source>
+        <translation>Le service audio Windows ne peut pas lire ce dossier :
+%0
+
+Exécutez tools\Repair-EqualizerAPO.ps1 depuis le dossier d’installation en tant qu’administrateur pour rétablir l’accès.</translation>
+    </message>
+    <message>
+        <location filename="../MainWindow.cpp" line="344"/>
         <source>Registry problem</source>
         <translation>Problème de registre</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="294"/>
+        <location filename="../MainWindow.cpp" line="344"/>
         <source>A registry value that is required for the operation of Equalizer APO is not set correctly.
 Do you want to run the Device Selector application to fix the problem?</source>
         <translation>Une valeur de registre requise pour le fonctionnement d’Equalizer APO n’est pas définie correctement.
 Voulez-vous exécuter l’application Device Selector (Sélecteur de périphérique) pour résoudre le problème?</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="303"/>
+        <location filename="../MainWindow.cpp" line="353"/>
         <source>APO not installed to device</source>
         <translation>APO non installé sur le périphérique</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="303"/>
+        <location filename="../MainWindow.cpp" line="353"/>
         <source>Equalizer APO has not been installed to the selected device.
 Do you want to run the Device Selector application to fix the problem?</source>
         <translation>Equalizer APO n’a pas été installé sur le périphérique sélectionné.
 Voulez-vous exécuter l’application Device Selector (Sélecteur de périphérique) pour résoudre le problème?</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="360"/>
+        <location filename="../MainWindow.cpp" line="411"/>
         <source>EQ inactive on some devices</source>
         <translation>EQ inactif sur certains périphériques</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="361"/>
+        <location filename="../MainWindow.cpp" line="412"/>
         <source>EqualizerAPO can only process IEEE_FLOAT 32/64-bit streams natively. The following installed devices currently use a different format, so audio passes through them without any filter being applied:
 
 %0
@@ -2624,12 +2672,12 @@ This is not a crash — sound still reaches the device, but no EQ. Switch the de
 Il ne s&apos;agit pas d&apos;un plantage : le son atteint toujours le périphérique, mais sans EQ. Si vous avez besoin de filtrage, réglez le format par défaut du périphérique sur un format IEEE_FLOAT 32 bits dans les Paramètres de son.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="396"/>
+        <location filename="../MainWindow.cpp" line="447"/>
         <source>Audio enhancements disabled</source>
         <translation>Améliorations audio désactivées</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="396"/>
+        <location filename="../MainWindow.cpp" line="447"/>
         <source>Audio enhancements are not enabled for the device
 %0 %1.
 Do you want to run the Device Selector application to fix the problem?</source>
@@ -2638,36 +2686,42 @@ Do you want to run the Device Selector application to fix the problem?</source>
 Voulez-vous exécuter l’application Device Selector (Sélecteur de périphérique) pour résoudre le problème?</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="428"/>
+        <location filename="../MainWindow.cpp" line="478"/>
+        <location filename="../MainWindow.cpp" line="482"/>
         <source>Device Selector</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="429"/>
+        <location filename="../MainWindow.cpp" line="479"/>
         <source>The Device Selector was not opened. It needs administrator approval to manage audio devices; you can try again anytime via File &gt; APO settings.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="69"/>
-        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="102"/>
-        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="107"/>
+        <location filename="../MainWindow.cpp" line="482"/>
+        <source>The Device Selector could not be opened:
+%1</source>
+        <translation>Impossible d’ouvrir Device Selector :
+%1</translation>
+    </message>
+    <message>
+        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="71"/>
+        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="111"/>
         <source>Error</source>
         <translation>Erreur</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="69"/>
+        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="71"/>
         <source>Error while reading configuration file: %0</source>
         <translation>Erreur lors de la lecture du fichier de configuration: %0</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="102"/>
+        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="112"/>
         <source>Error while writing configuration file: %0</source>
         <translation>Erreur lors de l&apos;écriture du fichier de configuration: %0</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="107"/>
         <source>Only %0/%1 bytes have been written!</source>
-        <translation>Seuls %0/%1 octets ont été écrits!</translation>
+        <translation type="vanished">Seuls %0/%1 octets ont été écrits!</translation>
     </message>
     <message>
         <source>From device</source>
@@ -2724,48 +2778,48 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
         <translation>Le format de flux de ce périphérique est %0 (conteneur %1 bits). EqualizerAPO ne traite nativement que les flux IEEE_FLOAT 32/64 bits ; l&apos;audio est donc transféré sans qu&apos;aucun filtre soit appliqué. Si vous avez besoin de filtrage sur ce périphérique, réglez son format par défaut sur un format IEEE_FLOAT 32 bits dans les Paramètres de son.</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="61"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="65"/>
         <source>Open file</source>
         <translation>Ouvrir un fichier</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="63"/>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="112"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="67"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="116"/>
         <source>E-APO configurations (*.txt)</source>
         <translation>Configurations E-APO (*.txt)</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="109"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="113"/>
         <source>Save file as</source>
         <translation>Enregistrer le fichier sous</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="141"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="131"/>
         <source>Unsaved</source>
         <translation>Non enregistré</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="159"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="157"/>
         <source>Mag</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="159"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="157"/>
         <source>Phase</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="159"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="157"/>
         <source>GD</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="161"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="159"/>
         <source>What the graph shows: magnitude in dB, phase in degrees, or group delay in ms.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="163"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="161"/>
         <source>The analyzer removes the configuration&apos;s bulk delay before measuring, so a filter&apos;s own phase is readable. Switch this on to put that delay back into the reading.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2830,7 +2884,7 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
     </message>
     <message>
         <location filename="../MainWindowParts/MainWindow.Edit.cpp" line="94"/>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="165"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="184"/>
         <source>Unsaved changes</source>
         <translation>Modifications non enregistrées</translation>
     </message>
@@ -2845,89 +2899,89 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
         <translation>%1 filtres supprimés.</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="166"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="185"/>
         <source>The configuration file %0 has unsaved changes.</source>
         <translation>Le fichier de configuration %0 comporte des modifications non enregistrées.</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="167"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="186"/>
         <source>Do you want to save the changes before closing the file?</source>
         <translation>Voulez-vous enregistrer les modifications avant de fermer le fichier?</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="238"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="235"/>
         <source>Interface</source>
         <translation>Interface</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="242"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="239"/>
         <source>Modern cards</source>
         <translation>Cartes modernes</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="246"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="243"/>
         <source>Legacy rows</source>
         <translation>Lignes classiques</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="261"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="258"/>
         <source>Studio Glass</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="262"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="259"/>
         <source>Precision Minimal</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="263"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="260"/>
         <source>Soft Lab</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="264"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="261"/>
         <source>Hardware Rack</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="265"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="262"/>
         <source>Signal Matrix</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="277"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="274"/>
         <source>Dark theme</source>
         <translation>Thème sombre</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="295"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="292"/>
         <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="185"/>
         <source>Knob gain range</source>
         <translation>Plage de gain des boutons</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="300"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="297"/>
         <source>±%1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="305"/>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="354"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="302"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="351"/>
         <source>Custom...</source>
         <translation>Personnalisé...</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="315"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="312"/>
         <source>Fullscreen graph</source>
         <translation>Graphique plein écran</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="324"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="321"/>
         <source>Native title bar</source>
         <translation>Barre de titre native</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="355"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="352"/>
         <source>Custom (±%1 dB)...</source>
         <translation>Personnalisé (±%1 dB)...</translation>
     </message>
@@ -3374,78 +3428,78 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
 <context>
     <name>MultiConvolutionCardEditor</name>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="82"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="86"/>
         <source>Copy this file into the config directory</source>
         <translation>Copier ce fichier dans le dossier de configuration</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="100"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="104"/>
         <source>Channel mapping</source>
         <translation>Mappage des canaux</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="107"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="111"/>
         <source>Add an output channel (a new name creates a virtual channel)</source>
         <translation>Ajouter un canal de sortie (un nouveau nom crée un canal virtuel)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="166"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="170"/>
         <source>Add output channel</source>
         <translation>Ajouter un canal de sortie</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="167"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="171"/>
         <source>Channel name (an unknown name creates a virtual channel):</source>
         <translation>Nom du canal (un nom inconnu crée un canal virtuel) :</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="241"/>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="367"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="237"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="330"/>
         <source>Select impulse response file</source>
         <translation>Sélectionner le fichier de réponse impulsionnelle</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="242"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="238"/>
         <source>Impulse response (*.wav *.flac *.ogg)</source>
         <translation>Réponse impulsionnelle (*.wav *.flac *.ogg)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="292"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="262"/>
         <source>No file selected</source>
         <translation>Aucun fichier sélectionné</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="302"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="273"/>
         <source>Unsupported file format</source>
         <translation>Format de fichier non pris en charge</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="311"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="282"/>
         <source>%1 ms</source>
         <translation>%1 ms</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="312"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="283"/>
         <source>%1 samples</source>
         <translation>%1 éch.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="313"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="284"/>
         <source>%1 Hz</source>
         <translation>%1 Hz</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="314"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="285"/>
         <source>%1 ch</source>
         <translation>%1 can.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="319"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="290"/>
         <source>Sample rate does not match the device (%1 Hz)</source>
         <translation>La fréquence d&apos;échantillonnage ne correspond pas au périphérique (%1 Hz)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="337"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="308"/>
         <source>Mapping references channel %1, but the file has %2 channels</source>
         <translation>Le mappage référence le canal %1, mais le fichier ne compte que %2 canaux</translation>
     </message>
@@ -3454,12 +3508,12 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
         <translation type="vanished">Illisible par le service audio</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="366"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="329"/>
         <source>Locate...</source>
         <translation>Localiser...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="367"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="330"/>
         <source>Locate the missing file</source>
         <translation>Localiser le fichier manquant</translation>
     </message>
@@ -4881,7 +4935,7 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
 <context>
     <name>VSTCardEditor</name>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="465"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="466"/>
         <location filename="../widgets/cards/VSTCardEditor.cpp" line="573"/>
         <source>Select VST plugin</source>
         <translation>Sélectionner le plugin VST</translation>
@@ -4903,22 +4957,22 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
         <translation>Intégrer le panneau dans la carte</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="121"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="122"/>
         <source>Remove Input/Output layouts</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="122"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="123"/>
         <source>Deletes the saved VST3 bus layouts from this line.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="128"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="129"/>
         <source>Remove channel fill</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="129"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="130"/>
         <source>Deletes the saved per-slot channel lists from this line.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4939,7 +4993,7 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
         <translation type="vanished">Le plugin a planté lors de l&apos;initialisation.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="395"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="396"/>
         <source>No plugin selected</source>
         <translation>Aucun plugin sélectionné</translation>
     </message>
@@ -4948,12 +5002,12 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
         <translation type="vanished">Illisible par le service audio</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="464"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="465"/>
         <source>Locate...</source>
         <translation>Localiser...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="465"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="466"/>
         <source>Locate the missing plugin library</source>
         <translation>Localiser la bibliothèque de plugin manquante</translation>
     </message>
@@ -5016,7 +5070,7 @@ Change the file permissions or copy the files to the config directory.</source>
 Modifiez les autorisations des fichiers ou copiez les fichiers dans le dossier de configuration.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="459"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="460"/>
         <source>Loading plugin...</source>
         <translation>Chargement du plugin...</translation>
     </message>
@@ -5106,32 +5160,32 @@ Modifiez les autorisations des fichiers ou copiez les fichiers dans le dossier d
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTPluginSession.cpp" line="107"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="135"/>
         <source>No file selected.</source>
         <translation>Aucun fichier sélectionné.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTPluginSession.cpp" line="177"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="208"/>
         <source>File not found.</source>
         <translation>Fichier introuvable.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTPluginSession.cpp" line="180"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="211"/>
         <source>Library could not be loaded.</source>
         <translation>La bibliothèque n&apos;a pas pu être chargée.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTPluginSession.cpp" line="183"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="214"/>
         <source>Library does not contain needed functions.</source>
         <translation>La bibliothèque ne contient pas les fonctions nécessaires.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTPluginSession.cpp" line="192"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="223"/>
         <source>Library has the wrong architecture. Only %1-bit libraries are supported.</source>
         <translation>La bibliothèque a une mauvaise architecture. Seules les bibliothèques %1 bits sont prises en charge.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTPluginSession.cpp" line="211"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="242"/>
         <source>Plugin crashed during initialization.</source>
         <translation>Le plugin a planté lors de l&apos;initialisation.</translation>
     </message>
@@ -5146,7 +5200,7 @@ Modifiez les autorisations des fichiers ou copiez les fichiers dans le dossier d
         <translation>Plugins VST (*.dll *.vst3)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTPluginSession.cpp" line="567"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="619"/>
         <source>Plugin crashed when opening panel.</source>
         <translation>Le plugin a planté lors de l&apos;ouverture du panneau.</translation>
     </message>
@@ -5156,14 +5210,14 @@ Modifiez les autorisations des fichiers ou copiez les fichiers dans le dossier d
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTPluginSession.cpp" line="460"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="499"/>
         <source>The library is not readable by the audio service.
 Change the file permissions or copy the file to the VSTPlugins directory.</source>
         <translation>La bibliothèque n&apos;est pas lisible par le service audio.
 Modifiez les autorisations du fichier ou copiez le fichier dans le répertoire VSTPlugins.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTPluginSession.cpp" line="474"/>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="513"/>
         <source>The plugin seemingly accesses these files not readable by the audio service:
 %0
 Change the file permissions or copy the files to the config directory.</source>

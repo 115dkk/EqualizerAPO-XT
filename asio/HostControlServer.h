@@ -15,6 +15,7 @@
 #include <functional>
 #include <string>
 
+#include "asio/HostLaunch.h"
 #include "asio/HostProtocol.h"
 
 namespace eapo::asio
@@ -41,7 +42,7 @@ namespace eapo::asio
 	struct HostControlOptions
 	{
 		std::wstring endpoint;
-		uint32_t lingerMs = 60000;
+		uint32_t lingerMs = HostLaunch::defaultLingerMs;
 		bool resident = false;
 		uint32_t transferTimeoutMs = 5000;
 	};
@@ -69,7 +70,7 @@ namespace eapo::asio
 		HostControlOptions options_;
 		HostActivity& activity_;
 		OpenHandler onOpen_;
-		std::atomic<uint32_t> lingerMs_{60000};
+		std::atomic<uint32_t> lingerMs_{HostLaunch::defaultLingerMs};
 		std::atomic<bool> stopping_{false};
 		std::atomic<uint64_t> instanceHandoffs_{0};
 	};

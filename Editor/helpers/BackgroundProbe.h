@@ -43,6 +43,8 @@ void runFor(QObject* context, Work work, Done done)
 
 // Drops queued work, waits for the item in progress and ends the probe
 // thread. main calls it once the last QApplication is gone, beside
-// PluginLoadQueue::shutdown.
-void shutdown();
+// PluginLoadQueue::shutdown. False requires hard exit.
+// Endpoint queries normally finish quickly; five seconds bounds a stalled driver.
+inline constexpr unsigned long kShutdownTimeoutMs = 5000;
+bool shutdown();
 }

@@ -6,6 +6,9 @@
 
 #include "ChannelFlow.h"
 
+#include <algorithm>
+#include <utility>
+
 #include "audio/ChannelLayout.h"
 #include "filters/ChannelCommand.h"
 #include "filters/CopyCommand.h"
@@ -23,6 +26,10 @@ struct FlowState
 {
 	std::vector<std::wstring> names;
 	std::vector<std::wstring> selected;
+	// True until an explicit non-ALL Channel selection takes effect. This is
+	// presentation state as well as engine state: card scopes spell ALL as no
+	// badges rather than enumerating every device channel.
+	bool selectionIsAll = true;
 	// The engine's Stage: flag. It moves with the If branches (the If
 	// factory runs before the Stage factory and blanks the lines of a branch
 	// that does not run), so it is part of the branch state.
@@ -36,15 +43,6 @@ struct IfFrame
 	bool ifBranchEnded = false;
 };
 
-bool hasInlineExpression(const std::wstring& parameters)
-{
-	if (parameters.find(L'`') == std::wstring::npos)
-		return false;
-	for (const InlineExpression::Segment& segment : InlineExpression::split(parameters))
-		if (segment.isExpression)
-			return true;
-	return false;
-}
 }
 
 std::vector<ChannelFlowAtLine> computeChannelFlow(const std::vector<ChannelFlowLine>& lines,
@@ -66,7 +64,15 @@ std::vector<ChannelFlowAtLine> computeChannelFlow(const std::vector<ChannelFlowL
 
 	for (const ChannelFlowLine& line : lines)
 	{
-		flow.push_back({state.names, state.selected, context.deviceChannels.size()});
+		ChannelFlowAtLine atLine;
+		atLine.namesInScope = state.names;
+		atLine.selected = state.selected;
+		atLine.selectionIsAll = state.selectionIsAll;
+		atLine.indent = (state.selectionIsAll ? 0 : 1) + static_cast<int>(ifStack.size());
+		atLine.logicDepth = static_cast<int>(ifStack.size());
+		atLine.deviceChannelCount = context.deviceChannels.size();
+		flow.push_back(std::move(atLine));
+		ChannelFlowAtLine& current = flow.back();
 
 		// A switched-off line is a comment to the engine: it sees the flow
 		// (its controls keep their meaning) and changes nothing.
@@ -106,6 +112,8 @@ std::vector<ChannelFlowAtLine> computeChannelFlow(const std::vector<ChannelFlowL
 		}
 		if (keyword == L"ElseIf" || keyword == L"Else")
 		{
+			current.indent = (state.selectionIsAll ? 0 : 1)
+				+ std::max(0, static_cast<int>(ifStack.size()) - 1);
 			if (!ifStack.empty())
 			{
 				IfFrame& frame = ifStack.back();
@@ -120,6 +128,8 @@ std::vector<ChannelFlowAtLine> computeChannelFlow(const std::vector<ChannelFlowL
 		}
 		if (keyword == L"EndIf")
 		{
+			current.indent = (state.selectionIsAll ? 0 : 1)
+				+ std::max(0, static_cast<int>(ifStack.size()) - 1);
 			// An unbalanced EndIf: is ignored, as the engine ignores it.
 			if (!ifStack.empty())
 			{
@@ -142,7 +152,7 @@ std::vector<ChannelFlowAtLine> computeChannelFlow(const std::vector<ChannelFlowL
 		// after the engine evaluates them, which the Editor cannot do; it sees
 		// the flow and changes nothing (the card path shows such a line as its
 		// raw text, without a Channel or Copy editor).
-		if (hasInlineExpression(line.parameters))
+		if (InlineExpression::containsExpression(line.parameters))
 			continue;
 
 		if (keyword == L"Stage")
@@ -157,9 +167,15 @@ std::vector<ChannelFlowAtLine> computeChannelFlow(const std::vector<ChannelFlowL
 
 		if (keyword == L"Channel")
 		{
+			// A live Channel line starts a new card group at the current If
+			// depth. Hidden and dynamic Channel lines returned above and keep the
+			// enclosing group, just as they keep the engine selection.
+			current.indent = static_cast<int>(ifStack.size());
 			ChannelCommand cmd;
 			ChannelCommand::parse(keyword, line.parameters, cmd);
 			state.selected = ChannelCommand::resolveSelection(cmd.channels, state.names);
+			state.selectionIsAll = cmd.channels.empty()
+				|| std::find(cmd.channels.begin(), cmd.channels.end(), L"ALL") != cmd.channels.end();
 		}
 		else if (keyword == L"Copy")
 		{

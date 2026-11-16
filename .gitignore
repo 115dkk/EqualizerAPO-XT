@@ -14,6 +14,13 @@
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
+# The root release/ folder holds tracked sources (release/ReleaseAssetNames.h).
+# A new source there was ignored without `git add -f` (TECH_DEBT_AUDIT TD-70,
+# audit #467). Build output in a root Release/ folder stays ignored.
+!/release/
+/release/*
+!/release/*.h
+!/release/*.cpp
 [Rr]eleases/
 x64/
 x86/

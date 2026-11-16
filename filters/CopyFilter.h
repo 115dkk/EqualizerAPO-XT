@@ -43,11 +43,18 @@ private:
 
 	struct InternalSummand
 	{
+		enum class Kind
+		{
+			Channel,
+			Constant
+		};
+
+		Kind kind;
 		int channel;
 		double factor;
 
-		InternalSummand(int channel, double factor) noexcept
-			: channel(channel), factor(factor)
+		InternalSummand(Kind kind, int channel, double factor) noexcept
+			: kind(kind), channel(channel), factor(factor)
 		{
 		}
 	};

@@ -206,6 +206,18 @@ namespace
 template <typename IoTraits, typename SampleType>
 void FilterEngine::processImpl(SampleType output, SampleType input, unsigned frameCount)
 {
+	// A driver block larger than the size announced at initialize() cannot enter
+	// fixed-size configuration or filter storage. Passing it through is safe for
+	// every layout; chunking is not (audit #467 TD-10).
+	if (frameCount > maxFrameCount)
+	{
+		lastOversizedFrameCount.store(frameCount, std::memory_order_relaxed);
+		lastOversizedMaxFrameCount.store(maxFrameCount, std::memory_order_relaxed);
+		oversizedBlockCount.fetch_add(1, std::memory_order_relaxed);
+		IoTraits::bypass(output, input, realChannelCount, outputChannelCount, frameCount);
+		return;
+	}
+
 	const uint64_t blockToken = ++processBlockCounter;
 	IInputTap* const tap = inputTap.load(std::memory_order_acquire);
 	PerfScope _eapo_total(IoTraits::totalLabel);

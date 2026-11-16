@@ -4,41 +4,47 @@
 <context>
     <name>DeviceSelector</name>
     <message>
-        <location filename="../DeviceSelector.cpp" line="+63"/>
-        <location line="+37"/>
+        <location filename="../DeviceSelector.cpp" line="+68"/>
+        <location line="+44"/>
         <source>Playback devices</source>
         <translation>Wiedergabegeräte</translation>
     </message>
     <message>
-        <location line="-32"/>
-        <location line="+36"/>
+        <location line="-39"/>
+        <location line="+43"/>
         <source>Capture devices</source>
         <translation>Aufnahmegeräte</translation>
     </message>
     <message>
-        <location line="-28"/>
-        <location line="+306"/>
+        <location line="-35"/>
+        <location line="+17"/>
+        <location line="+297"/>
         <source>Error while accessing the registry</source>
         <translation>Fehler beim Zugriff auf die Registry</translation>
     </message>
     <message>
-        <location line="-294"/>
-        <location line="+365"/>
+        <location line="-302"/>
+        <location line="+357"/>
         <source>Info</source>
         <translation>Info</translation>
     </message>
     <message>
-        <location line="-365"/>
+        <location line="-357"/>
         <source>A registry value that is required for the operation of Equalizer APO was not set correctly. This might have been caused by a driver installation or uninstallation. The value has been corrected. A reboot may be required so that the changes can take effect.</source>
         <translation>Ein Registrywert, der für den Betrieb von Equalizer APO erforderlich ist, war nicht korrekt gesetzt. Dies könnte durch eine Treiberinstallation oder -deinstallation ausgelöst worden sein. Der Wert ist nun korrigiert. Ein Neustart kann erforderlich sein, damit die Änderungen wirksam werden.</translation>
     </message>
     <message>
-        <location line="+56"/>
+        <location line="+6"/>
+        <source>The registry repair did not finish. Reinstall Equalizer APO or see DeviceSelector.log for details.</source>
+        <translation>Die Reparatur der Registry wurde nicht abgeschlossen. Installieren Sie Equalizer APO neu oder sehen Sie in DeviceSelector.log nach Einzelheiten.</translation>
+    </message>
+    <message>
+        <location line="+62"/>
         <source>OK</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+229"/>
+        <location line="+225"/>
         <source>Undoing the change did not finish either, so this device may be left partly changed. Reboot before trying again, and see the log for details.</source>
         <translation>Auch das Rückgängigmachen der Änderung wurde nicht abgeschlossen. Das Gerät kann daher noch teilweise geändert sein. Starten Sie den Computer vor einem erneuten Versuch neu. Einzelheiten finden Sie im Protokoll.</translation>
     </message>
@@ -53,7 +59,7 @@
         <translation>Einzelheiten finden Sie in %1.</translation>
     </message>
     <message>
-        <location line="+432"/>
+        <location line="+416"/>
         <source>APO will be uninstalled</source>
         <translation>APO wird deinstalliert</translation>
     </message>
@@ -83,7 +89,7 @@
         <translation>APO kann installiert werden</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+5"/>
         <source>Voicemeeter was uninstalled</source>
         <translation>Voicemeeter wurde deinstalliert</translation>
     </message>
@@ -103,7 +109,7 @@
         <translation>Nicht angeschlossen</translation>
     </message>
     <message>
-        <location line="-407"/>
+        <location line="-406"/>
         <source>Upgrades available</source>
         <translation>Aktualisierungen verfügbar</translation>
     </message>
@@ -128,8 +134,8 @@
         <translation>APO wird installiert</translation>
     </message>
     <message>
-        <location line="-664"/>
-        <location line="+490"/>
+        <location line="-644"/>
+        <location line="+470"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>
@@ -169,7 +175,7 @@
         <translation type="vanished">Status</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="-305"/>
+        <location filename="../DeviceSelector.cpp" line="-285"/>
         <source>Troubleshooting options (only use in case of problems)</source>
         <translation>Problemlösungsoptionen (nur im Fall von Problemen verwenden)</translation>
     </message>
@@ -319,7 +325,7 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
 <context>
     <name>DeviceTestDialog</name>
     <message>
-        <location filename="../DeviceTestDialog.cpp" line="+43"/>
+        <location filename="../DeviceTestDialog.cpp" line="+45"/>
         <source>Playback devices</source>
         <translation>Wiedergabegeräte</translation>
     </message>
@@ -334,7 +340,7 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <translation>Fehler beim Zugriff auf die Registry</translation>
     </message>
     <message>
-        <location line="+65"/>
+        <location line="+70"/>
         <source>Cannot test APO installation as device is disabled</source>
         <translation>Kann APO-Installation nicht testen, da Gerät deaktiviert ist</translation>
     </message>
@@ -344,7 +350,7 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <translation>Kann APO-Installation nicht testen, da Gerät nicht angeschlossen ist</translation>
     </message>
     <message>
-        <location line="+50"/>
+        <location line="+70"/>
         <location line="+46"/>
         <source>Error</source>
         <translation>Fehler</translation>
@@ -396,7 +402,7 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <translation>COM-Initialisierung fehlgeschlagen (0x%1).</translation>
     </message>
     <message>
-        <location line="+10"/>
+        <location line="+26"/>
         <location line="+177"/>
         <source>Restarting audio service...</source>
         <translation>Starte Audio-Dienst neu...</translation>
@@ -418,7 +424,8 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <translation>Der Gerätetest konnte nicht vorbereitet werden.</translation>
     </message>
     <message>
-        <location line="+11"/>
+        <location line="-36"/>
+        <location line="+47"/>
         <source>Could not remove the device test registration: %1</source>
         <translation>Die Registrierung für den Gerätetest konnte nicht entfernt werden: %1</translation>
     </message>

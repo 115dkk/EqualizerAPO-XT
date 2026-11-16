@@ -39,10 +39,10 @@ namespace eapo::asio
 			}
 
 			// The container a WAVEFORMATEX describes, when it is one of ours.
-			bool containerOf(const WAVEFORMATEX* format, Container& out) noexcept
+			bool containerOf(const WAVEFORMATEX* format, size_t bytes, Container& out) noexcept
 			{
 				waveformat::Container described;
-				if (!waveformat::containerOf(format, described))
+				if (!waveformat::containerOf(format, bytes, described))
 					return false;
 				if (described.floating)
 				{
@@ -68,11 +68,11 @@ namespace eapo::asio
 			}
 		}
 
-		std::vector<Container> containerCandidates(const WAVEFORMATEX* deviceFormat)
+		std::vector<Container> containerCandidates(const WAVEFORMATEX* deviceFormat, size_t deviceFormatBytes)
 		{
 			std::vector<Container> list;
 			Container own;
-			if (containerOf(deviceFormat, own))
+			if (containerOf(deviceFormat, deviceFormatBytes, own))
 				list.push_back(own);
 			for (const Container* candidate : {&float32Container, &int32Container, &int24In32Container, &int24Container, &int16Container})
 			{
@@ -213,11 +213,6 @@ namespace eapo::asio
 				for (unsigned f = 0; f < frames; f++)
 					std::memcpy(out + static_cast<size_t>(f) * bytesPerSample, in + (static_cast<size_t>(f) * channels + c) * bytesPerSample, bytesPerSample);
 			}
-		}
-
-		std::wstring endpointId(bool capture, const std::wstring& endpointGuid)
-		{
-			return std::wstring(capture ? L"{0.0.1.00000000}." : L"{0.0.0.00000000}.") + endpointGuid;
 		}
 
 		// ---- BridgeCalibrator ----
@@ -681,7 +676,8 @@ namespace eapo::asio
 		const WAVEFORMATEX* format = reinterpret_cast<const WAVEFORMATEX*>(port.deviceFormat.data());
 		port.channels = format->nChannels;
 		port.deviceRate = format->nSamplesPerSec;
-		if (format->wFormatTag == WAVE_FORMAT_EXTENSIBLE && format->cbSize >= 22)
+		if (format->wFormatTag == WAVE_FORMAT_EXTENSIBLE && port.deviceFormat.size() >= sizeof(WAVEFORMATEXTENSIBLE)
+			&& format->cbSize >= sizeof(WAVEFORMATEXTENSIBLE) - sizeof(WAVEFORMATEX))
 			port.channelMask = reinterpret_cast<const WAVEFORMATEXTENSIBLE*>(format)->dwChannelMask;
 		else
 			port.channelMask = port.channels == 1 ? SPEAKER_FRONT_CENTER : (port.channels == 2 ? (SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT) : 0);
@@ -702,7 +698,7 @@ namespace eapo::asio
 		if (port.endpoint == nullptr)
 			return false;
 		const WAVEFORMATEX* deviceFormat = port.deviceFormat.empty() ? nullptr : reinterpret_cast<const WAVEFORMATEX*>(port.deviceFormat.data());
-		for (const wasapi::Container& candidate : wasapi::containerCandidates(deviceFormat))
+		for (const wasapi::Container& candidate : wasapi::containerCandidates(deviceFormat, port.deviceFormat.size()))
 		{
 			WAVEFORMATEXTENSIBLE fmt = wasapi::makeFormat(candidate, port.channels, rate, port.channelMask);
 			if (port.endpoint->isFormatSupported(&fmt.Format) == S_OK)

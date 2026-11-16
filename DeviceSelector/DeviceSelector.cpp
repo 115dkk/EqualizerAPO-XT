@@ -32,6 +32,7 @@
 #include <QStyleOptionButton>
 #include <devices/AsioAPOInfo.h>
 #include <devices/DevicePlan.h>
+#include <devices/DeviceChange.h>
 #include <devices/VoicemeeterAPOInfo.h>
 #include "DeviceTestDialog.h"
 #include "ResidentHostLauncher.h"
@@ -86,13 +87,19 @@ DeviceSelector::DeviceSelector(QWidget* parent)
 	finishSetup();
 
 	const auto verification = ApoRegistration::verify(systemRegistry(), true);
-	bool fixedAudioDG = !verification.protectedAudioDG;
-	bool fixedRegistration = !verification.registration;
-	if (fixedAudioDG || fixedRegistration)
+	switch (ApoRegistration::repairNotice(verification))
 	{
+	case ApoRegistration::RepairNotice::Repaired:
 		QMessageBox::information(this, tr("Info"), tr("A registry value that is required for the operation of Equalizer APO was not set correctly. "
 			"This might have been caused by a driver installation or uninstallation. The value has been corrected. A reboot may be required so that the changes can take effect."));
 		askForReboot = true;
+		break;
+	case ApoRegistration::RepairNotice::Failed:
+		QMessageBox::warning(this, tr("Error while accessing the registry"),
+			tr("The registry repair did not finish. Reinstall Equalizer APO or see DeviceSelector.log for details."));
+		break;
+	case ApoRegistration::RepairNotice::None:
+		break;
 	}
 }
 
@@ -117,6 +124,11 @@ DeviceSelector::DeviceSelector(const std::vector<std::shared_ptr<AbstractAPOInfo
 void DeviceSelector::setupChrome()
 {
 	ui.setupUi(this);
+	// Bind the three labelled .ui rows to their values, not enum ordinals
+	// (audit #467 TD-50).
+	ui.installModeComboBox->setItemData(0, static_cast<int>(DeviceAPOInfo::INSTALL_LFX_GFX));
+	ui.installModeComboBox->setItemData(1, static_cast<int>(DeviceAPOInfo::INSTALL_SFX_MFX));
+	ui.installModeComboBox->setItemData(2, static_cast<int>(DeviceAPOInfo::INSTALL_SFX_EFX));
 
 	setWindowFlags(windowFlags().setFlag(Qt::WindowContextHelpButtonHint, false));
 
@@ -208,7 +220,7 @@ void DeviceSelector::addDevices(const std::vector<std::shared_ptr<AbstractAPOInf
 		bool checked = false;
 		if (apoInfo->isInstalled())
 		{
-			if (apoInfo->stateNote() == L"Voicemeeter was uninstalled")
+			if (apoInfo->isBackingProductMissing())
 				checked = false;
 			else
 				checked = true;
@@ -351,7 +363,7 @@ void DeviceSelector::onDeviceContextMenuRequested(const QPoint& pos)
 
 void DeviceSelector::onDialogAccepted()
 {
-	bool deviceUpdated = false;
+	auto applied = DeviceChange::apply({}, DeviceChange::Context::Dialog);
 
 	for (int index = 0; index < ui.deviceTreeWidget->topLevelItemCount(); index++)
 	{
@@ -367,9 +379,8 @@ void DeviceSelector::onDialogAccepted()
 			// here: where to find that log, and the one case where the
 			// endpoint was *not* put back, which the user has to know about
 			// before they try again.
-			auto reportFailure = [&](const std::wstring& error) {
+			auto reportFailure = [&](const std::wstring& error, const DeviceInstallReport& report) {
 				QString message = QString::fromStdWString(error);
-				const DeviceInstallReport& report = info->getLastOperationReport();
 				if (report.leftInconsistent())
 				{
 					message += QLatin1String("\n\n") + tr("Undoing the change did not finish either, so this "
@@ -384,48 +395,31 @@ void DeviceSelector::onDialogAccepted()
 				QMessageBox::critical(this, tr("Error while accessing the registry"), message);
 			};
 
-			try
-			{
-				const DevicePlan plan = planFor(checked, deviceFactsOf(*info));
-				switch (plan.action)
-				{
-				case DeviceAction::Install:
-					info->install();
-					break;
-				case DeviceAction::Uninstall:
-					info->uninstall();
-					break;
-				case DeviceAction::Reinstall:
-					info->reinstall();
-					break;
-				case DeviceAction::None:
-					break;
-				}
-				if (plan.changesSomething())
-					deviceUpdated = deviceUpdated || info->changesNeedAudioRestart();
-			}
-			catch (const WideError& e)
-			{
-				// Every adapter operation throws WideError only
-				// (AbstractAPOInfo.h). An escaping exception here used to end
-				// the elevated process mid-install (audit #348 TD-06).
-				reportFailure(e.getMessage());
-			}
+			const DevicePlan plan = planFor(checked, deviceFactsOf(*info));
+			const auto result = DeviceChange::apply({ { plan, info.get() } }, DeviceChange::Context::Dialog);
+			applied.restartAudio = applied.restartAudio || result.restartAudio;
+			// Every adapter operation throws WideError only (AbstractAPOInfo.h).
+			// apply captures it so one failure cannot end the elevated process
+			// mid-install (audit #348 TD-06).
+			if (!result.devices.front().error.empty())
+				reportFailure(result.devices.front().error, result.devices.front().report);
 		}
 	}
 
 	// Process inspection and launch errors use the same wide error contract.
 	try
 	{
-		VoicemeeterAPOInfo::ensureVoicemeeterClientRunning();
+		if (applied.startVoicemeeterClient)
+			VoicemeeterAPOInfo::ensureVoicemeeterClientRunning();
 	}
 	catch (const WideError& e)
 	{
 		LogFStatic(L"Could not start the Voicemeeter client: %s", e.getMessage().c_str());
 	}
 
-	LogFStatic(L"%s", ResidentHostLauncher::ensureStarted().c_str());
-	finish(deviceUpdated);
+	if (applied.startResidentHost)
+		LogFStatic(L"%s", ResidentHostLauncher::ensureStarted().c_str());
+	finish(applied.restartAudio);
 }
 
 void DeviceSelector::onDialogRejected()
@@ -574,7 +568,7 @@ void DeviceSelector::onTroubleShootingOptionChanged()
 			else if (sender == ui.useOriginalAPOPostMixCheckBox)
 				deviceInfo->getSelectedInstallState().useOriginalAPOPostMix = ui.useOriginalAPOPostMixCheckBox->isChecked();
 			else if (sender == ui.installModeComboBox)
-				deviceInfo->getSelectedInstallState().installMode = (DeviceAPOInfo::InstallMode)ui.installModeComboBox->currentIndex();
+				deviceInfo->getSelectedInstallState().installMode = static_cast<DeviceAPOInfo::InstallMode>(ui.installModeComboBox->currentData().toInt());
 			else if (sender == ui.allowSilentBufferCheckBox)
 				deviceInfo->getSelectedInstallState().allowSilentBufferModification = ui.allowSilentBufferCheckBox->isChecked();
 			else if (sender == ui.autoCheckBox)
@@ -680,9 +674,9 @@ void DeviceSelector::updateButtons()
 			asioOptions = installState.asioEntryOptions;
 			asioCanHost32 = deviceApoInfo->canHostAsio32();
 		}
-		// Keyed on the transport label, not the class, so the preview roster
+		// Keyed on the device kind, not the class, so the preview roster
 		// (plain preview records marked ASIO) shows the page in the gallery.
-		asioSelected = apoInfo->getTransportLabel() == L"ASIO";
+		asioSelected = apoInfo->kind() == AbstractAPOInfo::Kind::Asio;
 		const AsioAPOInfo* asioInfo = dynamic_cast<const AsioAPOInfo*>(apoInfo.get());
 		if (asioInfo != nullptr)
 		{
@@ -727,7 +721,7 @@ void DeviceSelector::updateButtons()
 	ui.useOriginalAPOPreMixCheckBox->setChecked(installState.useOriginalAPOPreMix && hasOriginalAPOPreMix);
 	ui.useOriginalAPOPostMixCheckBox->setChecked(installState.useOriginalAPOPostMix && hasOriginalAPOPostMix);
 
-	ui.installModeComboBox->setCurrentIndex(installState.installMode);
+	ui.installModeComboBox->setCurrentIndex(ui.installModeComboBox->findData(static_cast<int>(installState.installMode)));
 
 	ui.allowSilentBufferCheckBox->setChecked(installState.allowSilentBufferModification);
 	ui.asioEntryCheckBox->setChecked(installState.asioEntry);
@@ -827,7 +821,7 @@ QString DeviceSelector::getStateText(const std::shared_ptr<AbstractAPOInfo>& apo
 		break;
 	}
 
-	if (apoInfo->stateNote() == L"Voicemeeter was uninstalled")
+	if (apoInfo->isBackingProductMissing())
 		state += ", " + tr("Voicemeeter was uninstalled");
 	else if (apoInfo->isDefaultDevice())
 		state += ", " + tr("Default device");

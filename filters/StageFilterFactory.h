@@ -20,7 +20,6 @@
 #pragma once
 
 #include <string>
-#include <stack>
 
 #include "engine/IFilterFactory.h"
 #include "engine/IFilter.h"
@@ -28,10 +27,9 @@
 class StageFilterFactory : public IFilterFactory
 {
 public:
+	ConfigGateBoundary gateBoundary() const override {return ConfigGateBoundary::If;}
 	FilterVector startOfConfiguration() override;
-	FilterVector startOfFile(const std::wstring& configPath) override;
 	LineOutcome createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
-	FilterVector endOfFile(const std::wstring& configPath) override;
 
 protected:
 	void onInitialize(FilterEngine& engine) override;
@@ -42,7 +40,4 @@ private:
 	bool enginePreMix = false;
 	bool engineCapture = false;
 	bool enginePostMixInstalled = false;
-
-	bool stageMatches = false;
-	std::stack<bool> stageMatchesStack;
 };

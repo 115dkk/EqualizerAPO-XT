@@ -27,6 +27,24 @@
 
 class FilterEngine;
 
+// How far through the ordered control-flow factories a line may travel. The
+// engine checks the load session's gates at each boundary and records one
+// SkippedLine when the next boundary is closed (audit #467 TD-45).
+enum class ConfigGateBoundary
+{
+	None,
+	Device,
+	If,
+	Stage
+};
+
+enum class ConfigGateKind
+{
+	Device,
+	If,
+	Stage
+};
+
 struct LineOutcome
 {
 	enum class Kind
@@ -76,10 +94,13 @@ class IFilterFactory
 public:
 	virtual ~IFilterFactory() {}
 
-	void initialize(FilterEngine& engine);
 	void initialize(FilterEngine* engine);
 	virtual FilterVector startOfConfiguration() {return {};}
 	virtual FilterVector startOfFile(const std::wstring& configPath) {return {};}
+	// Processing factories use the default Stage boundary. Control factories
+	// override this to run before the gate they own, preserving the registry's
+	// established Device -> If -> Expression/Include -> Stage order.
+	virtual ConfigGateBoundary gateBoundary() const {return ConfigGateBoundary::Stage;}
 	// The engine offers each config line to every factory in priority order.
 	// Consumed and Produced stop dispatch, Malformed stops dispatch and gives the
 	// engine one reason to report, and NotMine advances to the next factory.

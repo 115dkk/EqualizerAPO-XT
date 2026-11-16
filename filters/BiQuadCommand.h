@@ -64,12 +64,14 @@ struct BiQuadCommand
 //   - LP/LPQ, HP/HPQ and LS/LSC all map to one BiQuad::Type; the spelling that
 //     was written is not recorded.
 //   - A shelf slope is stored divided by 12, not as it was typed.
-// The Editor's BiQuadFilterGUI::store() is therefore the single serializer, and it
+// The Editor's BiQuadFilterGUI::store() therefore serializes on its own (the
+// all-pass card, AllPassCardEditor::store(), is the one other writer and covers
+// only "AP" lines from its own controls; audit #467 TD-77), and it
 // emits from the GUI mode selectors (the Fixed/Q/BW/Slope and centre/corner combo
 // boxes) - state this Qt-free struct does not carry. A shared serializer would have
 // to live in the GUI and read those widgets, so it would relocate store() rather
-// than remove a duplicate: the engine never serializes BiQuad lines, so no second
-// serializer exists to consolidate.
+// than remove a duplicate: the engine never serializes BiQuad lines, so there is no
+// engine-side serializer to consolidate it with.
 
 // Maps a config-line type keyword (e.g. L"PK", L"LSC", L"Modal") to a BiQuad
 // type. Returns false for unknown keywords. This is the single owner of the

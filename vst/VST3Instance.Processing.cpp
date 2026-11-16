@@ -211,12 +211,12 @@ private:
 };
 
 std::unique_ptr<VSTPluginInstance> createVST3Instance(
-	const std::shared_ptr<VSTPluginLibrary>& library, int processLevel)
+	const std::shared_ptr<VSTPluginLibrary>& library, VSTPluginInstance::ProcessLevel processLevel)
 {
 	return std::make_unique<VST3Instance>(library, processLevel);
 }
 
-VST3Instance::VST3Instance(const std::shared_ptr<VSTPluginLibrary>& library, int processLevel)
+VST3Instance::VST3Instance(const std::shared_ptr<VSTPluginLibrary>& library, VSTPluginInstance::ProcessLevel processLevel)
 	: VSTPluginInstance(library, processLevel), vst3InputParameterChanges(new VST3ParameterChanges())
 {
 }
@@ -344,10 +344,10 @@ bool VST3Instance::canProcessNow() const
 	return vst3Lifecycle.canProcessNow();
 }
 
-void VST3Instance::prepareForProcessing(float sampleRate, int blockSize)
+bool VST3Instance::prepareProcessingImpl(float sampleRate, int blockSize)
 {
 	if (vst3Processor == NULL || vst3Component == NULL)
-		return;
+		return false;
 
 	this->sampleRate = sampleRate;
 	// The bus width was negotiated in initialize()/negotiateChannelCount()
@@ -361,13 +361,14 @@ void VST3Instance::prepareForProcessing(float sampleRate, int blockSize)
 	setup.symbolicSampleSize = vst3SupportsDouble ? kSample64 : kSample32;
 	setup.maxSamplesPerBlock = blockSize;
 	setup.sampleRate = sampleRate;
-	vst3Lifecycle.setupProcessing(setup);
+	const bool prepared = vst3Lifecycle.setupProcessing(setup);
 	vst3SamplePosition = 0;
+	return prepared;
 }
 
-void VST3Instance::startProcessing()
+bool VST3Instance::startProcessing()
 {
-	vst3Lifecycle.startProcessing();
+	return vst3Lifecycle.startProcessing();
 }
 
 template<typename SampleType>

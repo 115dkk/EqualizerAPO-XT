@@ -41,9 +41,11 @@ IFilterGUI* MultiConvolutionFilterGUIFactory::createFilterGUI(QString& command, 
 	// channel and path yet. The Insert menu drops a bare "MultiConvolution:"
 	// template with empty parameters; MultiConvolutionCommand::parse rejects that
 	// (it needs both tokens), but ConvolutionCommand::parse is lenient enough to
-	// accept a bare "Convolution:" for exactly this reason. FilterTable only swaps
-	// in the modern card when a legacy GUI already exists, so returning null here
-	// would leave the freshly inserted row with no editor at all.
+	// accept a bare "Convolution:" for exactly this reason. This chain runs
+	// when no card editor took the line (the legacy list, or a card creator
+	// that returned nothing: FilterTable::createFilterGUI decides the card
+	// first and builds no legacy GUI for a card-covered line), so returning
+	// null here would leave such a row with no editor at all.
 	if (command != QStringLiteral("MultiConvolution"))
 		return nullptr;
 

@@ -25,13 +25,11 @@
 #include "Editor/widgets/GraphicEQPlotWidget.h"
 #include "Editor/widgets/ValueScrubBox.h"
 #include "FilterCardEditorRegistry.h"
+#include "GraphicEQCsv.h"
 #include "filters/GraphicEQCommand.h"
 #include "Editor/widgets/FilterCardModel.h"
 
-using std::sort;
 using std::vector;
-
-QRegularExpression GraphicEQCardEditor::numberRegEx("[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?");
 
 namespace
 {
@@ -323,39 +321,7 @@ void GraphicEQCardEditor::importTriggered()
 	if (dialog.exec() != QDialog::Accepted)
 		return;
 
-	vector<FilterNode> newNodes;
-	for (const QString& path : dialog.selectedFiles())
-	{
-		QFile file(path);
-		if (file.open(QFile::ReadOnly))
-		{
-			QTextStream stream(&file);
-			while (!stream.atEnd())
-			{
-				QString text = stream.readLine();
-				if (text.startsWith('*'))
-					continue;
-
-				if (!text.contains('.'))
-					text = text.replace(',', '.');
-				QRegularExpressionMatchIterator it = numberRegEx.globalMatch(text);
-				while (it.hasNext())
-				{
-					QRegularExpressionMatch match = it.next();
-					bool ok;
-					double freq = match.captured().toDouble(&ok);
-					if (ok && it.hasNext())
-					{
-						match = it.next();
-						double gain = match.captured().toDouble(&ok);
-						if (ok)
-							newNodes.push_back(FilterNode(freq, gain));
-					}
-				}
-			}
-		}
-	}
-	sort(newNodes.begin(), newNodes.end());
+	const vector<FilterNode> newNodes = GraphicEQCsv::readNodes(dialog.selectedFiles());
 
 	const int bandCount = verifyBands(newNodes);
 	plot->setBandCount(bandCount);
@@ -381,23 +347,14 @@ void GraphicEQCardEditor::exportTriggered()
 	if (dialog.exec() != QDialog::Accepted)
 		return;
 
-	QFile file(dialog.selectedFiles().first());
-	if (file.open(QFile::WriteOnly | QFile::Truncate))
-	{
-		QTextStream stream(&file);
-		for (const FilterNode& node : plot->nodes())
-			stream << node.freq << '\t' << node.dbGain << '\n';
-		stream.flush();
-	}
+	// A file that does not open is left alone without a message, as in the
+	// legacy GUI.
+	GraphicEQCsv::writeNodesToFile(dialog.selectedFiles().first(), plot->nodes());
 }
 
 void GraphicEQCardEditor::invertTriggered()
 {
-	vector<FilterNode> newNodes = plot->nodes();
-	for (FilterNode& node : newNodes)
-		node.dbGain = -node.dbGain;
-
-	plot->setNodes(newNodes);
+	plot->setNodes(GraphicEQCsv::inverted(plot->nodes()));
 	syncReadout();
 	emit updateModel();
 }

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Sources shared by the Editor, DeviceSelector and the two suites that exercise
+  installation. The qmake applications keep their own lists; the MSBuild suites
+  import this file so the executable-side installation closure is written once.
+-->
+<Project>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ApoRegistration.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\security\AudioEngineAccess.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\diagnostics\InstallDiagnostics.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\windows\WindowsService.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\shell\StartMenuShortcuts.h" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ApoRegistration.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\security\AudioEngineAccess.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\diagnostics\InstallDiagnostics.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\windows\WindowsService.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\shell\StartMenuShortcuts.cpp" />
+  </ItemGroup>
+</Project>

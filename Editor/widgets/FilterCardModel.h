@@ -15,11 +15,17 @@
 #include <string>
 #include <vector>
 
+#include "ChannelFlow.h"
+#include "Editor/widgets/FilterCardKind.h"
+
 struct FilterCardDescriptor
 {
 	QString command;
 	QString parameters;
 	QString type;
+	// The kind type names. describeLine writes the two together and is their
+	// only writer; branch on this, pass type on (properties, names, logs).
+	FilterCardKind kind = FilterCardKind::Unknown;
 	QString badge;
 	QString title;
 	QString summary;
@@ -27,7 +33,7 @@ struct FilterCardDescriptor
 	QStringList channelBadges;
 	// The enclosing Channel: selection this row runs under (empty when the
 	// selection is ALL or there is none). Like logicDepth, this comes from
-	// neighbouring-line context (the build plan / calculateScopes), not from
+	// neighbouring-line context (the document plan), not from
 	// the line itself, so the row preserves it across describeLine()
 	// re-derivations.
 	QStringList scopeChannels;
@@ -47,7 +53,7 @@ struct FilterCardDescriptor
 	bool channelBadgesAreCopyTargets = false;
 };
 
-// Per-row scope answer of calculateScopes(): the indent that drives the left
+// Per-row scope answer of the document walk: the indent that drives the left
 // margin plus the If-nesting count that skins use to draw block rails. The two
 // differ on the If family's own lines: ElseIf/Else/EndIf indent at their block
 // head's level (indent = outer scopes) while still belonging to the scope they
@@ -72,6 +78,15 @@ struct FilterCardBuildPlan
 	FilterCardRowScope scope;
 };
 
+// One document-model pass for FilterTable. Rows and channel-flow consumers
+// share this result, so a rebuild or incremental edit never walks the same
+// lines once for badges and again for editors.
+struct FilterCardDocumentPlan
+{
+	QVector<FilterCardBuildPlan> rows;
+	std::vector<ChannelFlowAtLine> channelFlow;
+};
+
 class FilterCardModel
 {
 	// describeLine() produces the human-readable card title/summary strings. It is
@@ -82,8 +97,8 @@ class FilterCardModel
 public:
 	static FilterCardDescriptor describeLine(const QString& line, int depth = 0);
 	// One row's presentation: the line's own descriptor with the scope its
-	// neighbours put it in (calculateScopes) applied. The single entry every
-	// row build goes through - prepareRows for a whole rebuild, the
+	// neighbours put it in (the document walk) applied. The single entry every
+	// row build goes through - prepareDocument for a whole rebuild, the
 	// incremental single-row paths and a card's own summary rebuild - so a
 	// row built one way cannot come out different from the same row built
 	// another way.
@@ -91,7 +106,10 @@ public:
 	// The scope a descriptor was built under (the inverse of the scope half
 	// of describeRow), for a row that re-derives its own line in place.
 	static FilterCardRowScope scopeOf(const FilterCardDescriptor& descriptor);
-	static QVector<FilterCardBuildPlan> prepareRows(const QList<QString>& lines);
+	// Parses the lines for presentation, then runs ChannelFlow once with the
+	// selected device/stage context. FilterTable uses both halves of the result.
+	static FilterCardDocumentPlan prepareDocument(const QList<QString>& lines,
+		const ChannelFlowContext& context);
 	// The modern stroke pictogram for a card's type badge, keyed by the
 	// descriptor (matching the picker tiles). Biquad rows split by their type
 	// code so every EQ shape carries its response-curve glyph; an unmapped
@@ -104,10 +122,6 @@ public:
 	// Shared command vocabulary used by picker entries and card badges.
 	// Parameters are consulted only for the Filter response-curve split.
 	static QString commandIconResource(const QString& command, const QString& parameters = QString());
-	// Full per-row scope description: indent depth (channel group + If nesting)
-	// and the If-nesting count. Commented-out lines never open or close scopes,
-	// matching the engine (a '#' line is a comment to the parser too).
-	static QVector<FilterCardRowScope> calculateScopes(const QList<QString>& lines);
 	static QString commandForLine(const QString& line, QString* parameters);
 	// The engine's own answer to "is this key a command the engine runs, and
 	// which one": FilterFactoryRegistry::canonicalCommand brought across the Qt
@@ -125,13 +139,6 @@ public:
 	// A line that is a note, not a disabled command; such a line has no
 	// "command: parameters" shape, so FilterTable routes it to the comment card.
 	static bool isPureCommentLine(const QString& line);
-	// True when the parameter text carries inline `expression` segments (the
-	// shared InlineExpression lexer decides, so "\`" escapes and empty
-	// segments follow the engine exactly). Such a line's numbers are decided
-	// at load time; editors that would parse and re-serialize them must stand
-	// down or open in dynamic mode, or a knob turn silently destroys the
-	// expression.
-	static bool hasInlineExpressions(const QString& parameters);
 	// The raw-body eligibility rule the five skins used to restate verbatim:
 	// bare/unmodelled lines (raw text, the If family, Eval) and dynamic lines
 	// host the shared raw editor, so a skin's inline raw styling applies to
@@ -166,7 +173,6 @@ public:
 
 private:
 	static void applyScope(FilterCardDescriptor& descriptor, const FilterCardRowScope& scope);
-	static QStringList parseChannelList(const QString& text);
 	static QString compactWhitespace(const QString& text);
 	static bool isDisabledCommandLine(const QString& line);
 };

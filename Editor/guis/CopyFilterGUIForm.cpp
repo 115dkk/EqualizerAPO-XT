@@ -145,7 +145,7 @@ void CopyFilterGUIForm::setChannelNames(const vector<wstring>& channelNames)
 	}
 }
 
-vector<Assignment> CopyFilterGUIForm::buildAssignments(QWidget* pressedButton)
+vector<Assignment> CopyFilterGUIForm::buildAssignments(const QWidget* pressedButton)
 {
 	vector<Assignment> assignments;
 
@@ -202,7 +202,7 @@ vector<Assignment> CopyFilterGUIForm::buildAssignments(QWidget* pressedButton)
 
 void CopyFilterGUIForm::addSummand()
 {
-	QWidget* addSummandButton = qobject_cast<QWidget*>(sender());
+	const QWidget* addSummandButton = qobject_cast<QWidget*>(sender());
 
 	vector<Assignment> assignments = buildAssignments(addSummandButton);
 
@@ -211,7 +211,7 @@ void CopyFilterGUIForm::addSummand()
 
 void CopyFilterGUIForm::remove()
 {
-	QWidget* removeButton = qobject_cast<QWidget*>(sender());
+	const QWidget* removeButton = qobject_cast<QWidget*>(sender());
 
 	vector<Assignment> assignments = buildAssignments(removeButton);
 

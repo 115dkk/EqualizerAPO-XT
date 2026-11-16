@@ -5,6 +5,7 @@
 */
 
 #include "BackgroundProbe.h"
+#include "platform/windows/ThreadWait.h"
 
 #include <condition_variable>
 #include <deque>
@@ -71,7 +72,7 @@ public:
 			receiver = nullptr;
 	}
 
-	void shutdown()
+	bool shutdown()
 	{
 		{
 			std::lock_guard<std::mutex> lock(mutex);
@@ -79,8 +80,7 @@ public:
 			queued.clear();
 		}
 		condition.notify_one();
-		if (worker.joinable())
-			worker.join();
+		return winutil::joinThreadFor(worker, BackgroundProbe::kShutdownTimeoutMs);
 	}
 
 private:
@@ -163,8 +163,7 @@ void BackgroundProbe::run(QObject* context, std::function<void()> work, std::fun
 	queue().run(context, std::move(work), std::move(done));
 }
 
-void BackgroundProbe::shutdown()
+bool BackgroundProbe::shutdown()
 {
-	if (existing != nullptr)
-		existing->shutdown();
+	return existing == nullptr || existing->shutdown();
 }

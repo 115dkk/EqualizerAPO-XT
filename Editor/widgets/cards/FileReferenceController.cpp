@@ -20,6 +20,28 @@ FileReferenceController::FileReferenceController(const QString& kind,
 {
 }
 
+void FileReferenceController::attach(std::function<QString()> configPath, std::function<void()> committed)
+{
+	configPathSource = std::move(configPath);
+	onCommitted = std::move(committed);
+}
+
+QString FileReferenceController::resolvedAbsolutePath()
+{
+	if (!configPathSource)
+		return QString();
+
+	resolveAgainstConfig(configPathSource());
+	return resolved;
+}
+
+void FileReferenceController::commitWrittenPath(const QString& text)
+{
+	setWrittenPath(text);
+	if (onCommitted)
+		onCommitted();
+}
+
 const QString& FileReferenceController::writtenPath() const
 {
 	return written;
@@ -124,14 +146,55 @@ QString FileReferenceController::audioServiceProblem(const QString& absolutePath
 {
 	// The offscreen gallery renders synthetic files with no meaningful ACL or
 	// location story.
-	if (absolutePath.isEmpty() || qEnvironmentVariableIsSet("EAPO_SKIN_GALLERY"))
+	if (absolutePath.isEmpty() || !checksAudioService())
 		return {};
 
+	return audioServiceProblemText(audioServiceVerdict(absolutePath, configPath));
+}
+
+void FileReferenceController::askNothing()
+{
+	probes.clear();
+}
+
+namespace
+{
+// Written at start-up (or by a test) on the UI thread, read there too.
+FileReferenceController::Policy installedPolicy;
+}
+
+void FileReferenceController::installPolicy(const Policy& policy)
+{
+	installedPolicy = policy;
+}
+
+bool FileReferenceController::checksAudioService()
+{
+	return installedPolicy.checkAudioService;
+}
+
+FileReferenceController::AudioServiceVerdict FileReferenceController::audioServiceVerdict(
+	const QString& absolutePath, const QString& configPath)
+{
 	const std::wstring path = QDir::toNativeSeparators(absolutePath).toStdWString();
 	std::wstring reason;
 	if (!ConfigPathPolicy::allowsOpen(path, QDir::toNativeSeparators(configPath).toStdWString(), reason))
-		return QCoreApplication::translate("FileReferenceController", "The audio service only opens files on local drives");
+		return AudioServiceVerdict::NotOnLocalDrive;
 	if (!AudioEngineAccess::isReadableByAudioEngine(path))
+		return AudioServiceVerdict::NotReadable;
+	return AudioServiceVerdict::Opens;
+}
+
+QString FileReferenceController::audioServiceProblemText(AudioServiceVerdict verdict)
+{
+	switch (verdict)
+	{
+	case AudioServiceVerdict::NotOnLocalDrive:
+		return QCoreApplication::translate("FileReferenceController", "The audio service only opens files on local drives");
+	case AudioServiceVerdict::NotReadable:
 		return QCoreApplication::translate("FileReferenceController", "Not readable by the audio service");
+	case AudioServiceVerdict::Opens:
+		break;
+	}
 	return {};
 }

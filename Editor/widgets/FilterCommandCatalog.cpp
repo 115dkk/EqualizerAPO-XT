@@ -8,6 +8,8 @@
 
 #include <QCoreApplication>
 
+#include "Editor/widgets/FilterCardKind.h"
+
 namespace FilterCommandCatalog
 {
 namespace
@@ -131,7 +133,7 @@ QString badgeIconResource(const QString& type, const QString& badge)
 	// response-curve glyphs (LPQ rides with LP, LSC with LS, PEQ/MODAL with
 	// PK); an unparsed biquad ("BQUAD", "IIR") falls through to the Filter
 	// entry's generic peaking curve below, mirroring the picker's fallback.
-	if (type == QLatin1String("biquad"))
+	if (filterCardKindFromType(type) == FilterCardKind::Biquad)
 		for (const BiquadCurveEntry& curve : biquadCurves())
 			if (badge.startsWith(QLatin1String(curve.code)))
 				return iconResource(curve.icon);

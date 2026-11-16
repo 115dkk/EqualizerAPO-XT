@@ -82,22 +82,9 @@ int framesToMs(UINT32 frames, UINT32 sampleRate)
 	return static_cast<int>(frames * 1000ull / sampleRate);
 }
 
-// The sample width of the preview process calls. prepareForProcessing
-// declares kSample64 to a double-capable VST3 processor, so the feed must
-// hand over the width the setup promised; the float paths cover the rest.
-enum class ProcessWidth
-{
-	// processDoubleReplacing: double-capable VST3 and VST2 effects.
-	Double64,
-	// processReplacing: float-only processors.
-	Float32,
-	// VST2 process(), which accumulates into the output; the scratch is
-	// zeroed before every call so accumulation equals replacement.
-	Float32Accumulate
-};
-
-// The planar block buffers for one sample width. Only the width the session
-// picked is ever allocated.
+// The preview uses float capture/playback; VSTPluginInstance owns any
+// conversion to the width promised to the plug-in during preparation.
+// The planar block buffers for capture and playback.
 template<typename SampleType>
 struct PlanarBuffers
 {
@@ -127,7 +114,8 @@ struct PlanarBuffers
 		for (size_t channel = 0; channel < input.size(); channel++)
 		{
 			SampleType* planar = input[channel].data();
-			if (silent || captureChannelCount == 0)
+			// A null stream is silence too: processSilence passes none.
+			if (silent || captureChannelCount == 0 || interleaved == nullptr)
 			{
 				std::fill_n(planar, chunk, SampleType(0));
 				continue;
@@ -163,24 +151,12 @@ struct PlanarBuffers
 // The one call into third-party processing code, isolated so a crashing
 // plug-in freezes its meters instead of taking the Editor down. Kept free of
 // objects requiring stack unwinding because of the __try guard (MSVC C2712).
-bool processGuarded(VSTPluginInstance* effect, ProcessWidth width, float** inputPointers,
-	float** outputPointers, double** inputPointersDouble, double** outputPointersDouble,
-	int frameCount) noexcept
+bool processGuarded(VSTPluginInstance* effect, float** inputPointers,
+	float** outputPointers, unsigned frameCount) noexcept
 {
 	__try
 	{
-		switch (width)
-		{
-		case ProcessWidth::Double64:
-			effect->processDoubleReplacing(inputPointersDouble, outputPointersDouble, frameCount);
-			break;
-		case ProcessWidth::Float32:
-			effect->processReplacing(inputPointers, outputPointers, frameCount);
-			break;
-		case ProcessWidth::Float32Accumulate:
-			effect->process(inputPointers, outputPointers, frameCount);
-			break;
-		}
+		effect->processBlock(inputPointers, outputPointers, frameCount);
 		return true;
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
@@ -194,14 +170,12 @@ struct PanelFeedEngine::EngineState
 {
 	VSTPluginInstance* effect = nullptr;
 	Options options;
-	ProcessWidth width = ProcessWidth::Float32;
-	bool ownsProcessingState = false;
+	VSTPluginInstance::ProcessingLease processingLease;
 	ComPtr<IMMDevice> device;
 	ComPtr<IAudioClient> audioClient;
 	ComPtr<IAudioCaptureClient> captureClient;
 	CoTaskMem<WAVEFORMATEX> mixFormat;
 	PlanarBuffers<float> floatBuffers;
-	PlanarBuffers<double> doubleBuffers;
 	// min(plugin outputs, endpoint channels): the channels the monitor can
 	// make audible, which is also the set the gate listens to.
 	UINT32 monitoredChannels = 0;
@@ -220,42 +194,27 @@ struct PanelFeedEngine::EngineState
 
 	bool process(UINT32 chunk)
 	{
-		return processGuarded(effect, width,
-			floatBuffers.inputPointers.data(), floatBuffers.outputPointers.data(),
-			doubleBuffers.inputPointers.data(), doubleBuffers.outputPointers.data(),
-			static_cast<int>(chunk));
+		return processGuarded(effect,
+			floatBuffers.inputPointers.data(), floatBuffers.outputPointers.data(), chunk);
 	}
 
 	// Feeds one block of silence through the plugin; shared by the idle half
 	// of Listen and the whole of Render.
 	bool processSilence(UINT32 chunk)
 	{
-		if (width == ProcessWidth::Double64)
-		{
-			doubleBuffers.convertInput(nullptr, 0, chunk, 0, true);
-		}
-		else
-		{
-			floatBuffers.convertInput(nullptr, 0, chunk, 0, true);
-			if (width == ProcessWidth::Float32Accumulate)
-				floatBuffers.zeroOutput();
-		}
+		floatBuffers.convertInput(nullptr, 0, chunk, 0, true);
 		return process(chunk);
 	}
 
 	double outputPeak(UINT32 chunk) const
 	{
-		return width == ProcessWidth::Double64
-			? doubleBuffers.outputPeak(chunk, monitoredChannels)
-			: floatBuffers.outputPeak(chunk, monitoredChannels);
+		return floatBuffers.outputPeak(chunk, monitoredChannels);
 	}
 
 	// Reads one processed output sample as float for the monitor playback.
 	float outputSample(UINT32 channel, UINT32 frame) const
 	{
-		return width == ProcessWidth::Double64
-			? static_cast<float>(doubleBuffers.outputScratch[channel][frame])
-			: floatBuffers.outputScratch[channel][frame];
+		return floatBuffers.outputScratch[channel][frame];
 	}
 };
 
@@ -288,20 +247,19 @@ bool PanelFeedEngine::start(VSTPluginInstance* effect, const Options& options)
 	if (effect == nullptr)
 		return false;
 
-	const int inputChannelCount = effect->numInputs();
-	const int outputChannelCount = effect->numOutputs();
-	if (inputChannelCount <= 0 || outputChannelCount <= 0)
+	// Keep the card's accepted buses; a zero automatic width only validates
+	// the current layout before any preview buffers are allocated.
+	VSTPluginInstance::NegotiationRequest request;
+	request.channelCount = 0;
+	const auto layout = effect->negotiate(request);
+	if (!layout.accepted || layout.inputs <= 0 || layout.outputs <= 0)
 		return false;
+	const int inputChannelCount = layout.inputs;
+	const int outputChannelCount = layout.outputs;
 
 	auto s = std::make_unique<EngineState>();
 	s->effect = effect;
 	s->options = options;
-	if (effect->canDoubleReplacing())
-		s->width = ProcessWidth::Double64;
-	else if (effect->canReplacing())
-		s->width = ProcessWidth::Float32;
-	else
-		s->width = ProcessWidth::Float32Accumulate;
 
 	ComPtr<IMMDeviceEnumerator> enumerator;
 	HRESULT hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr,
@@ -364,12 +322,11 @@ bool PanelFeedEngine::start(VSTPluginInstance* effect, const Options& options)
 
 	// VST3 setupProcessing is only legal while the processor is deactivated,
 	// which is why start() must precede the activation - see the header.
-	effect->prepareForProcessing(static_cast<float>(s->mixFormat->nSamplesPerSec), maxBlockFrames);
+	if (!effect->prepareForProcessing(static_cast<float>(s->mixFormat->nSamplesPerSec), maxBlockFrames,
+		VSTPluginInstance::InputWidth::Float))
+		return false;
 
-	if (s->width == ProcessWidth::Double64)
-		s->doubleBuffers.allocate(inputChannelCount, outputChannelCount);
-	else
-		s->floatBuffers.allocate(inputChannelCount, outputChannelCount);
+	s->floatBuffers.allocate(inputChannelCount, outputChannelCount);
 	s->monitoredChannels = std::min(static_cast<UINT32>(outputChannelCount),
 		static_cast<UINT32>(s->mixFormat->nChannels));
 
@@ -383,16 +340,15 @@ bool PanelFeedEngine::start(VSTPluginInstance* effect, const Options& options)
 	TraceF(L"Panel preview feed: capturing %lu Hz, %u channels into %d/%d plugin channels (%hs), monitor %hs",
 		s->mixFormat->nSamplesPerSec, s->mixFormat->nChannels,
 		inputChannelCount, outputChannelCount,
-		s->width == ProcessWidth::Double64 ? "double64"
-		: s->width == ProcessWidth::Float32 ? "float32" : "float32-accumulate",
+		"float32-host",
 		options.monitorEnabled ? "enabled" : "disabled");
 
 	// A headless caller asks the feed to own processing. Editor panels wait
 	// for startEditing() to establish a process-ready session instead.
-	if (!options.requireVst3EditorSession && !effect->canProcessNow())
+	if (!options.requireVst3EditorSession && !s->processingLease.acquire(effect))
 	{
-		effect->startProcessing();
-		s->ownsProcessingState = effect->canProcessNow();
+		s->audioClient->Stop();
+		return false;
 	}
 
 	state = std::move(s);
@@ -407,8 +363,7 @@ void PanelFeedEngine::stop()
 		state->renderClient->Stop();
 	if (state->audioClient)
 		state->audioClient->Stop();
-	if (state->ownsProcessingState)
-		state->effect->stopProcessingSafely();
+	state->processingLease.reset();
 	state.reset();
 }
 
@@ -553,16 +508,7 @@ bool PanelFeedEngine::listenTick(EngineState& s, bool processReady)
 		{
 			const UINT32 chunk = std::min({ framesAvailable - offset, maxBlockFrames, remainingFrames });
 
-			if (s.width == ProcessWidth::Double64)
-			{
-				s.doubleBuffers.convertInput(interleaved, offset, chunk, captureChannelCount, silent);
-			}
-			else
-			{
-				s.floatBuffers.convertInput(interleaved, offset, chunk, captureChannelCount, silent);
-				if (s.width == ProcessWidth::Float32Accumulate)
-					s.floatBuffers.zeroOutput();
-			}
+			s.floatBuffers.convertInput(interleaved, offset, chunk, captureChannelCount, silent);
 
 			if (!s.process(chunk))
 			{

@@ -200,7 +200,7 @@ void SoftSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWid
 	// row has settled (the gallery's processEvents() delivers it too).
 	// Known limit: a later rebuildSummary() (raw edit, row reshuffle)
 	// restores the as-written text until the row is rebuilt.
-	if (header != nullptr && info.type != QStringLiteral("text") && !info.dynamicLine)
+	if (header != nullptr && info.kind() != FilterCardKind::Text && !info.dynamicLine)
 	{
 		if (QLabel* summary = header->findChild<QLabel*>(QStringLiteral("FilterCardSummary")))
 		{

@@ -60,7 +60,7 @@ env:
 
 jobs:
   check-changes:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       should_audit: ${{ steps.detect.outputs.should_audit }}
       last_audit_ref: ${{ steps.detect.outputs.last_audit_ref }}
@@ -77,7 +77,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          mapfile -t code_pathspecs < .github/audit-pathspecs.txt
+          # tr strips a carriage return a CRLF checkout would leave on every
+          # pathspec (TECH_DEBT_AUDIT TD-23, audit #467).
+          mapfile -t code_pathspecs < <(tr -d '\r' < .github/audit-pathspecs.txt)
 
           if [ "${{ inputs.force_run }}" = "true" ]; then
             echo "Force run requested."
@@ -188,9 +190,46 @@ jobs:
       # Give the auditing session a buildable tree: deps/ (FFTW, muparserx,
       # libsndfile, TCLAP, VST3, Highway, velopack_libc) and Qt, the same way a
       # developer would set up locally. Hash-verified per simd-variants.psd1.
+      # setup-build.ps1 calls Initialize-Workspace.ps1, which also exports
+      # the dependency paths and QT_ROOT and puts Qt's bin folder on PATH for
+      # the steps below. The 2026-11-15 audit could build neither Qt
+      # application: nothing was exported, and CLAUDE.md's recipe put a
+      # relative Qt path on PATH before changing directory (audit #467).
       - name: Provision build dependencies
         shell: pwsh
         run: ./setup-build.ps1
+
+      # Fail here, with the reason, rather than inside the session: qmake
+      # must answer by name with the pinned Qt version, and the Qt build
+      # script must resolve its tools.
+      - name: Check that qmake is usable
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $manifest = Import-PowerShellDataFile -Path ".github\simd-variants.psd1"
+          $qmake = (Get-Command qmake -ErrorAction Stop).Source
+          $reported = (& qmake -query QT_VERSION | Out-String).Trim()
+          if ($LASTEXITCODE -ne 0) { throw "qmake -query failed ($qmake)" }
+          if ($reported -ne $manifest.Shared.QtVersion) {
+            throw "qmake on PATH ($qmake) reports Qt $reported, expected $($manifest.Shared.QtVersion)"
+          }
+          foreach ($tool in "lrelease", "windeployqt") { Get-Command $tool -ErrorAction Stop | Out-Null }
+          if (-not $env:QT_ROOT) { throw "QT_ROOT was not exported" }
+          Write-Host "qmake $reported at $qmake; QT_ROOT=$env:QT_ROOT"
+          exit 0
+
+      # The runner image's own cppcheck is older than the one build.yml's
+      # gate runs, so its findings could not be compared with the gate's zero
+      # baseline and the 2026-11-15 audit ran none. This puts the gate's
+      # version first on PATH.
+      - name: Install the gate's cppcheck
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Import-Module ".\.github\scripts\Provisioning.psm1" -Force
+          $manifest = Import-PowerShellDataFile -Path ".github\simd-variants.psd1"
+          Install-CppcheckTool -Manifest $manifest -InstallRoot (Join-Path $env:RUNNER_TEMP "tools") | Out-Null
+          exit 0
 
       - name: Install audit skills
         id: skills
@@ -245,13 +284,22 @@ jobs:
         run: |
           set -euo pipefail
 
-          mapfile -t code_pathspecs < .github/audit-pathspecs.txt
+          # This job runs on Windows, where core.autocrlf checks the pathspec
+          # file out with CRLF. mapfile kept the carriage return on every
+          # pathspec, nothing matched, and the summary was empty on every run
+          # while `2>/dev/null || true` hid it (TECH_DEBT_AUDIT TD-23, audit
+          # #467). .gitattributes now pins the file to LF and tr covers a
+          # checkout that ignores it; a failing diff fails the step.
+          mapfile -t code_pathspecs < <(tr -d '\r' < .github/audit-pathspecs.txt)
 
           LAST_REF="${{ needs.check-changes.outputs.last_audit_ref }}"
           if [ -n "$LAST_REF" ]; then
             echo "## Changed files" > change-summary.txt
             echo "" >> change-summary.txt
-            git diff --stat "$LAST_REF"..HEAD -- "${code_pathspecs[@]}" >> change-summary.txt 2>/dev/null || true
+            git diff --stat "$LAST_REF"..HEAD -- "${code_pathspecs[@]}" >> change-summary.txt
+            if [ "$(wc -l < change-summary.txt)" -le 2 ]; then
+              echo "::warning::The change summary is empty although the change detection found changed files."
+            fi
           else
             echo "Initial audit run." > change-summary.txt
           fi
@@ -325,14 +373,22 @@ jobs:
             shell.
           - Build dependencies are pre-provisioned: deps/ holds FFTW,
             muparserx, libsndfile, TCLAP, the VST3 pluginterfaces, Highway,
-            and velopack_libc; Qt is at Qt/6.12.0/msvc2022_64. CLAUDE.md
-            documents the exact MSBuild/qmake commands and the PATH setup the
-            test executables need.
+            and velopack_libc; Qt is at Qt/6.12.0/msvc2022_64. The
+            dependency paths and QT_ROOT are already exported and qmake,
+            lrelease and windeployqt are on PATH. CLAUDE.md documents the
+            build commands and the PATH setup the test executables need.
+          - The Qt applications (Editor, DeviceSelector) build with
+            pwsh -File .github/scripts/Build-QtApps.ps1 -WorkspaceRoot . -Platform x64
+            and the MSBuild projects with
+            pwsh -File .github/scripts/Build-Solution.ps1 -WorkspaceRoot . -Platform x64
+          - cppcheck on PATH is the version the CI gate runs; the gate's
+            flags are in the cppcheck job of .github/workflows/build.yml.
           - You MAY compile projects and run the test suites
             (EditorLogicTests, HybridConvTests, EngineOrchestrationTests,
-            AudioRegressionTests) to verify findings empirically. Prefer
-            targeted project builds over full-solution builds; do not let
-            build experiments crowd out the analysis itself.
+            AsioTests, AudioRegressionTests) to verify findings
+            empirically. Prefer targeted project builds over full-solution
+            builds; do not let build experiments crowd out the analysis
+            itself.
 
           GLOBAL RULES:
           - Completely ignore all .ipynb files.
@@ -575,7 +631,7 @@ jobs:
     # main and push them with the deploy key. Only a run on main commits, and
     # the checkout is pinned to main.
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # The push authenticates with the RELEASE_DEPLOY_KEY deploy key, so the
     # token only needs to read.
     permissions:

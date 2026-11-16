@@ -67,8 +67,15 @@ public:
         std::wstring migratedFiles;
         bool installGrantsPrepared = false;
     };
-    // File work is forbidden when elevated. The returned action is a hint,
-    // not authority: recordPreparedHookStep reclassifies the current HKLM value.
+    // prepareHookStep refuses elevation: caller-profile copying and grants
+    // happen as that user. The returned action is a hint, not authority:
+    // recordPreparedHookStep reclassifies the current HKLM value. Without a
+    // handoff, the elevated hook still creates/seeds/migrates its own profile's
+    // stable root and grants missing config access. It does not use an
+    // unverified caller profile for those writes. Already-sufficient grants
+    // are skipped; icacls remains the grant mechanism (audit #467 TD-17:
+    // three Windows 11 runs, with/without /L, did not alter a junction target's
+    // ACL). Device registry backups now use admin-only ProgramData folders.
     static std::wstring prepareHookStep(const std::wstring& exeDir, const IRegistry& registry,
         Handoff* details = nullptr);
     static std::wstring prepareHookStep(const std::wstring& exeDir, Handoff* details = nullptr);

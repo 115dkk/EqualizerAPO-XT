@@ -51,12 +51,10 @@ public:
 	}
 
 	static bool isFirstRun();
-	static bool isRestartingAfterUpdate();
 
 	static bool isVelopackInstall();
 	static std::wstring updateExePath();
 	static std::wstring installRoot();
-	static std::wstring currentBinDir();
 
 	static std::unique_ptr<UpdateSession> createUpdateSession(
 		const std::string& repoUrl,

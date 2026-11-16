@@ -35,6 +35,7 @@ DEFINES += MUP_USE_WIDE_STRING
 DEFINES += NOMINMAX
 
 SOURCES += main.cpp\
+	EditorGates.cpp \
 	../services/logging/Logging.cpp \
 	../text/WideString.cpp \
 	../platform/windows/TextEncoding.cpp \
@@ -51,6 +52,7 @@ SOURCES += main.cpp\
 	../services/diagnostics/InstallDiagnostics.cpp \
 	../services/windows/WindowsService.cpp \
 	../services/install/ApoRegistration.cpp \
+	../services/install/VcRuntime.cpp \
 	../services/shell/StartMenuShortcuts.cpp \
 	../services/audio/AudioFormatProbe.cpp \
 	../services/update/UpdateSession.cpp \
@@ -332,7 +334,10 @@ SOURCES += main.cpp\
 	widgets/cards/DelayCardEditor.cpp \
 	widgets/cards/FilterCardEditorRegistry.cpp \
 	widgets/cards/FileReferenceController.Dialogs.cpp \
+	widgets/cards/FileReferenceController.Probe.cpp \
 	widgets/cards/FileReferenceController.cpp \
+	widgets/cards/ReferenceProbeRequests.cpp \
+	widgets/cards/GraphicEQCsv.cpp \
 	widgets/cards/GraphicEQCardEditor.cpp \
 	widgets/cards/IIRCardEditor.cpp \
 	widgets/cards/AllPassCardEditor.cpp \
@@ -413,10 +418,16 @@ HEADERS  += \
 	../platform/windows/WindowsVersion.h \
 	../platform/windows/CommandLineQuoting.h \
 	../platform/windows/GuidText.h \
+	../platform/windows/EndpointId.h \
+	../runtime/ipc/DeviceTestPipe.h \
+	../services/windows/AudioServiceNames.h \
+	../devices/DeviceChange.h \
+	../devices/DeviceEnumeration.h \
 	../services/security/AudioEngineAccess.h \
 	../services/diagnostics/InstallDiagnostics.h \
 	../services/windows/WindowsService.h \
 	../services/install/ApoRegistration.h \
+	../services/install/VcRuntime.h \
 	../services/shell/StartMenuShortcuts.h \
 	../services/audio/AudioFormatProbe.h \
 	../services/update/UpdateSession.h \
@@ -437,6 +448,7 @@ HEADERS  += \
 	../platform/qt/MotionPreference.h \
 	helpers/VstChunkScan.h \
 	helpers/VstChunkState.h \
+	helpers/VstPanelCall.h \
 	stable.h \
 	IFilterGUI.h \
 	guis/PreampFilterGUI.h \
@@ -623,6 +635,7 @@ HEADERS  += \
 	../vst/VST3HostContext.h \
 	../vst/VST3MemoryStream.h \
 	../vst/VSTChunkBase64.h \
+	../vst/VSTBoundedString.h \
 	../vst/VST3Lifecycle.h \
 	../vst/VST3SpeakerMapping.h \
 	guis/LoudnessCorrectionFilterGUI.h \
@@ -637,6 +650,7 @@ HEADERS  += \
 	diagnostics/FrameHitTestProbe.h \
 	diagnostics/SkinSwitchStorm.h \
 	helpers/QtSndfileHandle.h \
+	EditorGates.h \
 	SkinGallery.h \
 	gallery/GalleryStallWatch.h \
 	gallery/GallerySupport.h \
@@ -686,6 +700,8 @@ HEADERS  += \
 	widgets/cards/FilterCardEditorRegistry.h \
 	widgets/cards/FilterLineCard.h \
 	widgets/cards/FileReferenceController.h \
+	widgets/cards/ReferenceProbeRequests.h \
+	widgets/cards/GraphicEQCsv.h \
 	widgets/cards/GraphicEQCardEditor.h \
 	widgets/cards/IIRCardEditor.h \
 	widgets/cards/AllPassCardEditor.h \
@@ -717,6 +733,7 @@ HEADERS  += \
 	widgets/FilterRowGuiPolicy.h \
 	widgets/CommandRowFacts.h \
 	widgets/CommandRowInfo.h \
+	widgets/FilterCardKind.h \
 	widgets/FilterCommandCatalog.h \
 	widgets/FilterCardRow.h \
 	widgets/ChannelFlow.h \
@@ -876,6 +893,9 @@ RC_FILE = Editor.rc
 DISTFILES += ../uncrustify.cfg
 
 HEADERS += \
+	../runtime/concurrency/ShutdownSequence.h \
+	../platform/windows/ProcessShutdown.h \
+	../platform/windows/ThreadWait.h \
 	../devices/AsioEntryWriter.h \
 	../devices/EndpointProbe.h \
 	../platform/windows/TokenPrivilege.h \
@@ -883,6 +903,7 @@ HEADERS += \
 	../platform/windows/ComError.h \
 	../platform/windows/ConsoleOutput.h \
 	../platform/windows/ElevatedLaunch.h \
+	../platform/windows/UnelevatedLaunch.h \
 	../platform/windows/TimeStamp.h \
 	../services/windows/ServiceWait.h \
 	../services/install/InstallWaitBudget.h

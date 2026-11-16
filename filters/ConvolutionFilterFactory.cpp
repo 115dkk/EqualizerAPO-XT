@@ -24,6 +24,7 @@
 #include "ConvolutionCommand.h"
 #include "ConfigFileReference.h"
 #include "ConvolutionFilter.h"
+#include "IrCache.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "ConvolutionFilterFactory.h"
 
@@ -38,16 +39,14 @@ LineOutcome ConvolutionFilterFactory::createFilter(const wstring& configPath, ws
 	// parse() answers false only for another command's line, so everything below
 	// is this factory's own line and its failures are this factory's to report.
 	if (!ConvolutionCommand::parse(command, parameters, cmd))
-		return {};
-
-	if (cmd.path.empty())
-		return LineOutcome::malformed(L"expected the path of an impulse response file");
+		return LineOutcome::notMine();
 
 	ConfigFileReference::Target file = ConfigFileReference::target(configPath, cmd.path);
-	if (!file.refusal.empty())
-		return LineOutcome::malformed(file.refusal);
-	if (file.path.empty())
-		return LineOutcome::malformed(L"the impulse response file \"" + cmd.path + L"\" was not found");
+	if (!file)
+		return LineOutcome::malformed(file.problem(L"impulse response file"));
+	const wstring sizeProblem = validateIrSize(file.path);
+	if (!sizeProblem.empty())
+		return LineOutcome::malformed(sizeProblem);
 
 	return LineOutcome::produced(singleFilter(makeFilter<ConvolutionFilter>(std::move(file.path))));
 }

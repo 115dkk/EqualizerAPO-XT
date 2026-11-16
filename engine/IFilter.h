@@ -55,6 +55,8 @@ public:
 	// builds new filter objects instead of re-initializing the old ones. Callers
 	// must not initialize an existing filter again.
 	virtual std::vector<std::wstring> initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames) = 0;
+	// frameCount never exceeds the maxFrameCount passed to initialize(); the
+	// engine bypasses a host block that violates this contract (audit #467 TD-10).
 	virtual void process(double** output, double** input, unsigned frameCount) = 0;
 
 	// Returns true if silent input can still produce non-silent output, either because

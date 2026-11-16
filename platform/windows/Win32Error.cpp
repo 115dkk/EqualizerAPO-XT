@@ -20,11 +20,11 @@
 std::wstring win32::errorMessage(long status)
 {
 	winutil::UniqueLocalPtr<wchar_t> buffer;
-	if (FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-		nullptr, status, 0, reinterpret_cast<LPWSTR>(buffer.put()), 0, nullptr) == 0 || !buffer)
-		return L"";
-	std::wstring result(buffer.get());
+	const DWORD code = static_cast<DWORD>(status);
+	const bool formatted = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+		nullptr, code, 0, reinterpret_cast<LPWSTR>(buffer.put()), 0, nullptr) != 0 && buffer;
+	std::wstring result = formatted ? buffer.get() : L"Unknown Win32 error";
 	while (!result.empty() && (result.back() == L'\n' || result.back() == L'\r'))
 		result.pop_back();
-	return result;
+	return result + L" (error " + std::to_wstring(code) + L")";
 }

@@ -295,7 +295,7 @@ void RackSkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& s
 		QPolygonF afterglow;
 		if (magnitude)
 		{
-			const double base = qBound(state.plotRect.top(), zeroY, state.plotRect.bottom());
+			const double base = state.clampedZeroY();
 			afterglow = segment;
 			afterglow.append(QPointF(segment.last().x(), base));
 			afterglow.prepend(QPointF(segment.first().x(), base));

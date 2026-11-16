@@ -40,6 +40,8 @@
 #include <shellapi.h>
 
 #include "services/logging/Logging.h"
+#include "platform/windows/ElevatedLaunch.h"
+#include "platform/windows/Win32Error.h"
 #include "audio/ChannelLayout.h"
 #include "services/audio/AudioFormatProbe.h"
 #include "services/update/UpdateSession.h"
@@ -55,6 +57,10 @@
 #include "MainWindow.h"
 #include "Editor/MainWindowParts/OpenDocument.h"
 #include "services/install/ApoRegistration.h"
+#include "services/windows/WindowsService.h"
+#include "services/windows/AudioServiceNames.h"
+#include "services/security/AudioEngineAccess.h"
+#include "services/registry/RegistryPaths.h"
 #include "SkinManager.h"
 #include "ui_MainWindow.h"
 #include "devices/DeviceAPOInfo.h"
@@ -289,6 +295,50 @@ MainWindow::~MainWindow()
 
 void MainWindow::doChecks()
 {
+	// Query only: no transition wait on the UI thread (audit #467 TD-13).
+	try
+	{
+		winutil::UniqueServiceHandle manager(OpenSCManagerW(nullptr, nullptr, SC_MANAGER_CONNECT));
+		if (manager)
+		{
+			WindowsService audio(manager.get(), audioServiceName, SERVICE_QUERY_STATUS);
+			if (audio.getState() != SERVICE_RUNNING)
+				QMessageBox::warning(this, tr("Windows audio service"),
+					tr("The Windows audio service is not running. Sound will not play until it is started."));
+		}
+	}
+	catch (const WindowsServiceError& e)
+	{
+		LogF(L"Could not query Windows audio service: %s", e.getMessage().c_str());
+	}
+
+	// AuthZ can resolve account membership: keep it on the same worker as
+	// the slow endpoint probes, not on the UI thread (audit #467 TD-18).
+	BackgroundProbe::runFor(this, [] {
+		QStringList unreadable;
+		for (const wchar_t* value : {installPathValueName, configPathValueName})
+		{
+			try
+			{
+				auto& registry = systemRegistry();
+				if (!registry.valueExists(APP_REGPATH, value))
+					continue;
+				const std::wstring folder = registry.readValue(APP_REGPATH, value);
+				if (!folder.empty() && !AudioEngineAccess::isReadableByAudioEngine(folder))
+					unreadable.append(QString::fromStdWString(folder));
+			}
+			catch (const RegistryError& e)
+			{
+				LogFStatic(L"Could not read startup access-check folder: %s", e.getMessage().c_str());
+			}
+		}
+		return unreadable;
+	}, [this](const QStringList& unreadable) {
+		for (const QString& folder : unreadable)
+			QMessageBox::warning(this, tr("Audio folder access"),
+				tr("The Windows audio service cannot read this folder:\n%0\n\nRun tools\\Repair-EqualizerAPO.ps1 from the installation folder as administrator to repair access.").arg(folder));
+	});
+
 	if (!ApoRegistration::verify(systemRegistry(), false).valid())
 	{
 		if (QMessageBox::warning(this, tr("Registry problem"), tr("A registry value that is required for the operation of Equalizer APO is not set correctly.\nDo you want to run the Device Selector application to fix the problem?"), QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes)
@@ -319,6 +369,7 @@ void MainWindow::doChecks()
 	{
 		std::wstring deviceGuid;
 		QString name;
+		bool input = false;
 	};
 	std::vector<ProbeTarget> targets;
 	auto collect = [&targets](const QList<shared_ptr<AbstractAPOInfo>>& list)
@@ -328,7 +379,7 @@ void MainWindow::doChecks()
 			if (info == nullptr || !info->isInstalled())
 				continue;
 			targets.push_back({ info->getDeviceGuid(), QString::fromStdWString(info->getConnectionName())
-				+ " - " + QString::fromStdWString(info->getDeviceName()) });
+				+ " - " + QString::fromStdWString(info->getDeviceName()), info->isInput() });
 		}
 	};
 	collect(outputDevices);
@@ -338,7 +389,7 @@ void MainWindow::doChecks()
 			std::vector<AudioFormatProbe::Result> results;
 			results.reserve(targets.size());
 			for (const ProbeTarget& target : targets)
-				results.push_back(AudioFormatProbe::probe(target.deviceGuid));
+				results.push_back(AudioFormatProbe::probe(target.deviceGuid, target.input));
 			return results;
 		},
 		[this, targets](const std::vector<AudioFormatProbe::Result>& results) {
@@ -417,14 +468,21 @@ void MainWindow::runDeviceSelector()
 	// cannot use QProcess::startDetached because of UAC
 	wstring file = (QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/DeviceSelector.exe")).toStdWString();
 	// One UAC ask, decline respected (audit #250 C1, maintainer decision
-	// 2026-08-09). "open" already carries the elevation prompt because
-	// DeviceSelector's manifest requires administrator; the old
-	// SE_ERR_ACCESSDENIED fallback re-asked with "runas" immediately after
-	// a decline, so the user got a second UAC window for saying no. A
-	// decline (or any launch failure) now gets a short notice instead, and
-	// File > APO settings remains the retry path.
-	UINT_PTR result = reinterpret_cast<UINT_PTR>(ShellExecuteW(nullptr, L"open", file.c_str(), nullptr, nullptr, SW_SHOWNORMAL));
-	if (result <= 32)
+	// 2026-08-09). The helper returns GetLastError from ShellExecuteExW, so
+	// only ERROR_CANCELLED is reported as a declined prompt; another launch
+	// failure carries its Windows message (audit #467 TD-62).
+	const auto launch = winutil::launchElevated(file, L"", false, SW_SHOWNORMAL);
+	switch (winutil::elevatedLaunchMessage(launch))
+	{
+	case winutil::ElevatedLaunchMessage::ApprovalDeclined:
 		QMessageBox::information(this, tr("Device Selector"),
 			tr("The Device Selector was not opened. It needs administrator approval to manage audio devices; you can try again anytime via File > APO settings."));
+		break;
+	case winutil::ElevatedLaunchMessage::Failed:
+		QMessageBox::warning(this, tr("Device Selector"), tr("The Device Selector could not be opened:\n%1")
+			.arg(QString::fromStdWString(win32::errorMessage(launch.error))));
+		break;
+	case winutil::ElevatedLaunchMessage::None:
+		break;
+	}
 }

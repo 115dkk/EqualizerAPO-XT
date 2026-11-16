@@ -7,11 +7,11 @@
 #pragma once
 
 #include "Editor/IFilterGUI.h"
+#include "ReferenceCardView.h"
 
 class FilterTable;
 class FileReferenceController;
 class QToolButton;
-class ReferenceCardView;
 
 // Modern card body for a "Convolution:" line, the card-mode counterpart of the
 // legacy guis/ConvolutionFilterGUI. Presents the impulse response as a named
@@ -33,13 +33,15 @@ private slots:
 	void importToConfig();
 
 private:
-	QString resolvedAbsolutePath() const;
 	unsigned currentDeviceSampleRate() const;
 	void updateFileInfo();
+	void showAudioServiceProblem(const QString& problem);
 
 	FilterTable* filterTable = nullptr;
 	FileReferenceController* reference = nullptr;
 	ReferenceCardView* view = nullptr;
+	// What the view shows, so the audio-service answer can be laid over it.
+	ReferenceCardState shownState;
 	QToolButton* chooseButton = nullptr;
 	QToolButton* importButton = nullptr;
 };

@@ -18,9 +18,36 @@
 #include "Editor/widgets/FilterCommandCatalog.h"
 #include "Editor/widgets/routing/IRoutingRenderer.h"
 #include "Editor/widgets/FilterRowGuiPolicy.h"
+#include "filters/ExpressionCommand.h"
 #include "filters/FilterFactoryRegistry.h"
 
 #include "EditorLogicTestSupport.h"
+
+namespace
+{
+ChannelFlowContext cardDocumentContext()
+{
+	ChannelFlowContext context;
+	context.deviceChannels = {L"L", L"R", L"C", L"LFE", L"SL", L"SR", L"RL", L"RR"};
+	context.deviceString = L"Speakers Example Audio {00000000-0000-0000-0000-000000000001}";
+	return context;
+}
+
+FilterCardDocumentPlan prepareCardDocument(const QList<QString>& lines)
+{
+	return FilterCardModel::prepareDocument(lines, cardDocumentContext());
+}
+
+QVector<FilterCardRowScope> cardScopes(const QList<QString>& lines)
+{
+	QVector<FilterCardRowScope> scopes;
+	const FilterCardDocumentPlan document = prepareCardDocument(lines);
+	scopes.reserve(document.rows.size());
+	for (const FilterCardBuildPlan& row : document.rows)
+		scopes.append(row.scope);
+	return scopes;
+}
+}
 
 // Audit #348 TD-04/B7: the Copy routing view (and any card that writes its
 // state back) rebuilt "Copy: ..." without looking at whether the line was
@@ -173,7 +200,8 @@ TEST_CASE(EditorLogicTests, testFilterCardDescriptors)
 	FilterCardDescriptor channel = FilterCardModel::describeLine("Channel: L, R");
 	expectEqual(channel.badge, "CH", "channel card badge");
 	expectTrue(channel.summary.isEmpty(), "channel header must not echo its selection");
-	expectTrue(channel.channelBadges.contains("L") && channel.channelBadges.contains("R"), "channel badges were not parsed");
+	expectEqual(channel.channelBadges, QStringList({ "L", "R" }),
+		"channel badges keep their order and upper-case spelling");
 
 	// MultiConvolution must get its own card header rather than falling through to
 	// the generic TXT descriptor.
@@ -286,25 +314,35 @@ TEST_CASE(EditorLogicTests, testFilterCardDescriptors)
 	FilterCardDescriptor numberedCopy = FilterCardModel::describeLine("Copy 2: L=R");
 	expectEqual(numberedCopy.type, "text", "\"Copy 2:\" must not open the routing view that would rewrite it as \"Copy:\"");
 
-	// Dynamic-value contract: hasInlineExpressions must follow the engine's
+	// Dynamic-value contract: containsExpression must follow the engine's
 	// InlineExpression lexer exactly, because it decides which lines may not
 	// open a parsing editor (a knob turn would serialize the expression
 	// away). Escaped backticks are literal, an empty `` still counts as an
 	// expression (the engine reports its evaluation error), and the content
 	// of an unterminated trailing expression is dropped like the engine
 	// drops it.
-	expectTrue(FilterCardModel::hasInlineExpressions("`bass + 3` dB"), "backtick expression detected");
-	expectTrue(FilterCardModel::hasInlineExpressions("prefix `x` suffix"), "embedded expression detected");
-	expectFalse(FilterCardModel::hasInlineExpressions("-3 dB"), "plain number is not dynamic");
-	expectFalse(FilterCardModel::hasInlineExpressions("\\` literal backtick"), "escaped backtick is literal");
-	expectTrue(FilterCardModel::hasInlineExpressions("``"), "empty expression still counts");
-	expectFalse(FilterCardModel::hasInlineExpressions("`unterminated"), "unterminated trailing expression is dropped");
+	expectTrue(InlineExpression::containsExpression(L"`bass + 3` dB"), "backtick expression detected");
+	expectTrue(InlineExpression::containsExpression(L"prefix `x` suffix"), "embedded expression detected");
+	expectFalse(InlineExpression::containsExpression(L"-3 dB"), "plain number is not dynamic");
+	expectFalse(InlineExpression::containsExpression(L"\\` literal backtick"), "escaped backtick is literal");
+	expectTrue(InlineExpression::containsExpression(L"``"), "empty expression still counts");
+	expectFalse(InlineExpression::containsExpression(L"`unterminated"), "unterminated trailing expression is dropped");
+}
+
+TEST_CASE(EditorLogicTests, testExpressionFactoryDecisionFollowsInlineExpressionLexer)
+{
+	expectFalse(InlineExpression::containsExpression(L"\\` literal backtick"),
+		"escaped-only backticks do not block the legacy GUI");
+	expectFalse(InlineExpression::containsExpression(L"`unterminated"),
+		"an unterminated expression does not block the legacy GUI");
+	expectTrue(InlineExpression::containsExpression(L"prefix `gain + 1` suffix"),
+		"a lexer expression segment blocks the legacy GUI");
 }
 
 TEST_CASE(EditorLogicTests, testFilterCardDepths)
 {
-	// The indent axis of calculateScopes (the margin depth).
-	const QVector<FilterCardRowScope> depthScopes = FilterCardModel::calculateScopes(QList<QString>({
+	// The document walk's indent axis (the margin depth).
+	const QVector<FilterCardRowScope> depthScopes = cardScopes(QList<QString>({
 		"Channel: L R",
 		"Preamp: -6 dB",
 		"Include: nested.txt",
@@ -333,7 +371,7 @@ TEST_CASE(EditorLogicTests, testFilterCardDepths)
 	// where branch/tail rows count their own scope so a painted rail can pass
 	// through them and terminate on EndIf. Commented-out If lines are comments
 	// to the engine and must not move either axis; a stray EndIf clamps at 0.
-	QVector<FilterCardRowScope> scopes = FilterCardModel::calculateScopes(QList<QString>({
+	QVector<FilterCardRowScope> scopes = cardScopes(QList<QString>({
 		"If: inputChannelCount == 2",             // 0: head, indent 0, logic 0
 		"Preamp: -6 dB",                          // 1: member, indent 1, logic 1
 		"If: sampleRate > 96000",                 // 2: nested head, indent 1, logic 1
@@ -376,7 +414,7 @@ TEST_CASE(EditorLogicTests, testFilterCardDepths)
 	// Channel grouping and If nesting are independent axes that add up on the
 	// indent; a Channel row inside an If block indents with the block and
 	// resets only the channel axis.
-	QVector<FilterCardRowScope> mixed = FilterCardModel::calculateScopes(QList<QString>({
+	QVector<FilterCardRowScope> mixed = cardScopes(QList<QString>({
 		"Channel: L R",                           // 0: indent 0
 		"If: sampleRate == 48000",                // 1: indent 1 (channel scope), logic 0
 		"Preamp: -2 dB",                          // 2: indent 2, logic 1
@@ -399,7 +437,7 @@ TEST_CASE(EditorLogicTests, testFilterCardDepths)
 	expectEqual(mixed[4].channels, QStringList(), "channel-all clears the selection");
 	expectEqual(mixed[5].channels, QStringList(), "endif after channel-all carries no selection");
 
-	QVector<FilterCardRowScope> channelScopes = FilterCardModel::calculateScopes(QList<QString>({
+	QVector<FilterCardRowScope> channelScopes = cardScopes(QList<QString>({
 		"Channel: SL SR",                         // 0: selects SL SR
 		"Preamp: -3 dB",                          // 1: under SL SR
 		"# Channel: L",                           // 2: comment, selection unchanged
@@ -414,7 +452,7 @@ TEST_CASE(EditorLogicTests, testFilterCardDepths)
 
 	// NewChannel adds its names to an explicit selection, the way the
 	// engine does, and leaves ALL as ALL (the scope names no channel then).
-	QVector<FilterCardRowScope> newChannelScopes = FilterCardModel::calculateScopes(QList<QString>({
+	QVector<FilterCardRowScope> newChannelScopes = cardScopes(QList<QString>({
 		"Channel: L R",                           // 0: selects L R
 		"NewChannel: vc, VRL",                    // 1: adds VC VRL
 		"Preamp: -3 dB",                          // 2: under L R VC VRL
@@ -439,6 +477,57 @@ TEST_CASE(EditorLogicTests, testFilterCardDepths)
 		"a refused device name is not badged either; the body flags it");
 }
 
+// Audit #467 TD-43: card scope badges must follow the same document walk as
+// the channel flow. The old calculateScopes parser let an Else selection leak
+// after EndIf and treated an inline expression as a literal channel name.
+TEST_CASE(EditorLogicTests, testFilterCardScopesFollowChannelFlow)
+{
+	const QStringList front({ "L", "R" });
+	const ChannelFlowContext context = cardDocumentContext();
+	const FilterCardDocumentPlan branchDocument = FilterCardModel::prepareDocument(QList<QString>({
+		"Channel: L R",
+		"If: sampleRate > 48000",
+		"Preamp: -3 dB",
+		"Else:",
+		"Channel: C",
+		"EndIf:",
+		"Preamp: -6 dB"
+	}), context);
+	requireEqual(branchDocument.rows.size(), 7, "branch scope count");
+	expectEqual(branchDocument.rows[6].descriptor.scopeChannels, front,
+		"a Channel line in Else does not leak past EndIf");
+	expectEqual(FilterCardModel::headerChannels(branchDocument.rows[6].descriptor,
+		context.deviceChannels), front, "the post-EndIf card badges the If-branch selection");
+
+	const FilterCardDocumentPlan dynamicDocument = FilterCardModel::prepareDocument(QList<QString>({
+		"Channel: L R",
+		"Channel: `selectedChannel`",
+		"Preamp: -3 dB"
+	}), context);
+	requireEqual(dynamicDocument.rows.size(), 3, "dynamic scope count");
+	expectEqual(dynamicDocument.rows[2].descriptor.scopeChannels, front,
+		"an inline-expression Channel line keeps the previous selection");
+	expectEqual(FilterCardModel::headerChannels(dynamicDocument.rows[2].descriptor,
+		context.deviceChannels), front, "the expression text never becomes a following card badge");
+
+	const FilterCardDocumentPlan hiddenDocument = FilterCardModel::prepareDocument(QList<QString>({
+		"Channel: L R",
+		"Device: Headphones Other Audio",
+		"Channel: C",
+		"Device: all",
+		"Preamp: -3 dB",
+		"Stage: pre-mix",
+		"Channel: C",
+		"Stage: post-mix",
+		"Preamp: -6 dB"
+	}), context);
+	requireEqual(hiddenDocument.rows.size(), 9, "hidden-line scope count");
+	expectEqual(hiddenDocument.rows[4].descriptor.scopeChannels, front,
+		"a Channel line hidden by Device does not change a later card badge");
+	expectEqual(hiddenDocument.rows[8].descriptor.scopeChannels, front,
+		"a Channel line hidden by Stage does not change a later card badge");
+}
+
 TEST_CASE(EditorLogicTests, testFilterCardBuildPlans)
 {
 	const QList<QString> lines({
@@ -448,8 +537,8 @@ TEST_CASE(EditorLogicTests, testFilterCardBuildPlans)
 		"EndIf:",
 		"Channel: ALL"
 	});
-	const QVector<FilterCardBuildPlan> plans = FilterCardModel::prepareRows(lines);
-	const QVector<FilterCardRowScope> scopes = FilterCardModel::calculateScopes(lines);
+	const QVector<FilterCardBuildPlan> plans = prepareCardDocument(lines).rows;
+	const QVector<FilterCardRowScope> scopes = cardScopes(lines);
 	requireEqual(plans.size(), lines.size(), "card build-plan count");
 	requireEqual(scopes.size(), lines.size(), "card build-plan scope count");
 
@@ -474,7 +563,7 @@ TEST_CASE(EditorLogicTests, testFilterCardBuildPlans)
 		"if head carries the enclosing channel selection");
 
 	// describeRow is the single-row form of the same build: a row built
-	// alone from its line and its calculateScopes entry is the row the whole
+	// alone from its line and its document-scope entry is the row the whole
 	// rebuild prepares, and scopeOf gives the scope back for a row that
 	// re-derives its own line in place.
 	const QList<QString> document({
@@ -492,8 +581,8 @@ TEST_CASE(EditorLogicTests, testFilterCardBuildPlans)
 		"# just a note",
 		"Channel: ALL"
 	});
-	const QVector<FilterCardBuildPlan> documentPlans = FilterCardModel::prepareRows(document);
-	const QVector<FilterCardRowScope> documentScopes = FilterCardModel::calculateScopes(document);
+	const QVector<FilterCardBuildPlan> documentPlans = prepareCardDocument(document).rows;
+	const QVector<FilterCardRowScope> documentScopes = cardScopes(document);
 	requireEqual(documentPlans.size(), document.size(), "describeRow document plan count");
 	for (int i = 0; i < document.size(); ++i)
 	{

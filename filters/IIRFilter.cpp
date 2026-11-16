@@ -18,6 +18,7 @@
 */
 
 #include "stdafx.h"
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <new>
@@ -123,12 +124,25 @@ void IIRFilter::process(double** output, double** input, unsigned frameCount)
 		}
 	}
 
-	for (unsigned i = 0; i < channelCount * order; i++)
+	bool finiteState = true;
+	for (size_t i = 0; i < x.size(); i++)
 	{
+		if (!std::isfinite(x[i]) || !std::isfinite(y[i]))
+			finiteState = false;
 		if (IS_DENORMAL(x[i]))
 			x[i] = 0.0;
 		if (IS_DENORMAL(y[i]))
 			y[i] = 0.0;
+	}
+	if (!finiteState)
+	{
+		// Check once after the block rather than adding a branch to every sample.
+		// A non-finite recursive state would poison every later block, so discard
+		// the state and this block together (audit #467 TD-11).
+		std::fill(x.begin(), x.end(), 0.0);
+		std::fill(y.begin(), y.end(), 0.0);
+		for (unsigned channel = 0; channel < channelCount; channel++)
+			std::fill_n(output[channel], frameCount, 0.0);
 	}
 }
 #pragma AVRT_CODE_END

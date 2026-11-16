@@ -31,6 +31,16 @@ param(
     [string[]] $MissingChannels = @(),
     [switch] $NeedsSource,
     [string] $ManifestPath,
+    # Pack builds every channel's installer and feed into velopack-output\ and
+    # uploads nothing; Publish uploads what a Pack run left there. All does
+    # both. The split lets create-release install, update, self-test and
+    # uninstall the packed primary installer before anything is published
+    # (TECH_DEBT_AUDIT TD-04, audit #467): the release used to go out with its
+    # installer and hooks never executed.
+    [ValidateSet("All", "Pack", "Publish")] [string] $Phase = "All",
+    # Pack without downloading the previous release for delta generation: the
+    # installer gate needs no delta and has no release token.
+    [switch] $NoDelta,
     [switch] $PlanOnly
 )
 
@@ -69,7 +79,14 @@ foreach ($artifact in $buildArtifacts) {
         Skipped      = $MissingChannels -notcontains $channel
         PackId       = Get-VelopackPackId -Channel $channel
         PackTitle    = $variantEntry.Title
-        Framework    = if ($variant -like "ARM64*" -or $variant -like "arm64*") { "vcredist143-arm64" } else { "vcredist143-x64" }
+        # The binaries are built with the v145 toolset (MSVC 14.5x), so the
+        # installer must require the Visual C++ 2026 runtime (vpk: minimum
+        # 14.50.35719, downloaded from aka.ms/vs/18). vcredist143 was satisfied
+        # by any 14.3x runtime, with which a 14.4x+ build can crash in
+        # std::mutex before its own install hook runs (audit #467, maintainer
+        # question 4). The hook still tops the runtime up to the exact build
+        # version (services/install/VcRuntime.cpp).
+        Framework    = if ($variant -like "ARM64*" -or $variant -like "arm64*") { "vcredist145-arm64" } else { "vcredist145-x64" }
         PackDir      = Join-Path $WorkspaceRoot "velopack-input\$channel"
         OutputDir    = Join-Path $WorkspaceRoot "velopack-output\$channel"
     }
@@ -77,6 +94,8 @@ foreach ($artifact in $buildArtifacts) {
 
 $plan = [pscustomobject]@{
     VpkVersion      = $manifest.Shared.VelopackVpkVersion
+    VpkSha256       = $manifest.Shared.VelopackVpkSha256
+    VpkPackageUrl   = "https://api.nuget.org/v3-flatcontainer/vpk/$($manifest.Shared.VelopackVpkVersion)/vpk.$($manifest.Shared.VelopackVpkVersion).nupkg"
     ReleaseName     = "EqualizerAPO-XT $PackVersion"
     RepoUrl         = "https://github.com/$Repository"
     Channels        = @($channelWork)
@@ -85,12 +104,26 @@ $plan = [pscustomobject]@{
     # Single source: Shared.QtPluginFolders in simd-variants.psd1, shared with
     # the Package-Artifacts.ps1 staging assertion (audit #275 TD-11).
     QtPluginFolders = @($manifest.Shared.QtPluginFolders)
+    Phase           = $Phase
+    Packs           = $Phase -ne "Publish"
+    Publishes       = $Phase -ne "Pack"
+    DownloadsDelta  = ($Phase -ne "Publish") -and -not $NoDelta
 }
 if ($PlanOnly) {
     return $plan
 }
 
-dotnet tool install -g vpk --version $plan.VpkVersion
+# vpk builds every installer. A version number alone would take whatever
+# nuget.org serves under it; the package is downloaded, held to the manifest's
+# SHA-256 and installed from that file alone (TECH_DEBT_AUDIT TD-69).
+Import-Module (Join-Path $PSScriptRoot "Provisioning.psm1") -Force
+$vpkSource = Join-Path $WorkspaceRoot "velopack-tool"
+New-Item -ItemType Directory -Force -Path $vpkSource | Out-Null
+$vpkPackage = Join-Path $vpkSource "vpk.$($plan.VpkVersion).nupkg"
+Invoke-PinnedFileDownload -Url $plan.VpkPackageUrl -OutFile $vpkPackage -Sha256 $plan.VpkSha256
+dotnet tool uninstall -g vpk 2>$null | Out-Null
+$global:LASTEXITCODE = 0
+dotnet tool install -g vpk --version $plan.VpkVersion --source $vpkSource
 if ($LASTEXITCODE -ne 0) { throw "dotnet tool install vpk $($plan.VpkVersion) failed with exit code $LASTEXITCODE" }
 $env:PATH = "$env:USERPROFILE\.dotnet\tools;$env:PATH"
 
@@ -113,6 +146,7 @@ $qtPluginFolders = $plan.QtPluginFolders
 $mainExe = "Editor.exe"
 
 foreach ($work in $plan.Channels) {
+    if (-not $plan.Packs) { break }
     if ($work.Skipped) {
         Write-Host "Channel $($work.Channel) is already complete on $Tag; skipping."
         continue
@@ -155,14 +189,16 @@ foreach ($work in $plan.Channels) {
         throw "$mainExe not found in $($work.PackDir)"
     }
 
-    vpk download github `
-        --repoUrl $plan.RepoUrl `
-        --token $env:GITHUB_TOKEN `
-        --outputDir $work.OutputDir `
-        --channel $work.Channel
-    if ($LASTEXITCODE -ne 0) {
-        Write-Warning "No previous Velopack release was downloaded for channel $($work.Channel). Continuing with a full package."
-        $global:LASTEXITCODE = 0
+    if ($plan.DownloadsDelta) {
+        vpk download github `
+            --repoUrl $plan.RepoUrl `
+            --token $env:GITHUB_TOKEN `
+            --outputDir $work.OutputDir `
+            --channel $work.Channel
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "No previous Velopack release was downloaded for channel $($work.Channel). Continuing with a full package."
+            $global:LASTEXITCODE = 0
+        }
     }
 
     $packArgs = @(
@@ -200,6 +236,19 @@ foreach ($work in $plan.Channels) {
                 "align the grammar before releasing.")
         }
     }
+}
+
+foreach ($work in $plan.Channels) {
+    if (-not $plan.Publishes) { break }
+    if ($work.Skipped) {
+        if (-not $plan.Packs) { Write-Host "Channel $($work.Channel) is already complete on $Tag; skipping." }
+        continue
+    }
+    # A Publish-only run uploads what an earlier Pack run of this job left in
+    # the output folder; without it there is nothing to publish.
+    if (-not (Test-Path (Join-Path $work.OutputDir (Get-SetupAssetName -Channel $work.Channel)))) {
+        throw "Nothing packed for channel $($work.Channel) in $($work.OutputDir); run the Pack phase first."
+    }
 
     vpk upload github `
         --repoUrl $plan.RepoUrl `
@@ -214,7 +263,7 @@ foreach ($work in $plan.Channels) {
     if ($LASTEXITCODE -ne 0) { throw "vpk upload failed for channel $($work.Channel) with exit code $LASTEXITCODE" }
 }
 
-if ($plan.NeedsSource) {
+if ($plan.NeedsSource -and $plan.Publishes) {
     gh release upload $Tag $plan.SourceZipPath --clobber --repo $Repository
     if ($LASTEXITCODE -ne 0) { throw "Source zip upload failed with exit code $LASTEXITCODE" }
 }

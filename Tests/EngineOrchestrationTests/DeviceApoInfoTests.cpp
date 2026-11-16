@@ -29,6 +29,7 @@
 #include <filesystem>
 #include <fstream>
 #include "platform/windows/GuidText.h"
+#include "platform/windows/ComPtr.h"
 #include "services/registry/RegistryPaths.h"
 #include <string>
 #include <vector>
@@ -51,7 +52,11 @@
 #include "asio/WrapperRecord.h"
 #include "devices/ApoRuntimeFacts.h"
 #include "devices/DeviceAPOInfo.h"
+#include "devices/DeviceChange.h"
+#include "devices/DeviceEnumeration.h"
+#include "devices/VoicemeeterAPOInfo.h"
 #include "devices/DeviceAPOInfoKeys.h"
+#include "devices/VoicemeeterDetection.h"
 #include "services/install/ApoRegistration.h"
 #include "services/security/AudioEngineAccess.h"
 #include "services/windows/WindowsService.h"
@@ -202,8 +207,7 @@ TEST_CASE(EngineOrchestrationTests, testLoadWithForeignApoGuidsReportsNotInstall
 	harness.expect(info.hasDriverEffectChain(),
 		"the FxProperties key exists, so installing will not have to create it");
 	// getOriginalAPO* answers for the mode the GUI has selected rather than the
-	// one load inferred, and a bare load leaves the selection at its default,
-	// so select the mode these slots belong to before asking.
+	// one load inferred, so select the mode these slots belong to before asking.
 	info.getSelectedInstallState().installMode = DeviceAPOInfo::INSTALL_SFX_MFX;
 	harness.expect(info.getOriginalAPOPreMix() == vendorPreMixGuid,
 		"the driver's SFX APO is what a chained install would have to keep running in front of ours, so it is reported as the original pre-mix APO");
@@ -449,7 +453,6 @@ TEST_CASE(EngineOrchestrationTests, testInstallWithReceiveWritesAndLoadsTheState
 	DeviceAPOInfo info(registry);
 	harness.require(info.load(testDeviceGuid, otherDeviceGuid), "the render endpoint loads before enabling Send receive");
 	DeviceAPOInfo::InstallState& selected = info.getSelectedInstallState();
-	selected = info.getCurrentInstallState();
 	selected.allowSilentBufferModification = false;
 	selected.receiveFromEndpoints = true;
 	info.install();
@@ -483,7 +486,6 @@ TEST_CASE(EngineOrchestrationTests, testReceiveWithoutPostMixWritesNoReceiverVal
 	DeviceAPOInfo info(registry);
 	harness.require(info.load(testDeviceGuid, otherDeviceGuid), "the render endpoint loads");
 	DeviceAPOInfo::InstallState& selected = info.getSelectedInstallState();
-	selected = info.getCurrentInstallState();
 	selected.installPostMix = false;
 	selected.receiveFromEndpoints = true;
 	info.install();
@@ -507,7 +509,6 @@ TEST_CASE(EngineOrchestrationTests, testReceiveOnCaptureWritesNoReceiverValue)
 	DeviceAPOInfo info(registry);
 	harness.require(info.load(testDeviceGuid, otherDeviceGuid), "the capture endpoint loads");
 	DeviceAPOInfo::InstallState& selected = info.getSelectedInstallState();
-	selected = info.getCurrentInstallState();
 	selected.receiveFromEndpoints = true;
 	info.install();
 
@@ -535,7 +536,6 @@ TEST_CASE(EngineOrchestrationTests, testInstallingWithReceiveOffDeletesTheReceiv
 	DeviceAPOInfo info(registry);
 	harness.require(info.load(testDeviceGuid, otherDeviceGuid), "the render endpoint loads");
 	DeviceAPOInfo::InstallState& selected = info.getSelectedInstallState();
-	selected = info.getCurrentInstallState();
 	selected.receiveFromEndpoints = true;
 	info.install();
 	harness.require(registry.valueExists(childApoKey, receiveFromEndpointsValueName),
@@ -545,7 +545,6 @@ TEST_CASE(EngineOrchestrationTests, testInstallingWithReceiveOffDeletesTheReceiv
 
 	DeviceAPOInfo reloaded(registry);
 	harness.require(reloaded.load(testDeviceGuid, otherDeviceGuid), "the enabled receiver reloads before changing its installation");
-	reloaded.getSelectedInstallState() = reloaded.getCurrentInstallState();
 	reloaded.getSelectedInstallState().receiveFromEndpoints = false;
 	reloaded.install();
 	harness.expectFalse(registry.valueExists(childApoKey, receiveFromEndpointsValueName),
@@ -566,7 +565,6 @@ TEST_CASE(EngineOrchestrationTests, testReceiveAutoStartFollowsInstallAndUninsta
 	DeviceAPOInfo info(registry);
 	harness.require(info.load(testDeviceGuid, otherDeviceGuid), "the render endpoint loads");
 	DeviceAPOInfo::InstallState& selected = info.getSelectedInstallState();
-	selected = info.getCurrentInstallState();
 	selected.receiveFromEndpoints = true;
 	info.install();
 
@@ -659,7 +657,6 @@ TEST_CASE(EngineOrchestrationTests, testInstallOnACaptureDeviceFillsTheStreamSlo
 		"a capture endpoint has no post-mix stage to install into");
 
 	DeviceAPOInfo::InstallState& selected = info.getSelectedInstallState();
-	selected = info.getCurrentInstallState();
 	selected.installMode = DeviceAPOInfo::INSTALL_SFX_EFX;
 	info.install();
 
@@ -802,7 +799,6 @@ TEST_CASE(EngineOrchestrationTests, testAsioEntryCarriesTheDriverEntryOptions)
 	driver.autoStart = true;
 	eapo::asio::WrapperRecords::write(registry, driver);
 
-	reloaded.getSelectedInstallState() = reloaded.getCurrentInstallState();
 	reloaded.getSelectedInstallState().asioEntryOptions.autoStart = false;
 	reloaded.getSelectedInstallState().asioEntryOptions.host32 = false;
 	harness.expectTrue(reloaded.hasChanges(), "an option change is a pending change");
@@ -814,7 +810,6 @@ TEST_CASE(EngineOrchestrationTests, testAsioEntryCarriesTheDriverEntryOptions)
 	eapo::asio::WrapperRecords::remove(registry, driver.wrapperClsid);
 	DeviceAPOInfo last(registry);
 	harness.require(last.load(testDeviceGuid, otherDeviceGuid), "the device loads once more");
-	last.getSelectedInstallState() = last.getCurrentInstallState();
 	last.getSelectedInstallState().asioEntryOptions.autoStart = true;
 	last.reinstall();
 	harness.expectTrue(eapo::asio::AsioRegistration::autoStartRegistered(registry), "asking again brings the value back");
@@ -965,9 +960,9 @@ TEST_CASE(EngineOrchestrationTests, testInstallExportsTheDriverValuesBeforeOverw
 		"the exported names are the two slots the driver had filled");
 	harness.expect(exported.values[0] == vendorPreMixGuid && exported.values[1] == vendorPostMixGuid,
 		"the exported contents are the driver's GUIDs as they read before the overwrite");
-	harness.expect(exported.filePath == testDirectory() + L"\\backup_"
+	harness.expect(exported.filePath == WindowsRegistry::deviceBackupDirectory() + L"\\backup_"
 			+ deviceName + L"_" + connectionName + L".reg",
-		"the backup lands in the configured config directory, named after the device, and the missing trailing separator is supplied rather than concatenated away");
+		"the backup lands in the protected ProgramData directory, named after the device");
 
 	harness.expect(registry.readValue(childApoKey, lfxGuidValueName) == vendorPreMixGuid,
 		"the driver's LFX GUID is copied into the Child APOs key, which is what uninstall restores from");
@@ -1157,7 +1152,6 @@ TEST_CASE(EngineOrchestrationTests, testReinstallDoesNotProbeAnEndpoint)
 	const RejectingProbe probe;
 	DeviceAPOInfo info(registry, probe);
 	harness.require(info.load(testDeviceGuid, testDeviceGuid), "load with an explicit default never queries COM");
-	info.getSelectedInstallState() = info.getCurrentInstallState();
 	info.reinstall();
 	harness.expect(info.isDefaultDevice(), "registry-only reload retains the known default endpoint");
 }
@@ -1260,5 +1254,89 @@ TEST_CASE(EngineOrchestrationTests, testLoadAllInfosSkipsAnUnreadableEndpoint)
 	harness.expectEqual(listed(testDeviceGuid), std::ptrdiff_t(1), "the readable endpoint is listed");
 	harness.expectEqual(listed(lockedGuid), std::ptrdiff_t(0),
 		"the locked endpoint is left out rather than offered as one without a driver chain");
+}
+// A damaged third-party uninstall entry must not abort the Editor's list
+// (audit #467 TD-30).
+TEST_CASE(EngineOrchestrationTests, testLoadAllInfosSurvivesMissingVoicemeeterUninstallString)
+{
+	FakeRegistry registry;
+	seedRenderDevice(registry);
+	registry.seedKey(voicemeeterKeyPath);
+
+	std::vector<std::shared_ptr<AbstractAPOInfo>> infos;
+	bool threw = false;
+	try
+	{
+		infos = DeviceAPOInfo::loadAllInfos(false, registry);
+	}
+	catch (const RegistryError&)
+	{
+		threw = true;
+	}
+
+	harness.expectFalse(threw, "a missing Voicemeeter UninstallString does not throw the device list away");
+	harness.expect(std::any_of(infos.begin(), infos.end(), [](const std::shared_ptr<AbstractAPOInfo>& info) {
+		return info->getDeviceGuid() == testDeviceGuid;
+	}), "the readable endpoint survives the broken Voicemeeter entry");
+}
+TEST_CASE(EngineOrchestrationTests, testDeviceChangeReturnsOperationsReportsAndFollowUps)
+{
+	FakeRegistry registry;
+	seedRenderDevice(registry);
+	DeviceAPOInfo info(registry);
+	harness.require(info.load(testDeviceGuid, otherDeviceGuid), "clean endpoint loads");
+	harness.expect(info.getSelectedInstallState() == info.getCurrentInstallState(), "load initializes the selection");
+	harness.expect(info.kind() == AbstractAPOInfo::Kind::Endpoint, "endpoint kind is typed");
+	auto result = DeviceChange::apply({ { planFor(true, deviceFactsOf(info)), &info } }, DeviceChange::Context::Dialog);
+	harness.requireEqual(result.devices.size(), size_t(1), "one device result");
+	harness.expect(result.devices[0].action == DeviceAction::Install && result.devices[0].error.empty(), "clean endpoint is installed");
+	harness.expect(result.devices[0].report.outcome == DeviceInstallReport::Outcome::Succeeded, "install report is returned");
+	harness.expect(result.restartAudio && result.startVoicemeeterClient && result.startResidentHost, "dialog follow-ups are returned, not executed");
+
+	harness.require(info.load(testDeviceGuid, otherDeviceGuid), "installed endpoint reloads");
+	result = DeviceChange::apply({ { planForHeadlessInstall(deviceFactsOf(info)), &info } }, DeviceChange::Context::HeadlessInstall);
+	harness.expect(result.devices[0].action == DeviceAction::Reinstall && result.devices[0].error.empty(), "headless install repairs even an unchanged endpoint");
+	harness.expect(result.restartAudio && result.startResidentHost && !result.startVoicemeeterClient, "headless install starts only the resident host");
+
+	harness.require(info.load(testDeviceGuid, otherDeviceGuid), "repaired endpoint reloads");
+	result = DeviceChange::apply({ { planFor(false, deviceFactsOf(info)), &info } }, DeviceChange::Context::HeadlessUninstall);
+	harness.expect(result.devices[0].action == DeviceAction::Uninstall && result.devices[0].error.empty(), "installed endpoint is uninstalled");
+	harness.expect(result.restartAudio && !result.startResidentHost && !result.startVoicemeeterClient, "uninstall only restarts audio");
+}
+
+TEST_CASE(EngineOrchestrationTests, testDeviceEnumerationPoliciesKeepReadableEndpoints)
+{
+	FakeRegistry registry;
+	seedRenderDevice(registry);
+	registry.seedKey(voicemeeterKeyPath);
+	class TestProbe final : public EndpointProbe
+	{
+	public:
+		std::wstring defaultEndpointGuid(bool, int) const override {return otherDeviceGuid;}
+		void probeEndpoint(const std::wstring&, bool, const std::wstring&) const override {}
+	};
+	const TestProbe probe;
+	for (const auto policy : { DeviceEnumeration::Unreadable::SkipAndLog, DeviceEnumeration::Unreadable::ReportFailure })
+	{
+		const auto result = DeviceEnumeration::enumerate(false, registry, probe, policy);
+		harness.expectEqual(result.failures.size(), policy == DeviceEnumeration::Unreadable::ReportFailure ? size_t(1) : size_t(0), "policy decides whether the broken registration is reported");
+		harness.expect(std::any_of(result.infos.begin(), result.infos.end(), [](const auto& info) {return info->getDeviceGuid() == testDeviceGuid;}), "readable endpoint survives either policy");
+	}
+}
+
+TEST_CASE(EngineOrchestrationTests, testDeviceChangeWithMissingBackingProduct)
+{
+	winutil::ComApartment apartment;
+	harness.require(apartment.isUsable(), "COM is available for the shortcut fixture");
+	FakeRegistry registry;
+	const std::wstring link = testDirectory() + L"\\missing-voicemeeter.lnk";
+	trackWrittenFile(link);
+	VoicemeeterAPOInfo first(L"A1", true, registry, link);
+	first.install();
+	VoicemeeterAPOInfo info(L"A1", false, registry, link);
+	harness.expect(info.kind() == AbstractAPOInfo::Kind::Voicemeeter && info.isBackingProductMissing(), "missing product is a typed state");
+	const auto result = DeviceChange::apply({ { planFor(false, deviceFactsOf(info)), &info } }, DeviceChange::Context::Dialog);
+	harness.expect(result.devices[0].action == DeviceAction::Uninstall && result.devices[0].error.empty(), "the unchecked strip is removed after its backing product is gone");
+	harness.expect(!result.restartAudio && result.startVoicemeeterClient && result.startResidentHost, "removing a strip needs no audio restart but keeps the dialog follow-ups");
 }
 } // namespace

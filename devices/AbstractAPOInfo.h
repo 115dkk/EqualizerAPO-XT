@@ -26,6 +26,9 @@
 class AbstractAPOInfo
 {
 public:
+	enum class Kind { Endpoint, Asio, Voicemeeter, Preview, Gallery };
+	virtual Kind kind() const = 0;
+	virtual bool isBackingProductMissing() const {return false;}
 	virtual ~AbstractAPOInfo();
 	virtual std::wstring getConnectionName() const = 0;
 	virtual std::wstring getDeviceName() const = 0;

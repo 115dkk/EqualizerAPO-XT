@@ -116,7 +116,7 @@ void SoftSkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& s
 				// stems does the rest (tiebreaker). The stems are spaced
 				// off the pane's own left edge, not off each piece, so the
 				// comb stays in step across a break.
-				const double ground = qBound(state.plotRect.top(), state.zeroY, state.plotRect.bottom());
+				const double ground = state.clampedZeroY();
 				painter.setPen(QPen(bodyPastel, 5.0, Qt::SolidLine, Qt::RoundCap));
 				for (const QPointF& point : segment)
 				{
@@ -131,7 +131,7 @@ void SoftSkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& s
 			continue;
 		}
 
-		const double base = qBound(state.plotRect.top(), state.zeroY, state.plotRect.bottom());
+		const double base = state.clampedZeroY();
 		QPolygonF terrain = segment;
 		terrain.append(QPointF(segment.last().x(), base));
 		terrain.prepend(QPointF(segment.first().x(), base));

@@ -55,6 +55,47 @@ private:
 	bool unsaved = false;
 };
 
+enum class DocumentSaveReason
+{
+	CurrentPath,
+	NewPath,
+	InstantModeFlush
+};
+
+enum class DocumentSaveFailure
+{
+	None,
+	WriteError
+};
+
+struct DocumentWriteResult
+{
+	bool opened = false;
+	QString errorMessage;
+};
+
+struct DocumentSaveTransition
+{
+	QString title;
+	QString path;
+	bool dirty = false;
+	bool restartAnalysis = false;
+	DocumentSaveFailure failure = DocumentSaveFailure::None;
+	QString errorMessage;
+};
+
+// The widget-free document-save decision (audit #467 TD-44). MainWindow owns
+// the file write and presents any error; this core decides the resulting
+// title, path, dirty flag and analysis restart without touching widgets.
+class DocumentSaveCore
+{
+public:
+	static QString targetPath(const DocumentState& document, DocumentSaveReason reason,
+		const QString& newPath = QString());
+	static DocumentSaveTransition transition(const DocumentState& document,
+		DocumentSaveReason reason, const QString& newPath, const DocumentWriteResult& writeResult);
+};
+
 namespace RecentFiles
 {
 // Puts path first in the list, without duplicates, keeping the ten most

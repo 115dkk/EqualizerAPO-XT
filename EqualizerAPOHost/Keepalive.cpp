@@ -18,6 +18,7 @@
 #include "devices/DeviceAPOInfoKeys.h"
 #include "devices/ReceiverEndpoints.h"
 #include "platform/windows/ComPtr.h"
+#include "platform/windows/EndpointId.h"
 #include "platform/windows/Win32Resource.h"
 #include "services/logging/Logging.h"
 #include "services/registry/WindowsRegistry.h"
@@ -83,8 +84,7 @@ namespace
 				__uuidof(IMMDeviceEnumerator), reinterpret_cast<void**>(enumerator.put()));
 			if (FAILED(hr))
 				return hr;
-			// Same render endpoint ID spelling as wasapi::endpointId.
-			const std::wstring id = L"{0.0.0.00000000}." + guid;
+			const std::wstring id = winutil::endpointId(false, guid);
 			hr = enumerator->GetDevice(id.c_str(), device.put());
 			if (FAILED(hr))
 				return hr;

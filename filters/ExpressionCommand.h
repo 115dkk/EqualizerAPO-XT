@@ -60,6 +60,10 @@ struct InlineExpression
 	// of the line is dropped.
 	static std::vector<Segment> split(const std::wstring& parameters);
 
+	// True only when split() produces an expression segment. Editor row models
+	// and factories use this answer instead of interpreting backticks again.
+	static bool containsExpression(const std::wstring& parameters);
+
 	// Re-creates a parameter string by re-escaping backticks in segment text.
 	// For any segment list produced by split(), split(join(segments)) yields
 	// the same list again. Hand-built segments round-trip too, except text

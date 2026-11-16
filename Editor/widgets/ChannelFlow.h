@@ -56,14 +56,22 @@ struct ChannelFlowAtLine
 	std::vector<std::wstring> namesInScope;
 	// The channels the engine would hand a filter on this line.
 	std::vector<std::wstring> selected;
+	// The document's current selection was established by Channel: ALL (or no
+	// explicit Channel line). Cards use an empty scope badge for that state,
+	// even when the actual selected vector happens to equal an explicit list.
+	bool selectionIsAll = true;
+	// Card indentation and If-rail depth for this line. They are computed in
+	// this walk so the badge, group margin and channel flow cannot interpret
+	// Device, Stage, inline expressions or If branches differently.
+	int indent = 0;
+	int logicDepth = 0;
 	// How many leading entries of namesInScope are the device's own
 	// channels; the rest are virtual channels declared above. A NewChannel
 	// line may not name a device channel, so its card needs the split.
 	size_t deviceChannelCount = 0;
 };
 
-// Element i is what line i sees, before its own effect: the same two
-// vectors configureChannels/configureSelectedChannels delivered before the
-// flow moved here.
+// Element i is what line i sees, before its own effect, plus the card scope
+// facts computed by the same top-down walk.
 std::vector<ChannelFlowAtLine> computeChannelFlow(const std::vector<ChannelFlowLine>& lines,
 	const ChannelFlowContext& context);

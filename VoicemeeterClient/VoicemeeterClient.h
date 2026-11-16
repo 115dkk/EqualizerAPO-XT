@@ -36,6 +36,7 @@ public:
 	~VoicemeeterClient();
 	void run();
 	void handle(long nCommand, void* lpData, long nnn);
+	void handleCallback(long nCommand, void* lpData, long nnn) noexcept;
 
 private:
 	void initSoftware();
@@ -66,6 +67,7 @@ private:
 	bool loggedIn = false;
 	bool callbackRegistered = false;
 	std::atomic<bool> connected{ true };
+	std::atomic<bool> callbackFailed{ false };
 	std::atomic<float> sampleRate{ 0.0f };
 	std::atomic<unsigned> maxFrameCount{ 0 };
 	SynchronizedState<EngineState> engineState;

@@ -355,8 +355,8 @@ states: `normal`, `hover` (hover-equivalent via `Qt::WA_UnderMouse`), and
 state). The reference rows resolve against synthetic target files the gallery
 writes under `<outDir>/refs/` (`example.txt`, a 100 ms mono `example.wav`, a
 100 ms 4-channel `brir.wav`), so the healthy cards render deterministic
-readouts; the gallery also sets `EAPO_SKIN_GALLERY=1`, which the card editors
-honour by skipping the audio-service ACL probe (scratch files have no
+readouts; the gallery also installs its `FileReferenceController::Policy`,
+with which the card editors skip the audio-service ACL probe (scratch files have no
 meaningful ACL story). The filter picker is captured in three states
 (`normal`, `hover`, `empty`; pickers that do not implement
 `FilterPickerView::galleryShowcase` repeat their normal look), plus one shot

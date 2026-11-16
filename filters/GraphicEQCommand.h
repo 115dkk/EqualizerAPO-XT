@@ -40,6 +40,9 @@
 struct GraphicEQCommand
 {
 	std::vector<FilterNode> nodes;
+	// False when any parsed dB gain cannot produce a finite linear value. Finite
+	// pairs remain in nodes for Editor display, but the engine rejects the line.
+	bool valid = true;
 
 	// Parses the parameter string of a "GraphicEQ:" line into the node list:
 	// when the string contains no '.', commas are treated as decimal marks and

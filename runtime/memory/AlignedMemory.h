@@ -65,19 +65,7 @@ public:
 	};
 
 	template<class T>
-	struct ObjectDeleter
-	{
-		void operator()(T* ptr) const noexcept
-		{
-			AlignedMemory::destroy(ptr);
-		}
-	};
-
-	template<class T>
 	using UniqueAllocation = std::unique_ptr<T, AllocationDeleter<T>>;
-
-	template<class T>
-	using UniqueObject = std::unique_ptr<T, ObjectDeleter<T>>;
 
 	static void* alloc(size_t size);
 	static void free(void* ptr);
@@ -103,7 +91,7 @@ public:
 	static UniqueAllocation<T> allocateArray(size_t count) noexcept
 	{
 		static_assert(std::is_trivially_destructible_v<T>,
-			"allocateArray owns storage only; use constructUnique for objects");
+			"allocateArray requires trivially destructible elements");
 		if (count > (std::numeric_limits<size_t>::max)() / sizeof(T))
 			return {};
 		return UniqueAllocation<T>(static_cast<T*>(alloc(count * sizeof(T))));
@@ -131,22 +119,6 @@ public:
 		{
 			free(mem);
 			throw;
-		}
-	}
-
-	template<class T, class... Args>
-	static UniqueObject<T> constructUnique(Args&&... args)
-	{
-		return UniqueObject<T>(construct<T>(std::forward<Args>(args)...));
-	}
-
-	template<class T>
-	static void destroy(T* ptr)
-	{
-		if (ptr != nullptr)
-		{
-			ptr->~T();
-			free(ptr);
 		}
 	}
 };

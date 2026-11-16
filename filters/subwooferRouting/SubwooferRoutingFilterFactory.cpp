@@ -62,24 +62,22 @@ LineOutcome SubwooferRoutingFilterFactory::createFilter(
 	const std::wstring& configPath, std::wstring& command,
 	std::wstring& parameters)
 {
-	if (command != L"SubwooferRouting")
-		return {};
-
 	SubwooferRoutingCommand parsed;
 	std::wstring error;
 	if (!SubwooferRoutingCommand::parse(command, parameters, parsed, &error))
+	{
+		if (error.empty())
+			return LineOutcome::notMine();
 		return LineOutcome::malformed(error);
+	}
 
 	std::string utf8Text;
 	if (parsed.form == SubwooferRoutingCommand::Form::Profile)
 	{
 		const ConfigFileReference::Target profile =
 			ConfigFileReference::target(configPath, parsed.payload);
-		if (!profile.refusal.empty())
-			return LineOutcome::malformed(profile.refusal);
-		if (profile.path.empty())
-			return LineOutcome::malformed(
-				L"expected the path of a profile file");
+		if (!profile)
+			return LineOutcome::malformed(profile.problem(L"routing profile"));
 		const std::wstring& resolvedPath = profile.path.path();
 
 		if (!ConfigurationFileReader::readBytes(profile.path, utf8Text))

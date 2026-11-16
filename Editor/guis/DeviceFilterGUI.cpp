@@ -96,7 +96,7 @@ void DeviceFilterGUI::load(const QString& parameters)
 					state = tr("APO installed");
 				else
 					state = tr("APO not installed");
-				if (apoInfo->stateNote() == L"Voicemeeter was uninstalled")
+				if (apoInfo->isBackingProductMissing())
 					state += ", " + tr("Voicemeeter was uninstalled");
 				values.append(state);
 				lastItem = new QTreeWidgetItem(ui->treeWidget, values);

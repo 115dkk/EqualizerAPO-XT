@@ -822,8 +822,9 @@ ConfigFileReference::Target ConfigPathPolicy::judge(const wstring& path, const w
 		result.refusal = L"the file or its folder could not be checked safely; check its permissions and try again";
 	if (!result.refusal.empty())
 		return result;
-	// Missing files retain their judged spelling for the existing missing-file
-	// diagnostics, but never acquire a handle or retry an open by name.
+	// Missing files retain their judged spelling so Target::problem can attach
+	// the path and Win32 reason to the configuration line. They never acquire a
+	// handle or retry an open by name.
 	const HANDLE leaf = result.error == ERROR_SUCCESS ? fileSystem.parent : nullptr;
 	result.path = JudgedPath(fileSystem.leafPath.empty() || leaf == nullptr ? path : fileSystem.leafPath,
 		std::move(fileSystem.pins), leaf, fileSystem.attributesOnlyPins, fileSystem.passedComponents);

@@ -44,7 +44,7 @@ class VST3HostContext;
 class VST3Instance final : public VSTPluginInstance
 {
 public:
-	VST3Instance(const std::shared_ptr<VSTPluginLibrary>& library, int processLevel);
+	VST3Instance(const std::shared_ptr<VSTPluginLibrary>& library, VSTPluginInstance::ProcessLevel processLevel);
 	~VST3Instance() override;
 
 	bool initialize() override;
@@ -66,13 +66,13 @@ public:
 	std::wstring getName() const override;
 	int getInitialDelay() const override;
 
-	void prepareForProcessing(float sampleRate, int blockSize) override;
-	void writeToEffect(const std::wstring& chunkData,
+	bool prepareProcessingImpl(float sampleRate, int blockSize) override;
+	StateRestoreResult writeToEffect(const std::wstring& chunkData,
 		const std::unordered_map<std::wstring, float>& paramMap) override;
 	void readFromEffect(std::wstring& chunkData,
 		std::unordered_map<std::wstring, float>& paramMap) const override;
 
-	void startProcessing() override;
+	bool startProcessing() override;
 	void processDoubleReplacing(double** inputArray, double** outputArray, int frameCount) override;
 	void processReplacing(float** inputArray, float** outputArray, int frameCount) override;
 	void process(float** inputArray, float** outputArray, int frameCount) override;

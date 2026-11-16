@@ -24,6 +24,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)SampleCodec.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)StreamProcessor.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)WasapiExclusiveTarget.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\platform\windows\EndpointId.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)WaveFormat.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Win32HostLink.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)WrapperRecord.h" />
@@ -34,5 +35,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Win32HostLink.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasapiExclusiveTarget.cpp" />
   </ItemGroup>
+  <Import Project="$(MSBuildThisFileDirectory)AsioHostLaunchSources.props" />
   <Import Project="$(MSBuildThisFileDirectory)AsioRingSources.props" />
 </Project>

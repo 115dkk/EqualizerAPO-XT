@@ -21,8 +21,8 @@
 // Generic assertion primitives are shared with the other suites via the
 // header-only harness. The QString helpers below convert at the boundary so
 // EditorLogicTests can keep its Qt-specific checks (expectPath) alongside.
-// runAll() owns the suite harness. The require* wrappers keep gating checks
-// aborting while ordinary expectations collect failures through the full suite.
+// runAll() owns the suite harness. The require* wrappers end only their case
+// while ordinary expectations collect failures through the full suite.
 std::string toStd(const QString& s)
 {
 	return s.toUtf8().constData();
@@ -82,9 +82,9 @@ void expectNear(double actual, double expected, double tolerance, const QString&
 }
 
 // require counterparts of the wrappers above: same message format, but they
-// abort on failure regardless of the Collect policy. Use them for checks
-// whose failure would make the following lines unsafe (size checks before
-// indexing, fixture-creation checks).
+// end the current case on failure regardless of the Collect policy. Use them
+// for checks whose failure would make the following lines unsafe (size checks
+// before indexing, fixture-creation checks).
 void requireTrue(bool value, const QString& message)
 {
 	harness.require(value, toStd(message));

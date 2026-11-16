@@ -40,7 +40,9 @@ namespace QtAppBootstrap
 // also a security concern: a caller that controls the working directory
 // could plant a Qt plugin DLL there. Anchor the plugin search to the
 // executable's own directory instead. Call before constructing QApplication.
-void addExecutableRelativePluginPath();
+// Elevated callers replace the list rather than retaining QT_PLUGIN_PATH.
+// Reapply after QApplication construction, which can add default paths.
+void addExecutableRelativePluginPath(bool restricted = false);
 
 // Copies Qt's warnings, criticals and fatals into the product log (Editor.log,
 // DeviceSelector.log) and then hands every message on to the handler that was

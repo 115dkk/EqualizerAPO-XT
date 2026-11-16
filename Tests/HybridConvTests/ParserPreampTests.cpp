@@ -157,6 +157,13 @@ TEST_CASE(ParserPreampTests, runParserPreampTests)
 	PreampCommand nonFinite = parsePreamp(L"1e999 dB");
 	harness.expectFalse(nonFinite.valid, "a non-finite preamp value must not parse as valid");
 
+	harness.expect(parsePreamp(L"-200 dB").valid && parsePreamp(L"200 dB").valid,
+		"the inclusive -200 to 200 dB range is accepted");
+	harness.expectFalse(parsePreamp(L"-200.001 dB").valid,
+		"a preamp below -200 dB is rejected");
+	harness.expectFalse(parsePreamp(L"200.001 dB").valid,
+		"a preamp above 200 dB is rejected");
+
 	// A non-"Preamp" command is rejected outright (returns false, leaves the
 	// struct in its default state).
 	{

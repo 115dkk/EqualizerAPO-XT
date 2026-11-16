@@ -1280,9 +1280,9 @@ int run(const QStringList& arguments)
 	}
 
 	// The reference cards probe target files; the gallery provides synthetic
-	// ones and marks itself so the cards skip the audio-service ACL probe,
-	// which has no meaningful answer for freshly written scratch files.
-	qputenv("EAPO_SKIN_GALLERY", "1");
+	// ones and installs its policy so the cards skip the audio-service ACL
+	// probe, which has no meaningful answer for freshly written scratch files.
+	installGalleryFileReferencePolicy();
 	QDir fixtureRoot = galleryFixtureRoot();
 	if (fixtureRoot.exists() && !fixtureRoot.removeRecursively())
 	{
@@ -1299,12 +1299,11 @@ int run(const QStringList& arguments)
 	int failures = 0;
 	if (qEnvironmentVariableIsSet("EAPO_GALLERY_LEGACY"))
 	{
-		// Heritage mode is skin-independent; render its two dumps and exit
-		// through the same no-teardown path below.
+		// Heritage mode is skin-independent; render its two dumps and return
+		// through main's shared worker shutdown.
 		failures += renderHeritage(outDir, configPath);
-		const int status = failures == 0 ? 0 : 1;
 		std::fflush(nullptr);
-		std::_Exit(status);
+		return failures == 0 ? 0 : 1;
 	}
 	for (const QString& skinId : skinIds)
 	{
@@ -1389,14 +1388,10 @@ int run(const QStringList& arguments)
 	}
 
 	// --skin-gallery is a headless one-shot: by this point every screenshot has
-	// been rendered and flushed to disk. Returning normally would unwind into the
-	// QApplication / global teardown, which on the offscreen platform never
-	// finishes - a leftover background resource keeps the process alive, so the
-	// renders all succeed but the process hangs on exit and any driving script
-	// has to time out and kill it. Nothing is left to persist, so flush the
-	// diagnostic stream and exit immediately with the failure status instead.
+	// been rendered and flushed to disk. Return the verdict so main can stop the
+	// shared background workers before static destruction (audit #467 TD-33).
 	const int status = failures == 0 ? 0 : 1;
 	std::fflush(nullptr);
-	std::_Exit(status);
+	return status;
 }
 }

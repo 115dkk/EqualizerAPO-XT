@@ -156,7 +156,8 @@ public:
 	//
 	// Every listed value is read with readValue, so a missing value or a
 	// non-REG_SZ value throws. Throws if the file cannot be opened; it does not
-	// create the containing directory.
+	// create arbitrary containing directories. The live adapter creates the
+	// protected ProgramData device-backup folder when exporting there.
 	virtual void saveToFile(const std::wstring& key, const std::vector<std::wstring>& valuenames, const std::wstring& filepath) = 0;
 };
 

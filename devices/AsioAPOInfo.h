@@ -53,6 +53,7 @@ public:
 	bool isInput() const override;
 	bool isInstalled() const override;
 	bool hasChanges() const override;
+	Kind kind() const override {return Kind::Asio;}
 	std::wstring getTransportLabel() const override;
 	void install() override;
 	void uninstall() override;

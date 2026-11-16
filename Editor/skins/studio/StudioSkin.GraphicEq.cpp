@@ -93,7 +93,7 @@ void StudioSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState&
 	}
 
 	painter.setRenderHint(QPainter::Antialiasing, true);
-	const double base = qBound(plot.top(), state.zeroY, plot.bottom());
+	const double base = state.clampedZeroY();
 
 	if (state.curve.size() >= 2)
 	{

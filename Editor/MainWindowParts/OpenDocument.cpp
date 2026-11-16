@@ -6,6 +6,9 @@
 
 #include "OpenDocument.h"
 
+#include <QDir>
+#include <QFileInfo>
+
 #include <utility>
 
 DocumentState::DocumentState(QString title, QString path)
@@ -51,6 +54,58 @@ void DocumentState::savedAs(QString newTitle, QString newPath)
 	titleText = std::move(newTitle);
 	filePath = std::move(newPath);
 	unsaved = false;
+}
+
+QString DocumentSaveCore::targetPath(const DocumentState& document, DocumentSaveReason reason,
+	const QString& newPath)
+{
+	return reason == DocumentSaveReason::NewPath ? newPath : document.path();
+}
+
+DocumentSaveTransition DocumentSaveCore::transition(const DocumentState& document,
+	DocumentSaveReason reason, const QString& newPath, const DocumentWriteResult& writeResult)
+{
+	DocumentSaveTransition result;
+	result.title = document.title();
+	result.path = document.path();
+	result.dirty = document.dirty();
+	result.errorMessage = writeResult.errorMessage;
+
+	if (!writeResult.opened)
+		result.failure = DocumentSaveFailure::WriteError;
+
+	if (result.failure != DocumentSaveFailure::None)
+	{
+		// Instant mode normally leaves a tab clean while its debounce waits. A
+		// failed write has to put the close prompt back; explicit saves preserve
+		// the dirty state they were called with.
+		if (reason == DocumentSaveReason::InstantModeFlush)
+			result.dirty = true;
+		return result;
+	}
+
+	result.restartAnalysis = true;
+	switch (reason)
+	{
+	case DocumentSaveReason::CurrentPath:
+		result.dirty = false;
+		break;
+	case DocumentSaveReason::NewPath:
+	{
+		const QFileInfo fileInfo(newPath);
+		result.title = fileInfo.fileName();
+		result.path = QDir::toNativeSeparators(fileInfo.absoluteFilePath());
+		result.dirty = false;
+		break;
+	}
+	case DocumentSaveReason::InstantModeFlush:
+		// The write covers the whole document, so a dirty flag left by an
+		// earlier failed instant save is cleared: the file now matches, and the
+		// close prompt would ask about nothing (audit #467 TD-44).
+		result.dirty = false;
+		break;
+	}
+	return result;
 }
 
 void RecentFiles::remember(QStringList& recentFiles, const QString& path)

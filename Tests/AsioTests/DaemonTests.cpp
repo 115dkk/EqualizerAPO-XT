@@ -16,11 +16,13 @@
 #include <atomic>
 #include <chrono>
 #include <cmath>
+#include <cstdio>
 #include <cstdint>
 #include <cstring>
 #include <fstream>
 #include <limits>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <thread>
 #include <vector>
@@ -35,9 +37,11 @@
 #include "asio/InProcProcessor.h"
 #include "asio/SampleCodec.h"
 #include "asio/StreamFacts.h"
+#include "asio/StreamHost.h"
 #include "asio/ThreadHostLink.h"
 #include "asio/Win32HostLink.h"
 #include "devices/AsioAPOInfo.h"
+#include "services/logging/Logging.h"
 #include "Tests/AsioSupport/HostStub.h"
 #include "Tests/FakeAsioDriver/FakeAsio.h"
 #include "Tests/FakeRegistry.h"
@@ -657,7 +661,8 @@ namespace
 				CancelSynchronousIo(thread_.native_handle());
 				completion = WaitForSingleObject(doneEvent_, 10);
 			}
-			harness.requireEqual(completion, static_cast<DWORD>(WAIT_OBJECT_0),
+			// A case-ending exception cannot escape this destructor (audit #467 TD-66).
+			harness.requireOrDie(completion == WAIT_OBJECT_0,
 				"the stand-in pipe server stops before its deadline");
 			thread_.join();
 			CloseHandle(pipe_);
@@ -694,6 +699,41 @@ namespace
 		format.channels[0] = 2;
 		format.channels[1] = 2;
 		return format;
+	}
+
+	// Audit #467 TD-54: a stream mapping name is fresh per link. A mapping
+	// created first by another owner must be refused before the host is started.
+	TEST_CASE(DaemonTests, testPrecreatedStreamMappingIsRefused)
+	{
+		const std::wstring endpoint = L"EAPO.ASIO.test.mapping-squat." + std::to_wstring(GetCurrentProcessId());
+		const uint32_t ringBytes = eapo::ipc::RingGeometry::totalBytes(smallFormat());
+		std::vector<winutil::UniqueHandle> mappings;
+		mappings.reserve(256);
+		bool allCreated = true;
+		for (uint32_t serial = 1; serial <= 256; serial++)
+		{
+			winutil::UniqueHandle mapping(CreateFileMappingW(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, ringBytes,
+				eapo::asio::HostNames::ring(endpoint, GetCurrentProcessId(), serial).c_str()));
+			if (!mapping)
+			{
+				allCreated = false;
+				break;
+			}
+			mappings.push_back(std::move(mapping));
+		}
+		harness.require(allCreated, "the test pre-creates the stream mapping serial range");
+
+		StreamOptions options;
+		options.daemonEndpoint = endpoint;
+		options.daemonExePath = L"C:\\definitely\\not\\here\\EqualizerAPOHost.exe";
+		options.readyTimeoutMs = 3000;
+		eapo::asio::Win32HostLink link;
+		eapo::asio::OpenReport report;
+		std::unique_ptr<eapo::ipc::RingProducer> producer = link.open(smallFormat(), options, report);
+		harness.expect(producer == nullptr, "the link refuses a stream mapping that another owner created first");
+		const std::string error(report.message);
+		harness.expect(error.find("already in use") != std::string::npos, "and reports the pre-created mapping: " + error);
+		link.close(std::move(producer));
 	}
 
 	TEST_CASE(DaemonTests, testAnotherProgramOnTheControlPipeIsRefused)
@@ -743,73 +783,21 @@ namespace
 		link.close(std::move(producer));
 	}
 
-	class ControlRingHost
+	TEST_CASE(DaemonTests, testStreamHostRejectsAMissingRing)
 	{
-	public:
-		explicit ControlRingHost(eapo::asio::HostActivity& activity)
-			: activity_(activity)
-		{
-		}
-
-		eapo::asio::HostOpenReply open(eapo::asio::HostOpenRequest request)
-		{
-			auto worker = std::make_unique<Worker>();
-			worker->mapping.reset(OpenFileMappingW(FILE_MAP_ALL_ACCESS, FALSE, request.ringName));
-			worker->base.reset(worker->mapping ? MapViewOfFile(worker->mapping.get(), FILE_MAP_ALL_ACCESS, 0, 0, request.ringBytes) : nullptr);
-			bool ok = static_cast<bool>(worker->base);
-			for (unsigned i = 0; ok && i < eapo::asio::RingEvents::count; i++)
-			{
-				worker->events[i].reset(OpenEventW(EVENT_MODIFY_STATE | SYNCHRONIZE, FALSE,
-					eapo::asio::HostNames::event(request.ringName, eapo::asio::RingEvents::table[i].suffix).c_str()));
-				ok = static_cast<bool>(worker->events[i]);
-			}
-			worker->producer.reset(OpenProcess(SYNCHRONIZE, FALSE, request.producerPid));
-			eapo::asio::HostOpenReply reply;
-			reply.hostPid = GetCurrentProcessId();
-			if (!ok)
-			{
-				reply.status = static_cast<uint32_t>(eapo::asio::HostOpenStatus::BadRing);
-				return reply;
-			}
-			Worker* raw = worker.get();
-			activity_.started();
-			raw->thread = std::jthread([this, raw, request] {
-				const auto* header = static_cast<const eapo::ipc::RingHeader*>(raw->base.get());
-				const ULONGLONG deadline = GetTickCount64() + 5000;
-				while (ReadAcquire(&header->state) == static_cast<LONG>(eapo::ipc::RingState::Empty)
-					&& GetTickCount64() < deadline)
-					Sleep(1);
-				eapo::ipc::RingConsumer consumer(raw->base.get(), request.ringBytes,
-					eapo::asio::RingEvents::toSync(raw->events, raw->producer.get()));
-				if (consumer.valid())
-				{
-					consumer.setConsumerPid(GetCurrentProcessId());
-					consumer.setState(eapo::ipc::RingState::Ready);
-					eapo::ipc::RingConsumer::Acquired acquired;
-					while (consumer.state() == eapo::ipc::RingState::Ready && !consumer.peerGone())
-						if (consumer.acquire(acquired, 50))
-							consumer.release(acquired);
-				}
-				activity_.finished();
-			});
-			workers_.push_back(std::move(worker));
-			reply.status = static_cast<uint32_t>(eapo::asio::HostOpenStatus::Accepted);
-			return reply;
-		}
-
-	private:
-		struct Worker
-		{
-			winutil::UniqueHandle mapping;
-			winutil::UniqueMappedView base;
-			winutil::UniqueHandle events[eapo::asio::RingEvents::count];
-			winutil::UniqueHandle producer;
-			std::jthread thread;
-		};
-
-		eapo::asio::HostActivity& activity_;
-		std::vector<std::unique_ptr<Worker>> workers_;
-	};
+		eapo::asio::HostActivity activity;
+		test::FakeRegistry registry;
+		eapo::asio::StreamHost streams(activity, registry);
+		eapo::asio::HostOpenRequest request;
+		request.producerPid = GetCurrentProcessId();
+		request.ringBytes = static_cast<uint32_t>(eapo::ipc::ringHeaderBytes);
+		const std::wstring ringName = L"Local\\EAPO.ASIO.test.missing-ring." + std::to_wstring(GetCurrentProcessId());
+		wcsncpy_s(request.ringName, ringName.c_str(), _TRUNCATE);
+		const eapo::asio::HostOpenReply reply = streams.open(request);
+		harness.expect(reply.status == static_cast<uint32_t>(eapo::asio::HostOpenStatus::BadRing),
+			"the product stream host answers BadRing before accepting a ring it cannot open");
+		streams.stop();
+	}
 
 	bool waitForPipe(const std::wstring& endpoint)
 	{
@@ -827,9 +815,12 @@ namespace
 
 	TEST_CASE(DaemonTests, testHostControlServerWithWin32Client)
 	{
+		test::TestDirectory directory(L"DaemonTests-control");
+		const std::wstring configPath = writeConfig(directory, "Preamp: 0 dB\n");
 		const std::wstring endpoint = L"EAPO.ASIO.test.control." + std::to_wstring(GetCurrentProcessId());
 		eapo::asio::HostActivity activity;
-		ControlRingHost rings(activity);
+		test::FakeRegistry registry;
+		eapo::asio::StreamHost rings(activity, registry);
 		eapo::asio::HostControlOptions serverOptions;
 		serverOptions.endpoint = endpoint;
 		serverOptions.resident = true;
@@ -843,6 +834,7 @@ namespace
 		StreamOptions options;
 		options.daemonEndpoint = endpoint;
 		options.daemonExePath = self;
+		options.configPath = configPath;
 		options.readyTimeoutMs = 3000;
 		options.lingerMs = (std::numeric_limits<uint32_t>::max)();
 		for (unsigned attempt = 0; attempt < 2; attempt++)
@@ -862,6 +854,61 @@ namespace
 		harness.expect(server.instanceHandoffs() >= 2, "each next pipe instance existed before the connected one closed");
 		server.requestStop();
 		serverThread.join();
+		rings.stop();
+		directory.removeAll();
+	}
+
+	TEST_CASE(DaemonTests, testHostControlServerLogsHandlerExceptions)
+	{
+		FILE* logFile = nullptr;
+		harness.require(tmpfile_s(&logFile) == 0 && logFile != nullptr, "control-handler exception log opens");
+		Logging::useStream(logFile, false, true, false);
+		const auto run = [&](const wchar_t* suffix, bool unknown) {
+			const std::wstring endpoint = L"EAPO.ASIO.test.control-throw."
+				+ std::to_wstring(GetCurrentProcessId()) + suffix;
+			eapo::asio::HostActivity activity;
+			eapo::asio::HostControlOptions serverOptions;
+			serverOptions.endpoint = endpoint;
+			serverOptions.resident = true;
+			eapo::asio::HostControlServer server(serverOptions, activity,
+				[unknown](eapo::asio::HostOpenRequest) -> eapo::asio::HostOpenReply {
+					if (unknown)
+						throw 7;
+					throw std::runtime_error("scripted control exception");
+				});
+			std::thread serverThread([&server] {server.run();});
+			const bool listening = waitForPipe(endpoint);
+			if (listening)
+			{
+				wchar_t self[MAX_PATH] = {};
+				GetModuleFileNameW(nullptr, self, MAX_PATH);
+				StreamOptions options;
+				options.daemonEndpoint = endpoint;
+				options.daemonExePath = self;
+				eapo::asio::Win32HostLink link;
+				eapo::asio::OpenReport report;
+				auto producer = link.open(smallFormat(), options, report);
+				harness.expect(producer == nullptr, "a throwing control handler refuses the stream");
+			}
+			else
+				harness.fail("the throwing control server starts listening");
+			server.requestStop();
+			serverThread.join();
+		};
+		run(L".cpp", false);
+		run(L".unknown", true);
+		std::fflush(logFile);
+		std::rewind(logFile);
+		std::wstring log;
+		wchar_t text[1024] = {};
+		while (std::fgetws(text, 1024, logFile) != nullptr)
+			log.append(text);
+		Logging::useStream(stdout, true, true, false);
+		std::fclose(logFile);
+		harness.expect(log.find(L"control open handler threw a C++ exception: scripted control exception") != std::wstring::npos,
+			"the control-handler C++ exception log names the site and what()");
+		harness.expect(log.find(L"control open handler threw an exception of unknown type") != std::wstring::npos,
+			"the unknown control-handler exception log names the site");
 	}
 
 	TEST_CASE(DaemonTests, testHostControlServerLinger)

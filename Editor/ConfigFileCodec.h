@@ -24,6 +24,8 @@
 #include <QList>
 #include <QByteArray>
 
+class FileSharingRetryPolicy;
+
 // UI-free reader/writer for EqualizerAPO configuration files: the encoding
 // detection (UTF-8 with a system-ANSI fallback when the bytes do not decode
 // as UTF-8) and the Win32 sharing-violation retry loop sit behind a real,
@@ -65,6 +67,8 @@ public:
 	// A failed write or replacement leaves an existing path unchanged. Lines are
 	// joined with CRLF and encoded as UTF-8 (no trailing newline).
 	static WriteResult writeConfig(const QString& path, const QList<QString>& lines);
+	static WriteResult writeConfig(const QString& path, const QList<QString>& lines,
+		const FileSharingRetryPolicy& retryPolicy);
 
 	// Pure, file-system-free transforms, exposed for reuse and testing.
 	// decodeLines splits the raw file bytes into lines, stripping a trailing CR

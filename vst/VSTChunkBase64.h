@@ -21,6 +21,20 @@ namespace vstchunk
 {
 	inline bool decodeBase64(const std::wstring& encoded, std::vector<char>& decoded)
 	{
+		// CryptStringToBinary accepts even one base64 digit and invents a byte.
+		// testStateRestoreFailureIsReported truncates a chunk to that impossible
+		// final quantum; report it instead of handing defaults to the plugin
+		// (audit #467 TD-36). Unpadded two/three-digit tails remain accepted.
+		size_t digits = 0;
+		for (wchar_t value : encoded)
+		{
+			if (value == L'=')
+				break;
+			if (value != L' ' && value != L'\r' && value != L'\n' && value != L'\t')
+				digits++;
+		}
+		if (digits % 4 == 1)
+			return false;
 		DWORD requiredSize = 0;
 		if (CryptStringToBinaryW(
 			encoded.c_str(),

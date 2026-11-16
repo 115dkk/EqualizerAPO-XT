@@ -23,6 +23,7 @@
 #include <windows.h>
 #include <timeapi.h>
 
+#include "platform/windows/UnelevatedLaunch.h"
 #include "asio/AsioWrapper.h"
 #include "asio/CallbackTrampolines.h"
 #include "asio/DriverNameText.h"
@@ -30,6 +31,7 @@
 #include "asio/SampleCodec.h"
 #include "asio/StreamProcessor.h"
 #include "asio/WasapiExclusiveTarget.h"
+#include "asio/WaveFormat.h"
 #include "asio/WrapperRecord.h"
 #include "services/logging/Logging.h"
 #include "Tests/AlignedMemoryGate.h"
@@ -84,6 +86,7 @@ namespace
 		OpenReport::Status openStatus = OpenReport::Status::Ok;
 		uint32_t extraLatency = 0;
 		bool throwOnOpen = false;
+		bool throwUnknownOnOpen = false;
 		FakeAsioDriver* enterCallbackFrom = nullptr;
 		ASIOCallbacks* enteredCallback = nullptr;
 		bool callbackEntered = false;
@@ -101,6 +104,8 @@ namespace
 			}
 			if (throwOnOpen)
 				throw std::runtime_error("scripted open exception");
+			if (throwUnknownOnOpen)
+				throw 7;
 			OpenReport report;
 			report.status = openStatus;
 			if (openStatus != OpenReport::Status::Ok)
@@ -235,6 +240,21 @@ namespace
 
 	// ---- codecs ----
 
+	TEST_CASE(AsioTests, testHelperLaunchDropsTheAdministratorToken)
+	{
+		int shellCalls = 0;
+		int plainCalls = 0;
+		const auto shell = [&]() { ++shellCalls; return false; };
+		const auto plain = [&]() { ++plainCalls; return true; };
+		harness.expectTrue(!winutil::chooseUnelevatedLaunch([]() { return true; }, shell, plain),
+			"elevated helper uses shell launch and propagates failure");
+		harness.expectTrue(shellCalls == 1 && plainCalls == 0,
+			"missing shell never falls back to elevated launch");
+		harness.expectTrue(winutil::chooseUnelevatedLaunch([]() { return false; }, shell, plain),
+			"unelevated helper uses plain launch");
+		harness.expectTrue(shellCalls == 1 && plainCalls == 1, "each launch chooses one token path");
+	}
+
 	TEST_CASE(AsioTests, testCodecRoundTrips)
 	{
 		const long types[] = {
@@ -285,7 +305,7 @@ namespace
 
 		// The endpoint's own format leads; the fixed list follows without repeats.
 		WAVEFORMATEXTENSIBLE sixteen = wasapi::makeFormat(wasapi::Container{ASIOSTInt16LSB, 16, 16, false}, 2, 48000, 3);
-		std::vector<wasapi::Container> order = wasapi::containerCandidates(&sixteen.Format);
+		std::vector<wasapi::Container> order = wasapi::containerCandidates(&sixteen.Format, sizeof(sixteen));
 		harness.require(order.size() == 5, "five containers are tried for a 16-bit device format");
 		harness.expectEqual(order[0].asioType, static_cast<long>(ASIOSTInt16LSB), "the device's own container comes first");
 		harness.expectEqual(order[1].asioType, static_cast<long>(ASIOSTFloat32LSB), "float follows");
@@ -294,12 +314,12 @@ namespace
 		harness.expectEqual(order[4].asioType, static_cast<long>(ASIOSTInt24LSB), "then packed 24; 16 bit is not repeated");
 
 		WAVEFORMATEXTENSIBLE twentyFour = wasapi::makeFormat(wasapi::Container{ASIOSTInt32LSB24, 32, 24, false}, 2, 96000, 3);
-		order = wasapi::containerCandidates(&twentyFour.Format);
+		order = wasapi::containerCandidates(&twentyFour.Format, sizeof(twentyFour));
 		harness.require(order.size() == 5, "five containers for a 24-in-32 device format");
 		harness.expectEqual(order[0].asioType, static_cast<long>(ASIOSTInt32LSB24), "24 valid bits in 32 is recognised from the extensible header");
 		harness.expectEqual(order[4].asioType, static_cast<long>(ASIOSTInt16LSB), "16 bit closes the list");
 
-		order = wasapi::containerCandidates(nullptr);
+		order = wasapi::containerCandidates(nullptr, 0);
 		harness.expectEqual(order.size(), static_cast<size_t>(5), "no device format: the fixed list alone");
 		harness.expectEqual(order[0].asioType, static_cast<long>(ASIOSTFloat32LSB), "which starts with float");
 
@@ -308,8 +328,20 @@ namespace
 		plain.nChannels = 2;
 		plain.nSamplesPerSec = 44100;
 		plain.wBitsPerSample = 24;
-		order = wasapi::containerCandidates(&plain);
+		order = wasapi::containerCandidates(&plain, sizeof(plain));
 		harness.expectEqual(order[0].asioType, static_cast<long>(ASIOSTInt24LSB), "a plain 24-bit PCM header is packed 24");
+
+		// Audit #467 TD-52: the blob occupies this exact allocation, so reading
+		// any WAVEFORMATEXTENSIBLE field would cross its end under ASan.
+		auto shortBlob = std::make_unique<unsigned char[]>(sizeof(WAVEFORMATEX));
+		std::memset(shortBlob.get(), 0, sizeof(WAVEFORMATEX));
+		auto* shortExtensible = reinterpret_cast<WAVEFORMATEX*>(shortBlob.get());
+		shortExtensible->wFormatTag = WAVE_FORMAT_EXTENSIBLE;
+		shortExtensible->wBitsPerSample = 32;
+		shortExtensible->cbSize = sizeof(WAVEFORMATEXTENSIBLE) - sizeof(WAVEFORMATEX);
+		eapo::asio::waveformat::Container shortDescription;
+		harness.expectFalse(eapo::asio::waveformat::containerOf(shortExtensible, sizeof(WAVEFORMATEX), shortDescription),
+			"an extensible tag in a short blob is rejected without reading extension fields");
 
 		// The extensible format a container becomes.
 		harness.expectEqual(static_cast<int>(twentyFour.Format.nBlockAlign), 8, "24 in 32 on two channels is 8 bytes a frame");
@@ -394,7 +426,10 @@ namespace
 				for (size_t i = 0; i < planes[c].size(); i++)
 					planes[c][i] = static_cast<unsigned char>(c * 64 + i);
 			std::vector<const void*> in(channels);
+			// planes is a vector of vectors: planes[c] is an element, not an
+			// offset from one object (cppcheck 2.22 false positive).
 			for (unsigned c = 0; c < channels; c++)
+				// cppcheck-suppress objectIndex
 				in[c] = planes[c].data();
 			std::vector<unsigned char> block(static_cast<size_t>(frames) * channels * bytes);
 			wasapi::interleave(in.data(), channels, bytes, frames, block.data());
@@ -407,6 +442,7 @@ namespace
 			std::vector<std::vector<unsigned char>> back(channels, std::vector<unsigned char>(static_cast<size_t>(frames) * bytes));
 			std::vector<void*> out(channels);
 			for (unsigned c = 0; c < channels; c++)
+				// cppcheck-suppress objectIndex
 				out[c] = back[c].data();
 			wasapi::deinterleave(block.data(), channels, bytes, frames, out.data());
 			harness.expectTrue(back == planes, "deinterleave restores the planes at " + std::to_string(bytes) + " bytes");
@@ -1370,10 +1406,30 @@ namespace
 			harness.expectEqual(rig.host->createBuffers(w, 64), ASE_InvalidMode, "a rejected format answers ASE_InvalidMode");
 			harness.expectEqual(rig.processor->closes, 2u, "a rejected processor open is closed too");
 			rig.processor->openStatus = OpenReport::Status::Ok;
+			FILE* logFile = nullptr;
+			harness.require(tmpfile_s(&logFile) == 0 && logFile != nullptr, "processor-open exception log opens");
+			Logging::useStream(logFile, false, true, false);
 			rig.processor->throwOnOpen = true;
 			harness.expectEqual(rig.host->createBuffers(w, 64), ASE_HWMalfunction, "an exception from processor open fails createBuffers loudly");
 			harness.expectEqual(rig.processor->closes, 3u, "a throwing processor open is closed after unwinding");
 			harness.expectEqual(rig.counters().disposeBuffersCalls, 3ul, "each attempted processor open disposes the target buffers");
+			rig.processor->throwOnOpen = false;
+			rig.processor->throwUnknownOnOpen = true;
+			harness.expectEqual(rig.host->createBuffers(w, 64), ASE_HWMalfunction, "an unknown processor-open exception fails createBuffers loudly");
+			harness.expectEqual(rig.processor->closes, 4u, "an unknown throwing processor open is closed after unwinding");
+			harness.expectEqual(rig.counters().disposeBuffersCalls, 4ul, "the unknown exception also disposes target buffers");
+			std::fflush(logFile);
+			std::rewind(logFile);
+			std::wstring log;
+			wchar_t text[1024] = {};
+			while (std::fgetws(text, 1024, logFile) != nullptr)
+				log.append(text);
+			Logging::useStream(stdout, true, true, false);
+			std::fclose(logFile);
+			harness.expect(log.find(L"stream processor open threw a C++ exception: scripted open exception") != std::wstring::npos,
+				"the processor-open C++ exception log names the site and what()");
+			harness.expect(log.find(L"stream processor open threw an exception of unknown type") != std::wstring::npos,
+				"the unknown processor-open exception log names the site");
 		}
 		{
 			FakeAsioConfig config;

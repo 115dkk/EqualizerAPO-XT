@@ -5,10 +5,6 @@
       <Configuration>Debug</Configuration>
       <Platform>ARM64</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Debug|Win32">
-      <Configuration>Debug</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
@@ -16,10 +12,6 @@
     <ProjectConfiguration Include="Release|ARM64">
       <Configuration>Release</Configuration>
       <Platform>ARM64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|Win32">
-      <Configuration>Release</Configuration>
-      <Platform>Win32</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release|x64">
       <Configuration>Release</Configuration>
@@ -54,7 +46,11 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <QT_ROOT Condition="'$(QT_ROOT)'=='' and '$(Qt6_DIR)'!=''">$(Qt6_DIR)</QT_ROOT>
-    <QT_ROOT Condition="'$(QT_ROOT)'==''">$(MSBuildThisFileDirectory)..\..\Qt</QT_ROOT>
+    <!-- Where setup-build.ps1 installs Qt. The default used to be ..\..\Qt,
+         which never holds an SDK (TECH_DEBT_AUDIT TD-71). The version is
+         Shared.QtVersion in .github/simd-variants.psd1; BuildScripts.Tests.ps1
+         fails when the two differ. -->
+    <QT_ROOT Condition="'$(QT_ROOT)'==''">$(MSBuildThisFileDirectory)..\..\Qt\6.12.0\msvc2022_64</QT_ROOT>
   </PropertyGroup>
   <PropertyGroup>
     <IncludePath>$(MSBuildThisFileDirectory)..\..;$(MSBuildThisFileDirectory)..\..\SubwooferRoutingCore\include;$(QT_ROOT)\include;$(QT_ROOT)\include\QtCore;$(QT_ROOT)\include\QtGui;$(QT_ROOT)\include\QtWidgets;$(IncludePath)</IncludePath>
@@ -68,7 +64,7 @@
       <PreprocessorDefinitions>UNICODE;_UNICODE;QT_CORE_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Qt6Core.lib;Qt6Gui.lib;Qt6Widgets.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Dbghelp.lib;Qt6Core.lib;Qt6Gui.lib;Qt6Widgets.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <!-- Tests.props turns SDLCheck on for every suite. This one includes Qt's
@@ -102,6 +98,7 @@
     <ClCompile Include="FilterCommandCatalogTests.cpp" />
     <ClCompile Include="FilterPickerModelTests.cpp" />
     <ClCompile Include="ReferenceCardStateTests.cpp" />
+    <ClCompile Include="GraphicEQCsvTests.cpp" />
     <ClCompile Include="VSTBusModelTests.cpp" />
     <ClCompile Include="VSTSlotFillModelTests.cpp" />
     <ClCompile Include="VSTRowDocumentTests.cpp" />
@@ -110,6 +107,7 @@
     <ClCompile Include="MainWindowStateTests.cpp" />
     <ClCompile Include="PanelMonitorGateTests.cpp" />
     <ClCompile Include="InfrastructureTests.cpp" />
+    <ClCompile Include="..\..\Editor\helpers\CrashHandler.cpp" />
     <ClCompile Include="FilterCardModelTests.cpp" />
     <ClCompile Include="FilterListModelTests.cpp" />
     <ClCompile Include="CommandRowFactsTests.cpp" />
@@ -134,6 +132,7 @@
     <ClCompile Include="..\..\Editor\widgets\subwooferrouting\SubwooferRoutingDefaults.cpp" />
     <ClCompile Include="..\..\Editor\widgets\routing\SubwooferRoutingRoutingAdapter.cpp" />
     <ClCompile Include="UpdateSessionTests.cpp" />
+    <ClCompile Include="DiagnosticDecisionTests.cpp" />
     <ClCompile Include="CommandLineQuotingTests.cpp" />
     <ClCompile Include="..\..\services\update\UpdateSession.cpp" />
     <ClCompile Include="..\..\Editor\ConfigFileCodec.cpp" />
@@ -148,15 +147,13 @@
     <ClCompile Include="LegacyMigrationHookTests.cpp" />
     <ClCompile Include="..\..\Editor\import\CallerProfileCheck.cpp" />
     <ClCompile Include="..\..\Editor\import\LegacyMigration.cpp" />
-    <ClCompile Include="..\..\services\install\ApoRegistration.cpp" />
-    <ClCompile Include="..\..\services\windows\WindowsService.cpp" />
-    <ClCompile Include="..\..\services\shell\StartMenuShortcuts.cpp" />
+    <ClCompile Include="..\..\services\install\VcRuntime.cpp" />
+    <ClCompile Include="VcRuntimeTests.cpp" />
+    <ClInclude Include="..\..\services\install\VcRuntime.h" />
     <ClCompile Include="..\..\Editor\skins\SkinThemeData.cpp" />
-    <!-- Like EngineOrchestrationTests, AudioEngineAccess is compiled here
-         directly: it is an executable-side source (Editor/DeviceSelector), not
-         a Common.lib member, and the chunk-scan helper's readability filter
-         calls it. -->
-    <ClCompile Include="..\..\services\security\AudioEngineAccess.cpp" />
+    <!-- AudioEngineAccess is an executable-side source (Editor/DeviceSelector),
+         not a Common.lib member. InstallSources.props below supplies it because
+         the chunk-scan helper's readability filter calls it. -->
     <ClCompile Include="..\..\Editor\helpers\VstChunkScan.cpp" />
     <ClCompile Include="..\..\Editor\helpers\VstChunkState.cpp" />
     <ClCompile Include="..\..\Editor\widgets\FilterCardModel.cpp" />
@@ -171,6 +168,8 @@
     <ClCompile Include="..\..\Editor\widgets\cards\ChannelSelectionModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\DeviceSelectionModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\FileReferenceController.cpp" />
+    <ClCompile Include="..\..\Editor\widgets\cards\ReferenceProbeRequests.cpp" />
+    <ClCompile Include="..\..\Editor\widgets\cards\GraphicEQCsv.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\ReferenceCardState.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\VSTBusModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\VSTSlotFillModel.cpp" />
@@ -217,10 +216,13 @@
     <ClInclude Include="..\..\Editor\widgets\FilterListModel.h" />
     <ClInclude Include="..\..\Editor\widgets\CommandRowFacts.h" />
     <ClInclude Include="..\..\Editor\widgets\CommandRowInfo.h" />
+    <ClInclude Include="..\..\Editor\widgets\FilterCardKind.h" />
     <ClInclude Include="..\..\Editor\widgets\FilterListUndo.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\ChannelSelectionModel.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\DeviceSelectionModel.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\FileReferenceController.h" />
+    <ClInclude Include="..\..\Editor\widgets\cards\ReferenceProbeRequests.h" />
+    <ClInclude Include="..\..\Editor\widgets\cards\GraphicEQCsv.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\VSTPanelIntent.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\VSTBusVerdict.h" />
     <ClInclude Include="..\..\Editor\analysis\AnalysisPanelState.h" />
@@ -231,6 +233,8 @@
     <ClInclude Include="..\..\platform\windows\TextEncoding.h" />
     <ClInclude Include="..\..\platform\qt\HoverProgress.h" />
     <ClInclude Include="..\..\services\update\UpdateSession.h" />
+    <ClInclude Include="..\..\runtime\concurrency\ShutdownSequence.h" />
+    <ClInclude Include="..\..\platform\windows\ThreadWait.h" />
     <ClInclude Include="..\..\filters\BiQuadCommand.h" />
     <ClInclude Include="..\..\filters\ChannelCommand.h" />
     <ClInclude Include="..\..\filters\FilterFactoryRegistry.h" />
@@ -239,6 +243,7 @@
     <ClInclude Include="..\..\Editor\analysis\ImpulseMeasurement.h" />
     <ClInclude Include="..\..\Editor\widgets\subwooferrouting\SubwooferRoutingStateReads.h" />
   </ItemGroup>
+  <Import Project="..\..\services\install\InstallSources.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

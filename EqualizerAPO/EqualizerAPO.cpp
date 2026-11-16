@@ -76,10 +76,6 @@ EqualizerAPO::EqualizerAPO(IUnknown* pUnkOuter)
 
 	allowSilentBufferModification = false;
 
-	childAPO = nullptr;
-	childRT = nullptr;
-	childCfg = nullptr;
-
 	inputSampleFormat = ApoSampleFormat::Unsupported;
 	outputSampleFormat = ApoSampleFormat::Unsupported;
 
@@ -90,7 +86,7 @@ EqualizerAPO::~EqualizerAPO()
 {
 	InterlockedDecrement(&instCount);
 
-	resetChild();
+	child.reset();
 }
 
 HRESULT EqualizerAPO::QueryInterface(const IID& iid, void** ppv)
@@ -117,8 +113,8 @@ HRESULT EqualizerAPO::GetLatency(HNSTIME* pTime)
 		return APOERR_ALREADY_UNLOCKED;
 
 	*pTime = 0;
-	if (childAPO)
-		childAPO->GetLatency(pTime);
+	if (child.attached())
+		child.getLatency(pTime);
 
 	return S_OK;
 }
@@ -147,7 +143,7 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 	if (cbDataSize < sizeof(APOInitSystemEffects))
 		return E_INVALIDARG;
 
-	resetChild();
+	child.reset();
 
 	APOInitSystemEffects* initStruct = reinterpret_cast<APOInitSystemEffects*>(pbyData);
 	GUID apoGuid = initStruct->APOInit.clsid;
@@ -220,52 +216,10 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 
 	TraceF(L"Child APO GUID: %s", childApoGuid.c_str());
 
-	if (!childApoGuid.empty())
+	if (child.attach(childApoGuid, cbDataSize, pbyData) == ChildApo::AttachResult::Attached
+		&& deviceTestPipeName != L"")
 	{
-		GUID childGuid;
-		hr = CLSIDFromString(childApoGuid.c_str(), &childGuid);
-		if (FAILED(hr))
-		{
-			LogF(L"Can't convert child apo guid string to guid");
-			return S_OK;
-		}
-
-		hr = CoCreateInstance(childGuid, nullptr, CLSCTX_INPROC_SERVER, __uuidof(IAudioProcessingObject), (void**)&childAPO);
-		if (FAILED(hr))
-		{
-			LogF(L"Error in CoCreateInstance for child apo");
-			resetChild();
-			return S_OK;
-		}
-
-		hr = childAPO->QueryInterface(__uuidof(IAudioProcessingObjectRT), (void**)&childRT);
-		if (FAILED(hr))
-		{
-			LogF(L"Error in QueryInterface for child apo RT");
-			resetChild();
-			return S_OK;
-		}
-
-		hr = childAPO->QueryInterface(__uuidof(IAudioProcessingObjectConfiguration), (void**)&childCfg);
-		if (FAILED(hr))
-		{
-			LogF(L"Error in QueryInterface for child apo configuration");
-			resetChild();
-			return S_OK;
-		}
-
-		hr = childAPO->Initialize(cbDataSize, pbyData);
-		if (FAILED(hr))
-		{
-			LogF(L"Error in Initialize of child apo");
-			resetChild();
-			return S_OK;
-		}
-
-		TraceF(L"Successfully created and initialized child APO");
-
-		if (deviceTestPipeName != L"")
-			sendMessage(deviceTestPipeName, deviceGuid, apoGuid, devicetest::wire::kPhaseChildApo);
+		sendMessage(deviceTestPipeName, deviceGuid, apoGuid, devicetest::wire::kPhaseChildApo);
 	}
 
 	return S_OK;
@@ -305,21 +259,10 @@ HRESULT EqualizerAPO::IsInputFormatSupported(IAudioMediaType* pOutputFormat,
 		outFormat.guidFormatType.Data1, outFormat.dwSamplesPerFrame, outFormat.dwBytesPerSampleContainer,
 		outFormat.dwValidBitsPerSample, outFormat.fFramesPerSecond, outFormat.dwChannelMask);
 
-	if (childAPO)
-	{
-		hr = childAPO->IsInputFormatSupported(pOutputFormat, pRequestedInputFormat, ppSupportedInputFormat);
-		if (SUCCEEDED(hr))
-		{
-			TraceF(L"Success in IsInputFormatSupported of child apo");
-		}
-		else
-		{
-			LogF(L"Failure in IsInputFormatSupported of child apo");
-			resetChild();
-		}
-	}
+	if (child.attached())
+		hr = child.isInputFormatSupported(pOutputFormat, pRequestedInputFormat, ppSupportedInputFormat);
 
-	if (!childAPO || !SUCCEEDED(hr))
+	if (!child.attached() || !SUCCEEDED(hr))
 	{
 		hr = CBaseAudioProcessingObject::IsInputFormatSupported(pOutputFormat, pRequestedInputFormat, ppSupportedInputFormat);
 
@@ -413,20 +356,8 @@ HRESULT EqualizerAPO::LockForProcess(UINT32 u32NumInputConnections,
 			outFormat.dwBytesPerSampleContainer, outFormat.dwValidBitsPerSample);
 	}
 
-	if (childCfg != nullptr)
-	{
-		hr = childCfg->LockForProcess(u32NumInputConnections, ppInputConnections, u32NumOutputConnections,
-			ppOutputConnections);
-		if (SUCCEEDED(hr))
-		{
-			TraceF(L"Success in LockForProcess of child apo");
-		}
-		else
-		{
-			LogF(L"Child APO LockForProcess failed (hr=0x%08X); detaching child to avoid invoking an unlocked APO during process", hr);
-			resetChild();
-		}
-	}
+	child.lockForProcess(u32NumInputConnections, ppInputConnections, u32NumOutputConnections,
+		ppOutputConnections);
 
 	hr = CBaseAudioProcessingObject::LockForProcess(u32NumInputConnections, ppInputConnections,
 		u32NumOutputConnections, ppOutputConnections);
@@ -445,7 +376,7 @@ HRESULT EqualizerAPO::LockForProcess(UINT32 u32NumInputConnections,
 		maxFrameCount = maxOutputFrameCount;
 
 	unsigned realChannelCount;
-	if (childCfg != nullptr)
+	if (child.attached())
 		realChannelCount = outFormat.dwSamplesPerFrame;
 	else
 		realChannelCount = inFormat.dwSamplesPerFrame;
@@ -495,42 +426,10 @@ HRESULT EqualizerAPO::LockForProcess(UINT32 u32NumInputConnections,
 HRESULT EqualizerAPO::UnlockForProcess()
 {
 	return ComBoundary::invoke([&]() -> HRESULT {
-	if (childCfg)
-	{
-		HRESULT hr = childCfg->UnlockForProcess();
-		if (FAILED(hr))
-		{
-			// Audit #250 F033: returning early here left the base APO
-			// locked forever. LockForProcess detaches a failing child in
-			// the symmetric situation; do the same and keep unlocking.
-			LogF(L"Error in UnlockForProcess of child apo; detaching child");
-			resetChild();
-		}
-	}
+	child.unlockForProcess();
 
 	return CBaseAudioProcessingObject::UnlockForProcess();
 	});
-}
-
-void EqualizerAPO::resetChild()
-{
-	if (childAPO != nullptr)
-	{
-		childAPO->Release();
-		childAPO = nullptr;
-	}
-
-	if (childRT != nullptr)
-	{
-		childRT->Release();
-		childRT = nullptr;
-	}
-
-	if (childCfg != nullptr)
-	{
-		childCfg->Release();
-		childCfg = nullptr;
-	}
 }
 
 void EqualizerAPO::sendMessage(std::wstring& deviceTestPipeName, const std::wstring& deviceGuid, GUID apoGuid, const std::string& phase)
@@ -541,14 +440,18 @@ void EqualizerAPO::sendMessage(std::wstring& deviceTestPipeName, const std::wstr
 
 	// Only the right the message needs; who may do what with the pipe is in
 	// NamedPipeSecurity.h.
-	winutil::UniqueHandle pipe = winutil::pipes::openDeviceTestClient(L"\\\\.\\pipe\\" + deviceTestPipeName);
+	winutil::UniqueHandle pipe = winutil::pipes::openDeviceTestClient(L"\\\\.\\pipe\\" + deviceTestPipeName, true);
 	if (pipe)
 	{
-		DWORD bytesWritten;
-		if (!WriteFile(pipe.get(), message.c_str(), static_cast<int>(message.length()), &bytesWritten, nullptr))
-			LogF(L"Could not write to pipe: %s", win32::errorMessage(GetLastError()).c_str());
-
-		FlushFileBuffers(pipe.get());
+		DWORD bytesWritten = 0;
+		if (!WriteFile(pipe.get(), message.c_str(), static_cast<DWORD>(message.length()), &bytesWritten, nullptr)
+			|| bytesWritten != message.length())
+		{
+			LogF(L"Device test message dropped: the pipe is unavailable or full");
+			deviceTestPipeName.clear();
+		}
+		// No flush: a missing or stalled DeviceSelector must not hold audiodg
+		// until its server reads a diagnostic message (audit #467 TD-55).
 	}
 	else
 	{
@@ -568,7 +471,7 @@ void EqualizerAPO::APOProcess(UINT32 u32NumInputConnections,
 	apo::BlockFacts facts;
 	facts.inputFlags = input->u32BufferFlags;
 	facts.allowSilentBufferModification = allowSilentBufferModification;
-	facts.hasChildApo = childRT != nullptr;
+	facts.hasChildApo = child.attached();
 	facts.engineHasStatefulOrTailFilters = engine.hasStatefulOrTailFilters();
 	facts.inputFormat = inputSampleFormat;
 	facts.outputFormat = outputSampleFormat;
@@ -578,7 +481,7 @@ void EqualizerAPO::APOProcess(UINT32 u32NumInputConnections,
 	const unsigned outputChannelCount = engine.getOutputChannelCount();
 	const unsigned inputChannelCount = engine.getInputChannelCount();
 	auto processChild = [&] {
-		childRT->APOProcess(u32NumInputConnections, ppInputConnections,
+		child.process(u32NumInputConnections, ppInputConnections,
 			u32NumOutputConnections, ppOutputConnections);
 	};
 

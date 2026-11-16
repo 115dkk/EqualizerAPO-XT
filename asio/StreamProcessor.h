@@ -22,6 +22,7 @@
 #include <type_traits>
 
 #include "asio/AsioConstants.h"
+#include "asio/HostLaunch.h"
 
 namespace eapo::asio
 {
@@ -130,7 +131,7 @@ namespace eapo::asio
 		uint32_t deadlineUs = 0;          // 0 = automatic: deadlinePercent of the period
 		uint32_t deadlinePercent = 0;     // Sync only; 0 = 25. The Device Selector offers 25, 50 and 75
 		uint32_t readyTimeoutMs = 20000;  // a cold start loads config.txt, which may hold convolution IRs
-		uint32_t lingerMs = 60000;        // how long the daemon outlives its last stream
+		uint32_t lingerMs = HostLaunch::defaultLingerMs;  // how long the daemon outlives its last stream
 		std::wstring configPath;          // empty = registry ConfigPath + watcher (production)
 		std::wstring daemonExePath;       // empty = EqualizerAPOHost.exe beside the wrapper DLL
 		std::wstring daemonEndpoint;      // empty = per-session default; the probe pins a name

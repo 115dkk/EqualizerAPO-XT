@@ -85,11 +85,6 @@ using UniqueBCryptHash = winutil::UniqueResource<BCryptHashTraits>;
 const wchar_t* kReleasesPage = EAPO_REPO_URL_W L"/releases/latest";
 const wchar_t* kUserAgent = L"EqualizerAPO-XT-Setup";
 
-// Checksums asset that CI publishes to every release, one sha256sum-style
-// "<lowercase-hex-sha256>  <name>" line per asset. The grammar header keeps
-// this in step with the upload in .github/workflows/build.yml.
-const wchar_t* kChecksumsAssetName = ReleaseAssetNames::checksumsAssetName;
-
 // IsWow64Process2 reports the native machine even when this x86 process runs
 // under x64/ARM64 emulation. Fall back to GetNativeSystemInfo on the (very old)
 // systems that lack it.
@@ -170,38 +165,25 @@ std::wstring detectChannel(int* outIndex)
     return channelForCpu(detectCpuFeatures(), outIndex);
 }
 
-std::wstring tempFilePath(const std::wstring& fileName)
+// Download an HTTPS GitHub URL into a caller-supplied byte sink. WinHTTP follows
+// GitHub's redirect to the objects CDN automatically (https->https, allowed by
+// the default redirect policy). progress, when set, is called per received
+// chunk with (bytesSoFar, totalBytes); totalBytes is 0 without Content-Length.
+DownloadResult download(const std::wstring& url, const ByteSink& sink,
+    const DownloadProgress& progress)
 {
-    // Audit #250 F045: falling back to the bare file name meant downloading
-    // and executing an installer from the current directory. No temp path,
-    // no download.
-    wchar_t dir[MAX_PATH] = {};
-    DWORD len = GetTempPathW(MAX_PATH, dir);
-    if (len == 0 || len > MAX_PATH)
-        return std::wstring();
-    return std::wstring(dir) + fileName;
-}
-
-enum class DownloadOutcome
-{
-    Ok,
-    Failed
-};
-
-// Download github.com<path> to outFile over HTTPS. WinHTTP follows GitHub's
-// redirect to the objects CDN automatically (https->https, allowed by the
-// default redirect policy). progress, when set, is called per received chunk
-// with (bytesSoFar, totalBytes) - totalBytes is 0 when the server sent no
-// Content-Length. Returns Ok on HTTP 200 + complete write.
-DownloadOutcome downloadToFile(const std::wstring& path, const std::wstring& outFile,
-    std::wstring& error,
-    const std::function<void(unsigned long long, unsigned long long)>& progress = {})
-{
-    DownloadOutcome outcome = DownloadOutcome::Failed;
+    DownloadResult result;
+    std::wstring& error = result.error;
+    const std::wstring prefix = L"https://github.com";
+    if (!url.starts_with(prefix + L"/"))
+    {
+        error = L"Could not create the download request.";
+        return result;
+    }
+    const std::wstring path = url.substr(prefix.size());
     winutil::UniqueWinHttpHandle session;
     winutil::UniqueWinHttpHandle connect;
     winutil::UniqueWinHttpHandle request;
-    winutil::UniqueHandle file;
     unsigned long long totalBytes = 0;
     unsigned long long receivedBytes = 0;
 
@@ -242,17 +224,16 @@ DownloadOutcome downloadToFile(const std::wstring& path, const std::wstring& out
     }
 
     {
-        DWORD statusCode = 0;
-        DWORD size = sizeof(statusCode);
-        WinHttpQueryHeaders(request.get(),
-            WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
-            WINHTTP_HEADER_NAME_BY_INDEX, &statusCode, &size, WINHTTP_NO_HEADER_INDEX);
-        if (statusCode != 200)
+        DWORD size = sizeof(result.statusCode);
+        if (!WinHttpQueryHeaders(request.get(),
+                WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
+                WINHTTP_HEADER_NAME_BY_INDEX, &result.statusCode, &size, WINHTTP_NO_HEADER_INDEX))
         {
-            error = L"The matching installer was not found on the release page (HTTP " +
-                std::to_wstring(statusCode) + L").";
+            error = L"No response from the download server. Check your internet connection.";
             goto cleanup;
         }
+        if (result.statusCode != 200)
+            goto cleanup;
     }
 
     {
@@ -263,14 +244,6 @@ DownloadOutcome downloadToFile(const std::wstring& path, const std::wstring& out
         {
             totalBytes = _wcstoui64(lengthText, nullptr, 10);
         }
-    }
-
-    file.reset(CreateFileW(outFile.c_str(), GENERIC_WRITE, 0, nullptr,
-        CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
-    if (!file)
-    {
-        error = L"Could not create a temporary file for the download.";
-        goto cleanup;
     }
 
     for (;;)
@@ -285,20 +258,19 @@ DownloadOutcome downloadToFile(const std::wstring& path, const std::wstring& out
             break;
 
         std::string buffer;
-        buffer.resize(available);
+        // Do not let an untrusted available-byte count allocate an entire
+        // installer in this baseline Win32 process.
+        const DWORD chunkSize = available < 64 * 1024 ? available : 64 * 1024;
+        buffer.resize(chunkSize);
         DWORD read = 0;
-        if (!WinHttpReadData(request.get(), &buffer[0], available, &read) || read == 0)
+        if (!WinHttpReadData(request.get(), &buffer[0], chunkSize, &read) || read == 0)
         {
             error = L"The download was interrupted.";
             goto cleanup;
         }
 
-        DWORD written = 0;
-        if (!WriteFile(file.get(), buffer.data(), read, &written, nullptr) || written != read)
-        {
-            error = L"Could not write the downloaded installer to disk.";
+        if (!sink(std::string_view(buffer.data(), read), error))
             goto cleanup;
-        }
 
         receivedBytes += read;
         if (progress)
@@ -307,28 +279,20 @@ DownloadOutcome downloadToFile(const std::wstring& path, const std::wstring& out
 
     if (progress)
         progress(receivedBytes, totalBytes);
-    outcome = DownloadOutcome::Ok;
 
 cleanup:
-    {
-        const bool removePartialFile = outcome != DownloadOutcome::Ok && static_cast<bool>(file);
-        file.reset();
-        if (removePartialFile)
-            DeleteFileW(outFile.c_str());
-    }
-    return outcome;
+    return result;
 }
 
 // Compute the SHA-256 of a file as lowercase hex using CNG. The file is
 // streamed in 64 KiB chunks so the installer never has to fit in memory.
 // CNG returns NTSTATUS where STATUS_SUCCESS is 0, so any nonzero status is
 // treated as a failure.
-bool sha256OfFile(const std::wstring& path, std::wstring& outHexLower, std::wstring& error)
+bool sha256OfFile(HANDLE file, std::wstring& outHexLower, std::wstring& error)
 {
     bool ok = false;
     UniqueBCryptAlgorithm algorithm;
     UniqueBCryptHash hash;
-    winutil::UniqueHandle file;
     UCHAR digest[32] = {};
     std::string buffer;
     buffer.resize(64 * 1024);
@@ -344,18 +308,10 @@ bool sha256OfFile(const std::wstring& path, std::wstring& outHexLower, std::wstr
         goto cleanup;
     }
 
-    file.reset(CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
-        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
-    if (!file)
-    {
-        error = L"Could not open the downloaded installer for verification.";
-        goto cleanup;
-    }
-
     for (;;)
     {
         DWORD read = 0;
-        if (!ReadFile(file.get(), &buffer[0], static_cast<DWORD>(buffer.size()), &read, nullptr))
+        if (!ReadFile(file, &buffer[0], static_cast<DWORD>(buffer.size()), &read, nullptr))
         {
             error = L"Could not read the downloaded installer for verification.";
             goto cleanup;
@@ -392,81 +348,8 @@ cleanup:
     return ok;
 }
 
-// Read a small file fully into memory. The checksums list is at most a few
-// kilobytes; refuse anything over 1 MiB so an unexpected response cannot
-// balloon.
-bool readSmallFile(const std::wstring& path, std::string& outData)
-{
-    bool ok = false;
-    winutil::UniqueHandle file(CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
-        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
-    if (!file)
-        return false;
-
-    LARGE_INTEGER size = {};
-    if (GetFileSizeEx(file.get(), &size) && size.QuadPart > 0 && size.QuadPart <= 1024 * 1024)
-    {
-        outData.resize(static_cast<size_t>(size.QuadPart));
-        DWORD read = 0;
-        ok = ReadFile(file.get(), &outData[0], static_cast<DWORD>(outData.size()), &read, nullptr) &&
-            read == outData.size();
-    }
-
-    if (!ok)
-        outData.clear();
-    return ok;
-}
-
-// Verify the downloaded installer against the SHA256SUMS.txt asset that CI
-// publishes to the same release. Returns true only when the checksums file
-// downloads, lists the installer, and the SHA-256 matches. outActualHash,
-// when set, receives the computed digest so the window can show it.
-bool verifySetupChecksum(const std::wstring& setupFile, const std::wstring& setupName,
-    std::wstring& error, std::wstring* outActualHash = nullptr)
-{
-    const std::wstring sumsFile = tempFilePath(kChecksumsAssetName);
-
-    std::wstring downloadError;
-    if (downloadToFile(latestAssetPath(kChecksumsAssetName), sumsFile, downloadError)
-        != DownloadOutcome::Ok)
-    {
-        error = L"The integrity checksums file could not be downloaded from the release page."
-            L" If a release was published only moments ago it may still be uploading;"
-            L" please try again in a few minutes.";
-        return false;
-    }
-
-    std::string text;
-    const bool readOk = readSmallFile(sumsFile, text);
-    DeleteFileW(sumsFile.c_str());
-    if (!readOk)
-    {
-        error = L"The integrity checksums file could not be read.";
-        return false;
-    }
-
-    const std::wstring expected = expectedHashFromChecksums(text, setupName);
-    if (expected.empty())
-    {
-        error = L"The release's checksums file does not list the downloaded installer.";
-        return false;
-    }
-
-    std::wstring actual;
-    if (!sha256OfFile(setupFile, actual, error))
-        return false;
-    if (outActualHash != nullptr)
-        *outActualHash = actual;
-
-    // SHA256SUMS.txt comes from the same release: this checks integrity, not
-    // authenticity. This is the ceiling until the installers are signed.
-    if (actual != expected)
-    {
-        error = L"The downloaded installer failed its integrity check.";
-        return false;
-    }
-    return true;
-}
+// Verification and checksum parsing live in the injected install flow. Only
+// the OS-backed hash and file lifetime remain here.
 
 // Launch the downloaded per-variant Setup.exe. When silent, forward Velopack's
 // -s/--silent and wait so a caller knows when the install finished; otherwise
@@ -538,13 +421,137 @@ void tagAsInternetDownload(const std::wstring& path, const std::wstring& sourceU
     writeTextFile(streamPath.c_str(), text);
 }
 
+class DownloadedSetup final : public HeldSetup
+{
+public:
+    ~DownloadedSetup() override
+    {
+        file.reset();
+        if (!launched && !path.empty())
+            DeleteFileW(path.c_str());
+        directoryHandle.reset();
+        if (!launched && !directory.empty())
+            RemoveDirectoryW(directory.c_str());
+    }
+
+    static std::unique_ptr<HeldSetup> create(const std::wstring& name, std::wstring& error)
+    {
+        auto setup = std::make_unique<DownloadedSetup>();
+        // Audit #250 F045: falling back to the bare file name meant downloading
+        // and executing an installer from the current directory. No temp path,
+        // no download.
+        wchar_t temp[MAX_PATH] = {};
+        const DWORD length = GetTempPathW(MAX_PATH, temp);
+        if (length == 0 || length >= MAX_PATH)
+        {
+            error = L"No temporary directory is available for the download.";
+            return nullptr;
+        }
+        // An unpredictable, fresh directory per run; never reuse a name
+        // planted by another process (audit #467 TD-56).
+        UCHAR random[16] = {};
+        if (BCryptGenRandom(nullptr, random, sizeof(random), BCRYPT_USE_SYSTEM_PREFERRED_RNG) != 0)
+        {
+            error = L"Could not create a temporary file for the download.";
+            return nullptr;
+        }
+        std::wstring directory = std::wstring(temp) + L"EqualizerAPO-XT-";
+        for (UCHAR byte : random)
+        {
+            directory += L"0123456789abcdef"[byte >> 4];
+            directory += L"0123456789abcdef"[byte & 0xf];
+        }
+        if (!CreateDirectoryW(directory.c_str(), nullptr))
+        {
+            error = L"Could not create a temporary file for the download.";
+            return nullptr;
+        }
+        setup->directory = directory;
+        // Pin the containing directory too: pinning only the file would still
+        // permit an ancestor rename followed by pathname substitution.
+        setup->directoryHandle.reset(CreateFileW(directory.c_str(), FILE_READ_ATTRIBUTES,
+            FILE_SHARE_READ, nullptr, OPEN_EXISTING,
+            FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT, nullptr));
+        BY_HANDLE_FILE_INFORMATION info = {};
+        if (!setup->directoryHandle || !GetFileInformationByHandle(setup->directoryHandle.get(), &info)
+            || (info.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0)
+        {
+            error = L"Could not create a temporary file for the download.";
+            return nullptr;
+        }
+        setup->path = directory + L"\\" + name;
+        setup->file.reset(CreateFileW(setup->path.c_str(), GENERIC_WRITE, 0, nullptr,
+            CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr));
+        if (!setup->file)
+        {
+            // Do not delete a file we did not create.
+            setup->path.clear();
+            error = L"Could not create a temporary file for the download.";
+            return nullptr;
+        }
+        return setup;
+    }
+
+    bool write(std::string_view bytes, std::wstring& error) override
+    {
+        DWORD written = 0;
+        if (!WriteFile(file.get(), bytes.data(), static_cast<DWORD>(bytes.size()), &written, nullptr)
+            || written != bytes.size())
+        {
+            error = L"Could not write the downloaded installer to disk.";
+            return false;
+        }
+        return true;
+    }
+
+    bool sealAndHash(std::wstring& hash, std::wstring& error) override
+    {
+        // Drop write access before opening the read-only lease. A replacement
+        // during this transition is hashed too and rejected unless it matches.
+        file.reset();
+        file.reset(CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
+            OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT, nullptr));
+        BY_HANDLE_FILE_INFORMATION info = {};
+        if (!file || !GetFileInformationByHandle(file.get(), &info)
+            || (info.dwFileAttributes & (FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_DIRECTORY)) != 0)
+        {
+            error = L"Could not open the downloaded installer for verification.";
+            return false;
+        }
+        // FILE_SHARE_READ permits the loader's read/execute open, but not a
+        // writer or delete/rename. Keep this handle through CreateProcessW
+        // (audit #467 TD-56; CreateFileW / ZwCreateFile sharing contract).
+        return sha256OfFile(file.get(), hash, error);
+    }
+
+    LaunchResult launch(bool silent, const std::wstring& sourceUrl)
+    {
+        // Only a verified file is tagged and launched. Alternate streams have
+        // independent read/write sharing; the held main stream stays immutable.
+        tagAsInternetDownload(path, sourceUrl);
+        LaunchResult result;
+        result.started = launchSetup(path, silent, result.exitCode);
+        launched = result.started;
+        // The asynchronous Velopack bootstrap may reopen its own image after
+        // CreateProcess returns. Preserve successful downloads as before.
+        return result;
+    }
+
+private:
+    std::wstring directory;
+    std::wstring path;
+    winutil::UniqueHandle directoryHandle;
+    winutil::UniqueHandle file;
+    bool launched = false;
+};
+
 // Print the detection result for --detect-only. Try the parent console first
 // (so it works from a shell), then fall back to a message box and an optional
 // --out file. Returns the channel index for use as the process exit code.
 int reportDetection(const std::wstring& channel, const std::wstring& url,
     const wchar_t* outPath, int index)
 {
-    const std::wstring text = channel + L"\n" + url + L"\n";
+    const std::wstring text = detectionOutput(channel, url);
 
     winutil::ParentConsole console;
     if (console)
@@ -558,7 +565,7 @@ int reportDetection(const std::wstring& channel, const std::wstring& url,
     }
 
     if (outPath != nullptr)
-        writeTextFile(outPath, channel + L"\n" + url + L"\n");
+        writeTextFile(outPath, text);
 
     return index;
 }
@@ -590,33 +597,17 @@ int runInstallFlow(InstallerUi::InstallerWindow* ui, bool silent)
         return exitCode;
     };
 
-    if (ui != nullptr)
-    {
-        ui->update([](Model& model)
-        {
-            startStep(model, kStepDetect, L"Reading CPUID and the OS-enabled register state");
-        });
-    }
-    int index = kAvx2;
-    const std::wstring channel = detectChannel(&index);
-    if (ui != nullptr)
-    {
-        const std::wstring detected = describeChannel(channel) + L" \u2014 " + channel + L" build";
-        ui->update([detected](Model& model) { finishStep(model, kStepDetect, detected); });
-    }
-
-    const std::wstring setupName = assetName(channel);
-    const std::wstring outFile = tempFilePath(setupName);
-    if (outFile.empty())
-        return fail(kStepDownload, kExitDownloadFailed,
-            L"No temporary directory is available for the download.");
-
-    if (ui != nullptr)
-        ui->update([](Model& model) { startStep(model, kStepDownload, L"Connecting to github.com"); });
-
     unsigned long long downloadedTotal = 0;
     unsigned long long lastPostedBytes = 0;
-    const auto progress = [ui, &downloadedTotal, &lastPostedBytes](
+    InstallOperations operations;
+    operations.transport = download;
+    operations.createFile = DownloadedSetup::create;
+    std::wstring sourceUrl;
+    operations.launch = [&sourceUrl](HeldSetup& file, bool quiet)
+    {
+        return static_cast<DownloadedSetup&>(file).launch(quiet, sourceUrl);
+    };
+    operations.progress = [ui, &downloadedTotal, &lastPostedBytes](
         unsigned long long received, unsigned long long total)
     {
         downloadedTotal = received;
@@ -635,47 +626,48 @@ int runInstallFlow(InstallerUi::InstallerWindow* ui, bool silent)
         });
     };
 
-    std::wstring error;
-    const DownloadOutcome downloaded = downloadToFile(assetPath(channel), outFile, error, progress);
-    if (downloaded != DownloadOutcome::Ok)
-        return fail(kStepDownload, kExitDownloadFailed, error);
-
-    if (ui != nullptr)
+    operations.stageChanged = [ui, &downloadedTotal, &sourceUrl](InstallStage stage, const std::wstring& detail)
     {
-        const std::wstring downloadedText = formatByteSize(downloadedTotal) + L" downloaded";
-        ui->update([downloadedText](Model& model)
+        if (stage == InstallStage::Download)
+            sourceUrl = downloadUrl(detail);
+        if (ui == nullptr)
+            return;
+        const unsigned long long total = downloadedTotal;
+        ui->update([stage, detail, total](Model& model)
         {
-            finishStep(model, kStepDownload, downloadedText);
-            startStep(model, kStepVerify, L"Computing SHA-256 and matching the release checksums");
+            switch (stage)
+            {
+            case InstallStage::Detect:
+                startStep(model, kStepDetect, L"Reading CPUID and the OS-enabled register state");
+                break;
+            case InstallStage::Download:
+                finishStep(model, kStepDetect, describeChannel(detail) + L" \x2014 " + detail + L" build");
+                startStep(model, kStepDownload, L"Connecting to github.com");
+                break;
+            case InstallStage::Verify:
+                finishStep(model, kStepDownload, formatByteSize(total) + L" downloaded");
+                startStep(model, kStepVerify, L"Computing SHA-256 and matching the release checksums");
+                break;
+            case InstallStage::Launch:
+                finishStep(model, kStepVerify,
+                    L"SHA-256 matches the published checksum (" + shortHash(detail) + L")");
+                startStep(model, kStepLaunch, L"Handing off to the Velopack installer");
+                break;
+            case InstallStage::Complete:
+                break;
+            }
         });
-    }
+    };
 
-    // Check the download against the release's SHA256SUMS.txt before anything
-    // is executed. A failed or impossible verification discards the download.
-    std::wstring actualHash;
-    if (!verifySetupChecksum(outFile, setupName, error, &actualHash))
-    {
-        DeleteFileW(outFile.c_str());
-        return fail(kStepVerify, kExitVerifyFailed, error);
-    }
-    if (ui != nullptr)
-    {
-        const std::wstring verifiedText =
-            L"SHA-256 matches the published checksum (" + shortHash(actualHash) + L")";
-        ui->update([verifiedText](Model& model) { finishStep(model, kStepVerify, verifiedText); });
-    }
-
-    // Only a verified file is tagged and launched.
-    tagAsInternetDownload(outFile, downloadUrl(channel));
-
-    if (ui != nullptr)
-        ui->update([](Model& model) { startStep(model, kStepLaunch, L"Handing off to the Velopack installer"); });
-    DWORD setupExit = 0;
-    if (!launchSetup(outFile, silent, setupExit))
-        return fail(kStepLaunch, kExitLaunchFailed,
-            L"The downloaded installer could not be started.");
+    const InstallResult result = install(detectCpuFeatures(), silent, operations);
+    if (result.stage == InstallStage::Download)
+        return fail(kStepDownload, kExitDownloadFailed, result.error);
+    if (result.stage == InstallStage::Verify)
+        return fail(kStepVerify, kExitVerifyFailed, result.error);
+    if (result.stage == InstallStage::Launch)
+        return fail(kStepLaunch, kExitLaunchFailed, result.error);
     if (silent)
-        return static_cast<int>(setupExit);
+        return static_cast<int>(result.exitCode);
 
     if (ui != nullptr)
     {

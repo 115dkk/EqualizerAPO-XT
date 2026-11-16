@@ -115,6 +115,16 @@ vector<InlineExpression::Segment> InlineExpression::split(const wstring& paramet
 	return segments;
 }
 
+bool InlineExpression::containsExpression(const wstring& parameters)
+{
+	if (parameters.find(L'`') == wstring::npos)
+		return false;
+	for (const Segment& segment : split(parameters))
+		if (segment.isExpression)
+			return true;
+	return false;
+}
+
 wstring InlineExpression::join(const vector<Segment>& segments)
 {
 	wstring result;
