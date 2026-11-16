@@ -24,6 +24,7 @@
 #include "ConvolutionCommand.h"
 #include "ConfigFileReference.h"
 #include "ConvolutionFilter.h"
+#include "IrCache.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "ConvolutionFilterFactory.h"
 
@@ -43,6 +44,9 @@ LineOutcome ConvolutionFilterFactory::createFilter(const wstring& configPath, ws
 	ConfigFileReference::Target file = ConfigFileReference::target(configPath, cmd.path);
 	if (!file)
 		return LineOutcome::malformed(file.problem(L"impulse response file"));
+	const wstring sizeProblem = validateIrSize(file.path);
+	if (!sizeProblem.empty())
+		return LineOutcome::malformed(sizeProblem);
 
 	return LineOutcome::produced(singleFilter(makeFilter<ConvolutionFilter>(std::move(file.path))));
 }

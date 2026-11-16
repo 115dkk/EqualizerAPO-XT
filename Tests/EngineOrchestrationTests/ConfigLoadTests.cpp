@@ -12,10 +12,15 @@
 */
 
 #include <cmath>
+#include <cstdint>
 #include <cstdlib>
+#include <fstream>
 #include <stdexcept>
 #include <string>
 #include <vector>
+
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 
 #include "engine/ConfigLoadTrace.h"
 #include "engine/IFilterFactory.h"
@@ -89,6 +94,57 @@ struct TraceCollector : ConfigLoadTraceSink
 		entries.push_back(entry);
 	}
 };
+
+void writeUint32(std::ofstream& stream, uint32_t value)
+{
+	const char bytes[4] = {
+		static_cast<char>(value & 0xff),
+		static_cast<char>((value >> 8) & 0xff),
+		static_cast<char>((value >> 16) & 0xff),
+		static_cast<char>((value >> 24) & 0xff)
+	};
+	stream.write(bytes, sizeof(bytes));
+}
+
+std::wstring writeOversizedWavHeader(test::Harness& harness, const std::wstring& fileName)
+{
+	const std::wstring path = testDirectory() + L"\\" + fileName;
+	trackWrittenFile(path);
+	std::ofstream stream(path, std::ios::binary | std::ios::trunc);
+	stream.write("RIFF", 4);
+	writeUint32(stream, UINT32_MAX);
+	stream.write("WAVEfmt ", 8);
+	writeUint32(stream, 16);
+	const char format[16] = {
+		3, 0, 1, 0,                         // IEEE float, mono
+		static_cast<char>(0x80), static_cast<char>(0xbb), 0, 0, // 48000 Hz
+		0, static_cast<char>(0xdc), 5, 0,   // 48000 * 8 bytes/s
+		8, 0, 64, 0
+	};
+	stream.write(format, sizeof(format));
+	stream.write("data", 4);
+	writeUint32(stream, UINT32_MAX - 7);
+	stream.close();
+	harness.require(static_cast<bool>(stream), "the oversized WAV header is written");
+	return path;
+}
+
+std::wstring writeSparseFile(test::Harness& harness, const std::wstring& fileName,
+	uint64_t size)
+{
+	const std::wstring path = testDirectory() + L"\\" + fileName;
+	trackWrittenFile(path);
+	HANDLE file = CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
+		FILE_ATTRIBUTE_NORMAL, nullptr);
+	harness.require(file != INVALID_HANDLE_VALUE, "the oversized configuration file opens");
+	LARGE_INTEGER end = {};
+	end.QuadPart = static_cast<LONGLONG>(size);
+	const bool sized = SetFilePointerEx(file, end, nullptr, FILE_BEGIN) != FALSE
+		&& SetEndOfFile(file) != FALSE;
+	CloseHandle(file);
+	harness.require(sized, "the oversized configuration file is sized");
+	return path;
+}
 }
 
 // The engine reports per-line facts while loading
@@ -708,6 +764,66 @@ TEST_CASE(EngineOrchestrationTests, testMissingReferencedFilesAreReportedAndLoad
 		harness.expectNear(output[(size_t)478 * 2], 0.5f, 1e-3f,
 			"a line after the missing reference did not load and run");
 	}
+}
+
+// Audit #467 TD-57: dimensions and file sizes are refused before either
+// reader reserves memory for the contents, and the owning config line gets the
+// file name and declared size in its parse error.
+TEST_CASE(EngineOrchestrationTests, testOversizedImpulseAndConfigurationAreMalformed)
+{
+	const std::wstring wavName = L"oversized-header.wav";
+	writeOversizedWavHeader(harness, wavName);
+	const std::wstring irConfig = writeConfig(harness, L"oversized-ir-config.txt",
+		"Convolution: oversized-header.wav\n"
+		"Preamp: -6.0206 dB\n");
+	TraceCollector irTrace;
+	FilterEngine irEngine;
+	irEngine.setLoadTraceSink(&irTrace);
+	initializeEngine(irEngine, 48000, 2, 480, irConfig);
+
+	const ConfigLoadTraceEntry* irError = nullptr;
+	for (const ConfigLoadTraceEntry& entry : irTrace.entries)
+	{
+		if (entry.kind == ConfigLoadTraceEntry::Kind::ParseError)
+			irError = &entry;
+	}
+	harness.require(irError != nullptr,
+		"an impulse response whose header claims too many samples is malformed");
+	harness.expectEqual(irError->line, 1, "the oversized impulse error is on its line");
+	harness.expect(irError->text.find(wavName) != std::wstring::npos,
+		"the oversized impulse error names the file");
+	harness.expect(irError->text.find(L"samples") != std::wstring::npos,
+		"the oversized impulse error reports its declared sample size");
+	const std::vector<float> irOutput = processDcBlock(irEngine, 1.0f, 1.0f, 480);
+	harness.expectNear(irOutput[(size_t)478 * 2], 0.5f, 1e-3f,
+		"the line after an oversized impulse response still runs");
+
+	constexpr uint64_t configLimit = 16ull * 1024 * 1024;
+	const std::wstring largeName = L"oversized-included.txt";
+	writeSparseFile(harness, largeName, configLimit + 1);
+	const std::wstring outerConfig = writeConfig(harness, L"oversized-include-config.txt",
+		"Include: oversized-included.txt\n"
+		"Preamp: -6.0206 dB\n");
+	TraceCollector configTrace;
+	FilterEngine configEngine;
+	configEngine.setLoadTraceSink(&configTrace);
+	initializeEngine(configEngine, 48000, 2, 480, outerConfig);
+
+	const ConfigLoadTraceEntry* configError = nullptr;
+	for (const ConfigLoadTraceEntry& entry : configTrace.entries)
+	{
+		if (entry.kind == ConfigLoadTraceEntry::Kind::ParseError)
+			configError = &entry;
+	}
+	harness.require(configError != nullptr, "a configuration larger than 16 MiB is malformed");
+	harness.expectEqual(configError->line, 1, "the oversized Include error is on its line");
+	harness.expect(configError->text.find(largeName) != std::wstring::npos,
+		"the oversized configuration error names the file");
+	harness.expect(configError->text.find(L"16777217") != std::wstring::npos,
+		"the oversized configuration error reports its byte size");
+	const std::vector<float> configOutput = processDcBlock(configEngine, 1.0f, 1.0f, 480);
+	harness.expectNear(configOutput[(size_t)478 * 2], 0.5f, 1e-3f,
+		"the line after an oversized Include still runs");
 }
 
 // Audit #348 A1: Include reads its file argument by the rule every file a

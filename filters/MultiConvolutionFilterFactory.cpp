@@ -22,6 +22,7 @@
 #include "MultiConvolutionCommand.h"
 #include "ConfigFileReference.h"
 #include "MultiConvolutionFilter.h"
+#include "IrCache.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "MultiConvolutionFilterFactory.h"
 
@@ -43,6 +44,9 @@ LineOutcome MultiConvolutionFilterFactory::createFilter(const wstring& configPat
 	ConfigFileReference::Target file = ConfigFileReference::target(configPath, cmd.path);
 	if (!file)
 		return LineOutcome::malformed(file.problem(L"impulse response file"));
+	const wstring sizeProblem = validateIrSize(file.path);
+	if (!sizeProblem.empty())
+		return LineOutcome::malformed(sizeProblem);
 
 	return LineOutcome::produced(singleFilter(makeFilter<MultiConvolutionFilter>(cmd.mappings, std::move(file.path))));
 }

@@ -46,7 +46,7 @@ wstring expandEnvironmentStrings(const wstring& value)
 
 ConfigFileReference::Target::operator bool() const
 {
-	return path.leaf() != nullptr;
+	return refusal.empty() && path.leaf() != nullptr;
 }
 
 wstring ConfigFileReference::Target::problem(const wchar_t* what) const

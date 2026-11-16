@@ -20,6 +20,7 @@
 #pragma once
 
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "ConfigFileReference.h"
@@ -35,6 +36,11 @@ struct IrCacheEntry
 	// Channel-major IR samples; each inner vector has `frames` elements.
 	std::vector<std::vector<double>> buffers;
 };
+
+// Checks dimensions declared by an impulse-response header without allocating
+// its PCM. Empty means the dimensions fit; otherwise the returned sentence
+// names the file and the refused size (audit #467 TD-57).
+std::wstring validateIrSize(const JudgedPath& filename);
 
 // Loads the impulse response at `filename` (or returns the cached copy, keyed
 // by path + mtime + sample rate), validated against the device sample rate.
