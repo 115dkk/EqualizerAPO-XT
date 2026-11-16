@@ -529,6 +529,57 @@ TEST_CASE(EngineOrchestrationTests, testConfigReferencedRemotePathsAreRefused)
 		"a configuration with refused remote references and working local lines still loads");
 }
 
+// Audit #467 TD-06/TD-07: a local name that resolves but cannot be opened is
+// malformed on its own line. The rest of the configuration still runs.
+TEST_CASE(EngineOrchestrationTests, testMissingReferencedFilesAreReportedAndLoadingContinues)
+{
+	struct MissingReferenceCase
+	{
+		const wchar_t* configName;
+		const wchar_t* missingName;
+		const char* line;
+	};
+	const MissingReferenceCase cases[] = {
+		{L"missing-convolution.txt", L"missing-convolution.wav",
+			"Convolution: missing-convolution.wav\nPreamp: -6.0206 dB\n"},
+		{L"missing-multiconvolution.txt", L"missing-multiconvolution.wav",
+			"MultiConvolution: L=0 missing-multiconvolution.wav\nPreamp: -6.0206 dB\n"},
+		{L"missing-include.txt", L"missing-included.txt",
+			"Include: missing-included.txt\nPreamp: -6.0206 dB\n"}
+	};
+
+	for (const MissingReferenceCase& item : cases)
+	{
+		const std::wstring configPath = writeConfig(harness, item.configName, item.line);
+		TraceCollector collector;
+		FilterEngine engine;
+		engine.setLoadTraceSink(&collector);
+		initializeEngine(engine, 48000, 2, 480, configPath);
+
+		std::vector<const ConfigLoadTraceEntry*> errors;
+		for (const ConfigLoadTraceEntry& entry : collector.entries)
+		{
+			if (entry.kind == ConfigLoadTraceEntry::Kind::ParseError)
+				errors.push_back(&entry);
+		}
+		harness.expectEqual(errors.size(), size_t(1),
+			"a missing referenced file reports exactly one parse error");
+		if (errors.size() == 1)
+		{
+			harness.expectEqual(errors[0]->line, 1,
+				"the missing-file error is attached to its reference line");
+			harness.expect(errors[0]->text.find(item.missingName) != std::wstring::npos,
+				"the missing-file error names the referenced file");
+			harness.expect(errors[0]->text.find(L"(error 2)") != std::wstring::npos,
+				"the missing-file error includes the Win32 code");
+		}
+
+		const std::vector<float> output = processDcBlock(engine, 1.0f, 1.0f, 480);
+		harness.expectNear(output[(size_t)478 * 2], 0.5f, 1e-3f,
+			"a line after the missing reference did not load and run");
+	}
+}
+
 // Audit #348 A1: Include reads its file argument by the rule every file a
 // line names shares, so the quotes and %VARIABLES% Convolution always took
 // work here too, and an Include with nothing after it is reported rather
@@ -560,7 +611,7 @@ TEST_CASE(EngineOrchestrationTests, testIncludeTakesQuotesAndVariables)
 	}
 	harness.requireEqual(errors.size(), size_t(1), "only the empty include is an error");
 	harness.expectEqual(errors[0]->line, 3, "reported on its own line");
-	harness.expect(errors[0]->text.find(L"expected the path of a configuration file") != std::wstring::npos,
+	harness.expect(errors[0]->text.find(L"No configuration file was given") != std::wstring::npos,
 		"as a missing path");
 	_wputenv_s(L"EAPO_XT_TEST_INCLUDE_DIR", L"");
 }

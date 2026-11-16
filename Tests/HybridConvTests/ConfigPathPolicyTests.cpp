@@ -287,6 +287,23 @@ TEST_CASE(ConfigPathPolicyTests, testMissingComponentEndsTheWalk)
 	harness.expectTrue(fileSystem.read.size() == 1, "nothing past the missing component is read");
 }
 
+TEST_CASE(ConfigPathPolicyTests, testMissingTargetCarriesItsPathAndWin32Reason)
+{
+	const wstring missing = scratchDirectory().path() + L"\\missing-target.wav";
+	TableFileSystem fileSystem;
+	fileSystem.mark(missing, Kind::Missing);
+	wstring refusal;
+	harness.expectTrue(allows(fileSystem, missing, kLocalConfig, refusal),
+		"the path policy leaves a missing local file to the open result");
+	harness.expectTrue(refusal.empty(), "a missing local file is not a policy refusal");
+
+	const ConfigFileReference::Target target = ConfigFileReference::target(kLocalConfig, missing);
+	harness.expectFalse(static_cast<bool>(target), "a missing file has no open target");
+	const wstring problem = target.problem(L"impulse response file");
+	harness.expectTrue(contains(problem, missing), "the missing-file problem names the resolved path");
+	harness.expectTrue(contains(problem, L"(error 2)"), "the missing-file problem includes ERROR_FILE_NOT_FOUND");
+}
+
 TEST_CASE(ConfigPathPolicyTests, testUnexaminableComponentFallsBackToTheFinalPath)
 {
 	TableFileSystem fileSystem;

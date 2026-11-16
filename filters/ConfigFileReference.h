@@ -89,13 +89,20 @@ public:
 	// The file a line names and whether the engine may open it.
 	struct Target
 	{
-		// resolve()'s result; empty when nothing is written and when the
-		// engine may not open it.
+		// resolve()'s result and any held leaf. A missing file retains its
+		// resolved spelling without a leaf; nothing written and policy refusals
+		// leave this empty.
 		JudgedPath path;
-		// Why the engine will not open path (ConfigPathPolicy); empty when it
-		// may.
+		// Why ConfigPathPolicy refused the reference; empty for allowed and
+		// missing files.
 		std::wstring refusal;
 		DWORD error = ERROR_SUCCESS;
+
+		// True only when the file is open (path has a leaf handle).
+		explicit operator bool() const;
+		// One sentence ready to attach to the configuration line. `what` is a
+		// lower-case noun phrase such as L"impulse response file".
+		std::wstring problem(const wchar_t* what) const;
 	};
 
 	// resolve() judged by ConfigPathPolicy::allowsOpen. A factory that opens a

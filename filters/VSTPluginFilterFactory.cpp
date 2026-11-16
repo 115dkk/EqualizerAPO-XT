@@ -42,9 +42,11 @@ LineOutcome VSTPluginFilterFactory::createFilter(const wstring& configPath, wstr
 		if (!pluginCommand.valid)
 			return LineOutcome::malformed(pluginCommand.error);
 
-		const auto target = ConfigFileReference::library(L"", pluginCommand.libraryPath, configPath);
-		if (!target.refusal.empty())
-			return LineOutcome::malformed(target.refusal);
+		const auto file = ConfigFileReference::library(L"", pluginCommand.libraryPath, configPath);
+		// An empty configPath is the parser-only mode: it deliberately constructs
+		// the filter description without requiring the binary to be present.
+		if (!file && (!configPath.empty() || !file.refusal.empty()))
+			return LineOutcome::malformed(file.problem(L"plug-in library"));
 
 		shared_ptr<VSTPluginLibrary> library = pluginCommand.libraryPath.empty()
 			? nullptr : VSTPluginLibrary::getInstance(pluginCommand.libraryPath);
@@ -57,7 +59,7 @@ LineOutcome VSTPluginFilterFactory::createFilter(const wstring& configPath, wstr
 		{
 			create = false;
 			TraceF(L"Adding VST plugin %s", library->getLibPath().c_str());
-			int res = VSTPluginLibrary::load(pluginCommand.libraryPath, &target.path).status;
+			int res = VSTPluginLibrary::load(pluginCommand.libraryPath, &file.path).status;
 			if (res < 0)
 			{
 				// These four were already diagnosed, but only into the log. They
