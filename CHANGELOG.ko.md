@@ -8,6 +8,14 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **Device Selector의 점검 결과가 장치 수를 다시 숫자로 보여 주고, Editor의
+  문구 셋이 원문과 같은 자리에서 줄을 바꿉니다.** 독일어, 영어, 프랑스어에서
+  장치가 하나일 때의 점검 결과 문구에 숫자 대신 'one' 같은 낱말이 적혀
+  있었습니다. 독일어와 중국어의 경고 상자, 중국어의 LoudnessCorrection 기여자
+  표시는 두 줄이 한 줄로 붙어 있었습니다. 프랑스어 라벨 둘의 복수형도
+  고쳤습니다(`Mises à niveau disponibles`, `périphériques`).
+  ([#471](https://github.com/115dkk/EqualizerAPO-XT/pull/471))
+
 ## v2.63.3 — 2026-11-16
 
 아래 항목은 모두 2026-11-15 감사
