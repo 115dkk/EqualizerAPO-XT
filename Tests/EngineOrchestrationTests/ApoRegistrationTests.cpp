@@ -20,6 +20,7 @@
 */
 
 #include <string>
+#include <stdexcept>
 #include "services/registry/RegistryPaths.h"
 
 #include <windows.h>
@@ -29,6 +30,8 @@
 
 #include "asio/AsioRegistration.h"
 #include "services/install/ApoRegistration.h"
+#include "services/install/InstallWaitBudget.h"
+#include "services/windows/WindowsService.h"
 #include "services/registry/ClsidRegistration.h"
 #include "platform/windows/WindowsPath.h"
 #include "services/registry/WindowsRegistry.h"
@@ -118,6 +121,208 @@ TEST_CASE(EngineOrchestrationTests, testInstallReportsAclAndServiceFailures)
 	harness.expect(ApoRegistration::runWithAudioStopped([] { return true; },
 		[] { return Result::Success; }, [] { return false; }) == Result::ServiceFailed,
 		"failed audio restart returns ServiceFailed");
+}
+
+struct FakeAudioEngineServices
+{
+	std::vector<std::wstring> calls;
+	std::vector<std::wstring> errors;
+	std::vector<unsigned> timeouts;
+	std::vector<std::wstring> dependents{L"AudioSrv"};
+	bool active = true;
+	bool failStop = false;
+	bool failBeforeQuery = false;
+	bool failStart = false;
+	bool failRestart = false;
+	bool exhaustRestoreBudget = false;
+
+	ApoRegistration::AudioEngineServices operations()
+	{
+		return {
+			[this](const std::wstring& name, unsigned timeout, bool* wasActive, std::vector<std::wstring>& running) {
+				calls.push_back(L"stop " + name);
+				timeouts.push_back(timeout);
+				if (failBeforeQuery)
+					throw WindowsServiceError(L"OpenService access denied");
+				*wasActive = active;
+				if (active)
+					running = dependents;
+				if (failStop)
+					throw WindowsServiceError(L"Service transition timed out");
+			},
+			[this](const std::wstring& name, unsigned timeout) {
+				calls.push_back(L"start " + name);
+				timeouts.push_back(timeout);
+				if (failStart)
+					throw WindowsServiceError(L"Service is disabled");
+			},
+			[this](const std::wstring& name, unsigned timeout) {
+				calls.push_back(L"restart " + name);
+				timeouts.push_back(timeout);
+				if (exhaustRestoreBudget)
+					installwait::deadline = GetTickCount64();
+				if (failRestart)
+					throw WindowsServiceError(L"Service restart timed out");
+			},
+			[this](const std::wstring& message) { errors.push_back(message); }
+		};
+	}
+};
+
+TEST_CASE(EngineOrchestrationTests, testUpdateHookStopsAndStartsAudioEngine)
+{
+	FakeAudioEngineServices fake;
+	const auto services = fake.operations();
+	ApoRegistration::AudioEngineState state;
+	const auto result = ApoRegistration::runWithAudioStopped([&] {
+		return ApoRegistration::stopAudioEngine(state, services);
+	}, [&] {
+		fake.calls.push_back(L"install");
+		return ApoRegistration::Result::Success;
+	}, [&] { return ApoRegistration::startAudioEngine(state, services); });
+	harness.expect(result == ApoRegistration::Result::Success, "engine cycle completes update");
+	harness.expect(fake.calls == std::vector<std::wstring>{L"stop AudioEndpointBuilder", L"install",
+		L"start AudioEndpointBuilder", L"start AudioSrv"},
+		"update stops AudioEndpointBuilder and starts it before AudioSrv");
+	harness.expect(fake.errors.empty(), "successful engine cycle has no errors");
+}
+
+TEST_CASE(EngineOrchestrationTests, testUpdateHookRetriesFailedEngineStop)
+{
+	for (const bool failBeforeQuery : {false, true})
+	{
+		FakeAudioEngineServices fake;
+		fake.failStop = true;
+		fake.failBeforeQuery = failBeforeQuery;
+		const auto services = fake.operations();
+		ApoRegistration::AudioEngineState state;
+		const auto result = ApoRegistration::runWithAudioStopped([&] {
+			return ApoRegistration::stopAudioEngine(state, services);
+		}, [&] {
+			fake.calls.push_back(L"install");
+			return ApoRegistration::Result::Success;
+		}, [&] { return ApoRegistration::startAudioEngine(state, services); });
+		harness.expect(result == ApoRegistration::Result::Success, "failed stop does not abort installation");
+		harness.expect(fake.calls == std::vector<std::wstring>{L"stop AudioEndpointBuilder", L"install",
+			L"restart AudioEndpointBuilder", L"start AudioSrv"},
+			"failed stop still installs then restarts AudioEndpointBuilder");
+		harness.require(fake.errors.size() == 1, "stop failure reports one error");
+		harness.expect(fake.errors.front().find(L"AudioEndpointBuilder") != std::wstring::npos
+			&& fake.errors.front().find(failBeforeQuery ? L"access denied" : L"timed out") != std::wstring::npos,
+			"stop error includes service name and underlying failure");
+	}
+}
+
+TEST_CASE(EngineOrchestrationTests, testUpdateHookPreservesInactiveEngine)
+{
+	FakeAudioEngineServices fake;
+	fake.active = false;
+	const auto services = fake.operations();
+	ApoRegistration::AudioEngineState state;
+	int steps = 0;
+	ApoRegistration::runWithAudioStopped([&] { return ApoRegistration::stopAudioEngine(state, services); },
+		[&] { ++steps; return ApoRegistration::Result::Success; },
+		[&] { return ApoRegistration::startAudioEngine(state, services); });
+	harness.expectEqual(steps, 1, "inactive engine does not skip install");
+	harness.expect(fake.calls == std::vector<std::wstring>{L"stop AudioEndpointBuilder"},
+		"inactive engine is not started without a previous-hook restart debt");
+	ApoRegistration::startAudioEngine(state, services);
+	harness.expectEqual(fake.calls.size(), size_t(1), "direct start also preserves an inactive engine");
+}
+
+TEST_CASE(EngineOrchestrationTests, testUpdateHookResumesPreviousExecutableStop)
+{
+	FakeAudioEngineServices fake;
+	fake.active = false;
+	const auto services = fake.operations();
+	ApoRegistration::AudioEngineState state;
+	state.resumePreviousHook = true;
+	harness.expect(ApoRegistration::stopAudioEngine(state, services), "updated hook owes obsolete hook a restart");
+	harness.expect(ApoRegistration::startAudioEngine(state, services), "previous hook's stopped engine resumes");
+	harness.expect(fake.calls == std::vector<std::wstring>{L"stop AudioEndpointBuilder",
+		L"start AudioEndpointBuilder", L"start AudioSrv"}, "updated hook resumes both services");
+	FakeAudioEngineServices disabled;
+	disabled.failStart = true;
+	const auto disabledServices = disabled.operations();
+	harness.expectFalse(ApoRegistration::startAudioEngine(state, disabledServices), "disabled service is not enabled by update");
+	harness.expectFalse(disabled.errors.empty(), "disabled service start failure is reported");
+}
+
+TEST_CASE(EngineOrchestrationTests, testUpdateHookRestoresActiveDependents)
+{
+	FakeAudioEngineServices fake;
+	fake.dependents = {L"OtherAudioClient", L"AudioSrv"};
+	const auto services = fake.operations();
+	ApoRegistration::AudioEngineState state;
+	ApoRegistration::stopAudioEngine(state, services);
+	ApoRegistration::startAudioEngine(state, services);
+	harness.expect(fake.calls == std::vector<std::wstring>{L"stop AudioEndpointBuilder",
+		L"start AudioEndpointBuilder", L"start AudioSrv", L"start OtherAudioClient"},
+		"active dependents resume in reverse stop order");
+	fake.calls.clear();
+	fake.dependents.clear();
+	state = {};
+	ApoRegistration::stopAudioEngine(state, services);
+	ApoRegistration::startAudioEngine(state, services);
+	harness.expect(fake.calls == std::vector<std::wstring>{L"stop AudioEndpointBuilder", L"start AudioEndpointBuilder"},
+		"inactive AudioSrv is not started for an isolated engine cycle");
+}
+
+TEST_CASE(EngineOrchestrationTests, testUpdateHookEngineWaitsShareDeadline)
+{
+	FakeAudioEngineServices fake;
+	fake.failStop = true;
+	const auto services = fake.operations();
+	ApoRegistration::AudioEngineState state;
+	installwait::Budget budget(0);
+	ApoRegistration::stopAudioEngine(state, services);
+	ApoRegistration::startAudioEngine(state, services);
+	harness.expectEqual(fake.timeouts.size(), size_t(3), "stop retry and AudioSrv start attempted even at deadline");
+	for (unsigned timeout : fake.timeouts)
+		harness.expectEqual(timeout, 0u, "service operations never extend the hook deadline");
+}
+
+TEST_CASE(EngineOrchestrationTests, testUpdateHookEngineRetrySharesRestoreAllowance)
+{
+	FakeAudioEngineServices fake;
+	fake.failStop = true;
+	fake.failRestart = true;
+	fake.exhaustRestoreBudget = true;
+	const auto services = fake.operations();
+	ApoRegistration::AudioEngineState state;
+	const auto result = ApoRegistration::runWithAudioStopped([&] { return ApoRegistration::stopAudioEngine(state, services); },
+		[] { return ApoRegistration::Result::Success; },
+		[&] { return ApoRegistration::startAudioEngine(state, services); });
+	harness.expect(result == ApoRegistration::Result::ServiceFailed, "failed restart is not reported as a successful hook");
+	harness.expect(fake.calls == std::vector<std::wstring>{L"stop AudioEndpointBuilder", L"restart AudioEndpointBuilder",
+		L"start AudioEndpointBuilder", L"start AudioSrv"}, "failed retry still attempts to restore both services");
+	harness.require(fake.timeouts.size() == 4, "all recovery calls recorded");
+	harness.expect(fake.timeouts[0] <= 4000 && fake.timeouts[1] <= 4000, "stop and retry each capped at four seconds");
+	harness.expectEqual(fake.timeouts[2], 0u, "fallback start cannot renew spent restore allowance");
+	harness.expectEqual(fake.timeouts[3], 0u, "AudioSrv cannot renew spent restore allowance");
+	harness.expectEqual(fake.errors.size(), size_t(2), "stop and restart failures both reach error callback");
+}
+
+TEST_CASE(EngineOrchestrationTests, testUpdateHookEngineRestoresAfterThrow)
+{
+	FakeAudioEngineServices fake;
+	fake.failStop = true;
+	const auto services = fake.operations();
+	ApoRegistration::AudioEngineState state;
+	bool caught = false;
+	try
+	{
+		ApoRegistration::runWithAudioStopped([&] { return ApoRegistration::stopAudioEngine(state, services); },
+			[]() -> ApoRegistration::Result { throw std::runtime_error("migration failed"); },
+			[&] { return ApoRegistration::startAudioEngine(state, services); });
+	}
+	catch (const std::runtime_error&)
+	{
+		caught = true;
+	}
+	harness.expect(caught, "engine seam preserves install exception");
+	harness.expect(fake.calls == std::vector<std::wstring>{L"stop AudioEndpointBuilder",
+		L"restart AudioEndpointBuilder", L"start AudioSrv"}, "failed stop and throwing install still recycle the engine once");
 }
 
 TEST_CASE(EngineOrchestrationTests, testInstallRegistryWritesTheAppVocabulary)

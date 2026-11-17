@@ -8,3 +8,4 @@
 
 // Audit #250 F020: the service name is what every restart path asks the SCM for.
 inline constexpr wchar_t audioServiceName[] = L"AudioSrv";
+inline constexpr wchar_t audioEndpointBuilderServiceName[] = L"AudioEndpointBuilder";

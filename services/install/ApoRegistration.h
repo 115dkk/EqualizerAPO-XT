@@ -21,6 +21,7 @@
 
 #include <functional>
 #include <string>
+#include <vector>
 
 #include "services/registry/IRegistry.h"
 #include "devices/EndpointProbe.h"
@@ -118,8 +119,30 @@ public:
 	static Result runWithAudioStopped(const std::function<bool()>& stop,
 		const std::function<Result()>& step, const std::function<bool()>& start);
 
+	// Service-only operations retained for uninstall's existing endpoint rebuild.
 	static bool stopAudioService();
 	static bool startAudioService();
+
+	struct AudioEngineState
+	{
+		bool active = false;
+		bool stopFailed = false;
+		// The previous executable's obsolete hook may have stopped both services.
+		bool resumePreviousHook = false;
+		std::vector<std::wstring> activeDependents;
+	};
+	struct AudioEngineServices
+	{
+		std::function<void(const std::wstring&, unsigned, bool*, std::vector<std::wstring>&)> stop;
+		std::function<void(const std::wstring&, unsigned)> start;
+		std::function<void(const std::wstring&, unsigned)> restart;
+		std::function<void(const std::wstring&)> error;
+	};
+	static const AudioEngineServices& systemAudioEngineServices();
+	static bool stopAudioEngine(AudioEngineState& state,
+		const AudioEngineServices& services = systemAudioEngineServices());
+	static bool startAudioEngine(const AudioEngineState& state,
+		const AudioEngineServices& services = systemAudioEngineServices());
 
 	// Grants Users and LOCAL SERVICE modify on a config
 	// directory (recursive), so the user can edit configs and audiodg can

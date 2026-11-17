@@ -48,6 +48,7 @@
 #include "services/logging/TaggedLogger.h"
 #include "services/registry/WindowsRegistry.h"
 #include "services/windows/WindowsService.h"
+#include "services/windows/AudioServiceNames.h"
 #include "services/shell/StartMenuShortcuts.h"
 #include "services/install/ComSelfRegistration.h"
 #include "platform/windows/GuidText.h"
@@ -59,7 +60,6 @@ namespace
 // The one spelling lives in services/registry/RegistryPaths.h;
 // DeviceAPOInfoKeys.h composes on the same macro.
 constexpr const wchar_t* kRegPath = APP_REGPATH;
-constexpr wchar_t kAudioEndpointBuilderServiceName[] = L"AudioEndpointBuilder";
 
 // Audit #250 F018: the shared path vocabulary lives in WindowsPath.h.
 using pathutil::joinPath;
@@ -326,7 +326,7 @@ ApoRegistration::Result ApoRegistration::uninstall(const std::wstring& installDi
 			// been cleaned.
 			try
 			{
-				WindowsServiceControl::restart(kAudioEndpointBuilderServiceName, installwait::remaining(4000));
+				WindowsServiceControl::restart(audioEndpointBuilderServiceName, installwait::remaining(4000));
 			}
 			catch (const WindowsServiceError& e)
 			{
@@ -413,11 +413,12 @@ ApoRegistration::Result ApoRegistration::uninstallAllDeviceApos(const DeviceUnin
 	return result;
 }
 
-// Velopack allows about 15 seconds per hook. Service waits use at most
-// 3 s (AudioSrv stop) + 4 s (uninstall's endpoint-builder restart) + 3 s
-// (AudioSrv start) = 10 s. Updated uses 6 s; obsolete uses 3 s. Do not
-// give each service in a restart its own deadline. The hook's shared 12 s
-// budget also caps these waits when ACL subprocesses already used time.
+// Velopack kills update hooks after 15 s (docs.velopack.io/integrating/hooks).
+// Obsolete uses 4 s for the engine and its dependents; updated uses 4 s to
+// stop + 4 s total to restore (including a retry after a failed stop). These
+// replace the old 3 + 3 s AudioSrv-only waits because the engine must exit.
+// Uninstall retains 3 s AudioSrv stop + 4 s endpoint rebuild + 3 s start.
+// All waits also share the hook's 12 s deadline with ACL subprocesses.
 ApoRegistration::Result ApoRegistration::runWithAudioStopped(const std::function<bool()>& stop,
 	const std::function<Result()>& step, const std::function<bool()>& start)
 {
@@ -432,7 +433,7 @@ ApoRegistration::Result ApoRegistration::runWithAudioStopped(const std::function
 		}
 		catch (...)
 		{
-			logLine(L"ERR", L"Restarting AudioSrv after the update failed");
+			logLine(L"ERR", L"Restarting the audio engine after the update failed");
 			return false;
 		}
 	};
@@ -442,6 +443,82 @@ ApoRegistration::Result ApoRegistration::runWithAudioStopped(const std::function
 	const Result result = step();
 	const bool restarted = restart();
 	return !restarted && hookCanComplete(result) ? Result::ServiceFailed : result;
+}
+
+const ApoRegistration::AudioEngineServices& ApoRegistration::systemAudioEngineServices()
+{
+	static const AudioEngineServices services{
+		WindowsServiceControl::stopWithDependents,
+		WindowsServiceControl::start,
+		WindowsServiceControl::restart,
+		[](const std::wstring& message) { logLine(L"ERR", L"%s", message.c_str()); }
+	};
+	return services;
+}
+
+bool ApoRegistration::stopAudioEngine(AudioEngineState& state, const AudioEngineServices& services)
+{
+	state.active = false;
+	state.stopFailed = false;
+	state.activeDependents.clear();
+	try
+	{
+		services.stop(audioEndpointBuilderServiceName, installwait::remaining(4000), &state.active, state.activeDependents);
+		logLine(L"INFO", L"Stopped AudioEndpointBuilder and its active dependents");
+	}
+	catch (const WindowsServiceError& e)
+	{
+		// A failure before querying the state still owes a recovery attempt.
+		// Do not abort the update or silently leave the old DLL in audiodg.
+		state.stopFailed = true;
+		services.error(L"Failed to stop " + std::wstring(audioEndpointBuilderServiceName) + L": " + e.getMessage());
+	}
+	return state.active || state.stopFailed || state.resumePreviousHook;
+}
+
+bool ApoRegistration::startAudioEngine(const AudioEngineState& state, const AudioEngineServices& services)
+{
+	if (!state.active && !state.stopFailed && !state.resumePreviousHook)
+		return true;
+	installwait::Budget restoreBudget(4000);
+	bool restored = true;
+	auto attempt = [&](const wchar_t* action, const std::wstring& name, const auto& operation) {
+		try
+		{
+			operation(name, installwait::remaining(4000));
+			return true;
+		}
+		catch (const WindowsServiceError& e)
+		{
+			restored = false;
+			services.error(std::wstring(L"Failed to ") + action + L" " + name + L": " + e.getMessage());
+			return false;
+		}
+	};
+	if (state.stopFailed)
+	{
+		// A bare start on an already-running builder would retain the old DLL.
+		// If the retry itself partly stops services, still try to restore audio.
+		if (!attempt(L"restart", audioEndpointBuilderServiceName, services.restart))
+			attempt(L"start", audioEndpointBuilderServiceName, services.start);
+	}
+	else
+		attempt(L"start", audioEndpointBuilderServiceName, services.start);
+
+	// There is no cross-process service snapshot in the old obsolete hook.
+	// Updated retains its existing obligation to start AudioSrv even if the
+	// previous executable stopped it. StartService never enables a disabled
+	// service. Other captured dependents are restored only within this hook.
+	const bool startAudio = state.resumePreviousHook || state.stopFailed
+		|| std::find(state.activeDependents.begin(), state.activeDependents.end(), audioServiceName) != state.activeDependents.end();
+	if (startAudio)
+		attempt(L"start", audioServiceName, services.start);
+	for (auto it = state.activeDependents.rbegin(); it != state.activeDependents.rend(); ++it)
+	{
+		if (*it != audioServiceName)
+			attempt(L"start", *it, services.start);
+	}
+	return restored;
 }
 
 bool ApoRegistration::stopAudioService()
