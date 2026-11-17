@@ -14,6 +14,16 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **A line that points at an unreachable file no longer freezes the Editor.**
+  Include, Convolution, MultiConvolution and VST cards asked whether their
+  file exists while the window was drawing, so a line pointing at a
+  disconnected network drive stalled the Editor for the network timeout every
+  time its row was rebuilt. The cards now ask in the background and show
+  "Checking..." until the answer arrives; the VST card's check of the files
+  named inside a plug-in's state moved to the background as well. Not tried
+  against a real disconnected drive.
+  ([#472](https://github.com/115dkk/EqualizerAPO-XT/pull/472))
+
 ## v2.63.4 — 2026-11-17
 
 - **Device Selector's check results name the count again, and three Editor
