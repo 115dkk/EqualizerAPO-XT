@@ -147,10 +147,10 @@ bool DeviceAPOInfo::load(const wstring& deviceGuid, wstring defaultDeviceGuid)
 	return true;
 }
 
-bool DeviceAPOInfo::loadFromRegistry(const wstring& deviceGuid)
+bool DeviceAPOInfo::readEndpointIdentity(
+	const wstring& deviceGuid,
+	wstring& keyPath)
 {
-	defaultDevice = false;
-	wstring keyPath;
 	if (registry.keyExists(renderKeyPath L"\\" + deviceGuid))
 	{
 		keyPath = renderKeyPath L"\\" + deviceGuid;
@@ -173,7 +173,11 @@ bool DeviceAPOInfo::loadFromRegistry(const wstring& deviceGuid)
 
 	connectionName = registry.readValue(keyPath + L"\\Properties", connectionValueName);
 	deviceName = registry.readValue(keyPath + L"\\Properties", deviceValueName);
+	return true;
+}
 
+void DeviceAPOInfo::readEndpointFormat(const wstring& keyPath)
+{
 	channelCount = 0;
 	sampleRate = 0;
 	channelMask = 0;
@@ -194,11 +198,17 @@ bool DeviceAPOInfo::loadFromRegistry(const wstring& deviceGuid)
 	}
 	if (channelMask == 0 && registry.valueExists(keyPath + L"\\Properties", channelMaskValueName))
 		channelMask = registry.readDWORDValue(keyPath + L"\\Properties", channelMaskValueName);
+}
 
+void DeviceAPOInfo::readEnhancementState(const wstring& keyPath)
+{
 	enhancementsDisabled = false;
 	if (registry.keyExists(keyPath + L"\\FxProperties") && registry.valueExists(keyPath + L"\\FxProperties", disableEnhancementsValueName))
 		enhancementsDisabled = registry.readDWORDValue(keyPath + L"\\FxProperties", disableEnhancementsValueName) != 0;
+}
 
+void DeviceAPOInfo::resetInstallState()
+{
 	installed = false;
 	currentInstallState.installMode = INSTALL_LFX_GFX;
 	version = L"0";
@@ -213,7 +223,163 @@ bool DeviceAPOInfo::loadFromRegistry(const wstring& deviceGuid)
 	currentInstallState.autoAdjust = true;
 	currentInstallState.asioEntry = false;
 	currentInstallState.asioEntryOptions = {};
+}
 
+void DeviceAPOInfo::readOriginalApoGuids(const wstring& fxPropertiesPath)
+{
+	for (int i = 0; i < allGuidValueNameCount; i++)
+	{
+		if (registry.valueExists(fxPropertiesPath, allGuidValueNames[i]))
+		{
+			wstring originalApoGuid = registry.readValue(fxPropertiesPath, allGuidValueNames[i]);
+			if (originalApoGuid == winutil::guidToString(EQUALIZERAPO_PRE_MIX_GUID) || originalApoGuid == winutil::guidToString(EQUALIZERAPO_POST_MIX_GUID))
+				originalApoGuid = APOGUID_NOVALUE;
+			originalApoGuids[i] = originalApoGuid;
+		}
+		else
+		{
+			originalApoGuids[i] = APOGUID_NOVALUE;
+		}
+	}
+}
+
+bool DeviceAPOInfo::findInstalledEffectSlots(
+	const wstring& fxPropertiesPath,
+	bool* foundAt)
+{
+	bool found = false;
+	for (int i = 0; i < allGuidValueNameCount; i++)
+	{
+		foundAt[i] = false;
+
+		if (registry.valueExists(fxPropertiesPath, allGuidValueNames[i]))
+		{
+			wstring apoGuidString = registry.readValue(fxPropertiesPath, allGuidValueNames[i]);
+
+			GUID apoGuid;
+			if (SUCCEEDED(CLSIDFromString(apoGuidString.c_str(), &apoGuid)))
+			{
+				if (apoGuid == EQUALIZERAPO_PRE_MIX_GUID || apoGuid == EQUALIZERAPO_POST_MIX_GUID)
+				{
+					foundAt[i] = true;
+					found = true;
+				}
+			}
+		}
+	}
+	return found;
+}
+
+void DeviceAPOInfo::readChildApoState(
+	const wstring& deviceGuid,
+	const bool* foundAt)
+{
+	if (registry.keyExists(childApoPath L"\\" + deviceGuid))
+	{
+		if (registry.valueExists(childApoPath L"\\" + deviceGuid, versionValueName))
+		{
+			version = registry.readValue(childApoPath L"\\" + deviceGuid, versionValueName);
+			if (version != installVersion)
+				throw DeviceException(L"Unsupported version of APO installation detected! Please uninstall newer Equalizer APO before using this version of Device Selector.");
+		}
+		else
+		{
+			version = L"1";
+		}
+
+		for (int i = 0; i < allGuidValueNameCount; i++)
+		{
+			if (registry.valueExists(childApoPath L"\\" + deviceGuid, allGuidValueNames[i]))
+				originalApoGuids[i] = registry.readValue(childApoPath L"\\" + deviceGuid, allGuidValueNames[i]);
+		}
+
+		if (version == installVersion)
+		{
+			if (registry.valueExists(childApoPath L"\\" + deviceGuid, preMixChildGuidValueName))
+				preMixChildGuid = registry.readValue(childApoPath L"\\" + deviceGuid, preMixChildGuidValueName);
+			if (registry.valueExists(childApoPath L"\\" + deviceGuid, postMixChildGuidValueName))
+				postMixChildGuid = registry.readValue(childApoPath L"\\" + deviceGuid, postMixChildGuidValueName);
+
+			currentInstallState.installPreMix = foundAt[LFX_INDEX] || foundAt[SFX_INDEX];
+			currentInstallState.installPostMix = foundAt[GFX_INDEX] || foundAt[MFX_INDEX] || foundAt[EFX_INDEX];
+
+			if (preMixChildGuid == L"")
+				currentInstallState.useOriginalAPOPreMix = false;
+			if (postMixChildGuid == L"")
+				currentInstallState.useOriginalAPOPostMix = false;
+
+			if (foundAt[LFX_INDEX] || foundAt[GFX_INDEX])
+				currentInstallState.installMode = INSTALL_LFX_GFX;
+			else if (foundAt[EFX_INDEX])
+				currentInstallState.installMode = INSTALL_SFX_EFX;
+			else if (foundAt[SFX_INDEX] || foundAt[MFX_INDEX])
+				currentInstallState.installMode = INSTALL_SFX_MFX;
+
+			if (registry.valueExists(childApoPath L"\\" + deviceGuid, allowSilentBufferValueName))
+				currentInstallState.allowSilentBufferModification = registry.readValue(childApoPath L"\\" + deviceGuid, allowSilentBufferValueName) != L"false";
+			if (!input && registry.valueExists(childApoPath L"\\" + deviceGuid, receiveFromEndpointsValueName))
+				currentInstallState.receiveFromEndpoints = registry.readValue(childApoPath L"\\" + deviceGuid, receiveFromEndpointsValueName) != L"false";
+			if (registry.valueExists(childApoPath L"\\" + deviceGuid, disableAutoAdjustValueName))
+				currentInstallState.autoAdjust = registry.readValue(childApoPath L"\\" + deviceGuid, disableAutoAdjustValueName) == L"false";
+		}
+		else
+		{
+			if (registry.valueExists(childApoPath L"\\" + deviceGuid, lfxGuidValueName))
+			{
+				preMixChildGuid = originalApoGuids[0];
+				postMixChildGuid = originalApoGuids[1];
+			}
+			else
+			{
+				preMixChildGuid = originalApoGuids[2];
+				postMixChildGuid = originalApoGuids[3];
+			}
+		}
+	}
+	else if (registry.keyExists(childApoPath) && registry.valueExists(childApoPath, deviceGuid))
+	{
+		for (int i = 0; i < allGuidValueNameCount; i++)
+		{
+			if (foundAt[i])
+			{
+				originalApoGuids[i] = registry.readValue(childApoPath, deviceGuid);
+				if (i == LFX_INDEX || i == SFX_INDEX)
+					preMixChildGuid = originalApoGuids[i];
+				else
+					postMixChildGuid = originalApoGuids[i];
+				break;
+			}
+		}
+	}
+}
+
+void DeviceAPOInfo::chooseUninstalledInstallMode(const wstring& keyPath)
+{
+	// The minimum supported Windows is 10 1809, the oldest Qt 6.10 runs
+	// on, so the SFX/MFX/EFX slots (Windows 8.1 and newer) always exist;
+	// the branch that kept LFX/GFX for older systems is gone (audit #348
+	// TD-53).
+	// only use LFX/GFX if the audio driver supplied only those APOs
+	if (registry.keyExists(keyPath + L"\\FxProperties")
+		&& (registry.valueExists(keyPath + L"\\FxProperties", lfxGuidValueName) || registry.valueExists(keyPath + L"\\FxProperties", gfxGuidValueName))
+		&& !registry.valueExists(keyPath + L"\\FxProperties", sfxGuidValueName)
+		&& !registry.valueExists(keyPath + L"\\FxProperties", mfxGuidValueName)
+		&& !registry.valueExists(keyPath + L"\\FxProperties", efxGuidValueName)
+		&& !registry.valueExists(keyPath + L"\\FxProperties", multiSfxGuidValueName)
+		&& !registry.valueExists(keyPath + L"\\FxProperties", multiMfxGuidValueName)
+		&& !registry.valueExists(keyPath + L"\\FxProperties", multiEfxGuidValueName))
+		currentInstallState.installMode = INSTALL_LFX_GFX;
+	// bluetooth devices may be combined in Windows 11, EFX will not work then
+	else if (registry.valueExists(keyPath + L"\\Properties", combinedDeviceValueName))
+		currentInstallState.installMode = INSTALL_SFX_MFX;
+	else
+		currentInstallState.installMode = INSTALL_SFX_EFX;
+}
+
+void DeviceAPOInfo::readEffectState(
+	const wstring& keyPath,
+	const wstring& deviceGuid)
+{
 	if (!registry.keyExists(keyPath + L"\\FxProperties"))
 	{
 		for (int i = 0; i < allGuidValueNameCount; i++)
@@ -229,152 +395,26 @@ bool DeviceAPOInfo::loadFromRegistry(const wstring& deviceGuid)
 		// it. Choosing the modern slots here, as the branch below does for a
 		// chain without legacy entries, would silence the EQ on most
 		// microphones and every virtual cable.
+		return;
+	}
+
+	const wstring fxPropertiesPath = keyPath + L"\\FxProperties";
+	readOriginalApoGuids(fxPropertiesPath);
+
+	bool foundAt[allGuidValueNameCount];
+	if (findInstalledEffectSlots(fxPropertiesPath, foundAt))
+	{
+		installed = true;
+		readChildApoState(deviceGuid, foundAt);
 	}
 	else
 	{
-		for (int i = 0; i < allGuidValueNameCount; i++)
-		{
-			if (registry.valueExists(keyPath + L"\\FxProperties", allGuidValueNames[i]))
-			{
-				wstring originalApoGuid = registry.readValue(keyPath + L"\\FxProperties", allGuidValueNames[i]);
-				if (originalApoGuid == winutil::guidToString(EQUALIZERAPO_PRE_MIX_GUID) || originalApoGuid == winutil::guidToString(EQUALIZERAPO_POST_MIX_GUID))
-					originalApoGuid = APOGUID_NOVALUE;
-				originalApoGuids[i] = originalApoGuid;
-			}
-			else
-			{
-				originalApoGuids[i] = APOGUID_NOVALUE;
-			}
-		}
-
-		bool found = false;
-		bool foundAt[allGuidValueNameCount];
-		for (int i = 0; i < allGuidValueNameCount; i++)
-		{
-			foundAt[i] = false;
-
-			if (registry.valueExists(keyPath + L"\\FxProperties", allGuidValueNames[i]))
-			{
-				wstring apoGuidString = registry.readValue(keyPath + L"\\FxProperties", allGuidValueNames[i]);
-
-				GUID apoGuid;
-				if (SUCCEEDED(CLSIDFromString(apoGuidString.c_str(), &apoGuid)))
-				{
-					if (apoGuid == EQUALIZERAPO_PRE_MIX_GUID || apoGuid == EQUALIZERAPO_POST_MIX_GUID)
-					{
-						foundAt[i] = true;
-						found = true;
-					}
-				}
-			}
-		}
-
-		if (found)
-		{
-			installed = true;
-
-			if (registry.keyExists(childApoPath L"\\" + deviceGuid))
-			{
-				if (registry.valueExists(childApoPath L"\\" + deviceGuid, versionValueName))
-				{
-					version = registry.readValue(childApoPath L"\\" + deviceGuid, versionValueName);
-					if (version != installVersion)
-						throw DeviceException(L"Unsupported version of APO installation detected! Please uninstall newer Equalizer APO before using this version of Device Selector.");
-				}
-				else
-				{
-					version = L"1";
-				}
-
-				for (int i = 0; i < allGuidValueNameCount; i++)
-				{
-					if (registry.valueExists(childApoPath L"\\" + deviceGuid, allGuidValueNames[i]))
-						originalApoGuids[i] = registry.readValue(childApoPath L"\\" + deviceGuid, allGuidValueNames[i]);
-				}
-
-				if (version == installVersion)
-				{
-					if (registry.valueExists(childApoPath L"\\" + deviceGuid, preMixChildGuidValueName))
-						preMixChildGuid = registry.readValue(childApoPath L"\\" + deviceGuid, preMixChildGuidValueName);
-					if (registry.valueExists(childApoPath L"\\" + deviceGuid, postMixChildGuidValueName))
-						postMixChildGuid = registry.readValue(childApoPath L"\\" + deviceGuid, postMixChildGuidValueName);
-
-					currentInstallState.installPreMix = foundAt[LFX_INDEX] || foundAt[SFX_INDEX];
-					currentInstallState.installPostMix = foundAt[GFX_INDEX] || foundAt[MFX_INDEX] || foundAt[EFX_INDEX];
-
-					if (preMixChildGuid == L"")
-						currentInstallState.useOriginalAPOPreMix = false;
-					if (postMixChildGuid == L"")
-						currentInstallState.useOriginalAPOPostMix = false;
-
-					if (foundAt[LFX_INDEX] || foundAt[GFX_INDEX])
-						currentInstallState.installMode = INSTALL_LFX_GFX;
-					else if (foundAt[EFX_INDEX])
-						currentInstallState.installMode = INSTALL_SFX_EFX;
-					else if (foundAt[SFX_INDEX] || foundAt[MFX_INDEX])
-						currentInstallState.installMode = INSTALL_SFX_MFX;
-
-					if (registry.valueExists(childApoPath L"\\" + deviceGuid, allowSilentBufferValueName))
-						currentInstallState.allowSilentBufferModification = registry.readValue(childApoPath L"\\" + deviceGuid, allowSilentBufferValueName) != L"false";
-					if (!input && registry.valueExists(childApoPath L"\\" + deviceGuid, receiveFromEndpointsValueName))
-						currentInstallState.receiveFromEndpoints = registry.readValue(childApoPath L"\\" + deviceGuid, receiveFromEndpointsValueName) != L"false";
-					if (registry.valueExists(childApoPath L"\\" + deviceGuid, disableAutoAdjustValueName))
-						currentInstallState.autoAdjust = registry.readValue(childApoPath L"\\" + deviceGuid, disableAutoAdjustValueName) == L"false";
-				}
-				else
-				{
-					if (registry.valueExists(childApoPath L"\\" + deviceGuid, lfxGuidValueName))
-					{
-						preMixChildGuid = originalApoGuids[0];
-						postMixChildGuid = originalApoGuids[1];
-					}
-					else
-					{
-						preMixChildGuid = originalApoGuids[2];
-						postMixChildGuid = originalApoGuids[3];
-					}
-				}
-			}
-			else if (registry.keyExists(childApoPath) && registry.valueExists(childApoPath, deviceGuid))
-			{
-				for (int i = 0; i < allGuidValueNameCount; i++)
-				{
-					if (foundAt[i])
-					{
-						originalApoGuids[i] = registry.readValue(childApoPath, deviceGuid);
-						if (i == LFX_INDEX || i == SFX_INDEX)
-							preMixChildGuid = originalApoGuids[i];
-						else
-							postMixChildGuid = originalApoGuids[i];
-						break;
-					}
-				}
-			}
-		}
-		else
-		{
-			// The minimum supported Windows is 10 1809, the oldest Qt 6.10 runs
-			// on, so the SFX/MFX/EFX slots (Windows 8.1 and newer) always exist;
-			// the branch that kept LFX/GFX for older systems is gone (audit #348
-			// TD-53).
-			// only use LFX/GFX if the audio driver supplied only those APOs
-			if (registry.keyExists(keyPath + L"\\FxProperties")
-				&& (registry.valueExists(keyPath + L"\\FxProperties", lfxGuidValueName) || registry.valueExists(keyPath + L"\\FxProperties", gfxGuidValueName))
-				&& !registry.valueExists(keyPath + L"\\FxProperties", sfxGuidValueName)
-				&& !registry.valueExists(keyPath + L"\\FxProperties", mfxGuidValueName)
-				&& !registry.valueExists(keyPath + L"\\FxProperties", efxGuidValueName)
-				&& !registry.valueExists(keyPath + L"\\FxProperties", multiSfxGuidValueName)
-				&& !registry.valueExists(keyPath + L"\\FxProperties", multiMfxGuidValueName)
-				&& !registry.valueExists(keyPath + L"\\FxProperties", multiEfxGuidValueName))
-				currentInstallState.installMode = INSTALL_LFX_GFX;
-			// bluetooth devices may be combined in Windows 11, EFX will not work then
-			else if (registry.valueExists(keyPath + L"\\Properties", combinedDeviceValueName))
-				currentInstallState.installMode = INSTALL_SFX_MFX;
-			else
-				currentInstallState.installMode = INSTALL_SFX_EFX;
-		}
+		chooseUninstalledInstallMode(keyPath);
 	}
+}
 
+void DeviceAPOInfo::readAsioEntry(const wstring& deviceGuid)
+{
 	// The ASIO entry is the endpoint's own wrapper record, keyed by the
 	// CLSID derived from the endpoint GUID; a driver record could never
 	// carry that CLSID, so the kind check is belt and braces. A record that
@@ -394,6 +434,21 @@ bool DeviceAPOInfo::loadFromRegistry(const wstring& deviceGuid)
 		currentInstallState.asioEntry = false;
 		LogFStatic(L"Could not read the ASIO entry of endpoint %s: %s", deviceGuid.c_str(), e.getMessage().c_str());
 	}
+}
+
+bool DeviceAPOInfo::loadFromRegistry(const wstring& deviceGuid)
+{
+	defaultDevice = false;
+	wstring keyPath;
+	if (!readEndpointIdentity(deviceGuid, keyPath))
+		return false;
+
+	readEndpointFormat(keyPath);
+	readEnhancementState(keyPath);
+	resetInstallState();
+
+	readEffectState(keyPath, deviceGuid);
+	readAsioEntry(deviceGuid);
 
 	return true;
 }
