@@ -24,6 +24,7 @@
 #include "platform/windows/GuidText.h"
 #include "platform/windows/ComError.h"
 #include "runtime/errors/WideError.h"
+#include "runtime/ipc/EngineBeacon.h"
 #include "services/registry/RegistryPaths.h"
 #include <exception>
 #include <new>
@@ -172,6 +173,16 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 	}
 	wstring deviceGuid = var->pwszVal;
 	TraceF(L"Endpoint GUID: %s", deviceGuid.c_str());
+
+	static const bool beaconLogged = [this] {
+		const auto version = eapo::ipc::beacon::builtVersion();
+		if (eapo::ipc::beacon::publishOnce(version))
+			LogF(L"Engine %u.%u.%u loaded in process %lu", version.major, version.minor, version.revision, GetCurrentProcessId());
+		else
+			LogF(L"Could not publish engine version (Win32 error %lu)", GetLastError());
+		return true;
+	}();
+	(void)beaconLogged;
 
 	wstring deviceTestPipeName;
 	try

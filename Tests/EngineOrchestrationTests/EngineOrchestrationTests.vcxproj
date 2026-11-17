@@ -80,6 +80,7 @@
     <ClCompile Include="DevicePlanTests.cpp" />
     <ClCompile Include="DeviceTestPlanTests.cpp" />
     <ClCompile Include="DeviceVocabularyTests.cpp" />
+    <ClCompile Include="EngineBeaconTests.cpp" />
     <ClCompile Include="EngineLifecycleTests.cpp" />
     <ClCompile Include="EngineOrchestrationTests.cpp" />
     <ClCompile Include="EngineRoutingTests.cpp" />

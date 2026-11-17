@@ -55,6 +55,7 @@
 #include "platform/windows/CommandLineQuoting.h"
 #include "services/app/ProcessShutdown.h"
 #include "services/install/ApoRegistration.h"
+#include "services/windows/AudioEngineRestart.h"
 #include "services/registry/WindowsRegistry.h"
 #include "platform/windows/Win32Resource.h"
 #include "platform/windows/WindowsPath.h"
@@ -392,6 +393,16 @@ int main(int argc, char* argv[])
 		}
 		logLine(L"INFO", L"diagnostics written to %s", reportPath.c_str());
 		return 0;
+	}
+
+	const auto restartArguments = wideArgumentsAfterProgramName();
+	if (std::find(restartArguments.begin(), restartArguments.end(), audioengine::kRestartArgument) != restartArguments.end())
+	{
+		if (!AudioEngineAccess::isElevated())
+			return 5;
+		return audioengine::restartAudioEngine([](const std::wstring& message) {
+			logLine(L"ERR", L"%s", message.c_str());
+		}) ? 0 : 1;
 	}
 
 	if (hasArgument(argc, argv, VelopackBootstrap::kElevatedCoordinatorArgument))

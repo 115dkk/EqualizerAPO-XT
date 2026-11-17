@@ -47,6 +47,7 @@
 #include "services/logging/Logging.h"
 #include "services/logging/TaggedLogger.h"
 #include "services/registry/WindowsRegistry.h"
+#include "services/windows/AudioServiceNames.h"
 #include "services/windows/WindowsService.h"
 #include "services/shell/StartMenuShortcuts.h"
 #include "services/install/ComSelfRegistration.h"
@@ -59,7 +60,6 @@ namespace
 // The one spelling lives in services/registry/RegistryPaths.h;
 // DeviceAPOInfoKeys.h composes on the same macro.
 constexpr const wchar_t* kRegPath = APP_REGPATH;
-constexpr wchar_t kAudioEndpointBuilderServiceName[] = L"AudioEndpointBuilder";
 
 // Audit #250 F018: the shared path vocabulary lives in WindowsPath.h.
 using pathutil::joinPath;
@@ -326,7 +326,7 @@ ApoRegistration::Result ApoRegistration::uninstall(const std::wstring& installDi
 			// been cleaned.
 			try
 			{
-				WindowsServiceControl::restart(kAudioEndpointBuilderServiceName, installwait::remaining(4000));
+				WindowsServiceControl::restart(audioEndpointBuilderServiceName, installwait::remaining(4000));
 			}
 			catch (const WindowsServiceError& e)
 			{
