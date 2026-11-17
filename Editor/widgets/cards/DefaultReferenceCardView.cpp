@@ -15,6 +15,7 @@
 
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/ElidedLabel.h"
+#include "Editor/widgets/StyleRefresh.h"
 
 namespace
 {
@@ -171,8 +172,7 @@ void DefaultReferenceCardView::applyState(const ReferenceCardState& state)
 	statusLabel->setVisible(!state.statusText.isEmpty());
 	statusLabel->setText(state.statusText);
 	statusLabel->setProperty("severity", referenceCardSeverityName(state.statusSeverity));
-	statusLabel->style()->unpolish(statusLabel);
-	statusLabel->style()->polish(statusLabel);
+	repolish(statusLabel);
 
 	// A labelled action (the host swaps Browse to "Locate..." while missing)
 	// shows its text; icon-only buttons stay compact.
