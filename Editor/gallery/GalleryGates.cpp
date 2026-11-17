@@ -81,6 +81,380 @@ int stallThreshold(QList<qint64> previous, int budgetMs, double factor)
 	const qint64 median = previous[previous.size() / 2];
 	return int(std::min<qint64>(budgetMs, qint64(factor * double(median))));
 }
+
+// The skin switch gate in its phases (audit #467 TD-38), called by
+// runSwitchTest in the original order.
+
+// Skins::all() leaves out (and logs) a roster id with no ISkin, so this
+// gate would switch through fewer skins than the preferences offer while
+// the missing one paints as Studio.
+bool switchRosterComplete()
+{
+	const int rosterSize = int(SkinThemeData::ids().size());
+	const int implemented = int(Skins::all().size());
+	if (implemented != rosterSize)
+	{
+		qWarning("SkinSwitchTest: only %d of the %d roster skins have an ISkin implementation (Skins.cpp)",
+			implemented, rosterSize);
+		return false;
+	}
+	return true;
+}
+
+bool seamHasKeyboardParity(FilterInsertSeam& accessibilitySeam, int& seamActivations)
+{
+	int* const activations = &seamActivations;
+	QObject::connect(&accessibilitySeam, &FilterInsertSeam::activated,
+		[activations]() { (*activations)++; });
+	QKeyEvent activateSeam(QEvent::KeyPress, Qt::Key_Space, Qt::NoModifier);
+	QApplication::sendEvent(&accessibilitySeam, &activateSeam);
+	if (accessibilitySeam.focusPolicy() != Qt::StrongFocus || seamActivations != 1
+		|| accessibilitySeam.accessibleName().isEmpty())
+	{
+		qWarning("SkinSwitchTest: insertion seam lacks keyboard accessibility parity");
+		return false;
+	}
+	return true;
+}
+
+bool toastTimerBehaves(UpdateToast& timerProbe)
+{
+	timerProbe.showMessage(QStringLiteral("temporary"), 15000);
+	const QTimer* const autoHideTimer = timerProbe.findChild<QTimer*>(QStringLiteral("UpdateToastAutoHide"));
+	if (autoHideTimer == nullptr || !autoHideTimer->isActive())
+	{
+		qWarning("SkinSwitchTest: update toast does not own a restartable auto-hide timer");
+		return false;
+	}
+	timerProbe.showMessage(QStringLiteral("persistent"), 0);
+	if (autoHideTimer->isActive())
+	{
+		qWarning("SkinSwitchTest: persistent update toast kept a stale auto-hide timer");
+		return false;
+	}
+	return true;
+}
+
+// Everything in the action train must stay alive and laid out: an action
+// reported invisible, an item widget QToolBarLayout hid (overflow into the
+// extension popup counts - the real toolbar never overflows at 1024px), or
+// a collapsed toolbar all reproduce the "toolbar is gone" field state.
+int checkSwitchToolbar(const QMainWindow& probeWindow, QToolBar* probeToolBar, const QString& switchName)
+{
+	int problems = 0;
+	QLabel* formatBadge = probeToolBar->findChild<QLabel*>(
+		QStringLiteral("DeviceFormatBadge"), Qt::FindDirectChildrenOnly);
+	if (formatBadge == nullptr
+		|| formatBadge->property("severity").toString() != QLatin1String("warning"))
+	{
+		qWarning("SkinSwitchTest: %s: representative DeviceFormatBadge is missing",
+			qPrintable(switchName));
+		problems++;
+	}
+	if (!probeToolBar->isVisibleTo(&probeWindow))
+	{
+		qWarning("SkinSwitchTest: %s: main toolbar widget is hidden", qPrintable(switchName));
+		problems++;
+	}
+	if (probeToolBar->height() < 16)
+	{
+		qWarning("SkinSwitchTest: %s: main toolbar collapsed to %dpx",
+			qPrintable(switchName), probeToolBar->height());
+		problems++;
+	}
+	for (QAction* action : probeToolBar->actions())
+	{
+		QWidget* item = probeToolBar->widgetForAction(action);
+		// State-driven items legitimately hide; every other item belongs
+		// to the structural health contract.
+		if (item != nullptr
+			&& MainToolbarKit::visibilityIsDataObjectNames().contains(item->objectName()))
+			continue;
+		const QString label = item != nullptr && !item->objectName().isEmpty()
+			? item->objectName() : action->objectName();
+		if (!action->isVisible())
+		{
+			qWarning("SkinSwitchTest: %s: toolbar action %s turned invisible",
+				qPrintable(switchName), qPrintable(label));
+			problems++;
+		}
+		else if (item != nullptr && item->isHidden())
+		{
+			qWarning("SkinSwitchTest: %s: toolbar item %s was hidden by the layout (item hint %dpx, bar %dpx wide, bar hint %dpx)",
+				qPrintable(switchName), qPrintable(label),
+				item->sizeHint().width(), probeToolBar->width(),
+				probeToolBar->sizeHint().width());
+			problems++;
+		}
+	}
+	// A rendered toolbar is never one flat colour: buttons, combos and labels
+	// cover much of it. Matching the corner pixel almost everywhere means the
+	// controls were not painted, even when every logical probe stayed healthy.
+	if (probeToolBar->isVisible()
+		&& ToolbarPixelProbe::renderIsBlank(probeToolBar->grab().toImage().convertToFormat(QImage::Format_RGB32)))
+	{
+		qWarning("SkinSwitchTest: %s: toolbar rendered blank (controls not painted)",
+			qPrintable(switchName));
+		problems++;
+	}
+	return problems;
+}
+
+// Generous ceiling: a healthy switch is well under a second offscreen,
+// the regression class this guards against cost multiple seconds per
+// switch, and CI runners are slow and variable. Overridable for local
+// tuning.
+void readSwitchBudget(int& limitMs, int& warningMs)
+{
+	bool limitOk = false;
+	limitMs = qEnvironmentVariableIntValue("EAPO_SWITCH_LIMIT_MS", &limitOk);
+	if (!limitOk || limitMs <= 0)
+		limitMs = 8000;
+	bool warningOk = false;
+	warningMs = qEnvironmentVariableIntValue("EAPO_SWITCH_WARN_MS", &warningOk);
+	if (!warningOk || warningMs <= 0 || warningMs >= limitMs)
+		warningMs = 0;
+}
+
+int checkPaintOnlyChrome(const QScrollArea& scrollArea, const QString& objectName)
+{
+	const QList<QWidget*> widgets = scrollArea.findChildren<QWidget*>(objectName);
+	if (widgets.isEmpty())
+	{
+		qWarning("SkinSwitchTest: paint-only chrome %s is missing", qPrintable(objectName));
+		return 1;
+	}
+	for (const QWidget* widget : widgets)
+	{
+		if (!widget->testAttribute(Qt::WA_NoSystemBackground))
+		{
+			qWarning("SkinSwitchTest: paint-only chrome %s accepts a framework background",
+				qPrintable(objectName));
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int checkLegacyCopyScene(FilterTable* table)
+{
+	int failures = 0;
+	// LegacyRows still uses CopyFilterGUI. Its QGraphicsView does not own
+	// the scene, so the GUI must parent it explicitly; allWidgets() cannot
+	// detect this leak because QGraphicsScene is not a QWidget.
+	CopyFilterGUI* legacyCopy = new CopyFilterGUI({}, table);
+	QGraphicsView* graphicsView = legacyCopy->findChild<QGraphicsView*>();
+	QPointer<QGraphicsScene> scene = graphicsView != nullptr ? graphicsView->scene() : nullptr;
+	if (scene.isNull())
+	{
+		qWarning("SkinSwitchTest: legacy CopyFilterGUI scene was not created");
+		failures++;
+	}
+	delete legacyCopy;
+	if (!scene.isNull())
+	{
+		qWarning("SkinSwitchTest: deleting CopyFilterGUI did not delete its scene");
+		delete scene.data();
+		failures++;
+	}
+	return failures;
+}
+
+// Caption ink check. tintedIcon paints every covered pixel
+// in the ink colour, so the strongest-coverage pixel must
+// sit on the active skin's text colour. Tolerance, not
+// equality: the thin minimize stroke has no fully opaque
+// pixel at 14 px and unpremultiply rounding shifts channels
+// by a few counts - a stale light/dark ink is off by ~100+.
+int checkCaptionInk(const QToolButton* captionButton, const QString& name)
+{
+	const QColor ink(SkinManager::instance()->tokens().text);
+	const QImage glyph = captionButton->icon()
+		.pixmap(QSize(14, 14)).toImage().convertToFormat(QImage::Format_ARGB32);
+	int bestAlpha = 0;
+	QColor bestPixel;
+	for (int y = 0; y < glyph.height(); y++)
+		for (int x = 0; x < glyph.width(); x++)
+		{
+			const QColor pixel = glyph.pixelColor(x, y);
+			if (pixel.alpha() > bestAlpha)
+			{
+				bestAlpha = pixel.alpha();
+				bestPixel = pixel;
+			}
+		}
+	const bool inkMatched = bestAlpha > 0
+		&& qAbs(bestPixel.red() - ink.red()) <= 8
+		&& qAbs(bestPixel.green() - ink.green()) <= 8
+		&& qAbs(bestPixel.blue() - ink.blue()) <= 8;
+	if (!inkMatched)
+	{
+		qWarning("SkinSwitchTest: caption icon did not follow the switch to %s (ink %s, glyph %s a%d)",
+			qPrintable(name), qPrintable(ink.name()), qPrintable(bestPixel.name()), bestAlpha);
+		return 1;
+	}
+	return 0;
+}
+
+// The skinned file dialog's icon provider must serve the
+// drive glyph for both drive spellings: the real root
+// ("C:/") and the slash-less shell name ("C:") that
+// QFileSystemModel stores drive nodes under and rebuilds
+// node icons from on setIconProvider. The bare spelling
+// is neither isRoot() nor a file, which dressed every
+// sidebar drive with the folder pictogram in the field.
+int checkDriveGlyph(const QString& skinId)
+{
+	QFileDialog probeDialog;
+	probeDialog.setOption(QFileDialog::DontUseNativeDialog);
+	SkinManager::instance()->styleFileDialog(&probeDialog);
+	if (SkinFileIconProvider* provider
+		= dynamic_cast<SkinFileIconProvider*>(probeDialog.iconProvider()))
+	{
+		const qint64 driveKey
+			= provider->icon(QAbstractFileIconProvider::Drive).cacheKey();
+		const qint64 folderKey
+			= provider->icon(QAbstractFileIconProvider::Folder).cacheKey();
+		if (driveKey == folderKey
+			|| provider->icon(QFileInfo(QStringLiteral("C:"))).cacheKey() != driveKey
+			|| provider->icon(QFileInfo(QStringLiteral("C:/"))).cacheKey() != driveKey)
+		{
+			qWarning("SkinSwitchTest: %s file-dialog provider does not classify a drive root as the drive glyph",
+				qPrintable(skinId));
+			return 1;
+		}
+	}
+	return 0;
+}
+
+// What the switches of one gate run share: the table and chrome they
+// probe, the budget, and the running failure count and timings.
+struct SwitchRun
+{
+	SwitchRun(FilterTable* filterTable, const QScrollArea& area, const QToolButton* caption,
+		const QMainWindow& window, QToolBar* toolBar, int limit, int warning)
+		: table(filterTable), scrollArea(area), captionButton(caption), probeWindow(window),
+		probeToolBar(toolBar), limitMs(limit), warningMs(warning)
+	{
+	}
+
+	FilterTable* table;
+	const QScrollArea& scrollArea;
+	const QToolButton* captionButton;
+	const QMainWindow& probeWindow;
+	QToolBar* probeToolBar;
+	const int limitMs;
+	const int warningMs;
+	int failures = 0;
+	qint64 worstMs = 0;
+	QString worstName;
+	QList<qint64> switchTimes;
+};
+
+void runOneSwitch(SwitchRun& run, ISkin* skin, bool dark, int round)
+{
+	FilterTable* table = run.table;
+	int& failures = run.failures;
+	const int limitMs = run.limitMs;
+	const int warningMs = run.warningMs;
+	const QString name = QStringLiteral("%1/%2").arg(skin->id(), dark ? QStringLiteral("dark") : QStringLiteral("light"));
+
+	QElapsedTimer timer;
+	timer.start();
+	qint64 clearMs = 0;
+	qint64 applyMs = 0;
+	qint64 rebuildMs = 0;
+	{
+		// Prints the GUI thread's stacks when the switch runs long.
+		const GalleryStallWatch watch("SkinSwitchTest",
+			name + QStringLiteral(" round %1").arg(round),
+			stallThreshold(run.switchTimes, warningMs > 0 ? warningMs : limitMs / 2, 1.5));
+		// MainWindow::skinSelected's exact live sequence: tear the
+		// rows down BEFORE the global stylesheet swap (which also
+		// re-derives the palette), rebuild after.
+		table->clearRows();
+		clearMs = timer.restart();
+		SkinManager::instance()->applySkin(skin->id(), dark);
+		applyMs = timer.restart();
+		table->updateGuis();
+		VSTPluginSession::waitForPendingLoads(30000);
+		QApplication::processEvents();
+		// The live editor returns to the event loop between switches,
+		// which is when deleteLater victims (combo popup containers,
+		// editor internals) actually die; a bare processEvents() does
+		// not deliver DeferredDelete, and without this the harness
+		// accumulates a dead generation per switch that the real app
+		// never keeps.
+		QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+		QApplication::processEvents();
+		rebuildMs = timer.elapsed();
+	}
+	const qint64 elapsed = clearMs + applyMs + rebuildMs;
+	run.switchTimes.append(elapsed);
+
+	if (SkinManager::instance()->currentSkinId() != skin->id())
+	{
+		qWarning("SkinSwitchTest: switch to %s resolved to %s",
+			qPrintable(name), qPrintable(SkinManager::instance()->currentSkinId()));
+		failures++;
+	}
+	if (skin->id() == QLatin1String("soft"))
+		failures += checkPaintOnlyChrome(run.scrollArea, QStringLiteral("SoftReferenceTile"));
+	failures += checkCaptionInk(run.captionButton, name);
+	failures += checkSwitchToolbar(run.probeWindow, run.probeToolBar, name);
+	if (round == 1 && dark)
+		failures += checkDriveGlyph(skin->id());
+	if (elapsed > limitMs)
+	{
+		qWarning("SkinSwitchTest: switch to %s took %lld ms (limit %d ms)",
+			qPrintable(name), static_cast<long long>(elapsed), limitMs);
+		failures++;
+	}
+	else if (warningMs > 0 && elapsed > warningMs)
+	{
+		qWarning("SkinSwitchTest: switch to %s took %lld ms (warning %d ms; hard limit %d ms)",
+			qPrintable(name), static_cast<long long>(elapsed), warningMs, limitMs);
+	}
+	if (elapsed > run.worstMs)
+	{
+		run.worstMs = elapsed;
+		run.worstName = name;
+	}
+	qWarning("SkinSwitchTest: round %d %s: %lld ms (clear %lld, apply %lld, rebuild %lld, widgets %lld)",
+		round, qPrintable(name), static_cast<long long>(elapsed),
+		static_cast<long long>(clearMs), static_cast<long long>(applyMs), static_cast<long long>(rebuildMs),
+		static_cast<long long>(QApplication::allWidgets().size()));
+}
+
+// Diagnostic: class histogram of the surviving widgets, top entries.
+int reportWidgetCensus()
+{
+	int failures = 0;
+	QHash<QByteArray, int> histogram;
+	for (QWidget* widget : QApplication::allWidgets())
+		histogram[widget->metaObject()->className()]++;
+	const int legacyCopyWidgets = histogram.value(QByteArrayLiteral("CopyFilterGUI"));
+	if (legacyCopyWidgets != 0)
+	{
+		qWarning("SkinSwitchTest: modern cards retained %d CopyFilterGUI widgets", legacyCopyWidgets);
+		failures++;
+	}
+	QList<QPair<int, QByteArray>> ranked;
+	for (auto it = histogram.constBegin(); it != histogram.constEnd(); ++it)
+		ranked.append({ it.value(), it.key() });
+	std::sort(ranked.begin(), ranked.end(), [](const auto& a, const auto& b) { return a.first > b.first; });
+	for (int i = 0; i < qMin(10, int(ranked.size())); i++)
+		qWarning("SkinSwitchTest: widget census %s x%d", ranked[i].second.constData(), ranked[i].first);
+
+	// Top-level population: a growing count here is how the leaked
+	// parentless CopyFilterGUI generation was originally spotted.
+	int windows = 0;
+	for (QWidget* widget : QApplication::allWidgets())
+		if (widget->isWindow())
+			windows++;
+	qWarning("SkinSwitchTest: %d top-level widgets", windows);
+	return failures;
+}
 }
 
 namespace SkinGallery
@@ -93,46 +467,18 @@ int runSwitchTest(const QStringList& arguments)
 	// What else ran on the machine during the gate, printed before the verdict.
 	const GalleryLoadSummary load("SkinSwitchTest");
 
-	// Skins::all() leaves out (and logs) a roster id with no ISkin, so this
-	// gate would switch through fewer skins than the preferences offer while
-	// the missing one paints as Studio.
-	const int rosterSize = int(SkinThemeData::ids().size());
-	const int implemented = int(Skins::all().size());
-	if (implemented != rosterSize)
-	{
-		qWarning("SkinSwitchTest: only %d of the %d roster skins have an ISkin implementation (Skins.cpp)",
-			implemented, rosterSize);
+	if (!switchRosterComplete())
 		return 1;
-	}
 
 	FilterInsertSeam accessibilitySeam;
 	int seamActivations = 0;
-	QObject::connect(&accessibilitySeam, &FilterInsertSeam::activated,
-		[&seamActivations]() { seamActivations++; });
-	QKeyEvent activateSeam(QEvent::KeyPress, Qt::Key_Space, Qt::NoModifier);
-	QApplication::sendEvent(&accessibilitySeam, &activateSeam);
-	if (accessibilitySeam.focusPolicy() != Qt::StrongFocus || seamActivations != 1
-		|| accessibilitySeam.accessibleName().isEmpty())
-	{
-		qWarning("SkinSwitchTest: insertion seam lacks keyboard accessibility parity");
+	if (!seamHasKeyboardParity(accessibilitySeam, seamActivations))
 		return 1;
-	}
 
 	QWidget toastHost;
 	UpdateToast timerProbe(&toastHost);
-	timerProbe.showMessage(QStringLiteral("temporary"), 15000);
-	const QTimer* const autoHideTimer = timerProbe.findChild<QTimer*>(QStringLiteral("UpdateToastAutoHide"));
-	if (autoHideTimer == nullptr || !autoHideTimer->isActive())
-	{
-		qWarning("SkinSwitchTest: update toast does not own a restartable auto-hide timer");
+	if (!toastTimerBehaves(timerProbe))
 		return 1;
-	}
-	timerProbe.showMessage(QStringLiteral("persistent"), 0);
-	if (autoHideTimer->isActive())
-	{
-		qWarning("SkinSwitchTest: persistent update toast kept a stale auto-hide timer");
-		return 1;
-	}
 
 	const GalleryFixture fixture("SkinSwitchTest");
 	if (!fixture.isValid())
@@ -193,294 +539,30 @@ int runSwitchTest(const QStringList& arguments)
 	QObject::connect(SkinManager::instance(), &SkinManager::skinChanged, probeToolBar,
 		[probeToolBar](const SkinTokens&) { SkinManager::instance()->styleMainToolbar(probeToolBar); });
 
-	// Everything in the action train must stay alive and laid out: an action
-	// reported invisible, an item widget QToolBarLayout hid (overflow into the
-	// extension popup counts - the real toolbar never overflows at 1024px), or
-	// a collapsed toolbar all reproduce the "toolbar is gone" field state.
-	const auto checkToolbar = [&probeWindow, probeToolBar](const QString& switchName) {
-		int problems = 0;
-		QLabel* formatBadge = probeToolBar->findChild<QLabel*>(
-			QStringLiteral("DeviceFormatBadge"), Qt::FindDirectChildrenOnly);
-		if (formatBadge == nullptr
-			|| formatBadge->property("severity").toString() != QLatin1String("warning"))
-		{
-			qWarning("SkinSwitchTest: %s: representative DeviceFormatBadge is missing",
-				qPrintable(switchName));
-			problems++;
-		}
-		if (!probeToolBar->isVisibleTo(&probeWindow))
-		{
-			qWarning("SkinSwitchTest: %s: main toolbar widget is hidden", qPrintable(switchName));
-			problems++;
-		}
-		if (probeToolBar->height() < 16)
-		{
-			qWarning("SkinSwitchTest: %s: main toolbar collapsed to %dpx",
-				qPrintable(switchName), probeToolBar->height());
-			problems++;
-		}
-		for (QAction* action : probeToolBar->actions())
-		{
-			QWidget* item = probeToolBar->widgetForAction(action);
-			// State-driven items legitimately hide; every other item belongs
-			// to the structural health contract.
-			if (item != nullptr
-				&& MainToolbarKit::visibilityIsDataObjectNames().contains(item->objectName()))
-				continue;
-			const QString label = item != nullptr && !item->objectName().isEmpty()
-				? item->objectName() : action->objectName();
-			if (!action->isVisible())
-			{
-				qWarning("SkinSwitchTest: %s: toolbar action %s turned invisible",
-					qPrintable(switchName), qPrintable(label));
-				problems++;
-			}
-			else if (item != nullptr && item->isHidden())
-			{
-				qWarning("SkinSwitchTest: %s: toolbar item %s was hidden by the layout (item hint %dpx, bar %dpx wide, bar hint %dpx)",
-					qPrintable(switchName), qPrintable(label),
-					item->sizeHint().width(), probeToolBar->width(),
-					probeToolBar->sizeHint().width());
-				problems++;
-			}
-		}
-		// A rendered toolbar is never one flat colour: buttons, combos and labels
-		// cover much of it. Matching the corner pixel almost everywhere means the
-		// controls were not painted, even when every logical probe stayed healthy.
-		if (probeToolBar->isVisible()
-			&& ToolbarPixelProbe::renderIsBlank(probeToolBar->grab().toImage().convertToFormat(QImage::Format_RGB32)))
-		{
-			qWarning("SkinSwitchTest: %s: toolbar rendered blank (controls not painted)",
-				qPrintable(switchName));
-			problems++;
-		}
-		return problems;
-	};
+	int limitMs = 0;
+	int warningMs = 0;
+	readSwitchBudget(limitMs, warningMs);
 
-	// Generous ceiling: a healthy switch is well under a second offscreen,
-	// the regression class this guards against cost multiple seconds per
-	// switch, and CI runners are slow and variable. Overridable for local
-	// tuning.
-	bool limitOk = false;
-	int limitMs = qEnvironmentVariableIntValue("EAPO_SWITCH_LIMIT_MS", &limitOk);
-	if (!limitOk || limitMs <= 0)
-		limitMs = 8000;
-	bool warningOk = false;
-	int warningMs = qEnvironmentVariableIntValue("EAPO_SWITCH_WARN_MS", &warningOk);
-	if (!warningOk || warningMs <= 0 || warningMs >= limitMs)
-		warningMs = 0;
-
-	int failures = 0;
-	const auto checkPaintOnlyChrome = [&scrollArea, &failures](const QString& objectName) {
-		const QList<QWidget*> widgets = scrollArea.findChildren<QWidget*>(objectName);
-		if (widgets.isEmpty())
-		{
-			qWarning("SkinSwitchTest: paint-only chrome %s is missing", qPrintable(objectName));
-			failures++;
-			return;
-		}
-		for (QWidget* widget : widgets)
-		{
-			if (!widget->testAttribute(Qt::WA_NoSystemBackground))
-			{
-				qWarning("SkinSwitchTest: paint-only chrome %s accepts a framework background",
-					qPrintable(objectName));
-				failures++;
-				break;
-			}
-		}
-	};
+	SwitchRun run(table, scrollArea, captionButton, probeWindow, probeToolBar, limitMs, warningMs);
 	QApplication::processEvents();
-	failures += checkToolbar(QStringLiteral("baseline (before any switch)"));
-	{
-		// LegacyRows still uses CopyFilterGUI. Its QGraphicsView does not own
-		// the scene, so the GUI must parent it explicitly; allWidgets() cannot
-		// detect this leak because QGraphicsScene is not a QWidget.
-		CopyFilterGUI* legacyCopy = new CopyFilterGUI({}, table);
-		QGraphicsView* graphicsView = legacyCopy->findChild<QGraphicsView*>();
-		QPointer<QGraphicsScene> scene = graphicsView != nullptr ? graphicsView->scene() : nullptr;
-		if (scene.isNull())
-		{
-			qWarning("SkinSwitchTest: legacy CopyFilterGUI scene was not created");
-			failures++;
-		}
-		delete legacyCopy;
-		if (!scene.isNull())
-		{
-			qWarning("SkinSwitchTest: deleting CopyFilterGUI did not delete its scene");
-			delete scene.data();
-			failures++;
-		}
-	}
-	qint64 worstMs = 0;
-	QString worstName;
-	QList<qint64> switchTimes;
+	run.failures += checkSwitchToolbar(probeWindow, probeToolBar, QStringLiteral("baseline (before any switch)"));
+	run.failures += checkLegacyCopyScene(table);
 	const int rounds = 3;
 	for (int round = 1; round <= rounds; round++)
 	{
-		forEachSkinMode([&](ISkin* skin, bool dark) {
-			const QString name = QStringLiteral("%1/%2").arg(skin->id(), dark ? QStringLiteral("dark") : QStringLiteral("light"));
-
-			QElapsedTimer timer;
-			timer.start();
-			qint64 clearMs = 0;
-			qint64 applyMs = 0;
-			qint64 rebuildMs = 0;
-			{
-				// Prints the GUI thread's stacks when the switch runs long.
-				const GalleryStallWatch watch("SkinSwitchTest",
-					name + QStringLiteral(" round %1").arg(round),
-					stallThreshold(switchTimes, warningMs > 0 ? warningMs : limitMs / 2, 1.5));
-				// MainWindow::skinSelected's exact live sequence: tear the
-				// rows down BEFORE the global stylesheet swap (which also
-				// re-derives the palette), rebuild after.
-				table->clearRows();
-				clearMs = timer.restart();
-				SkinManager::instance()->applySkin(skin->id(), dark);
-				applyMs = timer.restart();
-				table->updateGuis();
-				VSTPluginSession::waitForPendingLoads(30000);
-				QApplication::processEvents();
-				// The live editor returns to the event loop between switches,
-				// which is when deleteLater victims (combo popup containers,
-				// editor internals) actually die; a bare processEvents() does
-				// not deliver DeferredDelete, and without this the harness
-				// accumulates a dead generation per switch that the real app
-				// never keeps.
-				QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
-				QApplication::processEvents();
-				rebuildMs = timer.elapsed();
-			}
-			const qint64 elapsed = clearMs + applyMs + rebuildMs;
-			switchTimes.append(elapsed);
-
-			if (SkinManager::instance()->currentSkinId() != skin->id())
-			{
-				qWarning("SkinSwitchTest: switch to %s resolved to %s",
-					qPrintable(name), qPrintable(SkinManager::instance()->currentSkinId()));
-				failures++;
-			}
-			if (skin->id() == QLatin1String("soft"))
-				checkPaintOnlyChrome(QStringLiteral("SoftReferenceTile"));
-			{
-				// Caption ink check. tintedIcon paints every covered pixel
-				// in the ink colour, so the strongest-coverage pixel must
-				// sit on the active skin's text colour. Tolerance, not
-				// equality: the thin minimize stroke has no fully opaque
-				// pixel at 14 px and unpremultiply rounding shifts channels
-				// by a few counts - a stale light/dark ink is off by ~100+.
-				const QColor ink(SkinManager::instance()->tokens().text);
-				const QImage glyph = captionButton->icon()
-					.pixmap(QSize(14, 14)).toImage().convertToFormat(QImage::Format_ARGB32);
-				int bestAlpha = 0;
-				QColor bestPixel;
-				for (int y = 0; y < glyph.height(); y++)
-					for (int x = 0; x < glyph.width(); x++)
-					{
-						const QColor pixel = glyph.pixelColor(x, y);
-						if (pixel.alpha() > bestAlpha)
-						{
-							bestAlpha = pixel.alpha();
-							bestPixel = pixel;
-						}
-					}
-				const bool inkMatched = bestAlpha > 0
-					&& qAbs(bestPixel.red() - ink.red()) <= 8
-					&& qAbs(bestPixel.green() - ink.green()) <= 8
-					&& qAbs(bestPixel.blue() - ink.blue()) <= 8;
-				if (!inkMatched)
-				{
-					qWarning("SkinSwitchTest: caption icon did not follow the switch to %s (ink %s, glyph %s a%d)",
-						qPrintable(name), qPrintable(ink.name()), qPrintable(bestPixel.name()), bestAlpha);
-					failures++;
-				}
-			}
-			failures += checkToolbar(name);
-			if (round == 1 && dark)
-			{
-				// The skinned file dialog's icon provider must serve the
-				// drive glyph for both drive spellings: the real root
-				// ("C:/") and the slash-less shell name ("C:") that
-				// QFileSystemModel stores drive nodes under and rebuilds
-				// node icons from on setIconProvider. The bare spelling
-				// is neither isRoot() nor a file, which dressed every
-				// sidebar drive with the folder pictogram in the field.
-				QFileDialog probeDialog;
-				probeDialog.setOption(QFileDialog::DontUseNativeDialog);
-				SkinManager::instance()->styleFileDialog(&probeDialog);
-				if (SkinFileIconProvider* provider
-					= dynamic_cast<SkinFileIconProvider*>(probeDialog.iconProvider()))
-				{
-					const qint64 driveKey
-						= provider->icon(QAbstractFileIconProvider::Drive).cacheKey();
-					const qint64 folderKey
-						= provider->icon(QAbstractFileIconProvider::Folder).cacheKey();
-					if (driveKey == folderKey
-						|| provider->icon(QFileInfo(QStringLiteral("C:"))).cacheKey() != driveKey
-						|| provider->icon(QFileInfo(QStringLiteral("C:/"))).cacheKey() != driveKey)
-					{
-						qWarning("SkinSwitchTest: %s file-dialog provider does not classify a drive root as the drive glyph",
-							qPrintable(skin->id()));
-						failures++;
-					}
-				}
-			}
-			if (elapsed > limitMs)
-			{
-				qWarning("SkinSwitchTest: switch to %s took %lld ms (limit %d ms)",
-					qPrintable(name), static_cast<long long>(elapsed), limitMs);
-				failures++;
-			}
-			else if (warningMs > 0 && elapsed > warningMs)
-			{
-				qWarning("SkinSwitchTest: switch to %s took %lld ms (warning %d ms; hard limit %d ms)",
-					qPrintable(name), static_cast<long long>(elapsed), warningMs, limitMs);
-			}
-			if (elapsed > worstMs)
-			{
-				worstMs = elapsed;
-				worstName = name;
-			}
-			qWarning("SkinSwitchTest: round %d %s: %lld ms (clear %lld, apply %lld, rebuild %lld, widgets %lld)",
-				round, qPrintable(name), static_cast<long long>(elapsed),
-				static_cast<long long>(clearMs), static_cast<long long>(applyMs), static_cast<long long>(rebuildMs),
-				static_cast<long long>(QApplication::allWidgets().size()));
+		forEachSkinMode([&run, round](ISkin* skin, bool dark) {
+			runOneSwitch(run, skin, dark, round);
 		});
 	}
 
-	{
-		// Diagnostic: class histogram of the surviving widgets, top entries.
-		QHash<QByteArray, int> histogram;
-		for (QWidget* widget : QApplication::allWidgets())
-			histogram[widget->metaObject()->className()]++;
-		const int legacyCopyWidgets = histogram.value(QByteArrayLiteral("CopyFilterGUI"));
-		if (legacyCopyWidgets != 0)
-		{
-			qWarning("SkinSwitchTest: modern cards retained %d CopyFilterGUI widgets", legacyCopyWidgets);
-			failures++;
-		}
-		QList<QPair<int, QByteArray>> ranked;
-		for (auto it = histogram.constBegin(); it != histogram.constEnd(); ++it)
-			ranked.append({ it.value(), it.key() });
-		std::sort(ranked.begin(), ranked.end(), [](const auto& a, const auto& b) { return a.first > b.first; });
-		for (int i = 0; i < qMin(10, int(ranked.size())); i++)
-			qWarning("SkinSwitchTest: widget census %s x%d", ranked[i].second.constData(), ranked[i].first);
-
-		// Top-level population: a growing count here is how the leaked
-		// parentless CopyFilterGUI generation was originally spotted.
-		int windows = 0;
-		for (QWidget* widget : QApplication::allWidgets())
-			if (widget->isWindow())
-				windows++;
-		qWarning("SkinSwitchTest: %d top-level widgets", windows);
-	}
+	run.failures += reportWidgetCensus();
 
 	load.report();
 	qWarning("SkinSwitchTest: %d switches over %d rows, worst %lld ms (%s), warning %d ms, limit %d ms, failures %d",
-		rounds * int(Skins::all().size()) * 2, int(lines.size()), static_cast<long long>(worstMs),
-		qPrintable(worstName), warningMs, limitMs, failures);
+		rounds * int(Skins::all().size()) * 2, int(lines.size()), static_cast<long long>(run.worstMs),
+		qPrintable(run.worstName), warningMs, limitMs, run.failures);
 
-	return GalleryFixture::finish(failures == 0 ? 0 : 1);
+	return GalleryFixture::finish(run.failures == 0 ? 0 : 1);
 }
 
 int runCardMoveTest(const QStringList& arguments)
