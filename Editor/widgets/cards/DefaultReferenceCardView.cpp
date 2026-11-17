@@ -76,6 +76,14 @@ DefaultReferenceCardView::DefaultReferenceCardView(const SkinTokens& tokens, QWi
 	missingBadge->setVisible(false);
 	nameLayout->addWidget(missingBadge, 0, Qt::AlignVCenter);
 
+	// Whether the file exists is not known yet (audit #467 TD-59): a quiet
+	// outlined badge in the missing badge's place, never the alarm fill.
+	checkingBadge = new QLabel(tr("Checking..."), nameRow);
+	checkingBadge->setObjectName(QStringLiteral("RefCheckingBadge"));
+	checkingBadge->setAttribute(Qt::WA_StyledBackground, true);
+	checkingBadge->setVisible(false);
+	nameLayout->addWidget(checkingBadge, 0, Qt::AlignVCenter);
+
 	nameLayout->addStretch(1);
 	textLayout->addWidget(nameRow);
 
@@ -111,8 +119,9 @@ DefaultReferenceCardView::DefaultReferenceCardView(const SkinTokens& tokens, QWi
 	// under any skin that has not supplied its own view.
 	const SkinTokens& tk = skinTokens;
 	nameLabel->setStyleSheet(QStringLiteral(
-		"QLabel { color: %1; font-weight: 600; }")
-		.arg(tk.text));
+		"QLabel { color: %1; font-weight: 600; }"
+		"QLabel[refChecking=\"true\"] { color: %2; }")
+		.arg(tk.text, tk.mutedText));
 	dirLabel->setStyleSheet(QStringLiteral("color: %1; font-family: \"%2\"; font-size: 8pt;")
 		.arg(tk.mutedText, tk.monoFontFamily));
 	readoutLabel->setStyleSheet(QStringLiteral("color: %1; font-family: \"%2\"; font-size: 8pt;")
@@ -131,6 +140,9 @@ DefaultReferenceCardView::DefaultReferenceCardView(const SkinTokens& tokens, QWi
 	missingBadge->setStyleSheet(QStringLiteral(
 		"QLabel { color: %1; background: %2; border-radius: 3px; padding: 0 5px; font-size: 7pt; font-weight: 700; }")
 		.arg(tk.background, tk.danger));
+	checkingBadge->setStyleSheet(QStringLiteral(
+		"QLabel { color: %1; border: 1px solid %2; border-radius: 3px; padding: 0 5px; font-size: 7pt; font-weight: 700; }")
+		.arg(tk.mutedText, tk.border));
 }
 
 void DefaultReferenceCardView::placeActionButton(ActionRole role, QAbstractButton* button)
@@ -156,11 +168,18 @@ void DefaultReferenceCardView::applyState(const ReferenceCardState& state)
 
 	nameLabel->setText(state.name);
 	nameLabel->setToolTip(state.fullPath);
+	if (nameLabel->property("refChecking").toBool() != state.checking)
+	{
+		nameLabel->setProperty("refChecking", state.checking);
+		nameLabel->style()->unpolish(nameLabel);
+		nameLabel->style()->polish(nameLabel);
+	}
 
 	formatBadge->setVisible(!state.formatBadge.isEmpty());
 	formatBadge->setText(state.formatBadge);
-	absBadge->setVisible(state.absolutePath && !state.missing);
+	absBadge->setVisible(state.absolutePath && !state.missing && !state.checking);
 	missingBadge->setVisible(state.missing);
+	checkingBadge->setVisible(state.checking);
 
 	dirLabel->setVisible(!state.directory.isEmpty());
 	dirLabel->setFullText(state.locationPrefix());

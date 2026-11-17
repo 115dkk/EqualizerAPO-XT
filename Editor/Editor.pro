@@ -337,6 +337,7 @@ SOURCES += main.cpp\
 	widgets/cards/FileReferenceController.Probe.cpp \
 	widgets/cards/FileReferenceController.cpp \
 	widgets/cards/ReferenceProbeRequests.cpp \
+	widgets/cards/ReferencePresence.cpp \
 	widgets/cards/GraphicEQCsv.cpp \
 	widgets/cards/GraphicEQCardEditor.cpp \
 	widgets/cards/IIRCardEditor.cpp \
@@ -701,6 +702,7 @@ HEADERS  += \
 	widgets/cards/FilterLineCard.h \
 	widgets/cards/FileReferenceController.h \
 	widgets/cards/ReferenceProbeRequests.h \
+	widgets/cards/ReferencePresence.h \
 	widgets/cards/GraphicEQCsv.h \
 	widgets/cards/GraphicEQCardEditor.h \
 	widgets/cards/IIRCardEditor.h \

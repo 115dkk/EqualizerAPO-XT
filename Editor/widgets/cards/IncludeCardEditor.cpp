@@ -147,7 +147,9 @@ void IncludeCardEditor::updateFileInfo()
 	const QFileInfo fileInfo = currentFileInfo();
 	reference->setResolvedPath(fileInfo.absoluteFilePath());
 	ReferenceCardState state = reference->describe(tr("No file selected"));
-	if (!state.missing)
+	// Opening the included file needs it to exist, which is not known while
+	// the card is checking.
+	if (!state.missing && !state.checking)
 		state.nameClickable = true;
 
 	// The Browse button doubles as the Locate recovery entry while the
@@ -158,14 +160,22 @@ void IncludeCardEditor::updateFileInfo()
 
 	// Opening a reference that does not resolve would only produce an error;
 	// while broken, recovery (Locate) is the offered action instead.
-	editButton->setEnabled(!state.missing && !reference->writtenPath().isEmpty());
+	editButton->setEnabled(!state.missing && !state.checking && !reference->writtenPath().isEmpty());
 
 	shownState = state;
 	view->setState(state);
 	importButton->setVisible(false);
+	// Whether the file exists is asked off the UI thread (audit #467 TD-59);
+	// the answer describes the card again, and only a present file goes on
+	// to the audio-service question.
+	if (state.checking)
+	{
+		reference->askNothing();
+		reference->askPresence([this]() { updateFileInfo(); });
+	}
 	// The audio-service verdict arrives later, off the UI thread (audit #467
 	// TD-59); until then the card shows the file as fine.
-	if (!state.missing)
+	else if (!state.missing)
 		reference->askAudioService(state.fullPath,
 			filterTable != nullptr ? filterTable->getConfigPath() : QString(),
 			[this](const QString& problem) { showAudioServiceProblem(problem); });

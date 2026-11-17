@@ -107,7 +107,7 @@ void ReferenceCardView::setState(const ReferenceCardState& state)
 	repolish(this);
 
 	if (nameActivationWidget != nullptr)
-		nameActivationWidget->setCursor(state.nameClickable && !state.missing
+		nameActivationWidget->setCursor(state.nameClickable && !state.missing && !state.checking
 			? Qt::PointingHandCursor : Qt::ArrowCursor);
 
 	if (!pathEdit->hasFocus())
@@ -123,6 +123,7 @@ void ReferenceCardView::updateSharedProperties()
 	{
 		surface->setProperty("refKind", currentState.kind);
 		surface->setProperty("refMissing", currentState.missing);
+		surface->setProperty("refChecking", currentState.checking);
 		surface->setProperty("refAbsolute", currentState.absolutePath);
 		surface->setProperty("refSeverity", severity);
 	}
@@ -197,7 +198,7 @@ bool ReferenceCardView::eventFilter(QObject* watched, QEvent* event)
 	{
 		QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
 		if (mouseEvent->button() == Qt::LeftButton
-			&& currentState.nameClickable && !currentState.missing
+			&& currentState.nameClickable && !currentState.missing && !currentState.checking
 			&& nameActivationWidget->rect().contains(mouseEvent->pos()))
 		{
 			emit nameActivated();

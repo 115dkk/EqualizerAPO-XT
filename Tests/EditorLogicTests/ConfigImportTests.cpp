@@ -106,7 +106,13 @@ TEST_CASE(EditorLogicTests, testFileReferencesReadLikeTheEngine)
 	FileReferenceController quoted(QStringLiteral("include"), QStringLiteral("\"sub dir\\child.txt\""));
 	quoted.resolveAgainstConfig(sourceDir + "/main.txt");
 	expectPath(QDir::fromNativeSeparators(quoted.resolvedPath()), sourceDir + "/sub dir/child.txt");
+	// Answered synchronously, as under the gallery's policy (the product asks
+	// off the UI thread, audit #467 TD-59).
+	FileReferenceController::Policy synchronous;
+	synchronous.probePresenceInBackground = false;
+	FileReferenceController::installPolicy(synchronous);
 	const ReferenceCardState state = quoted.describe(QStringLiteral("none"));
+	FileReferenceController::installPolicy(FileReferenceController::Policy());
 	expectFalse(state.missing, "the card finds the quoted include");
 	expectEqual(state.name, QStringLiteral("child.txt"), "and names it without the quotes");
 

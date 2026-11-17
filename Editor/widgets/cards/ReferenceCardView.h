@@ -58,11 +58,17 @@ struct ReferenceCardState
 	// The target could not be resolved (file not found / library not loaded).
 	// The skins' required broken-state transition keys off this.
 	bool missing = false;
+	// Whether the target exists is not known yet: the question runs off the
+	// UI thread (audit #467 TD-59, a path on a disconnected network drive
+	// stalled the window) and its answer re-applies the state. While true,
+	// missing is false and fullPath is empty; views draw it neither as broken
+	// nor as confirmed, and nothing that needs the file is offered.
+	bool checking = false;
 	// The reference is an absolute path - a config portability hazard the
 	// skins may badge.
 	bool absolutePath = false;
 	// The primary name is a click affordance (open panel for VST, jump to the
-	// included config). Views must ignore it while missing.
+	// included config). Views must ignore it while missing or checking.
 	bool nameClickable = false;
 	// Measured facts about a resolved target, in display order (e.g. "100.0 ms",
 	// "48000 Hz", "2 ch" for an impulse response). Views render these in their
@@ -133,7 +139,8 @@ public:
 	virtual void placeBusStrip(QWidget* strip);
 
 	// Stores the state, lets the subclass apply it, and re-evaluates QSS
-	// against the refreshed dynamic properties (refKind/refMissing).
+	// against the refreshed dynamic properties (refKind/refMissing/
+	// refChecking).
 	void setState(const ReferenceCardState& state);
 	const ReferenceCardState& state() const;
 

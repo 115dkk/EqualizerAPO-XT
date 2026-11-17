@@ -279,6 +279,12 @@ TEST_CASE(EditorLogicTests, testFileReferenceControllerOwnsPathState)
 		"file-reference test creates the resolved dependency");
 	impulse.close();
 
+	// The synchronous answer the gallery's policy asks for; the product asks
+	// off the UI thread (testFileReferenceControllerChecksPresenceInBackground).
+	FileReferenceController::Policy synchronous;
+	synchronous.probePresenceInBackground = false;
+	FileReferenceController::installPolicy(synchronous);
+
 	FileReferenceController reference(
 		QStringLiteral("convolution"), QStringLiteral("irs/room.wav"));
 	reference.resolveAgainstConfig(configPath);
@@ -295,6 +301,7 @@ TEST_CASE(EditorLogicTests, testFileReferenceControllerOwnsPathState)
 	state = reference.describe(QStringLiteral("No file selected"));
 	expectTrue(state.missing, "controller owns and reports an edited missing path");
 	expectTrue(state.fullPath.isEmpty(), "missing references do not expose a clickable path");
+	FileReferenceController::installPolicy(FileReferenceController::Policy());
 
 	const QString baseDirectory = root.filePath(QStringLiteral("config/deep"));
 	const QString farSelection = root.filePath(QStringLiteral("outside/plugin.dll"));
@@ -331,6 +338,32 @@ TEST_CASE(EditorLogicTests, testFileReferenceControllerOwnsPathState)
 		"a far library keeps its own spelling");
 	expectEqual(FileReferenceController::displayPathForLibrary(QString(), pluginsDirectory), QString(),
 		"no library shows no path");
+}
+
+// The product's describe() does not touch the file system (audit #467 TD-59):
+// until askPresence has an answer the card is checking, never missing and
+// never a confirmed file; an empty reference is missing without a question.
+TEST_CASE(EditorLogicTests, testFileReferenceControllerChecksPresenceInBackground)
+{
+	QTemporaryDir temp;
+	requireTrue(temp.isValid(), "presence test creates a temporary root");
+	const QString impulsePath = QDir(temp.path()).filePath(QStringLiteral("room.wav"));
+	QFile impulse(impulsePath);
+	requireTrue(impulse.open(QIODevice::WriteOnly), "presence test creates the file");
+	impulse.close();
+
+	FileReferenceController reference(QStringLiteral("convolution"), QStringLiteral("room.wav"));
+	reference.resolveAgainstConfig(QDir(temp.path()).filePath(QStringLiteral("config.txt")));
+	const ReferenceCardState state = reference.describe(QStringLiteral("No file selected"));
+	expectTrue(state.checking, "an existing file is checking until the background answer");
+	expectFalse(state.missing, "checking is not missing");
+	expectTrue(state.fullPath.isEmpty(), "checking exposes no confirmed path");
+	expectEqual(state.name, QStringLiteral("room.wav"), "the name is shown while checking");
+
+	FileReferenceController empty(QStringLiteral("convolution"), QString());
+	const ReferenceCardState emptyState = empty.describe(QStringLiteral("No file selected"));
+	expectTrue(emptyState.missing, "an empty reference is missing at once");
+	expectFalse(emptyState.checking, "and nothing is asked about it");
 }
 
 // The flow the convolution cards hand to the controller (audit #467 TD-40):

@@ -399,8 +399,19 @@ void VSTCardEditor::updateReferenceState()
 	state.absolutePath = false;
 	if (!reference->writtenPath().isEmpty())
 	{
-		state.missing = state.missing || status.libraryMissing;
-		if (session->instance() != nullptr)
+		// The loader's own finding that the library is not there settles the
+		// question the presence probe is still asking.
+		if (status.libraryMissing)
+		{
+			state.missing = true;
+			state.checking = false;
+			state.fullPath.clear();
+		}
+		// While the card checks whether the library exists (audit #467
+		// TD-59), nothing that needs the file is offered.
+		if (state.checking)
+			state.nameClickable = false;
+		else if (session->instance() != nullptr)
 		{
 			// A .dll can host VST3 and a .vst3 bundle can still load as VST2;
 			// the format badge speaks only after the loader established the
@@ -433,7 +444,7 @@ void VSTCardEditor::updateReferenceState()
 	// The engine's location rule is judged too: a plug-in on a share loads
 	// here and is refused there.
 	bool offerImport = false;
-	const QString problem = reference->writtenPath().isEmpty() || state.missing ? QString()
+	const QString problem = reference->writtenPath().isEmpty() || state.missing || state.checking ? QString()
 		: FileReferenceController::audioServiceProblem(QString::fromStdWString(library->getLibPath()),
 			filterTable != nullptr ? filterTable->getConfigPath() : QString());
 	if (!problem.isEmpty())
@@ -464,7 +475,8 @@ void VSTCardEditor::updateReferenceState()
 	const bool locate = state.missing && !reference->writtenPath().isEmpty();
 	selectButton->setText(locate ? tr("Locate...") : QString());
 	selectButton->setToolTip(locate ? tr("Locate the missing plugin library") : tr("Select VST plugin"));
-	openPanelButton->setEnabled(!state.missing && !reference->writtenPath().isEmpty() && !session->loading());
+	openPanelButton->setEnabled(!state.missing && !state.checking && !reference->writtenPath().isEmpty()
+		&& !session->loading());
 
 	// Post the loaded ABI for the row chrome (CommandRowFrame samples the
 	// property at paint time): rack engraves it into the brass nameplate.
@@ -484,6 +496,8 @@ void VSTCardEditor::updateReferenceState()
 	}
 
 	view->setState(state);
+	if (state.checking)
+		reference->askPresence([this]() { updateReferenceState(); });
 }
 
 namespace
