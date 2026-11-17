@@ -19,7 +19,7 @@
 
 #include <QElapsedTimer>
 #include <QDeadlineTimer>
-#include "platform/windows/ProcessShutdown.h"
+#include "services/app/ProcessShutdown.h"
 
 #include <algorithm>
 #include <stdexcept>

@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include <algorithm>
 #include "platform/windows/Win32Error.h"
-#include "platform/windows/ProcessShutdown.h"
+#include "services/app/ProcessShutdown.h"
 #include "services/logging/Logging.h"
 #include "platform/windows/Win32Resource.h"
 #include "platform/windows/NamedPipeSecurity.h"

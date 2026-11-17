@@ -18,7 +18,7 @@
 
 #include "asio/HostProtocol.h"
 #include "platform/windows/Win32Resource.h"
-#include "platform/windows/UnelevatedLaunch.h"
+#include "services/shell/UnelevatedLaunch.h"
 
 namespace eapo::asio::HostLaunch
 {

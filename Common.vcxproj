@@ -131,7 +131,7 @@
     <ClInclude Include="platform\windows\ComError.h" />
     <ClInclude Include="platform\windows\ConsoleOutput.h" />
     <ClInclude Include="platform\windows\ElevatedLaunch.h" />
-    <ClInclude Include="platform\windows\UnelevatedLaunch.h" />
+    <ClInclude Include="services\shell\UnelevatedLaunch.h" />
     <ClInclude Include="platform\windows\TimeStamp.h" />
     <ClInclude Include="services\windows\ServiceWait.h" />
     <ClInclude Include="services\install\InstallWaitBudget.h" />
@@ -276,7 +276,7 @@
     <ClInclude Include="audio\io\SndfileRAII.h" />
     <ClInclude Include="text\WideString.h" />
     <ClInclude Include="platform\windows\TextEncoding.h" />
-    <ClInclude Include="platform\windows\ComSelfRegistration.h" />
+    <ClInclude Include="services\install\ComSelfRegistration.h" />
     <ClInclude Include="platform\windows\ProcessCommandLine.h" />
     <ClInclude Include="platform\windows\ShellLink.h" />
     <ClInclude Include="platform\windows\Win32Error.h" />
@@ -403,7 +403,7 @@
     <ClCompile Include="services\registry\ClsidRegistration.cpp" />
     <ClCompile Include="services\registry\RegistryTransaction.cpp" />
     <ClCompile Include="platform\windows\WindowsVersion.cpp" />
-    <ClCompile Include="platform\windows\ComSelfRegistration.cpp" />
+    <ClCompile Include="services\install\ComSelfRegistration.cpp" />
     <ClCompile Include="platform\windows\ProcessCommandLine.cpp" />
     <ClCompile Include="platform\windows\ShellLink.cpp" />
     <ClCompile Include="platform\windows\GuidText.cpp" />

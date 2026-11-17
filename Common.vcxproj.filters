@@ -383,7 +383,7 @@
     <ClInclude Include="parser\LogicalOperators.h">
       <Filter>parser</Filter>
     </ClInclude>
-    <ClInclude Include="platform\windows\UnelevatedLaunch.h"><Filter>platform</Filter></ClInclude>
+    <ClInclude Include="services\shell\UnelevatedLaunch.h"><Filter>services</Filter></ClInclude>
     <ClInclude Include="devices\AsioAPOInfo.h"><Filter>devices</Filter></ClInclude>
     <ClInclude Include="asio\AsioRegistration.h"><Filter>asio</Filter></ClInclude>
     <ClInclude Include="asio\EntryOptions.h"><Filter>asio</Filter></ClInclude>
@@ -414,7 +414,7 @@
     <ClInclude Include="services\logging\TaggedLogger.h"><Filter>services</Filter></ClInclude>
     <ClInclude Include="runtime\errors\WideError.h"><Filter>runtime</Filter></ClInclude>
     <ClInclude Include="runtime\WeakValueCache.h"><Filter>runtime</Filter></ClInclude>
-    <ClInclude Include="platform\windows\ComSelfRegistration.h"><Filter>platform</Filter></ClInclude>
+    <ClInclude Include="services\install\ComSelfRegistration.h"><Filter>services</Filter></ClInclude>
     <ClInclude Include="platform\windows\ProcessCommandLine.h"><Filter>platform</Filter></ClInclude>
     <ClInclude Include="platform\windows\ShellLink.h"><Filter>platform</Filter></ClInclude>
   </ItemGroup>
@@ -735,7 +735,7 @@
     <ClCompile Include="filters\MultiConvolutionCommand.cpp"><Filter>filters</Filter></ClCompile>
     <ClCompile Include="filters\MultiConvolutionFilter.cpp"><Filter>filters</Filter></ClCompile>
     <ClCompile Include="filters\MultiConvolutionFilterFactory.cpp"><Filter>filters</Filter></ClCompile>
-    <ClCompile Include="platform\windows\ComSelfRegistration.cpp"><Filter>platform</Filter></ClCompile>
+    <ClCompile Include="services\install\ComSelfRegistration.cpp"><Filter>services</Filter></ClCompile>
     <ClCompile Include="platform\windows\ProcessCommandLine.cpp"><Filter>platform</Filter></ClCompile>
     <ClCompile Include="platform\windows\ShellLink.cpp"><Filter>platform</Filter></ClCompile>
   </ItemGroup>

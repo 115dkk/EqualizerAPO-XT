@@ -23,7 +23,7 @@
 #include <windows.h>
 #include <timeapi.h>
 
-#include "platform/windows/UnelevatedLaunch.h"
+#include "services/shell/UnelevatedLaunch.h"
 #include "asio/AsioWrapper.h"
 #include "asio/CallbackTrampolines.h"
 #include "asio/DriverNameText.h"

@@ -44,7 +44,7 @@ SOURCES += main.cpp\
 	../services/registry/WindowsRegistry.cpp \
 	../services/registry/RegistryTransaction.cpp \
 	../platform/windows/WindowsVersion.cpp \
-	../platform/windows/ComSelfRegistration.cpp \
+	../services/install/ComSelfRegistration.cpp \
 	../platform/windows/ProcessCommandLine.cpp \
 	../platform/windows/ShellLink.cpp \
 	../platform/windows/GuidText.cpp \
@@ -135,7 +135,7 @@ SOURCES += main.cpp\
 	helpers/PluginLoadQueue.cpp \
 	helpers/BackgroundProbe.cpp \
 	helpers/SpinBoxEditFieldFix.cpp \
-	../platform/qt/QtAppBootstrap.cpp \
+	../services/app/QtAppBootstrap.cpp \
 	helpers/VstChunkScan.cpp \
 	helpers/VstChunkState.cpp \
 	widgets/ResizingLineEdit.cpp \
@@ -406,7 +406,7 @@ HEADERS  += \
 	../services/logging/TaggedLogger.h \
 	../text/WideString.h \
 	../platform/windows/TextEncoding.h \
-	../platform/windows/ComSelfRegistration.h \
+	../services/install/ComSelfRegistration.h \
 	../platform/windows/ProcessCommandLine.h \
 	../platform/windows/ShellLink.h \
 	../platform/windows/Win32Error.h \
@@ -445,7 +445,7 @@ HEADERS  += \
 	helpers/BackgroundProbe.h \
 	helpers/WindowFrameHitTest.h \
 	helpers/SpinBoxEditFieldFix.h \
-	../platform/qt/QtAppBootstrap.h \
+	../services/app/QtAppBootstrap.h \
 	../platform/qt/MotionPreference.h \
 	helpers/VstChunkScan.h \
 	helpers/VstChunkState.h \
@@ -896,7 +896,7 @@ DISTFILES += ../uncrustify.cfg
 
 HEADERS += \
 	../runtime/concurrency/ShutdownSequence.h \
-	../platform/windows/ProcessShutdown.h \
+	../services/app/ProcessShutdown.h \
 	../platform/windows/ThreadWait.h \
 	../devices/AsioEntryWriter.h \
 	../devices/EndpointProbe.h \
@@ -905,7 +905,7 @@ HEADERS += \
 	../platform/windows/ComError.h \
 	../platform/windows/ConsoleOutput.h \
 	../platform/windows/ElevatedLaunch.h \
-	../platform/windows/UnelevatedLaunch.h \
+	../services/shell/UnelevatedLaunch.h \
 	../platform/windows/TimeStamp.h \
 	../services/windows/ServiceWait.h \
 	../services/install/InstallWaitBudget.h

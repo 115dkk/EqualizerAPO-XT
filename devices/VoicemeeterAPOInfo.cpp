@@ -29,7 +29,7 @@
 #include "platform/windows/ComPtr.h"
 #include "platform/windows/CommandLineQuoting.h"
 #include "platform/windows/ProcessCommandLine.h"
-#include "platform/windows/UnelevatedLaunch.h"
+#include "services/shell/UnelevatedLaunch.h"
 #include "platform/windows/ShellLink.h"
 #include "services/logging/Logging.h"
 #include "services/registry/RegistryError.h"
