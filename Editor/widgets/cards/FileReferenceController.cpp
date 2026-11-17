@@ -55,6 +55,9 @@ const QString& FileReferenceController::resolvedPath() const
 void FileReferenceController::setWrittenPath(const QString& path)
 {
 	written = path.trimmed();
+	// The user typed or chose the reference: ask again whether it exists,
+	// even when the text is the same (the file may be there now).
+	presence.forget();
 }
 
 void FileReferenceController::setResolvedPath(const QString& path)
@@ -110,6 +113,12 @@ void FileReferenceController::adoptChosenFile(const QString& selectedPath, const
 		? QDir::toNativeSeparators(selectedPath)
 		: displayPathForBaseDirectory(referenceBaseDirectory, selectedPath);
 	resolved = QDir::toNativeSeparators(selectedPath);
+	presence.forget();
+}
+
+QString FileReferenceController::presenceKey() const
+{
+	return written + QLatin1Char('\n') + resolved;
 }
 
 ReferenceCardState FileReferenceController::describe(const QString& emptyName) const
@@ -132,8 +141,28 @@ ReferenceCardState FileReferenceController::describe(const QString& emptyName) c
 	state.name = asWritten.fileName();
 	state.absolutePath = QDir::isAbsolutePath(normalized);
 	const QFileInfo resolvedInfo(resolved);
-	state.missing = resolved.isEmpty() || !resolvedInfo.exists();
-	if (!state.missing)
+	if (resolved.isEmpty())
+		state.missing = true;
+	else if (!probesPresenceInBackground())
+		state.missing = !resolvedInfo.exists();
+	else
+	{
+		// No file-system call here: QFileInfo::exists on a disconnected
+		// network drive blocked the UI thread for the network timeout each
+		// time a row was built (audit #467 TD-59). askPresence asks.
+		switch (presence.answerFor(presenceKey()))
+		{
+		case ReferencePresence::Answer::Unknown:
+			state.checking = true;
+			break;
+		case ReferencePresence::Answer::Missing:
+			state.missing = true;
+			break;
+		case ReferencePresence::Answer::Present:
+			break;
+		}
+	}
+	if (!state.missing && !state.checking)
 		state.fullPath = QDir::toNativeSeparators(resolvedInfo.absoluteFilePath());
 	if (state.absolutePath && !resolved.isEmpty())
 		state.directory = QDir::toNativeSeparators(resolvedInfo.absolutePath());
@@ -155,6 +184,7 @@ QString FileReferenceController::audioServiceProblem(const QString& absolutePath
 void FileReferenceController::askNothing()
 {
 	probes.clear();
+	presence.clear();
 }
 
 namespace
@@ -171,6 +201,11 @@ void FileReferenceController::installPolicy(const Policy& policy)
 bool FileReferenceController::checksAudioService()
 {
 	return installedPolicy.checkAudioService;
+}
+
+bool FileReferenceController::probesPresenceInBackground()
+{
+	return installedPolicy.probePresenceInBackground;
 }
 
 FileReferenceController::AudioServiceVerdict FileReferenceController::audioServiceVerdict(

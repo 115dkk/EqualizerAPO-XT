@@ -1272,6 +1272,12 @@ QLabel#MatrixRefMarker[feedState="missing"] {
     color: @DANGER@;
     border-color: transparent;
 }
+/* Checking feed (audit #467 TD-59): whether the file exists is not posted
+   yet, so the pending readout keeps the resting coordinate ink - no signal
+   colour for what is not known. */
+QLabel#MatrixRefMarker[feedChecking="true"] {
+    color: @MUTED@;
+}
 QLabel#MatrixRefMarker:disabled {
     border-style: solid;
 }
@@ -1286,6 +1292,10 @@ QLabel#MatrixRefName {
 }
 QLabel#MatrixRefName[nameClickable="true"]:hover {
     color: @ACCENT@;
+}
+/* A payload still being checked is not confirmed data yet: muted ink. */
+QLabel#MatrixRefName[refChecking="true"] {
+    color: @MUTED@;
 }
 QLabel#MatrixRefName:disabled {
     color: @MUTED@;

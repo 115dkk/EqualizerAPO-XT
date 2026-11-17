@@ -107,6 +107,14 @@ private:
 	VSTBusVerdict busVerdict;
 
 	FileReferenceController* reference = nullptr;
+	// The audio-service answer for the library, and the library and
+	// configuration it was asked about ("<library>\n<config>"); asked off the
+	// UI thread (audit #467 TD-59), read by updateReferenceState.
+	QString audioServiceQuestion;
+	QString audioServiceAnswer;
+	// updateReferenceState is running: an answer that comes at once is read
+	// by that pass instead of starting another.
+	bool updatingReferenceState = false;
 	// The filter table owning this row; nullptr in contexts without one
 	// (tests, previews), which merely hides the import affordance.
 	FilterTable* filterTable = nullptr;

@@ -12,6 +12,7 @@
 #include <QString>
 
 #include "ReferenceCardView.h"
+#include "ReferencePresence.h"
 #include "ReferenceProbeRequests.h"
 
 class QWidget;
@@ -64,7 +65,22 @@ public:
 	// referenceBaseDirectory by displayPathForBaseDirectory (as picked when
 	// that is empty), resolved to the picked file.
 	void adoptChosenFile(const QString& selectedPath, const QString& referenceBaseDirectory);
+	// The card's state for the written and resolved paths. It does not touch
+	// the file system (audit #467 TD-59): whether the file exists is the last
+	// answer askPresence got for the current paths, and while there is none
+	// the state is checking. An empty written path is missing at once. Under
+	// a Policy with probePresenceInBackground off it asks the file system
+	// itself, as it always did.
 	ReferenceCardState describe(const QString& emptyName) const;
+	// Asks whether the resolved file exists on the background probe thread
+	// and, when the answer is still for the current paths, keeps it and calls
+	// answered on the UI thread, so the card can describe itself again.
+	// Answers for paths changed since, after askNothing, or for a controller
+	// that is gone are dropped; the same question asked again while its probe
+	// runs is answered by that probe. Returns true when nothing had to be
+	// asked: the answer is known, there is no path, or the policy answers
+	// synchronously. answered never runs inside this call.
+	bool askPresence(std::function<void()> answered);
 	// Why the audio service will not open absolutePath, or an empty string
 	// when it will: first the engine's own rule for where a line's file may
 	// be (ConfigPathPolicy, the check it makes when it loads the line), then
@@ -98,7 +114,8 @@ public:
 	bool askAudioService(const QString& absolutePath, const QString& configPath,
 		std::function<void(const QString& problem)> answer);
 	// The card shows nothing it asks about: an answer still on its way is
-	// dropped.
+	// dropped (an audio-service answer, and a presence answer; a presence
+	// answer already kept stays).
 	void askNothing();
 
 	// How the Editor writes a file the user chose, relative to the folder a
@@ -143,14 +160,25 @@ public:
 		// meaningful ACL or location story, so it turns this off; its cards
 		// then render without waiting for a background answer.
 		bool checkAudioService = true;
+		// Ask whether the file exists on the background probe thread
+		// (askPresence) and show the card as checking until the answer comes.
+		// The offscreen gallery turns this off: its scenes must render the
+		// same every time, so describe answers synchronously there.
+		bool probePresenceInBackground = true;
 	};
 	static void installPolicy(const Policy& policy);
 	static bool checksAudioService();
+	static bool probesPresenceInBackground();
 
 private:
+	// What askPresence keys its answers by: the written and the resolved
+	// path, so a change of either makes the answer unknown again.
+	QString presenceKey() const;
 
 	ReferenceProbeRequests probes;
 	std::function<void(const QString&)> pendingAnswer;
+	ReferencePresence presence;
+	std::function<void()> pendingPresence;
 	std::function<QString()> configPathSource;
 	std::function<void()> onCommitted;
 	QString referenceKind;

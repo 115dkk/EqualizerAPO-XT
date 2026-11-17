@@ -45,6 +45,7 @@ private:
 	QLabel* formatBadge = nullptr;
 	QLabel* absBadge = nullptr;
 	QLabel* missingBadge = nullptr;
+	QLabel* checkingBadge = nullptr;
 	ElidedLabel* dirLabel = nullptr;
 	QLabel* readoutLabel = nullptr;
 	QLabel* statusLabel = nullptr;

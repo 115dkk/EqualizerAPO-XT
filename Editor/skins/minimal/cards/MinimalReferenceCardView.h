@@ -43,6 +43,7 @@ private:
 	QHBoxLayout* lineLayout = nullptr;
 	ElidedLabel* nameLabel = nullptr;
 	QLabel* missingToken = nullptr;
+	QLabel* checkingToken = nullptr;
 	QLabel* formatToken = nullptr;
 	QLabel* absToken = nullptr;
 	ElidedLabel* dirLabel = nullptr;

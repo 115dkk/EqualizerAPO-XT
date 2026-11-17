@@ -119,7 +119,9 @@ void ConvolutionCardEditor::updateFileInfo()
 	ReferenceCardState state = reference->describe(tr("No file selected"));
 	bool offerImport = false;
 	bool askAudioService = false;
-	if (!state.missing)
+	// The readout and the audio-service question need the file; while the
+	// card is checking whether it exists, neither is asked.
+	if (!state.missing && !state.checking)
 	{
 		QFileInfo fileInfo(absolute);
 			// Impulse-response readout. The Editor runs as the interactive user,
@@ -172,7 +174,13 @@ void ConvolutionCardEditor::updateFileInfo()
 	shownState = state;
 	view->setState(state);
 	importButton->setVisible(offerImport);
-	if (askAudioService)
+	// The presence answer (audit #467 TD-59) describes the card again.
+	if (state.checking)
+	{
+		reference->askNothing();
+		reference->askPresence([this]() { updateFileInfo(); });
+	}
+	else if (askAudioService)
 		reference->askAudioService(state.fullPath, filterTable->getConfigPath(),
 			[this](const QString& problem) { showAudioServiceProblem(problem); });
 	else

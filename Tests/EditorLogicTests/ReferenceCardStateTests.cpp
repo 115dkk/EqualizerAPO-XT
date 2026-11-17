@@ -11,6 +11,7 @@
 #include "EditorLogicTestSupport.h"
 
 #include "Editor/widgets/cards/ReferenceCardView.h"
+#include "Editor/widgets/cards/ReferencePresence.h"
 #include "Editor/widgets/cards/ReferenceProbeRequests.h"
 
 // A card asks about its file off the UI thread (audit #467 TD-59); these pin
@@ -47,6 +48,91 @@ TEST_CASE(EditorLogicTests, testReferenceProbeCoalescesARepeatedQuestion)
 	expectFalse(requests.begin(QStringLiteral("a.wav")), "returning to a path still in flight waits for that probe");
 	expectFalse(requests.finish(QStringLiteral("b.wav")), "the path left behind is stale");
 	expectTrue(requests.finish(QStringLiteral("a.wav")), "the coalesced probe answers the current request");
+}
+
+// Whether the file exists is asked off the UI thread too (audit #467 TD-59);
+// these pin what the card knows meanwhile and which answers it keeps.
+TEST_CASE(EditorLogicTests, testReferencePresenceIsUnknownUntilAnswered)
+{
+	ReferencePresence presence;
+	expectTrue(presence.answerFor(QStringLiteral("a.wav")) == ReferencePresence::Answer::Unknown,
+		"nothing is known before the card asks");
+	expectTrue(presence.begin(QStringLiteral("a.wav")), "the first question starts a probe");
+	expectTrue(presence.answerFor(QStringLiteral("a.wav")) == ReferencePresence::Answer::Unknown,
+		"while the probe runs the card is still checking");
+	expectTrue(presence.finish(QStringLiteral("a.wav"), true), "the answer for the shown path is kept");
+	expectTrue(presence.answerFor(QStringLiteral("a.wav")) == ReferencePresence::Answer::Present,
+		"the kept answer says the file exists");
+	expectFalse(presence.begin(QStringLiteral("a.wav")), "a known answer needs no second probe");
+
+	ReferencePresence absent;
+	absent.begin(QStringLiteral("b.wav"));
+	expectTrue(absent.finish(QStringLiteral("b.wav"), false), "a missing answer is kept as well");
+	expectTrue(absent.answerFor(QStringLiteral("b.wav")) == ReferencePresence::Answer::Missing,
+		"the kept answer says the file is missing");
+}
+
+TEST_CASE(EditorLogicTests, testReferencePresenceDropsAnAnswerForAReplacedPath)
+{
+	ReferencePresence presence;
+	expectTrue(presence.begin(QStringLiteral("a.wav")), "the first path starts a probe");
+	expectTrue(presence.begin(QStringLiteral("b.wav")), "the user typed on: the new path starts its own probe");
+	expectFalse(presence.finish(QStringLiteral("a.wav"), true), "the answer for the replaced path is dropped");
+	expectTrue(presence.answerFor(QStringLiteral("a.wav")) == ReferencePresence::Answer::Unknown,
+		"a dropped answer is not remembered");
+	expectTrue(presence.answerFor(QStringLiteral("b.wav")) == ReferencePresence::Answer::Unknown,
+		"nor does it answer for the shown path");
+	expectTrue(presence.finish(QStringLiteral("b.wav"), false), "the shown path's answer is kept");
+	expectTrue(presence.answerFor(QStringLiteral("b.wav")) == ReferencePresence::Answer::Missing,
+		"and it is the shown path's answer");
+}
+
+TEST_CASE(EditorLogicTests, testReferencePresenceCoalescesARepeatedQuestion)
+{
+	ReferencePresence presence;
+	expectTrue(presence.begin(QStringLiteral("a.wav")), "the question starts a probe");
+	expectFalse(presence.begin(QStringLiteral("a.wav")), "asked again while it runs, no second probe starts");
+	expectTrue(presence.finish(QStringLiteral("a.wav"), true), "the one probe answers the repeated question");
+	expectFalse(presence.finish(QStringLiteral("a.wav"), true), "and answers it only once");
+}
+
+TEST_CASE(EditorLogicTests, testReferencePresenceForgetsWhenThePathChanges)
+{
+	ReferencePresence presence;
+	presence.begin(QStringLiteral("a.wav"));
+	presence.finish(QStringLiteral("a.wav"), true);
+	expectTrue(presence.begin(QStringLiteral("b.wav")), "another path is unknown and probed");
+	expectTrue(presence.begin(QStringLiteral("a.wav")), "back on the first path, its old answer is gone");
+	expectTrue(presence.answerFor(QStringLiteral("a.wav")) == ReferencePresence::Answer::Unknown,
+		"the card checks the first path again");
+
+	ReferencePresence chosen;
+	chosen.begin(QStringLiteral("c.wav"));
+	chosen.finish(QStringLiteral("c.wav"), false);
+	chosen.forget();
+	expectTrue(chosen.answerFor(QStringLiteral("c.wav")) == ReferencePresence::Answer::Unknown,
+		"the user chose the same path again: the old answer is forgotten");
+	expectTrue(chosen.begin(QStringLiteral("c.wav")), "and the path is probed again");
+}
+
+TEST_CASE(EditorLogicTests, testReferencePresenceClearDropsARunningAnswer)
+{
+	ReferencePresence presence;
+	expectTrue(presence.begin(QStringLiteral("a.wav")), "the question starts a probe");
+	presence.clear();
+	expectFalse(presence.finish(QStringLiteral("a.wav"), true),
+		"once the card asks about nothing, the late answer is dropped");
+	expectTrue(presence.answerFor(QStringLiteral("a.wav")) == ReferencePresence::Answer::Unknown,
+		"and nothing is remembered from it");
+
+	// A card that knows its file is missing asks the audio service nothing
+	// and says so (askNothing); that must not send it back to checking.
+	ReferencePresence known;
+	known.begin(QStringLiteral("b.wav"));
+	known.finish(QStringLiteral("b.wav"), false);
+	known.clear();
+	expectTrue(known.answerFor(QStringLiteral("b.wav")) == ReferencePresence::Answer::Missing,
+		"clear keeps the answer already known for the shown path");
 }
 
 TEST_CASE(EditorLogicTests, testReferenceCardDerivesSharedPresentationState)

@@ -91,6 +91,16 @@ MinimalReferenceCardView::MinimalReferenceCardView(const QString& kind, QWidget*
 	missingToken->setVisible(false);
 	lineLayout->addWidget(missingToken, 0, Qt::AlignVCenter);
 
+	// Whether the file exists is not known yet (audit #467 TD-59): a muted
+	// token in the MISSING slot behind the dashed hairline this skin draws
+	// around what has no verified substance. Not the inverted block - that
+	// is the line's strongest mark, and nothing has been found wrong.
+	checkingToken = new QLabel(tr("Checking...").toUpper(), page);
+	checkingToken->setObjectName(QStringLiteral("MinimalRefChecking"));
+	checkingToken->setAttribute(Qt::WA_StyledBackground, true);
+	checkingToken->setVisible(false);
+	lineLayout->addWidget(checkingToken, 0, Qt::AlignVCenter);
+
 	// Bare mono tokens: the format (VST2/VST3) and the ABS portability
 	// marker. Print, not pills.
 	formatToken = new QLabel(page);
@@ -175,14 +185,16 @@ void MinimalReferenceCardView::applyState(const ReferenceCardState& state)
 	// so its ink drops to secondary and the inverted MISSING block carries
 	// the emphasis - state as ink, not decoration.
 	nameLabel->setProperty("refMissing", state.missing);
+	nameLabel->setProperty("refChecking", state.checking);
 	repolish(nameLabel);
 
 	missingToken->setVisible(state.missing);
+	checkingToken->setVisible(state.checking);
 
 	formatToken->setVisible(!state.formatBadge.isEmpty());
 	formatToken->setText(state.formatBadge);
 
-	absToken->setVisible(state.absolutePath && !state.missing);
+	absToken->setVisible(state.absolutePath && !state.missing && !state.checking);
 
 	dirLabel->setVisible(!state.directory.isEmpty());
 	dirLabel->setFullText(state.locationPrefix());

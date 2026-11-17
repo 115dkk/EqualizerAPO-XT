@@ -8,6 +8,15 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **닿지 않는 파일을 가리키는 줄 때문에 Editor가 멈추지 않습니다.** Include,
+  Convolution, MultiConvolution, VST 카드는 창을 그리는 도중에 파일이 있는지를
+  물었습니다. 그래서 끊긴 네트워크 드라이브를 가리키는 줄이 있으면 행을 다시
+  만들 때마다 네트워크 시간 초과만큼 Editor가 멈췄습니다. 이제 카드는
+  백그라운드에서 묻고, 답이 올 때까지 '확인 중...'을 보여 줍니다. VST 카드가
+  플러그인 상태 안에 적힌 파일을 검사하는 일도 백그라운드로 옮겼습니다. 실제로
+  끊긴 드라이브에서는 시험하지 못했습니다.
+  ([#472](https://github.com/115dkk/EqualizerAPO-XT/pull/472))
+
 ## v2.63.4 — 2026-11-17
 
 - **Device Selector의 점검 결과가 장치 수를 다시 숫자로 보여 주고, Editor의

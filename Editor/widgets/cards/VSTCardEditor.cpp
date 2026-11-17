@@ -24,6 +24,7 @@
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QRegularExpression>
+#include <QScopedValueRollback>
 #include <QSignalBlocker>
 #include <QToolButton>
 #include <QVBoxLayout>
@@ -190,6 +191,9 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 	connect(session.get(), &VSTPluginSession::stateChanged, this, &VSTCardEditor::pluginStateChanged);
 	connect(session.get(), &VSTPluginSession::automated, this, &VSTCardEditor::pluginStateChanged);
 	connect(session.get(), &VSTPluginSession::embedStateChanged, this, &VSTCardEditor::embedStateChanged);
+	// The chunk scan answers from the background probe thread (audit #467 TD-59).
+	connect(session.get(), &VSTPluginSession::chunkPermissionWarningChanged,
+		this, &VSTCardEditor::updatePermissionWarning);
 	connect(session.get(), &VSTPluginSession::sizeRequested, this, [this](int w, int h) {
 		frame->setFixedSize(w, h);
 	});
@@ -390,6 +394,7 @@ void VSTCardEditor::pluginStateChanged()
 // the broken library as the missing transition with Locate as recovery.
 void VSTCardEditor::updateReferenceState()
 {
+	const QScopedValueRollback<bool> updating(updatingReferenceState, true);
 	const std::shared_ptr<VSTPluginLibrary>& library = session->library();
 	const VSTPluginSession::Status& status = session->status();
 	reference->setResolvedPath(QString::fromStdWString(library->getLibPath()));
@@ -399,8 +404,19 @@ void VSTCardEditor::updateReferenceState()
 	state.absolutePath = false;
 	if (!reference->writtenPath().isEmpty())
 	{
-		state.missing = state.missing || status.libraryMissing;
-		if (session->instance() != nullptr)
+		// The loader's own finding that the library is not there settles the
+		// question the presence probe is still asking.
+		if (status.libraryMissing)
+		{
+			state.missing = true;
+			state.checking = false;
+			state.fullPath.clear();
+		}
+		// While the card checks whether the library exists (audit #467
+		// TD-59), nothing that needs the file is offered.
+		if (state.checking)
+			state.nameClickable = false;
+		else if (session->instance() != nullptr)
 		{
 			// A .dll can host VST3 and a .vst3 bundle can still load as VST2;
 			// the format badge speaks only after the loader established the
@@ -432,10 +448,38 @@ void VSTCardEditor::updateReferenceState()
 	// which read as a phantom error.
 	// The engine's location rule is judged too: a plug-in on a share loads
 	// here and is refused there.
+	// The question itself asks Windows for the file's location and security,
+	// which blocks on a disconnected network drive, so it runs on the
+	// background probe thread (audit #467 TD-59) once the library is known to
+	// be there; the answer is kept for the library and configuration it was
+	// asked about and draws the card again. Still independent of a loaded
+	// instance, as above.
 	bool offerImport = false;
-	const QString problem = reference->writtenPath().isEmpty() || state.missing ? QString()
-		: FileReferenceController::audioServiceProblem(QString::fromStdWString(library->getLibPath()),
-			filterTable != nullptr ? filterTable->getConfigPath() : QString());
+	QString problem;
+	if (!reference->writtenPath().isEmpty() && !state.missing && !state.checking)
+	{
+		const QString libraryPath = QString::fromStdWString(library->getLibPath());
+		const QString configPath = filterTable != nullptr ? filterTable->getConfigPath() : QString();
+		const QString question = libraryPath + QLatin1Char('\n') + configPath;
+		if (audioServiceQuestion != question)
+		{
+			// The answer can come at once (nothing to probe, or the policy
+			// skips the check); then it is read below instead of drawing the
+			// card again from inside this pass.
+			reference->askAudioService(libraryPath, configPath, [this, question](const QString& answer) {
+				audioServiceQuestion = question;
+				audioServiceAnswer = answer;
+				if (!updatingReferenceState)
+					updateReferenceState();
+			});
+		}
+		if (audioServiceQuestion == question)
+			problem = audioServiceAnswer;
+	}
+	else if (!state.checking)
+	{
+		reference->askNothing();
+	}
 	if (!problem.isEmpty())
 	{
 		if (state.statusText.isEmpty())
@@ -464,7 +508,8 @@ void VSTCardEditor::updateReferenceState()
 	const bool locate = state.missing && !reference->writtenPath().isEmpty();
 	selectButton->setText(locate ? tr("Locate...") : QString());
 	selectButton->setToolTip(locate ? tr("Locate the missing plugin library") : tr("Select VST plugin"));
-	openPanelButton->setEnabled(!state.missing && !reference->writtenPath().isEmpty() && !session->loading());
+	openPanelButton->setEnabled(!state.missing && !state.checking && !reference->writtenPath().isEmpty()
+		&& !session->loading());
 
 	// Post the loaded ABI for the row chrome (CommandRowFrame samples the
 	// property at paint time): rack engraves it into the brass nameplate.
@@ -484,6 +529,8 @@ void VSTCardEditor::updateReferenceState()
 	}
 
 	view->setState(state);
+	if (state.checking)
+		reference->askPresence([this]() { updateReferenceState(); });
 }
 
 namespace
@@ -560,6 +607,9 @@ void VSTCardEditor::updateBusControls()
 void VSTCardEditor::pathCommitted(const QString& text)
 {
 	reference->setWrittenPath(text);
+	// The user picked or typed the library (an import lands here too): ask
+	// the audio service again even for the same path.
+	audioServiceQuestion.clear();
 	if (session->libraryDiffers(text))
 		session->replaceLibrary(text);
 	updateBusControls();

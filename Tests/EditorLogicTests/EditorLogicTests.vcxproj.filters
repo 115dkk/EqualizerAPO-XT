@@ -179,6 +179,9 @@
     <ClCompile Include="..\..\Editor\widgets\cards\ReferenceProbeRequests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Editor\widgets\cards\ReferencePresence.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Editor\widgets\cards\GraphicEQCsv.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -299,6 +302,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Editor\widgets\cards\ReferenceProbeRequests.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Editor\widgets\cards\ReferencePresence.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Editor\widgets\cards\GraphicEQCsv.h">

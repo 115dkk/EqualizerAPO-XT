@@ -545,19 +545,32 @@ void RackReferenceCardView::applyState(const ReferenceCardState& state)
 
 	nameLabel->setText(state.name);
 	nameLabel->setDimmed(state.missing);
-	nameLabel->setHotTrack(state.nameClickable && !state.missing);
+	// While the unit is still being checked the name prints in the plate's
+	// muted sub-printing ink: not the receded missing name, not yet the
+	// confirmed body ink.
+	nameLabel->setInk(state.checking ? RackEngravedLabel::Ink::Muted : RackEngravedLabel::Ink::Body);
+	nameLabel->setHotTrack(state.nameClickable && !state.missing && !state.checking);
 	nameLabel->setToolTip(state.fullPath);
 
-	absStamp->setVisible(state.absolutePath && !state.missing);
+	absStamp->setVisible(state.absolutePath && !state.missing && !state.checking);
 
 	// The service condition: a broken reference engraves NOT FOUND; a
 	// reference that was never set reads as a pulled module's empty slot.
+	// While the file is still being looked for (audit #467 TD-59) the same
+	// slot carries CHECKING in the muted faceplate ink - hardware printing,
+	// untranslated like NOT FOUND (rack.md rule 8), and amber stays with the
+	// lamps.
 	if (state.missing)
 	{
 		serviceTag->setText(emptyRef ? QStringLiteral("EMPTY SLOT") : QStringLiteral("NOT FOUND"));
 		serviceTag->setInk(emptyRef ? RackEngravedLabel::Ink::Muted : RackEngravedLabel::Ink::Warning);
 	}
-	serviceTag->setVisible(state.missing);
+	else if (state.checking)
+	{
+		serviceTag->setText(QStringLiteral("CHECKING"));
+		serviceTag->setInk(RackEngravedLabel::Ink::Muted);
+	}
+	serviceTag->setVisible(state.missing || state.checking);
 
 	// Sub-printed as the containing prefix ("Surround\"): the folder holds
 	// the unit's program, so it engraves as a path prefix, not as a sub-item
@@ -579,11 +592,16 @@ void RackReferenceCardView::applyState(const ReferenceCardState& state)
 	lcdWindow->setVisible(!state.readout.isEmpty());
 
 	// The lamp reads the reference's health: green = resolved, amber =
-	// service warning, red = broken/unreadable, dark dome = empty slot.
+	// service warning, red = broken/unreadable, dark dome = empty slot or a
+	// unit still being checked (no lamp claims what is not known yet).
 	const SkinTokens& tokens = skinTokens;
 	QColor lampColor(tokens.accent2);
 	bool lampLit = true;
-	if (state.missing)
+	if (state.checking)
+	{
+		lampLit = false;
+	}
+	else if (state.missing)
 	{
 		if (emptyRef)
 			lampLit = false;

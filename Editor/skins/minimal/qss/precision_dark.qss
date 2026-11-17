@@ -637,6 +637,16 @@ QLabel#MinimalRefMissing {
     font-weight: 700; letter-spacing: 1px;
 }
 QLabel#MinimalRefMissing:disabled { background: @MUTED@; }
+/* Not known yet whether the file exists (audit #467 TD-59): the payload
+   drops to secondary ink like a broken one, and the MISSING slot holds a
+   muted token behind the dashed hairline - "no verified substance yet",
+   never the inverted block. */
+QLabel#MinimalRefName[refChecking="true"] { color: @MUTED@; }
+QLabel#MinimalRefChecking {
+    color: @MUTED@; background: transparent;
+    border: 1px dashed @BORDER@; border-radius: 0; padding: 0 5px;
+    font-weight: 700; letter-spacing: 1px;
+}
 /* Location and measured facts: muted print after the payload. */
 QLabel#MinimalRefDir, QLabel#MinimalRefReadout { color: @MUTED@; background: transparent; }
 /* Status folded into the line: "!" warns, "!!" is critical; severity is

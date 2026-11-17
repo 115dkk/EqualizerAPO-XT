@@ -727,6 +727,10 @@ QLabel#StudioRefName {
 }
 QLabel#StudioRefName[refClickable="true"]:hover:enabled { color: #0A101F; }
 QLabel#StudioRefName[refMissing="true"] { color: @MUTED@; }
+/* Checking (audit #467 TD-59): not known yet whether the file exists. The
+   name dims like an unanswered target; the chip beside it is the unlit
+   base chip (chipRole="checking" has no lit rule) - no light, no alarm. */
+QLabel#StudioRefName[refChecking="true"] { color: @MUTED@; }
 QLabel#StudioRefName:disabled { color: rgba(93, 106, 132, 0.60); }
 QLabel#StudioRefChip {
     color: @MUTED@;

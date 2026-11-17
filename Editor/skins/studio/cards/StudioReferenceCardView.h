@@ -44,6 +44,7 @@ private:
 	QLabel* formatChip = nullptr;
 	QLabel* absChip = nullptr;
 	QLabel* missingChip = nullptr;
+	QLabel* checkingChip = nullptr;
 	QWidget* windowPane = nullptr;
 	ElidedLabel* locationLabel = nullptr;
 	QLabel* factsLabel = nullptr;

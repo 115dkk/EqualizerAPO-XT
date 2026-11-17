@@ -130,8 +130,13 @@ public:
 	// read the library.
 	QString libraryPermissionWarning() const;
 	// The files the saved plug-in state points to that the audio service
-	// cannot read, as warning text; empty when there are none.
-	QString chunkPermissionWarning() const;
+	// cannot read, as warning text; empty when there are none. The scan asks
+	// the file system about every path in the chunk, which blocks on a
+	// disconnected network drive, so it runs on the background probe thread
+	// (audit #467 TD-59): this returns the last answer and, when the chunk
+	// changed since, asks again; chunkPermissionWarningChanged follows the
+	// answer. An answer for a chunk replaced meanwhile is dropped.
+	QString chunkPermissionWarning();
 
 protected:
 	// Follows the embedded panel's window to a display with another scale.
@@ -155,6 +160,8 @@ signals:
 	void automated();
 	// The embedded panel asks for a new size.
 	void sizeRequested(int width, int height);
+	// chunkPermissionWarning() has a new answer for the current chunk.
+	void chunkPermissionWarningChanged();
 
 private slots:
 	void applyDialog();
@@ -212,6 +219,13 @@ private:
 	bool replacementPending = false;
 	int replacementOldId = 0;
 	QElapsedTimer lastReadTimer;
+	// The chunk scan's last answer and the chunk it was for, and the chunk a
+	// scan was last started for while it runs (chunkPermissionWarning).
+	QString chunkWarning;
+	std::wstring chunkWarningChunk;
+	bool chunkWarningKnown = false;
+	std::wstring chunkScanChunk;
+	bool chunkScanRunning = false;
 	// Declared after effect on purpose: reverse member destruction stops the
 	// pump before the instance it feeds goes away.
 	PanelPreviewFeeder previewFeeder;

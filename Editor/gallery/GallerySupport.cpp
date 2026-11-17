@@ -434,6 +434,10 @@ void installGalleryFileReferencePolicy()
 	// this used to be the EAPO_SKIN_GALLERY environment variable).
 	FileReferenceController::Policy policy;
 	policy.checkAudioService = false;
+	// Every scene must render the same each time: the cards ask whether
+	// their file exists synchronously here instead of showing "checking"
+	// until a background answer lands (audit #467 TD-59).
+	policy.probePresenceInBackground = false;
 	FileReferenceController::installPolicy(policy);
 }
 
