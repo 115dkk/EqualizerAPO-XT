@@ -9,6 +9,7 @@
 #include "asio/AsioRegistration.h"
 #include "asio/WrapperRecord.h"
 #include "devices/DeviceException.h"
+#include "devices/HostAutoStart.h"
 #include "services/registry/RegistryPaths.h"
 
 namespace AsioEntryWriter
@@ -36,7 +37,7 @@ inline void writeEntry(IRegistry& registry, const eapo::asio::AsioTarget& target
 	registration::registerWrapper(registry, target, registration::wrapperDllPath(directory),
 		record.register32 && registration::wrapper32Shipped(directory)
 			? registration::wrapper32DllPath(directory) : std::wstring());
-	registration::refreshAutoStart(registry, directory);
+	refreshHostAutoStart(registry, directory);
 }
 
 // The caller clears only the direction it owns. Preserve any remaining one.
@@ -50,6 +51,6 @@ inline void removeEntry(IRegistry& registry, const eapo::asio::AsioTarget& targe
 		eapo::asio::WrapperRecords::remove(registry, record.wrapperClsid);
 		eapo::asio::AsioRegistration::unregisterWrapper(registry, target);
 	}
-	eapo::asio::AsioRegistration::refreshAutoStart(registry, directory);
+	refreshHostAutoStart(registry, directory);
 }
 }

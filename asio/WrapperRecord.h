@@ -68,7 +68,7 @@ namespace eapo::asio
 		void setEntryOptions(WrapperRecord& record, const EntryOptions& options);
 
 		// Whether any record with a direction enabled asks for the engine
-		// host at boot; the Run value follows this (AsioRegistration::refreshAutoStart).
+		// host at boot; the Run value follows this (refreshHostAutoStart).
 		bool autoStartWanted(const IRegistry& registry);
 	}
 }

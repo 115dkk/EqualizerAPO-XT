@@ -32,7 +32,7 @@
 #endif
 #include <windows.h>
 
-#include "runtime/ipc/StreamRing.h"
+#include "asio/StreamRing.h"
 #include "platform/windows/Win32Resource.h"
 
 namespace eapo::asio

@@ -46,7 +46,7 @@
 #include <services/windows/WindowsService.h>
 #include "ScreenshotHarness.h"
 #include "skins/DeviceSkinPainter.h"
-#include "platform/qt/QtAppBootstrap.h"
+#include "services/app/QtAppBootstrap.h"
 #include "services/settings/EditorSettings.h"
 #include "Editor/skins/SkinThemeData.h"
 #include "services/install/ApoRegistration.h"

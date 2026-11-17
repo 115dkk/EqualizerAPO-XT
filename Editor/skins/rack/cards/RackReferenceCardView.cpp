@@ -612,8 +612,7 @@ void RackReferenceCardView::applyState(const ReferenceCardState& state)
 		if (browse->property("rackLocate").toBool() != locate)
 		{
 			browse->setProperty("rackLocate", locate);
-			browse->style()->unpolish(browse);
-			browse->style()->polish(browse);
+			repolish(browse);
 		}
 	}
 }

@@ -15,17 +15,13 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
+#include "Editor/widgets/StyleRefresh.h"
+
 namespace
 {
 // U+00D7 MULTIPLICATION SIGN, built from its code point so the source stays
 // pure ASCII (no /utf-8 flag is set for MSVC).
 const QChar removeMark(0x00D7);
-
-void repolish(QWidget* widget)
-{
-	widget->style()->unpolish(widget);
-	widget->style()->polish(widget);
-}
 }
 
 NewChannelCardEditor::NewChannelCardEditor(const QString& parameters, QWidget* parent)

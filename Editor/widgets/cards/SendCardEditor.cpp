@@ -22,6 +22,7 @@
 #include "Editor/FilterTable.h"
 #include "Editor/SkinManager.h"
 #include "Editor/skins/ISkin.h"
+#include "Editor/widgets/StyleRefresh.h"
 #include "Editor/widgets/routing/IRoutingRenderer.h"
 
 namespace
@@ -31,12 +32,6 @@ QLabel* makeCaption(const QString& text, QWidget* parent)
 	QLabel* caption = new QLabel(text, parent);
 	caption->setObjectName(QStringLiteral("SendFieldCaption"));
 	return caption;
-}
-
-void repolish(QWidget* widget)
-{
-	widget->style()->unpolish(widget);
-	widget->style()->polish(widget);
 }
 
 void appendOnce(std::vector<std::wstring>& list, const std::wstring& name)

@@ -37,6 +37,7 @@
 #include "FilterTable.h"
 #include "MainWindow.h"
 #include "Editor/MainWindowParts/OpenDocument.h"
+#include "Editor/widgets/StyleRefresh.h"
 #include "Editor/widgets/UpdateToast.h"
 #include "SkinManager.h"
 #include "ui_MainWindow.h"
@@ -97,9 +98,7 @@ void MainWindow::updateDirtyStatus()
 	// grammar. Setting an inline stylesheet here would override all of that,
 	// so only the dynamic property + repolish are used.
 	dirtyStatusLabel->setProperty("dirty", dirty);
-	dirtyStatusLabel->style()->unpolish(dirtyStatusLabel);
-	dirtyStatusLabel->style()->polish(dirtyStatusLabel);
-	dirtyStatusLabel->update();
+	repolish(dirtyStatusLabel);
 }
 
 bool MainWindow::on_tabWidget_tabCloseRequested(int index)

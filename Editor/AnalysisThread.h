@@ -36,6 +36,10 @@
 #include "Editor/analysis/AnalysisResponse.h"
 #include "dsp/FftwRAII.h"
 
+class FilterEngine;
+class ImpulseMeasurement;
+class QElapsedTimer;
+
 class AnalysisThread : public QThread
 {
 	Q_OBJECT
@@ -86,6 +90,42 @@ protected:
 	void run() override;
 
 private:
+	// One request as run() takes it out of the input fields under the mutex.
+	struct PendingRequest
+	{
+		std::shared_ptr<AbstractAPOInfo> device;
+		int channelMask = 0;
+		int channelIndex = 0;
+		QString configPath;
+		int frameCount = 0;
+		AnalysisRequestFence::Ticket ticket = 0;
+	};
+
+	// run()'s phases (audit #467 TD-38). Each one that touches the shared
+	// fields takes the mutex itself, for exactly the span run() used to hold
+	// it; no lock is held across a call between them.
+	// Waits for a request and takes it; false once quit is set.
+	bool waitForRequest(PendingRequest& request);
+	// The analysis itself, run inside AnalysisWorkerRecovery. Returns early,
+	// publishing nothing, when quit is set or the request went stale.
+	void analyseRequest(PendingRequest& request, bool& resultPublished);
+	void prepareBuffers(int frameCount, int blockFrames, unsigned channelCount);
+	// Feeds the impulse block by block; false if quit or a newer request
+	// stopped it.
+	bool measureImpulse(FilterEngine& engine, ImpulseMeasurement& measurement,
+		AnalysisRequestFence::Ticket ticket, const QElapsedTimer& timer, unsigned sampleRate, int blockFrames,
+		unsigned channelCount, double& processingTime, unsigned& processedFrames);
+	std::shared_ptr<AnalysisResponse> buildResponse(const FilterEngine& engine,
+		const ImpulseMeasurement& measurement, unsigned sampleRate, int frameCount, double& peakGain);
+	// False if a newer request superseded this one.
+	bool publishResult(AnalysisRequestFence::Ticket ticket, std::shared_ptr<AnalysisResponse>& response,
+		double peakGain, double initializationTime, double processingTime, unsigned processedFrames,
+		std::vector<ConfigLoadTraceEntry>& loadTrace, bool& resultPublished);
+	void publishFailure(AnalysisRequestFence::Ticket ticket, const char* error, bool& resultPublished);
+	// Whether the published result is still the current request's, so
+	// analysisFinished may be emitted.
+	bool confirmFinished(AnalysisRequestFence::Ticket ticket);
+
 	QMutex mutex;
 	QWaitCondition condition;
 	std::atomic<bool> quit{false};

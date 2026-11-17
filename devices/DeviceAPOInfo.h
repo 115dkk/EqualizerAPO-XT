@@ -195,6 +195,17 @@ private:
 		const std::function<void(RegistryTransaction&)>& steps);
 	void beginReport(DeviceInstallReport::Operation operation);
 
+	bool readEndpointIdentity(const std::wstring& deviceGuid, std::wstring& keyPath);
+	void readEndpointFormat(const std::wstring& keyPath);
+	void readEnhancementState(const std::wstring& keyPath);
+	void resetInstallState();
+	void readOriginalApoGuids(const std::wstring& fxPropertiesPath);
+	bool findInstalledEffectSlots(const std::wstring& fxPropertiesPath, bool* foundAt);
+	void readChildApoState(const std::wstring& deviceGuid, const bool* foundAt);
+	void chooseUninstalledInstallMode(const std::wstring& keyPath);
+	void readEffectState(const std::wstring& keyPath, const std::wstring& deviceGuid);
+	void readAsioEntry(const std::wstring& deviceGuid);
+
 	std::wstring deviceName;
 	std::wstring connectionName;
 	std::wstring deviceGuid;

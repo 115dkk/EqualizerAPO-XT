@@ -1,4 +1,4 @@
-﻿/*
+/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2015  Jonas Thedering
 
@@ -19,7 +19,7 @@
 
 #include <QElapsedTimer>
 #include <QDeadlineTimer>
-#include "platform/windows/ProcessShutdown.h"
+#include "services/app/ProcessShutdown.h"
 
 #include <algorithm>
 #include <stdexcept>
@@ -118,246 +118,291 @@ void AnalysisThread::run()
 {
 	while (true)
 	{
-		shared_ptr<AbstractAPOInfo> device;
-		int channelMask;
-		int channelIndex;
-		QString configPath;
-		int frameCount;
-		AnalysisRequestFence::Ticket ticket;
-		{
-			QMutexLocker locker(&mutex);
-			while (!quit.load(std::memory_order_relaxed) && this->frameCount == 0)
-				condition.wait(&mutex);
-			if (quit.load(std::memory_order_relaxed))
-				break;
+		PendingRequest request;
+		if (!waitForRequest(request))
+			break;
 
-			device = this->device;
-			channelMask = this->channelMask;
-			channelIndex = this->channelIndex;
-			configPath = this->configPath;
-			frameCount = this->frameCount;
-			ticket = requestTicket;
-			this->frameCount = 0;
-		}
-
-		if (frameCount <= 0)
+		if (request.frameCount <= 0)
 		{
-			qWarning("Analysis skipped an invalid frame count: %d", frameCount);
+			qWarning("Analysis skipped an invalid frame count: %d", request.frameCount);
 			continue;
 		}
 
 		bool resultPublished = false;
 		AnalysisWorkerRecovery::run([&]
 		{
-		QElapsedTimer timer;
-		timer.start();
-
-		const ChannelLayout::AnalysisLayout layout = ChannelLayout::analysisLayout(
-			device->getChannelCount(), device->getChannelMask(), channelMask);
-		const unsigned channelCount = layout.channelCount;
-		channelMask = layout.channelMask;
-		// channelIndex is a position in the analysis channel list, built from
-		// the same layout; an index outside it would read past the buffer.
-		if (channelIndex < 0 || static_cast<unsigned>(channelIndex) >= channelCount)
-			throw std::out_of_range("the analysis channel is outside the stream's channel layout");
-
-		unsigned sampleRate = device->getSampleRate();
-		if (sampleRate == 0)
-			sampleRate = 48000;
-		const int blockFrames = (std::min)(frameCount, kAnalysisBlockFrames);
-
-		qint64 startTime = timer.nsecsElapsed();
-
-		// Collects the engine's per-line load facts (branch decisions, Eval
-		// values, skipped lines). With a custom config path initialize() loads
-		// synchronously and starts no notification worker, so a plain vector
-		// needs no locking here.
-		struct Collector : ConfigLoadTraceSink
-		{
-			std::vector<ConfigLoadTraceEntry> entries;
-			void addEntry(const ConfigLoadTraceEntry& entry) override
-			{
-				entries.push_back(entry);
-			}
-		};
-		Collector traceCollector;
-
-		FilterEngine engine;
-		engine.setAnalysisMode(true);
-		engine.setLoadTraceSink(&traceCollector);
-		EngineSetup setup;
-		setup.host = EngineHost::Editor;
-		setup.sampleRate = sampleRate;
-		setup.inputChannelCount = channelCount;
-		setup.realChannelCount = channelCount;
-		setup.outputChannelCount = channelCount;
-		setup.channelMask = channelMask;
-		setup.maxFrameCount = blockFrames;
-		setup.customPath = configPath.toStdWString();
-		setup.capture = device->isInput();
-		setup.deviceName = device->getDeviceName();
-		setup.connectionName = device->getConnectionName();
-		setup.deviceGuid = device->getDeviceGuid();
-		engine.initialize(setup);
-		if (!requestFence.isCurrent(ticket))
-			return;
-		engine.setLoadTraceSink(nullptr);
-		if (quit.load(std::memory_order_relaxed))
-			return;
-		double initializationTime = (timer.nsecsElapsed() - startTime) / 1e6;
-
-		if (blockFrames != lastBlockFrames || channelCount != lastChannelCount)
-		{
-			if (channelCount != 0
-				&& static_cast<size_t>(blockFrames) > (numeric_limits<size_t>::max)() / channelCount)
-			{
-				throw std::length_error("Analysis buffer size overflow");
-			}
-			const size_t sampleCount = static_cast<size_t>(blockFrames) * channelCount;
-			std::vector<double> newBuf(sampleCount, 0.0);
-			std::vector<double> newBuf2(sampleCount);
-			buf = std::move(newBuf);
-			buf2 = std::move(newBuf2);
-		}
-		for (unsigned i = 0; i < channelCount; i++)
-			buf[i] = 1.0f;
-
-		if (frameCount != lastResponseFrames)
-		{
-			auto newTimeData = fftw::allocateReal(frameCount);
-			// A real-to-complex transform writes frameCount / 2 + 1 bins and
-			// nothing beyond them. Allocating frameCount of them, as this used
-			// to, wasted half the buffer and left the tail uninitialized for
-			// anyone who read the whole thing.
-			auto newFreqData = fftw::allocateComplex(AnalysisResponse::binCountFor(frameCount));
-			fftw::Plan newPlan;
-			{
-				// Plan creation happens under the process-wide planning policy
-				// (see dsp/FftwPlanningPolicy.h).
-				FftwPlanningPolicy::Session planning;
-				newPlan = fftw::makeRealToComplexPlan(frameCount, newTimeData.get(), newFreqData.get());
-			}
-			planForward.reset();
-			timeData = std::move(newTimeData);
-			freqData = std::move(newFreqData);
-			planForward = std::move(newPlan);
-		}
-
-		lastResponseFrames = frameCount;
-		lastBlockFrames = blockFrames;
-		lastChannelCount = channelCount;
-
-		ImpulseMeasurement measurement(
-			channelCount, channelIndex, frameCount, blockFrames, timeData.get());
-		double processingTime = 0.0;
-		unsigned processedFrames = 0;
-		while (true)
-		{
-			if (quit.load(std::memory_order_relaxed))
-				return;
-			if (!requestFence.isCurrent(ticket))
-				return;
-
-			qint64 startTime = timer.nsecsElapsed();
-			engine.process(buf2.data(), buf.data(), blockFrames);
-			processingTime += (timer.nsecsElapsed() - startTime) / 1e6;
-			processedFrames += blockFrames;
-
-			if (measurement.addBlock(buf2.data()))
-				break;
-			// Stop only the search after ten seconds. Once the impulse has been
-			// found, the requested response still has to be filled completely.
-			if (!measurement.found() && processedFrames >= 10 * sampleRate)
-				break;
-
-			// The impulse is one frame long: after the first block the engine
-			// is fed silence.
-			if (processedFrames == static_cast<unsigned>(blockFrames))
-			{
-				for (unsigned i = 0; i < channelCount; i++)
-					buf[i] = 0.0f;
-			}
-		}
-
-		int latency;
-		double peakGain;
-		if (measurement.found())
-		{
-			latency = measurement.latencyFrames();
-
-			fftw_execute(planForward.get());
-
-			peakGain = impulsePeakGainDb(freqData.get(),
-				AnalysisResponse::binCountFor(frameCount));
-		}
-		else
-		{
-			latency = 0;
-			peakGain = -numeric_limits<double>::infinity();
-			std::fill_n(&freqData.get()[0][0], AnalysisResponse::binCountFor(frameCount) * 2, 0.0);
-		}
-
-		// Built outside the lock: the copy out of the FFTW buffer is the only
-		// unavoidable one, and the UI should not wait behind it. Publishing is
-		// then a pointer swap, and what it points at is never touched again, so
-		// a reader can let go of the mutex and still build a curve safely.
-		auto response = std::make_shared<AnalysisResponse>();
-		response->sampleRate = static_cast<unsigned>(sampleRate);
-		response->fftSize = static_cast<size_t>(frameCount);
-		response->latencyFrames = latency;
-		response->frozenDynamicResponse = engine.usedFrozenDynamicAnalysis();
-		const size_t binCount = AnalysisResponse::binCountFor(frameCount);
-		response->bins.resize(binCount);
-		for (size_t i = 0; i < binCount; i++)
-			response->bins[i] = std::complex<double>(freqData.get()[i][0], freqData.get()[i][1]);
-
-		{
-			QMutexLocker locker(&mutex);
-			if (!requestFence.publishIf(ticket, [&]
-			{
-				this->resultResponse = std::move(response);
-				this->peakGain = peakGain;
-				this->initializationTime = initializationTime;
-				this->processingTime = processingTime;
-				this->processedFrames = processedFrames;
-				this->resultErrorText.clear();
-				this->resultLoadTrace = std::move(traceCollector.entries);
-				resultPublished = true;
-			}))
-				return;
-		}
-
-		TraceF(L"Analysis took %.1f ms", timer.nsecsElapsed() / 1e6);
+			analyseRequest(request, resultPublished);
 		},
 		[&](const char* error)
 		{
-			qCritical("Analysis failed; worker remains available: %s", error);
-			QMutexLocker locker(&mutex);
-			requestFence.publishIf(ticket, [&]
-			{
-				// An empty response rather than a null one, so the graph clears
-				// instead of keeping the previous config's curve on screen.
-				resultResponse = std::make_shared<AnalysisResponse>();
-				peakGain = numeric_limits<double>::quiet_NaN();
-				initializationTime = 0.0;
-				processingTime = 0.0;
-				processedFrames = 0;
-				resultErrorText = QString::fromUtf8(error);
-				resultLoadTrace.clear();
-				resultPublished = true;
-			});
+			publishFailure(request.ticket, error, resultPublished);
 		});
 
-		bool emitFinished = false;
-		if (resultPublished)
-		{
-			QMutexLocker locker(&mutex);
-			requestFence.publishIf(ticket, [&]
-			{
-				emitFinished = true;
-			});
-		}
-		if (emitFinished)
+		if (resultPublished && confirmFinished(request.ticket))
 			emit analysisFinished();
 	}
+}
+
+bool AnalysisThread::waitForRequest(PendingRequest& request)
+{
+	QMutexLocker locker(&mutex);
+	while (!quit.load(std::memory_order_relaxed) && this->frameCount == 0)
+		condition.wait(&mutex);
+	if (quit.load(std::memory_order_relaxed))
+		return false;
+
+	request.device = this->device;
+	request.channelMask = this->channelMask;
+	request.channelIndex = this->channelIndex;
+	request.configPath = this->configPath;
+	request.frameCount = this->frameCount;
+	request.ticket = requestTicket;
+	this->frameCount = 0;
+	return true;
+}
+
+void AnalysisThread::analyseRequest(PendingRequest& request, bool& resultPublished)
+{
+	const shared_ptr<AbstractAPOInfo>& device = request.device;
+	const int channelIndex = request.channelIndex;
+	const int frameCount = request.frameCount;
+	const AnalysisRequestFence::Ticket ticket = request.ticket;
+
+	QElapsedTimer timer;
+	timer.start();
+
+	const ChannelLayout::AnalysisLayout layout = ChannelLayout::analysisLayout(
+		device->getChannelCount(), device->getChannelMask(), request.channelMask);
+	const unsigned channelCount = layout.channelCount;
+	request.channelMask = layout.channelMask;
+	// channelIndex is a position in the analysis channel list, built from
+	// the same layout; an index outside it would read past the buffer.
+	if (channelIndex < 0 || static_cast<unsigned>(channelIndex) >= channelCount)
+		throw std::out_of_range("the analysis channel is outside the stream's channel layout");
+
+	unsigned sampleRate = device->getSampleRate();
+	if (sampleRate == 0)
+		sampleRate = 48000;
+	const int blockFrames = (std::min)(frameCount, kAnalysisBlockFrames);
+
+	qint64 startTime = timer.nsecsElapsed();
+
+	// Collects the engine's per-line load facts (branch decisions, Eval
+	// values, skipped lines). With a custom config path initialize() loads
+	// synchronously and starts no notification worker, so a plain vector
+	// needs no locking here.
+	struct Collector : ConfigLoadTraceSink
+	{
+		std::vector<ConfigLoadTraceEntry> entries;
+		void addEntry(const ConfigLoadTraceEntry& entry) override
+		{
+			entries.push_back(entry);
+		}
+	};
+	Collector traceCollector;
+
+	FilterEngine engine;
+	engine.setAnalysisMode(true);
+	engine.setLoadTraceSink(&traceCollector);
+	EngineSetup setup;
+	setup.host = EngineHost::Editor;
+	setup.sampleRate = sampleRate;
+	setup.inputChannelCount = channelCount;
+	setup.realChannelCount = channelCount;
+	setup.outputChannelCount = channelCount;
+	setup.channelMask = request.channelMask;
+	setup.maxFrameCount = blockFrames;
+	setup.customPath = request.configPath.toStdWString();
+	setup.capture = device->isInput();
+	setup.deviceName = device->getDeviceName();
+	setup.connectionName = device->getConnectionName();
+	setup.deviceGuid = device->getDeviceGuid();
+	engine.initialize(setup);
+	if (!requestFence.isCurrent(ticket))
+		return;
+	engine.setLoadTraceSink(nullptr);
+	if (quit.load(std::memory_order_relaxed))
+		return;
+	double initializationTime = (timer.nsecsElapsed() - startTime) / 1e6;
+
+	prepareBuffers(frameCount, blockFrames, channelCount);
+
+	ImpulseMeasurement measurement(
+		channelCount, channelIndex, frameCount, blockFrames, timeData.get());
+	double processingTime = 0.0;
+	unsigned processedFrames = 0;
+	if (!measureImpulse(engine, measurement, ticket, timer, sampleRate, blockFrames, channelCount,
+		processingTime, processedFrames))
+		return;
+
+	double peakGain;
+	auto response = buildResponse(engine, measurement, sampleRate, frameCount, peakGain);
+
+	if (!publishResult(ticket, response, peakGain, initializationTime, processingTime,
+		processedFrames, traceCollector.entries, resultPublished))
+		return;
+
+	TraceF(L"Analysis took %.1f ms", timer.nsecsElapsed() / 1e6);
+}
+
+void AnalysisThread::prepareBuffers(int frameCount, int blockFrames, unsigned channelCount)
+{
+	if (blockFrames != lastBlockFrames || channelCount != lastChannelCount)
+	{
+		if (channelCount != 0
+			&& static_cast<size_t>(blockFrames) > (numeric_limits<size_t>::max)() / channelCount)
+		{
+			throw std::length_error("Analysis buffer size overflow");
+		}
+		const size_t sampleCount = static_cast<size_t>(blockFrames) * channelCount;
+		std::vector<double> newBuf(sampleCount, 0.0);
+		std::vector<double> newBuf2(sampleCount);
+		buf = std::move(newBuf);
+		buf2 = std::move(newBuf2);
+	}
+	for (unsigned i = 0; i < channelCount; i++)
+		buf[i] = 1.0f;
+
+	if (frameCount != lastResponseFrames)
+	{
+		auto newTimeData = fftw::allocateReal(frameCount);
+		// A real-to-complex transform writes frameCount / 2 + 1 bins and
+		// nothing beyond them. Allocating frameCount of them, as this used
+		// to, wasted half the buffer and left the tail uninitialized for
+		// anyone who read the whole thing.
+		auto newFreqData = fftw::allocateComplex(AnalysisResponse::binCountFor(frameCount));
+		fftw::Plan newPlan;
+		{
+			// Plan creation happens under the process-wide planning policy
+			// (see dsp/FftwPlanningPolicy.h).
+			FftwPlanningPolicy::Session planning;
+			newPlan = fftw::makeRealToComplexPlan(frameCount, newTimeData.get(), newFreqData.get());
+		}
+		planForward.reset();
+		timeData = std::move(newTimeData);
+		freqData = std::move(newFreqData);
+		planForward = std::move(newPlan);
+	}
+
+	lastResponseFrames = frameCount;
+	lastBlockFrames = blockFrames;
+	lastChannelCount = channelCount;
+}
+
+bool AnalysisThread::measureImpulse(FilterEngine& engine, ImpulseMeasurement& measurement,
+	AnalysisRequestFence::Ticket ticket, const QElapsedTimer& timer, unsigned sampleRate, int blockFrames,
+	unsigned channelCount, double& processingTime, unsigned& processedFrames)
+{
+	while (true)
+	{
+		if (quit.load(std::memory_order_relaxed))
+			return false;
+		if (!requestFence.isCurrent(ticket))
+			return false;
+
+		qint64 startTime = timer.nsecsElapsed();
+		engine.process(buf2.data(), buf.data(), blockFrames);
+		processingTime += (timer.nsecsElapsed() - startTime) / 1e6;
+		processedFrames += blockFrames;
+
+		if (measurement.addBlock(buf2.data()))
+			break;
+		// Stop only the search after ten seconds. Once the impulse has been
+		// found, the requested response still has to be filled completely.
+		if (!measurement.found() && processedFrames >= 10 * sampleRate)
+			break;
+
+		// The impulse is one frame long: after the first block the engine
+		// is fed silence.
+		if (processedFrames == static_cast<unsigned>(blockFrames))
+		{
+			for (unsigned i = 0; i < channelCount; i++)
+				buf[i] = 0.0f;
+		}
+	}
+	return true;
+}
+
+std::shared_ptr<AnalysisResponse> AnalysisThread::buildResponse(const FilterEngine& engine,
+	const ImpulseMeasurement& measurement, unsigned sampleRate, int frameCount, double& peakGain)
+{
+	int latency;
+	if (measurement.found())
+	{
+		latency = measurement.latencyFrames();
+
+		fftw_execute(planForward.get());
+
+		peakGain = impulsePeakGainDb(freqData.get(),
+			AnalysisResponse::binCountFor(frameCount));
+	}
+	else
+	{
+		latency = 0;
+		peakGain = -numeric_limits<double>::infinity();
+		std::fill_n(&freqData.get()[0][0], AnalysisResponse::binCountFor(frameCount) * 2, 0.0);
+	}
+
+	// Built outside the lock: the copy out of the FFTW buffer is the only
+	// unavoidable one, and the UI should not wait behind it. Publishing is
+	// then a pointer swap, and what it points at is never touched again, so
+	// a reader can let go of the mutex and still build a curve safely.
+	auto response = std::make_shared<AnalysisResponse>();
+	response->sampleRate = static_cast<unsigned>(sampleRate);
+	response->fftSize = static_cast<size_t>(frameCount);
+	response->latencyFrames = latency;
+	response->frozenDynamicResponse = engine.usedFrozenDynamicAnalysis();
+	const size_t binCount = AnalysisResponse::binCountFor(frameCount);
+	response->bins.resize(binCount);
+	for (size_t i = 0; i < binCount; i++)
+		response->bins[i] = std::complex<double>(freqData.get()[i][0], freqData.get()[i][1]);
+	return response;
+}
+
+bool AnalysisThread::publishResult(AnalysisRequestFence::Ticket ticket, std::shared_ptr<AnalysisResponse>& response,
+	double peakGain, double initializationTime, double processingTime, unsigned processedFrames,
+	std::vector<ConfigLoadTraceEntry>& loadTrace, bool& resultPublished)
+{
+	QMutexLocker locker(&mutex);
+	return requestFence.publishIf(ticket, [&]
+	{
+		this->resultResponse = std::move(response);
+		this->peakGain = peakGain;
+		this->initializationTime = initializationTime;
+		this->processingTime = processingTime;
+		this->processedFrames = processedFrames;
+		this->resultErrorText.clear();
+		this->resultLoadTrace = std::move(loadTrace);
+		resultPublished = true;
+	});
+}
+
+void AnalysisThread::publishFailure(AnalysisRequestFence::Ticket ticket, const char* error, bool& resultPublished)
+{
+	qCritical("Analysis failed; worker remains available: %s", error);
+	QMutexLocker locker(&mutex);
+	requestFence.publishIf(ticket, [&]
+	{
+		// An empty response rather than a null one, so the graph clears
+		// instead of keeping the previous config's curve on screen.
+		resultResponse = std::make_shared<AnalysisResponse>();
+		peakGain = numeric_limits<double>::quiet_NaN();
+		initializationTime = 0.0;
+		processingTime = 0.0;
+		processedFrames = 0;
+		resultErrorText = QString::fromUtf8(error);
+		resultLoadTrace.clear();
+		resultPublished = true;
+	});
+}
+
+bool AnalysisThread::confirmFinished(AnalysisRequestFence::Ticket ticket)
+{
+	bool emitFinished = false;
+	QMutexLocker locker(&mutex);
+	requestFence.publishIf(ticket, [&]
+	{
+		emitFinished = true;
+	});
+	return emitFinished;
 }

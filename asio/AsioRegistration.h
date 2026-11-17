@@ -79,12 +79,6 @@ namespace eapo::asio
 		bool autoStartRegistered(const IRegistry& registry);
 		void setAutoStart(IRegistry& registry, const std::wstring& hostExePath, bool wanted);
 
-		// Recomputes the Run value from wrapper records and Send receivers:
-		// present while an enabled wrapper asks for it or a receiver exists.
-		// Needs the install directory only to write the value; with none
-		// known, a wanted value that is already there stays as it is.
-		void refreshAutoStart(IRegistry& registry, const std::wstring& installDirectory);
-
 		// The files the product ships under its install directory: the 64-bit
 		// wrapper beside the product, the 32-bit one under x86\ (absent from
 		// ARM64 builds), and the engine host.

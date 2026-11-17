@@ -4,7 +4,7 @@
 	SPDX-License-Identifier: GPL-2.0-or-later
 */
 
-#include "runtime/ipc/StreamRing.h"
+#include "asio/StreamRing.h"
 
 #include <cmath>
 #include <cstring>

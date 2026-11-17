@@ -271,8 +271,7 @@ void RackSubwooferRoutingCardView::addActionButton(
 	if (button->toolTip().trimmed().isEmpty())
 		button->setToolTip(actionName);
 
-	button->style()->unpolish(button);
-	button->style()->polish(button);
+	repolish(button);
 	button->ensurePolished();
 
 	const int targetHeight = 40;

@@ -11,6 +11,7 @@
 #include <QStyle>
 
 #include "Editor/SkinManager.h"
+#include "Editor/widgets/StyleRefresh.h"
 
 CommandRowFrame::CommandRowFrame(QWidget* parent)
 	: QFrame(parent)
@@ -58,18 +59,12 @@ void CommandRowFrame::applyRowInfo(const CommandRowInfo& rowInfo, QWidget* heade
 	{
 		if (widget == nullptr)
 			continue;
-		widget->style()->unpolish(widget);
-		widget->style()->polish(widget);
-		widget->update();
+		repolish(widget);
 	}
 	if (propertiesChanged)
 	{
 		for (QLabel* label : findChildren<QLabel*>())
-		{
-			label->style()->unpolish(label);
-			label->style()->polish(label);
-			label->update();
-		}
+			repolish(label);
 	}
 }
 

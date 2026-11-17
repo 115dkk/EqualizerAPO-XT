@@ -34,6 +34,7 @@
 #include "services/registry/RegistryPaths.h"
 #include "Editor/widgets/EqGraphView.h"
 #include "Editor/widgets/SegmentedControl.h"
+#include "Editor/widgets/StyleRefresh.h"
 #include "Editor/widgets/UpdateToast.h"
 #include "services/logging/Logging.h"
 #include "audio/ChannelLayout.h"
@@ -303,9 +304,7 @@ void MainWindow::updateAnalysisPanel()
 		if (label->property("severity").toString() == QLatin1String(name))
 			return;
 		label->setProperty("severity", QString::fromLatin1(name));
-		label->style()->unpolish(label);
-		label->style()->polish(label);
-		label->update();
+		repolish(label);
 	};
 
 	ui->peakGainValueLabel->setToolTip(panel.peakToolTip);
