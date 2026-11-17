@@ -391,6 +391,7 @@
     <ClInclude Include="asio\StreamFacts.h"><Filter>asio</Filter></ClInclude>
     <ClInclude Include="asio\StreamProcessor.h"><Filter>asio</Filter></ClInclude>
     <ClInclude Include="devices\ApoRuntimeFacts.h"><Filter>devices</Filter></ClInclude>
+    <ClInclude Include="devices\HostAutoStart.h"><Filter>devices</Filter></ClInclude>
     <ClInclude Include="devices\ReceiverEndpoints.h"><Filter>devices</Filter></ClInclude>
     <ClInclude Include="devices\DevicePlan.h"><Filter>devices</Filter></ClInclude>
     <ClInclude Include="devices\DeviceTestPlan.h"><Filter>devices</Filter></ClInclude>
@@ -694,6 +695,7 @@
     <ClCompile Include="devices\AbstractAPOInfo.cpp" />
     <ClCompile Include="engine\ConfigurationFileReader.cpp" />
     <ClCompile Include="devices\ApoRuntimeFacts.cpp" />
+    <ClCompile Include="devices\HostAutoStart.cpp" />
     <ClCompile Include="devices\ReceiverEndpoints.cpp" />
     <ClCompile Include="devices\DeviceAPOInfo.cpp" />
     <ClCompile Include="devices\DeviceAPOInfo.Change.cpp" />

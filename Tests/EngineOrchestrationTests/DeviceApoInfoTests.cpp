@@ -552,7 +552,7 @@ TEST_CASE(EngineOrchestrationTests, testInstallingWithReceiveOffDeletesTheReceiv
 	harness.expectFalse(reloaded.getLastOperationReport().receiveFromEndpoints,
 		"the second report records receiving as off");
 	harness.expectFalse(eapo::asio::AsioRegistration::autoStartRegistered(registry),
-		"refreshAutoStart sees the value deletion before the transaction commits");
+		"refreshHostAutoStart sees the value deletion before the transaction commits");
 }
 
 TEST_CASE(EngineOrchestrationTests, testReceiveAutoStartFollowsInstallAndUninstall)
@@ -571,7 +571,7 @@ TEST_CASE(EngineOrchestrationTests, testReceiveAutoStartFollowsInstallAndUninsta
 	const std::wstring runKey = eapo::asio::AsioRegistration::autoStartKey();
 	const std::wstring runValue = eapo::asio::AsioRegistration::autoStartValueName();
 	harness.require(eapo::asio::AsioRegistration::autoStartRegistered(registry),
-		"refreshAutoStart sees the child key and receiver value written earlier in the install transaction");
+		"refreshHostAutoStart sees the child key and receiver value written earlier in the install transaction");
 	harness.expect(registry.readValue(runKey, runValue) == L"\"" + installPath + L"\\EqualizerAPOHost.exe\" --resident",
 		"the Run value starts the resident host from the configured install directory");
 
@@ -585,7 +585,7 @@ TEST_CASE(EngineOrchestrationTests, testReceiveAutoStartFollowsInstallAndUninsta
 	reloaded.uninstall();
 	harness.expectFalse(registry.keyExists(childApoKey), "uninstall deletes the receiver's child key");
 	harness.expectFalse(eapo::asio::AsioRegistration::autoStartRegistered(registry),
-		"refreshAutoStart sees the key deletion and removes the Run value when no ASIO entry remains");
+		"refreshHostAutoStart sees the key deletion and removes the Run value when no ASIO entry remains");
 }
 
 TEST_CASE(EngineOrchestrationTests, testInstallThenLoadRoundTripsTheInstallState)

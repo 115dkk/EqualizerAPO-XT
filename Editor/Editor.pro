@@ -85,6 +85,7 @@ SOURCES += main.cpp\
 	../devices/DeviceAPOInfo.cpp \
 	../devices/DeviceAPOInfo.Change.cpp \
 	../devices/ApoRuntimeFacts.cpp \
+	../devices/HostAutoStart.cpp \
 	../devices/ReceiverEndpoints.cpp \
 	../devices/EndpointProbe.cpp \
 	../devices/DeviceInstallReport.cpp \
@@ -467,6 +468,7 @@ HEADERS  += \
 	guis/DeviceFilterGUI.h \
 	guis/DeviceFilterGUIFactory.h \
 	../devices/ApoRuntimeFacts.h \
+	../devices/HostAutoStart.h \
 	../devices/ReceiverEndpoints.h \
 	../devices/DeviceAPOInfo.h \
 	../devices/DevicePlan.h \
