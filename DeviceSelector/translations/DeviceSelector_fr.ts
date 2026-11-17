@@ -36,7 +36,7 @@
     <message>
         <location line="+336"/>
         <source>Upgrades available</source>
-        <translation>Mise à niveau disponibles</translation>
+        <translation>Mises à niveau disponibles</translation>
     </message>
     <message>
         <location line="+0"/>
@@ -439,7 +439,7 @@ ATTENTION: Certains pilotes de carte son peuvent produire des sons indésirables
         <location line="+23"/>
         <source>Check failed for %n device(s).</source>
         <translation>
-            <numerusform>Echec de la vérification pour un périphérique.</numerusform>
+            <numerusform>Echec de la vérification pour %n périphérique.</numerusform>
             <numerusform>Echec de la vérification pour %n périphériques.</numerusform>
         </translation>
     </message>
@@ -462,7 +462,7 @@ ATTENTION: Certains pilotes de carte son peuvent produire des sons indésirables
         <location line="+2"/>
         <source>Checks done. Problems were detected for %n device(s).</source>
         <translation>
-            <numerusform>Vérifications effectuées. Des problèmes ont été détectés pour un périphérique.</numerusform>
+            <numerusform>Vérifications effectuées. Des problèmes ont été détectés pour %n périphérique.</numerusform>
             <numerusform>Vérifications effectuées. Des problèmes ont été détectés pour %n périphériques.</numerusform>
         </translation>
     </message>

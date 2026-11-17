@@ -1071,7 +1071,7 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
     <message>
         <location filename="../guis/DeviceFilterGUIDialog.ui" line="59"/>
         <source>Show only devices with APO installed</source>
-        <translation>Afficher uniquement les périphériquez sur lesquels APO est installé</translation>
+        <translation>Afficher uniquement les périphériques sur lesquels APO est installé</translation>
     </message>
     <message>
         <location filename="../guis/DeviceFilterGUIDialog.cpp" line="43"/>
