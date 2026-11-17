@@ -98,14 +98,24 @@
     <addaction name="actionOpenProgramFolder"/>
     <addaction name="separator"/>
     <addaction name="menuLanguage"/>
+    <addaction name="actionAutomaticUpdates"/>
     <addaction name="separator"/>
     <addaction name="actionResetAllGlobalPreferences"/>
     <addaction name="actionResetAllFileSpecificPreferences"/>
+   </widget>
+   <widget class="QMenu" name="menuTroubleshooting">
+    <property name="title">
+     <string>Troubleshooting</string>
+    </property>
+    <addaction name="actionRestartAudioService"/>
+    <addaction name="actionCheckForUpdates"/>
+    <addaction name="actionReportProblem"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
    <addaction name="menuView"/>
    <addaction name="menuSettings"/>
+   <addaction name="menuTroubleshooting"/>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
    <property name="windowTitle">
@@ -632,6 +642,32 @@
   <action name="actionResetAllFileSpecificPreferences">
    <property name="text">
     <string>Reset all file-specific preferences</string>
+   </property>
+  </action>
+  <action name="actionAutomaticUpdates">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Automatic updates</string>
+   </property>
+  </action>
+  <action name="actionRestartAudioService">
+   <property name="text">
+    <string>Restart Windows audio service</string>
+   </property>
+  </action>
+  <action name="actionCheckForUpdates">
+   <property name="text">
+    <string>Check for updates</string>
+   </property>
+  </action>
+  <action name="actionReportProblem">
+   <property name="text">
+    <string>Report a problem</string>
    </property>
   </action>
   <action name="actionSelectAll">
