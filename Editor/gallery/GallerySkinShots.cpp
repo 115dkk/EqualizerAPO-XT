@@ -20,6 +20,7 @@
 #include <memory>
 #include <numbers>
 
+#include <QAbstractButton>
 #include <QAction>
 #include <QApplication>
 #include <QCheckBox>
@@ -71,6 +72,7 @@
 #include "Editor/widgets/SegmentedControl.h"
 #include "Editor/widgets/TitleBar.h"
 #include "Editor/widgets/UpdateToast.h"
+#include "Editor/widgets/cards/ReferenceCardView.h"
 #include "Editor/widgets/routing/IRoutingRenderer.h"
 #include "Editor/widgets/subwooferrouting/SubwooferRoutingDefaults.h"
 #include "Editor/widgets/subwooferrouting/SubwooferRoutingEditorDialog.h"
@@ -127,7 +129,14 @@ const QList<GalleryScenario>& galleryScenarios()
 		{ QStringLiteral("channelscope"), { QStringLiteral("normal") } },
 		{ QStringLiteral("velvet-advanced"), { QStringLiteral("normal") } },
 		{ QStringLiteral("velvet-narrow"), { QStringLiteral("normal") } },
-		{ QStringLiteral("controls"), { QStringLiteral("normal") } }
+		{ QStringLiteral("controls"), { QStringLiteral("normal") } },
+		// The reference cards while it is not known yet whether their file
+		// exists (renderReferenceCheckingScenes), beside the rows' own
+		// normal shots of the same cards.
+		{ QStringLiteral("include"), { QStringLiteral("checking") } },
+		{ QStringLiteral("convolution"), { QStringLiteral("checking") } },
+		{ QStringLiteral("multiconvolution"), { QStringLiteral("checking") } },
+		{ QStringLiteral("vst"), { QStringLiteral("checking") } }
 	};
 	return scenarios;
 }
@@ -442,6 +451,100 @@ int renderStates(const QDir& outDir, const QString& skinId, const QString& mode,
 		failures += assertNoHorizontalScrollBar(row, skinId, mode, rows[i].name, QStringLiteral("hover"));
 		failures += saveGrab(row, outDir, skinId, mode, rows[i].name, QStringLiteral("hover")) ? 0 : 1;
 		setHoverEquivalent(row, false);
+	}
+	return failures;
+}
+
+// The reference cards' "checking" state (audit #467 TD-59): the product asks
+// on the background probe thread whether the file exists and shows the card
+// as checking until the answer lands, but the gallery's policy answers
+// synchronously so no scene depends on that timing. The state is staged on
+// the view instead, the way the editors set it up: no confirmed path, no
+// readout or status yet, nothing clickable, Browse with its plain label.
+int renderReferenceCheckingScenes(const QDir& outDir, const QString& skinId, const QString& mode,
+	const QString& configPath)
+{
+	// Staged inside the same table the rows' normal shots come from, so row
+	// number, channel scope and width match and the shots compare side by side.
+	const QList<GalleryRow> galleryLines = galleryRows();
+	QList<QString> lines;
+	for (const GalleryRow& row : galleryLines)
+		lines.append(row.line);
+
+	QScrollArea scrollArea;
+	scrollArea.resize(960, 720);
+	const QList<FilterCardRow*> allRows = buildRows(scrollArea, configPath, lines);
+	if (allRows.size() != galleryLines.size())
+	{
+		qWarning("SkinGallery: checking scenes expected %lld rows, got %lld (%s %s)",
+			static_cast<long long>(galleryLines.size()), static_cast<long long>(allRows.size()),
+			qPrintable(skinId), qPrintable(mode));
+		return 1;
+	}
+
+	const QStringList cards = { QStringLiteral("include"), QStringLiteral("convolution"),
+		QStringLiteral("multiconvolution"), QStringLiteral("vst") };
+	QList<FilterCardRow*> rowWidgets;
+	for (const QString& card : cards)
+	{
+		FilterCardRow* rowWidget = nullptr;
+		for (int i = 0; i < galleryLines.size(); i++)
+		{
+			if (galleryLines[i].name == card)
+				rowWidget = allRows[i];
+		}
+		ReferenceCardView* view = rowWidget != nullptr ? rowWidget->findChild<ReferenceCardView*>() : nullptr;
+		if (view == nullptr)
+		{
+			qWarning("SkinGallery: %s row has no reference card (%s %s)",
+				qPrintable(card), qPrintable(skinId), qPrintable(mode));
+			return 1;
+		}
+		rowWidgets.append(rowWidget);
+		for (QAbstractButton* button : view->findChildren<QAbstractButton*>())
+		{
+			const QString role = button->property("refActionRole").toString();
+			if (role == QLatin1String("browse"))
+				button->setText(QString());
+			else if (role == QLatin1String("openTarget") || role == QLatin1String("openPanel"))
+				button->setEnabled(false);
+			else if (role == QLatin1String("import"))
+				button->setVisible(false);
+		}
+		ReferenceCardState state = view->state();
+		state.checking = true;
+		state.missing = false;
+		state.fullPath.clear();
+		state.readout.clear();
+		state.statusText.clear();
+		state.statusSeverity = ReferenceCardState::Severity::None;
+		state.nameClickable = false;
+		view->setState(state);
+	}
+	// The rows were laid out for the present file (a convolution card with its
+	// readout); ask each body to fit the staged state, as a state change from
+	// the editor would, before the grab.
+	for (FilterCardRow* rowWidget : rowWidgets)
+	{
+		QScrollArea* body = rowWidget->findChild<QScrollArea*>(QStringLiteral("FilterCardEditorScroll"));
+		if (body != nullptr && body->widget() != nullptr)
+		{
+			if (body->widget()->layout() != nullptr)
+				body->widget()->layout()->activate();
+			QEvent layoutRequest(QEvent::LayoutRequest);
+			QCoreApplication::sendEvent(body->widget(), &layoutRequest);
+		}
+	}
+	QApplication::processEvents();
+	if (scrollArea.widget() != nullptr && scrollArea.widget()->layout() != nullptr)
+		scrollArea.widget()->layout()->activate();
+	QApplication::processEvents();
+
+	int failures = 0;
+	for (int i = 0; i < rowWidgets.size(); i++)
+	{
+		failures += assertNoHorizontalScrollBar(rowWidgets[i], skinId, mode, cards[i], QStringLiteral("checking"));
+		failures += saveGrab(rowWidgets[i], outDir, skinId, mode, cards[i], QStringLiteral("checking")) ? 0 : 1;
 	}
 	return failures;
 }
@@ -1198,6 +1301,7 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 				QStringLiteral("velvet-narrow"), QStringLiteral("normal")) ? 0 : 1;
 		}
 	}
+	failures += renderReferenceCheckingScenes(outDir, skinId, mode, configPath);
 	return failures;
 }
 }

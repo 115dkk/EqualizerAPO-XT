@@ -167,26 +167,34 @@ void MatrixReferenceCardView::applyState(const ReferenceCardState& state)
 	// readout while it does not. An empty reference has no feed patched
 	// (NO FEED); a written one that fails to resolve is a lost feed
 	// (MISSING).
+	// While the board still waits for the answer whether the file exists
+	// (audit #467 TD-59), the marker posts the pending readout in the resting
+	// coordinate ink: no signal colour, since nothing is known yet.
 	if (state.missing)
 		markerCell->setText(state.editText.trimmed().isEmpty()
 			? QStringLiteral("NO FEED") : QStringLiteral("MISSING"));
+	else if (state.checking)
+		markerCell->setText(tr("Checking...").toUpper());
 	else
 		markerCell->setText(feedDesignation(cardKind));
 	markerCell->setProperty("feedState",
 		state.missing ? QStringLiteral("missing") : QStringLiteral("live"));
+	markerCell->setProperty("feedChecking", state.checking);
 	repolish(markerCell);
 
 	// Payload: the name is data - brightest mono ink, never coloured. Accent
-	// appears only as the hover pre-light of the click affordance.
+	// appears only as the hover pre-light of the click affordance. A name
+	// still being checked is muted: not yet confirmed data.
 	nameCell->setFullText(state.name);
 	nameCell->setToolTip(state.fullPath.isEmpty() ? state.name : state.fullPath);
-	nameCell->setProperty("nameClickable", state.nameClickable && !state.missing);
+	nameCell->setProperty("nameClickable", state.nameClickable && !state.missing && !state.checking);
+	nameCell->setProperty("refChecking", state.checking);
 	repolish(nameCell);
 
 	// ABS: a hollow amber token - an absolute reference is a portability
 	// hazard, and amber is the rationed caution ink (hollow, per the bypass
 	// grammar: a hazard notice, not an engaged state).
-	absCell->setVisible(state.absolutePath && !state.missing);
+	absCell->setVisible(state.absolutePath && !state.missing && !state.checking);
 
 	// Format code (VST2/VST3): on a VST feed the loaded ABI is posted in the
 	// port strip's device engraving ("EXTERNAL DEVICE · VST3") - a second

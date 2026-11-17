@@ -211,6 +211,7 @@ SoftReferenceCardView::SoftReferenceCardView(const QString& kind, const SkinToke
 
 	nameLabel->setStyleSheet(QStringLiteral(
 		"QLabel { color: %1; font-size: 11pt; font-weight: 600; background: transparent; }"
+		"QLabel[refChecking=\"true\"] { color: %2; }"
 		"QLabel:disabled { color: %2; font-weight: 500; }")
 		.arg(t.text, t.mutedText));
 
@@ -343,6 +344,12 @@ void SoftReferenceCardView::applyState(const ReferenceCardState& state)
 	nameLabel->setFullText(state.name);
 	if (!state.fullPath.isEmpty())
 		nameLabel->setToolTip(state.fullPath);
+	// A name still being checked rests in the caption's quiet ink.
+	if (nameLabel->property("refChecking").toBool() != state.checking)
+	{
+		nameLabel->setProperty("refChecking", state.checking);
+		repolish(nameLabel);
+	}
 
 	formatChip->setVisible(!state.formatBadge.isEmpty());
 	formatChip->setText(state.formatBadge);
@@ -358,6 +365,11 @@ void SoftReferenceCardView::applyState(const ReferenceCardState& state)
 	// A bare relative reference repeats the name - drop the echo, keep the air.
 	if (caption == state.name)
 		caption.clear();
+	// While it is not known yet whether the file exists (audit #467 TD-59)
+	// the friendly second line just says so, in its usual quiet ink; the tile
+	// keeps its picture, because nothing has gone wrong.
+	if (state.checking)
+		caption = tr("Checking...");
 	captionLabel->setVisible(!caption.isEmpty());
 	captionLabel->setFullText(caption);
 	if (!state.fullPath.isEmpty())

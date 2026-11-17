@@ -69,6 +69,13 @@ StudioReferenceCardView::StudioReferenceCardView(const QString& kind, QWidget* p
 	missingChip = makeChip(QStringLiteral("MISSING"), QStringLiteral("missing"), page);
 	identityLayout->addWidget(missingChip, 0, Qt::AlignVCenter);
 
+	// Whether the file exists is not known yet (audit #467 TD-59): an unlit
+	// chip in the MISSING chip's place - quiet data ink, no light, because
+	// nothing has been found either way.
+	checkingChip = makeChip(tr("Checking...").toUpper(), QStringLiteral("checking"), page);
+	checkingChip->setProperty("chipLit", false);
+	identityLayout->addWidget(checkingChip, 0, Qt::AlignVCenter);
+
 	// The action buttons follow the chips instead of riding the pane's
 	// right edge; the stretch owns the leftover identity-line width.
 	actionLayout = new QHBoxLayout();
@@ -164,7 +171,8 @@ void StudioReferenceCardView::applyState(const ReferenceCardState& state)
 	if (!state.fullPath.isEmpty())
 		nameLabel->setToolTip(state.fullPath);
 	nameLabel->setProperty("refMissing", state.missing);
-	nameLabel->setProperty("refClickable", state.nameClickable && !state.missing);
+	nameLabel->setProperty("refChecking", state.checking);
+	nameLabel->setProperty("refClickable", state.nameClickable && !state.missing && !state.checking);
 	repolish(nameLabel);
 
 	// One light per row: while the reference is broken the danger chip is
@@ -174,10 +182,11 @@ void StudioReferenceCardView::applyState(const ReferenceCardState& state)
 	formatChip->setProperty("chipLit", !state.missing);
 	repolish(formatChip);
 
-	absChip->setVisible(state.absolutePath && !state.missing);
+	absChip->setVisible(state.absolutePath && !state.missing && !state.checking);
 	// An empty reference is unconfigured, not broken: the muted "No file
 	// selected" identity says it all, no alarm lamp (deletion first).
 	missingChip->setVisible(state.missing && !state.editText.isEmpty());
+	checkingChip->setVisible(state.checking);
 
 	// The window is the card's data anchor. Every configured reference has a
 	// location fact - the as-written containing prefix, or, for a bare
@@ -196,6 +205,13 @@ void StudioReferenceCardView::applyState(const ReferenceCardState& state)
 	else if (!state.directory.isEmpty())
 	{
 		windowText = state.locationPrefix();
+	}
+	else if (state.checking)
+	{
+		// No resolved path is confirmed yet; the window keeps its place
+		// (the row does not jump when the answer lands) and holds the
+		// datum under test, the reference as written.
+		windowText = state.editText.trimmed();
 	}
 	else if (!state.fullPath.isEmpty())
 	{
