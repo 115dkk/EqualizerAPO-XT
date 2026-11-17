@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.64.0 — 2026-11-17
+
 - **닿지 않는 파일을 가리키는 줄 때문에 Editor가 멈추지 않습니다.** Include,
   Convolution, MultiConvolution, VST 카드는 창을 그리는 도중에 파일이 있는지를
   물었습니다. 그래서 끊긴 네트워크 드라이브를 가리키는 줄이 있으면 행을 다시

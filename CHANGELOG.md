@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.64.0 — 2026-11-17
+
 - **A line that points at an unreachable file no longer freezes the Editor.**
   Include, Convolution, MultiConvolution and VST cards asked whether their
   file exists while the window was drawing, so a line pointing at a
