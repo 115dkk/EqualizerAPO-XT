@@ -45,6 +45,31 @@ enum class UpdateDownloadStatus
 	Failed
 };
 
+enum class UpdateCheckStart
+{
+	Started,
+	AlreadyRunning,
+	AlreadyStaged,
+	ShuttingDown
+};
+
+// The background check 60 s after launch runs only when the user left
+// automatic updates on and this is not the first run after install.
+bool shouldCheckAutomatically(bool automaticUpdates, bool firstRun, bool hasSession) noexcept;
+
+enum class ManualCheckNotice
+{
+	NotInstalledCopy,
+	Checking,
+	UpToDate,
+	Downloaded,
+	Failed
+};
+
+// What the menu action tells the user once a requested check has settled (or
+// cannot start).
+ManualCheckNotice manualCheckNotice(bool hasSession, UpdateDownloadStatus status) noexcept;
+
 // A failure from the client becomes Failed; its message goes to reportError
 // when one is given, because the elevated coordinator has no window to show
 // it in and would otherwise leave no trace of why the update did not apply.
@@ -64,6 +89,9 @@ public:
 	~UpdateSession();
 
 	bool startDownload();
+	// Starts a check on request. Unlike startDownload it may run again after an
+	// earlier run ended UpToDate, Failed or Cancelled.
+	UpdateCheckStart checkNow();
 	// Exit cancels an unfinished download, but keeps an already staged update.
 	void cancelPendingDownload();
 	void shutdown();
@@ -78,13 +106,17 @@ public:
 		const std::function<bool()>& launchElevatedCoordinator);
 
 private:
+	void startWorker();
+	void runWorker() noexcept;
 	void reportError(const std::string& error) const noexcept;
 
 	std::unique_ptr<IUpdateClient> client;
 	ErrorReporter errorReporter;
 	mutable std::mutex mutex;
+	std::timed_mutex workerMutex;
 	std::thread worker;
 	bool started = false;
+	bool shuttingDown = false;
 	std::optional<std::wstring> pendingVersion;
 	UpdateDownloadStatus status = UpdateDownloadStatus::Idle;
 };

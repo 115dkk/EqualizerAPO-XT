@@ -14,12 +14,14 @@
 #include "services/update/UpdateSession.h"
 #include "services/update/VelopackBootstrap.h"
 
+#include <chrono>
 #include <memory>
 #include <future>
 #include "services/install/InstallWaitBudget.h"
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <thread>
 
 namespace
 {
@@ -72,6 +74,157 @@ public:
 private:
 	std::shared_ptr<FakeUpdateState> state;
 };
+
+bool waitForDownloadStatus(UpdateSession& session, UpdateDownloadStatus expected)
+{
+	const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+	do
+	{
+		if (session.downloadStatus() == expected)
+			return true;
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	}
+	while (std::chrono::steady_clock::now() < deadline);
+	return session.downloadStatus() == expected;
+}
+}
+
+TEST_CASE(EditorLogicTests, testUpdateCheckNowRepeatsAfterUpToDate)
+{
+	auto state = std::make_shared<FakeUpdateState>();
+	state->availableVersion.reset();
+	UpdateSession session(std::make_unique<FakeUpdateClient>(state));
+
+	expectTrue(session.checkNow() == UpdateCheckStart::Started,
+		QStringLiteral("the requested update check starts"));
+	requireTrue(waitForDownloadStatus(session, UpdateDownloadStatus::UpToDate),
+		QStringLiteral("the first requested check settles as up to date"));
+	expectFalse(session.startDownload(),
+		QStringLiteral("the one-shot background entry point stays spent after a requested check"));
+	expectTrue(session.checkNow() == UpdateCheckStart::Started,
+		QStringLiteral("an up-to-date check can be requested again"));
+	session.shutdown();
+
+	expectEqual(state->stageCalls, 2, QStringLiteral("the adapter is asked by both requested checks"));
+	expectTrue(session.downloadStatus() == UpdateDownloadStatus::UpToDate,
+		QStringLiteral("the second requested check also settles"));
+}
+
+TEST_CASE(EditorLogicTests, testUpdateCheckNowRejectsConcurrentRun)
+{
+	auto state = std::make_shared<FakeUpdateState>();
+	std::promise<void> entered;
+	std::promise<void> resume;
+	auto ready = entered.get_future();
+	auto proceed = resume.get_future();
+	state->duringStage = [&] { entered.set_value(); proceed.wait(); };
+	UpdateSession session(std::make_unique<FakeUpdateClient>(state));
+
+	expectTrue(session.checkNow() == UpdateCheckStart::Started,
+		QStringLiteral("the first requested update check starts"));
+	ready.wait();
+	expectTrue(session.checkNow() == UpdateCheckStart::AlreadyRunning,
+		QStringLiteral("a requested check does not start beside a running check"));
+	expectEqual(state->stageCalls, 1, QStringLiteral("the blocked adapter is called once"));
+	resume.set_value();
+	session.shutdown();
+}
+
+TEST_CASE(EditorLogicTests, testUpdateCheckNowRejectsStagedUpdate)
+{
+	auto state = std::make_shared<FakeUpdateState>();
+	UpdateSession session(std::make_unique<FakeUpdateClient>(state));
+
+	expectTrue(session.checkNow() == UpdateCheckStart::Started,
+		QStringLiteral("the requested update check starts"));
+	requireTrue(waitForDownloadStatus(session, UpdateDownloadStatus::Staged),
+		QStringLiteral("the requested check stages the available update"));
+	expectTrue(session.checkNow() == UpdateCheckStart::AlreadyStaged,
+		QStringLiteral("a staged update suppresses another requested check"));
+	session.shutdown();
+
+	expectEqual(state->stageCalls, 1, QStringLiteral("the adapter is not called again after staging"));
+}
+
+TEST_CASE(EditorLogicTests, testUpdateCheckNowRetriesFailedRun)
+{
+	auto state = std::make_shared<FakeUpdateState>();
+	state->throwDuringStage = true;
+	UpdateSession session(std::make_unique<FakeUpdateClient>(state));
+
+	expectTrue(session.checkNow() == UpdateCheckStart::Started,
+		QStringLiteral("the first requested update check starts"));
+	requireTrue(waitForDownloadStatus(session, UpdateDownloadStatus::Failed),
+		QStringLiteral("the first requested check reports its failure"));
+	state->throwDuringStage = false;
+	expectTrue(session.checkNow() == UpdateCheckStart::Started,
+		QStringLiteral("a failed update check can be requested again"));
+	session.shutdown();
+
+	expectEqual(state->stageCalls, 2, QStringLiteral("the adapter is asked again after failure"));
+	expectTrue(session.downloadStatus() == UpdateDownloadStatus::Staged,
+		QStringLiteral("the retry can stage an available update"));
+}
+
+TEST_CASE(EditorLogicTests, testUpdateCheckNowRejectsShutdownSession)
+{
+	auto state = std::make_shared<FakeUpdateState>();
+	UpdateSession session(std::make_unique<FakeUpdateClient>(state));
+
+	session.shutdown();
+	expectTrue(session.checkNow() == UpdateCheckStart::ShuttingDown,
+		QStringLiteral("a requested check cannot start after shutdown begins"));
+	expectEqual(state->stageCalls, 0, QStringLiteral("shutdown prevents the adapter call"));
+}
+
+TEST_CASE(EditorLogicTests, testAutomaticUpdatePolicyCoversEveryInput)
+{
+	struct AutomaticCase
+	{
+		bool enabled;
+		bool firstRun;
+		bool hasSession;
+		bool expected;
+	};
+	const AutomaticCase cases[] = {
+		{ false, false, false, false },
+		{ false, false, true, false },
+		{ false, true, false, false },
+		{ false, true, true, false },
+		{ true, false, false, false },
+		{ true, false, true, true },
+		{ true, true, false, false },
+		{ true, true, true, false }
+	};
+	for (const AutomaticCase& row : cases)
+	{
+		expectTrue(shouldCheckAutomatically(row.enabled, row.firstRun, row.hasSession) == row.expected,
+			QStringLiteral("automatic check decision matches its input row"));
+	}
+}
+
+TEST_CASE(EditorLogicTests, testManualUpdateNoticeCoversEveryStatus)
+{
+	struct NoticeCase
+	{
+		UpdateDownloadStatus status;
+		ManualCheckNotice expected;
+	};
+	const NoticeCase cases[] = {
+		{ UpdateDownloadStatus::Idle, ManualCheckNotice::Checking },
+		{ UpdateDownloadStatus::Running, ManualCheckNotice::Checking },
+		{ UpdateDownloadStatus::UpToDate, ManualCheckNotice::UpToDate },
+		{ UpdateDownloadStatus::Staged, ManualCheckNotice::Downloaded },
+		{ UpdateDownloadStatus::Cancelled, ManualCheckNotice::Failed },
+		{ UpdateDownloadStatus::Failed, ManualCheckNotice::Failed }
+	};
+	for (const NoticeCase& row : cases)
+	{
+		expectTrue(manualCheckNotice(true, row.status) == row.expected,
+			QStringLiteral("installed-copy notice matches the settled status"));
+		expectTrue(manualCheckNotice(false, row.status) == ManualCheckNotice::NotInstalledCopy,
+			QStringLiteral("a missing update session always reports an unpackaged copy"));
+	}
 }
 
 TEST_CASE(EditorLogicTests, testUpdateShutdownDeadlineKeepsRunningWorkerOwned)

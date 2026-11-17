@@ -11,6 +11,7 @@
 #include "UpdateSession.h"
 #include "platform/windows/ThreadWait.h"
 
+#include <chrono>
 #include <exception>
 #include <utility>
 
@@ -29,6 +30,32 @@ void reportCoordinatorError(const std::function<void(const std::string&)>& repor
 	{
 	}
 }
+}
+
+bool shouldCheckAutomatically(bool automaticUpdates, bool firstRun, bool hasSession) noexcept
+{
+	return automaticUpdates && !firstRun && hasSession;
+}
+
+ManualCheckNotice manualCheckNotice(bool hasSession, UpdateDownloadStatus status) noexcept
+{
+	if (!hasSession)
+		return ManualCheckNotice::NotInstalledCopy;
+
+	switch (status)
+	{
+	case UpdateDownloadStatus::Idle:
+	case UpdateDownloadStatus::Running:
+		return ManualCheckNotice::Checking;
+	case UpdateDownloadStatus::UpToDate:
+		return ManualCheckNotice::UpToDate;
+	case UpdateDownloadStatus::Staged:
+		return ManualCheckNotice::Downloaded;
+	case UpdateDownloadStatus::Cancelled:
+	case UpdateDownloadStatus::Failed:
+		return ManualCheckNotice::Failed;
+	}
+	return ManualCheckNotice::Failed;
 }
 
 UpdateApplyOutcome coordinatePendingRestartUpdate(IUpdateClient& client,
@@ -66,53 +93,92 @@ UpdateSession::~UpdateSession()
 
 bool UpdateSession::startDownload()
 {
+	std::lock_guard<std::timed_mutex> workerLock(workerMutex);
 	std::lock_guard<std::mutex> lock(mutex);
-	if (started || status == UpdateDownloadStatus::Cancelled)
+	if (started || shuttingDown)
 		return false;
 
 	started = true;
+	startWorker();
+	return true;
+}
+
+UpdateCheckStart UpdateSession::checkNow()
+{
+	std::lock_guard<std::timed_mutex> workerLock(workerMutex);
+	{
+		std::lock_guard<std::mutex> lock(mutex);
+		if (shuttingDown)
+			return UpdateCheckStart::ShuttingDown;
+		if (status == UpdateDownloadStatus::Running)
+			return UpdateCheckStart::AlreadyRunning;
+		if (pendingVersion.has_value())
+			return UpdateCheckStart::AlreadyStaged;
+	}
+
+	// The previous worker takes mutex to publish its result. Keep only the
+	// worker-lifecycle lock while joining so publication cannot deadlock here.
+	if (worker.joinable())
+		worker.join();
+
+	std::lock_guard<std::mutex> lock(mutex);
+	// Another thread may begin shutdown while this call joins the previous worker.
+	// cppcheck-suppress knownConditionTrueFalse
+	if (shuttingDown)
+		return UpdateCheckStart::ShuttingDown;
+	started = true;
+	startWorker();
+	return UpdateCheckStart::Started;
+}
+
+void UpdateSession::startWorker()
+{
+	pendingVersion.reset();
 	status = UpdateDownloadStatus::Running;
-	worker = std::thread([this]() {
-		try
+	worker = std::thread([this]() { runWorker(); });
+}
+
+void UpdateSession::runWorker() noexcept
+{
+	try
+	{
+		std::optional<std::wstring> stagedVersion = client->stageAvailableUpdate();
+		std::lock_guard<std::mutex> stateLock(mutex);
+		if (status == UpdateDownloadStatus::Cancelled)
+			return;
+		pendingVersion = std::move(stagedVersion);
+		status = pendingVersion.has_value()
+			? UpdateDownloadStatus::Staged
+			: UpdateDownloadStatus::UpToDate;
+	}
+	catch (const std::exception& error)
+	{
 		{
-			std::optional<std::wstring> stagedVersion = client->stageAvailableUpdate();
 			std::lock_guard<std::mutex> stateLock(mutex);
 			if (status == UpdateDownloadStatus::Cancelled)
 				return;
-			pendingVersion = std::move(stagedVersion);
-			status = pendingVersion.has_value()
-				? UpdateDownloadStatus::Staged
-				: UpdateDownloadStatus::UpToDate;
+			pendingVersion.reset();
+			status = UpdateDownloadStatus::Failed;
 		}
-		catch (const std::exception& error)
+		reportError(error.what());
+	}
+	catch (...)
+	{
 		{
-			{
-				std::lock_guard<std::mutex> stateLock(mutex);
-				if (status == UpdateDownloadStatus::Cancelled)
-					return;
-				pendingVersion.reset();
-				status = UpdateDownloadStatus::Failed;
-			}
-			reportError(error.what());
+			std::lock_guard<std::mutex> stateLock(mutex);
+			if (status == UpdateDownloadStatus::Cancelled)
+				return;
+			pendingVersion.reset();
+			status = UpdateDownloadStatus::Failed;
 		}
-		catch (...)
-		{
-			{
-				std::lock_guard<std::mutex> stateLock(mutex);
-				if (status == UpdateDownloadStatus::Cancelled)
-					return;
-				pendingVersion.reset();
-				status = UpdateDownloadStatus::Failed;
-			}
-			reportError("unknown update download failure");
-		}
-	});
-	return true;
+		reportError("unknown update download failure");
+	}
 }
 
 void UpdateSession::cancelPendingDownload()
 {
 	std::lock_guard<std::mutex> lock(mutex);
+	shuttingDown = true;
 	if (status == UpdateDownloadStatus::Idle || status == UpdateDownloadStatus::Running)
 	{
 		// Velopack's C progress callback returns void and has no abort contract.
@@ -125,21 +191,37 @@ void UpdateSession::cancelPendingDownload()
 
 bool UpdateSession::shutdown(unsigned long timeoutMs)
 {
+	{
+		std::lock_guard<std::mutex> lock(mutex);
+		shuttingDown = true;
+	}
+
+	const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeoutMs);
+	std::unique_lock<std::timed_mutex> workerLock(workerMutex, std::defer_lock);
+	if (!workerLock.try_lock() && !workerLock.try_lock_until(deadline))
+		return false;
+
+	unsigned long remainingMs = 0;
+	const auto now = std::chrono::steady_clock::now();
+	if (now < deadline)
+	{
+		remainingMs = static_cast<unsigned long>(
+			std::chrono::duration_cast<std::chrono::milliseconds>(deadline - now).count());
+	}
 	// Keep ownership on timeout: the process-exit caller must skip destruction,
 	// not let a live download touch a freed session (audit #467 TD-58).
-	return winutil::joinThreadFor(worker, timeoutMs);
+	return winutil::joinThreadFor(worker, remainingMs);
 }
 
 void UpdateSession::shutdown()
 {
-	std::thread ownedWorker;
 	{
 		std::lock_guard<std::mutex> lock(mutex);
-		if (!worker.joinable())
-			return;
-		ownedWorker = std::move(worker);
+		shuttingDown = true;
 	}
-	ownedWorker.join();
+	std::lock_guard<std::timed_mutex> workerLock(workerMutex);
+	if (worker.joinable())
+		worker.join();
 }
 
 bool UpdateSession::hasPendingUpdate() const
