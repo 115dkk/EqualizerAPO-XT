@@ -131,7 +131,7 @@
     <ClInclude Include="platform\windows\ComError.h" />
     <ClInclude Include="platform\windows\ConsoleOutput.h" />
     <ClInclude Include="platform\windows\ElevatedLaunch.h" />
-    <ClInclude Include="platform\windows\UnelevatedLaunch.h" />
+    <ClInclude Include="services\shell\UnelevatedLaunch.h" />
     <ClInclude Include="platform\windows\TimeStamp.h" />
     <ClInclude Include="services\windows\ServiceWait.h" />
     <ClInclude Include="services\install\InstallWaitBudget.h" />
@@ -145,6 +145,7 @@
     <ClInclude Include="engine\ConfigLoadTrace.h" />
     <ClInclude Include="engine\ConfigurationFileReader.h" />
     <ClInclude Include="devices\ApoRuntimeFacts.h" />
+    <ClInclude Include="devices\HostAutoStart.h" />
     <ClInclude Include="devices\ReceiverEndpoints.h" />
     <ClInclude Include="devices\DeviceAPOInfo.h" />
     <ClInclude Include="devices\DevicePlan.h" />
@@ -275,7 +276,7 @@
     <ClInclude Include="audio\io\SndfileRAII.h" />
     <ClInclude Include="text\WideString.h" />
     <ClInclude Include="platform\windows\TextEncoding.h" />
-    <ClInclude Include="platform\windows\ComSelfRegistration.h" />
+    <ClInclude Include="services\install\ComSelfRegistration.h" />
     <ClInclude Include="platform\windows\ProcessCommandLine.h" />
     <ClInclude Include="platform\windows\ShellLink.h" />
     <ClInclude Include="platform\windows\Win32Error.h" />
@@ -313,6 +314,7 @@
     <ClCompile Include="asio\StreamFacts.cpp" />
     <ClCompile Include="engine\ConfigurationFileReader.cpp" />
     <ClCompile Include="devices\ApoRuntimeFacts.cpp" />
+    <ClCompile Include="devices\HostAutoStart.cpp" />
     <ClCompile Include="devices\ReceiverEndpoints.cpp" />
     <ClCompile Include="devices\DeviceAPOInfo.cpp" />
     <ClCompile Include="devices\DeviceAPOInfo.Change.cpp" />
@@ -401,7 +403,7 @@
     <ClCompile Include="services\registry\ClsidRegistration.cpp" />
     <ClCompile Include="services\registry\RegistryTransaction.cpp" />
     <ClCompile Include="platform\windows\WindowsVersion.cpp" />
-    <ClCompile Include="platform\windows\ComSelfRegistration.cpp" />
+    <ClCompile Include="services\install\ComSelfRegistration.cpp" />
     <ClCompile Include="platform\windows\ProcessCommandLine.cpp" />
     <ClCompile Include="platform\windows\ShellLink.cpp" />
     <ClCompile Include="platform\windows\GuidText.cpp" />

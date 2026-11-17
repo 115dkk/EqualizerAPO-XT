@@ -20,7 +20,7 @@ PRECOMPILED_HEADER = stdafx.h
 
 SOURCES += \
 	../Editor/helpers/CrashHandler.cpp \
-	../platform/qt/QtAppBootstrap.cpp \
+	../services/app/QtAppBootstrap.cpp \
 	../platform/qt/HoverProgress.cpp \
 	../Editor/skins/SkinThemeData.cpp \
 	../Editor/skins/rack/RackSkinDetail.cpp \
@@ -52,7 +52,7 @@ SOURCES += \
 
 HEADERS += \
 	../Editor/helpers/CrashHandler.h \
-	../platform/qt/QtAppBootstrap.h \
+	../services/app/QtAppBootstrap.h \
 	../platform/qt/HoverProgress.h \
 	../platform/qt/MotionPreference.h \
 	../platform/qt/ScrollBarPolicy.h \
@@ -122,7 +122,7 @@ RC_FILE = DeviceSelector.rc
 
 HEADERS += \
 	../runtime/concurrency/ShutdownSequence.h \
-	../platform/windows/ProcessShutdown.h \
+	../services/app/ProcessShutdown.h \
 	../devices/AsioEntryWriter.h \
 	../devices/EndpointProbe.h \
 	../platform/windows/EndpointId.h \
@@ -135,7 +135,7 @@ HEADERS += \
 	../platform/windows/ComError.h \
 	../platform/windows/ConsoleOutput.h \
 	../platform/windows/ElevatedLaunch.h \
-	../platform/windows/UnelevatedLaunch.h \
+	../services/shell/UnelevatedLaunch.h \
 	../platform/windows/TimeStamp.h \
 	../services/windows/ServiceWait.h \
 	../services/install/InstallWaitBudget.h

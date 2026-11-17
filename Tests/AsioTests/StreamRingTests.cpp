@@ -18,7 +18,7 @@
 #include <thread>
 #include <vector>
 
-#include "runtime/ipc/StreamRing.h"
+#include "asio/StreamRing.h"
 #include "../TestHarness.h"
 
 using eapo::asio::Direction;

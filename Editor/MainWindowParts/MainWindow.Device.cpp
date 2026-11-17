@@ -32,6 +32,7 @@
 #include "Editor/helpers/GUIChannelHelper.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/DeviceFormatBadgeState.h"
+#include "Editor/widgets/StyleRefresh.h"
 #include "version.h"
 #include "FilterTable.h"
 #include "MainWindow.h"
@@ -235,8 +236,7 @@ void MainWindow::applyDeviceFormatBadge(const DeviceFormatBadgeState& badge)
 	deviceFormatBadge->setText(badge.text);
 	deviceFormatBadge->setToolTip(badge.toolTip);
 	deviceFormatBadge->setProperty("severity", badge.severity);
-	deviceFormatBadge->style()->unpolish(deviceFormatBadge);
-	deviceFormatBadge->style()->polish(deviceFormatBadge);
+	repolish(deviceFormatBadge);
 	deviceFormatBadge->setVisible(true);
 }
 

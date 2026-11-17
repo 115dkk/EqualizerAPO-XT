@@ -22,7 +22,7 @@
 
 #include "asio/HostLink.h"
 #include "asio/StreamProcessor.h"
-#include "runtime/ipc/StreamRing.h"
+#include "asio/StreamRing.h"
 
 namespace eapo::asio
 {

@@ -18,17 +18,10 @@
 #include <QStyle>
 
 #include "Editor/SkinManager.h"
+#include "Editor/widgets/StyleRefresh.h"
 
 namespace
 {
-// Re-evaluate a widget's stylesheet after a dynamic property changed.
-void repolish(QWidget* widget)
-{
-	widget->style()->unpolish(widget);
-	widget->style()->polish(widget);
-	widget->update();
-}
-
 QString actionRoleName(ReferenceCardView::ActionRole role)
 {
 	switch (role)

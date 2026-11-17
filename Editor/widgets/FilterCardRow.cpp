@@ -53,6 +53,47 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	setAttribute(Qt::WA_StyledBackground, false);
 	setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
 
+	QVBoxLayout* cardLayout = buildCardFrame();
+
+	// Dress the frame and header now, while the card is two widgets deep:
+	// setStyleSheet() re-resolves the style of every descendant, so applying
+	// these sheets to the finished ~40-widget card (the applyDescriptor() call
+	// at the end of this constructor used to be the first apply) re-styled the
+	// whole subtree per card - measured ~3 ms each on a 300-row config.
+	// Children created below inherit the sheets as they appear, and the
+	// applyDescriptor() re-run finds identical strings and properties, so it
+	// skips both the re-set and the construction-time repolish entirely.
+	syncVisualState();
+
+	QHBoxLayout* headerLayout = buildHeaderControls(number);
+	buildHeaderIdentity(headerLayout);
+	buildBodyStack(cardLayout);
+	mountBody();
+
+	bodyStack->setVisible(expanded);
+	connect(SkinManager::instance(), &SkinManager::skinChanged, this, [this](const SkinTokens&) {
+		syncVisualState();
+		update();
+	});
+	// Per-command-type chrome hook: rows are recreated on every skin switch
+	// (FilterTable::updateGuis), so construction time is the right moment for
+	// the active skin to tag or extend this row.
+	SkinManager::instance()->prepareCommandRow(currentRowInfo(), cardFrame, headerWidget, bodyStack);
+	applyDescriptor();
+
+	// Mouse events from the header's blank/label surface naturally bubble to
+	// FilterTable, which also owns drag selection. Interactive controls accept
+	// their events, though, so a click in an expanded card used to leave a
+	// different row focused and could strand a multi-selection indefinitely.
+	// Observe only the non-drag surfaces and select their owning card before
+	// the control handles the same plain click.
+	watchPointerSelection(bodyStack);
+	for (QAbstractButton* button : headerWidget->findChildren<QAbstractButton*>())
+		watchPointerSelection(button);
+}
+
+QVBoxLayout* FilterCardRow::buildCardFrame()
+{
 	QVBoxLayout* outerLayout = new QVBoxLayout(this);
 	outerLayout->setContentsMargins(CommandRowInfo::cardMarginLeft + rowIndentUnits() * SkinManager::instance()->tokens().channelGroupIndent,
 		CommandRowInfo::cardMarginTop, 8, 4);
@@ -78,17 +119,11 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	headerWidget->setAttribute(Qt::WA_StyledBackground, true);
 	headerWidget->setMinimumHeight(SkinManager::instance()->tokens().rowHeight);
 	cardLayout->addWidget(headerWidget);
+	return cardLayout;
+}
 
-	// Dress the frame and header now, while the card is two widgets deep:
-	// setStyleSheet() re-resolves the style of every descendant, so applying
-	// these sheets to the finished ~40-widget card (the applyDescriptor() call
-	// at the end of this constructor used to be the first apply) re-styled the
-	// whole subtree per card - measured ~3 ms each on a 300-row config.
-	// Children created below inherit the sheets as they appear, and the
-	// applyDescriptor() re-run finds identical strings and properties, so it
-	// skips both the re-set and the construction-time repolish entirely.
-	syncVisualState();
-
+QHBoxLayout* FilterCardRow::buildHeaderControls(int number)
+{
 	// 2px vertical margins, not 4: the header's height floor is the skin's
 	// rowHeight token, and the slimmer margins let the compact skins actually
 	// reach it instead of being held up by the button train.
@@ -176,7 +211,11 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	// train. 10px was judged barely visible (maintainer, round 2); 30px is
 	// the accepted width.
 	headerLayout->addSpacing(30);
+	return headerLayout;
+}
 
+void FilterCardRow::buildHeaderIdentity(QHBoxLayout* headerLayout)
+{
 	typeBadge = new QLabel(headerWidget);
 	typeBadge->setObjectName(QStringLiteral("FilterTypeBadge"));
 	typeBadge->setAlignment(Qt::AlignCenter);
@@ -215,7 +254,10 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	channelBadgeContainer->setVisible(false);
 	headerLayout->addWidget(channelBadgeContainer);
 	headerLayout->addStretch(1);
+}
 
+void FilterCardRow::buildBodyStack(QVBoxLayout* cardLayout)
+{
 	bodyStack = new QStackedWidget(cardFrame);
 	bodyStack->setObjectName(QStringLiteral("FilterCardBody"));
 	bodyStack->setAttribute(Qt::WA_StyledBackground, true);
@@ -237,7 +279,10 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	lineEdit->setObjectName(QStringLiteral("FilterCardRawEditor"));
 	connect(lineEdit, &QLineEdit::editingFinished, this, &FilterCardRow::lineEditingFinished);
 	bodyStack->addWidget(lineEdit);
+}
 
+void FilterCardRow::mountBody()
+{
 	// A Copy line with inline `expression` factors must not open the routing
 	// view (FilterCardModel::opensRoutingView): such lines keep the raw body
 	// (dynamic-value contract), like every other dynamic line without a
@@ -270,7 +315,7 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 		connect(routingView, &RoutingView::routingChanged, this, &FilterCardRow::routingEdited);
 		connect(routingView, &RoutingView::routingChanged, table, &FilterTable::updateChannels);
 
-		// The expand default above keys off the gui the body shows; routing
+		// The expand default (buildHeaderControls) keys off the gui the body shows; routing
 		// rows are their own editor and start open.
 		setExpanded(true);
 	}
@@ -286,57 +331,41 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 		// Unrecognized command line: no dedicated editor. Present a styled
 		// monospace raw card with the command token emphasized, so it reads
 		// as a deliberate raw row instead of bare plain text.
-		const SkinTokens& tk = SkinManager::instance()->tokens();
-		QWidget* rawContainer = new QWidget(bodyStack);
-		rawContainer->setObjectName(QStringLiteral("FilterCardEditor"));
-		rawContainer->setAttribute(Qt::WA_StyledBackground, true);
-		rawContainer->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
-		rawContainer->setMinimumSize(0, 0);
-		QHBoxLayout* rawLayout = new QHBoxLayout(rawContainer);
-		rawLayout->setContentsMargins(12, 10, 12, 12);
-		rawLayout->setSpacing(10);
-
-		QLabel* glyph = new QLabel(QStringLiteral(">_"), rawContainer);
-		glyph->setObjectName(QStringLiteral("FilterCardRawGlyph"));
-		glyph->setStyleSheet(QStringLiteral("color:%1; font-family:\"%2\"; font-weight:700;")
-			.arg(tk.mutedText, tk.monoFontFamily));
-		rawLayout->addWidget(glyph, 0, Qt::AlignTop);
-
-		QLabel* rawLabel = new QLabel(rawContainer);
-		rawLabel->setObjectName(QStringLiteral("FilterCardRawText"));
-		rawLabel->setText(item->text);
-		rawLabel->setWordWrap(true);
-		rawLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
-		rawLabel->setStyleSheet(QStringLiteral("QLabel#FilterCardRawText { background:%1; color:%2; border:1px solid %3; border-radius:%4px; padding:6px 10px; font-family:\"%5\"; }")
-			.arg(tk.surfaceSunken, tk.text, tk.border)
-			.arg(tk.borderRadius / 2)
-			.arg(tk.monoFontFamily));
-		rawLayout->addWidget(rawLabel, 1);
-
-		bodyStack->addWidget(rawContainer);
-		bodyStack->setCurrentWidget(rawContainer);
+		mountRawBody();
 	}
+}
 
-	bodyStack->setVisible(expanded);
-	connect(SkinManager::instance(), &SkinManager::skinChanged, this, [this](const SkinTokens&) {
-		syncVisualState();
-		update();
-	});
-	// Per-command-type chrome hook: rows are recreated on every skin switch
-	// (FilterTable::updateGuis), so construction time is the right moment for
-	// the active skin to tag or extend this row.
-	SkinManager::instance()->prepareCommandRow(currentRowInfo(), cardFrame, headerWidget, bodyStack);
-	applyDescriptor();
+void FilterCardRow::mountRawBody()
+{
+	const SkinTokens& tk = SkinManager::instance()->tokens();
+	QWidget* rawContainer = new QWidget(bodyStack);
+	rawContainer->setObjectName(QStringLiteral("FilterCardEditor"));
+	rawContainer->setAttribute(Qt::WA_StyledBackground, true);
+	rawContainer->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+	rawContainer->setMinimumSize(0, 0);
+	QHBoxLayout* rawLayout = new QHBoxLayout(rawContainer);
+	rawLayout->setContentsMargins(12, 10, 12, 12);
+	rawLayout->setSpacing(10);
 
-	// Mouse events from the header's blank/label surface naturally bubble to
-	// FilterTable, which also owns drag selection. Interactive controls accept
-	// their events, though, so a click in an expanded card used to leave a
-	// different row focused and could strand a multi-selection indefinitely.
-	// Observe only the non-drag surfaces and select their owning card before
-	// the control handles the same plain click.
-	watchPointerSelection(bodyStack);
-	for (QAbstractButton* button : headerWidget->findChildren<QAbstractButton*>())
-		watchPointerSelection(button);
+	QLabel* glyph = new QLabel(QStringLiteral(">_"), rawContainer);
+	glyph->setObjectName(QStringLiteral("FilterCardRawGlyph"));
+	glyph->setStyleSheet(QStringLiteral("color:%1; font-family:\"%2\"; font-weight:700;")
+		.arg(tk.mutedText, tk.monoFontFamily));
+	rawLayout->addWidget(glyph, 0, Qt::AlignTop);
+
+	QLabel* rawLabel = new QLabel(rawContainer);
+	rawLabel->setObjectName(QStringLiteral("FilterCardRawText"));
+	rawLabel->setText(item->text);
+	rawLabel->setWordWrap(true);
+	rawLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+	rawLabel->setStyleSheet(QStringLiteral("QLabel#FilterCardRawText { background:%1; color:%2; border:1px solid %3; border-radius:%4px; padding:6px 10px; font-family:\"%5\"; }")
+		.arg(tk.surfaceSunken, tk.text, tk.border)
+		.arg(tk.borderRadius / 2)
+		.arg(tk.monoFontFamily));
+	rawLayout->addWidget(rawLabel, 1);
+
+	bodyStack->addWidget(rawContainer);
+	bodyStack->setCurrentWidget(rawContainer);
 }
 
 void FilterCardRow::setChannelFlow(const ChannelFlowAtLine& flow)

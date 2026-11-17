@@ -95,7 +95,7 @@ struct GalleryScenario
 	QStringList states;
 };
 
-// Fixed chrome scenarios are registered once. The render blocks below build
+// Fixed chrome scenarios are registered once. The render functions below build
 // their specialized widgets, while this table owns scenario identity, state
 // vocabulary, and the deterministic shot-count contract.
 const QList<GalleryScenario>& galleryScenarios()
@@ -549,181 +549,201 @@ int renderReferenceCheckingScenes(const QDir& outDir, const QString& skinId, con
 	return failures;
 }
 
-int renderSkin(const QDir& outDir, const QString& skinId, const QString& configPath, bool dark)
+// What every fixed scene of one skin and mode shares (audit #467 TD-38):
+// where the shots go, the skin and mode they are named after, the gallery
+// config the rows are built from, and the running failure count. Each
+// render function below is one scene or scene group of renderSkin, called
+// in the original order.
+struct SkinRenderContext
 {
-	SkinManager::instance()->applySkin(skinId, dark);
-	if (SkinManager::instance()->currentSkinId() != skinId)
+	SkinRenderContext(const QDir& dir, const QString& skin, const QString& skinMode, const QString& config)
+		: outDir(dir), skinId(skin), mode(skinMode), configPath(config)
 	{
-		// Skins::byId silently falls back to studio for unknown ids; a typo in
-		// --skin-gallery-skins must fail loudly instead of producing duplicate
-		// studio shots under a wrong name.
-		qWarning("SkinGallery: unknown skin id '%s'", qPrintable(skinId));
-		return 1;
 	}
 
-	const QString mode = dark ? QStringLiteral("dark") : QStringLiteral("light");
+	const QDir& outDir;
+	const QString& skinId;
+	const QString mode;
+	const QString& configPath;
 	int failures = 0;
-	failures += renderStates(outDir, skinId, mode, configPath, galleryRows(), false);
-	failures += renderStates(outDir, skinId, mode, configPath, galleryRows(), true);
+};
 
-	// The skin's "add filter" picker with the real template set, captured the
-	// same way the rows are. A throwaway FilterTable supplies the entries from
-	// the same command catalog chooseFilterTemplate consults at runtime.
-	{
-		QScrollArea scrollArea;
-		scrollArea.resize(960, 720);
-		buildRows(scrollArea, configPath, { QStringLiteral("Preamp: -6 dB") });
-		const FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
-		FilterPickerView* picker = SkinManager::instance()->createFilterPicker(nullptr);
-		picker->setEntries(table != nullptr ? table->filterPickerEntries() : QList<FilterPickerEntry>());
-		picker->adjustSize();
-		picker->show();
-		QApplication::processEvents();
-		failures += saveGrab(picker, outDir, skinId, mode, QStringLiteral("picker"), QStringLiteral("normal")) ? 0 : 1;
-		// Showcase states. Pickers that have not implemented a state render
-		// their normal look (base no-op), so the shot count stays fixed.
-		picker->galleryShowcase(FilterPickerView::GalleryShowcase::HoverFirstEntry);
-		QApplication::processEvents();
-		failures += saveGrab(picker, outDir, skinId, mode, QStringLiteral("picker"), QStringLiteral("hover")) ? 0 : 1;
-		picker->galleryShowcase(FilterPickerView::GalleryShowcase::EmptySearch);
-		QApplication::processEvents();
-		failures += saveGrab(picker, outDir, skinId, mode, QStringLiteral("picker"), QStringLiteral("empty")) ? 0 : 1;
-		// The Phase & Time group. Without this the gallery only shows that the
-		// all-pass left the parametric list, not where it went - and the list
-		// is taller than the picker, so the group is below the fold in the
-		// resting shot.
-		picker->galleryShowcase(FilterPickerView::GalleryShowcase::PhaseAndTimeSearch);
-		QApplication::processEvents();
-		failures += saveGrab(picker, outDir, skinId, mode, QStringLiteral("picker"), QStringLiteral("phasetime")) ? 0 : 1;
-		// The Control group: the templates named "Name (Description)", so
-		// the shot judges how the skin prints the description beside the
-		// name (the Matrix board never opens on this bus by itself).
-		picker->galleryShowcase(FilterPickerView::GalleryShowcase::ControlSearch);
-		QApplication::processEvents();
-		failures += saveGrab(picker, outDir, skinId, mode, QStringLiteral("picker"), QStringLiteral("control")) ? 0 : 1;
-		delete picker;
-	}
+// The skin's "add filter" picker with the real template set, captured the
+// same way the rows are. A throwaway FilterTable supplies the entries from
+// the same command catalog chooseFilterTemplate consults at runtime.
+void renderPickerScenes(SkinRenderContext& ctx)
+{
+	const QDir& outDir = ctx.outDir;
+	const QString& skinId = ctx.skinId;
+	const QString& mode = ctx.mode;
+	const QString& configPath = ctx.configPath;
+	int& failures = ctx.failures;
+	QScrollArea scrollArea;
+	scrollArea.resize(960, 720);
+	buildRows(scrollArea, configPath, { QStringLiteral("Preamp: -6 dB") });
+	const FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
+	FilterPickerView* picker = SkinManager::instance()->createFilterPicker(nullptr);
+	picker->setEntries(table != nullptr ? table->filterPickerEntries() : QList<FilterPickerEntry>());
+	picker->adjustSize();
+	picker->show();
+	QApplication::processEvents();
+	failures += saveGrab(picker, outDir, skinId, mode, QStringLiteral("picker"), QStringLiteral("normal")) ? 0 : 1;
+	// Showcase states. Pickers that have not implemented a state render
+	// their normal look (base no-op), so the shot count stays fixed.
+	picker->galleryShowcase(FilterPickerView::GalleryShowcase::HoverFirstEntry);
+	QApplication::processEvents();
+	failures += saveGrab(picker, outDir, skinId, mode, QStringLiteral("picker"), QStringLiteral("hover")) ? 0 : 1;
+	picker->galleryShowcase(FilterPickerView::GalleryShowcase::EmptySearch);
+	QApplication::processEvents();
+	failures += saveGrab(picker, outDir, skinId, mode, QStringLiteral("picker"), QStringLiteral("empty")) ? 0 : 1;
+	// The Phase & Time group. Without this the gallery only shows that the
+	// all-pass left the parametric list, not where it went - and the list
+	// is taller than the picker, so the group is below the fold in the
+	// resting shot.
+	picker->galleryShowcase(FilterPickerView::GalleryShowcase::PhaseAndTimeSearch);
+	QApplication::processEvents();
+	failures += saveGrab(picker, outDir, skinId, mode, QStringLiteral("picker"), QStringLiteral("phasetime")) ? 0 : 1;
+	// The Control group: the templates named "Name (Description)", so
+	// the shot judges how the skin prints the description beside the
+	// name (the Matrix board never opens on this bus by itself).
+	picker->galleryShowcase(FilterPickerView::GalleryShowcase::ControlSearch);
+	QApplication::processEvents();
+	failures += saveGrab(picker, outDir, skinId, mode, QStringLiteral("picker"), QStringLiteral("control")) ? 0 : 1;
+	delete picker;
+}
 
-	// The full subwoofer-routing editor dialog, in the two states a user meets
-	// first: the seeded default for a stereo+LFE endpoint, and the built-in
-	// #246 preset. The dialog hosts the skin's routing renderer twice plus
-	// the response view, so it is judged per skin like the picker.
+// The full subwoofer-routing editor dialog, in the two states a user meets
+// first: the seeded default for a stereo+LFE endpoint, and the built-in
+// #246 preset. The dialog hosts the skin's routing renderer twice plus
+// the response view, so it is judged per skin like the picker.
+void renderRoutingDialogScenes(SkinRenderContext& ctx)
+{
+	const QDir& outDir = ctx.outDir;
+	const QString& skinId = ctx.skinId;
+	const QString& mode = ctx.mode;
+	int& failures = ctx.failures;
+	const subroute::PresetCreateResult preset =
+		subroute::createBuiltInPreset(
+			subroute::kIssue246FrontRear41PresetId);
+	const struct
 	{
-		const subroute::PresetCreateResult preset =
-			subroute::createBuiltInPreset(
-				subroute::kIssue246FrontRear41PresetId);
-		const struct
-		{
-			QString state;
-			subroute::SubwooferRoutingState value;
-			bool expandRouting = false;
-		} dialogStates[] = {
-			{ QStringLiteral("default"),
-				subwooferroutingeditor::buildDefaultState(
+		QString state;
+		subroute::SubwooferRoutingState value;
+		bool expandRouting = false;
+	} dialogStates[] = {
+		{ QStringLiteral("default"),
+			subwooferroutingeditor::buildDefaultState(
+				{ L"L", L"R", L"LFE" }), false },
+		{ QStringLiteral("preset"),
+			preset.succeeded()
+				? *preset.state
+				: subwooferroutingeditor::buildDefaultState(
 					{ L"L", L"R", L"LFE" }), false },
-			{ QStringLiteral("preset"),
-				preset.succeeded()
-					? *preset.state
-					: subwooferroutingeditor::buildDefaultState(
-						{ L"L", L"R", L"LFE" }), false },
-			{ QStringLiteral("expanded"),
-				preset.succeeded()
-					? *preset.state
-					: subwooferroutingeditor::buildDefaultState(
-						{ L"L", L"R", L"LFE" }), true }
-		};
-		if (!preset.succeeded())
+		{ QStringLiteral("expanded"),
+			preset.succeeded()
+				? *preset.state
+				: subwooferroutingeditor::buildDefaultState(
+					{ L"L", L"R", L"LFE" }), true }
+	};
+	if (!preset.succeeded())
+	{
+		qWarning("SkinGallery: built-in subwoofer-routing preset failed "
+			"to instantiate; the srdialog preset shot falls back to "
+			"the default state");
+		failures++;
+	}
+	for (const auto& dialogState : dialogStates)
+	{
+		SubwooferRoutingEditorDialog dialog(dialogState.value, 48000);
+		dialog.resize(1360, 810);
+		dialog.show();
+		QApplication::processEvents();
+
+		const QWidget* presetFocus = dialog.findChild<QWidget*>(
+			QStringLiteral("SubwooferRoutingPresetCombo"));
+		if (presetFocus == nullptr || dialog.focusWidget() != presetFocus)
 		{
-			qWarning("SkinGallery: built-in subwoofer-routing preset failed "
-				"to instantiate; the srdialog preset shot falls back to "
-				"the default state");
+			qWarning("SkinGallery: subwoofer-routing dialog did not start "
+				"on the preset editor (%s %s)",
+				qPrintable(skinId), qPrintable(mode));
 			failures++;
 		}
-		for (const auto& dialogState : dialogStates)
+
+		const QList<RoutingView*> routingViews =
+			dialog.findChildren<RoutingView*>();
+		if (dialogState.expandRouting)
 		{
-			SubwooferRoutingEditorDialog dialog(dialogState.value, 48000);
-			dialog.resize(1360, 810);
-			dialog.show();
+			for (RoutingView* view : routingViews)
+				view->galleryShowcase(QStringLiteral("expanded"));
 			QApplication::processEvents();
 
-			const QWidget* presetFocus = dialog.findChild<QWidget*>(
-				QStringLiteral("SubwooferRoutingPresetCombo"));
-			if (presetFocus == nullptr || dialog.focusWidget() != presetFocus)
+			QScrollArea* contentScroll = dialog.findChild<QScrollArea*>(
+				QStringLiteral("SubwooferRoutingContentScroll"));
+			QWidget* buttons = dialog.findChild<QWidget*>(
+				QStringLiteral("SubwooferRoutingButtonBox"));
+			const bool needsVerticalScroll =
+				skinId != QStringLiteral("studio");
+			if (contentScroll == nullptr
+				|| (needsVerticalScroll
+					&& contentScroll->verticalScrollBar()->maximum() <= 0)
+				|| buttons == nullptr || !buttons->isVisibleTo(&dialog)
+				|| buttons->geometry().bottom()
+					> dialog.contentsRect().bottom())
 			{
-				qWarning("SkinGallery: subwoofer-routing dialog did not start "
-					"on the preset editor (%s %s)",
+				qWarning("SkinGallery: expanded subwoofer-routing dialog "
+					"did not contain overflow or keep its actions visible "
+					"(%s %s)", qPrintable(skinId), qPrintable(mode));
+				failures++;
+			}
+		}
+		failures += saveGrab(&dialog, outDir, skinId, mode,
+			QStringLiteral("srdialog"), dialogState.state) ? 0 : 1;
+
+		// Copy's add-channel field commits with Enter. Exercise the real
+		// inline editor after the screenshot and prove the same key does not
+		// accept the containing dialog.
+		if (!routingViews.isEmpty())
+		{
+			routingViews.front()->galleryShowcase(
+				QStringLiteral("addChannel"));
+			QApplication::processEvents();
+			QPointer<QLineEdit> inlineEditor =
+				qobject_cast<QLineEdit*>(QApplication::focusWidget());
+			if (inlineEditor == nullptr)
+			{
+				qWarning("SkinGallery: Copy add-channel editor did not "
+					"take focus (%s %s)",
 					qPrintable(skinId), qPrintable(mode));
 				failures++;
 			}
-
-			const QList<RoutingView*> routingViews =
-				dialog.findChildren<RoutingView*>();
-			if (dialogState.expandRouting)
+			else
 			{
-				for (RoutingView* view : routingViews)
-					view->galleryShowcase(QStringLiteral("expanded"));
+				QKeyEvent enterPress(QEvent::KeyPress,
+					Qt::Key_Return, Qt::NoModifier);
+				QApplication::sendEvent(inlineEditor, &enterPress);
 				QApplication::processEvents();
-
-				QScrollArea* contentScroll = dialog.findChild<QScrollArea*>(
-					QStringLiteral("SubwooferRoutingContentScroll"));
-				QWidget* buttons = dialog.findChild<QWidget*>(
-					QStringLiteral("SubwooferRoutingButtonBox"));
-				const bool needsVerticalScroll =
-					skinId != QStringLiteral("studio");
-				if (contentScroll == nullptr
-					|| (needsVerticalScroll
-						&& contentScroll->verticalScrollBar()->maximum() <= 0)
-					|| buttons == nullptr || !buttons->isVisibleTo(&dialog)
-					|| buttons->geometry().bottom()
-						> dialog.contentsRect().bottom())
-				{
-					qWarning("SkinGallery: expanded subwoofer-routing dialog "
-						"did not contain overflow or keep its actions visible "
-						"(%s %s)", qPrintable(skinId), qPrintable(mode));
-					failures++;
-				}
 			}
-			failures += saveGrab(&dialog, outDir, skinId, mode,
-				QStringLiteral("srdialog"), dialogState.state) ? 0 : 1;
-
-			// Copy's add-channel field commits with Enter. Exercise the real
-			// inline editor after the screenshot and prove the same key does not
-			// accept the containing dialog.
-			if (!routingViews.isEmpty())
+			if (!dialog.isVisible()
+				|| dialog.result() == QDialog::Accepted)
 			{
-				routingViews.front()->galleryShowcase(
-					QStringLiteral("addChannel"));
-				QApplication::processEvents();
-				QPointer<QLineEdit> inlineEditor =
-					qobject_cast<QLineEdit*>(QApplication::focusWidget());
-				if (inlineEditor == nullptr)
-				{
-					qWarning("SkinGallery: Copy add-channel editor did not "
-						"take focus (%s %s)",
-						qPrintable(skinId), qPrintable(mode));
-					failures++;
-				}
-				else
-				{
-					QKeyEvent enterPress(QEvent::KeyPress,
-						Qt::Key_Return, Qt::NoModifier);
-					QApplication::sendEvent(inlineEditor, &enterPress);
-					QApplication::processEvents();
-				}
-				if (!dialog.isVisible()
-					|| dialog.result() == QDialog::Accepted)
-				{
-					qWarning("SkinGallery: Copy add-channel Enter accepted "
-						"the subwoofer-routing dialog (%s %s)",
-						qPrintable(skinId), qPrintable(mode));
-					failures++;
-				}
+				qWarning("SkinGallery: Copy add-channel Enter accepted "
+					"the subwoofer-routing dialog (%s %s)",
+					qPrintable(skinId), qPrintable(mode));
+				failures++;
 			}
-			dialog.close();
-			QApplication::processEvents();
 		}
+		dialog.close();
+		QApplication::processEvents();
 	}
+}
 
+// The window chrome around the card list, each on its own replica.
+void renderChromeScenes(SkinRenderContext& ctx)
+{
+	const QDir& outDir = ctx.outDir;
+	const QString& skinId = ctx.skinId;
+	const QString& mode = ctx.mode;
+	int& failures = ctx.failures;
 	// The skin's main-toolbar chrome on a faithful replica (same object names
 	// and widget train as MainWindow, dummy device data).
 	{
@@ -797,7 +817,15 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		failures += saveGrab(menu, outDir, skinId, mode, QStringLiteral("menu"), QStringLiteral("normal")) ? 0 : 1;
 		delete menu;
 	}
+}
 
+// The insertion chrome between and after the cards.
+void renderInsertionScenes(SkinRenderContext& ctx)
+{
+	const QDir& outDir = ctx.outDir;
+	const QString& skinId = ctx.skinId;
+	const QString& mode = ctx.mode;
+	int& failures = ctx.failures;
 	// List-level insertion chrome (shared insertion contract,
 	// docs/skins/README.md), judged per skin like the toolbar: the trailing
 	// add row at rest and under the cursor, and the first-boundary seam in
@@ -832,7 +860,15 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		QApplication::processEvents();
 		failures += saveGrab(&seam, outDir, skinId, mode, QStringLiteral("seam"), QStringLiteral("hover")) ? 0 : 1;
 	}
+}
 
+// The toast in its three messages.
+void renderToastScenes(SkinRenderContext& ctx)
+{
+	const QDir& outDir = ctx.outDir;
+	const QString& skinId = ctx.skinId;
+	const QString& mode = ctx.mode;
+	int& failures = ctx.failures;
 	// The auto-update toast over a plain palette host, with the real message
 	// template so per-skin QSS is judged against representative text.
 	{
@@ -872,87 +908,105 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		QApplication::processEvents();
 		failures += saveGrab(toast, outDir, skinId, mode, QStringLiteral("removalnotice"), QStringLiteral("normal")) ? 0 : 1;
 	}
+}
 
-	// Every stateful form control the skins restyle, in every state that has
-	// its own QSS rule: check/partial/disabled checkboxes and radio buttons.
-	// This is the shot that catches a stylesheet whose checked box is only a
-	// filled square (the engine replaces native indicator drawing, so the
-	// check glyph must come from the sheet itself).
+// Every stateful form control the skins restyle, in every state that has
+// its own QSS rule: check/partial/disabled checkboxes and radio buttons.
+// This is the shot that catches a stylesheet whose checked box is only a
+// filled square (the engine replaces native indicator drawing, so the
+// check glyph must come from the sheet itself).
+void renderFormControlsScene(SkinRenderContext& ctx)
+{
+	const QDir& outDir = ctx.outDir;
+	const QString& skinId = ctx.skinId;
+	const QString& mode = ctx.mode;
+	int& failures = ctx.failures;
+	QWidget controls;
+	controls.setAutoFillBackground(true);
+	QHBoxLayout* controlsLayout = new QHBoxLayout(&controls);
+	controlsLayout->setContentsMargins(16, 12, 16, 12);
+	controlsLayout->setSpacing(18);
+
+	QCheckBox* checkedBox = new QCheckBox(QStringLiteral("Checked"), &controls);
+	checkedBox->setChecked(true);
+	controlsLayout->addWidget(checkedBox);
+
+	QCheckBox* uncheckedBox = new QCheckBox(QStringLiteral("Unchecked"), &controls);
+	controlsLayout->addWidget(uncheckedBox);
+
+	QCheckBox* partialBox = new QCheckBox(QStringLiteral("Partial"), &controls);
+	partialBox->setTristate(true);
+	partialBox->setCheckState(Qt::PartiallyChecked);
+	controlsLayout->addWidget(partialBox);
+
+	QCheckBox* disabledBox = new QCheckBox(QStringLiteral("Disabled"), &controls);
+	disabledBox->setChecked(true);
+	disabledBox->setEnabled(false);
+	controlsLayout->addWidget(disabledBox);
+
+	QRadioButton* radioOn = new QRadioButton(QStringLiteral("Radio on"), &controls);
+	radioOn->setChecked(true);
+	controlsLayout->addWidget(radioOn);
+
+	QRadioButton* radioOff = new QRadioButton(QStringLiteral("Radio off"), &controls);
+	// Two radios in one widget share a button group; keep the second one
+	// out of it so the first stays checked.
+	radioOff->setAutoExclusive(false);
+	controlsLayout->addWidget(radioOff);
+
+	controlsLayout->addStretch(1);
+	controls.resize(760, controls.sizeHint().height());
+	controls.show();
+	QApplication::processEvents();
+	failures += saveGrab(&controls, outDir, skinId, mode, QStringLiteral("controls"), QStringLiteral("normal")) ? 0 : 1;
+}
+
+// The skinned file dialog (GUIHelper::prepareFileDialog): Qt's widget
+// dialog under the app-wide sheet, its navigation buttons dressed through
+// ISkin::styleFileDialog. The fixture's pinned timestamps keep the Detail
+// columns deterministic, and the sidebar is overridden with fixture-local
+// folders so its labels do not depend on this machine's user folders.
+void renderFileDialogScene(SkinRenderContext& ctx)
+{
+	const QDir& outDir = ctx.outDir;
+	const QString& skinId = ctx.skinId;
+	const QString& mode = ctx.mode;
+	int& failures = ctx.failures;
+	const QString fixturePath = buildFileDialogFixture(galleryFixtureRoot());
+	if (fixturePath.isEmpty())
 	{
-		QWidget controls;
-		controls.setAutoFillBackground(true);
-		QHBoxLayout* controlsLayout = new QHBoxLayout(&controls);
-		controlsLayout->setContentsMargins(16, 12, 16, 12);
-		controlsLayout->setSpacing(18);
-
-		QCheckBox* checkedBox = new QCheckBox(QStringLiteral("Checked"), &controls);
-		checkedBox->setChecked(true);
-		controlsLayout->addWidget(checkedBox);
-
-		QCheckBox* uncheckedBox = new QCheckBox(QStringLiteral("Unchecked"), &controls);
-		controlsLayout->addWidget(uncheckedBox);
-
-		QCheckBox* partialBox = new QCheckBox(QStringLiteral("Partial"), &controls);
-		partialBox->setTristate(true);
-		partialBox->setCheckState(Qt::PartiallyChecked);
-		controlsLayout->addWidget(partialBox);
-
-		QCheckBox* disabledBox = new QCheckBox(QStringLiteral("Disabled"), &controls);
-		disabledBox->setChecked(true);
-		disabledBox->setEnabled(false);
-		controlsLayout->addWidget(disabledBox);
-
-		QRadioButton* radioOn = new QRadioButton(QStringLiteral("Radio on"), &controls);
-		radioOn->setChecked(true);
-		controlsLayout->addWidget(radioOn);
-
-		QRadioButton* radioOff = new QRadioButton(QStringLiteral("Radio off"), &controls);
-		// Two radios in one widget share a button group; keep the second one
-		// out of it so the first stays checked.
-		radioOff->setAutoExclusive(false);
-		controlsLayout->addWidget(radioOff);
-
-		controlsLayout->addStretch(1);
-		controls.resize(760, controls.sizeHint().height());
-		controls.show();
-		QApplication::processEvents();
-		failures += saveGrab(&controls, outDir, skinId, mode, QStringLiteral("controls"), QStringLiteral("normal")) ? 0 : 1;
+		qWarning("SkinGallery: could not build the file dialog fixture");
+		failures += 1;
 	}
-
-	// The skinned file dialog (GUIHelper::prepareFileDialog): Qt's widget
-	// dialog under the app-wide sheet, its navigation buttons dressed through
-	// ISkin::styleFileDialog. The fixture's pinned timestamps keep the Detail
-	// columns deterministic, and the sidebar is overridden with fixture-local
-	// folders so its labels do not depend on this machine's user folders.
+	else
 	{
-		const QString fixturePath = buildFileDialogFixture(galleryFixtureRoot());
-		if (fixturePath.isEmpty())
-		{
-			qWarning("SkinGallery: could not build the file dialog fixture");
-			failures += 1;
-		}
-		else
-		{
-			QFileDialog dialog(nullptr, QStringLiteral("Open file"), fixturePath, QStringLiteral("*.txt"));
-			dialog.setFileMode(QFileDialog::ExistingFiles);
-			dialog.setNameFilter(QStringLiteral("E-APO configurations (*.txt)"));
-			GUIHelper::prepareFileDialog(dialog);
-			dialog.setSidebarUrls({ QUrl::fromLocalFile(QDir(fixturePath).filePath(QStringLiteral("config"))),
-				QUrl::fromLocalFile(QDir(fixturePath).filePath(QStringLiteral("IRs"))) });
-			dialog.show();
-			// QFileSystemModel lists directories on a worker thread; wait for
-			// the four fixture rows (config, IRs, demo, voice) to land before
-			// grabbing.
-			QTreeView* view = dialog.findChild<QTreeView*>(QStringLiteral("treeView"));
-			QElapsedTimer listTimer;
-			listTimer.start();
-			while (listTimer.elapsed() < 3000
-				&& (view == nullptr || view->model() == nullptr || view->model()->rowCount(view->rootIndex()) < 4))
-				QApplication::processEvents(QEventLoop::AllEvents, 50);
-			failures += saveGrab(&dialog, outDir, skinId, mode, QStringLiteral("filedialog"), QStringLiteral("normal")) ? 0 : 1;
-		}
+		QFileDialog dialog(nullptr, QStringLiteral("Open file"), fixturePath, QStringLiteral("*.txt"));
+		dialog.setFileMode(QFileDialog::ExistingFiles);
+		dialog.setNameFilter(QStringLiteral("E-APO configurations (*.txt)"));
+		GUIHelper::prepareFileDialog(dialog);
+		dialog.setSidebarUrls({ QUrl::fromLocalFile(QDir(fixturePath).filePath(QStringLiteral("config"))),
+			QUrl::fromLocalFile(QDir(fixturePath).filePath(QStringLiteral("IRs"))) });
+		dialog.show();
+		// QFileSystemModel lists directories on a worker thread; wait for
+		// the four fixture rows (config, IRs, demo, voice) to land before
+		// grabbing.
+		QTreeView* view = dialog.findChild<QTreeView*>(QStringLiteral("treeView"));
+		QElapsedTimer listTimer;
+		listTimer.start();
+		while (listTimer.elapsed() < 3000
+			&& (view == nullptr || view->model() == nullptr || view->model()->rowCount(view->rootIndex()) < 4))
+			QApplication::processEvents(QEventLoop::AllEvents, 50);
+		failures += saveGrab(&dialog, outDir, skinId, mode, QStringLiteral("filedialog"), QStringLiteral("normal")) ? 0 : 1;
 	}
+}
 
+// The analysis graph and its metric switch.
+void renderGraphScenes(SkinRenderContext& ctx)
+{
+	const QDir& outDir = ctx.outDir;
+	const QString& skinId = ctx.skinId;
+	const QString& mode = ctx.mode;
+	int& failures = ctx.failures;
 	// The analysis dock's response graph over the deterministic synthetic
 	// spectrum (boosts, cuts and a clipping shelf so the over-0dB emphasis
 	// shows), at rest and with the pinned cursor readout.
@@ -1006,125 +1060,146 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		QApplication::processEvents();
 		failures += saveGrab(&segment, outDir, skinId, mode, QStringLiteral("segment"), QStringLiteral("hover")) ? 0 : 1;
 	}
+}
 
-	// The Copy channel fold over a synthetic 7.1 endpoint. The row matrix's
-	// card path is deliberately deviceless, so the device-channel seeding
-	// (and therefore the fold: collapsed rows, the reveal control, the
-	// add-channel entry) never shows there. Four states: the routed line
-	// collapsed to its two involved channels, the same line fully expanded,
-	// the add-channel editor open with a name typed, and an empty Copy
-	// showing its two representative channels.
+// The Copy channel fold over a synthetic 7.1 endpoint. The row matrix's
+// card path is deliberately deviceless, so the device-channel seeding
+// (and therefore the fold: collapsed rows, the reveal control, the
+// add-channel entry) never shows there. Four states: the routed line
+// collapsed to its two involved channels, the same line fully expanded,
+// the add-channel editor open with a name typed, and an empty Copy
+// showing its two representative channels.
+void renderCopyFoldScene(SkinRenderContext& ctx)
+{
+	const QDir& outDir = ctx.outDir;
+	const QString& skinId = ctx.skinId;
+	const QString& mode = ctx.mode;
+	const QString& configPath = ctx.configPath;
+	int& failures = ctx.failures;
+	auto surround = std::make_shared<GalleryAPOInfo>(
+		L"Speakers", L"Example Audio 7.1", false, true, 8, 0x63F);
+	QScrollArea scrollArea;
+	scrollArea.resize(960, 720);
+	QList<FilterCardRow*> rows = buildRows(scrollArea, configPath,
+		{ QStringLiteral("Copy: VC=0.5*L+0.5*R R=L"), QStringLiteral("Copy:") },
+		surround, 0x63F);
+	if (rows.size() != 2)
 	{
-		auto surround = std::make_shared<GalleryAPOInfo>(
-			L"Speakers", L"Example Audio 7.1", false, true, 8, 0x63F);
-		QScrollArea scrollArea;
-		scrollArea.resize(960, 720);
-		QList<FilterCardRow*> rows = buildRows(scrollArea, configPath,
-			{ QStringLiteral("Copy: VC=0.5*L+0.5*R R=L"), QStringLiteral("Copy:") },
-			surround, 0x63F);
-		if (rows.size() != 2)
-		{
-			qWarning("SkinGallery: copy fold scene expected 2 rows, got %lld (%s %s)",
-				static_cast<long long>(rows.size()), qPrintable(skinId), qPrintable(mode));
-			failures += 4;
-		}
-		else
-		{
-			FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
-			auto settle = [&]() {
-				QApplication::processEvents();
-				if (table != nullptr && table->layout() != nullptr)
-					table->layout()->activate();
-				QApplication::processEvents();
-			};
-			failures += assertNoHorizontalScrollBar(rows[0], skinId, mode, QStringLiteral("copyfold"), QStringLiteral("normal"));
-			failures += saveGrab(rows[0], outDir, skinId, mode, QStringLiteral("copyfold"), QStringLiteral("normal")) ? 0 : 1;
-			failures += saveGrab(rows[1], outDir, skinId, mode, QStringLiteral("copyfold"), QStringLiteral("empty")) ? 0 : 1;
-			RoutingView* view = rows[0]->findChild<RoutingView*>();
-			if (view == nullptr)
-			{
-				qWarning("SkinGallery: copy fold scene has no routing view (%s %s)",
-					qPrintable(skinId), qPrintable(mode));
-				failures += 2;
-			}
-			else
-			{
-				view->galleryShowcase(QStringLiteral("expanded"));
-				settle();
-				failures += assertNoHorizontalScrollBar(rows[0], skinId, mode, QStringLiteral("copyfold"), QStringLiteral("expanded"));
-				failures += saveGrab(rows[0], outDir, skinId, mode, QStringLiteral("copyfold"), QStringLiteral("expanded")) ? 0 : 1;
-				view->galleryShowcase(QStringLiteral("addChannel"));
-				settle();
-				failures += saveGrab(rows[0], outDir, skinId, mode, QStringLiteral("copyfold"), QStringLiteral("editor")) ? 0 : 1;
-				// The inline source editor on the routed line's first summand,
-				// next to the open prompt. Only the minimal step list has one;
-				// the other renderers edit in place and record the same view
-				// again here, which keeps the shot-count contract uniform.
-				view->galleryShowcase(QStringLiteral("editSource:VC"));
-				settle();
-				failures += saveGrab(rows[0], outDir, skinId, mode, QStringLiteral("copyfold"), QStringLiteral("sourceeditor")) ? 0 : 1;
-			}
-		}
+		qWarning("SkinGallery: copy fold scene expected 2 rows, got %lld (%s %s)",
+			static_cast<long long>(rows.size()), qPrintable(skinId), qPrintable(mode));
+		failures += 4;
 	}
-
-	// MultiConvolution shares Copy's target-channel fold, but its source side
-	// is the selected WAV's fixed channel list. This 4-channel BRIR over a 7.1
-	// endpoint proves both halves of that contract in every renderer: the
-	// collapsed card lists only mapped L/R outputs while retaining source
-	// ports 0..3, and the reveal control expands all eight outputs.
+	else
 	{
-		auto surround = std::make_shared<GalleryAPOInfo>(
-			L"Speakers", L"Example Audio 7.1", false, true, 8, 0x63F);
-		QScrollArea scrollArea;
-		scrollArea.resize(960, 720);
-		QList<FilterCardRow*> rows = buildRows(scrollArea, configPath,
-			{ QStringLiteral("MultiConvolution: L=0+1 R=2+3 brir.wav") },
-			surround, 0x63F);
-		if (rows.size() != 1)
+		FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
+		auto settle = [&]() {
+			QApplication::processEvents();
+			if (table != nullptr && table->layout() != nullptr)
+				table->layout()->activate();
+			QApplication::processEvents();
+		};
+		failures += assertNoHorizontalScrollBar(rows[0], skinId, mode, QStringLiteral("copyfold"), QStringLiteral("normal"));
+		failures += saveGrab(rows[0], outDir, skinId, mode, QStringLiteral("copyfold"), QStringLiteral("normal")) ? 0 : 1;
+		failures += saveGrab(rows[1], outDir, skinId, mode, QStringLiteral("copyfold"), QStringLiteral("empty")) ? 0 : 1;
+		RoutingView* view = rows[0]->findChild<RoutingView*>();
+		if (view == nullptr)
 		{
-			qWarning("SkinGallery: MultiConvolution fold scene expected 1 row, got %lld (%s %s)",
-				static_cast<long long>(rows.size()), qPrintable(skinId), qPrintable(mode));
+			qWarning("SkinGallery: copy fold scene has no routing view (%s %s)",
+				qPrintable(skinId), qPrintable(mode));
 			failures += 2;
 		}
 		else
 		{
-			FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
-			auto settle = [&]() {
-				QApplication::processEvents();
-				if (table != nullptr && table->layout() != nullptr)
-					table->layout()->activate();
-				QApplication::processEvents();
-			};
-			failures += assertNoHorizontalScrollBar(rows[0], skinId, mode,
-				QStringLiteral("multiconvfold"), QStringLiteral("normal"));
-			failures += saveGrab(rows[0], outDir, skinId, mode,
-				QStringLiteral("multiconvfold"), QStringLiteral("normal")) ? 0 : 1;
-			// MultiConvolution rebuilds its routing view after file metadata
-			// and device channels arrive. The superseded view is hidden and
-			// deleteLater'd, but processEvents does not guarantee deferred
-			// deletion here; choose the live visible child explicitly.
-			RoutingView* view = nullptr;
-			for (RoutingView* candidate : rows[0]->findChildren<RoutingView*>())
-				if (candidate->isVisible())
-					view = candidate;
-			if (view == nullptr)
-			{
-				qWarning("SkinGallery: MultiConvolution fold scene has no routing view (%s %s)",
-					qPrintable(skinId), qPrintable(mode));
-				failures++;
-			}
-			else
-			{
-				view->galleryShowcase(QStringLiteral("expanded"));
-				settle();
-				failures += assertNoHorizontalScrollBar(rows[0], skinId, mode,
-					QStringLiteral("multiconvfold"), QStringLiteral("expanded"));
-				failures += saveGrab(rows[0], outDir, skinId, mode,
-					QStringLiteral("multiconvfold"), QStringLiteral("expanded")) ? 0 : 1;
-			}
+			view->galleryShowcase(QStringLiteral("expanded"));
+			settle();
+			failures += assertNoHorizontalScrollBar(rows[0], skinId, mode, QStringLiteral("copyfold"), QStringLiteral("expanded"));
+			failures += saveGrab(rows[0], outDir, skinId, mode, QStringLiteral("copyfold"), QStringLiteral("expanded")) ? 0 : 1;
+			view->galleryShowcase(QStringLiteral("addChannel"));
+			settle();
+			failures += saveGrab(rows[0], outDir, skinId, mode, QStringLiteral("copyfold"), QStringLiteral("editor")) ? 0 : 1;
+			// The inline source editor on the routed line's first summand,
+			// next to the open prompt. Only the minimal step list has one;
+			// the other renderers edit in place and record the same view
+			// again here, which keeps the shot-count contract uniform.
+			view->galleryShowcase(QStringLiteral("editSource:VC"));
+			settle();
+			failures += saveGrab(rows[0], outDir, skinId, mode, QStringLiteral("copyfold"), QStringLiteral("sourceeditor")) ? 0 : 1;
 		}
 	}
+}
 
+// MultiConvolution shares Copy's target-channel fold, but its source side
+// is the selected WAV's fixed channel list. This 4-channel BRIR over a 7.1
+// endpoint proves both halves of that contract in every renderer: the
+// collapsed card lists only mapped L/R outputs while retaining source
+// ports 0..3, and the reveal control expands all eight outputs.
+void renderMultiConvFoldScene(SkinRenderContext& ctx)
+{
+	const QDir& outDir = ctx.outDir;
+	const QString& skinId = ctx.skinId;
+	const QString& mode = ctx.mode;
+	const QString& configPath = ctx.configPath;
+	int& failures = ctx.failures;
+	auto surround = std::make_shared<GalleryAPOInfo>(
+		L"Speakers", L"Example Audio 7.1", false, true, 8, 0x63F);
+	QScrollArea scrollArea;
+	scrollArea.resize(960, 720);
+	QList<FilterCardRow*> rows = buildRows(scrollArea, configPath,
+		{ QStringLiteral("MultiConvolution: L=0+1 R=2+3 brir.wav") },
+		surround, 0x63F);
+	if (rows.size() != 1)
+	{
+		qWarning("SkinGallery: MultiConvolution fold scene expected 1 row, got %lld (%s %s)",
+			static_cast<long long>(rows.size()), qPrintable(skinId), qPrintable(mode));
+		failures += 2;
+	}
+	else
+	{
+		FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
+		auto settle = [&]() {
+			QApplication::processEvents();
+			if (table != nullptr && table->layout() != nullptr)
+				table->layout()->activate();
+			QApplication::processEvents();
+		};
+		failures += assertNoHorizontalScrollBar(rows[0], skinId, mode,
+			QStringLiteral("multiconvfold"), QStringLiteral("normal"));
+		failures += saveGrab(rows[0], outDir, skinId, mode,
+			QStringLiteral("multiconvfold"), QStringLiteral("normal")) ? 0 : 1;
+		// MultiConvolution rebuilds its routing view after file metadata
+		// and device channels arrive. The superseded view is hidden and
+		// deleteLater'd, but processEvents does not guarantee deferred
+		// deletion here; choose the live visible child explicitly.
+		RoutingView* view = nullptr;
+		for (RoutingView* candidate : rows[0]->findChildren<RoutingView*>())
+			if (candidate->isVisible())
+				view = candidate;
+		if (view == nullptr)
+		{
+			qWarning("SkinGallery: MultiConvolution fold scene has no routing view (%s %s)",
+				qPrintable(skinId), qPrintable(mode));
+			failures++;
+		}
+		else
+		{
+			view->galleryShowcase(QStringLiteral("expanded"));
+			settle();
+			failures += assertNoHorizontalScrollBar(rows[0], skinId, mode,
+				QStringLiteral("multiconvfold"), QStringLiteral("expanded"));
+			failures += saveGrab(rows[0], outDir, skinId, mode,
+				QStringLiteral("multiconvfold"), QStringLiteral("expanded")) ? 0 : 1;
+		}
+	}
+}
+
+// Whole-table shots whose presentation spans rows.
+void renderTableScenes(SkinRenderContext& ctx)
+{
+	const QDir& outDir = ctx.outDir;
+	const QString& skinId = ctx.skinId;
+	const QString& mode = ctx.mode;
+	const QString& configPath = ctx.configPath;
+	int& failures = ctx.failures;
 	// The dynamic-commands logic block (If/ElseIf/Else/EndIf/Eval), captured
 	// as one whole-table shot so the scope presentation that spans rows
 	// (rails, brackets, the relay bus) is judged in context. The offscreen
@@ -1239,7 +1314,16 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 			failures += saveGrab(table, outDir, skinId, mode, QStringLiteral("channelscope"), QStringLiteral("normal")) ? 0 : 1;
 		}
 	}
+}
 
+// The Velvet card at full and at compact dock width.
+void renderVelvetScenes(SkinRenderContext& ctx)
+{
+	const QDir& outDir = ctx.outDir;
+	const QString& skinId = ctx.skinId;
+	const QString& mode = ctx.mode;
+	const QString& configPath = ctx.configPath;
+	int& failures = ctx.failures;
 	// The expanded state is part of the card contract: all expert controls
 	// remain reachable without changing the compact default presentation.
 	{
@@ -1301,8 +1385,39 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 				QStringLiteral("velvet-narrow"), QStringLiteral("normal")) ? 0 : 1;
 		}
 	}
-	failures += renderReferenceCheckingScenes(outDir, skinId, mode, configPath);
-	return failures;
+}
+
+int renderSkin(const QDir& outDir, const QString& skinId, const QString& configPath, bool dark)
+{
+	SkinManager::instance()->applySkin(skinId, dark);
+	if (SkinManager::instance()->currentSkinId() != skinId)
+	{
+		// Skins::byId silently falls back to studio for unknown ids; a typo in
+		// --skin-gallery-skins must fail loudly instead of producing duplicate
+		// studio shots under a wrong name.
+		qWarning("SkinGallery: unknown skin id '%s'", qPrintable(skinId));
+		return 1;
+	}
+
+	const QString mode = dark ? QStringLiteral("dark") : QStringLiteral("light");
+	SkinRenderContext ctx{ outDir, skinId, mode, configPath };
+	ctx.failures += renderStates(outDir, skinId, mode, configPath, galleryRows(), false);
+	ctx.failures += renderStates(outDir, skinId, mode, configPath, galleryRows(), true);
+
+	renderPickerScenes(ctx);
+	renderRoutingDialogScenes(ctx);
+	renderChromeScenes(ctx);
+	renderInsertionScenes(ctx);
+	renderToastScenes(ctx);
+	renderFormControlsScene(ctx);
+	renderFileDialogScene(ctx);
+	renderGraphScenes(ctx);
+	renderCopyFoldScene(ctx);
+	renderMultiConvFoldScene(ctx);
+	renderTableScenes(ctx);
+	renderVelvetScenes(ctx);
+	ctx.failures += renderReferenceCheckingScenes(outDir, skinId, mode, configPath);
+	return ctx.failures;
 }
 }
 

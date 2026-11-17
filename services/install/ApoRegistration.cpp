@@ -49,7 +49,7 @@
 #include "services/registry/WindowsRegistry.h"
 #include "services/windows/WindowsService.h"
 #include "services/shell/StartMenuShortcuts.h"
-#include "platform/windows/ComSelfRegistration.h"
+#include "services/install/ComSelfRegistration.h"
 #include "platform/windows/GuidText.h"
 
 using std::wstring;

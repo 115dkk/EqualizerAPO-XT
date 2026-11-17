@@ -380,8 +380,7 @@ void SoftReferenceCardView::applyState(const ReferenceCardState& state)
 	statusLabel->setVisible(!state.statusText.isEmpty());
 	statusLabel->setText(state.statusText);
 	statusLabel->setProperty("severity", referenceCardSeverityName(state.statusSeverity));
-	statusLabel->style()->unpolish(statusLabel);
-	statusLabel->style()->polish(statusLabel);
+	repolish(statusLabel);
 
 	styleBrowseButton();
 }

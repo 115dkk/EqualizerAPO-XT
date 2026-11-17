@@ -30,6 +30,7 @@
 #include <QtMath>
 
 #include "Editor/SkinTokens.h"
+#include "Editor/widgets/StyleRefresh.h"
 
 // House rule for paint-only chrome: its paintEvent owns every background
 // pixel, so framework/QSS polishing must never stamp an opaque background
@@ -38,20 +39,6 @@
 inline void configurePaintOnlyChrome(QWidget* widget)
 {
 	widget->setAttribute(Qt::WA_NoSystemBackground, true);
-}
-
-// Re-evaluate a widget's stylesheet after one of its dynamic properties
-// changed. Rules keyed on a widget's own property re-resolve only when it is
-// polished again, and the skin views' base classes repolish only the view
-// itself, not the children whose properties applyState sets.
-inline void repolish(QWidget* widget)
-{
-	if (widget == nullptr)
-		return;
-
-	widget->style()->unpolish(widget);
-	widget->style()->polish(widget);
-	widget->update();
 }
 
 // QFileDialog's six navigation tool buttons, by Qt's internal object names,

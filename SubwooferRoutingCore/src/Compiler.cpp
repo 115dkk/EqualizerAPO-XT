@@ -732,10 +732,13 @@ bool isValidStableId(std::string_view id) noexcept
 	return true;
 }
 
-ValidationResult validate(const SubwooferRoutingState& state)
+namespace
 {
-	ValidationResult result;
 
+void validateSchema(
+	ValidationResult& result,
+	const SubwooferRoutingState& state)
+{
 	validateUtf8Field(result, state.schema, std::string(), "/schema");
 
 	if (state.schema != kSubwooferRoutingSchema)
@@ -759,7 +762,13 @@ ValidationResult validate(const SubwooferRoutingState& state)
 			"/version",
 			"The state schema version is unsupported.");
 	}
+}
 
+void validatePhysicalLayout(
+	ValidationResult& result,
+	const SubwooferRoutingState& state,
+	std::unordered_set<std::string>& physicalChannelIds)
+{
 	if (state.layout.channels.empty())
 	{
 		addDiagnostic(
@@ -770,8 +779,6 @@ ValidationResult validate(const SubwooferRoutingState& state)
 			"/layout/channels",
 			"The physical channel layout must not be empty.");
 	}
-
-	std::unordered_set<std::string> physicalChannelIds;
 
 	for (std::size_t channelIndex = 0;
 		channelIndex < state.layout.channels.size();
@@ -800,7 +807,228 @@ ValidationResult validate(const SubwooferRoutingState& state)
 				"The physical channel ID is duplicated.");
 		}
 	}
+}
 
+void validatePathSourceMix(
+	ValidationResult& result,
+	const Path& path,
+	const std::string& pointer,
+	const std::unordered_set<std::string>& physicalChannelIds)
+{
+	validateGain(result, path.preGainDb, path.id, pointer + "/preGainDb");
+	validateGain(result, path.postGainDb, path.id, pointer + "/postGainDb");
+
+	if (path.sourceMix.empty())
+	{
+		addDiagnostic(
+			result,
+			DiagnosticSeverity::Error,
+			DiagnosticCode::PathHasNoInputs,
+			path.id,
+			pointer + "/sourceMix",
+			"The path source mix must contain at least one input.");
+	}
+
+	for (std::size_t termIndex = 0;
+		termIndex < path.sourceMix.size();
+		++termIndex)
+	{
+		const SourceMixTerm& term = path.sourceMix[termIndex];
+		const std::string termPointer =
+			pointer + "/sourceMix/" + std::to_string(termIndex);
+
+		validateUtf8Field(
+			result,
+			term.inputChannelId,
+			path.id,
+			termPointer + "/inputChannelId");
+		validateStableIdField(
+			result,
+			term.inputChannelId,
+			path.id,
+			termPointer + "/inputChannelId");
+		validateGain(
+			result,
+			term.gainLinear,
+			path.id,
+			termPointer + "/gainLinear");
+
+		if (!physicalChannelIds.contains(term.inputChannelId))
+		{
+			addDiagnostic(
+				result,
+				DiagnosticSeverity::Error,
+				DiagnosticCode::UnknownPhysicalInputChannel,
+				path.id,
+				termPointer + "/inputChannelId",
+				"The source mix references a channel outside the state layout.");
+		}
+	}
+}
+
+struct PathStageCounts
+{
+	std::size_t polarity = 0;
+	std::size_t delay = 0;
+	std::size_t equalizerSlots = 0;
+};
+
+PathStageCounts validatePathChain(
+	ValidationResult& result,
+	const Path& path,
+	const std::string& pointer)
+{
+	PathStageCounts counts;
+
+	for (std::size_t stageIndex = 0;
+		stageIndex < path.chain.size();
+		++stageIndex)
+	{
+		const PathStage& stage = path.chain[stageIndex];
+		const std::string stagePointer =
+			pointer + "/chain/" + std::to_string(stageIndex);
+
+		if (const auto* gain = std::get_if<GainStage>(&stage))
+		{
+			validateGain(
+				result,
+				gain->gainDb,
+				path.id,
+				stagePointer + "/gainDb");
+		}
+		else if (std::get_if<PolarityStage>(&stage) != nullptr)
+		{
+			++counts.polarity;
+		}
+		else if (const auto* delay = std::get_if<DelayStage>(&stage))
+		{
+			++counts.delay;
+
+			if (!std::isfinite(delay->milliseconds))
+			{
+				addDiagnostic(
+					result,
+					DiagnosticSeverity::Error,
+					DiagnosticCode::NonFiniteDelay,
+					path.id,
+					stagePointer + "/milliseconds",
+					"The delay must be finite.");
+			}
+			else if (delay->milliseconds < 0.0)
+			{
+				addDiagnostic(
+					result,
+					DiagnosticSeverity::Error,
+					DiagnosticCode::NegativeDelay,
+					path.id,
+					stagePointer + "/milliseconds",
+					"The delay must not be negative.");
+			}
+		}
+		else if (const auto* biquad = std::get_if<BiquadStage>(&stage))
+		{
+			validateFilter(
+				result,
+				biquad->filter,
+				path.id,
+				stagePointer + "/filter");
+		}
+		else if (const auto* slotsStage = std::get_if<EqualizerSlotsStage>(&stage))
+		{
+			++counts.equalizerSlots;
+
+			for (std::size_t filterIndex = 0;
+				filterIndex < slotsStage->filters.size();
+				++filterIndex)
+			{
+				validateFilter(
+					result,
+					slotsStage->filters[filterIndex],
+					path.id,
+					stagePointer + "/filters/" + std::to_string(filterIndex));
+			}
+		}
+	}
+
+	return counts;
+}
+
+void validateRequiredPathStages(
+	ValidationResult& result,
+	const Path& path,
+	const std::string& pointer,
+	const PathStageCounts& counts)
+{
+	if (counts.polarity == 0)
+	{
+		addDiagnostic(
+			result,
+			DiagnosticSeverity::Error,
+			DiagnosticCode::MissingPolarityStage,
+			path.id,
+			pointer + "/chain",
+			"The path must contain exactly one polarity stage.");
+	}
+	else if (counts.polarity > 1)
+	{
+		addDiagnostic(
+			result,
+			DiagnosticSeverity::Error,
+			DiagnosticCode::MultiplePolarityStages,
+			path.id,
+			pointer + "/chain",
+			"The path contains more than one polarity stage.");
+	}
+
+	if (counts.delay == 0)
+	{
+		addDiagnostic(
+			result,
+			DiagnosticSeverity::Error,
+			DiagnosticCode::MissingDelayStage,
+			path.id,
+			pointer + "/chain",
+			"The path must contain exactly one delay stage.");
+	}
+	else if (counts.delay > 1)
+	{
+		addDiagnostic(
+			result,
+			DiagnosticSeverity::Error,
+			DiagnosticCode::MultipleDelayStages,
+			path.id,
+			pointer + "/chain",
+			"The path contains more than one delay stage.");
+	}
+
+	if (counts.equalizerSlots == 0)
+	{
+		addDiagnostic(
+			result,
+			DiagnosticSeverity::Error,
+			DiagnosticCode::MissingEqualizerSlotsStage,
+			path.id,
+			pointer + "/chain",
+			"The path must contain exactly one equalizer-slots stage.");
+	}
+	else if (counts.equalizerSlots > 1)
+	{
+		addDiagnostic(
+			result,
+			DiagnosticSeverity::Error,
+			DiagnosticCode::MultipleEqualizerSlotsStages,
+			path.id,
+			pointer + "/chain",
+			"The path contains more than one equalizer-slots stage.");
+	}
+}
+
+void validatePaths(
+	ValidationResult& result,
+	const SubwooferRoutingState& state,
+	const std::unordered_set<std::string>& physicalChannelIds,
+	std::unordered_map<std::string, std::size_t>& pathIndices)
+{
 	if (state.paths.empty())
 	{
 		addDiagnostic(
@@ -811,8 +1039,6 @@ ValidationResult validate(const SubwooferRoutingState& state)
 			"/paths",
 			"The state must contain at least one path.");
 	}
-
-	std::unordered_map<std::string, std::size_t> pathIndices;
 
 	for (std::size_t pathIndex = 0; pathIndex < state.paths.size(); ++pathIndex)
 	{
@@ -833,197 +1059,132 @@ ValidationResult validate(const SubwooferRoutingState& state)
 				"The path ID is duplicated.");
 		}
 
-		validateGain(result, path.preGainDb, path.id, pointer + "/preGainDb");
-		validateGain(result, path.postGainDb, path.id, pointer + "/postGainDb");
+		validatePathSourceMix(result, path, pointer, physicalChannelIds);
+		const PathStageCounts counts = validatePathChain(result, path, pointer);
+		validateRequiredPathStages(result, path, pointer, counts);
+	}
+}
 
-		if (path.sourceMix.empty())
+void validateMainPathReferences(
+	ValidationResult& result,
+	const SubwooferRoutingState& state,
+	const SpeakerGroup& group,
+	const std::string& pointer,
+	const std::unordered_map<std::string, std::size_t>& pathIndices,
+	std::unordered_set<std::string>& localReferences,
+	std::unordered_set<std::string>& groupReferencedPathIds)
+{
+	for (std::size_t referenceIndex = 0;
+		referenceIndex < group.mainPathIds.size();
+		++referenceIndex)
+	{
+		const std::string& pathId = group.mainPathIds[referenceIndex];
+		const std::string referencePointer =
+			pointer + "/mainPathIds/" + std::to_string(referenceIndex);
+
+		validateUtf8Field(result, pathId, group.id, referencePointer);
+		validateStableIdField(result, pathId, group.id, referencePointer);
+		groupReferencedPathIds.insert(pathId);
+
+		if (!localReferences.insert(pathId).second)
 		{
 			addDiagnostic(
 				result,
 				DiagnosticSeverity::Error,
-				DiagnosticCode::PathHasNoInputs,
-				path.id,
-				pointer + "/sourceMix",
-				"The path source mix must contain at least one input.");
+				DiagnosticCode::DuplicateSpeakerGroupPathReference,
+				group.id,
+				referencePointer,
+				"The speaker group references the same path more than once.");
 		}
 
-		for (std::size_t termIndex = 0;
-			termIndex < path.sourceMix.size();
-			++termIndex)
-		{
-			const SourceMixTerm& term = path.sourceMix[termIndex];
-			const std::string termPointer =
-				pointer + "/sourceMix/" + std::to_string(termIndex);
+		const auto pathIt = pathIndices.find(pathId);
 
-			validateUtf8Field(
-				result,
-				term.inputChannelId,
-				path.id,
-				termPointer + "/inputChannelId");
-			validateStableIdField(
-				result,
-				term.inputChannelId,
-				path.id,
-				termPointer + "/inputChannelId");
-			validateGain(
-				result,
-				term.gainLinear,
-				path.id,
-				termPointer + "/gainLinear");
-
-			if (!physicalChannelIds.contains(term.inputChannelId))
-			{
-				addDiagnostic(
-					result,
-					DiagnosticSeverity::Error,
-					DiagnosticCode::UnknownPhysicalInputChannel,
-					path.id,
-					termPointer + "/inputChannelId",
-					"The source mix references a channel outside the state layout.");
-			}
-		}
-
-		std::size_t polarityCount = 0;
-		std::size_t delayCount = 0;
-		std::size_t equalizerSlotsCount = 0;
-
-		for (std::size_t stageIndex = 0;
-			stageIndex < path.chain.size();
-			++stageIndex)
-		{
-			const PathStage& stage = path.chain[stageIndex];
-			const std::string stagePointer =
-				pointer + "/chain/" + std::to_string(stageIndex);
-
-			if (const auto* gain = std::get_if<GainStage>(&stage))
-			{
-				validateGain(
-					result,
-					gain->gainDb,
-					path.id,
-					stagePointer + "/gainDb");
-			}
-			else if (std::get_if<PolarityStage>(&stage) != nullptr)
-			{
-				++polarityCount;
-			}
-			else if (const auto* delay = std::get_if<DelayStage>(&stage))
-			{
-				++delayCount;
-
-				if (!std::isfinite(delay->milliseconds))
-				{
-					addDiagnostic(
-						result,
-						DiagnosticSeverity::Error,
-						DiagnosticCode::NonFiniteDelay,
-						path.id,
-						stagePointer + "/milliseconds",
-						"The delay must be finite.");
-				}
-				else if (delay->milliseconds < 0.0)
-				{
-					addDiagnostic(
-						result,
-						DiagnosticSeverity::Error,
-						DiagnosticCode::NegativeDelay,
-						path.id,
-						stagePointer + "/milliseconds",
-						"The delay must not be negative.");
-				}
-			}
-			else if (const auto* biquad = std::get_if<BiquadStage>(&stage))
-			{
-				validateFilter(
-					result,
-					biquad->filter,
-					path.id,
-					stagePointer + "/filter");
-			}
-			else if (const auto* slotsStage = std::get_if<EqualizerSlotsStage>(&stage))
-			{
-				++equalizerSlotsCount;
-
-				for (std::size_t filterIndex = 0;
-					filterIndex < slotsStage->filters.size();
-					++filterIndex)
-				{
-					validateFilter(
-						result,
-						slotsStage->filters[filterIndex],
-						path.id,
-						stagePointer + "/filters/" + std::to_string(filterIndex));
-				}
-			}
-		}
-
-		if (polarityCount == 0)
+		if (pathIt == pathIndices.end())
 		{
 			addDiagnostic(
 				result,
 				DiagnosticSeverity::Error,
-				DiagnosticCode::MissingPolarityStage,
-				path.id,
-				pointer + "/chain",
-				"The path must contain exactly one polarity stage.");
+				DiagnosticCode::DanglingMainPathReference,
+				group.id,
+				referencePointer,
+				"The main-path reference does not resolve.");
 		}
-		else if (polarityCount > 1)
+		else if (state.paths[pathIt->second].kind != PathKind::Main)
 		{
 			addDiagnostic(
 				result,
 				DiagnosticSeverity::Error,
-				DiagnosticCode::MultiplePolarityStages,
-				path.id,
-				pointer + "/chain",
-				"The path contains more than one polarity stage.");
-		}
-
-		if (delayCount == 0)
-		{
-			addDiagnostic(
-				result,
-				DiagnosticSeverity::Error,
-				DiagnosticCode::MissingDelayStage,
-				path.id,
-				pointer + "/chain",
-				"The path must contain exactly one delay stage.");
-		}
-		else if (delayCount > 1)
-		{
-			addDiagnostic(
-				result,
-				DiagnosticSeverity::Error,
-				DiagnosticCode::MultipleDelayStages,
-				path.id,
-				pointer + "/chain",
-				"The path contains more than one delay stage.");
-		}
-
-		if (equalizerSlotsCount == 0)
-		{
-			addDiagnostic(
-				result,
-				DiagnosticSeverity::Error,
-				DiagnosticCode::MissingEqualizerSlotsStage,
-				path.id,
-				pointer + "/chain",
-				"The path must contain exactly one equalizer-slots stage.");
-		}
-		else if (equalizerSlotsCount > 1)
-		{
-			addDiagnostic(
-				result,
-				DiagnosticSeverity::Error,
-				DiagnosticCode::MultipleEqualizerSlotsStages,
-				path.id,
-				pointer + "/chain",
-				"The path contains more than one equalizer-slots stage.");
+				DiagnosticCode::PathKindMismatch,
+				pathId,
+				referencePointer,
+				"A main-path reference must resolve to a main path.");
 		}
 	}
+}
 
-	std::unordered_set<std::string> groupIds;
-	std::unordered_set<std::string> groupReferencedPathIds;
+void validateBassPathReference(
+	ValidationResult& result,
+	const SubwooferRoutingState& state,
+	const SpeakerGroup& group,
+	const std::string& pointer,
+	const std::unordered_map<std::string, std::size_t>& pathIndices,
+	std::unordered_set<std::string>& localReferences,
+	std::unordered_set<std::string>& groupReferencedPathIds)
+{
+	if (!group.bassPathId.has_value())
+	{
+		return;
+	}
 
+	const std::string& pathId = *group.bassPathId;
+	const std::string referencePointer = pointer + "/bassPathId";
+
+	validateUtf8Field(result, pathId, group.id, referencePointer);
+	validateStableIdField(result, pathId, group.id, referencePointer);
+	groupReferencedPathIds.insert(pathId);
+
+	if (!localReferences.insert(pathId).second)
+	{
+		addDiagnostic(
+			result,
+			DiagnosticSeverity::Error,
+			DiagnosticCode::DuplicateSpeakerGroupPathReference,
+			group.id,
+			referencePointer,
+			"The speaker group references the same path more than once.");
+	}
+
+	const auto pathIt = pathIndices.find(pathId);
+
+	if (pathIt == pathIndices.end())
+	{
+		addDiagnostic(
+			result,
+			DiagnosticSeverity::Error,
+			DiagnosticCode::DanglingBassPathReference,
+			group.id,
+			referencePointer,
+			"The bass-path reference does not resolve.");
+	}
+	else if (state.paths[pathIt->second].kind != PathKind::Bass)
+	{
+		addDiagnostic(
+			result,
+			DiagnosticSeverity::Error,
+			DiagnosticCode::PathKindMismatch,
+			pathId,
+			referencePointer,
+			"A bass-path reference must resolve to a bass path.");
+	}
+}
+
+void validateSpeakerGroups(
+	ValidationResult& result,
+	const SubwooferRoutingState& state,
+	const std::unordered_map<std::string, std::size_t>& pathIndices,
+	std::unordered_set<std::string>& groupIds,
+	std::unordered_set<std::string>& groupReferencedPathIds)
+{
 	for (std::size_t groupIndex = 0;
 		groupIndex < state.speakerGroups.size();
 		++groupIndex)
@@ -1063,99 +1224,33 @@ ValidationResult validate(const SubwooferRoutingState& state)
 		}
 
 		std::unordered_set<std::string> localReferences;
-
-		for (std::size_t referenceIndex = 0;
-			referenceIndex < group.mainPathIds.size();
-			++referenceIndex)
-		{
-			const std::string& pathId = group.mainPathIds[referenceIndex];
-			const std::string referencePointer =
-				pointer + "/mainPathIds/" + std::to_string(referenceIndex);
-
-			validateUtf8Field(result, pathId, group.id, referencePointer);
-			validateStableIdField(result, pathId, group.id, referencePointer);
-			groupReferencedPathIds.insert(pathId);
-
-			if (!localReferences.insert(pathId).second)
-			{
-				addDiagnostic(
-					result,
-					DiagnosticSeverity::Error,
-					DiagnosticCode::DuplicateSpeakerGroupPathReference,
-					group.id,
-					referencePointer,
-					"The speaker group references the same path more than once.");
-			}
-
-			const auto pathIt = pathIndices.find(pathId);
-
-			if (pathIt == pathIndices.end())
-			{
-				addDiagnostic(
-					result,
-					DiagnosticSeverity::Error,
-					DiagnosticCode::DanglingMainPathReference,
-					group.id,
-					referencePointer,
-					"The main-path reference does not resolve.");
-			}
-			else if (state.paths[pathIt->second].kind != PathKind::Main)
-			{
-				addDiagnostic(
-					result,
-					DiagnosticSeverity::Error,
-					DiagnosticCode::PathKindMismatch,
-					pathId,
-					referencePointer,
-					"A main-path reference must resolve to a main path.");
-			}
-		}
-
-		if (group.bassPathId.has_value())
-		{
-			const std::string& pathId = *group.bassPathId;
-			const std::string referencePointer = pointer + "/bassPathId";
-
-			validateUtf8Field(result, pathId, group.id, referencePointer);
-			validateStableIdField(result, pathId, group.id, referencePointer);
-			groupReferencedPathIds.insert(pathId);
-
-			if (!localReferences.insert(pathId).second)
-			{
-				addDiagnostic(
-					result,
-					DiagnosticSeverity::Error,
-					DiagnosticCode::DuplicateSpeakerGroupPathReference,
-					group.id,
-					referencePointer,
-					"The speaker group references the same path more than once.");
-			}
-
-			const auto pathIt = pathIndices.find(pathId);
-
-			if (pathIt == pathIndices.end())
-			{
-				addDiagnostic(
-					result,
-					DiagnosticSeverity::Error,
-					DiagnosticCode::DanglingBassPathReference,
-					group.id,
-					referencePointer,
-					"The bass-path reference does not resolve.");
-			}
-			else if (state.paths[pathIt->second].kind != PathKind::Bass)
-			{
-				addDiagnostic(
-					result,
-					DiagnosticSeverity::Error,
-					DiagnosticCode::PathKindMismatch,
-					pathId,
-					referencePointer,
-					"A bass-path reference must resolve to a bass path.");
-			}
-		}
+		validateMainPathReferences(
+			result,
+			state,
+			group,
+			pointer,
+			pathIndices,
+			localReferences,
+			groupReferencedPathIds);
+		validateBassPathReference(
+			result,
+			state,
+			group,
+			pointer,
+			pathIndices,
+			localReferences,
+			groupReferencedPathIds);
 	}
+}
 
+void validateOutputMatrix(
+	ValidationResult& result,
+	const SubwooferRoutingState& state,
+	const std::unordered_set<std::string>& physicalChannelIds,
+	const std::unordered_map<std::string, std::size_t>& pathIndices,
+	std::unordered_set<std::string>& outputTargets,
+	std::unordered_set<std::string>& matrixReferencedPathIds)
+{
 	if (state.outputMatrix.empty())
 	{
 		addDiagnostic(
@@ -1166,9 +1261,6 @@ ValidationResult validate(const SubwooferRoutingState& state)
 			"/outputMatrix",
 			"The output matrix must contain at least one output.");
 	}
-
-	std::unordered_set<std::string> outputTargets;
-	std::unordered_set<std::string> matrixReferencedPathIds;
 
 	for (std::size_t outputIndex = 0;
 		outputIndex < state.outputMatrix.size();
@@ -1260,7 +1352,12 @@ ValidationResult validate(const SubwooferRoutingState& state)
 			}
 		}
 	}
+}
 
+void validateHeadroom(
+	ValidationResult& result,
+	const SubwooferRoutingState& state)
+{
 	if (!std::isfinite(state.headroom.manualTrimDb))
 	{
 		addDiagnostic(
@@ -1282,7 +1379,12 @@ ValidationResult validate(const SubwooferRoutingState& state)
 			"/headroom/manualTrimDb",
 			"The manual headroom trim must not be positive.");
 	}
+}
 
+void validateMetadata(
+	ValidationResult& result,
+	const SubwooferRoutingState& state)
+{
 	validateUtf8Field(
 		result,
 		state.metadata.profileName,
@@ -1298,7 +1400,14 @@ ValidationResult validate(const SubwooferRoutingState& state)
 		state.metadata.creatingAppVersion,
 		std::string(),
 		"/metadata/creatingAppVersion");
+}
 
+void validatePathConnectivity(
+	ValidationResult& result,
+	const SubwooferRoutingState& state,
+	const std::unordered_set<std::string>& groupReferencedPathIds,
+	const std::unordered_set<std::string>& matrixReferencedPathIds)
+{
 	for (const Path& path : state.paths)
 	{
 		const bool matrixReferenced =
@@ -1330,7 +1439,13 @@ ValidationResult validate(const SubwooferRoutingState& state)
 				"The path is not fully connected through a speaker group and output.");
 		}
 	}
+}
 
+void validateSpeakerGroupConnectivity(
+	ValidationResult& result,
+	const SubwooferRoutingState& state,
+	const std::unordered_set<std::string>& matrixReferencedPathIds)
+{
 	for (std::size_t groupIndex = 0;
 		groupIndex < state.speakerGroups.size();
 		++groupIndex)
@@ -1361,7 +1476,12 @@ ValidationResult validate(const SubwooferRoutingState& state)
 				"The speaker group has no path referenced by the output matrix.");
 		}
 	}
+}
 
+void validateGraphCycle(
+	ValidationResult& result,
+	const SubwooferRoutingState& state)
+{
 	if (pathDependencyGraphHasCycle(state))
 	{
 		addDiagnostic(
@@ -1372,6 +1492,50 @@ ValidationResult validate(const SubwooferRoutingState& state)
 			"/paths",
 			"The path dependency graph contains a cycle.");
 	}
+}
+
+}
+
+ValidationResult validate(const SubwooferRoutingState& state)
+{
+	ValidationResult result;
+
+	validateSchema(result, state);
+
+	std::unordered_set<std::string> physicalChannelIds;
+	validatePhysicalLayout(result, state, physicalChannelIds);
+
+	std::unordered_map<std::string, std::size_t> pathIndices;
+	validatePaths(result, state, physicalChannelIds, pathIndices);
+
+	std::unordered_set<std::string> groupIds;
+	std::unordered_set<std::string> groupReferencedPathIds;
+	validateSpeakerGroups(
+		result,
+		state,
+		pathIndices,
+		groupIds,
+		groupReferencedPathIds);
+
+	std::unordered_set<std::string> outputTargets;
+	std::unordered_set<std::string> matrixReferencedPathIds;
+	validateOutputMatrix(
+		result,
+		state,
+		physicalChannelIds,
+		pathIndices,
+		outputTargets,
+		matrixReferencedPathIds);
+
+	validateHeadroom(result, state);
+	validateMetadata(result, state);
+	validatePathConnectivity(
+		result,
+		state,
+		groupReferencedPathIds,
+		matrixReferencedPathIds);
+	validateSpeakerGroupConnectivity(result, state, matrixReferencedPathIds);
+	validateGraphCycle(result, state);
 
 	return result;
 }
