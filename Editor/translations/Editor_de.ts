@@ -2840,7 +2840,8 @@ Führen Sie tools\Repair-EqualizerAPO.ps1 aus dem Installationsordner als Admini
         <location filename="../MainWindow.cpp" line="344"/>
         <source>A registry value that is required for the operation of Equalizer APO is not set correctly.
 Do you want to run the Device Selector application to fix the problem?</source>
-        <translation>Ein Registrywert, der für den Betrieb von Equalizer APO erforderlich ist, ist nicht korrekt gesetzt. Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</translation>
+        <translation>Ein Registrywert, der für den Betrieb von Equalizer APO erforderlich ist, ist nicht korrekt gesetzt.
+Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</translation>
     </message>
     <message>
         <location filename="../MainWindow.cpp" line="353"/>

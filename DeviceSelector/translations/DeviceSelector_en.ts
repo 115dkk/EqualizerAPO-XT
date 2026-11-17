@@ -424,7 +424,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <location line="+23"/>
         <source>Check failed for %n device(s).</source>
         <translation>
-            <numerusform>Check failed for one device.</numerusform>
+            <numerusform>Check failed for %n device.</numerusform>
             <numerusform>Check failed for %n devices.</numerusform>
         </translation>
     </message>
@@ -447,7 +447,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <location line="+2"/>
         <source>Checks done. Problems were detected for %n device(s).</source>
         <translation>
-            <numerusform>Checks done. Problems were detected for one device.</numerusform>
+            <numerusform>Checks done. Problems were detected for %n device.</numerusform>
             <numerusform>Checks done. Problems were detected for %n devices.</numerusform>
         </translation>
     </message>
