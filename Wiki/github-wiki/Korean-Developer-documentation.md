@@ -27,7 +27,7 @@ XT는 Windows 프로젝트입니다. C++ 프로젝트는 Visual Studio 2022 / 20
 * **SubwooferRoutingVst3** — 공용 코어에 링크하는 독립 `EAPO XT Subwoofer Routing` VST3 플러그인입니다.
 * **Installer** — 아키텍처와 SIMD 지원을 감지하고 선택한 릴리스 파일을 검증한 뒤 Velopack 설치 프로그램을 실행하는 작은 Win32 `EqualizerAPO-XT-Setup.exe` 진입 파일입니다.
 * **EqualizerAPOAsio** — DAW가 불러오는 ASIO 래퍼 DLL(`EqualizerAPOAsio.dll`)입니다. 응용 프로그램 쪽으로는 ASIO 드라이버이고, 뒤에는 하드웨어 ASIO 드라이버 또는 WASAPI 독점 모드로 연 Windows 엔드포인트(`asio/WasapiExclusiveTarget`)가 있으며, 버퍼마다 처리기 시임을 거쳐 엔진 호스트로 갑니다. x64 빌드는 `x86\` 아래 32비트 래퍼도 만들고, ARM64는 만들지 않습니다.
-* **EqualizerAPOHost** — `EqualizerAPOHost.exe`, 래퍼가 공유 메모리 링(`runtime/ipc/StreamRing`)으로 대화하는 별도 프로세스의 엔진 호스트입니다. 세션당 하나이고, 필요할 때 뜨며, 마지막 스트림 뒤 1분이면 사라집니다.
+* **EqualizerAPOHost** — `EqualizerAPOHost.exe`, 래퍼가 공유 메모리 링(`asio/StreamRing`)으로 대화하는 별도 프로세스의 엔진 호스트입니다. 세션당 하나이고, 필요할 때 뜨며, 마지막 스트림 뒤 1분이면 사라집니다.
 * **Tests** — 테스트 모음 `HybridConvTests`, `EditorLogicTests`, `EngineOrchestrationTests`, `AudioRegressionTests`, `AsioTests`, 호스트 시험용 `TestVst2Plugin`과 `TestVst3Plugin`, 픽스처 `FakeAsioDriver`와 `AsioSupport`, 프로브 네 개입니다. `ApoHostProbe`(오디오 엔진 없이 엔드포인트 하나에 대해 `EqualizerAPO.dll`을 띄움), `CaptureProbe`(한 엔드포인트에 톤을 재생하고 다른 엔드포인트에서 WASAPI로 잼. 작은 엔진 주기 포함), `AsioProbe`(DAW가 여는 방식으로 래퍼를 통해 대상을 엶), `VstPreviewProbe`입니다.
 * **Setup** — CI 패키징 단계가 Velopack 출력에 넣는 예제 설정 파일(`config/`)과 문서 `.url` 바로 가기입니다.
 

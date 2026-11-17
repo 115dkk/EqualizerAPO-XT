@@ -154,7 +154,7 @@ graph TD
 
 **강도: Strong** (B를 택하면 필수)
 
-**파일:** 신규 `runtime/ipc/StreamRing.{h,cpp}` (Qt 없음, Win32 공유 메모리 + 이벤트), `engine/ConfigSwapChannel.h`가 설계 선례.
+**파일:** 신규 `asio/StreamRing.{h,cpp}` (Qt 없음, Win32 공유 메모리 + 이벤트), `engine/ConfigSwapChannel.h`가 설계 선례.
 
 **문제.** 공유 메모리에 버퍼를 놓고 신호를 주고받고 마감을 재는 코드는 흩어지기 쉽고, 흩어지면 ARM64 메모리 순서 결함처럼 찾기 어려운 버그가 됩니다(이 저장소가 `ConfigSwapChannel`을 만든 이유와 같습니다).
 
@@ -408,7 +408,7 @@ public:
 `DaemonProcessor::open()`은 `IHostLink`(어댑터 둘: `Win32HostLink`=실제 exe 찾기/띄우기 + 이름 있는 매핑과 이벤트, `ThreadHostLink`=같은 프로세스의 스레드에서 `EngineHostCore` 구동)에서 `Ready` 확인을 마친 `RingProducer`를 받는다. 링크가 생산자를 만들고 `RingFault`를 열기 결과로 바꾸며, 닫을 때도 생산자를 먼저 `Closing`으로 바꾼 뒤 매핑과 이벤트를 해제한다.
 
 ```cpp
-// runtime/ipc/StreamRing.h  - 양쪽이 같은 소스로 컴파일. Win32/x64/ARM64 바이트 동일
+// asio/StreamRing.h  - 양쪽이 같은 소스로 컴파일. Win32/x64/ARM64 바이트 동일
 struct alignas(64) RingHeader
 {
     uint32_t magic, layoutVersion, totalBytes, slotStride;
@@ -471,7 +471,7 @@ struct alignas(64) RingHeader
 ## 11. 구현 순서
 
 1. SDK 핀(`simd-variants.psd1` + `setup-build.ps1` + CI), `asio/` 코어와 래퍼 DLL 프로젝트(x64/Win32/ARM64), `Tests/FakeAsioDriver`, `Tests/AsioProbe`(in-proc 어댑터 포함), 코어 단위 테스트. 이 시점에 실기기에서 in-proc 모드로 소리를 들을 수 있다.
-2. `runtime/ipc/StreamRing` + 링 단위 테스트.
+2. `asio/StreamRing` + 링 단위 테스트.
 3. `EngineHostCore` + `EqualizerAPOHost.exe` + `DaemonProcessor`, 프로브 결정적 게이트 3모드, CI 레그(x64, Win32).
 4. `DeviceCatalog` + `AsioAPOInfo`(재생/캡처 기록 둘) + 등록(양쪽 뷰) + DeviceSelector 상태 문구 + 설치기 배치. 갤러리 샷.
 5. `StreamFacts` 게시와 Editor 배지, 문서(README/CHANGELOG 4파일, docs), 실기기 게이트, 릴리스.
