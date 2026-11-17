@@ -29,6 +29,7 @@
 
 #include "services/security/AudioEngineAccess.h"
 #include "Editor/guis/VSTPluginFilterGUIDialog.h"
+#include "Editor/helpers/BackgroundProbe.h"
 #include "Editor/helpers/PluginLoadQueue.h"
 #include "Editor/helpers/VstChunkScan.h"
 #include "Editor/helpers/VstChunkState.h"
@@ -505,15 +506,39 @@ QString VSTPluginSession::libraryPermissionWarning() const
 // silently vanished on the next row rebuild, while the files stayed
 // unreadable for the audio service - a real problem reading as a false
 // alarm.
-QString VSTPluginSession::chunkPermissionWarning() const
+QString VSTPluginSession::chunkPermissionWarning()
 {
-	const QStringList files = vstChunkUnreadablePaths(currentChunkData);
-	if (files.isEmpty())
-		return QString();
-	return QCoreApplication::translate("VSTPluginFilterGUI", "The plugin seemingly accesses these files not readable by the audio service:\n"
-		"%0\n"
-		"Change the file permissions or copy the files to the config directory.")
-		.arg(files.join("\n"));
+	const bool answered = chunkWarningKnown && chunkWarningChunk == currentChunkData;
+	if (!answered && !(chunkScanRunning && chunkScanChunk == currentChunkData))
+	{
+		// The scan tests existence and access for every path in the chunk,
+		// which blocked the UI thread for the network timeout on a
+		// disconnected drive (audit #467 TD-59). The delivery runs only while
+		// this session exists (BackgroundProbe checks its context).
+		const std::wstring chunk = currentChunkData;
+		chunkScanChunk = chunk;
+		chunkScanRunning = true;
+		BackgroundProbe::runFor(this,
+			[chunk]() { return vstChunkUnreadablePaths(chunk); },
+			[this, chunk](const QStringList& files) {
+				if (chunk == chunkScanChunk)
+					chunkScanRunning = false;
+				// The chunk changed while the scan ran: the answer is no one's.
+				if (chunk != currentChunkData)
+					return;
+				chunkWarningChunk = chunk;
+				chunkWarningKnown = true;
+				chunkWarning = files.isEmpty() ? QString()
+					: QCoreApplication::translate("VSTPluginFilterGUI", "The plugin seemingly accesses these files not readable by the audio service:\n"
+						"%0\n"
+						"Change the file permissions or copy the files to the config directory.")
+						.arg(files.join("\n"));
+				emit chunkPermissionWarningChanged();
+			});
+	}
+	// Until the new answer lands the last one stays up, so a warning does
+	// not blink off and on while the plug-in's state moves.
+	return chunkWarning;
 }
 
 void VSTPluginSession::applyDialog()

@@ -118,6 +118,9 @@ VSTPluginFilterGUI::VSTPluginFilterGUI(std::shared_ptr<VSTPluginLibrary> library
 	connect(session.get(), &VSTPluginSession::stateChanged, this, &VSTPluginFilterGUI::pluginStateChanged);
 	connect(session.get(), &VSTPluginSession::automated, this, &VSTPluginFilterGUI::pluginStateChanged);
 	connect(session.get(), &VSTPluginSession::embedStateChanged, this, &VSTPluginFilterGUI::embedStateChanged);
+	// The chunk scan answers from the background probe thread (audit #467 TD-59).
+	connect(session.get(), &VSTPluginSession::chunkPermissionWarningChanged,
+		this, &VSTPluginFilterGUI::updatePermissionWarning);
 	connect(session.get(), &VSTPluginSession::sizeRequested, this, [this](int w, int h) {
 		ui->frame->setFixedSize(w, h);
 	});

@@ -32,10 +32,9 @@ QStringList vstChunkUnreadablePaths(const std::wstring& chunkData);
 
 // The same with the two file-system questions passed in. Both block on a
 // path that points at a disconnected network drive; the one-argument form
-// asks the file system directly on the calling thread, and its caller
-// (VSTPluginSession::chunkPermissionWarning) needs the answer synchronously.
-// A caller that moves the scan off the UI thread, or a test, passes its own
-// (audit #467 TD-59).
+// asks the file system directly on the calling thread, so its caller
+// (VSTPluginSession::chunkPermissionWarning) runs it on the background probe
+// thread. A test passes its own questions (audit #467 TD-59).
 QStringList vstChunkUnreadablePaths(const std::wstring& chunkData,
 	const std::function<bool(const QString&)>& exists,
 	const std::function<bool(const QString&)>& readableByAudioService);
