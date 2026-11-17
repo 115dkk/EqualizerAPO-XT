@@ -24,6 +24,7 @@
 #include "Editor/widgets/FilterCardModel.h"
 
 class QScrollArea;
+class QVBoxLayout;
 class ElidedLabel;
 class RoutingView;
 
@@ -71,6 +72,18 @@ private slots:
 	void routingEdited();
 
 private:
+	// Construction steps, called by the constructor in this order (audit #467
+	// TD-38). The card frame step returns the card's column layout, which the
+	// body stack joins; the header control step returns the header row, which
+	// the identity step continues.
+	QVBoxLayout* buildCardFrame();
+	QHBoxLayout* buildHeaderControls(int number);
+	void buildHeaderIdentity(QHBoxLayout* headerLayout);
+	void buildBodyStack(QVBoxLayout* cardLayout);
+	// The body page: the Copy routing view, the filter's own editor, or the
+	// raw-text card for a line without one.
+	void mountBody();
+	void mountRawBody();
 	void watchPointerSelection(QWidget* root);
 	// The body wrapper: the styled editor container and its width-pinned
 	// scroll area around the content createContent builds (as a child of the
