@@ -16,9 +16,9 @@ BeforeAll {
             Forbidden = @('asio', 'services', 'devices')
         }
     )
-    # AlignedMemory's logging dependency predates TD-39 and is not one of the
-    # three cycles moved here. The task says to report another violation rather
-    # than change it, so keep that exact include as the sole baseline exception.
+    # AlignedMemory logs a failed allocation, and the allocator has no other way
+    # to report one. That include is the one known exception; nothing else under
+    # runtime/ may include services/.
     $script:KnownOutOfScope = @('runtime/memory/AlignedMemory.cpp|services')
 }
 
