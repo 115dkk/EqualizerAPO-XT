@@ -14,6 +14,16 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.63.4 — 2026-11-17
+
+- **Device Selector's check results name the count again, and three Editor
+  messages break lines where the English does.** In German, English and French
+  the one-device form of "Check failed for %n device(s)" spelled the number out
+  instead of using it. A German and a Chinese warning box and the Chinese
+  loudness-correction credit ran two lines together. Two French labels had a
+  wrong plural (`Mises à niveau disponibles`, `périphériques`).
+  ([#471](https://github.com/115dkk/EqualizerAPO-XT/pull/471))
+
 ## v2.63.3 — 2026-11-16
 
 Everything below comes from the 2026-11-15 audit

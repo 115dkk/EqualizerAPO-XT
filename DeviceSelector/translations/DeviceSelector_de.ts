@@ -438,7 +438,7 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <location line="+23"/>
         <source>Check failed for %n device(s).</source>
         <translation>
-            <numerusform>Überprüfung fehlgeschlagen für ein Gerät.</numerusform>
+            <numerusform>Überprüfung fehlgeschlagen für %n Gerät.</numerusform>
             <numerusform>Überprüfung fehlgeschlagen für %n Geräte.</numerusform>
         </translation>
     </message>
@@ -461,7 +461,7 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <location line="+2"/>
         <source>Checks done. Problems were detected for %n device(s).</source>
         <translation>
-            <numerusform>Überprüfungen abgeschlossen. Für ein Gerät wurden Probleme erkannt.</numerusform>
+            <numerusform>Überprüfungen abgeschlossen. Für %n Gerät wurden Probleme erkannt.</numerusform>
             <numerusform>Überprüfungen abgeschlossen. Für %n Geräte wurden Probleme erkannt.</numerusform>
         </translation>
     </message>

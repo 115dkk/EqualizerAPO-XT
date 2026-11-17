@@ -2222,7 +2222,8 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
         <location filename="../guis/LoudnessCorrectionFilterGUI.ui" line="108"/>
         <source>contributed by
 Alexander Walch</source>
-        <translation>由 Alexander Walch 贡献</translation>
+        <translation>贡献者：
+Alexander Walch</translation>
     </message>
     <message>
         <location filename="../guis/LoudnessCorrectionFilterGUI.ui" line="160"/>
@@ -2876,7 +2877,8 @@ This is not a crash — sound still reaches the device, but no EQ. Switch the de
         <source>Audio enhancements are not enabled for the device
 %0 %1.
 Do you want to run the Device Selector application to fix the problem?</source>
-        <translation>设备 %0 %1 未启用音频增强功能。
+        <translation>以下设备未启用音频增强功能：
+%0 %1。
 是否要运行设备选择器应用程序来修复此问题？</translation>
     </message>
     <message>
