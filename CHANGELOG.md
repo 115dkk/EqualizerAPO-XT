@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.63.4 — 2026-11-17
+
 - **Device Selector's check results name the count again, and three Editor
   messages break lines where the English does.** In German, English and French
   the one-device form of "Check failed for %n device(s)" spelled the number out
