@@ -14,6 +14,15 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The audio engine no longer keeps running the previous version after an
+  update.** Windows audio could keep the old engine loaded after the Editor
+  updated itself, so the new version only took effect after a reboot or a
+  manual restart of the audio services. The update now restarts
+  AudioEndpointBuilder together with the Windows audio service, which makes
+  Windows load the new engine. Sound stops for a few seconds during an update,
+  as before. Not yet observed on a real update.
+  ([#474](https://github.com/115dkk/EqualizerAPO-XT/pull/474))
+
 ## v2.64.0 — 2026-11-17
 
 - **A line that points at an unreachable file no longer freezes the Editor.**
