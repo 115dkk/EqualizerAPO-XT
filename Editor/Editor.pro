@@ -447,6 +447,7 @@ HEADERS  += \
 	helpers/PanelPreviewFeeder.h \
 	helpers/PluginLoadQueue.h \
 	helpers/BackgroundProbe.h \
+	helpers/TroubleshootingNotices.h \
 	helpers/WindowFrameHitTest.h \
 	helpers/SpinBoxEditFieldFix.h \
 	../services/app/QtAppBootstrap.h \

@@ -588,7 +588,7 @@ int main(int argc, char* argv[])
 		else
 			w.doChecks();
 
-		if (updateSession && !firstRun)
+		if (shouldCheckAutomatically(EditorSettings::readAutomaticUpdates(settings), firstRun, updateSession != nullptr))
 		{
 			// Defer the background download so it does not race with audio service
 			// work or a Device Selector launch right after the Editor opens.
@@ -596,7 +596,10 @@ int main(int argc, char* argv[])
 			// device enumeration are all comfortably finished. The download runs on
 			// its own worker thread and just stages the update for apply-on-exit.
 			QTimer::singleShot(60000, qApp, [session = updateSession.get()]() {
-				session->startDownload();
+				// Respect a choice made from the menu during the launch delay too.
+				QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
+				if (shouldCheckAutomatically(EditorSettings::readAutomaticUpdates(settings), false, session != nullptr))
+					session->startDownload();
 			});
 		}
 

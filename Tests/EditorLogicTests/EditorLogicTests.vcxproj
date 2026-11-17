@@ -105,6 +105,8 @@
     <ClCompile Include="VSTPanelIntentTests.cpp" />
     <ClCompile Include="VSTBusVerdictTests.cpp" />
     <ClCompile Include="MainWindowStateTests.cpp" />
+    <ClCompile Include="TroubleshootingNoticesTests.cpp" />
+    <ClInclude Include="..\..\Editor\helpers\TroubleshootingNotices.h" />
     <ClCompile Include="PanelMonitorGateTests.cpp" />
     <ClCompile Include="InfrastructureTests.cpp" />
     <ClCompile Include="..\..\Editor\helpers\CrashHandler.cpp" />

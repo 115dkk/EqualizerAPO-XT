@@ -206,6 +206,12 @@
     <ClCompile Include="MainWindowStateTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="TroubleshootingNoticesTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Editor\helpers\TroubleshootingNotices.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClCompile Include="..\..\Editor\widgets\cards\VSTPanelIntent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

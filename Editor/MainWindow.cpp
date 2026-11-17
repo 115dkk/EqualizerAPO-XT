@@ -47,6 +47,8 @@
 #include "services/update/UpdateSession.h"
 #include "Editor/widgets/UpdateToast.h"
 #include "Editor/helpers/BackgroundProbe.h"
+#include "Editor/helpers/TroubleshootingNotices.h"
+#include "platform/windows/WindowsPath.h"
 #include "Editor/helpers/GUIChannelHelper.h"
 // Complete type for frameChildForwarder's destructor in ~MainWindow.
 #include "Editor/helpers/WindowFrameHitTest.h"
@@ -84,7 +86,7 @@ template<class T> QList<T> MainWindow::toQList(const std::vector<T>& vector)
 	return list;
 }
 
-MainWindow::MainWindow(QDir configDir, const UpdateSession* updateSession, QWidget* parent,
+MainWindow::MainWindow(QDir configDir, UpdateSession* updateSession, QWidget* parent,
 	bool analysisLayoutTestMode)
 	: QMainWindow(parent),
 	ui(std::make_unique<Ui::MainWindow>()),
@@ -267,7 +269,7 @@ MainWindow::MainWindow(QDir configDir, const UpdateSession* updateSession, QWidg
 void MainWindow::watchForPendingUpdate()
 {
 	// The background download (main.cpp) starts 60s after launch and stages
-	// silently; this poll is the only place the user learns about it. 20s is
+	// silently; this poll announces it without a manual check. 20s is
 	// far below the human noticing threshold for "eventually told me" and far
 	// above any cost concern for an atomic-bool read.
 	if (updateSession == nullptr)
@@ -280,14 +282,131 @@ void MainWindow::watchForPendingUpdate()
 			return;
 		updateNoticeTimer->stop();
 
-		const QString version = QString::fromStdWString(updateSession->pendingUpdateVersion());
 		if (updateToast == nullptr)
 			updateToast = new UpdateToast(centralWidget());
-		updateToast->showMessage(version.isEmpty()
-			? tr("An update has been downloaded and will be applied when you close the editor.")
-			: tr("Update %0 has been downloaded and will be applied when you close the editor.").arg(version));
+		updateToast->showMessage(downloadedUpdateMessage());
 	});
 	updateNoticeTimer->start();
+}
+
+QString MainWindow::downloadedUpdateMessage() const
+{
+	const QString version = QString::fromStdWString(updateSession->pendingUpdateVersion());
+	return version.isEmpty()
+		? tr("An update has been downloaded and will be applied when you close the editor.")
+		: tr("Update %0 has been downloaded and will be applied when you close the editor.").arg(version);
+}
+
+void MainWindow::on_actionRestartAudioService_triggered()
+{
+	if (!ui->actionRestartAudioService->isEnabled())
+		return;
+	if (QMessageBox::question(this, tr("Restart Windows audio"),
+		tr("Restart Windows audio now? Sound stops for a few seconds."),
+		QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes) == QMessageBox::Yes)
+		restartWindowsAudio();
+}
+
+void MainWindow::restartWindowsAudio()
+{
+	if (!ui->actionRestartAudioService->isEnabled())
+		return;
+	ui->actionRestartAudioService->setEnabled(false);
+	// Work captures no window state. BackgroundProbe drops the completion if
+	// this window is destroyed while UAC or the service restart is pending.
+	BackgroundProbe::runFor(this, [] {
+		return TroubleshootingNotices::restartNotice(audioengine::requestRestart(pathutil::exePath(),
+			[](const std::wstring& exe, const std::wstring& args) {
+				return winutil::launchElevated(exe, args, true);
+			}));
+	}, [this](TroubleshootingNotices::RestartNotice notice) {
+		ui->actionRestartAudioService->setEnabled(true);
+		switch (notice)
+		{
+		case TroubleshootingNotices::RestartNotice::Restarted:
+			QMessageBox::information(this, tr("Restart Windows audio"),
+				tr("Windows audio has been restarted."));
+			break;
+		case TroubleshootingNotices::RestartNotice::Failed:
+			QMessageBox::warning(this, tr("Restart Windows audio"),
+				tr("Windows audio could not be restarted. Restart the computer to load the installed version."));
+			break;
+		case TroubleshootingNotices::RestartNotice::None:
+			break;
+		}
+	});
+}
+
+void MainWindow::on_actionCheckForUpdates_triggered()
+{
+	if (!ui->actionCheckForUpdates->isEnabled())
+		return;
+	if (updateSession == nullptr)
+	{
+		showManualCheckNotice(manualCheckNotice(false, UpdateDownloadStatus::Idle));
+		return;
+	}
+
+	const UpdateCheckStart start = updateSession->checkNow();
+	const UpdateDownloadStatus status = updateSession->downloadStatus();
+	switch (TroubleshootingNotices::updateAction(start, status))
+	{
+	case TroubleshootingNotices::UpdateAction::None:
+		return;
+	case TroubleshootingNotices::UpdateAction::ShowNotice:
+		showManualCheckNotice(manualCheckNotice(true,
+			start == UpdateCheckStart::AlreadyStaged ? UpdateDownloadStatus::Staged : status));
+		return;
+	case TroubleshootingNotices::UpdateAction::Poll:
+		break;
+	}
+
+	ui->actionCheckForUpdates->setEnabled(false);
+	if (manualUpdateTimer == nullptr)
+	{
+		manualUpdateTimer = new QTimer(this);
+		manualUpdateTimer->setInterval(500);
+		connect(manualUpdateTimer, &QTimer::timeout, this, [this]() {
+			const UpdateDownloadStatus status = updateSession->downloadStatus();
+			if (TroubleshootingNotices::updateAction(UpdateCheckStart::AlreadyRunning, status)
+				== TroubleshootingNotices::UpdateAction::Poll)
+				return;
+			manualUpdateTimer->stop();
+			ui->actionCheckForUpdates->setEnabled(true);
+			showManualCheckNotice(manualCheckNotice(true, status));
+		});
+	}
+	manualUpdateTimer->start();
+}
+
+void MainWindow::showManualCheckNotice(ManualCheckNotice notice)
+{
+	const QString title = tr("Check for updates");
+	switch (notice)
+	{
+	case ManualCheckNotice::NotInstalledCopy:
+		QMessageBox::information(this, title,
+			tr("This copy was not installed by the installer, so it cannot update itself."));
+		break;
+	case ManualCheckNotice::UpToDate:
+		QMessageBox::information(this, title, tr("You have the latest version (%1).")
+			.arg(QString::fromStdWString(eapoDisplayVersionW())));
+		break;
+	case ManualCheckNotice::Downloaded:
+		QMessageBox::information(this, title, downloadedUpdateMessage());
+		break;
+	case ManualCheckNotice::Failed:
+		QMessageBox::warning(this, title,
+			tr("Could not check for updates. Check the internet connection and try again."));
+		break;
+	case ManualCheckNotice::Checking:
+		break;
+	}
+}
+
+void MainWindow::on_actionReportProblem_triggered()
+{
+	QDesktopServices::openUrl(QUrl(QStringLiteral(EAPO_REPO_URL "/issues/new")));
 }
 
 MainWindow::~MainWindow()
@@ -296,13 +415,15 @@ MainWindow::~MainWindow()
 void MainWindow::doChecks()
 {
 	// Query only: no transition wait on the UI thread (audit #467 TD-13).
+	bool audioServiceRunning = false;
 	try
 	{
 		winutil::UniqueServiceHandle manager(OpenSCManagerW(nullptr, nullptr, SC_MANAGER_CONNECT));
 		if (manager)
 		{
 			WindowsService audio(manager.get(), audioServiceName, SERVICE_QUERY_STATUS);
-			if (audio.getState() != SERVICE_RUNNING)
+			audioServiceRunning = audio.getState() == SERVICE_RUNNING;
+			if (!audioServiceRunning)
 				QMessageBox::warning(this, tr("Windows audio service"),
 					tr("The Windows audio service is not running. Sound will not play until it is started."));
 		}
@@ -310,6 +431,22 @@ void MainWindow::doChecks()
 	catch (const WindowsServiceError& e)
 	{
 		LogF(L"Could not query Windows audio service: %s", e.getMessage().c_str());
+	}
+
+	if (audioServiceRunning && !engineRestartOffered)
+	{
+		const auto running = eapo::ipc::beacon::readPublished();
+		const auto installed = eapo::ipc::beacon::builtVersion();
+		if (TroubleshootingNotices::shouldOfferEngineRestart(audioServiceRunning,
+			eapo::ipc::beacon::classify(running, installed)))
+		{
+			engineRestartOffered = true;
+			if (QMessageBox::question(this, tr("Audio engine out of date"),
+				tr("The audio engine is still running Equalizer APO %1, but %2 is installed. Windows audio has to restart before the new version takes over.\n\nRestart Windows audio now? Sound stops for a few seconds.")
+					.arg(TroubleshootingNotices::formatVersion(*running), TroubleshootingNotices::formatVersion(installed)),
+				QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes) == QMessageBox::Yes)
+				restartWindowsAudio();
+		}
 	}
 
 	// AuthZ can resolve account membership: keep it on the same worker as
