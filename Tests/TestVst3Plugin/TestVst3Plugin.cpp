@@ -56,6 +56,7 @@ bool declaredUpmixerMode = false;
 bool rejectSetupMode = false;
 bool rejectActiveMode = false;
 bool rejectProcessingMode = false;
+bool unimplementedProcessingMode = false;
 bool faultProcessMode = false;
 bool faultActiveMode = false;
 bool faultStateMode = false;
@@ -534,6 +535,8 @@ public:
 			}
 		}
 		processing.store(state != 0);
+		if (unimplementedProcessingMode)
+			return kNotImplemented;
 		return active.load() ? kResultOk : kResultFalse;
 	}
 	tresult PLUGIN_API process(ProcessData& data) override
@@ -1385,6 +1388,7 @@ extern "C" __declspec(dllexport) bool InitDll()
 	rejectSetupMode = wcsstr(moduleName, testvst3::mode::rejectSetup) != nullptr;
 	rejectActiveMode = wcsstr(moduleName, testvst3::mode::rejectActive) != nullptr;
 	rejectProcessingMode = wcsstr(moduleName, testvst3::mode::rejectProcessing) != nullptr;
+	unimplementedProcessingMode = wcsstr(moduleName, testvst3::mode::unimplementedProcessing) != nullptr;
 	surround41CineOnlyMode = wcsstr(moduleName, testvst3::mode::surround41CineOnly) != nullptr;
 	surround41Mode = wcsstr(moduleName, testvst3::mode::surround41) != nullptr || surround41CineOnlyMode;
 	toneGeneratorMode = wcsstr(moduleName, testvst3::mode::toneGenerator) != nullptr;

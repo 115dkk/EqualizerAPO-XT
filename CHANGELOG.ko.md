@@ -19,6 +19,14 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   읽자마자 닫습니다.
   ([#477](https://github.com/115dkk/EqualizerAPO-XT/issues/477), [#479](https://github.com/115dkk/EqualizerAPO-XT/pull/479))
 
+- **LoudMax 같은 VST3 플러그인이 다시 소리를 처리합니다.** v2.24.0부터
+  '처리 시작' 호출에 '구현하지 않음'으로 답하는 VST3 플러그인은 시작을 거부한
+  것으로 처리되어, 카드와 패널은 정상으로 보이는데 소리는 그대로
+  통과했습니다. 그 답은 VST3 SDK의 기본 클래스가 돌려주는 값이라 드물지
+  않고, LoudMax VST3 1.47도 그렇게 답합니다. 이제 엔진은 이 답을 시작한
+  것으로 받아들입니다.
+  ([#478](https://github.com/115dkk/EqualizerAPO-XT/issues/478), [#480](https://github.com/115dkk/EqualizerAPO-XT/pull/480))
+
 ## v2.65.0 — 2026-11-18
 
 - **Windows 오디오가 이전 엔진으로 동작하고 있으면 Editor에 표시되고, 해결

@@ -18,6 +18,9 @@ constexpr wchar_t declaredUpmixer[] = L"DeclaredUpmixer.vst3";
 constexpr wchar_t rejectSetup[] = L"RejectSetup.vst3";
 constexpr wchar_t rejectActive[] = L"RejectActive.vst3";
 constexpr wchar_t rejectProcessing[] = L"RejectProcessing.vst3";
+// setProcessing answers kNotImplemented, as the VST3 SDK's AudioEffect base
+// class does, and still processes (LoudMax VST3 1.47, issue #478).
+constexpr wchar_t unimplementedProcessing[] = L"UnimplementedProcessing.vst3";
 constexpr wchar_t surround41CineOnly[] = L"Surround41CineOnly.vst3";
 constexpr wchar_t surround41[] = L"Surround41.vst3";
 constexpr wchar_t toneGenerator[] = L"ToneGenerator.vst3";

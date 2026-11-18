@@ -25,6 +25,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   file as soon as it has read it.
   ([#477](https://github.com/115dkk/EqualizerAPO-XT/issues/477), [#479](https://github.com/115dkk/EqualizerAPO-XT/pull/479))
 
+- **VST3 plug-ins such as LoudMax process audio again.** Since v2.24.0 a
+  VST3 plug-in that answers the "start processing" call with "not
+  implemented" was treated as having refused to start, and its audio was
+  passed through untouched while its card and panel looked normal. That
+  answer is what the VST3 SDK's own base class gives, so it is common;
+  LoudMax VST3 1.47 is one such plug-in. The engine now treats it as started.
+  ([#478](https://github.com/115dkk/EqualizerAPO-XT/issues/478), [#480](https://github.com/115dkk/EqualizerAPO-XT/pull/480))
+
 ## v2.65.0 — 2026-11-18
 
 - **The Editor says when Windows audio is still running the previous engine,
