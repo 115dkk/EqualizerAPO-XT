@@ -936,6 +936,34 @@ TEST_CASE(Vst3HostTests, testFloatProcessing)
 	floatOnlyInstance.stopProcessing();
 }
 
+// Issue #478: LoudMax VST3 1.47 answers setProcessing(true) with
+// kNotImplemented, which is what the VST3 SDK's own AudioEffect base class
+// returns, and processes normally. The host took that answer for a refusal and
+// passed the audio through untouched.
+TEST_CASE(Vst3HostTests, testUnimplementedSetProcessingStillProcesses)
+{
+	auto library = loadScenarioLibrary(L"UnimplementedProcessingBundle.vst3", testvst3::mode::unimplementedProcessing);
+	auto owner = VSTPluginInstance::create(library, VSTPluginInstance::ProcessLevel::Realtime);
+	VSTPluginInstance& instance = *owner;
+	harness.require(instance.initialize() && instance.prepareForProcessing(48000.0f, 16, VSTPluginInstance::InputWidth::Float),
+		"the plug-in initializes and prepares");
+	std::unordered_map<wstring, float> desiredParameters;
+	desiredParameters[L"Gain"] = 0.5f;
+	instance.writeToEffect(L"", desiredParameters);
+	harness.expectTrue(instance.startProcessing(), "a kNotImplemented answer to setProcessing starts processing");
+	harness.expectTrue(instance.canProcessNow(), "and the instance reports it can process");
+	float inLeft[] = {0.25f, -0.5f, 0.75f, 1.0f};
+	float inRight[] = {-1.0f, 0.5f, -0.25f, 0.125f};
+	float outLeft[4] = {};
+	float outRight[4] = {};
+	float* inputs[] = {inLeft, inRight};
+	float* outputs[] = {outLeft, outRight};
+	instance.processBlock(inputs, outputs, 4);
+	harness.expectTrue(test::nearlyEqual(outLeft[2], 0.375, 1.0e-9) && test::nearlyEqual(outRight[0], -0.5, 1.0e-9),
+		"the plug-in's gain reaches the audio");
+	instance.stopProcessing();
+}
+
 TEST_CASE(Vst3HostTests, testComponentInitializationRefusal)
 {
 	const wstring directory = exeDirectory();

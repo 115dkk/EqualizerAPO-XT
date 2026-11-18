@@ -38,6 +38,17 @@ namespace
 		atomic<bool>& flag;
 		bool acquired = false;
 	};
+
+	// Whether setProcessing(true) put the processor in the Processing state.
+	// kNotImplemented is the answer of the VST3 SDK's own AudioEffect base
+	// class, so every plug-in that leaves setProcessing to it gives it and
+	// processes normally; LoudMax VST3 1.47 is one, and taking the answer for a
+	// refusal passed its audio through untouched (issue #478). Anything else
+	// that is not kResultOk is a refusal.
+	bool processingStarted(tresult result) noexcept
+	{
+		return result == kResultOk || result == kNotImplemented;
+	}
 }
 
 void VST3Lifecycle::setInterfaces(IComponent* newComponent, IAudioProcessor* newProcessor)
@@ -158,7 +169,7 @@ bool VST3Lifecycle::startProcessing()
 		// Publish the transition before calling the plug-in. A synchronous
 		// performEdit must leave its change queued instead of starting an idle flush.
 		processing.store(true, memory_order_release);
-		if (!activateLocked() || processor->setProcessing(true) != kResultOk)
+		if (!activateLocked() || !processingStarted(processor->setProcessing(true)))
 		{
 			deactivateLocked();
 			processing.store(false, memory_order_release);
@@ -198,7 +209,7 @@ bool VST3Lifecycle::beginEditorSession(int32 symbolicSampleSize)
 	}
 	if (!prepareOnceLocked(symbolicSampleSize) || !activateLocked())
 		return false;
-	if (processor->setProcessing(true) != kResultOk)
+	if (!processingStarted(processor->setProcessing(true)))
 	{
 		deactivateLocked();
 		return false;
@@ -253,7 +264,7 @@ bool VST3Lifecycle::flushParameters(ProcessData& data,
 				return false;
 			activatedForFlush = true;
 		}
-		if (processor->setProcessing(true) != kResultOk)
+		if (!processingStarted(processor->setProcessing(true)))
 		{
 			if (activatedForFlush)
 				deactivateLocked();

@@ -94,7 +94,9 @@ namespace
 			calls.push_back(state ? "processing on" : "processing off");
 			processing = state != 0;
 			invokeTransitionCallback();
-			return active ? kResultOk : kResultFalse;
+			if (!active)
+				return kResultFalse;
+			return state ? processingOnResult : kResultOk;
 		}
 		tresult PLUGIN_API process(ProcessData&) override
 		{
@@ -116,6 +118,8 @@ namespace
 		bool setupWhileActive = false;
 		bool active = false;
 		bool processing = false;
+		// What setProcessing(true) answers once the component is active.
+		tresult processingOnResult = kResultOk;
 
 	private:
 		void invokeTransitionCallback()
@@ -234,5 +238,36 @@ namespace
 		harness.expectTrue(lifecycle.canProcessNow(), "editor Processing state can process");
 		lifecycle.endEditorSession();
 		harness.expectFalse(lifecycle.canProcessNow(), "ended editor session cannot process");
+	}
+
+	// Issue #478: kNotImplemented from setProcessing(true) is what the VST3
+	// SDK's AudioEffect base class returns; every way into the Processing state
+	// takes it as started. A real refusal (kResultFalse) still stops them.
+	TEST_CASE(VST3LifecycleTests, testUnimplementedSetProcessingIsNotARefusal)
+	{
+		FakePlugin plugin;
+		plugin.processingOnResult = kNotImplemented;
+		VST3Lifecycle lifecycle;
+		lifecycle.setInterfaces(&plugin, &plugin);
+		harness.expectTrue(lifecycle.setupProcessing(setup()), "audio setup succeeds");
+		harness.expectTrue(lifecycle.startProcessing(), "audio processing starts");
+		harness.expectTrue(lifecycle.canProcessNow(), "and can process");
+		lifecycle.stopProcessing();
+
+		harness.expectTrue(lifecycle.beginEditorSession(kSample64), "an editor session starts");
+		lifecycle.endEditorSession();
+
+		bool pending = true;
+		ProcessData data;
+		data.symbolicSampleSize = kSample64;
+		harness.expectTrue(lifecycle.flushParameters(data,
+			[&pending]() { return pending; },
+			[&pending]() -> IParameterChanges* { pending = false; return nullptr; },
+			kSample64), "an idle parameter flush reaches the plug-in");
+		harness.expectFalse(pending, "and delivers the queued change");
+
+		plugin.processingOnResult = kResultFalse;
+		harness.expectFalse(lifecycle.startProcessing(), "a refusal still stops audio processing");
+		harness.expectFalse(lifecycle.beginEditorSession(kSample64), "and an editor session");
 	}
 }
