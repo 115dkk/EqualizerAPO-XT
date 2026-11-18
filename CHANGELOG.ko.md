@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.65.3 — 2026-11-18
+
 - **업데이트 뒤에도 다른 회사의 오디오 프로그램이 계속 동작합니다.** 업데이트는
   새 엔진을 올리려고 Windows 오디오 서비스를 멈추는데, 이때 SteelSeries Sonar나
   ASUS Sonic Studio의 서비스처럼 그 서비스에 딸린 서비스도 함께 멈춥니다. 이전

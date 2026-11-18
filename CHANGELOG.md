@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.65.3 — 2026-11-18
+
 - **Audio software from other vendors keeps working after an update.** An
   update stops the Windows audio services so the new engine can load, and
   with them any service that depends on them, such as those of SteelSeries
