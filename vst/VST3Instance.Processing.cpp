@@ -226,8 +226,11 @@ VST3Instance::~VST3Instance()
 	releaseVST3();
 }
 
-void VST3Instance::onVST3ParameterEdit(ParamID id, ParamValue value)
+bool VST3Instance::onVST3ParameterEdit(ParamID id, ParamValue value)
 {
+	if (!isVST3ParameterWritable(id))
+		return false;
+	vst3ParameterEditSequence.fetch_add(1, memory_order_release);
 	queueVST3ParameterEdit(id, value);
 	const bool processing = vst3Lifecycle.audioProcessing();
 	flushVST3ParameterChanges();
@@ -238,6 +241,7 @@ void VST3Instance::onVST3ParameterEdit(ParamID id, ParamValue value)
 	if (!processing && !vst3Lifecycle.audioProcessing()
 		&& vst3ParameterEditRead.load(memory_order_acquire) == vst3ParameterEditWrite.load(memory_order_acquire))
 		onAutomate();
+	return true;
 }
 
 bool VST3Instance::queueVST3ParameterEdit(ParamID id, ParamValue value)
@@ -310,6 +314,7 @@ void VST3Instance::flushVST3ParameterChanges()
 		data.processMode = kRealtime;
 		frame.attach(data, vst3InputBusCount > 0, vst3OutputBusCount > 0);
 		data.inputEvents = &emptyVST3EventList;
+		data.outputParameterChanges = NULL;
 		vst3Lifecycle.flushParameters(data, hasPendingChanges,
 			[this]() { return prepareVST3ParameterChanges(); },
 			data.symbolicSampleSize);
@@ -391,6 +396,7 @@ void VST3Instance::processVst3Replacing(SampleType** inputArray, SampleType** ou
 	data.inputs = data.numInputs > 0 ? &inputBuffers : NULL;
 	data.outputs = data.numOutputs > 0 ? &outputBuffers : NULL;
 	data.inputParameterChanges = prepareVST3ParameterChanges();
+	data.outputParameterChanges = NULL;
 	data.inputEvents = &emptyVST3EventList;
 	data.processContext = &vst3ProcessContext;
 	vst3ProcessContext.state = ProcessContext::kPlaying | ProcessContext::kContTimeValid;
