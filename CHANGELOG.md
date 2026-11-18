@@ -14,6 +14,15 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **A file named by an enabled `Include:` line can be saved again.** Saving
+  such a file from its own Editor tab failed with "Access is denied" when the
+  file sat in the configuration folder and the included file set up something
+  slow, such as a VST plug-in. The save itself made the audio engine reload,
+  and the engine kept the included file open until every filter in it was
+  ready, which took longer than the Editor waits. The engine now closes the
+  file as soon as it has read it.
+  ([#477](https://github.com/115dkk/EqualizerAPO-XT/issues/477))
+
 ## v2.65.0 — 2026-11-18
 
 - **The Editor says when Windows audio is still running the previous engine,

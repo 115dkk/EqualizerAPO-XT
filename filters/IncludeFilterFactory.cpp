@@ -56,13 +56,13 @@ LineOutcome IncludeFilterFactory::createFilter(const wstring& configPath, wstrin
 	// Read by the rule every file a line names shares (audit #348 A1):
 	// relative to the including config file, quotes and %VARIABLES% taken
 	// the way Convolution always took them.
-	const ConfigFileReference::Target file = engine()->judgeIncludedFile(configPath, cmd.path);
+	ConfigFileReference::Target file = engine()->judgeIncludedFile(configPath, cmd.path);
 	if (!file)
 		return LineOutcome::malformed(file.problem(L"configuration file"));
 	if (recursionDepth >= RECURSION_LIMIT)
 		return LineOutcome::malformed(L"not included: includes are nested more than " + std::to_wstring(RECURSION_LIMIT) + L" deep");
 
-	engine()->loadConfigFile(file.path);
+	engine()->loadConfigFile(std::move(file.path));
 	return LineOutcome::consumed();
 }
 

@@ -104,7 +104,9 @@ public:
 	// configuration and returns false; no initialization exception is allowed to
 	// escape the configuration-loading boundary.
 	bool loadConfig(const std::wstring& customPath = L"");
-	void loadConfigFile(const JudgedPath& path);
+	// Takes the judged file: its handles are let go once the bytes are read,
+	// before the lines in it are parsed (issue #477).
+	void loadConfigFile(JudgedPath path);
 	ConfigFileReference::Target judgeIncludedFile(const std::wstring& configPath, const std::wstring& written);
 	void watchRegistryKey(const std::wstring& key);
 	void watchEvent(const std::wstring& name);
