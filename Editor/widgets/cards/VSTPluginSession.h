@@ -187,8 +187,11 @@ private:
 	void onAutomate();
 	// Reads the instance's state; stores it and emits stateChanged when it
 	// differs from the stored one (vstChunksEquivalent sets a ZIP state's
-	// file times aside).
-	void readBack();
+	// file times aside). A final accepted/closed-panel read keeps raw
+	// non-parameter state even when a VST3 plug-in sent no parameter edit.
+	void readBack(bool forceRawState = false);
+	bool readAndStoreState(bool automated, bool forceRawState = false, bool announce = true);
+	void captureSemanticBaseline();
 	bool embedPlugin(QWidget* host);
 	void acquirePanelProcessing();
 	void releasePanelProcessing();
@@ -199,6 +202,9 @@ private:
 	std::unique_ptr<VSTPluginInstance> effect;
 	std::wstring currentChunkData;
 	std::unordered_map<std::wstring, float> currentParamMap;
+	VSTPluginInstance::WritableParameterValues committedWritableParameters;
+	uint64_t committedParameterEditSequence = 0;
+	bool semanticStateAvailable = false;
 	Status currentStatus;
 	bool isEmbedded = false;
 	VSTPluginInstance::ProcessingLease panelProcessing;

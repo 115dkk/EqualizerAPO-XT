@@ -19,11 +19,13 @@
 
 #pragma once
 
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "platform/windows/Win32Resource.h"
@@ -147,6 +149,15 @@ public:
 		const std::unordered_map<std::wstring, float>& paramMap) = 0;
 	virtual void readFromEffect(std::wstring& chunkData,
 		std::unordered_map<std::wstring, float>& paramMap) const = 0;
+	using WritableParameterValues = std::vector<std::pair<uint32_t, double>>;
+	// VST3-only semantic state used by the Editor to set aside volatile raw
+	// state and read-only meters. VST2 keeps its existing chunk comparison.
+	virtual bool readWritableParameterValues(WritableParameterValues& values) const
+	{
+		values.clear();
+		return false;
+	}
+	virtual uint64_t parameterEditSequence() const { return 0; }
 
 	virtual bool startProcessing() = 0;
 private:

@@ -71,6 +71,8 @@ public:
 		const std::unordered_map<std::wstring, float>& paramMap) override;
 	void readFromEffect(std::wstring& chunkData,
 		std::unordered_map<std::wstring, float>& paramMap) const override;
+	bool readWritableParameterValues(WritableParameterValues& values) const override;
+	uint64_t parameterEditSequence() const override;
 
 	bool startProcessing() override;
 	void processDoubleReplacing(double** inputArray, double** outputArray, int frameCount) override;
@@ -86,7 +88,7 @@ public:
 	void onSizeWindow(int w, int h) override;
 
 	// A performEdit from the plug-in's controller, relayed by VST3HostContext.
-	void onVST3ParameterEdit(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue value);
+	bool onVST3ParameterEdit(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue value);
 
 private:
 	class VST3ParameterChanges;
@@ -118,6 +120,8 @@ private:
 	bool refreshAcceptedVST3Arrangements();
 	void updateVST3ChannelMappings();
 	int vst3BusChannelCount(Steinberg::Vst::BusDirection direction) const;
+	bool isVST3ParameterWritable(Steinberg::Vst::ParamID id) const;
+	bool isVST3ParameterReadOnly(Steinberg::Vst::ParamID id) const;
 	bool queueVST3ParameterEdit(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue value);
 	bool queueRestoredParameterEdit(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue value);
 	// Logs the values a state restore could not queue; see
@@ -146,6 +150,7 @@ private:
 	std::array<PendingVST3ParameterEdit, vst3ParameterEditQueueSize> vst3ParameterEditQueue{};
 	std::atomic<unsigned> vst3ParameterEditWrite{ 0 };
 	std::atomic<unsigned> vst3ParameterEditRead{ 0 };
+	std::atomic<uint64_t> vst3ParameterEditSequence{ 0 };
 	VST3Lifecycle vst3Lifecycle;
 	int vst3InputBusCount = 0;
 	int vst3OutputBusCount = 0;
