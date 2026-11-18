@@ -19,6 +19,7 @@
 	streams its operands into a narrow ostream, which std::wstring cannot.
 */
 
+#include <algorithm>
 #include <string>
 #include <stdexcept>
 #include "services/registry/RegistryPaths.h"
@@ -129,15 +130,28 @@ struct FakeAudioEngineServices
 	std::vector<std::wstring> errors;
 	std::vector<unsigned> timeouts;
 	std::vector<std::wstring> dependents{L"AudioSrv"};
+	std::vector<std::wstring> stoppedAutoStart;
 	bool active = true;
 	bool failStop = false;
+	bool failSweepQuery = false;
 	bool failBeforeQuery = false;
 	bool failStart = false;
+	std::wstring failStartName;
 	bool failRestart = false;
 	bool exhaustRestoreBudget = false;
 
 	ApoRegistration::AudioEngineServices operations()
 	{
+		std::function<std::vector<std::wstring>(const std::wstring&)> sweepQuery;
+		if (!stoppedAutoStart.empty() || failSweepQuery)
+		{
+			sweepQuery = [this](const std::wstring& name) {
+				calls.push_back(L"query " + name);
+				if (failSweepQuery)
+					throw WindowsServiceError(L"Dependent service query failed");
+				return stoppedAutoStart;
+			};
+		}
 		return {
 			[this](const std::wstring& name, unsigned timeout, bool* wasActive, std::vector<std::wstring>& running) {
 				calls.push_back(L"stop " + name);
@@ -153,7 +167,7 @@ struct FakeAudioEngineServices
 			[this](const std::wstring& name, unsigned timeout) {
 				calls.push_back(L"start " + name);
 				timeouts.push_back(timeout);
-				if (failStart)
+				if (failStart || name == failStartName)
 					throw WindowsServiceError(L"Service is disabled");
 			},
 			[this](const std::wstring& name, unsigned timeout) {
@@ -164,7 +178,8 @@ struct FakeAudioEngineServices
 				if (failRestart)
 					throw WindowsServiceError(L"Service restart timed out");
 			},
-			[this](const std::wstring& message) { errors.push_back(message); }
+			[this](const std::wstring& message) { errors.push_back(message); },
+			sweepQuery
 		};
 	}
 };
@@ -246,6 +261,74 @@ TEST_CASE(EngineOrchestrationTests, testUpdateHookResumesPreviousExecutableStop)
 	const auto disabledServices = disabled.operations();
 	harness.expectFalse(ApoRegistration::startAudioEngine(state, disabledServices), "disabled service is not enabled by update");
 	harness.expectFalse(disabled.errors.empty(), "disabled service start failure is reported");
+}
+
+TEST_CASE(EngineOrchestrationTests, testUpdateHookRestartsDependentsThePreviousHookStopped)
+{
+	FakeAudioEngineServices fake;
+	fake.active = false;
+	fake.stoppedAutoStart = {L"AudioSrv", L"SonarService"};
+	const auto services = fake.operations();
+	ApoRegistration::AudioEngineState state;
+	state.resumePreviousHook = true;
+	ApoRegistration::stopAudioEngine(state, services);
+	const bool started = ApoRegistration::startAudioEngine(state, services);
+	harness.expect(started, "previous hook's stopped dependents are a best-effort recovery");
+	harness.expect(fake.calls == std::vector<std::wstring>{L"stop AudioEndpointBuilder",
+		L"start AudioEndpointBuilder", L"start AudioSrv", L"query AudioEndpointBuilder", L"start SonarService"},
+		"updated hook restarts auto-start dependents stopped by the obsolete hook");
+}
+
+TEST_CASE(EngineOrchestrationTests, testUpdateHookSkipsStoppedDependentSweepForSuccessfulCycle)
+{
+	FakeAudioEngineServices fake;
+	fake.stoppedAutoStart = {L"SonarService"};
+	const auto services = fake.operations();
+	ApoRegistration::AudioEngineState state;
+	ApoRegistration::stopAudioEngine(state, services);
+	ApoRegistration::startAudioEngine(state, services);
+	harness.expect(std::find(fake.calls.begin(), fake.calls.end(), L"query AudioEndpointBuilder") == fake.calls.end(),
+		"plain successful engine cycle skips the stopped-dependent sweep");
+}
+
+TEST_CASE(EngineOrchestrationTests, testUpdateHookStartsCapturedDependentOnceWhenSweepAlsoReturnsIt)
+{
+	FakeAudioEngineServices fake;
+	fake.stoppedAutoStart = {L"AudioSrv", L"SonarService"};
+	const auto services = fake.operations();
+	ApoRegistration::AudioEngineState state;
+	state.stopFailed = true;
+	state.activeDependents = {L"SonarService", L"AudioSrv"};
+	harness.expect(ApoRegistration::startAudioEngine(state, services), "captured dependent recovery succeeds");
+	harness.expectEqual(static_cast<unsigned>(std::count(fake.calls.begin(), fake.calls.end(), L"start SonarService")), 1u,
+		"a captured dependent returned by the sweep is started once");
+}
+
+TEST_CASE(EngineOrchestrationTests, testUpdateHookReportsBestEffortSweepFailures)
+{
+	ApoRegistration::AudioEngineState state;
+	state.resumePreviousHook = true;
+
+	FakeAudioEngineServices queryFailure;
+	queryFailure.active = false;
+	queryFailure.failSweepQuery = true;
+	const auto queryServices = queryFailure.operations();
+	harness.expect(ApoRegistration::startAudioEngine(state, queryServices), "sweep query failure does not fail the update");
+	harness.require(queryFailure.errors.size() == 1, "sweep query failure reports one error");
+	harness.expect(queryFailure.errors.front().find(L"AudioEndpointBuilder") != std::wstring::npos
+		&& queryFailure.errors.front().find(L"query failed") != std::wstring::npos,
+		"sweep query error includes the service and underlying failure");
+
+	FakeAudioEngineServices startFailure;
+	startFailure.active = false;
+	startFailure.stoppedAutoStart = {L"SonarService"};
+	startFailure.failStartName = L"SonarService";
+	const auto startServices = startFailure.operations();
+	harness.expect(ApoRegistration::startAudioEngine(state, startServices), "sweep start failure does not fail the update");
+	harness.require(startFailure.errors.size() == 1, "sweep start failure reports one error");
+	harness.expect(startFailure.errors.front().find(L"SonarService") != std::wstring::npos
+		&& startFailure.errors.front().find(L"disabled") != std::wstring::npos,
+		"sweep start error includes the service and underlying failure");
 }
 
 TEST_CASE(EngineOrchestrationTests, testUpdateHookRestoresActiveDependents)
