@@ -34,6 +34,7 @@
  * object may retain an immutable filter bank shared with sibling channels;
  * mutable histories, mix buffers and FFTW plans always remain per instance. */
 struct HConvSingleStorage;
+struct HConvPartitionedStorage;
 
 
 typedef struct str_HConvSingle
@@ -60,6 +61,16 @@ typedef struct str_HConvSingle
 } HConvSingle;
 
 
+/* Low-latency two-stage partitioned convolver. Short impulses use `head`
+ * directly, preserving the exact HConvSingle processing path. */
+typedef struct str_HConvPartitioned
+{
+	HConvSingle head;
+	int framelength;
+	int tailfactor;
+	struct HConvPartitionedStorage *storage;
+} HConvPartitioned;
+
 
 /* single filter functions */
 void hcPutSingle(HConvSingle *filter, double*x);
@@ -68,6 +79,15 @@ void hcGetSingle(HConvSingle *filter, double*y);
 void hcInitSingle(HConvSingle *filter, const double* h, int hlen, int flen, int steps);
 void hcInitSingleWithSharedFilterBank(HConvSingle *filter, const HConvSingle *prototype);
 void hcCloseSingle(HConvSingle *filter);
+
+/* two-stage partitioned filter functions */
+void hcPutPartitioned(HConvPartitioned *filter, double *x);
+void hcProcessPartitioned(HConvPartitioned *filter);
+void hcGetPartitioned(HConvPartitioned *filter, double *y);
+void hcInitPartitioned(HConvPartitioned *filter, const double *h, int hlen, int flen);
+void hcInitPartitionedWithSharedFilterBank(HConvPartitioned *filter,
+	const HConvPartitioned *prototype);
+void hcClosePartitioned(HConvPartitioned *filter);
 
 /* The dual/tripple (low-latency) API was removed together with its
    dormant carrier files (audit #275 TD-15): no project compiled them,
