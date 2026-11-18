@@ -20,6 +20,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   when they had the focus, and a click gives them the focus, so the extra box
   was up right after every use. In every skin the focus now colours a border
   the control already has: on a switch, the selected key's own edge.
+  ([#486](https://github.com/115dkk/EqualizerAPO-XT/pull/486))
 
 ## v2.65.4 — 2026-11-18
 
