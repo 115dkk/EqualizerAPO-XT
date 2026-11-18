@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.65.7 — 2026-11-18
+
 - **Legacy Rows stays readable when Windows is in dark mode.** With Windows
   set to dark mode, the Legacy Rows interface drew white text on its light
   rows and menus. Legacy Rows now always uses its classic light colours,

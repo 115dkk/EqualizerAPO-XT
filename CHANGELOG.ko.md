@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.65.7 — 2026-11-18
+
 - **Windows가 다크 모드여도 Legacy Rows의 글자가 잘 보입니다.** Windows를
   다크 모드로 두면 Legacy Rows 화면의 밝은 행과 메뉴에 흰 글자가 올라갔습니다.
   이제 Legacy Rows는 Windows 색 모드와 관계없이 원래의 밝은 색으로 나옵니다.
