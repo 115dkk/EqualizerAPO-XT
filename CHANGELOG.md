@@ -24,6 +24,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   once per thread: the second overflow ended the process. The stack guard is
   now re-armed after each caught overflow. The same protection covers the
   Editor's plug-in panels.
+  ([#489](https://github.com/115dkk/EqualizerAPO-XT/pull/489))
 
 ## v2.65.6 — 2026-11-18
 
