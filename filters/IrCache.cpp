@@ -284,9 +284,9 @@ std::shared_ptr<const IrCacheEntry> loadIrCached(const JudgedPath& judged, doubl
 	}
 
 	// Reject impulse responses with no usable audio before they reach the
-	// convolution setup. A 0-frame IR makes hcInitSingle dereference an empty
-	// filter-pointer array (crash); channels == 0 divides by zero in the
-	// channel map; and frames > INT_MAX would wrap negative when cast to int.
+	// convolution setup. A 0-frame IR has no filter samples; channels == 0
+	// divides by zero in the channel map; and frames > INT_MAX would wrap
+	// negative when cast to int.
 	// All three are reachable from a user-writable config plus a crafted IR.
 	if (info.frames <= 0 || info.channels <= 0 || info.frames > INT_MAX
 		|| static_cast<unsigned>(info.channels) > kMaxIrChannels)
@@ -352,29 +352,29 @@ std::shared_ptr<const IrCacheEntry> loadIrCached(const JudgedPath& judged, doubl
 	return entry;
 }
 
-void HConvSingleArray::reset()
+void HConvPartitionedArray::reset()
 {
 	if (ptr != nullptr)
 	{
 		for (unsigned i = 0; i < capacity; i++)
-			hcCloseSingle(&ptr.get()[i]);
+			hcClosePartitioned(&ptr.get()[i]);
 
 		ptr.reset();
 	}
 	capacity = 0;
 }
 
-HConvSingleArray buildConvolverArray(const std::vector<ConvolverUnitSource>& sources,
+HConvPartitionedArray buildConvolverArray(const std::vector<ConvolverUnitSource>& sources,
 	unsigned frameCount)
 {
-	HConvSingleArray result;
+	HConvPartitionedArray result;
 	if (sources.empty())
 		return result;
 
-	// Plan creation happens inside hcInitSingle under an
+	// Plan creation happens inside hcInitPartitioned under an
 	// FftwPlanningPolicy::Session (see dsp/FftwPlanningPolicy.h), which
 	// also serializes the parallel prototype initialization below.
-	auto allocated = AlignedMemory::allocateArray<HConvSingle>(sources.size());
+	auto allocated = AlignedMemory::allocateArray<HConvPartitioned>(sources.size());
 	if (allocated == nullptr)
 	{
 		LogFStatic(L"Could not allocate %zu convolution unit(s)", sources.size());
@@ -392,14 +392,14 @@ HConvSingleArray buildConvolverArray(const std::vector<ConvolverUnitSource>& sou
 	ParallelExecutor::forEach(prototypes.size(), [&](size_t index) {
 		const unsigned unit = prototypes[index];
 		const ConvolverUnitSource& source = sources[unit];
-		hcInitSingle(&result[unit], source.samples,
-			static_cast<int>(source.sampleCount), static_cast<int>(frameCount), 1);
+		hcInitPartitioned(&result[unit], source.samples,
+			static_cast<int>(source.sampleCount), static_cast<int>(frameCount));
 	});
 	for (unsigned unit = 0; unit < sources.size(); ++unit)
 	{
 		const unsigned prototype = sources[unit].prototype;
 		if (prototype != unit)
-			hcInitSingleWithSharedFilterBank(&result[unit], &result[prototype]);
+			hcInitPartitionedWithSharedFilterBank(&result[unit], &result[prototype]);
 	}
 	return result;
 }

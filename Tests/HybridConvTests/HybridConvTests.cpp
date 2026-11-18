@@ -387,6 +387,274 @@ TEST_CASE(HybridConvTests, assertSharedFilterBankKeepsIndependentRuntimeState)
 	hcCloseSingle(&sibling);
 }
 
+double nextRandom(unsigned& state)
+{
+	state = state * 1664525u + 1013904223u;
+	return (static_cast<double>(state >> 8) / 8388608.0) - 1.0;
+}
+
+vector<double> renderPartitioned(const vector<double>& impulse, const vector<double>& input,
+	int blockLength)
+{
+	HConvPartitioned filter = {};
+	hcInitPartitioned(&filter, impulse.data(), static_cast<int>(impulse.size()), blockLength);
+	const size_t outputLength = input.size() + impulse.size() - 1;
+	const size_t blockCount = (outputLength + static_cast<size_t>(blockLength) - 1) / blockLength;
+	vector<double> inputBlock(blockLength, 0.0);
+	vector<double> outputBlock(blockLength, 0.0);
+	vector<double> output(blockCount * static_cast<size_t>(blockLength), 0.0);
+	for (size_t block = 0; block < blockCount; ++block)
+	{
+		fill(inputBlock.begin(), inputBlock.end(), 0.0);
+		const size_t inputOffset = block * static_cast<size_t>(blockLength);
+		const size_t copyCount = inputOffset < input.size()
+			? (std::min)(static_cast<size_t>(blockLength), input.size() - inputOffset)
+			: 0;
+		if (copyCount != 0)
+			std::copy_n(input.data() + inputOffset, copyCount, inputBlock.data());
+		hcPutPartitioned(&filter, inputBlock.data());
+		hcProcessPartitioned(&filter);
+		hcGetPartitioned(&filter, outputBlock.data());
+		copy(outputBlock.begin(), outputBlock.end(),
+			output.begin() + block * static_cast<size_t>(blockLength));
+	}
+	hcClosePartitioned(&filter);
+	output.resize(outputLength);
+	return output;
+}
+
+double directConvolutionSample(const vector<double>& impulse, const vector<double>& input,
+	size_t sample)
+{
+	const size_t firstInput = sample >= impulse.size() - 1 ? sample - (impulse.size() - 1) : 0;
+	const size_t lastInput = (std::min)(sample, input.size() - 1);
+	double result = 0.0;
+	for (size_t i = firstInput; i <= lastInput; ++i)
+		result += input[i] * impulse[sample - i];
+	return result;
+}
+
+void assertPartitionedAgainstDirect(int impulseLength, int blockLength, int randomInputBlocks,
+	bool checkEverySample)
+{
+	unsigned randomState = static_cast<unsigned>(impulseLength * 31 + blockLength);
+	vector<double> impulse(static_cast<size_t>(impulseLength));
+	const double impulseScale = 1.0 / sqrt(static_cast<double>(impulseLength));
+	for (double& value : impulse)
+		value = nextRandom(randomState) * impulseScale;
+	vector<double> input(static_cast<size_t>(randomInputBlocks) * blockLength);
+	for (double& value : input)
+		value = nextRandom(randomState);
+
+	const vector<double> actual = renderPartitioned(impulse, input, blockLength);
+	vector<size_t> samples;
+	if (checkEverySample)
+	{
+		samples.resize(actual.size());
+		for (size_t i = 0; i < samples.size(); ++i)
+			samples[i] = i;
+	}
+	else
+	{
+		const size_t blockCount = (actual.size() + static_cast<size_t>(blockLength) - 1) /
+			static_cast<size_t>(blockLength);
+		samples.reserve(blockCount * 2);
+		for (size_t block = 0; block < blockCount; ++block)
+		{
+			const size_t first = block * static_cast<size_t>(blockLength);
+			if (first < actual.size())
+				samples.push_back(first);
+			const size_t middle = first + static_cast<size_t>(blockLength / 2);
+			if (middle < actual.size())
+				samples.push_back(middle);
+		}
+	}
+
+	double referenceEnergy = 0.0;
+	double maximumError = 0.0;
+	for (size_t sample : samples)
+	{
+		const double expected = directConvolutionSample(impulse, input, sample);
+		const double error = abs(actual[sample] - expected);
+		referenceEnergy += expected * expected;
+		maximumError = (std::max)(maximumError, error);
+	}
+	const double referenceRms = sqrt(referenceEnergy / samples.size());
+	// FFT roundoff grows with transform length and accumulated partitions. A
+	// 1e-9 error relative to the direct-convolution RMS is well above that
+	// roundoff while still rejecting timing, overlap and stale-ring errors.
+	const double allowedError = 1.0e-11 + 1.0e-9 * referenceRms;
+	char message[256];
+	snprintf(message, sizeof(message),
+		"partitioned direct comparison hlen=%d B=%d: max %.17g, allowance %.17g",
+		impulseLength, blockLength, maximumError, allowedError);
+	harness.expect(maximumError <= allowedError, message);
+}
+
+TEST_CASE(HybridConvTests, assertPartitionedConvolutionMatchesDirectConvolution)
+{
+	// These lengths cover the smallest eligible 2L boundary, its first tail
+	// sample, a one-partition tail, and an exact multiple of L for B=128.
+	assertPartitionedAgainstDirect(1000, 128, 24, true);
+	assertPartitionedAgainstDirect(1024, 128, 24, true);
+	assertPartitionedAgainstDirect(1025, 128, 24, true);
+	assertPartitionedAgainstDirect(1536, 128, 24, true);
+	assertPartitionedAgainstDirect(2048, 128, 24, true);
+
+	// Long cases use two deterministic points per output block for the scalar
+	// time-domain oracle, keeping the test bounded while crossing several K-block
+	// input and output cycles with fully random IR and input samples.
+	assertPartitionedAgainstDirect(96000, 480, 240, false);
+	assertPartitionedAgainstDirect(70000, 441, 52, false);
+	assertPartitionedAgainstDirect(70000, 960, 52, false);
+	assertPartitionedAgainstDirect(96000, 128, 80, false);
+}
+
+TEST_CASE(HybridConvTests, assertPartitionedShortPathIsBitIdenticalToSingle)
+{
+	constexpr int shortBlockLength = 128;
+	unsigned randomState = 0x51a71e5u;
+	vector<double> impulse(1000);
+	for (double& value : impulse)
+		value = nextRandom(randomState);
+	HConvSingle single = {};
+	HConvPartitioned partitioned = {};
+	hcInitSingle(&single, impulse.data(), static_cast<int>(impulse.size()), shortBlockLength, 1);
+	hcInitPartitioned(&partitioned, impulse.data(), static_cast<int>(impulse.size()), shortBlockLength);
+	harness.expect(partitioned.tailfactor == 0,
+		"an IR shorter than the default 2L boundary should retain the Single path");
+	vector<double> input(shortBlockLength);
+	vector<double> singleOutput(shortBlockLength);
+	vector<double> partitionedOutput(shortBlockLength);
+	for (int block = 0; block < 40; ++block)
+	{
+		for (double& value : input)
+			value = nextRandom(randomState);
+		hcPutSingle(&single, input.data());
+		hcProcessSingle(&single);
+		hcGetSingle(&single, singleOutput.data());
+		hcPutPartitioned(&partitioned, input.data());
+		hcProcessPartitioned(&partitioned);
+		hcGetPartitioned(&partitioned, partitionedOutput.data());
+		harness.expect(memcmp(singleOutput.data(), partitionedOutput.data(),
+			singleOutput.size() * sizeof(double)) == 0,
+			"short partitioned output should be bit-identical to HConvSingle");
+	}
+	hcClosePartitioned(&partitioned);
+	hcCloseSingle(&single);
+}
+
+TEST_CASE(HybridConvTests, assertPartitionedSharedBankAndInitialState)
+{
+	constexpr int blockLength = 128;
+	constexpr int impulseLength = 24000;
+	unsigned randomState = 0xa5515eedu;
+	vector<double> impulse(impulseLength);
+	for (double& value : impulse)
+		value = nextRandom(randomState) / sqrt(static_cast<double>(impulseLength));
+	HConvPartitioned prototype = {};
+	HConvPartitioned sibling = {};
+	HConvPartitioned independent = {};
+	hcInitPartitioned(&prototype, impulse.data(), impulseLength, blockLength);
+	hcInitPartitionedWithSharedFilterBank(&sibling, &prototype);
+	hcInitPartitioned(&independent, impulse.data(), impulseLength, blockLength);
+	harness.require(prototype.tailfactor > 0 && sibling.tailfactor == prototype.tailfactor,
+		"long shared-bank fixtures should select the same two-stage shape");
+
+	const int firstTwoTailLengths = 2 * prototype.tailfactor * blockLength;
+	vector<double> zero(blockLength, 0.0);
+	vector<double> prototypeOutput(blockLength, 1.0);
+	vector<double> siblingOutput(blockLength, 1.0);
+	vector<double> independentOutput(blockLength, 1.0);
+	for (int sample = 0; sample < firstTwoTailLengths; sample += blockLength)
+	{
+		hcPutPartitioned(&prototype, zero.data());
+		hcProcessPartitioned(&prototype);
+		hcGetPartitioned(&prototype, prototypeOutput.data());
+		harness.expect(std::all_of(prototypeOutput.begin(), prototypeOutput.end(),
+			[](double value) { return value == 0.0; }),
+			"the first 2L zero-input samples should contain no stale ring data");
+	}
+
+	// The sibling owns both immutable stages through shared references. Closing
+	// the prototype must not invalidate either bank.
+	hcClosePartitioned(&prototype);
+	for (int block = 0; block < 80; ++block)
+	{
+		vector<double> input(blockLength);
+		for (double& value : input)
+			value = nextRandom(randomState);
+		for (HConvPartitioned* convolver : {&sibling, &independent})
+		{
+			hcPutPartitioned(convolver, input.data());
+			hcProcessPartitioned(convolver);
+		}
+		hcGetPartitioned(&sibling, siblingOutput.data());
+		hcGetPartitioned(&independent, independentOutput.data());
+		harness.expect(memcmp(siblingOutput.data(), independentOutput.data(),
+			siblingOutput.size() * sizeof(double)) == 0,
+			"a shared tail bank should match an independently transformed bank");
+	}
+
+	// Closing and rebuilding is the public reset sequence. The rebuilt instance
+	// must return to the same zeroed state as a fresh convolver.
+	hcClosePartitioned(&prototype);
+	hcInitPartitioned(&prototype, impulse.data(), impulseLength, blockLength);
+	hcPutPartitioned(&prototype, zero.data());
+	hcProcessPartitioned(&prototype);
+	hcGetPartitioned(&prototype, prototypeOutput.data());
+	harness.expect(std::all_of(prototypeOutput.begin(), prototypeOutput.end(),
+		[](double value) { return value == 0.0; }),
+		"close and reinitialize should reset every partitioned runtime ring");
+
+	hcClosePartitioned(&prototype);
+	hcClosePartitioned(&sibling);
+	hcClosePartitioned(&independent);
+}
+
+TEST_CASE(HybridConvTests, assertPartitionedBoundaryTapsFlushToSilence)
+{
+	constexpr int blockLength = 480;
+	constexpr int impulseLength = 96000;
+	HConvPartitioned filter = {};
+	vector<double> impulse(impulseLength, 0.0);
+	hcInitPartitioned(&filter, impulse.data(), impulseLength, blockLength);
+	const int tailLength = filter.tailfactor * blockLength;
+	const int tapSamples[] = {0, 2 * tailLength - 1, 2 * tailLength,
+		3 * tailLength - 1, 3 * tailLength, impulseLength - 1};
+	const double tapValues[] = {0.5, -0.25, 0.125, -0.0625, 0.03125, -0.015625};
+	hcClosePartitioned(&filter);
+	for (size_t i = 0; i < std::size(tapSamples); ++i)
+		impulse[tapSamples[i]] = tapValues[i];
+	hcInitPartitioned(&filter, impulse.data(), impulseLength, blockLength);
+
+	const int convolutionBlocks =
+		(impulseLength + blockLength - 1) / blockLength;
+	const int silenceBlocks = 2 * filter.tailfactor + 4;
+	vector<double> input(blockLength, 0.0);
+	vector<double> output(blockLength, 0.0);
+	vector<double> rendered(static_cast<size_t>(convolutionBlocks + silenceBlocks) * blockLength);
+	for (int block = 0; block < convolutionBlocks + silenceBlocks; ++block)
+	{
+		fill(input.begin(), input.end(), 0.0);
+		if (block == 0)
+			input[0] = 1.0;
+		hcPutPartitioned(&filter, input.data());
+		hcProcessPartitioned(&filter);
+		hcGetPartitioned(&filter, output.data());
+		copy(output.begin(), output.end(),
+			rendered.begin() + static_cast<size_t>(block) * blockLength);
+	}
+	for (size_t i = 0; i < std::size(tapSamples); ++i)
+		harness.expectNear(rendered[tapSamples[i]], tapValues[i], 1.0e-11,
+			"partition boundary tap " + std::to_string(tapSamples[i]));
+	for (size_t sample = impulseLength; sample < rendered.size(); ++sample)
+		harness.expect(abs(rendered[sample]) <= 1.0e-11,
+			"partitioned convolution should flush to numerical silence");
+	hcClosePartitioned(&filter);
+	hcClosePartitioned(&filter);
+}
+
 TEST_CASE(HybridConvTests, assertInvalidConvolverArgumentsLeaveEmptyOutput)
 {
 	vector<double> impulseResponse(1, 1.0);
@@ -415,28 +683,45 @@ TEST_CASE(HybridConvTests, assertInvalidConvolverArgumentsLeaveEmptyOutput)
 		rejected = true;
 	}
 	harness.expect(rejected, "hcInitSingle should reject a frame length that overflows FFTW's transform size");
+
+	HConvPartitioned partitioned = {};
+	rejected = false;
+	try
+	{
+		hcInitPartitioned(&partitioned, impulseResponse.data(), 1,
+			(std::numeric_limits<int>::max)());
+	}
+	catch (const std::length_error&)
+	{
+		rejected = true;
+	}
+	harness.expect(rejected, "hcInitPartitioned should reject an overflowing frame length");
+	harness.expect(partitioned.head.storage == nullptr && partitioned.storage == nullptr,
+		"failed hcInitPartitioned should leave a safely closable empty output");
+	hcClosePartitioned(&partitioned);
+	hcClosePartitioned(&partitioned);
 }
 
 TEST_CASE(HybridConvTests, assertConvolverArraySupportsOutOfOrderInitialization)
 {
 	constexpr unsigned slotCount = 2;
-	auto slots = AlignedMemory::allocateArray<HConvSingle>(slotCount);
+	auto slots = AlignedMemory::allocateArray<HConvPartitioned>(slotCount);
 	// cppcheck 2.21 reports a parser error on this ordinary null check after the
 	// templated/static_cast allocation expression; MSVC builds and runs the path.
 	// cppcheck-suppress syntaxError
 	if (slots == nullptr)
 		fail("could not allocate convolver slots for partial-initialization test");
-	HConvSingleArray pending;
+	HConvPartitionedArray pending;
 	pending.adoptStorage(std::move(slots), slotCount);
-	harness.expect(pending[0].storage == nullptr && pending[1].storage == nullptr,
+	harness.expect(pending[0].head.storage == nullptr && pending[1].head.storage == nullptr,
 		"adopting convolver storage should establish inert slots");
 	vector<double> impulseResponse(1, 1.0);
 	// Initialize the later slot first. Parallel preparation is free to finish
 	// slots in any order, and reset must close both this live slot and the
 	// untouched zero slot safely.
-	hcInitSingle(&pending[1], impulseResponse.data(), 1, 8, 1);
+	hcInitPartitioned(&pending[1], impulseResponse.data(), 1, 8);
 
-	HConvSingleArray owner(std::move(pending));
+	HConvPartitionedArray owner(std::move(pending));
 	owner.reset();
 	owner.reset();
 }

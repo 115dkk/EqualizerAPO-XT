@@ -172,7 +172,7 @@ void MultiConvolutionFilter::process(double** output, double** input, unsigned f
 	if (frameCount == 0)
 		return;
 
-	// libHybridConv fixes its block length at hcInitSingle time, so a block of
+	// libHybridConv fixes its block length at hcInitPartitioned time, so a block of
 	// any other size cannot be fed to the convolver; without a usable IR there
 	// is nothing to feed at all. Either way every mapping target still gets
 	// written (silence), never left uninitialized. admit() records a
@@ -192,10 +192,10 @@ void MultiConvolutionFilter::process(double** output, double** input, unsigned f
 		double* in = input[plan.inputChannel];
 		for (unsigned u = plan.firstUnit; u < plan.firstUnit + plan.unitCount; u++)
 		{
-			HConvSingle* convolver = bank.unit(u);
-			hcPutSingle(convolver, in);
-			hcProcessSingle(convolver);
-			hcGetSingle(convolver, tempBuffer.data());
+			HConvPartitioned* convolver = bank.unit(u);
+			hcPutPartitioned(convolver, in);
+			hcProcessPartitioned(convolver);
+			hcGetPartitioned(convolver, tempBuffer.data());
 			const double factor = unitFactors[u];
 			if (factor == 1.0)
 			{
