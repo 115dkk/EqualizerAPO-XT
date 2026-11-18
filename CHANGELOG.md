@@ -14,6 +14,17 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Silence at the end of an impulse response no longer costs processing.**
+  Convolution and MultiConvolution now drop the silent tail of an impulse
+  response when they load it (every channel more than 140 dB below the
+  file's peak). A file with seconds of digital silence after the response,
+  such as a 6.7-second BRIR that falls silent after 1.8 seconds, used to cost
+  as much as if the whole length were sound and could cause dropouts on its
+  own. Silence at the start is kept, so timing does not change. The new
+  **Ignore silence in convolution** option under Device Selector's
+  troubleshooting options is on by default; untick it to process files
+  exactly as they are.
+
 ## v2.65.4 — 2026-11-18
 
 - **Long impulse responses no longer cause dropouts.** A Convolution or

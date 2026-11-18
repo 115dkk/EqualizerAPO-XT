@@ -42,11 +42,18 @@ struct IrCacheEntry
 // names the file and the refused size (audit #467 TD-57).
 std::wstring validateIrSize(const JudgedPath& filename);
 
+// Returns the common channel length after removing frames whose samples are at
+// or below -140 dB relative to the IR peak. Leading silence is retained, and a
+// non-empty all-zero IR retains one frame.
+unsigned trailingSilenceTrimmedLength(
+	const std::vector<std::vector<double>>& buffers, unsigned frames);
+
 // Loads the impulse response at `filename` (or returns the cached copy, keyed
-// by path + mtime + sample rate), validated against the device sample rate.
+// by path + mtime + sample rate + silence-removal setting), validated against the device sample rate.
 // Returns nullptr and logs when the file is unreadable, the sample rate does
 // not match, or the file has no usable audio (0 frames / 0 channels /
 // frames > INT_MAX). One implementation shared by ConvolutionFilter and
 // MultiConvolutionFilter so the intake hardening and the cache cannot
 // diverge between them.
-std::shared_ptr<const IrCacheEntry> loadIrCached(const JudgedPath& filename, double sampleRate);
+std::shared_ptr<const IrCacheEntry> loadIrCached(
+	const JudgedPath& filename, double sampleRate, bool ignoreTrailingSilence);

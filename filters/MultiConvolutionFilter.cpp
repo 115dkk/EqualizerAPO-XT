@@ -40,8 +40,10 @@ namespace
 }
 
 MultiConvolutionFilter::MultiConvolutionFilter(
-	const vector<MultiConvolutionCommand::Mapping>& mappingSpecs, JudgedPath filename)
-	: mappings(mappingSpecs), filename(std::move(filename)), sampleRate(0.0f),
+	const vector<MultiConvolutionCommand::Mapping>& mappingSpecs, JudgedPath filename,
+	bool ignoreTrailingSilence)
+	: mappings(mappingSpecs), filename(std::move(filename)),
+	  ignoreTrailingSilence(ignoreTrailingSilence), sampleRate(0.0f),
 	  bank(muteDiagnostics, kFrameCountMismatchLogPrefix), unitCount(0)
 {
 }
@@ -83,7 +85,7 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 	// to channel-major buffers, and lets a config reload (or another filter on
 	// the same IR) skip the disk read entirely.
 	const wstring displayPath = filename.path();
-	auto ir = loadIrCached(filename, sampleRate);
+	auto ir = loadIrCached(filename, sampleRate, ignoreTrailingSilence);
 	filename = JudgedPath{};
 	if (!ir)
 		return outChannelNames;

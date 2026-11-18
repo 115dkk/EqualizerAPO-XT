@@ -19,6 +19,9 @@
 #include "stdafx.h"
 
 #include "runtime/memory/AlignedMemory.h"
+#include "services/registry/RegistryPaths.h"
+#include "services/registry/RegistrySettings.h"
+#include "engine/FilterEngine.h"
 #include "MultiConvolutionCommand.h"
 #include "ConfigFileReference.h"
 #include "MultiConvolutionFilter.h"
@@ -50,5 +53,12 @@ LineOutcome MultiConvolutionFilterFactory::createFilter(const wstring& configPat
 	if (!sizeProblem.empty())
 		return LineOutcome::malformed(sizeProblem);
 
-	return LineOutcome::produced(singleFilter(makeFilter<MultiConvolutionFilter>(cmd.mappings, std::move(file.path))));
+	bool ignoreTrailingSilence = true;
+	if (engine() != nullptr)
+	{
+		engine()->watchRegistryKey(APP_REGPATH);
+		ignoreTrailingSilence = readIgnoreConvolutionSilence(engine()->registryAccess());
+	}
+	return LineOutcome::produced(singleFilter(makeFilter<MultiConvolutionFilter>(
+		cmd.mappings, std::move(file.path), ignoreTrailingSilence)));
 }
