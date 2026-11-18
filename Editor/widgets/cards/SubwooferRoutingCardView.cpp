@@ -39,6 +39,17 @@ const SubwooferRoutingCardState& SubwooferRoutingCardView::state() const
 	return currentState;
 }
 
+void SubwooferRoutingCardView::setPreviewFocused(bool focused)
+{
+	previewFocused = focused;
+	update();
+}
+
+bool SubwooferRoutingCardView::showsFocus() const
+{
+	return previewFocused || hasFocus();
+}
+
 QString SubwooferRoutingCardView::formatHz(double hz)
 {
 	return tr("%1 Hz").arg(QString::number(hz, 'g', 5));

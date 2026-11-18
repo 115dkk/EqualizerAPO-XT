@@ -182,6 +182,10 @@ public:
 	// FilterTable::mousePressEvent. The card calls this to apply the same
 	// single-selection/focus result without consuming the control's click.
 	void selectOnlyFromCard(Item* item);
+	// Keyboard focus that reaches a control inside a card by Tab moves the
+	// list's focus marker to that card without changing the selection, so the
+	// card's own frame shows where the keyboard is.
+	void focusFromCard(Item* item);
 
 	QString getConfigPath() const;
 	// MainWindow's DocumentState owns the path. The table asks for it when a

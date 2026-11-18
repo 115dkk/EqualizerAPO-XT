@@ -52,6 +52,9 @@ public:
 
 	QSize sizeHint() const override;
 
+	// Skin gallery hook: paint as if the plot held the keyboard focus.
+	void setPreviewFocused(bool focused);
+
 signals:
 	// Any model mutation (drag step, add, remove, nudge, readout edit).
 	void nodesEdited();
@@ -89,6 +92,7 @@ private:
 	QSet<int> selection;
 	int focused = -1;
 	int hovered = -1;
+	bool previewFocused = false;
 	int dragged = -1;
 	QPointF panAnchor;
 	bool panning = false;

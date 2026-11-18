@@ -42,6 +42,10 @@ public:
 	// and without a running animation, so a rendered shot is the same bytes
 	// every time instead of catching the indicator mid-travel.
 	void setPreviewState(int selectedIndex, int hoveredIndex);
+	// Skin gallery hook: paint as if the control held the keyboard focus, so
+	// the focused state is judged without depending on which offscreen window
+	// the platform activated.
+	void setPreviewFocused(bool focused);
 
 signals:
 	// Emitted for a user's choice and for setCurrentIndex alike; callers that
@@ -68,5 +72,6 @@ private:
 	int hovered = -1;
 	int pressed = -1;
 	double selectionPosition = 0.0;
+	bool previewFocused = false;
 	QVariantAnimation* selectionAnimation = nullptr;
 };

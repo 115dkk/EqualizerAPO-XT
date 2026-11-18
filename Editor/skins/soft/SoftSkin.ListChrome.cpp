@@ -36,15 +36,16 @@ void SoftSkin::paintAddRow(QPainter& painter, const QRect& rect, const ListChrom
 		painter.drawRoundedRect(frame, radius, radius);
 	}
 
-	// Keyboard focus: the quiet halo (alpha 90, 3px), not a hard ring.
-	if (state.focused)
-	{
-		painter.setPen(QPen(withAlpha(QColor(tokens.focusRing), 90), 3));
-		painter.setBrush(Qt::NoBrush);
-		painter.drawRoundedRect(frame, radius, radius);
-	}
-
-	QPen outline(lifted ? withAlpha(accent, state.pressed ? 210 : 150) : QColor(tokens.border), 1, Qt::DashLine);
+	// Keyboard focus recolours the slot's own dashed outline (shared article
+	// 8) instead of laying a halo under it.
+	QColor outlineInk(tokens.border);
+	if (state.pressed)
+		outlineInk = withAlpha(accent, 210);
+	else if (state.focused)
+		outlineInk = QColor(tokens.focusRing);
+	else if (lifted)
+		outlineInk = withAlpha(accent, 150);
+	QPen outline(outlineInk, 1, Qt::DashLine);
 	outline.setCapStyle(Qt::RoundCap);
 	painter.setPen(outline);
 	painter.setBrush(Qt::NoBrush);

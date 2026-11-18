@@ -330,16 +330,10 @@ void RackSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Comma
 	if (!info.enabled)
 		painter.fillPath(plate, RackPalette::PoweredDownFilm(dark));
 
-	// Keyboard focus: a thin amber line along the inner bezel (UI necessity,
-	// kept as small as a hardware unit's rail light).
-	if (info.focused)
-	{
-		// The bezel is the second half of the engaged frame (see
-		// cardFrameStyle): the same warm neutral in dark mode.
-		painter.setPen(QPen(withAlpha(QColor(dark ? RackSkinDetail::darkEngagedFrame() : tokens.focusRing), 190), 1));
-		painter.setBrush(Qt::NoBrush);
-		painter.drawRoundedRect(r.adjusted(1.5, 1.5, -1.5, -1.5), radius - 1, radius - 1);
-	}
+	// Keyboard focus paints nothing here: cardFrameStyle already recolours the
+	// unit's own frame for the focused unit, and a second line along the
+	// inner bezel made a box inside that frame (shared article 8, maintainer
+	// ruling 2026-11-18).
 }
 
 bool RackSkin::paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info, const SkinTokens& tokens) const

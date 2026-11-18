@@ -22,12 +22,17 @@ class ActivatableListChrome : public QWidget
 public:
 	explicit ActivatableListChrome(QWidget* parent = nullptr);
 
+	// Skin gallery hook: paint as if the chrome held the keyboard focus.
+	void setPreviewFocused(bool focused);
+
 signals:
 	void activated();
 
 protected:
 	bool isHovered() const;
 	bool isPressed() const;
+	// Real keyboard focus, or the gallery's preview of it.
+	bool showsFocus() const;
 
 	void enterEvent(QEnterEvent* event) override;
 	void leaveEvent(QEvent* event) override;
@@ -40,4 +45,5 @@ protected:
 private:
 	bool hovered = false;
 	bool pressed = false;
+	bool previewFocused = false;
 };

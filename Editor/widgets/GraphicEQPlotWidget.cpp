@@ -283,13 +283,19 @@ void GraphicEQPlotWidget::removeSelected()
 	emit nodesEdited();
 }
 
+void GraphicEQPlotWidget::setPreviewFocused(bool value)
+{
+	previewFocused = value;
+	update();
+}
+
 GraphicEQPlotState GraphicEQPlotWidget::buildState() const
 {
 	GraphicEQPlotState state;
 	state.rect = rect();
 	state.plotRect = plotRect();
 	state.enabled = isEnabled();
-	state.focused = hasFocus();
+	state.focused = previewFocused || hasFocus();
 	state.bandLocked = bands != -1;
 	state.selectedNodes = selection;
 	state.hoveredNode = hovered;

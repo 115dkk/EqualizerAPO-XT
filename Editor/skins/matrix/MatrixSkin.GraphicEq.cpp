@@ -164,12 +164,16 @@ void MatrixSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState&
 				painter.setPen(QPen(mutedInk, 1));
 				painter.setBrush(ground);
 			}
+			// The keyboard target engages its own cell rule in accent while
+			// the plot holds focus (shared article 8) - no bracket round it.
+			if (state.focused && state.enabled && state.focusedNode == i)
+				painter.setPen(QPen(accent, 1));
 			painter.drawRect(cell.adjusted(0, 0, -1, -1));
 		}
 
 		// The band the readout strip is addressing wears its coordinate tag
-		// (mono, muted at rest, accent while engaged), and keyboard focus
-		// brackets its cell square.
+		// (mono, muted at rest, accent while engaged); keyboard focus has
+		// already engaged its cell rule above.
 		if (state.focusedNode >= 0 && state.focusedNode < state.nodePositions.size())
 		{
 			const QPointF& focusNode = state.nodePositions.at(state.focusedNode);
@@ -192,13 +196,6 @@ void MatrixSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState&
 			painter.setPen(engaged ? accent : mutedInk);
 			painter.drawText(QPoint(tagX, tagY), tag);
 			painter.setFont(labelFont);
-
-			if (state.focused && state.enabled)
-			{
-				painter.setPen(QPen(accent, 1));
-				painter.setBrush(Qt::NoBrush);
-				painter.drawRect(cell.adjusted(-3, -3, 2, 2));
-			}
 		}
 
 		// Cursor probe: a boxed sunken mono cell in the plot's top-right

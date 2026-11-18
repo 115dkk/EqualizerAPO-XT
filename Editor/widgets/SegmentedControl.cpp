@@ -104,6 +104,12 @@ void SegmentedControl::setPreviewState(int selectedIndex, int hoveredIndex)
 	update();
 }
 
+void SegmentedControl::setPreviewFocused(bool focused)
+{
+	previewFocused = focused;
+	update();
+}
+
 int SegmentedControl::indexAt(const QPointF& position) const
 {
 	if (segmentLabels.isEmpty() || width() <= 0)
@@ -161,7 +167,7 @@ void SegmentedControl::paintEvent(QPaintEvent*)
 	state.selectionPosition = selectionPosition;
 	state.hoveredIndex = hovered;
 	state.pressedIndex = pressed;
-	state.focused = hasFocus();
+	state.focused = previewFocused || hasFocus();
 	state.enabled = isEnabled();
 
 	SkinManager::instance()->paintSegmentedControl(painter, state);

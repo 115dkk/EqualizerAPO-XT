@@ -18,9 +18,6 @@
 #include <QColor>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QPaintEvent>
-#include <QPainter>
-#include <QPen>
 #include <QToolButton>
 #include <QVBoxLayout>
 #include <QVariant>
@@ -220,23 +217,4 @@ void StudioSubwooferRoutingCardView::applyState(
 	statusLabel->setVisible(!statusText.isEmpty());
 	statusLabel->setProperty("severity", statusSeverity);
 	repolish(statusLabel);
-}
-
-void StudioSubwooferRoutingCardView::paintEvent(QPaintEvent* event)
-{
-	SubwooferRoutingCardView::paintEvent(event);
-
-	if (!hasFocus())
-		return;
-
-	// The focus treatment is a light outline, not a shape outline: a thin
-	// ring in the skin's focus colour on the card's single 8px radius.
-	QPainter painter(this);
-	painter.setRenderHint(QPainter::Antialiasing, true);
-	QColor ring(skinTokens.focusRing);
-	ring.setAlpha(170);
-	painter.setPen(QPen(ring, 1.0));
-	painter.setBrush(Qt::NoBrush);
-	painter.drawRoundedRect(
-		QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5), 8.0, 8.0);
 }
