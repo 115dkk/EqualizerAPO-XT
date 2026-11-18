@@ -5,6 +5,7 @@ EqualizerAPO-XT는 Jonas Thedering의 [Equalizer APO](https://sourceforge.net/pr
 
 ## 문서
 * **[사용자 문서](Korean-Documentation)** — 설치, 첫 설정, 문제 해결을 다룹니다. 여기서 시작하세요.
+* **[단축키](Korean-Keyboard-shortcuts)**: 편집기의 모든 키와 마우스 동작입니다. 노브와 값을 미세하게 조절하는 Shift도 여기에 있습니다.
 * **[설정 레퍼런스](Korean-Configuration-reference)** — 설정 파일 형식과 지원하는 모든 명령입니다. 고급 사용자용입니다.
 * **[개발자 문서](Korean-Developer-documentation)** — 소스 빌드, 프로젝트 구조, Windows에 APO를 등록하는 방법입니다.
 
