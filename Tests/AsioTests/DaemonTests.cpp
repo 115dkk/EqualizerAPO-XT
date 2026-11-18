@@ -96,6 +96,7 @@ namespace
 
 	constexpr GUID testWrapperClsid = {0xc0ffee01, 0x1111, 0x4222, {0x83, 0x33, 0x44, 0x44, 0x55, 0x55, 0x66, 0x66}};
 	const wchar_t* const testTargetClsid = L"{B7E3A9F4-52C1-4D0B-8A6E-1F9C3D5E7B21}";
+	constexpr DWORD completionTimeoutMs = 10000;
 
 	struct Capture
 	{
@@ -104,6 +105,7 @@ namespace
 		long inputLatency = 0;
 		long outputLatency = 0;
 		eapo::asio::StreamStats stats;
+		uint32_t completionTimeoutSequence = 0;
 		bool started = false;
 	};
 
@@ -147,11 +149,11 @@ namespace
 	};
 
 	// Runs one stream over `processor` and returns what reached the fake's
-	// outputs and the host's inputs. paceMs > 0 pumps one period at a time
-	// with that much wall time after each, as hardware spaces buffer
-	// switches; zero pumps them back to back.
+	// outputs and the host's inputs. When outputCompletion is present, each
+	// period waits for its output sequence to complete before pumping the next.
 	Capture runStream(std::unique_ptr<IStreamProcessor> processor, const StreamOptions& options, long frames, long periods,
-		long inputs, long outputs, AsioWrapper** keep = nullptr, FakeAsioDriver** keepFake = nullptr, DWORD paceMs = 0)
+		long inputs, long outputs, AsioWrapper** keep = nullptr, FakeAsioDriver** keepFake = nullptr,
+		DaemonProcessor* outputCompletion = nullptr)
 	{
 		Capture capture;
 		FakeAsioConfig config;
@@ -174,12 +176,17 @@ namespace
 				if (wrapper->start() == ASE_OK)
 				{
 					capture.started = true;
-					if (paceMs == 0)
+					if (outputCompletion == nullptr)
 						fake->pump(periods);
-					for (long p = 0; paceMs != 0 && p < periods; p++)
+					for (uint32_t sequence = 1; outputCompletion != nullptr && sequence <= static_cast<uint32_t>(periods); sequence++)
 					{
 						fake->pump(1);
-						Sleep(paceMs);
+						if (!eapo::asio::DaemonProcessorTestAccess::waitUntilCompleted(
+							*outputCompletion, Direction::Output, sequence, completionTimeoutMs))
+						{
+							capture.completionTimeoutSequence = sequence;
+							break;
+						}
 					}
 					wrapper->stop();
 				}
@@ -254,12 +261,15 @@ namespace
 		constexpr long frames = 256;
 		Capture sync = runStream(std::make_unique<DaemonProcessor>(std::make_unique<ThreadHostLink>()), options, frames, 10, 0, 1);
 		options.mode = Mode::Pipelined;
-		// Paced: a pipelined block expects the previous one back within a
-		// tenth of a period, which only holds when switches come a period
-		// apart as they do on hardware (the host sleeps between blocks).
-		Capture pipelined = runStream(std::make_unique<DaemonProcessor>(std::make_unique<ThreadHostLink>(true)), options, frames, 10, 0, 1,
-			nullptr, nullptr, 50);
+		auto pipelinedProcessor = std::make_unique<DaemonProcessor>(std::make_unique<ThreadHostLink>(true));
+		DaemonProcessor* const observedPipelined = pipelinedProcessor.get();
+		// This case checks shape, so each block completes before the next
+		// buffer switch instead of relying on the host winning a timed race.
+		Capture pipelined = runStream(std::move(pipelinedProcessor), options, frames, 10, 0, 1,
+			nullptr, nullptr, observedPipelined);
 		harness.require(sync.started && pipelined.started, "both streams started");
+		harness.requireEqual(pipelined.completionTimeoutSequence, 0u,
+			"the thread host completes every pipelined block before the next period");
 		harness.expectEqual(pipelined.outputLatency, sync.outputLatency + frames, "pipelined mode reports one buffer more");
 
 		SampleCodec codec;
@@ -387,7 +397,7 @@ namespace
 			{
 				fake->pump(1);
 				harness.require(eapo::asio::DaemonProcessorTestAccess::waitUntilCompleted(
-					*observedProcessor, Direction::Output, nextSequence, 5000),
+					*observedProcessor, Direction::Output, nextSequence, completionTimeoutMs),
 					"the thread host completes sequence " + std::to_string(nextSequence));
 				nextSequence++;
 			}
@@ -399,7 +409,7 @@ namespace
 		fake->pump(1);           // period 8: seq 9 cannot be published (seq 7 not done): Late
 		control->holdHost(false);
 		harness.require(eapo::asio::DaemonProcessorTestAccess::waitUntilCompleted(
-			*observedProcessor, Direction::Output, 8, 5000), "the released host completes the held sequences");
+			*observedProcessor, Direction::Output, 8, completionTimeoutMs), "the released host completes the held sequences");
 		nextSequence = 9;
 		pumpServed(3);           // periods 9-11
 		wrapper->stop();
