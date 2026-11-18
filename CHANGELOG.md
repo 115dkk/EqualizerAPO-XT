@@ -14,6 +14,13 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Keyboard focus no longer draws a box around a box.** Switches such as the
+  analysis graph's Mag / Phase / GD selector, knobs, Graphic EQ points and the
+  Add filter row drew an extra frame, ring, halo or bracket around themselves
+  when they had the focus, and a click gives them the focus, so the extra box
+  was up right after every use. In every skin the focus now colours a border
+  the control already has: on a switch, the selected key's own edge.
+
 ## v2.65.3 — 2026-11-18
 
 - **Audio software from other vendors keeps working after an update.** An
