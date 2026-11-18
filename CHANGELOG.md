@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.65.1 — 2026-11-18
+
 - **A file named by an enabled `Include:` line can be saved again.** Saving
   such a file from its own Editor tab failed with "Access is denied" when the
   file sat in the configuration folder and the included file set up something

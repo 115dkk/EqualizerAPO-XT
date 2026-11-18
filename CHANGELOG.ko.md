@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.65.1 — 2026-11-18
+
 - **켜 둔 `Include:` 줄이 가리키는 파일을 다시 저장할 수 있습니다.** 그 파일을
   Editor의 자기 탭에서 저장하면 "Access is denied" 오류가 나는 경우가
   있었습니다. 파일이 설정 폴더에 있고, 그 안에 VST 플러그인처럼 준비가 오래
