@@ -170,10 +170,10 @@ void HilbertFilter::process(double** output, double** input, unsigned frameCount
 			std::fill_n(out, frameCount, 0.0);
 			continue;
 		}
-		HConvSingle* convolver = bank.unit(static_cast<unsigned>(unit));
-		hcPutSingle(convolver, input[shifted[unit]]);
-		hcProcessSingle(convolver);
-		hcGetSingle(convolver, out);
+		HConvPartitioned* convolver = bank.unit(static_cast<unsigned>(unit));
+		hcPutPartitioned(convolver, input[shifted[unit]]);
+		hcProcessPartitioned(convolver);
+		hcGetPartitioned(convolver, out);
 	}
 
 	if (!aligned.empty())

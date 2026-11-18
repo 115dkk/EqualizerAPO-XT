@@ -78,6 +78,42 @@ struct HConvSingleStorage
 	HcAlignedPtr<double> historyTime;
 };
 
+struct HConvPartitionedStorage
+{
+	std::shared_ptr<const HConvFilterBankStorage> tailFilterBank;
+	HcAlignedPtr<double> dftTime;
+	HcAlignedPtr<fftw_complex> dftFreq;
+	fftw::Plan fft;
+	fftw::Plan ifft;
+	HcSlabPtr<double> inputSpectrumSlab;
+	std::vector<double*> inputRealPtrs;
+	std::vector<double*> inputImagPtrs;
+	HcAlignedPtr<double> accumulatorReal;
+	HcAlignedPtr<double> accumulatorImag;
+	HcAlignedPtr<double> inputBlocks;
+	HcAlignedPtr<double> outputBlocks;
+	HcAlignedPtr<double> overlap;
+	int blockLength = 0;
+	int tailLength = 0;
+	int factor = 0;
+	int gatherIndex = 0;
+	int gatherBlocks = 0;
+	int pendingInput = -1;
+	int nextPendingInput = -1;
+	int activeInput = -1;
+	int activeStage = 0;
+	int activeOutput = -1;
+	int queuedOutput = -1;
+	int activeOutputBlock = 0;
+	unsigned long long pendingSequence = 0;
+	unsigned long long nextPendingSequence = 0;
+	unsigned long long activeSequence = 0;
+	unsigned long long pendingReadyCall = 0;
+	unsigned long long nextPendingReadyCall = 0;
+	unsigned long long processCall = 0;
+	unsigned long long inputSequence = 0;
+};
+
 ////////////////////////////////////////////////////////////////
 
 void hcPutSingle(HConvSingle* filter, double* x)
@@ -548,6 +584,443 @@ void hcCloseSingle(HConvSingle* filter)
 		fftw_destroy_plan(filter->ifft);
 	if (filter->fft != nullptr)
 		fftw_destroy_plan(filter->fft);
+	delete filter->storage;
+	*filter = {};
+}
+
+namespace
+{
+	constexpr int partitionedInputBufferCount = 3;
+	constexpr int partitionedOutputBufferCount = 2;
+
+	int choosePartitionedFactor(int impulseLength, int blockLength)
+	{
+		// Restrict K to powers of two with enough callbacks for separate FFT, MAC
+		// and IFFT work. For each eligible K, estimate per-callback spectral work
+		// as 2*K*B for the head plus P*B for the tail, where
+		// P=ceil((N-2*K*B)/(K*B)). This deterministic bandwidth model selects K=8
+		// for N=96000 at B=441/480/960 and K=16 at B=128.
+		const int candidates[] = {4, 8, 16, 32};
+		int bestFactor = 0;
+		long long bestCost = (std::numeric_limits<long long>::max)();
+		for (int factor : candidates)
+		{
+			const long long tailLength = static_cast<long long>(factor) * blockLength;
+			if (static_cast<long long>(impulseLength) <= 2 * tailLength)
+				continue;
+			const long long remaining = impulseLength - 2 * tailLength;
+			const long long partitionCount = (remaining + tailLength - 1) / tailLength;
+			const long long cost = 2 * tailLength + partitionCount * blockLength;
+			if (cost < bestCost)
+			{
+				bestCost = cost;
+				bestFactor = factor;
+			}
+		}
+		return bestFactor;
+	}
+
+	std::unique_ptr<HConvPartitionedStorage> preparePartitionedTail(
+		std::shared_ptr<const HConvFilterBankStorage> filterBank,
+		int blockLength,
+		int factor)
+	{
+		auto storage = std::make_unique<HConvPartitionedStorage>();
+		storage->tailFilterBank = std::move(filterBank);
+		storage->blockLength = blockLength;
+		storage->factor = factor;
+		storage->tailLength = storage->tailFilterBank->frameLength;
+
+		const size_t tailLength = static_cast<size_t>(storage->tailLength);
+		const size_t dftLength = checkedHcMultiply(tailLength, 2);
+		const size_t complexLength = tailLength + 1;
+		const size_t partitionCount =
+			static_cast<size_t>(storage->tailFilterBank->segmentCount);
+		const size_t partitionStride =
+			checkedHcMultiply(storage->tailFilterBank->planeStride, 2);
+
+		storage->dftTime = makeHcAlignedArray<double>(dftLength);
+		storage->dftFreq = makeHcAlignedArray<fftw_complex>(complexLength);
+		storage->inputSpectrumSlab =
+			makeHcSlab<double>(checkedHcMultiply(partitionCount, partitionStride));
+		storage->inputRealPtrs.resize(partitionCount);
+		storage->inputImagPtrs.resize(partitionCount);
+		for (size_t i = 0; i < partitionCount; ++i)
+		{
+			storage->inputRealPtrs[i] = storage->inputSpectrumSlab.get() + i * partitionStride;
+			storage->inputImagPtrs[i] =
+				storage->inputRealPtrs[i] + storage->tailFilterBank->planeStride;
+		}
+		storage->accumulatorReal = makeHcAlignedArray<double>(complexLength);
+		storage->accumulatorImag = makeHcAlignedArray<double>(complexLength);
+		storage->inputBlocks = makeHcAlignedArray<double>(
+			checkedHcMultiply(tailLength, partitionedInputBufferCount));
+		storage->outputBlocks = makeHcAlignedArray<double>(
+			checkedHcMultiply(tailLength, partitionedOutputBufferCount));
+		storage->overlap = makeHcAlignedArray<double>(tailLength);
+
+		{
+			FftwPlanningPolicy::Session planning;
+			const unsigned flags = planning.flags();
+			storage->fft = fftw::makeRealToComplexPlan(
+				2 * storage->tailLength, storage->dftTime.get(), storage->dftFreq.get(), flags);
+			storage->ifft = fftw::makeComplexToRealPlan(
+				2 * storage->tailLength, storage->dftFreq.get(), storage->dftTime.get(), flags);
+			planning.exportWisdomForLength(2 * storage->tailLength);
+		}
+
+		// FFTW_MEASURE may overwrite its plan buffers. Initialize every runtime
+		// buffer only after both plans exist so the first callback sees zeros.
+		memset(storage->dftTime.get(), 0, checkedHcMultiply(dftLength, sizeof(double)));
+		memset(storage->dftFreq.get(), 0, checkedHcMultiply(complexLength, sizeof(fftw_complex)));
+		memset(storage->inputSpectrumSlab.get(), 0,
+			checkedHcMultiply(checkedHcMultiply(partitionCount, partitionStride), sizeof(double)));
+		memset(storage->accumulatorReal.get(), 0,
+			checkedHcMultiply(complexLength, sizeof(double)));
+		memset(storage->accumulatorImag.get(), 0,
+			checkedHcMultiply(complexLength, sizeof(double)));
+		memset(storage->inputBlocks.get(), 0,
+			checkedHcMultiply(checkedHcMultiply(tailLength, partitionedInputBufferCount), sizeof(double)));
+		memset(storage->outputBlocks.get(), 0,
+			checkedHcMultiply(checkedHcMultiply(tailLength, partitionedOutputBufferCount), sizeof(double)));
+		memset(storage->overlap.get(), 0, checkedHcMultiply(tailLength, sizeof(double)));
+		return storage;
+	}
+
+	void transformPartitionedTail(
+		HConvPartitionedStorage& storage,
+		const HConvFilterBankStorage& bank,
+		const double* impulse,
+		int impulseLength)
+	{
+		const int tailLength = storage.tailLength;
+		const size_t dftLength = checkedHcMultiply(static_cast<size_t>(tailLength), 2);
+		const double gain = 0.5 / tailLength;
+		for (int partition = 0; partition < bank.segmentCount; ++partition)
+		{
+			const int offset = partition * tailLength;
+			const int copyLength = (std::min)(tailLength, impulseLength - offset);
+			mul_store_gain_double(storage.dftTime.get(), impulse + offset, copyLength, gain);
+			memset(storage.dftTime.get() + copyLength, 0,
+				checkedHcMultiply(dftLength - static_cast<size_t>(copyLength), sizeof(double)));
+			fftw_execute(storage.fft.get());
+			copy_split_complex_vec(storage.dftFreq.get(), bank.realPtrs[partition],
+				bank.imagPtrs[partition], tailLength + 1);
+		}
+	}
+
+	void macPartitionedTail(HConvPartitionedStorage& storage, int start, int stop)
+	{
+		const HConvFilterBankStorage& bank = *storage.tailFilterBank;
+		const size_t elementCount = static_cast<size_t>(storage.tailLength) + 1;
+		const int partitionCount = bank.segmentCount;
+		const int validPartitions = static_cast<int>((std::min)(
+			storage.activeSequence + 1,
+			static_cast<unsigned long long>(partitionCount)));
+		stop = (std::min)(stop, validPartitions);
+
+		const hn::ScalableTag<double> d;
+		const size_t laneCount = hn::Lanes(d);
+		for (int partition = start; partition < stop; ++partition)
+		{
+			const unsigned long long inputSequence = storage.activeSequence - partition;
+			const int inputSlot = static_cast<int>(
+				inputSequence % static_cast<unsigned long long>(partitionCount));
+			const double* xReal = storage.inputRealPtrs[inputSlot];
+			const double* xImag = storage.inputImagPtrs[inputSlot];
+			const double* hReal = bank.realPtrs[partition];
+			const double* hImag = bank.imagPtrs[partition];
+			double* yReal = storage.accumulatorReal.get();
+			double* yImag = storage.accumulatorImag.get();
+			size_t n = 0;
+			for (; n + laneCount <= elementCount; n += laneCount)
+			{
+				const auto xr = hn::LoadU(d, xReal + n);
+				const auto xi = hn::LoadU(d, xImag + n);
+				const auto hr = hn::LoadU(d, hReal + n);
+				const auto hi = hn::LoadU(d, hImag + n);
+				auto yr = hn::LoadU(d, yReal + n);
+				auto yi = hn::LoadU(d, yImag + n);
+				yr = hn::MulAdd(xr, hr, yr);
+				yr = hn::NegMulAdd(xi, hi, yr);
+				yi = hn::MulAdd(xr, hi, yi);
+				yi = hn::MulAdd(xi, hr, yi);
+				hn::StoreU(yr, d, yReal + n);
+				hn::StoreU(yi, d, yImag + n);
+			}
+			for (; n < elementCount; ++n)
+			{
+				yReal[n] += xReal[n] * hReal[n] - xImag[n] * hImag[n];
+				yImag[n] += xReal[n] * hImag[n] + xImag[n] * hReal[n];
+			}
+		}
+	}
+
+	int findFreePartitionedInput(const HConvPartitionedStorage& storage)
+	{
+		for (int index = 0; index < partitionedInputBufferCount; ++index)
+		{
+			if (index != storage.activeInput && index != storage.pendingInput &&
+				index != storage.nextPendingInput)
+				return index;
+		}
+		return -1;
+	}
+
+	void beginPartitionedTailJob(HConvPartitionedStorage& storage)
+	{
+		storage.activeInput = storage.pendingInput;
+		storage.activeSequence = storage.pendingSequence;
+		storage.activeStage = 0;
+		storage.pendingInput = storage.nextPendingInput;
+		storage.pendingSequence = storage.nextPendingSequence;
+		storage.pendingReadyCall = storage.nextPendingReadyCall;
+		storage.nextPendingInput = -1;
+	}
+
+	void transformPartitionedInput(HConvPartitionedStorage& storage)
+	{
+		const size_t tailLength = static_cast<size_t>(storage.tailLength);
+		const size_t complexLength = tailLength + 1;
+		const double* input = storage.inputBlocks.get() +
+			static_cast<size_t>(storage.activeInput) * tailLength;
+		memcpy(storage.dftTime.get(), input, checkedHcMultiply(tailLength, sizeof(double)));
+		memset(storage.dftTime.get() + tailLength, 0,
+			checkedHcMultiply(tailLength, sizeof(double)));
+		fftw_execute(storage.fft.get());
+		const int inputSlot = static_cast<int>(storage.activeSequence %
+			static_cast<unsigned long long>(storage.tailFilterBank->segmentCount));
+		copy_split_complex_vec(storage.dftFreq.get(), storage.inputRealPtrs[inputSlot],
+			storage.inputImagPtrs[inputSlot], static_cast<int>(complexLength));
+		memset(storage.accumulatorReal.get(), 0,
+			checkedHcMultiply(complexLength, sizeof(double)));
+		memset(storage.accumulatorImag.get(), 0,
+			checkedHcMultiply(complexLength, sizeof(double)));
+	}
+
+	void finishPartitionedTailJob(HConvPartitionedStorage& storage)
+	{
+		const int complexLength = storage.tailLength + 1;
+		for (int i = 0; i < complexLength; ++i)
+		{
+			storage.dftFreq.get()[i][0] = storage.accumulatorReal.get()[i];
+			storage.dftFreq.get()[i][1] = storage.accumulatorImag.get()[i];
+		}
+		fftw_execute(storage.ifft.get());
+
+		int outputIndex = 0;
+		if (storage.activeOutput == 0 || storage.queuedOutput == 0)
+			outputIndex = 1;
+		double* output = storage.outputBlocks.get() +
+			static_cast<size_t>(outputIndex) * storage.tailLength;
+		add_out_hist_to_y_simd(storage.dftTime.get(), storage.overlap.get(), output,
+			storage.tailLength, 0);
+		copy_hist_from_out_tail_simd(storage.overlap.get(),
+			storage.dftTime.get() + storage.tailLength, storage.tailLength);
+		storage.queuedOutput = outputIndex;
+		storage.activeInput = -1;
+	}
+}
+
+void hcInitPartitioned(HConvPartitioned* filter, const double* h, int hlen, int flen)
+{
+	if (filter == nullptr)
+		throw std::invalid_argument("hcInitPartitioned requires an output filter");
+	if (h == nullptr)
+		throw std::invalid_argument("hcInitPartitioned requires impulse-response samples");
+	if (hlen <= 0)
+		throw std::invalid_argument("hcInitPartitioned impulse length must be positive");
+	validateSingleShape(flen, 1);
+
+	HConvPartitioned pending = {};
+	pending.framelength = flen;
+	const int factor = choosePartitionedFactor(hlen, flen);
+	try
+	{
+		if (factor == 0)
+		{
+			hcInitSingle(&pending.head, h, hlen, flen, 1);
+			*filter = pending;
+			return;
+		}
+
+		const long long tailLength64 = static_cast<long long>(factor) * flen;
+		if (tailLength64 > (std::numeric_limits<int>::max)() / 2)
+			throw std::length_error("hcInitPartitioned tail partition is too large");
+		const int tailLength = static_cast<int>(tailLength64);
+		const int headLength = 2 * tailLength;
+		const int tailImpulseLength = hlen - headLength;
+
+		// The cost model above keeps K deterministic for a given N and B. At
+		// B=480, N=96000 it selects K=8: a 7680-sample head (16 B-sized
+		// partitions) and a 23-partition tail with a 7680-point FFT, reducing
+		// average filter-spectrum traffic to about one fifth of the uniform path.
+		pending.tailfactor = factor;
+		hcInitSingle(&pending.head, h, headLength, flen, 1);
+		auto tailBank = makeFilterBank(tailImpulseLength, tailLength);
+		auto storage = preparePartitionedTail(tailBank, flen, factor);
+		transformPartitionedTail(*storage, *tailBank, h + headLength, tailImpulseLength);
+		pending.storage = storage.release();
+		*filter = pending;
+	}
+	catch (...)
+	{
+		hcCloseSingle(&pending.head);
+		delete pending.storage;
+		throw;
+	}
+}
+
+void hcInitPartitionedWithSharedFilterBank(HConvPartitioned* filter,
+	const HConvPartitioned* prototype)
+{
+	if (filter == nullptr)
+		throw std::invalid_argument("shared hcInitPartitioned requires an output filter");
+	if (prototype == nullptr || prototype->head.storage == nullptr)
+		throw std::invalid_argument("shared hcInitPartitioned requires an initialized prototype");
+	if (filter == prototype)
+		throw std::invalid_argument("shared hcInitPartitioned output must differ from its prototype");
+
+	HConvPartitioned pending = {};
+	pending.framelength = prototype->framelength;
+	pending.tailfactor = prototype->tailfactor;
+	try
+	{
+		hcInitSingleWithSharedFilterBank(&pending.head, &prototype->head);
+		if (prototype->storage != nullptr)
+		{
+			auto storage = preparePartitionedTail(
+				prototype->storage->tailFilterBank,
+				prototype->storage->blockLength,
+				prototype->storage->factor);
+			pending.storage = storage.release();
+		}
+		*filter = pending;
+	}
+	catch (...)
+	{
+		hcCloseSingle(&pending.head);
+		delete pending.storage;
+		throw;
+	}
+}
+
+void hcPutPartitioned(HConvPartitioned* filter, double* x)
+{
+	hcPutSingle(&filter->head, x);
+	HConvPartitionedStorage* storage = filter->storage;
+	if (storage == nullptr)
+		return;
+
+	const size_t blockLength = static_cast<size_t>(storage->blockLength);
+	const size_t tailLength = static_cast<size_t>(storage->tailLength);
+	double* gather = storage->inputBlocks.get() +
+		static_cast<size_t>(storage->gatherIndex) * tailLength;
+	memcpy(gather + static_cast<size_t>(storage->gatherBlocks) * blockLength,
+		x, checkedHcMultiply(blockLength, sizeof(double)));
+	++storage->gatherBlocks;
+	if (storage->gatherBlocks != storage->factor)
+		return;
+
+	const int completedInput = storage->gatherIndex;
+	const unsigned long long sequence = storage->inputSequence++;
+	const unsigned long long readyCall = storage->processCall + 1;
+	if (storage->pendingInput < 0)
+	{
+		storage->pendingInput = completedInput;
+		storage->pendingSequence = sequence;
+		storage->pendingReadyCall = readyCall;
+	}
+	else
+	{
+		storage->nextPendingInput = completedInput;
+		storage->nextPendingSequence = sequence;
+		storage->nextPendingReadyCall = readyCall;
+	}
+	storage->gatherBlocks = 0;
+	storage->gatherIndex = findFreePartitionedInput(*storage);
+}
+
+void hcProcessPartitioned(HConvPartitioned* filter)
+{
+	hcProcessSingle(&filter->head);
+	HConvPartitionedStorage* storage = filter->storage;
+	if (storage == nullptr)
+		return;
+
+	if (storage->activeInput < 0 && storage->pendingInput >= 0 &&
+		storage->pendingReadyCall <= storage->processCall)
+		beginPartitionedTailJob(*storage);
+
+	if (storage->activeInput >= 0)
+	{
+		const int stage = storage->activeStage;
+		const int factor = storage->factor;
+		const int partitionCount = storage->tailFilterBank->segmentCount;
+		if (stage == 0)
+		{
+			transformPartitionedInput(*storage);
+			if (factor < 3)
+				macPartitionedTail(*storage, 0, partitionCount);
+		}
+		else if (stage < factor - 1)
+		{
+			const int macStageCount = factor - 2;
+			const int macStage = stage - 1;
+			const int start = macStage * partitionCount / macStageCount;
+			const int stop = (macStage + 1) * partitionCount / macStageCount;
+			macPartitionedTail(*storage, start, stop);
+		}
+
+		if (stage == factor - 1)
+			finishPartitionedTailJob(*storage);
+		else
+			++storage->activeStage;
+	}
+
+	++storage->processCall;
+	if (storage->gatherIndex < 0)
+		storage->gatherIndex = findFreePartitionedInput(*storage);
+}
+
+void hcGetPartitioned(HConvPartitioned* filter, double* y)
+{
+	hcGetSingle(&filter->head, y);
+	HConvPartitionedStorage* storage = filter->storage;
+	if (storage == nullptr)
+		return;
+
+	if (storage->activeOutput >= 0)
+	{
+		const size_t offset = static_cast<size_t>(storage->activeOutput) * storage->tailLength +
+			static_cast<size_t>(storage->activeOutputBlock) * storage->blockLength;
+		const double* tail = storage->outputBlocks.get() + offset;
+		const hn::ScalableTag<double> d;
+		const size_t laneCount = hn::Lanes(d);
+		size_t i = 0;
+		for (; i + laneCount <= static_cast<size_t>(storage->blockLength); i += laneCount)
+			hn::StoreU(hn::Add(hn::LoadU(d, y + i), hn::LoadU(d, tail + i)), d, y + i);
+		for (; i < static_cast<size_t>(storage->blockLength); ++i)
+			y[i] += tail[i];
+		++storage->activeOutputBlock;
+		if (storage->activeOutputBlock == storage->factor)
+		{
+			storage->activeOutput = -1;
+			storage->activeOutputBlock = 0;
+		}
+	}
+	if (storage->activeOutput < 0 && storage->queuedOutput >= 0)
+	{
+		storage->activeOutput = storage->queuedOutput;
+		storage->queuedOutput = -1;
+	}
+}
+
+void hcClosePartitioned(HConvPartitioned* filter)
+{
+	if (filter == nullptr)
+		return;
+	hcCloseSingle(&filter->head);
 	delete filter->storage;
 	*filter = {};
 }

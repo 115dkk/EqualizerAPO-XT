@@ -30,7 +30,7 @@ public:
 
 	// Takes the units built for frameCount-sample blocks. An empty array (the
 	// build found nothing to convolve) leaves the bank empty and unarmed.
-	void install(HConvSingleArray builtUnits, unsigned frameCount)
+	void install(HConvPartitionedArray builtUnits, unsigned frameCount)
 	{
 		units = std::move(builtUnits);
 		if (units)
@@ -59,8 +59,8 @@ public:
 		return true;
 	}
 
-	// The unit for hcPutSingle/hcProcessSingle/hcGetSingle.
-	HConvSingle* unit(unsigned i) const noexcept {return &units[i];}
+	// The unit for hcPutPartitioned/hcProcessPartitioned/hcGetPartitioned.
+	HConvPartitioned* unit(unsigned i) const noexcept {return &units[i];}
 
 	// Deferred report through the bank's owning filter context, then disarm and
 	// release the units. source_location keeps the calling filter's file and line
@@ -84,7 +84,7 @@ public:
 private:
 	ConvolverMuteDiagnostics& diagnostics;
 	const wchar_t* logPrefix;
-	HConvSingleArray units;
+	HConvPartitionedArray units;
 	unsigned initializedFrameCount = 0;
 	bool mismatchSeen = false;
 };

@@ -75,7 +75,7 @@ void ConvolutionFilter::process(double** output, double** input, unsigned frameC
 	if (frameCount == 0)
 		return;
 
-	// libHybridConv는 hcInitSingle 시점의 framelength로 고정 처리한다.
+	// libHybridConv는 hcInitPartitioned 시점의 framelength로 고정 처리한다.
 	// audio 콜백 중 재초기화는 파일 I/O, FFTW plan, malloc/free를 일으키므로 금지한다.
 	// mismatch가 들어오면 무음으로 빠지고, 진단은 원자 카운터에만 남긴다. 정상
 	// stream에서는 LockForProcess가 frameCount를 고정하므로 이 분기는 거의 들어오지 않는다.
@@ -93,11 +93,11 @@ void ConvolutionFilter::process(double** output, double** input, unsigned frameC
 	{
 		double* inputChannel = input[i];
 		double* outputChannel = output[i];
-		HConvSingle* filter = bank.unit(i);
+		HConvPartitioned* filter = bank.unit(i);
 
-		hcPutSingle(filter, inputChannel);
-		hcProcessSingle(filter);
-		hcGetSingle(filter, outputChannel);
+		hcPutPartitioned(filter, inputChannel);
+		hcProcessPartitioned(filter);
+		hcGetPartitioned(filter, outputChannel);
 	}
 }
 #pragma AVRT_CODE_END

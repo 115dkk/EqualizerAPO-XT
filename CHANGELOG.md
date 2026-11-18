@@ -21,6 +21,22 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   was up right after every use. In every skin the focus now colours a border
   the control already has: on a switch, the selected key's own edge.
 
+## v2.65.4 — 2026-11-18
+
+- **Long impulse responses no longer cause dropouts.** A Convolution or
+  MultiConvolution with long impulse responses (for example a 2-second,
+  22-track BRIR) reprocessed the whole response on every 10 ms audio block,
+  and on a heavy configuration some blocks ran past their deadline, which is
+  heard as short gaps or clicks. The beginning of the response is now
+  processed as before and the rest in larger pieces whose work is spread over
+  the following blocks, without added latency. On that BRIR with the zAuro
+  upmixer in front, the average time per block fell from 8.0 ms to 1.9 ms and
+  no block went over 10 ms in a 60-second test, where 10.6% did before.
+  Impulse responses up to eight blocks long (80 ms with a 10 ms block) are
+  processed exactly as before.
+  This was measured offline; it was not tried inside the Windows audio service.
+  ([#483](https://github.com/115dkk/EqualizerAPO-XT/pull/483))
+
 ## v2.65.3 — 2026-11-18
 
 - **Audio software from other vendors keeps working after an update.** An
