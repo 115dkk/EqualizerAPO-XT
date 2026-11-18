@@ -14,6 +14,19 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The Editor says when Windows audio is still running the previous engine,
+  and a Troubleshooting menu collects the fixes.** After an update Windows
+  audio can keep the old engine loaded, and nothing showed it. At startup the
+  Editor now compares the running engine's version with the installed one and,
+  if they differ, asks whether to restart Windows audio (sound stops for a few
+  seconds; Windows asks for administrator approval). The new Troubleshooting
+  menu has the same restart, "Check for updates" and "Report a problem", and
+  Settings gains "Automatic updates" (on by default) to turn the background
+  update check off. An engine from before this version does not report its
+  version, so the question first appears with the update after this one. The
+  restart itself was not tried on a real PC.
+  ([#475](https://github.com/115dkk/EqualizerAPO-XT/pull/475))
+
 ## v2.64.0 — 2026-11-17
 
 - **A line that points at an unreachable file no longer freezes the Editor.**
