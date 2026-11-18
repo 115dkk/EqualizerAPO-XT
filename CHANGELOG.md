@@ -20,7 +20,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   passed through untouched while its card and panel looked normal. That
   answer is what the VST3 SDK's own base class gives, so it is common;
   LoudMax VST3 1.47 is one such plug-in. The engine now treats it as started.
-  ([#478](https://github.com/115dkk/EqualizerAPO-XT/issues/478))
+  ([#478](https://github.com/115dkk/EqualizerAPO-XT/issues/478), [#480](https://github.com/115dkk/EqualizerAPO-XT/pull/480))
 
 ## v2.65.0 — 2026-11-18
 

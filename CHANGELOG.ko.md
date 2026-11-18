@@ -14,7 +14,7 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   통과했습니다. 그 답은 VST3 SDK의 기본 클래스가 돌려주는 값이라 드물지
   않고, LoudMax VST3 1.47도 그렇게 답합니다. 이제 엔진은 이 답을 시작한
   것으로 받아들입니다.
-  ([#478](https://github.com/115dkk/EqualizerAPO-XT/issues/478))
+  ([#478](https://github.com/115dkk/EqualizerAPO-XT/issues/478), [#480](https://github.com/115dkk/EqualizerAPO-XT/pull/480))
 
 ## v2.65.0 — 2026-11-18
 
