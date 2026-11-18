@@ -14,6 +14,15 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **A file named by an enabled `Include:` line can be saved again.** Saving
+  such a file from its own Editor tab failed with "Access is denied" when the
+  file sat in the configuration folder and the included file set up something
+  slow, such as a VST plug-in. The save itself made the audio engine reload,
+  and the engine kept the included file open until every filter in it was
+  ready, which took longer than the Editor waits. The engine now closes the
+  file as soon as it has read it.
+  ([#477](https://github.com/115dkk/EqualizerAPO-XT/issues/477), [#479](https://github.com/115dkk/EqualizerAPO-XT/pull/479))
+
 - **VST3 plug-ins such as LoudMax process audio again.** Since v2.24.0 a
   VST3 plug-in that answers the "start processing" call with "not
   implemented" was treated as having refused to start, and its audio was

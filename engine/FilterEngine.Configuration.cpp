@@ -293,9 +293,20 @@ ConfigFileReference::Target FilterEngine::judgeIncludedFile(const wstring& confi
 	return ConfigurationFileReader::judgeWithRetry(configPath, written, configChannel.shutdownHandle());
 }
 
-void FilterEngine::loadConfigFile(const JudgedPath& path)
+void FilterEngine::loadConfigFile(JudgedPath path)
 {
-	loadConfigStream(path.path(), ConfigurationFileReader::read(path));
+	stringstream bytes = ConfigurationFileReader::read(path);
+	const wstring name = path.path();
+	// The handles kept the judged file and its folders in place until the
+	// bytes were read; nothing reads the file by name afterwards. Held through
+	// the parse below, they stayed open while every filter in the file was set
+	// up, which for a VST plug-in or a long impulse response takes seconds,
+	// and the leaf handle shares no delete access: the Editor's atomic save of
+	// that file (a rename over it) failed with access denied whenever the save
+	// itself had woken this reload (issue #477). config.txt was never affected
+	// because its reader closes the file before parsing.
+	path = JudgedPath{};
+	loadConfigStream(name, move(bytes));
 }
 
 void FilterEngine::loadConfigStream(const wstring& path, stringstream inputStream)
