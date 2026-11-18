@@ -17,6 +17,7 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   지연을 알리는 플러그인은 처리하지 않는 채널과 처리하는 채널의 시간이
   어긋났습니다. 이제는 활성화한 뒤 지연을 다시 읽습니다.
   두 변경 모두 weirdsoup의 Custom Audio Manager(MIT)에서 가져왔습니다.
+  ([#492](https://github.com/115dkk/EqualizerAPO-XT/pull/492))
 
 ## v2.65.7 — 2026-11-18
 

@@ -25,6 +25,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   afterwards left the channels it does not process misaligned with the ones
   it does. The latency is now read again after activation.
   Both changes are adapted from weirdsoup's Custom Audio Manager (MIT).
+  ([#492](https://github.com/115dkk/EqualizerAPO-XT/pull/492))
 
 ## v2.65.7 — 2026-11-18
 
