@@ -24,6 +24,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   **Ignore silence in convolution** option under Device Selector's
   troubleshooting options is on by default; untick it to process files
   exactly as they are.
+  ([#487](https://github.com/115dkk/EqualizerAPO-XT/pull/487))
 
 ## v2.65.4 — 2026-11-18
 

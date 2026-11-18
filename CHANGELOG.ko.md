@@ -16,6 +16,7 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   했습니다. 앞쪽 무음은 그대로 두므로 시간 정렬은 바뀌지 않습니다. Device
   Selector의 문제 해결 옵션에 새로 생긴 **컨볼루션 무음 부분 무시**는
   기본으로 켜져 있으며, 파일을 그대로 처리하려면 끄면 됩니다.
+  ([#487](https://github.com/115dkk/EqualizerAPO-XT/pull/487))
 
 ## v2.65.4 — 2026-11-18
 
