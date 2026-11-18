@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.65.4 — 2026-11-18
+
 - **Long impulse responses no longer cause dropouts.** A Convolution or
   MultiConvolution with long impulse responses (for example a 2-second,
   22-track BRIR) reprocessed the whole response on every 10 ms audio block,

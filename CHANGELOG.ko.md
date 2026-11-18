@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.65.4 — 2026-11-18
+
 - **긴 임펄스 응답 때문에 소리가 끊기지 않습니다.** 긴 임펄스 응답(예를 들어
   2초 길이의 22트랙 BRIR)을 쓰는 Convolution이나 MultiConvolution은 10 ms
   오디오 블록마다 응답 전체를 다시 계산했고, 무거운 설정에서는 일부 블록이
