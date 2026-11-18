@@ -226,7 +226,7 @@ void StudioSubwooferRoutingCardView::paintEvent(QPaintEvent* event)
 {
 	SubwooferRoutingCardView::paintEvent(event);
 
-	if (!hasFocus())
+	if (!showsFocus())
 		return;
 
 	// The focus treatment is a light outline, not a shape outline: a thin

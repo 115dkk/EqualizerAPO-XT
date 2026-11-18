@@ -191,7 +191,7 @@ void SoftSubwooferRoutingCardView::paintEvent(QPaintEvent* event)
 {
 	SubwooferRoutingCardView::paintEvent(event);
 
-	if (!hasFocus())
+	if (!showsFocus())
 		return;
 
 	// Focus is a quiet halo, not a hard ring (this skin's focused grammar).

@@ -223,7 +223,7 @@ void MatrixSubwooferRoutingCardView::paintEvent(QPaintEvent* event)
 {
 	SubwooferRoutingCardView::paintEvent(event);
 
-	if (!hasFocus())
+	if (!showsFocus())
 		return;
 
 	// Focus is the board's square corner brackets - crisp, AA off.
