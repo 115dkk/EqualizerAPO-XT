@@ -229,11 +229,12 @@ int handleVelopackHook(int argc, char* argv[])
 		}
 		if (matchesHook(arg, "--veloapp-updated"))
 		{
-			const auto rc = ApoRegistration::runWithAudioStopped([] {
-				ApoRegistration::stopAudioService();
-				// The obsolete hook in our previous version may already have
-				// stopped it. This update still owes that restart (audit #467 TD-13).
-				return true;
+			ApoRegistration::AudioEngineState audioState;
+			// The obsolete hook in our previous version may already have
+			// stopped it. This update still owes that restart (audit #467 TD-13).
+			audioState.resumePreviousHook = true;
+			const auto rc = ApoRegistration::runWithAudioStopped([&] {
+				return ApoRegistration::stopAudioEngine(audioState);
 			}, [&] {
 				const auto result = ApoRegistration::install(exeDir, L"", systemRegistry(), callerLocalAppData.installGrantsPrepared);
 				if (result == ApoRegistration::Result::AclFailed)
@@ -241,14 +242,15 @@ int handleVelopackHook(int argc, char* argv[])
 				if (ApoRegistration::hookCanComplete(result))
 					EqAPO::Import::LegacyMigration::runElevatedHookStep(exeDir, callerLocalAppData);
 				return result;
-			}, ApoRegistration::startAudioService);
+			}, [&] { return ApoRegistration::startAudioEngine(audioState); });
 			return ApoRegistration::hookCanComplete(rc) ? 0 : static_cast<int>(rc);
 		}
 		if (matchesHook(arg, "--veloapp-obsolete"))
 		{
-			// The old version waits for AudioSrv to stop before Velopack replaces
-			// the DLL. Audio returns in the new version's --veloapp-updated hook.
-			ApoRegistration::stopAudioService();
+			// Stop the endpoint builder and its dependents so audiodg releases the
+			// DLL. Audio returns in the new version's --veloapp-updated hook.
+			ApoRegistration::AudioEngineState audioState;
+			ApoRegistration::stopAudioEngine(audioState);
 			return 0;
 		}
 		if (matchesHook(arg, "--veloapp-uninstall"))

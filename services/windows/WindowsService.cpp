@@ -80,6 +80,27 @@ bool WindowsServiceControl::stop(const wstring& serviceName, unsigned timeoutMs,
 	return active;
 }
 
+void WindowsServiceControl::stopWithDependents(const wstring& serviceName, unsigned timeoutMs,
+	bool* wasActive, vector<wstring>& activeDependents)
+{
+	const ULONGLONG deadline = GetTickCount64() + timeoutMs;
+	auto manager = openManager();
+	WindowsService service(manager.get(), serviceName,
+		SERVICE_STOP | SERVICE_QUERY_STATUS | SERVICE_ENUMERATE_DEPENDENTS);
+	const bool active = service.getState() != SERVICE_STOPPED;
+	if (wasActive != nullptr)
+		*wasActive = active;
+	activeDependents = service.getActiveDependentServices();
+	// EnumDependentServices returns reverse start order, including pending
+	// transitions. Every dependent and the parent share this one deadline.
+	for (const auto& name : activeDependents)
+	{
+		WindowsService dependent(manager.get(), name, SERVICE_STOP | SERVICE_QUERY_STATUS);
+		stopAndWait(dependent, deadline);
+	}
+	stopAndWait(service, deadline);
+}
+
 void WindowsServiceControl::start(const wstring& serviceName, unsigned timeoutMs)
 {
 	auto manager = openManager();
