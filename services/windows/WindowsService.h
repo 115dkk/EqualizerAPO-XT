@@ -35,6 +35,7 @@ public:
 	// a partial stop failure so the caller can restore them in reverse order.
 	static void stopWithDependents(const std::wstring& serviceName, unsigned timeoutMs,
 		bool* wasActive, std::vector<std::wstring>& activeDependents);
+	static std::vector<std::wstring> stoppedAutoStartDependents(const std::wstring& serviceName);
 };
 
 class WindowsService
@@ -47,6 +48,8 @@ public:
 	void start();
 	DWORD stop();
 	std::vector<std::wstring> getActiveDependentServices();
+	std::vector<std::wstring> getDependentServices(DWORD serviceState);
+	DWORD getStartType();
 
 private:
 	void fail(const std::wstring& functionName, DWORD error);

@@ -137,6 +137,7 @@ public:
 		std::function<void(const std::wstring&, unsigned)> start;
 		std::function<void(const std::wstring&, unsigned)> restart;
 		std::function<void(const std::wstring&)> error;
+		std::function<std::vector<std::wstring>(const std::wstring&)> stoppedAutoStartDependents;
 	};
 	static const AudioEngineServices& systemAudioEngineServices();
 	static bool stopAudioEngine(AudioEngineState& state,

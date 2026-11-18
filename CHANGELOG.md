@@ -14,6 +14,16 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Audio software from other vendors keeps working after an update.** An
+  update stops the Windows audio services so the new engine can load, and
+  with them any service that depends on them, such as those of SteelSeries
+  Sonar or ASUS Sonic Studio. The previous version's half of the update did
+  not tell the new version which services it had stopped, so those services
+  stayed stopped until a reboot. The update now starts every stopped audio
+  service that is set to start automatically. A service that starts only on
+  demand is not covered, and this was not tried with those products.
+  ([#478](https://github.com/115dkk/EqualizerAPO-XT/issues/478))
+
 ## v2.65.1 — 2026-11-18
 
 - **A file named by an enabled `Include:` line can be saved again.** Saving

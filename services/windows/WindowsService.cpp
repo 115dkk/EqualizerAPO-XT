@@ -22,6 +22,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+#include <algorithm>
+
 #include "diagnostics/performance/PrecisionTimer.h"
 #include "services/windows/WindowsService.h"
 #include "services/windows/ServiceWait.h"
@@ -108,6 +110,29 @@ void WindowsServiceControl::start(const wstring& serviceName, unsigned timeoutMs
 	startAndWait(service, GetTickCount64() + timeoutMs);
 }
 
+vector<wstring> WindowsServiceControl::stoppedAutoStartDependents(const wstring& serviceName)
+{
+	auto manager = openManager();
+	WindowsService service(manager.get(), serviceName, SERVICE_ENUMERATE_DEPENDENTS);
+	vector<wstring> result;
+	for (const auto& name : service.getDependentServices(SERVICE_INACTIVE))
+	{
+		// One service whose configuration cannot be read must not keep the
+		// others from being restarted; it is left as it is.
+		try
+		{
+			WindowsService dependent(manager.get(), name, SERVICE_QUERY_CONFIG);
+			if (dependent.getStartType() == SERVICE_AUTO_START)
+				result.push_back(name);
+		}
+		catch (const WindowsServiceError&)
+		{
+		}
+	}
+	std::reverse(result.begin(), result.end());
+	return result;
+}
+
 void WindowsServiceControl::restart(const wstring& serviceName, unsigned timeoutMs)
 {
 	auto manager = openManager();
@@ -170,8 +195,13 @@ DWORD WindowsService::stop()
 
 vector<wstring> WindowsService::getActiveDependentServices()
 {
+	return getDependentServices(SERVICE_ACTIVE);
+}
+
+vector<wstring> WindowsService::getDependentServices(DWORD serviceState)
+{
 	DWORD bytesNeeded, count;
-	if (EnumDependentServicesW(serviceHandle.get(), SERVICE_ACTIVE, nullptr, 0, &bytesNeeded, &count))
+	if (EnumDependentServicesW(serviceHandle.get(), serviceState, nullptr, 0, &bytesNeeded, &count))
 		// if the call succeeds, there are no dependent services
 		return vector<wstring>();
 
@@ -184,7 +214,7 @@ vector<wstring> WindowsService::getActiveDependentServices()
 	if (!dependencies)
 		throw WindowsServiceError(L"HeapAlloc for EnumDependentServices failed");
 
-	if (!EnumDependentServicesW(serviceHandle.get(), SERVICE_ACTIVE, dependencies.get(), bytesNeeded, &bytesNeeded, &count))
+	if (!EnumDependentServicesW(serviceHandle.get(), serviceState, dependencies.get(), bytesNeeded, &bytesNeeded, &count))
 		fail(L"EnumDependentServices", GetLastError());
 
 	vector<wstring> result;
@@ -192,6 +222,24 @@ vector<wstring> WindowsService::getActiveDependentServices()
 		result.push_back(dependencies.get()[i].lpServiceName);
 
 	return result;
+}
+
+DWORD WindowsService::getStartType()
+{
+	DWORD bytesNeeded;
+	if (QueryServiceConfigW(serviceHandle.get(), nullptr, 0, &bytesNeeded))
+		throw WindowsServiceError(L"QueryServiceConfig returned no service configuration for service \"" + serviceName + L"\"");
+	const DWORD error = GetLastError();
+	if (error != ERROR_INSUFFICIENT_BUFFER)
+		fail(L"QueryServiceConfig", error);
+
+	winutil::UniqueProcessHeapPtr<QUERY_SERVICE_CONFIGW> config(
+		static_cast<LPQUERY_SERVICE_CONFIGW>(HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, bytesNeeded)));
+	if (!config)
+		throw WindowsServiceError(L"HeapAlloc for QueryServiceConfig failed");
+	if (!QueryServiceConfigW(serviceHandle.get(), config.get(), bytesNeeded, &bytesNeeded))
+		fail(L"QueryServiceConfig", GetLastError());
+	return config.get()->dwStartType;
 }
 
 void WindowsService::fail(const wstring& functionName, DWORD error)

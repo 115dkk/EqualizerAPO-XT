@@ -452,7 +452,8 @@ const ApoRegistration::AudioEngineServices& ApoRegistration::systemAudioEngineSe
 		WindowsServiceControl::stopWithDependents,
 		WindowsServiceControl::start,
 		WindowsServiceControl::restart,
-		[](const std::wstring& message) { logLine(L"ERR", L"%s", message.c_str()); }
+		[](const std::wstring& message) { logLine(L"ERR", L"%s", message.c_str()); },
+		WindowsServiceControl::stoppedAutoStartDependents
 	};
 	return services;
 }
@@ -483,7 +484,9 @@ bool ApoRegistration::startAudioEngine(const AudioEngineState& state, const Audi
 		return true;
 	installwait::Budget restoreBudget(4000);
 	bool restored = true;
+	std::vector<std::wstring> attempted;
 	auto attempt = [&](const wchar_t* action, const std::wstring& name, const auto& operation) {
+		attempted.push_back(name);
 		try
 		{
 			operation(name, installwait::remaining(4000));
@@ -518,6 +521,35 @@ bool ApoRegistration::startAudioEngine(const AudioEngineState& state, const Audi
 	{
 		if (*it != audioServiceName)
 			attempt(L"start", *it, services.start);
+	}
+
+	if ((state.resumePreviousHook || state.stopFailed) && services.stoppedAutoStartDependents)
+	{
+		// The old version's obsolete hook runs in another process and cannot hand
+		// over the services it stopped. Restart every stopped auto-start dependent
+		// of AudioEndpointBuilder that this hook has not tried yet (issue #478).
+		try
+		{
+			for (const auto& name : services.stoppedAutoStartDependents(audioEndpointBuilderServiceName))
+			{
+				if (std::find(attempted.begin(), attempted.end(), name) != attempted.end())
+					continue;
+				attempted.push_back(name);
+				try
+				{
+					services.start(name, installwait::remaining(4000));
+				}
+				catch (const WindowsServiceError& e)
+				{
+					services.error(L"Failed to start " + name + L": " + e.getMessage());
+				}
+			}
+		}
+		catch (const WindowsServiceError& e)
+		{
+			services.error(L"Failed to query stopped auto-start dependents of "
+				+ std::wstring(audioEndpointBuilderServiceName) + L": " + e.getMessage());
+		}
 	}
 	return restored;
 }
