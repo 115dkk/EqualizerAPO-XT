@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.65.6 — 2026-11-18
+
 - **Keyboard focus no longer draws a box around a box.** Switches such as the
   analysis graph's Mag / Phase / GD selector, knobs, Graphic EQ points and the
   Add filter row drew an extra frame, ring, halo or bracket around themselves
