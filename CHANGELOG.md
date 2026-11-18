@@ -14,6 +14,12 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Legacy Rows stays readable when Windows is in dark mode.** With Windows
+  set to dark mode, the Legacy Rows interface drew white text on its light
+  rows and menus. Legacy Rows now always uses its classic light colours,
+  whatever the Windows colour mode is. A `QT_QPA_PLATFORM` value set
+  outside the Editor still takes precedence.
+
 ## v2.65.6 — 2026-11-18
 
 - **Keyboard focus no longer draws a box around a box.** Switches such as the
