@@ -5,6 +5,7 @@ This wiki mirrors the structure of the original Equalizer APO documentation and 
 
 ## Pages
 * **[Documentation](Documentation)** — user guide: installation, first configuration, and troubleshooting. Start here.
+* **[Keyboard shortcuts](Keyboard-shortcuts)**: every key and mouse gesture in the Editor, including Shift for fine knob and value adjustment.
 * **[Configuration reference](Configuration-reference)** — the configuration file format and every supported command. For advanced users.
 * **[Developer documentation](Developer-documentation)** — building from source, project layout, and how an APO is registered with Windows.
 
