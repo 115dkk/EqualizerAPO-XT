@@ -133,12 +133,49 @@ TEST_CASE(EngineOrchestrationTests, testEngineBeaconDoesNotOverwriteForeignMappi
 
 TEST_CASE(EngineOrchestrationTests, testEngineBeaconPublishesOnlyOnce)
 {
-	const std::wstring first = mappingName(L"once");
-	const std::wstring second = mappingName(L"ignored");
+	const std::wstring first = mappingName(L"once.");
+	const std::wstring second = mappingName(L"ignored.");
 	harness.expectTrue(beacon::publishOnce({2, 64, 0}, first.c_str()), "first publication succeeds");
 	harness.expectTrue(beacon::publishOnce({9, 8, 7}, second.c_str()), "subsequent publication returns the first result");
-	harness.expectTrue(beacon::readPublished(first.c_str()) == beacon::EngineVersion{2, 64, 0}, "published version is immutable");
-	harness.expectTrue(!beacon::readPublished(second.c_str()), "subsequent publication creates no other mapping");
+	harness.expectTrue(beacon::readAllPublished(first.c_str()) == std::vector<beacon::EngineVersion>{{2, 64, 0}},
+		"the publication is found under the process's own id and is immutable");
+	harness.expectTrue(beacon::readAllPublished(second.c_str()).empty(), "subsequent publication creates no other mapping");
+}
+
+// Codex review of PR #475: with one shared name only the first audiodg.exe
+// could publish, so its exit hid an engine still loaded in another process.
+TEST_CASE(EngineOrchestrationTests, testEngineBeaconCoversEveryHostingProcess)
+{
+	const std::wstring prefix = mappingName(L"multi.");
+	const beacon::EngineVersion installed{2, 64, 0};
+	const beacon::EngineVersion old{2, 63, 0};
+	// The System process (id 4) stands in for a second audio engine process:
+	// it is always in the process list.
+	wchar_t ownName[beacon::kMappingNameCapacity];
+	wchar_t otherName[beacon::kMappingNameCapacity];
+	harness.require(beacon::mappingNameFor(ownName, prefix.c_str(), GetCurrentProcessId()), "own name fits");
+	harness.require(beacon::mappingNameFor(otherName, prefix.c_str(), 4), "second name fits");
+	harness.expectTrue(beacon::readAllPublished(prefix.c_str()).empty(), "nothing is published initially");
+	harness.expectTrue(!beacon::representative({}, installed), "no publication means no engine is loaded");
+	{
+		beacon::Publication other(old, otherName);
+		harness.require(other.published(), "second process publishes");
+		{
+			beacon::Publication own(installed, ownName);
+			harness.require(own.published(), "a second process is not turned away by the first one's publication");
+			const auto both = beacon::readAllPublished(prefix.c_str());
+			harness.expectEqual(both.size(), size_t(2), "both processes are found");
+			harness.expectTrue(beacon::representative(both, installed) == old, "one old engine among current ones is reported");
+		}
+		const auto remaining = beacon::readAllPublished(prefix.c_str());
+		harness.expectTrue(remaining == std::vector<beacon::EngineVersion>{old}, "the other process stays visible after one publisher exits");
+		harness.expectTrue(beacon::classify(beacon::representative(remaining, installed), installed) == beacon::EngineState::Stale,
+			"the remaining old engine is classified stale");
+	}
+	harness.expectTrue(beacon::representative({installed, installed}, installed) == installed, "all current engines are current");
+	wchar_t tooLong[beacon::kMappingNameCapacity];
+	harness.expectTrue(!beacon::mappingNameFor(tooLong, std::wstring(beacon::kMappingNameCapacity, L'x').c_str(), 1) && tooLong[0] == L'\0',
+		"a name that does not fit is refused");
 }
 
 TEST_CASE(EngineOrchestrationTests, testAudioEngineRestartServiceOrder)

@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <vector>
 
 #include "platform/windows/Win32Resource.h"
 
@@ -20,7 +21,13 @@ namespace eapo::ipc::beacon
 		bool operator==(const EngineVersion&) const = default;
 	};
 
-	inline constexpr wchar_t kMappingName[] = L"Global\\EqualizerAPO-XT.EngineBeacon";
+	// One section per hosting process, named prefix + process id. Windows can
+	// host APOs in more than one audiodg.exe; with a single shared name only
+	// the first process could publish, and its exit hid every other one.
+	inline constexpr wchar_t kMappingPrefix[] = L"Global\\EqualizerAPO-XT.EngineBeacon.";
+	inline constexpr std::size_t kMappingNameCapacity = 128;
+	// False when the name does not fit; out is then an empty string.
+	bool mappingNameFor(wchar_t (&out)[kMappingNameCapacity], const wchar_t* prefix, std::uint32_t processId) noexcept;
 
 	// Permanent cross-version wire layout. Do not reorder or extend layout 1.
 	struct Region
@@ -53,8 +60,15 @@ namespace eapo::ipc::beacon
 
 	// The first result is retained until module unload, including failure.
 	// On failure GetLastError() contains the original Win32 error on every call.
-	bool publishOnce(const EngineVersion& version, const wchar_t* mappingName = kMappingName) noexcept;
-	std::optional<EngineVersion> readPublished(const wchar_t* mappingName = kMappingName) noexcept;
+	// Publishes under prefix + the current process id.
+	bool publishOnce(const EngineVersion& version, const wchar_t* mappingPrefix = kMappingPrefix) noexcept;
+	std::optional<EngineVersion> readPublished(const wchar_t* mappingName) noexcept;
+	// The version of every running process that published under the prefix.
+	std::vector<EngineVersion> readAllPublished(const wchar_t* mappingPrefix = kMappingPrefix);
+	// The version to judge the engine by: one that differs from installed if
+	// any process runs one, otherwise the installed one, or nothing if no
+	// process published.
+	std::optional<EngineVersion> representative(const std::vector<EngineVersion>& running, const EngineVersion& installed) noexcept;
 
 	enum class EngineState { NotLoaded, Current, Stale };
 	EngineState classify(const std::optional<EngineVersion>& running, const EngineVersion& installed) noexcept;

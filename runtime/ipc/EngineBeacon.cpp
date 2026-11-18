@@ -10,6 +10,7 @@
 #include <atomic>
 #include <cstring>
 #include <sddl.h>
+#include <tlhelp32.h>
 
 #include "version.h"
 
@@ -86,9 +87,23 @@ namespace eapo::ipc::beacon
 		return ERROR_SUCCESS;
 	}
 
-	bool publishOnce(const EngineVersion& version, const wchar_t* mappingName) noexcept
+	bool mappingNameFor(wchar_t (&out)[kMappingNameCapacity], const wchar_t* prefix, std::uint32_t processId) noexcept
 	{
-		static const Publication publication(version, mappingName);
+		// _TRUNCATE reports a name that does not fit by returning -1 instead of
+		// calling the invalid parameter handler, which would end audiodg.
+		if (prefix != nullptr && _snwprintf_s(out, kMappingNameCapacity, _TRUNCATE, L"%s%lu", prefix, static_cast<unsigned long>(processId)) > 0)
+			return true;
+		out[0] = L'\0';
+		return false;
+	}
+
+	bool publishOnce(const EngineVersion& version, const wchar_t* mappingPrefix) noexcept
+	{
+		static const Publication publication = [&] {
+			wchar_t name[kMappingNameCapacity];
+			mappingNameFor(name, mappingPrefix, GetCurrentProcessId());
+			return Publication(version, name);
+		}();
 		SetLastError(publication.error());
 		return publication.published();
 	}
@@ -107,6 +122,35 @@ namespace eapo::ipc::beacon
 		if (std::atomic_ref<const std::uint32_t>(region->magic).load(std::memory_order_acquire) != kMagic)
 			return std::nullopt;
 		return decode(region, sizeof(Region));
+	}
+
+	std::vector<EngineVersion> readAllPublished(const wchar_t* mappingPrefix)
+	{
+		std::vector<EngineVersion> versions;
+		winutil::UniqueHandle snapshot(CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0));
+		if (!snapshot || snapshot.get() == INVALID_HANDLE_VALUE)
+			return versions;
+		PROCESSENTRY32W entry{};
+		entry.dwSize = sizeof(entry);
+		for (BOOL more = Process32FirstW(snapshot.get(), &entry); more; more = Process32NextW(snapshot.get(), &entry))
+		{
+			wchar_t name[kMappingNameCapacity];
+			if (!mappingNameFor(name, mappingPrefix, entry.th32ProcessID))
+				continue;
+			if (const auto version = readPublished(name))
+				versions.push_back(*version);
+		}
+		return versions;
+	}
+
+	std::optional<EngineVersion> representative(const std::vector<EngineVersion>& running, const EngineVersion& installed) noexcept
+	{
+		for (const EngineVersion& version : running)
+			if (version != installed)
+				return version;
+		if (running.empty())
+			return std::nullopt;
+		return installed;
 	}
 
 	EngineState classify(const std::optional<EngineVersion>& running, const EngineVersion& installed) noexcept

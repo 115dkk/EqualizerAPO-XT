@@ -45,7 +45,7 @@ The native download contract is documented in the [Velopack C API](https://docs.
 
 ### The engine after an update
 
-The APO DLL publishes its version in a read-only shared memory section (`Global\EqualizerAPO-XT.EngineBeacon`, `runtime/ipc/EngineBeacon.h`) when the audio engine loads it. At startup the Editor compares that version with its own. If they differ, audiodg is still running the DLL from before the update, and the Editor offers to restart Windows audio. The restart runs in a short elevated Editor process (`--eapo-restart-audio-engine`) that restarts AudioEndpointBuilder together with its dependents and then makes sure AudioSrv runs. Troubleshooting > Restart Windows audio service does the same on request.
+The APO DLL publishes its version in a read-only shared memory section (`Global\EqualizerAPO-XT.EngineBeacon.<process id>`, `runtime/ipc/EngineBeacon.h`) when the audio engine loads it, one section per process because Windows can run more than one audiodg. At startup the Editor reads the section of every running process and compares the versions with its own. If any differs, an audiodg is still running the DLL from before the update, and the Editor offers to restart Windows audio. The restart runs in a short elevated Editor process (`--eapo-restart-audio-engine`) that restarts AudioEndpointBuilder together with its dependents and then makes sure AudioSrv runs. Troubleshooting > Restart Windows audio service does the same on request.
 
 A DLL from before this feature publishes nothing, so the Editor cannot tell that such a DLL is still loaded. The check works from the first update after the version that introduced it.
 

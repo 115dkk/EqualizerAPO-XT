@@ -435,8 +435,8 @@ void MainWindow::doChecks()
 
 	if (audioServiceRunning && !engineRestartOffered)
 	{
-		const auto running = eapo::ipc::beacon::readPublished();
 		const auto installed = eapo::ipc::beacon::builtVersion();
+		const auto running = eapo::ipc::beacon::representative(eapo::ipc::beacon::readAllPublished(), installed);
 		if (TroubleshootingNotices::shouldOfferEngineRestart(audioServiceRunning,
 			eapo::ipc::beacon::classify(running, installed)))
 		{
