@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.64.1 — 2026-11-18
+
 - **The audio engine no longer keeps running the previous version after an
   update.** Windows audio could keep the old engine loaded after the Editor
   updated itself, so the new version only took effect after a reboot or a
