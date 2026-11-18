@@ -86,6 +86,34 @@ private:
 
 REGISTER_FILTER_FACTORY(1001, HookedMalformedFactory, L"EapoTestHookedMalformed")
 
+// Issue #477: replaces the file whose lines are being parsed the way the
+// Editor's QSaveFile commits a save (a rename over the original), while the
+// engine is still setting up that file. Records whether the rename went
+// through.
+class ReplaceWhileParsingFactory : public IFilterFactory
+{
+public:
+	inline static DWORD lastError = ERROR_INVALID_FUNCTION;
+
+	LineOutcome createFilter(const std::wstring& configPath, std::wstring& command,
+		std::wstring&) override
+	{
+		if (command != L"EapoTestReplaceThisFile")
+			return LineOutcome::notMine();
+		const std::wstring saved = configPath + L".saving";
+		{
+			std::ofstream stream(saved, std::ios::binary | std::ios::trunc);
+			stream << "Preamp: -1 dB\n";
+		}
+		lastError = MoveFileExW(saved.c_str(), configPath.c_str(), MOVEFILE_REPLACE_EXISTING)
+			? ERROR_SUCCESS : GetLastError();
+		DeleteFileW(saved.c_str());
+		return LineOutcome::consumed();
+	}
+};
+
+REGISTER_FILTER_FACTORY(1002, ReplaceWhileParsingFactory, L"EapoTestReplaceThisFile")
+
 struct TraceCollector : ConfigLoadTraceSink
 {
 	std::vector<ConfigLoadTraceEntry> entries;
@@ -860,6 +888,23 @@ TEST_CASE(EngineOrchestrationTests, testIncludeTakesQuotesAndVariables)
 	harness.expect(errors[0]->text.find(L"No configuration file was given") != std::wstring::npos,
 		"as a missing path");
 	_wputenv_s(L"EAPO_XT_TEST_INCLUDE_DIR", L"");
+}
+
+// Issue #477: an included file stayed open, without delete sharing, until
+// every filter in it was set up, so the Editor could not save it while the
+// reload its own save had woken was still running. The engine now lets go of
+// the file once it has read it.
+TEST_CASE(EngineOrchestrationTests, testIncludedFileCanBeReplacedWhileItsFiltersAreSetUp)
+{
+	writeConfig(harness, L"included-replaced-while-parsing.txt", "EapoTestReplaceThisFile: now\n");
+	const std::wstring configPath = writeConfig(harness, L"includes-replaced-file.txt",
+		"Include: included-replaced-while-parsing.txt\n");
+
+	ReplaceWhileParsingFactory::lastError = ERROR_INVALID_FUNCTION;
+	FilterEngine engine;
+	initializeEngine(engine, 48000, 2, 480, configPath);
+	harness.expectEqual(ReplaceWhileParsingFactory::lastError, DWORD(ERROR_SUCCESS),
+		"a save of the included file goes through while the engine is still setting it up");
 }
 
 // Audit #250 A6/A3: the engine's registry surface (the config language's

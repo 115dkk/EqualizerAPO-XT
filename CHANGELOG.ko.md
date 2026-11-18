@@ -8,6 +8,15 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **켜 둔 `Include:` 줄이 가리키는 파일을 다시 저장할 수 있습니다.** 그 파일을
+  Editor의 자기 탭에서 저장하면 "Access is denied" 오류가 나는 경우가
+  있었습니다. 파일이 설정 폴더에 있고, 그 안에 VST 플러그인처럼 준비가 오래
+  걸리는 필터가 있을 때였습니다. 저장하는 순간 오디오 엔진이 설정을 다시
+  읽는데, 엔진은 포함된 파일 안의 필터가 모두 준비될 때까지 그 파일을 열어
+  두었고, 그 시간이 Editor가 기다리는 시간보다 길었습니다. 이제 엔진은 파일을
+  읽자마자 닫습니다.
+  ([#477](https://github.com/115dkk/EqualizerAPO-XT/issues/477), [#479](https://github.com/115dkk/EqualizerAPO-XT/pull/479))
+
 ## v2.65.0 — 2026-11-18
 
 - **Windows 오디오가 이전 엔진으로 동작하고 있으면 Editor에 표시되고, 해결
