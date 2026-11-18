@@ -26,6 +26,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   Impulse responses up to eight blocks long (80 ms with a 10 ms block) are
   processed exactly as before.
   This was measured offline; it was not tried inside the Windows audio service.
+  ([#483](https://github.com/115dkk/EqualizerAPO-XT/pull/483))
 
 ## v2.65.3 — 2026-11-18
 
