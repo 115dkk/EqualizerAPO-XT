@@ -60,6 +60,10 @@ public:
 		// the endpoint from logon. Offered only to render endpoints with the
 		// post-mix stage. The headless install sets it with --receive.
 		bool receiveFromEndpoints;
+		// ResampleReceived: apply fractional rate conversion and clock-drift
+		// correction to Send audio received by this playback endpoint. It remains
+		// stored while receiving is off and has no effect until receiving resumes.
+		bool resampleReceived;
 		// "Use in ASIO apps": an entry for this endpoint in the ASIO driver
 		// list, served by the wrapper over a WASAPI exclusive target
 		// (asio/WasapiExclusiveTarget.h), for applications whose
@@ -82,6 +86,7 @@ public:
 			installMode = INSTALL_LFX_GFX;
 			allowSilentBufferModification = false;
 			receiveFromEndpoints = false;
+			resampleReceived = false;
 			asioEntry = false;
 		}
 

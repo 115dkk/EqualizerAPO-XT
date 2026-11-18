@@ -92,6 +92,7 @@
     <ClCompile Include="RegistryTransactionTests.cpp" />
     <ClCompile Include="RuntimeUtilityTests.cpp" />
     <ClCompile Include="SendRingTests.cpp" />
+    <ClCompile Include="SendResamplerTests.cpp" />
     <ClCompile Include="SendSeamTests.cpp" />
     <ClCompile Include="SendTests.cpp" />
     <!-- Keep the existing C++17 reference build while comparing stereo-read

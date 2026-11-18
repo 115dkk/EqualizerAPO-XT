@@ -120,9 +120,9 @@ namespace
 	}
 
 	AttachPlan attach(AlignedRegion& region, const std::vector<std::wstring>& deviceChannels,
-		int64_t nowQpc, uint32_t maxFrames = blockFrames)
+		int64_t nowQpc, uint32_t maxFrames = blockFrames, bool resample = false)
 	{
-		return prepareAttach(region.get(), sampleRate, maxFrames, deviceChannels, nowQpc);
+		return prepareAttach(region.get(), sampleRate, maxFrames, deviceChannels, nowQpc, resample);
 	}
 
 	void checkWriterOwnershipAfterIdleTakeover(test::Harness& harness)
@@ -524,6 +524,11 @@ namespace
 		harness.expectFalse(ratePlan.ok, "attach refuses a different sample rate");
 		harness.expect(ratePlan.reason == L"sample rate 44100 differs from this endpoint's 48000",
 			"sample-rate refusal names both rates");
+		const AttachPlan resampledRatePlan = attach(region, {L"L"}, 0, blockFrames, true);
+		harness.expectTrue(resampledRatePlan.ok,
+			"attach accepts a different sample rate when receiving resampling is enabled");
+		harness.expectEqual(resampledRatePlan.resamplerTargetFrames, uint32_t(912),
+			"the 48-frame sinc delay is folded into the 960-frame Send latency");
 
 		SendParams tooLarge = valid;
 		tooLarge.delayFrames = capacityFrames - 2 * blockFrames;

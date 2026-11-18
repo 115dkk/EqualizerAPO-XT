@@ -205,6 +205,7 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 		sendMessage(deviceTestPipeName, deviceGuid, apoGuid, devicetest::wire::kPhaseInitialize);
 
 	wstring childApoGuid;
+	engineSetup.resampleReceived = false;
 
 	try
 	{
@@ -218,6 +219,7 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 			engineSetup.deviceGuid = facts->deviceGuid;
 			childApoGuid = facts->childApoGuid;
 			allowSilentBufferModification = facts->allowSilentBufferModification;
+			engineSetup.resampleReceived = facts->resampleReceived;
 		}
 	}
 	catch (const WideError& e)

@@ -13,6 +13,8 @@
 #include <type_traits>
 #include <vector>
 
+#include "runtime/ipc/SendResampler.h"
+
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -134,11 +136,15 @@ namespace eapo::ipc::send
 		};
 		int64_t readPos = 0;
 		uint32_t delayFrames = 0;
+		double senderSampleRate = 0.0;
+		uint32_t resamplerTargetFrames = 0;
+		bool resample = false;
 		std::vector<std::wstring> ignoredNames;
 	};
 
 	AttachPlan prepareAttach(void* region, double ownSampleRate, uint32_t ownMaxFrameCount,
-		const std::vector<std::wstring>& deviceChannels, int64_t nowQpc);
+		const std::vector<std::wstring>& deviceChannels, int64_t nowQpc,
+		bool resample = false);
 
 	class SendReaderCore
 	{
@@ -172,7 +178,12 @@ namespace eapo::ipc::send
 		uint32_t delayFrames_;
 		int64_t qpcFrequency_;
 		double sampleRate_;
+		double senderSampleRate_;
 		uint32_t ownMaxFrameCount_;
+		int64_t sourceFeedPos_ = 0;
+		uint32_t resamplerTargetFrames_ = 0;
+		SendResampler resampler_;
+		bool resample_ = false;
 		bool anchored_ = false;
 		uint64_t underruns_ = 0;
 		uint64_t driftSteps_ = 0;

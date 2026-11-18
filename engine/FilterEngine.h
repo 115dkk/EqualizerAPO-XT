@@ -75,6 +75,7 @@ struct EngineSetup
 	bool preMix = false;
 	bool capture = false;
 	bool postMixInstalled = true;
+	bool resampleReceived = false;
 	std::wstring deviceName;
 	std::wstring connectionName;
 	std::wstring deviceGuid;
@@ -133,6 +134,7 @@ public:
 	bool isPreMix() const {return preMix;}
 	bool isCapture() const {return capture;}
 	bool isPostMixInstalled() const {return postMixInstalled;}
+	bool resamplesReceivedAudio() const {return resampleReceived;}
 	EngineHost getHost() const {return host;}
 	const std::wstring& getSendNamePrefix() const {return sendNamePrefix;}
 	const std::wstring& getDeviceName() const {return deviceName;}
@@ -224,6 +226,7 @@ private:
 	bool preMix;
 	bool capture;
 	bool postMixInstalled;
+	bool resampleReceived = false;
 	EngineHost host = EngineHost::Test;
 	std::wstring sendNamePrefix = L"Local\\EAPO.Send.";
 	std::wstring deviceName;

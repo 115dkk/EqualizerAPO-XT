@@ -300,6 +300,7 @@ void seedInstalledWithChildApos(FakeRegistry& registry)
 	registry.seedString(childApoKey, preMixChildGuidValueName, vendorPreMixGuid);
 	registry.seedString(childApoKey, postMixChildGuidValueName, vendorPostMixGuid);
 	registry.seedString(childApoKey, allowSilentBufferValueName, L"true");
+	registry.seedString(childApoKey, resampleReceivedValueName, L"true");
 }
 
 // Audit #348 F11/TD-47: what EqualizerAPO::Initialize reads about its
@@ -318,6 +319,7 @@ TEST_CASE(EngineOrchestrationTests, testApoRuntimeFactsComeFromTheInstallRecord)
 	harness.expectEqual(narrow(preMix->deviceGuid), narrow(testDeviceGuid), "the endpoint GUID");
 	harness.expectEqual(narrow(preMix->childApoGuid), narrow(vendorPreMixGuid), "the pre-mix instance wraps the driver's pre-mix APO");
 	harness.expect(preMix->allowSilentBufferModification, "AllowSilentBufferModification was written as true");
+	harness.expect(preMix->resampleReceived, "ResampleReceived reaches the APO runtime facts");
 
 	const std::optional<ApoRuntimeFacts> postMix = readApoRuntimeFacts(registry, testDeviceGuid, false);
 	harness.require(postMix.has_value(), "the post-mix instance reads the same endpoint");
@@ -455,12 +457,15 @@ TEST_CASE(EngineOrchestrationTests, testInstallWithReceiveWritesAndLoadsTheState
 	DeviceAPOInfo::InstallState& selected = info.getSelectedInstallState();
 	selected.allowSilentBufferModification = false;
 	selected.receiveFromEndpoints = true;
+	selected.resampleReceived = true;
 	info.install();
 
 	harness.expect(registry.readValue(childApoKey, receiveFromEndpointsValueName) == L"true",
 		"a render endpoint with its post-mix stage stores ReceiveFromEndpoints as true");
 	harness.expect(registry.readValue(childApoKey, allowSilentBufferValueName) == L"true",
 		"receiving forces silent-buffer modification on even when its separate option was off");
+	harness.expect(registry.readValue(childApoKey, resampleReceivedValueName) == L"true",
+		"the receiver stores ResampleReceived as true");
 	const DeviceInstallReport& report = info.getLastOperationReport();
 	harness.expectTrue(report.receiveFromEndpoints, "the install report records the effective Send receiver state");
 	const std::vector<std::wstring> lines = report.toLines();
@@ -474,8 +479,38 @@ TEST_CASE(EngineOrchestrationTests, testInstallWithReceiveWritesAndLoadsTheState
 		"a fresh load reads ReceiveFromEndpoints back");
 	harness.expectTrue(reloaded.getCurrentInstallState().allowSilentBufferModification,
 		"a fresh load sees the silent-buffer setting forced by receiving");
+	harness.expectTrue(reloaded.getCurrentInstallState().resampleReceived,
+		"a fresh load reads ResampleReceived back");
 	harness.expectTrue(reloaded.receivesFromEndpoints(),
 		"the AbstractAPOInfo query exposes the loaded receiver state");
+}
+
+TEST_CASE(EngineOrchestrationTests, testResampleReceivedRequiresLiteralTrueAndPersistsWhileReceiveIsOff)
+{
+	FakeRegistry registry;
+	seedRenderDevice(registry);
+
+	DeviceAPOInfo info(registry);
+	harness.require(info.load(testDeviceGuid, otherDeviceGuid), "the render endpoint loads");
+	DeviceAPOInfo::InstallState& selected = info.getSelectedInstallState();
+	selected.receiveFromEndpoints = true;
+	selected.resampleReceived = true;
+	info.install();
+
+	DeviceAPOInfo reloaded(registry);
+	harness.require(reloaded.load(testDeviceGuid, otherDeviceGuid), "the resampling receiver reloads");
+	reloaded.getSelectedInstallState().receiveFromEndpoints = false;
+	reloaded.install();
+	harness.expectFalse(registry.valueExists(childApoKey, receiveFromEndpointsValueName),
+		"turning receive off removes ReceiveFromEndpoints");
+	harness.expect(registry.readValue(childApoKey, resampleReceivedValueName) == L"true",
+		"turning receive off preserves ResampleReceived");
+
+	registry.writeValue(childApoKey, resampleReceivedValueName, L"TRUE");
+	DeviceAPOInfo nonliteral(registry);
+	harness.require(nonliteral.load(testDeviceGuid, otherDeviceGuid), "the nonliteral resampler value loads");
+	harness.expectFalse(nonliteral.getCurrentInstallState().resampleReceived,
+		"anything other than the literal lowercase true leaves resampling off");
 }
 
 TEST_CASE(EngineOrchestrationTests, testReceiveWithoutPostMixWritesNoReceiverValue)

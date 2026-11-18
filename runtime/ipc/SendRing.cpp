@@ -9,11 +9,13 @@
 #include "runtime/ipc/SendRing.h"
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cmath>
 #include <cstring>
 #include <cwchar>
 #include <sstream>
+#include <stdexcept>
 
 #include "audio/ChannelLayout.h"
 #include "runtime/memory/AlignedMemory.h"
@@ -232,7 +234,7 @@ namespace eapo::ipc::send
 	}
 
 	AttachPlan prepareAttach(void* region, double ownSampleRate, uint32_t ownMaxFrameCount,
-		const std::vector<std::wstring>& deviceChannels, int64_t nowQpc)
+		const std::vector<std::wstring>& deviceChannels, int64_t nowQpc, bool resample)
 	{
 		AttachPlan plan;
 		if (region == nullptr)
@@ -261,7 +263,13 @@ namespace eapo::ipc::send
 		const uint64_t senderId = readWord64(&header->senderId);
 		const uint32_t generation = readWord(&header->generation);
 		const double senderSampleRate = header->sampleRate;
-		if (senderSampleRate != ownSampleRate)
+		if (!std::isfinite(senderSampleRate) || senderSampleRate <= 0.0
+			|| !std::isfinite(ownSampleRate) || ownSampleRate <= 0.0)
+		{
+			plan.reason = L"invalid sample rate";
+			return plan;
+		}
+		if (!resample && senderSampleRate != ownSampleRate)
 		{
 			plan.reason = sampleRateMismatch(senderSampleRate, ownSampleRate);
 			return plan;
@@ -280,7 +288,41 @@ namespace eapo::ipc::send
 			return plan;
 		}
 		const uint32_t delayFrames = readWord(&header->delayFrames);
-		const uint64_t reserve = uint64_t(ownMaxFrameCount) * 2;
+		uint64_t reserve = uint64_t(ownMaxFrameCount) * 2;
+		uint32_t resamplerTargetFrames = 0;
+		if (resample)
+		{
+			uint32_t filterDelay = 0;
+			try
+			{
+				filterDelay = SendResampler::filterDelayFrames(senderSampleRate, ownSampleRate);
+			}
+			catch (const std::invalid_argument&)
+			{
+				plan.reason = L"sample-rate ratio is too large for the ring";
+				return plan;
+			}
+			if (delayFrames <= filterDelay)
+			{
+				std::wostringstream stream;
+				stream << L"latency too small for resampling (needs more than "
+					<< filterDelay << L" source frames)";
+				plan.reason = stream.str();
+				return plan;
+			}
+			resamplerTargetFrames = delayFrames - filterDelay;
+			const double receiverDemand = std::ceil(static_cast<double>(ownMaxFrameCount)
+				* senderSampleRate / ownSampleRate * 1.001);
+			if (!std::isfinite(receiverDemand)
+				|| receiverDemand > static_cast<double>(capacityFrames))
+			{
+				plan.reason = L"sample-rate ratio is too large for the ring";
+				return plan;
+			}
+			const uint64_t senderMaximum = readWord(&header->senderMaxFrameCount);
+			reserve = 2 * (std::max)(senderMaximum,
+				static_cast<uint64_t>(receiverDemand));
+		}
 		if (reserve >= capacityFrames || delayFrames >= capacityFrames - reserve)
 		{
 			plan.reason = L"latency too large for the ring";
@@ -315,8 +357,12 @@ namespace eapo::ipc::send
 		plan.mixMode = mixMode;
 		plan.channelCount = channelCount;
 		plan.anchored = cursor.qpc != 0 && fresh(cursor.qpc, nowQpc, qpcFrequency);
-		plan.readPos = anchorPosition(cursor, nowQpc, senderSampleRate, qpcFrequency, delayFrames);
+		plan.readPos = anchorPosition(cursor, nowQpc, senderSampleRate, qpcFrequency,
+			resample ? resamplerTargetFrames : delayFrames);
 		plan.delayFrames = delayFrames;
+		plan.senderSampleRate = senderSampleRate;
+		plan.resamplerTargetFrames = resamplerTargetFrames;
+		plan.resample = resample;
 		for (uint32_t channel = 0; channel < channelCount; channel++)
 		{
 			const std::wstring name(names[channel]);
@@ -348,12 +394,21 @@ namespace eapo::ipc::send
 		  delayFrames_(plan.delayFrames),
 		  qpcFrequency_(region == nullptr ? 0 : readSigned64(&header_->qpcFrequency)),
 		  sampleRate_(sampleRate),
+		  senderSampleRate_(plan.senderSampleRate),
 		  ownMaxFrameCount_(ownMaxFrameCount),
+		  sourceFeedPos_(plan.readPos),
+		  resamplerTargetFrames_(plan.resamplerTargetFrames),
+		  resample_(plan.resample),
 		  anchored_(plan.anchored)
 	{
 		assert(region != nullptr);
 		assert(plan.ok);
 		std::copy_n(plan.targetIndex, maxChannels, targetIndex_);
+		if (resample_)
+		{
+			resampler_.prepare(ringChannelCount_, senderSampleRate_, sampleRate_,
+				capacityFrames, resamplerTargetFrames_);
+		}
 		if (header_ != nullptr)
 		{
 			writeSigned64(&header_->readPos, readPos_);
@@ -381,6 +436,74 @@ namespace eapo::ipc::send
 		{
 			anchored_ = false;
 			return Status::Idle;
+		}
+
+		if (resample_)
+		{
+			auto reanchorResampler = [this, &cursor, nowQpc]() noexcept {
+				sourceFeedPos_ = anchorPosition(cursor, nowQpc, senderSampleRate_,
+					qpcFrequency_, resamplerTargetFrames_);
+				resampler_.reset();
+				anchored_ = true;
+			};
+			if (!anchored_)
+				reanchorResampler();
+
+			bool underrun = false;
+			int64_t available = cursor.position - sourceFeedPos_;
+			if (available > static_cast<int64_t>(capacityFrames)
+				|| available < -static_cast<int64_t>(ownMaxFrameCount_))
+			{
+				reanchorResampler();
+				available = cursor.position - sourceFeedPos_;
+				underrun = true;
+			}
+
+			std::array<const float*, maxChannels> sourcePlanes{};
+			while (available > 0)
+			{
+				const size_t index = ringIndex(sourceFeedPos_);
+				const uint32_t contiguous = (std::min)(static_cast<uint32_t>((std::min)(available,
+					static_cast<int64_t>(UINT32_MAX))), capacityFrames - static_cast<uint32_t>(index));
+				for (uint32_t channel = 0; channel < ringChannelCount_; channel++)
+					sourcePlanes[channel] = plane(header_, channel) + index;
+				const uint32_t accepted = resampler_.push(sourcePlanes.data(), contiguous);
+				sourceFeedPos_ += accepted;
+				available -= accepted;
+				if (accepted != contiguous)
+				{
+					underrun = true;
+					break;
+				}
+			}
+
+			std::array<double*, maxChannels> outputPlanes{};
+			for (uint32_t ringChannel = 0; ringChannel < ringChannelCount_; ringChannel++)
+			{
+				const int target = targetIndex_[ringChannel];
+				if (channels != nullptr && target >= 0
+					&& static_cast<uint32_t>(target) < channelCount)
+				{
+					outputPlanes[ringChannel] = channels[target];
+				}
+			}
+			const SendResampler::RenderStatus renderStatus = resampler_.render(
+				outputPlanes.data(), frameCount, mixMode_ == MixMode::Mix);
+			if (renderStatus != SendResampler::RenderStatus::Delivered)
+			{
+				underrun = true;
+				anchored_ = false;
+			}
+
+			const SendResampler::Stats stats = resampler_.stats();
+			readPos_ = sourceFeedPos_ - static_cast<int64_t>(stats.bufferedFrames);
+			if (underrun)
+				underruns_++;
+			writeSigned64(&header_->readPos, readPos_);
+			writeWord64(&header_->underruns, underruns_);
+			writeWord64(&header_->driftSteps, driftSteps_);
+			writeWord64(&header_->attachedSenderId, senderId_);
+			return underrun ? Status::Underrun : Status::Delivered;
 		}
 
 		auto resetLeadStatistics = [this]() noexcept {
