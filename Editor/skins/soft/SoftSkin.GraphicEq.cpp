@@ -191,19 +191,17 @@ void SoftSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& s
 		{
 			// OFF: the quiet elevated face with the side's pastel edge;
 			// hover lifts the face exactly one value step.
-			painter.setPen(QPen(mixColor(side, card, 0.25), 2));
+			// The keyboard's current node recolours this pastel edge (shared
+			// article 8): the focus colour taken toward the body ink, so it
+			// reads against the pastel it replaces. A selected node's own
+			// ring already covers it.
+			const bool keyTarget = state.focusedNode == i && state.focused;
+			painter.setPen(QPen(keyTarget
+				? mixColor(QColor(tokens.focusRing), QColor(tokens.text), 0.35)
+				: mixColor(side, card, 0.25), 2));
 			painter.setBrush(hovered ? QColor(tokens.cardHover) : card);
 		}
 		painter.drawEllipse(center, radius, radius);
-
-		// The keyboard's current node announces itself with the quiet
-		// halo (selection's own ring already covers a selected one).
-		if (state.focusedNode == i && state.focused && !selected)
-		{
-			painter.setPen(QPen(withAlpha(QColor(tokens.focusRing), 90), 3));
-			painter.setBrush(Qt::NoBrush);
-			painter.drawEllipse(center, radius + 4.0, radius + 4.0);
-		}
 	}
 
 	// Cursor readout: the knob value badge's grammar, a small stadium
@@ -228,19 +226,13 @@ void SoftSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& s
 	wellState.restore();
 
 	// The well edge: a very light 1px line awake; asleep it becomes the
-	// dashed outline of the sleeping-slot triple.
-	QPen edge(border, 1);
+	// dashed outline of the sleeping-slot triple. Keyboard focus on the
+	// surface recolours this edge (shared article 8) instead of laying a
+	// halo inside the well.
+	QPen edge(state.focused && state.enabled ? QColor(tokens.focusRing) : border, 1);
 	if (!state.enabled)
 		edge.setStyle(Qt::DashLine);
 	painter.setPen(edge);
 	painter.setBrush(Qt::NoBrush);
 	painter.drawPath(wellPath);
-
-	// Keyboard focus on the surface itself: the quiet halo hugging the
-	// inside of the well, never a hard ring.
-	if (state.focused && state.enabled)
-	{
-		painter.setPen(QPen(withAlpha(QColor(tokens.focusRing), 90), 3));
-		painter.drawRoundedRect(frame.adjusted(2.0, 2.0, -2.0, -2.0), 12.0, 12.0);
-	}
 }

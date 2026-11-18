@@ -41,7 +41,11 @@ void StudioSkin::paintKnob(QPainter& painter, const QRect& rect, const KnobState
 	// border token is 1.09:1 against the card glass, so the lit arc floated
 	// as a fragment with no knob round it. A fifth of the muted ink brings the
 	// dark track to 1.55:1, level with the light track (1.49:1 measured).
-	const QColor trackColor = skinIsDark(tokens)
+	// Keyboard focus recolours this track (shared article 8): the knob has no
+	// border, so its outline is the range arc it already draws, and focus is
+	// that arc in the focus colour rather than a ring of its own.
+	const QColor trackColor = state.focused && state.enabled ? QColor(tokens.focusRing)
+		: skinIsDark(tokens)
 		? mixColor(QColor(tokens.border), QColor(tokens.mutedText), 0.2)
 		: QColor(tokens.border);
 	painter.setBrush(Qt::NoBrush);
@@ -103,16 +107,6 @@ void StudioSkin::paintKnob(QPainter& painter, const QRect& rect, const KnobState
 	painter.setBrush(accent);
 	painter.drawEllipse(dot, 3.0, 3.0);
 
-	// Keyboard focus: a thin ring just outside the track.
-	if (state.focused)
-	{
-		QColor ring = accent;
-		ring.setAlpha(110);
-		painter.setPen(QPen(ring, 1.0));
-		painter.setBrush(Qt::NoBrush);
-		painter.drawEllipse(track.adjusted(-4, -4, 4, 4));
-	}
-
 	// Numeric readout, mono, fading in on hover and solid while dragging.
 	// Only painted when the host supplied a display string (promoted
 	// legacy dials show their value in a separate spin box instead).
@@ -167,15 +161,6 @@ void StudioSkin::paintSegmentedControl(QPainter& painter, const SegmentedControl
 		dark ? QColor(0, 0, 0, 110) : withAlpha(tokens.text, 34));
 	painter.setRenderHint(QPainter::Antialiasing, true);
 
-	// Keyboard focus is the outline of the light, not of the shape: a
-	// wide faint stroke hugging the channel from inside, under the cap.
-	if (lit && state.focused)
-	{
-		painter.setBrush(Qt::NoBrush);
-		painter.setPen(QPen(withAlpha(tokens.focusRing, 70), 3.0));
-		painter.drawRoundedRect(frame.adjusted(1.5, 1.5, -1.5, -1.5), 6.5, 6.5);
-	}
-
 	// Light pooling under the cursor - the picker's answer to hover, on a
 	// cell the mark has not reached. Radial, so the pool has no edge of
 	// its own to be mistaken for a second selection; pressing turns it one
@@ -216,7 +201,15 @@ void StudioSkin::paintSegmentedControl(QPainter& painter, const SegmentedControl
 		painter.setPen(QPen(withAlpha(light, qMin(255, bloom)), 3.0 + 2.5 * travel));
 		painter.setBrush(withAlpha(light, fill));
 		painter.drawRoundedRect(cap, capRadius, capRadius);
-		painter.setPen(QPen(withAlpha(light, capPointed ? 190 : 150), 1.0));
+		// The cap's hairline is where keyboard focus shows: focus on the
+		// strip lands on the chosen cell's own edge, which takes the pane
+		// light at full strength (shared article 8), never a stroke round
+		// the channel. The light, not the focus ring: on a band row a blue
+		// edge round a mint cap would be two lights (rule 1); untagged, the
+		// two are the same colour.
+		painter.setPen(state.focused
+			? QPen(light, 1.0)
+			: QPen(withAlpha(light, capPointed ? 190 : 150), 1.0));
 		painter.setBrush(Qt::NoBrush);
 		painter.drawRoundedRect(cap, capRadius, capRadius);
 
@@ -256,10 +249,11 @@ void StudioSkin::paintSegmentedControl(QPainter& painter, const SegmentedControl
 
 	channelState.restore();
 
-	// The channel's edge: a hairline that lights to the focus ring when
-	// the keyboard holds the control.
+	// The channel's edge: a quiet hairline. It stays quiet under keyboard
+	// focus - the focus lives on the cap - because a lit frame round the
+	// whole strip is a frame around the group.
 	painter.setBrush(Qt::NoBrush);
-	painter.setPen(QPen(lit && state.focused ? QColor(tokens.focusRing) : withAlpha(tokens.border, lit ? 210 : 130), 1.0));
+	painter.setPen(QPen(withAlpha(tokens.border, lit ? 210 : 130), 1.0));
 	painter.drawRoundedRect(frame, 8.0, 8.0);
 
 	// Labels. Hierarchy is luminance first, weight second: a cell's ink is

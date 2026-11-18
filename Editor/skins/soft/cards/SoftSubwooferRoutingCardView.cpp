@@ -18,9 +18,6 @@
 #include <QColor>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QPaintEvent>
-#include <QPainter>
-#include <QPen>
 #include <QVBoxLayout>
 #include <QVariant>
 
@@ -185,22 +182,4 @@ void SoftSubwooferRoutingCardView::applyState(
 	profilePill->setText(profile);
 	profilePill->setToolTip(profile);
 	profilePill->setVisible(!profile.isEmpty());
-}
-
-void SoftSubwooferRoutingCardView::paintEvent(QPaintEvent* event)
-{
-	SubwooferRoutingCardView::paintEvent(event);
-
-	if (!showsFocus())
-		return;
-
-	// Focus is a quiet halo, not a hard ring (this skin's focused grammar).
-	QPainter painter(this);
-	painter.setRenderHint(QPainter::Antialiasing, true);
-	QColor halo(skinTokens.focusRing);
-	halo.setAlpha(90);
-	painter.setPen(QPen(halo, 3.0));
-	painter.setBrush(Qt::NoBrush);
-	painter.drawRoundedRect(
-		QRectF(rect()).adjusted(1.5, 1.5, -1.5, -1.5), 14.0, 14.0);
 }

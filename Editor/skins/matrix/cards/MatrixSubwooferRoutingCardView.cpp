@@ -13,31 +13,15 @@
 
 #include "MatrixSubwooferRoutingCardView.h"
 
-#include <cmath>
-
 #include <QAbstractButton>
 #include <QColor>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QPaintEvent>
-#include <QPainter>
-#include <QPen>
 #include <QVBoxLayout>
 #include <QVariant>
 
 #include "Editor/skins/shared/SkinPaint.h"
 #include "Editor/widgets/ElidedLabel.h"
-
-namespace
-{
-// Crisp 1px focus brackets (invariant rule 7: hairlines are drawn with AA
-// off and snapped to the pixel grid).
-qreal crispCoordinate(qreal logical, qreal devicePixelRatio)
-{
-	return std::floor(logical * devicePixelRatio) / devicePixelRatio
-		+ 0.5 / devicePixelRatio;
-}
-}
 
 MatrixSubwooferRoutingCardView::MatrixSubwooferRoutingCardView(
 	const SkinTokens& tokens, QWidget* parent)
@@ -217,46 +201,4 @@ void MatrixSubwooferRoutingCardView::applyState(
 	remarkLine->setVisible(!remark.isEmpty());
 	remarkLine->setProperty("tone", tone);
 	repolish(remarkLine);
-}
-
-void MatrixSubwooferRoutingCardView::paintEvent(QPaintEvent* event)
-{
-	SubwooferRoutingCardView::paintEvent(event);
-
-	if (!showsFocus())
-		return;
-
-	// Focus is the board's square corner brackets - crisp, AA off.
-	QPainter painter(this);
-	painter.setRenderHint(QPainter::Antialiasing, false);
-
-	const qreal devicePixelRatio =
-		painter.device()->devicePixelRatioF();
-	QColor ink(skinTokens.accent);
-	painter.setPen(QPen(ink, 1.0));
-
-	const qreal left = crispCoordinate(1.0, devicePixelRatio);
-	const qreal top = crispCoordinate(1.0, devicePixelRatio);
-	const qreal right = crispCoordinate(
-		width() - 2.0, devicePixelRatio);
-	const qreal bottom = crispCoordinate(
-		height() - 2.0, devicePixelRatio);
-	const qreal bracket = 8.0;
-
-	painter.drawLine(QPointF(left, top),
-		QPointF(left + bracket, top));
-	painter.drawLine(QPointF(left, top),
-		QPointF(left, top + bracket));
-	painter.drawLine(QPointF(right - bracket, top),
-		QPointF(right, top));
-	painter.drawLine(QPointF(right, top),
-		QPointF(right, top + bracket));
-	painter.drawLine(QPointF(left, bottom - bracket),
-		QPointF(left, bottom));
-	painter.drawLine(QPointF(left, bottom),
-		QPointF(left + bracket, bottom));
-	painter.drawLine(QPointF(right - bracket, bottom),
-		QPointF(right, bottom));
-	painter.drawLine(QPointF(right, bottom - bracket),
-		QPointF(right, bottom));
 }

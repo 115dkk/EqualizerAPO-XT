@@ -93,17 +93,6 @@ double drumTravelDegrees(int radius)
 	return KnobTravel::RangePixels * 360.0 / (2.0 * M_PI * radius);
 }
 
-// Keyboard focus: a square hairline frame (radius 0 corner language).
-void paintKnobFocus(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens)
-{
-	if (!state.focused)
-		return;
-	painter.setRenderHint(QPainter::Antialiasing);
-	painter.setPen(QPen(QColor(tokens.focusRing), 1));
-	painter.setBrush(Qt::NoBrush);
-	painter.drawRect(QRectF(rect).adjusted(0.5, 0.5, -0.5, -0.5));
-}
-
 // Dials without a figure (their number lives in the ValueScrubBox) show the
 // dial position as a percentage in the constant bottom strip while hovered
 // or dragged: the only honest readout for a log-scaled dial.
@@ -147,8 +136,10 @@ void MinimalSkin::paintKnob(QPainter& painter, const QRect& rect, const KnobStat
 	const int cy = hasNumber ? rect.center().y() : rect.top() + (rect.height() - 14) / 2;
 	const int windowHalf = hasNumber ? 11 : 0;
 
-	// Rims, then the surface (skipped behind the window).
-	painter.setPen(QPen(ink.hairline, 1));
+	// Rims, then the surface (skipped behind the window). The rims are the
+	// drum's outline, so keyboard focus swaps them for the accent hairline
+	// (shared article 8) instead of boxing the drum in a frame of its own.
+	painter.setPen(QPen(state.focused && state.enabled ? QColor(tokens.focusRing) : ink.hairline, 1));
 	painter.drawLine(left, cy - radius, left, cy + radius);
 	painter.drawLine(right, cy - radius, right, cy + radius);
 	for (const DrumLine& line : drumLines(cy, radius, state.ratio * drumTravelDegrees(radius), 24))
@@ -195,7 +186,6 @@ void MinimalSkin::paintKnob(QPainter& painter, const QRect& rect, const KnobStat
 	{
 		paintKnobReadout(painter, rect, state, tokens, ink);
 	}
-	paintKnobFocus(painter, rect, state, tokens);
 }
 
 KnobGesture MinimalSkin::knobGesture() const
@@ -218,7 +208,7 @@ KnobGesture MinimalSkin::knobGesture() const
 // One device per state, which is what keeps a monochrome control readable at
 // roughly 76x24: the travelling rule is the value, one background value step
 // (with the ink lifting to body brightness) is hover, the reverse block is the
-// press, the square accent hairline is focus, and the ink ladder alone carries
+// press, the mark turning accent is focus, and the ink ladder alone carries
 // disabled. Every one of them is separable at a glance from the others.
 void MinimalSkin::paintSegmentedControl(QPainter& painter, const SegmentedControlState& state, const SkinTokens& tokens) const
 {
@@ -322,8 +312,10 @@ void MinimalSkin::paintSegmentedControl(QPainter& painter, const SegmentedContro
 	// The mark reads selectionPosition, not selectedIndex, and sizes itself to
 	// the word it is under: running through three choices is one cursor moving
 	// between fields (stretching as it goes from MAG to PHASE), not three cells
-	// lighting up in turn. Accent stays out of it - a chosen metric is a value,
-	// not a live gesture, and the accent belongs to focus.
+	// lighting up in turn. Accent stays out of it at rest - a chosen metric is
+	// a value, not a live gesture - and the accent is focus: keyboard focus on
+	// the field turns this rule, the chosen word's own line, to the accent
+	// hairline (shared article 8), not the field's frame.
 	const double position = qBound(0.0, state.selectionPosition, double(count - 1));
 	const int low = qBound(0, qFloor(position), count - 1);
 	const int high = qMin(low + 1, count - 1);
@@ -339,15 +331,17 @@ void MinimalSkin::paintSegmentedControl(QPainter& painter, const SegmentedContro
 	// the rule inverts with the word it belongs to.
 	const bool markInverted = state.enabled && state.pressedIndex >= 0
 		&& state.pressedIndex == state.selectedIndex;
-	painter.setPen(QPen(!state.enabled ? secondary : (markInverted ? inverted : bodyInk), 1));
+	QColor markInk = !state.enabled ? secondary : (markInverted ? inverted : bodyInk);
+	if (state.enabled && state.focused && !markInverted)
+		markInk = QColor(tokens.focusRing);
+	painter.setPen(QPen(markInk, 1));
 	painter.drawLine(qRound(markCenter - markWidth / 2.0), markY,
 		qRound(markCenter + markWidth / 2.0), markY);
 
-	// The field's edge: one square 1px hairline. Keyboard focus swaps it for
-	// the accent hairline, the frame this skin puts around every focused
-	// control; the mark keeps body ink underneath so the armed field still
-	// says which cell it holds.
-	painter.setPen(QPen(QColor(state.focused && state.enabled ? tokens.focusRing : tokens.border), 1));
+	// The field's edge: one square 1px hairline. It keeps the border ink under
+	// keyboard focus: a lit frame round every choice is a frame around the
+	// group, and the focus already lives on the mark.
+	painter.setPen(QPen(QColor(tokens.border), 1));
 	painter.setBrush(Qt::NoBrush);
 	painter.drawRect(rect.adjusted(0, 0, -1, -1));
 }

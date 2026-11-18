@@ -101,7 +101,10 @@ void RackSkin::paintKnob(QPainter& painter, const QRect& rect, const KnobState& 
 		bodyGrad.setColorAt(0.6, RackPalette::KnobAluminiumBody);
 		bodyGrad.setColorAt(1.0, RackPalette::KnobAluminiumEdge);
 	}
-	painter.setPen(QPen(RackPalette::KnobRim(dark), 1));
+	// Keyboard focus recolours the body's own rim (shared article 8): one
+	// line on the outline the knob already has, never a ring of its own.
+	const bool focusRim = state.focused && state.enabled;
+	painter.setPen(QPen(focusRim ? withAlpha(QColor(tokens.focusRing), 220) : RackPalette::KnobRim(dark), 1));
 	painter.setBrush(bodyGrad);
 	painter.drawEllipse(center, bodyRadius, bodyRadius);
 
@@ -131,20 +134,13 @@ void RackSkin::paintKnob(QPainter& painter, const QRect& rect, const KnobState& 
 	painter.setPen(QPen(pointerColor, 2.4, Qt::SolidLine, Qt::RoundCap));
 	painter.drawLine(pointerBase, pointerTip);
 
-	// Hover/drag: the knob rim catches the light.
-	if (state.enabled && (state.hovered || state.dragging))
+	// Hover/drag: the knob rim catches the light. While the rim already
+	// carries the focus colour it stays the one edge.
+	if (state.enabled && (state.hovered || state.dragging) && !focusRim)
 	{
 		painter.setPen(QPen(withAlpha(QColor(tokens.accent), 90), 1.4));
 		painter.setBrush(Qt::NoBrush);
 		painter.drawEllipse(center, bodyRadius + 0.8, bodyRadius + 0.8);
-	}
-
-	// Keyboard focus: thin ring around the printed scale.
-	if (state.focused)
-	{
-		painter.setPen(QPen(withAlpha(QColor(tokens.focusRing), 180), 1));
-		painter.setBrush(Qt::NoBrush);
-		painter.drawEllipse(center, scaleRadius + 2.0, scaleRadius + 2.0);
 	}
 
 	// Powered-down knob: dim film over the body.
@@ -302,6 +298,16 @@ void RackSkin::paintSegmentedControl(QPainter& painter, const SegmentedControlSt
 				// sunken face and the lit lamp are what say the key is in; the
 				// warmth is only the light that reaches the metal.
 				painter.fillPath(capPath, withAlpha(amber, dark ? 58 : 42));
+				if (state.focused)
+				{
+					// Keyboard focus on the bank lands on the key it holds in:
+					// that cap's own edge takes the focus colour, one line on
+					// the outline the cap already has. Never a frame around the
+					// bank (docs/skins/README.md, shared article 8).
+					painter.setBrush(Qt::NoBrush);
+					painter.setPen(QPen(withAlpha(QColor(tokens.focusRing), 220), 1));
+					painter.drawPath(capPath);
+				}
 			}
 			else
 			{
@@ -388,16 +394,12 @@ void RackSkin::paintSegmentedControl(QPainter& painter, const SegmentedControlSt
 		}
 	}
 
-	if (state.focused)
-	{
-		// The machine's selection frame: a thin service line inside the bezel,
-		// kept deliberately small - the keyboard ring is one of the two UI
-		// necessities this constitution licenses on a hardware face.
-		painter.setBrush(Qt::NoBrush);
-		painter.setPen(QPen(withAlpha(QColor(tokens.focusRing), 215), 1));
-		const qreal innerRadius = qMax(1.0, radius - 1.0);
-		painter.drawRoundedRect(frame.adjusted(1.0, 1.0, -1.0, -1.0), innerRadius, innerRadius);
-	}
+	// Focus draws no frame around the bank. A focus indication only recolours
+	// a border a part already has (maintainer ruling 2026-11-18): the frame
+	// that used to sit inside the bezel made the recess, the keys, the hovered
+	// key's amber edge and itself into nested boxes, and a click gives the
+	// bank the focus, so it was up right after every use. The focus edge is
+	// the latched cap's own outline, drawn with the keys above.
 
 	if (!state.enabled)
 	{

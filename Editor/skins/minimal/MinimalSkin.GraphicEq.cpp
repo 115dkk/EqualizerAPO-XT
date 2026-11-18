@@ -97,6 +97,7 @@ void MinimalSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState
 		const int y = qRound(state.nodePositions.at(i).y());
 		const bool selected = state.selectedNodes.contains(i);
 		const bool hovered = state.hoveredNode == i;
+		const bool keyTarget = state.focused && state.focusedNode == i;
 		if (selected)
 		{
 			// The inverted block. While a drag is live the dragged node is the
@@ -105,21 +106,24 @@ void MinimalSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState
 			// secondary block - still inverted, no longer a live cursor.
 			const QColor block = !state.enabled ? secondary : (hovered ? accent : bodyInk);
 			painter.fillRect(QRect(x - 3, y - 3, 7, 7), block);
+			// The keyboard cursor on a selected node: the block's own edge
+			// in the accent hairline, one line on its perimeter.
+			if (keyTarget)
+			{
+				painter.setPen(QPen(QColor(tokens.focusRing), 1));
+				painter.setBrush(Qt::NoBrush);
+				painter.drawRect(x - 3, y - 3, 6, 6);
+			}
 		}
 		else
 		{
 			// A square hairline tick punched into the ground; hover fills it
-			// exactly one background value step.
-			painter.setPen(QPen(bodyInk, 1));
+			// exactly one background value step. The keyboard cursor swaps
+			// the tick's hairline for the accent one (shared article 8)
+			// instead of framing it in a second square.
+			painter.setPen(QPen(keyTarget ? QColor(tokens.focusRing) : bodyInk, 1));
 			painter.setBrush(hovered ? QColor(tokens.cardHover) : ground);
 			painter.drawRect(x - 3, y - 3, 6, 6);
-		}
-		if (state.focused && state.focusedNode == i)
-		{
-			// The keyboard cursor: the square accent hairline frame.
-			painter.setPen(QPen(QColor(tokens.focusRing), 1));
-			painter.setBrush(Qt::NoBrush);
-			painter.drawRect(x - 5, y - 5, 10, 10);
 		}
 	}
 

@@ -268,7 +268,10 @@ void ISkin::paintSegmentedControl(QPainter& painter, const SegmentedControlState
 	QPainterPath pill;
 	pill.addRoundedRect(frame, radius, radius);
 	painter.fillPath(pill, QColor(tokens.surface));
-	painter.setPen(QPen(QColor(state.focused ? tokens.focusRing : tokens.border), 1));
+	// The pill's border stays the border under keyboard focus: a recoloured
+	// frame round every choice is a frame around the group. Focus shows on
+	// the chosen mark below (docs/skins/README.md, shared article 8).
+	painter.setPen(QPen(QColor(tokens.border), 1));
 	painter.setBrush(Qt::NoBrush);
 	painter.drawPath(pill);
 
@@ -283,6 +286,15 @@ void ISkin::paintSegmentedControl(QPainter& painter, const SegmentedControlState
 		const qreal innerRadius = qMax(0.0, radius - inset);
 		mark.addRoundedRect(indicator, innerRadius, innerRadius);
 		painter.fillPath(mark, withAlpha(QColor(tokens.accent), state.pressedIndex == state.selectedIndex ? 220 : 255));
+		if (state.focused)
+		{
+			// One line on the mark's own outline. The mark is filled with the
+			// accent, which the focus colour may equal, so the line is taken
+			// toward the body ink to stay visible against its own fill.
+			painter.setPen(QPen(mixColor(QColor(tokens.focusRing), QColor(tokens.text), 0.35), 1));
+			painter.setBrush(Qt::NoBrush);
+			painter.drawPath(mark);
+		}
 	}
 
 	for (int i = 0; i < state.labels.size(); i++)
