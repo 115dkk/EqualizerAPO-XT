@@ -50,6 +50,7 @@ SOURCES += main.cpp\
 	../platform/windows/GuidText.cpp \
 	../services/security/AudioEngineAccess.cpp \
 	../services/diagnostics/InstallDiagnostics.cpp \
+	../services/windows/AudioEngineRestart.cpp \
 	../services/windows/WindowsService.cpp \
 	../services/install/ApoRegistration.cpp \
 	../services/install/VcRuntime.cpp \
@@ -75,6 +76,7 @@ SOURCES += main.cpp\
 	../filters/PreampFilter.cpp \
 	../filters/PreampFilterFactory.cpp \
 	../runtime/ipc/SendRing.cpp \
+	../runtime/ipc/EngineBeacon.cpp \
 	../runtime/ipc/SendRingWin32.cpp \
 	../runtime/memory/AlignedMemory.cpp \
 	../runtime/concurrency/ParallelExecutor.cpp \
@@ -427,6 +429,7 @@ HEADERS  += \
 	../devices/DeviceEnumeration.h \
 	../services/security/AudioEngineAccess.h \
 	../services/diagnostics/InstallDiagnostics.h \
+	../services/windows/AudioEngineRestart.h \
 	../services/windows/WindowsService.h \
 	../services/install/ApoRegistration.h \
 	../services/install/VcRuntime.h \
@@ -444,6 +447,7 @@ HEADERS  += \
 	helpers/PanelPreviewFeeder.h \
 	helpers/PluginLoadQueue.h \
 	helpers/BackgroundProbe.h \
+	helpers/TroubleshootingNotices.h \
 	helpers/WindowFrameHitTest.h \
 	helpers/SpinBoxEditFieldFix.h \
 	../services/app/QtAppBootstrap.h \
@@ -462,6 +466,7 @@ HEADERS  += \
 	../filters/PreampFilter.h \
 	../filters/PreampFilterFactory.h \
 	../runtime/ipc/SendRing.h \
+	../runtime/ipc/EngineBeacon.h \
 	../runtime/ipc/SendRingWin32.h \
 	../runtime/memory/AlignedMemory.h \
 	FilterTableRow.h \

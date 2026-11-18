@@ -62,6 +62,7 @@ TEST_CASE(EditorLogicTests, testPreferenceKeysKeepPersistedSpellings)
 		{ EditorSettings::Keys::Geometry, "geometry" },
 		{ EditorSettings::Keys::WindowState, "windowState" },
 		{ EditorSettings::Keys::InstantMode, "instantMode" },
+		{ EditorSettings::Keys::AutomaticUpdates, "update/automatic" },
 		{ EditorSettings::Keys::SelectedDevice, "selectedDevice" },
 		{ EditorSettings::Keys::SelectedChannelMask, "selectedChannelMask" },
 		{ EditorSettings::Keys::AnalysisStartFrom, "analysis/startFrom" },
@@ -73,6 +74,25 @@ TEST_CASE(EditorLogicTests, testPreferenceKeysKeepPersistedSpellings)
 	};
 	for (const auto& name : names)
 		expectEqual(QString::fromLatin1(name.first), QString::fromLatin1(name.second), "named key retains its stored spelling");
+}
+
+TEST_CASE(EditorLogicTests, testAutomaticUpdateSettingDefaultsAndRoundTrips)
+{
+	QTemporaryDir temp;
+	requireTrue(temp.isValid(), "temporary settings directory exists");
+	QSettings settings(temp.filePath(QStringLiteral("preferences.ini")), QSettings::IniFormat);
+
+	expectTrue(EditorSettings::readAutomaticUpdates(settings),
+		QStringLiteral("automatic updates default on when the preference is absent"));
+	EditorSettings::writeAutomaticUpdates(settings, false);
+	expectFalse(EditorSettings::readAutomaticUpdates(settings),
+		QStringLiteral("the disabled automatic-update preference round trips"));
+	settings.remove(QLatin1String(EditorSettings::Keys::AutomaticUpdates));
+	expectTrue(EditorSettings::readAutomaticUpdates(settings),
+		QStringLiteral("removing the automatic-update preference restores the default"));
+	settings.setValue(QLatin1String(EditorSettings::Keys::AutomaticUpdates), QString());
+	expectTrue(EditorSettings::readAutomaticUpdates(settings),
+		QStringLiteral("a value that is not boolean-like restores the default"));
 }
 
 TEST_CASE(EditorLogicTests, testAnalysisPanelStateCoversEveryOutcome)

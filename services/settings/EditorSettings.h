@@ -42,6 +42,7 @@ inline constexpr char GraphDockPosition[] = "interface/graphDockPosition";
 inline constexpr char Geometry[] = "geometry";
 inline constexpr char WindowState[] = "windowState";
 inline constexpr char InstantMode[] = "instantMode";
+inline constexpr char AutomaticUpdates[] = "update/automatic";
 inline constexpr char SelectedDevice[] = "selectedDevice";
 inline constexpr char SelectedDeviceInput[] = "selectedDeviceInput";
 inline constexpr char SelectedChannelMask[] = "selectedChannelMask";
@@ -126,5 +127,24 @@ inline void writeSkinChoice(QSettings& settings, const SkinChoice& choice)
 {
 	settings.setValue(QLatin1String(Keys::Skin), choice.id);
 	settings.setValue(QLatin1String(Keys::Dark), choice.dark);
+}
+
+inline bool readAutomaticUpdates(const QSettings& settings)
+{
+	const QVariant saved = settings.value(QLatin1String(Keys::AutomaticUpdates));
+	if (!saved.isValid())
+		return true;
+
+	const QString text = saved.toString().trimmed();
+	if (text.compare(QLatin1String("false"), Qt::CaseInsensitive) == 0 || text == QLatin1String("0"))
+		return false;
+	if (text.compare(QLatin1String("true"), Qt::CaseInsensitive) == 0 || text == QLatin1String("1"))
+		return true;
+	return true;
+}
+
+inline void writeAutomaticUpdates(QSettings& settings, bool enabled)
+{
+	settings.setValue(QLatin1String(Keys::AutomaticUpdates), enabled);
 }
 }

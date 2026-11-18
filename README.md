@@ -132,7 +132,7 @@ Current work areas:
 - Explicit asymmetric VST3 main buses through `VSTPlugin: Library "...\\Plugin.vst3" Input Stereo Output 7.1`. Input and output independently support Auto, Mono, Stereo, 4.0, 4.1, 5.0, 5.1, 6.1, 7.1, 7.1.2, and 7.1.4; rejected VST3 contracts safely pass audio through instead of silently choosing another width, while VST2 ignores the layout keys. See the [configuration reference](https://github.com/115dkk/EqualizerAPO-XT/wiki/Configuration-reference#vstplugin-bus-layouts).
 - Portable SIMD kernels written once with [Google Highway](https://github.com/google/highway) and compiled per variant: SSE2, AVX, AVX2, AVX-512, and AVX10.1 on x64, NEON on ARM64.
 - Modernized Qt Editor: card-based filter UI and five fully differentiated visual skins — each with its own row chrome, knob rendering, and Copy routing renderer ([docs/skin-integration-report.md](docs/skin-integration-report.md)) — plus embedded fonts and high-DPI scaling.
-- Automatic updates: the Editor downloads new releases in the background and applies them on exit.
+- Automatic updates: the Editor downloads new releases in the background and applies them on exit. Settings > Automatic updates turns this off, and Troubleshooting > Check for updates checks on request.
 - Auto-detect installer that picks the matching SIMD build for the local CPU and verifies the download against the release checksums before running it.
 - AOCL-FFTW, libsndfile, muparserx, TCLAP, and Qt-based GUI tools.
 - Shared VC++ runtime DLLs for better Windows compatibility.
@@ -151,7 +151,7 @@ as **EQ APO XT** plus its instruction set: the baseline SSE2 build is just
 "EQ APO XT", the others are "EQ APO XT AVX", "EQ APO XT AVX2",
 "EQ APO XT AVX-512", "EQ APO XT AVX10" and "EQ APO XT Neon".
 
-After installation the Editor keeps itself current: it downloads newer releases in the background and applies them when the Editor closes. The flow is documented in [docs/VelopackUpdates.md](docs/VelopackUpdates.md).
+After installation the Editor keeps itself current: it downloads newer releases in the background and applies them when the Editor closes. If Windows audio is still running the previous engine after an update, the Editor says so at startup and offers to restart Windows audio; the Troubleshooting menu has the same restart, a manual update check and a link for reporting a problem. The flow is documented in [docs/VelopackUpdates.md](docs/VelopackUpdates.md).
 
 ## Documentation
 

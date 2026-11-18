@@ -114,7 +114,7 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
 - `VSTPlugin: Library "...\\Plugin.vst3" Input Stereo Output 7.1`처럼 VST3 주 입력·출력 버스를 서로 다르게 지정할 수 있습니다. 각 방향은 Auto, Mono, Stereo, 4.0, 4.1, 5.0, 5.1, 6.1, 7.1, 7.1.2, 7.1.4를 지원합니다. VST3가 계약을 거부하면 다른 폭으로 몰래 바꾸지 않고 입력을 그대로 통과시키며, VST2는 레이아웃 키를 무시합니다. 자세한 문법은 [설정 레퍼런스](https://github.com/115dkk/EqualizerAPO-XT/wiki/Korean-Configuration-reference#vstplugin-버스-레이아웃)에 있습니다.
 - SIMD 커널은 [Google Highway](https://github.com/google/highway)로 한 번만 작성해 변형별로 컴파일합니다. x64는 SSE2, AVX, AVX2, AVX-512, AVX10.1, ARM64는 NEON입니다.
 - Qt Editor를 현대화했습니다. 카드 기반 필터 UI와 행 chrome·노브 렌더링·Copy 라우팅 렌더러까지 서로 다른 5종 스킨([docs/skin-integration-report.md](docs/skin-integration-report.md)), 내장 폰트, 고해상도(High-DPI) 대응이 들어 있습니다.
-- Editor가 새 릴리스를 백그라운드에서 내려받아 종료할 때 적용하는 자동 업데이트가 들어 있습니다.
+- Editor가 새 릴리스를 백그라운드에서 내려받아 종료할 때 적용하는 자동 업데이트가 들어 있습니다. '설정 > 자동 업데이트'로 끌 수 있고, '문제 해결 > 업데이트 확인'으로 바로 확인할 수 있습니다.
 - 자동 감지 설치기가 로컬 CPU에 맞는 SIMD 빌드를 골라 내려받고, 실행 전에 릴리스 체크섬으로 검증합니다.
 - 오디오 처리는 AOCL-FFTW, libsndfile, muparserx, TCLAP을 쓰고, GUI 도구는 Qt로 만들었습니다.
 - Windows 호환성을 위해 공유 VC++ 런타임 DLL을 함께 배포합니다.
@@ -133,7 +133,7 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
 "EQ APO XT AVX", "EQ APO XT AVX2", "EQ APO XT AVX-512", "EQ APO XT AVX10",
 "EQ APO XT Neon"입니다.
 
-설치 후에는 Editor가 스스로 최신 상태를 유지합니다. 새 릴리스를 백그라운드에서 내려받아 두었다가 Editor를 닫을 때 적용합니다. 자세한 흐름은 [docs/VelopackUpdates.md](docs/VelopackUpdates.md)에 있습니다.
+설치 후에는 Editor가 스스로 최신 상태를 유지합니다. 새 릴리스를 백그라운드에서 내려받아 두었다가 Editor를 닫을 때 적용합니다. 업데이트 뒤에도 Windows 오디오가 이전 엔진으로 동작하고 있으면, Editor를 시작할 때 Windows 오디오를 다시 시작할지 확인하는 창이 표시됩니다. '문제 해결' 메뉴에는 같은 다시 시작, 수동 업데이트 확인, 문제 신고 링크가 있습니다. 자세한 흐름은 [docs/VelopackUpdates.md](docs/VelopackUpdates.md)에 있습니다.
 
 ## 문서
 

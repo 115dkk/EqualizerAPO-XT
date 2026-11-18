@@ -23,6 +23,7 @@
 #include <QProcess>
 #include <QKeySequence>
 #include <QSettings>
+#include <QSignalBlocker>
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -71,6 +72,10 @@ const int kWindowStateVersion = 1;
 void MainWindow::loadPreferences()
 {
 	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
+	{
+		const QSignalBlocker blocker(ui->actionAutomaticUpdates);
+		ui->actionAutomaticUpdates->setChecked(EditorSettings::readAutomaticUpdates(settings));
+	}
 	const EditorSettings::SkinChoice choice = EditorSettings::readSkinChoice(settings, GUIHelper::isSystemDarkMode());
 	skinId = choice.id;
 	skinDark = choice.dark;
@@ -155,6 +160,12 @@ void MainWindow::loadPreferences()
 	ui->mainToolBar->setVisible(true);
 	applyRedesignPreferences();
 	updateUndoRedoActions();
+}
+
+void MainWindow::on_actionAutomaticUpdates_toggled(bool checked)
+{
+	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
+	EditorSettings::writeAutomaticUpdates(settings, checked);
 }
 
 void MainWindow::savePreferences()

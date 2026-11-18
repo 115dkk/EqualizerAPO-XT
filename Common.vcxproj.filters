@@ -223,6 +223,9 @@
     <ClInclude Include="runtime\ipc\SendRing.h">
       <Filter>runtime</Filter>
     </ClInclude>
+    <ClInclude Include="runtime\ipc\EngineBeacon.h">
+      <Filter>runtime</Filter>
+    </ClInclude>
     <ClInclude Include="runtime\ipc\SendRingWin32.h">
       <Filter>runtime</Filter>
     </ClInclude>
@@ -608,6 +611,9 @@
       <Filter>platform</Filter>
     </ClCompile>
     <ClCompile Include="runtime\ipc\SendRing.cpp">
+      <Filter>runtime</Filter>
+    </ClCompile>
+    <ClCompile Include="runtime\ipc\EngineBeacon.cpp">
       <Filter>runtime</Filter>
     </ClCompile>
     <ClCompile Include="runtime\ipc\SendRingWin32.cpp">

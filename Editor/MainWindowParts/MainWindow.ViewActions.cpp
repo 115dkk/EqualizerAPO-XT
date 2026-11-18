@@ -297,6 +297,11 @@ void MainWindow::on_actionResetAllGlobalPreferences_triggered()
 		for (const QString& key : settings.childKeys())
 			settings.remove(key);
 
+		// Closing may be cancelled by an unsaved document. Refresh this action
+		// now as well as restoring its default in the next window.
+		ui->actionAutomaticUpdates->blockSignals(true);
+		ui->actionAutomaticUpdates->setChecked(EditorSettings::readAutomaticUpdates(settings));
+		ui->actionAutomaticUpdates->blockSignals(false);
 		restart = true;
 		noSavePreferences = true;
 		close();

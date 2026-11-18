@@ -47,6 +47,7 @@
 #include "services/logging/Logging.h"
 #include "services/logging/TaggedLogger.h"
 #include "services/registry/WindowsRegistry.h"
+#include "services/windows/AudioServiceNames.h"
 #include "services/windows/WindowsService.h"
 #include "services/windows/AudioServiceNames.h"
 #include "services/shell/StartMenuShortcuts.h"

@@ -59,6 +59,9 @@
     <ClCompile Include="DeviceVocabularyTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="EngineBeaconTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="EngineLifecycleTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

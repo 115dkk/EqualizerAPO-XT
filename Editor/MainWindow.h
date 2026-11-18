@@ -52,6 +52,7 @@ class UpdateToast;
 class UpdateSession;
 struct DeviceFormatBadgeState;
 enum class DocumentSaveReason;
+enum class ManualCheckNotice;
 struct DocumentSaveTransition;
 struct OpenDocument;
 
@@ -78,7 +79,7 @@ public:
 	// constants) and names this constant beside it.
 	static constexpr int analysisControlBarWidth = 280;
 
-	explicit MainWindow(QDir configDir, const UpdateSession* updateSession, QWidget* parent = 0,
+	explicit MainWindow(QDir configDir, UpdateSession* updateSession, QWidget* parent = 0,
 		bool analysisLayoutTestMode = false);
 	~MainWindow();
 	void doChecks();
@@ -169,6 +170,10 @@ private slots:
 
 	void on_actionApoSettings_triggered();
 	void on_actionOpenProgramFolder_triggered();
+	void on_actionAutomaticUpdates_toggled(bool checked);
+	void on_actionRestartAudioService_triggered();
+	void on_actionCheckForUpdates_triggered();
+	void on_actionReportProblem_triggered();
 	void languageSelected(bool selected);
 	void interfaceModeSelected(QAction* action);
 	void skinSelected(QAction* action);
@@ -218,6 +223,9 @@ private:
 	// Polls the process-owned UpdateSession for a staged background update and raises the
 	// bottom toast once when one appears (the download itself stays silent).
 	void watchForPendingUpdate();
+	QString downloadedUpdateMessage() const;
+	void restartWindowsAudio();
+	void showManualCheckNotice(ManualCheckNotice notice);
 	FilterTable* filterTableForTab(int tabIndex) const;
 	FilterTable* currentFilterTable() const;
 	void forEachFilterTable(const std::function<void(int, FilterTable*)>& visitor) const;
@@ -309,7 +317,9 @@ private:
 	// demand). Any later edit, undo, redo or tab switch takes it down.
 	UpdateToast* removalNotice = nullptr;
 	QTimer* updateNoticeTimer = nullptr;
-	const UpdateSession* updateSession = nullptr;
+	QTimer* manualUpdateTimer = nullptr;
+	bool engineRestartOffered = false;
+	UpdateSession* updateSession = nullptr;
 	bool analysisLayoutTestMode = false;
 };
 

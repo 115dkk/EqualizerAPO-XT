@@ -55,6 +55,7 @@
 #include "platform/windows/CommandLineQuoting.h"
 #include "services/app/ProcessShutdown.h"
 #include "services/install/ApoRegistration.h"
+#include "services/windows/AudioEngineRestart.h"
 #include "services/registry/WindowsRegistry.h"
 #include "platform/windows/Win32Resource.h"
 #include "platform/windows/WindowsPath.h"
@@ -396,6 +397,16 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 
+	const auto restartArguments = wideArgumentsAfterProgramName();
+	if (std::find(restartArguments.begin(), restartArguments.end(), audioengine::kRestartArgument) != restartArguments.end())
+	{
+		if (!AudioEngineAccess::isElevated())
+			return 5;
+		return audioengine::restartAudioEngine([](const std::wstring& message) {
+			logLine(L"ERR", L"%s", message.c_str());
+		}) ? 0 : 1;
+	}
+
 	if (hasArgument(argc, argv, VelopackBootstrap::kElevatedCoordinatorArgument))
 	{
 		// The coordinator is an internal one-shot process, not a normal Editor
@@ -579,7 +590,7 @@ int main(int argc, char* argv[])
 		else
 			w.doChecks();
 
-		if (updateSession && !firstRun)
+		if (shouldCheckAutomatically(EditorSettings::readAutomaticUpdates(settings), firstRun, updateSession != nullptr))
 		{
 			// Defer the background download so it does not race with audio service
 			// work or a Device Selector launch right after the Editor opens.
@@ -587,7 +598,10 @@ int main(int argc, char* argv[])
 			// device enumeration are all comfortably finished. The download runs on
 			// its own worker thread and just stages the update for apply-on-exit.
 			QTimer::singleShot(60000, qApp, [session = updateSession.get()]() {
-				session->startDownload();
+				// Respect a choice made from the menu during the launch delay too.
+				QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
+				if (shouldCheckAutomatically(EditorSettings::readAutomaticUpdates(settings), false, session != nullptr))
+					session->startDownload();
 			});
 		}
 
