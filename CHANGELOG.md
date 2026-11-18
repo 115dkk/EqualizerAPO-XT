@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.65.5 — 2026-11-18
+
 - **An untouched VST3 panel with Auto Apply no longer keeps marking the
   configuration as modified.** Some VST3 plug-ins report themselves dirty,
   move a read-only meter, or write slightly different state bytes on every
