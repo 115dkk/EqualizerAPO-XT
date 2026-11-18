@@ -12,6 +12,14 @@ name: Publish Wiki
 #      access and the wiki is initialized) or, if pushing fails with a
 #      permission error, add a Personal Access Token with repo scope as the
 #      secret WIKI_TOKEN.
+#
+# Wiki/github-wiki/ is the source of truth. An edit made in the wiki's web
+# editor fires the gollum event, and this workflow then publishes the source
+# again, which reverts the edit. That undoes vandalism even if the wiki's
+# "Restrict editing to collaborators only" setting (web UI only, no API) is
+# off. Changes to the wiki go through Wiki/github-wiki/ in a pull request.
+# The workflow's own push cannot loop: a push made with GITHUB_TOKEN starts no
+# workflow, and with WIKI_TOKEN the run it starts finds nothing to publish.
 
 on:
   push:
@@ -19,6 +27,7 @@ on:
     paths:
       - 'Wiki/github-wiki/**'
       - '.github/workflows/publish-wiki.yml'
+  gollum:
   workflow_dispatch:
 
 permissions:
