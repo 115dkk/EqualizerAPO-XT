@@ -21,7 +21,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   and the engine kept the included file open until every filter in it was
   ready, which took longer than the Editor waits. The engine now closes the
   file as soon as it has read it.
-  ([#477](https://github.com/115dkk/EqualizerAPO-XT/issues/477))
+  ([#477](https://github.com/115dkk/EqualizerAPO-XT/issues/477), [#479](https://github.com/115dkk/EqualizerAPO-XT/pull/479))
 
 ## v2.65.0 — 2026-11-18
 

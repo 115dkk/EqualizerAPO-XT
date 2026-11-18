@@ -15,7 +15,7 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   읽는데, 엔진은 포함된 파일 안의 필터가 모두 준비될 때까지 그 파일을 열어
   두었고, 그 시간이 Editor가 기다리는 시간보다 길었습니다. 이제 엔진은 파일을
   읽자마자 닫습니다.
-  ([#477](https://github.com/115dkk/EqualizerAPO-XT/issues/477))
+  ([#477](https://github.com/115dkk/EqualizerAPO-XT/issues/477), [#479](https://github.com/115dkk/EqualizerAPO-XT/pull/479))
 
 ## v2.65.0 — 2026-11-18
 
