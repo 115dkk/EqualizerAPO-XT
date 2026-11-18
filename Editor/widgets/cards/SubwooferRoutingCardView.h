@@ -69,6 +69,9 @@ public:
 
 	virtual void addActionButton(QAbstractButton* button) = 0;
 
+	// Skin gallery hook: paint as if the view held the keyboard focus.
+	void setPreviewFocused(bool focused);
+
 	// Shared formatting so the five skins agree on the numbers even though
 	// each dresses them in its own grammar.
 	static QString formatHz(double hz);
@@ -107,9 +110,12 @@ protected:
 
 	void mouseDoubleClickEvent(QMouseEvent* event) override;
 	void keyPressEvent(QKeyEvent* event) override;
+	// Real keyboard focus, or the gallery's preview of it.
+	bool showsFocus() const;
 
 private:
 	SubwooferRoutingCardState currentState;
+	bool previewFocused = false;
 };
 
 class DefaultSubwooferRoutingCardView : public SubwooferRoutingCardView

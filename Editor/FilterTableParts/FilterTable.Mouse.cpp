@@ -66,6 +66,14 @@ void FilterTable::selectOnlyFromCard(Item* item)
 	updateRowWidgets();
 }
 
+void FilterTable::focusFromCard(Item* item)
+{
+	if (model.items().indexOf(item) < 0 || model.focused() == item)
+		return;
+	model.setFocused(item);
+	updateRowWidgets();
+}
+
 
 void FilterTable::mousePressEvent(QMouseEvent* event)
 {

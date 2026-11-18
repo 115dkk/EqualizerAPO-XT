@@ -621,6 +621,19 @@ bool FilterCardRow::eventFilter(QObject* watched, QEvent* event)
 			return true;
 		break;
 	}
+	case QEvent::FocusIn:
+	{
+		// A press already moved the list's focus marker (above). Keyboard focus
+		// that arrives by Tab has to move it too: controls inside a card show
+		// focus only through the card's own frame, so without this a tabbed-in
+		// control (the subwoofer summary, for one) showed nothing and another
+		// card could stay lit.
+		const Qt::FocusReason reason = static_cast<QFocusEvent*>(event)->reason();
+		if ((reason == Qt::TabFocusReason || reason == Qt::BacktabFocusReason)
+			&& table != nullptr && item != nullptr)
+			table->focusFromCard(item);
+		break;
+	}
 	case QEvent::Resize:
 	case QEvent::Show:
 	case QEvent::LayoutRequest:

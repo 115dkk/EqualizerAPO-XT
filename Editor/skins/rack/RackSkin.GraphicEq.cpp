@@ -204,19 +204,18 @@ void RackSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& s
 		painter.setBrush(withAlpha(core, selected ? 255 : (warmed ? 240 : 205)));
 		painter.drawEllipse(center, selected ? 3.2 : 2.7, selected ? 3.2 : 2.7);
 
-		if (selected)
+		// The keyboard target's edge takes the focus colour while the display
+		// holds focus: the selection ring itself on a selected node, the same
+		// ring at the halo's edge on an unselected one. One ring per node,
+		// never a second ring around the first (shared article 8).
+		const bool keyTarget = state.focused && state.focusedNode == i;
+		if (selected || keyTarget)
 		{
-			painter.setPen(QPen(withAlpha(phosphor, 220), 1.2));
+			painter.setPen(keyTarget
+				? QPen(withAlpha(QColor(tokens.focusRing), 220), 1.2)
+				: QPen(withAlpha(phosphor, 220), 1.2));
 			painter.setBrush(Qt::NoBrush);
 			painter.drawEllipse(center, 5.4, 5.4);
-		}
-		// The keyboard target wears the amber service ring while the display
-		// holds focus - the machine's focus law reaching into the glass.
-		if (state.focused && state.focusedNode == i)
-		{
-			painter.setPen(QPen(withAlpha(QColor(tokens.focusRing), 200), 1.0));
-			painter.setBrush(Qt::NoBrush);
-			painter.drawEllipse(center, 7.0, 7.0);
 		}
 	}
 	beamState.restore();

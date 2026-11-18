@@ -26,6 +26,16 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   exactly as they are.
   ([#487](https://github.com/115dkk/EqualizerAPO-XT/pull/487))
 
+## v2.65.6 — 2026-11-18
+
+- **Keyboard focus no longer draws a box around a box.** Switches such as the
+  analysis graph's Mag / Phase / GD selector, knobs, Graphic EQ points and the
+  Add filter row drew an extra frame, ring, halo or bracket around themselves
+  when they had the focus, and a click gives them the focus, so the extra box
+  was up right after every use. In every skin the focus now colours a border
+  the control already has: on a switch, the selected key's own edge.
+  ([#486](https://github.com/115dkk/EqualizerAPO-XT/pull/486))
+
 ## v2.65.5 — 2026-11-18
 
 - **An untouched VST3 panel with Auto Apply no longer keeps marking the

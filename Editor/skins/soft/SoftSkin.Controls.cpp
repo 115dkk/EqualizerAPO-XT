@@ -97,7 +97,14 @@ void SoftSkin::paintSegmentedControl(QPainter& painter, const SegmentedControlSt
 		markFill = mixColor(accent, QColor(tokens.background), 0.62);
 	else if (state.pressedIndex == state.selectedIndex)
 		markFill = mixColor(accent, warmInk, 0.18);
-	painter.setPen(Qt::NoPen);
+	// Keyboard focus lands on the chosen pill (shared article 8): one line on
+	// the pill's own stadium, never a halo round the track. The pill is the
+	// accent itself, so the line is the focus colour taken toward the body
+	// ink, or it would vanish into the fill it outlines.
+	if (state.focused && !asleep)
+		painter.setPen(QPen(mixColor(QColor(tokens.focusRing), QColor(tokens.text), 0.35), 1.5));
+	else
+		painter.setPen(Qt::NoPen);
 	painter.setBrush(markFill);
 	painter.drawRoundedRect(mark, pillRadius, pillRadius);
 
@@ -122,16 +129,6 @@ void SoftSkin::paintSegmentedControl(QPainter& painter, const SegmentedControlSt
 		painter.drawText(cell, Qt::AlignCenter,
 			metrics.elidedText(state.labels.at(i), Qt::ElideRight,
 				int(qMax(8.0, cell.width() - inset * 2.0 - 6.0))));
-	}
-
-	// Focus is the quiet halo (alpha 90, 3px) hugging the inside of the
-	// track, never a hard ring.
-	if (state.focused && !asleep)
-	{
-		painter.setPen(QPen(withAlpha(QColor(tokens.focusRing), 90), 3));
-		painter.setBrush(Qt::NoBrush);
-		painter.drawRoundedRect(frame.adjusted(1.5, 1.5, -1.5, -1.5),
-			qMax(0.0, trackRadius - 1.5), qMax(0.0, trackRadius - 1.5));
 	}
 
 	QPen edge(QColor(tokens.border), 1);
@@ -180,14 +177,6 @@ void SoftSkin::paintKnob(QPainter& painter, const QRect& rect, const KnobState& 
 
 	const double arcWidth = qMax(5.0, side * 0.10);
 	QRectF arcRect = knobRect.adjusted(arcWidth / 2.0, arcWidth / 2.0, -arcWidth / 2.0, -arcWidth / 2.0);
-
-	// Keyboard focus: a quiet halo around the whole handle, not a hard ring.
-	if (state.focused && state.enabled)
-	{
-		painter.setPen(QPen(withAlpha(QColor(tokens.focusRing), 90), 3));
-		painter.setBrush(Qt::NoBrush);
-		painter.drawEllipse(knobRect.adjusted(-2, -2, 2, 2));
-	}
 
 	// Always-visible pastel track ring. Unipolar travel wears one
 	// accent pastel; a bipolar knob splits at the 12 o'clock detent into
@@ -252,7 +241,9 @@ void SoftSkin::paintKnob(QPainter& painter, const QRect& rect, const KnobState& 
 	else if (state.hovered || state.dragging)
 		faceColor = QColor(tokens.cardHover);
 	QRectF faceRect = baseRect.adjusted(2.5, 2.5, -2.5, -2.5);
-	painter.setPen(QPen(border, 1));
+	// Keyboard focus is the face's own light border in the focus colour, half
+	// a pixel heavier (shared article 8), not a halo round the handle.
+	painter.setPen(state.focused && state.enabled ? QPen(QColor(tokens.focusRing), 1.5) : QPen(border, 1));
 	painter.setBrush(faceColor);
 	painter.drawEllipse(faceRect);
 

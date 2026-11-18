@@ -158,7 +158,7 @@ void StudioSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState&
 	}
 
 	// Nodes: indicator dots on the luminance ladder; selection adds an
-	// outer bloom, keyboard focus a thin ring.
+	// outer bloom, and the keyboard target's dot takes a focus-colour edge.
 	for (int i = 0; i < state.nodePositions.size(); i++)
 	{
 		const QPointF& center = state.nodePositions.at(i);
@@ -183,11 +183,14 @@ void StudioSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState&
 			painter.setBrush(QColor(tokens.card));
 			painter.drawEllipse(center, 2.8, 2.8);
 		}
+		// The keyboard target: the edge of the node's own 6px disc in the
+		// focus colour, one line on the outline the dot already has rather
+		// than a ring around it (shared article 8).
 		if (lit && state.focused && state.focusedNode == i)
 		{
-			painter.setPen(QPen(withAlpha(tokens.accent, 110), 1.0));
+			painter.setPen(QPen(QColor(tokens.focusRing), 1.0));
 			painter.setBrush(Qt::NoBrush);
-			painter.drawEllipse(center, 8.5, 8.5);
+			painter.drawEllipse(center, 6.0, 6.0);
 		}
 	}
 

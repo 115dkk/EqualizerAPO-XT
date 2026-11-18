@@ -114,7 +114,11 @@ void MatrixSkin::paintKnob(QPainter& painter, const QRect& rect, const KnobState
 		}
 
 		QColor bodyColor(state.enabled ? tokens.card : tokens.surface);
-		painter.setPen(QPen(borderColor, 1.0, state.enabled ? Qt::SolidLine : Qt::DashLine));
+		// Keyboard focus engages the body's own rule in accent (shared
+		// article 8): one line on the outline the knob already has, never
+		// a bracket of its own.
+		painter.setPen(QPen(state.focused && state.enabled ? accentColor : borderColor, 1.0,
+			state.enabled ? Qt::SolidLine : Qt::DashLine));
 		painter.setBrush(bodyColor);
 		painter.drawEllipse(center, bodyRadius, bodyRadius);
 		painter.setPen(QPen(state.enabled ? litColor : QColor(mutedColor), 2.0, Qt::SolidLine, Qt::FlatCap));
@@ -122,14 +126,6 @@ void MatrixSkin::paintKnob(QPainter& painter, const QRect& rect, const KnobState
 			matrixRadialPoint(center, bodyRadius - 1.5, state.ratio));
 
 		painter.setRenderHint(QPainter::Antialiasing, false);
-
-		// Keyboard focus: a square cell bracket, not a glow.
-		if (state.focused && state.enabled)
-		{
-			painter.setPen(QPen(accentColor, 1));
-			painter.setBrush(Qt::NoBrush);
-			painter.drawRect(ringRect.toRect().adjusted(-3, -3, 3, 3));
-		}
 
 		// The knob's reading prints under it in mono. The value field beside
 		// the knob is the cell; boxing this copy too put a second box next
@@ -333,36 +329,28 @@ void MatrixSkin::paintSegmentedControl(QPainter& painter, const SegmentedControl
 			drawLabels(true);
 		}
 
-		// Keyboard focus brackets the engaged port at the port's own edges -
-		// square corners, never a glow (the corner language is the
-		// rectangle), and it travels with the patch.
-		if (state.focused && state.enabled)
-		{
-			QRect bracket = columnRect(position).adjusted(0, -1, 0, 1);
-			// The end ports would otherwise put their corners on the outer
-			// rule, which paints last and would swallow them.
-			bracket.setLeft(qMax(bracket.left(), frame.left() + 1));
-			bracket.setRight(qMin(bracket.right(), frame.right() - 1));
-			bracket.setTop(qMax(bracket.top(), frame.top() + 1));
-			bracket.setBottom(qMin(bracket.bottom(), frame.bottom() - 1));
-			const int leg = qBound(3, bracket.width() / 6, 6);
-			painter.setPen(QPen(accent, 1));
-			painter.drawLine(bracket.left(), bracket.top(), bracket.left() + leg, bracket.top());
-			painter.drawLine(bracket.left(), bracket.top(), bracket.left(), bracket.top() + leg);
-			painter.drawLine(bracket.right() - leg, bracket.top(), bracket.right(), bracket.top());
-			painter.drawLine(bracket.right(), bracket.top(), bracket.right(), bracket.top() + leg);
-			painter.drawLine(bracket.left(), bracket.bottom() - leg, bracket.left(), bracket.bottom());
-			painter.drawLine(bracket.left(), bracket.bottom(), bracket.left() + leg, bracket.bottom());
-			painter.drawLine(bracket.right(), bracket.bottom() - leg, bracket.right(), bracket.bottom());
-			painter.drawLine(bracket.right() - leg, bracket.bottom(), bracket.right(), bracket.bottom());
-		}
-
 		// The strip's outer rule; a cancelled control cancels it with a dash
 		// at full ink (the dash itself is never dimmed).
 		painter.setOpacity(1.0);
 		painter.setPen(QPen(borderInk, 1, state.enabled ? Qt::SolidLine : Qt::DashLine));
 		painter.setBrush(Qt::NoBrush);
 		painter.drawRect(frame.adjusted(0, 0, -1, -1));
+
+		// Keyboard focus engages the engaged port's own ruling in accent: the
+		// two port dividers and the stretch of the outer rule that close the
+		// port's column, the lines the board already draws round it (shared
+		// article 8). Never brackets or a frame of their own, and never the
+		// whole strip's rule. It sits on the port the selection holds, so it
+		// steps once the patch lands rather than sliding with it.
+		if (state.focused && state.enabled)
+		{
+			const int engaged = qBound(0, state.selectedIndex, lastIndex);
+			const QRectF port = state.segmentRect(engaged);
+			const int left = engaged == 0 ? frame.left() : qRound(port.left());
+			const int right = engaged == lastIndex ? frame.right() : qRound(state.segmentRect(engaged + 1).left());
+			painter.setPen(QPen(accent, 1));
+			painter.drawRect(QRect(QPoint(left, frame.top()), QPoint(right, frame.bottom())).adjusted(0, 0, -1, -1));
+		}
 	}
 
 // The VST3 bus contract as two coordinate cells on the feed line: 1px

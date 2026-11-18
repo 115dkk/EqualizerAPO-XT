@@ -70,9 +70,11 @@
 #include "Editor/widgets/FilterCardRow.h"
 #include "Editor/widgets/FilterInsertSeam.h"
 #include "Editor/widgets/FilterPickerView.h"
+#include "Editor/widgets/GraphicEQPlotWidget.h"
 #include "Editor/widgets/SegmentedControl.h"
 #include "Editor/widgets/TitleBar.h"
 #include "Editor/widgets/UpdateToast.h"
+#include "Editor/widgets/cards/SubwooferRoutingCardView.h"
 #include "Editor/widgets/cards/ReferenceCardView.h"
 #include "Editor/widgets/routing/IRoutingRenderer.h"
 #include "Editor/widgets/subwooferrouting/SubwooferRoutingDefaults.h"
@@ -113,7 +115,8 @@ const QList<GalleryScenario>& galleryScenarios()
 		{ QStringLiteral("menu"), { QStringLiteral("normal"), QStringLiteral("settings"),
 			QStringLiteral("troubleshooting") } },
 		{ QStringLiteral("enginerestart"), { QStringLiteral("prompt") } },
-		{ QStringLiteral("addrow"), { QStringLiteral("normal"), QStringLiteral("hover") } },
+		{ QStringLiteral("addrow"), { QStringLiteral("normal"), QStringLiteral("hover"),
+			QStringLiteral("focused") } },
 		{ QStringLiteral("seam"), { QStringLiteral("hover") } },
 		{ QStringLiteral("toast"), { QStringLiteral("normal") } },
 		{ QStringLiteral("loadnotice"), { QStringLiteral("normal") } },
@@ -122,7 +125,7 @@ const QList<GalleryScenario>& galleryScenarios()
 		{ QStringLiteral("graph"), { QStringLiteral("normal"), QStringLiteral("cursor"),
 			QStringLiteral("phase"), QStringLiteral("groupdelay") } },
 		{ QStringLiteral("segment"), { QStringLiteral("normal"), QStringLiteral("selected"),
-			QStringLiteral("hover") } },
+			QStringLiteral("hover"), QStringLiteral("focused"), QStringLiteral("focushover") } },
 		{ QStringLiteral("copyfold"), { QStringLiteral("normal"), QStringLiteral("empty"),
 			QStringLiteral("expanded"), QStringLiteral("editor"), QStringLiteral("sourceeditor") } },
 		{ QStringLiteral("multiconvfold"), { QStringLiteral("normal"),
@@ -133,6 +136,12 @@ const QList<GalleryScenario>& galleryScenarios()
 		{ QStringLiteral("velvet-advanced"), { QStringLiteral("normal") } },
 		{ QStringLiteral("velvet-narrow"), { QStringLiteral("normal") } },
 		{ QStringLiteral("controls"), { QStringLiteral("normal") } },
+		// Keyboard focus inside the card list (renderFocusScenes): the focused
+		// card, the GraphicEQ plot and the subwoofer summary while they hold
+		// the focus. Judged against the maintainer's focus ruling of
+		// 2026-11-18 (docs/skins/README.md, shared article 8).
+		{ QStringLiteral("focus"), { QStringLiteral("card"), QStringLiteral("geqplot"),
+			QStringLiteral("subwoofer") } },
 		// The reference cards while it is not known yet whether their file
 		// exists (renderReferenceCheckingScenes), beside the rows' own
 		// normal shots of the same cards.
@@ -903,6 +912,11 @@ void renderInsertionScenes(SkinRenderContext& ctx)
 		QApplication::sendEvent(&addRow, &addRowEnter);
 		QApplication::processEvents();
 		failures += saveGrab(&addRow, outDir, skinId, mode, QStringLiteral("addrow"), QStringLiteral("hover")) ? 0 : 1;
+		QEvent addRowLeaveAgain(QEvent::Leave);
+		QApplication::sendEvent(&addRow, &addRowLeaveAgain);
+		addRow.setPreviewFocused(true);
+		QApplication::processEvents();
+		failures += saveGrab(&addRow, outDir, skinId, mode, QStringLiteral("addrow"), QStringLiteral("focused")) ? 0 : 1;
 	}
 	{
 		FilterInsertSeam seam;
@@ -1100,6 +1114,11 @@ void renderGraphScenes(SkinRenderContext& ctx)
 		SegmentedControl segment;
 		segment.setLabels({ QStringLiteral("Mag"), QStringLiteral("Phase"), QStringLiteral("GD") });
 		segment.resize(230, segment.sizeHint().height());
+		// Window activation offscreen hands the lone control the keyboard
+		// focus, and it arrives after show(), so clearing it does not hold:
+		// every shot used to be a focused one. The control takes no focus
+		// here; the focused states below ask for it through the preview hook.
+		segment.setFocusPolicy(Qt::NoFocus);
 		segment.show();
 		// setPreviewState rather than setCurrentIndex: the indicator animates,
 		// and a shot taken while it travels differs from run to run.
@@ -1112,6 +1131,15 @@ void renderGraphScenes(SkinRenderContext& ctx)
 		segment.setPreviewState(1, 2);
 		QApplication::processEvents();
 		failures += saveGrab(&segment, outDir, skinId, mode, QStringLiteral("segment"), QStringLiteral("hover")) ? 0 : 1;
+		// Focus on the whole control shows on the latched part; with the
+		// pointer on another key, each key still has one edge.
+		segment.setPreviewFocused(true);
+		segment.setPreviewState(1, -1);
+		QApplication::processEvents();
+		failures += saveGrab(&segment, outDir, skinId, mode, QStringLiteral("segment"), QStringLiteral("focused")) ? 0 : 1;
+		segment.setPreviewState(1, 2);
+		QApplication::processEvents();
+		failures += saveGrab(&segment, outDir, skinId, mode, QStringLiteral("segment"), QStringLiteral("focushover")) ? 0 : 1;
 	}
 }
 
@@ -1440,6 +1468,68 @@ void renderVelvetScenes(SkinRenderContext& ctx)
 	}
 }
 
+// Keyboard focus inside the card list. The card is focused through the same
+// public path a click on it takes (FilterTable::selectOnlyFromCard), which is
+// what CommandRowInfo.focused reads; the plot and the subwoofer summary take
+// the widgets' preview hook, because which offscreen widget holds the real
+// focus depends on window activation.
+void renderFocusScenes(SkinRenderContext& ctx)
+{
+	const QList<GalleryRow> galleryLines = galleryRows();
+	QList<QString> lines;
+	for (const GalleryRow& row : galleryLines)
+		lines.append(row.line);
+
+	QScrollArea scrollArea;
+	scrollArea.resize(960, 720);
+	const QList<FilterCardRow*> allRows = buildRows(scrollArea, ctx.configPath, lines);
+	FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
+	if (allRows.size() != galleryLines.size() || table == nullptr
+		|| table->documentItems().size() != galleryLines.size())
+	{
+		qWarning("SkinGallery: focus scenes could not build the rows (%s %s)",
+			qPrintable(ctx.skinId), qPrintable(ctx.mode));
+		ctx.failures++;
+		return;
+	}
+	const auto rowIndex = [&galleryLines](const QString& name) {
+		for (int i = 0; i < galleryLines.size(); i++)
+		{
+			if (galleryLines[i].name == name)
+				return i;
+		}
+		return -1;
+	};
+	const int filterRow = rowIndex(QStringLiteral("filter"));
+	const int graphicRow = rowIndex(QStringLiteral("graphiceq"));
+	const int subwooferRow = rowIndex(QStringLiteral("subwooferrouting"));
+	GraphicEQPlotWidget* plot = graphicRow >= 0 ? allRows[graphicRow]->findChild<GraphicEQPlotWidget*>() : nullptr;
+	SubwooferRoutingCardView* summary = subwooferRow >= 0
+		? allRows[subwooferRow]->findChild<SubwooferRoutingCardView*>() : nullptr;
+	if (filterRow < 0 || plot == nullptr || summary == nullptr)
+	{
+		qWarning("SkinGallery: focus scenes are missing a row (%s %s)",
+			qPrintable(ctx.skinId), qPrintable(ctx.mode));
+		ctx.failures++;
+		return;
+	}
+
+	table->selectOnlyFromCard(table->documentItems().at(filterRow));
+	QApplication::processEvents();
+	ctx.failures += saveGrab(allRows[filterRow], ctx.outDir, ctx.skinId, ctx.mode,
+		QStringLiteral("focus"), QStringLiteral("card")) ? 0 : 1;
+
+	plot->setPreviewFocused(true);
+	QApplication::processEvents();
+	ctx.failures += saveGrab(allRows[graphicRow], ctx.outDir, ctx.skinId, ctx.mode,
+		QStringLiteral("focus"), QStringLiteral("geqplot")) ? 0 : 1;
+
+	summary->setPreviewFocused(true);
+	QApplication::processEvents();
+	ctx.failures += saveGrab(allRows[subwooferRow], ctx.outDir, ctx.skinId, ctx.mode,
+		QStringLiteral("focus"), QStringLiteral("subwoofer")) ? 0 : 1;
+}
+
 int renderSkin(const QDir& outDir, const QString& skinId, const QString& configPath, bool dark)
 {
 	SkinManager::instance()->applySkin(skinId, dark);
@@ -1470,6 +1560,7 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 	renderTableScenes(ctx);
 	renderVelvetScenes(ctx);
 	ctx.failures += renderReferenceCheckingScenes(outDir, skinId, mode, configPath);
+	renderFocusScenes(ctx);
 	return ctx.failures;
 }
 }

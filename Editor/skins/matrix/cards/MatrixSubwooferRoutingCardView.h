@@ -34,7 +34,9 @@ public:
 
 protected:
 	void applyState(const SubwooferRoutingCardState& state) override;
-	void paintEvent(QPaintEvent* event) override;
+	// No paintEvent: the view has no border of its own, so it paints no
+	// focus. A click on it focuses the card, and the card frame shows the
+	// focus (docs/skins/README.md, shared article 8).
 
 private:
 	const SkinTokens skinTokens;

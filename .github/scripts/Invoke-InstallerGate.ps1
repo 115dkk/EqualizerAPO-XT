@@ -145,6 +145,28 @@ function Assert-AudioService([string] $label) {
     throw "[$label] the audio service is '$state'; it was '$script:audioBaseline' before the gate"
 }
 
+# Names what kept the folder alive, so a failed removal says which file was
+# held and by whom instead of only that the folder is there.
+function Write-LeftoverReport([string] $label, [string] $folder) {
+    $files = @(Get-ChildItem -LiteralPath $folder -Recurse -Force -File -ErrorAction SilentlyContinue)
+    Write-Host "[$label] $($files.Count) file(s) left under $folder"
+    foreach ($file in $files) {
+        # An exclusive open fails while any other process holds the file,
+        # a loaded DLL or a running image included.
+        $held = $false
+        try { [IO.File]::Open($file.FullName, 'Open', 'ReadWrite', 'None').Dispose() } catch { $held = $true }
+        Write-Host ("[$label]   {0}{1}" -f $file.FullName.Substring($folder.Length), $(if ($held) { "  (held)" } else { "" }))
+    }
+    foreach ($process in Get-Process) {
+        $paths = @()
+        try { $paths = @($process.Modules | ForEach-Object { $_.FileName }) } catch { }
+        $inside = @($paths | Where-Object { $_ -and $_.StartsWith($folder, [StringComparison]::OrdinalIgnoreCase) })
+        if ($inside.Count -gt 0) {
+            Write-Host "[$label]   process $($process.ProcessName) ($($process.Id)) has loaded: $($inside -join ', ')"
+        }
+    }
+}
+
 function Assert-Removed([string] $label) {
     foreach ($classKey in $plan.ClassKeys) {
         if (Test-Path -LiteralPath $classKey) { throw "[$label] the APO's COM class is still registered: $classKey" }
@@ -153,7 +175,10 @@ function Assert-Removed([string] $label) {
     # Velopack removes the folder a moment after Update.exe returns.
     $deadline = (Get-Date).AddSeconds(60)
     while ((Test-Path -LiteralPath $current) -and (Get-Date) -lt $deadline) { Start-Sleep -Seconds 2 }
-    if (Test-Path -LiteralPath $current) { throw "[$label] $current is still there after the uninstall" }
+    if (Test-Path -LiteralPath $current) {
+        Write-LeftoverReport $label $current
+        throw "[$label] $current is still there after the uninstall"
+    }
     Assert-AudioService $label
     Write-Host "[$label] removed"
 }

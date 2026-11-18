@@ -105,20 +105,19 @@ void RackSkin::paintAddRow(QPainter& painter, const QRect& rect, const ListChrom
 	// finger - a lamp answer, not a button lift. The dark finish warms to the
 	// bronze of an engaged unit frame, so the bay and the units around it
 	// answer the pointer in one colour.
-	if (warm)
+	// Keyboard focus lights the same bezel edge in the focus colour (shared
+	// article 8): one line on the opening's own outline, never a second ring
+	// inside it. Under the finger the press heat keeps the edge.
+	if (warm || state.focused)
 	{
-		const QColor heat(dark ? RackSkinDetail::darkEngagedFrame() : tokens.accent);
-		painter.setPen(QPen(withAlpha(heat, state.pressed ? 190 : 120), 1));
+		QColor edge;
+		if (state.focused && !state.pressed)
+			edge = withAlpha(QColor(dark ? RackSkinDetail::darkEngagedFrame() : tokens.focusRing), 190);
+		else
+			edge = withAlpha(QColor(dark ? RackSkinDetail::darkEngagedFrame() : tokens.accent), state.pressed ? 190 : 120);
+		painter.setPen(QPen(edge, 1));
 		painter.setBrush(Qt::NoBrush);
 		painter.drawRoundedRect(r, radius, radius);
-	}
-
-	// Keyboard focus: the thin service ring just inside the opening.
-	if (state.focused)
-	{
-		painter.setPen(QPen(withAlpha(QColor(dark ? RackSkinDetail::darkEngagedFrame() : tokens.focusRing), 190), 1));
-		painter.setBrush(Qt::NoBrush);
-		painter.drawRoundedRect(r.adjusted(1.5, 1.5, -1.5, -1.5), radius - 1, radius - 1);
 	}
 }
 

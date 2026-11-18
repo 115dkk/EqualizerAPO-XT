@@ -27,6 +27,17 @@ bool ActivatableListChrome::isPressed() const
 	return pressed;
 }
 
+bool ActivatableListChrome::showsFocus() const
+{
+	return previewFocused || hasFocus();
+}
+
+void ActivatableListChrome::setPreviewFocused(bool focused)
+{
+	previewFocused = focused;
+	update();
+}
+
 void ActivatableListChrome::enterEvent(QEnterEvent*)
 {
 	hovered = true;

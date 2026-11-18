@@ -45,8 +45,8 @@ void MatrixSkin::paintAddRow(QPainter& painter, const QRect& rect, const ListChr
 		// Outer rule: dashed while the slot is vacant, solid accent while
 		// being engaged (pressed = the picker is about to post here). Hover
 		// pre-lights the dash in accent; keyboard focus is NOT a pre-light -
-		// it gets the square cell bracket below (the knob focus grammar), so
-		// a merely focused slot still reads at rest.
+		// it engages the designation cell's own rule below, so a merely
+		// focused slot still reads at rest.
 		const bool preLit = state.hovered;
 		painter.setPen(QPen(QColor(state.pressed || preLit ? tokens.accent : tokens.border), 1,
 			state.pressed ? Qt::SolidLine : Qt::DashLine));
@@ -61,21 +61,15 @@ void MatrixSkin::paintAddRow(QPainter& painter, const QRect& rect, const ListChr
 		const QFontMetrics monoMetrics(mono);
 		const int designationWidth = monoMetrics.horizontalAdvance(QStringLiteral("+")) + 12;
 		const QRect designationRect(cell.left() + 10, cell.center().y() - 9, designationWidth, 18);
-		painter.setPen(QPen(QColor(state.pressed || preLit ? tokens.accent : tokens.border), 1));
+		// Keyboard focus engages this cell's own rule in accent (shared
+		// article 8) rather than bracketing it in a second square.
+		painter.setPen(QPen(QColor(state.pressed || preLit || state.focused ? tokens.accent : tokens.border), 1));
 		painter.setBrush(state.pressed ? QColor(tokens.accent) : QColor(tokens.surfaceSunken));
 		painter.drawRect(designationRect.adjusted(0, 0, -1, -1));
 		painter.setFont(mono);
 		painter.setPen(state.pressed ? QColor(tokens.background)
 			: (preLit ? QColor(tokens.accent) : QColor(tokens.mutedText)));
 		painter.drawText(designationRect, Qt::AlignCenter, QStringLiteral("+"));
-
-		// Keyboard focus: a square cell bracket around the designation cell.
-		if (state.focused && !state.pressed)
-		{
-			painter.setPen(QPen(QColor(tokens.accent), 1));
-			painter.setBrush(Qt::NoBrush);
-			painter.drawRect(designationRect.adjusted(-3, -3, 2, 2));
-		}
 
 		// Mono board caption; body ink while the crosspoint is lit.
 		QFont caption(tokens.monoFontFamily);

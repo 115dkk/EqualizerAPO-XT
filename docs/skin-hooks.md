@@ -360,9 +360,16 @@ with which the card editors skip the audio-service ACL probe (scratch files have
 meaningful ACL story). The filter picker is captured in three states
 (`normal`, `hover`, `empty`; pickers that do not implement
 `FilterPickerView::galleryShowcase` repeat their normal look), plus one shot
-each for the toolbar, title bar, menu bar and an open menu, two for the
-add-card row (`addrow` normal/hover), one for the insertion seam's hover
-reveal (`seam`) and one for the update toast (`toast`). Output names are
+each for the toolbar, title bar, menu bar and an open menu, three for the
+add-card row (`addrow` normal/hover/focused), one for the insertion seam's hover
+reveal (`seam`) and one for the update toast (`toast`). Keyboard focus has its
+own shots, judged against shared article 8 of docs/skins/README.md: the metric
+switch in `segment_focused` and `segment_focushover`, and the `focus` scene
+with the focused card (`card`), the GraphicEQ plot (`geqplot`) and the
+subwoofer summary (`subwoofer`). The card is focused through
+`FilterTable::selectOnlyFromCard`, the path a click takes; the other widgets
+take their `setPreviewFocused` hook rather than real focus, which offscreen
+depends on window activation. Output names are
 stable: `<skin>_<dark|light>_<row>_<state>.png`,
 5 × 2 × (21 × 3 + 12) = 750 PNGs
 for a full run; the run self-checks the count, so adding a gallery row needs

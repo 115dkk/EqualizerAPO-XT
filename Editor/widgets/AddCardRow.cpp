@@ -42,7 +42,7 @@ void AddCardRow::paintEvent(QPaintEvent*)
 	ListChromeState state;
 	state.hovered = isHovered();
 	state.pressed = isPressed();
-	state.focused = hasFocus();
+	state.focused = showsFocus();
 	state.label = tr("Add filter");
 	// The same horizontal inset as the card rows' outer layout (8px), so the
 	// skin paints on the exact column the cards occupy.
