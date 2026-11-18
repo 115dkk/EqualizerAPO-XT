@@ -12,6 +12,7 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   다크 모드로 두면 Legacy Rows 화면의 밝은 행과 메뉴에 흰 글자가 올라갔습니다.
   이제 Legacy Rows는 Windows 색 모드와 관계없이 원래의 밝은 색으로 나옵니다.
   Editor 밖에서 `QT_QPA_PLATFORM`을 지정했다면 그 값을 그대로 따릅니다.
+  ([#490](https://github.com/115dkk/EqualizerAPO-XT/pull/490))
 
 ## v2.65.6 — 2026-11-18
 

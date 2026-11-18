@@ -19,6 +19,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   rows and menus. Legacy Rows now always uses its classic light colours,
   whatever the Windows colour mode is. A `QT_QPA_PLATFORM` value set
   outside the Editor still takes precedence.
+  ([#490](https://github.com/115dkk/EqualizerAPO-XT/pull/490))
 
 ## v2.65.6 — 2026-11-18
 
