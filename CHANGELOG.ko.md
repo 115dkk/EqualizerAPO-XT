@@ -8,6 +8,14 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **업데이트 뒤에 오디오 엔진이 이전 버전으로 계속 동작하지 않습니다.** Editor가
+  업데이트된 뒤에도 Windows 오디오가 이전 엔진을 그대로 쓰는 경우가 있어서,
+  재부팅하거나 오디오 서비스를 직접 다시 시작해야 새 버전이 적용됐습니다. 이제
+  업데이트할 때 Windows 오디오 서비스와 함께 AudioEndpointBuilder를 다시
+  시작해 Windows가 새 엔진을 불러옵니다. 업데이트 중 몇 초 동안 소리가 끊기는
+  것은 전과 같습니다. 실제 업데이트에서는 아직 확인하지 못했습니다.
+  ([#474](https://github.com/115dkk/EqualizerAPO-XT/pull/474))
+
 ## v2.64.0 — 2026-11-17
 
 - **닿지 않는 파일을 가리키는 줄 때문에 Editor가 멈추지 않습니다.** Include,

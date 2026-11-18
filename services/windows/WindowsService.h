@@ -31,6 +31,10 @@ public:
 	static void restart(const std::wstring& serviceName, unsigned timeoutMs = 30000);
 	static bool stop(const std::wstring& serviceName, unsigned timeoutMs, bool* wasActive = nullptr);
 	static void start(const std::wstring& serviceName, unsigned timeoutMs);
+	// Captures active dependents before stopping any of them. The output survives
+	// a partial stop failure so the caller can restore them in reverse order.
+	static void stopWithDependents(const std::wstring& serviceName, unsigned timeoutMs,
+		bool* wasActive, std::vector<std::wstring>& activeDependents);
 };
 
 class WindowsService
