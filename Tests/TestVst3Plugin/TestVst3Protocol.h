@@ -33,6 +33,9 @@ constexpr wchar_t faultActive[] = L"FaultActive.vst3";
 constexpr wchar_t faultState[] = L"FaultState.vst3";
 constexpr wchar_t refuseState[] = L"RefuseState.vst3";
 constexpr wchar_t fullName[] = L"FullName.vst3";
+constexpr wchar_t spuriousDirty[] = L"SpuriousDirty.vst3";
+constexpr wchar_t readOnlyMeter[] = L"ReadOnlyMeter.vst3";
+constexpr wchar_t volatileState[] = L"VolatileState.vst3";
 }
 
 #pragma pack(push, 1)

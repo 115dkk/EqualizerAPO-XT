@@ -34,6 +34,7 @@
 #include "Editor/helpers/VstChunkScan.h"
 #include "Editor/helpers/VstChunkState.h"
 #include "Editor/helpers/VstPanelCall.h"
+#include "vst/VSTStateSemantic.h"
 
 using std::unordered_map;
 using std::wstring;
@@ -390,6 +391,7 @@ void VSTPluginSession::openDialog(QWidget* dialogParent)
 		reportPanelCrash();
 		return;
 	}
+	captureSemanticBaseline();
 
 	// Before the dialog's startEditing: the feed prepares the instance for
 	// the loopback mix format, which must happen while the processor is
@@ -412,7 +414,7 @@ void VSTPluginSession::openDialog(QWidget* dialogParent)
 
 	// OK and Apply store the state only when it moved, like the read-back.
 	if (dialog.exec() == QDialog::Accepted)
-		readBack();
+		readBack(true);
 	disconnect(QAbstractEventDispatcher::instance(), &QAbstractEventDispatcher::aboutToBlock,
 		this, &VSTPluginSession::onIdle);
 	previewFeeder.stop();
@@ -427,6 +429,7 @@ bool VSTPluginSession::setEmbedded(bool enable, QWidget* host)
 		return isEmbedded;
 
 	isEmbedded = enable;
+	bool stateStoredOnClose = false;
 	if (enable)
 	{
 		// Before embedPlugin()'s startEditing, for the same deactivation
@@ -463,6 +466,7 @@ bool VSTPluginSession::setEmbedded(bool enable, QWidget* host)
 		scaleWatchWindow = nullptr;
 		if (effect != nullptr)
 		{
+			stateStoredOnClose = readAndStoreState(false, true, false);
 			releasePanelProcessing();
 			effect->stopEditing();
 			effect->setSizeWindowFunc(nullptr);
@@ -470,7 +474,10 @@ bool VSTPluginSession::setEmbedded(bool enable, QWidget* host)
 		disconnect(QAbstractEventDispatcher::instance(), &QAbstractEventDispatcher::aboutToBlock,
 			this, &VSTPluginSession::onIdle);
 	}
-	return isEmbedded;
+	const bool result = isEmbedded;
+	if (stateStoredOnClose)
+		emit stateChanged();
+	return result;
 }
 
 bool VSTPluginSession::eventFilter(QObject* watched, QEvent* event)
@@ -560,22 +567,51 @@ void VSTPluginSession::onIdle()
 	}
 }
 
-void VSTPluginSession::readBack()
+void VSTPluginSession::readBack(bool forceRawState)
+{
+	readAndStoreState(false, forceRawState);
+	lastReadTimer.restart();
+}
+
+bool VSTPluginSession::readAndStoreState(bool automated, bool forceRawState, bool announce)
 {
 	wstring newChunkData;
 	unordered_map<wstring, float> newParamMap;
 	effect->readFromEffect(newChunkData, newParamMap);
-	lastReadTimer.restart();
+	VSTPluginInstance::WritableParameterValues writableParameters;
+	const bool newSemanticStateAvailable = effect->readWritableParameterValues(writableParameters);
+	const uint64_t editSequence = effect->parameterEditSequence();
 	// Some plug-ins (Kilohearts) write their state as a ZIP archive anew on
 	// every read, so only its file times move. Compared byte for byte, that
 	// rewrote the line and marked the document unsaved every second or two
 	// with nothing touched (#459); the stored chunk stays as it was.
-	if (!vstChunksEquivalent(newChunkData, currentChunkData) || newParamMap != currentParamMap)
+	const bool rawStateChanged = !vstChunksEquivalent(newChunkData, currentChunkData)
+		|| newParamMap != currentParamMap;
+	if (!vststate::shouldStore(rawStateChanged,
+		semanticStateAvailable && newSemanticStateAvailable,
+		committedWritableParameters, writableParameters,
+		committedParameterEditSequence, editSequence, forceRawState))
+		return false;
+
+	currentChunkData = std::move(newChunkData);
+	currentParamMap = std::move(newParamMap);
+	committedWritableParameters = std::move(writableParameters);
+	committedParameterEditSequence = editSequence;
+	semanticStateAvailable = newSemanticStateAvailable;
+	if (announce)
 	{
-		currentChunkData = std::move(newChunkData);
-		currentParamMap = std::move(newParamMap);
-		emit stateChanged();
+		if (automated)
+			emit this->automated();
+		else
+			emit stateChanged();
 	}
+	return true;
+}
+
+void VSTPluginSession::captureSemanticBaseline()
+{
+	semanticStateAvailable = effect->readWritableParameterValues(committedWritableParameters);
+	committedParameterEditSequence = effect->parameterEditSequence();
 }
 
 void VSTPluginSession::onAutomate()
@@ -589,18 +625,7 @@ void VSTPluginSession::onAutomate()
 		return;
 
 	if (isEmbedded || autoApply)
-	{
-		// Stored and announced only when it moved, like the read-back.
-		wstring newChunkData;
-		unordered_map<wstring, float> newParamMap;
-		effect->readFromEffect(newChunkData, newParamMap);
-		if (!vstChunksEquivalent(newChunkData, currentChunkData) || newParamMap != currentParamMap)
-		{
-			currentChunkData = std::move(newChunkData);
-			currentParamMap = std::move(newParamMap);
-			emit automated();
-		}
-	}
+		readAndStoreState(true);
 }
 
 bool VSTPluginSession::embedPlugin(QWidget* host)
@@ -613,6 +638,7 @@ bool VSTPluginSession::embedPlugin(QWidget* host)
 	writingState = false;
 	if (!restored)
 		return false;
+	captureSemanticBaseline();
 
 	HWND hwnd = (HWND)host->winId();
 	short width = 0, height = 0;

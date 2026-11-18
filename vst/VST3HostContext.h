@@ -77,8 +77,8 @@ public:
 		VST3Instance* target = attachedInstance();
 		if (target == NULL)
 			return Steinberg::kResultFalse;
-		target->onVST3ParameterEdit(id, value);
-		return Steinberg::kResultOk;
+		return target->onVST3ParameterEdit(id, value)
+			? Steinberg::kResultOk : Steinberg::kResultFalse;
 	}
 	Steinberg::tresult PLUGIN_API endEdit(Steinberg::Vst::ParamID) override { return attachedResult(); }
 	// Honest answer: this host does not re-read parameter layout / latency on

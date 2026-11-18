@@ -22,6 +22,18 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   the control already has: on a switch, the selected key's own edge.
   ([#486](https://github.com/115dkk/EqualizerAPO-XT/pull/486))
 
+## v2.65.5 — 2026-11-18
+
+- **An untouched VST3 panel with Auto Apply no longer keeps marking the
+  configuration as modified.** Some VST3 plug-ins report themselves dirty,
+  move a read-only meter, or write slightly different state bytes on every
+  read while nobody touches them. Each of these stored the plug-in line
+  again, so the `*` kept coming and going and audiodg kept rereading the
+  configuration. Only a changed writable parameter, or a state change after
+  a real parameter edit, is stored now. Other state changes are kept when the
+  dialog's OK is pressed or the embedded panel is closed.
+  ([#488](https://github.com/115dkk/EqualizerAPO-XT/pull/488))
+
 ## v2.65.4 — 2026-11-18
 
 - **Long impulse responses no longer cause dropouts.** A Convolution or

@@ -40,6 +40,7 @@ namespace
 const TUID componentCid = INLINE_UID(0x7A53DB11, 0x446B41D4, 0x9D7659A1, 0x19A23401);
 const TUID controllerCid = INLINE_UID(0xC49B9B30, 0x72E44A1B, 0x935EAB31, 0x2EEFA402);
 constexpr ParamID gainParamId = 100;
+constexpr ParamID meterParamId = 101;
 
 enum class ComponentScenario
 {
@@ -62,6 +63,9 @@ bool faultActiveMode = false;
 bool faultStateMode = false;
 bool refuseStateMode = false;
 bool fullNameMode = false;
+bool spuriousDirtyMode = false;
+bool readOnlyMeterMode = false;
+bool volatileStateMode = false;
 bool floatOnlyMode = false;
 bool surround41Mode = false;
 bool surround41CineOnlyMode = false;
@@ -88,6 +92,8 @@ std::atomic<unsigned long long> surround41AcceptedOutputArrangement{
 std::atomic<bool> idleFlushInProgress{false};
 // Every parameter change the processor received, over all process calls.
 std::atomic<int> receivedParameterChangeCount{0};
+std::atomic<unsigned long long> volatileStateReadCount{0};
+std::atomic<int> readOnlyMeterAttachCount{0};
 // RetainHandler.vst3 mode: the component handler kept past the host's
 // setComponentHandler(nullptr), the way a misbehaving plug-in would.
 IComponentHandler* retainedHandler = nullptr;
@@ -177,8 +183,10 @@ bool readControllerState(IBStream* stream, ControllerPrivateState& state)
 class TestView final : public IPlugView, public IPlugViewContentScaleSupport, private RefCounted
 {
 public:
-	TestView(PluginState* state, IComponentHandler* handler, ControllerPrivateState* privateState, bool* privateStateDirty)
-		: state(state), handler(handler), privateState(privateState), privateStateDirty(privateStateDirty)
+	TestView(PluginState* state, IComponentHandler* handler, ControllerPrivateState* privateState,
+		bool* privateStateDirty, ParamValue* meterValue)
+		: state(state), handler(handler), privateState(privateState), privateStateDirty(privateStateDirty),
+		meterValue(meterValue)
 	{
 		if (handler != nullptr)
 			handler->addRef();
@@ -227,6 +235,23 @@ public:
 		{
 			ViewRect requested(0, 0, 360, 220);
 			frame->resizeView(this, &requested);
+		}
+		if (handler != nullptr && readOnlyMeterMode && meterValue != nullptr)
+		{
+			*meterValue = (readOnlyMeterAttachCount.fetch_add(1) % 2) == 0 ? 0.25 : 0.75;
+			handler->beginEdit(meterParamId);
+			handler->performEdit(meterParamId, *meterValue);
+			handler->endEdit(meterParamId);
+		}
+		if (handler != nullptr && spuriousDirtyMode)
+		{
+			IComponentHandler2* extendedHandler = nullptr;
+			if (handler->queryInterface(IComponentHandler2::iid,
+				reinterpret_cast<void**>(&extendedHandler)) == kResultOk && extendedHandler != nullptr)
+			{
+				extendedHandler->setDirty(true);
+				extendedHandler->release();
+			}
 		}
 		return kResultOk;
 	}
@@ -359,6 +384,7 @@ private:
 	IComponentHandler* handler = nullptr;
 	ControllerPrivateState* privateState = nullptr;
 	bool* privateStateDirty = nullptr;
+	ParamValue* meterValue = nullptr;
 	HWND parentWindow = nullptr;
 	HWND window = nullptr;
 	WNDPROC originalWindowProc = nullptr;
@@ -493,7 +519,20 @@ public:
 	}
 	tresult PLUGIN_API getState(IBStream* stream) override
 	{
-		return componentStateUnavailable ? kNotImplemented : writeState(stream, state);
+		if (componentStateUnavailable)
+			return kNotImplemented;
+		if (volatileStateMode || spuriousDirtyMode)
+		{
+			char data[sizeof(PluginState) + sizeof(unsigned long long)] = {};
+			const unsigned long long readSerial = ++volatileStateReadCount;
+			std::memcpy(data, &state, sizeof(state));
+			std::memcpy(data + sizeof(state), &readSerial, sizeof(readSerial));
+			int32 bytesWritten = 0;
+			const int32 byteCount = static_cast<int32>(sizeof(data));
+			return stream != nullptr && stream->write(data, byteCount, &bytesWritten) == kResultOk
+				&& bytesWritten == byteCount ? kResultOk : kResultFalse;
+		}
+		return writeState(stream, state);
 	}
 
 	tresult PLUGIN_API setBusArrangements(SpeakerArrangement* inputs, int32 numIns,
@@ -547,6 +586,16 @@ public:
 			return kResultFalse;
 		if (ignoreParameterFlushMode && data.numSamples == 0)
 			return kResultOk;
+		if (readOnlyMeterMode && data.outputParameterChanges != nullptr)
+		{
+			int32 parameterIndex = 0;
+			IParamValueQueue* meter = data.outputParameterChanges->addParameterData(meterParamId, parameterIndex);
+			if (meter != nullptr)
+			{
+				int32 pointIndex = 0;
+				meter->addPoint(0, 0.5, pointIndex);
+			}
+		}
 		if (data.inputParameterChanges != nullptr)
 		{
 			for (int32 parameterIndex = 0; parameterIndex < data.inputParameterChanges->getParameterCount(); ++parameterIndex)
@@ -1131,17 +1180,27 @@ public:
 	{
 		return privateStateDirty ? writeState(stream, privateState) : kNotImplemented;
 	}
-	int32 PLUGIN_API getParameterCount() override { return 1; }
+	int32 PLUGIN_API getParameterCount() override { return readOnlyMeterMode ? 2 : 1; }
 	tresult PLUGIN_API getParameterInfo(int32 index, ParameterInfo& info) override
 	{
-		if (index != 0)
+		if (index < 0 || index >= getParameterCount())
 			return kInvalidArgument;
 		std::memset(&info, 0, sizeof(info));
-		info.id = gainParamId;
-		copyString128(info.title, L"Gain");
-		copyString128(info.shortTitle, L"Gain");
-		info.defaultNormalizedValue = 1.0;
-		info.flags = ParameterInfo::kCanAutomate;
+		if (index == 1)
+		{
+			info.id = meterParamId;
+			copyString128(info.title, L"Meter");
+			copyString128(info.shortTitle, L"Meter");
+			info.flags = ParameterInfo::kIsReadOnly;
+		}
+		else
+		{
+			info.id = gainParamId;
+			copyString128(info.title, L"Gain");
+			copyString128(info.shortTitle, L"Gain");
+			info.defaultNormalizedValue = 1.0;
+			info.flags = ParameterInfo::kCanAutomate;
+		}
 		return kResultOk;
 	}
 	tresult PLUGIN_API getParamStringByValue(ParamID id, ParamValue value, String128 string) override
@@ -1160,9 +1219,14 @@ public:
 	}
 	ParamValue PLUGIN_API normalizedParamToPlain(ParamID, ParamValue value) override { return value; }
 	ParamValue PLUGIN_API plainParamToNormalized(ParamID, ParamValue value) override { return value; }
-	ParamValue PLUGIN_API getParamNormalized(ParamID id) override { return id == gainParamId ? state.gain : 0.0; }
+	ParamValue PLUGIN_API getParamNormalized(ParamID id) override
+	{
+		return id == gainParamId ? state.gain : id == meterParamId ? meterValue : 0.0;
+	}
 	tresult PLUGIN_API setParamNormalized(ParamID id, ParamValue value) override
 	{
+		if (id == meterParamId)
+			return kResultFalse;
 		if (id != gainParamId)
 			return kInvalidArgument;
 		state.gain = value;
@@ -1194,7 +1258,7 @@ public:
 	IPlugView* PLUGIN_API createView(FIDString name) override
 	{
 		return hasHostInterfaceSupport && hasExtendedHandler && name != nullptr && std::strcmp(name, ViewType::kEditor) == 0
-			? new TestView(&state, handler, &privateState, &privateStateDirty) : nullptr;
+			? new TestView(&state, handler, &privateState, &privateStateDirty, &meterValue) : nullptr;
 	}
 
 private:
@@ -1210,6 +1274,7 @@ private:
 	PluginState state{};
 	ControllerPrivateState privateState{};
 	bool privateStateDirty = false;
+	ParamValue meterValue = 0.0;
 };
 
 IEditController* createTestController()
@@ -1376,6 +1441,9 @@ extern "C" __declspec(dllexport) bool InitDll()
 	faultStateMode = wcsstr(moduleName, testvst3::mode::faultState) != nullptr;
 	refuseStateMode = wcsstr(moduleName, testvst3::mode::refuseState) != nullptr;
 	fullNameMode = wcsstr(moduleName, testvst3::mode::fullName) != nullptr;
+	spuriousDirtyMode = wcsstr(moduleName, testvst3::mode::spuriousDirty) != nullptr;
+	readOnlyMeterMode = wcsstr(moduleName, testvst3::mode::readOnlyMeter) != nullptr;
+	volatileStateMode = wcsstr(moduleName, testvst3::mode::volatileState) != nullptr;
 	floatOnlyMode = wcsstr(moduleName, testvst3::mode::floatOnly) != nullptr;
 	if (wcsstr(moduleName, testvst3::mode::rejectInit) != nullptr)
 		return false;
@@ -1401,6 +1469,8 @@ extern "C" __declspec(dllexport) bool InitDll()
 		static_cast<DWORD>(sizeof(hostContextMode) / sizeof(hostContextMode[0]))) > 0
 		&& wcscmp(hostContextMode, L"notimpl") == 0;
 	ignoreParameterFlushMode = wcsstr(moduleName, testvst3::mode::ignoreParameterFlush) != nullptr;
+	volatileStateReadCount.store(0);
+	readOnlyMeterAttachCount.store(0);
 	upmixerProcessCount.store(0);
 	surround41AcceptedOutputArrangement.store(
 		static_cast<unsigned long long>(SpeakerArr::kStereo));
@@ -1430,6 +1500,9 @@ extern "C" __declspec(dllexport) bool ExitDll()
 	latency512Mode = false;
 	auxBusMode = false;
 	retainHandlerMode = false;
+	spuriousDirtyMode = false;
+	readOnlyMeterMode = false;
+	volatileStateMode = false;
 	hostContextNotImplementedMode = false;
 	ignoreParameterFlushMode = false;
 	return true;

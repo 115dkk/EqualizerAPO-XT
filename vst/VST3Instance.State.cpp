@@ -170,8 +170,9 @@ VSTPluginInstance::StateRestoreResult VST3Instance::writeToEffect(const std::wst
 			unsigned dropped = 0;
 			for (const VST3HostParameterState& parameter : parameters)
 			{
-				if (vst3Controller != NULL)
-					vst3Controller->setParamNormalized(parameter.id, parameter.value);
+				if (isVST3ParameterReadOnly(parameter.id))
+					continue;
+				vst3Controller->setParamNormalized(parameter.id, parameter.value);
 				if (!queueRestoredParameterEdit(parameter.id, parameter.value))
 					dropped++;
 				parameterQueued = true;
@@ -191,6 +192,7 @@ VSTPluginInstance::StateRestoreResult VST3Instance::writeToEffect(const std::wst
 			{
 				ParameterInfo info;
 				if (vst3Controller->getParameterInfo(i, info) == kResultOk
+					&& (info.flags & ParameterInfo::kIsReadOnly) == 0
 					&& it.first == fromString128(info.title))
 				{
 					vst3Controller->setParamNormalized(info.id, it.second);
@@ -254,6 +256,52 @@ void VST3Instance::readFromEffect(std::wstring& chunkData,
 				paramMap[fromString128(info.title)] = (float)vst3Controller->getParamNormalized(info.id);
 		}
 	}
+}
+
+bool VST3Instance::isVST3ParameterWritable(ParamID id) const
+{
+	if (vst3Controller == NULL)
+		return false;
+	for (int32 i = 0; i < vst3Controller->getParameterCount(); i++)
+	{
+		ParameterInfo info;
+		if (vst3Controller->getParameterInfo(i, info) == kResultOk && info.id == id)
+			return (info.flags & ParameterInfo::kIsReadOnly) == 0;
+	}
+	return false;
+}
+
+bool VST3Instance::isVST3ParameterReadOnly(ParamID id) const
+{
+	if (vst3Controller == NULL)
+		return false;
+	for (int32 i = 0; i < vst3Controller->getParameterCount(); i++)
+	{
+		ParameterInfo info;
+		if (vst3Controller->getParameterInfo(i, info) == kResultOk && info.id == id)
+			return (info.flags & ParameterInfo::kIsReadOnly) != 0;
+	}
+	return false;
+}
+
+bool VST3Instance::readWritableParameterValues(WritableParameterValues& values) const
+{
+	values.clear();
+	if (vst3Controller == NULL)
+		return false;
+	for (int32 i = 0; i < vst3Controller->getParameterCount(); i++)
+	{
+		ParameterInfo info;
+		if (vst3Controller->getParameterInfo(i, info) == kResultOk
+			&& (info.flags & ParameterInfo::kIsReadOnly) == 0)
+			values.emplace_back(info.id, vst3Controller->getParamNormalized(info.id));
+	}
+	return true;
+}
+
+uint64_t VST3Instance::parameterEditSequence() const
+{
+	return vst3ParameterEditSequence.load(memory_order_acquire);
 }
 
 void VST3Instance::reportDroppedRestoredParameters(unsigned dropped) const
