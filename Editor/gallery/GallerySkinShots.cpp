@@ -41,6 +41,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QMenu>
+#include <QMessageBox>
 #include <QMenuBar>
 #include <QPixmap>
 #include <QPointer>
@@ -109,7 +110,9 @@ const QList<GalleryScenario>& galleryScenarios()
 		{ QStringLiteral("analysis"), { QStringLiteral("normal") } },
 		{ QStringLiteral("titlebar"), { QStringLiteral("normal") } },
 		{ QStringLiteral("menubar"), { QStringLiteral("normal") } },
-		{ QStringLiteral("menu"), { QStringLiteral("normal") } },
+		{ QStringLiteral("menu"), { QStringLiteral("normal"), QStringLiteral("settings"),
+			QStringLiteral("troubleshooting") } },
+		{ QStringLiteral("enginerestart"), { QStringLiteral("prompt") } },
 		{ QStringLiteral("addrow"), { QStringLiteral("normal"), QStringLiteral("hover") } },
 		{ QStringLiteral("seam"), { QStringLiteral("hover") } },
 		{ QStringLiteral("toast"), { QStringLiteral("normal") } },
@@ -789,6 +792,7 @@ void renderChromeScenes(SkinRenderContext& ctx)
 		menuBar->addMenu(QStringLiteral("Edit"));
 		menuBar->addMenu(QStringLiteral("View"));
 		menuBar->addMenu(QStringLiteral("Settings"));
+		menuBar->addMenu(QStringLiteral("Troubleshooting"));
 		menuBar->addMenu(QStringLiteral("설정"));
 		menuBar->resize(960, menuBar->sizeHint().height());
 		menuBar->show();
@@ -816,6 +820,55 @@ void renderChromeScenes(SkinRenderContext& ctx)
 		QApplication::processEvents();
 		failures += saveGrab(menu, outDir, skinId, mode, QStringLiteral("menu"), QStringLiteral("normal")) ? 0 : 1;
 		delete menu;
+	}
+
+	// The Settings menu as MainWindow.ui builds it, with the checkable
+	// "Automatic updates" item in its default (checked) state.
+	{
+		QMenu* menu = new QMenu();
+		menu->setObjectName(QStringLiteral("GalleryMenu"));
+		menu->addAction(QStringLiteral("APO settings"));
+		menu->addAction(QStringLiteral("Open program folder"));
+		menu->addSeparator();
+		menu->addMenu(QStringLiteral("Language"));
+		QAction* automatic = menu->addAction(QStringLiteral("Automatic updates"));
+		automatic->setCheckable(true);
+		automatic->setChecked(true);
+		menu->addSeparator();
+		menu->addAction(QStringLiteral("Reset all global preferences"));
+		menu->addAction(QStringLiteral("Reset all file-specific preferences"));
+		menu->show();
+		QApplication::processEvents();
+		failures += saveGrab(menu, outDir, skinId, mode, QStringLiteral("menu"), QStringLiteral("settings")) ? 0 : 1;
+		delete menu;
+	}
+
+	// The Troubleshooting menu as MainWindow.ui builds it.
+	{
+		QMenu* menu = new QMenu();
+		menu->setObjectName(QStringLiteral("GalleryMenu"));
+		menu->addAction(QStringLiteral("Restart Windows audio service"));
+		menu->addAction(QStringLiteral("Check for updates"));
+		menu->addAction(QStringLiteral("Report a problem"));
+		menu->show();
+		QApplication::processEvents();
+		failures += saveGrab(menu, outDir, skinId, mode, QStringLiteral("menu"), QStringLiteral("troubleshooting")) ? 0 : 1;
+		delete menu;
+	}
+
+	// The question the Editor asks at startup when audiodg still runs an
+	// older engine than the installed one (MainWindow::doChecks).
+	{
+		QMessageBox box(QMessageBox::Question, QStringLiteral("Audio engine out of date"),
+			QStringLiteral("The audio engine is still running Equalizer APO 2.64.0, but 2.65.0 is installed. "
+				"Windows audio has to restart before the new version takes over.\n\n"
+				"Restart Windows audio now? Sound stops for a few seconds."),
+			QMessageBox::Yes | QMessageBox::No);
+		box.setDefaultButton(QMessageBox::Yes);
+		box.show();
+		QApplication::processEvents();
+		failures += saveGrab(&box, outDir, skinId, mode, QStringLiteral("enginerestart"), QStringLiteral("prompt")) ? 0 : 1;
+		box.hide();
 	}
 }
 
