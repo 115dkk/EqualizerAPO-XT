@@ -357,6 +357,78 @@ TEST_CASE(VstHostTests, testEngineFaultContainment)
 	}
 }
 
+TEST_CASE(VstHostTests, testNonFiniteOutputContainment)
+{
+	auto library = VSTPluginLibrary::getInstance(exeDirectory() + L"\\TestVst2Plugin.dll");
+	harness.require(VSTPluginLibrary::load(library->getLibPath()).succeeded(), "non-finite VST2 fixture loads");
+	FILE* logFile = nullptr;
+	harness.require(tmpfile_s(&logFile) == 0 && logFile != nullptr, "non-finite VST2 log capture opens");
+	Logging::useStream(logFile, false, true, false);
+	SetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", L"NanOutput");
+	{
+		VSTPluginFilter filter(library, encodeChunk({kChunkMagic, kChunkVersion, 0.5f, 0.0f}), {});
+		filter.initialize(48000.0f, 4, {L"L", L"R"});
+		SetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", nullptr);
+		double inLeft[] = {0.25, 0.5, 0.75, 1.0}, inRight[] = {-0.25, -0.5, -0.75, -1.0};
+		double outLeft[4] = {}, outRight[4] = {};
+		double* input[] = {inLeft, inRight};
+		double* output[] = {outLeft, outRight};
+		for (int block = 0; block < 2; block++)
+		{
+			filter.process(output, input, 4);
+			for (int frame = 0; frame < 4; frame++)
+			{
+				harness.expectTrue(std::isfinite(outLeft[frame]) && std::isfinite(outRight[frame]),
+					"non-finite VST2 output never escapes the filter");
+				harness.expectNear(outLeft[frame], inLeft[frame], 0.0,
+					"non-finite VST2 passes the current and later blocks through");
+				harness.expectNear(outRight[frame], inRight[frame], 0.0,
+					"non-finite VST2 preserves every channel");
+			}
+		}
+		harness.expectEqual(std::ftell(logFile), 0L, "non-finite VST2 report is deferred until teardown");
+	}
+	std::fflush(logFile);
+	std::rewind(logFile);
+	wstring log;
+	wchar_t text[1024] = {};
+	while (std::fgetws(text, 1024, logFile) != nullptr)
+		log.append(text);
+	Logging::useStream(stdout, true, true, false);
+	std::fclose(logFile);
+	const wchar_t* marker = L"produced NaN or infinite samples";
+	const size_t first = log.find(marker);
+	harness.expectTrue(first != wstring::npos && log.find(marker, first + 1) == wstring::npos,
+		"non-finite VST2 output is reported exactly once");
+	harness.expectTrue(log.find(library->getLibPath()) != wstring::npos,
+		"non-finite VST2 report identifies the library");
+}
+
+TEST_CASE(VstHostTests, testStateDependentLatencyIsRefreshed)
+{
+	auto library = VSTPluginLibrary::getInstance(exeDirectory() + L"\\TestVst2Plugin.dll");
+	harness.require(VSTPluginLibrary::load(library->getLibPath()).succeeded(), "state-latency VST2 fixture loads");
+	FILE* logFile = nullptr;
+	harness.require(tmpfile_s(&logFile) == 0 && logFile != nullptr, "state-latency VST2 log capture opens");
+	Logging::useStream(logFile, false, true, false);
+	SetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", L"StateLatency");
+	{
+		VSTPluginFilter filter(library, encodeChunk({kChunkMagic, kChunkVersion, 0.5f, 0.0f}), {});
+		filter.initialize(48000.0f, 4, {L"L", L"R"});
+	}
+	SetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", nullptr);
+	std::fflush(logFile);
+	std::rewind(logFile);
+	wstring log;
+	wchar_t text[1024] = {};
+	while (std::fgetws(text, 1024, logFile) != nullptr)
+		log.append(text);
+	Logging::useStream(stdout, true, true, false);
+	std::fclose(logFile);
+	harness.expectTrue(log.find(L"reports 64 samples of latency after loading its state (0 before)") != wstring::npos,
+		"VST2 load reports the post-state latency used for compensation");
+}
+
 bool panelFaultEscapes(VSTPluginInstance* instance, bool restore,
 	const wstring& chunk, const unordered_map<wstring, float>& parameters, bool& escaped)
 {
