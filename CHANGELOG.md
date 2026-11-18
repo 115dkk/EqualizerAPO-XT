@@ -22,6 +22,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   configuration. Only a changed writable parameter, or a state change after
   a real parameter edit, is stored now. Other state changes are kept when the
   dialog's OK is pressed or the embedded panel is closed.
+  ([#488](https://github.com/115dkk/EqualizerAPO-XT/pull/488))
 
 ## v2.65.4 — 2026-11-18
 
