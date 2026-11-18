@@ -38,6 +38,7 @@
 #include "platform/windows/WindowsPath.h"
 #include "Tests/TestVst3Plugin/TestVst3Protocol.h"
 #include "vst/VST3MemoryStream.h"
+#include "vst/VSTStateSemantic.h"
 #include "services/logging/Logging.h"
 
 using std::shared_ptr;
@@ -539,6 +540,96 @@ TEST_CASE(Vst3HostTests, testEditorEditWithoutZeroSampleFlush)
 	DestroyWindow(parent);
 }
 
+TEST_CASE(Vst3HostTests, testUntouchedVst3PanelsDoNotStoreState)
+{
+	for (const wchar_t* mode : {testvst3::mode::spuriousDirty,
+		testvst3::mode::readOnlyMeter, testvst3::mode::volatileState})
+	{
+		const wstring bundleName = wstring(L"Untouched-") + mode;
+		const wstring bundle = prepareBundle(exeDirectory(), bundleName.c_str(), mode);
+		auto library = VSTPluginLibrary::getInstance(bundle);
+		harness.require(!bundle.empty() && VSTPluginLibrary::load(bundle).succeeded(),
+			"untouched-panel VST3 module initializes");
+		auto instance = VSTPluginInstance::create(library, VSTPluginInstance::ProcessLevel::User);
+		harness.require(instance->initialize(), "untouched-panel instance initializes");
+
+		wstring committedChunk;
+		std::unordered_map<wstring, float> committedLegacyParameters;
+		instance->readFromEffect(committedChunk, committedLegacyParameters);
+		VSTPluginInstance::WritableParameterValues committedParameters;
+		const bool semanticAvailable = instance->readWritableParameterValues(committedParameters);
+		uint64_t committedSequence = instance->parameterEditSequence();
+		int storeCount = 0;
+		const auto readAsAutoApply = [&]() {
+			wstring chunk;
+			std::unordered_map<wstring, float> legacyParameters;
+			instance->readFromEffect(chunk, legacyParameters);
+			VSTPluginInstance::WritableParameterValues parameters;
+			const bool currentSemanticAvailable = instance->readWritableParameterValues(parameters);
+			const uint64_t sequence = instance->parameterEditSequence();
+			const bool rawChanged = chunk != committedChunk || legacyParameters != committedLegacyParameters;
+			if (vststate::shouldStore(rawChanged, semanticAvailable && currentSemanticAvailable,
+				committedParameters, parameters, committedSequence, sequence, false))
+			{
+				storeCount++;
+				committedChunk = std::move(chunk);
+				committedLegacyParameters = std::move(legacyParameters);
+				committedParameters = std::move(parameters);
+				committedSequence = sequence;
+			}
+		};
+		instance->setAutomateFunc(readAsAutoApply);
+		HWND parent = CreateWindowExW(0, L"STATIC", L"VST3 untouched panel parent", WS_OVERLAPPED,
+			0, 0, 640, 480, nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
+		short width = 0;
+		short height = 0;
+		harness.require(parent != nullptr && instance->startEditing(parent, &width, &height),
+			"untouched VST3 editor attaches");
+		for (int poll = 0; poll < 3; poll++)
+		{
+			Sleep(20);
+			readAsAutoApply();
+		}
+		harness.expectEqual(storeCount, 0,
+			"an untouched VST3 panel causes no auto-apply state store");
+		instance->stopEditing();
+		DestroyWindow(parent);
+	}
+}
+
+TEST_CASE(Vst3HostTests, testReadOnlyPanelParameterIsNotAnEdit)
+{
+	const wstring bundle = prepareBundle(exeDirectory(), L"ReadOnlyMeterBundle.vst3",
+		testvst3::mode::readOnlyMeter);
+	auto library = VSTPluginLibrary::getInstance(bundle);
+	harness.require(!bundle.empty() && VSTPluginLibrary::load(bundle).succeeded(),
+		"read-only meter VST3 module initializes");
+	HMODULE module = GetModuleHandleW(testvst3::mode::readOnlyMeter);
+	using CountFunc = int (*)();
+	CountFunc receivedChanges = module != nullptr
+		? reinterpret_cast<CountFunc>(GetProcAddress(module, "GetReceivedParameterChangeCount")) : nullptr;
+	harness.require(receivedChanges != nullptr, "read-only meter change counter is exported");
+	if (receivedChanges == nullptr)
+		return;
+
+	auto instance = VSTPluginInstance::create(library, VSTPluginInstance::ProcessLevel::User);
+	harness.require(instance->initialize(), "read-only meter instance initializes");
+	int automateCalls = 0;
+	instance->setAutomateFunc([&automateCalls]() { automateCalls++; });
+	const int changesBefore = receivedChanges();
+	HWND parent = CreateWindowExW(0, L"STATIC", L"VST3 read-only meter parent", WS_OVERLAPPED,
+		0, 0, 640, 480, nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
+	short width = 0;
+	short height = 0;
+	harness.require(parent != nullptr && instance->startEditing(parent, &width, &height),
+		"read-only meter editor attaches");
+	harness.expectEqual(automateCalls, 0, "performEdit for a read-only parameter is not automation");
+	harness.expectEqual(receivedChanges(), changesBefore,
+		"performEdit for a read-only parameter never reaches the processor");
+	instance->stopEditing();
+	DestroyWindow(parent);
+}
+
 // zAuro Pro 2D-3D Upmixer 0.3.0 has three mono auxiliary buses per direction
 // beside its main pair. It answers kResultFalse to a setBusArrangements call
 // that names the main buses alone, so an explicit Input/Output contract was
@@ -827,12 +918,27 @@ TEST_CASE(Vst3HostTests, testStateRoundTripAndNativeEditor)
 	harness.expectTrue(liveEditChunk == encodeState(liveEdited),
 		"live VST3 edit state is current after audio processing");
 	const wstring componentOnlyState = liveEditChunk;
+	VSTPluginInstance::WritableParameterValues parametersBeforePrivateEdit;
+	harness.require(instance.readWritableParameterValues(parametersBeforePrivateEdit),
+		"VST3 writable parameter baseline is available");
+	const uint64_t sequenceBeforePrivateEdit = instance.parameterEditSequence();
 	SendMessageW(pluginWindow, WM_APP + 78, 0, 0);
 	wstring componentAndControllerState;
 	std::unordered_map<wstring, float> controllerStateParameters;
 	instance.readFromEffect(componentAndControllerState, controllerStateParameters);
 	harness.expectTrue(!componentAndControllerState.empty() && componentAndControllerState != componentOnlyState,
 		"VST3 controller-private state is saved with component state");
+	VSTPluginInstance::WritableParameterValues parametersAfterPrivateEdit;
+	instance.readWritableParameterValues(parametersAfterPrivateEdit);
+	const uint64_t sequenceAfterPrivateEdit = instance.parameterEditSequence();
+	harness.expectFalse(vststate::shouldStore(true, true,
+		parametersBeforePrivateEdit, parametersAfterPrivateEdit,
+		sequenceBeforePrivateEdit, sequenceAfterPrivateEdit, false),
+		"non-parameter state without performEdit waits for the closing-panel read");
+	harness.expectTrue(vststate::shouldStore(true, true,
+		parametersBeforePrivateEdit, parametersAfterPrivateEdit,
+		sequenceBeforePrivateEdit, sequenceAfterPrivateEdit, true),
+		"the closing-panel read stores non-parameter state without performEdit");
 	instance.stopEditing();
 	harness.expectFalse(IsWindow(pluginWindow) != FALSE, "VST3 editor child is destroyed on close");
 	DestroyWindow(parent);
