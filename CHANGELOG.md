@@ -22,7 +22,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   stayed stopped until a reboot. The update now starts every stopped audio
   service that is set to start automatically. A service that starts only on
   demand is not covered, and this was not tried with those products.
-  ([#478](https://github.com/115dkk/EqualizerAPO-XT/issues/478))
+  ([#478](https://github.com/115dkk/EqualizerAPO-XT/issues/478), [#481](https://github.com/115dkk/EqualizerAPO-XT/pull/481))
 
 ## v2.65.1 — 2026-11-18
 

@@ -15,7 +15,7 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   재부팅할 때까지 멈춘 채로 남았습니다. 이제 업데이트는 자동 시작으로 설정된 오디오
   서비스 가운데 멈춰 있는 것을 모두 다시 시작합니다. 필요할 때만 시작하는 서비스는
   다시 시작하지 않고, 위 제품으로 직접 확인하지는 않았습니다.
-  ([#478](https://github.com/115dkk/EqualizerAPO-XT/issues/478))
+  ([#478](https://github.com/115dkk/EqualizerAPO-XT/issues/478), [#481](https://github.com/115dkk/EqualizerAPO-XT/pull/481))
 
 ## v2.65.1 — 2026-11-18
 
