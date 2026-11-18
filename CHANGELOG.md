@@ -14,6 +14,18 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **A VST plug-in that outputs NaN or infinity no longer takes the rest of the
+  sound with it.** Such samples spread through every filter after the plug-in
+  and reached the device as silence or full-scale noise until the
+  configuration reloaded. The plug-in is now bypassed from that block on
+  (audio passes through unchanged) and the log says so once.
+- **Plug-ins whose latency depends on their saved state are compensated
+  correctly.** The latency was read before the plug-in's state was loaded
+  and processing started, so a plug-in that reports a different latency
+  afterwards left the channels it does not process misaligned with the ones
+  it does. The latency is now read again after activation.
+  Both changes are adapted from weirdsoup's Custom Audio Manager (MIT).
+
 ## v2.65.7 — 2026-11-18
 
 - **Legacy Rows stays readable when Windows is in dark mode.** With Windows
