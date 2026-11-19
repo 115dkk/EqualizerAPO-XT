@@ -661,6 +661,34 @@ namespace
 		harness.expectTrue(recovering.judgeWait(true, S_OK) == wasapi::StreamHealth::Retry, "so the next timeout is the first again");
 	}
 
+	TEST_CASE(AsioTests, testWasapiCapturePacketTimeline)
+	{
+		namespace wasapi = eapo::asio::wasapi;
+
+		wasapi::CapturePacketTimeline contiguous;
+		contiguous.add(100, 32, 0);
+		contiguous.add(132, 16, 0);
+		harness.expectEqual(contiguous.counts().missingFrames, 0ull, "contiguous capture packets have no missing frames");
+		harness.expectEqual(contiguous.counts().repeatedFrames, 0ull, "contiguous capture packets have no repeated frames");
+
+		wasapi::CapturePacketTimeline gap;
+		gap.add(100, 20, 0);
+		gap.add(130, 10, 0);
+		harness.expectEqual(gap.counts().missingFrames, 10ull, "a device-position gap counts the missing capture frames");
+
+		wasapi::CapturePacketTimeline overlap;
+		overlap.add(100, 20, 0);
+		overlap.add(112, 16, 0);
+		harness.expectEqual(overlap.counts().repeatedFrames, 8ull, "an overlapping packet counts the repeated capture frames");
+
+		wasapi::CapturePacketTimeline discontinuity;
+		discontinuity.add(100, 20, 0);
+		discontinuity.add(120, 20, AUDCLNT_BUFFERFLAGS_DATA_DISCONTINUITY);
+		harness.expectEqual(discontinuity.counts().discontinuities, 1ull, "the WASAPI discontinuity flag is counted");
+		harness.expectEqual(discontinuity.counts().missingFrames, 0ull, "a contiguous discontinuity does not invent missing frames");
+		harness.expectEqual(discontinuity.counts().repeatedFrames, 0ull, "a discontinuity does not invent repeated frames");
+	}
+
 	eapo::asio::wasapi::EndpointSetup fakeRenderSetup(std::unique_ptr<asiotest::FakeEndpointClient> client,
 		unsigned minPeriodFrames)
 	{

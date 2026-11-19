@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
+#include <limits>
 
 namespace eapo::asio
 {
@@ -256,6 +257,47 @@ namespace eapo::asio
 			return true;
 		}
 
+		// ---- CapturePacketTimeline ----
+
+		void CapturePacketTimeline::reset() noexcept
+		{
+			counts_ = Counts();
+			resetPosition();
+		}
+
+		void CapturePacketTimeline::resetPosition() noexcept
+		{
+			nextPosition_ = 0;
+			positionKnown_ = false;
+		}
+
+		void CapturePacketTimeline::add(uint64_t devicePosition, unsigned frames, DWORD flags) noexcept
+		{
+			// Adapted from Custom Audio Manager by weirdsoup (MIT); see ThirdPartyNotices.txt.
+			const bool discontinuity = (flags & AUDCLNT_BUFFERFLAGS_DATA_DISCONTINUITY) != 0;
+			if (discontinuity)
+				counts_.discontinuities++;
+			if (frames == 0)
+				return;
+			if ((flags & AUDCLNT_BUFFERFLAGS_TIMESTAMP_ERROR) != 0
+				|| devicePosition > (std::numeric_limits<uint64_t>::max)() - frames)
+			{
+				resetPosition();
+				return;
+			}
+			if (positionKnown_)
+			{
+				if (devicePosition > nextPosition_)
+					counts_.missingFrames += devicePosition - nextPosition_;
+				else if (devicePosition < nextPosition_ && !discontinuity)
+					counts_.repeatedFrames += std::min<uint64_t>(frames, nextPosition_ - devicePosition);
+			}
+			const uint64_t end = devicePosition + frames;
+			if (!positionKnown_ || discontinuity || end > nextPosition_)
+				nextPosition_ = end;
+			positionKnown_ = true;
+		}
+
 		// ---- CaptureQueue ----
 
 		void CaptureQueue::reset(unsigned channels, unsigned bytesPerSample, size_t capacityFrames)
@@ -483,9 +525,11 @@ namespace eapo::asio
 			{
 				return captureClient_ != nullptr ? captureClient_->GetNextPacketSize(frames) : E_NOINTERFACE;
 			}
-			HRESULT getCaptureBuffer(BYTE** data, UINT32* frames, DWORD* flags) noexcept override
+			HRESULT getCaptureBuffer(BYTE** data, UINT32* frames, DWORD* flags,
+				UINT64* devicePosition) noexcept override
 			{
-				return captureClient_ != nullptr ? captureClient_->GetBuffer(data, frames, flags, nullptr, nullptr) : E_NOINTERFACE;
+				return captureClient_ != nullptr
+					? captureClient_->GetBuffer(data, frames, flags, devicePosition, nullptr) : E_NOINTERFACE;
 			}
 			HRESULT releaseCaptureBuffer(UINT32 frames) noexcept override
 			{
@@ -613,7 +657,12 @@ namespace eapo::asio
 
 	WasapiExclusiveTarget::Counters WasapiExclusiveTarget::counters() const noexcept
 	{
-		return counters_;
+		Counters result = counters_;
+		const wasapi::CapturePacketTimeline::Counts& capture = ports_[1].captureTimeline.counts();
+		result.captureMissingFrames = capture.missingFrames;
+		result.captureRepeatedFrames = capture.repeatedFrames;
+		result.captureDiscontinuities = capture.discontinuities;
+		return result;
 	}
 
 	// ---- init ----
@@ -977,7 +1026,10 @@ namespace eapo::asio
 		const size_t frameBytes = static_cast<size_t>(port.channels) * port.container.bytes();
 		port.block.assign(static_cast<size_t>(deviceFrames) * frameBytes, 0);
 		if (port.capture)
+		{
 			port.queue.reset(port.channels, port.container.bytes(), static_cast<size_t>(deviceFrames) * 2);
+			port.captureTimeline.resetPosition();
+		}
 		port.bridge = bridge;
 		port.stager.reset(bridge, static_cast<unsigned>(frames));
 		return S_OK;
@@ -1063,6 +1115,7 @@ namespace eapo::asio
 		}
 		samplePosition_.store(0, std::memory_order_relaxed);
 		counters_ = Counters();
+		ports_[1].captureTimeline.reset();
 		counters_.bridge = bridge;
 		prepared_ = true;
 		errorMessage_[0] = '\0';
@@ -1189,12 +1242,14 @@ namespace eapo::asio
 			BYTE* data = nullptr;
 			UINT32 frames = 0;
 			DWORD flags = 0;
-			HRESULT hr = port.endpoint->getCaptureBuffer(&data, &frames, &flags);
+			UINT64 devicePosition = 0;
+			HRESULT hr = port.endpoint->getCaptureBuffer(&data, &frames, &flags, &devicePosition);
 			if (FAILED(hr))
 			{
 				noteDeviceResult(hr);
 				break;
 			}
+			port.captureTimeline.add(devicePosition, frames, flags);
 			port.queue.push(data, frames, (flags & AUDCLNT_BUFFERFLAGS_SILENT) != 0);
 			hr = port.endpoint->releaseCaptureBuffer(frames);
 			if (FAILED(hr))
@@ -1362,6 +1417,7 @@ namespace eapo::asio
 
 		Port& out = ports_[0];
 		Port& in = ports_[1];
+		in.captureTimeline.resetPosition();
 		primeOutput();
 		bool started = startEndpoints();
 

@@ -26,9 +26,10 @@
 	into the wrapper DLL, the probe and the tests alike.
 
 	The pure parts (container order, buffer-size policy, interleaving, the
-	bridge calibration, the capture queue, the output staging and the
-	judgement of a device that went away) live in the wasapi namespace so
-	the tests can pin them without a device; the stream thread only calls
+	bridge calibration, the capture packet timeline, the capture queue, the
+	output staging and the judgement of a device that went away) live in the
+	wasapi namespace so the tests can pin them without a device; the stream
+	thread only calls
 	COM and hands them the numbers.
 */
 
@@ -88,7 +89,8 @@ namespace eapo::asio
 			virtual HRESULT getRenderBuffer(UINT32 frames, BYTE** data) noexcept = 0;
 			virtual HRESULT releaseRenderBuffer(UINT32 frames, DWORD flags) noexcept = 0;
 			virtual HRESULT getNextPacketSize(UINT32* frames) noexcept = 0;
-			virtual HRESULT getCaptureBuffer(BYTE** data, UINT32* frames, DWORD* flags) noexcept = 0;
+			virtual HRESULT getCaptureBuffer(BYTE** data, UINT32* frames, DWORD* flags,
+				UINT64* devicePosition) noexcept = 0;
 			virtual HRESULT releaseCaptureBuffer(UINT32 frames) noexcept = 0;
 		};
 
@@ -196,6 +198,30 @@ namespace eapo::asio
 			unsigned factor_ = 1;
 			bool decided_ = false;
 			bool forced_ = false;
+		};
+
+		// Adapted from Custom Audio Manager by weirdsoup (MIT); see ThirdPartyNotices.txt.
+		// The packet timeline only observes gaps and overlap; callers still
+		// decide how to handle each packet's audio.
+		class CapturePacketTimeline
+		{
+		public:
+			struct Counts
+			{
+				uint64_t missingFrames = 0;
+				uint64_t repeatedFrames = 0;
+				uint64_t discontinuities = 0;
+			};
+
+			void reset() noexcept;
+			void resetPosition() noexcept;
+			void add(uint64_t devicePosition, unsigned frames, DWORD flags) noexcept;
+			const Counts& counts() const noexcept {return counts_;}
+
+		private:
+			Counts counts_;
+			uint64_t nextPosition_ = 0;
+			bool positionKnown_ = false;
 		};
 
 		// The recording side's frames between the device's packets and the
@@ -325,6 +351,9 @@ namespace eapo::asio
 		{
 			uint64_t periods = 0;
 			uint64_t inputUnderruns = 0;
+			uint64_t captureMissingFrames = 0;
+			uint64_t captureRepeatedFrames = 0;
+			uint64_t captureDiscontinuities = 0;
 			uint64_t outputMisses = 0;
 			// Events that came more than 1.75 periods after the previous one:
 			// a driver that signals at its own period rather than the one it
@@ -360,6 +389,7 @@ namespace eapo::asio
 			std::vector<std::vector<unsigned char>> planes[2];   // [half][channel], the ASIO buffers; live from createBuffers to disposeBuffers
 			std::vector<void*> planePointers[2];         // [half][channel], stable aliases into planes
 			std::vector<unsigned char> block;           // one interleaved device period (bridge ASIO periods)
+			wasapi::CapturePacketTimeline captureTimeline; // capture: device packet positions and diagnostic totals
 			wasapi::CaptureQueue queue;                 // capture: packets not yet handed out
 			std::atomic<long> latencyFrames{0};
 			// The device period in ASIO periods. 1 on a driver that honours
