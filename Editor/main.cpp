@@ -487,11 +487,16 @@ int main(int argc, char* argv[])
 			qputenv("QT_QPA_PLATFORM", "windows:fontengine=freetype");
 			platformEnvSetByUs = true;
 		}
-		else if (legacyRowsMode && platformEnvSetByUs)
+		else if (legacyRowsMode && (qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM") || platformEnvSetByUs))
 		{
-			// Restarted from the skinned mode: hand the platform back to the
-			// stock ClearType engine for the heritage look.
-			qputenv("QT_QPA_PLATFORM", "windows");
+			// The stock ClearType engine for the heritage look (also when
+			// restarted from the skinned mode), and Windows dark mode off:
+			// heritage draws its rows and menus with classic light tokens, but
+			// Qt's Windows platform follows the system colour scheme, so in
+			// dark mode applyHeritage's standardPalette() turned the text white
+			// on those light surfaces (#484).
+			qputenv("QT_QPA_PLATFORM", "windows:darkmode=0");
+			platformEnvSetByUs = true;
 		}
 
 		QApplication application(argc, argv);

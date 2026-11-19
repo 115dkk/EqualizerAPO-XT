@@ -17,9 +17,11 @@
 
 #include <algorithm>
 #include <cmath>
+#include <malloc.h>
 #include <vector>
 
 #include "platform/windows/ComPtr.h"
+#include "dsp/MxcsrGuard.h"
 #include "services/logging/Logging.h"
 #include "vst/VSTPluginInstance.h"
 
@@ -154,15 +156,24 @@ struct PlanarBuffers
 bool processGuarded(VSTPluginInstance* effect, float** inputPointers,
 	float** outputPointers, unsigned frameCount) noexcept
 {
+	const unsigned __int64 fpControlState = captureFpControlState();
+	volatile bool stackOverflow = false;
+	bool result = false;
 	__try
 	{
 		effect->processBlock(inputPointers, outputPointers, frameCount);
-		return true;
+		restoreFpControlState(fpControlState);
+		result = true;
 	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
+	__except ((stackOverflow = GetExceptionCode() == EXCEPTION_STACK_OVERFLOW)
+		? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_EXECUTE_HANDLER)
 	{
-		return false;
+		restoreFpControlState(fpControlState);
 	}
+	// A caught overflow consumes the thread's guard page; re-arm it after SEH unwinds.
+	if (stackOverflow)
+		_resetstkoflw();
+	return result;
 }
 }
 

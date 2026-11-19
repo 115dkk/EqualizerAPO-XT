@@ -228,6 +228,7 @@ ASIO is a trademark and software of Steinberg Media Technologies GmbH.
 ## Special Thanks
 
 - **Mephistos (DCinside)** - diagnosed why VST3 plugin panels showed no live meters or graphs in the Editor, built and shared a working WASAPI-loopback patch under the GPL, and provided the Open-XTC plugin used to verify the fix. The panel preview feed (`Editor/helpers/PanelPreviewFeeder`) is derived from that contribution.
+- **[weirdsoup](https://github.com/weirdsoup)** - shared the source of Custom Audio Manager (MIT). EqualizerAPO-XT's guard against NaN or infinite plug-in output and its plug-in latency reading after activation were adapted from it; the notice is in [ThirdPartyNotices.txt](ThirdPartyNotices.txt).
 
 ## Begging
 
