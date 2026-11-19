@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.68.1 — 2026-11-19
+
 - **A plug-in that overflows its stack no longer takes the audio engine down
   on CPUs with AVX-512.** The guard around plug-in calls catches a stack
   overflow and passes the audio through, but Windows needs room on the same
