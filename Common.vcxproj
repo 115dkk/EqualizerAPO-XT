@@ -274,6 +274,7 @@
     <ClInclude Include="services\registry\WindowsRegistry.h" />
     <ClInclude Include="services\registry\RegistryError.h" />
     <ClInclude Include="services\registry\RegistryPaths.h" />
+    <ClInclude Include="services\registry\RegistrySettings.h" />
     <ClInclude Include="runtime\lifetime\ScopeExit.h" />
     <ClInclude Include="audio\io\SndfileRAII.h" />
     <ClInclude Include="text\WideString.h" />
@@ -404,6 +405,7 @@
     <ClCompile Include="filters\graphicEq\GainCurveIterator.cpp" />
     <ClCompile Include="services\registry\ClsidRegistration.cpp" />
     <ClCompile Include="services\registry\RegistryTransaction.cpp" />
+    <ClCompile Include="services\registry\RegistrySettings.cpp" />
     <ClCompile Include="platform\windows\WindowsVersion.cpp" />
     <ClCompile Include="services\install\ComSelfRegistration.cpp" />
     <ClCompile Include="platform\windows\ProcessCommandLine.cpp" />

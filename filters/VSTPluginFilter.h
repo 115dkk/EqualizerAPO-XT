@@ -111,6 +111,7 @@ private:
 
 	bool skipProcessing = false;
 	bool reportCrash = true;
+	bool reportNonFinite = true;
 	bool forceStereoInput = false;
 	std::optional<VST3BusContract> busContract;
 	std::vector<std::wstring> inputChannels;

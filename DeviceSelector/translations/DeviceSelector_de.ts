@@ -4,7 +4,17 @@
 <context>
     <name>DeviceSelector</name>
     <message>
-        <location filename="../DeviceSelector.cpp" line="+68"/>
+        <location filename="../DeviceSelector.cpp" line="+188"/>
+        <source>Ignore silence in convolution</source>
+        <translation>Stille bei der Faltung ignorieren</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Cuts the silent end off impulse responses that Convolution and MultiConvolution load. A long silent tail costs as much processing as sound does and can cause dropouts. Applies to every device.</source>
+        <translation>Entfernt die Stille am Ende der Impulsantworten, die Convolution und MultiConvolution laden. Stille benötigt genauso viel Rechenleistung wie hörbares Audio. Ein langer stiller Abschnitt am Ende kann daher zu Tonaussetzern führen. Gilt für alle Geräte.</translation>
+    </message>
+    <message>
+        <location filename="../DeviceSelector.cpp" line="-122"/>
         <location line="+44"/>
         <source>Playback devices</source>
         <translation>Wiedergabegeräte</translation>

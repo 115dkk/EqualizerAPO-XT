@@ -21,6 +21,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <malloc.h>
 #include <memory>
 #include <optional>
 #include <string>
@@ -29,6 +30,7 @@
 #include <vector>
 
 #include "platform/windows/Win32Resource.h"
+#include "dsp/MxcsrGuard.h"
 #include "VST3BusLayout.h"
 #include "runtime/memory/AlignedMemory.h"
 
@@ -168,14 +170,22 @@ public:
 	virtual void stopProcessing() = 0;
 	void stopProcessingSafely() noexcept
 	{
+		const unsigned __int64 fpControlState = captureFpControlState();
+		volatile bool stackOverflow = false;
 		__try
 		{
 			stopProcessing();
+			restoreFpControlState(fpControlState);
 		}
-		__except (EXCEPTION_EXECUTE_HANDLER)
+		__except ((stackOverflow = GetExceptionCode() == EXCEPTION_STACK_OVERFLOW)
+			? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_EXECUTE_HANDLER)
 		{
+			restoreFpControlState(fpControlState);
 			// Cleanup is best effort across a third-party native-code boundary.
 		}
+		// A caught overflow consumes the thread's guard page; re-arm it after SEH unwinds.
+		if (stackOverflow)
+			_resetstkoflw();
 	}
 
 	bool startEditing(HWND hWnd, short* width, short* height, double scaleFactor = 1.0);

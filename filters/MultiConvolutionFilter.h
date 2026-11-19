@@ -50,7 +50,8 @@ public:
 	static constexpr const wchar_t* kFrameCountMismatchLogPrefix =
 		L"MultiConvolutionFilter: frameCount";
 
-	MultiConvolutionFilter(const std::vector<MultiConvolutionCommand::Mapping>& mappingSpecs, JudgedPath filename);
+	MultiConvolutionFilter(const std::vector<MultiConvolutionCommand::Mapping>& mappingSpecs,
+		JudgedPath filename, bool ignoreTrailingSilence = true);
 	virtual ~MultiConvolutionFilter();
 	bool getAllChannels() override {return true;}
 	bool getInPlace() override {return false;}
@@ -62,6 +63,7 @@ private:
 
 	std::vector<MultiConvolutionCommand::Mapping> mappings;
 	JudgedPath filename;
+	bool ignoreTrailingSilence;
 	float sampleRate;
 
 	// Where one mapping reads and writes: units [firstUnit, firstUnit+unitCount)

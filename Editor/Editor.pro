@@ -43,6 +43,7 @@ SOURCES += main.cpp\
 	../parser/NumericText.cpp \
 	../services/registry/WindowsRegistry.cpp \
 	../services/registry/RegistryTransaction.cpp \
+	../services/registry/RegistrySettings.cpp \
 	../platform/windows/WindowsVersion.cpp \
 	../services/install/ComSelfRegistration.cpp \
 	../platform/windows/ProcessCommandLine.cpp \
@@ -420,6 +421,7 @@ HEADERS  += \
 	../services/registry/RegistryTransaction.h \
 	../services/registry/RegistryError.h \
 	../services/registry/RegistryPaths.h \
+	../services/registry/RegistrySettings.h \
 	../platform/windows/WindowsVersion.h \
 	../platform/windows/CommandLineQuoting.h \
 	../platform/windows/GuidText.h \

@@ -4,6 +4,16 @@
 <context>
     <name>DeviceSelector</name>
     <message>
+        <location filename="../DeviceSelector.cpp" line="188"/>
+        <source>Ignore silence in convolution</source>
+        <translation>컨볼루션 무음 부분 무시</translation>
+    </message>
+    <message>
+        <location filename="../DeviceSelector.cpp" line="190"/>
+        <source>Cuts the silent end off impulse responses that Convolution and MultiConvolution load. A long silent tail costs as much processing as sound does and can cause dropouts. Applies to every device.</source>
+        <translation>Convolution과 MultiConvolution이 불러오는 임펄스 응답의 끝부분에서 무음을 잘라냅니다. 무음 부분도 소리가 있는 부분만큼 연산이 필요하므로 끝부분의 무음이 길면 소리가 끊길 수 있습니다. 모든 장치에 적용됩니다.</translation>
+    </message>
+    <message>
         <location filename="../DeviceSelector.cpp" line="68"/>
         <location filename="../DeviceSelector.cpp" line="112"/>
         <source>Playback devices</source>

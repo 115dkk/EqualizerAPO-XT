@@ -14,6 +14,47 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Silence at the end of an impulse response no longer costs processing.**
+  Convolution and MultiConvolution now drop the silent tail of an impulse
+  response when they load it (every channel more than 140 dB below the
+  file's peak). A file with seconds of digital silence after the response,
+  such as a 6.7-second BRIR that falls silent after 1.8 seconds, used to cost
+  as much as if the whole length were sound and could cause dropouts on its
+  own. Silence at the start is kept, so timing does not change. The new
+  **Ignore silence in convolution** option under Device Selector's
+  troubleshooting options is on by default; untick it to process files
+  exactly as they are.
+  ([#487](https://github.com/115dkk/EqualizerAPO-XT/pull/487))
+
+## v2.65.9 — 2026-11-19
+
+- **A VST plug-in that outputs NaN or infinity no longer takes the rest of the
+  sound with it.** Such samples spread through every filter after the plug-in
+  and reached the device as silence or full-scale noise until the
+  configuration reloaded. The plug-in is now bypassed from that block on
+  (audio passes through unchanged) and the log says so once.
+- **Plug-ins whose latency depends on their saved state are compensated
+  correctly.** The latency was read before the plug-in's state was loaded
+  and processing started, so a plug-in that reports a different latency
+  afterwards left the channels it does not process misaligned with the ones
+  it does. The latency is now read again after activation.
+  Both changes are adapted from weirdsoup's Custom Audio Manager (MIT).
+  ([#492](https://github.com/115dkk/EqualizerAPO-XT/pull/492))
+
+## v2.65.8 — 2026-11-19
+
+- **A misbehaving VST plug-in can no longer upset the filters after it or
+  crash audio on its second fault.** A plug-in that changed the processor's
+  floating-point settings (denormal handling, rounding, or which arithmetic
+  errors stop the program) left them changed for every filter after it in the
+  same block; if it enabled arithmetic exceptions, a later filter could crash
+  audiodg. The engine now puts its own settings back after every plug-in
+  call. A plug-in that overflowed its stack was already caught, but only
+  once per thread: the second overflow ended the process. The stack guard is
+  now re-armed after each caught overflow. The same protection covers the
+  Editor's plug-in panels.
+  ([#489](https://github.com/115dkk/EqualizerAPO-XT/pull/489))
+
 ## v2.65.7 — 2026-11-18
 
 - **Legacy Rows stays readable when Windows is in dark mode.** With Windows

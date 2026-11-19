@@ -26,9 +26,12 @@
 #include "filters/ConfigFileReference.h"
 #include "filters/IrCache.h"
 #include "services/logging/Logging.h"
+#include "services/registry/RegistryPaths.h"
+#include "services/registry/RegistrySettings.h"
 #include "runtime/memory/AlignedMemory.h"
 #include "libHybridConv-0.1.1/libHybridConv_eapo.h"
 #include "Tests/TestDirectory.h"
+#include "Tests/FakeRegistry.h"
 #include "../TestHarness.h"
 #include "Tests/WavFixtures.h"
 #include "Tests/AlignedMemoryGate.h"
@@ -151,6 +154,92 @@ wstring createImpulseResponseFile(const vector<double>& impulseResponse)
 	return filename;
 }
 
+TEST_CASE(HybridConvTests, assertTrailingZerosAreTrimmed)
+{
+	const vector<vector<double>> buffers = {{0.5, -0.25, 0.0, 0.0}};
+	harness.expectTrue(trailingSilenceTrimmedLength(buffers, 4) == 2,
+		"trailing zero frames should be removed");
+}
+
+TEST_CASE(HybridConvTests, assertRelativeThresholdKeepsAllChannelsAligned)
+{
+	const vector<vector<double>> buffers = {
+		{0.0, 1.0, 0.0, 0.0, 0.0, 0.0},
+		{0.0, 0.0, 0.0, 1.000001e-7, 0.0, 0.999999e-7},
+	};
+	harness.expectTrue(trailingSilenceTrimmedLength(buffers, 6) == 4,
+		"a sample above -140 dB in one channel should keep its frame for every channel");
+}
+
+TEST_CASE(HybridConvTests, assertLeadingSilenceIsRetained)
+{
+	const vector<vector<double>> buffers = {{0.0, 0.0, 1.0, 0.0}};
+	harness.expectTrue(trailingSilenceTrimmedLength(buffers, 4) == 3,
+		"leading silence should remain before the last significant frame");
+}
+
+TEST_CASE(HybridConvTests, assertAllZeroIrRetainsOneFrame)
+{
+	const vector<vector<double>> buffers = {{0.0, 0.0}, {0.0, 0.0}};
+	harness.expectTrue(trailingSilenceTrimmedLength(buffers, 2) == 1,
+		"an all-zero impulse response should retain one frame");
+}
+
+TEST_CASE(HybridConvTests, assertNonSilentTailKeepsOriginalLength)
+{
+	const vector<vector<double>> buffers = {{0.25, 0.0, -0.5}};
+	harness.expectTrue(trailingSilenceTrimmedLength(buffers, 3) == 3,
+		"a significant final frame should keep the original length");
+}
+
+TEST_CASE(HybridConvTests, assertIgnoreConvolutionSilenceRegistryPolicy)
+{
+	test::FakeRegistry registry;
+	harness.expectTrue(readIgnoreConvolutionSilence(registry),
+		"a missing application key should enable silence removal");
+	registry.seedKey(APP_REGPATH);
+	harness.expectTrue(readIgnoreConvolutionSilence(registry),
+		"a missing value should enable silence removal");
+	registry.seedString(APP_REGPATH, ignoreConvolutionSilenceValueName, L"false");
+	harness.expectTrue(!readIgnoreConvolutionSilence(registry),
+		"the exact string false should disable silence removal");
+	registry.seedString(APP_REGPATH, ignoreConvolutionSilenceValueName, L"False");
+	harness.expectTrue(readIgnoreConvolutionSilence(registry),
+		"a differently cased value should enable silence removal");
+	registry.seedDword(APP_REGPATH, ignoreConvolutionSilenceValueName, 0);
+	harness.expectTrue(readIgnoreConvolutionSilence(registry),
+		"an unreadable value type should enable silence removal");
+	registry.denyRead(APP_REGPATH);
+	harness.expectTrue(readIgnoreConvolutionSilence(registry),
+		"a denied registry read should enable silence removal");
+}
+
+TEST_CASE(HybridConvTests, assertIrCacheSeparatesSilenceRemovalSetting)
+{
+	const wstring filename = scratchDirectory().trackFile(L"cache-silence-setting.wav");
+	const vector<vector<double>> channels = {
+		{0.0, 1.0, 0.0, 0.0, 0.0, 0.0},
+		{0.0, 0.0, 0.0, 2.0e-7, 0.0, 0.0},
+	};
+	harness.require(test::writeWavFile(filename, sampleRate, channels),
+		"the cache-setting impulse response is written completely");
+	{
+		const auto target = ConfigFileReference::target(L"", filename);
+		harness.require(static_cast<bool>(target), "the cache-setting impulse response is judged");
+		auto full = loadIrCached(target.path, sampleRate, false);
+		auto trimmed = loadIrCached(target.path, sampleRate, true);
+		harness.require(full != nullptr && trimmed != nullptr,
+			"both silence-removal settings load the same impulse response");
+		harness.expectTrue(full != trimmed,
+			"silence-removal settings should use different cache entries");
+		harness.expectTrue(full->frames == 6 && trimmed->frames == 4,
+			"only the enabled cache entry should remove trailing silence");
+		harness.expectTrue(trimmed->buffers[0].size() == 4 && trimmed->buffers[1].size() == 4,
+			"silence removal should resize every channel to the same frame count");
+	}
+	DeleteFileW(filename.c_str());
+}
+
 TEST_CASE(HybridConvTests, assertJudgedIrCacheReuse)
 {
 	const wstring filename = createImpulseResponseFile({1.0, 0.5, 0.25});
@@ -158,8 +247,8 @@ TEST_CASE(HybridConvTests, assertJudgedIrCacheReuse)
 	{
 		const auto first = ConfigFileReference::target(L"", L"\"%EAPO_XT_JUDGED_IR%\"");
 		const auto second = ConfigFileReference::target(L"", L"\"%EAPO_XT_JUDGED_IR%\"");
-		auto left = loadIrCached(first.path, sampleRate);
-		auto right = loadIrCached(second.path, sampleRate);
+		auto left = loadIrCached(first.path, sampleRate, true);
+		auto right = loadIrCached(second.path, sampleRate, true);
 		harness.require(left != nullptr, "quoted environment IR loads through its held handle");
 		harness.expectTrue(left == right, "second handle-backed IR load reuses the decoded cache entry");
 		harness.expectTrue(left->frames == 3 && left->buffers[0][1] == 0.5, "virtual IO preserves IR samples");
@@ -190,8 +279,8 @@ TEST_CASE(HybridConvTests, assertIrReadDiagnosticsNameTheirFiles)
 	FILE* logFile = nullptr;
 	harness.require(tmpfile_s(&logFile) == 0 && logFile != nullptr, "IR diagnostic log opens");
 	Logging::useStream(logFile, false, true, false);
-	loadIrCached(unreadableTarget.path, sampleRate);
-	loadIrCached(mismatchTarget.path, sampleRate);
+	loadIrCached(unreadableTarget.path, sampleRate, true);
+	loadIrCached(mismatchTarget.path, sampleRate, true);
 	std::fflush(logFile);
 	std::rewind(logFile);
 	wstring log;

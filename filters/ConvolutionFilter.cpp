@@ -38,14 +38,16 @@ namespace
 	ConvolverMuteDiagnostics convolutionMuteDiagnostics;
 }
 
-ConvolutionFilter::ConvolutionFilter(JudgedPath filename)
-	: ConvolutionFilter(std::move(filename), convolutionMuteDiagnostics, kFrameCountMismatchLogPrefix)
+ConvolutionFilter::ConvolutionFilter(JudgedPath filename, bool ignoreTrailingSilence)
+	: ConvolutionFilter(std::move(filename), convolutionMuteDiagnostics,
+		kFrameCountMismatchLogPrefix, ignoreTrailingSilence)
 {
 }
 
 ConvolutionFilter::ConvolutionFilter(JudgedPath filename, ConvolverMuteDiagnostics& muteDiagnostics,
-	const wchar_t* muteLogPrefix)
-	: bank(muteDiagnostics, muteLogPrefix), filename(std::move(filename))
+	const wchar_t* muteLogPrefix, bool ignoreTrailingSilence)
+	: bank(muteDiagnostics, muteLogPrefix), filename(std::move(filename)),
+	  ignoreTrailingSilence(ignoreTrailingSilence)
 {
 }
 
@@ -115,7 +117,7 @@ void ConvolutionFilter::cleanup()
 void ConvolutionFilter::initializeFilters(unsigned frameCount)
 {
 	const wstring displayPath = filename.path();
-	auto ir = loadIrCached(filename, sampleRate);
+	auto ir = loadIrCached(filename, sampleRate, ignoreTrailingSilence);
 	filename = JudgedPath{};
 	if (!ir)
 		return;

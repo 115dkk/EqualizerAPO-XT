@@ -21,6 +21,8 @@
 #include <devices/DeviceAPOInfo.h>
 #include <services/logging/Logging.h>
 #include <services/registry/WindowsRegistry.h>
+#include <services/registry/RegistryPaths.h>
+#include <services/registry/RegistrySettings.h>
 #include <services/windows/WindowsService.h>
 #include "services/install/ApoRegistration.h"
 #include <platform/windows/Win32Resource.h>
@@ -61,6 +63,7 @@ namespace
 DeviceSelector::DeviceSelector(QWidget* parent)
 	: QDialog(parent)
 {
+	ignoreConvolutionSilenceStored = readIgnoreConvolutionSilence(systemRegistry());
 	setupChrome();
 
 	try
@@ -164,6 +167,34 @@ void DeviceSelector::setupChrome()
 	ui.buttonBox->addButton(cancelButton, QDialogButtonBox::RejectRole);
 	ui.troubleshootingHeader->setTitle(QCoreApplication::translate("DeviceSelectorClass",
 		"Troubleshooting options (only use in case of problems)"));
+
+	// The stack only shows options for the one selected device. The silence
+	// option applies to every device, so it sits below the stack and stays
+	// visible whatever is selected; both fold together under the header.
+	troubleshootingPanel = new QWidget(this);
+	QVBoxLayout* panelLayout = new QVBoxLayout(troubleshootingPanel);
+	panelLayout->setContentsMargins(0, 0, 0, 0);
+	panelLayout->setSpacing(0);
+	const int stackIndex = ui.troubleshootingLayout->indexOf(ui.stackedWidget);
+	ui.troubleshootingLayout->removeWidget(ui.stackedWidget);
+	panelLayout->addWidget(ui.stackedWidget);
+	QWidget* allDevicesRow = new QWidget(troubleshootingPanel);
+	QHBoxLayout* allDevicesLayout = new QHBoxLayout(allDevicesRow);
+	// The style's own layout margins, as page_2's grid has, so the checkbox
+	// lines up with the per-device options above it.
+	int left = 0, top = 0, right = 0, bottom = 0;
+	ui.gridLayout_3->getContentsMargins(&left, &top, &right, &bottom);
+	allDevicesLayout->setContentsMargins(left, 0, right, bottom);
+	ignoreConvolutionSilenceCheckBox = new QCheckBox(tr("Ignore silence in convolution"), allDevicesRow);
+	ignoreConvolutionSilenceCheckBox->setObjectName(QStringLiteral("ignoreConvolutionSilenceCheckBox"));
+	ignoreConvolutionSilenceCheckBox->setToolTip(tr("Cuts the silent end off impulse responses that Convolution and "
+		"MultiConvolution load. A long silent tail costs as much processing as sound does and can cause dropouts. "
+		"Applies to every device."));
+	ignoreConvolutionSilenceCheckBox->setChecked(ignoreConvolutionSilenceStored);
+	allDevicesLayout->addWidget(ignoreConvolutionSilenceCheckBox);
+	allDevicesLayout->addStretch(1);
+	panelLayout->addWidget(allDevicesRow);
+	ui.troubleshootingLayout->insertWidget(stackIndex, troubleshootingPanel);
 }
 
 void DeviceSelector::finishSetup()
@@ -193,12 +224,13 @@ void DeviceSelector::finishSetup()
 	connect(ui.asioDeadlineComboBox, QOverload<int>::of(&QComboBox::activated), this, &DeviceSelector::onTroubleShootingOptionChanged);
 	connect(ui.asioAutoStartCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
 	connect(ui.asioHost32CheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
+	connect(ignoreConvolutionSilenceCheckBox, &QCheckBox::clicked, this, &DeviceSelector::updateButtons);
 
 	updateButtons();
 
 	// The disclosure starts folded; the header never fired a signal yet, so
 	// hide the panel directly instead of replaying the slide.
-	ui.stackedWidget->setVisible(false);
+	troubleshootingPanel->setVisible(false);
 	adjustSize();
 
 	// adjustSize() settles on the tree's minimum, which opens the dialog too
@@ -339,8 +371,8 @@ void DeviceSelector::previewOpenTroubleshooting()
 	// Skip the slide for deterministic shots: pin the panel at full height.
 	if (troubleshootingSlide != nullptr)
 		troubleshootingSlide->stop();
-	ui.stackedWidget->setVisible(true);
-	ui.stackedWidget->setMaximumHeight(QWIDGETSIZE_MAX);
+	troubleshootingPanel->setVisible(true);
+	troubleshootingPanel->setMaximumHeight(QWIDGETSIZE_MAX);
 }
 
 void DeviceSelector::onDeviceSelectionChanged()
@@ -363,6 +395,21 @@ void DeviceSelector::onDeviceContextMenuRequested(const QPoint& pos)
 
 void DeviceSelector::onDialogAccepted()
 {
+	// The engine watches APP_REGPATH and reloads its configuration when the
+	// value changes, so no audio restart is needed for this one.
+	if (ignoreConvolutionSilenceCheckBox->isChecked() != ignoreConvolutionSilenceStored)
+	{
+		try
+		{
+			systemRegistry().writeValue(APP_REGPATH, ignoreConvolutionSilenceValueName,
+				ignoreConvolutionSilenceCheckBox->isChecked() ? L"true" : L"false");
+		}
+		catch (const RegistryError& e)
+		{
+			QMessageBox::critical(this, tr("Error while accessing the registry"), QString::fromStdWString(e.getMessage()));
+		}
+	}
+
 	auto applied = DeviceChange::apply({}, DeviceChange::Context::Dialog);
 
 	for (int index = 0; index < ui.deviceTreeWidget->topLevelItemCount(); index++)
@@ -511,14 +558,14 @@ void DeviceSelector::onTroubleShootingToggled(bool on)
 	// main.cpp's theme sheet.
 	if (troubleshootingSlide == nullptr)
 	{
-		troubleshootingSlide = new QPropertyAnimation(ui.stackedWidget, "maximumHeight", this);
+		troubleshootingSlide = new QPropertyAnimation(troubleshootingPanel, "maximumHeight", this);
 		troubleshootingSlide->setEasingCurve(QEasingCurve::OutCubic);
 		connect(troubleshootingSlide, &QPropertyAnimation::finished, this, [this]() {
 			if (!ui.troubleshootingHeader->isChecked())
-				ui.stackedWidget->setVisible(false);
+				troubleshootingPanel->setVisible(false);
 			// Release the clamp so future layout changes (translations, DPI)
 			// keep sizing the open panel naturally.
-			ui.stackedWidget->setMaximumHeight(QWIDGETSIZE_MAX);
+			troubleshootingPanel->setMaximumHeight(QWIDGETSIZE_MAX);
 		});
 	}
 
@@ -526,14 +573,14 @@ void DeviceSelector::onTroubleShootingToggled(bool on)
 	troubleshootingSlide->setDuration(MotionPreference::duration(160));
 	if (on)
 	{
-		ui.stackedWidget->setMaximumHeight(0);
-		ui.stackedWidget->setVisible(true);
+		troubleshootingPanel->setMaximumHeight(0);
+		troubleshootingPanel->setVisible(true);
 		troubleshootingSlide->setStartValue(0);
-		troubleshootingSlide->setEndValue(ui.stackedWidget->sizeHint().height());
+		troubleshootingSlide->setEndValue(troubleshootingPanel->sizeHint().height());
 	}
 	else
 	{
-		troubleshootingSlide->setStartValue(ui.stackedWidget->height());
+		troubleshootingSlide->setStartValue(troubleshootingPanel->height());
 		troubleshootingSlide->setEndValue(0);
 	}
 	troubleshootingSlide->start();
@@ -752,7 +799,7 @@ bool DeviceSelector::isAnySelected()
 
 bool DeviceSelector::isChanged()
 {
-	bool changed = false;
+	bool changed = ignoreConvolutionSilenceCheckBox->isChecked() != ignoreConvolutionSilenceStored;
 
 	for (int index = 0; index < ui.deviceTreeWidget->topLevelItemCount(); index++)
 	{
