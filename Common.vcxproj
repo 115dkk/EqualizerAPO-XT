@@ -245,6 +245,7 @@
     <ClInclude Include="filters\ConvolverMuteDiagnostics.h" />
     <ClInclude Include="filters\ConvolverArray.h" />
     <ClInclude Include="filters\ConvolverBank.h" />
+    <ClInclude Include="filters\ConvolverProcess.h" />
     <ClInclude Include="services\registry\ClsidRegistration.h" />
     <ClInclude Include="services\registry\IRegistry.h" />
     <ClInclude Include="services\registry\RegistryTransaction.h" />
@@ -262,6 +263,7 @@
     <ClInclude Include="runtime\memory\AlignedMemory.h" />
     <ClInclude Include="runtime\WeakValueCache.h" />
     <ClInclude Include="runtime\concurrency\ParallelExecutor.h" />
+    <ClInclude Include="runtime\concurrency\RealtimeFanOut.h" />
     <ClInclude Include="platform\windows\Win32Resource.h" />
     <ClInclude Include="platform\windows\GuidText.h" />
     <ClInclude Include="platform\windows\EndpointId.h" />
@@ -418,6 +420,7 @@
     <ClCompile Include="runtime\ipc\SendRingWin32.cpp" />
     <ClCompile Include="runtime\memory\AlignedMemory.cpp" />
     <ClCompile Include="runtime\concurrency\ParallelExecutor.cpp" />
+    <ClCompile Include="runtime\concurrency\RealtimeFanOut.cpp" />
     <ClCompile Include="diagnostics\performance\PerfProfile.cpp" />
     <ClCompile Include="services\registry\WindowsRegistry.cpp" />
     <ClCompile Include="text\WideString.cpp" />

@@ -11,3 +11,6 @@ class IRegistry;
 // Defaults to enabled when the value is absent or cannot be read. Only the
 // exact REG_SZ value L"false" disables trailing-silence removal.
 bool readIgnoreConvolutionSilence(const IRegistry& registry) noexcept;
+
+// Defaults to enabled; only the exact REG_SZ value L"false" disables it.
+bool readParallelConvolution(const IRegistry& registry) noexcept;

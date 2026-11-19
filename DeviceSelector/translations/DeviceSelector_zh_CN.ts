@@ -4,7 +4,21 @@
 <context>
     <name>DeviceSelector</name>
     <message>
-        <location filename="../DeviceSelector.cpp" line="+202"/>
+        <location filename="../DeviceSelector.cpp" line="+196"/>
+        <source>Multi-core convolution processing</source>
+        <translation>多核卷积处理</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Spreads the work of Convolution and MultiConvolution over several CPU cores, so long impulse responses on many channels no longer load a single core. The sound and the latency stay the same.
+
+It is optional because it starts extra audio threads. Turn it off if it causes dropouts on your system. Applies to every device.</source>
+        <translation>将 Convolution 和 MultiConvolution 的计算分配到多个 CPU 核心，使多个通道的长脉冲响应不再由单个核心处理。声音和延迟保持不变。
+
+此功能可选择是否启用，因为它会启动额外的音频线程。如果启用后在您的电脑上导致声音断续，请关闭此选项。此设置适用于所有设备。</translation>
+    </message>
+    <message>
+        <location filename="../DeviceSelector.cpp" line="+4"/>
         <source>Resample received audio</source>
         <translation>对接收的音频重采样</translation>
     </message>

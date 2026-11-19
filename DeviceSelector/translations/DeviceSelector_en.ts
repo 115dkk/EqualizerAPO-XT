@@ -4,7 +4,21 @@
 <context>
     <name>DeviceSelector</name>
     <message>
-        <location filename="../DeviceSelector.cpp" line="+202"/>
+        <location filename="../DeviceSelector.cpp" line="+196"/>
+        <source>Multi-core convolution processing</source>
+        <translation>Multi-core convolution processing</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Spreads the work of Convolution and MultiConvolution over several CPU cores, so long impulse responses on many channels no longer load a single core. The sound and the latency stay the same.
+
+It is optional because it starts extra audio threads. Turn it off if it causes dropouts on your system. Applies to every device.</source>
+        <translation>Spreads the work of Convolution and MultiConvolution over several CPU cores, so long impulse responses on many channels no longer load a single core. The sound and the latency stay the same.
+
+It is optional because it starts extra audio threads. Turn it off if it causes dropouts on your system. Applies to every device.</translation>
+    </message>
+    <message>
+        <location filename="../DeviceSelector.cpp" line="+4"/>
         <source>Resample received audio</source>
         <translation>Resample received audio</translation>
     </message>

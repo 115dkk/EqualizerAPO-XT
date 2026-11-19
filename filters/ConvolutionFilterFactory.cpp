@@ -52,11 +52,13 @@ LineOutcome ConvolutionFilterFactory::createFilter(const wstring& configPath, ws
 		return LineOutcome::malformed(sizeProblem);
 
 	bool ignoreTrailingSilence = true;
+	bool parallelConvolution = true;
 	if (engine() != nullptr)
 	{
 		engine()->watchRegistryKey(APP_REGPATH);
 		ignoreTrailingSilence = readIgnoreConvolutionSilence(engine()->registryAccess());
+		parallelConvolution = readParallelConvolution(engine()->registryAccess());
 	}
 	return LineOutcome::produced(singleFilter(makeFilter<ConvolutionFilter>(
-		std::move(file.path), ignoreTrailingSilence)));
+		std::move(file.path), ignoreTrailingSilence, parallelConvolution)));
 }

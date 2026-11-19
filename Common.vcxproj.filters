@@ -199,6 +199,9 @@
     <ClInclude Include="filters\ConvolverBank.h">
       <Filter>filters</Filter>
     </ClInclude>
+    <ClInclude Include="filters\ConvolverProcess.h">
+      <Filter>filters</Filter>
+    </ClInclude>
     <ClInclude Include="services\registry\IRegistry.h">
       <Filter>services</Filter>
     </ClInclude>
@@ -233,6 +236,9 @@
       <Filter>runtime</Filter>
     </ClInclude>
     <ClInclude Include="runtime\concurrency\ParallelExecutor.h">
+      <Filter>runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="runtime\concurrency\RealtimeFanOut.h">
       <Filter>runtime</Filter>
     </ClInclude>
     <ClInclude Include="platform\windows\Win32Resource.h">
@@ -626,6 +632,9 @@
       <Filter>runtime</Filter>
     </ClCompile>
     <ClCompile Include="runtime\concurrency\ParallelExecutor.cpp">
+      <Filter>runtime</Filter>
+    </ClCompile>
+    <ClCompile Include="runtime\concurrency\RealtimeFanOut.cpp">
       <Filter>runtime</Filter>
     </ClCompile>
     <ClCompile Include="diagnostics\performance\PerfProfile.cpp">

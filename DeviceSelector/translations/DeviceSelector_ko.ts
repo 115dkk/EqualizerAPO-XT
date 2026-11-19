@@ -4,6 +4,20 @@
 <context>
     <name>DeviceSelector</name>
     <message>
+        <location filename="../DeviceSelector.cpp" line="196"/>
+        <source>Multi-core convolution processing</source>
+        <translation>멀티코어 컨볼루션 처리</translation>
+    </message>
+    <message>
+        <location filename="../DeviceSelector.cpp" line="198"/>
+        <source>Spreads the work of Convolution and MultiConvolution over several CPU cores, so long impulse responses on many channels no longer load a single core. The sound and the latency stay the same.
+
+It is optional because it starts extra audio threads. Turn it off if it causes dropouts on your system. Applies to every device.</source>
+        <translation>Convolution과 MultiConvolution의 연산을 여러 CPU 코어에 나누어 처리하므로, 많은 채널에서 긴 임펄스 응답을 처리할 때 한 코어에 부하가 몰리지 않습니다. 소리와 지연은 그대로 유지합니다.
+
+이 옵션을 켜면 오디오 스레드를 추가로 시작합니다. 사용 중인 PC에서 이 옵션 때문에 소리가 끊기면 끄십시오. 모든 장치에 적용됩니다.</translation>
+    </message>
+    <message>
         <location filename="../DeviceSelector.cpp" line="202"/>
         <source>Resample received audio</source>
         <translation>전송된 오디오 리샘플링</translation>

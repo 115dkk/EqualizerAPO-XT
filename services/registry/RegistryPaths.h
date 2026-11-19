@@ -31,6 +31,7 @@ inline constexpr GUID EQUALIZERAPO_POST_MIX_GUID =
 inline constexpr wchar_t installPathValueName[] = L"InstallPath";
 inline constexpr wchar_t configPathValueName[] = L"ConfigPath";
 inline constexpr wchar_t ignoreConvolutionSilenceValueName[] = L"IgnoreConvolutionSilence";
+inline constexpr wchar_t parallelConvolutionValueName[] = L"ParallelConvolution";
 inline constexpr wchar_t enableTraceValueName[] = L"EnableTrace";
 inline constexpr wchar_t migratedFromValueName[] = L"MigratedFrom";
 inline constexpr wchar_t migrationStampValueName[] = L"MigrationStamp";

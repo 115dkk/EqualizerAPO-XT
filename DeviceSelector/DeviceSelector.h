@@ -88,6 +88,11 @@ private:
 	// the registry held when the dialog opened, so OK writes only a change.
 	QCheckBox* ignoreConvolutionSilenceCheckBox = nullptr;
 	bool ignoreConvolutionSilenceStored = true;
+	// Engine-wide: runs the convolver units of Convolution and MultiConvolution
+	// on several cores (ParallelConvolution under APP_REGPATH). Stored like the
+	// option above.
+	QCheckBox* parallelConvolutionCheckBox = nullptr;
+	bool parallelConvolutionStored = true;
 	// Per endpoint, under "Send": resample what other endpoints send here
 	// when their sample rate differs (InstallState::resampleReceived).
 	QCheckBox* resampleReceivedCheckBox = nullptr;

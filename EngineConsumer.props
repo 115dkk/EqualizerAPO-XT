@@ -48,7 +48,7 @@
            registry comes up empty and every config line is an unknown
            command. -->
       <AdditionalOptions>/WHOLEARCHIVE:Common.lib %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>$(MSBuildThisFileDirectory)$(Platform)\$(Configuration)\Common.lib;$(MSBuildThisFileDirectory)SubwooferRoutingCore\$(Platform)\$(Configuration)\SubwooferRoutingCore.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(MSBuildThisFileDirectory)$(Platform)\$(Configuration)\Common.lib;$(MSBuildThisFileDirectory)SubwooferRoutingCore\$(Platform)\$(Configuration)\SubwooferRoutingCore.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;avrt.lib;sndfile.lib;libfftw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <!-- muparserx names its Debug library with a trailing 'd'. -->
