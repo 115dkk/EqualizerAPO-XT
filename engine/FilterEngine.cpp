@@ -109,6 +109,7 @@ void FilterEngine::initialize(const EngineSetup& setup)
 		this->preMix = setup.preMix;
 		this->capture = setup.capture;
 		this->postMixInstalled = setup.postMixInstalled;
+		this->resampleReceived = setup.resampleReceived;
 		this->host = setup.host;
 		this->sendNamePrefix = setup.sendNamePrefix;
 		this->deviceName = setup.deviceName;

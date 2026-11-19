@@ -77,6 +77,7 @@ SOURCES += main.cpp\
 	../filters/PreampFilter.cpp \
 	../filters/PreampFilterFactory.cpp \
 	../runtime/ipc/SendRing.cpp \
+	../runtime/ipc/SendResampler.cpp \
 	../runtime/ipc/EngineBeacon.cpp \
 	../runtime/ipc/SendRingWin32.cpp \
 	../runtime/memory/AlignedMemory.cpp \
@@ -470,6 +471,7 @@ HEADERS  += \
 	../filters/PreampFilter.h \
 	../filters/PreampFilterFactory.h \
 	../runtime/ipc/SendRing.h \
+	../runtime/ipc/SendResampler.h \
 	../runtime/ipc/EngineBeacon.h \
 	../runtime/ipc/SendRingWin32.h \
 	../runtime/memory/AlignedMemory.h \

@@ -4,7 +4,21 @@
 <context>
     <name>DeviceSelector</name>
     <message>
-        <location filename="../DeviceSelector.cpp" line="+188"/>
+        <location filename="../DeviceSelector.cpp" line="+202"/>
+        <source>Resample received audio</source>
+        <translation>Rééchantillonner le son reçu</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Converts audio that Send: lines in other endpoints&apos; configurations hand to this endpoint when their sample rate differs from this endpoint&apos;s, and keeps the two clocks aligned. Without it, a sender at another sample rate is refused. At equal sample rates nothing changes.
+
+It is optional because while it converts it uses CPU and a little latency, and the result is no longer bit-identical to what was sent.</source>
+        <translation>Convertit le son envoyé à ce point de terminaison par les lignes Send: des configurations des autres points de terminaison lorsque leur fréquence d’échantillonnage diffère de la sienne, et maintient les deux horloges synchronisées. Sans cette option, un émetteur utilisant une autre fréquence d’échantillonnage est refusé. À fréquence égale, rien ne change.
+
+Cette option est facultative, car la conversion utilise le processeur et ajoute un peu de latence. Le résultat n’est plus identique, bit pour bit, au son envoyé.</translation>
+    </message>
+    <message>
+        <location filename="../DeviceSelector.cpp" line="-16"/>
         <source>Ignore silence in convolution</source>
         <translation>Ignorer le silence dans la convolution</translation>
     </message>

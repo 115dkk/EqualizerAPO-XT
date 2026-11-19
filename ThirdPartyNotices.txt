@@ -11,6 +11,7 @@ code.
 - skipping the reopen of a plug-in panel that was open when the Editor crashed
 - the missing and repeated capture frame counters of the WASAPI-exclusive
   target
+- the Send receive resampler and its drift controller
 
 MIT License
 

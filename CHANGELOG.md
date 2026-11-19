@@ -24,6 +24,21 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   it has not been reproduced on an AVX-512 PC of our own.
   ([#496](https://github.com/115dkk/EqualizerAPO-XT/pull/496))
 
+## v2.68.0 — 2026-11-19
+
+- **Send works between endpoints at different sample rates, as an option.** A
+  `Send:` line used to be refused when the receiving endpoint ran at another
+  sample rate than the sender. The Device Selector now shows **Resample
+  received audio** to the right of **Send** while Send is ticked on a playback
+  endpoint. With it on, the receiving endpoint converts what it is sent to its
+  own sample rate and keeps the two devices' clocks aligned. It runs only when
+  the rates differ: at equal rates the audio passes through unchanged, as
+  before. It is off by default because converting uses CPU, adds about 1 ms of
+  latency, and the result is no longer bit-identical to what was sent. The
+  resampler and its drift controller were adapted from weirdsoup's Custom
+  Audio Manager.
+  ([#494](https://github.com/115dkk/EqualizerAPO-XT/pull/494))
+
 ## v2.67.0 — 2026-11-19
 
 - **A plug-in panel that crashed the Editor is not reopened on its own.** If
