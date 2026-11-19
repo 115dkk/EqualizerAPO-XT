@@ -140,6 +140,7 @@ SOURCES += main.cpp\
 	../services/app/QtAppBootstrap.cpp \
 	helpers/VstChunkScan.cpp \
 	helpers/VstChunkState.cpp \
+	helpers/VstPanelCrashMarker.cpp \
 	widgets/ResizingLineEdit.cpp \
 	widgets/ChannelGraphScene.cpp \
 	widgets/ChannelGraphItem.cpp \
@@ -455,6 +456,7 @@ HEADERS  += \
 	helpers/VstChunkScan.h \
 	helpers/VstChunkState.h \
 	helpers/VstPanelCall.h \
+	helpers/VstPanelCrashMarker.h \
 	stable.h \
 	IFilterGUI.h \
 	guis/PreampFilterGUI.h \
