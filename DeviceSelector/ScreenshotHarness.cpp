@@ -96,6 +96,13 @@ int ScreenshotHarness::runSkinShots(QApplication& app)
 			dialog.previewRemoveBuffer();
 			QApplication::processEvents();
 			save(QStringLiteral("asiowait"));
+			// Back on the endpoint with "Send" ticked: the receive resampling
+			// option unfolds to its right.
+			dialog.previewSelectDevice(0, 0);
+			QApplication::processEvents();
+			dialog.previewReceive();
+			QApplication::processEvents();
+			save(QStringLiteral("receive"));
 		}
 	}
 

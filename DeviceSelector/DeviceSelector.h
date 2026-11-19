@@ -47,6 +47,7 @@ public:
 	void previewRemoveBuffer();
 
 	void previewAsioEntry();
+	void previewReceive();
 
 private:
 	void showAsioWaitTime(bool shown);

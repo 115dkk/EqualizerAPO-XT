@@ -196,8 +196,9 @@ void DeviceSelector::setupChrome()
 	panelLayout->addWidget(allDevicesRow);
 	ui.troubleshootingLayout->insertWidget(stackIndex, troubleshootingPanel);
 
-	// The resampler belongs to the receiving endpoint, so it sits on that
-	// endpoint's page right under "Send", which it only matters with.
+	// The resampler belongs to the receiving endpoint and only matters while it
+	// receives, so it is Send's detail: it unfolds to the right of "Send" while
+	// Send is ticked and is hidden otherwise (see updateButtons).
 	resampleReceivedCheckBox = new QCheckBox(tr("Resample received audio"), ui.page_2);
 	resampleReceivedCheckBox->setObjectName(QStringLiteral("resampleReceivedCheckBox"));
 	resampleReceivedCheckBox->setToolTip(tr("Converts audio that Send: lines in other endpoints' configurations hand to "
@@ -205,7 +206,9 @@ void DeviceSelector::setupChrome()
 		"a sender at another sample rate is refused. At equal sample rates nothing changes.\n\n"
 		"It is optional because while it converts it uses CPU and a little latency, and the result is no longer "
 		"bit-identical to what was sent."));
-	ui.gridLayout_3->addWidget(resampleReceivedCheckBox, 5, 1, 1, 4);
+	ui.gridLayout_3->addWidget(ui.receiveCheckBox, 4, 1, 1, 1);
+	ui.gridLayout_3->addWidget(resampleReceivedCheckBox, 4, 2, 1, 3);
+	resampleReceivedCheckBox->setVisible(false);
 }
 
 void DeviceSelector::finishSetup()
@@ -330,6 +333,16 @@ void DeviceSelector::previewAsioEntry()
 	for (QWidget* control : {static_cast<QWidget*>(ui.asioSyncCheckBox), static_cast<QWidget*>(ui.asioAutoStartCheckBox),
 		static_cast<QWidget*>(ui.asioHost32CheckBox)})
 		control->setEnabled(true);
+}
+
+void DeviceSelector::previewReceive()
+{
+	// The preview roster's endpoints carry no install state, so pin what a
+	// real endpoint shows once "Send" is ticked: the resampling option
+	// unfolded beside it.
+	ui.receiveCheckBox->setEnabled(true);
+	ui.receiveCheckBox->setChecked(true);
+	resampleReceivedCheckBox->setVisible(true);
 }
 
 void DeviceSelector::showAsioWaitTime(bool shown)
@@ -759,8 +772,9 @@ void DeviceSelector::updateButtons()
 	ui.asioEntryCheckBox->setEnabled(enable);
 	// Receiving happens in the post-mix APO of a playback endpoint.
 	ui.receiveCheckBox->setEnabled(enable && !isInput && installState.installPostMix);
-	// Kept as set while receiving is off; it only has an effect while receiving.
-	resampleReceivedCheckBox->setEnabled(enable && !isInput && installState.installPostMix
+	// Send's detail: shown only while Send is ticked. Its value is kept while
+	// receiving is off; it only has an effect while receiving.
+	resampleReceivedCheckBox->setVisible(enable && !isInput && installState.installPostMix
 		&& installState.receiveFromEndpoints);
 	// Page 0: nothing to say. Page 1: an endpoint's APO chain. Page 2: an
 	// ASIO target's options.
