@@ -25,6 +25,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 - A new test checks that the audio path does not allocate memory while it
   processes. These three are adapted from weirdsoup's Custom Audio Manager
   (MIT).
+  ([#493](https://github.com/115dkk/EqualizerAPO-XT/pull/493))
 
 ## v2.66.0 — 2026-11-19
 

@@ -17,6 +17,7 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   보고합니다. 소리는 바뀌지 않습니다.
 - 오디오 처리 중에 메모리를 할당하지 않는지 확인하는 테스트를 넣었습니다.
   이 세 가지는 weirdsoup의 Custom Audio Manager(MIT)에서 가져왔습니다.
+  ([#493](https://github.com/115dkk/EqualizerAPO-XT/pull/493))
 
 ## v2.66.0 — 2026-11-19
 
