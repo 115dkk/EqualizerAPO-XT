@@ -240,6 +240,14 @@ void DeviceAPOInfo::installWithin(RegistryTransaction& plan)
 	{
 		plan.deleteValue(childApoPath L"\\" + deviceGuid, receiveFromEndpointsValueName);
 	}
+	if (!input && selectedInstallState.resampleReceived)
+	{
+		plan.writeValue(childApoPath L"\\" + deviceGuid, resampleReceivedValueName, L"true");
+	}
+	else if (plan.valueExists(childApoPath L"\\" + deviceGuid, resampleReceivedValueName))
+	{
+		plan.deleteValue(childApoPath L"\\" + deviceGuid, resampleReceivedValueName);
+	}
 	if (selectedInstallState.autoAdjust)
 	{
 		if (plan.valueExists(childApoPath L"\\" + deviceGuid, disableAutoAdjustValueName))

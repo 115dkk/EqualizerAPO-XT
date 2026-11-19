@@ -4,6 +4,20 @@
 <context>
     <name>DeviceSelector</name>
     <message>
+        <location filename="../DeviceSelector.cpp" line="202"/>
+        <source>Resample received audio</source>
+        <translation>전송된 오디오 리샘플링</translation>
+    </message>
+    <message>
+        <location filename="../DeviceSelector.cpp" line="204"/>
+        <source>Converts audio that Send: lines in other endpoints&apos; configurations hand to this endpoint when their sample rate differs from this endpoint&apos;s, and keeps the two clocks aligned. Without it, a sender at another sample rate is refused. At equal sample rates nothing changes.
+
+It is optional because while it converts it uses CPU and a little latency, and the result is no longer bit-identical to what was sent.</source>
+        <translation>다른 장치의 설정에 있는 Send: 줄이 이 장치로 보내는 소리의 샘플레이트가 이 장치의 샘플레이트와 다르면 변환하고, 두 장치의 클록 차이도 계속 보정합니다. 이 옵션을 끄면 샘플레이트가 다른 장치의 전송은 받지 않습니다. 샘플레이트가 같으면 달라지는 것은 없습니다.
+
+이 옵션을 켜면 변환하는 동안 CPU를 사용하고 지연이 조금 늘어납니다. 변환한 오디오는 전송된 원본과 비트 단위로 같지 않습니다.</translation>
+    </message>
+    <message>
         <location filename="../DeviceSelector.cpp" line="188"/>
         <source>Ignore silence in convolution</source>
         <translation>컨볼루션 무음 부분 무시</translation>

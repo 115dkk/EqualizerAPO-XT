@@ -24,6 +24,7 @@
 #include "dsp/MxcsrGuard.h"
 #include "services/logging/Logging.h"
 #include "vst/VSTPluginInstance.h"
+#include "platform/windows/StackGuarantee.h"
 
 using winutil::ComPtr;
 using winutil::CoTaskMem;
@@ -157,6 +158,7 @@ bool processGuarded(VSTPluginInstance* effect, float** inputPointers,
 	float** outputPointers, unsigned frameCount) noexcept
 {
 	const unsigned __int64 fpControlState = captureFpControlState();
+	ensurePluginCallStackGuarantee();
 	volatile bool stackOverflow = false;
 	bool result = false;
 	__try

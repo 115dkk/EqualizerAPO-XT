@@ -26,6 +26,7 @@ std::optional<ApoRuntimeFacts> readApoRuntimeFacts(IRegistry& registry, const st
 	if (isChildApoGuid(child))
 		facts.childApoGuid = child;
 	facts.allowSilentBufferModification = info.getCurrentInstallState().allowSilentBufferModification;
+	facts.resampleReceived = info.getCurrentInstallState().resampleReceived;
 	return facts;
 }
 

@@ -75,7 +75,7 @@ public:
 	void reset();
 	void configure(const std::wstring& prefix, const std::wstring& ownGuid,
 		double sampleRate, uint32_t maxFrameCount,
-		const std::vector<std::wstring>& deviceChannelNames);
+		const std::vector<std::wstring>& deviceChannelNames, bool resample);
 	bool configured() const noexcept {return configured_;}
 	const std::wstring& readyEventName() const noexcept {return readyEventName_;}
 	void tryAttach();
@@ -102,6 +102,7 @@ private:
 	double sampleRate_ = 0.0;
 	uint32_t maxFrameCount_ = 0;
 	std::vector<std::wstring> deviceChannelNames_;
+	bool resample_ = false;
 	bool configured_ = false;
 
 	bool pendingAttached_ = false;

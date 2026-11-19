@@ -220,6 +220,7 @@ void DeviceAPOInfo::resetInstallState()
 	currentInstallState.useOriginalAPOPostMix = !input;
 	currentInstallState.allowSilentBufferModification = false;
 	currentInstallState.receiveFromEndpoints = false;
+	currentInstallState.resampleReceived = false;
 	currentInstallState.autoAdjust = true;
 	currentInstallState.asioEntry = false;
 	currentInstallState.asioEntryOptions = {};
@@ -319,6 +320,8 @@ void DeviceAPOInfo::readChildApoState(
 				currentInstallState.allowSilentBufferModification = registry.readValue(childApoPath L"\\" + deviceGuid, allowSilentBufferValueName) != L"false";
 			if (!input && registry.valueExists(childApoPath L"\\" + deviceGuid, receiveFromEndpointsValueName))
 				currentInstallState.receiveFromEndpoints = registry.readValue(childApoPath L"\\" + deviceGuid, receiveFromEndpointsValueName) != L"false";
+			if (!input && registry.valueExists(childApoPath L"\\" + deviceGuid, resampleReceivedValueName))
+				currentInstallState.resampleReceived = registry.readValue(childApoPath L"\\" + deviceGuid, resampleReceivedValueName) == L"true";
 			if (registry.valueExists(childApoPath L"\\" + deviceGuid, disableAutoAdjustValueName))
 				currentInstallState.autoAdjust = registry.readValue(childApoPath L"\\" + deviceGuid, disableAutoAdjustValueName) == L"false";
 		}

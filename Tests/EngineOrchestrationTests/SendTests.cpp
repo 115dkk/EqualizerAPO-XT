@@ -108,7 +108,7 @@ namespace
 	}
 
 	EngineSetup apoSetup(const std::wstring& configPath, const std::wstring& guid,
-		const std::wstring& sendPrefix, unsigned rate = sampleRate)
+		const std::wstring& sendPrefix, unsigned rate = sampleRate, bool resample = false)
 	{
 		EngineSetup setup = testEngineSetup(rate, 2, 2, blockFrames, configPath);
 		setup.host = EngineHost::Apo;
@@ -117,6 +117,7 @@ namespace
 		setup.preMix = false;
 		setup.capture = false;
 		setup.postMixInstalled = true;
+		setup.resampleReceived = resample;
 		return setup;
 	}
 
@@ -147,6 +148,14 @@ namespace
 	{
 		std::vector<float> output(input.size(), 0.0f);
 		engine.process(output.data(), input.data(), blockFrames);
+		return output;
+	}
+
+	std::vector<float> processFrames(FilterEngine& engine, std::vector<float> input,
+		unsigned frames)
+	{
+		std::vector<float> output(input.size(), 0.0f);
+		engine.process(output.data(), input.data(), frames);
 		return output;
 	}
 
@@ -414,6 +423,73 @@ namespace
 			"receiver crossfade reuses one scratch block without doubling or skipping the ramp");
 	}
 
+	void checkDifferentRatesWithResampling(test::Harness& harness)
+	{
+		constexpr unsigned senderRate = 44'100;
+		constexpr unsigned receiverRate = 48'000;
+		constexpr unsigned senderFrames = 441;
+		constexpr double toneFrequency = 1000.0;
+		constexpr double toneAmplitude = 0.5;
+		constexpr double pi = 3.1415926535897932384626433832795;
+		const std::wstring sendPrefix = prefix(L"resampled-rate");
+		const std::wstring receiverPath = writeConfig(harness,
+			L"send-resampled-rate-receiver.txt", "# empty\n");
+		const std::wstring senderPath = writeConfig(harness,
+			L"send-resampled-rate-sender.txt", "Send: " + narrowGuid(receiverGuid)
+				+ " L=L Compensate=false Latency=1920samples Mode=Replace\n");
+
+		FilterEngine receiver;
+		receiver.initialize(apoSetup(receiverPath, receiverGuid, sendPrefix, receiverRate, true));
+		settle(receiver);
+		FilterEngine sender;
+		sender.initialize(apoSetup(senderPath, senderGuid, sendPrefix, senderRate));
+
+		uint64_t sourcePosition = 0;
+		auto sendTone = [&]() {
+			std::vector<float> input(static_cast<size_t>(senderFrames) * 2, 0.0f);
+			for (unsigned frame = 0; frame < senderFrames; frame++)
+			{
+				input[static_cast<size_t>(frame) * 2] = static_cast<float>(toneAmplitude
+					* std::sin(2.0 * pi * toneFrequency * (sourcePosition + frame) / senderRate));
+			}
+			sourcePosition += senderFrames;
+			processFrames(sender, std::move(input), senderFrames);
+		};
+		for (int block = 0; block < 6; block++)
+			sendTone();
+		harness.require(receiver.loadConfig(receiverPath),
+			"different-rate receiver attaches with ResampleReceived enabled");
+
+		std::vector<float> received;
+		for (int block = 0; block < 48; block++)
+		{
+			sendTone();
+			const std::vector<float> output = processBlock(receiver, stereoBlock(0.0f, 0.0f));
+			received.insert(received.end(), output.begin(), output.end());
+		}
+
+		const size_t firstFrame = 5 * blockFrames;
+		double energy = 0.0;
+		unsigned positiveCrossings = 0;
+		float previous = received[firstFrame * 2];
+		for (size_t frame = firstFrame; frame < received.size() / 2; frame++)
+		{
+			const float sample = received[frame * 2];
+			energy += static_cast<double>(sample) * sample;
+			if (previous <= 0.0f && sample > 0.0f)
+				positiveCrossings++;
+			previous = sample;
+		}
+		const size_t measuredFrames = received.size() / 2 - firstFrame;
+		const double measuredFrequency = static_cast<double>(positiveCrossings) * receiverRate
+			/ measuredFrames;
+		const double rms = std::sqrt(energy / measuredFrames);
+		harness.expectNear(measuredFrequency, toneFrequency, 3.0,
+			"different-rate Send preserves the tone frequency");
+		harness.expectNear(rms, toneAmplitude / std::sqrt(2.0), 0.004,
+			"different-rate Send preserves the tone level");
+	}
+
 	void checkSampleRateAndSenderDeparture(test::Harness& harness)
 	{
 		const std::wstring mismatchPrefix = prefix(L"rate");
@@ -603,6 +679,7 @@ TEST_CASE(EngineOrchestrationTests, runSendTests)
 	checkMixMode(harness, "Mix", 12.0f, L"mix");
 	checkMixMode(harness, "Replace", 2.0f, L"replace");
 	checkCrossfadeDeduplication(harness);
+	checkDifferentRatesWithResampling(harness);
 	checkSampleRateAndSenderDeparture(harness);
 	checkSecondSenderRefusal(harness);
 	checkRefusalsAndInactiveHost(harness);

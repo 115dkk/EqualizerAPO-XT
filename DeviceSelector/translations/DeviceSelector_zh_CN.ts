@@ -4,7 +4,21 @@
 <context>
     <name>DeviceSelector</name>
     <message>
-        <location filename="../DeviceSelector.cpp" line="+188"/>
+        <location filename="../DeviceSelector.cpp" line="+202"/>
+        <source>Resample received audio</source>
+        <translation>对接收的音频重采样</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Converts audio that Send: lines in other endpoints&apos; configurations hand to this endpoint when their sample rate differs from this endpoint&apos;s, and keeps the two clocks aligned. Without it, a sender at another sample rate is refused. At equal sample rates nothing changes.
+
+It is optional because while it converts it uses CPU and a little latency, and the result is no longer bit-identical to what was sent.</source>
+        <translation>当其他端点的采样率与此端点不同时，转换这些端点通过配置中的 Send: 行发送到此端点的音频，并保持两端时钟同步。未启用此选项时，会拒绝采样率不同的发送端。采样率相同时没有任何变化。
+
+此功能可选择是否启用，因为转换时会占用 CPU，增加少量延迟，且转换结果不再与发送的原始音频逐位一致。</translation>
+    </message>
+    <message>
+        <location filename="../DeviceSelector.cpp" line="-16"/>
         <source>Ignore silence in convolution</source>
         <translation>忽略卷积中的静音</translation>
     </message>

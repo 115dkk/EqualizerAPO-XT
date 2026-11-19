@@ -65,7 +65,8 @@ void SendFilterFactory::onInitialize(FilterEngine& engine)
 		try
 		{
 			receiver_.configure(engine_->getSendNamePrefix(), ownGuid_, engine_->getSampleRate(),
-				engine_->getMaxFrameCount(), engine_->deviceChannelNames());
+				engine_->getMaxFrameCount(), engine_->deviceChannelNames(),
+				engine_->resamplesReceivedAudio());
 			receiverInstalled_ = true;
 			engine_->setInputTap(&receiver_);
 		}

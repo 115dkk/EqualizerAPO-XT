@@ -194,6 +194,7 @@ void SendReceiver::reset()
 	sampleRate_ = 0.0;
 	maxFrameCount_ = 0;
 	deviceChannelNames_.clear();
+	resample_ = false;
 	pendingAttached_ = false;
 	pendingSenderId_ = 0;
 	pendingChannelCount_ = 0;
@@ -212,12 +213,13 @@ void SendReceiver::reset()
 
 void SendReceiver::configure(const std::wstring& prefix, const std::wstring& ownGuid,
 	double sampleRate, uint32_t maxFrameCount,
-	const std::vector<std::wstring>& deviceChannelNames)
+	const std::vector<std::wstring>& deviceChannelNames, bool resample)
 {
 	reset();
 	sampleRate_ = sampleRate;
 	maxFrameCount_ = maxFrameCount;
 	deviceChannelNames_ = deviceChannelNames;
+	resample_ = resample;
 	readyEventName_ = eventName(prefix, ownGuid);
 	ring_ = std::make_shared<eapo::ipc::send::SendRingWin32>(
 		mappingName(prefix, ownGuid), readyEventName_);
@@ -263,7 +265,7 @@ void SendReceiver::tryAttach()
 
 	cleanRetired();
 	const AttachPlan plan = prepareAttach(ring_->region(), sampleRate_, maxFrameCount_,
-		deviceChannelNames_, qpcNow());
+		deviceChannelNames_, qpcNow(), resample_);
 	if (!plan.ok)
 	{
 		const bool waitingForSender = plan.reason == L"sender is not ready"

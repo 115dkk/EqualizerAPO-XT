@@ -32,6 +32,7 @@ struct ApoRuntimeFacts
 	// when the install recorded none.
 	std::wstring childApoGuid;
 	bool allowSilentBufferModification = false;
+	bool resampleReceived = false;
 };
 
 // Empty when the endpoint is not present. Throws RegistryError when its keys
