@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.69.0 — 2026-11-19
+
 - **Convolution and MultiConvolution use several CPU cores.** The convolver
   units of one filter (one per channel in Convolution, one per mapping in
   MultiConvolution) used to run one after another on the audio thread, so a

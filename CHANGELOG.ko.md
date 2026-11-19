@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.69.0 — 2026-11-19
+
 - **Convolution과 MultiConvolution이 여러 CPU 코어를 씁니다.** 한 필터의
   컨볼버 유닛들(Convolution은 채널마다 하나, MultiConvolution은 매핑마다
   하나)을 오디오 스레드가 차례로 처리해서, 채널이 많고 임펄스 응답이 길면
