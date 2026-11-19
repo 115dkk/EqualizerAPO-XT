@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.68.0 — 2026-11-19
+
 - **Send works between endpoints at different sample rates, as an option.** A
   `Send:` line used to be refused when the receiving endpoint ran at another
   sample rate than the sender. The Device Selector now shows **Resample
