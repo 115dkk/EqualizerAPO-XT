@@ -50,6 +50,7 @@
 #include <vector>
 
 #include "Tests/AlignedMemoryGate.h"
+#include "Tests/CrashReport.h"
 
 namespace test
 {
@@ -498,6 +499,8 @@ public:
 inline int runAll(const char* binaryName,
 	std::initializer_list<const char*> suiteOrder = {}, CleanupFunction afterAll = nullptr)
 {
+	// An unhandled crash names where it happened before the process dies.
+	crash_report::install();
 	std::vector<TestSuite*> orderedSuites;
 	if (suiteOrder.size() == 0)
 	{
