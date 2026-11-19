@@ -30,7 +30,7 @@
 class ConvolutionFilter : public IFilter
 {
 public:
-	ConvolutionFilter(JudgedPath filename);
+	ConvolutionFilter(JudgedPath filename, bool ignoreTrailingSilence = true);
 	virtual ~ConvolutionFilter();
 	// The deferred mute diagnostic's prefix is part of the filter's
 	// observable contract (HybridConvTests pins it), like
@@ -46,7 +46,7 @@ protected:
 	// (GraphicEQFilter, audit #348 F3). Stored rather than virtual: the report
 	// runs from ~ConvolutionFilter(), when a subclass override is gone.
 	ConvolutionFilter(JudgedPath filename, ConvolverMuteDiagnostics& muteDiagnostics,
-		const wchar_t* muteLogPrefix);
+		const wchar_t* muteLogPrefix, bool ignoreTrailingSilence = true);
 	// Builds the units and hands them to bank.install() with frameCount.
 	virtual void initializeFilters(unsigned frameCount);
 	float sampleRate = 0.0f;
@@ -62,5 +62,6 @@ private:
 	void cleanup();
 
 	JudgedPath filename;
+	bool ignoreTrailingSilence;
 };
 #pragma AVRT_VTABLES_END

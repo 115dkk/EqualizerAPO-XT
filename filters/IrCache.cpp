@@ -47,7 +47,8 @@ namespace
 	constexpr uint64_t kMaxIrSamples = uint64_t{1} << 28;
 	constexpr size_t kParallelDeinterleaveMinimumSamples = 1u << 18;
 
-	// Cache of decoded impulse-response PCM, keyed by path + mtime + sample rate.
+	// Cache of decoded impulse-response PCM, keyed by path + mtime + sample rate
+	// + trailing-silence setting.
 	// Lets a config reload (or a second filter using the same IR) skip the
 	// libsndfile read + interleave-to-planar pass. File I/O and the per-channel
 	// reshuffle dominate convolution filter initialization for large IRs.
@@ -63,6 +64,7 @@ namespace
 		std::wstring path;
 		unsigned long long mtime = 0;
 		int sampleRate = 0;
+		bool ignoreTrailingSilence = true;
 
 		bool operator==(const IrCacheKey&) const = default;
 	};
@@ -74,6 +76,7 @@ namespace
 			size_t h = std::hash<std::wstring>{}(k.path);
 			h ^= std::hash<unsigned long long>{}(k.mtime) + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2);
 			h ^= std::hash<int>{}(k.sampleRate) + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2);
+			h ^= std::hash<bool>{}(k.ignoreTrailingSilence) + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2);
 			return h;
 		}
 	};
@@ -221,6 +224,34 @@ namespace
 
 }
 
+unsigned trailingSilenceTrimmedLength(
+	const std::vector<std::vector<double>>& buffers, unsigned frames)
+{
+	if (frames == 0)
+		return 0;
+
+	double peak = 0.0;
+	for (const std::vector<double>& buffer : buffers)
+	{
+		const size_t sampleCount = (std::min)(buffer.size(), static_cast<size_t>(frames));
+		for (size_t i = 0; i < sampleCount; ++i)
+			peak = (std::max)(peak, abs(buffer[i]));
+	}
+	if (peak == 0.0)
+		return 1;
+
+	const double threshold = peak * 1.0e-7;
+	for (unsigned frame = frames; frame > 0; --frame)
+	{
+		for (const std::vector<double>& buffer : buffers)
+		{
+			if (frame <= buffer.size() && abs(buffer[frame - 1]) > threshold)
+				return frame;
+		}
+	}
+	return 1;
+}
+
 std::wstring validateIrSize(const JudgedPath& judged)
 {
 	HANDLE file = judged.leaf();
@@ -252,7 +283,8 @@ std::wstring validateIrSize(const JudgedPath& judged)
 	return L"";
 }
 
-std::shared_ptr<const IrCacheEntry> loadIrCached(const JudgedPath& judged, double sampleRate)
+std::shared_ptr<const IrCacheEntry> loadIrCached(
+	const JudgedPath& judged, double sampleRate, bool ignoreTrailingSilence)
 {
 	const std::wstring& filename = judged.path();
 	HANDLE file = judged.leaf();
@@ -260,7 +292,8 @@ std::shared_ptr<const IrCacheEntry> loadIrCached(const JudgedPath& judged, doubl
 	if (file == nullptr || !GetFileInformationByHandleEx(file, FileBasicInfo, &attributes, sizeof(attributes)))
 		return nullptr;
 	const int sampleRateKey = static_cast<int>(sampleRate);
-	IrCacheKey key{ filename, static_cast<unsigned long long>(attributes.LastWriteTime.QuadPart), sampleRateKey };
+	IrCacheKey key{ filename, static_cast<unsigned long long>(attributes.LastWriteTime.QuadPart),
+		sampleRateKey, ignoreTrailingSilence };
 
 	if (auto entry = irCache().find(key))
 		return entry;
@@ -345,6 +378,19 @@ std::shared_ptr<const IrCacheEntry> loadIrCached(const JudgedPath& judged, doubl
 	else
 		for (unsigned c = 0; c < channels; ++c)
 			deinterleaveChannel(c);
+
+	if (ignoreTrailingSilence)
+	{
+		const unsigned trimmedFrames = trailingSilenceTrimmedLength(entry->buffers, frames);
+		if (trimmedFrames < frames)
+		{
+			for (std::vector<double>& buffer : entry->buffers)
+				buffer.resize(trimmedFrames);
+			entry->frames = trimmedFrames;
+			LogFStatic(L"Ignoring %u silent frames at the end of impulse response %s.",
+				frames - trimmedFrames, filename.c_str());
+		}
+	}
 
 	// store-or-replace with expired-slot pruning; a concurrent loader may
 	// have inserted the same key, and the last write wins with a live entry.

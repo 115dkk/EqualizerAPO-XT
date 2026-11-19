@@ -177,7 +177,20 @@ function Assert-Removed([string] $label) {
     while ((Test-Path -LiteralPath $current) -and (Get-Date) -lt $deadline) { Start-Sleep -Seconds 2 }
     if (Test-Path -LiteralPath $current) {
         Write-LeftoverReport $label $current
-        throw "[$label] $current is still there after the uninstall"
+        # Velopack deletes the files and then the folder in one deferred
+        # `rmdir /s /q`. When something holds only a handle on the directory
+        # at that moment (no file and no loaded module is left, which the
+        # report above shows), the files go and the empty folder stays. Two
+        # PRs that did not touch installation hit this on hosted runners
+        # (#486, #489); an empty folder is not a leftover install.
+        $remaining = @(Get-ChildItem -LiteralPath $current -Recurse -Force -ErrorAction SilentlyContinue)
+        if ($remaining.Count -eq 0) {
+            Remove-Item -LiteralPath $current -Force -ErrorAction SilentlyContinue
+        }
+        if (Test-Path -LiteralPath $current) {
+            throw "[$label] $current is still there after the uninstall"
+        }
+        Write-Warning "[$label] Velopack's deferred removal left $current empty; the gate removed the empty folder."
     }
     Assert-AudioService $label
     Write-Host "[$label] removed"

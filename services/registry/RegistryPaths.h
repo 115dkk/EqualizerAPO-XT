@@ -30,6 +30,7 @@ inline constexpr GUID EQUALIZERAPO_POST_MIX_GUID =
 // Persisted value names shared by writers and cleanup (audit #467 TD-47).
 inline constexpr wchar_t installPathValueName[] = L"InstallPath";
 inline constexpr wchar_t configPathValueName[] = L"ConfigPath";
+inline constexpr wchar_t ignoreConvolutionSilenceValueName[] = L"IgnoreConvolutionSilence";
 inline constexpr wchar_t enableTraceValueName[] = L"EnableTrace";
 inline constexpr wchar_t migratedFromValueName[] = L"MigratedFrom";
 inline constexpr wchar_t migrationStampValueName[] = L"MigrationStamp";

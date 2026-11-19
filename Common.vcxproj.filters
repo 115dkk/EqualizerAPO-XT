@@ -271,6 +271,9 @@
     <ClInclude Include="services\registry\RegistryPaths.h">
       <Filter>services</Filter>
     </ClInclude>
+    <ClInclude Include="services\registry\RegistrySettings.h">
+      <Filter>services</Filter>
+    </ClInclude>
     <ClInclude Include="runtime\lifetime\ScopeExit.h">
       <Filter>services</Filter>
     </ClInclude>
@@ -629,6 +632,9 @@
       <Filter>diagnostics</Filter>
     </ClCompile>
     <ClCompile Include="services\registry\WindowsRegistry.cpp">
+      <Filter>services</Filter>
+    </ClCompile>
+    <ClCompile Include="services\registry\RegistrySettings.cpp">
       <Filter>services</Filter>
     </ClCompile>
     <ClCompile Include="text\WideString.cpp">

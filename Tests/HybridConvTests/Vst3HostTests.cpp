@@ -40,6 +40,7 @@
 #include "vst/VST3MemoryStream.h"
 #include "vst/VSTStateSemantic.h"
 #include "services/logging/Logging.h"
+#include "dsp/MxcsrGuard.h"
 
 using std::shared_ptr;
 using std::wstring;
@@ -353,6 +354,130 @@ TEST_CASE(Vst3HostTests, testEngineFaultContainment)
 			"VST3 crash is logged once");
 		harness.expectTrue(log.find(library->getLibPath()) != wstring::npos, "VST3 crash log identifies the library");
 	}
+}
+
+TEST_CASE(Vst3HostTests, testNonFiniteOutputContainment)
+{
+	auto library = loadScenarioLibrary(L"NanOutputBundle.vst3", testvst3::mode::nanOutput);
+	FILE* logFile = nullptr;
+	harness.require(tmpfile_s(&logFile) == 0 && logFile != nullptr, "non-finite VST3 log capture opens");
+	Logging::useStream(logFile, false, true, false);
+	{
+		PluginState state;
+		state.gain = 0.5;
+		VSTPluginFilter filter(library, encodeState(state), {});
+		filter.initialize(48000.0f, 4, {L"L", L"R"});
+		double inLeft[] = {0.25, 0.5, 0.75, 1.0}, inRight[] = {-0.25, -0.5, -0.75, -1.0};
+		double outLeft[4] = {}, outRight[4] = {};
+		double* input[] = {inLeft, inRight};
+		double* output[] = {outLeft, outRight};
+		for (int block = 0; block < 2; block++)
+		{
+			filter.process(output, input, 4);
+			for (int frame = 0; frame < 4; frame++)
+			{
+				harness.expectTrue(std::isfinite(outLeft[frame]) && std::isfinite(outRight[frame]),
+					"non-finite VST3 output never escapes the filter");
+				harness.expectNear(outLeft[frame], inLeft[frame], 0.0,
+					"non-finite VST3 passes the current and later blocks through");
+				harness.expectNear(outRight[frame], inRight[frame], 0.0,
+					"non-finite VST3 preserves every channel");
+			}
+		}
+		harness.expectEqual(std::ftell(logFile), 0L, "non-finite VST3 report is deferred until teardown");
+	}
+	std::fflush(logFile);
+	std::rewind(logFile);
+	wstring log;
+	wchar_t text[1024] = {};
+	while (std::fgetws(text, 1024, logFile) != nullptr)
+		log.append(text);
+	Logging::useStream(stdout, true, true, false);
+	std::fclose(logFile);
+	const wchar_t* marker = L"produced NaN or infinite samples";
+	const size_t first = log.find(marker);
+	harness.expectTrue(first != wstring::npos && log.find(marker, first + 1) == wstring::npos,
+		"non-finite VST3 output is reported exactly once");
+	harness.expectTrue(log.find(library->getLibPath()) != wstring::npos,
+		"non-finite VST3 report identifies the library");
+}
+
+TEST_CASE(Vst3HostTests, testStateDependentLatencyDelaysUnwrittenChannel)
+{
+	auto library = loadScenarioLibrary(L"StateLatencyBundle.vst3", testvst3::mode::stateLatency);
+	PluginState state;
+	state.gain = 0.5;
+	VST3BusContract contract;
+	contract.input = VST3BusLayout::Stereo;
+	contract.output = VST3BusLayout::Stereo;
+	VSTPluginFilter filter(library, encodeState(state), {}, contract,
+		{L"L", L"R"}, std::vector<wstring>());
+	filter.initialize(48000.0f, 128, {L"L", L"R", L"C"});
+
+	double inputData[3][128] = {};
+	// cppcheck-suppress constVariable -- the plugin writes this array through outputs below.
+	double outputData[3][128] = {};
+	inputData[2][0] = 1.0;
+	double* inputs[3] = {inputData[0], inputData[1], inputData[2]};
+	double* outputs[3] = {outputData[0], outputData[1], outputData[2]};
+	filter.process(outputs, inputs, 128);
+	bool delayed = true;
+	for (unsigned sample = 0; sample < 128; sample++)
+	{
+		const double expected = sample == 64 ? 1.0 : 0.0;
+		delayed = delayed && outputData[2][sample] == expected;
+	}
+	harness.expectTrue(delayed,
+		"an unwritten VST3 channel uses the 64-sample latency reported after state restore");
+}
+
+TEST_CASE(Vst3HostTests, testProcessRestoresFloatingPointState)
+{
+	const wstring bundle = prepareBundle(exeDirectory(), L"FpStateProcessBundle.vst3",
+		testvst3::mode::fpStateProcess);
+	auto library = VSTPluginLibrary::getInstance(bundle);
+	harness.require(VSTPluginLibrary::load(bundle).succeeded(), "FP-state fixture loads");
+	VSTPluginFilter filter(library, wstring(), {});
+	filter.initialize(48000.0f, 4, {L"L", L"R"});
+	double inLeft[4] = {}, inRight[4] = {}, outLeft[4] = {}, outRight[4] = {};
+	double* input[] = {inLeft, inRight};
+	double* output[] = {outLeft, outRight};
+	const unsigned __int64 before = captureFpControlState();
+	filter.process(output, input, 4);
+	const unsigned __int64 after = captureFpControlState();
+	restoreFpControlState(before);
+	harness.expectEqual(after, before, "VST3 process restores the caller's FP control state");
+}
+
+TEST_CASE(Vst3HostTests, testConsecutiveStackOverflowsAreContained)
+{
+#ifdef __SANITIZE_ADDRESS__
+	harness.skip("MSVC AddressSanitizer terminates on the intentional plug-in stack overflow before SEH can contain it");
+	return;
+#else
+	const wstring bundle = prepareBundle(exeDirectory(), L"StackOverflowProcessBundle.vst3",
+		testvst3::mode::stackOverflowProcess);
+	auto library = VSTPluginLibrary::getInstance(bundle);
+	harness.require(VSTPluginLibrary::load(bundle).succeeded(), "stack-overflow fixture loads");
+	for (int attempt = 0; attempt < 2; ++attempt)
+	{
+		VSTPluginFilter filter(library, wstring(), {});
+		filter.initialize(48000.0f, 4, {L"L", L"R"});
+		double inLeft[] = {0.25, 0.5, 0.75, 1.0}, inRight[] = {-0.25, -0.5, -0.75, -1.0};
+		double outLeft[4] = {}, outRight[4] = {};
+		double* input[] = {inLeft, inRight};
+		double* output[] = {outLeft, outRight};
+		filter.process(output, input, 4);
+		for (int frame = 0; frame < 4; ++frame)
+		{
+			harness.expectNear(outLeft[frame], inLeft[frame], 0.0,
+				"stack-overflowing VST3 passes the left channel through");
+			harness.expectNear(outRight[frame], inRight[frame], 0.0,
+				"stack-overflowing VST3 passes the right channel through");
+		}
+	}
+	harness.expectTrue(true, "two consecutive plug-in stack overflows return to the host");
+#endif
 }
 
 TEST_CASE(Vst3HostTests, testProcessingFailureResults)
