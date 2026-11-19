@@ -45,6 +45,7 @@
 #include <cstdint>
 #include "TestVst2Protocol.h"
 #include <cstring>
+#include <limits>
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -144,6 +145,8 @@ struct PluginState
 	bool faultEditor = false;
 	bool faultProcess = false;
 	bool faultPrepare = false;
+	bool nanOutput = false;
+	bool stateLatency = false;
 	bool zeroStateResult = false;
 	bool untouchedName = false;
 	bool fullName = false;
@@ -343,6 +346,11 @@ void processGeneric(vst_effect_t* effect, const Sample* const* inputs, Sample** 
 				out[i] = static_cast<Sample>(in[i] * gain);
 		}
 	}
+	if (state != nullptr && state->nanOutput && outputs[0] != nullptr)
+	{
+		for (int32_t i = 0; i < samples; ++i)
+			outputs[0][i] = (std::numeric_limits<Sample>::quiet_NaN)();
+	}
 }
 
 void VST_FUNCTION_INTERFACE processReplacing(vst_effect_t* effect, const float* const* inputs, float** outputs, int32_t samples)
@@ -512,6 +520,8 @@ intptr_t VST_FUNCTION_INTERFACE dispatcher(vst_effect_t* effect, int32_t opcode,
 			return 0;
 		state->params[kParamGain] = blob.gain;
 		state->params[kParamBypass] = blob.bypass;
+		if (state->stateLatency)
+			effect->delay = 64;
 		if (state->statePersona == StatePersona::zipClockAutomate && state->host != nullptr)
 		{
 			state->host(effect, VST_HOST_OPCODE_AUTOMATE, kParamGain, 0, nullptr, blob.gain);
@@ -668,6 +678,8 @@ vst_effect_t* createEffect(vst_host_callback_t callback)
 		state->faultEditor = wcscmp(faultMode, L"editor") == 0;
 		state->faultProcess = wcscmp(faultMode, L"process") == 0;
 		state->faultPrepare = wcscmp(faultMode, L"prepare") == 0;
+		state->nanOutput = wcscmp(faultMode, L"NanOutput") == 0;
+		state->stateLatency = wcscmp(faultMode, L"StateLatency") == 0;
 		state->zeroStateResult = wcscmp(faultMode, L"state-zero-success") == 0;
 		state->fullName = wcscmp(faultMode, L"full-name") == 0;
 		state->untouchedName = state->fullName || wcscmp(faultMode, L"untouched-name") == 0;

@@ -22,6 +22,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <limits>
 
 #include "pluginterfaces/base/funknown.h"
 #include "pluginterfaces/base/ibstream.h"
@@ -65,6 +66,8 @@ bool rejectActiveMode = false;
 bool rejectProcessingMode = false;
 bool unimplementedProcessingMode = false;
 bool faultProcessMode = false;
+bool nanOutputMode = false;
+bool stateLatencyMode = false;
 bool fpStateProcessMode = false;
 bool stackOverflowProcessMode = false;
 bool faultActiveMode = false;
@@ -551,7 +554,10 @@ public:
 			RaiseException(EXCEPTION_ACCESS_VIOLATION, 0, 0, nullptr);
 		if (refuseStateMode)
 			return kResultFalse;
-		return readState(stream, state) ? kResultOk : kResultFalse;
+		const bool restored = readState(stream, state);
+		if (restored)
+			stateRestored = true;
+		return restored ? kResultOk : kResultFalse;
 	}
 	tresult PLUGIN_API getState(IBStream* stream) override
 	{
@@ -588,7 +594,7 @@ public:
 	{
 		return size == kSample32 || (supportsDouble && size == kSample64) ? kResultOk : kResultFalse;
 	}
-	uint32 PLUGIN_API getLatencySamples() override { return 0; }
+	uint32 PLUGIN_API getLatencySamples() override { return stateLatencyMode && stateRestored ? 64 : 0; }
 	tresult PLUGIN_API setupProcessing(ProcessSetup& newSetup) override
 	{
 		if (rejectSetupMode)
@@ -715,6 +721,16 @@ public:
 					data.outputs[0].channelBuffers32[channel][sample] = static_cast<float>(data.inputs[0].channelBuffers32[channel][sample] * state.gain);
 			}
 		}
+		if (nanOutputMode)
+		{
+			for (int32 sample = 0; sample < data.numSamples; ++sample)
+			{
+				if (data.symbolicSampleSize == kSample64)
+					data.outputs[0].channelBuffers64[0][sample] = (std::numeric_limits<double>::quiet_NaN)();
+				else
+					data.outputs[0].channelBuffers32[0][sample] = (std::numeric_limits<float>::quiet_NaN)();
+			}
+		}
 		return kResultOk;
 	}
 	uint32 PLUGIN_API getTailSamples() override { return kNoTail; }
@@ -763,6 +779,7 @@ private:
 	bool doubleInitialized = false;
 	IEditController* controllerDelegate = nullptr;
 	bool initialized = false;
+	bool stateRestored = false;
 	std::atomic<bool> active{false};
 	std::atomic<bool> processing{false};
 	ProcessSetup setup{};
@@ -1483,6 +1500,8 @@ extern "C" __declspec(dllexport) bool InitDll()
 	const wchar_t* separator = wcsrchr(modulePath, L'\\');
 	const wchar_t* moduleName = separator != nullptr ? separator + 1 : modulePath;
 	faultProcessMode = wcsstr(moduleName, testvst3::mode::faultProcess) != nullptr;
+	nanOutputMode = wcsstr(moduleName, testvst3::mode::nanOutput) != nullptr;
+	stateLatencyMode = wcsstr(moduleName, testvst3::mode::stateLatency) != nullptr;
 	fpStateProcessMode = wcsstr(moduleName, testvst3::mode::fpStateProcess) != nullptr;
 	stackOverflowProcessMode = wcsstr(moduleName, testvst3::mode::stackOverflowProcess) != nullptr;
 	faultActiveMode = wcsstr(moduleName, testvst3::mode::faultActive) != nullptr;
@@ -1538,6 +1557,8 @@ extern "C" __declspec(dllexport) bool ExitDll()
 			CloseHandle(marker);
 	}
 	moduleInitialized = false;
+	nanOutputMode = false;
+	stateLatencyMode = false;
 	rejectComponentInitialize = false;
 	componentStateUnavailable = false;
 	upmixerMode = false;

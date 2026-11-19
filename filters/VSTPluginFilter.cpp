@@ -20,6 +20,7 @@
 #include "stdafx.h"
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <exception>
 #include <limits>
 #include <new>
@@ -99,6 +100,22 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 	prepareForProcessing(sampleRate, maxFrameCount);
 	if (skipProcessing)
 		return channelNames;
+
+	const int activeLatency = effects.front()->getInitialDelay();
+	for (size_t i = 1; i < effects.size(); i++)
+	{
+		if (effects[i]->getInitialDelay() != activeLatency)
+		{
+			passThrough(L"The VST plugin %s reported inconsistent per-instance latency after loading its state; passing audio through.");
+			return channelNames;
+		}
+	}
+	if (activeLatency != context.reportedLatency)
+	{
+		LogF(L"The VST plugin %s reports %d samples of latency after loading its state (%d before); compensation uses the new value.",
+			libPath.c_str(), activeLatency, context.reportedLatency);
+		context.reportedLatency = activeLatency;
+	}
 
 	if (!allocateBuffers(context, maxFrameCount))
 		return channelNames;
@@ -458,6 +475,31 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 			effect->processBlock(inputArray.data(), outputArray.data(), frameCount);
 			restoreFpControlState(fpControlState);
 
+			// Non-finite output guard, adapted from Custom Audio Manager by weirdsoup (MIT): see Third-party notices.
+			bool nonFiniteOutput = false;
+			for (unsigned eapoSlot = 0; eapoSlot < effectOutputCount; eapoSlot++)
+			{
+				const bool realOutput = outputFill
+					? resolvedOutputChannels[eapoSlot] >= 0 : channelOffset + eapoSlot < channelCount;
+				if (!realOutput)
+					continue;
+				const int mappedSlot = outputMapping.size() == effectOutputCount
+					? outputMapping[eapoSlot] : static_cast<int>(eapoSlot);
+				const unsigned busSlot = mappedSlot >= 0 && mappedSlot < static_cast<int>(effectOutputCount)
+					? static_cast<unsigned>(mappedSlot) : eapoSlot;
+				const double* samples = outputArray[busSlot];
+				for (unsigned frame = 0; frame < frameCount; frame++)
+					nonFiniteOutput |= !std::isfinite(samples[frame]);
+			}
+			if (nonFiniteOutput)
+			{
+				reportNonFinite = false;
+				skipProcessing = true;
+				for (unsigned channel = 0; channel < channelCount; channel++)
+					std::copy_n(input[channel], frameCount, output[channel]);
+				return;
+			}
+
 			if (!inputFill && !outputFill && effectOutputCount < effectInputCount)
 			{
 				for (unsigned j = effectOutputCount; j < effectInputCount; j++)
@@ -567,6 +609,11 @@ void VSTPluginFilter::cleanup()
 	{
 		LogF(L"The VST plugin %s crashed during audio processing.", libPath.c_str());
 		reportCrash = true;
+	}
+	if (!reportNonFinite)
+	{
+		LogF(L"The VST plugin %s produced NaN or infinite samples; passing audio through.", libPath.c_str());
+		reportNonFinite = true;
 	}
 
 	for (const auto& effect : effects)
