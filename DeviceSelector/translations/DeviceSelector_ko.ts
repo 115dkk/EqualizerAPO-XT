@@ -6,7 +6,7 @@
     <message>
         <location filename="../DeviceSelector.cpp" line="202"/>
         <source>Resample received audio</source>
-        <translation>받은 오디오 리샘플링</translation>
+        <translation>전송된 오디오 리샘플링</translation>
     </message>
     <message>
         <location filename="../DeviceSelector.cpp" line="204"/>
