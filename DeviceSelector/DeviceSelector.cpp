@@ -195,6 +195,17 @@ void DeviceSelector::setupChrome()
 	allDevicesLayout->addStretch(1);
 	panelLayout->addWidget(allDevicesRow);
 	ui.troubleshootingLayout->insertWidget(stackIndex, troubleshootingPanel);
+
+	// The resampler belongs to the receiving endpoint, so it sits on that
+	// endpoint's page right under "Send", which it only matters with.
+	resampleReceivedCheckBox = new QCheckBox(tr("Resample received audio"), ui.page_2);
+	resampleReceivedCheckBox->setObjectName(QStringLiteral("resampleReceivedCheckBox"));
+	resampleReceivedCheckBox->setToolTip(tr("Converts audio that Send: lines in other endpoints' configurations hand to "
+		"this endpoint when their sample rate differs from this endpoint's, and keeps the two clocks aligned. Without it, "
+		"a sender at another sample rate is refused. At equal sample rates nothing changes.\n\n"
+		"It is optional because while it converts it uses CPU and a little latency, and the result is no longer "
+		"bit-identical to what was sent."));
+	ui.gridLayout_3->addWidget(resampleReceivedCheckBox, 5, 1, 1, 4);
 }
 
 void DeviceSelector::finishSetup()
@@ -219,6 +230,7 @@ void DeviceSelector::finishSetup()
 	connect(ui.allowSilentBufferCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
 	connect(ui.asioEntryCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
 	connect(ui.receiveCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
+	connect(resampleReceivedCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
 	connect(ui.autoCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
 	connect(ui.asioSyncCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
 	connect(ui.asioDeadlineComboBox, QOverload<int>::of(&QComboBox::activated), this, &DeviceSelector::onTroubleShootingOptionChanged);
@@ -630,6 +642,8 @@ void DeviceSelector::onTroubleShootingOptionChanged()
 				if (state.receiveFromEndpoints)
 					state.allowSilentBufferModification = true;
 			}
+			else if (sender == resampleReceivedCheckBox)
+				deviceInfo->getSelectedInstallState().resampleReceived = resampleReceivedCheckBox->isChecked();
 			else if (sender == ui.asioEntryCheckBox)
 			{
 				DeviceAPOInfo::InstallState& state = deviceInfo->getSelectedInstallState();
@@ -745,6 +759,9 @@ void DeviceSelector::updateButtons()
 	ui.asioEntryCheckBox->setEnabled(enable);
 	// Receiving happens in the post-mix APO of a playback endpoint.
 	ui.receiveCheckBox->setEnabled(enable && !isInput && installState.installPostMix);
+	// Kept as set while receiving is off; it only has an effect while receiving.
+	resampleReceivedCheckBox->setEnabled(enable && !isInput && installState.installPostMix
+		&& installState.receiveFromEndpoints);
 	// Page 0: nothing to say. Page 1: an endpoint's APO chain. Page 2: an
 	// ASIO target's options.
 	ui.stackedWidget->setCurrentIndex(!enable ? 0 : (asioSelected ? 2 : 1));
@@ -773,6 +790,7 @@ void DeviceSelector::updateButtons()
 	ui.allowSilentBufferCheckBox->setChecked(installState.allowSilentBufferModification);
 	ui.asioEntryCheckBox->setChecked(installState.asioEntry);
 	ui.receiveCheckBox->setChecked(installState.receiveFromEndpoints && !isInput);
+	resampleReceivedCheckBox->setChecked(installState.resampleReceived && !isInput);
 	ui.autoCheckBox->setChecked(installState.autoAdjust);
 }
 

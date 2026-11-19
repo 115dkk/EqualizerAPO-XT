@@ -87,6 +87,9 @@ private:
 	// the registry held when the dialog opened, so OK writes only a change.
 	QCheckBox* ignoreConvolutionSilenceCheckBox = nullptr;
 	bool ignoreConvolutionSilenceStored = true;
+	// Per endpoint, under "Send": resample what other endpoints send here
+	// when their sample rate differs (InstallState::resampleReceived).
+	QCheckBox* resampleReceivedCheckBox = nullptr;
 };
 
 Q_DECLARE_METATYPE(std::shared_ptr<AbstractAPOInfo>)
