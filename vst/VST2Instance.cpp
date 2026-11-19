@@ -25,7 +25,9 @@
 #include "stdafx.h"
 #include <array>
 #include <atomic>
+#include <malloc.h>
 #include "../Version.h"
+#include "dsp/MxcsrGuard.h"
 #include "text/WideString.h"
 #include "platform/windows/TextEncoding.h"
 #include "services/logging/Logging.h"
@@ -120,15 +122,23 @@ struct VST2EffectDeleter
 	{
 		if (effect != NULL)
 		{
+			const unsigned __int64 fpControlState = captureFpControlState();
+			volatile bool stackOverflow = false;
 			__try
 			{
 				effect->control(effect, VST_EFFECT_OPCODE_DESTROY, 0, 0, NULL, 0.0f);
+				restoreFpControlState(fpControlState);
 			}
-			__except (EXCEPTION_EXECUTE_HANDLER)
+			__except ((stackOverflow = GetExceptionCode() == EXCEPTION_STACK_OVERFLOW)
+				? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_EXECUTE_HANDLER)
 			{
+				restoreFpControlState(fpControlState);
 				// A broken plugin must not take down the host while its RAII owner
 				// unwinds. The plugin's memory is no longer safely reclaimable here.
 			}
+			// A caught overflow consumes the thread's guard page; re-arm it after SEH unwinds.
+			if (stackOverflow)
+				_resetstkoflw();
 		}
 	}
 };
@@ -482,6 +492,8 @@ intptr_t callback(struct vst_effect_t* effect, int32_t opcode, int32_t index, in
 VST2Instance::LoadResult VST2Instance::load()
 {
 	LoadResult result = LoadResult::Loaded;
+	const unsigned __int64 fpControlState = captureFpControlState();
+	volatile bool stackOverflow = false;
 
 	__try
 	{
@@ -502,11 +514,17 @@ VST2Instance::LoadResult VST2Instance::load()
 
 			usedChannelCount = max(numInputs(), numOutputs());
 		}
+		restoreFpControlState(fpControlState);
 	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
+	__except ((stackOverflow = GetExceptionCode() == EXCEPTION_STACK_OVERFLOW)
+				? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_EXECUTE_HANDLER)
 	{
+		restoreFpControlState(fpControlState);
 		result = LoadResult::Crashed;
 	}
+	// A caught overflow consumes the thread's guard page; re-arm it after SEH unwinds.
+	if (stackOverflow)
+		_resetstkoflw();
 
 	return result;
 }

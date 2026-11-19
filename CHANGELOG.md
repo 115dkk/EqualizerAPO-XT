@@ -27,6 +27,18 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   Both changes are adapted from weirdsoup's Custom Audio Manager (MIT).
   ([#492](https://github.com/115dkk/EqualizerAPO-XT/pull/492))
 
+- **A misbehaving VST plug-in can no longer upset the filters after it or
+  crash audio on its second fault.** A plug-in that changed the processor's
+  floating-point settings (denormal handling, rounding, or which arithmetic
+  errors stop the program) left them changed for every filter after it in the
+  same block; if it enabled arithmetic exceptions, a later filter could crash
+  audiodg. The engine now puts its own settings back after every plug-in
+  call. A plug-in that overflowed its stack was already caught, but only
+  once per thread: the second overflow ended the process. The stack guard is
+  now re-armed after each caught overflow. The same protection covers the
+  Editor's plug-in panels.
+  ([#489](https://github.com/115dkk/EqualizerAPO-XT/pull/489))
+
 ## v2.65.7 — 2026-11-18
 
 - **Legacy Rows stays readable when Windows is in dark mode.** With Windows

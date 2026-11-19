@@ -24,8 +24,10 @@
 #include <exception>
 #include <limits>
 #include <new>
+#include <malloc.h>
 #include "services/logging/Logging.h"
 #include "audio/ChannelLayout.h"
+#include "dsp/MxcsrGuard.h"
 #include "dsp/SampleConversion.h"
 #include "VSTPluginFilter.h"
 // After VSTPluginFilter.h: the VST3 SDK defines VST_VERSION, which would
@@ -357,6 +359,8 @@ void VSTPluginFilter::prepareForProcessing(float sampleRate, unsigned maxFrameCo
 	// TestVst2Plugin's prepare/state and TestVst3Plugin's FaultActive/FaultState
 	// modes raise AVs here. Both testEngineFaultContainment cases require
 	// pass-through and a load-time diagnostic (audit #467 TD-28).
+	const unsigned __int64 fpControlState = captureFpControlState();
+	volatile bool stackOverflow = false;
 	__try
 	{
 		bool restoreFailureReported = false;
@@ -372,6 +376,7 @@ void VSTPluginFilter::prepareForProcessing(float sampleRate, unsigned maxFrameCo
 				VSTPluginInstance::InputWidth::Double, processingWorkspace))
 			{
 				passThrough(L"The VST plugin %s could not prepare for processing; passing audio through.");
+				restoreFpControlState(fpControlState);
 				return;
 			}
 			const auto restored = effect->writeToEffect(chunkData, paramMap);
@@ -385,15 +390,22 @@ void VSTPluginFilter::prepareForProcessing(float sampleRate, unsigned maxFrameCo
 			if (!effect->startProcessing())
 			{
 				passThrough(L"The VST plugin %s could not start processing; passing audio through.");
+				restoreFpControlState(fpControlState);
 				return;
 			}
 		}
+		restoreFpControlState(fpControlState);
 	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
+	__except ((stackOverflow = GetExceptionCode() == EXCEPTION_STACK_OVERFLOW)
+		? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_EXECUTE_HANDLER)
 	{
+		restoreFpControlState(fpControlState);
 		LogF(L"The VST plugin %s crashed while preparing for processing.", libPath.c_str());
 		skipProcessing = true;
 	}
+	// A caught overflow consumes the thread's guard page; re-arm it after SEH unwinds.
+	if (stackOverflow)
+		_resetstkoflw();
 }
 
 #pragma AVRT_CODE_BEGIN
@@ -407,6 +419,8 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 		return;
 	}
 
+	const unsigned __int64 fpControlState = captureFpControlState();
+	volatile bool stackOverflow = false;
 	__try
 	{
 		const bool inputFill = !resolvedInputChannels.empty();
@@ -459,6 +473,7 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 			}
 
 			effect->processBlock(inputArray.data(), outputArray.data(), frameCount);
+			restoreFpControlState(fpControlState);
 
 			// Non-finite output guard, adapted from Custom Audio Manager by weirdsoup (MIT): see Third-party notices.
 			bool nonFiniteOutput = false;
@@ -521,8 +536,10 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 			latencyDelay.process(delayedOutputs.data(), delayedOutputs.data(), frameCount);
 		}
 	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
+	__except ((stackOverflow = GetExceptionCode() == EXCEPTION_STACK_OVERFLOW)
+		? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_EXECUTE_HANDLER)
 	{
+		restoreFpControlState(fpControlState);
 		// TestVst2Plugin's process and TestVst3Plugin's FaultProcess modes raise
 		// AVs here; both testEngineFaultContainment cases verify this block,
 		// later blocks, and the one deferred report (audit #467 TD-28).
@@ -542,6 +559,9 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 		for (unsigned i = 0; i < channelCount; i++)
 			std::copy_n(input[i], frameCount, output[i]);
 	}
+	// A caught overflow consumes the thread's guard page; re-arm it after SEH unwinds.
+	if (stackOverflow)
+		_resetstkoflw();
 }
 #pragma AVRT_CODE_END
 

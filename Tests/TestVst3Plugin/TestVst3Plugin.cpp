@@ -11,6 +11,12 @@
 #include <windows.h>
 #include <numbers>
 
+#if defined(_M_ARM64)
+#include <intrin.h>
+#else
+#include <immintrin.h>
+#endif
+
 #include <algorithm>
 #include <atomic>
 #include <cmath>
@@ -62,6 +68,8 @@ bool unimplementedProcessingMode = false;
 bool faultProcessMode = false;
 bool nanOutputMode = false;
 bool stateLatencyMode = false;
+bool fpStateProcessMode = false;
+bool stackOverflowProcessMode = false;
 bool faultActiveMode = false;
 bool faultStateMode = false;
 bool refuseStateMode = false;
@@ -181,6 +189,34 @@ bool readControllerState(IBStream* stream, ControllerPrivateState& state)
 		return false;
 	state = incoming;
 	return true;
+}
+
+void poisonFpControlState()
+{
+#if defined(_M_ARM64)
+	constexpr unsigned __int64 roundTowardZero = 3ull << 22;
+	constexpr unsigned __int64 inputDenormalAndDivideByZeroEnable = (1ull << 15) | (1ull << 9);
+	unsigned __int64 state = static_cast<unsigned __int64>(_ReadStatusReg(ARM64_FPCR));
+	state = (state & ~(3ull << 22)) | roundTowardZero | inputDenormalAndDivideByZeroEnable;
+	_WriteStatusReg(ARM64_FPCR, static_cast<__int64>(state));
+#else
+	unsigned state = _mm_getcsr();
+	state = (state & ~0x6000u) | 0x6000u;
+	state &= ~0x0200u;
+	_mm_setcsr(state);
+#endif
+}
+
+volatile unsigned stackOverflowStop = 0;
+
+__declspec(noinline) int overflowStack(unsigned depth)
+{
+	volatile unsigned char frame[4096];
+	frame[0] = static_cast<unsigned char>(depth);
+	frame[sizeof(frame) - 1] = static_cast<unsigned char>(depth >> 8);
+	if (depth == stackOverflowStop)
+		return frame[0] + frame[sizeof(frame) - 1];
+	return frame[0] + frame[sizeof(frame) - 1] + overflowStack(depth + 1);
 }
 
 class TestView final : public IPlugView, public IPlugViewContentScaleSupport, private RefCounted
@@ -588,6 +624,16 @@ public:
 	{
 		if (faultProcessMode)
 			RaiseException(EXCEPTION_ACCESS_VIOLATION, 0, 0, nullptr);
+		if (fpStateProcessMode)
+		{
+			poisonFpControlState();
+			return kResultOk;
+		}
+		if (stackOverflowProcessMode)
+		{
+			overflowStack(1);
+			return kResultFalse;
+		}
 		if (!processing.load() || data.symbolicSampleSize != setup.symbolicSampleSize)
 			return kResultFalse;
 		if (ignoreParameterFlushMode && data.numSamples == 0)
@@ -1456,6 +1502,8 @@ extern "C" __declspec(dllexport) bool InitDll()
 	faultProcessMode = wcsstr(moduleName, testvst3::mode::faultProcess) != nullptr;
 	nanOutputMode = wcsstr(moduleName, testvst3::mode::nanOutput) != nullptr;
 	stateLatencyMode = wcsstr(moduleName, testvst3::mode::stateLatency) != nullptr;
+	fpStateProcessMode = wcsstr(moduleName, testvst3::mode::fpStateProcess) != nullptr;
+	stackOverflowProcessMode = wcsstr(moduleName, testvst3::mode::stackOverflowProcess) != nullptr;
 	faultActiveMode = wcsstr(moduleName, testvst3::mode::faultActive) != nullptr;
 	faultStateMode = wcsstr(moduleName, testvst3::mode::faultState) != nullptr;
 	refuseStateMode = wcsstr(moduleName, testvst3::mode::refuseState) != nullptr;

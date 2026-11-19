@@ -40,6 +40,7 @@
 #include "vst/VST3MemoryStream.h"
 #include "vst/VSTStateSemantic.h"
 #include "services/logging/Logging.h"
+#include "dsp/MxcsrGuard.h"
 
 using std::shared_ptr;
 using std::wstring;
@@ -428,6 +429,55 @@ TEST_CASE(Vst3HostTests, testStateDependentLatencyDelaysUnwrittenChannel)
 	}
 	harness.expectTrue(delayed,
 		"an unwritten VST3 channel uses the 64-sample latency reported after state restore");
+}
+
+TEST_CASE(Vst3HostTests, testProcessRestoresFloatingPointState)
+{
+	const wstring bundle = prepareBundle(exeDirectory(), L"FpStateProcessBundle.vst3",
+		testvst3::mode::fpStateProcess);
+	auto library = VSTPluginLibrary::getInstance(bundle);
+	harness.require(VSTPluginLibrary::load(bundle).succeeded(), "FP-state fixture loads");
+	VSTPluginFilter filter(library, wstring(), {});
+	filter.initialize(48000.0f, 4, {L"L", L"R"});
+	double inLeft[4] = {}, inRight[4] = {}, outLeft[4] = {}, outRight[4] = {};
+	double* input[] = {inLeft, inRight};
+	double* output[] = {outLeft, outRight};
+	const unsigned __int64 before = captureFpControlState();
+	filter.process(output, input, 4);
+	const unsigned __int64 after = captureFpControlState();
+	restoreFpControlState(before);
+	harness.expectEqual(after, before, "VST3 process restores the caller's FP control state");
+}
+
+TEST_CASE(Vst3HostTests, testConsecutiveStackOverflowsAreContained)
+{
+#ifdef __SANITIZE_ADDRESS__
+	harness.skip("MSVC AddressSanitizer terminates on the intentional plug-in stack overflow before SEH can contain it");
+	return;
+#else
+	const wstring bundle = prepareBundle(exeDirectory(), L"StackOverflowProcessBundle.vst3",
+		testvst3::mode::stackOverflowProcess);
+	auto library = VSTPluginLibrary::getInstance(bundle);
+	harness.require(VSTPluginLibrary::load(bundle).succeeded(), "stack-overflow fixture loads");
+	for (int attempt = 0; attempt < 2; ++attempt)
+	{
+		VSTPluginFilter filter(library, wstring(), {});
+		filter.initialize(48000.0f, 4, {L"L", L"R"});
+		double inLeft[] = {0.25, 0.5, 0.75, 1.0}, inRight[] = {-0.25, -0.5, -0.75, -1.0};
+		double outLeft[4] = {}, outRight[4] = {};
+		double* input[] = {inLeft, inRight};
+		double* output[] = {outLeft, outRight};
+		filter.process(output, input, 4);
+		for (int frame = 0; frame < 4; ++frame)
+		{
+			harness.expectNear(outLeft[frame], inLeft[frame], 0.0,
+				"stack-overflowing VST3 passes the left channel through");
+			harness.expectNear(outRight[frame], inRight[frame], 0.0,
+				"stack-overflowing VST3 passes the right channel through");
+		}
+	}
+	harness.expectTrue(true, "two consecutive plug-in stack overflows return to the host");
+#endif
 }
 
 TEST_CASE(Vst3HostTests, testProcessingFailureResults)

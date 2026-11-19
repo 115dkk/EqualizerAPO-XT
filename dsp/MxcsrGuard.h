@@ -25,6 +25,26 @@
 #include <intrin.h>
 #endif
 
+// VST plug-in FP state, 2026-11-19: plain functions let SEH call sites restore
+// host state without an object whose destructor would require C++ unwinding.
+inline unsigned __int64 captureFpControlState() noexcept
+{
+#if !defined(_M_ARM64)
+	return static_cast<unsigned __int64>(_mm_getcsr());
+#else
+	return static_cast<unsigned __int64>(_ReadStatusReg(ARM64_FPCR));
+#endif
+}
+
+inline void restoreFpControlState(unsigned __int64 state) noexcept
+{
+#if !defined(_M_ARM64)
+	_mm_setcsr(static_cast<unsigned>(state));
+#else
+	_WriteStatusReg(ARM64_FPCR, static_cast<__int64>(state));
+#endif
+}
+
 // RAII guard that enables Flush-To-Zero (FTZ) and Denormals-Are-Zero (DAZ) on
 // MXCSR for the lifetime of the scope, restoring the original value on exit.
 // Bit pattern 0x8040 = FTZ (bit 15) | DAZ (bit 6).
