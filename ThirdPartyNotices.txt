@@ -2,9 +2,15 @@ Custom Audio Manager
 Copyright (c) 2026 CAM author
 https://github.com/weirdsoup
 
-EqualizerAPO-XT's VST non-finite output guard and post-activation latency
-refresh were adapted from ideas in Custom Audio Manager. The implementation
-in EqualizerAPO-XT is independent and does not include JUCE code.
+These parts of EqualizerAPO-XT were adapted from Custom Audio Manager. The
+implementation in EqualizerAPO-XT is independent and does not include JUCE
+code.
+
+- the VST non-finite output guard and post-activation latency refresh
+- the audio-path allocation test
+- skipping the reopen of a plug-in panel that was open when the Editor crashed
+- the missing and repeated capture frame counters of the WASAPI-exclusive
+  target
 
 MIT License
 
