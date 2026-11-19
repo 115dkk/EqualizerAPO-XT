@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.65.9 — 2026-11-19
+
 - **A VST plug-in that outputs NaN or infinity no longer takes the rest of the
   sound with it.** Such samples spread through every filter after the plug-in
   and reached the device as silence or full-scale noise until the
