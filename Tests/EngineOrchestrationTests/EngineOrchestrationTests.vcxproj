@@ -67,8 +67,14 @@
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
   </ItemDefinitionGroup>
+  <!-- TestVst2Plugin is part of the representative audio path measured by the
+       allocation contract. Tests.props stages this runtime file beside the suite. -->
+  <ItemGroup>
+    <EapoRuntimeFile Include="$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configuration)\TestVst2Plugin.dll" />
+  </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ApoFormatTests.cpp" />
+    <ClCompile Include="AudioPathAllocationTests.cpp" />
     <ClCompile Include="ApoRegistrationTests.cpp" />
     <ClCompile Include="CaptureEngineTests.cpp" />
     <ClCompile Include="ChannelInheritanceTests.cpp" />
@@ -118,6 +124,11 @@
   </ItemGroup>
   <!-- Direct-load child APO tests must never require COM registration (audit #467 TD-26). -->
   <ItemGroup>
+    <ProjectReference Include="..\TestVst2Plugin\TestVst2Plugin.vcxproj">
+      <Project>{7E2B1C44-9A3D-4E58-B6F1-2C9D8A7F4E10}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
     <ProjectReference Include="..\TestChildApo\TestChildApo.vcxproj">
       <Project>{7588BBFF-878B-40E0-BE70-5B21B4315183}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>

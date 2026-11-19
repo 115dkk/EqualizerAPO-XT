@@ -195,6 +195,9 @@ private:
 	bool embedPlugin(QWidget* host);
 	void acquirePanelProcessing();
 	void releasePanelProcessing();
+	void markPanelOpen();
+	void clearPanelMarker();
+	void reportSkippedPanelRestore();
 	void reportPanelCrash();
 
 	Row row;
@@ -207,6 +210,11 @@ private:
 	bool semanticStateAvailable = false;
 	Status currentStatus;
 	bool isEmbedded = false;
+	// A leftover marker suppresses only the saved automatic restore. Once a
+	// panel opens, its marker remains until that panel closes normally.
+	bool skipAutomaticPanelOpen = false;
+	bool panelMarkerOpen = false;
+	QString markedPanelLibrary;
 	VSTPluginInstance::ProcessingLease panelProcessing;
 	bool autoApply = true;
 	// True while the stored state is being written to the instance; an

@@ -103,6 +103,7 @@
     <ClCompile Include="VSTSlotFillModelTests.cpp" />
     <ClCompile Include="VSTRowDocumentTests.cpp" />
     <ClCompile Include="VSTPanelIntentTests.cpp" />
+    <ClCompile Include="VstPanelCrashMarkerTests.cpp" />
     <ClCompile Include="VSTBusVerdictTests.cpp" />
     <ClCompile Include="MainWindowStateTests.cpp" />
     <ClCompile Include="TroubleshootingNoticesTests.cpp" />
@@ -158,6 +159,7 @@
          the chunk-scan helper's readability filter calls it. -->
     <ClCompile Include="..\..\Editor\helpers\VstChunkScan.cpp" />
     <ClCompile Include="..\..\Editor\helpers\VstChunkState.cpp" />
+    <ClCompile Include="..\..\Editor\helpers\VstPanelCrashMarker.cpp" />
     <ClCompile Include="..\..\Editor\widgets\FilterCardModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\FilterRowGuiPolicy.cpp" />
     <ClCompile Include="..\..\Editor\widgets\CommandRowFacts.cpp" />
@@ -209,6 +211,7 @@
     <ClInclude Include="..\..\Editor\import\ImportManifest.h" />
     <ClInclude Include="..\..\Editor\helpers\VstChunkScan.h" />
     <ClInclude Include="..\..\Editor\helpers\VstChunkState.h" />
+    <ClInclude Include="..\..\Editor\helpers\VstPanelCrashMarker.h" />
     <ClInclude Include="..\..\Installer\AutoInstallerLogic.h" />
     <ClInclude Include="..\..\Installer\InstallerUiModel.h" />
     <ClInclude Include="..\..\Editor\widgets\FilterCardModel.h" />

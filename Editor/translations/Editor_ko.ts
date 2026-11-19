@@ -5201,6 +5201,11 @@ Change the file permissions or copy the files to the config directory.</source>
 <context>
     <name>VSTPluginFilterGUI</name>
     <message>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="709"/>
+        <source>The Editor closed unexpectedly while this plug-in&apos;s panel was open, so the panel was not reopened. Open it again from the card.</source>
+        <translation>이 플러그인의 패널을 열어 둔 상태에서 편집기가 비정상적으로 종료되어, 이번에는 패널을 자동으로 열지 않았습니다. 카드에서 다시 열어 주세요.</translation>
+    </message>
+    <message>
         <location filename="../guis/VSTPluginFilterGUI.cpp" line="71"/>
         <source>Stereo input</source>
         <translation>스테레오 입력</translation>

@@ -1319,8 +1319,10 @@ int wmain(int argc, wchar_t** argv)
 	if (wasapi != nullptr)
 	{
 		const eapo::asio::WasapiExclusiveTarget::Counters counters = wasapi->counters();
-		std::printf("wasapi periods %llu input-underruns %llu output-misses %llu slow-events %llu event-interval avg %llu us max %llu us service max %llu us bridge %llu\n",
+		std::printf("wasapi periods %llu input-underruns %llu capture-missing %llu capture-repeated %llu capture-discontinuities %llu output-misses %llu slow-events %llu event-interval avg %llu us max %llu us service max %llu us bridge %llu\n",
 			static_cast<unsigned long long>(counters.periods), static_cast<unsigned long long>(counters.inputUnderruns),
+			static_cast<unsigned long long>(counters.captureMissingFrames), static_cast<unsigned long long>(counters.captureRepeatedFrames),
+			static_cast<unsigned long long>(counters.captureDiscontinuities),
 			static_cast<unsigned long long>(counters.outputMisses), static_cast<unsigned long long>(counters.slowEvents),
 			static_cast<unsigned long long>(counters.eventIntervalAvgUs), static_cast<unsigned long long>(counters.eventIntervalMaxUs),
 			static_cast<unsigned long long>(counters.serviceMaxUs), static_cast<unsigned long long>(counters.bridge));

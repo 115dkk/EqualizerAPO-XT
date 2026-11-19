@@ -5183,6 +5183,11 @@ Change the file permissions or copy the files to the config directory.</source>
 <context>
     <name>VSTPluginFilterGUI</name>
     <message>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="709"/>
+        <source>The Editor closed unexpectedly while this plug-in&apos;s panel was open, so the panel was not reopened. Open it again from the card.</source>
+        <translation>此插件的面板打开时，编辑器意外退出，因此本次启动时未自动重新打开面板。请从卡片中重新打开。</translation>
+    </message>
+    <message>
         <location filename="../guis/VSTPluginFilterGUI.cpp" line="71"/>
         <source>Stereo input</source>
         <translation type="unfinished"></translation>

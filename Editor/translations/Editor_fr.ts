@@ -5192,6 +5192,11 @@ Modifiez les autorisations des fichiers ou copiez les fichiers dans le dossier d
 <context>
     <name>VSTPluginFilterGUI</name>
     <message>
+        <location filename="../widgets/cards/VSTPluginSession.cpp" line="709"/>
+        <source>The Editor closed unexpectedly while this plug-in&apos;s panel was open, so the panel was not reopened. Open it again from the card.</source>
+        <translation>L&apos;éditeur s&apos;est fermé de manière inattendue alors que le panneau de ce plugin était ouvert. Le panneau n&apos;a donc pas été rouvert automatiquement. Rouvrez-le depuis la carte.</translation>
+    </message>
+    <message>
         <location filename="../guis/VSTPluginFilterGUI.cpp" line="71"/>
         <source>Stereo input</source>
         <translation type="unfinished"></translation>

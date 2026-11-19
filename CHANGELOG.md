@@ -14,6 +14,23 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.67.0 — 2026-11-19
+
+- **A plug-in panel that crashed the Editor is not reopened on its own.** If
+  the Editor closed unexpectedly while a plug-in's panel was open, the next
+  start reopened the same embedded panel and could crash again. The panel now
+  stays closed once, and the card says why; opening it from the card works as
+  before.
+- **ASIO apps on the WASAPI-exclusive entry: capture slips are counted.**
+  Frames the device dropped or delivered twice on the capture side are now
+  counted and reported with the stream statistics. Audio is unchanged.
+- A new test checks that the audio path does not allocate memory while it
+  processes. These three are adapted from weirdsoup's Custom Audio Manager
+  (MIT).
+  ([#493](https://github.com/115dkk/EqualizerAPO-XT/pull/493))
+
+## v2.66.0 — 2026-11-19
+
 - **Silence at the end of an impulse response no longer costs processing.**
   Convolution and MultiConvolution now drop the silent tail of an impulse
   response when they load it (every channel more than 140 dB below the

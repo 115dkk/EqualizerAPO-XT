@@ -103,7 +103,7 @@ namespace asiotest
 			return S_OK;
 		}
 
-		HRESULT getCaptureBuffer(BYTE**, UINT32*, DWORD*) noexcept override {return AUDCLNT_S_BUFFER_EMPTY;}
+		HRESULT getCaptureBuffer(BYTE**, UINT32*, DWORD*, UINT64*) noexcept override {return AUDCLNT_S_BUFFER_EMPTY;}
 		HRESULT releaseCaptureBuffer(UINT32) noexcept override {return S_OK;}
 
 		unsigned initializeCalls() const noexcept {return initializeCalls_.load(std::memory_order_relaxed);}

@@ -21,6 +21,7 @@
 #include <QLocale>
 #include <QPointer>
 #include <QPushButton>
+#include <QScopeGuard>
 #include <QStringList>
 #include <QWidget>
 
@@ -34,6 +35,7 @@
 #include "Editor/helpers/VstChunkScan.h"
 #include "Editor/helpers/VstChunkState.h"
 #include "Editor/helpers/VstPanelCall.h"
+#include "Editor/helpers/VstPanelCrashMarker.h"
 #include "vst/VSTStateSemantic.h"
 
 using std::unordered_map;
@@ -56,6 +58,8 @@ VSTPluginSession::VSTPluginSession(Row row, std::shared_ptr<VSTPluginLibrary> li
 	currentParamMap(std::move(paramMap))
 {
 	liveSessions().append(this);
+	skipAutomaticPanelOpen = VstPanelCrashMarker::takeLeftover(
+		QString::fromStdWString(pluginLibrary->getLibPath()));
 }
 
 VSTPluginSession::~VSTPluginSession()
@@ -63,6 +67,7 @@ VSTPluginSession::~VSTPluginSession()
 	liveSessions().removeOne(this);
 	previewFeeder.stop();
 	releasePanelProcessing();
+	clearPanelMarker();
 }
 
 void VSTPluginSession::readBackEmbeddedPanels()
@@ -306,6 +311,14 @@ void VSTPluginSession::setEmbedHost(QWidget* host, std::function<void(bool shown
 
 void VSTPluginSession::requestEmbed(bool enable)
 {
+	if (enable && skipAutomaticPanelOpen)
+	{
+		skipAutomaticPanelOpen = false;
+		intent.dropEmbed();
+		reportSkippedPanelRestore();
+		emit embedStateChanged();
+		return;
+	}
 	if (!enable)
 		intent.dropEmbed();
 	else if (effect == nullptr)
@@ -330,6 +343,9 @@ bool VSTPluginSession::embedPending() const
 
 bool VSTPluginSession::requestPanel(QWidget* dialogParent)
 {
+	// A card action after recovery is an explicit retry, not the saved
+	// automatic restore that must be skipped once.
+	skipAutomaticPanelOpen = false;
 	// The panel is already on screen inside the row; opening the dialog on
 	// top would steal the embedded view's window (startEditing recreates the
 	// view for the dialog and the row would keep showing nothing).
@@ -398,6 +414,8 @@ void VSTPluginSession::openDialog(QWidget* dialogParent)
 	// still deactivated.
 	previewFeeder.start(effect.get());
 
+	markPanelOpen();
+	[[maybe_unused]] const auto markerCleanup = qScopeGuard([this]() { clearPanelMarker(); });
 	VSTPluginFilterGUIDialog dialog(dialogParent, effect.get(), autoApply);
 	if (!dialog.isEditorOpen())
 	{
@@ -435,6 +453,7 @@ bool VSTPluginSession::setEmbedded(bool enable, QWidget* host)
 		// Before embedPlugin()'s startEditing, for the same deactivation
 		// contract as the dialog path.
 		previewFeeder.start(effect.get());
+		markPanelOpen();
 
 		if (embedPlugin(host))
 		{
@@ -455,6 +474,7 @@ bool VSTPluginSession::setEmbedded(bool enable, QWidget* host)
 		{
 			previewFeeder.stop();
 			isEmbedded = false;
+			clearPanelMarker();
 			reportPanelCrash();
 		}
 	}
@@ -471,6 +491,7 @@ bool VSTPluginSession::setEmbedded(bool enable, QWidget* host)
 			effect->stopEditing();
 			effect->setSizeWindowFunc(nullptr);
 		}
+		clearPanelMarker();
 		disconnect(QAbstractEventDispatcher::instance(), &QAbstractEventDispatcher::aboutToBlock,
 			this, &VSTPluginSession::onIdle);
 	}
@@ -661,6 +682,33 @@ void VSTPluginSession::acquirePanelProcessing()
 void VSTPluginSession::releasePanelProcessing()
 {
 	panelProcessing.reset();
+}
+
+void VSTPluginSession::markPanelOpen()
+{
+	if (panelMarkerOpen)
+		return;
+	markedPanelLibrary = QString::fromStdWString(pluginLibrary->getLibPath());
+	VstPanelCrashMarker::markOpen(markedPanelLibrary);
+	panelMarkerOpen = true;
+}
+
+void VSTPluginSession::clearPanelMarker()
+{
+	if (!panelMarkerOpen)
+		return;
+	VstPanelCrashMarker::markClosed(markedPanelLibrary);
+	markedPanelLibrary.clear();
+	panelMarkerOpen = false;
+}
+
+void VSTPluginSession::reportSkippedPanelRestore()
+{
+	currentStatus.critical = true;
+	currentStatus.libraryMissing = false;
+	currentStatus.text = QCoreApplication::translate("VSTPluginFilterGUI",
+		"The Editor closed unexpectedly while this plug-in's panel was open, so the panel was not reopened. Open it again from the card.");
+	emit statusChanged();
 }
 
 void VSTPluginSession::reportPanelCrash()
