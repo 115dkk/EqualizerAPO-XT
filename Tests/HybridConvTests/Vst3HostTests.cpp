@@ -41,6 +41,7 @@
 #include "vst/VSTStateSemantic.h"
 #include "services/logging/Logging.h"
 #include "dsp/MxcsrGuard.h"
+#include "platform/windows/StackGuarantee.h"
 
 using std::shared_ptr;
 using std::wstring;
@@ -455,6 +456,10 @@ TEST_CASE(Vst3HostTests, testConsecutiveStackOverflowsAreContained)
 	harness.skip("MSVC AddressSanitizer terminates on the intentional plug-in stack overflow before SEH can contain it");
 	return;
 #else
+	// The size of the context Windows writes on an overflow follows this mask;
+	// logged so a run that dies here can be matched to the machine it ran on.
+	std::printf("enabled XState features: 0x%llx\n", static_cast<unsigned long long>(GetEnabledXStateFeatures()));
+	std::fflush(stdout);
 	const wstring bundle = prepareBundle(exeDirectory(), L"StackOverflowProcessBundle.vst3",
 		testvst3::mode::stackOverflowProcess);
 	auto library = VSTPluginLibrary::getInstance(bundle);
@@ -477,6 +482,13 @@ TEST_CASE(Vst3HostTests, testConsecutiveStackOverflowsAreContained)
 		}
 	}
 	harness.expectTrue(true, "two consecutive plug-in stack overflows return to the host");
+	// Windows writes the processor context onto the overflowing stack before any
+	// handler runs; without a guarantee that fits it the process dies on CPUs
+	// with large extended state (see platform/windows/StackGuarantee.h).
+	ULONG guarantee = 0;
+	harness.require(SetThreadStackGuarantee(&guarantee) != FALSE, "the thread stack guarantee can be read");
+	harness.expectTrue(guarantee >= pluginCallStackGuaranteeBytes,
+		"a plug-in call leaves the calling thread with the stack-overflow guarantee");
 #endif
 }
 

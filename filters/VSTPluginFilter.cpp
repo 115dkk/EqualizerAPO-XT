@@ -33,6 +33,7 @@
 // After VSTPluginFilter.h: the VST3 SDK defines VST_VERSION, which would
 // otherwise replace the VST2 enum of the same name in aeffectx.h.
 #include "vst/VST3SpeakerMapping.h"
+#include "platform/windows/StackGuarantee.h"
 
 using std::max;
 
@@ -360,6 +361,7 @@ void VSTPluginFilter::prepareForProcessing(float sampleRate, unsigned maxFrameCo
 	// modes raise AVs here. Both testEngineFaultContainment cases require
 	// pass-through and a load-time diagnostic (audit #467 TD-28).
 	const unsigned __int64 fpControlState = captureFpControlState();
+	ensurePluginCallStackGuarantee();
 	volatile bool stackOverflow = false;
 	__try
 	{
@@ -420,6 +422,7 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 	}
 
 	const unsigned __int64 fpControlState = captureFpControlState();
+	ensurePluginCallStackGuarantee();
 	volatile bool stackOverflow = false;
 	__try
 	{
