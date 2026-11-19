@@ -1,4 +1,4 @@
-﻿/*
+/*
     This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
     This program is free software; you can redistribute it and/or modify
@@ -26,8 +26,9 @@
 #include "ConvolverBank.h"
 #include "IrCache.h"
 #include "MultiConvolutionCommand.h"
+#include "runtime/concurrency/RealtimeFanOut.h"
 
-// Multi-input synthesis convolution ("다중 합성 컨볼루션"). Unlike the 1:1
+// Multi-input synthesis convolution. Unlike the 1:1
 // ConvolutionFilter, this filter convolves each mapping target's own
 // (pre-command) signal with the listed channels of a single multi-channel
 // impulse response and sums the results into that target. It compresses the
@@ -51,7 +52,7 @@ public:
 		L"MultiConvolutionFilter: frameCount";
 
 	MultiConvolutionFilter(const std::vector<MultiConvolutionCommand::Mapping>& mappingSpecs,
-		JudgedPath filename, bool ignoreTrailingSilence = true);
+		JudgedPath filename, bool ignoreTrailingSilence = true, bool parallelConvolution = true);
 	virtual ~MultiConvolutionFilter();
 	bool getAllChannels() override {return true;}
 	bool getInPlace() override {return false;}
@@ -64,6 +65,9 @@ private:
 	std::vector<MultiConvolutionCommand::Mapping> mappings;
 	JudgedPath filename;
 	bool ignoreTrailingSilence;
+	bool parallelConvolution;
+	bool parallelWork = false;
+	eapo::rt::FanOut::Lease fanOutLease;
 	float sampleRate;
 
 	// Where one mapping reads and writes: units [firstUnit, firstUnit+unitCount)
@@ -93,6 +97,9 @@ private:
 	// Scratch buffer for one unit's convolution result before it is summed into
 	// the mapping's output. Sized in initialize() so process() never allocates
 	// on the audio thread.
-	std::vector<double> tempBuffer;
+	// Each unit now has its own aligned buffer so phase one can run in parallel.
+	std::vector<AlignedMemory::UniqueAllocation<double>> tempBuffers;
+	std::vector<double*> unitOutputs;
+	std::vector<int> unitInputs;
 };
 #pragma AVRT_VTABLES_END

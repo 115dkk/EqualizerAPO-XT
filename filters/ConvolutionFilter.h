@@ -25,12 +25,13 @@
 #include "engine/IFilter.h"
 #include "ConvolverBank.h"
 #include "IrCache.h"
+#include "runtime/concurrency/RealtimeFanOut.h"
 
 #pragma AVRT_VTABLES_BEGIN
 class ConvolutionFilter : public IFilter
 {
 public:
-	ConvolutionFilter(JudgedPath filename, bool ignoreTrailingSilence = true);
+	ConvolutionFilter(JudgedPath filename, bool ignoreTrailingSilence = true, bool parallelConvolution = true);
 	virtual ~ConvolutionFilter();
 	// The deferred mute diagnostic's prefix is part of the filter's
 	// observable contract (HybridConvTests pins it), like
@@ -46,7 +47,7 @@ protected:
 	// (GraphicEQFilter, audit #348 F3). Stored rather than virtual: the report
 	// runs from ~ConvolutionFilter(), when a subclass override is gone.
 	ConvolutionFilter(JudgedPath filename, ConvolverMuteDiagnostics& muteDiagnostics,
-		const wchar_t* muteLogPrefix, bool ignoreTrailingSilence = true);
+		const wchar_t* muteLogPrefix, bool ignoreTrailingSilence = true, bool parallelConvolution = false);
 	// Builds the units and hands them to bank.install() with frameCount.
 	virtual void initializeFilters(unsigned frameCount);
 	float sampleRate = 0.0f;
@@ -63,5 +64,8 @@ private:
 
 	JudgedPath filename;
 	bool ignoreTrailingSilence;
+	bool parallelConvolution;
+	bool parallelWork = false;
+	eapo::rt::FanOut::Lease fanOutLease;
 };
 #pragma AVRT_VTABLES_END

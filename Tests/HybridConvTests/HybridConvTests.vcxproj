@@ -85,6 +85,7 @@
     <ClCompile Include="ConfigPathPolicyTests.cpp" />
     <ClCompile Include="ConvolutionCommandTests.cpp" />
     <ClCompile Include="MultiConvolutionTests.cpp" />
+    <ClCompile Include="ParallelConvolutionTests.cpp" />
     <ClCompile Include="CopyCommandTests.cpp" />
     <ClCompile Include="SendCommandTests.cpp" />
     <ClCompile Include="DelayCommandTests.cpp" />

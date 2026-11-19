@@ -1,4 +1,4 @@
-﻿/*
+/*
 	This file is part of EqualizerAPO, a system-wide equalizer.
 	Copyright (C) 2015  Jonas Thedering
 
@@ -24,6 +24,7 @@
 
 #include "services/logging/Logging.h"
 #include "ConvolutionFilter.h"
+#include "ConvolverProcess.h"
 #include "diagnostics/performance/PerfProfile.h"
 
 using std::vector;
@@ -38,16 +39,16 @@ namespace
 	ConvolverMuteDiagnostics convolutionMuteDiagnostics;
 }
 
-ConvolutionFilter::ConvolutionFilter(JudgedPath filename, bool ignoreTrailingSilence)
+ConvolutionFilter::ConvolutionFilter(JudgedPath filename, bool ignoreTrailingSilence, bool parallelConvolution)
 	: ConvolutionFilter(std::move(filename), convolutionMuteDiagnostics,
-		kFrameCountMismatchLogPrefix, ignoreTrailingSilence)
+		kFrameCountMismatchLogPrefix, ignoreTrailingSilence, parallelConvolution)
 {
 }
 
 ConvolutionFilter::ConvolutionFilter(JudgedPath filename, ConvolverMuteDiagnostics& muteDiagnostics,
-	const wchar_t* muteLogPrefix, bool ignoreTrailingSilence)
+	const wchar_t* muteLogPrefix, bool ignoreTrailingSilence, bool parallelConvolution)
 	: bank(muteDiagnostics, muteLogPrefix), filename(std::move(filename)),
-	  ignoreTrailingSilence(ignoreTrailingSilence)
+	  ignoreTrailingSilence(ignoreTrailingSilence), parallelConvolution(parallelConvolution)
 {
 }
 
@@ -77,10 +78,10 @@ void ConvolutionFilter::process(double** output, double** input, unsigned frameC
 	if (frameCount == 0)
 		return;
 
-	// libHybridConv는 hcInitPartitioned 시점의 framelength로 고정 처리한다.
-	// audio 콜백 중 재초기화는 파일 I/O, FFTW plan, malloc/free를 일으키므로 금지한다.
-	// mismatch가 들어오면 무음으로 빠지고, 진단은 원자 카운터에만 남긴다. 정상
-	// stream에서는 LockForProcess가 frameCount를 고정하므로 이 분기는 거의 들어오지 않는다.
+	// libHybridConv fixes framelength at hcInitPartitioned. Reinitializing in
+	// an audio callback would perform file I/O, FFTW planning and malloc/free.
+	// Mismatches mute output and record diagnostics only in atomic counters.
+	// Normally LockForProcess fixes frameCount, so this branch is rarely taken.
 	if (!bank.admit(frameCount))
 	{
 		// admit() recorded the mute; the deferred report is written by
@@ -91,21 +92,15 @@ void ConvolutionFilter::process(double** output, double** input, unsigned frameC
 		return;
 	}
 
-	for (unsigned i = 0; i < channelCount; i++)
-	{
-		double* inputChannel = input[i];
-		double* outputChannel = output[i];
-		HConvPartitioned* filter = bank.unit(i);
-
-		hcPutPartitioned(filter, inputChannel);
-		hcProcessPartitioned(filter);
-		hcGetPartitioned(filter, outputChannel);
-	}
+	ConvolverProcessJob job{bank, input, output};
+	processConvolverUnits(job, channelCount, parallelWork);
 }
 #pragma AVRT_CODE_END
 
 void ConvolutionFilter::cleanup()
 {
+	fanOutLease = {};
+	parallelWork = false;
 	// Deferred report of the mute path that process() took on the audio
 	// thread, then disarm and release the units (close-then-free), in one call.
 	bank.finishAndReport();
@@ -142,4 +137,9 @@ void ConvolutionFilter::initializeFilters(unsigned frameCount)
 			i < distinctIrChannels ? i : irChannel };
 	}
 	bank.install(buildConvolverArray(sources, frameCount), frameCount);
+	if (bank.installed() && parallelConvolution && channelCount >= 2)
+	{
+		fanOutLease = eapo::rt::FanOut::Lease::acquire();
+		parallelWork = useConvolverFanOut(channelCount, ir->frames, *bank.unit(0));
+	}
 }

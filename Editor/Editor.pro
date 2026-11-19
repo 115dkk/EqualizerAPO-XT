@@ -82,6 +82,7 @@ SOURCES += main.cpp\
 	../runtime/ipc/SendRingWin32.cpp \
 	../runtime/memory/AlignedMemory.cpp \
 	../runtime/concurrency/ParallelExecutor.cpp \
+	../runtime/concurrency/RealtimeFanOut.cpp \
 	FilterTableRow.cpp \
 	FilterTemplate.cpp \
 	guis/DeviceFilterGUI.cpp \
@@ -607,6 +608,8 @@ HEADERS  += \
 	../filters/IrCache.h \
 	../filters/ConvolverArray.h \
 	../filters/ConvolverBank.h \
+	../filters/ConvolverProcess.h \
+	../runtime/concurrency/RealtimeFanOut.h \
 	../filters/subwooferRouting/SubwooferRoutingCommand.h \
 	../filters/subwooferRouting/SubwooferRoutingFilter.h \
 	../filters/subwooferRouting/SubwooferRoutingFilterFactory.h \
@@ -872,7 +875,7 @@ contains(QT_ARCH, arm64) {
 }
 
 INCLUDEPATH += $$PWD/.. $$PWD/../SubwooferRoutingCore/include $$LIBSNDFILE_INCLUDE $$FFTW_INCLUDE $$MUPARSERX_INCLUDE $$VELOPACK_INCLUDE $$VST3_SDK $$HIGHWAY_INCLUDE
-LIBS += user32.lib advapi32.lib version.lib ole32.lib Shlwapi.lib authz.lib crypt32.lib dbghelp.lib winmm.lib uiautomationcore.lib sndfile.lib libfftw3.lib $$VELOPACK_IMPORT_LIB
+LIBS += avrt.lib user32.lib advapi32.lib version.lib ole32.lib Shlwapi.lib authz.lib crypt32.lib dbghelp.lib winmm.lib uiautomationcore.lib sndfile.lib libfftw3.lib $$VELOPACK_IMPORT_LIB
 
 build_pass:CONFIG(debug, debug|release) {
 	LIBS += muparserxd.lib

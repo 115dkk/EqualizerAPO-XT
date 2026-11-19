@@ -27,6 +27,7 @@
 #include "services/logging/Logging.h"
 #include "diagnostics/performance/PerfProfile.h"
 #include "MultiConvolutionFilter.h"
+#include "ConvolverProcess.h"
 
 using std::find;
 using std::vector;
@@ -41,9 +42,9 @@ namespace
 
 MultiConvolutionFilter::MultiConvolutionFilter(
 	const vector<MultiConvolutionCommand::Mapping>& mappingSpecs, JudgedPath filename,
-	bool ignoreTrailingSilence)
+	bool ignoreTrailingSilence, bool parallelConvolution)
 	: mappings(mappingSpecs), filename(std::move(filename)),
-	  ignoreTrailingSilence(ignoreTrailingSilence), sampleRate(0.0f),
+	  ignoreTrailingSilence(ignoreTrailingSilence), parallelConvolution(parallelConvolution), sampleRate(0.0f),
 	  bank(muteDiagnostics, kFrameCountMismatchLogPrefix), unitCount(0)
 {
 }
@@ -128,7 +129,17 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 	if (totalUnits == 0)
 		return outChannelNames;
 
-	tempBuffer.assign(maxFrameCount, 0.0);
+	tempBuffers.reserve(totalUnits);
+	unitOutputs.resize(totalUnits);
+	unitInputs.resize(totalUnits);
+	for (unsigned unit = 0; unit < totalUnits; ++unit)
+	{
+		auto buffer = AlignedMemory::allocateArray<double>(maxFrameCount);
+		if (!buffer)
+			throw std::bad_alloc();
+		unitOutputs[unit] = buffer.get();
+		tempBuffers.push_back(std::move(buffer));
+	}
 	unitFactors.assign(totalUnits, 1.0);
 	std::vector<unsigned> unitChannels(totalUnits);
 	unsigned next = 0;
@@ -138,6 +149,7 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 		for (const MultiConvolutionCommand::IrChannelRef& ref : perMapping[i])
 		{
 			unitChannels[next] = ref.channel;
+			unitInputs[next] = plans[i].inputChannel;
 			unitFactors[next] = ref.isDecibel ? pow(10.0, ref.factor / 20.0) : ref.factor;
 			next++;
 		}
@@ -163,6 +175,11 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 	if (!bank.installed())
 		return outChannelNames;
 	unitCount = next;
+	if (parallelConvolution && unitCount >= 2)
+	{
+		fanOutLease = eapo::rt::FanOut::Lease::acquire();
+		parallelWork = useConvolverFanOut(unitCount, irFrames, *bank.unit(0));
+	}
 
 	return outChannelNames;
 }
@@ -181,6 +198,11 @@ void MultiConvolutionFilter::process(double** output, double** input, unsigned f
 	// block-size mismatch; the deferred report is written by cleanup()
 	// through bank.finishAndReport(), nothing is logged on the audio thread.
 	const bool usable = bank.admit(frameCount);
+	if (usable)
+	{
+		ConvolverProcessJob job{bank, input, unitOutputs.data(), unitInputs.data()};
+		processConvolverUnits(job, unitCount, parallelWork);
+	}
 
 	for (const MappingPlan& plan : plans)
 	{
@@ -191,13 +213,9 @@ void MultiConvolutionFilter::process(double** output, double** input, unsigned f
 		if (!usable || plan.inputChannel < 0 || plan.unitCount == 0)
 			continue;
 
-		double* in = input[plan.inputChannel];
 		for (unsigned u = plan.firstUnit; u < plan.firstUnit + plan.unitCount; u++)
 		{
-			HConvPartitioned* convolver = bank.unit(u);
-			hcPutPartitioned(convolver, in);
-			hcProcessPartitioned(convolver);
-			hcGetPartitioned(convolver, tempBuffer.data());
+			const double* tempBuffer = unitOutputs[u];
 			const double factor = unitFactors[u];
 			if (factor == 1.0)
 			{
@@ -216,6 +234,8 @@ void MultiConvolutionFilter::process(double** output, double** input, unsigned f
 
 void MultiConvolutionFilter::cleanup()
 {
+	fanOutLease = {};
+	parallelWork = false;
 	// Deferred report of the mute path that process() took on the audio
 	// thread, then disarm and release the units (close-then-free), in one call.
 	bank.finishAndReport();
@@ -225,5 +245,7 @@ void MultiConvolutionFilter::cleanup()
 	unitCount = 0;
 	unitFactors.clear();
 	plans.clear();
-	tempBuffer.clear();
+	tempBuffers.clear();
+	unitOutputs.clear();
+	unitInputs.clear();
 }

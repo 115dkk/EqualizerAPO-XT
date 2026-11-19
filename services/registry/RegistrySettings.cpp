@@ -11,6 +11,18 @@
 #include "RegistryPaths.h"
 #include "RegistrySettings.h"
 
+bool readParallelConvolution(const IRegistry& registry) noexcept
+{
+	try
+	{
+		return registry.readValue(APP_REGPATH, parallelConvolutionValueName) != L"false";
+	}
+	catch (const RegistryError&)
+	{
+		return true;
+	}
+}
+
 bool readIgnoreConvolutionSilence(const IRegistry& registry) noexcept
 {
 	try
