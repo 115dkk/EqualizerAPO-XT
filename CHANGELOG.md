@@ -14,6 +14,16 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **A plug-in that overflows its stack no longer takes the audio engine down
+  on CPUs with AVX-512.** The guard around plug-in calls catches a stack
+  overflow and passes the audio through, but Windows needs room on the same
+  stack to report the overflow first, and on CPUs with AVX-512 (or AMX) state
+  the default room is too small: the process was terminated before the guard
+  ran. Threads that call plug-ins now reserve that room in advance. This was
+  found through a test that crashed on some CI machines and never on others;
+  it has not been reproduced on an AVX-512 PC of our own.
+  ([#496](https://github.com/115dkk/EqualizerAPO-XT/pull/496))
+
 ## v2.67.0 — 2026-11-19
 
 - **A plug-in panel that crashed the Editor is not reopened on its own.** If

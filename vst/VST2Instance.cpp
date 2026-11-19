@@ -36,6 +36,7 @@
 #include "VSTPluginInstance.h"
 #include "VSTChunkBase64.h"
 #include "VSTBoundedString.h"
+#include "platform/windows/StackGuarantee.h"
 
 using namespace std;
 using vstchunk::decodeBase64;
@@ -123,6 +124,7 @@ struct VST2EffectDeleter
 		if (effect != NULL)
 		{
 			const unsigned __int64 fpControlState = captureFpControlState();
+			ensurePluginCallStackGuarantee();
 			volatile bool stackOverflow = false;
 			__try
 			{
@@ -493,6 +495,7 @@ VST2Instance::LoadResult VST2Instance::load()
 {
 	LoadResult result = LoadResult::Loaded;
 	const unsigned __int64 fpControlState = captureFpControlState();
+	ensurePluginCallStackGuarantee();
 	volatile bool stackOverflow = false;
 
 	__try

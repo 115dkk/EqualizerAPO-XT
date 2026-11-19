@@ -33,6 +33,7 @@
 #include "dsp/MxcsrGuard.h"
 #include "VST3BusLayout.h"
 #include "runtime/memory/AlignedMemory.h"
+#include "platform/windows/StackGuarantee.h"
 
 class VSTPluginLibrary;
 
@@ -171,6 +172,7 @@ public:
 	void stopProcessingSafely() noexcept
 	{
 		const unsigned __int64 fpControlState = captureFpControlState();
+		ensurePluginCallStackGuarantee();
 		volatile bool stackOverflow = false;
 		__try
 		{
