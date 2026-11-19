@@ -209,7 +209,7 @@ ASIO is a trademark and software of Steinberg Media Technologies GmbH.
 ## Special Thanks
 
 - **Mephistos (DCinside)** - Editor의 VST3 플러그인 패널에서 레벨 미터와 그래프가 살아나지 않는 원인을 진단하고, 동작하는 WASAPI 루프백 패치를 GPL로 공개했으며, 수정 검증에 쓰인 Open-XTC 플러그인을 제공해 주셨습니다. 패널 프리뷰 피드(`Editor/helpers/PanelPreviewFeeder`)는 이 기여에서 파생되었습니다.
-- **[weirdsoup](https://github.com/weirdsoup)** - Custom Audio Manager의 소스(MIT)를 공유해 주셨습니다. 플러그인이 NaN이나 무한대를 내보낼 때의 방어와, 활성화 뒤 플러그인 지연을 다시 읽는 처리는 이 소스에서 가져왔습니다. 고지문은 [ThirdPartyNotices.txt](ThirdPartyNotices.txt)에 있습니다.
+- **[weirdsoup](https://github.com/weirdsoup)** - Custom Audio Manager의 소스(MIT)를 공유해 주셨습니다. EqualizerAPO-XT의 플러그인 방어와 진단 몇 가지를 이 소스에서 가져왔으며, 그 목록과 고지문은 [ThirdPartyNotices.txt](ThirdPartyNotices.txt)에 있습니다.
 
 ## 구걸
 
