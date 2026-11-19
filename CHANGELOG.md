@@ -27,6 +27,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   Both changes are adapted from weirdsoup's Custom Audio Manager (MIT).
   ([#492](https://github.com/115dkk/EqualizerAPO-XT/pull/492))
 
+## v2.65.8 — 2026-11-19
+
 - **A misbehaving VST plug-in can no longer upset the filters after it or
   crash audio on its second fault.** A plug-in that changed the processor's
   floating-point settings (denormal handling, rounding, or which arithmetic

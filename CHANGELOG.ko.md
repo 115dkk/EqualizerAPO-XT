@@ -19,6 +19,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   두 변경 모두 weirdsoup의 Custom Audio Manager(MIT)에서 가져왔습니다.
   ([#492](https://github.com/115dkk/EqualizerAPO-XT/pull/492))
 
+## v2.65.8 — 2026-11-19
+
 - **잘못 동작하는 VST 플러그인이 뒤에 오는 필터의 계산을 바꾸거나 두 번째
   오류에서 오디오를 끝내지 않습니다.** 프로세서의 부동소수점 설정(비정규수
   처리, 반올림, 어떤 계산 오류에서 프로그램을 멈출지)을 바꾼 플러그인은 같은
