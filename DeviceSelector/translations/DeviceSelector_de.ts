@@ -4,7 +4,21 @@
 <context>
     <name>DeviceSelector</name>
     <message>
-        <location filename="../DeviceSelector.cpp" line="+188"/>
+        <location filename="../DeviceSelector.cpp" line="+202"/>
+        <source>Resample received audio</source>
+        <translation>Empfangene Audiosignale neu abtasten</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Converts audio that Send: lines in other endpoints&apos; configurations hand to this endpoint when their sample rate differs from this endpoint&apos;s, and keeps the two clocks aligned. Without it, a sender at another sample rate is refused. At equal sample rates nothing changes.
+
+It is optional because while it converts it uses CPU and a little latency, and the result is no longer bit-identical to what was sent.</source>
+        <translation>Wandelt die Audiosignale um, die Send:-Zeilen in den Konfigurationen anderer Endpunkte an diesen Endpunkt senden, wenn sich deren Abtastrate von seiner unterscheidet. Dabei werden die beiden Takte synchron gehalten. Ohne diese Option wird ein Sender mit einer anderen Abtastrate abgewiesen. Bei gleicher Abtastrate ändert sich nichts.
+
+Die Funktion ist optional, weil die Umwandlung Rechenleistung benötigt und etwas Latenz hinzufügt. Das Ergebnis stimmt zudem nicht mehr Bit für Bit mit dem gesendeten Signal überein.</translation>
+    </message>
+    <message>
+        <location filename="../DeviceSelector.cpp" line="-16"/>
         <source>Ignore silence in convolution</source>
         <translation>Stille bei der Faltung ignorieren</translation>
     </message>

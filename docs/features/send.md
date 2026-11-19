@@ -139,6 +139,31 @@ keeps a slow average of it afterwards; when the average moves more than half
 a block away, the read position steps by one frame (a repeated or dropped
 sample, inaudible in the subwoofer band). Steps are counted.
 
+### Resampling (optional)
+
+A receiving endpoint can instead use a fractional, drift-correcting resampler.
+It runs only when the sender's sample rate differs from the receiver's; at
+equal rates the option changes nothing and the direct read above (with its
+one-frame drift step) is used. It accepts a sender at a different sample rate
+and continuously trims the
+sender/receiver ratio by up to 1000 ppm. The trim follows a 0.5-second filtered
+ring lag and changes by at most 200 ppm per second, so endpoints on independent
+clocks stay near the requested latency without repeated or dropped frames.
+Non-finite input is replaced with silence.
+
+The Blackman-windowed sinc kernel has 1024 fractional phases and at least 96
+taps. Its group delay is 48 source frames when the rates are equal or the
+receiver rate is higher. Downsampling uses
+`ceil(48 * senderRate / receiverRate)` source frames. This delay is part of D,
+not added after it: the controller targets `D - groupDelay` queued source
+frames. `Latency` and `Compensate` therefore keep the same total timing. A
+latency no larger than the kernel delay is refused.
+
+Resampling is off by default. While it runs it costs CPU, the kernel delay
+occupies a few milliseconds at low sample rates, and its output is not
+bit-transparent. It is meant for a receiving endpoint whose sender may run at
+another sample rate; with equal rates it stays out of the way.
+
 ## The keepalive stream
 
 Windows runs an endpoint's APO only while a stream plays there. The Device
