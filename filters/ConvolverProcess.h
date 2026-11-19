@@ -15,8 +15,8 @@
 struct ConvolverProcessJob
 {
 	ConvolverBank& bank;
-	double** input;
-	double** output;
+	double** input = nullptr;
+	double** output = nullptr;
 	const int* inputChannels = nullptr;
 };
 

@@ -108,6 +108,9 @@ TEST_CASE(EngineOrchestrationTests, testRealtimeFanOutLeaseLifecycle)
 		{
 			auto lease = FanOut::Lease::acquire();
 			auto other = FanOut::Lease::acquire();
+			// Move assignment over a held lease is the behaviour under test:
+			// it must release the first lease, not leak or double-count it.
+			// cppcheck-suppress redundantInitialization
 			lease = std::move(other);
 			Counts counts;
 			FanOut::run(64, countTask, &counts);
