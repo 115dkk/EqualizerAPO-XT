@@ -21,67 +21,12 @@
 #include "EngineOrchestrationTestSupport.h"
 
 #ifndef __SANITIZE_ADDRESS__
-namespace send_resampler_allocation_test
+// The executable-wide allocation counter lives in AudioPathAllocationTests.cpp;
+// one executable can replace operator new only once.
+namespace allocation_gate
 {
-	std::atomic<size_t> count{0};
-
-	void* allocate(size_t size)
-	{
-		count.fetch_add(1, std::memory_order_relaxed);
-		if (void* memory = std::malloc(size == 0 ? 1 : size))
-			return memory;
-		throw std::bad_alloc();
-	}
-
-	void* allocateAligned(size_t size, size_t alignment)
-	{
-		const size_t overhead = alignment - 1 + sizeof(void*);
-		if (size > (std::numeric_limits<size_t>::max)() - overhead)
-			throw std::bad_alloc();
-		void* raw = allocate(size + overhead);
-		const uintptr_t base = reinterpret_cast<uintptr_t>(raw) + sizeof(void*);
-		const uintptr_t aligned = (base + alignment - 1) & ~(static_cast<uintptr_t>(alignment) - 1);
-		void* result = reinterpret_cast<void*>(aligned);
-		reinterpret_cast<void**>(result)[-1] = raw;
-		return result;
-	}
-
-	void freeAligned(void* pointer) noexcept
-	{
-		if (pointer != nullptr)
-			std::free(reinterpret_cast<void**>(pointer)[-1]);
-	}
-}
-
-void* operator new(size_t size) {return send_resampler_allocation_test::allocate(size);}
-void* operator new[](size_t size) {return send_resampler_allocation_test::allocate(size);}
-void operator delete(void* pointer) noexcept {std::free(pointer);}
-void operator delete[](void* pointer) noexcept {std::free(pointer);}
-void operator delete(void* pointer, size_t) noexcept {std::free(pointer);}
-void operator delete[](void* pointer, size_t) noexcept {std::free(pointer);}
-void* operator new(size_t size, std::align_val_t alignment)
-{
-	return send_resampler_allocation_test::allocateAligned(size, static_cast<size_t>(alignment));
-}
-void* operator new[](size_t size, std::align_val_t alignment)
-{
-	return send_resampler_allocation_test::allocateAligned(size, static_cast<size_t>(alignment));
-}
-void operator delete(void* pointer, std::align_val_t) noexcept
-{
-	send_resampler_allocation_test::freeAligned(pointer);
-}
-void operator delete[](void* pointer, std::align_val_t) noexcept
-{
-	send_resampler_allocation_test::freeAligned(pointer);
-}
-void operator delete(void* pointer, size_t, std::align_val_t) noexcept
-{
-	send_resampler_allocation_test::freeAligned(pointer);
-}
-void operator delete[](void* pointer, size_t, std::align_val_t) noexcept
-{
-	send_resampler_allocation_test::freeAligned(pointer);
+	void begin() noexcept;
+	size_t end() noexcept;
 }
 #endif
 
@@ -340,14 +285,14 @@ TEST_CASE(EngineOrchestrationTests, testSendResamplerReadPathAllocatesNothing)
 		std::vector<double>(128), std::vector<double>(128)};
 	double* outputPlanes[] = {output[0].data(), output[1].data()};
 
-	const size_t before = send_resampler_allocation_test::count.load(std::memory_order_relaxed);
+	allocation_gate::begin();
 	for (int iteration = 0; iteration < 4; iteration++)
 	{
 		writer.write(inputPlanes, 2, 117, 200 + iteration);
 		(void)reader.read(outputPlanes, 2, 128, 200 + iteration);
 		(void)reader.underruns();
 	}
-	const size_t after = send_resampler_allocation_test::count.load(std::memory_order_relaxed);
-	harness.expectEqual(after, before, "resampling SendReaderCore::read allocates nothing");
+	const size_t allocations = allocation_gate::end();
+	harness.expectEqual(allocations, size_t{0}, "resampling SendReaderCore::read allocates nothing");
 #endif
 }
