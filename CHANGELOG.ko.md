@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.66.0 — 2026-11-19
+
 - **임펄스 응답 끝의 무음이 더는 계산 비용을 쓰지 않습니다.** Convolution과
   MultiConvolution이 임펄스 응답을 읽을 때 끝의 무음(모든 채널이 파일의
   최댓값보다 140 dB 넘게 작은 구간)을 잘라 냅니다. 응답 뒤에 몇 초씩 디지털

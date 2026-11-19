@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.66.0 — 2026-11-19
+
 - **Silence at the end of an impulse response no longer costs processing.**
   Convolution and MultiConvolution now drop the silent tail of an impulse
   response when they load it (every channel more than 140 dB below the
