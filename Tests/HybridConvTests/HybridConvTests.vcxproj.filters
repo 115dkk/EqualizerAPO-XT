@@ -130,6 +130,9 @@
     <ClInclude Include="..\TestDirectory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\FakeRegistry.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\Vst3Bundle.h">
       <Filter>Header Files</Filter>
     </ClInclude>

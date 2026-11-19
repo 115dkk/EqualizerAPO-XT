@@ -79,6 +79,14 @@ private:
 	// Slide animation behind the troubleshooting disclosure (lazily created
 	// in onTroubleShootingToggled).
 	QPropertyAnimation* troubleshootingSlide = nullptr;
+	// The folding part of the disclosure: the per-device stack and, below it,
+	// the options that apply to every device. Built in setupChrome.
+	QWidget* troubleshootingPanel = nullptr;
+	// Engine-wide: trims the silent end of convolution impulse responses
+	// (IgnoreConvolutionSilence under APP_REGPATH). The stored value is what
+	// the registry held when the dialog opened, so OK writes only a change.
+	QCheckBox* ignoreConvolutionSilenceCheckBox = nullptr;
+	bool ignoreConvolutionSilenceStored = true;
 };
 
 Q_DECLARE_METATYPE(std::shared_ptr<AbstractAPOInfo>)

@@ -21,6 +21,9 @@
 
 #include "runtime/memory/AlignedMemory.h"
 #include "services/logging/Logging.h"
+#include "services/registry/RegistryPaths.h"
+#include "services/registry/RegistrySettings.h"
+#include "engine/FilterEngine.h"
 #include "ConvolutionCommand.h"
 #include "ConfigFileReference.h"
 #include "ConvolutionFilter.h"
@@ -48,5 +51,12 @@ LineOutcome ConvolutionFilterFactory::createFilter(const wstring& configPath, ws
 	if (!sizeProblem.empty())
 		return LineOutcome::malformed(sizeProblem);
 
-	return LineOutcome::produced(singleFilter(makeFilter<ConvolutionFilter>(std::move(file.path))));
+	bool ignoreTrailingSilence = true;
+	if (engine() != nullptr)
+	{
+		engine()->watchRegistryKey(APP_REGPATH);
+		ignoreTrailingSilence = readIgnoreConvolutionSilence(engine()->registryAccess());
+	}
+	return LineOutcome::produced(singleFilter(makeFilter<ConvolutionFilter>(
+		std::move(file.path), ignoreTrailingSilence)));
 }

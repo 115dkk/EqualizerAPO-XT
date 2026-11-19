@@ -4,7 +4,17 @@
 <context>
     <name>DeviceSelector</name>
     <message>
-        <location filename="../DeviceSelector.cpp" line="+68"/>
+        <location filename="../DeviceSelector.cpp" line="+188"/>
+        <source>Ignore silence in convolution</source>
+        <translation>忽略卷积中的静音</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Cuts the silent end off impulse responses that Convolution and MultiConvolution load. A long silent tail costs as much processing as sound does and can cause dropouts. Applies to every device.</source>
+        <translation>去除 Convolution 和 MultiConvolution 加载的脉冲响应末尾的静音部分。处理静音与处理有声部分所需的计算量相同，因此末尾的静音过长可能导致声音断续。此设置适用于所有设备。</translation>
+    </message>
+    <message>
+        <location filename="../DeviceSelector.cpp" line="-122"/>
         <location line="+44"/>
         <source>Playback devices</source>
         <translation>播放设备</translation>

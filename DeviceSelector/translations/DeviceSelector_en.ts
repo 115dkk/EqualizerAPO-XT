@@ -4,7 +4,17 @@
 <context>
     <name>DeviceSelector</name>
     <message>
-        <location filename="../DeviceSelector.cpp" line="+68"/>
+        <location filename="../DeviceSelector.cpp" line="+188"/>
+        <source>Ignore silence in convolution</source>
+        <translation>Ignore silence in convolution</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Cuts the silent end off impulse responses that Convolution and MultiConvolution load. A long silent tail costs as much processing as sound does and can cause dropouts. Applies to every device.</source>
+        <translation>Cuts the silent end off impulse responses that Convolution and MultiConvolution load. A long silent tail costs as much processing as sound does and can cause dropouts. Applies to every device.</translation>
+    </message>
+    <message>
+        <location filename="../DeviceSelector.cpp" line="-122"/>
         <location line="+44"/>
         <source>Playback devices</source>
         <translation type="unfinished"></translation>
