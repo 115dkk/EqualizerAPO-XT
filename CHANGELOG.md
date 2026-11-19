@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.67.0 — 2026-11-19
+
 - **A plug-in panel that crashed the Editor is not reopened on its own.** If
   the Editor closed unexpectedly while a plug-in's panel was open, the next
   start reopened the same embedded panel and could crash again. The panel now
