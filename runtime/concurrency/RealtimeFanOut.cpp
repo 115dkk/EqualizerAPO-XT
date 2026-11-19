@@ -182,12 +182,21 @@ namespace eapo::rt
 		std::lock_guard<std::mutex> lock(lifetimeMutex);
 		if (leases == 0)
 		{
-			auto pending = std::make_unique<Team>();
-			pending->start(count);
-			takeSlotForLifecycle();
-			team = pending.release();
-			running.store(count, std::memory_order_release);
-			slot.clear(std::memory_order_release);
+			// A team that cannot start (no memory, no thread, no event) is not
+			// an error for the caller: without a lease run() works inline.
+			try
+			{
+				auto pending = std::make_unique<Team>();
+				pending->start(count);
+				takeSlotForLifecycle();
+				team = pending.release();
+				running.store(count, std::memory_order_release);
+				slot.clear(std::memory_order_release);
+			}
+			catch (...)
+			{
+				return {};
+			}
 		}
 		++leases;
 		return Lease(true);

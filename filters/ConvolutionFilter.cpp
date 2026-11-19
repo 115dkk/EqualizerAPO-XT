@@ -139,7 +139,9 @@ void ConvolutionFilter::initializeFilters(unsigned frameCount)
 	bank.install(buildConvolverArray(sources, frameCount), frameCount);
 	if (bank.installed() && parallelConvolution && channelCount >= 2)
 	{
-		fanOutLease = eapo::rt::FanOut::Lease::acquire();
+		// Workers are started only for a filter that will use them.
 		parallelWork = useConvolverFanOut(channelCount, ir->frames, *bank.unit(0));
+		if (parallelWork)
+			fanOutLease = eapo::rt::FanOut::Lease::acquire();
 	}
 }

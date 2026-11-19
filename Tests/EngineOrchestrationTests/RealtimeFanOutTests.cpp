@@ -202,7 +202,7 @@ TEST_CASE(EngineOrchestrationTests, testParallelConvolutionSettingReachesBothFac
 {
 	const auto path = testDirectory() + L"\\parallel-setting-ir.wav";
 	trackWrittenFile(path);
-	harness.require(test::writeWavFile(path, 48000, std::vector<double>(1024, 0.001)), "setting test IR is written");
+	harness.require(test::writeWavFile(path, 48000, std::vector<double>(96000, 0.001)), "setting test IR is written");
 	for (const std::string command : {"Convolution: ", "MultiConvolution: L=0 R=0 "})
 	{
 		const auto config = writeConfig(harness, L"parallel-setting.txt", command + "\"" + toNarrow(path) + "\"\n");
@@ -212,7 +212,9 @@ TEST_CASE(EngineOrchestrationTests, testParallelConvolutionSettingReachesBothFac
 			registry.seedString(APP_REGPATH, parallelConvolutionValueName, enabled ? L"true" : L"false");
 			{
 				FilterEngine engine;
-				auto setup = testEngineSetup(48000, 2, 2, 64, config);
+				// Long enough at this block size to pass useConvolverFanOut: a filter
+				// below the threshold starts no workers whatever the setting says.
+				auto setup = testEngineSetup(48000, 2, 2, 480, config);
 				setup.registry = &registry;
 				engine.initialize(setup);
 				harness.expectEqual(FanOut::workerCount() != 0, enabled, "the factory passes the injected setting to its filter");

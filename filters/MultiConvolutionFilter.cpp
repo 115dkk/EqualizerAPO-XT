@@ -177,8 +177,10 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 	unitCount = next;
 	if (parallelConvolution && unitCount >= 2)
 	{
-		fanOutLease = eapo::rt::FanOut::Lease::acquire();
+		// Workers are started only for a filter that will use them.
 		parallelWork = useConvolverFanOut(unitCount, irFrames, *bank.unit(0));
+		if (parallelWork)
+			fanOutLease = eapo::rt::FanOut::Lease::acquire();
 	}
 
 	return outChannelNames;
