@@ -29,6 +29,9 @@
     <ClCompile Include="EngineOrchestrationTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="AudioPathAllocationTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="NamedPipeSecurityTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
