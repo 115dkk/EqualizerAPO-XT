@@ -64,6 +64,7 @@ DeviceSelector::DeviceSelector(QWidget* parent)
 	: QDialog(parent)
 {
 	ignoreConvolutionSilenceStored = readIgnoreConvolutionSilence(systemRegistry());
+	parallelConvolutionStored = readParallelConvolution(systemRegistry());
 	setupChrome();
 
 	try
@@ -192,6 +193,14 @@ void DeviceSelector::setupChrome()
 		"Applies to every device."));
 	ignoreConvolutionSilenceCheckBox->setChecked(ignoreConvolutionSilenceStored);
 	allDevicesLayout->addWidget(ignoreConvolutionSilenceCheckBox);
+	parallelConvolutionCheckBox = new QCheckBox(tr("Multi-core convolution processing"), allDevicesRow);
+	parallelConvolutionCheckBox->setObjectName(QStringLiteral("parallelConvolutionCheckBox"));
+	parallelConvolutionCheckBox->setToolTip(tr("Spreads the work of Convolution and MultiConvolution over several "
+		"CPU cores, so long impulse responses on many channels no longer load a single core. The sound and the "
+		"latency stay the same.\n\nIt is optional because it starts extra audio threads. Turn it off if it causes "
+		"dropouts on your system. Applies to every device."));
+	parallelConvolutionCheckBox->setChecked(parallelConvolutionStored);
+	allDevicesLayout->addWidget(parallelConvolutionCheckBox);
 	allDevicesLayout->addStretch(1);
 	panelLayout->addWidget(allDevicesRow);
 	ui.troubleshootingLayout->insertWidget(stackIndex, troubleshootingPanel);
@@ -240,6 +249,7 @@ void DeviceSelector::finishSetup()
 	connect(ui.asioAutoStartCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
 	connect(ui.asioHost32CheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
 	connect(ignoreConvolutionSilenceCheckBox, &QCheckBox::clicked, this, &DeviceSelector::updateButtons);
+	connect(parallelConvolutionCheckBox, &QCheckBox::clicked, this, &DeviceSelector::updateButtons);
 
 	updateButtons();
 
@@ -428,6 +438,19 @@ void DeviceSelector::onDialogAccepted()
 		{
 			systemRegistry().writeValue(APP_REGPATH, ignoreConvolutionSilenceValueName,
 				ignoreConvolutionSilenceCheckBox->isChecked() ? L"true" : L"false");
+		}
+		catch (const RegistryError& e)
+		{
+			QMessageBox::critical(this, tr("Error while accessing the registry"), QString::fromStdWString(e.getMessage()));
+		}
+	}
+
+	if (parallelConvolutionCheckBox->isChecked() != parallelConvolutionStored)
+	{
+		try
+		{
+			systemRegistry().writeValue(APP_REGPATH, parallelConvolutionValueName,
+				parallelConvolutionCheckBox->isChecked() ? L"true" : L"false");
 		}
 		catch (const RegistryError& e)
 		{
@@ -831,7 +854,8 @@ bool DeviceSelector::isAnySelected()
 
 bool DeviceSelector::isChanged()
 {
-	bool changed = ignoreConvolutionSilenceCheckBox->isChecked() != ignoreConvolutionSilenceStored;
+	bool changed = ignoreConvolutionSilenceCheckBox->isChecked() != ignoreConvolutionSilenceStored
+		|| parallelConvolutionCheckBox->isChecked() != parallelConvolutionStored;
 
 	for (int index = 0; index < ui.deviceTreeWidget->topLevelItemCount(); index++)
 	{
