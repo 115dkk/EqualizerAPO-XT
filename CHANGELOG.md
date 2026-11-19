@@ -14,6 +14,22 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Convolution and MultiConvolution use several CPU cores.** The convolver
+  units of one filter (one per channel in Convolution, one per mapping in
+  MultiConvolution) used to run one after another on the audio thread, so a
+  long impulse response on many channels loaded a single core. They now run
+  on several cores within the same block. The sound is bit-identical and no
+  latency is added. On the maintainer's 22-unit, 2-second BRIR configuration
+  the typical block time fell by about 30% at 480 frames and about 50% at 64
+  frames; the worst-case block time did not measurably improve. Short impulse
+  responses are still processed on one core, where splitting costs more than
+  it saves. The Device Selector has a new troubleshooting option,
+  **Multi-core convolution processing** (on by default, next to "Ignore
+  silence in convolution"), to turn this off if it causes dropouts. Not yet
+  measured inside the Windows audio service with several endpoints playing
+  at once.
+  ([#497](https://github.com/115dkk/EqualizerAPO-XT/pull/497))
+
 ## v2.68.1 — 2026-11-19
 
 - **A plug-in that overflows its stack no longer takes the audio engine down
