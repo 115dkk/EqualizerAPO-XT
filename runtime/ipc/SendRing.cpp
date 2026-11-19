@@ -274,6 +274,10 @@ namespace eapo::ipc::send
 			plan.reason = sampleRateMismatch(senderSampleRate, ownSampleRate);
 			return plan;
 		}
+		// The resampler runs only when the two endpoints' rates differ. At equal
+		// rates the option changes nothing: the direct, bit-transparent read with
+		// its one-frame drift step is used, as with the option off.
+		resample = resample && senderSampleRate != ownSampleRate;
 
 		const uint32_t channelCount = readWord(&header->channelCount);
 		const MixMode mixMode = static_cast<MixMode>(readWord(&header->mixMode));

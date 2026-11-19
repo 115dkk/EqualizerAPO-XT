@@ -529,6 +529,20 @@ namespace
 			"attach accepts a different sample rate when receiving resampling is enabled");
 		harness.expectEqual(resampledRatePlan.resamplerTargetFrames, uint32_t(912),
 			"the 48-frame sinc delay is folded into the 960-frame Send latency");
+		harness.expectTrue(resampledRatePlan.resample,
+			"a different sample rate turns the resampler on");
+
+		writer.publish(valid, qpcFrequency);
+		const AttachPlan equalRatePlan = attach(region, {L"L"}, 0, blockFrames, true);
+		harness.require(equalRatePlan.ok, "attach accepts an equal rate with resampling enabled");
+		harness.expectFalse(equalRatePlan.resample,
+			"at an equal rate the option leaves the resampler off and reads directly");
+		harness.expectEqual(equalRatePlan.resamplerTargetFrames, uint32_t(0),
+			"an equal-rate plan has no resampler target");
+		const AttachPlan directPlan = attach(region, {L"L"}, 0);
+		harness.expectEqual(equalRatePlan.readPos, directPlan.readPos,
+			"an equal-rate plan anchors exactly like the option-off plan");
+		writer.publish(wrongRate, qpcFrequency);
 
 		SendParams tooLarge = valid;
 		tooLarge.delayFrames = capacityFrames - 2 * blockFrames;
