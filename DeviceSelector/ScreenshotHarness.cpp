@@ -116,7 +116,7 @@ int ScreenshotHarness::runSkinShots(QApplication& app)
 			{
 				DeviceTestView view;
 				view.loadPreview(preview.first);
-				view.resize(620, 700);
+				view.resize(620, 760);
 				view.show();
 				QApplication::processEvents();
 				const QString file = outDir.filePath(

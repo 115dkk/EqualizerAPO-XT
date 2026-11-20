@@ -18,8 +18,9 @@
 
 #include "skins/DeviceSkinPainter.h"
 
+class DevicePanelWidget;
 class DisclosureHeader;
-class QLabel;
+class QVBoxLayout;
 class QTextEdit;
 class QTreeWidget;
 class QTreeWidgetItem;
@@ -91,6 +92,7 @@ public:
 		QString subject; // the device, or empty for the run as a whole
 		ProblemText text;
 		QString system;  // the message Windows gave, when there is one
+		DeviceReport tone = DeviceReport::Dead;
 	};
 	void setNotes(const QVector<Note>& notes);
 
@@ -112,10 +114,9 @@ public:
 	void loadPreview(Preview preview);
 
 private:
-	QLabel* headline = nullptr;
-	QLabel* hint = nullptr;
+	DevicePanelWidget* verdict = nullptr;
 	QTreeWidget* tree = nullptr;
-	QLabel* notes = nullptr;
+	QVBoxLayout* notesColumn = nullptr;
 	DisclosureHeader* recordHeader = nullptr;
 	QTextEdit* record = nullptr;
 	SkinButton* stopButton = nullptr;

@@ -116,6 +116,168 @@ bool DeviceSkinPainter::reportInk(const DeviceRowState& state, const SkinTokens&
 	}
 }
 
+QColor DeviceSkinPainter::toneColor(DeviceReport tone, const SkinTokens& tokens)
+{
+	switch (tone)
+	{
+	case DeviceReport::Dead:
+		return QColor(tokens.danger);
+	case DeviceReport::Degraded:
+		return QColor(tokens.warning);
+	case DeviceReport::Alive:
+		return QColor(tokens.success);
+	case DeviceReport::Waiting:
+		return QColor(tokens.accent);
+	default:
+		return QColor(tokens.mutedText);
+	}
+}
+
+QString DeviceSkinPainter::toneCode(DeviceReport tone)
+{
+	switch (tone)
+	{
+	case DeviceReport::Dead:
+		return QStringLiteral("FAIL");
+	case DeviceReport::Degraded:
+		return QStringLiteral("WARN");
+	case DeviceReport::Alive:
+		return QStringLiteral("OK");
+	case DeviceReport::Waiting:
+		return QStringLiteral("RUN");
+	default:
+		return QStringLiteral("N/A");
+	}
+}
+
+DevicePanelStyle DeviceSkinPainter::panelStyle(const DevicePanelState& state, const QFont& base, const SkinTokens& tokens) const
+{
+	DevicePanelStyle style;
+	style.titleFont = base;
+	style.titleFont.setBold(true);
+	style.bodyFont = base;
+	style.monoFont = QFont(tokens.monoFontFamily);
+	style.monoFont.setPointSizeF(qMax(7.0, base.pointSizeF() - 1.0));
+	style.titleInk = QColor(tokens.text);
+	style.bodyInk = QColor(tokens.text);
+	style.mutedInk = QColor(tokens.mutedText);
+	style.toneInk = toneColor(state.tone, tokens);
+	return style;
+}
+
+void DeviceSkinPainter::paintPanelGround(QPainter& painter, const QRect& rect, const DevicePanelState& state, const SkinTokens& tokens) const
+{
+	painter.save();
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	const QRectF r = QRectF(rect).adjusted(0.5, 0.5, -0.5, -0.5);
+	painter.setPen(QPen(withAlpha(tokens.border, 200), 1));
+	painter.setBrush(QColor(tokens.card));
+	painter.drawRoundedRect(r, 6, 6);
+	painter.setPen(Qt::NoPen);
+	painter.setBrush(toneColor(state.tone, tokens));
+	painter.drawRoundedRect(QRectF(r.left() + 3, r.top() + 6, 3, r.height() - 12), 1.5, 1.5);
+	painter.restore();
+}
+
+void DeviceSkinPainter::paintActionMark(QPainter& painter, const QRectF& cell, const QColor& ink, const SkinTokens&) const
+{
+	painter.save();
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	painter.setPen(QPen(ink, 1.6, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+	const QPointF c(cell.left() + 5.0, cell.center().y());
+	QPainterPath chevron;
+	chevron.moveTo(c.x() - 2, c.y() - 4);
+	chevron.lineTo(c.x() + 2.5, c.y());
+	chevron.lineTo(c.x() - 2, c.y() + 4);
+	painter.drawPath(chevron);
+	painter.restore();
+}
+
+void DeviceSkinPainter::paintSystemWell(QPainter& painter, const QRectF& rect, const SkinTokens& tokens) const
+{
+	painter.save();
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	painter.setPen(Qt::NoPen);
+	painter.setBrush(QColor(tokens.surfaceSunken));
+	painter.drawRoundedRect(rect, 4, 4);
+	painter.restore();
+}
+
+// One pass for both jobs: with no painter it only measures, so the height a
+// panel asks for is by construction the height its text takes.
+int DeviceSkinPainter::flowPanel(QPainter* painter, const QRect& rect, const DevicePanelState& state, const QFont& base, const SkinTokens& tokens) const
+{
+	const DevicePanelStyle style = panelStyle(state, base, tokens);
+	const int left = rect.left() + style.padding.left();
+	const int width = qMax(40, rect.width() - style.padding.left() - style.padding.right());
+	int y = rect.top() + style.padding.top();
+
+	auto block = [&](const QFont& font, const QColor& ink, const QString& text, int indent, int flags) {
+		const QFontMetrics fm(font);
+		const QRect box = fm.boundingRect(QRect(0, 0, width - indent, 100000), flags, text);
+		if (painter != nullptr)
+		{
+			painter->setFont(font);
+			painter->setPen(ink);
+			painter->drawText(QRect(left + indent, y, width - indent, box.height()), flags, text);
+		}
+		return box.height();
+	};
+	const int wrap = Qt::TextWordWrap | Qt::AlignLeft | Qt::AlignTop;
+
+	if (!state.title.isEmpty())
+		y += block(style.titleFont, style.titleInk, state.title, 0, wrap) + style.lineGap;
+
+	for (const DevicePanelState::Line& line : state.lines)
+	{
+		switch (line.kind)
+		{
+		case DevicePanelState::LineKind::Body:
+			y += block(style.bodyFont, style.bodyInk, line.text, 0, wrap) + style.lineGap;
+			break;
+		case DevicePanelState::LineKind::Action:
+		{
+			const int lineHeight = QFontMetrics(style.bodyFont).height();
+			if (painter != nullptr)
+				paintActionMark(*painter, QRectF(left, y, style.actionIndent, lineHeight), style.toneInk, tokens);
+			y += block(style.bodyFont, style.bodyInk, line.text, style.actionIndent, wrap) + style.lineGap;
+			break;
+		}
+		case DevicePanelState::LineKind::System:
+		{
+			const QFontMetrics fm(style.monoFont);
+			const int flags = Qt::TextWrapAnywhere | Qt::AlignLeft | Qt::AlignTop;
+			const int textHeight = fm.boundingRect(QRect(0, 0, width - 16, 100000), flags, line.text).height();
+			y += 3;
+			if (painter != nullptr)
+			{
+				paintSystemWell(*painter, QRectF(left, y, width, textHeight + 8), tokens);
+				painter->setFont(style.monoFont);
+				painter->setPen(style.mutedInk);
+				painter->drawText(QRect(left + 8, y + 4, width - 16, textHeight), flags, line.text);
+			}
+			y += textHeight + 8 + style.lineGap;
+			break;
+		}
+		}
+	}
+	return y - style.lineGap + style.padding.bottom() - rect.top();
+}
+
+int DeviceSkinPainter::panelHeight(int width, const DevicePanelState& state, const QFont& base, const SkinTokens& tokens) const
+{
+	return flowPanel(nullptr, QRect(0, 0, width, 0), state, base, tokens);
+}
+
+void DeviceSkinPainter::paintPanel(QPainter& painter, const QRect& rect, const DevicePanelState& state, const QFont& base, const SkinTokens& tokens) const
+{
+	paintPanelGround(painter, rect, state, tokens);
+	painter.save();
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+	flowPanel(&painter, rect, state, base, tokens);
+	painter.restore();
+}
+
 QRect DeviceSkinPainter::toggleRect(const QRect& rowRect) const
 {
 	// The whole left end of the row is the toggle's hit area (>= 40px).
