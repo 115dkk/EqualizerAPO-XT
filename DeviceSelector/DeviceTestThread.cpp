@@ -53,6 +53,10 @@ ItemStatusType itemStatusType(DeviceTestItemStatus status)
 DeviceTestThread::DeviceTestThread(QObject* parent, const QVector<std::shared_ptr<DeviceAPOInfo>>& devices)
 	: QThread(parent)
 {
+	qRegisterMetaType<ItemStatusType>();
+	qRegisterMetaType<DeviceTestOutcome>();
+	qRegisterMetaType<DeviceTestStop>();
+
 	for (const std::shared_ptr<DeviceAPOInfo>& apoInfo : devices)
 	{
 		if (apoInfo->isDisabled() || apoInfo->isUnplugged())
@@ -76,6 +80,8 @@ void DeviceTestThread::run()
 	if (!apartment.isUsable())
 	{
 		emit logError(tr("Could not initialize COM for device testing."));
+		emit runStopped(DeviceTestStop::ComUnavailable, tr("COM initialization failed (0x%1).")
+			.arg(static_cast<qulonglong>(apartment.status()), 8, 16, QLatin1Char('0')));
 		emit abort(tr("COM initialization failed (0x%1).")
 			.arg(static_cast<qulonglong>(apartment.status()), 8, 16, QLatin1Char('0')), -1);
 		return;
@@ -97,6 +103,7 @@ void DeviceTestThread::run()
 	{
 		emit logError(tr("Could not remove the device test registration: %1")
 			.arg(QString::fromStdWString(e.getMessage())));
+		emit runStopped(DeviceTestStop::SetupRefused, QString::fromStdWString(e.getMessage()));
 		return;
 	}
 
@@ -108,6 +115,7 @@ void DeviceTestThread::run()
 	catch (const WindowsServiceError& e)
 	{
 		emit logError(tr("Restart failed."));
+		emit runStopped(DeviceTestStop::AudioRestartFailed, QString::fromStdWString(e.getMessage()));
 		emit abort(QString::fromStdWString(e.getMessage()), -1);
 		return;
 	}
@@ -132,6 +140,7 @@ void DeviceTestThread::run()
 		catch (const RegistryError& e)
 		{
 			emit logError(tr("Could not prepare the device test."));
+			emit runStopped(DeviceTestStop::SetupRefused, QString::fromStdWString(e.getMessage()));
 			emit abort(QString::fromStdWString(e.getMessage()), -1);
 			return;
 		}
@@ -165,6 +174,7 @@ void DeviceTestThread::run()
 			}
 			catch (const WideError& e)
 			{
+				emit deviceUnreachable(deviceGuid, QString::fromStdWString(e.getMessage()));
 				emit showErrorDialog(QString::fromStdWString(e.getMessage()));
 			}
 		}
@@ -180,6 +190,7 @@ void DeviceTestThread::run()
 				if (jsonDoc.isNull())
 				{
 					emit logError(error.errorString());
+					emit runStopped(DeviceTestStop::ChannelBroken, error.errorString());
 					return;
 				}
 				QJsonObject jsonObj = jsonDoc.object();
@@ -244,6 +255,9 @@ void DeviceTestThread::run()
 					if (DeviceTestPlan::expectsPostMix(selection))
 						showStatus(deviceGuid, DeviceTestStage::PostMix,
 							DeviceTestPlan::statusFor(fallback.shown, DeviceTestStage::PostMix, selection));
+					if (fallback.givesUp)
+						emit deviceGaveUp(deviceGuid, DeviceTestPlan::outcomeFor(fallback.shown, selection),
+							QString::fromLatin1(deviceTestModeName(selection.mode)));
 					const QString installModeName = QString::fromLatin1(deviceTestModeName(fallback.mode));
 					emit log(tr("Setting install mode for %1 %2 to %3.").arg(testInfo->deviceInfo->getDeviceName()).arg(testInfo->deviceInfo->getConnectionName()).arg(installModeName));
 
@@ -258,6 +272,7 @@ void DeviceTestThread::run()
 					// tested and counts as not working.
 					auto giveUp = [&](const std::wstring& error) {
 						emit logError(QString::fromStdWString(error));
+						emit deviceRefused(deviceGuid, QString::fromStdWString(error));
 						if (remainingDevices.contains(deviceGuid))
 						{
 							it.remove();
@@ -285,6 +300,7 @@ void DeviceTestThread::run()
 				catch (const WindowsServiceError& e)
 				{
 					emit logError(tr("Restart failed."));
+					emit runStopped(DeviceTestStop::AudioRestartFailed, QString::fromStdWString(e.getMessage()));
 					emit abort(QString::fromStdWString(e.getMessage()), -1);
 					return;
 				}
@@ -292,6 +308,7 @@ void DeviceTestThread::run()
 		}
 		catch (const ReceiveException& e)
 		{
+			emit runStopped(DeviceTestStop::ChannelBroken, QString::fromStdWString(e.getMessage()));
 			emit showErrorDialog(QString::fromStdWString(e.getMessage()));
 			return;
 		}

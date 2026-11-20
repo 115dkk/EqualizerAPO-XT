@@ -36,7 +36,6 @@
 #include <devices/DevicePlan.h>
 #include <devices/DeviceChange.h>
 #include <devices/VoicemeeterAPOInfo.h>
-#include "DeviceTestDialog.h"
 #include "ResidentHostLauncher.h"
 #include "../version.h"
 #include "DeviceListDelegate.h"
@@ -470,24 +469,21 @@ void DeviceSelector::onDialogAccepted()
 			bool checked = item->checkState(0) == Qt::Checked;
 
 			// The operation put the endpoint back before throwing, and its
-			// report is already in DeviceSelector.log. Two things are added
-			// here: where to find that log, and the one case where the
-			// endpoint was *not* put back, which the user has to know about
+			// report is already in DeviceSelector.log. The installation
+			// check that follows names the device and says what to do
+			// (issue #502); the one case it has to tell apart is an endpoint
+			// that was *not* put back, which the user has to know about
 			// before they try again.
 			auto reportFailure = [&](const std::wstring& error, const DeviceInstallReport& report) {
-				QString message = QString::fromStdWString(error);
-				if (report.leftInconsistent())
-				{
-					message += QLatin1String("\n\n") + tr("Undoing the change did not finish either, so this "
-						"device may be left partly changed. Reboot before trying again, and see the log for details.");
-				}
-				else if (report.operation != DeviceInstallReport::Operation::None)
-				{
-					message += QLatin1String("\n\n") + tr("The device was left as it was before.");
-				}
-				message += QLatin1String("\n\n") + tr("Details are in %1.")
-					.arg(QDir::toNativeSeparators(QString::fromStdWString(Logging::currentPath())));
-				QMessageBox::critical(this, tr("Error while accessing the registry"), message);
+				DeviceTestDialog::InstallFailure failure;
+				failure.guid = QString::fromStdWString(info->getDeviceGuid());
+				failure.connection = QString::fromStdWString(info->getConnectionName());
+				failure.device = QString::fromStdWString(info->getDeviceName());
+				failure.input = info->isInput();
+				failure.defaultDevice = info->isDefaultDevice();
+				failure.message = QString::fromStdWString(error);
+				failure.leftPartial = report.leftInconsistent();
+				installFailures.append(failure);
 			};
 
 			const DevicePlan plan = planFor(checked, deviceFactsOf(*info));
@@ -532,10 +528,13 @@ void DeviceSelector::onDialogRejected()
 void DeviceSelector::finish(bool deviceUpdated)
 {
 	int dialogResult = 0;
-	if (QCoreApplication::instance()->arguments().contains("/i")
-		|| deviceUpdated || askForReboot)
+	const bool runCheck = QCoreApplication::instance()->arguments().contains("/i")
+		|| deviceUpdated || askForReboot;
+	// A change that was refused is reported even when nothing else changed
+	// and there is nothing for the check to ask.
+	if (runCheck || !installFailures.isEmpty())
 	{
-		DeviceTestDialog testDialog;
+		DeviceTestDialog testDialog(installFailures, runCheck);
 		dialogResult = testDialog.exec();
 	}
 

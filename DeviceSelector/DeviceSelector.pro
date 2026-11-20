@@ -31,7 +31,6 @@ SOURCES += \
 	DeviceTestThread.cpp \
 	DeviceTestView.cpp \
 	DisclosureHeader.cpp \
-	OpacityIconEngine.cpp \
 	PreviewDevices.cpp \
 	ScreenshotHarness.cpp \
 	ReceiveThread.cpp \
@@ -67,7 +66,6 @@ HEADERS += \
 	DeviceTestThread.h \
 	DeviceTestView.h \
 	DisclosureHeader.h \
-	OpacityIconEngine.h \
 	PreviewDevices.h \
 	ScreenshotHarness.h \
 	ReceiveThread.h \
@@ -85,8 +83,7 @@ HEADERS += \
 	stdafx.h
 
 FORMS += \
-	DeviceSelector.ui \
-	DeviceTestDialog.ui
+	DeviceSelector.ui
 
 RESOURCES += \
 	DeviceSelector.qrc \

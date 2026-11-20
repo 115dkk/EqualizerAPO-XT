@@ -8,8 +8,10 @@
 #include "DeviceTestView.h"
 
 #include <QCoreApplication>
+#include <QEvent>
 #include <QHBoxLayout>
 #include <QPainter>
+#include <QScrollArea>
 #include <QTextEdit>
 #include <QTreeWidget>
 #include <QVBoxLayout>
@@ -17,6 +19,13 @@
 #include "DeviceListDelegate.h"
 #include "DisclosureHeader.h"
 #include "SkinButton.h"
+
+namespace
+{
+// The notes may take this much of the dialog before they scroll, so a long
+// list of problems cannot push the devices out of sight.
+const int notesMaxHeight = 300;
+}
 
 // One panel, painted by the active skin. Its height follows its text at the
 // width the layout gives it.
@@ -34,6 +43,8 @@ public:
 	void setState(const DevicePanelState& newState)
 	{
 		state = newState;
+		if (isVisible())
+			setFixedHeight(heightForWidth(width()));
 		updateGeometry();
 		update();
 	}
@@ -98,14 +109,28 @@ DeviceTestView::DeviceTestView(QWidget* parent)
 	QPalette listPalette = tree->palette();
 	listPalette.setBrush(QPalette::Highlight, Qt::transparent);
 	tree->setPalette(listPalette);
+	tree->setMinimumHeight(150);
 	column->addWidget(tree, 1);
 
-	// What went wrong and what to do about it, one paragraph per device.
-	// The dialog this replaces showed a red mark and left the rest to a log.
-	tree->setMinimumHeight(150);
-	notesColumn = new QVBoxLayout;
+	// What went wrong and what to do about it, one panel per problem. The
+	// dialog this replaces showed a red mark and left the rest to a log.
+	notesHost = new QWidget;
+	notesHost->setAttribute(Qt::WA_NoSystemBackground);
+	notesColumn = new QVBoxLayout(notesHost);
+	notesColumn->setContentsMargins(0, 0, 0, 0);
 	notesColumn->setSpacing(6);
-	column->addLayout(notesColumn);
+	notesScroll = new QScrollArea(this);
+	notesScroll->setObjectName(QStringLiteral("deviceTestNotes"));
+	notesScroll->setFrameShape(QFrame::NoFrame);
+	notesScroll->setWidgetResizable(true);
+	notesScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+	notesScroll->setFocusPolicy(Qt::NoFocus);
+	notesScroll->viewport()->setAutoFillBackground(false);
+	notesScroll->setStyleSheet(QStringLiteral("QScrollArea#deviceTestNotes, QScrollArea#deviceTestNotes > QWidget > QWidget { background: transparent; }"));
+	notesScroll->setWidget(notesHost);
+	notesScroll->setVisible(false);
+	notesHost->installEventFilter(this);
+	column->addWidget(notesScroll);
 
 	// What the check did, line by line: what the user is asked to send when
 	// a problem needs a report. Closed until they open it.
@@ -128,16 +153,34 @@ DeviceTestView::DeviceTestView(QWidget* parent)
 	buttons->addStretch(1);
 	stopButton = new SkinButton(tr("Stop"), false, this);
 	closeButton = new SkinButton(tr("Close"), true, this);
+	closeButton->setVisible(false);
 	buttons->addWidget(stopButton);
 	buttons->addWidget(closeButton);
 	column->addLayout(buttons);
-	connect(stopButton, &QPushButton::clicked, this, &QDialog::reject);
-	connect(closeButton, &QPushButton::clicked, this, &QDialog::accept);
+	connect(stopButton, &QPushButton::clicked, this, &DeviceTestView::stopRequested);
+	connect(closeButton, &QPushButton::clicked, this, [this]() {
+		done(closeCode);
+	});
+}
+
+void DeviceTestView::applyRow(QTreeWidgetItem* item, const Row& row)
+{
+	item->setData(0, DeviceListDelegate::StateTextRole, row.state);
+	item->setData(0, DeviceListDelegate::ReportRole, static_cast<int>(row.report));
+	// The device's own instrument carries the answer: lit while the APO
+	// is alive, armed while the check runs, out when it found nothing.
+	const bool lit = row.report != DeviceReport::Dead;
+	const bool settled = row.report == DeviceReport::Alive || row.report == DeviceReport::Degraded
+		|| row.report == DeviceReport::Untestable;
+	item->setData(0, DeviceListDelegate::InstalledRole, lit && settled);
+	item->setData(0, DeviceListDelegate::UnavailableRole, row.report == DeviceReport::Untestable);
+	item->setData(0, Qt::CheckStateRole, lit ? Qt::Checked : Qt::Unchecked);
 }
 
 void DeviceTestView::setRows(const QVector<Row>& rows)
 {
 	tree->clear();
+	items.clear();
 	QTreeWidgetItem* sections[2] = {nullptr, nullptr};
 	for (const Row& row : rows)
 	{
@@ -152,33 +195,33 @@ void DeviceTestView::setRows(const QVector<Row>& rows)
 
 		QTreeWidgetItem* item = new QTreeWidgetItem(sections[side], QStringList(row.connection));
 		item->setData(0, DeviceListDelegate::DeviceNameRole, row.device);
-		item->setData(0, DeviceListDelegate::StateTextRole, row.state);
 		item->setData(0, DeviceListDelegate::DefaultDeviceRole, row.defaultDevice);
 		item->setData(0, DeviceListDelegate::InputSideRole, row.input);
-		item->setData(0, DeviceListDelegate::ReportRole, static_cast<int>(row.report));
-		// The device's own instrument carries the answer: lit while the APO
-		// is alive, armed while the check runs, out when it found nothing.
-		const bool lit = row.report != DeviceReport::Dead;
-		const bool settled = row.report == DeviceReport::Alive || row.report == DeviceReport::Degraded
-			|| row.report == DeviceReport::Untestable;
-		item->setData(0, DeviceListDelegate::InstalledRole, lit && settled);
-		item->setData(0, DeviceListDelegate::UnavailableRole, row.report == DeviceReport::Untestable);
-		item->setData(0, Qt::CheckStateRole, lit ? Qt::Checked : Qt::Unchecked);
 		item->setFlags(Qt::ItemIsEnabled);
+		applyRow(item, row);
+		if (!row.key.isEmpty())
+			items.insert(row.key, item);
 	}
 }
 
-void DeviceTestView::setRecord(const QVector<RecordLine>& lines)
+void DeviceTestView::updateRow(const QString& key, const QString& state, DeviceReport report)
 {
-	const SkinTokens& tokens = DeviceSkinPainter::activeTokens();
-	record->clear();
-	for (const RecordLine& line : lines)
-	{
-		if (line.error)
-			record->append(QStringLiteral("<span style=\"color:%1\">%2</span>").arg(tokens.danger, line.text.toHtmlEscaped()));
-		else
-			record->append(line.text.toHtmlEscaped());
-	}
+	QTreeWidgetItem* item = items.value(key);
+	if (item == nullptr)
+		return;
+	Row row;
+	row.state = state;
+	row.report = report;
+	applyRow(item, row);
+}
+
+void DeviceTestView::appendRecord(const QString& text, bool error)
+{
+	if (error)
+		record->append(QStringLiteral("<span style=\"color:%1\">%2</span>")
+			.arg(DeviceSkinPainter::activeTokens().danger, text.toHtmlEscaped()));
+	else
+		record->append(text.toHtmlEscaped());
 }
 
 DeviceTestView::ProblemText DeviceTestView::describe(Problem problem, const QString& detail)
@@ -210,13 +253,13 @@ DeviceTestView::ProblemText DeviceTestView::describe(Problem problem, const QStr
 			tr("The check tried to install in another mode and Windows refused the change. The device was left as it was before."),
 			tr("Close programs that manage audio devices, then check again.")};
 	case Problem::InstallRefused:
-		return {tr("Not installed"),
+		return {tr("Not changed"),
 			tr("Windows refused the change to this device. The device was left as it was before."),
-			tr("Close programs that manage audio devices, then install again.")};
+			tr("Close programs that manage audio devices, then try again.")};
 	case Problem::InstallLeftPartial:
 		return {tr("Partly changed"),
 			tr("Windows refused the change, and undoing it did not finish either. The device may be left partly changed."),
-			tr("Restart the computer before installing again.")};
+			tr("Restart the computer before trying again.")};
 	case Problem::DeviceDisabled:
 		return {tr("Not checked: the device is disabled"),
 			tr("The device is disabled in Windows, so nothing could be played through it."),
@@ -225,6 +268,10 @@ DeviceTestView::ProblemText DeviceTestView::describe(Problem problem, const QStr
 		return {tr("Not checked: the device is unplugged"),
 			tr("Nothing is plugged into this device, so nothing could be played through it."),
 			tr("Plug it in, then open the Device Selector and press OK to check again.")};
+	case Problem::DeviceUnreachable:
+		return {tr("Not checked: the device could not be opened"),
+			tr("Nothing could be played through this device, so the APO on it could not answer."),
+			tr("Open the Device Selector and press OK to check again.")};
 	case Problem::AudioRestartFailed:
 		return {QString(),
 			tr("Windows audio could not be restarted, so the check did not run. The APO is installed, but it starts working only after Windows audio restarts."),
@@ -240,6 +287,10 @@ DeviceTestView::ProblemText DeviceTestView::describe(Problem problem, const QStr
 	case Problem::ResultChannelBroken:
 		return {QString(),
 			tr("The check lost its connection to the APO before every device had answered."),
+			tr("Open the Device Selector and press OK to check again.")};
+	case Problem::DeviceListUnreadable:
+		return {QString(),
+			tr("The list of audio devices could not be read, so no device was checked."),
 			tr("Open the Device Selector and press OK to check again.")};
 	case Problem::StoppedByUser:
 		return {QString(),
@@ -263,15 +314,61 @@ void DeviceTestView::setNotes(const QVector<Note>& list)
 		state.title = note.subject;
 		state.lines.append({DevicePanelState::LineKind::Body, note.text.cause});
 		state.lines.append({DevicePanelState::LineKind::Action, note.text.action});
-		if (!note.system.isEmpty())
-			state.lines.append({DevicePanelState::LineKind::System, note.system});
-		DevicePanelWidget* panel = new DevicePanelWidget(this);
+		for (const QString& line : note.system)
+		{
+			if (!line.isEmpty())
+				state.lines.append({DevicePanelState::LineKind::System, line});
+		}
+		DevicePanelWidget* panel = new DevicePanelWidget(notesHost);
 		panel->setState(state);
 		notesColumn->addWidget(panel);
 	}
+	notesScroll->setVisible(!list.isEmpty());
+	fitNotes();
 }
 
-void DeviceTestView::setPhase(Phase phase, int done, int total, int failed)
+void DeviceTestView::fitNotes()
+{
+	// The panels learn their height from their width, so the scroll area is
+	// sized from the width they are about to get: as tall as its notes, up
+	// to the cap. Before the first layout that width is the dialog's own.
+	int available = notesScroll->viewport()->width();
+	if (!notesScroll->isVisible() || available < 100)
+	{
+		const QMargins margins = layout()->contentsMargins();
+		available = width() - margins.left() - margins.right();
+	}
+	int wanted = 0;
+	for (int i = 0; i < notesColumn->count(); i++)
+	{
+		const QWidget* panel = notesColumn->itemAt(i)->widget();
+		if (panel != nullptr)
+			wanted += panel->heightForWidth(available) + (i > 0 ? notesColumn->spacing() : 0);
+	}
+	const int height = qBound(24, wanted, notesMaxHeight);
+	if (notesScroll->maximumHeight() != height || notesScroll->minimumHeight() != height)
+		notesScroll->setFixedHeight(height);
+}
+
+void DeviceTestView::resizeEvent(QResizeEvent* event)
+{
+	QDialog::resizeEvent(event);
+	fitNotes();
+}
+
+bool DeviceTestView::eventFilter(QObject* watched, QEvent* event)
+{
+	if (watched == notesHost && event->type() == QEvent::Resize)
+		fitNotes();
+	return QDialog::eventFilter(watched, event);
+}
+
+void DeviceTestView::setStopping()
+{
+	stopButton->setEnabled(false);
+}
+
+void DeviceTestView::setPhase(Phase phase, const Tally& tally)
 {
 	DevicePanelState state;
 	QString hint;
@@ -279,18 +376,50 @@ void DeviceTestView::setPhase(Phase phase, int done, int total, int failed)
 	{
 	case Phase::Running:
 		state.tone = DeviceReport::Waiting;
-		state.title = tr("Checking that the APO works on each device (%1 of %2)").arg(done).arg(total);
+		if (tally.total > 0)
+			state.title = tr("Checking that the APO works on each device (%1 of %2)").arg(tally.done).arg(tally.total);
+		else
+			state.title = tr("Restarting Windows audio");
 		hint = tr("Windows audio restarts during the check, so sound stops for a few seconds.");
 		break;
-	case Phase::Passed:
-		state.tone = DeviceReport::Alive;
-		state.title = tr("The APO works on every device.");
-		hint = tr("The equalizer is applied from now on.");
-		break;
-	case Phase::Problem:
-		state.tone = DeviceReport::Dead;
-		state.title = tr("The APO does not work on %n device(s).", nullptr, failed);
-		hint = tr("The other devices are not affected.");
+	case Phase::Done:
+		if (tally.dead > 0)
+		{
+			state.tone = DeviceReport::Dead;
+			state.title = tr("The APO does not work on %n device(s).", nullptr, tally.dead);
+			if (tally.total > tally.dead)
+				hint = tr("The other devices are not affected.");
+		}
+		else if (tally.unchanged > 0)
+		{
+			state.tone = DeviceReport::Dead;
+			state.title = tr("%n device(s) could not be changed.", nullptr, tally.unchanged);
+			if (tally.checked && tally.total > 0)
+				hint = tr("The APO works on the devices that were checked.");
+		}
+		else if (tally.attention > 0)
+		{
+			state.tone = DeviceReport::Degraded;
+			state.title = tr("The APO works. %n device(s) have something to look at.", nullptr, tally.attention);
+		}
+		else if (tally.total == 0 && tally.unchecked == 0)
+		{
+			state.tone = DeviceReport::Unchecked;
+			state.title = tr("The APO is not installed on any device.");
+		}
+		else if (tally.unchecked > 0)
+		{
+			state.tone = tally.total > 0 ? DeviceReport::Alive : DeviceReport::Unchecked;
+			state.title = tally.total > 0 ? tr("The APO works on every device that could be checked.")
+				: tr("No device could be checked.");
+			hint = tr("%n device(s) could not be checked.", nullptr, tally.unchecked);
+		}
+		else
+		{
+			state.tone = DeviceReport::Alive;
+			state.title = tr("The APO works on every device.");
+			hint = tr("The equalizer is applied from now on.");
+		}
 		break;
 	case Phase::Stopped:
 		state.tone = DeviceReport::Unchecked;
@@ -298,14 +427,15 @@ void DeviceTestView::setPhase(Phase phase, int done, int total, int failed)
 		hint = tr("Whether the APO works is not known.");
 		break;
 	}
-	state.lines.append({DevicePanelState::LineKind::Body, hint});
+	if (!hint.isEmpty())
+		state.lines.append({DevicePanelState::LineKind::Body, hint});
 	verdict->setState(state);
 
 	const bool running = phase == Phase::Running;
 	stopButton->setVisible(running);
 	closeButton->setVisible(!running);
-	recordHeader->setChecked(false);
-	record->setVisible(false);
+	if (!running)
+		closeButton->setFocus();
 }
 
 void DeviceTestView::loadPreview(Preview preview)
@@ -317,67 +447,73 @@ void DeviceTestView::loadPreview(Preview preview)
 	const QString waiting = tr("Checking");
 
 	QVector<Row> rows;
-	QVector<RecordLine> lines;
-	lines.append({threadText("Restarting audio service..."), false});
-	lines.append({threadText("Checking APO installation..."), false});
+	appendRecord(threadText("Restarting audio service..."), false);
+	Tally tally;
 
 	switch (preview)
 	{
 	case Preview::Running:
-		rows.append({QStringLiteral("Speakers"), QStringLiteral("TOPPING USB DAC"), alive, DeviceReport::Alive, false, true});
-		rows.append({QStringLiteral("CABLE Input"), QStringLiteral("VB-Audio Virtual Cable"),
+		rows.append({QStringLiteral("a"), QStringLiteral("Speakers"), QStringLiteral("TOPPING USB DAC"), alive, DeviceReport::Alive, false, true});
+		rows.append({QStringLiteral("b"), QStringLiteral("CABLE Input"), QStringLiteral("VB-Audio Virtual Cable"),
 			tr("Pre-mix works. Checking post-mix"), DeviceReport::Waiting, false, false});
-		rows.append({QStringLiteral("Headphones"), QStringLiteral("Realtek(R) Audio"), waiting, DeviceReport::Waiting, false, false});
-		rows.append({QStringLiteral("Microphone"), QStringLiteral("USB Audio Device"), waiting, DeviceReport::Waiting, true, true});
+		rows.append({QStringLiteral("c"), QStringLiteral("Headphones"), QStringLiteral("Realtek(R) Audio"), waiting, DeviceReport::Waiting, false, false});
+		rows.append({QStringLiteral("d"), QStringLiteral("Microphone"), QStringLiteral("USB Audio Device"), waiting, DeviceReport::Waiting, true, true});
 		setRows(rows);
-		setRecord(lines);
-		setPhase(Phase::Running, 1, 4, 0);
+		appendRecord(threadText("Checking APO installation..."), false);
+		tally.done = 1;
+		tally.total = 4;
+		setPhase(Phase::Running, tally);
 		break;
 	case Preview::Passed:
-		rows.append({QStringLiteral("Speakers"), QStringLiteral("TOPPING USB DAC"), alive, DeviceReport::Alive, false, true});
-		rows.append({QStringLiteral("CABLE Input"), QStringLiteral("VB-Audio Virtual Cable"), alive, DeviceReport::Alive, false, false});
-		rows.append({QStringLiteral("Headphones"), QStringLiteral("Realtek(R) Audio"), alive, DeviceReport::Alive, false, false});
-		rows.append({QStringLiteral("Microphone"), QStringLiteral("USB Audio Device"), alive, DeviceReport::Alive, true, true});
-		lines.append({threadText("Checks done. No problems were detected."), false});
+		rows.append({QStringLiteral("a"), QStringLiteral("Speakers"), QStringLiteral("TOPPING USB DAC"), alive, DeviceReport::Alive, false, true});
+		rows.append({QStringLiteral("b"), QStringLiteral("CABLE Input"), QStringLiteral("VB-Audio Virtual Cable"), alive, DeviceReport::Alive, false, false});
+		rows.append({QStringLiteral("c"), QStringLiteral("Headphones"), QStringLiteral("Realtek(R) Audio"), alive, DeviceReport::Alive, false, false});
+		rows.append({QStringLiteral("d"), QStringLiteral("Microphone"), QStringLiteral("USB Audio Device"), alive, DeviceReport::Alive, true, true});
 		setRows(rows);
-		setRecord(lines);
-		setPhase(Phase::Passed, 4, 4, 0);
+		appendRecord(threadText("Checking APO installation..."), false);
+		appendRecord(threadText("Checks done. No problems were detected."), false);
+		tally.done = 4;
+		tally.total = 4;
+		setPhase(Phase::Done, tally);
 		break;
 	case Preview::Problem:
-		rows.append({QStringLiteral("Speakers"), QStringLiteral("TOPPING USB DAC"), alive, DeviceReport::Alive, false, true});
-		rows.append({QStringLiteral("CABLE Input"), QStringLiteral("VB-Audio Virtual Cable"),
+		rows.append({QStringLiteral("a"), QStringLiteral("Speakers"), QStringLiteral("TOPPING USB DAC"), alive, DeviceReport::Alive, false, true});
+		rows.append({QStringLiteral("b"), QStringLiteral("CABLE Input"), QStringLiteral("VB-Audio Virtual Cable"),
 			describe(Problem::OriginalApoFailed).row, DeviceReport::Degraded, false, false});
-		rows.append({QStringLiteral("Headphones"), QStringLiteral("Realtek(R) Audio"),
+		rows.append({QStringLiteral("c"), QStringLiteral("Headphones"), QStringLiteral("Realtek(R) Audio"),
 			describe(Problem::NoAnswerEveryMode).row, DeviceReport::Dead, false, false});
-		rows.append({QStringLiteral("Digital Output"), QStringLiteral("NVIDIA High Definition Audio"),
+		rows.append({QStringLiteral("e"), QStringLiteral("Digital Output"), QStringLiteral("NVIDIA High Definition Audio"),
 			describe(Problem::DeviceUnplugged).row, DeviceReport::Untestable, false, false});
-		rows.append({QStringLiteral("Microphone"), QStringLiteral("USB Audio Device"), alive, DeviceReport::Alive, true, true});
-		lines.append({threadText("Trying other configurations..."), false});
-		lines.append({threadText("Restarting audio service..."), false});
-		lines.append({threadText("Checking APO installation..."), false});
-		lines.append({QCoreApplication::translate("DeviceTestThread", "Check failed for %n device(s).", nullptr, 1), true});
-		lines.append({QCoreApplication::translate("DeviceTestThread", "Checks done. Problems were detected for %n device(s).", nullptr, 1), true});
+		rows.append({QStringLiteral("d"), QStringLiteral("Microphone"), QStringLiteral("USB Audio Device"), alive, DeviceReport::Alive, true, true});
 		setRows(rows);
-		setRecord(lines);
-		setPhase(Phase::Problem, 5, 5, 1);
-		setNotes({{QStringLiteral("Headphones"), describe(Problem::NoAnswerEveryMode), QString(), DeviceReport::Dead},
-			{QStringLiteral("CABLE Input"), describe(Problem::OriginalApoFailed), QString(), DeviceReport::Degraded},
-			{QStringLiteral("Digital Output"), describe(Problem::DeviceUnplugged), QString(), DeviceReport::Untestable}});
+		appendRecord(threadText("Checking APO installation..."), false);
+		appendRecord(threadText("Trying other configurations..."), false);
+		appendRecord(threadText("Restarting audio service..."), false);
+		appendRecord(threadText("Checking APO installation..."), false);
+		appendRecord(QCoreApplication::translate("DeviceTestThread", "Check failed for %n device(s).", nullptr, 1), true);
+		appendRecord(QCoreApplication::translate("DeviceTestThread", "Checks done. Problems were detected for %n device(s).", nullptr, 1), true);
+		tally.done = 4;
+		tally.total = 4;
+		tally.dead = 1;
+		tally.attention = 1;
+		tally.unchecked = 1;
+		setPhase(Phase::Done, tally);
+		setNotes({{QStringLiteral("Headphones"), describe(Problem::NoAnswerEveryMode), {}, DeviceReport::Dead},
+			{QStringLiteral("CABLE Input"), describe(Problem::OriginalApoFailed), {}, DeviceReport::Degraded},
+			{QStringLiteral("Digital Output"), describe(Problem::DeviceUnplugged), {}, DeviceReport::Untestable}});
 		break;
 	case Preview::Stopped:
 	{
 		const QString unchecked = tr("Not checked");
-		rows.append({QStringLiteral("Speakers"), QStringLiteral("TOPPING USB DAC"), unchecked, DeviceReport::Unchecked, false, true});
-		rows.append({QStringLiteral("CABLE Input"), QStringLiteral("VB-Audio Virtual Cable"), unchecked, DeviceReport::Unchecked, false, false});
-		rows.append({QStringLiteral("Headphones"), QStringLiteral("Realtek(R) Audio"), unchecked, DeviceReport::Unchecked, false, false});
-		lines.clear();
-		lines.append({threadText("Restarting audio service..."), false});
-		lines.append({threadText("Restart failed."), true});
+		rows.append({QStringLiteral("a"), QStringLiteral("Speakers"), QStringLiteral("TOPPING USB DAC"), unchecked, DeviceReport::Unchecked, false, true});
+		rows.append({QStringLiteral("b"), QStringLiteral("CABLE Input"), QStringLiteral("VB-Audio Virtual Cable"), unchecked, DeviceReport::Unchecked, false, false});
+		rows.append({QStringLiteral("c"), QStringLiteral("Headphones"), QStringLiteral("Realtek(R) Audio"), unchecked, DeviceReport::Unchecked, false, false});
 		setRows(rows);
-		setRecord(lines);
-		setPhase(Phase::Stopped, 0, 3, 0);
+		appendRecord(threadText("Restart failed."), true);
+		tally.total = 3;
+		setPhase(Phase::Stopped, tally);
 		setNotes({{tr("Windows audio"), describe(Problem::AudioRestartFailed),
-			QStringLiteral("Error while stopping service \"audiosrv\": Access is denied. (5)"), DeviceReport::Dead}});
+			{QStringLiteral("Error while stopping service \"audiosrv\": Access is denied. (5)")}, DeviceReport::Dead}});
 		break;
 	}
 	}

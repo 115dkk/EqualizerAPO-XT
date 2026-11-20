@@ -7,19 +7,23 @@
 	The installation check as the Device Selector's skins present it: the
 	devices that carry the APO, each on the row it had in the selector, with
 	the check's answer in place of the install state. The view holds no test
-	logic; it shows the rows and the record it is handed, so the review
-	captures and the live dialog draw the same thing.
+	logic; it shows the rows, the notes and the record it is handed, so the
+	review captures and the live dialog (DeviceTestDialog) draw the same
+	thing.
 */
 #pragma once
 
 #include <QDialog>
+#include <QHash>
 #include <QString>
+#include <QStringList>
 #include <QVector>
 
 #include "skins/DeviceSkinPainter.h"
 
 class DevicePanelWidget;
 class DisclosureHeader;
+class QScrollArea;
 class QVBoxLayout;
 class QTextEdit;
 class QTreeWidget;
@@ -33,6 +37,7 @@ class DeviceTestView : public QDialog
 public:
 	struct Row
 	{
+		QString key; // the device's GUID; updateRow finds the row by it
 		QString connection;
 		QString device;
 		QString state;
@@ -41,18 +46,23 @@ public:
 		bool defaultDevice = false;
 	};
 
-	struct RecordLine
-	{
-		QString text;
-		bool error = false;
-	};
-
 	enum class Phase
 	{
 		Running,
-		Passed,
-		Problem,
+		Done,
 		Stopped // the check itself could not run to its end
+	};
+
+	// What the headline counts. Devices, not stages.
+	struct Tally
+	{
+		int done = 0;      // devices the check has an answer for
+		int total = 0;     // devices under check
+		int dead = 0;      // the APO does not work
+		int unchanged = 0; // the install step was refused
+		int attention = 0; // the APO works, with something missing
+		int unchecked = 0; // disabled, unplugged or unreachable
+		bool checked = true; // false when nothing changed that needed a check
 	};
 
 	// Everything the installation and its check can report. The first group
@@ -70,10 +80,12 @@ public:
 		InstallLeftPartial,    // refused, and undoing it did not finish either
 		DeviceDisabled,
 		DeviceUnplugged,
+		DeviceUnreachable,     // nothing could be played through it
 		AudioRestartFailed,
 		ComUnavailable,
 		TestSetupRefused,
 		ResultChannelBroken,
+		DeviceListUnreadable,
 		StoppedByUser
 	};
 
@@ -89,9 +101,9 @@ public:
 	// One paragraph of the notes under the list.
 	struct Note
 	{
-		QString subject; // the device, or empty for the run as a whole
+		QString subject;    // the device, or empty for the run as a whole
 		ProblemText text;
-		QString system;  // the message Windows gave, when there is one
+		QStringList system; // what Windows said, and where the log is
 		DeviceReport tone = DeviceReport::Dead;
 	};
 	void setNotes(const QVector<Note>& notes);
@@ -99,11 +111,13 @@ public:
 	explicit DeviceTestView(QWidget* parent = nullptr);
 
 	void setRows(const QVector<Row>& rows);
-	void setRecord(const QVector<RecordLine>& lines);
-	// done and total count devices; they feed the running headline only.
-	void setPhase(Phase phase, int done, int total, int failed);
+	void updateRow(const QString& key, const QString& state, DeviceReport report);
+	void appendRecord(const QString& text, bool error);
+	void setPhase(Phase phase, const Tally& tally);
+	// Stop was pressed and the check has not ended yet.
+	void setStopping();
 
-	// The three canned states of the review captures.
+	// The canned states of the review captures.
 	enum class Preview
 	{
 		Running,
@@ -113,12 +127,28 @@ public:
 	};
 	void loadPreview(Preview preview);
 
+signals:
+	void stopRequested();
+
+protected:
+	// What exec() answers when Close is pressed.
+	void setCloseCode(int code) {closeCode = code;}
+	bool eventFilter(QObject* watched, QEvent* event) override;
+	void resizeEvent(QResizeEvent* event) override;
+
 private:
+	void applyRow(QTreeWidgetItem* item, const Row& row);
+	void fitNotes();
+
 	DevicePanelWidget* verdict = nullptr;
 	QTreeWidget* tree = nullptr;
+	QHash<QString, QTreeWidgetItem*> items;
+	QScrollArea* notesScroll = nullptr;
+	QWidget* notesHost = nullptr;
 	QVBoxLayout* notesColumn = nullptr;
 	DisclosureHeader* recordHeader = nullptr;
 	QTextEdit* record = nullptr;
 	SkinButton* stopButton = nullptr;
 	SkinButton* closeButton = nullptr;
+	int closeCode = QDialog::Accepted;
 };

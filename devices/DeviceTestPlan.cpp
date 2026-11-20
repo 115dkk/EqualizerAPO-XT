@@ -177,3 +177,21 @@ DeviceTestItemStatus DeviceTestPlan::statusFor(const Result& result, DeviceTestS
 		return DeviceTestItemStatus::Error;
 	return childOk || !useOriginal ? DeviceTestItemStatus::Success : DeviceTestItemStatus::Warning;
 }
+
+DeviceTestOutcome DeviceTestPlan::outcomeFor(const Result& result, const DeviceTestSelection& selection)
+{
+	const bool preMix = expectsPreMix(selection);
+	const bool postMix = expectsPostMix(selection);
+	const bool preMixSilent = preMix && !result.preMixOk;
+	const bool postMixSilent = postMix && !result.postMixOk;
+	if ((preMixSilent || !preMix) && (postMixSilent || !postMix) && (preMix || postMix))
+		return selection.autoAdjust ? DeviceTestOutcome::SilentEveryMode : DeviceTestOutcome::SilentSelectedMode;
+	if (preMixSilent)
+		return DeviceTestOutcome::PreMixSilent;
+	if (postMixSilent)
+		return DeviceTestOutcome::PostMixSilent;
+	if ((preMix && statusFor(result, DeviceTestStage::PreMix, selection) == DeviceTestItemStatus::Warning)
+		|| (postMix && statusFor(result, DeviceTestStage::PostMix, selection) == DeviceTestItemStatus::Warning))
+		return DeviceTestOutcome::OriginalApoFailed;
+	return DeviceTestOutcome::Works;
+}

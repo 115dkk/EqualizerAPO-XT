@@ -231,6 +231,54 @@ TEST_CASE(EngineOrchestrationTests, testOriginalApoAfterSwitch)
 	}
 }
 
+TEST_CASE(EngineOrchestrationTests, testOutcome)
+{
+	// What the installation check tells the user about a device that gave up.
+	struct Case
+	{
+		const char* name = nullptr;
+		bool installPreMix = true;
+		bool installPostMix = true;
+		bool isInput = false;
+		bool autoAdjust = true;
+		bool useOriginal = false;
+		DeviceTestPlan::Result result;
+		DeviceTestOutcome outcome = DeviceTestOutcome::Works;
+	};
+	auto resultOf = [](bool preMixOk, bool postMixOk, bool childPreMixOk = true, bool childPostMixOk = true) {
+		DeviceTestPlan::Result result;
+		result.preMixOk = preMixOk;
+		result.postMixOk = postMixOk;
+		result.childApoPreMixOk = childPreMixOk;
+		result.childApoPostMixOk = childPostMixOk;
+		return result;
+	};
+	const Case cases[] = {
+		{"nothing reported after the whole ladder", true, true, false, true, false, resultOf(false, false), DeviceTestOutcome::SilentEveryMode},
+		{"nothing reported in the one mode tried", true, true, false, false, false, resultOf(false, false), DeviceTestOutcome::SilentSelectedMode},
+		{"only the pre-mix APO reported", true, true, false, true, false, resultOf(true, false), DeviceTestOutcome::PostMixSilent},
+		{"only the post-mix APO reported", true, true, false, true, false, resultOf(false, true), DeviceTestOutcome::PreMixSilent},
+		{"both reported", true, true, false, true, false, resultOf(true, true), DeviceTestOutcome::Works},
+		{"both reported, the driver APO did not", true, true, false, true, true, resultOf(true, true, false, true), DeviceTestOutcome::OriginalApoFailed},
+		{"a missing driver APO that is not chained to is not a problem", true, true, false, true, false, resultOf(true, true, false, false), DeviceTestOutcome::Works},
+		{"a capture endpoint has no post-mix stage to miss", true, true, true, true, false, resultOf(true, false), DeviceTestOutcome::Works},
+		{"a silent capture endpoint is silent, not missing a stage", true, true, true, true, false, resultOf(false, false), DeviceTestOutcome::SilentEveryMode},
+		{"a stage that is not installed is not asked about", false, true, false, false, false, resultOf(false, true), DeviceTestOutcome::Works},
+		{"post-mix only, and it never reported", false, true, false, false, false, resultOf(false, false), DeviceTestOutcome::SilentSelectedMode},
+	};
+	for (const Case& c : cases)
+	{
+		DeviceTestSelection selection;
+		selection.installPreMix = c.installPreMix;
+		selection.installPostMix = c.installPostMix;
+		selection.isInput = c.isInput;
+		selection.autoAdjust = c.autoAdjust;
+		selection.useOriginalApoPreMix = c.useOriginal;
+		selection.useOriginalApoPostMix = c.useOriginal;
+		harness.expect(DeviceTestPlan::outcomeFor(c.result, selection) == c.outcome, c.name);
+	}
+}
+
 TEST_CASE(EngineOrchestrationTests, testWireVocabulary)
 {
 	harness.expect(deviceTestStageFromWire(devicetest::wire::kStagePreMix) == DeviceTestStage::PreMix, "PreMix reads back");

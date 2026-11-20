@@ -1,58 +1,94 @@
 /*
-	This file is part of EqualizerAPO, a system-wide equalizer.
-	Copyright (C) 2024  Jonas Thedering
-
-	This program is free software; you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; either version 2 of the License, or
-	(at your option) any later version.
-
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License along
-	with this program; if not, write to the Free Software Foundation, Inc.,
-	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+	This file is part of EqualizerAPO-XT, a system-wide equalizer.
+	Copyright (C) 2026 115dkk
+	SPDX-License-Identifier: GPL-2.0-or-later
 */
-
+/*
+	The installation check, live: what the Device Selector shows after OK
+	(issue #502). It lists the devices that carry the APO, runs
+	DeviceTestThread over them and turns what the thread reports into the
+	rows, notes and headline DeviceTestView draws. Devices the install step
+	could not change are reported here too, beside the check's own findings.
+*/
 #pragma once
 
-#include <devices/DeviceAPOInfo.h>
-#include <QtWidgets/QDialog>
-#include "DeviceTestThread.h"
-#include "OpacityIconEngine.h"
-#include "ui_DeviceTestDialog.h"
+#include <memory>
+#include <optional>
+#include <vector>
 
-class DeviceTestDialog : public QDialog
+#include <devices/DeviceAPOInfo.h>
+#include "DeviceTestThread.h"
+#include "DeviceTestView.h"
+
+class DeviceTestDialog : public DeviceTestView
 {
 	Q_OBJECT
 
 public:
-	DeviceTestDialog(QWidget* parent = nullptr);
+	// A device the install step could not change.
+	struct InstallFailure
+	{
+		QString guid;
+		QString connection;
+		QString device;
+		bool input = false;
+		bool defaultDevice = false;
+		QString message;     // what the operation reported
+		bool leftPartial = false; // undoing the change did not finish either
+	};
+
+	// runCheck is false when nothing changed that Windows audio has to pick
+	// up: the dialog then only reports the failures.
+	DeviceTestDialog(const QVector<InstallFailure>& failures, bool runCheck, QWidget* parent = nullptr);
 	void reject() override;
 	void done(int result) override;
-	std::vector<std::shared_ptr<DeviceAPOInfo>> filterDevices(const std::vector<std::shared_ptr<AbstractAPOInfo>>& devices);
-	void addDevices(const std::vector<std::shared_ptr<DeviceAPOInfo>>& devices, QTreeWidgetItem* parentNode);
 
 protected:
 	__override void closeEvent(QCloseEvent* event);
 
 private:
-	void stopTestThread();
-	Ui::DeviceTestDialogClass ui;
+	struct Entry
+	{
+		Row row;
+		bool tested = false;  // the thread checks it
+		bool settled = false; // its row shows the final answer
+		bool expectsPreMix = false;
+		bool expectsPostMix = false;
+		std::optional<ItemStatusType> preMix;
+		std::optional<ItemStatusType> postMix;
+		std::optional<Problem> problem;
+		QString problemDetail;
+		QStringList problemSystem;
+		std::optional<Note> installNote;
+	};
 
-	QHash<QString, QTreeWidgetItem*> itemMap;
-	QIcon animatedIcon;
-	OpacityIconEngine* animatedIconEngine;
-	DeviceTestThread* thread = nullptr;
+	void addDevices(const std::vector<std::shared_ptr<AbstractAPOInfo>>& infos, QVector<std::shared_ptr<DeviceAPOInfo>>& devices);
+	void addFailures(const QVector<InstallFailure>& failures);
+	Entry* entryFor(const QString& guid);
+	void settle(Entry& entry, Problem problem, DeviceReport report, const QString& detail = QString(),
+		const QStringList& system = QStringList());
+	void showRow(const Entry& entry);
+	void refresh();
+	Tally tally() const;
+	void stopTestThread();
 
 	void log(const QString& message);
 	void logError(const QString& message);
-	void showErrorDialog(const QString& message);
 	void setItemStatus(const QString& guid, bool postMix, ItemStatusType statusType);
-	void animateIcon(const QVariant& value);
+	void onDeviceGaveUp(const QString& guid, DeviceTestOutcome outcome, const QString& modeName);
+	void onDeviceRefused(const QString& guid, const QString& message);
+	void onDeviceUnreachable(const QString& guid, const QString& message);
+	void onRunStopped(DeviceTestStop reason, const QString& message);
+	void onStopRequested();
 	void onThreadFinished();
 	void onAbort(const QString& message, int code);
+
+	QVector<Entry> entries;
+	QHash<QString, int> entryIndex;
+	std::optional<Note> runNote;
+	Phase phase = Phase::Running;
+	bool checks = true;
+	bool stoppedByUser = false;
+	int failureCount = 0;
+	DeviceTestThread* thread = nullptr;
 };
