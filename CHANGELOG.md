@@ -14,6 +14,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.69.1 — 2026-11-20
+
+- **Korean: the command picker names New channel and Send in Korean.** The
+  list showed the English keywords while the cards were titled in Korean. The
+  two warnings on the New channel card were reworded to say that the line is
+  not applied to the audio.
+  ([#499](https://github.com/115dkk/EqualizerAPO-XT/pull/499))
+
 ## v2.69.0 — 2026-11-19
 
 - **Convolution and MultiConvolution use several CPU cores.** The convolver

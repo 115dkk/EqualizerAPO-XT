@@ -8,6 +8,15 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.69.1 — 2026-11-20
+
+- **한국어 명령 고르기 목록에서 새 채널과 전송이 한국어 이름으로 나옵니다.**
+  목록에는 'NewChannel', 'Send'라고 영어로 적혀 있었는데 카드 제목은 '새
+  채널', '전송'이었습니다. 새 채널 카드의 경고 두 문장도 고쳤습니다. 쓸 수
+  없는 이름이 있으면 '표시한 이름을 사용할 수 없습니다. 오디오에 반영되지
+  않습니다.'라고 적습니다.
+  ([#499](https://github.com/115dkk/EqualizerAPO-XT/pull/499))
+
 ## v2.69.0 — 2026-11-19
 
 - **Convolution과 MultiConvolution이 여러 CPU 코어를 씁니다.** 한 필터의

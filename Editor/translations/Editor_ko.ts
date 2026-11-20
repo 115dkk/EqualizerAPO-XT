@@ -1502,12 +1502,12 @@ Select a different file or change the device configuration.</source>
     <message>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="195"/>
         <source>NewChannel (Create virtual channels)</source>
-        <translation>NewChannel (가상 채널 만들기)</translation>
+        <translation>새 채널 (가상 채널 만들기)</translation>
     </message>
     <message>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="283"/>
         <source>Send (Send channels to another endpoint)</source>
-        <translation>Send (다른 엔드포인트로 채널 전송)</translation>
+        <translation>전송 (다른 엔드포인트로 채널 전송)</translation>
     </message>
 </context>
 <context>
@@ -3673,12 +3673,12 @@ Do you want to run the Device Selector application to fix the problem?</source>
     <message>
         <location filename="../widgets/cards/NewChannelCardEditor.cpp" line="159"/>
         <source>Name at least one channel. The engine skips an empty line.</source>
-        <translation>채널 이름을 하나 이상 입력하십시오. 엔진은 빈 줄을 건너뜁니다.</translation>
+        <translation>채널 이름을 하나 이상 입력하십시오. 오디오에 반영되지 않습니다.</translation>
     </message>
     <message>
         <location filename="../widgets/cards/NewChannelCardEditor.cpp" line="161"/>
         <source>The engine skips this whole line until the marked names are removed or renamed.</source>
-        <translation>표시된 이름을 제거하거나 바꾸기 전까지 엔진은 이 줄 전체를 건너뜁니다.</translation>
+        <translation>표시한 이름을 사용할 수 없습니다. 오디오에 반영되지 않습니다.</translation>
     </message>
 </context>
 <context>
