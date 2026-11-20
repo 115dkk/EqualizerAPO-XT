@@ -111,7 +111,7 @@ Cette option est facultative, car la conversion utilise le processeur et ajoute 
     <message>
         <location line="+62"/>
         <source>OK</source>
-        <translation type="unfinished"></translation>
+        <translation>OK</translation>
     </message>
     <message>
         <source>Undoing the change did not finish either, so this device may be left partly changed. Reboot before trying again, and see the log for details.</source>
@@ -500,223 +500,223 @@ ATTENTION: Certains pilotes de carte son peuvent produire des sons indésirables
         <location line="+196"/>
         <location filename="../DeviceTestView.cpp" line="-47"/>
         <source>Checking</source>
-        <translation type="unfinished"></translation>
+        <translation>Vérification en cours</translation>
     </message>
     <message>
         <location line="-183"/>
         <source>Details are in %1.</source>
-        <translation type="unfinished">Les détails se trouvent dans %1.</translation>
+        <translation>Les détails se trouvent dans %1.</translation>
     </message>
     <message>
         <location line="+160"/>
         <location line="+42"/>
         <location filename="../DeviceTestView.cpp" line="-1"/>
         <source>The APO works</source>
-        <translation type="unfinished"></translation>
+        <translation>L&apos;APO fonctionne</translation>
     </message>
     <message>
         <location line="-34"/>
         <source>Trying another install mode</source>
-        <translation type="unfinished"></translation>
+        <translation>Essai d&apos;un autre mode d&apos;installation</translation>
     </message>
     <message>
         <location line="+5"/>
         <location filename="../DeviceTestView.cpp" line="+12"/>
         <source>Pre-mix works. Checking post-mix</source>
-        <translation type="unfinished"></translation>
+        <translation>Pre-mix fonctionne. Vérification de Post-mix</translation>
     </message>
     <message>
         <location line="+5"/>
         <source>Post-mix works. Checking pre-mix</source>
-        <translation type="unfinished"></translation>
+        <translation>Post-mix fonctionne. Vérification de Pre-mix</translation>
     </message>
     <message>
         <location line="+71"/>
         <location filename="../DeviceTestView.cpp" line="+57"/>
         <source>Windows audio</source>
-        <translation type="unfinished"></translation>
+        <translation>Audio Windows</translation>
     </message>
     <message>
         <location line="+42"/>
         <location filename="../DeviceTestView.cpp" line="-8"/>
         <source>Not checked</source>
-        <translation type="unfinished"></translation>
+        <translation>Non vérifié</translation>
     </message>
     <message>
         <location filename="../DeviceTestView.cpp" line="-420"/>
         <source>APO installation check</source>
-        <translation type="unfinished"></translation>
+        <translation>Vérification de l&apos;installation de l&apos;APO</translation>
     </message>
     <message>
         <location line="+51"/>
         <source>Record</source>
-        <translation type="unfinished"></translation>
+        <translation>Journal</translation>
     </message>
     <message>
         <location line="+16"/>
         <source>Stop</source>
-        <translation type="unfinished"></translation>
+        <translation>Arrêter</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Close</source>
-        <translation type="unfinished">Fermer</translation>
+        <translation>Fermer</translation>
     </message>
     <message>
         <location line="+77"/>
         <location line="+4"/>
         <source>The APO does not work</source>
-        <translation type="unfinished"></translation>
+        <translation>L&apos;APO ne fonctionne pas</translation>
     </message>
     <message>
         <location line="-3"/>
         <source>All three install modes were tried and Windows did not load the APO on this device in any of them.</source>
-        <translation type="unfinished"></translation>
+        <translation>Les trois modes d&apos;installation ont été essayés. Windows n&apos;a chargé l&apos;APO sur ce périphérique dans aucun d&apos;eux.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>The cause could not be determined. Update the device&apos;s driver and check again; some drivers load no APO at all.</source>
-        <translation type="unfinished"></translation>
+        <translation>La cause n&apos;a pas pu être déterminée. Mettez à jour le pilote du périphérique et relancez la vérification. Certains pilotes ne chargent aucun APO.</translation>
     </message>
     <message>
         <location line="+3"/>
         <source>Windows did not load the APO on this device in the selected install mode (%1).</source>
-        <translation type="unfinished"></translation>
+        <translation>Windows n&apos;a pas chargé l&apos;APO sur ce périphérique dans le mode d&apos;installation sélectionné (%1).</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Turn on Automatic in the troubleshooting options, and the check tries the other modes too.</source>
-        <translation type="unfinished"></translation>
+        <translation>Activez Auto dans les options de dépannage pour que la vérification essaie aussi les autres modes.</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Pre-mix works, post-mix does not</source>
-        <translation type="unfinished"></translation>
+        <translation>Pre-mix fonctionne, Post-mix ne fonctionne pas</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>The pre-mix APO works. Windows did not load the post-mix APO on this device.</source>
-        <translation type="unfinished"></translation>
+        <translation>L&apos;APO Pre-mix fonctionne. Windows n&apos;a pas chargé l&apos;APO Post-mix sur ce périphérique.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Filters of the post-mix stage are not applied. Turn off post-mix install for this device, or try another install mode.</source>
-        <translation type="unfinished"></translation>
+        <translation>Les filtres de l&apos;étape Post-mix ne sont pas appliqués. Désactivez l&apos;installation Post-mix pour ce périphérique ou essayez un autre mode d&apos;installation.</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Post-mix works, pre-mix does not</source>
-        <translation type="unfinished"></translation>
+        <translation>Post-mix fonctionne, Pre-mix ne fonctionne pas</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>The post-mix APO works. Windows did not load the pre-mix APO on this device.</source>
-        <translation type="unfinished"></translation>
+        <translation>L&apos;APO Post-mix fonctionne. Windows n&apos;a pas chargé l&apos;APO Pre-mix sur ce périphérique.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Filters of the pre-mix stage are not applied. Try another install mode.</source>
-        <translation type="unfinished"></translation>
+        <translation>Les filtres de l&apos;étape Pre-mix ne sont pas appliqués. Essayez un autre mode d&apos;installation.</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>The APO works, but the original APO could not start</source>
-        <translation type="unfinished"></translation>
+        <translation>L&apos;APO fonctionne, mais l&apos;APO d&apos;origine n&apos;a pas pu démarrer</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>The equalizer works. The APO of the device&apos;s maker, which runs beside it, did not start, so that maker&apos;s effects are missing.</source>
-        <translation type="unfinished"></translation>
+        <translation>L&apos;égaliseur fonctionne. L&apos;APO du fabricant du périphérique, qui s&apos;exécute en parallèle, n&apos;a pas démarré. Les effets du fabricant sont donc absents.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>If you do not use those effects, turn off Use original APO in the troubleshooting options.</source>
-        <translation type="unfinished"></translation>
+        <translation>Si vous n&apos;utilisez pas ces effets, désactivez &quot;Utiliser l&apos;APO d&apos;origine&quot; dans les options de dépannage.</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>The install mode could not be changed</source>
-        <translation type="unfinished"></translation>
+        <translation>Impossible de changer le mode d&apos;installation</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>The check tried to install in another mode and Windows refused the change. The device was left as it was before.</source>
-        <translation type="unfinished"></translation>
+        <translation>La vérification a tenté une installation dans un autre mode, mais Windows a refusé la modification. Le périphérique est resté dans son état précédent.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Close programs that manage audio devices, then check again.</source>
-        <translation type="unfinished"></translation>
+        <translation>Fermez les programmes qui gèrent les périphériques audio, puis relancez la vérification.</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Not changed</source>
-        <translation type="unfinished"></translation>
+        <translation>Non modifié</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Windows refused the change to this device. The device was left as it was before.</source>
-        <translation type="unfinished"></translation>
+        <translation>Windows a refusé la modification de ce périphérique. Le périphérique est resté dans son état précédent.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Close programs that manage audio devices, then try again.</source>
-        <translation type="unfinished"></translation>
+        <translation>Fermez les programmes qui gèrent les périphériques audio, puis réessayez.</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Partly changed</source>
-        <translation type="unfinished"></translation>
+        <translation>Modifié en partie</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Windows refused the change, and undoing it did not finish either. The device may be left partly changed.</source>
-        <translation type="unfinished"></translation>
+        <translation>Windows a refusé la modification et son annulation n&apos;a pas non plus abouti. Certaines modifications du périphérique peuvent donc subsister.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Restart the computer before trying again.</source>
-        <translation type="unfinished"></translation>
+        <translation>Redémarrez l&apos;ordinateur avant de réessayer.</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Not checked: the device is disabled</source>
-        <translation type="unfinished"></translation>
+        <translation>Non vérifié : périphérique désactivé</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>The device is disabled in Windows, so nothing could be played through it.</source>
-        <translation type="unfinished"></translation>
+        <translation>Le périphérique est désactivé dans Windows. Aucun son n&apos;a donc pu être lu sur celui-ci.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Enable the device, then open the Device Selector and press OK to check again.</source>
-        <translation type="unfinished"></translation>
+        <translation>Activez le périphérique, puis ouvrez Device Selector et cliquez sur OK pour relancer la vérification.</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Not checked: the device is unplugged</source>
-        <translation type="unfinished"></translation>
+        <translation>Non vérifié : périphérique débranché</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Nothing is plugged into this device, so nothing could be played through it.</source>
-        <translation type="unfinished"></translation>
+        <translation>Rien n&apos;est branché sur ce périphérique. Aucun son n&apos;a donc pu être lu sur celui-ci.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Plug it in, then open the Device Selector and press OK to check again.</source>
-        <translation type="unfinished"></translation>
+        <translation>Branchez le périphérique, puis ouvrez Device Selector et cliquez sur OK pour relancer la vérification.</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Not checked: the device could not be opened</source>
-        <translation type="unfinished"></translation>
+        <translation>Non vérifié : impossible d&apos;ouvrir le périphérique</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Nothing could be played through this device, so the APO on it could not answer.</source>
-        <translation type="unfinished"></translation>
+        <translation>Aucun son n&apos;a pu être lu sur ce périphérique. Son APO n&apos;a donc pas pu répondre.</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -724,144 +724,144 @@ ATTENTION: Certains pilotes de carte son peuvent produire des sons indésirables
         <location line="+4"/>
         <location line="+4"/>
         <source>Open the Device Selector and press OK to check again.</source>
-        <translation type="unfinished"></translation>
+        <translation>Ouvrez Device Selector et cliquez sur OK pour relancer la vérification.</translation>
     </message>
     <message>
         <location line="-21"/>
         <source>Windows audio could not be restarted, so the check did not run. The APO is installed, but it starts working only after Windows audio restarts.</source>
-        <translation type="unfinished"></translation>
+        <translation>L&apos;audio Windows n&apos;a pas pu redémarrer. La vérification n&apos;a donc pas eu lieu. L&apos;APO est installé, mais il ne fonctionnera qu&apos;après le redémarrage de l&apos;audio Windows.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Restart the computer.</source>
-        <translation type="unfinished"></translation>
+        <translation>Redémarrez l&apos;ordinateur.</translation>
     </message>
     <message>
         <location line="+3"/>
         <source>A Windows component the check needs did not start, so the check did not run.</source>
-        <translation type="unfinished"></translation>
+        <translation>Un composant Windows nécessaire à la vérification n&apos;a pas démarré. La vérification n&apos;a donc pas eu lieu.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Restart the computer, then open the Device Selector and press OK.</source>
-        <translation type="unfinished"></translation>
+        <translation>Redémarrez l&apos;ordinateur, puis ouvrez Device Selector et cliquez sur OK.</translation>
     </message>
     <message>
         <location line="+3"/>
         <source>Windows blocked the setting the check uses to hear from the APO, so the check did not run.</source>
-        <translation type="unfinished"></translation>
+        <translation>Windows a bloqué le réglage nécessaire à la réception des réponses de l&apos;APO. La vérification n&apos;a donc pas eu lieu.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Close security programs that block changes to system settings, then open the Device Selector and press OK.</source>
-        <translation type="unfinished"></translation>
+        <translation>Fermez les programmes de sécurité qui bloquent les modifications des paramètres système, puis ouvrez Device Selector et cliquez sur OK.</translation>
     </message>
     <message>
         <location line="+3"/>
         <source>The check lost its connection to the APO before every device had answered.</source>
-        <translation type="unfinished"></translation>
+        <translation>La connexion avec l&apos;APO a été perdue avant que tous les périphériques aient répondu.</translation>
     </message>
     <message>
         <location line="+4"/>
         <source>The list of audio devices could not be read, so no device was checked.</source>
-        <translation type="unfinished"></translation>
+        <translation>La liste des périphériques audio n&apos;a pas pu être lue. Aucun périphérique n&apos;a donc été vérifié.</translation>
     </message>
     <message>
         <location line="+4"/>
         <source>The check was stopped. The APO is installed, but whether it works was not checked.</source>
-        <translation type="unfinished"></translation>
+        <translation>La vérification a été arrêtée. L&apos;APO est installé, mais son fonctionnement n&apos;a pas été vérifié.</translation>
     </message>
     <message>
         <location line="+83"/>
         <source>Checking that the APO works on each device (%1 of %2)</source>
-        <translation type="unfinished"></translation>
+        <translation>Vérification du fonctionnement de l&apos;APO sur chaque périphérique (%1 sur %2)</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Restarting Windows audio</source>
-        <translation type="unfinished"></translation>
+        <translation>Redémarrage de l&apos;audio Windows</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Windows audio restarts during the check, so sound stops for a few seconds.</source>
-        <translation type="unfinished"></translation>
+        <translation>L&apos;audio Windows redémarre pendant la vérification. Le son est donc interrompu pendant quelques secondes.</translation>
     </message>
     <message numerus="yes">
         <location line="+6"/>
         <source>The APO does not work on %n device(s).</source>
-        <translation type="unfinished">
-            <numerusform></numerusform>
-            <numerusform></numerusform>
+        <translation>
+            <numerusform>L&apos;APO ne fonctionne pas sur %n périphérique.</numerusform>
+            <numerusform>L&apos;APO ne fonctionne pas sur %n périphériques.</numerusform>
         </translation>
     </message>
     <message>
         <location line="+2"/>
         <source>The other devices are not affected.</source>
-        <translation type="unfinished"></translation>
+        <translation>Les autres périphériques ne sont pas affectés.</translation>
     </message>
     <message numerus="yes">
         <location line="+5"/>
         <source>%n device(s) could not be changed.</source>
-        <translation type="unfinished">
-            <numerusform></numerusform>
-            <numerusform></numerusform>
+        <translation>
+            <numerusform>%n périphérique n&apos;a pas pu être modifié.</numerusform>
+            <numerusform>%n périphériques n&apos;ont pas pu être modifiés.</numerusform>
         </translation>
     </message>
     <message>
         <location line="+2"/>
         <source>The APO works on the devices that were checked.</source>
-        <translation type="unfinished"></translation>
+        <translation>L&apos;APO fonctionne sur les périphériques vérifiés.</translation>
     </message>
     <message numerus="yes">
         <location line="+5"/>
         <source>The APO works. %n device(s) have something to look at.</source>
-        <translation type="unfinished">
-            <numerusform></numerusform>
-            <numerusform></numerusform>
+        <translation>
+            <numerusform>L&apos;APO fonctionne. %n périphérique présente un point à examiner.</numerusform>
+            <numerusform>L&apos;APO fonctionne. %n périphériques présentent un point à examiner.</numerusform>
         </translation>
     </message>
     <message>
         <location line="+5"/>
         <source>The APO is not installed on any device.</source>
-        <translation type="unfinished"></translation>
+        <translation>L&apos;APO n&apos;est installé sur aucun périphérique.</translation>
     </message>
     <message>
         <location line="+5"/>
         <source>The APO works on every device that could be checked.</source>
-        <translation type="unfinished"></translation>
+        <translation>L&apos;APO fonctionne sur tous les périphériques qui ont pu être vérifiés.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>No device could be checked.</source>
-        <translation type="unfinished"></translation>
+        <translation>Aucun périphérique n&apos;a pu être vérifié.</translation>
     </message>
     <message numerus="yes">
         <location line="+1"/>
         <source>%n device(s) could not be checked.</source>
-        <translation type="unfinished">
-            <numerusform></numerusform>
-            <numerusform></numerusform>
+        <translation>
+            <numerusform>%n périphérique n&apos;a pas pu être vérifié.</numerusform>
+            <numerusform>%n périphériques n&apos;ont pas pu être vérifiés.</numerusform>
         </translation>
     </message>
     <message>
         <location line="+5"/>
         <source>The APO works on every device.</source>
-        <translation type="unfinished"></translation>
+        <translation>L&apos;APO fonctionne sur tous les périphériques.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>The equalizer is applied from now on.</source>
-        <translation type="unfinished"></translation>
+        <translation>L&apos;égaliseur est désormais appliqué.</translation>
     </message>
     <message>
         <location line="+5"/>
         <source>The check did not finish.</source>
-        <translation type="unfinished"></translation>
+        <translation>La vérification n&apos;a pas abouti.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Whether the APO works is not known.</source>
-        <translation type="unfinished"></translation>
+        <translation>Le fonctionnement de l&apos;APO n&apos;a pas pu être confirmé.</translation>
     </message>
 </context>
 </TS>
