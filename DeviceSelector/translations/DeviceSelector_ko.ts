@@ -520,13 +520,13 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     <message>
         <location filename="../DeviceTestView.cpp" line="240"/>
         <source>The cause could not be determined. Update the device&apos;s driver, then press Reinstall. Some drivers load no APO at all.</source>
-        <translation>원인은 알 수 없습니다. 장치 드라이버를 최신으로 바꾼 뒤 재설치를 누르십시오. APO를 전혀 불러오지 않는 드라이버도 있습니다.</translation>
+        <translation>원인은 알 수 없습니다. 장치 드라이버를 최신으로 바꾼 뒤 재설치하십시오. APO를 전혀 불러오지 않는 드라이버도 있습니다.</translation>
     </message>
     <message>
         <location filename="../DeviceTestView.cpp" line="260"/>
         <location filename="../DeviceTestView.cpp" line="264"/>
         <source>Close programs that manage audio devices, then press Reinstall.</source>
-        <translation>오디오 장치를 관리하는 프로그램을 닫은 뒤 재설치를 누르십시오.</translation>
+        <translation>오디오 장치를 관리하는 프로그램을 닫은 뒤 재설치하십시오.</translation>
     </message>
     <message>
         <location filename="../DeviceTestView.cpp" line="262"/>
@@ -668,7 +668,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     <message>
         <location filename="../DeviceTestView.cpp" line="272"/>
         <source>Enable the device, then press Reinstall.</source>
-        <translation>장치를 사용으로 바꾼 뒤 재설치를 누르십시오.</translation>
+        <translation>장치의 사용 안함 상태를 해제하십시오.</translation>
     </message>
     <message>
         <location filename="../DeviceTestView.cpp" line="274"/>
@@ -678,7 +678,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     <message>
         <location filename="../DeviceTestView.cpp" line="276"/>
         <source>Plug it in, then press Reinstall.</source>
-        <translation>연결한 뒤 재설치를 누르십시오.</translation>
+        <translation>장치를 연결하십시오.</translation>
     </message>
     <message>
         <location filename="../DeviceTestView.cpp" line="280"/>
@@ -686,12 +686,12 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <location filename="../DeviceTestView.cpp" line="300"/>
         <location filename="../DeviceTestView.cpp" line="304"/>
         <source>Press Reinstall to try again.</source>
-        <translation>재설치를 누르면 다시 설치하고 확인합니다.</translation>
+        <translation>재설치하십시오.</translation>
     </message>
     <message>
         <location filename="../DeviceTestView.cpp" line="292"/>
         <source>Close security programs that block changes to system settings, then press Reinstall.</source>
-        <translation>시스템 설정 변경을 막는 보안 프로그램을 닫은 뒤 재설치를 누르십시오.</translation>
+        <translation>시스템 설정 변경을 막는 보안 프로그램을 닫은 뒤 재설치하십시오.</translation>
     </message>
     <message>
         <location filename="../DeviceTestView.cpp" line="407"/>
@@ -817,7 +817,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     <message>
         <location filename="../DeviceTestView.cpp" line="271"/>
         <source>The device is disabled in Windows, so nothing could be played through it.</source>
-        <translation>Windows에서 사용 안 함으로 설정된 장치라 소리를 보낼 수 없었습니다.</translation>
+        <translation>이 장치는 Windows에서 사용 안함으로 설정되어 있어 APO를 설치할 수 없습니다.</translation>
     </message>
     <message>
         <source>Enable the device, then open the Device Selector and press OK to check again.</source>
@@ -826,7 +826,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     <message>
         <location filename="../DeviceTestView.cpp" line="275"/>
         <source>Nothing is plugged into this device, so nothing could be played through it.</source>
-        <translation>이 장치에 아무것도 연결되어 있지 않아 소리를 보낼 수 없었습니다.</translation>
+        <translation>장치가 연결되어 있지 않아 APO를 설치할 수 없습니다.</translation>
     </message>
     <message>
         <source>Plug it in, then open the Device Selector and press OK to check again.</source>
@@ -845,7 +845,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     <message>
         <location filename="../DeviceTestView.cpp" line="283"/>
         <source>Windows audio could not be restarted, so the check did not run. The APO is installed, but it starts working only after Windows audio restarts.</source>
-        <translation>Windows 오디오를 다시 시작하지 못해 확인하지 못했습니다. APO는 설치되었지만 Windows 오디오가 다시 시작된 뒤부터 작동합니다.</translation>
+        <translation>Windows 오디오를 다시 시작하지 못했습니다. EQ APO는 Windows 오디오를 다시 시작해야 작동합니다.</translation>
     </message>
     <message>
         <location filename="../DeviceTestView.cpp" line="284"/>
@@ -861,7 +861,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <location filename="../DeviceTestView.cpp" line="268"/>
         <location filename="../DeviceTestView.cpp" line="288"/>
         <source>Restart the computer, then open the Device Selector and press OK.</source>
-        <translation>컴퓨터를 다시 시작한 뒤 Device Selector를 열고 확인을 누르십시오.</translation>
+        <translation>컴퓨터를 다시 시작한 뒤 재설치하십시오.</translation>
     </message>
     <message>
         <location filename="../DeviceTestView.cpp" line="291"/>
