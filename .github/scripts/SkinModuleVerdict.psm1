@@ -13,8 +13,8 @@ function Get-SkinModuleMeasurements([string] $RepositoryRoot) {
             if ($item.PSIsContainer) {
                 $directories[$item.FullName] = [pscustomobject]@{ FullName = $item.FullName; Name = $item.Name; Parent = $item.Parent.FullName }
             } else {
-                # Only implementation and module text is consumed by the verdict.
-                $text = if ($item.Extension -in @('.cpp', '.h', '.pri')) { [IO.File]::ReadAllText($item.FullName) } else { '' }
+                # Only implementation, module and sheet text is consumed by the verdict.
+                $text = if ($item.Extension -in @('.cpp', '.h', '.pri', '.qss')) { [IO.File]::ReadAllText($item.FullName) } else { '' }
                 $files[$item.FullName] = [pscustomobject]@{ FullName = $item.FullName; Name = $item.Name; Extension = $item.Extension; Parent = $item.DirectoryName; Text = $text }
             }
         }
@@ -235,6 +235,24 @@ function Get-SkinModuleVerdict($Measurements) {
             $deviceEntry = "<file alias=`"skins/$qss`">../Editor/skins/$id/qss/$qss</file>"
             if ($deviceResourceText -notmatch [regex]::Escape($deviceEntry)) {
                 Add-Failure "DeviceSelectorSkins.qrc must preserve :/skins/$qss through '$deviceEntry'."
+            }
+        }
+    }
+
+    # Every image a sheet names must be compiled into both executables. The
+    # Device Selector loads the Editor's sheets through its own resource list,
+    # and a url() Qt cannot resolve draws nothing and reports nothing: through
+    # v2.69.0 its check boxes had no check mark in four skins because
+    # check-light.svg and check-dark.svg were listed in Editor.qrc only.
+    foreach ($sheet in @(Get-SnapshotChildren $skinRoot -File -Recurse -Filter '*.qss')) {
+        $images = [regex]::Matches($sheet.Text, 'url\(:/([^)]+)\)') | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique
+        foreach ($image in $images) {
+            if ($resourceText -notmatch ('[">]' + [regex]::Escape($image) + '[<"]')) {
+                Add-Failure "Editor.qrc does not carry :/$image, which $($sheet.Name) names."
+            }
+            $deviceEntry = "<file alias=`"$image`">../Editor/$image</file>"
+            if ($deviceResourceText -notmatch [regex]::Escape($deviceEntry)) {
+                Add-Failure "DeviceSelectorSkins.qrc does not carry :/$image, which $($sheet.Name) names; add '$deviceEntry'."
             }
         }
     }
