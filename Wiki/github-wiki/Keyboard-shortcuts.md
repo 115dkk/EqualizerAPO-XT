@@ -23,7 +23,7 @@ The most useful ones:
 | Ctrl+C | Edit > Copy | Copies the selected lines as text |
 | Ctrl+V | Edit > Paste | Pastes lines into the filter list |
 | Ctrl+A | Edit > Select all | Selects every line |
-| Ctrl+Alt+1 to Ctrl+Alt+5 | View > Interface | Switches skin: 1 Studio Glass, 2 Precision Minimal, 3 Soft Lab, 4 Hardware Rack, 5 Signal Matrix |
+| Ctrl+Alt+1 to Ctrl+Alt+5 | View > Interface | Switches skin: 1 Studio Glass, 2 Precision Minimal, 3 Stock Flat, 4 Hardware Rack, 5 Signal Matrix |
 | Ctrl+Alt+D | View > Interface > Dark theme | Switches between the light and dark theme |
 | Ctrl+Alt+F | View > Interface > Fullscreen graph | Lets the analysis graph fill the window, hiding the filter list and toolbar |
 
@@ -63,7 +63,7 @@ Knobs appear on the Preamp, Delay and All-pass cards and in the Legacy rows edit
 
 | Gesture | What it does |
 |---|---|
-| Drag | Turns the knob. In Studio Glass, Soft Lab, Hardware Rack, Signal Matrix and Legacy rows the knob follows the pointer around its arc; in Precision Minimal you drag up and down, and 200 pixels cover the whole range |
+| Drag | Turns the knob. In Studio Glass, Stock Flat, Hardware Rack, Signal Matrix and Legacy rows the knob follows the pointer around its arc; in Precision Minimal you drag up and down, and 200 pixels cover the whole range |
 | **Shift** while dragging | Turns it at a tenth of the speed |
 | Double-click | Resets it: Preamp to 0 dB, Delay to 0, All-pass to 100 Hz and its default Q |
 | Up / Down or Left / Right | One step (0.1 dB on the Preamp card) |
@@ -118,14 +118,14 @@ How the routing view of the Copy card reacts depends on the skin.
 
 * **Studio Glass:** click a line to select it, Ctrl+click to add or remove it. Drag from one channel to another to connect them. Click a channel to select all its lines. Double-click a line to change its factor. Delete or Backspace removes the selected lines.
 * **Hardware Rack and Signal Matrix:** click a crossing point to connect or disconnect at unity gain; double-click to type a factor.
-* **Precision Minimal and Soft Lab:** double-click a term to edit it.
+* **Precision Minimal and Stock Flat:** double-click a term to edit it.
 * **Legacy rows:** Delete removes the selected connections; double-click a connection to edit its factor, and Esc cancels the edit.
 
 ## Filter picker
 
 The picker opened by Add filter or a card's **+** button closes with Esc or a click outside it.
 
-* **Studio Glass, Soft Lab, Hardware Rack and the default picker:** type to search; Up / Down and Page Up / Page Down move through the list, Enter picks.
+* **Studio Glass, Stock Flat, Hardware Rack and the default picker:** type to search; Up / Down and Page Up / Page Down move through the list, Enter picks.
 * **Precision Minimal:** Up / Down move one entry, Page Up / Page Down ten, Enter picks.
 * **Signal Matrix:** type to search and Backspace to delete a character; Up / Down move, Left / Right and Page Up / Page Down switch group, Home / End jump to the first and last entry, Enter picks.
 

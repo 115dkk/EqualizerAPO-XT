@@ -23,7 +23,7 @@
 | Ctrl+C | 편집 > 복사 | 선택한 줄을 텍스트로 복사합니다 |
 | Ctrl+V | 편집 > 붙여넣기 | 필터 목록에 줄을 붙여 넣습니다 |
 | Ctrl+A | 편집 > 모두 선택 | 모든 줄을 선택합니다 |
-| Ctrl+Alt+1 ~ Ctrl+Alt+5 | 보기 > 인터페이스 | 스킨을 바꿉니다. 1 Studio Glass, 2 Precision Minimal, 3 Soft Lab, 4 Hardware Rack, 5 Signal Matrix |
+| Ctrl+Alt+1 ~ Ctrl+Alt+5 | 보기 > 인터페이스 | 스킨을 바꿉니다. 1 Studio Glass, 2 Precision Minimal, 3 Stock Flat, 4 Hardware Rack, 5 Signal Matrix |
 | Ctrl+Alt+D | 보기 > 인터페이스 > 어두운 테마 | 밝은 테마와 어두운 테마를 오갑니다 |
 | Ctrl+Alt+F | 보기 > 인터페이스 > 그래프 전체화면 | 필터 목록과 도구 모음을 숨기고 분석 그래프를 창 가득 띄웁니다 |
 
@@ -63,7 +63,7 @@
 
 | 동작 | 하는 일 |
 |---|---|
-| 끌기 | 노브를 돌립니다. Studio Glass, Soft Lab, Hardware Rack, Signal Matrix와 Legacy rows에서는 노브가 호를 따라 포인터를 따라오고, Precision Minimal에서는 위아래로 끌며 200픽셀이 전체 범위입니다 |
+| 끌기 | 노브를 돌립니다. Studio Glass, Stock Flat, Hardware Rack, Signal Matrix와 Legacy rows에서는 노브가 호를 따라 포인터를 따라오고, Precision Minimal에서는 위아래로 끌며 200픽셀이 전체 범위입니다 |
 | 끌면서 **Shift** | 10분의 1 속도로 돌립니다 |
 | 두 번 클릭 | 기본값으로 되돌립니다. Preamp는 0 dB, Delay는 0, All-pass는 100 Hz와 기본 Q입니다 |
 | 위 / 아래, 왼쪽 / 오른쪽 | 한 단계(Preamp 카드에서는 0.1 dB) |
@@ -118,14 +118,14 @@ Copy 카드의 라우팅 화면은 스킨마다 다르게 동작합니다.
 
 * **Studio Glass:** 선을 클릭하면 선택하고, Ctrl+클릭으로 선택에 넣거나 뺍니다. 한 채널에서 다른 채널로 끌면 둘을 잇습니다. 채널을 클릭하면 그 채널의 선을 모두 선택합니다. 선을 두 번 클릭하면 배율을 바꿀 수 있습니다. Delete나 Backspace는 선택한 선을 지웁니다.
 * **Hardware Rack과 Signal Matrix:** 교차점을 클릭하면 배율 1로 잇거나 끊고, 두 번 클릭하면 배율을 입력할 수 있습니다.
-* **Precision Minimal과 Soft Lab:** 항을 두 번 클릭하면 편집할 수 있습니다.
+* **Precision Minimal과 Stock Flat:** 항을 두 번 클릭하면 편집할 수 있습니다.
 * **Legacy rows:** Delete는 선택한 연결을 지웁니다. 연결을 두 번 클릭하면 배율을 편집할 수 있고, Esc는 편집을 취소합니다.
 
 ## 필터 선택 창
 
 필터 추가나 카드의 **+** 버튼으로 연 선택 창은 Esc를 누르거나 바깥을 클릭하면 닫힙니다.
 
-* **Studio Glass, Soft Lab, Hardware Rack과 기본 선택 창:** 글자를 입력하면 검색합니다. 위 / 아래와 Page Up / Page Down으로 목록을 옮겨 다니고 Enter로 고릅니다.
+* **Studio Glass, Stock Flat, Hardware Rack과 기본 선택 창:** 글자를 입력하면 검색합니다. 위 / 아래와 Page Up / Page Down으로 목록을 옮겨 다니고 Enter로 고릅니다.
 * **Precision Minimal:** 위 / 아래는 한 항목, Page Up / Page Down은 열 항목씩 옮기고 Enter로 고릅니다.
 * **Signal Matrix:** 글자를 입력하면 검색하고 Backspace로 한 글자씩 지웁니다. 위 / 아래로 옮기고, 왼쪽 / 오른쪽과 Page Up / Page Down으로 묶음을 바꾸고, Home / End로 처음과 끝 항목에 갑니다. Enter로 고릅니다.
 

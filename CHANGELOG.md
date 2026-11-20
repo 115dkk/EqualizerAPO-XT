@@ -14,6 +14,12 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The Soft Lab skin is now called Stock Flat.** The name follows what the
+  skin became in v2.70.0: the stock parts of an ordinary desktop app. If you
+  were using Soft Lab, the Editor opens with Stock Flat after the update;
+  nothing has to be chosen again.
+  ([#503](https://github.com/115dkk/EqualizerAPO-XT/pull/503))
+
 - **The installation check says what went wrong.** The window that opens
   after OK in the Device Selector used to show a red mark and "Problems were
   detected for 1 device" and nothing else. It now says in one sentence where

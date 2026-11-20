@@ -5,7 +5,7 @@
 */
 
 /*
-	Soft Lab's "add filter" picker: a rounded settings-menu card - a pill
+	Stock Flat's "add filter" picker: a rounded settings-menu card - a pill
 	search field over two-line rows led by pastel colour tiles.
 	Constitution: docs/skins/soft.md ("필터 픽커" section).
 */

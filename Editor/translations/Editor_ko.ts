@@ -2801,7 +2801,7 @@ Do you want to run the Device Selector application to fix the problem?</source>
     </message>
     <message>
         <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="271"/>
-        <source>Soft Lab</source>
+        <source>Stock Flat</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

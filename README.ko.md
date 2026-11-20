@@ -36,7 +36,7 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
    앞선 라운드에서는 Soft 파스텔 재작업, 다크 모드 상태 대비, 분석 패널 한칸
    배치, 그래픽 EQ 모던 카드, 카드 추가·삽입 계약, Device Selector 스킨
    동기화를 다뤘습니다([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172)).
-   Soft 스킨은 평범한 데스크톱 앱으로 다시 만들었습니다
+   Soft Lab 스킨은 평범한 데스크톱 앱으로 다시 만들고 이름을 Stock Flat으로 바꿨습니다
    ([#500](https://github.com/115dkk/EqualizerAPO-XT/pull/500)). Device
    Selector의 설치 확인 화면은 스킨을 따르고 장치마다 문제와 할 일을
    표시하도록 다시 만들었습니다

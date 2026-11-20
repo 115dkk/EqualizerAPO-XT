@@ -8,6 +8,12 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **Soft Lab 스킨의 이름이 Stock Flat으로 바뀌었습니다.** v2.70.0에서 평범한
+  데스크톱 앱의 기성 부품을 쓰는 스킨이 된 데 맞춘 이름입니다. Soft Lab을
+  쓰고 있었다면 업데이트 뒤 Editor가 Stock Flat으로 열리며, 다시 고를 필요가
+  없습니다.
+  ([#503](https://github.com/115dkk/EqualizerAPO-XT/pull/503))
+
 - **설치 확인 화면에 무슨 문제인지 나옵니다.** Device Selector에서 확인을 누른
   뒤에 뜨는 화면은 문제가 생겨도 빨간 표시와 '장치 1개에서 문제가
   발견되었습니다'만 나왔습니다. 이제 맨 위에 결과가 한 문장으로 나오고,

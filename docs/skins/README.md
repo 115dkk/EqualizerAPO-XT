@@ -12,7 +12,7 @@ Editor의 5개 스킨이 각자 무엇을 믿고, 무엇을 금지하며, 새 UI
 |---|---|---|---|
 | `studio` | Studio Glass | 빛이 비치는 유리 뒤의 악기. UI는 데이터 뒤로 물러난다 | [studio.md](studio.md) |
 | `minimal` | Precision Minimal | 은행 창구의 단말기. 활자·헤어라인·정렬이 전부다 | [minimal.md](minimal.md) |
-| `soft` | Soft Lab | 익숙한 양산형 앱. 평범한 데스크톱 앱의 부품을 그대로 쓴다 | [soft.md](soft.md) |
+| `soft` | Stock Flat | 익숙한 양산형 앱. 평범한 데스크톱 앱의 부품을 그대로 쓴다 | [soft.md](soft.md) |
 | `rack` | Hardware Rack | 19인치 랙의 앰프 페이스플레이트. 손에 닿을 듯한 기계 | [rack.md](rack.md) |
 | `matrix` | Signal Matrix | 공항 출발 안내판 / 방송 라우팅 매트릭스. 좌표를 가진 셀의 보드 | [matrix.md](matrix.md) |
 
