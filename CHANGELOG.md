@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.71.2 — 2026-11-20
+
 - **A tall MultiConvolution or Copy row no longer scrolls inside its card,
   and a wide routing grid can be scrolled sideways.** A row whose channel
   mapping grew past 600 px (the mapping opened over a 7.1.4 device, for
