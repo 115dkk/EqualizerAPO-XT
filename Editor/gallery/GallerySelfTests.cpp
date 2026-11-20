@@ -834,9 +834,6 @@ int SkinGallery::runRoutingEditTest()
 				check(body->widget()->height() <= body->widget()->sizeHint().height() + 1,
 					QStringLiteral("%1 body (%2) is %3 px tall for %4 px of content")
 					.arg(who, QLatin1String(state)).arg(body->widget()->height()).arg(body->widget()->sizeHint().height()));
-				const QString shots = qEnvironmentVariable("EAPO_ROUTING_SHOTS");
-				if (!shots.isEmpty())
-					rows[0]->grab().save(QDir(shots).filePath(QStringLiteral("body_%1_%2_%3.png").arg(skin->id(), command, QLatin1String(state))));
 			}
 		}
 	}
