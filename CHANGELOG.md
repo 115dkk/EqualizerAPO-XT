@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.70.0 — 2026-11-20
+
 - **The Soft skin looks like an ordinary desktop app.** The pastel colours,
   shadows and per-channel colours are gone. Cards are white boxes with a thin
   border, the light theme uses one ink accent and the dark theme one blue, and
