@@ -69,6 +69,8 @@ Describe 'Skin module gate on fixture trees' {
         @{ Rule = 'legacy routing registration'; Change = { Add-Content (Join-Path $script:root 'Editor/Editor.pro') 'widgets/routing/LightTraceRoutingRenderer.cpp' }; Message = 'still registers concrete skin sources' }
         @{ Rule = 'Editor resource alias'; Change = { Write-FixtureFile 'Editor/Editor.qrc' '<RCC/>' }; Message = 'Editor.qrc must preserve' }
         @{ Rule = 'DeviceSelector resource alias'; Change = { Write-FixtureFile 'DeviceSelector/DeviceSelectorSkins.qrc' '<RCC/>' }; Message = 'DeviceSelectorSkins.qrc must preserve' }
+        @{ Rule = 'sheet image missing from Editor.qrc'; Change = { Write-FixtureFile 'Editor/skins/studio/qss/studio_dark.qss' 'QCheckBox::indicator:checked { image: url(:/icons/modern/check.svg); }'; Add-Content (Join-Path $script:root 'DeviceSelector/DeviceSelectorSkins.qrc') '<file alias="icons/modern/check.svg">../Editor/icons/modern/check.svg</file>' }; Message = 'Editor.qrc does not carry :/icons/modern/check.svg' }
+        @{ Rule = 'sheet image missing from DeviceSelectorSkins.qrc'; Change = { Write-FixtureFile 'Editor/skins/studio/qss/studio_dark.qss' 'QCheckBox::indicator:checked { image: url(:/icons/modern/check.svg); }'; Add-Content (Join-Path $script:root 'Editor/Editor.qrc') '<file>icons/modern/check.svg</file>' }; Message = 'DeviceSelectorSkins.qrc does not carry :/icons/modern/check.svg' }
     ) {
         & $Change
         $r = Invoke-SkinFixture
@@ -80,6 +82,12 @@ Describe 'Skin module gate on fixture trees' {
         Write-FixtureFile 'Editor/skins/studio/StudioSkin.cpp' (((1..350 | ForEach-Object { 'int line;' }) + @('', '// comment', '/* comment', '* comment', '*/')) -join "`n")
         Write-FixtureFile 'Editor/skins/studio/part.cpp' ((1..900 | ForEach-Object { 'int line;' }) -join "`n")
         Add-Content (Join-Path $script:root 'Editor/skins/studio/studio.pri') '$$PWD/part.cpp'
+        (Invoke-SkinFixture).Exit | Should -Be 0
+    }
+    It 'accepts a sheet image both resource lists carry' {
+        Write-FixtureFile 'Editor/skins/studio/qss/studio_dark.qss' 'QCheckBox::indicator:checked { image: url(:/icons/modern/check.svg); }'
+        Add-Content (Join-Path $script:root 'Editor/Editor.qrc') '<file>icons/modern/check.svg</file>'
+        Add-Content (Join-Path $script:root 'DeviceSelector/DeviceSelectorSkins.qrc') '<file alias="icons/modern/check.svg">../Editor/icons/modern/check.svg</file>'
         (Invoke-SkinFixture).Exit | Should -Be 0
     }
     It 'accepts registered shared files, empty old folders and non-concrete includes' {

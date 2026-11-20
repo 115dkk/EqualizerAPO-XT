@@ -16,9 +16,17 @@
         <file alias="skins/rack_light.qss">../Editor/skins/rack/qss/rack_light.qss</file>
         <file alias="skins/matrix_dark.qss">../Editor/skins/matrix/qss/matrix_dark.qss</file>
         <file alias="skins/matrix_light.qss">../Editor/skins/matrix/qss/matrix_light.qss</file>
+        <file alias="icons/modern/check-dark.svg">../Editor/icons/modern/check-dark.svg</file>
+        <file alias="icons/modern/check-light.svg">../Editor/icons/modern/check-light.svg</file>
         <file alias="icons/modern/chevron-down.svg">../Editor/icons/modern/chevron-down.svg</file>
         <file alias="icons/modern/chevron-right.svg">../Editor/icons/modern/chevron-right.svg</file>
         <file alias="icons/modern/chevron-up.svg">../Editor/icons/modern/chevron-up.svg</file>
+        <file alias="icons/modern/dash-dark.svg">../Editor/icons/modern/dash-dark.svg</file>
+        <file alias="icons/modern/dash-light.svg">../Editor/icons/modern/dash-light.svg</file>
+        <file alias="icons/modern/matrix-grid-dark.svg">../Editor/icons/modern/matrix-grid-dark.svg</file>
+        <file alias="icons/modern/matrix-grid-light.svg">../Editor/icons/modern/matrix-grid-light.svg</file>
+        <file alias="icons/modern/soft-toggle-knob-off.svg">../Editor/icons/modern/soft-toggle-knob-off.svg</file>
+        <file alias="icons/modern/soft-toggle-knob-on.svg">../Editor/icons/modern/soft-toggle-knob-on.svg</file>
         <file alias="fonts/DMSans-Regular.ttf">../Editor/fonts/DMSans-Regular.ttf</file>
         <file alias="fonts/DMSans-Medium.ttf">../Editor/fonts/DMSans-Medium.ttf</file>
         <file alias="fonts/DMSans-SemiBold.ttf">../Editor/fonts/DMSans-SemiBold.ttf</file>
