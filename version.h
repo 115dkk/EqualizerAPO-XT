@@ -1,5 +1,5 @@
 #define MAJOR 2
-#define MINOR 70
+#define MINOR 71
 #define REVISION 0
 
 // Audit #250 F019: the "MAJOR.MINOR, append REVISION when non-zero" display

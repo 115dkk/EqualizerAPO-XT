@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.71.0 — 2026-11-20
+
 - **Soft Lab 스킨의 이름이 Stock Flat으로 바뀌었습니다.** v2.70.0에서 평범한
   데스크톱 앱의 기성 부품을 쓰는 스킨이 된 데 맞춘 이름입니다. Soft Lab을
   쓰고 있었다면 업데이트 뒤 Editor가 Stock Flat으로 열리며, 다시 고를 필요가

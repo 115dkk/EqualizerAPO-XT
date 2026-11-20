@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.71.0 — 2026-11-20
+
 - **The Soft Lab skin is now called Stock Flat.** The name follows what the
   skin became in v2.70.0: the stock parts of an ordinary desktop app. If you
   were using Soft Lab, the Editor opens with Stock Flat after the update;
