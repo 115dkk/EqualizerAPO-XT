@@ -45,21 +45,39 @@ SubwooferRoutingFilter::SubwooferRoutingFilter(
 {
 }
 
+std::vector<std::string> SubwooferRoutingFilter::deviceChannelIds(
+	const subroute::SubwooferRoutingState& state,
+	const std::vector<std::wstring>& channelNames)
+{
+	const auto stateHas = [&state](const std::string& id)
+	{
+		return std::any_of(state.layout.channels.begin(), state.layout.channels.end(),
+			[&id](const subroute::PhysicalChannel& channel) { return channel.id == id; });
+	};
+
+	std::vector<std::string> ids;
+	ids.reserve(channelNames.size());
+	for (size_t index = 0; index < channelNames.size(); ++index)
+	{
+		std::string id = subwooferRoutingToUtf8(channelNames[index]);
+		const std::string number = std::to_string(index + 1);
+		if (!stateHas(id) && stateHas(number))
+			id = number;
+		ids.push_back(std::move(id));
+	}
+	return ids;
+}
+
 std::vector<std::wstring> SubwooferRoutingFilter::initialize(float sampleRate,
 	unsigned maxFrameCount, std::vector<std::wstring> channelNames)
 {
 	passthrough = true;
 	channelCount = static_cast<unsigned>(channelNames.size());
 
-	std::vector<std::string> layout;
-	layout.reserve(channelNames.size());
-	for (const std::wstring& channelName : channelNames)
-		layout.push_back(subwooferRoutingToUtf8(channelName));
-
 	const subroute::PrepareSpec spec {
 		sampleRate,
 		maxFrameCount,
-		std::move(layout)
+		deviceChannelIds(state, channelNames)
 	};
 
 	if (maxFrameCount == 0)

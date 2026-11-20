@@ -16,7 +16,11 @@
 	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+#include <string>
+#include <vector>
+
 #include "filters/subwooferRouting/SubwooferRoutingCommand.h"
+#include "filters/subwooferRouting/SubwooferRoutingFilter.h"
 #include "../TestHarness.h"
 
 namespace
@@ -157,5 +161,38 @@ TEST_CASE(SubwooferRoutingCommandTests, testSerializeRoundTrips)
 		"serialized Profile form should retain its form");
 	harness.expectTrue(parsedProfile.payload == profile.payload,
 		"serialized Profile form should retain its payload");
+}
+
+// A state saved on a 7.1.4 endpoint before its height channels had names
+// holds them as 9 to 12. The device now names them TFL TFR TRL TRR, and
+// without the fallback the compiler refused the saved IDs as missing
+// device channels and left the whole filter in passthrough.
+TEST_CASE(SubwooferRoutingCommandTests, testNumberedHeightChannelsStillCompile)
+{
+	const std::vector<std::wstring> device = {L"L", L"R", L"C", L"LFE", L"RL", L"RR",
+		L"SL", L"SR", L"TFL", L"TFR", L"TRL", L"TRR"};
+
+	subroute::SubwooferRoutingState saved;
+	for (const char* id : {"L", "R", "C", "LFE", "RL", "RR", "SL", "SR", "9", "10", "11", "12"})
+		saved.layout.channels.push_back({id, id});
+	harness.expectTrue(SubwooferRoutingFilter::deviceChannelIds(saved, device)
+		== std::vector<std::string>({"L", "R", "C", "LFE", "RL", "RR", "SL", "SR", "9", "10", "11", "12"}),
+		"a state saved with numbered heights is compiled against those numbers");
+
+	subroute::SubwooferRoutingState named;
+	for (const char* id : {"L", "R", "C", "LFE", "RL", "RR", "SL", "SR", "TFL", "TFR", "TRL", "TRR"})
+		named.layout.channels.push_back({id, id});
+	harness.expectTrue(SubwooferRoutingFilter::deviceChannelIds(named, device)
+		== std::vector<std::string>({"L", "R", "C", "LFE", "RL", "RR", "SL", "SR", "TFL", "TFR", "TRL", "TRR"}),
+		"a state saved with the names uses the names");
+
+	// A number the state does not hold is not taken: the slot keeps its
+	// name, and the compiler reports what is really missing.
+	subroute::SubwooferRoutingState stereo;
+	stereo.layout.channels.push_back({"L", "L"});
+	stereo.layout.channels.push_back({"R", "R"});
+	harness.expectTrue(SubwooferRoutingFilter::deviceChannelIds(stereo, device) == std::vector<std::string>(
+		{"L", "R", "C", "LFE", "RL", "RR", "SL", "SR", "TFL", "TFR", "TRL", "TRR"}),
+		"slots the state does not know keep their names");
 }
 }

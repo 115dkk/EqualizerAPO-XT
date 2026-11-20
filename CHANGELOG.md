@@ -19,7 +19,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   to `12` in the Editor and could only be selected by number. They are now
   `TFL`, `TFR`, `TRL` and `TRR` (top front and top rear, left and right), and
   `TC`, `TFC` and `TRC` for the centre heights Windows defines. Configs that
-  select these channels by number keep working. A line that used one of these
+  select these channels by number keep working, and so does a Subwoofer
+  Routing setup saved while they were numbers. A line that used one of these
   names for a new channel of its own (a `Copy` target named `TFL`, say) now
   reaches the device's real height speaker instead. `VSTPlugin` with `Auto`
   layouts now recognises a 7.1.4 device by its channel names. Windows has no
