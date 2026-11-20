@@ -253,7 +253,8 @@ DeviceTestView::ProblemText DeviceTestView::describe(Problem problem, const QStr
 	case Problem::OriginalApoFailed:
 		return {tr("The APO works, but the original APO could not start"),
 			tr("The equalizer works. The APO of the device's maker, which runs beside it, did not start, so that maker's effects are missing."),
-			tr("If you do not use those effects, turn off Use original APO in the troubleshooting options.")};
+			// The APO is installed and working: nothing is asked of the user.
+			QString()};
 	case Problem::ModeChangeRefused:
 		return {tr("The install mode could not be changed"),
 			tr("The check tried to install in another mode and Windows refused the change. The device was left as it was before."),
@@ -319,7 +320,8 @@ void DeviceTestView::setNotes(const QVector<Note>& list)
 		state.tone = note.tone;
 		state.title = note.subject;
 		state.lines.append({DevicePanelState::LineKind::Body, note.text.cause});
-		state.lines.append({DevicePanelState::LineKind::Action, note.text.action});
+		if (!note.text.action.isEmpty())
+			state.lines.append({DevicePanelState::LineKind::Action, note.text.action});
 		for (const QString& line : note.system)
 		{
 			if (!line.isEmpty())

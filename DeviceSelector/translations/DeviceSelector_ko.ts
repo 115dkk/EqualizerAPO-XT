@@ -576,9 +576,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     <message numerus="yes">
         <location filename="../DeviceTestView.cpp" line="419"/>
         <source>The APO works. %n device(s) have something to look at.</source>
-        <translation>
-            <numerusform>APO는 작동합니다. 장치 %n개에 확인할 것이 있습니다.</numerusform>
-        </translation>
+        <translation><numerusform>장치 %n개에 확인할 것이 있습니다. APO는 작동합니다.</numerusform></translation>
     </message>
     <message>
         <location filename="../DeviceTestView.cpp" line="424"/>
@@ -659,7 +657,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     <message>
         <location filename="../DeviceTestView.cpp" line="254"/>
         <source>The APO works, but the original APO could not start</source>
-        <translation>APO는 작동하지만 원본 APO를 시작하지 못했습니다</translation>
+        <translation>원본 APO가 시작되지 않았습니다. APO는 작동합니다</translation>
     </message>
     <message>
         <location filename="../DeviceTestView.cpp" line="238"/>
@@ -714,7 +712,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     <message>
         <location filename="../DeviceTestView.cpp" line="239"/>
         <source>All three install modes were tried and Windows did not load the APO on this device in any of them.</source>
-        <translation>설치 방식 세 가지를 모두 시도했지만 Windows가 이 장치에서 APO를 불러오지 않았습니다.</translation>
+        <translation>설치 방식 세 가지를 모두 시도했지만 APO가 설치되지 않았습니다.</translation>
     </message>
     <message>
         <source>The cause could not be determined. Update the device&apos;s driver and check again; some drivers load no APO at all.</source>
@@ -723,22 +721,22 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     <message>
         <location filename="../DeviceTestView.cpp" line="243"/>
         <source>Windows did not load the APO on this device in the selected install mode (%1).</source>
-        <translation>선택한 설치 방식(%1)에서 Windows가 이 장치의 APO를 불러오지 않았습니다.</translation>
+        <translation>선택한 설치 방식(%1)으로는 APO가 설치되지 않았습니다.</translation>
     </message>
     <message>
         <location filename="../DeviceTestView.cpp" line="244"/>
         <source>Turn on Automatic in the troubleshooting options, and the check tries the other modes too.</source>
-        <translation>문제 해결 옵션에서 자동을 켜면 나머지 방식도 시도합니다.</translation>
+        <translation>다른 설치 방식을 선택하십시오. 자동 설치 방식으로 시도해도 됩니다.</translation>
     </message>
     <message>
         <location filename="../DeviceTestView.cpp" line="246"/>
         <source>Pre-mix works, post-mix does not</source>
-        <translation>믹스 전은 작동하고 믹스 후는 작동하지 않습니다</translation>
+        <translation>믹스 후가 작동하지 않습니다. 믹스 전은 작동합니다</translation>
     </message>
     <message>
         <location filename="../DeviceTestView.cpp" line="247"/>
         <source>The pre-mix APO works. Windows did not load the post-mix APO on this device.</source>
-        <translation>믹스 전 APO는 작동합니다. 믹스 후 APO는 Windows가 불러오지 않았습니다.</translation>
+        <translation>믹스 후 APO가 작동하지 않습니다. 믹스 전 APO는 작동합니다.</translation>
     </message>
     <message>
         <location filename="../DeviceTestView.cpp" line="248"/>
@@ -748,12 +746,12 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     <message>
         <location filename="../DeviceTestView.cpp" line="250"/>
         <source>Post-mix works, pre-mix does not</source>
-        <translation>믹스 후는 작동하고 믹스 전은 작동하지 않습니다</translation>
+        <translation>믹스 전이 작동하지 않습니다. 믹스 후는 작동합니다</translation>
     </message>
     <message>
         <location filename="../DeviceTestView.cpp" line="251"/>
         <source>The post-mix APO works. Windows did not load the pre-mix APO on this device.</source>
-        <translation>믹스 후 APO는 작동합니다. 믹스 전 APO는 Windows가 불러오지 않았습니다.</translation>
+        <translation>믹스 전 APO가 작동하지 않습니다. 믹스 후 APO는 작동합니다.</translation>
     </message>
     <message>
         <location filename="../DeviceTestView.cpp" line="252"/>
@@ -763,7 +761,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     <message>
         <location filename="../DeviceTestView.cpp" line="255"/>
         <source>The equalizer works. The APO of the device&apos;s maker, which runs beside it, did not start, so that maker&apos;s effects are missing.</source>
-        <translation>이퀄라이저는 작동합니다. 함께 실행되는 장치 제조사의 APO가 시작되지 않아 제조사의 음향 효과는 빠져 있습니다.</translation>
+        <translation>제조사의 APO가 시작되지 않으므로, 장치의 음향 효과는 누락됩니다. EQ APO는 작동합니다.</translation>
     </message>
     <message>
         <location filename="../DeviceTestView.cpp" line="256"/>
@@ -778,7 +776,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     <message>
         <location filename="../DeviceTestView.cpp" line="259"/>
         <source>The check tried to install in another mode and Windows refused the change. The device was left as it was before.</source>
-        <translation>다른 방식으로 설치하려 했지만 Windows가 변경을 거부했습니다. 장치는 이전 상태 그대로입니다.</translation>
+        <translation>다른 방식으로 설치하려 했지만 Windows가 변경을 거부했습니다. 설치가 중지되었습니다.</translation>
     </message>
     <message>
         <source>Close programs that manage audio devices, then check again.</source>
@@ -791,7 +789,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     <message>
         <location filename="../DeviceTestView.cpp" line="263"/>
         <source>Windows refused the change to this device. The device was left as it was before.</source>
-        <translation>Windows가 이 장치의 변경을 거부했습니다. 장치는 이전 상태 그대로입니다.</translation>
+        <translation>Windows가 이 장치의 변경을 거부했습니다. 설치가 중지되었습니다.</translation>
     </message>
     <message>
         <source>Close programs that manage audio devices, then install again.</source>
@@ -800,12 +798,12 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     <message>
         <location filename="../DeviceTestView.cpp" line="266"/>
         <source>Partly changed</source>
-        <translation>일부만 바뀌었습니다</translation>
+        <translation>되돌리기 실패</translation>
     </message>
     <message>
         <location filename="../DeviceTestView.cpp" line="267"/>
         <source>Windows refused the change, and undoing it did not finish either. The device may be left partly changed.</source>
-        <translation>Windows가 변경을 거부했고, 되돌리는 일도 끝나지 못했습니다. 장치가 일부만 바뀐 상태일 수 있습니다.</translation>
+        <translation>Windows가 변경을 거부했고, 되돌리기도 실패했습니다.</translation>
     </message>
     <message>
         <source>Restart the computer before installing again.</source>
