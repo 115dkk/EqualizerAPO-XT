@@ -306,6 +306,37 @@ private:
 			Qt::AlignVCenter | Qt::AlignLeft,
 			statusFm.elidedText(s.state, Qt::ElideRight, int(rightLimit - statusLeft)));
 	}
+
+	// A panel is the ordinary card: white box, thin border, one lamp beside
+	// the title. A quoted system message sits in a sunken strip.
+	DevicePanelStyle panelStyle(const DevicePanelState& state, const QFont& base, const SkinTokens& t) const override
+	{
+		DevicePanelStyle style = DeviceSkinPainter::panelStyle(state, base, t);
+		style.titleFont = base;
+		style.titleFont.setWeight(QFont::DemiBold);
+		style.bodyInk = QColor(t.text);
+		style.padding = QMargins(32, 11, 14, 12);
+		return style;
+	}
+
+	void paintPanelGround(QPainter& painter, const QRect& rect, const DevicePanelState& state, const SkinTokens& t) const override
+	{
+		SoftPaint::box(painter, QRectF(rect), QColor(t.card), QColor(t.border), 10.0);
+		const QFontMetrics fm(painter.font());
+		const bool hollow = state.tone == DeviceReport::Unchecked || state.tone == DeviceReport::Untestable;
+		SoftPaint::lamp(painter, QPointF(rect.left() + 18.0, rect.top() + 11.0 + fm.height() / 2.0 + 0.5),
+			toneColor(state.tone, t), hollow);
+	}
+
+	void paintActionMark(QPainter& painter, const QRectF& cell, const QColor&, const SkinTokens& t) const override
+	{
+		SoftPaint::chevron(painter, QPointF(cell.left() + 5.0, cell.center().y()), QColor(t.mutedText), false);
+	}
+
+	void paintSystemWell(QPainter& painter, const QRectF& rect, const SkinTokens& t) const override
+	{
+		SoftPaint::box(painter, rect, QColor(t.background), QColor(t.border), 6.0);
+	}
 };
 }
 

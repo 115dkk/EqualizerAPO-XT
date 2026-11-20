@@ -669,6 +669,62 @@ public:
 
 		painter.restore();
 	}
+
+	// A panel is a glass slab like a device strip, and its tone is the signal
+	// lamp the strips wear on their left edge.
+	DevicePanelStyle panelStyle(const DevicePanelState& state, const QFont& base, const SkinTokens& t) const override
+	{
+		DevicePanelStyle style = DeviceSkinPainter::panelStyle(state, base, t);
+		style.titleFont = QFont(t.fontFamily);
+		style.titleFont.setPointSizeF(base.pointSizeF());
+		style.titleFont.setWeight(QFont::DemiBold);
+		style.bodyFont = QFont(t.fontFamily);
+		style.bodyFont.setPointSizeF(qMax(7.0, base.pointSizeF() - 0.5));
+		style.bodyInk = withAlpha(QColor(t.text), 215);
+		style.padding = QMargins(20, 11, 16, 12);
+		return style;
+	}
+
+	void paintPanelGround(QPainter& painter, const QRect& rect, const DevicePanelState& state, const SkinTokens& t) const override
+	{
+		painter.save();
+		painter.setRenderHint(QPainter::Antialiasing, true);
+		const bool dark = skinIsDark(t);
+		const QColor tone = toneColor(state.tone, t);
+		const QRectF slab = QRectF(rect).adjusted(0.5, 0.5, -0.5, -0.5);
+		QPainterPath slabPath;
+		slabPath.addRoundedRect(slab, 8.0, 8.0);
+		painter.setPen(Qt::NoPen);
+		painter.setBrush(withAlphaF(QColor(t.card), 0.82));
+		painter.drawPath(slabPath);
+		painter.save();
+		painter.setClipPath(slabPath);
+		if (dark)
+		{
+			QLinearGradient sheen(slab.topLeft(), QPointF(slab.left(), slab.top() + 22.0));
+			sheen.setColorAt(0.0, QColor(255, 255, 255, 15));
+			sheen.setColorAt(1.0, QColor(255, 255, 255, 0));
+			painter.fillPath(slabPath, sheen);
+		}
+		// The tone's light pooling in from the lamp side.
+		QLinearGradient wash(slab.topLeft(), QPointF(slab.left() + slab.width() * 0.55, slab.top()));
+		wash.setColorAt(0.0, withAlpha(tone, dark ? 34 : 22));
+		wash.setColorAt(1.0, withAlpha(tone, 0));
+		painter.fillPath(slabPath, wash);
+		const double lampTop = slab.top() + 9.0;
+		const double lampHeight = slab.height() - 18.0;
+		QLinearGradient lamp(0, lampTop, 0, lampTop + lampHeight);
+		lamp.setColorAt(0.0, withAlpha(tone, 0));
+		lamp.setColorAt(0.5, withAlpha(tone, 240));
+		lamp.setColorAt(1.0, withAlpha(tone, 0));
+		painter.fillRect(QRectF(slab.left(), lampTop - 3.0, 6.0, lampHeight + 6.0), withAlpha(tone, 40));
+		painter.fillRect(QRectF(slab.left(), lampTop, 2.5, lampHeight), lamp);
+		painter.restore();
+		painter.setBrush(Qt::NoBrush);
+		painter.setPen(QPen(withAlpha(mixColor(QColor(t.border), tone, 0.35), 210), 1.0));
+		painter.drawRoundedRect(slab, 8.0, 8.0);
+		painter.restore();
+	}
 };
 }
 

@@ -716,6 +716,14 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <source>The check was stopped. The APO is installed, but whether it works was not checked.</source>
         <translation>확인을 중지했습니다. APO는 설치되었지만 작동하는지는 확인하지 못했습니다.</translation>
     </message>
+    <message>
+        <source>Whether the APO works is not known.</source>
+        <translation>APO가 작동하는지는 알 수 없습니다.</translation>
+    </message>
+    <message>
+        <source>Windows audio</source>
+        <translation>Windows 오디오</translation>
+    </message>
     <message numerus="yes">
         <source>The APO does not work on %n device(s).</source>
         <translation>

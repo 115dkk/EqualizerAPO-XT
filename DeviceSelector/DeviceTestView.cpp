@@ -9,7 +9,7 @@
 
 #include <QCoreApplication>
 #include <QHBoxLayout>
-#include <QLabel>
+#include <QPainter>
 #include <QTextEdit>
 #include <QTreeWidget>
 #include <QVBoxLayout>
@@ -17,6 +17,57 @@
 #include "DeviceListDelegate.h"
 #include "DisclosureHeader.h"
 #include "SkinButton.h"
+
+// One panel, painted by the active skin. Its height follows its text at the
+// width the layout gives it.
+class DevicePanelWidget : public QWidget
+{
+public:
+	explicit DevicePanelWidget(QWidget* parent = nullptr)
+		: QWidget(parent)
+	{
+		QSizePolicy policy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+		policy.setHeightForWidth(true);
+		setSizePolicy(policy);
+	}
+
+	void setState(const DevicePanelState& newState)
+	{
+		state = newState;
+		updateGeometry();
+		update();
+	}
+
+	bool hasHeightForWidth() const override {return true;}
+	int heightForWidth(int width) const override
+	{
+		return DeviceSkinPainter::active()->panelHeight(width, state, font(), DeviceSkinPainter::activeTokens());
+	}
+	// The layout asks before the widget has its width; answering with the
+	// height at a narrow guess would hold the whole dialog taller than its
+	// text needs. resizeEvent fixes the height once the width is known.
+	QSize sizeHint() const override {return QSize(420, heightForWidth(width() > 240 ? width() : 580));}
+	QSize minimumSizeHint() const override {return QSize(240, 24);}
+
+protected:
+	void paintEvent(QPaintEvent*) override
+	{
+		QPainter painter(this);
+		painter.setFont(font());
+		DeviceSkinPainter::active()->paintPanel(painter, rect(), state, font(), DeviceSkinPainter::activeTokens());
+	}
+
+	void resizeEvent(QResizeEvent* event) override
+	{
+		QWidget::resizeEvent(event);
+		const int wanted = heightForWidth(width());
+		if (wanted != height())
+			setFixedHeight(wanted);
+	}
+
+private:
+	DevicePanelState state;
+};
 
 DeviceTestView::DeviceTestView(QWidget* parent)
 	: QDialog(parent)
@@ -30,17 +81,8 @@ DeviceTestView::DeviceTestView(QWidget* parent)
 
 	// The answer first: one sentence that says where the check stands, and
 	// under it the one thing the user has to know or do about it.
-	headline = new QLabel(this);
-	QFont strong = headline->font();
-	strong.setBold(true);
-	headline->setFont(strong);
-	headline->setWordWrap(true);
-	column->addWidget(headline);
-
-	hint = new QLabel(this);
-	hint->setWordWrap(true);
-	hint->setStyleSheet(QStringLiteral("color: %1;").arg(tokens.mutedText));
-	column->addWidget(hint);
+	verdict = new DevicePanelWidget(this);
+	column->addWidget(verdict);
 
 	// The same list the selector showed, painted by the same skin. Nothing
 	// in it can be ticked here: the rows report.
@@ -60,13 +102,10 @@ DeviceTestView::DeviceTestView(QWidget* parent)
 
 	// What went wrong and what to do about it, one paragraph per device.
 	// The dialog this replaces showed a red mark and left the rest to a log.
-	notes = new QLabel(this);
-	notes->setObjectName(QStringLiteral("deviceTestNotes"));
-	notes->setWordWrap(true);
-	notes->setTextFormat(Qt::RichText);
-	notes->setTextInteractionFlags(Qt::TextSelectableByMouse);
-	notes->setVisible(false);
-	column->addWidget(notes);
+	tree->setMinimumHeight(150);
+	notesColumn = new QVBoxLayout;
+	notesColumn->setSpacing(6);
+	column->addLayout(notesColumn);
 
 	// What the check did, line by line: what the user is asked to send when
 	// a problem needs a report. Closed until they open it.
@@ -122,8 +161,7 @@ void DeviceTestView::setRows(const QVector<Row>& rows)
 		const bool lit = row.report != DeviceReport::Dead;
 		const bool settled = row.report == DeviceReport::Alive || row.report == DeviceReport::Degraded
 			|| row.report == DeviceReport::Untestable;
-		item->setData(0, DeviceListDelegate::InstalledRole,
-			lit && (settled || row.report == DeviceReport::Unchecked));
+		item->setData(0, DeviceListDelegate::InstalledRole, lit && settled);
 		item->setData(0, DeviceListDelegate::UnavailableRole, row.report == DeviceReport::Untestable);
 		item->setData(0, Qt::CheckStateRole, lit ? Qt::Checked : Qt::Unchecked);
 		item->setFlags(Qt::ItemIsEnabled);
@@ -213,46 +251,55 @@ DeviceTestView::ProblemText DeviceTestView::describe(Problem problem, const QStr
 
 void DeviceTestView::setNotes(const QVector<Note>& list)
 {
-	const SkinTokens& tokens = DeviceSkinPainter::activeTokens();
-	QString html;
+	while (QLayoutItem* old = notesColumn->takeAt(0))
+	{
+		delete old->widget();
+		delete old;
+	}
 	for (const Note& note : list)
 	{
-		html += QStringLiteral("<p style=\"margin:0 0 8px 0\">");
-		if (!note.subject.isEmpty())
-			html += QStringLiteral("<b>%1</b><br>").arg(note.subject.toHtmlEscaped());
-		html += note.text.cause.toHtmlEscaped();
-		html += QStringLiteral("<br>") + note.text.action.toHtmlEscaped();
+		DevicePanelState state;
+		state.tone = note.tone;
+		state.title = note.subject;
+		state.lines.append({DevicePanelState::LineKind::Body, note.text.cause});
+		state.lines.append({DevicePanelState::LineKind::Action, note.text.action});
 		if (!note.system.isEmpty())
-			html += QStringLiteral("<br><span style=\"color:%1; font-family:'%2'\">%3</span>")
-				.arg(tokens.mutedText, tokens.monoFontFamily, note.system.toHtmlEscaped());
-		html += QStringLiteral("</p>");
+			state.lines.append({DevicePanelState::LineKind::System, note.system});
+		DevicePanelWidget* panel = new DevicePanelWidget(this);
+		panel->setState(state);
+		notesColumn->addWidget(panel);
 	}
-	notes->setText(html);
-	notes->setVisible(!list.isEmpty());
 }
 
 void DeviceTestView::setPhase(Phase phase, int done, int total, int failed)
 {
+	DevicePanelState state;
+	QString hint;
 	switch (phase)
 	{
 	case Phase::Running:
-		headline->setText(tr("Checking that the APO works on each device (%1 of %2)").arg(done).arg(total));
-		hint->setText(tr("Windows audio restarts during the check, so sound stops for a few seconds."));
+		state.tone = DeviceReport::Waiting;
+		state.title = tr("Checking that the APO works on each device (%1 of %2)").arg(done).arg(total);
+		hint = tr("Windows audio restarts during the check, so sound stops for a few seconds.");
 		break;
 	case Phase::Passed:
-		headline->setText(tr("The APO works on every device."));
-		hint->setText(tr("The equalizer is applied from now on."));
+		state.tone = DeviceReport::Alive;
+		state.title = tr("The APO works on every device.");
+		hint = tr("The equalizer is applied from now on.");
 		break;
 	case Phase::Problem:
-		headline->setText(tr("The APO does not work on %n device(s).", nullptr, failed));
-		hint->setText(tr("The other devices are not affected."));
+		state.tone = DeviceReport::Dead;
+		state.title = tr("The APO does not work on %n device(s).", nullptr, failed);
+		hint = tr("The other devices are not affected.");
 		break;
 	case Phase::Stopped:
-		headline->setText(tr("The check did not finish."));
-		hint->setText(QString());
+		state.tone = DeviceReport::Unchecked;
+		state.title = tr("The check did not finish.");
+		hint = tr("Whether the APO works is not known.");
 		break;
 	}
-	hint->setVisible(!hint->text().isEmpty());
+	state.lines.append({DevicePanelState::LineKind::Body, hint});
+	verdict->setState(state);
 
 	const bool running = phase == Phase::Running;
 	stopButton->setVisible(running);
@@ -313,9 +360,9 @@ void DeviceTestView::loadPreview(Preview preview)
 		setRows(rows);
 		setRecord(lines);
 		setPhase(Phase::Problem, 5, 5, 1);
-		setNotes({{QStringLiteral("Headphones"), describe(Problem::NoAnswerEveryMode), QString()},
-			{QStringLiteral("CABLE Input"), describe(Problem::OriginalApoFailed), QString()},
-			{QStringLiteral("Digital Output"), describe(Problem::DeviceUnplugged), QString()}});
+		setNotes({{QStringLiteral("Headphones"), describe(Problem::NoAnswerEveryMode), QString(), DeviceReport::Dead},
+			{QStringLiteral("CABLE Input"), describe(Problem::OriginalApoFailed), QString(), DeviceReport::Degraded},
+			{QStringLiteral("Digital Output"), describe(Problem::DeviceUnplugged), QString(), DeviceReport::Untestable}});
 		break;
 	case Preview::Stopped:
 	{
@@ -329,8 +376,8 @@ void DeviceTestView::loadPreview(Preview preview)
 		setRows(rows);
 		setRecord(lines);
 		setPhase(Phase::Stopped, 0, 3, 0);
-		setNotes({{QString(), describe(Problem::AudioRestartFailed),
-			QStringLiteral("Error while stopping service \"audiosrv\": Access is denied. (5)")}});
+		setNotes({{tr("Windows audio"), describe(Problem::AudioRestartFailed),
+			QStringLiteral("Error while stopping service \"audiosrv\": Access is denied. (5)"), DeviceReport::Dead}});
 		break;
 	}
 	}

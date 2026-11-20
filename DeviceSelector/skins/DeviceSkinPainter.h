@@ -19,7 +19,10 @@
 #pragma once
 
 #include <QColor>
+#include <QFont>
 #include <QFontMetrics>
+#include <QMargins>
+#include <QVector>
 #include <QPainter>
 #include <QRect>
 #include <QSize>
@@ -80,6 +83,46 @@ struct DeviceDisclosureState
 	double hover = 0.0; // animated 0..1
 };
 
+// A block of sentences the dialog has to say: the check's verdict, or what
+// went wrong on one device and what to do about it. The skin gives it a
+// ground, a tone mark and its own type, so a paragraph is a part of the
+// instrument and not text left lying on the window.
+struct DevicePanelState
+{
+	enum class LineKind
+	{
+		Body,   // what happened
+		Action, // what the user can do; carries the skin's action mark
+		System  // a message quoted from Windows, set apart in the mono face
+	};
+	struct Line
+	{
+		LineKind kind = LineKind::Body;
+		QString text;
+	};
+
+	DeviceReport tone = DeviceReport::None;
+	QString title;
+	QVector<Line> lines;
+};
+
+// How a skin sets a panel's text. The flow (title, then each line under the
+// last, wrapped to the panel) is shared; the faces, inks and insets are the
+// skin's.
+struct DevicePanelStyle
+{
+	QFont titleFont;
+	QFont bodyFont;
+	QFont monoFont;
+	QColor titleInk;
+	QColor bodyInk;
+	QColor mutedInk;
+	QColor toneInk;
+	QMargins padding = QMargins(14, 10, 14, 10);
+	int lineGap = 3;
+	int actionIndent = 16;
+};
+
 class DeviceSkinPainter
 {
 public:
@@ -116,4 +159,23 @@ public:
 	virtual void paintButton(QPainter& painter, const QRect& rect, const DeviceButtonState& state, const SkinTokens& tokens) const;
 
 	virtual void paintDisclosure(QPainter& painter, const QRect& rect, const DeviceDisclosureState& state, const SkinTokens& tokens) const;
+
+	// The colour a tone speaks in, and its short instrument code (RUN, OK,
+	// WARN, FAIL, N/A) for the skins that label their parts.
+	static QColor toneColor(DeviceReport tone, const SkinTokens& tokens);
+	static QString toneCode(DeviceReport tone);
+
+	// A panel: the skin supplies the style, the ground (with its tone mark)
+	// and the mark in front of an action line; the text flow is shared.
+	virtual DevicePanelStyle panelStyle(const DevicePanelState& state, const QFont& base, const SkinTokens& tokens) const;
+	virtual void paintPanelGround(QPainter& painter, const QRect& rect, const DevicePanelState& state, const SkinTokens& tokens) const;
+	virtual void paintActionMark(QPainter& painter, const QRectF& cell, const QColor& ink, const SkinTokens& tokens) const;
+	virtual void paintSystemWell(QPainter& painter, const QRectF& rect, const SkinTokens& tokens) const;
+	int panelHeight(int width, const DevicePanelState& state, const QFont& base, const SkinTokens& tokens) const;
+	void paintPanel(QPainter& painter, const QRect& rect, const DevicePanelState& state, const QFont& base, const SkinTokens& tokens) const;
+
+private:
+	int flowPanel(QPainter* painter, const QRect& rect, const DevicePanelState& state, const QFont& base, const SkinTokens& tokens) const;
+
+public:
 };

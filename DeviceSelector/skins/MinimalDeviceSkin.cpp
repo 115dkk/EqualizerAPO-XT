@@ -425,6 +425,65 @@ public:
 		});
 		painter.restore();
 	}
+
+	// A panel is terminal output: a bracketed status word in the margin, the
+	// text in the one mono face, and a rule down the left the way a quoted
+	// block is set. Nothing is filled.
+	DevicePanelStyle panelStyle(const DevicePanelState& state, const QFont& base, const SkinTokens& tokens) const override
+	{
+		DevicePanelStyle style = DeviceSkinPainter::panelStyle(state, base, tokens);
+		QFont mono(tokens.monoFontFamily);
+		mono.setPointSizeF(base.pointSizeF());
+		style.bodyFont = mono;
+		style.titleFont = mono;
+		style.titleFont.setBold(true);
+		style.monoFont = mono;
+		style.bodyInk = QColor(tokens.text);
+		const int cell = QFontMetrics(mono).horizontalAdvance(QLatin1Char('0'));
+		style.padding = QMargins(cell * 9, 6, cell, 6);
+		style.actionIndent = cell * 3;
+		style.lineGap = 2;
+		return style;
+	}
+
+	void paintPanelGround(QPainter& painter, const QRect& rect, const DevicePanelState& state, const SkinTokens& tokens) const override
+	{
+		painter.save();
+		painter.setRenderHint(QPainter::Antialiasing, false);
+		const QColor tone = toneColor(state.tone, tokens);
+		QFont mono(tokens.monoFontFamily);
+		mono.setPointSizeF(painter.font().pointSizeF());
+		mono.setBold(true);
+		const QFontMetrics fm(mono);
+		const int cell = fm.horizontalAdvance(QLatin1Char('0'));
+		painter.setPen(QPen(tone, 1));
+		painter.drawLine(rect.left() + cell * 8, rect.top() + 4, rect.left() + cell * 8, rect.bottom() - 4);
+		painter.setFont(mono);
+		const QString code = QStringLiteral("[%1]").arg(toneCode(state.tone), 4);
+		painter.drawText(QRect(rect.left(), rect.top() + 6, cell * 7, fm.height()), Qt::AlignRight | Qt::AlignVCenter, code);
+		painter.restore();
+	}
+
+	void paintActionMark(QPainter& painter, const QRectF& cell, const QColor& ink, const SkinTokens& tokens) const override
+	{
+		painter.save();
+		QFont mono(tokens.monoFontFamily);
+		mono.setPointSizeF(painter.font().pointSizeF());
+		painter.setFont(mono);
+		painter.setPen(ink);
+		painter.drawText(cell, Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("->"));
+		painter.restore();
+	}
+
+	void paintSystemWell(QPainter& painter, const QRectF& rect, const SkinTokens& tokens) const override
+	{
+		painter.save();
+		painter.setRenderHint(QPainter::Antialiasing, false);
+		painter.setPen(QPen(withAlpha(QColor(tokens.mutedText), 120), 1, Qt::DotLine));
+		painter.setBrush(Qt::NoBrush);
+		painter.drawRect(rect.toRect().adjusted(0, 0, -1, -1));
+		painter.restore();
+	}
 };
 }
 
