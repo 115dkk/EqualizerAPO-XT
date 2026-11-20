@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <string>
 #include <vector>
 
 #include "SubwooferRouting/Processor.h"
@@ -35,6 +36,15 @@ public:
 		unsigned maxFrameCount,
 		std::vector<std::wstring> channelNames) override;
 	void process(double** output, double** input, unsigned frameCount) override;
+
+	// The device channel IDs a state is compiled against: the channel names,
+	// except that a slot whose name the state does not know, but whose
+	// 1-based number the state saved as a channel ID, keeps that number.
+	// States saved before a device's height channels were named (9 to 12 on
+	// a 7.1.4 endpoint, now TFL TFR TRL TRR) hold those numbers.
+	static std::vector<std::string> deviceChannelIds(
+		const subroute::SubwooferRoutingState& state,
+		const std::vector<std::wstring>& channelNames);
 
 private:
 	subroute::SubwooferRoutingState state;

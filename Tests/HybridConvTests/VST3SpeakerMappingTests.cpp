@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "pluginterfaces/vst/vstspeaker.h"
+#include "audio/ChannelLayout.h"
 #include "vst/VST3SpeakerMapping.h"
 #include "../TestHarness.h"
 
@@ -213,6 +214,33 @@ namespace
 		// roles. This keeps the Windows 4.0 side-only order placeable.
 		expectMapping(SpeakerArr::k40Music, {L"L", L"R", L"SL", L"SR"},
 			{0, 1, 2, 3}, "side-only channels use Ls/Rs");
+	}
+
+	// A Windows 7.1.4 endpoint (KSAUDIO 7.1.4 mask 0x2D63F: the 7.1 floor plus
+	// TOP_FRONT_LEFT/RIGHT and TOP_BACK_LEFT/RIGHT) names its height channels
+	// as the 7.1.4 bus layout does. They used to come out as 9 to 12, so the
+	// endpoint matched no layout and its plug-ins were offered k71_4 by count
+	// alone. Numbers must keep resolving: configs written before the names
+	// existed select these channels by number.
+	TEST_CASE(VST3SpeakerMappingTests, testWindowsHeightNames)
+	{
+		const int surround714Mask = 0x2D63F;
+		const vector<wstring> names = ChannelLayout::getChannelNames(12, surround714Mask);
+		harness.expectTrue(names == vst3BusLayoutChannelNames(VST3BusLayout::Surround714),
+			"a Windows 7.1.4 mask names its channels as the 7.1.4 bus layout");
+		expectArrangements(vst3speakers::semanticArrangementCandidates(names), {SpeakerArr::k71_4},
+			"a Windows 7.1.4 endpoint proposes 7.1.4 by its names");
+		harness.expectEqual(ChannelLayout::getChannelIndex(L"9", names), 8,
+			"channel number 9 still selects the first height channel");
+		harness.expectEqual(ChannelLayout::getChannelIndex(L"TRR", names), 11,
+			"TRR selects the last height channel");
+
+		// The three centre heights have no VST3 layout here, but they still
+		// have names, and a channel the mask does not cover keeps its number.
+		const int centreHeights = 0x3 | 0x800 | 0x2000 | 0x10000;
+		harness.expectTrue(ChannelLayout::getChannelNames(6, centreHeights)
+			== vector<wstring>({L"L", L"R", L"TC", L"TFC", L"TRC", L"6"}),
+			"centre heights are named and an uncovered channel is numbered");
 	}
 
 	TEST_CASE(VST3SpeakerMappingTests, testUnplaceableNames)
