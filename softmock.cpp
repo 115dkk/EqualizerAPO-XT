@@ -1485,19 +1485,19 @@ static void labelOver(C& g, QPointF pos, const QString& s)
 static void sendControls(C& g, QPointF pos, const QString& to, const QString& mode, const QString& latency, bool compensate)
 {
 	double x = pos.x();
-	labelOver(g, QPointF(x, pos.y()), QStringLiteral("받는 곳"));
+	labelOver(g, QPointF(x, pos.y()), QStringLiteral("받는 쪽"));
 	g.select(QRectF(x, pos.y() + 22, 320, 32), to);
 	x += 320 + 16;
 	labelOver(g, QPointF(x, pos.y()), QStringLiteral("받는 방식"));
 	g.select(QRectF(x, pos.y() + 22, 220, 32), mode);
 	x += 220 + 16;
-	labelOver(g, QPointF(x, pos.y()), QStringLiteral("지연"));
+	labelOver(g, QPointF(x, pos.y()), QStringLiteral("지연 시간"));
 	if (latency.isEmpty())
 		placeholderField(g, QRectF(x, pos.y() + 22, 110, 32), QStringLiteral("기본값"));
 	else
 		g.field(QRectF(x, pos.y() + 22, 110, 32), latency, "ms");
 	x += 110 + 20;
-	g.checkbox(QPointF(x, pos.y() + 29), compensate, QStringLiteral("이 장치도 같은 만큼 늦추기"));
+	g.checkbox(QPointF(x, pos.y() + 29), compensate, QStringLiteral("이 장치도 지연해 재생 시점 맞추기"));
 }
 
 static void sceneMore(C& g)
@@ -1525,13 +1525,13 @@ static void sceneMore(C& g)
 		placeholderField(g, QRectF(x + 6, body.y() + 12, 180, 32), QStringLiteral("채널 이름 추가"));
 		g.lamp(QPointF(body.x() + 5, body.y() + 63), c.error);
 		g.text(QRectF(body.x() + 18, body.y() + 52, 1000, 22),
-			QStringLiteral("표시한 이름을 지우거나 바꾸기 전에는 이 줄 전체가 오디오에 반영되지 않습니다."), 13, 500, c.text);
+			QStringLiteral("표시한 이름을 사용할 수 없습니다. 오디오에 반영되지 않습니다."), 14, 700, c.text);
 		y += 131 + 8;
 	}
 	// 3: Send: where to, how it is received, the latency, and the routing
 	{
-		const QRectF body = card(g, QRectF(x0, y, w, 211), { 3, "send", QStringLiteral("보내기"), true, Rest, true, {} });
-		sendControls(g, QPointF(body.x(), body.y() + 10), QStringLiteral("거실 스피커 (USB Audio)"), QStringLiteral("그 장치의 소리에 섞기"), "20", true);
+		const QRectF body = card(g, QRectF(x0, y, w, 211), { 3, "send", QStringLiteral("전송"), true, Rest, true, {} });
+		sendControls(g, QPointF(body.x(), body.y() + 10), QStringLiteral("거실 스피커 (USB Audio)"), QStringLiteral("받는 쪽 소리에 섞기"), "20", true);
 		const QStringList outs = { "L", "R" };
 		const QList<QStringList> terms = { { "1.00", "L", "0.50", "R" }, { "1.00", "R" } };
 		for (int i = 0; i < 2; i++)
@@ -1561,12 +1561,12 @@ static void sceneMore(C& g)
 	}
 	// 4: Send to an endpoint that does not take what is sent
 	{
-		const QRectF body = card(g, QRectF(x0, y, w, 163), { 4, "send", QStringLiteral("보내기"), true, Rest, true, {} });
-		const QString why = QStringLiteral("받는 장치에서 보내기가 꺼져 있습니다.");
+		const QRectF body = card(g, QRectF(x0, y, w, 163), { 4, "send", QStringLiteral("전송"), true, Rest, true, {} });
+		const QString why = QStringLiteral("받는 쪽 장치에서 전송이 꺼져 있습니다.");
 		g.lamp(QPointF(body.x() + 5, body.y() + 28), c.warning);
 		g.text(QRectF(body.x() + 18, body.y() + 12, 1000, 32), why, 14, 500, c.text);
 		g.button(QPointF(body.x() + 18 + g.textW(why, 14) + 16, body.y() + 12), QStringLiteral("장치 설정 열기"));
-		sendControls(g, QPointF(body.x(), body.y() + 54), QStringLiteral("서재 헤드폰 (DAC)"), QStringLiteral("그 장치의 소리 대신 내기"), QString(), false);
+		sendControls(g, QPointF(body.x(), body.y() + 54), QStringLiteral("서재 헤드폰 (DAC)"), QStringLiteral("받는 쪽 소리를 대체하기"), QString(), false);
 		y += 163 + 8;
 	}
 	// 5: Filter ... IIR: the order and the two coefficient rows
