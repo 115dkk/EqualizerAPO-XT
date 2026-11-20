@@ -520,7 +520,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     <message>
         <location filename="../DeviceTestView.cpp" line="240"/>
         <source>The cause could not be determined. Update the device&apos;s driver, then press Reinstall. Some drivers load no APO at all.</source>
-        <translation>원인은 알아내지 못했습니다. 장치 드라이버를 최신으로 바꾼 뒤 재설치를 누르십시오. APO를 전혀 불러오지 않는 드라이버도 있습니다.</translation>
+        <translation>원인은 알 수 없습니다. 장치 드라이버를 최신으로 바꾼 뒤 재설치를 누르십시오. APO를 전혀 불러오지 않는 드라이버도 있습니다.</translation>
     </message>
     <message>
         <location filename="../DeviceTestView.cpp" line="260"/>
@@ -718,7 +718,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     </message>
     <message>
         <source>The cause could not be determined. Update the device&apos;s driver and check again; some drivers load no APO at all.</source>
-        <translation type="vanished">원인은 알아내지 못했습니다. 장치 드라이버를 최신으로 바꾼 뒤 다시 확인하십시오. APO를 전혀 불러오지 않는 드라이버도 있습니다.</translation>
+        <translation type="vanished">원인은 알 수 없습니다. 장치 드라이버를 최신으로 바꾼 뒤 다시 확인하십시오. APO를 전혀 불러오지 않는 드라이버도 있습니다.</translation>
     </message>
     <message>
         <location filename="../DeviceTestView.cpp" line="243"/>
