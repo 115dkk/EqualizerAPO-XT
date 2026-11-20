@@ -159,53 +159,61 @@ SkinTokens softTokens(bool dark)
 {
 	SkinTokens t;
 	t.dark = dark;
-	t.fontFamily = QStringLiteral("EAPO Sans");
-	t.monoFontFamily = QStringLiteral("EAPO Mono");
-	t.borderRadius = 14;
-	// 44, down from 48 (2026-08 density round): still the airiest header of
-	// the five, but no longer half again the compact skins' height.
+	// Pretendard for every script, so Latin, digits and Hangul share one face;
+	// source text (command lines, conditions) is set in the Sarasa mono.
+	t.fontFamily = QStringLiteral("EAPO Sans KR");
+	t.monoFontFamily = QStringLiteral("EAPO Mono K");
+	t.borderRadius = 10;
 	t.rowHeight = 44;
 	t.channelGroupIndent = 20;
-	t.channelGroupStyle = SkinTokens::SoftShadow;
-	t.badgeStyle = SkinTokens::SoftPill;
-	// The accent and the semantic colours live on the pastel shelf
-	// themselves (the softPastelize recipe applied to the old saturated
-	// values), so every consumer - knob arcs, focus rings, toggles, ON
-	// pills, severity inks - is pastel without knowing it.
+	// The group and badge kinds only pick the shared fallbacks; the skin
+	// paints its own scope gutter and channel tags.
+	t.channelGroupStyle = SkinTokens::TreeLines;
+	t.badgeStyle = SkinTokens::OutlineOnly;
+	// Neutral grounds, a white (or near-black) surface for cards, and one
+	// emphasis colour: ink in the light theme, a blue in the dark one. The
+	// accent never tints an area, so cardSelected is a neutral step, not a
+	// mix of the accent. accent2 is the accent: nothing here is told apart
+	// by a second hue.
 	if (dark)
 	{
-		t.background = QStringLiteral("#1C1A17");
-		t.surface = QStringLiteral("#262320");
-		t.card = QStringLiteral("#2F2B26");
-		t.cardHover = QStringLiteral("#38332D");
-		// The pastel accent mixed deep into the card (softMix 0.75).
-		t.cardSelected = QStringLiteral("#3F4650");
-		t.text = QStringLiteral("#F4F1EA");
-		t.mutedText = QStringLiteral("#B3AB9D");
-		t.border = QStringLiteral("#423D34");
-		t.graph = QStringLiteral("#181613");
-		t.accent = QStringLiteral("#6E96CF");
-		t.accent2 = QStringLiteral("#8B6ECF");
-		t.success = QStringLiteral("#6ECF91");
-		t.warning = QStringLiteral("#CFAB6E");
-		t.danger = QStringLiteral("#CF6E6E");
+		t.background = QStringLiteral("#0F1012");
+		t.surface = QStringLiteral("#17191C");
+		t.card = QStringLiteral("#17191C");
+		t.cardHover = QStringLiteral("#1F2226");
+		t.cardSelected = QStringLiteral("#24282D");
+		t.text = QStringLiteral("#E7E8EA");
+		t.mutedText = QStringLiteral("#9EA2A8");
+		t.border = QStringLiteral("#2A2D31");
+		t.borderStrong = QStringLiteral("#3B3F45");
+		t.controlEdge = QStringLiteral("#6F747C");
+		t.graph = QStringLiteral("#131517");
+		t.accent = QStringLiteral("#8CB3ED");
+		t.accent2 = QStringLiteral("#8CB3ED");
+		t.onAccent = QStringLiteral("#0F1216");
+		t.success = QStringLiteral("#63C27C");
+		t.warning = QStringLiteral("#E3A03A");
+		t.danger = QStringLiteral("#FF7C62");
 	}
 	else
 	{
-		t.background = QStringLiteral("#F2EEE6");
-		t.surface = QStringLiteral("#FFF7E6");
-		t.card = QStringLiteral("#F8F5EE");
-		t.cardHover = QStringLiteral("#FFF1DD");
-		t.cardSelected = QStringLiteral("#DEE6FF");
-		t.text = QStringLiteral("#28231F");
-		t.mutedText = QStringLiteral("#786F67");
-		t.border = QStringLiteral("#E8DDCF");
-		t.graph = QStringLiteral("#FFF3E2");
-		t.accent = QStringLiteral("#6190D1");
-		t.accent2 = QStringLiteral("#8361D1");
-		t.success = QStringLiteral("#61D18A");
-		t.warning = QStringLiteral("#D1A861");
-		t.danger = QStringLiteral("#D16161");
+		t.background = QStringLiteral("#F6F6F5");
+		t.surface = QStringLiteral("#FFFFFF");
+		t.card = QStringLiteral("#FFFFFF");
+		t.cardHover = QStringLiteral("#F1F1EF");
+		t.cardSelected = QStringLiteral("#EAEAE7");
+		t.text = QStringLiteral("#1C1C1B");
+		t.mutedText = QStringLiteral("#5D5D59");
+		t.border = QStringLiteral("#E2E2DF");
+		t.borderStrong = QStringLiteral("#C9C9C5");
+		t.controlEdge = QStringLiteral("#8A8A85");
+		t.graph = QStringLiteral("#F1F1EF");
+		t.accent = QStringLiteral("#1C1C1B");
+		t.accent2 = QStringLiteral("#1C1C1B");
+		t.onAccent = QStringLiteral("#FFFFFF");
+		t.success = QStringLiteral("#2E7D46");
+		t.warning = QStringLiteral("#965A00");
+		t.danger = QStringLiteral("#B42D14");
 	}
 	finishTokens(t);
 	return t;
@@ -513,6 +521,9 @@ QString substituteTokens(QString qss, const SkinTokens& tokens)
 		{ "@WARNING@", tokens.warning },
 		{ "@DANGER@", tokens.danger },
 		{ "@FOCUS@", tokens.focusRing },
+		{ "@BORDER_STRONG@", tokens.borderStrong },
+		{ "@EDGE@", tokens.controlEdge },
+		{ "@ON_ACCENT@", tokens.onAccent },
 		{ "@FONT@", tokens.fontFamily },
 		{ "@MONO@", tokens.monoFontFamily },
 		// Whole font-family values: the token face plus the bundled fallbacks.

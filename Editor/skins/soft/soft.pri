@@ -5,8 +5,6 @@ SOURCES += \
 	$$PWD/SoftSkin.ListChrome.cpp \
 	$$PWD/SoftSkin.GraphicEq.cpp \
 	$$PWD/SoftSkin.Analysis.cpp \
-	$$PWD/SoftSkin.Toolbar.cpp \
-	$$PWD/SoftSkin.FileDialog.cpp \
 	$$PWD/SoftFileIcons.cpp \
 	$$PWD/picker/SoftFilterPicker.cpp \
 	$$PWD/cards/SoftReferenceCardView.cpp \
@@ -15,6 +13,7 @@ SOURCES += \
 
 HEADERS += \
 	$$PWD/SoftSkin.h \
+	$$PWD/SoftPaint.h \
 	$$PWD/picker/SoftFilterPicker.h \
 	$$PWD/cards/SoftReferenceCardView.h \
 	$$PWD/cards/SoftSubwooferRoutingCardView.h \

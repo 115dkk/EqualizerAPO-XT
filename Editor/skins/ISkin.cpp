@@ -163,6 +163,11 @@ bool ISkin::logicSiblingsIndentAsMembers() const
 	return true;
 }
 
+bool ISkin::showsUnusableVstBusStrip() const
+{
+	return true;
+}
+
 void ISkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& state, const SkinTokens& tokens) const
 {
 	// Neutral default: a rounded token ground, the token grid, an accent

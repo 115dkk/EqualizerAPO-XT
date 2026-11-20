@@ -483,6 +483,15 @@ public:
 	// false.
 	virtual bool logicSiblingsIndentAsMembers() const;
 
+	// Whether a VST row keeps its Input/Output bus strip when the selectors
+	// cannot be used at all (a plugin loaded as VST2 has no layouts to
+	// choose). Default: true, the strip stays and draws its selectors
+	// disabled, which is what every skin did before the question existed. A
+	// skin whose rule is "what cannot be used is not shown" answers false;
+	// the loaded format is still on the row (the reference card's format
+	// badge) and a problem is still reported by the card's status line.
+	virtual bool showsUnusableVstBusStrip() const;
+
 	// The persistent "add card" row at the end of the filter list (shared
 	// insertion contract, docs/skins/README.md). The AddCardRow widget owns
 	// input (click / Enter opens the filter picker anchored under the row) and

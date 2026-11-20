@@ -82,6 +82,7 @@ public:
 		bool virtualChannel) const;
 	QIcon powerToggleIcon(bool enabled) const;
 	bool logicSiblingsIndentAsMembers() const;
+	bool showsUnusableVstBusStrip() const;
 
 	// List-level insertion chrome, delegated to the active skin (see
 	// ISkin::paintAddRow / ISkin::paintInsertSeam). In heritage mode the

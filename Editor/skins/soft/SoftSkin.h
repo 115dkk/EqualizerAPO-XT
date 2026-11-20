@@ -8,8 +8,6 @@
 
 #include "Editor/skins/ISkin.h"
 
-class QIcon;
-
 class SoftSkin final : public ISkin
 {
 public:
@@ -29,6 +27,10 @@ public:
 		const SkinTokens& tokens) const override;
 	bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info,
 		const SkinTokens& tokens) const override;
+	bool paintChannelBadge(QPainter& painter, const QRect& rect, const QString& channel,
+		bool virtualChannel, const SkinTokens& tokens) const override;
+	QIcon powerToggleIcon(bool enabled, const SkinTokens& tokens) const override;
+	bool showsUnusableVstBusStrip() const override;
 
 	void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state,
 		const SkinTokens& tokens) const override;
@@ -53,10 +55,7 @@ public:
 	void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state,
 		const SkinTokens& tokens) const override;
 
-	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override;
-	void styleFileDialog(QFileDialog* dialog, const SkinTokens& tokens) const override;
+	// The toolbar and the file dialog's navigation row keep the shared stroke
+	// icons in the body ink (the ISkin defaults): nothing here wears a tile.
 	QAbstractFileIconProvider* fileIconProvider(const SkinTokens& tokens) const override;
-
-private:
-	static QIcon softTileIcon(const QString& resource, const QColor& tile);
 };

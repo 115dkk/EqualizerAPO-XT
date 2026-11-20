@@ -153,14 +153,3 @@ inline QPointF skinArcPoint(const QPointF& center, double radius, double degrees
 	const double radians = qDegreesToRadians(degrees);
 	return QPointF(center.x() + qCos(radians) * radius, center.y() - qSin(radians) * radius);
 }
-
-// Soft's pastel-shelf recipe (constitution-cited: "파스텔은 토큰 혼합으로").
-// Shared here only because SoftSkin and SoftReferenceCardView both need it;
-// the other four skins must not adopt it - pastel derivation IS Soft's
-// grammar (differentiation gate).
-inline QColor softPastelize(const QColor& base, bool dark)
-{
-	const double hue = base.hslHueF() < 0.0 ? 215.0 / 360.0 : base.hslHueF();
-	const double saturation = qMin(base.hslSaturationF(), dark ? 0.50 : 0.55);
-	return QColor::fromHslF(hue, saturation, dark ? 0.62 : 0.60);
-}

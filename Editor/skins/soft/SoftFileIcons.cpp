@@ -18,38 +18,26 @@
 
 namespace
 {
-// File-dialog pictograms in Soft's tile language: every entry is a small
-// rounded pastel tile (the picker and reference-card tiles' 32% corner)
-// with a round-capped stroke glyph in the tiles' near-white ink. The
-// glyphs are the reference card's own pictograms (the Include sheet, the
-// Convolution bars, the VST plug) redrawn by hand, because the SVG set's
-// thin strokes smear at the dialog's 16px. Two pastels only, both already
-// in the dialog's navigation row: places you open (folders, drives, the
-// computer) keep the folder buttons' warm tint, files keep the accent
-// the Include tile wears.
+// File-dialog pictograms: a round-capped stroke glyph in the body ink, on
+// nothing. No tile and no colour per kind; what an entry is, its shape
+// says (a folder, a sheet with two lines, decaying bars, a plug). The
+// glyphs are drawn by hand because the SVG set's thin strokes smear at the
+// dialog's 16px.
 class SoftFileIconProvider : public SkinFileIconProvider
 {
 protected:
 	QIcon makeIcon(Glyph glyph, const SkinTokens& tokens) const override
 	{
-		const bool dark = skinIsDark(tokens);
-		const bool place = glyph == Glyph::Folder || glyph == Glyph::Drive || glyph == Glyph::Computer;
-		const QColor tile = softPastelize(QColor(place ? tokens.warning : tokens.accent), dark);
-		const QColor ink(QStringLiteral("#FAFAFC"));
-		return paintedIcon([glyph, tile, ink](QPainter& painter, const QRect&, int sizePx) {
+		const QColor ink(tokens.text);
+		return paintedIcon([glyph, ink](QPainter& painter, const QRect&, int sizePx) {
 			const qreal s = sizePx;
-			const QRectF tileRect(s * 0.05, s * 0.05, s * 0.90, s * 0.90);
-			painter.setPen(Qt::NoPen);
-			painter.setBrush(tile);
-			painter.drawRoundedRect(tileRect, tileRect.width() * 0.32, tileRect.height() * 0.32);
-
-			painter.setPen(QPen(ink, qMax(1.2, s * 0.085), Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+			painter.setPen(QPen(ink, qMax(1.2, s * 0.08), Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
 			painter.setBrush(Qt::NoBrush);
-			// Glyph coordinates are drawn on a 0..1 grid and spread 15% about the
-			// tile centre, so the stroke glyph fills the tile the way the picker's
-			// glyphs do and a sheet at 16px still has room for its two lines.
+			// Glyph coordinates are drawn on a 0..1 grid and spread 60% about
+			// the centre: with no tile round it the glyph may use the whole
+			// square, and a sheet at 16px keeps room for its two lines.
 			const auto at = [s](qreal x, qreal y) {
-				return QPointF(s * (0.5 + (x - 0.5) * 1.15), s * (0.5 + (y - 0.5) * 1.15));
+				return QPointF(s * (0.5 + (x - 0.5) * 1.6), s * (0.5 + (y - 0.5) * 1.6));
 			};
 
 			const auto sheet = [&]() {
@@ -114,43 +102,6 @@ protected:
 		});
 	}
 };
-}
-
-// One icon, several pre-rendered sizes (16px for the File menu rows up to
-// the 22px toolbar size and beyond), so Qt never stretches a tile. The
-// tile matches SoftFilterPicker's category tiles: a rounded square at 32%
-// corner radius with the glyph inked in the picker's near-white literal.
-QIcon SoftSkin::softTileIcon(const QString& resource, const QColor& tile)
-{
-	QIcon icon;
-	// 44/64 keep the tile crisp on 2x displays (22/32 logical at DPR 2).
-	for (const int logical : { 16, 18, 20, 22, 24, 32, 44, 64 })
-	{
-		const int side = logical;
-		QPixmap pixmap(side, side);
-		pixmap.fill(Qt::transparent);
-		QPainter painter(&pixmap);
-		painter.setRenderHint(QPainter::Antialiasing);
-		painter.setPen(Qt::NoPen);
-		painter.setBrush(tile);
-		painter.drawRoundedRect(QRectF(0, 0, side, side), side * 0.32, side * 0.32);
-		const int glyphSide = qMax(10, qRound(logical * 0.66));
-		const QPixmap glyph = GUIHelper::tintedIcon(resource, QColor(QStringLiteral("#FAFAFC")), glyphSide)
-			.pixmap(QSize(glyphSide, glyphSide));
-		// Centre by the glyph's LOGICAL size: on high-DPR displays
-		// QIcon::pixmap returns a pixmap whose width() is physical pixels
-		// (dpr baked in), and drawPixmap honors the dpr - centring by
-		// width() shoved the glyph toward the top-left at 200% scale.
-		const QSizeF glyphLogical = glyph.deviceIndependentSize();
-		painter.drawPixmap(QPointF((side - glyphLogical.width()) / 2.0,
-			(side - glyphLogical.height()) / 2.0), glyph);
-		painter.end();
-		icon.addPixmap(pixmap);
-		// The whole tile fades when the action is disabled, the shared
-		// disabled-glyph recipe (undo/redo on an empty history).
-		icon.addPixmap(GUIHelper::fadedPixmap(pixmap), QIcon::Disabled);
-	}
-	return icon;
 }
 
 QAbstractFileIconProvider* SoftSkin::fileIconProvider(const SkinTokens& tokens) const

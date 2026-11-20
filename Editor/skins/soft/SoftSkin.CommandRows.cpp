@@ -7,9 +7,10 @@
 #include "SoftSkin.h"
 
 #include <QCoreApplication>
+#include <QBoxLayout>
 #include <QLabel>
-#include <QLinearGradient>
 #include <QPainter>
+#include <QPainterStateGuard>
 #include <QRegularExpression>
 #include <QWidget>
 #include <QtMath>
@@ -22,8 +23,8 @@ namespace
 // The friendly-sentence grammar of the dynamic commands. Only a right-hand
 // side this simple may enter a sentence: a quoted string (the quotes come
 // off), a number, or true/false. Everything else counts as complex and keeps
-// the summary as written - an honest fallback, the dashed raw well in the
-// body already holds the source.
+// the summary as written - an honest fallback, the source field in the body
+// already holds the line.
 QString softSentenceLiteral(const QString& raw)
 {
 	const QString value = raw.trimmed();
@@ -118,70 +119,47 @@ QString softFriendlySentence(const QString& command, const QString& asWritten)
 }
 }
 
-// One calm silhouette for every command type: a 12px rounded card one
-// value step above the window, "shadowed" only by that step and a very
-// light 1px border. Hover lifts the whole card one more value step
-// (QSS :hover re-evaluates at paint time, so the inline rule is enough).
-// A commented-out row sinks flush into the window background and keeps
-// only a dashed outline - an empty slot, not an alarm.
+// Every command type is the same card: the card surface, a 1px line, the
+// skin's surface radius. Hover takes the line one step heavier; the chosen
+// card's line is the emphasis colour. Nothing tints the card - the accent
+// never colours an area. A switched-off row keeps its frame; its switch is
+// off and its contents fade (the sheets' :disabled rules).
 QString SoftSkin::cardFrameStyle(const CommandRowInfo& info, const SkinTokens& t) const
 {
-	if (!info.enabled)
-	{
-		return QStringLiteral("QFrame#FilterCardRow { background: %1; border: 1px dashed %2; border-radius: %3px; }")
-			.arg(t.background, t.border)
-			.arg(t.borderRadius);
-	}
-
-	const QString borderColor = info.focused ? t.focusRing : (info.selected ? t.accent : t.border);
-	const QString backgroundColor = info.selected ? t.cardSelected : t.card;
-	const QString hoverColor = info.selected ? t.cardSelected : t.cardHover;
+	const bool marked = info.enabled && (info.selected || info.focused);
+	const QString borderColor = marked ? (info.focused ? t.focusRing : t.accent) : t.border;
 	return QStringLiteral(
 		"QFrame#FilterCardRow { background: %1; border: 1px solid %2; border-radius: %3px; }"
-		"QFrame#FilterCardRow:hover { background: %4; }")
-		.arg(backgroundColor, borderColor)
+		"QFrame#FilterCardRow:hover { border-color: %4; }")
+		.arg(t.card, borderColor)
 		.arg(t.borderRadius)
-		.arg(hoverColor);
+		.arg(marked ? borderColor : t.borderStrong);
 }
 
-// No header strip: the header shares the card surface so the row reads as
-// one roomy rounded object (macOS System Settings rows have no banded
-// title bar). Hierarchy inside the header comes from type tile, title size
-// and whitespace, all handled in the QSS sheets.
+// The header shares the card surface. What is in it is told apart by the
+// type glyph, the title's weight and the space between.
 QString SoftSkin::cardHeaderStyle(const CommandRowInfo&, const SkinTokens&) const
 {
 	return QStringLiteral("QWidget#FilterCardHeader { background: transparent; }");
 }
 
-// The row's type badge wears the picker's pastel grammar instead of the
-// shared saturated pill. The ink is a deep warm neutral on the pastel
-// chip - white text on a pastel is exactly the kind of low-contrast
-// anxiety this skin removes. A sleeping (commented-out) row sinks its
-// chip toward the window background.
+// The type mark is the pictogram alone, in the body ink: no tile, no colour
+// per type. The title beside it already names the command, and a colour per
+// type would be a second, unlabelled code to learn.
 BadgeTreatment SoftSkin::badgeTreatment(const CommandRowInfo& info, const QString& typeColor,
 	const QString& badgeToken, const SkinTokens& t) const
 {
+	Q_UNUSED(typeColor);
 	Q_UNUSED(badgeToken);
-	const bool dark = skinIsDark(t);
-	const QColor pastel = softPastelize(QColor(typeColor), dark);
-	if (!info.enabled)
-	{
-		const QColor sleeping = mixColor(pastel, QColor(t.background), 0.62);
-		return {
-			QStringLiteral("color:%1; border-color:transparent; background-color:%2;")
-				.arg(t.mutedText, sleeping.name()),
-			QColor(t.mutedText)
-		};
-	}
+	const QString ink = info.enabled ? t.text : t.mutedText;
 	return {
-		QStringLiteral("color:#2B251D; border-color:transparent; background-color:%1;")
-			.arg(pastel.name()),
-		QColor(QStringLiteral("#2B251D"))
+		QStringLiteral("color:%1; border-color:transparent; background-color:transparent;").arg(ink),
+		QColor(ink)
 	};
 }
 
-// The plain-text rows (bare note lines and programmatic commands such
-// as If/EndIf/Eval). FilterCardRow lays these styles inline, so QSS
+// The plain-text rows (lines that are no command, and programmatic commands
+// such as If/EndIf/Eval). FilterCardRow lays these styles inline, so QSS
 // cannot reach them; construction time is the hook's moment.
 void SoftSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body,
 	const SkinTokens& tokens) const
@@ -192,8 +170,8 @@ void SoftSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWid
 		return;
 
 	// Sentence conditions: a simple If/Eval line is retold in the header
-	// as a friendly body-typeface sentence ("If device is Speakers",
-	// "Otherwise", "Set x to 5").
+	// as a body-typeface sentence ("If device is Speakers", "Otherwise",
+	// "Set x to 5").
 	// The rewrite is queued because the row constructor
 	// calls rebuildSummary() right after this hook, which would restore
 	// the as-written summary immediately; the queued call lands once the
@@ -222,103 +200,105 @@ void SoftSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWid
 	if (body == nullptr)
 		return;
 
+	// Source text sits in a field, in the monospace face: the one place the
+	// skin shows a line as written. The terminal prompt glyph is dropped; the
+	// field already says "this is text".
 	const SkinTokens& t = tokens;
 	if (QLabel* glyph = body->findChild<QLabel*>(QStringLiteral("FilterCardRawGlyph")))
 		glyph->setVisible(false);
-	if (QLabel* raw = body->findChild<QLabel*>(QStringLiteral("FilterCardRawText")))
-	{
-		raw->setStyleSheet(QStringLiteral(
-			"QLabel#FilterCardRawText { background:%1; color:%2; border:1px dashed %3; border-radius:16px; padding:8px 14px; font-family:\"%4\"; }"
-			"QLabel#FilterCardRawText:disabled { background:%5; color:%6; }")
-			.arg(t.surfaceSunken, t.text, t.border, t.monoFontFamily, t.background, t.mutedText));
-	}
+	QLabel* raw = body->findChild<QLabel*>(QStringLiteral("FilterCardRawText"));
+	if (raw == nullptr)
+		return;
+	raw->setStyleSheet(QStringLiteral(
+		"QLabel#FilterCardRawText { background:%1; color:%2; border:1px solid %3; border-radius:6px; padding:6px 10px;"
+		" font-family:\"%4\"; font-size:14px; }"
+		"QLabel#FilterCardRawText:disabled { color:%5; border-color:%6; }")
+		.arg(t.card, t.text, t.controlEdge, t.monoFontFamily, t.mutedText, t.borderStrong));
+
+	// A line that is no command changes nothing in the sound, and the row
+	// says so beside the line, once, in the body ink.
+	if (info.kind() != FilterCardKind::Text)
+		return;
+	QWidget* rawHost = raw->parentWidget();
+	QBoxLayout* rawLayout = rawHost != nullptr ? qobject_cast<QBoxLayout*>(rawHost->layout()) : nullptr;
+	if (rawLayout == nullptr || rawHost->findChild<QLabel*>(QStringLiteral("SoftNotAppliedNote")) != nullptr)
+		return;
+	rawLayout->setStretchFactor(raw, 0);
+	QLabel* note = new QLabel(QCoreApplication::translate("SoftSkin", "Not applied to the audio."), rawHost);
+	note->setObjectName(QStringLiteral("SoftNotAppliedNote"));
+	note->setStyleSheet(QStringLiteral("QLabel#SoftNotAppliedNote { color:%1; font-weight:700; background:transparent; }")
+		.arg(t.text));
+	rawLayout->addWidget(note, 0, Qt::AlignVCenter);
+	rawLayout->addStretch(1);
 }
 
-// The If block is held in a pastel arm: one quiet rounded bar per scope
-// level in the gutter, born under the If sentence and closed with its
-// cap on the EndIf row. Level math: for members the if-lanes are the
-// innermost logicDepth bands after the depth-logicDepth channel bands.
+// A block is marked by one thin line down its left side, the way an editor
+// marks an indented block: it starts under the If row, passes the member
+// rows, and turns in at the middle of the EndIf row. Along a stretch the
+// engine skips (a false branch, a switched-off line) the line is one step
+// lighter. No colour: whether a branch is true is not the line's to say.
 bool SoftSkin::paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info, const SkinTokens& tokens) const
 {
+	if (info.scopeRole == CommandRowInfo::ScopeRole::None)
+	{
+		// A row that only sits under a Channel command: the same line, at the
+		// place the shared rail keeps for each channel level
+		// (FilterCardRow::paintEvent).
+		if (info.depth <= 0)
+			return false;
+		for (int level = 0; level < info.depth; level++)
+			painter.fillRect(QRectF(8.0 + level * tokens.channelGroupIndent + 6.0, 0.0, 2.0, size.height()),
+				QColor(tokens.borderStrong));
+		return true;
+	}
 	const bool headRow = info.scopeRole == CommandRowInfo::ScopeRole::Head;
 	const bool tailRow = info.scopeRole == CommandRowInfo::ScopeRole::Tail;
 	const int logic = info.logicDepth;
-	if (info.scopeRole == CommandRowInfo::ScopeRole::None)
-		return false;
 
-	const QColor card(tokens.card);
-	const QColor accent(tokens.accent);
-	// Live scope: the value-arc pastel. Sleeping stretch: the bipolar
-	// track's far mix - present and quiet, one step off the ground.
-	const QColor arm = mixColor(accent, card, 0.25);
-	const QColor armResting = mixColor(accent, card, 0.78);
-
-	// Lane and scope geometry from the row widget; see CommandRowInfo. The
-	// extra indent unit branch/tail rows mount with is already in laneCount,
-	// so the arm passes them instead of dying behind their full-width faces.
-	const int unit = info.laneUnit;
+	const QColor line(tokens.borderStrong);
+	const QColor lineResting(tokens.border);
 	const int h = size.height();
 	const int channelLevels = info.channelLaneCount;
 	const bool resting = !info.enabled || info.lineSkipped;
 
-	painter.setRenderHint(QPainter::Antialiasing);
-	painter.setPen(Qt::NoPen);
+	QPainterStateGuard guard(&painter);
+	painter.setRenderHint(QPainter::Antialiasing, false);
 
-	// An enclosing Channel group keeps its constitutional SoftShadow
-	// band. The hook sees no per-row type colour (the shared rail tints
-	// by it), so the shade leans on the border token - quieter, same
-	// silhouette.
-	if (channelLevels > 0)
-	{
-		// The band itself, not its centre: laneCenter gives the middle, so
-		// step back half a unit for the left edge.
-		const QRectF band(info.laneCenter(channelLevels - 1) - unit / 2.0, 0, unit, h);
-		QLinearGradient shade(band.left(), 0, band.right(), 0);
-		shade.setColorAt(0, withAlpha(QColor(tokens.border), 110));
-		shade.setColorAt(1, withAlpha(QColor(tokens.border), 0));
-		painter.fillRect(band, shade);
-	}
-
-	// One bar per scope, centred in its indent band. Straight runs
-	// overshoot the row's clip so neighbouring rows tile into one
-	// continuous arm; only the arm's first and last row show a cap.
+	// Lane geometry from the row widget; see CommandRowInfo. The line is 2px,
+	// one pixel either side of the lane centre.
 	const auto laneX = [&info](int level) {
-		// Two pixels left of the band centre, so the 4px bar straddles it.
-		return double(info.laneCenter(level)) - 2.0;
-	};
-	const auto runBar = [&](int level, const QColor& color) {
-		painter.setBrush(color);
-		painter.drawRoundedRect(QRectF(laneX(level), -4.0, 4.0, h + 8.0), 2.0, 2.0);
-	};
+			return double(info.laneCenter(level)) - 1.0;
+		};
+	const auto run = [&](int level, const QColor& color, qreal top, qreal bottom) {
+			painter.fillRect(QRectF(laneX(level), top, 2.0, bottom - top), color);
+		};
+
+	// An enclosing Channel group is the same line: the rows a Channel command
+	// applies to are a block too.
+	for (int level = 0; level < channelLevels; level++)
+		run(level, line, 0.0, h);
 
 	// Outer scopes hold straight through every row of an inner block.
 	const int ownLevel = channelLevels + logic - (headRow ? 0 : 1);
 	for (int level = channelLevels; level < ownLevel; level++)
-		runBar(level, arm);
+		run(level, line, 0.0, h);
 
 	if (headRow)
 	{
-		// The arm begins BELOW the sentence: a rounded fingertip peeking
-		// out of the row's bottom margin, which the first member row
-		// carries on. A false condition relaxes the fingertip along with
-		// the sleeping members it announces (branchState is fresh at
-		// paint time by contract).
-		painter.setBrush(resting || info.branchState == 0 ? armResting : arm);
-		painter.drawRoundedRect(QRectF(laneX(ownLevel), h - 4.0, 4.0, 8.0), 2.0, 2.0);
+		// The line begins under the If row: the last pixels of this row's
+		// bottom margin, which the first member row carries on.
+		run(ownLevel, resting || info.branchState == 0 ? lineResting : line, h - 4.0, h);
 	}
 	else if (tailRow)
 	{
-		// The arm ends here: the bar falls to the row's centre line and
-		// closes with its stadium cap.
-		const qreal capY = info.headerCenterY;
-		painter.setBrush(resting ? armResting : arm);
-		painter.drawRoundedRect(QRectF(laneX(ownLevel), -4.0, 4.0, capY + 4.0), 2.0, 2.0);
+		// The line ends here: down to the row's centre line, then a short
+		// turn toward the card.
+		const qreal capY = qRound(info.headerCenterY);
+		const QColor color = resting ? lineResting : line;
+		run(ownLevel, color, 0.0, capY + 1.0);
+		painter.fillRect(QRectF(laneX(ownLevel), capY - 1.0, qMax(4.0, info.laneUnit / 2.0), 2.0), color);
 	}
 	else
-	{
-		// Members and branch rows: the arm passes at full height; a
-		// swallowed line relaxes only its own stretch.
-		runBar(ownLevel, resting ? armResting : arm);
-	}
+		run(ownLevel, resting ? lineResting : line, 0.0, h);
 	return true;
 }

@@ -21,6 +21,12 @@ inline void finishTokens(SkinTokens& t)
 	if (t.graphGridMinor.isEmpty())
 		t.graphGridMinor = t.border;
 	t.focusRing = t.accent;
+	if (t.borderStrong.isEmpty())
+		t.borderStrong = t.border;
+	if (t.controlEdge.isEmpty())
+		t.controlEdge = t.mutedText;
+	if (t.onAccent.isEmpty())
+		t.onAccent = t.dark ? QStringLiteral("#0c0c16") : QStringLiteral("#ffffff");
 }
 
 // Factory accessors for the built-in skins. Each is defined in its own .cpp

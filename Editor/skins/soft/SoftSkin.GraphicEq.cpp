@@ -13,226 +13,126 @@
 #include <QtMath>
 
 #include "Editor/skins/shared/SkinPaint.h"
+#include "SoftPaint.h"
 
-// The GraphicEQ response plot: "the response curve you cannot fear".
-// GraphicEQPlotWidget owns the model and every gesture; every pixel
-// here is this skin's own instrument.
+// The GraphicEQ response plot, in the analysis graph's grammar: a panel, a
+// hairline grid, the response as one line in the emphasis colour, and the
+// band points as small handles on it. GraphicEQPlotWidget owns the model and
+// every gesture.
 void SoftSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, const SkinTokens& tokens) const
 {
 	const QColor card(tokens.card);
 	const QColor accent(tokens.accent);
-	const QColor accent2(tokens.accent2);
 	const QColor muted(tokens.mutedText);
-	const QColor border(tokens.border);
-	const QColor well = state.enabled ? QColor(tokens.surfaceSunken) : QColor(tokens.background);
+	const QColor line(tokens.border);
 
-	QRectF frame = QRectF(state.rect).adjusted(0.5, 0.5, -0.5, -0.5);
-	const qreal wellRound = 14.0;
-	QPainterPath wellPath;
-	wellPath.addRoundedRect(frame, wellRound, wellRound);
+	const QRectF frame(state.rect);
+	QPainterPath panelPath;
+	panelPath.addRoundedRect(frame.adjusted(0.5, 0.5, -0.5, -0.5), SoftPaint::surfaceRadius - 0.5,
+		SoftPaint::surfaceRadius - 0.5);
 
-	painter.setRenderHint(QPainter::Antialiasing);
-	painter.setPen(Qt::NoPen);
-	painter.setBrush(well);
-	painter.drawPath(wellPath);
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+	// Keyboard focus on the surface is the panel's own line in the emphasis
+	// colour, one pixel heavier (shared article 8).
+	const bool surfaceFocus = state.focused && state.enabled;
+	SoftPaint::box(painter, frame, card, surfaceFocus ? QColor(tokens.focusRing) : line, SoftPaint::surfaceRadius,
+		surfaceFocus ? 2.0 : 1.0);
 
-	QPainterStateGuard wellState(&painter);
-	painter.setClipPath(wellPath);
+	QPainterStateGuard panelState(&painter);
+	painter.setClipPath(panelPath);
+	// A switched-off plot fades as a whole; it keeps its grid and its curve.
+	if (!state.enabled)
+		painter.setOpacity(SoftPaint::disabledOpacity);
 
-	// Axis captions ride the body face in faded ink - the constitution
-	// reserves mono for value chips, and these are captions.
-	QFont labelFont(tokens.fontFamily);
-	labelFont.setPointSizeF(8.5);
-	labelFont.setWeight(QFont::DemiBold);
+	const QFont labelFont = SoftPaint::numberFont(tokens, 12);
+	const QFontMetricsF labelMetrics(labelFont);
 	painter.setFont(labelFont);
-	const QColor labelInk = withAlpha(muted, state.enabled ? 210 : 120);
 
-	// Major-only grid, the border sunk most of the way into the well.
-	// Straight axis lines stay crisp: antialiasing off. The sleeping slot
-	// drops the lines entirely and keeps only the captions - whitespace.
-	painter.setRenderHint(QPainter::Antialiasing, false);
-	const QColor gridInk = mixColor(border, well, 0.25);
-	for (const GraphicEQPlotState::GridLine& line : state.vertical)
+	for (const GraphicEQPlotState::GridLine& gridLine : state.vertical)
 	{
-		if (!line.major)
+		if (!gridLine.major)
 			continue;
-		const int x = qRound(line.pos);
-		if (state.enabled)
+		painter.fillRect(QRectF(qFloor(gridLine.pos), state.plotRect.top(), 1.0, state.plotRect.height()), line);
+		if (!gridLine.label.isEmpty())
 		{
-			painter.setPen(QPen(gridInk, 1));
-			painter.drawLine(x, int(state.plotRect.top()), x, int(state.plotRect.bottom()));
-		}
-		if (!line.label.isEmpty())
-		{
-			painter.setPen(labelInk);
-			// The window-edge caption (20k) tucks inside the rounding
-			// instead of getting sliced by the clip.
-			QRect labelRect(x - 24, int(state.plotRect.bottom()) + 3, 48,
-				state.rect.bottom() - int(state.plotRect.bottom()) - 3);
+			painter.setPen(muted);
+			// The window-edge figure (20k) tucks inside the rounding instead
+			// of being sliced by the clip.
+			QRectF labelRect = skinXTickLabelRect(gridLine.pos, state.plotRect.bottom() + 3.0,
+				state.rect.bottom() - state.plotRect.bottom() - 3.0);
 			int align = Qt::AlignHCenter;
 			if (labelRect.right() > state.rect.right() - 6)
 			{
 				labelRect.setRight(state.rect.right() - 6);
 				align = Qt::AlignRight;
 			}
-			painter.drawText(labelRect, align | Qt::AlignTop, line.label);
+			painter.drawText(labelRect, align | Qt::AlignTop, gridLine.label);
 		}
 	}
-	for (const GraphicEQPlotState::GridLine& line : state.horizontal)
+	for (const GraphicEQPlotState::GridLine& gridLine : state.horizontal)
 	{
-		if (!line.major)
+		if (!gridLine.major)
 			continue;
-		const int y = qRound(line.pos);
-		// The 0 dB row is the soft notch drawn below; skip its grid twin.
-		if (state.enabled && qAbs(line.pos - state.zeroY) > 1.0)
+		// The 0 dB row is drawn below, one step heavier; skip its grid twin.
+		if (qAbs(gridLine.pos - state.zeroY) > 1.0)
+			painter.fillRect(QRectF(state.plotRect.left(), qFloor(gridLine.pos), state.plotRect.width(), 1.0), line);
+		if (!gridLine.label.isEmpty())
 		{
-			painter.setPen(QPen(gridInk, 1));
-			painter.drawLine(int(state.plotRect.left()), y, int(state.plotRect.right()), y);
-		}
-		if (!line.label.isEmpty())
-		{
-			painter.setPen(labelInk);
-			painter.drawText(QRect(state.rect.left() + 2, y - 8,
-				int(state.plotRect.left()) - state.rect.left() - 8, 16),
-				Qt::AlignRight | Qt::AlignVCenter, line.label);
+			painter.setPen(muted);
+			painter.drawText(QRectF(state.rect.left() + 2.0, gridLine.pos - 8.0,
+				state.plotRect.left() - state.rect.left() - 8.0, 16.0),
+				Qt::AlignRight | Qt::AlignVCenter, gridLine.label);
 		}
 	}
-	painter.setRenderHint(QPainter::Antialiasing, true);
-
-	// The soft 0 dB notch line.
 	if (state.zeroY >= state.plotRect.top() && state.zeroY <= state.plotRect.bottom())
-	{
-		painter.setPen(QPen(withAlpha(QColor(tokens.text), state.enabled ? 110 : 55), 2,
-			Qt::SolidLine, Qt::RoundCap));
-		painter.drawLine(QPointF(state.plotRect.left() + 6.0, state.zeroY),
-			QPointF(state.plotRect.right() - 6.0, state.zeroY));
-	}
+		painter.fillRect(QRectF(state.plotRect.left(), qFloor(state.zeroY), state.plotRect.width(), 1.0),
+			QColor(tokens.controlEdge));
 
-	const QColor boost = mixColor(accent, card, 0.25);
-	const QColor cut = mixColor(accent2, card, 0.25);
-	if (state.curve.size() >= 2)
-	{
-		if (!state.enabled)
-		{
-			// Sleeping: the ghost of the response in muted ink, no pastel.
-			painter.setPen(QPen(withAlpha(muted, 120), 2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-			painter.setBrush(Qt::NoBrush);
-			painter.drawPolyline(state.curve);
-		}
-		else
-		{
-			const double base = state.clampedZeroY();
-			QPolygonF fillPoly = state.curve;
-			fillPoly.append(QPointF(state.curve.last().x(), base));
-			fillPoly.prepend(QPointF(state.curve.first().x(), base));
-
-			// Two passes split at the 0 dB seam by clip rects, so the
-			// boost/cut colour change lands exactly on the zero crossing
-			// (and a frame panned fully past 0 dB gets one whole side).
-			const qreal splitY = qBound(frame.top(), qreal(state.zeroY), frame.bottom());
-			const QRectF aboveZero(frame.left() - 2.0, frame.top() - 2.0, frame.width() + 4.0, splitY - frame.top() + 2.0);
-			const QRectF belowZero(frame.left() - 2.0, splitY, frame.width() + 4.0, frame.bottom() - splitY + 2.0);
-			for (int pass = 0; pass < 2; pass++)
-			{
-				const bool boostPass = pass == 0;
-				QPainterStateGuard curvePassState(&painter);
-				painter.setClipRect(boostPass ? aboveZero : belowZero, Qt::IntersectClip);
-				painter.setPen(Qt::NoPen);
-				painter.setBrush(withAlpha(boostPass ? accent : accent2, 40));
-				painter.drawPolygon(fillPoly);
-				painter.setPen(QPen(boostPass ? boost : cut, 3, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-				painter.setBrush(Qt::NoBrush);
-				painter.drawPolyline(state.curve);
-			}
-		}
-	}
-
-	// 15/31-band layouts read as levels on fixed bands: rounded pastel
-	// stems grow from the notch, the console silhouette without bar walls.
-	if (state.bandLocked && state.enabled)
+	// 15/31-band layouts read as levels on fixed bands: a thin stem from the
+	// 0 dB row to each band point, under the curve.
+	if (state.bandLocked)
 	{
 		const double base = state.clampedZeroY();
+		painter.setPen(QPen(QColor(tokens.borderStrong), 2.0, Qt::SolidLine, Qt::FlatCap));
 		for (const QPointF& node : state.nodePositions)
-		{
-			painter.setPen(QPen(withAlpha(node.y() > state.zeroY ? accent2 : accent, 90), 4,
-				Qt::SolidLine, Qt::RoundCap));
 			painter.drawLine(QPointF(node.x(), base), node);
-		}
 	}
 
+	if (state.curve.size() >= 2)
+	{
+		painter.setPen(QPen(accent, 2.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+		painter.setBrush(Qt::NoBrush);
+		painter.drawPolyline(state.curve);
+	}
+
+	// The band points: the card's surface inside a ring of the emphasis
+	// colour at rest, filled when chosen. Hover takes the neutral step and
+	// half a pixel; the keyboard's point takes one pixel more on its ring.
 	for (int i = 0; i < state.nodePositions.size(); i++)
 	{
 		const QPointF& center = state.nodePositions.at(i);
 		const bool selected = state.selectedNodes.contains(i);
-		const bool hovered = state.hoveredNode == i;
-		const QColor side = center.y() > state.zeroY ? accent2 : accent;
-
-		if (!state.enabled)
-		{
-			painter.setPen(QPen(withAlpha(muted, 120), 1.5));
-			painter.setBrush(well);
-			painter.drawEllipse(center, 4.0, 4.0);
-			continue;
-		}
-
-		// Rest 5px, half a pixel more on hover - the calmest "you can
-		// grab me" cue; precision lives in the readout strip anyway.
+		const bool hovered = state.enabled && state.hoveredNode == i;
+		const bool keyTarget = state.enabled && state.focused && state.focusedNode == i;
 		const double radius = hovered ? 5.5 : 5.0;
+		painter.setPen(QPen(accent, keyTarget ? 3.0 : 2.0));
 		if (selected)
-		{
-			// ON grammar: opaque pastel fill plus the light ring.
-			painter.setPen(QPen(withAlpha(side, 90), 3));
-			painter.setBrush(Qt::NoBrush);
-			painter.drawEllipse(center, radius + 2.5, radius + 2.5);
-			painter.setPen(QPen(well, 1.5));
-			painter.setBrush(side);
-		}
+			painter.setBrush(accent);
 		else
-		{
-			// OFF: the quiet elevated face with the side's pastel edge;
-			// hover lifts the face exactly one value step.
-			// The keyboard's current node recolours this pastel edge (shared
-			// article 8): the focus colour taken toward the body ink, so it
-			// reads against the pastel it replaces. A selected node's own
-			// ring already covers it.
-			const bool keyTarget = state.focusedNode == i && state.focused;
-			painter.setPen(QPen(keyTarget
-				? mixColor(QColor(tokens.focusRing), QColor(tokens.text), 0.35)
-				: mixColor(side, card, 0.25), 2));
 			painter.setBrush(hovered ? QColor(tokens.cardHover) : card);
-		}
 		painter.drawEllipse(center, radius, radius);
 	}
 
-	// Cursor readout: the knob value badge's grammar, a small stadium
-	// chip resting in the well's top-right corner.
+	// The cursor's reading, as a tag in the top-right corner.
 	if (state.enabled && state.cursorValid && !state.cursorText.isEmpty())
 	{
-		QFont pillFont(tokens.fontFamily);
-		pillFont.setPointSizeF(8.5);
-		pillFont.setWeight(QFont::DemiBold);
-		const QFontMetricsF pillMetrics(pillFont);
-		const qreal pillH = 18.0;
-		const qreal pillW = pillMetrics.horizontalAdvance(state.cursorText) + 16.0;
-		QRectF pill(state.plotRect.right() - pillW - 6.0, state.plotRect.top() + 6.0, pillW, pillH);
-		painter.setPen(QPen(border, 1));
-		painter.setBrush(card);
-		painter.drawRoundedRect(pill, pillH / 2.0, pillH / 2.0);
-		painter.setFont(pillFont);
+		const qreal tagHeight = 22.0;
+		const qreal tagWidth = labelMetrics.horizontalAdvance(state.cursorText) + 18.0;
+		const QRectF tag(state.plotRect.right() - tagWidth - 6.0, state.plotRect.top() + 4.0, tagWidth, tagHeight);
+		SoftPaint::box(painter, tag, card, QColor(tokens.borderStrong), tagHeight / 2.0);
+		painter.setFont(labelFont);
 		painter.setPen(QColor(tokens.text));
-		painter.drawText(pill, Qt::AlignCenter, state.cursorText);
+		painter.drawText(tag, Qt::AlignCenter, state.cursorText);
 	}
-
-	wellState.restore();
-
-	// The well edge: a very light 1px line awake; asleep it becomes the
-	// dashed outline of the sleeping-slot triple. Keyboard focus on the
-	// surface recolours this edge (shared article 8) instead of laying a
-	// halo inside the well.
-	QPen edge(state.focused && state.enabled ? QColor(tokens.focusRing) : border, 1);
-	if (!state.enabled)
-		edge.setStyle(Qt::DashLine);
-	painter.setPen(edge);
-	painter.setBrush(Qt::NoBrush);
-	painter.drawPath(wellPath);
 }

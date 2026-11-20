@@ -690,18 +690,6 @@ void FilterCardRow::paintEvent(QPaintEvent*)
 		painter.setPen(QPen(color, 1, Qt::DotLine));
 		painter.drawLine(lineRect.left() + 5, 0, lineRect.left() + 5, height());
 		break;
-	case SkinTokens::SoftShadow:
-	{
-		QLinearGradient shadow(lineRect.left(), 0, lineRect.right(), 0);
-		QColor start = color;
-		start.setAlpha(38);
-		QColor end = color;
-		end.setAlpha(0);
-		shadow.setColorAt(0, start);
-		shadow.setColorAt(1, end);
-		painter.fillRect(lineRect, shadow);
-		break;
-	}
 	case SkinTokens::GradientBar:
 	default:
 	{
