@@ -402,6 +402,10 @@ Include/Convolution/MultiConvolution/VST 행의 본문(`MinimalReferenceCardView
 `== 캡션 ==` 구분 룰, 다이얼로그 버튼은 같은 스윕으로 반전되는 대괄호
 명령(`[ OK ]`), 디스클로저는 폴드 마크를 단 프롬프트 줄이다.
 
+**설치 확인 화면**(`DeviceTestView`). 패널은 면이 없다. 왼쪽에 대괄호 상태
+코드(`[FAIL]`, `[WARN]`, `[ N/A]`)와 세로 헤어라인을 두고, 할 일은 `->`
+뒤의 문장, Windows가 보고한 오류 문장은 점선 칸이다.
+
 ### 동적 명령어 (들여쓰기 가이드와 워치 판독 칼럼)
 
 If/Eval의 표현이다. 공유 계약으로, 스코프 표시는 `ISkin::paintScopeGutter`

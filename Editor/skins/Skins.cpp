@@ -22,8 +22,8 @@ ISkin* implementationFor(const QString& id)
 		return studioSkin();
 	if (id == QStringLiteral("minimal"))
 		return minimalSkin();
-	if (id == QStringLiteral("soft"))
-		return softSkin();
+	if (id == QStringLiteral("flat"))
+		return flatSkin();
 	if (id == QStringLiteral("rack"))
 		return rackSkin();
 	if (id == QStringLiteral("matrix"))

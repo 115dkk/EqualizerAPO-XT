@@ -14,6 +14,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The Stock Flat skin is stored under its own name.** The skin renamed in
+  v2.71.0 was still saved as `soft`. It is now saved as `flat`, and a setting
+  that still says `soft` opens Stock Flat as before. Nothing looks different.
+  The HTML design system copy under `docs/design-system`, which had fallen
+  behind the app in all five skins, was removed; the skin constitutions in
+  `docs/skins` are the reference.
+  ([#504](https://github.com/115dkk/EqualizerAPO-XT/pull/504))
+
 ## v2.71.0 — 2026-11-20
 
 - **The Soft Lab skin is now called Stock Flat.** The name follows what the

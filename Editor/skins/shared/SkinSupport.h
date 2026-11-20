@@ -33,6 +33,6 @@ inline void finishTokens(SkinTokens& t)
 // and returns a process-lifetime instance; Skins::all() lists them in order.
 ISkin* studioSkin();
 ISkin* minimalSkin();
-ISkin* softSkin();
+ISkin* flatSkin();
 ISkin* rackSkin();
 ISkin* matrixSkin();

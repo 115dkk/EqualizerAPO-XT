@@ -30,7 +30,7 @@ class QListWidgetItem;
 
 // A short, translated explanation of what a template does, keyed off the
 // config line it inserts (command words are stable; translated names are not,
-// the same reasoning the Soft picker uses to key its tile pictograms). Empty
+// the same reasoning the Flat picker uses to key its tile pictograms). Empty
 // for an unrecognised line, so a skin can fall back to its own phrasing and a
 // future template degrades gracefully instead of showing nothing. Skins show
 // this in place of the raw config line, which reads as noise to anyone who is

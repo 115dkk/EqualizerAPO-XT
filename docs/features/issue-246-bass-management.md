@@ -21,7 +21,7 @@
 2. EqualizerAPO-XT 네이티브 `BassManagement:` 필터
 3. MIT 라이선스 VST3 플러그인
 4. XT Editor 전용 카드와 전체 편집기
-5. Minimal, Matrix, Rack, Soft, Studio의 서로 다른 카드 표현
+5. Minimal, Matrix, Rack, Flat, Studio의 서로 다른 카드 표현
 6. 빌드, 패키징, 문서, 필요한 회귀 테스트
 
 VST3만 완성하거나, 네이티브 필터만 완성하거나, 다섯 스킨 중 일부만 만든 상태는 완료가
@@ -107,7 +107,7 @@ source path를 참조하면 된다.
 | Minimal | `StepListRoutingRenderer` |
 | Matrix | `CrosspointMatrixRoutingRenderer` |
 | Rack | `HardwarePatchbayRoutingRenderer` |
-| Soft | `BlockChipRoutingRenderer` |
+| Flat | `BlockChipRoutingRenderer` |
 | Studio | `LightTraceRoutingRenderer` |
 
 Bass Management도 같은 패턴을 따른다. 공통 상태를 한 카드에 넣고 QSS 색만 바꾸는 방식은
@@ -221,7 +221,7 @@ Editor/skins/cards/
   MinimalBassManagementCardView.*
   MatrixBassManagementCardView.*
   RackBassManagementCardView.*
-  SoftBassManagementCardView.*
+  FlatBassManagementCardView.*
   StudioBassManagementCardView.*
 
 VST3/BassManagement/
@@ -689,7 +689,7 @@ createBassManagementCardView(QWidget* parent) const;
 | Minimal | 모노스페이스 상태 행과 `MAIN -> BASS -> OUT` 단계 목록 | HP/LP, LFE gain, trim을 정렬된 숫자로 |
 | Matrix | group/path × output의 미니 crosspoint 보드 | 활성 셀, dB factor, coordinate형 warning |
 | Rack | crossover module faceplate와 bus meter | HP/LP selector, LFE lamp, headroom meter |
-| Soft | rounded group/bass chip과 짧은 흐름선 | 그룹 묶음, destination, warning chip |
+| Flat | rounded group/bass chip과 짧은 흐름선 | 그룹 묶음, destination, warning chip |
 | Studio | main/bass signal trace와 dual response | 대역별 trace, source LFE, 발광 headroom |
 
 추가 파일:
@@ -697,7 +697,7 @@ createBassManagementCardView(QWidget* parent) const;
 - `Editor/skins/cards/MinimalBassManagementCardView.h/.cpp`
 - `Editor/skins/cards/MatrixBassManagementCardView.h/.cpp`
 - `Editor/skins/cards/RackBassManagementCardView.h/.cpp`
-- `Editor/skins/cards/SoftBassManagementCardView.h/.cpp`
+- `Editor/skins/cards/FlatBassManagementCardView.h/.cpp`
 - `Editor/skins/cards/StudioBassManagementCardView.h/.cpp`
 
 ### 11.3 UI 품질 조건

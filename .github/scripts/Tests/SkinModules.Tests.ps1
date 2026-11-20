@@ -13,7 +13,7 @@ BeforeAll {
     }
     function New-SkinFixture {
         $script:root = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
-        $ids = @('studio', 'minimal', 'soft', 'rack', 'matrix')
+        $ids = @('studio', 'minimal', 'flat', 'rack', 'matrix')
         $roster = 'const QVector<SkinEntry>& roster() {'
         $project = ''; $editorQrc = ''; $deviceQrc = ''
         foreach ($id in $ids) {

@@ -12,7 +12,7 @@ Editor의 5개 스킨이 각자 무엇을 믿고, 무엇을 금지하며, 새 UI
 |---|---|---|---|
 | `studio` | Studio Glass | 빛이 비치는 유리 뒤의 악기. UI는 데이터 뒤로 물러난다 | [studio.md](studio.md) |
 | `minimal` | Precision Minimal | 은행 창구의 단말기. 활자·헤어라인·정렬이 전부다 | [minimal.md](minimal.md) |
-| `soft` | Stock Flat | 익숙한 양산형 앱. 평범한 데스크톱 앱의 부품을 그대로 쓴다 | [soft.md](soft.md) |
+| `flat` | Stock Flat | 익숙한 양산형 앱. 평범한 데스크톱 앱의 부품을 그대로 쓴다 | [flat.md](flat.md) |
 | `rack` | Hardware Rack | 19인치 랙의 앰프 페이스플레이트. 손에 닿을 듯한 기계 | [rack.md](rack.md) |
 | `matrix` | Signal Matrix | 공항 출발 안내판 / 방송 라우팅 매트릭스. 좌표를 가진 셀의 보드 | [matrix.md](matrix.md) |
 
@@ -114,7 +114,7 @@ studio의 `= 값`)은 버튼 열을 피하려던 예약 폭을 버리고 오른�
    각인)이 게시한다. 같은 사실을 본문의 별도 배지·스탬프·코드 셀로
    되풀이하면 눈에 거슬리는 재탕이 된다. (판례: VST 버스 r3)
 3. **문제는 스킨의 상태 문법이 먼저 말한다.** 긴 설명문 단독으로 문제를
-   알리지 않는다. 각 스킨이 이미 가르친 상태 표기(soft의 이름 앞 상태 점,
+   알리지 않는다. 각 스킨이 이미 가르친 상태 표기(flat의 이름 앞 상태 점,
    rack의 베젤 LED, matrix의 비컨, minimal의 잉크 태그)가 먼저
    말하고, 문장은 사실과 결과만 담아 짧게 잇는다. (판례: VST 버스 r3)
 4. **폭 압박의 우선순위.** 960px에서 행이 넘치면 데이터 열(위치, 이름)이

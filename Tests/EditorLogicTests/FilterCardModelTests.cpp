@@ -252,7 +252,7 @@ TEST_CASE(EditorLogicTests, testFilterCardDescriptors)
 	// If family shares one card type with per-branch badges, Eval gets its
 	// own type, and - unlike the structured cards above - their headers KEEP
 	// the condition/expression text: these rows host the shared raw body, so
-	// the header is the only collapsed reading of the line (and soft's
+	// the header is the only collapsed reading of the line (and flat's
 	// sentence rewrite feeds on it). A parameterless line still does not
 	// echo itself twice ("ENDIF  EndIf:"), and a bare note line keeps the
 	// whole line as its summary.

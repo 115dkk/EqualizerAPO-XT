@@ -164,6 +164,10 @@ TEST_CASE(EditorLogicTests, testTheSkinRosterIsTheOneList)
 		"the glassy alias still resolves, because it is what old registries hold");
 	expectTrue(SkinThemeData::resolveId(QStringLiteral("industrial")) == QStringLiteral("rack"),
 		"and so does industrial");
+	expectTrue(SkinThemeData::resolveId(QStringLiteral("soft")) == QStringLiteral("flat"),
+		"a registry that stored the Stock Flat skin under its old id still opens it");
+	expectTrue(SkinThemeData::entry(QStringLiteral("soft")).id == QStringLiteral("flat"),
+		"and gets that skin's sheet and tokens, not Studio's");
 	expectTrue(SkinThemeData::resolveId(QStringLiteral("no such skin")) == roster.first().id,
 		"an unknown id falls back to the first entry rather than producing no skin at all");
 }

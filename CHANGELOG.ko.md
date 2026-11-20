@@ -8,6 +8,13 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **Stock Flat 스킨이 제 이름으로 저장됩니다.** v2.71.0에서 이름을 바꾼 스킨이
+  설정에는 여전히 `soft`로 저장되고 있었습니다. 이제 `flat`으로 저장되고,
+  `soft`로 저장된 설정은 이전처럼 Stock Flat으로 열립니다. 화면은 달라지지
+  않습니다. 다섯 스킨 모두 앱보다 뒤처져 있던 `docs/design-system`의 HTML
+  디자인 시스템 사본은 지웠고, 기준 문서는 `docs/skins`의 스킨 헌법입니다.
+  ([#504](https://github.com/115dkk/EqualizerAPO-XT/pull/504))
+
 ## v2.71.0 — 2026-11-20
 
 - **Soft Lab 스킨의 이름이 Stock Flat으로 바뀌었습니다.** v2.70.0에서 평범한
