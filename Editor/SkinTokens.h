@@ -16,16 +16,14 @@ struct SkinTokens
 	{
 		TreeLines,
 		GradientBar,
-		DottedLine,
-		SoftShadow
+		DottedLine
 	};
 
 	enum BadgeStyle
 	{
 		OutlineOnly,
 		ColorPill,
-		WireframeBorder,
-		SoftPill
+		WireframeBorder
 	};
 
 	int borderRadius = 10;
@@ -54,6 +52,13 @@ struct SkinTokens
 	QString warning = QStringLiteral("#f59e0b");
 	QString danger = QStringLiteral("#ef4444");
 	QString focusRing = QStringLiteral("#3B82F6");
+	// A line one step heavier than border, the edge of a control that has to
+	// be found (3:1 on the card), and the ink on an accent fill. A skin table
+	// may leave them empty; finishTokens then derives them from border,
+	// mutedText and the theme. Only the soft sheets and painters read them.
+	QString borderStrong;
+	QString controlEdge;
+	QString onAccent;
 	// Width (in px) of the coloured rail drawn on the left edge of each filter
 	// card. Used by Signal Matrix to make the routing structure visible. 0 means
 	// no rail.

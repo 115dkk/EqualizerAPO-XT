@@ -41,6 +41,20 @@
         <file>icons/modern/waveform.svg</file>
         <file>icons/modern/check-light.svg</file>
         <file>icons/modern/check-dark.svg</file>
+        <file>icons/modern/soft-check-ink.svg</file>
+        <file>icons/modern/soft-check-night.svg</file>
+        <file>icons/modern/soft-check-pale.svg</file>
+        <file>icons/modern/soft-check-white.svg</file>
+        <file>icons/modern/soft-dash-night.svg</file>
+        <file>icons/modern/soft-dash-white.svg</file>
+        <file>icons/modern/soft-lamp-ok-dark.svg</file>
+        <file>icons/modern/soft-lamp-ok-light.svg</file>
+        <file>icons/modern/soft-lamp-warn-dark.svg</file>
+        <file>icons/modern/soft-lamp-warn-light.svg</file>
+        <file>icons/modern/soft-switch-off-dark.svg</file>
+        <file>icons/modern/soft-switch-off-light.svg</file>
+        <file>icons/modern/soft-switch-on-dark.svg</file>
+        <file>icons/modern/soft-switch-on-light.svg</file>
         <file>icons/modern/dash-light.svg</file>
         <file>icons/modern/dash-dark.svg</file>
         <file>icons/modern/chevron-down.svg</file>
@@ -80,8 +94,6 @@
         <file>icons/modern/folder-new.svg</file>
         <file>icons/modern/view-list.svg</file>
         <file>icons/modern/view-detail.svg</file>
-        <file>icons/modern/soft-toggle-knob-off.svg</file>
-        <file>icons/modern/soft-toggle-knob-on.svg</file>
         <file>icons/modern/cut.svg</file>
         <file>icons/modern/copy.svg</file>
         <file>icons/modern/paste.svg</file>

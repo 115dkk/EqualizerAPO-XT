@@ -8,120 +8,89 @@
 
 #include <QFontMetricsF>
 #include <QPainter>
+#include <QPainterStateGuard>
 #include <QtMath>
 
 #include "Editor/skins/shared/SkinPaint.h"
+#include "SoftPaint.h"
 
-// The trailing add row (shared insertion contract,
-// docs/skins/README.md): a full-height dashed stadium slot - the
-// "nothing vouches for this yet" edge, not a sleeping slot - with a
-// quiet sunken "+" disc waiting at the centre.
+namespace
+{
+void paintPlus(QPainter& painter, const QPointF& center, qreal arm, const QColor& ink, qreal width)
+{
+	painter.save();
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	painter.setPen(QPen(ink, width, Qt::SolidLine, Qt::RoundCap));
+	painter.drawLine(QPointF(center.x() - arm, center.y()), QPointF(center.x() + arm, center.y()));
+	painter.drawLine(QPointF(center.x(), center.y() - arm), QPointF(center.x(), center.y() + arm));
+	painter.restore();
+}
+}
+
+// The trailing add row (shared insertion contract, docs/skins/README.md) is
+// an ordinary button at the start of the row: a plus and the words. The rest
+// of the row is the window; the whole row still takes the click.
 void SoftSkin::paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const
 {
-	painter.setRenderHint(QPainter::Antialiasing);
+	QPainterStateGuard guard(&painter);
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
 
-	const QColor accent(tokens.accent);
-	const QColor warmInk(QStringLiteral("#2B251D"));
-	const bool lifted = state.hovered || state.pressed;
-
-	QRectF frame = QRectF(rect).adjusted(0.5, 0.5, -0.5, -0.5);
-	const qreal radius = frame.height() / 2.0;
-
-	// Hover: the slot rises one value step above the window (no shadow -
-	// the two-step elevation rule fakes it with the fill + light border).
-	if (lifted)
-	{
-		painter.setPen(Qt::NoPen);
-		painter.setBrush(QColor(tokens.surface));
-		painter.drawRoundedRect(frame, radius, radius);
-	}
-
-	// Keyboard focus recolours the slot's own dashed outline (shared article
-	// 8) instead of laying a halo under it.
-	QColor outlineInk(tokens.border);
-	if (state.pressed)
-		outlineInk = withAlpha(accent, 210);
-	else if (state.focused)
-		outlineInk = QColor(tokens.focusRing);
-	else if (lifted)
-		outlineInk = withAlpha(accent, 150);
-	QPen outline(outlineInk, 1, Qt::DashLine);
-	outline.setCapStyle(Qt::RoundCap);
-	painter.setPen(outline);
-	painter.setBrush(Qt::NoBrush);
-	painter.drawRoundedRect(frame, radius, radius);
-
-	// Centred friendly composition: the "+" disc and the caption.
-	QFont font(tokens.fontFamily);
-	font.setPointSizeF(11.0);
-	font.setWeight(QFont::DemiBold);
+	const QFont font = SoftPaint::bodyFont(tokens, 14);
 	const QFontMetricsF metrics(font);
-	const qreal discD = 24.0;
-	const qreal gap = 10.0;
+	const qreal padding = 14.0;
+	const qreal glyph = 22.0;
+	const qreal height = qMin<qreal>(36.0, rect.height());
 	const QString caption = metrics.elidedText(state.label, Qt::ElideRight,
-		int(qMax<qreal>(40.0, frame.width() - discD - gap - 48.0)));
-	const qreal textW = metrics.horizontalAdvance(caption);
-	const qreal left = frame.center().x() - (discD + gap + textW) / 2.0;
-	QRectF discRect(left, frame.center().y() - discD / 2.0, discD, discD);
+		int(qMax<qreal>(40.0, rect.width() - padding * 2.0 - glyph)));
+	const qreal width = qMin<qreal>(rect.width(), padding * 2.0 + glyph + metrics.horizontalAdvance(caption) + 2.0);
+	const QRectF button(rect.left(), rect.center().y() + 0.5 - height / 2.0, width, height);
 
+	QColor fill(tokens.card);
+	QColor edge(tokens.borderStrong);
+	qreal edgeWidth = 1.0;
 	if (state.pressed)
 	{
-		painter.setPen(Qt::NoPen);
-		painter.setBrush(mixColor(accent, warmInk, 0.18));
+		fill = QColor(tokens.cardSelected);
+		edge = QColor(tokens.controlEdge);
 	}
 	else if (state.hovered)
 	{
-		painter.setPen(Qt::NoPen);
-		painter.setBrush(accent);
+		fill = QColor(tokens.cardHover);
+		edge = QColor(tokens.controlEdge);
 	}
-	else
+	if (state.focused)
 	{
-		painter.setPen(QPen(QColor(tokens.border), 1));
-		painter.setBrush(QColor(tokens.surfaceSunken));
+		edge = QColor(tokens.focusRing);
+		edgeWidth = 2.0;
 	}
-	painter.drawEllipse(discRect);
+	SoftPaint::box(painter, button, fill, edge, SoftPaint::controlRadius, edgeWidth);
 
-	QPen plusPen(lifted ? warmInk : QColor(tokens.mutedText), 2.4, Qt::SolidLine, Qt::RoundCap);
-	painter.setPen(plusPen);
-	const QPointF discCenter = discRect.center();
-	const qreal arm = discD * 0.21;
-	painter.drawLine(QPointF(discCenter.x() - arm, discCenter.y()), QPointF(discCenter.x() + arm, discCenter.y()));
-	painter.drawLine(QPointF(discCenter.x(), discCenter.y() - arm), QPointF(discCenter.x(), discCenter.y() + arm));
-
+	paintPlus(painter, QPointF(button.left() + padding + 6.0, button.center().y()), 4.5, QColor(tokens.text), 1.5);
 	painter.setFont(font);
-	painter.setPen(lifted ? QColor(tokens.text) : QColor(tokens.mutedText));
-	painter.drawText(QRectF(left + discD + gap, frame.top(), textW + 4.0, frame.height()),
-		Qt::AlignVCenter | Qt::AlignLeft, caption);
+	painter.setPen(QColor(tokens.text));
+	painter.drawText(QRectF(button.left() + padding + glyph, button.top(), button.width() - padding * 2.0 - glyph + 4.0,
+		button.height()), Qt::AlignVCenter | Qt::AlignLeft, caption);
 }
 
-// The first-boundary insertion seam: a pastel pill line led by a round
-// "+" disc. At rest the widget paints nothing (shared contract).
+// The first-boundary insertion seam: a line in the emphasis colour where the
+// new card will go, led by a small round plus. At rest the widget paints
+// nothing (shared contract).
 void SoftSkin::paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const
 {
 	if (!state.hovered && !state.pressed)
 		return;
+	QPainterStateGuard guard(&painter);
+	painter.setRenderHint(QPainter::Antialiasing, true);
 
-	painter.setRenderHint(QPainter::Antialiasing);
 	const QColor accent(tokens.accent);
-	const QColor warmInk(QStringLiteral("#2B251D"));
-	QRectF r(rect);
-	const qreal cy = r.center().y();
-	const qreal discR = qMin<qreal>(9.0, r.height() / 2.0);
-	const qreal discCx = r.left() + discR + 4.0;
-
-	const qreal lineH = qBound<qreal>(3.0, r.height() * 0.5, 5.0);
-	QRectF bar(discCx + discR + 6.0, cy - lineH / 2.0,
-		r.right() - 4.0 - (discCx + discR + 6.0), lineH);
+	const QRectF r(rect);
+	const qreal cy = qFloor(r.center().y()) + 0.5;
+	const qreal discR = qMin<qreal>(8.0, r.height() / 2.0);
+	const qreal discCx = r.left() + discR + 2.0;
+	painter.fillRect(QRectF(discCx + discR + 4.0, cy - 1.0, r.right() - (discCx + discR + 4.0), 2.0), accent);
 	painter.setPen(Qt::NoPen);
-	painter.setBrush(mixColor(accent, QColor(tokens.card), 0.25));
-	painter.drawRoundedRect(bar, lineH / 2.0, lineH / 2.0);
-
-	painter.setBrush(state.pressed ? mixColor(accent, warmInk, 0.18) : accent);
+	painter.setBrush(state.pressed ? mixColor(accent, QColor(tokens.onAccent), 0.25) : accent);
 	painter.drawEllipse(QPointF(discCx, cy), discR, discR);
-
-	QPen plusPen(warmInk, qMax<qreal>(1.6, discR * 0.36), Qt::SolidLine, Qt::RoundCap);
-	painter.setPen(plusPen);
-	const qreal arm = discR * 0.45;
-	painter.drawLine(QPointF(discCx - arm, cy), QPointF(discCx + arm, cy));
-	painter.drawLine(QPointF(discCx, cy - arm), QPointF(discCx, cy + arm));
+	paintPlus(painter, QPointF(discCx, cy), discR * 0.45, QColor(tokens.onAccent), 1.5);
 }

@@ -6,6 +6,7 @@
 
 #include "SoftFilterPicker.h"
 #include "Editor/skins/shared/SkinPaint.h"
+#include "Editor/skins/soft/SoftPaint.h"
 
 #include <QApplication>
 #include <QCoreApplication>
@@ -31,8 +32,6 @@ enum SoftPickerRole
 	TitleRole,
 	// The friendly caption under the name (entries and the empty state).
 	CaptionRole,
-	// The category pastel (QColor).
-	TintRole,
 	// SoftPickerItemKind.
 	KindRole,
 	// The per-item tile monogram (entries only; the fallback glyph).
@@ -48,14 +47,6 @@ enum SoftPickerItemKind
 	SectionItem,
 	EmptyStateItem
 };
-
-// Pastel hues handed out to categories in catalog order.
-QColor sectionPastel(int sectionIndex, bool dark)
-{
-	static const int hues[] = { 216, 150, 26, 268, 336, 190, 48, 0, 286, 120 };
-	const int hue = hues[sectionIndex % int(sizeof(hues) / sizeof(hues[0]))];
-	return QColor::fromHslF(hue / 360.0, dark ? 0.52 : 0.58, dark ? 0.64 : 0.56);
-}
 
 // Per-item tile monograms (single initials collide: Comment, Channel, Copy
 // and Convolution would all wear "C"). Multi-word names take their first two
@@ -141,8 +132,9 @@ QString softCaption(const QString& line)
 	return display;
 }
 
-// Paints the menu rows: stadium highlights, rounded-square colour tiles and
-// pill section headers, all from the live skin tokens so both modes stay calm.
+// Paints the list rows the way a menu is painted: a section name in the quiet
+// ink, then rows of a glyph, a name and a line about it. The current row takes
+// the neutral selection step; nothing is tinted.
 class SoftPickerDelegate : public QStyledItemDelegate
 {
 public:
@@ -159,191 +151,123 @@ public:
 		switch (index.data(KindRole).toInt())
 		{
 		case SectionItem:
-			// Whitespace is the hierarchy device: every section after the
-			// first carries its breathing room above the pill.
-			return QSize(100, (index.row() == 0 ? 26 : 38));
+			// The first section sits right under the search field; later ones
+			// keep a gap above them, which is all that separates the sections.
+			return QSize(100, (index.row() == 0 ? 26 : 36));
 		case EmptyStateItem:
-			// Room for the friendly empty-state card (glyph, title, caption).
-			return QSize(100, 112);
+			return QSize(100, 96);
 		default:
-			return QSize(100, 48);
+			return QSize(100, 52);
 		}
 	}
 
 	void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const override
 	{
 		const SkinTokens& t = skinTokens;
-		const bool dark = skinTokens.dark;
 		const QString title = index.data(TitleRole).toString();
 
 		painter->save();
-		painter->setRenderHint(QPainter::Antialiasing);
-
+		painter->setRenderHint(QPainter::Antialiasing, true);
+		painter->setRenderHint(QPainter::TextAntialiasing, true);
 		switch (index.data(KindRole).toInt())
 		{
 		case SectionItem:
-			paintSection(painter, option, index, t, dark, title);
+			paintSection(painter, option, t, title);
 			break;
 		case EmptyStateItem:
 			paintEmptyState(painter, option, index, t, title);
 			break;
 		default:
-			paintEntry(painter, option, index, t, dark, title);
+			paintEntry(painter, option, index, t, title);
 			break;
 		}
-
 		painter->restore();
 	}
 
 private:
-	static void paintSection(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index,
-		const SkinTokens& t, bool dark, const QString& title)
+	static void paintSection(QPainter* painter, const QStyleOptionViewItem& option, const SkinTokens& t,
+		const QString& title)
 	{
-		const QColor tint = index.data(TintRole).value<QColor>();
-		QFont pillFont = option.font;
-		pillFont.setWeight(QFont::DemiBold);
-		pillFont.setPointSizeF(option.font.pointSizeF() * 0.84);
-		pillFont.setLetterSpacing(QFont::AbsoluteSpacing, 0.8);
-		const QString label = title.toUpper();
-		const QFontMetricsF metrics(pillFont);
-
-		const qreal pillHeight = 22;
-		const qreal pillWidth = qMin<qreal>(option.rect.width() - 12,
-			metrics.horizontalAdvance(label) + 24);
-		const QRectF pill(option.rect.left() + 6,
-			option.rect.bottom() - pillHeight - 1, pillWidth, pillHeight);
-
-		painter->setPen(Qt::NoPen);
-		painter->setBrush(withAlpha(tint, dark ? 46 : 40));
-		painter->drawRoundedRect(pill, pillHeight / 2.0, pillHeight / 2.0);
-		painter->setFont(pillFont);
-		painter->setPen(mixColor(tint, QColor(t.text), dark ? 0.42 : 0.40));
-		painter->drawText(pill, Qt::AlignCenter, metrics.elidedText(label, Qt::ElideRight, pillWidth - 16));
+		const QFont font = SoftPaint::bodyFont(t, 13, QFont::DemiBold);
+		const QRectF rect(option.rect.left() + 12.0, option.rect.bottom() - 23.0, option.rect.width() - 24.0, 22.0);
+		painter->setFont(font);
+		painter->setPen(QColor(t.mutedText));
+		painter->drawText(rect, Qt::AlignLeft | Qt::AlignVCenter,
+			QFontMetricsF(font).elidedText(title, Qt::ElideRight, rect.width()));
 	}
 
-	// The fruitless search: a friendly card one value step above the menu
-	// surface - a pastel circle with a painted magnifier, the title in full
-	// ink, a muted caption, no warning colour anywhere.
+	// Nothing matched: a magnifier in the quiet ink, what happened, and what
+	// to try. No card of its own; the popup is the card.
 	static void paintEmptyState(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index,
 		const SkinTokens& t, const QString& title)
 	{
 		const QString caption = index.data(CaptionRole).toString();
+		const QRectF area(option.rect);
 
-		QRectF card(option.rect);
-		card.adjust(14, 8, -14, -6);
-		painter->setPen(QPen(QColor(t.border), 1));
-		painter->setBrush(QColor(t.cardHover));
-		painter->drawRoundedRect(card, 14.0, 14.0);
-
-		// The magnifier rests in a pastel accent circle: lens ring plus a
-		// short rounded handle, drawn with strokes (no glyph fonts, no icons).
-		const qreal tileSide = 30;
-		const QRectF tile(card.center().x() - tileSide / 2.0, card.top() + 12, tileSide, tileSide);
-		painter->setPen(Qt::NoPen);
-		painter->setBrush(withAlpha(QColor(t.accent), 38));
-		painter->drawEllipse(tile);
-		const QPointF lensCenter = tile.center() - QPointF(tileSide * 0.07, tileSide * 0.07);
-		const qreal lensRadius = tileSide * 0.20;
-		painter->setPen(QPen(QColor(t.accent), 2, Qt::SolidLine, Qt::RoundCap));
+		const QPointF lensCenter(area.center().x() - 2.0, area.top() + 22.0);
+		painter->setPen(QPen(QColor(t.mutedText), 1.5, Qt::SolidLine, Qt::RoundCap));
 		painter->setBrush(Qt::NoBrush);
-		painter->drawEllipse(lensCenter, lensRadius, lensRadius);
-		const QPointF handleStart = lensCenter + QPointF(lensRadius * 0.75, lensRadius * 0.75);
-		painter->drawLine(handleStart, handleStart + QPointF(tileSide * 0.16, tileSide * 0.16));
+		painter->drawEllipse(lensCenter, 6.0, 6.0);
+		painter->drawLine(lensCenter + QPointF(4.5, 4.5), lensCenter + QPointF(9.0, 9.0));
 
-		QFont nameFont = option.font;
-		nameFont.setWeight(QFont::DemiBold);
-		const QFontMetricsF nameMetrics(nameFont);
-		QFont captionFont = option.font;
-		captionFont.setPointSizeF(option.font.pointSizeF() * 0.82);
-		const QFontMetricsF captionMetrics(captionFont);
-
-		const qreal textTop = tile.bottom() + 8;
+		const QFont nameFont = SoftPaint::bodyFont(t, 14, QFont::DemiBold);
+		const QFont captionFont = SoftPaint::bodyFont(t, 13);
 		painter->setFont(nameFont);
 		painter->setPen(QColor(t.text));
-		painter->drawText(QRectF(card.left(), textTop, card.width(), nameMetrics.height()),
+		painter->drawText(QRectF(area.left(), area.top() + 40.0, area.width(), 22.0),
 			Qt::AlignHCenter | Qt::AlignVCenter, title);
 		painter->setFont(captionFont);
 		painter->setPen(QColor(t.mutedText));
-		painter->drawText(QRectF(card.left(), textTop + nameMetrics.height() + 2,
-			card.width(), captionMetrics.height()),
+		painter->drawText(QRectF(area.left(), area.top() + 62.0, area.width(), 20.0),
 			Qt::AlignHCenter | Qt::AlignVCenter, caption);
 	}
 
 	static void paintEntry(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index,
-		const SkinTokens& t, bool dark, const QString& title)
+		const SkinTokens& t, const QString& title)
 	{
 		QRectF row(option.rect);
-		row.adjust(0, 2, 0, -2);
+		row.adjust(0, 1, 0, -1);
+		// One emphasis: the pointer and the arrow keys move the same current
+		// row (shared article 7).
+		if (option.state.testFlag(QStyle::State_Selected))
+			SoftPaint::box(*painter, row, QColor(t.cardSelected), QColor(), SoftPaint::controlRadius, 0.0);
 
-		// The current row gets the fully rounded stadium in the selection
-		// tint, the same silhouette as the skin's chips. The pointer moves
-		// the current row (FilterPickerView::followPointer), so hover has no
-		// look of its own: one stadium, the one Return will add.
-		const bool selected = option.state.testFlag(QStyle::State_Selected);
-		if (selected)
-		{
-			const qreal radius = row.height() / 2.0;
-			painter->setPen(QPen(withAlpha(QColor(t.accent), dark ? 120 : 110), 1));
-			painter->setBrush(QColor(t.cardSelected));
-			painter->drawRoundedRect(row.adjusted(0.5, 0.5, -0.5, -0.5), radius, radius);
-		}
-
-		// A rounded-square colour tile carrying the entry's pictogram; the
-		// monogram stays as the fallback for unmapped templates.
-		const QColor tint = index.data(TintRole).value<QColor>();
-		const qreal tileSide = 28;
-		const QRectF tile(row.left() + 10, row.center().y() - tileSide / 2.0, tileSide, tileSide);
-		painter->setPen(Qt::NoPen);
-		painter->setBrush(tint);
-		painter->drawRoundedRect(tile, tileSide * 0.32, tileSide * 0.32);
+		// The command's pictogram in the body ink; a template that has none
+		// falls back to its letters.
+		const qreal glyphSide = 18.0;
+		const QRectF glyphBox(row.left() + 14.0, row.center().y() - glyphSide / 2.0, glyphSide, glyphSide);
 		const QString iconResource = index.data(IconRole).toString();
 		if (!iconResource.isEmpty())
 		{
-			const int glyphSide = qMax(1, qRound(tileSide * 0.6));
-			const QRect glyphRect(qRound(tile.center().x() - glyphSide / 2.0),
-				qRound(tile.center().y() - glyphSide / 2.0), glyphSide, glyphSide);
-			GUIHelper::tintedIcon(iconResource, QColor(QStringLiteral("#FAFAFC")), glyphSide)
-				.paint(painter, glyphRect);
+			GUIHelper::tintedIcon(iconResource, QColor(t.text), int(glyphSide))
+				.paint(painter, glyphBox.toRect());
 		}
 		else
 		{
-			const QString glyph = index.data(GlyphRole).toString();
-			QFont glyphFont = option.font;
-			glyphFont.setWeight(QFont::Bold);
-			glyphFont.setPointSizeF(option.font.pointSizeF() * (glyph.size() > 1 ? 0.9 : 1.1));
-			painter->setFont(glyphFont);
-			painter->setPen(QColor(QStringLiteral("#FAFAFC")));
-			painter->drawText(tile, Qt::AlignCenter, glyph);
+			painter->setFont(SoftPaint::bodyFont(t, 12, QFont::Bold));
+			painter->setPen(QColor(t.text));
+			painter->drawText(glyphBox.adjusted(-4.0, 0.0, 4.0, 0.0), Qt::AlignCenter, index.data(GlyphRole).toString());
 		}
 
-		// Name over the config line as a friendly muted caption (regular
-		// face, not monospace: here it is a description, not an editor).
-		// The name is bold so it carries the row.
 		const QString caption = index.data(CaptionRole).toString();
-		const qreal textLeft = tile.right() + 12;
-		const qreal textWidth = row.right() - 16 - textLeft;
-
-		QFont nameFont = option.font;
-		nameFont.setWeight(QFont::Bold);
+		const qreal textLeft = glyphBox.right() + 14.0;
+		const qreal textWidth = row.right() - 12.0 - textLeft;
+		const QFont nameFont = SoftPaint::bodyFont(t, 14, QFont::DemiBold);
 		const QFontMetricsF nameMetrics(nameFont);
-		QFont captionFont = option.font;
-		captionFont.setPointSizeF(option.font.pointSizeF() * 0.82);
+		const QFont captionFont = SoftPaint::bodyFont(t, 13);
 		const QFontMetricsF captionMetrics(captionFont);
-
-		const qreal gap = caption.isEmpty() ? 0.0 : 1;
-		const qreal textHeight = nameMetrics.height() + gap + (caption.isEmpty() ? 0.0 : captionMetrics.height());
+		const qreal textHeight = nameMetrics.height() + (caption.isEmpty() ? 0.0 : captionMetrics.height());
 		const qreal textTop = row.center().y() - textHeight / 2.0;
 
 		painter->setFont(nameFont);
 		painter->setPen(QColor(t.text));
 		painter->drawText(QRectF(textLeft, textTop, textWidth, nameMetrics.height()),
 			Qt::AlignLeft | Qt::AlignVCenter, nameMetrics.elidedText(title, Qt::ElideRight, textWidth));
-
 		if (!caption.isEmpty())
 		{
 			painter->setFont(captionFont);
 			painter->setPen(QColor(t.mutedText));
-			painter->drawText(QRectF(textLeft, textTop + nameMetrics.height() + gap, textWidth, captionMetrics.height()),
+			painter->drawText(QRectF(textLeft, textTop + nameMetrics.height(), textWidth, captionMetrics.height()),
 				Qt::AlignLeft | Qt::AlignVCenter, captionMetrics.elidedText(caption, Qt::ElideRight, textWidth));
 		}
 	}
@@ -357,11 +281,9 @@ SoftFilterPickerView::SoftFilterPickerView(const SkinTokens& tokens, QWidget* pa
 	setObjectName(QStringLiteral("SoftFilterPicker"));
 
 	QVBoxLayout* layout = new QVBoxLayout(this);
-	const int pad = 14;
-	// The extra bottom margin keeps the list clear of the faked drop step
-	// painted along the card's bottom edge (paintEvent).
-	layout->setContentsMargins(pad, pad, pad, pad + 2);
-	layout->setSpacing(10);
+	const int pad = 10;
+	layout->setContentsMargins(pad, pad, pad, pad);
+	layout->setSpacing(8);
 
 	searchEdit = new QLineEdit(this);
 	searchEdit->setObjectName(QStringLiteral("SoftPickerSearch"));
@@ -389,14 +311,6 @@ SoftFilterPickerView::SoftFilterPickerView(const SkinTokens& tokens, QWidget* pa
 void SoftFilterPickerView::entriesChanged()
 {
 	entryMonograms = softMonograms(pickerEntries());
-	sectionColors.clear();
-	const bool dark = skinTokens.dark;
-	for (const FilterPickerEntry& entry : pickerEntries())
-	{
-		const QString section = entry.path.isEmpty() ? tr("General") : entry.path.join(QStringLiteral(" / "));
-		if (!sectionColors.contains(section))
-			sectionColors.insert(section, sectionPastel(sectionColors.size(), dark));
-	}
 	rebuildList();
 	searchEdit->setFocus();
 }
@@ -464,8 +378,6 @@ void SoftFilterPickerView::rebuildList()
 		const FilterPickerEntry& entry = pickerEntries()[match.originalIndex];
 		const QString& section = match.section;
 
-		const QColor tint = sectionColors.value(section,
-			sectionPastel(0, skinTokens.dark));
 		if (!sectionStarted || section != currentSection)
 		{
 			sectionStarted = true;
@@ -474,7 +386,6 @@ void SoftFilterPickerView::rebuildList()
 			caption->setFlags(Qt::NoItemFlags);
 			caption->setData(EntryIndexRole, -1);
 			caption->setData(TitleRole, section);
-			caption->setData(TintRole, tint);
 			caption->setData(KindRole, SectionItem);
 		}
 
@@ -493,7 +404,6 @@ void SoftFilterPickerView::rebuildList()
 		if (caption.isEmpty())
 			caption = parts.note.isEmpty() ? softCaption(entry.line) : parts.note;
 		item->setData(CaptionRole, caption);
-		item->setData(TintRole, tint);
 		item->setData(KindRole, EntryItem);
 		item->setData(GlyphRole, entryMonograms.value(match.originalIndex, entry.name.left(1).toUpper()));
 		item->setData(IconRole, softEntryIcon(entry));
@@ -535,31 +445,12 @@ void SoftFilterPickerView::paintEvent(QPaintEvent* event)
 {
 	Q_UNUSED(event);
 	const SkinTokens& t = skinTokens;
-	const bool dark = skinTokens.dark;
 
 	QPainter painter(this);
-	painter.setRenderHint(QPainter::Antialiasing);
-
 	// Backing for the rounded corners: the window background, which is also
 	// what the popup floats over.
 	painter.fillRect(rect(), QColor(t.background));
-
-	// Faked elevation, per the constitution: one background value step nudged
-	// down under the card; never a real shadow effect. The card rounds at the
-	// constitutional 14px.
-	const qreal radius = 14.0;
-	QRectF card(rect());
-	card.adjust(0.5, 0.5, -0.5, -2.5);
-	const QColor stepColor = dark
-		? mixColor(QColor(t.background), QColor(Qt::black), 0.45)
-		: mixColor(QColor(t.background), QColor(t.border), 0.7);
-	painter.setPen(Qt::NoPen);
-	painter.setBrush(stepColor);
-	painter.drawRoundedRect(card.translated(0, 2.0), radius, radius);
-
-	// The menu card itself: rounded, one value step above the window, with
-	// the very light 1px border.
-	painter.setPen(QPen(QColor(t.border), 1));
-	painter.setBrush(QColor(t.card));
-	painter.drawRoundedRect(card, radius, radius);
+	// A floating surface: the card colour inside a line one step heavier than
+	// a card's, at the surface radius.
+	SoftPaint::box(painter, QRectF(rect()), QColor(t.card), QColor(t.borderStrong), SoftPaint::surfaceRadius);
 }

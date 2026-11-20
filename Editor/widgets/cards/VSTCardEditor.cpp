@@ -594,8 +594,12 @@ void VSTCardEditor::updateBusControls()
 	}
 
 	busVerdict = VSTBusVerdict::describe(facts);
-	busStrip->setVisible(busVerdict.stripVisible);
-	if (!busVerdict.stripVisible)
+	// A strip whose selectors cannot be used is the skin's to keep or drop
+	// (ISkin::showsUnusableVstBusStrip).
+	const bool stripShown = busVerdict.stripVisible
+		&& (busVerdict.selectorsEnabled || SkinManager::instance()->showsUnusableVstBusStrip());
+	busStrip->setVisible(stripShown);
+	if (!stripShown)
 		return;
 	busStrip->setSelectorsEnabled(busVerdict.selectorsEnabled, busVerdict.selectorsDisabledReason);
 	if (busVerdict.readout == VSTBusVerdict::Readout::Single)

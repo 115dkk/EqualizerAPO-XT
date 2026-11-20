@@ -6,12 +6,12 @@
 
 #include "BlockChipRoutingRenderer.h"
 #include "Editor/skins/shared/SkinPaint.h"
+#include "Editor/skins/soft/SoftPaint.h"
 
 #include <QPainter>
 #include <QPainterPath>
 #include <QFontMetrics>
 
-#include "Editor/widgets/routing/CopyRoutingAdapter.h"
 
 using std::vector;
 
@@ -24,40 +24,74 @@ BlockChipView::BlockChipView(const vector<Assignment>& assignments,
 	refold();
 }
 
-static QFont uiFont(const SkinTokens& tokens, int px)
+namespace
 {
-	QFont f(tokens.fontFamily);
-	f.setPixelSize(px);
-	return f;
+// A summand's factor as it is written in the row: nothing for a plain or an
+// inverted channel (the sign before the box says "inverted"), otherwise the
+// magnitude, or the decibel value with its own sign.
+QString factorCaption(const Assignment::Summand& summand, bool allowFactors)
+{
+	if (!allowFactors)
+		return QString();
+	if (summand.isDecibel)
+		return QStringLiteral("%1 dB").arg(summand.factor);
+	if (summand.factor == 1.0 || summand.factor == -1.0)
+		return QString();
+	return QString::number(qAbs(summand.factor));
+}
+
+// The times sign between a factor and its channel, with the space around it.
+const int timesWidth = 18;
+// The inner padding of a summand box and the gap after it.
+const int boxPadding = 9;
+const int boxGap = 6;
+const int boxHeight = 28;
 }
 
 QSize BlockChipView::sizeHint() const
 {
-	QFontMetrics fm(uiFont(skinTokens, 14));
+	const QFontMetrics fm(SoftPaint::numberFont(skinTokens, 14));
 	int maxW = 240;
 	for (int row : fold.visibleRows)
 	{
 		const Assignment& a = workingAssignments[row];
-		int w = 24 + fm.horizontalAdvance(QString::fromStdWString(a.targetChannel)) + 24 + 24 + 44 + 30; // + add chip + × target
+		// The target tag, the equals sign, the add button and the remove mark.
+		int w = fm.horizontalAdvance(QString::fromStdWString(a.targetChannel)) + 18 + 26 + 34 + 30;
 		for (const Assignment::Summand& s : a.sourceSum)
-			w += fm.horizontalAdvance(QString::fromStdWString(s.channel)) + 90;
+		{
+			const QString factor = factorCaption(s, portModel.allowFactors);
+			w += 18 + boxPadding * 2 + fm.horizontalAdvance(QString::fromStdWString(s.channel)) + boxGap;
+			if (!factor.isEmpty())
+				w += fm.horizontalAdvance(factor) + timesWidth;
+		}
 		maxW = qMax(maxW, w);
 	}
 	const int n = fold.visibleRows.size();
 	int h = n * blockH + (n + 1) * gap;
+	// The control row (reveal link + add-channel button) is always present.
 	h += controlH + gap;
 	return QSize(maxW + 24, h);
 }
 
+// Each output is one line of an equation, set the way a form sets it:
+// the target as a tag, an equals sign, then every source as a box holding its
+// factor and its channel. No card round the line and no colour per channel;
+// the channel's name is what tells the channels apart.
 void BlockChipView::paintEvent(QPaintEvent*)
 {
 	const SkinTokens& t = skinTokens;
 	QPainter p(this);
 	p.setRenderHint(QPainter::Antialiasing, true);
-	const int radius = qMax(8, t.borderRadius);
+	p.setRenderHint(QPainter::TextAntialiasing, true);
 
-	const QColor text(t.text), muted(t.mutedText), card(t.cardHover), border(t.border);
-	const QColor ok(t.success), warn(t.warning), accent(t.accent);
+	const QColor text(t.text), muted(t.mutedText);
+	const QFont nameFont = SoftPaint::bodyFont(t, 13);
+	const QFont valueFont = SoftPaint::numberFont(t, 14);
+	const QFont channelFont = SoftPaint::bodyFont(t, 14, QFont::DemiBold);
+	const QFont signFont = SoftPaint::bodyFont(t, 15);
+	const QFontMetrics nameMetrics(nameFont);
+	const QFontMetrics valueMetrics(valueFont);
+	const QFontMetrics channelMetrics(channelFont);
 
 	hits.clear();
 	addHits.clear();
@@ -70,168 +104,139 @@ void BlockChipView::paintEvent(QPaintEvent*)
 		const int r = fold.visibleRows[dr];
 		const Assignment& a = workingAssignments[r];
 		const int y = gap + dr * (blockH + gap);
-		const QRect block(4, y, width() - 8, blockH);
+		const int boxTop = y + (blockH - boxHeight) / 2;
 
-		// Soft block background with a subtle accent edge.
-		QPainterPath path;
-		path.addRoundedRect(block, radius, radius);
-		p.fillPath(path, card);
-		p.setPen(QPen(withAlpha(accent, 70), 1.5));
-		p.drawPath(path);
-
+		// The target: an outlined tag. A virtual channel's tag is dashed, the
+		// skin's one mark for "this is not a device channel".
 		const QString dest = QString::fromStdWString(a.targetChannel);
-		const QColor destCol(CopyRoutingAdapter::channelColor(dest));
-		p.setPen(Qt::NoPen);
-		p.setBrush(destCol);
-		p.drawRoundedRect(QRect(block.left() + 6, y, 5, blockH), 2, 2);
+		const bool virtualTarget = portModel.isVirtualChannel(dest);
+		int x = 4;
+		const int tagWidth = nameMetrics.horizontalAdvance(dest) + 16;
+		const QRect tag(x, y + (blockH - 22) / 2, tagWidth, 22);
+		SoftPaint::box(p, tag, QColor(), QColor(virtualTarget ? t.controlEdge : t.borderStrong), 11.0, 1.0,
+			virtualTarget ? Qt::DashLine : Qt::SolidLine);
+		p.setFont(nameFont);
+		p.setPen(text);
+		p.drawText(tag, Qt::AlignCenter, dest);
+		x += tagWidth + 8;
 
-		QFont big = uiFont(skinTokens, 15);
-		big.setBold(true);
-		p.setFont(big);
-		QFontMetrics bfm(big);
-		int x = block.left() + 18;
-		p.setPen(destCol);
-		p.drawText(QRect(x, y, bfm.horizontalAdvance(dest) + 4, blockH), Qt::AlignVCenter | Qt::AlignLeft, dest);
-		x += bfm.horizontalAdvance(dest) + 10;
+		p.setFont(signFont);
 		p.setPen(muted);
 		p.drawText(QRect(x, y, 16, blockH), Qt::AlignCenter, QStringLiteral("="));
-		x += 22;
-
-		QFont chipFont = uiFont(skinTokens, 14);
-		p.setFont(chipFont);
-		QFontMetrics fm(chipFont);
+		x += 24;
 
 		for (int si = 0; si < (int)a.sourceSum.size(); ++si)
 		{
 			const Assignment::Summand& s = a.sourceSum[si];
 			const QString ch = QString::fromStdWString(s.channel);
-			const bool neg = s.factor < 0;
-			const bool showGain = s.factor != 1.0 || s.isDecibel;
-
-			if (si > 0)
+			// A decibel factor carries its own sign; only a linear factor is
+			// split into a sign before the box and a magnitude inside it.
+			const bool negative = !s.isDecibel && s.factor < 0;
+			p.setFont(signFont);
+			p.setPen(muted);
+			if (si > 0 || negative)
 			{
-				p.setPen(neg ? warn : muted);
-				p.drawText(QRect(x, y, 16, blockH), Qt::AlignCenter, neg ? QStringLiteral("−") : QStringLiteral("+"));
+				p.drawText(QRect(x, y, 14, blockH), Qt::AlignCenter,
+					negative ? QStringLiteral("−") : QStringLiteral("+"));
 				x += 18;
 			}
-			else if (neg)
-			{
-				p.setPen(warn);
-				p.drawText(QRect(x, y, 12, blockH), Qt::AlignCenter, QStringLiteral("−"));
-				x += 14;
-			}
 
-			QString factorText;
-			if (showGain && portModel.allowFactors)
-			{
-				if (s.factor == -1.0 && !s.isDecibel)
-					factorText = QStringLiteral("INV·");
-				else
-				{
-					const double mag = neg ? -s.factor : s.factor;
-					factorText = s.isDecibel ? QStringLiteral("%1dB·").arg(s.factor) : QStringLiteral("%1·").arg(mag);
-				}
-			}
-
-			// Soft chip: factor·channel inside one rounded pill. Fixed sources
-			// (IR file channels) are ports, not virtual channels, so they keep
-			// the solid chip styling.
-			const QColor col(CopyRoutingAdapter::channelColor(ch));
+			// Fixed sources (IR file channels) are ports, not virtual
+			// channels, so they keep the solid line.
 			const bool virt = !portModel.fixedSourceMode() && portModel.isVirtualChannel(ch);
-			const int fw = fm.horizontalAdvance(factorText);
-			const int cw = fm.horizontalAdvance(ch);
-			const int chipW = fw + cw + 18;
-			const QRect chip(x, y + (blockH - 26) / 2, chipW, 26);
-			p.setPen(virt ? QPen(withAlpha(col, 180), 1, Qt::DashLine) : QPen(withAlpha(col, 120), 1));
-			p.setBrush(withAlpha(col, virt ? 22 : 40));
-			p.drawRoundedRect(chip, 13, 13);
+			const QString factor = factorCaption(s, portModel.allowFactors);
+			const int factorWidth = factor.isEmpty() ? 0 : valueMetrics.horizontalAdvance(factor);
+			const int channelWidth = channelMetrics.horizontalAdvance(ch);
+			const int boxWidth = boxPadding * 2 + channelWidth + (factor.isEmpty() ? 0 : factorWidth + timesWidth);
+			const QRect box(x, boxTop, boxWidth, boxHeight);
+			SoftPaint::box(p, box, QColor(t.card), QColor(t.controlEdge), SoftPaint::controlRadius, 1.0,
+				virt ? Qt::DashLine : Qt::SolidLine);
 
-			int cx = chip.left() + 9;
-			if (!factorText.isEmpty())
+			int cx = box.left() + boxPadding;
+			if (!factor.isEmpty())
 			{
+				p.setFont(valueFont);
 				p.setPen(text);
-				p.drawText(QRect(cx, chip.top(), fw, chip.height()), Qt::AlignVCenter | Qt::AlignLeft, factorText);
-				// factor portion is the editable hit target
-				hits.append({ r, si, QRect(cx, chip.top(), fw, chip.height()) });
-				cx += fw;
+				p.drawText(QRect(cx, box.top(), factorWidth, box.height()), Qt::AlignVCenter | Qt::AlignLeft, factor);
+				// The factor is the editable part of the box.
+				hits.append({ r, si, QRect(box.left(), box.top(), boxPadding + factorWidth, box.height()) });
+				cx += factorWidth;
+				p.setPen(muted);
+				p.drawText(QRect(cx, box.top(), timesWidth, box.height()), Qt::AlignCenter, QStringLiteral("×"));
+				cx += timesWidth;
 			}
 			else
 			{
-				// no factor shown: allow editing by clicking the chip
-				hits.append({ r, si, chip });
+				// No factor shown: the whole box opens the editor.
+				hits.append({ r, si, box });
 			}
-			p.setPen(col.darker(virt ? 100 : 130));
-			QFont chBold = chipFont;
-			chBold.setBold(true);
-			p.setFont(chBold);
-			p.drawText(QRect(cx, chip.top(), cw + 4, chip.height()), Qt::AlignVCenter | Qt::AlignLeft, ch);
-			p.setFont(chipFont);
-
-			x += chipW + 8;
+			p.setFont(channelFont);
+			p.setPen(text);
+			p.drawText(QRect(cx, box.top(), channelWidth + 4, box.height()), Qt::AlignVCenter | Qt::AlignLeft, ch);
+			x += boxWidth + boxGap;
 		}
 
-		// Soft [+] chip per block: adds a source channel to this equation. This
-		// is what makes an emptied Copy refillable from the GUI.
-		const QRect addChip(x, y + (blockH - 26) / 2, 32, 26);
-		p.setPen(QPen(withAlpha(accent, 140), 1, Qt::DashLine));
-		p.setBrush(withAlpha(accent, 24));
-		p.drawRoundedRect(addChip, 13, 13);
-		p.setPen(withAlpha(accent, 220));
-		p.drawText(addChip, Qt::AlignCenter, QStringLiteral("+"));
-		addHits.append({ r, addChip });
-		x += 40;
+		// Add a source to this line: a small button with a plus. This is what
+		// makes an emptied line refillable.
+		const QRect addBox(x + 2, boxTop, boxHeight, boxHeight);
+		SoftPaint::box(p, addBox, QColor(t.card), QColor(t.borderStrong), SoftPaint::controlRadius);
+		p.setPen(QPen(muted, 1.5, Qt::SolidLine, Qt::RoundCap));
+		const QPointF plus = QRectF(addBox).center();
+		p.drawLine(plus + QPointF(-4.5, 0.0), plus + QPointF(4.5, 0.0));
+		p.drawLine(plus + QPointF(0.0, -4.5), plus + QPointF(0.0, 4.5));
+		addHits.append({ r, addBox });
+		x += boxHeight + 10;
 
-		// A virtual channel's block can be removed: hovering the block shows a
-		// quiet × pill at its tail (device channels fold instead of leaving,
-		// so they never get one). Muted, small, never alarming.
-		if (portModel.isVirtualChannel(dest) && hoveredRow == r)
+		// A virtual channel's line can be removed: hovering the line shows a
+		// cross after it (device channels fold instead of leaving).
+		if (virtualTarget && hoveredRow == r)
 		{
-			const QRect xChip(x, y + (blockH - 22) / 2, 22, 22);
-			p.setPen(QPen(withAlpha(muted, 140), 1));
-			p.setBrush(withAlpha(muted, 26));
-			p.drawEllipse(xChip);
-			p.setPen(withAlpha(muted, 230));
-			p.drawText(xChip, Qt::AlignCenter, QStringLiteral("×"));
-			removeHits.append({ r, xChip });
+			const QRect cross(x, y + (blockH - 22) / 2, 22, 22);
+			p.setPen(QPen(muted, 1.5, Qt::SolidLine, Qt::RoundCap));
+			const QPointF mid = QRectF(cross).center();
+			p.drawLine(mid + QPointF(-4.0, -4.0), mid + QPointF(4.0, 4.0));
+			p.drawLine(mid + QPointF(4.0, -4.0), mid + QPointF(-4.0, 4.0));
+			removeHits.append({ r, cross });
 		}
 	}
 
-	// The control row: a quiet "show more channels" pill (OFF-state pill
-	// grammar - sunken ground, 1px border, muted ink; hover raises it one
-	// step) and the dashed "add channel" chip (the not-hardware-backed
-	// grammar shared with the per-block [+]).
+	// The control row: "show more channels" as a text link (underlined body
+	// ink), then "add channel" as an ordinary small button.
 	const int y = gap + fold.visibleRows.size() * (blockH + gap);
-	QFont chipFont = uiFont(skinTokens, 13);
-	p.setFont(chipFont);
-	QFontMetrics fm(chipFont);
-	int x = 8;
-
+	const QFont controlFont = SoftPaint::bodyFont(t, 13);
+	p.setFont(controlFont);
+	const QFontMetrics fm(controlFont);
+	const QColor linkInk(t.dark ? t.accent : t.text);
+	int x = 4;
 	if (fold.hiddenChannels > 0 || channelsExpanded)
 	{
 		const QString caption = channelsExpanded
 			? tr("Show fewer channels")
 			: tr("Show %n more channel(s)", nullptr, fold.hiddenChannels);
-		const int w = fm.horizontalAdvance(caption) + 24;
+		const int w = fm.horizontalAdvance(caption) + 16;
 		revealRect = QRect(x, y, w, controlH - 4);
 		const bool hovered = hoveredControl == 1;
-		p.setPen(QPen(withAlpha(border, 160), 1));
-		p.setBrush(hovered ? withAlpha(border, 60) : withAlpha(border, 30));
-		p.drawRoundedRect(revealRect, (controlH - 4) / 2, (controlH - 4) / 2);
-		p.setPen(hovered ? text : muted);
+		if (hovered)
+			SoftPaint::box(p, revealRect, QColor(t.cardHover), QColor(), SoftPaint::controlRadius, 0.0);
+		p.setPen(linkInk);
 		p.drawText(revealRect, Qt::AlignCenter, caption);
+		const int underlineY = revealRect.center().y() + fm.ascent() / 2 + 3;
+		p.fillRect(QRect(revealRect.left() + 8, underlineY, w - 16, 1), withAlphaF(linkInk, hovered ? 1.0 : 0.45));
 		x += w + 10;
 	}
-
 	{
-		const QString caption = QStringLiteral("+ ") + tr("Add channel");
-		const int w = fm.horizontalAdvance(caption) + 24;
+		const QString caption = tr("Add channel");
+		const int w = fm.horizontalAdvance(caption) + 22 + 20;
 		addChannelRect = QRect(x, y, w, controlH - 4);
 		const bool hovered = hoveredControl == 2;
-		p.setPen(QPen(withAlpha(accent, hovered ? 220 : 140), 1, Qt::DashLine));
-		p.setBrush(withAlpha(accent, hovered ? 40 : 24));
-		p.drawRoundedRect(addChannelRect, (controlH - 4) / 2, (controlH - 4) / 2);
-		p.setPen(withAlpha(accent, hovered ? 255 : 220));
-		p.drawText(addChannelRect, Qt::AlignCenter, caption);
+		SoftPaint::box(p, addChannelRect, QColor(hovered ? t.cardHover : t.card),
+			QColor(hovered ? t.controlEdge : t.borderStrong), SoftPaint::controlRadius);
+		p.setPen(QPen(text, 1.5, Qt::SolidLine, Qt::RoundCap));
+		const QPointF plus(addChannelRect.left() + 15.0, QRectF(addChannelRect).center().y());
+		p.drawLine(plus + QPointF(-4.0, 0.0), plus + QPointF(4.0, 0.0));
+		p.drawLine(plus + QPointF(0.0, -4.0), plus + QPointF(0.0, 4.0));
+		p.setPen(text);
+		p.drawText(addChannelRect.adjusted(26, 0, -8, 0), Qt::AlignVCenter | Qt::AlignLeft, caption);
 	}
 }
 

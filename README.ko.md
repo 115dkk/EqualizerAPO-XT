@@ -36,6 +36,8 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
    앞선 라운드에서는 Soft 파스텔 재작업, 다크 모드 상태 대비, 분석 패널 한칸
    배치, 그래픽 EQ 모던 카드, 카드 추가·삽입 계약, Device Selector 스킨
    동기화를 다뤘습니다([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172)).
+   Soft 스킨은 평범한 데스크톱 앱으로 다시 만들고 있으며 메인테이너의 심사를
+   기다립니다([#500](https://github.com/115dkk/EqualizerAPO-XT/pull/500)).
 3. 위상과 시간. 분석 그래프가 크기·위상·그룹 지연을 전환하고, 올패스 필터에 전용 카드와 1차 섹션이 생겼으며, `Delay`와 올패스가 픽커의 'Phase & Time' 분류로 묶였습니다. 올패스는 음량을 전혀 바꾸지 않으므로 크기만 그리는 그래프로는 볼 수 없는 필터였습니다([#228](https://github.com/115dkk/EqualizerAPO-XT/issues/228), [docs/features/phase-and-time.md](docs/features/phase-and-time.md)).
 4. 프로그래밍 계열 설정 명령(`If:`/`ElseIf:`/`Else:`/`EndIf:`/`Eval:`) 전용 에디터 — 완료. 다섯 스킨이 분석 판정으로 블록을 각자의 계기로 표현하고, 픽커가 이 명령들을 삽입하며, 계수 직접 입력 IIR 줄과 백틱 인라인 식이 든 줄도 각자의 카드를 유지합니다([#178](https://github.com/115dkk/EqualizerAPO-XT/pull/178), [#182](https://github.com/115dkk/EqualizerAPO-XT/pull/182), [#183](https://github.com/115dkk/EqualizerAPO-XT/pull/183), [#184](https://github.com/115dkk/EqualizerAPO-XT/pull/184)).
 

@@ -37,6 +37,8 @@ Current work areas:
    covered the Soft pastel rework, dark-mode state contrast, the compact
    analysis panel, the modern GraphicEQ card, the insertion contract, and the
    skinned Device Selector ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172)).
+   The Soft skin is being rebuilt as an ordinary desktop app and waits for
+   the maintainer's review ([#500](https://github.com/115dkk/EqualizerAPO-XT/pull/500)).
 3. Phase and time. The analysis graph now switches between magnitude, phase and
    group delay, the all-pass filter has its own card and a 1st-order section,
    and `Delay` and the all-pass share a "Phase & Time" group in the picker. An

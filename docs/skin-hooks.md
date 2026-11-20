@@ -264,12 +264,16 @@ Two constitutional constraints, both from the design gate:
 - A fill cell picks a CHANNEL, the bus selector picks a LAYOUT, and the two
   must not read as the same control. Every skin answers the cell with a
   different register than its bus selector (scribble well vs. glass pane,
-  patch socket vs. latch cap, posting rule vs. boxed key, outlined pill
-  vs. filled pill; minimal stays bare ink in both, and that is its answer).
+  patch socket vs. latch cap, posting rule vs. boxed key; minimal stays
+  bare ink in both, and that is its answer. Soft answers both as the same
+  ordinary select on purpose (its constitution allows no part of its own);
+  there the slot's name inside the cell and the layout's name inside the
+  selector tell them apart).
 - The fold latch is the rail frame's affordance, never one more dropdown:
   a lit console switch (studio), the latch button with its pilot LED
-  (rack), a reverse-video token (minimal), a dot toggle (soft), a boarding
-  gate cell whose collapsed state is a dashed cancellation (matrix).
+  (rack), a reverse-video token (minimal), a disclosure chevron and a word
+  (soft), a boarding gate cell whose collapsed state is a dashed
+  cancellation (matrix).
 
 Cell states carry the slot role token, the assigned channel, and three
 verdicts the skin must voice: `silent` (the `-` slot), `defaulted` (no

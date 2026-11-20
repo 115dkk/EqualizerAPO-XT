@@ -14,6 +14,17 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The Soft skin looks like an ordinary desktop app.** The pastel colours,
+  shadows and per-channel colours are gone. Cards are white boxes with a thin
+  border, the light theme uses one ink accent and the dark theme one blue, and
+  green, orange and red appear only on status lamps and warnings. The command
+  picker, menus, file dialog, analysis graph and Device Selector follow the
+  same rules, and the layout of the Editor is unchanged. A level above 0 dB is
+  drawn in red in the analysis graph, a VST2 plug-in no longer shows a bus
+  layout row it cannot use, and a line that is no command says that it is not
+  applied to the audio.
+  ([#500](https://github.com/115dkk/EqualizerAPO-XT/pull/500))
+
 ## v2.69.2 — 2026-11-20
 
 - **Device Selector: checked boxes show their check mark.** In the Studio,
