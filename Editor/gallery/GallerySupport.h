@@ -172,6 +172,9 @@ void galleryDevices(QList<std::shared_ptr<AbstractAPOInfo>>& outputs, QList<std:
 // Synthetic reference targets next to a synthetic config file; returns the
 // config path, or an empty string on failure.
 QString buildReferenceFiles(const QDir& outDir);
+// A 16-bit PCM WAV of silence with the given shape, for a gate that needs a
+// reference file buildReferenceFiles does not write.
+bool writeWavFile(const QString& path, quint16 channels, quint32 sampleRate, quint32 frames);
 // The fixed fixture folder under %TEMP%, independent of the output directory.
 QDir galleryFixtureRoot();
 QString buildFileDialogFixture(const QDir& fixtureRoot);

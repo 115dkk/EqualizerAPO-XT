@@ -30,6 +30,7 @@ class QLabel;
 class QToolButton;
 class QVBoxLayout;
 class RoutingView;
+class RoutingViewScroll;
 
 // Modern card body for a "MultiConvolution:" line. Two stacked parts: the
 // named impulse-response reference (same skin view, readout and import
@@ -90,6 +91,7 @@ private:
 	QVBoxLayout* routingLayout = nullptr;
 	QLabel* mappingCaption = nullptr;
 	RoutingView* routingView = nullptr;
+	RoutingViewScroll* routingScroll = nullptr;
 	QToolButton* addChannelButton = nullptr;
 	QToolButton* chooseButton = nullptr;
 	QToolButton* importButton = nullptr;

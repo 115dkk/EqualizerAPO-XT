@@ -14,6 +14,17 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **A tall MultiConvolution or Copy row no longer scrolls inside its card,
+  and a wide routing grid can be scrolled sideways.** A row whose channel
+  mapping grew past 600 px (the mapping opened over a 7.1.4 device, for
+  example) was cut off there and moved under the mouse wheel inside the card,
+  with no scroll bar to say so. The row is now as tall as its content. In the
+  Hardware Rack and Signal Matrix skins, a grid with more columns than the
+  card has room for (an impulse response file with many channels) was cut off
+  at the card's edge; it now has a scroll bar under the grid, and Shift with
+  the mouse wheel moves it.
+  ([#505](https://github.com/115dkk/EqualizerAPO-XT/pull/505))
+
 ## v2.71.1 — 2026-11-20
 
 - **The Stock Flat skin is stored under its own name.** The skin renamed in

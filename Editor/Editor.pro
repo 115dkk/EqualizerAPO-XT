@@ -397,6 +397,7 @@ SOURCES += main.cpp\
 	widgets/routing/MultiConvolutionRoutingAdapter.cpp \
 	widgets/routing/RoutingGridModel.cpp \
 	widgets/routing/GridRoutingViewBase.cpp \
+	widgets/routing/RoutingViewScroll.cpp \
 	widgets/routing/SumRoutingViewBase.cpp \
 	widgets/DocumentTabWidget.cpp \
 	import/ConfigDependencyScanner.cpp \
@@ -774,6 +775,7 @@ HEADERS  += \
 	widgets/routing/RoutingGridModel.h \
 	widgets/routing/RoutingChannelEditor.h \
 	widgets/routing/GridRoutingViewBase.h \
+	widgets/routing/RoutingViewScroll.h \
 	widgets/routing/SumRoutingViewBase.h \
 	widgets/DocumentTabWidget.h \
 	import/ConfigDependencyScanner.h \

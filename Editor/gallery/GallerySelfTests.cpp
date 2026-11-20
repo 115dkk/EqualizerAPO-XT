@@ -754,6 +754,90 @@ int SkinGallery::runRoutingEditTest()
 		}
 	}
 
+	// Part 3: the card's body never scrolls on its own. The row hosts its
+	// editor in a scroll area whose vertical bar is off; if that area is ever
+	// shorter than its content the wheel moves the body inside the card, with
+	// nothing on screen to say so. A 16-channel file over a 7.1.4 endpoint,
+	// with the target fold opened, is the tallest body a MultiConvolution row
+	// has.
+	{
+		const QDir refs = QFileInfo(configPath).dir();
+		check(writeWavFile(refs.filePath(QStringLiteral("brir16.wav")), 16, 48000, 4800),
+			QStringLiteral("could not write the 16-channel test file"));
+		auto atmos = std::make_shared<GalleryAPOInfo>(
+			L"Speakers", L"Example Audio 7.1.4", false, true, 12, 0x2D63F);
+		// Copy rides the same body and the same boards, with the endpoint's
+		// twelve channels on both sides.
+		const QStringList lines = { QStringLiteral("MultiConvolution: L=0 R=1 brir16.wav"), QStringLiteral("Copy: L=R") };
+		for (const QString& line : lines)
+		for (ISkin* skin : Skins::all())
+		{
+			const QString command = line.section(QLatin1Char(':'), 0, 0);
+			SkinManager::instance()->applySkin(skin->id(), true);
+			const QString who = skin->id() + QLatin1Char(' ') + command;
+			QScrollArea scrollArea;
+			scrollArea.resize(960, 720);
+			QList<FilterCardRow*> rows = buildRows(scrollArea, configPath, { line }, atmos, 0x2D63F);
+			RoutingView* view = rows.size() == 1 ? liveView(rows[0]) : nullptr;
+			if (!check(view != nullptr, QStringLiteral("%1 row has no routing view").arg(who)))
+				continue;
+			for (const char* state : { "collapsed", "expanded" })
+			{
+				if (QLatin1String(state) == QLatin1String("expanded"))
+					view->galleryShowcase(QStringLiteral("expanded"));
+				settle();
+				if (FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget()))
+					if (table->layout() != nullptr)
+						table->layout()->activate();
+				settle();
+				QScrollArea* body = rows[0]->findChild<QScrollArea*>(QStringLiteral("FilterCardEditorScroll"));
+				if (!check(body != nullptr && body->widget() != nullptr,
+					QStringLiteral("%1 row has no editor body").arg(who)))
+					break;
+				const int reach = body->verticalScrollBar()->maximum();
+				const QScrollBar* across = body->horizontalScrollBar();
+				const int sideways = across->maximum();
+				qWarning("RoutingEditTest: body %s %s: scroll %d, content %dx%d (hint %d), reach %d, sideways %d (bar %s, %d px), viewport %dx%d",
+					qPrintable(who), state, body->height(), body->widget()->width(), body->widget()->height(),
+					body->widget()->sizeHint().height(), reach, sideways, across->isVisible() ? "shown" : "hidden",
+					across->height(), body->viewport()->width(), body->viewport()->height());
+				check(sideways == 0,
+					QStringLiteral("%1 body (%2) is %3 px wider than its card: only the board scrolls sideways")
+					.arg(who, QLatin1String(state)).arg(sideways));
+
+				// The board is never cut off at the card's edge. When it is
+				// wider than the card its own scroll shows a bar, below the
+				// board and not over its last row.
+				QScrollArea* boardScroll = qobject_cast<QScrollArea*>(view->parentWidget() != nullptr
+					? view->parentWidget()->parentWidget() : nullptr);
+				if (!check(boardScroll != nullptr,
+					QStringLiteral("%1 board (%2) has no sideways scroll").arg(who, QLatin1String(state))))
+					break;
+				const QScrollBar* boardBar = boardScroll->horizontalScrollBar();
+				qWarning("RoutingEditTest: board %s %s: view %dx%d (hint %dx%d), viewport %dx%d, sideways %d, bar %s",
+					qPrintable(who), state, view->width(), view->height(), view->sizeHint().width(),
+					view->sizeHint().height(), boardScroll->viewport()->width(), boardScroll->viewport()->height(),
+					boardBar->maximum(), boardBar->isVisible() ? "shown" : "hidden");
+				check(view->width() >= view->sizeHint().width(),
+					QStringLiteral("%1 board (%2) is %3 px wide and needs %4")
+					.arg(who, QLatin1String(state)).arg(view->width()).arg(view->sizeHint().width()));
+				check(boardScroll->verticalScrollBar()->maximum() == 0 && boardScroll->viewport()->height() >= view->height(),
+					QStringLiteral("%1 board (%2): %3 px of its height is under the bar or out of reach")
+					.arg(who, QLatin1String(state)).arg(view->height() - boardScroll->viewport()->height()));
+				if (view->width() > boardScroll->viewport()->width())
+					check(boardBar->isVisible() && boardBar->maximum() > 0,
+						QStringLiteral("%1 board (%2) is wider than its card and shows no bar")
+						.arg(who, QLatin1String(state)));
+				check(reach == 0,
+					QStringLiteral("%1 body (%2) scrolls %3 px inside its card")
+					.arg(who, QLatin1String(state)).arg(reach));
+				check(body->widget()->height() <= body->widget()->sizeHint().height() + 1,
+					QStringLiteral("%1 body (%2) is %3 px tall for %4 px of content")
+					.arg(who, QLatin1String(state)).arg(body->widget()->height()).arg(body->widget()->sizeHint().height()));
+			}
+		}
+	}
+
 	// Shared routing commit contract, through each renderer's real editor:
 	// rejected input must not notify the host, not just retain the bytes.
 	for (ISkin* skin : Skins::all())
