@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.71.1 — 2026-11-20
+
 - **The Stock Flat skin is stored under its own name.** The skin renamed in
   v2.71.0 was still saved as `soft`. It is now saved as `flat`, and a setting
   that still says `soft` opens Stock Flat as before. Nothing looks different.

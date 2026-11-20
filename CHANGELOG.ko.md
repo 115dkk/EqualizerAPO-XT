@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.71.1 — 2026-11-20
+
 - **Stock Flat 스킨이 제 이름으로 저장됩니다.** v2.71.0에서 이름을 바꾼 스킨이
   설정에는 여전히 `soft`로 저장되고 있었습니다. 이제 `flat`으로 저장되고,
   `soft`로 저장된 설정은 이전처럼 Stock Flat으로 열립니다. 화면은 달라지지
