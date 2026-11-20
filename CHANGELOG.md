@@ -14,6 +14,12 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Device Selector: checked boxes show their check mark.** In the Studio,
+  Minimal, Rack and Matrix skins a checked box was a filled square with no
+  mark, so a checked and an unchecked box differed by colour alone. The
+  images were missing from the Device Selector's files.
+  ([#501](https://github.com/115dkk/EqualizerAPO-XT/pull/501))
+
 ## v2.69.1 — 2026-11-20
 
 - **Korean: the command picker names New channel and Send in Korean.** The
