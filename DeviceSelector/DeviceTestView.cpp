@@ -236,73 +236,69 @@ DeviceTestView::ProblemText DeviceTestView::describe(Problem problem, const QStr
 	{
 	case Problem::NoAnswerEveryMode:
 		return {tr("The APO does not work"),
-			tr("All three install modes were tried and Windows did not load the APO on this device in any of them."),
-			tr("The cause could not be determined. Update the device's driver, then press Reinstall. Some drivers load no APO at all.")};
+			tr("All three install modes were tried and the APO was not installed."),
+			tr("The cause is not known. Update the device's driver, then reinstall. Some drivers load no APO at all.")};
 	case Problem::NoAnswerSelectedMode:
 		return {tr("The APO does not work"),
-			tr("Windows did not load the APO on this device in the selected install mode (%1).").arg(detail),
-			tr("Turn on Automatic in the troubleshooting options, and the check tries the other modes too.")};
+			tr("The APO was not installed in the selected install mode (%1).").arg(detail),
+			tr("Select another install mode. The automatic install mode can be tried as well.")};
 	case Problem::PostMixSilent:
-		return {tr("Pre-mix works, post-mix does not"),
-			tr("The pre-mix APO works. Windows did not load the post-mix APO on this device."),
+		return {tr("Post-mix does not work. Pre-mix works"),
+			tr("The post-mix APO does not work. The pre-mix APO works."),
 			tr("Filters of the post-mix stage are not applied. Turn off post-mix install for this device, or try another install mode.")};
 	case Problem::PreMixSilent:
-		return {tr("Post-mix works, pre-mix does not"),
-			tr("The post-mix APO works. Windows did not load the pre-mix APO on this device."),
+		return {tr("Pre-mix does not work. Post-mix works"),
+			tr("The pre-mix APO does not work. The post-mix APO works."),
 			tr("Filters of the pre-mix stage are not applied. Try another install mode.")};
 	case Problem::OriginalApoFailed:
-		return {tr("The APO works, but the original APO could not start"),
-			tr("The equalizer works. The APO of the device's maker, which runs beside it, did not start, so that maker's effects are missing."),
+		return {tr("The original APO did not start. The APO works"),
+			tr("The APO of the device's maker did not start, so the device's own sound effects are missing. The EQ APO works."),
 			// The APO is installed and working: nothing is asked of the user.
 			QString()};
 	case Problem::ModeChangeRefused:
 		return {tr("The install mode could not be changed"),
-			tr("The check tried to install in another mode and Windows refused the change. The device was left as it was before."),
-			tr("Close programs that manage audio devices, then press Reinstall.")};
+			tr("The install in another mode was refused by Windows. The install was stopped."),
+			tr("Close programs that manage audio devices, then reinstall.")};
 	case Problem::InstallRefused:
 		return {tr("Not changed"),
-			tr("Windows refused the change to this device. The device was left as it was before."),
-			tr("Close programs that manage audio devices, then press Reinstall.")};
+			tr("Windows refused the change to this device. The install was stopped."),
+			tr("Close programs that manage audio devices, then reinstall.")};
 	case Problem::InstallLeftPartial:
-		return {tr("Partly changed"),
-			tr("Windows refused the change, and undoing it did not finish either. The device may be left partly changed."),
-			tr("Restart the computer, then open the Device Selector and press OK.")};
+		return {tr("Undo failed"),
+			tr("Windows refused the change, and undoing it failed as well."),
+			tr("Restart the computer, then reinstall.")};
 	case Problem::DeviceDisabled:
 		return {tr("Not checked: the device is disabled"),
-			tr("The device is disabled in Windows, so nothing could be played through it."),
-			tr("Enable the device, then press Reinstall.")};
+			tr("This device is disabled in Windows, so the APO cannot be installed on it."),
+			tr("Enable the device.")};
 	case Problem::DeviceUnplugged:
 		return {tr("Not checked: the device is unplugged"),
-			tr("Nothing is plugged into this device, so nothing could be played through it."),
-			tr("Plug it in, then press Reinstall.")};
+			tr("Nothing is plugged into this device, so the APO cannot be installed on it."),
+			tr("Plug the device in.")};
 	case Problem::DeviceUnreachable:
 		return {tr("Not checked: the device could not be opened"),
 			tr("Nothing could be played through this device, so the APO on it could not answer."),
-			tr("Press Reinstall to try again.")};
+			tr("Reinstall.")};
 	case Problem::AudioRestartFailed:
 		return {QString(),
-			tr("Windows audio could not be restarted, so the check did not run. The APO is installed, but it starts working only after Windows audio restarts."),
+			tr("Windows audio could not be restarted. The EQ APO works only after Windows audio restarts."),
 			tr("Restart the computer.")};
 	case Problem::ComUnavailable:
 		return {QString(),
-			tr("A Windows component the check needs did not start, so the check did not run."),
-			tr("Restart the computer, then open the Device Selector and press OK.")};
+			tr("A Windows error kept the installation check from starting."),
+			tr("Restart the computer, then reinstall.")};
 	case Problem::TestSetupRefused:
 		return {QString(),
-			tr("Windows blocked the setting the check uses to hear from the APO, so the check did not run."),
-			tr("Close security programs that block changes to system settings, then press Reinstall.")};
+			tr("The EQ APO install was refused."),
+			tr("Close security programs that block changes to system settings, then reinstall.")};
 	case Problem::ResultChannelBroken:
 		return {QString(),
-			tr("The check lost its connection to the APO before every device had answered."),
-			tr("Press Reinstall to try again.")};
+			tr("The connection to the APO was lost."),
+			tr("Reinstall.")};
 	case Problem::DeviceListUnreadable:
 		return {QString(),
 			tr("The list of audio devices could not be read, so no device was checked."),
-			tr("Press Reinstall to try again.")};
-	case Problem::StoppedByUser:
-		return {QString(),
-			tr("The check was stopped. The APO is installed, but whether it works was not checked."),
-			tr("Press Reinstall to try again.")};
+			tr("Reinstall.")};
 	}
 	return {};
 }
@@ -418,7 +414,7 @@ void DeviceTestView::setPhase(Phase phase, const Tally& tally)
 		else if (tally.attention > 0)
 		{
 			state.tone = DeviceReport::Degraded;
-			state.title = tr("The APO works. %n device(s) have something to look at.", nullptr, tally.attention);
+			state.title = tr("%n device(s) have something to look at. The APO works.", nullptr, tally.attention);
 		}
 		else if (tally.total == 0 && tally.unchecked == 0)
 		{
@@ -438,6 +434,10 @@ void DeviceTestView::setPhase(Phase phase, const Tally& tally)
 			state.title = tr("The APO works on every device.");
 			hint = tr("The equalizer is applied from now on.");
 		}
+		break;
+	case Phase::StoppedByUser:
+		state.tone = DeviceReport::Unchecked;
+		state.title = tr("The install was stopped.");
 		break;
 	case Phase::Stopped:
 		state.tone = DeviceReport::Unchecked;

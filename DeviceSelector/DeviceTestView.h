@@ -50,7 +50,8 @@ public:
 	{
 		Running,
 		Done,
-		Stopped // the check itself could not run to its end
+		Stopped,      // the check itself could not run to its end
+		StoppedByUser // Stop was pressed
 	};
 
 	// What the headline counts. Devices, not stages.
@@ -85,8 +86,7 @@ public:
 		ComUnavailable,
 		TestSetupRefused,
 		ResultChannelBroken,
-		DeviceListUnreadable,
-		StoppedByUser
+		DeviceListUnreadable
 	};
 
 	struct ProblemText

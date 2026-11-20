@@ -63,12 +63,12 @@ Die Funktion ist optional, weil die Umwandlung Rechenleistung benötigt und etwa
     </message>
     <message>
         <location line="-360"/>
-        <location line="+462"/>
+        <location line="+480"/>
         <source>Info</source>
         <translation>Info</translation>
     </message>
     <message>
-        <location line="-462"/>
+        <location line="-480"/>
         <source>A registry value that is required for the operation of Equalizer APO was not set correctly. This might have been caused by a driver installation or uninstallation. The value has been corrected. A reboot may be required so that the changes can take effect.</source>
         <translation>Ein Registrywert, der für den Betrieb von Equalizer APO erforderlich ist, war nicht korrekt gesetzt. Dies könnte durch eine Treiberinstallation oder -deinstallation ausgelöst worden sein. Der Wert ist nun korrigiert. Ein Neustart kann erforderlich sein, damit die Änderungen wirksam werden.</translation>
     </message>
@@ -95,7 +95,7 @@ Die Funktion ist optional, weil die Umwandlung Rechenleistung benötigt und etwa
         <translation type="vanished">Einzelheiten finden Sie in %1.</translation>
     </message>
     <message>
-        <location line="+761"/>
+        <location line="+779"/>
         <source>APO will be uninstalled</source>
         <translation>APO wird deinstalliert</translation>
     </message>
@@ -170,8 +170,8 @@ Die Funktion ist optional, weil die Umwandlung Rechenleistung benötigt und etwa
         <translation>APO wird installiert</translation>
     </message>
     <message>
-        <location line="-757"/>
-        <location line="+577"/>
+        <location line="-775"/>
+        <location line="+595"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>
@@ -211,7 +211,7 @@ Die Funktion ist optional, weil die Umwandlung Rechenleistung benötigt und etwa
         <translation type="vanished">Status</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="-390"/>
+        <location filename="../DeviceSelector.cpp" line="-408"/>
         <source>Troubleshooting options (only use in case of problems)</source>
         <translation>Problemlösungsoptionen (nur im Fall von Problemen verwenden)</translation>
     </message>
@@ -427,18 +427,18 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
     </message>
     <message>
         <location line="+27"/>
-        <location line="+190"/>
+        <location line="+189"/>
         <source>Restarting audio service...</source>
         <translation>Starte Audio-Dienst neu...</translation>
     </message>
     <message>
-        <location line="-185"/>
-        <location line="+190"/>
+        <location line="-184"/>
+        <location line="+189"/>
         <source>Restart failed.</source>
         <translation>Neustart fehlgeschlagen.</translation>
     </message>
     <message>
-        <location line="-175"/>
+        <location line="-174"/>
         <source>Checking APO installation...</source>
         <translation>Überprüfe APO-Installation...</translation>
     </message>
@@ -460,7 +460,7 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
     </message>
     <message numerus="yes">
         <location line="+23"/>
-        <location filename="../DeviceTestView.cpp" line="+512"/>
+        <location filename="../DeviceTestView.cpp" line="+514"/>
         <source>Check failed for %n device(s).</source>
         <translation>
             <numerusform>Überprüfung fehlgeschlagen für %n Gerät.</numerusform>
@@ -468,7 +468,7 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         </translation>
     </message>
     <message>
-        <location line="+34"/>
+        <location line="+33"/>
         <source>Setting install mode for %1 %2 to %3.</source>
         <translation>Setze Installationsmodus für %1 %2 auf %3.</translation>
     </message>
@@ -495,7 +495,7 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
 <context>
     <name>DeviceTestView</name>
     <message>
-        <location filename="../DeviceTestDialog.cpp" line="+71"/>
+        <location filename="../DeviceTestDialog.cpp" line="+75"/>
         <source>Reinstalling %1 %2</source>
         <translation>APO für %1 %2 wird neu installiert</translation>
     </message>
@@ -508,11 +508,12 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
     </message>
     <message>
         <location line="-191"/>
+        <location line="+413"/>
         <source>Details are in %1.</source>
         <translation>Einzelheiten finden Sie in %1.</translation>
     </message>
     <message>
-        <location line="+168"/>
+        <location line="-245"/>
         <location line="+42"/>
         <location filename="../DeviceTestView.cpp" line="-1"/>
         <source>The APO works</source>
@@ -536,18 +537,25 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
     </message>
     <message>
         <location line="+71"/>
+        <location line="+165"/>
         <location filename="../DeviceTestView.cpp" line="+58"/>
         <source>Windows audio</source>
         <translation>Windows-Audio</translation>
     </message>
     <message>
-        <location line="+82"/>
+        <location line="-47"/>
+        <location line="+86"/>
         <location filename="../DeviceTestView.cpp" line="-8"/>
         <source>Not checked</source>
         <translation>Nicht geprüft</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="-440"/>
+        <location line="-23"/>
+        <source>Install undone</source>
+        <translation>Installation rückgängig gemacht</translation>
+    </message>
+    <message>
+        <location filename="../DeviceTestView.cpp" line="-442"/>
         <source>APO installation check</source>
         <translation>APO-Installation prüfen</translation>
     </message>
@@ -578,141 +586,125 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <translation>APO funktioniert nicht</translation>
     </message>
     <message>
-        <location line="-3"/>
         <source>All three install modes were tried and Windows did not load the APO on this device in any of them.</source>
-        <translation>Alle drei Installationsmodi wurden getestet. Windows hat das APO bei diesem Gerät in keinem davon geladen.</translation>
+        <translation type="vanished">Alle drei Installationsmodi wurden getestet. Windows hat das APO bei diesem Gerät in keinem davon geladen.</translation>
     </message>
     <message>
         <source>The cause could not be determined. Update the device&apos;s driver and check again; some drivers load no APO at all.</source>
         <translation type="vanished">Die Ursache konnte nicht ermittelt werden. Aktualisieren Sie den Gerätetreiber und prüfen Sie erneut. Manche Treiber laden grundsätzlich kein APO.</translation>
     </message>
     <message>
-        <location line="+4"/>
         <source>Windows did not load the APO on this device in the selected install mode (%1).</source>
-        <translation>Windows hat das APO bei diesem Gerät im gewählten Installationsmodus (%1) nicht geladen.</translation>
+        <translation type="vanished">Windows hat das APO bei diesem Gerät im gewählten Installationsmodus (%1) nicht geladen.</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>Turn on Automatic in the troubleshooting options, and the check tries the other modes too.</source>
-        <translation>Aktivieren Sie Auto in den Problemlösungsoptionen, damit auch die anderen Modi getestet werden.</translation>
+        <translation type="vanished">Aktivieren Sie Auto in den Problemlösungsoptionen, damit auch die anderen Modi getestet werden.</translation>
     </message>
     <message>
-        <location line="+2"/>
         <source>Pre-mix works, post-mix does not</source>
-        <translation>Pre-mix funktioniert, Post-mix nicht</translation>
+        <translation type="vanished">Pre-mix funktioniert, Post-mix nicht</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>The pre-mix APO works. Windows did not load the post-mix APO on this device.</source>
-        <translation>Das Pre-mix-APO funktioniert. Windows hat das Post-mix-APO bei diesem Gerät nicht geladen.</translation>
+        <translation type="vanished">Das Pre-mix-APO funktioniert. Windows hat das Post-mix-APO bei diesem Gerät nicht geladen.</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="+6"/>
         <source>Filters of the post-mix stage are not applied. Turn off post-mix install for this device, or try another install mode.</source>
         <translation>Die Filter der Post-mix-Stufe werden nicht angewendet. Deaktivieren Sie die Post-mix-Installation für dieses Gerät oder versuchen Sie einen anderen Installationsmodus.</translation>
     </message>
     <message>
-        <location line="+2"/>
         <source>Post-mix works, pre-mix does not</source>
-        <translation>Post-mix funktioniert, Pre-mix nicht</translation>
+        <translation type="vanished">Post-mix funktioniert, Pre-mix nicht</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>The post-mix APO works. Windows did not load the pre-mix APO on this device.</source>
-        <translation>Das Post-mix-APO funktioniert. Windows hat das Pre-mix-APO bei diesem Gerät nicht geladen.</translation>
+        <translation type="vanished">Das Post-mix-APO funktioniert. Windows hat das Pre-mix-APO bei diesem Gerät nicht geladen.</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="+4"/>
         <source>Filters of the pre-mix stage are not applied. Try another install mode.</source>
         <translation>Die Filter der Pre-mix-Stufe werden nicht angewendet. Versuchen Sie einen anderen Installationsmodus.</translation>
     </message>
     <message>
-        <location line="+2"/>
         <source>The APO works, but the original APO could not start</source>
-        <translation>APO funktioniert, aber das Original-APO konnte nicht starten</translation>
+        <translation type="vanished">APO funktioniert, aber das Original-APO konnte nicht starten</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>The equalizer works. The APO of the device&apos;s maker, which runs beside it, did not start, so that maker&apos;s effects are missing.</source>
-        <translation>Der Equalizer funktioniert. Das APO des Geräteherstellers, das zusätzlich läuft, ist nicht gestartet. Die Effekte des Herstellers fehlen daher.</translation>
+        <translation type="vanished">Der Equalizer funktioniert. Das APO des Geräteherstellers, das zusätzlich läuft, ist nicht gestartet. Die Effekte des Herstellers fehlen daher.</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>If you do not use those effects, turn off Use original APO in the troubleshooting options.</source>
-        <translation>Wenn Sie diese Effekte nicht nutzen, deaktivieren Sie &quot;Original-APO verwenden&quot; in den Problemlösungsoptionen.</translation>
+        <translation type="vanished">Wenn Sie diese Effekte nicht nutzen, deaktivieren Sie &quot;Original-APO verwenden&quot; in den Problemlösungsoptionen.</translation>
     </message>
     <message>
-        <location line="+2"/>
+        <location line="+7"/>
         <source>The install mode could not be changed</source>
         <translation>Installationsmodus konnte nicht geändert werden</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>The check tried to install in another mode and Windows refused the change. The device was left as it was before.</source>
-        <translation>Bei der Überprüfung wurde eine Installation in einem anderen Modus versucht. Windows hat die Änderung verweigert. Das Gerät ist im vorherigen Zustand.</translation>
+        <translation type="vanished">Bei der Überprüfung wurde eine Installation in einem anderen Modus versucht. Windows hat die Änderung verweigert. Das Gerät ist im vorherigen Zustand.</translation>
     </message>
     <message>
         <source>Close programs that manage audio devices, then check again.</source>
         <translation type="vanished">Schließen Sie Programme zur Verwaltung von Audiogeräten und prüfen Sie erneut.</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+4"/>
         <source>Not changed</source>
         <translation>Nicht geändert</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>Windows refused the change to this device. The device was left as it was before.</source>
-        <translation>Windows hat die Änderung an diesem Gerät verweigert. Das Gerät ist im vorherigen Zustand.</translation>
+        <translation type="vanished">Windows hat die Änderung an diesem Gerät verweigert. Das Gerät ist im vorherigen Zustand.</translation>
     </message>
     <message>
         <source>Close programs that manage audio devices, then try again.</source>
         <translation type="vanished">Schließen Sie Programme zur Verwaltung von Audiogeräten und versuchen Sie es erneut.</translation>
     </message>
     <message>
-        <location line="+3"/>
         <source>Partly changed</source>
-        <translation>Teilweise geändert</translation>
+        <translation type="vanished">Teilweise geändert</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>Windows refused the change, and undoing it did not finish either. The device may be left partly changed.</source>
-        <translation>Windows hat die Änderung verweigert. Auch das Rückgängigmachen wurde nicht abgeschlossen. Das Gerät kann daher noch teilweise geändert sein.</translation>
+        <translation type="vanished">Windows hat die Änderung verweigert. Auch das Rückgängigmachen wurde nicht abgeschlossen. Das Gerät kann daher noch teilweise geändert sein.</translation>
     </message>
     <message>
         <source>Restart the computer before trying again.</source>
         <translation type="vanished">Starten Sie den Computer vor einem erneuten Versuch neu.</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+8"/>
         <source>Not checked: the device is disabled</source>
         <translation>Nicht geprüft: Gerät deaktiviert</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>The device is disabled in Windows, so nothing could be played through it.</source>
-        <translation>Das Gerät ist in Windows deaktiviert. Daher konnte darüber kein Ton wiedergegeben werden.</translation>
+        <translation type="vanished">Das Gerät ist in Windows deaktiviert. Daher konnte darüber kein Ton wiedergegeben werden.</translation>
     </message>
     <message>
         <source>Enable the device, then open the Device Selector and press OK to check again.</source>
         <translation type="vanished">Aktivieren Sie das Gerät. Öffnen Sie dann Device Selector und klicken Sie auf OK, um erneut zu prüfen.</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+4"/>
         <source>Not checked: the device is unplugged</source>
         <translation>Nicht geprüft: Gerät nicht angeschlossen</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>Nothing is plugged into this device, so nothing could be played through it.</source>
-        <translation>An diesem Gerät ist nichts angeschlossen. Daher konnte darüber kein Ton wiedergegeben werden.</translation>
+        <translation type="vanished">An diesem Gerät ist nichts angeschlossen. Daher konnte darüber kein Ton wiedergegeben werden.</translation>
     </message>
     <message>
         <source>Plug it in, then open the Device Selector and press OK to check again.</source>
         <translation type="vanished">Stellen Sie die Verbindung her. Öffnen Sie dann Device Selector und klicken Sie auf OK, um erneut zu prüfen.</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+4"/>
         <source>Not checked: the device could not be opened</source>
         <translation>Nicht geprüft: Gerät konnte nicht geöffnet werden</translation>
     </message>
@@ -726,86 +718,69 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <translation type="vanished">Öffnen Sie Device Selector und klicken Sie auf OK, um erneut zu prüfen.</translation>
     </message>
     <message>
-        <location line="+4"/>
         <source>Windows audio could not be restarted, so the check did not run. The APO is installed, but it starts working only after Windows audio restarts.</source>
-        <translation>Windows-Audio konnte nicht neu gestartet werden. Daher fand keine Überprüfung statt. Das APO ist installiert, funktioniert aber erst nach einem Neustart von Windows-Audio.</translation>
+        <translation type="vanished">Windows-Audio konnte nicht neu gestartet werden. Daher fand keine Überprüfung statt. Das APO ist installiert, funktioniert aber erst nach einem Neustart von Windows-Audio.</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="+5"/>
         <source>Restart the computer.</source>
         <translation>Starten Sie den Computer neu.</translation>
     </message>
     <message>
-        <location line="+3"/>
         <source>A Windows component the check needs did not start, so the check did not run.</source>
-        <translation>Eine für die Überprüfung benötigte Windows-Komponente ist nicht gestartet. Daher fand keine Überprüfung statt.</translation>
+        <translation type="vanished">Eine für die Überprüfung benötigte Windows-Komponente ist nicht gestartet. Daher fand keine Überprüfung statt.</translation>
     </message>
     <message>
-        <location line="-19"/>
-        <location line="+20"/>
         <source>Restart the computer, then open the Device Selector and press OK.</source>
-        <translation>Starten Sie den Computer neu. Öffnen Sie dann Device Selector und klicken Sie auf OK.</translation>
+        <translation type="vanished">Starten Sie den Computer neu. Öffnen Sie dann Device Selector und klicken Sie auf OK.</translation>
     </message>
     <message>
-        <location line="-48"/>
         <source>The cause could not be determined. Update the device&apos;s driver, then press Reinstall. Some drivers load no APO at all.</source>
-        <translation>Die Ursache konnte nicht ermittelt werden. Aktualisieren Sie den Gerätetreiber und klicken Sie dann auf &quot;Neu installieren&quot;. Manche Treiber laden grundsätzlich kein APO.</translation>
+        <translation type="vanished">Die Ursache konnte nicht ermittelt werden. Aktualisieren Sie den Gerätetreiber und klicken Sie dann auf &quot;Neu installieren&quot;. Manche Treiber laden grundsätzlich kein APO.</translation>
     </message>
     <message>
-        <location line="+20"/>
-        <location line="+4"/>
         <source>Close programs that manage audio devices, then press Reinstall.</source>
-        <translation>Schließen Sie Programme zur Verwaltung von Audiogeräten und klicken Sie dann auf &quot;Neu installieren&quot;.</translation>
+        <translation type="vanished">Schließen Sie Programme zur Verwaltung von Audiogeräten und klicken Sie dann auf &quot;Neu installieren&quot;.</translation>
     </message>
     <message>
-        <location line="+8"/>
         <source>Enable the device, then press Reinstall.</source>
-        <translation>Aktivieren Sie das Gerät und klicken Sie dann auf &quot;Neu installieren&quot;.</translation>
+        <translation type="vanished">Aktivieren Sie das Gerät und klicken Sie dann auf &quot;Neu installieren&quot;.</translation>
     </message>
     <message>
-        <location line="+4"/>
         <source>Plug it in, then press Reinstall.</source>
-        <translation>Stellen Sie die Verbindung her und klicken Sie dann auf &quot;Neu installieren&quot;.</translation>
+        <translation type="vanished">Stellen Sie die Verbindung her und klicken Sie dann auf &quot;Neu installieren&quot;.</translation>
     </message>
     <message>
-        <location line="+4"/>
-        <location line="+16"/>
-        <location line="+4"/>
-        <location line="+4"/>
         <source>Press Reinstall to try again.</source>
-        <translation>Klicken Sie auf &quot;Neu installieren&quot;, um es erneut zu versuchen.</translation>
+        <translation type="vanished">Klicken Sie auf &quot;Neu installieren&quot;, um es erneut zu versuchen.</translation>
     </message>
     <message>
-        <location line="-13"/>
         <source>Windows blocked the setting the check uses to hear from the APO, so the check did not run.</source>
-        <translation>Windows hat die Einstellung blockiert, die zum Empfangen der APO-Antworten nötig ist. Daher fand keine Überprüfung statt.</translation>
+        <translation type="vanished">Windows hat die Einstellung blockiert, die zum Empfangen der APO-Antworten nötig ist. Daher fand keine Überprüfung statt.</translation>
     </message>
     <message>
         <source>Close security programs that block changes to system settings, then open the Device Selector and press OK.</source>
         <translation type="vanished">Schließen Sie Sicherheitsprogramme, die Änderungen an Systemeinstellungen blockieren. Öffnen Sie dann Device Selector und klicken Sie auf OK.</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>Close security programs that block changes to system settings, then press Reinstall.</source>
-        <translation>Schließen Sie Sicherheitsprogramme, die Änderungen an Systemeinstellungen blockieren. Klicken Sie dann auf &quot;Neu installieren&quot;.</translation>
+        <translation type="vanished">Schließen Sie Sicherheitsprogramme, die Änderungen an Systemeinstellungen blockieren. Klicken Sie dann auf &quot;Neu installieren&quot;.</translation>
     </message>
     <message>
-        <location line="+3"/>
         <source>The check lost its connection to the APO before every device had answered.</source>
-        <translation>Die Verbindung zum APO wurde unterbrochen, bevor alle Geräte geantwortet hatten.</translation>
+        <translation type="vanished">Die Verbindung zum APO wurde unterbrochen, bevor alle Geräte geantwortet hatten.</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="+15"/>
         <source>The list of audio devices could not be read, so no device was checked.</source>
         <translation>Die Liste der Audiogeräte konnte nicht gelesen werden. Daher wurde kein Gerät geprüft.</translation>
     </message>
     <message>
-        <location line="+4"/>
         <source>The check was stopped. The APO is installed, but whether it works was not checked.</source>
-        <translation>Die Überprüfung wurde gestoppt. Das APO ist installiert, aber seine Funktion wurde nicht geprüft.</translation>
+        <translation type="vanished">Die Überprüfung wurde gestoppt. Das APO ist installiert, aber seine Funktion wurde nicht geprüft.</translation>
     </message>
     <message>
-        <location line="+93"/>
+        <location line="+94"/>
         <source>Checking that the APO works on each device (%1 of %2)</source>
         <translation>APO-Funktion auf jedem Gerät wird geprüft (%1 von %2)</translation>
     </message>
@@ -846,11 +821,152 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <translation>Das APO funktioniert auf den geprüften Geräten.</translation>
     </message>
     <message numerus="yes">
-        <location line="+5"/>
         <source>The APO works. %n device(s) have something to look at.</source>
-        <translation>
+        <translation type="vanished">
             <numerusform>Das APO funktioniert. Bei %n Gerät gibt es etwas zu prüfen.</numerusform>
             <numerusform>Das APO funktioniert. Bei %n Geräten gibt es etwas zu prüfen.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location line="-173"/>
+        <source>All three install modes were tried and the APO was not installed.</source>
+        <translation>Alle drei Installationsmodi wurden getestet, aber das APO wurde nicht installiert.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The cause is not known. Update the device&apos;s driver, then reinstall. Some drivers load no APO at all.</source>
+        <translation>Die Ursache ist unbekannt. Aktualisieren Sie den Gerätetreiber und installieren Sie dann neu. Manche Treiber laden grundsätzlich kein APO.</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>The APO was not installed in the selected install mode (%1).</source>
+        <translation>Das APO wurde im gewählten Installationsmodus (%1) nicht installiert.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Select another install mode. The automatic install mode can be tried as well.</source>
+        <translation>Wählen Sie einen anderen Installationsmodus. Sie können auch den automatischen Installationsmodus versuchen.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Post-mix does not work. Pre-mix works</source>
+        <translation>Post-mix funktioniert nicht. Pre-mix funktioniert</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The post-mix APO does not work. The pre-mix APO works.</source>
+        <translation>Das Post-mix-APO funktioniert nicht. Das Pre-mix-APO funktioniert.</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Pre-mix does not work. Post-mix works</source>
+        <translation>Pre-mix funktioniert nicht. Post-mix funktioniert</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The pre-mix APO does not work. The post-mix APO works.</source>
+        <translation>Das Pre-mix-APO funktioniert nicht. Das Post-mix-APO funktioniert.</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>The original APO did not start. The APO works</source>
+        <translation>Das Original-APO ist nicht gestartet. Das APO funktioniert</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The APO of the device&apos;s maker did not start, so the device&apos;s own sound effects are missing. The EQ APO works.</source>
+        <translation>Das APO des Geräteherstellers ist nicht gestartet. Daher fehlen die geräteeigenen Klangeffekte. Das EQ APO funktioniert.</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>The install in another mode was refused by Windows. The install was stopped.</source>
+        <translation>Windows hat die Installation in einem anderen Modus verweigert. Die Installation wurde gestoppt.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <location line="+4"/>
+        <source>Close programs that manage audio devices, then reinstall.</source>
+        <translation>Schließen Sie Programme zur Verwaltung von Audiogeräten und installieren Sie dann neu.</translation>
+    </message>
+    <message>
+        <location line="-1"/>
+        <source>Windows refused the change to this device. The install was stopped.</source>
+        <translation>Windows hat die Änderung an diesem Gerät verweigert. Die Installation wurde gestoppt.</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Undo failed</source>
+        <translation>Rückgängigmachen fehlgeschlagen</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Windows refused the change, and undoing it failed as well.</source>
+        <translation>Windows hat die Änderung verweigert. Auch das Rückgängigmachen ist fehlgeschlagen.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <location line="+20"/>
+        <source>Restart the computer, then reinstall.</source>
+        <translation>Starten Sie den Computer neu und installieren Sie dann neu.</translation>
+    </message>
+    <message>
+        <location line="-17"/>
+        <source>This device is disabled in Windows, so the APO cannot be installed on it.</source>
+        <translation>Dieses Gerät ist in Windows deaktiviert. Daher kann das APO darauf nicht installiert werden.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Enable the device.</source>
+        <translation>Aktivieren Sie das Gerät.</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Nothing is plugged into this device, so the APO cannot be installed on it.</source>
+        <translation>An diesem Gerät ist nichts angeschlossen. Daher kann das APO darauf nicht installiert werden.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Plug the device in.</source>
+        <translation>Schließen Sie das Gerät an.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <location line="+16"/>
+        <location line="+4"/>
+        <source>Reinstall.</source>
+        <translation>Installieren Sie neu.</translation>
+    </message>
+    <message>
+        <location line="-17"/>
+        <source>Windows audio could not be restarted. The EQ APO works only after Windows audio restarts.</source>
+        <translation>Windows-Audio konnte nicht neu gestartet werden. Das EQ APO funktioniert erst nach einem Neustart von Windows-Audio.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>A Windows error kept the installation check from starting.</source>
+        <translation>Ein Windows-Fehler hat den Start der Installationsprüfung verhindert.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>The EQ APO install was refused.</source>
+        <translation>Die Installation von EQ APO wurde verweigert.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Close security programs that block changes to system settings, then reinstall.</source>
+        <translation>Schließen Sie Sicherheitsprogramme, die Änderungen an Systemeinstellungen blockieren, und installieren Sie dann neu.</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>The connection to the APO was lost.</source>
+        <translation>Die Verbindung zum APO wurde unterbrochen.</translation>
+    </message>
+    <message numerus="yes">
+        <location line="+121"/>
+        <source>%n device(s) have something to look at. The APO works.</source>
+        <translation>
+            <numerusform>Bei %n Gerät gibt es etwas zu prüfen. Das APO funktioniert.</numerusform>
+            <numerusform>Bei %n Geräten gibt es etwas zu prüfen. Das APO funktioniert.</numerusform>
         </translation>
     </message>
     <message>
@@ -888,6 +1004,11 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
     </message>
     <message>
         <location line="+5"/>
+        <source>The install was stopped.</source>
+        <translation>Die Installation wurde gestoppt.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
         <source>The check did not finish.</source>
         <translation>Die Überprüfung wurde nicht abgeschlossen.</translation>
     </message>

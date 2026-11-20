@@ -63,12 +63,12 @@ It is optional because while it converts it uses CPU and a little latency, and t
     </message>
     <message>
         <location line="-360"/>
-        <location line="+462"/>
+        <location line="+480"/>
         <source>Info</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-462"/>
+        <location line="-480"/>
         <source>A registry value that is required for the operation of Equalizer APO was not set correctly. This might have been caused by a driver installation or uninstallation. The value has been corrected. A reboot may be required so that the changes can take effect.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -84,7 +84,7 @@ It is optional because while it converts it uses CPU and a little latency, and t
     </message>
     <message>
         <location line="+1"/>
-        <location line="+577"/>
+        <location line="+595"/>
         <source>Cancel</source>
         <translation type="unfinished"></translation>
     </message>
@@ -339,7 +339,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="-783"/>
+        <location filename="../DeviceSelector.cpp" line="-801"/>
         <source>Troubleshooting options (only use in case of problems)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -359,18 +359,18 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     </message>
     <message>
         <location line="+27"/>
-        <location line="+190"/>
+        <location line="+189"/>
         <source>Restarting audio service...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-185"/>
-        <location line="+190"/>
+        <location line="-184"/>
+        <location line="+189"/>
         <source>Restart failed.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-175"/>
+        <location line="-174"/>
         <source>Checking APO installation...</source>
         <translation type="unfinished"></translation>
     </message>
@@ -392,7 +392,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     </message>
     <message numerus="yes">
         <location line="+23"/>
-        <location filename="../DeviceTestView.cpp" line="+512"/>
+        <location filename="../DeviceTestView.cpp" line="+514"/>
         <source>Check failed for %n device(s).</source>
         <translation>
             <numerusform>Check failed for %n device.</numerusform>
@@ -400,7 +400,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         </translation>
     </message>
     <message>
-        <location line="+34"/>
+        <location line="+33"/>
         <source>Setting install mode for %1 %2 to %3.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -427,7 +427,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
 <context>
     <name>DeviceTestView</name>
     <message>
-        <location filename="../DeviceTestDialog.cpp" line="+71"/>
+        <location filename="../DeviceTestDialog.cpp" line="+75"/>
         <source>Reinstalling %1 %2</source>
         <translation type="unfinished"></translation>
     </message>
@@ -440,11 +440,12 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     </message>
     <message>
         <location line="-191"/>
+        <location line="+413"/>
         <source>Details are in %1.</source>
         <translation type="unfinished">Details are in %1.</translation>
     </message>
     <message>
-        <location line="+168"/>
+        <location line="-245"/>
         <location line="+42"/>
         <location filename="../DeviceTestView.cpp" line="-1"/>
         <source>The APO works</source>
@@ -468,18 +469,25 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     </message>
     <message>
         <location line="+71"/>
+        <location line="+165"/>
         <location filename="../DeviceTestView.cpp" line="+58"/>
         <source>Windows audio</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+82"/>
+        <location line="-47"/>
+        <location line="+86"/>
         <location filename="../DeviceTestView.cpp" line="-8"/>
         <source>Not checked</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="-440"/>
+        <location line="-23"/>
+        <source>Install undone</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../DeviceTestView.cpp" line="-442"/>
         <source>APO installation check</source>
         <translation type="unfinished"></translation>
     </message>
@@ -510,117 +518,37 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-3"/>
-        <source>All three install modes were tried and Windows did not load the APO on this device in any of them.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+4"/>
-        <source>Windows did not load the APO on this device in the selected install mode (%1).</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Turn on Automatic in the troubleshooting options, and the check tries the other modes too.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+2"/>
-        <source>Pre-mix works, post-mix does not</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>The pre-mix APO works. Windows did not load the post-mix APO on this device.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+1"/>
+        <location line="+6"/>
         <source>Filters of the post-mix stage are not applied. Turn off post-mix install for this device, or try another install mode.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+2"/>
-        <source>Post-mix works, pre-mix does not</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>The post-mix APO works. Windows did not load the pre-mix APO on this device.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+1"/>
+        <location line="+4"/>
         <source>Filters of the pre-mix stage are not applied. Try another install mode.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+2"/>
-        <source>The APO works, but the original APO could not start</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>The equalizer works. The APO of the device&apos;s maker, which runs beside it, did not start, so that maker&apos;s effects are missing.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>If you do not use those effects, turn off Use original APO in the troubleshooting options.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+2"/>
+        <location line="+7"/>
         <source>The install mode could not be changed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
-        <source>The check tried to install in another mode and Windows refused the change. The device was left as it was before.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+3"/>
+        <location line="+4"/>
         <source>Not changed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
-        <source>Windows refused the change to this device. The device was left as it was before.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+3"/>
-        <source>Partly changed</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Windows refused the change, and undoing it did not finish either. The device may be left partly changed.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+3"/>
+        <location line="+8"/>
         <source>Not checked: the device is disabled</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
-        <source>The device is disabled in Windows, so nothing could be played through it.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+3"/>
+        <location line="+4"/>
         <source>Not checked: the device is unplugged</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
-        <source>Nothing is plugged into this device, so nothing could be played through it.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+3"/>
+        <location line="+4"/>
         <source>Not checked: the device could not be opened</source>
         <translation type="unfinished"></translation>
     </message>
@@ -630,82 +558,17 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+4"/>
-        <source>Windows audio could not be restarted, so the check did not run. The APO is installed, but it starts working only after Windows audio restarts.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+1"/>
+        <location line="+5"/>
         <source>Restart the computer.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+3"/>
-        <source>A Windows component the check needs did not start, so the check did not run.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="-19"/>
-        <location line="+20"/>
-        <source>Restart the computer, then open the Device Selector and press OK.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="-48"/>
-        <source>The cause could not be determined. Update the device&apos;s driver, then press Reinstall. Some drivers load no APO at all.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+20"/>
-        <location line="+4"/>
-        <source>Close programs that manage audio devices, then press Reinstall.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+8"/>
-        <source>Enable the device, then press Reinstall.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+4"/>
-        <source>Plug it in, then press Reinstall.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+4"/>
-        <location line="+16"/>
-        <location line="+4"/>
-        <location line="+4"/>
-        <source>Press Reinstall to try again.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="-13"/>
-        <source>Windows blocked the setting the check uses to hear from the APO, so the check did not run.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Close security programs that block changes to system settings, then press Reinstall.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+3"/>
-        <source>The check lost its connection to the APO before every device had answered.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+4"/>
+        <location line="+15"/>
         <source>The list of audio devices could not be read, so no device was checked.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+4"/>
-        <source>The check was stopped. The APO is installed, but whether it works was not checked.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+93"/>
+        <location line="+94"/>
         <source>Checking that the APO works on each device (%1 of %2)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -745,9 +608,143 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <source>The APO works on the devices that were checked.</source>
         <translation type="unfinished"></translation>
     </message>
-    <message numerus="yes">
+    <message>
+        <location line="-173"/>
+        <source>All three install modes were tried and the APO was not installed.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The cause is not known. Update the device&apos;s driver, then reinstall. Some drivers load no APO at all.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>The APO was not installed in the selected install mode (%1).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Select another install mode. The automatic install mode can be tried as well.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Post-mix does not work. Pre-mix works</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The post-mix APO does not work. The pre-mix APO works.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Pre-mix does not work. Post-mix works</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The pre-mix APO does not work. The post-mix APO works.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>The original APO did not start. The APO works</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The APO of the device&apos;s maker did not start, so the device&apos;s own sound effects are missing. The EQ APO works.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <location line="+5"/>
-        <source>The APO works. %n device(s) have something to look at.</source>
+        <source>The install in another mode was refused by Windows. The install was stopped.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <location line="+4"/>
+        <source>Close programs that manage audio devices, then reinstall.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="-1"/>
+        <source>Windows refused the change to this device. The install was stopped.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Undo failed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Windows refused the change, and undoing it failed as well.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <location line="+20"/>
+        <source>Restart the computer, then reinstall.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="-17"/>
+        <source>This device is disabled in Windows, so the APO cannot be installed on it.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Enable the device.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Nothing is plugged into this device, so the APO cannot be installed on it.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Plug the device in.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <location line="+16"/>
+        <location line="+4"/>
+        <source>Reinstall.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="-17"/>
+        <source>Windows audio could not be restarted. The EQ APO works only after Windows audio restarts.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>A Windows error kept the installation check from starting.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>The EQ APO install was refused.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Close security programs that block changes to system settings, then reinstall.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>The connection to the APO was lost.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message numerus="yes">
+        <location line="+121"/>
+        <source>%n device(s) have something to look at. The APO works.</source>
         <translation type="unfinished">
             <numerusform></numerusform>
             <numerusform></numerusform>
@@ -788,6 +785,11 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     </message>
     <message>
         <location line="+5"/>
+        <source>The install was stopped.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+4"/>
         <source>The check did not finish.</source>
         <translation type="unfinished"></translation>
     </message>

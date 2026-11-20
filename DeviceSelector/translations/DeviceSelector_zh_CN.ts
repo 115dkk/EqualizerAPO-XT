@@ -63,12 +63,12 @@ It is optional because while it converts it uses CPU and a little latency, and t
     </message>
     <message>
         <location line="-360"/>
-        <location line="+462"/>
+        <location line="+480"/>
         <source>Info</source>
         <translation>信息</translation>
     </message>
     <message>
-        <location line="-462"/>
+        <location line="-480"/>
         <source>A registry value that is required for the operation of Equalizer APO was not set correctly. This might have been caused by a driver installation or uninstallation. The value has been corrected. A reboot may be required so that the changes can take effect.</source>
         <translation>未正确设置 Equalizer APO 操作所需的注册表值。这可能是由驱动程序安装或卸载引起的。该值已更正。可能需要重新启动才能使更改生效。</translation>
     </message>
@@ -95,7 +95,7 @@ It is optional because while it converts it uses CPU and a little latency, and t
         <translation type="vanished">详情请查看 %1。</translation>
     </message>
     <message>
-        <location line="+761"/>
+        <location line="+779"/>
         <source>APO will be uninstalled</source>
         <translation>APO 将被卸载</translation>
     </message>
@@ -170,8 +170,8 @@ It is optional because while it converts it uses CPU and a little latency, and t
         <translation>将安装 APO</translation>
     </message>
     <message>
-        <location line="-757"/>
-        <location line="+577"/>
+        <location line="-775"/>
+        <location line="+595"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
@@ -211,7 +211,7 @@ It is optional because while it converts it uses CPU and a little latency, and t
         <translation type="vanished">状态</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="-390"/>
+        <location filename="../DeviceSelector.cpp" line="-408"/>
         <source>Troubleshooting options (only use in case of problems)</source>
         <translation>故障排除选项（仅在出现问题时使用）</translation>
     </message>
@@ -427,18 +427,18 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     </message>
     <message>
         <location line="+27"/>
-        <location line="+190"/>
+        <location line="+189"/>
         <source>Restarting audio service...</source>
         <translation>正在重新启动音频服务...</translation>
     </message>
     <message>
-        <location line="-185"/>
-        <location line="+190"/>
+        <location line="-184"/>
+        <location line="+189"/>
         <source>Restart failed.</source>
         <translation>重启失败。</translation>
     </message>
     <message>
-        <location line="-175"/>
+        <location line="-174"/>
         <source>Checking APO installation...</source>
         <translation>检查 APO 安装...</translation>
     </message>
@@ -460,14 +460,14 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     </message>
     <message numerus="yes">
         <location line="+23"/>
-        <location filename="../DeviceTestView.cpp" line="+512"/>
+        <location filename="../DeviceTestView.cpp" line="+514"/>
         <source>Check failed for %n device(s).</source>
         <translation>
             <numerusform>%n 个设备检查失败。</numerusform>
         </translation>
     </message>
     <message>
-        <location line="+34"/>
+        <location line="+33"/>
         <source>Setting install mode for %1 %2 to %3.</source>
         <translation>将 %1 %2 的安装模式设置为 %3。</translation>
     </message>
@@ -493,7 +493,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
 <context>
     <name>DeviceTestView</name>
     <message>
-        <location filename="../DeviceTestDialog.cpp" line="+71"/>
+        <location filename="../DeviceTestDialog.cpp" line="+75"/>
         <source>Reinstalling %1 %2</source>
         <translation>正在为 %1 %2 重新安装 APO</translation>
     </message>
@@ -506,11 +506,12 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     </message>
     <message>
         <location line="-191"/>
+        <location line="+413"/>
         <source>Details are in %1.</source>
         <translation>详情见 %1。</translation>
     </message>
     <message>
-        <location line="+168"/>
+        <location line="-245"/>
         <location line="+42"/>
         <location filename="../DeviceTestView.cpp" line="-1"/>
         <source>The APO works</source>
@@ -534,18 +535,25 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     </message>
     <message>
         <location line="+71"/>
+        <location line="+165"/>
         <location filename="../DeviceTestView.cpp" line="+58"/>
         <source>Windows audio</source>
         <translation>Windows 音频</translation>
     </message>
     <message>
-        <location line="+82"/>
+        <location line="-47"/>
+        <location line="+86"/>
         <location filename="../DeviceTestView.cpp" line="-8"/>
         <source>Not checked</source>
         <translation>未检查</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="-440"/>
+        <location line="-23"/>
+        <source>Install undone</source>
+        <translation>已撤销安装</translation>
+    </message>
+    <message>
+        <location filename="../DeviceTestView.cpp" line="-442"/>
         <source>APO installation check</source>
         <translation>APO 安装检查</translation>
     </message>
@@ -576,141 +584,125 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>APO 不工作</translation>
     </message>
     <message>
-        <location line="-3"/>
         <source>All three install modes were tried and Windows did not load the APO on this device in any of them.</source>
-        <translation>已尝试全部三种安装模式，但 Windows 在任何模式下都未加载此设备的 APO。</translation>
+        <translation type="vanished">已尝试全部三种安装模式，但 Windows 在任何模式下都未加载此设备的 APO。</translation>
     </message>
     <message>
         <source>The cause could not be determined. Update the device&apos;s driver and check again; some drivers load no APO at all.</source>
         <translation type="vanished">未能确定原因。更新设备驱动程序后再次检查。有些驱动程序完全不加载 APO。</translation>
     </message>
     <message>
-        <location line="+4"/>
         <source>Windows did not load the APO on this device in the selected install mode (%1).</source>
-        <translation>在所选安装模式（%1）下，Windows 未加载此设备的 APO。</translation>
+        <translation type="vanished">在所选安装模式（%1）下，Windows 未加载此设备的 APO。</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>Turn on Automatic in the troubleshooting options, and the check tries the other modes too.</source>
-        <translation>在故障排除选项中启用自动，即可在检查时尝试其他模式。</translation>
+        <translation type="vanished">在故障排除选项中启用自动，即可在检查时尝试其他模式。</translation>
     </message>
     <message>
-        <location line="+2"/>
         <source>Pre-mix works, post-mix does not</source>
-        <translation>预混合正常，混合后不工作</translation>
+        <translation type="vanished">预混合正常，混合后不工作</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>The pre-mix APO works. Windows did not load the post-mix APO on this device.</source>
-        <translation>预混合 APO 正常工作。Windows 未加载此设备的混合后 APO。</translation>
+        <translation type="vanished">预混合 APO 正常工作。Windows 未加载此设备的混合后 APO。</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="+6"/>
         <source>Filters of the post-mix stage are not applied. Turn off post-mix install for this device, or try another install mode.</source>
         <translation>混合后阶段的滤波器未应用。关闭此设备的混合后安装，或尝试其他安装模式。</translation>
     </message>
     <message>
-        <location line="+2"/>
         <source>Post-mix works, pre-mix does not</source>
-        <translation>混合后正常，预混合不工作</translation>
+        <translation type="vanished">混合后正常，预混合不工作</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>The post-mix APO works. Windows did not load the pre-mix APO on this device.</source>
-        <translation>混合后 APO 正常工作。Windows 未加载此设备的预混合 APO。</translation>
+        <translation type="vanished">混合后 APO 正常工作。Windows 未加载此设备的预混合 APO。</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="+4"/>
         <source>Filters of the pre-mix stage are not applied. Try another install mode.</source>
         <translation>预混合阶段的滤波器未应用。尝试其他安装模式。</translation>
     </message>
     <message>
-        <location line="+2"/>
         <source>The APO works, but the original APO could not start</source>
-        <translation>APO 正常工作，但原始 APO 未能启动</translation>
+        <translation type="vanished">APO 正常工作，但原始 APO 未能启动</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>The equalizer works. The APO of the device&apos;s maker, which runs beside it, did not start, so that maker&apos;s effects are missing.</source>
-        <translation>均衡器正常工作。与均衡器一同运行的设备厂商 APO 未启动，因此缺少厂商的音效。</translation>
+        <translation type="vanished">均衡器正常工作。与均衡器一同运行的设备厂商 APO 未启动，因此缺少厂商的音效。</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>If you do not use those effects, turn off Use original APO in the troubleshooting options.</source>
-        <translation>如果不使用这些音效，在故障排除选项中关闭“使用原始 APO”。</translation>
+        <translation type="vanished">如果不使用这些音效，在故障排除选项中关闭“使用原始 APO”。</translation>
     </message>
     <message>
-        <location line="+2"/>
+        <location line="+7"/>
         <source>The install mode could not be changed</source>
         <translation>未能更改安装模式</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>The check tried to install in another mode and Windows refused the change. The device was left as it was before.</source>
-        <translation>检查时尝试了其他安装模式，但 Windows 拒绝了更改。设备保持更改前的状态。</translation>
+        <translation type="vanished">检查时尝试了其他安装模式，但 Windows 拒绝了更改。设备保持更改前的状态。</translation>
     </message>
     <message>
         <source>Close programs that manage audio devices, then check again.</source>
         <translation type="vanished">关闭管理音频设备的程序后再次检查。</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+4"/>
         <source>Not changed</source>
         <translation>未更改</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>Windows refused the change to this device. The device was left as it was before.</source>
-        <translation>Windows 拒绝了对此设备的更改。设备保持更改前的状态。</translation>
+        <translation type="vanished">Windows 拒绝了对此设备的更改。设备保持更改前的状态。</translation>
     </message>
     <message>
         <source>Close programs that manage audio devices, then try again.</source>
         <translation type="vanished">关闭管理音频设备的程序后重试。</translation>
     </message>
     <message>
-        <location line="+3"/>
         <source>Partly changed</source>
-        <translation>仅完成部分更改</translation>
+        <translation type="vanished">仅完成部分更改</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>Windows refused the change, and undoing it did not finish either. The device may be left partly changed.</source>
-        <translation>Windows 拒绝了更改，撤销更改也未能完成。设备可能仍保留部分更改。</translation>
+        <translation type="vanished">Windows 拒绝了更改，撤销更改也未能完成。设备可能仍保留部分更改。</translation>
     </message>
     <message>
         <source>Restart the computer before trying again.</source>
         <translation type="vanished">重新启动电脑后再试。</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+8"/>
         <source>Not checked: the device is disabled</source>
         <translation>未检查：设备已禁用</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>The device is disabled in Windows, so nothing could be played through it.</source>
-        <translation>此设备在 Windows 中已禁用，无法通过它播放声音。</translation>
+        <translation type="vanished">此设备在 Windows 中已禁用，无法通过它播放声音。</translation>
     </message>
     <message>
         <source>Enable the device, then open the Device Selector and press OK to check again.</source>
         <translation type="vanished">启用设备后，打开 Device Selector 并点击“确定”再次检查。</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+4"/>
         <source>Not checked: the device is unplugged</source>
         <translation>未检查：设备未连接</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>Nothing is plugged into this device, so nothing could be played through it.</source>
-        <translation>此设备未连接任何外接设备，无法通过它播放声音。</translation>
+        <translation type="vanished">此设备未连接任何外接设备，无法通过它播放声音。</translation>
     </message>
     <message>
         <source>Plug it in, then open the Device Selector and press OK to check again.</source>
         <translation type="vanished">连接设备后，打开 Device Selector 并点击“确定”再次检查。</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+4"/>
         <source>Not checked: the device could not be opened</source>
         <translation>未检查：无法打开设备</translation>
     </message>
@@ -724,86 +716,69 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="vanished">打开 Device Selector 并点击“确定”再次检查。</translation>
     </message>
     <message>
-        <location line="+4"/>
         <source>Windows audio could not be restarted, so the check did not run. The APO is installed, but it starts working only after Windows audio restarts.</source>
-        <translation>未能重新启动 Windows 音频，因此未执行检查。APO 已安装，但要在 Windows 音频重新启动后才会工作。</translation>
+        <translation type="vanished">未能重新启动 Windows 音频，因此未执行检查。APO 已安装，但要在 Windows 音频重新启动后才会工作。</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="+5"/>
         <source>Restart the computer.</source>
         <translation>重新启动电脑。</translation>
     </message>
     <message>
-        <location line="+3"/>
         <source>A Windows component the check needs did not start, so the check did not run.</source>
-        <translation>检查所需的 Windows 组件未启动，因此未执行检查。</translation>
+        <translation type="vanished">检查所需的 Windows 组件未启动，因此未执行检查。</translation>
     </message>
     <message>
-        <location line="-19"/>
-        <location line="+20"/>
         <source>Restart the computer, then open the Device Selector and press OK.</source>
-        <translation>重新启动电脑后，打开 Device Selector 并点击“确定”。</translation>
+        <translation type="vanished">重新启动电脑后，打开 Device Selector 并点击“确定”。</translation>
     </message>
     <message>
-        <location line="-48"/>
         <source>The cause could not be determined. Update the device&apos;s driver, then press Reinstall. Some drivers load no APO at all.</source>
-        <translation>未能确定原因。更新设备驱动程序后，点击“重新安装”。有些驱动程序完全不加载 APO。</translation>
+        <translation type="vanished">未能确定原因。更新设备驱动程序后，点击“重新安装”。有些驱动程序完全不加载 APO。</translation>
     </message>
     <message>
-        <location line="+20"/>
-        <location line="+4"/>
         <source>Close programs that manage audio devices, then press Reinstall.</source>
-        <translation>关闭管理音频设备的程序后，点击“重新安装”。</translation>
+        <translation type="vanished">关闭管理音频设备的程序后，点击“重新安装”。</translation>
     </message>
     <message>
-        <location line="+8"/>
         <source>Enable the device, then press Reinstall.</source>
-        <translation>启用设备后，点击“重新安装”。</translation>
+        <translation type="vanished">启用设备后，点击“重新安装”。</translation>
     </message>
     <message>
-        <location line="+4"/>
         <source>Plug it in, then press Reinstall.</source>
-        <translation>连接设备后，点击“重新安装”。</translation>
+        <translation type="vanished">连接设备后，点击“重新安装”。</translation>
     </message>
     <message>
-        <location line="+4"/>
-        <location line="+16"/>
-        <location line="+4"/>
-        <location line="+4"/>
         <source>Press Reinstall to try again.</source>
-        <translation>点击“重新安装”重试。</translation>
+        <translation type="vanished">点击“重新安装”重试。</translation>
     </message>
     <message>
-        <location line="-13"/>
         <source>Windows blocked the setting the check uses to hear from the APO, so the check did not run.</source>
-        <translation>Windows 阻止了接收 APO 响应所需的设置，因此未执行检查。</translation>
+        <translation type="vanished">Windows 阻止了接收 APO 响应所需的设置，因此未执行检查。</translation>
     </message>
     <message>
         <source>Close security programs that block changes to system settings, then open the Device Selector and press OK.</source>
         <translation type="vanished">关闭阻止更改系统设置的安全程序，然后打开 Device Selector 并点击“确定”。</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>Close security programs that block changes to system settings, then press Reinstall.</source>
-        <translation>关闭阻止更改系统设置的安全程序后，点击“重新安装”。</translation>
+        <translation type="vanished">关闭阻止更改系统设置的安全程序后，点击“重新安装”。</translation>
     </message>
     <message>
-        <location line="+3"/>
         <source>The check lost its connection to the APO before every device had answered.</source>
-        <translation>尚未收到所有设备的响应，与 APO 的连接就已中断。</translation>
+        <translation type="vanished">尚未收到所有设备的响应，与 APO 的连接就已中断。</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="+15"/>
         <source>The list of audio devices could not be read, so no device was checked.</source>
         <translation>未能读取音频设备列表，因此未检查任何设备。</translation>
     </message>
     <message>
-        <location line="+4"/>
         <source>The check was stopped. The APO is installed, but whether it works was not checked.</source>
-        <translation>检查已停止。APO 已安装，但尚未确认是否正常工作。</translation>
+        <translation type="vanished">检查已停止。APO 已安装，但尚未确认是否正常工作。</translation>
     </message>
     <message>
-        <location line="+93"/>
+        <location line="+94"/>
         <source>Checking that the APO works on each device (%1 of %2)</source>
         <translation>正在检查各设备的 APO 是否正常工作（%1/%2）</translation>
     </message>
@@ -842,10 +817,150 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>APO 在已检查的设备上正常工作。</translation>
     </message>
     <message numerus="yes">
-        <location line="+5"/>
         <source>The APO works. %n device(s) have something to look at.</source>
-        <translation>
+        <translation type="vanished">
             <numerusform>APO 正常工作。%n 个设备有需要查看的情况。</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location line="-173"/>
+        <source>All three install modes were tried and the APO was not installed.</source>
+        <translation>已尝试全部三种安装模式，但 APO 未能安装。</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The cause is not known. Update the device&apos;s driver, then reinstall. Some drivers load no APO at all.</source>
+        <translation>原因不明。更新设备驱动程序后重新安装。有些驱动程序完全不加载 APO。</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>The APO was not installed in the selected install mode (%1).</source>
+        <translation>在所选安装模式（%1）下，APO 未能安装。</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Select another install mode. The automatic install mode can be tried as well.</source>
+        <translation>选择其他安装模式，也可以尝试自动安装模式。</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Post-mix does not work. Pre-mix works</source>
+        <translation>混合后不工作，预混合正常</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The post-mix APO does not work. The pre-mix APO works.</source>
+        <translation>混合后 APO 不工作。预混合 APO 正常工作。</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Pre-mix does not work. Post-mix works</source>
+        <translation>预混合不工作，混合后正常</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The pre-mix APO does not work. The post-mix APO works.</source>
+        <translation>预混合 APO 不工作。混合后 APO 正常工作。</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>The original APO did not start. The APO works</source>
+        <translation>原始 APO 未启动，APO 正常工作</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The APO of the device&apos;s maker did not start, so the device&apos;s own sound effects are missing. The EQ APO works.</source>
+        <translation>设备厂商的 APO 未启动，因此缺少设备自带的音效。EQ APO 正常工作。</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>The install in another mode was refused by Windows. The install was stopped.</source>
+        <translation>Windows 拒绝了使用其他模式安装。安装已停止。</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <location line="+4"/>
+        <source>Close programs that manage audio devices, then reinstall.</source>
+        <translation>关闭管理音频设备的程序后重新安装。</translation>
+    </message>
+    <message>
+        <location line="-1"/>
+        <source>Windows refused the change to this device. The install was stopped.</source>
+        <translation>Windows 拒绝了对此设备的更改。安装已停止。</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Undo failed</source>
+        <translation>撤销失败</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Windows refused the change, and undoing it failed as well.</source>
+        <translation>Windows 拒绝了更改，撤销更改也失败了。</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <location line="+20"/>
+        <source>Restart the computer, then reinstall.</source>
+        <translation>重新启动电脑后重新安装。</translation>
+    </message>
+    <message>
+        <location line="-17"/>
+        <source>This device is disabled in Windows, so the APO cannot be installed on it.</source>
+        <translation>此设备在 Windows 中已禁用，无法为其安装 APO。</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Enable the device.</source>
+        <translation>启用设备。</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Nothing is plugged into this device, so the APO cannot be installed on it.</source>
+        <translation>此设备未连接任何外接设备，无法为其安装 APO。</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Plug the device in.</source>
+        <translation>连接设备。</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <location line="+16"/>
+        <location line="+4"/>
+        <source>Reinstall.</source>
+        <translation>重新安装。</translation>
+    </message>
+    <message>
+        <location line="-17"/>
+        <source>Windows audio could not be restarted. The EQ APO works only after Windows audio restarts.</source>
+        <translation>未能重新启动 Windows 音频。EQ APO 只有在 Windows 音频重新启动后才能工作。</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>A Windows error kept the installation check from starting.</source>
+        <translation>Windows 错误导致安装检查无法启动。</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>The EQ APO install was refused.</source>
+        <translation>EQ APO 安装被拒绝。</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Close security programs that block changes to system settings, then reinstall.</source>
+        <translation>关闭阻止更改系统设置的安全程序后重新安装。</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>The connection to the APO was lost.</source>
+        <translation>与 APO 的连接已中断。</translation>
+    </message>
+    <message numerus="yes">
+        <location line="+121"/>
+        <source>%n device(s) have something to look at. The APO works.</source>
+        <translation>
+            <numerusform>%n 个设备有需要查看的情况。APO 正常工作。</numerusform>
         </translation>
     </message>
     <message>
@@ -882,6 +997,11 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     </message>
     <message>
         <location line="+5"/>
+        <source>The install was stopped.</source>
+        <translation>安装已停止。</translation>
+    </message>
+    <message>
+        <location line="+4"/>
         <source>The check did not finish.</source>
         <translation>检查未完成。</translation>
     </message>

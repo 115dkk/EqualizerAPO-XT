@@ -8,6 +8,11 @@
 #include <QDir>
 #include <devices/DeviceAPOInfo.h>
 #include <devices/DeviceTestPlan.h>
+#include <platform/windows/ComPtr.h>
+#include <services/windows/AudioServiceNames.h>
+#include <services/windows/WindowsService.h>
+#include <ObjBase.h>
+#include <algorithm>
 #include <services/registry/WindowsRegistry.h>
 #include "DeviceTestDialog.h"
 #include "services/logging/Logging.h"
@@ -20,8 +25,9 @@ QString keyOf(const std::wstring& guid)
 }
 }
 
-DeviceTestDialog::DeviceTestDialog(const QVector<InstallFailure>& failures, bool runCheck, QWidget* parent)
-	: DeviceTestView(parent), failures(failures), checks(runCheck)
+DeviceTestDialog::DeviceTestDialog(const QVector<InstallFailure>& failures, const QVector<NewInstall>& installed,
+	bool runCheck, QWidget* parent)
+	: DeviceTestView(parent), failures(failures), installed(installed), checks(runCheck)
 {
 	resize(620, 640);
 	connect(this, &DeviceTestView::stopRequested, this, &DeviceTestDialog::onStopRequested);
@@ -287,7 +293,7 @@ void DeviceTestDialog::refresh()
 	const Tally counts = tally();
 	setPhase(phase, counts);
 	// Offered once there is something a second attempt could change.
-	setReinstallOffered(phase == Phase::Stopped
+	setReinstallOffered(phase == Phase::Stopped || phase == Phase::StoppedByUser
 		|| (phase == Phase::Done && counts.dead + counts.unchanged + counts.attention + counts.unchecked > 0));
 }
 
@@ -445,7 +451,7 @@ void DeviceTestDialog::onStopRequested()
 
 void DeviceTestDialog::onReinstallRequested()
 {
-	if (thread != nullptr && thread->isRunning())
+	if ((thread != nullptr && thread->isRunning()) || (undoThread != nullptr && undoThread->isRunning()))
 		return;
 
 	// Every device the check did not find working is installed again.
@@ -471,6 +477,31 @@ void DeviceTestDialog::onReinstallRequested()
 	}
 	failures = remaining;
 
+	// What a stop took off is installed again.
+	for (const NewInstall& change : removed)
+	{
+		const QString error = change.redo();
+		if (error.isEmpty())
+		{
+			installed.append(change);
+			continue;
+		}
+		InstallFailure failure;
+		failure.guid = change.guid;
+		failure.connection = change.connection;
+		failure.device = change.device;
+		failure.input = change.input;
+		failure.defaultDevice = change.defaultDevice;
+		failure.message = error;
+		failures.append(failure);
+	}
+	removed.clear();
+
+	if (undoThread != nullptr)
+	{
+		undoThread->deleteLater();
+		undoThread = nullptr;
+	}
 	if (thread != nullptr)
 	{
 		thread->disconnect(this);
@@ -490,12 +521,23 @@ void DeviceTestDialog::onThreadFinished()
 	{
 		phase = Phase::Done;
 	}
+	else if (stoppedByUser && !runNote)
+	{
+		// The user stopped the install, so what this OK installed comes off
+		// again. The rows stay as they are until that is done.
+		if (!installed.isEmpty())
+		{
+			undoInstalls();
+			return;
+		}
+		showStopped({});
+		return;
+	}
 	else
 	{
 		phase = Phase::Stopped;
 		if (!runNote)
-			runNote = Note{QString(), describe(stoppedByUser ? Problem::StoppedByUser : Problem::ResultChannelBroken),
-					{}, stoppedByUser ? DeviceReport::Unchecked : DeviceReport::Dead};
+			runNote = Note{QString(), describe(Problem::ResultChannelBroken), {}, DeviceReport::Dead};
 		for (Entry& entry : entries)
 		{
 			if (entry.tested && !entry.settled)
@@ -504,6 +546,91 @@ void DeviceTestDialog::onThreadFinished()
 				entry.row.report = DeviceReport::Unchecked;
 				showRow(entry);
 			}
+		}
+	}
+	refresh();
+}
+
+void DeviceTestDialog::undoInstalls()
+{
+	// Off the GUI thread: Windows audio restarts at the end so the APO that
+	// was just removed is unloaded, and that takes seconds.
+	const QVector<NewInstall> changes = installed;
+	auto results = std::make_shared<QVector<QPair<QString, QString>>>();
+	undoThread = QThread::create([changes, results]() {
+		winutil::ComApartment apartment(COINIT_MULTITHREADED);
+		for (const NewInstall& change : changes)
+			results->append({change.guid, change.undo()});
+		try
+		{
+			WindowsServiceControl::restart(audioServiceName);
+		}
+		catch (const WindowsServiceError& e)
+		{
+			results->append({QString(), QString::fromStdWString(e.getMessage())});
+		}
+	});
+	undoThread->setParent(this);
+	connect(undoThread, &QThread::finished, this, [this, results]() {
+		showStopped(*results);
+	});
+	undoThread->start();
+}
+
+void DeviceTestDialog::showStopped(const QVector<QPair<QString, QString>>& undone)
+{
+	phase = Phase::StoppedByUser;
+	const QString logLine = DeviceTestView::tr("Details are in %1.")
+		.arg(QDir::toNativeSeparators(QString::fromStdWString(Logging::currentPath())));
+
+	QVector<NewInstall> still;
+	for (const QPair<QString, QString>& result : undone)
+	{
+		if (result.first.isEmpty())
+		{
+			// Windows audio did not restart after the removal.
+			runNote = Note{DeviceTestView::tr("Windows audio"), describe(Problem::AudioRestartFailed),
+					{result.second}, DeviceReport::Dead};
+			logError(result.second);
+			continue;
+		}
+		const auto change = std::find_if(installed.begin(), installed.end(), [&](const NewInstall& candidate) {
+			return candidate.guid.compare(result.first, Qt::CaseInsensitive) == 0;
+		});
+		if (change == installed.end())
+			continue;
+		Entry* entry = entryFor(result.first);
+		if (result.second.isEmpty())
+		{
+			removed.append(*change);
+			if (entry != nullptr)
+			{
+				entry->row.state = DeviceTestView::tr("Install undone");
+				entry->row.report = DeviceReport::Unchecked;
+				entry->settled = true;
+				entry->problem.reset();
+				showRow(*entry);
+			}
+		}
+		else
+		{
+			still.append(*change);
+			logError(change->connection + QLatin1String(": ") + result.second);
+			if (entry != nullptr)
+				entry->installNote = Note{change->connection, describe(Problem::InstallRefused), {result.second, logLine},
+						DeviceReport::Dead};
+		}
+	}
+	if (!undone.isEmpty())
+		installed = still;
+
+	for (Entry& entry : entries)
+	{
+		if (entry.tested && !entry.settled)
+		{
+			entry.row.state = DeviceTestView::tr("Not checked");
+			entry.row.report = DeviceReport::Unchecked;
+			showRow(entry);
 		}
 	}
 	refresh();
@@ -519,6 +646,14 @@ void DeviceTestDialog::onAbort(const QString&, int code)
 
 void DeviceTestDialog::stopTestThread()
 {
+	// A removal in progress is waited for: cutting it off would leave a
+	// device between installed and not.
+	if (undoThread != nullptr && undoThread->isRunning())
+	{
+		undoThread->disconnect(this);
+		undoThread->wait();
+	}
+
 	// Esc and done() bypass closeEvent. All exits must release a running child
 	// before the dialog destroys it (audit #467 TD-14). Worker signals are queued;
 	// it never waits for the GUI thread that performs this bounded wait.

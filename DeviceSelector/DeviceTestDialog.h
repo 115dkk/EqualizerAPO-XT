@@ -45,9 +45,24 @@ public:
 		bool fromReinstall = false;
 	};
 
+	// A device this OK installed the APO on. Stopping the check stops the
+	// install, so these are taken off again; Reinstall puts them back. Both
+	// answer what went wrong, or nothing when it worked.
+	struct NewInstall
+	{
+		QString guid;
+		QString connection;
+		QString device;
+		bool input = false;
+		bool defaultDevice = false;
+		std::function<QString()> undo;
+		std::function<QString()> redo;
+	};
+
 	// runCheck is false when nothing changed that Windows audio has to pick
 	// up: the dialog then only reports the failures.
-	DeviceTestDialog(const QVector<InstallFailure>& failures, bool runCheck, QWidget* parent = nullptr);
+	DeviceTestDialog(const QVector<InstallFailure>& failures, const QVector<NewInstall>& installed, bool runCheck,
+		QWidget* parent = nullptr);
 	void reject() override;
 	void done(int result) override;
 
@@ -88,12 +103,17 @@ private:
 	void onDeviceRefused(const QString& guid, const QString& message);
 	void onDeviceUnreachable(const QString& guid, const QString& message);
 	void onRunStopped(DeviceTestStop reason, const QString& message);
+	void undoInstalls();
+	void showStopped(const QVector<QPair<QString, QString>>& undone);
 	void onStopRequested();
 	void onReinstallRequested();
 	void onThreadFinished();
 	void onAbort(const QString& message, int code);
 
 	QVector<InstallFailure> failures;
+	QVector<NewInstall> installed; // on the devices now
+	QVector<NewInstall> removed;   // taken off again after a stop
+	QThread* undoThread = nullptr;
 	QVector<Entry> entries;
 	QHash<QString, int> entryIndex;
 	std::optional<Note> runNote;

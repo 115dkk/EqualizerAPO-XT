@@ -508,6 +508,24 @@ void DeviceSelector::onDialogAccepted()
 			// mid-install (audit #348 TD-06).
 			if (!result.devices.front().error.empty())
 				reportFailure(result.devices.front().error, result.devices.front().report);
+			else if (plan.action == DeviceAction::Install)
+			{
+				// Stopping the check that follows stops this install: the
+				// dialog takes the APO off again, and Reinstall puts it back.
+				DeviceTestDialog::NewInstall change;
+				change.guid = QString::fromStdWString(info->getDeviceGuid());
+				change.connection = QString::fromStdWString(info->getConnectionName());
+				change.device = QString::fromStdWString(info->getDeviceName());
+				change.input = info->isInput();
+				change.defaultDevice = info->isDefaultDevice();
+				auto run = [info](DeviceAction action) {
+					const auto outcome = DeviceChange::apply({ { DevicePlan{action}, info.get() } }, DeviceChange::Context::Dialog);
+					return QString::fromStdWString(outcome.devices.front().error);
+				};
+				change.undo = [run]() {return run(DeviceAction::Uninstall);};
+				change.redo = [run]() {return run(DeviceAction::Install);};
+				newInstalls.append(change);
+			}
 		}
 	}
 
@@ -548,7 +566,7 @@ void DeviceSelector::finish(bool deviceUpdated)
 	// and there is nothing for the check to ask.
 	if (runCheck || !installFailures.isEmpty())
 	{
-		DeviceTestDialog testDialog(installFailures, runCheck);
+		DeviceTestDialog testDialog(installFailures, newInstalls, runCheck);
 		dialogResult = testDialog.exec();
 	}
 

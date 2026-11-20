@@ -140,7 +140,7 @@ int ScreenshotHarness::runSkinShots(QApplication& app)
 				partial.device = QStringLiteral("USB Audio Device");
 				partial.input = true;
 				partial.leftPartial = true;
-				DeviceTestDialog dialog({refused, partial}, false);
+				DeviceTestDialog dialog({refused, partial}, {}, false);
 				dialog.resize(620, 760);
 				dialog.show();
 				QApplication::processEvents();
