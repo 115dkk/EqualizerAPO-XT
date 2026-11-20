@@ -75,7 +75,7 @@ void MainWindow::startSkinSwitchStorm()
 	static const char* const storm[] = {
 		// Matrix early on purpose: its toolbar overlay boards were the styled-
 		// background cover that blanked the strip for every skin after it.
-		"menuskin studio dark", "menuskin matrix dark", "menuskin soft dark",
+		"menuskin studio dark", "menuskin matrix dark", "menuskin flat dark",
 		"menuskin rack dark", "menuskin studio dark", "menuskin minimal dark",
 		"menuskin matrix dark", "menuskin rack dark", "menuskin studio dark",
 		"fullscreen", "fullscreen", "resize 900", "resize 1900",

@@ -810,7 +810,7 @@ int SkinGallery::runRoutingEditTest()
 		check(notifications == 1, QStringLiteral("%1: INV did not emit exactly one change").arg(name));
 		check(lineText(scrollArea, 0) == QStringLiteral("Copy: VC=-1.0*L"),
 			QStringLiteral("%1: INV did not invert the source").arg(name));
-		if (name == QLatin1String("soft") || name == QLatin1String("minimal"))
+		if (name == QLatin1String("flat") || name == QLatin1String("minimal"))
 		{
 			commit(QStringLiteral("L"));
 			check(lineText(scrollArea, 0) == QStringLiteral("Copy: VC=L"),

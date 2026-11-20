@@ -886,7 +886,7 @@ build_pass:CONFIG(debug, debug|release) {
 include($$PWD/../common.pri)
 include(skins/studio/studio.pri)
 include(skins/minimal/minimal.pri)
-include(skins/soft/soft.pri)
+include(skins/flat/flat.pri)
 include(skins/rack/rack.pri)
 include(skins/matrix/matrix.pri)
 QMAKE_LIBDIR += $$LIBSNDFILE_LIB $$FFTW_LIB $$MUPARSERX_LIB $$VELOPACK_LIB

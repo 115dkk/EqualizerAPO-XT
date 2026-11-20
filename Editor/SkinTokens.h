@@ -55,7 +55,7 @@ struct SkinTokens
 	// A line one step heavier than border, the edge of a control that has to
 	// be found (3:1 on the card), and the ink on an accent fill. A skin table
 	// may leave them empty; finishTokens then derives them from border,
-	// mutedText and the theme. Only the soft sheets and painters read them.
+	// mutedText and the theme. Only the flat sheets and painters read them.
 	QString borderStrong;
 	QString controlEdge;
 	QString onAccent;

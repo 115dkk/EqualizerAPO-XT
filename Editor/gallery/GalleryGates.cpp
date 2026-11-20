@@ -398,8 +398,8 @@ void runOneSwitch(SwitchRun& run, ISkin* skin, bool dark, int round)
 			qPrintable(name), qPrintable(SkinManager::instance()->currentSkinId()));
 		failures++;
 	}
-	if (skin->id() == QLatin1String("soft"))
-		failures += checkPaintOnlyChrome(run.scrollArea, QStringLiteral("SoftReferenceTile"));
+	if (skin->id() == QLatin1String("flat"))
+		failures += checkPaintOnlyChrome(run.scrollArea, QStringLiteral("FlatReferenceTile"));
 	failures += checkCaptionInk(run.captionButton, name);
 	failures += checkSwitchToolbar(run.probeWindow, run.probeToolBar, name);
 	if (round == 1 && dark)

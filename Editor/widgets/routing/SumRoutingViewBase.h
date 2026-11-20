@@ -6,7 +6,7 @@
 
 /*
 	The interaction half of the sum-shaped routing views: Minimal's step
-	list and Soft's equation blocks. Both draw one row per output target,
+	list and Flat's equation blocks. Both draw one row per output target,
 	reading as that target's source sum; a per-row add target offers the
 	sources the sum does not hold yet, a double-click on a summand opens an
 	inline editor, the rows fold to the channels the command involves behind

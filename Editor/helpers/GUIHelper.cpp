@@ -228,7 +228,7 @@ void GUIHelper::prepareFileDialog(QFileDialog& dialog)
 	}
 
 	// Enough sidebar width for the location labels under the larger skin
-	// typefaces; the stock split truncates even short folder names on soft.
+	// typefaces; the stock split truncates even short folder names on flat.
 	if (QSplitter* splitter = dialog.findChild<QSplitter*>(QStringLiteral("splitter")))
 		splitter->setSizes({ 150, 650 });
 

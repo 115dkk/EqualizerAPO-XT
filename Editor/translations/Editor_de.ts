@@ -258,12 +258,12 @@
 <context>
     <name>BlockChipView</name>
     <message>
-        <location filename="../skins/soft/routing/BlockChipRoutingRenderer.cpp" line="214"/>
+        <location filename="../skins/flat/routing/BlockChipRoutingRenderer.cpp" line="214"/>
         <source>Show fewer channels</source>
         <translation type="unfinished"></translation>
     </message>
     <message numerus="yes">
-        <location filename="../skins/soft/routing/BlockChipRoutingRenderer.cpp" line="215"/>
+        <location filename="../skins/flat/routing/BlockChipRoutingRenderer.cpp" line="215"/>
         <source>Show %n more channel(s)</source>
         <translation type="unfinished">
             <numerusform></numerusform>
@@ -271,7 +271,7 @@
         </translation>
     </message>
     <message>
-        <location filename="../skins/soft/routing/BlockChipRoutingRenderer.cpp" line="228"/>
+        <location filename="../skins/flat/routing/BlockChipRoutingRenderer.cpp" line="228"/>
         <source>Add channel</source>
         <translation type="unfinished">Kanal hinzufügen</translation>
     </message>
@@ -4211,19 +4211,19 @@ Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</
     </message>
 </context>
 <context>
-    <name>SoftFilterPickerView</name>
+    <name>FlatFilterPickerView</name>
     <message>
-        <location filename="../skins/soft/picker/SoftFilterPicker.cpp" line="129"/>
+        <location filename="../skins/flat/picker/FlatFilterPicker.cpp" line="129"/>
         <source>Complete as it is</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/picker/SoftFilterPicker.cpp" line="131"/>
+        <location filename="../skins/flat/picker/FlatFilterPicker.cpp" line="131"/>
         <source>Choose the details after adding</source>
         <translation>Details nach dem Hinzufügen festlegen</translation>
     </message>
     <message>
-        <location filename="../skins/soft/picker/SoftFilterPicker.cpp" line="290"/>
+        <location filename="../skins/flat/picker/FlatFilterPicker.cpp" line="290"/>
         <source>Search filters</source>
         <translation>Filter suchen</translation>
     </message>
@@ -4232,206 +4232,206 @@ Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</
         <translation type="vanished">Allgemein</translation>
     </message>
     <message>
-        <location filename="../skins/soft/picker/SoftFilterPicker.cpp" line="421"/>
+        <location filename="../skins/flat/picker/FlatFilterPicker.cpp" line="421"/>
         <source>Nothing matches your search</source>
         <translation>Keine Treffer für Ihre Suche</translation>
     </message>
     <message>
-        <location filename="../skins/soft/picker/SoftFilterPicker.cpp" line="422"/>
+        <location filename="../skins/flat/picker/FlatFilterPicker.cpp" line="422"/>
         <source>Try a shorter or different keyword</source>
         <translation>Versuchen Sie ein kürzeres oder anderes Stichwort</translation>
     </message>
 </context>
 <context>
-    <name>SoftReferenceCardView</name>
+    <name>FlatReferenceCardView</name>
     <message>
-        <location filename="../skins/soft/cards/SoftReferenceCardView.cpp" line="241"/>
+        <location filename="../skins/flat/cards/FlatReferenceCardView.cpp" line="241"/>
         <source>Checking...</source>
         <translation>Wird geprüft...</translation>
     </message>
 </context>
 <context>
-    <name>SoftSkin</name>
+    <name>FlatSkin</name>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="57"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="57"/>
         <source>Otherwise</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="59"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="59"/>
         <source>End of the rule</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="70"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="70"/>
         <source>Set %1 to %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="91"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="91"/>
         <source>If %1 is %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="93"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="93"/>
         <source>If %1 is not %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="95"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="95"/>
         <source>If %1 is at least %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="97"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="97"/>
         <source>If %1 is more than %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="99"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="99"/>
         <source>If %1 is at most %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="101"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="101"/>
         <source>If %1 is less than %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="106"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="106"/>
         <source>Otherwise, if %1 is %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="108"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="108"/>
         <source>Otherwise, if %1 is not %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="110"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="110"/>
         <source>Otherwise, if %1 is at least %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="112"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="112"/>
         <source>Otherwise, if %1 is more than %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="114"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="114"/>
         <source>Otherwise, if %1 is at most %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="116"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="116"/>
         <source>Otherwise, if %1 is less than %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.CommandRows.cpp" line="227"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="227"/>
         <source>Not applied to the audio.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.Analysis.cpp" line="223"/>
+        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="223"/>
         <source>Over 0 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.Analysis.cpp" line="224"/>
+        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="224"/>
         <source>Sound may distort - keep it below 0 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.Analysis.cpp" line="234"/>
+        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="234"/>
         <source>Phase in %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.Analysis.cpp" line="235"/>
+        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="235"/>
         <source>Delay in %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.Analysis.cpp" line="236"/>
+        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="236"/>
         <source>How far each pitch is turned - the volume stays the same</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/SoftSkin.Analysis.cpp" line="237"/>
+        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="237"/>
         <source>How long each pitch is held back before you hear it</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
-    <name>SoftSubwooferRoutingCardView</name>
+    <name>FlatSubwooferRoutingCardView</name>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="59"/>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="59"/>
         <source>Bass-management summary</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="75"/>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="75"/>
         <source>Bass-management details</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="127"/>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="127"/>
         <source>This bass setup needs attention.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="133"/>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="133"/>
         <source>All speakers play the full range.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="134"/>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="134"/>
         <source>No crossover is set, so nothing is redirected to a subwoofer.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="142"/>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="142"/>
         <source>Bass plays on the subwoofer.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="150"/>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="150"/>
         <source>The movie LFE track is kept and played at %1 dB.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="155"/>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="155"/>
         <source>The source LFE channel is left out.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="167"/>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="167"/>
         <source>Unknown layout</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="168"/>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="168"/>
         <source>%1 speakers</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="171"/>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="171"/>
         <source>LFE %1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="177"/>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="177"/>
         <source>Auto trim %1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="177"/>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="177"/>
         <source>Trim %1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/soft/cards/SoftSubwooferRoutingCardView.cpp" line="181"/>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="181"/>
         <source>Linked profile</source>
         <translation type="unfinished"></translation>
     </message>

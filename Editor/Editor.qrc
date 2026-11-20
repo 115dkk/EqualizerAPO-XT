@@ -41,20 +41,20 @@
         <file>icons/modern/waveform.svg</file>
         <file>icons/modern/check-light.svg</file>
         <file>icons/modern/check-dark.svg</file>
-        <file>icons/modern/soft-check-ink.svg</file>
-        <file>icons/modern/soft-check-night.svg</file>
-        <file>icons/modern/soft-check-pale.svg</file>
-        <file>icons/modern/soft-check-white.svg</file>
-        <file>icons/modern/soft-dash-night.svg</file>
-        <file>icons/modern/soft-dash-white.svg</file>
-        <file>icons/modern/soft-lamp-ok-dark.svg</file>
-        <file>icons/modern/soft-lamp-ok-light.svg</file>
-        <file>icons/modern/soft-lamp-warn-dark.svg</file>
-        <file>icons/modern/soft-lamp-warn-light.svg</file>
-        <file>icons/modern/soft-switch-off-dark.svg</file>
-        <file>icons/modern/soft-switch-off-light.svg</file>
-        <file>icons/modern/soft-switch-on-dark.svg</file>
-        <file>icons/modern/soft-switch-on-light.svg</file>
+        <file>icons/modern/flat-check-ink.svg</file>
+        <file>icons/modern/flat-check-night.svg</file>
+        <file>icons/modern/flat-check-pale.svg</file>
+        <file>icons/modern/flat-check-white.svg</file>
+        <file>icons/modern/flat-dash-night.svg</file>
+        <file>icons/modern/flat-dash-white.svg</file>
+        <file>icons/modern/flat-lamp-ok-dark.svg</file>
+        <file>icons/modern/flat-lamp-ok-light.svg</file>
+        <file>icons/modern/flat-lamp-warn-dark.svg</file>
+        <file>icons/modern/flat-lamp-warn-light.svg</file>
+        <file>icons/modern/flat-switch-off-dark.svg</file>
+        <file>icons/modern/flat-switch-off-light.svg</file>
+        <file>icons/modern/flat-switch-on-dark.svg</file>
+        <file>icons/modern/flat-switch-on-light.svg</file>
         <file>icons/modern/dash-light.svg</file>
         <file>icons/modern/dash-dark.svg</file>
         <file>icons/modern/chevron-down.svg</file>
@@ -116,8 +116,8 @@
         <file alias="skins/studio_light.qss">skins/studio/qss/studio_light.qss</file>
         <file alias="skins/precision_dark.qss">skins/minimal/qss/precision_dark.qss</file>
         <file alias="skins/precision_light.qss">skins/minimal/qss/precision_light.qss</file>
-        <file alias="skins/soft_dark.qss">skins/soft/qss/soft_dark.qss</file>
-        <file alias="skins/soft_light.qss">skins/soft/qss/soft_light.qss</file>
+        <file alias="skins/flat_dark.qss">skins/flat/qss/flat_dark.qss</file>
+        <file alias="skins/flat_light.qss">skins/flat/qss/flat_light.qss</file>
         <file alias="skins/rack_dark.qss">skins/rack/qss/rack_dark.qss</file>
         <file alias="skins/rack_light.qss">skins/rack/qss/rack_light.qss</file>
         <file alias="skins/matrix_dark.qss">skins/matrix/qss/matrix_dark.qss</file>

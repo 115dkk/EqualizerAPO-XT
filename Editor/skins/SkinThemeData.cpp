@@ -154,8 +154,8 @@ SkinTokens minimalTokens(bool dark)
 	return t;
 }
 
-// Constitution: docs/skins/soft.md
-SkinTokens softTokens(bool dark)
+// Constitution: docs/skins/flat.md
+SkinTokens flatTokens(bool dark)
 {
 	SkinTokens t;
 	t.dark = dark;
@@ -389,7 +389,7 @@ const QVector<SkinEntry>& roster()
 		// The minimal skin's sheets are precision_light.qss / precision_dark.qss;
 		// the name predates the skin's rename and the files were left alone.
 		{ QStringLiteral("minimal"), QStringLiteral("precision"), &minimalTokens },
-		{ QStringLiteral("soft"), QStringLiteral("soft"), &softTokens },
+		{ QStringLiteral("flat"), QStringLiteral("flat"), &flatTokens },
 		{ QStringLiteral("rack"), QStringLiteral("rack"), &rackTokens },
 		{ QStringLiteral("matrix"), QStringLiteral("matrix"), &matrixTokens },
 	};
@@ -421,12 +421,16 @@ const SkinEntry& entry(const QString& id)
 
 QString resolveId(const QString& id)
 {
-	// The two aliases are stored values from earlier releases, so they cannot be
-	// derived from anything - they are the only hard-coded ids here.
+	// The aliases are stored values from earlier releases, so they cannot be
+	// derived from anything - they are the only hard-coded ids here. "soft" is
+	// what the Stock Flat skin was stored as up to v2.71: a registry that still
+	// holds it opens that skin, and the next save writes "flat".
 	if (id == QStringLiteral("glassy"))
 		return QStringLiteral("studio");
 	if (id == QStringLiteral("industrial"))
 		return QStringLiteral("rack");
+	if (id == QStringLiteral("soft"))
+		return QStringLiteral("flat");
 	for (const SkinEntry& skin : roster())
 	{
 		if (skin.id == id)

@@ -22,7 +22,7 @@
 
 const DeviceSkinPainter* studioDeviceSkinPainter();
 const DeviceSkinPainter* minimalDeviceSkinPainter();
-const DeviceSkinPainter* softDeviceSkinPainter();
+const DeviceSkinPainter* flatDeviceSkinPainter();
 const DeviceSkinPainter* rackDeviceSkinPainter();
 const DeviceSkinPainter* matrixDeviceSkinPainter();
 
@@ -36,8 +36,8 @@ const DeviceSkinPainter* DeviceSkinPainter::forSkin(const QString& skinId)
 	const QString id = SkinThemeData::resolveId(skinId);
 	if (id == QStringLiteral("minimal"))
 		return minimalDeviceSkinPainter();
-	if (id == QStringLiteral("soft"))
-		return softDeviceSkinPainter();
+	if (id == QStringLiteral("flat"))
+		return flatDeviceSkinPainter();
 	if (id == QStringLiteral("rack"))
 		return rackDeviceSkinPainter();
 	if (id == QStringLiteral("matrix"))

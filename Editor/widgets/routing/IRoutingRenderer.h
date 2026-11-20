@@ -8,7 +8,7 @@
 	A skin contributes one IRoutingRenderer. Given the same routing data
 	(std::vector<Assignment>), each skin's renderer produces a completely
 	different RoutingView widget: a crosspoint matrix, a step list, a node
-	graph, soft chips, a hardware patch-bay, and so on. The routing data
+	graph, flat chips, a hardware patch-bay, and so on. The routing data
 	therefore lives in one form and only the presentation differs per skin.
 	Copy uses the symmetric default; MultiConvolution rides the same renderers
 	with a RoutingPortModel that fixes the source side to the IR file's

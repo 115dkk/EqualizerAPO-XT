@@ -40,7 +40,7 @@ SOURCES += \
 	skins/DeviceSkinPainter.cpp \
 	skins/StudioDeviceSkin.cpp \
 	skins/MinimalDeviceSkin.cpp \
-	skins/SoftDeviceSkin.cpp \
+	skins/FlatDeviceSkin.cpp \
 	skins/RackDeviceSkin.cpp \
 	skins/MatrixDeviceSkin.cpp \
 	../services/windows/AudioEngineRestart.cpp \

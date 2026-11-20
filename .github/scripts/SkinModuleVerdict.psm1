@@ -178,7 +178,7 @@ function Get-SkinModuleVerdict($Measurements) {
     }
 
     $obsoleteFiles = @(
-        'StudioSkin.cpp', 'MinimalSkin.cpp', 'SoftSkin.cpp', 'RackSkin.cpp',
+        'StudioSkin.cpp', 'MinimalSkin.cpp', 'FlatSkin.cpp', 'RackSkin.cpp',
         'MatrixSkin.cpp', 'RackChrome.cpp', 'RackChrome.h'
     )
     foreach ($file in $obsoleteFiles) {
@@ -213,7 +213,7 @@ function Get-SkinModuleVerdict($Measurements) {
             Add-Failure "Editor.pro does not include $expectedInclude."
         }
     }
-    if ($editorProject -match 'skins/(?:Studio|Minimal|Soft|Rack|Matrix)Skin\.cpp|skins/(?:cards|pickers)/|widgets/routing/(?:LightTrace|StepList|BlockChip|HardwarePatchbay|CrosspointMatrix)RoutingRenderer') {
+    if ($editorProject -match 'skins/(?:Studio|Minimal|Flat|Rack|Matrix)Skin\.cpp|skins/(?:cards|pickers)/|widgets/routing/(?:LightTrace|StepList|BlockChip|HardwarePatchbay|CrosspointMatrix)RoutingRenderer') {
         Add-Failure 'Editor.pro still registers concrete skin sources outside the five .pri modules.'
     }
 
@@ -222,7 +222,7 @@ function Get-SkinModuleVerdict($Measurements) {
     $qssAliases = @{
         studio = @('studio_dark.qss', 'studio_light.qss')
         minimal = @('precision_dark.qss', 'precision_light.qss')
-        soft = @('soft_dark.qss', 'soft_light.qss')
+        flat = @('flat_dark.qss', 'flat_light.qss')
         rack = @('rack_dark.qss', 'rack_light.qss')
         matrix = @('matrix_dark.qss', 'matrix_light.qss')
     }

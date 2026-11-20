@@ -1,0 +1,61 @@
+/*
+	This file is part of EqualizerAPO-XT, a system-wide equalizer.
+	Copyright (C) 2026 115dkk
+	SPDX-License-Identifier: GPL-2.0-or-later
+*/
+
+#pragma once
+
+#include "Editor/skins/ISkin.h"
+
+class FlatSkin final : public ISkin
+{
+public:
+	QString id() const override;
+	IRoutingRenderer* routingRenderer() const override;
+	FilterPickerView* createFilterPicker(QWidget* parent, const SkinTokens& tokens) const override;
+	ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent,
+		const SkinTokens& tokens) const override;
+	SubwooferRoutingCardView* createSubwooferRoutingCardView(QWidget* parent,
+		const SkinTokens& tokens) const override;
+
+	QString cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override;
+	QString cardHeaderStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override;
+	BadgeTreatment badgeTreatment(const CommandRowInfo& info, const QString& typeColor,
+		const QString& badgeToken, const SkinTokens& tokens) const override;
+	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body,
+		const SkinTokens& tokens) const override;
+	bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info,
+		const SkinTokens& tokens) const override;
+	bool paintChannelBadge(QPainter& painter, const QRect& rect, const QString& channel,
+		bool virtualChannel, const SkinTokens& tokens) const override;
+	QIcon powerToggleIcon(bool enabled, const SkinTokens& tokens) const override;
+	bool showsUnusableVstBusStrip() const override;
+
+	void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state,
+		const SkinTokens& tokens) const override;
+	void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state,
+		const SkinTokens& tokens) const override;
+	void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state,
+		const SkinTokens& tokens) const override;
+	void paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& state,
+		const SkinTokens& tokens) const override;
+	void paintSegmentedControl(QPainter& painter, const SegmentedControlState& state,
+		const SkinTokens& tokens) const override;
+	void paintVstBusSelector(QPainter& painter, const VstBusSelectorState& state,
+		const SkinTokens& tokens) const override;
+	void paintVstBusFrame(QPainter& painter, const VstBusFrameState& state,
+		const SkinTokens& tokens) const override;
+	QSize vstSlotFillCellSize(const QString& role, const QString& value,
+		const SkinTokens& tokens) const override;
+	void paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state,
+		const SkinTokens& tokens) const override;
+	void paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state,
+		const SkinTokens& tokens) const override;
+	void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state,
+		const SkinTokens& tokens) const override;
+
+	// The toolbar and the file dialog's navigation row keep the shared stroke
+	// icons in the body ink (the ISkin defaults): nothing here wears a tile.
+	QAbstractFileIconProvider* fileIconProvider(const SkinTokens& tokens) const override;
+};
