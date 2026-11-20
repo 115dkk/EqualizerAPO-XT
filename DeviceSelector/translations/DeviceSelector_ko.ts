@@ -523,7 +523,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     </message>
     <message>
         <source>Close programs that manage audio devices, then press Reinstall.</source>
-        <translation type="vanished">오디오 장치를 관리하는 프로그램을 닫은 뒤 재설치하십시오.</translation>
+        <translation type="vanished">오디오 장치를 관리하는 프로그램을 끈 뒤 재설치하십시오.</translation>
     </message>
     <message>
         <location filename="../DeviceTestView.cpp" line="263"/>
@@ -532,7 +532,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     </message>
     <message>
         <source>Close programs that manage audio devices, then try again.</source>
-        <translation type="vanished">오디오 장치를 관리하는 프로그램을 닫은 뒤 다시 시도하십시오.</translation>
+        <translation type="vanished">오디오 장치를 관리하는 프로그램을 끈 뒤 다시 시도하십시오.</translation>
     </message>
     <message>
         <source>Restart the computer before trying again.</source>
@@ -597,7 +597,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <location filename="../DeviceTestView.cpp" line="261"/>
         <location filename="../DeviceTestView.cpp" line="265"/>
         <source>Close programs that manage audio devices, then reinstall.</source>
-        <translation>오디오 장치를 관리하는 프로그램을 닫은 뒤 재설치하십시오.</translation>
+        <translation>오디오 장치를 관리하는 프로그램을 끈 뒤 재설치하십시오.</translation>
     </message>
     <message>
         <location filename="../DeviceTestView.cpp" line="264"/>
@@ -665,7 +665,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     <message>
         <location filename="../DeviceTestView.cpp" line="293"/>
         <source>Close security programs that block changes to system settings, then reinstall.</source>
-        <translation>시스템 설정 변경을 막는 보안 프로그램을 닫은 뒤 재설치하십시오.</translation>
+        <translation>시스템 설정 변경을 막는 보안 프로그램을 끈 뒤 재설치하십시오.</translation>
     </message>
     <message>
         <location filename="../DeviceTestView.cpp" line="296"/>
@@ -821,7 +821,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     </message>
     <message>
         <source>Close security programs that block changes to system settings, then press Reinstall.</source>
-        <translation type="vanished">시스템 설정 변경을 막는 보안 프로그램을 닫은 뒤 재설치하십시오.</translation>
+        <translation type="vanished">시스템 설정 변경을 막는 보안 프로그램을 끈 뒤 재설치하십시오.</translation>
     </message>
     <message>
         <location filename="../DeviceTestView.cpp" line="405"/>
@@ -911,7 +911,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     </message>
     <message>
         <source>Close programs that manage audio devices, then check again.</source>
-        <translation type="vanished">오디오 장치를 관리하는 프로그램을 닫은 뒤 다시 확인하십시오.</translation>
+        <translation type="vanished">오디오 장치를 관리하는 프로그램을 끈 뒤 다시 확인하십시오.</translation>
     </message>
     <message>
         <source>Not installed</source>
@@ -923,7 +923,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     </message>
     <message>
         <source>Close programs that manage audio devices, then install again.</source>
-        <translation type="vanished">오디오 장치를 관리하는 프로그램을 닫은 뒤 다시 설치하십시오.</translation>
+        <translation type="vanished">오디오 장치를 관리하는 프로그램을 끈 뒤 다시 설치하십시오.</translation>
     </message>
     <message>
         <source>Partly changed</source>
@@ -991,7 +991,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     </message>
     <message>
         <source>Close security programs that block changes to system settings, then open the Device Selector and press OK.</source>
-        <translation type="vanished">시스템 설정 변경을 막는 보안 프로그램을 닫은 뒤 Device Selector를 열고 확인을 누르십시오.</translation>
+        <translation type="vanished">시스템 설정 변경을 막는 보안 프로그램을 끈 뒤 Device Selector를 열고 확인을 누르십시오.</translation>
     </message>
     <message>
         <source>The check lost its connection to the APO before every device had answered.</source>
