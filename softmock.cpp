@@ -1239,12 +1239,7 @@ static void layoutRow(C& g, QPointF pos, const QString& in, const QString& out, 
 	g.p.restore();
 	x += 40;
 	g.select(QRectF(x, pos.y(), 150, 32), out, st == Disabled ? Disabled : outSt);
-	x += 150 + 28;
-	g.p.save();
-	if (st == Disabled)
-		g.p.setOpacity(0.45);
-	g.checkbox(QPointF(x, pos.y() + 7), stereoInput, QStringLiteral("스테레오 입력"));
-	g.p.restore();
+	Q_UNUSED(stereoInput);
 }
 
 static void sceneVst(C& g)
@@ -1285,7 +1280,7 @@ static void sceneVst(C& g)
 	}
 	// 2: a VST2 plugin: no layouts to choose
 	{
-		const QRectF body = card(g, QRectF(x0, y, w, 181), { 2, "plug", QStringLiteral("VST 플러그인"), true, Rest, true, {} });
+		const QRectF body = card(g, QRectF(x0, y, w, 110), { 2, "plug", QStringLiteral("VST 플러그인"), true, Rest, true, {} });
 		const QString name = QStringLiteral("Legacy Compressor");
 		const QString where = QStringLiteral("VstPlugins 폴더 안");
 		g.text(QRectF(body.x(), body.y() + 10, 600, 24), name, 15, 600, c.text);
@@ -1294,9 +1289,7 @@ static void sceneVst(C& g)
 		double x = body.x() + g.textW(name, 15, 600) + 60 + 28;
 		x += g.button(QPointF(x, body.y() + 16), QStringLiteral("패널 닫기")) + 8;
 		g.button(QPointF(x, body.y() + 16), QStringLiteral("바꾸기"));
-		layoutRow(g, QPointF(body.x(), body.y() + 66), QStringLiteral("자동"), QStringLiteral("자동"), Disabled, Rest, false);
-		g.text(QRectF(body.x(), body.y() + 104, 800, 22), QStringLiteral("VST2 플러그인은 입력과 출력 배치를 쓰지 않습니다."), 13, 500, c.muted);
-		y += 181 + 8;
+		y += 110 + 8;
 	}
 	// 3: the plugin refused the asked layout
 	{
@@ -1325,7 +1318,7 @@ static void sceneVst(C& g)
 		g.button(QPointF(x, body.y() + 16), QStringLiteral("플러그인 찾기"), 1);
 		y += 110 + 8;
 	}
-	g.box(QRectF(1600 - 12, 176, 6, 640), c.lineStrong, QColor(), 3);
+	g.box(QRectF(1600 - 12, 176, 6, 600), c.lineStrong, QColor(), 3);
 }
 
 // ---- scene E: the command-line family (If, Eval, raw lines, source editing) --
@@ -1415,16 +1408,24 @@ static void sceneCommands(C& g)
 			QStringLiteral("regexSearch(\"TOPPING\", deviceName) and sampleRate >= 96000"));
 		y += 101 + 8;
 	}
-	// 8: a line the editor has no card for
+	// 8: a line that is no command: it changes nothing in the sound
 	{
-		const QRectF body = card(g, QRectF(x0, y, w, 125), { 8, "lines", QStringLiteral("원문 줄"), true, Rest, true, {} });
-		monoField(g, QRectF(body.x(), body.y() + 12, 760, 32), QStringLiteral("Loudness: Reference 80 ReferenceOffset 5 Attenuation 0.5"));
-		g.text(QRectF(body.x() + 2, body.y() + 50, 900, 22), QStringLiteral("이 줄은 카드로 표시할 수 없어 적힌 그대로 적용합니다."), 13, 500, c.muted);
+		CardOpt o{ 8, "lines", QStringLiteral("알 수 없는 명령"), true, Rest, true, {} };
+		o.skipped = true;
+		const QRectF body = card(g, QRectF(x0, y, w, 125), o);
+		monoField(g, QRectF(body.x(), body.y() + 12, 760, 32), QStringLiteral("Fliter: ON PK Fc 250 Hz Gain -4 dB Q 2"));
+		g.text(QRectF(body.x() + 2, body.y() + 50, 900, 22), QStringLiteral("이 줄은 오디오에 반영되지 않습니다."), 13, 500, c.text);
 		y += 125 + 8;
+	}
+	// 8b: a command the sound does follow but that has no card of its own yet
+	{
+		const QRectF body = card(g, QRectF(x0, y, w, 101), { 9, "lines", QStringLiteral("NewChannel"), true, Rest, true, {} });
+		monoField(g, QRectF(body.x(), body.y() + 12, 760, 32), QStringLiteral("NewChannel: VSL VSR"));
+		y += 101 + 8;
 	}
 	// 9: a filter card with its source open (the </> head button is held)
 	{
-		CardOpt o{ 9, "pk", QStringLiteral("피킹 필터"), true, Selected, true };
+		CardOpt o{ 10, "pk", QStringLiteral("피킹 필터"), true, Selected, true };
 		o.editing = true;
 		const QRectF body = card(g, QRectF(x0, y, w, 145), o);
 		monoField(g, QRectF(body.x(), body.y() + 12, 760, 32), QStringLiteral("Filter: ON PK Fc 250 Hz Gain -4 dB Q 2"), Focus, true);
@@ -1435,7 +1436,7 @@ static void sceneCommands(C& g)
 	}
 	// 10: a comment
 	{
-		const QRectF body = card(g, QRectF(x0, y, w, 101), { 10, "note", QStringLiteral("주석"), true, Rest, true, {} });
+		const QRectF body = card(g, QRectF(x0, y, w, 101), { 11, "note", QStringLiteral("주석"), true, Rest, true, {} });
 		g.field(QRectF(body.x(), body.y() + 12, 760, 32), QStringLiteral("여기부터 서라운드 업믹스"));
 		y += 101 + 8;
 	}
@@ -1468,7 +1469,7 @@ int main(int argc, char** argv)
 	QDir().mkpath(args[2]);
 	struct Scene { const char* name; std::function<void(C&)> fn; double h; };
 	const QList<Scene> scenes = { { "main", sceneMain, 1000 }, { "files", sceneFiles, 1000 }, { "parts", sceneParts, 1000 },
-								  { "vst", sceneVst, 960 }, { "commands", sceneCommands, 1120 } };
+								  { "vst", sceneVst, 890 }, { "commands", sceneCommands, 1230 } };
 	int failures = 0;
 	for (int mode = 0; mode < 2; mode++)
 	{
