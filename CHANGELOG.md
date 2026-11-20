@@ -14,6 +14,19 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Height channels have names.** On a playback device with height speakers
+  (a 7.1.4 device, for example), the four height channels were listed as `9`
+  to `12` in the Editor and could only be selected by number. They are now
+  `TFL`, `TFR`, `TRL` and `TRR` (top front and top rear, left and right), and
+  `TC`, `TFC` and `TRC` for the centre heights Windows defines. Configs that
+  select these channels by number keep working. A line that used one of these
+  names for a new channel of its own (a `Copy` target named `TFL`, say) now
+  reaches the device's real height speaker instead. `VSTPlugin` with `Auto`
+  layouts now recognises a 7.1.4 device by its channel names. Windows has no
+  speaker position for the middle height pair of a 7.1.6 system, so those
+  channels still show as numbers.
+  ([#506](https://github.com/115dkk/EqualizerAPO-XT/pull/506))
+
 ## v2.71.2 — 2026-11-20
 
 - **A tall MultiConvolution or Copy row no longer scrolls inside its card,
