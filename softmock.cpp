@@ -285,6 +285,19 @@ struct C
 		{
 			L({ { 2.5, 3 }, { 13.5, 3 }, { 13.5, 10.5 }, { 7, 10.5 }, { 4.5, 13.5 }, { 4.5, 10.5 }, { 2.5, 10.5 }, { 2.5, 3 } });
 		}
+		else if (name == "send")
+		{
+			L({ { 2.5, 8 }, { 10, 8 } });
+			L({ { 7, 4.5 }, { 10.5, 8 }, { 7, 11.5 } });
+			L({ { 13.5, 3.5 }, { 13.5, 12.5 } });
+		}
+		else if (name == "iir")
+		{
+			L({ { 2.5, 12.5 }, { 2.5, 3.5 } });
+			L({ { 6, 12.5 }, { 6, 6 } });
+			L({ { 9.5, 12.5 }, { 9.5, 8.5 } });
+			L({ { 13, 12.5 }, { 13, 10.5 } });
+		}
 		else if (name == "warn")
 		{
 			L({ { 8, 2.5 }, { 14, 13 }, { 2, 13 }, { 8, 2.5 } });
@@ -735,7 +748,7 @@ static void graphDock(C& g, double top)
 		const double row = ly + 188 + (i / 2) * 30;
 		const double cw = lw / 2 - 6;
 		g.text(QRectF(col, row, cw, 30), fn[i], 13, 500, c.muted);
-		g.text(QRectF(col, row, cw, 30), fv[i], 14, 600, i == 0 ? c.warning : c.text, Qt::AlignRight | Qt::AlignVCenter, true);
+		g.text(QRectF(col, row, cw, 30), fv[i], 14, 600, i == 0 ? c.error : c.text, Qt::AlignRight | Qt::AlignVCenter, true);
 		g.hline(col, col + cw, row + 29, c.line);
 	}
 	// right: the plot on a surface panel
@@ -763,7 +776,7 @@ static void graphDock(C& g, double top)
 	g.text(QRectF(plot.right() - 200, panel.y() + 8, 200, 24), QStringLiteral("L, 48000 Hz"), 13, 500, c.muted,
 		Qt::AlignRight | Qt::AlignVCenter, true);
 	// the over-0 notice: the state colour on the mark and nowhere else
-	g.icon("warn", QRectF(plot.x(), panel.y() + 12, 16, 16), c.warning);
+	g.icon("warn", QRectF(plot.x(), panel.y() + 12, 16, 16), c.error);
 	g.text(QRectF(plot.x() + 24, panel.y() + 8, 700, 24),
 		QStringLiteral("0 dB를 넘습니다. 소리가 일그러질 수 있으니 프리앰프를 0.8 dB 낮추십시오."), 14, 500, c.text);
 	// the curve: one line in the emphasis colour; the part over 0 dB in the warning colour
@@ -784,7 +797,14 @@ static void graphDock(C& g, double top)
 	g.p.setPen(QPen(c.mark, 2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
 	g.p.drawPath(path);
 	g.p.setClipRect(QRectF(plot.x(), plot.y() - 2, plot.width(), Y(0) - plot.y() + 2));
-	g.p.setPen(QPen(c.warning, 2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+	{
+		QPainterPath area = path;
+		area.lineTo(plot.right(), Y(0));
+		area.lineTo(plot.x(), Y(0));
+		area.closeSubpath();
+		g.p.fillPath(area, g.faded(c.error, c.dark ? 0.22 : 0.16));
+	}
+	g.p.setPen(QPen(c.error, 3, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
 	g.p.drawPath(path);
 	g.p.restore();
 }
@@ -1263,7 +1283,7 @@ static void sceneVst(C& g)
 		g.icon("chev-down", QRectF(body.x(), body.y() + 116, 16, 16), c.muted);
 		g.text(QRectF(body.x() + 22, body.y() + 108, 300, 32), QStringLiteral("채널 채우기"), 14, 600, c.text);
 		g.text(QRectF(body.x() + 22 + g.textW(QStringLiteral("채널 채우기"), 14, 600) + 12, body.y() + 108, 700, 32),
-			QStringLiteral("플러그인의 자리마다 어느 채널을 넣고 받을지 고릅니다."), 13, 500, c.muted);
+			QStringLiteral("플러그인의 자리마다 어느 채널을 넣고 받을지 고르십시오."), 13, 500, c.muted);
 		const double ty = body.y() + 144;
 		g.text(QRectF(body.x(), ty + 20, 60, 30), QStringLiteral("넣기"), 14, 500, c.muted);
 		x = body.x() + 60;
@@ -1393,7 +1413,7 @@ static void sceneCommands(C& g)
 	// 6: Eval
 	{
 		CardOpt o{ 6, "equals", QStringLiteral("계산"), true, Rest, true, {} };
-		o.summary = QStringLiteral("gain을 -3으로 정합니다");
+		o.summary = QStringLiteral("gain에 -3을 적용합니다");
 		const QRectF body = card(g, QRectF(x0, y, w, 101), o);
 		monoField(g, QRectF(body.x(), body.y() + 12, 560, 32), QStringLiteral("gain = -3"));
 		y += 101 + 8;
@@ -1414,18 +1434,12 @@ static void sceneCommands(C& g)
 		o.skipped = true;
 		const QRectF body = card(g, QRectF(x0, y, w, 125), o);
 		monoField(g, QRectF(body.x(), body.y() + 12, 760, 32), QStringLiteral("Fliter: ON PK Fc 250 Hz Gain -4 dB Q 2"));
-		g.text(QRectF(body.x() + 2, body.y() + 50, 900, 22), QStringLiteral("이 줄은 오디오에 반영되지 않습니다."), 13, 500, c.text);
+		g.text(QRectF(body.x() + 2, body.y() + 50, 900, 22), QStringLiteral("오디오에 반영되지 않습니다."), 14, 700, c.text);
 		y += 125 + 8;
-	}
-	// 8b: a command the sound does follow but that has no card of its own yet
-	{
-		const QRectF body = card(g, QRectF(x0, y, w, 101), { 9, "lines", QStringLiteral("NewChannel"), true, Rest, true, {} });
-		monoField(g, QRectF(body.x(), body.y() + 12, 760, 32), QStringLiteral("NewChannel: VSL VSR"));
-		y += 101 + 8;
 	}
 	// 9: a filter card with its source open (the </> head button is held)
 	{
-		CardOpt o{ 10, "pk", QStringLiteral("피킹 필터"), true, Selected, true };
+		CardOpt o{ 9, "pk", QStringLiteral("피킹 필터"), true, Selected, true };
 		o.editing = true;
 		const QRectF body = card(g, QRectF(x0, y, w, 145), o);
 		monoField(g, QRectF(body.x(), body.y() + 12, 760, 32), QStringLiteral("Filter: ON PK Fc 250 Hz Gain -4 dB Q 2"), Focus, true);
@@ -1436,9 +1450,146 @@ static void sceneCommands(C& g)
 	}
 	// 10: a comment
 	{
-		const QRectF body = card(g, QRectF(x0, y, w, 101), { 11, "note", QStringLiteral("주석"), true, Rest, true, {} });
+		const QRectF body = card(g, QRectF(x0, y, w, 101), { 10, "note", QStringLiteral("주석"), true, Rest, true, {} });
 		g.field(QRectF(body.x(), body.y() + 12, 760, 32), QStringLiteral("여기부터 서라운드 업믹스"));
 		y += 101 + 8;
+	}
+	g.box(QRectF(1600 - 12, 176, 6, 700), c.lineStrong, QColor(), 3);
+}
+
+// ---- scene F: NewChannel, Send, IIR -----------------------------------------
+
+// a name that can be taken away: the name and a small cross in one box
+static double nameChip(C& g, QPointF pos, const QString& s, bool bad = false)
+{
+	const Pal& c = g.c;
+	const double w = g.textW(s, 14, 500) + 12 + 24;
+	const QRectF r(pos.x(), pos.y(), w, 32);
+	g.box(r, c.surface, bad ? c.error : c.lineStrong, 6);
+	g.text(r.adjusted(12, 0, -24, 0), s, 14, 500, c.text);
+	g.icon("close", QRectF(r.right() - 22, r.center().y() - 7, 14, 14), c.muted, 1.3);
+	return w + 6;
+}
+
+static void placeholderField(C& g, QRectF r, const QString& hint)
+{
+	g.box(r, g.c.surface, g.c.edge, 6);
+	g.text(r.adjusted(10, 0, -8, 0), hint, 14, 500, g.c.muted);
+}
+
+static void labelOver(C& g, QPointF pos, const QString& s)
+{
+	g.text(QRectF(pos.x() + 2, pos.y(), 300, 20), s, 13, 500, g.c.muted);
+}
+
+static void sendControls(C& g, QPointF pos, const QString& to, const QString& mode, const QString& latency, bool compensate)
+{
+	double x = pos.x();
+	labelOver(g, QPointF(x, pos.y()), QStringLiteral("받는 곳"));
+	g.select(QRectF(x, pos.y() + 22, 320, 32), to);
+	x += 320 + 16;
+	labelOver(g, QPointF(x, pos.y()), QStringLiteral("받는 방식"));
+	g.select(QRectF(x, pos.y() + 22, 220, 32), mode);
+	x += 220 + 16;
+	labelOver(g, QPointF(x, pos.y()), QStringLiteral("지연"));
+	if (latency.isEmpty())
+		placeholderField(g, QRectF(x, pos.y() + 22, 110, 32), QStringLiteral("기본값"));
+	else
+		g.field(QRectF(x, pos.y() + 22, 110, 32), latency, "ms");
+	x += 110 + 20;
+	g.checkbox(QPointF(x, pos.y() + 29), compensate, QStringLiteral("이 장치도 같은 만큼 늦추기"));
+}
+
+static void sceneMore(C& g)
+{
+	const Pal& c = g.c;
+	chrome(g, QStringLiteral("multiroom.txt"), { QStringLiteral("config.txt") }, true);
+	const double x0 = 16, w = 1600 - 32 - 14;
+	double y = 172;
+	// 1: NewChannel: the declared names, and a field that adds more
+	{
+		const QRectF body = card(g, QRectF(x0, y, w, 101), { 1, "channels", QStringLiteral("새 채널"), true, Rest, true, {} });
+		double x = body.x();
+		for (const QString& n : { QStringLiteral("VC"), QStringLiteral("VRL"), QStringLiteral("VRR") })
+			x += nameChip(g, QPointF(x, body.y() + 12), n);
+		placeholderField(g, QRectF(x + 6, body.y() + 12, 180, 32), QStringLiteral("채널 이름 추가"));
+		y += 101 + 8;
+	}
+	// 2: NewChannel with names the line cannot take
+	{
+		const QRectF body = card(g, QRectF(x0, y, w, 131), { 2, "channels", QStringLiteral("새 채널"), true, Rest, true, {} });
+		double x = body.x();
+		x += nameChip(g, QPointF(x, body.y() + 12), "VC");
+		x += nameChip(g, QPointF(x, body.y() + 12), "2X", true);
+		x += nameChip(g, QPointF(x, body.y() + 12), "ALL", true);
+		placeholderField(g, QRectF(x + 6, body.y() + 12, 180, 32), QStringLiteral("채널 이름 추가"));
+		g.lamp(QPointF(body.x() + 5, body.y() + 63), c.error);
+		g.text(QRectF(body.x() + 18, body.y() + 52, 1000, 22),
+			QStringLiteral("표시한 이름을 지우거나 바꾸기 전에는 이 줄 전체가 오디오에 반영되지 않습니다."), 13, 500, c.text);
+		y += 131 + 8;
+	}
+	// 3: Send: where to, how it is received, the latency, and the routing
+	{
+		const QRectF body = card(g, QRectF(x0, y, w, 211), { 3, "send", QStringLiteral("보내기"), true, Rest, true, {} });
+		sendControls(g, QPointF(body.x(), body.y() + 10), QStringLiteral("거실 스피커 (USB Audio)"), QStringLiteral("그 장치의 소리에 섞기"), "20", true);
+		const QStringList outs = { "L", "R" };
+		const QList<QStringList> terms = { { "1.00", "L", "0.50", "R" }, { "1.00", "R" } };
+		for (int i = 0; i < 2; i++)
+		{
+			const double ry = body.y() + 78 + i * 44;
+			double x = body.x();
+			x += g.tag(QPointF(x, ry + 5), outs[i]) + 10;
+			g.text(QRectF(x, ry, 16, 32), "=", 15, 500, c.muted, Qt::AlignCenter);
+			x += 26;
+			for (int t = 0; t < terms[i].size() / 2; t++)
+			{
+				if (t > 0)
+				{
+					g.text(QRectF(x, ry, 16, 32), "+", 15, 500, c.muted, Qt::AlignCenter);
+					x += 26;
+				}
+				g.field(QRectF(x, ry, 76, 32), terms[i][t * 2]);
+				x += 76 + 8;
+				g.text(QRectF(x, ry, 12, 32), QStringLiteral("×"), 14, 500, c.muted, Qt::AlignCenter);
+				x += 20;
+				g.select(QRectF(x, ry, 72, 32), terms[i][t * 2 + 1]);
+				x += 72 + 10;
+			}
+			g.icon("plus", QRectF(x + 4, ry + 8, 16, 16), c.muted);
+		}
+		y += 211 + 8;
+	}
+	// 4: Send to an endpoint that does not take what is sent
+	{
+		const QRectF body = card(g, QRectF(x0, y, w, 163), { 4, "send", QStringLiteral("보내기"), true, Rest, true, {} });
+		const QString why = QStringLiteral("받는 장치에서 보내기가 꺼져 있습니다.");
+		g.lamp(QPointF(body.x() + 5, body.y() + 28), c.warning);
+		g.text(QRectF(body.x() + 18, body.y() + 12, 1000, 32), why, 14, 500, c.text);
+		g.button(QPointF(body.x() + 18 + g.textW(why, 14) + 16, body.y() + 12), QStringLiteral("장치 설정 열기"));
+		sendControls(g, QPointF(body.x(), body.y() + 54), QStringLiteral("서재 헤드폰 (DAC)"), QStringLiteral("그 장치의 소리 대신 내기"), QString(), false);
+		y += 163 + 8;
+	}
+	// 5: Filter ... IIR: the order and the two coefficient rows
+	{
+		const QRectF body = card(g, QRectF(x0, y, w, 229), { 5, "iir", QStringLiteral("IIR 필터") });
+		labelOver(g, QPointF(body.x(), body.y() + 10), QStringLiteral("종류"));
+		g.select(QRectF(body.x(), body.y() + 32, 240, 32), QStringLiteral("IIR (계수 직접 입력)"));
+		labelOver(g, QPointF(body.x() + 256, body.y() + 10), QStringLiteral("차수"));
+		g.field(QRectF(body.x() + 256, body.y() + 32, 80, 32), "2");
+		const double gy = body.y() + 80;
+		const double gx = body.x() + 76;
+		for (int k = 0; k < 3; k++)
+			g.text(QRectF(gx + k * 126 + 2, gy, 120, 18), QString::number(k), 13, 500, c.muted, Qt::AlignLeft | Qt::AlignVCenter, true);
+		const QStringList rowName = { QStringLiteral("분자 b"), QStringLiteral("분모 a") };
+		const QList<QStringList> coef = { { "0.2929", "0.5858", "0.2929" }, { "1", "0", "0.1716" } };
+		for (int r = 0; r < 2; r++)
+		{
+			const double ry = gy + 22 + r * 40;
+			g.text(QRectF(body.x(), ry, 70, 32), rowName[r], 14, 500, c.muted);
+			for (int k = 0; k < 3; k++)
+				g.field(QRectF(gx + k * 126, ry, 120, 32), coef[r][k]);
+		}
+		y += 229 + 8;
 	}
 	g.box(QRectF(1600 - 12, 176, 6, 700), c.lineStrong, QColor(), 3);
 }
@@ -1469,7 +1620,7 @@ int main(int argc, char** argv)
 	QDir().mkpath(args[2]);
 	struct Scene { const char* name; std::function<void(C&)> fn; double h; };
 	const QList<Scene> scenes = { { "main", sceneMain, 1000 }, { "files", sceneFiles, 1000 }, { "parts", sceneParts, 1000 },
-								  { "vst", sceneVst, 890 }, { "commands", sceneCommands, 1230 } };
+								  { "vst", sceneVst, 890 }, { "commands", sceneCommands, 1121 }, { "more", sceneMore, 1060 } };
 	int failures = 0;
 	for (int mode = 0; mode < 2; mode++)
 	{
