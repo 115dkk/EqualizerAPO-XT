@@ -22,7 +22,10 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   problem, says what happened and what to do about it, with the message
   Windows gave. A change Windows refused is reported in the same window
   instead of an error box per device. The check can be stopped with a Stop
-  button, and its line-by-line record is folded away until it is opened. The
+  button, and its line-by-line record is folded away until it is opened.
+  When something went wrong, a Reinstall button installs the APO again on
+  the devices that had a problem, tries the refused changes again and runs
+  the check once more. The
   window follows the active skin. The recommended actions (updating the
   driver, closing programs that manage audio devices) have not been verified
   on machines that show these problems.

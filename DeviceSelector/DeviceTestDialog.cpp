@@ -21,9 +21,22 @@ QString keyOf(const std::wstring& guid)
 }
 
 DeviceTestDialog::DeviceTestDialog(const QVector<InstallFailure>& failures, bool runCheck, QWidget* parent)
-	: DeviceTestView(parent), checks(runCheck)
+	: DeviceTestView(parent), failures(failures), checks(runCheck)
 {
 	resize(620, 640);
+	connect(this, &DeviceTestView::stopRequested, this, &DeviceTestDialog::onStopRequested);
+	connect(this, &DeviceTestView::reinstallRequested, this, &DeviceTestDialog::onReinstallRequested);
+	begin({});
+}
+
+void DeviceTestDialog::begin(const QSet<QString>& reinstall)
+{
+	entries.clear();
+	entryIndex.clear();
+	runNote.reset();
+	stoppedByUser = false;
+	phase = Phase::Running;
+	setCloseCode(QDialog::Accepted);
 
 	QVector<std::shared_ptr<DeviceAPOInfo>> devices;
 	if (checks)
@@ -45,14 +58,39 @@ DeviceTestDialog::DeviceTestDialog(const QVector<InstallFailure>& failures, bool
 			logError(QString::fromStdWString(e.getMessage()));
 		}
 	}
-	addFailures(failures);
+
+	// Reinstall: the devices that had a problem get their registration
+	// written again before the check asks them. A refusal joins the changes
+	// that could not be made; the device is still asked.
+	for (const std::shared_ptr<DeviceAPOInfo>& device : devices)
+	{
+		if (!reinstall.contains(keyOf(device->getDeviceGuid())))
+			continue;
+		try
+		{
+			log(DeviceTestView::tr("Reinstalling %1 %2").arg(QString::fromStdWString(device->getConnectionName()),
+				QString::fromStdWString(device->getDeviceName())));
+			device->reinstall();
+		}
+		catch (const WideError& e)
+		{
+			InstallFailure failure;
+			failure.guid = QString::fromStdWString(device->getDeviceGuid());
+			failure.connection = QString::fromStdWString(device->getConnectionName());
+			failure.device = QString::fromStdWString(device->getDeviceName());
+			failure.input = device->isInput();
+			failure.defaultDevice = device->isDefaultDevice();
+			failure.message = QString::fromStdWString(e.getMessage());
+			failure.fromReinstall = true;
+			failures.append(failure);
+		}
+	}
+	addFailures();
 
 	QVector<Row> rows;
 	for (const Entry& entry : entries)
 		rows.append(entry.row);
 	setRows(rows);
-
-	connect(this, &DeviceTestView::stopRequested, this, &DeviceTestDialog::onStopRequested);
 
 	if (!checks)
 	{
@@ -120,7 +158,7 @@ void DeviceTestDialog::addDevices(const std::vector<std::shared_ptr<AbstractAPOI
 	}
 }
 
-void DeviceTestDialog::addFailures(const QVector<InstallFailure>& failures)
+void DeviceTestDialog::addFailures()
 {
 	failureCount = failures.size();
 	const QString logLine = DeviceTestView::tr("Details are in %1.")
@@ -246,7 +284,11 @@ void DeviceTestDialog::refresh()
 		notes.append({disabled.join(QLatin1String(", ")), describe(Problem::DeviceDisabled), {}, DeviceReport::Untestable});
 
 	setNotes(notes);
-	setPhase(phase, tally());
+	const Tally counts = tally();
+	setPhase(phase, counts);
+	// Offered once there is something a second attempt could change.
+	setReinstallOffered(phase == Phase::Stopped
+		|| (phase == Phase::Done && counts.dead + counts.unchanged + counts.attention + counts.unchecked > 0));
 }
 
 void DeviceTestDialog::log(const QString& message)
@@ -270,6 +312,10 @@ void DeviceTestDialog::setItemStatus(const QString& guid, bool postMix, ItemStat
 	if (entry == nullptr || entry->settled)
 		return;
 
+	// A new attempt starts with every stage waiting. What an earlier attempt
+	// said about the other stage does not carry over into it.
+	if (statusType == ItemStatusType::waiting)
+		(postMix ? entry->preMix : entry->postMix).reset();
 	(postMix ? entry->postMix : entry->preMix) = statusType;
 
 	auto is = [](const std::optional<ItemStatusType>& status, ItemStatusType wanted) {
@@ -397,6 +443,46 @@ void DeviceTestDialog::onStopRequested()
 	thread->requestInterruption();
 }
 
+void DeviceTestDialog::onReinstallRequested()
+{
+	if (thread != nullptr && thread->isRunning())
+		return;
+
+	// Every device the check did not find working is installed again.
+	QSet<QString> reinstall;
+	for (const Entry& entry : entries)
+	{
+		if (entry.tested && entry.row.report != DeviceReport::Alive)
+			reinstall.insert(entry.row.key);
+	}
+
+	// The changes that were refused are tried again as they were asked for.
+	// A refusal met while reinstalling is not kept: its device is in the
+	// list and is reinstalled above. A device left partly changed stays
+	// reported; the user was told to restart the computer first.
+	QVector<InstallFailure> remaining;
+	for (const InstallFailure& failure : failures)
+	{
+		if (failure.fromReinstall)
+			continue;
+		InstallFailure again = failure;
+		if (!failure.retry || !failure.retry(again))
+			remaining.append(again);
+	}
+	failures = remaining;
+
+	if (thread != nullptr)
+	{
+		thread->disconnect(this);
+		thread->deleteLater();
+		thread = nullptr;
+	}
+	// Whatever was written, Windows audio has to pick it up.
+	checks = true;
+	clearRecord();
+	begin(reinstall);
+}
+
 void DeviceTestDialog::onThreadFinished()
 {
 	const bool reachedVerdict = thread != nullptr && thread->verdict() != DeviceTestThread::Verdict::Incomplete;
@@ -460,6 +546,14 @@ void DeviceTestDialog::closeEvent(QCloseEvent* event)
 
 void DeviceTestDialog::reject()
 {
+	// Esc and the window's X end here. After an aborted run they answer
+	// what Close answers, so DeviceSelector::finish still asks for the
+	// reboot and the installer is not told the check passed (PR #503 review).
+	if (closeCodeValue() != QDialog::Accepted)
+	{
+		done(closeCodeValue());
+		return;
+	}
 	stopTestThread();
 	DeviceTestView::reject();
 }

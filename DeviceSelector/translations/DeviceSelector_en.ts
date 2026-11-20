@@ -63,12 +63,12 @@ It is optional because while it converts it uses CPU and a little latency, and t
     </message>
     <message>
         <location line="-360"/>
-        <location line="+448"/>
+        <location line="+462"/>
         <source>Info</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-448"/>
+        <location line="-462"/>
         <source>A registry value that is required for the operation of Equalizer APO was not set correctly. This might have been caused by a driver installation or uninstallation. The value has been corrected. A reboot may be required so that the changes can take effect.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -84,7 +84,7 @@ It is optional because while it converts it uses CPU and a little latency, and t
     </message>
     <message>
         <location line="+1"/>
-        <location line="+563"/>
+        <location line="+577"/>
         <source>Cancel</source>
         <translation type="unfinished"></translation>
     </message>
@@ -339,7 +339,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="-769"/>
+        <location filename="../DeviceSelector.cpp" line="-783"/>
         <source>Troubleshooting options (only use in case of problems)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -359,18 +359,18 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     </message>
     <message>
         <location line="+27"/>
-        <location line="+185"/>
+        <location line="+190"/>
         <source>Restarting audio service...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-180"/>
-        <location line="+185"/>
+        <location line="-185"/>
+        <location line="+190"/>
         <source>Restart failed.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-170"/>
+        <location line="-175"/>
         <source>Checking APO installation...</source>
         <translation type="unfinished"></translation>
     </message>
@@ -392,7 +392,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     </message>
     <message numerus="yes">
         <location line="+23"/>
-        <location filename="../DeviceTestView.cpp" line="+493"/>
+        <location filename="../DeviceTestView.cpp" line="+512"/>
         <source>Check failed for %n device(s).</source>
         <translation>
             <numerusform>Check failed for %n device.</numerusform>
@@ -400,7 +400,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         </translation>
     </message>
     <message>
-        <location line="+29"/>
+        <location line="+34"/>
         <source>Setting install mode for %1 %2 to %3.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -427,19 +427,24 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
 <context>
     <name>DeviceTestView</name>
     <message>
-        <location filename="../DeviceTestDialog.cpp" line="+113"/>
-        <location line="+196"/>
+        <location filename="../DeviceTestDialog.cpp" line="+71"/>
+        <source>Reinstalling %1 %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+80"/>
+        <location line="+204"/>
         <location filename="../DeviceTestView.cpp" line="-47"/>
         <source>Checking</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-183"/>
+        <location line="-191"/>
         <source>Details are in %1.</source>
         <translation type="unfinished">Details are in %1.</translation>
     </message>
     <message>
-        <location line="+160"/>
+        <location line="+168"/>
         <location line="+42"/>
         <location filename="../DeviceTestView.cpp" line="-1"/>
         <source>The APO works</source>
@@ -463,18 +468,18 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     </message>
     <message>
         <location line="+71"/>
-        <location filename="../DeviceTestView.cpp" line="+57"/>
+        <location filename="../DeviceTestView.cpp" line="+58"/>
         <source>Windows audio</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+42"/>
+        <location line="+82"/>
         <location filename="../DeviceTestView.cpp" line="-8"/>
         <source>Not checked</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="-420"/>
+        <location filename="../DeviceTestView.cpp" line="-440"/>
         <source>APO installation check</source>
         <translation type="unfinished"></translation>
     </message>
@@ -489,12 +494,17 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="+3"/>
+        <source>Reinstall</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
         <source>Close</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+77"/>
+        <location line="+79"/>
         <location line="+4"/>
         <source>The APO does not work</source>
         <translation type="unfinished"></translation>
@@ -505,12 +515,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
-        <source>The cause could not be determined. Update the device&apos;s driver and check again; some drivers load no APO at all.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+3"/>
+        <location line="+4"/>
         <source>Windows did not load the APO on this device in the selected install mode (%1).</source>
         <translation type="unfinished"></translation>
     </message>
@@ -575,12 +580,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
-        <source>Close programs that manage audio devices, then check again.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+2"/>
+        <location line="+3"/>
         <source>Not changed</source>
         <translation type="unfinished"></translation>
     </message>
@@ -590,12 +590,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
-        <source>Close programs that manage audio devices, then try again.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+2"/>
+        <location line="+3"/>
         <source>Partly changed</source>
         <translation type="unfinished"></translation>
     </message>
@@ -605,12 +600,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
-        <source>Restart the computer before trying again.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+2"/>
+        <location line="+3"/>
         <source>Not checked: the device is disabled</source>
         <translation type="unfinished"></translation>
     </message>
@@ -620,12 +610,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
-        <source>Enable the device, then open the Device Selector and press OK to check again.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+2"/>
+        <location line="+3"/>
         <source>Not checked: the device is unplugged</source>
         <translation type="unfinished"></translation>
     </message>
@@ -635,12 +620,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
-        <source>Plug it in, then open the Device Selector and press OK to check again.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+2"/>
+        <location line="+3"/>
         <source>Not checked: the device could not be opened</source>
         <translation type="unfinished"></translation>
     </message>
@@ -650,15 +630,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
-        <location line="+16"/>
         <location line="+4"/>
-        <location line="+4"/>
-        <source>Open the Device Selector and press OK to check again.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="-21"/>
         <source>Windows audio could not be restarted, so the check did not run. The APO is installed, but it starts working only after Windows audio restarts.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -673,18 +645,48 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-19"/>
+        <location line="+20"/>
         <source>Restart the computer, then open the Device Selector and press OK.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="-48"/>
+        <source>The cause could not be determined. Update the device&apos;s driver, then press Reinstall. Some drivers load no APO at all.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+20"/>
+        <location line="+4"/>
+        <source>Close programs that manage audio devices, then press Reinstall.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Enable the device, then press Reinstall.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Plug it in, then press Reinstall.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <location line="+16"/>
+        <location line="+4"/>
+        <location line="+4"/>
+        <source>Press Reinstall to try again.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="-13"/>
         <source>Windows blocked the setting the check uses to hear from the APO, so the check did not run.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+1"/>
-        <source>Close security programs that block changes to system settings, then open the Device Selector and press OK.</source>
+        <source>Close security programs that block changes to system settings, then press Reinstall.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -703,7 +705,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+83"/>
+        <location line="+93"/>
         <source>Checking that the APO works on each device (%1 of %2)</source>
         <translation type="unfinished"></translation>
     </message>

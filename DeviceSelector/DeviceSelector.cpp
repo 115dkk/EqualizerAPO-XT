@@ -474,6 +474,7 @@ void DeviceSelector::onDialogAccepted()
 			// (issue #502); the one case it has to tell apart is an endpoint
 			// that was *not* put back, which the user has to know about
 			// before they try again.
+			const DevicePlan plan = planFor(checked, deviceFactsOf(*info));
 			auto reportFailure = [&](const std::wstring& error, const DeviceInstallReport& report) {
 				DeviceTestDialog::InstallFailure failure;
 				failure.guid = QString::fromStdWString(info->getDeviceGuid());
@@ -483,10 +484,23 @@ void DeviceSelector::onDialogAccepted()
 				failure.defaultDevice = info->isDefaultDevice();
 				failure.message = QString::fromStdWString(error);
 				failure.leftPartial = report.leftInconsistent();
+				// An endpoint that was put back can be asked again from the
+				// check's Reinstall button. The other kinds of entry start
+				// helper programs after a change, which only this dialog does.
+				if (!failure.leftPartial && info->kind() == AbstractAPOInfo::Kind::Endpoint)
+				{
+					failure.retry = [plan, info](DeviceTestDialog::InstallFailure& again) {
+						const auto retried = DeviceChange::apply({ { plan, info.get() } }, DeviceChange::Context::Dialog);
+						if (retried.devices.front().error.empty())
+							return true;
+						again.message = QString::fromStdWString(retried.devices.front().error);
+						again.leftPartial = retried.devices.front().report.leftInconsistent();
+						return false;
+					};
+				}
 				installFailures.append(failure);
 			};
 
-			const DevicePlan plan = planFor(checked, deviceFactsOf(*info));
 			const auto result = DeviceChange::apply({ { plan, info.get() } }, DeviceChange::Context::Dialog);
 			applied.restartAudio = applied.restartAudio || result.restartAudio;
 			// Every adapter operation throws WideError only (AbstractAPOInfo.h).

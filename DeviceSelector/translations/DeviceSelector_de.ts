@@ -63,12 +63,12 @@ Die Funktion ist optional, weil die Umwandlung Rechenleistung benötigt und etwa
     </message>
     <message>
         <location line="-360"/>
-        <location line="+448"/>
+        <location line="+462"/>
         <source>Info</source>
         <translation>Info</translation>
     </message>
     <message>
-        <location line="-448"/>
+        <location line="-462"/>
         <source>A registry value that is required for the operation of Equalizer APO was not set correctly. This might have been caused by a driver installation or uninstallation. The value has been corrected. A reboot may be required so that the changes can take effect.</source>
         <translation>Ein Registrywert, der für den Betrieb von Equalizer APO erforderlich ist, war nicht korrekt gesetzt. Dies könnte durch eine Treiberinstallation oder -deinstallation ausgelöst worden sein. Der Wert ist nun korrigiert. Ein Neustart kann erforderlich sein, damit die Änderungen wirksam werden.</translation>
     </message>
@@ -95,7 +95,7 @@ Die Funktion ist optional, weil die Umwandlung Rechenleistung benötigt und etwa
         <translation type="vanished">Einzelheiten finden Sie in %1.</translation>
     </message>
     <message>
-        <location line="+747"/>
+        <location line="+761"/>
         <source>APO will be uninstalled</source>
         <translation>APO wird deinstalliert</translation>
     </message>
@@ -170,8 +170,8 @@ Die Funktion ist optional, weil die Umwandlung Rechenleistung benötigt und etwa
         <translation>APO wird installiert</translation>
     </message>
     <message>
-        <location line="-743"/>
-        <location line="+563"/>
+        <location line="-757"/>
+        <location line="+577"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>
@@ -211,7 +211,7 @@ Die Funktion ist optional, weil die Umwandlung Rechenleistung benötigt und etwa
         <translation type="vanished">Status</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="-376"/>
+        <location filename="../DeviceSelector.cpp" line="-390"/>
         <source>Troubleshooting options (only use in case of problems)</source>
         <translation>Problemlösungsoptionen (nur im Fall von Problemen verwenden)</translation>
     </message>
@@ -427,18 +427,18 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
     </message>
     <message>
         <location line="+27"/>
-        <location line="+185"/>
+        <location line="+190"/>
         <source>Restarting audio service...</source>
         <translation>Starte Audio-Dienst neu...</translation>
     </message>
     <message>
-        <location line="-180"/>
-        <location line="+185"/>
+        <location line="-185"/>
+        <location line="+190"/>
         <source>Restart failed.</source>
         <translation>Neustart fehlgeschlagen.</translation>
     </message>
     <message>
-        <location line="-170"/>
+        <location line="-175"/>
         <source>Checking APO installation...</source>
         <translation>Überprüfe APO-Installation...</translation>
     </message>
@@ -460,7 +460,7 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
     </message>
     <message numerus="yes">
         <location line="+23"/>
-        <location filename="../DeviceTestView.cpp" line="+493"/>
+        <location filename="../DeviceTestView.cpp" line="+512"/>
         <source>Check failed for %n device(s).</source>
         <translation>
             <numerusform>Überprüfung fehlgeschlagen für %n Gerät.</numerusform>
@@ -468,7 +468,7 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         </translation>
     </message>
     <message>
-        <location line="+29"/>
+        <location line="+34"/>
         <source>Setting install mode for %1 %2 to %3.</source>
         <translation>Setze Installationsmodus für %1 %2 auf %3.</translation>
     </message>
@@ -495,19 +495,24 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
 <context>
     <name>DeviceTestView</name>
     <message>
-        <location filename="../DeviceTestDialog.cpp" line="+113"/>
-        <location line="+196"/>
+        <location filename="../DeviceTestDialog.cpp" line="+71"/>
+        <source>Reinstalling %1 %2</source>
+        <translation>APO für %1 %2 wird neu installiert</translation>
+    </message>
+    <message>
+        <location line="+80"/>
+        <location line="+204"/>
         <location filename="../DeviceTestView.cpp" line="-47"/>
         <source>Checking</source>
         <translation>Überprüfung läuft</translation>
     </message>
     <message>
-        <location line="-183"/>
+        <location line="-191"/>
         <source>Details are in %1.</source>
         <translation>Einzelheiten finden Sie in %1.</translation>
     </message>
     <message>
-        <location line="+160"/>
+        <location line="+168"/>
         <location line="+42"/>
         <location filename="../DeviceTestView.cpp" line="-1"/>
         <source>The APO works</source>
@@ -531,18 +536,18 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
     </message>
     <message>
         <location line="+71"/>
-        <location filename="../DeviceTestView.cpp" line="+57"/>
+        <location filename="../DeviceTestView.cpp" line="+58"/>
         <source>Windows audio</source>
         <translation>Windows-Audio</translation>
     </message>
     <message>
-        <location line="+42"/>
+        <location line="+82"/>
         <location filename="../DeviceTestView.cpp" line="-8"/>
         <source>Not checked</source>
         <translation>Nicht geprüft</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="-420"/>
+        <location filename="../DeviceTestView.cpp" line="-440"/>
         <source>APO installation check</source>
         <translation>APO-Installation prüfen</translation>
     </message>
@@ -557,12 +562,17 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <translation>Stoppen</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="+3"/>
+        <source>Reinstall</source>
+        <translation>Neu installieren</translation>
+    </message>
+    <message>
+        <location line="+2"/>
         <source>Close</source>
         <translation>Schließen</translation>
     </message>
     <message>
-        <location line="+77"/>
+        <location line="+79"/>
         <location line="+4"/>
         <source>The APO does not work</source>
         <translation>APO funktioniert nicht</translation>
@@ -573,12 +583,11 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <translation>Alle drei Installationsmodi wurden getestet. Windows hat das APO bei diesem Gerät in keinem davon geladen.</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>The cause could not be determined. Update the device&apos;s driver and check again; some drivers load no APO at all.</source>
-        <translation>Die Ursache konnte nicht ermittelt werden. Aktualisieren Sie den Gerätetreiber und prüfen Sie erneut. Manche Treiber laden grundsätzlich kein APO.</translation>
+        <translation type="vanished">Die Ursache konnte nicht ermittelt werden. Aktualisieren Sie den Gerätetreiber und prüfen Sie erneut. Manche Treiber laden grundsätzlich kein APO.</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+4"/>
         <source>Windows did not load the APO on this device in the selected install mode (%1).</source>
         <translation>Windows hat das APO bei diesem Gerät im gewählten Installationsmodus (%1) nicht geladen.</translation>
     </message>
@@ -643,12 +652,11 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <translation>Bei der Überprüfung wurde eine Installation in einem anderen Modus versucht. Windows hat die Änderung verweigert. Das Gerät ist im vorherigen Zustand.</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>Close programs that manage audio devices, then check again.</source>
-        <translation>Schließen Sie Programme zur Verwaltung von Audiogeräten und prüfen Sie erneut.</translation>
+        <translation type="vanished">Schließen Sie Programme zur Verwaltung von Audiogeräten und prüfen Sie erneut.</translation>
     </message>
     <message>
-        <location line="+2"/>
+        <location line="+3"/>
         <source>Not changed</source>
         <translation>Nicht geändert</translation>
     </message>
@@ -658,12 +666,11 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <translation>Windows hat die Änderung an diesem Gerät verweigert. Das Gerät ist im vorherigen Zustand.</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>Close programs that manage audio devices, then try again.</source>
-        <translation>Schließen Sie Programme zur Verwaltung von Audiogeräten und versuchen Sie es erneut.</translation>
+        <translation type="vanished">Schließen Sie Programme zur Verwaltung von Audiogeräten und versuchen Sie es erneut.</translation>
     </message>
     <message>
-        <location line="+2"/>
+        <location line="+3"/>
         <source>Partly changed</source>
         <translation>Teilweise geändert</translation>
     </message>
@@ -673,12 +680,11 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <translation>Windows hat die Änderung verweigert. Auch das Rückgängigmachen wurde nicht abgeschlossen. Das Gerät kann daher noch teilweise geändert sein.</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>Restart the computer before trying again.</source>
-        <translation>Starten Sie den Computer vor einem erneuten Versuch neu.</translation>
+        <translation type="vanished">Starten Sie den Computer vor einem erneuten Versuch neu.</translation>
     </message>
     <message>
-        <location line="+2"/>
+        <location line="+3"/>
         <source>Not checked: the device is disabled</source>
         <translation>Nicht geprüft: Gerät deaktiviert</translation>
     </message>
@@ -688,12 +694,11 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <translation>Das Gerät ist in Windows deaktiviert. Daher konnte darüber kein Ton wiedergegeben werden.</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>Enable the device, then open the Device Selector and press OK to check again.</source>
-        <translation>Aktivieren Sie das Gerät. Öffnen Sie dann Device Selector und klicken Sie auf OK, um erneut zu prüfen.</translation>
+        <translation type="vanished">Aktivieren Sie das Gerät. Öffnen Sie dann Device Selector und klicken Sie auf OK, um erneut zu prüfen.</translation>
     </message>
     <message>
-        <location line="+2"/>
+        <location line="+3"/>
         <source>Not checked: the device is unplugged</source>
         <translation>Nicht geprüft: Gerät nicht angeschlossen</translation>
     </message>
@@ -703,12 +708,11 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <translation>An diesem Gerät ist nichts angeschlossen. Daher konnte darüber kein Ton wiedergegeben werden.</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>Plug it in, then open the Device Selector and press OK to check again.</source>
-        <translation>Stellen Sie die Verbindung her. Öffnen Sie dann Device Selector und klicken Sie auf OK, um erneut zu prüfen.</translation>
+        <translation type="vanished">Stellen Sie die Verbindung her. Öffnen Sie dann Device Selector und klicken Sie auf OK, um erneut zu prüfen.</translation>
     </message>
     <message>
-        <location line="+2"/>
+        <location line="+3"/>
         <source>Not checked: the device could not be opened</source>
         <translation>Nicht geprüft: Gerät konnte nicht geöffnet werden</translation>
     </message>
@@ -718,15 +722,11 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <translation>Über dieses Gerät konnte kein Ton wiedergegeben werden. Daher konnte das APO darauf nicht antworten.</translation>
     </message>
     <message>
-        <location line="+1"/>
-        <location line="+16"/>
-        <location line="+4"/>
-        <location line="+4"/>
         <source>Open the Device Selector and press OK to check again.</source>
-        <translation>Öffnen Sie Device Selector und klicken Sie auf OK, um erneut zu prüfen.</translation>
+        <translation type="vanished">Öffnen Sie Device Selector und klicken Sie auf OK, um erneut zu prüfen.</translation>
     </message>
     <message>
-        <location line="-21"/>
+        <location line="+4"/>
         <source>Windows audio could not be restarted, so the check did not run. The APO is installed, but it starts working only after Windows audio restarts.</source>
         <translation>Windows-Audio konnte nicht neu gestartet werden. Daher fand keine Überprüfung statt. Das APO ist installiert, funktioniert aber erst nach einem Neustart von Windows-Audio.</translation>
     </message>
@@ -741,19 +741,53 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <translation>Eine für die Überprüfung benötigte Windows-Komponente ist nicht gestartet. Daher fand keine Überprüfung statt.</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-19"/>
+        <location line="+20"/>
         <source>Restart the computer, then open the Device Selector and press OK.</source>
         <translation>Starten Sie den Computer neu. Öffnen Sie dann Device Selector und klicken Sie auf OK.</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="-48"/>
+        <source>The cause could not be determined. Update the device&apos;s driver, then press Reinstall. Some drivers load no APO at all.</source>
+        <translation>Die Ursache konnte nicht ermittelt werden. Aktualisieren Sie den Gerätetreiber und klicken Sie dann auf &quot;Neu installieren&quot;. Manche Treiber laden grundsätzlich kein APO.</translation>
+    </message>
+    <message>
+        <location line="+20"/>
+        <location line="+4"/>
+        <source>Close programs that manage audio devices, then press Reinstall.</source>
+        <translation>Schließen Sie Programme zur Verwaltung von Audiogeräten und klicken Sie dann auf &quot;Neu installieren&quot;.</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Enable the device, then press Reinstall.</source>
+        <translation>Aktivieren Sie das Gerät und klicken Sie dann auf &quot;Neu installieren&quot;.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Plug it in, then press Reinstall.</source>
+        <translation>Stellen Sie die Verbindung her und klicken Sie dann auf &quot;Neu installieren&quot;.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <location line="+16"/>
+        <location line="+4"/>
+        <location line="+4"/>
+        <source>Press Reinstall to try again.</source>
+        <translation>Klicken Sie auf &quot;Neu installieren&quot;, um es erneut zu versuchen.</translation>
+    </message>
+    <message>
+        <location line="-13"/>
         <source>Windows blocked the setting the check uses to hear from the APO, so the check did not run.</source>
         <translation>Windows hat die Einstellung blockiert, die zum Empfangen der APO-Antworten nötig ist. Daher fand keine Überprüfung statt.</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>Close security programs that block changes to system settings, then open the Device Selector and press OK.</source>
-        <translation>Schließen Sie Sicherheitsprogramme, die Änderungen an Systemeinstellungen blockieren. Öffnen Sie dann Device Selector und klicken Sie auf OK.</translation>
+        <translation type="vanished">Schließen Sie Sicherheitsprogramme, die Änderungen an Systemeinstellungen blockieren. Öffnen Sie dann Device Selector und klicken Sie auf OK.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Close security programs that block changes to system settings, then press Reinstall.</source>
+        <translation>Schließen Sie Sicherheitsprogramme, die Änderungen an Systemeinstellungen blockieren. Klicken Sie dann auf &quot;Neu installieren&quot;.</translation>
     </message>
     <message>
         <location line="+3"/>
@@ -771,7 +805,7 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <translation>Die Überprüfung wurde gestoppt. Das APO ist installiert, aber seine Funktion wurde nicht geprüft.</translation>
     </message>
     <message>
-        <location line="+83"/>
+        <location line="+93"/>
         <source>Checking that the APO works on each device (%1 of %2)</source>
         <translation>APO-Funktion auf jedem Gerät wird geprüft (%1 von %2)</translation>
     </message>

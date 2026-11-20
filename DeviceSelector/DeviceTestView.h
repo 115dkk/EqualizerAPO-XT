@@ -116,6 +116,9 @@ public:
 	void setPhase(Phase phase, const Tally& tally);
 	// Stop was pressed and the check has not ended yet.
 	void setStopping();
+	// Whether a finished check offers to install again and check once more.
+	void setReinstallOffered(bool offered);
+	void clearRecord();
 
 	// The canned states of the review captures.
 	enum class Preview
@@ -129,10 +132,12 @@ public:
 
 signals:
 	void stopRequested();
+	void reinstallRequested();
 
 protected:
 	// What exec() answers when Close is pressed.
 	void setCloseCode(int code) {closeCode = code;}
+	int closeCodeValue() const {return closeCode;}
 	bool eventFilter(QObject* watched, QEvent* event) override;
 	void resizeEvent(QResizeEvent* event) override;
 
@@ -149,6 +154,7 @@ private:
 	DisclosureHeader* recordHeader = nullptr;
 	QTextEdit* record = nullptr;
 	SkinButton* stopButton = nullptr;
+	SkinButton* reinstallButton = nullptr;
 	SkinButton* closeButton = nullptr;
 	int closeCode = QDialog::Accepted;
 };

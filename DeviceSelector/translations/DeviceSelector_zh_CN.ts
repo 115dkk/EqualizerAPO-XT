@@ -63,12 +63,12 @@ It is optional because while it converts it uses CPU and a little latency, and t
     </message>
     <message>
         <location line="-360"/>
-        <location line="+448"/>
+        <location line="+462"/>
         <source>Info</source>
         <translation>信息</translation>
     </message>
     <message>
-        <location line="-448"/>
+        <location line="-462"/>
         <source>A registry value that is required for the operation of Equalizer APO was not set correctly. This might have been caused by a driver installation or uninstallation. The value has been corrected. A reboot may be required so that the changes can take effect.</source>
         <translation>未正确设置 Equalizer APO 操作所需的注册表值。这可能是由驱动程序安装或卸载引起的。该值已更正。可能需要重新启动才能使更改生效。</translation>
     </message>
@@ -95,7 +95,7 @@ It is optional because while it converts it uses CPU and a little latency, and t
         <translation type="vanished">详情请查看 %1。</translation>
     </message>
     <message>
-        <location line="+747"/>
+        <location line="+761"/>
         <source>APO will be uninstalled</source>
         <translation>APO 将被卸载</translation>
     </message>
@@ -170,8 +170,8 @@ It is optional because while it converts it uses CPU and a little latency, and t
         <translation>将安装 APO</translation>
     </message>
     <message>
-        <location line="-743"/>
-        <location line="+563"/>
+        <location line="-757"/>
+        <location line="+577"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
@@ -211,7 +211,7 @@ It is optional because while it converts it uses CPU and a little latency, and t
         <translation type="vanished">状态</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="-376"/>
+        <location filename="../DeviceSelector.cpp" line="-390"/>
         <source>Troubleshooting options (only use in case of problems)</source>
         <translation>故障排除选项（仅在出现问题时使用）</translation>
     </message>
@@ -427,18 +427,18 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     </message>
     <message>
         <location line="+27"/>
-        <location line="+185"/>
+        <location line="+190"/>
         <source>Restarting audio service...</source>
         <translation>正在重新启动音频服务...</translation>
     </message>
     <message>
-        <location line="-180"/>
-        <location line="+185"/>
+        <location line="-185"/>
+        <location line="+190"/>
         <source>Restart failed.</source>
         <translation>重启失败。</translation>
     </message>
     <message>
-        <location line="-170"/>
+        <location line="-175"/>
         <source>Checking APO installation...</source>
         <translation>检查 APO 安装...</translation>
     </message>
@@ -460,14 +460,14 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     </message>
     <message numerus="yes">
         <location line="+23"/>
-        <location filename="../DeviceTestView.cpp" line="+493"/>
+        <location filename="../DeviceTestView.cpp" line="+512"/>
         <source>Check failed for %n device(s).</source>
         <translation>
             <numerusform>%n 个设备检查失败。</numerusform>
         </translation>
     </message>
     <message>
-        <location line="+29"/>
+        <location line="+34"/>
         <source>Setting install mode for %1 %2 to %3.</source>
         <translation>将 %1 %2 的安装模式设置为 %3。</translation>
     </message>
@@ -493,19 +493,24 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
 <context>
     <name>DeviceTestView</name>
     <message>
-        <location filename="../DeviceTestDialog.cpp" line="+113"/>
-        <location line="+196"/>
+        <location filename="../DeviceTestDialog.cpp" line="+71"/>
+        <source>Reinstalling %1 %2</source>
+        <translation>正在为 %1 %2 重新安装 APO</translation>
+    </message>
+    <message>
+        <location line="+80"/>
+        <location line="+204"/>
         <location filename="../DeviceTestView.cpp" line="-47"/>
         <source>Checking</source>
         <translation>正在检查</translation>
     </message>
     <message>
-        <location line="-183"/>
+        <location line="-191"/>
         <source>Details are in %1.</source>
         <translation>详情见 %1。</translation>
     </message>
     <message>
-        <location line="+160"/>
+        <location line="+168"/>
         <location line="+42"/>
         <location filename="../DeviceTestView.cpp" line="-1"/>
         <source>The APO works</source>
@@ -529,18 +534,18 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     </message>
     <message>
         <location line="+71"/>
-        <location filename="../DeviceTestView.cpp" line="+57"/>
+        <location filename="../DeviceTestView.cpp" line="+58"/>
         <source>Windows audio</source>
         <translation>Windows 音频</translation>
     </message>
     <message>
-        <location line="+42"/>
+        <location line="+82"/>
         <location filename="../DeviceTestView.cpp" line="-8"/>
         <source>Not checked</source>
         <translation>未检查</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="-420"/>
+        <location filename="../DeviceTestView.cpp" line="-440"/>
         <source>APO installation check</source>
         <translation>APO 安装检查</translation>
     </message>
@@ -555,12 +560,17 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>停止</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="+3"/>
+        <source>Reinstall</source>
+        <translation>重新安装</translation>
+    </message>
+    <message>
+        <location line="+2"/>
         <source>Close</source>
         <translation>关闭</translation>
     </message>
     <message>
-        <location line="+77"/>
+        <location line="+79"/>
         <location line="+4"/>
         <source>The APO does not work</source>
         <translation>APO 不工作</translation>
@@ -571,12 +581,11 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>已尝试全部三种安装模式，但 Windows 在任何模式下都未加载此设备的 APO。</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>The cause could not be determined. Update the device&apos;s driver and check again; some drivers load no APO at all.</source>
-        <translation>未能确定原因。更新设备驱动程序后再次检查。有些驱动程序完全不加载 APO。</translation>
+        <translation type="vanished">未能确定原因。更新设备驱动程序后再次检查。有些驱动程序完全不加载 APO。</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+4"/>
         <source>Windows did not load the APO on this device in the selected install mode (%1).</source>
         <translation>在所选安装模式（%1）下，Windows 未加载此设备的 APO。</translation>
     </message>
@@ -641,12 +650,11 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>检查时尝试了其他安装模式，但 Windows 拒绝了更改。设备保持更改前的状态。</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>Close programs that manage audio devices, then check again.</source>
-        <translation>关闭管理音频设备的程序后再次检查。</translation>
+        <translation type="vanished">关闭管理音频设备的程序后再次检查。</translation>
     </message>
     <message>
-        <location line="+2"/>
+        <location line="+3"/>
         <source>Not changed</source>
         <translation>未更改</translation>
     </message>
@@ -656,12 +664,11 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>Windows 拒绝了对此设备的更改。设备保持更改前的状态。</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>Close programs that manage audio devices, then try again.</source>
-        <translation>关闭管理音频设备的程序后重试。</translation>
+        <translation type="vanished">关闭管理音频设备的程序后重试。</translation>
     </message>
     <message>
-        <location line="+2"/>
+        <location line="+3"/>
         <source>Partly changed</source>
         <translation>仅完成部分更改</translation>
     </message>
@@ -671,12 +678,11 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>Windows 拒绝了更改，撤销更改也未能完成。设备可能仍保留部分更改。</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>Restart the computer before trying again.</source>
-        <translation>重新启动电脑后再试。</translation>
+        <translation type="vanished">重新启动电脑后再试。</translation>
     </message>
     <message>
-        <location line="+2"/>
+        <location line="+3"/>
         <source>Not checked: the device is disabled</source>
         <translation>未检查：设备已禁用</translation>
     </message>
@@ -686,12 +692,11 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>此设备在 Windows 中已禁用，无法通过它播放声音。</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>Enable the device, then open the Device Selector and press OK to check again.</source>
-        <translation>启用设备后，打开 Device Selector 并点击“确定”再次检查。</translation>
+        <translation type="vanished">启用设备后，打开 Device Selector 并点击“确定”再次检查。</translation>
     </message>
     <message>
-        <location line="+2"/>
+        <location line="+3"/>
         <source>Not checked: the device is unplugged</source>
         <translation>未检查：设备未连接</translation>
     </message>
@@ -701,12 +706,11 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>此设备未连接任何外接设备，无法通过它播放声音。</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>Plug it in, then open the Device Selector and press OK to check again.</source>
-        <translation>连接设备后，打开 Device Selector 并点击“确定”再次检查。</translation>
+        <translation type="vanished">连接设备后，打开 Device Selector 并点击“确定”再次检查。</translation>
     </message>
     <message>
-        <location line="+2"/>
+        <location line="+3"/>
         <source>Not checked: the device could not be opened</source>
         <translation>未检查：无法打开设备</translation>
     </message>
@@ -716,15 +720,11 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>无法通过此设备播放声音，因此其 APO 未能响应。</translation>
     </message>
     <message>
-        <location line="+1"/>
-        <location line="+16"/>
-        <location line="+4"/>
-        <location line="+4"/>
         <source>Open the Device Selector and press OK to check again.</source>
-        <translation>打开 Device Selector 并点击“确定”再次检查。</translation>
+        <translation type="vanished">打开 Device Selector 并点击“确定”再次检查。</translation>
     </message>
     <message>
-        <location line="-21"/>
+        <location line="+4"/>
         <source>Windows audio could not be restarted, so the check did not run. The APO is installed, but it starts working only after Windows audio restarts.</source>
         <translation>未能重新启动 Windows 音频，因此未执行检查。APO 已安装，但要在 Windows 音频重新启动后才会工作。</translation>
     </message>
@@ -739,19 +739,53 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>检查所需的 Windows 组件未启动，因此未执行检查。</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-19"/>
+        <location line="+20"/>
         <source>Restart the computer, then open the Device Selector and press OK.</source>
         <translation>重新启动电脑后，打开 Device Selector 并点击“确定”。</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="-48"/>
+        <source>The cause could not be determined. Update the device&apos;s driver, then press Reinstall. Some drivers load no APO at all.</source>
+        <translation>未能确定原因。更新设备驱动程序后，点击“重新安装”。有些驱动程序完全不加载 APO。</translation>
+    </message>
+    <message>
+        <location line="+20"/>
+        <location line="+4"/>
+        <source>Close programs that manage audio devices, then press Reinstall.</source>
+        <translation>关闭管理音频设备的程序后，点击“重新安装”。</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Enable the device, then press Reinstall.</source>
+        <translation>启用设备后，点击“重新安装”。</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Plug it in, then press Reinstall.</source>
+        <translation>连接设备后，点击“重新安装”。</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <location line="+16"/>
+        <location line="+4"/>
+        <location line="+4"/>
+        <source>Press Reinstall to try again.</source>
+        <translation>点击“重新安装”重试。</translation>
+    </message>
+    <message>
+        <location line="-13"/>
         <source>Windows blocked the setting the check uses to hear from the APO, so the check did not run.</source>
         <translation>Windows 阻止了接收 APO 响应所需的设置，因此未执行检查。</translation>
     </message>
     <message>
-        <location line="+1"/>
         <source>Close security programs that block changes to system settings, then open the Device Selector and press OK.</source>
-        <translation>关闭阻止更改系统设置的安全程序，然后打开 Device Selector 并点击“确定”。</translation>
+        <translation type="vanished">关闭阻止更改系统设置的安全程序，然后打开 Device Selector 并点击“确定”。</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Close security programs that block changes to system settings, then press Reinstall.</source>
+        <translation>关闭阻止更改系统设置的安全程序后，点击“重新安装”。</translation>
     </message>
     <message>
         <location line="+3"/>
@@ -769,7 +803,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>检查已停止。APO 已安装，但尚未确认是否正常工作。</translation>
     </message>
     <message>
-        <location line="+83"/>
+        <location line="+93"/>
         <source>Checking that the APO works on each device (%1 of %2)</source>
         <translation>正在检查各设备的 APO 是否正常工作（%1/%2）</translation>
     </message>

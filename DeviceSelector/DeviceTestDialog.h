@@ -12,10 +12,12 @@
 */
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <vector>
 
+#include <QSet>
 #include <devices/DeviceAPOInfo.h>
 #include "DeviceTestThread.h"
 #include "DeviceTestView.h"
@@ -35,6 +37,12 @@ public:
 		bool defaultDevice = false;
 		QString message;     // what the operation reported
 		bool leftPartial = false; // undoing the change did not finish either
+		// Makes the change again. Answers true when it went through;
+		// otherwise it fills in what the new attempt reported. Empty when
+		// the change cannot be made again from here.
+		std::function<bool(InstallFailure& again)> retry;
+		// Met while reinstalling from this dialog, not in the install step.
+		bool fromReinstall = false;
 	};
 
 	// runCheck is false when nothing changed that Windows audio has to pick
@@ -63,7 +71,8 @@ private:
 	};
 
 	void addDevices(const std::vector<std::shared_ptr<AbstractAPOInfo>>& infos, QVector<std::shared_ptr<DeviceAPOInfo>>& devices);
-	void addFailures(const QVector<InstallFailure>& failures);
+	void begin(const QSet<QString>& reinstall);
+	void addFailures();
 	Entry* entryFor(const QString& guid);
 	void settle(Entry& entry, Problem problem, DeviceReport report, const QString& detail = QString(),
 		const QStringList& system = QStringList());
@@ -80,9 +89,11 @@ private:
 	void onDeviceUnreachable(const QString& guid, const QString& message);
 	void onRunStopped(DeviceTestStop reason, const QString& message);
 	void onStopRequested();
+	void onReinstallRequested();
 	void onThreadFinished();
 	void onAbort(const QString& message, int code);
 
+	QVector<InstallFailure> failures;
 	QVector<Entry> entries;
 	QHash<QString, int> entryIndex;
 	std::optional<Note> runNote;

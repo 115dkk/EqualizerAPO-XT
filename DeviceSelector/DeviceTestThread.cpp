@@ -249,15 +249,20 @@ void DeviceTestThread::run()
 						it.remove();
 						nonWorkingDevices++;
 					}
+					// The answer goes out before the rows of the attempt it was
+					// read from: those rows are sent one stage at a time, and a
+					// listener that pairs the first with what it last heard
+					// about the other stage would see a device work that did
+					// not (PR #503 review).
+					if (fallback.givesUp)
+						emit deviceGaveUp(deviceGuid, DeviceTestPlan::outcomeFor(fallback.shown, selection),
+							QString::fromLatin1(deviceTestModeName(selection.mode)));
 					if (DeviceTestPlan::expectsPreMix(selection))
 						showStatus(deviceGuid, DeviceTestStage::PreMix,
 							DeviceTestPlan::statusFor(fallback.shown, DeviceTestStage::PreMix, selection));
 					if (DeviceTestPlan::expectsPostMix(selection))
 						showStatus(deviceGuid, DeviceTestStage::PostMix,
 							DeviceTestPlan::statusFor(fallback.shown, DeviceTestStage::PostMix, selection));
-					if (fallback.givesUp)
-						emit deviceGaveUp(deviceGuid, DeviceTestPlan::outcomeFor(fallback.shown, selection),
-							QString::fromLatin1(deviceTestModeName(selection.mode)));
 					const QString installModeName = QString::fromLatin1(deviceTestModeName(fallback.mode));
 					emit log(tr("Setting install mode for %1 %2 to %3.").arg(testInfo->deviceInfo->getDeviceName()).arg(testInfo->deviceInfo->getConnectionName()).arg(installModeName));
 

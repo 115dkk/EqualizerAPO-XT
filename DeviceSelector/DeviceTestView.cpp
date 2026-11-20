@@ -152,10 +152,16 @@ DeviceTestView::DeviceTestView(QWidget* parent)
 	QHBoxLayout* buttons = new QHBoxLayout;
 	buttons->addStretch(1);
 	stopButton = new SkinButton(tr("Stop"), false, this);
+	// Installs again and runs the check once more. Named for what it does
+	// to the device; the check is how the user learns whether it worked.
+	reinstallButton = new SkinButton(tr("Reinstall"), false, this);
+	reinstallButton->setVisible(false);
 	closeButton = new SkinButton(tr("Close"), true, this);
 	closeButton->setVisible(false);
 	buttons->addWidget(stopButton);
+	buttons->addWidget(reinstallButton);
 	buttons->addWidget(closeButton);
+	connect(reinstallButton, &QPushButton::clicked, this, &DeviceTestView::reinstallRequested);
 	column->addLayout(buttons);
 	connect(stopButton, &QPushButton::clicked, this, &DeviceTestView::stopRequested);
 	connect(closeButton, &QPushButton::clicked, this, [this]() {
@@ -231,7 +237,7 @@ DeviceTestView::ProblemText DeviceTestView::describe(Problem problem, const QStr
 	case Problem::NoAnswerEveryMode:
 		return {tr("The APO does not work"),
 			tr("All three install modes were tried and Windows did not load the APO on this device in any of them."),
-			tr("The cause could not be determined. Update the device's driver and check again; some drivers load no APO at all.")};
+			tr("The cause could not be determined. Update the device's driver, then press Reinstall. Some drivers load no APO at all.")};
 	case Problem::NoAnswerSelectedMode:
 		return {tr("The APO does not work"),
 			tr("Windows did not load the APO on this device in the selected install mode (%1).").arg(detail),
@@ -251,27 +257,27 @@ DeviceTestView::ProblemText DeviceTestView::describe(Problem problem, const QStr
 	case Problem::ModeChangeRefused:
 		return {tr("The install mode could not be changed"),
 			tr("The check tried to install in another mode and Windows refused the change. The device was left as it was before."),
-			tr("Close programs that manage audio devices, then check again.")};
+			tr("Close programs that manage audio devices, then press Reinstall.")};
 	case Problem::InstallRefused:
 		return {tr("Not changed"),
 			tr("Windows refused the change to this device. The device was left as it was before."),
-			tr("Close programs that manage audio devices, then try again.")};
+			tr("Close programs that manage audio devices, then press Reinstall.")};
 	case Problem::InstallLeftPartial:
 		return {tr("Partly changed"),
 			tr("Windows refused the change, and undoing it did not finish either. The device may be left partly changed."),
-			tr("Restart the computer before trying again.")};
+			tr("Restart the computer, then open the Device Selector and press OK.")};
 	case Problem::DeviceDisabled:
 		return {tr("Not checked: the device is disabled"),
 			tr("The device is disabled in Windows, so nothing could be played through it."),
-			tr("Enable the device, then open the Device Selector and press OK to check again.")};
+			tr("Enable the device, then press Reinstall.")};
 	case Problem::DeviceUnplugged:
 		return {tr("Not checked: the device is unplugged"),
 			tr("Nothing is plugged into this device, so nothing could be played through it."),
-			tr("Plug it in, then open the Device Selector and press OK to check again.")};
+			tr("Plug it in, then press Reinstall.")};
 	case Problem::DeviceUnreachable:
 		return {tr("Not checked: the device could not be opened"),
 			tr("Nothing could be played through this device, so the APO on it could not answer."),
-			tr("Open the Device Selector and press OK to check again.")};
+			tr("Press Reinstall to try again.")};
 	case Problem::AudioRestartFailed:
 		return {QString(),
 			tr("Windows audio could not be restarted, so the check did not run. The APO is installed, but it starts working only after Windows audio restarts."),
@@ -283,19 +289,19 @@ DeviceTestView::ProblemText DeviceTestView::describe(Problem problem, const QStr
 	case Problem::TestSetupRefused:
 		return {QString(),
 			tr("Windows blocked the setting the check uses to hear from the APO, so the check did not run."),
-			tr("Close security programs that block changes to system settings, then open the Device Selector and press OK.")};
+			tr("Close security programs that block changes to system settings, then press Reinstall.")};
 	case Problem::ResultChannelBroken:
 		return {QString(),
 			tr("The check lost its connection to the APO before every device had answered."),
-			tr("Open the Device Selector and press OK to check again.")};
+			tr("Press Reinstall to try again.")};
 	case Problem::DeviceListUnreadable:
 		return {QString(),
 			tr("The list of audio devices could not be read, so no device was checked."),
-			tr("Open the Device Selector and press OK to check again.")};
+			tr("Press Reinstall to try again.")};
 	case Problem::StoppedByUser:
 		return {QString(),
 			tr("The check was stopped. The APO is installed, but whether it works was not checked."),
-			tr("Open the Device Selector and press OK to check again.")};
+			tr("Press Reinstall to try again.")};
 	}
 	return {};
 }
@@ -368,6 +374,16 @@ void DeviceTestView::setStopping()
 	stopButton->setEnabled(false);
 }
 
+void DeviceTestView::setReinstallOffered(bool offered)
+{
+	reinstallButton->setVisible(offered);
+}
+
+void DeviceTestView::clearRecord()
+{
+	record->clear();
+}
+
 void DeviceTestView::setPhase(Phase phase, const Tally& tally)
 {
 	DevicePanelState state;
@@ -433,6 +449,9 @@ void DeviceTestView::setPhase(Phase phase, const Tally& tally)
 
 	const bool running = phase == Phase::Running;
 	stopButton->setVisible(running);
+	stopButton->setEnabled(true);
+	if (running)
+		reinstallButton->setVisible(false);
 	closeButton->setVisible(!running);
 	if (!running)
 		closeButton->setFocus();
@@ -501,6 +520,7 @@ void DeviceTestView::loadPreview(Preview preview)
 		setNotes({{QStringLiteral("Headphones"), describe(Problem::NoAnswerEveryMode), {}, DeviceReport::Dead},
 			{QStringLiteral("CABLE Input"), describe(Problem::OriginalApoFailed), {}, DeviceReport::Degraded},
 			{QStringLiteral("Digital Output"), describe(Problem::DeviceUnplugged), {}, DeviceReport::Untestable}});
+		setReinstallOffered(true);
 		break;
 	case Preview::Stopped:
 	{
@@ -514,6 +534,7 @@ void DeviceTestView::loadPreview(Preview preview)
 		setPhase(Phase::Stopped, tally);
 		setNotes({{tr("Windows audio"), describe(Problem::AudioRestartFailed),
 			{QStringLiteral("Error while stopping service \"audiosrv\": Access is denied. (5)")}, DeviceReport::Dead}});
+		setReinstallOffered(true);
 		break;
 	}
 	}
