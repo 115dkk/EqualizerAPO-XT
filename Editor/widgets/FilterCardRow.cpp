@@ -18,6 +18,8 @@
 #include <QPixmapCache>
 #include <QPropertyAnimation>
 #include <QScrollArea>
+#include <QScrollBar>
+#include "Editor/widgets/routing/RoutingViewScroll.h"
 #include <QStyle>
 #include <QTimer>
 #include <QVBoxLayout>
@@ -310,7 +312,8 @@ void FilterCardRow::mountBody()
 			portModel.deviceChannels = channelNames;
 			routingView = routingRenderer->create(routingAssignments, channelNames, portModel, editorContainer,
 				SkinManager::instance()->tokens());
-			return routingView;
+			// A board wider than the card scrolls sideways (RoutingViewScroll.h).
+			return new RoutingViewScroll(routingView, editorContainer);
 		});
 		connect(routingView, &RoutingView::routingChanged, this, &FilterCardRow::routingEdited);
 		connect(routingView, &RoutingView::routingChanged, table, &FilterTable::updateChannels);
@@ -547,10 +550,31 @@ void FilterCardRow::mountEditorBody(const std::function<QWidget*(QWidget* editor
 
 bool FilterCardRow::fitEditorScrollHeight(QScrollArea* scroll, int contentHeight)
 {
-	// Generous cap: legacy filter GUIs can report content heights of
-	// thousands of pixels (the same hints the width clamp exists for); a
-	// runaway body must not swallow the whole table.
-	const int desired = qBound(24, contentHeight, 600);
+	// The body is as tall as its content, so it never scrolls on its own:
+	// the list is the one thing that scrolls vertically. This used to stop at
+	// 600 px with the vertical bar off, and a body taller than that (a
+	// MultiConvolution mapping opened over a 7.1.4 endpoint is 794 px in one
+	// skin) moved under the wheel inside its card with nothing on screen to
+	// say so.
+	//
+	// The guard that remains is for a hint that is not a real height: legacy
+	// filter GUIs can report tens of thousands of pixels (the same hints the
+	// width clamp exists for), and such a body must not swallow the table.
+	// Past the guard the body does scroll, and then it shows the bar.
+	const int runaway = 4000;
+	const bool capped = contentHeight > runaway;
+	const Qt::ScrollBarPolicy policy = capped ? Qt::ScrollBarAsNeeded : Qt::ScrollBarAlwaysOff;
+	if (scroll->verticalScrollBarPolicy() != policy)
+		scroll->setVerticalScrollBarPolicy(policy);
+
+	// A body wider than the card (a grid routing view over a file with many
+	// channels) scrolls sideways, and its bar takes room below the content.
+	// Without that room the bar lies over the last row.
+	const QScrollBar* across = scroll->horizontalScrollBar();
+	const int barRoom = across != nullptr && across->maximum() > across->minimum()
+		? across->sizeHint().height() : 0;
+
+	const int desired = qBound(24, contentHeight, runaway) + barRoom;
 	if (scroll->minimumHeight() == desired && scroll->maximumHeight() == desired)
 		return false;
 	scroll->setFixedHeight(desired);
@@ -562,6 +586,11 @@ void FilterCardRow::watchEditorScroll(QScrollArea* scroll)
 	scroll->installEventFilter(this);
 	if (scroll->widget() != nullptr)
 		scroll->widget()->installEventFilter(this);
+	// The sideways bar comes and goes with the card's width, and neither a
+	// Resize nor a LayoutRequest of the body says so.
+	connect(scroll->horizontalScrollBar(), &QScrollBar::rangeChanged, this, [this, scroll]() {
+		syncEditorScrollHeight(scroll);
+	});
 	syncEditorScrollHeight(scroll);
 }
 
@@ -571,7 +600,9 @@ void FilterCardRow::syncEditorScrollHeight(QScrollArea* scroll)
 	if (content == nullptr)
 		return;
 
-	const int width = scroll->viewport()->width();
+	// The content is never narrower than its own minimum; past that it
+	// scrolls sideways instead of wrapping.
+	const int width = qMax(scroll->viewport()->width(), content->minimumSizeHint().width());
 	const int desired = content->hasHeightForWidth() && width > 0
 		? content->heightForWidth(width)
 		: content->sizeHint().height();

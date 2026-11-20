@@ -41,6 +41,7 @@
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/routing/IRoutingRenderer.h"
 #include "Editor/widgets/routing/MultiConvolutionRoutingAdapter.h"
+#include "Editor/widgets/routing/RoutingViewScroll.h"
 #include "ReferenceCardView.h"
 #include "FileReferenceController.h"
 #include "services/registry/WindowsRegistry.h"
@@ -187,11 +188,14 @@ void MultiConvolutionCardEditor::rebuildRoutingView()
 	// The old widgets may be the signal sender that led here (routingEdited),
 	// so they cannot be deleted synchronously; detaching and hiding them keeps
 	// them out of layout and paint until deleteLater lands.
-	if (routingView != nullptr)
+	if (routingScroll != nullptr)
 	{
-		routingLayout->removeWidget(routingView);
+		routingLayout->removeWidget(routingScroll);
+		routingScroll->hide();
 		routingView->hide();
-		routingView->deleteLater();
+		// The view is the scroll's child and goes with it.
+		routingScroll->deleteLater();
+		routingScroll = nullptr;
 		routingView = nullptr;
 	}
 
@@ -228,7 +232,11 @@ void MultiConvolutionCardEditor::rebuildRoutingView()
 
 	routingView = renderer->create(assignments, targets, portModel, this,
 		SkinManager::instance()->tokens());
-	routingLayout->addWidget(routingView);
+	// A board wider than the card (a Rack or Matrix grid over a file with
+	// many channels) scrolls sideways under the file reference, which stays
+	// where it is.
+	routingScroll = new RoutingViewScroll(routingView, mappingArea);
+	routingLayout->addWidget(routingScroll);
 	connect(routingView, SIGNAL(routingChanged()), this, SLOT(routingEdited()));
 }
 
