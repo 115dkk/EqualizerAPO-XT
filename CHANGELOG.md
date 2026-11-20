@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.72.0 — 2026-11-20
+
 - **Height channels have names.** On a playback device with height speakers
   (a 7.1.4 device, for example), the four height channels were listed as `9`
   to `12` in the Editor and could only be selected by number. They are now
