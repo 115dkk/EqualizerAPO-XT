@@ -39,6 +39,8 @@ static Pal darkPal()
 }
 
 static QString gFamily;
+static QString gMono;
+static double gH = 1000;
 
 enum State { Rest, Hover, Focus, Disabled, Selected, Error };
 
@@ -266,6 +268,23 @@ struct C
 			a.lineTo(4, 5.5);
 			L({ { 8, 12 }, { 8, 14 } });
 		}
+		else if (name == "diamond")
+			L({ { 8, 2.5 }, { 13.5, 8 }, { 8, 13.5 }, { 2.5, 8 }, { 8, 2.5 } });
+		else if (name == "equals")
+		{
+			L({ { 3.5, 6 }, { 12.5, 6 } });
+			L({ { 3.5, 10 }, { 12.5, 10 } });
+		}
+		else if (name == "lines")
+		{
+			L({ { 2.5, 4.5 }, { 13.5, 4.5 } });
+			L({ { 2.5, 8 }, { 13.5, 8 } });
+			L({ { 2.5, 11.5 }, { 9, 11.5 } });
+		}
+		else if (name == "note")
+		{
+			L({ { 2.5, 3 }, { 13.5, 3 }, { 13.5, 10.5 }, { 7, 10.5 }, { 4.5, 13.5 }, { 4.5, 10.5 }, { 2.5, 10.5 }, { 2.5, 3 } });
+		}
 		else if (name == "warn")
 		{
 			L({ { 8, 2.5 }, { 14, 13 }, { 2, 13 }, { 8, 2.5 } });
@@ -344,7 +363,7 @@ struct C
 		if (st == Disabled)
 			p.setOpacity(0.45);
 		if (!quiet)
-			box(r, c.surface, st == Focus ? c.mark : c.edge, 6, st == Focus ? 2 : 1);
+			box(r, c.surface, st == Focus ? c.mark : (st == Error ? c.error : c.edge), 6, st == Focus ? 2 : 1);
 		else if (st == Hover)
 			box(r, c.sunk, QColor(), 6);
 		const double px = quiet ? 13 : 14;
@@ -521,7 +540,7 @@ static void chrome(C& g, const QString& tabName, const QStringList& otherTabs, b
 {
 	const Pal& c = g.c;
 	const double W = 1600;
-	g.p.fillRect(QRectF(0, 0, W, 1000), c.bg);
+	g.p.fillRect(QRectF(0, 0, W, gH), c.bg);
 	// title bar
 	g.text(QRectF(14, 0, 600, 36), QStringLiteral("Equalizer APO 2.69 구성 편집기"), 13, 500, c.text);
 	g.icon("min", QRectF(W - 132, 10, 16, 16), c.text, 1.2);
@@ -587,6 +606,11 @@ struct CardOpt
 	State st = Rest;
 	bool expanded = true;
 	QStringList channels = { "L", "R" };
+	QString summary;
+	QString summaryMono;
+	QStringList notes;
+	bool editing = false;
+	bool skipped = false;
 };
 
 // Header order is the shared contract: [expand][number][power][+][remove]
@@ -610,18 +634,42 @@ static QRectF card(C& g, QRectF r, const CardOpt& o)
 	x += 36 + 14;
 	for (const QString& n : { QStringLiteral("plus"), QStringLiteral("trash"), QStringLiteral("code") })
 	{
-		g.icon(n, QRectF(x, hy + 14, 16, 16), c.muted);
+		const bool held = o.editing && n == QStringLiteral("code");
+		if (held)
+			g.box(QRectF(x - 6, hy + 8, 28, 28), c.sunk, c.lineStrong, 6);
+		g.icon(n, QRectF(x, hy + 14, 16, 16), held ? c.text : c.muted);
 		x += 30;
 	}
 	x += 8;
-	const QColor ink = o.on ? c.text : c.muted;
+	const QColor ink = (o.on && !o.skipped) ? c.text : c.muted;
 	g.icon(o.typeIcon, QRectF(x, hy + 13, 18, 18), ink);
 	x += 28;
 	const double tw = g.textW(o.title, 15, 600);
 	g.text(QRectF(x, hy, tw + 4, hh), o.title, 15, 600, ink);
 	x += tw + 16;
+	if (!o.summary.isEmpty())
+	{
+		const double sw = g.textW(o.summary, 14, 500);
+		g.text(QRectF(x, hy, sw + 4, hh), o.summary, 14, 500, ink);
+		x += sw + 16;
+	}
+	if (!o.summaryMono.isEmpty())
+	{
+		QFont f(gMono);
+	f.setFeature("calt", 0);
+	f.setFeature("liga", 0);
+		f.setPixelSize(14);
+		f.setHintingPreference(QFont::PreferNoHinting);
+		g.p.setFont(f);
+		g.p.setPen(ink);
+		const double sw = QFontMetricsF(f).horizontalAdvance(o.summaryMono);
+		g.p.drawText(QRectF(x, hy, sw + 4, hh), Qt::AlignLeft | Qt::AlignVCenter | Qt::TextSingleLine, o.summaryMono);
+		x += sw + 16;
+	}
 	for (const QString& ch : o.channels)
 		x += g.tag(QPointF(x, hy + 11), ch, false, ink) + 4;
+	for (const QString& n : o.notes)
+		x += g.tag(QPointF(x, hy + 11), n, false, c.muted) + 4;
 	if (!o.expanded)
 		return QRectF();
 	g.hline(r.x() + 1, r.right() - 1, hy + hh, c.line);
@@ -1139,6 +1187,261 @@ static void sceneParts(C& g)
 	}
 }
 
+// ---- scene D: VST cards -----------------------------------------------------
+
+static void arrowRight(C& g, QPointF at, QColor col)
+{
+	g.p.save();
+	g.p.setRenderHint(QPainter::Antialiasing, true);
+	g.p.setPen(QPen(col, 1.5, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+	g.p.drawLine(at, at + QPointF(16, 0));
+	g.p.drawLine(at + QPointF(11, -4.5), at + QPointF(16, 0));
+	g.p.drawLine(at + QPointF(11, 4.5), at + QPointF(16, 0));
+	g.p.restore();
+}
+
+// one slot of a fill row: the slot's name over the channel put into it
+static double fillCell(C& g, QPointF pos, const QString& slot, const QString& value, bool empty = false, State st = Rest)
+{
+	const Pal& c = g.c;
+	const double w = 78;
+	g.text(QRectF(pos.x() + 2, pos.y(), w, 18), slot, 13, 500, c.muted);
+	const QRectF r(pos.x(), pos.y() + 20, w, 30);
+	if (empty)
+	{
+		g.box(r, c.surface, c.edge, 6, 1, Qt::DashLine);
+		g.text(r.adjusted(10, 0, -24, 0), value, 14, 500, c.muted);
+		g.icon("chev-down", QRectF(r.right() - 22, r.center().y() - 8, 16, 16), c.muted);
+	}
+	else
+		g.select(r, value, st);
+	return w + 6;
+}
+
+static void layoutRow(C& g, QPointF pos, const QString& in, const QString& out, State st, State outSt, bool stereoInput)
+{
+	const Pal& c = g.c;
+	double x = pos.x();
+	g.p.save();
+	if (st == Disabled)
+		g.p.setOpacity(0.45);
+	g.text(QRectF(x, pos.y(), 40, 32), QStringLiteral("입력"), 14, 500, c.muted);
+	g.p.restore();
+	x += 40;
+	g.select(QRectF(x, pos.y(), 150, 32), in, st);
+	x += 150 + 14;
+	arrowRight(g, QPointF(x, pos.y() + 16), g.faded(c.muted, st == Disabled ? 0.45 : 1.0));
+	x += 16 + 14;
+	g.p.save();
+	if (st == Disabled)
+		g.p.setOpacity(0.45);
+	g.text(QRectF(x, pos.y(), 40, 32), QStringLiteral("출력"), 14, 500, c.muted);
+	g.p.restore();
+	x += 40;
+	g.select(QRectF(x, pos.y(), 150, 32), out, st == Disabled ? Disabled : outSt);
+	x += 150 + 28;
+	g.p.save();
+	if (st == Disabled)
+		g.p.setOpacity(0.45);
+	g.checkbox(QPointF(x, pos.y() + 7), stereoInput, QStringLiteral("스테레오 입력"));
+	g.p.restore();
+}
+
+static void sceneVst(C& g)
+{
+	const Pal& c = g.c;
+	chrome(g, QStringLiteral("upmix.txt"), { QStringLiteral("config.txt") }, true);
+	const double x0 = 16, w = 1600 - 32 - 14;
+	double y = 172;
+	// 1: a VST3 plugin, loaded, with the channel fill open
+	{
+		const QRectF body = card(g, QRectF(x0, y, w, 309), { 1, "plug", QStringLiteral("VST 플러그인"), true, Rest, true, {} });
+		const QString name = QStringLiteral("Example Upmix");
+		const QString where = QStringLiteral("Example Audio, Common Files 폴더의 VST3 안");
+		g.text(QRectF(body.x(), body.y() + 10, 600, 24), name, 15, 600, c.text);
+		g.tag(QPointF(body.x() + g.textW(name, 15, 600) + 10, body.y() + 11), QStringLiteral("VST3"));
+		g.text(QRectF(body.x(), body.y() + 34, 600, 22), where, 13, 500, c.muted);
+		double x = body.x() + qMax(g.textW(name, 15, 600) + 60, g.textW(where, 13)) + 28;
+		x += g.button(QPointF(x, body.y() + 16), QStringLiteral("패널 열기")) + 8;
+		g.button(QPointF(x, body.y() + 16), QStringLiteral("바꾸기"));
+		layoutRow(g, QPointF(body.x(), body.y() + 66), QStringLiteral("스테레오"), QStringLiteral("5.1"), Rest, Rest, true);
+		g.icon("chev-down", QRectF(body.x(), body.y() + 116, 16, 16), c.muted);
+		g.text(QRectF(body.x() + 22, body.y() + 108, 300, 32), QStringLiteral("채널 채우기"), 14, 600, c.text);
+		g.text(QRectF(body.x() + 22 + g.textW(QStringLiteral("채널 채우기"), 14, 600) + 12, body.y() + 108, 700, 32),
+			QStringLiteral("플러그인의 자리마다 어느 채널을 넣고 받을지 고릅니다."), 13, 500, c.muted);
+		const double ty = body.y() + 144;
+		g.text(QRectF(body.x(), ty + 20, 60, 30), QStringLiteral("넣기"), 14, 500, c.muted);
+		x = body.x() + 60;
+		x += fillCell(g, QPointF(x, ty), "L", "L");
+		fillCell(g, QPointF(x, ty), "R", "R");
+		const double ty2 = ty + 58;
+		g.text(QRectF(body.x(), ty2 + 20, 60, 30), QStringLiteral("받기"), 14, 500, c.muted);
+		x = body.x() + 60;
+		const QStringList slotNames = { "L", "R", "C", "LFE", "RL", "RR" };
+		const QStringList into = { "L", "R", "C", QStringLiteral("버림"), "SL", "SR" };
+		for (int i = 0; i < slotNames.size(); i++)
+			x += fillCell(g, QPointF(x, ty2), slotNames[i], into[i], i == 3);
+		y += 309 + 8;
+	}
+	// 2: a VST2 plugin: no layouts to choose
+	{
+		const QRectF body = card(g, QRectF(x0, y, w, 181), { 2, "plug", QStringLiteral("VST 플러그인"), true, Rest, true, {} });
+		const QString name = QStringLiteral("Legacy Compressor");
+		const QString where = QStringLiteral("VstPlugins 폴더 안");
+		g.text(QRectF(body.x(), body.y() + 10, 600, 24), name, 15, 600, c.text);
+		g.tag(QPointF(body.x() + g.textW(name, 15, 600) + 10, body.y() + 11), QStringLiteral("VST2"));
+		g.text(QRectF(body.x(), body.y() + 34, 600, 22), where, 13, 500, c.muted);
+		double x = body.x() + g.textW(name, 15, 600) + 60 + 28;
+		x += g.button(QPointF(x, body.y() + 16), QStringLiteral("패널 닫기")) + 8;
+		g.button(QPointF(x, body.y() + 16), QStringLiteral("바꾸기"));
+		layoutRow(g, QPointF(body.x(), body.y() + 66), QStringLiteral("자동"), QStringLiteral("자동"), Disabled, Rest, false);
+		g.text(QRectF(body.x(), body.y() + 104, 800, 22), QStringLiteral("VST2 플러그인은 입력과 출력 배치를 쓰지 않습니다."), 13, 500, c.muted);
+		y += 181 + 8;
+	}
+	// 3: the plugin refused the asked layout
+	{
+		const QRectF body = card(g, QRectF(x0, y, w, 155), { 3, "plug", QStringLiteral("VST 플러그인"), true, Rest, true, {} });
+		const QString name = QStringLiteral("Room Shaper");
+		const QString why = QStringLiteral("플러그인이 7.1.4 출력을 받지 않았습니다. 다른 배치를 고르십시오.");
+		g.lamp(QPointF(body.x() + 5, body.y() + 22), c.error);
+		g.text(QRectF(body.x() + 18, body.y() + 10, 600, 24), name, 15, 600, c.text);
+		g.tag(QPointF(body.x() + 18 + g.textW(name, 15, 600) + 10, body.y() + 11), QStringLiteral("VST3"));
+		g.text(QRectF(body.x() + 18, body.y() + 34, 800, 22), why, 13, 500, c.text);
+		double x = body.x() + 18 + g.textW(why, 13) + 28;
+		x += g.button(QPointF(x, body.y() + 16), QStringLiteral("패널 열기"), 0, Disabled) + 8;
+		g.button(QPointF(x, body.y() + 16), QStringLiteral("바꾸기"));
+		layoutRow(g, QPointF(body.x(), body.y() + 66), QStringLiteral("5.1"), QStringLiteral("7.1.4"), Rest, Error, false);
+		y += 155 + 8;
+	}
+	// 4: the plugin file is gone
+	{
+		const QRectF body = card(g, QRectF(x0, y, w, 110), { 4, "plug", QStringLiteral("VST 플러그인"), true, Rest, true, {} });
+		const QString name = QStringLiteral("example.vst3");
+		const QString why = QStringLiteral("플러그인을 찾을 수 없습니다. 옮겼거나 지운 플러그인이면 다시 고르십시오.");
+		g.lamp(QPointF(body.x() + 5, body.y() + 22), c.error);
+		g.text(QRectF(body.x() + 18, body.y() + 10, 600, 24), name, 15, 600, c.text);
+		g.text(QRectF(body.x() + 18, body.y() + 34, 800, 22), why, 13, 500, c.text);
+		const double x = body.x() + 18 + g.textW(why, 13) + 28;
+		g.button(QPointF(x, body.y() + 16), QStringLiteral("플러그인 찾기"), 1);
+		y += 110 + 8;
+	}
+	g.box(QRectF(1600 - 12, 176, 6, 640), c.lineStrong, QColor(), 3);
+}
+
+// ---- scene E: the command-line family (If, Eval, raw lines, source editing) --
+
+static void monoField(C& g, QRectF r, const QString& s, State st = Rest, bool caret = false)
+{
+	const Pal& c = g.c;
+	g.p.save();
+	if (st == Disabled)
+		g.p.setOpacity(0.45);
+	g.box(r, c.surface, st == Focus ? c.mark : c.edge, 6, st == Focus ? 2 : 1);
+	QFont f(gMono);
+	f.setFeature("calt", 0);
+	f.setFeature("liga", 0);
+	f.setPixelSize(14);
+	f.setHintingPreference(QFont::PreferNoHinting);
+	g.p.setFont(f);
+	g.p.setPen(c.text);
+	g.p.drawText(r.adjusted(10, 0, -8, 0), Qt::AlignLeft | Qt::AlignVCenter | Qt::TextSingleLine, s);
+	if (caret)
+	{
+		const double cx = r.x() + 10 + QFontMetricsF(f).horizontalAdvance(s) + 1;
+		g.p.fillRect(QRectF(cx, r.y() + 8, 1, r.height() - 16), c.text);
+	}
+	g.p.restore();
+}
+
+static void sceneCommands(C& g)
+{
+	const Pal& c = g.c;
+	chrome(g, QStringLiteral("rules.txt"), { QStringLiteral("config.txt") }, false);
+	const double x0 = 16, w = 1600 - 32 - 14;
+	const double ix = x0 + 20, iw = w - 20;
+	double y = 172;
+	// 1: If, open: the header reads the condition back, the body holds the source
+	{
+		CardOpt o{ 1, "diamond", QStringLiteral("조건"), true, Rest, true, {} };
+		o.summary = QStringLiteral("출력 채널이 2개이면");
+		o.notes = { QStringLiteral("지금 참") };
+		const QRectF body = card(g, QRectF(x0, y, w, 101), o);
+		monoField(g, QRectF(body.x(), body.y() + 12, 560, 32), QStringLiteral("outputChannelCount == 2"));
+		y += 101 + 8;
+	}
+	const double railTop = y;
+	{
+		card(g, QRectF(ix, y, iw, 46), { 2, "pk", QStringLiteral("피킹 필터"), true, Rest, false });
+		y += 46 + 8;
+	}
+	{
+		CardOpt o{ 3, "diamond", QStringLiteral("아니면"), true, Rest, false, {} };
+		o.notes = { QStringLiteral("지금 거짓") };
+		card(g, QRectF(ix, y, iw, 46), o);
+		y += 46 + 8;
+	}
+	const double skipTop = y;
+	{
+		CardOpt o{ 4, "wave", QStringLiteral("컨볼루션"), true, Rest, false };
+		o.skipped = true;
+		o.notes = { QStringLiteral("건너뜀") };
+		card(g, QRectF(ix, y, iw, 46), o);
+		y += 46 + 8;
+	}
+	const double skipBottom = y - 8;
+	{
+		card(g, QRectF(ix, y, iw, 46), { 5, "diamond", QStringLiteral("조건 끝"), true, Rest, false, {} });
+		// the rail: from under the If down to the middle of its end row; lighter along the skipped part
+		g.p.fillRect(QRectF(x0 + 6, railTop, 2, y + 23 - railTop), c.lineStrong);
+		g.p.fillRect(QRectF(x0 + 6, skipTop, 2, skipBottom - skipTop), c.line);
+		g.p.fillRect(QRectF(x0 + 6, y + 22, 10, 2), c.lineStrong);
+		y += 46 + 8;
+	}
+	// 6: Eval
+	{
+		CardOpt o{ 6, "equals", QStringLiteral("계산"), true, Rest, true, {} };
+		o.summary = QStringLiteral("gain을 -3으로 정합니다");
+		const QRectF body = card(g, QRectF(x0, y, w, 101), o);
+		monoField(g, QRectF(body.x(), body.y() + 12, 560, 32), QStringLiteral("gain = -3"));
+		y += 101 + 8;
+	}
+	// 7: a condition too long to read back: the header keeps it as written
+	{
+		CardOpt o{ 7, "diamond", QStringLiteral("조건"), true, Rest, true, {} };
+		o.summaryMono = QStringLiteral("regexSearch(\"TOPPING\", deviceName) and sampleRate >= 96000");
+		o.notes = { QStringLiteral("지금 거짓") };
+		const QRectF body = card(g, QRectF(x0, y, w, 101), o);
+		monoField(g, QRectF(body.x(), body.y() + 12, 760, 32),
+			QStringLiteral("regexSearch(\"TOPPING\", deviceName) and sampleRate >= 96000"));
+		y += 101 + 8;
+	}
+	// 8: a line the editor has no card for
+	{
+		const QRectF body = card(g, QRectF(x0, y, w, 125), { 8, "lines", QStringLiteral("원문 줄"), true, Rest, true, {} });
+		monoField(g, QRectF(body.x(), body.y() + 12, 760, 32), QStringLiteral("Loudness: Reference 80 ReferenceOffset 5 Attenuation 0.5"));
+		g.text(QRectF(body.x() + 2, body.y() + 50, 900, 22), QStringLiteral("이 줄은 카드로 표시할 수 없어 적힌 그대로 적용합니다."), 13, 500, c.muted);
+		y += 125 + 8;
+	}
+	// 9: a filter card with its source open (the </> head button is held)
+	{
+		CardOpt o{ 9, "pk", QStringLiteral("피킹 필터"), true, Selected, true };
+		o.editing = true;
+		const QRectF body = card(g, QRectF(x0, y, w, 145), o);
+		monoField(g, QRectF(body.x(), body.y() + 12, 760, 32), QStringLiteral("Filter: ON PK Fc 250 Hz Gain -4 dB Q 2"), Focus, true);
+		double x = body.x();
+		x += g.button(QPointF(x, body.y() + 56), QStringLiteral("적용"), 1) + 8;
+		g.button(QPointF(x, body.y() + 56), QStringLiteral("취소"));
+		y += 145 + 8;
+	}
+	// 10: a comment
+	{
+		const QRectF body = card(g, QRectF(x0, y, w, 101), { 10, "note", QStringLiteral("주석"), true, Rest, true, {} });
+		g.field(QRectF(body.x(), body.y() + 12, 760, 32), QStringLiteral("여기부터 서라운드 업믹스"));
+		y += 101 + 8;
+	}
+	g.box(QRectF(1600 - 12, 176, 6, 700), c.lineStrong, QColor(), 3);
+}
+
 int main(int argc, char** argv)
 {
 	QGuiApplication app(argc, argv);
@@ -1151,21 +1454,29 @@ int main(int argc, char** argv)
 		if (id >= 0 && gFamily.isEmpty())
 			gFamily = QFontDatabase::applicationFontFamilies(id).value(0);
 	}
+	for (const QString& f : QDir(args[1]).entryList({ "SarasaMonoK-Regular.ttf" }, QDir::Files))
+	{
+		const int id = QFontDatabase::addApplicationFont(QDir(args[1]).filePath(f));
+		if (id >= 0)
+			gMono = QFontDatabase::applicationFontFamilies(id).value(0);
+	}
 	if (gFamily.isEmpty())
 	{
 		fprintf(stderr, "no Pretendard in %s\n", qPrintable(args[1]));
 		return 2;
 	}
 	QDir().mkpath(args[2]);
-	struct Scene { const char* name; std::function<void(C&)> fn; };
-	const QList<Scene> scenes = { { "main", sceneMain }, { "files", sceneFiles }, { "parts", sceneParts } };
+	struct Scene { const char* name; std::function<void(C&)> fn; double h; };
+	const QList<Scene> scenes = { { "main", sceneMain, 1000 }, { "files", sceneFiles, 1000 }, { "parts", sceneParts, 1000 },
+								  { "vst", sceneVst, 960 }, { "commands", sceneCommands, 1120 } };
 	int failures = 0;
 	for (int mode = 0; mode < 2; mode++)
 	{
 		const Pal pal = mode == 0 ? lightPal() : darkPal();
 		for (const Scene& s : scenes)
 		{
-			QImage img(1600, 1000, QImage::Format_ARGB32_Premultiplied);
+			gH = s.h;
+			QImage img(1600, int(s.h), QImage::Format_ARGB32_Premultiplied);
 			QPainter p(&img);
 			p.setRenderHint(QPainter::TextAntialiasing, true);
 			C g{ p, pal };
