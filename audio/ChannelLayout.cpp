@@ -37,7 +37,12 @@ using std::wstring;
 
 namespace
 {
-	constexpr std::array<std::pair<std::wstring_view, int>, 9> channelPositions{
+	// The height positions are the seven top bits Windows defines. They are
+	// spelled like the VST3 bus layouts (vst/VST3BusLayout.h): T for top,
+	// then the floor position, with "back" written R for rear as RL/RC are.
+	// Windows has no top-side bits, so the middle pair of a 7.1.6 layout
+	// (VST3's TSL/TSR) cannot come from a channel mask.
+	constexpr std::array<std::pair<std::wstring_view, int>, 16> channelPositions{
 		std::pair{ std::wstring_view{ L"L" }, SPEAKER_FRONT_LEFT },
 		std::pair{ std::wstring_view{ L"R" }, SPEAKER_FRONT_RIGHT },
 		std::pair{ std::wstring_view{ L"C" }, SPEAKER_FRONT_CENTER },
@@ -46,7 +51,14 @@ namespace
 		std::pair{ std::wstring_view{ L"RR" }, SPEAKER_BACK_RIGHT },
 		std::pair{ std::wstring_view{ L"RC" }, SPEAKER_BACK_CENTER },
 		std::pair{ std::wstring_view{ L"SL" }, SPEAKER_SIDE_LEFT },
-		std::pair{ std::wstring_view{ L"SR" }, SPEAKER_SIDE_RIGHT }
+		std::pair{ std::wstring_view{ L"SR" }, SPEAKER_SIDE_RIGHT },
+		std::pair{ std::wstring_view{ L"TC" }, SPEAKER_TOP_CENTER },
+		std::pair{ std::wstring_view{ L"TFL" }, SPEAKER_TOP_FRONT_LEFT },
+		std::pair{ std::wstring_view{ L"TFC" }, SPEAKER_TOP_FRONT_CENTER },
+		std::pair{ std::wstring_view{ L"TFR" }, SPEAKER_TOP_FRONT_RIGHT },
+		std::pair{ std::wstring_view{ L"TRL" }, SPEAKER_TOP_BACK_LEFT },
+		std::pair{ std::wstring_view{ L"TRC" }, SPEAKER_TOP_BACK_CENTER },
+		std::pair{ std::wstring_view{ L"TRR" }, SPEAKER_TOP_BACK_RIGHT }
 	};
 }
 

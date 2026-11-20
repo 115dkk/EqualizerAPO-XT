@@ -357,6 +357,8 @@ Selects the channels that subsequent ordinary filtering commands apply to, inclu
 | 5.1 Surround (alt.) | 1 | 2 | 3 | 4 | 5 | 6 |  |  |  |
 | 7.1 Surround | 1 | 2 | 3 | 4 | 5 | 6 |  | 7 | 8 |
 
+A playback endpoint with height speakers names them from its Windows speaker mask: `TFL`, `TFC` and `TFR` for top front left, centre and right, `TRL`, `TRC` and `TRR` for top rear left, centre and right, and `TC` for top centre. A 7.1.4 endpoint therefore has the 7.1 channels above followed by `TFL TFR TRL TRR` (channels 9 to 12), the same names and order as the `7.1.4` layout of `VSTPlugin`. Windows defines no top side speakers, so the middle height pair of a 7.1.6 system cannot be named from the mask; such channels keep their numbers. Numbers keep working for named channels too.
+
 
 **Attention:** it is tempting to send low-frequency filters only to the LFE channel, but this often does not work as expected. Many systems apply bass redirection *after* Equalizer APO, so LFE-only filters miss the redirected sound; and because crossover filters fade in gradually, low frequencies may play across several speakers, not just the subwoofer. **Apply low-frequency filters to all channels** to avoid this.
 
