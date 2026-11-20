@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.69.2 — 2026-11-20
+
 - **Device Selector의 체크 상자에 체크 표시가 나옵니다.** Studio, Minimal,
   Rack, Matrix 스킨에서 체크한 상자가 색만 칠해진 네모로 나와, 체크했는지를
   색으로만 알 수 있었습니다. Device Selector의 파일에 그 그림이 빠져

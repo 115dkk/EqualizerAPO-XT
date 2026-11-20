@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.69.2 — 2026-11-20
+
 - **Device Selector: checked boxes show their check mark.** In the Studio,
   Minimal, Rack and Matrix skins a checked box was a filled square with no
   mark, so a checked and an unchecked box differed by colour alone. The
