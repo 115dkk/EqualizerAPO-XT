@@ -442,6 +442,9 @@ public:
 			painter.setPen(withAlpha(accent, 235));
 		else
 			painter.setPen(withAlpha(mutedInk, 230));
+		QColor reportColor;
+		if (reportInk(s, t, reportColor))
+			painter.setPen(reportColor);
 		const int statusAvail = qRound(slab.right()) - 12 - textLeft;
 		painter.drawText(QRect(textLeft, statusTop, statusAvail, fmStatus.height()),
 			Qt::AlignLeft | Qt::AlignVCenter,

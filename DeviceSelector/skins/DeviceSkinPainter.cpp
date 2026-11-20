@@ -97,6 +97,25 @@ int DeviceSkinPainter::rowHeight(const QFontMetrics& fm, bool section) const
 	return fm.height() * 2 + 18;
 }
 
+bool DeviceSkinPainter::reportInk(const DeviceRowState& state, const SkinTokens& tokens, QColor& ink)
+{
+	switch (state.report)
+	{
+	case DeviceReport::Dead:
+		ink = QColor(tokens.danger);
+		return true;
+	case DeviceReport::Degraded:
+		ink = QColor(tokens.warning);
+		return true;
+	case DeviceReport::Unchecked:
+		// Nothing was learned: no skin may dress that in its "working" ink.
+		ink = QColor(tokens.mutedText);
+		return true;
+	default:
+		return false;
+	}
+}
+
 QRect DeviceSkinPainter::toggleRect(const QRect& rowRect) const
 {
 	// The whole left end of the row is the toggle's hit area (>= 40px).
@@ -182,7 +201,9 @@ void DeviceSkinPainter::paintRow(QPainter& painter, const QRect& rect, const Dev
 	QFont normal = painter.font();
 	normal.setBold(false);
 	painter.setFont(normal);
-	painter.setPen(s.checked && !s.installed ? accent : muted);
+	QColor stateInk = s.checked && !s.installed ? accent : muted;
+	reportInk(s, t, stateInk);
+	painter.setPen(stateInk);
 	painter.drawText(QRect(textRect.left(), textRect.bottom() - fm.height(), textRect.width(), fm.height()),
 		Qt::AlignLeft | Qt::AlignVCenter, fm.elidedText(s.state, Qt::ElideRight, textRect.width()));
 

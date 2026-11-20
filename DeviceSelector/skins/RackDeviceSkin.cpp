@@ -762,6 +762,7 @@ private:
 		QColor statusInk = s.unavailable ? withAlpha(QColor(t.mutedText), 150) : QColor(t.mutedText);
 		if (pending && !s.unavailable)
 			statusInk = amber;
+		reportInk(s, t, statusInk);
 		painter.setFont(statusFont);
 		engraveText(painter, QRectF(textLeft, blockTop + nfm.height() + 3, textWidth, sfm.height()),
 			Qt::AlignLeft | Qt::AlignVCenter, sfm.elidedText(s.state, Qt::ElideRight, textWidth), statusInk, dark);

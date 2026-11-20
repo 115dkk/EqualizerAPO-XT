@@ -29,6 +29,7 @@ SOURCES += \
 	DeviceSelector.cpp \
 	DeviceTestDialog.cpp \
 	DeviceTestThread.cpp \
+	DeviceTestView.cpp \
 	DisclosureHeader.cpp \
 	OpacityIconEngine.cpp \
 	PreviewDevices.cpp \
@@ -64,6 +65,7 @@ HEADERS += \
 	DeviceSelector.h \
 	DeviceTestDialog.h \
 	DeviceTestThread.h \
+	DeviceTestView.h \
 	DisclosureHeader.h \
 	OpacityIconEngine.h \
 	PreviewDevices.h \

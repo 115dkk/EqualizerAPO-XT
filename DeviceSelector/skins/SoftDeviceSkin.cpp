@@ -288,7 +288,11 @@ private:
 		const qreal statusTop = lineTop + nameFm.height() + lineGap;
 		const QPointF lampCenter(textLeft + 4.0, statusTop + statusFm.height() / 2.0 + 0.5);
 		const bool pendingChange = s.checked != s.installed && !s.unavailable;
-		if (pendingChange)
+		QColor reportColor;
+		const bool reported = reportInk(s, t, reportColor);
+		if (reported)
+			SoftPaint::lamp(painter, lampCenter, reportColor, s.report == DeviceReport::Unchecked);
+		else if (pendingChange)
 			SoftPaint::lamp(painter, lampCenter, QColor(t.warning));
 		else if (s.checked && s.installed && !s.unavailable)
 			SoftPaint::lamp(painter, lampCenter, QColor(t.success));
@@ -296,7 +300,7 @@ private:
 			SoftPaint::lamp(painter, lampCenter, muted, true);
 
 		painter.setFont(statusFont);
-		painter.setPen(pendingChange ? bodyInk : muted);
+		painter.setPen((pendingChange || reported) && s.report != DeviceReport::Unchecked ? bodyInk : muted);
 		const qreal statusLeft = textLeft + 16.0;
 		painter.drawText(QRectF(statusLeft, statusTop, rightLimit - statusLeft, statusFm.height()),
 			Qt::AlignVCenter | Qt::AlignLeft,

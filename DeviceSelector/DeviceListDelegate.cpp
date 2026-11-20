@@ -38,6 +38,7 @@ DeviceRowState rowStateFor(const QModelIndex& index, const QStyleOptionViewItem&
 	s.input = index.data(DeviceListDelegate::InputSideRole).toBool();
 	s.selected = option.state.testFlag(QStyle::State_Selected);
 	s.index = index.row();
+	s.report = static_cast<DeviceReport>(index.data(DeviceListDelegate::ReportRole).toInt());
 	return s;
 }
 }
@@ -64,6 +65,9 @@ QSize DeviceListDelegate::sizeHint(const QStyleOptionViewItem& option, const QMo
 bool DeviceListDelegate::editorEvent(QEvent* event, QAbstractItemModel* model, const QStyleOptionViewItem& option, const QModelIndex& index)
 {
 	const bool isSection = !index.parent().isValid();
+	// A row of the check's list reports; it has nothing to toggle.
+	if (!isSection && index.data(ReportRole).toInt() != static_cast<int>(DeviceReport::None))
+		return true;
 	if (event->type() == QEvent::MouseButtonPress)
 	{
 		QMouseEvent* mouse = static_cast<QMouseEvent*>(event);

@@ -301,6 +301,9 @@ public:
 			// arms it with accent ink until OK executes.
 			painter.setFont(mono);
 			painter.setPen(!state.unavailable && pendingChange ? ink.accent : ink.muted);
+			QColor reportColor;
+			if (reportInk(state, tokens, reportColor))
+				painter.setPen(reportColor);
 			const int statusW = qMax(0, right - nameX);
 			painter.drawText(QRect(nameX, line2.top(), statusW, lineH),
 				Qt::AlignLeft | Qt::AlignVCenter | Qt::TextDontClip,
