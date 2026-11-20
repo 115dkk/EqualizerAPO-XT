@@ -502,4 +502,225 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         </translation>
     </message>
 </context>
+<context>
+    <name>DeviceTestView</name>
+    <message>
+        <source>APO installation check</source>
+        <translation>APO 설치 확인</translation>
+    </message>
+    <message>
+        <source>Record</source>
+        <translation>기록</translation>
+    </message>
+    <message>
+        <source>Stop</source>
+        <translation>중지</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>닫기</translation>
+    </message>
+    <message>
+        <source>Checking that the APO works on each device (%1 of %2)</source>
+        <translation>장치마다 APO가 작동하는지 확인하는 중입니다 (%1/%2)</translation>
+    </message>
+    <message>
+        <source>Windows audio restarts during the check, so sound stops for a few seconds.</source>
+        <translation>확인하는 동안 Windows 오디오를 다시 시작하므로 소리가 몇 초 끊깁니다.</translation>
+    </message>
+    <message>
+        <source>The APO works on every device.</source>
+        <translation>모든 장치에서 APO가 작동합니다.</translation>
+    </message>
+    <message>
+        <source>The equalizer is applied from now on.</source>
+        <translation>지금부터 이퀄라이저가 적용됩니다.</translation>
+    </message>
+    <message>
+        <source>Open the troubleshooting options in the Device Selector and choose another install mode. The record below has the details.</source>
+        <translation>Device Selector의 문제 해결 옵션에서 설치 방식을 바꿔 보십시오. 자세한 내용은 아래 기록에 있습니다.</translation>
+    </message>
+    <message>
+        <source>The APO works</source>
+        <translation>APO가 작동합니다</translation>
+    </message>
+    <message>
+        <source>Checking</source>
+        <translation>확인하는 중입니다</translation>
+    </message>
+    <message>
+        <source>Pre-mix works. Checking post-mix</source>
+        <translation>믹스 전은 작동합니다. 믹스 후를 확인하는 중입니다</translation>
+    </message>
+    <message>
+        <source>The APO works, but the original APO could not start</source>
+        <translation>APO는 작동하지만 원본 APO를 시작하지 못했습니다</translation>
+    </message>
+    <message>
+        <source>The APO does not work</source>
+        <translation>APO가 작동하지 않습니다</translation>
+    </message>
+    <message>
+        <source>Not checked: the device is unplugged</source>
+        <translation>연결이 끊겨 확인하지 못했습니다</translation>
+    </message>
+    <message>
+        <source>The other devices are not affected.</source>
+        <translation>다른 장치에는 영향이 없습니다.</translation>
+    </message>
+    <message>
+        <source>The check did not finish.</source>
+        <translation>확인을 끝내지 못했습니다.</translation>
+    </message>
+    <message>
+        <source>Not checked</source>
+        <translation>확인하지 못했습니다</translation>
+    </message>
+    <message>
+        <source>All three install modes were tried and Windows did not load the APO on this device in any of them.</source>
+        <translation>설치 방식 세 가지를 모두 시도했지만 Windows가 이 장치에서 APO를 불러오지 않았습니다.</translation>
+    </message>
+    <message>
+        <source>The cause could not be determined. Update the device&apos;s driver and check again; some drivers load no APO at all.</source>
+        <translation>원인은 알아내지 못했습니다. 장치 드라이버를 최신으로 바꾼 뒤 다시 확인하십시오. APO를 전혀 불러오지 않는 드라이버도 있습니다.</translation>
+    </message>
+    <message>
+        <source>Windows did not load the APO on this device in the selected install mode (%1).</source>
+        <translation>선택한 설치 방식(%1)에서 Windows가 이 장치의 APO를 불러오지 않았습니다.</translation>
+    </message>
+    <message>
+        <source>Turn on Automatic in the troubleshooting options, and the check tries the other modes too.</source>
+        <translation>문제 해결 옵션에서 자동을 켜면 나머지 방식도 시도합니다.</translation>
+    </message>
+    <message>
+        <source>Pre-mix works, post-mix does not</source>
+        <translation>믹스 전은 작동하고 믹스 후는 작동하지 않습니다</translation>
+    </message>
+    <message>
+        <source>The pre-mix APO works. Windows did not load the post-mix APO on this device.</source>
+        <translation>믹스 전 APO는 작동합니다. 믹스 후 APO는 Windows가 불러오지 않았습니다.</translation>
+    </message>
+    <message>
+        <source>Filters of the post-mix stage are not applied. Turn off post-mix install for this device, or try another install mode.</source>
+        <translation>믹스 후 단계의 필터는 적용되지 않습니다. 이 장치의 믹스 후 설치를 끄거나 다른 설치 방식을 시도하십시오.</translation>
+    </message>
+    <message>
+        <source>Post-mix works, pre-mix does not</source>
+        <translation>믹스 후는 작동하고 믹스 전은 작동하지 않습니다</translation>
+    </message>
+    <message>
+        <source>The post-mix APO works. Windows did not load the pre-mix APO on this device.</source>
+        <translation>믹스 후 APO는 작동합니다. 믹스 전 APO는 Windows가 불러오지 않았습니다.</translation>
+    </message>
+    <message>
+        <source>Filters of the pre-mix stage are not applied. Try another install mode.</source>
+        <translation>믹스 전 단계의 필터는 적용되지 않습니다. 다른 설치 방식을 시도하십시오.</translation>
+    </message>
+    <message>
+        <source>The equalizer works. The APO of the device&apos;s maker, which runs beside it, did not start, so that maker&apos;s effects are missing.</source>
+        <translation>이퀄라이저는 작동합니다. 함께 실행되는 장치 제조사의 APO가 시작되지 않아 제조사의 음향 효과는 빠져 있습니다.</translation>
+    </message>
+    <message>
+        <source>If you do not use those effects, turn off Use original APO in the troubleshooting options.</source>
+        <translation>그 효과를 쓰지 않는다면 문제 해결 옵션에서 원본 APO 사용을 끄십시오.</translation>
+    </message>
+    <message>
+        <source>The install mode could not be changed</source>
+        <translation>설치 방식을 바꾸지 못했습니다</translation>
+    </message>
+    <message>
+        <source>The check tried to install in another mode and Windows refused the change. The device was left as it was before.</source>
+        <translation>다른 방식으로 설치하려 했지만 Windows가 변경을 거부했습니다. 장치는 이전 상태 그대로입니다.</translation>
+    </message>
+    <message>
+        <source>Close programs that manage audio devices, then check again.</source>
+        <translation>오디오 장치를 관리하는 프로그램을 닫은 뒤 다시 확인하십시오.</translation>
+    </message>
+    <message>
+        <source>Not installed</source>
+        <translation>설치하지 못했습니다</translation>
+    </message>
+    <message>
+        <source>Windows refused the change to this device. The device was left as it was before.</source>
+        <translation>Windows가 이 장치의 변경을 거부했습니다. 장치는 이전 상태 그대로입니다.</translation>
+    </message>
+    <message>
+        <source>Close programs that manage audio devices, then install again.</source>
+        <translation>오디오 장치를 관리하는 프로그램을 닫은 뒤 다시 설치하십시오.</translation>
+    </message>
+    <message>
+        <source>Partly changed</source>
+        <translation>일부만 바뀌었습니다</translation>
+    </message>
+    <message>
+        <source>Windows refused the change, and undoing it did not finish either. The device may be left partly changed.</source>
+        <translation>Windows가 변경을 거부했고, 되돌리는 일도 끝나지 못했습니다. 장치가 일부만 바뀐 상태일 수 있습니다.</translation>
+    </message>
+    <message>
+        <source>Restart the computer before installing again.</source>
+        <translation>컴퓨터를 다시 시작한 뒤 다시 설치하십시오.</translation>
+    </message>
+    <message>
+        <source>Not checked: the device is disabled</source>
+        <translation>사용 안 함 상태라 확인하지 못했습니다</translation>
+    </message>
+    <message>
+        <source>The device is disabled in Windows, so nothing could be played through it.</source>
+        <translation>Windows에서 사용 안 함으로 설정된 장치라 소리를 보낼 수 없었습니다.</translation>
+    </message>
+    <message>
+        <source>Enable the device, then open the Device Selector and press OK to check again.</source>
+        <translation>장치를 사용으로 바꾼 뒤 Device Selector를 열고 확인을 누르면 다시 확인합니다.</translation>
+    </message>
+    <message>
+        <source>Nothing is plugged into this device, so nothing could be played through it.</source>
+        <translation>이 장치에 아무것도 연결되어 있지 않아 소리를 보낼 수 없었습니다.</translation>
+    </message>
+    <message>
+        <source>Plug it in, then open the Device Selector and press OK to check again.</source>
+        <translation>연결한 뒤 Device Selector를 열고 확인을 누르면 다시 확인합니다.</translation>
+    </message>
+    <message>
+        <source>Windows audio could not be restarted, so the check did not run. The APO is installed, but it starts working only after Windows audio restarts.</source>
+        <translation>Windows 오디오를 다시 시작하지 못해 확인하지 못했습니다. APO는 설치되었지만 Windows 오디오가 다시 시작된 뒤부터 작동합니다.</translation>
+    </message>
+    <message>
+        <source>Restart the computer.</source>
+        <translation>컴퓨터를 다시 시작하십시오.</translation>
+    </message>
+    <message>
+        <source>A Windows component the check needs did not start, so the check did not run.</source>
+        <translation>확인에 필요한 Windows 기능이 시작되지 않아 확인하지 못했습니다.</translation>
+    </message>
+    <message>
+        <source>Restart the computer, then open the Device Selector and press OK.</source>
+        <translation>컴퓨터를 다시 시작한 뒤 Device Selector를 열고 확인을 누르십시오.</translation>
+    </message>
+    <message>
+        <source>Windows blocked the setting the check uses to hear from the APO, so the check did not run.</source>
+        <translation>APO의 응답을 받는 데 필요한 설정을 Windows가 막아 확인하지 못했습니다.</translation>
+    </message>
+    <message>
+        <source>Close security programs that block changes to system settings, then open the Device Selector and press OK.</source>
+        <translation>시스템 설정 변경을 막는 보안 프로그램을 닫은 뒤 Device Selector를 열고 확인을 누르십시오.</translation>
+    </message>
+    <message>
+        <source>The check lost its connection to the APO before every device had answered.</source>
+        <translation>모든 장치의 응답을 받기 전에 APO와의 연결이 끊겼습니다.</translation>
+    </message>
+    <message>
+        <source>Open the Device Selector and press OK to check again.</source>
+        <translation>Device Selector를 열고 확인을 누르면 다시 확인합니다.</translation>
+    </message>
+    <message>
+        <source>The check was stopped. The APO is installed, but whether it works was not checked.</source>
+        <translation>확인을 중지했습니다. APO는 설치되었지만 작동하는지는 확인하지 못했습니다.</translation>
+    </message>
+    <message numerus="yes">
+        <source>The APO does not work on %n device(s).</source>
+        <translation>
+            <numerusform>장치 %n개에서 APO가 작동하지 않습니다.</numerusform>
+        </translation>
+    </message>
+</context>
 </TS>

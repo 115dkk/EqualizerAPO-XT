@@ -27,6 +27,20 @@
 
 #include "Editor/skins/SkinThemeData.h"
 
+// What the installation check found on a device. None everywhere but in the
+// check's own list (DeviceTestView), where the row reports instead of offering
+// a choice.
+enum class DeviceReport
+{
+	None,
+	Waiting,    // the check has not answered for this device yet
+	Alive,      // the APO came up
+	Degraded,   // the APO came up, the original APO beside it did not
+	Dead,       // the APO did not come up
+	Untestable, // disabled or unplugged: nothing could be asked
+	Unchecked   // the check stopped before it reached this device
+};
+
 // A device row (or a section header) as the list delegate sees it.
 struct DeviceRowState
 {
@@ -44,6 +58,7 @@ struct DeviceRowState
 	bool pressed = false;     // toggle hit area held down
 	double hover = 0.0;       // animated 0..1
 	int index = 0;            // row number under its section (zebra striping, unit numbers)
+	DeviceReport report = DeviceReport::None;
 };
 
 // One of the dialog's push buttons (OK / Cancel).
@@ -83,6 +98,11 @@ public:
 	static void setHeritageTheme();
 	static const DeviceSkinPainter* active();
 	static const SkinTokens& activeTokens();
+
+	// The status sentence's ink while a row reports a check: red for a dead
+	// APO, the warning colour for a degraded one, the skin's pending ink while
+	// waiting. False leaves the skin's own choice (and always for None).
+	static bool reportInk(const DeviceRowState& state, const SkinTokens& tokens, QColor& ink);
 
 	virtual int rowHeight(const QFontMetrics& fm, bool section) const;
 	// The toggle's hit area inside a device row; the delegate consumes

@@ -527,6 +527,7 @@ private:
 			statusInk = QColor(tokens.warning);
 		else if (state.installed)
 			statusInk = QColor(tokens.success);
+		reportInk(state, tokens, statusInk);
 		painter.setFont(statusFont);
 		painter.setPen(statusInk);
 		const QString marker = QStringLiteral("> ");

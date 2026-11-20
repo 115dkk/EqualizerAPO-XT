@@ -11,6 +11,8 @@
 #include <QDir>
 
 #include "DeviceSelector.h"
+#include "DeviceTestView.h"
+#include "ui_DeviceTestDialog.h"
 #include "PreviewDevices.h"
 #include "skins/DeviceSkinPainter.h"
 #include "Editor/skins/SkinThemeData.h"
@@ -103,6 +105,59 @@ int ScreenshotHarness::runSkinShots(QApplication& app)
 			dialog.previewReceive();
 			QApplication::processEvents();
 			save(QStringLiteral("receive"));
+
+			// The installation check in its three states.
+			const std::pair<DeviceTestView::Preview, const char*> previews[] = {
+				{DeviceTestView::Preview::Running, "running"},
+				{DeviceTestView::Preview::Passed, "passed"},
+				{DeviceTestView::Preview::Problem, "problem"},
+				{DeviceTestView::Preview::Stopped, "stopped"}};
+			for (const auto& preview : previews)
+			{
+				DeviceTestView view;
+				view.loadPreview(preview.first);
+				view.resize(620, 700);
+				view.show();
+				QApplication::processEvents();
+				const QString file = outDir.filePath(
+					QStringLiteral("devtest_%1_%2_%3.png").arg(skinId, mode, QLatin1String(preview.second)));
+				if (!view.grab().save(file))
+					failures++;
+			}
+
+			// The dialog the check replaces, filled with the same devices, so
+			// the two can be judged side by side.
+			{
+				QDialog old;
+				Ui::DeviceTestDialogClass oldUi;
+				oldUi.setupUi(&old);
+				QTreeWidgetItem* node = new QTreeWidgetItem(oldUi.deviceTreeWidget,
+					QStringList(QCoreApplication::translate("DeviceTestDialog", "Playback devices")));
+				node->setExpanded(true);
+				const char* const names[][2] = {{"Speakers", "TOPPING USB DAC"}, {"CABLE Input", "VB-Audio Virtual Cable"},
+					{"Headphones", "Realtek(R) Audio"}};
+				const char* const icons[] = {":/icons/circle-check.svg", ":/icons/circle-warning.svg", ":/icons/circle-error.svg"};
+				for (int i = 0; i < 3; i++)
+				{
+					QTreeWidgetItem* item = new QTreeWidgetItem(node,
+						QStringList{QLatin1String(names[i][0]), QLatin1String(names[i][1])});
+					item->setIcon(2, QIcon(QLatin1String(icons[i])));
+					item->setIcon(3, QIcon(QLatin1String(icons[0])));
+				}
+				for (int i = 0; i < oldUi.deviceTreeWidget->columnCount(); i++)
+					oldUi.deviceTreeWidget->resizeColumnToContents(i);
+				oldUi.statusOutputBox->append(QCoreApplication::translate("DeviceTestThread", "Restarting audio service..."));
+				oldUi.statusOutputBox->append(QCoreApplication::translate("DeviceTestThread", "Checking APO installation..."));
+				oldUi.statusOutputBox->append(QStringLiteral("<span style=\"color:red\"><b>")
+					+ QCoreApplication::translate("DeviceTestThread", "Checks done. Problems were detected for %n device(s).", nullptr, 1)
+					+ QStringLiteral("</b></span>"));
+				old.adjustSize();
+				old.show();
+				QApplication::processEvents();
+				const QString file = outDir.filePath(QStringLiteral("devtest_%1_%2_before.png").arg(skinId, mode));
+				if (!old.grab().save(file))
+					failures++;
+			}
 		}
 	}
 
