@@ -35,7 +35,8 @@ public:
 		InstalledRole,
 		DefaultDeviceRole,
 		UnavailableRole,
-		InputSideRole
+		InputSideRole,
+		ReportRole // DeviceReport as int; set by the check's list only
 	};
 
 	explicit DeviceListDelegate(QTreeWidget* tree);

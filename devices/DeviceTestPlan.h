@@ -61,6 +61,20 @@ enum class DeviceTestItemStatus
 	Error
 };
 
+// How the test ended for one device, for whoever tells the user about it.
+enum class DeviceTestOutcome
+{
+	Works,
+	// Ours initialised; the driver's APO it chains to did not.
+	OriginalApoFailed,
+	// One of the two stages reported and the other never did.
+	PreMixSilent,
+	PostMixSilent,
+	// Nothing reported: in any mode of the ladder, or in the one mode tried.
+	SilentEveryMode,
+	SilentSelectedMode
+};
+
 // The values of DeviceTestWire.h, read back. Anything else is not a stage or
 // a phase, and a message carrying it changes nothing.
 std::optional<DeviceTestStage> deviceTestStageFromWire(std::string_view value);
@@ -158,6 +172,10 @@ public:
 	// error.
 	static DeviceTestItemStatus statusFor(const Result& result, DeviceTestStage stage,
 		const DeviceTestSelection& selection);
+
+	// What a device that gave up is reported as, from the result its rows
+	// show. Stages the selection does not install are not asked about.
+	static DeviceTestOutcome outcomeFor(const Result& result, const DeviceTestSelection& selection);
 
 private:
 	std::vector<DeviceTestMode> remaining;

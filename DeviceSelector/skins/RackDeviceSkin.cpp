@@ -762,6 +762,7 @@ private:
 		QColor statusInk = s.unavailable ? withAlpha(QColor(t.mutedText), 150) : QColor(t.mutedText);
 		if (pending && !s.unavailable)
 			statusInk = amber;
+		reportInk(s, t, statusInk);
 		painter.setFont(statusFont);
 		engraveText(painter, QRectF(textLeft, blockTop + nfm.height() + 3, textWidth, sfm.height()),
 			Qt::AlignLeft | Qt::AlignVCenter, sfm.elidedText(s.state, Qt::ElideRight, textWidth), statusInk, dark);
@@ -779,6 +780,51 @@ private:
 			painter.setBrush(Qt::NoBrush);
 			painter.drawRoundedRect(face.adjusted(0.5, 0.5, -0.5, -0.5), radius, radius);
 		}
+	}
+
+	// A panel is a blanking plate bolted into the rack: brushed metal, two
+	// screws, the unit's lamp and a stamped code. The text is engraved on it.
+	DevicePanelStyle panelStyle(const DevicePanelState& state, const QFont& base, const SkinTokens& t) const override
+	{
+		DevicePanelStyle style = DeviceSkinPainter::panelStyle(state, base, t);
+		style.padding = QMargins(34, 11, 30, 12);
+		return style;
+	}
+
+	void paintPanelGround(QPainter& painter, const QRect& rect, const DevicePanelState& state, const SkinTokens& t) const override
+	{
+		painter.save();
+		painter.setRenderHint(QPainter::Antialiasing, true);
+		const bool dark = skinIsDark(t);
+		const QRectF plate = QRectF(rect).adjusted(0.5, 0.5, -0.5, -0.5);
+		QLinearGradient metal(plate.topLeft(), plate.bottomLeft());
+		metal.setColorAt(0.0, mixColor(metalMid(t, dark), metalHi(t, dark), dark ? 0.10 : 0.55));
+		metal.setColorAt(1.0, mixColor(metalMid(t, dark), metalLo(t, dark), dark ? 0.55 : 0.18));
+		painter.setPen(QPen(dark ? QColor(0, 0, 0, 200) : withAlpha(metalLo(t, dark), 220), 1));
+		painter.setBrush(metal);
+		painter.drawRoundedRect(plate, 2.0, 2.0);
+		const uint seed = uint(rect.top()) * 31u + 7u;
+		paintGrain(painter, plate.adjusted(1, 1, -1, -1), dark, seed, t);
+		painter.setPen(QPen(dark ? QColor(255, 255, 255, 26) : QColor(255, 255, 255, 190), 1));
+		painter.drawLine(QPointF(plate.left() + 2, plate.top() + 1), QPointF(plate.right() - 2, plate.top() + 1));
+		paintScrew(painter, QPointF(plate.right() - 11, plate.top() + 10), 2.8, qreal(seed % 180u), t, dark);
+		paintScrew(painter, QPointF(plate.right() - 11, plate.bottom() - 10), 2.8, qreal((seed + 73u) % 180u), t, dark);
+		const QFontMetrics fm(painter.font());
+		const bool lit = state.tone != DeviceReport::Unchecked && state.tone != DeviceReport::Untestable;
+		paintLamp(painter, QPointF(plate.left() + 17, plate.top() + 11 + fm.height() / 2.0), 4.0, toneColor(state.tone, t), lit, dark);
+		painter.restore();
+	}
+
+	void paintSystemWell(QPainter& painter, const QRectF& rect, const SkinTokens& t) const override
+	{
+		// A recessed label strip let into the plate.
+		painter.save();
+		painter.setRenderHint(QPainter::Antialiasing, true);
+		const bool dark = skinIsDark(t);
+		painter.setPen(QPen(dark ? QColor(0, 0, 0, 170) : withAlpha(metalLo(t, dark), 200), 1));
+		painter.setBrush(dark ? QColor(0, 0, 0, 90) : withAlpha(QColor(t.surfaceSunken), 200));
+		painter.drawRoundedRect(rect.adjusted(0.5, 0.5, -0.5, -0.5), 1.5, 1.5);
+		painter.restore();
 	}
 };
 }

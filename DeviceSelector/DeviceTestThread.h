@@ -35,6 +35,21 @@ enum class ItemStatusType
 };
 
 Q_DECLARE_METATYPE(ItemStatusType)
+Q_DECLARE_METATYPE(DeviceTestOutcome)
+
+// Why a run ended before it reached a verdict.
+enum class DeviceTestStop
+{
+	ComUnavailable,
+	AudioRestartFailed,
+	// The registry value the APO reads the pipe name from could not be
+	// written or cleared.
+	SetupRefused,
+	// The pipe could not be read, or what came through it was not a message.
+	ChannelBroken
+};
+
+Q_DECLARE_METATYPE(DeviceTestStop)
 
 class DeviceTestThread : public QThread
 {
@@ -67,6 +82,17 @@ signals:
 	void abort(const QString& message, int code);
 	void setItemStatus(const QString& guid, bool postMix, ItemStatusType statusType);
 	void finished();
+	// The same events as the log lines above, as values, for the dialog that
+	// tells the user which device has which problem (issue #502). The
+	// headless command keeps reading the log.
+	// A device left the ladder without working; modeName is the mode it was
+	// last tried in.
+	void deviceGaveUp(const QString& guid, DeviceTestOutcome outcome, const QString& modeName);
+	// Reinstalling a device in another mode was refused; it is as it was.
+	void deviceRefused(const QString& guid, const QString& message);
+	// Nothing could be played through the device, so it cannot answer.
+	void deviceUnreachable(const QString& guid, const QString& message);
+	void runStopped(DeviceTestStop reason, const QString& message);
 
 protected:
 	__override void run();

@@ -37,8 +37,11 @@ Current work areas:
    covered the Soft pastel rework, dark-mode state contrast, the compact
    analysis panel, the modern GraphicEQ card, the insertion contract, and the
    skinned Device Selector ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172)).
-   The Soft skin is being rebuilt as an ordinary desktop app and waits for
-   the maintainer's review ([#500](https://github.com/115dkk/EqualizerAPO-XT/pull/500)).
+   The Soft Lab skin was rebuilt as an ordinary desktop app and renamed Stock Flat
+   ([#500](https://github.com/115dkk/EqualizerAPO-XT/pull/500)), and the
+   Device Selector's installation check was rebuilt to follow the skin and
+   to say, per device, what the problem is and what to do
+   ([#503](https://github.com/115dkk/EqualizerAPO-XT/pull/503)).
 3. Phase and time. The analysis graph now switches between magnitude, phase and
    group delay, the all-pass filter has its own card and a 1st-order section,
    and `Delay` and the all-pass share a "Phase & Time" group in the picker. An

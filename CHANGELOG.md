@@ -14,6 +14,30 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The Soft Lab skin is now called Stock Flat.** The name follows what the
+  skin became in v2.70.0: the stock parts of an ordinary desktop app. If you
+  were using Soft Lab, the Editor opens with Stock Flat after the update;
+  nothing has to be chosen again.
+  ([#503](https://github.com/115dkk/EqualizerAPO-XT/pull/503))
+
+- **The installation check says what went wrong.** The window that opens
+  after OK in the Device Selector used to show a red mark and "Problems were
+  detected for 1 device" and nothing else. It now says in one sentence where
+  the check stands, shows each device on the row it has in the Device
+  Selector with the result in place of the install state, and, for every
+  problem, says what happened and what to do about it, with the message
+  Windows gave. A change Windows refused is reported in the same window
+  instead of an error box per device. The check can be stopped with a Stop
+  button, which also takes the APO off the devices it was installed on a
+  moment ago, and its line-by-line record is folded away until it is opened.
+  When something went wrong, a Reinstall button installs the APO again on
+  the devices that had a problem, tries the refused changes again and runs
+  the check once more. The
+  window follows the active skin. The recommended actions (updating the
+  driver, closing programs that manage audio devices) have not been verified
+  on machines that show these problems.
+  ([#503](https://github.com/115dkk/EqualizerAPO-XT/pull/503))
+
 ## v2.70.0 — 2026-11-20
 
 - **The Soft skin looks like an ordinary desktop app.** The pastel colours,

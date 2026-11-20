@@ -22,6 +22,7 @@
 #include <asio/EntryOptions.h>
 #include <devices/AbstractAPOInfo.h>
 #include <QtWidgets/QDialog>
+#include "DeviceTestDialog.h"
 #include "ui_DeviceSelector.h"
 
 class QPropertyAnimation;
@@ -73,6 +74,8 @@ private:
 
 	Ui::DeviceSelectorClass ui;
 	bool askForReboot = false;
+	QVector<DeviceTestDialog::InstallFailure> installFailures;
+	QVector<DeviceTestDialog::NewInstall> newInstalls;
 	// The dialog buttons are skin-painted (see SkinButton); QDialogButtonBox
 	// only supplies the roles, so button() lookups by standard id are gone.
 	SkinButton* okButton = nullptr;

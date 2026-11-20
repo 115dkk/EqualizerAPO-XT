@@ -5,7 +5,7 @@
 */
 
 /*
-	Soft Lab's reference card (Include / Convolution / MultiConvolution /
+	Stock Flat's reference card (Include / Convolution / MultiConvolution /
 	VSTPlugin row bodies): a pastel tile leading a two-line identity, with
 	measured facts as stadium chips.
 	Constitution: docs/skins/soft.md ("참조 카드" section).

@@ -1,10 +1,10 @@
-EqualizerAPO-XT의 Editor는 하나의 카드 문법 위에 다섯 스킨을 입는 Qt 데스크톱 앱이다. 이 시스템은 그 다섯 스킨(`studio` Studio Glass, `minimal` Precision Minimal, `soft` Soft Lab, `rack` Hardware Rack, `matrix` Signal Matrix)의 토큰, 활자, 간격, 상태 문법, 아이콘을 코드에서 그대로 옮긴 것이다. 코드의 정본은 `Editor/skins/SkinThemeData.cpp`(토큰 표), 각 스킨의 QSS 시트, `docs/skins/`의 헌법 문서이고, 문서와 코드가 어긋나면 코드를 믿되 '하지 말 것' 절은 코드보다 오래 산다.
+EqualizerAPO-XT의 Editor는 하나의 카드 문법 위에 다섯 스킨을 입는 Qt 데스크톱 앱이다. 이 시스템은 그 다섯 스킨(`studio` Studio Glass, `minimal` Precision Minimal, `soft` Stock Flat, `rack` Hardware Rack, `matrix` Signal Matrix)의 토큰, 활자, 간격, 상태 문법, 아이콘을 코드에서 그대로 옮긴 것이다. 코드의 정본은 `Editor/skins/SkinThemeData.cpp`(토큰 표), 각 스킨의 QSS 시트, `docs/skins/`의 헌법 문서이고, 문서와 코드가 어긋나면 코드를 믿되 '하지 말 것' 절은 코드보다 오래 산다.
 
 ## 시스템을 쓰는 법
 
 색은 언제나 `<스킨>-<역할>` 토큰으로 쓴다. `studio-accent`, `minimal-ink-bright`, `soft-on-ink`, `rack-seam`, `matrix-card-rail`처럼 스킨 접두사가 붙은 이름만 존재하고, 스킨을 가로지르는 공용 색은 명령 타입 색 `type-*`와 채널 식별 색 `channel-*` 두 묶음뿐이다. 다크가 첫 테마이고 라이트가 둘째 테마다. 테마별로 값을 하드코딩하지 않는다. 모드 분기가 꼭 필요하면 배경 명도로 추정한다(코드의 `skinIsDark`).
 
-새 요소를 그릴 때는 다섯 스킨이 각자의 철학으로 따로 답해야 한다. 두 스킨이 팔레트만 다르면 차별화 게이트에서 실패다. 심사 항목은 타입 표시, 호버, 비활성, Include 행, VST 행, 모서리·엣지 언어, 위계의 주도자 일곱 가지다. 각 스킨의 답은 이 시스템의 스킨별 절(Studio Glass, Precision Minimal, Soft Lab, Hardware Rack, Signal Matrix)에 있고, 그 절의 '새 요소를 이 스킨답게 만드는 법' 물음에 답하는 식으로 설계한다.
+새 요소를 그릴 때는 다섯 스킨이 각자의 철학으로 따로 답해야 한다. 두 스킨이 팔레트만 다르면 차별화 게이트에서 실패다. 심사 항목은 타입 표시, 호버, 비활성, Include 행, VST 행, 모서리·엣지 언어, 위계의 주도자 일곱 가지다. 각 스킨의 답은 이 시스템의 스킨별 절(Studio Glass, Precision Minimal, Stock Flat, Hardware Rack, Signal Matrix)에 있고, 그 절의 '새 요소를 이 스킨답게 만드는 법' 물음에 답하는 식으로 설계한다.
 
 상호작용은 스킨이 소유하지 않는다. 노브의 드래그·휠·키보드, 픽커의 팝업, Copy의 파싱은 공용이고 스킨은 표현만 바꾼다. 다만 제스처 어휘 가운데 자기 계기에 맞는 것을 고르는 일은 스킨의 몫이다. 회전 호에는 각도 추적, 굴리는 드럼에는 세로 드래그(`knob-travel` 200px가 전 범위, Shift는 1/10)가 맞는다.
 

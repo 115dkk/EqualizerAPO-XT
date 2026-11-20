@@ -527,6 +527,7 @@ private:
 			statusInk = QColor(tokens.warning);
 		else if (state.installed)
 			statusInk = QColor(tokens.success);
+		reportInk(state, tokens, statusInk);
 		painter.setFont(statusFont);
 		painter.setPen(statusInk);
 		const QString marker = QStringLiteral("> ");
@@ -550,6 +551,60 @@ private:
 			if (frame.width() > 8 && frame.height() > 8)
 				paintAcquisitionBrackets(painter, frame, withAlpha(accent, qRound(alpha * (0.6 + 0.4 * dim))));
 		}
+	}
+
+	// A panel is a readout cell on the board: a square hairline, the
+	// acquisition brackets in the tone's ink and the tone's code in a tag
+	// cell at the top right.
+	DevicePanelStyle panelStyle(const DevicePanelState& state, const QFont& base, const SkinTokens& tokens) const override
+	{
+		DevicePanelStyle style = DeviceSkinPainter::panelStyle(state, base, tokens);
+		style.titleFont = QFont(tokens.fontFamily);
+		style.titleFont.setPointSizeF(basePointSize(base));
+		style.titleFont.setWeight(QFont::DemiBold);
+		style.bodyFont = QFont(tokens.fontFamily);
+		style.bodyFont.setPointSizeF(qMax(7.0, basePointSize(base) - 0.5));
+		style.padding = QMargins(16, 11, 58, 12);
+		return style;
+	}
+
+	void paintPanelGround(QPainter& painter, const QRect& rect, const DevicePanelState& state, const SkinTokens& tokens) const override
+	{
+		painter.save();
+		painter.setRenderHint(QPainter::Antialiasing, false);
+		const QColor tone = toneColor(state.tone, tokens);
+		const QRect frame = rect.adjusted(0, 0, -1, -1);
+		painter.setPen(QPen(withAlpha(QColor(tokens.border), 220), 1));
+		painter.setBrush(withAlpha(tone, skinIsDark(tokens) ? 16 : 12));
+		painter.drawRect(frame);
+		paintAcquisitionBrackets(painter, frame, tone);
+		const bool hollow = state.tone == DeviceReport::Unchecked || state.tone == DeviceReport::Untestable;
+		paintTagCell(painter, rect.right() - 8, rect.top() + 18, toneCode(state.tone),
+			hollow ? tone : QColor(tokens.background), tone, hollow ? QBrush(Qt::NoBrush) : QBrush(tone),
+			hollow ? Qt::DashLine : Qt::SolidLine, tokens.monoFontFamily);
+		painter.restore();
+	}
+
+	void paintActionMark(QPainter& painter, const QRectF& cell, const QColor& ink, const SkinTokens& tokens) const override
+	{
+		painter.save();
+		QFont mono(tokens.monoFontFamily);
+		mono.setPointSizeF(painter.font().pointSizeF());
+		mono.setBold(true);
+		painter.setFont(mono);
+		painter.setPen(ink);
+		painter.drawText(cell, Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral(">"));
+		painter.restore();
+	}
+
+	void paintSystemWell(QPainter& painter, const QRectF& rect, const SkinTokens& tokens) const override
+	{
+		painter.save();
+		painter.setRenderHint(QPainter::Antialiasing, false);
+		painter.setPen(QPen(withAlpha(QColor(tokens.border), 200), 1, Qt::DashLine));
+		painter.setBrush(Qt::NoBrush);
+		painter.drawRect(rect.toRect().adjusted(0, 0, -1, -1));
+		painter.restore();
 	}
 };
 }

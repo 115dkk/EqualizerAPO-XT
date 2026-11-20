@@ -268,7 +268,7 @@ void MainWindow::setupRedesignActions()
 	const QHash<QString, QString> skinNames = {
 		{ QStringLiteral("studio"), tr("Studio Glass") },
 		{ QStringLiteral("minimal"), tr("Precision Minimal") },
-		{ QStringLiteral("soft"), tr("Soft Lab") },
+		{ QStringLiteral("soft"), tr("Stock Flat") },
 		{ QStringLiteral("rack"), tr("Hardware Rack") },
 		{ QStringLiteral("matrix"), tr("Signal Matrix") }
 	};

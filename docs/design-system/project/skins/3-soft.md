@@ -1,4 +1,4 @@
-# Soft Lab (soft)
+# Stock Flat (soft)
 
 두려울 수 없는 설정 화면. 둥글고 넉넉하다.
 

@@ -3017,7 +3017,7 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
     </message>
     <message>
         <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="271"/>
-        <source>Soft Lab</source>
+        <source>Stock Flat</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

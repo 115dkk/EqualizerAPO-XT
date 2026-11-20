@@ -11,6 +11,8 @@
 #include <QDir>
 
 #include "DeviceSelector.h"
+#include "DeviceTestDialog.h"
+#include "DeviceTestView.h"
 #include "PreviewDevices.h"
 #include "skins/DeviceSkinPainter.h"
 #include "Editor/skins/SkinThemeData.h"
@@ -103,6 +105,49 @@ int ScreenshotHarness::runSkinShots(QApplication& app)
 			dialog.previewReceive();
 			QApplication::processEvents();
 			save(QStringLiteral("receive"));
+
+			// The installation check in its four states.
+			const std::pair<DeviceTestView::Preview, const char*> previews[] = {
+				{DeviceTestView::Preview::Running, "running"},
+				{DeviceTestView::Preview::Passed, "passed"},
+				{DeviceTestView::Preview::Problem, "problem"},
+				{DeviceTestView::Preview::Stopped, "stopped"}};
+			for (const auto& preview : previews)
+			{
+				DeviceTestView view;
+				view.loadPreview(preview.first);
+				view.resize(620, 760);
+				view.show();
+				QApplication::processEvents();
+				QApplication::processEvents();
+				const QString file = outDir.filePath(
+					QStringLiteral("devtest_%1_%2_%3.png").arg(skinId, mode, QLatin1String(preview.second)));
+				if (!view.grab().save(file))
+					failures++;
+			}
+
+			// The live dialog with nothing to check: two changes the install
+			// step could not make. No thread runs and nothing is written.
+			{
+				DeviceTestDialog::InstallFailure refused;
+				refused.guid = QStringLiteral("{preview-refused}");
+				refused.connection = QStringLiteral("Headphones");
+				refused.device = QStringLiteral("Realtek(R) Audio");
+				refused.message = QStringLiteral("Error while writing registry value FxProperties: Access is denied. (5)");
+				DeviceTestDialog::InstallFailure partial = refused;
+				partial.guid = QStringLiteral("{preview-partial}");
+				partial.connection = QStringLiteral("Microphone");
+				partial.device = QStringLiteral("USB Audio Device");
+				partial.input = true;
+				partial.leftPartial = true;
+				DeviceTestDialog dialog({refused, partial}, {}, false);
+				dialog.resize(620, 760);
+				dialog.show();
+				QApplication::processEvents();
+				QApplication::processEvents();
+				if (!dialog.grab().save(outDir.filePath(QStringLiteral("devtest_%1_%2_refused.png").arg(skinId, mode))))
+					failures++;
+			}
 		}
 	}
 

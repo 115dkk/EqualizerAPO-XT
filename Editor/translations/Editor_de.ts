@@ -3009,7 +3009,7 @@ Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</
     </message>
     <message>
         <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="271"/>
-        <source>Soft Lab</source>
+        <source>Stock Flat</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
