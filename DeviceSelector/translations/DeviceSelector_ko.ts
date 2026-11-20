@@ -515,7 +515,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     <message>
         <location filename="../DeviceTestView.cpp" line="256"/>
         <source>Not changed</source>
-        <translation>바뀌지 않음</translation>
+        <translation>바뀌지 않았습니다</translation>
     </message>
     <message>
         <location filename="../DeviceTestView.cpp" line="258"/>
