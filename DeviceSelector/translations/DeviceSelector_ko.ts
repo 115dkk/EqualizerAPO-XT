@@ -618,7 +618,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     <message>
         <location filename="../DeviceTestDialog.cpp" line="294"/>
         <source>Trying another install mode</source>
-        <translation>다른 설치 방식을 시도하는 중</translation>
+        <translation>다른 설치 방식을 시도하는 중입니다</translation>
     </message>
     <message>
         <location filename="../DeviceTestDialog.cpp" line="299"/>
@@ -629,7 +629,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     <message>
         <location filename="../DeviceTestDialog.cpp" line="304"/>
         <source>Post-mix works. Checking pre-mix</source>
-        <translation>믹스 후 작동. 믹스 전 확인 중</translation>
+        <translation>믹스 후는 작동합니다. 믹스 전을 확인하는 중입니다</translation>
     </message>
     <message>
         <location filename="../DeviceTestView.cpp" line="248"/>
