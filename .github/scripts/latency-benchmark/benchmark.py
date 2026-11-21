@@ -116,6 +116,13 @@ class Bench:
                 raise MeasurementError(label + ' exceeded its process timeout.') from None
             wall = time.perf_counter() - start
             cpu = cpu_seconds(p)
+        if p.returncode not in allowed and label == 'Omniphony-bridge-build':
+            # Compiler diagnostics cannot contain private inputs: the build
+            # never receives Inputs or any derived config/audio path.
+            errors = (self.work / (label + '.stderr.log')).read_text(errors='replace')
+            self.data['omniphony']['build_errors'] = [line[:400] for line in errors.splitlines()
+                                                       if line.startswith(('error:', 'warning:'))][:12]
+            self.save()
         require(p.returncode in allowed, label + ' failed (exit ' + str(p.returncode) + ').')
         return {'wall_s': wall, 'cpu_s': cpu, 'exit_code': p.returncode}
 
@@ -428,7 +435,7 @@ class Bench:
         digest = hashlib.sha256(archive.read_bytes()).hexdigest()
         self.data['downloads']['Omniphony-source'] = {'commit': revision, 'sha256': digest, 'format': 'git archive --format=tar HEAD'}
         self.save()
-        expected = ''
+        expected = 'ad2012377fbd0760794347d2b900f5a6508ab386d9fff22bb4e9a3e2c17fddbb'
         if not expected:
             self.data['steps']['A5'] = 'not measured: source SHA-256 discovery; source was not built before pinning'
             self.save()
@@ -482,6 +489,89 @@ log = "0.4.27"
         self.data['omniphony']['check_bridges'] = self.run('Omniphony-check-bridges',
             [self.orender, 'check-bridges', '--bridge-path', bridge], 60)
         self.data['steps']['A5'] = 'bridge built and check-bridges passed; SOFA loading not yet measured'
+        self.save()
+        self.omniphony_sofa(bridge)
+
+    def omniphony_sofa(self, bridge):
+        from netCDF4 import Dataset
+        import struct
+        samples, _ = sf.read(self.brir, always_2d=True)
+        slots = [0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11]
+        azimuths = [30, -30, 0, 150, -150, 90, -90, 45, -45, 135, -135]
+        elevations = [0] * 7 + [45] * 4
+        responses = np.empty((11, 2, len(samples)))
+        for emitter, slot in enumerate(slots):
+            for ear in range(2):
+                rows = [i for i, item in enumerate(self.conv)
+                        if item['feed'][slot] != 0 and self.final_matrix[ear][i] != 0]
+                require(len(rows) == 1, 'SOFA conversion requires exactly one response per speaker and ear.')
+                i = rows[0]
+                responses[emitter, ear] = samples[:, self.conv[i]['index']] * self.conv[i]['feed'][slot] * self.final_matrix[ear][i]
+        sofa = self.work / 'room.sofa'
+        with Dataset(sofa, 'w', format='NETCDF4') as ds:
+            for name, size in [('M', 11), ('R', 2), ('N', len(samples)), ('C', 3), ('I', 1), ('E', 1)]:
+                ds.createDimension(name, size)
+            for name, value in {'Conventions': 'SOFA', 'Version': '1.0', 'SOFAConventions': 'SimpleFreeFieldHRIR',
+                                'SOFAConventionsVersion': '1.0', 'APIName': 'latency-benchmark', 'APIVersion': '1.0',
+                                'DataType': 'FIR', 'RoomType': 'reverberant', 'Title': 'Private runner BRIR',
+                                'License': 'Private; not redistributable'}.items():
+                ds.setncattr(name, value)
+            def variable(name, dims, values, coordinate=None):
+                var = ds.createVariable(name, 'f8', dims)
+                var[:] = values
+                if coordinate:
+                    var.Type, var.Units = coordinate
+                return var
+            variable('Data.IR', ('M', 'R', 'N'), responses)
+            variable('Data.SamplingRate', ('I',), [RATE]).Units = 'hertz'
+            variable('Data.Delay', ('I', 'R'), [[0, 0]])
+            variable('SourcePosition', ('M', 'C'), np.column_stack([azimuths, elevations, np.full(11, 2)]),
+                     ('spherical', 'degree, degree, metre'))
+            variable('ListenerPosition', ('I', 'C'), [[0, 0, 0]], ('cartesian', 'metre'))
+            variable('ListenerView', ('I', 'C'), [[1, 0, 0]], ('cartesian', 'metre'))
+            variable('ListenerUp', ('I', 'C'), [[0, 0, 1]], ('cartesian', 'metre'))
+            variable('ReceiverPosition', ('R', 'C', 'I'), np.array([[0, 0.09, 0], [0, -0.09, 0]])[:, :, None], ('cartesian', 'metre'))
+            variable('EmitterPosition', ('E', 'C', 'I'), np.zeros((1, 3, 1)), ('cartesian', 'metre'))
+        # Give the reference decoder an explicit WAVEFORMATEXTENSIBLE mask;
+        # a generic twelve-channel WAV need not imply the same bed order.
+        audio, _ = sf.read(self.feed, always_2d=True, dtype='float32')
+        audio[:, 2] += audio[:, 3]
+        audio[:, 3] = 0
+        wave = self.work / 'omni-feed.wav'
+        payload = audio.astype('<f4').tobytes()
+        fmt = struct.pack('<HHIIHHHHI', 0xfffe, 12, RATE, RATE * 48, 48, 32, 22, 32, 0x2d63f)
+        fmt += bytes.fromhex('0300000000001000800000aa00389b71')
+        wave.write_bytes(b'RIFF' + struct.pack('<I', 4 + 8 + len(fmt) + 8 + len(payload)) +
+                         b'WAVEfmt ' + struct.pack('<I', len(fmt)) + fmt + b'data' + struct.pack('<I', len(payload)) + payload)
+        names = ['FL', 'FR', 'C', 'BL', 'BR', 'SL', 'SR', 'TFL', 'TFR', 'TBL', 'TBR']
+        layout = {'speakers': [{'name': name, 'azimuth': -az, 'elevation': el, 'distance': 2,
+                              'spatialize': True, 'gain_db': 0, 'delay_ms': 0}
+                             for name, az, el in zip(names, azimuths, elevations)]}
+        config = self.work / 'omni.yml'
+        config.write_text(yaml.safe_dump({'render': {'current_layout': layout,
+            'binaural': {'output_mode': 'binaural', 'hrir_source': 'brir', 'brir_sofa_path': str(sofa),
+                         'brir_max_length_s': 0.0, 'brir_tail_floor_db': 200.0}}}), encoding='utf-8')
+        self.data['omniphony']['sofa'] = {'convention': 'SimpleFreeFieldHRIR', 'emitters': 11,
+                                        'receivers': 2, 'samples': len(samples), 'sample_rate': RATE,
+                                        'azimuths_degrees': azimuths, 'elevations_degrees': elevations,
+                                        'brir_max_length_s': 0, 'brir_tail_floor_db': 200}
+        self.save()
+        require(self.data['omniphony']['file_backend_in_installed_help'], 'Installed Omniphony has no file backend for a headless SOFA load check.')
+        row = self.run('Omniphony-sofa-load', [self.orender, '--config', config, '--loglevel', 'info',
+                        'render', wave, '--bridge-path', bridge, '--output-backend', 'file',
+                        '--output-file', self.work / 'omni-load.raw', '--output-file-format', 'raw-f32'], 300)
+        logs = ''.join((self.work / ('Omniphony-sofa-load.' + stream + '.log')).read_text(errors='replace')
+                       for stream in ['stdout', 'stderr'])
+        loaded = re.search(r'BRIR: .*?(\d+) emitters.*?(\d+) orientations, up to (\d+) taps', logs)
+        self.data['omniphony']['sofa_load'] = row
+        self.data['omniphony']['sofa_load']['confirmation_found'] = bool(loaded)
+        if loaded:
+            self.data['omniphony']['sofa_load'].update({'emitters': int(loaded[1]), 'orientations': int(loaded[2]), 'taps': int(loaded[3])})
+        self.save()
+        require(loaded is not None and int(loaded[1]) == 11, 'Omniphony did not confirm loading the eleven-emitter SOFA; fallback is not accepted.')
+        self.data['steps']['A5'] = 'measured: reference bridge built, check-bridges passed, eleven-emitter SOFA loaded via the installed file backend'
+        self.data['notes'].append('Contrary to the brief, installed Omniphony v0.7.0 supports a non-realtime file output backend. Used only to validate BRIR loading, not to claim realtime performance.')
+        self.data['notes'].append('Omniphony source removes common BRIR lead silence, fades tails and normalizes direct-sound energy; its future latency/residual comparison must account for those transformations.')
         self.save()
 
     def execute(self):
