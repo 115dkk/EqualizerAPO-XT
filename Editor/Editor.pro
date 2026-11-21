@@ -524,6 +524,7 @@ HEADERS  += \
 	../filters/CopyFilterFactory.h \
 	../engine/IFilter.h \
 	../engine/IFilterFactory.h \
+	../engine/LatencyMath.h \
 	guis/CopyFilterGUIScene.h \
 	guis/CopyFilterGUIForm.h \
 	guis/CopyFilterGUIRow.h \

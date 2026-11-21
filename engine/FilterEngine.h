@@ -147,6 +147,13 @@ public:
 	unsigned getChannelMask() const {return channelMask;}
 	float getSampleRate() const {return sampleRate;}
 	unsigned getMaxFrameCount() const {return maxFrameCount;}
+	// Fixed delay, in frames, added by the configuration that most recently
+	// became the processing configuration. 0 before the first one. Safe to call
+	// from any thread.
+	unsigned getRealLatency() const noexcept { return realLatency.load(std::memory_order_relaxed); }
+	// Per output channel. Not synchronised with the audio thread: call it only
+	// while processing is not running concurrently (Benchmark, tests).
+	std::vector<unsigned> getRealLatencyByChannel() const;
 	std::vector<std::wstring> deviceChannelNames() const;
 	// Meaningful only while a configuration load runs on the control thread.
 	const std::vector<std::wstring>& loadingChannelNames() const;
@@ -302,6 +309,7 @@ private:
 	EngineParser parser;
 
 	ConfigSwapChannel<FilterConfigurationPtr> configChannel;
+	std::atomic<unsigned> realLatency{0};
 	std::atomic<IInputTap*> inputTap{nullptr};
 	std::atomic<uint64_t> oversizedBlockCount{0};
 	std::atomic<unsigned> lastOversizedFrameCount{0};

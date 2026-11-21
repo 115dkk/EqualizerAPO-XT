@@ -57,6 +57,7 @@ public:
 	std::vector<std::wstring> initialize(float sampleRate, unsigned maxFrameCount,
 		std::vector<std::wstring> channelNames) override;
 	void process(double** output, double** input, unsigned frameCount) override;
+	void reportLatency(const std::vector<unsigned>& input, std::vector<unsigned>& output) const override;
 
 private:
 	uint32_t delayFrames_ = 0;

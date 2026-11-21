@@ -63,6 +63,49 @@ FilterConfiguration::FilterConfiguration(const EngineStreamFormat& format, std::
 			info->profileLabel = typeid(*info->filter).name();
 	}
 
+	std::vector<unsigned> channelLatency(allChannelCount, 0);
+	std::vector<size_t> latencyInputChannels;
+	std::vector<size_t> latencyOutputChannels;
+	for (const auto& info : this->filterInfos)
+	{
+		if (!info || !info->filter)
+			continue;
+
+		// Mirror process()'s pointer-set inheritance. Empty vectors leave the
+		// previous set intact, and a non-in-place filter swaps its output set into
+		// the input position for the next filter.
+		if (!info->inChannels.empty())
+			latencyInputChannels = info->inChannels;
+		if (!info->outChannels.empty())
+			latencyOutputChannels = info->outChannels;
+
+		std::vector<unsigned> input;
+		input.reserve(latencyInputChannels.size());
+		for (const size_t channel : latencyInputChannels)
+			input.push_back(channelLatency[channel]);
+
+		std::vector<unsigned> output;
+		output.reserve(latencyOutputChannels.size());
+		for (const size_t outputChannel : latencyOutputChannels)
+			output.push_back(channelLatency[outputChannel]);
+
+		info->filter->reportLatency(input, output);
+		const size_t reportedChannelCount = (std::min)(output.size(),
+			latencyOutputChannels.size());
+		for (size_t channel = 0; channel < reportedChannelCount; ++channel)
+			channelLatency[latencyOutputChannels[channel]] = output[channel];
+
+		if (!info->inPlace)
+			std::swap(latencyInputChannels, latencyOutputChannels);
+	}
+
+	realLatencyByChannel_.assign(outputChannelCount, 0);
+	for (unsigned channel = 0; channel < outputChannelCount; ++channel)
+		realLatencyByChannel_[channel] = channelLatency[channel];
+	if (!realLatencyByChannel_.empty())
+		realLatency_ = *(std::max_element)(realLatencyByChannel_.cbegin(),
+			realLatencyByChannel_.cend());
+
 	allStateless = true;
 	for (const auto& info : this->filterInfos)
 	{

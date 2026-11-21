@@ -29,6 +29,7 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
+#include <iomanip>
 #include <numeric>
 #include <cmath>
 #include <numbers>
@@ -278,6 +279,20 @@ int main(int argc, char** argv)
 
 			cout << processedFrameCount * channelCount * repeatCount << " samples processed in " << time << " seconds\n";
 			cout << "This is equivalent to " << 100.0f * time / totalAudio << "% CPU load (one core) when processing in real time\n";
+			const unsigned realLatency = engine.getRealLatency();
+			// The figures printed after this keep the stream's own precision.
+			const std::streamsize streamPrecision = cout.precision();
+			cout << "Real latency: " << realLatency << " samples (" << std::fixed
+				<< std::setprecision(3) << 1000.0 * realLatency / sampleRate
+				<< " ms)\n" << std::defaultfloat << std::setprecision(static_cast<int>(streamPrecision));
+			if (verbose)
+			{
+				const vector<unsigned> latencyByChannel = engine.getRealLatencyByChannel();
+				cout << "Real latency by output channel:";
+				for (const unsigned channelLatency : latencyByChannel)
+					cout << " " << channelLatency;
+				cout << " samples\n";
+			}
 
 			if (!batchTimes.empty())
 			{

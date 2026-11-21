@@ -178,3 +178,24 @@ void CopyFilter::process(double** output, double** input, unsigned frameCount)
 	}
 }
 #pragma AVRT_CODE_END
+
+void CopyFilter::reportLatency(const vector<unsigned>& input, vector<unsigned>& output) const
+{
+	for (const InternalAssignment& assignment : internalAssignments)
+	{
+		if (assignment.targetChannel < 0
+			|| static_cast<size_t>(assignment.targetChannel) >= output.size())
+			continue;
+
+		unsigned largest = 0;
+		for (const InternalSummand& summand : assignment.sourceSum)
+		{
+			if (summand.kind != InternalSummand::Kind::Channel || summand.factor == 0.0
+				|| summand.channel < 0
+				|| static_cast<size_t>(summand.channel) >= input.size())
+				continue;
+			largest = (std::max)(largest, input[static_cast<size_t>(summand.channel)]);
+		}
+		output[static_cast<size_t>(assignment.targetChannel)] = largest;
+	}
+}

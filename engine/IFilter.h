@@ -59,6 +59,17 @@ public:
 	// engine bypasses a host block that violates this contract (audit #467 TD-10).
 	virtual void process(double** output, double** input, unsigned frameCount) = 0;
 
+	// Fixed delay this filter adds, in frames. `input` has one value per channel
+	// process() reads (same order as its input pointers); `output` has one value
+	// per channel process() writes (same order as its output pointers) and
+	// arrives pre-filled by the engine with the value that channel already holds,
+	// or 0 if no earlier filter wrote it. A filter that delays or mixes channels
+	// overrides these values. Called once after initialize(), never on the audio
+	// thread.
+	// Only delay added as a fixed frame count is reported; the group delay of a
+	// filter's own response is not.
+	virtual void reportLatency(const std::vector<unsigned>& input, std::vector<unsigned>& output) const {}
+
 	// Returns true if silent input can still produce non-silent output, either because
 	// the filter carries cross-block state (BiQuad, Delay, IIR) or because it has a
 	// convolution tail (Convolution, GraphicEQ). Conservative default is true so new

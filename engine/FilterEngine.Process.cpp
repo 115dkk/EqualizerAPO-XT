@@ -306,6 +306,9 @@ void FilterEngine::finishTransitionIfReady()
 	if (configChannel.hasPending() && transitionCounter >= transitionLength)
 	{
 		configChannel.completeTransition();
+		FilterConfigurationPtr& currentConfig = configChannel.current();
+		realLatency.store(currentConfig ? currentConfig->realLatency() : 0,
+			std::memory_order_relaxed);
 		transitionCounter = 0;
 	}
 }

@@ -15,6 +15,7 @@
 #include "audio/ChannelLayout.h"
 #include "diagnostics/performance/PerfProfile.h"
 #include "engine/FilterEngine.h"
+#include "engine/LatencyMath.h"
 #include "filters/SendLink.h"
 #include "services/logging/Logging.h"
 
@@ -121,3 +122,14 @@ void SendCompensationFilter::process(double** output, double** input, unsigned f
 	delayLine_.process(output, input, frameCount);
 }
 #pragma AVRT_CODE_END
+
+void SendCompensationFilter::reportLatency(const std::vector<unsigned>& input,
+	std::vector<unsigned>& output) const
+{
+	if (delayLine_.empty())
+		return;
+	const size_t count = (std::min)({input.size(), output.size(),
+		static_cast<size_t>(delayedChannelCount_)});
+	for (size_t channel = 0; channel < count; ++channel)
+		output[channel] = addLatency(input[channel], delayLine_.length());
+}

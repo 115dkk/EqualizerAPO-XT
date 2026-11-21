@@ -21,11 +21,13 @@
 
 #include <algorithm>
 #include <exception>
+#include <limits>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "SubwooferRouting/Compiler.h"
+#include "engine/LatencyMath.h"
 #include "services/logging/Logging.h"
 #include "diagnostics/performance/PerfProfile.h"
 #include "SubwooferRoutingCommand.h"
@@ -72,6 +74,8 @@ std::vector<std::wstring> SubwooferRoutingFilter::initialize(float sampleRate,
 	unsigned maxFrameCount, std::vector<std::wstring> channelNames)
 {
 	passthrough = true;
+	latencyPaths.clear();
+	latencyOutputs.clear();
 	channelCount = static_cast<unsigned>(channelNames.size());
 
 	const subroute::PrepareSpec spec {
@@ -118,9 +122,13 @@ std::vector<std::wstring> SubwooferRoutingFilter::initialize(float sampleRate,
 	try
 	{
 		processor.prepare(graph);
+		latencyPaths = graph.paths();
+		latencyOutputs = graph.outputs();
 	}
 	catch (const std::exception& exception)
 	{
+		latencyPaths.clear();
+		latencyOutputs.clear();
 		LogF(L"SubwooferRouting: processor preparation failed: %s",
 			subwooferRoutingFromUtf8(exception.what()).c_str());
 		return channelNames;
@@ -156,3 +164,59 @@ void SubwooferRoutingFilter::process(double** output, double** input,
 	processor.process(block);
 }
 #pragma AVRT_CODE_END
+
+void SubwooferRoutingFilter::reportLatency(const std::vector<unsigned>& input,
+	std::vector<unsigned>& output) const
+{
+	if (passthrough)
+		return;
+
+	std::vector<unsigned> pathLatency(latencyPaths.size(), 0);
+	for (size_t pathIndex = 0; pathIndex < latencyPaths.size(); ++pathIndex)
+	{
+		const subroute::CompiledPath& path = latencyPaths[pathIndex];
+		unsigned largestInput = 0;
+		bool hasInput = false;
+		for (const subroute::CompiledSourceTerm& source : path.sourceMix)
+		{
+			if (source.gainLinear != 0.0 && source.inputChannelIndex < input.size())
+			{
+				hasInput = true;
+				largestInput = (std::max)(largestInput, input[source.inputChannelIndex]);
+			}
+		}
+
+		unsigned fixedDelay = 0;
+		for (const subroute::CompiledStage& stage : path.stages)
+		{
+			if (stage.kind != subroute::CompiledStageKind::Delay)
+				continue;
+			const size_t maximum = (std::numeric_limits<unsigned>::max)();
+			const unsigned integerDelay = stage.integerDelaySamples > maximum
+				? (std::numeric_limits<unsigned>::max)()
+				: static_cast<unsigned>(stage.integerDelaySamples);
+			fixedDelay = addLatency(fixedDelay, integerDelay);
+			if (stage.fractionalDelaySamples > 0.0)
+				fixedDelay = addLatency(fixedDelay, 1);
+		}
+		pathLatency[pathIndex] = hasInput ? addLatency(largestInput, fixedDelay) : 0;
+	}
+
+	for (const subroute::CompiledOutput& compiledOutput : latencyOutputs)
+	{
+		if (compiledOutput.targetChannelIndex >= output.size())
+			continue;
+		unsigned largest = 0;
+		if (compiledOutput.mode == subroute::OutputMode::Add
+			&& compiledOutput.targetChannelIndex < input.size())
+		{
+			largest = input[compiledOutput.targetChannelIndex];
+		}
+		for (const subroute::CompiledOutputTerm& term : compiledOutput.terms)
+		{
+			if (term.gainLinear != 0.0 && term.sourcePathIndex < pathLatency.size())
+				largest = (std::max)(largest, pathLatency[term.sourcePathIndex]);
+		}
+		output[compiledOutput.targetChannelIndex] = largest;
+	}
+}
