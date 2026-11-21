@@ -14,6 +14,20 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Multi-core convolution uses as many cores as make the sound finish sooner.**
+  It woke at most seven helper threads whatever the processor. The limit is now
+  the processor itself (one fewer than its logical cores), and the engine
+  decides how many to wake by measuring: it tries one more or one fewer for a
+  few seconds and keeps the change only when each block of audio was processed
+  faster, or no slower with one thread fewer. A heavy convolution on a
+  many-core processor gets more threads; a convolution that seven threads did
+  not speed up gets fewer, which leaves those cores to other programs. The
+  sound and the latency are unchanged. On the 16-thread test machine a
+  22-channel room response settled at four to six helper threads and took the
+  same time per block as with seven or fifteen. It has not been measured on a
+  processor with more cores, and not inside the Windows audio service.
+  ([#514](https://github.com/115dkk/EqualizerAPO-XT/pull/514))
+
 ## v2.75.0 — 2026-11-21
 
 - **The VST card's channel fill is one section below the card's body.** The
