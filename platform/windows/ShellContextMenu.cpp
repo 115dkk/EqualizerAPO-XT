@@ -351,6 +351,10 @@ ShellMenuResult trackMenu(HWND owner, IContextMenu* contextMenu, POINT screenPoi
 		const UINT alignment = GetSystemMetrics(SM_MENUDROPALIGNMENT) ? TPM_RIGHTALIGN : TPM_LEFTALIGN;
 		command = static_cast<UINT>(TrackPopupMenuEx(menu.get(), TPM_RETURNCMD | TPM_RIGHTBUTTON | alignment,
 			screenPoint.x, screenPoint.y, owner, nullptr));
+		// The menu loop above runs the subclass procedure, which uninstalls
+		// itself when the owner is destroyed while the menu is open, so this
+		// is not the check from before the loop repeated.
+		// cppcheck-suppress identicalConditionAfterEarlyExit
 		if (subclass.failed() || !subclass.installed() || !subclass.shown())
 			return ShellMenuResult::Unavailable;
 	}
