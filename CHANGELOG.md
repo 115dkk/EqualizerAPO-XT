@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.75.0 — 2026-11-21
+
 - **The VST card's channel fill is one section below the card's body.** The
   slots that say which channel goes into and comes out of a plugin were two
   rows, one above the card's body and one below it, with the slot names shown
