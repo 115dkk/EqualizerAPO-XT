@@ -735,9 +735,12 @@ log = "0.4.27"
         details['program_diagnostics'] = diagnostics
         analysis = details['analysis']
         reference_valid = analysis['residual_power_ratio'] < 0.001
-        clean = details['clean'] and reference_valid and not diagnostics['mute_reports'] and not diagnostics['passthrough_warnings']
+        program_log_available = program != 'XT' or diagnostics['log_present']
+        clean = details['clean'] and reference_valid and program_log_available and not diagnostics['mute_reports'] and not diagnostics['passthrough_warnings']
+        dropouts = bool(analysis['recording_dropouts'] or any(details['callback_flags'].values()) or diagnostics['mute_reports'])
         row = {'program': program, 'setting': label, 'lag_samples': analysis['lag_samples'],
-               'added_samples': None, 'added_ms': None, 'dropouts': not clean,
+               'added_samples': None, 'added_ms': None, 'dropouts': dropouts,
+               'program_log_available': program_log_available,
                'cpu_s': details['audiodg_cpu_s'], 'audio_tool_cpu_s': process['cpu_s'],
                'gain': analysis['gain'], 'residual_db': analysis['residual_db'],
                'reference_match_below_minus30db': reference_valid,
@@ -764,6 +767,10 @@ log = "0.4.27"
         self.config_dir.mkdir(exist_ok=True, parents=True)
         for file in self.full_config.iterdir():
             shutil.copyfile(file, self.config_dir / file.name)
+        # Trace remains on the disposable runner. Never copy this log: it can
+        # contain private configuration. Export only numeric diagnostic counts.
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\EqualizerAPO', 0, winreg.KEY_SET_VALUE) as key:
+            winreg.SetValueEx(key, 'EnableTrace', 0, winreg.REG_SZ, 'true')
         selector = self.current / 'DeviceSelector.exe'
         guid = self.endpoints['CABLE Input']['guid']
         self.data['xt_apo'] = {'flow': 'Render', 'endpoint': 'CABLE Input', 'guid': guid}

@@ -3,6 +3,7 @@
 Audio stays in Work. JSON contains only device/settings and numeric diagnostics.
 """
 import argparse
+import ctypes
 import json
 import os
 from pathlib import Path
@@ -117,6 +118,24 @@ def analyse(recording, reference):
     lags = signal.correlation_lags(len(a), len(b))
     use = np.abs(lags) <= RATE * 2
     lag = int(lags[use][np.argmax(np.abs(correlation[use]))])
+    segments = []
+    for seconds in range(5, int(len(x) / RATE) - 3, 10):
+        offset, length, margin = seconds * RATE, 2 * RATE, RATE // 4
+        left = offset + lag - margin
+        if left < 0 or left + length + 2 * margin > len(y):
+            continue
+        reference_piece = x[offset:offset + length]
+        recording_search = y[left:left + length + 2 * margin]
+        local_corr = signal.correlate(recording_search[:, 0], reference_piece[:, 0], mode='valid', method='fft')
+        peak = int(np.argmax(np.abs(local_corr)))
+        piece = recording_search[peak:peak + length]
+        energy = float(np.sum(piece ** 2))
+        if energy <= 0:
+            continue
+        local_gain = float(np.sum(piece * reference_piece) / energy)
+        local_ratio = float(np.sum((local_gain * piece - reference_piece) ** 2) / np.sum(reference_piece ** 2))
+        segments.append({'start_s': seconds, 'lag_samples': lag - margin + peak,
+                         'gain': local_gain, 'residual_db': float(10 * np.log10(local_ratio)) if local_ratio > 0 else None})
     begin = RATE * 3
     end = min(len(x) - RATE, len(y) - lag - RATE)
     expected = x[begin:end]
@@ -150,6 +169,8 @@ def analyse(recording, reference):
             'residual_spike_threshold_power_ratio': threshold, 'zero_gap_events': gaps,
             'longest_zero_gap_frames': int(np.max(lengths)) if len(lengths) else 0,
             'analysis_start_s': begin / RATE, 'analysis_end_s': end / RATE,
+            'segments': segments,
+            'segment_lag_spread_samples': max(row['lag_samples'] for row in segments) - min(row['lag_samples'] for row in segments) if segments else None,
             'recording_dropouts': bool(spike_events or gaps)}
 
 
@@ -162,8 +183,11 @@ def main():
     parser.add_argument('--channels', type=int, default=2)
     args = parser.parse_args()
     path = Path(args.json)
+    timer = ctypes.WinDLL('winmm')
+    timer_started = timer.timeBeginPeriod(1) == 0
     try:
         data = record_play(args.play, args.record, args.render_name, args.capture_name, args.channels)
+        data['timer_period_ms'] = 1 if timer_started else None
         data['analysis'] = analyse(args.record, args.reference)
         data['clean'] = not data['analysis']['recording_dropouts'] and not any(data['callback_flags'].values())
         data['clean_definition'] = 'No active-music WASAPI callback under/overflow, no >1ms unexpected zero gap, no 10ms residual block above max(-20dB, 10x median residual power ratio). Startup/tail flags are reported separately.'
@@ -177,6 +201,9 @@ def main():
             data['portaudio_error_code'] = exc.args[1] if len(exc.args) > 1 and isinstance(exc.args[1], int) else None
         path.write_text(json.dumps(data, indent=2), encoding='ascii')
         return 1
+    finally:
+        if timer_started:
+            timer.timeEndPeriod(1)
 
 
 if __name__ == '__main__':
