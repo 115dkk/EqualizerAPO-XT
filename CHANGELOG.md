@@ -28,6 +28,32 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   now a dark amber.
   ([#511](https://github.com/115dkk/EqualizerAPO-XT/pull/511))
 
+## v2.73.0 — 2026-11-21
+
+- **The file dialog opens Explorer's right-click menu, and can be the Windows
+  dialog.** Right-clicking a file, a folder or empty space in the Editor's file
+  dialog used to open a short menu of Qt's own. It now opens the same menu
+  Explorer shows, so entries added by other programs (file search tools,
+  archivers) and Properties work there. Rename is left out, because the dialog
+  has no place to type the new name. The "new folder" button next to "parent
+  folder" is gone; it was pressed by mistake more often than on purpose, and
+  New > Folder is still in the right-click menu of the empty space. Settings >
+  Interface has a new "Windows file dialog" option, off by default, that makes
+  every file dialog the Windows one. With it on, pick a VST3 bundle by opening
+  the bundle folder and choosing the module inside `Contents`; the Editor
+  stores the bundle.
+  ([#510](https://github.com/115dkk/EqualizerAPO-XT/pull/510))
+- **Folders left behind by an update are removed.** After an update, a copy of
+  the previous version could stay on disk: about 70 MB under
+  `packages\VelopackTemp` in the install folder, or, after running Setup over
+  an existing installation, a whole copy next to it in `%LOCALAPPDATA%` named
+  like `EqualizerAPO-XT-x64-avx2_` plus 16 random characters. Windows' audio
+  service still had the previous `EqualizerAPO.dll` open, and the updater
+  stopped deleting at that file. The Editor now removes these folders when it
+  starts, in the background. Copies left by earlier updates are removed too. A
+  file that is still open stays until a later start.
+  ([#510](https://github.com/115dkk/EqualizerAPO-XT/pull/510))
+
 ## v2.72.0 — 2026-11-20
 
 - **Height channels have names.** On a playback device with height speakers

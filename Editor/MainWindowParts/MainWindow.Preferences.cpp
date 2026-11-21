@@ -333,6 +333,15 @@ void MainWindow::setupRedesignActions()
 	nativeTitleAction->setCheckable(true);
 	nativeTitleAction->setChecked(!useCustomFrame);
 	connect(nativeTitleAction, SIGNAL(toggled(bool)), this, SLOT(nativeTitleBarToggled(bool)));
+
+	// The Windows file dialog instead of the skinned one, for users who
+	// want Explorer's own view there (issue #508). Read each time a dialog
+	// opens, so no restart.
+	QAction* nativeFileDialogAction = interfaceMenu->addAction(tr("Windows file dialog"));
+	nativeFileDialogAction->setCheckable(true);
+	nativeFileDialogAction->setChecked(GUIHelper::useNativeFileDialog());
+	connect(nativeFileDialogAction, &QAction::toggled, this,
+		[](bool checked) { GUIHelper::setUseNativeFileDialog(checked); });
 }
 
 void MainWindow::syncKnobRangeActions()

@@ -38,11 +38,13 @@
 #include <QSplitter>
 #include <QStandardPaths>
 #include <QStyleHints>
+#include <QToolButton>
 #include <QTreeView>
 #include <QUrl>
 
 #include "services/registry/WindowsRegistry.h"
 #include "Editor/SkinManager.h"
+#include "Editor/helpers/FileDialogShellMenu.h"
 #include "Editor/import/LegacyMigration.h"
 #include "Editor/widgets/DialogChrome.h"
 
@@ -109,10 +111,22 @@ void GUIHelper::setKnobGainRange(double range)
 	settings.setValue(QLatin1String(EditorSettings::Keys::KnobGainRange), qBound(1.0, range, 100.0));
 }
 
+bool GUIHelper::useNativeFileDialog()
+{
+	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
+	return settings.value(QLatin1String(EditorSettings::Keys::NativeFileDialog), false).toBool();
+}
+
+void GUIHelper::setUseNativeFileDialog(bool native)
+{
+	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
+	settings.setValue(QLatin1String(EditorSettings::Keys::NativeFileDialog), native);
+}
+
 void GUIHelper::prepareFileDialog(QFileDialog& dialog)
 {
 	SkinManager* skinManager = SkinManager::instance();
-	if (skinManager->isHeritage())
+	if (skinManager->isHeritage() || useNativeFileDialog())
 		return;
 
 	// The widget-based dialog inherits the app-wide skin sheet; setting the
@@ -227,6 +241,17 @@ void GUIHelper::prepareFileDialog(QFileDialog& dialog)
 			header->setSectionResizeMode(section, QHeaderView::ResizeToContents);
 	}
 
+	// No "new folder" button: it sat right next to "parent folder" and was
+	// hit by mistake far more often than on purpose (issue #508). Making a
+	// folder is still there, in the folder background's shell menu below.
+	if (QToolButton* newFolder = dialog.findChild<QToolButton*>(QStringLiteral("newFolderButton")))
+		newFolder->hide();
+
+	// Right-click opens Explorer's own menu instead of Qt's three-entry one,
+	// so shell extensions (search tools, archivers, Properties) work here as
+	// they do in the Windows dialog.
+	FileDialogShellMenu::attach(dialog);
+
 	// Enough sidebar width for the location labels under the larger skin
 	// typefaces; the stock split truncates even short folder names on flat.
 	if (QSplitter* splitter = dialog.findChild<QSplitter*>(QStringLiteral("splitter")))
@@ -249,6 +274,8 @@ void GUIHelper::enableVst3BundleSelection(QFileDialog& dialog)
 	// directoryEntered only fires reliably from the widget-based dialog, so
 	// the native dialog is opted out here even where prepareFileDialog kept
 	// it - see the header comment.
+	if (useNativeFileDialog())
+		return;
 	dialog.setOption(QFileDialog::DontUseNativeDialog);
 	QObject::connect(&dialog, &QFileDialog::directoryEntered, &dialog,
 		[&dialog](const QString& path)
@@ -260,4 +287,19 @@ void GUIHelper::enableVst3BundleSelection(QFileDialog& dialog)
 			// the middle of its own navigation signal.
 			QMetaObject::invokeMethod(&dialog, "accept", Qt::QueuedConnection);
 		});
+}
+
+QString GUIHelper::vst3BundleForInnerBinary(const QString& path)
+{
+	const QFileInfo binary(path);
+	if (binary.suffix().compare(QLatin1String("vst3"), Qt::CaseInsensitive) != 0 || !binary.isFile())
+		return path;
+	QDir platformDir = binary.absoluteDir();
+	QDir contentsDir = platformDir;
+	if (!contentsDir.cdUp() || contentsDir.dirName().compare(QLatin1String("Contents"), Qt::CaseInsensitive) != 0)
+		return path;
+	QDir bundleDir = contentsDir;
+	if (!bundleDir.cdUp() || !bundleDir.dirName().endsWith(QLatin1String(".vst3"), Qt::CaseInsensitive))
+		return path;
+	return bundleDir.absolutePath();
 }
