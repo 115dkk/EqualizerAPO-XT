@@ -194,10 +194,10 @@ QString checkFillBlock(const ISkin* skin, const SkinTokens& tokens)
 			QStringLiteral("RL"), QStringLiteral("RR"), QStringLiteral("SBL"), QStringLiteral("SBR") });
 	struct Case
 	{
-		const char* name;
+		const char* name = "";
 		QList<VSTSlotFillBlock::CellData> input;
 		QList<VSTSlotFillBlock::CellData> output;
-		bool collapsed;
+		bool collapsed = false;
 	};
 	const QList<Case> cases = {
 		{ "5.1/5.1", in51, out51, false },

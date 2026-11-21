@@ -234,7 +234,7 @@ void VSTSlotFillBlock::setRows(const QList<CellData>& input, const QList<CellDat
 		// output cells. Cells created later would otherwise trail the focus
 		// chain wherever they happened to be appended.
 		QWidget* previous = latch;
-		for (QList<VSTSlotFillCell*>* cells : { &inputCells, &outputCells })
+		for (const QList<VSTSlotFillCell*>* cells : { &inputCells, &outputCells })
 		{
 			for (VSTSlotFillCell* cell : *cells)
 			{
