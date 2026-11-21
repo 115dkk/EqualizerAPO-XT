@@ -5029,12 +5029,14 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>VSTBusStrip</name>
     <message>
+        <location filename="../skins/studio/StudioSkin.Controls.cpp" line="586"/>
         <location filename="../widgets/cards/VSTBusStrip.cpp" line="55"/>
         <location filename="../widgets/cards/VSTBusStrip.cpp" line="115"/>
         <source>Out</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <location filename="../skins/studio/StudioSkin.Controls.cpp" line="587"/>
         <location filename="../widgets/cards/VSTBusStrip.cpp" line="55"/>
         <location filename="../widgets/cards/VSTBusStrip.cpp" line="115"/>
         <source>In</source>
@@ -5054,44 +5056,44 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>VSTCardEditor</name>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="510"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="627"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="544"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="644"/>
         <source>Select VST plugin</source>
         <translation>选择 VST 插件</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="106"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="683"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="107"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="700"/>
         <source>Open panel</source>
         <translation>打开面板</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="101"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="102"/>
         <source>Copy the library into the config directory so the audio service can read it</source>
         <translation>将库复制到配置目录，以便音频服务可以读取</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="117"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="118"/>
         <source>Embed panel in card</source>
         <translation>将面板嵌入卡片</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="123"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="124"/>
         <source>Remove Input/Output layouts</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="124"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="125"/>
         <source>Deletes the saved VST3 bus layouts from this line.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="130"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="131"/>
         <source>Remove channel fill</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="131"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="132"/>
         <source>Deletes the saved per-slot channel lists from this line.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5112,7 +5114,7 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <translation type="vanished">插件在初始化期间崩溃。</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="401"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="435"/>
         <source>No plugin selected</source>
         <translation>未选择插件</translation>
     </message>
@@ -5121,12 +5123,12 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <translation type="vanished">音频服务无法读取</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="509"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="543"/>
         <source>Locate...</source>
         <translation>定位...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="510"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="544"/>
         <source>Locate the missing plugin library</source>
         <translation>定位缺失的插件库</translation>
     </message>
@@ -5167,7 +5169,7 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="627"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="644"/>
         <source>VST plugins (*.dll *.vst3)</source>
         <translation>VST 插件 (*.dll *.vst3)</translation>
     </message>
@@ -5176,7 +5178,7 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <translation type="vanished">插件在打开面板时崩溃。</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="683"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="700"/>
         <source>Close panel</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5189,7 +5191,7 @@ Change the file permissions or copy the files to the config directory.</source>
 请更改文件权限，或将这些文件复制到配置目录。</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="504"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="538"/>
         <source>Loading plugin...</source>
         <translation>正在加载插件...</translation>
     </message>
@@ -5377,6 +5379,38 @@ Change the file permissions or copy the files to the config directory.</source>
     </message>
 </context>
 <context>
+    <name>VSTSlotFillBlock</name>
+    <message>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="234"/>
+        <source>Choose which channel goes into and comes out of each plugin slot.</source>
+        <translation>为插件的每个位置选择送入和接收的声道。</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="241"/>
+        <source>Out</source>
+        <comment>row caption: the channels the plugin&apos;s output slots write</comment>
+        <translation>接收</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="242"/>
+        <source>In</source>
+        <comment>row caption: the channels fed into the plugin&apos;s input slots</comment>
+        <translation>送入</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="252"/>
+        <source>Discard</source>
+        <comment>an output slot whose sound is thrown away</comment>
+        <translation>丢弃</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="253"/>
+        <source>Silence</source>
+        <comment>an input slot that gets no channel</comment>
+        <translation>静音</translation>
+    </message>
+</context>
+<context>
     <name>VSTSlotFillCell</name>
     <message>
         <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="57"/>
@@ -5389,12 +5423,12 @@ Change the file permissions or copy the files to the config directory.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="199"/>
+        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="208"/>
         <source>Discard (-)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="199"/>
+        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="208"/>
         <source>Silence (-)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5402,7 +5436,9 @@ Change the file permissions or copy the files to the config directory.</source>
 <context>
     <name>VSTSlotFillRail</name>
     <message>
-        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="239"/>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="229"/>
+        <location filename="../widgets/cards/VSTSlotFillBlock.cpp" line="195"/>
+        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="248"/>
         <source>Channel fill</source>
         <translation type="unfinished"></translation>
     </message>

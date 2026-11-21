@@ -14,6 +14,17 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The VST card's channel fill is one section below the card's body.** The
+  slots that say which channel goes into and comes out of a plugin were two
+  rows, one above the card's body and one below it, with the slot names shown
+  twice. They are now one section at the bottom of the card: an input row and
+  an output row, with the slot names shown once between them when both sides
+  use the same layout and once per row when they differ. The fold control is
+  part of that section in every skin. In Stock Flat the section has a heading
+  and a one-line hint, each slot's name sits above its box, and a slot that is
+  left silent or discarded shows the word instead of a dash.
+  ([#513](https://github.com/115dkk/EqualizerAPO-XT/pull/513))
+
 ## v2.74.0 — 2026-11-21
 
 - **Hardware Rack: the VST card says its format once, on a readout.** The card

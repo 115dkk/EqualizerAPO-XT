@@ -495,6 +495,36 @@ void MinimalSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellS
 	if (!state.enabled)
 		valueInk = withAlpha(QColor(tokens.mutedText), 150);
 
+	if (state.roleInBlock)
+	{
+		// In the block's table the role heads the column; the cell is the
+		// channel and the caret, left-aligned under it, the same bare ink.
+		painter.setFont(valueFont);
+		painter.setPen(valueInk);
+		const qreal valueLeft = rect.left() + 1.0;
+		const qreal valueWidth = QFontMetricsF(valueFont).horizontalAdvance(state.valueText);
+		const qreal caretLeft = valueLeft + valueWidth + 4.0;
+		const qreal caretHalf = 2.5;
+		const qreal caretMidY = rect.center().y() + 1.0;
+		const QColor caretInk = state.menuOpen || state.focused ? QColor(tokens.accent) : roleInk;
+		painter.setRenderHint(QPainter::Antialiasing, true);
+		QPainterPath caret;
+		caret.moveTo(caretLeft, caretMidY - caretHalf / 2.0);
+		caret.lineTo(caretLeft + caretHalf * 2.0, caretMidY - caretHalf / 2.0);
+		caret.lineTo(caretLeft + caretHalf, caretMidY + caretHalf);
+		caret.closeSubpath();
+		painter.fillPath(caret, caretInk);
+		painter.setRenderHint(QPainter::Antialiasing, false);
+		painter.drawText(QRectF(valueLeft, rect.top(), rect.right() - valueLeft, rect.height()),
+			Qt::AlignLeft | Qt::AlignVCenter, state.valueText);
+		if (state.enabled && (state.hovered || state.focused || state.menuOpen))
+		{
+			painter.setPen(QPen(state.focused || state.menuOpen ? QColor(tokens.accent) : roleInk, 1));
+			painter.drawLine(QPointF(valueLeft, rect.bottom() - 2.5), QPointF(valueLeft + valueWidth, rect.bottom() - 2.5));
+		}
+		return;
+	}
+
 	const QString role = state.roleToken.toLower();
 	painter.setFont(roleFont);
 	painter.setPen(roleInk);
@@ -529,38 +559,83 @@ void MinimalSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellS
 	}
 }
 
-void MinimalSkin::paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state, const SkinTokens& tokens) const
+VstSlotFillArrangement MinimalSkin::vstSlotFillArrangement() const
+{
+	return VstSlotFillArrangement::JoinedBlockBelowBody;
+}
+
+VstSlotFillBlockMetrics MinimalSkin::vstSlotFillBlockMetrics(bool collapsed, const SkinTokens& tokens) const
+{
+	Q_UNUSED(collapsed);
+	const QFontMetricsF label(minimalFillRoleFont(tokens));
+	VstSlotFillBlockMetrics metrics;
+	metrics.cellHeight = VSTSlotFillRail::cellHeight();
+	metrics.roleLineHeight = 14;
+	metrics.roleGap = 0;
+	metrics.groupGap = 8;
+	metrics.cellGap = 12;
+	metrics.captionWidth = qCeil(qMax(label.horizontalAdvance(QStringLiteral("in")),
+		label.horizontalAdvance(QStringLiteral("out"))));
+	metrics.captionGap = 10;
+	metrics.padding = QMargins(12, 0, 12, 0);
+	metrics.latchPlacement = VstSlotFillBlockMetrics::LatchPlacement::LeftColumn;
+	// The reverse-video token: the word and 5 either side.
+	metrics.latchWidth = qCeil(label.horizontalAdvance(QStringLiteral("fill")) + 10.0);
+	metrics.latchHeight = metrics.cellHeight;
+	metrics.latchGap = 12;
+	metrics.shareRoleLine = true;
+	metrics.rolesAboveRows = false;
+	return metrics;
+}
+
+int MinimalSkin::vstSlotFillBlockColumnWidth(const QString& role, const QString& value, bool output,
+	const SkinTokens& tokens) const
+{
+	Q_UNUSED(output);
+	// The cell's line: 1, the channel, 4, the 5-wide caret, 2.
+	const qreal roleWidth = QFontMetricsF(minimalFillRoleFont(tokens)).horizontalAdvance(role.toLower());
+	const qreal valueWidth = QFontMetricsF(minimalFillValueFont(tokens)).horizontalAdvance(value);
+	return qCeil(qMax(roleWidth + 2.0, 1.0 + valueWidth + 4.0 + 5.0 + 2.0));
+}
+
+// The block is a two-line table set in the terminal's type: lowercase
+// in/out at the row heads, the slot roles once as the column heads between
+// the rows (or one head line per row when the slot lists differ), all in
+// the quiet ink, and no tray or rule of its own. The fold stays the
+// reverse-video token at the left.
+void MinimalSkin::paintVstSlotFillBlock(QPainter& painter, const VstSlotFillBlockState& state, const SkinTokens& tokens) const
 {
 	QPainterStateGuard guard(&painter);
 	painter.setRenderHint(QPainter::TextAntialiasing, true);
 
-	// No tray: the rail is negative space. Only the latch prints, in the
-	// skin's reverse-video register while the strip is engaged.
-	if (state.latchRect.isNull())
+	const QColor quiet = withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150);
+	painter.setFont(minimalFillRoleFont(tokens));
+	painter.setPen(quiet);
+	for (const VstSlotFillBlockState::Caption& caption : state.captions)
+		painter.drawText(caption.rect, Qt::AlignLeft | Qt::AlignVCenter,
+			caption.output ? QStringLiteral("out") : QStringLiteral("in"));
+	for (const VstSlotFillBlockState::Role& role : state.roles)
+		painter.drawText(QRectF(role.rect).adjusted(1.0, 0, 0, 0), Qt::AlignLeft | Qt::AlignVCenter, role.role.toLower());
+
+	if (state.latchRect.isNull() || !state.latchActive)
 		return;
-	QFont latchFont(tokens.monoFontFamily);
-	latchFont.setPixelSize(11);
-	painter.setFont(latchFont);
 	const QString token = QStringLiteral("fill");
 	const QRectF latch(state.latchRect);
-	const qreal tokenWidth = QFontMetricsF(latchFont).horizontalAdvance(token);
-	const QRectF chip(latch.left(), latch.center().y() - 8.0, tokenWidth + 10.0, 16.0);
+	const QRectF chip(latch.left(), latch.center().y() - 8.0, latch.width(), 16.0);
 	if (!state.collapsed)
 	{
-		painter.setPen(Qt::NoPen);
-		painter.setBrush(withAlpha(QColor(tokens.text), state.enabled ? 255 : 150));
-		painter.fillRect(chip, painter.brush());
+		painter.fillRect(chip, withAlpha(QColor(tokens.text), state.enabled ? 255 : 150));
 		painter.setPen(QColor(tokens.background));
 	}
 	else
 	{
-		if (state.latchHovered || state.latchFocused)
+		if (state.enabled && (state.latchHovered || state.latchFocused))
 		{
 			painter.setPen(QPen(state.latchFocused ? QColor(tokens.accent) : QColor(tokens.border), 1));
 			painter.setBrush(Qt::NoBrush);
 			painter.drawRect(chip.adjusted(0.5, 0.5, -0.5, -0.5));
 		}
-		painter.setPen(withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150));
+		painter.setPen(quiet);
 	}
 	painter.drawText(chip, Qt::AlignCenter, token);
 }

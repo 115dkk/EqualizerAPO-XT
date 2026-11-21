@@ -79,6 +79,14 @@ void VSTSlotFillCell::setChannelChoices(const QStringList& names)
 	choices = names;
 }
 
+void VSTSlotFillCell::setRoleInBlock(bool inBlock)
+{
+	if (roleInBlock == inBlock)
+		return;
+	roleInBlock = inBlock;
+	update();
+}
+
 QStringList VSTSlotFillCell::channelChoices() const
 {
 	QStringList menu = choices;
@@ -117,6 +125,7 @@ void VSTSlotFillCell::paintEvent(QPaintEvent*)
 	state.pressed = pressed;
 	state.focused = hasFocus();
 	state.menuOpen = menuOpen;
+	state.roleInBlock = roleInBlock;
 	SkinManager::instance()->paintVstSlotFillCell(painter, state);
 }
 

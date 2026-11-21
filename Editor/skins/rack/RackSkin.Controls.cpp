@@ -589,6 +589,32 @@ QFont rackFillValueFont(const SkinTokens& tokens)
 	font.setPixelSize(12);
 	return font;
 }
+
+// The block's row captions, engraved as the bus strip engraves its IN/OUT.
+QFont rackFillCaptionFont(const SkinTokens& tokens)
+{
+	QFont font(tokens.fontFamily);
+	font.setPixelSize(9);
+	font.setBold(true);
+	font.setLetterSpacing(QFont::AbsoluteSpacing, 1.2);
+	return font;
+}
+
+// A value cap's width in the block: the channel or "LFE", whichever is
+// wider, plus 7 either side, so a row of caps reads as one line of keys.
+qreal rackFillCapWidth(const QString& value, const SkinTokens& tokens)
+{
+	const QFontMetricsF metrics(rackFillValueFont(tokens));
+	return qMax(metrics.horizontalAdvance(value), metrics.horizontalAdvance(QStringLiteral("LFE"))) + 14.0;
+}
+
+// The edge a cap of the fill block wears for pointer and keyboard: bronze
+// on the dark finish, amber on the light one (the latched-cap colours of
+// this unit).
+QColor rackFillAttentionEdge(const SkinTokens& tokens, bool dark)
+{
+	return QColor(dark ? RackSkinDetail::darkEngagedFrame() : tokens.accent);
+}
 }
 
 QSize RackSkin::vstSlotFillCellSize(const QString& role, const QString& value, const SkinTokens& tokens) const
@@ -612,6 +638,38 @@ void RackSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellStat
 	const QColor bodyInk(tokens.text);
 	const QColor mutedInk(tokens.mutedText);
 	const QRectF rect(state.rect);
+
+	if (state.roleInBlock)
+	{
+		// In the patch block the role is engraved on the block's role line;
+		// the cap fills the column and prints the channel centred. Same cap
+		// as the bus selectors (verdict r7), and the same attention edge as
+		// the block's FILL cap.
+		const QRectF cap = rect.adjusted(0.5, 0.5, -0.5, -0.5);
+		const bool down = state.enabled && (state.pressed || state.menuOpen);
+		paintRackBusCap(painter, cap, down, state.enabled, tokens, dark);
+		if (state.missingChannel)
+		{
+			painter.setPen(QPen(QColor(tokens.danger), 1));
+			painter.setBrush(Qt::NoBrush);
+			painter.drawRoundedRect(cap, 2.0, 2.0);
+		}
+		else if (state.enabled && (state.hovered || state.focused))
+		{
+			painter.setPen(QPen(withAlpha(rackFillAttentionEdge(tokens, dark), state.focused ? 220 : 140), 1));
+			painter.setBrush(Qt::NoBrush);
+			painter.drawRoundedRect(cap, 2.0, 2.0);
+		}
+		painter.setFont(rackFillValueFont(tokens));
+		QColor print(state.silent || state.defaulted ? mutedInk : bodyInk);
+		if (state.missingChannel)
+			print = QColor(tokens.danger);
+		if (!state.enabled)
+			print = withAlpha(mutedInk, 150);
+		painter.setPen(print);
+		painter.drawText(cap.translated(0.0, down ? 1.0 : 0.0), Qt::AlignHCenter | Qt::AlignVCenter, state.valueText);
+		return;
+	}
 
 	const QFont roleFont = rackFillRoleFont(tokens);
 	painter.setFont(roleFont);
@@ -655,51 +713,111 @@ void RackSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellStat
 		Qt::AlignLeft | Qt::AlignVCenter, state.valueText);
 }
 
-void RackSkin::paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state, const SkinTokens& tokens) const
+VstSlotFillArrangement RackSkin::vstSlotFillArrangement() const
+{
+	return VstSlotFillArrangement::JoinedBlockBelowBody;
+}
+
+VstSlotFillBlockMetrics RackSkin::vstSlotFillBlockMetrics(bool collapsed, const SkinTokens& tokens) const
+{
+	Q_UNUSED(collapsed);
+	VstSlotFillBlockMetrics metrics;
+	metrics.cellHeight = VSTSlotFillRail::cellHeight();
+	metrics.roleLineHeight = 11;
+	metrics.roleGap = 1;
+	metrics.groupGap = 8;
+	metrics.cellGap = 6;
+	const QFontMetricsF caption(rackFillCaptionFont(tokens));
+	metrics.captionWidth = qCeil(qMax(caption.horizontalAdvance(QStringLiteral("IN")),
+		caption.horizontalAdvance(QStringLiteral("OUT"))));
+	metrics.captionGap = 7;
+	metrics.padding = QMargins(8, 5, 9, 5);
+	metrics.latchPlacement = VstSlotFillBlockMetrics::LatchPlacement::LeftColumn;
+	// The FILL cap: the pilot LED in its first 14, the engraved legend, 7
+	// of air after it.
+	metrics.latchWidth = qCeil(14.0
+		+ QFontMetricsF(rackFillRoleFont(tokens)).horizontalAdvance(QStringLiteral("FILL")) + 7.0);
+	metrics.latchHeight = metrics.cellHeight;
+	metrics.latchGap = 10;
+	metrics.shareRoleLine = true;
+	metrics.rolesAboveRows = false;
+	return metrics;
+}
+
+int RackSkin::vstSlotFillBlockColumnWidth(const QString& role, const QString& value, bool output,
+	const SkinTokens& tokens) const
+{
+	Q_UNUSED(output);
+	const qreal roleWidth = QFontMetricsF(rackFillRoleFont(tokens)).horizontalAdvance(role);
+	return qCeil(qMax(roleWidth + 2.0, rackFillCapWidth(value, tokens)));
+}
+
+// The patch block: one recessed band on the module face, cut to what it
+// holds and edged on all four sides in the order every rack recess uses
+// (shadow on the top and left edges, the lit lip on the bottom and right).
+// In it the IN row of value caps, the slot roles engraved once between the
+// rows (or per row when the two slot lists differ), the OUT row, the IN/OUT
+// row heads engraved as the bus strip engraves its IN/OUT, and the FILL cap
+// at the left: the same cap as the values, its state on the pilot LED.
+void RackSkin::paintVstSlotFillBlock(QPainter& painter, const VstSlotFillBlockState& state, const SkinTokens& tokens) const
 {
 	QPainterStateGuard guard(&painter);
 	painter.setRenderHint(QPainter::Antialiasing, true);
 	painter.setRenderHint(QPainter::TextAntialiasing, true);
 
 	const bool dark = skinIsDark(tokens);
+	const QColor engraveInk = withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150);
 
-	// The patch strip: a recessed band across the module face, engraved
-	// edges in the same order every rack recess uses.
-	const QRectF band(state.rect);
-	painter.setPen(Qt::NoPen);
-	painter.setBrush(withAlphaF(QColor(Qt::black), dark ? 0.16 : 0.05));
-	painter.drawRect(band);
-	painter.setPen(QPen(withAlphaF(QColor(Qt::black), dark ? 0.45 : 0.16), 1));
-	painter.drawLine(band.topLeft() + QPointF(0, 0.5), band.topRight() + QPointF(0, 0.5));
-	painter.setPen(QPen(withAlphaF(QColor(Qt::white), dark ? 0.07 : 0.5), 1));
-	painter.drawLine(band.bottomLeft() - QPointF(0, 0.5), band.bottomRight() - QPointF(0, 0.5));
+	if (!state.bandRect.isNull())
+	{
+		const QRectF band(state.bandRect);
+		painter.setPen(Qt::NoPen);
+		painter.setBrush(withAlphaF(QColor(Qt::black), dark ? 0.16 : 0.05));
+		painter.drawRect(band);
+		const qreal l = band.left() + 0.5;
+		const qreal r = band.right() - 0.5;
+		const qreal t = band.top() + 0.5;
+		const qreal b = band.bottom() - 0.5;
+		painter.setPen(QPen(withAlphaF(QColor(Qt::black), dark ? 0.45 : 0.16), 1));
+		painter.drawLine(QPointF(l, t), QPointF(r, t));
+		painter.drawLine(QPointF(l, t), QPointF(l, b));
+		painter.setPen(QPen(withAlphaF(QColor(Qt::white), dark ? 0.07 : 0.5), 1));
+		painter.drawLine(QPointF(l + 1.0, b), QPointF(r, b));
+		painter.drawLine(QPointF(r, t + 1.0), QPointF(r, b));
+	}
 
-	if (state.latchRect.isNull())
+	painter.setFont(rackFillCaptionFont(tokens));
+	for (const VstSlotFillBlockState::Caption& caption : state.captions)
+	{
+		RackSkinDetail::engraveText(painter, QRectF(caption.rect), Qt::AlignRight | Qt::AlignVCenter,
+			caption.output ? QStringLiteral("OUT") : QStringLiteral("IN"), engraveInk, dark);
+	}
+	painter.setFont(rackFillRoleFont(tokens));
+	for (const VstSlotFillBlockState::Role& role : state.roles)
+	{
+		RackSkinDetail::engraveText(painter, QRectF(role.rect), Qt::AlignHCenter | Qt::AlignVCenter,
+			role.role, engraveInk, dark);
+	}
+
+	if (state.latchRect.isNull() || !state.latchActive)
 		return;
 
-	// The fold keeps the same modest cap as every selector on this unit -
-	// one relief language (verdict r7) - and its state lives in the pilot
-	// LED, which is why the cap needs no machined mount of its own: the
-	// lamp says engaged, the latched-down face agrees.
-	const QColor amber(tokens.accent);
-	const QRectF cap = QRectF(state.latchRect).adjusted(0.5, 1.0, -0.5, -1.0);
+	// The fold is a value cap of the same face, border and height (one
+	// relief language, verdict r7); its state lives in the pilot LED. Raised
+	// = folded, latched down = expanded, as every switch on this unit.
+	const QRectF cap = QRectF(state.latchRect).adjusted(0.5, 0.5, -0.5, -0.5);
 	const bool down = !state.collapsed || state.latchPressed;
 	paintRackBusCap(painter, cap, down, state.enabled, tokens, dark);
 	if (state.enabled && (state.latchHovered || state.latchFocused))
 	{
-		const QColor edge(dark ? RackSkinDetail::darkEngagedFrame() : tokens.accent);
-		painter.setPen(QPen(withAlpha(edge, state.latchFocused ? 220 : 140), 1));
+		painter.setPen(QPen(withAlpha(rackFillAttentionEdge(tokens, dark), state.latchFocused ? 220 : 140), 1));
 		painter.setBrush(Qt::NoBrush);
 		painter.drawRoundedRect(cap, 2.0, 2.0);
 	}
 	const qreal drop = down ? 1.0 : 0.0;
-	RackSkinDetail::paintLed(painter, QPointF(cap.left() + 8.0, cap.center().y() + 0.5 + drop), 2.6,
-		amber, state.enabled && !state.collapsed, dark);
-	QFont capFont(tokens.fontFamily);
-	capFont.setPixelSize(9);
-	capFont.setBold(true);
-	capFont.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);
-	painter.setFont(capFont);
+	RackSkinDetail::paintLed(painter, QPointF(cap.left() + 7.5, cap.center().y() + 0.5 + drop), 2.6,
+		QColor(tokens.accent), state.enabled && !state.collapsed, dark);
+	painter.setFont(rackFillRoleFont(tokens));
 	RackSkinDetail::engraveText(painter, cap.adjusted(14.0, drop, -3.0, drop),
 		Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("FILL"),
 		withAlpha(QColor(state.collapsed ? tokens.mutedText : tokens.text), state.enabled ? 255 : 150), dark);

@@ -5047,12 +5047,14 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>VSTBusStrip</name>
     <message>
+        <location filename="../skins/studio/StudioSkin.Controls.cpp" line="586"/>
         <location filename="../widgets/cards/VSTBusStrip.cpp" line="55"/>
         <location filename="../widgets/cards/VSTBusStrip.cpp" line="115"/>
         <source>Out</source>
         <translation>출력</translation>
     </message>
     <message>
+        <location filename="../skins/studio/StudioSkin.Controls.cpp" line="587"/>
         <location filename="../widgets/cards/VSTBusStrip.cpp" line="55"/>
         <location filename="../widgets/cards/VSTBusStrip.cpp" line="115"/>
         <source>In</source>
@@ -5072,44 +5074,44 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>VSTCardEditor</name>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="510"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="627"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="544"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="644"/>
         <source>Select VST plugin</source>
         <translation>VST 플러그인 선택</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="106"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="683"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="107"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="700"/>
         <source>Open panel</source>
         <translation>패널 열기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="101"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="102"/>
         <source>Copy the library into the config directory so the audio service can read it</source>
         <translation>오디오 서비스가 읽을 수 있도록 라이브러리를 구성 디렉터리로 복사</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="117"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="118"/>
         <source>Embed panel in card</source>
         <translation>카드에 패널 삽입</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="123"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="124"/>
         <source>Remove Input/Output layouts</source>
         <translation>Input/Output 레이아웃 제거</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="124"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="125"/>
         <source>Deletes the saved VST3 bus layouts from this line.</source>
         <translation>이 줄에 저장된 VST3 버스 레이아웃을 삭제합니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="130"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="131"/>
         <source>Remove channel fill</source>
         <translation>채널 채우기 제거</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="131"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="132"/>
         <source>Deletes the saved per-slot channel lists from this line.</source>
         <translation>이 라인에 저장된 슬롯별 채널 목록을 지웁니다.</translation>
     </message>
@@ -5130,7 +5132,7 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
         <translation type="vanished">초기화 중 플러그인이 충돌했습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="401"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="435"/>
         <source>No plugin selected</source>
         <translation>선택된 플러그인 없음</translation>
     </message>
@@ -5139,12 +5141,12 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
         <translation type="vanished">오디오 서비스가 읽을 수 없습니다</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="509"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="543"/>
         <source>Locate...</source>
         <translation>위치 찾기...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="510"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="544"/>
         <source>Locate the missing plugin library</source>
         <translation>누락된 플러그인 라이브러리 위치 찾기</translation>
     </message>
@@ -5185,7 +5187,7 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
         <translation>구형 &apos;스테레오 입력&apos; 옵션을 Input Stereo, Output Auto로 읽었습니다. 저장할 때에도 이 형태로 기록됩니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="627"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="644"/>
         <source>VST plugins (*.dll *.vst3)</source>
         <translation>VST 플러그인 (*.dll *.vst3)</translation>
     </message>
@@ -5194,7 +5196,7 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
         <translation type="vanished">패널을 여는 중 플러그인이 충돌했습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="683"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="700"/>
         <source>Close panel</source>
         <translation type="unfinished">패널 닫기</translation>
     </message>
@@ -5207,7 +5209,7 @@ Change the file permissions or copy the files to the config directory.</source>
 파일 권한을 바꾸거나 구성 디렉터리로 파일을 복사하세요.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="504"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="538"/>
         <source>Loading plugin...</source>
         <translation>플러그인을 불러오는 중...</translation>
     </message>
@@ -5395,6 +5397,38 @@ Change the file permissions or copy the files to the config directory.</source>
     </message>
 </context>
 <context>
+    <name>VSTSlotFillBlock</name>
+    <message>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="234"/>
+        <source>Choose which channel goes into and comes out of each plugin slot.</source>
+        <translation>플러그인의 자리마다 어느 채널을 넣고 받을지 고르십시오.</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="241"/>
+        <source>Out</source>
+        <comment>row caption: the channels the plugin&apos;s output slots write</comment>
+        <translation>받기</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="242"/>
+        <source>In</source>
+        <comment>row caption: the channels fed into the plugin&apos;s input slots</comment>
+        <translation>넣기</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="252"/>
+        <source>Discard</source>
+        <comment>an output slot whose sound is thrown away</comment>
+        <translation>버림</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="253"/>
+        <source>Silence</source>
+        <comment>an input slot that gets no channel</comment>
+        <translation>무음</translation>
+    </message>
+</context>
+<context>
     <name>VSTSlotFillCell</name>
     <message>
         <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="57"/>
@@ -5407,12 +5441,12 @@ Change the file permissions or copy the files to the config directory.</source>
         <translation>입력 슬롯 채널</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="199"/>
+        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="208"/>
         <source>Discard (-)</source>
         <translation>버림 (-)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="199"/>
+        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="208"/>
         <source>Silence (-)</source>
         <translation>무음 (-)</translation>
     </message>
@@ -5420,7 +5454,9 @@ Change the file permissions or copy the files to the config directory.</source>
 <context>
     <name>VSTSlotFillRail</name>
     <message>
-        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="239"/>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="229"/>
+        <location filename="../widgets/cards/VSTSlotFillBlock.cpp" line="195"/>
+        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="248"/>
         <source>Channel fill</source>
         <translation>채널 채우기</translation>
     </message>

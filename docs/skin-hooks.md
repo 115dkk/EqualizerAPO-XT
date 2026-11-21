@@ -244,36 +244,76 @@ StereoInput migration note) do not enter the strip; the host routes them
 through the card's existing status line, so every skin's status idiom keeps
 speaking.
 
-## VST channel-fill rail hooks
+## VST channel-fill hooks
 
 The per-slot channel fill of a forced contract (`InputChannels` /
-`OutputChannels`) renders as two rails inside the card - the input rail
-under the row header, the output rail under the reference body - built from
-one shared widget (`Editor/widgets/cards/VSTSlotFillRail.{h,cpp}`) over the
-document model (`VSTSlotFillModel`). The same widget/paint split as the bus
-strip:
+`OutputChannels`) is mounted the way the skin arranges it:
 
 ```cpp
 // ISkin (Editor/skins/ISkin.h)
+virtual VstSlotFillArrangement vstSlotFillArrangement() const;   // default SplitRails
 virtual void paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state, const SkinTokens& tokens) const;
+// SplitRails
+virtual QSize vstSlotFillCellSize(const QString& role, const QString& value, const SkinTokens& tokens) const;
 virtual void paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state, const SkinTokens& tokens) const;
+// JoinedBlockBelowBody
+virtual VstSlotFillBlockMetrics vstSlotFillBlockMetrics(bool collapsed, const SkinTokens& tokens) const;
+virtual int vstSlotFillBlockColumnWidth(const QString& role, const QString& value, bool output, const SkinTokens& tokens) const;
+virtual void paintVstSlotFillBlock(QPainter& painter, const VstSlotFillBlockState& state, const SkinTokens& tokens) const;
 ```
+
+`VSTCardEditor` asks `vstSlotFillArrangement` once, when the card is built
+(a skin switch rebuilds every row, so the answer never changes under a live
+card).
+
+- **SplitRails** (the ISkin default): two rails inside the card, the input
+  rail under the row header and the output rail under the reference body,
+  built from `Editor/widgets/cards/VSTSlotFillRail.{h,cpp}`. Every cell
+  prints its own role. The default rail painter is the neutral one formerly
+  kept in HeritageSkin. No shipped skin answers this arrangement since
+  2026-11-22.
+- **JoinedBlockBelowBody** (all five shipped skins): one block
+  (`Editor/widgets/cards/VSTSlotFillBlock.{h,cpp}`) added below everything
+  else the card body says, status sentence included, because the fill is
+  auxiliary to the plugin. It holds the input row of cells, the slot roles
+  and the output row, with IN/OUT row captions and the fold latch. One
+  widget owns both rows, because the shared role line, the column alignment
+  and the closed band need both sides at once. The cells are the rails'
+  `VSTSlotFillCell` with `VstSlotFillCellState::roleInBlock` set: the block
+  prints the role, the cell paints the channel alone across the column
+  width the skin answered.
+
+The block's geometry is the skin's (`VstSlotFillBlockMetrics`):
+cell height, role line height and gaps, caption column, padding, the
+latch's placement (`LeftColumn`: a cell-height control at the block's left,
+centred on the rows; `HeadingLine`: a heading line above the rows, kept as
+a plain title when the block does not fold), `shareRoleLine` (print the
+roles once between the rows when both sides hold the same slot list, the
+columns aligned slot by slot) and `rolesAboveRows` (each row's own role
+line above it, instead of on the side facing the other row).
+`VSTSlotFillBlock::computeLayout` turns the metrics and the column widths
+into rects; the widget and the `--selftest-vst` fill gate use the same
+function, so the gate checks the geometry the user sees. Rules that hold
+in every skin: the band ends where the content ends (it never spans the
+card), a folded block is the latch alone with no band, and a one-sided
+block is a closed one-row block without a latch.
 
 Two constitutional constraints, both from the design gate:
 
 - A fill cell picks a CHANNEL, the bus selector picks a LAYOUT, and the two
   must not read as the same control. Every skin answers the cell with a
   different register than its bus selector (scribble well vs. glass pane,
-  patch socket vs. latch cap, posting rule vs. boxed key; minimal stays
-  bare ink in both, and that is its answer. Flat answers both as the same
-  ordinary select on purpose (its constitution allows no part of its own);
-  there the slot's name inside the cell and the layout's name inside the
-  selector tell them apart).
-- The fold latch is the rail frame's affordance, never one more dropdown:
-  a lit console switch (studio), the latch button with its pilot LED
-  (rack), a reverse-video token (minimal), a disclosure chevron and a word
-  (flat), a boarding gate cell whose collapsed state is a dashed
-  cancellation (matrix).
+  posting rule vs. filled key; minimal stays bare ink in both, and that is
+  its answer). Rack is the exception by verdict r7: one cap relief for the
+  whole unit, the slot told apart by its engraved role and its channel.
+  Flat answers both as the same ordinary select on purpose (its
+  constitution allows no part of its own); there the slot's name above the
+  box and the layout's name inside the selector tell them apart.
+- The fold latch is never one more channel dropdown, and in the joined
+  block it is drawn in the grammar of the cells beside it: the bus cap with
+  a pilot LED (rack), a lit console switch in a value well (studio), a
+  boarding gate cell one pitch tall (matrix), a reverse-video token
+  (minimal), a disclosure heading (flat).
 
 Cell states carry the slot role token, the assigned channel, and three
 verdicts the skin must voice: `silent` (the `-` slot), `defaulted` (no
@@ -281,11 +321,14 @@ explicit list; render quieter than a committed value) and `missingChannel`
 (the committed channel does not resolve into the channels selected at this
 row - danger ink, the engine would pass audio through over it). The rail
 state carries the cells' bounding rect, the latch rect (null when the card
-has a single rail - a single rail never folds) and the collapsed flag.
+has a single rail - a single rail never folds) and the collapsed flag; the
+block state carries the band, the latch, the captions and the roles.
 
-The rails' presence rules live in `VSTSlotFillModel`, not in skins: an
-`Auto` side has no rail, only a two-rail card gets the latch, and a
-collapsed card keeps just the input rail's latch as its slim reminder.
+Presence rules live in `VSTSlotFillModel`, not in skins: an `Auto` side
+has no row, only a card with both sides gets the latch, and a collapsed
+card keeps just the latch as its slim reminder. A slot list wider than the
+card is cut at the card's edge in both arrangements (the widgets' minimum
+width is 40 px, the cells keep their positions).
 
 ## Routing renderer hook
 

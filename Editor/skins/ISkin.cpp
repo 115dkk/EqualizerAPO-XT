@@ -333,6 +333,118 @@ QSize ISkin::vstSlotFillCellSize(const QString& role, const QString& value, cons
 		+ 6), VSTSlotFillRail::cellHeight());
 }
 
+void ISkin::paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state, const SkinTokens& tokens) const
+{
+	// Neutral default (moved here from HeritageSkin once every product skin
+	// answered the joined block): a quiet sunken tray under the cells, and the fold
+	// latch as a small labelled toggle - a state dot plus the FILL token -
+	// so the whole-feature fold never reads as one more channel dropdown.
+	QPainterStateGuard painterState(&painter);
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+	if (!state.cellsRect.isNull() && !state.collapsed)
+	{
+		const QRectF tray = QRectF(state.cellsRect).adjusted(-4, -3,
+			4, 3);
+		painter.setPen(QPen(withAlpha(QColor(tokens.border), 120), 1));
+		painter.setBrush(withAlpha(QColor(tokens.surfaceSunken), 90));
+		painter.drawRoundedRect(tray, 4, 4);
+	}
+
+	if (state.latchRect.isNull())
+		return;
+
+	const QRectF latch = QRectF(state.latchRect).adjusted(0.5, 0.5, -0.5, -0.5);
+	QColor latchBorder(state.latchFocused ? tokens.focusRing : tokens.border);
+	if (state.latchHovered && !state.latchFocused)
+		latchBorder = QColor(tokens.mutedText);
+	painter.setPen(QPen(latchBorder, 1));
+	painter.setBrush(QColor(state.latchPressed ? tokens.cardHover : tokens.surface));
+	painter.drawRoundedRect(latch, latch.height() / 2.0, latch.height() / 2.0);
+
+	const qreal dotRadius = 3;
+	const QColor dot = state.collapsed ? QColor(tokens.mutedText) : QColor(tokens.accent);
+	painter.setPen(Qt::NoPen);
+	painter.setBrush(state.enabled ? dot : withAlpha(dot, 140));
+	painter.drawEllipse(QPointF(latch.left() + 9, latch.center().y() + 0.5),
+		dotRadius, dotRadius);
+
+	QFont latchFont = painter.font();
+	latchFont.setPixelSize(10);
+	painter.setFont(latchFont);
+	painter.setPen(QColor(state.collapsed ? tokens.mutedText : tokens.text));
+	QRectF labelRect = latch;
+	labelRect.setLeft(latch.left() + 15);
+	painter.drawText(labelRect, Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("FILL"));
+}
+
+VstSlotFillArrangement ISkin::vstSlotFillArrangement() const
+{
+	return VstSlotFillArrangement::SplitRails;
+}
+
+namespace
+{
+// The neutral block's faces: the role, captions and latch legend in a 10px
+// body face, the channel in the 12px mono face of the neutral cell.
+QFont neutralFillLabelFont(const SkinTokens& tokens)
+{
+	QFont font(tokens.fontFamily);
+	font.setPixelSize(10);
+	return font;
+}
+}
+
+VstSlotFillBlockMetrics ISkin::vstSlotFillBlockMetrics(bool collapsed, const SkinTokens& tokens) const
+{
+	Q_UNUSED(collapsed);
+	const QFontMetricsF label(neutralFillLabelFont(tokens));
+	VstSlotFillBlockMetrics metrics;
+	metrics.captionWidth = qCeil(qMax(label.horizontalAdvance(QStringLiteral("IN")),
+		label.horizontalAdvance(QStringLiteral("OUT"))));
+	metrics.latchWidth = qCeil(14.0 + label.horizontalAdvance(QStringLiteral("FILL")) + 6.0);
+	metrics.latchHeight = metrics.cellHeight;
+	return metrics;
+}
+
+int ISkin::vstSlotFillBlockColumnWidth(const QString& role, const QString& value, bool output,
+	const SkinTokens& tokens) const
+{
+	Q_UNUSED(output);
+	QFont valueFont(tokens.monoFontFamily);
+	valueFont.setPixelSize(12);
+	const qreal roleWidth = QFontMetricsF(neutralFillLabelFont(tokens)).horizontalAdvance(role);
+	const qreal valueWidth = QFontMetricsF(valueFont).horizontalAdvance(value);
+	return qCeil(qMax(roleWidth + 2.0, 6.0 + valueWidth + 4.0 + 6.0 + 6.0));
+}
+
+void ISkin::paintVstSlotFillBlock(QPainter& painter, const VstSlotFillBlockState& state, const SkinTokens& tokens) const
+{
+	QPainterStateGuard guard(&painter);
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+	const QColor muted = withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150);
+	painter.setFont(neutralFillLabelFont(tokens));
+	painter.setPen(muted);
+	for (const VstSlotFillBlockState::Caption& caption : state.captions)
+		painter.drawText(caption.rect, Qt::AlignRight | Qt::AlignVCenter,
+			caption.output ? QStringLiteral("OUT") : QStringLiteral("IN"));
+	for (const VstSlotFillBlockState::Role& role : state.roles)
+		painter.drawText(role.rect, Qt::AlignHCenter | Qt::AlignVCenter, role.role);
+	if (state.latchRect.isNull() || !state.latchActive)
+		return;
+	const QRectF latch = QRectF(state.latchRect).adjusted(0.5, 0.5, -0.5, -0.5);
+	painter.setPen(QPen(state.latchFocused ? QColor(tokens.accent) : QColor(tokens.border), 1));
+	painter.setBrush(state.latchHovered || state.latchPressed ? QColor(tokens.cardHover) : Qt::NoBrush);
+	painter.drawRoundedRect(latch, 3.0, 3.0);
+	painter.setPen(Qt::NoPen);
+	painter.setBrush(state.collapsed ? muted : QColor(tokens.accent));
+	painter.drawEllipse(QPointF(latch.left() + 7.0, latch.center().y()), 2.5, 2.5);
+	painter.setPen(state.collapsed ? muted : QColor(tokens.text));
+	painter.drawText(latch.adjusted(14.0, 0.0, -2.0, 0.0), Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("FILL"));
+}
+
 FilterPickerView* ISkin::createFilterPicker(QWidget* parent, const SkinTokens& tokens) const
 {
 	// Neutral default: the shared search-over-sections dropdown, styled by
