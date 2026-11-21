@@ -90,7 +90,7 @@ class Bench:
                  '|---|---:|---:|---:|---:|---|']
         for row in self.data['comparisons']:
             text.append('| ' + ' | '.join(val(row.get(k)) for k in
-                ['name', 'lag_samples', 'lag_ms', 'gain', 'residual_db', 'verdict']) + ' |')
+                ['name', 'lag_samples', 'lag_ms', 'gain', 'residual_display', 'verdict']) + ' |')
         text += ['', '## Phase B latency', '', '| Program | Setting | Added delay samples | ms | Dropouts | CPU s |',
                  '|---|---|---:|---:|---|---:|']
         for row in self.data['phase_b']:
@@ -388,10 +388,12 @@ class Bench:
         require(float(np.sum(y * y)) > 0 and float(np.sum(x * x)) > 0, 'Comparison signal is silent.')
         gain = float(np.sum(x * y) / np.sum(y * y))
         residual = x - gain * y
-        db = float(10 * np.log10(max(float(np.sum(residual * residual) / np.sum(x * x)), 1e-30)))
+        ratio = float(np.sum(residual * residual) / np.sum(x * x))
+        db = float(10 * np.log10(ratio)) if ratio > 0 else None
         row = {'name': name, 'lag_samples': lag, 'lag_ms': lag * 1000 / RATE, 'gain': gain,
-               'residual_db': db, 'excerpt_start_s': 10, 'excerpt_s': 30,
-               'verdict': 'pass' if db < -45 and (not zero_lag or lag == 0) else 'fail'}
+               'residual_db': db, 'residual_display': db if db is not None else 'exact PCM16 match',
+               'residual_power_ratio': ratio, 'excerpt_start_s': 10, 'excerpt_s': 30,
+               'verdict': 'pass' if ratio < 10 ** (-45 / 10) and (not zero_lag or lag == 0) else 'fail'}
         self.data['comparisons'].append(row)
         self.save()
         return row['verdict'] == 'pass'
@@ -406,6 +408,82 @@ class Bench:
         self.data['steps']['A4'] = 'measured: all comparisons pass; PCM16 quantization limits the residual'
         self.save()
 
+    def phase_a5(self):
+        setup = self.release('mgth/Omniphony', 'v0.7.0', 'omniphony-v0.7.0-windows-x86_64-setup.exe',
+                             '7f184a5d87bbe4b6578b7de33fb34ed989a7cf342378cd1d27983939a89022f0', 'Omniphony')
+        self.run('install-Omniphony', [setup, '/S'], 300)
+        self.orender = Path(os.environ['LOCALAPPDATA']) / 'Programs/Omniphony/studio/orender.exe'
+        require(self.orender.exists(), 'Omniphony installer did not provide orender.exe.')
+        self.run('Omniphony-help', [self.orender, 'render', '--help'], 30)
+        help_text = (self.work / 'Omniphony-help.stdout.log').read_text(errors='replace')
+        self.data['omniphony'] = {'file_backend_in_installed_help': '--output-file' in help_text}
+        source = self.work / 'omniphony-source'
+        self.run('Omniphony-source', ['git', 'clone', '--depth', '1', '--branch', 'v0.7.0',
+                                     'https://github.com/mgth/Omniphony.git', source], 300)
+        self.run('Omniphony-source-revision', ['git', '-C', source, 'rev-parse', 'HEAD'], 30)
+        revision = (self.work / 'Omniphony-source-revision.stdout.log').read_text().strip()
+        require(revision == '353e135fa01e181bea36d83099a5951fd5c34180', 'Omniphony tag differs from the pinned commit.')
+        archive = self.work / 'omniphony-source.tar'
+        self.run('Omniphony-source-archive', ['git', '-C', source, 'archive', '--format=tar', '--output', archive, 'HEAD'], 90)
+        digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+        self.data['downloads']['Omniphony-source'] = {'commit': revision, 'sha256': digest, 'format': 'git archive --format=tar HEAD'}
+        self.save()
+        expected = ''
+        if not expected:
+            self.data['steps']['A5'] = 'not measured: source SHA-256 discovery; source was not built before pinning'
+            self.save()
+            return
+        require(digest == expected, 'Omniphony source SHA-256 differs from its pin.')
+        # The upstream workspace resolves an unrelated git-patched SOFA reader.
+        # Build the two bridge crates unchanged in a smaller workspace, retaining
+        # the exact reachable packages and checksums from the upstream lock.
+        import tomllib
+        isolated = self.work / 'omni-bridge-build'
+        isolated.mkdir()
+        for crate in ['reference_bridge', 'bridge_api']:
+            shutil.copytree(source / 'omniphony-renderer' / crate, isolated / crate)
+        manifest = '''[workspace]
+members = ["reference_bridge", "bridge_api"]
+resolver = "2"
+[workspace.package]
+version = "0.7.0"
+edition = "2024"
+rust-version = "1.89"
+license = "GPL-3.0-or-later"
+[workspace.dependencies]
+bridge_api = { version = "0.6.0", path = "bridge_api" }
+abi_stable = "0.11"
+log = "0.4.27"
+'''
+        (isolated / 'Cargo.toml').write_text(manifest, encoding='ascii')
+        locktext = (source / 'omniphony-renderer/Cargo.lock').read_text()
+        chunks = locktext.split('[[package]]')[1:]
+        packages = [tomllib.loads('[[package]]' + chunk)['package'][0] for chunk in chunks]
+        wanted = set()
+        pending = [('reference_bridge', '0.7.0'), ('bridge_api', '0.6.0')]
+        while pending:
+            name, version = pending.pop()
+            candidates = [i for i, package in enumerate(packages) if package['name'] == name and (version is None or package['version'] == version)]
+            require(len(candidates) == 1, 'Cannot isolate an unambiguous dependency from the upstream Cargo lock.')
+            index = candidates[0]
+            if index in wanted:
+                continue
+            wanted.add(index)
+            package = packages[index]
+            require(not package.get('source', '').startswith('git+'), 'Reference bridge unexpectedly requires a non-allowlisted git dependency.')
+            for dependency in package.get('dependencies', []):
+                fields = dependency.split()
+                pending.append((fields[0], fields[1] if len(fields) > 1 else None))
+        (isolated / 'Cargo.lock').write_text('version = 4\n\n' + ''.join('[[package]]' + chunks[i] for i in sorted(wanted)), encoding='utf-8')
+        self.data['omniphony']['bridge_build'] = self.run('Omniphony-bridge-build',
+            ['pwsh', '-NoProfile', '-File', Path(__file__).with_name('Prepare-Omniphony.ps1'), '-Source', isolated, '-Work', self.work], 1500)
+        bridge = self.work / 'omni-target/release/reference_bridge.dll'
+        require(bridge.exists(), 'Reference bridge build did not produce its DLL.')
+        self.data['omniphony']['check_bridges'] = self.run('Omniphony-check-bridges',
+            [self.orender, 'check-bridges', '--bridge-path', bridge], 60)
+        self.data['steps']['A5'] = 'bridge built and check-bridges passed; SOFA loading not yet measured'
+        self.save()
+
     def execute(self):
         # Installation failures are harness failures; later failures preserve
         # completed measurements and return zero with explicit step status.
@@ -415,7 +493,7 @@ class Bench:
             self.data['harness'] = str(exc) if isinstance(exc, MeasurementError) else 'Product installation failed; logs retained only in Work.'
             self.save()
             return 1
-        for name, action in [('prepare', self.prepare), ('A1', self.phase_a1), ('A2', self.phase_a2), ('A3', self.phase_a3), ('A4', self.phase_a4)]:
+        for name, action in [('prepare', self.prepare), ('A1', self.phase_a1), ('A2', self.phase_a2), ('A3', self.phase_a3), ('A4', self.phase_a4), ('A5', self.phase_a5)]:
             try:
                 action()
             except Exception as exc:
@@ -429,7 +507,6 @@ class Bench:
                                                     if Path(frame.filename).name == 'benchmark.py']
                 self.save()
                 return 0
-        self.data['steps']['A5'] = 'not measured: reference bridge and SOFA validation not implemented in this phase-A iteration'
         self.save()
         return 0
 
