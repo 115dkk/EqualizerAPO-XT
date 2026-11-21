@@ -273,6 +273,19 @@ void removePath(const std::wstring& path, bool orderRollbackRoot = false)
 				removePath(joinPath(path, entry.name));
 			}
 		}
+		// Update.exe and current are what the next start recognises this
+		// leftover by. While anything else survived (a locked file under
+		// packages, say), they stay, or the remainder would never be retried.
+		bool othersRemain = false;
+		forEachEntry(path, [&](const WIN32_FIND_DATAW& data) {
+			if (!equalsIgnoreCase(data.cFileName, L"Update.exe")
+				&& !equalsIgnoreCase(data.cFileName, L"current"))
+			{
+				othersRemain = true;
+			}
+		});
+		if (othersRemain)
+			return;
 		removeMatching(L"Update.exe", false);
 		removeMatching(L"current", false);
 	}

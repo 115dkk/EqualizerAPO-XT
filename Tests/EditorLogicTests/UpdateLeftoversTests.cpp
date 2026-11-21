@@ -291,6 +291,45 @@ TEST_CASE(EditorLogicTests, testUpdateLeftoversSweepContinuesPastLockedFile)
 	expectFalse(exists(leftover), QStringLiteral("the leftover top directory is gone after retry"));
 }
 
+// A rollback copy is recognised by Update.exe or current. While a file outside
+// them is still locked they must stay, or the remainder would never be found
+// again (review of #510).
+TEST_CASE(EditorLogicTests, testUpdateLeftoversRollbackKeepsMarkersWhileOthersRemain)
+{
+	TemporaryTree tree;
+	requireTrue(tree.valid(), QStringLiteral("create a unique update-leftover fixture"));
+	const std::wstring root = tree.directory(kRootName);
+	requireTrue(createFile(joinPath(root, L"Update.exe")), QStringLiteral("create the install marker"));
+	const std::wstring rollbackRelative = std::wstring(kRootName) + L"_1234567890abcdef";
+	const std::wstring rollback = tree.directory(rollbackRelative);
+	const std::wstring packages = tree.directory(rollbackRelative + L"\\packages");
+	const std::wstring current = tree.directory(rollbackRelative + L"\\current");
+	const std::wstring updateExe = joinPath(rollback, L"Update.exe");
+	const std::wstring lockedPath = joinPath(packages, L"locked.nupkg");
+	const std::wstring otherPath = joinPath(packages, L"other.nupkg");
+	const std::wstring currentFile = joinPath(current, L"Editor.exe");
+	requireTrue(createFile(updateExe) && createFile(lockedPath) && createFile(otherPath) && createFile(currentFile),
+		QStringLiteral("create the rollback copy's contents"));
+	winutil::UniqueHandle locked(CreateFileW(lockedPath.c_str(), GENERIC_READ, FILE_SHARE_READ,
+		nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+	requireTrue(static_cast<bool>(locked), QStringLiteral("open a packages file without delete sharing"));
+
+	const UpdateLeftovers::SweepResult first = UpdateLeftovers::sweep(root, kNoMinimumAge);
+	expectEqual(static_cast<int>(first.found), 1, QStringLiteral("the rollback copy is found"));
+	expectEqual(static_cast<int>(first.removed), 0, QStringLiteral("the rollback copy is reported as remaining"));
+	expectTrue(exists(lockedPath), QStringLiteral("the locked packages file remains"));
+	expectFalse(exists(otherPath), QStringLiteral("the unlocked packages file is deleted"));
+	expectTrue(exists(updateExe) && exists(currentFile),
+		QStringLiteral("the markers stay while other content remains"));
+
+	locked.reset();
+	const UpdateLeftovers::SweepResult second = UpdateLeftovers::sweep(root, kNoMinimumAge);
+	expectEqual(static_cast<int>(second.found), 1, QStringLiteral("the partial rollback copy is found again"));
+	expectEqual(static_cast<int>(second.removed), 1, QStringLiteral("the retry removes it"));
+	expectFalse(exists(rollback), QStringLiteral("the rollback copy is gone after the retry"));
+	expectTrue(exists(joinPath(root, L"Update.exe")), QStringLiteral("the install root is untouched"));
+}
+
 TEST_CASE(EditorLogicTests, testUpdateLeftoversSweepDoesNotFollowJunction)
 {
 	TemporaryTree tree;
