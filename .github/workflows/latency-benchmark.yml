@@ -7,8 +7,9 @@ name: Latency benchmark
 # The inputs (a room response, a piece of music, an upmixer plugin and a plugin
 # host) are not redistributable. They are fetched from a private repository
 # with a read-only deploy key and exist only on the runner. Nothing derived
-# from them is uploaded: the artifact holds numbers and the programs' own log
-# lines, never audio.
+# from them is uploaded: the artifact is the summary directory, which holds
+# numbers and the programs' own log lines and never audio. The upload step
+# refuses a summary directory that contains anything but text.
 
 on:
   workflow_dispatch:
@@ -26,9 +27,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  explore:
+  benchmark:
     runs-on: windows-2022
-    timeout-minutes: 30
+    timeout-minutes: 90
     steps:
     - name: Checkout repository
       uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
@@ -41,9 +42,36 @@ jobs:
         & "${{ github.workspace }}\.github\scripts\latency-benchmark\Get-BenchmarkInputs.ps1" `
           -Destination "${{ runner.temp }}\bench-inputs"
 
-    - name: Explore the programs
+    - name: Run the benchmark
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        & "${{ github.workspace }}\.github\scripts\latency-benchmark\Invoke-LatencyBenchmark.ps1" `
+          -WorkspaceRoot "${{ github.workspace }}" `
+          -Inputs "${{ runner.temp }}\bench-inputs" `
+          -Work "${{ runner.temp }}\bench-work" `
+          -Summary "${{ runner.temp }}\bench-summary"
+
+    - name: Refuse a summary that holds anything but text
+      if: always()
       shell: pwsh
       run: |
-        & "${{ github.workspace }}\.github\scripts\latency-benchmark\Explore-Programs.ps1" `
-          -Inputs "${{ runner.temp }}\bench-inputs" `
-          -Work "${{ runner.temp }}\bench-work"
+        $summary = "${{ runner.temp }}\bench-summary"
+        if (-not (Test-Path $summary)) { Write-Host "no summary directory"; exit 0 }
+        $allowed = ".json", ".md", ".txt", ".csv", ".log", ".yml", ".yaml"
+        $bad = Get-ChildItem -LiteralPath $summary -Recurse -File |
+          Where-Object { $allowed -notcontains $_.Extension.ToLowerInvariant() -or $_.Length -gt 2MB }
+        if ($bad) {
+          $bad | ForEach-Object { Write-Host "::error::not a text summary: $($_.Name) ($($_.Length) bytes)" }
+          Remove-Item -LiteralPath $summary -Recurse -Force
+          exit 1
+        }
+
+    - name: Upload the summary
+      if: always()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: latency-benchmark-summary
+        path: ${{ runner.temp }}/bench-summary
+        if-no-files-found: ignore
