@@ -52,7 +52,7 @@ function Invoke-Bounded([string] $Program, [string[]] $Arguments, [int] $Seconds
 
 # Download wheels without executing them; the first run publishes only their
 # names and hashes. Subsequent runs must match the checked-in complete lock.
-$packages = @('numpy==2.3.5', 'scipy==1.16.3', 'soundfile==0.13.1', 'PyYAML==6.0.3', 'psutil==7.1.3', 'cffi==2.0.0', 'pycparser==2.23', 'netCDF4==1.7.3', 'cftime==1.6.5', 'certifi==2025.11.12')
+$packages = @('numpy==2.3.5', 'scipy==1.16.3', 'soundfile==0.13.1', 'PyYAML==6.0.3', 'psutil==7.1.3', 'cffi==2.0.0', 'pycparser==2.23', 'netCDF4==1.7.3', 'cftime==1.6.5', 'certifi==2025.11.12', 'sounddevice==0.5.3')
 $wheels = Join-Path $Work 'wheels'
 New-Item -ItemType Directory -Path $wheels | Out-Null
 Invoke-Bounded 'python' (@('-I', '-m', 'pip', 'download', '--disable-pip-version-check', '--only-binary=:all:', '--no-deps', '--dest', $wheels) + $packages) 300 'wheel-download'
@@ -69,11 +69,21 @@ if ($discovery) {
     'Not measured: dependency hash discovery. No downloaded wheel was executed.' | Set-Content -LiteralPath (Join-Path $Summary 'results.md')
     exit 0
 }
-if ($actual.Count -ne $lock.Count) { throw 'Wheel set does not match the lock.' }
-foreach ($name in $actual.Keys) {
-    if (-not $lock.ContainsKey($name) -or $lock[$name] -ne $actual[$name]) { throw 'A downloaded wheel does not match the pinned SHA-256.' }
+foreach ($name in $lock.Keys) {
+    if (-not $actual.Contains($name) -or $lock[$name] -ne $actual[$name]) { throw 'A downloaded wheel does not match the pinned SHA-256.' }
 }
-$requirements = @($actual.Keys | ForEach-Object { "$(Join-Path $wheels $_) --hash=sha256:$($actual[$_])" })
+$pending = [ordered]@{}
+foreach ($name in $actual.Keys) {
+    if (-not $lock.ContainsKey($name)) {
+        if ($name -notlike 'sounddevice-0.5.3-*') { throw 'Unexpected unpinned wheel.' }
+        $pending[$name] = $actual[$name]
+    }
+}
+if ($pending.Count) { $pending | ConvertTo-Json | Write-Host }
+$pending | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $Summary 'wheel-pending.json')
+# Discovery of a new optional realtime dependency must not discard Phase A.
+# Only already-pinned wheels may be installed or executed.
+$requirements = @($lock.Keys | ForEach-Object { "$(Join-Path $wheels $_) --hash=sha256:$($lock[$_])" })
 $requirements | Set-Content -LiteralPath (Join-Path $Work 'requirements.txt')
 Invoke-Bounded 'python' @('-I', '-m', 'pip', 'install', '--disable-pip-version-check', '--no-index', '--no-deps', '--require-hashes', '-r', (Join-Path $Work 'requirements.txt')) 180 'wheel-install'
 $cpu = Get-CimInstance Win32_Processor | Select-Object Name, NumberOfCores, NumberOfLogicalProcessors

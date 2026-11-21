@@ -14,6 +14,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 import time
 import winreg
 import zipfile
@@ -22,6 +23,10 @@ import numpy as np
 import scipy.signal as signal
 import soundfile as sf
 import yaml
+
+# -I removes the script directory; add only our trusted checked-in helpers.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from camilla_load import LoadPoller
 
 RATE = 48000
 VIRTUAL = ['VFL', 'VFR', 'VFC', 'VLFE', 'VBL', 'VBR', 'VSL', 'VSR',
@@ -65,7 +70,7 @@ class Bench:
             'downloads': {}, 'phase_a': [], 'comparisons': [], 'phase_b': [],
             'steps': {s: ('not measured: preceding phase not completed' if s.startswith('A') else
                           'not measured: implementation budget stops at Phase A; no virtual cable or realtime test attempted')
-                      for s in ['A1', 'A2', 'A3', 'A4', 'A5', 'B0', 'B1', 'B2', 'B3', 'B4', 'B5']},
+                      for s in ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'B0', 'B1', 'B2', 'B3', 'B4', 'B5']},
             'notes': [
                 'XT CPU percent is Benchmark elapsed processing time divided by audio duration; it is not aggregate worker CPU time.',
                 'Process CPU seconds include user plus kernel time; wall time includes startup and file I/O.',
@@ -90,6 +95,19 @@ class Bench:
         for row in self.data['phase_a']:
             text.append('| ' + ' | '.join(val(row.get(k)) for k in
                 ['program', 'frames', 'threads', 'repeat', 'wall_s', 'cpu_s', 'realtime_factor', 'xt_cpu_percent', 'latency_samples']) + ' |')
+        text += ['', '## CamillaDSP file-mode processing load', '',
+                 'GetProcessingLoad is a pipeline capacity estimate during unpaced file processing, not realtime endpoint CPU utilization.', '',
+                 '| Chunk | Threads | Positive samples | Mean % | Min % | Max % |', '|---:|---|---:|---:|---:|---:|']
+        for row in self.data['phase_a']:
+            if row['program'] == 'CamillaDSP':
+                load = row.get('processing_load') or {}
+                cells = [row['frames'], row['threads']] + [load.get(key) for key in ['positive_samples', 'mean_percent', 'min_percent', 'max_percent']]
+                text.append('| ' + ' | '.join(val(cell) for cell in cells) + ' |')
+        omni_rows = [row for row in self.data['phase_a'] if row['program'] == 'Omniphony']
+        if omni_rows:
+            text += ['', 'Omniphony common leading samples trimmed (explicit loader log only): ' +
+                     ', '.join(val(row.get('leading_samples_trimmed')) for row in omni_rows) +
+                     '. A dash means the loader did not report a count; the shorter tap count is not used as a substitute.']
         text += ['', '## XT batch processing times', '', '| Batch | Threads | Repeat | Min us | Median us | Mean us | p95 us | p99 us | Max us |',
                  '|---:|---|---:|---:|---:|---:|---:|---:|---:|']
         for row in self.data['phase_a']:
@@ -118,13 +136,14 @@ class Bench:
         text += ['', '## Measurement definitions and limitations', ''] + ['- ' + x for x in self.data['notes']]
         (self.summary / 'results.md').write_text('\n'.join(text) + '\n', encoding='ascii')
 
-    def run(self, label, command, timeout=300, cwd=None, allowed=(0,)):
+    def run(self, label, command, timeout=300, cwd=None, allowed=(0,), load_port=None):
         # stdout/stderr files prevent pipe deadlocks and keep arbitrary vendor
         # output, including any echoed state, out of the public runner log.
         start = time.perf_counter()
         with (self.work / (label + '.stdout.log')).open('wb') as out, (self.work / (label + '.stderr.log')).open('wb') as err:
             p = subprocess.Popen([str(x) for x in command], cwd=cwd or self.args.workspace,
                                  stdout=out, stderr=err)
+            poller = LoadPoller(load_port) if load_port else None
             try:
                 p.wait(timeout=timeout)
             except subprocess.TimeoutExpired:
@@ -132,7 +151,9 @@ class Bench:
                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
                 p.wait(timeout=10)
                 raise MeasurementError(label + ' exceeded its process timeout.') from None
-            wall = time.perf_counter() - start
+            finally:
+                wall = time.perf_counter() - start
+                load = poller.finish() if poller else None
             cpu = cpu_seconds(p)
         if p.returncode not in allowed and label == 'Omniphony-bridge-build':
             # Compiler diagnostics cannot contain private inputs: the build
@@ -142,7 +163,10 @@ class Bench:
                                                        if line.startswith(('error:', 'warning:'))][:12]
             self.save()
         require(p.returncode in allowed, label + ' failed (exit ' + str(p.returncode) + ').')
-        return {'wall_s': wall, 'cpu_s': cpu, 'exit_code': p.returncode}
+        result = {'wall_s': wall, 'cpu_s': cpu, 'exit_code': p.returncode}
+        if load is not None:
+            result['processing_load'] = load
+        return result
 
     def release(self, repo, tag, asset, expected, label):
         directory = self.work / ('download-' + label)
@@ -385,19 +409,19 @@ class Bench:
                 config = self.work / (label + '.yml')
                 config.write_text(yaml.safe_dump(self.camilla_config(frames, threaded, output)), encoding='utf-8')
                 self.run(label + '-check', [self.camilla, '-c', config], 60)
-                row = self.run(label, [self.camilla, '-o', self.work / (label + '.program.log'), config], 600)
+                row = self.run(label, [self.camilla, '-p', '12341', '-a', '127.0.0.1',
+                                      '-o', self.work / (label + '.program.log'), config], 600, load_port=12341)
                 row.update({'program': 'CamillaDSP', 'frames': frames, 'threads': 'multi' if threaded else 'single',
-                            'repeat': 1, 'realtime_factor': self.duration / row['wall_s'],
-                            'processing_load': None})
+                            'repeat': 1, 'realtime_factor': self.duration / row['wall_s']})
                 audio = np.fromfile(output, dtype='<f8')
                 require(len(audio) > RATE * 2 * 40 and len(audio) % 2 == 0 and np.isfinite(audio).all(), 'CamillaDSP output is missing, short, or invalid.')
                 sf.write(self.work / (label + '.wav'), audio.reshape(-1, 2), RATE, subtype='FLOAT')
                 self.data['phase_a'].append(row)
                 self.save()
-        self.data['steps']['A3'] = 'measured: all six file-throughput settings; no realtime processing-load polling'
+        self.data['steps']['A3'] = 'measured: all six file-throughput settings; GetProcessingLoad polled every 0.5 seconds on loopback'
         self.save()
 
-    def compare(self, name, tested, reference, zero_lag=False):
+    def compare(self, name, tested, reference, zero_lag=False, informational=False):
         y, rate_y = sf.read(tested, always_2d=True, dtype='float64')
         x, rate_x = sf.read(reference, always_2d=True, dtype='float64')
         require(rate_y == rate_x == RATE and y.shape[1] == x.shape[1] == 2, 'Comparison format mismatch.')
@@ -419,6 +443,8 @@ class Bench:
                'residual_db': db, 'residual_display': db if db is not None else 'exact PCM16 match',
                'residual_power_ratio': ratio, 'excerpt_start_s': 10, 'excerpt_s': 30,
                'verdict': 'pass' if ratio < 10 ** (-45 / 10) and (not zero_lag or lag == 0) else 'fail'}
+        if informational:
+            row['verdict'] = 'measured (different BRIR preprocessing)'
         self.data['comparisons'].append(row)
         self.save()
         return row['verdict'] == 'pass'
@@ -554,8 +580,8 @@ log = "0.4.27"
         # Give the reference decoder an explicit WAVEFORMATEXTENSIBLE mask;
         # a generic twelve-channel WAV need not imply the same bed order.
         audio, _ = sf.read(self.feed, always_2d=True, dtype='float32')
-        audio[:, 2] += audio[:, 3]
-        audio[:, 3] = 0
+        # Preserve the feed, including LFE. The measured material has silent
+        # LFE; Omniphony's dry LFE policy is not changed to imitate XT.
         wave = self.work / 'omni-feed.wav'
         payload = audio.astype('<f4').tobytes()
         fmt = struct.pack('<HHIIHHHHI', 0xfffe, 12, RATE, RATE * 48, 48, 32, 22, 32, 0x2d63f)
@@ -593,6 +619,41 @@ log = "0.4.27"
         self.data['notes'].append('Omniphony source removes common BRIR lead silence, fades tails and normalizes direct-sound energy; its future latency/residual comparison must account for those transformations.')
         self.save()
 
+    def phase_a6(self):
+        self.data['notes'].append('Omniphony offline settings: binaural BRIR, SimpleFreeFieldHRIR, 48000 Hz, eleven standard-position speakers, brir_max_length_s=0 (unbounded), brir_tail_floor_db=200, raw-f32 file output. These are the existing A5 settings; no residual-driven tuning was done.')
+        self.data['notes'].append('LFE handling differs: Omniphony feeds LFE dry at -3 dB to both ears; XT folds LFE into the centre convolution. LFE RMS is zero in this material; the original twelve-channel feed is preserved.')
+        self.data['notes'].append('The documented Omniphony BRIR convolution delay is 127 samples. Measured output lag also includes its common-lead removal and other processing; 127 is not substituted for a measurement.')
+        for rep in range(1, 4):
+            label = f'Omniphony-offline-{rep}'
+            raw = self.work / (label + '.raw')
+            row = self.run(label, [self.orender, '--config', self.work / 'omni.yml', '--loglevel', 'info',
+                            'render', self.work / 'omni-feed.wav', '--bridge-path',
+                            self.work / 'omni-target/release/reference_bridge.dll', '--output-backend', 'file',
+                            '--output-file', raw, '--output-file-format', 'raw-f32'], 600)
+            logs = ''.join((self.work / (label + '.' + stream + '.log')).read_text(errors='replace')
+                           for stream in ['stdout', 'stderr'])
+            require(re.search(r'BRIR: .*?11 emitters.*?1 orientations', logs) is not None,
+                    'Omniphony did not confirm BRIR loading during the measured render.')
+            samples = np.fromfile(raw, dtype='<f4')
+            require(len(samples) % 2 == 0 and len(samples) > RATE * 80 and np.isfinite(samples).all(),
+                    'Omniphony file output is too short or invalid.')
+            wave = self.work / (label + '.wav')
+            sf.write(wave, samples.reshape(-1, 2), RATE, subtype='FLOAT')
+            row.update({'program': 'Omniphony', 'frames': None, 'threads': 'default', 'repeat': rep,
+                        'realtime_factor': self.duration / row['wall_s'], 'output_frames': len(samples) // 2,
+                        'leading_samples_trimmed': None,
+                        'leading_trim_reason': 'Not reported in the BRIR loader log; not inferred from the shortened tail or correlation lag.'})
+            # Only accept an explicit count, not a derived difference in taps.
+            trim = re.search(r'(?:trimmed|removed)\s+(\d+)\s+(?:leading|lead)\s+samples', logs, re.I)
+            if trim:
+                row['leading_samples_trimmed'] = int(trim[1])
+                row['leading_trim_reason'] = 'Explicit loader log count.'
+            self.data['phase_a'].append(row)
+            self.save()
+            self.compare(f'Omniphony {rep} vs XT', wave, self.work / 'XT-480-1.wav', informational=True)
+        self.data['steps']['A6'] = 'measured: three file renders with wall/CPU time, lag, one gain and residual; different BRIR preprocessing is reported, not tuned away'
+        self.save()
+
     def execute(self):
         # Installation failures are harness failures; later failures preserve
         # completed measurements and return zero with explicit step status.
@@ -602,7 +663,7 @@ log = "0.4.27"
             self.data['harness'] = str(exc) if isinstance(exc, MeasurementError) else 'Product installation failed; logs retained only in Work.'
             self.save()
             return 1
-        for name, action in [('prepare', self.prepare), ('A1', self.phase_a1), ('A2', self.phase_a2), ('A3', self.phase_a3), ('A4', self.phase_a4), ('A5', self.phase_a5)]:
+        for name, action in [('prepare', self.prepare), ('A1', self.phase_a1), ('A2', self.phase_a2), ('A3', self.phase_a3), ('A4', self.phase_a4), ('A5', self.phase_a5), ('A6', self.phase_a6)]:
             try:
                 action()
             except Exception as exc:
