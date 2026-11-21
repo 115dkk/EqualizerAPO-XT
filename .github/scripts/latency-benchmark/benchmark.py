@@ -707,7 +707,7 @@ log = "0.4.27"
             require(fmt is not None and fmt['channels'] == 2 and fmt['rate'] == RATE,
                     'Cable endpoint did not accept stereo 48000 Hz shared mix format; no converted-rate substitute is used.')
         self.data['steps']['B0'] = 'implemented: explicit-name WASAPI shared duplex tool and aligned residual/zero-gap analysis; actual streaming is verified by B1'
-        self.data['notes'].append('Realtime playback uses a fixed 24000-frame silent preroll in a duplex stream, included equally in L0 and processed recordings. Neither endpoint is selected through a default-device API.')
+        self.data['notes'].append('Realtime playback first warms the same open duplex stream with 15 seconds of silence, discarded before analysis, then uses a fixed 24000-frame preroll included equally in L0 and processed recordings. audiodg CPU covers the whole 107.5-second stream, including warmup and tail. Neither endpoint is selected through a default-device API.')
         self.data['notes'].append('B2 added delay is the recording lag against XT A1 output minus L0; the offline reference already includes the plugin delay, so no further 4351-sample subtraction is made.')
         self.save()
 
@@ -761,7 +761,9 @@ log = "0.4.27"
             row['added_ms'] = row['lag_samples'] * 1000 / RATE
         self.data['steps']['B1'] = 'measured: three baseline runs; table shows absolute reference lag (L0), including the fixed preroll'
         self.save()
-        require(all(row['clean'] for row in rows), 'Baseline is not clean; XT added-delay measurement is not accepted on this path.')
+        if not all(row['clean'] for row in rows):
+            self.data['notes'].append('The cable baseline is not clean. Later lag-minus-L0 values are arithmetic observations with an invalid baseline, not an isolated processing-delay estimate; they cannot establish a lowest clean setting.')
+            self.save()
 
     def phase_b2(self):
         self.config_dir.mkdir(exist_ok=True, parents=True)
@@ -784,6 +786,7 @@ log = "0.4.27"
                 row = self.audio_round(f'XT-realtime-{rep}', self.work / 'XT-480-1.wav', 'XT')
                 row['added_samples'] = row['lag_samples'] - self.l0
                 row['added_ms'] = row['added_samples'] * 1000 / RATE
+                row['added_delay_valid'] = self.data['baseline']['all_clean'] and row['clean']
                 self.save()
             self.data['steps']['B2'] = 'measured: three render-APO runs, offline XT reference minus baseline median, audiodg CPU and recording/program diagnostics'
         finally:

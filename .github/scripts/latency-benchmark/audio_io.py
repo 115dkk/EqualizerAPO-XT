@@ -52,9 +52,14 @@ def record_play(play, recording, render_name, capture_name, channels=2):
     capture = device_index(capture_name, 'capture')
     # The same sample-counted preroll in every round is included in L0. It is
     # not a sleep between separately started capture and playback streams.
+    # Hosted VB-CABLE changed its buffering during the first 5-10 seconds
+    # in run 44962864585; all measured 15-87 s segments then matched near
+    # -80 dB. Warm the *same open stream* for 15 s before the fixed preroll.
+    # Discard only this declared warmup, never a discovered bad music segment.
+    warmup = RATE * 15
     preroll = RATE // 2
-    padded = np.zeros((preroll + len(audio) + RATE * 2, channels), dtype='float32')
-    padded[preroll:preroll + len(audio), :audio.shape[1]] = audio
+    padded = np.zeros((warmup + preroll + len(audio) + RATE * 2, channels), dtype='float32')
+    padded[warmup + preroll:warmup + preroll + len(audio), :audio.shape[1]] = audio
     captured = np.zeros_like(padded)
     completed = threading.Event()
     position = 0
@@ -69,7 +74,7 @@ def record_play(play, recording, render_name, capture_name, channels=2):
             captured[position:position + count] = indata[:count]
             outdata[:count] = padded[position:position + count]
         outdata[count:] = 0
-        counters = flags if RATE * 3 <= position < preroll + len(audio) - RATE else startup_flags
+        counters = flags if warmup + RATE * 3 <= position < warmup + preroll + len(audio) - RATE else startup_flags
         for name in flags:
             if getattr(status, name):
                 counters[name] += 1
@@ -94,12 +99,14 @@ def record_play(play, recording, render_name, capture_name, channels=2):
     observed_cpu.update(audio_cpu())
     if position != len(padded):
         raise RuntimeError('Duplex stream ended before all frames were recorded.')
-    sf.write(recording, captured, RATE, subtype='FLOAT')
+    sf.write(recording, captured[warmup:], RATE, subtype='FLOAT')
     return {'render_name': render_name, 'capture_name': capture_name, 'render_index': render,
             'capture_index': capture, 'sample_rate': RATE, 'channels': channels,
             'shared_mode': True, 'blocksize': 480, 'requested_latency_s': 0.02,
             'reported_latency_s': latencies, 'preroll_frames': preroll,
-            'recorded_frames': position, 'callbacks': callbacks, 'callback_flags': flags,
+            'recorded_frames': position - warmup, 'discarded_warmup_frames': warmup,
+            'audiodg_cpu_window_s': len(padded) / RATE,
+            'callbacks': callbacks, 'callback_flags': flags,
             'startup_and_tail_flags': startup_flags,
             'audiodg_cpu_s': sum(max(0, value - initial_cpu.get(pid, 0)) for pid, value in observed_cpu.items()) if observed_cpu else None,
             'audiodg_processes_observed': len(observed_cpu)}
