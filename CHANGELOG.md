@@ -14,6 +14,20 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Hardware Rack: the VST card says its format once, on a readout.** The card
+  named VST three times: the engraving on the left ear, the title, and the
+  brass plate on the right that carried `VST3` or `VST2`. The plate is gone. A
+  small display at the start of the card's body now shows `VST3 MODULE` or
+  `VST2 MODULE` (`VST MODULE` until a plugin has loaded), and `NOT FOUND` when
+  the file is missing. The plugin's name follows it on the same line, and the
+  ear engraving reads `PLUGIN`. Two flaws on the same card are fixed as well.
+  The LOCATE button shown for a missing file was outlined on three sides only;
+  it is outlined on all four, in bronze on the dark finish. Warning text on
+  the light finish (for example the note that a module loaded as VST2) was
+  printed in a pale orange that was hard to read on the cream panel; it is
+  now a dark amber.
+  ([#511](https://github.com/115dkk/EqualizerAPO-XT/pull/511))
+
 ## v2.73.0 — 2026-11-21
 
 - **The file dialog opens Explorer's right-click menu, and can be the Windows

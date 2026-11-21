@@ -138,9 +138,4 @@ struct CommandRowInfo
 	// editor host the shared raw body; skins extend their raw-body styling
 	// to these rows through this flag.
 	bool dynamicLine = false;
-	// A short fact the body editor posts for the chrome once it has loaded
-	// its subject: the VST card posts the loaded ABI ("VST3"/"VST2") through
-	// the row's rowFormatTag dynamic property, and CommandRowFrame samples
-	// it at paint time (like hovered). Empty until the subject loaded.
-	QString formatTag;
 };

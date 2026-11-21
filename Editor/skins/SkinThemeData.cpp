@@ -258,6 +258,10 @@ SkinTokens rackTokens(bool dark)
 		t.border = QStringLiteral("#C9BFAE");
 		t.graph = QStringLiteral("#EAE2D1");
 		t.graphGridMinor = QStringLiteral("#D6C4A6");
+		// The shared default warning (#f59e0b) is a lamp colour: as ink on
+		// the cream plate it reaches 1.3:1 where the plate shades down.
+		// This one holds 4.5:1 there. The dark finish keeps the default.
+		t.warning = QStringLiteral("#7A4600");
 	}
 	finishTokens(t);
 	return t;

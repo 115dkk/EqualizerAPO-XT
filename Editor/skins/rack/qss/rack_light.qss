@@ -1,7 +1,7 @@
 /* ====================================================================
    Skin: Rack Light - "The amplifier faceplate" (cream/aluminium panels)
    Constitution: docs/skins/rack.md
-   The painted chrome (screws, rack ears, LEDs, jacks, nameplates,
+   The painted chrome (screws, rack ears, LEDs, jacks,
    pointer knobs) lives in the Rack skin surface modules.
    Tokens: bg @BG@ / surface @SURFACE@ / card @CARD@ / cardHover @CARD_HOVER@
            text @TEXT@ / mutedText @MUTED@ / border @BORDER@
@@ -631,10 +631,10 @@ QLineEdit#RefPathEdit {
 }
 QLineEdit#RefPathEdit:focus { border: 1px solid @ACCENT@; }
 /* While the reference is broken, the Browse cap becomes the LOCATE service
-   button: engraved machine lettering on the raised cap and an amber-warmed
-   border, so the recovery entry sits lit beside the label area. */
+   button: engraved machine lettering on the raised cap and an amber
+   border on all four sides, so the recovery entry sits lit beside the label area. */
 QToolButton#FilterCardIconButton[rackLocate="true"] {
-    color: @TEXT@; border-color: @ACCENT@; border-top-color: #E4E0D7;
+    color: @TEXT@; border-color: @ACCENT@;
     font-size: 8pt; letter-spacing: 2px; padding: 2px 8px;
 }
 /* A powered-down unit keeps the LOCATE engraving but the service border and

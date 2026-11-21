@@ -28,7 +28,7 @@ QString unitLabel(const CommandRowInfo& info)
 {
 	static const struct { const char* type; const char* label; } table[] = {
 		{ "biquad", "FILTER" }, { "graphiceq", "GRAPHIC" }, { "include", "PATCH" },
-		{ "vst", "VST" }, { "copy", "ROUTE" }, { "preamp", "PREAMP" },
+		{ "vst", "PLUGIN" }, { "copy", "ROUTE" }, { "preamp", "PREAMP" },
 		{ "channel", "CHANNEL" }, { "newchannel", "NEW CH" }, { "send", "SEND" }, { "device", "DEVICE" }, { "stage", "STAGE" },
 		{ "delay", "DELAY" }, { "convolution", "CONV" }, { "loudness", "LOUDNESS" },
 		{ "comment", "NOTE" }, { "text", "AUX" }
@@ -79,14 +79,12 @@ void RackSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWid
 		const SkinTokens& tokens) const
 {
 	// Reserve the rack-ear zones along the faceplate edges so the painted
-	// chrome (screws, LEDs, patchbay jacks, the VST nameplate) never
+	// chrome (screws, LEDs, patchbay jacks) never
 	// collides with row content. Rows are rebuilt on every skin switch, so
 	// this only ever runs while the rack skin is active.
 	if (header != nullptr && header->layout() != nullptr)
 	{
-		const int right = RackSkinDetail::EarWidth + 6
-			+ (info.kind() == FilterCardKind::Vst ? int(RackSkinDetail::NameplateWidth) + 14 : 0);
-		header->layout()->setContentsMargins(RackSkinDetail::EarWidth + 6, 4, right, 4);
+		header->layout()->setContentsMargins(RackSkinDetail::EarWidth + 6, 4, RackSkinDetail::EarWidth + 6, 4);
 	}
 	// Only the modern card's body stack is inset; body-only consultations
 	// (Include/VST editors, legacy rows) already sit inside that stack.
@@ -232,52 +230,6 @@ void RackSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Comma
 		RackSkinDetail::paintJack(painter, QPointF(r.right() - 10, r.top() + 21), dark);
 		if (r.height() >= 46)
 			RackSkinDetail::paintJack(painter, QPointF(r.right() - 10, r.top() + 32.5), dark);
-	}
-
-	// VST: riveted brass brand nameplate right of the control strip. The
-	// header layout reserves this area (see RackSkin::prepareCommandRow).
-	if (info.kind() == FilterCardKind::Vst && r.width() >= 320)
-	{
-		const QRectF plateRect(rightEar.left() - 8 - RackSkinDetail::NameplateWidth,
-			r.top() + (tokens.rowHeight - RackSkinDetail::NameplateHeight) / 2.0, RackSkinDetail::NameplateWidth, RackSkinDetail::NameplateHeight);
-		QLinearGradient brass(plateRect.topLeft(), plateRect.bottomLeft());
-		if (dark)
-		{
-			brass.setColorAt(0.0, RackPalette::BrassHighlight.dark);
-			brass.setColorAt(0.5, RackPalette::BrassBody.dark);
-			brass.setColorAt(1.0, RackPalette::BrassEdge.dark);
-		}
-		else
-		{
-			brass.setColorAt(0.0, RackPalette::BrassHighlight.light);
-			brass.setColorAt(0.5, RackPalette::BrassBody.light);
-			brass.setColorAt(1.0, RackPalette::BrassEdge.light);
-		}
-		painter.setPen(QPen(RackPalette::BrassRim, 1));
-		painter.setBrush(brass);
-		painter.drawRoundedRect(plateRect, 3, 3);
-
-		QFont plateFont(tokens.fontFamily);
-		plateFont.setPixelSize(10);
-		plateFont.setBold(true);
-		plateFont.setLetterSpacing(QFont::AbsoluteSpacing, 2.5);
-		painter.setFont(plateFont);
-		// The brand carries the loaded ABI once the card posts it (r3
-		// judging: the plate is the one place the format should live, not a
-		// stamped tag crowding the MODULE caption). Until a module loads,
-		// the plate reads the plain family brand.
-		const QString brand = info.formatTag.isEmpty() ? QStringLiteral("VST") : info.formatTag;
-		// Engraved into the brass itself, so the passes are brass-tinted in
-		// both modes rather than following the panel's engraving direction.
-		painter.setPen(RackPalette::BrassEngraveRelief);
-		painter.drawText(plateRect.translated(1, 1), Qt::AlignCenter, brand);
-		painter.setPen(RackPalette::BrassEngraveInk);
-		painter.drawText(plateRect, Qt::AlignCenter, brand);
-
-		painter.setPen(QPen(RackPalette::BrassRivetRim, 0.8));
-		painter.setBrush(RackPalette::BrassRivet);
-		painter.drawEllipse(QPointF(plateRect.left() + 6, plateRect.center().y()), 1.6, 1.6);
-		painter.drawEllipse(QPointF(plateRect.right() - 6, plateRect.center().y()), 1.6, 1.6);
 	}
 
 	// Engraved unit designation running up the left ear on tall units. The
