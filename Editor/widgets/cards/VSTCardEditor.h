@@ -43,6 +43,7 @@ class QAction;
 class FileReferenceController;
 class FilterTable;
 class VSTBusStrip;
+class VSTSlotFillBlock;
 class VSTSlotFillRail;
 
 class VSTCardEditor : public IFilterGUI
@@ -128,8 +129,12 @@ private:
 	QAction* removeBusAction = nullptr;
 	QAction* removeFillAction = nullptr;
 	VSTBusStrip* busStrip = nullptr;
+	// The channel fill: the two split rails, or the joined block, whichever
+	// the skin's vstSlotFillArrangement chose when the card was built (the
+	// other pointers stay null).
 	VSTSlotFillRail* inputRail = nullptr;
 	VSTSlotFillRail* outputRail = nullptr;
+	VSTSlotFillBlock* fillBlock = nullptr;
 	QFrame* frame = nullptr;
 	QPlainTextEdit* warningTextEdit = nullptr;
 };

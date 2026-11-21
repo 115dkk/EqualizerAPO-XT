@@ -50,7 +50,11 @@ public:
 		const SkinTokens& tokens) const override;
 	void paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state,
 		const SkinTokens& tokens) const override;
-	void paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state,
+	VstSlotFillArrangement vstSlotFillArrangement() const override;
+	VstSlotFillBlockMetrics vstSlotFillBlockMetrics(bool collapsed, const SkinTokens& tokens) const override;
+	int vstSlotFillBlockColumnWidth(const QString& role, const QString& value, bool output,
+		const SkinTokens& tokens) const override;
+	void paintVstSlotFillBlock(QPainter& painter, const VstSlotFillBlockState& state,
 		const SkinTokens& tokens) const override;
 	void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state,
 		const SkinTokens& tokens) const override;

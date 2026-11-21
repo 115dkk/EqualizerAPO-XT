@@ -7,6 +7,7 @@
 #include "StudioSkin.h"
 #include "StudioBandColor.h"
 
+#include <QCoreApplication>
 #include <QFontMetricsF>
 #include <QPainter>
 #include <QPainterPath>
@@ -15,6 +16,7 @@
 
 #include "Editor/skins/shared/SkinPaint.h"
 #include "Editor/skins/shared/SkinSupport.h"
+#include "Editor/widgets/cards/VSTSlotFillRail.h"
 
 using namespace StudioBandColors;
 
@@ -460,6 +462,49 @@ void StudioSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellSt
 	const QColor glassInk = dark ? QColor(Qt::white) : QColor(Qt::black);
 	const QRectF rect(state.rect);
 
+	if (state.roleInBlock)
+	{
+		// In the block the strip caption is printed on the block's role
+		// line; the inset well takes the whole column and holds the channel
+		// centred, the caret at its right as before.
+		const QRectF well = rect.adjusted(0.5, 0.5, -0.5, -0.5);
+		painter.setPen(Qt::NoPen);
+		painter.setBrush(withAlphaF(glassInk, !state.enabled ? 0.02
+			: (state.pressed || state.menuOpen ? 0.10 : (state.hovered ? 0.07 : 0.045))));
+		painter.drawRoundedRect(well, 4.0, 4.0);
+		QColor border = withAlphaF(glassInk, state.enabled ? 0.10 : 0.05);
+		if (state.missingChannel)
+			border = QColor(tokens.danger);
+		else if (state.enabled && (state.focused || state.menuOpen))
+			border = QColor(tokens.accent);
+		else if (state.enabled && state.hovered)
+			border = withAlpha(QColor(tokens.accent), 140);
+		painter.setPen(QPen(border, 1));
+		painter.setBrush(Qt::NoBrush);
+		painter.drawRoundedRect(well, 4.0, 4.0);
+
+		const qreal caretHalf = 3.0;
+		const QPointF caretMid(well.right() - 7.0, well.center().y() + 0.5);
+		QPainterPath caret;
+		caret.moveTo(caretMid + QPointF(-caretHalf, -caretHalf / 2.0));
+		caret.lineTo(caretMid + QPointF(caretHalf, -caretHalf / 2.0));
+		caret.lineTo(caretMid + QPointF(0.0, caretHalf));
+		caret.closeSubpath();
+		painter.fillPath(caret, withAlpha(QColor(tokens.accent), state.enabled ? 130 : 70));
+
+		QFont valueFont(tokens.monoFontFamily);
+		valueFont.setPixelSize(12);
+		painter.setFont(valueFont);
+		QColor valueInk(state.silent || state.defaulted ? tokens.mutedText : tokens.text);
+		if (state.missingChannel)
+			valueInk = QColor(tokens.danger);
+		if (!state.enabled)
+			valueInk = withAlpha(QColor(tokens.mutedText), 150);
+		painter.setPen(valueInk);
+		painter.drawText(well.adjusted(4.0, 0, -12.0, 0), Qt::AlignHCenter | Qt::AlignVCenter, state.valueText);
+		return;
+	}
+
 	// The scribble-strip register, deliberately not the bus glass: the role
 	// is the printed strip caption, the channel sits in a shallow inset
 	// well. A channel pick must never read as a layout pick.
@@ -507,7 +552,93 @@ void StudioSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellSt
 	painter.fillPath(caret, withAlpha(QColor(tokens.accent), state.enabled ? 130 : 70));
 }
 
-void StudioSkin::paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state, const SkinTokens& tokens) const
+namespace
+{
+// The block's printed captions and roles: the 10px pane caption of the bus
+// strip, letter-spaced as there.
+QFont studioFillCaptionFont(const SkinTokens& tokens)
+{
+	QFont font(tokens.fontFamily);
+	font.setPixelSize(10);
+	font.setLetterSpacing(QFont::AbsoluteSpacing, 0.5);
+	return font;
+}
+
+QFont studioFillRoleFont(const SkinTokens& tokens)
+{
+	QFont font(tokens.fontFamily);
+	font.setPixelSize(10);
+	return font;
+}
+
+QFont studioFillLatchFont(const SkinTokens& tokens)
+{
+	QFont font(tokens.fontFamily);
+	font.setPixelSize(10);
+	font.setLetterSpacing(QFont::AbsoluteSpacing, 0.8);
+	return font;
+}
+
+// The row captions are the bus strip's own words ("In"/"Out", translated
+// there), printed upper case as the strip prints them.
+QString studioFillCaption(bool output)
+{
+	return (output ? QCoreApplication::translate("VSTBusStrip", "Out")
+		: QCoreApplication::translate("VSTBusStrip", "In")).toUpper();
+}
+}
+
+VstSlotFillArrangement StudioSkin::vstSlotFillArrangement() const
+{
+	return VstSlotFillArrangement::JoinedBlockBelowBody;
+}
+
+VstSlotFillBlockMetrics StudioSkin::vstSlotFillBlockMetrics(bool collapsed, const SkinTokens& tokens) const
+{
+	Q_UNUSED(collapsed);
+	VstSlotFillBlockMetrics metrics;
+	metrics.cellHeight = VSTSlotFillRail::cellHeight();
+	metrics.roleLineHeight = 13;
+	metrics.roleGap = 1;
+	metrics.groupGap = 10;
+	metrics.cellGap = 6;
+	const QFontMetricsF caption(studioFillCaptionFont(tokens));
+	metrics.captionWidth = qCeil(qMax(caption.horizontalAdvance(studioFillCaption(false)),
+		caption.horizontalAdvance(studioFillCaption(true))));
+	metrics.captionGap = 8;
+	metrics.padding = QMargins(10, 7, 10, 7);
+	metrics.latchPlacement = VstSlotFillBlockMetrics::LatchPlacement::LeftColumn;
+	// The console switch: the lamp in its first 14, the legend, 7 after.
+	metrics.latchWidth = qCeil(14.0
+		+ QFontMetricsF(studioFillLatchFont(tokens)).horizontalAdvance(QStringLiteral("FILL")) + 7.0);
+	metrics.latchHeight = metrics.cellHeight;
+	metrics.latchGap = 12;
+	metrics.shareRoleLine = true;
+	metrics.rolesAboveRows = false;
+	return metrics;
+}
+
+int StudioSkin::vstSlotFillBlockColumnWidth(const QString& role, const QString& value, bool output,
+	const SkinTokens& tokens) const
+{
+	Q_UNUSED(output);
+	// The well: 4 before the channel (never narrower than "LFE"), 12 after
+	// it for the caret.
+	QFont valueFont(tokens.monoFontFamily);
+	valueFont.setPixelSize(12);
+	const QFontMetricsF valueMetrics(valueFont);
+	const qreal valueWidth = qMax(valueMetrics.horizontalAdvance(value),
+		valueMetrics.horizontalAdvance(QStringLiteral("LFE")));
+	const qreal roleWidth = QFontMetricsF(studioFillRoleFont(tokens)).horizontalAdvance(role);
+	return qCeil(qMax(roleWidth + 2.0, 4.0 + valueWidth + 4.0 + 12.0));
+}
+
+// The block is one shallow pane of the console surface, cut to its content
+// and rounded like every pane here (8px): the same faint wash and hairline
+// the rails used, now closed on all four sides. Captions and slot roles are
+// printed on the pane in muted ink; the fold is the lit console switch, its
+// well the same as the value wells beside it.
+void StudioSkin::paintVstSlotFillBlock(QPainter& painter, const VstSlotFillBlockState& state, const SkinTokens& tokens) const
 {
 	QPainterStateGuard guard(&painter);
 	painter.setRenderHint(QPainter::Antialiasing, true);
@@ -515,32 +646,53 @@ void StudioSkin::paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailSt
 
 	const bool dark = skinIsDark(tokens);
 	const QColor glassInk = dark ? QColor(Qt::white) : QColor(Qt::black);
+	const QColor muted = withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150);
 
-	// A recessed console band between two hairlines: the rails belong to
-	// the desk surface instead of floating over it.
-	const QRectF band(state.rect);
-	painter.setPen(Qt::NoPen);
-	painter.setBrush(withAlphaF(glassInk, dark ? 0.035 : 0.05));
-	painter.drawRect(band);
-	painter.setPen(QPen(withAlphaF(glassInk, 0.08), 1));
-	painter.drawLine(band.topLeft() + QPointF(0, 0.5), band.topRight() + QPointF(0, 0.5));
-	painter.drawLine(band.bottomLeft() - QPointF(0, 0.5), band.bottomRight() - QPointF(0, 0.5));
+	if (!state.bandRect.isNull())
+	{
+		const QRectF pane = QRectF(state.bandRect).adjusted(0.5, 0.5, -0.5, -0.5);
+		painter.setPen(QPen(withAlphaF(glassInk, 0.08), 1));
+		painter.setBrush(withAlphaF(glassInk, dark ? 0.035 : 0.04));
+		painter.drawRoundedRect(pane, 8.0, 8.0);
+	}
 
-	if (state.latchRect.isNull())
+	painter.setPen(muted);
+	painter.setFont(studioFillCaptionFont(tokens));
+	for (const VstSlotFillBlockState::Caption& caption : state.captions)
+		painter.drawText(caption.rect, Qt::AlignRight | Qt::AlignVCenter, studioFillCaption(caption.output));
+	painter.setFont(studioFillRoleFont(tokens));
+	for (const VstSlotFillBlockState::Role& role : state.roles)
+		painter.drawText(role.rect, Qt::AlignHCenter | Qt::AlignVCenter, role.role);
+
+	if (state.latchRect.isNull() || !state.latchActive)
 		return;
-	// The fold is a lit console switch - cap plus lamp - never a dropdown.
-	const QRectF cap = QRectF(state.latchRect).adjusted(0.5, 1.5, -0.5, -1.5);
-	painter.setPen(QPen(state.latchFocused ? QColor(tokens.accent) : withAlphaF(glassInk, 0.14), 1));
-	painter.setBrush(withAlphaF(glassInk, state.latchPressed ? 0.12 : (state.latchHovered ? 0.09 : 0.06)));
-	painter.drawRoundedRect(cap, 4.0, 4.0);
-	const QColor lamp = state.collapsed ? withAlpha(QColor(tokens.mutedText), 160) : QColor(tokens.accent);
+	const QRectF cap = QRectF(state.latchRect).adjusted(0.5, 0.5, -0.5, -0.5);
 	painter.setPen(Qt::NoPen);
-	painter.setBrush(lamp);
-	painter.drawEllipse(QPointF(cap.left() + 8.0, cap.center().y() + 0.5), 2.5, 2.5);
-	QFont capFont(tokens.fontFamily);
-	capFont.setPixelSize(10);
-	capFont.setLetterSpacing(QFont::AbsoluteSpacing, 0.8);
-	painter.setFont(capFont);
-	painter.setPen(state.collapsed ? QColor(tokens.mutedText) : QColor(tokens.text));
-	painter.drawText(cap.adjusted(14.0, 0, -4.0, 0), Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("FILL"));
+	painter.setBrush(withAlphaF(glassInk, !state.enabled ? 0.02
+		: (state.latchPressed ? 0.10 : (state.latchHovered ? 0.07 : 0.045))));
+	painter.drawRoundedRect(cap, 4.0, 4.0);
+	QColor border = withAlphaF(glassInk, state.enabled ? 0.10 : 0.05);
+	if (state.enabled && state.latchFocused)
+		border = QColor(tokens.accent);
+	else if (state.enabled && state.latchHovered)
+		border = withAlpha(QColor(tokens.accent), 140);
+	painter.setPen(QPen(border, 1));
+	painter.setBrush(Qt::NoBrush);
+	painter.drawRoundedRect(cap, 4.0, 4.0);
+
+	const bool lit = state.enabled && !state.collapsed;
+	const QPointF lampCenter(cap.left() + 7.5, cap.center().y() + 0.5);
+	if (lit)
+	{
+		// Faked glow: one wide stroke ring losing wattage outward.
+		painter.setPen(QPen(withAlpha(QColor(tokens.accent), 60), 3.0));
+		painter.setBrush(Qt::NoBrush);
+		painter.drawEllipse(lampCenter, 3.4, 3.4);
+	}
+	painter.setPen(Qt::NoPen);
+	painter.setBrush(lit ? QColor(tokens.accent) : withAlpha(QColor(tokens.mutedText), 150));
+	painter.drawEllipse(lampCenter, 2.3, 2.3);
+	painter.setFont(studioFillLatchFont(tokens));
+	painter.setPen(state.collapsed || !state.enabled ? muted : QColor(tokens.text));
+	painter.drawText(cap.adjusted(14.0, 0, -3.0, 0), Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("FILL"));
 }

@@ -252,6 +252,26 @@ void SkinManager::paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailS
 	activeSkin->paintVstSlotFillRail(painter, state, currentTokens);
 }
 
+VstSlotFillArrangement SkinManager::vstSlotFillArrangement() const
+{
+	return activeSkin->vstSlotFillArrangement();
+}
+
+VstSlotFillBlockMetrics SkinManager::vstSlotFillBlockMetrics(bool collapsed) const
+{
+	return activeSkin->vstSlotFillBlockMetrics(collapsed, currentTokens);
+}
+
+int SkinManager::vstSlotFillBlockColumnWidth(const QString& role, const QString& value, bool output) const
+{
+	return activeSkin->vstSlotFillBlockColumnWidth(role, value, output, currentTokens);
+}
+
+void SkinManager::paintVstSlotFillBlock(QPainter& painter, const VstSlotFillBlockState& state) const
+{
+	activeSkin->paintVstSlotFillBlock(painter, state, currentTokens);
+}
+
 FilterPickerView* SkinManager::createFilterPicker(QWidget* parent) const
 {
 	return activeSkin->createFilterPicker(parent, tokens());
