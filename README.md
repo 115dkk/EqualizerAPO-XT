@@ -103,6 +103,7 @@ Current work areas:
 
 ## Features
 
+- No added latency by default. The engine processes each block in the callback it arrives in, and long convolutions, multi-core processing and plugin hosting are built so that stays true. Delay is something the user chooses ([docs/LatencyPolicy.md](docs/LatencyPolicy.md)).
 - Double-precision internal audio processing for complex filter chains.
 - Convolution, GraphicEQ, parametric EQ, VST2/VST3, and standard Equalizer APO filter support.
 - ASIO: every ASIO driver appears in the Device Selector's playback and

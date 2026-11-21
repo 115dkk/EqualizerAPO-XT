@@ -185,6 +185,8 @@ PR은 CI가 모두 통과하면 리뷰를 기다리지 않고 squash로 머지�
 
 공용 오디오 처리 변경은 `FilterEngine`, `FilterConfiguration`, `IFilter`, `filters/`, `audio/`, `dsp/`, `runtime/`의 영향 범위를 같이 확인합니다.
 
+기본 신호 처리에 지연을 붙이는 변경은 받지 않습니다. 오디오 처리를 바꾸기 전에 [docs/LatencyPolicy.ko.md](docs/LatencyPolicy.ko.md)의 '지킬 것'을 읽으십시오. 고정 지연을 붙이는 필터는 `IFilter::reportLatency`를 재정의하고, 샘플 위치를 비교하는 테스트를 함께 넣으십시오.
+
 필터를 추가하거나 바꿀 때는 런타임 구현, factory, 설정 파싱, Editor GUI, 리소스 파일, 프로젝트 파일 포함 여부를 함께 확인합니다.
 
 GUI 변경은 Qt `.ui`, `.qrc`, `.pro`, 번역 파일 영향을 확인합니다. 번역 파일은 요청이나 실제 문자열 변경이 있을 때만 건드립니다.
