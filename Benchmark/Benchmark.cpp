@@ -41,6 +41,7 @@
 #include "services/logging/Logging.h"
 #include "diagnostics/performance/PrecisionTimer.h"
 #include "runtime/memory/AlignedMemory.h"
+#include "runtime/concurrency/RealtimeFanOut.h"
 #include "diagnostics/performance/PerfProfile.h"
 #include "audio/io/SndfileRAII.h"
 #include "BatchPlan.h"
@@ -83,8 +84,15 @@ int main(int argc, char** argv)
 		TCLAP::ValueArg<float> fromArg("f", "from", "Start frequency of generated sweep in Hz (Default: 1.0)", false, 1.0f, "float", cmd);
 		TCLAP::ValueArg<float> lengthArg("l", "length", "Length of generated sweep in seconds (Default: 200.0)", false, 200.0f, "float", cmd);
 		TCLAP::ValueArg<unsigned> channelArg("c", "channels", "Number of channels of generated sweep (Default: 2)", false, 2, "integer", cmd);
+		TCLAP::ValueArg<unsigned> fanOutFixedArg("", "fanout-fixed", "Wake this many convolution workers for every block instead of letting the count adapt; 0 processes on one thread", false, 0, "integer", cmd);
 
 		cmd.parse(argc, argv);
+
+		if (fanOutFixedArg.isSet())
+		{
+			eapo::rt::FanOut::setWorkerLimitForTests(fanOutFixedArg.getValue());
+			eapo::rt::FanOut::setGovernorEnabledForTests(false);
+		}
 
 		bool verbose = verboseArg.getValue();
 		Logging::set(stderr, verbose, true, true);
@@ -293,6 +301,15 @@ int main(int argc, char** argv)
 
 			if (profileEnabled)
 				PerfProfile::report(cout);
+
+			if (verbose)
+			{
+				cout << "Convolution fan-out: team of " << eapo::rt::FanOut::workerCount() << " workers";
+				if (fanOutFixedArg.isSet())
+					cout << ", fixed count\n";
+				else
+					cout << ", the last block woke " << eapo::rt::FanOut::lastWorkersWoken() << "\n";
+			}
 
 			string dumpCsvPath = dumpCsvArg.getValue();
 			if (!dumpCsvPath.empty())

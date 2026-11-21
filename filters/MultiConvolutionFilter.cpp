@@ -180,7 +180,10 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 		// Workers are started only for a filter that will use them.
 		parallelWork = useConvolverFanOut(unitCount, irFrames, *bank.unit(0));
 		if (parallelWork)
+		{
+			fanOutGovernor = {};
 			fanOutLease = eapo::rt::FanOut::Lease::acquire();
+		}
 	}
 
 	return outChannelNames;
@@ -203,7 +206,7 @@ void MultiConvolutionFilter::process(double** output, double** input, unsigned f
 	if (usable)
 	{
 		ConvolverProcessJob job{bank, input, unitOutputs.data(), unitInputs.data()};
-		processConvolverUnits(job, unitCount, parallelWork);
+		processConvolverUnits(job, unitCount, parallelWork, fanOutGovernor);
 	}
 
 	for (const MappingPlan& plan : plans)
@@ -237,6 +240,7 @@ void MultiConvolutionFilter::process(double** output, double** input, unsigned f
 void MultiConvolutionFilter::cleanup()
 {
 	fanOutLease = {};
+	fanOutGovernor = {};
 	parallelWork = false;
 	// Deferred report of the mute path that process() took on the audio
 	// thread, then disarm and release the units (close-then-free), in one call.

@@ -25,6 +25,7 @@
 #include "engine/IFilter.h"
 #include "ConvolverBank.h"
 #include "IrCache.h"
+#include "runtime/concurrency/FanOutGovernor.h"
 #include "runtime/concurrency/RealtimeFanOut.h"
 
 #pragma AVRT_VTABLES_BEGIN
@@ -67,5 +68,6 @@ private:
 	bool parallelConvolution;
 	bool parallelWork = false;
 	eapo::rt::FanOut::Lease fanOutLease;
+	eapo::rt::FanOutGovernor fanOutGovernor;
 };
 #pragma AVRT_VTABLES_END

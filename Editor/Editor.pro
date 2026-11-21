@@ -617,6 +617,7 @@ HEADERS  += \
 	../filters/ConvolverArray.h \
 	../filters/ConvolverBank.h \
 	../filters/ConvolverProcess.h \
+	../runtime/concurrency/FanOutGovernor.h \
 	../runtime/concurrency/RealtimeFanOut.h \
 	../filters/subwooferRouting/SubwooferRoutingCommand.h \
 	../filters/subwooferRouting/SubwooferRoutingFilter.h \

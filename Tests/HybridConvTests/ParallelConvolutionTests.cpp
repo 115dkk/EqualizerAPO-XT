@@ -23,6 +23,7 @@
 namespace
 {
 	using eapo::rt::FanOut;
+	constexpr unsigned maximumWorkerLimit = 63;
 	using Planes = std::vector<std::vector<double>>;
 
 	std::vector<double*> pointers(Planes& planes)
@@ -37,7 +38,7 @@ namespace
 	void compare(test::Harness& harness, Filter& parallel, Filter& serial,
 		unsigned blockSize, const std::vector<std::wstring>& channels)
 	{
-		FanOut::setWorkerLimitForTests(7);
+		FanOut::setWorkerLimitForTests(maximumWorkerLimit);
 		const auto outputs = parallel.initialize(48000, blockSize, channels);
 		harness.require(FanOut::workerCount() > 0, "the parallel filter acquires a team");
 		serial.initialize(48000, blockSize, channels);
@@ -53,7 +54,7 @@ namespace
 			for (size_t c = 0; c < input.size(); ++c)
 				for (unsigned f = 0; f < blockSize; ++f)
 					input[c][f] = block > 130 ? 0.0 : std::sin((block * blockSize + f) * 0.013 + c) * 0.25;
-			FanOut::setWorkerLimitForTests(7);
+			FanOut::setWorkerLimitForTests(maximumWorkerLimit);
 			parallel.process(out.data(), in.data(), blockSize);
 			FanOut::setWorkerLimitForTests(0);
 			serial.process(ref.data(), in.data(), blockSize);
@@ -61,7 +62,7 @@ namespace
 				harness.expectTrue(std::memcmp(actual[c].data(), expected[c].data(),
 					blockSize * sizeof(double)) == 0, "parallel convolution is bit-identical for every block");
 		}
-		FanOut::setWorkerLimitForTests(7);
+		FanOut::setWorkerLimitForTests(maximumWorkerLimit);
 	}
 }
 

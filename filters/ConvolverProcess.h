@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include "ConvolverBank.h"
+#include "runtime/concurrency/FanOutGovernor.h"
 #include "runtime/concurrency/RealtimeFanOut.h"
 
 // Prepared storage is owned by the filter. A negative input mapping skips a
@@ -56,10 +57,11 @@ inline void processConvolverUnit(void* context, size_t index) noexcept
 	hcGetPartitioned(unit, job.output[index]);
 }
 
-inline void processConvolverUnits(ConvolverProcessJob& job, unsigned count, bool parallel) noexcept
+inline void processConvolverUnits(ConvolverProcessJob& job, unsigned count, bool parallel,
+	eapo::rt::FanOutGovernor& governor) noexcept
 {
 	if (parallel)
-		eapo::rt::FanOut::run(count, processConvolverUnit, &job);
+		eapo::rt::FanOut::run(count, processConvolverUnit, &job, governor);
 	else
 		for (unsigned i = 0; i < count; ++i)
 			processConvolverUnit(&job, i);

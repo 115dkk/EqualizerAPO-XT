@@ -93,13 +93,14 @@ void ConvolutionFilter::process(double** output, double** input, unsigned frameC
 	}
 
 	ConvolverProcessJob job{bank, input, output};
-	processConvolverUnits(job, channelCount, parallelWork);
+	processConvolverUnits(job, channelCount, parallelWork, fanOutGovernor);
 }
 #pragma AVRT_CODE_END
 
 void ConvolutionFilter::cleanup()
 {
 	fanOutLease = {};
+	fanOutGovernor = {};
 	parallelWork = false;
 	// Deferred report of the mute path that process() took on the audio
 	// thread, then disarm and release the units (close-then-free), in one call.
@@ -142,6 +143,9 @@ void ConvolutionFilter::initializeFilters(unsigned frameCount)
 		// Workers are started only for a filter that will use them.
 		parallelWork = useConvolverFanOut(channelCount, ir->frames, *bank.unit(0));
 		if (parallelWork)
+		{
+			fanOutGovernor = {};
 			fanOutLease = eapo::rt::FanOut::Lease::acquire();
+		}
 	}
 }
