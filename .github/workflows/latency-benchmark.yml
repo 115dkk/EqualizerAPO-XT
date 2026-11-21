@@ -1,0 +1,49 @@
+name: Latency benchmark
+
+# Measures the delay and cost of the same binaural room convolution done by
+# Equalizer APO XT, by CamillaDSP and by Omniphony. Run by hand: it downloads
+# third-party programs, so it is not a gate.
+#
+# The inputs (a room response, a piece of music, an upmixer plugin and a plugin
+# host) are not redistributable. They are fetched from a private repository
+# with a read-only deploy key and exist only on the runner. Nothing derived
+# from them is uploaded: the artifact holds numbers and the programs' own log
+# lines, never audio.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ci/latency-benchmark]
+    paths:
+      - '.github/workflows/latency-benchmark.yml'
+      - '.github/scripts/latency-benchmark/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: latency-benchmark-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  explore:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+    - name: Fetch the private inputs
+      shell: pwsh
+      env:
+        BENCH_ASSETS_DEPLOY_KEY: ${{ secrets.BENCH_ASSETS_DEPLOY_KEY }}
+      run: |
+        & "${{ github.workspace }}\.github\scripts\latency-benchmark\Get-BenchmarkInputs.ps1" `
+          -Destination "${{ runner.temp }}\bench-inputs"
+
+    - name: Explore the programs
+      shell: pwsh
+      run: |
+        & "${{ github.workspace }}\.github\scripts\latency-benchmark\Explore-Programs.ps1" `
+          -Inputs "${{ runner.temp }}\bench-inputs" `
+          -Work "${{ runner.temp }}\bench-work"
