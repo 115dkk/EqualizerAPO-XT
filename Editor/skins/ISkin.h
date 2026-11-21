@@ -17,6 +17,8 @@
 
 #include <QColor>
 #include <QIcon>
+#include <QList>
+#include <QMargins>
 #include <QPolygonF>
 #include <QRect>
 #include <QSet>
@@ -282,11 +284,12 @@ struct VstBusFrameState
 	QString SkinTokens::* toneToken = &SkinTokens::mutedText;
 };
 
-// One slot cell of the VST channel-fill rails (VSTSlotFillRail): the
-// interactive cell assigning a config channel to one negotiated bus slot.
+// One slot cell of the VST channel fill (VSTSlotFillCell, in a rail or a
+// joined block): the interactive cell assigning a config channel to one
+// negotiated bus slot.
 // Distinct from VstBusSelectorState on purpose - the bus selectors pick a
 // LAYOUT, these cells pick a CHANNEL, and the two must not read as the same
-// control (see the fill rail section in docs/skin-hooks.md).
+// control (see the channel-fill section in docs/skin-hooks.md).
 struct VstSlotFillCellState
 {
 	QRect rect;
@@ -311,6 +314,12 @@ struct VstSlotFillCellState
 	bool pressed = false;
 	bool focused = false;
 	bool menuOpen = false;
+	// The cell stands in a joined fill block (VstSlotFillArrangement::
+	// JoinedBlockBelowBody): the block prints the role on its role line, so
+	// the cell shows the channel alone across the whole column width it was
+	// given (ISkin::vstSlotFillBlockColumnWidth). roleToken still carries the
+	// role for the cell's accessible text.
+	bool roleInBlock = false;
 };
 
 // The rail around the slot cells, painted before the cell children. The
@@ -330,6 +339,115 @@ struct VstSlotFillRailState
 	bool latchPressed = false;
 	bool latchFocused = false;
 	bool enabled = true;
+};
+
+// How a VST card mounts its channel-fill rows, answered by
+// ISkin::vstSlotFillArrangement. VSTCardEditor asks once, when the card is
+// built; a skin switch rebuilds every row, so the answer never changes under
+// a live card.
+enum class VstSlotFillArrangement
+{
+	// Two rails bracketing the reference body (VSTSlotFillRail): the input
+	// rail under the card header with the fold latch, the output rail under
+	// the body. Every cell prints its own role.
+	SplitRails,
+	// One block below the body (VSTSlotFillBlock): the input row, the slot
+	// roles and the output row together, with IN/OUT row captions and the
+	// fold latch inside the block. The fill is auxiliary to the plugin, so it
+	// comes after everything the body says.
+	JoinedBlockBelowBody
+};
+
+// Geometry of the joined fill block in logical pixels, answered by the skin
+// that paints it (ISkin::vstSlotFillBlockMetrics) so the shared widget holds
+// no per-skin numbers. VSTSlotFillBlock::computeLayout turns it into rects.
+//
+// The block stacks, from the top: the heading line (HeadingLine latches
+// only), then the input group and the output group. A group is a row of
+// value cells plus its role line. While both rows hold the same slots and
+// shareRoleLine is set, one role line sits between the rows and the columns
+// align slot by slot. Otherwise each row has its own role line: above the
+// row when rolesAboveRows is set, else on the side facing the other row
+// (input roles under the input row, output roles over the output row).
+struct VstSlotFillBlockMetrics
+{
+	enum class LatchPlacement
+	{
+		// The latch is a cell-height control at the block's left edge,
+		// vertically centred on the expanded block.
+		LeftColumn,
+		// The latch is a heading line above the rows. It is shown whenever
+		// the block is (a one-sided block keeps it as a plain heading, see
+		// VstSlotFillBlockState::latchActive).
+		HeadingLine
+	};
+
+	// Height of a value cell. A LeftColumn latch takes the same height.
+	int cellHeight = 20;
+	// Height of one role line, and the space between it and its row.
+	int roleLineHeight = 12;
+	int roleGap = 1;
+	// Extra space between the input group and the output group when each
+	// carries its own role line.
+	int groupGap = 6;
+	// Space between neighbouring cells of a row.
+	int cellGap = 6;
+	// The IN/OUT caption column at the left of the rows, and the space after
+	// it. A width of 0 drops the captions.
+	int captionWidth = 24;
+	int captionGap = 6;
+	// The space between the block's band and its content; the band starts at
+	// the widget's left edge and ends where the content ends.
+	QMargins padding = QMargins(8, 4, 8, 4);
+	LatchPlacement latchPlacement = LatchPlacement::LeftColumn;
+	// LeftColumn: the latch's width and the space after it. HeadingLine: the
+	// heading's width and height, and the space between it and the rows.
+	int latchWidth = 48;
+	int latchHeight = 20;
+	int latchGap = 10;
+	bool shareRoleLine = true;
+	bool rolesAboveRows = false;
+};
+
+// The joined fill block around its value cells, painted before the cell
+// children (ISkin::paintVstSlotFillBlock). The cells paint themselves through
+// ISkin::paintVstSlotFillCell with VstSlotFillCellState::roleInBlock set; the
+// block paints the band, the row captions, the role lines and the latch.
+struct VstSlotFillBlockState
+{
+	QRect rect;
+	// The block's ground, trimmed to its content; null while folded (the
+	// folded block is the latch alone).
+	QRect bandRect;
+	// The latch (LeftColumn) or the heading line (HeadingLine); null when the
+	// block has no latch.
+	QRect latchRect;
+	// False when the latch area is a plain heading that does not fold (a
+	// HeadingLine block with one side only). A LeftColumn block then has no
+	// latch at all.
+	bool latchActive = true;
+	bool collapsed = false;
+	bool latchHovered = false;
+	bool latchPressed = false;
+	bool latchFocused = false;
+	bool enabled = true;
+	// A row caption: the rect spans the caption column at the height of the
+	// row's cells.
+	struct Caption
+	{
+		QRect rect;
+		bool output = false;
+	};
+	QList<Caption> captions;
+	// One printed slot role: the rect spans the slot's column on its role
+	// line. A shared line reports output false.
+	struct Role
+	{
+		QRect rect;
+		QString role;
+		bool output = false;
+	};
+	QList<Role> roles;
 };
 
 // Snapshot of an AudioKnob's state handed to ISkin::paintKnob. The widget owns
@@ -406,11 +524,13 @@ public:
 
 	// THE HOOKS EVERY SKIN ANSWERS. cardFrameStyle/cardHeaderStyle,
 	// paintAddRow, paintInsertSeam, paintGraphicEqPlot, paintVstBusSelector,
-	// paintVstBusFrame, paintVstSlotFillCell and paintVstSlotFillRail are pure
-	// virtual (audit #422 S3): the surfaces that call them exist only in a
-	// skinned session, so a neutral default was a painter no skin ever
-	// reached. HeritageSkin keeps that neutral rendering; heritage mode never
-	// builds those surfaces, so it never runs either.
+	// paintVstBusFrame and paintVstSlotFillCell are pure virtual (audit #422
+	// S3): the surfaces that call them exist only in a skinned session, so a
+	// neutral default was a painter no skin ever reached. HeritageSkin keeps
+	// that neutral rendering; heritage mode never builds those surfaces, so it
+	// never runs either. paintVstSlotFillRail is the exception: it serves the
+	// default SplitRails arrangement, which no shipped skin answers any more,
+	// so its neutral painter is the ISkin default.
 
 	// Inline stylesheet for the modern card's frame (QFrame#FilterCardRow),
 	// re-evaluated whenever the row's state changes. Each skin gives command
@@ -564,19 +684,47 @@ public:
 	// fonts or paddings differ answers for itself.
 	virtual QSize vstSlotFillCellSize(const QString& role, const QString& value, const SkinTokens& tokens) const;
 
-	// One slot cell of the VST channel-fill rails: role engraving, the
-	// assigned channel, and the dropdown cue, in a cell the widget sizes
-	// through vstSlotFillCellSize. Each skin's cell reads visibly different
+	// One slot cell of the VST channel fill: role engraving, the assigned
+	// channel, and the dropdown cue, in a cell the rail sizes through
+	// vstSlotFillCellSize. In a joined block (state.roleInBlock) the block
+	// prints the role and sizes the cell through vstSlotFillBlockColumnWidth,
+	// and the cell paints the channel alone. Each skin's cell reads visibly different
 	// from its paintVstBusSelector; the neutral answer (HeritageSkin) has no
 	// channel-count suffix, silent slots in muted strike ink and missing
 	// channels in the danger tone.
 	virtual void paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state, const SkinTokens& tokens) const = 0;
 
-	// The rail under a row of slot cells plus the fold latch. The latch is
-	// the feature's on/off fold and must be a different affordance than the
-	// channel cells (the neutral answer, HeritageSkin, draws a small labelled
-	// toggle, not another dropdown).
-	virtual void paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state, const SkinTokens& tokens) const = 0;
+	// The rail under a row of slot cells plus the fold latch, for the
+	// SplitRails arrangement. The latch is the feature's on/off fold and must
+	// be a different affordance than the channel cells (the default draws a
+	// small labelled toggle, not another dropdown).
+	virtual void paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state, const SkinTokens& tokens) const;
+
+	// How the VST card mounts its channel fill: the two split rails above, or
+	// one joined block below the body (VstSlotFillArrangement). Default:
+	// SplitRails, what every skin drew before the question existed. A skin
+	// that answers JoinedBlockBelowBody also answers the three block hooks
+	// below; the split-rail hooks above stay for the default.
+	virtual VstSlotFillArrangement vstSlotFillArrangement() const;
+
+	// The joined block's geometry for the current fold state, measured with
+	// the fonts this skin's paintVstSlotFillBlock draws with. The default
+	// is a neutral LeftColumn block sized for the neutral painter below.
+	virtual VstSlotFillBlockMetrics vstSlotFillBlockMetrics(bool collapsed, const SkinTokens& tokens) const;
+
+	// The width of one block column: room for the role on the role line and
+	// for the channel in the value cell (painted with roleInBlock set). output
+	// says which row the value belongs to, for a skin that prints a word for
+	// the silence/discard value "-". A shared role line takes the wider of the
+	// two rows' answers. The height is the metrics' cellHeight.
+	virtual int vstSlotFillBlockColumnWidth(const QString& role, const QString& value, bool output,
+		const SkinTokens& tokens) const;
+
+	// The joined block around its cells: the band (if the skin lays one),
+	// the row captions, the role lines and the latch. Runs before the cell
+	// children paint. The default paints the captions and roles in muted ink
+	// and the latch as a labelled toggle, like the neutral rail.
+	virtual void paintVstSlotFillBlock(QPainter& painter, const VstSlotFillBlockState& state, const SkinTokens& tokens) const;
 
 	// The "add filter" picker that matches this skin's philosophy. The caller
 	// (FilterTable::chooseFilterTemplate) hosts the returned view in a

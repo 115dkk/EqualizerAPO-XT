@@ -36,7 +36,12 @@ public:
 	void paintVstBusSelector(QPainter& painter, const VstBusSelectorState& state, const SkinTokens& tokens) const override;
 	void paintVstBusFrame(QPainter& painter, const VstBusFrameState& state, const SkinTokens& tokens) const override;
 	void paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state, const SkinTokens& tokens) const override;
-	void paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state, const SkinTokens& tokens) const override;
+	VstSlotFillArrangement vstSlotFillArrangement() const override;
+	VstSlotFillBlockMetrics vstSlotFillBlockMetrics(bool collapsed, const SkinTokens& tokens) const override;
+	int vstSlotFillBlockColumnWidth(const QString& role, const QString& value, bool output,
+		const SkinTokens& tokens) const override;
+	void paintVstSlotFillBlock(QPainter& painter, const VstSlotFillBlockState& state,
+		const SkinTokens& tokens) const override;
 	BadgeTreatment badgeTreatment(const CommandRowInfo& info, const QString& typeColor,
 		const QString& badgeToken, const SkinTokens& tokens) const override;
 	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body,

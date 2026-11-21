@@ -368,6 +368,7 @@ SOURCES += main.cpp\
 	widgets/cards/VSTBusVerdict.cpp \
 	widgets/cards/VSTBusStrip.cpp \
 	widgets/cards/VSTSlotFillModel.cpp \
+	widgets/cards/VSTSlotFillBlock.cpp \
 	widgets/cards/VSTSlotFillRail.cpp \
 	widgets/cards/VSTRowDocument.cpp \
 	widgets/cards/VSTPluginSession.cpp \
@@ -744,6 +745,7 @@ HEADERS  += \
 	widgets/cards/VSTBusVerdict.h \
 	widgets/cards/VSTBusStrip.h \
 	widgets/cards/VSTSlotFillModel.h \
+	widgets/cards/VSTSlotFillBlock.h \
 	widgets/cards/VSTSlotFillRail.h \
 	widgets/cards/VSTRowDocument.h \
 	widgets/cards/VSTPluginSession.h \
