@@ -529,6 +529,44 @@ void MatrixSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellSt
 	// cancelled posting - dashed rule, danger ink.
 	const QRectF cell = QRectF(state.rect).adjusted(0.5, 0.5, -0.5, -0.5);
 
+	if (state.roleInBlock)
+	{
+		// In the block's grid the role is the column head; the posting holds
+		// the channel centred over its rule, the pixel caret at the right.
+		painter.setFont(matrixFillValueFont(tokens));
+		QColor valueInk(state.silent || state.defaulted ? tokens.mutedText : tokens.text);
+		if (state.missingChannel)
+			valueInk = QColor(tokens.danger);
+		if (!state.enabled)
+			valueInk = QColor(tokens.mutedText);
+		painter.setPen(valueInk);
+		painter.drawText(cell.adjusted(4.0, 0, -11.0, 0), Qt::AlignHCenter | Qt::AlignVCenter, state.valueText);
+
+		QColor ruleColor(tokens.border);
+		if (state.missingChannel)
+			ruleColor = QColor(tokens.danger);
+		else if (state.enabled && (state.focused || state.menuOpen))
+			ruleColor = QColor(tokens.accent);
+		else if (state.enabled && state.hovered)
+			ruleColor = withAlpha(QColor(tokens.accent), 200);
+		QPen rulePen(ruleColor, 1);
+		if (state.missingChannel || !state.enabled)
+			rulePen.setStyle(Qt::DashLine);
+		painter.setPen(rulePen);
+		painter.drawLine(QPointF(cell.left() + 2.0, cell.bottom()), QPointF(cell.right() - 2.0, cell.bottom()));
+
+		const qreal caretHalf = 2.0;
+		const QPointF caretMid(cell.right() - 6.0, cell.center().y() + 0.5);
+		painter.setRenderHint(QPainter::Antialiasing, true);
+		QPainterPath caret;
+		caret.moveTo(caretMid + QPointF(-caretHalf, -caretHalf / 2.0));
+		caret.lineTo(caretMid + QPointF(caretHalf, -caretHalf / 2.0));
+		caret.lineTo(caretMid + QPointF(0.0, caretHalf));
+		caret.closeSubpath();
+		painter.fillPath(caret, withAlpha(QColor(tokens.mutedText), state.enabled ? 220 : 130));
+		return;
+	}
+
 	const QFont roleFont = matrixFillRoleFont(tokens);
 	painter.setFont(roleFont);
 	painter.setPen(withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150));
@@ -571,31 +609,91 @@ void MatrixSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellSt
 	painter.fillPath(caret, withAlpha(QColor(tokens.mutedText), state.enabled ? 220 : 130));
 }
 
-void MatrixSkin::paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state, const SkinTokens& tokens) const
+namespace
+{
+// One grid pitch is two 12px lines (MatrixMetrics::gridPitch); the block's
+// measures round up to the half pitch.
+int matrixFillSnap(qreal width)
+{
+	return qCeil(width / 12.0) * 12;
+}
+}
+
+VstSlotFillArrangement MatrixSkin::vstSlotFillArrangement() const
+{
+	return VstSlotFillArrangement::JoinedBlockBelowBody;
+}
+
+VstSlotFillBlockMetrics MatrixSkin::vstSlotFillBlockMetrics(bool collapsed, const SkinTokens& tokens) const
+{
+	Q_UNUSED(collapsed);
+	VstSlotFillBlockMetrics metrics;
+	// A posting is one pitch tall, the column head half a pitch.
+	metrics.cellHeight = 24;
+	metrics.roleLineHeight = 12;
+	metrics.roleGap = 0;
+	metrics.groupGap = 12;
+	metrics.cellGap = 0;
+	const QFontMetricsF caption(matrixFillRoleFont(tokens));
+	metrics.captionWidth = matrixFillSnap(qMax(caption.horizontalAdvance(QStringLiteral("IN")),
+		caption.horizontalAdvance(QStringLiteral("OUT"))) + 4.0);
+	metrics.captionGap = 0;
+	metrics.padding = QMargins(12, 0, 12, 0);
+	metrics.latchPlacement = VstSlotFillBlockMetrics::LatchPlacement::LeftColumn;
+	QFont gateFont(tokens.monoFontFamily);
+	gateFont.setPixelSize(9);
+	gateFont.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);
+	metrics.latchWidth = matrixFillSnap(QFontMetricsF(gateFont).horizontalAdvance(QStringLiteral("FILL")) + 16.0);
+	metrics.latchHeight = metrics.cellHeight;
+	metrics.latchGap = 12;
+	metrics.shareRoleLine = true;
+	metrics.rolesAboveRows = false;
+	return metrics;
+}
+
+int MatrixSkin::vstSlotFillBlockColumnWidth(const QString& role, const QString& value, bool output,
+	const SkinTokens& tokens) const
+{
+	Q_UNUSED(output);
+	// The posting: 4 before the channel, 11 after it for the caret.
+	const qreal roleWidth = QFontMetricsF(matrixFillRoleFont(tokens)).horizontalAdvance(role);
+	const qreal valueWidth = QFontMetricsF(matrixFillValueFont(tokens)).horizontalAdvance(value);
+	return qMax(36, matrixFillSnap(qMax(roleWidth + 4.0, 0.5 + 4.0 + valueWidth + 11.0 + 0.5)));
+}
+
+// The block is the board's own grid: a column head of slot roles shared by
+// the IN row and the OUT row of postings (or one head per row when the slot
+// lists differ), the IN/OUT abbreviations in muted mono at the row heads as
+// on the bus cells, and no box of its own (one box per card, rule 9). The
+// fold is the boarding-gate cell at the left, one pitch tall like the
+// postings.
+void MatrixSkin::paintVstSlotFillBlock(QPainter& painter, const VstSlotFillBlockState& state, const SkinTokens& tokens) const
 {
 	QPainterStateGuard guard(&painter);
 	painter.setRenderHint(QPainter::Antialiasing, false);
 	painter.setRenderHint(QPainter::TextAntialiasing, true);
 
-	// One departure-board rule above the postings; nothing else.
-	const QRectF band(state.rect);
-	painter.setPen(QPen(withAlpha(QColor(tokens.border), 160), 1));
-	painter.drawLine(QPointF(band.left() + 2.0, band.top() + 0.5),
-		QPointF(band.right() - 2.0, band.top() + 0.5));
+	const QColor muted = withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150);
+	painter.setFont(matrixFillRoleFont(tokens));
+	painter.setPen(muted);
+	for (const VstSlotFillBlockState::Caption& caption : state.captions)
+		painter.drawText(QRectF(caption.rect).adjusted(0, 0, -4.0, 0), Qt::AlignLeft | Qt::AlignVCenter,
+			caption.output ? QStringLiteral("OUT") : QStringLiteral("IN"));
+	for (const VstSlotFillBlockState::Role& role : state.roles)
+		painter.drawText(QRectF(role.rect).adjusted(4.0, 0, -11.0, 0), Qt::AlignHCenter | Qt::AlignVCenter, role.role);
 
-	if (state.latchRect.isNull())
+	if (state.latchRect.isNull() || !state.latchActive)
 		return;
-	// The fold is a boarding-gate cell: a lit fill tile while the strip is
-	// posted, unfilled over a dashed rule - a cancellation - while it is
-	// folded away. Only hover, press and focus frame it; at rest the card
-	// is the one closed box around it.
-	const QRectF gate = QRectF(state.latchRect).adjusted(0.5, 1.5, -0.5, -1.5);
-	const bool lit = state.latchHovered || state.latchPressed;
+	// The gate: a lit fill tile while the strip is posted, unfilled over a
+	// dashed rule - a cancellation - while it is folded away. Only hover,
+	// press and focus frame it; at rest the card is the one closed box.
+	const QRectF gate = QRectF(state.latchRect).adjusted(0.5, 0.5, -0.5, -0.5);
+	const bool lit = state.enabled && (state.latchHovered || state.latchPressed);
 	if (!state.collapsed)
 		painter.fillRect(gate, withAlpha(QColor(tokens.accent), lit ? 34 : 24));
 	else if (lit)
 		painter.fillRect(gate, withAlpha(QColor(tokens.border), 18));
-	if (lit || state.latchFocused)
+	if (lit || (state.enabled && state.latchFocused))
 	{
 		painter.setPen(QPen(QColor(tokens.accent), 1));
 		painter.setBrush(Qt::NoBrush);
@@ -610,6 +708,6 @@ void MatrixSkin::paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailSt
 	gateFont.setPixelSize(9);
 	gateFont.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);
 	painter.setFont(gateFont);
-	painter.setPen(state.collapsed ? QColor(tokens.mutedText) : QColor(tokens.text));
+	painter.setPen(state.collapsed || !state.enabled ? muted : QColor(tokens.text));
 	painter.drawText(gate, Qt::AlignCenter, QStringLiteral("FILL"));
 }

@@ -56,7 +56,6 @@ public:
 	void paintVstBusSelector(QPainter& painter, const VstBusSelectorState& state, const SkinTokens& tokens) const override;
 	void paintVstBusFrame(QPainter& painter, const VstBusFrameState& state, const SkinTokens& tokens) const override;
 	void paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state, const SkinTokens& tokens) const override;
-	void paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state, const SkinTokens& tokens) const override;
 };
 
 // The one instance, like the per-skin accessors in Skins.cpp.

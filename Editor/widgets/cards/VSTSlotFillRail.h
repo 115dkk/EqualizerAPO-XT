@@ -8,7 +8,10 @@
 	One channel-fill rail of the modern VST card: a row of slot cells, each
 	assigning a config channel to one negotiated bus slot, mounted inside the
 	card (input rail under the header, output rail under the body). The input
-	rail additionally carries the fold latch when both rails exist.
+	rail additionally carries the fold latch when both rails exist. This is
+	the VstSlotFillArrangement::SplitRails presentation, the ISkin default; a
+	skin that answers JoinedBlockBelowBody gets VSTSlotFillBlock instead,
+	which reuses VSTSlotFillCell.
 
 	The rail and its cells own all behavior - the channel popup menu,
 	keyboard access, focus, accessibility - and hand painting to the active
@@ -40,6 +43,10 @@ public:
 	void setContent(const QString& role, const QString& value,
 		bool silent, bool defaulted, bool missing);
 	void setChannelChoices(const QStringList& names);
+	// Set by VSTSlotFillBlock: the block prints the role on its role line and
+	// sizes the cell itself, so the cell paints the channel alone
+	// (VstSlotFillCellState::roleInBlock).
+	void setRoleInBlock(bool inBlock);
 	// The menu this cell would open: the selected channels in order, then
 	// the silence/discard entry ("-"). Read by the --selftest-vst fill gate.
 	QStringList channelChoices() const;
@@ -71,6 +78,7 @@ private:
 	bool silent = false;
 	bool defaulted = false;
 	bool missing = false;
+	bool roleInBlock = false;
 	QStringList choices;
 	bool hovered = false;
 	bool pressed = false;

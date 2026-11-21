@@ -454,51 +454,6 @@ void HeritageSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCell
 	painter.drawText(textRect, Qt::AlignRight | Qt::AlignVCenter, state.valueText);
 }
 
-void HeritageSkin::paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state, const SkinTokens& tokens) const
-{
-	// Neutral default: a quiet sunken tray under the cells, and the fold
-	// latch as a small labelled toggle - a state dot plus the FILL token -
-	// so the whole-feature fold never reads as one more channel dropdown.
-	QPainterStateGuard painterState(&painter);
-	painter.setRenderHint(QPainter::Antialiasing, true);
-	painter.setRenderHint(QPainter::TextAntialiasing, true);
-
-	if (!state.cellsRect.isNull() && !state.collapsed)
-	{
-		const QRectF tray = QRectF(state.cellsRect).adjusted(-4, -3,
-			4, 3);
-		painter.setPen(QPen(withAlpha(QColor(tokens.border), 120), 1));
-		painter.setBrush(withAlpha(QColor(tokens.surfaceSunken), 90));
-		painter.drawRoundedRect(tray, 4, 4);
-	}
-
-	if (state.latchRect.isNull())
-		return;
-
-	const QRectF latch = QRectF(state.latchRect).adjusted(0.5, 0.5, -0.5, -0.5);
-	QColor latchBorder(state.latchFocused ? tokens.focusRing : tokens.border);
-	if (state.latchHovered && !state.latchFocused)
-		latchBorder = QColor(tokens.mutedText);
-	painter.setPen(QPen(latchBorder, 1));
-	painter.setBrush(QColor(state.latchPressed ? tokens.cardHover : tokens.surface));
-	painter.drawRoundedRect(latch, latch.height() / 2.0, latch.height() / 2.0);
-
-	const qreal dotRadius = 3;
-	const QColor dot = state.collapsed ? QColor(tokens.mutedText) : QColor(tokens.accent);
-	painter.setPen(Qt::NoPen);
-	painter.setBrush(state.enabled ? dot : withAlpha(dot, 140));
-	painter.drawEllipse(QPointF(latch.left() + 9, latch.center().y() + 0.5),
-		dotRadius, dotRadius);
-
-	QFont latchFont = painter.font();
-	latchFont.setPixelSize(10);
-	painter.setFont(latchFont);
-	painter.setPen(QColor(state.collapsed ? tokens.mutedText : tokens.text));
-	QRectF labelRect = latch;
-	labelRect.setLeft(latch.left() + 15);
-	painter.drawText(labelRect, Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("FILL"));
-}
-
 ISkin* heritageSkin()
 {
 	static HeritageSkin instance;

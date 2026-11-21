@@ -6,6 +6,7 @@
 
 #include "FlatSkin.h"
 
+#include <QCoreApplication>
 #include <QFontMetricsF>
 #include <QPainter>
 #include <QPainterStateGuard>
@@ -219,6 +220,58 @@ void paintFlatSelect(QPainter& painter, const QRectF& rect, const QString& role,
 	FlatPaint::chevron(painter, QPointF(rect.right() - (look.compact ? 7.0 : 11.0), rect.center().y()),
 		QColor(tokens.mutedText), true, look.compact ? 2.5 : 3.0);
 }
+
+// The channel-fill section's words. They are UI text, so they are
+// translated; the context is the block widget the section belongs to. The
+// heading reuses the rails' "Channel fill", which the catalogs already have.
+QString flatFillTitle()
+{
+	return QCoreApplication::translate("VSTSlotFillRail", "Channel fill");
+}
+
+QString flatFillHint()
+{
+	return QCoreApplication::translate("VSTSlotFillBlock",
+		"Choose which channel goes into and comes out of each plugin slot.");
+}
+
+QString flatFillRowCaption(bool output)
+{
+	return output
+		? QCoreApplication::translate("VSTSlotFillBlock", "Out", "row caption: the channels the plugin's output slots write")
+		: QCoreApplication::translate("VSTSlotFillBlock", "In", "row caption: the channels fed into the plugin's input slots");
+}
+
+// The "-" slot as a word: nothing goes into an input slot, an output slot
+// is thrown away.
+QString flatFillValueText(const QString& value, bool output)
+{
+	if (value != QLatin1String("-"))
+		return value;
+	return output
+		? QCoreApplication::translate("VSTSlotFillBlock", "Discard", "an output slot whose sound is thrown away")
+		: QCoreApplication::translate("VSTSlotFillBlock", "Silence", "an input slot that gets no channel");
+}
+
+QFont flatFillRoleFont(const SkinTokens& tokens)
+{
+	return FlatPaint::bodyFont(tokens, 11);
+}
+
+QFont flatFillTitleFont(const SkinTokens& tokens)
+{
+	return FlatPaint::bodyFont(tokens, 13, QFont::DemiBold);
+}
+
+QFont flatFillHintFont(const SkinTokens& tokens)
+{
+	return FlatPaint::bodyFont(tokens, 12);
+}
+
+// The heading's measures: the chevron in its first 15, the title, 10, the
+// hint (only while the section is open).
+constexpr qreal flatFillChevronSpace = 15.0;
+constexpr qreal flatFillHintGap = 10.0;
 }
 
 // The VST3 bus contract as two ordinary selects, "In Stereo 2" and
@@ -316,6 +369,22 @@ QSize FlatSkin::vstSlotFillCellSize(const QString& role, const QString& value, c
 // for "nothing here"; a channel that is not there takes the failure colour.
 void FlatSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state, const SkinTokens& tokens) const
 {
+	if (state.roleInBlock)
+	{
+		// In the channel-fill section the slot's name stands above the box,
+		// so the box holds the channel alone, and an empty slot says what
+		// happens there in a word instead of "-".
+		FlatSelectLook look;
+		look.enabled = state.enabled;
+		look.hovered = state.hovered;
+		look.held = state.pressed || state.menuOpen;
+		look.focused = state.focused;
+		look.dashed = state.silent;
+		look.failed = state.missingChannel;
+		paintFlatSelect(painter, QRectF(state.rect).adjusted(0.0, 1.0, 0.0, -1.0), QString(),
+			flatFillValueText(state.valueText, state.output), look, tokens);
+		return;
+	}
 	FlatSelectLook look;
 	look.enabled = state.enabled;
 	look.hovered = state.hovered;
@@ -327,26 +396,97 @@ void FlatSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellStat
 		look, tokens);
 }
 
-// The row of slots needs no tray: the selects stand in a line. The fold is a
-// chevron and a word, the same disclosure a folded card uses.
-void FlatSkin::paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state, const SkinTokens& tokens) const
+VstSlotFillArrangement FlatSkin::vstSlotFillArrangement() const
 {
-	if (state.latchRect.isNull())
-		return;
+	return VstSlotFillArrangement::JoinedBlockBelowBody;
+}
+
+VstSlotFillBlockMetrics FlatSkin::vstSlotFillBlockMetrics(bool collapsed, const SkinTokens& tokens) const
+{
+	VstSlotFillBlockMetrics metrics;
+	metrics.cellHeight = VSTSlotFillRail::cellHeight();
+	metrics.roleLineHeight = 14;
+	metrics.roleGap = 1;
+	metrics.groupGap = 8;
+	metrics.cellGap = 6;
+	const QFontMetricsF caption(flatBusRoleFont(tokens));
+	metrics.captionWidth = qCeil(qMax(caption.horizontalAdvance(flatFillRowCaption(false)),
+		caption.horizontalAdvance(flatFillRowCaption(true))));
+	metrics.captionGap = 14;
+	// The heading's chevron and the row captions line up with the body's
+	// first column.
+	metrics.padding = QMargins(4, 0, 12, 0);
+	metrics.latchPlacement = VstSlotFillBlockMetrics::LatchPlacement::HeadingLine;
+	qreal headingWidth = flatFillChevronSpace + QFontMetricsF(flatFillTitleFont(tokens)).horizontalAdvance(flatFillTitle());
+	if (!collapsed)
+		headingWidth += flatFillHintGap + QFontMetricsF(flatFillHintFont(tokens)).horizontalAdvance(flatFillHint());
+	metrics.latchWidth = qCeil(headingWidth) + 2;
+	metrics.latchHeight = 20;
+	metrics.latchGap = 6;
+	// Each row carries its own slot names above its boxes, as the approved
+	// mock drew them; differing slot lists need no rule of their own.
+	metrics.shareRoleLine = false;
+	metrics.rolesAboveRows = true;
+	return metrics;
+}
+
+int FlatSkin::vstSlotFillBlockColumnWidth(const QString& role, const QString& value, bool output,
+	const SkinTokens& tokens) const
+{
+	// paintFlatSelect's box without a role: 8 before the value, 20 after it
+	// for the chevron, and never narrower than a box for "LFE".
+	const QFontMetricsF valueMetrics(flatBusValueFont(tokens));
+	const qreal valueWidth = qMax(valueMetrics.horizontalAdvance(flatFillValueText(value, output)),
+		valueMetrics.horizontalAdvance(QStringLiteral("LFE")));
+	const qreal roleWidth = QFontMetricsF(flatFillRoleFont(tokens)).horizontalAdvance(role);
+	return qCeil(qMax(roleWidth + 2.0, 8.0 + valueWidth + 4.0 + 20.0));
+}
+
+// The channel fill as a section of an ordinary settings page: a heading
+// with the fold chevron, the title in body ink and a one-line hint in the
+// quiet ink; under it the two rows, a quiet caption at the left of each and
+// every slot's name above its select. No backing surface.
+void FlatSkin::paintVstSlotFillBlock(QPainter& painter, const VstSlotFillBlockState& state, const SkinTokens& tokens) const
+{
 	QPainterStateGuard guard(&painter);
 	painter.setRenderHint(QPainter::Antialiasing, true);
 	painter.setRenderHint(QPainter::TextAntialiasing, true);
 	if (!state.enabled)
 		painter.setOpacity(FlatPaint::disabledOpacity);
 
-	const QRectF latch(state.latchRect);
-	const QColor ink(state.latchFocused ? tokens.focusRing
-		: (state.latchHovered || state.latchPressed ? tokens.text : tokens.mutedText));
-	FlatPaint::chevron(painter, QPointF(latch.left() + 6.0, latch.center().y() + 0.5), ink, !state.collapsed, 3.0);
-	QFont latchFont = FlatPaint::bodyFont(tokens, 12);
-	latchFont.setUnderline(state.latchHovered);
-	painter.setFont(latchFont);
-	painter.setPen(QColor(state.latchHovered || state.latchPressed ? tokens.text : tokens.mutedText));
-	painter.drawText(QRectF(latch.left() + 15.0, latch.top(), latch.width() - 15.0, latch.height()),
-		Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("Fill"));
+	const QColor muted(tokens.mutedText);
+	painter.setPen(muted);
+	painter.setFont(flatBusRoleFont(tokens));
+	for (const VstSlotFillBlockState::Caption& caption : state.captions)
+		painter.drawText(caption.rect, Qt::AlignLeft | Qt::AlignVCenter, flatFillRowCaption(caption.output));
+	painter.setFont(flatFillRoleFont(tokens));
+	for (const VstSlotFillBlockState::Role& role : state.roles)
+		painter.drawText(QRectF(role.rect).adjusted(2.0, 0, 0, 0), Qt::AlignLeft | Qt::AlignBottom, role.role);
+
+	if (state.latchRect.isNull())
+		return;
+	const QRectF heading(state.latchRect);
+	qreal x = heading.left();
+	if (state.latchActive)
+	{
+		// The disclosure a folded card uses: the chevron, its ink stepping up
+		// under the pointer, the emphasis colour under keyboard focus.
+		const QColor ink(state.enabled && state.latchFocused ? tokens.focusRing
+			: (state.latchHovered || state.latchPressed ? tokens.text : tokens.mutedText));
+		FlatPaint::chevron(painter, QPointF(x + 5.0, heading.center().y() + 0.5), ink, !state.collapsed, 3.0);
+		x += flatFillChevronSpace;
+	}
+	QFont titleFont = flatFillTitleFont(tokens);
+	titleFont.setUnderline(state.latchActive && state.latchHovered);
+	painter.setFont(titleFont);
+	painter.setPen(QColor(tokens.text));
+	const QString title = flatFillTitle();
+	painter.drawText(QRectF(x, heading.top(), heading.right() - x, heading.height()), Qt::AlignLeft | Qt::AlignVCenter, title);
+	if (state.collapsed)
+		return;
+	x += QFontMetricsF(titleFont).horizontalAdvance(title) + flatFillHintGap;
+	painter.setFont(flatFillHintFont(tokens));
+	painter.setPen(muted);
+	painter.drawText(QRectF(x, heading.top(), qMax<qreal>(0.0, heading.right() - x + 2.0), heading.height()),
+		Qt::AlignLeft | Qt::AlignVCenter, flatFillHint());
 }

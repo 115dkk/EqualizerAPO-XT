@@ -210,6 +210,17 @@ QList<GalleryRow> galleryRows()
 	// Fixture-gated VST bus scenes, appended last (mid-list insertion
 	// renumbers every following scene against the stored baseline).
 	appendVstBusRows(rows);
+	// The channel fill's two other shapes, beside vst_slotfill in meaning:
+	// one side only (the output stays Auto, so the block has one row and
+	// no fold), and two different slot lists (5.1 in, 7.1 out), where the
+	// columns cannot align and each row prints its own roles. Appended after
+	// the fixture rows, the true end of the list, so no earlier scene is
+	// renumbered.
+	rows.append({ QStringLiteral("vst_slotfill_inonly"), QStringLiteral(
+		"VSTPlugin: Library example.vst3 Input 5.1 InputChannels L,R,C,-,SL,SR Output Auto") });
+	rows.append({ QStringLiteral("vst_slotfill_mixed"), QStringLiteral(
+		"VSTPlugin: Library example.vst3 Input 5.1 InputChannels L,R,C,LFE,SL,SR"
+		" Output 7.1 OutputChannels L,R,C,-,RL,RR,SL,SR") });
 	return rows;
 }
 

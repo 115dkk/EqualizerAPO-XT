@@ -55,6 +55,7 @@
 #include "Editor/skins/rack/cards/RackReferenceCardView.h"
 #include "Editor/widgets/FilterCardRow.h"
 #include "Editor/widgets/cards/VSTPluginSession.h"
+#include "Editor/widgets/cards/VSTSlotFillBlock.h"
 #include "Editor/widgets/cards/VSTSlotFillRail.h"
 #include "Editor/widgets/routing/IRoutingRenderer.h"
 #include "vst/VST3BusLayout.h"
@@ -74,6 +75,8 @@ public:
 		QString text;
 		qreal left = 0.0;
 		qreal right = 0.0;
+		qreal top = 0.0;
+		qreal bottom = 0.0;
 	};
 
 	explicit FillCellRecorder(const QSize& size) : engine(this), deviceSize(size) {}
@@ -120,7 +123,7 @@ private:
 		{
 			const QRectF box = transform.mapRect(QRectF(p.x(), p.y() - item.ascent(), item.width(),
 				item.ascent() + item.descent()));
-			owner->texts.append({ item.text(), box.left(), box.right() });
+			owner->texts.append({ item.text(), box.left(), box.right(), box.top(), box.bottom() });
 		}
 		void drawPath(const QPainterPath& path) override
 		{
@@ -140,15 +143,268 @@ private:
 	QSize deviceSize;
 };
 
-// Every skin's fill cell, sized by that skin's vstSlotFillCellSize, must hold
-// the text its own painter draws: the role and the channel inside the cell,
-// the role before the channel, and the channel clear of the caret (any small
-// filled shape the painter adds). Returns the number of failing skins.
+// A small shape a painter adds next to a channel (the caret), as the
+// recorder saw it: anything this small that is filled.
+bool isCaretShape(const QRectF& shape)
+{
+	return shape.width() <= 8.0 && shape.height() <= 8.0 && shape.width() > 0.0;
+}
+
+// The channel-fill slot lists the block check lays out: equal lists, two
+// different lists, and each side alone. Values include the "-" slot.
+QList<VSTSlotFillBlock::CellData> fillRow(const QStringList& roles, const QStringList& values)
+{
+	QList<VSTSlotFillBlock::CellData> row;
+	for (int i = 0; i < roles.size(); i++)
+	{
+		VSTSlotFillBlock::CellData cell;
+		cell.role = roles[i];
+		cell.value = values[i];
+		cell.silent = values[i] == QLatin1String("-");
+		row.append(cell);
+	}
+	return row;
+}
+
+// A joined fill block (VstSlotFillArrangement::JoinedBlockBelowBody) must
+// hold what its skin paints, in the real geometry VSTSlotFillBlock uses
+// (computeLayout over the skin's metrics and column widths):
+// - every value cell, role, row caption and the latch inside the block's
+//   band (or, folded, inside the block's size), none overlapping another;
+// - a role over the same column as its cell (both rows' cells on a shared
+//   role line), a shared role line between the two rows, a per-row role
+//   line next to its own row;
+// - a LeftColumn latch exactly as tall as a value cell and centred on the
+//   rows;
+// - every text the block painter draws (captions, roles, latch legend or
+//   heading) inside the rect it was given, and every channel the cell
+//   painter draws inside its cell and clear of its caret.
+// Returns an empty string or the first problem.
+QString checkFillBlock(const ISkin* skin, const SkinTokens& tokens)
+{
+	const QStringList five = { QStringLiteral("L"), QStringLiteral("R"), QStringLiteral("C"),
+		QStringLiteral("LFE"), QStringLiteral("RL"), QStringLiteral("RR") };
+	const QStringList seven = { QStringLiteral("L"), QStringLiteral("R"), QStringLiteral("C"),
+		QStringLiteral("LFE"), QStringLiteral("RL"), QStringLiteral("RR"), QStringLiteral("SL"), QStringLiteral("SR") };
+	const QList<VSTSlotFillBlock::CellData> in51 = fillRow(five,
+		{ QStringLiteral("L"), QStringLiteral("R"), QStringLiteral("C"), QStringLiteral("-"), QStringLiteral("SL"), QStringLiteral("SR") });
+	const QList<VSTSlotFillBlock::CellData> out51 = fillRow(five, five);
+	const QList<VSTSlotFillBlock::CellData> out71 = fillRow(seven,
+		{ QStringLiteral("L"), QStringLiteral("R"), QStringLiteral("C"), QStringLiteral("-"),
+			QStringLiteral("RL"), QStringLiteral("RR"), QStringLiteral("SBL"), QStringLiteral("SBR") });
+	struct Case
+	{
+		const char* name;
+		QList<VSTSlotFillBlock::CellData> input;
+		QList<VSTSlotFillBlock::CellData> output;
+		bool collapsed;
+	};
+	const QList<Case> cases = {
+		{ "5.1/5.1", in51, out51, false },
+		{ "5.1/7.1", in51, out71, false },
+		{ "in only", in51, {}, false },
+		{ "out only", {}, out71, false },
+		{ "folded", in51, out51, true },
+	};
+	const VSTSlotFillBlock::ColumnWidth columnWidth = [skin, &tokens](const QString& role, const QString& value, bool output) {
+			return skin->vstSlotFillBlockColumnWidth(role, value, output, tokens);
+		};
+
+	for (const Case& c : cases)
+	{
+		const QString label = QString::fromLatin1(c.name);
+		const bool latchPresent = !c.input.isEmpty() && !c.output.isEmpty();
+		const VstSlotFillBlockMetrics metrics = skin->vstSlotFillBlockMetrics(c.collapsed, tokens);
+		const VSTSlotFillBlock::Layout layout = VSTSlotFillBlock::computeLayout(metrics, columnWidth,
+			c.input, c.output, latchPresent, c.collapsed);
+		const bool folded = c.collapsed && latchPresent;
+		const bool leftLatch = metrics.latchPlacement == VstSlotFillBlockMetrics::LatchPlacement::LeftColumn;
+		const QRect bounds = folded ? QRect(QPoint(0, 0), layout.size) : layout.bandRect;
+		if (bounds.isEmpty() || layout.size != bounds.size())
+			return QStringLiteral("%1: the block has no size").arg(label);
+
+		// Everything the block places, for the containment and overlap tests.
+		QList<QPair<QString, QRect>> parts;
+		if (!layout.latchRect.isNull())
+			parts.append({ QStringLiteral("latch"), layout.latchRect });
+		for (int i = 0; i < layout.inputCells.size(); i++)
+			parts.append({ QStringLiteral("IN cell %1").arg(i), layout.inputCells[i] });
+		for (int i = 0; i < layout.outputCells.size(); i++)
+			parts.append({ QStringLiteral("OUT cell %1").arg(i), layout.outputCells[i] });
+		for (const VstSlotFillBlockState::Caption& caption : layout.captions)
+			parts.append({ caption.output ? QStringLiteral("OUT caption") : QStringLiteral("IN caption"), caption.rect });
+		for (const VstSlotFillBlockState::Role& role : layout.roles)
+			parts.append({ QStringLiteral("%1 role %2").arg(role.output ? QStringLiteral("OUT") : QStringLiteral("IN"), role.role),
+				role.rect });
+		for (int i = 0; i < parts.size(); i++)
+		{
+			if (!bounds.contains(parts[i].second))
+				return QStringLiteral("%1: %2 sticks out of the block").arg(label, parts[i].first);
+			for (int j = i + 1; j < parts.size(); j++)
+			{
+				if (parts[i].second.intersects(parts[j].second))
+					return QStringLiteral("%1: %2 overlaps %3").arg(label, parts[i].first, parts[j].first);
+			}
+		}
+		if (folded)
+		{
+			if (!layout.inputCells.isEmpty() || !layout.outputCells.isEmpty() || layout.latchRect.isNull())
+				return QStringLiteral("%1: a folded block must be the latch alone").arg(label);
+		}
+		else
+		{
+			if (layout.inputCells.size() != c.input.size() || layout.outputCells.size() != c.output.size())
+				return QStringLiteral("%1: cell count").arg(label);
+			// Roles over their columns.
+			for (const VstSlotFillBlockState::Role& role : layout.roles)
+			{
+				const QList<QRect>& cells = role.output ? layout.outputCells : layout.inputCells;
+				const QList<VSTSlotFillBlock::CellData>& data = role.output ? c.output : c.input;
+				int slot = -1;
+				for (int i = 0; i < cells.size(); i++)
+				{
+					if (cells[i].left() == role.rect.left() && cells[i].width() == role.rect.width())
+						slot = i;
+				}
+				if (slot < 0 || data[slot].role != role.role)
+					return QStringLiteral("%1: role %2 is not over its column").arg(label, role.role);
+				const QRect& cell = cells[slot];
+				const int gap = role.rect.top() >= cell.bottom()
+					? role.rect.top() - cell.bottom() - 1 : cell.top() - role.rect.bottom() - 1;
+				const QList<QRect>& otherCells = role.output ? layout.inputCells : layout.outputCells;
+				const bool sharedLine = !layout.inputCells.isEmpty() && !layout.outputCells.isEmpty()
+					&& layout.roles.size() == c.input.size();
+				if (sharedLine)
+				{
+					// Between the rows, and over the other row's cell too.
+					if (!(role.rect.top() > layout.inputCells[0].bottom() && role.rect.bottom() < layout.outputCells[0].top()))
+						return QStringLiteral("%1: the shared role line is not between the rows").arg(label);
+					if (otherCells[slot].left() != role.rect.left() || otherCells[slot].width() != role.rect.width())
+						return QStringLiteral("%1: the rows' columns do not align at %2").arg(label, role.role);
+				}
+				else if (gap < 0 || gap > metrics.roleGap)
+					return QStringLiteral("%1: role %2 is %3 px from its row").arg(label, role.role).arg(gap);
+			}
+			if (leftLatch && !layout.latchRect.isNull())
+			{
+				if (layout.latchRect.height() != metrics.cellHeight)
+					return QStringLiteral("%1: latch is %2 px tall, a cell %3").arg(label)
+						.arg(layout.latchRect.height()).arg(metrics.cellHeight);
+				const int top = (layout.inputCells.isEmpty() ? layout.outputCells : layout.inputCells).first().top();
+				int bottom = 0;
+				for (const QRect& cell : layout.outputCells.isEmpty() ? layout.inputCells : layout.outputCells)
+					bottom = qMax(bottom, cell.bottom());
+				for (const VstSlotFillBlockState::Role& role : layout.roles)
+					bottom = qMax(bottom, role.rect.bottom());
+				const int centre = layout.latchRect.top() + layout.latchRect.bottom();
+				int rowsTop = top;
+				for (const VstSlotFillBlockState::Role& role : layout.roles)
+					rowsTop = qMin(rowsTop, role.rect.top());
+				if (qAbs(centre - (rowsTop + bottom)) > 1)
+					return QStringLiteral("%1: the latch is not centred on the rows").arg(label);
+			}
+		}
+
+		// What the block painter draws stays in the rects it was given.
+		VstSlotFillBlockState state;
+		state.rect = QRect(QPoint(0, 0), layout.size);
+		state.bandRect = folded ? QRect() : layout.bandRect;
+		state.latchRect = layout.latchRect;
+		state.latchActive = layout.latchActive;
+		state.collapsed = folded;
+		if (!folded)
+		{
+			state.captions = layout.captions;
+			state.roles = layout.roles;
+		}
+		FillCellRecorder blockRecorder(layout.size);
+		{
+			QPainter painter(&blockRecorder);
+			skin->paintVstSlotFillBlock(painter, state, tokens);
+		}
+		QList<QRect> textHomes;
+		for (const VstSlotFillBlockState::Caption& caption : state.captions)
+			textHomes.append(caption.rect);
+		for (const VstSlotFillBlockState::Role& role : state.roles)
+			textHomes.append(role.rect);
+		if (!state.latchRect.isNull())
+			textHomes.append(state.latchRect);
+		const qreal epsilon = 0.01;
+		for (const FillCellRecorder::Text& text : blockRecorder.texts)
+		{
+			const qreal middle = (text.top + text.bottom) / 2.0;
+			bool home = false;
+			for (const QRect& rect : textHomes)
+			{
+				if (text.left >= rect.left() - epsilon && text.right <= rect.right() + 1 + epsilon
+					&& middle >= rect.top() && middle <= rect.bottom() + 1)
+					home = true;
+			}
+			if (!home)
+				return QStringLiteral("%1: \"%2\" (%3..%4) is outside every rect the block gave").arg(label, text.text)
+					.arg(text.left, 0, 'f', 1).arg(text.right, 0, 'f', 1);
+		}
+		for (const VstSlotFillBlockState::Role& role : state.roles)
+		{
+			bool printed = false;
+			for (const FillCellRecorder::Text& text : blockRecorder.texts)
+			{
+				if (text.text.compare(role.role, Qt::CaseInsensitive) == 0
+					&& text.left >= role.rect.left() - epsilon && text.right <= role.rect.right() + 1 + epsilon)
+					printed = true;
+			}
+			if (!printed)
+				return QStringLiteral("%1: role %2 is not printed in its column").arg(label, role.role);
+		}
+
+		// Every channel inside its cell and clear of the caret.
+		for (int side = 0; side < 2; side++)
+		{
+			const bool output = side == 1;
+			const QList<QRect>& cells = output ? layout.outputCells : layout.inputCells;
+			const QList<VSTSlotFillBlock::CellData>& data = output ? c.output : c.input;
+			for (int i = 0; i < cells.size(); i++)
+			{
+				FillCellRecorder recorder(layout.size);
+				VstSlotFillCellState cellState;
+				cellState.rect = QRect(QPoint(0, 0), cells[i].size());
+				cellState.output = output;
+				cellState.roleToken = data[i].role;
+				cellState.valueText = data[i].value;
+				cellState.silent = data[i].silent;
+				cellState.roleInBlock = true;
+				{
+					QPainter painter(&recorder);
+					skin->paintVstSlotFillCell(painter, cellState, tokens);
+				}
+				if (recorder.texts.isEmpty())
+					return QStringLiteral("%1: cell %2 printed nothing").arg(label, data[i].role);
+				const FillCellRecorder::Text value = recorder.texts.last();
+				if (value.left < -epsilon || value.right > cells[i].width() + epsilon)
+					return QStringLiteral("%1: channel %2 spans %3..%4 in a %5 px cell").arg(label, data[i].value)
+						.arg(value.left, 0, 'f', 1).arg(value.right, 0, 'f', 1).arg(cells[i].width());
+				for (const QRectF& shape : recorder.shapes)
+				{
+					if (isCaretShape(shape) && shape.right() > value.left && shape.left() < value.right - epsilon)
+						return QStringLiteral("%1: channel %2 overlaps the caret").arg(label, data[i].value);
+				}
+			}
+		}
+	}
+	return QString();
+}
+
+// Every skin's fill must hold the text its own painter draws. A skin on the
+// split rails is checked cell by cell: the cell, sized by that skin's
+// vstSlotFillCellSize, holds the role and the channel, the role before the
+// channel, and the channel clear of the caret (any small filled shape the
+// painter adds). A skin on the joined block is checked through
+// checkFillBlock above, over every role/channel pair as a single column
+// too. Returns the number of failing skins.
 //
 // Heritage is checked with the five: its cell painter is the former ISkin
-// default (audit #422 S3), measured by the ISkin default sizer that Studio
-// also answers through, so the pair stays honest although heritage never
-// builds the VST card.
+// default (audit #422 S3), measured by the ISkin default sizer, so the pair
+// stays honest although heritage never builds the VST card.
 int checkFillCellFit()
 {
 	QStringList roles;
@@ -174,6 +430,82 @@ int checkFillCellFit()
 		QString problem;
 		int widest = 0;
 		QString widestLabel;
+		if (skin->vstSlotFillArrangement() == VstSlotFillArrangement::JoinedBlockBelowBody)
+		{
+			problem = checkFillBlock(skin, tokens);
+			// Every role/channel pair as one column: the role on its line
+			// and the channel in its cell, both inside the column width.
+			const VstSlotFillBlockMetrics metrics = skin->vstSlotFillBlockMetrics(false, tokens);
+			for (int i = 0; problem.isEmpty() && i < roles.size(); i++)
+			{
+				for (int j = 0; problem.isEmpty() && j < values.size(); j++)
+				{
+					for (int side = 0; problem.isEmpty() && side < 2; side++)
+					{
+						const bool output = side == 1;
+						const QList<VSTSlotFillBlock::CellData> row = fillRow({ roles[i] }, { values[j] });
+						const VSTSlotFillBlock::Layout layout = VSTSlotFillBlock::computeLayout(metrics,
+							[skin, &tokens](const QString& role, const QString& value, bool isOutput) {
+								return skin->vstSlotFillBlockColumnWidth(role, value, isOutput, tokens);
+							},
+							output ? QList<VSTSlotFillBlock::CellData>() : row,
+							output ? row : QList<VSTSlotFillBlock::CellData>(), false, false);
+						const QRect cell = output ? layout.outputCells.value(0) : layout.inputCells.value(0);
+						const QString label = roles[i] + QLatin1Char('/') + values[j];
+						if (cell.width() > widest)
+						{
+							widest = cell.width();
+							widestLabel = label;
+						}
+						VstSlotFillBlockState state;
+						state.rect = QRect(QPoint(0, 0), layout.size);
+						state.roles = layout.roles;
+						FillCellRecorder roleRecorder(layout.size);
+						{
+							QPainter painter(&roleRecorder);
+							skin->paintVstSlotFillBlock(painter, state, tokens);
+						}
+						for (const FillCellRecorder::Text& text : roleRecorder.texts)
+						{
+							if (text.left < cell.left() - 0.01 || text.right > cell.right() + 1.01)
+								problem = QStringLiteral("%1: role spans %2..%3 over a column %4..%5").arg(label)
+									.arg(text.left, 0, 'f', 1).arg(text.right, 0, 'f', 1).arg(cell.left()).arg(cell.right() + 1);
+						}
+						FillCellRecorder recorder(cell.size());
+						VstSlotFillCellState cellState;
+						cellState.rect = QRect(QPoint(0, 0), cell.size());
+						cellState.output = output;
+						cellState.roleToken = roles[i];
+						cellState.valueText = values[j];
+						cellState.silent = values[j] == QLatin1String("-");
+						cellState.roleInBlock = true;
+						{
+							QPainter painter(&recorder);
+							skin->paintVstSlotFillCell(painter, cellState, tokens);
+						}
+						if (recorder.texts.isEmpty())
+							problem = QStringLiteral("%1: the cell printed nothing").arg(label);
+						else if (recorder.texts.last().left < -0.01 || recorder.texts.last().right > cell.width() + 0.01)
+							problem = QStringLiteral("%1: channel spans %2..%3 in a %4 px cell").arg(label)
+								.arg(recorder.texts.last().left, 0, 'f', 1).arg(recorder.texts.last().right, 0, 'f', 1)
+								.arg(cell.width());
+					}
+				}
+			}
+			if (problem.isEmpty())
+			{
+				fprintf(stderr, "[VST fill selftest] fit %s: OK (joined block: 5 layouts, %d role/channel columns, widest column %d px for %s)\n",
+					skin->id().toUtf8().constData(), int(roles.size() * values.size() * 2), widest,
+					widestLabel.toUtf8().constData());
+			}
+			else
+			{
+				failures++;
+				fprintf(stderr, "[VST fill selftest] fit %s: FAIL, %s\n", skin->id().toUtf8().constData(),
+					problem.toUtf8().constData());
+			}
+			continue;
+		}
 		for (const QString& role : roles)
 		{
 			for (const QString& value : values)
@@ -218,7 +550,7 @@ int checkFillCellFit()
 						.arg(roleRight, 0, 'f', 1).arg(valueText.left, 0, 'f', 1);
 				for (const QRectF& shape : recorder.shapes)
 				{
-					const bool caret = shape.width() <= 8.0 && shape.height() <= 8.0 && shape.width() > 0.0;
+					const bool caret = isCaretShape(shape);
 					if (caret && shape.right() > valueText.left && shape.left() < valueText.right - epsilon)
 						problem = QStringLiteral("%1: channel %2..%3 overlaps the caret at %4..%5").arg(label)
 							.arg(valueText.left, 0, 'f', 1).arg(valueText.right, 0, 'f', 1)

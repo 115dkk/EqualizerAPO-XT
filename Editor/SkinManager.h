@@ -34,6 +34,9 @@ struct VstBusFrameState;
 struct VstBusSelectorState;
 struct VstSlotFillCellState;
 struct VstSlotFillRailState;
+struct VstSlotFillBlockMetrics;
+struct VstSlotFillBlockState;
+enum class VstSlotFillArrangement;
 
 class SkinManager : public QObject
 {
@@ -115,6 +118,13 @@ public:
 	QSize vstSlotFillCellSize(const QString& role, const QString& value) const;
 	void paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state) const;
 	void paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state) const;
+	// The fill arrangement and the joined block (ISkin::vstSlotFillArrangement,
+	// ISkin::vstSlotFillBlockMetrics, ISkin::vstSlotFillBlockColumnWidth,
+	// ISkin::paintVstSlotFillBlock).
+	VstSlotFillArrangement vstSlotFillArrangement() const;
+	VstSlotFillBlockMetrics vstSlotFillBlockMetrics(bool collapsed) const;
+	int vstSlotFillBlockColumnWidth(const QString& role, const QString& value, bool output) const;
+	void paintVstSlotFillBlock(QPainter& painter, const VstSlotFillBlockState& state) const;
 
 	// The "add filter" picker view for the active skin (ISkin::createFilterPicker).
 	FilterPickerView* createFilterPicker(QWidget* parent) const;  // injects tokens()

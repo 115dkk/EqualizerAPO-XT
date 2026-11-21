@@ -41,6 +41,7 @@
 #include "FileReferenceController.h"
 #include "VSTBusStrip.h"
 #include "VSTBusVerdict.h"
+#include "VSTSlotFillBlock.h"
 #include "VSTSlotFillRail.h"
 
 using std::shared_ptr;
@@ -145,19 +146,33 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 	connect(busStrip, &VSTBusStrip::busLayoutsPicked, this, &VSTCardEditor::busLayoutsPicked);
 	view->placeBusStrip(busStrip);
 
-	// The channel-fill rails sandwich the reference body inside the card:
-	// the input rail under the row header, the output rail under the body.
-	// Presence follows the contract (an Auto side has no rail), the fold
-	// latch only exists while both rails do.
-	inputRail = new VSTSlotFillRail(false, this);
-	connect(inputRail, &VSTSlotFillRail::slotPicked, this,
-		[this](int slot, const QString& value) { fillSlotPicked(slot, value, false); });
-	connect(inputRail, &VSTSlotFillRail::latchToggled, this, &VSTCardEditor::fillLatchToggled);
-	root->insertWidget(0, inputRail);
-	outputRail = new VSTSlotFillRail(true, this);
-	connect(outputRail, &VSTSlotFillRail::slotPicked, this,
-		[this](int slot, const QString& value) { fillSlotPicked(slot, value, true); });
-	root->insertWidget(root->indexOf(view) + 1, outputRail);
+	// The channel fill, mounted the way the skin arranges it
+	// (ISkin::vstSlotFillArrangement; a skin switch rebuilds the row, so the
+	// answer is read once). Split: the rails sandwich the reference body
+	// inside the card, the input rail under the row header, the output rail
+	// under the body. Joined: one block, added below everything else the
+	// card says, because the fill is auxiliary to the plugin. Either way
+	// presence follows the contract (an Auto side has no row) and the fold
+	// latch only exists while both sides do.
+	if (SkinManager::instance()->vstSlotFillArrangement() == VstSlotFillArrangement::JoinedBlockBelowBody)
+	{
+		fillBlock = new VSTSlotFillBlock(this);
+		connect(fillBlock, &VSTSlotFillBlock::slotPicked, this,
+			[this](bool output, int slot, const QString& value) { fillSlotPicked(slot, value, output); });
+		connect(fillBlock, &VSTSlotFillBlock::latchToggled, this, &VSTCardEditor::fillLatchToggled);
+	}
+	else
+	{
+		inputRail = new VSTSlotFillRail(false, this);
+		connect(inputRail, &VSTSlotFillRail::slotPicked, this,
+			[this](int slot, const QString& value) { fillSlotPicked(slot, value, false); });
+		connect(inputRail, &VSTSlotFillRail::latchToggled, this, &VSTCardEditor::fillLatchToggled);
+		root->insertWidget(0, inputRail);
+		outputRail = new VSTSlotFillRail(true, this);
+		connect(outputRail, &VSTSlotFillRail::slotPicked, this,
+			[this](int slot, const QString& value) { fillSlotPicked(slot, value, true); });
+		root->insertWidget(root->indexOf(view) + 1, outputRail);
+	}
 	document.setSelectedChannels(this->deviceChannelNames);
 	fillCollapsed = document.fill().inputFill().empty() && document.fill().outputFill().empty();
 
@@ -172,6 +187,8 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 	warningTextEdit->setReadOnly(true);
 	warningTextEdit->setVisible(false);
 	root->addWidget(warningTextEdit);
+	if (fillBlock != nullptr)
+		root->addWidget(fillBlock);
 
 	reference = new FileReferenceController(QStringLiteral("vst"),
 		FileReferenceController::displayPathForLibrary(QString::fromStdWString(library->getLibPath()),
@@ -305,28 +322,45 @@ void VSTCardEditor::updateFillRails()
 	for (const std::wstring& name : fillModel.selectedChannels())
 		choices.append(QString::fromStdWString(name));
 
-	for (VSTSlotFillRail* rail : {inputRail, outputRail})
+	const auto cellsOf = [&fillModel](bool output) {
+			QList<VSTSlotFillRail::CellData> cells;
+			if (!fillModel.railPresent(output))
+				return cells;
+			const int count = fillModel.slotCount(output);
+			for (int slot = 0; slot < count; slot++)
+			{
+				VSTSlotFillRail::CellData cell;
+				cell.role = QString::fromStdWString(fillModel.slotRole(output, slot));
+				cell.value = QString::fromStdWString(fillModel.slotValue(output, slot));
+				cell.silent = fillModel.slotSilent(output, slot);
+				cell.defaulted = fillModel.sideDefaulted(output);
+				cell.missing = fillModel.slotChannelMissing(output, slot);
+				cells.append(cell);
+			}
+			return cells;
+		};
+
+	if (fillBlock != nullptr)
 	{
-		const bool output = rail == outputRail;
-		rail->setChannelChoices(choices);
-		QList<VSTSlotFillRail::CellData> cells;
-		const int count = fillModel.slotCount(output);
-		for (int slot = 0; slot < count; slot++)
-		{
-			VSTSlotFillRail::CellData cell;
-			cell.role = QString::fromStdWString(fillModel.slotRole(output, slot));
-			cell.value = QString::fromStdWString(fillModel.slotValue(output, slot));
-			cell.silent = fillModel.slotSilent(output, slot);
-			cell.defaulted = fillModel.sideDefaulted(output);
-			cell.missing = fillModel.slotChannelMissing(output, slot);
-			cells.append(cell);
-		}
-		rail->setCells(cells);
-		rail->setCollapsed(fillCollapsed);
+		fillBlock->setChannelChoices(choices);
+		fillBlock->setLatchPresent(latchPresent);
+		fillBlock->setCollapsed(fillCollapsed);
+		fillBlock->setRows(cellsOf(false), cellsOf(true));
+		fillBlock->setVisible(fillModel.railPresent(false) || fillModel.railPresent(true));
 	}
-	inputRail->setLatchVisible(latchPresent);
-	inputRail->setVisible(fillModel.railPresent(false));
-	outputRail->setVisible(fillModel.railPresent(true) && !fillCollapsed);
+	else
+	{
+		for (VSTSlotFillRail* rail : {inputRail, outputRail})
+		{
+			const bool output = rail == outputRail;
+			rail->setChannelChoices(choices);
+			rail->setCells(cellsOf(output));
+			rail->setCollapsed(fillCollapsed);
+		}
+		inputRail->setLatchVisible(latchPresent);
+		inputRail->setVisible(fillModel.railPresent(false));
+		outputRail->setVisible(fillModel.railPresent(true) && !fillCollapsed);
+	}
 
 	if (removeFillAction != nullptr)
 		removeFillAction->setEnabled(!fillModel.inputFill().empty() || !fillModel.outputFill().empty());

@@ -5038,12 +5038,14 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
 <context>
     <name>VSTBusStrip</name>
     <message>
+        <location filename="../skins/studio/StudioSkin.Controls.cpp" line="586"/>
         <location filename="../widgets/cards/VSTBusStrip.cpp" line="55"/>
         <location filename="../widgets/cards/VSTBusStrip.cpp" line="115"/>
         <source>Out</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <location filename="../skins/studio/StudioSkin.Controls.cpp" line="587"/>
         <location filename="../widgets/cards/VSTBusStrip.cpp" line="55"/>
         <location filename="../widgets/cards/VSTBusStrip.cpp" line="115"/>
         <source>In</source>
@@ -5063,44 +5065,44 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
 <context>
     <name>VSTCardEditor</name>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="510"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="627"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="544"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="644"/>
         <source>Select VST plugin</source>
         <translation>Sélectionner le plugin VST</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="106"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="683"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="107"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="700"/>
         <source>Open panel</source>
         <translation>Ouvrir le panneau</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="101"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="102"/>
         <source>Copy the library into the config directory so the audio service can read it</source>
         <translation>Copier la bibliothèque dans le répertoire de configuration pour que le service audio puisse la lire</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="117"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="118"/>
         <source>Embed panel in card</source>
         <translation>Intégrer le panneau dans la carte</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="123"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="124"/>
         <source>Remove Input/Output layouts</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="124"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="125"/>
         <source>Deletes the saved VST3 bus layouts from this line.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="130"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="131"/>
         <source>Remove channel fill</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="131"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="132"/>
         <source>Deletes the saved per-slot channel lists from this line.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5121,7 +5123,7 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
         <translation type="vanished">Le plugin a planté lors de l&apos;initialisation.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="401"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="435"/>
         <source>No plugin selected</source>
         <translation>Aucun plugin sélectionné</translation>
     </message>
@@ -5130,12 +5132,12 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
         <translation type="vanished">Illisible par le service audio</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="509"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="543"/>
         <source>Locate...</source>
         <translation>Localiser...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="510"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="544"/>
         <source>Locate the missing plugin library</source>
         <translation>Localiser la bibliothèque de plugin manquante</translation>
     </message>
@@ -5176,7 +5178,7 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="627"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="644"/>
         <source>VST plugins (*.dll *.vst3)</source>
         <translation>Plugins VST (*.dll *.vst3)</translation>
     </message>
@@ -5185,7 +5187,7 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
         <translation type="vanished">Le plugin a planté à l&apos;ouverture du panneau.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="683"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="700"/>
         <source>Close panel</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5198,7 +5200,7 @@ Change the file permissions or copy the files to the config directory.</source>
 Modifiez les autorisations des fichiers ou copiez les fichiers dans le dossier de configuration.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="504"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="538"/>
         <source>Loading plugin...</source>
         <translation>Chargement du plugin...</translation>
     </message>
@@ -5386,6 +5388,38 @@ Modifiez les autorisations des fichiers ou copiez les fichiers dans le dossier d
     </message>
 </context>
 <context>
+    <name>VSTSlotFillBlock</name>
+    <message>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="234"/>
+        <source>Choose which channel goes into and comes out of each plugin slot.</source>
+        <translation>Choisissez le canal qui entre dans chaque emplacement du plugin et celui qui en sort.</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="241"/>
+        <source>Out</source>
+        <comment>row caption: the channels the plugin&apos;s output slots write</comment>
+        <translation>Sortie</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="242"/>
+        <source>In</source>
+        <comment>row caption: the channels fed into the plugin&apos;s input slots</comment>
+        <translation>Entrée</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="252"/>
+        <source>Discard</source>
+        <comment>an output slot whose sound is thrown away</comment>
+        <translation>Ignorer</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="253"/>
+        <source>Silence</source>
+        <comment>an input slot that gets no channel</comment>
+        <translation>Silence</translation>
+    </message>
+</context>
+<context>
     <name>VSTSlotFillCell</name>
     <message>
         <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="57"/>
@@ -5398,12 +5432,12 @@ Modifiez les autorisations des fichiers ou copiez les fichiers dans le dossier d
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="199"/>
+        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="208"/>
         <source>Discard (-)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="199"/>
+        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="208"/>
         <source>Silence (-)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5411,7 +5445,9 @@ Modifiez les autorisations des fichiers ou copiez les fichiers dans le dossier d
 <context>
     <name>VSTSlotFillRail</name>
     <message>
-        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="239"/>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="229"/>
+        <location filename="../widgets/cards/VSTSlotFillBlock.cpp" line="195"/>
+        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="248"/>
         <source>Channel fill</source>
         <translation type="unfinished"></translation>
     </message>
