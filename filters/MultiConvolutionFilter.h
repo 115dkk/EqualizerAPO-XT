@@ -26,6 +26,7 @@
 #include "ConvolverBank.h"
 #include "IrCache.h"
 #include "MultiConvolutionCommand.h"
+#include "runtime/concurrency/FanOutGovernor.h"
 #include "runtime/concurrency/RealtimeFanOut.h"
 
 // Multi-input synthesis convolution. Unlike the 1:1
@@ -68,6 +69,7 @@ private:
 	bool parallelConvolution;
 	bool parallelWork = false;
 	eapo::rt::FanOut::Lease fanOutLease;
+	eapo::rt::FanOutGovernor fanOutGovernor;
 	float sampleRate;
 
 	// Where one mapping reads and writes: units [firstUnit, firstUnit+unitCount)

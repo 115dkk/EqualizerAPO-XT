@@ -4,6 +4,7 @@
 	SPDX-License-Identifier: GPL-2.0-or-later
 */
 
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <limits>
@@ -11,6 +12,7 @@
 #include <thread>
 
 #include "dsp/MxcsrGuard.h"
+#include "runtime/concurrency/FanOutGovernor.h"
 #include "runtime/concurrency/RealtimeFanOut.h"
 #include "EngineOrchestrationTestSupport.h"
 #include "services/registry/RegistryPaths.h"
@@ -28,9 +30,11 @@ namespace allocation_gate
 namespace
 {
 	using eapo::rt::FanOut;
+	using eapo::rt::FanOutGovernor;
+	constexpr unsigned maximumWorkerLimit = 63;
 	struct Counts
 	{
-		std::array<std::atomic<unsigned>, 64> hits{};
+		std::array<std::atomic<unsigned>, 256> hits{};
 		std::atomic<unsigned> wrongThread{0};
 		DWORD caller = 0;
 	};
@@ -53,7 +57,7 @@ namespace
 
 TEST_CASE(EngineOrchestrationTests, testRealtimeFanOutEpochs)
 {
-	FanOut::setWorkerLimitForTests(7);
+	FanOut::setWorkerLimitForTests(maximumWorkerLimit);
 	auto lease = FanOut::Lease::acquire();
 	harness.require(FanOut::workerCount() > 0, "a worker team is running for the epoch stress test");
 	constexpr size_t sizes[] = {0, 1, 2, 7, 64};
@@ -66,6 +70,85 @@ TEST_CASE(EngineOrchestrationTests, testRealtimeFanOutEpochs)
 		FanOut::run(count, countTask, counts.get());
 		checkCounts(harness, *counts, count);
 	}
+	FanOut::setWorkerLimitForTests(maximumWorkerLimit);
+}
+
+TEST_CASE(EngineOrchestrationTests, testRealtimeFanOutUsesLogicalProcessorCapacity)
+{
+	FanOut::setWorkerLimitForTests(maximumWorkerLimit);
+	if (std::thread::hardware_concurrency() <= 8)
+	{
+		harness.skip("the machine has no more than eight logical processors");
+		return;
+	}
+	{
+		auto lease = FanOut::Lease::acquire();
+		harness.expectTrue(FanOut::workerCount() > 7,
+			"a machine with more than eight logical processors starts more than seven workers");
+	}
+	harness.expectEqual(FanOut::workerCount(), 0u, "the capacity test releases its worker team");
+}
+
+TEST_CASE(EngineOrchestrationTests, testRealtimeFanOutGovernedRunsCompleteExactlyOnce)
+{
+	FanOut::setWorkerLimitForTests(maximumWorkerLimit);
+	auto lease = FanOut::Lease::acquire();
+	harness.require(FanOut::workerCount() > 0, "a worker team is running for governed jobs");
+	constexpr size_t sizes[] = {0, 1, 2, 200};
+
+	FanOutGovernor inlineGovernor;
+	inlineGovernor.observe(100, 100, 0, 1000000);
+	for (const size_t count : sizes)
+	{
+		Counts counts;
+		FanOut::run(count, countTask, &counts, inlineGovernor);
+		checkCounts(harness, counts, count);
+		harness.expectEqual(FanOut::lastWorkersWoken(), 0u,
+			"a light governed job stays on the caller");
+	}
+
+	for (const size_t count : sizes)
+	{
+		FanOutGovernor parallelGovernor;
+		Counts counts;
+		FanOut::run(count, countTask, &counts, parallelGovernor);
+		checkCounts(harness, counts, count);
+		const unsigned expected = count < 2 ? 0u : static_cast<unsigned>((std::min)({
+			count - 1, static_cast<size_t>(FanOut::workerCount()), size_t{7}}));
+		harness.expectEqual(FanOut::lastWorkersWoken(), expected,
+			"an unmeasured governed job wakes the released worker count");
+	}
+}
+
+TEST_CASE(EngineOrchestrationTests, testRealtimeFanOutGovernedRunReportsTiming)
+{
+	FanOut::setWorkerLimitForTests(maximumWorkerLimit);
+	auto lease = FanOut::Lease::acquire();
+	FanOutGovernor governor;
+	Counts counts;
+	FanOut::run(200, countTask, &counts, governor);
+	checkCounts(harness, counts, 200);
+	harness.expectTrue(governor.smoothedWorkSeconds() > 0.0,
+		"a governed run reports positive task work to its governor");
+}
+
+TEST_CASE(EngineOrchestrationTests, testRealtimeFanOutZeroLimitForcesGovernedInline)
+{
+	FanOut::setWorkerLimitForTests(maximumWorkerLimit);
+	auto lease = FanOut::Lease::acquire();
+	FanOut::setWorkerLimitForTests(0);
+	FanOutGovernor governor;
+	Counts counts;
+	counts.caller = GetCurrentThreadId();
+	FanOut::run(200, countTask, &counts, governor);
+	checkCounts(harness, counts, 200);
+	harness.expectEqual(counts.wrongThread.load(), 0u,
+		"a zero test limit keeps a governed run on its caller");
+	harness.expectEqual(FanOut::lastWorkersWoken(), 0u,
+		"a zero test limit reports that no workers were woken");
+	harness.expectTrue(governor.smoothedWorkSeconds() > 0.0,
+		"a forced-inline governed run still reports its task work");
+	FanOut::setWorkerLimitForTests(maximumWorkerLimit);
 }
 
 TEST_CASE(EngineOrchestrationTests, testRealtimeFanOutBusyCallerRunsInline)
@@ -128,7 +211,7 @@ TEST_CASE(EngineOrchestrationTests, testRealtimeFanOutLeaseLifecycle)
 		auto lease = FanOut::Lease::acquire();
 		harness.expectEqual(FanOut::workerCount(), 0u, "zero limit does not create a team");
 	}
-	FanOut::setWorkerLimitForTests(7);
+	FanOut::setWorkerLimitForTests(maximumWorkerLimit);
 }
 
 TEST_CASE(EngineOrchestrationTests, testRealtimeFanOutFpControlAndLimit)
@@ -152,7 +235,7 @@ TEST_CASE(EngineOrchestrationTests, testRealtimeFanOutFpControlAndLimit)
 	FanOut::run(64, countTask, &counts);
 	checkCounts(harness, counts, 64);
 	harness.expectEqual(counts.wrongThread.load(), 0u, "zero limit also bypasses an existing team");
-	FanOut::setWorkerLimitForTests(7);
+	FanOut::setWorkerLimitForTests(maximumWorkerLimit);
 }
 
 TEST_CASE(EngineOrchestrationTests, testRealtimeFanOutWaitsForAdmittedWorker)
@@ -234,10 +317,15 @@ TEST_CASE(EngineOrchestrationTests, testRealtimeFanOutDoesNotAllocate)
 #else
 	auto lease = FanOut::Lease::acquire();
 	Counts counts;
+	FanOutGovernor governor;
 	allocation_gate::begin();
 	for (unsigned i = 0; i < 100; ++i)
+	{
 		FanOut::run(64, countTask, &counts);
+		FanOut::run(64, countTask, &counts, governor);
+	}
 	const size_t allocations = allocation_gate::end();
-	harness.expectEqual(allocations, size_t{0}, "run never allocates on the calling thread, including its first call");
+	harness.expectEqual(allocations, size_t{0},
+		"plain and governed runs never allocate on the calling thread, including their first calls");
 #endif
 }

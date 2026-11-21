@@ -10,6 +10,8 @@
 
 namespace eapo::rt
 {
+	class FanOutGovernor;
+
 	class FanOut
 	{
 	public:
@@ -35,7 +37,12 @@ namespace eapo::rt
 		// The caller participates. Busy/unavailable teams run inline, without
 		// waiting for admission. All tasks have returned when this returns.
 		static void run(size_t count, Task fn, void* context) noexcept;
+		static void run(size_t count, Task fn, void* context, FanOutGovernor& governor) noexcept;
 		static unsigned workerCount() noexcept;
+		static unsigned lastWorkersWoken() noexcept;
 		static void setWorkerLimitForTests(unsigned limit) noexcept;
+		// Off: a governed run wakes every worker the limit allows, as run()
+		// without a governor does. For tests and Benchmark's fixed-count runs.
+		static void setGovernorEnabledForTests(bool enabled) noexcept;
 	};
 }
