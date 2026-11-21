@@ -25,6 +25,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   left silent or discarded shows the word instead of a dash.
   ([#513](https://github.com/115dkk/EqualizerAPO-XT/pull/513))
 
+## v2.74.0 — 2026-11-21
+
 - **Hardware Rack: the VST card says its format once, on a readout.** The card
   named VST three times: the engraving on the left ear, the title, and the
   brass plate on the right that carried `VST3` or `VST2`. The plate is gone. A
