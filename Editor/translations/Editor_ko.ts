@@ -1233,23 +1233,23 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>FileReferenceController</name>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="123"/>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="147"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="124"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="148"/>
         <source>Import</source>
         <translation type="unfinished">가져오기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="124"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="125"/>
         <source>Nothing to import: %1</source>
         <translation type="unfinished">가져올 항목 없음: %1</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="140"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="141"/>
         <source>Could not grant audio service access to %1.</source>
         <translation>오디오 서비스에 %1 접근 권한을 부여하지 못했습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="148"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="149"/>
         <source>Some files could not be copied:
 %1</source>
         <translation type="unfinished">일부 파일을 복사하지 못했습니다:
@@ -1443,7 +1443,7 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>FilterCardRow</name>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1003"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1034"/>
         <source>Expand filter card</source>
         <translation>필터 카드 펼치기</translation>
     </message>
@@ -1452,47 +1452,47 @@ Select a different file or change the device configuration.</source>
         <translation type="vanished">이 명령을 활성화하거나 주석 처리합니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="177"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="179"/>
         <source>Add filter above this card</source>
         <translation>이 카드 위에 필터 추가</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="189"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="191"/>
         <source>Remove filter</source>
         <translation>필터 제거</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="190"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="192"/>
         <source>Remove this filter. %1 brings it back.</source>
         <translation>이 필터를 제거합니다. %1로 되돌릴 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="206"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="208"/>
         <source>Edit raw command</source>
         <translation>원본 명령 편집</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="806"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="837"/>
         <source>This line was not applied: %1</source>
         <translation>이 줄은 적용되지 않았습니다: %1</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1003"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1034"/>
         <source>Collapse filter card</source>
         <translation>필터 카드 접기</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1005"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1036"/>
         <source>Switch this line off. It stays in the file as a comment.</source>
         <translation>이 줄을 끕니다. 파일에는 주석으로 남습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1006"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1037"/>
         <source>Switch this line back on.</source>
         <translation>이 줄을 다시 켭니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="804"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="835"/>
         <source>Equalizer APO could not prepare this filter, so the whole configuration was not applied and the previous settings keep playing. Check the file or plug-in this line uses, or switch the line off.</source>
         <translation>Equalizer APO가 이 필터를 준비하지 못해 설정 전체를 적용하지 않았고, 이전 설정이 계속 재생됩니다. 이 줄이 쓰는 파일이나 플러그인을 확인하거나 이 줄을 끄십시오.</translation>
     </message>
@@ -1707,6 +1707,232 @@ Select a different file or change the device configuration.</source>
         <location filename="../FilterTableRow.ui" line="174"/>
         <source>Edit text</source>
         <translation>텍스트 편집</translation>
+    </message>
+</context>
+<context>
+    <name>FlatFilterPickerView</name>
+    <message>
+        <location filename="../skins/flat/picker/FlatFilterPicker.cpp" line="129"/>
+        <source>Complete as it is</source>
+        <translation>이대로 완성됩니다</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/picker/FlatFilterPicker.cpp" line="131"/>
+        <source>Choose the details after adding</source>
+        <translation>추가한 뒤 세부 정보를 설정하세요</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/picker/FlatFilterPicker.cpp" line="290"/>
+        <source>Search filters</source>
+        <translation>필터 검색</translation>
+    </message>
+    <message>
+        <source>General</source>
+        <translation type="vanished">일반</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/picker/FlatFilterPicker.cpp" line="421"/>
+        <source>Nothing matches your search</source>
+        <translation>검색 결과가 없습니다</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/picker/FlatFilterPicker.cpp" line="422"/>
+        <source>Try a shorter or different keyword</source>
+        <translation>더 짧거나 다른 키워드로 검색해 보세요</translation>
+    </message>
+</context>
+<context>
+    <name>FlatReferenceCardView</name>
+    <message>
+        <location filename="../skins/flat/cards/FlatReferenceCardView.cpp" line="241"/>
+        <source>Checking...</source>
+        <translation>확인 중...</translation>
+    </message>
+</context>
+<context>
+    <name>FlatSkin</name>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="57"/>
+        <source>Otherwise</source>
+        <translation>그렇지 않으면</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="59"/>
+        <source>End of the rule</source>
+        <translation>규칙 끝</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="70"/>
+        <source>Set %1 to %2</source>
+        <translation>%1에 %2 값을 적용합니다</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="91"/>
+        <source>If %1 is %2</source>
+        <translation>%1이(가) %2이면</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="93"/>
+        <source>If %1 is not %2</source>
+        <translation>%1이(가) %2이(가) 아니면</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="95"/>
+        <source>If %1 is at least %2</source>
+        <translation>%1이(가) %2 이상이면</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="97"/>
+        <source>If %1 is more than %2</source>
+        <translation>%1이(가) %2보다 크면</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="99"/>
+        <source>If %1 is at most %2</source>
+        <translation>%1이(가) %2 이하이면</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="101"/>
+        <source>If %1 is less than %2</source>
+        <translation>%1이(가) %2보다 작으면</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="106"/>
+        <source>Otherwise, if %1 is %2</source>
+        <translation>그렇지 않고 %1이(가) %2이면</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="108"/>
+        <source>Otherwise, if %1 is not %2</source>
+        <translation>그렇지 않고 %1이(가) %2이(가) 아니면</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="110"/>
+        <source>Otherwise, if %1 is at least %2</source>
+        <translation>그렇지 않고 %1이(가) %2 이상이면</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="112"/>
+        <source>Otherwise, if %1 is more than %2</source>
+        <translation>그렇지 않고 %1이(가) %2보다 크면</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="114"/>
+        <source>Otherwise, if %1 is at most %2</source>
+        <translation>그렇지 않고 %1이(가) %2 이하이면</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="116"/>
+        <source>Otherwise, if %1 is less than %2</source>
+        <translation>그렇지 않고 %1이(가) %2보다 작으면</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="227"/>
+        <source>Not applied to the audio.</source>
+        <translation>오디오에 반영되지 않습니다.</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="223"/>
+        <source>Over 0 dB</source>
+        <translation>0 dB 초과</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="224"/>
+        <source>Sound may distort - keep it below 0 dB</source>
+        <translation>소리가 일그러질 수 있습니다. 0 dB 아래로 낮추십시오</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="234"/>
+        <source>Phase in %1</source>
+        <translation>%1의 위상</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="235"/>
+        <source>Delay in %1</source>
+        <translation>%1의 지연</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="236"/>
+        <source>How far each pitch is turned - the volume stays the same</source>
+        <translation>각 음높이가 얼마나 돌아가는지 - 음량은 그대로입니다</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="237"/>
+        <source>How long each pitch is held back before you hear it</source>
+        <translation>각 음높이가 귀에 닿기까지 얼마나 늦춰지는지</translation>
+    </message>
+</context>
+<context>
+    <name>FlatSubwooferRoutingCardView</name>
+    <message>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="59"/>
+        <source>Bass-management summary</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="75"/>
+        <source>Bass-management details</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="127"/>
+        <source>This bass setup needs attention.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="133"/>
+        <source>All speakers play the full range.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="134"/>
+        <source>No crossover is set, so nothing is redirected to a subwoofer.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="142"/>
+        <source>Bass plays on the subwoofer.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="150"/>
+        <source>The movie LFE track is kept and played at %1 dB.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="155"/>
+        <source>The source LFE channel is left out.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="167"/>
+        <source>Unknown layout</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="168"/>
+        <source>%1 speakers</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="171"/>
+        <source>LFE %1 dB</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="177"/>
+        <source>Auto trim %1 dB</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="177"/>
+        <source>Trim %1 dB</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="181"/>
+        <source>Linked profile</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -2770,7 +2996,7 @@ Do you want to run the Device Selector application to fix the problem?</source>
     </message>
     <message>
         <location filename="../MainWindow.ui" line="139"/>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="428"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="437"/>
         <source>Graph</source>
         <translation>그래프</translation>
     </message>
@@ -2827,7 +3053,7 @@ Do you want to run the Device Selector application to fix the problem?</source>
     </message>
     <message>
         <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="313"/>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="362"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="371"/>
         <source>Custom...</source>
         <translation>사용자 지정...</translation>
     </message>
@@ -2837,7 +3063,12 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <translation>기본 제목 표시줄</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="363"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="340"/>
+        <source>Windows file dialog</source>
+        <translation>Windows 기본 파일 대화상자</translation>
+    </message>
+    <message>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="372"/>
         <source>Custom (±%1 dB)...</source>
         <translation>사용자 지정 (±%1 dB)...</translation>
     </message>
@@ -3515,78 +3746,78 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>MultiConvolutionCardEditor</name>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="86"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="87"/>
         <source>Copy this file into the config directory</source>
         <translation>이 파일을 구성 디렉터리로 복사</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="104"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="105"/>
         <source>Channel mapping</source>
         <translation>채널 매핑</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="111"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="112"/>
         <source>Add an output channel (a new name creates a virtual channel)</source>
         <translation>출력 채널 추가 (새 이름은 가상 채널을 만듭니다)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="170"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="171"/>
         <source>Add output channel</source>
         <translation>출력 채널 추가</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="171"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="172"/>
         <source>Channel name (an unknown name creates a virtual channel):</source>
         <translation>채널 이름 (알 수 없는 이름은 가상 채널을 만듭니다):</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="237"/>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="332"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="245"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="340"/>
         <source>Select impulse response file</source>
         <translation>임펄스 응답 파일 선택</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="238"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="246"/>
         <source>Impulse response (*.wav *.flac *.ogg)</source>
         <translation>임펄스 응답 (*.wav *.flac *.ogg)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="262"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="270"/>
         <source>No file selected</source>
         <translation>선택된 파일 없음</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="275"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="283"/>
         <source>Unsupported file format</source>
         <translation>지원하지 않는 파일 형식</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="284"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="292"/>
         <source>%1 ms</source>
         <translation>%1 ms</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="285"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="293"/>
         <source>%1 samples</source>
         <translation>%1 샘플</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="286"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="294"/>
         <source>%1 Hz</source>
         <translation>%1 Hz</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="287"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="295"/>
         <source>%1 ch</source>
         <translation>%1 ch</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="292"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="300"/>
         <source>Sample rate does not match the device (%1 Hz)</source>
         <translation>샘플레이트가 장치와 일치하지 않습니다 (%1 Hz)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="310"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="318"/>
         <source>Mapping references channel %1, but the file has %2 channels</source>
         <translation>매핑이 채널 %1을(를) 참조하지만 파일에는 채널이 %2개뿐입니다</translation>
     </message>
@@ -3595,12 +3826,12 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <translation type="vanished">오디오 서비스가 읽을 수 없습니다</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="331"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="339"/>
         <source>Locate...</source>
         <translation>위치 찾기...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="332"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="340"/>
         <source>Locate the missing file</source>
         <translation>누락된 파일 위치 찾기</translation>
     </message>
@@ -4225,232 +4456,6 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
         <location filename="../widgets/cards/SendCardModel.cpp" line="156"/>
         <source>The Send option of %1 is off in the Device Selector. It plays what this line sends only while another program plays on it.</source>
         <translation>장치 선택기에서 %1의 전송 옵션이 꺼져 있습니다. 다른 프로그램이 이 엔드포인트에서 소리를 재생하는 동안에만 이 줄에서 보낸 소리도 재생합니다.</translation>
-    </message>
-</context>
-<context>
-    <name>FlatFilterPickerView</name>
-    <message>
-        <location filename="../skins/flat/picker/FlatFilterPicker.cpp" line="129"/>
-        <source>Complete as it is</source>
-        <translation>이대로 완성됩니다</translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/picker/FlatFilterPicker.cpp" line="131"/>
-        <source>Choose the details after adding</source>
-        <translation>추가한 뒤 세부 정보를 설정하세요</translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/picker/FlatFilterPicker.cpp" line="290"/>
-        <source>Search filters</source>
-        <translation>필터 검색</translation>
-    </message>
-    <message>
-        <source>General</source>
-        <translation type="vanished">일반</translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/picker/FlatFilterPicker.cpp" line="421"/>
-        <source>Nothing matches your search</source>
-        <translation>검색 결과가 없습니다</translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/picker/FlatFilterPicker.cpp" line="422"/>
-        <source>Try a shorter or different keyword</source>
-        <translation>더 짧거나 다른 키워드로 검색해 보세요</translation>
-    </message>
-</context>
-<context>
-    <name>FlatReferenceCardView</name>
-    <message>
-        <location filename="../skins/flat/cards/FlatReferenceCardView.cpp" line="241"/>
-        <source>Checking...</source>
-        <translation>확인 중...</translation>
-    </message>
-</context>
-<context>
-    <name>FlatSkin</name>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="57"/>
-        <source>Otherwise</source>
-        <translation>그렇지 않으면</translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="59"/>
-        <source>End of the rule</source>
-        <translation>규칙 끝</translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="70"/>
-        <source>Set %1 to %2</source>
-        <translation>%1에 %2 값을 적용합니다</translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="91"/>
-        <source>If %1 is %2</source>
-        <translation>%1이(가) %2이면</translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="93"/>
-        <source>If %1 is not %2</source>
-        <translation>%1이(가) %2이(가) 아니면</translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="95"/>
-        <source>If %1 is at least %2</source>
-        <translation>%1이(가) %2 이상이면</translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="97"/>
-        <source>If %1 is more than %2</source>
-        <translation>%1이(가) %2보다 크면</translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="99"/>
-        <source>If %1 is at most %2</source>
-        <translation>%1이(가) %2 이하이면</translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="101"/>
-        <source>If %1 is less than %2</source>
-        <translation>%1이(가) %2보다 작으면</translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="106"/>
-        <source>Otherwise, if %1 is %2</source>
-        <translation>그렇지 않고 %1이(가) %2이면</translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="108"/>
-        <source>Otherwise, if %1 is not %2</source>
-        <translation>그렇지 않고 %1이(가) %2이(가) 아니면</translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="110"/>
-        <source>Otherwise, if %1 is at least %2</source>
-        <translation>그렇지 않고 %1이(가) %2 이상이면</translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="112"/>
-        <source>Otherwise, if %1 is more than %2</source>
-        <translation>그렇지 않고 %1이(가) %2보다 크면</translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="114"/>
-        <source>Otherwise, if %1 is at most %2</source>
-        <translation>그렇지 않고 %1이(가) %2 이하이면</translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="116"/>
-        <source>Otherwise, if %1 is less than %2</source>
-        <translation>그렇지 않고 %1이(가) %2보다 작으면</translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="227"/>
-        <source>Not applied to the audio.</source>
-        <translation>오디오에 반영되지 않습니다.</translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="223"/>
-        <source>Over 0 dB</source>
-        <translation>0 dB 초과</translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="224"/>
-        <source>Sound may distort - keep it below 0 dB</source>
-        <translation>소리가 일그러질 수 있습니다. 0 dB 아래로 낮추십시오</translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="234"/>
-        <source>Phase in %1</source>
-        <translation>%1의 위상</translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="235"/>
-        <source>Delay in %1</source>
-        <translation>%1의 지연</translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="236"/>
-        <source>How far each pitch is turned - the volume stays the same</source>
-        <translation>각 음높이가 얼마나 돌아가는지 - 음량은 그대로입니다</translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="237"/>
-        <source>How long each pitch is held back before you hear it</source>
-        <translation>각 음높이가 귀에 닿기까지 얼마나 늦춰지는지</translation>
-    </message>
-</context>
-<context>
-    <name>FlatSubwooferRoutingCardView</name>
-    <message>
-        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="59"/>
-        <source>Bass-management summary</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="75"/>
-        <source>Bass-management details</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="127"/>
-        <source>This bass setup needs attention.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="133"/>
-        <source>All speakers play the full range.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="134"/>
-        <source>No crossover is set, so nothing is redirected to a subwoofer.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="142"/>
-        <source>Bass plays on the subwoofer.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="150"/>
-        <source>The movie LFE track is kept and played at %1 dB.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="155"/>
-        <source>The source LFE channel is left out.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="167"/>
-        <source>Unknown layout</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="168"/>
-        <source>%1 speakers</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="171"/>
-        <source>LFE %1 dB</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="177"/>
-        <source>Auto trim %1 dB</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="177"/>
-        <source>Trim %1 dB</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="181"/>
-        <source>Linked profile</source>
-        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

@@ -135,9 +135,11 @@
     <ClCompile Include="..\..\Editor\widgets\subwooferrouting\SubwooferRoutingDefaults.cpp" />
     <ClCompile Include="..\..\Editor\widgets\routing\SubwooferRoutingRoutingAdapter.cpp" />
     <ClCompile Include="UpdateSessionTests.cpp" />
+    <ClCompile Include="UpdateLeftoversTests.cpp" />
     <ClCompile Include="DiagnosticDecisionTests.cpp" />
     <ClCompile Include="CommandLineQuotingTests.cpp" />
     <ClCompile Include="..\..\services\update\UpdateSession.cpp" />
+    <ClCompile Include="..\..\services\update\UpdateLeftovers.cpp" />
     <ClCompile Include="..\..\Editor\ConfigFileCodec.cpp" />
     <ClCompile Include="..\..\Editor\analysis\AnalysisResponse.cpp" />
     <ClCompile Include="..\..\Editor\analysis\AnalysisRequestFence.cpp" />
@@ -240,6 +242,7 @@
     <ClInclude Include="..\..\platform\windows\TextEncoding.h" />
     <ClInclude Include="..\..\platform\qt\HoverProgress.h" />
     <ClInclude Include="..\..\services\update\UpdateSession.h" />
+    <ClInclude Include="..\..\services\update\UpdateLeftovers.h" />
     <ClInclude Include="..\..\runtime\concurrency\ShutdownSequence.h" />
     <ClInclude Include="..\..\platform\windows\ThreadWait.h" />
     <ClInclude Include="..\..\filters\BiQuadCommand.h" />
