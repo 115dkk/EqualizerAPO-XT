@@ -189,7 +189,10 @@ class Bench:
                               'brir_frames': info.frames, 'feed_channel_order': VIRTUAL}
         self.feed_config = self.work / 'feed-config'
         self.feed_config.mkdir()
-        prefix = '\n'.join(self.lines[:self.plugin_index + 1])
+        # Benchmark passes a zero channel mask. XT names a 12-channel
+        # device numerically, unlike stereo, so preserve the original L/R
+        # names as aliases for the first two padded input channels.
+        prefix = 'Copy: L=1 R=2\nChannel: L R\n' + '\n'.join(self.lines[:self.plugin_index + 1])
         copy = 'Copy: ' + ' '.join(f'{i + 1}={name}' for i, name in enumerate(VIRTUAL))
         (self.feed_config / 'config.txt').write_text(prefix + '\n' + copy + '\n', encoding='utf-8')
         self.save()
