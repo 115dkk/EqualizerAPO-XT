@@ -64,6 +64,9 @@ namespace eapo::rt
 			unsigned capacity = 0;
 			bool measureTasks = false;
 
+			Team() = default;
+			Team(const Team&) = delete;
+			Team& operator=(const Team&) = delete;
 			void start(unsigned count);
 			void serve(unsigned index) noexcept;
 			void work() noexcept;
