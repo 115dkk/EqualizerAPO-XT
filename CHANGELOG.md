@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.77.0 — 2026-11-21
+
 - **Benchmark prints the delay a configuration adds.** After a run it prints
   `Real latency: <n> samples (<ms> ms)`, and with `-v` one value per output
   channel. This is the delay the filters add as a fixed number of samples: a

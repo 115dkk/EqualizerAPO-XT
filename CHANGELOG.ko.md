@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.77.0 — 2026-11-21
+
 - **Benchmark가 설정이 붙이는 지연을 출력합니다.** 실행이 끝나면
   `Real latency: <n> samples (<ms> ms)`가 나오고, `-v`를 주면 출력 채널마다
   값이 하나씩 나옵니다. 필터가 샘플 수를 정해 놓고 붙이는 지연을 셉니다.
