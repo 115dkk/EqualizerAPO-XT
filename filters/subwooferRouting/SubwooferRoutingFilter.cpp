@@ -176,10 +176,14 @@ void SubwooferRoutingFilter::reportLatency(const std::vector<unsigned>& input,
 	{
 		const subroute::CompiledPath& path = latencyPaths[pathIndex];
 		unsigned largestInput = 0;
+		bool hasInput = false;
 		for (const subroute::CompiledSourceTerm& source : path.sourceMix)
 		{
 			if (source.gainLinear != 0.0 && source.inputChannelIndex < input.size())
+			{
+				hasInput = true;
 				largestInput = (std::max)(largestInput, input[source.inputChannelIndex]);
+			}
 		}
 
 		unsigned fixedDelay = 0;
@@ -195,7 +199,7 @@ void SubwooferRoutingFilter::reportLatency(const std::vector<unsigned>& input,
 			if (stage.fractionalDelaySamples > 0.0)
 				fixedDelay = addLatency(fixedDelay, 1);
 		}
-		pathLatency[pathIndex] = addLatency(largestInput, fixedDelay);
+		pathLatency[pathIndex] = hasInput ? addLatency(largestInput, fixedDelay) : 0;
 	}
 
 	for (const subroute::CompiledOutput& compiledOutput : latencyOutputs)

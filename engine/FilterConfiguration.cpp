@@ -84,20 +84,10 @@ FilterConfiguration::FilterConfiguration(const EngineStreamFormat& format, std::
 		for (const size_t channel : latencyInputChannels)
 			input.push_back(channelLatency[channel]);
 
-		const unsigned largestInput = input.empty()
-			? 0 : *(std::max_element)(input.cbegin(), input.cend());
 		std::vector<unsigned> output;
 		output.reserve(latencyOutputChannels.size());
 		for (const size_t outputChannel : latencyOutputChannels)
-		{
-			auto matchingInput = std::find(latencyInputChannels.cbegin(),
-				latencyInputChannels.cend(), outputChannel);
-			if (matchingInput == latencyInputChannels.cend())
-				output.push_back(largestInput);
-			else
-				output.push_back(input[static_cast<size_t>(matchingInput
-					- latencyInputChannels.cbegin())]);
-		}
+			output.push_back(channelLatency[outputChannel]);
 
 		info->filter->reportLatency(input, output);
 		const size_t reportedChannelCount = (std::min)(output.size(),

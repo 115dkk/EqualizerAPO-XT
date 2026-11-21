@@ -244,16 +244,17 @@ void MultiConvolutionFilter::reportLatency(const vector<unsigned>& input,
 	{
 		if (plan.outputSlot >= output.size())
 			continue;
-		if (bank.installed() && plan.inputChannel >= 0
-			&& static_cast<size_t>(plan.inputChannel) < input.size()
-			&& plan.unitCount != 0)
-		{
-			output[plan.outputSlot] = input[static_cast<size_t>(plan.inputChannel)];
-		}
-		else
-		{
-			output[plan.outputSlot] = 0;
-		}
+		bool hasMappedInput = bank.installed() && plan.inputChannel >= 0
+			&& static_cast<size_t>(plan.inputChannel) < input.size();
+		const size_t firstUnit = plan.firstUnit;
+		const size_t endUnit = (std::min)(unitFactors.size(),
+			firstUnit + static_cast<size_t>(plan.unitCount));
+		hasMappedInput = hasMappedInput && std::any_of(
+			unitFactors.cbegin() + (std::min)(firstUnit, unitFactors.size()),
+			unitFactors.cbegin() + endUnit,
+			[](double factor) { return factor != 0.0; });
+		output[plan.outputSlot] = hasMappedInput
+			? input[static_cast<size_t>(plan.inputChannel)] : 0;
 	}
 }
 

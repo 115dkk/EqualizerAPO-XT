@@ -131,6 +131,22 @@ TEST_CASE(EngineOrchestrationTests, testRealLatencyFollowsVirtualChannelsThrough
 	expectLatency(harness, engine, {100, 100}, "virtual-channel Copy");
 }
 
+TEST_CASE(EngineOrchestrationTests, testRealLatencyNewChannelKeepsExistingChannelValue)
+{
+	const std::wstring path = writeConfig(harness, L"real-latency-existing-virtual-channel.txt",
+		"Copy: VC=L\n"
+		"Channel: VC\n"
+		"Delay: 10 samples\n"
+		"Channel: L\n"
+		"Delay: 100 samples\n"
+		"NewChannel: VC\n"
+		"Copy: R=VC L=0\n");
+	FilterEngine engine;
+	initializeEngine(engine, 48000, 2, 64, path);
+	promoteConfiguration(engine, 2, 64);
+	expectLatency(harness, engine, {0, 10}, "existing virtual channel through NewChannel");
+}
+
 TEST_CASE(EngineOrchestrationTests, testRealLatencyCountsHilbertShiftAndAlignment)
 {
 	const std::wstring path = writeConfig(harness, L"real-latency-hilbert.txt",

@@ -121,6 +121,7 @@ private:
 	std::vector<int> resolvedOutputChannels;
 	std::vector<unsigned> passthroughChannels;
 	std::vector<unsigned> pluginWrittenChannels;
+	std::vector<std::vector<unsigned>> pluginWrittenInputChannels;
 	std::vector<unsigned> pluginZeroedChannels;
 	unsigned reportedLatencyFrames = 0;
 };

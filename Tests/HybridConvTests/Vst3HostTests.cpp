@@ -1651,13 +1651,13 @@ TEST_CASE(Vst3HostTests, testUnwrittenChannelLatency)
 		latencyContract.input = VST3BusLayout::Stereo;
 		latencyContract.output = VST3BusLayout::Stereo;
 		VSTPluginFilter latencyFilter(latencyLibrary, wstring(), std::unordered_map<wstring, float>(),
-			latencyContract, {L"L", L"R"}, std::vector<wstring>());
+			latencyContract, {L"L", L"-"}, std::vector<wstring>());
 		latencyFilter.initialize(48000.0f, 1024, {L"L", L"R", L"C"});
-		const std::vector<unsigned> latencyInput = {100, 20, 1};
+		const std::vector<unsigned> latencyInput = {5, 100, 200};
 		std::vector<unsigned> latencyOutput = latencyInput;
 		latencyFilter.reportLatency(latencyInput, latencyOutput);
-		harness.expectTrue(latencyOutput == std::vector<unsigned>({612, 612, 513}),
-			"written VST3 channels use the largest input latency and the compensated channel uses its own");
+		harness.expectTrue(latencyOutput == std::vector<unsigned>({517, 517, 712}),
+			"an explicit VST3 input fill ignores host channels and silent slots it does not feed");
 
 		const auto latencyStreamMatches = [&latencyLibrary](unsigned blockSize)
 		{

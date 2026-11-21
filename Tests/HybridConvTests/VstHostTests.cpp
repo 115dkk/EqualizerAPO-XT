@@ -243,6 +243,14 @@ TEST_CASE(VstHostTests, expectLatencyCompensationGolden)
 	harness.expectTrue(latencyOutput == vector<unsigned>({521, 521}),
 		"the VST2 filter reports its 512-sample latency on every written channel");
 
+	VSTPluginFilter splitFilter(library, encodeChunk(gainBlob), unordered_map<wstring, float>());
+	splitFilter.initialize(48000.0f, 1024, {L"L", L"R", L"RL", L"RR"});
+	const vector<unsigned> splitInput = {100, 20, 3, 7};
+	vector<unsigned> splitOutput = splitInput;
+	splitFilter.reportLatency(splitInput, splitOutput);
+	harness.expectTrue(splitOutput == vector<unsigned>({612, 612, 519, 519}),
+		"each repeated VST2 instance reports latency from only the channels it receives");
+
 	harness.expectTrue(latencyStreamMatches(library, 128, 0),
 		"latency-512: 128-frame blocks come out 0.5 x input with no extra delay");
 	harness.expectTrue(latencyStreamMatches(library, 1024, 0),
