@@ -570,6 +570,11 @@ void RackSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& state
 		QFontMetricsF(engraveFont).elidedText(text, Qt::ElideRight, textRect.width()), textInk, dark);
 }
 
+// The height of a value cap and of the FILL cap in the patch block. Two
+// under the split rails' cell: at 20 the block's two rows of caps read
+// heavier than the bus selectors above them.
+constexpr int rackFillBlockCellHeight = 18;
+
 namespace
 {
 // The fill cell's fonts, shared by the painter and the size it answers:
@@ -600,12 +605,14 @@ QFont rackFillCaptionFont(const SkinTokens& tokens)
 	return font;
 }
 
-// A value cap's width in the block: the channel or "LFE", whichever is
-// wider, plus 7 either side, so a row of caps reads as one line of keys.
+// A value cap's width in the block: the channel plus 5 either side, and
+// never narrower than the cap is tall. The caps were first all as wide as
+// "LFE" with 7 of air, which made a row of one-letter channels look fat
+// (maintainer, 2026-11-22); a cap is as wide as what it prints.
 qreal rackFillCapWidth(const QString& value, const SkinTokens& tokens)
 {
 	const QFontMetricsF metrics(rackFillValueFont(tokens));
-	return qMax(metrics.horizontalAdvance(value), metrics.horizontalAdvance(QStringLiteral("LFE"))) + 14.0;
+	return qMax(metrics.horizontalAdvance(value) + 10.0, qreal(rackFillBlockCellHeight));
 }
 
 // The edge a cap of the fill block wears for pointer and keyboard: bronze
@@ -722,7 +729,7 @@ VstSlotFillBlockMetrics RackSkin::vstSlotFillBlockMetrics(bool collapsed, const 
 {
 	Q_UNUSED(collapsed);
 	VstSlotFillBlockMetrics metrics;
-	metrics.cellHeight = VSTSlotFillRail::cellHeight();
+	metrics.cellHeight = rackFillBlockCellHeight;
 	metrics.roleLineHeight = 11;
 	metrics.roleGap = 1;
 	metrics.groupGap = 8;
