@@ -31,6 +31,9 @@ inline constexpr char Skin[] = "interface/skin";
 inline constexpr char Dark[] = "interface/dark";
 inline constexpr char LegacyRows[] = "interface/legacyRows";
 inline constexpr char NativeTitleBar[] = "interface/nativeTitleBar";
+// Off by default: file dialogs are the skinned widget-based ones. On, every
+// file dialog is the Windows one (issue #508).
+inline constexpr char NativeFileDialog[] = "interface/nativeFileDialog";
 inline constexpr char KnobGainRange[] = "interface/knobGainRange";
 // Analysis dock view choices. Stored under EDITOR_REGPATH like every other
 // preference; they briefly lived in Qt's default QSettings location, which

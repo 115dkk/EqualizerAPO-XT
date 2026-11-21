@@ -34,6 +34,7 @@
 #include <QEventLoop>
 #include <QFile>
 #include <QFileDialog>
+#include <QFileSystemModel>
 #include <QFrame>
 #include <QGridLayout>
 #include <QHBoxLayout>
@@ -51,6 +52,7 @@
 #include <QSpinBox>
 #include <QStringList>
 #include <QStyleOption>
+#include <QTimer>
 #include <QToolBar>
 #include <QToolButton>
 #include <QTranslator>
@@ -62,6 +64,7 @@
 #include "Editor/SkinManager.h"
 #include "Editor/analysis/AnalysisMetric.h"
 #include "Editor/analysis/AnalysisResponse.h"
+#include "Editor/helpers/FileDialogShellMenu.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/skins/ISkin.h"
 #include "Editor/skins/Skins.h"
@@ -1028,6 +1031,69 @@ void renderFormControlsScene(SkinRenderContext& ctx)
 	failures += saveGrab(&controls, outDir, skinId, mode, QStringLiteral("controls"), QStringLiteral("normal")) ? 0 : 1;
 }
 
+// What prepareFileDialog promises beyond the look (issue #508): no "new
+// folder" button, and a right-click that asks for the shell menu of what is
+// under it - the row, or the folder when the click lands on empty space -
+// without Qt's own menu opening as well. The shell menu itself is not shown:
+// the presenter seam records the request instead.
+int checkFileDialogContract(QFileDialog& dialog, QTreeView* view, const QString& skinId)
+{
+	int failures = 0;
+	const QToolButton* newFolder = dialog.findChild<QToolButton*>(QStringLiteral("newFolderButton"));
+	if (newFolder != nullptr && newFolder->isVisibleTo(&dialog))
+	{
+		qWarning("SkinGallery: %s file dialog still shows the new-folder button", qPrintable(skinId));
+		failures++;
+	}
+	if (view == nullptr || view->model() == nullptr || view->model()->rowCount(view->rootIndex()) < 1)
+	{
+		qWarning("SkinGallery: %s file dialog has no rows to right-click", qPrintable(skinId));
+		return failures + 1;
+	}
+
+	QList<FileDialogShellMenu::Request> requests;
+	FileDialogShellMenu::setPresenterForTest(
+		[&requests](QFileDialog&, const FileDialogShellMenu::Request& request) { requests.append(request); });
+	// Qt's own handler, were it still connected, would sit in QMenu::exec;
+	// this closes such a menu so the run fails instead of hanging.
+	bool strayMenu = false;
+	QTimer strayWatch;
+	QObject::connect(&strayWatch, &QTimer::timeout, &strayWatch, [&strayMenu]()
+		{
+			if (QWidget* popup = QApplication::activePopupWidget())
+			{
+				strayMenu = true;
+				popup->close();
+			}
+		});
+	strayWatch.start(50);
+
+	const QModelIndex firstRow = view->model()->index(0, 0, view->rootIndex());
+	const QString firstPath = QDir::toNativeSeparators(firstRow.data(QFileSystemModel::FilePathRole).toString());
+	emit view->customContextMenuRequested(view->visualRect(firstRow).center());
+	// Below the last row: the folder background.
+	emit view->customContextMenuRequested(QPoint(view->viewport()->width() / 2, view->viewport()->height() - 2));
+	QApplication::processEvents(QEventLoop::AllEvents, 120);
+	strayWatch.stop();
+	FileDialogShellMenu::setPresenterForTest({});
+
+	const QString folder = QDir::toNativeSeparators(dialog.directory().absolutePath());
+	if (strayMenu)
+	{
+		qWarning("SkinGallery: %s file dialog still opens Qt's own context menu", qPrintable(skinId));
+		failures++;
+	}
+	if (requests.size() != 2
+		|| requests[0].items != QStringList{ firstPath } || firstPath.isEmpty() || requests[0].folder != folder
+		|| !requests[1].items.isEmpty() || requests[1].folder != folder)
+	{
+		qWarning("SkinGallery: %s file dialog right-click asked for the wrong shell menu (%lld requests)",
+			qPrintable(skinId), static_cast<long long>(requests.size()));
+		failures++;
+	}
+	return failures;
+}
+
 // The skinned file dialog (GUIHelper::prepareFileDialog): Qt's widget
 // dialog under the app-wide sheet, its navigation buttons dressed through
 // ISkin::styleFileDialog. The fixture's pinned timestamps keep the Detail
@@ -1064,6 +1130,7 @@ void renderFileDialogScene(SkinRenderContext& ctx)
 			&& (view == nullptr || view->model() == nullptr || view->model()->rowCount(view->rootIndex()) < 4))
 			QApplication::processEvents(QEventLoop::AllEvents, 50);
 		failures += saveGrab(&dialog, outDir, skinId, mode, QStringLiteral("filedialog"), QStringLiteral("normal")) ? 0 : 1;
+		failures += checkFileDialogContract(dialog, view, skinId);
 	}
 }
 

@@ -23,6 +23,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include <QApplication>
@@ -64,6 +65,7 @@
 #include "services/install/VcRuntime.h"
 #include "services/security/AudioEngineAccess.h"
 #include "services/diagnostics/InstallDiagnostics.h"
+#include "services/update/UpdateLeftovers.h"
 #include "services/update/UpdateSession.h"
 #include "services/update/VelopackBootstrap.h"
 #include "dsp/FftwPlanningPolicy.h"
@@ -100,6 +102,23 @@ bool hasArgument(int argc, const char* const argv[], const char* expected)
 	{
 		if (argv[i] != nullptr && std::strcmp(argv[i], expected) == 0)
 			return true;
+	}
+	return false;
+}
+
+bool hasEditorGateArgument(int argc, const char* const argv[])
+{
+	const QStringList gateFlags = EditorGates::flags();
+	for (int i = 1; i < argc; i++)
+	{
+		if (argv[i] == nullptr)
+			continue;
+		const QString argument = QString::fromLatin1(argv[i]);
+		for (const QString& flag : gateFlags)
+		{
+			if (argument == flag || argument.startsWith(flag + QLatin1Char('=')))
+				return true;
+		}
 	}
 	return false;
 }
@@ -422,6 +441,16 @@ int main(int argc, char* argv[])
 	std::unique_ptr<UpdateSession> updateSession = VelopackBootstrap::createUpdateSession(
 		EAPO_REPO_URL,
 		configuredUpdateChannel());
+	if (VelopackBootstrap::isVelopackInstall() && !hasEditorGateArgument(argc, argv))
+	{
+		const std::wstring installRoot = VelopackBootstrap::installRoot();
+		// audiodg keeps the previous EqualizerAPO.dll mapped, and Velopack stops
+		// deleting at that file. Retry every removable leftover on startup (#508).
+		std::thread([installRoot]() {
+			SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_BEGIN);
+			UpdateLeftovers::sweep(installRoot);
+		}).detach();
+	}
 
 	int result = -1;
 	bool headlessGateRan = false;

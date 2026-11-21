@@ -48,6 +48,7 @@ SOURCES += main.cpp\
 	../services/install/ComSelfRegistration.cpp \
 	../platform/windows/ProcessCommandLine.cpp \
 	../platform/windows/ShellLink.cpp \
+	../platform/windows/ShellContextMenu.cpp \
 	../platform/windows/GuidText.cpp \
 	../services/security/AudioEngineAccess.cpp \
 	../services/diagnostics/InstallDiagnostics.cpp \
@@ -59,6 +60,7 @@ SOURCES += main.cpp\
 	../services/audio/AudioFormatProbe.cpp \
 	../services/update/UpdateSession.cpp \
 	../services/update/VelopackBootstrap.cpp \
+	../services/update/UpdateLeftovers.cpp \
 	../parser/LogicalOperators.cpp \
 	IFilterGUIFactory.cpp \
 	FilterGUIFactoryRegistry.cpp \
@@ -135,6 +137,7 @@ SOURCES += main.cpp\
 	guis/IncludeFilterGUI.cpp \
 	guis/IncludeFilterGUIFactory.cpp \
 	helpers/GUIHelper.cpp \
+	helpers/FileDialogShellMenu.cpp \
 	helpers/PanelFeedEngine.cpp \
 	helpers/PanelPreviewFeeder.cpp \
 	helpers/PluginLoadQueue.cpp \
@@ -417,6 +420,7 @@ HEADERS  += \
 	../services/install/ComSelfRegistration.h \
 	../platform/windows/ProcessCommandLine.h \
 	../platform/windows/ShellLink.h \
+	../platform/windows/ShellContextMenu.h \
 	../platform/windows/Win32Error.h \
 	../parser/NumericText.h \
 	../services/registry/WindowsRegistry.h \
@@ -443,11 +447,13 @@ HEADERS  += \
 	../services/audio/AudioFormatProbe.h \
 	../services/update/UpdateSession.h \
 	../services/update/VelopackBootstrap.h \
+	../services/update/UpdateLeftovers.h \
 	../parser/LogicalOperators.h \
 	IFilterGUIFactory.h \
 	FilterGUIFactoryRegistry.h \
 	../services/settings/EditorSettings.h \
 	helpers/GUIHelper.h \
+	helpers/FileDialogShellMenu.h \
 	helpers/PanelFeedEngine.h \
 	helpers/PanelMonitorGate.h \
 	helpers/PanelPreviewFeeder.h \
@@ -877,7 +883,7 @@ contains(QT_ARCH, arm64) {
 }
 
 INCLUDEPATH += $$PWD/.. $$PWD/../SubwooferRoutingCore/include $$LIBSNDFILE_INCLUDE $$FFTW_INCLUDE $$MUPARSERX_INCLUDE $$VELOPACK_INCLUDE $$VST3_SDK $$HIGHWAY_INCLUDE
-LIBS += avrt.lib user32.lib advapi32.lib version.lib ole32.lib Shlwapi.lib authz.lib crypt32.lib dbghelp.lib winmm.lib uiautomationcore.lib sndfile.lib libfftw3.lib $$VELOPACK_IMPORT_LIB
+LIBS += avrt.lib user32.lib shell32.lib comctl32.lib uuid.lib advapi32.lib version.lib ole32.lib Shlwapi.lib authz.lib crypt32.lib dbghelp.lib winmm.lib uiautomationcore.lib sndfile.lib libfftw3.lib $$VELOPACK_IMPORT_LIB
 
 build_pass:CONFIG(debug, debug|release) {
 	LIBS += muparserxd.lib

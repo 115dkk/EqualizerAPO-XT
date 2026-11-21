@@ -1242,23 +1242,23 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
 <context>
     <name>FileReferenceController</name>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="123"/>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="147"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="124"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="148"/>
         <source>Import</source>
         <translation type="unfinished">Importer</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="124"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="125"/>
         <source>Nothing to import: %1</source>
         <translation type="unfinished">Rien à importer : %1</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="140"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="141"/>
         <source>Could not grant audio service access to %1.</source>
         <translation>Impossible d’autoriser le service audio à accéder à %1.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="148"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="149"/>
         <source>Some files could not be copied:
 %1</source>
         <translation type="unfinished">Certains fichiers n&apos;ont pas pu être copiés :
@@ -1452,7 +1452,7 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
 <context>
     <name>FilterCardRow</name>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1003"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1034"/>
         <source>Expand filter card</source>
         <translation>Développer la carte du filtre</translation>
     </message>
@@ -1461,47 +1461,47 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
         <translation type="vanished">Activer ou commenter cette commande</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="177"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="179"/>
         <source>Add filter above this card</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="189"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="191"/>
         <source>Remove filter</source>
         <translation>Supprimer le filtre</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="190"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="192"/>
         <source>Remove this filter. %1 brings it back.</source>
         <translation>Supprimer ce filtre. %1 permet de le rétablir.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="206"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="208"/>
         <source>Edit raw command</source>
         <translation>Modifier la commande brute</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="806"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="837"/>
         <source>This line was not applied: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1003"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1034"/>
         <source>Collapse filter card</source>
         <translation>Replier la carte du filtre</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1005"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1036"/>
         <source>Switch this line off. It stays in the file as a comment.</source>
         <translation>Désactiver cette ligne. Elle reste dans le fichier sous forme de commentaire.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1006"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1037"/>
         <source>Switch this line back on.</source>
         <translation>Réactiver cette ligne.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="804"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="835"/>
         <source>Equalizer APO could not prepare this filter, so the whole configuration was not applied and the previous settings keep playing. Check the file or plug-in this line uses, or switch the line off.</source>
         <translation>Equalizer APO n’a pas pu préparer ce filtre : la configuration entière n’a donc pas été appliquée et les réglages précédents continuent d’être lus. Vérifiez le fichier ou le plug-in qu’utilise cette ligne, ou désactivez la ligne.</translation>
     </message>
@@ -1716,6 +1716,232 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
         <location filename="../FilterTableRow.ui" line="174"/>
         <source>Edit text</source>
         <translation>Modifier le texte</translation>
+    </message>
+</context>
+<context>
+    <name>FlatFilterPickerView</name>
+    <message>
+        <location filename="../skins/flat/picker/FlatFilterPicker.cpp" line="129"/>
+        <source>Complete as it is</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/picker/FlatFilterPicker.cpp" line="131"/>
+        <source>Choose the details after adding</source>
+        <translation>Choisissez les détails après l&apos;ajout</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/picker/FlatFilterPicker.cpp" line="290"/>
+        <source>Search filters</source>
+        <translation>Rechercher des filtres</translation>
+    </message>
+    <message>
+        <source>General</source>
+        <translation type="vanished">Général</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/picker/FlatFilterPicker.cpp" line="421"/>
+        <source>Nothing matches your search</source>
+        <translation>Aucun résultat pour votre recherche</translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/picker/FlatFilterPicker.cpp" line="422"/>
+        <source>Try a shorter or different keyword</source>
+        <translation>Essayez un mot-clé plus court ou différent</translation>
+    </message>
+</context>
+<context>
+    <name>FlatReferenceCardView</name>
+    <message>
+        <location filename="../skins/flat/cards/FlatReferenceCardView.cpp" line="241"/>
+        <source>Checking...</source>
+        <translation>Vérification...</translation>
+    </message>
+</context>
+<context>
+    <name>FlatSkin</name>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="57"/>
+        <source>Otherwise</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="59"/>
+        <source>End of the rule</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="70"/>
+        <source>Set %1 to %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="91"/>
+        <source>If %1 is %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="93"/>
+        <source>If %1 is not %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="95"/>
+        <source>If %1 is at least %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="97"/>
+        <source>If %1 is more than %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="99"/>
+        <source>If %1 is at most %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="101"/>
+        <source>If %1 is less than %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="106"/>
+        <source>Otherwise, if %1 is %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="108"/>
+        <source>Otherwise, if %1 is not %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="110"/>
+        <source>Otherwise, if %1 is at least %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="112"/>
+        <source>Otherwise, if %1 is more than %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="114"/>
+        <source>Otherwise, if %1 is at most %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="116"/>
+        <source>Otherwise, if %1 is less than %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="227"/>
+        <source>Not applied to the audio.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="223"/>
+        <source>Over 0 dB</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="224"/>
+        <source>Sound may distort - keep it below 0 dB</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="234"/>
+        <source>Phase in %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="235"/>
+        <source>Delay in %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="236"/>
+        <source>How far each pitch is turned - the volume stays the same</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="237"/>
+        <source>How long each pitch is held back before you hear it</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>FlatSubwooferRoutingCardView</name>
+    <message>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="59"/>
+        <source>Bass-management summary</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="75"/>
+        <source>Bass-management details</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="127"/>
+        <source>This bass setup needs attention.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="133"/>
+        <source>All speakers play the full range.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="134"/>
+        <source>No crossover is set, so nothing is redirected to a subwoofer.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="142"/>
+        <source>Bass plays on the subwoofer.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="150"/>
+        <source>The movie LFE track is kept and played at %1 dB.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="155"/>
+        <source>The source LFE channel is left out.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="167"/>
+        <source>Unknown layout</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="168"/>
+        <source>%1 speakers</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="171"/>
+        <source>LFE %1 dB</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="177"/>
+        <source>Auto trim %1 dB</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="177"/>
+        <source>Trim %1 dB</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="181"/>
+        <source>Linked profile</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -2386,7 +2612,7 @@ Alexander Walch</translation>
     </message>
     <message>
         <location filename="../MainWindow.ui" line="139"/>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="428"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="437"/>
         <source>Graph</source>
         <translation>Graphique</translation>
     </message>
@@ -3048,7 +3274,7 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
     </message>
     <message>
         <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="313"/>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="362"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="371"/>
         <source>Custom...</source>
         <translation>Personnalisé...</translation>
     </message>
@@ -3063,7 +3289,12 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
         <translation>Barre de titre native</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="363"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="340"/>
+        <source>Windows file dialog</source>
+        <translation>Boîte de dialogue de fichiers Windows</translation>
+    </message>
+    <message>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="372"/>
         <source>Custom (±%1 dB)...</source>
         <translation>Personnalisé (±%1 dB)...</translation>
     </message>
@@ -3526,78 +3757,78 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
 <context>
     <name>MultiConvolutionCardEditor</name>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="86"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="87"/>
         <source>Copy this file into the config directory</source>
         <translation>Copier ce fichier dans le dossier de configuration</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="104"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="105"/>
         <source>Channel mapping</source>
         <translation>Mappage des canaux</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="111"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="112"/>
         <source>Add an output channel (a new name creates a virtual channel)</source>
         <translation>Ajouter un canal de sortie (un nouveau nom crée un canal virtuel)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="170"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="171"/>
         <source>Add output channel</source>
         <translation>Ajouter un canal de sortie</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="171"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="172"/>
         <source>Channel name (an unknown name creates a virtual channel):</source>
         <translation>Nom du canal (un nom inconnu crée un canal virtuel) :</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="237"/>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="332"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="245"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="340"/>
         <source>Select impulse response file</source>
         <translation>Sélectionner le fichier de réponse impulsionnelle</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="238"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="246"/>
         <source>Impulse response (*.wav *.flac *.ogg)</source>
         <translation>Réponse impulsionnelle (*.wav *.flac *.ogg)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="262"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="270"/>
         <source>No file selected</source>
         <translation>Aucun fichier sélectionné</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="275"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="283"/>
         <source>Unsupported file format</source>
         <translation>Format de fichier non pris en charge</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="284"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="292"/>
         <source>%1 ms</source>
         <translation>%1 ms</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="285"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="293"/>
         <source>%1 samples</source>
         <translation>%1 éch.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="286"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="294"/>
         <source>%1 Hz</source>
         <translation>%1 Hz</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="287"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="295"/>
         <source>%1 ch</source>
         <translation>%1 can.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="292"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="300"/>
         <source>Sample rate does not match the device (%1 Hz)</source>
         <translation>La fréquence d&apos;échantillonnage ne correspond pas au périphérique (%1 Hz)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="310"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="318"/>
         <source>Mapping references channel %1, but the file has %2 channels</source>
         <translation>Le mappage référence le canal %1, mais le fichier ne compte que %2 canaux</translation>
     </message>
@@ -3606,12 +3837,12 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
         <translation type="vanished">Illisible par le service audio</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="331"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="339"/>
         <source>Locate...</source>
         <translation>Localiser...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="332"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="340"/>
         <source>Locate the missing file</source>
         <translation>Localiser le fichier manquant</translation>
     </message>
@@ -4216,232 +4447,6 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
         <location filename="../widgets/cards/SendCardModel.cpp" line="156"/>
         <source>The Send option of %1 is off in the Device Selector. It plays what this line sends only while another program plays on it.</source>
         <translation>L’option Envoi de %1 est désactivée dans le Device Selector. Le signal envoyé par cette ligne n’est lu que lorsqu’un autre programme lit de l’audio sur ce point de terminaison.</translation>
-    </message>
-</context>
-<context>
-    <name>FlatFilterPickerView</name>
-    <message>
-        <location filename="../skins/flat/picker/FlatFilterPicker.cpp" line="129"/>
-        <source>Complete as it is</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/picker/FlatFilterPicker.cpp" line="131"/>
-        <source>Choose the details after adding</source>
-        <translation>Choisissez les détails après l&apos;ajout</translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/picker/FlatFilterPicker.cpp" line="290"/>
-        <source>Search filters</source>
-        <translation>Rechercher des filtres</translation>
-    </message>
-    <message>
-        <source>General</source>
-        <translation type="vanished">Général</translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/picker/FlatFilterPicker.cpp" line="421"/>
-        <source>Nothing matches your search</source>
-        <translation>Aucun résultat pour votre recherche</translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/picker/FlatFilterPicker.cpp" line="422"/>
-        <source>Try a shorter or different keyword</source>
-        <translation>Essayez un mot-clé plus court ou différent</translation>
-    </message>
-</context>
-<context>
-    <name>FlatReferenceCardView</name>
-    <message>
-        <location filename="../skins/flat/cards/FlatReferenceCardView.cpp" line="241"/>
-        <source>Checking...</source>
-        <translation>Vérification...</translation>
-    </message>
-</context>
-<context>
-    <name>FlatSkin</name>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="57"/>
-        <source>Otherwise</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="59"/>
-        <source>End of the rule</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="70"/>
-        <source>Set %1 to %2</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="91"/>
-        <source>If %1 is %2</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="93"/>
-        <source>If %1 is not %2</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="95"/>
-        <source>If %1 is at least %2</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="97"/>
-        <source>If %1 is more than %2</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="99"/>
-        <source>If %1 is at most %2</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="101"/>
-        <source>If %1 is less than %2</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="106"/>
-        <source>Otherwise, if %1 is %2</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="108"/>
-        <source>Otherwise, if %1 is not %2</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="110"/>
-        <source>Otherwise, if %1 is at least %2</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="112"/>
-        <source>Otherwise, if %1 is more than %2</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="114"/>
-        <source>Otherwise, if %1 is at most %2</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="116"/>
-        <source>Otherwise, if %1 is less than %2</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="227"/>
-        <source>Not applied to the audio.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="223"/>
-        <source>Over 0 dB</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="224"/>
-        <source>Sound may distort - keep it below 0 dB</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="234"/>
-        <source>Phase in %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="235"/>
-        <source>Delay in %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="236"/>
-        <source>How far each pitch is turned - the volume stays the same</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/FlatSkin.Analysis.cpp" line="237"/>
-        <source>How long each pitch is held back before you hear it</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>FlatSubwooferRoutingCardView</name>
-    <message>
-        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="59"/>
-        <source>Bass-management summary</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="75"/>
-        <source>Bass-management details</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="127"/>
-        <source>This bass setup needs attention.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="133"/>
-        <source>All speakers play the full range.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="134"/>
-        <source>No crossover is set, so nothing is redirected to a subwoofer.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="142"/>
-        <source>Bass plays on the subwoofer.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="150"/>
-        <source>The movie LFE track is kept and played at %1 dB.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="155"/>
-        <source>The source LFE channel is left out.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="167"/>
-        <source>Unknown layout</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="168"/>
-        <source>%1 speakers</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="171"/>
-        <source>LFE %1 dB</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="177"/>
-        <source>Auto trim %1 dB</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="177"/>
-        <source>Trim %1 dB</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../skins/flat/cards/FlatSubwooferRoutingCardView.cpp" line="181"/>
-        <source>Linked profile</source>
-        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

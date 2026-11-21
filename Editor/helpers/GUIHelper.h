@@ -49,18 +49,31 @@ public:
 	// interface/knobGainRange; clamped to [1, 100], default ±20 dB.
 	static double knobGainRange();
 	static void setKnobGainRange(double range);
+	// The interface/nativeFileDialog preference (Settings > Interface): the
+	// user asked for the Windows file dialog instead of the skinned one.
+	static bool useNativeFileDialog();
+	static void setUseNativeFileDialog(bool native);
 	// Shared setup for every file dialog the Editor opens. Under a skin the
 	// dialog switches to Qt's widget-based (non-native) implementation so the
 	// app-wide skin sheet reaches it, gets a sidebar seeded with the config
 	// root and the user's standard folders, and is dressed by the active
 	// skin (SkinManager::styleFileDialog). In heritage mode this is a no-op:
-	// the platform-native dialog is part of the unmodernized original. Call
-	// it right after constructing the dialog, before exec().
+	// the platform-native dialog is part of the unmodernized original. It is
+	// also a no-op when the user chose the Windows dialog
+	// (useNativeFileDialog). Call it right after constructing the dialog,
+	// before exec().
 	static void prepareFileDialog(QFileDialog& dialog);
 	// A VST3 bundle is a directory named *.vst3, which a file-mode dialog can
 	// only enter, never pick. This makes entering the bundle count as picking
 	// it. directoryEntered needs the widget-based dialog, so the native
 	// dialog is opted out even where prepareFileDialog kept it (heritage
 	// skin, legacy rows) - working selection beats frozen chrome there.
+	// The one exception is the user's own choice of the Windows dialog
+	// (useNativeFileDialog): there the user picks the binary inside the
+	// bundle and vst3BundleForInnerBinary maps it back.
 	static void enableVst3BundleSelection(QFileDialog& dialog);
+	// The Windows dialog cannot pick a bundle directory, only the module
+	// inside it. <X>.vst3/Contents/<platform>/<name>.vst3 with <X>.vst3 a
+	// directory is returned as <X>.vst3; any other path comes back unchanged.
+	static QString vst3BundleForInnerBinary(const QString& path);
 };

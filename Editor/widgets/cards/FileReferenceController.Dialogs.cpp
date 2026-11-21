@@ -41,7 +41,8 @@ QString runExistingFileDialog(QWidget* parent, const QString& title, const QStri
 		dialog.selectFile(selectedFile);
 	if (dialog.exec() != QDialog::Accepted)
 		return {};
-	return dialog.selectedFiles().first();
+	const QString selected = dialog.selectedFiles().first();
+	return selectVst3Bundles ? GUIHelper::vst3BundleForInnerBinary(selected) : selected;
 }
 }
 
