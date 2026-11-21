@@ -60,9 +60,11 @@ class Bench:
         self.summary = Path(args.summary)
         self.data = {
             'machine': json.loads((self.work / 'machine.json').read_text(encoding='utf-8-sig')),
-            'versions': {'XT': XT_TAG, 'CamillaDSP': '4.1.3'},
+            'versions': {'XT': XT_TAG, 'CamillaDSP': '4.1.3', 'Omniphony': '0.7.0'},
+            'python_wheels': json.loads((self.summary / 'wheel-hashes.json').read_text(encoding='utf-8-sig')),
             'downloads': {}, 'phase_a': [], 'comparisons': [], 'phase_b': [],
-            'steps': {s: 'not measured: preceding phase not completed'
+            'steps': {s: ('not measured: preceding phase not completed' if s.startswith('A') else
+                          'not measured: implementation budget stops at Phase A; no virtual cable or realtime test attempted')
                       for s in ['A1', 'A2', 'A3', 'A4', 'A5', 'B0', 'B1', 'B2', 'B3', 'B4', 'B5']},
             'notes': [
                 'XT CPU percent is Benchmark elapsed processing time divided by audio duration; it is not aggregate worker CPU time.',
@@ -71,6 +73,8 @@ class Bench:
                 'Positive comparison lag means the tested signal is later than the reference.',
                 'Offline comparisons use one scalar gain for both ears and a 30-second excerpt starting at 10 seconds.',
                 'Real latency is the engine-reported value, not a measured transport delay.',
+                'XT throughput includes the upmixer plus convolution; CamillaDSP consumes the already-upmixed feed. These are not like-for-like whole-chain CPU costs.',
+                'A future B2 comparison against the offline XT output subtracts baseline cable delay only: the reference already contains the VST delay, so subtracting reported VST latency again would be incorrect.',
             ],
         }
         self.save()
@@ -86,6 +90,20 @@ class Bench:
         for row in self.data['phase_a']:
             text.append('| ' + ' | '.join(val(row.get(k)) for k in
                 ['program', 'frames', 'threads', 'repeat', 'wall_s', 'cpu_s', 'realtime_factor', 'xt_cpu_percent', 'latency_samples']) + ' |')
+        text += ['', '## XT batch processing times', '', '| Batch | Threads | Repeat | Min us | Median us | Mean us | p95 us | p99 us | Max us |',
+                 '|---:|---|---:|---:|---:|---:|---:|---:|---:|']
+        for row in self.data['phase_a']:
+            if row['program'] == 'XT':
+                cells = [row['frames'], row['threads'], row['repeat']] + [row['batch_us'][key] for key in ['min', 'median', 'mean', 'p95', 'p99', 'max']]
+                text.append('| ' + ' | '.join(val(cell) for cell in cells) + ' |')
+        if 'feed' in self.data:
+            text += ['', '## Upmixed feed', '', f"Reported plugin latency: {self.data['feed']['latency_samples']} samples.", '',
+                     '| Slot (zero based) | Standard position | RMS | Original stereo-device RMS error |', '|---:|---|---:|---:|']
+            names = ['FL', 'FR', 'FC', 'LFE', 'BL', 'BR', 'SL', 'SR', 'TFL', 'TFR', 'TBL', 'TBR']
+            feed = self.data['feed']
+            errors = feed.get('stereo_device_oracle_rms_error', [None] * 12)
+            for i, rms in enumerate(feed.get('rms_per_channel', [])):
+                text.append(f'| {i} | {names[i]} | {val(rms)} | {val(errors[i])} |')
         text += ['', '## Correctness', '', '| Comparison | Lag samples | Lag ms | Gain | Residual dB | Verdict |',
                  '|---|---:|---:|---:|---:|---|']
         for row in self.data['comparisons']:
@@ -457,6 +475,7 @@ version = "0.7.0"
 edition = "2024"
 rust-version = "1.89"
 license = "GPL-3.0-or-later"
+repository = "https://github.com/mgth/Omniphony"
 [workspace.dependencies]
 bridge_api = { version = "0.6.0", path = "bridge_api" }
 abi_stable = "0.11"
