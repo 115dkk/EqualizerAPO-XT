@@ -224,6 +224,70 @@ TEST_CASE(EditorLogicTests, testUpdateLeftoversFindBothKindsAndAgeGate)
 	expectFalse(containsPath(found, matchingFile), QStringLiteral("a rollback-like file is ignored"));
 }
 
+// Velopack's backups are old directories under a new name. One that was
+// renamed a moment ago belongs to an install or update still in progress and
+// must wait out the age gate, however old the directory itself is (review of
+// #510).
+TEST_CASE(EditorLogicTests, testUpdateLeftoversAgeCountsFromTheRename)
+{
+	TemporaryTree tree;
+	requireTrue(tree.valid(), QStringLiteral("create a unique update-leftover fixture"));
+	const std::wstring root = tree.directory(kRootName);
+	requireTrue(createFile(joinPath(root, L"Update.exe")), QStringLiteral("create the install marker"));
+	const std::wstring oldInstall = tree.directory(L"old-install");
+	requireTrue(createFile(joinPath(oldInstall, L"Update.exe")), QStringLiteral("create the old install's updater"));
+
+	// Two days old by every time the file system keeps.
+	FILETIME nowTime{};
+	GetSystemTimeAsFileTime(&nowTime);
+	LARGE_INTEGER past{};
+	past.LowPart = nowTime.dwLowDateTime;
+	past.HighPart = static_cast<LONG>(nowTime.dwHighDateTime);
+	past.QuadPart -= 2LL * 24 * 60 * 60 * 10000000LL;
+	{
+		winutil::UniqueHandle handle(CreateFileW(oldInstall.c_str(), FILE_WRITE_ATTRIBUTES,
+			FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
+			FILE_FLAG_BACKUP_SEMANTICS, nullptr));
+		requireTrue(static_cast<bool>(handle), QStringLiteral("open the old install to backdate it"));
+		FILE_BASIC_INFO info{};
+		info.CreationTime = past;
+		info.LastAccessTime = past;
+		info.LastWriteTime = past;
+		info.ChangeTime = past;
+		info.FileAttributes = FILE_ATTRIBUTE_DIRECTORY;
+		requireTrue(SetFileInformationByHandle(handle.get(), FileBasicInfo, &info, sizeof(info)) != FALSE,
+			QStringLiteral("backdate the old install"));
+	}
+
+	const std::wstring rollback = tree.path(std::wstring(kRootName) + L"_abcdefghij012345");
+
+	// Under its backup name without a rename it would be an old leftover...
+	requireTrue(MoveFileW(oldInstall.c_str(), rollback.c_str()) != FALSE,
+		QStringLiteral("rename the old install to a rollback name"));
+	const std::vector<std::wstring> justRenamed = UpdateLeftovers::find(root);
+	expectEqual(static_cast<int>(justRenamed.size()), 0,
+		QStringLiteral("a backup renamed a moment ago waits out the age gate"));
+
+	// ...and once the rename itself is old, it is one.
+	{
+		winutil::UniqueHandle handle(CreateFileW(rollback.c_str(), FILE_WRITE_ATTRIBUTES,
+			FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
+			FILE_FLAG_BACKUP_SEMANTICS, nullptr));
+		requireTrue(static_cast<bool>(handle), QStringLiteral("open the backup to backdate it"));
+		FILE_BASIC_INFO info{};
+		info.CreationTime = past;
+		info.LastAccessTime = past;
+		info.LastWriteTime = past;
+		info.ChangeTime = past;
+		info.FileAttributes = FILE_ATTRIBUTE_DIRECTORY;
+		requireTrue(SetFileInformationByHandle(handle.get(), FileBasicInfo, &info, sizeof(info)) != FALSE,
+			QStringLiteral("backdate the backup"));
+	}
+	const std::vector<std::wstring> aged = UpdateLeftovers::find(root);
+	expectEqual(static_cast<int>(aged.size()), 1,
+		QStringLiteral("a backup untouched for two days passes the age gate"));
+}
+
 TEST_CASE(EditorLogicTests, testUpdateLeftoversSweepNestedReadOnlyContent)
 {
 	TemporaryTree tree;

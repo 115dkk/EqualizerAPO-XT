@@ -25,8 +25,11 @@ bool isTempEntryName(std::wstring_view name);
 // by exactly 16 ASCII letters/digits. An empty rootLeafName never matches.
 bool isRollbackRootName(std::wstring_view rootLeafName, std::wstring_view name);
 
-// Entries younger than this are left alone: a download (delta base extraction
-// in VelopackTemp), an apply or a Setup run may be using them right now.
+// Entries touched more recently than this are left alone: a download (delta
+// base extraction in VelopackTemp), an apply or a Setup run may be using them
+// right now. "Touched" is the latest of the directory's creation, write and
+// change times; the change time moves when the directory is renamed, which
+// is how Velopack turns an old install into a backup.
 inline constexpr std::chrono::seconds kMinimumAge = std::chrono::hours(1);
 
 // Absolute paths of the leftover directories for this install root.

@@ -136,13 +136,38 @@ ULONGLONG fileTimeValue(const FILETIME& value)
 	return integer.QuadPart;
 }
 
-bool isOldEnough(const FILETIME& creationTime, const FILETIME& now,
+// When the directory was last touched: created, written to or, through the
+// change time, renamed. Velopack makes its backups by renaming a directory
+// that may be months old, so the creation time alone would call a backup made
+// a second ago old (review of #510). Zero when it cannot be read.
+ULONGLONG lastTouched(const std::wstring& directory)
+{
+	winutil::UniqueHandle handle(CreateFileW(directory.c_str(), FILE_READ_ATTRIBUTES,
+		FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
+		FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT, nullptr));
+	if (!handle)
+		return 0;
+	FILE_BASIC_INFO info{};
+	if (!GetFileInformationByHandleEx(handle.get(), FileBasicInfo, &info, sizeof(info)))
+		return 0;
+	LONGLONG latest = info.CreationTime.QuadPart;
+	if (info.LastWriteTime.QuadPart > latest)
+		latest = info.LastWriteTime.QuadPart;
+	if (info.ChangeTime.QuadPart > latest)
+		latest = info.ChangeTime.QuadPart;
+	return latest > 0 ? static_cast<ULONGLONG>(latest) : 0;
+}
+
+// A directory whose times cannot be read is treated as in use.
+bool isOldEnough(const std::wstring& directory, const FILETIME& now,
 	std::chrono::seconds minimumAge)
 {
 	const auto seconds = minimumAge.count();
 	if (seconds <= 0)
 		return true;
-	const ULONGLONG created = fileTimeValue(creationTime);
+	const ULONGLONG created = lastTouched(directory);
+	if (created == 0)
+		return false;
 	const ULONGLONG current = fileTimeValue(now);
 	if (created > current)
 		return false;
@@ -184,7 +209,7 @@ void findTempEntries(const std::wstring& root, const FILETIME& now,
 		if ((attributes & FILE_ATTRIBUTE_DIRECTORY) == 0
 			|| (attributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0
 			|| !UpdateLeftovers::isTempEntryName(data.cFileName)
-			|| !isOldEnough(data.ftCreationTime, now, minimumAge))
+			|| !isOldEnough(joinPath(tempDirectory, data.cFileName), now, minimumAge))
 		{
 			return;
 		}
@@ -204,7 +229,7 @@ void findRollbackRoots(const std::wstring& root, const FILETIME& now,
 		if ((attributes & FILE_ATTRIBUTE_DIRECTORY) == 0
 			|| (attributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0
 			|| !UpdateLeftovers::isRollbackRootName(rootLeaf, data.cFileName)
-			|| !isOldEnough(data.ftCreationTime, now, minimumAge))
+			|| !isOldEnough(joinPath(rootParent, data.cFileName), now, minimumAge))
 		{
 			return;
 		}
