@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.73.0 — 2026-11-21
+
 - **The file dialog opens Explorer's right-click menu, and can be the Windows
   dialog.** Right-clicking a file, a folder or empty space in the Editor's file
   dialog used to open a short menu of Qt's own. It now opens the same menu
