@@ -14,6 +14,17 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Benchmark prints the delay a configuration adds.** After a run it prints
+  `Real latency: <n> samples (<ms> ms)`, and with `-v` one value per output
+  channel. This is the delay the filters add as a fixed number of samples: a
+  `Delay:` line, the latency a VST plugin reports, the 512 samples of `Hilbert:`,
+  Send's compensation, and path delays in subwoofer routing. A convolution adds
+  none. Delay that belongs to a filter's own response (a linear-phase impulse
+  response, the group delay of an equalizer band) is not counted. The engine
+  works the figure out once when it loads a configuration. What the APO reports
+  to Windows is unchanged.
+  ([#515](https://github.com/115dkk/EqualizerAPO-XT/pull/515))
+
 ## v2.76.0 — 2026-11-21
 
 - **Multi-core convolution uses as many cores as make the sound finish sooner.**
