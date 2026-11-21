@@ -172,6 +172,11 @@ class Bench:
         positions = [i for i, x in enumerate(self.lines) if x.startswith('VSTPlugin:')]
         require(len(positions) == 1, 'Expected exactly one VSTPlugin command.')
         self.plugin_index = positions[0]
+        slots = re.search(r'\bOutputChannels\s+([^\s]+)', self.lines[self.plugin_index])
+        require(slots is not None, 'Plugin needs an explicit output slot fill for an unambiguous twelve-channel export.')
+        self.virtual = slots[1].strip('"').split(',')
+        require(len(self.virtual) == 12 and len(set(self.virtual)) == 12, 'Plugin output fill is not twelve distinct channels.')
+        self.data['feed_slot_names_match_brief'] = [a == b for a, b in zip(self.virtual, VIRTUAL)]
         convs = [x for x in self.lines if x.startswith('MultiConvolution:')]
         require(len(convs) == 1, 'Expected exactly one MultiConvolution command.')
         match = re.search(r'("[^"\r\n]+\.wav"|[^\s"]+\.wav)\s*$', convs[0], re.I)
@@ -193,7 +198,7 @@ class Bench:
         # device numerically, unlike stereo, so preserve the original L/R
         # names as aliases for the first two padded input channels.
         prefix = 'Copy: L=1 R=2\nChannel: L R\n' + '\n'.join(self.lines[:self.plugin_index + 1])
-        copy = 'Copy: ' + ' '.join(f'{i + 1}={name}' for i, name in enumerate(VIRTUAL))
+        copy = 'Copy: ' + ' '.join(f'{i + 1}={name}' for i, name in enumerate(self.virtual))
         (self.feed_config / 'config.txt').write_text(prefix + '\n' + copy + '\n', encoding='utf-8')
         self.save()
 
@@ -248,9 +253,27 @@ class Bench:
         row['rms_per_channel'] = rms.tolist()
         self.data['feed'] = row
         self.save()
-        require(len(rms) == 12 and np.all(rms > 1e-7), 'At least one upmixed feed channel carries no measurable signal.')
+        require(len(rms) == 12 and np.any(rms > 1e-7), 'Upmixed feed is silent or has the wrong channel count.')
+        # A silent slot can be intentional plugin state (notably LFE). Export
+        # each pair with the ORIGINAL stereo device and compare numerically,
+        # so a name/layout mistake cannot masquerade as an intentional zero.
+        oracle = np.zeros_like(audio)
+        prefix = '\n'.join(self.lines[:self.plugin_index + 1])
+        for pair in range(6):
+            directory = self.work / f'feed-oracle-{pair}'
+            directory.mkdir()
+            copy = f'Copy: L={self.virtual[2 * pair]} R={self.virtual[2 * pair + 1]}'
+            (directory / 'config.txt').write_text(prefix + '\n' + copy + '\n', encoding='utf-8')
+            output = self.work / f'feed-oracle-{pair}.wav'
+            self.xt_run(f'feed-oracle-{pair}', 480, directory, self.music, output)
+            samples, _ = sf.read(output, always_2d=True)
+            oracle[:, pair * 2:pair * 2 + 2] = samples
+        row['stereo_device_oracle_rms_error'] = np.sqrt(np.mean((audio - oracle) ** 2, axis=0)).tolist()
+        row['silent_slots_zero_based'] = np.flatnonzero(rms <= 1e-7).tolist()
+        self.save()
+        require(np.max(np.abs(audio - oracle)) <= 1 / 32768, 'Twelve-channel feed differs from original stereo-device plugin output.')
         require(row['pcm16_rail_fraction'] == 0, 'PCM16 upmixed feed hits the rails; convolution comparison would be invalid.')
-        self.data['steps']['A2'] = 'measured: 12 populated channels in standard 7.1.4 order; PCM16 feed quantization applies'
+        self.data['steps']['A2'] = 'measured: all 12 slots verified against six stereo-device exports; any silent slots are also silent in the original plugin context; PCM16 quantization applies'
         self.save()
 
     @staticmethod
@@ -277,7 +300,7 @@ class Bench:
         return out
 
     def translate(self):
-        env = {name: np.eye(12)[i] for i, name in enumerate(VIRTUAL)}
+        env = {name: np.eye(12)[i] for i, name in enumerate(self.virtual)}
         # L/R still carry the plugin inputs unless overwritten. Reject their
         # use rather than equating them with virtual front-left/front-right.
         conv = None
