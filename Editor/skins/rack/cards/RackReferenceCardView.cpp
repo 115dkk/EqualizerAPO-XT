@@ -614,7 +614,9 @@ void RackReferenceCardView::applyState(const ReferenceCardState& state)
 	}
 	else if (state.statusSeverity == ReferenceCardState::Severity::Warning)
 	{
-		lampColor = QColor(tokens.warning);
+		// A lamp, not ink: it keeps the lit amber on both finishes while the
+		// light finish's warning token is a dark printing ink.
+		lampColor = QColor(0xF5, 0x9E, 0x0B);
 	}
 	lamp->setLamp(lampColor, lampLit);
 
