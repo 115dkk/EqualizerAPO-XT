@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.76.0 — 2026-11-21
+
 - **Multi-core convolution uses as many cores as make the sound finish sooner.**
   It woke at most seven helper threads whatever the processor. The limit is now
   the processor itself (one fewer than its logical cores), and the engine
