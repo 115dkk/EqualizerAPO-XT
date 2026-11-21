@@ -92,6 +92,7 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
 
 ## 주요 기능
 
+- 기본 상태에서는 지연을 붙이지 않습니다. 엔진은 블록이 들어온 콜백 안에서 그 블록을 처리하고, 긴 컨볼루션과 다중 코어 처리와 플러그인 호스팅도 이 원칙을 지키도록 만들었습니다. 지연은 사용자가 고를 때만 생깁니다([docs/LatencyPolicy.ko.md](docs/LatencyPolicy.ko.md)).
 - 오디오를 내부에서 double 정밀도로 처리해 복잡한 필터 체인에서도 정밀도를 잃지 않습니다.
 - Convolution, GraphicEQ, 파라메트릭 EQ, VST2/VST3와 기존 Equalizer APO 필터를 지원합니다.
 - ASIO: 모든 ASIO 드라이버가 장치 선택기의 재생·녹음 목록에 나타나고, 체크하면
