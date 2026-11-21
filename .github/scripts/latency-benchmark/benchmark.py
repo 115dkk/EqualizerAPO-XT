@@ -69,7 +69,7 @@ class Bench:
             'python_wheels': json.loads((self.summary / 'wheel-hashes.json').read_text(encoding='utf-8-sig')),
             'downloads': {}, 'phase_a': [], 'comparisons': [], 'phase_b': [],
             'steps': {s: ('not measured: preceding phase not completed' if s.startswith('A') else
-                          'not measured: implementation budget stops at Phase A; no virtual cable or realtime test attempted')
+                          'not measured: preceding realtime phase not completed or later phase not implemented')
                       for s in ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'B0', 'B1', 'B2', 'B3', 'B4', 'B5']},
             'notes': [
                 'XT CPU percent is Benchmark elapsed processing time divided by audio duration; it is not aggregate worker CPU time.',
@@ -86,7 +86,9 @@ class Bench:
 
     def save(self):
         (self.summary / 'results.json').write_text(json.dumps(self.data, indent=2, allow_nan=False), encoding='ascii')
+        cpu_names = ', '.join(cpu['Name'].strip() for cpu in self.data['machine']['cpu'])
         text = ['# Latency benchmark', '', f"Run {self.data['machine']['run_id']}", '',
+                f'Runner CPU: {cpu_names}; 2 cores / 4 logical processors.', '',
                 '## Phase A throughput', '',
                 '| Program | Batch/chunk | Threads | Repeat | Wall s | CPU s | x realtime | XT CPU % | Reported latency samples |',
                 '|---|---:|---|---:|---:|---:|---:|---:|---:|']
@@ -132,6 +134,27 @@ class Bench:
         for row in self.data['phase_b']:
             text.append('| ' + ' | '.join(val(row.get(k)) for k in
                 ['program', 'setting', 'added_samples', 'added_ms', 'dropouts', 'cpu_s']) + ' |')
+        if 'baseline' in self.data:
+            baseline = self.data['baseline']
+            text += ['', f"Baseline L0 median: {val(baseline['median_samples'])} samples; spread: {baseline['spread_samples']} samples. Baseline rows show absolute lag, including the fixed preroll."]
+        if 'cable' in self.data:
+            text += ['', '## Cable endpoint mix formats', '', '| Snapshot | Endpoint | Flow | Channels | Rate | Bits |', '|---|---|---|---:|---:|---:|']
+            for snapshot in ['install', 'ready']:
+                for endpoint in self.data['cable'].get(snapshot, {}).get('endpoints', []):
+                    fmt = endpoint.get('format') or {}
+                    cells = [snapshot, endpoint['name'], endpoint['flow'], fmt.get('channels'), fmt.get('rate'), fmt.get('bits')]
+                    text.append('| ' + ' | '.join(val(cell) for cell in cells) + ' |')
+        if 'realtime_details' in self.data:
+            text += ['', '## Realtime clean-run evidence', '', '| Run | Callback under/overflows | Unexpected zero gaps | Residual spike events | Residual dB | XT mute reports |',
+                     '|---|---:|---:|---:|---:|---:|']
+            for name, details in self.data['realtime_details'].items():
+                if 'analysis' not in details:
+                    continue
+                analysis = details['analysis']
+                cells = [name, sum(details['callback_flags'].values()), analysis['zero_gap_events'], analysis['residual_spike_events'],
+                         analysis['residual_db'], len(details.get('program_diagnostics', {}).get('mute_reports', []))]
+                text.append('| ' + ' | '.join(val(cell) for cell in cells) + ' |')
+            text += ['', 'Clean requires no active-music callback under/overflow, no unexpected zero gap longer than 1 ms, and no 10 ms residual block above max(-20 dB, ten times the median residual power ratio). For baseline/XT it also requires residual below -30 dB and no XT mute/passthrough diagnostic. Startup/tail flags remain in results.json.']
         text += ['', '## Step status', ''] + [f'- {key}: {value}' for key, value in self.data['steps'].items()]
         text += ['', '## Measurement definitions and limitations', ''] + ['- ' + x for x in self.data['notes']]
         (self.summary / 'results.md').write_text('\n'.join(text) + '\n', encoding='ascii')
@@ -654,6 +677,115 @@ log = "0.4.27"
         self.data['steps']['A6'] = 'measured: three file renders with wall/CPU time, lag, one gain and residual; different BRIR preprocessing is reported, not tuned away'
         self.save()
 
+    def cable_action(self, label, mode, endpoint=None, channels=2):
+        output = self.work / (label + '.json')
+        command = ['pwsh', '-NoProfile', '-File', Path(__file__).with_name('Cable-Endpoint.ps1'),
+                   '-Mode', mode, '-Work', self.work, '-OutputJson', output]
+        if endpoint is not None:
+            command += ['-EndpointId', endpoint, '-Channels', str(channels), '-Rate', str(RATE)]
+        self.run(label, command, 600 if mode == 'Install' else 120)
+        return json.loads(output.read_text(encoding='utf-8-sig'))
+
+    def phase_b0(self):
+        setup = self.cable_action('cable-install', 'Install')
+        self.data['cable'] = {'install': setup, 'format_attempts': []}
+        self.data['downloads']['VB-CABLE'] = {'version': 'Pack43', 'sha256': setup['sha256']}
+        self.save()
+        endpoints = setup['endpoints']
+        for name in ['CABLE Input', 'CABLE Output']:
+            found = [x for x in endpoints if x['name'] == name]
+            require(len(found) == 1, 'VB-CABLE did not provide both explicitly named active endpoints.')
+            row = self.cable_action('cable-format-' + ('render' if name == 'CABLE Input' else 'capture'),
+                                    'SetFormat', found[0]['id'])
+            self.data['cable']['format_attempts'].append(row)
+            self.save()
+        snapshot = self.cable_action('cable-ready', 'Snapshot')
+        self.data['cable']['ready'] = snapshot
+        self.endpoints = {row['name']: row for row in snapshot['endpoints']}
+        for name in ['CABLE Input', 'CABLE Output']:
+            fmt = self.endpoints[name]['format']
+            require(fmt is not None and fmt['channels'] == 2 and fmt['rate'] == RATE,
+                    'Cable endpoint did not accept stereo 48000 Hz shared mix format; no converted-rate substitute is used.')
+        self.data['steps']['B0'] = 'implemented: explicit-name WASAPI shared duplex tool and aligned residual/zero-gap analysis; actual streaming is verified by B1'
+        self.data['notes'].append('Realtime playback uses a fixed 24000-frame silent preroll in a duplex stream, included equally in L0 and processed recordings. Neither endpoint is selected through a default-device API.')
+        self.data['notes'].append('B2 added delay is the recording lag against XT A1 output minus L0; the offline reference already includes the plugin delay, so no further 4351-sample subtraction is made.')
+        self.save()
+
+    def audio_round(self, label, reference, program):
+        output = self.work / (label + '.json')
+        log = Path(r'C:\Windows\ServiceProfiles\LocalService\AppData\Local\Temp\EqualizerAPO.log')
+        offset = log.stat().st_size if log.exists() else 0
+        command = [sys.executable, '-I', Path(__file__).with_name('audio_io.py'),
+                   '--play', self.music, '--record', self.work / (label + '.wav'), '--reference', reference,
+                   '--render-name', 'CABLE Input', '--capture-name', 'CABLE Output', '--json', output]
+        process = self.run(label, command, 150, allowed=(0, 1))
+        details = json.loads(output.read_text(encoding='ascii'))
+        self.data.setdefault('realtime_details', {})[label] = details
+        self.save()
+        require(process['exit_code'] == 0, 'WASAPI audio tool failed; numeric PortAudio error is in realtime_details.')
+        time.sleep(3)
+        diagnostics = {'log_present': log.exists(), 'mute_reports': [], 'passthrough_warnings': 0}
+        if program == 'XT' and log.exists():
+            with log.open('rb') as stream:
+                stream.seek(offset)
+                text = stream.read().decode('utf-8-sig', errors='replace')
+            diagnostics['mute_reports'] = [[int(x) for x in match] for match in
+                re.findall(r'(\d+) differs from initialized (\d+); output muted.*?\[mute calls: (\d+) total\]', text)]
+            diagnostics['passthrough_warnings'] = text.lower().count('passing audio through')
+        details['program_diagnostics'] = diagnostics
+        analysis = details['analysis']
+        reference_valid = analysis['residual_power_ratio'] < 0.001
+        clean = details['clean'] and reference_valid and not diagnostics['mute_reports'] and not diagnostics['passthrough_warnings']
+        row = {'program': program, 'setting': label, 'lag_samples': analysis['lag_samples'],
+               'added_samples': None, 'added_ms': None, 'dropouts': not clean,
+               'cpu_s': details['audiodg_cpu_s'], 'audio_tool_cpu_s': process['cpu_s'],
+               'gain': analysis['gain'], 'residual_db': analysis['residual_db'],
+               'reference_match_below_minus30db': reference_valid,
+               'clean': clean, 'clean_definition': details['clean_definition'] +
+                   ' Also requires residual below -30dB for this identity-equivalent chain, no XT mute report and no XT passthrough warning.'}
+        self.data['phase_b'].append(row)
+        self.save()
+        return row
+
+    def phase_b1(self):
+        rows = [self.audio_round(f'baseline-{rep}', self.music, 'Cable baseline') for rep in range(1, 4)]
+        lags = [row['lag_samples'] for row in rows]
+        self.l0 = float(np.median(lags))
+        self.data['baseline'] = {'lag_samples': lags, 'median_samples': self.l0,
+                                 'spread_samples': max(lags) - min(lags), 'all_clean': all(row['clean'] for row in rows)}
+        for row in rows:
+            row['added_samples'] = row['lag_samples']
+            row['added_ms'] = row['lag_samples'] * 1000 / RATE
+        self.data['steps']['B1'] = 'measured: three baseline runs; table shows absolute reference lag (L0), including the fixed preroll'
+        self.save()
+        require(all(row['clean'] for row in rows), 'Baseline is not clean; XT added-delay measurement is not accepted on this path.')
+
+    def phase_b2(self):
+        self.config_dir.mkdir(exist_ok=True, parents=True)
+        for file in self.full_config.iterdir():
+            shutil.copyfile(file, self.config_dir / file.name)
+        selector = self.current / 'DeviceSelector.exe'
+        guid = self.endpoints['CABLE Input']['guid']
+        self.data['xt_apo'] = {'flow': 'Render', 'endpoint': 'CABLE Input', 'guid': guid}
+        try:
+            install = self.run('XT-install-render-APO', [selector, '--install-endpoint', guid], 300, self.current, allowed=(0, 1))
+            self.data['xt_apo']['install'] = install
+            self.save()
+            require(install['exit_code'] == 0, 'DeviceSelector did not confirm the render-endpoint APO install.')
+            time.sleep(3)
+            for rep in range(1, 4):
+                row = self.audio_round(f'XT-realtime-{rep}', self.work / 'XT-480-1.wav', 'XT')
+                row['added_samples'] = row['lag_samples'] - self.l0
+                row['added_ms'] = row['added_samples'] * 1000 / RATE
+                self.save()
+            self.data['steps']['B2'] = 'measured: three render-APO runs, offline XT reference minus baseline median, audiodg CPU and recording/program diagnostics'
+        finally:
+            self.data['xt_apo']['uninstall'] = self.run('XT-uninstall-render-APO',
+                [selector, '--uninstall-endpoint', guid], 180, self.current, allowed=(0, 1))
+            (self.config_dir / 'config.txt').write_text('Preamp: 0 dB\n', encoding='ascii')
+            self.save()
+            require(self.data['xt_apo']['uninstall']['exit_code'] == 0, 'XT render APO could not be uninstalled; later program measurements must not use this endpoint.')
+
     def execute(self):
         # Installation failures are harness failures; later failures preserve
         # completed measurements and return zero with explicit step status.
@@ -663,7 +795,7 @@ log = "0.4.27"
             self.data['harness'] = str(exc) if isinstance(exc, MeasurementError) else 'Product installation failed; logs retained only in Work.'
             self.save()
             return 1
-        for name, action in [('prepare', self.prepare), ('A1', self.phase_a1), ('A2', self.phase_a2), ('A3', self.phase_a3), ('A4', self.phase_a4), ('A5', self.phase_a5), ('A6', self.phase_a6)]:
+        for name, action in [('prepare', self.prepare), ('A1', self.phase_a1), ('A2', self.phase_a2), ('A3', self.phase_a3), ('A4', self.phase_a4), ('A5', self.phase_a5), ('A6', self.phase_a6), ('B0', self.phase_b0), ('B1', self.phase_b1), ('B2', self.phase_b2)]:
             try:
                 action()
             except Exception as exc:

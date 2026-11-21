@@ -8,5 +8,6 @@
   "pycparser-2.23-py3-none-any.whl": "e5c6e8d3fbad53479cab09ac03729e0a9faf2bee3db8208a550daf5af81a5934",
   "pyyaml-6.0.3-cp312-cp312-win_amd64.whl": "5fcd34e47f6e0b794d17de1b4ff496c00986e1c83f7ab2fb8fcfe9616ff7477b",
   "scipy-1.16.3-cp312-cp312-win_amd64.whl": "56edc65510d1331dae01ef9b658d428e33ed48b4f77b1d51caf479a0253f96dc",
+  "sounddevice-0.5.3-py3-none-win_amd64.whl": "f55ad20082efc2bdec06928e974fbcae07bc6c405409ae1334cefe7d377eb687",
   "soundfile-0.13.1-py2.py3-none-win_amd64.whl": "1e70a05a0626524a69e9f0f4dd2ec174b4e9567f4d8b6c11d38b5c289be36ee9"
 }
