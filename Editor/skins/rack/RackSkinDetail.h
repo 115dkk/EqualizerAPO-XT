@@ -28,8 +28,6 @@ inline QString darkEngagedFrame()
 }
 
 inline constexpr int EarWidth = 20;
-inline constexpr qreal NameplateWidth = 78.0;
-inline constexpr qreal NameplateHeight = 22.0;
 
 void engraveText(QPainter& painter, const QRectF& rect, int flags, const QString& text,
 	const QColor& body, bool dark);

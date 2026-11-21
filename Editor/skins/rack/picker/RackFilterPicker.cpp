@@ -99,7 +99,7 @@ private:
 		painter->setPen(QPen(RackPalette::light(dark ? 26 : 140), 1));
 		painter->drawLine(QPointF(plate.left() + 2, plate.bottom() + 1), QPointF(plate.right() - 2, plate.bottom() + 1));
 
-		// Rivets at both plate ends, like the VST brass nameplate's.
+		// Rivets at both plate ends.
 		painter->setPen(QPen(RackPalette::PlateRivetRim(dark), 0.8));
 		painter->setBrush(RackPalette::PlateRivet(dark));
 		painter->drawEllipse(QPointF(plate.left() + 7, plate.center().y()), 1.6, 1.6);

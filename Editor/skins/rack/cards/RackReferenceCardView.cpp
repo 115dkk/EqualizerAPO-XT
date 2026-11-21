@@ -436,10 +436,20 @@ RackReferenceCardView::RackReferenceCardView(const QString& kind, const SkinToke
 	captionLabel->setText(captionForKind(kind));
 	captionLayout->addWidget(captionLabel, 0, Qt::AlignVCenter);
 
-	// No format stamp beside the caption: on a VST unit the loaded ABI is
-	// engraved into the brass brand nameplate at the header's right edge
-	// (RackSkin::paintCardChrome reads the row's posted format), and a
-	// second wireframe tag crowding MODULE was judged cramped (r3).
+	// A VST unit says what it is on a readout instead of the engraved
+	// caption: the loaded ABI and the service condition burn in segments
+	// (display clause), and the unit's name prints right after it, so the
+	// lamp, the readout and the name sit on one line. The brass nameplate
+	// that used to carry the ABI at the header's right edge is gone (issue
+	// #508: the unit said VST three times).
+	const bool moduleUnit = kind == QLatin1String("vst");
+	if (moduleUnit)
+	{
+		moduleReadout = new RackLcdWindow(skinTokens, captionRow);
+		captionLayout->addWidget(moduleReadout, 0, Qt::AlignVCenter);
+		captionLabel->setVisible(false);
+		captionLayout->setSpacing(10);
+	}
 
 	// The absolute-path hazard as a stamped wireframe tag in warning ink
 	// (untranslated hardware marking).
@@ -469,7 +479,10 @@ RackReferenceCardView::RackReferenceCardView(const QString& kind, const SkinToke
 	nameLabel->setLetterSpacing(0.4);
 	nameLabel->setElideMode(Qt::ElideMiddle);
 	installNameActivation(nameLabel);
-	labelLayout->addWidget(nameLabel);
+	if (moduleUnit)
+		captionLayout->insertWidget(captionLayout->indexOf(moduleReadout) + 1, nameLabel, 0, Qt::AlignVCenter);
+	else
+		labelLayout->addWidget(nameLabel);
 
 	dirLabel = new RackEngravedLabel(skinTokens, labelArea);
 	dirLabel->setPixelSize(11);
@@ -571,6 +584,20 @@ void RackReferenceCardView::applyState(const ReferenceCardState& state)
 		serviceTag->setInk(RackEngravedLabel::Ink::Muted);
 	}
 	serviceTag->setVisible(state.missing || state.checking);
+	if (moduleReadout != nullptr)
+	{
+		// One readout says both facts, so the engraved service tag stays
+		// dark on this unit. Before a module loads the ABI is not known and
+		// the readout prints the family name.
+		QString segments = (state.formatBadge.isEmpty() ? QStringLiteral("VST") : state.formatBadge)
+			+ QStringLiteral(" MODULE");
+		if (state.missing)
+			segments = emptyRef ? QStringLiteral("EMPTY SLOT") : segments + QStringLiteral("  NOT FOUND");
+		else if (state.checking)
+			segments += QStringLiteral("  CHECKING");
+		moduleReadout->setSegments(segments);
+		serviceTag->setVisible(false);
+	}
 
 	// Sub-printed as the containing prefix ("Surround\"): the folder holds
 	// the unit's program, so it engraves as a path prefix, not as a sub-item

@@ -167,4 +167,9 @@ private:
 	RackEngravedLabel* dirLabel = nullptr;
 	RackEngravedLabel* statusLabel = nullptr;
 	RackLcdWindow* lcdWindow = nullptr;
+	// VST units only: the readout that leads the label strip with the
+	// loaded ABI and the service condition ("VST3 MODULE", "VST MODULE
+	// NOT FOUND"). Null on the other reference kinds, which keep the
+	// engraved caption.
+	RackLcdWindow* moduleReadout = nullptr;
 };

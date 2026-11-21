@@ -511,23 +511,6 @@ void VSTCardEditor::updateReferenceState()
 	openPanelButton->setEnabled(!state.missing && !state.checking && !reference->writtenPath().isEmpty()
 		&& !session->loading());
 
-	// Post the loaded ABI for the row chrome (CommandRowFrame samples the
-	// property at paint time): rack engraves it into the brass nameplate.
-	// The editor is parented into the row after construction, so the walk
-	// only finds the frame from the loadPreferences pass onward.
-	for (QWidget* ancestor = parentWidget(); ancestor != nullptr; ancestor = ancestor->parentWidget())
-	{
-		if (ancestor->objectName() == QLatin1String("FilterCardRow"))
-		{
-			if (ancestor->property("rowFormatTag").toString() != state.formatBadge)
-			{
-				ancestor->setProperty("rowFormatTag", state.formatBadge);
-				ancestor->update();
-			}
-			break;
-		}
-	}
-
 	view->setState(state);
 	if (state.checking)
 		reference->askPresence([this]() { updateReferenceState(); });

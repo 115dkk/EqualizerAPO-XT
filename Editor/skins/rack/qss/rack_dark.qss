@@ -1,7 +1,7 @@
 /* ====================================================================
    Skin: Rack Dark - "The amplifier faceplate"
    Constitution: docs/skins/rack.md
-   The painted chrome (screws, rack ears, LEDs, jacks, nameplates,
+   The painted chrome (screws, rack ears, LEDs, jacks,
    pointer knobs) lives in the Rack skin surface modules.
    Tokens: bg @BG@ / surface @SURFACE@ / card @CARD@ / cardHover @CARD_HOVER@
            text @TEXT@ / mutedText @MUTED@ / border @BORDER@

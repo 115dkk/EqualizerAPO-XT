@@ -6,7 +6,7 @@
 
 /*
 	The rack skin's painted colours that are not skin tokens: machined metal,
-	display glass, LCD segments, lamp bezels, the brass VST nameplate, the
+	display glass, LCD segments, lamp bezels, the
 	patchbay caps and the file-dialog glyphs. Each value is the literal the
 	painters used before they were named here (audit #348), so moving a
 	painter onto this palette changes no pixel. Token-derived colours stay in
@@ -104,15 +104,7 @@ inline constexpr Tone VstUnitFinish{ QColor(34, 20, 6, 50), QColor(74, 50, 14, 1
 inline constexpr Tone PoweredDownFilm{ shadow(80), QColor(255, 252, 244, 120) };
 inline constexpr Tone KnobPoweredDownFilm{ shadow(90), QColor(255, 252, 244, 130) };
 
-// The brass VST nameplate (engraved and riveted).
-inline constexpr Tone BrassHighlight{ QColor(0xD6, 0xB2, 0x6A), QColor(0xE8, 0xC8, 0x86) };
-inline constexpr Tone BrassBody{ QColor(0xA8, 0x85, 0x46), QColor(0xC4, 0xA0, 0x5C) };
-inline constexpr Tone BrassEdge{ QColor(0x86, 0x67, 0x30), QColor(0x9A, 0x7A, 0x3C) };
-inline constexpr QColor BrassRim(0x5A, 0x44, 0x16);
-inline constexpr QColor BrassEngraveRelief(255, 240, 200, 160);
-inline constexpr QColor BrassEngraveInk(0x3A, 0x2A, 0x0C);
-inline constexpr QColor BrassRivetRim(0x55, 0x40, 0x14);
-inline constexpr QColor BrassRivet(0xE9, 0xD3, 0x9A);
+
 
 // Knob: the machined aluminium body of the cream finish, rim and pointer.
 inline constexpr QColor KnobAluminiumHighlight(0xFF, 0xFF, 0xFF);
