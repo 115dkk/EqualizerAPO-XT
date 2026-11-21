@@ -89,6 +89,14 @@ IRegistry& FilterEngine::registryAccess() const
 	return registryPort != nullptr ? *registryPort : systemRegistry();
 }
 
+vector<unsigned> FilterEngine::getRealLatencyByChannel() const
+{
+	const FilterConfigurationPtr& currentConfig = configChannel.current();
+	if (!currentConfig)
+		return {};
+	return currentConfig->realLatencyByChannel();
+}
+
 void FilterEngine::initialize(const EngineSetup& setup)
 {
 	const float sampleRate = setup.sampleRate;
@@ -157,6 +165,7 @@ void FilterEngine::initialize(const EngineSetup& setup)
 			AlignedMemory::construct<FilterConfiguration>(
 				streamFormat(), vector<std::unique_ptr<FilterInfo>>(),
 				static_cast<unsigned>(channelNames.size()))));
+		realLatency.store(0, std::memory_order_relaxed);
 
 		try
 		{

@@ -36,6 +36,7 @@ public:
 		unsigned maxFrameCount,
 		std::vector<std::wstring> channelNames) override;
 	void process(double** output, double** input, unsigned frameCount) override;
+	void reportLatency(const std::vector<unsigned>& input, std::vector<unsigned>& output) const override;
 
 	// The device channel IDs a state is compiled against: the channel names,
 	// except that a slot whose name the state does not know, but whose
@@ -49,6 +50,8 @@ public:
 private:
 	subroute::SubwooferRoutingState state;
 	subroute::Processor processor;
+	std::vector<subroute::CompiledPath> latencyPaths;
+	std::vector<subroute::CompiledOutput> latencyOutputs;
 	bool passthrough = true;
 	unsigned channelCount = 0;
 };

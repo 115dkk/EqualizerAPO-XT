@@ -45,6 +45,7 @@ public:
 	std::vector<std::wstring> initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames) override;
 	void prepareForProcessing(float sampleRate, unsigned maxFrameCount);
 	void process(double** output, double** input, unsigned frameCount) override;
+	void reportLatency(const std::vector<unsigned>& input, std::vector<unsigned>& output) const override;
 
 	std::shared_ptr<VSTPluginLibrary> getLibrary() const;
 	const std::wstring& getChunkData() const;
@@ -119,5 +120,8 @@ private:
 	std::vector<int> resolvedInputChannels;
 	std::vector<int> resolvedOutputChannels;
 	std::vector<unsigned> passthroughChannels;
+	std::vector<unsigned> pluginWrittenChannels;
+	std::vector<unsigned> pluginZeroedChannels;
+	unsigned reportedLatencyFrames = 0;
 };
 #pragma AVRT_VTABLES_END

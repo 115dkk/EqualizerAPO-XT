@@ -114,6 +114,11 @@ public:
 	// True if every filter in this configuration guarantees silent output for
 	// silent input (no cross-block state, no tail). Cached at construction.
 	bool isAllStateless() const { return allStateless; }
+	// Fixed delay the filter chain adds, in frames: one value per output channel
+	// (outputChannelCount of them). Computed at construction after every filter
+	// has been initialized and immutable afterward.
+	const std::vector<unsigned>& realLatencyByChannel() const { return realLatencyByChannel_; }
+	unsigned realLatency() const { return realLatency_; }
 
 private:
 	unsigned realChannelCount;
@@ -126,6 +131,8 @@ private:
 	std::vector<double*> currentSamples;
 	std::vector<double*> currentSamples2;
 	std::vector<std::unique_ptr<FilterInfo>> filterInfos;
+	std::vector<unsigned> realLatencyByChannel_;
+	unsigned realLatency_ = 0;
 	bool allStateless = false;
 };
 #pragma AVRT_VTABLES_END

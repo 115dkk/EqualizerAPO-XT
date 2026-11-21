@@ -237,6 +237,26 @@ void MultiConvolutionFilter::process(double** output, double** input, unsigned f
 }
 #pragma AVRT_CODE_END
 
+void MultiConvolutionFilter::reportLatency(const vector<unsigned>& input,
+	vector<unsigned>& output) const
+{
+	for (const MappingPlan& plan : plans)
+	{
+		if (plan.outputSlot >= output.size())
+			continue;
+		if (bank.installed() && plan.inputChannel >= 0
+			&& static_cast<size_t>(plan.inputChannel) < input.size()
+			&& plan.unitCount != 0)
+		{
+			output[plan.outputSlot] = input[static_cast<size_t>(plan.inputChannel)];
+		}
+		else
+		{
+			output[plan.outputSlot] = 0;
+		}
+	}
+}
+
 void MultiConvolutionFilter::cleanup()
 {
 	fanOutLease = {};

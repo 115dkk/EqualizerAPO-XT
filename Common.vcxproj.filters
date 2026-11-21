@@ -368,6 +368,7 @@
     <ClInclude Include="engine\ConfigWatcher.h" />
     <ClInclude Include="engine\FilterConfiguration.h" />
     <ClInclude Include="engine\FilterEngine.h" />
+    <ClInclude Include="engine\LatencyMath.h" />
     <ClInclude Include="engine\IInputTap.h" />
     <ClInclude Include="engine\IFilter.h" />
     <ClInclude Include="engine\IFilterFactory.h" />

@@ -37,6 +37,7 @@ public:
 	bool producesTailFromSilentInput() const override {return false;}
 	std::vector<std::wstring> initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames) override;
 	void process(double** output, double** input, unsigned frameCount) override;
+	void reportLatency(const std::vector<unsigned>& input, std::vector<unsigned>& output) const override;
 
 private:
 	std::vector<Assignment> assignments;

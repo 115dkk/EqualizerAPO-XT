@@ -99,6 +99,7 @@
     <ClCompile Include="RegistryTransactionTests.cpp" />
     <ClCompile Include="RuntimeUtilityTests.cpp" />
     <ClCompile Include="RealtimeFanOutTests.cpp" />
+    <ClCompile Include="RealLatencyTests.cpp" />
     <ClCompile Include="SendRingTests.cpp" />
     <ClCompile Include="SendResamplerTests.cpp" />
     <ClCompile Include="SendSeamTests.cpp" />

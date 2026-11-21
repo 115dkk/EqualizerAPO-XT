@@ -575,6 +575,22 @@ void testSourceLfePreservation(const SuiteFixture& fixture)
 		"RL and RR must remain exactly zero for the full second");
 }
 
+void testRealLatency(const SuiteFixture& fixture)
+{
+	FilterEngine engine;
+	initializeEngine(engine, fixture.stateConfigPath(), kFiveChannels, kFiveChannelMask);
+	std::vector<double> input(static_cast<size_t>(kBlockFrames) * kFiveChannels, 0.0);
+	std::vector<double> output(input.size(), 0.0);
+	engine.process(output.data(), input.data(), kBlockFrames);
+
+	const std::vector<unsigned> expected = {120, 120, 0, 96, 96};
+	const std::vector<unsigned> actual = engine.getRealLatencyByChannel();
+	harness.expectTrue(actual == expected,
+		"Subwoofer Routing reports each output's longest fixed path delay");
+	harness.expectEqual(engine.getRealLatency(), 120u,
+		"Subwoofer Routing reports the largest fixed path delay");
+}
+
 void testInvalidStateDoesNotMute(const SuiteFixture& fixture)
 {
 	constexpr unsigned blockCount = 4;
@@ -698,6 +714,7 @@ TEST_CASE(SubwooferRoutingEngineTests, runSubwooferRoutingEngineTests)
 			input,
 			stateOutput);
 		testSourceLfePreservation(fixture);
+		testRealLatency(fixture);
 		testInvalidStateDoesNotMute(fixture);
 		testNonParticipatingChannelPassThrough(fixture);
 	}

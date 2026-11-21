@@ -231,6 +231,18 @@ TEST_CASE(VstHostTests, expectLatencyCompensationGolden)
 	auto library = loadScenarioLibrary();
 	SetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", L"latency-512");
 
+	ChunkBlob gainBlob = {};
+	gainBlob.magic = kChunkMagic;
+	gainBlob.version = kChunkVersion;
+	gainBlob.gain = 0.5f;
+	VSTPluginFilter latencyFilter(library, encodeChunk(gainBlob), unordered_map<wstring, float>());
+	latencyFilter.initialize(48000.0f, 1024, {L"L", L"R"});
+	const vector<unsigned> latencyInput = {5, 9};
+	vector<unsigned> latencyOutput = latencyInput;
+	latencyFilter.reportLatency(latencyInput, latencyOutput);
+	harness.expectTrue(latencyOutput == vector<unsigned>({521, 521}),
+		"the VST2 filter reports its 512-sample latency on every written channel");
+
 	harness.expectTrue(latencyStreamMatches(library, 128, 0),
 		"latency-512: 128-frame blocks come out 0.5 x input with no extra delay");
 	harness.expectTrue(latencyStreamMatches(library, 1024, 0),

@@ -15,6 +15,7 @@
 #include <set>
 
 #include "audio/ChannelLayout.h"
+#include "engine/LatencyMath.h"
 #include "services/logging/Logging.h"
 #include "diagnostics/performance/PerfProfile.h"
 
@@ -187,3 +188,20 @@ void HilbertFilter::process(double** output, double** input, unsigned frameCount
 	}
 }
 #pragma AVRT_CODE_END
+
+void HilbertFilter::reportLatency(const std::vector<unsigned>& input,
+	std::vector<unsigned>& output) const
+{
+	const auto addFor = [&input, &output](const std::vector<int>& channels) {
+		for (const int channel : channels)
+		{
+			if (channel < 0 || static_cast<size_t>(channel) >= input.size()
+				|| static_cast<size_t>(channel) >= output.size())
+				continue;
+			output[static_cast<size_t>(channel)] = addLatency(
+				input[static_cast<size_t>(channel)], HilbertLatencySamples);
+		}
+	};
+	addFor(shifted);
+	addFor(aligned);
+}

@@ -22,6 +22,7 @@
 
 #include "runtime/memory/AlignedMemory.h"
 #include "services/logging/Logging.h"
+#include "engine/LatencyMath.h"
 #include "DelayFilter.h"
 #include "diagnostics/performance/PerfProfile.h"
 
@@ -80,3 +81,12 @@ void DelayFilter::process(double** output, double** input, unsigned frameCount)
 	delayLine.process(output, input, frameCount);
 }
 #pragma AVRT_CODE_END
+
+void DelayFilter::reportLatency(const vector<unsigned>& input, vector<unsigned>& output) const
+{
+	if (delayLine.empty())
+		return;
+	const size_t count = (std::min)(input.size(), output.size());
+	for (size_t channel = 0; channel < count; ++channel)
+		output[channel] = addLatency(input[channel], delayLine.length());
+}

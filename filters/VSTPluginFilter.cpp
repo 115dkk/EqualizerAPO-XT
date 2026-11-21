@@ -27,6 +27,7 @@
 #include <malloc.h>
 #include "services/logging/Logging.h"
 #include "audio/ChannelLayout.h"
+#include "engine/LatencyMath.h"
 #include "dsp/MxcsrGuard.h"
 #include "dsp/SampleConversion.h"
 #include "VSTPluginFilter.h"
@@ -120,7 +121,41 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 
 	if (!allocateBuffers(context, maxFrameCount))
 		return channelNames;
-	allocateDelayCompensation(context, maxFrameCount);
+	if (!allocateDelayCompensation(context, maxFrameCount))
+		return channelNames;
+
+	reportedLatencyFrames = static_cast<unsigned>(context.reportedLatency);
+	pluginWrittenChannels.clear();
+	pluginZeroedChannels.clear();
+	if (!context.plan.resolvedOutputChannels.empty())
+	{
+		for (const int channel : context.plan.resolvedOutputChannels)
+		{
+			if (channel >= 0)
+				pluginWrittenChannels.push_back(static_cast<unsigned>(channel));
+		}
+	}
+	else
+	{
+		unsigned channelOffset = 0;
+		for (size_t instance = 0; instance < effects.size(); ++instance)
+		{
+			for (unsigned slot = 0; slot < effectOutputCount
+				&& channelOffset + slot < static_cast<unsigned>(channelCount); ++slot)
+			{
+				pluginWrittenChannels.push_back(channelOffset + slot);
+			}
+			if (context.plan.resolvedInputChannels.empty())
+			{
+				for (unsigned slot = effectOutputCount; slot < effectInputCount
+					&& channelOffset + slot < static_cast<unsigned>(channelCount); ++slot)
+				{
+					pluginZeroedChannels.push_back(channelOffset + slot);
+				}
+			}
+			channelOffset += effectChannelCount;
+		}
+	}
 	return channelNames;
 }
 
@@ -568,6 +603,34 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 }
 #pragma AVRT_CODE_END
 
+void VSTPluginFilter::reportLatency(const std::vector<unsigned>& input,
+	std::vector<unsigned>& output) const
+{
+	if (skipProcessing)
+		return;
+
+	const unsigned largestInput = input.empty()
+		? 0 : *(std::max_element)(input.cbegin(), input.cend());
+	for (const unsigned channel : pluginWrittenChannels)
+	{
+		if (channel < output.size())
+			output[channel] = addLatency(largestInput, reportedLatencyFrames);
+	}
+	for (const unsigned channel : pluginZeroedChannels)
+	{
+		if (channel < output.size())
+			output[channel] = 0;
+	}
+	if (!latencyDelay.empty())
+	{
+		for (const unsigned channel : delayedChannels)
+		{
+			if (channel < input.size() && channel < output.size())
+				output[channel] = addLatency(input[channel], latencyDelay.length());
+		}
+	}
+}
+
 std::shared_ptr<VSTPluginLibrary> VSTPluginFilter::getLibrary() const
 {
 	return library;
@@ -637,4 +700,7 @@ void VSTPluginFilter::cleanup()
 	latencyDelay.release();
 	delayedChannels.clear();
 	delayedOutputs.clear();
+	pluginWrittenChannels.clear();
+	pluginZeroedChannels.clear();
+	reportedLatencyFrames = 0;
 }
