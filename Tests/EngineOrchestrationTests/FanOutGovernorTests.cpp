@@ -109,6 +109,21 @@ TEST_CASE(EngineOrchestrationTests, testFanOutGovernorSmallLossesDoNotAddUp)
 		"removals stop two percent behind the count they started from");
 }
 
+TEST_CASE(EngineOrchestrationTests, testFanOutGovernorGivesWorkersBackWhenTheMachineGetsBusy)
+{
+	// The count settles at five. Then the machine gets busy: every block takes
+	// far longer and each worker now slows it down. The removals are judged
+	// against the busy machine, not against the timing from before.
+	FanOutGovernor governor;
+	run(governor, 15, 200, [](unsigned workers) { return scalingWall(workers, 6); });
+	harness.expectEqual(governor.settled(), 5u, "the quiet machine settles at five workers");
+	run(governor, 15, 600, [](unsigned workers) {
+		return 2 * heavyWorkTicks + heavyWorkTicks / 10 * workers;
+	});
+	harness.expectEqual(governor.settled(), 1u,
+		"a machine that got busy gets its workers back");
+}
+
 TEST_CASE(EngineOrchestrationTests, testFanOutGovernorSlowerJobsLoseWorkers)
 {
 	FanOutGovernor governor;

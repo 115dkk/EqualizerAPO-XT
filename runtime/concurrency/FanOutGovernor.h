@@ -109,7 +109,12 @@ namespace eapo::rt
 				break;
 			case Phase::baseline:
 				baseline_ = mean;
-				if (reference_ == 0.0)
+				// The reference follows the machine. Outside a run of removals a
+				// held count that got faster, or slower than the removal limit
+				// itself, was moved by what else the machine is doing, and a
+				// reference from before that would refuse every later removal.
+				if (reference_ == 0.0 || (!removing_ && (mean < reference_
+					|| mean > reference_ * keepFewerBelowReference)))
 					reference_ = mean;
 				beginTrial();
 				break;
@@ -214,6 +219,7 @@ namespace eapo::rt
 				// A count that earned its place is what later removals answer to.
 				if (tryingMore_)
 					reference_ = trialMean_;
+				removing_ = !tryingMore_;
 				// Keep going the same way after one window of rest.
 				settled_ = trialWorkers_;
 				target_ = trialWorkers_;
@@ -224,6 +230,7 @@ namespace eapo::rt
 				return;
 			}
 			tryMoreNext_ = !tryingMore_;
+			removing_ = false;
 			if (++refusals_ < 2)
 			{
 				// The other direction is tried next, against a fresh baseline.
@@ -254,6 +261,7 @@ namespace eapo::rt
 		Phase phase_ = Phase::rest;
 		bool tryMoreNext_ = true;
 		bool tryingMore_ = false;
+		bool removing_ = false;
 		bool hasWork_ = false;
 	};
 }
