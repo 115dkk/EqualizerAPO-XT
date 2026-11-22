@@ -245,7 +245,7 @@ Loads a 64-bit VST2 (`.dll`) or VST3 (`.vst3`) plug-in and processes the current
 
 `Input` and `Output` add an explicit main-bus contract to the existing `VSTPlugin` command. Use them for VST3 upmixers, downmixers, height expanders, and other plug-ins whose input and output layouts differ. If either key is present, both are mandatory; write `Auto` explicitly when one direction should use the normal host negotiation.
 
-Supported layouts are `Auto`, `Mono`, `Stereo`, `4.0`, `4.1`, `5.0`, `5.1`, `6.1`, `7.1`, `7.1.2`, and `7.1.4`. Where VST3 defines multiple arrangements for the same logical layout, the host proposes the Windows-like Music arrangement first and then the matching Cine alternative. It may change the arrangement within that logical layout, but never the channel count of an explicitly selected direction.
+Supported layouts are `Auto`, `Mono`, `Stereo`, `4.0`, `4.1`, `5.0`, `5.1`, `6.1`, `7.1`, `7.1.2`, `7.1.4`, and `13.1`. `13.1` is the 7.1 floor with the top centre and five heights, 14 channels named `L R C LFE RL RR SL SR TC TFL TFC TFR TRL TRR`; a plug-in that spells its rear pair as the rear-centre pair (zAuro Pro's widest bus) is matched as well. Where VST3 defines multiple arrangements for the same logical layout, the host proposes the Windows-like Music arrangement first and then the matching Cine alternative. It may change the arrangement within that logical layout, but never the channel count of an explicitly selected direction.
 
 ```
 # Stereo upmixer feeding an eight-channel device
