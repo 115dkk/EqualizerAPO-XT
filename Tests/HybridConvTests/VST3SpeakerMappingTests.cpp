@@ -26,6 +26,8 @@ namespace
 {
 	test::HarnessAccess harness;
 
+	const SpeakerArrangement zAuro131 = (SpeakerArr::k131 & ~(kSpeakerLs | kSpeakerRs)) | kSpeakerLcs | kSpeakerRcs;
+
 	void expectArrangements(const vector<SpeakerArrangement>& actual,
 		const vector<SpeakerArrangement>& expected, const string& label)
 	{
@@ -63,7 +65,8 @@ namespace
 			{VST3BusLayout::Surround61, {SpeakerArr::k61Cine, SpeakerArr::k61Music}},
 			{VST3BusLayout::Surround71, {SpeakerArr::k71Music, SpeakerArr::k71Cine}},
 			{VST3BusLayout::Surround712, {SpeakerArr::k71_2, SpeakerArr::k71_2_TF}},
-			{VST3BusLayout::Surround714, {SpeakerArr::k71_4}}
+			{VST3BusLayout::Surround714, {SpeakerArr::k71_4}},
+			{VST3BusLayout::Surround131, {SpeakerArr::k131, zAuro131}}
 		};
 		for (const auto& testCase : cases)
 		{
@@ -139,7 +142,8 @@ namespace
 			{VST3BusLayout::Surround61, L"6.1", 7},
 			{VST3BusLayout::Surround71, L"7.1", 8},
 			{VST3BusLayout::Surround712, L"7.1.2", 10},
-			{VST3BusLayout::Surround714, L"7.1.4", 12}
+			{VST3BusLayout::Surround714, L"7.1.4", 12},
+			{VST3BusLayout::Surround131, L"13.1", 14}
 		};
 		harness.expectEqual(std::size(vst3BusLayoutTable), std::size(expected), "one table row per layout");
 		for (const auto& row : expected)
@@ -214,6 +218,16 @@ namespace
 		// roles. This keeps the Windows 4.0 side-only order placeable.
 		expectMapping(SpeakerArr::k40Music, {L"L", L"R", L"SL", L"SR"},
 			{0, 1, 2, 3}, "side-only channels use Ls/Rs");
+
+		// 13.1 has two spellings of its floor. In the one zAuro Pro reports
+		// (0x0C02FE0F) the sides come before the heights and the rear pair
+		// is last.
+		const vector<wstring> names131 = vst3BusLayoutChannelNames(VST3BusLayout::Surround131);
+		expectMapping(SpeakerArr::k131, names131,
+			{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13}, "13.1 keeps its order");
+		harness.expectEqual(zAuro131, static_cast<SpeakerArrangement>(0x0C02FE0F), "the rear-centre spelling of 13.1");
+		expectMapping(zAuro131, names131,
+			{0, 1, 2, 3, 12, 13, 4, 5, 6, 7, 8, 9, 10, 11}, "13.1 with Lcs/Rcs puts the rear pair last");
 	}
 
 	// A Windows 7.1.4 endpoint (KSAUDIO 7.1.4 mask 0x2D63F: the 7.1 floor plus

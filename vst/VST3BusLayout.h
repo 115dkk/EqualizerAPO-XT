@@ -30,7 +30,8 @@ enum class VST3BusLayout
 	Surround61,
 	Surround71,
 	Surround712,
-	Surround714
+	Surround714,
+	Surround131
 };
 
 namespace vst3layoutdetail
@@ -50,6 +51,11 @@ namespace vst3layoutdetail
 		L"TSL", L"TSR"};
 	inline constexpr const wchar_t* surround714[] = {L"L", L"R", L"C", L"LFE", L"RL", L"RR", L"SL", L"SR",
 		L"TFL", L"TFR", L"TRL", L"TRR"};
+	// 13.1 (Auro-3D): the 7.1 floor, the top centre, and five heights around
+	// it. Some plug-ins spell the floor with Sl/Sr and the rear-centre pair
+	// (Lcs/Rcs) instead of Ls/Rs and Sl/Sr; RL/RR take the rear pair either way.
+	inline constexpr const wchar_t* surround131[] = {L"L", L"R", L"C", L"LFE", L"RL", L"RR", L"SL", L"SR",
+		L"TC", L"TFL", L"TFC", L"TFR", L"TRL", L"TRR"};
 }
 
 // The one table of what each layout is on the config side (audit #348
@@ -76,7 +82,8 @@ inline constexpr VST3BusLayoutDefinition vst3BusLayoutTable[] = {
 	{VST3BusLayout::Surround61, L"6.1", vst3layoutdetail::surround61},
 	{VST3BusLayout::Surround71, L"7.1", vst3layoutdetail::surround71},
 	{VST3BusLayout::Surround712, L"7.1.2", vst3layoutdetail::surround712},
-	{VST3BusLayout::Surround714, L"7.1.4", vst3layoutdetail::surround714}
+	{VST3BusLayout::Surround714, L"7.1.4", vst3layoutdetail::surround714},
+	{VST3BusLayout::Surround131, L"13.1", vst3layoutdetail::surround131}
 };
 
 namespace vst3layoutdetail
@@ -91,7 +98,7 @@ namespace vst3layoutdetail
 		return true;
 	}
 	static_assert(tableFollowsEnum(), "vst3BusLayoutTable rows must follow the VST3BusLayout order");
-	static_assert(std::size(vst3BusLayoutTable) == static_cast<size_t>(VST3BusLayout::Surround714) + 1,
+	static_assert(std::size(vst3BusLayoutTable) == static_cast<size_t>(VST3BusLayout::Surround131) + 1,
 		"vst3BusLayoutTable must have one row per VST3BusLayout");
 }
 
