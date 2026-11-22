@@ -125,7 +125,7 @@ run, has no such hand-off and no such buffer.
 - The Editor's analysis panel shows the delay it removed before measuring, and
   "Include base delay" puts it back into the phase and group-delay curves.
 - The installed APO was measured in loopback against this figure. In three
-  scenes of up to 30 convolutions it added 0 samples. The method, and the same
+  scenes of up to 26 convolutions it added 0 samples. The method, and the same
   scenes through CamillaDSP and Omniphony, are in the
   [latency benchmark](LatencyBenchmark.md).
 
