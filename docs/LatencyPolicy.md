@@ -124,6 +124,10 @@ run, has no such hand-off and no such buffer.
   application.
 - The Editor's analysis panel shows the delay it removed before measuring, and
   "Include base delay" puts it back into the phase and group-delay curves.
+- The installed APO was measured in loopback against this figure. In three
+  scenes of up to 26 convolutions it added 0 samples. The method, and the same
+  scenes through CamillaDSP and Omniphony, are in the
+  [latency benchmark](LatencyBenchmark.md).
 
 ## Not done yet
 
@@ -131,8 +135,6 @@ run, has no such hand-off and no such buffer.
   without aligning them. For 10 ms the two are heard at different times.
 - `Send:` `Latency=Auto`, which would follow the receiving device's period, is
   not implemented.
-- The real-latency figure has not yet been compared against a loopback
-  measurement of the installed APO.
 
 ## What to keep
 
