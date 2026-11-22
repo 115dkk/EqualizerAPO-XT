@@ -22,7 +22,12 @@ import zipfile
 import numpy as np
 import scipy.signal as signal
 import soundfile as sf
-import yaml
+try:
+    import yaml
+except ModuleNotFoundError:
+    # Local callers can reuse numeric/config-dictionary helpers without a
+    # YAML dependency; the runner provisions PyYAML before invoking main.
+    yaml = None
 
 # -I removes the script directory; add only our trusted checked-in helpers.
 sys.path.insert(0, str(Path(__file__).resolve().parent))

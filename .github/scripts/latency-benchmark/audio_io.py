@@ -11,7 +11,6 @@ import threading
 import time
 
 import numpy as np
-import psutil
 import scipy.signal as signal
 import sounddevice as sd
 import soundfile as sf
@@ -33,6 +32,7 @@ def device_index(name, direction):
 
 
 def audio_cpu():
+    import psutil
     values = {}
     for process in psutil.process_iter(['name']):
         if (process.info['name'] or '').lower() == 'audiodg.exe':
