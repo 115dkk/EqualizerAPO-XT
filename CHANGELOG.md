@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.78.0 — 2026-11-22
+
 - **A VST3 plugin can be given a 13.1 output bus.** `VSTPlugin:` accepts
   `Output 13.1` (and `Input 13.1`): the 7.1 floor, the top centre, and five
   heights around it, 14 channels named
