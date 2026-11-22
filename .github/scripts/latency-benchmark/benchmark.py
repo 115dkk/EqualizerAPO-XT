@@ -167,22 +167,23 @@ class Bench:
                 text.append('| ' + ' | '.join(val(cell) for cell in cells) + ' |')
         if 'omniphony_realtime' in self.data:
             text += ['', '## Omniphony realtime evidence', '',
-                     '| Target ms | Capture lag samples vs XT | Source epoch correction samples | Gain vs XT | Residual vs XT dB | Recording spike events vs own offline output | Zero gaps | Program warnings |',
-                     '|---|---:|---:|---:|---:|---:|---:|---:|']
+                     '| Target ms | Capture lag samples vs XT | Source epoch correction samples | Gain vs XT | Residual vs XT dB | Own offline peak | Recorded peak | Recording spike events vs own offline output | Zero gaps | Program warnings |',
+                     '|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|']
             for details in self.data['omniphony_realtime'].values():
                 if 'analysis' not in details:
                     continue
                 analysis, clean_analysis = details['analysis'], details['clean_analysis']
                 cells = [details['latency_target_ms'] if details['latency_target_ms'] is not None else 'unset', analysis['lag_samples'],
                          details['source_epoch_offset_samples'], analysis['gain'], analysis['residual_db'],
+                         clean_analysis['reference_peak'], clean_analysis['recording_peak'],
                          clean_analysis['residual_spike_events'], clean_analysis['zero_gap_events'], sum(details['program_warning_counts'].values())]
                 text.append('| ' + ' | '.join(val(cell) for cell in cells) + ' |')
-            text += ['', 'Program counter values are null when no explicit counter was logged, not assumed zero. Full numeric callback, counter and warning evidence is in results.json. Startup-inclusive added delay is not a measurement of steady-state DSP buffering.']
+            text += ['', 'Program counter values are null when no explicit counter was logged, not assumed zero. Full numeric callback, counter and warning evidence is in results.json. Startup-inclusive added delay is not a measurement of steady-state DSP buffering. Residual spikes alone are unconfirmed dropout candidates: an offline peak above full scale and a bounded recording can also indicate level limiting; no gain is tuned to remove that difference.']
         if 'frontends' in self.data:
             text += ['', '## Frontend settings observation', '', 'Only filenames and key names follow. No settings values, plugin state, or GUI automation were used.', '']
             for name, observation in self.data['frontends'].items():
                 text += ['### ' + name, '', '| File | Key names |', '|---|---|']
-                for row in observation['changed_files']:
+                for row in observation['changed_files'] + observation.get('preexisting_vendor_settings', []):
                     if any(token in row['file'].lower() for token in ['zauro', 'zsonic', 'multichannel', 'juce', '.settings']):
                         text.append('| ' + row['file'] + ' | ' + ', '.join(row['key_names']) + ' |')
                 for field in ['audio_device_keys', 'channel_count_keys', 'plugin_keys']:
@@ -885,6 +886,7 @@ log = "0.4.27"
         self.save()
 
     def phase_b4(self):
+        require((self.work / 'Omniphony-offline-1.wav').exists(), 'No Omniphony offline reference is available for realtime dropout analysis.')
         require(self.data.get('xt_apo', {}).get('uninstall', {}).get('exit_code') == 0,
                 'Omniphony realtime requires the XT APO to be uninstalled first.')
         require(all(self.endpoints[name]['format']['channels'] == 2 and self.endpoints[name]['format']['rate'] == RATE
@@ -928,12 +930,20 @@ log = "0.4.27"
             details['program_counters'] = counters
             details['program_warning_counts'] = warnings
             details['latency_target_ms'] = target
+            details['brir_load_confirmed'] = re.search(r'BRIR: .*?11 emitters.*?1 orientations', logs) is not None
             self.save()
             require(process['exit_code'] == 0, 'Omniphony realtime capture failed; available numeric producer diagnostics were retained.')
+            require(details['brir_load_confirmed'], 'Omniphony realtime did not confirm BRIR loading; fallback output is not accepted.')
             require(details['producer_wall_s'] >= 80, 'Omniphony did not render this file at realtime pace.')
             analysis = details['analysis']
             lag = analysis['lag_samples'] - details['source_epoch_offset_samples']
-            dropouts = not details['recording_clean'] or any(warnings.values()) or any(value for value in counters.values() if value is not None)
+            reported_dropouts = bool(any(details['callback_flags'].values()) or details['clean_analysis']['zero_gap_events'] or
+                                     any(warnings.values()) or any(value for value in counters.values() if value is not None))
+            residual_candidates = details['clean_analysis']['residual_spike_events']
+            dropouts = True if reported_dropouts else ('unconfirmed residual spikes' if residual_candidates else False)
+            details['dropout_interpretation'] = 'Residual spikes alone do not prove lost frames; limiter/clipping differences can also cause them. Counter omissions remain unknown.'
+            if details['clean_analysis']['reference_peak'] > 1 and details['clean_analysis']['recording_peak'] <= 1:
+                details['level_observation'] = 'Own offline output exceeds full scale while the recording is bounded below full scale. Level limiting is a possible cause of residual spikes, not a proven dropout cause. No gain was tuned.'
             row = {'program': 'Omniphony (startup-inclusive)', 'setting': 'latency_target=' + ('unset' if target is None else str(target)),
                    'lag_samples': analysis['lag_samples'], 'source_epoch_corrected_lag_samples': lag,
                    'added_samples': lag - self.l0, 'added_ms': (lag - self.l0) * 1000 / RATE,
@@ -973,6 +983,10 @@ log = "0.4.27"
             self.save()
             return 1
         for name, action in [('prepare', self.prepare), ('A1', self.phase_a1), ('A2', self.phase_a2), ('A3', self.phase_a3), ('A4', self.phase_a4), ('A5', self.phase_a5), ('A6', self.phase_a6), ('B0', self.phase_b0), ('B1', self.phase_b1), ('B2', self.phase_b2), ('B3', self.phase_b3), ('B4', self.phase_b4), ('B5', self.phase_b5)]:
+            if name in ('A6', 'B4') and not self.data['steps']['A5'].startswith('measured:'):
+                self.data['steps'][name] = 'not measured: Omniphony bridge or SOFA validation in A5 did not complete'
+                self.save()
+                continue
             try:
                 action()
             except Exception as exc:
@@ -986,7 +1000,9 @@ log = "0.4.27"
                                                     if Path(frame.filename).name == 'benchmark.py']
                 self.data.setdefault('phase_failures', {})[name] = {'reason': reason, 'locations': self.data['diagnostic_locations']}
                 self.save()
-                if name in ('B3', 'B4', 'B5'):
+                if name in ('A5', 'A6', 'B3', 'B4', 'B5'):
+                    # Omniphony is optional: a bridge/build/render failure
+                    # must not prevent the independent cable and XT rounds.
                     continue
                 return 0
         self.save()

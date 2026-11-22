@@ -87,7 +87,9 @@ def key_names(path):
                 for child in value[:100]:
                     walk(child, depth + 1)
         walk(json.loads(text))
-    else:
+    elif path.suffix.lower() in ['.ini', '.cfg']:
+        # An opaque .settings file may be a state blob, not key=value text.
+        # Only explicitly INI/CFG files use this grammar.
         for line in text.splitlines():
             if '=' in line and not line.lstrip().startswith(('#', ';')):
                 add(line.split('=', 1)[0].strip())
@@ -135,14 +137,29 @@ def main():
         except (OSError, ValueError, ET.ParseError):
             row['key_parse_failed'] = True
         changes.append(row)
+    preexisting = []
+    for (scope, relative), stamp in after.items():
+        if before.get((scope, relative)) != stamp:
+            continue
+        path = Path(os.environ[scope]) / relative
+        if path.suffix.lower() not in ['.settings', '.xml', '.json', '.ini', '.cfg'] or not any(
+                token in relative.lower() for token in ['zauro', 'zsonic', 'multichannel', 'juce']):
+            continue
+        row = {'file': '%' + scope + '%\\' + relative, 'key_names': []}
+        try:
+            row['key_names'] = key_names(path)
+        except (OSError, ValueError, ET.ParseError):
+            row['key_parse_failed'] = True
+        preexisting.append(row)
     roots_after = software_roots()
     scopes = roots_after - roots_before
     scopes.update(name for name in roots_after if any(token in name.lower().replace(' ', '') for token in ['zsonic', 'zauro', 'multichannel', 'juce']))
     keys = registry_names(scopes)
-    observed = {name for row in changes for name in row['key_names']}
+    observed = {name for row in changes + preexisting for name in row['key_names']}
     observed.update(name for row in keys for name in row['value_names'])
     data = {'startup_seconds': time.perf_counter() - started, 'terminated_after_five_seconds': killed,
             'exit_code': process.returncode, 'changed_files': changes[:200], 'changed_files_omitted': max(0, len(changes) - 200),
+            'preexisting_vendor_settings': preexisting[:100],
             'registry': keys,
             'audio_device_keys': sorted(name for name in observed if 'device' in name.lower()),
             'channel_count_keys': sorted(name for name in observed if 'channel' in name.lower() or 'chans' in name.lower()),
