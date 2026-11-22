@@ -34,6 +34,17 @@
 #      with this key, because main's "Required checks" ruleset lets only
 #      deploy keys through and the commit has no checks of its own. The key
 #      is never given to the audit job, where the Claude session has a shell.
+#
+# Before the Windows runner is provisioned, the check-quota job asks whether
+# the weekly Fable allowance of the subscription has room for an audit. The
+# audit model draws on it and other work on the same account needs it too;
+# the Alpha Audit in 115dkk/mactype_tauri used up what was left on
+# 2026-11-22 and stopped 23 minutes in at "You've hit your Fable limit". The
+# job sends one line to the audit model and reads the meter from the
+# rate_limit_event of the reply. With no more than FABLE_MIN_LEFT_PERCENT left
+# it skips the audit with a warning; when the meter cannot be read it fails,
+# so a change on the server side cannot quietly let audits through or quietly
+# stop them. force_run does not bypass it.
 
 name: Biweekly Audit
 
@@ -44,6 +55,10 @@ on:
     inputs:
       force_run:
         description: 'Run even if no relevant code changed'
+        type: boolean
+        default: false
+      quota_check_only:
+        description: 'Only report the weekly Fable allowance; do not audit'
         type: boolean
         default: false
 
@@ -57,6 +72,18 @@ env:
   # days before a scheduled date replaces that date's run and the following
   # one (at least fourteen days later) still fires.
   MIN_AUDIT_INTERVAL_DAYS: 10
+  # Claude Code knows this model from 2.1.321 on; the CLI installs below are
+  # unpinned, so every run gets a release that has it.
+  AUDIT_MODEL: claude-mythos-5-2
+  # The audit starts only with more than this share of the weekly Fable
+  # allowance left (check-quota job).
+  FABLE_MIN_LEFT_PERCENT: 25
+  # The unified rate-limit window that holds the weekly Fable allowance. A
+  # quota probe in 115dkk/mactype_tauri on 2026-11-22 (run 45077057646) found
+  # it under this name, at utilization 1 and status rejected with the reset
+  # time of the CLI's "You've hit your Fable limit" message, beside the
+  # all-models seven_day window.
+  FABLE_WINDOW: seven_day_overage_included
 
 jobs:
   check-changes:
@@ -139,9 +166,102 @@ jobs:
             echo "should_audit=true" >> "$GITHUB_OUTPUT"
           fi
 
-  audit:
+  check-quota:
     needs: check-changes
-    if: needs.check-changes.outputs.should_audit == 'true'
+    if: inputs.quota_check_only || needs.check-changes.outputs.should_audit == 'true'
+    runs-on: ubuntu-24.04
+    outputs:
+      proceed: ${{ steps.quota.outputs.proceed }}
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: '22'
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Check the weekly Fable allowance
+        id: quota
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+            echo "::error::CLAUDE_CODE_OAUTH_TOKEN secret is not configured. Generate a subscription OAuth token with 'claude setup-token'."
+            exit 1
+          fi
+
+          # Either of these outranks the subscription token in the CLI.
+          unset ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN
+
+          # One line on the audit model with no tools, pinned like the audit
+          # itself, so an account without access fails here rather than being
+          # answered by another model. It runs from an empty directory so no
+          # CLAUDE.md or project settings load. The reply's rate_limit_event
+          # carries every weekly window the request counted against; /usage
+          # cannot help, because a setup-token credential lacks the
+          # user:profile scope the plan-usage report needs.
+          check_dir="$RUNNER_TEMP/quota-check"
+          mkdir -p "$check_dir"
+          cd "$check_dir"
+          set +e
+          claude \
+            --model "$AUDIT_MODEL" \
+            --settings "{\"availableModels\": [\"$AUDIT_MODEL\"]}" \
+            --tools "" \
+            --max-turns 1 \
+            --output-format stream-json --verbose \
+            -p "Reply with OK." > check.jsonl 2> check.err
+          status=$?
+          set -e
+
+          result=$(jq -r 'select(.type == "result") | .result // empty' check.jsonl 2>/dev/null | tail -n 1 || true)
+          events=$(jq -c 'select(.type == "rate_limit_event") | .rate_limit_info' check.jsonl 2>/dev/null || true)
+          # A session can send more than one event (a side request on a
+          # smaller model reports other windows), so take the last one that
+          # carries the Fable window.
+          info=$(jq -c --arg w "$FABLE_WINDOW" 'select(.unifiedWindows[$w] != null)' <<< "$events" 2>/dev/null | tail -n 1 || true)
+
+          used=$(jq -r --arg w "$FABLE_WINDOW" '.unifiedWindows[$w].utilization // empty' <<< "${info:-null}")
+          if [ -z "$used" ]; then
+            seen=$(jq -r '.unifiedWindows // {} | keys[]' <<< "$events" 2>/dev/null | sort -u | paste -sd, - || true)
+            echo "::error::Could not read the weekly Fable allowance (window ${FABLE_WINDOW}) from the reply of ${AUDIT_MODEL}, so the audit does not start. Windows reported: ${seen:-none}. Exit ${status}: ${result:-no result}"
+            echo "rate_limit_event payloads:"
+            echo "${events:-none}"
+            tail -n 20 check.err
+            exit 1
+          fi
+
+          reset=$(jq -r --arg w "$FABLE_WINDOW" '.unifiedWindows[$w].resetsAt // empty' <<< "$info")
+          reset_text=$(date -u -d "@${reset}" '+%Y-%m-%d %H:%M UTC' 2>/dev/null || echo "at an unknown time")
+          read -r used_pct left_pct <<< "$(awk -v u="$used" 'BEGIN { p = sprintf("%.2f", u * 100); printf "%s %.2f\n", p, 100 - p }')"
+          summary="Weekly Fable allowance: ${used_pct}% used, ${left_pct}% left; the audit needs more than ${FABLE_MIN_LEFT_PERCENT}% left. It resets ${reset_text}."
+
+          if ! awk -v l="$left_pct" -v m="$FABLE_MIN_LEFT_PERCENT" 'BEGIN { exit !(l + 0 > m + 0) }'; then
+            echo "::warning::${summary} Skipping the audit."
+            echo "${summary} The audit was skipped." >> "$GITHUB_STEP_SUMMARY"
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ "$status" -ne 0 ] || ! jq -e 'select(.type == "result") | .is_error == false' check.jsonl > /dev/null 2>&1; then
+            echo "::error::${AUDIT_MODEL} refused a one-line request on the subscription token (exit ${status}) although the Fable allowance has room. ${result:-no result}"
+            tail -n 20 check.err
+            exit 1
+          fi
+
+          echo "$summary"
+          echo "$summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "proceed=true" >> "$GITHUB_OUTPUT"
+
+  audit:
+    needs: [check-changes, check-quota]
+    if: >-
+      needs.check-changes.outputs.should_audit == 'true'
+      && needs.check-quota.outputs.proceed == 'true'
+      && !inputs.quota_check_only
     # Same image as the build matrix: VS 2026 (v145), MSBuild, Python, Node.
     runs-on: windows-2025-vs2026
     timeout-minutes: 240
@@ -152,9 +272,6 @@ jobs:
         shell: bash
     env:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-      # Claude Code knows this model from 2.1.321 on; the CLI install below
-      # is unpinned, so every run gets a release that has it.
-      AUDIT_MODEL: claude-mythos-5-2
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
