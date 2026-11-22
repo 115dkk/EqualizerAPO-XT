@@ -218,12 +218,18 @@ jobs:
           set -e
 
           result=$(jq -r 'select(.type == "result") | .result // empty' check.jsonl 2>/dev/null | tail -n 1 || true)
-          info=$(jq -c 'select(.type == "rate_limit_event") | .rate_limit_info' check.jsonl 2>/dev/null | tail -n 1 || true)
-          echo "rate_limit_info: ${info:-none}"
+          events=$(jq -c 'select(.type == "rate_limit_event") | .rate_limit_info' check.jsonl 2>/dev/null || true)
+          # A session can send more than one event (a side request on a
+          # smaller model reports other windows), so take the last one that
+          # carries the Fable window.
+          info=$(jq -c --arg w "$FABLE_WINDOW" 'select(.unifiedWindows[$w] != null)' <<< "$events" 2>/dev/null | tail -n 1 || true)
 
           used=$(jq -r --arg w "$FABLE_WINDOW" '.unifiedWindows[$w].utilization // empty' <<< "${info:-null}")
           if [ -z "$used" ]; then
-            echo "::error::Could not read the weekly Fable allowance (window ${FABLE_WINDOW}) from the reply of ${AUDIT_MODEL}, so the audit does not start. Exit ${status}: ${result:-no result}"
+            seen=$(jq -r '.unifiedWindows // {} | keys[]' <<< "$events" 2>/dev/null | sort -u | paste -sd, - || true)
+            echo "::error::Could not read the weekly Fable allowance (window ${FABLE_WINDOW}) from the reply of ${AUDIT_MODEL}, so the audit does not start. Windows reported: ${seen:-none}. Exit ${status}: ${result:-no result}"
+            echo "rate_limit_event payloads:"
+            echo "${events:-none}"
             tail -n 20 check.err
             exit 1
           fi
