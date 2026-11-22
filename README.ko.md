@@ -117,7 +117,7 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
 - 엔드포인트 사이 전송: `Send: {엔드포인트} L=SUB1 R=SUB2`는 같은 컴퓨터의 다른 재생 엔드포인트 이퀄라이저로 채널을 넘기고, 이 엔드포인트의 채널을 그만큼 늦춰 시간을 맞추며, 받는 쪽 소리에 섞거나 대신할 수 있습니다. 장치 선택기의 전송 옵션을 켜면 받는 엔드포인트에서 아무것도 재생하지 않아도 처리가 돕니다.
 - 이름으로 가상 채널을 만듭니다. `NewChannel: VC VRL VRR`은 장치에 없는 무음 채널을 선언하고 채널 선택에 더하므로, VST 업믹서가 늘린 출력을 받아 두었다가 `Copy:` 줄로 장치 채널에 다시 섞을 수 있습니다.
 - Steinberg VST3 SDK(MIT 라이선스 pluginterfaces)로 VST3를 네이티브 호스팅하며, 플러그인이 지원하면 64비트(double)로 처리합니다. 채널 배치는 실제 채널 이름으로 협상하므로 4.1 시스템이 5.0으로 잘못 알려지지 않습니다.
-- `VSTPlugin: Library "...\\Plugin.vst3" Input Stereo Output 7.1`처럼 VST3 주 입력·출력 버스를 서로 다르게 지정할 수 있습니다. 각 방향은 Auto, Mono, Stereo, 4.0, 4.1, 5.0, 5.1, 6.1, 7.1, 7.1.2, 7.1.4를 지원합니다. VST3가 계약을 거부하면 다른 폭으로 몰래 바꾸지 않고 입력을 그대로 통과시키며, VST2는 레이아웃 키를 무시합니다. 자세한 문법은 [설정 레퍼런스](https://github.com/115dkk/EqualizerAPO-XT/wiki/Korean-Configuration-reference#vstplugin-버스-레이아웃)에 있습니다.
+- `VSTPlugin: Library "...\\Plugin.vst3" Input Stereo Output 7.1`처럼 VST3 주 입력·출력 버스를 서로 다르게 지정할 수 있습니다. 각 방향은 Auto, Mono, Stereo, 4.0, 4.1, 5.0, 5.1, 6.1, 7.1, 7.1.2, 7.1.4, 13.1을 지원합니다. VST3가 계약을 거부하면 다른 폭으로 몰래 바꾸지 않고 입력을 그대로 통과시키며, VST2는 레이아웃 키를 무시합니다. 자세한 문법은 [설정 레퍼런스](https://github.com/115dkk/EqualizerAPO-XT/wiki/Korean-Configuration-reference#vstplugin-버스-레이아웃)에 있습니다.
 - SIMD 커널은 [Google Highway](https://github.com/google/highway)로 한 번만 작성해 변형별로 컴파일합니다. x64는 SSE2, AVX, AVX2, AVX-512, AVX10.1, ARM64는 NEON입니다.
 - Qt Editor를 현대화했습니다. 카드 기반 필터 UI와 행 chrome·노브 렌더링·Copy 라우팅 렌더러까지 서로 다른 5종 스킨([docs/skin-integration-report.md](docs/skin-integration-report.md)), 내장 폰트, 고해상도(High-DPI) 대응이 들어 있습니다.
 - Editor가 새 릴리스를 백그라운드에서 내려받아 종료할 때 적용하는 자동 업데이트가 들어 있습니다. '설정 > 자동 업데이트'로 끌 수 있고, '문제 해결 > 업데이트 확인'으로 바로 확인할 수 있습니다.
