@@ -155,9 +155,42 @@ class Bench:
                          analysis['residual_db'], len(details.get('program_diagnostics', {}).get('mute_reports', []))]
                 text.append('| ' + ' | '.join(val(cell) for cell in cells) + ' |')
             text += ['', 'Clean requires no active-music callback under/overflow, no unexpected zero gap longer than 1 ms, and no 10 ms residual block above max(-20 dB, ten times the median residual power ratio). For baseline/XT it also requires residual below -30 dB and no XT mute/passthrough diagnostic. Startup/tail flags remain in results.json.']
+        if 'multichannel' in self.data:
+            text += ['', '## Multichannel cable attempts', '', self.data['multichannel']['second_cable_blocker'], '',
+                     '| Requested channels | Render set HRESULT | Capture set HRESULT | Final render channels | Final capture channels | Probe exit | All channels verified |',
+                     '|---:|---:|---:|---:|---:|---:|---|']
+            for attempt in self.data['multichannel']['attempts']:
+                results = attempt['format_results']
+                endpoints = {row['name']: row for row in attempt.get('snapshot', {}).get('endpoints', [])}
+                counts = [(endpoints.get(name, {}).get('format') or {}).get('channels') for name in ['CABLE Input', 'CABLE Output']]
+                cells = [attempt['channels_requested']] + [results[i].get('set_hresult') if i < len(results) else None for i in range(2)] + counts + [attempt.get('probe_exit'), attempt.get('all_channels_delivered')]
+                text.append('| ' + ' | '.join(val(cell) for cell in cells) + ' |')
+        if 'omniphony_realtime' in self.data:
+            text += ['', '## Omniphony realtime evidence', '',
+                     '| Target ms | Capture lag samples vs XT | Source epoch correction samples | Gain vs XT | Residual vs XT dB | Recording spike events vs own offline output | Zero gaps | Program warnings |',
+                     '|---|---:|---:|---:|---:|---:|---:|---:|']
+            for details in self.data['omniphony_realtime'].values():
+                if 'analysis' not in details:
+                    continue
+                analysis, clean_analysis = details['analysis'], details['clean_analysis']
+                cells = [details['latency_target_ms'] if details['latency_target_ms'] is not None else 'unset', analysis['lag_samples'],
+                         details['source_epoch_offset_samples'], analysis['gain'], analysis['residual_db'],
+                         clean_analysis['residual_spike_events'], clean_analysis['zero_gap_events'], sum(details['program_warning_counts'].values())]
+                text.append('| ' + ' | '.join(val(cell) for cell in cells) + ' |')
+            text += ['', 'Program counter values are null when no explicit counter was logged, not assumed zero. Full numeric callback, counter and warning evidence is in results.json. Startup-inclusive added delay is not a measurement of steady-state DSP buffering.']
+        if 'frontends' in self.data:
+            text += ['', '## Frontend settings observation', '', 'Only filenames and key names follow. No settings values, plugin state, or GUI automation were used.', '']
+            for name, observation in self.data['frontends'].items():
+                text += ['### ' + name, '', '| File | Key names |', '|---|---|']
+                for row in observation['changed_files']:
+                    if any(token in row['file'].lower() for token in ['zauro', 'zsonic', 'multichannel', 'juce', '.settings']):
+                        text.append('| ' + row['file'] + ' | ' + ', '.join(row['key_names']) + ' |')
+                for field in ['audio_device_keys', 'channel_count_keys', 'plugin_keys']:
+                    text.append(field + ': ' + (', '.join(observation[field]) or 'none observed'))
+                text += ['', observation['conclusion'], '']
         text += ['', '## Step status', ''] + [f'- {key}: {value}' for key, value in self.data['steps'].items()]
         text += ['', '## Measurement definitions and limitations', ''] + ['- ' + x for x in self.data['notes']]
-        (self.summary / 'results.md').write_text('\n'.join(text) + '\n', encoding='ascii')
+        (self.summary / 'results.md').write_text('\n'.join(text) + '\n', encoding='ascii', errors='backslashreplace')
 
     def run(self, label, command, timeout=300, cwd=None, allowed=(0,), load_port=None):
         # stdout/stderr files prevent pipe deadlocks and keep arbitrary vendor
@@ -638,7 +671,7 @@ log = "0.4.27"
         self.save()
         require(loaded is not None and int(loaded[1]) == 11, 'Omniphony did not confirm loading the eleven-emitter SOFA; fallback is not accepted.')
         self.data['steps']['A5'] = 'measured: reference bridge built, check-bridges passed, eleven-emitter SOFA loaded via the installed file backend'
-        self.data['notes'].append('Contrary to the brief, installed Omniphony v0.7.0 supports a non-realtime file output backend. Used only to validate BRIR loading, not to claim realtime performance.')
+        self.data['notes'].append('Installed Omniphony v0.7.0 supports a non-realtime file output backend, used for BRIR validation and offline throughput. Offline throughput is not a realtime latency or dropout measurement.')
         self.data['notes'].append('Omniphony source removes common BRIR lead silence, fades tails and normalizes direct-sound energy; its future latency/residual comparison must account for those transformations.')
         self.save()
 
@@ -796,6 +829,140 @@ log = "0.4.27"
             self.save()
             require(self.data['xt_apo']['uninstall']['exit_code'] == 0, 'XT render APO could not be uninstalled; later program measurements must not use this endpoint.')
 
+    def phase_b3(self):
+        # The official page exposes only donation/account-specific links, not
+        # a public A+B archive. Do not guess protected download URLs or replace
+        # the requested two-cable topology with a channel-sharing shortcut.
+        self.data['multichannel'] = {'source': 'https://vb-audio.com/Cable/VirtualCables.htm',
+            'second_cable_blocker': 'Official A+B pack requires a personal donation/account download link. No such link or authorized archive was provided; CABLE-A and CABLE-B are unavailable.',
+            'attempts': []}
+        try:
+            for channels in [12, 16]:
+                attempt = {'channels_requested': channels, 'format_results': []}
+                self.data['multichannel']['attempts'].append(attempt)
+                for name in ['CABLE Input', 'CABLE Output']:
+                    attempt['format_results'].append(self.cable_action(f'cable-{channels}-' + ('render' if name == 'CABLE Input' else 'capture'),
+                        'SetFormat', self.endpoints[name]['id'], channels))
+                snapshot = self.cable_action(f'cable-{channels}-snapshot', 'Snapshot')
+                attempt['snapshot'] = snapshot
+                available = {row['name']: row for row in snapshot['endpoints']}
+                accepted = all(available[name]['format'] is not None and
+                    available[name]['format']['channels'] == channels and available[name]['format']['rate'] == RATE
+                    for name in ['CABLE Input', 'CABLE Output'])
+                attempt['mix_formats_accepted'] = accepted
+                self.save()
+                if not accepted:
+                    attempt['probe'] = 'not measured: both shared mix formats did not accept the requested channel count'
+                    continue
+                # Independent deterministic signals prove delivery in every
+                # channel; these are synthetic, not any private input.
+                rng = np.random.default_rng(714)
+                audio = rng.standard_normal((45 * RATE, channels)).astype(np.float32) * 0.01
+                audio = signal.sosfilt(signal.butter(4, 4000, fs=RATE, output='sos'), audio, axis=0)
+                wave = self.work / f'channel-probe-{channels}.wav'
+                sf.write(wave, audio, RATE, subtype='FLOAT')
+                result = self.work / f'channel-probe-{channels}.json'
+                process = self.run(f'channel-probe-{channels}', [sys.executable, '-I', Path(__file__).with_name('audio_io.py'),
+                    '--play', wave, '--record', self.work / f'channel-probe-{channels}-recorded.wav', '--reference', wave,
+                    '--render-name', 'CABLE Input', '--capture-name', 'CABLE Output', '--channels', str(channels), '--json', result], 120, allowed=(0, 1))
+                attempt['probe'] = json.loads(result.read_text(encoding='ascii'))
+                attempt['probe_exit'] = process['exit_code']
+                attempt['all_channels_delivered'] = process['exit_code'] == 0 and attempt['probe']['analysis']['residual_power_ratio'] < 0.001
+                self.save()
+        finally:
+            for name in ['CABLE Input', 'CABLE Output']:
+                self.cable_action('cable-restore-' + ('render' if name == 'CABLE Input' else 'capture'),
+                                  'SetFormat', self.endpoints[name]['id'], 2)
+            snapshot = self.cable_action('cable-restored', 'Snapshot')
+            self.data['multichannel']['restored'] = snapshot
+            self.endpoints = {row['name']: row for row in snapshot['endpoints']}
+            self.save()
+            require(all(self.endpoints[name]['format'] is not None and self.endpoints[name]['format']['channels'] == 2 and
+                        self.endpoints[name]['format']['rate'] == RATE for name in ['CABLE Input', 'CABLE Output']),
+                    'Cable stereo format could not be restored after multichannel probing.')
+        self.data['steps']['B3'] = 'not measured: no authorized A+B download or second cable; standard-cable 12/16-channel format/probe attempts are recorded, but no alternate topology was substituted'
+        self.data['notes'].append('No CamillaDSP lowest clean realtime setting exists in this run: the two-cable topology could not be assembled. Hosted-runner CPU is stated above; no result is generalized to a faster machine.')
+        self.save()
+
+    def phase_b4(self):
+        require(self.data.get('xt_apo', {}).get('uninstall', {}).get('exit_code') == 0,
+                'Omniphony realtime requires the XT APO to be uninstalled first.')
+        require(all(self.endpoints[name]['format']['channels'] == 2 and self.endpoints[name]['format']['rate'] == RATE
+                    for name in ['CABLE Input', 'CABLE Output']), 'Omniphony requires restored stereo cable formats.')
+        self.run('Omniphony-devices', [self.orender, 'list-asio-devices'], 60)
+        device_text = (self.work / 'Omniphony-devices.stdout.log').read_text(errors='replace')
+        require(re.search(r'^Output host:\s*WASAPI', device_text, re.M | re.I) is not None,
+                'Omniphony did not select its WASAPI fallback host; no default or different backend was substituted.')
+        names = re.findall(r'^\s*\d+\.\s+(CABLE Input(?: \([^\r\n]+\))?)\s*$', device_text, re.M)
+        require(len(names) == 1, 'Omniphony did not enumerate one exact CABLE Input target.')
+        self.data['omniphony']['realtime_device'] = names[0]
+        self.data['notes'].append('Omniphony realtime uses the process-start request as its file-source epoch, interpolated from capture callbacks (10 ms callback-clock resolution). Its lag-minus-L0 includes CLI initialization and BRIR preprocessing; it is not an isolated steady-state DSP-buffer delay. No silent extra render stream or alternate cable topology is used.')
+        for target in [None, 10]:
+            label = 'Omniphony-realtime-' + ('unset' if target is None else str(target))
+            config = yaml.safe_load((self.work / 'omni.yml').read_text())
+            if target is not None:
+                config['render']['latency_target'] = target
+            path = self.work / (label + '.yml')
+            path.write_text(yaml.safe_dump(config), encoding='utf-8')
+            command = [str(self.orender), '--config', str(path), '--loglevel', 'info', '--log-format', 'json',
+                'render', str(self.work / 'omni-feed.wav'), '--bridge-path', str(self.work / 'omni-target/release/reference_bridge.dll'),
+                '--output-backend', 'asio', '--output-device', names[0]]
+            command_file = self.work / (label + '-command.json')
+            command_file.write_text(json.dumps(command), encoding='utf-8')
+            output = self.work / (label + '.json')
+            process = self.run(label + '-capture', [sys.executable, '-I', Path(__file__).with_name('omni_realtime.py'),
+                '--command', command_file, '--capture-name', 'CABLE Output', '--record', self.work / (label + '.wav'),
+                '--reference', self.work / 'XT-480-1.wav', '--clean-reference', self.work / 'Omniphony-offline-1.wav',
+                '--json', output, '--log-prefix', self.work / label, '--workspace', self.args.workspace], 170, allowed=(0, 1))
+            details = json.loads(output.read_text(encoding='ascii'))
+            self.data.setdefault('omniphony_realtime', {})[label] = details
+            logs = ''.join((self.work / (label + '.' + stream + '.log')).read_text(errors='replace')
+                           for stream in ['stdout', 'stderr'] if (self.work / (label + '.' + stream + '.log')).exists())
+            counters = {}
+            for key in ['frames_lost', 'frames_filled', 'realigns', 'underruns']:
+                values = re.findall(r'\b' + key + r'\b["\s]*[:=]["\s]*(\d+)', logs)
+                counters[key] = max(int(value) for value in values) if values else None
+            warnings = {}
+            for pattern in ['underrun', 'realign', 'frames lost', 'frames filled', 'buffer overrun', 'clock mismatch']:
+                warnings[pattern] = sum(pattern in line.lower() and re.search(r'warn|error', line, re.I) is not None for line in logs.splitlines())
+            details['program_counters'] = counters
+            details['program_warning_counts'] = warnings
+            details['latency_target_ms'] = target
+            self.save()
+            require(process['exit_code'] == 0, 'Omniphony realtime capture failed; available numeric producer diagnostics were retained.')
+            require(details['producer_wall_s'] >= 80, 'Omniphony did not render this file at realtime pace.')
+            analysis = details['analysis']
+            lag = analysis['lag_samples'] - details['source_epoch_offset_samples']
+            dropouts = not details['recording_clean'] or any(warnings.values()) or any(value for value in counters.values() if value is not None)
+            row = {'program': 'Omniphony (startup-inclusive)', 'setting': 'latency_target=' + ('unset' if target is None else str(target)),
+                   'lag_samples': analysis['lag_samples'], 'source_epoch_corrected_lag_samples': lag,
+                   'added_samples': lag - self.l0, 'added_ms': (lag - self.l0) * 1000 / RATE,
+                   'dropouts': dropouts, 'cpu_s': details['producer_cpu_s'], 'gain': analysis['gain'],
+                   'residual_db': analysis['residual_db'], 'clean': not dropouts,
+                   'added_delay_valid': False,
+                   'added_delay_limitation': 'Startup-inclusive source epoch, not independently timestamped first decoded audio; cannot establish steady-state DSP buffering.'}
+            self.data['phase_b'].append(row)
+            self.save()
+        self.data['steps']['B4'] = 'measured: WASAPI file playback at unset and 10 ms targets, CPU/recording/log diagnostics and startup-inclusive lag; isolated steady-state added delay not measured'
+        self.save()
+
+    def phase_b5(self):
+        self.run('install-MultiChannel-host', [self.inputs / 'MultiChannelPluginHost-1.1.1-Windows-x64-Setup.exe',
+            '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-'], 300)
+        self.data['frontends'] = {}
+        programs = {'MultiChannel Plugin Host': Path(r'C:\Program Files\MultiChannel Plugin Host\MultiChannel Plugin Host.exe'),
+                    'zAuro standalone': Path(r'C:\Program Files\zSonic\zAuro\zAuro Pro 2D-3D Upmixer.exe')}
+        for index, (name, executable) in enumerate(programs.items()):
+            label = f'frontend-{index}'
+            output = self.work / (label + '.json')
+            require(executable.exists(), 'A frontend executable was not found at its established installer location.')
+            self.run(label, [sys.executable, '-I', Path(__file__).with_name('frontend_settings.py'), '--exe', executable,
+                     '--work', self.work, '--output', output, '--label', label], 150)
+            self.data['frontends'][name] = json.loads(output.read_text(encoding='ascii'))
+            self.save()
+        self.data['steps']['B5'] = 'investigated: each frontend ran for up to five seconds and was terminated; only changed filenames and XML/JSON/registry key names were retained; no UI automation or settings-value export'
+        self.save()
+
     def execute(self):
         # Installation failures are harness failures; later failures preserve
         # completed measurements and return zero with explicit step status.
@@ -805,7 +972,7 @@ log = "0.4.27"
             self.data['harness'] = str(exc) if isinstance(exc, MeasurementError) else 'Product installation failed; logs retained only in Work.'
             self.save()
             return 1
-        for name, action in [('prepare', self.prepare), ('A1', self.phase_a1), ('A2', self.phase_a2), ('A3', self.phase_a3), ('A4', self.phase_a4), ('A5', self.phase_a5), ('A6', self.phase_a6), ('B0', self.phase_b0), ('B1', self.phase_b1), ('B2', self.phase_b2)]:
+        for name, action in [('prepare', self.prepare), ('A1', self.phase_a1), ('A2', self.phase_a2), ('A3', self.phase_a3), ('A4', self.phase_a4), ('A5', self.phase_a5), ('A6', self.phase_a6), ('B0', self.phase_b0), ('B1', self.phase_b1), ('B2', self.phase_b2), ('B3', self.phase_b3), ('B4', self.phase_b4), ('B5', self.phase_b5)]:
             try:
                 action()
             except Exception as exc:
@@ -817,7 +984,10 @@ log = "0.4.27"
                 self.data['diagnostic_locations'] = [{'function': frame.name, 'line': frame.lineno}
                                                     for frame in traceback.extract_tb(exc.__traceback__)
                                                     if Path(frame.filename).name == 'benchmark.py']
+                self.data.setdefault('phase_failures', {})[name] = {'reason': reason, 'locations': self.data['diagnostic_locations']}
                 self.save()
+                if name in ('B3', 'B4', 'B5'):
+                    continue
                 return 0
         self.save()
         return 0

@@ -171,6 +171,8 @@ def analyse(recording, reference):
     lengths = np.flatnonzero(edges == -1) - np.flatnonzero(edges == 1)
     gaps = int(np.sum(lengths > RATE // 1000))
     return {'lag_samples': lag, 'lag_ms': lag * 1000 / RATE, 'gain': gain,
+            'reference_peak': float(np.max(np.abs(expected))), 'recording_peak': float(np.max(np.abs(actual))),
+            'recording_near_full_scale_fraction': float(np.mean(np.abs(actual) >= 0.999)),
             'residual_db': residual_db, 'residual_power_ratio': ratio,
             'residual_spike_events': spike_events, 'residual_spike_blocks': int(np.sum(spikes)),
             'residual_spike_threshold_power_ratio': threshold, 'zero_gap_events': gaps,
