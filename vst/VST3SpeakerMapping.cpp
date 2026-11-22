@@ -16,6 +16,10 @@ using namespace Steinberg::Vst;
 
 namespace
 {
+	// 13.1 as zAuro Pro spells it: L R C Lfe Sl Sr Tc Tfl Tfc Tfr Trl Trr Lcs Rcs.
+	const SpeakerArrangement k131RearCentreSpelling =
+		(SpeakerArr::k131 & ~(kSpeakerLs | kSpeakerRs)) | kSpeakerLcs | kSpeakerRcs;
+
 	// The SDK side of vst3BusLayoutTable (audit #348 TD-48): for each layout,
 	// in the same order, the speaker arrangements that stand for it.
 	//   - layout: proposed, in this order, when the config names the layout,
@@ -53,7 +57,9 @@ namespace
 				{SpeakerArr::k71Music, SpeakerArr::k71Cine}, true, false},
 			{VST3BusLayout::Surround712, {SpeakerArr::k71_2, SpeakerArr::k71_2_TF},
 				{SpeakerArr::k71_2}, true, false},
-			{VST3BusLayout::Surround714, {SpeakerArr::k71_4}, {SpeakerArr::k71_4}, true, false}
+			{VST3BusLayout::Surround714, {SpeakerArr::k71_4}, {SpeakerArr::k71_4}, true, false},
+			{VST3BusLayout::Surround131, {SpeakerArr::k131, k131RearCentreSpelling},
+				{SpeakerArr::k131, k131RearCentreSpelling}, true, false}
 		};
 		return rows;
 	}
@@ -188,6 +194,10 @@ bool vst3speakers::buildChannelMapping(SpeakerArrangement arrangement,
 	const bool hasSidePair = find(channelNames.begin(), channelNames.end(), L"SL") != channelNames.end()
 		&& find(channelNames.begin(), channelNames.end(), L"SR") != channelNames.end();
 
+	// The rear pair is Lcs/Rcs in an arrangement that has no Ls/Rs.
+	const bool rearCentreSpelling = (arrangement & (kSpeakerLs | kSpeakerRs)) == 0
+		&& (arrangement & kSpeakerLcs) != 0 && (arrangement & kSpeakerRcs) != 0;
+
 	vector<int> proposedMapping(channelCount);
 	for (int i = 0; i < channelCount; i++)
 		proposedMapping[i] = i;
@@ -205,13 +215,13 @@ bool vst3speakers::buildChannelMapping(SpeakerArrangement arrangement,
 		else if (name == L"LFE")
 			speaker = kSpeakerLfe;
 		else if (name == L"RL")
-			speaker = kSpeakerLs;
+			speaker = rearCentreSpelling ? kSpeakerLcs : kSpeakerLs;
 		else if (name == L"RR")
-			speaker = kSpeakerRs;
+			speaker = rearCentreSpelling ? kSpeakerRcs : kSpeakerRs;
 		else if (name == L"SL")
-			speaker = hasRearPair && hasSidePair ? kSpeakerSl : kSpeakerLs;
+			speaker = (hasRearPair && hasSidePair) || rearCentreSpelling ? kSpeakerSl : kSpeakerLs;
 		else if (name == L"SR")
-			speaker = hasRearPair && hasSidePair ? kSpeakerSr : kSpeakerRs;
+			speaker = (hasRearPair && hasSidePair) || rearCentreSpelling ? kSpeakerSr : kSpeakerRs;
 		else if (name == L"RC")
 			speaker = kSpeakerCs;
 		else if (name == L"TFL")
@@ -226,6 +236,10 @@ bool vst3speakers::buildChannelMapping(SpeakerArrangement arrangement,
 			speaker = kSpeakerTsl;
 		else if (name == L"TSR")
 			speaker = kSpeakerTsr;
+		else if (name == L"TC")
+			speaker = kSpeakerTc;
+		else if (name == L"TFC")
+			speaker = kSpeakerTfc;
 		else
 			return false;
 

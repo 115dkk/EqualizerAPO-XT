@@ -14,6 +14,21 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.78.0 — 2026-11-22
+
+- **A VST3 plugin can be given a 13.1 output bus.** `VSTPlugin:` accepts
+  `Output 13.1` (and `Input 13.1`): the 7.1 floor, the top centre, and five
+  heights around it, 14 channels named
+  `L R C LFE RL RR SL SR TC TFL TFC TFR TRL TRR`. Until now the widest layout
+  was 7.1.4, and a plugin whose main bus is wider could not be asked for it;
+  a `VSTPlugin:` line that listed 14 output channels without a layout did not
+  run the plugin at all. zAuro Pro's largest layouts (7.1.6 and 7.4.6 in its
+  own menu) use this bus, in a spelling with the rear pair last, and the
+  channels are put in the order above either way. Checked with zAuro Pro
+  0.4.1 through Benchmark. The three extra LFE buses of its 7.4.6 layout are
+  not read; only the main bus is.
+  ([#520](https://github.com/115dkk/EqualizerAPO-XT/pull/520))
+
 ## v2.77.0 — 2026-11-21
 
 - **Benchmark prints the delay a configuration adds.** After a run it prints

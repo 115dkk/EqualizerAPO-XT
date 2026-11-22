@@ -296,7 +296,8 @@ TEST_CASE(VSTPluginCommandTests, testVSTPluginBusContract)
 		{L"6.1", VST3BusLayout::Surround61, 7},
 		{L"7.1", VST3BusLayout::Surround71, 8},
 		{L"7.1.2", VST3BusLayout::Surround712, 10},
-		{L"7.1.4", VST3BusLayout::Surround714, 12}
+		{L"7.1.4", VST3BusLayout::Surround714, 12},
+		{L"13.1", VST3BusLayout::Surround131, 14}
 	};
 	for (const auto& expected : layouts)
 	{
