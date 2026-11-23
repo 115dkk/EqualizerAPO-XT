@@ -8,6 +8,21 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **Device Selector 창에 스킨의 제목 표시줄을 달았습니다.** 장치 목록과 설치
+  확인 창은 Windows 기본 제목 표시줄을 쓰고, 같은 스킨의 Editor 대화상자는
+  스킨의 제목 표시줄을 썼습니다. 이제 두 창도 그 대화상자와 같은 제목 표시줄을
+  씁니다. 스킨의 띠에 창 제목과 닫기 단추가 있습니다. 헤리티지 모양에서와
+  Editor의 보기 > 인터페이스 > 기본 제목 표시줄을 켰을 때는 Windows 제목
+  표시줄을 그대로 씁니다. 이 두 창을 손으로 끌기, 화면 가장자리에 붙이기,
+  크기 바꾸기는 해 보지 않았습니다. 창틀 코드는 Editor 대화상자가 이미 쓰는
+  것과 같습니다.
+  ([#523](https://github.com/115dkk/EqualizerAPO-XT/pull/523))
+- **툴팁을 스킨의 글꼴로 표시합니다.** 툴팁은 시스템 메시지 글꼴(한국어
+  Windows에서는 9pt 맑은 고딕)로 나왔고, Device Selector에서는 굵게
+  그려졌습니다. 이제 Editor와 Device Selector 모두 스킨의 글꼴, 크기, 굵기로
+  표시합니다.
+  ([#523](https://github.com/115dkk/EqualizerAPO-XT/pull/523))
+
 ## v2.78.0 — 2026-11-22
 
 - **VST3 플러그인에 13.1 출력 버스를 지정할 수 있습니다.** `VSTPlugin:`에
