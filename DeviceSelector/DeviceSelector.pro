@@ -25,7 +25,9 @@ SOURCES += \
 	../platform/qt/TintedIcon.cpp \
 	../Editor/skins/SkinThemeData.cpp \
 	../Editor/skins/rack/RackSkinDetail.cpp \
-	../Editor/skins/shared/TitleBarChrome.cpp \
+	../Editor/skins/matrix/MatrixTitleBarChrome.cpp \
+	../Editor/skins/rack/RackTitleBarChrome.cpp \
+	../Editor/skins/studio/StudioTitleBarChrome.cpp \
 	../Editor/widgets/DialogChrome.cpp \
 	../Editor/widgets/TitleBar.cpp \
 	../Editor/widgets/TitleBarSkin.cpp \
@@ -67,7 +69,9 @@ HEADERS += \
 	../Editor/skins/SkinThemeData.h \
 	../Editor/skins/rack/RackSkinDetail.h \
 	../Editor/skins/rack/RackPalette.h \
-	../Editor/skins/shared/TitleBarChrome.h \
+	../Editor/skins/matrix/MatrixTitleBarChrome.h \
+	../Editor/skins/rack/RackTitleBarChrome.h \
+	../Editor/skins/studio/StudioTitleBarChrome.h \
 	../Editor/helpers/WindowFrameHitTest.h \
 	../Editor/widgets/DialogChrome.h \
 	../Editor/widgets/TitleBar.h \

@@ -141,8 +141,6 @@ public:
 	static void setHeritageTheme();
 	static const DeviceSkinPainter* active();
 	static const SkinTokens& activeTokens();
-	// The active skin's roster id, empty in the heritage look.
-	static const QString& activeSkinId();
 
 	// The status sentence's ink while a row reports a check: red for a dead
 	// APO, the warning colour for a degraded one, the skin's pending ink while
@@ -161,6 +159,11 @@ public:
 	virtual void paintButton(QPainter& painter, const QRect& rect, const DeviceButtonState& state, const SkinTokens& tokens) const;
 
 	virtual void paintDisclosure(QPainter& painter, const QRect& rect, const DeviceDisclosureState& state, const SkinTokens& tokens) const;
+
+	// The skin's painted chrome over a window caption's QSS ground
+	// (DeviceCaption): the painter the Editor's skin uses for its own
+	// captions. Nothing by default, the QSS ground being the whole caption.
+	virtual void paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& tokens) const;
 
 	// The colour a tone speaks in, and its short instrument code (RUN, OK,
 	// WARN, FAIL, N/A) for the skins that label their parts.

@@ -311,7 +311,6 @@ SOURCES += main.cpp\
 	skins/HeritageSkin.cpp \
 	skins/shared/SkinFileIcons.cpp \
 	skins/SkinThemeData.cpp \
-	skins/shared/TitleBarChrome.cpp \
 	widgets/AddCardRow.cpp \
 	widgets/ActivatableListChrome.cpp \
 	widgets/AudioKnob.cpp \
@@ -694,7 +693,6 @@ HEADERS  += \
 	skins/shared/SkinChromeOverlay.h \
 	skins/shared/SkinPaint.h \
 	skins/shared/SkinSupport.h \
-	skins/shared/TitleBarChrome.h \
 	skins/SkinThemeData.h \
 	widgets/AddCardRow.h \
 	widgets/ActivatableListChrome.h \

@@ -25,6 +25,7 @@
 #include <QPainterPath>
 #include <QPolygonF>
 
+#include "Editor/skins/matrix/MatrixTitleBarChrome.h"
 #include "Editor/skins/shared/SkinPaint.h"
 
 namespace
@@ -605,6 +606,11 @@ private:
 		painter.setBrush(Qt::NoBrush);
 		painter.drawRect(rect.toRect().adjusted(0, 0, -1, -1));
 		painter.restore();
+	}
+
+	void paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& t) const override
+	{
+		MatrixTitleBarChrome::paint(painter, rect, t);
 	}
 };
 }

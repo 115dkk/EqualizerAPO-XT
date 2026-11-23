@@ -6,10 +6,10 @@
 
 #include "RackSkin.h"
 
-#include "Editor/skins/shared/TitleBarChrome.h"
+#include "RackTitleBarChrome.h"
 
 // The painter is shared with the Device Selector's captions.
 void RackSkin::paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& tokens) const
 {
-	TitleBarChrome::paintRack(painter, rect, tokens);
+	RackTitleBarChrome::paint(painter, rect, tokens);
 }

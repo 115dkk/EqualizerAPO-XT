@@ -6,6 +6,7 @@ SOURCES += \
 	$$PWD/MatrixSkin.GraphicEq.cpp \
 	$$PWD/MatrixSkin.Analysis.cpp \
 	$$PWD/MatrixSkin.TitleBar.cpp \
+	$$PWD/MatrixTitleBarChrome.cpp \
 	$$PWD/MatrixSkin.Toolbar.cpp \
 	$$PWD/MatrixSkin.FileDialog.cpp \
 	$$PWD/MatrixFileIcons.cpp \
@@ -16,6 +17,7 @@ SOURCES += \
 
 HEADERS += \
 	$$PWD/MatrixSkin.h \
+	$$PWD/MatrixTitleBarChrome.h \
 	$$PWD/MatrixSkinDetail.h \
 	$$PWD/picker/MatrixFilterPicker.h \
 	$$PWD/cards/MatrixReferenceCardView.h \

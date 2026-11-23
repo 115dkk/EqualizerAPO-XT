@@ -6,10 +6,10 @@
 
 #include "StudioSkin.h"
 
-#include "Editor/skins/shared/TitleBarChrome.h"
+#include "StudioTitleBarChrome.h"
 
 // The painter is shared with the Device Selector's captions.
 void StudioSkin::paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& tokens) const
 {
-	TitleBarChrome::paintStudio(painter, rect, tokens);
+	StudioTitleBarChrome::paint(painter, rect, tokens);
 }

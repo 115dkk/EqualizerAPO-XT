@@ -6,6 +6,7 @@ SOURCES += \
 	$$PWD/StudioSkin.GraphicEq.cpp \
 	$$PWD/StudioSkin.Analysis.cpp \
 	$$PWD/StudioSkin.TitleBar.cpp \
+	$$PWD/StudioTitleBarChrome.cpp \
 	$$PWD/StudioSkin.Toolbar.cpp \
 	$$PWD/StudioSkin.FileDialog.cpp \
 	$$PWD/StudioBandColor.cpp \
@@ -17,6 +18,7 @@ SOURCES += \
 
 HEADERS += \
 	$$PWD/StudioSkin.h \
+	$$PWD/StudioTitleBarChrome.h \
 	$$PWD/StudioBandColor.h \
 	$$PWD/StudioFileIcons.h \
 	$$PWD/picker/StudioFilterPicker.h \

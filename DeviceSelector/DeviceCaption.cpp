@@ -10,7 +10,6 @@
 #include <QColor>
 #include <QDialog>
 
-#include "Editor/skins/shared/TitleBarChrome.h"
 #include "Editor/widgets/DialogChrome.h"
 #include "Editor/widgets/TitleBarSkin.h"
 #include "skins/DeviceSkinPainter.h"
@@ -19,7 +18,8 @@ namespace
 {
 // The caption's view of the dialog-wide theme main() set
 // (DeviceSkinPainter::setActiveTheme): the skin's ink for the close glyph
-// and the skin's painted chrome, the same painter the Editor's skins use.
+// and the skin's painted chrome, which the Studio, Rack and Matrix painters
+// take from the same functions the Editor's skins use.
 class DeviceTitleBarSkin : public TitleBarSkin
 {
 public:
@@ -32,7 +32,7 @@ public:
 
 	void paintChrome(QPainter& painter, const QRect& rect) const override
 	{
-		TitleBarChrome::paint(DeviceSkinPainter::activeSkinId(), painter, rect, DeviceSkinPainter::activeTokens());
+		DeviceSkinPainter::active()->paintTitleBarChrome(painter, rect, DeviceSkinPainter::activeTokens());
 	}
 };
 
