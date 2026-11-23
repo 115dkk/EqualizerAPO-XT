@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.78.1 — 2026-11-23
+
 - **The Device Selector's windows wear the skin's title bar.** The device
   list and the installation check had the plain Windows title bar, while the
   Editor's dialogs in the same skin had the skin's own. They now have the

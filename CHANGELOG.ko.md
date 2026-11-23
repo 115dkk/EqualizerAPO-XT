@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.78.1 — 2026-11-23
+
 - **Device Selector 창에 스킨의 제목 표시줄을 달았습니다.** 장치 목록과 설치
   확인 창은 Windows 기본 제목 표시줄을 쓰고, 같은 스킨의 Editor 대화상자는
   스킨의 제목 표시줄을 썼습니다. 이제 두 창도 그 대화상자와 같은 제목 표시줄을
