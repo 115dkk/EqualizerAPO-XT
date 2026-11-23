@@ -38,6 +38,9 @@ QToolTip {
     border-top-color: rgba(255, 255, 255, 0.95);
     border-radius: 6px;
     padding: 6px 10px;
+    font-family: @FONT_STACK@;
+    font-size: 11pt;
+    font-weight: 500;
 }
 
 /* ===== Menu Bar - continues the window's glass =====

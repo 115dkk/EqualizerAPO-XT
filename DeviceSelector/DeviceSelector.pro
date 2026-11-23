@@ -22,9 +22,15 @@ SOURCES += \
 	../Editor/helpers/CrashHandler.cpp \
 	../services/app/QtAppBootstrap.cpp \
 	../platform/qt/HoverProgress.cpp \
+	../platform/qt/TintedIcon.cpp \
 	../Editor/skins/SkinThemeData.cpp \
 	../Editor/skins/rack/RackSkinDetail.cpp \
+	../Editor/skins/shared/TitleBarChrome.cpp \
+	../Editor/widgets/DialogChrome.cpp \
+	../Editor/widgets/TitleBar.cpp \
+	../Editor/widgets/TitleBarSkin.cpp \
 	main.cpp \
+	DeviceCaption.cpp \
 	DeviceListDelegate.cpp \
 	DeviceSelector.cpp \
 	DeviceTestDialog.cpp \
@@ -57,10 +63,17 @@ HEADERS += \
 	../platform/qt/HoverProgress.h \
 	../platform/qt/MotionPreference.h \
 	../platform/qt/ScrollBarPolicy.h \
+	../platform/qt/TintedIcon.h \
 	../Editor/skins/SkinThemeData.h \
 	../Editor/skins/rack/RackSkinDetail.h \
 	../Editor/skins/rack/RackPalette.h \
+	../Editor/skins/shared/TitleBarChrome.h \
+	../Editor/helpers/WindowFrameHitTest.h \
+	../Editor/widgets/DialogChrome.h \
+	../Editor/widgets/TitleBar.h \
+	../Editor/widgets/TitleBarSkin.h \
 	DeviceListDelegate.h \
+	DeviceCaption.h \
 	DeviceSelector.h \
 	DeviceTestDialog.h \
 	DeviceTestThread.h \

@@ -9,11 +9,12 @@
 	caption clashed with every skin (and the menu bar under it), so the window
 	draws its own: app title text and the minimize / maximize / close buttons,
 	all QSS-targetable (#AppTitleBar, #TitleBarText, #TitleBarMin, #TitleBarMax,
-	#TitleBarClose) and re-iconed through the skin layer. The frameless window
-	plumbing (WM_NCCALCSIZE / WM_NCHITTEST) lives in MainWindow::nativeEvent;
-	this widget is presentation plus button wiring only. A registry escape
-	hatch (interface/nativeTitleBar) restores the native caption for machines
-	where custom chrome misbehaves.
+	#TitleBarClose) and re-iconed through the skin layer (TitleBarSkin, which
+	the Editor and the Device Selector each install). The frameless window
+	plumbing (WM_NCCALCSIZE / WM_NCHITTEST) lives in MainWindow::nativeEvent
+	and DialogChrome; this widget is presentation plus button wiring only. A
+	registry escape hatch (interface/nativeTitleBar) restores the native
+	caption for machines where custom chrome misbehaves.
 */
 
 #pragma once
@@ -42,13 +43,13 @@ public:
 protected:
 	bool eventFilter(QObject* watched, QEvent* event) override;
 	void mouseDoubleClickEvent(QMouseEvent* event) override;
-	// QSS background first, then the active skin's painted chrome
-	// (ISkin::paintTitleBarChrome), then children.
+	// QSS background first, then the installed skin's painted chrome
+	// (TitleBarSkin::paintChrome), then children.
 	void paintEvent(QPaintEvent* event) override;
 
 private:
-	// Re-tint the caption button icons from the active skin's tokens; wired
-	// to SkinManager::skinChanged in the constructor so every switch path
+	// Re-tint the caption button icons with the installed skin's ink; wired
+	// to TitleBarSkin::changed in the constructor so every switch path
 	// (menu, shortcut, preferences) keeps the glyphs on the skin's ink.
 	void applySkinIcons();
 	void updateMaximizeButton();

@@ -47,6 +47,7 @@
 #include "Editor/helpers/FileDialogShellMenu.h"
 #include "Editor/import/LegacyMigration.h"
 #include "Editor/widgets/DialogChrome.h"
+#include "platform/qt/TintedIcon.h"
 
 bool GUIHelper::isDarkMode()
 {
@@ -61,41 +62,15 @@ bool GUIHelper::isSystemDarkMode()
 	return QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark;
 }
 
+// Both live in platform/qt/TintedIcon, which the Device Selector compiles too.
 QIcon GUIHelper::tintedIcon(const QString& resource, const QColor& color, int size)
 {
-	QIcon base(resource);
-	QPixmap pixmap = base.pixmap(QSize(size, size));
-	if (pixmap.isNull())
-		return base;
-
-	// Keep the rendered glyph's alpha mask, replace its colour. CompositionMode_SourceIn
-	// paints the fill only where the source already has coverage, so the result is the
-	// same shape in the requested colour. The fill rect is in device-independent units;
-	// any overshoot on a high-DPI pixmap is harmless because untouched pixels stay clear.
-	QPainter painter(&pixmap);
-	painter.setCompositionMode(QPainter::CompositionMode_SourceIn);
-	painter.fillRect(QRect(QPoint(0, 0), pixmap.deviceIndependentSize().toSize()), color);
-	painter.end();
-
-	QIcon icon(pixmap);
-	// A disabled action must read as disabled from the glyph itself, not only
-	// from the button chrome: bake a faded variant instead of relying on the
-	// style's generated disabled look, which under the skins left the icon at
-	// full strength (undo/redo looked clickable with an empty history).
-	icon.addPixmap(fadedPixmap(pixmap), QIcon::Disabled);
-	return icon;
+	return TintedIcon::make(resource, color, size);
 }
 
 QPixmap GUIHelper::fadedPixmap(const QPixmap& pixmap)
 {
-	// DestinationIn multiplies the existing alpha, keeping the glyph's shape
-	// and colour while dropping its strength to roughly a third.
-	QPixmap faded = pixmap;
-	QPainter painter(&faded);
-	painter.setCompositionMode(QPainter::CompositionMode_DestinationIn);
-	painter.fillRect(faded.rect(), QColor(0, 0, 0, 90));
-	painter.end();
-	return faded;
+	return TintedIcon::faded(pixmap);
 }
 
 double GUIHelper::knobGainRange()

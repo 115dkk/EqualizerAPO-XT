@@ -38,6 +38,7 @@
 #include <devices/VoicemeeterAPOInfo.h>
 #include "ResidentHostLauncher.h"
 #include "../version.h"
+#include "DeviceCaption.h"
 #include "DeviceListDelegate.h"
 #include "DisclosureHeader.h"
 #include "SkinButton.h"
@@ -217,6 +218,10 @@ void DeviceSelector::setupChrome()
 	ui.gridLayout_3->addWidget(ui.receiveCheckBox, 4, 1, 1, 1);
 	ui.gridLayout_3->addWidget(resampleReceivedCheckBox, 4, 2, 1, 3);
 	resampleReceivedCheckBox->setVisible(false);
+
+	// Last, after the window flags and the title: the skin's caption in place
+	// of the native one, as on the Editor's dialogs.
+	DeviceCaption::mount(this);
 }
 
 void DeviceSelector::finishSetup()

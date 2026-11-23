@@ -7,6 +7,7 @@
 #include "SkinManager.h"
 
 #include <QApplication>
+#include <QColor>
 #include <QFile>
 #include <QFileDialog>
 #include <QWidget>
@@ -17,6 +18,36 @@
 #include "skins/Skins.h"
 #include "Editor/skins/HeritageSkin.h"
 #include "skins/SkinThemeData.h"
+#include "Editor/widgets/TitleBarSkin.h"
+
+namespace
+{
+// The caption strips' view of the active skin (TitleBarSkin). The strip lives
+// in code the Device Selector compiles too, so it cannot ask SkinManager
+// itself.
+class ActiveTitleBarSkin : public TitleBarSkin
+{
+public:
+	explicit ActiveTitleBarSkin(SkinManager* manager)
+		: TitleBarSkin(manager), manager(manager)
+	{
+		connect(manager, &SkinManager::skinChanged, this, &TitleBarSkin::changed);
+	}
+
+	QColor ink() const override
+	{
+		return QColor(manager->tokens().text);
+	}
+
+	void paintChrome(QPainter& painter, const QRect& rect) const override
+	{
+		manager->paintTitleBarChrome(painter, rect);
+	}
+
+private:
+	SkinManager* manager;
+};
+}
 
 SkinManager::SkinManager(QObject* parent)
 	: QObject(parent)
@@ -26,6 +57,7 @@ SkinManager::SkinManager(QObject* parent)
 	Q_ASSERT(activeSkin != nullptr);
 	skinId = activeSkin->id();
 	currentTokens = activeSkin->tokens(darkMode);
+	TitleBarSkin::install(new ActiveTitleBarSkin(this));
 }
 
 SkinManager* SkinManager::instance()

@@ -40,6 +40,7 @@
 #include <winsock2.h>
 #include "ReceiveThread.h"
 #include "ResidentHostLauncher.h"
+#include "DeviceCaption.h"
 #include "DeviceSelector.h"
 #include "DeviceTestThread.h"
 #include <devices/DeviceAPOInfoKeys.h>
@@ -60,6 +61,8 @@ namespace
 // interface/dark; both default to the Editor's own defaults, so a machine
 // that never chose gets Studio). In the Editor's heritage mode (legacyRows)
 // the dialog keeps its classic native look, matching the Editor's choice.
+// The windows take the skin's caption too, unless the Editor was told to
+// keep the native one (interface/nativeTitleBar) or runs the heritage look.
 void applyEditorTheme(QApplication& app)
 {
 	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
@@ -77,6 +80,7 @@ void applyEditorTheme(QApplication& app)
 	const EditorSettings::SkinChoice choice = EditorSettings::readSkinChoice(settings, systemDark);
 	SkinThemeData::applyToApplication(app, choice.id, choice.dark);
 	DeviceSkinPainter::setActiveTheme(choice.id, choice.dark);
+	DeviceCaption::enable(!settings.value(QLatin1String(EditorSettings::Keys::NativeTitleBar), false).toBool());
 }
 
 // --diagnose: writes the install-path report. Read-only and unelevated, because

@@ -54,12 +54,14 @@ struct ActiveTheme
 {
 	const DeviceSkinPainter* painter = nullptr;
 	SkinTokens tokens;
+	// The resolved roster id; empty in the heritage look.
+	QString skinId;
 };
 
 ActiveTheme& activeTheme()
 {
 	static ActiveTheme theme{ DeviceSkinPainter::forSkin(QStringLiteral("studio")),
-		SkinThemeData::tokens(QStringLiteral("studio"), true) };
+		SkinThemeData::tokens(QStringLiteral("studio"), true), QStringLiteral("studio") };
 	return theme;
 }
 }
@@ -68,6 +70,7 @@ void DeviceSkinPainter::setActiveTheme(const QString& skinId, bool dark)
 {
 	activeTheme().painter = forSkin(skinId);
 	activeTheme().tokens = SkinThemeData::tokens(skinId, dark);
+	activeTheme().skinId = SkinThemeData::resolveId(skinId);
 }
 
 void DeviceSkinPainter::setHeritageTheme()
@@ -77,6 +80,7 @@ void DeviceSkinPainter::setHeritageTheme()
 	// (SkinThemeData::heritageTokens).
 	activeTheme().painter = &neutral;
 	activeTheme().tokens = SkinThemeData::heritageTokens();
+	activeTheme().skinId.clear();
 }
 
 const DeviceSkinPainter* DeviceSkinPainter::active()
@@ -87,6 +91,11 @@ const DeviceSkinPainter* DeviceSkinPainter::active()
 const SkinTokens& DeviceSkinPainter::activeTokens()
 {
 	return activeTheme().tokens;
+}
+
+const QString& DeviceSkinPainter::activeSkinId()
+{
+	return activeTheme().skinId;
 }
 
 int DeviceSkinPainter::rowHeight(const QFontMetrics& fm, bool section) const

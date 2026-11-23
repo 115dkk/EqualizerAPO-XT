@@ -137,6 +137,7 @@ SOURCES += main.cpp\
 	guis/IncludeFilterGUI.cpp \
 	guis/IncludeFilterGUIFactory.cpp \
 	helpers/GUIHelper.cpp \
+	../platform/qt/TintedIcon.cpp \
 	helpers/FileDialogShellMenu.cpp \
 	helpers/PanelFeedEngine.cpp \
 	helpers/PanelPreviewFeeder.cpp \
@@ -310,6 +311,7 @@ SOURCES += main.cpp\
 	skins/HeritageSkin.cpp \
 	skins/shared/SkinFileIcons.cpp \
 	skins/SkinThemeData.cpp \
+	skins/shared/TitleBarChrome.cpp \
 	widgets/AddCardRow.cpp \
 	widgets/ActivatableListChrome.cpp \
 	widgets/AudioKnob.cpp \
@@ -396,6 +398,7 @@ SOURCES += main.cpp\
 	widgets/ValueScrubBox.cpp \
 	widgets/DialogChrome.cpp \
 	widgets/TitleBar.cpp \
+	widgets/TitleBarSkin.cpp \
 	widgets/routing/CopyRoutingAdapter.cpp \
 	widgets/routing/RoutingFold.cpp \
 	widgets/routing/MultiConvolutionRoutingAdapter.cpp \
@@ -465,6 +468,7 @@ HEADERS  += \
 	helpers/SpinBoxEditFieldFix.h \
 	../services/app/QtAppBootstrap.h \
 	../platform/qt/MotionPreference.h \
+	../platform/qt/TintedIcon.h \
 	helpers/VstChunkScan.h \
 	helpers/VstChunkState.h \
 	helpers/VstPanelCall.h \
@@ -690,6 +694,7 @@ HEADERS  += \
 	skins/shared/SkinChromeOverlay.h \
 	skins/shared/SkinPaint.h \
 	skins/shared/SkinSupport.h \
+	skins/shared/TitleBarChrome.h \
 	skins/SkinThemeData.h \
 	widgets/AddCardRow.h \
 	widgets/ActivatableListChrome.h \
@@ -777,6 +782,7 @@ HEADERS  += \
 	widgets/ValueScrubBox.h \
 	widgets/DialogChrome.h \
 	widgets/TitleBar.h \
+	widgets/TitleBarSkin.h \
 	widgets/routing/ChannelIdentity.h \
 	widgets/routing/CopyRoutingAdapter.h \
 	widgets/routing/RoutingFold.h \

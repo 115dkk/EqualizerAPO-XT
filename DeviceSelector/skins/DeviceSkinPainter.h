@@ -141,6 +141,8 @@ public:
 	static void setHeritageTheme();
 	static const DeviceSkinPainter* active();
 	static const SkinTokens& activeTokens();
+	// The active skin's roster id, empty in the heritage look.
+	static const QString& activeSkinId();
 
 	// The status sentence's ink while a row reports a check: red for a dead
 	// APO, the warning colour for a degraded one, the skin's pending ink while
