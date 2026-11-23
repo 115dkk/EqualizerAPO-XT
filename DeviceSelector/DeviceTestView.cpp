@@ -16,6 +16,7 @@
 #include <QTreeWidget>
 #include <QVBoxLayout>
 
+#include "DeviceCaption.h"
 #include "DeviceListDelegate.h"
 #include "DisclosureHeader.h"
 #include "SkinButton.h"
@@ -89,6 +90,8 @@ DeviceTestView::DeviceTestView(QWidget* parent)
 	const SkinTokens& tokens = DeviceSkinPainter::activeTokens();
 
 	QVBoxLayout* column = new QVBoxLayout(this);
+	// The skin's caption in place of the native one, as on the device list.
+	DeviceCaption::mount(this);
 
 	// The answer first: one sentence that says where the check stands, and
 	// under it the one thing the user has to know or do about it.

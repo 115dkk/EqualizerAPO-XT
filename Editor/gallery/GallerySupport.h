@@ -19,6 +19,7 @@
 #include <QDir>
 #include <QList>
 #include <QString>
+#include <QStringList>
 #include <QTemporaryDir>
 
 #include "devices/AbstractAPOInfo.h"
@@ -224,4 +225,9 @@ void forEachSkinMode(const std::function<void(ISkin* skin, bool dark)>& fn);
 // asked for, an elidable label prints its whole text, and squeezed below it,
 // it still elides. Returns the number of failing texts (GallerySelfTests.cpp).
 int checkEngravedLabelFit();
+
+// In every listed skin and mode a tooltip is set in the skin's face, at the
+// body text's size and weight. Returns the number of failures
+// (GallerySelfTests.cpp).
+int checkTooltipFaces(const QStringList& skinIds);
 }

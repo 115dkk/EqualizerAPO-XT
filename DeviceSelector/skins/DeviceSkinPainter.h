@@ -160,6 +160,11 @@ public:
 
 	virtual void paintDisclosure(QPainter& painter, const QRect& rect, const DeviceDisclosureState& state, const SkinTokens& tokens) const;
 
+	// The skin's painted chrome over a window caption's QSS ground
+	// (DeviceCaption): the painter the Editor's skin uses for its own
+	// captions. Nothing by default, the QSS ground being the whole caption.
+	virtual void paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& tokens) const;
+
 	// The colour a tone speaks in, and its short instrument code (RUN, OK,
 	// WARN, FAIL, N/A) for the skins that label their parts.
 	static QColor toneColor(DeviceReport tone, const SkinTokens& tokens);

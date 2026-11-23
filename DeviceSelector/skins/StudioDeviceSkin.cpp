@@ -26,6 +26,7 @@
 #include <QtMath>
 #include <numbers>
 
+#include "Editor/skins/studio/StudioTitleBarChrome.h"
 #include "Editor/skins/shared/SkinPaint.h"
 
 namespace
@@ -724,6 +725,11 @@ public:
 		painter.setPen(QPen(withAlpha(mixColor(QColor(t.border), tone, 0.35), 210), 1.0));
 		painter.drawRoundedRect(slab, 8.0, 8.0);
 		painter.restore();
+	}
+
+	void paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& t) const override
+	{
+		StudioTitleBarChrome::paint(painter, rect, t);
 	}
 };
 }

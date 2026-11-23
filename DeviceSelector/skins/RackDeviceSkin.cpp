@@ -28,6 +28,7 @@
 #include <QtMath>
 
 #include "Editor/skins/rack/RackSkinDetail.h"
+#include "Editor/skins/rack/RackTitleBarChrome.h"
 #include "Editor/skins/shared/SkinPaint.h"
 
 namespace
@@ -825,6 +826,11 @@ private:
 		painter.setBrush(dark ? QColor(0, 0, 0, 90) : withAlpha(QColor(t.surfaceSunken), 200));
 		painter.drawRoundedRect(rect.adjusted(0.5, 0.5, -0.5, -0.5), 1.5, 1.5);
 		painter.restore();
+	}
+
+	void paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& t) const override
+	{
+		RackTitleBarChrome::paint(painter, rect, t);
 	}
 };
 }

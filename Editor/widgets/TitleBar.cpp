@@ -14,11 +14,20 @@
 #include <QStyleOption>
 #include <QToolButton>
 
-#include "Editor/SkinManager.h"
-#include "Editor/helpers/GUIHelper.h"
+#include "Editor/widgets/TitleBarSkin.h"
+#include "platform/qt/TintedIcon.h"
 
 namespace
 {
+// The installed skin's glyph ink; the palette's text colour when no skin is
+// installed (a program that never set one up).
+QColor captionInk(const QWidget* widget)
+{
+	if (const TitleBarSkin* skin = TitleBarSkin::current())
+		return skin->ink();
+	return widget->palette().color(QPalette::WindowText);
+}
+
 QToolButton* makeCaptionButton(const char* objectName, QWidget* parent)
 {
 	QToolButton* button = new QToolButton(parent);
@@ -77,9 +86,8 @@ TitleBar::TitleBar(QWidget* window, QWidget* parent, bool dialogMode)
 	// darkThemeToggled) never run MainWindow::applyRedesignPreferences, so
 	// without this a light->dark toggle would leave the caption glyphs in the
 	// light skin's near-black ink - invisible on the now-dark strip.
-	connect(SkinManager::instance(), &SkinManager::skinChanged, this, [this](const SkinTokens&) {
-		applySkinIcons();
-	});
+	if (TitleBarSkin* skin = TitleBarSkin::current())
+		connect(skin, &TitleBarSkin::changed, this, &TitleBar::applySkinIcons);
 	applySkinIcons();
 }
 
@@ -92,11 +100,10 @@ bool TitleBar::eventFilter(QObject* watched, QEvent* event)
 
 void TitleBar::applySkinIcons()
 {
-	const SkinTokens& tokens = SkinManager::instance()->tokens();
-	const QColor ink(tokens.text);
+	const QColor ink = captionInk(this);
 	if (minimizeButton != nullptr)
-		minimizeButton->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/window-min.svg"), ink, 14));
-	closeButton->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/window-close.svg"), ink, 14));
+		minimizeButton->setIcon(TintedIcon::make(QStringLiteral(":/icons/modern/window-min.svg"), ink, 14));
+	closeButton->setIcon(TintedIcon::make(QStringLiteral(":/icons/modern/window-close.svg"), ink, 14));
 	updateMaximizeButton();
 }
 
@@ -104,10 +111,9 @@ void TitleBar::updateMaximizeButton()
 {
 	if (maximizeButton == nullptr)
 		return;
-	const SkinTokens& tokens = SkinManager::instance()->tokens();
-	const QColor ink(tokens.text);
+	const QColor ink = captionInk(this);
 	const bool maximized = hostWindow->isMaximized();
-	maximizeButton->setIcon(GUIHelper::tintedIcon(
+	maximizeButton->setIcon(TintedIcon::make(
 		maximized ? QStringLiteral(":/icons/modern/window-restore.svg")
 		: QStringLiteral(":/icons/modern/window-max.svg"), ink, 14));
 	maximizeButton->setToolTip(maximized ? tr("Restore") : tr("Maximize"));
@@ -130,7 +136,8 @@ void TitleBar::paintEvent(QPaintEvent*)
 	option.initFrom(this);
 	style()->drawPrimitive(QStyle::PE_Widget, &option, &painter, this);
 	// ...then the skin's painted chrome on top, under the child widgets.
-	SkinManager::instance()->paintTitleBarChrome(painter, rect());
+	if (const TitleBarSkin* skin = TitleBarSkin::current())
+		skin->paintChrome(painter, rect());
 }
 
 void TitleBar::mouseDoubleClickEvent(QMouseEvent* event)

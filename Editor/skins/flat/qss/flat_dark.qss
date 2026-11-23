@@ -43,7 +43,7 @@ QWidget {
 QMainWindow, QDialog { background: @BG@; }
 QMainWindow::separator { background: @BG@; width: 6px; height: 6px; }
 
-QToolTip { background: @CARD@; color: @TEXT@; border: 1px solid @BORDER_STRONG@; border-radius: 6px; padding: 5px 9px; }
+QToolTip { background: @CARD@; color: @TEXT@; border: 1px solid @BORDER_STRONG@; border-radius: 6px; padding: 5px 9px; font-family: @FONT_STACK@; font-size: 11pt; font-weight: 500; }
 
 /* Menu bar and menus: plain words on the window ground; the open item and
    the current row take the neutral steps. A floating menu is the card

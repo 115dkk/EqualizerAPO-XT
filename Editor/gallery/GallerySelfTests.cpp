@@ -44,6 +44,7 @@
 #include <QScrollBar>
 #include <QStringList>
 #include <QToolButton>
+#include <QToolTip>
 #include <QTransform>
 
 #include "Editor/FilterTable.h"
@@ -670,6 +671,77 @@ int SkinGalleryDetail::checkEngravedLabelFit()
 	}
 	fprintf(stderr, "[label fit selftest] %s (%d texts, %d failure(s))\n", failures == 0 ? "PASS" : "FAIL",
 		checked, failures);
+	return failures;
+}
+
+// A tooltip label matches only the sheets' QToolTip selectors, never their
+// QWidget rule, so while the QToolTip rules named no font every tooltip kept
+// the system message face (Malgun Gothic 9pt on a Korean Windows) beside the
+// skin's type; the Device Selector, on Qt's default font engine, even drew
+// it bold. In every skin and mode the label must be set like the body text
+// a bare widget gets: one of the skin's faces first, at the body's size and
+// weight.
+int SkinGalleryDetail::checkTooltipFaces(const QStringList& skinIds)
+{
+	int failures = 0;
+	for (const QString& listed : skinIds)
+	{
+		const QString skinId = listed.trimmed();
+		for (const bool dark : { true, false })
+		{
+			SkinManager::instance()->applySkin(skinId, dark);
+			const SkinTokens& tokens = SkinManager::instance()->tokens();
+			const char* mode = dark ? "dark" : "light";
+
+			QWidget anchor;
+			anchor.setToolTip(QStringLiteral("Tooltip text"));
+			anchor.resize(240, 40);
+			anchor.show();
+			anchor.ensurePolished();
+			QApplication::processEvents();
+			QToolTip::showText(anchor.mapToGlobal(anchor.rect().center()), anchor.toolTip(), &anchor);
+			QWidget* tip = nullptr;
+			QElapsedTimer waited;
+			waited.start();
+			while (tip == nullptr && waited.elapsed() < 2000)
+			{
+				QApplication::processEvents(QEventLoop::AllEvents, 50);
+				for (QWidget* widget : QApplication::topLevelWidgets())
+				{
+					if (widget->inherits("QTipLabel"))
+						tip = widget;
+				}
+			}
+
+			if (tip == nullptr)
+			{
+				failures++;
+				fprintf(stderr, "[tooltip face selftest] %s %s: the tooltip did not open\n", qPrintable(skinId), mode);
+			}
+			else
+			{
+				const QFont tipFont = tip->font();
+				const QFont body = anchor.font();
+				const QString face = tipFont.families().value(0);
+				if (face != tokens.fontFamily && face != tokens.monoFontFamily)
+				{
+					failures++;
+					fprintf(stderr, "[tooltip face selftest] %s %s: set in \"%s\", not in the skin's face\n",
+						qPrintable(skinId), mode, qPrintable(face));
+				}
+				if (!qFuzzyCompare(tipFont.pointSizeF(), body.pointSizeF()) || tipFont.weight() != body.weight())
+				{
+					failures++;
+					fprintf(stderr, "[tooltip face selftest] %s %s: %.1fpt weight %d, the body text is %.1fpt weight %d\n",
+						qPrintable(skinId), mode, tipFont.pointSizeF(), int(tipFont.weight()), body.pointSizeF(),
+						int(body.weight()));
+				}
+			}
+			QToolTip::hideText();
+			QApplication::processEvents();
+		}
+	}
+	fprintf(stderr, "[tooltip face selftest] %s (%d failure(s))\n", failures == 0 ? "PASS" : "FAIL", failures);
 	return failures;
 }
 

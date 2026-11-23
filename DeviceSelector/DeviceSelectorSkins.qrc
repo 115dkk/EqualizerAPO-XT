@@ -2,7 +2,8 @@
     <qresource prefix="/">
         <!-- The Editor's skin sheets and the theme assets they reference,
              aliased onto the same resource paths so SkinThemeData resolves
-             them identically in both executables. The fonts are the subset
+             them identically in both executables (and the caption's close
+             glyph, which TitleBar tints). The fonts are the subset
              the sheets name (DM Sans/DM Mono + Pretendard for Hangul); the
              Sarasa mono-Korean fallback is Editor-only, this dialog has no
              monospace Korean surface worth its 9 MB. -->
@@ -25,6 +26,7 @@
         <file alias="icons/modern/dash-light.svg">../Editor/icons/modern/dash-light.svg</file>
         <file alias="icons/modern/matrix-grid-dark.svg">../Editor/icons/modern/matrix-grid-dark.svg</file>
         <file alias="icons/modern/matrix-grid-light.svg">../Editor/icons/modern/matrix-grid-light.svg</file>
+        <file alias="icons/modern/window-close.svg">../Editor/icons/modern/window-close.svg</file>
         <file alias="icons/modern/flat-check-ink.svg">../Editor/icons/modern/flat-check-ink.svg</file>
         <file alias="icons/modern/flat-check-night.svg">../Editor/icons/modern/flat-check-night.svg</file>
         <file alias="icons/modern/flat-check-pale.svg">../Editor/icons/modern/flat-check-pale.svg</file>

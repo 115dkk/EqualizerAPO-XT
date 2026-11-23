@@ -27,6 +27,9 @@ QToolTip {
     background: @SURFACE@; color: @TEXT@;
     border: 1px solid @BORDER@; border-radius: 0;
     padding: 4px 8px;
+    font-family: @MONO_STACK@;
+    font-size: 11pt;
+    font-weight: 500;
 }
 
 /* Menu bar: the TUI menu line. The entries share the command line's

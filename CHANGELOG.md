@@ -14,6 +14,21 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The Device Selector's windows wear the skin's title bar.** The device
+  list and the installation check had the plain Windows title bar, while the
+  Editor's dialogs in the same skin had the skin's own. They now have the
+  same caption as those dialogs: the skin's strip with the window title and a
+  close button. They keep the Windows title bar in the heritage look and when
+  View > Interface > Native title bar is on in the Editor. Dragging, snapping
+  and resizing by hand were not tried on these two windows; the frame code
+  is the one the Editor's dialogs already use.
+  ([#523](https://github.com/115dkk/EqualizerAPO-XT/pull/523))
+- **Tooltips are set in the skin's typeface.** Tooltips were in the system
+  message font, Malgun Gothic at 9 pt on a Korean Windows, which the Device
+  Selector drew bold. They now use the skin's face, size and weight, in the
+  Editor and the Device Selector.
+  ([#523](https://github.com/115dkk/EqualizerAPO-XT/pull/523))
+
 ## v2.78.0 — 2026-11-22
 
 - **A VST3 plugin can be given a 13.1 output bus.** `VSTPlugin:` accepts

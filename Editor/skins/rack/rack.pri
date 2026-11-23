@@ -6,6 +6,7 @@ SOURCES += \
 	$$PWD/RackSkin.GraphicEq.cpp \
 	$$PWD/RackSkin.Analysis.cpp \
 	$$PWD/RackSkin.TitleBar.cpp \
+	$$PWD/RackTitleBarChrome.cpp \
 	$$PWD/RackSkin.Toolbar.cpp \
 	$$PWD/RackSkin.FileDialog.cpp \
 	$$PWD/RackSkinDetail.cpp \
@@ -19,6 +20,7 @@ SOURCES += \
 
 HEADERS += \
 	$$PWD/RackSkin.h \
+	$$PWD/RackTitleBarChrome.h \
 	$$PWD/RackSkinDetail.h \
 	$$PWD/RackPalette.h \
 	$$PWD/picker/RackFilterPicker.h \

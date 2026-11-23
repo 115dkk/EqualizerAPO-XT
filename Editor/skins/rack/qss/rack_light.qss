@@ -25,7 +25,7 @@ QWidget {
 QMainWindow, QDialog { background: @BG@; }
 QMainWindow::separator { background: @BORDER@; width: 1px; height: 1px; }
 
-QToolTip { background: @CARD@; color: @TEXT@; border: 1px solid @BORDER@; border-radius: 2px; padding: 4px 8px; }
+QToolTip { background: @CARD@; color: @TEXT@; border: 1px solid @BORDER@; border-radius: 2px; padding: 4px 8px; font-family: @FONT_STACK@; font-size: 10pt; font-weight: 500; }
 
 /* ── Menu bar: the engraved function row ─────────────────────────────────
    A milled cream-aluminium strip under the top panel; the section names are

@@ -1747,6 +1747,8 @@ int run(const QStringList& arguments)
 		if (skinId.trimmed() == QStringLiteral("rack"))
 			failures += checkEngravedLabelFit();
 	}
+	// Tooltips wear the skin's type, not the system message font.
+	failures += checkTooltipFaces(skinIds);
 
 	// Self-check the shot count so a silently dropped skin, row or state fails
 	// the run even when every attempted grab succeeded. galleryRows() drives the

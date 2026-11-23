@@ -203,6 +203,10 @@ void DeviceSkinPainter::paintSystemWell(QPainter& painter, const QRectF& rect, c
 	painter.restore();
 }
 
+void DeviceSkinPainter::paintTitleBarChrome(QPainter&, const QRect&, const SkinTokens&) const
+{
+}
+
 // One pass for both jobs: with no painter it only measures, so the height a
 // panel asks for is by construction the height its text takes.
 int DeviceSkinPainter::flowPanel(QPainter* painter, const QRect& rect, const DevicePanelState& state, const QFont& base, const SkinTokens& tokens) const

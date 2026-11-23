@@ -8,8 +8,12 @@
 #include "ScreenshotHarness.h"
 
 #include <QApplication>
+#include <QCheckBox>
 #include <QDir>
+#include <QElapsedTimer>
+#include <QToolTip>
 
+#include "DeviceCaption.h"
 #include "DeviceSelector.h"
 #include "DeviceTestDialog.h"
 #include "DeviceTestView.h"
@@ -17,11 +21,63 @@
 #include "skins/DeviceSkinPainter.h"
 #include "Editor/skins/SkinThemeData.h"
 
+namespace
+{
+// The tooltip of one of the troubleshooting options, saved on its own (it is
+// wider than the dialog). A tooltip label matches only the sheets' QToolTip
+// selectors, never their QWidget rule, so while the QToolTip rules named no
+// font the label kept the system message face (Malgun Gothic 9pt on a
+// Korean Windows) beside a skinned dialog. Fails when the label's first face
+// is not one of the skin's.
+bool saveTooltipShot(QDialog& dialog, const QString& file)
+{
+	QCheckBox* option = dialog.findChild<QCheckBox*>(QStringLiteral("parallelConvolutionCheckBox"));
+	if (option == nullptr)
+	{
+		fprintf(stderr, "DeviceSelector shots: no option to show a tooltip for\n");
+		return false;
+	}
+	QToolTip::showText(option->mapToGlobal(QPoint(option->width() / 3, option->height() / 2)), option->toolTip(), option);
+	// The label exists at once; with the desktop's tooltip fade on it only
+	// turns visible a moment later, and grab() does not need it visible.
+	QWidget* tip = nullptr;
+	QElapsedTimer waited;
+	waited.start();
+	while (tip == nullptr && waited.elapsed() < 2000)
+	{
+		QApplication::processEvents(QEventLoop::AllEvents, 50);
+		for (QWidget* widget : QApplication::topLevelWidgets())
+		{
+			if (widget->inherits("QTipLabel"))
+				tip = widget;
+		}
+	}
+	bool saved = false;
+	if (tip == nullptr)
+		fprintf(stderr, "DeviceSelector shots: the tooltip did not open\n");
+	else
+	{
+		const SkinTokens& tokens = DeviceSkinPainter::activeTokens();
+		const QString face = tip->font().families().value(0);
+		if (face != tokens.fontFamily && face != tokens.monoFontFamily)
+			fprintf(stderr, "DeviceSelector shots: the tooltip is set in \"%s\", not in the skin's face\n", qPrintable(face));
+		else if (!tip->grab().save(file))
+			fprintf(stderr, "DeviceSelector shots: failed to save %s\n", qPrintable(file));
+		else
+			saved = true;
+	}
+	QToolTip::hideText();
+	QApplication::processEvents();
+	return saved;
+}
+}
+
 // DeviceSelector's shipped manifest requires elevation. Refusing elevated
 // captures would disable its existing --skin-shots entry (audit #467 TD-75).
 // --skin-shots <outDir>: renders the dialog with canned devices for every
 // skin x dark/light in three states (rest, hovered row, troubleshooting
-// open) on the offscreen platform. The review gate's capture source and the
+// open) on the offscreen platform, each window with the skin's caption, plus
+// an option's tooltip. The review gate's capture source and the
 // skin work's regression harness - no registry writes, no COM. Renders in
 // the user's language (translators install before the harness runs), so
 // byte-comparison only holds for a fixed language setting.
@@ -40,6 +96,10 @@ int ScreenshotHarness::runSkinShots(QApplication& app)
 		fprintf(stderr, "DeviceSelector shots: cannot create %s\n", qPrintable(outDir.absolutePath()));
 		return 2;
 	}
+
+	// The captions the live dialog mounts unless the Editor keeps the native
+	// one; the shots show what a skinned session sees.
+	DeviceCaption::enable(true);
 
 	int failures = 0;
 	// From the roster, so a new skin appears in the review captures without
@@ -84,6 +144,8 @@ int ScreenshotHarness::runSkinShots(QApplication& app)
 			dialog.previewOpenTroubleshooting();
 			QApplication::processEvents();
 			save(QStringLiteral("options"));
+			if (!saveTooltipShot(dialog, outDir.filePath(QStringLiteral("devsel_%1_%2_tooltip.png").arg(skinId, mode))))
+				failures++;
 			// The endpoint's ASIO entry ticked: the same ASIO options unfold
 			// under it.
 			dialog.previewAsioEntry();

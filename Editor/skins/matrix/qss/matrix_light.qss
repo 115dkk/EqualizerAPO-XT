@@ -38,6 +38,8 @@ QToolTip {
     border-radius: 0;
     padding: 6px 10px;
     font-family: @MONO_STACK@;
+    font-size: 11pt;
+    font-weight: 500;
 }
 
 /* ===== Menu Bar / Menus: the board's header row =====
