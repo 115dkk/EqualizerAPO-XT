@@ -164,7 +164,11 @@ void FilterEngine::deferUntilConfigurationCommit(std::function<void()> action)
 void FilterEngine::reportHostBlockTiming(const wchar_t* when)
 {
 	const eapo::diag::BlockTimingSummary summary = hostBlockTiming.take();
-	if (summary.blocks == 0)
+	// A take() that races the last callback can move that callback's block
+	// count into the previous summary and leave its over-budget or late-start
+	// count for this one. Report whenever any count is left, so such a block is
+	// attributed to the neighbouring interval instead of being dropped.
+	if (summary.blocks == 0 && summary.overBudget == 0 && summary.lateStarts == 0)
 		return;
 
 	const double millisecondsPerTick = 1000.0 / static_cast<double>(performanceFrequency);

@@ -5,8 +5,16 @@
 */
 
 #include <cstdint>
+#include <fstream>
+#include <iterator>
+#include <string>
+
+#include <windows.h>
 
 #include "diagnostics/performance/BlockTiming.h"
+#include "engine/FilterEngine.h"
+#include "services/logging/Logging.h"
+#include "EngineOrchestrationTestSupport.h"
 #include "Tests/TestHarness.h"
 
 namespace
@@ -94,4 +102,45 @@ TEST_CASE(EngineOrchestrationTests, testBlockTimingLastBudgetFollowsMostRecentCa
 
 	const BlockTimingSummary summary = monitor.take();
 	harness.expectEqual(summary.lastBudgetTicks, uint64_t{200000}, "the last budget follows the 960-frame callback");
+}
+
+// The report runs inside the audio service at every configuration load and
+// stream stop, so it is executed here once, through the engine, with the log
+// captured: a stream with an over-budget block and a late start writes the
+// whole line, an empty summary writes nothing, and take() leaves nothing for
+// the next report.
+TEST_CASE(EngineOrchestrationTests, testHostBlockTimingReportWritesOneLine)
+{
+	const std::wstring config = writeConfig(harness, L"BlockTimingReport.txt", "Preamp: 0 dB\n");
+	FilterEngine engine;
+	engine.initialize(testEngineSetup(48000, 2, 2, 480, config));
+
+	LARGE_INTEGER frequency{};
+	harness.require(QueryPerformanceFrequency(&frequency) != FALSE && frequency.QuadPart % 100 == 0,
+		"the performance counter frequency is a whole number of ticks per 10 ms");
+	const int64_t tenMs = frequency.QuadPart / 100;
+
+	const std::wstring logPath = testDirectory() + L"\\BlockTimingReport.log";
+	DeleteFileW(logPath.c_str());
+	Logging::useFile(logPath, false, false, false);
+	engine.reportHostBlockTiming(L"before any callback");
+	// 480 frames at 48 kHz carry 10 ms. The first callback takes 10 ms, the
+	// second starts 20 ms after it and takes 30 ms.
+	engine.noteHostBlock(tenMs, 2 * tenMs, 480);
+	engine.noteHostBlock(3 * tenMs, 6 * tenMs, 480);
+	engine.reportHostBlockTiming(L"in the test");
+	engine.reportHostBlockTiming(L"after the summary was taken");
+	Logging::useStream(stderr, false, false, false);
+
+	std::ifstream stream(logPath, std::ios::binary);
+	const std::string contents((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+	stream.close();
+	DeleteFileW(logPath.c_str());
+	harness.expect(contents.find("Audio blocks in the test: 2 callbacks of 10.00 ms; 1 took longer than the audio "
+		"they carry (longest 30.00 ms, for 10.00 ms of audio); 1 began more than 1.5 block lengths after the "
+		"previous one (longest gap 20.00 ms)") != std::string::npos,
+		"an over-budget block and a late start are logged in one line with their longest values");
+	harness.expect(contents.find("before any callback") == std::string::npos
+		&& contents.find("after the summary was taken") == std::string::npos,
+		"an empty summary writes nothing");
 }
