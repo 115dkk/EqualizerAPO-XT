@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.79.0 — 2026-11-24
+
 - **Benchmark가 24비트 PCM과 32비트 실수 파일로도 저장하고, 입력 전체를
   저장합니다.** Benchmark는 늘 16비트 PCM으로만 저장해서, Benchmark로 렌더한
   임펄스 응답은 약 -96 dB 아래가 사라져 정확한 필터로 다시 쓸 수 없었습니다.

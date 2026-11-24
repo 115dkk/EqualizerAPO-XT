@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.79.0 — 2026-11-24
+
 - **Benchmark can write 24-bit PCM and 32-bit float files, and writes the
   whole input.** Benchmark always wrote 16-bit PCM, so an impulse response
   rendered through it lost everything below about -96 dB and could not be
