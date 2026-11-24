@@ -2011,6 +2011,31 @@ TEST_CASE(Vst3HostTests, testChannelFillReachesUnselectedChannels)
 		&& absent.log.find("passing audio through") != std::string::npos,
 		"the refusal names the channel it could not find");
 
+	// A side without a fill writes the first channels of the selection, never
+	// an appended one. With every device channel selected, the plug-in's
+	// output lands on channels 1 and 2; the unselected L it read passes through
+	// delayed, like channel 4.
+	const Rendered oneSided = render(L"onesided",
+		"Copy: L=1 R=2\n" + library + " Input Stereo InputChannels L,R Output Stereo\nCopy: 3=L\n");
+	harness.expectTrue(oneSided.log.find("passing audio through") == std::string::npos
+		&& test::nearlyEqual(oneSided.at(0, 0), 0.5, 1.0e-9) && test::nearlyEqual(oneSided.at(1, 0), 0.25, 1.0e-9),
+		"an input-only fill naming unselected channels writes the first selected channels");
+	harness.expectTrue(test::nearlyEqual(oneSided.at(2, latency), 0.5, 1.0e-9)
+		&& test::nearlyEqual(oneSided.at(3, latency), 0.125, 1.0e-9) && test::nearlyEqual(oneSided.at(3, 0), 0.0, 1.0e-9),
+		"the read channel and the other selected channels pass through delayed");
+
+	// With a selection narrower than the output bus, the slot beyond it is
+	// discarded into padding sized from the selection, and the channels
+	// outside the selection stay untouched.
+	const Rendered narrow = render(L"narrow",
+		"Copy: L=1 R=2\nChannel: 1\n" + library + " Input Stereo InputChannels L,R Output Stereo\nCopy: 3=L\n");
+	harness.expectTrue(narrow.log.find("passing audio through") == std::string::npos
+		&& test::nearlyEqual(narrow.at(0, 0), 0.5, 1.0e-9),
+		"an input-only fill over a one-channel selection writes that channel");
+	harness.expectTrue(test::nearlyEqual(narrow.at(1, 0), 0.25, 1.0e-9) && test::nearlyEqual(narrow.at(3, 0), 0.125, 1.0e-9)
+		&& test::nearlyEqual(narrow.at(2, latency), 0.5, 1.0e-9),
+		"the second output slot is discarded and unselected device channels stay undelayed");
+
 	// Numbers stay positions in the selection: with only L selected, "2" is out
 	// of range even though R is appended for the name beside it.
 	const Rendered numbered = render(L"numbered",
