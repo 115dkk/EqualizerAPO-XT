@@ -48,6 +48,11 @@ void VSTRowDocument::setSelectedChannels(std::vector<std::wstring> names)
 	fillModel.setSelectedChannels(std::move(names));
 }
 
+void VSTRowDocument::setNamesInScope(std::vector<std::wstring> names)
+{
+	fillModel.setNamesInScope(std::move(names));
+}
+
 void VSTRowDocument::pickSlot(bool output, int slot, const std::wstring& value)
 {
 	fillModel.pickSlot(output, slot, value);

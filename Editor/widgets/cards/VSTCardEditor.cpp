@@ -174,6 +174,7 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 		root->insertWidget(root->indexOf(view) + 1, outputRail);
 	}
 	document.setSelectedChannels(this->deviceChannelNames);
+	document.setNamesInScope(this->deviceChannelNames);
 	fillCollapsed = document.fill().inputFill().empty() && document.fill().outputFill().empty();
 
 	frame = new QFrame(this);
@@ -306,6 +307,7 @@ void VSTCardEditor::removeChannelFill()
 void VSTCardEditor::setChannelFlow(const ChannelFlowAtLine& flow)
 {
 	document.setSelectedChannels(flow.selected);
+	document.setNamesInScope(flow.namesInScope);
 	updateFillRails();
 }
 

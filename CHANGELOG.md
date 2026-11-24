@@ -14,6 +14,21 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **A VST plug-in's channel fill reaches channels that no `Channel:` line
+  selected.** A `VSTPlugin:` line with `InputChannels` or `OutputChannels`
+  could only name channels selected at that line. A device that reports no
+  channel layout (Benchmark treats every device this way, and #519 saw the
+  same on a 16-channel virtual cable) names its channels `1`, `2`, ..., so a
+  configuration makes `L` and `R` with `Copy:`, which does not select what it
+  creates. A fill naming them turned the plug-in off, and the log blamed a
+  channel "this device does not have". A name in a fill now reaches every
+  channel the device or an earlier line has, selected or not. Channel numbers
+  in a fill still count the selected channels, a side without a fill still
+  uses the first selected channels, and lines that already worked give the
+  same output. When a fill names a channel that exists nowhere, the log names
+  it. The Editor no longer shows such a name in the danger color.
+  ([#525](https://github.com/115dkk/EqualizerAPO-XT/pull/525)))
+
 ## v2.79.0 — 2026-11-24
 
 - **Benchmark can write 24-bit PCM and 32-bit float files, and writes the

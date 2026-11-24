@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <cwctype>
 #include <exception>
 #include <limits>
 #include <new>
@@ -76,11 +77,37 @@ bool VSTPluginFilter::passThrough(const wchar_t* format, Args... args)
 	return false;
 }
 
+std::vector<std::wstring> VSTPluginFilter::getNamedChannels(const std::vector<std::wstring>& selection)
+{
+	announcedSelectionWidth = selection.size();
+	std::vector<std::wstring> named;
+	const auto collect = [&selection, &named](const std::vector<std::wstring>& fill) {
+		for (const std::wstring& selector : fill)
+		{
+			// "-" is a silent slot and a number is a position in the selection;
+			// neither names a channel the engine could append.
+			if (selector.empty() || selector == L"-" || iswdigit(selector[0]))
+				continue;
+			if (ChannelLayout::getChannelIndex(selector, selection, true) >= 0)
+				continue;
+			if (std::find(named.begin(), named.end(), selector) == named.end())
+				named.push_back(selector);
+		}
+	};
+	collect(inputChannels);
+	collect(outputChannels);
+	return named;
+}
+
 std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames)
 {
 	cleanup();
 
 	channelCount = channelNames.size();
+	// Without getNamedChannels (a direct caller such as a test), every channel
+	// handed in is the selection, as before issue #519.
+	selectedChannelCount = announcedSelectionWidth && *announcedSelectionWidth <= channelCount
+		? *announcedSelectionWidth : channelCount;
 	if (channelCount == 0)
 		return channelNames;
 	if (channelCount > (std::numeric_limits<unsigned>::max)())
@@ -141,7 +168,7 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 		else
 		{
 			for (unsigned slot = 0; slot < effectInputCount
-				&& channelOffset + slot < static_cast<unsigned>(channelCount); ++slot)
+				&& channelOffset + slot < static_cast<unsigned>(selectedChannelCount); ++slot)
 			{
 				result.push_back(channelOffset + slot);
 			}
@@ -167,7 +194,7 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 		{
 			const std::vector<unsigned> instanceInputs = inputsForInstance(channelOffset);
 			for (unsigned slot = 0; slot < effectOutputCount
-				&& channelOffset + slot < static_cast<unsigned>(channelCount); ++slot)
+				&& channelOffset + slot < static_cast<unsigned>(selectedChannelCount); ++slot)
 			{
 				pluginWrittenChannels.push_back(channelOffset + slot);
 				pluginWrittenInputChannels.push_back(instanceInputs);
@@ -175,7 +202,7 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 			if (context.plan.resolvedInputChannels.empty())
 			{
 				for (unsigned slot = effectOutputCount; slot < effectInputCount
-					&& channelOffset + slot < static_cast<unsigned>(channelCount); ++slot)
+					&& channelOffset + slot < static_cast<unsigned>(selectedChannelCount); ++slot)
 				{
 					pluginZeroedChannels.push_back(channelOffset + slot);
 				}
@@ -242,7 +269,10 @@ bool VSTPluginFilter::createFirstInstance(InitContext& context, const std::vecto
 	// for anything but an upmixer a narrowed input bus would discard device
 	// channels.
 	context.upmixerLayout = forceStereoInput;
-	if (!negotiateInstance(context.firstEffect.get(), static_cast<unsigned>(channelCount), channelNames,
+	// The selection decides the width of an Auto side; channels appended for
+	// the fill (issue #519) are only ever addressed by name.
+	if (!negotiateInstance(context.firstEffect.get(), static_cast<unsigned>(selectedChannelCount),
+		channelNameSlice(channelNames, 0, selectedChannelCount),
 		context.upmixerLayout))
 		return passThrough(L"The VST plugin %s could not negotiate its buses; passing audio through.");
 	return true;
@@ -266,6 +296,7 @@ bool VSTPluginFilter::planChannels(InitContext& context, const std::vector<std::
 {
 	VSTChannelPlanRequest request;
 	request.channelNames = channelNames;
+	request.selectedChannelCount = selectedChannelCount;
 	request.effectInputCount = effectInputCount;
 	request.effectOutputCount = effectOutputCount;
 	request.oneContractInstance = busContract && busContract->hasExplicitLayout();
@@ -288,7 +319,14 @@ bool VSTPluginFilter::planChannels(InitContext& context, const std::vector<std::
 	case VSTChannelPlan::Refusal::FillSlotCountMismatch:
 		return passThrough(L"The VST plugin %s negotiated a different bus slot count than its channel fill names; passing audio through.");
 	case VSTChannelPlan::Refusal::FillChannelMissing:
-		return passThrough(L"The VST plugin %s has a channel fill naming a channel this device does not have; passing audio through.");
+		// Issue #519: say which entry, and why it found nothing. A name reaches
+		// any channel the device or an earlier line has, selected or not; a
+		// number only counts the selection.
+		if (!context.plan.missingChannel.empty() && iswdigit(context.plan.missingChannel[0]))
+			return passThrough(L"The VST plugin %s has a channel fill naming channel %s, but only %u channels are selected at this line; passing audio through.",
+				context.plan.missingChannel.c_str(), static_cast<unsigned>(selectedChannelCount));
+		return passThrough(L"The VST plugin %s has a channel fill naming %s, which neither the device nor an earlier line has created; passing audio through.",
+			context.plan.missingChannel.c_str());
 	case VSTChannelPlan::Refusal::DuplicateOutputChannel:
 		return passThrough(L"The VST plugin %s has two output slots resolving to the same channel; passing audio through.");
 	}
@@ -367,9 +405,9 @@ bool VSTPluginFilter::allocateBuffers(const InitContext& context, unsigned maxFr
 	const size_t fillScratchCount = context.plan.fillScratchCount;
 
 	// 2 times for input and output
-	const size_t paddingChannelCount = paddedChannelCount > channelCount
-		? paddedChannelCount - channelCount : 0;
-	if ((!(busContract && busContract->hasExplicitLayout()) && paddedChannelCount < channelCount)
+	const size_t paddingChannelCount = paddedChannelCount > selectedChannelCount
+		? paddedChannelCount - selectedChannelCount : 0;
+	if ((!(busContract && busContract->hasExplicitLayout()) && paddedChannelCount < selectedChannelCount)
 		|| paddingChannelCount > ((std::numeric_limits<size_t>::max)() - fillScratchCount) / 2)
 	{
 		return passThrough(L"The VST plugin %s reported metadata that overflows its padding count; passing audio through.");
@@ -432,8 +470,8 @@ void VSTPluginFilter::prepareForProcessing(float sampleRate, unsigned maxFrameCo
 		{
 			VSTPluginInstance* effect = effects[i].get();
 
-			if (i == effects.size() - 1 && (channelCount % effectChannelCount) != 0)
-				effect->setUsedChannelCount(channelCount % effectChannelCount);
+			if (i == effects.size() - 1 && (selectedChannelCount % effectChannelCount) != 0)
+				effect->setUsedChannelCount(static_cast<int>(selectedChannelCount % effectChannelCount));
 			else
 				effect->setUsedChannelCount(effectChannelCount);
 			if (!effect->prepareForProcessing(sampleRate, maxFrameCount,
@@ -513,7 +551,7 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 					inputArray[busSlot] = sourceChannel >= 0
 						? input[sourceChannel] : emptyChannels[emptyChannelIndex++].get();
 				}
-				else if (channelOffset + eapoSlot < channelCount)
+				else if (channelOffset + eapoSlot < selectedChannelCount)
 					inputArray[busSlot] = input[channelOffset + eapoSlot];
 				else
 					inputArray[busSlot] = emptyChannels[emptyChannelIndex++].get();
@@ -531,7 +569,7 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 					outputArray[busSlot] = targetChannel >= 0
 						? output[targetChannel] : emptyChannels[emptyChannelIndex++].get();
 				}
-				else if (channelOffset + eapoSlot < channelCount)
+				else if (channelOffset + eapoSlot < selectedChannelCount)
 					outputArray[busSlot] = output[channelOffset + eapoSlot];
 				else
 					outputArray[busSlot] = emptyChannels[emptyChannelIndex++].get();
@@ -545,7 +583,7 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 			for (unsigned eapoSlot = 0; eapoSlot < effectOutputCount; eapoSlot++)
 			{
 				const bool realOutput = outputFill
-					? resolvedOutputChannels[eapoSlot] >= 0 : channelOffset + eapoSlot < channelCount;
+					? resolvedOutputChannels[eapoSlot] >= 0 : channelOffset + eapoSlot < selectedChannelCount;
 				if (!realOutput)
 					continue;
 				const int mappedSlot = outputMapping.size() == effectOutputCount

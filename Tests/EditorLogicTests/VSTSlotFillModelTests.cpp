@@ -82,6 +82,19 @@ TEST_CASE(EditorLogicTests, testVSTSlotFillModel)
 	missing.pickSlot(false, 0, L"TFL");
 	expectTrue(missing.slotChannelMissing(false, 0),
 		QStringLiteral("a channel outside the selection is flagged"));
+
+	// Issue #519: the engine lets a name reach every channel in scope at the
+	// row, selected or not, so only a name out of scope is flagged; a number
+	// still counts the selection.
+	missing.setNamesInScope({L"L", L"R", L"RL", L"RR", L"TFL", L"VC"});
+	expectFalse(missing.slotChannelMissing(false, 0),
+		QStringLiteral("a name in scope but outside the selection is not flagged"));
+	missing.pickSlot(false, 0, L"NOSUCH");
+	expectTrue(missing.slotChannelMissing(false, 0),
+		QStringLiteral("a name out of scope is flagged"));
+	missing.pickSlot(false, 0, L"5");
+	expectTrue(missing.slotChannelMissing(false, 0),
+		QStringLiteral("a number beyond the selection is flagged although the scope is wider"));
 	missing.pickSlot(false, 0, L"-");
 	expectTrue(missing.slotSilent(false, 0) && !missing.slotChannelMissing(false, 0),
 		QStringLiteral("a dash slot is silent, never missing"));

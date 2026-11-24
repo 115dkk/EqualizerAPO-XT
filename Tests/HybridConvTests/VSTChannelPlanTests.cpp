@@ -142,4 +142,36 @@ TEST_CASE(VSTChannelPlanTests, runVSTChannelPlanTests)
 		"OutputChannels accepts a channel declared by the preceding NewChannel line");
 	harness.expectTrue(withDeclaration.resolvedOutputChannels == vector<int>({0, 2}),
 		"the declared virtual output resolves to its appended channel index");
+
+	const VSTChannelPlan absent = planVstChannels(request(stereo, 2, 2, true, {L"L", L"Nonexistent"}));
+	harness.expectTrue(absent.missingChannel == L"Nonexistent",
+		"a refused fill names the entry that resolved to nothing");
+
+	// Issue #519: the engine appends the channels a fill names after the
+	// selection. Names reach them; numbers and a side without a fill stay in
+	// the selection.
+	VSTChannelPlanRequest appended = request({L"1", L"2", L"VA", L"L", L"R"}, 2, 2, true,
+		{L"L", L"R"}, {L"VA", L"-"});
+	appended.selectedChannelCount = 3;
+	const VSTChannelPlan appendedPlan = planVstChannels(appended);
+	harness.expectTrue(appendedPlan.refusal == Refusal::None
+		&& appendedPlan.resolvedInputChannels == vector<int>({3, 4})
+		&& appendedPlan.resolvedOutputChannels == vector<int>({2, -1}),
+		"fill names resolve to the channels appended after the selection");
+	harness.expectTrue(appendedPlan.passthroughChannels == vector<unsigned>({0, 1, 3, 4}),
+		"appended channels the fill only reads pass through like selected ones");
+
+	VSTChannelPlanRequest numbered = request(stereo, 2, 2, true, {L"R", L"2"}, {L"L", L"-"});
+	numbered.selectedChannelCount = 1;
+	const VSTChannelPlan numberedPlan = planVstChannels(numbered);
+	harness.expectTrue(numberedPlan.refusal == Refusal::FillChannelMissing && numberedPlan.missingChannel == L"2",
+		"a channel number counts the selection only, not the channels appended after it");
+
+	VSTChannelPlanRequest implicitOutput = request({L"L", L"VA"}, 2, 2, true, {L"VA", L"L"});
+	implicitOutput.selectedChannelCount = 1;
+	const VSTChannelPlan implicitOutputPlan = planVstChannels(implicitOutput);
+	harness.expectTrue(implicitOutputPlan.refusal == Refusal::None
+		&& implicitOutputPlan.resolvedInputChannels == vector<int>({1, 0})
+		&& implicitOutputPlan.passthroughChannels == vector<unsigned>({1}),
+		"a side without a fill writes the first channels of the selection, never an appended one");
 }

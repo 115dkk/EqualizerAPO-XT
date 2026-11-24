@@ -23,13 +23,15 @@ public:
 	void begin(std::vector<std::wstring> deviceChannels, bool previousLoadEndedInPlace);
 
 	// Before a filter's initialize(): the names it is initialized with and its
-	// input indices (empty when they are the previous filter's).
+	// input indices (empty when they are the previous filter's). namedChannels
+	// is what IFilter::getNamedChannels returned: the ones that exist and are
+	// not selected follow the selection, for this filter only.
 	struct Entry
 	{
 		std::vector<std::wstring> initializeWith;
 		std::vector<size_t> inChannels;
 	};
-	Entry enter(bool allChannels);
+	Entry enter(bool allChannels, const std::vector<std::wstring>& namedChannels = {});
 
 	// After initialize() returned newChannelNames: the output indices (empty
 	// when in place over the same names), new names appended to the channel

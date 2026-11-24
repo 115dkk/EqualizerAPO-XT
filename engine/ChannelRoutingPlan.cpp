@@ -6,8 +6,10 @@
 
 #include "stdafx.h"
 #include <algorithm>
+#include <cwctype>
 #include <utility>
 
+#include "audio/ChannelLayout.h"
 #include "ChannelRoutingPlan.h"
 
 using std::find;
@@ -26,11 +28,32 @@ void ChannelRoutingPlan::begin(vector<wstring> deviceChannels, bool previousLoad
 	lastInPlaceFlag = previousLoadEndedInPlace;
 }
 
-ChannelRoutingPlan::Entry ChannelRoutingPlan::enter(bool allChannels)
+ChannelRoutingPlan::Entry ChannelRoutingPlan::enter(bool allChannels, const vector<wstring>& namedChannels)
 {
 	savedNames = currentNames;
 	if (allChannels)
 		currentNames = allNames;
+	else
+	{
+		// Issue #519: a name the filter's line spells out reaches the filter
+		// even when no Channel: line selected it, as long as it exists. It goes
+		// after the selection, so every position in the selection (channel
+		// numbers, a fill-less side's first channels) means what it meant
+		// before; leave() restores the selection without it. Resolution is the
+		// alias-aware lookup the filter itself uses. A number is a position in
+		// the selection, so it never names an extra channel.
+		for (const wstring& word : namedChannels)
+		{
+			if (word.empty() || iswdigit(word[0]))
+				continue;
+			const int index = ChannelLayout::getChannelIndex(word, allNames, true);
+			if (index < 0)
+				continue;
+			const wstring& name = allNames[static_cast<size_t>(index)];
+			if (find(currentNames.begin(), currentNames.end(), name) == currentNames.end())
+				currentNames.push_back(name);
+		}
+	}
 
 	Entry entry;
 	if (lastNames != currentNames)
