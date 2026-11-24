@@ -48,6 +48,8 @@ public:
 	void clearLayouts();
 	// The channels selected at this row (the channel flow).
 	void setSelectedChannels(std::vector<std::wstring> names);
+	// Every channel name in scope at this row; see VSTSlotFillModel::setNamesInScope.
+	void setNamesInScope(std::vector<std::wstring> names);
 	// Assigns a channel (or L"-") to a slot; see VSTSlotFillModel::pickSlot.
 	void pickSlot(bool output, int slot, const std::wstring& value);
 	// Both sides back to the implicit default: the fill lists leave the line.

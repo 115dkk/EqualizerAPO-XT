@@ -16,6 +16,8 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <fstream>
+#include <iterator>
 #include <memory>
 #include <string>
 #include <thread>
@@ -40,6 +42,9 @@
 #include "vst/VST3MemoryStream.h"
 #include "vst/VSTStateSemantic.h"
 #include "services/logging/Logging.h"
+#include "engine/FilterEngine.h"
+#include "platform/windows/TextEncoding.h"
+#include "Tests/TestDirectory.h"
 #include "dsp/MxcsrGuard.h"
 #include "platform/windows/StackGuarantee.h"
 
@@ -1886,4 +1891,133 @@ TEST_CASE(Vst3HostTests, testStereoFallbackMapping)
 		harness.expectTrue(fallbackPassedThrough,
 			"4.1 names fall back cleanly through the default stereo-only component");
 	}
+}
+
+// Issue #519. A device that reports no channel mask (Benchmark passes 0, and a
+// 16-channel virtual cable reported none either) names its channels 1..16, so
+// a configuration makes L and R with Copy, which does not select what it
+// creates. A fill naming them used to find nothing in the selection and
+// disabled the plug-in. A fill now reaches every channel that exists at its
+// line, device or virtual, selected or not. The selection the engine hands
+// the plug-in still comes first, so a line that already worked keeps its exact
+// output and latency, and numbers stay positions in that selection.
+TEST_CASE(Vst3HostTests, testChannelFillReachesUnselectedChannels)
+{
+	const wstring latencyBundle = prepareBundle(exeDirectory(),
+		L"LatencyUpmixerBundle.vst3", L"TestVst3LatencyUpmixer.vst3");
+	harness.require(!latencyBundle.empty(), "latency-reporting VST3 bundle is prepared");
+	const std::string library = "VSTPlugin: Library \"" + wintext::toNarrowString(latencyBundle, CP_UTF8) + "\"";
+
+	// The LatencyUpmixer module copies its Stereo input to its Stereo output
+	// unchanged and reports 512 samples of latency, so the output shows which
+	// channels the plug-in read and wrote, and which ones the engine delayed.
+	constexpr unsigned channels = 16;
+	constexpr unsigned frames = 1024;
+	constexpr unsigned latency = 512;
+	test::TestDirectory files(L"Vst3FillSelection");
+
+	struct Rendered
+	{
+		std::vector<double> output;
+		std::vector<unsigned> latency;
+		std::string log;
+		double at(unsigned channel, unsigned frame) const
+		{
+			return output[static_cast<size_t>(frame) * channels + channel];
+		}
+	};
+	const auto render = [&files](const wstring& name, const std::string& body) {
+		const wstring configPath = files.trackFile(name + L".txt");
+		const wstring logPath = files.trackFile(name + L".log");
+		{
+			std::ofstream config(configPath, std::ios::binary);
+			config << body;
+		}
+		DeleteFileW(logPath.c_str());
+		Logging::useFile(logPath, false, true, false);
+		Rendered rendered;
+		{
+			FilterEngine engine;
+			EngineSetup setup;
+			setup.sampleRate = 48000.0f;
+			setup.inputChannelCount = channels;
+			setup.realChannelCount = channels;
+			setup.outputChannelCount = channels;
+			setup.channelMask = 0;
+			setup.maxFrameCount = frames;
+			setup.customPath = configPath;
+			setup.deviceName = L"Vst3HostTests";
+			setup.connectionName = L"File";
+			engine.initialize(setup);
+
+			// Impulses on channels 1, 2 and 4 at the first frame.
+			std::vector<double> input(static_cast<size_t>(2) * frames * channels, 0.0);
+			input[0] = 0.5;
+			input[1] = 0.25;
+			input[3] = 0.125;
+			rendered.output.assign(input.size(), 0.0);
+			for (unsigned block = 0; block < 2; ++block)
+			{
+				const size_t offset = static_cast<size_t>(block) * frames * channels;
+				engine.process(rendered.output.data() + offset, input.data() + offset, frames);
+			}
+			rendered.latency = engine.getRealLatencyByChannel();
+		}
+		Logging::set(stdout, true, true, false);
+		std::ifstream log(logPath, std::ios::binary);
+		rendered.log.assign(std::istreambuf_iterator<char>(log), std::istreambuf_iterator<char>());
+		return rendered;
+	};
+
+	// The issue's shape: no Channel: line, so the selection at the plug-in is
+	// the sixteen device channels plus the two NewChannel names; L and R exist
+	// but are not selected.
+	const std::string fill = library + " Input Stereo InputChannels L,R Output Stereo OutputChannels VA,VB\n";
+	const Rendered unselected = render(L"unselected",
+		"Copy: L=1 R=2\nNewChannel: VA VB\n" + fill + "Copy: 1=VA 2=VB 3=L\n");
+	harness.expectTrue(unselected.log.find("passing audio through") == std::string::npos,
+		"a fill naming Copy-created channels that are not selected keeps the plug-in running");
+	harness.expectTrue(test::nearlyEqual(unselected.at(0, 0), 0.5, 1.0e-9)
+		&& test::nearlyEqual(unselected.at(1, 0), 0.25, 1.0e-9),
+		"the plug-in reads the unselected L and R and writes the selected virtual channels");
+	harness.expectTrue(test::nearlyEqual(unselected.at(2, latency), 0.5, 1.0e-9)
+		&& test::nearlyEqual(unselected.at(2, 0), 0.0, 1.0e-9),
+		"a channel the fill only reads passes through delayed by the plug-in latency, like a selected one");
+	harness.expectTrue(unselected.latency.size() == channels
+		&& unselected.latency[0] == latency && unselected.latency[1] == latency && unselected.latency[2] == latency,
+		"the written channels and the delayed reader report the plug-in latency");
+
+	// The workaround the issue found. It worked before this change and must
+	// not change at all: channel 4 is outside the selection, so it is neither
+	// processed nor delayed.
+	const Rendered selected = render(L"selected",
+		"Copy: L=1 R=2\nChannel: L R\nNewChannel: VA VB\n" + fill + "Copy: 1=VA 2=VB 3=L\n");
+	harness.expectTrue(test::nearlyEqual(selected.at(0, 0), 0.5, 1.0e-9)
+		&& test::nearlyEqual(selected.at(1, 0), 0.25, 1.0e-9)
+		&& test::nearlyEqual(selected.at(2, latency), 0.5, 1.0e-9),
+		"the Channel: L R workaround still runs the plug-in");
+	harness.expectTrue(test::nearlyEqual(selected.at(3, 0), 0.125, 1.0e-9) && selected.latency.size() == channels
+		&& selected.latency[3] == 0,
+		"a channel outside a Channel: selection stays undelayed");
+
+	// A name that no line created still disables the plug-in, and the log says
+	// which name.
+	const Rendered absent = render(L"absent",
+		"Copy: L=1 R=2\nNewChannel: VA VB\n" + library
+		+ " Input Stereo InputChannels L,NOSUCH Output Stereo OutputChannels VA,VB\nCopy: 1=VA 2=VB\n");
+	harness.expectTrue(test::nearlyEqual(absent.at(0, 0), 0.0, 1.0e-9),
+		"a fill naming a channel that does not exist disables the plug-in");
+	harness.expectTrue(absent.log.find("NOSUCH") != std::string::npos
+		&& absent.log.find("passing audio through") != std::string::npos,
+		"the refusal names the channel it could not find");
+
+	// Numbers stay positions in the selection: with only L selected, "2" is out
+	// of range even though R is appended for the name beside it.
+	const Rendered numbered = render(L"numbered",
+		"Copy: L=1 R=2\nChannel: L\n" + library
+		+ " Input Stereo InputChannels R,2 Output Stereo OutputChannels L,-\nCopy: 1=L\n");
+	harness.expectTrue(test::nearlyEqual(numbered.at(0, 0), 0.5, 1.0e-9)
+		&& numbered.log.find("passing audio through") != std::string::npos,
+		"a channel number beyond the selection still disables the plug-in");
+	files.removeAll();
 }

@@ -6,6 +6,7 @@
 
 #pragma once
 #include <cstddef>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -17,6 +18,10 @@
 struct VSTChannelPlanRequest
 {
 	std::vector<std::wstring> channelNames; // the filter's channels
+	// How many of channelNames are the selection; the rest were appended for
+	// the fill's names (issue #519). Unset: all of them. Channel numbers and a
+	// side without a fill only ever reach the selection.
+	std::optional<size_t> selectedChannelCount;
 	unsigned effectInputCount = 0;          // per instance, validated
 	unsigned effectOutputCount = 0;
 	bool oneContractInstance = false;       // busContract && busContract->hasExplicitLayout()
@@ -45,6 +50,7 @@ struct VSTChannelPlan
 	std::vector<int> resolvedInputChannels;  // -1 for "-"; empty without a fill
 	std::vector<int> resolvedOutputChannels;
 	std::vector<unsigned> passthroughChannels; // only with a fill: channels no output slot writes
+	std::wstring missingChannel;           // FillChannelMissing: the first entry that resolved to nothing
 
 	bool usesFill() const { return !resolvedInputChannels.empty() || !resolvedOutputChannels.empty(); }
 };

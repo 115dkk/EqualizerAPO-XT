@@ -6,6 +6,8 @@
 
 #include "VSTSlotFillModel.h"
 
+#include <cwctype>
+
 #include "audio/ChannelLayout.h"
 
 void VSTSlotFillModel::setContract(const std::optional<VST3BusContract>& newContract)
@@ -22,6 +24,11 @@ void VSTSlotFillModel::setFill(std::vector<std::wstring> input, std::vector<std:
 void VSTSlotFillModel::setSelectedChannels(std::vector<std::wstring> names)
 {
 	selection = std::move(names);
+}
+
+void VSTSlotFillModel::setNamesInScope(std::vector<std::wstring> names)
+{
+	namesInScope = std::move(names);
 }
 
 bool VSTSlotFillModel::railPresent(bool output) const
@@ -79,9 +86,14 @@ bool VSTSlotFillModel::slotChannelMissing(bool output, int slot) const
 	const std::wstring value = slotValue(output, slot);
 	if (value.empty() || value == L"-")
 		return false;
-	// The same resolver the engine uses, against the same selection, so the
-	// warning matches what would actually pass audio through.
-	return ChannelLayout::getChannelIndex(value, selection) < 0;
+	// The same resolver the engine uses, against the same channels, so the
+	// warning matches what would actually pass audio through: a number counts
+	// the selection, a name reaches every channel in scope (issue #519). The
+	// selection is in scope too, which covers a row that has no scope list.
+	if (iswdigit(value[0]))
+		return ChannelLayout::getChannelIndex(value, selection, true) < 0;
+	return ChannelLayout::getChannelIndex(value, selection, true) < 0
+		&& ChannelLayout::getChannelIndex(value, namesInScope, true) < 0;
 }
 
 void VSTSlotFillModel::pickSlot(bool output, int slot, const std::wstring& value)

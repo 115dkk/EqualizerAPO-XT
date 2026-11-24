@@ -6,6 +6,7 @@
 
 #include "stdafx.h"
 #include <algorithm>
+#include <cwctype>
 #include <limits>
 #include <utility>
 
@@ -24,9 +25,13 @@ bool checkedMultiply(size_t left, size_t right, size_t& result) noexcept
 
 // "-" is the only selector the config resolves itself; everything else goes
 // through the same name/alias/number lookup the Copy command uses, so a fill
-// accepts exactly the channel spellings the rest of a configuration does.
+// accepts exactly the channel spellings the rest of a configuration does. A
+// name may reach the channels appended after the selection (issue #519); a
+// number counts the selection only, as it did before. On failure, missing
+// holds the entry that resolved to nothing.
 bool resolveChannelFill(const std::vector<std::wstring>& fill,
-	const std::vector<std::wstring>& channelNames, std::vector<int>& resolved)
+	const std::vector<std::wstring>& channelNames, const std::vector<std::wstring>& selection,
+	std::vector<int>& resolved, std::wstring& missing)
 {
 	resolved.clear();
 	resolved.reserve(fill.size());
@@ -37,9 +42,13 @@ bool resolveChannelFill(const std::vector<std::wstring>& fill,
 			resolved.push_back(-1);
 			continue;
 		}
-		const int channelIndex = ChannelLayout::getChannelIndex(selector, channelNames);
+		const bool number = !selector.empty() && iswdigit(selector[0]);
+		const int channelIndex = ChannelLayout::getChannelIndex(selector, number ? selection : channelNames);
 		if (channelIndex < 0)
+		{
+			missing = selector;
 			return false;
+		}
 		resolved.push_back(channelIndex);
 	}
 	return true;
@@ -59,14 +68,17 @@ VSTChannelPlan planVstChannels(const VSTChannelPlanRequest& request)
 {
 	VSTChannelPlan plan;
 	const size_t channelCount = request.channelNames.size();
+	const size_t selectedCount = request.selectedChannelCount
+		? (std::min)(*request.selectedChannelCount, channelCount) : channelCount;
 
 	plan.effectChannelCount = (std::max)(request.effectInputCount, request.effectOutputCount);
 	if (plan.effectChannelCount == 0)
 		return refuse(std::move(plan), VSTChannelPlan::Refusal::NoChannels);
 
-	// round up
+	// round up, over the selection: channels appended for a fill's names are
+	// never spread over instances
 	plan.instanceCount = request.oneContractInstance ? 1
-		: channelCount / plan.effectChannelCount + (channelCount % plan.effectChannelCount != 0 ? 1 : 0);
+		: selectedCount / plan.effectChannelCount + (selectedCount % plan.effectChannelCount != 0 ? 1 : 0);
 	if (!checkedMultiply(plan.instanceCount, plan.effectChannelCount, plan.paddedChannelCount))
 		return refuse(std::move(plan), VSTChannelPlan::Refusal::PaddingOverflow);
 
@@ -79,16 +91,24 @@ VSTChannelPlan planVstChannels(const VSTChannelPlanRequest& request)
 		|| (!request.outputFill.empty() && request.outputFill.size() != request.effectOutputCount))
 		return refuse(std::move(plan), VSTChannelPlan::Refusal::FillSlotCountMismatch);
 
+	const std::vector<std::wstring> selection(request.channelNames.begin(),
+		request.channelNames.begin() + static_cast<std::ptrdiff_t>(selectedCount));
 	std::vector<int> resolvedInput;
 	std::vector<int> resolvedOutput;
-	if (!resolveChannelFill(request.inputFill, request.channelNames, resolvedInput)
-		|| !resolveChannelFill(request.outputFill, request.channelNames, resolvedOutput))
-		return refuse(std::move(plan), VSTChannelPlan::Refusal::FillChannelMissing);
+	std::wstring missing;
+	if (!resolveChannelFill(request.inputFill, request.channelNames, selection, resolvedInput, missing)
+		|| !resolveChannelFill(request.outputFill, request.channelNames, selection, resolvedOutput, missing))
+	{
+		plan = refuse(std::move(plan), VSTChannelPlan::Refusal::FillChannelMissing);
+		plan.missingChannel = std::move(missing);
+		return plan;
+	}
 
 	std::vector<bool> writtenChannels(channelCount, false);
 	if (resolvedOutput.empty())
 	{
-		for (unsigned channel = 0; channel < request.effectOutputCount && channel < channelCount; channel++)
+		// A side without a fill writes the first channels of the selection.
+		for (unsigned channel = 0; channel < request.effectOutputCount && channel < selectedCount; channel++)
 			writtenChannels[channel] = true;
 	}
 	else

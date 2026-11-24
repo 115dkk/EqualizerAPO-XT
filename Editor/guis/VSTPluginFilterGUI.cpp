@@ -214,6 +214,7 @@ void VSTPluginFilterGUI::fillToggleClicked(bool checked)
 void VSTPluginFilterGUI::setChannelFlow(const ChannelFlowAtLine& flow)
 {
 	document.setSelectedChannels(flow.selected);
+	document.setNamesInScope(flow.namesInScope);
 	updateFillRows();
 }
 
