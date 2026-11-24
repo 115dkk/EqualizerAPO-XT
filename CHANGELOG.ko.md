@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.79.1 — 2026-11-24
+
 - **VST 플러그인의 채널 채우기에 `Channel:` 줄로 선택하지 않은 채널도 지정할 수
   있습니다.** `InputChannels`나 `OutputChannels`를 쓴 `VSTPlugin:` 줄은 그 줄에서
   선택된 채널만 지정할 수 있었습니다. 채널 배치를 알려 주지 않는 장치(Benchmark는

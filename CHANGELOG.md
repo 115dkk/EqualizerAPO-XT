@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.79.1 — 2026-11-24
+
 - **A VST plug-in's channel fill reaches channels that no `Channel:` line
   selected.** A `VSTPlugin:` line with `InputChannels` or `OutputChannels`
   could only name channels selected at that line. A device that reports no
