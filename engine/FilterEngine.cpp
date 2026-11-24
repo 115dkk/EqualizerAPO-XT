@@ -69,6 +69,9 @@ FilterEngine::FilterEngine()
       outputChannelCount(0),
 	  transitionCounter(0)
 {
+	LARGE_INTEGER frequency{};
+	if (QueryPerformanceFrequency(&frequency))
+		performanceFrequency = frequency.QuadPart;
 }
 
 FilterEngine::~FilterEngine()
@@ -99,6 +102,7 @@ vector<unsigned> FilterEngine::getRealLatencyByChannel() const
 
 void FilterEngine::initialize(const EngineSetup& setup)
 {
+	hostBlockTiming.streamRestarted();
 	const float sampleRate = setup.sampleRate;
 	const unsigned inputChannelCount = setup.inputChannelCount;
 	const unsigned realChannelCount = setup.realChannelCount;

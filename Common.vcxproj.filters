@@ -265,6 +265,9 @@
     <ClInclude Include="platform\windows\GuidText.h">
       <Filter>platform</Filter>
     </ClInclude>
+    <ClInclude Include="diagnostics\performance\BlockTiming.h">
+      <Filter>diagnostics</Filter>
+    </ClInclude>
     <ClInclude Include="diagnostics\performance\PerfProfile.h">
       <Filter>platform</Filter>
     </ClInclude>

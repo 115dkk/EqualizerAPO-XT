@@ -74,6 +74,9 @@
     <ClCompile Include="RealLatencyTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="BlockTimingTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="FanOutGovernorTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

@@ -161,6 +161,39 @@ void FilterEngine::deferUntilConfigurationCommit(std::function<void()> action)
 	load.commitActions.push_back(std::move(action));
 }
 
+void FilterEngine::reportHostBlockTiming(const wchar_t* when)
+{
+	const eapo::diag::BlockTimingSummary summary = hostBlockTiming.take();
+	if (summary.blocks == 0)
+		return;
+
+	const double millisecondsPerTick = 1000.0 / static_cast<double>(performanceFrequency);
+	const wchar_t* const format =
+		L"Audio blocks %s: %llu callbacks of %.2f ms; %llu took longer than the audio they carry "
+		L"(longest %.2f ms, for %.2f ms of audio); %llu began more than 1.5 block lengths after "
+		L"the previous one (longest gap %.2f ms)";
+	if (summary.overBudget > 0 || summary.lateStarts > 0)
+	{
+		LogF(format, when, static_cast<unsigned long long>(summary.blocks),
+			summary.lastBudgetTicks * millisecondsPerTick,
+			static_cast<unsigned long long>(summary.overBudget),
+			summary.longestTicks * millisecondsPerTick,
+			summary.longestBudgetTicks * millisecondsPerTick,
+			static_cast<unsigned long long>(summary.lateStarts),
+			summary.longestGapTicks * millisecondsPerTick);
+	}
+	else
+	{
+		TraceF(format, when, static_cast<unsigned long long>(summary.blocks),
+			summary.lastBudgetTicks * millisecondsPerTick,
+			static_cast<unsigned long long>(summary.overBudget),
+			summary.longestTicks * millisecondsPerTick,
+			summary.longestBudgetTicks * millisecondsPerTick,
+			static_cast<unsigned long long>(summary.lateStarts),
+			summary.longestGapTicks * millisecondsPerTick);
+	}
+}
+
 bool FilterEngine::loadConfig(const wstring& customPath)
 {
 	// One producer may own the pending slot until the audio thread completes
@@ -179,6 +212,7 @@ bool FilterEngine::loadConfig(const wstring& customPath)
 			lastOversizedMaxFrameCount.load(std::memory_order_relaxed));
 		reportedOversizedBlockCount = observedOversizedBlockCount;
 	}
+	reportHostBlockTiming(L"since the previous configuration load");
 	timer.start();
 
 	// The factories build through the engine's load session. Move the previous

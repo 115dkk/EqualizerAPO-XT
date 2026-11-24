@@ -37,6 +37,7 @@
 #include "FilterConfiguration.h"
 #include "ConfigSwapChannel.h"
 #include "parser/EngineParser.h"
+#include "diagnostics/performance/BlockTiming.h"
 #include "diagnostics/performance/PrecisionTimer.h"
 
 struct ConfigLoadTraceEntry;
@@ -130,6 +131,10 @@ public:
 	void process(float* output, float* input, unsigned frameCount);
 	void process(float** output, float** input, unsigned frameCount);
 	void process(double* output, double* input, unsigned frameCount);
+	// Only a host's real-time callback calls this (the APO), once per callback.
+	void noteHostBlock(int64_t entryTicks, int64_t exitTicks, unsigned frameCount) noexcept;
+	// Reports and clears host callback timing from a control thread.
+	void reportHostBlockTiming(const wchar_t* when);
 
 	bool isPreMix() const {return preMix;}
 	bool isCapture() const {return capture;}
@@ -311,6 +316,8 @@ private:
 	ConfigSwapChannel<FilterConfigurationPtr> configChannel;
 	std::atomic<unsigned> realLatency{0};
 	std::atomic<IInputTap*> inputTap{nullptr};
+	eapo::diag::BlockTimingMonitor hostBlockTiming;
+	int64_t performanceFrequency = 0;
 	std::atomic<uint64_t> oversizedBlockCount{0};
 	std::atomic<unsigned> lastOversizedFrameCount{0};
 	std::atomic<unsigned> lastOversizedMaxFrameCount{0};

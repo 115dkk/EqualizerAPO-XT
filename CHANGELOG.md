@@ -14,6 +14,16 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The audio service logs audio blocks that took longer than the audio they
+  carry.** Nothing measured how long the equalizer took per block in the audio
+  service, so an occasional one-buffer slip in a loopback recording could not
+  be traced to it or ruled out. The APO now times every block. When the
+  configuration is reloaded and when a stream stops, it logs how many blocks
+  took longer to process than the audio they carry, and how many began more
+  than 1.5 block lengths after the previous one, with the longest of each. The
+  line appears only when one of those counts is above zero, or always with
+  tracing on. The audio is not changed. ([#526](https://github.com/115dkk/EqualizerAPO-XT/pull/526))
+
 ## v2.79.0 — 2026-11-24
 
 - **Benchmark can write 24-bit PCM and 32-bit float files, and writes the

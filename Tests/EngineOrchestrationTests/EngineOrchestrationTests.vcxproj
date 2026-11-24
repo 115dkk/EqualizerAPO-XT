@@ -90,6 +90,7 @@
     <ClCompile Include="EngineLifecycleTests.cpp" />
     <ClCompile Include="EngineOrchestrationTests.cpp" />
     <ClCompile Include="EngineRoutingTests.cpp" />
+    <ClCompile Include="BlockTimingTests.cpp" />
     <ClCompile Include="FanOutGovernorTests.cpp" />
     <ClCompile Include="InstallDiagnosticsTests.cpp" />
     <ClCompile Include="JudgedPathTests.cpp" />

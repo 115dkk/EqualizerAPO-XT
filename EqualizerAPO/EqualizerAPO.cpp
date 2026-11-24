@@ -439,6 +439,7 @@ HRESULT EqualizerAPO::LockForProcess(UINT32 u32NumInputConnections,
 HRESULT EqualizerAPO::UnlockForProcess()
 {
 	return ComBoundary::invoke([&]() -> HRESULT {
+	engine.reportHostBlockTiming(L"in the stream that just stopped");
 	child.unlockForProcess();
 
 	return CBaseAudioProcessingObject::UnlockForProcess();
@@ -478,6 +479,8 @@ void EqualizerAPO::APOProcess(UINT32 u32NumInputConnections,
 	APO_CONNECTION_PROPERTY** ppInputConnections, UINT32 u32NumOutputConnections,
 	APO_CONNECTION_PROPERTY** ppOutputConnections)
 {
+	LARGE_INTEGER entry{};
+	const BOOL timed = QueryPerformanceCounter(&entry);
 	APO_CONNECTION_PROPERTY* const input = ppInputConnections[0];
 	APO_CONNECTION_PROPERTY* const output = ppOutputConnections[0];
 
@@ -520,6 +523,9 @@ void EqualizerAPO::APOProcess(UINT32 u32NumInputConnections,
 		output->u32ValidFrameCount = result.validFrameCount;
 		output->u32BufferFlags = result.outputFlags;
 	}
+	LARGE_INTEGER exit{};
+	if (timed && QueryPerformanceCounter(&exit))
+		engine.noteHostBlock(entry.QuadPart, exit.QuadPart, input->u32ValidFrameCount);
 }
 #pragma AVRT_CODE_END
 
