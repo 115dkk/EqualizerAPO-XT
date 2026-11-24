@@ -14,6 +14,18 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Benchmark can write 24-bit PCM and 32-bit float files, and writes the
+  whole input.** Benchmark always wrote 16-bit PCM, so an impulse response
+  rendered through it lost everything below about -96 dB and could not be
+  loaded back as an exact filter. `--format pcm24` and `--format float32`
+  now write 24-bit PCM or the engine's 32-bit float samples unchanged; 16-bit
+  stays the default. Benchmark also dropped the frames after the last whole
+  batch (up to 1.4 s at 48 kHz with the default batch of 65536 frames) and
+  refused inputs shorter than one batch. Those frames are now processed and
+  written, and only left out of the timings. In 16- and 24-bit files, samples
+  above full scale are clipped instead of being written with the opposite
+  sign. ([#524](https://github.com/115dkk/EqualizerAPO-XT/pull/524))
+
 ## v2.78.1 — 2026-11-23
 
 - **The Device Selector's windows wear the skin's title bar.** The device

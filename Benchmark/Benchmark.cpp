@@ -46,6 +46,7 @@
 #include "diagnostics/performance/PerfProfile.h"
 #include "audio/io/SndfileRAII.h"
 #include "BatchPlan.h"
+#include "OutputFormat.h"
 
 using std::cerr;
 using std::cout;
@@ -79,6 +80,9 @@ int main(int argc, char** argv)
 		TCLAP::ValueArg<string> devicenameArg("", "devicename", "Device name to use when parsing configuration (Default: Benchmark)", false, "Benchmark", "string", cmd);
 		TCLAP::ValueArg<unsigned> batchsizeArg("", "batchsize", "Number of frames processed in one batch (Default: 65536)", false, 65536, "integer", cmd);
 		TCLAP::ValueArg<string> outputArg("o", "output", "File to write sound data to", false, "", "string", cmd);
+		TCLAP::ValueArg<string> formatArg("", "format", "Sample format of the output file: pcm16, pcm24 or float32 (Default: pcm16). "
+			"float32 keeps the engine's output samples unchanged, so use it when the output is an impulse response to be loaded as a filter again",
+			false, "pcm16", "pcm16|pcm24|float32", cmd);
 		TCLAP::ValueArg<string> inputArg("i", "input", "File to load sound data from instead of generating sweep", false, "", "string", cmd);
 		TCLAP::ValueArg<unsigned> rateArg("r", "rate", "Sample rate of generated sweep (Default: 44100)", false, 44100, "integer", cmd);
 		TCLAP::ValueArg<float> toArg("t", "to", "End frequency of generated sweep in Hz (Default: 20000.0)", false, 20000.0f, "float", cmd);
@@ -93,6 +97,13 @@ int main(int argc, char** argv)
 		{
 			eapo::rt::FanOut::setWorkerLimitForTests(fanOutFixedArg.getValue());
 			eapo::rt::FanOut::setGovernorEnabledForTests(false);
+		}
+
+		const std::optional<BenchmarkOutputFormat> outputFormat = parseBenchmarkOutputFormat(formatArg.getValue());
+		if (!outputFormat)
+		{
+			cerr << "Unknown output format \"" << formatArg.getValue() << "\": use pcm16, pcm24 or float32\n";
+			return 1;
 		}
 
 		bool verbose = verboseArg.getValue();
@@ -192,14 +203,14 @@ int main(int argc, char** argv)
 			return 1;
 		}
 		const BenchmarkBatchPlan batchPlan = planBenchmarkBatches(frameCount, batchsize);
-		const unsigned processedFrameCount = batchPlan.processedFrames;
-		if (processedFrameCount == 0)
+		const unsigned timedFrameCount = batchPlan.timedFrames;
+		if (frameCount == 0)
 		{
-			cerr << "Input must contain at least one complete batch (" << batchsize << " frames)\n";
+			cerr << "Input contains no frames\n";
 			return 1;
 		}
 
-		vector<float> buf2((size_t)processedFrameCount * channelCount, 0.0f);
+		vector<float> buf2((size_t)frameCount * channelCount, 0.0f);
 
 		PrecisionTimer timer;
 		timer.start();
@@ -245,24 +256,27 @@ int main(int argc, char** argv)
 				PerfProfile::enable();
 			}
 
-			cout << "\nProcessing " << processedFrameCount << " frames from " << channelCount << " channel(s)";
+			cout << "\nProcessing " << (timedFrameCount > 0 ? timedFrameCount : frameCount) << " frames from " << channelCount << " channel(s)";
 			if (repeatCount > 1)
 				cout << " x" << repeatCount << " repetitions";
 			cout << "\n";
-			if (batchPlan.trimmedFrames > 0)
-				cout << "Excluded " << batchPlan.trimmedFrames
-					<< " trailing frame(s) so every measured batch remains " << batchsize
-					<< " frames; published batch metrics stay directly comparable.\n";
+			if (timedFrameCount == 0)
+				cout << "The input is shorter than one " << batchsize
+					<< "-frame batch: it is processed as one block and written to the output, with no timings.\n";
+			else if (batchPlan.tailFrames > 0)
+				cout << "The last " << batchPlan.tailFrames << " frame(s) do not fill a " << batchsize
+					<< "-frame batch: they are processed once after the timed batches and written to the output,"
+					" but left out of the timings so every measured batch stays comparable.\n";
 
 			vector<double> batchTimes;
-			batchTimes.reserve(((size_t)processedFrameCount / batchsize) * repeatCount);
+			batchTimes.reserve(((size_t)timedFrameCount / batchsize) * repeatCount);
 
 			timer.start();
 
 			PrecisionTimer batchTimer;
 			for (unsigned r = 0; r < repeatCount; r++)
 			{
-				for (unsigned i = 0; i < processedFrameCount; i += batchsize)
+				for (unsigned i = 0; i < timedFrameCount; i += batchsize)
 				{
 					batchTimer.start();
 					engine.process(buf2.data() + i * channelCount, buf.data() + i * channelCount, batchsize);
@@ -275,10 +289,30 @@ int main(int argc, char** argv)
 			if (profileEnabled)
 				PerfProfile::disable();
 
-			double totalAudio = static_cast<double>(processedFrameCount) / sampleRate * repeatCount;
+			// The tail continues the last repetition as one whole batch padded
+			// with silence, and only its first tailFrames frames are kept. A
+			// shorter block would not do: the convolution filters are built for
+			// one block length and mute any other (ConvolverBank::admit), which
+			// is harmless in the audio service, where LockForProcess fixes the
+			// length, but would silence a rendered impulse response's end here.
+			// Every filter is causal, so the padding does not change the kept
+			// frames.
+			if (batchPlan.tailFrames > 0)
+			{
+				vector<float> tailIn((size_t)batchsize * channelCount, 0.0f);
+				vector<float> tailOut((size_t)batchsize * channelCount, 0.0f);
+				const size_t tailSamples = (size_t)batchPlan.tailFrames * channelCount;
+				std::copy_n(buf.data() + (size_t)timedFrameCount * channelCount, tailSamples, tailIn.data());
+				engine.process(tailOut.data(), tailIn.data(), batchsize);
+				std::copy_n(tailOut.data(), tailSamples, buf2.data() + (size_t)timedFrameCount * channelCount);
+			}
 
-			cout << processedFrameCount * channelCount * repeatCount << " samples processed in " << time << " seconds\n";
-			cout << "This is equivalent to " << 100.0f * time / totalAudio << "% CPU load (one core) when processing in real time\n";
+			if (timedFrameCount > 0)
+			{
+				const double totalAudio = static_cast<double>(timedFrameCount) / sampleRate * repeatCount;
+				cout << timedFrameCount * channelCount * repeatCount << " samples processed in " << time << " seconds\n";
+				cout << "This is equivalent to " << 100.0f * time / totalAudio << "% CPU load (one core) when processing in real time\n";
+			}
 			const unsigned realLatency = engine.getRealLatency();
 			// The figures printed after this keep the stream's own precision.
 			const std::streamsize streamPrecision = cout.precision();
@@ -336,9 +370,10 @@ int main(int argc, char** argv)
 				cout << "\nPer-batch timings written to " << dumpCsvPath << "\n";
 			}
 
-			unsigned clipCount = 0;
+			const bool integerOutput = benchmarkOutputFormatIsInteger(*outputFormat);
+			size_t clipCount = 0;
 			float maxLevel = 0;
-			for (unsigned i = 0; i < processedFrameCount * channelCount; i++)
+			for (size_t i = 0; i < buf2.size(); i++)
 			{
 				float f = fabs(buf2[i]);
 				if (f > maxLevel)
@@ -352,7 +387,12 @@ int main(int argc, char** argv)
 			else
 				cout << "Max output level: 0 (silence)";
 			if (clipCount > 0)
-				cout << " (" << clipCount << " samples clipped!)";
+			{
+				if (integerOutput)
+					cout << " (" << clipCount << " samples clipped!)";
+				else
+					cout << " (" << clipCount << " samples above full scale, kept as they are in the float file)";
+			}
 			cout << "\n";
 
 			string output = outputArg.getValue();
@@ -365,23 +405,43 @@ int main(int argc, char** argv)
 				output += "testout.wav";
 			}
 
-			cout << "\nWriting output to " << output << "\n";
+			int subtype = SF_FORMAT_PCM_16;
+			const char* formatName = "pcm16";
+			switch (*outputFormat)
+			{
+			case BenchmarkOutputFormat::Pcm16:
+				break;
+			case BenchmarkOutputFormat::Pcm24:
+				subtype = SF_FORMAT_PCM_24;
+				formatName = "pcm24";
+				break;
+			case BenchmarkOutputFormat::Float32:
+				subtype = SF_FORMAT_FLOAT;
+				formatName = "float32";
+				break;
+			}
 
-			SF_INFO info = {processedFrameCount, static_cast<int>(sampleRate), static_cast<int>(channelCount), SF_FORMAT_WAV | SF_FORMAT_PCM_16, 0};
+			cout << "\nWriting " << frameCount << " frames (" << formatName << ") to " << output << "\n";
+
+			SF_INFO info = {frameCount, static_cast<int>(sampleRate), static_cast<int>(channelCount), SF_FORMAT_WAV | subtype, 0};
 			sndfile::Handle outFile(sf_open(output.c_str(), SFM_WRITE, &info));
 			if (!outFile)
 			{
 				cerr << sf_strerror(nullptr);
 				return 1;
 			}
+			// Without this libsndfile wraps a sample above full scale round to
+			// the opposite sign when it converts float to PCM.
+			if (integerOutput)
+				sf_command(outFile.get(), SFC_SET_CLIPPING, nullptr, SF_TRUE);
 
 			sf_count_t numWritten = 0;
-			while (numWritten < processedFrameCount)
+			while (numWritten < frameCount)
 			{
-				const sf_count_t written = sf_writef_float(outFile.get(), buf2.data() + numWritten * channelCount, processedFrameCount - numWritten);
+				const sf_count_t written = sf_writef_float(outFile.get(), buf2.data() + numWritten * channelCount, frameCount - numWritten);
 				if (written <= 0)
 				{
-					cerr << "Writing " << output << " stopped after " << numWritten << " of " << processedFrameCount
+					cerr << "Writing " << output << " stopped after " << numWritten << " of " << frameCount
 						<< " frames: " << sf_strerror(outFile.get()) << "\n";
 					return 1;
 				}
