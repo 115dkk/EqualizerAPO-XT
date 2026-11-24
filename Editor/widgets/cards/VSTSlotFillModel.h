@@ -34,6 +34,11 @@ public:
 	// and the pick menu follow this list, so Channel: restrictions and
 	// Copy-created channels reach the fill exactly as the engine sees them.
 	void setSelectedChannels(std::vector<std::wstring> names);
+	// Every channel name in scope at this row: the device's and the virtual
+	// channels lines above created, selected or not. A fill entry that is a
+	// name reaches any of them in the engine (issue #519); a channel number
+	// still counts the selection only.
+	void setNamesInScope(std::vector<std::wstring> names);
 
 	// A rail exists only for an explicitly negotiated side.
 	bool railPresent(bool output) const;
@@ -51,8 +56,9 @@ public:
 	// True while the side has no explicit list (the values are implicit).
 	bool sideDefaulted(bool output) const;
 	bool slotSilent(bool output, int slot) const;
-	// An explicit entry that does not resolve into the current selection;
-	// the engine would disable the filter and pass audio through.
+	// An explicit entry the engine could not resolve: a name that is not in
+	// scope, or a number beyond the selection. The engine would disable the
+	// filter and pass audio through.
 	bool slotChannelMissing(bool output, int slot) const;
 
 	// Assign a channel (or L"-") to a slot. The first edit on a defaulted
@@ -76,4 +82,5 @@ private:
 	std::vector<std::wstring> inputList;
 	std::vector<std::wstring> outputList;
 	std::vector<std::wstring> selection;
+	std::vector<std::wstring> namesInScope;
 };

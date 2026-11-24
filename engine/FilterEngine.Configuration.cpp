@@ -468,7 +468,10 @@ void FilterEngine::addFilters(FilterVector filters)
 		filterInfo->filter = move(ownedFilter);
 		IFilter* filter = filterInfo->filter.get();
 		filterInfo->inPlace = filter->getInPlace();
-		ChannelRoutingPlan::Entry entry = load.routing.enter(filter->getAllChannels());
+		const bool allChannels = filter->getAllChannels();
+		const vector<wstring> namedChannels = allChannels
+			? vector<wstring>() : filter->getNamedChannels(load.routing.currentChannelNames());
+		ChannelRoutingPlan::Entry entry = load.routing.enter(allChannels, namedChannels);
 		filterInfo->inChannels = move(entry.inChannels);
 
 		vector<wstring> newChannelNames;

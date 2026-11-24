@@ -136,6 +136,22 @@ TEST_CASE(EngineOrchestrationTests, runChannelRoutingPlanTests)
 			"an in-place filter after a non-in-place one does not inherit outputs");
 	}
 
+	// Issue #519: channels a filter's line names reach it after the selection
+	// when they exist and are not selected; names that exist nowhere and
+	// channel numbers do not, and the selection after the filter is unchanged.
+	{
+		ChannelRoutingPlan plan;
+		plan.begin({ L"1", L"2", L"RL", L"L" }, false);
+		plan.setCurrentChannelNames({ L"1", L"2" });
+		ChannelRoutingPlan::Entry entry = plan.enter(false, { L"L", L"SL", L"NOSUCH", L"3", L"1", L"2" });
+		harness.expect(entry.initializeWith == Names({ L"1", L"2", L"L", L"RL" }),
+			"an unselected name, and an alias of one, follow the selection; absent names and numbers do not");
+		harness.expect(entry.inChannels == Indices({ 0, 1, 3, 2 }), "the appended channels are placed by name");
+		plan.leave(entry.initializeWith, false, false);
+		harness.expect(plan.currentChannelNames() == Names({ L"1", L"2" }),
+			"the selection after the filter is the selection before it");
+	}
+
 	// A filter that creates a channel appends it to the list once; a later
 	// filter naming it again finds it by name.
 	{

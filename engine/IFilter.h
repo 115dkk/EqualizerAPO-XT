@@ -37,7 +37,7 @@ class IFilter
 public:
 	virtual ~IFilter() {}
 
-	// These three hooks drive the channel-inheritance protocol in
+	// These four hooks drive the channel-inheritance protocol in
 	// FilterEngine::addFilters; the full contract (what an empty
 	// inChannels/outChannels vector means and when it may be emitted) is
 	// documented at FilterInfo in FilterConfiguration.h.
@@ -48,6 +48,15 @@ public:
 	virtual bool getInPlace() {return true;}
 	// request that the channelNames returned by initialize become the new selection
 	virtual bool getSelectChannels() {return false;}
+	// Channels the filter's own line names that the selection does not hold
+	// (issue #519). Called once, right before initialize(), with the selection
+	// the engine is about to hand it; a getAllChannels() filter is not asked.
+	// The engine appends the names that exist at this line (device channels and
+	// virtual channels created above, selected or not) after the selection,
+	// for this filter only: the selection after it is unchanged, and a name
+	// that exists nowhere is not appended. Names only, never channel numbers:
+	// a number is a position in the selection.
+	virtual std::vector<std::wstring> getNamedChannels(const std::vector<std::wstring>& /*selection*/) {return {};}
 	// return value is the channelNames vector, which may contain additional or fewer channel names
 	//
 	// Call contract (audit #348): the engine calls initialize() exactly once

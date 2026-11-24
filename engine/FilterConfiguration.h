@@ -59,8 +59,9 @@ struct EngineStreamFormat
 // empty outChannels would reuse. The previous load's last in-place flag
 // deliberately carries into the next load for the same reason.
 //
-// The three IFilter hooks (getAllChannels/getInPlace/getSelectChannels) are
-// the third leg of this protocol; their meaning is documented at IFilter.h.
+// The four IFilter hooks (getAllChannels/getInPlace/getSelectChannels/
+// getNamedChannels) are the third leg of this protocol; their meaning is
+// documented at IFilter.h.
 struct FilterInfo
 {
 	std::unique_ptr<IFilter, FilterDeleter> filter;

@@ -42,6 +42,10 @@ public:
 	~VSTPluginFilter();
 
 	bool getInPlace() override {return false;}
+	// The fill's channel names the selection does not hold (issue #519). Also
+	// remembers how wide the selection is, so initialize() can tell the
+	// selection from the channels the engine appends for the fill.
+	std::vector<std::wstring> getNamedChannels(const std::vector<std::wstring>& selection) override;
 	std::vector<std::wstring> initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames) override;
 	void prepareForProcessing(float sampleRate, unsigned maxFrameCount);
 	void process(double** output, double** input, unsigned frameCount) override;
@@ -93,6 +97,11 @@ private:
 	std::wstring chunkData;
 	std::unordered_map<std::wstring, float> paramMap;
 	size_t channelCount = 0;
+	// The first selectedChannelCount of the channelCount channels are the
+	// selection; the rest were appended for the fill (getNamedChannels). A
+	// side without a fill and channel numbers only ever use the selection.
+	size_t selectedChannelCount = 0;
+	std::optional<size_t> announcedSelectionWidth;
 	unsigned effectInputCount = 0;
 	unsigned effectOutputCount = 0;
 	unsigned effectChannelCount = 0;
