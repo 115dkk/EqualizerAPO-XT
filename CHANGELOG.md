@@ -21,8 +21,9 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   configuration is reloaded and when a stream stops, it logs how many blocks
   took longer to process than the audio they carry, and how many began more
   than 1.5 block lengths after the previous one, with the longest of each. The
-  line appears only when one of those counts is above zero, or always with
-  tracing on. The audio is not changed. ([#526](https://github.com/115dkk/EqualizerAPO-XT/pull/526))
+  line appears when a block took longer than its audio, or always with tracing
+  on: some audio engines hand over two blocks at once every other period, so
+  late starts alone are common and lose nothing. The audio is not changed. ([#526](https://github.com/115dkk/EqualizerAPO-XT/pull/526))
 
 ## v2.79.0 — 2026-11-24
 

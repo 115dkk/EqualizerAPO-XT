@@ -176,7 +176,12 @@ void FilterEngine::reportHostBlockTiming(const wchar_t* when)
 		L"Audio blocks %s: %llu callbacks of %.2f ms; %llu took longer than the audio they carry "
 		L"(longest %.2f ms, for %.2f ms of audio); %llu began more than 1.5 block lengths after "
 		L"the previous one (longest gap %.2f ms)";
-	if (summary.overBudget > 0 || summary.lateStarts > 0)
+	// Only a block the equalizer processed for longer than its own audio goes
+	// to the log unconditionally. Late starts alone stay on the trace: an
+	// audio engine that wakes every 20 ms and hands over two 10 ms blocks at
+	// once (the GitHub runner's virtual device did this for about a third of
+	// its callbacks) loses no audio, yet counts as late on every stream.
+	if (summary.overBudget > 0)
 	{
 		LogF(format, when, static_cast<unsigned long long>(summary.blocks),
 			summary.lastBudgetTicks * millisecondsPerTick,

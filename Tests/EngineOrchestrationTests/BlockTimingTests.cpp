@@ -107,8 +107,8 @@ TEST_CASE(EngineOrchestrationTests, testBlockTimingLastBudgetFollowsMostRecentCa
 // The report runs inside the audio service at every configuration load and
 // stream stop, so it is executed here once, through the engine, with the log
 // captured: a stream with an over-budget block and a late start writes the
-// whole line, an empty summary writes nothing, and take() leaves nothing for
-// the next report.
+// whole line, an empty summary writes nothing, take() leaves nothing for the
+// next report, and late starts alone stay on the trace.
 TEST_CASE(EngineOrchestrationTests, testHostBlockTimingReportWritesOneLine)
 {
 	const std::wstring config = writeConfig(harness, L"BlockTimingReport.txt", "Preamp: 0 dB\n");
@@ -130,6 +130,10 @@ TEST_CASE(EngineOrchestrationTests, testHostBlockTimingReportWritesOneLine)
 	engine.noteHostBlock(3 * tenMs, 6 * tenMs, 480);
 	engine.reportHostBlockTiming(L"in the test");
 	engine.reportHostBlockTiming(L"after the summary was taken");
+	// A late start without an over-budget block goes to the trace only, which
+	// this log has switched off.
+	engine.noteHostBlock(10 * tenMs, 11 * tenMs, 480);
+	engine.reportHostBlockTiming(L"with only a late start");
 	Logging::useStream(stderr, false, false, false);
 
 	std::ifstream stream(logPath, std::ios::binary);
@@ -143,4 +147,6 @@ TEST_CASE(EngineOrchestrationTests, testHostBlockTimingReportWritesOneLine)
 	harness.expect(contents.find("before any callback") == std::string::npos
 		&& contents.find("after the summary was taken") == std::string::npos,
 		"an empty summary writes nothing");
+	harness.expect(contents.find("with only a late start") == std::string::npos,
+		"late starts without an over-budget block stay off the log");
 }
