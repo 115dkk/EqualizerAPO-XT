@@ -262,6 +262,9 @@
     <ClInclude Include="..\..\Benchmark\BatchPlan.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Benchmark\OutputFormat.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Editor\import\ConfigDependencyScanner.h">
       <Filter>Header Files</Filter>
     </ClInclude>

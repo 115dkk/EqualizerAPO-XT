@@ -204,6 +204,7 @@
     <ClInclude Include="..\..\Editor\widgets\routing\RoutingGridModel.h" />
     <ClInclude Include="..\..\Editor\widgets\routing\CopyRoutingAdapter.h" />
     <ClInclude Include="..\..\Benchmark\BatchPlan.h" />
+    <ClInclude Include="..\..\Benchmark\OutputFormat.h" />
     <ClInclude Include="..\..\Editor\import\ConfigDependencyScanner.h" />
     <ClInclude Include="..\..\Editor\import\ImportExecutor.h" />
     <ClInclude Include="..\..\Editor\import\LegacyMigrationPolicy.h" />

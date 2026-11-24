@@ -22,6 +22,7 @@
 #include <QTemporaryDir>
 
 #include "Benchmark/BatchPlan.h"
+#include "Benchmark/OutputFormat.h"
 #include "Editor/helpers/AnalysisWorkerRecovery.h"
 #include "Editor/skins/SkinThemeData.h"
 #include "Editor/widgets/EditableValueText.h"
@@ -255,16 +256,41 @@ TEST_CASE(EditorLogicTests, testEditableValueTextUsesDisplayedDecimalFormatFirst
 TEST_CASE(EditorLogicTests, testBenchmarkBatchPlanUsesOnlyComparableFullBatches)
 {
 	const BenchmarkBatchPlan partial = planBenchmarkBatches(1000, 480);
-	expectEqual(partial.processedFrames, 960u,
-		"benchmark processes only full fixed-size batches");
-	expectEqual(partial.trimmedFrames, 40u,
-		"benchmark reports the excluded partial tail");
+	expectEqual(partial.timedFrames, 960u,
+		"benchmark times only full fixed-size batches");
+	expectEqual(partial.tailFrames, 40u,
+		"benchmark processes the partial tail outside the timed batches");
+	expectEqual(partial.timedFrames + partial.tailFrames, 1000u,
+		"benchmark processes every input frame");
 
 	const BenchmarkBatchPlan exact = planBenchmarkBatches(960, 480);
-	expectEqual(exact.processedFrames, 960u,
+	expectEqual(exact.timedFrames, 960u,
 		"batch-aligned benchmark lengths remain unchanged");
-	expectEqual(exact.trimmedFrames, 0u,
-		"batch-aligned benchmark lengths trim nothing");
+	expectEqual(exact.tailFrames, 0u,
+		"batch-aligned benchmark lengths leave no tail");
+
+	const BenchmarkBatchPlan shortInput = planBenchmarkBatches(300, 480);
+	expectEqual(shortInput.timedFrames, 0u,
+		"an input shorter than one batch has no timed batch");
+	expectEqual(shortInput.tailFrames, 300u,
+		"an input shorter than one batch is all tail");
+}
+
+TEST_CASE(EditorLogicTests, testBenchmarkOutputFormatNames)
+{
+	requireTrue(parseBenchmarkOutputFormat("pcm16") == BenchmarkOutputFormat::Pcm16,
+		"pcm16 names 16-bit PCM");
+	requireTrue(parseBenchmarkOutputFormat("pcm24") == BenchmarkOutputFormat::Pcm24,
+		"pcm24 names 24-bit PCM");
+	requireTrue(parseBenchmarkOutputFormat("float32") == BenchmarkOutputFormat::Float32,
+		"float32 names 32-bit float");
+	requireTrue(!parseBenchmarkOutputFormat("float").has_value() && !parseBenchmarkOutputFormat("PCM16").has_value()
+			&& !parseBenchmarkOutputFormat("").has_value(),
+		"unknown or differently cased names are refused rather than guessed");
+	requireTrue(benchmarkOutputFormatIsInteger(BenchmarkOutputFormat::Pcm16)
+			&& benchmarkOutputFormatIsInteger(BenchmarkOutputFormat::Pcm24)
+			&& !benchmarkOutputFormatIsInteger(BenchmarkOutputFormat::Float32),
+		"only the PCM formats clip at full scale");
 }
 
 TEST_CASE(EditorLogicTests, testFileReferenceControllerOwnsPathState)
