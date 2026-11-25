@@ -23,9 +23,9 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   확인하지 못했으므로 기본값은 꺼짐입니다. 장치 선택기에 체크박스가 들어오기
   전까지는, 엔드포인트의 항목이면 `DeviceSelector --install-endpoint {guid}
   --asio-entry --asio-float64`를 실행해 켜고, 그 밖의 항목은 항목 기록의
-  `Float64Samples` 값을 1로 바꿔 켜십시오. 업데이트하는 동안 드라이버를 열어
-  두었던 앱은 한 번 다시 시작하십시오. 다시 시작하기 전에는 드라이버와 엔진
-  호스트의 버전이 다르다는 오류가 표시됩니다. CI는 스트림을 이퀄라이저의 64비트
+  `Float64Samples` 값을 1로 바꿔 켜십시오. 업데이트 뒤에도 이전 드라이버를 그대로
+  쓰고 있는 앱에는 드라이버와 엔진 호스트의 버전이 다르다는 오류가 표시됩니다.
+  그 앱을 다시 시작하십시오. CI는 스트림을 이퀄라이저의 64비트
   출력과 비트 단위로 비교합니다. 64비트 부동소수점을 출력하는 DAW나 플레이어로는
   아직 확인하지 못했습니다
   ([docs/features/asio.md](docs/features/asio.md#sample-precision-and-64-bit-float)).

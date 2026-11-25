@@ -30,9 +30,9 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   Device Selector has a checkbox for it, turn it on with `DeviceSelector
   --install-endpoint {guid} --asio-entry --asio-float64` for an endpoint's
   entry, or with the `Float64Samples` value of the entry's record. An
-  application that kept the driver open across the update must be restarted
-  once; until then it reports that the driver and the engine host are
-  different versions. CI compares the stream with the equalizer's own 64-bit
+  application that still holds the previous driver after the update is told
+  that the driver and the engine host are different versions; restarting
+  the application fixes it. CI compares the stream with the equalizer's own 64-bit
   output bit for bit. The option has not yet been run under a DAW or player
   that outputs 64-bit float
   ([docs/features/asio.md](docs/features/asio.md#sample-precision-and-64-bit-float)).

@@ -250,10 +250,13 @@ The record behind an entry lives under
   could not start or did not load the configuration in time. The reason is
   in `EqualizerAPOAsio.log` and `EqualizerAPOHost.log` under
   `%LOCALAPPDATA%\EqualizerAPO\logs`.
-- The application refuses to open the device right after an update, with
-  "EQ APO XT driver and engine host are different versions; restart this
-  application": it still holds the driver it loaded before the update,
-  which the new engine host does not serve. Restart the application.
+- The application refuses to open the device with "EQ APO XT driver and
+  engine host are different versions; restart this application": the
+  wrapper it has loaded and the engine host that answered come from
+  different versions, which can happen when the application kept the
+  driver loaded across an update. Restart the application. (The updater
+  stops a running engine host itself; this state has not been reproduced
+  on a real update.)
 - The interface's sample rate changes while a stream runs: the wrapper asks
   the application to reopen the device, and buffers pass through unprocessed
   until it does.
