@@ -1413,7 +1413,6 @@ namespace
 		AsioWrapper* wrapper = new AsioWrapper(fake, testWrapperClsid, testTargetClsid,
 			passthroughOptions, std::make_unique<PassthroughProcessor>());
 		fake->Release();
-		std::vector<unsigned char> passthroughOutput;
 		std::vector<unsigned char> passthroughInput;
 		std::vector<unsigned char> passthroughSupplied;
 		{
@@ -1425,7 +1424,7 @@ namespace
 			harness.requireEqual(fake->pump(2), S_OK, "pump the passthrough conversion stream");
 			harness.requireEqual(wrapper->stop(), ASE_OK, "stop the passthrough conversion stream");
 			harness.requireEqual(wrapper->disposeBuffers(), ASE_OK, "dispose the passthrough conversion stream");
-			passthroughOutput = captured(fake, 0);
+			const std::vector<unsigned char> passthroughOutput = captured(fake, 0);
 			passthroughInput = host.inputRecord(0);
 			passthroughSupplied = supplied(fake, 0);
 			std::vector<double> passthroughValues(static_cast<size_t>(testFrames * 2));
