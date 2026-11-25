@@ -127,6 +127,10 @@ namespace eapo::asio
 	{
 		bool processOutput = true;
 		bool processInput = true;
+		// The application's buffers are ASIOSTFloat64LSB on every channel, whatever
+		// type the target takes; the wrapper converts at its edge. Off: the
+		// application sees the target's own sample types.
+		bool float64Samples = false;
 		Mode mode = Mode::Pipelined;
 		uint32_t deadlineUs = 0;          // 0 = automatic: deadlinePercent of the period
 		uint32_t deadlinePercent = 0;     // Sync only; 0 = 25. The Device Selector offers 25, 50 and 75
@@ -175,7 +179,7 @@ namespace eapo::asio
 		// stay valid through process(); process() may change the pointers in the
 		// array to hand a different buffer back without copying samples. No
 		// allocation, C++ locks or exceptions in either call.
-		virtual float** planes(Direction direction) noexcept = 0;
+		virtual double** planes(Direction direction) noexcept = 0;
 
 		// Once per enabled direction per switch, after planes() was filled.
 		// Waiting on a kernel object inside the deadline is allowed. Processed
@@ -205,7 +209,7 @@ namespace eapo::asio
 			return report;
 		}
 
-		float** planes(Direction) noexcept override
+		double** planes(Direction) noexcept override
 		{
 			return nullptr;
 		}

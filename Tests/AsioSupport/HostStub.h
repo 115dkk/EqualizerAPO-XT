@@ -22,6 +22,7 @@
 
 #include "asio/AsioSdk.h"
 #include "asio/SampleCodec.h"
+#include "Tests/AsioSupport/SampleOracle.h"
 
 namespace asiotest
 {
@@ -37,6 +38,9 @@ namespace asiotest
 			unsigned outputSeed = 7;      // 0 = silence
 			float outputScale = 1.0f;
 			long sampleType = ASIOSTInt32LSB;
+			// The output signal carries more significant bits than a float32 holds;
+			// needs an oracle-supported sample type, otherwise the float signal is used.
+			bool fullPrecision = false;
 			double sineHz = 0.0;          // > 0: a sine at outputScale on every output instead of the noise
 			double sampleRate = 48000.0;  // the sine's clock
 			unsigned clickIntervalFrames = 0; // > 0: eight +0.5 samples on outputs 0 and 1 at each interval
@@ -125,9 +129,13 @@ namespace asiotest
 			switchLogOverflow_ = 0;
 			inputRecords_.assign(infos_.size(), std::vector<unsigned char>());
 			if (options_.clickIntervalFrames > 0 || options_.switchLogCapacity > 0)
-				outputSamples_.assign(frames > 0 ? static_cast<size_t>(frames) : 0, 0.0f);
+				outputSamples_.assign(frames > 0 ? static_cast<size_t>(frames) : 0, 0.0);
 			else
 				outputSamples_.clear();
+			if (options_.fullPrecision && oracle::supported(options_.sampleType))
+				outputValues_.assign(frames > 0 ? static_cast<size_t>(frames) : 0, 0.0);
+			else
+				outputValues_.clear();
 			return driver->createBuffers(infos_.data(), static_cast<long>(infos_.size()), frames, &callbacks_);
 		}
 
@@ -156,6 +164,27 @@ namespace asiotest
 			state ^= state >> 15;
 			state = state * 1664525u + 1013904223u;
 			return static_cast<float>(static_cast<int32_t>(state)) * (0.5f / 2147483648.0f) * options_.outputScale;
+		}
+
+		// The signal as a double: channel c, sample n from the first switch,
+		// before the buffer's sample type.
+		double outputValue(long channel, uint64_t sampleIndex) const noexcept
+		{
+			if (!options_.fullPrecision || options_.clickIntervalFrames > 0 || options_.sineHz > 0.0)
+				return static_cast<double>(outputSample(channel, sampleIndex));
+			if (options_.outputSeed == 0)
+				return 0.0;
+			uint32_t state = (options_.outputSeed + 3u) * 2246822519u + static_cast<uint32_t>(channel + 1) * 2654435761u;
+			state ^= static_cast<uint32_t>(sampleIndex * 3266489917u);
+			state = state * 1664525u + 1013904223u;
+			state ^= state >> 15;
+			state = state * 1664525u + 1013904223u;      // the high word: what outputSample() scales
+			uint32_t low = (state ^ 0x9e3779b9u) * 1664525u + 1013904223u;
+			low ^= low >> 13;
+			low = low * 1664525u + 1013904223u;
+			const int64_t wide = static_cast<int64_t>(static_cast<int32_t>(state)) * 2097152
+				+ static_cast<int64_t>(low >> 11);
+			return static_cast<double>(wide) * (1.0 / 9007199254740992.0) * static_cast<double>(options_.outputScale);
 		}
 
 		// The bytes that arrived in one opened input (index into the
@@ -272,10 +301,14 @@ namespace asiotest
 			}
 			if (frames_ <= 0)
 				return;
-			std::vector<float> callbackSamples;
-			if (outputSamples_.empty())
-				callbackSamples.resize(static_cast<size_t>(frames_));
-			float* samples = outputSamples_.empty() ? callbackSamples.data() : outputSamples_.data();
+			std::vector<double> callbackSamples;
+			double* samples = nullptr;
+			if (!(options_.fullPrecision && oracle::supported(options_.sampleType)))
+			{
+				if (outputSamples_.empty())
+					callbackSamples.resize(static_cast<size_t>(frames_));
+				samples = outputSamples_.empty() ? callbackSamples.data() : outputSamples_.data();
+			}
 			size_t inputSlot = 0;
 			for (ASIOBufferInfo& info : infos_)
 			{
@@ -293,9 +326,20 @@ namespace asiotest
 				}
 				else
 				{
-					for (long n = 0; n < frames_; n++)
-						samples[static_cast<size_t>(n)] = outputSample(info.channelNum, outputPosition_ + static_cast<uint64_t>(n));
-					codec_.fromFloat(samples, buffer, static_cast<unsigned>(frames_));
+					if (options_.fullPrecision && oracle::supported(options_.sampleType))
+					{
+						for (long n = 0; n < frames_; n++)
+							outputValues_[static_cast<size_t>(n)] = outputValue(info.channelNum,
+								outputPosition_ + static_cast<uint64_t>(n));
+						oracle::encode(options_.sampleType, outputValues_.data(), buffer, static_cast<size_t>(frames_));
+					}
+					else
+					{
+						for (long n = 0; n < frames_; n++)
+							samples[static_cast<size_t>(n)] = static_cast<double>(
+								outputSample(info.channelNum, outputPosition_ + static_cast<uint64_t>(n)));
+						codec_.fromDouble(samples, buffer, static_cast<unsigned>(frames_));
+					}
 				}
 			}
 			outputPosition_ += static_cast<uint64_t>(frames_);
@@ -312,7 +356,8 @@ namespace asiotest
 		long frames_ = 0;
 		std::vector<ASIOBufferInfo> infos_;
 		std::vector<std::vector<unsigned char>> inputRecords_;
-		std::vector<float> outputSamples_;
+		std::vector<double> outputSamples_;
+		std::vector<double> outputValues_;
 		std::vector<SwitchLogEntry> switchLog_;
 		size_t switchLogCount_ = 0;
 		size_t switchLogOverflow_ = 0;

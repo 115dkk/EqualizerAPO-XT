@@ -88,6 +88,11 @@ public:
 	void setHost32(bool host32) {selected.host32 = host32;}
 	bool canHost32() const;
 
+	// Present 64-bit float samples to the application on every channel while
+	// the driver keeps its own sample type. Off by default.
+	bool isFloat64Samples() const {return selected.float64Samples;}
+	void setFloat64Samples(bool float64Samples) {selected.float64Samples = float64Samples;}
+
 private:
 	void loadState();
 	// The bodies of the three operations, each inside the transaction

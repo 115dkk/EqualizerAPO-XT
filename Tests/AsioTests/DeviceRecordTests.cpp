@@ -362,6 +362,64 @@ namespace
 		harness.expectFalse(eapo::asio::WrapperRecords::read(registry, topping->getWrapperClsid(), record), "the record goes with the last direction");
 	}
 
+	TEST_CASE(DeviceRecordTests, testFloat64SamplesSurvivesTheOtherDirectionInstall)
+	{
+		test::FakeRegistry registry;
+		seedTargets(registry);
+		std::vector<std::shared_ptr<AbstractAPOInfo>> playback;
+		std::vector<std::shared_ptr<AbstractAPOInfo>> capture;
+		AsioAPOInfo::appendInfos(playback, false, registry);
+		AsioAPOInfo::appendInfos(capture, true, registry);
+		AsioAPOInfo* output = nullptr;
+		AsioAPOInfo* input = nullptr;
+		for (const std::shared_ptr<AbstractAPOInfo>& info : playback)
+		{
+			if (info->getDeviceGuid() == toppingClsid)
+				output = static_cast<AsioAPOInfo*>(info.get());
+		}
+		for (const std::shared_ptr<AbstractAPOInfo>& info : capture)
+		{
+			if (info->getDeviceGuid() == toppingClsid)
+				input = static_cast<AsioAPOInfo*>(info.get());
+		}
+		harness.require(output != nullptr && input != nullptr, "both directions of the target exist");
+		harness.expectFalse(output->isFloat64Samples(), "Float64 samples are off by default");
+		harness.expectFalse(input->isFloat64Samples(), "the untouched input row also starts off");
+
+		output->setFloat64Samples(true);
+		output->install();
+		eapo::asio::WrapperRecord record;
+		harness.require(eapo::asio::WrapperRecords::read(registry, output->getWrapperClsid(), record),
+			"the output install writes a wrapper record");
+		harness.expectTrue(record.options.float64Samples, "the selected output row writes Float64Samples");
+
+		// This input row was loaded before the output changed the shared option.
+		// Its untouched false selection must not overwrite that change.
+		input->install();
+		harness.require(eapo::asio::WrapperRecords::read(registry, output->getWrapperClsid(), record),
+			"the shared record survives the input install");
+		harness.expectTrue(record.options.float64Samples,
+			"the untouched input row preserves the output row's Float64Samples choice");
+		const std::wstring key = eapo::asio::WrapperRecords::recordKey(output->getWrapperClsid());
+		harness.expectEqual(registry.readDWORDValue(key, L"Float64Samples"), 1ul,
+			"the shared record stores Float64Samples as one");
+
+		std::vector<std::shared_ptr<AbstractAPOInfo>> reloaded;
+		AsioAPOInfo::appendInfos(reloaded, true, registry);
+		AsioAPOInfo* reloadedInput = nullptr;
+		for (const std::shared_ptr<AbstractAPOInfo>& info : reloaded)
+		{
+			if (info->getDeviceGuid() == toppingClsid)
+				reloadedInput = static_cast<AsioAPOInfo*>(info.get());
+		}
+		harness.require(reloadedInput != nullptr, "the input row reloads");
+		harness.expectTrue(reloadedInput->isFloat64Samples(),
+			"the input row reads Float64Samples back as its current option");
+
+		output->uninstall();
+		input->uninstall();
+	}
+
 	TEST_CASE(DeviceRecordTests, testReceiverOnlyAutoStart)
 	{
 		test::FakeRegistry registry;

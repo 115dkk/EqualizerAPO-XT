@@ -274,9 +274,9 @@ namespace
 
 		SampleCodec codec;
 		eapo::asio::findSampleCodec(ASIOSTInt32LSB, codec);
-		std::vector<float> a(sync.outputs[0].size() / 4), b(pipelined.outputs[0].size() / 4);
-		codec.toFloat(sync.outputs[0].data(), a.data(), static_cast<unsigned>(a.size()));
-		codec.toFloat(pipelined.outputs[0].data(), b.data(), static_cast<unsigned>(b.size()));
+		std::vector<double> a(sync.outputs[0].size() / 4), b(pipelined.outputs[0].size() / 4);
+		codec.toDouble(sync.outputs[0].data(), a.data(), static_cast<unsigned>(a.size()));
+		codec.toDouble(pipelined.outputs[0].data(), b.data(), static_cast<unsigned>(b.size()));
 		harness.requireEqual(b.size(), static_cast<size_t>(frames * 10), "ten periods captured");
 		bool firstSilent = true, shifted = true;
 		for (size_t n = 0; n < static_cast<size_t>(frames); n++)
@@ -303,11 +303,11 @@ namespace
 		harness.require(report.status == OpenReport::Status::Ok, "the seeded pipelined processor opens");
 		harness.require(state->header != nullptr, "the seeded host exposes its ring header");
 
-		const auto fill = [&format](float* samples, float value) {
+		const auto fill = [&format](double* samples, double value) {
 			for (uint32_t frame = 0; frame < format.frames; frame++)
 				samples[frame] = value;
 		};
-		const auto planeIs = [&format](const float* samples, float value) {
+		const auto planeIs = [&format](const double* samples, double value) {
 			for (uint32_t frame = 0; frame < format.frames; frame++)
 			{
 				if (samples[frame] != value)
@@ -316,7 +316,7 @@ namespace
 			return true;
 		};
 
-		float** planes = processor.planes(Direction::Output);
+		double** planes = processor.planes(Direction::Output);
 		harness.require(planes != nullptr, "the first pipelined block has a plane");
 		fill(planes[0], 1.0f);
 		harness.expect(processor.process(Direction::Output) == Outcome::Processed, "the first pipelined block is accepted");
@@ -328,7 +328,7 @@ namespace
 		WriteRelease(&lane.sequence, static_cast<LONG>(seeded));
 		WriteRelease(&lane.completed, static_cast<LONG>(seeded));
 		auto slot = [header = state->header, &lane](uint32_t sequence) {
-			return reinterpret_cast<float*>(reinterpret_cast<unsigned char*>(header) + lane.slotOffset[sequence & 1]);
+			return reinterpret_cast<double*>(reinterpret_cast<unsigned char*>(header) + lane.slotOffset[sequence & 1]);
 		};
 		fill(slot(seeded), 0.25f);
 		planes = processor.planes(Direction::Output);
@@ -421,8 +421,8 @@ namespace
 		fake->capturedOutput(0, &data, &bytes);
 		SampleCodec codec;
 		eapo::asio::findSampleCodec(ASIOSTInt32LSB, codec);
-		std::vector<float> out(bytes / 4);
-		codec.toFloat(data, out.data(), static_cast<unsigned>(out.size()));
+		std::vector<double> out(bytes / 4);
+		codec.toDouble(data, out.data(), static_cast<unsigned>(out.size()));
 		harness.requireEqual(out.size(), static_cast<size_t>(frames * 12), "twelve periods captured");
 		harness.expectEqual(stats.late[0], 2ull, "the two held periods were late");
 		harness.expectEqual(stats.gone[0], 0ull, "and nothing was Gone");
@@ -430,15 +430,16 @@ namespace
 		// What the host wrote in period p, as the wrapper saw it: once
 		// through the target's sample format.
 		const auto dry = [&](long period) {
-			std::vector<float> samples(static_cast<size_t>(frames));
+			std::vector<double> samples(static_cast<size_t>(frames));
 			std::vector<unsigned char> quantized(static_cast<size_t>(frames) * 4);
 			for (long n = 0; n < frames; n++)
-				samples[static_cast<size_t>(n)] = host.outputSample(0, static_cast<uint64_t>(period) * frames + n);
-			codec.fromFloat(samples.data(), quantized.data(), static_cast<unsigned>(frames));
-			codec.toFloat(quantized.data(), samples.data(), static_cast<unsigned>(frames));
+				samples[static_cast<size_t>(n)] = static_cast<double>(
+					host.outputSample(0, static_cast<uint64_t>(period) * frames + n));
+			codec.fromDouble(samples.data(), quantized.data(), static_cast<unsigned>(frames));
+			codec.toDouble(quantized.data(), samples.data(), static_cast<unsigned>(frames));
 			return samples;
 		};
-		const auto periodIs = [&](long period, const std::vector<float>& expected, float gain) {
+		const auto periodIs = [&](long period, const std::vector<double>& expected, double gain) {
 			for (long n = 0; n < frames; n++)
 			{
 				if (std::fabs(out[static_cast<size_t>(period * frames + n)] - expected[static_cast<size_t>(n)] * gain) > 1e-5f)
@@ -446,8 +447,8 @@ namespace
 			}
 			return true;
 		};
-		constexpr float half = 0.5f;   // -6.0206 dB
-		harness.expect(periodIs(0, std::vector<float>(frames, 0.0f), 1.0f), "the first period is silence");
+		constexpr double half = 0.5;   // -6.0206 dB
+		harness.expect(periodIs(0, std::vector<double>(frames, 0.0), 1.0f), "the first period is silence");
 		harness.expect(periodIs(5, dry(4), half), "before the hold, a period carries the previous one processed");
 		harness.expect(periodIs(6, dry(5), half), "the period published as the host stopped still gets its predecessor processed");
 		harness.expect(periodIs(7, dry(6), 1.0f), "a late period puts out the previous period's original audio");

@@ -170,7 +170,7 @@ namespace
 		WrapperRecord record_;
 	};
 
-	// "output=1;input=0;mode=pipelined;deadline=250;ready=5000;config=C:\x\config.txt"
+	// "output=1;input=0;float64=1;mode=pipelined;deadline=250;ready=5000;config=C:\x\config.txt"
 	StreamOptions parseOptions(const wchar_t* text)
 	{
 		StreamOptions options;
@@ -191,6 +191,8 @@ namespace
 				options.processOutput = value == L"1";
 			else if (key == L"input")
 				options.processInput = value == L"1";
+			else if (key == L"float64")
+				options.float64Samples = value == L"1";
 			else if (key == L"mode")
 				options.mode = value == L"pipelined" ? Mode::Pipelined : Mode::Sync;
 			else if (key == L"deadline")

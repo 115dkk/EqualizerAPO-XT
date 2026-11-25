@@ -56,8 +56,14 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
    머지됐습니다([#314](https://github.com/115dkk/EqualizerAPO-XT/pull/314)). 래퍼
    드라이버, 엔진 호스트 프로세스, 둘 사이의 링, 장치 기록, 장치 선택기 옵션, CI
    게이트가 들어갔고, CI의 가짜 드라이버와 Topping USB Audio Device(장치 선택기로
-   항목을 등록한 뒤 DAW가 여는 방식 그대로 열어서)로 검증했습니다. 남은 것은
-   더 많은 DAW에서의 구동과 ARM64 기기에서 x64 DAW가 읽을 x64 항목입니다.
+   항목을 등록한 뒤 DAW가 여는 방식 그대로 열어서)로 검증했습니다. 이제
+   드라이버와 엔진 사이를 샘플이 64비트 부동소수점 그대로 오가고, 항목이 앱에
+   모든 채널을 64비트 부동소수점으로 보고하게 할 수 있습니다(기본값은 꺼짐,
+   [#530](https://github.com/115dkk/EqualizerAPO-XT/pull/530), 제안은
+   [#528](https://github.com/115dkk/EqualizerAPO-XT/issues/528)). 남은 것은
+   더 많은 DAW에서의 구동, ARM64 기기에서 x64 DAW가 읽을 x64 항목, 64비트
+   부동소수점 옵션의 장치 선택기 체크박스, 64비트 부동소수점을 출력하는
+   앱에서의 확인입니다.
 8. 녹음 장치([#321](https://github.com/115dkk/EqualizerAPO-XT/pull/321)) —
    마이크에 EQ도 VST도 적용되지 않는다는 제보가 출발점입니다. 이제 이 경로는
    빌드마다 측정됩니다. CI 게이트가 가상 케이블 드라이버를 설치하고, 장치

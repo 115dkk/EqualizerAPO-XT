@@ -78,6 +78,7 @@
   <ItemGroup>
     <ClInclude Include="FakeAsio.h" />
     <ClInclude Include="FakeAsioControl.h" />
+    <ClInclude Include="..\AsioSupport\SampleOracle.h" />
     <ClInclude Include="..\..\asio\SampleCodec.h" />
   </ItemGroup>
   <ItemGroup>

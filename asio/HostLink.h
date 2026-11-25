@@ -44,7 +44,7 @@ namespace eapo::asio
 			report.status = producer->fault() == eapo::ipc::RingFault::LayoutMismatch
 				? OpenReport::Status::Rejected : OpenReport::Status::Unavailable;
 			copyErrorMessage(report.message, producer->fault() == eapo::ipc::RingFault::LayoutMismatch
-				? "EQ APO XT engine host does not understand this wrapper's stream layout"
+				? "EQ APO XT driver and engine host are different versions; restart this application"
 				: "EQ APO XT engine host could not load the configuration for this stream");
 		}
 		else

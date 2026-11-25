@@ -7,8 +7,10 @@
 	kind of target stands behind it: an ASIO driver row (AsioAPOInfo) and an
 	endpoint's "Use in ASIO apps" entry (DeviceAPOInfo) show the same four
 	controls and write them into the same wrapper record fields
-	(WrapperRecords::entryOptions and setEntryOptions). Kept apart from
-	WrapperRecord.h so DeviceAPOInfo's install state can hold it without
+	(WrapperRecords::entryOptions and setEntryOptions). The fifth choice,
+	64-bit float samples, travels the same way but has no control yet:
+	DeviceSelector --asio-float64 and the record value set it. Kept apart
+	from WrapperRecord.h so DeviceAPOInfo's install state can hold it without
 	pulling in the stream vocabulary.
 */
 
@@ -29,6 +31,9 @@ namespace eapo::asio
 		bool autoStart = false;
 		// Register the entry for 32-bit hosts too, when the x86 wrapper ships.
 		bool host32 = false;
+		// Report 64-bit float samples to the application on every channel; the
+		// wrapper converts between them and the device's own sample type.
+		bool float64Samples = false;
 
 		bool operator==(const EntryOptions&) const = default;
 	};

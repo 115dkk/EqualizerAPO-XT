@@ -302,6 +302,12 @@ SDK는 저장소에 넣지 않고 `vst3_pluginterfaces`처럼 빌드 시점에 �
 | 설정 전달 | 값 하나(`StreamOptions`) 대 흩어진 인자 | **값 하나.** 레지스트리와 argv가 같은 구조체를 채운다 |
 | 레지스트리 뷰 | `RegistryView` 포트 확장 대 경로 명시 | **경로 명시**(9절) |
 
+**2026-11 덧붙임(#528): 시임은 double.** 위에서 합의한 float32 시임은 바뀌었습니다. 엔진은 double로 계산하는데 래퍼의 코덱, 링의 슬롯, 엔진 호출이 float32여서, 32비트 정수 드라이버에서는 필터가 하나도 없어도 하위 8비트가 사라졌고 Float64 드라이버의 샘플은 float32로 반올림됐습니다. 이제 `SampleCodec`은 double로 변환하고, `IStreamProcessor::planes()`는 double 평면을 반환하고, 링의 슬롯에는 double이 들어가며, 어댑터는 엔진의 `process(double**, double**)`를 부릅니다. 링 레이아웃은 2판이고, 판이 다른 래퍼와 호스트는 `LayoutMismatch`로 연결을 거절합니다. `process(double**, double**)`는 호출자가 없어 지웠던 것을 다시 넣었습니다. float 평면 오버로드는 VoicemeeterClient만 씁니다.
+
+'DAW에 보이는 샘플 형식'의 기본값은 여전히 대상 드라이버의 값입니다. 항목별 옵션(`StreamOptions::float64Samples`, 기록의 `Float64Samples`)을 켜면 래퍼는 입력과 출력의 모든 채널을 `ASIOSTFloat64LSB`로 보고합니다. 그러면 DAW 쪽 버퍼와 대상 쪽 버퍼의 형식이 달라지므로 채널마다 코덱을 둘(DAW 쪽, 대상 쪽) 둡니다. 처리된 블록을 쓰지 않을 때(Off, LateDropped, Gone, 레이트가 바뀐 뒤)의 원본 복사도 두 형식이 다르면 변환해서 옮깁니다. 엔진 호스트는 이 옵션을 알 필요가 없어 `StreamFormat`에는 넣지 않았습니다. 한쪽 방향만 Float64로 보고하는 안은 택하지 않았습니다. 방향마다 형식이 다른 드라이버는 드물어, 호스트가 한 형식만 가정하고 만들어졌을 수 있기 때문입니다(실제 호스트로 확인한 것은 아닙니다).
+
+검증할 때는 `Tests/AsioSupport/SampleOracle.h`(제품 코덱과 무관한 변환 기준)로 인코딩한 값과, double로 직접 돌린 엔진의 출력을 비트 단위로 대조합니다. 프로브는 float32 시임이었다면 나왔을 결과도 계산해, 두 결과가 같은 실행은 `--beyond-float32`에서 통과시키지 않습니다.
+
 ### 10.1 채택 인터페이스
 
 ```cpp

@@ -191,7 +191,14 @@ namespace eapo::asio
 
 	ASIOError AsioWrapper::getChannelInfo(ASIOChannelInfo* info)
 	{
-		return target_->getChannelInfo(info);
+		const ASIOError error = target_->getChannelInfo(info);
+		if (error == ASE_OK && info != nullptr && options_.float64Samples)
+		{
+			SampleCodec targetCodec;
+			if (findSampleCodec(info->type, targetCodec))
+				info->type = ASIOSTFloat64LSB;
+		}
+		return error;
 	}
 
 	ASIOError AsioWrapper::controlPanel()
@@ -224,6 +231,8 @@ namespace eapo::asio
 		{
 			channels_.assign(static_cast<size_t>(inputs + outputs), Channel());
 			targetInfos_.assign(channels_.size(), ASIOBufferInfo());
+			for (unsigned slot = 0; slot < directionCount; slot++)
+				conversion_[slot].resize(static_cast<size_t>(bufferSize));
 		}
 		catch (const std::bad_alloc&)
 		{
@@ -246,12 +255,15 @@ namespace eapo::asio
 				releaseChannels();
 				return error;
 			}
-			if (!findSampleCodec(info.type, channel.codec))
+			if (!findSampleCodec(info.type, channel.targetCodec))
 			{
 				releaseChannels();
 				setError("The wrapped driver uses a sample format EQ APO XT cannot process (DSD?)");
 				return ASE_InvalidMode;
 			}
+			channel.hostCodec = channel.targetCodec;
+			if (options_.float64Samples)
+				findSampleCodec(ASIOSTFloat64LSB, channel.hostCodec);
 
 			targetInfos_[i].isInput = info.isInput;
 			targetInfos_[i].channelNum = channel.index;
@@ -276,7 +288,7 @@ namespace eapo::asio
 				return ASE_InvalidParameter;
 			}
 			channel.hostInfo = &info;
-			const size_t bytes = static_cast<size_t>(channel.codec.bytesPerSample) * static_cast<size_t>(bufferSize);
+			const size_t bytes = static_cast<size_t>(channel.hostCodec.bytesPerSample) * static_cast<size_t>(bufferSize);
 			for (int half = 0; half < 2; half++)
 			{
 				channel.hostBuffers[half] = new(std::nothrow) unsigned char[bytes];
@@ -343,6 +355,8 @@ namespace eapo::asio
 		}
 		channels_.clear();
 		targetInfos_.clear();
+		for (unsigned slot = 0; slot < directionCount; slot++)
+			std::vector<double>().swap(conversion_[slot]);
 		inputCount_ = 0;
 		outputCount_ = 0;
 	}
@@ -637,6 +651,20 @@ namespace eapo::asio
 		}
 	}
 
+	void AsioWrapper::copyOriginal(Direction direction, const SampleCodec& from, const void* source,
+		const SampleCodec& to, void* destination) noexcept
+	{
+		if (from.type == to.type)
+		{
+			std::memcpy(destination, source,
+				static_cast<size_t>(from.bytesPerSample) * static_cast<size_t>(frames_));
+			return;
+		}
+		double* converted = conversion_[slotOf(direction)].data();
+		from.toDouble(source, converted, static_cast<unsigned>(frames_));
+		to.fromDouble(converted, destination, static_cast<unsigned>(frames_));
+	}
+
 	void AsioWrapper::runInput(long index) noexcept
 	{
 		if (inputCount_ == 0)
@@ -653,11 +681,11 @@ namespace eapo::asio
 			}
 			else
 			{
-				float** planes = processor_->planes(Direction::Input);
+				double** planes = processor_->planes(Direction::Input);
 				if (planes != nullptr)
 				{
 					for (size_t i = first; i < end; i++)
-						channels_[i].codec.toFloat(channels_[i].targetBuffers[index], planes[i], static_cast<unsigned>(frames_));
+						channels_[i].targetCodec.toDouble(channels_[i].targetBuffers[index], planes[i], static_cast<unsigned>(frames_));
 					const uint64_t started = static_cast<uint64_t>(Clock::ticks());
 					const Outcome outcome = processor_->process(Direction::Input);
 					account(Direction::Input, outcome, started);
@@ -666,7 +694,7 @@ namespace eapo::asio
 						for (size_t i = first; i < end; i++)
 						{
 							if (channels_[i].hostBuffers[index] != nullptr)
-								channels_[i].codec.fromFloat(planes[i], channels_[i].hostBuffers[index], static_cast<unsigned>(frames_));
+								channels_[i].hostCodec.fromDouble(planes[i], channels_[i].hostBuffers[index], static_cast<unsigned>(frames_));
 						}
 						processed = true;
 					}
@@ -683,8 +711,8 @@ namespace eapo::asio
 			{
 				if (channels_[i].hostBuffers[index] != nullptr)
 				{
-					std::memcpy(channels_[i].hostBuffers[index], channels_[i].targetBuffers[index],
-						static_cast<size_t>(channels_[i].codec.bytesPerSample) * static_cast<size_t>(frames_));
+					copyOriginal(Direction::Input, channels_[i].targetCodec, channels_[i].targetBuffers[index],
+						channels_[i].hostCodec, channels_[i].hostBuffers[index]);
 				}
 			}
 		}
@@ -706,16 +734,16 @@ namespace eapo::asio
 			}
 			else
 			{
-				float** planes = processor_->planes(Direction::Output);
+				double** planes = processor_->planes(Direction::Output);
 				if (planes != nullptr)
 				{
 					for (size_t i = first; i < end; i++)
 					{
-						float* plane = planes[i - first];
+						double* plane = planes[i - first];
 						if (channels_[i].hostBuffers[index] != nullptr)
-							channels_[i].codec.toFloat(channels_[i].hostBuffers[index], plane, static_cast<unsigned>(frames_));
+							channels_[i].hostCodec.toDouble(channels_[i].hostBuffers[index], plane, static_cast<unsigned>(frames_));
 						else
-							std::memset(plane, 0, sizeof(float) * static_cast<size_t>(frames_));
+							std::memset(plane, 0, sizeof(double) * static_cast<size_t>(frames_));
 					}
 					const uint64_t started = static_cast<uint64_t>(Clock::ticks());
 					const Outcome outcome = processor_->process(Direction::Output);
@@ -723,7 +751,7 @@ namespace eapo::asio
 					if (planesCarryAudio(outcome))
 					{
 						for (size_t i = first; i < end; i++)
-							channels_[i].codec.fromFloat(planes[i - first], channels_[i].targetBuffers[index], static_cast<unsigned>(frames_));
+							channels_[i].targetCodec.fromDouble(planes[i - first], channels_[i].targetBuffers[index], static_cast<unsigned>(frames_));
 						processed = true;
 					}
 				}
@@ -737,9 +765,12 @@ namespace eapo::asio
 		{
 			for (size_t i = first; i < end; i++)
 			{
-				const size_t bytes = static_cast<size_t>(channels_[i].codec.bytesPerSample) * static_cast<size_t>(frames_);
+				const size_t bytes = static_cast<size_t>(channels_[i].targetCodec.bytesPerSample) * static_cast<size_t>(frames_);
 				if (channels_[i].hostBuffers[index] != nullptr)
-					std::memcpy(channels_[i].targetBuffers[index], channels_[i].hostBuffers[index], bytes);
+				{
+					copyOriginal(Direction::Output, channels_[i].hostCodec, channels_[i].hostBuffers[index],
+						channels_[i].targetCodec, channels_[i].targetBuffers[index]);
+				}
 				else
 					std::memset(channels_[i].targetBuffers[index], 0, bytes);
 			}

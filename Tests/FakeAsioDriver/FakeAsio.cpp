@@ -10,6 +10,7 @@
 #include <cstring>
 
 #include "asio/SampleCodec.h"
+#include "Tests/AsioSupport/SampleOracle.h"
 
 namespace
 {
@@ -47,6 +48,23 @@ float FakeAsioDriver::generatorSample(unsigned seed, long channel, uint64_t samp
 	state ^= state >> 13;
 	state = state * 1664525u + 1013904223u;
 	return static_cast<float>(static_cast<int32_t>(state)) * (0.5f / 2147483648.0f);
+}
+
+double FakeAsioDriver::generatorValue(unsigned seed, long channel, uint64_t sampleIndex, bool fullPrecision) noexcept
+{
+	if (!fullPrecision)
+		return static_cast<double>(generatorSample(seed, channel, sampleIndex));
+	uint32_t state = (seed + 1u) * 2654435761u + static_cast<uint32_t>(channel + 1) * 40503u;
+	state ^= static_cast<uint32_t>(sampleIndex * 2246822519u);
+	state = state * 1664525u + 1013904223u;
+	state ^= state >> 13;
+	state = state * 1664525u + 1013904223u;      // the high word: what generatorSample() scales
+	uint32_t low = (state ^ 0x85ebca6bu) * 1664525u + 1013904223u;
+	low ^= low >> 15;
+	low = low * 1664525u + 1013904223u;
+	const int64_t wide = static_cast<int64_t>(static_cast<int32_t>(state)) * 2097152
+		+ static_cast<int64_t>(low >> 11);
+	return static_cast<double>(wide) * (1.0 / 9007199254740992.0);
 }
 
 // ---- IUnknown ----
@@ -383,19 +401,39 @@ HRESULT STDMETHODCALLTYPE FakeAsioDriver::configure(const FakeAsioConfig* config
 
 void FakeAsioDriver::fillInputs(long half)
 {
-	eapo::asio::SampleCodec codec;
-	if (!eapo::asio::findSampleCodec(config_.sampleType, codec))
-		return;
-	std::vector<float> samples(static_cast<size_t>(bufferSize_));
-	for (Channel& channel : channels_)
+	if (config_.fullPrecision != 0 && asiotest::oracle::supported(config_.sampleType))
 	{
-		if (!channel.input)
-			continue;
-		for (long n = 0; n < bufferSize_; n++)
-			samples[static_cast<size_t>(n)] = generatorSample(config_.seed, channel.index, generatorPosition_ + static_cast<uint64_t>(n));
-		codec.fromFloat(samples.data(), channel.buffers[half].data(), static_cast<unsigned>(bufferSize_));
-		std::vector<unsigned char>& bytes = record(true, channel.index).bytes;
-		bytes.insert(bytes.end(), channel.buffers[half].begin(), channel.buffers[half].end());
+		std::vector<double> samples(static_cast<size_t>(bufferSize_));
+		for (Channel& channel : channels_)
+		{
+			if (!channel.input)
+				continue;
+			for (long n = 0; n < bufferSize_; n++)
+				samples[static_cast<size_t>(n)] = generatorValue(config_.seed, channel.index,
+					generatorPosition_ + static_cast<uint64_t>(n), true);
+			asiotest::oracle::encode(config_.sampleType, samples.data(), channel.buffers[half].data(),
+				static_cast<size_t>(bufferSize_));
+			std::vector<unsigned char>& bytes = record(true, channel.index).bytes;
+			bytes.insert(bytes.end(), channel.buffers[half].begin(), channel.buffers[half].end());
+		}
+	}
+	else
+	{
+		eapo::asio::SampleCodec codec;
+		if (!eapo::asio::findSampleCodec(config_.sampleType, codec))
+			return;
+		std::vector<double> samples(static_cast<size_t>(bufferSize_));
+		for (Channel& channel : channels_)
+		{
+			if (!channel.input)
+				continue;
+			for (long n = 0; n < bufferSize_; n++)
+				samples[static_cast<size_t>(n)] = static_cast<double>(generatorSample(
+					config_.seed, channel.index, generatorPosition_ + static_cast<uint64_t>(n)));
+			codec.fromDouble(samples.data(), channel.buffers[half].data(), static_cast<unsigned>(bufferSize_));
+			std::vector<unsigned char>& bytes = record(true, channel.index).bytes;
+			bytes.insert(bytes.end(), channel.buffers[half].begin(), channel.buffers[half].end());
+		}
 	}
 	generatorPosition_ += static_cast<uint64_t>(bufferSize_);
 }

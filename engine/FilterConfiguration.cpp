@@ -19,6 +19,7 @@
 
 #include "stdafx.h"
 #include <algorithm>
+#include <cstring>
 #include <typeinfo>
 #ifdef _M_ARM64
 #include <arm_neon.h>
@@ -431,6 +432,12 @@ void FilterConfiguration::readFloatPlanar(const float* const* input, unsigned fr
 		sampleconv::promote(allSamples[c], input[c], frameCount);
 }
 
+void FilterConfiguration::readPlanar(const double* const* input, unsigned frameCount)
+{
+	for (unsigned c = 0; c < realChannelCount; c++)
+		std::memcpy(allSamples[c], input[c], static_cast<size_t>(frameCount) * sizeof(double));
+}
+
 void FilterConfiguration::process(unsigned frameCount, IInputTap* tap, uint64_t blockToken)
 {
 	for (unsigned c = realChannelCount; c < allChannelCount; c++)
@@ -580,6 +587,12 @@ void FilterConfiguration::writeFloatPlanar(float* const* output, unsigned frameC
 {
 	for (unsigned c = 0; c < outputChannelCount; c++)
 		sampleconv::demote(output[c], allSamples[c], frameCount);
+}
+
+void FilterConfiguration::writePlanar(double* const* output, unsigned frameCount)
+{
+	for (unsigned c = 0; c < outputChannelCount; c++)
+		std::memcpy(output[c], allSamples[c], static_cast<size_t>(frameCount) * sizeof(double));
 }
 
 #pragma AVRT_CODE_END

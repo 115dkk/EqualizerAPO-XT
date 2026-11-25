@@ -87,7 +87,7 @@ namespace eapo::asio
 		struct Lane
 		{
 			std::unique_ptr<FilterEngine> engine;
-			std::vector<float*> planes;
+			std::vector<double*> planes;
 		};
 
 		// Keeps the serving thread off the processor the producer publishes

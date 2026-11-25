@@ -10,11 +10,15 @@
 	touched; the fake driver is stepped on this thread.
 */
 
+#include <algorithm>
+#include <array>
+#include <bit>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <exception>
 #include <fstream>
+#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -37,6 +41,7 @@
 #include "Tests/AlignedMemoryGate.h"
 #include "Tests/AsioSupport/HostStub.h"
 #include "Tests/AsioSupport/LatencyMatch.h"
+#include "Tests/AsioSupport/SampleOracle.h"
 #include "Tests/AsioTests/FakeEndpointClient.h"
 #include "Tests/FakeRegistry.h"
 #include "Tests/FakeAsioDriver/FakeAsio.h"
@@ -116,7 +121,7 @@ namespace
 			for (unsigned slot = 0; slot < eapo::asio::directionCount; slot++)
 			{
 				const unsigned channels = format.channels[slot];
-				storage_[slot].assign(static_cast<size_t>(channels) * format.frames, 0.0f);
+				storage_[slot].assign(static_cast<size_t>(channels) * format.frames, 0.0);
 				planes_[slot].resize(channels);
 				for (unsigned c = 0; c < channels; c++)
 					planes_[slot][c] = storage_[slot].data() + static_cast<size_t>(c) * format.frames;
@@ -125,7 +130,7 @@ namespace
 			return report;
 		}
 
-		float** planes(Direction direction) noexcept override
+		double** planes(Direction direction) noexcept override
 		{
 			return planes_[eapo::asio::slotOf(direction)].empty() ? nullptr : planes_[eapo::asio::slotOf(direction)].data();
 		}
@@ -136,8 +141,8 @@ namespace
 			if (index < script.size() && script[index] != Outcome::Processed)
 				return script[index];
 			const unsigned slot = static_cast<unsigned>(direction);
-			for (float& sample : storage_[slot])
-				sample *= gain;
+			for (double& sample : storage_[slot])
+				sample *= static_cast<double>(gain);
 			return Outcome::Processed;
 		}
 
@@ -147,8 +152,8 @@ namespace
 		}
 
 	private:
-		std::vector<float> storage_[eapo::asio::directionCount];
-		std::vector<float*> planes_[eapo::asio::directionCount];
+		std::vector<double> storage_[eapo::asio::directionCount];
+		std::vector<double*> planes_[eapo::asio::directionCount];
 	};
 
 	struct Rig
@@ -165,9 +170,10 @@ namespace
 			// The wrapper owns the processor from here on; the raw pointer is
 			// how the test scripts and inspects it.
 			processor = scripted != nullptr ? scripted : new ScriptedProcessor();
+			const bool float64Samples = options.float64Samples;
 			wrapper = new AsioWrapper(fake, testWrapperClsid, testTargetClsid, std::move(options), std::unique_ptr<IStreamProcessor>(processor));
 			fake->Release();       // the wrapper holds the reference now
-			hostOptions.sampleType = config.sampleType;
+			hostOptions.sampleType = float64Samples ? ASIOSTFloat64LSB : config.sampleType;
 			host = std::make_unique<asiotest::HostStub>(hostOptions);
 		}
 
@@ -206,8 +212,11 @@ namespace
 
 	std::vector<float> decode(const SampleCodec& codec, const std::vector<unsigned char>& bytes)
 	{
-		std::vector<float> samples(bytes.size() / codec.bytesPerSample);
-		codec.toFloat(bytes.data(), samples.data(), static_cast<unsigned>(samples.size()));
+		std::vector<double> decoded(bytes.size() / codec.bytesPerSample);
+		codec.toDouble(bytes.data(), decoded.data(), static_cast<unsigned>(decoded.size()));
+		std::vector<float> samples(decoded.size());
+		for (size_t i = 0; i < decoded.size(); i++)
+			samples[i] = static_cast<float>(decoded[i]);
 		return samples;
 	}
 
@@ -227,15 +236,41 @@ namespace
 		return std::vector<unsigned char>(data, data + bytes);
 	}
 
+	std::vector<double> oracleDecoded(long type, const std::vector<unsigned char>& bytes)
+	{
+		const size_t sampleBytes = asiotest::oracle::bytesPerSample(type);
+		harness.require(sampleBytes != 0 && bytes.size() % sampleBytes == 0, "oracle input has whole supported samples");
+		std::vector<double> values(bytes.size() / sampleBytes);
+		asiotest::oracle::decode(type, bytes.data(), values.data(), values.size());
+		return values;
+	}
+
+	std::vector<unsigned char> oracleEncoded(long type, const std::vector<double>& values)
+	{
+		const size_t sampleBytes = asiotest::oracle::bytesPerSample(type);
+		harness.require(sampleBytes != 0, "oracle output has a supported sample type");
+		std::vector<unsigned char> bytes(values.size() * sampleBytes);
+		asiotest::oracle::encode(type, values.data(), bytes.data(), values.size());
+		return bytes;
+	}
+
+	void expectExactBytes(const std::vector<unsigned char>& actual, const std::vector<unsigned char>& expected,
+		const std::string& label)
+	{
+		harness.requireEqual(actual.size(), expected.size(), label + " byte count");
+		harness.expect(actual == expected, label);
+	}
+
 	// Applies the codec round trip the host's float takes before the wrapper
 	// sees it, so expectations quantize the same way the buffers do.
 	float quantized(const SampleCodec& codec, float value)
 	{
 		unsigned char bytes[8] = {};
-		float back = 0.0f;
-		codec.fromFloat(&value, bytes, 1);
-		codec.toFloat(bytes, &back, 1);
-		return back;
+		const double source = static_cast<double>(value);
+		double back = 0.0;
+		codec.fromDouble(&source, bytes, 1);
+		codec.toDouble(bytes, &back, 1);
+		return static_cast<float>(back);
 	}
 
 	// ---- codecs ----
@@ -263,29 +298,29 @@ namespace
 			ASIOSTInt32LSB16, ASIOSTInt32LSB18, ASIOSTInt32LSB20, ASIOSTInt32LSB24,
 			ASIOSTInt32MSB16, ASIOSTInt32MSB18, ASIOSTInt32MSB20, ASIOSTInt32MSB24
 		};
-		const float probe[] = {0.0f, 0.5f, -0.5f, 0.999f, -1.0f, 0.123456f, -0.000123f, 1.5f, -2.0f};
+		const double probe[] = {0.0, 0.5, -0.5, 0.999, -1.0, 0.123456, -0.000123, 1.5, -2.0};
 		for (long type : types)
 		{
 			SampleCodec codec;
 			harness.require(eapo::asio::findSampleCodec(type, codec), "codec exists for type " + std::to_string(type));
 			harness.expectEqual(codec.type, type, "codec reports its own type");
 			std::vector<unsigned char> bytes(codec.bytesPerSample * 9);
-			float back[9] = {};
-			codec.fromFloat(probe, bytes.data(), 9);
-			codec.toFloat(bytes.data(), back, 9);
+			double back[9] = {};
+			codec.fromDouble(probe, bytes.data(), 9);
+			codec.toDouble(bytes.data(), back, 9);
 			const double tolerance = type == ASIOSTInt16LSB || type == ASIOSTInt16MSB
 				|| type == ASIOSTInt32LSB16 || type == ASIOSTInt32MSB16 ? 1.0 / 32768.0 : 1.0 / 131072.0;
 			const bool floating = type == ASIOSTFloat32LSB || type == ASIOSTFloat32MSB
 				|| type == ASIOSTFloat64LSB || type == ASIOSTFloat64MSB;
 			for (int i = 0; i < 9; i++)
 			{
-				float expected = probe[i];
+				double expected = probe[i];
 				// Integer types clamp at full scale; float types carry
 				// over-range values through untouched.
-				if (!floating && expected > 1.0f)
-					expected = 1.0f;
-				if (!floating && expected < -1.0f)
-					expected = -1.0f;
+				if (!floating && expected > 1.0)
+					expected = 1.0;
+				if (!floating && expected < -1.0)
+					expected = -1.0;
 				harness.expectNear(back[i], expected, tolerance,
 					"type " + std::to_string(type) + " round-trips sample " + std::to_string(i));
 			}
@@ -294,6 +329,126 @@ namespace
 		SampleCodec dsd;
 		harness.expectFalse(eapo::asio::findSampleCodec(ASIOSTDSDInt8LSB1, dsd), "DSD has no codec");
 		harness.expectFalse(eapo::asio::findSampleCodec(12345, dsd), "an unknown type has no codec");
+	}
+
+	TEST_CASE(AsioTests, testCodecMatchesIndependentOracle)
+	{
+		const long types[] = {
+			ASIOSTInt16LSB, ASIOSTInt24LSB, ASIOSTInt32LSB, ASIOSTFloat32LSB, ASIOSTFloat64LSB
+		};
+		asiotest::HostStub::Options options;
+		options.fullPrecision = true;
+		asiotest::HostStub signal(options);
+		for (long type : types)
+		{
+			std::vector<double> values = {
+				0.0, 1.0, -1.0, 1.5, -1.5,
+				std::nextafter(1.0, 0.0), std::nextafter(1.0, 2.0),
+				std::nextafter(-1.0, 0.0), std::nextafter(-1.0, -2.0)
+			};
+			unsigned validBits = 0;
+			if (type == ASIOSTInt16LSB)
+				validBits = 16;
+			else if (type == ASIOSTInt24LSB)
+				validBits = 24;
+			else if (type == ASIOSTInt32LSB)
+				validBits = 32;
+			if (validBits != 0)
+			{
+				const double step = 1.0 / static_cast<double>(UINT64_C(1) << (validBits - 1));
+				values.insert(values.end(), {step, -step, 0.5 * step, -0.5 * step,
+					1.5 * step, -1.5 * step, 2.5 * step, -2.5 * step});
+			}
+			for (size_t i = 0; i < 4096; i++)
+				values.push_back(signal.outputValue(static_cast<long>(i & 1), i));
+
+			SampleCodec codec;
+			harness.require(eapo::asio::findSampleCodec(type, codec),
+				"the oracle sweep has a product codec for type " + std::to_string(type));
+			const size_t byteCount = values.size() * codec.bytesPerSample;
+			std::vector<unsigned char> productBytes(byteCount);
+			std::vector<unsigned char> oracleBytes(byteCount);
+			codec.fromDouble(values.data(), productBytes.data(), static_cast<unsigned>(values.size()));
+			asiotest::oracle::encode(type, values.data(), oracleBytes.data(), values.size());
+			harness.expect(productBytes == oracleBytes,
+				"the product encoder matches the independent oracle for type " + std::to_string(type));
+
+			std::vector<double> productValues(values.size());
+			std::vector<double> oracleValues(values.size());
+			codec.toDouble(oracleBytes.data(), productValues.data(), static_cast<unsigned>(productValues.size()));
+			asiotest::oracle::decode(type, oracleBytes.data(), oracleValues.data(), oracleValues.size());
+			harness.expect(productValues == oracleValues,
+				"the product decoder matches the independent oracle for type " + std::to_string(type));
+		}
+	}
+
+	TEST_CASE(AsioTests, testCodecKeepsEveryRepresentableSourceBit)
+	{
+		const auto integerCodesSurvive = [](long type, const std::vector<int32_t>& codes, unsigned bytesPerSample) {
+			SampleCodec codec;
+			if (!eapo::asio::findSampleCodec(type, codec))
+				return false;
+			std::vector<unsigned char> source(codes.size() * bytesPerSample);
+			for (size_t i = 0; i < codes.size(); i++)
+			{
+				const uint32_t raw = static_cast<uint32_t>(codes[i]);
+				std::memcpy(source.data() + i * bytesPerSample, &raw, bytesPerSample);
+			}
+			std::vector<double> values(codes.size());
+			std::vector<unsigned char> encoded(source.size());
+			codec.toDouble(source.data(), values.data(), static_cast<unsigned>(values.size()));
+			codec.fromDouble(values.data(), encoded.data(), static_cast<unsigned>(values.size()));
+			return source == encoded;
+		};
+
+		std::vector<int32_t> int32Codes = {0, 1, -1, INT32_MAX, INT32_MIN};
+		for (uint64_t i = 0; i < 4096; i++)
+		{
+			const int64_t code = static_cast<int64_t>(INT32_MIN)
+				+ static_cast<int64_t>(i * UINT32_MAX / 4095);
+			int32Codes.push_back(static_cast<int32_t>(code));
+		}
+		harness.expect(integerCodesSurvive(ASIOSTInt32LSB, int32Codes, 4),
+			"every sampled Int32LSB code survives decode and encode unchanged");
+		harness.expect(integerCodesSurvive(ASIOSTInt24LSB,
+			{0, 1, -1, 0x007fffff, static_cast<int32_t>(0xff800000u)}, 3),
+			"the Int24LSB edge codes survive decode and encode unchanged");
+		harness.expect(integerCodesSurvive(ASIOSTInt16LSB,
+			{0, 1, -1, 0x00007fff, static_cast<int32_t>(0xffff8000u)}, 2),
+			"the Int16LSB edge codes survive decode and encode unchanged");
+
+		SampleCodec float64;
+		harness.require(eapo::asio::findSampleCodec(ASIOSTFloat64LSB, float64), "the Float64LSB codec exists");
+		const double float64Values[] = {
+			0.0, -0.0, std::numeric_limits<double>::denorm_min(), 1.5,
+			std::bit_cast<double>(UINT64_C(0x3fffffffffffffff))
+		};
+		std::array<unsigned char, sizeof(float64Values)> sourceBytes = {};
+		std::array<unsigned char, sizeof(float64Values)> encodedBytes = {};
+		std::memcpy(sourceBytes.data(), float64Values, sizeof(float64Values));
+		double decoded[sizeof(float64Values) / sizeof(float64Values[0])] = {};
+		float64.toDouble(sourceBytes.data(), decoded, static_cast<unsigned>(std::size(decoded)));
+		float64.fromDouble(decoded, encodedBytes.data(), static_cast<unsigned>(std::size(decoded)));
+		harness.expect(sourceBytes == encodedBytes,
+			"Float64LSB keeps denormal, over-range and full-mantissa values bit for bit");
+	}
+
+	TEST_CASE(AsioTests, testCodecEncodesIntegerNaNAsZero)
+	{
+		const long types[] = {ASIOSTInt16LSB, ASIOSTInt24LSB, ASIOSTInt32LSB};
+		const double value = std::numeric_limits<double>::quiet_NaN();
+		for (long type : types)
+		{
+			SampleCodec codec;
+			harness.require(eapo::asio::findSampleCodec(type, codec),
+				"the NaN test has a codec for type " + std::to_string(type));
+			std::array<unsigned char, 4> bytes = {0xcd, 0xcd, 0xcd, 0xcd};
+			codec.fromDouble(&value, bytes.data(), 1);
+			bool zero = true;
+			for (unsigned i = 0; i < codec.bytesPerSample; i++)
+				zero = zero && bytes[i] == 0;
+			harness.expect(zero, "NaN encodes as zero for integer type " + std::to_string(type));
+		}
 	}
 
 	// The WASAPI target's pure parts: which containers are tried in which
@@ -818,35 +973,35 @@ namespace
 		SampleCodec codec;
 		eapo::asio::findSampleCodec(ASIOSTInt16LSB, codec);
 		const unsigned char maxLsb[2] = {0xff, 0x7f};
-		float value = 0.0f;
-		codec.toFloat(maxLsb, &value, 1);
+		double value = 0.0;
+		codec.toDouble(maxLsb, &value, 1);
 		harness.expectNear(value, 32767.0 / 32768.0, 1e-7, "Int16LSB 0x7fff is just under full scale");
 
 		eapo::asio::findSampleCodec(ASIOSTInt16MSB, codec);
 		const unsigned char maxMsb[2] = {0x80, 0x00};
-		codec.toFloat(maxMsb, &value, 1);
+		codec.toDouble(maxMsb, &value, 1);
 		harness.expectNear(value, -1.0, 1e-7, "Int16MSB 0x8000 is negative full scale");
 
 		eapo::asio::findSampleCodec(ASIOSTInt24LSB, codec);
 		const unsigned char minus24[3] = {0x00, 0x00, 0x80};
-		codec.toFloat(minus24, &value, 1);
+		codec.toDouble(minus24, &value, 1);
 		harness.expectNear(value, -1.0, 1e-7, "Int24LSB sign-extends from bit 23");
 
 		eapo::asio::findSampleCodec(ASIOSTInt32LSB24, codec);
 		const unsigned char low24[4] = {0xff, 0xff, 0x7f, 0x00};
-		codec.toFloat(low24, &value, 1);
+		codec.toDouble(low24, &value, 1);
 		harness.expectNear(value, 8388607.0 / 8388608.0, 1e-7, "Int32LSB24 keeps its 24 valid bits right-aligned");
 		const unsigned char neg24[4] = {0x00, 0x00, 0x80, 0x00};
-		codec.toFloat(neg24, &value, 1);
+		codec.toDouble(neg24, &value, 1);
 		harness.expectNear(value, -1.0, 1e-7, "Int32LSB24 sign-extends from bit 23");
 		unsigned char written[4] = {};
-		const float minusOne = -1.0f;
-		codec.fromFloat(&minusOne, written, 1);
+		const double minusOne = -1.0;
+		codec.fromDouble(&minusOne, written, 1);
 		harness.expectEqual(static_cast<int>(written[3]), 0, "Int32LSB24 writes nothing above its 24 bits");
 
 		eapo::asio::findSampleCodec(ASIOSTFloat32MSB, codec);
-		const float one = 1.0f;
-		codec.fromFloat(&one, written, 1);
+		const double one = 1.0;
+		codec.fromDouble(&one, written, 1);
 		harness.expectEqual(static_cast<int>(written[0]), 0x3f, "Float32MSB writes big-endian");
 		harness.expectEqual(static_cast<int>(written[1]), 0x80, "Float32MSB writes big-endian (second byte)");
 	}
@@ -1096,6 +1251,238 @@ namespace
 	}
 
 	// ---- wrapper: data flow ----
+
+	TEST_CASE(AsioTests, testFloat64SamplesAreReportedForEveryChannel)
+	{
+		FakeAsioConfig config;
+		config.inputChannels = 2;
+		config.outputChannels = 3;
+		config.sampleType = ASIOSTInt24LSB;
+		StreamOptions options;
+		options.float64Samples = true;
+		Rig rig(config, options, asiotest::HostStub::Options());
+		AsioWrapper* wrapper = rig.wrapper;
+		harness.requireEqual(wrapper->init(nullptr), ASIOTrue, "initialize the Float64-reporting wrapper");
+
+		const auto checkChannels = [&](const std::string& state) {
+			for (int direction = 0; direction < 2; direction++)
+			{
+				const bool input = direction != 0;
+				const long count = input ? config.inputChannels : config.outputChannels;
+				for (long channel = 0; channel < count; channel++)
+				{
+					ASIOChannelInfo targetInfo = {};
+					targetInfo.channel = channel;
+					targetInfo.isInput = input ? ASIOTrue : ASIOFalse;
+					harness.requireEqual(rig.fake->getChannelInfo(&targetInfo), ASE_OK,
+						state + " target channel info");
+					ASIOChannelInfo hostInfo = {};
+					hostInfo.channel = channel;
+					hostInfo.isInput = input ? ASIOTrue : ASIOFalse;
+					harness.requireEqual(wrapper->getChannelInfo(&hostInfo), ASE_OK,
+						state + " wrapper channel info");
+					harness.expectEqual(hostInfo.type, static_cast<long>(ASIOSTFloat64LSB),
+						state + " reports Float64LSB");
+					harness.expectEqual(hostInfo.isActive, targetInfo.isActive,
+						state + " keeps the target active flag");
+					harness.expectEqual(hostInfo.channelGroup, targetInfo.channelGroup,
+						state + " keeps the target channel group");
+					harness.expect(std::strcmp(hostInfo.name, targetInfo.name) == 0,
+						state + " keeps the target channel name");
+				}
+			}
+		};
+
+		checkChannels("before createBuffers");
+		harness.expectEqual(wrapper->getChannelInfo(nullptr), ASE_InvalidParameter,
+			"a null channel-info pointer is forwarded to the target");
+		rig.host->openChannels(config.inputChannels, config.outputChannels);
+		harness.requireEqual(rig.host->createBuffers(wrapper, 16), ASE_OK, "prepare Float64-reporting buffers");
+		checkChannels("while prepared");
+		harness.requireEqual(wrapper->start(), ASE_OK, "start Float64-reporting buffers");
+		checkChannels("while running");
+		harness.requireEqual(wrapper->stop(), ASE_OK, "stop Float64-reporting buffers");
+		harness.requireEqual(wrapper->disposeBuffers(), ASE_OK, "dispose Float64-reporting buffers");
+		checkChannels("after disposeBuffers");
+
+		StreamOptions targetTypeOptions;
+		Rig targetTypeRig(config, targetTypeOptions, asiotest::HostStub::Options());
+		for (int direction = 0; direction < 2; direction++)
+		{
+			const bool input = direction != 0;
+			const long count = input ? config.inputChannels : config.outputChannels;
+			for (long channel = 0; channel < count; channel++)
+			{
+				ASIOChannelInfo info = {};
+				info.channel = channel;
+				info.isInput = input ? ASIOTrue : ASIOFalse;
+				harness.requireEqual(targetTypeRig.wrapper->getChannelInfo(&info), ASE_OK,
+					"default wrapper channel info");
+				harness.expectEqual(info.type, static_cast<long>(ASIOSTInt24LSB),
+					"without the option the application sees Int24LSB");
+			}
+		}
+	}
+
+	TEST_CASE(AsioTests, testFloat64SamplesReachTheTargetProcessed)
+	{
+		constexpr long testFrames = 16;
+		constexpr long testPeriods = 3;
+		FakeAsioConfig config;
+		config.sampleType = ASIOSTInt32LSB;
+		config.seed = 11;
+		config.fullPrecision = 1;
+		StreamOptions options;
+		options.float64Samples = true;
+		asiotest::HostStub::Options hostOptions;
+		hostOptions.outputSeed = 7;
+		hostOptions.fullPrecision = true;
+		Rig rig(config, options, hostOptions);
+		rig.processor->gain = 0.5f;
+		rig.host->openChannels(2, 2);
+		harness.requireEqual(rig.wrapper->init(nullptr), ASIOTrue, "initialize the converted processed stream");
+		harness.requireEqual(rig.host->createBuffers(rig.wrapper, testFrames), ASE_OK,
+			"create the converted processed stream");
+		harness.requireEqual(rig.wrapper->start(), ASE_OK, "start the converted processed stream");
+		harness.requireEqual(rig.control()->pump(testPeriods), S_OK, "pump the converted processed stream");
+		harness.requireEqual(rig.wrapper->stop(), ASE_OK, "stop the converted processed stream");
+		harness.requireEqual(rig.wrapper->disposeBuffers(), ASE_OK, "dispose the converted processed stream");
+
+		for (long channel = 0; channel < 2; channel++)
+		{
+			std::vector<double> expectedOutput(static_cast<size_t>(testFrames * testPeriods));
+			for (size_t sample = 0; sample < expectedOutput.size(); sample++)
+				expectedOutput[sample] = 0.5 * rig.host->outputValue(channel, sample);
+			expectExactBytes(captured(rig.control(), channel), oracleEncoded(ASIOSTInt32LSB, expectedOutput),
+				"processed Float64 output reaches Int32 target channel " + std::to_string(channel));
+
+			std::vector<double> expectedInput = oracleDecoded(ASIOSTInt32LSB, supplied(rig.control(), channel));
+			for (double& sample : expectedInput)
+				sample *= 0.5;
+			expectExactBytes(rig.host->inputRecord(static_cast<size_t>(channel)),
+				oracleEncoded(ASIOSTFloat64LSB, expectedInput),
+				"processed Int32 input reaches Float64 host channel " + std::to_string(channel));
+		}
+	}
+
+	TEST_CASE(AsioTests, testFloat64SamplesFallBackConverted)
+	{
+		constexpr long testFrames = 16;
+		FakeAsioConfig config;
+		config.inputChannels = 1;
+		config.outputChannels = 1;
+		config.sampleType = ASIOSTInt24LSB;
+		config.seed = 11;
+		config.fullPrecision = 1;
+		StreamOptions options;
+		options.processInput = false;
+		options.float64Samples = true;
+		asiotest::HostStub::Options hostOptions;
+		hostOptions.outputSeed = 7;
+		hostOptions.sampleType = ASIOSTFloat64LSB;
+		hostOptions.fullPrecision = true;
+		Rig rig(config, options, hostOptions);
+		rig.processor->gain = 0.5f;
+		rig.processor->script = {Outcome::Processed, Outcome::LateDropped, Outcome::Processed};
+		rig.host->openChannels(1, 1);
+		harness.requireEqual(rig.wrapper->init(nullptr), ASIOTrue, "initialize the converted fallback stream");
+		harness.requireEqual(rig.host->createBuffers(rig.wrapper, testFrames), ASE_OK,
+			"create the converted fallback stream");
+		harness.requireEqual(rig.wrapper->start(), ASE_OK, "start the converted fallback stream");
+		harness.requireEqual(rig.control()->pump(3), S_OK, "pump the converted fallback stream");
+		harness.requireEqual(rig.wrapper->stop(), ASE_OK, "stop the converted fallback stream");
+		harness.requireEqual(rig.wrapper->disposeBuffers(), ASE_OK, "dispose the converted fallback stream");
+
+		std::vector<double> expectedOutput(static_cast<size_t>(testFrames * 3));
+		for (size_t sample = 0; sample < expectedOutput.size(); sample++)
+		{
+			const size_t period = sample / static_cast<size_t>(testFrames);
+			const double gain = period == 1 ? 1.0 : 0.5;
+			expectedOutput[sample] = gain * rig.host->outputValue(0, sample);
+		}
+		expectExactBytes(captured(rig.control(), 0), oracleEncoded(ASIOSTInt24LSB, expectedOutput),
+			"late Float64 output is converted without processing between processed periods");
+		std::vector<double> expectedInput = oracleDecoded(ASIOSTInt24LSB, supplied(rig.control(), 0));
+		expectExactBytes(rig.host->inputRecord(0), oracleEncoded(ASIOSTFloat64LSB, expectedInput),
+			"disabled Int24 input is converted to Float64");
+
+		FakeAsioDriver* fake = new FakeAsioDriver();
+		harness.requireEqual(fake->configure(&config), S_OK, "configure the passthrough conversion target");
+		StreamOptions passthroughOptions;
+		passthroughOptions.float64Samples = true;
+		AsioWrapper* wrapper = new AsioWrapper(fake, testWrapperClsid, testTargetClsid,
+			passthroughOptions, std::make_unique<PassthroughProcessor>());
+		fake->Release();
+		std::vector<unsigned char> passthroughInput;
+		std::vector<unsigned char> passthroughSupplied;
+		{
+			asiotest::HostStub host(hostOptions);
+			host.openChannels(1, 1);
+			harness.requireEqual(wrapper->init(nullptr), ASIOTrue, "initialize the passthrough conversion stream");
+			harness.requireEqual(host.createBuffers(wrapper, testFrames), ASE_OK, "create the passthrough conversion stream");
+			harness.requireEqual(wrapper->start(), ASE_OK, "start the passthrough conversion stream");
+			harness.requireEqual(fake->pump(2), S_OK, "pump the passthrough conversion stream");
+			harness.requireEqual(wrapper->stop(), ASE_OK, "stop the passthrough conversion stream");
+			harness.requireEqual(wrapper->disposeBuffers(), ASE_OK, "dispose the passthrough conversion stream");
+			const std::vector<unsigned char> passthroughOutput = captured(fake, 0);
+			passthroughInput = host.inputRecord(0);
+			passthroughSupplied = supplied(fake, 0);
+			std::vector<double> passthroughValues(static_cast<size_t>(testFrames * 2));
+			for (size_t sample = 0; sample < passthroughValues.size(); sample++)
+				passthroughValues[sample] = host.outputValue(0, sample);
+			expectExactBytes(passthroughOutput, oracleEncoded(ASIOSTInt24LSB, passthroughValues),
+				"passthrough Float64 output is converted to Int24");
+		}
+		expectExactBytes(passthroughInput,
+			oracleEncoded(ASIOSTFloat64LSB, oracleDecoded(ASIOSTInt24LSB, passthroughSupplied)),
+			"passthrough Int24 input is converted to Float64");
+		wrapper->Release();
+	}
+
+	TEST_CASE(AsioTests, testFloat64SamplesUnopenedChannelsSeeSilence)
+	{
+		FakeAsioConfig config;
+		config.outputChannels = 4;
+		StreamOptions options;
+		options.processInput = false;
+		options.float64Samples = true;
+		asiotest::HostStub::Options hostOptions;
+		hostOptions.fullPrecision = true;
+		Rig rig(config, options, hostOptions);
+		rig.processor->gain = 1.0f;
+		rig.host->openChannelList({}, {0, 2});
+		harness.requireEqual(rig.wrapper->init(nullptr), ASIOTrue, "initialize Float64 unopened-channel stream");
+		harness.requireEqual(rig.host->createBuffers(rig.wrapper, 16), ASE_OK,
+			"create Float64 unopened-channel stream");
+		harness.requireEqual(rig.wrapper->start(), ASE_OK, "start Float64 unopened-channel stream");
+		harness.requireEqual(rig.control()->pump(2), S_OK, "pump Float64 unopened-channel stream");
+		harness.requireEqual(rig.wrapper->stop(), ASE_OK, "stop Float64 unopened-channel stream");
+		harness.requireEqual(rig.wrapper->disposeBuffers(), ASE_OK, "dispose Float64 unopened-channel stream");
+		std::vector<double> unopened = oracleDecoded(config.sampleType, captured(rig.control(), 1));
+		harness.expect(std::all_of(unopened.begin(), unopened.end(), [](double sample) {return sample == 0.0;}),
+			"an unopened target channel is silent with Float64 host buffers");
+		std::vector<double> opened = oracleDecoded(config.sampleType, captured(rig.control(), 2));
+		harness.expect(std::any_of(opened.begin(), opened.end(), [](double sample) {return sample != 0.0;}),
+			"an opened target channel carries its Float64 host signal");
+	}
+
+	TEST_CASE(AsioTests, testFloat64SamplesLeaveDsdAlone)
+	{
+		FakeAsioConfig config;
+		config.sampleType = ASIOSTDSDInt8LSB1;
+		StreamOptions options;
+		options.float64Samples = true;
+		Rig rig(config, options, asiotest::HostStub::Options());
+		ASIOChannelInfo info = {};
+		info.channel = 0;
+		info.isInput = ASIOFalse;
+		harness.requireEqual(rig.wrapper->getChannelInfo(&info), ASE_OK, "read a DSD channel with the Float64 option");
+		harness.expectEqual(info.type, static_cast<long>(ASIOSTDSDInt8LSB1), "DSD is reported unchanged");
+		rig.host->openChannels(1, 1);
+		harness.requireEqual(rig.wrapper->init(nullptr), ASIOTrue, "initialize the DSD wrapper");
+		harness.expectEqual(rig.host->createBuffers(rig.wrapper, 64), ASE_InvalidMode,
+			"DSD is still refused at createBuffers");
+	}
 
 	TEST_CASE(AsioTests, testOutputAndInputAreProcessed)
 	{
@@ -1545,6 +1932,7 @@ namespace
 		record.targetClsid = L"{AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE}";
 		record.targetName = L"Some USB ASIO";
 		record.options.processInput = false;
+		record.options.float64Samples = true;
 		record.options.mode = Mode::Sync;
 		record.options.deadlineUs = 333;
 		record.options.readyTimeoutMs = 4444;
@@ -1561,6 +1949,7 @@ namespace
 		harness.expect(key == L"HKEY_LOCAL_MACHINE\\SOFTWARE\\EqualizerAPO\\ASIO\\{11111111-2222-3333-4444-555555555555}", "the record key spelling");
 		harness.expect(registry.readValue(key, L"TargetClsid") == record.targetClsid, "TargetClsid is written");
 		harness.expectEqual(registry.readDWORDValue(key, L"ProcessInput"), 0ul, "ProcessInput is written as a DWORD");
+		harness.expectEqual(registry.readDWORDValue(key, L"Float64Samples"), 1ul, "Float64Samples is written as a DWORD");
 		harness.expectEqual(registry.readDWORDValue(key, L"Mode"), 0ul, "Sync is Mode 0 (Pipelined, the default, is 1)");
 
 		eapo::asio::WrapperRecord back;
@@ -1569,6 +1958,7 @@ namespace
 		harness.expect(back.targetName == record.targetName, "TargetName round-trips");
 		harness.expectFalse(back.options.processInput, "ProcessInput round-trips");
 		harness.expectTrue(back.options.processOutput, "ProcessOutput round-trips");
+		harness.expectTrue(back.options.float64Samples, "Float64Samples round-trips");
 		harness.expect(back.options.mode == Mode::Sync, "Mode round-trips");
 		harness.expectEqual(back.options.deadlineUs, 333u, "DeadlineUs round-trips");
 		harness.expectEqual(back.options.readyTimeoutMs, 4444u, "ReadyTimeoutMs round-trips");
@@ -1589,6 +1979,13 @@ namespace
 		harness.expectEqual(sparse.options.deadlinePercent, 0u, "DeadlinePercent 0 = the quarter default");
 		harness.expectFalse(sparse.autoStart, "a record without AutoStart does not start the host at boot");
 		harness.expectFalse(sparse.register32, "a record without Register32 serves 64-bit hosts only");
+		harness.expectFalse(sparse.options.float64Samples, "a record without Float64Samples uses the target type");
+
+		eapo::asio::EntryOptions entryOptions = eapo::asio::WrapperRecords::entryOptions(back);
+		harness.expectTrue(entryOptions.float64Samples, "entryOptions carries Float64Samples from the record");
+		entryOptions.float64Samples = false;
+		eapo::asio::WrapperRecords::setEntryOptions(back, entryOptions);
+		harness.expectFalse(back.options.float64Samples, "setEntryOptions carries Float64Samples to the record");
 
 		eapo::asio::WrapperRecords::remove(registry, record.wrapperClsid);
 		harness.expectFalse(registry.keyExists(key), "remove deletes the record");
@@ -1710,6 +2107,7 @@ int main()
 			"DaemonTests",
 			"DeviceRecordTests",
 			"ReceiverKeepaliveTests",
+			"PrecisionTests",
 			"AsioTests",
 		});
 	}

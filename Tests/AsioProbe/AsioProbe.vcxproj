@@ -74,6 +74,7 @@
   <ItemGroup>
     <ClInclude Include="..\AsioSupport\HostStub.h" />
     <ClInclude Include="..\AsioSupport\LatencyMatch.h" />
+    <ClInclude Include="..\AsioSupport\SampleOracle.h" />
     <ClInclude Include="..\FakeAsioDriver\FakeAsio.h" />
     <ClInclude Include="..\FakeAsioDriver\FakeAsioControl.h" />
     <ClInclude Include="..\ProbeSupport\CommandLine.h" />

@@ -93,11 +93,11 @@ public:
 	void read(double* input, unsigned frameCount);
 	// Fused float32 -> double + deinterleave (or planar copy) directly into
 	// the internal planar storage. The interleaved variant serves the APO's
-	// float32 connection; the planar variant serves VoicemeeterClient and the
-	// two ASIO stream processors. The double-planar read was removed in audit
-	// #275 (A7): no caller.
+	// float32 connection; the float-planar variant serves VoicemeeterClient,
+	// and the double-planar variant serves the two ASIO stream processors.
 	void readFloatInterleaved(const float* input, unsigned frameCount);
 	void readFloatPlanar(const float* const* input, unsigned frameCount);
+	void readPlanar(const double* const* input, unsigned frameCount);
 	void process(unsigned frameCount, IInputTap* tap = nullptr, uint64_t blockToken = 0);
 	// factorTable[i] holds the equal-power crossfade factor for the i-th frame
 	// of the transition, precomputed by the engine; i >= transitionLength implies
@@ -106,10 +106,11 @@ public:
 	unsigned doTransition(FilterConfiguration* nextConfig, unsigned frameCount, unsigned transitionCounter, unsigned transitionLength, const double* factorTable);
 	void write(double* output, unsigned frameCount);
 	// Fused double -> float32 + interleave (or planar copy) directly from
-	// the internal planar storage. Mirrors the readFloat variants; both write
-	// outputChannelCount channels.
+	// the internal planar storage. Mirrors the readFloat variants; every write
+	// surface writes outputChannelCount channels.
 	void writeFloatInterleaved(float* output, unsigned frameCount);
 	void writeFloatPlanar(float* const* output, unsigned frameCount);
+	void writePlanar(double* const* output, unsigned frameCount);
 	double** getOutputSamples() {return allSamples.data();}
 	bool isEmpty() const;
 	// True if every filter in this configuration guarantees silent output for

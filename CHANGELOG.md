@@ -14,6 +14,31 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **ASIO: samples stay 64-bit float between the driver and the equalizer, and
+  an application can hand over 64-bit float buffers.** The wrapper converted
+  every buffer to 32-bit float on its way to the engine host and back,
+  although the equalizer computes in 64-bit float. A device that takes 32-bit
+  integers therefore lost its lowest 8 bits through an `(EQ APO XT)` entry,
+  even with no filter active, and a 64-bit float device was rounded to 32-bit
+  float. The wrapper, the shared memory between it and the engine host, and
+  the host's call into the equalizer now all carry 64-bit float, so the device
+  receives what the filters computed, rounded once to its own format. An entry
+  can also report 64-bit float samples (`ASIOSTFloat64LSB`) on every channel
+  while the device keeps its format; an application that mixes in 64-bit float
+  then sends its buffers unconverted. This is off by default, because how each
+  application handles a 64-bit float driver has not been tested. Until the
+  Device Selector has a checkbox for it, turn it on with `DeviceSelector
+  --install-endpoint {guid} --asio-entry --asio-float64` for an endpoint's
+  entry, or with the `Float64Samples` value of the entry's record. An
+  application that still holds the previous driver after the update is told
+  that the driver and the engine host are different versions; restarting
+  the application fixes it. CI compares the stream with the equalizer's own 64-bit
+  output bit for bit. The option has not yet been run under a DAW or player
+  that outputs 64-bit float
+  ([docs/features/asio.md](docs/features/asio.md#sample-precision-and-64-bit-float)).
+  ([#530](https://github.com/115dkk/EqualizerAPO-XT/pull/530),
+  [#528](https://github.com/115dkk/EqualizerAPO-XT/issues/528))
+
 ## v2.80.1 — 2026-11-25
 
 - **Log lines written at the same moment by two threads are no longer lost.**

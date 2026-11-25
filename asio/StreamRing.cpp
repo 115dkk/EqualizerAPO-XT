@@ -99,8 +99,8 @@ namespace eapo::ipc
 		uint32_t slotBytes(const eapo::asio::StreamFormat& format, Direction direction) noexcept
 		{
 			const uint64_t samples = static_cast<uint64_t>(format.channelCount(direction)) * format.frames;
-			const uint64_t bytes = samples == 0 ? 0 : roundUp(samples * sizeof(float), ringAlignment);
-			// validFormat() bounds one slot to 16 MiB, so producer and consumer
+			const uint64_t bytes = samples == 0 ? 0 : roundUp(samples * sizeof(double), ringAlignment);
+			// validFormat() bounds one slot to 32 MiB, so producer and consumer
 			// callers may cast this checked geometry to the fixed-width wire type.
 			return static_cast<uint32_t>(bytes);
 		}
@@ -110,7 +110,7 @@ namespace eapo::ipc
 			uint64_t total = ringHeaderBytes;
 			for (unsigned lane = 0; lane < directionCount; lane++)
 				total += 2ull * slotBytes(format, static_cast<Direction>(lane));
-			// validFormat() keeps both lanes and the header below 128 MiB.
+			// validFormat() keeps both lanes at or below 128 MiB plus the header.
 			return static_cast<uint32_t>(total);
 		}
 	}
@@ -192,9 +192,9 @@ namespace eapo::ipc
 		return sequenceAtLeast(done, seq - 2);
 	}
 
-	float* RingProducer::slot(Direction direction, uint32_t seq) noexcept
+	double* RingProducer::slot(Direction direction, uint32_t seq) noexcept
 	{
-		return reinterpret_cast<float*>(reinterpret_cast<unsigned char*>(header_) + slotOffset_[laneOf(direction)][seq & 1]);
+		return reinterpret_cast<double*>(reinterpret_cast<unsigned char*>(header_) + slotOffset_[laneOf(direction)][seq & 1]);
 	}
 
 	void RingProducer::publish(Direction direction, uint32_t seq) noexcept
@@ -362,7 +362,7 @@ namespace eapo::ipc
 		const uint32_t next = done + 1;
 		out.direction = direction;
 		out.sequence = next;
-		out.slot = reinterpret_cast<float*>(reinterpret_cast<unsigned char*>(header_) + slotOffset_[laneOf(direction)][next & 1]);
+		out.slot = reinterpret_cast<double*>(reinterpret_cast<unsigned char*>(header_) + slotOffset_[laneOf(direction)][next & 1]);
 		out.publishTick = header_->publishTick[laneOf(direction)];
 		out.behind = published - next;
 		header_->acquireTick[laneOf(direction)] = static_cast<LONGLONG>(tickNow());
