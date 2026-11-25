@@ -14,6 +14,16 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Log lines written at the same moment by two threads are no longer lost.**
+  The log opened its file for each line without sharing it, so a line written
+  while another thread had the file open was dropped. In the audio service the
+  two processing stages of one device reload the configuration at the same
+  moment, and about a third of the block timing lines added in v2.80.0 went
+  missing, along with some configuration loading lines. Lines are now written
+  one at a time, and a line that finds another program writing the same file
+  waits briefly instead of being dropped.
+  ([#529](https://github.com/115dkk/EqualizerAPO-XT/pull/529))
+
 ## v2.80.0 — 2026-11-25
 
 - **The audio service logs audio blocks that took longer than the audio they
