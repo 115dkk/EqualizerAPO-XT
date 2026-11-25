@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.80.0 — 2026-11-25
+
 - **The audio service logs audio blocks that took longer than the audio they
   carry.** Nothing measured how long the equalizer took per block in the audio
   service, so an occasional one-buffer slip in a loopback recording could not
