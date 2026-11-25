@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.81.0 — 2026-11-25
+
 - **ASIO: samples stay 64-bit float between the driver and the equalizer, and
   an application can hand over 64-bit float buffers.** The wrapper converted
   every buffer to 32-bit float on its way to the engine host and back,
