@@ -178,6 +178,39 @@ TEST_CASE(EngineOrchestrationTests, testFileLogKeepsLinesWrittenAtOnce)
 	DeleteFileW(path.c_str());
 }
 
+// #527: another process appending to the same log holds the file for the
+// length of its own line. An unshared handle opened here stands in for it:
+// the logger has to wait for the handle to close instead of dropping its line.
+TEST_CASE(EngineOrchestrationTests, testFileLogWaitsForAnotherWriter)
+{
+	const std::wstring path = testDirectory() + L"\\HeldWhileWriting.log";
+	DeleteFileW(path.c_str());
+	Logging::useFile(path, true, true, false);
+
+	FILE* holder = nullptr;
+	harness.expect(_wfopen_s(&holder, path.c_str(), L"ab") == 0 && holder != nullptr,
+		"the test holds the log file open without sharing");
+	std::atomic<bool> logging{false};
+	std::thread writer([&logging] {
+		logging = true;
+		LogFStatic(L"written after the other writer let go");
+	});
+	while (!logging.load())
+		std::this_thread::yield();
+	Sleep(5);
+	if (holder != nullptr)
+		fclose(holder);
+	writer.join();
+	Logging::useStream(stderr, false, false, false);
+
+	std::ifstream stream(path, std::ios::binary);
+	const std::string contents((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+	harness.expect(contents.find("written after the other writer let go") != std::string::npos,
+		"a line logged while another writer holds the file arrives once it lets go");
+	stream.close();
+	DeleteFileW(path.c_str());
+}
+
 TEST_CASE(EngineOrchestrationTests, testLogHelperUserDestination)
 {
 	wchar_t previousLocalAppData[MAX_PATH] = {};
