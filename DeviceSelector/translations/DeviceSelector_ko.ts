@@ -4,12 +4,12 @@
 <context>
     <name>DeviceSelector</name>
     <message>
-        <location filename="../DeviceSelector.cpp" line="195"/>
+        <location filename="../DeviceSelector.cpp" line="196"/>
         <source>Multi-core convolution processing</source>
         <translation>멀티코어 컨볼루션 처리</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="197"/>
+        <location filename="../DeviceSelector.cpp" line="198"/>
         <source>Spreads the work of Convolution and MultiConvolution over several CPU cores, so long impulse responses on many channels no longer load a single core. The sound and the latency stay the same.
 
 It is optional because it starts extra audio threads. Turn it off if it causes dropouts on your system. Applies to every device.</source>
@@ -18,12 +18,12 @@ It is optional because it starts extra audio threads. Turn it off if it causes d
 이 옵션을 켜면 오디오 스레드를 추가로 시작합니다. 사용 중인 PC에서 이 옵션 때문에 소리가 끊기면 끄십시오. 모든 장치에 적용됩니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="210"/>
+        <location filename="../DeviceSelector.cpp" line="211"/>
         <source>Resample received audio</source>
         <translation>전송된 오디오 리샘플링</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="212"/>
+        <location filename="../DeviceSelector.cpp" line="213"/>
         <source>Converts audio that Send: lines in other endpoints&apos; configurations hand to this endpoint when their sample rate differs from this endpoint&apos;s, and keeps the two clocks aligned. Without it, a sender at another sample rate is refused. At equal sample rates nothing changes.
 
 It is optional because while it converts it uses CPU and a little latency, and the result is no longer bit-identical to what was sent.</source>
@@ -32,84 +32,84 @@ It is optional because while it converts it uses CPU and a little latency, and t
 이 옵션을 켜면 변환하는 동안 CPU를 사용하고 지연이 조금 늘어납니다. 변환한 오디오는 전송된 원본과 비트 단위로 같지 않습니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="188"/>
+        <location filename="../DeviceSelector.cpp" line="189"/>
         <source>Ignore silence in convolution</source>
         <translation>컨볼루션 무음 부분 무시</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="190"/>
+        <location filename="../DeviceSelector.cpp" line="191"/>
         <source>Cuts the silent end off impulse responses that Convolution and MultiConvolution load. A long silent tail costs as much processing as sound does and can cause dropouts. Applies to every device.</source>
         <translation>Convolution과 MultiConvolution이 불러오는 임펄스 응답의 끝부분에서 무음을 잘라냅니다. 무음 부분도 소리가 있는 부분만큼 연산이 필요하므로 끝부분의 무음이 길면 소리가 끊길 수 있습니다. 모든 장치에 적용됩니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="71"/>
-        <location filename="../DeviceSelector.cpp" line="115"/>
+        <location filename="../DeviceSelector.cpp" line="72"/>
+        <location filename="../DeviceSelector.cpp" line="116"/>
         <source>Playback devices</source>
         <translation>재생 장치</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="76"/>
-        <location filename="../DeviceSelector.cpp" line="119"/>
+        <location filename="../DeviceSelector.cpp" line="77"/>
+        <location filename="../DeviceSelector.cpp" line="120"/>
         <source>Capture devices</source>
         <translation>녹음 장치</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="84"/>
-        <location filename="../DeviceSelector.cpp" line="101"/>
-        <location filename="../DeviceSelector.cpp" line="443"/>
-        <location filename="../DeviceSelector.cpp" line="456"/>
+        <location filename="../DeviceSelector.cpp" line="85"/>
+        <location filename="../DeviceSelector.cpp" line="102"/>
+        <location filename="../DeviceSelector.cpp" line="451"/>
+        <location filename="../DeviceSelector.cpp" line="464"/>
         <source>Error while accessing the registry</source>
         <translation>레지스트리에 접근하는 중 오류가 발생했습니다</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="96"/>
-        <location filename="../DeviceSelector.cpp" line="576"/>
+        <location filename="../DeviceSelector.cpp" line="97"/>
+        <location filename="../DeviceSelector.cpp" line="584"/>
         <source>Info</source>
         <translation>알림</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="96"/>
+        <location filename="../DeviceSelector.cpp" line="97"/>
         <source>A registry value that is required for the operation of Equalizer APO was not set correctly. This might have been caused by a driver installation or uninstallation. The value has been corrected. A reboot may be required so that the changes can take effect.</source>
         <translation>Equalizer APO 동작에 필요한 레지스트리 값이 올바르게 설정되어 있지 않았습니다. 드라이버 설치나 제거 때문일 수 있습니다. 값을 바로잡았으며, 변경 사항을 적용하려면 재부팅이 필요할 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="552"/>
+        <location filename="../DeviceSelector.cpp" line="560"/>
         <source>Upgrades available</source>
         <translation>업그레이드 가능</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="552"/>
+        <location filename="../DeviceSelector.cpp" line="560"/>
         <source>The APO installation of some devices should be upgraded. Do you really want to cancel?</source>
         <translation>일부 장치의 APO 설치를 업그레이드해야 합니다. 정말 취소하시겠습니까?</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="576"/>
+        <location filename="../DeviceSelector.cpp" line="584"/>
         <source>This dialog can be reopened anytime by launching Device Selector from the start menu.</source>
         <translation>이 창은 시작 메뉴에서 Device Selector를 실행해 언제든지 다시 열 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="582"/>
+        <location filename="../DeviceSelector.cpp" line="590"/>
         <source>Reboot</source>
         <translation>재부팅</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="582"/>
+        <location filename="../DeviceSelector.cpp" line="590"/>
         <source>To apply the changes, Windows should be rebooted. Reboot now?</source>
         <translation>변경 사항을 적용하려면 Windows를 재부팅해야 합니다. 지금 재부팅하시겠습니까?</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="165"/>
-        <location filename="../DeviceSelector.cpp" line="760"/>
+        <location filename="../DeviceSelector.cpp" line="166"/>
+        <location filename="../DeviceSelector.cpp" line="768"/>
         <source>Cancel</source>
         <translation>취소</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="102"/>
+        <location filename="../DeviceSelector.cpp" line="103"/>
         <source>The registry repair did not finish. Reinstall Equalizer APO or see DeviceSelector.log for details.</source>
         <translation>레지스트리 복구를 끝내지 못했습니다. Equalizer APO를 다시 설치하거나 DeviceSelector.log에서 자세한 내용을 확인하십시오.</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="164"/>
+        <location filename="../DeviceSelector.cpp" line="165"/>
         <source>OK</source>
         <translation>확인</translation>
     </message>
@@ -126,62 +126,62 @@ It is optional because while it converts it uses CPU and a little latency, and t
         <translation type="vanished">자세한 내용은 %1에서 확인하십시오.</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="765"/>
+        <location filename="../DeviceSelector.cpp" line="773"/>
         <source>Close</source>
         <translation>닫기</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="940"/>
+        <location filename="../DeviceSelector.cpp" line="950"/>
         <source>APO will be installed</source>
         <translation>APO를 설치합니다</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="943"/>
+        <location filename="../DeviceSelector.cpp" line="953"/>
         <source>APO will be uninstalled</source>
         <translation>APO를 제거합니다</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="947"/>
+        <location filename="../DeviceSelector.cpp" line="957"/>
         <source>APO will be upgraded</source>
         <translation>APO를 업그레이드합니다</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="949"/>
+        <location filename="../DeviceSelector.cpp" line="959"/>
         <source>APO installation will be changed</source>
         <translation>APO 설치를 변경합니다</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="951"/>
+        <location filename="../DeviceSelector.cpp" line="961"/>
         <source>Audio enhancements will be enabled</source>
         <translation>오디오 향상 기능을 켭니다</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="954"/>
+        <location filename="../DeviceSelector.cpp" line="964"/>
         <source>APO is already installed</source>
         <translation>APO가 이미 설치되어 있습니다</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="954"/>
+        <location filename="../DeviceSelector.cpp" line="964"/>
         <source>APO can be installed</source>
         <translation>APO를 설치할 수 있습니다</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="959"/>
+        <location filename="../DeviceSelector.cpp" line="969"/>
         <source>Voicemeeter was uninstalled</source>
         <translation>Voicemeeter가 제거되었습니다</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="961"/>
+        <location filename="../DeviceSelector.cpp" line="971"/>
         <source>Default device</source>
         <translation>기본 장치</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="967"/>
+        <location filename="../DeviceSelector.cpp" line="977"/>
         <source>Disabled</source>
         <translation>사용 안 함</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="969"/>
+        <location filename="../DeviceSelector.cpp" line="979"/>
         <source>Unplugged</source>
         <translation>연결 끊김</translation>
     </message>
@@ -199,7 +199,7 @@ It is optional because while it converts it uses CPU and a little latency, and t
         <translation>ASIO 드라이버 목록에 `&lt;장치&gt; - &lt;엔드포인트&gt; (EQ APO XT)` 항목을 만듭니다. ASIO를 지원하는 앱에서 그 항목을 고르면 이 장치를 WASAPI 독점 모드로 열면서 EQ까지 적용합니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="168"/>
+        <location filename="../DeviceSelector.cpp" line="169"/>
         <source>Troubleshooting options (only use in case of problems)</source>
         <translation>문제 해결 옵션 (문제가 있을 때만 사용)</translation>
     </message>
@@ -290,6 +290,16 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>대기 시간:</translation>
     </message>
     <message>
+        <location filename="../DeviceSelector.ui" line="344"/>
+        <source>Tells the application that all channels use 64-bit float, so an application that mixes in that format can send its audio without converting it first. The device keeps its own format; the conversion happens after the EQ. If the application cannot open the device or the sound is wrong, turn this off.</source>
+        <translation>모든 채널의 형식을 64비트 부동소수점으로 애플리케이션에 알리므로, 이 형식으로 믹싱하는 애플리케이션은 오디오를 먼저 변환하지 않고 보냅니다. 장치의 형식은 그대로 유지하며, EQ를 적용한 뒤 변환합니다. 애플리케이션에서 장치를 열지 못하거나 소리가 이상하면 이 옵션을 끄십시오.</translation>
+    </message>
+    <message>
+        <location filename="../DeviceSelector.ui" line="347"/>
+        <source>Use 64-bit float samples</source>
+        <translation>64비트 부동소수점 사용</translation>
+    </message>
+    <message>
         <location filename="../DeviceSelector.ui" line="240"/>
         <location filename="../DeviceSelector.ui" line="250"/>
         <source>Sets how long to wait for processing once the buffer is removed. The longer the wait, the less sound without the EQ, but the more latency.</source>
@@ -348,12 +358,12 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="vanished">상태</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.ui" line="382"/>
+        <location filename="../DeviceSelector.ui" line="408"/>
         <source>Please select the devices for which Equalizer APO is to be installed:</source>
         <translation>Equalizer APO를 설치할 장치를 선택하십시오:</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.ui" line="389"/>
+        <location filename="../DeviceSelector.ui" line="415"/>
         <source>Copy Device command to clipboard</source>
         <translation>Device 명령을 클립보드에 복사</translation>
     </message>
@@ -460,7 +470,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     </message>
     <message numerus="yes">
         <location filename="../DeviceTestThread.cpp" line="233"/>
-        <location filename="../DeviceTestView.cpp" line="514"/>
+        <location filename="../DeviceTestView.cpp" line="517"/>
         <source>Check failed for %n device(s).</source>
         <translation>
             <numerusform>장치 %n개에서 확인에 실패했습니다.</numerusform>
@@ -483,7 +493,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     </message>
     <message numerus="yes">
         <location filename="../DeviceTestThread.cpp" line="329"/>
-        <location filename="../DeviceTestView.cpp" line="515"/>
+        <location filename="../DeviceTestView.cpp" line="518"/>
         <source>Checks done. Problems were detected for %n device(s).</source>
         <translation>
             <numerusform>확인을 마쳤습니다. 장치 %n개에서 문제가 발견되었습니다.</numerusform>
@@ -493,27 +503,27 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
 <context>
     <name>DeviceTestView</name>
     <message>
-        <location filename="../DeviceTestView.cpp" line="87"/>
+        <location filename="../DeviceTestView.cpp" line="88"/>
         <source>APO installation check</source>
         <translation>APO 설치 확인</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="138"/>
+        <location filename="../DeviceTestView.cpp" line="141"/>
         <source>Record</source>
         <translation>기록</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="154"/>
+        <location filename="../DeviceTestView.cpp" line="157"/>
         <source>Stop</source>
         <translation>중지</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="157"/>
+        <location filename="../DeviceTestView.cpp" line="160"/>
         <source>Reinstall</source>
         <translation>재설치</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="159"/>
+        <location filename="../DeviceTestView.cpp" line="162"/>
         <source>Close</source>
         <translation>닫기</translation>
     </message>
@@ -526,7 +536,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="vanished">오디오 장치를 관리하는 프로그램을 끈 뒤 재설치하십시오.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="263"/>
+        <location filename="../DeviceTestView.cpp" line="266"/>
         <source>Not changed</source>
         <translation>바뀌지 않았습니다</translation>
     </message>
@@ -539,168 +549,168 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="vanished">컴퓨터를 다시 시작한 뒤 다시 시도하십시오.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="239"/>
+        <location filename="../DeviceTestView.cpp" line="242"/>
         <source>All three install modes were tried and the APO was not installed.</source>
         <translation>설치 방식 세 가지를 모두 시도했지만 APO가 설치되지 않았습니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="240"/>
+        <location filename="../DeviceTestView.cpp" line="243"/>
         <source>The cause is not known. Update the device&apos;s driver, then reinstall. Some drivers load no APO at all.</source>
         <translation>원인은 알 수 없습니다. 장치 드라이버를 최신으로 바꾼 뒤 재설치하십시오. APO를 전혀 불러오지 않는 드라이버도 있습니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="243"/>
+        <location filename="../DeviceTestView.cpp" line="246"/>
         <source>The APO was not installed in the selected install mode (%1).</source>
         <translation>선택한 설치 방식(%1)으로는 APO가 설치되지 않았습니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="244"/>
+        <location filename="../DeviceTestView.cpp" line="247"/>
         <source>Select another install mode. The automatic install mode can be tried as well.</source>
         <translation>다른 설치 방식을 선택하십시오. 자동 설치 방식으로 시도해도 됩니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="246"/>
+        <location filename="../DeviceTestView.cpp" line="249"/>
         <source>Post-mix does not work. Pre-mix works</source>
         <translation>믹스 후가 작동하지 않습니다. 믹스 전은 작동합니다</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="247"/>
+        <location filename="../DeviceTestView.cpp" line="250"/>
         <source>The post-mix APO does not work. The pre-mix APO works.</source>
         <translation>믹스 후 APO가 작동하지 않습니다. 믹스 전 APO는 작동합니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="250"/>
+        <location filename="../DeviceTestView.cpp" line="253"/>
         <source>Pre-mix does not work. Post-mix works</source>
         <translation>믹스 전이 작동하지 않습니다. 믹스 후는 작동합니다</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="251"/>
+        <location filename="../DeviceTestView.cpp" line="254"/>
         <source>The pre-mix APO does not work. The post-mix APO works.</source>
         <translation>믹스 전 APO가 작동하지 않습니다. 믹스 후 APO는 작동합니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="254"/>
+        <location filename="../DeviceTestView.cpp" line="257"/>
         <source>The original APO did not start. The APO works</source>
         <translation>원본 APO가 시작되지 않았습니다. APO는 작동합니다</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="255"/>
+        <location filename="../DeviceTestView.cpp" line="258"/>
         <source>The APO of the device&apos;s maker did not start, so the device&apos;s own sound effects are missing. The EQ APO works.</source>
         <translation>제조사의 APO가 시작되지 않으므로, 장치의 음향 효과는 누락됩니다. EQ APO는 작동합니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="260"/>
+        <location filename="../DeviceTestView.cpp" line="263"/>
         <source>The install in another mode was refused by Windows. The install was stopped.</source>
         <translation>다른 방식으로 설치하려 했지만 Windows가 변경을 거부했습니다. 설치가 중지되었습니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="261"/>
-        <location filename="../DeviceTestView.cpp" line="265"/>
+        <location filename="../DeviceTestView.cpp" line="264"/>
+        <location filename="../DeviceTestView.cpp" line="268"/>
         <source>Close programs that manage audio devices, then reinstall.</source>
         <translation>오디오 장치를 관리하는 프로그램을 끈 뒤 재설치하십시오.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="264"/>
+        <location filename="../DeviceTestView.cpp" line="267"/>
         <source>Windows refused the change to this device. The install was stopped.</source>
         <translation>Windows가 이 장치의 변경을 거부했습니다. 설치가 중지되었습니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="267"/>
+        <location filename="../DeviceTestView.cpp" line="270"/>
         <source>Undo failed</source>
         <translation>되돌리기 실패</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="268"/>
+        <location filename="../DeviceTestView.cpp" line="271"/>
         <source>Windows refused the change, and undoing it failed as well.</source>
         <translation>Windows가 변경을 거부했고, 되돌리기도 실패했습니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="269"/>
-        <location filename="../DeviceTestView.cpp" line="289"/>
+        <location filename="../DeviceTestView.cpp" line="272"/>
+        <location filename="../DeviceTestView.cpp" line="292"/>
         <source>Restart the computer, then reinstall.</source>
         <translation>컴퓨터를 다시 시작한 뒤 재설치하십시오.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="272"/>
+        <location filename="../DeviceTestView.cpp" line="275"/>
         <source>This device is disabled in Windows, so the APO cannot be installed on it.</source>
         <translation>이 장치는 Windows에서 사용 안함으로 설정되어 있어 APO를 설치할 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="273"/>
+        <location filename="../DeviceTestView.cpp" line="276"/>
         <source>Enable the device.</source>
         <translation>장치의 사용 안함 상태를 해제하십시오.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="276"/>
+        <location filename="../DeviceTestView.cpp" line="279"/>
         <source>Nothing is plugged into this device, so the APO cannot be installed on it.</source>
         <translation>장치가 연결되어 있지 않아 APO를 설치할 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="277"/>
+        <location filename="../DeviceTestView.cpp" line="280"/>
         <source>Plug the device in.</source>
         <translation>장치를 연결하십시오.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="281"/>
-        <location filename="../DeviceTestView.cpp" line="297"/>
-        <location filename="../DeviceTestView.cpp" line="301"/>
+        <location filename="../DeviceTestView.cpp" line="284"/>
+        <location filename="../DeviceTestView.cpp" line="300"/>
+        <location filename="../DeviceTestView.cpp" line="304"/>
         <source>Reinstall.</source>
         <translation>재설치하십시오.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="284"/>
+        <location filename="../DeviceTestView.cpp" line="287"/>
         <source>Windows audio could not be restarted. The EQ APO works only after Windows audio restarts.</source>
         <translation>Windows 오디오를 다시 시작하지 못했습니다. EQ APO는 Windows 오디오를 다시 시작해야 작동합니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="288"/>
+        <location filename="../DeviceTestView.cpp" line="291"/>
         <source>A Windows error kept the installation check from starting.</source>
         <translation>Windows 오류로 설치 확인을 시작하지 못했습니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="292"/>
+        <location filename="../DeviceTestView.cpp" line="295"/>
         <source>The EQ APO install was refused.</source>
         <translation>EQ APO 설치가 거부되었습니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="293"/>
+        <location filename="../DeviceTestView.cpp" line="296"/>
         <source>Close security programs that block changes to system settings, then reinstall.</source>
         <translation>시스템 설정 변경을 막는 보안 프로그램을 끈 뒤 재설치하십시오.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="296"/>
+        <location filename="../DeviceTestView.cpp" line="299"/>
         <source>The connection to the APO was lost.</source>
         <translation>APO와의 연결이 끊겼습니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="300"/>
+        <location filename="../DeviceTestView.cpp" line="303"/>
         <source>The list of audio devices could not be read, so no device was checked.</source>
         <translation>오디오 장치 목록을 읽지 못해 어느 장치도 확인하지 못했습니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="394"/>
+        <location filename="../DeviceTestView.cpp" line="397"/>
         <source>Checking that the APO works on each device (%1 of %2)</source>
         <translation>장치마다 APO가 작동하는지 확인하는 중입니다 (%1/%2)</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="396"/>
+        <location filename="../DeviceTestView.cpp" line="399"/>
         <source>Restarting Windows audio</source>
         <translation>Windows 오디오를 다시 시작하는 중입니다</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="397"/>
+        <location filename="../DeviceTestView.cpp" line="400"/>
         <source>Windows audio restarts during the check, so sound stops for a few seconds.</source>
         <translation>확인하는 동안 Windows 오디오를 다시 시작하므로 소리가 몇 초 끊깁니다.</translation>
     </message>
     <message numerus="yes">
-        <location filename="../DeviceTestView.cpp" line="410"/>
+        <location filename="../DeviceTestView.cpp" line="413"/>
         <source>%n device(s) could not be changed.</source>
         <translation>
             <numerusform>장치 %n개를 바꾸지 못했습니다.</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="412"/>
+        <location filename="../DeviceTestView.cpp" line="415"/>
         <source>The APO works on the devices that were checked.</source>
         <translation>확인한 장치에서는 APO가 작동합니다.</translation>
     </message>
@@ -711,34 +721,34 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         </translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="422"/>
+        <location filename="../DeviceTestView.cpp" line="425"/>
         <source>The APO is not installed on any device.</source>
         <translation>APO가 설치된 장치가 없습니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="427"/>
+        <location filename="../DeviceTestView.cpp" line="430"/>
         <source>The APO works on every device that could be checked.</source>
         <translation>확인할 수 있는 모든 장치에서 APO가 작동합니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="428"/>
+        <location filename="../DeviceTestView.cpp" line="431"/>
         <source>No device could be checked.</source>
         <translation>확인할 수 있는 장치가 없습니다.</translation>
     </message>
     <message numerus="yes">
-        <location filename="../DeviceTestView.cpp" line="429"/>
+        <location filename="../DeviceTestView.cpp" line="432"/>
         <source>%n device(s) could not be checked.</source>
         <translation>
             <numerusform>장치 %n개는 확인하지 못했습니다.</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="434"/>
+        <location filename="../DeviceTestView.cpp" line="437"/>
         <source>The APO works on every device.</source>
         <translation>모든 장치에서 APO가 작동합니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="435"/>
+        <location filename="../DeviceTestView.cpp" line="438"/>
         <source>The equalizer is applied from now on.</source>
         <translation>지금부터 이퀄라이저가 적용됩니다.</translation>
     </message>
@@ -747,48 +757,48 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="vanished">Device Selector의 문제 해결 옵션에서 설치 방식을 바꿔 보십시오. 자세한 내용은 아래 기록에 있습니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestDialog.cpp" line="336"/>
-        <location filename="../DeviceTestDialog.cpp" line="378"/>
-        <location filename="../DeviceTestView.cpp" line="467"/>
+        <location filename="../DeviceTestDialog.cpp" line="338"/>
+        <location filename="../DeviceTestDialog.cpp" line="380"/>
+        <location filename="../DeviceTestView.cpp" line="470"/>
         <source>The APO works</source>
         <translation>APO가 작동합니다</translation>
     </message>
     <message>
-        <location filename="../DeviceTestDialog.cpp" line="155"/>
-        <location filename="../DeviceTestDialog.cpp" line="359"/>
-        <location filename="../DeviceTestView.cpp" line="468"/>
+        <location filename="../DeviceTestDialog.cpp" line="157"/>
+        <location filename="../DeviceTestDialog.cpp" line="361"/>
+        <location filename="../DeviceTestView.cpp" line="471"/>
         <source>Checking</source>
         <translation>확인하는 중입니다</translation>
     </message>
     <message>
-        <location filename="../DeviceTestDialog.cpp" line="75"/>
+        <location filename="../DeviceTestDialog.cpp" line="77"/>
         <source>Reinstalling %1 %2</source>
         <translation>%1 %2 재설치 중</translation>
     </message>
     <message>
-        <location filename="../DeviceTestDialog.cpp" line="168"/>
-        <location filename="../DeviceTestDialog.cpp" line="581"/>
+        <location filename="../DeviceTestDialog.cpp" line="170"/>
+        <location filename="../DeviceTestDialog.cpp" line="583"/>
         <source>Details are in %1.</source>
         <translation>자세한 내용은 %1에 있습니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestDialog.cpp" line="344"/>
+        <location filename="../DeviceTestDialog.cpp" line="346"/>
         <source>Trying another install mode</source>
         <translation>다른 설치 방식을 시도하는 중입니다</translation>
     </message>
     <message>
-        <location filename="../DeviceTestDialog.cpp" line="349"/>
-        <location filename="../DeviceTestView.cpp" line="479"/>
+        <location filename="../DeviceTestDialog.cpp" line="351"/>
+        <location filename="../DeviceTestView.cpp" line="482"/>
         <source>Pre-mix works. Checking post-mix</source>
         <translation>믹스 전은 작동합니다. 믹스 후를 확인하는 중입니다</translation>
     </message>
     <message>
-        <location filename="../DeviceTestDialog.cpp" line="354"/>
+        <location filename="../DeviceTestDialog.cpp" line="356"/>
         <source>Post-mix works. Checking pre-mix</source>
         <translation>믹스 후는 작동합니다. 믹스 전을 확인하는 중입니다</translation>
     </message>
     <message>
-        <location filename="../DeviceTestDialog.cpp" line="606"/>
+        <location filename="../DeviceTestDialog.cpp" line="608"/>
         <source>Install undone</source>
         <translation>설치 되돌림</translation>
     </message>
@@ -797,8 +807,8 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="vanished">원본 APO가 시작되지 않았습니다. APO는 작동합니다</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="238"/>
-        <location filename="../DeviceTestView.cpp" line="242"/>
+        <location filename="../DeviceTestView.cpp" line="241"/>
+        <location filename="../DeviceTestView.cpp" line="245"/>
         <source>The APO does not work</source>
         <translation>APO가 작동하지 않습니다</translation>
     </message>
@@ -807,7 +817,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="vanished">장치의 사용 안함 상태를 해제하십시오.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="275"/>
+        <location filename="../DeviceTestView.cpp" line="278"/>
         <source>Not checked: the device is unplugged</source>
         <translation>연결이 끊겨 확인하지 못했습니다</translation>
     </message>
@@ -824,29 +834,31 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="vanished">시스템 설정 변경을 막는 보안 프로그램을 끈 뒤 재설치하십시오.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="405"/>
+        <location filename="../DeviceTestView.cpp" line="408"/>
         <source>The other devices are not affected.</source>
         <translation>다른 장치에는 영향이 없습니다.</translation>
     </message>
     <message numerus="yes">
-        <location filename="../DeviceTestView.cpp" line="417"/>
+        <location filename="../DeviceTestView.cpp" line="420"/>
         <source>%n device(s) have something to look at. The APO works.</source>
-        <translation><numerusform>장치 %n개에 확인할 것이 있습니다. APO는 작동합니다.</numerusform></translation>
+        <translation>
+            <numerusform>장치 %n개에 확인할 것이 있습니다. APO는 작동합니다.</numerusform>
+        </translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="440"/>
+        <location filename="../DeviceTestView.cpp" line="443"/>
         <source>The install was stopped.</source>
         <translation>설치를 중지했습니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="444"/>
+        <location filename="../DeviceTestView.cpp" line="447"/>
         <source>The check did not finish.</source>
         <translation>확인을 끝내지 못했습니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestDialog.cpp" line="543"/>
-        <location filename="../DeviceTestDialog.cpp" line="629"/>
-        <location filename="../DeviceTestView.cpp" line="529"/>
+        <location filename="../DeviceTestDialog.cpp" line="545"/>
+        <location filename="../DeviceTestDialog.cpp" line="631"/>
+        <location filename="../DeviceTestView.cpp" line="532"/>
         <source>Not checked</source>
         <translation>확인하지 못했습니다</translation>
     </message>
@@ -875,7 +887,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="vanished">믹스 후 APO가 작동하지 않습니다. 믹스 전 APO는 작동합니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="248"/>
+        <location filename="../DeviceTestView.cpp" line="251"/>
         <source>Filters of the post-mix stage are not applied. Turn off post-mix install for this device, or try another install mode.</source>
         <translation>믹스 후 단계의 필터는 적용되지 않습니다. 이 장치의 믹스 후 설치를 끄거나 다른 설치 방식을 시도하십시오.</translation>
     </message>
@@ -888,7 +900,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="vanished">믹스 전 APO가 작동하지 않습니다. 믹스 후 APO는 작동합니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="252"/>
+        <location filename="../DeviceTestView.cpp" line="255"/>
         <source>Filters of the pre-mix stage are not applied. Try another install mode.</source>
         <translation>믹스 전 단계의 필터는 적용되지 않습니다. 다른 설치 방식을 시도하십시오.</translation>
     </message>
@@ -901,7 +913,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="vanished">그 효과를 쓰지 않는다면 문제 해결 옵션에서 원본 APO 사용을 끄십시오.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="259"/>
+        <location filename="../DeviceTestView.cpp" line="262"/>
         <source>The install mode could not be changed</source>
         <translation>설치 방식을 바꾸지 못했습니다</translation>
     </message>
@@ -938,7 +950,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="vanished">컴퓨터를 다시 시작한 뒤 다시 설치하십시오.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="271"/>
+        <location filename="../DeviceTestView.cpp" line="274"/>
         <source>Not checked: the device is disabled</source>
         <translation>사용 안 함 상태라 확인하지 못했습니다</translation>
     </message>
@@ -959,12 +971,12 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="vanished">연결한 뒤 Device Selector를 열고 확인을 누르면 다시 확인합니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="279"/>
+        <location filename="../DeviceTestView.cpp" line="282"/>
         <source>Not checked: the device could not be opened</source>
         <translation>확인하지 못함: 장치를 열 수 없음</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="280"/>
+        <location filename="../DeviceTestView.cpp" line="283"/>
         <source>Nothing could be played through this device, so the APO on it could not answer.</source>
         <translation>이 장치로 소리를 보낼 수 없어 APO의 응답을 받지 못했습니다.</translation>
     </message>
@@ -973,7 +985,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="vanished">Windows 오디오를 다시 시작하지 못했습니다. EQ APO는 Windows 오디오를 다시 시작해야 작동합니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="285"/>
+        <location filename="../DeviceTestView.cpp" line="288"/>
         <source>Restart the computer.</source>
         <translation>컴퓨터를 다시 시작하십시오.</translation>
     </message>
@@ -1006,23 +1018,36 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="vanished">확인을 중지했습니다. APO는 설치되었지만 작동하는지는 확인하지 못했습니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="445"/>
+        <location filename="../DeviceTestView.cpp" line="448"/>
         <source>Whether the APO works is not known.</source>
         <translation>APO가 작동하는지는 알 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceTestDialog.cpp" line="425"/>
-        <location filename="../DeviceTestDialog.cpp" line="590"/>
-        <location filename="../DeviceTestView.cpp" line="537"/>
+        <location filename="../DeviceTestDialog.cpp" line="427"/>
+        <location filename="../DeviceTestDialog.cpp" line="592"/>
+        <location filename="../DeviceTestView.cpp" line="540"/>
         <source>Windows audio</source>
         <translation>Windows 오디오</translation>
     </message>
     <message numerus="yes">
-        <location filename="../DeviceTestView.cpp" line="403"/>
+        <location filename="../DeviceTestView.cpp" line="406"/>
         <source>The APO does not work on %n device(s).</source>
         <translation>
             <numerusform>장치 %n개에서 APO가 작동하지 않습니다.</numerusform>
         </translation>
+    </message>
+</context>
+<context>
+    <name>TitleBar</name>
+    <message>
+        <location filename="../../Editor/widgets/TitleBar.cpp" line="119"/>
+        <source>Restore</source>
+        <translation>복원</translation>
+    </message>
+    <message>
+        <location filename="../../Editor/widgets/TitleBar.cpp" line="119"/>
+        <source>Maximize</source>
+        <translation>최대화</translation>
     </message>
 </context>
 </TS>

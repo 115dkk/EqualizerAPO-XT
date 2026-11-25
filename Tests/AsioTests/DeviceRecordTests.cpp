@@ -415,6 +415,13 @@ namespace
 		harness.require(reloadedInput != nullptr, "the input row reloads");
 		harness.expectTrue(reloadedInput->isFloat64Samples(),
 			"the input row reads Float64Samples back as its current option");
+		// The Device Selector's checkbox changes this one option. On its own it
+		// has to be a pending change, or OK stays hidden and nothing is written.
+		harness.expectFalse(reloadedInput->hasChanges(), "a reloaded row has nothing pending");
+		reloadedInput->setFloat64Samples(false);
+		harness.expectTrue(reloadedInput->hasChanges(), "the Float64 option alone is a pending change");
+		reloadedInput->setFloat64Samples(true);
+		harness.expectFalse(reloadedInput->hasChanges(), "putting it back leaves nothing pending");
 
 		output->uninstall();
 		input->uninstall();

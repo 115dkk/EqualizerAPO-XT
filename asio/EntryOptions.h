@@ -5,12 +5,10 @@
 
 	The choices the Device Selector offers for one ASIO entry, whichever
 	kind of target stands behind it: an ASIO driver row (AsioAPOInfo) and an
-	endpoint's "Use in ASIO apps" entry (DeviceAPOInfo) show the same four
+	endpoint's "Use in ASIO apps" entry (DeviceAPOInfo) show the same five
 	controls and write them into the same wrapper record fields
-	(WrapperRecords::entryOptions and setEntryOptions). The fifth choice,
-	64-bit float samples, travels the same way but has no control yet:
-	DeviceSelector --asio-float64 and the record value set it. Kept apart
-	from WrapperRecord.h so DeviceAPOInfo's install state can hold it without
+	(WrapperRecords::entryOptions and setEntryOptions). Kept apart from
+	WrapperRecord.h so DeviceAPOInfo's install state can hold it without
 	pulling in the stream vocabulary.
 */
 

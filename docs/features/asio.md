@@ -52,8 +52,9 @@ accepted).
 
 Ticking **Use in ASIO apps** unfolds the entry's own options under it, the
 same ones an ASIO driver's entry has: **Remove the buffer** with its
-**Wait time**, **Start the engine host automatically at boot** and
-**32-bit host support** (see [Latency and the two modes](#latency-and-the-two-modes)
+**Wait time**, **Start the engine host automatically at boot**,
+**32-bit host support** and **Use 64-bit float samples** (see
+[Latency and the two modes](#latency-and-the-two-modes)
 and [Options in the Device Selector](#options-in-the-device-selector)).
 Unticking it folds them away again.
 
@@ -193,21 +194,45 @@ the only conversion left is the wrapper's, to the device's format, after
 the filters; an integer device clamps at full scale there, as it does
 without the option.
 
-The option is off by default, because an ASIO driver with 64-bit float
-channels is rare and how a particular application handles one has not been
-tested here. If an application refuses the device or the sound is wrong
-with the option on, turn it off again; the entry then reports the device's
-own type as before.
+The option is off by default, and it stays an option, because not every
+application can use a 64-bit float device. An application brings its own
+conversion for each sample type a driver may report, and ASIO has no step in
+which the two agree on a type: the driver states one and the application
+either has code for it or does not. The entry cannot tell which in advance.
 
-Turning it on, until the Device Selector has a control for it:
+Read from the current sources of libraries that applications are built on
+(November 2026; none of this was run here):
 
-- For an endpoint's entry (**Use in ASIO apps**), from an elevated
-  terminal: `DeviceSelector --install-endpoint {guid} --asio-entry
-  --asio-float64`.
-- For any entry, set the `Float64Samples` value (DWORD) of the entry's
-  record to 1, or to 0 to turn it off; the record is described under
-  [Options in the Device Selector](#options-in-the-device-selector). The
-  Device Selector keeps the value when it rewrites the record.
+- JUCE has no conversion for 64-bit float. Its ASIO code skips the copy in
+  both directions for such a device, so what an application built on it
+  plays never reaches the entry.
+- NAudio refuses to open the device (`NotSupportedException`).
+- PortAudio and RtAudio handle the type. PortAudio converts it to 32-bit
+  float on the way, so an application built on it gains nothing from the
+  option.
+- cpal opens the device only for an application that asks for 64-bit float
+  itself.
+
+Applications with their own ASIO code, which includes most DAWs and
+players, were not checked. If an application refuses the device, stays
+silent or the sound is wrong with the option on, turn it off again; the
+entry then reports the device's own type as before.
+
+With the option off, the application rounds its mix to the device's own
+format before the filters, and the result is rounded to that format again
+after them. With it on, only the second rounding happens. The first one is
+at the resolution the device plays at.
+
+To turn it on, select the driver's entry in the Device Selector, or an
+endpoint with **Use in ASIO apps** ticked, open the troubleshooting options
+and tick **Use 64-bit float samples**. It applies to both directions of the
+entry. Two other ways reach the same setting:
+
+- For an endpoint's entry, from an elevated terminal: `DeviceSelector
+  --install-endpoint {guid} --asio-entry --asio-float64`.
+- For any entry, the `Float64Samples` value (DWORD) of the entry's record,
+  1 or 0; the record is described under
+  [Options in the Device Selector](#options-in-the-device-selector).
 
 The application reads the option when it opens the driver, so reopen the
 device (or restart the application) after changing it.
@@ -224,9 +249,9 @@ player that outputs 64-bit float.
 ## Options in the Device Selector
 
 Besides the synchronous mode and its wait time, an ASIO entry's
-troubleshooting panel has two options, both off by default. A driver's entry
-shows them on its own page; an endpoint's entry shows them under **Use in
-ASIO apps**.
+troubleshooting panel has three options, all off by default. A driver's
+entry shows them on its own page; an endpoint's entry shows them under
+**Use in ASIO apps**.
 
 - **Start the engine host automatically at boot** writes one `Run` value for
   the machine so the host is up before any application opens the driver.
@@ -237,6 +262,11 @@ ASIO apps**.
 - **32-bit host support** also registers the driver entry where 32-bit
   applications look for it (`WOW6432Node`). Unavailable on the ARM64 build,
   which ships no 32-bit wrapper.
+- **Use 64-bit float samples** tells the application that every channel
+  carries 64-bit float while the device keeps its own format (see
+  [Sample precision and 64-bit float](#sample-precision-and-64-bit-float)).
+  Turn it off again if the application cannot open the device or the sound
+  is wrong.
 
 The record behind an entry lives under
 `HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO\ASIO\<wrapper CLSID>`: `Mode`,

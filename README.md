@@ -65,12 +65,13 @@ Current work areas:
    driver on CI and, on a Topping USB Audio Device, by registering the entry
    through the Device Selector and opening it the way a DAW does. Samples now
    stay 64-bit float between the driver and the engine, and an entry can
-   report 64-bit float channels to the application, off by default
-   ([#530](https://github.com/115dkk/EqualizerAPO-XT/pull/530), proposed in
+   report 64-bit float channels to the application, an option of the entry
+   in the Device Selector that is off by default
+   ([#530](https://github.com/115dkk/EqualizerAPO-XT/pull/530),
+   [#531](https://github.com/115dkk/EqualizerAPO-XT/pull/531), proposed in
    [#528](https://github.com/115dkk/EqualizerAPO-XT/issues/528)). Remaining:
-   runs under more DAWs, the x64 entry for x64 DAWs on ARM64 machines, the
-   Device Selector checkbox for the 64-bit float option, and that option
-   under an application that outputs 64-bit float.
+   runs under more DAWs, the x64 entry for x64 DAWs on ARM64 machines, and
+   the 64-bit float option under an application that outputs 64-bit float.
 8. Recording devices ([#321](https://github.com/115dkk/EqualizerAPO-XT/pull/321)) -
    a field report of a microphone with neither the EQ nor a VST applied.
    The path is now measured on every build: a CI gate installs a virtual

@@ -4,7 +4,7 @@
 <context>
     <name>DeviceSelector</name>
     <message>
-        <location filename="../DeviceSelector.cpp" line="+195"/>
+        <location filename="../DeviceSelector.cpp" line="+196"/>
         <source>Multi-core convolution processing</source>
         <translation>Multi-core convolution processing</translation>
     </message>
@@ -56,19 +56,19 @@ It is optional because while it converts it uses CPU and a little latency, and t
     <message>
         <location line="-35"/>
         <location line="+17"/>
-        <location line="+342"/>
+        <location line="+349"/>
         <location line="+13"/>
         <source>Error while accessing the registry</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-360"/>
-        <location line="+480"/>
+        <location line="-367"/>
+        <location line="+487"/>
         <source>Info</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-480"/>
+        <location line="-487"/>
         <source>A registry value that is required for the operation of Equalizer APO was not set correctly. This might have been caused by a driver installation or uninstallation. The value has been corrected. A reboot may be required so that the changes can take effect.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -84,7 +84,7 @@ It is optional because while it converts it uses CPU and a little latency, and t
     </message>
     <message>
         <location line="+1"/>
-        <location line="+595"/>
+        <location line="+602"/>
         <source>Cancel</source>
         <translation type="unfinished"></translation>
     </message>
@@ -131,7 +131,7 @@ It is optional because while it converts it uses CPU and a little latency, and t
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+175"/>
+        <location line="+177"/>
         <source>APO will be installed</source>
         <translation type="unfinished"></translation>
     </message>
@@ -329,6 +329,16 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>32-bit host support</translation>
     </message>
     <message>
+        <location line="+23"/>
+        <source>Tells the application that all channels use 64-bit float, so an application that mixes in that format can send its audio without converting it first. The device keeps its own format; the conversion happens after the EQ. If the application cannot open the device or the sound is wrong, turn this off.</source>
+        <translation>Tells the application that all channels use 64-bit float, so an application that mixes in that format can send its audio without converting it first. The device keeps its own format; the conversion happens after the EQ. If the application cannot open the device or the sound is wrong, turn this off.</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Use 64-bit float samples</source>
+        <translation>Use 64-bit float samples</translation>
+    </message>
+    <message>
         <location line="+61"/>
         <source>Please select the devices for which Equalizer APO is to be installed:</source>
         <translation type="unfinished"></translation>
@@ -339,7 +349,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="-801"/>
+        <location filename="../DeviceSelector.cpp" line="-810"/>
         <source>Troubleshooting options (only use in case of problems)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -392,7 +402,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     </message>
     <message numerus="yes">
         <location line="+23"/>
-        <location filename="../DeviceTestView.cpp" line="+514"/>
+        <location filename="../DeviceTestView.cpp" line="+517"/>
         <source>Check failed for %n device(s).</source>
         <translation>
             <numerusform>Check failed for %n device.</numerusform>
@@ -427,7 +437,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
 <context>
     <name>DeviceTestView</name>
     <message>
-        <location filename="../DeviceTestDialog.cpp" line="+75"/>
+        <location filename="../DeviceTestDialog.cpp" line="+77"/>
         <source>Reinstalling %1 %2</source>
         <translation type="unfinished"></translation>
     </message>
@@ -487,12 +497,12 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="-442"/>
+        <location filename="../DeviceTestView.cpp" line="-444"/>
         <source>APO installation check</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+51"/>
+        <location line="+53"/>
         <source>Record</source>
         <translation type="unfinished"></translation>
     </message>
@@ -797,6 +807,19 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <location line="+1"/>
         <source>Whether the APO works is not known.</source>
         <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>TitleBar</name>
+    <message>
+        <location filename="../../Editor/widgets/TitleBar.cpp" line="+119"/>
+        <source>Restore</source>
+        <translation>Restore</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Maximize</source>
+        <translation>Maximize</translation>
     </message>
 </context>
 </TS>

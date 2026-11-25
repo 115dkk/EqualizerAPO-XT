@@ -4,7 +4,7 @@
 <context>
     <name>DeviceSelector</name>
     <message>
-        <location filename="../DeviceSelector.cpp" line="+195"/>
+        <location filename="../DeviceSelector.cpp" line="+196"/>
         <source>Multi-core convolution processing</source>
         <translation>Traitement de la convolution sur plusieurs cœurs</translation>
     </message>
@@ -56,24 +56,24 @@ Cette option est facultative, car la conversion utilise le processeur et ajoute 
     <message>
         <location line="-35"/>
         <location line="+17"/>
-        <location line="+342"/>
+        <location line="+349"/>
         <location line="+13"/>
         <source>Error while accessing the registry</source>
         <translation>Erreur durant l&apos;accès au registre</translation>
     </message>
     <message>
-        <location line="-360"/>
-        <location line="+480"/>
+        <location line="-367"/>
+        <location line="+487"/>
         <source>Info</source>
         <translation>Information</translation>
     </message>
     <message>
-        <location line="-480"/>
+        <location line="-487"/>
         <source>A registry value that is required for the operation of Equalizer APO was not set correctly. This might have been caused by a driver installation or uninstallation. The value has been corrected. A reboot may be required so that the changes can take effect.</source>
         <translation>Une valeur de registre requise pour le fonctionnement d’Equalizer APO n’a pas été définie correctement. Cela peut être dû à l&apos;installation ou à la désinstallation d&apos;un pilote. La valeur a été corrigée. Un redémarrage peut être nécessaire pour que les modifications puissent prendre effet.</translation>
     </message>
     <message>
-        <location line="+456"/>
+        <location line="+463"/>
         <source>Upgrades available</source>
         <translation>Mises à niveau disponibles</translation>
     </message>
@@ -98,13 +98,13 @@ Cette option est facultative, car la conversion utilise le processeur et ajoute 
         <translation>Pour appliquer les modifications, Windows doit être redémarré. Redémarrer maintenant?</translation>
     </message>
     <message>
-        <location line="-417"/>
-        <location line="+595"/>
+        <location line="-424"/>
+        <location line="+602"/>
         <source>Cancel</source>
         <translation>Annuler</translation>
     </message>
     <message>
-        <location line="-658"/>
+        <location line="-665"/>
         <source>The registry repair did not finish. Reinstall Equalizer APO or see DeviceSelector.log for details.</source>
         <translation>La réparation du registre n’a pas abouti. Réinstallez Equalizer APO ou consultez DeviceSelector.log pour plus de détails.</translation>
     </message>
@@ -126,12 +126,12 @@ Cette option est facultative, car la conversion utilise le processeur et ajoute 
         <translation type="vanished">Les détails se trouvent dans %1.</translation>
     </message>
     <message>
-        <location line="+601"/>
+        <location line="+608"/>
         <source>Close</source>
         <translation>Fermer</translation>
     </message>
     <message>
-        <location line="+175"/>
+        <location line="+177"/>
         <source>APO will be installed</source>
         <translation>APO va être installé</translation>
     </message>
@@ -199,7 +199,7 @@ Cette option est facultative, car la conversion utilise le processeur et ajoute 
         <translation>Ajoute `&lt;périphérique&gt; - &lt;point de terminaison&gt; (EQ APO XT)` à la liste des pilotes ASIO. Une application qui la choisit ouvre ce périphérique en mode exclusif WASAPI avec l’égaliseur appliqué.</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="-801"/>
+        <location filename="../DeviceSelector.cpp" line="-810"/>
         <source>Troubleshooting options (only use in case of problems)</source>
         <translation>Options de dépannage (à utiliser uniquement en cas de problèmes)</translation>
     </message>
@@ -290,7 +290,17 @@ ATTENTION: Certains pilotes de carte son peuvent produire des sons indésirables
         <translation>Temps d&apos;attente :</translation>
     </message>
     <message>
-        <location line="-3"/>
+        <location line="+101"/>
+        <source>Tells the application that all channels use 64-bit float, so an application that mixes in that format can send its audio without converting it first. The device keeps its own format; the conversion happens after the EQ. If the application cannot open the device or the sound is wrong, turn this off.</source>
+        <translation>Indique à l&apos;application que tous les canaux utilisent le format à virgule flottante 64 bits, ce qui permet à une application qui mixe dans ce format d&apos;envoyer l&apos;audio sans le convertir au préalable. Le périphérique conserve son propre format ; la conversion se fait après l&apos;EQ. Si l&apos;application ne peut pas ouvrir le périphérique ou si le son est incorrect, désactivez cette option.</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Use 64-bit float samples</source>
+        <translation>Échantillons flottants 64 bits</translation>
+    </message>
+    <message>
+        <location line="-107"/>
         <location line="+10"/>
         <source>Sets how long to wait for processing once the buffer is removed. The longer the wait, the less sound without the EQ, but the more latency.</source>
         <translation>Définit combien de temps attendre le traitement une fois le tampon supprimé. Plus l&apos;attente est longue, moins il y a de son sans EQ, mais plus la latence augmente.</translation>
@@ -348,7 +358,7 @@ ATTENTION: Certains pilotes de carte son peuvent produire des sons indésirables
         <translation type="vanished">Statut</translation>
     </message>
     <message>
-        <location line="+64"/>
+        <location line="+90"/>
         <source>Please select the devices for which Equalizer APO is to be installed:</source>
         <translation>Veuillez sélectionner les appareils pour lesquels Equalizer APO doit être installé:</translation>
     </message>
@@ -461,7 +471,7 @@ ATTENTION: Certains pilotes de carte son peuvent produire des sons indésirables
     </message>
     <message numerus="yes">
         <location line="+23"/>
-        <location filename="../DeviceTestView.cpp" line="+514"/>
+        <location filename="../DeviceTestView.cpp" line="+517"/>
         <source>Check failed for %n device(s).</source>
         <translation>
             <numerusform>Echec de la vérification pour %n périphérique.</numerusform>
@@ -496,7 +506,7 @@ ATTENTION: Certains pilotes de carte son peuvent produire des sons indésirables
 <context>
     <name>DeviceTestView</name>
     <message>
-        <location filename="../DeviceTestDialog.cpp" line="+75"/>
+        <location filename="../DeviceTestDialog.cpp" line="+77"/>
         <source>Reinstalling %1 %2</source>
         <translation>Réinstallation de l&apos;APO sur %1 %2</translation>
     </message>
@@ -556,12 +566,12 @@ ATTENTION: Certains pilotes de carte son peuvent produire des sons indésirables
         <translation>Installation annulée</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="-442"/>
+        <location filename="../DeviceTestView.cpp" line="-444"/>
         <source>APO installation check</source>
         <translation>Vérification de l&apos;installation de l&apos;APO</translation>
     </message>
     <message>
-        <location line="+51"/>
+        <location line="+53"/>
         <source>Record</source>
         <translation>Journal</translation>
     </message>
@@ -1017,6 +1027,19 @@ ATTENTION: Certains pilotes de carte son peuvent produire des sons indésirables
         <location line="+1"/>
         <source>Whether the APO works is not known.</source>
         <translation>Le fonctionnement de l&apos;APO n&apos;a pas pu être confirmé.</translation>
+    </message>
+</context>
+<context>
+    <name>TitleBar</name>
+    <message>
+        <location filename="../../Editor/widgets/TitleBar.cpp" line="+119"/>
+        <source>Restore</source>
+        <translation>Restaurer</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Maximize</source>
+        <translation>Agrandir</translation>
     </message>
 </context>
 </TS>

@@ -4,7 +4,7 @@
 <context>
     <name>DeviceSelector</name>
     <message>
-        <location filename="../DeviceSelector.cpp" line="+195"/>
+        <location filename="../DeviceSelector.cpp" line="+196"/>
         <source>Multi-core convolution processing</source>
         <translation>Faltung auf mehreren CPU-Kernen</translation>
     </message>
@@ -56,19 +56,19 @@ Die Funktion ist optional, weil die Umwandlung Rechenleistung benötigt und etwa
     <message>
         <location line="-35"/>
         <location line="+17"/>
-        <location line="+342"/>
+        <location line="+349"/>
         <location line="+13"/>
         <source>Error while accessing the registry</source>
         <translation>Fehler beim Zugriff auf die Registry</translation>
     </message>
     <message>
-        <location line="-360"/>
-        <location line="+480"/>
+        <location line="-367"/>
+        <location line="+487"/>
         <source>Info</source>
         <translation>Info</translation>
     </message>
     <message>
-        <location line="-480"/>
+        <location line="-487"/>
         <source>A registry value that is required for the operation of Equalizer APO was not set correctly. This might have been caused by a driver installation or uninstallation. The value has been corrected. A reboot may be required so that the changes can take effect.</source>
         <translation>Ein Registrywert, der für den Betrieb von Equalizer APO erforderlich ist, war nicht korrekt gesetzt. Dies könnte durch eine Treiberinstallation oder -deinstallation ausgelöst worden sein. Der Wert ist nun korrigiert. Ein Neustart kann erforderlich sein, damit die Änderungen wirksam werden.</translation>
     </message>
@@ -95,7 +95,7 @@ Die Funktion ist optional, weil die Umwandlung Rechenleistung benötigt und etwa
         <translation type="vanished">Einzelheiten finden Sie in %1.</translation>
     </message>
     <message>
-        <location line="+779"/>
+        <location line="+788"/>
         <source>APO will be uninstalled</source>
         <translation>APO wird deinstalliert</translation>
     </message>
@@ -145,7 +145,7 @@ Die Funktion ist optional, weil die Umwandlung Rechenleistung benötigt und etwa
         <translation>Nicht angeschlossen</translation>
     </message>
     <message>
-        <location line="-417"/>
+        <location line="-419"/>
         <source>Upgrades available</source>
         <translation>Aktualisierungen verfügbar</translation>
     </message>
@@ -165,13 +165,13 @@ Die Funktion ist optional, weil die Umwandlung Rechenleistung benötigt und etwa
         <translation>Um die Änderungen anzuwenden, sollte Windows neugestartet werden. Jetzt neustarten?</translation>
     </message>
     <message>
-        <location line="+358"/>
+        <location line="+360"/>
         <source>APO will be installed</source>
         <translation>APO wird installiert</translation>
     </message>
     <message>
-        <location line="-775"/>
-        <location line="+595"/>
+        <location line="-784"/>
+        <location line="+602"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>
@@ -211,7 +211,7 @@ Die Funktion ist optional, weil die Umwandlung Rechenleistung benötigt und etwa
         <translation type="vanished">Status</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="-408"/>
+        <location filename="../DeviceSelector.cpp" line="-415"/>
         <source>Troubleshooting options (only use in case of problems)</source>
         <translation>Problemlösungsoptionen (nur im Fall von Problemen verwenden)</translation>
     </message>
@@ -297,7 +297,12 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <translation>Wartezeit:</translation>
     </message>
     <message>
-        <location line="-3"/>
+        <location line="+101"/>
+        <source>Tells the application that all channels use 64-bit float, so an application that mixes in that format can send its audio without converting it first. The device keeps its own format; the conversion happens after the EQ. If the application cannot open the device or the sound is wrong, turn this off.</source>
+        <translation>Meldet der Anwendung, dass alle Kanäle 64-Bit-Gleitkomma verwenden, sodass eine Anwendung, die in diesem Format mischt, ihre Audiodaten ohne vorherige Konvertierung senden kann. Das Gerät behält sein eigenes Format; die Konvertierung erfolgt nach dem EQ. Deaktivieren Sie diese Option, wenn die Anwendung das Gerät nicht öffnen kann oder der Ton nicht stimmt.</translation>
+    </message>
+    <message>
+        <location line="-104"/>
         <location line="+10"/>
         <source>Sets how long to wait for processing once the buffer is removed. The longer the wait, the less sound without the EQ, but the more latency.</source>
         <translation>Legt fest, wie lange nach dem Entfernen des Puffers auf die Verarbeitung gewartet wird. Je länger gewartet wird, desto seltener kommt Ton ohne EQ, aber desto höher die Latenz.</translation>
@@ -343,7 +348,12 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <translation>Registriert den Treibereintrag auch dort, wo 32-Bit-Anwendungen ihn suchen. Nicht verfügbar, wenn dieser Build keinen 32-Bit-Wrapper enthält.</translation>
     </message>
     <message>
-        <location line="+71"/>
+        <location line="+29"/>
+        <source>Use 64-bit float samples</source>
+        <translation>64-Bit-Gleitkomma verwenden</translation>
+    </message>
+    <message>
+        <location line="+68"/>
         <source>Copy Device command to clipboard</source>
         <translation>Kopiere Device-Befehl in die Zwischenablage</translation>
     </message>
@@ -353,7 +363,7 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <translation>Bitte die Geräte auswählen, für die Equalizer APO installiert werden soll:</translation>
     </message>
     <message>
-        <location line="-340"/>
+        <location line="-366"/>
         <source>Please select exactly one activated device by clicking on its name</source>
         <translation>Bitte genau ein aktiviertes Gerät durch Klick auf den Namen wählen</translation>
     </message>
@@ -460,7 +470,7 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
     </message>
     <message numerus="yes">
         <location line="+23"/>
-        <location filename="../DeviceTestView.cpp" line="+514"/>
+        <location filename="../DeviceTestView.cpp" line="+517"/>
         <source>Check failed for %n device(s).</source>
         <translation>
             <numerusform>Überprüfung fehlgeschlagen für %n Gerät.</numerusform>
@@ -495,7 +505,7 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
 <context>
     <name>DeviceTestView</name>
     <message>
-        <location filename="../DeviceTestDialog.cpp" line="+75"/>
+        <location filename="../DeviceTestDialog.cpp" line="+77"/>
         <source>Reinstalling %1 %2</source>
         <translation>APO für %1 %2 wird neu installiert</translation>
     </message>
@@ -555,12 +565,12 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <translation>Installation rückgängig gemacht</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="-442"/>
+        <location filename="../DeviceTestView.cpp" line="-444"/>
         <source>APO installation check</source>
         <translation>APO-Installation prüfen</translation>
     </message>
     <message>
-        <location line="+51"/>
+        <location line="+53"/>
         <source>Record</source>
         <translation>Protokoll</translation>
     </message>
@@ -1016,6 +1026,19 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <location line="+1"/>
         <source>Whether the APO works is not known.</source>
         <translation>Ob das APO funktioniert, ist nicht bekannt.</translation>
+    </message>
+</context>
+<context>
+    <name>TitleBar</name>
+    <message>
+        <location filename="../../Editor/widgets/TitleBar.cpp" line="+119"/>
+        <source>Restore</source>
+        <translation>Wiederherstellen</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Maximize</source>
+        <translation>Maximieren</translation>
     </message>
 </context>
 </TS>
