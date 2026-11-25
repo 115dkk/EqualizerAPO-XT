@@ -206,7 +206,8 @@ Read from the current sources of libraries that applications are built on
 - JUCE has no conversion for 64-bit float. Its ASIO code skips the copy in
   both directions for such a device, so what an application built on it
   plays never reaches the entry.
-- NAudio refuses to open the device (`NotSupportedException`).
+- NAudio refuses to open the device (`ArgumentException`: "ASIO Buffer Type
+  Float64LSB is not yet supported.").
 - PortAudio and RtAudio handle the type. PortAudio converts it to 32-bit
   float on the way, so an application built on it gains nothing from the
   option.
