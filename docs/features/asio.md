@@ -194,11 +194,34 @@ the only conversion left is the wrapper's, to the device's format, after
 the filters; an integer device clamps at full scale there, as it does
 without the option.
 
-The option is off by default, because an ASIO driver with 64-bit float
-channels is rare and how a particular application handles one has not been
-tested here. If an application refuses the device or the sound is wrong
-with the option on, turn it off again; the entry then reports the device's
-own type as before.
+The option is off by default, and it stays an option, because not every
+application can use a 64-bit float device. An application brings its own
+conversion for each sample type a driver may report, and ASIO has no step in
+which the two agree on a type: the driver states one and the application
+either has code for it or does not. The entry cannot tell which in advance.
+
+Read from the current sources of libraries that applications are built on
+(November 2026; none of this was run here):
+
+- JUCE has no conversion for 64-bit float. Its ASIO code skips the copy in
+  both directions for such a device, so what an application built on it
+  plays never reaches the entry.
+- NAudio refuses to open the device (`NotSupportedException`).
+- PortAudio and RtAudio handle the type. PortAudio converts it to 32-bit
+  float on the way, so an application built on it gains nothing from the
+  option.
+- cpal opens the device only for an application that asks for 64-bit float
+  itself.
+
+Applications with their own ASIO code, which includes most DAWs and
+players, were not checked. If an application refuses the device, stays
+silent or the sound is wrong with the option on, turn it off again; the
+entry then reports the device's own type as before.
+
+With the option off, the application rounds its mix to the device's own
+format before the filters, and the result is rounded to that format again
+after them. With it on, only the second rounding happens. The first one is
+at the resolution the device plays at.
 
 To turn it on, select the driver's entry in the Device Selector, or an
 endpoint with **Use in ASIO apps** ticked, open the troubleshooting options

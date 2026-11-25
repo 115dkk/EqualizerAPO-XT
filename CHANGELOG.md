@@ -18,9 +18,11 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   samples".** v2.81.0 let an entry report 64-bit float to the application,
   but the option could only be set from a terminal or in the registry. It is
   now a checkbox beside the entry's other options: on an ASIO driver's page,
-  and under **Use in ASIO apps** for an endpoint. It stays off until ticked;
-  turn it off again if the application cannot open the device or the sound
-  is wrong. Two title bar tooltips that were missing from the Device
+  and under **Use in ASIO apps** for an endpoint. It stays off until ticked,
+  because not every application can use a 64-bit float device: read from
+  their sources, the ASIO code of JUCE has no conversion for one and NAudio
+  refuses to open one. Turn it off again if the application cannot open the
+  device, stays silent or the sound is wrong. Two title bar tooltips that were missing from the Device
   Selector's translations, Restore and Maximize, are filled in as well.
   ([#531](https://github.com/115dkk/EqualizerAPO-XT/pull/531),
   [#528](https://github.com/115dkk/EqualizerAPO-XT/issues/528))
