@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.82.0 — 2026-11-25
+
 - **Device Selector: an ASIO entry's options include "Use 64-bit float
   samples".** v2.81.0 let an entry report 64-bit float to the application,
   but the option could only be set from a terminal or in the registry. It is
