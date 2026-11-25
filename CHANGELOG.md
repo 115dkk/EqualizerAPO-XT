@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.80.1 — 2026-11-25
+
 - **Log lines written at the same moment by two threads are no longer lost.**
   The log opened its file for each line without sharing it, so a line written
   while another thread had the file open was dropped. In the audio service the
