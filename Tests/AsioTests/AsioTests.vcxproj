@@ -68,6 +68,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AsioTests.cpp" />
+    <ClCompile Include="PrecisionTests.cpp" />
     <ClCompile Include="StreamRingTests.cpp" />
     <ClCompile Include="DaemonTests.cpp" />
     <ClCompile Include="DeviceRecordTests.cpp" />
@@ -82,6 +83,7 @@
     <ClInclude Include="FakeEndpointClient.h" />
     <ClInclude Include="..\AsioSupport\HostStub.h" />
     <ClInclude Include="..\AsioSupport\LatencyMatch.h" />
+    <ClInclude Include="..\AsioSupport\SampleOracle.h" />
     <ClInclude Include="..\FakeRegistry.h" />
     <ClInclude Include="..\FakeAsioDriver\FakeAsio.h" />
     <ClInclude Include="..\FakeAsioDriver\FakeAsioControl.h" />

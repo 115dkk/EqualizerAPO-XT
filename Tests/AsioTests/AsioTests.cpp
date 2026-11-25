@@ -1710,6 +1710,7 @@ int main()
 			"DaemonTests",
 			"DeviceRecordTests",
 			"ReceiverKeepaliveTests",
+			"PrecisionTests",
 			"AsioTests",
 		});
 	}

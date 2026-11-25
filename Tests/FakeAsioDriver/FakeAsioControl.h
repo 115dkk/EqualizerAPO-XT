@@ -37,6 +37,7 @@ struct FakeAsioConfig
 	long outputLatency = 0;
 	long failInit = 0;              // 1 = init() answers ASIOFalse
 	long failCreateAfterCallbacks = 0; // 1 = createBuffers() starts callbacks, then fails
+	long fullPrecision = 0;        // 1 = the input generator carries more significant bits than a float32 holds
 };
 
 struct FakeAsioCounters

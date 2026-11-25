@@ -59,7 +59,6 @@
 #include "asio/InProcProcessor.h"
 #include "asio/ThreadHostLink.h"
 #include "asio/Win32HostLink.h"
-#include "asio/SampleCodec.h"
 #include "asio/WasapiExclusiveTarget.h"
 #include "engine/FilterEngine.h"
 #include "platform/windows/ComPtr.h"
@@ -67,6 +66,7 @@
 #include "services/logging/Logging.h"
 #include "Tests/AsioSupport/HostStub.h"
 #include "Tests/AsioSupport/LatencyMatch.h"
+#include "Tests/AsioSupport/SampleOracle.h"
 #include "Tests/FakeAsioDriver/FakeAsio.h"
 #include "Tests/ProbeSupport/CommandLine.h"
 #include "Tests/ProbeSupport/Sha256.h"
@@ -76,7 +76,6 @@ using eapo::asio::AsioWrapper;
 using eapo::asio::Direction;
 using eapo::asio::IStreamProcessor;
 using eapo::asio::Mode;
-using eapo::asio::SampleCodec;
 using eapo::asio::StreamOptions;
 using eapo::asio::StreamStats;
 using winutil::ComPtr;
@@ -117,6 +116,7 @@ namespace
 		long maxLate = 0;
 		long traceSlowUs = 0;
 		bool reference = true;
+		bool beyondFloat32 = false;
 		std::wstring daemonExe;
 		std::wstring endpoint = L"EAPO.ASIO.probe";
 		uint32_t deadlineUs = 0;
@@ -140,9 +140,9 @@ namespace
 			"AsioProbe --target fake|dll:<driver.dll>|clsid:{...}|wasapi:{...}[,{...}] [--clsid {...}] --wrapper static|dll:<EqualizerAPOAsio.dll>|none\n"
 			"          --processor inproc|passthrough|daemon-thread|daemon --config <config.txt> [--mode sync|pipelined]\n"
 			"          [--daemon <EqualizerAPOHost.exe>] [--endpoint <name>] [--deadline-us N]\n"
-			"          [--frames 64] [--rate 48000] [--periods 200] [--pace-us 0] [--burst 1] [--channels in,out] [--sample-type int16|int24|int32|float32]\n"
+			"          [--frames 64] [--rate 48000] [--periods 200] [--pace-us 0] [--burst 1] [--channels in,out] [--sample-type int16|int24|int32|float32|float64]\n"
 			"          [--seed N] [--host-seed N] [--no-input] [--no-output] [--output-ready]\n"
-			"          [--expect-sha256 hex] [--expect-first-sha256 hex] [--expect-input-sha256 hex] [--max-late N] [--trace-slow us] [--no-reference]\n"
+			"          [--expect-sha256 hex] [--expect-first-sha256 hex] [--expect-input-sha256 hex] [--max-late N] [--trace-slow us] [--no-reference] [--beyond-float32]\n"
 			"          [--seconds 10] [--tone] [--sine Hz]   (live targets only)\n"
 			"          [--latency-capture {capture endpoint GUID}] [--click-interval-ms 500] [--latency-csv <path>]\n", stderr);
 	}
@@ -182,6 +182,7 @@ namespace
 		TCLAP::MultiSwitchArg noOutputArg("", "no-output", "", parser);
 		TCLAP::MultiSwitchArg outputReadyArg("", "output-ready", "", parser);
 		TCLAP::MultiSwitchArg noReferenceArg("", "no-reference", "", parser);
+		TCLAP::MultiSwitchArg beyondFloat32Arg("", "beyond-float32", "", parser);
 		TCLAP::MultiSwitchArg toneArg("", "tone", "", parser);
 		TCLAP::MultiArg<std::string> sineArg("", "sine", "", false, "value", parser);
 		if (!commandLine.parse(argc, argv))
@@ -262,6 +263,8 @@ namespace
 				a.sampleType = ASIOSTInt32LSB;
 			else if (type == L"float32")
 				a.sampleType = ASIOSTFloat32LSB;
+			else if (type == L"float64")
+				a.sampleType = ASIOSTFloat64LSB;
 			else
 				return false;
 		}
@@ -275,6 +278,7 @@ namespace
 		a.processOutput = noOutputArg.getValue() == 0;
 		a.callOutputReady = outputReadyArg.getValue() != 0;
 		a.reference = noReferenceArg.getValue() == 0;
+		a.beyondFloat32 = beyondFloat32Arg.getValue() != 0;
 		a.tone = toneArg.getValue() != 0;
 		if (sineArg.isSet())
 			a.sineHz = std::wcstod(probesupport::lastWide(sineArg).c_str(), nullptr);
@@ -377,29 +381,34 @@ namespace
 
 	// Runs the engine directly over the same quantized signal the wrapper
 	// saw, one period at a time, and returns the per-channel byte streams
-	// in the layout the fake driver records them in. shiftPeriods is the
-	// delay the stream reported, in periods: that many periods of silence
-	// come first, and the last that many never leave.
-	void computeReference(const Arguments& a, const SampleCodec& codec, const asiotest::HostStub& host, bool capture,
-		long shiftPeriods, std::vector<std::vector<unsigned char>>& records, std::vector<unsigned char>& firstPeriod)
+	// in the layout each side records. shiftPeriods is the delay the stream
+	// reported, in periods: that many periods of silence come first, and the
+	// last that many never leave.
+	void computeReference(const Arguments& a, long hostType, const asiotest::HostStub& host, bool capture,
+		long shiftPeriods, bool float32Seam, std::vector<std::vector<unsigned char>>& records,
+		std::vector<unsigned char>& firstPeriod)
 	{
 		const long channels = capture ? a.inputs : a.outputs;
+		const long recordType = capture ? hostType : a.sampleType;
+		const unsigned recordSampleBytes = asiotest::oracle::bytesPerSample(recordType);
 		records.assign(static_cast<size_t>(channels), std::vector<unsigned char>());
 		firstPeriod.clear();
-		if (channels == 0)
+		if (channels == 0 || recordSampleBytes == 0)
 			return;
 
 		std::unique_ptr<FilterEngine> engine;
-		const bool filtering = a.wrapper != L"none" && a.processor != L"passthrough" && (capture ? a.processInput : a.processOutput);
+		const bool filtering = a.wrapper != L"none" && a.processor != L"passthrough"
+			&& (capture ? a.processInput : a.processOutput);
 		if (shiftPeriods > 0)
 		{
-			std::vector<unsigned char> silence(static_cast<size_t>(codec.bytesPerSample) * a.frames, 0);
-			std::vector<float> zeros(static_cast<size_t>(a.frames), 0.0f);
-			codec.fromFloat(zeros.data(), silence.data(), static_cast<unsigned>(a.frames));
-			for (long c = 0; c < channels; c++)
+			std::vector<double> zeros(static_cast<size_t>(a.frames), 0.0);
+			std::vector<unsigned char> silence(static_cast<size_t>(recordSampleBytes) * a.frames);
+			asiotest::oracle::encode(recordType, zeros.data(), silence.data(), zeros.size());
+			for (long channel = 0; channel < channels; channel++)
 			{
-				for (long p = 0; p < shiftPeriods; p++)
-					records[static_cast<size_t>(c)].insert(records[static_cast<size_t>(c)].end(), silence.begin(), silence.end());
+				for (long period = 0; period < shiftPeriods; period++)
+					records[static_cast<size_t>(channel)].insert(
+						records[static_cast<size_t>(channel)].end(), silence.begin(), silence.end());
 			}
 		}
 		if (filtering)
@@ -420,35 +429,43 @@ namespace
 			engine->initialize(setup);
 		}
 
-		std::vector<float> storage(static_cast<size_t>(channels) * a.frames);
-		std::vector<float*> planes(static_cast<size_t>(channels));
-		for (long c = 0; c < channels; c++)
-			planes[static_cast<size_t>(c)] = storage.data() + static_cast<size_t>(c) * a.frames;
-		std::vector<unsigned char> bytes(static_cast<size_t>(codec.bytesPerSample) * a.frames);
+		std::vector<double> interleaved(static_cast<size_t>(channels) * a.frames);
+		std::vector<double> channelSamples(static_cast<size_t>(a.frames));
+		std::vector<unsigned char> sourceBytes(8);
+		std::vector<unsigned char> recordBytes(static_cast<size_t>(recordSampleBytes) * a.frames);
 		const long referencePeriods = a.periods - shiftPeriods;
-		for (long p = 0; p < referencePeriods; p++)
+		for (long period = 0; period < referencePeriods; period++)
 		{
-			for (long c = 0; c < channels; c++)
+			for (long frame = 0; frame < a.frames; frame++)
 			{
-				float* plane = planes[static_cast<size_t>(c)];
-				for (long n = 0; n < a.frames; n++)
+				const uint64_t index = static_cast<uint64_t>(period) * a.frames + frame;
+				for (long channel = 0; channel < channels; channel++)
 				{
-					const uint64_t index = static_cast<uint64_t>(p) * a.frames + n;
-					plane[n] = capture ? FakeAsioDriver::generatorSample(a.seed, c, index) : host.outputSample(c, index);
+					const long sourceType = capture ? a.sampleType : hostType;
+					double value = capture ? FakeAsioDriver::generatorValue(a.seed, channel, index, true)
+						: host.outputValue(channel, index);
+					asiotest::oracle::encode(sourceType, &value, sourceBytes.data(), 1);
+					asiotest::oracle::decode(sourceType, sourceBytes.data(), &value, 1);
+					if (filtering && float32Seam)
+						value = asiotest::oracle::throughFloat32(value);
+					interleaved[static_cast<size_t>(frame) * channels + channel] = value;
 				}
-				// The wrapper only ever sees samples that went through the
-				// target's sample format once.
-				codec.fromFloat(plane, bytes.data(), static_cast<unsigned>(a.frames));
-				codec.toFloat(bytes.data(), plane, static_cast<unsigned>(a.frames));
 			}
 			if (engine != nullptr)
-				engine->process(planes.data(), planes.data(), static_cast<unsigned>(a.frames));
-			for (long c = 0; c < channels; c++)
+				engine->process(interleaved.data(), interleaved.data(), static_cast<unsigned>(a.frames));
+			for (long channel = 0; channel < channels; channel++)
 			{
-				codec.fromFloat(planes[static_cast<size_t>(c)], bytes.data(), static_cast<unsigned>(a.frames));
-				records[static_cast<size_t>(c)].insert(records[static_cast<size_t>(c)].end(), bytes.begin(), bytes.end());
-				if (p == 0)
-					firstPeriod.insert(firstPeriod.end(), bytes.begin(), bytes.end());
+				for (long frame = 0; frame < a.frames; frame++)
+				{
+					double value = interleaved[static_cast<size_t>(frame) * channels + channel];
+					channelSamples[static_cast<size_t>(frame)] = filtering && float32Seam
+						? asiotest::oracle::throughFloat32(value) : value;
+				}
+				asiotest::oracle::encode(recordType, channelSamples.data(), recordBytes.data(), channelSamples.size());
+				records[static_cast<size_t>(channel)].insert(
+					records[static_cast<size_t>(channel)].end(), recordBytes.begin(), recordBytes.end());
+				if (period == 0)
+					firstPeriod.insert(firstPeriod.end(), recordBytes.begin(), recordBytes.end());
 			}
 		}
 	}
@@ -498,18 +515,6 @@ namespace
 
 	int runFakeStream(const Arguments& a, IASIO* target, IASIO* wrapper, IFakeAsioControl* control, AsioWrapper* staticWrapper)
 	{
-		SampleCodec codec;
-		eapo::asio::findSampleCodec(a.sampleType, codec);
-		asiotest::HostStub::Options hostOptions;
-		hostOptions.sampleType = a.sampleType;
-		hostOptions.outputSeed = a.hostSeed;
-		hostOptions.callOutputReady = a.callOutputReady;
-		// The fake driver calls back on the thread that pumps it; a DAW's
-		// callback thread runs under MMCSS Pro Audio, so this one does too.
-		hostOptions.proAudioCallback = true;
-		asiotest::HostStub host(hostOptions);
-		host.openChannels(a.inputs, a.outputs);
-
 		if (wrapper->init(nullptr) == ASIOFalse)
 		{
 			char message[124] = {};
@@ -517,6 +522,27 @@ namespace
 			std::fprintf(stderr, "AsioProbe: init failed: %s\n", message);
 			return 2;
 		}
+		ASIOChannelInfo channelInfo = {};
+		channelInfo.channel = 0;
+		channelInfo.isInput = a.outputs > 0 ? ASIOFalse : ASIOTrue;
+		if (wrapper->getChannelInfo(&channelInfo) != ASE_OK)
+		{
+			std::fputs("AsioProbe: cannot read the wrapper's sample type\n", stderr);
+			return 2;
+		}
+		const long hostType = channelInfo.type;
+		std::printf("sample-types host=%ld target=%ld\n", hostType, a.sampleType);
+		asiotest::HostStub::Options hostOptions;
+		hostOptions.sampleType = hostType;
+		hostOptions.outputSeed = a.hostSeed;
+		hostOptions.callOutputReady = a.callOutputReady;
+		hostOptions.fullPrecision = true;
+		// The fake driver calls back on the thread that pumps it; a DAW's
+		// callback thread runs under MMCSS Pro Audio, so this one does too.
+		hostOptions.proAudioCallback = true;
+		asiotest::HostStub host(hostOptions);
+		host.openChannels(a.inputs, a.outputs);
+
 		ASIOError error = host.createBuffers(wrapper, a.frames);
 		if (error != ASE_OK)
 		{
@@ -595,7 +621,7 @@ namespace
 			unsigned long bytes = 0;
 			control->capturedOutput(c, &data, &bytes);
 			outputs[static_cast<size_t>(c)].assign(data, data + bytes);
-			const size_t periodBytes = static_cast<size_t>(codec.bytesPerSample) * a.frames;
+			const size_t periodBytes = static_cast<size_t>(asiotest::oracle::bytesPerSample(a.sampleType)) * a.frames;
 			const size_t skip = static_cast<size_t>(outputShift) * periodBytes;
 			if (bytes >= skip + periodBytes)
 				firstPeriod.insert(firstPeriod.end(), data + skip, data + skip + periodBytes);
@@ -622,17 +648,26 @@ namespace
 		if (a.reference)
 		{
 			std::vector<std::vector<unsigned char>> referenceOutputs, referenceInputs;
-			std::vector<unsigned char> referenceFirst, referenceFirstInput;
-			computeReference(a, codec, host, false, outputShift, referenceOutputs, referenceFirst);
-			computeReference(a, codec, host, true, inputShift, referenceInputs, referenceFirstInput);
+			std::vector<std::vector<unsigned char>> float32Outputs, float32Inputs;
+			std::vector<unsigned char> referenceFirst, referenceFirstInput, float32First, float32FirstInput;
+			computeReference(a, hostType, host, false, outputShift, false, referenceOutputs, referenceFirst);
+			computeReference(a, hostType, host, true, inputShift, false, referenceInputs, referenceFirstInput);
+			computeReference(a, hostType, host, false, outputShift, true, float32Outputs, float32First);
+			computeReference(a, hostType, host, true, inputShift, true, float32Inputs, float32FirstInput);
 			const std::string referenceOutputSha = hashOf(referenceOutputs);
 			const std::string referenceFirstSha = probesupport::sha256Hex(referenceFirst);
 			const std::string referenceInputSha = hashOf(referenceInputs);
+			const std::string float32OutputSha = hashOf(float32Outputs);
+			const std::string float32InputSha = hashOf(float32Inputs);
 			std::printf("reference-output-sha256 %s\nreference-first-period-sha256 %s\nreference-input-sha256 %s\n",
 				referenceOutputSha.c_str(), referenceFirstSha.c_str(), referenceInputSha.c_str());
+			std::printf("float32-seam-output-sha256 %s\nfloat32-seam-input-sha256 %s\n",
+				float32OutputSha.c_str(), float32InputSha.c_str());
 			if (outputSha != referenceOutputSha)
 			{
 				std::fputs("AsioProbe: the output that reached the target differs from the engine's direct output\n", stderr);
+				if (outputSha == float32OutputSha)
+					std::fputs("AsioProbe: the output is what a float32 seam produces, not the engine's double output\n", stderr);
 				result = 3;
 			}
 			if (firstSha != referenceFirstSha)
@@ -643,6 +678,20 @@ namespace
 			if (inputSha != referenceInputSha)
 			{
 				std::fputs("AsioProbe: the input the host received differs from the engine's direct capture output\n", stderr);
+				if (inputSha == float32InputSha)
+					std::fputs("AsioProbe: the input the host received is what a float32 seam produces, not the engine's double output\n", stderr);
+				result = 3;
+			}
+			const bool outputFiltered = a.outputs > 0 && a.wrapper != L"none" && a.processor != L"passthrough" && a.processOutput;
+			const bool inputFiltered = a.inputs > 0 && a.wrapper != L"none" && a.processor != L"passthrough" && a.processInput;
+			if (a.beyondFloat32 && outputFiltered && float32OutputSha == referenceOutputSha)
+			{
+				std::fputs("AsioProbe: this run cannot tell a float32 seam from a double one (--beyond-float32)\n", stderr);
+				result = 3;
+			}
+			if (a.beyondFloat32 && inputFiltered && float32InputSha == referenceInputSha)
+			{
+				std::fputs("AsioProbe: this run cannot tell a float32 seam from a double one (--beyond-float32)\n", stderr);
 				result = 3;
 			}
 		}
@@ -1253,6 +1302,7 @@ int wmain(int argc, wchar_t** argv)
 		config.outputChannels = a.outputs;
 		config.sampleType = a.sampleType;
 		config.seed = a.seed;
+		config.fullPrecision = 1;
 		control->configure(&config);
 	}
 

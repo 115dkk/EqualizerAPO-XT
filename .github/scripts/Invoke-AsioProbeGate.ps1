@@ -1,19 +1,14 @@
 <#
 .SYNOPSIS
     Runs the ASIO probe gate: the wrapped stream must hash exactly like the
-    engine's direct output, first period included.
+    engine's direct double-precision output, first period included.
 
 .DESCRIPTION
-    Two shapes, both over Tests/AsioProbe/probe-config.txt with the fake
-    driver stepped deterministically (docs/architecture/asio-host-study.md,
-    section 10.3):
-
-      inproc   AsioWrapper linked into the probe with the in-process engine
-               adapter; output, input and first-period hashes must equal the
-               probe's own direct engine run, and no block may be late.
-      dll      EqualizerAPOAsio.dll over FakeAsioDriver.dll through the DLLs'
-               own entry points (DllGetClassObject, EapoAsioCreateWrapper) in
-               passthrough, which must be a byte-for-byte identity.
+    The deterministic fake driver covers the linked in-process adapter, the
+    daemon adapter on a thread and in its real host process, the product DLL
+    over the shared-memory ring, and byte-for-byte passthrough. Int32 and
+    Float64 runs carry values that distinguish a float32 seam from the direct
+    double engine (docs/architecture/asio-host-study.md, section 10.3).
 
     -PlanOnly returns the runs without executing anything, for Pester.
 #>
@@ -37,7 +32,7 @@ $runs = @(
     [pscustomobject]@{
         Name = "inproc-int32-64"
         Arguments = @("--target", "fake", "--wrapper", "static", "--processor", "inproc", "--config", $config,
-            "--frames", "64", "--periods", "300", "--sample-type", "int32", "--max-late", "0")
+            "--frames", "64", "--periods", "300", "--sample-type", "int32", "--max-late", "0", "--beyond-float32")
     },
     [pscustomobject]@{
         Name = "inproc-int24-128-outputready"
@@ -54,7 +49,7 @@ $runs = @(
     [pscustomobject]@{
         Name = "daemon-thread-sync-int32-64"
         Arguments = @("--target", "fake", "--wrapper", "static", "--processor", "daemon-thread", "--config", $config,
-            "--frames", "64", "--periods", "300", "--sample-type", "int32", "--deadline-us", "1000000", "--max-late", "0")
+            "--frames", "64", "--periods", "300", "--sample-type", "int32", "--deadline-us", "1000000", "--max-late", "0", "--beyond-float32")
     },
     # Paced like the pipelined run over the real host below: the fake pumps
     # periods back to back, which leaves the host 10% of a period per block,
@@ -83,7 +78,7 @@ $runs = @(
         Name = "daemon-thread-sync-burst4-int32-64"
         Arguments = @("--target", "fake", "--wrapper", "static", "--processor", "daemon-thread", "--config", $config,
             "--frames", "64", "--periods", "300", "--sample-type", "int32", "--mode", "sync",
-            "--deadline-us", "1000000", "--burst", "4", "--pace-us", "5333", "--max-late", "0")
+            "--deadline-us", "1000000", "--burst", "4", "--pace-us", "5333", "--max-late", "0", "--beyond-float32")
     },
     # The real host process, started by the link on the probe's own
     # endpoint. A one-second sync deadline keeps a shared runner's scheduling
@@ -92,7 +87,34 @@ $runs = @(
         Name = "daemon-exe-sync-int32-64"
         Arguments = @("--target", "fake", "--wrapper", "static", "--processor", "daemon", "--config", $config,
             "--daemon", $hostExe, "--endpoint", "EAPO.ASIO.probe.gate", "--frames", "64", "--periods", "300",
-            "--sample-type", "int32", "--deadline-us", "1000000", "--max-late", "0")
+            "--sample-type", "int32", "--deadline-us", "1000000", "--max-late", "0", "--beyond-float32")
+    },
+    # Proves the in-process adapter retains Float64 precision through its engine call.
+    [pscustomobject]@{
+        Name = "inproc-float64-64"
+        Arguments = @("--target", "fake", "--wrapper", "static", "--processor", "inproc", "--config", $config,
+            "--frames", "64", "--periods", "300", "--sample-type", "float64", "--max-late", "0", "--beyond-float32")
+    },
+    # Proves the thread-hosted daemon retains Float64 precision through its ring.
+    [pscustomobject]@{
+        Name = "daemon-thread-sync-float64-64"
+        Arguments = @("--target", "fake", "--wrapper", "static", "--processor", "daemon-thread", "--config", $config,
+            "--frames", "64", "--periods", "300", "--sample-type", "float64", "--deadline-us", "1000000",
+            "--max-late", "0", "--beyond-float32")
+    },
+    # Proves the real daemon process retains Float64 precision through shared memory.
+    [pscustomobject]@{
+        Name = "daemon-exe-sync-float64-64"
+        Arguments = @("--target", "fake", "--wrapper", "static", "--processor", "daemon", "--config", $config,
+            "--daemon", $hostExe, "--endpoint", "EAPO.ASIO.probe.gate", "--frames", "64", "--periods", "300",
+            "--sample-type", "float64", "--deadline-us", "1000000", "--max-late", "0", "--beyond-float32")
+    },
+    # Proves the product DLL, shared-memory ring and real host process retain Float64 precision together.
+    [pscustomobject]@{
+        Name = "dll-daemon-exe-sync-float64-64"
+        Arguments = @("--target", "dll:$fakeDll", "--wrapper", "dll:$wrapperDll", "--processor", "daemon", "--config", $config,
+            "--daemon", $hostExe, "--endpoint", "EAPO.ASIO.probe.gate", "--frames", "64", "--periods", "300",
+            "--sample-type", "float64", "--mode", "sync", "--deadline-us", "1000000", "--beyond-float32")
     },
     # The one run with the real host process AND the pipelined mode, which by
     # design lets a late period through unprocessed. On a hosted runner under

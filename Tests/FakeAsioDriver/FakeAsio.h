@@ -75,6 +75,8 @@ public:
 	// sample n (counted from the first pump after createBuffers, so a reopen
 	// starts at 0 again) as a float in [-0.5, 0.5).
 	static float generatorSample(unsigned seed, long channel, uint64_t sampleIndex) noexcept;
+	// The generator as a double. fullPrecision false is generatorSample() widened.
+	static double generatorValue(unsigned seed, long channel, uint64_t sampleIndex, bool fullPrecision) noexcept;
 
 private:
 	struct Channel
