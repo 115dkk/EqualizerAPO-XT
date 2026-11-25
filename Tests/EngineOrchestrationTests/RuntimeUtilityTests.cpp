@@ -16,8 +16,11 @@
 #include <iterator>
 #include <memory>
 #include <new>
+#include <set>
 #include <stdexcept>
 #include <string>
+#include <thread>
+#include <utility>
 #include <vector>
 
 #define WIN32_LEAN_AND_MEAN
@@ -122,6 +125,90 @@ TEST_CASE(EngineOrchestrationTests, testLogKeepsUnicodeAndWin32ErrorNumbers)
 		"formatted Win32 errors retain their numeric code");
 	harness.expect(win32::errorMessage(0x7ffffffe).ends_with(L" (error 2147483646)"),
 		"unknown Win32 errors still retain their numeric code");
+}
+
+// #527: every log call opened the file unshared, so a call made while another
+// thread had it open could not open it and dropped its line. Two engines that
+// reload the same configuration log at the same millisecond, and the audio
+// service lost about a third of their block-timing lines that way.
+TEST_CASE(EngineOrchestrationTests, testFileLogKeepsLinesWrittenAtOnce)
+{
+	const std::wstring path = testDirectory() + L"\\ConcurrentWrites.log";
+	DeleteFileW(path.c_str());
+	Logging::useFile(path, true, true, false);
+
+	constexpr int writerCount = 8;
+	constexpr int linesPerWriter = 250;
+	std::atomic<bool> start{false};
+	std::vector<std::thread> writers;
+	for (int writer = 0; writer < writerCount; writer++)
+	{
+		writers.emplace_back([writer, &start] {
+			while (!start.load())
+				std::this_thread::yield();
+			for (int line = 0; line < linesPerWriter; line++)
+				LogFStatic(L"writer %d line %d", writer, line);
+		});
+	}
+	start = true;
+	for (std::thread& writer : writers)
+		writer.join();
+	Logging::useStream(stderr, false, false, false);
+
+	std::ifstream stream(path, std::ios::binary);
+	std::set<std::pair<int, int>> seen;
+	int whole = 0;
+	std::string text;
+	while (std::getline(stream, text))
+	{
+		int writer = -1;
+		int line = -1;
+		const size_t at = text.find("writer ");
+		if (at != std::string::npos && sscanf_s(text.c_str() + at, "writer %d line %d", &writer, &line) == 2)
+		{
+			whole++;
+			seen.insert({writer, line});
+		}
+	}
+	harness.expect(seen.size() == static_cast<size_t>(writerCount * linesPerWriter),
+		"every line written from several threads at once reaches the file log");
+	harness.expect(whole == writerCount * linesPerWriter,
+		"lines written at once reach the file whole, one per line");
+	stream.close();
+	DeleteFileW(path.c_str());
+}
+
+// #527: another process appending to the same log holds the file for the
+// length of its own line. An unshared handle opened here stands in for it:
+// the logger has to wait for the handle to close instead of dropping its line.
+TEST_CASE(EngineOrchestrationTests, testFileLogWaitsForAnotherWriter)
+{
+	const std::wstring path = testDirectory() + L"\\HeldWhileWriting.log";
+	DeleteFileW(path.c_str());
+	Logging::useFile(path, true, true, false);
+
+	FILE* holder = nullptr;
+	harness.expect(_wfopen_s(&holder, path.c_str(), L"ab") == 0 && holder != nullptr,
+		"the test holds the log file open without sharing");
+	std::atomic<bool> logging{false};
+	std::thread writer([&logging] {
+		logging = true;
+		LogFStatic(L"written after the other writer let go");
+	});
+	while (!logging.load())
+		std::this_thread::yield();
+	Sleep(5);
+	if (holder != nullptr)
+		fclose(holder);
+	writer.join();
+	Logging::useStream(stderr, false, false, false);
+
+	std::ifstream stream(path, std::ios::binary);
+	const std::string contents((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+	harness.expect(contents.find("written after the other writer let go") != std::string::npos,
+		"a line logged while another writer holds the file arrives once it lets go");
+	stream.close();
+	DeleteFileW(path.c_str());
 }
 
 TEST_CASE(EngineOrchestrationTests, testLogHelperUserDestination)

@@ -19,6 +19,7 @@
 
 #include "stdafx.h"
 #include "services/registry/RegistryPaths.h"
+#include <cerrno>
 #include <cstdarg>
 #include <mutex>
 #define WIN32_LEAN_AND_MEAN
@@ -44,6 +45,35 @@ std::mutex& logStateMutex()
 {
 	static std::mutex mutex;
 	return mutex;
+}
+
+// One line at a time within the process (#527). Each line opens the file
+// unshared, which keeps it whole against another process appending to the same
+// log, but an open made while anyone else holds the file fails. Two engines in
+// the audio service log at the same millisecond when a configuration reloads,
+// and the one that lost the race used to drop its line.
+std::mutex& logWriteMutex()
+{
+	static std::mutex mutex;
+	return mutex;
+}
+
+// Another process can still hold the file for the length of its own line, so
+// a sharing violation is waited out briefly instead of dropping the line. The
+// bound keeps a file that someone holds open for long from stalling the
+// thread that logs; any other failure returns at once.
+errno_t openLogForAppend(FILE** fp, const std::wstring& path)
+{
+	const ULONGLONG deadline = GetTickCount64() + 100;
+	for (;;)
+	{
+		const errno_t err = _wfopen_s(fp, path.c_str(), L"at, ccs=UTF-8");
+		unsigned long osError = 0;
+		if (err == 0 || _get_doserrno(&osError) != 0 || osError != ERROR_SHARING_VIOLATION
+			|| GetTickCount64() >= deadline)
+			return err;
+		Sleep(1);
+	}
 }
 
 DWORD rotateLargeGuiLog(const std::wstring& path)
@@ -110,13 +140,17 @@ void Logging::log(const char* file, int line, const void* caller, bool trace, co
 	if (trace && !enableTrace)
 		return;
 
+	// Held to the end of the line: a stream destination shared between threads
+	// would otherwise interleave one line's prefix, text and newline with
+	// another's.
+	std::lock_guard<std::mutex> writeLock(logWriteMutex());
 	FILE* fp;
 	if (presetFP == nullptr)
 	{
 		// Preserve pre-existing ANSI bytes rather than guessing their code page
 		// or rotating from audiodg. New entries use UTF-8; new files get a BOM
 		// (testLogKeepsUnicodeAndWin32ErrorNumbers, audit #467 TD-12).
-		errno_t err = _wfopen_s(&fp, logPath.c_str(), L"at, ccs=UTF-8");
+		errno_t err = openLogForAppend(&fp, logPath);
 		if (err != 0)
 			return;
 	}
