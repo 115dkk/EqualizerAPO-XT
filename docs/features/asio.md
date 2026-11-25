@@ -172,6 +172,55 @@ quarters. A longer wait misses fewer buffers and leaves the application less
 of the buffer for its own work. The two remaining options sit side by side
 under that row.
 
+## Sample precision and 64-bit float
+
+The engine computes in 64-bit float, and samples stay 64-bit float between
+the driver's buffers and the engine: the wrapper converts the device's
+sample type to doubles, the shared memory between the wrapper and the
+engine host carries doubles, and the host hands them to the engine as they
+are. What comes back is rounded once, to the device's own format. A 32-bit
+integer or 64-bit float device therefore receives what the filters
+computed, to the last bit its format holds. Through v2.80.1 that stretch
+was 32-bit float, so a 32-bit integer device lost its lowest 8 bits on the
+way through the entry even with no filter active.
+
+By default the application sees the device's own sample type and converts
+its mix to that type before the wrapper receives it. An entry can instead
+present 64-bit float samples (`ASIOSTFloat64LSB`) on every channel, inputs
+and outputs alike, while the device keeps its own format. An application
+that mixes in 64-bit float then hands its buffers over unconverted, and
+the only conversion left is the wrapper's, to the device's format, after
+the filters; an integer device clamps at full scale there, as it does
+without the option.
+
+The option is off by default, because an ASIO driver with 64-bit float
+channels is rare and how a particular application handles one has not been
+tested here. If an application refuses the device or the sound is wrong
+with the option on, turn it off again; the entry then reports the device's
+own type as before.
+
+Turning it on, until the Device Selector has a control for it:
+
+- For an endpoint's entry (**Use in ASIO apps**), from an elevated
+  terminal: `DeviceSelector --install-endpoint {guid} --asio-entry
+  --asio-float64`.
+- For any entry, set the `Float64Samples` value (DWORD) of the entry's
+  record to 1, or to 0 to turn it off; the record is described under
+  [Options in the Device Selector](#options-in-the-device-selector). The
+  Device Selector keeps the value when it rewrites the record.
+
+The application reads the option when it opens the driver, so reopen the
+device (or restart the application) after changing it.
+
+Checked on CI with the fake driver, bit for bit against the engine's own
+double output: in process, across the shared memory to the real host
+process, and through the wrapper DLL, for 32-bit and 24-bit integer devices
+with and without the option and for a 64-bit float device. The capture gate
+also registers a virtual cable's entry with the option on, opens it the way
+an application does, and requires the driver to report 64-bit float and the
+configured preamp to arrive on the far side. Not yet run under a DAW or
+player that outputs 64-bit float.
+
 ## Options in the Device Selector
 
 Besides the synchronous mode and its wait time, an ASIO entry's
@@ -192,7 +241,8 @@ ASIO apps**.
 The record behind an entry lives under
 `HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO\ASIO\<wrapper CLSID>`: `Mode`,
 `DeadlinePercent`, `DeadlineUs` (an explicit microsecond budget, normally 0),
-`AutoStart`, `Register32`.
+`AutoStart`, `Register32`, `Float64Samples` (see
+[Sample precision and 64-bit float](#sample-precision-and-64-bit-float)).
 
 ## When something is off
 
@@ -200,6 +250,10 @@ The record behind an entry lives under
   could not start or did not load the configuration in time. The reason is
   in `EqualizerAPOAsio.log` and `EqualizerAPOHost.log` under
   `%LOCALAPPDATA%\EqualizerAPO\logs`.
+- The application refuses to open the device right after an update, with
+  "EQ APO XT driver and engine host are different versions; restart this
+  application": it still holds the driver it loaded before the update,
+  which the new engine host does not serve. Restart the application.
 - The interface's sample rate changes while a stream runs: the wrapper asks
   the application to reopen the device, and buffers pass through unprocessed
   until it does.
@@ -234,4 +288,6 @@ The wrapper has been exercised with the fake driver on CI and with a Topping
 USB Audio Device on the maintainer's machine. It has not been run under every
 DAW; hosts that process outside the buffer callback without calling
 `ASIOOutputReady` get their first buffer committed early once, before the
-wrapper learns their habit.
+wrapper learns their habit. The 64-bit float option has been exercised by
+the probe standing in for the application, not by an application that
+outputs 64-bit float.
