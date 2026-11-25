@@ -545,20 +545,22 @@ TEST_CASE(EngineOrchestrationTests, testDoublePlanarMatchesDoubleInterleavedAcro
 		const auto processAndCompare = [&](unsigned block, const std::string& phase) {
 			std::vector<double> interleavedInput(static_cast<size_t>(channels) * frames);
 			std::vector<double> interleavedOutput(interleavedInput.size(), -9.0);
-			std::vector<std::vector<double>> planarInput(channels, std::vector<double>(frames));
-			std::vector<std::vector<double>> planarOutput(channels, std::vector<double>(frames, -9.0));
+			// Channel-major storage, one plane after the other, as the ASIO
+			// stream processors lay their planes out.
+			std::vector<double> planarInput(interleavedInput.size());
+			std::vector<double> planarOutput(interleavedInput.size(), -9.0);
 			std::vector<double*> inputPlanes(channels);
 			std::vector<double*> outputPlanes(channels);
 			for (unsigned channel = 0; channel < channels; ++channel)
 			{
-				inputPlanes[channel] = planarInput[channel].data();
-				outputPlanes[channel] = planarOutput[channel].data();
+				inputPlanes[channel] = planarInput.data() + static_cast<size_t>(channel) * frames;
+				outputPlanes[channel] = planarOutput.data() + static_cast<size_t>(channel) * frames;
 				for (unsigned frame = 0; frame < frames; ++frame)
 				{
 					const int sample = static_cast<int>((block * frames + frame) * channels + channel);
 					const double value = static_cast<double>(sample % 61 - 30) / 64.0;
 					interleavedInput[static_cast<size_t>(frame) * channels + channel] = value;
-					planarInput[channel][frame] = value;
+					planarInput[static_cast<size_t>(channel) * frames + frame] = value;
 				}
 			}
 			interleavedEngine.process(interleavedOutput.data(), interleavedInput.data(), frames);
@@ -568,7 +570,7 @@ TEST_CASE(EngineOrchestrationTests, testDoublePlanarMatchesDoubleInterleavedAcro
 			{
 				for (unsigned frame = 0; frame < frames; ++frame)
 				{
-					identical = identical && planarOutput[channel][frame]
+					identical = identical && planarOutput[static_cast<size_t>(channel) * frames + frame]
 						== interleavedOutput[static_cast<size_t>(frame) * channels + channel];
 				}
 			}
