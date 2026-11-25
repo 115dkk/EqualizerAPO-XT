@@ -78,9 +78,9 @@ namespace eapo::asio
 			lane.prepared = false;
 			lane.firstBlock = true;
 			lane.gone = false;
-			lane.scratch.assign(lane.samples, 0.0f);
-			lane.heldInput.assign(mode_ == Mode::Pipelined ? lane.samples : 0, 0.0f);
-			lane.silence.assign(mode_ == Mode::Pipelined ? lane.samples : 0, 0.0f);
+			lane.scratch.assign(lane.samples, 0.0);
+			lane.heldInput.assign(mode_ == Mode::Pipelined ? lane.samples : 0, 0.0);
+			lane.silence.assign(mode_ == Mode::Pipelined ? lane.samples : 0, 0.0);
 			lane.planes.resize(channels);
 			pointPlanes(lane, lane.scratch.data());
 		}
@@ -100,13 +100,13 @@ namespace eapo::asio
 		return report;
 	}
 
-	void DaemonProcessor::pointPlanes(Lane& lane, float* samples) noexcept
+	void DaemonProcessor::pointPlanes(Lane& lane, double* samples) noexcept
 	{
 		for (size_t c = 0; c < lane.planes.size(); c++)
 			lane.planes[c] = samples + c * format_.frames;
 	}
 
-	float** DaemonProcessor::planes(Direction direction) noexcept
+	double** DaemonProcessor::planes(Direction direction) noexcept
 	{
 		Lane& lane = lanes_[slotOf(direction)];
 		if (!open_ || lane.samples == 0)
@@ -114,7 +114,7 @@ namespace eapo::asio
 		lane.preparedSequence = lane.sequence + 1;
 		lane.publishable = !lane.gone && producer_->canPublish(direction, lane.preparedSequence);
 		lane.prepared = true;
-		float* samples = lane.publishable ? producer_->slot(direction, lane.preparedSequence) : lane.scratch.data();
+		double* samples = lane.publishable ? producer_->slot(direction, lane.preparedSequence) : lane.scratch.data();
 		pointPlanes(lane, samples);
 		return lane.planes.data();
 	}
@@ -154,7 +154,7 @@ namespace eapo::asio
 		{
 			// Preserve this block's original before publish wakes the consumer,
 			// which processes the ring slot in place.
-			std::memcpy(lane.scratch.data(), producer_->slot(direction, seq), lane.samples * sizeof(float));
+			std::memcpy(lane.scratch.data(), producer_->slot(direction, seq), lane.samples * sizeof(double));
 			std::swap(lane.scratch, lane.heldInput);
 		}
 		producer_->publish(direction, seq);

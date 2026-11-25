@@ -31,7 +31,7 @@ namespace eapo::asio
 		InProcProcessor& operator=(const InProcProcessor&) = delete;
 
 		OpenReport open(const StreamFormat& format, const StreamOptions& options) override;
-		float** planes(Direction direction) noexcept override;
+		double** planes(Direction direction) noexcept override;
 		Outcome process(Direction direction) noexcept override;
 		void close() noexcept override;
 
@@ -39,8 +39,8 @@ namespace eapo::asio
 		struct Lane
 		{
 			std::unique_ptr<FilterEngine> engine;
-			std::vector<float> storage;
-			std::vector<float*> planes;
+			std::vector<double> storage;
+			std::vector<double*> planes;
 			unsigned frames = 0;
 		};
 

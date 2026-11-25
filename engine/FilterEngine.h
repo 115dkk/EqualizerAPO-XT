@@ -119,18 +119,17 @@ public:
 	void setInputTap(IInputTap* tap) {inputTap.store(tap, std::memory_order_release);}
 	// Read only from the audio thread (filters' process()).
 	uint64_t blockCounter() const {return processBlockCounter;}
-	// Three surfaces: float interleaved (the APO's usual connection format),
+	// Four surfaces: float interleaved (the APO's usual connection format),
 	// float planar (VoicemeeterClient, whose host hands per-channel pointer
-	// arrays, and the ASIO stream processors asio/EngineHostCore.cpp and
-	// asio/InProcProcessor.cpp), and double interleaved (the APO's double
-	// connection, Benchmark, the Editor's analysis engine). The planar surface
-	// reads realChannelCount input pointers and writes outputChannelCount
-	// output pointers. The double-planar overload was removed in audit #275
-	// (A7/TD-17): it had no production caller and only a null-path test, so it
-	// claimed support nothing verified.
+	// arrays), double interleaved (the APO's double connection, Benchmark, the
+	// Editor's analysis engine), and double planar (the ASIO stream processors
+	// asio/EngineHostCore.cpp and asio/InProcProcessor.cpp). Both planar surfaces
+	// read realChannelCount input pointers and write outputChannelCount output
+	// pointers.
 	void process(float* output, float* input, unsigned frameCount);
 	void process(float** output, float** input, unsigned frameCount);
 	void process(double* output, double* input, unsigned frameCount);
+	void process(double** output, double** input, unsigned frameCount);
 	// Only a host's real-time callback calls this (the APO), once per callback.
 	void noteHostBlock(int64_t entryTicks, int64_t exitTicks, unsigned frameCount) noexcept;
 	// Reports and clears host callback timing from a control thread.
@@ -227,7 +226,7 @@ private:
 	void addFilters(FilterVector filters);
 	static void notificationThread(FilterEngine* engine);
 	void finishTransitionIfReady();
-	// The single choreography behind the three public process() overloads;
+	// The single choreography behind the four public process() overloads;
 	// IoTraits carries the per-layout bypass copy and configuration read/write.
 	// Defined and instantiated only in engine/FilterEngine.Process.cpp.
 	template <typename IoTraits, typename SampleType>

@@ -37,7 +37,7 @@ namespace eapo::asio
 			{
 				Lane& lane = lanes_[slot];
 				lane.frames = format.frames;
-				lane.storage.assign(static_cast<size_t>(channels) * format.frames, 0.0f);
+				lane.storage.assign(static_cast<size_t>(channels) * format.frames, 0.0);
 				lane.planes.resize(channels);
 				for (unsigned c = 0; c < channels; c++)
 					lane.planes[c] = lane.storage.data() + static_cast<size_t>(c) * format.frames;
@@ -66,7 +66,7 @@ namespace eapo::asio
 		return report;
 	}
 
-	float** InProcProcessor::planes(Direction direction) noexcept
+	double** InProcProcessor::planes(Direction direction) noexcept
 	{
 		Lane& lane = lanes_[slotOf(direction)];
 		return lane.engine != nullptr ? lane.planes.data() : nullptr;

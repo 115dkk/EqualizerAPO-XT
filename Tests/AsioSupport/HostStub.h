@@ -129,7 +129,7 @@ namespace asiotest
 			switchLogOverflow_ = 0;
 			inputRecords_.assign(infos_.size(), std::vector<unsigned char>());
 			if (options_.clickIntervalFrames > 0 || options_.switchLogCapacity > 0)
-				outputSamples_.assign(frames > 0 ? static_cast<size_t>(frames) : 0, 0.0f);
+				outputSamples_.assign(frames > 0 ? static_cast<size_t>(frames) : 0, 0.0);
 			else
 				outputSamples_.clear();
 			if (options_.fullPrecision && oracle::supported(options_.sampleType))
@@ -301,8 +301,8 @@ namespace asiotest
 			}
 			if (frames_ <= 0)
 				return;
-			std::vector<float> callbackSamples;
-			float* samples = nullptr;
+			std::vector<double> callbackSamples;
+			double* samples = nullptr;
 			if (!(options_.fullPrecision && oracle::supported(options_.sampleType)))
 			{
 				if (outputSamples_.empty())
@@ -336,8 +336,9 @@ namespace asiotest
 					else
 					{
 						for (long n = 0; n < frames_; n++)
-							samples[static_cast<size_t>(n)] = outputSample(info.channelNum, outputPosition_ + static_cast<uint64_t>(n));
-						codec_.fromFloat(samples, buffer, static_cast<unsigned>(frames_));
+							samples[static_cast<size_t>(n)] = static_cast<double>(
+								outputSample(info.channelNum, outputPosition_ + static_cast<uint64_t>(n)));
+						codec_.fromDouble(samples, buffer, static_cast<unsigned>(frames_));
 					}
 				}
 			}
@@ -355,7 +356,7 @@ namespace asiotest
 		long frames_ = 0;
 		std::vector<ASIOBufferInfo> infos_;
 		std::vector<std::vector<unsigned char>> inputRecords_;
-		std::vector<float> outputSamples_;
+		std::vector<double> outputSamples_;
 		std::vector<double> outputValues_;
 		std::vector<SwitchLogEntry> switchLog_;
 		size_t switchLogCount_ = 0;

@@ -38,7 +38,7 @@ namespace eapo::asio
 		DaemonProcessor& operator=(const DaemonProcessor&) = delete;
 
 		OpenReport open(const StreamFormat& format, const StreamOptions& options) override;
-		float** planes(Direction direction) noexcept override;
+		double** planes(Direction direction) noexcept override;
 		Outcome process(Direction direction) noexcept override;
 		void close() noexcept override;
 		const HandoffProfile* profile() const noexcept override {return &profile_;}
@@ -54,10 +54,10 @@ namespace eapo::asio
 			// Scratch receives a block when its ring slot is still busy. In
 			// pipelined mode scratch and heldInput swap ownership to hold the
 			// preceding original without another copy.
-			std::vector<float> scratch;
-			std::vector<float> heldInput;
-			std::vector<float> silence;
-			std::vector<float*> planes;
+			std::vector<double> scratch;
+			std::vector<double> heldInput;
+			std::vector<double> silence;
+			std::vector<double*> planes;
 			uint32_t sequence = 0;          // last published
 			uint32_t preparedSequence = 0;  // the sequence planes() selected
 			uint32_t consecutiveLate = 0;
@@ -69,7 +69,7 @@ namespace eapo::asio
 		};
 
 		void teardown() noexcept;
-		void pointPlanes(Lane& lane, float* samples) noexcept;
+		void pointPlanes(Lane& lane, double* samples) noexcept;
 		void holdTimeline(Lane& lane) noexcept;
 		void record(Direction direction) noexcept;
 

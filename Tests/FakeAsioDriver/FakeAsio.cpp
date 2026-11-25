@@ -422,14 +422,15 @@ void FakeAsioDriver::fillInputs(long half)
 		eapo::asio::SampleCodec codec;
 		if (!eapo::asio::findSampleCodec(config_.sampleType, codec))
 			return;
-		std::vector<float> samples(static_cast<size_t>(bufferSize_));
+		std::vector<double> samples(static_cast<size_t>(bufferSize_));
 		for (Channel& channel : channels_)
 		{
 			if (!channel.input)
 				continue;
 			for (long n = 0; n < bufferSize_; n++)
-				samples[static_cast<size_t>(n)] = generatorSample(config_.seed, channel.index, generatorPosition_ + static_cast<uint64_t>(n));
-			codec.fromFloat(samples.data(), channel.buffers[half].data(), static_cast<unsigned>(bufferSize_));
+				samples[static_cast<size_t>(n)] = static_cast<double>(generatorSample(
+					config_.seed, channel.index, generatorPosition_ + static_cast<uint64_t>(n)));
+			codec.fromDouble(samples.data(), channel.buffers[half].data(), static_cast<unsigned>(bufferSize_));
 			std::vector<unsigned char>& bytes = record(true, channel.index).bytes;
 			bytes.insert(bytes.end(), channel.buffers[half].begin(), channel.buffers[half].end());
 		}

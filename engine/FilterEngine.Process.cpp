@@ -174,6 +174,28 @@ namespace
 		}
 	};
 
+	struct DoublePlanarIo
+	{
+		static constexpr const char* totalLabel = "FilterEngine::process(double planar)";
+		static constexpr const char* readCurrentLabel = "FilterConfiguration::readPlanar(current)";
+		static constexpr const char* readNextLabel = "FilterConfiguration::readPlanar(next)";
+		static constexpr const char* writeLabel = "FilterConfiguration::writePlanar";
+
+		static void bypass(double** output, double** input, unsigned inputChannelCount,
+			unsigned outputChannelCount, unsigned frameCount)
+		{
+			bypassPlanar(output, input, inputChannelCount, outputChannelCount, frameCount);
+		}
+		static void read(FilterConfiguration& config, double** input, unsigned frameCount)
+		{
+			config.readPlanar(input, frameCount);
+		}
+		static void write(FilterConfiguration& config, double** output, unsigned frameCount)
+		{
+			config.writePlanar(output, frameCount);
+		}
+	};
+
 	struct DoubleInterleavedIo
 	{
 		static constexpr const char* totalLabel = "FilterEngine::process(double interleaved)";
@@ -198,7 +220,7 @@ namespace
 
 }
 
-// The single hot-path choreography behind all three public overloads: null and
+// The single hot-path choreography behind all four public overloads: null and
 // empty-config bypass, current-config pass, crossfade into a pending next
 // configuration, write-back, transition bookkeeping. Validated against the
 // audio regression references and EngineOrchestrationTests, which pin the
@@ -288,8 +310,7 @@ void FilterEngine::process(float* output, float* input, unsigned frameCount)
 
 
 // Process non-interleaved audio (float**): per-channel pointer arrays from
-// VoicemeeterClient and the ASIO stream processors (EngineHostCore,
-// InProcProcessor).
+// VoicemeeterClient.
 void FilterEngine::process(float** output, float** input, unsigned frameCount)
 {
 	processImpl<FloatPlanarIo>(output, input, frameCount);
@@ -299,6 +320,13 @@ void FilterEngine::process(float** output, float** input, unsigned frameCount)
 void FilterEngine::process(double* output, double* input, unsigned frameCount)
 {
 	processImpl<DoubleInterleavedIo>(output, input, frameCount);
+}
+
+// Process non-interleaved audio (double**): per-channel pointer arrays from
+// the ASIO stream processors (EngineHostCore, InProcProcessor).
+void FilterEngine::process(double** output, double** input, unsigned frameCount)
+{
+	processImpl<DoublePlanarIo>(output, input, frameCount);
 }
 
 // Realtime transition bookkeeping and the silence-skip query live with the

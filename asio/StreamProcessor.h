@@ -175,7 +175,7 @@ namespace eapo::asio
 		// stay valid through process(); process() may change the pointers in the
 		// array to hand a different buffer back without copying samples. No
 		// allocation, C++ locks or exceptions in either call.
-		virtual float** planes(Direction direction) noexcept = 0;
+		virtual double** planes(Direction direction) noexcept = 0;
 
 		// Once per enabled direction per switch, after planes() was filled.
 		// Waiting on a kernel object inside the deadline is allowed. Processed
@@ -205,7 +205,7 @@ namespace eapo::asio
 			return report;
 		}
 
-		float** planes(Direction) noexcept override
+		double** planes(Direction) noexcept override
 		{
 			return nullptr;
 		}

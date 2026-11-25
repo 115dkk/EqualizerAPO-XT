@@ -8,7 +8,7 @@
 	seam, whatever transforms the audio (docs/architecture/asio-host-study.md,
 	section 10). The wrapper owns the DAW-facing buffers, opens every physical
 	channel of the target so the engine sees the whole device, converts
-	between the target's sample types and the processor's float32 planes at
+	between the target's sample types and the processor's double planes at
 	its edge, and forwards every IASIO call it has no opinion about.
 
 	State machine (DAW control thread):

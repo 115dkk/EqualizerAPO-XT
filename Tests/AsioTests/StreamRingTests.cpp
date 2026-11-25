@@ -116,7 +116,7 @@ namespace
 	struct ConsumerThread
 	{
 		Region& region;
-		float gain = 0.5f;
+		double gain = 0.5;
 		std::atomic<uint32_t> delayUs{0};
 		std::atomic<uint32_t> dieAtSequence{0};
 		std::atomic<uint32_t> served{0};
@@ -171,18 +171,18 @@ namespace
 		}
 	};
 
-	void fillSlot(float* slot, size_t samples, float value)
+	void fillSlot(double* slot, size_t samples, double value)
 	{
 		for (size_t i = 0; i < samples; i++)
-			slot[i] = value + static_cast<float>(i) * 0.001f;
+			slot[i] = value + static_cast<double>(i) * 0.001;
 	}
 
-	bool slotIs(const float* slot, size_t samples, float value, float gain)
+	bool slotIs(const double* slot, size_t samples, double value, double gain)
 	{
 		for (size_t i = 0; i < samples; i++)
 		{
-			const float expected = (value + static_cast<float>(i) * 0.001f) * gain;
-			if (std::fabs(slot[i] - expected) > 1e-5f)
+			const double expected = (value + static_cast<double>(i) * 0.001) * gain;
+			if (std::fabs(slot[i] - expected) > 1e-5)
 				return false;
 		}
 		return true;
@@ -192,12 +192,12 @@ namespace
 	{
 		StreamFormat format = stereoFormat(64, 0);
 		harness.expect(RingGeometry::validFormat(format), "a normal output format is valid");
-		harness.expectEqual(RingGeometry::slotBytes(format, Direction::Output), 512u, "2 x 64 floats round to 512 bytes");
+		harness.expectEqual(RingGeometry::slotBytes(format, Direction::Output), 1024u, "2 x 64 doubles occupy 1024 bytes");
 		harness.expectEqual(RingGeometry::slotBytes(format, Direction::Input), 0u, "a disabled direction has no slot");
-		harness.expectEqual(RingGeometry::totalBytes(format), 512u + 1024u, "header plus two output slots");
+		harness.expectEqual(RingGeometry::totalBytes(format), 512u + 2048u, "header plus two output slots");
 		format.channels[1] = 3;
 		format.frames = 7;
-		harness.expectEqual(RingGeometry::slotBytes(format, Direction::Input), 128u, "3 x 7 floats (84 bytes) round up to 128");
+		harness.expectEqual(RingGeometry::slotBytes(format, Direction::Input), 192u, "3 x 7 doubles (168 bytes) round up to 192");
 		harness.expectEqual(sizeof(eapo::ipc::RingHeader), eapo::ipc::ringHeaderBytes, "the header is 512 bytes");
 	}
 
@@ -211,6 +211,16 @@ namespace
 			RingConsumer consumer(region.base(), region.bytes.size(), region.consumerSync());
 			return !consumer.valid();
 		};
+
+		{
+			StreamFormat oldLayout = stereoFormat();
+			Region oldRegion(oldLayout);
+			RingProducer oldProducer(oldRegion.base(), oldLayout, 1, oldRegion.producerSync());
+			static_cast<eapo::ipc::RingHeader*>(oldRegion.base())->layoutVersion = 1;
+			RingConsumer oldConsumer(oldRegion.base(), oldRegion.bytes.size(), oldRegion.consumerSync());
+			harness.expectFalse(oldConsumer.valid(), "the double-plane consumer refuses a version 1 float32 ring");
+			oldProducer.close();
+		}
 
 		StreamFormat tooManyChannels = stereoFormat();
 		tooManyChannels.channels[0] = eapo::ipc::maxRingChannels + 1;
@@ -319,15 +329,15 @@ namespace
 		RingProducer producer(base, format, 1, sync);
 		eapo::ipc::RingHeader* header = reinterpret_cast<eapo::ipc::RingHeader*>(base);
 		const uint32_t originalOffset = header->lanes[0].slotOffset[1];
-		// The ring stores float blocks in its byte mapping; the slot is
+		// The ring stores double blocks in its byte mapping; the slot is
 		// aligned by the ring's own geometry.
 		// cppcheck-suppress invalidPointerCast
-		const float* const originalSlot = reinterpret_cast<const float*>(base + originalOffset);
+		const double* const originalSlot = reinterpret_cast<const double*>(base + originalOffset);
 
 		header->lanes[0].slotOffset[1] = totalBytes;
-		header->lanes[0].slotBytes = sizeof(float);
-		float* const block = producer.slot(Direction::Output, 1);
-		block[0] = 0.25f;
+		header->lanes[0].slotBytes = sizeof(double);
+		double* const block = producer.slot(Direction::Output, 1);
+		block[0] = 0.25;
 		producer.publish(Direction::Output, 1);
 
 		bool guardUntouched = true;
@@ -434,10 +444,10 @@ namespace
 		for (uint32_t seq = 1; seq <= 5; seq++)
 		{
 			harness.require(producer.canPublish(Direction::Output, seq), "slot free for seq " + std::to_string(seq));
-			fillSlot(producer.slot(Direction::Output, seq), samples, static_cast<float>(seq));
+			fillSlot(producer.slot(Direction::Output, seq), samples, static_cast<double>(seq));
 			producer.publish(Direction::Output, seq);
 			harness.expect(producer.wait(Direction::Output, seq, 1000000) == RingWait::Done, "seq " + std::to_string(seq) + " is Done");
-			harness.expect(slotIs(producer.slot(Direction::Output, seq), samples, static_cast<float>(seq), 0.5f), "seq " + std::to_string(seq) + " came back processed");
+			harness.expect(slotIs(producer.slot(Direction::Output, seq), samples, static_cast<double>(seq), 0.5f), "seq " + std::to_string(seq) + " came back processed");
 		}
 		fillSlot(producer.slot(Direction::Input, 1), samples, 9.0f);
 		producer.publish(Direction::Input, 1);
@@ -607,12 +617,12 @@ namespace
 		{
 			while (!producer.canPublish(Direction::Output, seq))
 				std::this_thread::yield();
-			fillSlot(producer.slot(Direction::Output, seq), samples, static_cast<float>(seq));
+			fillSlot(producer.slot(Direction::Output, seq), samples, static_cast<double>(seq));
 			producer.publish(Direction::Output, seq);
 			if (seq > 1)
 			{
 				allDone = allDone && producer.wait(Direction::Output, seq - 1, 1000000) == RingWait::Done;
-				allDone = allDone && slotIs(producer.slot(Direction::Output, seq - 1), samples, static_cast<float>(seq - 1), 0.5f);
+				allDone = allDone && slotIs(producer.slot(Direction::Output, seq - 1), samples, static_cast<double>(seq - 1), 0.5f);
 			}
 		}
 		harness.expect(allDone, "every previous block was complete and processed by the time the next was published");

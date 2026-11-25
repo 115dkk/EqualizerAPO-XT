@@ -10,11 +10,14 @@
 	touched; the fake driver is stepped on this thread.
 */
 
+#include <array>
+#include <bit>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <exception>
 #include <fstream>
+#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -37,6 +40,7 @@
 #include "Tests/AlignedMemoryGate.h"
 #include "Tests/AsioSupport/HostStub.h"
 #include "Tests/AsioSupport/LatencyMatch.h"
+#include "Tests/AsioSupport/SampleOracle.h"
 #include "Tests/AsioTests/FakeEndpointClient.h"
 #include "Tests/FakeRegistry.h"
 #include "Tests/FakeAsioDriver/FakeAsio.h"
@@ -116,7 +120,7 @@ namespace
 			for (unsigned slot = 0; slot < eapo::asio::directionCount; slot++)
 			{
 				const unsigned channels = format.channels[slot];
-				storage_[slot].assign(static_cast<size_t>(channels) * format.frames, 0.0f);
+				storage_[slot].assign(static_cast<size_t>(channels) * format.frames, 0.0);
 				planes_[slot].resize(channels);
 				for (unsigned c = 0; c < channels; c++)
 					planes_[slot][c] = storage_[slot].data() + static_cast<size_t>(c) * format.frames;
@@ -125,7 +129,7 @@ namespace
 			return report;
 		}
 
-		float** planes(Direction direction) noexcept override
+		double** planes(Direction direction) noexcept override
 		{
 			return planes_[eapo::asio::slotOf(direction)].empty() ? nullptr : planes_[eapo::asio::slotOf(direction)].data();
 		}
@@ -136,8 +140,8 @@ namespace
 			if (index < script.size() && script[index] != Outcome::Processed)
 				return script[index];
 			const unsigned slot = static_cast<unsigned>(direction);
-			for (float& sample : storage_[slot])
-				sample *= gain;
+			for (double& sample : storage_[slot])
+				sample *= static_cast<double>(gain);
 			return Outcome::Processed;
 		}
 
@@ -147,8 +151,8 @@ namespace
 		}
 
 	private:
-		std::vector<float> storage_[eapo::asio::directionCount];
-		std::vector<float*> planes_[eapo::asio::directionCount];
+		std::vector<double> storage_[eapo::asio::directionCount];
+		std::vector<double*> planes_[eapo::asio::directionCount];
 	};
 
 	struct Rig
@@ -206,8 +210,11 @@ namespace
 
 	std::vector<float> decode(const SampleCodec& codec, const std::vector<unsigned char>& bytes)
 	{
-		std::vector<float> samples(bytes.size() / codec.bytesPerSample);
-		codec.toFloat(bytes.data(), samples.data(), static_cast<unsigned>(samples.size()));
+		std::vector<double> decoded(bytes.size() / codec.bytesPerSample);
+		codec.toDouble(bytes.data(), decoded.data(), static_cast<unsigned>(decoded.size()));
+		std::vector<float> samples(decoded.size());
+		for (size_t i = 0; i < decoded.size(); i++)
+			samples[i] = static_cast<float>(decoded[i]);
 		return samples;
 	}
 
@@ -232,10 +239,11 @@ namespace
 	float quantized(const SampleCodec& codec, float value)
 	{
 		unsigned char bytes[8] = {};
-		float back = 0.0f;
-		codec.fromFloat(&value, bytes, 1);
-		codec.toFloat(bytes, &back, 1);
-		return back;
+		const double source = static_cast<double>(value);
+		double back = 0.0;
+		codec.fromDouble(&source, bytes, 1);
+		codec.toDouble(bytes, &back, 1);
+		return static_cast<float>(back);
 	}
 
 	// ---- codecs ----
@@ -263,29 +271,29 @@ namespace
 			ASIOSTInt32LSB16, ASIOSTInt32LSB18, ASIOSTInt32LSB20, ASIOSTInt32LSB24,
 			ASIOSTInt32MSB16, ASIOSTInt32MSB18, ASIOSTInt32MSB20, ASIOSTInt32MSB24
 		};
-		const float probe[] = {0.0f, 0.5f, -0.5f, 0.999f, -1.0f, 0.123456f, -0.000123f, 1.5f, -2.0f};
+		const double probe[] = {0.0, 0.5, -0.5, 0.999, -1.0, 0.123456, -0.000123, 1.5, -2.0};
 		for (long type : types)
 		{
 			SampleCodec codec;
 			harness.require(eapo::asio::findSampleCodec(type, codec), "codec exists for type " + std::to_string(type));
 			harness.expectEqual(codec.type, type, "codec reports its own type");
 			std::vector<unsigned char> bytes(codec.bytesPerSample * 9);
-			float back[9] = {};
-			codec.fromFloat(probe, bytes.data(), 9);
-			codec.toFloat(bytes.data(), back, 9);
+			double back[9] = {};
+			codec.fromDouble(probe, bytes.data(), 9);
+			codec.toDouble(bytes.data(), back, 9);
 			const double tolerance = type == ASIOSTInt16LSB || type == ASIOSTInt16MSB
 				|| type == ASIOSTInt32LSB16 || type == ASIOSTInt32MSB16 ? 1.0 / 32768.0 : 1.0 / 131072.0;
 			const bool floating = type == ASIOSTFloat32LSB || type == ASIOSTFloat32MSB
 				|| type == ASIOSTFloat64LSB || type == ASIOSTFloat64MSB;
 			for (int i = 0; i < 9; i++)
 			{
-				float expected = probe[i];
+				double expected = probe[i];
 				// Integer types clamp at full scale; float types carry
 				// over-range values through untouched.
-				if (!floating && expected > 1.0f)
-					expected = 1.0f;
-				if (!floating && expected < -1.0f)
-					expected = -1.0f;
+				if (!floating && expected > 1.0)
+					expected = 1.0;
+				if (!floating && expected < -1.0)
+					expected = -1.0;
 				harness.expectNear(back[i], expected, tolerance,
 					"type " + std::to_string(type) + " round-trips sample " + std::to_string(i));
 			}
@@ -294,6 +302,126 @@ namespace
 		SampleCodec dsd;
 		harness.expectFalse(eapo::asio::findSampleCodec(ASIOSTDSDInt8LSB1, dsd), "DSD has no codec");
 		harness.expectFalse(eapo::asio::findSampleCodec(12345, dsd), "an unknown type has no codec");
+	}
+
+	TEST_CASE(AsioTests, testCodecMatchesIndependentOracle)
+	{
+		const long types[] = {
+			ASIOSTInt16LSB, ASIOSTInt24LSB, ASIOSTInt32LSB, ASIOSTFloat32LSB, ASIOSTFloat64LSB
+		};
+		asiotest::HostStub::Options options;
+		options.fullPrecision = true;
+		asiotest::HostStub signal(options);
+		for (long type : types)
+		{
+			std::vector<double> values = {
+				0.0, 1.0, -1.0, 1.5, -1.5,
+				std::nextafter(1.0, 0.0), std::nextafter(1.0, 2.0),
+				std::nextafter(-1.0, 0.0), std::nextafter(-1.0, -2.0)
+			};
+			unsigned validBits = 0;
+			if (type == ASIOSTInt16LSB)
+				validBits = 16;
+			else if (type == ASIOSTInt24LSB)
+				validBits = 24;
+			else if (type == ASIOSTInt32LSB)
+				validBits = 32;
+			if (validBits != 0)
+			{
+				const double step = 1.0 / static_cast<double>(UINT64_C(1) << (validBits - 1));
+				values.insert(values.end(), {step, -step, 0.5 * step, -0.5 * step,
+					1.5 * step, -1.5 * step, 2.5 * step, -2.5 * step});
+			}
+			for (size_t i = 0; i < 4096; i++)
+				values.push_back(signal.outputValue(static_cast<long>(i & 1), i));
+
+			SampleCodec codec;
+			harness.require(eapo::asio::findSampleCodec(type, codec),
+				"the oracle sweep has a product codec for type " + std::to_string(type));
+			const size_t byteCount = values.size() * codec.bytesPerSample;
+			std::vector<unsigned char> productBytes(byteCount);
+			std::vector<unsigned char> oracleBytes(byteCount);
+			codec.fromDouble(values.data(), productBytes.data(), static_cast<unsigned>(values.size()));
+			asiotest::oracle::encode(type, values.data(), oracleBytes.data(), values.size());
+			harness.expect(productBytes == oracleBytes,
+				"the product encoder matches the independent oracle for type " + std::to_string(type));
+
+			std::vector<double> productValues(values.size());
+			std::vector<double> oracleValues(values.size());
+			codec.toDouble(oracleBytes.data(), productValues.data(), static_cast<unsigned>(productValues.size()));
+			asiotest::oracle::decode(type, oracleBytes.data(), oracleValues.data(), oracleValues.size());
+			harness.expect(productValues == oracleValues,
+				"the product decoder matches the independent oracle for type " + std::to_string(type));
+		}
+	}
+
+	TEST_CASE(AsioTests, testCodecKeepsEveryRepresentableSourceBit)
+	{
+		const auto integerCodesSurvive = [](long type, const std::vector<int32_t>& codes, unsigned bytesPerSample) {
+			SampleCodec codec;
+			if (!eapo::asio::findSampleCodec(type, codec))
+				return false;
+			std::vector<unsigned char> source(codes.size() * bytesPerSample);
+			for (size_t i = 0; i < codes.size(); i++)
+			{
+				const uint32_t raw = static_cast<uint32_t>(codes[i]);
+				std::memcpy(source.data() + i * bytesPerSample, &raw, bytesPerSample);
+			}
+			std::vector<double> values(codes.size());
+			std::vector<unsigned char> encoded(source.size());
+			codec.toDouble(source.data(), values.data(), static_cast<unsigned>(values.size()));
+			codec.fromDouble(values.data(), encoded.data(), static_cast<unsigned>(values.size()));
+			return source == encoded;
+		};
+
+		std::vector<int32_t> int32Codes = {0, 1, -1, INT32_MAX, INT32_MIN};
+		for (uint64_t i = 0; i < 4096; i++)
+		{
+			const int64_t code = static_cast<int64_t>(INT32_MIN)
+				+ static_cast<int64_t>(i * UINT32_MAX / 4095);
+			int32Codes.push_back(static_cast<int32_t>(code));
+		}
+		harness.expect(integerCodesSurvive(ASIOSTInt32LSB, int32Codes, 4),
+			"every sampled Int32LSB code survives decode and encode unchanged");
+		harness.expect(integerCodesSurvive(ASIOSTInt24LSB,
+			{0, 1, -1, 0x007fffff, static_cast<int32_t>(0xff800000u)}, 3),
+			"the Int24LSB edge codes survive decode and encode unchanged");
+		harness.expect(integerCodesSurvive(ASIOSTInt16LSB,
+			{0, 1, -1, 0x00007fff, static_cast<int32_t>(0xffff8000u)}, 2),
+			"the Int16LSB edge codes survive decode and encode unchanged");
+
+		SampleCodec float64;
+		harness.require(eapo::asio::findSampleCodec(ASIOSTFloat64LSB, float64), "the Float64LSB codec exists");
+		const double float64Values[] = {
+			0.0, -0.0, std::numeric_limits<double>::denorm_min(), 1.5,
+			std::bit_cast<double>(UINT64_C(0x3fffffffffffffff))
+		};
+		std::array<unsigned char, sizeof(float64Values)> sourceBytes = {};
+		std::array<unsigned char, sizeof(float64Values)> encodedBytes = {};
+		std::memcpy(sourceBytes.data(), float64Values, sizeof(float64Values));
+		double decoded[sizeof(float64Values) / sizeof(float64Values[0])] = {};
+		float64.toDouble(sourceBytes.data(), decoded, static_cast<unsigned>(std::size(decoded)));
+		float64.fromDouble(decoded, encodedBytes.data(), static_cast<unsigned>(std::size(decoded)));
+		harness.expect(sourceBytes == encodedBytes,
+			"Float64LSB keeps denormal, over-range and full-mantissa values bit for bit");
+	}
+
+	TEST_CASE(AsioTests, testCodecEncodesIntegerNaNAsZero)
+	{
+		const long types[] = {ASIOSTInt16LSB, ASIOSTInt24LSB, ASIOSTInt32LSB};
+		const double value = std::numeric_limits<double>::quiet_NaN();
+		for (long type : types)
+		{
+			SampleCodec codec;
+			harness.require(eapo::asio::findSampleCodec(type, codec),
+				"the NaN test has a codec for type " + std::to_string(type));
+			std::array<unsigned char, 4> bytes = {0xcd, 0xcd, 0xcd, 0xcd};
+			codec.fromDouble(&value, bytes.data(), 1);
+			bool zero = true;
+			for (unsigned i = 0; i < codec.bytesPerSample; i++)
+				zero = zero && bytes[i] == 0;
+			harness.expect(zero, "NaN encodes as zero for integer type " + std::to_string(type));
+		}
 	}
 
 	// The WASAPI target's pure parts: which containers are tried in which
@@ -818,35 +946,35 @@ namespace
 		SampleCodec codec;
 		eapo::asio::findSampleCodec(ASIOSTInt16LSB, codec);
 		const unsigned char maxLsb[2] = {0xff, 0x7f};
-		float value = 0.0f;
-		codec.toFloat(maxLsb, &value, 1);
+		double value = 0.0;
+		codec.toDouble(maxLsb, &value, 1);
 		harness.expectNear(value, 32767.0 / 32768.0, 1e-7, "Int16LSB 0x7fff is just under full scale");
 
 		eapo::asio::findSampleCodec(ASIOSTInt16MSB, codec);
 		const unsigned char maxMsb[2] = {0x80, 0x00};
-		codec.toFloat(maxMsb, &value, 1);
+		codec.toDouble(maxMsb, &value, 1);
 		harness.expectNear(value, -1.0, 1e-7, "Int16MSB 0x8000 is negative full scale");
 
 		eapo::asio::findSampleCodec(ASIOSTInt24LSB, codec);
 		const unsigned char minus24[3] = {0x00, 0x00, 0x80};
-		codec.toFloat(minus24, &value, 1);
+		codec.toDouble(minus24, &value, 1);
 		harness.expectNear(value, -1.0, 1e-7, "Int24LSB sign-extends from bit 23");
 
 		eapo::asio::findSampleCodec(ASIOSTInt32LSB24, codec);
 		const unsigned char low24[4] = {0xff, 0xff, 0x7f, 0x00};
-		codec.toFloat(low24, &value, 1);
+		codec.toDouble(low24, &value, 1);
 		harness.expectNear(value, 8388607.0 / 8388608.0, 1e-7, "Int32LSB24 keeps its 24 valid bits right-aligned");
 		const unsigned char neg24[4] = {0x00, 0x00, 0x80, 0x00};
-		codec.toFloat(neg24, &value, 1);
+		codec.toDouble(neg24, &value, 1);
 		harness.expectNear(value, -1.0, 1e-7, "Int32LSB24 sign-extends from bit 23");
 		unsigned char written[4] = {};
-		const float minusOne = -1.0f;
-		codec.fromFloat(&minusOne, written, 1);
+		const double minusOne = -1.0;
+		codec.fromDouble(&minusOne, written, 1);
 		harness.expectEqual(static_cast<int>(written[3]), 0, "Int32LSB24 writes nothing above its 24 bits");
 
 		eapo::asio::findSampleCodec(ASIOSTFloat32MSB, codec);
-		const float one = 1.0f;
-		codec.fromFloat(&one, written, 1);
+		const double one = 1.0;
+		codec.fromDouble(&one, written, 1);
 		harness.expectEqual(static_cast<int>(written[0]), 0x3f, "Float32MSB writes big-endian");
 		harness.expectEqual(static_cast<int>(written[1]), 0x80, "Float32MSB writes big-endian (second byte)");
 	}

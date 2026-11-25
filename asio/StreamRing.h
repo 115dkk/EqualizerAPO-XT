@@ -6,7 +6,7 @@
 	StreamRing: the realtime handoff between the ASIO wrapper (in a DAW) and
 	the engine host (docs/architecture/asio-host-study.md, section 10.2). One
 	shared region holds a fixed-width header and, per direction (lane), two
-	slots of float32 planes. The producer publishes a sequence number into a
+	slots of double planes. The producer publishes a sequence number into a
 	lane and signals; the consumer processes the slot in place, records the
 	sequence as completed and signals back. Everything the two sides agree
 	on is bytes at fixed offsets - no pointers, so a 32-bit wrapper and a
@@ -55,11 +55,15 @@
 namespace eapo::ipc
 {
 	constexpr uint32_t ringMagic = 0x52504145u;      // 'EAPR'
-	constexpr uint32_t ringLayoutVersion = 1;
+	// Version 1 carried float32 planes; version 2 carries double planes. A
+	// wrapper and host with different versions refuse each other through
+	// RingFault::LayoutMismatch.
+	constexpr uint32_t ringLayoutVersion = 2;
 	constexpr size_t ringHeaderBytes = 512;
 	constexpr size_t ringAlignment = 64;
-	// ASIO hardware stays far below these bounds. They keep the complete ring
-	// under 128 MiB, so its uint32_t wire geometry cannot wrap.
+	// ASIO hardware stays far below these bounds. One slot is at most 32 MiB,
+	// and the complete ring is at most 128 MiB plus the header, so its uint32_t
+	// wire geometry cannot wrap.
 	constexpr uint32_t maxRingChannels = 64;
 	constexpr uint32_t maxRingFrames = 65536;
 	// The sample rates a ring may carry. The top is the WASAPI exclusive
@@ -176,8 +180,8 @@ namespace eapo::ipc
 		// True when slot `seq & 1` is free: the consumer completed seq - 2 or
 		// later (or nothing was published yet). Buffer-switch thread.
 		bool canPublish(eapo::asio::Direction direction, uint32_t seq) const noexcept;
-		// The slot's planes, channel-major, `frames` floats per channel.
-		float* slot(eapo::asio::Direction direction, uint32_t seq) noexcept;
+		// The slot's planes, channel-major, `frames` doubles per channel.
+		double* slot(eapo::asio::Direction direction, uint32_t seq) noexcept;
 		void publish(eapo::asio::Direction direction, uint32_t seq) noexcept;
 		// budgetUs == 0 answers immediately (Done only if already completed).
 		RingWait wait(eapo::asio::Direction direction, uint32_t seq, uint32_t budgetUs) noexcept;
@@ -233,7 +237,7 @@ namespace eapo::ipc
 		{
 			eapo::asio::Direction direction;
 			uint32_t sequence;
-			float* slot;
+			double* slot;
 			// For dispatch-latency diagnostics in the same process: the
 			// producer's QueryPerformanceCounter tick at the lane's latest
 			// publish, and how many blocks it published after this one

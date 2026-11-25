@@ -73,10 +73,17 @@ TEST_CASE(EngineOrchestrationTests, testProcessWithoutConfigurationDoesNotCrash)
 	float* outF[2] = {planarFOut.data(), planarFOut.data() + frames};
 	engine.process(outF, inF, frames);
 
+	std::vector<double> planarDIn((size_t)2 * frames, 0.25);
+	std::vector<double> planarDOut((size_t)2 * frames, -1.0);
+	double* inD[2] = {planarDIn.data(), planarDIn.data() + frames};
+	double* outD[2] = {planarDOut.data(), planarDOut.data() + frames};
+	engine.process(outD, inD, frames);
+
 	// Reaching this line is the point: no null dereference. Before
 	// initialize() the channel counts are zero, so the bypass copies nothing
 	// and the output buffers stay untouched.
-	harness.expect(outputF[0] == -1.0f && outputD[0] == -1.0 && planarFOut[0] == -1.0f,
+	harness.expect(outputF[0] == -1.0f && outputD[0] == -1.0
+		&& planarFOut[0] == -1.0f && planarDOut[0] == -1.0,
 		"process() without a configuration wrote output despite zero channel counts");
 }
 
@@ -152,6 +159,34 @@ TEST_CASE(EngineOrchestrationTests, testOversizedHostBlocksBypassEveryProcessLay
 				"oversized float-planar processing wrote past its input");
 			harness.expectEqual(planarOutput[channel][frame], -88.0f,
 				"oversized float-planar processing wrote past its output");
+		}
+	}
+
+	std::array<std::vector<double>, channels> planarDoubleInput;
+	std::array<std::vector<double>, channels> planarDoubleOutput;
+	std::array<double*, channels> planarDoubleInputPointers;
+	std::array<double*, channels> planarDoubleOutputPointers;
+	for (unsigned channel = 0; channel < channels; ++channel)
+	{
+		planarDoubleInput[channel].assign(oversizedFrames + guardSamples, -77.0);
+		planarDoubleOutput[channel].assign(oversizedFrames + guardSamples, -88.0);
+		for (unsigned frame = 0; frame < oversizedFrames; ++frame)
+			planarDoubleInput[channel][frame] = static_cast<double>(channel * 16 + frame + 1) / 32.0;
+		planarDoubleInputPointers[channel] = planarDoubleInput[channel].data();
+		planarDoubleOutputPointers[channel] = planarDoubleOutput[channel].data();
+	}
+	engine.process(planarDoubleOutputPointers.data(), planarDoubleInputPointers.data(), oversizedFrames);
+	for (unsigned channel = 0; channel < channels; ++channel)
+	{
+		for (unsigned frame = 0; frame < oversizedFrames; ++frame)
+			harness.expectEqual(planarDoubleOutput[channel][frame], planarDoubleInput[channel][frame],
+				"oversized double-planar block did not pass through unchanged");
+		for (size_t frame = oversizedFrames; frame < planarDoubleOutput[channel].size(); ++frame)
+		{
+			harness.expectEqual(planarDoubleInput[channel][frame], -77.0,
+				"oversized double-planar processing wrote past its input");
+			harness.expectEqual(planarDoubleOutput[channel][frame], -88.0,
+				"oversized double-planar processing wrote past its output");
 		}
 	}
 
@@ -489,6 +524,63 @@ TEST_CASE(EngineOrchestrationTests, testConfigSwapCrossfades)
 	float finalRight = after[(size_t)478 * 2 + 1];
 	harness.expectNear(finalLeft, target, 1e-4f, "left channel did not converge to the new config gain");
 	harness.expectNear(finalRight, target, 1e-4f, "right channel did not converge to the new config gain");
+}
+
+TEST_CASE(EngineOrchestrationTests, testDoublePlanarMatchesDoubleInterleavedAcrossConfigSwap)
+{
+	constexpr unsigned sampleRate = 6400;
+	constexpr unsigned frames = 64;
+	for (unsigned channels : {2u, 6u})
+	{
+		const std::wstring suffix = std::to_wstring(channels);
+		const std::wstring configA = writeConfig(harness, L"double-planar-a-" + suffix + L".txt",
+			"Preamp: -6.0206 dB\nFilter: ON PK Fc 1000 Hz Gain -3 dB Q 1.0\n");
+		const std::wstring configB = writeConfig(harness, L"double-planar-b-" + suffix + L".txt",
+			"Preamp: -12 dB\nFilter: ON PK Fc 1000 Hz Gain 2 dB Q 0.8\n");
+		FilterEngine interleavedEngine;
+		FilterEngine planarEngine;
+		initializeEngine(interleavedEngine, sampleRate, channels, frames, configA);
+		initializeEngine(planarEngine, sampleRate, channels, frames, configA);
+
+		const auto processAndCompare = [&](unsigned block, const std::string& phase) {
+			std::vector<double> interleavedInput(static_cast<size_t>(channels) * frames);
+			std::vector<double> interleavedOutput(interleavedInput.size(), -9.0);
+			std::vector<std::vector<double>> planarInput(channels, std::vector<double>(frames));
+			std::vector<std::vector<double>> planarOutput(channels, std::vector<double>(frames, -9.0));
+			std::vector<double*> inputPlanes(channels);
+			std::vector<double*> outputPlanes(channels);
+			for (unsigned channel = 0; channel < channels; ++channel)
+			{
+				inputPlanes[channel] = planarInput[channel].data();
+				outputPlanes[channel] = planarOutput[channel].data();
+				for (unsigned frame = 0; frame < frames; ++frame)
+				{
+					const int sample = static_cast<int>((block * frames + frame) * channels + channel);
+					const double value = static_cast<double>(sample % 61 - 30) / 64.0;
+					interleavedInput[static_cast<size_t>(frame) * channels + channel] = value;
+					planarInput[channel][frame] = value;
+				}
+			}
+			interleavedEngine.process(interleavedOutput.data(), interleavedInput.data(), frames);
+			planarEngine.process(outputPlanes.data(), inputPlanes.data(), frames);
+			bool identical = true;
+			for (unsigned channel = 0; channel < channels; ++channel)
+			{
+				for (unsigned frame = 0; frame < frames; ++frame)
+				{
+					identical = identical && planarOutput[channel][frame]
+						== interleavedOutput[static_cast<size_t>(frame) * channels + channel];
+				}
+			}
+			harness.expect(identical, phase + " is bit-identical for " + std::to_string(channels) + " channels");
+		};
+
+		processAndCompare(0, "the initial configuration");
+		harness.require(interleavedEngine.loadConfig(configB), "the interleaved engine loads its replacement configuration");
+		harness.require(planarEngine.loadConfig(configB), "the planar engine loads its replacement configuration");
+		processAndCompare(1, "the configuration crossfade");
+		processAndCompare(2, "the settled replacement configuration");
+	}
 }
 
 // A reload is one transaction: filters may have been constructed and

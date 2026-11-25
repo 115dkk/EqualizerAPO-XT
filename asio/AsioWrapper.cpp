@@ -653,11 +653,11 @@ namespace eapo::asio
 			}
 			else
 			{
-				float** planes = processor_->planes(Direction::Input);
+				double** planes = processor_->planes(Direction::Input);
 				if (planes != nullptr)
 				{
 					for (size_t i = first; i < end; i++)
-						channels_[i].codec.toFloat(channels_[i].targetBuffers[index], planes[i], static_cast<unsigned>(frames_));
+						channels_[i].codec.toDouble(channels_[i].targetBuffers[index], planes[i], static_cast<unsigned>(frames_));
 					const uint64_t started = static_cast<uint64_t>(Clock::ticks());
 					const Outcome outcome = processor_->process(Direction::Input);
 					account(Direction::Input, outcome, started);
@@ -666,7 +666,7 @@ namespace eapo::asio
 						for (size_t i = first; i < end; i++)
 						{
 							if (channels_[i].hostBuffers[index] != nullptr)
-								channels_[i].codec.fromFloat(planes[i], channels_[i].hostBuffers[index], static_cast<unsigned>(frames_));
+								channels_[i].codec.fromDouble(planes[i], channels_[i].hostBuffers[index], static_cast<unsigned>(frames_));
 						}
 						processed = true;
 					}
@@ -706,16 +706,16 @@ namespace eapo::asio
 			}
 			else
 			{
-				float** planes = processor_->planes(Direction::Output);
+				double** planes = processor_->planes(Direction::Output);
 				if (planes != nullptr)
 				{
 					for (size_t i = first; i < end; i++)
 					{
-						float* plane = planes[i - first];
+						double* plane = planes[i - first];
 						if (channels_[i].hostBuffers[index] != nullptr)
-							channels_[i].codec.toFloat(channels_[i].hostBuffers[index], plane, static_cast<unsigned>(frames_));
+							channels_[i].codec.toDouble(channels_[i].hostBuffers[index], plane, static_cast<unsigned>(frames_));
 						else
-							std::memset(plane, 0, sizeof(float) * static_cast<size_t>(frames_));
+							std::memset(plane, 0, sizeof(double) * static_cast<size_t>(frames_));
 					}
 					const uint64_t started = static_cast<uint64_t>(Clock::ticks());
 					const Outcome outcome = processor_->process(Direction::Output);
@@ -723,7 +723,7 @@ namespace eapo::asio
 					if (planesCarryAudio(outcome))
 					{
 						for (size_t i = first; i < end; i++)
-							channels_[i].codec.fromFloat(planes[i - first], channels_[i].targetBuffers[index], static_cast<unsigned>(frames_));
+							channels_[i].codec.fromDouble(planes[i - first], channels_[i].targetBuffers[index], static_cast<unsigned>(frames_));
 						processed = true;
 					}
 				}
