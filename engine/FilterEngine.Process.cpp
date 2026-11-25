@@ -275,6 +275,11 @@ void FilterEngine::processImpl(SampleType output, SampleType input, unsigned fra
 	finishTransitionIfReady();
 }
 
+void FilterEngine::noteHostBlock(int64_t entryTicks, int64_t exitTicks, unsigned frameCount) noexcept
+{
+	hostBlockTiming.observe(entryTicks, exitTicks, frameCount, sampleRate, performanceFrequency);
+}
+
 // Process interleaved audio (float*)
 void FilterEngine::process(float* output, float* input, unsigned frameCount)
 {

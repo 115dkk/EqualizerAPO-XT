@@ -273,6 +273,7 @@
     <ClInclude Include="services\windows\AudioServiceNames.h" />
     <ClInclude Include="devices\DeviceChange.h" />
     <ClInclude Include="devices\DeviceEnumeration.h" />
+    <ClInclude Include="diagnostics\performance\BlockTiming.h" />
     <ClInclude Include="diagnostics\performance\PerfProfile.h" />
     <ClInclude Include="diagnostics\performance\PrecisionTimer.h" />
     <ClInclude Include="services\registry\WindowsRegistry.h" />

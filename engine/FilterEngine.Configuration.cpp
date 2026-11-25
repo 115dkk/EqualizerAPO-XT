@@ -161,6 +161,48 @@ void FilterEngine::deferUntilConfigurationCommit(std::function<void()> action)
 	load.commitActions.push_back(std::move(action));
 }
 
+void FilterEngine::reportHostBlockTiming(const wchar_t* when)
+{
+	const eapo::diag::BlockTimingSummary summary = hostBlockTiming.take();
+	// A take() that races the last callback can move that callback's block
+	// count into the previous summary and leave its over-budget or late-start
+	// count for this one. Report whenever any count is left, so such a block is
+	// attributed to the neighbouring interval instead of being dropped.
+	if (summary.blocks == 0 && summary.overBudget == 0 && summary.lateStarts == 0)
+		return;
+
+	const double millisecondsPerTick = 1000.0 / static_cast<double>(performanceFrequency);
+	const wchar_t* const format =
+		L"Audio blocks %s: %llu callbacks of %.2f ms; %llu took longer than the audio they carry "
+		L"(longest %.2f ms, for %.2f ms of audio); %llu began more than 1.5 block lengths after "
+		L"the previous one (longest gap %.2f ms)";
+	// Only a block the equalizer processed for longer than its own audio goes
+	// to the log unconditionally. Late starts alone stay on the trace: an
+	// audio engine that wakes every 20 ms and hands over two 10 ms blocks at
+	// once (the GitHub runner's virtual device did this for about a third of
+	// its callbacks) loses no audio, yet counts as late on every stream.
+	if (summary.overBudget > 0)
+	{
+		LogF(format, when, static_cast<unsigned long long>(summary.blocks),
+			summary.lastBudgetTicks * millisecondsPerTick,
+			static_cast<unsigned long long>(summary.overBudget),
+			summary.longestTicks * millisecondsPerTick,
+			summary.longestBudgetTicks * millisecondsPerTick,
+			static_cast<unsigned long long>(summary.lateStarts),
+			summary.longestGapTicks * millisecondsPerTick);
+	}
+	else
+	{
+		TraceF(format, when, static_cast<unsigned long long>(summary.blocks),
+			summary.lastBudgetTicks * millisecondsPerTick,
+			static_cast<unsigned long long>(summary.overBudget),
+			summary.longestTicks * millisecondsPerTick,
+			summary.longestBudgetTicks * millisecondsPerTick,
+			static_cast<unsigned long long>(summary.lateStarts),
+			summary.longestGapTicks * millisecondsPerTick);
+	}
+}
+
 bool FilterEngine::loadConfig(const wstring& customPath)
 {
 	// One producer may own the pending slot until the audio thread completes
@@ -179,6 +221,7 @@ bool FilterEngine::loadConfig(const wstring& customPath)
 			lastOversizedMaxFrameCount.load(std::memory_order_relaxed));
 		reportedOversizedBlockCount = observedOversizedBlockCount;
 	}
+	reportHostBlockTiming(L"since the previous configuration load");
 	timer.start();
 
 	// The factories build through the engine's load session. Move the previous

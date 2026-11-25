@@ -14,6 +14,17 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The audio service logs audio blocks that took longer than the audio they
+  carry.** Nothing measured how long the equalizer took per block in the audio
+  service, so an occasional one-buffer slip in a loopback recording could not
+  be traced to it or ruled out. The APO now times every block. When the
+  configuration is reloaded and when a stream stops, it logs how many blocks
+  took longer to process than the audio they carry, and how many began more
+  than 1.5 block lengths after the previous one, with the longest of each. The
+  line appears when a block took longer than its audio, or always with tracing
+  on: some audio engines hand over two blocks at once every other period, so
+  late starts alone are common and lose nothing. The audio is not changed. ([#526](https://github.com/115dkk/EqualizerAPO-XT/pull/526))
+
 ## v2.79.1 — 2026-11-24
 
 - **A VST plug-in's channel fill reaches channels that no `Channel:` line
@@ -29,7 +40,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   uses the first selected channels, and lines that already worked give the
   same output. When a fill names a channel that exists nowhere, the log names
   it. The Editor no longer shows such a name in the danger color.
-  ([#525](https://github.com/115dkk/EqualizerAPO-XT/pull/525)))
+  ([#525](https://github.com/115dkk/EqualizerAPO-XT/pull/525))
 
 ## v2.79.0 — 2026-11-24
 
