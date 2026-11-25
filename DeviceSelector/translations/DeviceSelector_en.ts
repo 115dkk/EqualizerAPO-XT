@@ -329,7 +329,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>32-bit host support</translation>
     </message>
     <message>
-        <location line="+27"/>
+        <location line="+23"/>
         <source>Tells the application that all channels use 64-bit float, so an application that mixes in that format can send its audio without converting it first. The device keeps its own format; the conversion happens after the EQ. If the application cannot open the device or the sound is wrong, turn this off.</source>
         <translation>Tells the application that all channels use 64-bit float, so an application that mixes in that format can send its audio without converting it first. The device keeps its own format; the conversion happens after the EQ. If the application cannot open the device or the sound is wrong, turn this off.</translation>
     </message>

@@ -290,12 +290,12 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>대기 시간:</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.ui" line="348"/>
+        <location filename="../DeviceSelector.ui" line="344"/>
         <source>Tells the application that all channels use 64-bit float, so an application that mixes in that format can send its audio without converting it first. The device keeps its own format; the conversion happens after the EQ. If the application cannot open the device or the sound is wrong, turn this off.</source>
         <translation>모든 채널의 형식을 64비트 부동소수점으로 애플리케이션에 알리므로, 이 형식으로 믹싱하는 애플리케이션은 오디오를 먼저 변환하지 않고 보냅니다. 장치의 형식은 그대로 유지하며, EQ를 적용한 뒤 변환합니다. 애플리케이션에서 장치를 열지 못하거나 소리가 이상하면 이 옵션을 끄십시오.</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.ui" line="351"/>
+        <location filename="../DeviceSelector.ui" line="347"/>
         <source>Use 64-bit float samples</source>
         <translation>64비트 부동소수점 사용</translation>
     </message>
@@ -358,12 +358,12 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation type="vanished">상태</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.ui" line="412"/>
+        <location filename="../DeviceSelector.ui" line="408"/>
         <source>Please select the devices for which Equalizer APO is to be installed:</source>
         <translation>Equalizer APO를 설치할 장치를 선택하십시오:</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.ui" line="419"/>
+        <location filename="../DeviceSelector.ui" line="415"/>
         <source>Copy Device command to clipboard</source>
         <translation>Device 명령을 클립보드에 복사</translation>
     </message>

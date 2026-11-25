@@ -297,12 +297,12 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>等待时间：</translation>
     </message>
     <message>
-        <location line="+105"/>
+        <location line="+101"/>
         <source>Tells the application that all channels use 64-bit float, so an application that mixes in that format can send its audio without converting it first. The device keeps its own format; the conversion happens after the EQ. If the application cannot open the device or the sound is wrong, turn this off.</source>
         <translation>向应用程序报告所有通道均使用 64 位浮点格式，让以此格式混音的应用程序无需预先转换即可发送音频。设备仍使用自身的格式，格式转换在应用 EQ 后进行。如果应用程序无法打开设备或声音异常，请关闭此选项。</translation>
     </message>
     <message>
-        <location line="-108"/>
+        <location line="-104"/>
         <location line="+10"/>
         <source>Sets how long to wait for processing once the buffer is removed. The longer the wait, the less sound without the EQ, but the more latency.</source>
         <translation>设置移除缓冲区后等待处理的时长。等待越久，未应用 EQ 的声音越少，但延迟也随之增加。</translation>
@@ -348,7 +348,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>同时在 32 位应用程序查找的位置注册驱动条目。此版本不附带 32 位包装器时不可用。</translation>
     </message>
     <message>
-        <location line="+33"/>
+        <location line="+29"/>
         <source>Use 64-bit float samples</source>
         <translation>使用 64 位浮点采样数据</translation>
     </message>
@@ -363,7 +363,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>请选择要安装 Equalizer APO 的设备：</translation>
     </message>
     <message>
-        <location line="-370"/>
+        <location line="-366"/>
         <source>Please select exactly one activated device by clicking on its name</source>
         <translation>请点击名称选择一个已激活的设备</translation>
     </message>

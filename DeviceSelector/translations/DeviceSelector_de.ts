@@ -297,12 +297,12 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <translation>Wartezeit:</translation>
     </message>
     <message>
-        <location line="+105"/>
+        <location line="+101"/>
         <source>Tells the application that all channels use 64-bit float, so an application that mixes in that format can send its audio without converting it first. The device keeps its own format; the conversion happens after the EQ. If the application cannot open the device or the sound is wrong, turn this off.</source>
         <translation>Meldet der Anwendung, dass alle Kanäle 64-Bit-Gleitkomma verwenden, sodass eine Anwendung, die in diesem Format mischt, ihre Audiodaten ohne vorherige Konvertierung senden kann. Das Gerät behält sein eigenes Format; die Konvertierung erfolgt nach dem EQ. Deaktivieren Sie diese Option, wenn die Anwendung das Gerät nicht öffnen kann oder der Ton nicht stimmt.</translation>
     </message>
     <message>
-        <location line="-108"/>
+        <location line="-104"/>
         <location line="+10"/>
         <source>Sets how long to wait for processing once the buffer is removed. The longer the wait, the less sound without the EQ, but the more latency.</source>
         <translation>Legt fest, wie lange nach dem Entfernen des Puffers auf die Verarbeitung gewartet wird. Je länger gewartet wird, desto seltener kommt Ton ohne EQ, aber desto höher die Latenz.</translation>
@@ -348,7 +348,7 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <translation>Registriert den Treibereintrag auch dort, wo 32-Bit-Anwendungen ihn suchen. Nicht verfügbar, wenn dieser Build keinen 32-Bit-Wrapper enthält.</translation>
     </message>
     <message>
-        <location line="+33"/>
+        <location line="+29"/>
         <source>Use 64-bit float samples</source>
         <translation>64-Bit-Gleitkomma verwenden</translation>
     </message>
@@ -363,7 +363,7 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <translation>Bitte die Geräte auswählen, für die Equalizer APO installiert werden soll:</translation>
     </message>
     <message>
-        <location line="-370"/>
+        <location line="-366"/>
         <source>Please select exactly one activated device by clicking on its name</source>
         <translation>Bitte genau ein aktiviertes Gerät durch Klick auf den Namen wählen</translation>
     </message>

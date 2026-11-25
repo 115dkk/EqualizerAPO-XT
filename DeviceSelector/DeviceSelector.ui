@@ -323,25 +323,21 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
             </widget>
            </item>
            <item>
-            <spacer name="asioHostSpacer">
+            <spacer name="asioSampleGap">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
              </property>
              <property name="sizeType">
-              <enum>QSizePolicy::Expanding</enum>
+              <enum>QSizePolicy::Fixed</enum>
              </property>
              <property name="sizeHint" stdset="0">
               <size>
-               <width>40</width>
+               <width>16</width>
                <height>20</height>
               </size>
              </property>
             </spacer>
            </item>
-          </layout>
-         </item>
-         <item>
-          <layout class="QHBoxLayout" name="asioSampleRow">
            <item>
             <widget class="QCheckBox" name="asioFloat64CheckBox">
              <property name="toolTip">
@@ -353,7 +349,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
             </widget>
            </item>
            <item>
-            <spacer name="asioSampleSpacer">
+            <spacer name="asioHostSpacer">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
              </property>

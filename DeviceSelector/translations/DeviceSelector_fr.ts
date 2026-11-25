@@ -290,7 +290,7 @@ ATTENTION: Certains pilotes de carte son peuvent produire des sons indésirables
         <translation>Temps d&apos;attente :</translation>
     </message>
     <message>
-        <location line="+105"/>
+        <location line="+101"/>
         <source>Tells the application that all channels use 64-bit float, so an application that mixes in that format can send its audio without converting it first. The device keeps its own format; the conversion happens after the EQ. If the application cannot open the device or the sound is wrong, turn this off.</source>
         <translation>Indique à l&apos;application que tous les canaux utilisent le format à virgule flottante 64 bits, ce qui permet à une application qui mixe dans ce format d&apos;envoyer l&apos;audio sans le convertir au préalable. Le périphérique conserve son propre format ; la conversion se fait après l&apos;EQ. Si l&apos;application ne peut pas ouvrir le périphérique ou si le son est incorrect, désactivez cette option.</translation>
     </message>
@@ -300,7 +300,7 @@ ATTENTION: Certains pilotes de carte son peuvent produire des sons indésirables
         <translation>Échantillons flottants 64 bits</translation>
     </message>
     <message>
-        <location line="-111"/>
+        <location line="-107"/>
         <location line="+10"/>
         <source>Sets how long to wait for processing once the buffer is removed. The longer the wait, the less sound without the EQ, but the more latency.</source>
         <translation>Définit combien de temps attendre le traitement une fois le tampon supprimé. Plus l&apos;attente est longue, moins il y a de son sans EQ, mais plus la latence augmente.</translation>
@@ -358,7 +358,7 @@ ATTENTION: Certains pilotes de carte son peuvent produire des sons indésirables
         <translation type="vanished">Statut</translation>
     </message>
     <message>
-        <location line="+94"/>
+        <location line="+90"/>
         <source>Please select the devices for which Equalizer APO is to be installed:</source>
         <translation>Veuillez sélectionner les appareils pour lesquels Equalizer APO doit être installé:</translation>
     </message>
