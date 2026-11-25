@@ -340,6 +340,36 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
            </item>
           </layout>
          </item>
+         <item>
+          <layout class="QHBoxLayout" name="asioSampleRow">
+           <item>
+            <widget class="QCheckBox" name="asioFloat64CheckBox">
+             <property name="toolTip">
+              <string>The application sees 64-bit float samples instead of the device's own format, so one that mixes in 64-bit float sends its audio without converting it first. The device's format does not change. Turn this off if the application refuses the device or the sound is wrong.</string>
+             </property>
+             <property name="text">
+              <string>64-bit float samples</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="asioSampleSpacer">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeType">
+              <enum>QSizePolicy::Expanding</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </item>
            </layout>
           </widget>
          </item>

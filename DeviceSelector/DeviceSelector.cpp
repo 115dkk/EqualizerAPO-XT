@@ -252,6 +252,7 @@ void DeviceSelector::finishSetup()
 	connect(ui.asioDeadlineComboBox, QOverload<int>::of(&QComboBox::activated), this, &DeviceSelector::onTroubleShootingOptionChanged);
 	connect(ui.asioAutoStartCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
 	connect(ui.asioHost32CheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
+	connect(ui.asioFloat64CheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
 	connect(ignoreConvolutionSilenceCheckBox, &QCheckBox::clicked, this, &DeviceSelector::updateButtons);
 	connect(parallelConvolutionCheckBox, &QCheckBox::clicked, this, &DeviceSelector::updateButtons);
 
@@ -345,7 +346,7 @@ void DeviceSelector::previewAsioEntry()
 	placeAsioOptions(true);
 	ui.asioOptionsBox->setVisible(true);
 	for (QWidget* control : {static_cast<QWidget*>(ui.asioSyncCheckBox), static_cast<QWidget*>(ui.asioAutoStartCheckBox),
-		static_cast<QWidget*>(ui.asioHost32CheckBox)})
+		static_cast<QWidget*>(ui.asioHost32CheckBox), static_cast<QWidget*>(ui.asioFloat64CheckBox)})
 		control->setEnabled(true);
 }
 
@@ -399,6 +400,8 @@ bool DeviceSelector::readAsioOption(const QObject* sender, eapo::asio::EntryOpti
 		options.autoStart = ui.asioAutoStartCheckBox->isChecked();
 	else if (sender == ui.asioHost32CheckBox)
 		options.host32 = ui.asioHost32CheckBox->isChecked();
+	else if (sender == ui.asioFloat64CheckBox)
+		options.float64Samples = ui.asioFloat64CheckBox->isChecked();
 	else
 		return false;
 	return true;
@@ -852,6 +855,8 @@ void DeviceSelector::updateButtons()
 	ui.asioAutoStartCheckBox->setChecked(asioOptions.autoStart);
 	ui.asioHost32CheckBox->setEnabled(asioEnabled && asioCanHost32);
 	ui.asioHost32CheckBox->setChecked(asioOptions.host32 && asioCanHost32);
+	ui.asioFloat64CheckBox->setEnabled(asioEnabled);
+	ui.asioFloat64CheckBox->setChecked(asioOptions.float64Samples);
 
 	ui.installPreMixCheckBox->setChecked(installState.installPreMix);
 	ui.installPostMixCheckBox->setChecked(installState.installPostMix);
