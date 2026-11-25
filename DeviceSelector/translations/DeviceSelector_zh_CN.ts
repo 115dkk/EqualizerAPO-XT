@@ -4,7 +4,7 @@
 <context>
     <name>DeviceSelector</name>
     <message>
-        <location filename="../DeviceSelector.cpp" line="+195"/>
+        <location filename="../DeviceSelector.cpp" line="+196"/>
         <source>Multi-core convolution processing</source>
         <translation>多核卷积处理</translation>
     </message>
@@ -56,19 +56,19 @@ It is optional because while it converts it uses CPU and a little latency, and t
     <message>
         <location line="-35"/>
         <location line="+17"/>
-        <location line="+342"/>
+        <location line="+349"/>
         <location line="+13"/>
         <source>Error while accessing the registry</source>
         <translation>访问注册表时出错</translation>
     </message>
     <message>
-        <location line="-360"/>
-        <location line="+480"/>
+        <location line="-367"/>
+        <location line="+487"/>
         <source>Info</source>
         <translation>信息</translation>
     </message>
     <message>
-        <location line="-480"/>
+        <location line="-487"/>
         <source>A registry value that is required for the operation of Equalizer APO was not set correctly. This might have been caused by a driver installation or uninstallation. The value has been corrected. A reboot may be required so that the changes can take effect.</source>
         <translation>未正确设置 Equalizer APO 操作所需的注册表值。这可能是由驱动程序安装或卸载引起的。该值已更正。可能需要重新启动才能使更改生效。</translation>
     </message>
@@ -95,7 +95,7 @@ It is optional because while it converts it uses CPU and a little latency, and t
         <translation type="vanished">详情请查看 %1。</translation>
     </message>
     <message>
-        <location line="+779"/>
+        <location line="+788"/>
         <source>APO will be uninstalled</source>
         <translation>APO 将被卸载</translation>
     </message>
@@ -145,7 +145,7 @@ It is optional because while it converts it uses CPU and a little latency, and t
         <translation>未连接</translation>
     </message>
     <message>
-        <location line="-417"/>
+        <location line="-419"/>
         <source>Upgrades available</source>
         <translation>更新可用</translation>
     </message>
@@ -165,13 +165,13 @@ It is optional because while it converts it uses CPU and a little latency, and t
         <translation>要应用更改，应重新启动 Windows。立即重新启动？</translation>
     </message>
     <message>
-        <location line="+358"/>
+        <location line="+360"/>
         <source>APO will be installed</source>
         <translation>将安装 APO</translation>
     </message>
     <message>
-        <location line="-775"/>
-        <location line="+595"/>
+        <location line="-784"/>
+        <location line="+602"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
@@ -211,7 +211,7 @@ It is optional because while it converts it uses CPU and a little latency, and t
         <translation type="vanished">状态</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="-408"/>
+        <location filename="../DeviceSelector.cpp" line="-415"/>
         <source>Troubleshooting options (only use in case of problems)</source>
         <translation>故障排除选项（仅在出现问题时使用）</translation>
     </message>
@@ -297,7 +297,12 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>等待时间：</translation>
     </message>
     <message>
-        <location line="-3"/>
+        <location line="+105"/>
+        <source>Tells the application that all channels use 64-bit float, so an application that mixes in that format can send its audio without converting it first. The device keeps its own format; the conversion happens after the EQ. If the application cannot open the device or the sound is wrong, turn this off.</source>
+        <translation>向应用程序报告所有通道均使用 64 位浮点格式，让以此格式混音的应用程序无需预先转换即可发送音频。设备仍使用自身的格式，格式转换在应用 EQ 后进行。如果应用程序无法打开设备或声音异常，请关闭此选项。</translation>
+    </message>
+    <message>
+        <location line="-108"/>
         <location line="+10"/>
         <source>Sets how long to wait for processing once the buffer is removed. The longer the wait, the less sound without the EQ, but the more latency.</source>
         <translation>设置移除缓冲区后等待处理的时长。等待越久，未应用 EQ 的声音越少，但延迟也随之增加。</translation>
@@ -343,7 +348,12 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>同时在 32 位应用程序查找的位置注册驱动条目。此版本不附带 32 位包装器时不可用。</translation>
     </message>
     <message>
-        <location line="+71"/>
+        <location line="+33"/>
+        <source>Use 64-bit float samples</source>
+        <translation>使用 64 位浮点采样数据</translation>
+    </message>
+    <message>
+        <location line="+68"/>
         <source>Copy Device command to clipboard</source>
         <translation>复制设备命令到剪贴板</translation>
     </message>
@@ -353,7 +363,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>请选择要安装 Equalizer APO 的设备：</translation>
     </message>
     <message>
-        <location line="-340"/>
+        <location line="-370"/>
         <source>Please select exactly one activated device by clicking on its name</source>
         <translation>请点击名称选择一个已激活的设备</translation>
     </message>
@@ -460,7 +470,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     </message>
     <message numerus="yes">
         <location line="+23"/>
-        <location filename="../DeviceTestView.cpp" line="+514"/>
+        <location filename="../DeviceTestView.cpp" line="+517"/>
         <source>Check failed for %n device(s).</source>
         <translation>
             <numerusform>%n 个设备检查失败。</numerusform>
@@ -493,7 +503,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
 <context>
     <name>DeviceTestView</name>
     <message>
-        <location filename="../DeviceTestDialog.cpp" line="+75"/>
+        <location filename="../DeviceTestDialog.cpp" line="+77"/>
         <source>Reinstalling %1 %2</source>
         <translation>正在为 %1 %2 重新安装 APO</translation>
     </message>
@@ -553,12 +563,12 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>已撤销安装</translation>
     </message>
     <message>
-        <location filename="../DeviceTestView.cpp" line="-442"/>
+        <location filename="../DeviceTestView.cpp" line="-444"/>
         <source>APO installation check</source>
         <translation>APO 安装检查</translation>
     </message>
     <message>
-        <location line="+51"/>
+        <location line="+53"/>
         <source>Record</source>
         <translation>记录</translation>
     </message>
@@ -1009,6 +1019,19 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <location line="+1"/>
         <source>Whether the APO works is not known.</source>
         <translation>尚不清楚 APO 是否正常工作。</translation>
+    </message>
+</context>
+<context>
+    <name>TitleBar</name>
+    <message>
+        <location filename="../../Editor/widgets/TitleBar.cpp" line="+119"/>
+        <source>Restore</source>
+        <translation>还原</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Maximize</source>
+        <translation>最大化</translation>
     </message>
 </context>
 </TS>
