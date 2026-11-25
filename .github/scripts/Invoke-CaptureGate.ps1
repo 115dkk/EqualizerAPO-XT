@@ -163,6 +163,15 @@ $asioEntryMeasurement = [pscustomobject]@{ Name = "asio-entry"; ExpectGainDb = $
 # runs the device at that period and serves several buffers per event
 # (wasapi::initialBridge), and the direct-target diagnosis prints the bridge.
 $asioEntryFrames = @(256, 64, 1024, 2048)
+# The same entry with 64-bit float samples (issue #528). The option is turned
+# on through the product's own command (DeviceSelector --asio-float64), which
+# rewrites the entry's record; the probe then activates the registered CLSID
+# again and the driver must report ASIOSTFloat64LSB (20) for the channel a
+# host asks about. The probe writes its tone in whatever type the driver
+# reported, so the preamp arriving on the far side also says the wrapper read
+# those buffers as doubles: read as any other type they would not arrive as
+# a tone at that level. One buffer size, the gated one.
+$asioEntryFloat64Measurement = [pscustomobject]@{ Name = "asio-entry-float64"; ExpectGainDb = $PreampDb; ToleranceDb = $ToleranceDb; Required = $true; SampleType = 20; Note = "the entry with 64-bit float samples reports ASIOSTFloat64LSB and the far side hears the preamp" }
 # The Send round (docs/features/send.md): EqualizerAPO.dll hosted twice in
 # one process, for the cable's playback endpoint and a second active playback
 # endpoint, under a config whose Send line hands the first one's channels to
@@ -213,6 +222,7 @@ $plan = [pscustomobject]@{
     LowLatency = $lowLatencyMeasurements
     AsioEntry = $asioEntryMeasurement
     AsioEntryFrames = $asioEntryFrames
+    AsioEntryFloat64 = $asioEntryFloat64Measurement
     SendRound = $sendRound
     PluginLoad = $pluginLoad
     ChildChain = $childChain
@@ -1180,10 +1190,11 @@ if ($Phases -contains "asio-entry") {
             # and gone counts, not the product's (audit #348 F14).
             $env:PATH = "$current;$env:PATH"
             $asioEntry.probes = @()
-            foreach ($frames in $asioEntryFrames) {
-                $required = $frames -eq $asioEntryFrames[0]
-                $name = if ($required) { $asioEntryMeasurement.Name } else { "$($asioEntryMeasurement.Name)-$frames" }
-                Write-Host "-- $frames frames"
+            # One probe pass over the registered entry: the tone runs, the far
+            # side is measured as $name, and the probe's exit code and text
+            # come back for the caller to judge.
+            function Invoke-AsioEntryProbe([int] $frames, [string] $name, [bool] $required, $measurement) {
+                Write-Host "-- $name, $frames frames"
                 $probeOut = [System.IO.Path]::GetTempFileName()
                 $probeErr = [System.IO.Path]::GetTempFileName()
                 $probeProcess = Start-Process -FilePath $asioProbe -ArgumentList @("--target", "clsid:$($asioEntry.wrapperClsid)", "--wrapper", "none", "--seconds", "25", "--sine", "1000", "--rate", "$impulseRate", "--frames", "$frames") -PassThru -NoNewWindow -RedirectStandardOutput $probeOut -RedirectStandardError $probeErr -WorkingDirectory $current
@@ -1202,15 +1213,45 @@ if ($Phases -contains "asio-entry") {
                 if (-not $streaming) { Write-Host "the probe did not report a running stream within 40 s" }
                 # The bridge calibration (a dozen events) and its reopen, then settle.
                 Start-Sleep -Seconds 2
-                $record = Measure-Cable ([pscustomobject]@{ Name = $name; Category = "default"; Raw = $false; ExpectGainDb = $asioEntryMeasurement.ExpectGainDb; ToleranceDb = $asioEntryMeasurement.ToleranceDb; Required = $required; Note = "$($asioEntryMeasurement.Note) ($frames frames)"; NoRender = $true }) "asio-entry"
+                $null = Measure-Cable ([pscustomobject]@{ Name = $name; Category = "default"; Raw = $false; ExpectGainDb = $measurement.ExpectGainDb; ToleranceDb = $measurement.ToleranceDb; Required = $required; Note = "$($measurement.Note) ($frames frames)"; NoRender = $true }) "asio-entry"
                 $probeProcess.WaitForExit(45000) | Out-Null
                 if (-not $probeProcess.HasExited) { try { $probeProcess.Kill() } catch {} }
                 $probeText = (Get-Content -LiteralPath $probeOut -Raw -ErrorAction SilentlyContinue) + (Get-Content -LiteralPath $probeErr -Raw -ErrorAction SilentlyContinue)
                 Remove-Item -LiteralPath $probeOut, $probeErr -Force -ErrorAction SilentlyContinue
                 if ($probeText) { Write-Host ($probeText.TrimEnd()) }
-                $asioEntry.probes += [pscustomobject]@{ frames = $frames; exitCode = $probeProcess.ExitCode; output = $probeText }
-                if ($probeProcess.ExitCode -ne 0 -and $required) { Add-Failure "asio-entry/probe: AsioProbe over the registered entry exited with $($probeProcess.ExitCode) at $frames frames" }
+                return [pscustomobject]@{ name = $name; frames = $frames; exitCode = $probeProcess.ExitCode; output = $probeText }
             }
+            foreach ($frames in $asioEntryFrames) {
+                $required = $frames -eq $asioEntryFrames[0]
+                $name = if ($required) { $asioEntryMeasurement.Name } else { "$($asioEntryMeasurement.Name)-$frames" }
+                $pass = Invoke-AsioEntryProbe $frames $name $required $asioEntryMeasurement
+                $asioEntry.probes += $pass
+                if ($pass.exitCode -ne 0 -and $required) { Add-Failure "asio-entry/probe: AsioProbe over the registered entry exited with $($pass.exitCode) at $frames frames" }
+            }
+            # 64-bit float samples (issue #528). The same command that made the
+            # entry turns the option on; it keeps the entry and rewrites its
+            # record, which the wrapper DLL reads at the next activation.
+            $float64 = [ordered]@{ install = $null; recordValue = $null; reportedType = $null; probeExitCode = $null }
+            $float64Install = Invoke-ExternalProgram (Join-Path $current "DeviceSelector.exe") @("--install-endpoint", $endpoints.Render, "--asio-entry", "--asio-float64") 300 $current
+            $float64.install = [ordered]@{ exitCode = $float64Install.ExitCode; timedOut = $float64Install.TimedOut }
+            if ($float64Install.ExitCode -ne 0) { Add-Failure "asio-entry-float64/install: DeviceSelector --install-endpoint --asio-entry --asio-float64 exited with $($float64Install.ExitCode)" }
+            & reg export "HKLM\SOFTWARE\EqualizerAPO\ASIO" (Join-Path $SnapshotDirectory "92-asio-entry-float64-records.reg") /y 2>$null | Out-Null
+            $global:LASTEXITCODE = 0
+            $float64Record = Get-ItemProperty -Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO\ASIO\$($asioEntry.wrapperClsid)" -ErrorAction SilentlyContinue
+            $float64.recordValue = if ($float64Record -and $float64Record.PSObject.Properties["Float64Samples"]) { [int]$float64Record.Float64Samples } else { $null }
+            if ($float64.recordValue -ne 1) { Add-Failure "asio-entry-float64/install: the entry's record holds Float64Samples='$($float64.recordValue)', expected 1" }
+            if (@(Get-EqApoAsioEntries).Count -ne 1) { Add-Failure "asio-entry-float64/install: expected the one '(EQ APO XT)' entry to remain, found $(@(Get-EqApoAsioEntries).Count)" }
+            $float64Pass = Invoke-AsioEntryProbe ($asioEntryFrames[0]) ($asioEntryFloat64Measurement.Name) $true $asioEntryFloat64Measurement
+            $asioEntry.probes += $float64Pass
+            $float64.probeExitCode = $float64Pass.exitCode
+            if ($float64Pass.exitCode -ne 0) { Add-Failure "asio-entry-float64/probe: AsioProbe over the registered entry exited with $($float64Pass.exitCode)" }
+            # The probe prints the type the driver reported for the channel it
+            # asked about ("target channels ... type=<n>").
+            if ($float64Pass.output -and $float64Pass.output -match "target channels .* type=(?<type>-?\d+)") { $float64.reportedType = [int]$Matches.type }
+            if ($float64.reportedType -ne $asioEntryFloat64Measurement.SampleType) {
+                Add-Failure "asio-entry-float64/probe: the entry reported sample type '$($float64.reportedType)' to the host, expected $($asioEntryFloat64Measurement.SampleType) (ASIOSTFloat64LSB)"
+            }
+            $asioEntry.float64 = [pscustomobject]$float64
             # Diagnosis: the same target opened directly (no registration, no
             # engine), which prints the driver's real event interval and how
             # long each period took to serve. Recorded, never gated.

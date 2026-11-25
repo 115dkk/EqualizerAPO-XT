@@ -309,6 +309,13 @@ Describe "extracted build script decisions" {
         $plan.AsioEntry.Name | Should -Be "asio-entry"
         $plan.AsioEntry.ExpectGainDb | Should -Be $plan.PreampDb
         $plan.AsioEntry.Required | Should -BeTrue
+        # The same entry with 64-bit float samples (issue #528): the driver
+        # must report ASIOSTFloat64LSB, which the ASIO SDK numbers 20, and
+        # the preamp must still arrive; gated.
+        $plan.AsioEntryFloat64.Name | Should -Be "asio-entry-float64"
+        $plan.AsioEntryFloat64.SampleType | Should -Be 20
+        $plan.AsioEntryFloat64.ExpectGainDb | Should -Be $plan.PreampDb
+        $plan.AsioEntryFloat64.Required | Should -BeTrue
     }
 
     It "plans the child round from the fixture's own header" {
